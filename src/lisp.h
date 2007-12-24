@@ -4982,6 +4982,7 @@ void print_float (Lisp_Object, Lisp_Object, int);
 #define DECIMAL_PRINT_SIZE(integral_type) \
 (((2410824 * sizeof (integral_type)) / 1000000) + 3)
 void long_to_string (char *, long);
+void ulong_to_bit_string (char *, unsigned long);
 extern int print_escape_newlines;
 extern MODULE_API int print_readably;
 Lisp_Object internal_with_output_to_temp_buffer (Lisp_Object,
@@ -5066,7 +5067,7 @@ EXFUN (Fdefault_value, 1);
 EXFUN (Ffboundp, 1);
 EXFUN (Ffset, 2);
 EXFUN (Fintern, 2);
-EXFUN (Fintern_soft, 2);
+EXFUN (Fintern_soft, 3);
 EXFUN (Fkill_local_variable, 1);
 EXFUN (Fset, 2);
 EXFUN (Fset_default, 2);

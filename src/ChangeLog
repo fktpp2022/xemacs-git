@@ -5,6 +5,117 @@
 	Unify the typed character if possible, following the current value
 	for the unicode precedence list. 
 
+2007-12-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* symbols.c (Fintern_soft): 
+	Provide a new optional third argument, DEFAULT, for those who want
+	to check if "nil" is a symbol or not. (More realistically, general
+	code that may get handed "nil" should probably use this argument.)
+
+2007-12-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* objects-tty.c (tty_find_charset_font): 
+	* objects-msw.c (mswindows_font_spec_matches_charset_stage_2):
+	* objects-msw.c (mswindows_font_spec_matches_charset_stage_1):
+	* objects-xlike-inc.c (x_font_spec_matches_charset): 
+	* objects-xlike-inc.c (gtk_font_spec_matches_charset):
+	If the charset is not specified when calling the
+	font_spec_matches_charset device method, its value is Qnil, not
+	Qunbound. See
+	http://mid.gmane.org/E1EfbmW-00029r-5G@iwi191.iwi.uni-sb.de and
+	Ben Wing's patch of
+	http://mid.gmane.org/439FA06B.3090007@xemacs.org. 
+
+2007-12-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* database.c (Fopen_database):
+	Actually respect the CODESYS argument; don't require EOL
+	autodetection from the coding system, because autodetection mostly
+	fails with reads of small amounts of data. It might be possible
+	with an implicit #'map-database on open, though I don't think
+	that's a great idea.
+	* database.c (print_database):
+	Give the coding system used for text conversion when printing a
+	database object. 
+
+2007-12-20  Jerry James  <james@xemacs.org>
+
+	* sound.c: Fix unused parameter warnings when HAVE_ALSA_SOUND.
+
+2007-12-18  Kenny Chien <Kenny.Chien@morganstanley.com>
+
+	* extw-Xt.c (extw_wait_for_response): Don't use undocumented
+	internal Xt functions, avoiding inconsistent behavior between
+	different Solaris versions.
+
+2007-12-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* symbols.c (Fspecial_form_p):
+	Following commentary from Jerry James, don't error if not passed a
+	subr. 
+
+	Flesh out the docstring; give details of what a subr is, what a
+	special form is, and why one should probably not write special
+	forms oneself. 
+
+2007-12-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* symbols.c (Fspecial_form_p): New.
+	For the use of advice.el, and perhaps other files; is SUBR a
+	special form?
+
+2007-12-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* doprnt.c (emacs_doprnt_1):
+	Add support for formatted printing of both longs and bignums as
+	base 2.
+	* editfns.c (Fformat):
+	Document the new %b escape for #'format. 
+	* lisp.h:
+	Make ulong_to_bit_string available beside long_to_string. 
+	* lread.c:
+	Fix a bug where the integer base was being ignored in certain
+	contexts; thank you Sebastian Freundt. This is necessary for
+	correct behaviour of #'integer-to-bit-vector and
+	#'bit-vector-to-integer, just added to subr.el
+	* print.c (ulong_to_bit_string): New.
+	Analagous to long_to_string, but used all the time when %b is
+	encountered, since we can't pass that to sprintf. 	
+
+2007-12-12  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* config.h.in:
+	Make the results of the checks for 
+	FcConfigGetRescanInterval, FcConfigSetRescanInterval
+	available.
+	* font-mgr.h:
+	If FcConfigSetRescanInterval and FcConfigGetRescanInterval are not
+	available as functions, #define them to map to their old
+	misspelled names. 	
+	* font-mgr.c (Ffc_config_get_rescan_interval):
+	* font-mgr.c (Ffc_config_set_rescan_interval):
+	Use the correct spelling in
+	FcConfigGetRescanInterval, FcConfigSetRescanInterval
+
+2007-12-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* glyphs-eimage.c: 
+	Merge Ron Isaacson's patch of
+	3ggprxj7ifh.wl_Ron.Isaacson@morganstanley.com , originally from
+	Gennady Khokhorin. Prevents library incompatibilities on Win32.
+
+2007-12-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fileio.c (Fsubstitute_in_file_name):
+	On encountering non-existent environment variables or incorrect
+	syntax for specifying environment variables (as is routine on
+	Windows) don't error, instead pass the original strings through.
+
+2007-12-05  Stephen J. Turnbull  <stephen@xemacs.org>
+
+	* search.c (simple_search): Fix underrun in reverse search.
+	(search_buffer): Clarify decision to use boyer_moore or not.
+
 2007-12-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* tests.c (Ftest_data_format_conversion):
