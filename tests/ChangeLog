@@ -1,3 +1,41 @@
+2008-01-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/mule-tests.el (test-file-name): 
+	Call #'make-temp-file now it's available. Remove a long comment
+	saying, essentially, that it should be used, not
+	#'make-temp-name. 
+
+2008-01-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/hash-table-tests.el: 
+	Assert that two short lists with the same contents in distinct
+	orders hash differently. 
+
+2008-01-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el (literal-with-uninterned):
+	Use ?\x syntax for Latin-1 characters, don't assume that the file
+	will be read as UTF-8. 
+
+2008-01-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el (thing): 
+	Check that printing a hash table literal doesn't clear
+	print-gensym-alist. 
+
+2008-01-03  Stephen J. Turnbull  <stephen@xemacs.org>
+
+	* automated/symbol-tests.el (Symbol documentation): Add tests to
+	check documentation extraction.
+
+2007-12-29  Stephen J. Turnbull  <stephen@xemacs.org>
+
+	* automated/test-harness.el (test-harness-test-compiled):
+	Improve docstring.
+
+	* automated/weak-tests.el (test-harness-test-compiled):
+	Remove debugging code.
+
 2007-12-21  Stephen J. Turnbull  <stephen@xemacs.org>
 
 	* reproduce-crashes.el: Renamed from reproduce-bugs.el.  Update to-do.

@@ -1,3 +1,131 @@
+2008-01-17  Mike Sperber  <mike@xemacs.org>
+
+	* files.el (insert-directory): Bind `coding-system-for-read' to
+	the `file-name' coding system.  (Previously, the default ended up
+	being undecided, which doesn't work well for UTF-8-based locales,
+	for example.)
+
+2008-01-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* keydefs.el (global-map): 
+	Bind '(shift delete) to #'kill-primary-selection, as described by
+	Glynn Clements in
+	16434.49191.47038.991206@cerise.nosuchdomain.co.uk of 2004-02-08. 
+
+2008-01-14  Jerry James  <james@xemacs.org>
+
+	* font-lock.el (font-lock-add-keywords): Adapt to differences in
+	Emacs and XEmacs compiled font-lock lists.
+	* font-lock.el (font-lock-remove-keywords): Ditto.
+	* font-lock.el (font-lock-set-defaults-1): Make changes specified
+	by font-lock-keywords-alist and font-lock-removed-keywords-alist.
+
+2008-01-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecomp.el (byte-compile-output-file-form): 
+	Bind print-gensym-alist to nil, as we do within
+	byte-compile-output-docform.
+
+2008-01-04  Michael Sperber  <mike@xemacs.org>
+
+        * code-files.el (insert-file-contents):
+        (load): Don't call `substitute-in-file-name' on the file name.
+
+2008-01-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cus-edit.el (custom-save-all): 
+	If the directory containing the custom file doesn't exist, try to
+	create it. Fixes Nick's Crabtree's bug of 
+	5fb265820712140145w512fa3bbh355cf76f7e2cf792@mail.gmail.com ;
+	thank you Nick.
+	* menubar-items.el (default-menubar):
+	In the code to edit the user's init file, try to create the
+	containing directory if it doesn't exist. 
+
+2008-01-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* gtk-init.el (init-post-gtk-win): 
+	Trust the X11 code to give us decent default fonts.
+
+2008-01-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* x-iso8859-1.el: Removed.
+	* gtk-iso8859-1.el: Removed.
+	These haven't been used in a year and a half. No need to keep them
+	around. 
+
+2008-01-02  Mike Sperber  <mike@xemacs.org>
+
+	* minibuf.el (mouse-read-file-name-1): Use `window-height' instead
+	of `frame-height' to be consistent with `split-window''s
+	calculations.  Bind `window-min-height' for the whole thing to
+	avoid geometry problems with the buttons window.
+
+2008-01-02  Mike Sperber  <mike@xemacs.org>
+
+	* minibuf.el (mouse-read-file-name-1): Make the buttons in the
+	dialog frame occupy `window-min-height' lines to avoid problems
+	when the window configuration changes---as it does with
+	`resize-minibuffer-mode'.
+
+2007-12-31  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* menubar-items.el (default-menubar): 
+	Byte compile the specified lambdas. Correct some compile time
+	warnings uncovered by this.
+	* menubar-items.el (tutorials-menu-filter):
+	If a language environment doesn't have an associated POSIX locale
+	specified--which indicates we don't want it used except by those
+	who know what they're doing--don't show its tutorial in the menu.
+	* behavior.el (behavior-menu-filter):
+	Byte compile the lambdas in the generated menu. 
+
+2007-12-30  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* iso8859-1.el: (provide 'iso8859-1) again, because one file uses
+	it in the packages.
+
+2007-12-30  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* subr.el (with-case-table): New.
+	Idea and implementation taken from GNU's code of April 2007,
+	before GPL V3 was implied. Thank you GNU. 
+	* iso8859-1.el (ascii-case-table): New. 
+	Idea taken from GNU.
+	* iso8859-1.el :
+	Change Jamie's implicit compile-time call to a macro literal into
+	something comprehensible to and maintainable by mortals, using to
+	cl.el's #'loop.
+	* iso8859-1.el (ctl-arrow):
+	Initialise it to something more comprehensible. 
+
+2007-12-30  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* loadhist.el (symbol-file):
+	Accept a new TYPE argument, compatible with GNU, saying
+	whether function or variable definitions should be searched for.
+	Implement the functionality for autoloads, handling TYPE
+	correctly. 
+	Pass the TYPE argument to built-in-symbol-file correctly.
+	Document that TYPE is not implemented for non-autoloaded Lisp
+	definitions. Our load-history doesn't have the relevant metadata. 
+
+2007-12-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* glyphs.el (init-glyphs):
+	Revert part of Didier's 2007-10-15 commit, which broke
+	#'make-image-specifier with string arguments, and more noticeably
+	truncation-glyph, continuation-glyph, octal-escape-glyph,
+	control-arrow-glyph. 
+
+2007-12-23  Mike Sperber  <mike@xemacs.org>
+
+	* font.el (xft-font-create-object): Use
+	`fc-pattern-get-or-compute-size' instead of
+	`fc-pattern-get-size'.
+
+	* fontconfig.el (fc-pattern-get-or-compute-size): Add.
+
 2007-12-22  Stephen J. Turnbull  <stephen@xemacs.org>
 
 	Factor out lists of operators specially treated by `make-autoload'.
@@ -120,7 +248,7 @@
 
 	* keydefs.el:
 	Bind mouse wheel movements by default, to a lambda that calls the
-	autoloaded #'mwheel-install and then #'mwheel-scrool with the
+	autoloaded #'mwheel-install and then #'mwheel-scroll with the
 	appropriate event. 
 
 2007-12-07  Vin Shelton  <acs@xemacs.org>
