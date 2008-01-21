@@ -45,6 +45,11 @@
 	with XEmacs. Map FUNC across the int value charset ranges of
 	CHARSET. 
 
+2008-01-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* info.el (Info-suffix-list): 
+	Support LZMA compression, as used--oddly--by Mandriva Linux. 
+
 2008-01-17  Mike Sperber  <mike@xemacs.org>
 
 	* files.el (insert-directory): Bind `coding-system-for-read' to
