@@ -1,3 +1,34 @@
+2008-04-13  Henry S. Thompson <ht@inf.ed.ac.uk>, Mike Sperber  <mike@xemacs.org>
+
+	* window-xemacs.el (save-window-excursion/mapping,
+	set-window-configuration/mapping): Add.  These function return an
+	alist mapping the window objects from the original window
+	configuration to the window objects corresponding to them in the
+	restored configuration.
+	(set-window-configuration): 
+	(saved-window): 
+	(root-window->saved-window): 
+	(really-set-window-configuration): 
+	(restore-saved-window): Record the mapping for above functions.
+
+2008-04-12  Henry S. Thompson <ht@inf.ed.ac.uk>
+
+	* window-xemacs.el (real-split-window, real-delete-window): Define
+	these to the original definitions of `split-window' and
+	`delete-window', and use them in the window-configuration code to
+	make sure it doesn't get affected by advice to these functions.
+	
+2008-04-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* help.el (describe-function-1): 
+	Rely on #'symbol-file to tell which file an autoloaded function
+	belongs to, don't special-case them.
+
+2008-03-19  Stephen J. Turnbull  <stephen@xemacs.org>
+
+	* custom.el (custom-theme-reset-internal): Fix call to get (symbol
+	and property were reversed).
+
 2008-03-12  Mike Sperber  <mike@xemacs.org>
 
 	* window-xemacs.el (restore-saved-window): Restore window
