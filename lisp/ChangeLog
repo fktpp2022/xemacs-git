@@ -1,3 +1,13 @@
+2008-05-08  Steve Youngs  <steve@sxemacs.org>
+
+	* ffi-curl.el: New.
+	* ffi-libc.el: New.
+	* ffi-magic.el: New.
+	* ffi-wand.el: New.
+	* ffi.el: New.
+
+	Foreign Function Interface, backported from SXEmacs.
+
 2008-04-13  Henry S. Thompson <ht@inf.ed.ac.uk>, Mike Sperber  <mike@xemacs.org>
 
 	* window-xemacs.el (save-window-excursion/mapping,

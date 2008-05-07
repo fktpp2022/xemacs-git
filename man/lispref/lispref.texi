@@ -212,6 +212,8 @@ Reference Manual, corresponding to XEmacs version 21.0.
 * PostgreSQL Support::      Interfacing to the PostgreSQL libpq library.
 * Internationalization::    How Emacs supports different languages and
                               cultural conventions.
+* Foreign Functions::	    Accessing functions in external
+			      libraries from with SXEmacs lisp.
 * MULE::                    Specifics of the Asian-language support.
 
 Appendices
@@ -1262,6 +1264,7 @@ Building XEmacs and Object Allocation
 @include ldap.texi
 @include postgresql.texi
 @include internationalization.texi
+@include ffi.texi
 @include mule.texi
 
 @c MOVE to User's Manual:  include calendar.texi

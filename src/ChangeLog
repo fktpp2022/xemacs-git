@@ -1,3 +1,25 @@
+2008-05-08  Steve Youngs  <steve@sxemacs.org>
+
+	* config.h.in: #undef HAVE_LIBFFI
+
+	* depend: Regenerate.
+
+	* effi.c: New.
+
+	* effi.h: New.
+
+	* emacs.c (main_1): Call syms_of_ffi, vars_of_ffi, and
+	reinit_vars_of_ffi. 
+
+	* inline.c: Include effi.h
+
+	* lrecord.h (enum lrecord_type): New type "ffiobject".
+
+	* symsinit.h (syms_of_ffi, vars_of_ffi, reinit_vars_of_ffi):
+	Declare.
+
+	Foreign Function Interface, backported from SXEmacs.
+
 2008-04-26  Mike Sperber  <mike@xemacs.org>
 
 	* window.c (set_window_pixsize): Round up when we're shrinking,

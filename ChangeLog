@@ -1,3 +1,11 @@
+2008-05-08  Steve Youngs  <steve@sxemacs.org>
+
+	* configure.ac: New option... --with-ffi.
+
+	* configure: Regenerate.
+
+	Foreign Function Interface, backported from SXEmacs.
+	
 2008-04-01  Andreas Schwab  <schwab@suse.de>
 
 	Thanks to Mike Fabian for posting a patch to the mainline, to Martin

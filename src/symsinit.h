@@ -109,6 +109,9 @@ void syms_of_faces (void);
 void syms_of_file_coding (void);
 void syms_of_fileio (void);
 void syms_of_filelock (void);
+#ifdef HAVE_LIBFFI
+void syms_of_ffi (void);
+#endif	/* HAVE_LIBFFI */
 void syms_of_floatfns (void);
 void syms_of_fns (void);
 #ifdef USE_C_FONT_LOCK
@@ -345,6 +348,10 @@ void reinit_vars_of_file_coding (void);
 void vars_of_fileio (void);
 void reinit_vars_of_fileio (void);
 void vars_of_filelock (void);
+#ifdef HAVE_LIBFFI
+void vars_of_ffi (void);
+void reinit_vars_of_ffi (void);
+#endif	/* HAVE_LIBFFI */
 void vars_of_floatfns (void);
 void vars_of_fns (void);
 #ifdef USE_C_FONT_LOCK
