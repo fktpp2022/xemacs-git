@@ -16,6 +16,39 @@
 	* configure: 
 	Regenerate.
 
+2008-04-01  Andreas Schwab  <schwab@suse.de>
+
+	Thanks to Mike Fabian for posting a patch to the mainline, to Martin
+	Buchholz for writing the ChangeLog, and to Aidan Kehoe for finding
+	the 2003-01-27 ChangeLog.  Tested against Xaw3d. -- stephen
+
+	* configure.ac (athena_3d):
+	AC_CHECK_LIB must always take a function as
+	argument, never a global variable.  Some linkers can tell the
+	difference.  So change:
+	threeDClassRec ==> XawSme3dComputeTopShadowRGB
+
+2008-02-15  Marcus Crestani  <crestani@xemacs.org>
+
+	* configure.ac: Look for all x86 machines to determine which write
+	barrier to use on MacOSX.
+	* configure : Rebuild.
+
+2008-02-12  Jerry James  <james@xemacs.org>
+
+	* install.sh: Rename to install-sh and update to latest FSF version.
+
+2008-01-25  Stephen J. Turnbull  <stephen@xemacs.org>
+
+	* configure.ac (--with-database): 'gnudbm' -> 'gdbm' in docstrings.
+
+2008-01-25  Michael Sperber  <mike@xemacs.org>
+
+	* Makefile.in.in:
+	* configure.ac:
+	* version.sh.in: Use Mercurial tip hash to identify version
+	instead of old CVS method.
+
 2008-01-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* configure.ac:

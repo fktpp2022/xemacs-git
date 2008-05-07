@@ -2782,6 +2782,8 @@ retry:
 
 	if (c == '\\')
 	  c = read_escape (readcharfun);
+	if (c < 0)
+	  return Fsignal (Qinvalid_read_syntax, list1 (READCHARFUN_MAYBE (readcharfun)));
 	return make_char (c);
       }
 
