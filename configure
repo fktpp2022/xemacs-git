@@ -706,6 +706,7 @@ build
 build_cpu
 build_vendor
 build_os
+SHEBANG_PROGNAME
 configuration
 CC
 CFLAGS
@@ -1661,7 +1662,7 @@ Database options
 
   --with-database=TYPE    Compile with database support. Valid types are `no'
                           or a comma-separated list of one or more of `berkdb'
-                          and either `dbm' or `gnudbm'.
+                          and either `dbm' or `gdbm'.
   --with-ldap             Support the LDAP protocol.
   --with-postgresql       Support the PostgreSQL RDBMS.
 
@@ -3772,7 +3773,7 @@ unset _with_database_args _database_found x y _require_database
 
 if test "$enable_database_dbm"  = "yes" -a "$enable_database_gdbm" = "yes"; then
 	(echo "$progname: Usage error:"
-echo " " "Only one of \`dbm' and \`gnudbm' may be specified
+echo " " "Only one of \`dbm' and \`gdbm' may be specified
 with the \`--with-database' option."
 echo "  Use \`$progname --help' to show usage.") >&2 && exit 1
 fi
@@ -4779,6 +4780,10 @@ case $build_os in *\ *) build_os=`echo "$build_os" | sed 's/ /-/g'`;; esac
 
 
 
+cp "$srcdir/version.sh.in" "$srcdir/version.sh"
+if test -d "$srcdir/.hg"; then
+    (cd "$srcdir"; hg identify | cut -d " " -f 1 >> version.sh)
+fi
 . "$srcdir/version.sh" || exit 1;
 if test -n "$emacs_is_beta"; then beta=yes; else beta=no; fi
 : "${verbose=$beta}"
@@ -4851,13 +4856,22 @@ _ACEOF
 
   version=${infodock_major_version}.${infodock_minor_version}.${infodock_build_version}
   PROGNAME=infodock
+  SHEBANG_PROGNAME=infodock-script
   CPPFLAGS="$CPPFLAGS -DINFODOCK"
 else
   PROGNAME=xemacs
+  SHEBANG_PROGNAME=xemacs-script
 fi
+
+
 
 cat >>confdefs.h <<_ACEOF
 #define EMACS_PROGNAME "$PROGNAME"
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define SHEBANG_PROGNAME "${PROGNAME}-script"
 _ACEOF
 
 
@@ -5351,7 +5365,7 @@ if test "$enable_newgc" = "yes"; then
   if test "$enable_vdb" = "auto"; then
     case "$opsys" in
       darwin )  case "$machine" in
-		  i686 ) check_vdb_posix=yes ;;
+		  i[3-9]86 ) check_vdb_posix=yes ;;
 		  * ) cat >>confdefs.h <<\_ACEOF
 #define VDB_MACH 1
 _ACEOF
@@ -25697,9 +25711,9 @@ ac_res=`eval echo '${'$as_ac_Lib'}'`
 echo "${ECHO_T}$ac_res" >&6; }
 if test `eval echo '${'$as_ac_Lib'}'` = yes; then
 
-                as_ac_Lib=`echo "ac_cv_lib_$athena_variant''_threeDClassRec" | $as_tr_sh`
-{ echo "$as_me:$LINENO: checking for threeDClassRec in -l$athena_variant" >&5
-echo $ECHO_N "checking for threeDClassRec in -l$athena_variant... $ECHO_C" >&6; }
+                as_ac_Lib=`echo "ac_cv_lib_$athena_variant''_XawSme3dComputeTopShadowRGB" | $as_tr_sh`
+{ echo "$as_me:$LINENO: checking for XawSme3dComputeTopShadowRGB in -l$athena_variant" >&5
+echo $ECHO_N "checking for XawSme3dComputeTopShadowRGB in -l$athena_variant... $ECHO_C" >&6; }
 if { as_var=$as_ac_Lib; eval "test \"\${$as_var+set}\" = set"; }; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
@@ -25718,11 +25732,11 @@ cat >>conftest.$ac_ext <<_ACEOF
 #ifdef __cplusplus
 extern "C"
 #endif
-char threeDClassRec ();
+char XawSme3dComputeTopShadowRGB ();
 int
 main ()
 {
-return threeDClassRec ();
+return XawSme3dComputeTopShadowRGB ();
   ;
   return 0;
 }
@@ -25774,9 +25788,9 @@ echo "$as_me: WARNING: Could not find an Athena widget library." >&2;}
 fi
 
   else
-        as_ac_Lib=`echo "ac_cv_lib_$athena_variant''_threeDClassRec" | $as_tr_sh`
-{ echo "$as_me:$LINENO: checking for threeDClassRec in -l$athena_variant" >&5
-echo $ECHO_N "checking for threeDClassRec in -l$athena_variant... $ECHO_C" >&6; }
+        as_ac_Lib=`echo "ac_cv_lib_$athena_variant''_XawSme3dComputeTopShadowRGB" | $as_tr_sh`
+{ echo "$as_me:$LINENO: checking for XawSme3dComputeTopShadowRGB in -l$athena_variant" >&5
+echo $ECHO_N "checking for XawSme3dComputeTopShadowRGB in -l$athena_variant... $ECHO_C" >&6; }
 if { as_var=$as_ac_Lib; eval "test \"\${$as_var+set}\" = set"; }; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
@@ -25795,11 +25809,11 @@ cat >>conftest.$ac_ext <<_ACEOF
 #ifdef __cplusplus
 extern "C"
 #endif
-char threeDClassRec ();
+char XawSme3dComputeTopShadowRGB ();
 int
 main ()
 {
-return threeDClassRec ();
+return XawSme3dComputeTopShadowRGB ();
   ;
   return 0;
 }
@@ -25840,9 +25854,9 @@ echo "${ECHO_T}$ac_res" >&6; }
 if test `eval echo '${'$as_ac_Lib'}'` = yes; then
   athena_lib=$athena_variant
 else
-              { echo "$as_me:$LINENO: checking for threeDClassRec in -lXaw" >&5
-echo $ECHO_N "checking for threeDClassRec in -lXaw... $ECHO_C" >&6; }
-if test "${ac_cv_lib_Xaw_threeDClassRec+set}" = set; then
+              { echo "$as_me:$LINENO: checking for XawSme3dComputeTopShadowRGB in -lXaw" >&5
+echo $ECHO_N "checking for XawSme3dComputeTopShadowRGB in -lXaw... $ECHO_C" >&6; }
+if test "${ac_cv_lib_Xaw_XawSme3dComputeTopShadowRGB+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -25860,11 +25874,11 @@ cat >>conftest.$ac_ext <<_ACEOF
 #ifdef __cplusplus
 extern "C"
 #endif
-char threeDClassRec ();
+char XawSme3dComputeTopShadowRGB ();
 int
 main ()
 {
-return threeDClassRec ();
+return XawSme3dComputeTopShadowRGB ();
   ;
   return 0;
 }
@@ -25887,21 +25901,21 @@ eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
 	 test ! -s conftest.err
        } && test -s conftest$ac_exeext &&
        $as_test_x conftest$ac_exeext; then
-  ac_cv_lib_Xaw_threeDClassRec=yes
+  ac_cv_lib_Xaw_XawSme3dComputeTopShadowRGB=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-	ac_cv_lib_Xaw_threeDClassRec=no
+	ac_cv_lib_Xaw_XawSme3dComputeTopShadowRGB=no
 fi
 
 rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
       conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ echo "$as_me:$LINENO: result: $ac_cv_lib_Xaw_threeDClassRec" >&5
-echo "${ECHO_T}$ac_cv_lib_Xaw_threeDClassRec" >&6; }
-if test $ac_cv_lib_Xaw_threeDClassRec = yes; then
+{ echo "$as_me:$LINENO: result: $ac_cv_lib_Xaw_XawSme3dComputeTopShadowRGB" >&5
+echo "${ECHO_T}$ac_cv_lib_Xaw_XawSme3dComputeTopShadowRGB" >&6; }
+if test $ac_cv_lib_Xaw_XawSme3dComputeTopShadowRGB = yes; then
 
           athena_lib=Xaw;
           { echo "$as_me:$LINENO: WARNING: Assuming that libXaw is actually $athena_variant." >&5
@@ -37246,10 +37260,79 @@ if test $ac_cv_lib_gdbm_dbm_open = yes; then
    enable_database_gdbm=yes enable_database_dbm=no libdbm=-lgdbm
 else
 
+       { echo "$as_me:$LINENO: checking for dbm_open in -lgdbm_compat" >&5
+echo $ECHO_N "checking for dbm_open in -lgdbm_compat... $ECHO_C" >&6; }
+if test "${ac_cv_lib_gdbm_compat_dbm_open+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lgdbm_compat -lgdbm $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char dbm_open ();
+int
+main ()
+{
+return dbm_open ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+  ac_cv_lib_gdbm_compat_dbm_open=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_gdbm_compat_dbm_open=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_lib_gdbm_compat_dbm_open" >&5
+echo "${ECHO_T}$ac_cv_lib_gdbm_compat_dbm_open" >&6; }
+if test $ac_cv_lib_gdbm_compat_dbm_open = yes; then
+
+       enable_database_gdbm=yes enable_database_dbm=no libdbm="-lgdbm_compat -lgdbm"
+else
+
    if test "$enable_database_gdbm" = "yes"; then
      { echo "Error:" "Required GNU DBM support cannot be provided." >&2; exit 1; }
    fi
    enable_database_gdbm=no
+fi
+
+
 fi
 
 fi
@@ -37902,7 +37985,7 @@ fi
 
   fi
 
-    if test "$enable_database_berkdb" != "yes" -a "$dbver" = "4"; then
+    if test "$enable_database_berkdb" = "yes" -a "$dbver" = "4"; then
     rm -f $tempcname
     echo "#include <$db_h_file>" > $tempcname
     echo "configure___ dbfunc=db_create" >> $tempcname
@@ -40379,6 +40462,7 @@ build!$build$ac_delim
 build_cpu!$build_cpu$ac_delim
 build_vendor!$build_vendor$ac_delim
 build_os!$build_os$ac_delim
+SHEBANG_PROGNAME!$SHEBANG_PROGNAME$ac_delim
 configuration!$configuration$ac_delim
 CC!$CC$ac_delim
 CFLAGS!$CFLAGS$ac_delim
@@ -40430,7 +40514,6 @@ OBJECT_TO_BUILD!$OBJECT_TO_BUILD$ac_delim
 ldap_libs!$ldap_libs$ac_delim
 postgresql_libs!$postgresql_libs$ac_delim
 lwlib_objs!$lwlib_objs$ac_delim
-canna_libs!$canna_libs$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -40472,6 +40555,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+canna_libs!$canna_libs$ac_delim
 ALLOCA!$ALLOCA$ac_delim
 have_esd_config!$have_esd_config$ac_delim
 SRC_SUBDIR_DEPS!$SRC_SUBDIR_DEPS$ac_delim
@@ -40548,7 +40632,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 74; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 75; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

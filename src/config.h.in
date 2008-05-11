@@ -91,6 +91,9 @@ things are arranged in config.h.in.  In particular:
 /* Program name */
 #undef EMACS_PROGNAME
 
+/* Name of the link to the program to be used with #! scripts */
+#undef SHEBANG_PROGNAME
+
 /* Allow s&m files to differentiate OS versions without having
    multiple files to maintain. */
 #undef OS_RELEASE
@@ -1086,7 +1089,8 @@ extern "C" {
    Use `inline static' to define inline functions in .c files.
    See the Internals manual for examples and more information. */
 
-#if defined (__cplusplus) || ! defined (__GNUC__) || ! defined(emacs)
+#if (defined ( __STDC_VERSION__) &&  __STDC_VERSION__ >= 199901L) \
+  || defined (__cplusplus) || ! defined (__GNUC__) || ! defined(emacs)
 # define INLINE_HEADER inline static
 #elif defined (DONT_EXTERN_INLINE_HEADER_FUNCTIONS)
 # define INLINE_HEADER inline

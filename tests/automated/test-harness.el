@@ -71,7 +71,17 @@ on the system, or a system error might occur while reading a data file.")
 (defvar unexpected-test-file-failures)
 
 (defvar test-harness-test-compiled nil
-  "Non-nil means the test code was compiled before execution.")
+  "Non-nil means the test code was compiled before execution.
+
+You probably should not make tests depend on compilation.
+However, it can be useful to conditionally change messages based on whether
+the code was compiled or not.  For example, the case that motivated the
+implementation of this variable:
+
+\(when test-harness-test-compiled
+  ;; this ha-a-ack depends on the failing compiled test coming last
+  \(setq test-harness-failure-tag
+	\"KNOWN BUG - fix reverted; after 2003-10-31 notify stephen\n\"))")
 
 (defvar test-harness-verbose
   (and (not noninteractive) (> (device-baud-rate) search-slow-speed))
@@ -434,9 +444,9 @@ BODY is a sequence of expressions and may contain several tests."
 		 skipped-test-reasons)
 	(when (> (length reasons) 1)
 	  (setq summary-msg (concat summary-msg reasons "
-    Probably XEmacs cannot find your installed packages.  Set EMACSPACKAGEPATH
-    to the package hierarchy root or configure with --package-path to enable
-    the skipped tests.")))
+    It may be that XEmacs cannot find your installed packages.  Set
+    EMACSPACKAGEPATH to the package hierarchy root or configure with
+    --package-path to enable the skipped tests.")))
 	(setq test-harness-file-results-alist
 	      (cons (list filename passes total)
 		    test-harness-file-results-alist))

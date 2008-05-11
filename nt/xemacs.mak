@@ -74,6 +74,13 @@ BLDROOT=$(MAKEROOT)
 !endif
 !endif
 
+!if [copy $(SRCROOT)\version.sh.in $(SRCROOT)\version.sh]
+!endif
+!if exist($(SRCROOT)\.hg)
+!if [hg identify >> $(SRCROOT)\version.sh]
+!endif
+!endif
+
 # Program name and version
 !include "$(SRCROOT)\version.sh"
 
@@ -195,8 +202,11 @@ DEBUG_XEMACS=0
 !if !defined(SUPPORT_EDIT_AND_CONTINUE)
 SUPPORT_EDIT_AND_CONTINUE=0
 !endif
+!if !defined(BUILD_FOR_SETUP_KIT)
+BUILD_FOR_SETUP_KIT=0
+!endif
 
-!if !defined(BUILD_FOR_SETUP_KIT) || "$(BUILD_FOR_SETUP_KIT)" == "0"
+!if !$(BUILD_FOR_SETUP_KIT)
 OK_TO_USE_MSVCRTD=1
 !else
 OK_TO_USE_MSVCRTD=0
@@ -455,10 +465,10 @@ PATH_LATE_PACKAGE_DIRECTORIES="$(PACKAGE_PREFIX:\=\\)"
 !if $(INFODOCK)
 PATH_PREFIX=../..
 !else
-PATH_PREFIX=..
+PATH_PREFIX="$(INSTALL_DIR)"
 !endif
 
-PATH_DEFINES=-DPATH_PREFIX=\"$(PATH_PREFIX)\"
+PATH_DEFINES=-DPATH_PREFIX=\"$(PATH_PREFIX:\=\\)\"
 
 !if $(SEPARATE_BUILD)
 PATH_DEFINES=$(PATH_DEFINES) -DPATH_LOADSEARCH=\"$(LISP:\=\\)\" -DPATH_DATA=\"$(ETC:\=\\)\" -DPATH_INFO=\"$(INFO:\=\\)\"
@@ -658,6 +668,16 @@ OPT_OBJS=$(OPT_OBJS) $(OUTDIR)\free-hook.obj $(OUTDIR)\gmalloc.obj \
 	$(OUTDIR)\ntheap.obj $(OUTDIR)\vm-limit.obj
 !endif
 
+!if $(USE_INTEL_COMPILER)
+CC=icl
+# Use static library if possible
+INTEL_LIBS=libircmt.lib libmmt.lib
+# Debugging requires DLL version of libm
+!if $(DEBUG_XEMACS)
+INTEL_LIBS=libircmt.lib libmmd.lib
+!endif
+!endif
+
 ########################### Process options related to compilation.
 
 #
@@ -678,8 +698,8 @@ CCV=@$(CC)
 # giving it.
 DEBUG_FLAG_LINK_DEBUG=-debug -opt:noref
 # This turns on additional run-time checking
-# For some reason it causes spawning of make-docfile to crash in VC 7
-DEBUG_FLAG_COMPILE_DEBUG=-RTC1
+# For some reason it causes spawning of make-docfile to crash in VC 7 and VC 8
+# DEBUG_FLAG_COMPILE_DEBUG=-RTC1
 ! else
 DEBUG_FLAG_LINK_DEBUG=-debug:full
 DEBUG_FLAG_COMPILE_DEBUG=
@@ -803,7 +823,7 @@ TEMACS_CPP_FLAGS_NO_CFLAGS=-c $(CPLUSPLUS_COMPILE_FLAGS) \
  $(EMACS_BETA_VERSION) $(EMACS_PATCH_LEVEL) \
  -DXEMACS_CODENAME=\"$(xemacs_codename:&=and)\" \
 !if defined(xemacs_extra_name)
- -DXEMACS_EXTRA_NAME=\"$(xemacs_extra_name:"=)\" \
+ -DXEMACS_EXTRA_NAME=\""$(xemacs_extra_name:"=)"\" \
 !endif
 !if defined(PATH_LATE_PACKAGE_DIRECTORIES)
  -DPATH_LATE_PACKAGE_DIRECTORIES=\"$(PATH_LATE_PACKAGE_DIRECTORIES)\" \
@@ -1290,7 +1310,7 @@ TEMACS_BROWSE=$(BLDSRC)\temacs.bsc
 TEMACS_LIBS=$(LASTFILE) $(OPT_LIBS) \
  oldnames.lib kernel32.lib user32.lib gdi32.lib comdlg32.lib advapi32.lib \
  shell32.lib wsock32.lib netapi32.lib winmm.lib winspool.lib ole32.lib \
- mpr.lib uuid.lib imm32.lib $(LIBC_LIB)
+ mpr.lib uuid.lib imm32.lib $(INTEL_LIBS) $(LIBC_LIB)
 TEMACS_COMMON_LFLAGS=-nologo $(LIBRARIES) $(DEBUG_FLAGS_LINK) \
  -base:0x1000000 -stack:0x800000 $(TEMACS_ENTRYPOINT) -subsystem:windows \
  -heap:0x00100000 -nodefaultlib $(PROFILE_FLAGS) setargv.obj
@@ -1353,7 +1373,8 @@ TEMACS_DUMP_DEP = $(OUTDIR)\temacs.res
 !endif
 
 $(RAW_EXE): $(TEMACS_OBJS) $(LASTFILE) $(TEMACS_DUMP_DEP)
-	@echo link $(TEMACS_LFLAGS) -out:$@ $(TEMACS_OBJS) $(TEMACS_DUMP_DEP) $(TEMACS_LIBS)
+# Command line too long for some Windows installation:
+#	@echo link $(TEMACS_LFLAGS) -out:$@ $(TEMACS_OBJS) $(TEMACS_DUMP_DEP) $(TEMACS_LIBS)
 	link.exe @<<
   $(TEMACS_LFLAGS) -out:$@ $(TEMACS_OBJS) $(TEMACS_DUMP_DEP) $(TEMACS_LIBS)
 <<

@@ -47,6 +47,15 @@ Boston, MA 02111-1307, USA.  */
 
 #define REGEXP_CACHE_SIZE 20
 
+#ifdef DEBUG_XEMACS
+
+/* Used in tests/automated/case-tests.el if available. */
+Fixnum debug_xemacs_searches;
+
+Lisp_Object Qsearch_algorithm_used, Qboyer_moore, Qsimple_search;
+
+#endif
+
 /* If the regexp is non-nil, then the buffer contains the compiled form
    of that regexp, suitable for searching.  */
 struct regexp_cache
@@ -1340,11 +1349,14 @@ search_buffer (struct buffer *buf, Lisp_Object string, Charbpos charbpos,
     {
       int charset_base = -1;
       int boyer_moore_ok = 1;
-      Ibyte *pat = 0;
       Ibyte *patbuf = alloca_ibytes (len * MAX_ICHAR_LEN);
-      pat = patbuf;
+      Ibyte *pat = patbuf;
+
 #ifdef MULE
-      /* &&#### needs some 8-bit work here */
+      int entirely_one_byte_p = buf->text->entirely_one_byte_p;
+      int nothing_greater_than_0xff =
+        buf->text->num_8_bit_fixed_chars == BUF_Z(buf) - BUF_BEG (buf);
+
       while (len > 0)
 	{
 	  Ibyte tmp_str[MAX_ICHAR_LEN];
@@ -1367,28 +1379,105 @@ search_buffer (struct buffer *buf, Lisp_Object string, Charbpos charbpos,
 	  inv_bytelen = set_itext_ichar (tmp_str, inverse);
 	  new_bytelen = set_itext_ichar (tmp_str, translated);
 
-	  if (new_bytelen != orig_bytelen || inv_bytelen != orig_bytelen)
-	    boyer_moore_ok = 0;
-	  if (translated != c || inverse != c)
-	    {
-	      /* Keep track of which charset and character set row
-		 contains the characters that need translation.
-		 Zero out the bits corresponding to the last byte.
-	      */
-	      int charset_base_code = c & ~ICHAR_FIELD3_MASK;
-	      if (charset_base == -1)
-		charset_base = charset_base_code;
-	      else if (charset_base != charset_base_code)
-		/* If two different rows appear, needing translation, then
-		   we cannot use boyer_moore search.  See the comment at the
-		   head of boyer_moore(). */
-		boyer_moore_ok = 0;
-	    }
+          if (boyer_moore_ok
+              /* Only do the Boyer-Moore check for characters needing
+                 translation. */
+              && (translated != c || inverse != c))
+            {
+	      Ichar starting_c = c;
+	      int charset_base_code, checked = 0;
+
+	      do 
+		{
+		  c = TRANSLATE (inverse_trt, c);
+
+                  /* If a character cannot occur in the buffer, ignore
+                     it. */
+                  if (c > 0x7F && entirely_one_byte_p)
+                    continue;
+
+                  if (c > 0xFF && nothing_greater_than_0xff)
+                    continue;
+
+                  checked = 1;
+
+                  if (-1 == charset_base) /* No charset yet specified. */
+                    {
+                      /* Keep track of which charset and character set row
+                         contains the characters that need translation.
+
+                         Zero out the bits corresponding to the last
+                         byte. */
+                      charset_base = c & ~ICHAR_FIELD3_MASK;
+                    }
+                  else
+                    {
+                      charset_base_code = c & ~ICHAR_FIELD3_MASK;
+
+                      if (charset_base_code != charset_base)
+                        {
+                          /* If two different rows, or two different
+                             charsets, appear, needing non-ASCII
+                             translation, then we cannot use boyer_moore
+                             search.  See the comment at the head of
+                             boyer_moore(). */
+                          boyer_moore_ok = 0;
+                          break;
+                        }
+                    }
+                } while (c != starting_c);
+
+              if (!checked)
+                {
+#ifdef DEBUG_XEMACS
+                  if (debug_xemacs_searches)
+                    {
+                      Lisp_Symbol *sym = XSYMBOL (Qsearch_algorithm_used);
+                      sym->value = Qnil;
+                    }
+#endif
+                  /* The "continue" clauses were used above, for every
+                     translation of the character. As such, this character
+                     is not to be found in the buffer and neither is the
+                     string as a whole. Return immediately; also avoid
+                     triggering the assertion a few lines down. */
+                  return n > 0 ? -n : n;
+                }
+
+              if (boyer_moore_ok && charset_base != -1 && 
+                  charset_base != (translated & ~ICHAR_FIELD3_MASK))
+                {
+                  /* In the rare event that the CANON entry for this
+                     character is not in the desired set, choose one
+                     that is, from the equivalence set. It doesn't much
+                     matter which. */
+                  Ichar starting_ch = translated;
+                  do
+                    {
+                      translated = TRANSLATE (inverse_trt, translated);
+
+                      if (charset_base == (translated & ~ICHAR_FIELD3_MASK))
+                        break;
+
+                    } while (starting_ch != translated);
+
+                  assert (starting_ch != translated);
+
+                  new_bytelen = set_itext_ichar (tmp_str, translated);
+                }
+            }
+
 	  memcpy (pat, tmp_str, new_bytelen);
 	  pat += new_bytelen;
 	  base_pat += orig_bytelen;
 	  len -= orig_bytelen;
 	}
+
+      if (-1 == charset_base)
+        {
+          charset_base = 'a' & ~ICHAR_FIELD3_MASK; /* Default to ASCII. */
+        }
+
 #else /* not MULE */
       while (--len >= 0)
 	{
@@ -1405,6 +1494,15 @@ search_buffer (struct buffer *buf, Lisp_Object string, Charbpos charbpos,
 #endif /* MULE */
       len = pat - patbuf;
       pat = base_pat = patbuf;
+
+#ifdef DEBUG_XEMACS
+      if (debug_xemacs_searches)
+        {
+          Lisp_Symbol *sym = XSYMBOL (Qsearch_algorithm_used);
+          sym->value = boyer_moore_ok ? Qboyer_moore : Qsimple_search;
+        }
+#endif
+
       if (boyer_moore_ok)
 	return boyer_moore (buf, base_pat, len, pos, lim, n,
 			    trt, inverse_trt, charset_base);
@@ -1547,18 +1645,18 @@ simple_search (struct buffer *buf, Ibyte *base_pat, Bytecount len,
    TRT and INVERSE_TRT are translation tables.
 
    This kind of search works if all the characters in PAT that have
-   nontrivial translation are the same aside from the last byte.  This
-   makes it possible to translate just the last byte of a character,
-   and do so after just a simple test of the context.
+   (non-ASCII) translation are the same aside from the last byte.  This
+   makes it possible to translate just the last byte of a character, and do
+   so after just a simple test of the context.
 
-   If that criterion is not satisfied, do not call this function.  */
+   If that criterion is not satisfied, do not call this function.  You will
+   get an assertion failure. */
 	    
 static Charbpos
 boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 	     Bytebpos pos, Bytebpos lim, EMACS_INT n, Lisp_Object trt,
 	     Lisp_Object inverse_trt, int USED_IF_MULE (charset_base))
 {
-  /* &&#### needs some 8-bit work here */
   /* #### Someone really really really needs to comment the workings
      of this junk somewhat better.
 
@@ -1602,6 +1700,13 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 #ifdef MULE
   Ibyte translate_prev_byte = 0;
   Ibyte translate_anteprev_byte = 0;
+  /* These need to be rethought in the event that the internal format
+     changes, or in the event that num_8_bit_fixed_chars disappears
+     (entirely_one_byte_p can be trivially worked out by checking is the
+     byte count equal to the char count.)  */
+  int buffer_entirely_one_byte_p = buf->text->entirely_one_byte_p;
+  int buffer_nothing_greater_than_0xff =
+    buf->text->num_8_bit_fixed_chars == BUF_Z(buf) - BUF_BEG (buf);
 #endif
 #ifdef C_ALLOCA
   EMACS_INT BM_tab_space[0400];
@@ -1684,20 +1789,45 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 	      while (!ibyte_first_byte_p (*charstart))
 		charstart--;
 	      untranslated = itext_ichar (charstart);
-	      if (charset_base == (untranslated & ~ICHAR_FIELD3_MASK))
-		{
-		  ch = TRANSLATE (trt, untranslated);
-		  if (!ibyte_first_byte_p (*ptr))
-		    {
-		      translate_prev_byte = ptr[-1];
-		      if (!ibyte_first_byte_p (translate_prev_byte))
-			translate_anteprev_byte = ptr[-2];
-		    }
-		}
-	      else
-		{
-		  this_translated = 0;
-		  ch = *ptr;
+
+              ch = TRANSLATE (trt, untranslated);
+              if (!ibyte_first_byte_p (*ptr))
+                {
+                  translate_prev_byte = ptr[-1];
+                  if (!ibyte_first_byte_p (translate_prev_byte))
+                    translate_anteprev_byte = ptr[-2];
+                }
+
+              if (ch != untranslated && /* Was translation done? */
+                  charset_base != (ch & ~ICHAR_FIELD3_MASK))
+                {
+                  /* In the very rare event that the CANON entry for this
+                     character is not in the desired set, choose one that
+                     is, from the equivalence set. It doesn't much matter
+                     which, since we're building our own cheesy equivalence
+                     table instead of using that belonging to the case
+                     table directly.
+
+                     We can get here if search_buffer has worked out that
+                     the buffer is entirely single width. */
+                  Ichar starting_ch = ch;
+                  int count = 0;
+                  do
+                    {
+                      ch = TRANSLATE (inverse_trt, ch);
+                      if (charset_base == (ch & ~ICHAR_FIELD3_MASK))
+                        break;
+                      ++count;
+                    } while (starting_ch != ch);
+
+                  /* If starting_ch is equal to ch (and count is not one,
+                     which means no translation is necessary), the case
+                     table is corrupt. (Any mapping in the canon table
+                     should be reflected in the equivalence table, and we
+                     know from the canon table that untranslated maps to
+                     starting_ch and that untranslated has the correct value
+                     for charset_base.) */
+                  assert (1 == count || starting_ch != ch);
 		}
 	    }
 	  else
@@ -1713,28 +1843,34 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 	  if (i == infinity)
 	    stride_for_teases = BM_tab[j];
 	  BM_tab[j] = dirlen - i;
-	  /* A translation table is accompanied by its inverse --
-	     see comment in casetab.c. */
+	  /* A translation table is accompanied by its inverse -- see
+	     comment in casetab.c. */
 	  if (this_translated)
 	    {
 	      Ichar starting_ch = ch;
 	      EMACS_INT starting_j = j;
-	      while (1)
+	      do
 		{
 		  ch = TRANSLATE (inverse_trt, ch);
-		  if (ch > 0400)
-		    j = ((unsigned char) ch | 0200);
-		  else
-		    j = (unsigned char) ch;
 
-		  /* For all the characters that map into CH,
-		     set up simple_translate to map the last byte
-		     into STARTING_J.  */
-		  simple_translate[j] = (Ibyte) starting_j;
-		  if (ch == starting_ch)
-		    break;
-		  BM_tab[j] = dirlen - i;
-		}
+                  if (ch > 0x7F && buffer_entirely_one_byte_p)
+                    continue;
+
+                  if (ch > 0xFF && buffer_nothing_greater_than_0xff)
+                    continue;
+
+                  if (ch > 0400)
+                    j = ((unsigned char) ch | 0200);
+                  else
+                    j = (unsigned char) ch;
+
+                  /* For all the characters that map into CH, set up
+                     simple_translate to map the last byte into
+                     STARTING_J.  */
+                  simple_translate[j] = (Ibyte) starting_j;
+                  BM_tab[j] = dirlen - i;
+
+		} while (ch != starting_ch);
 	    }
 #else
 	  EMACS_INT k;
@@ -3232,4 +3368,15 @@ occur and a back reference to one of them is directly followed by a digit.
 
   Vskip_chars_range_table = Fmake_range_table (Qstart_closed_end_closed);
   staticpro (&Vskip_chars_range_table);
+#ifdef DEBUG_XEMACS 
+  DEFSYMBOL (Qsearch_algorithm_used);
+  DEFSYMBOL (Qboyer_moore);
+  DEFSYMBOL (Qsimple_search);
+
+  DEFVAR_INT ("debug-xemacs-searches", &debug_xemacs_searches /*
+If non-zero, bind `search-algorithm-used' to `boyer-moore' or `simple-search',
+depending on the algorithm used for each search.  Used for testing.
+*/ );
+  debug_xemacs_searches = 0;
+#endif 
 }

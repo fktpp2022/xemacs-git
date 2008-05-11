@@ -955,6 +955,42 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
   init_free_hook ();
 #endif
 
+#define SHEBANG_PROGNAME_LENGTH                                         \
+  (int)((sizeof (WEXTSTRING (SHEBANG_PROGNAME)) - sizeof (WEXTSTRING (""))))
+#define SHEBANG_EXE_PROGNAME_LENGTH                                     \
+  (int)(sizeof (WEXTSTRING (SHEBANG_PROGNAME ".exe"))                   \
+        - sizeof (WEXTSTRING ("")))
+
+  {
+    int progname_len = wext_strlen (argv[0]);
+    if (progname_len >= SHEBANG_PROGNAME_LENGTH)
+      {
+	if (!wext_strcmp_ascii (argv[0] +
+				(progname_len - SHEBANG_PROGNAME_LENGTH),
+				SHEBANG_PROGNAME)
+	    /* Allow trailing .exe. Don't check it, it could also be
+	       .com.  */
+	    || (progname_len >= SHEBANG_EXE_PROGNAME_LENGTH && 
+		!wext_strncmp_ascii
+		(argv[0] + (progname_len - SHEBANG_EXE_PROGNAME_LENGTH),
+		 SHEBANG_PROGNAME,
+		 SHEBANG_PROGNAME_LENGTH)))
+	  {
+	    Wexttext **newarr = alloca_array (Wexttext *, argc + 2);
+	    int j;
+
+	    newarr[0] = argv[0];
+	    newarr[1] = WEXTSTRING ("--script");
+	    for (j = 1; j < argc; ++j)
+	      {
+		newarr[j + 1] = argv[j];
+	      }
+	    argv = newarr;
+	    argc++;
+	  }
+      }
+  }
+
   sort_args (argc, argv);
 
 #if 0 /* defined (_SCO_DS)
@@ -1048,6 +1084,20 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       noninteractive = 1;
     }
 
+  {
+    int count_before = skip_args;
+    /* Handle the -script switch, which implies batch and vanilla. The -l
+       part of its functionality is implemented in Lisp. */
+    if (argmatch (argv, argc, "-script", "--script", 0, NULL,
+		  &skip_args))
+      {
+	noninteractive = 1;
+	vanilla_inhibiting = 1;
+      }
+
+    /* Don't actually discard this argument. */
+    skip_args = count_before;
+  }
 #ifdef WIN32_NATIVE
   {
     /* Since we aren't a console application, we can't easily be terminated
@@ -2162,6 +2212,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 
 #ifdef HAVE_GTK
       vars_of_device_gtk ();
+      vars_of_console_gtk ();
 #ifdef HAVE_DIALOGS
       vars_of_dialog_gtk ();
 #endif
@@ -2689,6 +2740,7 @@ static const struct standard_args standard_args[] =
   { "-sd", "--show-dump-id", 105, 0 },
   { "-nd", "--no-dump-file", 95, 0 },
   { "-batch", "--batch", 88, 0 },
+  { "-script", "--script", 89, 1 },
 #ifdef WIN32_NATIVE
   { "-mswindows-termination-handle", 0, 84, 1 },
   { "-nuni", "--no-unicode-lib-calls", 83, 0 },
@@ -4245,10 +4297,9 @@ Arbitrary string to place in the version string after the codename.
 Appropriate surrounding whitespace will be added, but typically looks best
 if enclosed in parentheses.
 
-A standard use is to indicate the date version.sh was last updated from
-the CVS mainline, where it is automatically given a value similar to
-\"(+CVS-20050221)\".  Developers may also use it to indicate particular
-branches, etc.
+A standard use is to indicate the topmost hash id of the Mercurial
+changeset from which XEmacs was compiled.  Developers may also use it
+to indicate particular branches, etc.
 */ );
 #ifdef XEMACS_EXTRA_NAME
   Vxemacs_extra_name = build_string (XEMACS_EXTRA_NAME);

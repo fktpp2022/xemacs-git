@@ -866,10 +866,10 @@ XE_HELP_SUBSECTION([Database options])
 XE_COMPLEX_ARG([database],
 	AS_HELP_STRING([--enable-database=TYPE],[Compile with database support.  Valid types are
                         `no' or a comma-separated list of one or more
-                        of `berkdb' and either `dbm' or `gnudbm'.]),
+                        of `berkdb' and either `dbm' or `gdbm'.]),
 	[
 if test "$enable_database_dbm"  = "yes" -a "$enable_database_gdbm" = "yes"; then
-	USAGE_ERROR("Only one of \`dbm' and \`gnudbm' may be specified
+	USAGE_ERROR("Only one of \`dbm' and \`gdbm' may be specified
 with the \`--with-database' option.")
 fi
 ],
@@ -1176,6 +1176,11 @@ dnl -------------------------------------------------------------------------
 dnl ----------------------------------------
 dnl Find out which version of XEmacs this is
 dnl ----------------------------------------
+dnl This should be the same code as in Makefile.in.in
+cp "$srcdir/version.sh.in" "$srcdir/version.sh"
+if test -d "$srcdir/.hg"; then
+    (cd "$srcdir"; hg identify | cut -d " " -f 1 >> version.sh)
+fi
 . "$srcdir/version.sh" || exit 1;
 dnl Must do the following first to determine verbosity for AC_DEFINE
 if test -n "$emacs_is_beta"; then beta=yes; else beta=no; fi
@@ -1219,12 +1224,18 @@ if test "$with_infodock" = "yes"; then
   AC_DEFINE_UNQUOTED(INFODOCK_BUILD_VERSION, $infodock_build_version)
   version=${infodock_major_version}.${infodock_minor_version}.${infodock_build_version}
   PROGNAME=infodock
+  SHEBANG_PROGNAME=infodock-script
   CPPFLAGS="$CPPFLAGS -DINFODOCK"
 else
   PROGNAME=xemacs
+  SHEBANG_PROGNAME=xemacs-script
 fi
 
+AC_SUBST(SHEBANG_PROGNAME)
+
 AC_DEFINE_UNQUOTED(EMACS_PROGNAME, "$PROGNAME")
+
+AC_DEFINE_UNQUOTED(SHEBANG_PROGNAME, "${PROGNAME}-script")
 
 dnl ----------------------------------
 dnl Error checking and debugging flags
@@ -1806,7 +1817,7 @@ if test "$enable_newgc" = "yes"; then
   if test "$enable_vdb" = "auto"; then
     case "$opsys" in
       darwin )  case "$machine" in
-		  i686 ) check_vdb_posix=yes ;;
+		  i[[3-9]]86 ) check_vdb_posix=yes ;;
 		  * ) AC_DEFINE(VDB_MACH)  have_vdb_mach=yes ;;
 		esac ;;
       cygwin* ) AC_DEFINE(VDB_WIN32) have_vdb_win32=yes ;;
@@ -4236,17 +4247,17 @@ if test "$with_x11" = "yes" -a "$detect_athena" = "yes" ; then
     AC_CHECK_LIB($athena_variant, XawScrollbarSetThumb,
       [
         dnl Must not be a 3d library...
-        AC_CHECK_LIB($athena_variant, threeDClassRec,
+        AC_CHECK_LIB($athena_variant, XawSme3dComputeTopShadowRGB,
           [AC_MSG_WARN([Could not find a non-3d Athena widget library.])],
           athena_lib=$athena_variant)
       ],
       AC_MSG_WARN([Could not find an Athena widget library.]))
   else
     dnl The real configuration, need 3d library
-    AC_CHECK_LIB($athena_variant, threeDClassRec, athena_lib=$athena_variant,
+    AC_CHECK_LIB($athena_variant, XawSme3dComputeTopShadowRGB, athena_lib=$athena_variant,
       dnl OK, couldn't find it with a proper name, try the standard Athena lib
       dnl If that is 3d, presume the user asked for what they have installed.
-      AC_CHECK_LIB(Xaw, threeDClassRec,
+      AC_CHECK_LIB(Xaw, XawSme3dComputeTopShadowRGB,
         [
           athena_lib=Xaw;
           AC_MSG_WARN([Assuming that libXaw is actually $athena_variant.]);
@@ -5408,10 +5419,13 @@ dnl Check for DBM support in libgdbm.
 if test "$enable_database_gdbm" != "no"; then
   AC_CHECK_LIB(gdbm, dbm_open, [
    enable_database_gdbm=yes enable_database_dbm=no libdbm=-lgdbm], [
+       AC_CHECK_LIB(gdbm_compat, dbm_open, [
+       enable_database_gdbm=yes enable_database_dbm=no libdbm="-lgdbm_compat -lgdbm"], [
    if test "$enable_database_gdbm" = "yes"; then
      XE_DIE("Required GNU DBM support cannot be provided.")
    fi
-   enable_database_gdbm=no])
+   enable_database_gdbm=no], -lgdbm)
+  ])
 fi
 
 dnl Check for DBM support in libc and libdbm.
@@ -5492,7 +5506,7 @@ yes
   fi
 
   dnl Berk db 4.1 decorates public functions with version information
-  if test "$enable_database_berkdb" != "yes" -a "$dbver" = "4"; then
+  if test "$enable_database_berkdb" = "yes" -a "$dbver" = "4"; then
     rm -f $tempcname
     echo "#include <$db_h_file>" > $tempcname
     echo "configure___ dbfunc=db_create" >> $tempcname

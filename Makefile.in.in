@@ -92,6 +92,7 @@ configuration=@configuration@
 ## This will be the name of the generated binary and is set automatically
 ## by configure.
 PROGNAME=@PROGNAME@
+SHEBANG_PROGNAME=@SHEBANG_PROGNAME@
 
 ## ==================== Where To Install Things ====================
 
@@ -256,7 +257,7 @@ all: Makefile ${GENERATED_HEADERS} ${MAKE_SUBDIR} info
 .PHONY: ${SUBDIR} all beta
 
 ## Convenience target for XEmacs beta testers
-beta: elcclean all
+beta: elcclean update-version all
 
 ## Convenience target for XEmacs maintainers
 ## This would run `make-xemacsdist' if I were really confident that everything
@@ -315,6 +316,13 @@ FRC.lisp.finder-inf.el:
 
 ${SUBDIR}: ${SUBDIR_MAKEFILES} ${GENERATED_HEADERS} FRC
 	cd ./$@ && $(MAKE) $(RECURSIVE_MAKE_ARGS) all
+
+## This should be the same code as in configure.ac.
+update-version:
+	cp ${srcdir}/version.sh.in ${srcdir}/version.sh
+	if test -d ${srcdir}/.hg; then \
+	    (cd ${srcdir}; hg identify | cut -d " " -f 1 >> version.sh); \
+	fi
 
 ## Building modules depends on ellcc, found in lib-src.
 modules/sample modules/ldap modules/zlib modules/base64: lib-src
@@ -407,10 +415,12 @@ install-arch-dep: mkdir
 	${INSTALL_PROGRAM} src/${PROGNAME} ${bindir}/${PROGNAME}-${version}.exe
 	-chmod 0755 ${bindir}/${PROGNAME}-${version}.exe
 	cd ${bindir} && $(RM) ./${PROGNAME} && ${LN_S} ${PROGNAME}-${version}.exe ./${PROGNAME}
+	cd ${bindir} && $(RM) ./${SHEBANG_PROGNAME} && ${LN_S} ${PROGNAME}-${version}.exe ./${SHEBANG_PROGNAME}
 # else
 	${INSTALL_PROGRAM} src/${PROGNAME} ${bindir}/${PROGNAME}-${version}
 	-chmod 0755 ${bindir}/${PROGNAME}-${version}
 	cd ${bindir} && $(RM) ./${PROGNAME} && ${LN_S} ${PROGNAME}-${version} ./${PROGNAME}
+	cd ${bindir} && $(RM) ./${SHEBANG_PROGNAME} && ${LN_S} ${PROGNAME}-${version} ./${SHEBANG_PROGNAME}
 # endif /* CYGWIN */
 #endif /* WIN32_NATIVE */
 	if test "${prefix}" != "${exec_prefix}"; then \
@@ -500,21 +510,31 @@ pkgsrcdir = ${srcdir}/etc/bundled-packages
 
 check-available-packages:
 	@if test -r ${pkgsrcdir}/bootstrap.tar.gz; \
-	then echo "To install a set of bootstrap packages, type:"; \
+	then echo "To install a set of bootstrap packages in"; \
+	     echo "${package_path}/xemacs-packages, type:"; \
 	     echo "  make install-bootstrap-packages"; \
 	fi; \
 	if test -r ${pkgsrcdir}/xemacs-sumo.tar.gz; \
-	then echo "To install the full set of non-mule packages, type:"; \
+	then echo "To install the full set of non-mule packages in"; \
+	     echo "${package_path}/xemacs-packages, type:"; \
 	     echo "  make install-nonmule-packages"; \
 	fi; \
 	if test -r ${pkgsrcdir}/xemacs-mule-sumo.tar.gz; \
-	then echo "To install the full set of packages with mule, type:"; \
+	then echo "To install the full set of packages with mule in"; \
+	     echo "${package_path}/mule-packages, type:"; \
 	     echo "  make install-all-packages"; \
-	fi;
+	fi
+
+## The test for a non-trivial path simply checks for the conventional Unix
+## path separator ":".  This is reasonable because this is basically just
+## a convenience feature, anyway.
 
 mkpkgdir: FRC.mkdir ${MAKEPATH}
 	@if test -z ${package_path}; \
-	then echo "not configured --with-late-packages; no place to install."; \
+	then echo "Not configured --with-late-packages; no place to install."; \
+		exit -1; \
+	elif echo ${package_path} | grep ":"; \
+	then echo "Configured with multiple late package directories; you decide where to install."; \
 		exit -1; \
 	elif test -e ${package_path}/xemacs-packages \
 		-o -e ${package_path}/mule-packages; \
