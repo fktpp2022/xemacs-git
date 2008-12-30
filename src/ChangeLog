@@ -3,6 +3,20 @@
 	* device-x.c (Fx_get_font_path): 
 	Free the font path once we're finished with it. 
 
+2008-12-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* file-coding.c (Fmake_coding_system): 
+	Document our use of the safe-chars and safe-charsets properties,
+	and the differences compared to GNU. 
+	(make_coding_system_1): Don't drop the safe-chars and
+	safe-charsets properties. 
+	(Fcoding_system_property): Return the safe-chars and safe-charsets
+	properties when asked for them.
+	* file-coding.h (CODING_SYSTEM_SAFE_CHARSETS): 
+	* coding-system-slots.h: 
+	Make the safe-chars and safe-charsets slots available in these
+	headers. 
+
 2008-12-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* doc.c (Fbuilt_in_symbol_file): 
