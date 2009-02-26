@@ -1,3 +1,235 @@
+2009-02-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecomp.el (byte-compile-force-escape-quoted): New variable,
+	used to force `byte-compile-insert-header' to treat the output as
+	having characters above ?\xFF. 
+	(byte-compile-from-buffer): 
+	If the compiled output contains characters above ?\xFF, and
+	byte-compile-dynamic-docstrings or byte-compile-dynamic is non-nil
+	(or we're using an inappropriate coding system) recompile the
+	file, turning off the dynamic features and using a more
+	appropriate header. 
+	(byte-compile-insert-header): Pay attention to
+	byte-compile-force-escape-quoted. 
+
+2009-02-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* coding.el (check-coding-systems-region): 
+	Return null on success, not t. See
+	http://emacsbugs.donarmstrong.com/cgi-bin/bugreport.cgi?bug=1723
+
+2009-02-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* mule/mule-cmds.el (finish-set-language-environment): 
+	Correct this function, don't try to format non-control characters
+	with ^ followed by their value plus (char-int ?@).
+
+2009-02-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* unicode.el (unicode-query-coding-region): 
+	Avoid eval-when-compile where that gives incorrect results when
+	compiled on a non-Mule XEmacs but run on a Mule XEmacs.  Fixes
+	problems seen by
+	20a807210902131835o2f25930apaffabb6b62a95e5f@mail.gmail.com ,
+	thank you Vin!
+	(An equivalent way to get the efficiency of the eval-when-compile
+	would be to provide two defvars, evaluated at dump time, but this
+	code will be in C soon enough, and we can use the relevant
+	preprocessor constants there.)	
+
+2009-02-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* descr-text.el (describe-char-unicodedata-file):
+	Back out Stephen's change of 2009-01-01, 16c9098dd3d2; do a
+	Mercurial merge, add this ChangeLog entry.
+	See also http://mid.gmane.org/8763jbsyr7.fsf@xemacs.org .
+
+2009-02-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* mule/latin.el (macintosh): 
+	Add GNU Emacs' name for this coding system as an alias. 
+
+2009-02-13  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* mule/mule-cmds.el (init-mule-at-startup): 
+	Actually use leim-list-file-name, don't load a hardcoded
+	leim-list.el in this function. 
+
+2009-02-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* coding.el (query-coding-string): 
+	Correct the order of arguments passed to #'query-coding-region. 
+	(unencodable-char-position): 
+	Handle string offsets correctly, they're one less than buffer
+	offsets. Handle START and END correctly if passed a string. 
+
+2009-02-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl-macs.el (delete-duplicates): 
+	Add a new compiler macro, inlining this function if it's called
+	with a literal #'eq or #'equal test arguments and no other
+	keywords.
+	* font-lock.el (font-lock-unique): 
+	Remove this function. 
+	* font-lock.el (font-lock-prepend-text-property): 
+	(font-lock-append-text-property): 
+	Use #'delete-duplicates instead of #'font-lock-unique.
+	* font.el (font-unique):
+	Remove this function.
+	* font.el (font-combine-fonts-internal): 
+	(x-font-families-for-device): 
+	(xft-font-families-for-device): 
+	(ns-font-families-for-device): 
+	Use #'delete-duplicates instead of #'font-unique.
+	* fontconfig.el (fc-delete-duplicates): 
+	* fontconfig.el (fc-filter): 
+	Remove these functions. 	
+	* fontconfig.el (fc-find-available-font-families): 
+	Replace #'fc-delete-duplicates with #'delete-duplicates,
+	#'fc-filter with #'delete-if-not.
+	* format.el (format-make-relatively-unique): 
+	Document that this is equivalent to #'nset-exclusive-or with a
+	test of #'equal.
+
+2009-02-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* descr-text.el (describe-text-sexp):
+	pp is in packages, use cl-prettyprint instead. 
+	* mule/mule-coding.el (make-8-bit-generate-helper): 
+	Don't uselessly bind args-out-of-range, thank you the byte
+	compiler. 	
+	* mule/mule-coding.el (8-bit-fixed-query-coding-region): 
+	Don't uselessly bind previous-fail, thank you the byte compiler.
+	* tty-init.el (make-device-early-tty-entry-point): 
+	Set make-device-early-tty-entry-point-called-p, not 
+	pre-tty-win-initted, thank you the byte compiler. 
+	* unicode.el (unicode-query-coding-region): 
+	Don't uselessly bind invalid-sequence-p, thank you the
+	byte-compiler. 
+
+2009-02-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* coding.el (query-coding-clear-highlights): 
+	Rename the BUFFER argument to BUFFER-OR-STRING, describe it as
+	possibly being a string in its documentation. 
+	(default-query-coding-region): 
+	Add a new IGNORE-INVALID-SEQUENCESP argument, document that this
+	function does not support it. 
+	Bind case-fold-search to nil, we don't want this to influence what the
+	function thinks is encodable or not.
+	(query-coding-region):
+	Add a new IGNORE-INVALID-SEQUENCESP argument, document what it
+	does; reflect this new argument in the associated compiler macro. 
+	(query-coding-string): 
+	Add a new IGNORE-INVALID-SEQUENCESP argument, document what it
+	does. Support the HIGHLIGHT argument correctly.
+	* unicode.el (unicode-query-coding-region): 
+	Add a new IGNORE-INVALID-SEQUENCESP argument, document what it
+	does, implement this. Document a potential problem. 
+	Use #'query-coding-clear-highlights instead of reimplementing it
+	ourselves. 
+	Remove some debugging messages. 
+	* mule/arabic.el (iso-8859-6): 
+	* mule/cyrillic.el (iso-8859-5): 
+	* mule/greek.el (iso-8859-7): 
+	* mule/hebrew.el (iso-8859-8): 
+	* mule/latin.el (iso-8859-2): 
+	* mule/latin.el (iso-8859-3): 
+	* mule/latin.el (iso-8859-4): 
+	* mule/latin.el (iso-8859-14): 
+	* mule/latin.el (iso-8859-15): 
+	* mule/latin.el (iso-8859-16): 
+	* mule/latin.el (iso-8859-9): 
+	* mule/latin.el (windows-1252): 
+	* mule/mule-coding.el (iso-8859-1): 
+	Avoid the assumption that characters not given an explicit mapping 
+	in these coding systems map to the ISO 8859-1 characters 
+	corresponding to the octets on disk; this makes it much more 
+	reasonable to implement the IGNORE-INVALID-SEQUENCESP argument to 
+	query-coding-region. 
+	* mule/mule-cmds.el (set-language-info): 
+	Correct the docstring. 
+	* mule/mule-cmds.el (finish-set-language-environment): 
+	Treat invalid Unicode sequences produced from 
+	invalid-sequence-coding-system and corresponding to control 
+	characters the same as control characters in redisplay. 
+	* mule/mule-cmds.el: 
+	Document that encode-coding-char is available in coding.el 
+	* mule/mule-coding.el (make-8-bit-generate-helper): 
+	Change to return the both the encode-program generated and the 
+	relevant non-ASCII charset; update the docstring to reflect this. 
+	* mule/mule-coding.el 
+	(make-8-bit-generate-encode-program-and-skip-chars-strings): 
+	Rename this function; have it return skip-chars-strings as well as 
+	the encode program. Have these skip-chars-strings use ranges for 
+	charsets, where possible. 
+	* mule/mule-coding.el (make-8-bit-create-decode-encode-tables): 
+	Revise this to allow people to specify explicitly characters that 
+	should be undefined (= corresponding to keys in 
+	unicode-error-default-translation-table), and treating unspecified 
+	octets above #x7f as undefined by default. 
+	* mule/mule-coding.el (8-bit-fixed-query-coding-region): 
+	Add a new IGNORE-INVALID-SEQUENCESP argument, implement support 
+	for it using the 8-bit-fixed-invalid-sequences-skip-chars coding 
+	system property; remove some debugging messages. 
+	* mule/mule-coding.el (make-8-bit-coding-system): 
+	This function is dumped, autoloading it makes no sense. 
+	Document what happens when characters above #x7f are not
+	specified, implement this. 
+	* mule/vietnamese.el: 
+	Correct spelling. 
+
+2009-02-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* help.el: 
+	(describe-function-1): 
+	* byte-optimize.el: 
+	Remove any reference to mocklisp as an active technology.
+
+2009-02-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* mule/latin.el:
+	Specify windows-1250 as the invalid-sequence-coding-system for the
+	iso-8859-2 languages; actually *use* the
+	invalid-sequence-coding-system for German and the other iso-8859-1
+	language environments.
+
+2009-02-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* coding.el (force-coding-system-equivalency): 
+	Document this macro and the motivation for it. 
+
+2009-01-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* coding.el (force-coding-system-equivalency):
+	Move three functions that we don't want to advertise to being
+	anonymous lambdas instead.
+	* glyphs.el :
+	Remove #'define-constant-glyph and some functions it uses, replace
+	the latter with anonymous lambdas and the former and its uses with
+	a call to loop.
+	Do the same with #'define-obsolete-pointer-glyph and the functions
+	it uses.
+	(init-glyphs): Untern this symbol once the associated function has
+	been called; it's only needed at dump time, not at runtime.
+
+2009-02-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* coding.el (query-coding-region): 
+	Revert this to being a defun, add a compiler macro without
+	needless binding. 
+	(query-coding-string): 
+	Correct a bug here, string indices are zero- not one-based. 
+	* mule/general-late.el (unicode-query-coding-skip-chars-arg):
+	Correct the algorithm used to initialise this variable. 
+
+2009-02-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* help.el (describe-function-1): 
+	Distinguish between special forms and subrs; don't bind
+	autoload-file, #'symbol-file returns it like any other function
+	file name.
+
 2009-01-31  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* mule/mule-cmds.el (finish-set-language-environment): 
