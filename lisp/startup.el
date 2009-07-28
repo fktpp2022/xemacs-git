@@ -1524,17 +1524,23 @@ This function is idempotent, so call this as often as you like!"
 " inhibit-packages inhibit-site-lisp called-early)
 	   'external-debugging-output)
     (princ (format
-"emacs-roots:
+"invocation-directory: %S
+invocation-name: %S
+configure-prefix-directory: %S
+configure-exec-prefix-directory: %S
+emacs-roots:
 %S
 emacs-data-roots:
 %S
 user-init-directory: %S
 configure-package-path: %S
-" emacs-roots emacs-data-roots user-init-directory configure-package-path)
+" invocation-directory invocation-name
+  configure-prefix-directory configure-exec-prefix-directory
+  emacs-roots emacs-data-roots user-init-directory configure-package-path)
 	   'external-debugging-output)
     )
 
-  (setq lisp-directory (paths-find-lisp-directory emacs-roots))
+  (setq lisp-directory (paths-find-lisp-directory emacs-data-roots))
 
   (if debug-paths
       (princ (format "configure-lisp-directory and lisp-directory:\n%S\n%S\n"
@@ -1544,7 +1550,7 @@ configure-package-path: %S
   (if (featurep 'mule)
       (progn
 	(setq mule-lisp-directory
-	      (paths-find-mule-lisp-directory emacs-roots
+	      (paths-find-mule-lisp-directory emacs-data-roots
 					      lisp-directory))
 	(if debug-paths
 	    (princ (format "configure-mule-lisp-directory and mule-lisp-directory:\n%S\n%S\n"
@@ -1553,7 +1559,7 @@ configure-package-path: %S
     (setq mule-lisp-directory '()))
 
   (setq site-directory (and (null inhibit-site-lisp)
-			    (paths-find-site-lisp-directory emacs-roots)))
+			    (paths-find-site-lisp-directory emacs-data-roots)))
 
   (if (and debug-paths (null inhibit-site-lisp))
       (princ (format "configure-site-directory and site-directory:\n%S\n%S\n"
@@ -1597,7 +1603,7 @@ configure-package-path: %S
   (unless called-early
     (setq Info-directory-list
 	  (paths-construct-info-path
-	   emacs-roots
+	   emacs-data-roots
 	   early-package-hierarchies late-package-hierarchies last-package-hierarchies))
 
     (if debug-paths
@@ -1628,7 +1634,7 @@ configure-package-path: %S
 		       configure-doc-directory doc-directory)
 	       'external-debugging-output))
     
-    (setq data-directory (paths-find-data-directory emacs-roots))
+    (setq data-directory (paths-find-data-directory emacs-data-roots))
     
     (if debug-paths
 	(princ (format "configure-data-directory and data-directory:\n%S\n%S\n"
