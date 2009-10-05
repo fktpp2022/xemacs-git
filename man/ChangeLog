@@ -1,3 +1,10 @@
+2008-05-08  Steve Youngs  <steve@sxemacs.org>
+
+	* lispref/ffi.texi: New.
+	* lispref/internationalization.texi (Internationalization): Add
+	node reference to FFI.
+	* lispref/mule.texi (MULE): Ditto.
+	* lispref/lispref.texi (Top): Add FFI to menu.
 2009-08-11  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lispref/numbers.texi (Bigfloat Basics): 

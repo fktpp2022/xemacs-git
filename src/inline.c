@@ -120,3 +120,7 @@ Boston, MA 02111-1307, USA.  */
 #ifdef TOOLTALK
 #include "tooltalk.h"
 #endif
+
+#ifdef HAVE_LIBFFI
+#include "effi.h"
+#endif

@@ -1,3 +1,13 @@
+2008-05-08  Steve Youngs  <steve@sxemacs.org>
+
+	* ffi-curl.el: New.
+	* ffi-libc.el: New.
+	* ffi-magic.el: New.
+	* ffi-wand.el: New.
+	* ffi.el: New.
+
+	Foreign Function Interface, backported from SXEmacs.
+
 2009-10-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* cl-macs.el (delete-duplicates): 

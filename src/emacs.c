@@ -1535,6 +1535,9 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       syms_of_elhash ();
       syms_of_emacs ();
       syms_of_eval ();
+#ifdef HAVE_LIBFFI
+      syms_of_ffi ();
+#endif	/* HAVE_LIBFFI */
 #ifdef HAVE_X_WINDOWS
       syms_of_event_Xt ();
 #endif
@@ -2101,6 +2104,9 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       vars_of_editfns ();
       vars_of_emacs ();
       vars_of_eval ();
+#ifdef HAVE_LIBFFI
+      vars_of_ffi ();
+#endif	/* HAVE_LIBFFI */
 
 #ifdef HAVE_X_WINDOWS
       vars_of_event_Xt ();
@@ -2333,6 +2339,9 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #endif
       reinit_vars_of_device ();
       reinit_vars_of_eval ();
+#ifdef HAVE_LIBFFI
+      reinit_vars_of_ffi ();
+#endif	/* HAVE_LIBFFI */
 #if defined (HAVE_TTY) && (defined (DEBUG_TTY_EVENT_STREAM) || !defined (HAVE_X_WINDOWS))
       reinit_vars_of_event_tty ();
 #endif
