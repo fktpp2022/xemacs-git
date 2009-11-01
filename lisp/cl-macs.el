@@ -3240,7 +3240,7 @@ surrounded by (block NAME ...)."
                    begin)
                ;; Call cl-delete-duplicates explicitly, to avoid the form
                ;; getting compiler-macroexpanded again:
-               (cl-delete-duplicates begin ,(third form) ,(fourth form) nil))))
+               (cl-delete-duplicates begin ',cl-keys nil))))
           ((and (= 4 (length form))
                 (eq :test (third form))
                 (or (equal '(quote equal) (fourth form))
@@ -3255,9 +3255,29 @@ surrounded by (block NAME ...)."
                    begin)
                ;; Call cl-delete-duplicates explicitly, to avoid the form
                ;; getting compiler-macroexpanded again:
-               (cl-delete-duplicates begin ,(third form) ,(fourth form) nil))))
+               (cl-delete-duplicates begin ',cl-keys nil))))
           (t
            form))))
+
+;; XEmacs change, the GNU mapc doesn't accept the Common Lisp args, so this
+;; change isn't helpful.
+(define-compiler-macro mapc (&whole form cl-func cl-seq &rest cl-rest)
+  (if cl-rest
+      form
+    (cons 'mapc-internal (cdr form))))
+
+(define-compiler-macro mapcar* (&whole form cl-func cl-x &rest cl-rest)
+  (if cl-rest
+      form
+    (cons 'mapcar (cdr form))))
+
+;; XEmacs; it's perfectly reasonable, and often much clearer to those
+;; reading the code, to call regexp-quote on a constant string, which is
+;; something we can optimise here easily.
+(define-compiler-macro regexp-quote (&whole form string)
+  (if (stringp string)
+      (regexp-quote string)
+    form))
 
 (mapc
  #'(lambda (y)

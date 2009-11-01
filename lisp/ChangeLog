@@ -6,6 +6,64 @@
 	(end-of-defun):
 	Make docstrings stop lying.
 
+2009-10-30  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl-macs.el (regexp-quote): 
+	If STRING is constant, call regexp-quote at compile time.
+
+2009-10-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* files.el (default-file-system-ignore-case): New variable.
+	(file-system-case-alist): New variable.
+	(file-system-ignore-case-p):
+	New function; return t if file names under PATH should be treated
+	case-insensitively.
+	* minibuf.el (read-file-name-1, read-file-name-internal-1)
+	(read-file-name-internal-1): 
+	* package-admin.el (package-admin-check-manifest): 
+	Use file-system-ignore-case-p instead of checking system-type
+	directly in these functions. (Even though minibuf.el is dumped
+	before files.el, the function is only called in interactive usage,
+	there's no dump time order dependency here.) 
+
+2009-10-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecomp.el (byte-compile-default-warnings): 
+	Add two new warning types, discarded-consing (basically use of
+	mapcar instead of mapc where its result is discarded) and
+	quoted-lambda (use of a lambda expression quoted as data in a
+	function context).
+	(byte-compile-warnings): Document the new warnings. 
+	(byte-compile-fset, byte-compile-funarg): Implement the
+	quoted-lambda warning option. 
+	(byte-compile-mapcar): Renamed to byte-compile-maybe-mapc.
+	(byte-compile-maybe-mapc, byte-compile-maplist): 
+	Implement the discarded-consing warning option. 
+	Add more functions that should be compiled using
+	byte-compile-funarg, notably mapvector, mapc-internal,
+	map-char-table. 
+	* cl-macs.el (mapcar*): 
+	If we know at compile time that there are no CL options being
+	used, use the mapcar subr, not the byte-coded function. 
+
+2009-10-12  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl-macs.el (mapc):
+	New compiler macro, use mapc-internal at
+	compile time if we're not using the Common Lisp functionality.
+	* bytecomp.el (byte-compile-mapcar, byte-compile-maplist): New.
+	If the return value of mapcar is being discarded, compile it to a
+	mapc-internal call instead, and warn, because the programmer
+	probably can't rely on always being compiled by an XEmacs that
+	does this. Similarly for maplist and mapl; and use
+	byte-compile-funarg for map, mapl, mapcan, mapcon. 
+
+2009-10-12  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl-macs.el (delete-duplicates): 
+	Fix another bug in the delete-duplicates compiler macro, thank you
+	the byte compiler. 
+
 2009-10-07  Andreas Roehler  <andreas.roehler@online.de>
 
 	* lisp.el (beginning-of-defun-function):
