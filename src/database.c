@@ -31,6 +31,7 @@ Boston, MA 02111-1307, USA.  */
 
 #include "sysfile.h"
 #include "buffer.h"
+#include "file-coding.h"
 
 #ifndef HAVE_DATABASE
 #error HAVE_DATABASE not defined!!
@@ -45,16 +46,24 @@ Boston, MA 02111-1307, USA.  */
 /* glibc 2.1 doesn't have this problem with DB 2.x */
 #if !(defined __GLIBC__ && __GLIBC_MINOR__ >= 1)
 #ifdef HAVE_INTTYPES_H
+#ifndef __BIT_TYPES_DEFINED__
 #define __BIT_TYPES_DEFINED__
+#endif
 #include <inttypes.h>
-#if !defined(__FreeBSD__) && !defined(__NetBSD__) && !defined(__APPLE__)
+#if !HAVE_U_INT8_T
 typedef uint8_t  u_int8_t;
+#endif
+#if !HAVE_U_INT16_T
 typedef uint16_t u_int16_t;
+#endif
+#if !HAVE_U_INT32_T
 typedef uint32_t u_int32_t;
+#endif
 #ifdef WE_DONT_NEED_QUADS
+#if !HAVE_U_INT64_T
 typedef uint64_t u_int64_t;
+#endif
 #endif /* WE_DONT_NEED_QUADS */
-#endif /* __FreeBSD__ */
 #endif /* HAVE_INTTYPES_H */
 #endif /* !(defined __GLIBC__ && __GLIBC_MINOR__ >= 1) */
 /* Berkeley DB wants __STDC__ to be defined; else if does `#define const' */
@@ -76,7 +85,7 @@ Lisp_Object Qqueue;
 #endif /* HAVE_BERKELEY_DB */
 
 #ifdef HAVE_DBM
-#include <ndbm.h>
+#include NDBM_H_FILE
 Lisp_Object Qdbm;
 #endif /* HAVE_DBM */
 
@@ -174,11 +183,16 @@ print_database (Lisp_Object obj, Lisp_Object printcharfun,
 			 3, db->fname, db->funcs->get_type (db),
 			 db->funcs->get_subtype (db));
 
-  write_fmt_string (printcharfun, "%s) 0x%x>",
+  write_fmt_string (printcharfun, "%s) ",
 		    (!DATABASE_LIVE_P (db)    ? "closed"    :
 		     (db->access_ & O_WRONLY) ? "writeonly" :
-		     (db->access_ & O_RDWR)   ? "readwrite" : "readonly"),
-		    db->header.uid);
+		     (db->access_ & O_RDWR)   ? "readwrite" : "readonly"));
+
+  write_fmt_string_lisp (printcharfun, "coding: %s ", 1,
+                         XSYMBOL_NAME (XCODING_SYSTEM_NAME
+                                       (db->coding_system)));
+
+  write_fmt_string (printcharfun, "0x%x>", db->header.uid);
 }
 
 static void
@@ -195,7 +209,7 @@ finalize_database (void *header, int for_disksave)
   db->funcs->close (db);
 }
 
-DEFINE_NONDUMPABLE_LISP_OBJECT ("database", database,
+DEFINE_NODUMP_LISP_OBJECT ("database", database,
 					   mark_database, print_database,
 					   finalize_database, 0, 0, 
 					   database_description,
@@ -273,9 +287,9 @@ dbm_map (Lisp_Database *db, Lisp_Object func)
        keydatum = dbm_nextkey (db->dbm_handle))
     {
       valdatum = dbm_fetch (db->dbm_handle, keydatum);
-      key = make_ext_string (keydatum.dptr, keydatum.dsize,
+      key = make_ext_string ((Extbyte *) keydatum.dptr, keydatum.dsize,
 			     db->coding_system);
-      val = make_ext_string (valdatum.dptr, valdatum.dsize,
+      val = make_ext_string ((Extbyte *) valdatum.dptr, valdatum.dsize,
 			     db->coding_system);
       call2 (func, key, val);
     }
@@ -292,7 +306,7 @@ dbm_get (Lisp_Database *db, Lisp_Object key)
   valdatum = dbm_fetch (db->dbm_handle, keydatum);
 
   return (valdatum.dptr
-	  ? make_ext_string (valdatum.dptr, valdatum.dsize,
+	  ? make_ext_string ((Extbyte *) valdatum.dptr, valdatum.dsize,
 			     db->coding_system)
 	  : Qnil);
 }
@@ -646,7 +660,7 @@ variable `database-coding-system'.
   if (NILP (codesys))
     codesys = Vdatabase_coding_system;
 
-  codesys = get_coding_system_for_text_file (Vdatabase_coding_system, 1);
+  codesys = get_coding_system_for_text_file (codesys, 0);
 
 #ifdef HAVE_DBM
   if (NILP (type) || EQ (type, Qdbm))

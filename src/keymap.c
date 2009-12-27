@@ -217,10 +217,20 @@ static void describe_map (Lisp_Object keymap, Lisp_Object elt_prefix,
 static Lisp_Object keymap_submaps (Lisp_Object keymap);
 
 Lisp_Object Qcontrol, Qctrl, Qmeta, Qsuper, Qhyper, Qalt, Qshift;
-Lisp_Object Qbutton0, Qbutton1, Qbutton2, Qbutton3;
-Lisp_Object Qbutton4, Qbutton5, Qbutton6, Qbutton7;
-Lisp_Object Qbutton0up, Qbutton1up, Qbutton2up, Qbutton3up;
-Lisp_Object Qbutton4up, Qbutton5up, Qbutton6up, Qbutton7up;
+Lisp_Object Qbutton0;
+Lisp_Object Qbutton1, Qbutton2, Qbutton3, Qbutton4, Qbutton5;
+Lisp_Object Qbutton6, Qbutton7, Qbutton8, Qbutton9, Qbutton10;
+Lisp_Object Qbutton11, Qbutton12, Qbutton13, Qbutton14, Qbutton15;
+Lisp_Object Qbutton16, Qbutton17, Qbutton18, Qbutton19, Qbutton20;
+Lisp_Object Qbutton21, Qbutton22, Qbutton23, Qbutton24, Qbutton25;
+Lisp_Object Qbutton26;
+Lisp_Object Qbutton0up;
+Lisp_Object Qbutton1up, Qbutton2up, Qbutton3up, Qbutton4up, Qbutton5up;
+Lisp_Object Qbutton6up, Qbutton7up, Qbutton8up, Qbutton9up, Qbutton10up;
+Lisp_Object Qbutton11up, Qbutton12up, Qbutton13up, Qbutton14up, Qbutton15up;
+Lisp_Object Qbutton16up, Qbutton17up, Qbutton18up, Qbutton19up, Qbutton20up;
+Lisp_Object Qbutton21up, Qbutton22up, Qbutton23up, Qbutton24up, Qbutton25up;
+Lisp_Object Qbutton26up;
 
 Lisp_Object Qmenu_selection;
 /* Emacs compatibility */
@@ -231,6 +241,25 @@ Lisp_Object Qdown_mouse_4, Qmouse_4;
 Lisp_Object Qdown_mouse_5, Qmouse_5;
 Lisp_Object Qdown_mouse_6, Qmouse_6;
 Lisp_Object Qdown_mouse_7, Qmouse_7;
+Lisp_Object Qdown_mouse_8, Qmouse_8;  
+Lisp_Object Qdown_mouse_9, Qmouse_9;  
+Lisp_Object Qdown_mouse_10, Qmouse_10;
+Lisp_Object Qdown_mouse_11, Qmouse_11;
+Lisp_Object Qdown_mouse_12, Qmouse_12;
+Lisp_Object Qdown_mouse_13, Qmouse_13;
+Lisp_Object Qdown_mouse_14, Qmouse_14;
+Lisp_Object Qdown_mouse_15, Qmouse_15;
+Lisp_Object Qdown_mouse_16, Qmouse_16;
+Lisp_Object Qdown_mouse_17, Qmouse_17;
+Lisp_Object Qdown_mouse_18, Qmouse_18;
+Lisp_Object Qdown_mouse_19, Qmouse_19;
+Lisp_Object Qdown_mouse_20, Qmouse_20;
+Lisp_Object Qdown_mouse_21, Qmouse_21;
+Lisp_Object Qdown_mouse_22, Qmouse_22;
+Lisp_Object Qdown_mouse_23, Qmouse_23;
+Lisp_Object Qdown_mouse_24, Qmouse_24;
+Lisp_Object Qdown_mouse_25, Qmouse_25;
+Lisp_Object Qdown_mouse_26, Qmouse_26;
 
 /* Kludge kludge kludge */
 Lisp_Object QLFD, QTAB, QRET, QESC, QDEL, QSPC, QBS;
@@ -282,7 +311,7 @@ static const struct memory_description keymap_description[] = {
 };
 
 /* No need for keymap_equal #### Why not? */
-DEFINE_LISP_OBJECT ("keymap", keymap,
+DEFINE_DUMPABLE_LISP_OBJECT ("keymap", keymap,
 			       mark_keymap, print_keymap, 0, 0, 0,
 			       keymap_description,
 			       Lisp_Keymap);
@@ -467,7 +496,14 @@ keymap_lookup_directly (Lisp_Object keymap,
   Lisp_Keymap *k;
 
   modifiers &= ~(XEMACS_MOD_BUTTON1 | XEMACS_MOD_BUTTON2 | XEMACS_MOD_BUTTON3
-		 | XEMACS_MOD_BUTTON4 | XEMACS_MOD_BUTTON5);
+		 | XEMACS_MOD_BUTTON4 | XEMACS_MOD_BUTTON5 | XEMACS_MOD_BUTTON6
+                 | XEMACS_MOD_BUTTON7 | XEMACS_MOD_BUTTON8 | XEMACS_MOD_BUTTON9
+                 | XEMACS_MOD_BUTTON10 | XEMACS_MOD_BUTTON11 | XEMACS_MOD_BUTTON12
+                 | XEMACS_MOD_BUTTON13 | XEMACS_MOD_BUTTON14 | XEMACS_MOD_BUTTON15
+                 | XEMACS_MOD_BUTTON16 | XEMACS_MOD_BUTTON17 | XEMACS_MOD_BUTTON18
+                 | XEMACS_MOD_BUTTON19 | XEMACS_MOD_BUTTON20 | XEMACS_MOD_BUTTON21
+                 | XEMACS_MOD_BUTTON22 | XEMACS_MOD_BUTTON23 | XEMACS_MOD_BUTTON24
+                 | XEMACS_MOD_BUTTON25 | XEMACS_MOD_BUTTON26);
   if ((modifiers & ~(XEMACS_MOD_CONTROL | XEMACS_MOD_META | XEMACS_MOD_SUPER
 		     | XEMACS_MOD_HYPER | XEMACS_MOD_ALT | XEMACS_MOD_SHIFT))
       != 0)
@@ -648,7 +684,14 @@ keymap_store (Lisp_Object keymap, const Lisp_Key_Data *key,
   Lisp_Keymap *k = XKEYMAP (keymap);
 
   modifiers &= ~(XEMACS_MOD_BUTTON1 | XEMACS_MOD_BUTTON2 | XEMACS_MOD_BUTTON3
-		 | XEMACS_MOD_BUTTON4 | XEMACS_MOD_BUTTON5);
+		 | XEMACS_MOD_BUTTON4 | XEMACS_MOD_BUTTON5 | XEMACS_MOD_BUTTON6
+                 | XEMACS_MOD_BUTTON7 | XEMACS_MOD_BUTTON8 | XEMACS_MOD_BUTTON9
+                 | XEMACS_MOD_BUTTON10 | XEMACS_MOD_BUTTON11 | XEMACS_MOD_BUTTON12
+                 | XEMACS_MOD_BUTTON13 | XEMACS_MOD_BUTTON14 | XEMACS_MOD_BUTTON15
+                 | XEMACS_MOD_BUTTON16 | XEMACS_MOD_BUTTON17 | XEMACS_MOD_BUTTON18
+                 | XEMACS_MOD_BUTTON19 | XEMACS_MOD_BUTTON20 | XEMACS_MOD_BUTTON21
+                 | XEMACS_MOD_BUTTON22 | XEMACS_MOD_BUTTON23 | XEMACS_MOD_BUTTON24
+                 | XEMACS_MOD_BUTTON25 | XEMACS_MOD_BUTTON26);
   assert ((modifiers & ~(XEMACS_MOD_CONTROL | XEMACS_MOD_META
 			 | XEMACS_MOD_SUPER | XEMACS_MOD_HYPER
 			 | XEMACS_MOD_ALT | XEMACS_MOD_SHIFT)) == 0);
@@ -1057,7 +1100,8 @@ get_keyelt (Lisp_Object object, int accept_default)
           struct gcpro gcpro1;
           GCPRO1 (event);
 	  character_to_event (XCHAR (idx), XEVENT (event),
-			      XCONSOLE (Vselected_console), 0, 0);
+			      XCONSOLE (Vselected_console),
+			      high_bit_is_meta, 0);
 	  indirection.keysym = XEVENT_KEY_KEYSYM (event);
 	  indirection.modifiers = XEVENT_KEY_MODIFIERS (event);
 	  UNGCPRO;
@@ -1328,7 +1372,7 @@ define_key_check_and_coerce_keysym (Lisp_Object spec,
 #endif /* unused */
           )
 	invalid_argument
-          ("Invalid (FSF Emacs) key format (see doc of define-key)",
+          ("Invalid (GNU Emacs) key format (see doc of define-key)",
 	   *keysym);
 
       /* #### Ok, this is a bit more dubious - make people not lose if they
@@ -1342,7 +1386,7 @@ define_key_check_and_coerce_keysym (Lisp_Object spec,
 	  DECLARE_EISTRING (temp);
 	  eicpy_raw (temp, name, qxestrlen (name));
 	  eisetch_char (temp, 2, '-');
-	  *keysym = Fintern_soft (eimake_string (temp), Qnil);
+	  *keysym = Fintern_soft (eimake_string (temp), Qnil, Qnil);
 	}
       else if (EQ (*keysym, QLFD))
 	*keysym = QKlinefeed;
@@ -1360,7 +1404,7 @@ define_key_check_and_coerce_keysym (Lisp_Object spec,
 	*keysym = QKbackspace;
       /* Emacs compatibility */
       else if (EQ(*keysym, Qdown_mouse_1))
-	*keysym = Qbutton1;
+        *keysym = Qbutton1;
       else if (EQ(*keysym, Qdown_mouse_2))
 	*keysym = Qbutton2;
       else if (EQ(*keysym, Qdown_mouse_3))
@@ -1373,6 +1417,44 @@ define_key_check_and_coerce_keysym (Lisp_Object spec,
 	*keysym = Qbutton6;
       else if (EQ(*keysym, Qdown_mouse_7))
 	*keysym = Qbutton7;
+      else if (EQ(*keysym, Qdown_mouse_8))
+        *keysym = Qbutton8;
+      else if (EQ(*keysym, Qdown_mouse_9))
+        *keysym = Qbutton9;
+      else if (EQ(*keysym, Qdown_mouse_10))
+        *keysym = Qbutton10;
+      else if (EQ(*keysym, Qdown_mouse_11))
+        *keysym = Qbutton11;
+      else if (EQ(*keysym, Qdown_mouse_12))
+        *keysym = Qbutton12;
+      else if (EQ(*keysym, Qdown_mouse_13))
+        *keysym = Qbutton13;
+      else if (EQ(*keysym, Qdown_mouse_14))
+        *keysym = Qbutton14;
+      else if (EQ(*keysym, Qdown_mouse_15))
+        *keysym = Qbutton15;
+      else if (EQ(*keysym, Qdown_mouse_16))
+        *keysym = Qbutton16;
+      else if (EQ(*keysym, Qdown_mouse_17))
+        *keysym = Qbutton17;
+      else if (EQ(*keysym, Qdown_mouse_18))
+        *keysym = Qbutton18;
+      else if (EQ(*keysym, Qdown_mouse_19))
+        *keysym = Qbutton19;
+      else if (EQ(*keysym, Qdown_mouse_20))
+        *keysym = Qbutton20;
+      else if (EQ(*keysym, Qdown_mouse_21))
+        *keysym = Qbutton21;
+      else if (EQ(*keysym, Qdown_mouse_22))
+        *keysym = Qbutton22;
+      else if (EQ(*keysym, Qdown_mouse_23))
+        *keysym = Qbutton23;
+      else if (EQ(*keysym, Qdown_mouse_24))
+        *keysym = Qbutton24;
+      else if (EQ(*keysym, Qdown_mouse_25))
+        *keysym = Qbutton25;
+      else if (EQ(*keysym, Qdown_mouse_26))
+        *keysym = Qbutton26;
       else if (EQ(*keysym, Qmouse_1))
 	*keysym = Qbutton1up;
       else if (EQ(*keysym, Qmouse_2))
@@ -1387,6 +1469,44 @@ define_key_check_and_coerce_keysym (Lisp_Object spec,
 	*keysym = Qbutton6up;
       else if (EQ(*keysym, Qmouse_7))
 	*keysym = Qbutton7up;
+      else if (EQ(*keysym, Qmouse_8))
+        *keysym = Qbutton8up;
+      else if (EQ(*keysym, Qmouse_9))
+        *keysym = Qbutton9up;
+      else if (EQ(*keysym, Qmouse_10))
+        *keysym = Qbutton10up;
+      else if (EQ(*keysym, Qmouse_11))
+        *keysym = Qbutton11up;
+      else if (EQ(*keysym, Qmouse_12))
+        *keysym = Qbutton12up;
+      else if (EQ(*keysym, Qmouse_13))
+        *keysym = Qbutton13up;
+      else if (EQ(*keysym, Qmouse_14))
+        *keysym = Qbutton14up;
+      else if (EQ(*keysym, Qmouse_15))
+        *keysym = Qbutton15up;
+      else if (EQ(*keysym, Qmouse_16))
+        *keysym = Qbutton16up;
+      else if (EQ(*keysym, Qmouse_17))
+        *keysym = Qbutton17up;
+      else if (EQ(*keysym, Qmouse_18))
+        *keysym = Qbutton18up;
+      else if (EQ(*keysym, Qmouse_19))
+        *keysym = Qbutton19up;
+      else if (EQ(*keysym, Qmouse_20))
+        *keysym = Qbutton20up;
+      else if (EQ(*keysym, Qmouse_21))
+        *keysym = Qbutton21up;
+      else if (EQ(*keysym, Qmouse_22))
+        *keysym = Qbutton22up;
+      else if (EQ(*keysym, Qmouse_23))
+        *keysym = Qbutton23up;
+      else if (EQ(*keysym, Qmouse_24))
+        *keysym = Qbutton24up;
+      else if (EQ(*keysym, Qmouse_25))
+        *keysym = Qbutton25up;
+      else if (EQ(*keysym, Qmouse_26))
+        *keysym = Qbutton26up;
     }
 }
 
@@ -1407,7 +1527,7 @@ define_key_parser (Lisp_Object spec, Lisp_Key_Data *returned_value)
       struct gcpro gcpro1;
       GCPRO1 (event);
       character_to_event (XCHAR_OR_CHAR_INT (spec), XEVENT (event),
-			  XCONSOLE (Vselected_console), 0, 0);
+			  XCONSOLE (Vselected_console), high_bit_is_meta, 0);
       SET_KEY_DATA_KEYSYM (returned_value, XEVENT_KEY_KEYSYM (event));
       SET_KEY_DATA_MODIFIERS (returned_value, 
                               XEVENT_KEY_MODIFIERS (event));
@@ -1450,6 +1570,63 @@ define_key_parser (Lisp_Object spec, Lisp_Key_Data *returned_value)
 	      case 7:
 		SET_KEY_DATA_KEYSYM (returned_value, (down ? Qbutton7 : Qbutton7up)); 
 		break;
+              case 8:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton8 : Qbutton8up));
+                 break;
+              case 9:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton9 : Qbutton9up));
+                 break;
+              case 10:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton10 : Qbutton10up));
+                 break;
+              case 11:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton11 : Qbutton11up));
+                 break;
+              case 12:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton12 : Qbutton12up));
+                 break;
+              case 13:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton13 : Qbutton13up));
+                 break;
+              case 14:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton14 : Qbutton14up));
+                 break;
+              case 15:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton15 : Qbutton15up));
+                 break;
+              case 16:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton16 : Qbutton16up));
+                 break;
+              case 17:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton17 : Qbutton17up));
+                 break;
+              case 18:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton18 : Qbutton18up));
+                 break;
+              case 19:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton19 : Qbutton19up));
+                 break;
+              case 20:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton20 : Qbutton20up));
+                 break;
+              case 21:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton21 : Qbutton21up));
+                 break;
+              case 22:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton22 : Qbutton22up));
+                 break;
+              case 23:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton23 : Qbutton23up));
+                 break;
+              case 24:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton24 : Qbutton24up));
+                 break;
+              case 25:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton25 : Qbutton25up));
+                 break;
+              case 26:
+                 SET_KEY_DATA_KEYSYM(returned_value, (down ? Qbutton26 : Qbutton26up));
+                 break;
 	      default:
 		SET_KEY_DATA_KEYSYM (returned_value, (down ? Qbutton0 : Qbutton0up)); 
 		break;
@@ -1549,7 +1726,26 @@ key_desc_list_to_event (Lisp_Object list, Lisp_Object event,
       EQ (raw_key.keysym, Qbutton4) || EQ (raw_key.keysym, Qbutton4up) ||
       EQ (raw_key.keysym, Qbutton5) || EQ (raw_key.keysym, Qbutton5up) ||
       EQ (raw_key.keysym, Qbutton6) || EQ (raw_key.keysym, Qbutton6up) ||
-      EQ (raw_key.keysym, Qbutton7) || EQ (raw_key.keysym, Qbutton7up))
+      EQ (raw_key.keysym, Qbutton7) || EQ (raw_key.keysym, Qbutton7up) ||
+      EQ (raw_key.keysym, Qbutton8) || EQ (raw_key.keysym, Qbutton8up) ||
+      EQ (raw_key.keysym, Qbutton9) || EQ (raw_key.keysym, Qbutton9up) ||
+      EQ (raw_key.keysym, Qbutton10) || EQ (raw_key.keysym, Qbutton10up) ||
+      EQ (raw_key.keysym, Qbutton11) || EQ (raw_key.keysym, Qbutton11up) ||
+      EQ (raw_key.keysym, Qbutton12) || EQ (raw_key.keysym, Qbutton12up) ||
+      EQ (raw_key.keysym, Qbutton13) || EQ (raw_key.keysym, Qbutton13up) ||
+      EQ (raw_key.keysym, Qbutton14) || EQ (raw_key.keysym, Qbutton14up) ||
+      EQ (raw_key.keysym, Qbutton15) || EQ (raw_key.keysym, Qbutton15up) ||
+      EQ (raw_key.keysym, Qbutton16) || EQ (raw_key.keysym, Qbutton16up) ||
+      EQ (raw_key.keysym, Qbutton17) || EQ (raw_key.keysym, Qbutton17up) ||
+      EQ (raw_key.keysym, Qbutton18) || EQ (raw_key.keysym, Qbutton18up) ||
+      EQ (raw_key.keysym, Qbutton19) || EQ (raw_key.keysym, Qbutton19up) ||
+      EQ (raw_key.keysym, Qbutton20) || EQ (raw_key.keysym, Qbutton20up) ||
+      EQ (raw_key.keysym, Qbutton21) || EQ (raw_key.keysym, Qbutton21up) ||
+      EQ (raw_key.keysym, Qbutton22) || EQ (raw_key.keysym, Qbutton22up) ||
+      EQ (raw_key.keysym, Qbutton23) || EQ (raw_key.keysym, Qbutton23up) ||
+      EQ (raw_key.keysym, Qbutton24) || EQ (raw_key.keysym, Qbutton24up) ||
+      EQ (raw_key.keysym, Qbutton25) || EQ (raw_key.keysym, Qbutton25up) ||
+      EQ (raw_key.keysym, Qbutton26) || EQ (raw_key.keysym, Qbutton26up))
     invalid_operation ("Mouse-clicks can't appear in saved keyboard macros",
 		       Qunbound);
 
@@ -1777,7 +1973,7 @@ ensure_meta_prefix_char_keymapp (Lisp_Object keys, int indx,
 DEFUN ("define-key", Fdefine_key, 3, 3, 0, /*
 Define key sequence KEYS, in KEYMAP, as DEF.
 KEYMAP is a keymap object.
-KEYS is the sequence of keystrokes to bind, described below.
+KEYS is the key sequence to bind, described below.
 DEF is anything that can be a key's definition:
  nil (means key is undefined in this keymap);
  a command (a Lisp function suitable for interactive calling);
@@ -1790,68 +1986,96 @@ DEF is anything that can be a key's definition:
     (DEFN should be a valid definition in its own right);
  or a cons (KEYMAP . CHAR), meaning use definition of CHAR in map KEYMAP.
 
-Contrary to popular belief, the world is not ASCII.  When running under a
-window system, XEmacs can tell the difference between, for example, the
-keystrokes control-h, control-shift-h, and backspace.  You can, in fact,
-bind different commands to each of these.
+A `key sequence' is a vector of one or more keystrokes.
+A `keystroke' is a list containing a key and zero or more modifiers.  The
+key must be the last element of the list.
+A `key' is a symbol corresponding to a key on the keyboard, or to a mouse
+gesture.  Mouse clicks are denoted by symbols prefixed with "button",
+followed by a digit for which button, and optionally "up".  Thus `button1'
+means the down-stroke and `button1up' means the up-stroke when clicking
+mouse button 1.
+A `modifier' is a symbol naming a physical key which is only "noticed" by
+XEmacs when chorded with another key.  The `shift' modifier is a special
+case.  You cannot use `(meta shift a)' to mean `(meta A)', since for
+characters that have ASCII equivalents, the state of the shift key is
+implicit in the keysym (a vs. A).  You also cannot say `(shift =)' to mean
+`+', as that correspondence varies from keyboard to keyboard.  The shift
+modifier can only be applied to keys that do not have a second keysym on the
+same key, such as `backspace' and `tab'.  A mouse click may be combined with
+modifiers to create a compound "keystroke".
 
-A `key sequence' is a set of keystrokes.  A `keystroke' is a keysym and some
-set of modifiers (such as control and meta).  A `keysym' is what is printed
-on the keys on your keyboard.
+The keys, mouse gestures, and modifiers that are available depend on your
+console and its driver.  At a minimum the ASCII graphic characters will be
+available as keys, and shift, control, and meta as modifiers.
 
-A keysym may be represented by a symbol, or (if and only if it is equivalent
-to a character with a code in the range 32 - 255) by a character or its
-equivalent code.  The `A' key may be represented by the symbol `A', the
-character `?A', or by the number 65.  The `break' key may be represented
-only by the symbol `break'.
+To find out programmatically what a key is bound to, use `key-binding' to
+check all applicable keymaps, or `lookup-key' to check a specific keymap.
+The documentation for `key-binding' also contains a description of which
+keymaps are applicable in various situations.  `where-is-internal' does
+the opposite of `key-binding', i.e. searches keymaps for the keys that
+map to a particular binding.
 
-A keystroke may be represented by a list: the last element of the list
-is the key (a symbol, character, or number, as above) and the
-preceding elements are the symbolic names of modifier keys (control,
-meta, super, hyper, alt, and shift).  Thus, the sequence control-b is
-represented by the forms `(control b)', `(control ?b)', and `(control
-98)'.  A keystroke may also be represented by an event object, as
-returned by the `next-command-event' and `read-key-sequence'
-functions.
+If you are confused about why a particular key sequence is generating a
+particular binding, and looking through the keymaps doesn't help, setting
+the variable `debug-emacs-events' may help.  If not, try checking
+what's in `function-key-map' and `key-translation-map'.
 
-Note that in this context, the keystroke `control-b' is *not* represented
-by the number 2 (the ASCII code for ^B) or the character `?\^B'.  See below.
+When running under a window system, typically the repertoire of keys is
+vastly expanded.  XEmacs does its best to use the names defined on each
+platform.  Also, when running under a window system, XEmacs can tell the
+difference between the keystrokes control-h, control-shift-h, and backspace.
+If the symbols differ, you can bind different actions to each.  For mouse
+clicks, different commands may be bound to the up and down strokes, though
+that is probably not what you want, so be careful.
 
-The `shift' modifier is somewhat of a special case.  You should not (and
-cannot) use `(meta shift a)' to mean `(meta A)', since for characters that
-have ASCII equivalents, the state of the shift key is implicit in the
-keysym (a vs. A).  You also cannot say `(shift =)' to mean `+', as that
-sort of thing varies from keyboard to keyboard.  The shift modifier is for
-use only with characters that do not have a second keysym on the same key,
-such as `backspace' and `tab'.
+Variant representations:
 
-A key sequence is a vector of keystrokes.  As a degenerate case, elements
-of this vector may also be keysyms if they have no modifiers.  That is,
-the `A' keystroke is represented by all of these forms:
-	A	?A	65	(A)	(?A)	(65)
-	[A]	[?A]	[65]	[(A)]	[(?A)]	[(65)]
+Besides the canonical representation as a vector of lists of symbols,
+`define-key' also accepts a number of abbreviations, aliases, and variants
+for convenience, compatibility, and internal use.
 
-the `control-a' keystroke is represented by these forms:
-	(control A)	(control ?A)	(control 65)
-	[(control A)]	[(control ?A)]	[(control 65)]
-the key sequence `control-c control-a' is represented by these forms:
-	[(control c) (control a)]	[(control ?c) (control ?a)]
-	[(control 99) (control 65)]	etc.
+A keystroke may be represented by a key; this is treated as though it were a
+list containing that key as the only element.  A keystroke may also be
+represented by an event object, as returned by the `next-command-event' and
+`read-key-sequence' functions.  A key sequence may be represented by a
+single keystroke; this is treated as a vector containing that keystroke as
+its only element.
 
-Mouse button clicks work just like keypresses: (control button1) means
-pressing the left mouse button while holding down the control key.
-\[(control c) (shift button3)] means control-c, hold shift, click right.
-
-Commands may be bound to the mouse-button up-stroke rather than the down-
-stroke as well.  `button1' means the down-stroke, and `button1up' means the
-up-stroke.  Different commands may be bound to the up and down strokes,
-though that is probably not what you want, so be careful.
+A key may be represented by a character or its equivalent integer code,
+if and only if it is equivalent to a character with a code in the range
+32 - 255.
 
 For backward compatibility, a key sequence may also be represented by a
 string.  In this case, it represents the key sequence(s) that would
-produce that sequence of ASCII characters in a purely ASCII world.  For
-example, a string containing the ASCII backspace character, "\\^H", would
-represent two key sequences: `(control h)' and `backspace'.  Binding a
+produce that sequence of ASCII characters in a purely ASCII world.  An
+alternative string representation is keyboard macro notation, which can
+be translated to the canonical representation with `kbd'.
+
+Examples:
+
+The key sequence `A' (which invokes `self-insert-command') is represented
+by all of these forms:
+	A	?A	65	(A)	(?A)	(65)
+	[A]	[?A]	[65]	[(A)]	[(?A)]	[(65)]
+
+The key sequence `control-a' is represented by these forms:
+	(control A)	(control ?A)	(control 65)
+	[(control A)]	[(control ?A)]	[(control 65)]
+
+The key sequence `control-c control-a' is represented by these forms:
+	[(control c) (control a)]	[(control ?c) (control ?a)]
+	[(control 99) (control 65)]	etc.
+
+The keystroke `control-b' *may not* be represented by the number 2 (the
+ASCII code for ^B) or the character `?\^B'.
+
+The `break' key may be represented only by the symbol `break'.
+
+Mouse button clicks work just like keypresses: (control button1) means
+pressing the left mouse button while holding down the control key.
+
+A string containing the ASCII backspace character, "\\^H", would represent
+two key sequences: `(control h)' and `backspace'.  Binding a
 command to this will actually bind both of those key sequences.  Likewise
 for the following pairs:
 
@@ -1870,22 +2094,6 @@ it is possible to redefine only one of those sequences like so:
 
 	(define-key global-map [(control x) (control i)] \'command-2)
 	(define-key global-map [(control x) tab] \'command-3)
-
-Of course, all of this applies only when running under a window system.  If
-you're talking to XEmacs through a TTY connection, you don't get any of
-these features.
-
-To find out programmatically what a key is bound to, use `key-binding' to
-check all applicable keymaps, or `lookup-key' to check a specific keymap.
-The documentation for `key-binding' also contains a description of which
-keymaps are applicable in various situations.  `where-is-internal' does
-the opposite of `key-binding', i.e. searches keymaps for the keys that
-map to a particular binding.
-
-If you are confused about why a particular key sequence is generating a
-particular binding, and looking through the keymaps doesn't help, setting
-the variable `debug-emacs-events' may help.  If not, try checking
-what's in `function-key-map' and `key-translation-map'.
 */
        (keymap, keys, def))
 {
@@ -1922,8 +2130,8 @@ what's in `function-key-map' and `key-translation-map'.
      for example) then the binding will be made for both keysyms.
 
      This is done if the user binds a command to a string, as in
-     (define-key map "\^H" 'something), but not when using one of the new
-     syntaxes, like (define-key map '(control h) 'something).
+     (define-key map "\^H" 'something), but not when using the canonical
+     syntax (define-key map '(control h) 'something).
      */
   ascii_hack = (STRINGP (keys));
 
@@ -3316,7 +3524,8 @@ of a key read from the user rather than a character from a buffer.
 	  Lisp_Object event = Fmake_event (Qnil, Qnil);
 	  CHECK_CHAR_COERCE_INT (key);
 	  character_to_event (XCHAR (key), XEVENT (event),
-			      XCONSOLE (Vselected_console), 0, 1);
+			      XCONSOLE (Vselected_console),
+			      high_bit_is_meta, 1);
 	  format_event_object (buf, event, 1);
 	  Fdeallocate_event (event);
 	}
@@ -3459,17 +3668,20 @@ DEFUN ("where-is-internal", Fwhere_is_internal, 1, 5, 0, /*
 Return list of keys that invoke DEFINITION in KEYMAPS.
 KEYMAPS can be either a keymap (meaning search in that keymap and the
 current global keymap) or a list of keymaps (meaning search in exactly
-those keymaps and no others).  If KEYMAPS is nil, search in the currently
-applicable maps for EVENT-OR-KEYS (this is equivalent to specifying
-`(current-keymaps EVENT-OR-KEYS)' as the argument to KEYMAPS).
+those keymaps and no others).
 
 If optional 3rd arg FIRSTONLY is non-nil, return a vector representing
  the first key sequence found, rather than a list of all possible key
  sequences.
 
-If optional 4th arg NOINDIRECT is non-nil, don't follow indirections
- to other keymaps or slots.  This makes it possible to search for an
- indirect definition itself.
+Optional 4th argument NOINDIRECT is ignored.  (GNU Emacs uses it to allow
+searching for an indirect keymap by inhibiting following of indirections to
+keymaps or slots, but XEmacs doesn't need it because keymaps are a type.)
+
+If optional 5th argument EVENT-OR-KEYS is non-nil and KEYMAPS is nil,
+search in the currently applicable maps for EVENT-OR-KEYS (this is
+equivalent to specifying `(current-keymaps EVENT-OR-KEYS)' as the
+argument to KEYMAPS).
 */
        (definition, keymaps, firstonly, UNUSED (noindirect), event_or_keys))
 {
@@ -3736,6 +3948,8 @@ where_is_recursive_mapper (Lisp_Object map, void *arg)
 	      Lisp_Key_Data *new_ = xnew_array (Lisp_Key_Data, size);
 	      memcpy ((void *)new_, (const void *)c->keys_so_far,
 		      c->keys_so_far_total_size * sizeof (Lisp_Key_Data));
+	      xfree (c->keys_so_far, Lisp_Key_Data);
+	      c->keys_so_far = new_;
 	    }
 	  else
 	    XREALLOC_ARRAY (c->keys_so_far, Lisp_Key_Data, size);
@@ -4043,14 +4257,52 @@ describe_map_mapper (const Lisp_Key_Data *key,
 	  EQ (keysym, Qbutton5) ||
 	  EQ (keysym, Qbutton6) ||
 	  EQ (keysym, Qbutton7) ||
+          EQ (keysym, Qbutton8) ||
+          EQ (keysym, Qbutton9) ||
+          EQ (keysym, Qbutton10) ||
+          EQ (keysym, Qbutton11) ||
+          EQ (keysym, Qbutton12) ||
+          EQ (keysym, Qbutton13) ||
+          EQ (keysym, Qbutton14) ||
+          EQ (keysym, Qbutton15) ||
+          EQ (keysym, Qbutton16) ||
+          EQ (keysym, Qbutton17) ||
+          EQ (keysym, Qbutton18) ||
+          EQ (keysym, Qbutton19) ||
+          EQ (keysym, Qbutton20) ||
+          EQ (keysym, Qbutton21) ||
+          EQ (keysym, Qbutton22) ||
+          EQ (keysym, Qbutton23) ||
+          EQ (keysym, Qbutton24) ||
+          EQ (keysym, Qbutton25) ||
+          EQ (keysym, Qbutton26) ||
 	  EQ (keysym, Qbutton0up) ||
 	  EQ (keysym, Qbutton1up) ||
 	  EQ (keysym, Qbutton2up) ||
 	  EQ (keysym, Qbutton3up) ||
 	  EQ (keysym, Qbutton4up) ||
 	  EQ (keysym, Qbutton5up) ||
-	  EQ (keysym, Qbutton6up) ||
-	  EQ (keysym, Qbutton7up))))
+          EQ (keysym, Qbutton6up) ||
+          EQ (keysym, Qbutton7up) ||
+          EQ (keysym, Qbutton8up) ||
+          EQ (keysym, Qbutton9up) ||
+          EQ (keysym, Qbutton10up) ||
+          EQ (keysym, Qbutton11up) ||
+          EQ (keysym, Qbutton12up) ||
+          EQ (keysym, Qbutton13up) ||
+          EQ (keysym, Qbutton14up) ||
+          EQ (keysym, Qbutton15up) ||
+          EQ (keysym, Qbutton16up) ||
+          EQ (keysym, Qbutton17up) ||
+          EQ (keysym, Qbutton18up) ||
+          EQ (keysym, Qbutton19up) ||
+          EQ (keysym, Qbutton20up) ||
+          EQ (keysym, Qbutton21up) ||
+          EQ (keysym, Qbutton22up) ||
+          EQ (keysym, Qbutton23up) ||
+          EQ (keysym, Qbutton24up) ||
+          EQ (keysym, Qbutton25up) ||
+          EQ (keysym, Qbutton26up))))
     return;
 
   /* If this command in this map is shadowed by some other map, ignore it. */
@@ -4362,6 +4614,25 @@ syms_of_keymap (void)
   DEFSYMBOL (Qbutton5);
   DEFSYMBOL (Qbutton6);
   DEFSYMBOL (Qbutton7);
+  DEFSYMBOL (Qbutton8);
+  DEFSYMBOL (Qbutton9);
+  DEFSYMBOL (Qbutton10);
+  DEFSYMBOL (Qbutton11);
+  DEFSYMBOL (Qbutton12);
+  DEFSYMBOL (Qbutton13);
+  DEFSYMBOL (Qbutton14);
+  DEFSYMBOL (Qbutton15);
+  DEFSYMBOL (Qbutton16);
+  DEFSYMBOL (Qbutton17);
+  DEFSYMBOL (Qbutton18);
+  DEFSYMBOL (Qbutton19);
+  DEFSYMBOL (Qbutton20);
+  DEFSYMBOL (Qbutton21);
+  DEFSYMBOL (Qbutton22);
+  DEFSYMBOL (Qbutton23);
+  DEFSYMBOL (Qbutton24);
+  DEFSYMBOL (Qbutton25);
+  DEFSYMBOL (Qbutton26);
   DEFSYMBOL (Qbutton0up);
   DEFSYMBOL (Qbutton1up);
   DEFSYMBOL (Qbutton2up);
@@ -4370,6 +4641,25 @@ syms_of_keymap (void)
   DEFSYMBOL (Qbutton5up);
   DEFSYMBOL (Qbutton6up);
   DEFSYMBOL (Qbutton7up);
+  DEFSYMBOL (Qbutton8up);
+  DEFSYMBOL (Qbutton9up);
+  DEFSYMBOL (Qbutton10up);
+  DEFSYMBOL (Qbutton11up);
+  DEFSYMBOL (Qbutton12up);
+  DEFSYMBOL (Qbutton13up);
+  DEFSYMBOL (Qbutton14up);
+  DEFSYMBOL (Qbutton15up);
+  DEFSYMBOL (Qbutton16up);
+  DEFSYMBOL (Qbutton17up);
+  DEFSYMBOL (Qbutton18up);
+  DEFSYMBOL (Qbutton19up);
+  DEFSYMBOL (Qbutton20up);
+  DEFSYMBOL (Qbutton21up);
+  DEFSYMBOL (Qbutton22up);
+  DEFSYMBOL (Qbutton23up);
+  DEFSYMBOL (Qbutton24up);
+  DEFSYMBOL (Qbutton25up);
+  DEFSYMBOL (Qbutton26up);
   DEFSYMBOL (Qmouse_1);
   DEFSYMBOL (Qmouse_2);
   DEFSYMBOL (Qmouse_3);
@@ -4377,6 +4667,25 @@ syms_of_keymap (void)
   DEFSYMBOL (Qmouse_5);
   DEFSYMBOL (Qmouse_6);
   DEFSYMBOL (Qmouse_7);
+  DEFSYMBOL (Qmouse_8);
+  DEFSYMBOL (Qmouse_9);
+  DEFSYMBOL (Qmouse_10);
+  DEFSYMBOL (Qmouse_11);
+  DEFSYMBOL (Qmouse_12);
+  DEFSYMBOL (Qmouse_13);
+  DEFSYMBOL (Qmouse_14);
+  DEFSYMBOL (Qmouse_15);
+  DEFSYMBOL (Qmouse_16);
+  DEFSYMBOL (Qmouse_17);
+  DEFSYMBOL (Qmouse_18);
+  DEFSYMBOL (Qmouse_19);
+  DEFSYMBOL (Qmouse_20);
+  DEFSYMBOL (Qmouse_21);
+  DEFSYMBOL (Qmouse_22);
+  DEFSYMBOL (Qmouse_23);
+  DEFSYMBOL (Qmouse_24);
+  DEFSYMBOL (Qmouse_25);
+  DEFSYMBOL (Qmouse_26);
   DEFSYMBOL (Qdown_mouse_1);
   DEFSYMBOL (Qdown_mouse_2);
   DEFSYMBOL (Qdown_mouse_3);
@@ -4384,6 +4693,25 @@ syms_of_keymap (void)
   DEFSYMBOL (Qdown_mouse_5);
   DEFSYMBOL (Qdown_mouse_6);
   DEFSYMBOL (Qdown_mouse_7);
+  DEFSYMBOL (Qdown_mouse_8);
+  DEFSYMBOL (Qdown_mouse_9);
+  DEFSYMBOL (Qdown_mouse_10);
+  DEFSYMBOL (Qdown_mouse_11);
+  DEFSYMBOL (Qdown_mouse_12);
+  DEFSYMBOL (Qdown_mouse_13);
+  DEFSYMBOL (Qdown_mouse_14);
+  DEFSYMBOL (Qdown_mouse_15);
+  DEFSYMBOL (Qdown_mouse_16);
+  DEFSYMBOL (Qdown_mouse_17);
+  DEFSYMBOL (Qdown_mouse_18);
+  DEFSYMBOL (Qdown_mouse_19);
+  DEFSYMBOL (Qdown_mouse_20);
+  DEFSYMBOL (Qdown_mouse_21);
+  DEFSYMBOL (Qdown_mouse_22);
+  DEFSYMBOL (Qdown_mouse_23);
+  DEFSYMBOL (Qdown_mouse_24);
+  DEFSYMBOL (Qdown_mouse_25);
+  DEFSYMBOL (Qdown_mouse_26);
   DEFSYMBOL (Qmenu_selection);
   DEFSYMBOL (QLFD);
   DEFSYMBOL (QTAB);

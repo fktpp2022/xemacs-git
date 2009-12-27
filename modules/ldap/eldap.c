@@ -141,7 +141,7 @@ print_ldap (Lisp_Object obj, Lisp_Object printcharfun, int UNUSED (escapeflag))
 static Lisp_LDAP *
 allocate_ldap (void)
 {
-  Lisp_LDAP *ldap = ALLOC_LCRECORD_TYPE (Lisp_LDAP, &lrecord_ldap);
+  Lisp_LDAP *ldap = XLDAP (ALLOC_LISP_OBJECT (ldap));
 
   ldap->ld = NULL;
   ldap->host = Qnil;
@@ -162,16 +162,10 @@ finalize_ldap (void *header, int for_disksave)
   ldap->ld = NULL;
 }
 
-#f 0
-DEFINE_LRECORD_IMPLEMENTATION ("ldap", ldap, 0,
-                               mark_ldap, print_ldap, finalize_ldap,
-                               NULL, NULL, ldap_description, Lisp_LDAP);
-#else
-DEFINE_NONDUMPABLE_LRECORD_IMPLEMENTATION ("ldap", ldap, mark_ldap,
-					   print_ldap, finalize_ldap,
-					   NULL, NULL, ldap_description,
-					   Lisp_LDAP);
-#endif
+DEFINE_NODUMP_LISP_OBJECT ("ldap", ldap, mark_ldap,
+			   print_ldap, finalize_ldap,
+			   NULL, NULL, ldap_description,
+			   Lisp_LDAP);
 
 /************************************************************************/
 /*                        Basic ldap accessors                          */
@@ -431,7 +425,7 @@ entry according to the value of WITHDN.
   LDAP *ld;
   LDAPMessage *e;
   BerElement *ptr;
-  Extbyte *a, *dn;
+  Extbyte *a, *dn, *bs, *filt;
   int i, rc;
   int  matches;
   struct ldap_unwind_struct unwind;
@@ -503,14 +497,10 @@ entry according to the value of WITHDN.
   CHECK_SYMBOL (attrsonly);
 
   /* Perform the search */
-  if (ldap_search (ld,
-                   NILP (base) ? "" :
-		   NEW_LISP_STRING_TO_EXTERNAL (base, Qnative),
-                   ldap_scope,
-                   NILP (filter) ? "" :
-		   NEW_LISP_STRING_TO_EXTERNAL (filter, Qnative),
-                   ldap_attributes,
-                   NILP (attrsonly) ? 0 : 1)
+  bs = NILP (base) ? "" : NEW_LISP_STRING_TO_EXTERNAL (base, Qnative);
+  filt = NILP (filter) ? "" : NEW_LISP_STRING_TO_EXTERNAL (filter, Qnative);
+  if (ldap_search (ld, bs, ldap_scope, filt, ldap_attributes,
+		   NILP (attrsonly) ? 0 : 1)
       == -1)
     {
       signal_ldap_error (ld, NULL, 0);
@@ -822,7 +812,7 @@ DN is the distinguished name of the entry to delete.
 void
 syms_of_eldap (void)
 {
-  INIT_LRECORD_IMPLEMENTATION (ldap);
+  INIT_LISP_OBJECT (ldap);
 
   DEFSYMBOL (Qeldap);
   DEFSYMBOL (Qldapp);

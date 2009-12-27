@@ -293,7 +293,7 @@ gtk_output_display_block (struct window *w, struct display_line *dl, int block,
 			  int cursor_width, int cursor_height)
 {
   struct frame *f = XFRAME (w->frame);
-  Ichar_dynarr *buf = Dynarr_new (Ichar);
+  Ichar_dynarr *buf;
   Lisp_Object window;
 
   struct display_block *db = Dynarr_atp (dl->display_blocks, block);
@@ -325,7 +325,7 @@ gtk_output_display_block (struct window *w, struct display_line *dl, int block,
 
   if (end < 0)
     end = Dynarr_length (rba);
-  Dynarr_reset (buf);
+  buf = Dynarr_new (Ichar);
 
   while (elt < end)
     {
@@ -1176,7 +1176,7 @@ gtk_output_pixmap (struct window *w,
  Draw a vertical divider down the right side of the given window.
  ****************************************************************************/
 static void
-gtk_output_vertical_divider (struct window *w, int clear)
+gtk_output_vertical_divider (struct window *w, int UNUSED(clear))
 {
   struct frame *f = XFRAME (w->frame);
   struct device *d = XDEVICE (f->device);

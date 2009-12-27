@@ -92,6 +92,7 @@ mark_range_table (Lisp_Object obj)
 
   for (i = 0; i < Dynarr_length (rt->entries); i++)
     mark_object (Dynarr_at (rt->entries, i).val);
+  
   return Qnil;
 }
 
@@ -219,11 +220,11 @@ static const struct memory_description range_table_description[] = {
   { XD_END }
 };
 
-DEFINE_LISP_OBJECT ("range-table", range_table,
-			       mark_range_table, print_range_table, 0,
-			       range_table_equal, range_table_hash,
-			       range_table_description,
-			       Lisp_Range_Table);
+DEFINE_DUMPABLE_LISP_OBJECT ("range-table", range_table,
+			     mark_range_table, print_range_table, 0,
+			     range_table_equal, range_table_hash,
+			     range_table_description,
+			     Lisp_Range_Table);
 
 /************************************************************************/
 /*                        Range table operations                        */
@@ -288,7 +289,10 @@ Return non-nil if OBJECT is a range table.
 }
 
 DEFUN ("range-table-type", Frange_table_type, 1, 1, 0, /*
-Return non-nil if OBJECT is a range table.
+Return the type of RANGE-TABLE.
+
+This will be a symbol describing how ranges in RANGE-TABLE function at their
+ends; see `make-range-table'.
 */
        (range_table))
 {
@@ -572,7 +576,8 @@ the beginning and end of the range and the corresponding value.
 Results are guaranteed to be correct (i.e. each entry processed
 exactly once) if FUNCTION modifies or deletes the current entry
 \(i.e. passes the current range to `put-range-table' or
-`remove-range-table'), but not otherwise.
+`remove-range-table').  If FUNCTION modifies or deletes any other entry,
+this guarantee doesn't hold.
 */
        (function, range_table))
 {

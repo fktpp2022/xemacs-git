@@ -58,6 +58,8 @@ Boston, MA 02111-1307, USA.  */
   (byte1) = (ch);					\
   (byte2) = 0;						\
 } while (0)
+#define XCHARSET_CCL_PROGRAM(cs) Qnil
+#define XCHARSET_NAME(cs) Qascii
 
 #else /* MULE */
 
@@ -140,8 +142,8 @@ enum LEADING_BYTE_OFFICIAL_2
 #define PRE_LEADING_BYTE_PRIVATE_2	0x9F	/* 2-byte char-set */
 
 #define MIN_LEADING_BYTE_PRIVATE_1	0xA0
-#define MAX_LEADING_BYTE_PRIVATE_1	0xEF
-#define MIN_LEADING_BYTE_PRIVATE_2	0xF0
+#define MAX_LEADING_BYTE_PRIVATE_1	0xC0
+#define MIN_LEADING_BYTE_PRIVATE_2	0xC1
 #define MAX_LEADING_BYTE_PRIVATE_2	0xFF
 
 #define NUM_LEADING_BYTES 129
@@ -186,7 +188,7 @@ struct Lisp_Charset
   int id;
   Lisp_Object name;
   Lisp_Object doc_string;
-  Lisp_Object registry;
+  Lisp_Object registries;
   Lisp_Object short_name;
   Lisp_Object long_name;
 
@@ -229,6 +231,11 @@ struct Lisp_Charset
   /* Which half of font to be used to display this character set */
   int graphic;
 
+  /* If set, this charset should be written out in ISO-2022-based coding
+     systems using the escape sequence for UTF-8, not using our internal
+     representation and the associated real ISO 2022 designation. */
+  unsigned int encode_as_utf_8 :1;
+
   /* If set, this is a "temporary" charset created when we encounter
      an unknown final.  This is so that we can successfully compile
      and load such files.  We allow a real charset to be created on top
@@ -237,7 +244,7 @@ struct Lisp_Charset
 };
 typedef struct Lisp_Charset Lisp_Charset;
 
-DECLARE_LRECORD (charset, Lisp_Charset);
+DECLARE_LISP_OBJECT (charset, Lisp_Charset);
 #define XCHARSET(x) XRECORD (x, charset, Lisp_Charset)
 #define wrap_charset(p) wrap_record (p, charset)
 #define CHARSETP(x) RECORDP (x, charset)
@@ -261,11 +268,12 @@ DECLARE_LRECORD (charset, Lisp_Charset);
 #define CHARSET_REP_BYTES(cs)	 ((cs)->rep_bytes)
 #define CHARSET_COLUMNS(cs)	 ((cs)->columns)
 #define CHARSET_GRAPHIC(cs)	 ((cs)->graphic)
+#define CHARSET_ENCODE_AS_UTF_8(cs)	 ((cs)->encode_as_utf_8)
 #define CHARSET_TYPE(cs)	 ((cs)->type)
 #define CHARSET_DIRECTION(cs)	 ((cs)->direction)
 #define CHARSET_FINAL(cs)	 ((cs)->final)
 #define CHARSET_DOC_STRING(cs)	 ((cs)->doc_string)
-#define CHARSET_REGISTRY(cs)	 ((cs)->registry)
+#define CHARSET_REGISTRIES(cs)	 ((cs)->registries)
 #define CHARSET_CCL_PROGRAM(cs)  ((cs)->ccl_program)
 #define CHARSET_DIMENSION(cs)	 ((cs)->dimension)
 #define CHARSET_CHARS(cs)	 ((cs)->chars)
@@ -273,7 +281,6 @@ DECLARE_LRECORD (charset, Lisp_Charset);
 #define CHARSET_TO_UNICODE_TABLE(cs) ((cs)->to_unicode_table)
 #define CHARSET_FROM_UNICODE_TABLE(cs) ((cs)->from_unicode_table)
 #define CHARSET_FROM_UNICODE_LEVELS(cs) ((cs)->from_unicode_levels)
-
 
 #define CHARSET_PRIVATE_P(cs) leading_byte_private_p (CHARSET_LEADING_BYTE (cs))
 
@@ -284,15 +291,17 @@ DECLARE_LRECORD (charset, Lisp_Charset);
 #define XCHARSET_REP_BYTES(cs)	  CHARSET_REP_BYTES    (XCHARSET (cs))
 #define XCHARSET_COLUMNS(cs)	  CHARSET_COLUMNS      (XCHARSET (cs))
 #define XCHARSET_GRAPHIC(cs)      CHARSET_GRAPHIC      (XCHARSET (cs))
+#define XCHARSET_ENCODE_AS_UTF_8(cs) CHARSET_ENCODE_AS_UTF_8 (XCHARSET (cs))
 #define XCHARSET_TYPE(cs)	  CHARSET_TYPE         (XCHARSET (cs))
 #define XCHARSET_DIRECTION(cs)	  CHARSET_DIRECTION    (XCHARSET (cs))
 #define XCHARSET_FINAL(cs)	  CHARSET_FINAL        (XCHARSET (cs))
 #define XCHARSET_DOC_STRING(cs)	  CHARSET_DOC_STRING   (XCHARSET (cs))
-#define XCHARSET_REGISTRY(cs)	  CHARSET_REGISTRY     (XCHARSET (cs))
+#define XCHARSET_REGISTRIES(cs)	  CHARSET_REGISTRIES     (XCHARSET (cs))
 #define XCHARSET_LEADING_BYTE(cs) CHARSET_LEADING_BYTE (XCHARSET (cs))
 #define XCHARSET_CCL_PROGRAM(cs)  CHARSET_CCL_PROGRAM  (XCHARSET (cs))
 #define XCHARSET_DIMENSION(cs)	  CHARSET_DIMENSION    (XCHARSET (cs))
 #define XCHARSET_CHARS(cs)	  CHARSET_CHARS        (XCHARSET (cs))
+
 #define XCHARSET_PRIVATE_P(cs)	  CHARSET_PRIVATE_P    (XCHARSET (cs))
 #define XCHARSET_REVERSE_DIRECTION_CHARSET(cs) \
   CHARSET_REVERSE_DIRECTION_CHARSET (XCHARSET (cs))
@@ -347,9 +356,9 @@ charset_by_attributes (int type, int final, int dir)
 /************************************************************************/
 
 /* The bit fields of character are divided into 3 parts:
-   FIELD1(5bits):FIELD2(7bits):FIELD3(7bits) */
+   FIELD1(7bits):FIELD2(7bits):FIELD3(7bits) */
 
-#define ICHAR_FIELD1_MASK (0x1F << 14)
+#define ICHAR_FIELD1_MASK (0x7F << 14)
 #define ICHAR_FIELD2_MASK (0x7F << 7)
 #define ICHAR_FIELD3_MASK 0x7F
 
@@ -369,7 +378,7 @@ charset_by_attributes (int type, int final, int dir)
 #define FIELD2_TO_PRIVATE_LEADING_BYTE  0x80
 
 #define FIELD1_TO_OFFICIAL_LEADING_BYTE (MIN_LEADING_BYTE_OFFICIAL_2 - 1)
-#define FIELD1_TO_PRIVATE_LEADING_BYTE  0xE1
+#define FIELD1_TO_PRIVATE_LEADING_BYTE  0x80
 
 /* Minimum and maximum allowed values for the fields. */
 
@@ -399,7 +408,7 @@ charset_by_attributes (int type, int final, int dir)
 #define MIN_CHAR_PRIVATE_TYPE9N     (MIN_ICHAR_FIELD2_PRIVATE  <<  7)
 #define MIN_CHAR_OFFICIAL_TYPE9NX9N (MIN_ICHAR_FIELD1_OFFICIAL << 14)
 #define MIN_CHAR_PRIVATE_TYPE9NX9N  (MIN_ICHAR_FIELD1_PRIVATE  << 14)
-#define MIN_CHAR_COMPOSITION        (0x1F << 14)
+#define MIN_CHAR_COMPOSITION        (0x7F << 14)
 
 /* Leading byte of a character.
 
@@ -547,6 +556,35 @@ breakup_ichar_1 (Ichar c, Lisp_Object *charset, int *c1, int *c2)
 void get_charset_limits (Lisp_Object charset, int *low, int *high);
 int ichar_to_unicode (Ichar chr);
 
+EXFUN (Fcharset_name, 1);
+
 #endif /* MULE */
+
+/* ISO 10646 UTF-16, UCS-4, UTF-8, UTF-7, etc. */
+
+enum unicode_type
+{
+  UNICODE_UTF_16,
+  UNICODE_UTF_8,
+  UNICODE_UTF_7,
+  UNICODE_UCS_4,
+  UNICODE_UTF_32
+};
+
+void encode_unicode_char (Lisp_Object USED_IF_MULE (charset), int h,
+			  int USED_IF_MULE (l), unsigned_char_dynarr *dst,
+			  enum unicode_type type, unsigned int little_endian,
+                          int write_error_characters_as_such);
+
+#define UNICODE_ERROR_OCTET_RANGE_START 0x200000
+
+#define valid_utf_16_first_surrogate(ch) (((ch) & 0xFC00) == 0xD800)
+#define valid_utf_16_last_surrogate(ch) (((ch) & 0xFC00) == 0xDC00)
+#define valid_utf_16_surrogate(ch) (((ch) & 0xF800) == 0xD800)
+
+void set_charset_registries(Lisp_Object charset, Lisp_Object registries);
+
+EXFUN (Funicode_to_char, 2);
+EXFUN (Fchar_to_unicode, 1); 
 
 #endif /* INCLUDED_charset_h_ */

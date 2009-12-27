@@ -430,7 +430,7 @@ struct image_specifier
 /*			Image Instance Object				*/
 /************************************************************************/
 
-DECLARE_LRECORD (image_instance, Lisp_Image_Instance);
+DECLARE_LISP_OBJECT (image_instance, Lisp_Image_Instance);
 #define XIMAGE_INSTANCE(x) XRECORD (x, image_instance, Lisp_Image_Instance)
 #define wrap_image_instance(p) wrap_record (p, image_instance)
 #define IMAGE_INSTANCEP(x) RECORDP (x, image_instance)
@@ -966,7 +966,7 @@ struct Lisp_Glyph
 };
 typedef struct Lisp_Glyph Lisp_Glyph;
 
-DECLARE_LRECORD (glyph, Lisp_Glyph);
+DECLARE_LISP_OBJECT (glyph, Lisp_Glyph);
 #define XGLYPH(x) XRECORD (x, glyph, Lisp_Glyph)
 #define wrap_glyph(p) wrap_record (p, glyph)
 #define GLYPHP(x) RECORDP (x, glyph)
@@ -1067,6 +1067,9 @@ void disable_glyph_animated_timeout (int i);
 typedef struct glyph_cachel glyph_cachel;
 struct glyph_cachel
 {
+#ifdef NEW_GC
+  struct lrecord_header header;
+#endif /* NEW_GC */
   Lisp_Object glyph;
 
   unsigned int dirty :1;	/* I'm copying faces here. I'm not
@@ -1081,6 +1084,19 @@ struct glyph_cachel
   unsigned short ascent;
   unsigned short descent;
 };
+
+#ifdef NEW_GC
+typedef struct glyph_cachel Lisp_Glyph_Cachel;
+
+DECLARE_LISP_OBJECT (glyph_cachel, Lisp_Glyph_Cachel);
+
+#define XGLYPH_CACHEL(x) \
+  XRECORD (x, glyph_cachel, Lisp_Glyph_Cachel)
+#define wrap_glyph_cachel(p) wrap_record (p, glyph_cachel)
+#define GLYPH_CACHEL_P(x) RECORDP (x, glyph_cachel)
+#define CHECK_GLYPH_CACHEL(x) CHECK_RECORD (x, glyph_cachel)
+#define CONCHECK_GLYPH_CACHEL(x) CONCHECK_RECORD (x, glyph_cachel)
+#endif /* NEW_GC */
 
 #define CONT_GLYPH_INDEX	(glyph_index) 0
 #define TRUN_GLYPH_INDEX	(glyph_index) 1
@@ -1179,10 +1195,22 @@ int unmap_subwindow_instance_cache_mapper (Lisp_Object key,
 
 struct expose_ignore
 {
+#ifdef NEW_GC
+  struct lrecord_header header;
+#endif /* NEW_GC */
   int x, y;
   int width, height;
   struct expose_ignore *next;
 };
+
+#ifdef NEW_GC
+DECLARE_LISP_OBJECT (expose_ignore, struct expose_ignore);
+#define XEXPOSE_IGNORE(x) XRECORD (x, expose_ignore, struct expose_ignore)
+#define wrap_expose_ignore(p) wrap_record (p, expose_ignore)
+#define EXPOSE_IGNOREP(x) RECORDP (x, expose_ignore)
+#define CHECK_EXPOSE_IGNORE(x) CHECK_RECORD (x, expose_ignore)
+#define CONCHECK_EXPOSE_IGNORE(x) CONCHECK_RECORD (x, expose_ignore)
+#endif /* NEW_GC */
 
 int check_for_ignored_expose (struct frame* f, int x, int y, int width,
 			      int height);

@@ -102,11 +102,17 @@ static const struct memory_description gtk_frame_data_description_1 [] = {
   { XD_END }
 };
 
+#ifdef NEW_GC
+DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("gtk-frame", gtk_frame,
+				      0, gtk_frame_data_description_1,
+				      Lisp_Gtk_Frame);
+#else /* not NEW_GC */
 extern const struct sized_memory_description gtk_frame_data_description;
 
 const struct sized_memory_description gtk_frame_data_description = {
   sizeof (struct gtk_frame), gtk_frame_data_description_1
 };
+#endif /* not NEW_GC */
 
 
 /************************************************************************/
@@ -265,7 +271,7 @@ gtk_frame_property (struct frame *f, Lisp_Object property)
 }
 
 static int
-gtk_internal_frame_property_p (struct frame *f, Lisp_Object property)
+gtk_internal_frame_property_p (struct frame *UNUSED(f), Lisp_Object property)
 {
   return EQ (property, Qleft)
     || EQ (property, Qtop)
@@ -966,7 +972,11 @@ allocate_gtk_frame_struct (struct frame *f)
   int i;
 
   /* zero out all slots. */
+#ifdef NEW_GC
+  f->frame_data = alloc_lrecord_type (struct gtk_frame, &lrecord_gtk_frame);
+#else /* not NEW_GC */
   f->frame_data = xnew_and_zero (struct gtk_frame);
+#endif /* not NEW_GC */
 
   /* yeah, except the lisp ones */
   FRAME_GTK_ICON_PIXMAP (f) = Qnil;
@@ -1342,7 +1352,9 @@ gtk_delete_frame (struct frame *f)
 
     if (FRAME_GTK_GEOM_FREE_ME_PLEASE (f))
 	xfree (FRAME_GTK_GEOM_FREE_ME_PLEASE (f), char *);
+#ifndef NEW_GC
     xfree (f->frame_data, void *);
+#endif /* not NEW_GC */
     f->frame_data = 0;
 }
 
@@ -1414,6 +1426,17 @@ gtk_update_frame_external_traits (struct frame* frm, Lisp_Object name)
    {
      Lisp_Object font = FACE_FONT (Vdefault_face, frame, Vcharset_ascii);
 
+     /* It may be that instantiating the font has deleted the frame (will
+	happen if the user has specified a charset registry for ASCII that
+	isn't available on the server, and our fallback of iso8859-1 isn't
+	available; something vanishingly rare.) In that case, return from
+	this function. */
+
+     if (!FRAME_LIVE_P(frm))
+       {
+	 return;
+       }
+
      if (!EQ (font, Vthe_null_font_instance))
      {
 	 /* #### BILL!!! The X code set the XtNfont property of the
@@ -1447,6 +1470,10 @@ gtk_update_frame_external_traits (struct frame* frm, Lisp_Object name)
 void
 syms_of_frame_gtk (void)
 {
+#ifdef NEW_GC
+  INIT_LISP_OBJECT (gtk_frame);
+#endif /* NEW_GC */
+
   DEFSYMBOL (Qtext_widget);
   DEFSYMBOL (Qcontainer_widget);
   DEFSYMBOL (Qshell_widget);

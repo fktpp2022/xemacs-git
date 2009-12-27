@@ -1,6 +1,6 @@
 /* The "lrecord" structure (header of a compound lisp object).
    Copyright (C) 1993, 1994, 1995 Free Software Foundation, Inc.
-   Copyright (C) 1996, 2001, 2002, 2004, 2005 Ben Wing.
+   Copyright (C) 1996, 2001, 2002, 2004, 2005, 2009 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -26,7 +26,7 @@ Boston, MA 02111-1307, USA.  */
 #ifndef INCLUDED_lrecord_h_
 #define INCLUDED_lrecord_h_
 
-#ifdef MC_ALLOC
+#ifdef NEW_GC
 /* The "lrecord" type of Lisp object is used for all object types
    other than a few simple ones (like char and int). This allows many
    types to be implemented but only a few bits required in a Lisp
@@ -45,7 +45,7 @@ Boston, MA 02111-1307, USA.  */
    could contain Lisp_Objects in it), you may well be able to use
    the opaque type.
 */
-#else /* not MC_ALLOC */
+#else /* not NEW_GC */
 /* The "lrecord" type of Lisp object is used for all object types
    other than a few simple ones.  This allows many types to be
    implemented but only a few bits required in a Lisp object for type
@@ -79,13 +79,12 @@ Boston, MA 02111-1307, USA.  */
    could contain Lisp_Objects in it), you may well be able to use
    the opaque type. --ben
 */
-#endif /* not MC_ALLOC */
+#endif /* not NEW_GC */
 
-#ifdef MC_ALLOC
+#ifdef NEW_GC
 #define ALLOC_LISP_OBJECT(type) alloc_lrecord (&lrecord_##type)
 #define ALLOC_SIZED_LISP_OBJECT(size, type) \
   alloc_sized_lrecord (size, &lrecord_##type)
-#define ALLOC_LCRECORD_TYPE alloc_lrecord_type
 #define COPY_SIZED_LCRECORD copy_sized_lrecord
 #define COPY_LCRECORD copy_lrecord
 #define LISPOBJ_STORAGE_SIZE(ptr, size, stats) \
@@ -93,18 +92,17 @@ Boston, MA 02111-1307, USA.  */
 #define ZERO_LCRECORD zero_lrecord
 #define LCRECORD_HEADER lrecord_header
 #define FREE_LCRECORD free_lrecord
-#else
-#define ALLOC_LISP_OBJECT(type) alloc_lcrecord (&lrecord_##type)
+#else /* not NEW_GC */
+#define ALLOC_LISP_OBJECT(type) alloc_automanaged_lcrecord (&lrecord_##type)
 #define ALLOC_SIZED_LISP_OBJECT(size, type) \
   old_alloc_sized_lcrecord (size, &lrecord_##type)
-#define ALLOC_LCRECORD_TYPE old_alloc_lcrecord_type
 #define COPY_SIZED_LCRECORD old_copy_sized_lcrecord
 #define COPY_LCRECORD old_copy_lcrecord
 #define LISPOBJ_STORAGE_SIZE malloced_storage_size
 #define ZERO_LCRECORD old_zero_lcrecord
 #define LCRECORD_HEADER old_lcrecord_header
 #define FREE_LCRECORD old_free_lcrecord
-#endif
+#endif /* not NEW_GC */
 
 BEGIN_C_DECLS
 
@@ -115,7 +113,7 @@ struct lrecord_header
      field. */
   unsigned int type :8;
 
-#ifdef MC_ALLOC
+#ifdef NEW_GC
   /* 1 if the object is readonly from lisp */
   unsigned int lisp_readonly :1;
 
@@ -129,7 +127,7 @@ struct lrecord_header
      anyway. (The bits are used for strings, though.) */
   unsigned int uid :22;
 
-#else /* not MC_ALLOC */
+#else /* not NEW_GC */
   /* If `mark' is 0 after the GC mark phase, the object will be freed
      during the GC sweep phase.  There are 2 ways that `mark' can be 1:
      - by being referenced from other objects during the GC mark phase
@@ -149,14 +147,14 @@ struct lrecord_header
      anyway. (The bits are used for strings, though.) */
   unsigned int uid :21;
 
-#endif /* not MC_ALLOC */
+#endif /* not NEW_GC */
 };
 
 struct lrecord_implementation;
 int lrecord_type_index (const struct lrecord_implementation *implementation);
 extern int lrecord_uid_counter;
 
-#ifdef MC_ALLOC
+#ifdef NEW_GC
 #define set_lheader_implementation(header,imp) do {	\
   struct lrecord_header* SLI_header = (header);		\
   SLI_header->type = (imp)->lrecord_type_index;		\
@@ -164,7 +162,7 @@ extern int lrecord_uid_counter;
   SLI_header->free = 0;					\
   SLI_header->uid = lrecord_uid_counter++;		\
 } while (0)
-#else /* not MC_ALLOC */
+#else /* not NEW_GC */
 #define set_lheader_implementation(header,imp) do {	\
   struct lrecord_header* SLI_header = (header);		\
   SLI_header->type = (imp)->lrecord_type_index;		\
@@ -173,9 +171,9 @@ extern int lrecord_uid_counter;
   SLI_header->lisp_readonly = 0;			\
   SLI_header->uid = lrecord_uid_counter++;		\
 } while (0)
-#endif /* not MC_ALLOC */
+#endif /* not NEW_GC */
 
-#ifndef MC_ALLOC
+#ifndef NEW_GC
 struct old_lcrecord_header
 {
   struct lrecord_header lheader;
@@ -213,46 +211,48 @@ struct free_lcrecord_header
   struct old_lcrecord_header lcheader;
   Lisp_Object chain;
 };
-#endif /* not MC_ALLOC */
+#endif /* not NEW_GC */
 
+/* DON'T FORGET to update .gdbinit.in if you change this list. */
 enum lrecord_type
 {
   /* Symbol value magic types come first to make SYMBOL_VALUE_MAGIC_P fast.
      #### This should be replaced by a symbol_value_magic_p flag
      in the Lisp_Symbol lrecord_header. */
   lrecord_type_symbol_value_forward,      /*  0 */
-  lrecord_type_symbol_value_varalias,     /*  1 */
-  lrecord_type_symbol_value_lisp_magic,   /*  2 */
-  lrecord_type_symbol_value_buffer_local, /*  3 */
+  lrecord_type_symbol_value_varalias,
+  lrecord_type_symbol_value_lisp_magic,
+  lrecord_type_symbol_value_buffer_local,
   lrecord_type_max_symbol_value_magic = lrecord_type_symbol_value_buffer_local,
-  lrecord_type_symbol,                    /*  4 */
-  lrecord_type_subr,                      /*  5 */
-  lrecord_type_cons,                      /*  6 */
-  lrecord_type_vector,                    /*  7 */
-  lrecord_type_string,                    /*  8 */
-#ifndef MC_ALLOC
+  lrecord_type_symbol,
+  lrecord_type_subr,
+  lrecord_type_multiple_value,
+  lrecord_type_cons,
+  lrecord_type_vector,
+  lrecord_type_string,
+#ifndef NEW_GC
   lrecord_type_lcrecord_list,
-#endif /* not MC_ALLOC */
-  lrecord_type_compiled_function,         /*  9 */
-  lrecord_type_weak_list,                 /* 10 */
-  lrecord_type_bit_vector,                /* 11 */
-  lrecord_type_float,                     /* 12 */
-  lrecord_type_hash_table,                /* 13 */
-  lrecord_type_lstream,                   /* 14 */
-  lrecord_type_process,                   /* 15 */
-  lrecord_type_charset,                   /* 16 */
-  lrecord_type_coding_system,             /* 17 */
-  lrecord_type_char_table,                /* 18 */
-  lrecord_type_char_table_entry,          /* 19 */
-  lrecord_type_range_table,               /* 20 */
-  lrecord_type_opaque,                    /* 21 */
-  lrecord_type_opaque_ptr,                /* 22 */
-  lrecord_type_buffer,                    /* 23 */
-  lrecord_type_extent,                    /* 24 */
-  lrecord_type_extent_info,               /* 25 */
-  lrecord_type_extent_auxiliary,          /* 26 */
-  lrecord_type_marker,                    /* 27 */
-  lrecord_type_event,                     /* 28 */
+#endif /* not NEW_GC */
+  lrecord_type_compiled_function,
+  lrecord_type_weak_list,
+  lrecord_type_bit_vector,
+  lrecord_type_float,
+  lrecord_type_hash_table,
+  lrecord_type_lstream,
+  lrecord_type_process,
+  lrecord_type_charset,
+  lrecord_type_coding_system,
+  lrecord_type_char_table,
+  lrecord_type_char_table_entry,
+  lrecord_type_range_table,
+  lrecord_type_opaque,
+  lrecord_type_opaque_ptr,
+  lrecord_type_buffer,
+  lrecord_type_extent,
+  lrecord_type_extent_info,
+  lrecord_type_extent_auxiliary,
+  lrecord_type_marker,
+  lrecord_type_event,
 #ifdef EVENT_DATA_AS_OBJECTS /* not defined */
   lrecord_type_key_data,
   lrecord_type_button_data,
@@ -264,47 +264,81 @@ enum lrecord_type
   lrecord_type_magic_eval_data,
   lrecord_type_magic_data,
 #endif /* EVENT_DATA_AS_OBJECTS */
-  lrecord_type_keymap,                    /* 29 */
-  lrecord_type_command_builder,           /* 30 */
-  lrecord_type_timeout,                   /* 31 */
-  lrecord_type_specifier,                 /* 32 */
-  lrecord_type_console,                   /* 33 */
-  lrecord_type_device,                    /* 34 */
-  lrecord_type_frame,                     /* 35 */
-  lrecord_type_window,                    /* 36 */
-  lrecord_type_window_mirror,             /* 37 */
-  lrecord_type_window_configuration,      /* 38 */
-  lrecord_type_gui_item,                  /* 39 */
-  lrecord_type_popup_data,                /* 40 */
-  lrecord_type_toolbar_button,            /* 41 */
-  lrecord_type_scrollbar_instance,        /* 42 */
-  lrecord_type_color_instance,            /* 43 */
-  lrecord_type_font_instance,             /* 44 */
-  lrecord_type_image_instance,            /* 45 */
-  lrecord_type_glyph,                     /* 46 */
-  lrecord_type_face,                      /* 47 */
-  lrecord_type_database,                  /* 48 */
-  lrecord_type_tooltalk_message,          /* 49 */
-  lrecord_type_tooltalk_pattern,          /* 50 */
-  lrecord_type_ldap,                      /* 51 */
-  lrecord_type_pgconn,                    /* 52 */
-  lrecord_type_pgresult,                  /* 53 */
-  lrecord_type_devmode,                   /* 54 */
-  lrecord_type_mswindows_dialog_id,       /* 55 */
-  lrecord_type_case_table,                /* 56 */
-  lrecord_type_emacs_ffi,                 /* 57 */
-  lrecord_type_emacs_gtk_object,          /* 58 */
-  lrecord_type_emacs_gtk_boxed,           /* 59 */
-  lrecord_type_weak_box,                  /* 60 */
-  lrecord_type_ephemeron,                 /* 61 */
-  lrecord_type_bignum,                    /* 62 */
-  lrecord_type_ratio,                     /* 63 */
-  lrecord_type_bigfloat,                  /* 64 */
-#ifndef MC_ALLOC
+  lrecord_type_keymap,
+  lrecord_type_command_builder,
+  lrecord_type_timeout,
+  lrecord_type_specifier,
+  lrecord_type_console,
+  lrecord_type_device,
+  lrecord_type_frame,
+  lrecord_type_window,
+  lrecord_type_window_mirror,
+  lrecord_type_window_configuration,
+  lrecord_type_gui_item,
+  lrecord_type_popup_data,
+  lrecord_type_toolbar_button,
+  lrecord_type_scrollbar_instance,
+  lrecord_type_color_instance,
+  lrecord_type_font_instance,
+  lrecord_type_image_instance,
+  lrecord_type_glyph,
+  lrecord_type_face,
+  lrecord_type_fc_config,
+  lrecord_type_fc_pattern,
+  lrecord_type_database,
+  lrecord_type_tooltalk_message,
+  lrecord_type_tooltalk_pattern,
+  lrecord_type_ldap,
+  lrecord_type_pgconn,
+  lrecord_type_pgresult,
+  lrecord_type_devmode,
+  lrecord_type_mswindows_dialog_id,
+  lrecord_type_case_table,
+  lrecord_type_emacs_ffi,
+  lrecord_type_emacs_gtk_object,
+  lrecord_type_emacs_gtk_boxed,
+  lrecord_type_weak_box,
+  lrecord_type_ephemeron,
+  lrecord_type_bignum,
+  lrecord_type_ratio,
+  lrecord_type_bigfloat,
+#ifndef NEW_GC
   lrecord_type_free, /* only used for "free" lrecords */
   lrecord_type_undefined, /* only used for debugging */
-#endif /* not MC_ALLOC */
-  lrecord_type_last_built_in_type         /* 65 */ /* must be last */
+#endif /* not NEW_GC */
+#ifdef NEW_GC
+  lrecord_type_string_indirect_data,
+  lrecord_type_string_direct_data,
+  lrecord_type_hash_table_entry,
+  lrecord_type_syntax_cache,
+  lrecord_type_buffer_text,
+  lrecord_type_compiled_function_args,
+  lrecord_type_tty_console,
+  lrecord_type_stream_console,
+  lrecord_type_dynarr,
+  lrecord_type_face_cachel,
+  lrecord_type_face_cachel_dynarr,
+  lrecord_type_glyph_cachel,
+  lrecord_type_glyph_cachel_dynarr,
+  lrecord_type_x_device,
+  lrecord_type_gtk_device,
+  lrecord_type_tty_device,
+  lrecord_type_mswindows_device,
+  lrecord_type_msprinter_device,
+  lrecord_type_x_frame,
+  lrecord_type_gtk_frame,
+  lrecord_type_mswindows_frame,
+  lrecord_type_gap_array_marker,
+  lrecord_type_gap_array,
+  lrecord_type_extent_list_marker,
+  lrecord_type_extent_list,
+  lrecord_type_stack_of_extents,
+  lrecord_type_tty_color_instance_data,
+  lrecord_type_tty_font_instance_data,
+  lrecord_type_specifier_caching,
+  lrecord_type_expose_ignore,
+#endif /* NEW_GC */
+  lrecord_type_last_built_in_type         /* must be last */
 };
 
 extern MODULE_API int lrecord_type_count;
@@ -381,12 +415,12 @@ struct lrecord_implementation
   /* The (constant) index into lrecord_implementations_table */
   enum lrecord_type lrecord_type_index;
 
-#ifndef MC_ALLOC
+#ifndef NEW_GC
   /* A "basic" lrecord is any lrecord that's not an lcrecord, i.e.
      one that does not have an old_lcrecord_header at the front and which
      is (usually) allocated in frob blocks. */
   unsigned int basic_p :1;
-#endif /* not MC_ALLOC */
+#endif /* not NEW_GC */
 };
 
 /* All the built-in lisp object types are enumerated in `enum lrecord_type'.
@@ -401,18 +435,23 @@ lrecord_implementations_table[lrecord_type_last_built_in_type + MODULE_DEFINABLE
    LHEADER_IMPLEMENTATION (XRECORD_LHEADER (obj))
 #define LHEADER_IMPLEMENTATION(lh) lrecord_implementations_table[(lh)->type]
 
+#include "gc.h"
+
+#ifdef NEW_GC
+#include "vdb.h"
+#endif /* NEW_GC */
+
 extern int gc_in_progress;
 
-#ifdef MC_ALLOC
+#ifdef NEW_GC
 #include "mc-alloc.h"
 
 #ifdef ALLOC_TYPE_STATS
 void init_lrecord_stats (void);
-void inc_lrecord_string_data_stats (Bytecount size);
-void dec_lrecord_string_data_stats (Bytecount size);
 void inc_lrecord_stats (Bytecount size, const struct lrecord_header *h);
 void dec_lrecord_stats (Bytecount size_including_overhead, 
 			const struct lrecord_header *h);
+int lrecord_stats_heap_size (void);
 #endif /* ALLOC_TYPE_STATS */
 
 /* Tell mc-alloc how to call a finalizer. */
@@ -426,7 +465,10 @@ void dec_lrecord_stats (Bytecount size_including_overhead,
       const struct lrecord_implementation *MCACF_implementation		\
 	= LHEADER_IMPLEMENTATION (MCACF_lheader);			\
       if (MCACF_implementation && MCACF_implementation->finalizer)	\
-	MCACF_implementation->finalizer (ptr, 0);			\
+        {								\
+	  GC_STAT_FINALIZED;						\
+          MCACF_implementation->finalizer (ptr, 0);			\
+        }								\
     }									\
 } while (0)
 
@@ -465,7 +507,7 @@ void dec_lrecord_stats (Bytecount size_including_overhead,
 #define MARK_LRECORD_AS_LISP_READONLY(ptr)			\
 ((void) (((struct lrecord_header *) ptr)->lisp_readonly = 1))
 
-#else /* not MC_ALLOC */
+#else /* not NEW_GC */
 
 #define LRECORD_FREE_P(ptr)					\
 (((struct lrecord_header *) ptr)->type == lrecord_type_free)
@@ -488,7 +530,7 @@ void dec_lrecord_stats (Bytecount size_including_overhead,
 } while (0)
 #define SET_LISP_READONLY_RECORD_HEADER(lheader) \
   ((void) ((lheader)->lisp_readonly = 1))
-#endif /* not MC_ALLOC */
+#endif /* not NEW_GC */
 
 #ifdef USE_KKCC
 #define RECORD_DESCRIPTION(lheader) lrecord_memory_descriptions[(lheader)->type]
@@ -953,6 +995,9 @@ enum memory_description_type
 {
   XD_LISP_OBJECT_ARRAY,
   XD_LISP_OBJECT,
+#ifdef NEW_GC
+  XD_LISP_OBJECT_BLOCK_PTR,
+#endif /* NEW_GC */
   XD_LO_LINK,
   XD_OPAQUE_PTR,
   XD_OPAQUE_PTR_CONVERTIBLE,
@@ -995,14 +1040,14 @@ enum data_description_entry_flags
   XD_FLAG_NO_PDUMP = 2,
   /* Indicates that this is a "default" entry in a union map. */
   XD_FLAG_UNION_DEFAULT_ENTRY = 4,
-#ifndef MC_ALLOC
+#ifndef NEW_GC
   /* Indicates that this is a free Lisp object we're marking.
      Only relevant for ERROR_CHECK_GC.  This occurs when we're marking
      lcrecord-lists, where the objects have had their type changed to
      lrecord_type_free and also have had their free bit set, but we mark
      them as normal. */
   XD_FLAG_FREE_LISP_OBJECT = 8
-#endif /* not MC_ALLOC */
+#endif /* not NEW_GC */
 #if 0
   ,
   /* Suggestions for other possible flags: */
@@ -1089,105 +1134,168 @@ extern const struct sized_memory_description lisp_object_description;
   { XD_INT,        offsetof (base_type, cur) },				      \
   { XD_INT_RESET,  offsetof (base_type, max), XD_INDIRECT(1, 0) }	      \
 
-/* DEFINE_LISP_OBJECT is for objects with constant size.
+#ifdef NEW_GC
+#define XD_LISP_DYNARR_DESC(base_type, sub_desc)			\
+  { XD_LISP_OBJECT_BLOCK_PTR, offsetof (base_type, base),		\
+    XD_INDIRECT(1, 0), {sub_desc} },					\
+  { XD_INT,        offsetof (base_type, cur) },				\
+  { XD_INT_RESET,  offsetof (base_type, max), XD_INDIRECT(1, 0) }
+#endif /* not NEW_GC */
 
-   DEFINE_SIZABLE_LISP_OBJECT is for objects whose size varies.
+/* DEFINE_*_LISP_OBJECT is for objects with constant size. (Either
+   DEFINE_DUMPABLE_LISP_OBJECT for objects that can be saved in a dumped
+   executable, or DEFINE_NODUMP_LISP_OBJECT for objects that cannot be
+   saved -- e.g. that contain pointers to non-persistent external objects
+   such as window-system windows.)
 
-   DEFINE_FROB_BLOCK_LISP_OBJECT is for objects that are allocated in
+   DEFINE_*_SIZABLE_LISP_OBJECT is for objects whose size varies.
+
+   DEFINE_*_FROB_BLOCK_LISP_OBJECT is for objects that are allocated in
    large blocks ("frob blocks"), which are parceled up individually.  Such
    objects need special handling in alloc.c.  This does not apply to
-   MC_ALLOC, because it does this automatically.
+   NEW_GC, because it does this automatically.
 
    DEFINE_*_WITH_PROPS is for objects which support the unified property
    interface using `get', `put', `remprop' and `object-plist'.
 
-   DEFINE_EXTERNAL_* is for objects defined in an external module.
+   DEFINE_MODULE_* is for objects defined in an external module.
 
-   MAKE_LISP_OBJECT is what underlies all of these; it defines
-
+   MAKE_LISP_OBJECT and MAKE_MODULE_LISP_OBJECT are what underlies all of
+   these; they define a structure containing pointers to object methods
+   and other info such as the size of the structure containing the object.
  */
 
+/* #### FIXME What's going on here? */
 #if defined (ERROR_CHECK_TYPES)
 # define DECLARE_ERROR_CHECK_TYPES(c_name, structtype)
 #else
 # define DECLARE_ERROR_CHECK_TYPES(c_name, structtype)
 #endif
 
-#error MUST STILL SUPPORT THIS:::
+/********* The dumpable versions *********** */
 
-#define DEFINE_LRECORD_IMPLEMENTATION(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,structtype) \
-DEFINE_LRECORD_IMPLEMENTATION_WITH_PROPS(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,0,0,0,0,structtype)
+#define DEFINE_DUMPABLE_LISP_OBJECT(name,c_name,marker,printer,nuker,equal,hash,desc,structtype) \
+DEFINE_DUMPABLE_LISP_OBJECT_WITH_PROPS(name,c_name,marker,printer,nuker,equal,hash,desc,0,0,0,0,structtype)
 
-#error and variations
+#define DEFINE_DUMPABLE_LISP_OBJECT_WITH_PROPS(name,c_name,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,structtype) \
+MAKE_LISP_OBJECT(name,c_name,1 /*dumpable*/,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,sizeof (structtype),0,0,structtype)
 
-#define DEFINE_INTERNAL_LISP_OBJECT(name,c_name,dumpable,structtype,desc,marker) ...
+#define DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT(name,c_name,marker,printer,nuker,equal,hash,desc,sizer,structtype) \
+DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT_WITH_PROPS(name,c_name,marker,printer,nuker,equal,hash,desc,0,0,0,0,sizer,structtype)
 
-#define DEFINE_FROB_BLOCK_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,structtype) \
-DEFINE_FROB_BLOCK_LISP_OBJECT_WITH_PROPS(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,0,0,0,0,structtype)
+#define DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT_WITH_PROPS(name,c_name,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,sizer,structtype) \
+MAKE_LISP_OBJECT(name,c_name,1 /*dumpable*/,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,0,sizer,0,structtype)
 
-#define DEFINE_FROB_BLOCK_LISP_OBJECT_WITH_PROPS(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,structtype) \
-MAKE_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,sizeof(structtype),0,1,structtype)
+#define DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT(name,c_name,marker,printer,nuker,equal,hash,desc,structtype) \
+DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT_WITH_PROPS(name,c_name,marker,printer,nuker,equal,hash,desc,0,0,0,0,structtype)
 
-#define DEFINE_INTERNAL_LISP_OBJECT(name,c_name,structtype,desc,dumpable,marker) \
-DEFINE_LISP_OBJECT_WITH_PROPS(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,0,0,0,0,)
+#define DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT_WITH_PROPS(name,c_name,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,structtype) \
+MAKE_LISP_OBJECT(name,c_name,1 /*dumpable*/,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,sizeof(structtype),0,1,structtype)
 
-#define DEFINE_LISP_OBJECT(name,c_name,structtype,desc,dumpable,marker,printer,equal,hash,nuker) \
-DEFINE_LISP_OBJECT_WITH_PROPS(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,0,0,0,0,)
+#define DEFINE_DUMPABLE_FROB_BLOCK_SIZABLE_LISP_OBJECT(name,c_name,marker,printer,nuker,equal,hash,desc,sizer,structtype) \
+MAKE_LISP_OBJECT(name,c_name,1 /*dumpable*/,marker,printer,nuker,equal,hash,desc,0,0,0,0,0,sizer,1,structtype)
 
-#define DEFINE_LISP_OBJECT_WITH_PROPS(name,c_name,structtype,dumpable,desc,marker,printer,equal,hash,nuker,getprop,putprop,remprop,plist) \
-MAKE_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,sizeof (structtype),0,0,structtype)
+#define DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT(name,c_name,marker,desc,structtype) \
+DEFINE_DUMPABLE_LISP_OBJECT_WITH_PROPS(name,c_name,marker,internal_object_printer,0,0,0,desc,0,0,0,0,structtype)
 
-#define DEFINE_SIZABLE_LISP_OBJECT(name,c_name,structtype,sizer,desc,dumpable,marker,printer,equal,hash,nuker) \
-DEFINE_SIZABLE_LISP_OBJECT_WITH_PROPS(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,0,0,0,0,sizer,structtype)
+#define DEFINE_DUMPABLE_SIZABLE_INTERNAL_LISP_OBJECT(name,c_name,marker,desc,sizer,structtype) \
+DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT_WITH_PROPS(name,c_name,marker,internal_object_printer,0,0,0,desc,0,0,0,0,sizer,structtype)
 
-#define DEFINE_SIZABLE_LISP_OBJECT_WITH_PROPS(name,c_name,structtype,sizer,desc,dumpable,marker,printer,equal,hash,nuker,getprop,putprop,remprop,plist) \
-MAKE_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,0,sizer,0,structtype)
+/********* The non-dumpable versions *********** */
 
-#ifdef MC_ALLOC
-#define MAKE_LISP_OBJECT(name,c_name,structtype,sizer,desc,dumpable,marker,printer,equal,hash,nuker,getprop,putprop,remprop,plist,frob_block) \
+#define DEFINE_NODUMP_LISP_OBJECT(name,c_name,marker,printer,nuker,equal,hash,desc,structtype) \
+DEFINE_NODUMP_LISP_OBJECT_WITH_PROPS(name,c_name,marker,printer,nuker,equal,hash,desc,0,0,0,0,structtype)
+
+#define DEFINE_NODUMP_LISP_OBJECT_WITH_PROPS(name,c_name,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,structtype) \
+MAKE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,sizeof (structtype),0,0,structtype)
+
+#define DEFINE_NODUMP_SIZABLE_LISP_OBJECT(name,c_name,marker,printer,nuker,equal,hash,desc,sizer,structtype) \
+DEFINE_NODUMP_SIZABLE_LISP_OBJECT_WITH_PROPS(name,c_name,marker,printer,nuker,equal,hash,desc,0,0,0,0,sizer,structtype)
+
+#define DEFINE_NODUMP_SIZABLE_LISP_OBJECT_WITH_PROPS(name,c_name,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,sizer,structtype) \
+MAKE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,0,sizer,0,structtype)
+
+#define DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT(name,c_name,marker,printer,nuker,equal,hash,desc,structtype) \
+DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT_WITH_PROPS(name,c_name,marker,printer,nuker,equal,hash,desc,0,0,0,0,structtype)
+
+#define DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT_WITH_PROPS(name,c_name,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,structtype) \
+MAKE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,sizeof(structtype),0,1,structtype)
+
+#define DEFINE_NODUMP_FROB_BLOCK_SIZABLE_LISP_OBJECT(name,c_name,marker,printer,nuker,equal,hash,desc,sizer,structtype) \
+MAKE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,marker,printer,nuker,equal,hash,desc,0,0,0,0,0,sizer,1,structtype)
+
+#define DEFINE_NODUMP_INTERNAL_LISP_OBJECT(name,c_name,marker,desc,structtype) \
+DEFINE_NODUMP_LISP_OBJECT_WITH_PROPS(name,c_name,marker,internal_object_printer,0,0,0,desc,0,0,0,0,structtype)
+
+#define DEFINE_NODUMP_SIZABLE_INTERNAL_LISP_OBJECT(name,c_name,marker,desc,sizer,structtype) \
+DEFINE_NODUMP_SIZABLE_LISP_OBJECT_WITH_PROPS(name,c_name,marker,internal_object_printer,0,0,0,desc,0,0,0,0,sizer,structtype)
+
+/********* MAKE_LISP_OBJECT, the underlying macro *********** */
+
+#ifdef NEW_GC
+#define MAKE_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,size,sizer,frob_block_p,structtype)    \
 DECLARE_ERROR_CHECK_TYPES(c_name, structtype)				\
 const struct lrecord_implementation lrecord_##c_name =			\
   { name, dumpable, marker, printer, nuker, equal, hash, desc,		\
     getprop, putprop, remprop, plist, size, sizer,			\
     lrecord_type_##c_name }
-#else /* not MC_ALLOC */
-#define MAKE_LISP_OBJECT(name,c_name,structtype,sizer,desc,dumpable,marker,printer,equal,hash,nuker,getprop,putprop,remprop,plist,frob_block) \
+#else /* not NEW_GC */
+#define MAKE_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,size,sizer,frob_block_p,structtype)    \
 DECLARE_ERROR_CHECK_TYPES(c_name, structtype)				\
 const struct lrecord_implementation lrecord_##c_name =			\
   { name, dumpable, marker, printer, nuker, equal, hash, desc,		\
     getprop, putprop, remprop, plist, size, sizer,			\
-    lrecord_type_##c_name, frob_block }
-#endif /* not MC_ALLOC */
+    lrecord_type_##c_name, frob_block_p }
+#endif /* not NEW_GC */
 
-#define DEFINE_EXTERNAL_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,structtype) \
-DEFINE_EXTERNAL_LISP_OBJECT_WITH_PROPS(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,0,0,0,0,structtype)
 
-#define DEFINE_EXTERNAL_LISP_OBJECT_WITH_PROPS(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,structtype) \
-MAKE_EXTERNAL_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,sizeof (structtype),0,0,structtype)
+/********* The module dumpable versions *********** */
 
-#define DEFINE_EXTERNAL_SIZABLE_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,sizer,structtype) \
-DEFINE_EXTERNAL_SIZABLE_LISP_OBJECT_WITH_PROPS(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,0,0,0,0,sizer,structtype)
+#define DEFINE_DUMPABLE_MODULE_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,structtype) \
+DEFINE_DUMPABLE_MODULE_LISP_OBJECT_WITH_PROPS(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,0,0,0,0,structtype)
 
-#define DEFINE_EXTERNAL_SIZABLE_LISP_OBJECT_WITH_PROPS(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,sizer,structtype) \
-MAKE_EXTERNAL_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,0,sizer,0,structtype)
+#define DEFINE_DUMPABLE_MODULE_LISP_OBJECT_WITH_PROPS(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,structtype) \
+MAKE_MODULE_LISP_OBJECT(name,c_name,1 /*dumpable*/,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,sizeof (structtype),0,0,structtype)
 
-#ifdef MC_ALLOC
-#define MAKE_EXTERNAL_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,size,sizer,basic_p,structtype) \
+#define DEFINE_DUMPABLE_MODULE_SIZABLE_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,sizer,structtype) \
+DEFINE_DUMPABLE_MODULE_SIZABLE_LISP_OBJECT_WITH_PROPS(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,0,0,0,0,sizer,structtype)
+
+#define DEFINE_DUMPABLE_MODULE_SIZABLE_LISP_OBJECT_WITH_PROPS(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,sizer,structtype) \
+MAKE_MODULE_LISP_OBJECT(name,c_name,1 /*dumpable*/,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,0,sizer,0,structtype)
+
+/********* The module non-dumpable versions *********** */
+
+#define DEFINE_NODUMP_MODULE_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,structtype) \
+DEFINE_NODUMP_MODULE_LISP_OBJECT_WITH_PROPS(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,0,0,0,0,structtype)
+
+#define DEFINE_NODUMP_MODULE_LISP_OBJECT_WITH_PROPS(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,structtype) \
+MAKE_MODULE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,sizeof (structtype),0,0,structtype)
+
+#define DEFINE_NODUMP_MODULE_SIZABLE_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,sizer,structtype) \
+DEFINE_NODUMP_MODULE_SIZABLE_LISP_OBJECT_WITH_PROPS(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,0,0,0,0,sizer,structtype)
+
+#define DEFINE_NODUMP_MODULE_SIZABLE_LISP_OBJECT_WITH_PROPS(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,sizer,structtype) \
+MAKE_MODULE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,0,sizer,0,structtype)
+
+/********* MAKE_MODULE_LISP_OBJECT, the underlying macro *********** */
+
+#ifdef NEW_GC
+#define MAKE_MODULE_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,size,sizer,frob_block_p,structtype) \
 DECLARE_ERROR_CHECK_TYPES(c_name, structtype)				\
 int lrecord_type_##c_name;						\
 struct lrecord_implementation lrecord_##c_name =			\
   { name, dumpable, marker, printer, nuker, equal, hash, desc,		\
     getprop, putprop, remprop, plist, size, sizer,			\
     lrecord_type_last_built_in_type }
-#else /* not MC_ALLOC */
-#define MAKE_EXTERNAL_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,size,sizer,basic_p,structtype) \
+#else /* not NEW_GC */
+#define MAKE_MODULE_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,getprop,putprop,remprop,plist,size,sizer,frob_block_p,structtype) \
 DECLARE_ERROR_CHECK_TYPES(c_name, structtype)				\
 int lrecord_type_##c_name;						\
 struct lrecord_implementation lrecord_##c_name =			\
   { name, dumpable, marker, printer, nuker, equal, hash, desc,		\
     getprop, putprop, remprop, plist, size, sizer,			\
-    lrecord_type_last_built_in_type, basic_p }
-#endif /* not MC_ALLOC */
+    lrecord_type_last_built_in_type, frob_block_p }
+#endif /* not NEW_GC */
 
 #ifdef USE_KKCC
 extern MODULE_API const struct memory_description *lrecord_memory_descriptions[];
@@ -1207,7 +1315,7 @@ extern MODULE_API Lisp_Object (*lrecord_markers[]) (Lisp_Object);
 } while (0)
 #endif /* not USE_KKCC */
 
-#define INIT_EXTERNAL_LISP_OBJECT(type) do {			\
+#define INIT_MODULE_LISP_OBJECT(type) do {			\
   lrecord_type_##type = lrecord_type_count++;				\
   lrecord_##type.lrecord_type_index = lrecord_type_##type;		\
   INIT_LISP_OBJECT(type);					\
@@ -1228,7 +1336,7 @@ extern MODULE_API Lisp_Object (*lrecord_markers[]) (Lisp_Object);
 } while (0)
 #endif /* not USE_KKCC */
 
-#define UNDEF_EXTERNAL_LISP_OBJECT(type) do {		\
+#define UNDEF_MODULE_LISP_OBJECT(type) do {		\
   if (lrecord_##type.lrecord_type_index == lrecord_type_count - 1) {	\
     /* This is the most recently defined type.  Clean up nicely. */	\
     lrecord_type_##type = lrecord_type_count--;				\
@@ -1314,7 +1422,7 @@ struct toolbar_button
 
 [[ the standard junk: ]]
 
-DECLARE_LRECORD (toolbar_button, struct toolbar_button);
+DECLARE_LISP_OBJECT (toolbar_button, struct toolbar_button);
 #define XTOOLBAR_BUTTON(x) XRECORD (x, toolbar_button, struct toolbar_button)
 #define wrap_toolbar_button(p) wrap_record (p, toolbar_button)
 #define TOOLBAR_BUTTONP(x) RECORDP (x, toolbar_button)
@@ -1359,11 +1467,11 @@ mark_toolbar_button (Lisp_Object obj)
   return data->help_string;
 }
 
-DEFINE_NONDUMPABLE_LISP_OBJECT ("toolbar-button", toolbar_button,
-					     mark_toolbar_button,
-					     external_object_printer, 0, 0, 0,
-					     toolbar_button_description,
-					     struct toolbar_button);
+DEFINE_NODUMP_LISP_OBJECT ("toolbar-button", toolbar_button,
+			     mark_toolbar_button,
+			     external_object_printer, 0, 0, 0,
+			     toolbar_button_description,
+			     struct toolbar_button);
 
 ...
 
@@ -1398,9 +1506,9 @@ enum lrecord_type
 /*
 
 Note: Object types defined in external dynamically-loaded modules (not
-part of the XEmacs main source code) should use DECLARE_EXTERNAL_LRECORD
-and DEFINE_EXTERNAL_LISP_OBJECT rather than DECLARE_LRECORD
-and DEFINE_LISP_OBJECT.  The EXTERNAL versions declare and
+part of the XEmacs main source code) should use DECLARE_MODULE_LRECORD
+and DEFINE_MODULE_LISP_OBJECT rather than DECLARE_LISP_OBJECT
+and DEFINE_LISP_OBJECT.  The MODULE versions declare and
 allocate an enumerator for the type being defined.
 
 */
@@ -1408,7 +1516,7 @@ allocate an enumerator for the type being defined.
 
 #ifdef ERROR_CHECK_TYPES
 
-# define DECLARE_LRECORD(c_name, structtype)				  \
+# define DECLARE_LISP_OBJECT(c_name, structtype)				  \
 extern const struct lrecord_implementation lrecord_##c_name;		  \
 DECLARE_INLINE_HEADER (							  \
 structtype *								  \
@@ -1432,7 +1540,7 @@ error_check_##c_name (Lisp_Object obj, const Ascbyte *file, int line)	  \
 }									  \
 extern MODULE_API Lisp_Object Q##c_name##p
 
-# define DECLARE_EXTERNAL_LRECORD(c_name, structtype)			  \
+# define DECLARE_MODULE_LRECORD(c_name, structtype)			  \
 extern int lrecord_type_##c_name;					  \
 extern struct lrecord_implementation lrecord_##c_name;			  \
 DECLARE_INLINE_HEADER (							  \
@@ -1478,13 +1586,13 @@ wrap_record_1 (const void *ptr, enum lrecord_type ty, const Ascbyte *file,
 
 #else /* not ERROR_CHECK_TYPES */
 
-# define DECLARE_LRECORD(c_name, structtype)			\
+# define DECLARE_LISP_OBJECT(c_name, structtype)			\
 extern Lisp_Object Q##c_name##p;				\
 extern const struct lrecord_implementation lrecord_##c_name
 # define DECLARE_MODULE_API_LRECORD(c_name, structtype)			\
 extern MODULE_API Lisp_Object Q##c_name##p;				\
 extern MODULE_API const struct lrecord_implementation lrecord_##c_name
-# define DECLARE_EXTERNAL_LRECORD(c_name, structtype)		\
+# define DECLARE_MODULE_LRECORD(c_name, structtype)		\
 extern Lisp_Object Q##c_name##p;				\
 extern int lrecord_type_##c_name;				\
 extern struct lrecord_implementation lrecord_##c_name
@@ -1551,17 +1659,17 @@ extern Lisp_Object Q##c_name##p
      size_in_bytes_method rather than a static_size), call
      ALLOC_SIZED_LISP_OBJECT (size, type), where TYPE is the
      name of the type. NOTE: You cannot call FREE_LCRECORD() on such
-     on object! (At least when not MC_ALLOC)
+     on object! (At least when not NEW_GC)
 
    - Basic lrecords (of which there are a limited number, which exist only
-     when not MC_ALLOC, and which have special handling in alloc.c) need
+     when not NEW_GC, and which have special handling in alloc.c) need
      special handling; if you don't understand this, just ignore it.
 
    - Some lrecords, which are used totally internally, use the
      noseeum-* functions for the reason of debugging. 
  */
 
-#ifndef MC_ALLOC
+#ifndef NEW_GC
 /*-------------------------- lcrecord-list -----------------------------*/
 
 struct lcrecord_list
@@ -1572,7 +1680,7 @@ struct lcrecord_list
   const struct lrecord_implementation *implementation;
 };
 
-DECLARE_LRECORD (lcrecord_list, struct lcrecord_list);
+DECLARE_LISP_OBJECT (lcrecord_list, struct lcrecord_list);
 #define XLCRECORD_LIST(x) XRECORD (x, lcrecord_list, struct lcrecord_list)
 #define wrap_lcrecord_list(p) wrap_record (p, lcrecord_list)
 #define LCRECORD_LISTP(x) RECORDP (x, lcrecord_list)
@@ -1671,8 +1779,10 @@ void free_managed_lcrecord (Lisp_Object lcrecord_list, Lisp_Object lcrecord);
 
 /* AUTO-MANAGED MODEL: */
 MODULE_API Lisp_Object
-alloc_automanaged_lcrecord (Bytecount size,
-			    const struct lrecord_implementation *);
+alloc_automanaged_sized_lcrecord (Bytecount size,
+				  const struct lrecord_implementation *imp);
+MODULE_API Lisp_Object
+alloc_automanaged_lcrecord (const struct lrecord_implementation *imp);
 
 #define old_alloc_lcrecord_type(type, imp) \
   ((type *) XPNTR (alloc_automanaged_lcrecord (sizeof (type), imp)))
@@ -1697,19 +1807,22 @@ void old_free_lcrecord (Lisp_Object rec);
 
 #define old_zero_lcrecord(lcr) old_zero_sized_lcrecord (lcr, sizeof (*(lcr)))
 
-#else /* MC_ALLOC */
+#else /* NEW_GC */
 
 Lisp_Object alloc_sized_lrecord (Bytecount size,
 				 const struct lrecord_implementation *imp);
 Lisp_Object noseeum_alloc_sized_lrecord (Bytecount size,
 					 const struct lrecord_implementation *);
 Lisp_Object alloc_lrecord (const struct lrecord_implementation *imp);
+Lisp_Object noseeum_alloc_lrecord (const struct lrecord_implementation *imp);
+
+Lisp_Object alloc_lrecord_array (int elemcount,
+				 const struct lrecord_implementation *imp);
+Lisp_Object alloc_sized_lrecord_array (Bytecount size, int elemcount,
+				       const struct lrecord_implementation *imp);
 
 #define alloc_lrecord_type(type, imp) \
   ((type *) XPNTR (alloc_sized_lrecord (sizeof (type), imp)))
-
-void *noseeum_alloc_lrecord (Bytecount size,
-			     const struct lrecord_implementation *);
 
 #define noseeum_alloc_lrecord_type(type, imp) \
   ((type *) XPNTR (noseeum_alloc_sized_lrecord (sizeof (type), imp)))
@@ -1727,7 +1840,7 @@ void free_lrecord (Lisp_Object rec);
 
 #define copy_lrecord(dst, src) copy_sized_lrecord (dst, src, sizeof (*(dst)))
 
-#endif /* MC_ALLOC */
+#endif /* NEW_GC */
 
 #define zero_sized_lrecord(lcr, size)				\
    memset ((char *) (lcr) + sizeof (struct lrecord_header), 0,	\
@@ -1846,12 +1959,12 @@ extern MODULE_API int initialized;
 
 #ifdef PDUMP
 #include "dumper.h"
-#ifdef MC_ALLOC
+#ifdef NEW_GC
 #define DUMPEDP(adr) 0
-#else /* not MC_ALLOC */
+#else /* not NEW_GC */
 #define DUMPEDP(adr) ((((Rawbyte *) (adr)) < pdump_end) && \
                       (((Rawbyte *) (adr)) >= pdump_start))
-#endif /* not MC_ALLOC */
+#endif /* not NEW_GC */
 #else
 #define DUMPEDP(adr) 0
 #endif

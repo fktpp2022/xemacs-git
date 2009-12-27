@@ -5,6 +5,22 @@
 ** Created by: William M. Perry <wmperry@gnu.org>
 ** Copyright (c) 2000 William M. Perry <wmperry@gnu.org>
 **
+** This file is part of XEmacs.
+**
+** XEmacs is free software; you can redistribute it and/or modify it
+** under the terms of the GNU General Public License as published by the
+** Free Software Foundation; either version 2, or (at your option) any
+** later version.
+**
+** XEmacs is distributed in the hope that it will be useful, but WITHOUT
+** ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+** FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+** for more details.
+**
+** You should have received a copy of the GNU General Public License
+** along with XEmacs; see the file COPYING.  If not, write to
+** the Free Software Foundation, Inc., 51 Franklin Street - Fifth Floor,
+** Boston, MA 02111-1301, USA.  */
 */
 
 #include <config.h>
@@ -319,7 +335,7 @@ ffi_object_printer (Lisp_Object obj, Lisp_Object printcharfun,
   write_fmt_string (printcharfun, " %p>", (void *)XFFI (obj)->function_ptr);
 }
 
-DEFINE_NONDUMPABLE_LISP_OBJECT ("ffi", emacs_ffi,
+DEFINE_NODUMP_LISP_OBJECT ("ffi", emacs_ffi,
 					   mark_ffi_data, ffi_object_printer,
 					   0, 0, 0, 
 					   ffi_data_description, emacs_ffi_data);
@@ -927,7 +943,7 @@ emacs_gtk_object_finalizer (void *header, int for_disksave)
     }
 }
 
-DEFINE_NONDUMPABLE_LISP_OBJECT_WITH_PROPS ("GtkObject", emacs_gtk_object,
+DEFINE_NODUMP_LISP_OBJECT_WITH_PROPS ("GtkObject", emacs_gtk_object,
 						      mark_gtk_object_data,
 						      emacs_gtk_object_printer,
 						      emacs_gtk_object_finalizer,
@@ -1122,7 +1138,7 @@ emacs_gtk_boxed_hash (Lisp_Object obj, int UNUSED (depth))
   return (HASH2 ((Hashcode) data->object, data->object_type));
 }
 
-DEFINE_NONDUMPABLE_LISP_OBJECT_WITH_PROPS ("GtkBoxed", emacs_gtk_boxed,
+DEFINE_NODUMP_LISP_OBJECT_WITH_PROPS ("GtkBoxed", emacs_gtk_boxed,
 						      0, /* marker function */
 						      emacs_gtk_boxed_printer,
 						      0, /* nuker */

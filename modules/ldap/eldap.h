@@ -22,6 +22,13 @@ Boston, MA 02111-1307, USA.  */
 #define INCLUDED_eldap_h_
 
 #include <lber.h>
+/* #### NEEDS REWRITE!
+   Thanks to Mats Lidell <matsl@xemacs.org> for the report & patch:
+   <871wgnqunm.fsf@spencer.lidell.homelinux.net>
+   "See http://www.openldap.org/faq/data/cache/1278.html.
+   Temporary workaround would be use the deprecated interface. Long term
+   solution is a rewrite." */
+#define LDAP_DEPRECATED 1
 #include <ldap.h>
 
 /*
@@ -40,7 +47,7 @@ struct Lisp_LDAP
 typedef struct Lisp_LDAP Lisp_LDAP;
 
 
-DECLARE_LRECORD (ldap, Lisp_LDAP);
+DECLARE_LISP_OBJECT (ldap, Lisp_LDAP);
 #define XLDAP(x) XRECORD (x, ldap, Lisp_LDAP)
 #define wrap_ldap(p) wrap_record (p, ldap)
 #define LDAPP(x) RECORDP (x, ldap)

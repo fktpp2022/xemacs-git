@@ -32,7 +32,7 @@
 (make-charset 'ethiopic "Ethiopic characters"
 	      '(dimension
 		2
-		registry "Ethiopic-Unicode"
+		registries ["Ethiopic-Unicode"]
 		chars 94
 		columns 2
 		direction l2r
@@ -61,15 +61,13 @@
      (r1 *= 94)
      (r2 += r1)
      (if (r2 < 256)
-	 (r1 = ?\x12)
+	 (r1 = #x12)
        (if (r2 < 448)
-	   ((r1 = ?\x13) (r2 -= 256))
-	 ((r1 = ?\xfd) (r2 -= 208))
+	   ((r1 = #x13) (r2 -= 256))
+	 ((r1 = #xfd) (r2 -= 208))
 	 ))))
   "CCL program to encode an Ethiopic code to code point of Ethiopic font.")
 
-;; (setq font-ccl-encoder-alist
-;;       (cons (cons "ethiopic" ccl-encode-ethio-font) font-ccl-encoder-alist))
 (set-charset-ccl-program 'ethiopic 'ccl-encode-ethio-font)
 
 (set-language-info-alist
@@ -78,9 +76,12 @@
 	      (charset ethiopic)
 	      (coding-system iso-2022-7bit)
 	      (coding-priority iso-2022-7bit)
-	      (input-method . "ethiopic")
+	      ;; (input-method . "ethiopic")
 	      (features ethio-util)
 	      (sample-text . "$(3$Q#U!.(B")
 	      (documentation . t)))
+
+;; In a more ideal world, we could set the default face fallback from here
+;; to use one of the misc-fixed sizes that handles Ethiopic.
 
 ;;; ethiopic.el ends here

@@ -38,42 +38,16 @@
 
 ;;;; Classifying text according to charsets
 
-;; the old version was broken in a couple of ways
-;; this is one of several versions, I tried a hash as well as the
-;; `prev-charset' cache used in the old version, but this was definitely
-;; faster than the hash version and marginally faster than the prev-charset
-;; version
-;; #### this really needs to be moved into C
-(defun charsets-in-region (start end &optional buffer)
-  "Return a list of the charsets in the region between START and END.
-BUFFER defaults to the current buffer if omitted."
-  (let (list)
-    (save-excursion
-      (if buffer
-	  (set-buffer buffer))
-      (save-restriction
-	(narrow-to-region start end)
-	(goto-char (point-min))
-	(while (not (eobp))
-	  ;; the first test will usually succeed on testing the
-	  ;; car of the list; don't waste time let-binding.
-	  (or (memq (char-charset (char-after (point))) list)
-	      (setq list (cons (char-charset (char-after (point))) list)))
-	  (forward-char))))
-    list))
-
 (defun charsets-in-string (string)
   "Return a list of the charsets in STRING."
-  (let (list)
-    (mapc (lambda (ch)
-	    ;; the first test will usually succeed on testing the
-	    ;; car of the list; don't waste time let-binding.
-	    (or (memq (char-charset ch) list)
-		(setq list (cons (char-charset ch) list))))
-	  string)
-    list))
+  (let (res)
+    (with-string-as-buffer-contents string
+      ;; charsets-in-region now in C. 
+      (setq res (charsets-in-region (point-min) (point-max))))
+    res))
 
 (defalias 'find-charset-string 'charsets-in-string)
+
 (defalias 'find-charset-region 'charsets-in-region)
 
 
@@ -106,12 +80,33 @@ Only left-to-right is currently implemented."
       0
     1))
 
-;; Not in Emacs/Mule
+;; Not in GNU Emacs/Mule
 (defun charset-registry (charset)
-  "Return the registry of CHARSET.
-This is a regular expression matching the registry field of fonts
-that can display the characters in CHARSET."
-  (charset-property charset 'registry))
+  "Obsolete; use charset-registries instead. "
+  (lwarn 'xintl 'warning 
+    "charset-registry is obsolete--use charset-registries instead. ")
+  (when (charset-property charset 'registries)
+    (elt (charset-property charset 'registries) 0)))
+
+(make-obsolete 'charset-registry 'charset-registries)
+
+(defun charset-registries (charset)
+  "Return the registries of CHARSET."
+  (charset-property charset 'registries))
+
+(defun set-charset-registry (charset registry)
+  "Obsolete; use set-charset-registries instead. "
+  (check-argument-type 'stringp registry)
+  (check-argument-type 'charsetp (find-charset charset))
+  (unless (equal registry (regexp-quote registry))
+    (lwarn 'xintl 'warning
+      "Regexps no longer allowed for charset-registry. Treating %s%s"
+      registry " as a string."))
+  (set-charset-registries 
+   charset 
+   (apply 'vector registry (append (charset-registries charset) nil))))
+
+(make-obsolete 'set-charset-registry 'set-charset-registries)
 
 (defun charset-ccl-program (charset)
   "Return the CCL program of CHARSET.
@@ -122,15 +117,70 @@ See `make-charset'."
   "Useless in XEmacs, returns 1."
    1)
 
-(define-obsolete-function-alias 'charset-columns 'charset-width) ;; 19990409
-(define-obsolete-function-alias 'charset-final 'charset-iso-final-char) ;; 19990409
-(define-obsolete-function-alias 'charset-graphic 'charset-iso-graphic-plane) ;; 19990409
-(define-obsolete-function-alias 'charset-doc-string 'charset-description) ;; 19990409
+(defun charset-skip-chars-string (charset)
+  "Given  CHARSET, return a string suitable for for `skip-chars-forward'.
+Passing the string to `skip-chars-forward' will cause it to skip all
+characters in CHARSET."
+  (setq charset (get-charset charset))
+  (cond 
+   ;; Aargh, the general algorithm doesn't work for these charsets, because
+   ;; make-char strips the high bit. Hard code them.
+   ((eq (find-charset 'ascii) charset) "\x00-\x7f")
+   ((eq (find-charset 'control-1) charset) "\x80-\x9f")
+   (t 
+    (let (charset-lower charset-upper row-upper row-lower)
+      (if (= 1 (charset-dimension charset))
+          (condition-case args-out-of-range
+              (make-char charset #x100)
+            (args-out-of-range 
+             (setq charset-lower (third args-out-of-range)
+                   charset-upper (fourth args-out-of-range))
+             (format "%c-%c"
+                     (make-char charset charset-lower)
+                     (make-char charset charset-upper))))
+        (condition-case args-out-of-range
+            (make-char charset #x100 #x22)
+          (args-out-of-range
+           (setq row-lower (third args-out-of-range)
+                 row-upper (fourth args-out-of-range))))
+        (condition-case args-out-of-range
+            (make-char charset #x22 #x100)
+          (args-out-of-range
+           (setq charset-lower (third args-out-of-range)
+                 charset-upper (fourth args-out-of-range))))
+        (format "%c-%c"
+                (make-char charset row-lower charset-lower)
+                (make-char charset row-upper charset-upper)))))))
+;; From GNU. 
+(defun map-charset-chars (func charset)
+  "Use FUNC to map over all characters in CHARSET for side effects.
+FUNC is a function of two args, the start and end (inclusive) of a
+character code range.  Thus FUNC should iterate over [START, END]."
+  (check-argument-type #'functionp func)
+  (check-argument-type #'charsetp (setq charset (find-charset charset)))
+  (let* ((dim (charset-dimension charset))
+	 (chars (charset-chars charset))
+	 (start (if (= chars 94)
+		    33
+		  32)))
+    (if (= dim 1)
+        (cond 
+         ((eq (find-charset 'ascii) charset) (funcall func ?\x00 ?\x7f))
+         ((eq (find-charset 'control-1) charset) (funcall func ?\x80 ?\x9f))
+         (t 
+          (funcall func
+                   (make-char charset start)
+                   (make-char charset (+ start chars -1)))))
+      (dotimes (i chars)
+	(funcall func
+		 (make-char charset (+ i start) start)
+		 (make-char charset (+ i start) (+ start chars -1)))))))
 
 ;;;; Define setf methods for all settable Charset properties
 
 (defsetf charset-registry    set-charset-registry)
 (defsetf charset-ccl-program set-charset-ccl-program)
+(defsetf charset-registries  set-charset-registries)
 
 ;;; FSF compatibility functions
 (defun charset-after (&optional pos)
@@ -359,7 +409,6 @@ no such translation table instead of returning nil."
 ;; arabic-2-column "MuleArabic-2"
 ;; ipa "MuleIPA"
 ;; ethiopic "Ethiopic-Unicode"
-;; ascii-right-to-left "ISO8859-1"
 ;; indian-is13194 "IS13194-Devanagari"
 ;; indian-2-column "MuleIndian-2"
 ;; indian-1-column "MuleIndian-1"

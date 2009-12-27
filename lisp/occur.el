@@ -177,7 +177,7 @@ This function should be bound to a mouse key in the `*Occur*' buffer."
 
 (defun occur-next-error (&optional argp reset)
   "Move to the Nth (default 1) next match in an Occur mode buffer.
-Compatibility function for \\[next-error] invocations."
+Compatibility function for \\[next-error-framework-next-error] invocations."
   (interactive "p")
   ;; we need to run occur-find-match from within the Occur buffer
   (with-current-buffer
@@ -222,6 +222,7 @@ A positive number means to include that many lines both before and after."
   :type 'integer
   :group 'matching)
 
+;;;###autoload
 (defalias 'list-matching-lines 'occur)
 
 (defcustom list-matching-lines-face 'match
@@ -324,13 +325,13 @@ the matching is case-sensitive."
   "Show all lines in buffers BUFS containing a match for REGEXP.
 This function acts on multiple buffers; otherwise, it is exactly like
 `occur'."
-  (defvar ido-ignore-item-temp-list)
   (interactive
    (cons
     (let* ((bufs (list (read-buffer "First buffer to search: "
 				    (current-buffer) t)))
 	   (buf nil)
-	   (ido-ignore-item-temp-list bufs))
+;	   (ido-ignore-item-temp-list bufs)
+	   )
       (while (not (string-equal
 		   (setq buf (read-buffer
 			      (if (and-boundp 'read-buffer-function
@@ -340,7 +341,8 @@ This function acts on multiple buffers; otherwise, it is exactly like
 			      nil t))
 		   ""))
 	(add-to-list 'bufs buf)
-	(setq ido-ignore-item-temp-list bufs))
+;	(setq ido-ignore-item-temp-list bufs)
+	)
       (nreverse (mapcar #'get-buffer bufs)))
     (occur-read-primary-args)))
   (occur-1 regexp nlines bufs))
@@ -465,9 +467,9 @@ See also `multi-occur'."
 		    (setq marker (make-marker))
 		    (set-marker marker matchbeg)
 		    (if (and keep-props
-			     (if (boundp 'jit-lock-mode) jit-lock-mode)
+			     (if-boundp 'jit-lock-mode jit-lock-mode)
 			     (text-property-not-all begpt endpt 'fontified t))
-			(if (fboundp 'jit-lock-fontify-now)
+			(if-fboundp #'jit-lock-fontify-now
 			    (jit-lock-fontify-now begpt endpt)))
 		    (setq curstring (buffer-substring begpt endpt))
 		    ;; Depropertize the string, and maybe

@@ -30,7 +30,7 @@ DECLARE_DOESNT_RETURN (finalose (void *ptr));
  *                           Color Instance Object                          *
  ****************************************************************************/
 
-DECLARE_LRECORD (color_instance, Lisp_Color_Instance);
+DECLARE_LISP_OBJECT (color_instance, Lisp_Color_Instance);
 #define XCOLOR_INSTANCE(x) XRECORD (x, color_instance, Lisp_Color_Instance)
 #define wrap_color_instance(p) wrap_record (p, color_instance)
 #define COLOR_INSTANCEP(x) RECORDP (x, color_instance)
@@ -51,17 +51,18 @@ void set_color_attached_to (Lisp_Object obj, Lisp_Object face,
 void initialize_charset_font_caches (struct device *d);
 void invalidate_charset_font_caches (Lisp_Object charset);
 
-DECLARE_LRECORD (font_instance, Lisp_Font_Instance);
+DECLARE_LISP_OBJECT (font_instance, Lisp_Font_Instance);
 #define XFONT_INSTANCE(x) XRECORD (x, font_instance, Lisp_Font_Instance)
 #define wrap_font_instance(p) wrap_record (p, font_instance)
 #define FONT_INSTANCEP(x) RECORDP (x, font_instance)
 #define CHECK_FONT_INSTANCE(x) CHECK_RECORD (x, font_instance)
 #define CONCHECK_FONT_INSTANCE(x) CONCHECK_RECORD (x, font_instance)
 
-EXFUN (Fmake_font_instance, 3);
+EXFUN (Fmake_font_instance, 4);
 EXFUN (Ffont_instance_name, 1);
 EXFUN (Ffont_instance_p, 1);
 EXFUN (Ffont_instance_truename, 1);
+EXFUN (Ffont_instance_charset, 1);
 
 extern Lisp_Object Vthe_null_font_instance;
 
@@ -74,5 +75,9 @@ void set_font_attached_to (Lisp_Object obj, Lisp_Object face,
 
 void set_face_boolean_attached_to (Lisp_Object obj, Lisp_Object face,
 				   Lisp_Object property);
+
+/* Defined in search.c, used in mule-charset.c; slightly ugly to declare it
+   here, but oh well.  */
+EXFUN (Fregexp_quote, 1);
 
 #endif /* INCLUDED_objects_h_ */

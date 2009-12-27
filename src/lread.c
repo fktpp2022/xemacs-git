@@ -34,6 +34,7 @@ Boston, MA 02111-1307, USA.  */
 #include "lstream.h"
 #include "opaque.h"
 #include "profile.h"
+#include "charset.h"	/* For Funicode_to_char. */
 
 #include "sysfile.h"
 #include "sysfloat.h"
@@ -371,7 +372,7 @@ check_if_suppressed (Ibyte *nonreloc, Lisp_Object reloc)
 		  Lisp_Object val;
 
 		  GCPRO1 (reloc);
-		  val = Feval (XCDR (acons));
+		  val = IGNORE_MULTIPLE_VALUES (Feval (XCDR (acons)));
 		  UNGCPRO;
 
 		  if (!NILP (val))
@@ -710,6 +711,8 @@ do {								\
 
   PRINT_LOADING_MESSAGE ("");
 
+  LISP_READONLY (found) = 1;
+
   {
     /* Lisp_Object's must be malloc'ed, not stack-allocated */
     Lisp_Object lispstream = Qnil;
@@ -737,11 +740,31 @@ do {								\
     record_unwind_protect (load_force_doc_string_unwind,
 			   Vload_force_doc_string_list);
     Vload_force_doc_string_list = Qnil;
-    internal_bind_lisp_object (&Vload_file_name, found);
+    /* load-file-name is not read-only to Lisp. */
+    internal_bind_lisp_object (&Vload_file_name, Fcopy_sequence(found));
 #ifdef I18N3
     /* set it to nil; a call to #'domain will set it. */
     internal_bind_lisp_object (&Vfile_domain, Qnil);
 #endif
+
+    /* Is there a #!? If so, read it, and unread ;!.
+
+       GNU implement this by treating any #! anywhere in the source text as
+       commenting out the whole line. */
+    {
+      char shebangp[2];
+      int num_read;
+
+      num_read = Lstream_read (XLSTREAM (lispstream), shebangp,
+                               sizeof(shebangp));
+      if (sizeof(shebangp) == num_read
+	  && 0 == strncmp("#!", shebangp, sizeof(shebangp)))
+	{
+          shebangp[0] = ';';
+	}
+
+      Lstream_unread (XLSTREAM (lispstream), shebangp, num_read);
+    }
 
     /* Now determine what sort of ELC file we're reading in. */
     internal_bind_int (&load_byte_code_version, load_byte_code_version);
@@ -1669,6 +1692,52 @@ read0 (Lisp_Object readcharfun)
 
   return val;
 }
+
+/* A Unicode escape, as in C# (though we only permit them in strings
+   and characters, not arbitrarily in the source code.) */
+static Ichar
+read_unicode_escape (Lisp_Object readcharfun, int unicode_hex_count)
+{
+  REGISTER Ichar i = 0, c;
+  REGISTER int count = 0;
+  Lisp_Object lisp_char;
+  while (++count <= unicode_hex_count)
+    {
+      c = readchar (readcharfun);
+      /* Remember, can't use isdigit(), isalpha() etc. on Ichars */
+      if      (c >= '0' && c <= '9')  i = (i << 4) + (c - '0');
+      else if (c >= 'a' && c <= 'f')  i = (i << 4) + (c - 'a') + 10;
+      else if (c >= 'A' && c <= 'F')  i = (i << 4) + (c - 'A') + 10;
+      else
+	{
+	  syntax_error ("Non-hex digit used for Unicode escape",
+			make_char (c));
+	  break;
+	}
+    }
+
+  if (i >= 0x110000 || i < 0)
+    {
+      syntax_error ("Not a Unicode code point", make_int(i));
+    }
+
+  lisp_char = Funicode_to_char(make_int(i), Qnil);
+
+  if (EQ(Qnil, lisp_char))
+    {
+      /* Will happen on non-Mule. Silent corruption is what happens
+         elsewhere, and we used to do that to be consistent, but GNU error,
+         so people writing portable code need to be able to handle that, and
+         given a choice I prefer that behaviour.
+
+         An undesirable aspect to this error is that the code point is shown
+         as a decimal integer, which is mostly unreadable. */
+      syntax_error ("Unsupported Unicode code point", make_int(i));
+    }
+
+  return XCHAR(lisp_char);
+}
+
 
 static Ichar
 read_escape (Lisp_Object readcharfun)
@@ -1763,7 +1832,7 @@ read_escape (Lisp_Object readcharfun)
 	      }
 	  }
 	if (i >= 0400)
-	  syntax_error ("Attempt to create non-ASCII/ISO-8859-1 character",
+	  syntax_error ("Non-ISO-8859-1 character specified with octal escape",
 			make_int (i));
 	return i;
       }
@@ -1789,13 +1858,36 @@ read_escape (Lisp_Object readcharfun)
 		break;
 	      }
 	  }
+
+        if (count == 3)
+          {
+            c = readchar (readcharfun);
+            if ((c >= '0' && c <= '9') ||
+                (c >= 'a' && c <= 'f') ||
+                (c >= 'A' && c <= 'F'))
+              {
+                Lisp_Object args[2];
+
+                if      (c >= '0' && c <= '9')  i = (i << 4) + (c - '0');
+                else if (c >= 'a' && c <= 'f')  i = (i << 4) + (c - 'a') + 10;
+                else if (c >= 'A' && c <= 'F')  i = (i << 4) + (c - 'A') + 10;
+
+                args[0] = build_string ("?\\x%x");
+                args[1] = make_int (i);
+                syntax_error ("Overlong hex character escape",
+                              Fformat (2, args));
+              }
+            unreadchar (readcharfun, c);
+          }
+
 	return i;
       }
-
-#ifdef MULE
-      /* #### need some way of reading an extended character with
-	 an escape sequence. */
-#endif
+    case 'U':
+      /* Post-Unicode-2.0: Up to eight hex chars */
+      return read_unicode_escape(readcharfun, 8);
+    case 'u':
+      /* Unicode-2.0 and before; four hex chars. */
+      return read_unicode_escape(readcharfun, 4);
 
     default:
 	return c;
@@ -1981,7 +2073,7 @@ parse_integer (const Ibyte *buf, Bytecount len, int base)
  overflow:
 #ifdef HAVE_BIGNUM
   {
-    bignum_set_string (scratch_bignum, (const char *) buf, 0);
+    bignum_set_string (scratch_bignum, (const char *) buf, base);
     return make_bignum_bg (scratch_bignum);
   }
 #else
@@ -2226,6 +2318,113 @@ list2_pure (int pure, Lisp_Object a, Lisp_Object b)
 }
 #endif
 
+static Lisp_Object
+read_string (Lisp_Object readcharfun, Ichar delim, int raw, 
+	     int honor_unicode)
+{
+#ifdef I18N3
+  /* #### If the input stream is translating, then the string
+     should be marked as translatable by setting its
+     `string-translatable' property to t.  .el and .elc files
+     normally are translating input streams.  See Fgettext()
+     and print_internal(). */
+#endif
+  Ichar c;
+  int cancel = 0;
+
+  Lstream_rewind(XLSTREAM(Vread_buffer_stream));
+  while ((c = readchar(readcharfun)) >= 0 && c != delim)
+    {
+    if (c == '\\') 
+      {
+	if (raw) 
+	  {
+	    c = readchar(readcharfun);
+	    if (honor_unicode && ('u' == c || 'U' == c))
+	      {
+		c = read_unicode_escape(readcharfun,
+					'U' == c ? 8 : 4);
+	      }
+	    else
+	      {
+		/* For raw strings, insert the
+		   backslash and the next char, */
+		Lstream_put_ichar(XLSTREAM
+				  (Vread_buffer_stream),
+				  '\\');
+	      }
+	  } 
+	else
+	  /* otherwise, backslash escapes the next char. */
+	  c = read_escape(readcharfun);
+      }
+    /* c is -1 if \ newline has just been seen */
+    if (c == -1) 
+      {
+	if (Lstream_byte_count
+	  (XLSTREAM(Vread_buffer_stream)) ==
+	  0)
+	  cancel = 1;
+      } 
+    else
+      Lstream_put_ichar(XLSTREAM
+			 (Vread_buffer_stream),
+			 c);
+    QUIT;
+    }
+  if (c < 0)
+    return Fsignal(Qend_of_file,
+		   list1(READCHARFUN_MAYBE(readcharfun)));
+
+  /* If purifying, and string starts with \ newline,
+     return zero instead.  This is for doc strings
+     that we are really going to find in lib-src/DOC.nn.nn  */
+  if (purify_flag && NILP(Vinternal_doc_file_name)
+      && cancel)
+    return Qzero;
+
+  Lstream_flush(XLSTREAM(Vread_buffer_stream));
+  return make_string(resizing_buffer_stream_ptr
+		     (XLSTREAM(Vread_buffer_stream)),
+		     Lstream_byte_count(XLSTREAM(Vread_buffer_stream)));
+}
+
+static Lisp_Object
+read_raw_string (Lisp_Object readcharfun)
+{
+  Ichar c;
+  Ichar permit_unicode = 0; 
+
+  do {
+    c = reader_nextchar(readcharfun);
+    switch (c) {
+      /* #r:engine"my sexy raw string" -- raw string w/ flags*/
+      /* case ':': */
+      /* #ru"Hi there\u20AC \U000020AC" -- raw string, honouring Unicode. */
+    case 'u':
+    case 'U':
+      permit_unicode = c; 
+      continue;
+
+      /* #r"my raw string" -- raw string */
+    case '\"':
+      return read_string(readcharfun, '\"', 1, permit_unicode);
+      /* invalid syntax */
+    default:
+      {
+	if (permit_unicode)
+	  {
+	    unreadchar(readcharfun, permit_unicode);
+	  }
+	unreadchar(readcharfun, c);
+	return Fsignal(Qinvalid_read_syntax,
+		       list1(build_string
+			     ("unrecognized raw string syntax")));
+      }
+    }
+  } while (1);
+}
+
 /* Read the next Lisp object from the stream READCHARFUN and return it.
    If the return value is a cons whose car is Qunbound, then read1()
    encountered a misplaced token (e.g. a right bracket, right paren,
@@ -2465,6 +2664,8 @@ retry:
 	  case 'x': return read_integer (readcharfun, 16);
             /* #b010 => 2 -- binary constant syntax */
 	  case 'b': return read_integer (readcharfun, 2);
+	    /* #r"raw\stringt" -- raw string syntax */
+	  case 'r': return read_raw_string(readcharfun);
             /* #s(foobar key1 val1 key2 val2) -- structure syntax */
 	  case 's': return read_structure (readcharfun);
 	  case '<':
@@ -2606,52 +2807,14 @@ retry:
 
 	if (c == '\\')
 	  c = read_escape (readcharfun);
+	if (c < 0)
+	  return Fsignal (Qinvalid_read_syntax, list1 (READCHARFUN_MAYBE (readcharfun)));
 	return make_char (c);
       }
 
     case '\"':
-      {
-	/* String */
-#ifdef I18N3
-	/* #### If the input stream is translating, then the string
-	   should be marked as translatable by setting its
-	   `string-translatable' property to t.  .el and .elc files
-	   normally are translating input streams.  See Fgettext()
-	   and print_internal(). */
-#endif
-	int cancel = 0;
-
-	Lstream_rewind (XLSTREAM (Vread_buffer_stream));
-	while ((c = readchar (readcharfun)) >= 0
-	       && c != '\"')
-	  {
-	    if (c == '\\')
-	      c = read_escape (readcharfun);
-	    /* c is -1 if \ newline has just been seen */
-	    if (c == -1)
-	      {
-		if (Lstream_byte_count (XLSTREAM (Vread_buffer_stream)) == 0)
-		  cancel = 1;
-	      }
-	    else
-	      Lstream_put_ichar (XLSTREAM (Vread_buffer_stream), c);
-	    QUIT;
-	  }
-	if (c < 0)
-	  return Fsignal (Qend_of_file, list1 (READCHARFUN_MAYBE (readcharfun)));
-
-	/* If purifying, and string starts with \ newline,
-	   return zero instead.  This is for doc strings
-	   that we are really going to find in lib-src/DOC.nn.nn  */
-	if (purify_flag && NILP (Vinternal_doc_file_name) && cancel)
-	  return Qzero;
-
-	Lstream_flush (XLSTREAM (Vread_buffer_stream));
-	return
-	  make_string
-	  (resizing_buffer_stream_ptr (XLSTREAM (Vread_buffer_stream)),
-	   Lstream_byte_count (XLSTREAM (Vread_buffer_stream)));
-      }
+      /* String */
+      return read_string(readcharfun, '\"', 0, 1);
 
     default:
       {
@@ -3106,6 +3269,9 @@ init_lread (void)
     Vread_buffer_stream = make_resizing_buffer_output_stream ();
 
   Vload_force_doc_string_list = Qnil;
+
+  Vload_file_name_internal = Qnil;
+  Vload_file_name = Qnil;
 }
 
 void

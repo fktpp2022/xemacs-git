@@ -140,16 +140,16 @@ void syms_of_keymap (void);
 void syms_of_lread (void);
 void syms_of_macros (void);
 void syms_of_marker (void);
-#ifdef MC_ALLOC
+#ifdef NEW_GC
 void syms_of_mc_alloc (void);
-#endif /* MC_ALLOC */
+#endif /* NEW_GC */
 void syms_of_md5 (void);
 void syms_of_menubar (void);
 void syms_of_menubar_mswindows (void);
 void syms_of_menubar_x (void);
 void syms_of_minibuf (void);
 void syms_of_module (void);
-void syms_of_canna_api (void);
+EXTERN_C void syms_of_canna_api (void);
 void syms_of_mule_ccl (void);
 void syms_of_mule_charset (void);
 void syms_of_mule_coding (void);
@@ -160,6 +160,7 @@ void syms_of_objects (void);
 void syms_of_objects_mswindows (void);
 void syms_of_objects_tty (void);
 void syms_of_objects_x (void);
+void syms_of_font_mgr (void);
 EXTERN_C void syms_of_postgresql (void);
 void syms_of_print (void);
 void syms_of_process (void);
@@ -305,6 +306,7 @@ void reinit_vars_of_console (void);
 void vars_of_console_stream (void);
 void vars_of_console_mswindows (void);
 void vars_of_console_tty (void);
+void vars_of_console_x (void);
 void vars_of_data (void);
 void vars_of_database (void);
 void vars_of_debug (void);
@@ -387,7 +389,7 @@ void vars_of_minibuf (void);
 void reinit_vars_of_minibuf (void);
 void vars_of_module (void);
 void reinit_vars_of_module (void);
-void vars_of_canna_api (void);
+EXTERN_C void vars_of_canna_api (void);
 void vars_of_mule_ccl(void);
 void vars_of_mule_charset (void);
 void vars_of_mule_coding (void);
@@ -397,6 +399,8 @@ void reinit_vars_of_mule_wnn (void);
 void vars_of_nt (void);
 void vars_of_number (void);
 void vars_of_objects (void);
+void vars_of_font_mgr (void);
+void reinit_vars_of_font_mgr (void);
 void reinit_vars_of_objects (void);
 void vars_of_objects_tty (void);
 void vars_of_objects_mswindows (void);
@@ -481,6 +485,7 @@ void complex_vars_of_emacs (void);
 void complex_vars_of_minibuf (void);
 void reinit_complex_vars_of_minibuf (void);
 void complex_vars_of_keymap (void);
+void complex_vars_of_font_mgr (void);
 
 /* Late initialization -- stuff pertaining only to interactive usage,
    I/O, or Lisp reading. (Dump-time and run-time, but the code itself

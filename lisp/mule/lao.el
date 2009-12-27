@@ -33,7 +33,7 @@
 (make-charset 'lao "Lao characters (ISO10646 0E80..0EDF)"
 	      '(dimension
 		1
-		registry "MuleLao-1"
+		registries ["MuleLao-1"]
 		chars 94
 		columns 1
 		direction l2r
@@ -62,7 +62,7 @@
  "Lao" '((charset lao)
 	 (coding-system lao)
 	 (coding-priority lao)
-	 (input-method . "lao")
+	 ;; (input-method . "lao")
 	 (nonascii-translation . lao)
 	 (unibyte-display . lao)
 	 (features lao-util)

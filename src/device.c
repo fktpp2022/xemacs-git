@@ -86,12 +86,26 @@ Lisp_Object Vdevice_class_list;
 
 
 
+#ifndef NEW_GC
 extern const struct sized_memory_description gtk_device_data_description;
 extern const struct sized_memory_description mswindows_device_data_description;
 extern const struct sized_memory_description msprinter_device_data_description;
 extern const struct sized_memory_description x_device_data_description;
+#endif /* not NEW_GC */
 
 static const struct memory_description device_data_description_1 []= {
+#ifdef NEW_GC
+#ifdef HAVE_GTK
+  { XD_LISP_OBJECT, gtk_console },
+#endif
+#ifdef HAVE_MS_WINDOWS
+  { XD_LISP_OBJECT, mswindows_console },
+  { XD_LISP_OBJECT, msprinter_console },
+#endif
+#ifdef HAVE_X_WINDOWS
+  { XD_LISP_OBJECT, x_console },
+#endif
+#else /* not NEW_GC */
 #ifdef HAVE_GTK
   { XD_BLOCK_PTR, gtk_console, 1, { &gtk_device_data_description} },
 #endif
@@ -102,6 +116,7 @@ static const struct memory_description device_data_description_1 []= {
 #ifdef HAVE_X_WINDOWS
   { XD_BLOCK_PTR, x_console, 1, { &x_device_data_description} },
 #endif
+#endif /* not NEW_GC */
   { XD_END }
 };
 
@@ -155,7 +170,7 @@ print_device (Lisp_Object obj, Lisp_Object printcharfun,
   write_fmt_string (printcharfun, " 0x%x>", d->header.uid);
 }
 
-DEFINE_NONDUMPABLE_LISP_OBJECT ("device", device,
+DEFINE_NODUMP_LISP_OBJECT ("device", device,
 					   mark_device, print_device, 0, 0, 0, 
 					   device_description,
 					   struct device);

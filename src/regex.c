@@ -112,6 +112,7 @@ typedef int Ichar;
 #define INC_IBYTEPTR_FMT(p, fmt) ((p)++)
 #define DEC_IBYTEPTR(p) ((p)--)
 #define DEC_IBYTEPTR_FMT(p, fmt) ((p)--)
+#define MAX_ICHAR_LEN 1
 #define itext_ichar_len(ptr) 1
 #define itext_ichar_len_fmt(ptr, fmt) 1
 
@@ -169,13 +170,6 @@ init_syntax_once (void)
 # include <libintl.h>
 #else
 # define gettext(msgid) (msgid)
-#endif
-
-/* Under XEmacs, this is needed because we don't define it elsewhere. */
-#ifdef SWITCH_ENUM_BUG
-#define SWITCH_ENUM_CAST(x) ((int)(x))
-#else
-#define SWITCH_ENUM_CAST(x) (x)
 #endif
 
 
@@ -813,12 +807,11 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
 	case exactn:
 	  mcnt = *p++;
           printf ("/exactn/%d", mcnt);
-          do
+          while (mcnt--)
 	    {
-              putchar ('/');
+	      putchar ('/');
 	      putchar (*p++);
             }
-          while (--mcnt);
           break;
 
 	case start_memory:
@@ -1314,7 +1307,7 @@ static const char *re_error_msgid[] =
    when matching.  If this number is exceeded, we allocate more
    space, so it is not a hard limit.  */
 #ifndef INIT_FAILURE_ALLOC
-#define INIT_FAILURE_ALLOC 5
+#define INIT_FAILURE_ALLOC 20
 #endif
 
 /* Roughly the maximum number of failure points on the stack.  Would be
@@ -1324,9 +1317,9 @@ static const char *re_error_msgid[] =
 #if defined (MATCH_MAY_ALLOCATE)
 /* 4400 was enough to cause a crash on Alpha OSF/1,
    whose default stack limit is 2mb.  */
-int re_max_failures = 20000;
+int re_max_failures = 40000;
 #else
-int re_max_failures = 2000;
+int re_max_failures = 4000;
 #endif
 
 union fail_stack_elt
@@ -3339,10 +3332,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 	/* `p' points to the location after where `c' came from. */
 	normal_char:
 	  {
-	    /* XEmacs: modifications here for Mule. */
-	    /* `q' points to the beginning of the next char. */
-	    re_char *q = p;
-
+	    /* The following conditional synced to GNU Emacs 22.1.  */
 	    /* If no exactn currently being built.  */
 	    if (!pending_exact
 
@@ -3350,18 +3340,19 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 		|| pending_exact + *pending_exact + 1 != buf_end
 
 		/* We have only one byte following the exactn for the count. */
-		|| ((unsigned int) (*pending_exact + (q - p)) >=
-		    ((unsigned int) (1 << BYTEWIDTH) - 1))
+		|| *pending_exact >= (1 << BYTEWIDTH) - MAX_ICHAR_LEN
 
-		/* If followed by a repetition operator.  */
-		|| *q == '*' || *q == '^'
+		/* If followed by a repetition operator.
+		   If the lookahead fails because of end of pattern, any
+		   trailing backslash will get caught later.  */
+		|| (p != pend && (*p == '*' || *p == '^'))
 		|| ((syntax & RE_BK_PLUS_QM)
-		    ? *q == '\\' && (q[1] == '+' || q[1] == '?')
-		    : (*q == '+' || *q == '?'))
+		    ? p + 1 < pend && *p == '\\' && (p[1] == '+' || p[1] == '?')
+		    : p != pend && (*p == '+' || *p == '?'))
 		|| ((syntax & RE_INTERVALS)
 		    && ((syntax & RE_NO_BK_BRACES)
-			? *q == '{'
-			: (q[0] == '\\' && q[1] == '{'))))
+			? p != pend && *p == '{'
+			: p + 1 < pend && (p[0] == '\\' && p[1] == '{'))))
 	      {
 		/* Start building a new exactn.  */
 
@@ -3766,7 +3757,7 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
       /* We should never be about to go beyond the end of the pattern.  */
       assert (p < pend);
 
-      switch (SWITCH_ENUM_CAST ((re_opcode_t) *p++))
+      switch ((re_opcode_t) *p++)
 	{
 
         /* I guess the idea here is to simply not bother with a fastmap
@@ -4313,8 +4304,8 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
     {
       if (!BUFFERP (lispobj))
 	return -1;
-      range = (BUF_PT (XBUFFER (lispobj)) - BUF_BEGV (XBUFFER (lispobj))
-	       - startpos);
+      range = (BYTE_BUF_PT (XBUFFER (lispobj))
+	       - BYTE_BUF_BEGV (XBUFFER (lispobj)) - startpos);
       if (range < 0)
 	return -1;
     }
@@ -5234,7 +5225,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
         }
 
       /* Otherwise match next pattern command.  */
-      switch (SWITCH_ENUM_CAST ((re_opcode_t) *p++))
+      switch ((re_opcode_t) *p++)
 	{
         /* Ignore these.  Used to ignore the n of succeed_n's which
            currently have n == 0.  */

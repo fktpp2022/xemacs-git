@@ -1976,7 +1976,7 @@ mswindows_font_spec_matches_charset_stage_1 (struct device *UNUSED (d),
   const Ibyte *c;
   Bytecount the_length = length;
 
-  if (UNBOUNDP (charset))
+  if (NILP (charset))
     return 1;
 
   if (!the_nonreloc)
@@ -2038,7 +2038,7 @@ mswindows_font_spec_matches_charset_stage_2 (struct device *d,
   Bytecount the_length = length;
   int i;
 
-  if (UNBOUNDP (charset))
+  if (NILP (charset))
     return 1;
 
   if (!the_nonreloc)
@@ -2064,8 +2064,21 @@ mswindows_font_spec_matches_charset_stage_2 (struct device *d,
   else
     {
       HDC hdc = CreateCompatibleDC (NULL);
-      Lisp_Object font_list = DEVICE_MSWINDOWS_FONTLIST (d);
-      Lisp_Object truename;
+      Lisp_Object font_list = Qnil, truename; 
+
+      if (DEVICE_TYPE_P (d, mswindows))
+	{
+	  font_list = DEVICE_MSWINDOWS_FONTLIST (d);
+	}
+      else if (DEVICE_TYPE_P (d, msprinter))
+	{
+	  font_list = DEVICE_MSPRINTER_FONTLIST (d);
+	}
+      else
+	{
+	  assert(0);
+	}
+
       HFONT hfont = create_hfont_from_font_spec (the_nonreloc, hdc, Qnil,
 						 font_list,
 						 ERROR_ME_DEBUG_WARN,
@@ -2167,7 +2180,7 @@ mswindows_font_spec_matches_charset (struct device *d, Lisp_Object charset,
 				     const Ibyte *nonreloc,
 				     Lisp_Object reloc,
 				     Bytecount offset, Bytecount length,
-				     int stage)
+				     enum font_specifier_matchspec_stages stage)
 {
   return stage ?
      mswindows_font_spec_matches_charset_stage_2 (d, charset, nonreloc,
@@ -2182,7 +2195,8 @@ mswindows_font_spec_matches_charset (struct device *d, Lisp_Object charset,
 
 static Lisp_Object
 mswindows_find_charset_font (Lisp_Object device, Lisp_Object font,
-			     Lisp_Object charset, int stage)
+			     Lisp_Object charset,
+			     enum font_specifier_matchspec_stages stage)
 {
   Lisp_Object fontlist, fonttail;
 

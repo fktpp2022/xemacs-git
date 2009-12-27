@@ -183,11 +183,11 @@ mark_mswindows_dialog_id (Lisp_Object obj)
   return data->callbacks;
 }
 
-DEFINE_NONDUMPABLE_INTERNAL_LISP_OBJECT ("mswindows-dialog-id",
-					 mswindows_dialog_id,
-					 struct mswindows_dialog_id,
-					 mswindows_dialog_id_description,
-					 mark_mswindows_dialog_id);
+DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("mswindows-dialog-id",
+				    mswindows_dialog_id,
+				    mark_mswindows_dialog_id,
+				    mswindows_dialog_id_description,
+				    struct mswindows_dialog_id);
 
 /* Dialog procedure */
 static BOOL CALLBACK 

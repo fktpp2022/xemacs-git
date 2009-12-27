@@ -34,23 +34,13 @@
 (make-charset 'ipa "IPA (International Phonetic Association)"
 	      '(dimension
 		1
-		registry "MuleIPA"
+		registries ["MuleIPA"]
 		chars 96
 		columns 1
 		direction l2r
 		final ?0
 		graphic 1
 		short-name "IPA"
-		long-name "IPA"
-		))
-
-(set-language-info-alist
- "IPA" '((charset . (ipa))
-	 (coding-priority iso-2022-7bit)
-	 (coding-system iso-2022-7bit)
-	 (input-method . "ipa")
-	 (documentation . "\
-IPA is International Phonetic Alphabet for English, French, German
-and Italian.")))
+		long-name "IPA"))
 
 ;;; misc-lang.el ends here

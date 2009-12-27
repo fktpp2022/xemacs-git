@@ -149,7 +149,7 @@ WORD_SYNTAX_P (Lisp_Object table, Ichar c)
   the tag and the comment bits.
 
   Clearly, such a scheme will not work for Mule, because the matching
-  paren could be any character and as such requires 19 bits, which
+  paren could be any character and as such requires 21 bits, which
   we don't got.
 
   Remember that under Mule we use char tables instead of vectors.
@@ -295,6 +295,9 @@ extern int lookup_syntax_properties;
    faster than if we did the whole calculation from scratch. */
 struct syntax_cache
 {
+#ifdef NEW_GC
+  struct lrecord_header header;
+#endif /* NEW_GC */
   int use_code;				/* Whether to use syntax_code or
 					   syntax_table.  This is set
 					   depending on whether the
@@ -333,10 +336,25 @@ struct syntax_cache
 					   change. */
 };
 
+#ifdef NEW_GC
+typedef struct syntax_cache Lisp_Syntax_Cache;
+
+DECLARE_LISP_OBJECT (syntax_cache, Lisp_Syntax_Cache);
+
+#define XSYNTAX_CACHE(x) \
+  XRECORD (x, syntax_cache, Lisp_Syntax_Cache)
+#define wrap_syntax_cache(p) wrap_record (p, syntax_cache)
+#define SYNTAX_CACHE_P(x) RECORDP (x, syntax_cache)
+#define CHECK_SYNTAX_CACHE(x) CHECK_RECORD (x, syntax_cache)
+#define CONCHECK_SYNTAX_CACHE(x) CONCHECK_RECORD (x, syntax_cache)
+#endif /* NEW_GC */
+
+
+
 extern const struct sized_memory_description syntax_cache_description;
 
 /* Note that the external interface to the syntax-cache uses charpos's, but
-   intnernally we use bytepos's, for speed. */
+   internally we use bytepos's, for speed. */
 
 void update_syntax_cache (struct syntax_cache *cache, Charxpos pos, int count);
 struct syntax_cache *setup_syntax_cache (struct syntax_cache *cache,

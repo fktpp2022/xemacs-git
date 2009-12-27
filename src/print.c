@@ -807,6 +807,8 @@ If BODY does not finish normally, the buffer BUFNAME is not displayed.
 
 If variable `temp-buffer-show-function' is non-nil, call it at the end
 to get the buffer displayed.  It gets one argument, the buffer to display.
+
+arguments: (BUFNAME &rest BODY)
 */
        (args))
 {
@@ -821,7 +823,7 @@ to get the buffer displayed.  It gets one argument, the buffer to display.
 #endif
 
   GCPRO2 (name, val);
-  name = Feval (XCAR (args));
+  name = IGNORE_MULTIPLE_VALUES (Feval (XCAR (args)));
 
   CHECK_STRING (name);
 
@@ -867,6 +869,26 @@ Output stream is STREAM, or value of `standard-output' (which see).
   return object;
 }
 
+Lisp_Object
+prin1_to_string (Lisp_Object object, int noescape)
+{
+  /* This function can GC */
+  Lisp_Object result = Qnil;
+  Lisp_Object stream = make_resizing_buffer_output_stream ();
+  Lstream *str = XLSTREAM (stream);
+  /* gcpro OBJECT in case a caller forgot to do so */
+  struct gcpro gcpro1, gcpro2, gcpro3;
+  GCPRO3 (object, stream, result);
+
+  print_internal (object, stream, !noescape);
+  Lstream_flush (str);
+  UNGCPRO;
+  result = make_string (resizing_buffer_stream_ptr (str),
+			Lstream_byte_count (str));
+  Lstream_delete (str);
+  return result;
+}
+
 DEFUN ("prin1-to-string", Fprin1_to_string, 1, 2, 0, /*
 Return a string containing the printed representation of OBJECT,
 any Lisp object.  Quoting characters are used when needed to make output
@@ -877,20 +899,11 @@ second argument NOESCAPE is non-nil.
 {
   /* This function can GC */
   Lisp_Object result = Qnil;
-  Lisp_Object stream = make_resizing_buffer_output_stream ();
-  Lstream *str = XLSTREAM (stream);
-  /* gcpro OBJECT in case a caller forgot to do so */
-  struct gcpro gcpro1, gcpro2, gcpro3;
-  GCPRO3 (object, stream, result);
 
   RESET_PRINT_GENSYM;
-  print_internal (object, stream, NILP (noescape));
+  result = prin1_to_string (object, !(EQ(noescape, Qnil)));
   RESET_PRINT_GENSYM;
-  Lstream_flush (str);
-  UNGCPRO;
-  result = make_string (resizing_buffer_stream_ptr (str),
-			Lstream_byte_count (str));
-  Lstream_delete (str);
+
   return result;
 }
 
@@ -1269,6 +1282,29 @@ long_to_string (char *buffer, long number)
 #undef DIGITS_18
 #undef DIGITS_19
 
+void
+ulong_to_bit_string (char *p, unsigned long number)
+{
+  int i, seen_high_order = 0;;
+  
+  for (i = ((SIZEOF_LONG * 8) - 1); i >= 0; --i)
+    {
+      if (number & (unsigned long)1 << i)
+        {
+          seen_high_order = 1;
+          *p++ = '1';
+        }
+      else
+        {
+          if (seen_high_order)
+            {
+              *p++ = '0';
+            }
+        }
+    }
+  *p = '\0';
+}
+
 static void
 print_vector_internal (const char *start, const char *end,
                        Lisp_Object obj,
@@ -1458,23 +1494,23 @@ external_object_printer (Lisp_Object obj, Lisp_Object printcharfun,
   if (print_readably)
     printing_unreadable_object
       ("#<%s 0x%x>",
-#ifdef MC_ALLOC
+#ifdef NEW_GC
        LHEADER_IMPLEMENTATION (header)->name,
-#else /* not MC_ALLOC */
+#else /* not NEW_GC */
        LHEADER_IMPLEMENTATION (&header->lheader)->name,
-#endif /* not MC_ALLOC */
+#endif /* not NEW_GC */
        header->uid);
 
   write_fmt_string (printcharfun, "#<%s 0x%x>",
-#ifdef MC_ALLOC
+#ifdef NEW_GC
 		    LHEADER_IMPLEMENTATION (header)->name,
-#else /* not MC_ALLOC */
+#else /* not NEW_GC */
 		    LHEADER_IMPLEMENTATION (&header->lheader)->name,
-#endif /* not MC_ALLOC */
+#endif /* not NEW_GC */
 		    header->uid);
 }
 
-static void
+void
 internal_object_printer (Lisp_Object obj, Lisp_Object printcharfun,
 			 int UNUSED (escapeflag))
 {
@@ -1482,7 +1518,7 @@ internal_object_printer (Lisp_Object obj, Lisp_Object printcharfun,
     printing_unreadable_object
       ("#<INTERNAL OBJECT (XEmacs bug?) (%s) 0x%lx>",
        XRECORD_LHEADER_IMPLEMENTATION (obj)->name,
-       (unsigned long) XPNTR (obj))
+       (unsigned long) XPNTR (obj));
 
   write_fmt_string (printcharfun,
 		    "#<INTERNAL OBJECT (XEmacs bug?) (%s) 0x%lx>",
@@ -1499,7 +1535,7 @@ enum printing_badness
 
 static void
 printing_major_badness (Lisp_Object printcharfun,
-			Ascbyte *badness_string, int type, void *val,
+			const Ascbyte *badness_string, int type, void *val,
 			enum printing_badness badness)
 {
   Ibyte buf[666];
@@ -1698,7 +1734,7 @@ print_internal (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 	      }
 	  }
 
-#ifndef MC_ALLOC
+#ifndef NEW_GC
 	if (lheader->type == lrecord_type_free)
 	  {
 	    printing_major_badness (printcharfun, "freed lrecord", 0,
@@ -1711,7 +1747,7 @@ print_internal (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 				    lheader, BADNESS_NO_TYPE);
 	    break;
 	  }
-#endif /* not MC_ALLOC */
+#endif /* not NEW_GC */
 	else if ((int) (lheader->type) >= lrecord_type_count)
 	  {
 	    printing_major_badness (printcharfun, "illegal lrecord type",
@@ -1739,6 +1775,17 @@ print_internal (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 
 	    if (STRINGP (obj))
 	      {
+#ifdef NEW_GC
+		if (!debug_can_access_memory (XSTRING_DATA (obj), 
+					      XSTRING_LENGTH (obj)))
+		  {
+		    write_fmt_string
+		      (printcharfun,
+		       "#<EMACS BUG: %p (BAD STRING DATA %p)>",
+		       lheader, XSTRING_DATA (obj));
+		    break;
+		  }
+#else /* not NEW_GC */
 		Lisp_String *l = (Lisp_String *) lheader;
 		if (!debug_can_access_memory (l->data_, l->size_))
 		  {
@@ -1748,14 +1795,17 @@ print_internal (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 		       lheader, l->data_);
 		    break;
 		  }
+#endif /* not NEW_GC */
 	      }
 	  }
 
-	if (LHEADER_IMPLEMENTATION (lheader)->printer)
-	  ((LHEADER_IMPLEMENTATION (lheader)->printer)
-	   (obj, printcharfun, escapeflag));
-	else
-	  internal_object_printer (obj, printcharfun, escapeflag);
+	/* Either use a custom-written printer, or use
+	   internal_object_printer or external_object_printer, depending on
+	   whether the object is internal (not visible at Lisp level) or
+	   external. */
+	assert (LHEADER_IMPLEMENTATION (lheader)->printer);
+	((LHEADER_IMPLEMENTATION (lheader)->printer)
+	 (obj, printcharfun, escapeflag));
 	break;
       }
 
@@ -2216,19 +2266,19 @@ debug_p4 (Lisp_Object obj)
 	debug_out ("<< bad object type=%d 0x%lx>>", header->type,
 		   (EMACS_INT) header);
       else
-#ifdef MC_ALLOC
+#ifdef NEW_GC
 	debug_out ("#<%s addr=0x%lx uid=0x%lx>",
 		   LHEADER_IMPLEMENTATION (header)->name,
 		   (EMACS_INT) header,
 		   (EMACS_INT) ((struct lrecord_header *) header)->uid);
-#else /* not MC_ALLOC */
+#else /* not NEW_GC */
 	debug_out ("#<%s addr=0x%lx uid=0x%lx>",
 		   LHEADER_IMPLEMENTATION (header)->name,
 		   (EMACS_INT) header,
-		   LHEADER_IMPLEMENTATION (header)->basic_p ?
-		   ((struct lrecord_header *) header)->uid :
-		   ((struct old_lcrecord_header *) header)->uid);
-#endif /* not MC_ALLOC */
+		   (EMACS_INT) (LHEADER_IMPLEMENTATION (header)->basic_p ?
+				((struct lrecord_header *) header)->uid :
+				((struct old_lcrecord_header *) header)->uid));
+#endif /* not NEW_GC */
     }
 
   inhibit_non_essential_conversion_operations = 0;

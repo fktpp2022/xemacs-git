@@ -76,7 +76,7 @@ struct Lisp_Bignum
 };
 typedef struct Lisp_Bignum Lisp_Bignum;
 
-DECLARE_LRECORD (bignum, Lisp_Bignum);
+DECLARE_LISP_OBJECT (bignum, Lisp_Bignum);
 #define XBIGNUM(x) XRECORD (x, bignum, Lisp_Bignum)
 #define wrap_bignum(p) wrap_record (p, bignum)
 #define BIGNUMP(x) RECORDP (x, bignum)
@@ -99,6 +99,16 @@ DECLARE_LRECORD (bignum, Lisp_Bignum);
   bignum_##op (XBIGNUM_DATA (retval), XBIGNUM_DATA (b), arg);	\
   return Fcanonicalize_number (retval);				\
 } while (0)
+
+#if SIZEOF_EMACS_INT == SIZEOF_LONG
+# define bignum_fits_emacs_int_p(b) bignum_fits_long_p(b)
+# define bignum_to_emacs_int(b) bignum_to_long(b)
+#elif SIZEOF_EMACS_INT == SIZEOF_INT
+# define bignum_fits_emacs_int_p(b) bignum_fits_int_p(b)
+# define bignum_to_emacs_int(b) bignum_to_int(b)
+#else
+# error Bignums currently do not work with long long Emacs integers.
+#endif
 
 extern Lisp_Object make_bignum (long);
 extern Lisp_Object make_bignum_bg (bignum);
@@ -155,7 +165,7 @@ struct Lisp_Ratio
 };
 typedef struct Lisp_Ratio Lisp_Ratio;
 
-DECLARE_LRECORD (ratio, Lisp_Ratio);
+DECLARE_LISP_OBJECT (ratio, Lisp_Ratio);
 #define XRATIO(x) XRECORD (x, ratio, Lisp_Ratio)
 #define wrap_ratio(p) wrap_record (p, ratio)
 #define RATIOP(x) RECORDP (x, ratio)
@@ -185,7 +195,7 @@ DECLARE_LRECORD (ratio, Lisp_Ratio);
 extern Lisp_Object make_ratio (long, unsigned long);
 extern Lisp_Object make_ratio_bg (bignum, bignum);
 extern Lisp_Object make_ratio_rt (ratio);
-extern ratio scratch_ratio;
+extern ratio scratch_ratio, scratch_ratio2;
 
 #else /* !HAVE_RATIO */
 
@@ -229,7 +239,7 @@ struct Lisp_Bigfloat
 };
 typedef struct Lisp_Bigfloat Lisp_Bigfloat;
 
-DECLARE_LRECORD (bigfloat, Lisp_Bigfloat);
+DECLARE_LISP_OBJECT (bigfloat, Lisp_Bigfloat);
 #define XBIGFLOAT(x) XRECORD (x, bigfloat, Lisp_Bigfloat)
 #define wrap_bigfloat(p) wrap_record (p, bigfloat)
 #define BIGFLOATP(x) RECORDP (x, bigfloat)
@@ -241,16 +251,16 @@ DECLARE_LRECORD (bigfloat, Lisp_Bigfloat);
 #define XBIGFLOAT_GET_PREC(x) bigfloat_get_prec (XBIGFLOAT_DATA (x))
 #define XBIGFLOAT_SET_PREC(x,p) bigfloat_set_prec (XBIGFLOAT_DATA (x), p)
 
-#define BIGFLOAT_ARITH_RETURN(f,op) do				\
-{								\
-  Lisp_Object retval = make_bigfloat_bf (f);			\
+#define BIGFLOAT_ARITH_RETURN(f,op) do					\
+{									\
+  Lisp_Object retval = make_bigfloat (0.0, bigfloat_get_default_prec()); \
   bigfloat_##op (XBIGFLOAT_DATA (retval), XBIGFLOAT_DATA (f));	\
   return retval;						\
 } while (0)
 
 #define BIGFLOAT_ARITH_RETURN1(f,op,arg) do				\
 {									\
-  Lisp_Object retval = make_bigfloat_bf (f);				\
+  Lisp_Object retval = make_bigfloat (0.0, bigfloat_get_default_prec()); \
   bigfloat_##op (XBIGFLOAT_DATA (retval), XBIGFLOAT_DATA (f), arg);	\
   return retval;							\
 } while (0)

@@ -33,80 +33,10 @@
 
 ;;; Code:
 
-; (make-charset 'katakana-jisx0201 
-; 	      "Katakana Part of JISX0201.1976"
-; 	      '(dimension
-; 		1
-; 		registry "JISX0201"
-; 		chars 94
-; 		columns 1
-; 		direction l2r
-; 		final ?I
-; 		graphic 1
-; 		short-name "JISX0201 Katakana"
-; 		long-name "Japanese Katakana (JISX0201.1976)"
-; 		))
-
-; (make-charset 'latin-jisx0201 
-; 	      "Roman Part of JISX0201.1976"
-; 	      '(dimension
-; 		1
-; 		registry "JISX0201"
-; 		chars 94
-; 		columns 1
-; 		direction l2r
-; 		final ?J
-; 		graphic 0
-; 		short-name "JISX0201 Roman"
-; 		long-name "Japanese Roman (JISX0201.1976)"
-; 		))
-
-; (make-charset 'japanese-jisx0208-1978 
-; 	      "JISX0208.1978 Japanese Kanji (so called \"old JIS\"): ISO-IR-42"
-; 	      '(dimension
-; 		2
-; 		registry "JISX0208.1990"
-; 		registry "JISX0208.1978"
-; 		chars 94
-; 		columns 2
-; 		direction l2r
-; 		final ?@
-; 		graphic 0
-; 		short-name "JISX0208.1978"
-; 		long-name "JISX0208.1978 (Japanese): ISO-IR-42"
-; 		))
-
-; (make-charset 'japanese-jisx0208 
-; 	      "JISX0208.1983/1990 Japanese Kanji: ISO-IR-87"
-; 	      '(dimension
-; 		2
-; 		chars 94
-; 		columns 2
-; 		direction l2r
-; 		final ?B
-; 		graphic 0
-; 		short-name "JISX0208"
-; 		long-name "JISX0208.1983/1990 (Japanese): ISO-IR-87"
-; 		))
-
-; (make-charset 'japanese-jisx0212 
-; 	      "JISX0212 Japanese supplement: ISO-IR-159"
-; 	      '(dimension
-; 		2
-; 		registry "JISX0212"
-; 		chars 94
-; 		columns 2
-; 		direction l2r
-; 		final ?D
-; 		graphic 0
-; 		short-name "JISX0212"
-; 		long-name "JISX0212 (Japanese): ISO-IR-159"
-; 		))
-
 (make-charset 'japanese-jisx0213-1 "JISX0213 Plane 1 (Japanese)"
 	      '(dimension
 		2
-		registry "JISX0213.2000-1"
+		registries ["JISX0213.2000-1"]
 		chars 94
 		columns 2
 		direction l2r
@@ -120,7 +50,7 @@
 (make-charset 'japanese-jisx0213-2 "JISX0213 Plane 2 (Japanese)"
 	      '(dimension
 		2
-		registry "JISX0213.2000-2"
+		registries ["JISX0213.2000-2"]
 		chars 94
 		columns 2
 		direction l2r
@@ -131,10 +61,6 @@
 		))
 
 ;;; Syntax of Japanese characters.
-(modify-syntax-entry 'katakana-jisx0201 "w")
-(modify-syntax-entry 'japanese-jisx0212 "w")
-
-(modify-syntax-entry 'japanese-jisx0208 "w")
 (loop for row in '(33 34 40)
       do (modify-syntax-entry `[japanese-jisx0208 ,row] "_"))
 (loop for char in '(?ー ?゛ ?゜ ?ヽ ?ヾ ?ゝ ?ゞ ?〃 ?仝 ?々 ?〆 ?〇)
@@ -269,6 +195,8 @@
    seven t
    input-charset-conversion ((latin-jisx0201 ascii)
 			     (japanese-jisx0208-1978 japanese-jisx0208))
+   safe-charsets (ascii japanese-jisx0208-1978 japanese-jisx0208
+			latin-jisx0201 japanese-jisx0212 katakana-jisx0201)
    mnemonic "MULE/7bit"
    documentation
    "Coding system used for communication with mail and news in Japan."
@@ -284,6 +212,7 @@
    lock-shift t
    input-charset-conversion ((latin-jisx0201 ascii)
 			     (japanese-jisx0208-1978 japanese-jisx0208))
+   safe-charsets (latin-jisx0201 ascii japanese-jisx0208-1978 japanese-jisx0208)
    mnemonic "JIS7"
    documentation
    "Old JIS 7-bit encoding; mostly superseded by ISO-2022-JP.
@@ -298,6 +227,8 @@ Uses locking-shift (SI/SO) to select half-width katakana."
    short t
    input-charset-conversion ((latin-jisx0201 ascii)
 			     (japanese-jisx0208-1978 japanese-jisx0208))
+   safe-charsets (latin-jisx0201 ascii japanese-jisx0208-1978
+                                 japanese-jisx0208)
    mnemonic "JIS8"
    documentation
    "Old JIS 8-bit encoding; mostly superseded by ISO-2022-JP.
@@ -335,6 +266,8 @@ Uses high bytes for half-width katakana."
  "Shift-JIS"
  '(mnemonic "Ja/SJIS"
    documentation "The standard Japanese encoding in MS Windows."
+   safe-charsets (ascii japanese-jisx0208 japanese-jisx0208-1978
+                        latin-jisx0201 katakana-jisx0201)
 ))
 
 ;; A former name?
@@ -360,6 +293,8 @@ Uses high bytes for half-width katakana."
    seven t
    output-charset-conversion ((ascii latin-jisx0201)
 			      (japanese-jisx0208 japanese-jisx0208-1978))
+   safe-charsets (ascii latin-jisx0201 japanese-jisx0208
+                        japanese-jisx0208-1978)
    documentation
    "This is a coding system used for old JIS terminals.  It's an ISO
 2022 based 7-bit encoding for Japanese JISX0208-1978 and JISX0201-Roman."
@@ -388,6 +323,7 @@ Uses high bytes for half-width katakana."
    charset-g1 japanese-jisx0208
    charset-g2 katakana-jisx0201
    charset-g3 japanese-jisx0212
+   safe-charsets (ascii japanese-jisx0208 katakana-jisx0201 japanese-jisx0212)
    short t
    mnemonic "Ja/EUC"
    documentation
@@ -498,50 +434,54 @@ a similar structure:
 	       "japan"
 	       "ja"
 	       )
-
-	      (native-coding-system
-	       ;; first, see if an explicit encoding was given.
-	       (lambda (locale)
-		   (let ((case-fold-search t))
-		     (cond
-		      ;; many unix versions
-		      ((string-match "\\.euc" locale) 'euc-jp)
-		      ((string-match "\\.sjis" locale) 'shift-jis)
-
-		      ;; X11R6 (CJKV p. 471)
-		      ((string-match "\\.jis7" locale) 'jis7)
-		      ((string-match "\\.jis8" locale) 'jis8)
-		      ((string-match "\\.mscode" locale) 'shift-jis)
-		      ((string-match "\\.pjis" locale) 'iso-2022-jp)
-		      ((string-match "\\.ujis" locale) 'euc-jp)
-
-		      ;; other names in X11R6 locale.alias
-		      ((string-match "\\.ajec" locale) 'euc-jp)
-		      ((string-match "-euc" locale) 'euc-jp)
-		      ((string-match "\\.iso-2022-jp" locale) 'iso-2022-jp)
-		      ((string-match "\\.jis" locale) 'jis7) ;; or just jis?
-		      )))
-
-	       ;; aix (CJKV p. 465)
-	       (lambda (locale)
-		   (when (eq system-type 'aix)
-		     (cond
-		      ((string-match "^Ja_JP" locale) 'shift-jis)
-		      ((string-match "^ja_JP" locale) 'euc-jp))))
-
-	       ;; other X11R6 locale.alias
-	       (lambda (locale)
-		   (cond
-		    ((string-match "^Jp_JP" locale) 'euc-jp)
-		    ((and (eq system-type 'hpux) (eq locale "japanese"))
-		     'shift-jis)))
-
-	       ;; fallback
-	       euc-jp)
-
 ;;	      (input-method . "japanese")
 	      (features japan-util)
 	      (sample-text . "Japanese (日本語)	こんにちは, ｺﾝﾆﾁﾊ")
 	      (documentation . t)))
+
+;; Set the native-coding-system separately so the lambdas get compiled. (Not
+;; a huge speed improvement, but this code is called at startup, and every
+;; little helps there.)
+(set-language-info "Japanese"
+                   'native-coding-system
+                   (list
+                    ;; first, see if an explicit encoding was given.
+                    (lambda (locale)
+                      (let ((case-fold-search t))
+                        (cond
+                         ;; many unix versions
+                         ((string-match "\\.euc" locale) 'euc-jp)
+                         ((string-match "\\.sjis" locale) 'shift-jis)
+
+                         ;; X11R6 (CJKV p. 471)
+                         ((string-match "\\.jis7" locale) 'jis7)
+                         ((string-match "\\.jis8" locale) 'jis8)
+                         ((string-match "\\.mscode" locale) 'shift-jis)
+                         ((string-match "\\.pjis" locale) 'iso-2022-jp)
+                         ((string-match "\\.ujis" locale) 'euc-jp)
+
+                         ;; other names in X11R6 locale.alias
+                         ((string-match "\\.ajec" locale) 'euc-jp)
+                         ((string-match "-euc" locale) 'euc-jp)
+                         ((string-match "\\.iso-2022-jp" locale) 'iso-2022-jp)
+                         ((string-match "\\.jis" locale) 'jis7) ;; or just jis?
+                         )))
+
+                    ;; aix (CJKV p. 465)
+                    (lambda (locale)
+                      (when (eq system-type 'aix)
+                        (cond
+                         ((string-match "^Ja_JP" locale) 'shift-jis)
+                         ((string-match "^ja_JP" locale) 'euc-jp))))
+
+                    ;; other X11R6 locale.alias
+                    (lambda (locale)
+                      (cond
+                       ((string-match "^Jp_JP" locale) 'euc-jp)
+                       ((and (eq system-type 'hpux) (eq locale "japanese"))
+                        'shift-jis)))
+
+                    ;; fallback
+                    'euc-jp))
 
 ;;; japanese.el ends here

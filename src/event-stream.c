@@ -255,7 +255,7 @@ static Lisp_Object QSexecute_internal_event;
 Fixnum debug_emacs_events;
 
 static void
-external_debugging_print_event (char *event_description, Lisp_Object event)
+external_debugging_print_event (const char *event_description, Lisp_Object event)
 {
   write_c_string (Qexternal_debugging_output, "(");
   write_c_string (Qexternal_debugging_output, event_description);
@@ -364,12 +364,12 @@ finalize_command_builder (void *header, int for_disksave)
     }
 }
 
-DEFINE_NONDUMPABLE_LISP_OBJECT ("command-builder", command_builder,
-					   mark_command_builder,
-					   0,
-					   finalize_command_builder, 0, 0, 
-					   command_builder_description,
-					   struct command_builder);
+DEFINE_NODUMP_LISP_OBJECT ("command-builder", command_builder,
+			   mark_command_builder,
+			   internal_object_printer,
+			   finalize_command_builder, 0, 0, 
+			   command_builder_description,
+			   struct command_builder);
 
 static void
 reset_command_builder_event_chain (struct command_builder *builder)
@@ -418,6 +418,8 @@ copy_command_builder (struct command_builder *collapsing,
 {
   if (!new_buildings)
     new_buildings = XCOMMAND_BUILDER (allocate_command_builder (Qnil, 0));
+
+  new_buildings->console = collapsing->console;
 
   new_buildings->self_insert_countdown = collapsing->self_insert_countdown;
 
@@ -822,11 +824,12 @@ execute_help_form (struct command_builder *command_builder,
   struct gcpro gcpro1, gcpro2;
   GCPRO2 (echo, help);
 
-  record_unwind_protect (save_window_excursion_unwind,
-			 call1 (Qcurrent_window_configuration, Qnil));
+  record_unwind_protect (Feval,
+                         list2 (Qset_window_configuration,
+                                call0 (Qcurrent_window_configuration)));
   reset_key_echo (command_builder, 1);
 
-  help = Feval (Vhelp_form);
+  help = IGNORE_MULTIPLE_VALUES (Feval (Vhelp_form));
   if (STRINGP (help))
     internal_with_output_to_temp_buffer (build_string ("*Help*"),
 					 print_help, help, Qnil);
@@ -1030,8 +1033,9 @@ static const struct memory_description timeout_description[] = {
   { XD_END }
 };
 
-DEFINE_INTERNAL_LISP_OBJECT ("timeout", timeout, Lisp_Timeout,
-			     timeout_description, mark_timeout);
+DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("timeout", timeout,
+				      mark_timeout, timeout_description,
+				      Lisp_Timeout);
 
 /* Generate a timeout and return its ID. */
 
@@ -3152,7 +3156,8 @@ maybe_kbd_translate (Lisp_Object event)
 	  Lisp_Object ev2 = Fmake_event (Qnil, Qnil);
 
 	  character_to_event (XCHAR (traduit), XEVENT (ev2),
-			      XCONSOLE (XEVENT_CHANNEL (event)), 0, 1);
+			      XCONSOLE (XEVENT_CHANNEL (event)),
+			      high_bit_is_meta, 1);
 	  XSET_EVENT_KEY_KEYSYM (event, XEVENT_KEY_KEYSYM (ev2));
 	  XSET_EVENT_KEY_MODIFIERS (event, XEVENT_KEY_MODIFIERS (ev2));
 	  Fdeallocate_event (ev2);
@@ -3177,7 +3182,8 @@ maybe_kbd_translate (Lisp_Object event)
 	  Lisp_Object ev2 = Fmake_event (Qnil, Qnil);
 
 	  character_to_event (XCHAR (traduit), XEVENT (ev2),
-			      XCONSOLE (XEVENT_CHANNEL (event)), 0, 1);
+			      XCONSOLE (XEVENT_CHANNEL (event)),
+			      high_bit_is_meta, 1);
 	  XSET_EVENT_KEY_KEYSYM (event, XEVENT_KEY_KEYSYM (ev2));
 	  XSET_EVENT_KEY_MODIFIERS (event,
                                XEVENT_KEY_MODIFIERS (event) |
@@ -4347,7 +4353,7 @@ post_command_hook (void)
 
   safe_run_hook_trapping_problems
     (Qcommand, Qpost_command_hook,
-     INHIBIT_EXISTING_PERMANENT_DISPLAY_OBJECT_DELETION);
+     0);
 
 #if 0 /* FSF Emacs */
   if (!NILP (current_buffer->mark_active))

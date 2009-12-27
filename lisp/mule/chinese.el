@@ -31,109 +31,11 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'china-util))
-
-; (make-charset 'chinese-gb2312 
-; 	      "GB2312 Chinese simplified: ISO-IR-58"
-; 	      '(dimension
-; 		2
-; 		registry "GB2312.1980"
-; 		chars 94
-; 		columns 2
-; 		direction l2r
-; 		final ?A
-; 		graphic 0
-; 		short-name "GB2312"
-; 		long-name "GB2312: ISO-IR-58"
-; 		))
-
-; (make-charset 'chinese-cns11643-1 
-; 	      "CNS11643 Plane 1 Chinese traditional: ISO-IR-171"
-; 	      '(dimension
-; 		2
-; 		registry "CNS11643.1992-1"
-; 		chars 94
-; 		columns 2
-; 		direction l2r
-; 		final ?G
-; 		graphic 0
-; 		short-name "CNS11643-1"
-; 		long-name "CNS11643-1 (Chinese traditional): ISO-IR-171"
-; 		))
-
-; (make-charset 'chinese-cns11643-2 
-; 	      "CNS11643 Plane 2 Chinese traditional: ISO-IR-172"
-; 	      '(dimension
-; 		2
-; 		registry "CNS11643.1992-2"
-; 		chars 94
-; 		columns 2
-; 		direction l2r
-; 		final ?H
-; 		graphic 0
-; 		short-name "CNS11643-2"
-; 		long-name "CNS11643-2 (Chinese traditional): ISO-IR-172"
-; 		))
-
-; (make-charset 'chinese-big5-1 
-; 	      "Frequently used part (A141-C67F) of Big5 (Chinese traditional)"
-; 	      '(dimension
-; 		2
-; 		registry "Big5"
-; 		chars 94
-; 		columns 2
-; 		direction l2r
-; 		final ?0
-; 		graphic 0
-; 		short-name "Big5 (Level-1)"
-; 		long-name "Big5 (Level-1) A141-C67F"
-; 		))
-
-; (make-charset 'chinese-big5-2 
-; 	      "Less frequently used part (C940-FEFE) of Big5 (Chinese traditional)"
-; 	      '(dimension
-; 		2
-; 		registry "Big5"
-; 		chars 94
-; 		columns 2
-; 		direction l2r
-; 		final ?1
-; 		graphic 0
-; 		short-name "Big5 (Level-2)"
-; 		long-name "Big5 (Level-2) C940-FEFE"
-; 		))
+(eval-when-compile (progn (require 'ccl) (require 'china-util)))
 
 ;; Syntax of Chinese characters.
-(modify-syntax-entry 'chinese-gb2312 "w")
 (loop for row in '(33 34 41)
       do (modify-syntax-entry `[chinese-gb2312 ,row] "."))
-;;(loop for row from 35 to  40
-;;      do (modify-syntax-entry `[chinese-gb2312 ,row] "w"))
-;;(loop for row from 42 to 126
-;;      do (modify-syntax-entry `[chinese-gb2312 ,row] "w"))
-
-(modify-syntax-entry 'chinese-cns11643-1  "w")
-(modify-syntax-entry 'chinese-cns11643-2  "w")
-(modify-syntax-entry 'chinese-big5-1 "w")
-(modify-syntax-entry 'chinese-big5-2 "w")
-
-; ;; Chinese CNS11643 Plane3 thru Plane7.  Although these are official
-; ;; character sets, the use is rare and don't have to be treated
-; ;; space-efficiently in the buffer.
-; (make-charset 'chinese-cns11643-3 
-; 	      "CNS11643 Plane 3 Chinese Traditional: ISO-IR-183"
-; 	      '(dimension
-; 		2
-; 		registry "CNS11643.1992-3"
-; 		chars 94
-; 		columns 2
-; 		direction l2r
-; 		final ?I
-; 		graphic 0
-; 		short-name "CNS11643-3"
-; 		long-name "CNS11643-3 (Chinese traditional): ISO-IR-183"
-; 		))
 
 ;; CNS11643 Plane3 thru Plane7
 ;; These represent more and more obscure Chinese characters.
@@ -146,8 +48,8 @@
       (name plane final)
       (make-charset
        name (concat "CNS 11643 Plane " plane " (Chinese traditional)")
-       `(registry 
-         ,(concat "CNS11643[.-]\\(.*[.-]\\)?" plane "$")
+       `(registries 
+         ,(vector (concat "cns11643.1992-" plane ))
          dimension 2
          chars 94
          final ,final
@@ -171,7 +73,7 @@
 (make-charset ;; not in FSF 21.1
  'chinese-isoir165
  "ISO-IR-165 (CCITT Extended GB; Chinese simplified)"
- `(registry "isoir165"
+ `(registries ["isoir165-0"]
    dimension 2
    chars 94
    final ?E
@@ -185,7 +87,7 @@
 	      '(dimension
 		1
 		;; XEmacs addition: second half of registry spec
-		registry "sisheng_cwnn\\|OMRON_UDC_ZH"
+		registries ["omron_udc_zh-0" "sisheng_cwnn-0"]
 		chars 94
 		columns 1
 		direction l2r
@@ -255,6 +157,7 @@
    charset-g1 chinese-gb2312
    charset-g2 chinese-sisheng
    charset-g3 t
+   safe-charsets (ascii chinese-gb2312 chinese-sisheng)
    mnemonic "Zh-GB/EUC"
    documentation
    "Chinese EUC (Extended Unix Code), the standard Chinese encoding on Unix.
@@ -266,9 +169,8 @@ G1: Chinese-GB2312
 G2: Sisheng (PinYin - ZhuYin)"
    ))
 
-;; (define-coding-system-alias 'cn-gb-2312 'chinese-iso-8bit)
-;; (define-coding-system-alias 'euc-china 'chinese-iso-8bit)
-;; (define-coding-system-alias 'euc-cn 'chinese-iso-8bit)
+;; For consistency with euc-jp, euc-ko
+(define-coding-system-alias 'euc-cn 'cn-gb-2312)
 
 (define-coding-system-alias 'gb2312 'cn-gb-2312)
 (define-coding-system-alias 'chinese-euc 'cn-gb-2312)
@@ -289,6 +191,7 @@ G2: Sisheng (PinYin - ZhuYin)"
  "Hz/ZW (Chinese)"
  '(mnemonic "Zh-GB/Hz"
    eol-type lf
+   safe-charsets (ascii chinese-gb2312)
    post-read-conversion post-read-decode-hz
    pre-write-conversion pre-write-encode-hz
    documentation "Hz/ZW 7-bit encoding for Chinese GB2312 (MIME:HZ-GB-2312)"
@@ -324,11 +227,6 @@ G2: Sisheng (PinYin - ZhuYin)"
 		(coding-system cn-gb-2312 iso-2022-7bit hz-gb-2312)
 		(coding-priority cn-gb-2312 big5 iso-2022-7bit)
 		(cygwin-locale "zh")
-		(locale "zh_CN.eucCN" "zh_CN.EUC" "zh_CN"
-			"chinese-s" "zh"
-			 (lambda (arg)
-			      (and arg (let ((case-fold-search t))
-					 (string-match "^zh_.*.GB.*" arg)))))
 		(mswindows-locale ("CHINESE" . "CHINESE_SIMPLIFIED"))
 		(native-coding-system cn-gb-2312)
 		(input-method . "chinese-py-punct")
@@ -338,6 +236,14 @@ G2: Sisheng (PinYin - ZhuYin)"
 "Supports Simplified Chinese, used in mainland China.
 Uses the GB2312 character set."))
  '("Chinese"))
+
+;; Set the locale information separately so that the lambda gets compiled.
+(set-language-info "Chinese-GB" 
+                   'locale
+                   (list "zh_CN.eucCN" "zh_CN.EUC" "zh_CN" "chinese-s" "zh"
+			 (lambda (arg)
+                           (and arg (let ((case-fold-search t))
+                                      (string-match "^zh_.*.GB.*" arg))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Chinese BIG5 (traditional)
@@ -355,6 +261,7 @@ Uses the GB2312 character set."))
  'big5 'big5
  "Big5"
  '(mnemonic "Zh/Big5"
+   safe-charsets (ascii chinese-big5-1 chinese-big5-2)
    documentation
    "A non-modal encoding formed by five large Taiwanese companies
 \(hence \"Big5\") to produce a character set and encoding for
@@ -379,15 +286,12 @@ of a Chinese character\"."))
     ;;      R2:position code 2
     ;; Out: R1:font code point 1
     ;;      R2:font code point 2
-    ((r2 = ((((r1 - ?\x21) * 94) + r2) - ?\x21))
+    ((r2 = ((((r1 - #x21) * 94) + r2) - #x21))
      (if (r0 == ,(charset-id 'chinese-big5-2)) (r2 += 6280))
-     (r1 = ((r2 / 157) + ?\xA1))
+     (r1 = ((r2 / 157) + #xA1))
      (r2 %= 157)
-     (if (r2 < ?\x3F) (r2 += ?\x40) (r2 += ?\x62))))
+     (if (r2 < #x3F) (r2 += #x40) (r2 += #x62))))
   "CCL program to encode a Big5 code to code point of Big5 font.")
-
-;; (setq font-ccl-encoder-alist
-;;       (cons (cons "big5" ccl-encode-big5-font) font-ccl-encoder-alist))
 
 (set-charset-ccl-program 'chinese-big5-1 'ccl-encode-big5-font)
 (set-charset-ccl-program 'chinese-big5-2 'ccl-encode-big5-font)
@@ -397,11 +301,6 @@ of a Chinese character\"."))
 		  (coding-system big5 iso-2022-7bit)
 		  (coding-priority big5 cn-gb-2312 iso-2022-7bit)
 		  (cygwin-locale "zh_TW")
-		  (locale "zh_TW.Big5" "zh_TW.big5" "zh_CN.big5" "zh_TW"
-			  "chinese-t"
-			  (lambda (arg)
-			      (and arg (let ((case-fold-search t))
-					 (string-match "^zh_.*.BIG5.*" arg)))))
 		  (mswindows-locale ("CHINESE" . "CHINESE_TRADITIONAL"))
 		  (native-coding-system big5)
 		  (input-method . "chinese-py-punct-b5")
@@ -412,6 +311,15 @@ of a Chinese character\"."))
 Uses the Chinese Big5 character set."
 ))
  '("Chinese"))
+
+;; Set the locale information separately so that the lambda gets compiled.
+(set-language-info "Chinese-BIG5" 
+                   'locale
+		  (list "zh_TW.Big5" "zh_TW.big5" "zh_CN.big5" "zh_TW"
+                        "chinese-t"
+                        (lambda (arg)
+                          (and arg (let ((case-fold-search t))
+                                     (string-match "^zh_.*.BIG5.*" arg))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Chinese CNS11643 (traditional)

@@ -179,7 +179,7 @@ print_tooltalk_message (Lisp_Object obj, Lisp_Object printcharfun,
 		    (long) (p->m), p->header.uid);
 }
 
-DEFINE_NONDUMPABLE_LISP_OBJECT ("tooltalk-message", tooltalk_message,
+DEFINE_NODUMP_LISP_OBJECT ("tooltalk-message", tooltalk_message,
 					   mark_tooltalk_message, print_tooltalk_message,
 					   0, 0, 0, 
 					   tooltalk_message_description,
@@ -255,7 +255,7 @@ print_tooltalk_pattern (Lisp_Object obj, Lisp_Object printcharfun,
 		    (long) (p->p), p->header.uid);
 }
 
-DEFINE_NONDUMPABLE_LISP_OBJECT ("tooltalk-pattern", tooltalk_pattern,
+DEFINE_NODUMP_LISP_OBJECT ("tooltalk-pattern", tooltalk_pattern,
 					   mark_tooltalk_pattern, print_tooltalk_pattern,
 					   0, 0, 0, 
 					   tooltalk_pattern_description,

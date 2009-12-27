@@ -38,9 +38,9 @@ Boston, MA 02111-1307, USA.  */
 #include "lisp.h"
 #include "opaque.h"
 
-#ifndef MC_ALLOC
+#ifndef NEW_GC
 Lisp_Object Vopaque_ptr_free_list;
-#endif /* not MC_ALLOC */
+#endif /* not NEW_GC */
 
 /* Should never, ever be called. (except by an external debugger) */
 static void
@@ -114,11 +114,11 @@ static const struct memory_description opaque_description[] = {
   { XD_END }
 };
 
-DEFINE_SIZABLE_LISP_OBJECT ("opaque", opaque,
-				       0, print_opaque, 0,
-				       equal_opaque, hash_opaque,
-				       opaque_description,
-				       sizeof_opaque, Lisp_Opaque);
+DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("opaque", opaque,
+				     0, print_opaque, 0,
+				     equal_opaque, hash_opaque,
+				     opaque_description,
+				     sizeof_opaque, Lisp_Opaque);
 
 /* stuff to handle opaque pointers */
 
@@ -151,7 +151,7 @@ static const struct memory_description opaque_ptr_description[] = {
   { XD_END }
 };
 
-DEFINE_NONDUMPABLE_LISP_OBJECT ("opaque-ptr", opaque_ptr,
+DEFINE_NODUMP_LISP_OBJECT ("opaque-ptr", opaque_ptr,
 					   0, print_opaque_ptr, 0,
 					   equal_opaque_ptr, hash_opaque_ptr,
 					   opaque_ptr_description, Lisp_Opaque_Ptr);
@@ -159,11 +159,11 @@ DEFINE_NONDUMPABLE_LISP_OBJECT ("opaque-ptr", opaque_ptr,
 Lisp_Object
 make_opaque_ptr (void *val)
 {
-#ifdef MC_ALLOC
+#ifdef NEW_GC
   Lisp_Object res = ALLOC_LISP_OBJECT (opaque_ptr);
-#else /* not MC_ALLOC */
+#else /* not NEW_GC */
   Lisp_Object res = alloc_managed_lcrecord (Vopaque_ptr_free_list);
-#endif /* not MC_ALLOC */
+#endif /* not NEW_GC */
   set_opaque_ptr (res, val);
   return res;
 }
@@ -174,14 +174,14 @@ make_opaque_ptr (void *val)
 void
 free_opaque_ptr (Lisp_Object ptr)
 {
-#ifdef MC_ALLOC
+#ifdef NEW_GC
   free_lrecord (ptr);
-#else /* not MC_ALLOC */
+#else /* not NEW_GC */
   free_managed_lcrecord (Vopaque_ptr_free_list, ptr);
-#endif /* not MC_ALLOC */
+#endif /* not NEW_GC */
 }
 
-#ifndef MC_ALLOC
+#ifndef NEW_GC
 void
 reinit_opaque_early (void)
 {
@@ -189,7 +189,7 @@ reinit_opaque_early (void)
 					      &lrecord_opaque_ptr);
   staticpro_nodump (&Vopaque_ptr_free_list);
 }
-#endif /* not MC_ALLOC */
+#endif /* not NEW_GC */
 
 void
 init_opaque_once_early (void)
@@ -197,7 +197,7 @@ init_opaque_once_early (void)
   INIT_LISP_OBJECT (opaque);
   INIT_LISP_OBJECT (opaque_ptr);
 
-#ifndef MC_ALLOC
+#ifndef NEW_GC
   reinit_opaque_early ();
-#endif /* not MC_ALLOC */
+#endif /* not NEW_GC */
 }

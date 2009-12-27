@@ -215,13 +215,11 @@ Boston, MA 02111-1307, USA.  */
       this to 2048, and further shrinkage would become uncomfortable.
       No such problems exist in XEmacs.
 
-      Composite characters could be represented as 0x8D C1 C2 C3,
-      where each C[1-3] is in the range 0xA0 - 0xFF.  This allows
-      for slightly under 2^20 (one million) composite characters
-      over the XEmacs process lifetime, and you only need to
-      increase the size of a Mule character from 19 to 21 bits.
-      Or you could use 0x8D C1 C2 C3 C4, allowing for about
-      85 million (slightly over 2^26) composite characters.
+      Composite characters could be represented as 0x8D C1 C2 C3, where each
+      C[1-3] is in the range 0xA0 - 0xFF.  This allows for slightly under
+      2^20 (one million) composite characters over the XEmacs process
+      lifetime. Or you could use 0x8D C1 C2 C3 C4, allowing for about 85
+      million (slightly over 2^26) composite characters.
 
    ==========================================================================
                                10. Internal API's
@@ -247,7 +245,7 @@ variable.
 @item
 The Eistring API
 
-(This API is currently under-used) When doing simple things with
+\(This API is currently under-used) When doing simple things with
 internal text, the basic internal-format API's are enough.  But to do
 things like delete or replace a substring, concatenate various strings,
 etc. is difficult to do cleanly because of the allocation issues.
@@ -2000,20 +1998,26 @@ find_charsets_in_ichar_string (unsigned char *charsets,
 #endif
 }
 
+/* A couple of these functions should only be called on a non-Mule build. */
+#ifdef MULE
+#define ASSERT_BUILT_WITH_MULE() assert(1)
+#else /* MULE */
+#define ASSERT_BUILT_WITH_MULE() assert(0)
+#endif /* MULE */
+
 int
 ibyte_string_displayed_columns (const Ibyte *str, Bytecount len)
 {
   int cols = 0;
   const Ibyte *end = str + len;
+  Ichar ch;
+
+  ASSERT_BUILT_WITH_MULE();
 
   while (str < end)
     {
-#ifdef MULE
-      Ichar ch = itext_ichar (str);
+      ch = itext_ichar (str);
       cols += XCHARSET_COLUMNS (ichar_charset (ch));
-#else
-      cols++;
-#endif
       INC_IBYTEPTR (str);
     }
 
@@ -2021,19 +2025,17 @@ ibyte_string_displayed_columns (const Ibyte *str, Bytecount len)
 }
 
 int
-ichar_string_displayed_columns (const Ichar *USED_IF_MULE (str), Charcount len)
+ichar_string_displayed_columns (const Ichar * USED_IF_MULE(str), Charcount len)
 {
-#ifdef MULE
   int cols = 0;
   int i;
+
+  ASSERT_BUILT_WITH_MULE();
 
   for (i = 0; i < len; i++)
     cols += XCHARSET_COLUMNS (ichar_charset (str[i]));
 
   return cols;
-#else  /* not MULE */
-  return len;
-#endif
 }
 
 Charcount
@@ -2138,7 +2140,11 @@ eicmp_1 (Eistring *ei, Bytecount off, Charcount charoff,
 	 Bytecount len, Charcount charlen, const Ibyte *data,
 	 const Eistring *ei2, int is_ascii, int fold_case)
 {
+  assert ((data == 0) != (ei == 0)); 
+  assert ((is_ascii != 0) == (data != 0));
+  assert (fold_case >= 0 && fold_case <= 2);
   assert ((off < 0) != (charoff < 0));
+
   if (off < 0)
     {
       off = charcount_to_bytecount (ei->data_, charoff);
@@ -2152,9 +2158,6 @@ eicmp_1 (Eistring *ei, Bytecount off, Charcount charoff,
 
   assert (off >= 0 && off <= ei->bytelen_);
   assert (len >= 0 && off + len <= ei->bytelen_);
-  assert ((data == 0) != (ei == 0)); 
-  assert ((is_ascii != 0) == (data != 0));
-  assert (fold_case >= 0 && fold_case <= 2);
 
   {
     Bytecount dstlen;
@@ -4694,8 +4697,8 @@ non_ascii_valid_ichar_p (Ichar ch)
 {
   int f1, f2, f3;
 
-  /* Must have only lowest 19 bits set */
-  if (ch & ~0x7FFFF)
+  /* Must have only lowest 21 bits set */
+  if (ch & ~0x1FFFFF)
     return 0;
 
   f1 = ichar_field1 (ch);
@@ -4997,6 +5000,8 @@ N defaults to 0 if omitted.
     invalid_constant ("Octet number must be 0 or 1", n);
 }
 
+#endif /* MULE */
+
 DEFUN ("split-char", Fsplit_char, 1, 1, 0, /*
 Return list of charset and one or two position-codes of CHAR.
 */
@@ -5013,7 +5018,7 @@ Return list of charset and one or two position-codes of CHAR.
 
   BREAKUP_ICHAR (XCHAR (character), charset, c1, c2);
 
-  if (XCHARSET_DIMENSION (Fget_charset (charset)) == 2)
+  if (XCHARSET_DIMENSION (charset) == 2)
     {
       rc = list3 (XCHARSET_NAME (charset), make_int (c1), make_int (c2));
     }
@@ -5025,8 +5030,6 @@ Return list of charset and one or two position-codes of CHAR.
 
   return rc;
 }
-
-#endif /* MULE */
 
 
 /************************************************************************/
@@ -5125,11 +5128,11 @@ void
 syms_of_text (void)
 {
   DEFSUBR (Fmake_char);
+  DEFSUBR (Fsplit_char);
 
 #ifdef MULE
   DEFSUBR (Fchar_charset);
   DEFSUBR (Fchar_octet);
-  DEFSUBR (Fsplit_char);
 
 #ifdef ENABLE_COMPOSITE_CHARS
   DEFSUBR (Fmake_composite_char);

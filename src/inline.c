@@ -35,8 +35,8 @@ Boston, MA 02111-1307, USA.  */
    */
 
 /* Note to maintainers: This file contains a list of all header files
-   that use the INLINE macro, either directly, or by using DECLARE_LRECORD.
-   i.e. the output of ``grep -l -w 'DECLARE_LRECORD|INLINE_HEADER' *.h'' */
+   that use the INLINE macro, either directly, or by using DECLARE_LISP_OBJECT.
+   i.e. the output of ``grep -l -w 'DECLARE_LISP_OBJECT|INLINE_HEADER' *.h'' */
 
 #define DONT_EXTERN_INLINE_HEADER_FUNCTIONS
 
@@ -64,6 +64,7 @@ Boston, MA 02111-1307, USA.  */
 #include "process.h"
 #include "rangetab.h"
 #include "specifier.h"
+#include "symeval.h"
 #include "syntax.h"
 #include "window.h"
 
@@ -100,6 +101,9 @@ Boston, MA 02111-1307, USA.  */
 
 #ifdef HAVE_X_WINDOWS
 #include "glyphs-x.h"
+#ifdef USE_XFT
+#include "font-mgr.h"
+#endif
 #endif
 
 #ifdef HAVE_MS_WINDOWS

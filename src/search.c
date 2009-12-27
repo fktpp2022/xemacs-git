@@ -47,6 +47,15 @@ Boston, MA 02111-1307, USA.  */
 
 #define REGEXP_CACHE_SIZE 20
 
+#ifdef DEBUG_XEMACS
+
+/* Used in tests/automated/case-tests.el if available. */
+Fixnum debug_xemacs_searches;
+
+Lisp_Object Qsearch_algorithm_used, Qboyer_moore, Qsimple_search;
+
+#endif
+
 /* If the regexp is non-nil, then the buffer contains the compiled form
    of that regexp, suitable for searching.  */
 struct regexp_cache
@@ -1340,11 +1349,14 @@ search_buffer (struct buffer *buf, Lisp_Object string, Charbpos charbpos,
     {
       int charset_base = -1;
       int boyer_moore_ok = 1;
-      Ibyte *pat = 0;
       Ibyte *patbuf = alloca_ibytes (len * MAX_ICHAR_LEN);
-      pat = patbuf;
+      Ibyte *pat = patbuf;
+
 #ifdef MULE
-      /* &&#### needs some 8-bit work here */
+      int entirely_one_byte_p = buf->text->entirely_one_byte_p;
+      int nothing_greater_than_0xff =
+        buf->text->num_8_bit_fixed_chars == BUF_Z(buf) - BUF_BEG (buf);
+
       while (len > 0)
 	{
 	  Ibyte tmp_str[MAX_ICHAR_LEN];
@@ -1367,25 +1379,105 @@ search_buffer (struct buffer *buf, Lisp_Object string, Charbpos charbpos,
 	  inv_bytelen = set_itext_ichar (tmp_str, inverse);
 	  new_bytelen = set_itext_ichar (tmp_str, translated);
 
-	  if (new_bytelen != orig_bytelen || inv_bytelen != orig_bytelen)
-	    boyer_moore_ok = 0;
-	  if (translated != c || inverse != c)
-	    {
-	      /* Keep track of which character set row
-		 contains the characters that need translation.  */
-	      int charset_base_code = c & ~ICHAR_FIELD3_MASK;
-	      if (charset_base == -1)
-		charset_base = charset_base_code;
-	      else if (charset_base != charset_base_code)
-		/* If two different rows appear, needing translation,
-		   then we cannot use boyer_moore search.  */
-		boyer_moore_ok = 0;
-	    }
+          if (boyer_moore_ok
+              /* Only do the Boyer-Moore check for characters needing
+                 translation. */
+              && (translated != c || inverse != c))
+            {
+	      Ichar starting_c = c;
+	      int charset_base_code, checked = 0;
+
+	      do 
+		{
+		  c = TRANSLATE (inverse_trt, c);
+
+                  /* If a character cannot occur in the buffer, ignore
+                     it. */
+                  if (c > 0x7F && entirely_one_byte_p)
+                    continue;
+
+                  if (c > 0xFF && nothing_greater_than_0xff)
+                    continue;
+
+                  checked = 1;
+
+                  if (-1 == charset_base) /* No charset yet specified. */
+                    {
+                      /* Keep track of which charset and character set row
+                         contains the characters that need translation.
+
+                         Zero out the bits corresponding to the last
+                         byte. */
+                      charset_base = c & ~ICHAR_FIELD3_MASK;
+                    }
+                  else
+                    {
+                      charset_base_code = c & ~ICHAR_FIELD3_MASK;
+
+                      if (charset_base_code != charset_base)
+                        {
+                          /* If two different rows, or two different
+                             charsets, appear, needing non-ASCII
+                             translation, then we cannot use boyer_moore
+                             search.  See the comment at the head of
+                             boyer_moore(). */
+                          boyer_moore_ok = 0;
+                          break;
+                        }
+                    }
+                } while (c != starting_c);
+
+              if (!checked)
+                {
+#ifdef DEBUG_XEMACS
+                  if (debug_xemacs_searches)
+                    {
+                      Lisp_Symbol *sym = XSYMBOL (Qsearch_algorithm_used);
+                      sym->value = Qnil;
+                    }
+#endif
+                  /* The "continue" clauses were used above, for every
+                     translation of the character. As such, this character
+                     is not to be found in the buffer and neither is the
+                     string as a whole. Return immediately; also avoid
+                     triggering the assertion a few lines down. */
+                  return n > 0 ? -n : n;
+                }
+
+              if (boyer_moore_ok && charset_base != -1 && 
+                  charset_base != (translated & ~ICHAR_FIELD3_MASK))
+                {
+                  /* In the rare event that the CANON entry for this
+                     character is not in the desired set, choose one
+                     that is, from the equivalence set. It doesn't much
+                     matter which. */
+                  Ichar starting_ch = translated;
+                  do
+                    {
+                      translated = TRANSLATE (inverse_trt, translated);
+
+                      if (charset_base == (translated & ~ICHAR_FIELD3_MASK))
+                        break;
+
+                    } while (starting_ch != translated);
+
+                  assert (starting_ch != translated);
+
+                  new_bytelen = set_itext_ichar (tmp_str, translated);
+                }
+            }
+
 	  memcpy (pat, tmp_str, new_bytelen);
 	  pat += new_bytelen;
 	  base_pat += orig_bytelen;
 	  len -= orig_bytelen;
 	}
+
+      if (-1 == charset_base)
+        {
+          charset_base = 'a' & ~ICHAR_FIELD3_MASK; /* Default to ASCII. */
+        }
+
 #else /* not MULE */
       while (--len >= 0)
 	{
@@ -1402,6 +1494,15 @@ search_buffer (struct buffer *buf, Lisp_Object string, Charbpos charbpos,
 #endif /* MULE */
       len = pat - patbuf;
       pat = base_pat = patbuf;
+
+#ifdef DEBUG_XEMACS
+      if (debug_xemacs_searches)
+        {
+          Lisp_Symbol *sym = XSYMBOL (Qsearch_algorithm_used);
+          sym->value = boyer_moore_ok ? Qboyer_moore : Qsimple_search;
+        }
+#endif
+
       if (boyer_moore_ok)
 	return boyer_moore (buf, base_pat, len, pos, lim, n,
 			    trt, inverse_trt, charset_base);
@@ -1468,43 +1569,51 @@ simple_search (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 	n--;
       }
   else
-    while (n < 0)
-      {
-	while (1)
-	  {
-	    Bytecount this_len = len;
-	    Bytebpos this_pos = pos;
-	    Ibyte *p;
-	    if (pos <= lim)
-	      goto stop;
-	    p = base_pat + len;
+    {
+      /* If lim < len, then there are too few buffer positions to hold the
+	 pattern between the beginning of the buffer and lim.  Adjust to
+	 ensure pattern fits.  If we don't do this, we can assert in the
+	 DEC_BYTEBPOS below. */
+      if (lim < len)
+	lim = len;
+      while (n < 0)
+	{
+	  while (1)
+	    {
+	      Bytecount this_len = len;
+	      Bytebpos this_pos = pos;
+	      Ibyte *p;
+	      if (pos <= lim)
+		goto stop;
+	      p = base_pat + len;
 
-	    while (this_len > 0)
-	      {
-		Ichar pat_ch, buf_ch;
+	      while (this_len > 0)
+		{
+		  Ichar pat_ch, buf_ch;
 
-		DEC_IBYTEPTR (p);
-		DEC_BYTEBPOS (buf, this_pos);
-		pat_ch = itext_ichar (p);
-		buf_ch = BYTE_BUF_FETCH_CHAR (buf, this_pos);
+		  DEC_IBYTEPTR (p);
+		  DEC_BYTEBPOS (buf, this_pos);
+		  pat_ch = itext_ichar (p);
+		  buf_ch = BYTE_BUF_FETCH_CHAR (buf, this_pos);
 
-		buf_ch = TRANSLATE (trt, buf_ch);
+		  buf_ch = TRANSLATE (trt, buf_ch);
 
-		if (buf_ch != pat_ch)
+		  if (buf_ch != pat_ch)
+		    break;
+
+		  this_len -= itext_ichar_len (p);
+		}
+	      if (this_len == 0)
+		{
+		  buf_len = pos - this_pos;
+		  pos = this_pos;
 		  break;
-
-		this_len -= itext_ichar_len (p);
-	      }
-	    if (this_len == 0)
-	      {
-		buf_len = pos - this_pos;
-		pos = this_pos;
-		break;
-	      }
-	    DEC_BYTEBPOS (buf, pos);
-	  }
-	n++;
-      }
+		}
+	      DEC_BYTEBPOS (buf, pos);
+	    }
+	  n++;
+	}
+    }
  stop:
   if (n == 0)
     {
@@ -1536,18 +1645,18 @@ simple_search (struct buffer *buf, Ibyte *base_pat, Bytecount len,
    TRT and INVERSE_TRT are translation tables.
 
    This kind of search works if all the characters in PAT that have
-   nontrivial translation are the same aside from the last byte.  This
-   makes it possible to translate just the last byte of a character,
-   and do so after just a simple test of the context.
+   (non-ASCII) translation are the same aside from the last byte.  This
+   makes it possible to translate just the last byte of a character, and do
+   so after just a simple test of the context.
 
-   If that criterion is not satisfied, do not call this function.  */
+   If that criterion is not satisfied, do not call this function.  You will
+   get an assertion failure. */
 	    
 static Charbpos
 boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 	     Bytebpos pos, Bytebpos lim, EMACS_INT n, Lisp_Object trt,
 	     Lisp_Object inverse_trt, int USED_IF_MULE (charset_base))
 {
-  /* &&#### needs some 8-bit work here */
   /* #### Someone really really really needs to comment the workings
      of this junk somewhat better.
 
@@ -1591,6 +1700,13 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 #ifdef MULE
   Ibyte translate_prev_byte = 0;
   Ibyte translate_anteprev_byte = 0;
+  /* These need to be rethought in the event that the internal format
+     changes, or in the event that num_8_bit_fixed_chars disappears
+     (entirely_one_byte_p can be trivially worked out by checking is the
+     byte count equal to the char count.)  */
+  int buffer_entirely_one_byte_p = buf->text->entirely_one_byte_p;
+  int buffer_nothing_greater_than_0xff =
+    buf->text->num_8_bit_fixed_chars == BUF_Z(buf) - BUF_BEG (buf);
 #endif
 #ifdef C_ALLOCA
   EMACS_INT BM_tab_space[0400];
@@ -1673,20 +1789,45 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 	      while (!ibyte_first_byte_p (*charstart))
 		charstart--;
 	      untranslated = itext_ichar (charstart);
-	      if (charset_base == (untranslated & ~ICHAR_FIELD3_MASK))
-		{
-		  ch = TRANSLATE (trt, untranslated);
-		  if (!ibyte_first_byte_p (*ptr))
-		    {
-		      translate_prev_byte = ptr[-1];
-		      if (!ibyte_first_byte_p (translate_prev_byte))
-			translate_anteprev_byte = ptr[-2];
-		    }
-		}
-	      else
-		{
-		  this_translated = 0;
-		  ch = *ptr;
+
+              ch = TRANSLATE (trt, untranslated);
+              if (!ibyte_first_byte_p (*ptr))
+                {
+                  translate_prev_byte = ptr[-1];
+                  if (!ibyte_first_byte_p (translate_prev_byte))
+                    translate_anteprev_byte = ptr[-2];
+                }
+
+              if (ch != untranslated && /* Was translation done? */
+                  charset_base != (ch & ~ICHAR_FIELD3_MASK))
+                {
+                  /* In the very rare event that the CANON entry for this
+                     character is not in the desired set, choose one that
+                     is, from the equivalence set. It doesn't much matter
+                     which, since we're building our own cheesy equivalence
+                     table instead of using that belonging to the case
+                     table directly.
+
+                     We can get here if search_buffer has worked out that
+                     the buffer is entirely single width. */
+                  Ichar starting_ch = ch;
+                  int count = 0;
+                  do
+                    {
+                      ch = TRANSLATE (inverse_trt, ch);
+                      if (charset_base == (ch & ~ICHAR_FIELD3_MASK))
+                        break;
+                      ++count;
+                    } while (starting_ch != ch);
+
+                  /* If starting_ch is equal to ch (and count is not one,
+                     which means no translation is necessary), the case
+                     table is corrupt. (Any mapping in the canon table
+                     should be reflected in the equivalence table, and we
+                     know from the canon table that untranslated maps to
+                     starting_ch and that untranslated has the correct value
+                     for charset_base.) */
+                  assert (1 == count || starting_ch != ch);
 		}
 	    }
 	  else
@@ -1702,28 +1843,34 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 	  if (i == infinity)
 	    stride_for_teases = BM_tab[j];
 	  BM_tab[j] = dirlen - i;
-	  /* A translation table is accompanied by its inverse --
-	     see comment in casetab.c. */
+	  /* A translation table is accompanied by its inverse -- see
+	     comment in casetab.c. */
 	  if (this_translated)
 	    {
 	      Ichar starting_ch = ch;
 	      EMACS_INT starting_j = j;
-	      while (1)
+	      do
 		{
 		  ch = TRANSLATE (inverse_trt, ch);
-		  if (ch > 0400)
-		    j = ((unsigned char) ch | 0200);
-		  else
-		    j = (unsigned char) ch;
 
-		  /* For all the characters that map into CH,
-		     set up simple_translate to map the last byte
-		     into STARTING_J.  */
-		  simple_translate[j] = (Ibyte) starting_j;
-		  if (ch == starting_ch)
-		    break;
-		  BM_tab[j] = dirlen - i;
-		}
+                  if (ch > 0x7F && buffer_entirely_one_byte_p)
+                    continue;
+
+                  if (ch > 0xFF && buffer_nothing_greater_than_0xff)
+                    continue;
+
+                  if (ch > 0400)
+                    j = ((unsigned char) ch | 0200);
+                  else
+                    j = (unsigned char) ch;
+
+                  /* For all the characters that map into CH, set up
+                     simple_translate to map the last byte into
+                     STARTING_J.  */
+                  simple_translate[j] = (Ibyte) starting_j;
+                  BM_tab[j] = dirlen - i;
+
+		} while (ch != starting_ch);
 	    }
 #else
 	  EMACS_INT k;
@@ -2364,15 +2511,22 @@ free_created_dynarrs (Lisp_Object cons)
 
 DEFUN ("replace-match", Freplace_match, 1, 5, 0, /*
 Replace text matched by last search with REPLACEMENT.
-If second arg FIXEDCASE is non-nil, do not alter case of replacement text.
+Leaves point at end of replacement text.
+Optional boolean FIXEDCASE inhibits matching case of REPLACEMENT to source.
+Optional boolean LITERAL inhibits interpretation of escape sequences.
+Optional STRING provides the source text to replace.
+Optional STRBUFFER may be a buffer, providing match context, or an integer
+ specifying the subexpression to replace.
+
+If FIXEDCASE is non-nil, do not alter case of replacement text.
 Otherwise maybe capitalize the whole text, or maybe just word initials,
 based on the replaced text.
-If the replaced text has only capital letters
-and has at least one multiletter word, convert REPLACEMENT to all caps.
+If the replaced text has only capital letters and has at least one
+multiletter word, convert REPLACEMENT to all caps.
 If the replaced text has at least one word starting with a capital letter,
 then capitalize each word in REPLACEMENT.
 
-If third arg LITERAL is non-nil, insert REPLACEMENT literally.
+If LITERAL is non-nil, insert REPLACEMENT literally.
 Otherwise treat `\\' as special:
   `\\&' in REPLACEMENT means substitute original matched text.
   `\\N' means substitute what matched the Nth `\\(...\\)'.
@@ -2385,24 +2539,31 @@ Otherwise treat `\\' as special:
   `\\E' means terminate the effect of any `\\U' or `\\L'.
   Case changes made with `\\u', `\\l', `\\U', and `\\L' override
   all other case changes that may be made in the replaced text.
-FIXEDCASE and LITERAL are optional arguments.
-Leaves point at end of replacement text.
 
-The optional fourth argument STRING can be a string to modify.
-In that case, this function creates and returns a new string
-which is made by replacing the part of STRING that was matched.
-When fourth argument is a string, fifth argument STRBUFFER specifies
-the buffer to be used for syntax-table and case-table lookup and
-defaults to the current buffer.  When fourth argument is not a string,
-the buffer that the match occurred in has automatically been remembered
-and you do not need to specify it.
+If non-nil, STRING is the source string, and a new string with the specified
+replacements is created and returned.  Otherwise the current buffer is the
+source text.
 
-When fourth argument is nil, STRBUFFER specifies a subexpression of
-the match.  It says to replace just that subexpression instead of the
-whole match.  This is useful only after a regular expression search or
-match since only regular expressions have distinguished subexpressions.
+If non-nil, STRBUFFER may be an integer, interpreted as the index of the
+subexpression to replace in the source text, or a buffer to provide the
+syntax table and case table.  If nil, then the \"subexpression\" is 0, i.e.,
+the whole match, and the current buffer provides the syntax and case tables.
+If STRING is nil, STRBUFFER must be nil or an integer.
 
-If no match (including searches) has been conducted or the requested
+Specifying a subexpression is only useful after a regular expression match,
+since a fixed string search has no non-trivial subexpressions.
+
+It is not possible to specify both a buffer and a subexpression.  If that is
+desired, the idiom `(with-current-buffer BUFFER (replace-match ... INTEGER))'
+may be appropriate.
+
+If STRING is nil but the last thing matched (or searched) was a string, or
+STRING is a string but the last thing matched was a buffer, an
+`invalid-argument' error will be signaled.  (XEmacs does not check that the
+last thing searched is the source string, but it is not useful to use a
+different string as source.)
+
+If no match (including searches) has been successful or the requested
 subexpression was not matched, an `args-out-of-range' error will be
 signaled.  (If no match has ever been conducted in this instance of
 XEmacs, an `invalid-operation' error will be signaled.  This is very
@@ -2430,31 +2591,59 @@ rare.)
 
   CHECK_STRING (replacement);
 
+  /* Because GNU decided to be incompatible here, we support the following
+     baroque and bogus API for the STRING and STRBUFFER arguments:
+          types            interpretations
+     STRING   STRBUFFER   STRING   STRBUFFER
+     nil      nil         none     0 = index of subexpression to replace
+     nil      integer     none     index of subexpression to replace
+     nil      other       ***** error *****
+     string   nil         source   current buffer provides syntax table
+                                   subexpression = 0 (whole match)
+     string   buffer      source   buffer providing syntax table
+                                   subexpression = 0 (whole match)
+     string   integer     source   current buffer provides syntax table
+                                   subexpression = STRBUFFER
+     string   other       ***** error *****
+  */
+
+  /* Do STRBUFFER first; if STRING is nil, we'll overwrite BUF and BUFFER. */
+
+  /* If the match data were abstracted into a special "match data" type
+     instead of the typical half-assed "let the implementation be visible"
+     form it's in, we could extend it to include the last string matched
+     and the buffer used for that matching.  But of course we can't change
+     it as it is.
+  */
+  if (NILP (strbuffer) || BUFFERP (strbuffer))
+    {
+      buf = decode_buffer (strbuffer, 0);
+    }
+  else if (!NILP (strbuffer))
+    {
+      CHECK_INT (strbuffer);
+      sub = XINT (strbuffer);
+      if (sub < 0 || sub >= (int) search_regs.num_regs)
+	invalid_argument ("match data register invalid", strbuffer);
+      if (search_regs.start[sub] < 0)
+	invalid_argument ("match data register not set", strbuffer);
+      buf = current_buffer;
+    }
+  else
+    invalid_argument ("STRBUFFER must be nil, a buffer, or an integer",
+		      strbuffer);
+  buffer = wrap_buffer (buf);
+
   if (! NILP (string))
     {
       CHECK_STRING (string);
       if (!EQ (last_thing_searched, Qt))
- invalid_argument ("last thing matched was not a string", Qunbound);
-      /* If the match data
-	 were abstracted into a special "match data" type instead
-	 of the typical half-assed "let the implementation be
-	 visible" form it's in, we could extend it to include
-	 the last string matched and the buffer used for that
-	 matching.  But of course we can't change it as it is. */
-      buf = decode_buffer (strbuffer, 0);
-      buffer = wrap_buffer (buf);
+	invalid_argument ("last thing matched was not a string", Qunbound);
     }
   else
     {
-      if (!NILP (strbuffer))
-	{
-	  CHECK_INT (strbuffer);
-	  sub = XINT (strbuffer);
-	  if (sub < 0 || sub >= (int) search_regs.num_regs)
-	    args_out_of_range (strbuffer, make_int (search_regs.num_regs));
-	}
       if (!BUFFERP (last_thing_searched))
- invalid_argument ("last thing matched was not a buffer", Qunbound);
+	invalid_argument ("last thing matched was not a buffer", Qunbound);
       buffer = last_thing_searched;
       buf = XBUFFER (buffer);
     }
@@ -2557,8 +2746,8 @@ rare.)
       Lisp_Object before, after;
 
       speccount = specpdl_depth ();
-      before = Fsubstring (string, Qzero, make_int (search_regs.start[0]));
-      after = Fsubstring (string, make_int (search_regs.end[0]), Qnil);
+      before = Fsubstring (string, Qzero, make_int (search_regs.start[sub]));
+      after = Fsubstring (string, make_int (search_regs.end[sub]), Qnil);
 
       /* Do case substitution into REPLACEMENT if desired.  */
       if (NILP (literal))
@@ -2600,6 +2789,8 @@ rare.)
 		      substart = search_regs.start[0];
 		      subend = search_regs.end[0];
 		    }
+		  /* #### This logic is totally broken,
+		     since we can have backrefs like "\99", right? */
 		  else if (c >= '1' && c <= '9' &&
 			   c <= search_regs.num_regs + '0')
 		    {
@@ -2759,6 +2950,8 @@ rare.)
                   (buffer,
                    make_int (search_regs.start[0] + offset),
                    make_int (search_regs.end[0] + offset));
+	      /* #### This logic is totally broken,
+		 since we can have backrefs like "\99", right? */
 	      else if (c >= '1' && c <= '9' &&
 		       c <= search_regs.num_regs + '0')
 		{
@@ -3175,4 +3368,15 @@ occur and a back reference to one of them is directly followed by a digit.
 
   Vskip_chars_range_table = Fmake_range_table (Qstart_closed_end_closed);
   staticpro (&Vskip_chars_range_table);
+#ifdef DEBUG_XEMACS 
+  DEFSYMBOL (Qsearch_algorithm_used);
+  DEFSYMBOL (Qboyer_moore);
+  DEFSYMBOL (Qsimple_search);
+
+  DEFVAR_INT ("debug-xemacs-searches", &debug_xemacs_searches /*
+If non-zero, bind `search-algorithm-used' to `boyer-moore' or `simple-search',
+depending on the algorithm used for each search.  Used for testing.
+*/ );
+  debug_xemacs_searches = 0;
+#endif 
 }

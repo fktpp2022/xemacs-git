@@ -224,47 +224,47 @@ static const struct memory_description event_description [] = {
 
 #ifdef EVENT_DATA_AS_OBJECTS
 
-DEFINE_NONDUMPABLE_BASIC_LISP_OBJECT ("key-data", key_data,
+DEFINE_NODUMP_BASIC_LISP_OBJECT ("key-data", key_data,
 						 0, 0, 0, 0, 0,
 						 key_data_description, 
 						 Lisp_Key_Data);
 
-DEFINE_NONDUMPABLE_BASIC_LISP_OBJECT ("button-data", button_data,
+DEFINE_NODUMP_BASIC_LISP_OBJECT ("button-data", button_data,
 						 0, 0, 0, 0, 0,
 						 button_data_description, 
 						 Lisp_Button_Data);
 
-DEFINE_NONDUMPABLE_BASIC_LISP_OBJECT ("motion-data", motion_data,
+DEFINE_NODUMP_BASIC_LISP_OBJECT ("motion-data", motion_data,
 						 0, 0, 0, 0, 0,
 						 motion_data_description,
 						 Lisp_Motion_Data);
 
-DEFINE_NONDUMPABLE_BASIC_LISP_OBJECT ("process-data", process_data,
+DEFINE_NODUMP_BASIC_LISP_OBJECT ("process-data", process_data,
 						 0, 0, 0, 0, 0,
 						 process_data_description,
 						 Lisp_Process_Data);
 
-DEFINE_NONDUMPABLE_BASIC_LISP_OBJECT ("timeout-data", timeout_data,
+DEFINE_NODUMP_BASIC_LISP_OBJECT ("timeout-data", timeout_data,
 						 0, 0, 0, 0, 0,
 						 timeout_data_description,
 						 Lisp_Timeout_Data);
 
-DEFINE_NONDUMPABLE_BASIC_LISP_OBJECT ("eval-data", eval_data,
+DEFINE_NODUMP_BASIC_LISP_OBJECT ("eval-data", eval_data,
 						 0, 0, 0, 0, 0,
 						 eval_data_description,
 						 Lisp_Eval_Data);
 
-DEFINE_NONDUMPABLE_BASIC_LISP_OBJECT ("misc-user-data", misc_user_data,
+DEFINE_NODUMP_BASIC_LISP_OBJECT ("misc-user-data", misc_user_data,
 						 0, 0, 0, 0, 0,
 						 misc_user_data_description, 
 						 Lisp_Misc_User_Data);
 
-DEFINE_NONDUMPABLE_BASIC_LISP_OBJECT ("magic-eval-data", magic_eval_data,
+DEFINE_NODUMP_BASIC_LISP_OBJECT ("magic-eval-data", magic_eval_data,
 						 0, 0, 0, 0, 0,
 						 magic_eval_data_description, 
 						 Lisp_Magic_Eval_Data);
 
-DEFINE_NONDUMPABLE_BASIC_LISP_OBJECT ("magic-data", magic_data,
+DEFINE_NODUMP_BASIC_LISP_OBJECT ("magic-data", magic_data,
 						 0, 0, 0, 0, 0,
 						 magic_data_description,
 						 Lisp_Magic_Data);
@@ -509,11 +509,11 @@ event_hash (Lisp_Object obj, int depth)
   return 0; /* unreached */
 }
 
-DEFINE_NONDUMPABLE_BASIC_LISP_OBJECT ("event", event,
-						 mark_event, print_event, 0,
-						 event_equal, event_hash,
-						 event_description,
-						 Lisp_Event);
+DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("event", event,
+				      mark_event, print_event, 0,
+				      event_equal, event_hash,
+				      event_description,
+				      Lisp_Event);
 
 DEFUN ("make-event", Fmake_event, 0, 2, 0, /*
 Return a new event of type TYPE, with properties described by PLIST.
@@ -1186,7 +1186,12 @@ command_event_p (Lisp_Object event)
     }
 }
 
-/* USE_CONSOLE_META_FLAG is as in `character-to-event'.
+/* META_BEHAVIOR can be one of the following values, defined in events.h:
+
+    high_bit_is_meta
+    use_console_meta_flag
+    latin_1_maps_to_itself
+
    DO_BACKSPACE_MAPPING means that if CON is a TTY, and C is a the TTY's
    backspace character, the event will have keysym `backspace' instead of
    '(control h).  It is clearly correct to do this conversion is the
@@ -1236,7 +1241,7 @@ command_event_p (Lisp_Object event)
 
 void
 character_to_event (Ichar c, Lisp_Event *event, struct console *con,
-		    int use_console_meta_flag,
+		    character_to_event_meta_behavior meta_behavior,
 		    int USED_IF_TTY (do_backspace_mapping))
 {
   Lisp_Object k = Qnil;
@@ -1247,13 +1252,10 @@ character_to_event (Ichar c, Lisp_Event *event, struct console *con,
 #ifndef MULE
   c &= 255;
 #endif
-  if (c > 127 && c <= 255)
+  if (meta_behavior != latin_1_maps_to_itself && c > 127 && c <= 255)
     {
-      /* #### What if the user wanted a Latin-1 char?  Perhaps the answer
-	 is what was suggested above.
-      */
       int meta_flag = 1;
-      if (use_console_meta_flag && CONSOLE_TTY_P (con))
+      if (meta_behavior == use_console_meta_flag && CONSOLE_TTY_P (con))
 	meta_flag = TTY_FLAGS (con).meta_key;
       switch (meta_flag)
 	{
@@ -1442,7 +1444,7 @@ Beware that character-to-event and event-to-character are not strictly
 inverse functions, since events contain much more information than the
 Lisp character object type can encode.
 */
-       (keystroke, event, console, use_console_meta_flag))
+       (keystroke, event, console, use_console_meta_flag_))
 {
   struct console *con = decode_console (console);
   if (NILP (event))
@@ -1455,7 +1457,8 @@ Lisp character object type can encode.
     {
       CHECK_CHAR_COERCE_INT (keystroke);
       character_to_event (XCHAR (keystroke), XEVENT (event), con,
-			  !NILP (use_console_meta_flag), 1);
+			  (NILP (use_console_meta_flag_) ?
+			   high_bit_is_meta : use_console_meta_flag), 1); 
     }
   return event;
 }
@@ -2641,6 +2644,9 @@ void
 reinit_vars_of_events (void)
 {
   Vevent_resource = Qnil;
+#ifdef NEW_GC
+  staticpro (&Vevent_resource);
+#endif /* NEW_GC */
 }
 
 void

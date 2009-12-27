@@ -96,7 +96,7 @@ mark_scrollbar_instance (Lisp_Object obj)
     return Qnil;
 }
 
-DEFINE_NONDUMPABLE_LISP_OBJECT ("scrollbar-instance", scrollbar_instance,
+DEFINE_NODUMP_LISP_OBJECT ("scrollbar-instance", scrollbar_instance,
 					   mark_scrollbar_instance,
 					   0, 0, 0, 0, 
 					   scrollbar_instance_description,
