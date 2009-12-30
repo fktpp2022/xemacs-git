@@ -1,7 +1,7 @@
 /* Header for charsets.
    Copyright (C) 1992, 1995 Free Software Foundation, Inc.
    Copyright (C) 1995 Sun Microsystems, Inc.
-   Copyright (C) 2001, 2002, 2005 Ben Wing.
+   Copyright (C) 2001, 2002, 2005, 2009 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -84,6 +84,7 @@ extern Lisp_Object Vcharset_hash_table;
 
 #define Vcharset_ascii Qnil
 #define ichar_charset_obsolete_me_baby_please(c) Qnil
+#define XCHARSET_CCL_PROGRAM(cs) Qnil
 
 #else /* MULE */
 
@@ -100,7 +101,7 @@ struct Lisp_Charset
 	     byte for this charset; otherwise, an arbitrary unique value. */
   Lisp_Object name; /* Unique symbol that identifies this charset */
   Lisp_Object doc_string; /* */
-  Lisp_Object registry; /* regexp matching XLFD registry portion */
+  Lisp_Object registries; /* list of regexps matching XLFD registry portion */
   Lisp_Object short_name;
   Lisp_Object long_name;
 
@@ -159,6 +160,11 @@ struct Lisp_Charset
   int algo_low;
 #endif /* ALLOW_ALGORITHMIC_CONVERSION_TABLES */
 
+  /* If set, this charset should be written out in ISO-2022-based coding
+     systems using the escape sequence for UTF-8, not using our internal
+     representation and the associated real ISO 2022 designation. */
+  unsigned int encode_as_utf_8 :1;
+
   /* If set, this is a "temporary" charset created when we encounter
      an unknown final.  This is so that we can successfully compile
      and load such files.  We allow a real charset to be created on top
@@ -188,6 +194,7 @@ DECLARE_LRECORD (charset, Lisp_Charset);
 #define CHARSET_CHARS(cs, dim)	 ((cs)->chars[dim])
 #define CHARSET_COLUMNS(cs)	 ((cs)->columns)
 #define CHARSET_DIMENSION(cs)	 ((cs)->dimension)
+#define CHARSET_ENCODE_AS_UTF_8(cs)	 ((cs)->encode_as_utf_8)
 #define CHARSET_DIRECTION(cs)	 ((cs)->direction)
 #define CHARSET_DOC_STRING(cs)	 ((cs)->doc_string)
 #define CHARSET_FINAL(cs)	 ((cs)->final)
@@ -198,7 +205,7 @@ DECLARE_LRECORD (charset, Lisp_Charset);
 #define CHARSET_LONG_NAME(cs)	 ((cs)->long_name)
 #define CHARSET_NAME(cs)	 ((cs)->name)
 #define CHARSET_OFFSET(cs, dim)	 ((cs)->offset[dim])
-#define CHARSET_REGISTRY(cs)	 ((cs)->registry)
+#define CHARSET_REGISTRIES(cs)	 ((cs)->registries)
 #define CHARSET_REVERSE_DIRECTION_CHARSET(cs) ((cs)->reverse_direction_charset)
 #define CHARSET_SHORT_NAME(cs)	 ((cs)->short_name)
 #define CHARSET_TO_UNICODE_TABLE(cs) ((cs)->to_unicode_table)
@@ -206,6 +213,7 @@ DECLARE_LRECORD (charset, Lisp_Charset);
 #define XCHARSET_CHARS(cs, dim)	  CHARSET_CHARS        (XCHARSET (cs), dim)
 #define XCHARSET_COLUMNS(cs)	  CHARSET_COLUMNS      (XCHARSET (cs))
 #define XCHARSET_DIMENSION(cs)	  CHARSET_DIMENSION    (XCHARSET (cs))
+#define XCHARSET_ENCODE_AS_UTF_8(cs) CHARSET_ENCODE_AS_UTF_8 (XCHARSET (cs))
 #define XCHARSET_DIRECTION(cs)	  CHARSET_DIRECTION    (XCHARSET (cs))
 #define XCHARSET_DOC_STRING(cs)	  CHARSET_DOC_STRING   (XCHARSET (cs))
 #define XCHARSET_FINAL(cs)	  CHARSET_FINAL        (XCHARSET (cs))
@@ -216,7 +224,7 @@ DECLARE_LRECORD (charset, Lisp_Charset);
 #define XCHARSET_LONG_NAME(cs)	  CHARSET_LONG_NAME    (XCHARSET (cs))
 #define XCHARSET_NAME(cs)	  CHARSET_NAME         (XCHARSET (cs))
 #define XCHARSET_OFFSET(cs, dim)  CHARSET_OFFSET       (XCHARSET (cs), dim)
-#define XCHARSET_REGISTRY(cs)	  CHARSET_REGISTRY     (XCHARSET (cs))
+#define XCHARSET_REGISTRIES(cs)	  CHARSET_REGISTRIES     (XCHARSET (cs))
 #define XCHARSET_REVERSE_DIRECTION_CHARSET(cs)   CHARSET_REVERSE_DIRECTION_CHARSET (XCHARSET (cs))
 #define XCHARSET_SHORT_NAME(cs)	  CHARSET_SHORT_NAME   (XCHARSET (cs))
 #define XCHARSET_TO_UNICODE_TABLE(cs) CHARSET_TO_UNICODE_TABLE (XCHARSET (cs))
@@ -290,7 +298,11 @@ charset_by_attributes (int type, int final, int dir)
 /*                     General character manipulation                   */
 /************************************************************************/
 
-/* Return true if the specified codepoint is valid in the specified charset. */
+FIXME: Decide whether we want it to be the case that C1 or C2 is
+0 with dimension-1 charsets.  Check all callers to see how they handle
+things and whether they do it right.
+
+
 
 DECLARE_INLINE_HEADER (
 int
@@ -302,6 +314,12 @@ valid_charset_codepoint_p (Lisp_Object charset, int c1, int c2)
   return c1 >= l1 && c1 <= h1 && c2 >= l2 && c2 <= h2;
 }
 
+#define ASSERT_VALID_CHARSET_CODEPOINT(charset, c1, c2)			\
+do {									\
+  text_checking_assert (CHARSETP (charset));				\
+  text_checking_assert (valid_charset_codepoint_p (charset, c1, c2));	\
+} while (0)
+
 /* Convert a charset codepoint (CHARSET, one or two octets) to Unicode.
    Return -1 if can't convert. */
 
@@ -311,7 +329,9 @@ charset_codepoint_to_unicode_raw_1 (Lisp_Object charset, int c1, int c2
 				    INLINE_TEXT_CHECK_ARGS)
 )
 {
-  inline_text_checking_assert (valid_charset_codepoint_p (charset, c1, c2));
+  int retval;
+
+  ASSERT_VALID_CHARSET_CODEPOINT (charset, c1, c2);
 #ifdef ALLOW_ALGORITHMIC_CONVERSION_TABLES
   {
     /* Conceivably a good idea not to have this in Unicode-internal, since
@@ -321,7 +341,7 @@ charset_codepoint_to_unicode_raw_1 (Lisp_Object charset, int c1, int c2
     int algo_low = XCHARSET_ALGO_LOW (charset);
     if (algo_low >= 0)
       {
-	return (c1 - XCHARSET_OFFSET (charset, 0)) *
+	retval = (c1 - XCHARSET_OFFSET (charset, 0)) *
 	  XCHARSET_CHARS (charset, 1) + (c2 - XCHARSET_OFFSET (charset, 1)) +
 	  algo_low;
       }
@@ -329,12 +349,14 @@ charset_codepoint_to_unicode_raw_1 (Lisp_Object charset, int c1, int c2
 #endif /* ALLOW_ALGORITHMIC_CONVERSION_TABLES */
 #ifndef MAXIMIZE_UNICODE_TABLE_DEPTH
   if (XCHARSET_DIMENSION (charset) == 1)
-    return ((int *) XCHARSET_TO_UNICODE_TABLE (charset))
+    retval = ((int *) XCHARSET_TO_UNICODE_TABLE (charset))
       [c2- CHARSET_MIN_OFFSET];
   else
 #endif /* not MAXIMIZE_UNICODE_TABLE_DEPTH */
-    return ((int **) XCHARSET_TO_UNICODE_TABLE (charset))
+    retval = ((int **) XCHARSET_TO_UNICODE_TABLE (charset))
       [c1 - CHARSET_MIN_OFFSET][c2 - CHARSET_MIN_OFFSET];
+  ASSERT_VALID_UNICODE_CODEPOINT_OR_ERROR (retval);
+  return retval;
 }
 
 #define charset_codepoint_to_unicode_raw(charset, c1, c2) \
@@ -382,9 +404,9 @@ charset_codepoint_to_unicode (Lisp_Object charset, int c1, int c2,
 	}
     }
 
+  ASSERT_VALID_UNICODE_CODEPOINT_OR_ERROR (code);
   return code;
 }
-
 
 /* Convert Unicode codepoint to charset codepoint.  CHARSET will be nil if
    can't convert.  Requires a precedence list of charsets, to determine
@@ -396,7 +418,7 @@ unicode_to_charset_codepoint (int code, Lisp_Object_dynarr *charsets,
 			      Lisp_Object *charset, int *c1, int *c2)
 )
 {
-  text_checking_assert (valid_unicode_codepoint_p (code));
+  ASSERT_VALID_UNICODE_CODEPOINT (code);
   /* #### This optimization is not necessarily correct.  We'd like to be
      able to have a jis-roman charset and to convert to that if called for.
      What we really should do is have a special type for the charset
@@ -408,15 +430,15 @@ unicode_to_charset_codepoint (int code, Lisp_Object_dynarr *charsets,
       *charset = Vcharset_ascii;
       *c1 = 0;
       *c2 = code;
-      return;
     }
-
-  non_ascii_unicode_to_charset_codepoint (code, charsets, charset, c1, c2);
+  else
+    non_ascii_unicode_to_charset_codepoint (code, charsets, charset, c1, c2);
+  ASSERT_VALID_CHARSET_CODEPOINT_OR_ERROR (*charset, *c1, *c2);
 }
 
 /* Return a character whose charset is CHARSET and position-codes are C1
    and C2.  C1 and C2 must be within the range of the charset. (For
-   charsets of dimension 1, C2 must be 0.)
+   charsets of dimension 1, C1 must be 0.)
 
    The allowed range of a charset is derived from way the charset is usually
    coded in a simple MBCS representation.
@@ -446,13 +468,13 @@ charset_codepoint_to_ichar_raw (Lisp_Object charset, int c1, int c2)
   return (Ichar) charset_codepoint_to_unicode_raw (charset, c1, c2);
 #else
   Ichar retval;
-  text_checking_assert (valid_charset_codepoint_p (charset, c1, c2));
+  ASSERT_VALID_CHARSET_CODEPOINT (charset, c1, c2);
   if (EQ (charset, Vcharset_ascii))
     retval = c2;
   else
     retval = old_mule_non_ascii_charset_codepoint_to_ichar_raw (charset, c1,
 								c2);
-  text_checking_assert (valid_ichar_p (retval));
+  ASSERT_VALID_ICHAR_OR_ERROR (retval);
   return retval;
 #endif /* (not) UNICODE_INTERNAL */
 }
@@ -483,7 +505,7 @@ ichar_to_charset_codepoint (Ichar ch, Lisp_Object_dynarr *
 			    Lisp_Object *charset, int *c1, int *c2)
 )
 {
-  text_checking_assert (valid_ichar_p (ch));
+  ASSERT_VALID_ICHAR (ch);
 #ifdef UNICODE_INTERNAL
   unicode_to_charset_codepoint ((int) ch, charsets, charset, c1, c2);
 #else
@@ -492,9 +514,10 @@ ichar_to_charset_codepoint (Ichar ch, Lisp_Object_dynarr *
       *charset = Vcharset_ascii;
       *c1 = 0;
       *c2 = (int) ch;
-      return;
     }
-  old_mule_non_ascii_ichar_to_charset_codepoint_raw (ch, charset, c1, c2);
+  else
+    old_mule_non_ascii_ichar_to_charset_codepoint_raw (ch, charset, c1, c2);
+  ASSERT_VALID_CHARSET_CODEPOINT_OR_ERROR (*charset, *c1, *c2);
 #endif /* (not) UNICODE_INTERNAL */
 }
 
@@ -507,9 +530,9 @@ charset_codepoint_to_itext (Lisp_Object charset, int c1, int c2, Ibyte *ptr,
 			    enum converr fail)
 )
 {
+  ASSERT_VALID_CHARSET_CODEPOINT (charset, c1, c2);
   if (EQ (charset, Vcharset_ascii))
     {
-      text_checking_assert (c2 >= 0 && c2 < 0x80);
       ptr[0] = (Ibyte) c2;
       return 1;
     }
@@ -541,20 +564,22 @@ non_ascii_itext_to_charset_codepoint_raw (const Ibyte *ptr,
    conversion possible. */
 DECLARE_INLINE_HEADER (
 void
-itext_to_charset_codepoint_raw (const Ibyte *ptr, Lisp_Object_dynarr *charsets,
+itext_to_charset_codepoint_raw (const Ibyte *ptr,
+				Lisp_Object_dynarr *charsets,
 				Lisp_Object *charset, int *c1, int *c2)
 )
 {
   /* #### Not necessarily correct; see unicode_to_charset_codepoint(). */
+  ASSERT_VALID_ITEXT (ptr);
   if (byte_ascii_p (*ptr))
     {
       *charset = Vcharset_ascii;
       *c1 = 0;
       *c2 = *ptr;
-      return;
     }
-
-  non_ascii_itext_to_charset_codepoint_raw (ptr, charsets, charset, c1, c2);
+  else
+    non_ascii_itext_to_charset_codepoint_raw (ptr, charsets, charset, c1, c2);
+  ASSERT_VALID_CHARSET_CODEPOINT_OR_ERROR (*charset, *c1, *c2);
 }
 
 DECLARE_INLINE_HEADER (
@@ -565,16 +590,19 @@ itext_to_charset_codepoint (const Ibyte *ptr, Lisp_Object_dynarr *charsets,
 )
 {
   itext_to_charset_codepoint_raw (ptr, charsets, charset, c1, c2);
-  switch (fail)
+  if (NILP (charset))
     {
-    case CONVERR_FAIL: return;
-    case CONVERR_ABORT: ABORT(); /* @@#### implement me */
-    default:
-      *charset = Vcharset_ascii;
-      *c1 = 0;
-      *c2 = CANT_CONVERT_CHAR_WHEN_ENCODING;
-      return;
+      switch (fail)
+	{
+	case CONVERR_FAIL: break;
+	case CONVERR_ABORT: ABORT(); /* @@#### implement me */
+	default:
+	  *charset = Vcharset_ascii;
+	  *c1 = 0;
+	  *c2 = CANT_CONVERT_CHAR_WHEN_ENCODING;
+	}
     }
+  ASSERT_VALID_CHARSET_CODEPOINT_OR_ERROR (*charset, *c1, *c2);
 }
 
 /* Convert a charset codepoint (guaranteed not to be ASCII) into a
@@ -611,9 +639,9 @@ charset_codepoint_to_dynarr (Lisp_Object charset, int c1, int c2,
 			     enum converr fail)
 )
 {
+  ASSERT_VALID_CHARSET_CODEPOINT (charset, c1, c2);
   if (EQ (charset, Vcharset_ascii))
     {
-      text_checking_assert (c2 >= 0 && c2 < 0x80);
       Dynarr_add (dst, (Ibyte) c2);
       return 1;
     }
@@ -671,5 +699,22 @@ ichar_charset_obsolete_me_baby_please (Ichar ch)
 #define ichar_charset_obsolete_me_baby_please(c) old_mule_ichar_charset (c)
 #endif /* (not) UNICODE_INTERNAL */
 
+EXFUN (Fcharset_name, 1);
+
 #endif /* MULE */
+
+/* ISO 10646 UTF-16, UCS-4, UTF-8, UTF-7, etc. */
+
+
+#define UNICODE_ERROR_OCTET_RANGE_START 0x200000
+
+#define valid_utf_16_first_surrogate(ch) (((ch) & 0xFC00) == 0xD800)
+#define valid_utf_16_last_surrogate(ch) (((ch) & 0xFC00) == 0xDC00)
+#define valid_utf_16_surrogate(ch) (((ch) & 0xF800) == 0xD800)
+
+void set_charset_registries (Lisp_Object charset, Lisp_Object registries);
+
+EXFUN (Funicode_to_char, 2);
+EXFUN (Fchar_to_unicode, 1); 
+
 #endif /* not INCLUDED_charset_h_ */

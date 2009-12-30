@@ -787,7 +787,7 @@ print_table_entry (Lisp_Object UNUSED (table), Ichar ch,
   if (!a->first)
     write_c_string (a->printcharfun, " ");
   a->first = 0;
-  write_fmt_string_lisp (a->printcharfun, "%s %s", 2, make_char (ch), val);
+  write_fmt_string_lisp (a->printcharfun, "%s %S", 2, make_char (ch), val);
   return 0;
 }
 
@@ -1057,25 +1057,32 @@ Each char table type is used for a different purpose and allows different
 sorts of values.  The different char table types are
 
 `category'
-	Used for category tables, which specify the regexp categories
-	that a character is in.  The valid values are nil or a
-	bit vector of 95 elements.  Higher-level Lisp functions are
-	provided for working with category tables.  Currently categories
+	Used for category tables, which specify the regexp categories that a
+	character is in.  The valid values are nil or a bit vector of 95
+	elements, and values default to nil.  Higher-level Lisp functions
+	are provided for working with category tables.  Currently categories
 	and category tables only exist when Mule support is present.
 `char'
-	A generalized char table, for mapping from one character to
-	another.  Used for case tables, syntax matching tables,
-	`keyboard-translate-table', etc.  The valid values are characters.
+	A generalized char table, for mapping from one character to another.
+	Used for case tables, syntax matching tables,
+	`keyboard-translate-table', etc.  The valid values are characters,
+	and the default result given by `get-char-table' if a value hasn't
+	been set for a given character or for a range that includes it, is
+	?\x00.
 `generic'
-        An even more generalized char table, for mapping from a
-	character to anything.
+        An even more generalized char table, for mapping from a character to
+	anything. The default result given by `get-char-table' is nil.
 `display'
-	Used for display tables, which specify how a particular character
-	is to appear when displayed.  #### Not yet implemented.
+	Used for display tables, which specify how a particular character is
+	to appear when displayed.  #### Not yet implemented; currently, the
+	display table code uses generic char tables, and it's not clear that
+	implementing this char table type would be useful.
 `syntax'
 	Used for syntax tables, which specify the syntax of a particular
 	character.  Higher-level Lisp functions are provided for
-	working with syntax tables.  The valid values are integers.
+	working with syntax tables.  The valid values are integers, and the
+	default result given by `get-char-table' is the syntax code for
+	`inherit'.
 */
        (type))
 {
@@ -1093,7 +1100,7 @@ sorts of values.  The different char table types are
       /* Qgeneric not Qsyntax because a syntax table has a mirror table
 	 and we don't want infinite recursion */
       ct->mirror_table = Fmake_char_table (Qgeneric);
-      set_char_table_default (ct->mirror_table, make_int (Spunct));
+      set_char_table_default (ct->mirror_table, make_int (Sword));
       XCHAR_TABLE (ct->mirror_table)->mirror_table_p = 1;
       XCHAR_TABLE (ct->mirror_table)->mirror_table = obj;
     }
@@ -1124,6 +1131,7 @@ as CHAR-TABLE.  The values will not themselves be copied.
 
   CHECK_CHAR_TABLE (char_table);
   ct = XCHAR_TABLE (char_table);
+  assert(!ct->mirror_table_p);
   ctnew = ALLOC_LCRECORD_TYPE (Lisp_Char_Table, &lrecord_char_table);
   ctnew->type = ct->type;
   ctnew->parent = ct->parent;
@@ -1133,15 +1141,19 @@ as CHAR-TABLE.  The values will not themselves be copied.
   obj = wrap_char_table (ctnew);
 
 #ifdef MIRROR_TABLE
-  ctnew->mirror_table_p = ct->mirror_table_p;
-  if (!ct->mirror_table_p && CHAR_TABLEP (ct->mirror_table))
+  ctnew->mirror_table_p = 0;
+  if (!EQ (ct->mirror_table, Qnil))
     {
-      ctnew->mirror_table = Fcopy_char_table (ct->mirror_table);
+      ctnew->mirror_table = Fmake_char_table (Qgeneric);
+      set_char_table_default (ctnew->mirror_table, make_int (Sword));
       XCHAR_TABLE (ctnew->mirror_table)->mirror_table = obj;
+      XCHAR_TABLE (ctnew->mirror_table)->mirror_table_p = 1;
+      XCHAR_TABLE (ctnew->mirror_table)->dirty = 1;
     }
   else
-    ctnew->mirror_table = ct->mirror_table;
+    ctnew->mirror_table = Qnil;
 #endif /* MIRROR_TABLE */
+
   ctnew->next_table = Qnil;
   if (ctnew->type == CHAR_TABLE_TYPE_SYNTAX)
     {
