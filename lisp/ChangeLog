@@ -1,7 +1,38 @@
+2009-12-31  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* list-mode.el (next-list-mode-item, switch-to-completions): Use
+	next-single-char-property-change,
+	previous-single-char-property-change now
+	next-single-property-change no longer pays attention to extents
+	not created using the text property functions. Fix for issue 546,
+	bug dates from changeset 8c96bdabcaf9.
+
+2009-12-21  Jerry James  <james@xemacs.org>
+
+	* dragdrop.el (offix-start-drag): Remove.
+	(offix-start-drag-region): Remove.
+	* mouse.el (mouse-begin-drag-n-drop): Remove OffiX support.
+
+2009-12-21  Adrian Aichner  <adrian@xemacs.org>
+
+	* package-get.el (package-get-download-sites): Remove
+	dk.xemacs.org from list of package download sites.
+	* package-get.el (package-get-pre-release-download-sites): Ditto.
+
+2009-12-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* mule/arabic.el (arabic-iso8859-6): 
+	Move the creation of this character set to this (dumped) file,
+	since it's needed for input on X11. 
+	* mule/iso-with-esc.el: 
+	Remove arabic-iso8859-6 and its Unicode map from this file.
+	* unicode.el (load-unicode-tables): 
+	Load arabic-iso8859-6 on startup again.
+
 2009-12-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* cl-macs.el (cl-do-arglist):
-	* cl-compat.el (keyword-of): 
+	* cl-compat.el (keyword-of):
 	Remove support in our generated code for emacs versions where
 	keywords are not self-quoting.
 
@@ -140,6 +171,19 @@
 	Remove the compiler form for this bytecode, we no longer generate
 	calls to it. Keep the information about the bytecode's numeric
 	value, we want that for disassembling code.
+
+2009-11-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl-extra.el (cl-string-vector-equalp)
+	(cl-bit-vector-vector-equalp, cl-vector-array-equalp)
+	(cl-hash-table-contents-equalp): New functions, to implement
+	equalp treating arrays with identical contents as equivalent, as
+	specified by Common Lisp. 
+	(equalp): Revise this function to implement array equivalence,
+	and the hash-table equalp behaviour specified by CL.
+	* cl-macs.el (equalp): Add a compiler macro for this function,
+	used when one of the arguments is constant, and as such, its type
+	is known at compile time. 
 
 2009-11-01  Aidan Kehoe  <kehoea@parhasard.net>
 
