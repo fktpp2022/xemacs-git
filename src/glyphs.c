@@ -2379,9 +2379,10 @@ query_string_geometry (Lisp_Object string, Lisp_Object face,
 {
   struct font_metric_info fm;
   unsigned char charsets[NUM_LEADING_BYTES];
-  struct face_cachel frame_cachel;
-  struct face_cachel *cachel;
-  Lisp_Object frame = DOMAIN_FRAME (domain);
+  struct face_cachel cachel;
+  struct face_cachel *the_cachel;
+  Lisp_Object window = DOMAIN_WINDOW (domain);
+  Lisp_Object frame  = DOMAIN_FRAME  (domain);
 
   CHECK_STRING (string);
 
@@ -2396,18 +2397,22 @@ query_string_geometry (Lisp_Object string, Lisp_Object face,
       /* Fallback to the default face if none was provided. */
       if (!NILP (face))
 	{
-	  reset_face_cachel (&frame_cachel);
-	  update_face_cachel_data (&frame_cachel, frame, face);
-	  cachel = &frame_cachel;
+	  reset_face_cachel (&cachel);
+	  update_face_cachel_data (&cachel,
+				   /* #### NOTE: in fact, I'm not sure if it's
+				      #### possible to *not* get a window
+				      #### here, but you never know...
+				      #### -- dvl */
+				   NILP (window) ? frame : window,
+				   face);
+	  the_cachel = &cachel;
 	}
       else
-	{
-	  cachel = WINDOW_FACE_CACHEL (DOMAIN_XWINDOW (domain),
-				       DEFAULT_INDEX);
-	}
+	the_cachel = WINDOW_FACE_CACHEL (DOMAIN_XWINDOW (domain),
+					 DEFAULT_INDEX);
 
-      ensure_face_cachel_complete (cachel, domain, charsets);
-      face_cachel_charset_font_metric_info (cachel, charsets, &fm);
+      ensure_face_cachel_complete (the_cachel, domain, charsets);
+      face_cachel_charset_font_metric_info (the_cachel, charsets, &fm);
 
       *height = fm.ascent + fm.descent;
       /* #### descent only gets set if we query the height as well. */
@@ -2417,48 +2422,33 @@ query_string_geometry (Lisp_Object string, Lisp_Object face,
 
   /* Compute width */
   if (width)
-    {
-      if (!NILP (face))
-	*width = redisplay_frame_text_width_string (XFRAME (frame),
-						    face,
-						    0, string, 0, -1);
-      else
-	*width = redisplay_frame_text_width_string (XFRAME (frame),
-						    Vdefault_face,
-						    0, string, 0, -1);
-    }
+    *width = redisplay_text_width_string (domain,
+					  NILP (face) ? Vdefault_face : face,
+					  0, string, 0, -1);
 }
 
 Lisp_Object
 query_string_font (Lisp_Object string, Lisp_Object face, Lisp_Object domain)
 {
   unsigned char charsets[NUM_LEADING_BYTES];
-  struct face_cachel frame_cachel;
-  struct face_cachel *cachel;
+  struct face_cachel cachel;
   int i;
-  Lisp_Object frame = DOMAIN_FRAME (domain);
+  Lisp_Object window = DOMAIN_WINDOW (domain);
+  Lisp_Object frame  = DOMAIN_FRAME  (domain);
 
   /* Compute string font info */
   find_charsets_in_ibyte_string (charsets,
-				   XSTRING_DATA   (string),
-				   XSTRING_LENGTH (string));
+				 XSTRING_DATA   (string),
+				 XSTRING_LENGTH (string));
 
-  reset_face_cachel (&frame_cachel);
-  update_face_cachel_data (&frame_cachel, frame, face);
-  cachel = &frame_cachel;
-
-  ensure_face_cachel_complete (cachel, domain, charsets);
+  reset_face_cachel (&cachel);
+  update_face_cachel_data (&cachel, NILP (window) ? frame : window, face);
+  ensure_face_cachel_complete (&cachel, domain, charsets);
 
   for (i = 0; i < NUM_LEADING_BYTES; i++)
-    {
-      if (charsets[i])
-	{
-	  return FACE_CACHEL_FONT (cachel,
-				   charset_by_leading_byte (i +
-							    MIN_LEADING_BYTE));
-
-	}
-    }
+    if (charsets[i])
+      return FACE_CACHEL_FONT
+	((&cachel), charset_by_leading_byte (i + MIN_LEADING_BYTE));
 
   return Qnil;			/* NOT REACHED */
 }
