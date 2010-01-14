@@ -2800,9 +2800,6 @@ specifier_instance_from_inst_list (Lisp_Object specifier,
   int count = specpdl_depth (), respected_charsets = 0;
   struct gcpro gcpro1, gcpro2;
   enum font_specifier_matchspec_stages stage = STAGE_INITIAL;
-#ifdef DEBUG_XEMACS
-  int non_ascii;
-#endif
 
   GCPRO2 (specifier, inst_list);
 
@@ -2827,7 +2824,7 @@ specifier_instance_from_inst_list (Lisp_Object specifier,
       /* This is mostly to have somewhere to set debug breakpoints. */
       if (!EQ (charset, Vcharset_ascii))
 	{
-	  non_ascii = 1;
+	  (void) 0;
 	}
 #endif /* DEBUG_XEMACS */
 
