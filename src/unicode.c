@@ -3483,3 +3483,38 @@ when no font matching the charset's registries property has been found
   Vutf_8_invalid_string = Qnil;
 #endif /* MULE */
 }
+
+void
+complex_vars_of_unicode (void)
+{
+  /* We used to define this in unicode.el.  But we need it early for
+     Cygwin 1.7 -- used in LOCAL_FILE_FORMAT_TO_TSTR() et al. */
+  Fmake_coding_system_internal
+    (Qutf_8, Qunicode,
+     build_msg_string ("UTF-8"),
+     nconc2 (list4 (Qdocumentation,
+		    build_msg_string (
+"UTF-8 Unicode encoding -- ASCII-compatible 8-bit variable-width encoding\n"
+"sharing the following principles with the Mule-internal encoding:\n"
+"\n"
+"  -- All ASCII characters (codepoints 0 through 127) are represented\n"
+"     by themselves (i.e. using one byte, with the same value as the\n"
+"     ASCII codepoint), and these bytes are disjoint from bytes\n"
+"     representing non-ASCII characters.\n"
+"\n"
+"     This means that any 8-bit clean application can safely process\n"
+"     UTF-8-encoded text as it were ASCII, with no corruption (e.g. a\n"
+"     '/' byte is always a slash character, never the second byte of\n"
+"     some other character, as with Big5, so a pathname encoded in\n"
+"     UTF-8 can safely be split up into components and reassembled\n"
+"     again using standard ASCII processes).\n"
+"\n"
+"  -- Leading bytes and non-leading bytes in the encoding of a\n"
+"     character are disjoint, so moving backwards is easy.\n"
+"\n"
+"  -- Given only the leading byte, you know how many following bytes\n"
+"     are present.\n"
+),
+		    Qmnemonic, build_string ("UTF8")),
+	     list2 (Qunicode_type, Qutf_8)));
+}

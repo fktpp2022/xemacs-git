@@ -1447,7 +1447,7 @@ if test -z "$with_pdump"; then
   case "$opsys" in
     linux* )  with_pdump=yes ;;          dnl glibc 2.3.1 seems to hose unexec
     darwin )  with_pdump=yes ;;          dnl No "native" working dumper available
-    cygwin* ) with_pdump=yes ;;          dnl unexec is broken
+    cygwin* ) with_pdump=yes ;;          dnl No "native" dumper available
     * )       with_pdump=no ;;
   esac
 fi
@@ -4305,6 +4305,12 @@ if test "$need_motif" = "yes" ; then
   AC_CHECK_LIB(i18n, layout_object_getvalue, [XE_PREPEND(-li18n, libs_x)])
   XE_COMPUTE_RUNPATH()
 fi
+
+dnl Check for UTF-8 path-conversion functions in Cygwin 1.7 and on
+case "$opsys" in
+  *cygwin* ) AC_CHECK_FUNCS(cygwin_conv_path)
+	 ;;
+esac
 
 dnl ----------------------------------------------------------------
 dnl Check for POSIX functions.

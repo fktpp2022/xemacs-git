@@ -1,3 +1,14 @@
+2010-01-13  Ben Wing  <ben@xemacs.org>
+
+	* automated/test-harness.el (test-harness-from-buffer):
+	Need to quote the assertion expression, but not the description
+	expression.
+
+2010-01-11  Ben Wing  <ben@xemacs.org>
+
+	* automated/mule-tests.el (featurep):
+	Use utf-8 as file-name-coding-system under Cygwin 1.7+.
+
 2010-01-01  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/lisp-tests.el: 

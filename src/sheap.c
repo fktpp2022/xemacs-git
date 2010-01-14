@@ -27,7 +27,7 @@ Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 #include <sheap-adjust.h>
 
 #define STATIC_HEAP_BASE	0x800000
-#define STATIC_HEAP_SLOP	0xA00000
+#define STATIC_HEAP_SLOP	0x80000
 #define STATIC_HEAP_SIZE \
 (STATIC_HEAP_BASE + SHEAP_ADJUSTMENT + STATIC_HEAP_SLOP)
 #define BLOCKSIZE	(1<<12)

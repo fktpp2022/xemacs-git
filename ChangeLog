@@ -1,3 +1,34 @@
+2010-01-13  Jerry James  <james@xemacs.org>
+
+	* configure.ac: Update comment about Cygwin and pdump.
+
+2010-01-13  Ben Wing  <ben@xemacs.org>
+
+	* Makefile.in.in (fix-perms):
+	Add target for fix-perms.  Run it to correct permissions.
+
+	* INSTALL:
+	* PROBLEMS:
+	* configure:
+	* configure.ac (XE_COMPLEX_ARG):
+	* configure.ac (XE_EXPAND_VARIABLE):
+	* configure.ac (TAB):
+	Rename all instances of enable-FOO to with-FOO.  enable-FOO has long
+	been aliased to with-FOO and we still preserve this, but formerly
+	we randomly used enable-FOO but with-BAR.
+
+2010-01-11  Ben Wing  <ben@xemacs.org>
+
+	* configure:
+	* configure.ac (TAB):
+	Add check for cygwin_conv_path().
+
+2010-01-11  Ben Wing  <ben@xemacs.org>
+
+	* configure:
+	* configure.ac (TAB):
+	Define USE_GPLUSPLUS when compiling with g++.
+
 2010-01-06  Jerry James  <james@xemacs.org>
 
 	* configure.ac: Add --with-valgrind option.

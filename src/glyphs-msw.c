@@ -1244,7 +1244,7 @@ mswindows_resource_instantiate (Lisp_Object image_instance,
     {
       Extbyte *fname;
 
-      LOCAL_FILE_FORMAT_TO_TSTR (file, fname);
+      LISP_LOCAL_FILE_FORMAT_TO_TSTR (file, fname);
 
       if (NILP (resource_id))
 	resid = fname;
