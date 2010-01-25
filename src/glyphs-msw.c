@@ -1103,7 +1103,7 @@ mswindows_resource_possible_dest_types (void)
 
 typedef struct
 {
-  CIbyte *name;
+  const Ascbyte *name;
   int	resource_id;
 } resource_t;
 

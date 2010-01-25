@@ -860,6 +860,7 @@ prune_syntax_tables (void)
 static void
 decode_char_table_range (Lisp_Object range, struct chartab_range *outrange)
 {
+  xzero (*outrange);
   if (EQ (range, Qt))
     outrange->type = CHARTAB_RANGE_ALL;
   else if (CHAR_OR_CHAR_INTP (range))

@@ -1041,7 +1041,7 @@ window_divider_width (struct window *w)
 }
 
 int
-window_scrollbar_width (struct window *w)
+window_scrollbar_width (struct window * USED_IF_SCROLLBARS (w))
 {
 #ifdef HAVE_SCROLLBARS
   if (!WINDOW_WIN_P (w)
@@ -1060,7 +1060,7 @@ window_scrollbar_width (struct window *w)
 /* Horizontal scrollbars are only active on windows with truncation
    turned on. */
 int
-window_scrollbar_height (struct window *w)
+window_scrollbar_height (struct window * USED_IF_SCROLLBARS (w))
 {
 #ifdef HAVE_SCROLLBARS
   if (!WINDOW_WIN_P (w)
@@ -1267,7 +1267,8 @@ window_bottom_gutter_height (struct window *w)
 }
 
 static int
-window_left_window_gutter_width (struct window *w, int modeline)
+window_left_window_gutter_width (struct window *w,
+				 int USED_IF_SCROLLBARS (modeline))
 {
   if (!NILP (w->hchild) || !NILP (w->vchild))
     return 0;
@@ -1287,7 +1288,8 @@ window_left_gutter_width (struct window *w, int modeline)
 }
 
 static int
-window_right_window_gutter_width (struct window *w, int modeline)
+window_right_window_gutter_width (struct window *w,
+				  int USED_IF_SCROLLBARS (modeline))
 {
   int gutter = 0;
 
