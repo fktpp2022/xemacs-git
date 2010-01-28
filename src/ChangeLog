@@ -999,6 +999,217 @@
 	Declare some temporary pointer variables const to avoid compile
 	errors under C++ and/or Visual Studio 6.
 
+2010-01-27  Ben Wing  <ben@xemacs.org>
+
+	* casetab.c: Typo in comment.
+
+2010-01-18  Ben Wing  <ben@xemacs.org>
+
+	* lisp.h:
+	* print.c:
+	New variable `in_debug_print'.
+	
+	* alloc.c:
+	* alloc.c (free_managed_lcrecord):
+	If gc_in_progress and in_debug_print, just return instead of
+	crashing. This only happens when the programmer calls debug_print()
+	or a variation inside of a debugger, and is probably already
+	diagnosing a crash.
+	
+	* print.c (struct debug_bindings):
+	* print.c (debug_prin1_exit):
+	* print.c (debug_prin1):
+	At entrance, record the old value of in_debug_print in the
+	debug_bindings, set up an unwind-protect to restore the old value,
+	and set in_debug_print to 1.  In the unwind-protect, restore the
+	old value.
+	
+
+2010-01-16  Ben Wing  <ben@xemacs.org>
+
+	* win32.c (mswindows_read_link_1):
+	Conditionalize COM support on HAVE_MS_WINDOWS because otherwise we
+	haven't linked with the appropriate libraries.
+
+2010-01-15  Ben Wing  <ben@xemacs.org>
+
+	* doprnt.c (emacs_doprnt_1):
+	Cosmetic: Use Qunbound, not Qnil as second arg to call to
+	syntax_error() to get cleaner error message.
+	
+2010-01-15  Ben Wing  <ben@xemacs.org>
+
+	* intl-encap-win32.c:
+	Add `review' lines for all functions seen in the headers that we
+	process but not yet associated with an encapsulation command.
+	These will cause an error to be signaled if these functions are
+	used.
+	* intl-auto-encap-win32.c:
+	* intl-auto-encap-win32.h:
+	Regenerate.
+
+2010-01-15  Ben Wing  <ben@xemacs.org>
+
+	* intl-auto-encap-win32.c:
+	* intl-auto-encap-win32.c (qxeExtractAssociatedIcon):
+	* intl-auto-encap-win32.c (qxeShellExecuteEx):
+	* intl-auto-encap-win32.c (qxeSHFileOperation):
+	* intl-auto-encap-win32.c (qxeSHQueryRecycleBin):
+	* intl-auto-encap-win32.c (qxeSHEmptyRecycleBin):
+	* intl-auto-encap-win32.c (qxeWNetAddConnection):
+	* intl-auto-encap-win32.c (qxeWNetAddConnection2):
+	* intl-auto-encap-win32.c (qxeWNetAddConnection3):
+	* intl-auto-encap-win32.c (qxeWNetCancelConnection):
+	* intl-auto-encap-win32.c (qxeWNetCancelConnection2):
+	* intl-auto-encap-win32.c (qxeWNetGetConnection):
+	* intl-auto-encap-win32.c (qxeWNetUseConnection):
+	* intl-auto-encap-win32.c (qxeWNetConnectionDialog1):
+	* intl-auto-encap-win32.c (qxeWNetDisconnectDialog1):
+	* intl-auto-encap-win32.c (qxeWNetOpenEnum):
+	* intl-auto-encap-win32.c (qxeWNetEnumResource):
+	* intl-auto-encap-win32.c (qxeWNetGetUniversalName):
+	* intl-auto-encap-win32.c (qxeWNetGetUser):
+	* intl-auto-encap-win32.c (qxeWNetGetProviderName):
+	* intl-auto-encap-win32.c (qxeWNetGetNetworkInformation):
+	* intl-auto-encap-win32.c (qxeWNetGetLastError):
+	* intl-auto-encap-win32.c (qxeMultinetGetConnectionPerformance):
+	* intl-auto-encap-win32.c (qxeAppendMenu):
+	* intl-auto-encap-win32.c (qxeCopyAcceleratorTable):
+	* intl-auto-encap-win32.c (qxeDlgDirSelectComboBoxEx):
+	* intl-auto-encap-win32.c (qxeEnumDesktops):
+	* intl-auto-encap-win32.c (qxeEnumWindowStations):
+	* intl-auto-encap-win32.c (qxeGetClassInfo):
+	* intl-auto-encap-win32.c (qxeGetClassLong):
+	* intl-auto-encap-win32.c (qxeGetClassName):
+	* intl-auto-encap-win32.c (qxeGetKeyboardLayoutName):
+	* intl-auto-encap-win32.c (qxeGetWindowLong):
+	* intl-auto-encap-win32.c (qxeGetUserObjectInformation):
+	* intl-auto-encap-win32.c (qxeGetWindowTextLength):
+	* intl-auto-encap-win32.c (qxeGrayString):
+	* intl-auto-encap-win32.c (qxeInsertMenu):
+	* intl-auto-encap-win32.c (qxeSetProp):
+	* intl-auto-encap-win32.c (qxeEnumICMProfiles):
+	* intl-auto-encap-win32.c (qxeExtTextOut):
+	* intl-auto-encap-win32.c (qxeSetICMProfile):
+	* intl-auto-encap-win32.c (qxeTextOut):
+	* intl-auto-encap-win32.c (qxeSHGetPathFromIDList):
+	* intl-auto-encap-win32.c (qxeFindText):
+	* intl-auto-encap-win32.c (qxeReplaceText):
+	* intl-auto-encap-win32.c (qxeImmInstallIME):
+	* intl-auto-encap-win32.c (qxeImmGetDescription):
+	* intl-auto-encap-win32.c (qxeImmGetIMEFileName):
+	* intl-auto-encap-win32.c (qxeImmGetCompositionString):
+	* intl-auto-encap-win32.c (qxeImmGetCandidateListCount):
+	* intl-auto-encap-win32.c (qxeImmGetCandidateList):
+	* intl-auto-encap-win32.c (qxeImmGetGuideLine):
+	* intl-auto-encap-win32.c (qxeImmConfigureIME):
+	* intl-auto-encap-win32.c (qxeImmEscape):
+	* intl-auto-encap-win32.c (qxeImmGetConversionList):
+	* intl-auto-encap-win32.c (qxeImmRegisterWord):
+	* intl-auto-encap-win32.c (qxeImmUnregisterWord):
+	* intl-auto-encap-win32.c (qxeImmEnumRegisterWord):
+	* intl-auto-encap-win32.c (qxesndPlaySound):
+	* intl-auto-encap-win32.c (qxePlaySound):
+	* intl-auto-encap-win32.c (qxewaveOutGetErrorText):
+	* intl-auto-encap-win32.c (qxewaveInGetErrorText):
+	* intl-auto-encap-win32.c (qxemidiOutGetErrorText):
+	* intl-auto-encap-win32.c (qxemidiInGetErrorText):
+	* intl-auto-encap-win32.c (qxemmioStringToFOURCC):
+	* intl-auto-encap-win32.c (qxemmioInstallIOProc):
+	* intl-auto-encap-win32.c (qxemmioOpen):
+	* intl-auto-encap-win32.c (qxemmioRename):
+	* intl-auto-encap-win32.c (qxemciSendCommand):
+	* intl-auto-encap-win32.c (qxemciSendString):
+	* intl-auto-encap-win32.c (qxemciGetDeviceID):
+	* intl-auto-encap-win32.c (qxemciGetErrorString):
+	* intl-auto-encap-win32.h:
+	* intl-auto-encap-win32.h (qxemciGetErrorString):
+	Regenerate these files from Cygwin headers.
+	
+	* intl-encap-win32.c:
+	Bracket more functions in HAVE_MS_WINDOWS, to fix build problems
+	when building --with-msw=no on Cygwin.
+
+	Fixes for Cygwin headers:
+	-- Comment out IME.H, non-existent in Cygwin.
+	-- Make MessageBoxIndirect a `no' (don't encapsulate but generate
+	   error if used) because it has a structure parameter that needs
+	   to be A/W split but is declared as FOO*, and our parser can't
+	   split this.
+
+2010-01-15  Ben Wing  <ben@xemacs.org>
+
+	* Makefile.in.in:
+	Build xemacs-export.o whenever we're on any Windows OS (WIN32_ANY)
+	instead of only when we build support for the GUI portion of
+	MS-Windows (HAVE_MS_WINDOWS).
+
+	Cosmetic: Use WIN32_ANY in place of equivalent
+	(WIN32_NATIVE or CYGWIN).
+
+2010-01-15  Ben Wing  <ben@xemacs.org>
+
+	* emacs.c:
+	* emacs.c (debug_can_access_memory):
+	When checking for bad memory, we need to read all bytes from memory;
+	try even harder to avoid the possibility that a super-optimizing
+	compiler will optimize away the memory reads.
+
+2010-01-15  Ben Wing  <ben@xemacs.org>
+
+	* syswindows.h (LOCAL_FILE_FORMAT_TO_TSTR):
+	* syswindows.h (LOCAL_FILE_FORMAT_TO_INTERNAL_MSWIN):
+	* syswindows.h (INTERNAL_MSWIN_TO_LOCAL_FILE_FORMAT):
+	Declare some temporary pointer variables const to avoid compile
+	errors under C++ and/or Visual Studio 6.
+
+2010-01-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* number.c (Fnumerator, Fdenominator, Fcanonicalize_number):
+	Be more careful to return integers in their canonical forms here,
+	and to give the same answer all the time when treating a rational
+	that is itself is an integer as a ratio.
+
+2010-01-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Fix problems with #'eql, extended number types, and the hash table
+	implementation; change the Bintegerp bytecode to fixnump semantics
+	even on bignum builds, since #'integerp can have a fast
+	implementation in terms of #'fixnump for most of its extant uses,
+	but not vice-versa.
+
+	* lisp.h: Always #include number.h; we want the macros provided in
+	it, even if the various number types are not available.
+	* number.h (NON_FIXNUM_NUMBER_P): New macro, giving 1 when its
+	argument is of non-immediate number type.  Equivalent to FLOATP if
+	WITH_NUMBER_TYPES is not defined.
+
+	* elhash.c (lisp_object_eql_equal, lisp_object_eql_hash):
+	Use NON_FIXNUM_NUMBER_P in these functions, instead of FLOATP,
+	giving more correct behaviour in the presence of the extended
+	number types.
+	* bytecode.c (Bfixnump, execute_optimized_program):
+	Rename Bintegerp to Bfixnump; change its semantics to reflect the
+	new name on builds with bignum support.
+
+	* data.c (Ffixnump, Fintegerp, syms_of_data, vars_of_data): 
+	Always make #'fixnump available, even on non-BIGNUM builds;
+	always implement #'integerp in this file, even on BIGNUM builds.
+	Move most-positive-fixnum, most-negative-fixnum here from
+	number.c, so they are Lisp constants even on builds without number
+	types, and attempts to change or bind them error.
+	Use the NUMBERP and INTEGERP macros even on builds without
+	extended number types.
+	* data.c (fixnum_char_or_marker_to_int):
+	Rename this function from integer_char_or_marker_to_int, to better
+	reflect the arguments it accepts.
+
+	* number.c (Fevenp, Foddp, syms_of_number):
+	Never provide #'integerp in this file. Remove #'oddp,
+	#'evenp; their implementations are overridden by those in cl.el.
+	* number.c (vars_of_number):
+	most-positive-fixnum, most-negative-fixnum are no longer here.
+
 2010-01-17  Vin Shelton  <acs@xemacs.org>
 
 	* fileio.c (check_writable): Remove cast from 2010-01-14
