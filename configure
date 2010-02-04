@@ -13702,7 +13702,7 @@ done
             with_fontconfig=yes
       $as_echo "#define HAVE_FONTCONFIG 1" >>confdefs.h
 
-      $as_echo "#define USE_XFT 1" >>confdefs.h
+      $as_echo "#define HAVE_XFT 1" >>confdefs.h
 
                   unset xft_includes_found
     fi
@@ -16676,11 +16676,11 @@ test "$with_dialogs"    = "motif"  && $as_echo "#define LWLIB_DIALOGS_MOTIF 1" >
 test "$with_widgets"    = "motif"  && $as_echo "#define LWLIB_WIDGETS_MOTIF 1" >>confdefs.h
 
 
-test "$with_xft_menubars" = "yes"  && $as_echo "#define USE_XFT_MENUBARS 1" >>confdefs.h
+test "$with_xft_menubars" = "yes"  && $as_echo "#define HAVE_XFT_MENUBARS 1" >>confdefs.h
 
-test "$with_xft_tabs" = "yes"  && $as_echo "#define USE_XFT_TABS 1" >>confdefs.h
+test "$with_xft_tabs" = "yes"  && $as_echo "#define HAVE_XFT_TABS 1" >>confdefs.h
 
-test "$with_xft_gauges" = "yes"  && $as_echo "#define USE_XFT_GAUGES 1" >>confdefs.h
+test "$with_xft_gauges" = "yes"  && $as_echo "#define HAVE_XFT_GAUGES 1" >>confdefs.h
 
 
 

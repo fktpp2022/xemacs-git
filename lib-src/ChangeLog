@@ -10,6 +10,10 @@
 	* ootags.c (C_entries):
 	Fix warnings about possible use of uninitialized vars.
 
+2010-02-01  Vin Shelton  <acs@xemacs.org>
+
+	* make-mswin-unicode.pl: Add description of override.
+
 2010-01-30  Ben Wing  <ben@xemacs.org>
 
 	* make-mswin-unicode.pl:

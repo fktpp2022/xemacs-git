@@ -54,6 +54,8 @@ Boston, MA 02111-1307, USA.  */
 #include <config.h>
 #include "lisp.h"
 
+#include "bytecode.h"		/* for COMPILED_FUNCTION_ANNOTATION_HACK,
+				   defined in bytecode.h and used here. */
 #include "buffer.h"		/* for Vbuffer_defaults */
 #include "console-impl.h"
 #include "elhash.h"
@@ -716,12 +718,19 @@ Set SYMBOL's function definition to NEWDEF, and return NEWDEF.
 DEFUN ("define-function", Fdefine_function, 2, 2, 0, /*
 Set SYMBOL's function definition to NEWDEF, and return NEWDEF.
 Associates the function with the current load file, if any.
+If NEWDEF is a compiled-function object, stores the function name in
+the `annotated' slot of the compiled-function (retrievable using
+`compiled-function-annotation').
 */
        (symbol, newdef))
 {
   /* This function can GC */
   Ffset (symbol, newdef);
   LOADHIST_ATTACH (Fcons (Qdefun, symbol));
+#ifdef COMPILED_FUNCTION_ANNOTATION_HACK
+  if (COMPILED_FUNCTIONP (newdef))
+    XCOMPILED_FUNCTION (newdef)->annotated = symbol;
+#endif /* COMPILED_FUNCTION_ANNOTATION_HACK */
   return newdef;
 }
 
