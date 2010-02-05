@@ -1110,7 +1110,7 @@ font_enum_callback_2 (ENUMLOGFONTEXW *lpelfe, NEWTEXTMETRICEXW *lpntme,
    * weights unspecified. This means that we have to weed out duplicates of
    * those fonts that do get enumerated with different weights.
    */
-  TSTR_TO_C_STRING (lpelfe->elfLogFont.lfFaceName, facename);
+  facename = TSTR_TO_ITEXT (lpelfe->elfLogFont.lfFaceName);
   if (itext_ichar (facename) == '@')
     /* This is a font for writing vertically. We ignore it. */
     return 1;
@@ -1490,7 +1490,7 @@ parse_font_spec (const Ibyte *namestr,
     {
       Extbyte *extfontname;
 
-      C_STRING_TO_TSTR (fontname, extfontname);
+      extfontname = ITEXT_TO_TSTR (fontname);
       if (logfont)
 	{
           qxetcsncpy ((Extbyte *) logfont->lfFaceName, extfontname,

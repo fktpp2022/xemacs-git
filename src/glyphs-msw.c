@@ -970,9 +970,7 @@ mswindows_xpm_instantiate (Lisp_Object image_instance,
 
   assert (!NILP (data));
 
-  TO_EXTERNAL_FORMAT (LISP_STRING, data,
-		      ALLOCA, (bytes, len),
-		      Qbinary);
+  LISP_STRING_TO_SIZED_EXTERNAL (data, bytes, len, Qbinary);
 
   /* in case we have color symbols */
   color_symbols = extract_xpm_color_names (device, domain,
@@ -1057,9 +1055,7 @@ bmp_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
 
   assert (!NILP (data));
 
-  TO_EXTERNAL_FORMAT (LISP_STRING, data,
-		      ALLOCA, (bytes, len),
-		      Qbinary);
+  LISP_STRING_TO_SIZED_EXTERNAL (data, bytes, len, Qbinary);
 
   /* Then slurp the image into memory, decoding along the way.
      The result is the image in a simple one-byte-per-pixel
@@ -1256,7 +1252,7 @@ mswindows_resource_instantiate (Lisp_Object image_instance,
 							      type));
 
 	  if (!resid)
-	    LISP_STRING_TO_TSTR (resource_id, resid);
+	    resid = LISP_STRING_TO_TSTR (resource_id);
 	}
     }
   else if (!(resid = MAKEINTRESOURCE (resource_name_to_resource (resource_id,
@@ -1575,9 +1571,9 @@ xbm_instantiate_1 (Lisp_Object image_instance, Lisp_Object instantiator,
     {
       Binbyte *ext_data;
 
-      TO_EXTERNAL_FORMAT (LISP_STRING, XCAR (XCDR (XCDR (mask_data))),
-			  C_STRING_ALLOCA, ext_data,
-			  Qbinary);
+      ext_data =
+	(Binbyte *) LISP_STRING_TO_EXTERNAL (XCAR (XCDR (XCDR (mask_data))),
+					     Qbinary);
       mask = xbm_create_bitmap_from_data (hdc,
 					  ext_data,
 					  XINT (XCAR (mask_data)),
@@ -1605,9 +1601,9 @@ mswindows_xbm_instantiate (Lisp_Object image_instance,
 
   assert (!NILP (data));
 
-  TO_EXTERNAL_FORMAT (LISP_STRING, XCAR (XCDR (XCDR (data))),
-		      C_STRING_ALLOCA, ext_data,
-		      Qbinary);
+  ext_data =
+    (const Binbyte *) LISP_STRING_TO_EXTERNAL (XCAR (XCDR (XCDR (data))),
+					       Qbinary);
 
   xbm_instantiate_1 (image_instance, instantiator, pointer_fg,
 		     pointer_bg, dest_mask, XINT (XCAR (data)),
@@ -1652,9 +1648,7 @@ mswindows_xface_instantiate (Lisp_Object image_instance,
 
   assert (!NILP (data));
 
-  TO_EXTERNAL_FORMAT (LISP_STRING, data,
-		      C_STRING_ALLOCA, dstring,
-		      Qbinary);
+  dstring = (const Binbyte *) LISP_STRING_TO_EXTERNAL (data, Qbinary);
 
   if ((p = (Binbyte *) strchr ((char *) dstring, ':')))
     {
@@ -2037,7 +2031,7 @@ mswindows_redisplay_widget (Lisp_Image_Instance *p)
       && !NILP (IMAGE_INSTANCE_WIDGET_TEXT (p)))
     {
       Extbyte *lparam = 0;
-      LISP_STRING_TO_TSTR (IMAGE_INSTANCE_WIDGET_TEXT (p), lparam);
+      lparam = LISP_STRING_TO_TSTR (IMAGE_INSTANCE_WIDGET_TEXT (p));
       qxeSendMessage (WIDGET_INSTANCE_MSWINDOWS_HANDLE (p),
 		      WM_SETTEXT, 0, (LPARAM) lparam);
     }
@@ -2255,7 +2249,7 @@ mswindows_widget_instantiate (Lisp_Object image_instance,
     }
 
   if (!NILP (IMAGE_INSTANCE_WIDGET_TEXT (ii)))
-    LISP_STRING_TO_TSTR (IMAGE_INSTANCE_WIDGET_TEXT (ii), nm);
+    nm = LISP_STRING_TO_TSTR (IMAGE_INSTANCE_WIDGET_TEXT (ii));
 
   /* allocate space for the clip window and then allocate the clip window */
   ii->data = xnew_and_zero (struct mswindows_subwindow_data);
@@ -2277,7 +2271,7 @@ mswindows_widget_instantiate (Lisp_Object image_instance,
     gui_error ("window creation failed with code",
 	       make_int (GetLastError()));
 
-  C_STRING_TO_TSTR (class_, classext);
+  classext = ITEXT_TO_TSTR (class_);
 
   if ((wnd = qxeCreateWindowEx (exflags /* | WS_EX_NOPARENTNOTIFY*/,
 				classext,
@@ -2491,10 +2485,11 @@ static HTREEITEM add_tree_item (Lisp_Object image_instance,
       tvitem.item.lParam =
 	mswindows_register_gui_item (image_instance, item, domain);
       tvitem.item.mask |= TVIF_PARAM;
-      LISP_STRING_TO_TSTR (XGUI_ITEM (item)->name, tvitem.item.pszText);
+      tvitem.item.pszText =
+	(LPWSTR) LISP_STRING_TO_TSTR (XGUI_ITEM (item)->name);
     }
   else
-    LISP_STRING_TO_TSTR (item, tvitem.item.pszText);
+    tvitem.item.pszText = (LPWSTR) LISP_STRING_TO_TSTR (item);
       
   tvitem.item.cchTextMax = qxetcslen ((Extbyte *) tvitem.item.pszText);
       
@@ -2607,12 +2602,12 @@ add_tab_item (Lisp_Object image_instance,
       tcitem.lParam =
 	mswindows_register_gui_item (image_instance, item, domain);
       tcitem.mask |= TCIF_PARAM;
-      LISP_STRING_TO_TSTR (XGUI_ITEM (item)->name, tcitem.pszText);
+      tcitem.pszText = (XELPTSTR) LISP_STRING_TO_TSTR (XGUI_ITEM (item)->name);
     }
   else
     {
       CHECK_STRING (item);
-      LISP_STRING_TO_TSTR (item, tcitem.pszText);
+      tcitem.pszText = (XELPTSTR) LISP_STRING_TO_TSTR (item);
     }
 
   tcitem.cchTextMax = qxetcslen ((Extbyte *) tcitem.pszText);
@@ -2818,7 +2813,7 @@ mswindows_combo_box_instantiate (Lisp_Object image_instance,
   LIST_LOOP (rest, items)
     {
       Extbyte *lparam;
-      LISP_STRING_TO_TSTR (XCAR (rest), lparam);
+      lparam = LISP_STRING_TO_TSTR (XCAR (rest));
       if (qxeSendMessage (wnd, CB_ADDSTRING, 0, (LPARAM)lparam) == CB_ERR)
 	gui_error ("error adding combo entries", instantiator);
     }
@@ -2935,8 +2930,7 @@ mswindows_widget_query_string_geometry (Lisp_Object string, Lisp_Object face,
       SIZE size;
 
       SelectObject (hdc, mswindows_widget_hfont (face, domain, string));
-      TO_EXTERNAL_FORMAT (LISP_STRING, string, ALLOCA, (str, len),
-			  Qmswindows_tstr);
+      LISP_STRING_TO_SIZED_EXTERNAL (string, str, len, Qmswindows_tstr);
       qxeGetTextExtentPoint32 (hdc, str, len / XETCHAR_SIZE, &size);
       *width = size.cx;
     }
