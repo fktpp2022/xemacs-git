@@ -1052,7 +1052,7 @@ XLIKE_output_string (struct window *w, struct display_line *dl,
 #endif /* USE_XFT */
 
   if (width < 0)
-    width = XLIKE_text_width (w, cachel, Dynarr_atp (buf, 0),
+    width = XLIKE_text_width (w, cachel, Dynarr_begin (buf),
 			      Dynarr_length (buf));
 
   /* Regularize the variables passed in. */
@@ -1117,7 +1117,7 @@ XLIKE_output_string (struct window *w, struct display_line *dl,
     }
 
   nruns = separate_textual_runs (WINDOW_XBUFFER (w), text_storage, runs,
-				 Dynarr_atp (buf, 0), Dynarr_length (buf),
+				 Dynarr_begin (buf), Dynarr_length (buf),
 				 cachel);
 
   for (i = 0; i < nruns; i++)

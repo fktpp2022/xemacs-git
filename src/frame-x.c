@@ -1132,7 +1132,7 @@ x_cde_destroy_callback (Widget widget, XtPointer clientData,
     }
 
   /* free the data string */
-  xfree (clientData, XtPointer);
+  xfree (clientData);
 
   CurrentDragWidget = NULL;
 }
@@ -1230,7 +1230,7 @@ WARNING: can only handle plain/text and file: transfers!
 		    dnd_destroy_cb_rec,
 		    NULL, 0);
 
-  xfree (dnd_data, Extbyte *);
+  xfree (dnd_data);
 
   return num_items ? Qt : Qnil;
 }
@@ -1276,7 +1276,7 @@ x_cde_transfer_callback (Widget widget, XtPointer clientData,
 
 	  hurl = dnd_url_hexify_string (fileint, "file:");
 	  l_data = Fcons (build_istring (hurl), l_data);
-	  xfree (hurl, Ibyte *);
+	  xfree (hurl);
 	}
     }
   else if (transferInfo->dropData->protocol == DtDND_BUFFER_TRANSFER)
@@ -2607,7 +2607,7 @@ x_delete_frame (struct frame *f)
   DtDndDropUnregister (FRAME_X_TEXT_WIDGET (f));
 #endif /* HAVE_CDE */
 
-#ifdef USE_XFT
+#ifdef HAVE_XFT
   /* If we have an XftDraw structure, we need to free it here.
      We can't ever have an XftDraw without a Display, so we are safe
      to free it in here, and we avoid too much playing around with the 
@@ -2643,14 +2643,14 @@ x_delete_frame (struct frame *f)
 
   if (FRAME_X_GEOM_FREE_ME_PLEASE (f))
     {
-      xfree (FRAME_X_GEOM_FREE_ME_PLEASE (f), Ascbyte *);
+      xfree (FRAME_X_GEOM_FREE_ME_PLEASE (f));
       FRAME_X_GEOM_FREE_ME_PLEASE (f) = 0;
     }
 
   if (f->frame_data)
     {
 #ifndef NEW_GC
-      xfree (f->frame_data, void *);
+      xfree (f->frame_data);
 #endif /* not NEW_GC */
       f->frame_data = 0;
     }
@@ -2714,7 +2714,7 @@ x_update_frame_external_traits (struct frame *frm, Lisp_Object name)
        {
 	 if (0)
 	   ;
-#ifdef USE_XFT
+#ifdef HAVE_XFT
 	 else if (FONT_INSTANCE_X_XFTFONT (XFONT_INSTANCE (font)))
 	   {
 	     Xt_SET_ARG (al[ac], XtNxftFont,

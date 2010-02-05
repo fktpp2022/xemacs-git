@@ -64,6 +64,8 @@ Lisp_Object Vstandard_syntax_table;
 
 Lisp_Object Vsyntax_designator_chars_string;
 
+Lisp_Object Qscan_error;
+
 static void syntax_cache_table_was_changed (struct buffer *buf);
 
 /* This is the internal form of the parse state used in parse-partial-sexp.  */
@@ -565,7 +567,7 @@ void
 uninit_buffer_syntax_cache (struct buffer *UNUSED_IF_NEW_GC (buf))
 {
 #ifndef NEW_GC
-  xfree (buf->syntax_cache, struct syntax_cache *);
+  xfree (buf->syntax_cache);
   buf->syntax_cache = 0;
 #endif /* not NEW_GC */
 }
@@ -1351,6 +1353,7 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
   int syncode;
   int min_depth = depth;    /* Err out if depth gets less than this. */
   struct syntax_cache *scache;
+  Charbpos last_good = from;
   
   if (depth > 0) min_depth = 0;
 
@@ -1368,6 +1371,8 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 	  c = BUF_FETCH_CHAR (buf, from);
 	  syncode = SYNTAX_CODE_FROM_CACHE (scache, c);
 	  code = SYNTAX_FROM_CODE (syncode);
+	  if (depth == min_depth)
+	    last_good = from;
 	  from++;
 
 	  /* a 1-char comment start sequence */
@@ -1481,8 +1486,9 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 	      {
 		if (noerror)
 		  return Qnil;
-		syntax_error ("Containing expression ends prematurely",
-			      Qunbound);
+		signal_error_2 (Qscan_error,
+				"Containing expression ends prematurely",
+				make_int (last_good), make_int (from));
 	      }
 	    break;
 
@@ -1654,8 +1660,9 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 	      {
 		if (noerror)
 		  return Qnil;
-		syntax_error ("Containing expression ends prematurely",
-			      Qunbound);
+		signal_error_2 (Qscan_error,
+				"Containing expression ends prematurely",
+				make_int (last_good), make_int (from));
 	      }
 	    break;
 
@@ -1725,7 +1732,8 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 
 lose:
   if (!noerror)
-    syntax_error ("Unbalanced parentheses", Qunbound);
+    signal_error_2 (Qscan_error, "Unbalanced parentheses",
+		    make_int (last_good), make_int (from));
   return Qnil;
 }
 
@@ -2407,6 +2415,8 @@ syms_of_syntax (void)
   DEFSUBR (Fscan_sexps);
   DEFSUBR (Fbackward_prefix_chars);
   DEFSUBR (Fparse_partial_sexp);
+
+  DEFERROR_STANDARD (Qscan_error, Qsyntax_error);
 }
 
 void

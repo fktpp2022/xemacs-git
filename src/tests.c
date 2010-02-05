@@ -208,7 +208,7 @@ REASON is nil or a string describing the failure (not required).
 		      MALLOC, (ptr, len),
 		      intern ("iso-8859-2"));
   DFC_CHECK_DATA (ptr, len, ext_latin, "Latin-2 DATA, MALLOC, Latin-2");
-  xfree (ptr, void *);
+  xfree (ptr);
 
   TO_EXTERNAL_FORMAT (DATA, (int_latin2, sizeof (int_latin2) - 1),
 		      LISP_OPAQUE, opaque,
@@ -229,7 +229,7 @@ REASON is nil or a string describing the failure (not required).
 		      intern ("iso-latin-2-with-esc"));
   DFC_CHECK_DATA (ptr, len, int_latin2,
 		  "Latin-2/ESC, MALLOC, Latin-1 DATA");
-  xfree (ptr, void *);
+  xfree (ptr);
 
   TO_INTERNAL_FORMAT (DATA, (ext_latin, sizeof (ext_latin) - 1),
 		      LISP_STRING, string,
@@ -326,7 +326,7 @@ REASON is nil or a string describing the failure (not required).
 		      Qbinary);
   DFC_CHECK_DATA_COND_MULE (ptr, len, ext_latin, int_latin1,
 			    "Latin-1 DATA, MALLOC, binary");
-  xfree (ptr, void *);
+  xfree (ptr);
 
   ptr = NULL, len = rand();
   TO_EXTERNAL_FORMAT (DATA, (int_latin2, sizeof (int_latin2)),
@@ -334,7 +334,7 @@ REASON is nil or a string describing the failure (not required).
 		      Qbinary);
   DFC_CHECK_DATA_COND_MULE_NUL (ptr, len, ext_untranslatable, int_latin2,
 				"Latin-2 DATA, MALLOC, binary/NUL");
-  xfree (ptr, void *);
+  xfree (ptr);
 
   ptr = NULL, len = rand();
   TO_EXTERNAL_FORMAT (DATA, (int_latin1, sizeof (int_latin1) - 1),
@@ -342,7 +342,7 @@ REASON is nil or a string describing the failure (not required).
 		      intern ("iso-8859-1"));
   DFC_CHECK_DATA_COND_MULE (ptr, len, ext_latin, int_latin1,
 			    "Latin-1 DATA, MALLOC, Latin-1");
-  xfree (ptr, void *);
+  xfree (ptr);
 
   TO_EXTERNAL_FORMAT (DATA, (int_latin1, sizeof (int_latin1) - 1),
 		      LISP_OPAQUE, opaque,
@@ -386,7 +386,7 @@ REASON is nil or a string describing the failure (not required).
 		      intern ("iso-8859-1"));
   DFC_CHECK_DATA_COND_MULE_NUL (ptr, len, int_latin1, ext_latin,
 				"Latin-1 DATA, MALLOC, Latin-1");
-  xfree (ptr, void *);
+  xfree (ptr);
 
   ptr = NULL, len = rand();
   TO_INTERNAL_FORMAT (DATA, (ext_latin, sizeof (ext_latin)),
@@ -394,7 +394,7 @@ REASON is nil or a string describing the failure (not required).
 		      Qnil);
   DFC_CHECK_DATA_COND_MULE_NUL (ptr, len, int_latin1, ext_latin,
 				"Latin-1 DATA, MALLOC, nil");
-  xfree (ptr, void *);
+  xfree (ptr);
 
   TO_INTERNAL_FORMAT (DATA, (ext_latin, sizeof (ext_latin) - 1),
 		      LISP_STRING, string,
@@ -425,7 +425,7 @@ REASON is nil or a string describing the failure (not required).
 		      Qbinary);
   DFC_CHECK_DATA_NUL (ptr, len, ext_unix,
 		      "ASCII DATA, MALLOC, binary/LF/NUL");
-  xfree (ptr, void *);
+  xfree (ptr);
 
   ptr = NULL, len = rand();
   TO_EXTERNAL_FORMAT (DATA, (int_foo, sizeof (int_foo) - 1),
@@ -451,7 +451,7 @@ REASON is nil or a string describing the failure (not required).
 		      MALLOC, (ptr, len),
 		      intern ("no-conversion-mac"));
   DFC_CHECK_DATA (ptr, len, ext_mac, "ASCII Lisp string, MALLOC, binary/CR");
-  xfree (ptr, void *);
+  xfree (ptr);
 
   ptr = NULL, len = rand();
   TO_EXTERNAL_FORMAT (DATA, (int_foo, sizeof (int_foo) - 1),

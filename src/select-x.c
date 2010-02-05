@@ -696,7 +696,7 @@ x_handle_selection_request (XSelectionRequestEvent *event)
        lisp/select.el . */
     if ((Rawbyte *)0 != data)
     {
-      xfree (data, Rawbyte *);
+      xfree (data);
     }
   }
 
@@ -826,7 +826,7 @@ unexpect_property_change (int tick)
 	    prev->next = rest->next;
 	  else
 	    for_whom_the_bell_tolls = rest->next;
-	  xfree (rest, struct prop_location *);
+	  xfree (rest);
 	  return;
 	}
       prev = rest;
@@ -867,7 +867,7 @@ x_handle_property_notify (XPropertyEvent *event)
 	    prev->next = rest->next;
 	  else
 	    for_whom_the_bell_tolls = rest->next;
-	  xfree (rest, struct prop_location *);
+	  xfree (rest);
 	  return;
 	}
       prev = rest;
@@ -1170,7 +1170,7 @@ receive_incremental_selection (Display *display, Window window, Atom property,
 #endif
 	  unexpect_property_change (prop_id);
 	  if (tmp_data)
-	    xfree (tmp_data, Rawbyte *);
+	    xfree (tmp_data);
 	  break;
 	}
 #if 0
@@ -1187,7 +1187,7 @@ receive_incremental_selection (Display *display, Window window, Atom property,
 	}
       memcpy ((*data_ret) + offset, tmp_data, tmp_size_bytes);
       offset += tmp_size_bytes;
-      xfree (tmp_data, Rawbyte *);
+      xfree (tmp_data);
     }
 }
 
@@ -1236,7 +1236,7 @@ x_get_window_property_as_lisp_data (Display *display,
       Bytecount min_size_bytes =
 	/* careful here. */
 	(Bytecount) (* ((unsigned int *) data));
-      xfree (data, Rawbyte *);
+      xfree (data);
       receive_incremental_selection (display, window, property, target_type,
 				     min_size_bytes, &data, &bytes,
 				     &actual_type, &actual_format,
@@ -1248,7 +1248,7 @@ x_get_window_property_as_lisp_data (Display *display,
   val = selection_data_to_lisp_data (d, data, bytes,
 				     actual_type, actual_format);
 
-  xfree (data, Rawbyte *);
+  xfree (data);
   return val;
 }
 
@@ -1380,7 +1380,7 @@ Return the value of the named CUTBUFFER (typically CUT_BUFFER0).
 			  memchr (data, 0x1b, bytes) ?
 			  Qctext : Qbinary)
 	 : Qnil);
-  xfree (data, Rawbyte *);
+  xfree (data);
   return ret;
 }
 

@@ -229,7 +229,7 @@ release_breathing_space (void)
     {
       void *tmp = breathing_space;
       breathing_space = 0;
-      xfree (tmp, void *);
+      xfree (tmp);
     }
 }
 #endif /* not NEW_GC */
@@ -1918,19 +1918,7 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
   f->stack_depth = (unsigned short) XINT (stack_depth);
 
 #ifdef COMPILED_FUNCTION_ANNOTATION_HACK
-  if (!NILP (Vcurrent_compiled_function_annotation))
-    f->annotated = Fcopy (Vcurrent_compiled_function_annotation);
-  else if (!NILP (Vload_file_name_internal_the_purecopy))
-    f->annotated = Vload_file_name_internal_the_purecopy;
-  else if (!NILP (Vload_file_name_internal))
-    {
-      struct gcpro gcpro1;
-      GCPRO1 (fun);		/* don't let fun get reaped */
-      Vload_file_name_internal_the_purecopy =
-	Ffile_name_nondirectory (Vload_file_name_internal);
-      f->annotated = Vload_file_name_internal_the_purecopy;
-      UNGCPRO;
-    }
+  f->annotated = Vload_file_name_internal;
 #endif /* COMPILED_FUNCTION_ANNOTATION_HACK */
 
   /* doc_string may be nil, string, int, or a cons (string . int).
@@ -2648,7 +2636,7 @@ resize_string (Lisp_Object s, Bytecount pos, Bytecount delta)
 		      XSTRING_LENGTH (s) + 1 - pos);
 	    }
 	  XSET_STRING_DATA (s, new_data);
-	  xfree (old_data, Ibyte *);
+	  xfree (old_data);
 	}
     }
   else /* old string is small */
@@ -3562,7 +3550,7 @@ sweep_lcrecords_1 (struct old_lcrecord_header **prev, int *used)
           *prev = next;
 	  tick_lcrecord_stats (h, 1);
 	  /* used to call finalizer right here. */
-	  xfree (header, struct old_lcrecord_header *);
+	  xfree (header);
 	  header = next;
 	}
     }
@@ -3686,7 +3674,7 @@ do {									     \
 	  SFTB_current = SFTB_current->prev;				     \
 	  {								     \
 	    *SFTB_prev = SFTB_current;					     \
-	    xfree (SFTB_victim_block, struct typename##_block *);	     \
+	    xfree (SFTB_victim_block);	     \
 	    /* Restore free list to what it was before victim was swept */   \
 	    typename##_free_list = SFTB_old_free_list;			     \
 	    num_free -= SFTB_limit;					     \
@@ -3792,7 +3780,7 @@ sweep_compiled_functions (void)
 {
 #define UNMARK_compiled_function(ptr) UNMARK_RECORD_HEADER (&((ptr)->lheader))
 #define ADDITIONAL_FREE_compiled_function(ptr) \
-  if (ptr->args_in_array) xfree (ptr->args, Lisp_Object *)
+  if (ptr->args_in_array) xfree (ptr->args)
 
   SWEEP_FIXED_TYPE_BLOCK (compiled_function, Lisp_Compiled_Function);
 }
@@ -4225,7 +4213,7 @@ compact_string_chars (void)
     for (victim = to_sb->next; victim; )
       {
 	struct string_chars_block *next = victim->next;
-	xfree (victim, struct string_chars_block *);
+	xfree (victim);
 	victim = next;
       }
 
@@ -4285,7 +4273,7 @@ sweep_strings (void)
 #define ADDITIONAL_FREE_string(ptr) do {	\
     Bytecount size = ptr->size_;		\
     if (BIG_STRING_SIZE_P (size))		\
-      xfree (ptr->data_, Ibyte *);		\
+      xfree (ptr->data_);		\
   } while (0)
 
   SWEEP_FIXED_TYPE_BLOCK_1 (string, Lisp_String, u.lheader);

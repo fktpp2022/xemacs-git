@@ -1282,7 +1282,8 @@ BEGIN_C_DECLS
 /* Highly dubious kludge */
 /*   (thanks, Jamie, I feel better now -- ben) */
 MODULE_API void assert_failed (const Ascbyte *, int, const Ascbyte *);
-#define ABORT() (assert_failed (__FILE__, __LINE__, "ABORT()"))
+#define ABORT() assert_failed (__FILE__, __LINE__, "ABORT()")
+#define abort_with_message(msg) assert_failed (__FILE__, __LINE__, msg)
 
 /* This used to be ((void) (0)) but that triggers lots of unused variable
    warnings.  It's pointless to force all that code to be rewritten, with
@@ -1323,16 +1324,15 @@ MODULE_API Chbyte *xstrdup (const Chbyte *) ATTRIBUTE_MALLOC;
 
 MODULE_API void xfree_1 (void *);
 #ifdef ERROR_CHECK_MALLOC
-/* This used to use a temporary variable, which both avoided the multiple
-   evaluation and obviated the need for the TYPE argument.  But that triggered
+/* This used to use a temporary variable.  But that triggered
    complaints under strict aliasing. #### There should be a better way. */
-#define xfree(lvalue, type) do						\
+#define xfree(lvalue) do						\
 {									\
   xfree_1 (lvalue);							\
   VOIDP_CAST (lvalue) = (void *) DEADBEEF_CONSTANT;                     \
 } while (0)
 #else
-#define xfree(lvalue,type) xfree_1 (lvalue)
+#define xfree(lvalue) xfree_1 (lvalue)
 #endif /* ERROR_CHECK_MALLOC */
 
 /* ------------------------ stack allocation -------------------------- */
@@ -1750,71 +1750,64 @@ MODULE_API int eq_with_ebola_notice (Lisp_Object, Lisp_Object);
 
 END_C_DECLS
 
-/************************************************************************/
-/**		     Definitions of basic Lisp objects		       **/
-/************************************************************************/
-
 #include "lrecord.h"
+
+/************************************************************************/
+/**              Definitions of dynamic arrays (Dynarrs)               **/
+/************************************************************************/
 
 BEGIN_C_DECLS
 
-/* ------------------------ dynamic arrays ------------------- */
+/************* Dynarr declaration *************/
 
 #ifdef NEW_GC
-#ifdef ERROR_CHECK_STRUCTURES
-#define Dynarr_declare(type)				\
-  struct lrecord_header header;				\
-  type *base;						\
-  const struct lrecord_implementation *lisp_imp;	\
-  int locked;						\
-  int elsize;						\
-  int len;						\
-  int largest;						\
-  int max
+#define DECLARE_DYNARR_LISP_IMP()			\
+  const struct lrecord_implementation *lisp_imp;
 #else
-#define Dynarr_declare(type)				\
-  struct lrecord_header header;				\
-  type *base;						\
-  const struct lrecord_implementation *lisp_imp;	\
-  int elsize;						\
-  int len;						\
-  int largest;						\
-  int max
-#endif /* ERROR_CHECK_STRUCTURES */
-#else /* not NEW_GC */
+#define DECLARE_DYNARR_LISP_IMP()
+#endif
+
 #ifdef ERROR_CHECK_STRUCTURES
-#define Dynarr_declare(type)				\
-  struct lrecord_header header;				\
-  type *base;						\
-  int locked;						\
-  int elsize;						\
-  int len;						\
-  int largest;						\
-  int max
+#define DECLARE_DYNARR_LOCKED()				\
+  int locked;
 #else
-#define Dynarr_declare(type)				\
-  struct lrecord_header header;				\
-  type *base;						\
-  int elsize;						\
-  int len;						\
-  int largest;						\
-  int max
-#endif /* ERROR_CHECK_STRUCTURES */
-#endif /* not NEW_GC */
+#define DECLARE_DYNARR_LOCKED()
+#endif
+
+#define Dynarr_declare(type)			\
+  struct lrecord_header header;			\
+  type *base;					\
+  DECLARE_DYNARR_LISP_IMP ()			\
+  DECLARE_DYNARR_LOCKED ()			\
+  int elsize;					\
+  int len_;					\
+  int largest_;					\
+  int max_
 
 typedef struct dynarr
 {
   Dynarr_declare (void);
 } Dynarr;
 
-MODULE_API void *Dynarr_newf (int elsize);
-MODULE_API void Dynarr_resize (void *dy, Elemcount size);
-MODULE_API void Dynarr_insert_many (void *d, const void *el, int len,
-				    int start);
-MODULE_API void Dynarr_delete_many (void *d, int start, int len);
-MODULE_API void Dynarr_free (void *d);
+#define XD_DYNARR_DESC(base_type, sub_desc)				\
+  { XD_BLOCK_PTR, offsetof (base_type, base),				\
+    XD_INDIRECT(1, 0), {sub_desc} },					\
+  { XD_INT,        offsetof (base_type, len_) },			\
+  { XD_INT_RESET,  offsetof (base_type, largest_), XD_INDIRECT(1, 0) },	\
+  { XD_INT_RESET,  offsetof (base_type, max_), XD_INDIRECT(1, 0) }
 
-#ifdef ERROR_CHECK_TYPES
+#ifdef NEW_GC
+#define XD_LISP_DYNARR_DESC(base_type, sub_desc)			\
+  { XD_LISP_OBJECT_BLOCK_PTR, offsetof (base_type, base),		\
+    XD_INDIRECT(1, 0), {sub_desc} },					\
+  { XD_INT,        offsetof (base_type, len_) },			\
+  { XD_INT_RESET,  offsetof (base_type, largest_), XD_INDIRECT(1, 0) },	\
+  { XD_INT_RESET,  offsetof (base_type, max_), XD_INDIRECT(1, 0) }
+#endif /* NEW_GC */
+
+/************* Dynarr verification *************/
+
+#ifdef ERROR_CHECK_STRUCTURES
 DECLARE_INLINE_HEADER (
 int
 Dynarr_verify_pos_at (void *d, int pos, const Ascbyte *file, int line)
@@ -1823,7 +1816,7 @@ Dynarr_verify_pos_at (void *d, int pos, const Ascbyte *file, int line)
   Dynarr *dy = (Dynarr *) d;
   /* We use `largest', not `len', because the redisplay code often
      accesses stuff between len and largest. */
-  assert_at_line (pos >= 0 && pos < dy->largest, file, line);
+  assert_at_line (pos >= 0 && pos < dy->largest_, file, line);
   return pos;
 }
 
@@ -1846,7 +1839,7 @@ Dynarr_verify_pos_atp (void *d, int pos, const Ascbyte *file, int line)
      hence the return value is NULL.  But the length of 0 causes the
      pointer to never get checked.  These can occur throughout the code
      so we put in a special check. */
-  if (pos == 0 && dy->len == 0)
+  if (pos == 0 && dy->len_ == 0)
     return pos;
   /* #### It's vaguely possible that some code could legitimately want to
      retrieve a pointer to the position just past the end of dynarr memory.
@@ -1859,7 +1852,7 @@ Dynarr_verify_pos_atp (void *d, int pos, const Ascbyte *file, int line)
      memory, which is a likely off-by-one problem to occur and will usually
      not trigger a protection fault (instead, you'll just get random
      behavior, possibly overwriting other memory, which is bad). */
-  assert_at_line (pos >= 0 && pos < dy->largest, file, line);
+  assert_at_line (pos >= 0 && pos < dy->largest_, file, line);
   return pos;
 }
 
@@ -1874,7 +1867,7 @@ Dynarr_verify_pos_atp_allow_end (void *d, int pos, const Ascbyte *file,
      accesses stuff between len and largest.
      We also allow referencing the very end, past the end of allocated
      legitimately space.  See comments in Dynarr_verify_pos_atp.()*/
-  assert_at_line (pos >= 0 && pos <= dy->largest, file, line);
+  assert_at_line (pos >= 0 && pos <= dy->largest_, file, line);
   return pos;
 }
 
@@ -1882,7 +1875,53 @@ Dynarr_verify_pos_atp_allow_end (void *d, int pos, const Ascbyte *file,
 #define Dynarr_verify_pos_at(d, pos, file, line) (pos)
 #define Dynarr_verify_pos_atp(d, pos, file, line) (pos)
 #define Dynarr_verify_pos_atp_allow_end(d, pos, file, line) (pos)
-#endif /* ERROR_CHECK_TYPES */
+#endif /* ERROR_CHECK_STRUCTURES */
+
+#ifdef ERROR_CHECK_STRUCTURES
+DECLARE_INLINE_HEADER (
+Dynarr *
+Dynarr_verify_1 (void *d, const Ascbyte *file, int line)
+)
+{
+  Dynarr *dy = (Dynarr *) d;
+  assert_at_line (dy->len_ >= 0 && dy->len_ <= dy->largest_ &&
+		  dy->largest_ <= dy->max_, file, line);
+  return dy;
+}
+
+DECLARE_INLINE_HEADER (
+Dynarr *
+Dynarr_verify_mod_1 (void *d, const Ascbyte *file, int line)
+)
+{
+  Dynarr *dy = (Dynarr *) d;
+  assert_at_line (!dy->locked, file, line);
+  return Dynarr_verify_1 (d, file, line);
+}
+
+#define Dynarr_verify(d) Dynarr_verify_1 (d, __FILE__, __LINE__)
+#define Dynarr_verify_mod(d) Dynarr_verify_mod_1 (d, __FILE__, __LINE__)
+#define Dynarr_lock(d)				\
+do {						\
+  Dynarr *dy = Dynarr_verify_mod (d);		\
+  dy->locked = 1;				\
+} while (0)
+#define Dynarr_unlock(d)			\
+do {						\
+  Dynarr *dy = Dynarr_verify (d);		\
+  dy->locked = 0;				\
+} while (0)
+#else
+#define Dynarr_verify(d) (d)
+#define Dynarr_verify_mod(d) (d)
+#define Dynarr_lock(d) DO_NOTHING
+#define Dynarr_unlock(d) DO_NOTHING
+#endif /* ERROR_CHECK_STRUCTURES */
+
+/************* Dynarr creation *************/
+
+MODULE_API void *Dynarr_newf (int elsize);
+MODULE_API void Dynarr_free (void *d);
 
 #ifdef NEW_GC
 MODULE_API void *Dynarr_lisp_newf (int elsize,
@@ -1899,7 +1938,9 @@ MODULE_API void *Dynarr_lisp_newf (int elsize,
 #define Dynarr_new2(dynarr_type, type) \
   ((dynarr_type *) Dynarr_newf (sizeof (type)))
 
-#ifdef ERROR_CHECK_TYPES_GCC_NOT_BROKEN
+/************* Dynarr access *************/
+
+#ifdef ERROR_CHECK_STRUCTURES
 /* Enabling this leads to crashes in Cygwin 1.7, gcc 3.4.4 */
 #define Dynarr_at(d, pos) \
   ((d)->base[Dynarr_verify_pos_at (d, pos, __FILE__, __LINE__)])
@@ -1917,46 +1958,97 @@ MODULE_API void *Dynarr_lisp_newf (int elsize,
 #define Dynarr_begin(d) Dynarr_atp (d, 0)
 #define Dynarr_lastp(d) Dynarr_atp (d, Dynarr_length (d) - 1)
 #define Dynarr_past_lastp(d) Dynarr_atp_allow_end (d, Dynarr_length (d))
-#define Dynarr_sizeof(d) ((d)->len * (d)->elsize)
 
-#ifdef ERROR_CHECK_STRUCTURES
-DECLARE_INLINE_HEADER (
-Dynarr *
-Dynarr_verify_1 (void *d, const Ascbyte *file, int line)
-)
-{
-  Dynarr *dy = (Dynarr *) d;
-  assert_at_line (dy->len >= 0 && dy->len <= dy->largest &&
-		  dy->largest <= dy->max, file, line);
-  return dy;
-}
 
-DECLARE_INLINE_HEADER (
-Dynarr *
-Dynarr_verify_mod_1 (void *d, const Ascbyte *file, int line)
-)
-{
-  Dynarr *dy = (Dynarr *) d;
-  assert_at_line (!dy->locked, file, line);
-  assert_at_line (dy->len >= 0 && dy->len <= dy->largest &&
-		  dy->largest <= dy->max, file, line);
-  return dy;
-}
+/************* Dynarr length/size retrieval and setting *************/
 
-#define Dynarr_verify(d) Dynarr_verify_1 (d, __FILE__, __LINE__)
-#define Dynarr_verify_mod(d) Dynarr_verify_mod_1 (d, __FILE__, __LINE__)
-#define Dynarr_lock(d) (Dynarr_verify_mod (d)->locked = 1)
-#define Dynarr_unlock(d) ((d)->locked = 0)
-#else
-#define Dynarr_verify(d) (d)
-#define Dynarr_verify_mod(d) (d)
-#define Dynarr_lock(d)
-#define Dynarr_unlock(d)
-#endif /* ERROR_CHECK_STRUCTURES */
+/* Retrieve the length of a Dynarr.  The `+ 0' is to ensure that this cannot
+   be used as an lvalue. */
+#define Dynarr_length(d) (Dynarr_verify (d)->len_ + 0)
+/* Retrieve the largest ever length seen of a Dynarr.  The `+ 0' is to
+   ensure that this cannot be used as an lvalue. */
+#define Dynarr_largest(d) (Dynarr_verify (d)->largest_ + 0)
+/* Retrieve the number of elements that fit in the currently allocated
+   space.  The `+ 0' is to ensure that this cannot be used as an lvalue. */
+#define Dynarr_max(d) (Dynarr_verify (d)->max_ + 0)
+/* Retrieve the advertised memory usage of a Dynarr, i.e. the number of
+   bytes occupied by the elements in the Dynarr, not counting any overhead. */
+#define Dynarr_sizeof(d) (Dynarr_length (d) * (d)->elsize)
+/* Actually set the length of a Dynarr.  This is a low-level routine that
+   should not be directly used; use Dynarr_set_length() instead if you need
+   to, but be very careful when doing so! */
+#define Dynarr_set_length_1(d, n)					\
+do {									\
+  Elemcount _dsl1_n = (n);						\
+  structure_checking_assert (_dsl1_n >= 0 && _dsl1_n <= Dynarr_max (d)); \
+  (void) Dynarr_verify_mod (d);						\
+  (d)->len_ = _dsl1_n;							\
+  /* Use the raw field references here otherwise we get a crash because	\
+     we've set the length but not yet fixed up the largest value. */	\
+  if ((d)->len_ > (d)->largest_)					\
+    (d)->largest_ = (d)->len_;						\
+  (void) Dynarr_verify_mod (d);						\
+} while (0)
 
-#define Dynarr_length(d) (Dynarr_verify (d)->len)
-#define Dynarr_largest(d) (Dynarr_verify (d)->largest)
-#define Dynarr_reset(d) (Dynarr_verify_mod (d)->len = 0)
+/* The following two defines will get you into real trouble if you aren't
+   careful.  But they can save a lot of execution time when used wisely. */
+#define Dynarr_set_length(d, n)						\
+do {									\
+  Elemcount _dsl_n = (n);						\
+  structure_checking_assert (_dsl_n >= 0 && _dsl_n <= Dynarr_largest (d)); \
+  Dynarr_set_length_1 (d, _dsl_n);					\
+} while (0)
+#define Dynarr_increment(d) \
+  Dynarr_set_length (d, Dynarr_length (d) + 1)
+
+/* Reset the Dynarr's length to 0. */
+#define Dynarr_reset(d) Dynarr_set_length (d, 0)
+
+MODULE_API void Dynarr_resize (void *dy, Elemcount size);
+
+#define Dynarr_resize_if(d, numels)			\
+do {							\
+  Elemcount _dri_numels = (numels);			\
+  if (Dynarr_length (d) + _dri_numels > Dynarr_max (d))	\
+    Dynarr_resize (d, Dynarr_length (d) + _dri_numels);	\
+} while (0)
+
+#ifdef MEMORY_USAGE_STATS
+struct overhead_stats;
+Bytecount Dynarr_memory_usage (void *d, struct overhead_stats *stats);
+#endif
+
+/************* Adding/deleting elements to/from a Dynarr *************/
+
+#ifdef NEW_GC
+#define Dynarr_add(d, el)						\
+do {									\
+  const struct lrecord_implementation *imp = (d)->lisp_imp;		\
+  (void) Dynarr_verify_mod (d);						\
+  Dynarr_resize_if (d, 1);						\
+  ((d)->base)[Dynarr_length (d)] = (el);				\
+  if (imp)								\
+    set_lheader_implementation						\
+     ((struct lrecord_header *)&(((d)->base)[Dynarr_length (d)]), imp);	\
+  Dynarr_set_length_1 (d, Dynarr_length (d) + 1);			\
+  (void) Dynarr_verify_mod (d);						\
+} while (0)
+#else /* not NEW_GC */
+#define Dynarr_add(d, el)				\
+do {							\
+  (void) Dynarr_verify_mod (d);				\
+  Dynarr_resize_if (d, 1);				\
+  ((d)->base)[Dynarr_length (d)] = (el);		\
+  Dynarr_set_length_1 (d, Dynarr_length (d) + 1);	\
+  (void) Dynarr_verify_mod (d);				\
+} while (0)
+#endif /* not NEW_GC */
+
+
+MODULE_API void Dynarr_insert_many (void *d, const void *el, int len,
+				    int start);
+MODULE_API void Dynarr_delete_many (void *d, int start, int len);
+
 #define Dynarr_insert_many_at_start(d, el, len)	\
   Dynarr_insert_many (d, el, len, 0)
 #define Dynarr_add_literal_string(d, s) Dynarr_add_many (d, s, sizeof (s) - 1)
@@ -1972,30 +2064,6 @@ do {								\
   Dynarr_add_many (d, dyna_ls_eb, dyna_ls_bc);			\
 } while (0)
 
-#ifdef NEW_GC
-#define Dynarr_add(d, el)					\
-do {								\
-  const struct lrecord_implementation *imp = (d)->lisp_imp;	\
-  if (Dynarr_verify_mod (d)->len >= (d)->max)			\
-    Dynarr_resize ((d), (d)->len+1);				\
-  ((d)->base)[(d)->len] = (el);					\
-								\
-  if (imp)							\
-    set_lheader_implementation					\
-     ((struct lrecord_header *)&(((d)->base)[(d)->len]), imp);	\
-								\
-  (d)->len++;							\
-  if ((d)->len > (d)->largest)					\
-    (d)->largest = (d)->len;					\
-} while (0)
-#else /* not NEW_GC */
-#define Dynarr_add(d, el) (						     \
-  Dynarr_verify_mod (d)->len >= (d)->max ? Dynarr_resize ((d), (d)->len+1) : \
-      (void) 0,								     \
-  ((d)->base)[(d)->len++] = (el),					     \
-  (d)->len > (d)->largest ? (d)->largest = (d)->len : (int) 0)
-#endif /* not NEW_GC */
-    
 /* Add LEN contiguous elements to a Dynarr */
 
 DECLARE_INLINE_HEADER (
@@ -2006,33 +2074,20 @@ Dynarr_add_many (void *d, const void *el, int len)
   /* This duplicates Dynarr_insert_many to some extent; but since it is
      called so often, it seemed useful to remove the unnecessary stuff
      from that function and to make it inline */
-  Dynarr *dy = (Dynarr *) Dynarr_verify (d);
-
-  if (dy->len + len > dy->max)
-    Dynarr_resize (dy, dy->len + len);
+  Dynarr *dy = Dynarr_verify_mod (d);
+  Dynarr_resize_if (dy, len);
   /* Some functions call us with a value of 0 to mean "reserve space but
      don't write into it" */
   if (el)
-    memcpy ((char *) dy->base + dy->len*dy->elsize, el, len*dy->elsize);
-  dy->len += len;
-
-  if (dy->len > dy->largest)
-    dy->largest = dy->len;
+    memcpy ((char *) dy->base + Dynarr_sizeof (dy), el, len*dy->elsize);
+  Dynarr_set_length_1 (dy, Dynarr_length (dy) + len);
+  (void) Dynarr_verify_mod (dy);
 }
 
-/* The following defines will get you into real trouble if you aren't
-   careful.  But they can save a lot of execution time when used wisely. */
-#define Dynarr_increment(d) (Dynarr_verify_mod (d)->len++)
-#define Dynarr_set_size(d, n)						\
-do {									\
-  Bytecount _dss_n = (n);						\
-  structure_checking_assert (_dss_n >= 0 && _dss_n <= (d)->largest);	\
-  Dynarr_verify_mod (d)->len = _dss_n;					\
-} while (0)
-
 #define Dynarr_pop(d)					\
-  (assert ((d)->len > 0), Dynarr_verify_mod (d)->len--,	\
-   Dynarr_at (d, (d)->len))
+  (structure_checking_assert (Dynarr_length (d) > 0),	\
+   Dynarr_verify_mod (d)->len_--,			\
+   Dynarr_at (d, Dynarr_length (d)))
 #define Dynarr_delete(d, i) Dynarr_delete_many (d, i, 1)
 #define Dynarr_delete_by_pointer(d, p) \
   Dynarr_delete_many (d, (p) - ((d)->base), 1)
@@ -2048,113 +2103,7 @@ do						\
     }						\
 } while (0)
 
-#ifdef MEMORY_USAGE_STATS
-struct overhead_stats;
-Bytecount Dynarr_memory_usage (void *d, struct overhead_stats *stats);
-#endif
-
-/* --------------------------- static dynarrs ------------------------- */
-
-/* A static Dynarr is, besides being an oxymoron, a combination of a
-   small static array with a Dynarr.  Typical size of the small array is
-   4 or 6.  This is used when you rarely expect your array to grow beyond
-   a certain size, but you would like to allow for this.  Stretchy arrays
-   are sometimes used for this, but they require that your whole data object
-   be resized, and handling them with pdump is difficult.  Typically a static
-   Dynarr is declared as one field of a struct, or it can be a local array.
-
-   #### It might be simpler to use *either* the static array *or* the
-   Dynarr, but not both at the same time, as we do currently.  We'd have
-   to either modify the pdump handling to involve a union, or zero out
-   the elements in the static array when we switch to the Dynarr. */
-
-/* Declare a static Dynarr variable declaration NAME, containing elements of
-   type TYPE, with NUM_STATIC static elements.  If you never use more than
-   these, no allocation will occur.  Before using, initialize with
-   Stynarr_init(d). */
-#define Stynarr_declare(name, type, num_static)	\
-struct						\
-{						\
-  type##_dynarr *els;				\
-  int nels;					\
-  type els_static[num_static];			\
-} name
-
-typedef struct
-{
-  void *els;
-  int nels;
-} Stynarr;
-
-#ifdef ERROR_CHECK_TYPES
-DECLARE_INLINE_HEADER (
-int
-Stynarr_verify_pos (void *st, int pos, const Ascbyte *file, int line)
-)
-{
-  Stynarr *sty = (Stynarr *) st;
-  /* #### See comment above in Dynarr_verify_pos() about accessing just
-     past end of the real used memory block using Stynarr_atp(). */
-  assert_at_line (pos >= 0 && pos < sty->nels, file, line);
-  return pos;
-}
-#else
-#define Stynarr_verify_pos(st, pos, file, line) (pos)
-#endif /* ERROR_CHECK_TYPES */
-
-#define Stynarr_init(d) (xzero (d))
-#define Stynarr_reset(d) ((d).nels = 0)
-#define Stynarr_free(d)				\
-do {						\
-  if ((d).els)					\
-    {						\
-      Dynarr_free ((d).els);			\
-      (d).els = 0;				\
-    }						\
-  (d).nels = 0;					\
-} while (0)
-#define Stynarr_num_static(d) countof ((d).els_static)
-#define Stynarr_elsize(d) sizeof ((d).els_static[0])
-/* WARNING! The following two macros evaluate POS multiply.
-   We write them this way so that Stynarr_at() is an lvalue. */
-#define Stynarr_atp(d, pos)						\
-  (Stynarr_verify_pos (&d, pos, __FILE__, __LINE__) < Stynarr_num_static (d) \
-   ? &((d).els_static[pos]) :						\
-   Dynarr_atp ((d).els, pos - Stynarr_num_static (d)))
-#define Stynarr_at(d, pos) (*(Stynarr_atp (d, pos)))
-#define Stynarr_add(d, el)						\
-do {									\
-  if ((d).nels < Stynarr_num_static (d))				\
-    (d).els_static[(d).nels++] = (el);					\
-  else									\
-    {									\
-      if (!(d).els)							\
-	VOIDP_CAST ((d).els) = Dynarr_newf (Stynarr_elsize (d));	\
-      Dynarr_add ((d).els, el);						\
-      (d).nels++;							\
-    }									\
-} while (0)
-
-#define Stynarr_length(d) ((d).nels)
-
-MODULE_API void Stynarr_insert_many_1 (void *d, const void *els, int len,
-				       int start, int num_static,
-				       int elsize, int staticoff);
-
-#define Stynarr_insert_many(d, els, len, start)		\
-  Stynarr_insert_many_1 (&d, els, len, start,		\
-			 Stynarr_num_static (d),	\
-			 Stynarr_elsize (d),		\
-			 offsetof (d, (d).els_static))
-
-/* ---------------------- stack-like malloc ----------------------- */
-
-void *stack_like_malloc (Bytecount size);
-void stack_like_free (void *val);
-
-/* ------------------------------- */
-/*         Dynarr typedefs         */
-/* ------------------------------- */
+/************* Dynarr typedefs *************/
 
 /* Dynarr typedefs -- basic types first */
 
@@ -2288,6 +2237,114 @@ typedef struct
 {
   Dynarr_declare (Lisp_Object_pair);
 } Lisp_Object_pair_dynarr;
+
+
+/************************************************************************/
+/**           Stynarrs (static Dynarrs) and other allocators           **/
+/************************************************************************/
+
+/* A static Dynarr is, besides being an oxymoron, a combination of a
+   small static array with a Dynarr.  Typical size of the small array is
+   4 or 6.  This is used when you rarely expect your array to grow beyond
+   a certain size, but you would like to allow for this.  Stretchy arrays
+   are sometimes used for this, but they require that your whole data object
+   be resized, and handling them with pdump is difficult.  Typically a static
+   Dynarr is declared as one field of a struct, or it can be a local array.
+
+   #### It might be simpler to use *either* the static array *or* the
+   Dynarr, but not both at the same time, as we do currently.  We'd have
+   to either modify the pdump handling to involve a union, or zero out
+   the elements in the static array when we switch to the Dynarr. */
+
+/* Declare a static Dynarr variable declaration NAME, containing elements of
+   type TYPE, with NUM_STATIC static elements.  If you never use more than
+   these, no allocation will occur.  Before using, initialize with
+   Stynarr_init(d). */
+#define Stynarr_declare(name, type, num_static)	\
+struct						\
+{						\
+  type##_dynarr *els;				\
+  int nels;					\
+  type els_static[num_static];			\
+} name
+
+typedef struct
+{
+  void *els;
+  int nels;
+} Stynarr;
+
+#ifdef ERROR_CHECK_TYPES
+DECLARE_INLINE_HEADER (
+int
+Stynarr_verify_pos (void *st, int pos, const Ascbyte *file, int line)
+)
+{
+  Stynarr *sty = (Stynarr *) st;
+  /* #### See comment above in Dynarr_verify_pos() about accessing just
+     past end of the real used memory block using Stynarr_atp(). */
+  assert_at_line (pos >= 0 && pos < sty->nels, file, line);
+  return pos;
+}
+#else
+#define Stynarr_verify_pos(st, pos, file, line) (pos)
+#endif /* ERROR_CHECK_TYPES */
+
+#define Stynarr_init(d) (xzero (d))
+#define Stynarr_reset(d) ((d).nels = 0)
+#define Stynarr_free(d)				\
+do {						\
+  if ((d).els)					\
+    {						\
+      Dynarr_free ((d).els);			\
+      (d).els = 0;				\
+    }						\
+  (d).nels = 0;					\
+} while (0)
+#define Stynarr_num_static(d) countof ((d).els_static)
+#define Stynarr_elsize(d) sizeof ((d).els_static[0])
+/* WARNING! The following two macros evaluate POS multiply.
+   We write them this way so that Stynarr_at() is an lvalue. */
+#define Stynarr_atp(d, pos)						\
+  (Stynarr_verify_pos (&d, pos, __FILE__, __LINE__) < Stynarr_num_static (d) \
+   ? &((d).els_static[pos]) :						\
+   Dynarr_atp ((d).els, pos - Stynarr_num_static (d)))
+#define Stynarr_at(d, pos) (*(Stynarr_atp (d, pos)))
+#define Stynarr_add(d, el)						\
+do {									\
+  if ((d).nels < Stynarr_num_static (d))				\
+    (d).els_static[(d).nels++] = (el);					\
+  else									\
+    {									\
+      if (!(d).els)							\
+	VOIDP_CAST ((d).els) = Dynarr_newf (Stynarr_elsize (d));	\
+      Dynarr_add ((d).els, el);						\
+      (d).nels++;							\
+    }									\
+} while (0)
+
+#define Stynarr_length(d) ((d).nels)
+
+MODULE_API void Stynarr_insert_many_1 (void *d, const void *els, int len,
+				       int start, int num_static,
+				       int elsize, int staticoff);
+
+#define Stynarr_insert_many(d, els, len, start)		\
+  Stynarr_insert_many_1 (&d, els, len, start,		\
+			 Stynarr_num_static (d),	\
+			 Stynarr_elsize (d),		\
+			 offsetof (d, (d).els_static))
+
+
+/************* Stack-like malloc/free: Another allocator *************/
+
+void *stack_like_malloc (Bytecount size);
+void stack_like_free (void *val);
+
+
+/************************************************************************/
+/**              Definitions of other basic Lisp objects               **/
+/************************************************************************/
 
 /*------------------------------ unbound -------------------------------*/
 
@@ -6446,7 +6503,7 @@ extern Lisp_Object Vcommand_history;
 extern Lisp_Object Vcommand_line_args, Vconfigure_info_directory;
 extern Lisp_Object Vconfigure_site_directory, Vconfigure_site_module_directory;
 extern Lisp_Object Vconsole_list, Vcontrolling_terminal;
-extern Lisp_Object Vcurrent_compiled_function_annotation, Vcurrent_load_list;
+extern Lisp_Object Vcurrent_load_list;
 extern Lisp_Object Vcurrent_mouse_event, Vcurrent_prefix_arg, Vdata_directory;
 extern Lisp_Object Vdirectory_sep_char, Vdisabled_command_hook;
 extern Lisp_Object Vdoc_directory, Vinternal_doc_file_name;

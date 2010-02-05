@@ -761,7 +761,7 @@ static void
 free_gap_array (Gap_Array *ga)
 {
   gap_array_delete_all_markers (ga);
-  xfree (ga, Gap_Array *);
+  xfree (ga);
 }
 #endif /* not NEW_GC */
 
@@ -984,7 +984,7 @@ free_extent_list (Extent_List *el)
 {
   free_gap_array (el->start);
   free_gap_array (el->end);
-  xfree (el, Extent_List *);
+  xfree (el);
 }
 #endif /* not NEW_GC */
 
@@ -1806,7 +1806,7 @@ static void
 free_soe (struct stack_of_extents *soe)
 {
   free_extent_list (soe->extents);
-  xfree (soe, struct stack_of_extents *);
+  xfree (soe);
 }
 #endif /* not NEW_GC */
 
@@ -2920,7 +2920,7 @@ extent_fragment_delete (struct extent_fragment *ef)
   Dynarr_free (ef->extents);
   Dynarr_free (ef->begin_glyphs);
   Dynarr_free (ef->end_glyphs);
-  xfree (ef, struct extent_fragment *);
+  xfree (ef);
 }
 
 static int
@@ -2962,7 +2962,7 @@ extent_fragment_sort_by_priority (EXTENT_dynarr *extarr)
     /* But some loser programs mess up and may create a large number
        of extents overlapping the same spot.  This will result in
        catastrophic behavior if we use the bubble sort above. */
-    qsort (Dynarr_atp (extarr, 0), Dynarr_length (extarr),
+    qsort (Dynarr_begin (extarr), Dynarr_length (extarr),
 	   sizeof (EXTENT), extent_priority_sort_function);
 }
 
@@ -3875,14 +3875,14 @@ See `extent-parent'.
     if (!NILP (parent))
       extent_properties (XEXTENT (parent), newprops);
 
-    qsort (Dynarr_atp (oldprops, 0), Dynarr_length (oldprops),
+    qsort (Dynarr_begin (oldprops), Dynarr_length (oldprops),
 	   sizeof (Lisp_Object_pair), compare_key_value_pairs);
-    qsort (Dynarr_atp (newprops, 0), Dynarr_length (newprops),
+    qsort (Dynarr_begin (newprops), Dynarr_length (newprops),
 	   sizeof (Lisp_Object_pair), compare_key_value_pairs);
     orignewlength = Dynarr_length (newprops);
     for (i = 0; i < Dynarr_length (oldprops); i++)
       {
-	if (!bsearch (Dynarr_atp (oldprops, i), Dynarr_atp (newprops, 0),
+	if (!bsearch (Dynarr_atp (oldprops, i), Dynarr_begin (newprops),
 		      Dynarr_length (newprops), sizeof (Lisp_Object_pair),
 		      compare_key_value_pairs))
 	  {
@@ -3895,7 +3895,7 @@ See `extent-parent'.
     for (i = 0; i < orignewlength; i++)
       {
 	if (!Dynarr_length (oldprops) || !bsearch (Dynarr_atp (newprops, i), 
-						   Dynarr_atp (oldprops, 0),
+						   Dynarr_begin (oldprops),
 						   Dynarr_length (oldprops), 
 						   sizeof (Lisp_Object_pair),
 						   compare_key_value_pairs))
@@ -3906,9 +3906,9 @@ See `extent-parent'.
 	    Dynarr_add (oldprops, new_);
 	  }
       }
-    qsort (Dynarr_atp (oldprops, 0), Dynarr_length (oldprops),
+    qsort (Dynarr_begin (oldprops), Dynarr_length (oldprops),
 	   sizeof (Lisp_Object_pair), compare_key_value_pairs);
-    qsort (Dynarr_atp (newprops, 0), Dynarr_length (newprops),
+    qsort (Dynarr_begin (newprops), Dynarr_length (newprops),
 	   sizeof (Lisp_Object_pair), compare_key_value_pairs);
     for (i = 0; i < Dynarr_length (oldprops); i++)
       {

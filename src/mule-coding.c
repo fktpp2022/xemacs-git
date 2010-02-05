@@ -2365,8 +2365,8 @@ iso2022_decode (struct coding_stream *str, const UExtbyte *src,
 		  break;
 		case ISO_ESC_END_COMPOSITE:
 		  {
-		    Ichar emch = lookup_composite_char (Dynarr_atp (dst, 0),
-							 Dynarr_length (dst));
+		    Ichar emch = lookup_composite_char (Dynarr_begin (dst),
+							Dynarr_length (dst));
 		    dst = real_dst;
 		    Dynarr_add_ichar (dst, emch);
 		    break;
@@ -3732,7 +3732,7 @@ iso2022_finalize_detection_state (struct detection_state *st)
 {
   struct iso2022_detector *data = DETECTION_STATE_DATA (st, iso2022);
   if (data->iso)
-    xfree (data->iso, struct iso2022_coding_stream *);
+    xfree (data->iso);
 }
 
 

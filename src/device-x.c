@@ -53,7 +53,7 @@ Boston, MA 02111-1307, USA.  */
 #include <X11/CoreP.h>		/* Numerous places access the fields of
 				   a core widget directly.  We could
 				   use XtGetValues(), but ... */
-#include "xgccache.h"
+#include "gccache-x.h"
 #include <X11/Shell.h>
 #include <X11/Xmu/Error.h>
 
@@ -746,7 +746,7 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
     {
       /* Cast off const for G++ 4.3. */
       Extbyte *temp = (Extbyte *) locale;
-      xfree (temp, Extbyte*);
+      xfree (temp);
     }
  }
 #endif /* MULE */
@@ -954,7 +954,7 @@ x_mark_device (struct device *d)
 static void
 free_x_device_struct (struct device *d)
 {
-  xfree (d->device_data, void *);
+  xfree (d->device_data);
 }
 #endif /* not NEW_GC */
 
@@ -1431,8 +1431,8 @@ x_get_resource_prefix (Lisp_Object locale, Lisp_Object device,
     class_len = strlen (appclass);
     Dynarr_add_many (name,  appname,  name_len);
     Dynarr_add_many (class_, appclass, class_len);
-    validify_resource_component (Dynarr_atp (name,  0), name_len);
-    validify_resource_component (Dynarr_atp (class_, 0), class_len);
+    validify_resource_component (Dynarr_begin (name), name_len);
+    validify_resource_component (Dynarr_begin (class_), class_len);
   }
 
   if (EQ (locale, Qglobal))
@@ -1574,8 +1574,8 @@ mean ``unspecified''.
   Dynarr_add (name_Extbyte_dynarr,  '\0');
   Dynarr_add (class_Extbyte_dynarr, '\0');
 
-  name_string  = Dynarr_atp (name_Extbyte_dynarr,  0);
-  class_string = Dynarr_atp (class_Extbyte_dynarr, 0);
+  name_string  = Dynarr_begin (name_Extbyte_dynarr);
+  class_string = Dynarr_begin (class_Extbyte_dynarr);
 
   {
     XrmValue xrm_value;
@@ -1674,9 +1674,9 @@ returns nil. (In such a case, `x-get-resource' would always return nil.)
   if (!display)
     return Qnil;
 
-  return Fcons (make_string ((Ibyte *) Dynarr_atp (name_Extbyte_dynarr, 0),
+  return Fcons (make_string ((Ibyte *) Dynarr_begin (name_Extbyte_dynarr),
 			     Dynarr_length (name_Extbyte_dynarr)),
-		make_string ((Ibyte *) Dynarr_atp (class_Extbyte_dynarr, 0),
+		make_string ((Ibyte *) Dynarr_begin (class_Extbyte_dynarr),
 			     Dynarr_length (class_Extbyte_dynarr)));
 }
 

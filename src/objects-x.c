@@ -41,7 +41,7 @@ Boston, MA 02111-1307, USA.  */
 #include "objects-x-impl.h"
 #include "elhash.h"
 
-#ifdef USE_XFT
+#ifdef HAVE_XFT
 #include "font-mgr.h"
 #endif
 
@@ -94,7 +94,7 @@ x_initialize_color_instance (Lisp_Color_Instance *c, Lisp_Object name,
 			     Lisp_Object device, Error_Behavior errb)
 {
   XColor color;
-#ifdef USE_XFT
+#ifdef HAVE_XFT
   XftColor xftColor;
 #endif
   int result;
@@ -113,7 +113,7 @@ x_initialize_color_instance (Lisp_Color_Instance *c, Lisp_Object name,
     COLOR_INSTANCE_X_DEALLOC (c) = 1;
   COLOR_INSTANCE_X_COLOR (c) = color;
 
-#ifdef USE_XFT
+#ifdef HAVE_XFT
   xftColor.pixel = color.pixel;
   xftColor.color.red = color.red;
   xftColor.color.green = color.green;
@@ -150,7 +150,7 @@ x_finalize_color_instance (Lisp_Color_Instance *c)
 			   &COLOR_INSTANCE_X_COLOR (c).pixel, 1, 0);
 	    }
 	}
-      xfree (c->data, void *);
+      xfree (c->data);
       c->data = 0;
     }
 }
@@ -220,13 +220,13 @@ x_initialize_font_instance (Lisp_Font_Instance *f, Lisp_Object UNUSED (name),
   Display *dpy = DEVICE_X_DISPLAY (XDEVICE (device));
   Extbyte *extname;
   XFontStruct *fs = NULL;	/* _F_ont _S_truct */
-#ifdef USE_XFT
+#ifdef HAVE_XFT
   XftFont *rf = NULL;		/* _R_ender _F_ont (X Render extension) */
 #else
 #define rf (0)
 #endif
 
-#ifdef USE_XFT
+#ifdef HAVE_XFT
   DEBUG_XFT1 (2, "attempting to initialize font spec %s\n",
 	      XSTRING_DATA(f->name));
   /* #### serialize (optimize) these later... */
@@ -274,7 +274,7 @@ x_initialize_font_instance (Lisp_Font_Instance *f, Lisp_Object UNUSED (name),
      fear that the finalize method may get fucked. */
   f->data = xnew (struct x_font_instance_data);
 
-#ifdef USE_XFT
+#ifdef HAVE_XFT
   FONT_INSTANCE_X_XFTFONT (f) = rf;
   if (rf)
     /* Have an Xft font, initialize font info from it. */
@@ -381,7 +381,7 @@ x_initialize_font_instance (Lisp_Font_Instance *f, Lisp_Object UNUSED (name),
 			    !fs->all_chars_exist));
     }
 
-#ifdef USE_XFT
+#ifdef HAVE_XFT
   if (debug_xft > 0)
     {
       int n = 3, d = 5;
@@ -413,7 +413,7 @@ x_print_font_instance (Lisp_Font_Instance *f,
       write_fmt_string (printcharfun, " font id: 0x%lx,",
 			(unsigned long) FONT_INSTANCE_X_FONT (f)->fid);
 
-#ifdef USE_XFT
+#ifdef HAVE_XFT
   /* #### What should we do here?  For now, print the address. */
   if (FONT_INSTANCE_X_XFTFONT (f))
     write_fmt_string (printcharfun, " xft font: 0x%lx",
@@ -425,7 +425,7 @@ static void
 x_finalize_font_instance (Lisp_Font_Instance *f)
 {
 
-#ifdef USE_XFT
+#ifdef HAVE_XFT
   DEBUG_XFT1 (0, "finalizing %s\n", (STRINGP (f->name)
 				   ? (char *) XSTRING_DATA (f->name)
 				   : "(unnamed font)"));
@@ -439,12 +439,12 @@ x_finalize_font_instance (Lisp_Font_Instance *f)
 
 	  if (FONT_INSTANCE_X_FONT (f))
 	    XFreeFont (dpy, FONT_INSTANCE_X_FONT (f));
-#ifdef USE_XFT
+#ifdef HAVE_XFT
 	  if (FONT_INSTANCE_X_XFTFONT (f))
 	    XftFontClose (dpy, FONT_INSTANCE_X_XFTFONT (f));
 #endif
 	}
-      xfree (f->data, void *);
+      xfree (f->data);
       f->data = 0;
     }
 }
@@ -754,7 +754,7 @@ x_font_instance_truename (Lisp_Font_Instance *f, Error_Behavior errb)
      and otherwise only return when we return something desperate that
      doesn't get stored for future use. */
 
-#ifdef USE_XFT
+#ifdef HAVE_XFT
   /* First, try an Xft font. */
   if (NILP (FONT_INSTANCE_TRUENAME (f)) && FONT_INSTANCE_X_XFTFONT (f))
     {
@@ -781,7 +781,7 @@ x_font_instance_truename (Lisp_Font_Instance *f, Error_Behavior errb)
 	  /* used to return Qnil here */
 	}
     }
-#endif	/* USE_XFT */
+#endif	/* HAVE_XFT */
 
   /* OK, fall back to core font. */
   if (NILP (FONT_INSTANCE_TRUENAME (f))
@@ -963,7 +963,7 @@ cause problems this is set to nil by default.
 */ );
   x_handle_non_fully_specified_fonts = 0;
 
-#ifdef USE_XFT
+#ifdef HAVE_XFT
   Fprovide (intern ("xft-fonts"));
 #endif
 }

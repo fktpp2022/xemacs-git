@@ -3641,6 +3641,10 @@ funcall_compiled_function (Lisp_Object fun, int nargs, Lisp_Object args[])
   {
     Lisp_Object value =
       execute_optimized_program ((Opbyte *) XOPAQUE_DATA (f->instructions),
+#ifdef ERROR_CHECK_BYTE_CODE
+				 XOPAQUE_SIZE (f->instructions) /
+				 sizeof (Opbyte),
+#endif
 				 f->stack_depth,
 				 XVECTOR_DATA (f->constants));
 
@@ -6820,7 +6824,7 @@ internal_bind_int (int *addr, int newval)
 static Lisp_Object
 free_pointer (Lisp_Object opaque)
 {
-  xfree (get_opaque_ptr (opaque), void *);
+  xfree (get_opaque_ptr (opaque));
   free_opaque_ptr (opaque);
   return Qnil;
 }

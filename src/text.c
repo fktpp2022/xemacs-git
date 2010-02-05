@@ -4785,7 +4785,7 @@ dfc_convert_to_external_format (dfc_conversion_type source_type,
       /* double zero-extend because we may be dealing with Unicode data */
       Dynarr_add (conversion_out_dynarr, '\0');
       Dynarr_add (conversion_out_dynarr, '\0');
-      sink->data.ptr = Dynarr_atp (conversion_out_dynarr, 0);
+      sink->data.ptr = Dynarr_begin (conversion_out_dynarr);
     }
 
   PROFILE_RECORD_EXITING_SECTION (QSin_internal_external_conversion);
@@ -4993,7 +4993,7 @@ dfc_convert_to_internal_format (dfc_conversion_type source_type,
 	 cases.  So we add a second zero, just like for external data
 	 (in that case, because we may be converting to Unicode). */
       Dynarr_add (conversion_in_dynarr, '\0');
-      sink->data.ptr = Dynarr_atp (conversion_in_dynarr, 0);
+      sink->data.ptr = Dynarr_begin (conversion_in_dynarr);
     }
 
   PROFILE_RECORD_EXITING_SECTION (QSin_internal_external_conversion);
@@ -5136,7 +5136,7 @@ new_dfc_convert_copy_data (const char *srctext, void *alloca_data)
   vals = Dynarr_atp (active_alloca_convert, i);
   assert (alloca_data);
   memcpy (alloca_data, vals->dst, vals->dst_size);
-  xfree (vals->dst, void *);
+  xfree (vals->dst);
   Dynarr_delete (active_alloca_convert, i);
   return alloca_data;
 }
