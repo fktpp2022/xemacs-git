@@ -5,6 +5,13 @@
 	Also pass unicode-encapsulate and make-case-conv targets down
 	to src/Makefile.in.in.
 
+2010-02-08  Ben Wing  <ben@xemacs.org>
+
+	* configure:
+	* configure.ac (TAB):
+	Various warnings that used to be present had mistakenly gotten
+	turned off. Turn them back on.
+
 2010-02-06  Ben Wing  <ben@xemacs.org>
 
 	* configure:
