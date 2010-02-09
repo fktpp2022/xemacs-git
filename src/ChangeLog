@@ -299,6 +299,26 @@
 	GET_VOID_FROM_LISP to make sure the same value comes back that
 	was put in.
 
+2010-02-08  Vin Shelton  <acs@xemacs.org>
+
+	* nt.c (open_unc_volume): lpRemoteName is an XELPTSTR.
+
+2010-02-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lisp.h (Dynarr_verify, Dynarr_verify_mod):
+	If ERROR_CHECK_STRUCTURES is not defined, cast the argument in
+	these two macros; fixes the g++ build.
+
+2010-02-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fileio.c (Finsert_file_contents_internal):
+	Only call format-decode if it has a function binding.
+	(build_annotations): Only call format-annotate-function if it has
+	a function binding; incidentally only calling #'car-less-than-car
+	if *it* has a function binding.
+	(syms_of_fileio): #'car-less-than-car and #'cdr-less-than-cdr are
+	now in Lisp.
+
 2010-02-07  Ben Wing  <ben@xemacs.org>
 
 	* fns.c: Qlist, Qstring mistakenly declared twice.

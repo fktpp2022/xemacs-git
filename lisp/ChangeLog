@@ -5,6 +5,25 @@
 	for a function since it doesn't provide this info and load-history
 	already does provide it.
 
+2010-02-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* make-docfile.el (format-decode): Remove this temporary function
+	definition, now we check the symbol is bound in fileio.c
+	* version.el (format-decode): Ditto.
+	* format.el (car-less-than-car, cdr-less-than-cdr): Move these
+	here from fileio.c, now they are only called once format.el is
+	available.
+
+2010-02-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* setup-paths.el (paths-find-emacs-roots)
+	(paths-construct-info-path):
+	* packages.el (packages-find-installation-package-directories):
+	#'union doesn't guarantee that it will preserve the relative order
+	of elements in its arguments; use #'delete-duplicates
+	instead. Thank you for the bug reports, Robert Pluim, Stephen
+	Turnbull.
+
 2010-02-06  Ben Wing  <ben@xemacs.org>
 
 	* unicode.el:
