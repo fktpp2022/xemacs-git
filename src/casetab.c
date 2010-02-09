@@ -304,7 +304,7 @@ static int
 compute_canon_mapper (Lisp_Object UNUSED (table), Ichar code, Lisp_Object val,
 		      void * arg)
 {
-  Lisp_Object casetab = VOID_TO_LISP (arg);
+  Lisp_Object casetab = GET_LISP_FROM_VOID (arg);
   SET_TRT_TABLE_OF (XCASE_TABLE_CANON (casetab), code,
 		    TRT_TABLE_OF (XCASE_TABLE_DOWNCASE (casetab),
 				  TRT_TABLE_OF (XCASE_TABLE_UPCASE (casetab),
@@ -317,7 +317,7 @@ static int
 initialize_identity_mapper (Lisp_Object UNUSED (table), Ichar code,
 			    Lisp_Object UNUSED (val), void * arg)
 {
-  Lisp_Object trt = VOID_TO_LISP (arg);
+  Lisp_Object trt = GET_LISP_FROM_VOID (arg);
   SET_TRT_TABLE_OF (trt, code, code);
   
   return 0;
@@ -327,7 +327,7 @@ static int
 compute_up_or_eqv_mapper (Lisp_Object UNUSED (table), Ichar code,
 			  Lisp_Object val, void * arg)
 {
-  Lisp_Object inverse = VOID_TO_LISP (arg);
+  Lisp_Object inverse = GET_LISP_FROM_VOID (arg);
   Ichar toch = XCHAR (val);
 
   if (code != toch)
@@ -357,13 +357,13 @@ recompute_case_table (Lisp_Object casetab)
      retrieving the values below! */
   XCASE_TABLE (casetab)->dirty = 0;
   map_char_table (XCASE_TABLE_DOWNCASE (casetab), &range,
-		  compute_canon_mapper, LISP_TO_VOID (casetab));
+		  compute_canon_mapper, STORE_LISP_IN_VOID (casetab));
   map_char_table (XCASE_TABLE_CANON (casetab), &range,
 		  initialize_identity_mapper,
-		  LISP_TO_VOID (XCASE_TABLE_EQV (casetab)));
+		  STORE_LISP_IN_VOID (XCASE_TABLE_EQV (casetab)));
   map_char_table (XCASE_TABLE_CANON (casetab), &range,
 		  compute_up_or_eqv_mapper,
-		  LISP_TO_VOID (XCASE_TABLE_EQV (casetab)));
+		  STORE_LISP_IN_VOID (XCASE_TABLE_EQV (casetab)));
 }  
 
 DEFUN ("current-case-table", Fcurrent_case_table, 0, 1, 0, /*
@@ -432,17 +432,17 @@ set_case_table (Lisp_Object table, int standard)
 	{
 	  map_char_table (XCASE_TABLE_DOWNCASE (casetab), &range,
 			  initialize_identity_mapper,
-			  LISP_TO_VOID (XCASE_TABLE_UPCASE (casetab)));
+			  STORE_LISP_IN_VOID (XCASE_TABLE_UPCASE (casetab)));
 	  map_char_table (XCASE_TABLE_DOWNCASE (casetab), &range,
 			  compute_up_or_eqv_mapper,
-			  LISP_TO_VOID (XCASE_TABLE_UPCASE (casetab)));
+			  STORE_LISP_IN_VOID (XCASE_TABLE_UPCASE (casetab)));
 	}
       else
 	convert_old_style_syntax_string (XCASE_TABLE_UPCASE (casetab), up);
 
       if (NILP (canon))
 	map_char_table (XCASE_TABLE_DOWNCASE (casetab), &range,
-			compute_canon_mapper, LISP_TO_VOID (casetab));
+			compute_canon_mapper, STORE_LISP_IN_VOID (casetab));
       else
 	convert_old_style_syntax_string (XCASE_TABLE_CANON (casetab), canon);
 
@@ -450,10 +450,10 @@ set_case_table (Lisp_Object table, int standard)
 	{
 	  map_char_table (XCASE_TABLE_CANON (casetab), &range,
 			  initialize_identity_mapper,
-			  LISP_TO_VOID (XCASE_TABLE_EQV (casetab)));
+			  STORE_LISP_IN_VOID (XCASE_TABLE_EQV (casetab)));
 	  map_char_table (XCASE_TABLE_CANON (casetab), &range,
 			  compute_up_or_eqv_mapper,
-			  LISP_TO_VOID (XCASE_TABLE_EQV (casetab)));
+			  STORE_LISP_IN_VOID (XCASE_TABLE_EQV (casetab)));
 	}
       else
 	convert_old_style_syntax_string (XCASE_TABLE_CANON (casetab), eqv);

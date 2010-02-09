@@ -91,7 +91,7 @@ extern Lisp_Object Vcharset_hash_table;
 #define XCHARSET_DIMENSION(cs) 1
 #define XCHARSET_NAME(cs) (cs)
 #define Fget_charset(cs) (cs)
-#define Fcharset_list() list1 (Qascii)
+#define Fcharset_list() list1 (Vcharset_ascii)
 
 #else /* MULE */
 

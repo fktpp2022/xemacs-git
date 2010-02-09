@@ -2297,7 +2297,7 @@ static int
 copy_to_mirrortab (Lisp_Object UNUSED (table), Ichar ch,
 		   Lisp_Object val, void *arg)
 {
-  Lisp_Object mirrortab = VOID_TO_LISP (arg);
+  Lisp_Object mirrortab = GET_LISP_FROM_VOID (arg);
 
   if (CONSP (val))
     val = XCAR (val);
@@ -2310,7 +2310,7 @@ static int
 copy_if_not_already_present (Lisp_Object UNUSED (table), Ichar ch,
 			     Lisp_Object val, void *arg)
 {
-  Lisp_Object mirrortab = VOID_TO_LISP (arg);
+  Lisp_Object mirrortab = GET_LISP_FROM_VOID (arg);
   if (CONSP (val))
     val = XCAR (val);
   if (SYNTAX_FROM_CODE (XINT (val)) != Sinherit)
@@ -2340,12 +2340,12 @@ update_just_this_syntax_table (Lisp_Object table)
      entries don't already exist in that table. (The copying step requires
      another mapping.)
      */
-  map_char_table (table, &range, copy_to_mirrortab, LISP_TO_VOID (mirrortab));
+  map_char_table (table, &range, copy_to_mirrortab, STORE_LISP_IN_VOID (mirrortab));
   /* second clause catches bootstrapping problems when initializing the
      standard syntax table */
   if (!EQ (table, Vstandard_syntax_table) && !NILP (Vstandard_syntax_table))
     map_char_table (Vstandard_syntax_table, &range,
-		    copy_if_not_already_present, LISP_TO_VOID (mirrortab));
+		    copy_if_not_already_present, STORE_LISP_IN_VOID (mirrortab));
   /* The resetting made the default be Qnil.  Put it back to Sword. */
   set_char_table_default (mirrortab, make_int (Sword));
   XCHAR_TABLE (mirrortab)->dirty = 0;

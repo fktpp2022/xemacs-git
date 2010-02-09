@@ -1581,7 +1581,7 @@ free_precedence_array (Lisp_Object precarray)
 static int
 cplta_mapper (Lisp_Object UNUSED (key), Lisp_Object value, void *closure)
 {
-  add_charset_to_precedence_array (value, VOID_TO_LISP (closure));
+  add_charset_to_precedence_array (value, GET_LISP_FROM_VOID (closure));
   return 0;
 }
 
@@ -1627,7 +1627,7 @@ convert_precedence_list_to_array_1 (Lisp_Object precarray,
   if (flags & CPLTA_MAKE_FULL_P)
     /* Now add all remaining charsets */
     elisp_maphash (cplta_mapper, Vcharset_hash_table,
-                   LISP_TO_VOID (precarray));
+                   STORE_LISP_IN_VOID (precarray));
 }
 
 /* Convert an external precedence list to a precedence array object.  If
