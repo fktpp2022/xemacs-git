@@ -1,6 +1,6 @@
 /* Face data structures.
    Copyright (C) 1995 Board of Trustees, University of Illinois.
-   Copyright (C) 1995, 2002, 2005 Ben Wing
+   Copyright (C) 1995, 2002, 2005, 2010 Ben Wing
 
 This file is part of XEmacs.
 
@@ -297,8 +297,6 @@ void default_face_font_info (Lisp_Object domain, int *ascent,
 			     int *proportional_p);
 void default_face_height_and_width (Lisp_Object domain,
 				    int *height, int *width);
-void default_face_height_and_width_1 (Lisp_Object domain,
-				      int *height, int *width);
 
 /* Return the font corresponding to CHARSET in CACHEL, or Qunbound if not
    found.  Could just use FACE_CACHEL_OFFSET() below. */
