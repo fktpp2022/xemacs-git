@@ -1033,9 +1033,6 @@ $(SRC)\config.h:	$(SRC)\config.h.in
 	set COPYCMD=$(COPYCMD)
 	@copy $(SRC)\config.h.in $(SRC)\config.h
 
-#$(SRC)\Emacs.ad.h: $(SRCROOT)\etc\Emacs.ad
-#	!"sed -f ad2c.sed < $(SRCROOT)\etc\Emacs.ad > $(SRC)\Emacs.ad.h"
-
 #$(SRC)\paths.h: $(SRC)\paths.h.in
 #	!"cd $(SRC); cp paths.h.in paths.h"
 
@@ -1068,7 +1065,7 @@ $(OUTDIR)\lastfile.obj:	$(LASTFILE_SRC)\lastfile.c
 
 ###################### lib-src programs
 
-LIB_SRC_DEFINES = -DHAVE_CONFIG_H -DWIN32_NATIVE
+LIB_SRC_DEFINES = -DHAVE_CONFIG_H -DWIN32_NATIVE $(PROGRAM_DEFINES)
 
 #
 # Creating config.values to be used by config.el
@@ -1499,7 +1496,6 @@ INFO_FILES= \
 	$(INFODIR)\lispref.info \
 	$(INFODIR)\new-users-guide.info \
 	$(INFODIR)\standards.info \
-	$(INFODIR)\term.info \
 	$(INFODIR)\termcap.info \
 	$(INFODIR)\texinfo.info \
 	$(INFODIR)\widget.info \

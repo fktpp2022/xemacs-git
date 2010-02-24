@@ -271,8 +271,7 @@ print_frame (Lisp_Object obj, Lisp_Object printcharfun,
   struct frame *frm = XFRAME (obj);
 
   if (print_readably)
-    printing_unreadable_object ("#<frame %s 0x%x>",
-				XSTRING_DATA (frm->name), frm->header.uid);
+    printing_unreadable_lcrecord (obj, XSTRING_DATA (frm->name));
 
   write_fmt_string (printcharfun, "#<%s-frame ", !FRAME_LIVE_P (frm) ? "dead" :
 		    FRAME_TYPE_NAME (frm));
@@ -525,17 +524,17 @@ See `set-frame-properties', `default-x-frame-plist', and
     {
       /* We leave Vdefault_frame_name alone here so that it'll remain Qnil
 	 in the dumped executable, and we can choose it at runtime. */
-      name = build_string("XEmacs");
+      name = build_ascstring ("XEmacs");
     }
   else if (NILP (Vdefault_frame_name))
     {
       if (egetenv ("USE_EMACS_AS_DEFAULT_APPLICATION_CLASS"))
 	{
-	  Vdefault_frame_name = build_string ("emacs");
+	  Vdefault_frame_name = build_ascstring ("emacs");
 	}
       else
 	{
-	  Vdefault_frame_name = build_string ("XEmacs");
+	  Vdefault_frame_name = build_ascstring ("XEmacs");
 	}
     }
 
@@ -581,6 +580,8 @@ See `set-frame-properties', `default-x-frame-plist', and
 
   update_frame_window_mirror (f);
 
+  /* #### Do we need to be calling reset_face_cachels here, and then again
+     down below? */
   if (initialized && !DEVICE_STREAM_P (d))
     {
       if (!NILP (f->minibuffer_window))
@@ -638,8 +639,19 @@ See `set-frame-properties', `default-x-frame-plist', and
 	 things. */
       init_frame_toolbars (f);
 #endif
+      /* Added this assert recently (2-1-10); seems there should be only
+	 two windows, root and minibufer.  Probably we should just be
+	 calling reset_*_cachels on the root window directly instead of the
+	 selected window, but I want to make sure they are always the
+	 same. --ben */
+      assert (EQ (FRAME_SELECTED_WINDOW (f), f->root_window));
       reset_face_cachels (XWINDOW (FRAME_SELECTED_WINDOW (f)));
       reset_glyph_cachels (XWINDOW (FRAME_SELECTED_WINDOW (f)));
+      if (!NILP (f->minibuffer_window))
+	{
+	  reset_face_cachels (XWINDOW (f->minibuffer_window));
+	  reset_glyph_cachels (XWINDOW (f->minibuffer_window));
+	}
 
       change_frame_size (f, f->height, f->width, 0);
     }
@@ -3487,7 +3499,7 @@ generate_title_string (struct window *w, Lisp_Object format_str,
 
   return
     convert_ichar_string_into_malloced_string
-    (Dynarr_atp (title_string_ichar_dynarr, 0),
+    (Dynarr_begin (title_string_ichar_dynarr),
      Dynarr_length (title_string_ichar_dynarr), 0);
 }
 
@@ -3524,7 +3536,7 @@ update_frame_title (struct frame *f)
       if (!EQ (icon_format, title_format) || !title)
 	{
 	  if (title)
-	    xfree (title, Ibyte *);
+	    xfree (title);
 
 	  title = generate_title_string (w, icon_format,
 					 DEFAULT_INDEX, CURRENT_DISP);
@@ -3533,7 +3545,7 @@ update_frame_title (struct frame *f)
     }
 
   if (title)
-    xfree (title, Ibyte *);
+    xfree (title);
 }
 
 
@@ -3858,16 +3870,16 @@ This is the same format as `modeline-format' with the exception that
 /* #### I would change this unilaterally but for the wrath of the Kyles
 of the world. */
 #ifdef WIN32_NATIVE
-  Vframe_title_format = build_string ("%b - XEmacs");
+  Vframe_title_format = build_ascstring ("%b - XEmacs");
 #else
-  Vframe_title_format = build_string ("%S: %b");
+  Vframe_title_format = build_ascstring ("%S: %b");
 #endif
 
   DEFVAR_LISP ("frame-icon-title-format", &Vframe_icon_title_format /*
 Controls the title of the icon corresponding to the selected frame.
 See also the variable `frame-title-format'.
 */ );
-  Vframe_icon_title_format = build_string ("%b");
+  Vframe_icon_title_format = build_ascstring ("%b");
 
   DEFVAR_LISP ("default-frame-name", &Vdefault_frame_name /*
 The default name to assign to newly-created frames.

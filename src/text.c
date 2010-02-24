@@ -1422,15 +1422,15 @@ qxestrcasecmp_i18n (const Ibyte *s1, const Ibyte *s2)
 {
   while (*s1 && *s2)
     {
-      if (DOWNCASE (0, itext_ichar (s1)) !=
-	  DOWNCASE (0, itext_ichar (s2)))
+      if (CANONCASE (0, itext_ichar (s1)) !=
+	  CANONCASE (0, itext_ichar (s2)))
 	break;
       INC_IBYTEPTR (s1);
       INC_IBYTEPTR (s2);
     }
 
-  return (DOWNCASE (0, itext_ichar (s1)) -
-	  DOWNCASE (0, itext_ichar (s2)));
+  return (CANONCASE (0, itext_ichar (s1)) -
+	  CANONCASE (0, itext_ichar (s2)));
 }
 
 /* The only difference between these next two and
@@ -1481,8 +1481,8 @@ qxestrncasecmp_i18n (const Ibyte *s1, const Ibyte *s2,
   while (len_from_s1 > 0)
     {
       const Ibyte *old_s1 = s1;
-      int diff = (DOWNCASE (0, itext_ichar (s1)) -
-		  DOWNCASE (0, itext_ichar (s2)));
+      int diff = (CANONCASE (0, itext_ichar (s1)) -
+		  CANONCASE (0, itext_ichar (s2)));
       if (diff != 0)
 	return diff;
       if (!*s1)
@@ -1604,8 +1604,8 @@ qxetextcasecmp (const Ibyte *s1, Bytecount len1,
     {
       const Ibyte *old_s1 = s1;
       const Ibyte *old_s2 = s2;
-      int diff = (DOWNCASE (0, itext_ichar (s1)) -
-		  DOWNCASE (0, itext_ichar (s2)));
+      int diff = (CANONCASE (0, itext_ichar (s1)) -
+		  CANONCASE (0, itext_ichar (s2)));
       if (diff != 0)
 	return diff;
       INC_IBYTEPTR (s1);
@@ -1631,8 +1631,8 @@ qxetextcasecmp_matching (const Ibyte *s1, Bytecount len1,
     {
       const Ibyte *old_s1 = s1;
       const Ibyte *old_s2 = s2;
-      int diff = (DOWNCASE (0, itext_ichar (s1)) -
-		  DOWNCASE (0, itext_ichar (s2)));
+      int diff = (CANONCASE (0, itext_ichar (s1)) -
+		  CANONCASE (0, itext_ichar (s2)));
       if (diff != 0)
 	return diff;
       INC_IBYTEPTR (s1);
@@ -1647,7 +1647,7 @@ qxetextcasecmp_matching (const Ibyte *s1, Bytecount len1,
 }
 
 int
-lisp_strcasecmp (Lisp_Object s1, Lisp_Object s2)
+lisp_strcasecmp_ascii (Lisp_Object s1, Lisp_Object s2)
 {
   Ibyte *cm = strcasecmp_charmap;
   Ibyte *p1 = XSTRING_DATA (s1);
@@ -4238,7 +4238,7 @@ dfc_convert_to_external_format (dfc_conversion_type source_type,
       /* double zero-extend because we may be dealing with Unicode data */
       Dynarr_add (conversion_out_dynarr, '\0');
       Dynarr_add (conversion_out_dynarr, '\0');
-      sink->data.ptr = Dynarr_atp (conversion_out_dynarr, 0);
+      sink->data.ptr = Dynarr_begin (conversion_out_dynarr);
     }
 
   PROFILE_RECORD_EXITING_SECTION (QSin_internal_external_conversion);
@@ -4470,7 +4470,7 @@ dfc_convert_to_internal_format (dfc_conversion_type source_type,
 	 cases.  So we add a second zero, just like for external data
 	 (in that case, because we may be converting to Unicode). */
       Dynarr_add (conversion_in_dynarr, '\0');
-      sink->data.ptr = Dynarr_atp (conversion_in_dynarr, 0);
+      sink->data.ptr = Dynarr_begin (conversion_in_dynarr);
     }
 
   PROFILE_RECORD_EXITING_SECTION (QSin_internal_external_conversion);
@@ -4532,8 +4532,8 @@ find_pos_of_existing_active_alloca_convert (const char *srctext)
 /* We handle here the cases where SRC is a Lisp_Object, internal data
    (sized or unsized), or external data (sized or unsized), and return type
    is unsized alloca() or malloc() data.  If the return type is a
-   Lisp_Object, use build_ext_string() for unsized external data,
-   make_ext_string() for sized external data.  If the return type needs to
+   Lisp_Object, use build_extstring() for unsized external data,
+   make_extstring() for sized external data.  If the return type needs to
    be sized data, use the *_TO_SIZED_*() macros, and for other more
    complicated cases, use the original TO_*_FORMAT() macros. */
 
@@ -4571,7 +4571,7 @@ new_dfc_convert_now_damn_it (const void *src, Bytecount src_size,
       break;
 
     case DFC_LISP_STRING:
-      TO_EXTERNAL_FORMAT (LISP_STRING, VOID_TO_LISP (src),
+      TO_EXTERNAL_FORMAT (LISP_STRING, GET_LISP_FROM_VOID (src),
 			  MALLOC, (*dst, *dst_size), codesys);
       break;
 
@@ -4613,7 +4613,7 @@ new_dfc_convert_copy_data (const char *srctext, void *alloca_data)
   vals = Dynarr_atp (active_alloca_convert, i);
   assert (alloca_data);
   memcpy (alloca_data, vals->dst, vals->dst_size);
-  xfree (vals->dst, void *);
+  xfree (vals->dst);
   Dynarr_delete (active_alloca_convert, i);
   return alloca_data;
 }
@@ -5158,10 +5158,10 @@ reinit_vars_of_text (void)
 void
 vars_of_text (void)
 {
-  QSin_char_byte_conversion = build_msg_string ("(in char-byte conversion)");
+  QSin_char_byte_conversion = build_defer_string ("(in char-byte conversion)");
   staticpro (&QSin_char_byte_conversion);
   QSin_internal_external_conversion =
-    build_msg_string ("(in internal-external conversion)");
+    build_defer_string ("(in internal-external conversion)");
   staticpro (&QSin_internal_external_conversion);
 
 #ifdef ENABLE_COMPOSITE_CHARS

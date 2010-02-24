@@ -1,6 +1,6 @@
 /* The "lrecord" structure (header of a compound lisp object).
    Copyright (C) 1993, 1994, 1995 Free Software Foundation, Inc.
-   Copyright (C) 1996, 2001, 2002, 2004, 2005, 2009 Ben Wing.
+   Copyright (C) 1996, 2001, 2002, 2004, 2005, 2009, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -59,12 +59,37 @@ Boston, MA 02111-1307, USA.  */
    just looking for a way of encapsulating data (which possibly
    could contain Lisp_Objects in it), you may well be able to use
    the opaque type.
-
-   The "public API's" meant for use by regular Lisp objects are macros
-   in capital letters, involving the word "LISP_OBJECT".  Underlyingly,
-   the functions and structures use "lrecord" or "lcrecord", but most
-   code shouldn't have to worry about this.
 */
+
+#ifdef NEW_GC
+/*
+  There are some limitations under New-GC that lead to the creation of a
+  large number of new internal object types.  I'm not completely sure what
+  all of them are, but they are at least partially related to limitations
+  on finalizers.  Something else must be going on as well, because
+  non-dumpable, non-finalizable objects like devices and frames also have
+  their window-system-specific substructures converted into Lisp objects.
+  It must have something to do with the fact that these substructures
+  contain pointers to Lisp objects, but it's not completely clear why --
+  object descriptions exist to indicate the size of these structures and
+  the Lisp object pointers within them.
+
+ At least one definite issue is that under New-GC dumpable objects cannot
+ contain any finalizers (see pdump_register_object()).  This means that any
+ substructures in dumpable objects that are allocated separately and
+ normally freed in a finalizer need instead to be made into actual Lisp
+ objects.  If those structures are Dynarrs, they need to be made into
+ Dynarr Lisp objects (e.g. face-cachel-dynarr or glyph-cachel-dynarr),
+ which are created using Dynarr_lisp_new() or Dynarr_new_new2().
+ Furthermore, the objects contained in the Dynarr also need to be Lisp
+ objects (e.g. face-cachel or glyph-cachel).
+
+ --ben
+ */
+
+#endif
+
+
 
 #ifdef NEW_GC
 #define ALLOC_LISP_OBJECT(type) alloc_lrecord (&lrecord_##type)
@@ -294,6 +319,7 @@ enum lrecord_type
   lrecord_type_undefined, /* only used for debugging */
 #endif /* not NEW_GC */
 #ifdef NEW_GC
+  /* See comment up top explaining why these extra object types must exist. */
   lrecord_type_string_indirect_data,
   lrecord_type_string_direct_data,
   lrecord_type_hash_table_entry,
@@ -370,7 +396,8 @@ struct lrecord_implementation
   void (*finalizer) (void *header);
 
   /* This can be NULL, meaning compare objects with EQ(). */
-  int (*equal) (Lisp_Object obj1, Lisp_Object obj2, int depth);
+  int (*equal) (Lisp_Object obj1, Lisp_Object obj2, int depth,
+		int foldcase);
 
   /* `hash' generates hash values for use with hash tables that have
      `equal' as their test function.  This can be NULL, meaning use
@@ -485,7 +512,7 @@ int lrecord_stats_heap_size (void);
       const struct lrecord_implementation *MCACF_implementation		\
 	= LHEADER_IMPLEMENTATION (MCACF_lheader);			\
       if (MCACF_implementation && MCACF_implementation->disksaver)	\
-	MCACF_implementation->disksaver (ptr);				\
+	MCACF_implementation->disksaver (MCACF_obj);			\
     }									\
 } while (0)
 
@@ -710,7 +737,7 @@ int lrecord_stats_heap_size (void);
      ...
    };
 
-   lisp_object_description is declared in alloc.c, like this:
+   lisp_object_description is declared in gc.c, like this:
 
    static const struct memory_description lisp_object_description_1[] = {
      { XD_LISP_OBJECT, 0 },
@@ -1130,19 +1157,6 @@ extern const struct sized_memory_description lisp_object_description;
 #define XD_IS_INDIRECT(code) ((code) < 0)
 #define XD_INDIRECT_VAL(code) ((-1 - (code)) & 255)
 #define XD_INDIRECT_DELTA(code) ((-1 - (code)) >> 8)
-
-#define XD_DYNARR_DESC(base_type, sub_desc)				      \
-  { XD_BLOCK_PTR, offsetof (base_type, base), XD_INDIRECT(1, 0), {sub_desc} },\
-  { XD_INT,        offsetof (base_type, cur) },				      \
-  { XD_INT_RESET,  offsetof (base_type, max), XD_INDIRECT(1, 0) }	      \
-
-#ifdef NEW_GC
-#define XD_LISP_DYNARR_DESC(base_type, sub_desc)			\
-  { XD_LISP_OBJECT_BLOCK_PTR, offsetof (base_type, base),		\
-    XD_INDIRECT(1, 0), {sub_desc} },					\
-  { XD_INT,        offsetof (base_type, cur) },				\
-  { XD_INT_RESET,  offsetof (base_type, max), XD_INDIRECT(1, 0) }
-#endif /* not NEW_GC */
 
 /* DEFINE_*_LISP_OBJECT is for objects with constant size. (Either
    DEFINE_DUMPABLE_LISP_OBJECT for objects that can be saved in a dumped

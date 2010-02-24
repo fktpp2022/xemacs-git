@@ -3,7 +3,7 @@
 ##   Copyright (C) 1994, 1995 Board of Trustees, University of Illinois
 ##   Copyright (C) 1996, 1997 Sun Microsystems, Inc.
 ##   Copyright (C) 1998, 1999 J. Kean Johnston.
-##   Copyright (C) 2001, 2002, 2003, 2005 Ben Wing.
+##   Copyright (C) 2001, 2002, 2003, 2005, 2010 Ben Wing.
 
 ## This file is part of XEmacs.
 
@@ -132,13 +132,13 @@ gui_objs += toolbar.o
 
 #ifdef HAVE_X_WINDOWS
 x_objs=console-x.o device-x.o event-Xt.o frame-x.o \
- glyphs-x.o objects-x.o redisplay-x.o select-x.o xgccache.o intl-x.o
-#ifdef USE_XFT
+ glyphs-x.o objects-x.o redisplay-x.o select-x.o gccache-x.o intl-x.o
+#ifdef HAVE_XFT
 x_objs += font-mgr.o
 #endif
 x_gui_objs=$(gui_objs:.o=-x.o)
 #ifdef HAVE_TOOLBARS
-x_gui_objs += toolbar-common.o
+x_gui_objs += toolbar-xlike.o
 #endif
 #endif
 
@@ -159,7 +159,7 @@ gtk_objs=console-gtk.o device-gtk.o event-gtk.o frame-gtk.o \
  gtk-xemacs.o ui-gtk.o
 gtk_gui_objs=$(gui_objs:.o=-gtk.o)
 #ifdef HAVE_TOOLBARS
-gtk_gui_objs += toolbar-common.o
+gtk_gui_objs += toolbar-xlike.o
 #endif
 #endif
 
@@ -230,7 +230,7 @@ sheap_objs=sheap.o
 
 #ifdef HAVE_SHLIB
 shlib_objs=sysdll.o
-# ifdef HAVE_MS_WINDOWS
+# ifdef WIN32_ANY
 export_lib=xemacs-export.o
 xemacs-export.o: xemacs.def
 	dlltool -D xemacs-${version}.exe -d $< -l xemacs-import.a -e $@
@@ -245,7 +245,7 @@ sunpro_objs=sunpro.o
 tooltalk_objs=tooltalk.o
 #endif
 
-#if defined (WIN32_NATIVE) || defined (CYGWIN)
+#ifdef WIN32_ANY
 win32_objs=win32.o intl-win32.o intl-auto-encap-win32.o intl-encap-win32.o \
  xemacs_res.o
 #endif
@@ -368,10 +368,6 @@ othersrcs = $(otherobjs:.o=.c)
 
 LIBES = $(lwlib_lib) $(malloclib) $(ld_libs_all) $(lib_gcc)
 
-#ifdef I18N3
-mo_file = $(LIB_SRC)/emacs.mo
-#endif
-
 #########################################################################
 ##                           Implicit rules                            ##
 #########################################################################
@@ -389,10 +385,6 @@ cflags   = $(CFLAGS) $(cppflags)
 ldflags  = $(LDFLAGS) -mwindows -e _mainCRTStartup $(ld_switch_all) $(ld_dynamic_link_flags)
 #else
 ldflags  = $(LDFLAGS) $(ld_switch_all) $(ld_dynamic_link_flags)
-#endif
-
-#if defined (CYGWIN) && !defined (PDUMP)
-ldflags += -Wl,--script=s/cygwin.sc
 #endif
 
 #ifdef SOLARIS2
@@ -668,35 +660,6 @@ all-elc:
 ##                     Subsidiary dependency rules                     ##
 #########################################################################
 
-#ifdef I18N3
-
-# if defined(SPARC) && !defined(USG)
-   xgettext=		 /usr/openwin/bin/xgettext
-   xgettext_args=	 -o emacs -m_X messages
-   msgfmt=		 /usr/openwin/bin/msgfmt
-# else
-   xgettext=		 xgettext
-   xgettext_args=	 -s -d emacs -M_X messages
-   msgfmt=		 msgfmt
-#endif
-
-$(LIB_SRC)/emacs.po: $(LIB_SRC)/make-msgfile $(LIB_SRC)/make-po $(objs)
-	$(LIB_SRC)/make-msgfile -o $(LIB_SRC)/messages $(objs)
-	cd $(LIB_SRC) && $(xgettext) $(xgettext_args)
-	$(RM) $(LIB_SRC)/emacs.po
-	cd $(LIB_SRC) && $(LIB_SRC)/make-po -a $(LIB_SRC)/emacs.po DOC
-
-$(LIB_SRC)/emacs.mo: $(LIB_SRC)/emacs.po
-	cd $(LIB_SRC)/ && $(msgfmt) -o emacs.mo emacs.po
-
-$(LIB_SRC)/make-msgfile:
-	cd $(LIB_SRC) && $(MAKE) $(RECURSIVE_MAKE_ARGS) make-msgfile
-
-$(LIB_SRC)/make-po:
-	cd $(LIB_SRC) && $(MAKE) $(RECURSIVE_MAKE_ARGS) make-po
-
-#endif /* I18N3 */
-
 TopLevelEmacsShell.o : $(SRC)/EmacsShell-sub.c config.h xintrinsicp.h EmacsShellP.h
 	$(CC) -c $(cflags) -DDEFINE_TOP_LEVEL_EMACS_SHELL $(SRC)/EmacsShell-sub.c
 	mv EmacsShell-sub.o TopLevelEmacsShell.o
@@ -920,6 +883,19 @@ lint: $(LINTFILES)
 ###################### Automated tests
 testdir = $(SRC)/../tests/automated
 batch_test_emacs = $(BATCH_PACKAGES) -l $(testdir)/test-harness.el -f batch-test-emacs $(testdir)
+
+## `config-changed' is useful if you are building both Unicode-internal
+## and old-Mule workspaces using --srcdir and don't run configure before
+## switching from one to the other.  If you rerun configure, update-elc.el
+## notices this and automatically removes the two files below, but not
+## if you just switch directories and `make'.  In that case, do
+## `make config-changed' to avoid an error.
+
+.PHONY: remove-config-dependent-elcs config-changed
+remove-config-dependent-elcs:
+	rm $(LISP)/mule/chinese.elc $(LISP)/mule/general-late.elc
+config-changed: remove-config-dependent-elcs all
+
 
 .PHONY: check check-temacs check-features
 check:

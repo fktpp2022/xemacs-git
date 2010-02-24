@@ -1,6 +1,6 @@
 /* Implements elisp-programmable dialog boxes -- MS Windows interface.
    Copyright (C) 1998 Kirill M. Katsnelson <kkm@kis.ru>
-   Copyright (C) 2000, 2001, 2002, 2003, 2004 Ben Wing.
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -202,7 +202,7 @@ dialog_proc (HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param)
     case WM_DESTROY:
       {
 	Lisp_Object data;
-	data = VOID_TO_LISP ((void *) qxeGetWindowLong (hwnd, DWL_USER));
+	data = GET_LISP_FROM_VOID ((void *) qxeGetWindowLong (hwnd, DWL_USER));
 	Vdialog_data_list = delq_no_quit (data, Vdialog_data_list);
       }
       break;
@@ -212,7 +212,7 @@ dialog_proc (HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param)
 	Lisp_Object fn, arg, data;
 	struct mswindows_dialog_id *did;
 
-	data = VOID_TO_LISP ((void *) qxeGetWindowLong (hwnd, DWL_USER));
+	data = GET_LISP_FROM_VOID ((void *) qxeGetWindowLong (hwnd, DWL_USER));
 	did = XMSWINDOWS_DIALOG_ID (data);
 	if (w_param != IDCANCEL) /* user pressed escape */
 	  {
@@ -249,9 +249,8 @@ push_lisp_string_as_unicode (unsigned_char_dynarr *dynarr, Lisp_Object string)
   int length;
   Extbyte *uni_string;
 
-  TO_EXTERNAL_FORMAT (LISP_STRING, string,
-		      ALLOCA, (uni_string, length),
-		      Qmswindows_unicode);
+  LISP_STRING_TO_SIZED_EXTERNAL (string, uni_string, length,
+				 Qmswindows_unicode);
   Dynarr_add_many (dynarr, uni_string, length);
   Dynarr_add (dynarr, '\0');
   Dynarr_add (dynarr, '\0');
@@ -296,7 +295,7 @@ dialog_popped_down (Lisp_Object UNUSED (arg))
 static struct
 {
   DWORD errmess;
-  Ascbyte *errname;
+  const Ascbyte *errname;
 } common_dialog_errors[] =
 {
   { CDERR_DIALOGFAILURE, "CDERR_DIALOGFAILURE" },
@@ -343,7 +342,7 @@ static int
 CALLBACK handle_directory_proc (HWND hwnd, UINT msg,
 				LPARAM lParam, LPARAM lpData)
 {
-  Extbyte szDir[PATH_MAX_EXTERNAL];
+  Extbyte szDir[PATH_MAX_TCHAR];
   struct param_data *pd = (struct param_data *) lpData;
   
   switch (msg)
@@ -393,7 +392,7 @@ handle_directory_dialog_box (struct frame *f, Lisp_Object keys)
     BIF_RETURNONLYFSDIRS | BIF_STATUSTEXT | BIF_EDITBOX | BIF_NEWDIALOGSTYLE;
   bi.lpfn = handle_directory_proc;
   
-  LOCAL_FILE_FORMAT_TO_TSTR (Fexpand_file_name (build_string (""), Qnil),
+  LISP_LOCAL_FILE_FORMAT_TO_TSTR (Fexpand_file_name (build_ascstring (""), Qnil),
 			     pd.fname);
   
   {
@@ -402,10 +401,10 @@ handle_directory_dialog_box (struct frame *f, Lisp_Object keys)
 	if (EQ (key, Q_title))
 	  {
 	    CHECK_STRING (value);
-	    LISP_STRING_TO_EXTERNAL (value, bi.lpszTitle, Qmswindows_tstr);
+	    bi.lpszTitle = (XELPTSTR) LISP_STRING_TO_TSTR (value);
 	  }
 	else if (EQ (key, Q_initial_directory))
-	  LOCAL_FILE_FORMAT_TO_TSTR (Fexpand_file_name (value, Qnil),
+	  LISP_LOCAL_FILE_FORMAT_TO_TSTR (Fexpand_file_name (value, Qnil),
 				     pd.fname);
 	else if (EQ (key, Q_initial_filename))
 	  ;			/* do nothing */
@@ -429,7 +428,7 @@ handle_directory_dialog_box (struct frame *f, Lisp_Object keys)
       pidl = qxeSHBrowseForFolder (&bi);
       if (pidl)
 	{
-	  Extbyte *szDir = alloca_extbytes (PATH_MAX_EXTERNAL);
+	  Extbyte *szDir = alloca_extbytes (PATH_MAX_TCHAR);
 	  
 	  if (qxeSHGetPathFromIDList (pidl, szDir))
 	    ret = tstr_to_local_file_format (szDir);
@@ -441,7 +440,7 @@ handle_directory_dialog_box (struct frame *f, Lisp_Object keys)
       else if (pd.unknown_fname != 0)
 	{
 	  ret = tstr_to_local_file_format (pd.unknown_fname);
-	  xfree (pd.unknown_fname, Extbyte *);
+	  xfree (pd.unknown_fname);
 	}
       else while (1)
 	signal_quit ();
@@ -467,8 +466,9 @@ handle_file_dialog_box (struct frame *f, Lisp_Object keys)
   ofn.nMaxFile = sizeof (fnbuf) / XETCHAR_SIZE;
   qxetcscpy (fnbuf, XETEXT (""));
   
-  LOCAL_FILE_FORMAT_TO_TSTR (Fexpand_file_name (build_string (""), Qnil),
-			     ofn.lpstrInitialDir);
+  LISP_LOCAL_FILE_FORMAT_TO_TSTR (Fexpand_file_name (build_ascstring (""),
+						     Qnil),
+				  ofn.lpstrInitialDir);
   
   {
     EXTERNAL_PROPERTY_LIST_LOOP_3 (key, value, keys)
@@ -478,17 +478,17 @@ handle_file_dialog_box (struct frame *f, Lisp_Object keys)
 	    Extbyte *fnout;
 	    
 	    CHECK_STRING (value);
-	    LOCAL_FILE_FORMAT_TO_TSTR (value, fnout);
+	    LISP_LOCAL_FILE_FORMAT_TO_TSTR (value, fnout);
 	    qxetcscpy (fnbuf, fnout);
 	  }
 	else if (EQ (key, Q_title))
 	  {
 	    CHECK_STRING (value);
-	    LISP_STRING_TO_TSTR (value, ofn.lpstrTitle);
+	    ofn.lpstrTitle = (XELPTSTR) LISP_STRING_TO_TSTR (value);
 	  }
 	else if (EQ (key, Q_initial_directory))
-	  LOCAL_FILE_FORMAT_TO_TSTR (Fexpand_file_name (value, Qnil),
-				     ofn.lpstrInitialDir);
+	  LISP_LOCAL_FILE_FORMAT_TO_TSTR (Fexpand_file_name (value, Qnil),
+					  ofn.lpstrInitialDir);
 	else if (EQ (key, Q_file_must_exist))
 	  {
 	    if (!NILP (value))
@@ -760,9 +760,9 @@ handle_question_dialog_box (struct frame *f, Lisp_Object keys)
     /* Woof! Everything is ready. Pop pop pop in now! */
     did->hwnd =
       qxeCreateDialogIndirectParam (NULL,
-				    (LPDLGTEMPLATE) Dynarr_atp (template_, 0),
+				    (LPDLGTEMPLATE) Dynarr_begin (template_),
 				    FRAME_MSWINDOWS_HANDLE (f), dialog_proc,
-				    (LPARAM) LISP_TO_VOID (obj));
+				    (LPARAM) STORE_LISP_IN_VOID (obj));
     if (!did->hwnd)
       /* Something went wrong creating the dialog */
       signal_error (Qdialog_box_error, "Creating dialog", keys);
@@ -839,9 +839,9 @@ vars_of_dialog_mswindows (void)
 	       &Vdefault_file_dialog_filter_alist /*
 						   */ );
   Vdefault_file_dialog_filter_alist =
-    list5 (Fcons (build_msg_string ("Text Files"), build_string ("*.txt")),
-	   Fcons (build_msg_string ("C Files"), build_string ("*.c;*.h")),
-	   Fcons (build_msg_string ("Elisp Files"), build_string ("*.el")),
-	   Fcons (build_msg_string ("HTML Files"), build_string ("*.html;*.html")),
-	   Fcons (build_msg_string ("All Files"), build_string ("*.*")));
+    list5 (Fcons (build_defer_string ("Text Files"), build_ascstring ("*.txt")),
+	   Fcons (build_defer_string ("C Files"), build_ascstring ("*.c;*.h")),
+	   Fcons (build_defer_string ("Elisp Files"), build_ascstring ("*.el")),
+	   Fcons (build_defer_string ("HTML Files"), build_ascstring ("*.html;*.html")),
+	   Fcons (build_defer_string ("All Files"), build_ascstring ("*.*")));
 }

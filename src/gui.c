@@ -512,7 +512,7 @@ gui_item_display_flush_left (Lisp_Object gui_item)
 	  CHECK_STRING (suffix);
 	}
 
-      retval = concat3 (pgui_item->name, build_string (" "), suffix);
+      retval = concat3 (pgui_item->name, build_ascstring (" "), suffix);
     }
 
   return retval;
@@ -674,7 +674,8 @@ gui_item_equal_sans_selected (Lisp_Object obj1, Lisp_Object obj2, int depth)
 }
 
 static int
-gui_item_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
+gui_item_equal (Lisp_Object obj1, Lisp_Object obj2, int depth,
+		int UNUSED (foldcase))
 {
   Lisp_Gui_Item *p1 = XGUI_ITEM (obj1);
   Lisp_Gui_Item *p2 = XGUI_ITEM (obj2);
@@ -692,7 +693,7 @@ print_gui_item (Lisp_Object obj, Lisp_Object printcharfun,
   Lisp_Gui_Item *g = XGUI_ITEM (obj);
 
   if (print_readably)
-    printing_unreadable_object ("#<gui-item 0x%x>", g->header.uid);
+    printing_unreadable_lcrecord (obj, 0);
 
   write_fmt_string (printcharfun, "#<gui-item 0x%x>", g->header.uid);
 }

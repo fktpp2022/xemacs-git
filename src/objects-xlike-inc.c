@@ -1,7 +1,7 @@
-/* Shared object code between X and GTK -- include file.
+/* Common code between X and GTK -- fonts and colors.
    Copyright (C) 1991-5, 1997 Free Software Foundation, Inc.
    Copyright (C) 1995 Sun Microsystems, Inc.
-   Copyright (C) 1996, 2001, 2002, 2003 Ben Wing.
+   Copyright (C) 1996, 2001, 2002, 2003, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -22,9 +22,17 @@ Boston, MA 02111-1307, USA.  */
 
 /* Synched up with: Not in FSF. */
 
+/* Before including this file, you need to define either THIS_IS_X or
+   THIS_IS_GTK. */
+
+/* See comment at top of console-xlike-inc.h for an explanation of
+   how this file works. */
+
 /* Pango is ready for prime-time now, as far as I understand it. The GTK
    people should be using that. Oh well. (Aidan Kehoe, Sat Nov 4 12:41:12
    CET 2006) */
+
+#include "console-xlike-inc.h"
 
 #if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901)
 
@@ -78,19 +86,11 @@ count_hyphens(const Ibyte *str, Bytecount length, Ibyte **last_hyphen)
 }
 
 static int
-#ifdef THIS_IS_GTK
-gtk_font_spec_matches_charset (struct device * USED_IF_XFT (d),
-			       Lisp_Object charset,
-			       const Ibyte *nonreloc, Lisp_Object reloc,
-			       Bytecount offset, Bytecount length,
-			       enum font_specifier_matchspec_stages stage)
-#else
-x_font_spec_matches_charset (struct device * USED_IF_XFT (d),
-			     Lisp_Object charset,
-			     const Ibyte *nonreloc, Lisp_Object reloc,
-			     Bytecount offset, Bytecount length,
-			     enum font_specifier_matchspec_stages stage)
-#endif
+XFUN (font_spec_matches_charset) (struct device * USED_IF_XFT (d),
+				  Lisp_Object charset,
+				  const Ibyte *nonreloc, Lisp_Object reloc,
+				  Bytecount offset, Bytecount length,
+				  enum font_specifier_matchspec_stages stage)
 {
   Lisp_Object registries = Qnil;
   long i, registries_len;
@@ -106,7 +106,7 @@ x_font_spec_matches_charset (struct device * USED_IF_XFT (d),
   the_nonreloc += offset;
 
 #ifdef USE_XFT
-  if (stage)
+  if (stage == STAGE_FINAL)
     {
       Display *dpy = DEVICE_X_DISPLAY (d);
       Extbyte *extname;
@@ -116,7 +116,7 @@ x_font_spec_matches_charset (struct device * USED_IF_XFT (d),
       if (!NILP(reloc))
 	{
 	  the_nonreloc = XSTRING_DATA (reloc);
-	  LISP_STRING_TO_EXTERNAL (reloc, extname, Qx_font_name_encoding);
+	  extname = LISP_STRING_TO_EXTERNAL (reloc, Qx_font_name_encoding);
 	  rf = xft_open_font_by_name (dpy, extname);
 	  return 0;	 /* #### maybe this will compile and run ;) */
 			 /* Jesus, Stephen, what the fuck? */
@@ -146,11 +146,11 @@ x_font_spec_matches_charset (struct device * USED_IF_XFT (d),
       return 1;
     }
 
-  if (final == stage)
+  if (STAGE_FINAL == stage)
     {
       registries = Qunicode_registries;
     }
-  else if (initial == stage)
+  else if (STAGE_INITIAL == stage)
     {
       registries = XCHARSET_REGISTRIES (charset);
       if (NILP(registries))
@@ -198,12 +198,7 @@ xlistfonts_checking_charset (Lisp_Object device, const Extbyte *xlfd,
   int count = 0, i;
   DECLARE_EISTRING(ei_single_result);
 
-  names = XListFonts (
-#ifdef THIS_IS_GTK
-		      GDK_DISPLAY (),
-#else
-		      DEVICE_X_DISPLAY (XDEVICE (device)),
-#endif
+  names = XListFonts (GET_XLIKE_DISPLAY (XDEVICE (device)),
 		      xlfd, MAX_FONT_COUNT, &count);
 
   for (i = 0; i < count; ++i)
@@ -327,10 +322,10 @@ mule_to_fc_charset (Lisp_Object cs)
 struct charset_reporter {
   Lisp_Object *charset;
   /* This is a debug facility, require ASCII. */
-  Extbyte *language;		/* ASCII, please */
+  const Ascbyte *language;	/* ASCII, please */
   /* Technically this is FcChar8, but fsckin' GCC 4 bitches.
      RFC 3066 is a combination of ISO 639 and ISO 3166. */
-  Extbyte *rfc3066;		/* ASCII, please */
+  const Ascbyte *rfc3066;	/* ASCII, please */
 };
 
 static struct charset_reporter charset_table[] =
@@ -394,7 +389,7 @@ xft_find_charset_font (Lisp_Object font, Lisp_Object charset,
 
   /* #### with Xft need to handle second stage here -- sjt
      Hm.  Or maybe not.  That would be cool. :-) */
-  if (stage)
+  if (stage == STAGE_FINAL)
     return Qnil;
 
   /* Fontconfig converts all FreeType names to UTF-8 before passing them
@@ -424,13 +419,13 @@ xft_find_charset_font (Lisp_Object font, Lisp_Object charset,
       FcPattern *fontxft;	/* long-lived, freed at end of this block */
       FcResult fcresult;
       FcConfig *fcc;
-      FcChar8 *lang = (FcChar8 *) "en";	/* #### fix this bogus hack! */
+      const Ascbyte *lang = "en";
       FcCharSet *fccs = NULL;
       DECLARE_EISTRING (eistr_shortname); /* user-friendly nickname */
       DECLARE_EISTRING (eistr_longname);  /* omit FC_LANG and FC_CHARSET */
       DECLARE_EISTRING (eistr_fullname);  /* everything */
 
-      LISP_STRING_TO_EXTERNAL (font, patternext, Qfc_font_name_encoding);
+      patternext = LISP_STRING_TO_EXTERNAL (font, Qfc_font_name_encoding);
       fcc = FcConfigGetCurrent ();
 
       /* parse the name, do the substitutions, and match the font */
@@ -445,6 +440,7 @@ xft_find_charset_font (Lisp_Object font, Lisp_Object charset,
 	FcDefaultSubstitute (p);
 	PRINT_XFT_PATTERN (3, "FcDefaultSubstitute'ed name is %s\n", p);
 	/* #### check fcresult of following match? */
+	fcresult = FcResultMatch;
 	fontxft = FcFontMatch (fcc, p, &fcresult);
 	switch (fcresult)
 	  {
@@ -540,28 +536,29 @@ xft_find_charset_font (Lisp_Object font, Lisp_Object charset,
 	  {
 	    DECLARE_DEBUG_FONTNAME (name);
 	    CHECKING_LANG (0, eidata(name), cr->language);
-	    lang = (FcChar8 *) cr->rfc3066;
+	    lang = cr->rfc3066;
 	  }
 	else if (cr->charset)
 	  {
 	    /* what the hey, build 'em on the fly */
 	    /* #### in the case of error this could return NULL! */
 	    fccs = mule_to_fc_charset (charset);
-	    lang = (FcChar8 *) XSTRING_DATA (XSYMBOL
-					     (XCHARSET_NAME (charset))-> name);
+	    /* #### Bad idea here */
+	    lang = (const Ascbyte *) XSTRING_DATA (XSYMBOL (XCHARSET_NAME
+							    (charset))->name);
 	  }
 	else
 	  {
 	    /* OK, we fell off the end of the table */
 	    warn_when_safe_lispobj (intern ("xft"), intern ("alert"),
-				    list2 (build_string ("unchecked charset"),
+				    list2 (build_ascstring ("unchecked charset"),
 					   charset));
 	    /* default to "en"
 	       #### THIS IS WRONG, WRONG, WRONG!!
 	       It is why we never fall through to XLFD-checking. */
 	  }
 
-	ASSERT_ASCTEXT_ASCII((Extbyte *) lang);
+	ASSERT_ASCTEXT_ASCII (lang);
 
       if (fccs)
 	{
@@ -620,7 +617,8 @@ xft_find_charset_font (Lisp_Object font, Lisp_Object charset,
 			       FcTypeOfValueToString (v));
 		  result = Qnil;
 		}
-	      else if (FcLangSetHasLang (v.u.l, lang) != FcLangDifferentLang)
+	      else if (FcLangSetHasLang (v.u.l, (FcChar8 *) lang)
+		       != FcLangDifferentLang)
 		{
 		  DECLARE_DEBUG_FONTNAME (name);
 		  DEBUG_XFT2 (0, "Xft font %s supports %s\n",
@@ -663,14 +661,9 @@ xft_find_charset_font (Lisp_Object font, Lisp_Object charset,
 /* find a font spec that matches font spec FONT and also matches
    (the registry of) CHARSET. */
 static Lisp_Object
-#ifdef THIS_IS_GTK
-gtk_find_charset_font (Lisp_Object device, Lisp_Object font,
-		       Lisp_Object charset,
-		       enum font_specifier_matchspec_stages stage)
-#else
-x_find_charset_font (Lisp_Object device, Lisp_Object font, Lisp_Object charset,
-		     enum font_specifier_matchspec_stages stage)
-#endif
+XFUN (find_charset_font) (Lisp_Object device, Lisp_Object font,
+			  Lisp_Object charset,
+			  enum font_specifier_matchspec_stages stage)
 {
   Lisp_Object result = Qnil, registries = Qnil;
   int j, hyphen_count, registries_len = 0;
@@ -690,7 +683,7 @@ x_find_charset_font (Lisp_Object device, Lisp_Object font, Lisp_Object charset,
 
   switch (stage) 
     {
-    case initial:
+    case STAGE_INITIAL:
       {
 	if (!(NILP(XCHARSET_REGISTRIES(charset))) 
 	    && VECTORP(XCHARSET_REGISTRIES(charset)))
@@ -700,7 +693,7 @@ x_find_charset_font (Lisp_Object device, Lisp_Object font, Lisp_Object charset,
 	  }
 	break;
       }
-    case final:
+    case STAGE_FINAL:
       {
 	registries_len = 1;
 	registries = Qunicode_registries;
@@ -819,7 +812,7 @@ x_find_charset_font (Lisp_Object device, Lisp_Object font, Lisp_Object charset,
 	  Lisp_Object new_registries = make_vector(registries_len + 1, Qnil);
 
 	  XVECTOR_DATA(new_registries)[0]
-	    = build_string(FALLBACK_ASCII_REGISTRY);
+	    = build_ascstring(FALLBACK_ASCII_REGISTRY);
 
 	  memcpy(XVECTOR_DATA(new_registries) + 1,
 		 XVECTOR_DATA(registries),

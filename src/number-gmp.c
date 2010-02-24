@@ -15,8 +15,8 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with XEmacs; see the file COPYING.  If not, write to
-the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.  */
+the Free Software Foundation, Inc., 51 Franklin St - Fifth Floor,
+Boston, MA 02111-1301, USA.  */
 
 /* Synched up with: Not in FSF. */
 
@@ -76,18 +76,20 @@ bigfloat_to_string(mpf_t f, int base)
 	 point, format identifier, and exponent */
       /* GMP's idea of the exponent is 1 greater than scientific notation's */
       expt--;
-      const int point = (len == neg + 2) ? 0 : 1;
-      const int exponent = (expt < 0)
-	? (int)(log ((double) (-expt)) / log ((double) base)) + 3
-	: (int)(log ((double) expt) / log ((double) base)) + 2;
-      const int space = point + exponent;
-      XREALLOC_ARRAY (str, CIbyte, len + space);
-      if (point > 0)
-	{
-	  memmove (&str[neg + 2], &str[neg + 1], len - neg);
-	  str[neg + 1] = '.';
-	}
-      sprintf (&str[len + point - 1], "E%ld", expt);
+      {
+	const int point = (len == neg + 2) ? 0 : 1;
+	const int exponent = (expt < 0)
+	  ? (int)(log ((double) (-expt)) / log ((double) base)) + 3
+	  : (int)(log ((double) expt) / log ((double) base)) + 2;
+	const int space = point + exponent;
+	XREALLOC_ARRAY (str, CIbyte, len + space);
+	if (point > 0)
+	  {
+	    memmove (&str[neg + 2], &str[neg + 1], len - neg);
+	    str[neg + 1] = '.';
+	  }
+	sprintf (&str[len + point - 1], "E%ld", expt);
+      }
     }
   return str;
 }
@@ -101,7 +103,7 @@ static void *gmp_realloc (void *ptr, size_t UNUSED (old_size), size_t new_size)
 
 static void gmp_free (void *ptr, size_t UNUSED (size))
 {
-  xfree (ptr, void *);
+  xfree (ptr);
 }
 
 void

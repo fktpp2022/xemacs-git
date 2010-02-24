@@ -69,6 +69,8 @@ Lisp_Object Vtemp_table_for_use_updating_syntax_tables;
 /* A value that is guaranteed not be in a syntax table. */
 Lisp_Object Vbogus_syntax_table_value;
 
+Lisp_Object Qscan_error;
+
 static void syntax_cache_table_was_changed (struct buffer *buf);
 
 /* This is the internal form of the parse state used in parse-partial-sexp.  */
@@ -546,7 +548,7 @@ void
 uninit_buffer_syntax_cache (struct buffer *UNUSED_IF_NEW_GC (buf))
 {
 #ifndef NEW_GC
-  xfree (buf->syntax_cache, struct syntax_cache *);
+  xfree (buf->syntax_cache);
   buf->syntax_cache = 0;
 #endif /* not NEW_GC */
 }
@@ -1350,6 +1352,7 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
   int syncode;
   int min_depth = depth;    /* Err out if depth gets less than this. */
   struct syntax_cache *scache;
+  Charbpos last_good = from;
   
   if (depth > 0) min_depth = 0;
 
@@ -1367,6 +1370,8 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 	  c = BUF_FETCH_CHAR (buf, from);
 	  syncode = SYNTAX_CODE_FROM_CACHE (scache, c);
 	  code = SYNTAX_FROM_CODE (syncode);
+	  if (depth == min_depth)
+	    last_good = from;
 	  from++;
 
 	  /* a 1-char comment start sequence */
@@ -1480,8 +1485,9 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 	      {
 		if (noerror)
 		  return Qnil;
-		syntax_error ("Containing expression ends prematurely",
-			      Qunbound);
+		signal_error_2 (Qscan_error,
+				"Containing expression ends prematurely",
+				make_int (last_good), make_int (from));
 	      }
 	    break;
 
@@ -1653,8 +1659,9 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 	      {
 		if (noerror)
 		  return Qnil;
-		syntax_error ("Containing expression ends prematurely",
-			      Qunbound);
+		signal_error_2 (Qscan_error,
+				"Containing expression ends prematurely",
+				make_int (last_good), make_int (from));
 	      }
 	    break;
 
@@ -1724,7 +1731,8 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 
 lose:
   if (!noerror)
-    syntax_error ("Unbalanced parentheses", Qunbound);
+    signal_error_2 (Qscan_error, "Unbalanced parentheses",
+		    make_int (last_good), make_int (from));
   return Qnil;
 }
 
@@ -2287,7 +2295,7 @@ static int
 copy_to_mirrortab (struct chartab_range *range, Lisp_Object UNUSED (table),
 		   Lisp_Object val, void *arg)
 {
-  Lisp_Object mirrortab = VOID_TO_LISP (arg);
+  Lisp_Object mirrortab = GET_LISP_FROM_VOID (arg);
 
   if (CONSP (val))
     val = XCAR (val);
@@ -2301,7 +2309,7 @@ copy_if_not_already_present (struct chartab_range *range,
 			     Lisp_Object UNUSED (table),
 			     Lisp_Object val, void *arg)
 {
-  Lisp_Object mirrortab = VOID_TO_LISP (arg);
+  Lisp_Object mirrortab = GET_LISP_FROM_VOID (arg);
   if (CONSP (val))
     val = XCAR (val);
   if (SYNTAX_FROM_CODE (XINT (val)) != Sinherit)
@@ -2346,12 +2354,12 @@ update_just_this_syntax_table (Lisp_Object table)
      another mapping.)
      */
 
-  map_char_table (table, &range, copy_to_mirrortab, LISP_TO_VOID (mirrortab));
+  map_char_table (table, &range, copy_to_mirrortab, STORE_LISP_IN_VOID (mirrortab));
   /* second clause catches bootstrapping problems when initializing the
      standard syntax table */
   if (!EQ (table, Vstandard_syntax_table) && !NILP (Vstandard_syntax_table))
     map_char_table (Vstandard_syntax_table, &range,
-		    copy_if_not_already_present, LISP_TO_VOID (mirrortab));
+		    copy_if_not_already_present, STORE_LISP_IN_VOID (mirrortab));
   /* The resetting made the default be Qnil.  Put it back to Sword. */
   set_char_table_default (mirrortab, make_int (Sword));
   XCHAR_TABLE (mirrortab)->dirty = 0;
@@ -2415,6 +2423,8 @@ syms_of_syntax (void)
   DEFSUBR (Fscan_sexps);
   DEFSUBR (Fbackward_prefix_chars);
   DEFSUBR (Fparse_partial_sexp);
+
+  DEFERROR_STANDARD (Qscan_error, Qsyntax_error);
 }
 
 void

@@ -21,7 +21,7 @@ Boston, MA 02111-1307, USA.  */
 
 /* Synched up with: Not in FSF. */
 
-/* Emacs uses a lot of different display attributes; for example, assume
+/* XEmacs uses a lot of different display attributes; for example, assume
    that only four fonts are in use (normal, bold, italic, and bold-italic).
    Then assume that one stipple or background is used for text selections,
    and another is used for highlighting mousable regions.  That makes 16
@@ -53,18 +53,14 @@ Boston, MA 02111-1307, USA.  */
  */
 
 #include <config.h>
-#include <gtk/gtk.h>
 #include "lisp.h"
+#include "hash.h"
+
 #include "gccache-gtk.h"
 
 #define GC_CACHE_SIZE 100
 
 #define GCCACHE_HASH
-
-#ifdef GCCACHE_HASH
-#include "lisp.h"
-#include "hash.h"
-#endif
 
 struct gcv_and_mask {
 	GdkGCValues gcv;
@@ -145,13 +141,13 @@ free_gc_cache (struct gc_cache *cache)
     {
       gdk_gc_destroy(rest->gc);
       next = rest->next;
-      xfree (rest, struct gc_cache_cell *);
+      xfree (rest);
       rest = next;
     }
 #ifdef GCCACHE_HASH
   free_hash_table (cache->table);
 #endif
-  xfree (cache, struct gc_cache *);
+  xfree (cache);
 }
 
 GdkGC *

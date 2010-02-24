@@ -52,19 +52,14 @@ Boston, MA 02111-1307, USA.  */
  */
 
 #include <config.h>
-#include <X11/Xlib.h>
-#include "xgccache.h"
+#include "lisp.h"
+#include "hash.h"
 
+#include "gccache-x.h"
 
 #define GC_CACHE_SIZE 100
 
 #define GCCACHE_HASH
-
-
-#ifdef GCCACHE_HASH
-#include "lisp.h"
-#include "hash.h"
-#endif
 
 struct gcv_and_mask {
   XGCValues gcv;
@@ -143,13 +138,13 @@ free_gc_cache (struct gc_cache *cache)
     {
       XFreeGC (cache->dpy, rest->gc);
       next = rest->next;
-      xfree (rest, struct gc_cache_cell *);
+      xfree (rest);
       rest = next;
     }
 #ifdef GCCACHE_HASH
   free_hash_table (cache->table);
 #endif
-  xfree (cache, struct gc_cache *);
+  xfree (cache);
 }
 
 GC

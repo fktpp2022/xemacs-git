@@ -192,10 +192,11 @@ mswindows_init_frame_1 (struct frame *f, Lisp_Object props,
   FRAME_MSWINDOWS_TOOLBAR_HASH_TABLE (f) = 
     make_lisp_hash_table (50, HASH_TABLE_NON_WEAK, HASH_TABLE_EQ);
 #endif
-  /* hashtable of instantiated glyphs on the frame.  Make them EQ because
+  /* hashtable of instantiated glyphs on the frame. [[ Make them EQ because
      we only use ints as keys.  Otherwise we run into stickiness in
      redisplay because internal_equal() can QUIT.  See
-     enter_redisplay_critical_section(). */
+     enter_redisplay_critical_section(). ]] -- probably not true any more,
+    now that we have internal_equal_trapping_problems(). --ben */
   FRAME_MSWINDOWS_WIDGET_HASH_TABLE1 (f) =
     make_lisp_hash_table (50, HASH_TABLE_VALUE_WEAK, HASH_TABLE_EQ);
   FRAME_MSWINDOWS_WIDGET_HASH_TABLE2 (f) =
@@ -248,9 +249,9 @@ mswindows_init_frame_1 (struct frame *f, Lisp_Object props,
     const Extbyte *nameext = 0;
 
     if (STRINGP (f->name))
-      LISP_STRING_TO_TSTR (f->name, nameext);
+      nameext = LISP_STRING_TO_TSTR (f->name);
     else if (STRINGP (name))
-      LISP_STRING_TO_TSTR (name, nameext);
+      nameext = LISP_STRING_TO_TSTR (name);
     else
       nameext = XETEXT (XEMACS_CLASS);
     hwnd = qxeCreateWindowEx (exstyle,
@@ -272,7 +273,7 @@ mswindows_init_frame_1 (struct frame *f, Lisp_Object props,
 			   
   FRAME_MSWINDOWS_HANDLE (f) = hwnd;
 
-  qxeSetWindowLong (hwnd, XWL_FRAMEOBJ, (LONG)LISP_TO_VOID (frame_obj));
+  qxeSetWindowLong (hwnd, XWL_FRAMEOBJ, (LONG)STORE_LISP_IN_VOID (frame_obj));
   FRAME_MSWINDOWS_DC (f) = GetDC (hwnd);
   SetTextAlign (FRAME_MSWINDOWS_DC (f), TA_BASELINE | TA_LEFT | TA_NOUPDATECP);
 
@@ -361,7 +362,7 @@ mswindows_delete_frame (struct frame *f)
       ReleaseDC (FRAME_MSWINDOWS_HANDLE (f), FRAME_MSWINDOWS_DC (f));
       DestroyWindow (FRAME_MSWINDOWS_HANDLE (f));
 #ifndef NEW_GC
-      xfree (f->frame_data, void *);
+      xfree (f->frame_data);
 #endif /* not NEW_GC */
     }
   f->frame_data = 0;
@@ -552,7 +553,7 @@ mswindows_get_mouse_position (struct device *UNUSED (d), Lisp_Object *frame,
 
   /* Yippie! */
   ScreenToClient (hwnd, &pt);
-  *frame = VOID_TO_LISP ((void *) qxeGetWindowLong (hwnd, XWL_FRAMEOBJ));
+  *frame = GET_LISP_FROM_VOID ((void *) qxeGetWindowLong (hwnd, XWL_FRAMEOBJ));
   *x = pt.x;
   *y = pt.y;
   return 1;
@@ -592,7 +593,7 @@ mswindows_set_title_from_ibyte (struct frame *f, Ibyte *title)
       Extbyte *title_ext;
 
       FRAME_MSWINDOWS_TITLE_CHECKSUM (f) = new_checksum;
-      C_STRING_TO_TSTR (title, title_ext);
+      title_ext = ITEXT_TO_TSTR (title);
       qxeSetWindowText (FRAME_MSWINDOWS_HANDLE (f), title_ext);
     }
 }
@@ -604,7 +605,7 @@ mswindows_window_id (Lisp_Object frame)
   struct frame *f = decode_mswindows_frame (frame);
 
   qxesprintf (str, "%lu", (unsigned long) FRAME_MSWINDOWS_HANDLE (f));
-  return build_intstring (str);
+  return build_istring (str);
 }
 
 static Lisp_Object
@@ -820,7 +821,7 @@ mswindows_get_frame_parent (struct frame *f)
   if (hwnd)
     {
       Lisp_Object parent;
-      parent = VOID_TO_LISP ((void *) qxeGetWindowLong (hwnd, XWL_FRAMEOBJ));
+      parent = GET_LISP_FROM_VOID ((void *) qxeGetWindowLong (hwnd, XWL_FRAMEOBJ));
       assert (FRAME_MSWINDOWS_P (XFRAME (parent)));
       return parent;
     }
@@ -995,7 +996,7 @@ msprinter_init_frame_3 (struct frame *f)
     const Extbyte *nameext;
 
     if (STRINGP (f->name))
-      LISP_STRING_TO_TSTR (f->name, nameext);
+      nameext = LISP_STRING_TO_TSTR (f->name);
     else
       nameext = XETEXT ("XEmacs print document");
     di.lpszDocName = (XELPTSTR) nameext;
@@ -1030,7 +1031,7 @@ msprinter_delete_frame (struct frame *f)
 	EndPage (hdc);
       if (FRAME_MSPRINTER_JOB_STARTED (f))
 	EndDoc (hdc);
-      xfree (f->frame_data, void *);
+      xfree (f->frame_data);
     }
 
   f->frame_data = 0;

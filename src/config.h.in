@@ -1,6 +1,6 @@
 /* XEmacs site configuration template file.  -*- C -*-
    Copyright (C) 1986, 1991-1994, 1998, 1999 Free Software Foundation, Inc.
-   Copyright (C) 2000, 2001, 2002, 2004, 2005 Ben Wing.
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -217,11 +217,11 @@ things are arranged in config.h.in.  In particular:
 #undef HAVE_FCCONFIGSETRESCANINTERVAL
 
 /* Compile with support for Xft? */
-#undef USE_XFT
+#undef HAVE_XFT
 /* Per-widget stuff will go away? */
-#undef USE_XFT_MENUBARS
-#undef USE_XFT_TABS
-#undef USE_XFT_GAUGES
+#undef HAVE_XFT_MENUBARS
+#undef HAVE_XFT_TABS
+#undef HAVE_XFT_GAUGES
 
 /* Defines for building X applications */
 #ifdef HAVE_X_WINDOWS
@@ -375,6 +375,9 @@ things are arranged in config.h.in.  In particular:
 /* Is scanf() broken? (Under certain versions of Cygwin) */
 #undef CYGWIN_SCANF_BUG
 
+/* UTF-8-aware path-conversion function in Cygwin 1.7 and on */
+#undef HAVE_CYGWIN_CONV_PATH
+
 #undef HAVE_MMAP
 #undef HAVE_STRCOLL
 #undef HAVE_GETPGRP
@@ -412,7 +415,6 @@ things are arranged in config.h.in.  In particular:
 #undef HAVE_READLINK
 #undef HAVE_RENAME
 #undef HAVE_RES_INIT
-#undef HAVE_RINT
 #undef HAVE_RMDIR
 #undef HAVE_SELECT
 #undef HAVE_SETITIMER
@@ -532,6 +534,8 @@ things are arranged in config.h.in.  In particular:
 #undef HAVE_DBM
 /* Full #include file path for GDBM's or platforms ndbm.h */
 #undef NDBM_H_FILE
+/* Can we trust the prototypes in ndbm.h?  If not, we need to declare our own */
+#undef TRUST_NDBM_H_PROTOTYPES
 
 /* Define to 1 if the system has the type `u_int8_t'. */
 #undef HAVE_U_INT8_T
@@ -647,13 +651,18 @@ things are arranged in config.h.in.  In particular:
    It is only intended for use by the developers. */
 #undef PURIFY
 
+/* Define USE_VALGRIND to compile valgrind hints into the code.
+   It is only intended for use by the developers. */
+#undef USE_VALGRIND
+
 /* Define EXTERNAL_WIDGET to compile support for using the editor as a
    widget within another program. */
 #undef EXTERNAL_WIDGET
 
-/* There are some special-case defines for gcc and lcc. */
+/* There are some special-case defines for gcc, g++ and lcc. */
 #undef USE_GCC
-#undef USE_LCC
+#undef USE_GPLUSPLUS
+#undef USE_LCC /* #### Not currently set in configure */
 
 /* Compile in support for CDE (Common Desktop Environment) drag and drop?
    Requires libDtSvc, which typically must be present at runtime.  */
@@ -1075,6 +1084,7 @@ extern "C" {
 
 #if (defined ( __STDC_VERSION__) &&  __STDC_VERSION__ >= 199901L) \
   || defined (__cplusplus) || ! defined (__GNUC__) || ! defined(emacs)
+# define INLINE_HEADERS_ARE_STATIC
 # define INLINE_HEADER inline static
 #elif defined (DONT_EXTERN_INLINE_HEADER_FUNCTIONS)
 # define INLINE_HEADER inline
@@ -1084,7 +1094,8 @@ extern "C" {
 
 /* Use DECLARE_INLINE_HEADER() to declare an inline function in a header
    file, like this: (This avoids the need to write a prototype directly
-   followed by the function header itself.)
+   followed by the function header itself, in order to avoid a
+   "no prototype" warning from GCC.)
 
   DECLARE_INLINE_HEADER (int foo (int x))
   {
@@ -1145,5 +1156,31 @@ extern "C" {
 #define ERROR_CHECK_TEXT
 #define ERROR_CHECK_TYPES
 #endif /* ERROR_CHECK_ALL */
+
+/* It's very tricky.  In some circumstances, if we don't include the
+   ERROR_CHECK_TYPES functions in xemacs.def.in.in, we get lots of
+   undefined references from eldap.o and postgresql.o; but in other
+   circumstances, if we DO include them, we get undefined references
+   in xemacs-export.o to the same functions.  We try here to grok when
+   we need to include them in xemacs.def.in.in.  I originally thought
+   it was enough to condition on !defined (INLINE_HEADERS_ARE_STATIC) --
+   if they're static, they shouldn't lead to any external references
+   in the modules, right?  Wrong, under non-optimized builds.  So now
+   let's try conditioning on !C++ -- by examining inline.o with nm,
+   it seems it's the C++ builds where inline.o doesn't get any inline
+   functions compiled into it at all, which would lead to problems if
+   we reference them in xemacs.def.in.in.
+
+   #### FIXME Should we condition on GCC and defined(emacs), like we
+   do (inverted) for INLINE_HEADERS_ARE_STATIC? --ben */
+
+/* Checking for !defined (__cplusplus) doesn't work, because we typically
+   aren't using the C++ preprocessor when processing xemacs.def.in.in
+   even if we're using a C++ compiler.  I suspect we only need this at
+   all GCC is being used. */
+#if !defined (USE_GPLUSPLUS)
+/* #if !defined (INLINE_HEADERS_ARE_STATIC) */
+#define XEMACS_DEFS_NEEDS_INLINE_DECLS
+#endif
 
 #endif /* _SRC_CONFIG_H_ */

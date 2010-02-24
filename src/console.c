@@ -169,8 +169,7 @@ print_console (Lisp_Object obj, Lisp_Object printcharfun,
   struct console *con = XCONSOLE (obj);
 
   if (print_readably)
-    printing_unreadable_object ("#<console %s 0x%x>",
-				XSTRING_DATA (con->name), con->header.uid);
+    printing_unreadable_lcrecord (obj, XSTRING_DATA (con->name));
 
   write_fmt_string (printcharfun, "#<%s-console",
 		    !CONSOLE_LIVE_P (con) ? "dead" : CONSOLE_TYPE_NAME (con));
@@ -650,7 +649,7 @@ find_nonminibuffer_frame_not_on_console_predicate (Lisp_Object frame,
 {
   Lisp_Object console;
 
-  console = VOID_TO_LISP (closure);
+  console = GET_LISP_FROM_VOID (closure);
   if (FRAME_MINIBUF_ONLY_P (XFRAME (frame)))
     return 0;
   if (EQ (console, FRAME_CONSOLE (XFRAME (frame))))
@@ -662,7 +661,7 @@ static Lisp_Object
 find_nonminibuffer_frame_not_on_console (Lisp_Object console)
 {
   return find_some_frame (find_nonminibuffer_frame_not_on_console_predicate,
-			  LISP_TO_VOID (console));
+			  STORE_LISP_IN_VOID (console));
 }
 
 static void
@@ -1006,9 +1005,7 @@ stuff_buffered_input (
       Bytecount count;
       Extbyte *p;
 
-      TO_EXTERNAL_FORMAT (LISP_STRING, stuffstring,
-			  ALLOCA, (p, count),
-			  Qkeyboard);
+      LISP_STRING_TO_SIZED_EXTERNAL (stuffstring, p, count, Qkeyboard);
       while (count-- > 0)
 	stuff_char (XCONSOLE (Vcontrolling_terminal), *p++);
       stuff_char (XCONSOLE (Vcontrolling_terminal), '\n');

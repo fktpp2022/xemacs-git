@@ -61,7 +61,7 @@ Boston, MA 02111-1307, USA.  */
 #define STUPID_X_SPECIFIC_GTK_STUFF
 
 #ifdef STUPID_X_SPECIFIC_GTK_STUFF
-#include <gdk/gdkx.h>
+#include "sysgdkx.h"
 #endif
 
 /* Default properties to use when creating frames.  */
@@ -330,8 +330,7 @@ gtk_set_frame_text_value (struct frame *UNUSED (f), Ibyte *value,
     for (ptr = value; *ptr; ptr++)
       if (!byte_ascii_p (*ptr))
 	{
-	  char *tmp;
-	  C_STRING_TO_EXTERNAL (value, tmp, Qctext);
+	  char *tmp = ITEXT_TO_EXTERNAL (value, Qctext);
 	  the_text = tmp;
 	  break;
 	}
@@ -810,7 +809,7 @@ gtk_create_widgets (struct frame *f, Lisp_Object lisp_window_id, Lisp_Object par
 #endif
 
   if (STRINGP (f->name))
-    TO_EXTERNAL_FORMAT (LISP_STRING, f->name, C_STRING_ALLOCA, name, Qctext);
+    name = LISP_STRING_TO_EXTERNAL (f->name, Qctext);
   else
     name = "emacs";
 
@@ -986,9 +985,11 @@ allocate_gtk_frame_struct (struct frame *f)
     FRAME_GTK_LISP_WIDGETS (f)[i] = Qnil;
 
   /*
-    Hashtables of callback data for glyphs on the frame.  Make them EQ because
-    we only use ints as keys.  Otherwise we run into stickiness in redisplay
-    because internal_equal() can QUIT.  See enter_redisplay_critical_section().
+    Hashtables of callback data for glyphs on the frame.  [[ Make them EQ
+    because we only use ints as keys.  Otherwise we run into stickiness in
+    redisplay because internal_equal() can QUIT.  See
+    enter_redisplay_critical_section() ]] -- probably not true any more,
+    now that we have internal_equal_trapping_problems(). --ben
 */
   FRAME_GTK_WIDGET_INSTANCE_HASH_TABLE (f) =
     make_lisp_hash_table (50, HASH_TABLE_VALUE_WEAK, HASH_TABLE_EQ);
@@ -1155,12 +1156,12 @@ a string.
 */
        (frame))
 {
-  char str[255];
+  Ascbyte str[255];
   struct frame *f = decode_gtk_frame (frame);
 
   /* Arrrrggghhh... this defeats the whole purpose of using Gdk... do we really need this? */
   sprintf (str, "%lu", GDK_WINDOW_XWINDOW( GET_GTK_WIDGET_WINDOW (FRAME_GTK_TEXT_WIDGET (f))));
-  return build_string (str);
+  return build_ascstring (str);
 }
 #endif
 
@@ -1351,9 +1352,9 @@ gtk_delete_frame (struct frame *f)
     gtk_widget_destroy (w);
 
     if (FRAME_GTK_GEOM_FREE_ME_PLEASE (f))
-	xfree (FRAME_GTK_GEOM_FREE_ME_PLEASE (f), char *);
+	xfree (FRAME_GTK_GEOM_FREE_ME_PLEASE (f));
 #ifndef NEW_GC
-    xfree (f->frame_data, void *);
+    xfree (f->frame_data);
 #endif /* not NEW_GC */
     f->frame_data = 0;
 }

@@ -15,8 +15,8 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with XEmacs; see the file COPYING.  If not, write to
-the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.  */
+the Free Software Foundation, Inc., 51 Franklin St - Fifth Floor,
+Boston, MA 02111-1301, USA.  */
 
 /* Synched up with: Not in FSF. */
 
@@ -130,8 +130,7 @@ EXFUN (Fbignump, 1);
 
 
 /********************************* Integers *********************************/
-extern Lisp_Object Qintegerp;
-
+/* Qintegerp in lisp.h */
 #define INTEGERP(x) (INTP(x) || BIGNUMP(x))
 #define CHECK_INTEGER(x) do {			\
  if (!INTEGERP (x))				\
@@ -285,7 +284,7 @@ extern Lisp_Object Qbigfloatp;
 EXFUN (Fbigfloatp, 1);
 
 /********************************* Floating *********************************/
-extern Lisp_Object Qfloatingp, Qbigfloat;
+extern Lisp_Object Qfloatingp;
 extern Lisp_Object Qread_default_float_format, Vread_default_float_format;
 
 #define FLOATINGP(x) (FLOATP (x) || BIGFLOATP (x))
@@ -319,8 +318,7 @@ EXFUN (Frealp, 1);
 
 
 /********************************* Numbers **********************************/
-extern Lisp_Object Qnumberp;
-
+/* Qnumberp in lisp.h */
 #define NUMBERP(x) REALP (x)
 #define CHECK_NUMBER(x) do {			\
   if (!NUMBERP (x))				\
@@ -337,5 +335,36 @@ enum number_type {FIXNUM_T, BIGNUM_T, RATIO_T, FLOAT_T, BIGFLOAT_T};
 
 extern enum number_type get_number_type (Lisp_Object);
 extern enum number_type promote_args (Lisp_Object *, Lisp_Object *);
+
+#ifdef WITH_NUMBER_TYPES
+DECLARE_INLINE_HEADER (
+int
+non_fixnum_number_p (Lisp_Object object))
+{
+  if (LRECORDP (object))
+    {
+      switch (XRECORD_LHEADER (object)->type)
+        {
+        case lrecord_type_float:
+#ifdef HAVE_BIGNUM
+        case lrecord_type_bignum:
+#endif
+#ifdef HAVE_RATIO
+        case lrecord_type_ratio:
+#endif
+#ifdef HAVE_BIGFLOAT
+        case lrecord_type_bigfloat:
+#endif
+          return 1;
+        }
+    }
+  return 0;
+}
+#define NON_FIXNUM_NUMBER_P(X) non_fixnum_number_p (X)
+
+#else
+#define NON_FIXNUM_NUMBER_P FLOATP
+#endif
+
 
 #endif /* INCLUDED_number_h_ */

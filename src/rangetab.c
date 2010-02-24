@@ -1,6 +1,6 @@
 /* XEmacs routines to deal with range tables.
    Copyright (C) 1995 Sun Microsystems, Inc.
-   Copyright (C) 1995, 2002, 2004, 2005 Ben Wing.
+   Copyright (C) 1995, 2002, 2004, 2005, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -107,13 +107,13 @@ print_range_table (Lisp_Object obj, Lisp_Object printcharfun,
     write_fmt_string_lisp (printcharfun, "#s(range-table type %s data (",
 			   1, range_table_type_to_symbol (rt->type));
   else
-    write_c_string (printcharfun, "#<range-table ");
+    write_ascstring (printcharfun, "#<range-table ");
   for (i = 0; i < Dynarr_length (rt->entries); i++)
     {
       struct range_table_entry *rte = Dynarr_atp (rt->entries, i);
       int so, ec;
       if (i > 0)
-	write_c_string (printcharfun, " ");
+	write_ascstring (printcharfun, " ");
       switch (rt->type)
 	{
 	case RANGE_START_CLOSED_END_OPEN: so = 0, ec = 0; break;
@@ -131,13 +131,13 @@ print_range_table (Lisp_Object obj, Lisp_Object printcharfun,
       print_internal (rte->val, printcharfun, 1);
     }
   if (print_readably)
-    write_c_string (printcharfun, "))");
+    write_ascstring (printcharfun, "))");
   else
     write_fmt_string (printcharfun, " 0x%x>", rt->header.uid);
 }
 
 static int
-range_table_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
+range_table_equal (Lisp_Object obj1, Lisp_Object obj2, int depth, int foldcase)
 {
   Lisp_Range_Table *rt1 = XRANGE_TABLE (obj1);
   Lisp_Range_Table *rt2 = XRANGE_TABLE (obj2);
@@ -153,7 +153,7 @@ range_table_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
 
       if (rte1->first != rte2->first
 	  || rte1->last != rte2->last
-	  || !internal_equal (rte1->val, rte2->val, depth + 1))
+	  || !internal_equal_0 (rte1->val, rte2->val, depth + 1, foldcase))
 	return 0;
     }
 
@@ -356,7 +356,7 @@ The values will not themselves be copied.
   rtnew->entries = Dynarr_new (range_table_entry);
   rtnew->type = rt->type;
 
-  Dynarr_add_many (rtnew->entries, Dynarr_atp (rt->entries, 0),
+  Dynarr_add_many (rtnew->entries, Dynarr_begin (rt->entries),
 		   Dynarr_length (rt->entries));
   return obj;
 }
@@ -375,7 +375,37 @@ If there is no corresponding value, return DEFAULT (defaults to nil).
   CHECK_INT_COERCE_CHAR (pos);
 
   return get_range_table (XINT (pos), Dynarr_length (rt->entries),
-			  Dynarr_atp (rt->entries, 0), default_);
+			  Dynarr_begin (rt->entries), default_);
+}
+
+static void
+external_to_internal_adjust_ends (enum range_table_type type,
+				  EMACS_INT *first, EMACS_INT *last)
+{
+  /* Fix up the numbers in accordance with the open/closedness to make
+     them behave like default open/closed. */
+  switch (type)
+    {
+    case RANGE_START_CLOSED_END_OPEN: break;
+    case RANGE_START_CLOSED_END_CLOSED: (*last)++; break;
+    case RANGE_START_OPEN_END_OPEN: (*first)++; break;
+    case RANGE_START_OPEN_END_CLOSED: (*first)++, (*last)++; break;
+    }
+}
+
+static void
+internal_to_external_adjust_ends (enum range_table_type type,
+				  EMACS_INT *first, EMACS_INT *last)
+{
+  /* Reverse the changes made in external_to_internal_adjust_ends().
+   */
+  switch (type)
+    {
+    case RANGE_START_CLOSED_END_OPEN: break;
+    case RANGE_START_CLOSED_END_CLOSED: (*last)--; break;
+    case RANGE_START_OPEN_END_OPEN: (*first)--; break;
+    case RANGE_START_OPEN_END_CLOSED: (*first)--, (*last)--; break;
+    }
 }
 
 void
@@ -386,17 +416,7 @@ put_range_table (Lisp_Object table, EMACS_INT first,
   int insert_me_here = -1;
   Lisp_Range_Table *rt = XRANGE_TABLE (table);
 
-  /* Fix up the numbers in accordance with the open/closedness to make
-     them behave like default open/closed. */
-
-  switch (rt->type)
-    {
-    case RANGE_START_CLOSED_END_OPEN: break;
-    case RANGE_START_CLOSED_END_CLOSED: last++; break;
-    case RANGE_START_OPEN_END_OPEN: first++; break;
-    case RANGE_START_OPEN_END_CLOSED: first++, last++; break;
-    }
-
+  external_to_internal_adjust_ends (rt->type, &first, &last);
   if (first == last)
     return;
   if (first > last)
@@ -607,13 +627,7 @@ this guarantee doesn't hold.
 	 table. */
       {
 	EMACS_INT premier = first, dernier = last;
-	switch (rt->type)
-	  {
-	  case RANGE_START_CLOSED_END_OPEN: break;
-	  case RANGE_START_CLOSED_END_CLOSED: dernier--; break;
-	  case RANGE_START_OPEN_END_OPEN: premier--; break;
-	  case RANGE_START_OPEN_END_CLOSED: premier--, dernier--; break;
-	  }
+	internal_to_external_adjust_ends (rt->type, &premier, &dernier);
 	args[1] = make_int (premier);
 	args[2] = make_int (dernier);
       }
@@ -754,6 +768,7 @@ rangetab_instantiate (Lisp_Object plist)
 struct unified_range_table
 {
   int nentries;
+  enum range_table_type type;
   struct range_table_entry first;
 };
 
@@ -795,7 +810,8 @@ unified_range_table_copy_data (Lisp_Object rangetab, void *dest)
   * ((unsigned char *) dest + 3) = total_needed & 0xFF;
   un = (struct unified_range_table *) new_dest;
   un->nentries = Dynarr_length (rted);
-  memcpy (&un->first, Dynarr_atp (rted, 0),
+  un->type = XRANGE_TABLE (rangetab)->type;
+  memcpy (&un->first, Dynarr_begin (rted),
 	  sizeof (struct range_table_entry) * Dynarr_length (rted));
 }
 
@@ -875,6 +891,8 @@ unified_range_table_get_range (void *unrangetab, int offset,
   *min = tab->first;
   *max = tab->last;
   *val = tab->val;
+
+  internal_to_external_adjust_ends (un->type, min, max);
 }
 
 

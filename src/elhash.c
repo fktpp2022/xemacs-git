@@ -92,7 +92,7 @@ static Lisp_Object Q_size, Q_test, Q_weakness, Q_rehash_size, Q_rehash_threshold
 
 /* obsolete as of 19990901 in xemacs-21.2 */
 static Lisp_Object Qweak, Qkey_weak, Qvalue_weak, Qkey_or_value_weak;
-static Lisp_Object Qnon_weak, Q_type;
+static Lisp_Object Qnon_weak, Q_type, Q_data;
 
 struct Lisp_Hash_Table
 {
@@ -184,36 +184,18 @@ hash_table_size (Elemcount requested_size)
 }
 
 
-#if 0 /* I don't think these are needed any more.
-	 If using the general lisp_object_equal_*() functions
-	 causes efficiency problems, these can be resurrected. --ben */
-/* equality and hash functions for Lisp strings */
-int
-lisp_string_equal (Lisp_Object str1, Lisp_Object str2)
-{
-  /* This is wrong anyway.  You can't use strcmp() on Lisp strings,
-     because they can contain zero characters.  */
-  return !strcmp ((char *) XSTRING_DATA (str1), (char *) XSTRING_DATA (str2));
-}
-
-static Hashcode
-lisp_string_hash (Lisp_Object obj)
-{
-  return hash_string (XSTRING_DATA (str), XSTRING_LENGTH (str));
-}
-
-#endif /* 0 */
 
 static int
 lisp_object_eql_equal (Lisp_Object obj1, Lisp_Object obj2)
 {
-  return EQ (obj1, obj2) || (FLOATP (obj1) && internal_equal (obj1, obj2, 0));
+  return EQ (obj1, obj2) ||
+    (NON_FIXNUM_NUMBER_P (obj1) && internal_equal (obj1, obj2, 0));
 }
 
 static Hashcode
 lisp_object_eql_hash (Lisp_Object obj)
 {
-  return FLOATP (obj) ? internal_hash (obj, 0) : LISP_HASH (obj);
+  return NON_FIXNUM_NUMBER_P (obj) ? internal_hash (obj, 0) : LISP_HASH (obj);
 }
 
 static int
@@ -262,7 +244,8 @@ mark_hash_table (Lisp_Object obj)
    the same result -- if the keys are not equal according to the test
    function, then Fgethash() in hash_table_equal_mapper() will fail.  */
 static int
-hash_table_equal (Lisp_Object hash_table1, Lisp_Object hash_table2, int depth)
+hash_table_equal (Lisp_Object hash_table1, Lisp_Object hash_table2, int depth,
+		  int foldcase)
 {
   Lisp_Hash_Table *ht1 = XHASH_TABLE (hash_table1);
   Lisp_Hash_Table *ht2 = XHASH_TABLE (hash_table2);
@@ -281,7 +264,7 @@ hash_table_equal (Lisp_Object hash_table1, Lisp_Object hash_table2, int depth)
       {
 	Lisp_Object value_in_other = Fgethash (e->key, hash_table2, Qunbound);
 	if (UNBOUNDP (value_in_other) ||
-	    !internal_equal (e->value, value_in_other, depth))
+	    !internal_equal_0 (e->value, value_in_other, depth, foldcase))
 	  return 0;		/* Give up */
       }
 
@@ -304,15 +287,15 @@ hash_table_hash (Lisp_Object hash_table, int UNUSED (depth))
    syntax for hash tables.  This means that a typical hash table will be
    readably printed in the form of:
 
-   #s(hash-table size 2 data (key1 value1 key2 value2))
+   #s(hash-table :size 2 :data (key1 value1 key2 value2))
 
    The supported hash table structure keywords and their values are:
-   `test'             (eql (or nil), eq or equal)
-   `size'             (a natnum or nil)
-   `rehash-size'      (a float)
-   `rehash-threshold' (a float)
-   `weakness'         (nil, key, value, key-and-value, or key-or-value)
-   `data'             (a list)
+   `:test'             (eql (or nil), eq or equal)
+   `:size'             (a natnum or nil)
+   `:rehash-size'      (a float)
+   `:rehash-threshold' (a float)
+   `:weakness'         (nil, key, value, key-and-value, or key-or-value)
+   `:data'             (a list)
 
    If `print-readably' is nil, then a simpler syntax is used, for example
 
@@ -330,16 +313,16 @@ print_hash_table_data (Lisp_Hash_Table *ht, Lisp_Object printcharfun)
   int count = 0;
   htentry *e, *sentinel;
 
-  write_c_string (printcharfun, " data (");
+  write_ascstring (printcharfun, " :data (");
 
   for (e = ht->hentries, sentinel = e + ht->size; e < sentinel; e++)
     if (!HTENTRY_CLEAR_P (e))
       {
 	if (count > 0)
-	  write_c_string (printcharfun, " ");
+	  write_ascstring (printcharfun, " ");
 	if (!print_readably && count > 3)
 	  {
-	    write_c_string (printcharfun, "...");
+	    write_ascstring (printcharfun, "...");
 	    break;
 	  }
 	print_internal (e->key, printcharfun, 1);
@@ -347,7 +330,7 @@ print_hash_table_data (Lisp_Hash_Table *ht, Lisp_Object printcharfun)
 	count++;
       }
 
-  write_c_string (printcharfun, ")");
+  write_ascstring (printcharfun, ")");
 }
 
 static void
@@ -357,16 +340,16 @@ print_hash_table (Lisp_Object obj, Lisp_Object printcharfun,
   Lisp_Hash_Table *ht = XHASH_TABLE (obj);
   Ascbyte pigbuf[350];
 
-  write_c_string (printcharfun,
+  write_ascstring (printcharfun,
 		  print_readably ? "#s(hash-table" : "#<hash-table");
 
   /* These checks have a kludgy look to them, but they are safe.
      Due to nature of hashing, you cannot use arbitrary
      test functions anyway.  */
   if (!ht->test_function)
-    write_c_string (printcharfun, " test eq");
+    write_ascstring (printcharfun, " :test eq");
   else if (ht->test_function == lisp_object_equal_equal)
-    write_c_string (printcharfun, " test equal");
+    write_ascstring (printcharfun, " :test equal");
   else if (ht->test_function == lisp_object_eql_equal)
     DO_NOTHING;
   else
@@ -375,16 +358,16 @@ print_hash_table (Lisp_Object obj, Lisp_Object printcharfun,
   if (ht->count || !print_readably)
     {
       if (print_readably)
-	write_fmt_string (printcharfun, " size %ld", (long) ht->count);
+	write_fmt_string (printcharfun, " :size %ld", (long) ht->count);
       else
-	write_fmt_string (printcharfun, " size %ld/%ld", (long) ht->count,
+	write_fmt_string (printcharfun, " :size %ld/%ld", (long) ht->count,
 			  (long) ht->size);
     }
 
   if (ht->weakness != HASH_TABLE_NON_WEAK)
     {
       write_fmt_string
-	(printcharfun, " weakness %s",
+	(printcharfun, " :weakness %s",
 	 (ht->weakness == HASH_TABLE_WEAK	    ? "key-and-value" :
 	  ht->weakness == HASH_TABLE_KEY_WEAK	    ? "key" :
 	  ht->weakness == HASH_TABLE_VALUE_WEAK	    ? "value" :
@@ -395,7 +378,7 @@ print_hash_table (Lisp_Object obj, Lisp_Object printcharfun,
   if (ht->rehash_size != HASH_TABLE_DEFAULT_REHASH_SIZE)
     {
       float_to_string (pigbuf, ht->rehash_size);
-      write_fmt_string (printcharfun, " rehash-size %s", pigbuf);
+      write_fmt_string (printcharfun, " :rehash-size %s", pigbuf);
     }
 
   if (ht->rehash_threshold
@@ -403,14 +386,14 @@ print_hash_table (Lisp_Object obj, Lisp_Object printcharfun,
 					      ht->test_function))
     {
       float_to_string (pigbuf, ht->rehash_threshold);
-      write_fmt_string (printcharfun, " rehash-threshold %s", pigbuf);
+      write_fmt_string (printcharfun, " :rehash-threshold %s", pigbuf);
     }
 
   if (ht->count)
     print_hash_table_data (ht, printcharfun);
 
   if (print_readably)
-    write_c_string (printcharfun, ")");
+    write_ascstring (printcharfun, ")");
   else
     write_fmt_string (printcharfun, " 0x%x>", ht->header.uid);
 }
@@ -434,7 +417,7 @@ free_hentries (htentry *hentries,
 #endif
 
   if (!DUMPEDP (hentries))
-    xfree (hentries, htentry *);
+    xfree (hentries);
 }
 
 static void
@@ -841,17 +824,40 @@ hash_table_instantiate (Lisp_Object plist)
   Lisp_Object weakness	       = Qnil;
   Lisp_Object data	       = Qnil;
 
-  PROPERTY_LIST_LOOP_3 (key, value, plist)
+  if (KEYWORDP (Fcar (plist)))
     {
-      if      (EQ (key, Qtest))		    test	     = value;
-      else if (EQ (key, Qsize))		    size	     = value;
-      else if (EQ (key, Qrehash_size))	    rehash_size	     = value;
-      else if (EQ (key, Qrehash_threshold)) rehash_threshold = value;
-      else if (EQ (key, Qweakness))	    weakness	     = value;
-      else if (EQ (key, Qdata))		    data	     = value;
-      else if (EQ (key, Qtype))/*obsolete*/ weakness	     = value;
-      else
-	ABORT ();
+      PROPERTY_LIST_LOOP_3 (key, value, plist)
+        {
+          if      (EQ (key, Q_test))		    test	     = value;
+          else if (EQ (key, Q_size))		    size	     = value;
+          else if (EQ (key, Q_rehash_size))	    rehash_size	     = value;
+          else if (EQ (key, Q_rehash_threshold)) rehash_threshold = value;
+          else if (EQ (key, Q_weakness))	    weakness	     = value;
+          else if (EQ (key, Q_data))		    data	     = value;
+          else if (!KEYWORDP (key))
+            signal_error (Qinvalid_read_syntax, 
+                          "can't mix keyword and non-keyword hash table syntax",
+                          key);
+          else ABORT();
+        }
+    }
+  else
+    {
+      PROPERTY_LIST_LOOP_3 (key, value, plist)
+        {
+          if      (EQ (key, Qtest))		    test	     = value;
+          else if (EQ (key, Qsize))		    size	     = value;
+          else if (EQ (key, Qrehash_size))	    rehash_size	     = value;
+          else if (EQ (key, Qrehash_threshold)) rehash_threshold = value;
+          else if (EQ (key, Qweakness))	    weakness	     = value;
+          else if (EQ (key, Qdata))		    data	     = value;
+          else if (EQ (key, Qtype))/*obsolete*/ weakness	     = value;
+          else if (KEYWORDP (key))
+            signal_error (Qinvalid_read_syntax, 
+                          "can't mix keyword and non-keyword hash table syntax",
+                          key);
+          else ABORT();                   
+        }
     }
 
   /* Create the hash table.  */
@@ -887,6 +893,16 @@ structure_type_create_hash_table_structure_name (Lisp_Object structure_name)
   struct structure_type *st;
 
   st = define_structure_type (structure_name, 0, hash_table_instantiate);
+
+  /* First the keyword syntax: */
+  define_structure_type_keyword (st, Q_test, hash_table_test_validate);
+  define_structure_type_keyword (st, Q_size, hash_table_size_validate);
+  define_structure_type_keyword (st, Q_rehash_size, hash_table_rehash_size_validate);
+  define_structure_type_keyword (st, Q_rehash_threshold, hash_table_rehash_threshold_validate);
+  define_structure_type_keyword (st, Q_weakness, hash_table_weakness_validate);
+  define_structure_type_keyword (st, Q_data, hash_table_data_validate);
+
+  /* Next the mutually exclusive, older, non-keyword syntax: */
   define_structure_type_keyword (st, Qtest, hash_table_test_validate);
   define_structure_type_keyword (st, Qsize, hash_table_size_validate);
   define_structure_type_keyword (st, Qrehash_size, hash_table_rehash_size_validate);
@@ -1092,7 +1108,7 @@ pdump_reorganize_hash_table (Lisp_Object hash_table)
   memcpy (ht->hentries, new_entries, ht->size * sizeof (htentry));
 
 #ifndef NEW_GC
-  xfree (new_entries, htentry *);
+  xfree (new_entries);
 #endif /* not NEW_GC */
 }
 
@@ -1387,7 +1403,7 @@ static Lisp_Object
 maphash_unwind (Lisp_Object unwind_obj)
 {
   void *ptr = (void *) get_opaque_ptr (unwind_obj);
-  xfree (ptr, void *);
+  xfree (ptr);
   free_opaque_ptr (unwind_obj);
   return Qnil;
 }
@@ -1831,6 +1847,7 @@ syms_of_elhash (void)
   DEFSYMBOL (Qvalue_weak); /* obsolete */
   DEFSYMBOL (Qnon_weak);     /* obsolete */
 
+  DEFKEYWORD (Q_data);
   DEFKEYWORD (Q_test);
   DEFKEYWORD (Q_size);
   DEFKEYWORD (Q_rehash_size);

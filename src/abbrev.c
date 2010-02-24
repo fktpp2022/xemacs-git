@@ -131,10 +131,10 @@ abbrev_match_mapper (Lisp_Object symbol, void *arg)
 
     for (idx = 0; idx < abbrev_length; idx++)
       {
-	if (DOWNCASE (closure->buf,
+	if (CANONCASE (closure->buf,
 		      BUF_FETCH_CHAR (closure->buf,
 				      closure->point - abbrev_length + idx))
-	    != DOWNCASE (closure->buf, itext_ichar (ptr)))
+	    != CANONCASE (closure->buf, itext_ichar (ptr)))
 	  {
 	    break;
 	  }
@@ -424,16 +424,16 @@ write_abbrev (Lisp_Object sym, Lisp_Object stream)
   if (NILP (XSYMBOL_VALUE (sym)) || ! NILP (system_flag))
     return;
 
-  buffer_insert_c_string (buf, "    (");
+  buffer_insert_ascstring (buf, "    (");
   name = Fsymbol_name (sym);
   Fprin1 (name, stream);
-  buffer_insert_c_string (buf, " ");
+  buffer_insert_ascstring (buf, " ");
   Fprin1 (XSYMBOL_VALUE (sym), stream);
-  buffer_insert_c_string (buf, " ");
+  buffer_insert_ascstring (buf, " ");
   Fprin1 (XSYMBOL (sym)->function, stream);
-  buffer_insert_c_string (buf, " ");
+  buffer_insert_ascstring (buf, " ");
   Fprin1 (count, stream);
-  buffer_insert_c_string (buf, ")\n");
+  buffer_insert_ascstring (buf, ")\n");
 }
 
 static void
@@ -462,7 +462,7 @@ describe_abbrev (Lisp_Object sym, Lisp_Object stream)
 
   if (!NILP (system_flag))
     {
-      buffer_insert_c_string (buf, " (sys)");
+      buffer_insert_ascstring (buf, " (sys)");
       Findent_to (make_int (20), one, Qnil);
     }
   else
@@ -476,7 +476,7 @@ describe_abbrev (Lisp_Object sym, Lisp_Object stream)
       Findent_to (make_int (45), one, Qnil);
       Fprin1 (XSYMBOL (sym)->function, stream);
     }
-  buffer_insert_c_string (buf, "\n");
+  buffer_insert_ascstring (buf, "\n");
 }
 
 static int
@@ -528,28 +528,28 @@ READABLE is non-nil, they are listed.  */
 
   if (!NILP (readable))
     {
-      buffer_insert_c_string (buf, "(");
+      buffer_insert_ascstring (buf, "(");
       Fprin1 (name, stream);
-      buffer_insert_c_string (buf, ")\n\n");
+      buffer_insert_ascstring (buf, ")\n\n");
       while (! NILP (symbols))
 	{
 	  describe_abbrev (XCAR (symbols), stream);
 	  symbols = XCDR (symbols);
 	}
 
-      buffer_insert_c_string (buf, "\n\n");
+      buffer_insert_ascstring (buf, "\n\n");
     }
   else
     {
-      buffer_insert_c_string (buf, "(define-abbrev-table '");
+      buffer_insert_ascstring (buf, "(define-abbrev-table '");
       Fprin1 (name, stream);
-      buffer_insert_c_string (buf, " '(\n");
+      buffer_insert_ascstring (buf, " '(\n");
       while (! NILP (symbols))
 	{
 	  write_abbrev (XCAR (symbols), stream);
 	  symbols = XCDR (symbols);
 	}
-      buffer_insert_c_string (buf, "    ))\n\n");
+      buffer_insert_ascstring (buf, "    ))\n\n");
     }
 
   return Qnil;

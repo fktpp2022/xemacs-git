@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 1985, 1986, 1992, 1994, 1997 Free Software Foundation, Inc.
 ;; Copyright (C) 1996 Richard Mlynarik.
-;; Copyright (C) 1995, 1996, 2003 Ben Wing.
+;; Copyright (C) 1995, 1996, 2003, 2005 Ben Wing.
 
 ;; Maintainer: XEmacs Development Team
 ;; Keywords: internal, dumped
@@ -44,6 +44,12 @@
 ;; Help debug problems.
 (setq stack-trace-on-error t
       load-always-display-messages t)
+(when (featurep 'debug-xemacs)
+  ;; Immediately dump core upon an unhandled error, rather than just quitting
+  ;; the program.  This can also be achieved by setting an environment variable
+  ;; XEMACSDEBUG to contain '(setq debug-on-error t)', e.g.
+  ;; export XEMACSDEBUG='(setq debug-on-error t)'
+  (setq debug-on-error t))
 
 ;(princ (format "command-line-args: %s\n" command-line-args))
 ;(princ (format "configure-lisp-directory: %S\n" configure-lisp-directory))
@@ -212,8 +218,12 @@ with the exception of `loadup.el'.")
 ;; See also "site-load" above.
 (when (stringp site-start-file)
   (load "site-init" t))
-;; Add information from this file to the load history:
-(setq load-history (cons (nreverse current-load-list) load-history)
+
+;; Add information from this file to the load history. Delete information
+;; for those files in preloaded-file-list; the symbol file information can
+;; be taken from DOC, and #'unload-feature makes very little sense for
+;; dumped functionality.
+(setq load-history (cons (nreverse current-load-list) (last load-history))
       ;; Clear current-load-list; this (and adding information to
       ;; load-history) is normally done in lread.c after reading the
       ;; entirety of a file, something which never happens for loadup.el.
@@ -239,7 +249,8 @@ with the exception of `loadup.el'.")
     (really-free))
   ;; Make sure we don't dump with debugging messages turned on.
   (setq stack-trace-on-error nil
-	load-always-display-messages nil)
+	load-always-display-messages nil
+	debug-on-error nil)
   (dump-emacs
    (cond
     ((featurep 'infodock) "infodock")

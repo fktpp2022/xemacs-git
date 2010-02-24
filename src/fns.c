@@ -1,6 +1,6 @@
 /* Random utility Lisp functions.
    Copyright (C) 1985, 86, 87, 93, 94, 95 Free Software Foundation, Inc.
-   Copyright (C) 1995, 1996, 2000, 2001, 2002, 2003 Ben Wing.
+   Copyright (C) 1995, 1996, 2000, 2001, 2002, 2003, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -56,6 +56,7 @@ Boston, MA 02111-1307, USA.  */
 
 Lisp_Object Qstring_lessp;
 Lisp_Object Qidentity;
+Lisp_Object Qvector, Qarray, Qbit_vector;
 
 Lisp_Object Qbase64_conversion_error;
 
@@ -81,21 +82,22 @@ print_bit_vector (Lisp_Object obj, Lisp_Object printcharfun,
 
   if (INTP (Vprint_length))
     last = min (len, XINT (Vprint_length));
-  write_c_string (printcharfun, "#*");
+  write_ascstring (printcharfun, "#*");
   for (i = 0; i < last; i++)
     {
       if (bit_vector_bit (v, i))
-	write_c_string (printcharfun, "1");
+	write_ascstring (printcharfun, "1");
       else
-	write_c_string (printcharfun, "0");
+	write_ascstring (printcharfun, "0");
     }
 
   if (last != len)
-    write_c_string (printcharfun, "...");
+    write_ascstring (printcharfun, "...");
 }
 
 static int
-bit_vector_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth))
+bit_vector_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth),
+		  int UNUSED (foldcase))
 {
   Lisp_Bit_Vector *v1 = XBIT_VECTOR (obj1);
   Lisp_Bit_Vector *v2 = XBIT_VECTOR (obj2);
@@ -216,7 +218,7 @@ length_with_bytecode_hack (Lisp_Object seq)
 #endif /* LOSING_BYTECODE */
 
 void
-check_losing_bytecode (const char *function, Lisp_Object seq)
+check_losing_bytecode (const Ascbyte *function, Lisp_Object seq)
 {
   if (COMPILED_FUNCTIONP (seq))
     signal_ferror_with_frob
@@ -314,9 +316,12 @@ DEFUN ("compare-strings", Fcompare_strings, 6, 7, 0, /*
 Compare the contents of two strings, maybe ignoring case.
 In string STR1, skip the first START1 characters and stop at END1.
 In string STR2, skip the first START2 characters and stop at END2.
-END1 and END2 default to the full lengths of the respective strings.
+END1 and END2 default to the full lengths of the respective strings,
+and arguments that are outside the string (negative STARTi or ENDi
+greater than length) are coerced to 0 or string length as appropriate.
 
-Case is significant in this comparison if IGNORE-CASE is nil.
+Optional IGNORE-CASE non-nil means use case-insensitive comparison.
+Case is significant by default.
 
 The value is t if the strings (or specified portions) match.
 If string STR1 is less, the value is a negative number N;
@@ -334,9 +339,9 @@ If string STR1 is greater, the value is a positive number N;
   CHECK_STRING (str1);
   CHECK_STRING (str2);
   get_string_range_char (str1, start1, end1, &ccstart1, &ccend1,
-			 GB_HISTORICAL_STRING_BEHAVIOR);
+			 GB_HISTORICAL_STRING_BEHAVIOR|GB_COERCE_RANGE);
   get_string_range_char (str2, start2, end2, &ccstart2, &ccend2,
-			 GB_HISTORICAL_STRING_BEHAVIOR);
+			 GB_HISTORICAL_STRING_BEHAVIOR|GB_COERCE_RANGE);
 
   bstart1 = string_index_char_to_byte (str1, ccstart1);
   blen1 = string_offset_char_to_byte_len (str1, bstart1, ccend1 - ccstart1);
@@ -977,6 +982,8 @@ are copied to the new string.
 {
   EMACS_INT len, s, e;
 
+  CHECK_SEQUENCE (sequence);
+
   if (STRINGP (sequence))
     return Fsubstring (sequence, start, end);
 
@@ -1038,38 +1045,136 @@ are copied to the new string.
     }
   else
     {
-      ABORT (); /* unreachable, since Flength (sequence) did not get
-                   an error */
+      ABORT (); /* unreachable, since CHECK_SEQUENCE (sequence) did not
+                   error */
       return Qnil;
     }
 }
 
 /* Split STRING into a list of substrings.  The substrings are the
-   parts of original STRING separated by SEPCHAR.  */
+   parts of original STRING separated by SEPCHAR.
+
+   If UNESCAPE is non-zero, ESCAPECHAR specifies a character that will quote
+   SEPCHAR, and cause it not to split STRING. A double ESCAPECHAR is
+   necessary for ESCAPECHAR to appear once in a substring. */
+
 static Lisp_Object
 split_string_by_ichar_1 (const Ibyte *string, Bytecount size,
-			  Ichar sepchar)
+                         Ichar sepchar, int unescape, Ichar escapechar)
 {
   Lisp_Object result = Qnil;
   const Ibyte *end = string + size;
 
-  while (1)
+  if (unescape)
     {
-      const Ibyte *p = string;
-      while (p < end)
-	{
-	  if (itext_ichar (p) == sepchar)
-	    break;
-	  INC_IBYTEPTR (p);
-	}
-      result = Fcons (make_string (string, p - string), result);
-      if (p < end)
-	{
-	  string = p;
-	  INC_IBYTEPTR (string);	/* skip sepchar */
-	}
-      else
-	break;
+      Ibyte unescape_buffer[64], *unescape_buffer_ptr = unescape_buffer,
+        escaped[MAX_ICHAR_LEN], *unescape_cursor;
+      Bytecount unescape_buffer_size = countof (unescape_buffer),
+        escaped_len = set_itext_ichar (escaped, escapechar);
+      Boolint deleting_escapes, previous_escaped;
+      Ichar pchar;
+
+      while (1)
+        {
+          const Ibyte *p = string, *cursor;
+          deleting_escapes = 0;
+          previous_escaped = 0;
+
+          while (p < end)
+            {
+              pchar = itext_ichar (p);
+
+              if (pchar == sepchar)
+                {
+                  if (!previous_escaped)
+                    {
+                      break;
+                    }
+                }
+              else if (pchar == escapechar
+                       /* Doubled escapes don't escape: */
+                       && !previous_escaped)
+                {
+                  ++deleting_escapes;
+                  previous_escaped = 1;
+                }
+              else
+                {
+                  previous_escaped = 0;
+                }
+
+              INC_IBYTEPTR (p);
+            }
+
+          if (deleting_escapes)
+            {
+              if (((p - string) - (escaped_len * deleting_escapes))
+                  > unescape_buffer_size)
+                {
+                  unescape_buffer_size =
+                    ((p - string) - (escaped_len * deleting_escapes)) * 1.5;
+                  unescape_buffer_ptr = alloca_ibytes (unescape_buffer_size);
+                }
+
+              cursor = string;
+              unescape_cursor = unescape_buffer_ptr;
+              previous_escaped = 0;
+
+              while (cursor < p)
+                {
+                  pchar = itext_ichar (cursor);
+
+                  if (pchar != escapechar || previous_escaped)
+                    {
+                      memcpy (unescape_cursor, cursor,
+                              itext_ichar_len (cursor));
+                      INC_IBYTEPTR (unescape_cursor);
+                    }
+
+                  previous_escaped = !previous_escaped
+                    && (pchar == escapechar);
+
+                  INC_IBYTEPTR (cursor);
+                }
+
+              result = Fcons (make_string (unescape_buffer_ptr,
+                                           unescape_cursor
+                                           - unescape_buffer_ptr),
+                              result);
+            }
+          else
+            {
+              result = Fcons (make_string (string, p - string), result);
+            }
+          if (p < end)
+            {
+              string = p;
+              INC_IBYTEPTR (string);	/* skip sepchar */
+            }
+          else
+            break;
+        }
+    }
+  else
+    {
+      while (1)
+        {
+          const Ibyte *p = string;
+          while (p < end)
+            {
+              if (itext_ichar (p) == sepchar)
+                break;
+              INC_IBYTEPTR (p);
+            }
+          result = Fcons (make_string (string, p - string), result);
+          if (p < end)
+            {
+              string = p;
+              INC_IBYTEPTR (string);	/* skip sepchar */
+            }
+          else
+            break;
+        }
     }
   return Fnreverse (result);
 }
@@ -1094,7 +1199,7 @@ split_external_path (const Extbyte *path)
   if (!newlen)
     return Qnil;
 
-  return split_string_by_ichar_1 (newpath, newlen, SEPCHAR);
+  return split_string_by_ichar_1 (newpath, newlen, SEPCHAR, 0, 0);
 }
 
 Lisp_Object
@@ -1107,22 +1212,34 @@ split_env_path (const CIbyte *evarname, const Ibyte *default_)
     path = default_;
   if (!path)
     return Qnil;
-  return split_string_by_ichar_1 (path, qxestrlen (path), SEPCHAR);
+  return split_string_by_ichar_1 (path, qxestrlen (path), SEPCHAR, 0, 0);
 }
 
 /* Ben thinks this function should not exist or be exported to Lisp.
    We use it to define split-path-string in subr.el (not!).  */
 
-DEFUN ("split-string-by-char", Fsplit_string_by_char, 2, 2, 0, /*
+DEFUN ("split-string-by-char", Fsplit_string_by_char, 2, 3, 0, /*
 Split STRING into a list of substrings originally separated by SEPCHAR.
+
+With optional ESCAPE-CHAR, any instances of SEPCHAR preceded by that
+character will not split the string, and a double instance of ESCAPE-CHAR
+will be necessary for a single ESCAPE-CHAR to appear in the output string.
 */
-       (string, sepchar))
+       (string, sepchar, escape_char))
 {
+  Ichar escape_ichar = 0;
+
   CHECK_STRING (string);
   CHECK_CHAR (sepchar);
+  if (!NILP (escape_char))
+    {
+      CHECK_CHAR (escape_char);
+      escape_ichar = XCHAR (escape_char);
+    }
   return split_string_by_ichar_1 (XSTRING_DATA (string),
-				   XSTRING_LENGTH (string),
-				   XCHAR (sepchar));
+                                  XSTRING_LENGTH (string),
+                                  XCHAR (sepchar),
+                                  !NILP (escape_char), escape_ichar);
 }
 
 /* #### This was supposed to be in subr.el, but is used VERY early in
@@ -1146,7 +1263,7 @@ with `path-separator'.
 
   return (split_string_by_ichar_1
 	  (XSTRING_DATA (path), XSTRING_LENGTH (path),
-	   itext_ichar (XSTRING_DATA (Vpath_separator))));
+	   itext_ichar (XSTRING_DATA (Vpath_separator)), 0, 0));
 }
 
 
@@ -1978,12 +2095,12 @@ list_merge (Lisp_Object org_l1, Lisp_Object org_l2,
  */
 int
 plists_differ (Lisp_Object a, Lisp_Object b, int nil_means_not_present,
-	       int laxp, int depth)
+	       int laxp, int depth, int foldcase)
 {
   int eqp = (depth == -1);	/* -1 as depth means use eq, not equal. */
   int la, lb, m, i, fill;
   Lisp_Object *keys, *vals;
-  char *flags;
+  Boolbyte *flags;
   Lisp_Object rest;
 
   if (NILP (a) && NILP (b))
@@ -1998,7 +2115,7 @@ plists_differ (Lisp_Object a, Lisp_Object b, int nil_means_not_present,
   fill = 0;
   keys  = alloca_array (Lisp_Object, m);
   vals  = alloca_array (Lisp_Object, m);
-  flags = alloca_array (char, m);
+  flags = alloca_array (Boolbyte, m);
 
   /* First extract the pairs from A. */
   for (rest = a; !NILP (rest); rest = XCDR (XCDR (rest)))
@@ -2022,12 +2139,13 @@ plists_differ (Lisp_Object a, Lisp_Object b, int nil_means_not_present,
       if (nil_means_not_present && NILP (v)) continue;
       for (i = 0; i < fill; i++)
 	{
-	  if (!laxp ? EQ (k, keys [i]) : internal_equal (k, keys [i], depth))
+	  if (!laxp ? EQ (k, keys [i]) :
+	      internal_equal_0 (k, keys [i], depth, foldcase))
 	    {
 	      if (eqp
 		  /* We narrowly escaped being Ebolified here. */
 		  ? !EQ_WITH_EBOLA_NOTICE (v, vals [i])
-		  : !internal_equal (v, vals [i], depth))
+		  : !internal_equal_0 (v, vals [i], depth, foldcase))
 		/* a property in B has a different value than in A */
 		goto MISMATCH;
 	      flags [i] = 1;
@@ -2063,7 +2181,7 @@ If optional arg NIL-MEANS-NOT-PRESENT is non-nil, then a property with
 */
        (a, b, nil_means_not_present))
 {
-  return (plists_differ (a, b, !NILP (nil_means_not_present), 0, -1)
+  return (plists_differ (a, b, !NILP (nil_means_not_present), 0, -1, 0)
 	  ? Qnil : Qt);
 }
 
@@ -2080,7 +2198,7 @@ If optional arg NIL-MEANS-NOT-PRESENT is non-nil, then a property with
 */
        (a, b, nil_means_not_present))
 {
-  return (plists_differ (a, b, !NILP (nil_means_not_present), 0, 1)
+  return (plists_differ (a, b, !NILP (nil_means_not_present), 0, 1, 0)
 	  ? Qnil : Qt);
 }
 
@@ -2100,7 +2218,7 @@ If optional arg NIL-MEANS-NOT-PRESENT is non-nil, then a property with
 */
        (a, b, nil_means_not_present))
 {
-  return (plists_differ (a, b, !NILP (nil_means_not_present), 1, -1)
+  return (plists_differ (a, b, !NILP (nil_means_not_present), 1, -1, 0)
 	  ? Qnil : Qt);
 }
 
@@ -2119,7 +2237,7 @@ If optional arg NIL-MEANS-NOT-PRESENT is non-nil, then a property with
 */
        (a, b, nil_means_not_present))
 {
-  return (plists_differ (a, b, !NILP (nil_means_not_present), 1, 1)
+  return (plists_differ (a, b, !NILP (nil_means_not_present), 1, 1, 0)
 	  ? Qnil : Qt);
 }
 
@@ -2804,7 +2922,7 @@ tweaked_internal_equal (Lisp_Object obj1, Lisp_Object obj2,
 
 int
 internal_equal_trapping_problems (Lisp_Object warning_class,
-				  const char *warning_string,
+				  const Ascbyte *warning_string,
 				  int flags,
 				  struct call_trapping_problems_result *p,
 				  int retval,
@@ -2841,10 +2959,30 @@ internal_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
 
       return (imp1 == imp2) &&
 	/* EQ-ness of the objects was noticed above */
-	(imp1->equal && (imp1->equal) (obj1, obj2, depth));
+	(imp1->equal && (imp1->equal) (obj1, obj2, depth, 0));
     }
 
   return 0;
+}
+
+enum array_type
+  {
+    ARRAY_NONE = 0,
+    ARRAY_STRING,
+    ARRAY_VECTOR,
+    ARRAY_BIT_VECTOR
+  };
+
+static enum array_type
+array_type (Lisp_Object obj)
+{
+  if (STRINGP (obj))
+    return ARRAY_STRING;
+  if (VECTORP (obj))
+    return ARRAY_VECTOR;
+  if (BIT_VECTORP (obj))
+    return ARRAY_BIT_VECTOR;
+  return ARRAY_NONE;
 }
 
 int
@@ -2853,37 +2991,46 @@ internal_equalp (Lisp_Object obj1, Lisp_Object obj2, int depth)
   if (depth > 200)
     stack_overflow ("Stack overflow in equalp", Qunbound);
   QUIT;
+
+  /* 1. Objects that are `eq' are equal.  This will catch the common case
+     of two equal fixnums or the same object seen twice. */
   if (EQ_WITH_EBOLA_NOTICE (obj1, obj2))
     return 1;
-#ifdef WITH_NUMBER_TYPES
+
+  /* 2. If both numbers, compare with `='. */
   if (NUMBERP (obj1) && NUMBERP (obj2))
     {
-      switch (promote_args (&obj1, &obj2))
-	{
-	case FIXNUM_T:
-	  return XREALINT (obj1) == XREALINT (obj2);
-#ifdef HAVE_BIGNUM
-	case BIGNUM_T:
-	  return bignum_eql (XBIGNUM_DATA (obj1), XBIGNUM_DATA (obj2));
-#endif
-#ifdef HAVE_RATIO
-	case RATIO_T:
-	  return ratio_eql (XRATIO_DATA (obj1), XRATIO_DATA (obj2));
-#endif
-	case FLOAT_T:
-	  return XFLOAT_DATA (obj1) == XFLOAT_DATA (obj2);
-#ifdef HAVE_BIGFLOAT
-	case BIGFLOAT_T:
-	  return bigfloat_eql (XBIGFLOAT_DATA (obj1), XBIGFLOAT_DATA (obj2));
-#endif
-	}
+      return (0 == bytecode_arithcompare (obj1, obj2));
     }
-#else
-  if ((INTP (obj1) && FLOATP (obj2)) || (FLOATP (obj1) && INTP (obj2)))
-    return extract_float (obj1) == extract_float (obj2);
-#endif
+
+  /* 3. If characters, compare case-insensitively. */
   if (CHARP (obj1) && CHARP (obj2))
-    return DOWNCASE (0, XCHAR (obj1)) == DOWNCASE (0, XCHAR (obj2));
+    return CANONCASE (0, XCHAR (obj1)) == CANONCASE (0, XCHAR (obj2));
+
+  /* 4. If arrays of different types, compare their lengths, and
+        then compare element-by-element. */
+  {
+    enum array_type artype1, artype2;
+    artype1 = array_type (obj1);
+    artype2 = array_type (obj2);
+    if (artype1 != artype2 && artype1 && artype2)
+      {
+	EMACS_INT i;
+	EMACS_INT l1 = XINT (Flength (obj1));
+	EMACS_INT l2 = XINT (Flength (obj2));
+	/* Both arrays, but of different lengths */
+	if (l1 != l2)
+	  return 0;
+	for (i = 0; i < l1; i++)
+	  if (!internal_equalp (Faref (obj1, make_int (i)),
+				Faref (obj2, make_int (i)), depth + 1))
+	    return 0;
+	return 1;
+      }
+  }
+  /* 5. Else, they must be the same type.  If so, call the equal() method,
+        telling it to fold case.  For objects that care about case-folding
+	their contents, the equal() method will call internal_equal_0(). */
   if (XTYPE (obj1) != XTYPE (obj2))
     return 0;
   if (LRECORDP (obj1))
@@ -2892,14 +3039,21 @@ internal_equalp (Lisp_Object obj1, Lisp_Object obj2, int depth)
 	*imp1 = XRECORD_LHEADER_IMPLEMENTATION (obj1),
 	*imp2 = XRECORD_LHEADER_IMPLEMENTATION (obj2);
 
-      /* #### not yet implemented properly, needs another flag to specify
-	 equalp-ness */
       return (imp1 == imp2) &&
 	/* EQ-ness of the objects was noticed above */
-	(imp1->equal && (imp1->equal) (obj1, obj2, depth));
+	(imp1->equal && (imp1->equal) (obj1, obj2, depth, 1));
     }
 
   return 0;
+}
+
+int
+internal_equal_0 (Lisp_Object obj1, Lisp_Object obj2, int depth, int foldcase)
+{
+  if (foldcase)
+    return internal_equalp (obj1, obj2, depth);
+  else
+    return internal_equal (obj1, obj2, depth);
 }
 
 /* Note that we may be calling sub-objects that will use
@@ -2932,6 +3086,37 @@ Numbers are compared by value.  Symbols must match exactly.
        (object1, object2))
 {
   return internal_equal (object1, object2, 0) ? Qt : Qnil;
+}
+
+DEFUN ("equalp", Fequalp, 2, 2, 0, /*
+Return t if two Lisp objects have similar structure and contents.
+
+This is like `equal', except that it accepts numerically equal
+numbers of different types (float, integer, bignum, bigfloat), and also
+compares strings and characters case-insensitively.
+
+Type objects that are arrays (that is, strings, bit-vectors, and vectors)
+of the same length and with contents that are `equalp' are themselves
+`equalp', regardless of whether the two objects have the same type.
+
+Other objects whose primary purpose is as containers of other objects are
+`equalp' if they would otherwise be equal (same length, type, etc.) and
+their contents are `equalp'.  This goes for conses, weak lists,
+weak boxes, ephemerons, specifiers, hash tables, char tables and range
+tables.  However, objects that happen to contain other objects but are not
+primarily designed for this purpose (e.g. compiled functions, events or
+display-related objects such as glyphs, faces or extents) are currently
+compared using `equalp' the same way as using `equal'.
+
+More specifically, two hash tables are `equalp' if they have the same test
+(see `hash-table-test'), the same number of entries, and the same value for
+`hash-table-weakness', and if, for each entry in one hash table, its key is
+equivalent to a key in the other hash table using the hash table test, and
+its value is `equalp' to the other hash table's value for that key.
+*/
+       (object1, object2))
+{
+  return internal_equalp (object1, object2, 0) ? Qt : Qnil;
 }
 
 DEFUN ("old-equal", Fold_equal, 2, 2, 0, /*
@@ -3150,204 +3335,762 @@ arguments: (&rest ARGS)
 
 
 /* This is the guts of several mapping functions.
-   Apply FUNCTION to each element of SEQUENCE, one by one,
-   storing the results into elements of VALS, a C vector of Lisp_Objects.
-   LENI is the length of VALS, which should also be the length of SEQUENCE.
 
-   If VALS is a null pointer, do not accumulate the results. */
+   Call FUNCTION CALL_COUNT times, with NSEQUENCES arguments each time,
+   taking the elements from SEQUENCES.  If VALS is non-NULL, store the
+   results into VALS, a C array of Lisp_Objects; else, if LISP_VALS is
+   non-nil, store the results into LISP_VALS, a sequence with sufficient
+   room for CALL_COUNT results (but see the documentation of SOME_OR_EVERY.) 
+   Else, do not accumulate any result.
+
+   If VALS is non-NULL, NSEQUENCES is one, and SEQUENCES[0] is a cons,
+   mapcarX will store the elements of SEQUENCES[0] in stack and GCPRO them,
+   so FUNCTION cannot insert a non-cons into SEQUENCES[0] and throw off
+   mapcarX.
+
+   Otherwise, mapcarX signals a wrong-type-error if it encounters a
+   non-cons, non-array when traversing SEQUENCES.  Common Lisp specifies in
+   MAPPING-DESTRUCTIVE-INTERACTION that it is an error when FUNCTION
+   destructively modifies SEQUENCES in a way that might affect the ongoing
+   traversal operation.
+
+   If SOME_OR_EVERY is SOME_OR_EVERY_SOME, return the (possibly multiple)
+   values given by FUNCTION the first time it is non-nil, and abandon the
+   iterations.  LISP_VALS must be a cons, and the return value will be
+   stored in its car.  If SOME_OR_EVERY is SOME_OR_EVERY_EVERY, store Qnil
+   in the car of LISP_VALS if FUNCTION gives nil; otherwise leave it
+   alone. */
+
+#define SOME_OR_EVERY_NEITHER 0
+#define SOME_OR_EVERY_SOME    1
+#define SOME_OR_EVERY_EVERY   2
 
 static void
-mapcar1 (Elemcount leni, Lisp_Object *vals,
-	 Lisp_Object function, Lisp_Object sequence)
+mapcarX (Elemcount call_count, Lisp_Object *vals, Lisp_Object lisp_vals,
+	 Lisp_Object function, int nsequences, Lisp_Object *sequences, 
+	 int some_or_every)
 {
-  Lisp_Object result;
-  Lisp_Object args[2];
-  struct gcpro gcpro1;
+  Lisp_Object called, *args;
+  struct gcpro gcpro1, gcpro2;
+  int i, j;
+  enum lrecord_type lisp_vals_type;
 
-  if (vals)
-    {
-      GCPRO1 (vals[0]);
-      gcpro1.nvars = 0;
-    }
+  assert (LRECORDP (lisp_vals));
+  lisp_vals_type = (enum lrecord_type) XRECORD_LHEADER (lisp_vals)->type;
 
+  args = alloca_array (Lisp_Object, nsequences + 1);
   args[0] = function;
-
-  if (LISTP (sequence))
+  for (i = 1; i <= nsequences; ++i)
     {
-      /* A devious `function' could either:
-	 - insert garbage into the list in front of us, causing XCDR to crash
-	 - amputate the list behind us using (setcdr), causing the remaining
-	   elts to lose their GCPRO status.
-
-	 if (vals != 0) we avoid this by copying the elts into the
-	 `vals' array.  By a stroke of luck, `vals' is exactly large
-	 enough to hold the elts left to be traversed as well as the
-	 results computed so far.
-
-	 if (vals == 0) we don't have any free space available and
-	 don't want to eat up any more stack with ALLOCA ().
-	 So we use EXTERNAL_LIST_LOOP_3_NO_DECLARE and GCPRO the tail. */
-
-      if (vals)
-	{
-	  Lisp_Object *val = vals;
-	  Elemcount i;
-
-	  LIST_LOOP_2 (elt, sequence)
-	      *val++ = elt;
-
-	  gcpro1.nvars = leni;
-
-	  for (i = 0; i < leni; i++)
-	    {
-	      args[1] = vals[i];
-	      vals[i] = Ffuncall (2, args);
-	    }
-	}
-      else
-	{
-	  Lisp_Object elt, tail;
-	  EMACS_INT len_unused;
-	  struct gcpro ngcpro1;
-
-	  NGCPRO1 (tail);
-
-	  {
-	    EXTERNAL_LIST_LOOP_4_NO_DECLARE (elt, sequence, tail, len_unused)
-	      {
-		args[1] = elt;
-		Ffuncall (2, args);
-	      }
-	  }
-
-	  NUNGCPRO;
-	}
+      args[i] = Qnil;
     }
-  else if (VECTORP (sequence))
-    {
-      Lisp_Object *objs = XVECTOR_DATA (sequence);
-      Elemcount i;
-      for (i = 0; i < leni; i++)
-	{
-	  args[1] = *objs++;
-	  result = Ffuncall (2, args);
-	  if (vals) vals[gcpro1.nvars++] = result;
-	}
-    }
-  else if (STRINGP (sequence))
-    {
-      /* The string data of `sequence' might be relocated during GC. */
-      Bytecount slen = XSTRING_LENGTH (sequence);
-      Ibyte *p = alloca_ibytes (slen);
-      Ibyte *end = p + slen;
 
-      memcpy (p, XSTRING_DATA (sequence), slen);
-
-      while (p < end)
-	{
-	  args[1] = make_char (itext_ichar (p));
-	  INC_IBYTEPTR (p);
-	  result = Ffuncall (2, args);
-	  if (vals) vals[gcpro1.nvars++] = result;
-	}
-    }
-  else if (BIT_VECTORP (sequence))
+  if (vals != NULL)
     {
-      Lisp_Bit_Vector *v = XBIT_VECTOR (sequence);
-      Elemcount i;
-      for (i = 0; i < leni; i++)
+      GCPRO2 (args[0], vals[0]);
+      gcpro1.nvars = nsequences + 1;
+      gcpro2.nvars = 0;
+    }
+  else
+    {
+      GCPRO1 (args[0]);
+      gcpro1.nvars = nsequences + 1;
+    }
+
+  /* Be extra nice in the event that we've been handed one list and one
+     only; make it possible for FUNCTION to set cdrs not yet processed to
+     non-cons, non-nil objects without ill-effect, if we have been handed
+     the stack space to do that. */
+  if (vals != NULL && 1 == nsequences && CONSP (sequences[0]))
+    {
+      Lisp_Object lst = sequences[0];
+      Lisp_Object *val = vals;
+      for (i = 0; i < call_count; ++i)
 	{
-	  args[1] = make_int (bit_vector_bit (v, i));
-	  result = Ffuncall (2, args);
-	  if (vals) vals[gcpro1.nvars++] = result;
+	  *val++ = XCAR (lst);
+	  lst = XCDR (lst);
+	}
+      gcpro2.nvars = call_count;
+
+      for (i = 0; i < call_count; ++i)
+	{
+	  args[1] = vals[i];
+	  vals[i] = IGNORE_MULTIPLE_VALUES (Ffuncall (nsequences + 1, args));
 	}
     }
   else
-    ABORT (); /* unreachable, since Flength (sequence) did not get an error */
+    {
+      Binbyte *sequence_types = alloca_array (Binbyte, nsequences);
+      for (j = 0; j < nsequences; ++j)
+	{
+	  sequence_types[j] = XRECORD_LHEADER (sequences[j])->type;
+	}
 
-  if (vals)
-    UNGCPRO;
+      for (i = 0; i < call_count; ++i)
+	{
+	  for (j = 0; j < nsequences; ++j)
+	    {
+	      switch (sequence_types[j])
+		{
+		case lrecord_type_cons:
+		  {
+		    if (!CONSP (sequences[j]))
+		      {
+			/* This means FUNCTION has probably messed
+			   around with a cons in one of the sequences,
+			   since we checked the type
+			   (CHECK_SEQUENCE()) and the length and
+			   structure (with Flength()) correctly in our
+			   callers. */
+			dead_wrong_type_argument (Qconsp, sequences[j]);
+		      }
+		    args[j + 1] = XCAR (sequences[j]);
+		    sequences[j] = XCDR (sequences[j]);
+		    break;
+		  }
+		case lrecord_type_vector:
+		  {
+		    args[j + 1] = XVECTOR_DATA (sequences[j])[i];
+		    break;
+		  }
+		case lrecord_type_string:
+		  {
+		    args[j + 1] = make_char (string_ichar (sequences[j], i));
+		    break;
+		  }
+		case lrecord_type_bit_vector:
+		  {
+		    args[j + 1]
+		      = make_int (bit_vector_bit (XBIT_VECTOR (sequences[j]),
+						  i));
+		    break;
+		  }
+		default:
+		  ABORT();
+		}
+	    }
+	  called = Ffuncall (nsequences + 1, args);
+	  if (vals != NULL)
+	    {
+	      vals[i] = IGNORE_MULTIPLE_VALUES (called);
+	      gcpro2.nvars += 1;
+	    }
+	  else
+	    {
+	      switch (lisp_vals_type)
+		{
+		case lrecord_type_symbol:
+		  break;
+		case lrecord_type_cons:
+		  {
+		    if (SOME_OR_EVERY_NEITHER == some_or_every)
+		      {
+			called = IGNORE_MULTIPLE_VALUES (called);
+			if (!CONSP (lisp_vals))
+			  {
+			    /* If FUNCTION has inserted a non-cons non-nil
+			       cdr into the list before we've processed the
+			       relevant part, error. */
+			    dead_wrong_type_argument (Qconsp, lisp_vals);
+			  }
+
+			XSETCAR (lisp_vals, called);
+			lisp_vals = XCDR (lisp_vals);
+			break;
+		      }
+
+		    if (SOME_OR_EVERY_SOME == some_or_every)
+		      {
+			if (!NILP (IGNORE_MULTIPLE_VALUES (called)))
+			  {
+			    XCAR (lisp_vals) = called;
+			    UNGCPRO;
+			    return;
+			  }
+			break;
+		      }
+
+		    if (SOME_OR_EVERY_EVERY == some_or_every)
+		      {
+			called = IGNORE_MULTIPLE_VALUES (called);
+			if (NILP (called))
+			  {
+			    XCAR (lisp_vals) = Qnil;
+			    UNGCPRO;
+			    return;
+			  }
+			break;
+		      }
+
+		    goto bad_some_or_every_flag;
+		  }
+		case lrecord_type_vector:
+		  {
+		    called = IGNORE_MULTIPLE_VALUES (called);
+		    i < XVECTOR_LENGTH (lisp_vals) ?
+		      (XVECTOR_DATA (lisp_vals)[i] = called) :
+		      /* Let #'aset error. */
+		      Faset (lisp_vals, make_int (i), called);
+		    break;
+		  }
+		case lrecord_type_string:
+		  {
+		    /* If this ever becomes a code hotspot, we can keep
+		       around pointers into the data of the string, checking
+		       each time that it hasn't been relocated. */
+		    called = IGNORE_MULTIPLE_VALUES (called);
+		    Faset (lisp_vals, make_int (i), called);
+		    break;
+		  }
+		case lrecord_type_bit_vector:
+		  {
+		    called = IGNORE_MULTIPLE_VALUES (called);
+		    (BITP (called) &&
+		     i < bit_vector_length (XBIT_VECTOR (lisp_vals))) ?
+		      set_bit_vector_bit (XBIT_VECTOR (lisp_vals), i,
+					  XINT (called)) :
+		      (void) Faset (lisp_vals, make_int (i), called);
+		    break;
+		  }
+		bad_some_or_every_flag:
+		default:
+		  {
+		    ABORT();
+		    break;
+		  }
+		}
+	    }
+	}
+    }
+  UNGCPRO;
 }
 
-DEFUN ("mapconcat", Fmapconcat, 3, 3, 0, /*
-Apply FUNCTION to each element of SEQUENCE, and concat the results to a string.
+DEFUN ("mapconcat", Fmapconcat, 3, MANY, 0, /*
+Call FUNCTION on each element of SEQUENCE, and concat results to a string.
 Between each pair of results, insert SEPARATOR.
 
 Each result, and SEPARATOR, should be strings.  Thus, using " " as SEPARATOR
 results in spaces between the values returned by FUNCTION.  SEQUENCE itself
 may be a list, a vector, a bit vector, or a string.
+
+With optional SEQUENCES, call FUNCTION each time with as many arguments as
+there are SEQUENCES, plus one for the element from SEQUENCE.  One element
+from each sequence will be used each time FUNCTION is called, and
+`mapconcat' will give up once the shortest sequence is exhausted.
+
+arguments: (FUNCTION SEQUENCE SEPARATOR &rest SEQUENCES)
 */
-       (function, sequence, separator))
+       (int nargs, Lisp_Object *args))
 {
-  EMACS_INT len = XINT (Flength (sequence));
-  Lisp_Object *args;
-  EMACS_INT i;
-  EMACS_INT nargs = len + len - 1;
+  Lisp_Object function = args[0];
+  Lisp_Object sequence = args[1];
+  Lisp_Object separator = args[2];
+  Elemcount len = EMACS_INT_MAX;
+  Lisp_Object *args0;
+  EMACS_INT i, nargs0;
 
-  if (len == 0) return build_string ("");
+  args[2] = sequence;
+  args[1] = separator;
 
-  args = alloca_array (Lisp_Object, nargs);
+  for (i = 2; i < nargs; ++i)
+    {
+      CHECK_SEQUENCE (args[i]);
+      len = min (len, XINT (Flength (args[i])));
+    }
 
-  mapcar1 (len, args, function, sequence);
+  if (len == 0) return build_ascstring ("");
+
+  nargs0 = len + len - 1;
+  args0 = alloca_array (Lisp_Object, nargs0);
+
+  /* Special-case this, it's very common and doesn't require any
+     funcalls. Upside of doing it here, instead of cl-macs.el: no consing,
+     apart from the final string, we allocate everything on the stack. */
+  if (EQ (function, Qidentity) && 3 == nargs && CONSP (sequence))
+    {
+      for (i = 0; i < len; ++i)
+	{
+	  args0[i] = XCAR (sequence);
+	  sequence = XCDR (sequence);
+	}
+    }
+  else
+    {
+      mapcarX (len, args0, Qnil, function, nargs - 2, args + 2,
+	       SOME_OR_EVERY_NEITHER);
+    }
 
   for (i = len - 1; i >= 0; i--)
-    args[i + i] = args[i];
+    args0[i + i] = args0[i];
 
-  for (i = 1; i < nargs; i += 2)
-    args[i] = separator;
+  for (i = 1; i < nargs0; i += 2)
+    args0[i] = separator;
 
-  return Fconcat (nargs, args);
+  return Fconcat (nargs0, args0);
 }
 
-DEFUN ("mapcar", Fmapcar, 2, 2, 0, /*
-Apply FUNCTION to each element of SEQUENCE; return a list of the results.
+DEFUN ("mapcar*", FmapcarX, 2, MANY, 0, /*
+Call FUNCTION on each element of SEQUENCE; return a list of the results.
 The result is a list of the same length as SEQUENCE.
 SEQUENCE may be a list, a vector, a bit vector, or a string.
+
+With optional SEQUENCES, call FUNCTION each time with as many arguments as
+there are SEQUENCES, plus one for the element from SEQUENCE.  One element
+from each sequence will be used each time FUNCTION is called, and `mapcar'
+stops calling FUNCTION once the shortest sequence is exhausted.
+
+arguments: (FUNCTION SEQUENCE &rest SEQUENCES)
 */
-       (function, sequence))
+       (int nargs, Lisp_Object *args))
 {
-  Elemcount len = XINT (Flength (sequence));
-  Lisp_Object *args = alloca_array (Lisp_Object, len);
+  Lisp_Object function = args[0];
+  Elemcount len = EMACS_INT_MAX;
+  Lisp_Object *args0;
+  int i;
 
-  mapcar1 (len, args, function, sequence);
+  for (i = 1; i < nargs; ++i)
+    {
+      CHECK_SEQUENCE (args[i]);
+      len = min (len, XINT (Flength (args[i])));
+    }
 
-  return Flist ((int) len, args);
+  args0 = alloca_array (Lisp_Object, len);
+  mapcarX (len, args0, Qnil, function, nargs - 1, args + 1,
+	   SOME_OR_EVERY_NEITHER);
+
+  return Flist ((int) len, args0);
 }
 
-DEFUN ("mapvector", Fmapvector, 2, 2, 0, /*
-Apply FUNCTION to each element of SEQUENCE; return a vector of the results.
+DEFUN ("mapvector", Fmapvector, 2, MANY, 0, /*
+Call FUNCTION on each element of SEQUENCE; return a vector of the results.
 The result is a vector of the same length as SEQUENCE.
 SEQUENCE may be a list, a vector, a bit vector, or a string.
-*/
-       (function, sequence))
-{
-  Elemcount len = XINT (Flength (sequence));
-  Lisp_Object result = make_vector (len, Qnil);
-  struct gcpro gcpro1;
 
+With optional SEQUENCES, call FUNCTION each time with as many arguments as
+there are SEQUENCES, plus one for the element from SEQUENCE.  One element
+from each sequence will be used each time FUNCTION is called, and
+`mapvector' stops calling FUNCTION once the shortest sequence is exhausted.
+
+arguments: (FUNCTION SEQUENCE &rest SEQUENCES)
+*/
+       (int nargs, Lisp_Object *args))
+{
+  Lisp_Object function = args[0];
+  Elemcount len = EMACS_INT_MAX;
+  Lisp_Object result;
+  struct gcpro gcpro1;
+  int i;
+
+  for (i = 1; i < nargs; ++i)
+    {
+      CHECK_SEQUENCE (args[i]);
+      len = min (len, XINT (Flength (args[i])));
+    }
+
+  result = make_vector (len, Qnil);
   GCPRO1 (result);
-  mapcar1 (len, XVECTOR_DATA (result), function, sequence);
+  /* Don't pass result as the lisp_object argument, we want mapcarX to protect 
+     a single list argument's elements from being garbage-collected. */
+  mapcarX (len, XVECTOR_DATA (result), Qnil, function, nargs - 1, args +1,
+	   SOME_OR_EVERY_NEITHER);
   UNGCPRO;
 
   return result;
 }
 
-DEFUN ("mapc-internal", Fmapc_internal, 2, 2, 0, /*
-Apply FUNCTION to each element of SEQUENCE.
+DEFUN ("mapcan", Fmapcan, 2, MANY, 0, /*
+Call FUNCTION on each element of SEQUENCE; chain the results together.
+
+FUNCTION must normally return a list; the results will be concatenated
+together using `nconc'.
+
+With optional SEQUENCES, call FUNCTION each time with as many arguments as
+there are SEQUENCES, plus one for the element from SEQUENCE.  One element
+from each sequence will be used each time FUNCTION is called, and
+`mapcan' stops calling FUNCTION once the shortest sequence is exhausted.
+
+arguments: (FUNCTION SEQUENCE &rest SEQUENCES)
+*/
+       (int nargs, Lisp_Object *args))
+{
+  Lisp_Object function = args[0], nconcing;
+  Elemcount len = EMACS_INT_MAX;
+  Lisp_Object *args0;
+  struct gcpro gcpro1;
+  int i;
+
+  for (i = 1; i < nargs; ++i)
+    {
+      CHECK_SEQUENCE (args[i]);
+      len = min (len, XINT (Flength (args[i])));
+    }
+
+  args0 = alloca_array (Lisp_Object, len + 1);
+  mapcarX (len, args0 + 1, Qnil, function, nargs - 1, args + 1,
+	   SOME_OR_EVERY_NEITHER);
+
+  if (len < 2)
+    {
+      return len ? args0[1] : Qnil;
+    }
+
+  /* bytecode_nconc2 can signal and return, we need to GCPRO the args, since
+     mapcarX is no longer doing this for us. */
+  args0[0] = Fcons (Qnil, Qnil);
+  GCPRO1 (args0[0]);
+  gcpro1.nvars = len + 1;
+
+  for (i = 0; i < len; ++i)
+    {
+      nconcing = bytecode_nconc2 (args0 + i);
+      args0[i + 1] = nconcing;
+    }
+
+  RETURN_UNGCPRO (XCDR (nconcing));
+}
+
+DEFUN ("mapc", Fmapc, 2, MANY, 0, /*
+Call FUNCTION on each element of SEQUENCE.
+
 SEQUENCE may be a list, a vector, a bit vector, or a string.
 This function is like `mapcar' but does not accumulate the results,
 which is more efficient if you do not use the results.
 
-The difference between this and `mapc' is that `mapc' supports all
-the spiffy Common Lisp arguments.  You should normally use `mapc'.
-*/
-       (function, sequence))
-{
-  mapcar1 (XINT (Flength (sequence)), 0, function, sequence);
+With optional SEQUENCES, call FUNCTION each time with as many arguments as
+there are SEQUENCES, plus one for the elements from SEQUENCE.  One element
+from each sequence will be used each time FUNCTION is called, and
+`mapc' stops calling FUNCTION once the shortest sequence is exhausted.
 
-  return sequence;
+Return SEQUENCE.
+
+arguments: (FUNCTION SEQUENCE &rest SEQUENCES)
+*/
+       (int nargs, Lisp_Object *args))
+{
+  Elemcount len = EMACS_INT_MAX;
+  Lisp_Object sequence = args[1];
+  struct gcpro gcpro1;
+  int i;
+
+  for (i = 1; i < nargs; ++i)
+    {
+      CHECK_SEQUENCE (args[i]);
+      len = min (len, XINT (Flength (args[i])));
+    }
+
+  /* We need to GCPRO sequence, because mapcarX will modify the
+     elements of the args array handed to it, and this may involve
+     elements of sequence getting garbage collected. */
+  GCPRO1 (sequence);
+  mapcarX (len, NULL, Qnil, args[0], nargs - 1, args + 1,
+	   SOME_OR_EVERY_NEITHER);
+  RETURN_UNGCPRO (sequence);
 }
 
+DEFUN ("map", Fmap, 3, MANY, 0, /*
+Map FUNCTION across one or more sequences, returning a sequence.
+
+TYPE is the sequence type to return, FUNCTION is the function, SEQUENCE is
+the first argument sequence, SEQUENCES are the other argument sequences.
+
+FUNCTION will be called with (1+ (length SEQUENCES)) arguments, and must be
+capable of accepting this number of arguments.
+
+Certain TYPEs are recognised internally by `map', but others are not, and
+`coerce' may throw an error on an attempt to convert to a TYPE it does not
+understand.  A null TYPE means do not accumulate any values.
+
+arguments: (TYPE FUNCTION SEQUENCE &rest SEQUENCES)
+*/
+       (int nargs, Lisp_Object *args))
+{
+  Lisp_Object type = args[0];
+  Lisp_Object function = args[1];
+  Lisp_Object result = Qnil;
+  Lisp_Object *args0 = NULL;
+  Elemcount len = EMACS_INT_MAX;
+  int i;
+  struct gcpro gcpro1;
+
+  for (i = 2; i < nargs; ++i)
+    {
+      CHECK_SEQUENCE (args[i]);
+      len = min (len, XINT (Flength (args[i])));
+    }
+
+  if (!NILP (type))
+    {
+      args0 = alloca_array (Lisp_Object, len);
+    }
+
+  mapcarX (len, args0, Qnil, function, nargs - 2, args + 2,
+	   SOME_OR_EVERY_NEITHER);
+
+  if (EQ (type, Qnil))
+    {
+      return result;
+    }
+
+  if (EQ (type, Qvector) || EQ (type, Qarray))
+    {
+      result = Fvector (len, args0);
+    }
+  else if (EQ (type, Qstring))
+    {
+      result = Fstring (len, args0);
+    }
+  else if (EQ (type, Qlist))
+    {
+      result = Flist (len, args0);
+    }
+  else if (EQ (type, Qbit_vector))
+    {
+      result = Fbit_vector (len, args0);
+    }
+  else
+    {
+      result = Flist (len, args0);
+      GCPRO1 (result);
+      result = call2 (Qcoerce, result, type);
+      UNGCPRO;
+    }
+
+  return result;
+}
+
+DEFUN ("map-into", Fmap_into, 2, MANY, 0, /*
+Modify RESULT-SEQUENCE using the return values of FUNCTION on SEQUENCES.
+
+RESULT-SEQUENCE and SEQUENCES can be lists or arrays.
+
+FUNCTION must accept at least as many arguments as there are SEQUENCES
+\(possibly zero).  If RESULT-SEQUENCE and the elements of SEQUENCES are not
+the same length, stop when the shortest is exhausted; any elements of
+RESULT-SEQUENCE beyond that are unmodified.
+
+Return RESULT-SEQUENCE.
+
+arguments: (RESULT-SEQUENCE FUNCTION &rest SEQUENCES)
+*/
+       (int nargs, Lisp_Object *args))
+{
+  Elemcount len = EMACS_INT_MAX;
+  Lisp_Object result_sequence = args[0];
+  Lisp_Object function = args[1];
+  int i;
+
+  args[0] = function;
+  args[1] = result_sequence;
+
+  for (i = 1; i < nargs; ++i)
+    {
+      CHECK_SEQUENCE (args[i]);
+      len = min (len, XINT (Flength (args[i])));
+    }
+
+  mapcarX (len, NULL, result_sequence, function, nargs - 2, args + 2,
+	   SOME_OR_EVERY_NEITHER);
+
+  return result_sequence;
+}
+
+DEFUN ("some", Fsome, 2, MANY, 0, /* 
+Return true if PREDICATE gives non-nil for an element of SEQUENCE.
+
+If so, return the value (possibly multiple) given by PREDICATE.
+
+With optional SEQUENCES, call PREDICATE each time with as many arguments as
+there are SEQUENCES (plus one for the element from SEQUENCE).
+
+arguments: (PREDICATE SEQUENCE &rest SEQUENCES)
+*/
+       (int nargs, Lisp_Object *args))
+{
+  Lisp_Object result_box = Fcons (Qnil, Qnil);
+  struct gcpro gcpro1;
+  Elemcount len = EMACS_INT_MAX;
+  int i;
+
+  GCPRO1 (result_box);
+
+  for (i = 1; i < nargs; ++i)
+    {
+      CHECK_SEQUENCE (args[i]);
+      len = min (len, XINT (Flength (args[i])));
+    }
+
+  mapcarX (len, NULL, result_box, args[0], nargs - 1, args +1,
+	   SOME_OR_EVERY_SOME);
+
+  RETURN_UNGCPRO (XCAR (result_box));
+}
+
+DEFUN ("every", Fevery, 2, MANY, 0, /* 
+Return true if PREDICATE is true of every element of SEQUENCE.
+
+With optional SEQUENCES, call PREDICATE each time with as many arguments as
+there are SEQUENCES (plus one for the element from SEQUENCE).
+
+In contrast to `some', `every' never returns multiple values.
+
+arguments: (PREDICATE SEQUENCE &rest SEQUENCES)
+*/
+       (int nargs, Lisp_Object *args))
+{
+  Lisp_Object result_box = Fcons (Qt, Qnil);
+  struct gcpro gcpro1;
+  Elemcount len = EMACS_INT_MAX;
+  int i;
+
+  GCPRO1 (result_box);
+
+  for (i = 1; i < nargs; ++i)
+    {
+      CHECK_SEQUENCE (args[i]);
+      len = min (len, XINT (Flength (args[i])));
+    }
+
+  mapcarX (len, NULL, result_box, args[0], nargs - 1, args +1,
+	   SOME_OR_EVERY_EVERY);
+
+  RETURN_UNGCPRO (XCAR (result_box));
+}
+
+/* Call FUNCTION with NLISTS arguments repeatedly, each Nth argument
+   corresponding to the result of calling (nthcdr ITERATION-COUNT LISTS[N]),
+   until that #'nthcdr expression gives nil for some element of LISTS.
+
+   If MAPLP is zero, return LISTS[0]. Otherwise, return a list of the return
+   values from FUNCTION; if NCONCP is non-zero, nconc them together.
+
+   In contrast to mapcarX, we don't require our callers to check LISTS for
+   well-formedness, we signal wrong-type-argument if it's not a list, or
+   circular-list if it's circular. */
+
+static Lisp_Object
+maplist (Lisp_Object function, int nlists, Lisp_Object *lists, int maplp,
+	 int nconcp)
+{
+  Lisp_Object result = maplp ? lists[0] : Fcons (Qnil, Qnil), funcalled;
+  Lisp_Object nconcing[2], accum = result, *args;
+  struct gcpro gcpro1, gcpro2, gcpro3;
+  int i, j, continuing = (nlists > 0), called_count = 0;
+
+  args = alloca_array (Lisp_Object, nlists + 1);
+  args[0] = function;
+  for (i = 1; i <= nlists; ++i)
+    {
+      args[i] = Qnil;
+    }
+
+  if (nconcp)
+    {
+      nconcing[0] = result;
+      nconcing[1] = Qnil;
+      GCPRO3 (args[0], nconcing[0], result);
+      gcpro1.nvars = 1;
+      gcpro2.nvars = 2;
+    }
+  else
+    {
+      GCPRO2 (args[0], result);
+      gcpro1.nvars = 1;
+    }
+
+  while (continuing)
+    {
+      for (j = 0; j < nlists; ++j)
+	{
+	  if (CONSP (lists[j]))
+	    {
+	      args[j + 1] = lists[j];
+	      lists[j] = XCDR (lists[j]);
+	    }
+	  else if (NILP (lists[j]))
+	    {
+	      continuing = 0;
+	      break;
+	    }
+	  else
+	    {
+	      dead_wrong_type_argument (Qlistp, lists[j]);
+	    }
+	}
+      if (!continuing) break;
+      funcalled = IGNORE_MULTIPLE_VALUES (Ffuncall (nlists + 1, args));
+      if (!maplp)
+	{
+	  if (nconcp)
+	    {
+	      /* This order of calls means we check that each list is
+		 well-formed once and once only. The last result does
+		 not have to be a list. */
+	      nconcing[1] = funcalled;
+	      nconcing[0] = bytecode_nconc2 (nconcing);
+	    }
+	  else
+	    {
+	      /* Add to the end, avoiding the need to call nreverse
+		 once we're done: */
+	      XSETCDR (accum, Fcons (funcalled, Qnil));
+	      accum = XCDR (accum);
+	    }
+	}
+
+      if (++called_count % CIRCULAR_LIST_SUSPICION_LENGTH) continue;
+
+      for (j = 0; j < nlists; ++j)
+	{
+	  EXTERNAL_LIST_LOOP_1 (lists[j])
+	    {
+	      /* Just check the lists aren't circular, using the
+		 EXTERNAL_LIST_LOOP_1 macro. */
+	    }
+	}
+    }
+
+  if (!maplp)
+    {
+      result = XCDR (result);
+    }
+
+  RETURN_UNGCPRO (result);
+}
+
+DEFUN ("maplist", Fmaplist, 2, MANY, 0, /*
+Call FUNCTION on each sublist of LIST and LISTS.
+Like `mapcar', except applies to lists and their cdr's rather than to
+the elements themselves."
+
+arguments: (FUNCTION LIST &rest LISTS)
+*/
+       (int nargs, Lisp_Object *args))
+{
+  return maplist (args[0], nargs - 1, args + 1, 0, 0);
+}
+
+DEFUN ("mapl", Fmapl, 2, MANY, 0, /*
+Like `maplist', but do not accumulate values returned by the function.
+
+arguments: (FUNCTION LIST &rest LISTS)
+*/
+       (int nargs, Lisp_Object *args))
+{
+  return maplist (args[0], nargs - 1, args + 1, 1, 0);
+}
+
+DEFUN ("mapcon", Fmapcon, 2, MANY, 0, /*
+Like `maplist', but chains together the values returned by FUNCTION.
+
+FUNCTION must return a list (unless it happens to be the last
+iteration); the results will be concatenated together using `nconc'.
+
+arguments: (FUNCTION LIST &rest LISTS)
+*/
+       (int nargs, Lisp_Object *args))
+{
+  return maplist (args[0], nargs - 1, args + 1, 0, 1);
+}
 
 /* Extra random functions */
 
@@ -3391,18 +4134,19 @@ length, no consing will take place.
   return old;
 }
 
+
 Lisp_Object
 add_suffix_to_symbol (Lisp_Object symbol, const Ascbyte *ascii_string)
 {
   return Fintern (concat2 (Fsymbol_name (symbol),
-			   build_string (ascii_string)),
+			   build_ascstring (ascii_string)),
 		  Qnil);
 }
 
 Lisp_Object
 add_prefix_to_symbol (const Ascbyte *ascii_string, Lisp_Object symbol)
 {
-  return Fintern (concat2 (build_string (ascii_string),
+  return Fintern (concat2 (build_ascstring (ascii_string),
 			   Fsymbol_name (symbol)),
 		  Qnil);
 }
@@ -3652,7 +4396,7 @@ requires an explicit \(eval-and-compile ...\) block.
   (IS_ASCII (Character) && base64_char_to_value[Character] >= 0)
 
 /* Table of characters coding the 64 values.  */
-static char base64_value_to_char[64] =
+static Ascbyte base64_value_to_char[64] =
 {
   'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',	/*  0- 9 */
   'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',	/* 10-19 */
@@ -3699,11 +4443,11 @@ static short base64_char_to_value[128] =
    The octets are divided into 6 bit chunks, which are then encoded into
    base64 characters.  */
 
-static DECLARE_DOESNT_RETURN (base64_conversion_error (const char *,
+static DECLARE_DOESNT_RETURN (base64_conversion_error (const Ascbyte *,
 						       Lisp_Object));
 
 static DOESNT_RETURN
-base64_conversion_error (const char *reason, Lisp_Object frob)
+base64_conversion_error (const Ascbyte *reason, Lisp_Object frob)
 {
   signal_error (Qbase64_conversion_error, reason, frob);
 }
@@ -3786,7 +4530,7 @@ base64_encode_1 (Lstream *istream, Ibyte *to, int line_break)
 } while (1)
 
 #define STORE_BYTE(pos, val, ccnt) do {					\
-  pos += set_itext_ichar (pos, (Ichar)((unsigned char)(val)));	\
+  pos += set_itext_ichar (pos, (Ichar)((Binbyte)(val)));		\
   ++ccnt;								\
 } while (0)
 
@@ -4029,6 +4773,12 @@ syms_of_fns (void)
 
   DEFSYMBOL (Qstring_lessp);
   DEFSYMBOL (Qidentity);
+  DEFSYMBOL (Qvector);
+  DEFSYMBOL (Qarray);
+  DEFSYMBOL (Qstring);
+  DEFSYMBOL (Qlist);
+  DEFSYMBOL (Qbit_vector);
+
   DEFSYMBOL (Qyes_or_no_p);
 
   DEFERROR_STANDARD (Qbase64_conversion_error, Qconversion_error);
@@ -4102,13 +4852,25 @@ syms_of_fns (void)
   DEFSUBR (Fremprop);
   DEFSUBR (Fobject_plist);
   DEFSUBR (Fequal);
+  DEFSUBR (Fequalp);
   DEFSUBR (Fold_equal);
   DEFSUBR (Ffillarray);
   DEFSUBR (Fnconc);
-  DEFSUBR (Fmapcar);
+  DEFSUBR (FmapcarX);
   DEFSUBR (Fmapvector);
-  DEFSUBR (Fmapc_internal);
+  DEFSUBR (Fmapcan);
+  DEFSUBR (Fmapc);
   DEFSUBR (Fmapconcat);
+  DEFSUBR (Fmap);
+  DEFSUBR (Fmap_into);
+  DEFSUBR (Fsome);
+  DEFSUBR (Fevery);
+  Ffset (intern ("mapc-internal"), Fsymbol_function (intern ("mapc")));
+  Ffset (intern ("mapcar"), Fsymbol_function (intern ("mapcar*")));
+  DEFSUBR (Fmaplist);
+  DEFSUBR (Fmapl);
+  DEFSUBR (Fmapcon);
+
   DEFSUBR (Freplace_list);
   DEFSUBR (Fload_average);
   DEFSUBR (Ffeaturep);
@@ -4130,7 +4892,7 @@ vars_of_fns (void)
 The directory separator in search paths, as a string.
 */ );
   {
-    char c = SEPCHAR;
+    Ascbyte c = SEPCHAR;
     Vpath_separator = make_string ((Ibyte *) &c, 1);
   }
 }

@@ -297,12 +297,11 @@ print_coding_system (Lisp_Object obj, Lisp_Object printcharfun,
 {
   Lisp_Coding_System *c = XCODING_SYSTEM (obj);
   if (print_readably)
-    printing_unreadable_object
-      ("printing unreadable object #<coding-system 0x%x>", c->header.uid);
+    printing_unreadable_lcrecord (obj, 0);
 
   write_fmt_string_lisp (printcharfun, "#<coding-system %s ", 1, c->name);
   print_coding_system_properties (obj, printcharfun);
-  write_c_string (printcharfun, ">");
+  write_ascstring (printcharfun, ">");
 }
 
 /* Print an abbreviated version of a coding system (but still containing
@@ -314,7 +313,7 @@ print_coding_system_in_print_method (Lisp_Object cs, Lisp_Object printcharfun,
 {
   write_fmt_string_lisp (printcharfun, "%s[", 1, XCODING_SYSTEM_NAME (cs));
   print_coding_system_properties (cs, printcharfun);
-  write_c_string (printcharfun, "]");
+  write_ascstring (printcharfun, "]");
 }
 
 #ifndef NEW_GC
@@ -497,9 +496,9 @@ default_query_method (Lisp_Object codesys, struct buffer *buf,
           fail_range_start = pos;
           while ((pos < end) &&  
                  (EQ (Qnil, get_char_table (ch, safe_chars))
-                  && (failed_reason = query_coding_unencodable))
-                 && (previous_failed_reason == query_coding_succeeded
-                     || previous_failed_reason == failed_reason))
+                  && (failed_reason = query_coding_unencodable,
+		      (previous_failed_reason == query_coding_succeeded
+		       || previous_failed_reason == failed_reason))))
             {
               pos++;
               INC_BYTEBPOS (buf, pos_byte);
@@ -519,18 +518,12 @@ default_query_method (Lisp_Object codesys, struct buffer *buf,
 
               if (flags & QUERY_METHOD_ERRORP)
                 {
-                  DECLARE_EISTRING (error_details);
-
-                  eicpy_ascii (error_details, "Cannot encode ");
-                  eicat_lstr (error_details,
-                              make_string_from_buffer (buf, fail_range_start,
-                                                       pos -
-                                                       fail_range_start));
-                  eicat_ascii (error_details, " using coding system");
-
-                  signal_error (Qtext_conversion_error, 
-                                (const CIbyte *)(eidata (error_details)),
-                                XCODING_SYSTEM_NAME (codesys));
+                  signal_error_2
+		    (Qtext_conversion_error,
+		     "Cannot encode using coding system",
+		     make_string_from_buffer (buf, fail_range_start,
+					      pos - fail_range_start),
+		     XCODING_SYSTEM_NAME (codesys));
                 }
 
               if (NILP (result))
@@ -677,7 +670,7 @@ find_coding_system (Lisp_Object coding_system_or_name,
                 }
             }
 
-          coding_system_or_name = intern_int (eidata (desired_base));
+          coding_system_or_name = intern_istring (eidata (desired_base));
 
           /* Remove this coding system and its subsidiary coding
              systems from the hash, to avoid calling this code recursively. */
@@ -695,7 +688,7 @@ find_coding_system (Lisp_Object coding_system_or_name,
           /* Keep around the form so it doesn't disappear from under
              #'eval's feet. */
           GCPRO1 (lookup);
-          call1_trapping_problems ((const CIbyte *)eidata (warning_info),
+          call1_trapping_problems ((const CIbyte *) eidata (warning_info),
                                    Qeval, lookup, 0);
           UNGCPRO;
 
@@ -1104,14 +1097,14 @@ setup_eol_coding_systems (Lisp_Object codesys)
       enum eol_type eol = coding_subsidiary_list[i].eol;
 
       qxestrcpy_ascii (codesys_name + len, extension);
-      codesys_name_sym = intern_int (codesys_name);
+      codesys_name_sym = intern_istring (codesys_name);
       if (mlen != -1)
 	qxestrcpy_ascii (codesys_mnemonic + mlen, mnemonic_ext);
 
       sub_codesys = Fcopy_coding_system (codesys, codesys_name_sym);
       if (mlen != -1)
 	XCODING_SYSTEM_MNEMONIC (sub_codesys) =
-	  build_intstring (codesys_mnemonic);
+	  build_istring (codesys_mnemonic);
 
       if (eol != EOL_LF)
 	{
@@ -1124,7 +1117,7 @@ setup_eol_coding_systems (Lisp_Object codesys)
 	      (sub_codesys, "internal-subsidiary-eol-wrapper",
 	       Qchain, Qunbound,
 	       mlen != -1 ?
-	       list6 (Qmnemonic, build_intstring (codesys_mnemonic),
+	       list6 (Qmnemonic, build_istring (codesys_mnemonic),
 		      Qchain, chain,
 		      Qcanonicalize_after_coding, sub_codesys) :
 	       list4 (Qchain, chain,
@@ -1210,8 +1203,8 @@ make_coding_system_1 (Lisp_Object name_or_existing, const Ascbyte *prefix,
 			      XSTRING_DATA (Fsymbol_name (XCODING_SYSTEM_NAME
 							  (name_or_existing))),
 			      ++coding_system_tick);
-      name_or_existing = intern_int (newname);
-      xfree (newname, Ibyte *);
+      name_or_existing = intern_istring (newname);
+      xfree (newname);
       
       if (UNBOUNDP (description))
 	{
@@ -1219,13 +1212,13 @@ make_coding_system_1 (Lisp_Object name_or_existing, const Ascbyte *prefix,
 	    emacs_sprintf_malloc
 	      (NULL, "For Internal Use (%s)",
 	       XSTRING_DATA (Fsymbol_name (name_or_existing)));
-	  description = build_intstring (newname);
-	  xfree (newname, Ibyte *);
+	  description = build_istring (newname);
+	  xfree (newname);
 	}
 
       newname = emacs_sprintf_malloc (NULL, "Int%d", coding_system_tick);
-      defmnem = build_intstring (newname);
-      xfree (newname, Ibyte *);
+      defmnem = build_istring (newname);
+      xfree (newname);
     }
   else
     CHECK_SYMBOL (name_or_existing);
@@ -1245,7 +1238,7 @@ make_coding_system_1 (Lisp_Object name_or_existing, const Ascbyte *prefix,
   cs->internal_p = !!prefix;
 
   if (NILP (description))
-    description = build_string ("");
+    description = build_ascstring ("");
   else
     CHECK_STRING (description);
   CODING_SYSTEM_DESCRIPTION (cs) = description;
@@ -1373,9 +1366,9 @@ make_coding_system_1 (Lisp_Object name_or_existing, const Ascbyte *prefix,
 	    (NULL, "internal-eol-copy-%s-%d",
 	     XSTRING_DATA (Fsymbol_name (name_or_existing)),
 	     ++coding_system_tick);
-	Lisp_Object newnamesym = intern_int (newname);
+	Lisp_Object newnamesym = intern_istring (newname);
 	Lisp_Object copied = Fcopy_coding_system (csobj, newnamesym);
-	xfree (newname, Ibyte *);
+	xfree (newname);
 	
 	XCODING_SYSTEM_CANONICAL (csobj) =
 	  make_internal_coding_system
@@ -1838,7 +1831,7 @@ coding_reader (Lstream *stream, unsigned char *data, Bytecount size)
 	{
 	  Bytecount chunk =
 	    min (size, (Bytecount) Dynarr_length (str->convert_to));
-	  memcpy (data, Dynarr_atp (str->convert_to, 0), chunk);
+	  memcpy (data, Dynarr_begin (str->convert_to), chunk);
 	  Dynarr_delete_many (str->convert_to, 0, chunk);
 	  data += chunk;
 	  size -= chunk;
@@ -1867,7 +1860,7 @@ coding_reader (Lstream *stream, unsigned char *data, Bytecount size)
 				  Dynarr_atp (str->convert_from, rejected),
 				  readmore);
 	/* Trim size down to how much we actually got */
-	Dynarr_set_size (str->convert_from, rejected + max (0, read_size));
+	Dynarr_set_length (str->convert_from, rejected + max (0, read_size));
       }
 
       if (read_size < 0) /* LSTREAM_ERROR */
@@ -1889,7 +1882,7 @@ coding_reader (Lstream *stream, unsigned char *data, Bytecount size)
 	/* Convert the data, and save any rejected data in convert_from */
 	processed =
 	  XCODESYSMETH (str->codesys, convert,
-			(str, Dynarr_atp (str->convert_from, 0),
+			(str, Dynarr_begin (str->convert_from),
 			 str->convert_to, to_process));
 	if (processed < 0)
 	  {
@@ -1898,10 +1891,10 @@ coding_reader (Lstream *stream, unsigned char *data, Bytecount size)
 	  }
 	assert (processed <= to_process);
 	if (processed < to_process)
-	  memmove (Dynarr_atp (str->convert_from, 0),
+	  memmove (Dynarr_begin (str->convert_from),
 		   Dynarr_atp (str->convert_from, processed),
 		   to_process - processed);
-	Dynarr_set_size (str->convert_from, to_process - processed);
+	Dynarr_set_length (str->convert_from, to_process - processed);
       }
     }
 
@@ -1921,7 +1914,7 @@ coding_writer (Lstream *stream, const unsigned char *data, Bytecount size)
   Dynarr_reset (str->convert_to);
   size = XCODESYSMETH (str->codesys, convert,
 		       (str, data, str->convert_to, size));
-  if (Lstream_write (str->other_end, Dynarr_atp (str->convert_to, 0),
+  if (Lstream_write (str->other_end, Dynarr_begin (str->convert_to),
 		     Dynarr_length (str->convert_to)) < 0)
     return -1;
   else
@@ -2056,7 +2049,7 @@ coding_finalizer (Lstream *stream)
   MAYBE_XCODESYSMETH (str->codesys, finalize_coding_stream, (str));
   if (str->data)
     {
-      xfree (str->data, void *);
+      xfree (str->data);
       str->data = 0;
     }
   str->finalized = 1;
@@ -2115,7 +2108,7 @@ set_coding_stream_coding_system (Lstream *lstr, Lisp_Object codesys)
   
   if (str->data)
     {
-      xfree (str->data, void *);
+      xfree (str->data);
       str->data = 0;
     }
   if (XCODING_SYSTEM_METHODS (str->codesys)->coding_data_size)
@@ -2609,10 +2602,10 @@ chain_print (Lisp_Object cs, Lisp_Object printcharfun, int escapeflag)
 {
   int i;
 
-  write_c_string (printcharfun, "(");
+  write_ascstring (printcharfun, "(");
   for (i = 0; i < XCODING_SYSTEM_CHAIN_COUNT (cs); i++)
     {
-      write_c_string (printcharfun, i == 0 ? "" : "->");
+      write_ascstring (printcharfun, i == 0 ? "" : "->");
       print_coding_system_in_print_method (XCODING_SYSTEM_CHAIN_CHAIN (cs)[i],
 					   printcharfun, escapeflag);
     }
@@ -2621,13 +2614,13 @@ chain_print (Lisp_Object cs, Lisp_Object printcharfun, int escapeflag)
     if (!NILP (cac))
       {
 	if (i > 0)
-	  write_c_string (printcharfun, " ");
-	write_c_string (printcharfun, "canonicalize-after-coding=");
+	  write_ascstring (printcharfun, " ");
+	write_ascstring (printcharfun, "canonicalize-after-coding=");
 	print_coding_system_in_print_method (cac, printcharfun, escapeflag);
       }
   }
 
-  write_c_string (printcharfun, ")");
+  write_ascstring (printcharfun, ")");
 }
 
 static void
@@ -2722,7 +2715,7 @@ chain_finalize_coding_stream_1 (struct chain_coding_stream *data)
 	  for (i = 0; i < data->lstream_count; i++)
 	    Lstream_delete (XLSTREAM ((data->lstreams)[i]));
 	}
-      xfree (data->lstreams, Lisp_Object *);
+      xfree (data->lstreams);
     }
 }
 
@@ -2736,7 +2729,7 @@ static void
 chain_finalize (Lisp_Object c)
 {
   if (XCODING_SYSTEM_CHAIN_CHAIN (c))
-    xfree (XCODING_SYSTEM_CHAIN_CHAIN (c), Lisp_Object *);
+    xfree (XCODING_SYSTEM_CHAIN_CHAIN (c));
 }
 
 static int
@@ -3267,27 +3260,27 @@ undecided_print (Lisp_Object cs, Lisp_Object printcharfun, int escapeflag)
     XCODING_SYSTEM_TYPE_DATA (cs, undecided);
   int need_space = 0;
 
-  write_c_string (printcharfun, "(");
+  write_ascstring (printcharfun, "(");
   if (data->do_eol)
     {
-      write_c_string (printcharfun, "do-eol");
+      write_ascstring (printcharfun, "do-eol");
       need_space = 1;
     }
   if (data->do_coding)
     {
       if (need_space)
-	write_c_string (printcharfun, " ");
-      write_c_string (printcharfun, "do-coding");
+	write_ascstring (printcharfun, " ");
+      write_ascstring (printcharfun, "do-coding");
       need_space = 1;
     }
   if (!NILP (data->cs))
     {
       if (need_space)
-	write_c_string (printcharfun, " ");
-      write_c_string (printcharfun, "coding-system=");
+	write_ascstring (printcharfun, " ");
+      write_ascstring (printcharfun, "coding-system=");
       print_coding_system_in_print_method (data->cs, printcharfun, escapeflag);
     }      
-  write_c_string (printcharfun, ")");
+  write_ascstring (printcharfun, ")");
 }
 
 static void
@@ -3363,7 +3356,7 @@ free_detection_state (struct detection_state *st)
 	  (st);
     }
 
-  xfree (st, struct detection_state *);
+  xfree (st);
 }
 
 static int
@@ -3716,9 +3709,9 @@ snarf_coding_system (const UExtbyte *p, Bytecount len)
   if (n > 0)
     {
       name[n] = '\0';
-      /* This call to intern_int() is OK because we already verified that
+      /* This call to intern_istring() is OK because we already verified that
 	 there are only ASCII characters in the string */
-      return find_coding_system_for_text_file (intern_int ((Ibyte *) name), 0);
+      return find_coding_system_for_text_file (intern_istring ((Ibyte *) name), 0);
     }
 
   return Qnil;
@@ -4309,12 +4302,12 @@ gzip_print (Lisp_Object cs, Lisp_Object printcharfun, int escapeflag)
 {
   struct gzip_coding_system *data = XCODING_SYSTEM_TYPE_DATA (cs, gzip);
 
-  write_c_string (printcharfun, "(");
+  write_ascstring (printcharfun, "(");
   if (data->level == -1)
-    write_c_string (printcharfun, "default");
+    write_ascstring (printcharfun, "default");
   else
     print_internal (make_int (data->level), printcharfun, 0);
-  write_c_string (printcharfun, ")");
+  write_ascstring (printcharfun, ")");
 }
 
 static int
@@ -4426,7 +4419,7 @@ gzip_convert (struct coding_stream *str,
 	  data->stream.avail_out = reserved;
 	  zerr = inflate (&data->stream, Z_NO_FLUSH);
 	  /* Lop off the unused portion */
-	  Dynarr_set_size (dst, Dynarr_length (dst) - data->stream.avail_out);
+	  Dynarr_set_length (dst, Dynarr_length (dst) - data->stream.avail_out);
 	  if (zerr != Z_OK)
 	    break;
 	}
@@ -4486,7 +4479,7 @@ gzip_convert (struct coding_stream *str,
 	    deflate (&data->stream,
 		     str->eof ? Z_FINISH : Z_NO_FLUSH);
 	  /* Lop off the unused portion */
-	  Dynarr_set_size (dst, Dynarr_length (dst) - data->stream.avail_out);
+	  Dynarr_set_length (dst, Dynarr_length (dst) - data->stream.avail_out);
 	  if (zerr != Z_OK)
 	    break;
 	}
@@ -4747,7 +4740,7 @@ vars_of_file_coding (void)
   /* We always have file-coding support */
   Fprovide (intern ("file-coding"));
 
-  QScoding_system_cookie = build_string (";;;###coding system: ");
+  QScoding_system_cookie = build_ascstring (";;;###coding system: ");
   staticpro (&QScoding_system_cookie);
 
 #ifdef HAVE_DEFAULT_EOL_DETECTION
@@ -4835,12 +4828,12 @@ complex_vars_of_file_coding (void)
 {
   Fmake_coding_system_internal
     (Qconvert_eol_cr, Qconvert_eol,
-     build_msg_string ("Convert CR to LF"),
+     build_defer_string ("Convert CR to LF"),
      nconc2 (list6 (Qdocumentation,
-		    build_msg_string (
+		    build_defer_string (
 "Converts CR (used to mark the end of a line on Macintosh systems) to LF\n"
 "(used internally and under Unix to mark the end of a line)."),
-		    Qmnemonic, build_string ("CR->LF"),
+		    Qmnemonic, build_ascstring ("CR->LF"),
 		    Qsubtype, Qcr),
 	     /* VERY IMPORTANT!  Tell make-coding-system not to generate
 		subsidiaries -- it needs the coding systems we're creating
@@ -4850,11 +4843,11 @@ complex_vars_of_file_coding (void)
 
   Fmake_coding_system_internal
     (Qconvert_eol_lf, Qconvert_eol,
-     build_msg_string ("Convert LF to LF (do nothing)"),
+     build_defer_string ("Convert LF to LF (do nothing)"),
      nconc2 (list6 (Qdocumentation,
-		    build_msg_string (
+		    build_defer_string (
 "Do nothing."),
-		    Qmnemonic, build_string ("LF->LF"),
+		    Qmnemonic, build_ascstring ("LF->LF"),
 		    Qsubtype, Qlf),
 	     /* VERY IMPORTANT!  Tell make-coding-system not to generate
 		subsidiaries -- it needs the coding systems we're creating
@@ -4864,12 +4857,12 @@ complex_vars_of_file_coding (void)
 
   Fmake_coding_system_internal
     (Qconvert_eol_crlf, Qconvert_eol,
-     build_msg_string ("Convert CRLF to LF"),
+     build_defer_string ("Convert CRLF to LF"),
      nconc2 (list6 (Qdocumentation,
-		    build_msg_string (
+		    build_defer_string (
 "Converts CR+LF (used to mark the end of a line on Macintosh systems) to LF\n"
 "(used internally and under Unix to mark the end of a line)."),
-		    Qmnemonic, build_string ("CRLF->LF"),
+		    Qmnemonic, build_ascstring ("CRLF->LF"),
 		    Qsubtype, Qcrlf),
 
 	     /* VERY IMPORTANT!  Tell make-coding-system not to generate
@@ -4880,11 +4873,11 @@ complex_vars_of_file_coding (void)
 
   Fmake_coding_system_internal
     (Qconvert_eol_autodetect, Qconvert_eol,
-     build_msg_string ("Autodetect EOL type"),
+     build_defer_string ("Autodetect EOL type"),
      nconc2 (list6 (Qdocumentation,
-		    build_msg_string (
+		    build_defer_string (
 "Autodetect the end-of-line type."),
-		    Qmnemonic, build_string ("Auto-EOL"),
+		    Qmnemonic, build_ascstring ("Auto-EOL"),
 		    Qsubtype, Qnil),
 	     /* VERY IMPORTANT!  Tell make-coding-system not to generate
 		subsidiaries -- it needs the coding systems we're creating
@@ -4894,11 +4887,11 @@ complex_vars_of_file_coding (void)
 
   Fmake_coding_system_internal
     (Qundecided, Qundecided,
-     build_msg_string ("Undecided (auto-detect)"),
+     build_defer_string ("Undecided (auto-detect)"),
      nconc2 (list4 (Qdocumentation,
-		    build_msg_string
+		    build_defer_string
 		    ("Automatically detects the correct encoding."),
-		    Qmnemonic, build_string ("Auto")),
+		    Qmnemonic, build_ascstring ("Auto")),
 	     list6 (Qdo_eol, Qt, Qdo_coding, Qt,
 		    /* We do EOL detection ourselves so we don't need to be
 		       wrapped in an EOL detector. (It doesn't actually hurt,
@@ -4907,43 +4900,43 @@ complex_vars_of_file_coding (void)
 
   Fmake_coding_system_internal
     (intern ("undecided-dos"), Qundecided,
-     build_msg_string ("Undecided (auto-detect) (CRLF)"),
+     build_defer_string ("Undecided (auto-detect) (CRLF)"),
      nconc2 (list4 (Qdocumentation,
-		    build_msg_string
+		    build_defer_string
 		    ("Automatically detects the correct encoding; EOL type of CRLF forced."),
-		    Qmnemonic, build_string ("Auto")),
+		    Qmnemonic, build_ascstring ("Auto")),
 	     list4 (Qdo_coding, Qt,
 		    Qeol_type, Qcrlf)));
 
   Fmake_coding_system_internal
     (intern ("undecided-unix"), Qundecided,
-     build_msg_string ("Undecided (auto-detect) (LF)"),
+     build_defer_string ("Undecided (auto-detect) (LF)"),
      nconc2 (list4 (Qdocumentation,
-		    build_msg_string
+		    build_defer_string
 		    ("Automatically detects the correct encoding; EOL type of LF forced."),
-		    Qmnemonic, build_string ("Auto")),
+		    Qmnemonic, build_ascstring ("Auto")),
 	     list4 (Qdo_coding, Qt,
 		    Qeol_type, Qlf)));
 
   Fmake_coding_system_internal
     (intern ("undecided-mac"), Qundecided,
-     build_msg_string ("Undecided (auto-detect) (CR)"),
+     build_defer_string ("Undecided (auto-detect) (CR)"),
      nconc2 (list4 (Qdocumentation,
-		    build_msg_string
+		    build_defer_string
 		    ("Automatically detects the correct encoding; EOL type of CR forced."),
-		    Qmnemonic, build_string ("Auto")),
+		    Qmnemonic, build_ascstring ("Auto")),
 	     list4 (Qdo_coding, Qt,
 		    Qeol_type, Qcr)));
 
   /* Need to create this here or we're really screwed. */
   Fmake_coding_system_internal
     (Qraw_text, Qno_conversion,
-     build_msg_string ("Raw Text"),
+     build_defer_string ("Raw Text"),
      nconc2 (list4 (Qdocumentation,
-                    build_msg_string ("Raw text converts only line-break "
+                    build_defer_string ("Raw text converts only line-break "
                                       "codes, and acts otherwise like "
                                       "`binary'."),
-                    Qmnemonic, build_string ("Raw")),
+                    Qmnemonic, build_ascstring ("Raw")),
 #ifdef MULE
              list2 (Qsafe_charsets, list3 (Vcharset_ascii, Vcharset_control_1,
                                            Vcharset_latin_iso8859_1))));
@@ -4954,9 +4947,9 @@ complex_vars_of_file_coding (void)
 
   Fmake_coding_system_internal
     (Qbinary, Qno_conversion,
-     build_msg_string ("Binary"),
+     build_defer_string ("Binary"),
      nconc2 (list6 (Qdocumentation,
-                    build_msg_string (
+                    build_defer_string (
 "This coding system is as close as it comes to doing no conversion.\n"
 "On input, each byte is converted directly into the character\n"
 "with the corresponding code -- i.e. from the `ascii', `control-1',\n"
@@ -4964,7 +4957,7 @@ complex_vars_of_file_coding (void)
 "converted back to the corresponding bytes, and other characters\n"
 "are converted to the default character, i.e. `~'."),
                     Qeol_type, Qlf,
-                    Qmnemonic, build_string ("Binary")),
+                    Qmnemonic, build_ascstring ("Binary")),
 #ifdef MULE
              list2 (Qsafe_charsets, list3 (Vcharset_ascii, Vcharset_control_1,
                                            Vcharset_latin_iso8859_1))));

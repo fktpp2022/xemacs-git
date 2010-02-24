@@ -311,10 +311,10 @@ mark_event (Lisp_Object obj)
 }
 
 static void
-print_event_1 (const char *str, Lisp_Object obj, Lisp_Object printcharfun)
+print_event_1 (const Ascbyte *str, Lisp_Object obj, Lisp_Object printcharfun)
 {
   DECLARE_EISTRING_MALLOC (ei);
-  write_c_string (printcharfun, str);
+  write_ascstring (printcharfun, str);
   format_event_object (ei, obj, 0);
   write_eistring (printcharfun, ei);
   eifree (ei);
@@ -362,7 +362,7 @@ print_event (Lisp_Object obj, Lisp_Object printcharfun,
 			       XEVENT_TIMEOUT_OBJECT (obj));
 	break;
     case empty_event:
-	write_c_string (printcharfun, "#<empty-event");
+	write_ascstring (printcharfun, "#<empty-event");
 	break;
     case misc_user_event:
 	write_fmt_string_lisp (printcharfun, "#<misc-user-event (%S", 1,
@@ -377,17 +377,18 @@ print_event (Lisp_Object obj, Lisp_Object printcharfun,
 			       XEVENT_EVAL_OBJECT (obj));
 	break;
     case dead_event:
-	write_c_string (printcharfun, "#<DEALLOCATED-EVENT");
+	write_ascstring (printcharfun, "#<DEALLOCATED-EVENT");
 	break;
     default:
-	write_c_string (printcharfun, "#<UNKNOWN-EVENT-TYPE");
+	write_ascstring (printcharfun, "#<UNKNOWN-EVENT-TYPE");
 	break;
       }
-  write_c_string (printcharfun, ">");
+  write_ascstring (printcharfun, ">");
 }
 
 static int
-event_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth))
+event_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth),
+	     int UNUSED (foldcase))
 {
   Lisp_Event *e1 = XEVENT (obj1);
   Lisp_Event *e2 = XEVENT (obj2);

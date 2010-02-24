@@ -136,7 +136,7 @@ stream_delete_console (struct console *con)
 	retry_fclose (stream_con->in);
 
 #ifndef NEW_GC
-      xfree (stream_con, struct stream_console *);
+      xfree (stream_con);
 #endif /* not NEW_GC */
       CONSOLE_STREAM_DATA (con) = NULL;
     }
@@ -192,7 +192,7 @@ stream_init_frame_1 (struct frame *f, Lisp_Object UNUSED (props),
     invalid_operation ("Only one frame allowed on stream devices", Qunbound);
 #endif
   if (frame_name_is_defaulted)
-    f->name = build_string ("stream");
+    f->name = build_ascstring ("stream");
   f->height = 80;
   f->width = 24;
   f->visible = 0; /* so redisplay doesn't try to do anything */
@@ -200,7 +200,7 @@ stream_init_frame_1 (struct frame *f, Lisp_Object UNUSED (props),
 
 
 static int
-stream_text_width (struct frame *UNUSED (f),
+stream_text_width (struct window *UNUSED (w),
 		   struct face_cachel *UNUSED (cachel),
 		   const Ichar *UNUSED (str), Charcount len)
 {
@@ -372,7 +372,7 @@ The initial frame object, which represents XEmacs' stdout.
   Vterminal_frame = Qnil;
 
   /* Moved from console-tty.c */
-  Vstdio_str = build_string ("stdio");
+  Vstdio_str = build_ascstring ("stdio");
   staticpro (&Vstdio_str);
 }
 

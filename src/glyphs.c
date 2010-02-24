@@ -592,7 +592,7 @@ make_string_from_file (Lisp_Object file)
 
   specbind (Qinhibit_quit, Qt);
   record_unwind_protect (Fset_buffer, Fcurrent_buffer ());
-  temp_buffer = Fget_buffer_create (build_string (" *pixmap conversion*"));
+  temp_buffer = Fget_buffer_create (build_ascstring (" *pixmap conversion*"));
   GCPRO1 (temp_buffer);
   set_buffer_internal (XBUFFER (temp_buffer));
   Ferase_buffer (Qnil);
@@ -660,7 +660,7 @@ check_instance_cache_mapper (Lisp_Object UNUSED (key), Lisp_Object value,
   if (!NILP (value))
     {
       Lisp_Object window;
-      window = VOID_TO_LISP (flag_closure);
+      window = GET_LISP_FROM_VOID (flag_closure);
       assert (EQ (XIMAGE_INSTANCE_DOMAIN (value), window));
     }
 
@@ -676,7 +676,7 @@ check_window_subwindow_cache (struct window* w)
   assert (!NILP (w->subwindow_instance_cache));
   elisp_maphash (check_instance_cache_mapper,
 		 w->subwindow_instance_cache,
-		 LISP_TO_VOID (window));
+		 STORE_LISP_IN_VOID (window));
 }
 
 void
@@ -992,8 +992,7 @@ print_image_instance (Lisp_Object obj, Lisp_Object printcharfun,
   Lisp_Image_Instance *ii = XIMAGE_INSTANCE (obj);
 
   if (print_readably)
-    printing_unreadable_object ("#<image-instance 0x%x>",
-	   ii->header.uid);
+    printing_unreadable_lcrecord (obj, 0);
   write_fmt_string_lisp (printcharfun, "#<image-instance (%s) ", 1,
 			 Fimage_instance_type (obj));
   if (!NILP (ii->name))
@@ -1017,7 +1016,7 @@ print_image_instance (Lisp_Object obj, Lisp_Object printcharfun,
 	  Lisp_Object filename = IMAGE_INSTANCE_PIXMAP_FILENAME (ii);
 	  s = qxestrrchr (XSTRING_DATA (filename), '/');
 	  if (s)
-	    print_internal (build_intstring (s + 1), printcharfun, 1);
+	    print_internal (build_istring (s + 1), printcharfun, 1);
 	  else
 	    print_internal (filename, printcharfun, 1);
 	}
@@ -1033,37 +1032,37 @@ print_image_instance (Lisp_Object obj, Lisp_Object printcharfun,
       if (!NILP (IMAGE_INSTANCE_PIXMAP_HOTSPOT_X (ii)) ||
 	  !NILP (IMAGE_INSTANCE_PIXMAP_HOTSPOT_Y (ii)))
 	{
-	  write_c_string (printcharfun, " @");
+	  write_ascstring (printcharfun, " @");
 	  if (!NILP (IMAGE_INSTANCE_PIXMAP_HOTSPOT_X (ii)))
 	    write_fmt_string (printcharfun, "%ld",
 			      XINT (IMAGE_INSTANCE_PIXMAP_HOTSPOT_X (ii)));
 	  else
-	    write_c_string (printcharfun, "??");
-	  write_c_string (printcharfun, ",");
+	    write_ascstring (printcharfun, "??");
+	  write_ascstring (printcharfun, ",");
 	  if (!NILP (IMAGE_INSTANCE_PIXMAP_HOTSPOT_Y (ii)))
 	    write_fmt_string (printcharfun, "%ld",
 			      XINT (IMAGE_INSTANCE_PIXMAP_HOTSPOT_Y (ii)));
 	  else
-	    write_c_string (printcharfun, "??");
+	    write_ascstring (printcharfun, "??");
 	}
       if (!NILP (IMAGE_INSTANCE_PIXMAP_FG (ii)) ||
 	  !NILP (IMAGE_INSTANCE_PIXMAP_BG (ii)))
 	{
-	  write_c_string (printcharfun, " (");
+	  write_ascstring (printcharfun, " (");
 	  if (!NILP (IMAGE_INSTANCE_PIXMAP_FG (ii)))
 	    {
 	      print_internal
 		(XCOLOR_INSTANCE
 		 (IMAGE_INSTANCE_PIXMAP_FG (ii))->name, printcharfun, 0);
 	    }
-	  write_c_string (printcharfun, "/");
+	  write_ascstring (printcharfun, "/");
 	  if (!NILP (IMAGE_INSTANCE_PIXMAP_BG (ii)))
 	    {
 	      print_internal
 		(XCOLOR_INSTANCE
 		 (IMAGE_INSTANCE_PIXMAP_BG (ii))->name, printcharfun, 0);
 	    }
-	  write_c_string (printcharfun, ")");
+	  write_ascstring (printcharfun, ")");
 	}
       break;
 
@@ -1087,17 +1086,17 @@ print_image_instance (Lisp_Object obj, Lisp_Object printcharfun,
 	 are specific to a particular frame so we want to print in their
 	 description what that frame is. */
 
-      write_c_string (printcharfun, " on #<");
+      write_ascstring (printcharfun, " on #<");
       {
 	struct frame* f  = XFRAME (IMAGE_INSTANCE_FRAME (ii));
 
 	if (!FRAME_LIVE_P (f))
-	  write_c_string (printcharfun, "dead");
+	  write_ascstring (printcharfun, "dead");
 	else
-	  write_c_string (printcharfun,
+	  write_ascstring (printcharfun,
 			  DEVICE_TYPE_NAME (XDEVICE (FRAME_DEVICE (f))));
       }
-      write_c_string (printcharfun, "-frame>");
+      write_ascstring (printcharfun, "-frame>");
       write_fmt_string (printcharfun, " 0x%p",
 			IMAGE_INSTANCE_SUBWINDOW_ID (ii));
 
@@ -1133,7 +1132,8 @@ finalize_image_instance (void *header)
 }
 
 static int
-image_instance_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
+image_instance_equal (Lisp_Object obj1, Lisp_Object obj2, int depth,
+		      int UNUSED (foldcase))
 {
   Lisp_Image_Instance *i1 = XIMAGE_INSTANCE (obj1);
   Lisp_Image_Instance *i2 = XIMAGE_INSTANCE (obj2);
@@ -2216,34 +2216,35 @@ invalidate_glyph_geometry_maybe (Lisp_Object glyph_or_ii, struct window* w)
 /*                              error helpers                           */
 /************************************************************************/
 DOESNT_RETURN
-signal_image_error (const CIbyte *reason, Lisp_Object frob)
+signal_image_error (const Ascbyte *reason, Lisp_Object frob)
 {
   signal_error (Qimage_conversion_error, reason, frob);
 }
 
 DOESNT_RETURN
-signal_image_error_2 (const CIbyte *reason, Lisp_Object frob0, Lisp_Object frob1)
+signal_image_error_2 (const Ascbyte *reason, Lisp_Object frob0,
+		      Lisp_Object frob1)
 {
   signal_error_2 (Qimage_conversion_error, reason, frob0, frob1);
 }
 
 DOESNT_RETURN
-signal_double_image_error (const CIbyte *string1, const CIbyte *string2,
+signal_double_image_error (const Ascbyte *reason1, const Ascbyte *reason2,
 			   Lisp_Object data)
 {
   signal_error_1 (Qimage_conversion_error,
-		list3 (build_msg_string (string1),
-		       build_msg_string (string2),
+		list3 (build_msg_string (reason1),
+		       build_msg_string (reason2),
 		       data));
 }
 
 DOESNT_RETURN
-signal_double_image_error_2 (const CIbyte *string1, const CIbyte *string2,
+signal_double_image_error_2 (const Ascbyte *reason1, const Ascbyte *reason2,
 			     Lisp_Object data1, Lisp_Object data2)
 {
   signal_error_1 (Qimage_conversion_error,
-		list4 (build_msg_string (string1),
-		       build_msg_string (string2),
+		list4 (build_msg_string (reason1),
+		       build_msg_string (reason2),
 		       data1, data2));
 }
 
@@ -2375,9 +2376,10 @@ query_string_geometry (Lisp_Object string, Lisp_Object face,
 {
   struct font_metric_info fm;
   unsigned char charsets[NUM_LEADING_BYTES];
-  struct face_cachel frame_cachel;
-  struct face_cachel *cachel;
-  Lisp_Object frame = DOMAIN_FRAME (domain);
+  struct face_cachel cachel;
+  struct face_cachel *the_cachel;
+  Lisp_Object window = DOMAIN_WINDOW (domain);
+  Lisp_Object frame  = DOMAIN_FRAME  (domain);
 
   CHECK_STRING (string);
 
@@ -2392,18 +2394,22 @@ query_string_geometry (Lisp_Object string, Lisp_Object face,
       /* Fallback to the default face if none was provided. */
       if (!NILP (face))
 	{
-	  reset_face_cachel (&frame_cachel);
-	  update_face_cachel_data (&frame_cachel, frame, face);
-	  cachel = &frame_cachel;
+	  reset_face_cachel (&cachel);
+	  update_face_cachel_data (&cachel,
+				   /* #### NOTE: in fact, I'm not sure if it's
+				      #### possible to *not* get a window
+				      #### here, but you never know...
+				      #### -- dvl */
+				   NILP (window) ? frame : window,
+				   face);
+	  the_cachel = &cachel;
 	}
       else
-	{
-	  cachel = WINDOW_FACE_CACHEL (DOMAIN_XWINDOW (domain),
-				       DEFAULT_INDEX);
-	}
+	the_cachel = WINDOW_FACE_CACHEL (DOMAIN_XWINDOW (domain),
+					 DEFAULT_INDEX);
 
-      ensure_face_cachel_complete (cachel, domain, charsets);
-      face_cachel_charset_font_metric_info (cachel, charsets, &fm);
+      ensure_face_cachel_complete (the_cachel, domain, charsets);
+      face_cachel_charset_font_metric_info (the_cachel, charsets, &fm);
 
       *height = fm.ascent + fm.descent;
       /* #### descent only gets set if we query the height as well. */
@@ -2413,48 +2419,33 @@ query_string_geometry (Lisp_Object string, Lisp_Object face,
 
   /* Compute width */
   if (width)
-    {
-      if (!NILP (face))
-	*width = redisplay_frame_text_width_string (XFRAME (frame),
-						    face,
-						    0, string, 0, -1);
-      else
-	*width = redisplay_frame_text_width_string (XFRAME (frame),
-						    Vdefault_face,
-						    0, string, 0, -1);
-    }
+    *width = redisplay_text_width_string (domain,
+					  NILP (face) ? Vdefault_face : face,
+					  0, string, 0, -1);
 }
 
 Lisp_Object
 query_string_font (Lisp_Object string, Lisp_Object face, Lisp_Object domain)
 {
   unsigned char charsets[NUM_LEADING_BYTES];
-  struct face_cachel frame_cachel;
-  struct face_cachel *cachel;
+  struct face_cachel cachel;
   int i;
-  Lisp_Object frame = DOMAIN_FRAME (domain);
+  Lisp_Object window = DOMAIN_WINDOW (domain);
+  Lisp_Object frame  = DOMAIN_FRAME  (domain);
 
   /* Compute string font info */
   find_charsets_in_ibyte_string (charsets,
-				   XSTRING_DATA   (string),
-				   XSTRING_LENGTH (string));
+				 XSTRING_DATA   (string),
+				 XSTRING_LENGTH (string));
 
-  reset_face_cachel (&frame_cachel);
-  update_face_cachel_data (&frame_cachel, frame, face);
-  cachel = &frame_cachel;
-
-  ensure_face_cachel_complete (cachel, domain, charsets);
+  reset_face_cachel (&cachel);
+  update_face_cachel_data (&cachel, NILP (window) ? frame : window, face);
+  ensure_face_cachel_complete (&cachel, domain, charsets);
 
   for (i = 0; i < NUM_LEADING_BYTES; i++)
-    {
-      if (charsets[i])
-	{
-	  return FACE_CACHEL_FONT (cachel,
-				   charset_by_leading_byte (i +
-							    MIN_LEADING_BYTE));
-
-	}
-    }
+    if (charsets[i])
+      return FACE_CACHEL_FONT
+	((&cachel), charset_by_leading_byte (i + MIN_LEADING_BYTE));
 
   return Qnil;			/* NOT REACHED */
 }
@@ -2702,7 +2693,7 @@ bitmap_to_lisp_data (Lisp_Object name, int *xhot, int *yhot,
       int len = (w + 7) / 8 * h;
 
       retval = list3 (make_int (w), make_int (h),
-		      make_ext_string ((Extbyte *) data, len, Qbinary));
+		      make_extstring ((Extbyte *) data, len, Qbinary));
       XFree (data);
       return retval;
     }
@@ -2755,11 +2746,11 @@ xbm_mask_file_munging (Lisp_Object alist, Lisp_Object file,
     {
       mask_file = MAYBE_LISP_CONTYPE_METH
 	(decode_console_type(console_type, ERROR_ME),
-	 locate_pixmap_file, (concat2 (file, build_string ("Mask"))));
+	 locate_pixmap_file, (concat2 (file, build_ascstring ("Mask"))));
       if (NILP (mask_file))
 	mask_file = MAYBE_LISP_CONTYPE_METH
 	  (decode_console_type(console_type, ERROR_ME),
-	   locate_pixmap_file, (concat2 (file, build_string ("msk"))));
+	   locate_pixmap_file, (concat2 (file, build_ascstring ("msk"))));
     }
 
   if (!NILP (mask_file))
@@ -2942,7 +2933,7 @@ xface_possible_dest_types (void)
 #ifdef HAVE_GTK
 /* Gtk has to be gratuitously different, eh? */
 Lisp_Object
-pixmap_to_lisp_data (Lisp_Object name, int ok_if_data_invalid)
+pixmap_to_lisp_data (Lisp_Object name, int UNUSED (ok_if_data_invalid))
 {
   return (make_string_from_file (name));
 }
@@ -2956,7 +2947,7 @@ pixmap_to_lisp_data (Lisp_Object name, int ok_if_data_invalid)
   Ibyte *resolved;
 
   LISP_PATHNAME_RESOLVE_LINKS (name, resolved);
-  C_STRING_TO_EXTERNAL (resolved, fname, Qfile_name);
+  fname = ITEXT_TO_EXTERNAL (resolved, Qfile_name);
   result = XpmReadFileToData (fname, &data);
 
   if (result == XpmSuccess)
@@ -2964,7 +2955,7 @@ pixmap_to_lisp_data (Lisp_Object name, int ok_if_data_invalid)
       Lisp_Object retval = Qnil;
       struct buffer *old_buffer = current_buffer;
       Lisp_Object temp_buffer =
-	Fget_buffer_create (build_string (" *pixmap conversion*"));
+	Fget_buffer_create (build_ascstring (" *pixmap conversion*"));
       int elt;
       int height, width, ncolors;
       struct gcpro gcpro1, gcpro2, gcpro3;
@@ -2976,19 +2967,19 @@ pixmap_to_lisp_data (Lisp_Object name, int ok_if_data_invalid)
       set_buffer_internal (XBUFFER (temp_buffer));
       Ferase_buffer (Qnil);
 
-      buffer_insert_c_string (current_buffer, "/* XPM */\r");
-      buffer_insert_c_string (current_buffer, "static char *pixmap[] = {\r");
+      buffer_insert_ascstring (current_buffer, "/* XPM */\r");
+      buffer_insert_ascstring (current_buffer, "static char *pixmap[] = {\r");
 
       sscanf (data[0], "%d %d %d", &height, &width, &ncolors);
       for (elt = 0; elt <= width + ncolors; elt++)
 	{
-	  buffer_insert_c_string (current_buffer, "\"");
-	  buffer_insert_c_string (current_buffer, data[elt]);
+	  buffer_insert_ascstring (current_buffer, "\"");
+	  buffer_insert_ascstring (current_buffer, data[elt]);
 
 	  if (elt < width + ncolors)
-	    buffer_insert_c_string (current_buffer, "\",\r");
+	    buffer_insert_ascstring (current_buffer, "\",\r");
 	  else
-	    buffer_insert_c_string (current_buffer, "\"};\r");
+	    buffer_insert_ascstring (current_buffer, "\"};\r");
 	}
 
       retval = Fbuffer_substring (Qnil, Qnil, Qnil);
@@ -3699,7 +3690,7 @@ print_glyph (Lisp_Object obj, Lisp_Object printcharfun,
   Lisp_Glyph *glyph = XGLYPH (obj);
 
   if (print_readably)
-    printing_unreadable_object ("#<glyph 0x%x>", glyph->header.uid);
+    printing_unreadable_lcrecord (obj, 0);
 
   write_fmt_string_lisp (printcharfun, "#<glyph (%s", 1, Fglyph_type (obj));
   write_fmt_string_lisp (printcharfun, ") %S", 1, glyph->image);
@@ -3713,7 +3704,8 @@ print_glyph (Lisp_Object obj, Lisp_Object printcharfun,
    This isn't concerned with "unspecified" attributes, that's what
    #'glyph-differs-from-default-p is for. */
 static int
-glyph_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
+glyph_equal (Lisp_Object obj1, Lisp_Object obj2, int depth,
+	     int UNUSED (foldcase))
 {
   Lisp_Glyph *g1 = XGLYPH (obj1);
   Lisp_Glyph *g2 = XGLYPH (obj2);
@@ -3724,7 +3716,7 @@ glyph_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
 	  internal_equal (g1->contrib_p, g2->contrib_p, depth) &&
 	  internal_equal (g1->baseline,  g2->baseline,  depth) &&
 	  internal_equal (g1->face,      g2->face,      depth) &&
-	  !plists_differ (g1->plist,     g2->plist, 0, 0, depth + 1));
+	  !plists_differ (g1->plist,     g2->plist, 0, 0, depth + 1, 0));
 }
 
 static Hashcode
@@ -4279,8 +4271,18 @@ glyph_do_layout (Lisp_Object glyph_or_image, int width, int height,
 
 
 /*****************************************************************************
- *                     glyph cachel functions	     *
+ *                          glyph cachel functions                           *
  *****************************************************************************/
+
+#define NUM_PRECACHED_GLYPHS 6
+#define LOOP_OVER_PRECACHED_GLYPHS			\
+  FROB (Vcontinuation_glyph, CONT_GLYPH_INDEX)		\
+  FROB (Vtruncation_glyph, TRUN_GLYPH_INDEX)		\
+  FROB (Vhscroll_glyph, HSCROLL_GLYPH_INDEX)		\
+  FROB (Vcontrol_arrow_glyph, CONTROL_GLYPH_INDEX)	\
+  FROB (Voctal_escape_glyph, OCT_ESC_GLYPH_INDEX)	\
+  FROB (Vinvisible_text_glyph, INVIS_GLYPH_INDEX)
+
 
 /* #### All of this is 95% copied from face cachels.  Consider
   consolidating.
@@ -4355,6 +4357,27 @@ add_glyph_cachel (struct window *w, Lisp_Object glyph)
   Dynarr_add (w->glyph_cachels, new_cachel);
 }
 
+#ifdef ERROR_CHECK_GLYPHS
+
+/* The precached glyphs should always occur in slots 0 - 5, with each glyph in the
+   slot reserved for it.  Meanwhile any other glyphs should always occur in slots
+   6 or greater. */
+static void
+verify_glyph_index (Lisp_Object glyph, glyph_index idx)
+{
+  if (0)
+    ;
+#define FROB(glyph_obj, gindex)			\
+  else if (EQ (glyph, glyph_obj))		\
+    assert (gindex == idx);
+  LOOP_OVER_PRECACHED_GLYPHS
+  else
+    assert (idx >= NUM_PRECACHED_GLYPHS);
+#undef FROB
+}
+
+#endif /* ERROR_CHECK_GLYPHS */
+
 glyph_index
 get_glyph_cachel_index (struct window *w, Lisp_Object glyph)
 {
@@ -4370,6 +4393,9 @@ get_glyph_cachel_index (struct window *w, Lisp_Object glyph)
 
       if (EQ (cachel->glyph, glyph) && !NILP (glyph))
 	{
+#ifdef ERROR_CHECK_GLYPHS
+	  verify_glyph_index (glyph, elt);
+#endif /* ERROR_CHECK_GLYPHS */
 	  update_glyph_cachel_data (w, glyph, cachel);
 	  return elt;
 	}
@@ -4384,12 +4410,10 @@ void
 reset_glyph_cachels (struct window *w)
 {
   Dynarr_reset (w->glyph_cachels);
-  get_glyph_cachel_index (w, Vcontinuation_glyph);
-  get_glyph_cachel_index (w, Vtruncation_glyph);
-  get_glyph_cachel_index (w, Vhscroll_glyph);
-  get_glyph_cachel_index (w, Vcontrol_arrow_glyph);
-  get_glyph_cachel_index (w, Voctal_escape_glyph);
-  get_glyph_cachel_index (w, Vinvisible_text_glyph);
+#define FROB(glyph_obj, gindex)			\
+  get_glyph_cachel_index (w, glyph_obj);
+  LOOP_OVER_PRECACHED_GLYPHS
+#undef FROB
 }
 
 void
@@ -4397,19 +4421,18 @@ mark_glyph_cachels_as_not_updated (struct window *w)
 {
   int elt;
 
+  /* A previous bug resulted from the glyph cachels never getting reset
+     in the minibuffer window after creation, and another glyph added before
+     we got a chance to add the six normal glyphs that should go first, and
+     we got called with only one glyph present. */
+  assert (Dynarr_length (w->glyph_cachels) >= NUM_PRECACHED_GLYPHS);
   /* We need to have a dirty flag to tell if the glyph has changed.
      We can check to see if each glyph variable is actually a
      completely different glyph, though. */
 #define FROB(glyph_obj, gindex)						\
   update_glyph_cachel_data (w, glyph_obj,				\
-			      Dynarr_atp (w->glyph_cachels, gindex))
-
-  FROB (Vcontinuation_glyph, CONT_GLYPH_INDEX);
-  FROB (Vtruncation_glyph, TRUN_GLYPH_INDEX);
-  FROB (Vhscroll_glyph, HSCROLL_GLYPH_INDEX);
-  FROB (Vcontrol_arrow_glyph, CONTROL_GLYPH_INDEX);
-  FROB (Voctal_escape_glyph, OCT_ESC_GLYPH_INDEX);
-  FROB (Vinvisible_text_glyph, INVIS_GLYPH_INDEX);
+			    Dynarr_atp (w->glyph_cachels, gindex));
+  LOOP_OVER_PRECACHED_GLYPHS
 #undef FROB
 
   for (elt = 0; elt < Dynarr_length (w->glyph_cachels); elt++)
@@ -4452,7 +4475,7 @@ compute_glyph_cachel_usage (glyph_cachel_dynarr *glyph_cachels,
 
 
 /*****************************************************************************
- *                     subwindow cachel functions	     *
+ *                        subwindow cachel functions                         *
  *****************************************************************************/
 /* Subwindows are curious in that you have to physically unmap them to
    not display them. It is problematic deciding what to do in
@@ -4549,7 +4572,7 @@ reset_frame_subwindow_instance_cache (struct frame* f)
 }
 
 /*****************************************************************************
- *                              subwindow exposure ignorance                    *
+ *                           subwindow exposure ignorance                    *
  *****************************************************************************/
 /* when we unmap subwindows the associated window system will generate
    expose events. This we do not want as redisplay already copes with

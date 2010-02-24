@@ -26,7 +26,6 @@ Boston, MA 02111-1307, USA.  */
 
    Define HAVE_INVERSE_HYPERBOLIC if you have acosh, asinh, and atanh.
    Define HAVE_CBRT if you have cbrt().
-   Define HAVE_RINT if you have rint().
    If you don't define these, then the appropriate routines will be simulated.
 
    Define HAVE_MATHERR if on a system supporting the SysV matherr() callback.
@@ -50,11 +49,8 @@ Boston, MA 02111-1307, USA.  */
 #include "syssignal.h"
 #include "sysfloat.h"
 
-/* The code uses emacs_rint, so that it works to undefine HAVE_RINT
-   if `rint' exists but does not work right.  */
-#ifdef HAVE_RINT
-#define emacs_rint rint
-#else
+/* An implementation of rint that always rounds towards the even number in
+   the case of ambiguity. */
 static double
 emacs_rint (double x)
 {
@@ -65,7 +61,6 @@ emacs_rint (double x)
     r += r < x ? 1.0 : -1.0;
   return r;
 }
-#endif
 
 /* Nonzero while executing in floating point.
    This tells float_error what to do.  */
@@ -181,7 +176,8 @@ mark_float (Lisp_Object UNUSED (obj))
 }
 
 static int
-float_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth))
+float_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth),
+	     int UNUSED (foldcase))
 {
   return (extract_float (obj1) == extract_float (obj2));
 }
@@ -1760,8 +1756,19 @@ round_one_bigfloat_1 (bigfloat number)
   Lisp_Object res0;
   unsigned long prec = bigfloat_get_prec (number);
 
+#if 0
+  /* This causes the following GCC warning:
+
+  /xemacs/latest-fix/src/floatfns.c:1764: warning: dereferencing type-punned pointer will break strict-aliasing rules
+
+     and furthermore, it's a useless assert, since `number' is stored on
+     the stack and so its address can never be the same as `scratch_bigfloat'
+     or `scratch_bigfloat2', which are stored in the data segment.
+
+  -- ben */
   assert ((bigfloat *)(&number) != (bigfloat *)&scratch_bigfloat
 	  && (bigfloat *)(&number) != (bigfloat *)(&scratch_bigfloat2));
+#endif
 
   bigfloat_set_prec (scratch_bigfloat, prec);
   bigfloat_set_prec (scratch_bigfloat2, prec);
@@ -2446,7 +2453,7 @@ matherr (struct exception *x)
 
   /* if (!strcmp (x->name, "pow")) x->name = "expt"; */
 
-  args = Fcons (build_string (x->name),
+  args = Fcons (build_extstring (x->name, Qerror_message_encoding),
                 Fcons (make_float (x->arg1),
                        ((in_float == 2)
                         ? Fcons (make_float (x->arg2), Qnil)

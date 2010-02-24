@@ -172,10 +172,9 @@ print_tooltalk_message (Lisp_Object obj, Lisp_Object printcharfun,
   Lisp_Tooltalk_Message *p = XTOOLTALK_MESSAGE (obj);
 
   if (print_readably)
-    printing_unreadable_object ("#<tooltalk_message 0x%x>",
-				p->header.uid);
+    printing_unreadable_lcrecord (obj, 0);
 
-  write_fmt_string (printcharfun, "#<tooltalk_message id:0x%lx 0x%x>",
+  write_fmt_string (printcharfun, "#<tooltalk-message id:0x%lx 0x%x>",
 		    (long) (p->m), p->header.uid);
 }
 
@@ -248,10 +247,9 @@ print_tooltalk_pattern (Lisp_Object obj, Lisp_Object printcharfun,
   Lisp_Tooltalk_Pattern *p = XTOOLTALK_PATTERN (obj);
 
   if (print_readably)
-    printing_unreadable_object ("#<tooltalk_pattern 0x%x>",
-				p->header.uid);
+    printing_unreadable_lcrecord (obj, 0);
 
-  write_fmt_string (printcharfun, "#<tooltalk_pattern id:0x%lx 0x%x>",
+  write_fmt_string (printcharfun, "#<tooltalk-pattern id:0x%lx 0x%x>",
 		    (long) (p->p), p->header.uid);
 }
 
@@ -310,7 +308,7 @@ check_status (Tt_status st)
     {
       CIbyte *err;
 
-      EXTERNAL_TO_C_STRING (tt_status_message (st), err, Qnative);
+      err = EXTERNAL_TO_ITEXT (tt_status_message (st), Qtooltalk_encoding);
       signal_error (Qtooltalk_error, err, Qunbound);
     }
 }
@@ -358,7 +356,7 @@ tooltalk_message_callback (Tt_message m, Tt_pattern p)
   fflush (tooltalk_log_file);
 #endif
 
-  message_ = VOID_TO_LISP (tt_message_user (m, TOOLTALK_MESSAGE_KEY));
+  message_ = GET_LISP_FROM_VOID (tt_message_user (m, TOOLTALK_MESSAGE_KEY));
   pattern = make_tooltalk_pattern (p);
   cb = XTOOLTALK_MESSAGE (message_)->callback;
   GCPRO2 (message_, pattern);
@@ -402,7 +400,7 @@ tooltalk_pattern_callback (Tt_message m, Tt_pattern p)
 #endif
 
   message_ = make_tooltalk_message (m);
-  pattern = VOID_TO_LISP (tt_pattern_user (p, TOOLTALK_PATTERN_KEY));
+  pattern = GET_LISP_FROM_VOID (tt_pattern_user (p, TOOLTALK_PATTERN_KEY));
   cb = XTOOLTALK_PATTERN (pattern)->callback;
   GCPRO2 (message_, pattern);
   if (!NILP (Vtooltalk_pattern_handler_hook))
@@ -512,27 +510,27 @@ tt_state_symbol (Tt_state n)
 static Lisp_Object
 tt_build_c_string (char *s)
 {
-  return build_string (s ? s : "");
+  return build_cistring (s ? s : "");
 }
 
 static Lisp_Object
 tt_opnum_string (int n)
 {
-  char buf[32];
+  Ascbyte buf[32];
 
   sprintf (buf, "%u", n);
-  return build_string (buf);
+  return build_ascstring (buf);
 }
 
 static Lisp_Object
 tt_message_arg_ival_string (Tt_message m, int n)
 {
-  char buf[DECIMAL_PRINT_SIZE (long)];
+  Ascbyte buf[DECIMAL_PRINT_SIZE (long)];
   int value;
 
   check_status (tt_message_arg_ival (m, n, &value));
   long_to_string (buf, value);
-  return build_string (buf);
+  return build_ascstring (buf);
 }
 
 static Lisp_Object
@@ -771,9 +769,8 @@ New arguments can be added to a message with add-tooltalk-message-arg.
       Extbyte *value_ext;
       Bytecount value_ext_len;
       CHECK_STRING (value);
-      TO_EXTERNAL_FORMAT (LISP_STRING, value,
-			  ALLOCA, (value_ext, value_ext_len),
-			  Qnative);
+      LISP_STRING_TO_SIZED_EXTERNAL (value, value_ext, value_ext_len,
+				     Qtooltalk_encoding);
       tt_message_arg_bval_set (m, n, (unsigned char *) value_ext, value_ext_len);
     }
   else if (EQ (attribute, Qtt_arg_ival))
@@ -785,7 +782,7 @@ New arguments can be added to a message with add-tooltalk-message-arg.
     {
       const char *value_ext;
       CHECK_STRING (value);
-      LISP_STRING_TO_EXTERNAL (value, value_ext, Qnative);
+      value_ext = LISP_STRING_TO_EXTERNAL (value, Qtooltalk_encoding);
       tt_message_arg_val_set (m, n, value_ext);
     }
   else if (EQ (attribute, Qtt_status))
@@ -810,7 +807,7 @@ New arguments can be added to a message with add-tooltalk-message-arg.
     {
       const char *value_ext;
       CHECK_STRING (value);
-      LISP_STRING_TO_EXTERNAL (value, value_ext, Qnative);
+      value_ext = LISP_STRING_TO_EXTERNAL (value, Qtooltalk_encoding);
       (*fun_str) (m, value_ext);
     }
 
@@ -863,7 +860,7 @@ calling `make-tooltalk-message'.
       tt_message_callback_add (m, tooltalk_message_callback);
     }
   tt_message_session_set (m, tt_default_session ());
-  tt_message_user_set (m, TOOLTALK_MESSAGE_KEY, LISP_TO_VOID (message_));
+  tt_message_user_set (m, TOOLTALK_MESSAGE_KEY, STORE_LISP_IN_VOID (message_));
   return message_;
 }
 
@@ -926,13 +923,13 @@ embedded nulls (use `arg_bval').
   {
     const char *vtype_ext;
 
-    LISP_STRING_TO_EXTERNAL (vtype, vtype_ext, Qnative);
+    vtype_ext = LISP_STRING_TO_EXTERNAL (vtype, Qtooltalk_encoding);
     if (NILP (value))
       tt_message_arg_add (m, n, vtype_ext, NULL);
     else if (STRINGP (value))
       {
 	const char *value_ext;
-	LISP_STRING_TO_EXTERNAL (value, value_ext, Qnative);
+	value_ext = LISP_STRING_TO_EXTERNAL (value, Qtooltalk_encoding);
 	tt_message_arg_add (m, n, vtype_ext, value_ext);
       }
     else if (INTP (value))
@@ -971,7 +968,7 @@ Its session attribute is initialized to be the default session.
 
   tt_pattern_callback_add (p, tooltalk_pattern_callback);
   tt_pattern_session_add (p, tt_default_session ());
-  tt_pattern_user_set (p, TOOLTALK_PATTERN_KEY, LISP_TO_VOID (pattern));
+  tt_pattern_user_set (p, TOOLTALK_PATTERN_KEY, STORE_LISP_IN_VOID (pattern));
 
   return pattern;
 }
@@ -1037,28 +1034,28 @@ less the "tooltalk_pattern_" prefix and the "_add" ...
     {
       const char *value_ext;
       CHECK_STRING (value);
-      LISP_STRING_TO_EXTERNAL (value, value_ext, Qnative);
+      value_ext = LISP_STRING_TO_EXTERNAL (value, Qtooltalk_encoding);
       tt_pattern_file_add (p, value_ext);
     }
   else if (EQ (attribute, Qtt_object))
     {
       const char *value_ext;
       CHECK_STRING (value);
-      LISP_STRING_TO_EXTERNAL (value, value_ext, Qnative);
+      value_ext = LISP_STRING_TO_EXTERNAL (value, Qtooltalk_encoding);
       tt_pattern_object_add (p, value_ext);
     }
   else if (EQ (attribute, Qtt_op))
     {
       const char *value_ext;
       CHECK_STRING (value);
-      LISP_STRING_TO_EXTERNAL (value, value_ext, Qnative);
+      value_ext = LISP_STRING_TO_EXTERNAL (value, Qtooltalk_encoding);
       tt_pattern_op_add (p, value_ext);
     }
   else if (EQ (attribute, Qtt_otype))
     {
       const char *value_ext;
       CHECK_STRING (value);
-      LISP_STRING_TO_EXTERNAL (value, value_ext, Qnative);
+      value_ext = LISP_STRING_TO_EXTERNAL (value, Qtooltalk_encoding);
       tt_pattern_otype_add (p, value_ext);
     }
   else if (EQ (attribute, Qtt_scope))
@@ -1070,21 +1067,21 @@ less the "tooltalk_pattern_" prefix and the "_add" ...
     {
       const char *value_ext;
       CHECK_STRING (value);
-      LISP_STRING_TO_EXTERNAL (value, value_ext, Qnative);
+      value_ext = LISP_STRING_TO_EXTERNAL (value, Qtooltalk_encoding);
       tt_pattern_sender_add (p, value_ext);
     }
   else if (EQ (attribute, Qtt_sender_ptype))
     {
       const char *value_ext;
       CHECK_STRING (value);
-      LISP_STRING_TO_EXTERNAL (value, value_ext, Qnative);
+      value_ext = LISP_STRING_TO_EXTERNAL (value, Qtooltalk_encoding);
       tt_pattern_sender_ptype_add (p, value_ext);
     }
   else if (EQ (attribute, Qtt_session))
     {
       const char *value_ext;
       CHECK_STRING (value);
-      LISP_STRING_TO_EXTERNAL (value, value_ext, Qnative);
+      value_ext = LISP_STRING_TO_EXTERNAL (value, Qtooltalk_encoding);
       tt_pattern_session_add (p, value_ext);
     }
   else if (EQ (attribute, Qtt_state))
@@ -1125,13 +1122,13 @@ is added.  At present there's no way to add a binary data argument.
   {
     const char *vtype_ext;
 
-    LISP_STRING_TO_EXTERNAL (vtype, vtype_ext, Qnative);
+    vtype_ext = LISP_STRING_TO_EXTERNAL (vtype, Qtooltalk_encoding);
     if (NILP (value))
       tt_pattern_arg_add (p, n, vtype_ext, NULL);
     else if (STRINGP (value))
       {
 	const char *value_ext;
-	LISP_STRING_TO_EXTERNAL (value, value_ext, Qnative);
+	value_ext = LISP_STRING_TO_EXTERNAL (value, Qtooltalk_encoding);
 	tt_pattern_arg_add (p, n, vtype_ext, value_ext);
       }
     else if (INTP (value))
@@ -1213,8 +1210,8 @@ Return current default process identifier for your process.
 */
        ())
 {
-  char *procid = tt_default_procid ();
-  return procid ? build_string (procid) : Qnil;
+  Extbyte *procid = tt_default_procid ();
+  return procid ? build_extstring (procid, Qtooltalk_encoding) : Qnil;
 }
 
 DEFUN ("tooltalk-default-session", Ftooltalk_default_session, 0, 0, 0, /*
@@ -1222,8 +1219,8 @@ Return current default session identifier for the current default procid.
 */
        ())
 {
-  char *session = tt_default_session ();
-  return session ? build_string (session) : Qnil;
+  Extbyte *session = tt_default_session ();
+  return session ? build_extstring (session, Qtooltalk_encoding) : Qnil;
 }
 
 static void
@@ -1263,7 +1260,7 @@ init_tooltalk (void)
 
   tt_session_join (tt_default_session ());
 
-  lp = connect_to_file_descriptor (build_string ("tooltalk"), Qnil,
+  lp = connect_to_file_descriptor (build_ascstring ("tooltalk"), Qnil,
 				   Vtooltalk_fd, Vtooltalk_fd);
   if (!NILP (lp))
     {
@@ -1419,8 +1416,8 @@ Unprocessed messages are messages that didn't match any patterns.
 */ );
   Vtooltalk_unprocessed_message_hook = Qnil;
 
-  Tooltalk_Message_plist_str = build_msg_string ("Tooltalk Message plist");
-  Tooltalk_Pattern_plist_str = build_msg_string ("Tooltalk Pattern plist");
+  Tooltalk_Message_plist_str = build_defer_string ("Tooltalk Message plist");
+  Tooltalk_Pattern_plist_str = build_defer_string ("Tooltalk Pattern plist");
 
   staticpro(&Tooltalk_Message_plist_str);
   staticpro(&Tooltalk_Pattern_plist_str);

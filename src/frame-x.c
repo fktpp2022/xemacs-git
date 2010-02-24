@@ -464,7 +464,7 @@ static void
 init_x_prop_symbols (void)
 {
 #define def(sym, rsrc) \
-   Fput (sym, Qx_resource_name, build_string (rsrc))
+   Fput (sym, Qx_resource_name, build_ascstring (rsrc))
 #define defi(sym,rsrc) \
    def (sym, rsrc); Fput (sym, Qintegerp, Qt)
 
@@ -513,7 +513,7 @@ color_to_string (Widget w, unsigned long pixel)
   color.pixel = pixel;
   XQueryColor (XtDisplay (w), w->core.colormap, &color);
   qxesprintf (buf, "#%04x%04x%04x", color.red, color.green, color.blue);
-  return build_intstring (buf);
+  return build_istring (buf);
 }
 
 static void
@@ -649,10 +649,8 @@ x_set_frame_text_value (struct frame *f, Ibyte *value,
   for (ptr = value; *ptr; ptr++)
     if (!byte_ascii_p (*ptr))
       {
-        const Extbyte *tmp;
         encoding = DEVICE_XATOM_COMPOUND_TEXT (XDEVICE (FRAME_DEVICE (f)));
-	C_STRING_TO_EXTERNAL (value, tmp, Qctext);
-        new_XtValue = (String) tmp;
+        new_XtValue = (String) ITEXT_TO_EXTERNAL (value, Qctext);
         break;
       }
 #endif /* MULE */
@@ -760,7 +758,7 @@ x_set_frame_properties (struct frame *f, Lisp_Object plist)
 	  if (XSTRING_LENGTH (prop) == 0)
 	    continue;
 
-	  LISP_STRING_TO_EXTERNAL (prop, extprop, Qxt_widget_arg_encoding);
+	  extprop = LISP_STRING_TO_EXTERNAL (prop, Qxt_widget_arg_encoding);
 	  if (STRINGP (val))
 	    {
 	      const Extbyte *extval;
@@ -770,9 +768,8 @@ x_set_frame_properties (struct frame *f, Lisp_Object plist)
 		 for the value of a widget argument; it depends on the
 		 semantics of the argument.  So use of
 		 Qxt_widget_arg_encoding is totally bogus. --ben */
-	      TO_EXTERNAL_FORMAT (LISP_STRING, val,
-				  ALLOCA, (extval, extvallen),
-				  Qxt_widget_arg_encoding);
+	      LISP_STRING_TO_SIZED_EXTERNAL (val, extval, extvallen,
+					     Qxt_widget_arg_encoding);
 	      XtVaSetValues (w, XtVaTypedArg, extprop,
 			     /* !!#### Verify this + 1 and document
 				as zero-termination */
@@ -852,7 +849,7 @@ x_set_frame_properties (struct frame *f, Lisp_Object plist)
 	      internal_border_width_specified = True;
 	    }
 
-	  LISP_STRING_TO_EXTERNAL (str, strext, Qxt_widget_arg_encoding);
+	  strext = LISP_STRING_TO_EXTERNAL (str, Qxt_widget_arg_encoding);
 	  if (int_p)
 	    {
 	      CHECK_INT (val);
@@ -872,9 +869,8 @@ x_set_frame_properties (struct frame *f, Lisp_Object plist)
 	      Bytecount extvallen;
 	      CHECK_STRING (val);
 
-	      TO_EXTERNAL_FORMAT (LISP_STRING, val,
-				  ALLOCA, (extval, extvallen),
-				  Qxt_widget_arg_encoding);
+	      LISP_STRING_TO_SIZED_EXTERNAL (val, extval, extvallen,
+					     Qxt_widget_arg_encoding);
 	      XtVaSetValues (w, XtVaTypedArg,
 			     /* XtN... */
 			     strext,
@@ -988,9 +984,9 @@ maybe_set_frame_title_format (Widget shell)
 			 shell->core.widget_class->core_class.class_name,
 			 resources, XtNumber (resources), 0, 0);
       if (results[0])
-	Vframe_title_format = build_ext_string (results[0], Qctext);
+	Vframe_title_format = build_extstring (results[0], Qctext);
       if (results[1])
-	Vframe_icon_title_format = build_ext_string (results[1], Qctext);
+	Vframe_icon_title_format = build_extstring (results[1], Qctext);
     }
 
   frame_title_format_already_set = 1;
@@ -1035,9 +1031,9 @@ start_drag_internal_1 (Lisp_Object event, Lisp_Object data,
 	  (*num_items_out)++;
 	}
       eicat_ch (ei, '\0');
-      SIZED_C_STRING_TO_SIZED_EXTERNAL_MALLOC (eidata (ei), eilen (ei),
-					       dnd_data, *len_out,
-					       encoding);
+      TO_EXTERNAL_FORMAT (DATA, (eidata (ei), eilen (ei)),
+			  MALLOC, (dnd_data, *len_out),
+			  encoding);
     }
   else
     {
@@ -1129,7 +1125,7 @@ x_cde_destroy_callback (Widget widget, XtPointer clientData,
     }
 
   /* free the data string */
-  xfree (clientData, XtPointer);
+  xfree (clientData);
 
   CurrentDragWidget = NULL;
 }
@@ -1227,7 +1223,7 @@ WARNING: can only handle plain/text and file: transfers!
 		    dnd_destroy_cb_rec,
 		    NULL, 0);
 
-  xfree (dnd_data, Extbyte *);
+  xfree (dnd_data);
 
   return num_items ? Qt : Qnil;
 }
@@ -1268,12 +1264,13 @@ x_cde_transfer_callback (Widget widget, XtPointer clientData,
 	  Ibyte *fileint;
 	  Ibyte *hurl;
 
-	  EXTERNAL_TO_C_STRING (transferInfo->dropData->data.files[ii],
-				fileint, Qfile_name);
+	  fileint =
+	    EXTERNAL_TO_ITEXT (transferInfo->dropData->data.files[ii],
+				      Qfile_name);
 
 	  hurl = dnd_url_hexify_string (fileint, "file:");
-	  l_data = Fcons (build_intstring (hurl), l_data);
-	  xfree (hurl, Ibyte *);
+	  l_data = Fcons (build_istring (hurl), l_data);
+	  xfree (hurl);
 	}
     }
   else if (transferInfo->dropData->protocol == DtDND_BUFFER_TRANSFER)
@@ -1295,12 +1292,12 @@ x_cde_transfer_callback (Widget widget, XtPointer clientData,
 	  /* let us forget this name thing for now... */
  	  /* filePath = transferInfo->dropData->data.buffers[ii].name;
 	     path = (filePath == NULL) ? Qnil
-	     : build_ext_string (filePath, Q???); */
+	     : build_extstring (filePath, Q???); */
 	  /* what, if the data is no text, and how can I tell it? */
 	  l_data =
-	    Fcons (list3 (list1 (build_string ("text/plain")),
-			  build_string ("8bit"),
-			  make_ext_string
+	    Fcons (list3 (list1 (build_ascstring ("text/plain")),
+			  build_ascstring ("8bit"),
+			  make_extstring
 			  (transferInfo->dropData->data.buffers[ii].bp,
 			   transferInfo->dropData->data.buffers[ii].size,
 			   /* !!#### what goes here? */
@@ -1769,7 +1766,7 @@ x_create_widgets (struct frame *f, Lisp_Object lisp_window_id,
 #endif
 
   if (STRINGP (f->name))
-    LISP_STRING_TO_EXTERNAL (f->name, name, Qctext);
+    name = LISP_STRING_TO_EXTERNAL (f->name, Qctext);
   else
     name = "emacs";
 
@@ -2206,7 +2203,7 @@ a string.
   struct frame *f = decode_x_frame (frame);
 
   qxesprintf (str, "%lu", XtWindow (FRAME_X_TEXT_WIDGET (f)));
-  return build_intstring (str);
+  return build_istring (str);
 }
 
 
@@ -2604,7 +2601,7 @@ x_delete_frame (struct frame *f)
   DtDndDropUnregister (FRAME_X_TEXT_WIDGET (f));
 #endif /* HAVE_CDE */
 
-#ifdef USE_XFT
+#ifdef HAVE_XFT
   /* If we have an XftDraw structure, we need to free it here.
      We can't ever have an XftDraw without a Display, so we are safe
      to free it in here, and we avoid too much playing around with the 
@@ -2640,14 +2637,14 @@ x_delete_frame (struct frame *f)
 
   if (FRAME_X_GEOM_FREE_ME_PLEASE (f))
     {
-      xfree (FRAME_X_GEOM_FREE_ME_PLEASE (f), Ascbyte *);
+      xfree (FRAME_X_GEOM_FREE_ME_PLEASE (f));
       FRAME_X_GEOM_FREE_ME_PLEASE (f) = 0;
     }
 
   if (f->frame_data)
     {
 #ifndef NEW_GC
-      xfree (f->frame_data, void *);
+      xfree (f->frame_data);
 #endif /* not NEW_GC */
       f->frame_data = 0;
     }
@@ -2711,7 +2708,7 @@ x_update_frame_external_traits (struct frame *frm, Lisp_Object name)
        {
 	 if (0)
 	   ;
-#ifdef USE_XFT
+#ifdef HAVE_XFT
 	 else if (FONT_INSTANCE_X_XFTFONT (XFONT_INSTANCE (font)))
 	   {
 	     Xt_SET_ARG (al[ac], XtNxftFont,

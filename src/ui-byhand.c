@@ -187,7 +187,7 @@ Returns the text from GtkCList OBJ cell at coordinates ROW, COLUMN.
 
   if (text)
     {
-      rval = build_string (text);
+      rval = build_cistring (text);
       /* NOTE: This is NOT a memory leak.  GtkCList returns a pointer
 	 to internally used memory, not a copy of it.
 	 g_free (text);
@@ -274,7 +274,7 @@ Return a list of (pixmap mask text) at ROW,COLUMN in CLIST.
 
   return (list3 (pixmap ? build_gtk_boxed (pixmap, GTK_TYPE_GDK_WINDOW) : Qnil,
 		 mask ? build_gtk_boxed (mask, GTK_TYPE_GDK_WINDOW) : Qnil,
-		 (text && text[0]) ? build_string (text) : Qnil));
+		 (text && text[0]) ? build_cistring (text) : Qnil));
 }
 
 /* void gtk_color_selection_get_color(GtkColorSelection *colorsel, gdouble *color); */
@@ -425,7 +425,7 @@ Return the text of LABEL.
 
   gtk_label_get (GTK_LABEL (XGTK_OBJECT (label)->object), &string);
 
-  return (build_string (string));
+  return (build_cistring (string));
 }
 
 DEFUN ("gtk-notebook-query-tab-label-packing", Fgtk_notebook_query_tab_label_packing, 2, 2, 0, /*
@@ -490,7 +490,7 @@ __generic_toolbar_callback (GtkWidget *UNUSED (item), gpointer user_data)
   Lisp_Object callback;
   Lisp_Object lisp_user_data;
 
-  callback = VOID_TO_LISP (user_data);
+  callback = GET_LISP_FROM_VOID (user_data);
 
   lisp_user_data = XCAR (callback);
   callback = XCDR (callback);
@@ -549,7 +549,7 @@ generic_toolbar_insert_item (Lisp_Object toolbar,
 	 (char*) XSTRING_DATA (tooltip_private_text),
 	 GTK_WIDGET (XGTK_OBJECT (icon)->object),
 	 GTK_SIGNAL_FUNC (__generic_toolbar_callback),
-	 LISP_TO_VOID (callback));
+	 STORE_LISP_IN_VOID (callback));
     }
   else
     {
@@ -559,7 +559,7 @@ generic_toolbar_insert_item (Lisp_Object toolbar,
 				   (char*) XSTRING_DATA (tooltip_private_text),
 				   GTK_WIDGET (XGTK_OBJECT (icon)->object),
 				   GTK_SIGNAL_FUNC (__generic_toolbar_callback),
-				   LISP_TO_VOID (callback),
+				   STORE_LISP_IN_VOID (callback),
 				   XINT (position));
     }
 
@@ -599,7 +599,7 @@ __emacs_gtk_ctree_recurse_internal (GtkCTree *ctree, GtkCTreeNode *node, gpointe
 {
   Lisp_Object closure;
 
-  closure = VOID_TO_LISP (user_data);
+  closure = GET_LISP_FROM_VOID (user_data);
 
   call3 (XCAR (closure),
 	 build_gtk_object (GTK_OBJECT (ctree)),
@@ -666,7 +666,7 @@ void gtk_ctree_pre_recursive_to_depth            (GtkCTree     *ctree,
 	(GTK_CTREE (XGTK_OBJECT (ctree)->object),
 	 NILP (node) ? NULL : (GtkCTreeNode *) XGTK_BOXED (node)->object,
 	 __emacs_gtk_ctree_recurse_internal,
-	 LISP_TO_VOID (closure));
+	 STORE_LISP_IN_VOID (closure));
     }
   else
     {
@@ -675,7 +675,7 @@ void gtk_ctree_pre_recursive_to_depth            (GtkCTree     *ctree,
 	 NILP (node) ? NULL : (GtkCTreeNode *) XGTK_BOXED (node)->object,
 	 XINT (depth),
 	 __emacs_gtk_ctree_recurse_internal,
-	 LISP_TO_VOID (closure));
+	 STORE_LISP_IN_VOID (closure));
     }
 
   UNGCPRO;

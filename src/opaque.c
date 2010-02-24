@@ -92,7 +92,8 @@ make_opaque (const void *data, Bytecount size)
 /* This will not work correctly for opaques with subobjects! */
 
 static int
-equal_opaque (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth))
+equal_opaque (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth),
+	      int UNUSED (foldcase))
 {
   Bytecount size;
   return ((size = XOPAQUE_SIZE (obj1)) == XOPAQUE_SIZE (obj2) &&
@@ -136,7 +137,8 @@ print_opaque_ptr (Lisp_Object obj, Lisp_Object printcharfun,
 }
 
 static int
-equal_opaque_ptr (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth))
+equal_opaque_ptr (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth),
+		  int UNUSED (foldcase))
 {
   return (XOPAQUE_PTR (obj1)->ptr == XOPAQUE_PTR (obj2)->ptr);
 }

@@ -218,8 +218,8 @@ scmp_1 (const Ibyte *s1, const Ibyte *s2, Charcount len,
     {
       while (l)
         {
-          Ichar c1 = DOWNCASE (0, itext_ichar (s1));
-          Ichar c2 = DOWNCASE (0, itext_ichar (s2));
+          Ichar c1 = CANONCASE (0, itext_ichar (s1));
+          Ichar c2 = CANONCASE (0, itext_ichar (s2));
 
           if (c1 == c2)
             {
@@ -990,11 +990,9 @@ reinit_complex_vars_of_minibuf (void)
      at runtime instead of at load time. */
 #endif
   Vminibuffer_zero
-    = Fget_buffer_create
-      (build_string (DEFER_GETTEXT (" *Minibuf-0*")));
+    = Fget_buffer_create (build_ascstring (" *Minibuf-0*"));
   Vecho_area_buffer
-    = Fget_buffer_create
-      (build_string (DEFER_GETTEXT (" *Echo Area*")));
+    = Fget_buffer_create (build_ascstring (" *Echo Area*"));
 }
 
 void

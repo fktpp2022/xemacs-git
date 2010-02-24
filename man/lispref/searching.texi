@@ -80,7 +80,7 @@ upper bound and returns @code{nil}.  (It would be more consistent now
 to return the new position of point in that case, but some programs
 may depend on a value of @code{nil}.)
 
-If @var{count} is supplied (it must be an integer), then the search is
+If @var{count} is supplied (it must be a fixnum), then the search is
 repeated that many times (each time starting at the end of the previous
 time's match).  If @var{count} is negative, the search direction is
 backward.  If the successive searches succeed, the function succeeds,
@@ -1039,7 +1039,7 @@ The argument @var{replacements} specifies what to replace occurrences
 with.  If it is a string, that string is used.  It can also be a list of
 strings, to be used in cyclic order.
 
-If @var{repeat-count} is non-@code{nil}, it should be an integer.  Then
+If @var{repeat-count} is non-@code{nil}, it should be a fixnum.  Then
 it specifies how many times to use each of the strings in the
 @var{replacements} list before advancing cyclicly to the next one.
 
@@ -1459,22 +1459,9 @@ that shows the problem that arises if you fail to save the match data:
   You can save and restore the match data with @code{save-match-data}:
 
 @defspec save-match-data body@dots{}
-This special form executes @var{body}, saving and restoring the match
+This special operator executes @var{body}, saving and restoring the match
 data around it.
 @end defspec
-
-  You can use @code{set-match-data} together with @code{match-data} to
-imitate the effect of the special form @code{save-match-data}.  This is
-useful for writing code that can run in Emacs 18.  Here is how:
-
-@example
-@group
-(let ((data (match-data)))
-  (unwind-protect
-      @dots{}   ; @r{May change the original match data.}
-    (set-match-data data)))
-@end group
-@end example
 
   Emacs automatically saves and restores the match data when it runs
 process filter functions (@pxref{Filter Functions}) and process

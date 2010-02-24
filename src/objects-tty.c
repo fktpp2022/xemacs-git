@@ -1,6 +1,6 @@
 /* TTY-specific Lisp objects.
    Copyright (C) 1995 Board of Trustees, University of Illinois.
-   Copyright (C) 1995, 1996, 2001, 2002 Ben Wing.
+   Copyright (C) 1995, 1996, 2001, 2002, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -225,7 +225,7 @@ tty_finalize_color_instance (Lisp_Color_Instance *UNUSED_IF_NEW_GC (c))
 {
 #ifndef NEW_GC
   if (c->data)
-    xfree (c->data, void *);
+    xfree (c->data);
 #endif /* not NEW_GC */
 }
 
@@ -272,7 +272,7 @@ tty_initialize_font_instance (Lisp_Font_Instance *f, Lisp_Object name,
       if (*str != '/')
 	return 0;
       str++;
-      charset = Ffind_charset (intern_int (str));
+      charset = Ffind_charset (intern_istring (str));
       if (NILP (charset))
 	return 0;
 #else
@@ -320,7 +320,7 @@ tty_finalize_font_instance (Lisp_Font_Instance *UNUSED_IF_NEW_GC (f))
 {
 #ifndef NEW_GC
   if (f->data)
-    xfree (f->data, void *);
+    xfree (f->data);
 #endif /* not NEW_GC */
 }
 
@@ -328,7 +328,7 @@ static Lisp_Object
 tty_font_list (Lisp_Object UNUSED (pattern), Lisp_Object UNUSED (device),
 		Lisp_Object UNUSED (maxnumber))
 {
-  return list1 (build_string ("normal"));
+  return list1 (build_ascstring ("normal"));
 }
 
 #ifdef MULE
@@ -341,7 +341,7 @@ tty_font_spec_matches_charset (struct device *UNUSED (d), Lisp_Object charset,
 {
   const Ibyte *the_nonreloc = nonreloc;
 
-  if (stage)
+  if (stage == STAGE_FINAL)
     return 0;
 
   if (!the_nonreloc)
@@ -370,13 +370,13 @@ tty_find_charset_font (Lisp_Object device, Lisp_Object font,
 {
   Ibyte *fontname = XSTRING_DATA (font);
 
-  if (stage)
+  if (stage == STAGE_FINAL)
     return Qnil;
 
   if (strchr ((const char *) fontname, '/'))
     {
       if (tty_font_spec_matches_charset (XDEVICE (device), charset, 0,
-					 font, 0, -1, initial))
+					 font, 0, -1, STAGE_INITIAL))
 	return font;
       return Qnil;
     }
@@ -384,7 +384,7 @@ tty_find_charset_font (Lisp_Object device, Lisp_Object font,
   if (NILP (charset))
     return font;
 
-  return concat3 (font, build_string ("/"),
+  return concat3 (font, build_ascstring ("/"),
 		  Fsymbol_name (XCHARSET_NAME (charset)));
 }
 

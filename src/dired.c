@@ -371,8 +371,10 @@ file_name_completion (Lisp_Object file, Lisp_Object directory, int all_flag,
 	      || 0 <= scmp (d_name, XSTRING_DATA (file), file_name_length))
 	    continue;
 
-          if (file_name_completion_stat (directory, dp, &st) < 0)
-            continue;
+	  /* Ignore file-too-large conditions; the mode is still filled in. */
+	  if (file_name_completion_stat (directory, dp, &st) < 0 &&
+	      errno != EOVERFLOW)
+	    continue;
 
           directoryp = ((st.st_mode & S_IFMT) == S_IFDIR);
           if (directoryp)
@@ -576,8 +578,8 @@ free_user_cache (struct user_cache *cache)
 {
   int i;
   for (i = 0; i < cache->length; i++)
-    xfree (cache->user_names[i].ptr, Ibyte *);
-  xfree (cache->user_names, struct user_name *);
+    xfree (cache->user_names[i].ptr);
+  xfree (cache->user_names);
   xzero (*cache);
 }
 

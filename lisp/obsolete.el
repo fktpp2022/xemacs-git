@@ -275,6 +275,9 @@ set Info-directory-list.")
 ;; being called on the values of functions known to return keymaps,
 ;; or known to return vectors of events instead of strings...
 
+;;; Yes there is; make compiler macros for aref, assq, nconc, checking that
+;;; the car of the relevant argument is sane.
+
 (make-obsolete-variable 'executing-macro 'executing-kbd-macro)
 
 (define-compatible-function-alias 'interactive-form 
@@ -395,7 +398,7 @@ If FRAME is omitted or nil, use the selected frame."
 
 (make-obsolete 'function-called-at-point 'function-at-point)
 
-;; As of 21.5, #'throw is a special form. This makes bytecode using it
+;; As of 21.5, #'throw is a special operator. This makes bytecode using it
 ;; compiled for 21.4 fail; making this function available works around that.
 (defun obsolete-throw (tag value)
   "Ugly compatibility hack.
@@ -407,6 +410,8 @@ we no longer encounter bytecode from 21.4."
 (make-obsolete
  'obsolete-throw
  "it says `obsolete' in the name, you know you shouldn't be using this.")
+
+(define-compatible-function-alias 'cl-mapc 'mapc)
 
 (provide 'obsolete)
 ;;; obsolete.el ends here

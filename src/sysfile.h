@@ -38,6 +38,11 @@ Boston, MA 02111-1307, USA.  */
 # include <sys/errno.h>		/* <errno.h> does not always imply this */
 #endif
 
+/* EOVERFLOW isn't defined on native Windows under VC6 */
+#ifndef EOVERFLOW
+# define EOVERFLOW    10139
+#endif
+
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
@@ -85,6 +90,12 @@ Boston, MA 02111-1307, USA.  */
    need this.  We will put it back if necessary on systems requiring it. */
 /* # include <sys/fcntl.h> */
 #endif /* WIN32_NATIVE */
+
+/* Needed for ITEXT_TO_TSTR, MAX_XETCHAR_SIZE below; but syswindows.h
+   depends on lisp.h being previously included. */
+#if defined (WIN32_ANY) && defined (emacs)
+# include "syswindows.h"
+#endif
 
 #ifndef	STDERR_FILENO
 #define	STDIN_FILENO	0
@@ -302,14 +313,16 @@ Boston, MA 02111-1307, USA.  */
 # define QXE_PATH_MAX 1024
 #endif
 
-/* Client .c files should use PATH_MAX_INTERNAL or PATH_MAX_EXTERNAL
+/* Client .c files should use PATH_MAX_INTERNAL or PATH_MAX_TCHAR
    if they must use either one at all. */
 
 /* Use for internally formatted text, which can potentially have up to
    four bytes per character */
 #define PATH_MAX_INTERNAL (QXE_PATH_MAX * MAX_ICHAR_LEN)
-/* Use for externally formatted text. */
-#define PATH_MAX_EXTERNAL (QXE_PATH_MAX * MAX_XETCHAR_SIZE)
+#ifdef WIN32_ANY
+/* Use for externally formatted text in TCHAR's. */
+#define PATH_MAX_TCHAR (QXE_PATH_MAX * MAX_XETCHAR_SIZE)
+#endif
 
 /* The following definitions are needed under Windows, at least */
 #ifndef X_OK
@@ -484,7 +497,7 @@ DECLARE_INLINE_HEADER (Ibyte sysfile_get_directory_sep (void))
 }
 #define DIRECTORY_SEP sysfile_get_directory_sep()
 
-#define DEFAULT_DIRECTORY_FALLBACK ((const CIbyte *)"C:\\")
+#define DEFAULT_DIRECTORY_FALLBACK "C:\\"
 
 #else /* not emacs */
 
@@ -498,7 +511,7 @@ DECLARE_INLINE_HEADER (Ibyte sysfile_get_directory_sep (void))
 #define SEPCHAR ':'
 #define DEFAULT_DIRECTORY_SEP '/'
 #define DIRECTORY_SEP '/'
-#define DEFAULT_DIRECTORY_FALLBACK ((const CIbyte *)"/")
+#define DEFAULT_DIRECTORY_FALLBACK "/"
 
 #endif /* WIN32_NATIVE */
 
@@ -579,17 +592,31 @@ do							\
    false, because they just call the native Win32 routines directly, which
    always use the system-default encoding (which is what Qmswindows_tstr
    will give us when not XEUNICODE_P). */
-#ifdef WIN32_NATIVE
-# define PATHNAME_CONVERT_OUT(path, pathout)	\
-do						\
-{						\
-  const Ibyte *_pco_path_;			\
-  PATHNAME_RESOLVE_LINKS (path, _pco_path_);	\
-  C_STRING_TO_TSTR (_pco_path_, pathout);	\
+#define PATHNAME_CONVERT_OUT_TSTR(path, pathout)	\
+do							\
+{							\
+  const Ibyte *_pco_path_;				\
+  PATHNAME_RESOLVE_LINKS (path, _pco_path_);		\
+  (pathout) = ITEXT_TO_TSTR (_pco_path_);		\
 } while (0)
+
+#define PATHNAME_CONVERT_OUT_UTF_8(path, pathout)		\
+do								\
+{								\
+  const Ibyte *_pco_path_;					\
+  PATHNAME_RESOLVE_LINKS (path, _pco_path_);			\
+  (pathout) = ITEXT_TO_EXTERNAL (_pco_path_, Qutf_8);	\
+} while (0)
+
+#ifdef WIN32_NATIVE
+#define PATHNAME_CONVERT_OUT(path, pathout) \
+  PATHNAME_CONVERT_OUT_TSTR (path, pathout)
 #else
-# define PATHNAME_CONVERT_OUT(path, pathout) \
-  C_STRING_TO_EXTERNAL (path, pathout, Qfile_name)
+# define PATHNAME_CONVERT_OUT(path, pathout)		\
+do							\
+{							\
+  (pathout) = ITEXT_TO_EXTERNAL (path, Qfile_name);	\
+} while (0)
 #endif
 
 #define LISP_PATHNAME_CONVERT_OUT(path, pathout) \

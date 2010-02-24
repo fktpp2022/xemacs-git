@@ -218,6 +218,7 @@ ELT must be a string.  Upper-case and lower-case letters are treated as equal."
 (define-function 'remove-directory 'delete-directory)
 (define-function 'set-match-data 'store-match-data)
 (define-function 'send-string-to-terminal 'external-debugging-output)
+(define-function 'special-form-p 'special-operator-p)
 
 ;; XEmacs:
 (defun local-variable-if-set-p (sym buffer)
@@ -1118,14 +1119,26 @@ The original plist is not modified.  See also `destructive-plist-to-alist'."
       (setq plist (cddr plist)))
     (nreverse alist)))
 
-(defun map-plist (_mp_fun _mp_plist)
-  "Map _MP_FUN (a function of two args) over each key/value pair in _MP_PLIST.
+((macro
+  . (lambda (map-plist-definition)
+      "Replace the variable names in MAP-PLIST-DEFINITION with uninterned
+symbols, avoiding the risk of interference with variables in other functions
+introduced by dynamic scope."
+      (if-fboundp 'nsublis 
+	  (nsublis
+	   '((mp-function . #:function)
+	     (plist . #:plist)
+	     (result . #:result))
+	   map-plist-definition)
+	map-plist-definition)))
+ (defun map-plist (mp-function plist)
+   "Map FUNCTION (a function of two args) over each key/value pair in PLIST.
 Return a list of the results."
-  (let (_mp_result)
-    (while _mp_plist
-      (push (funcall _mp_fun (car _mp_plist) (cadr _mp_plist)) _mp_result)
-      (setq _mp_plist (cddr _mp_plist)))
-    (nreverse _mp_result)))
+   (let (result)
+     (while plist
+       (push (funcall mp-function (car plist) (cadr plist)) result)
+      (setq plist (cddr plist)))
+    (nreverse result))))
 
 (defun destructive-plist-to-alist (plist)
   "Convert property list PLIST into the equivalent association-list form.
@@ -1464,7 +1477,9 @@ is displayed and the ERROR-FORM is executed."
 	(no-backtrace nil)
 	(class ''general)
 	(level ''warning)
-	(resignal nil))
+	(resignal nil)
+	(cte-cc-var '#:cte-cc-var)
+	(call-trapping-errors-arg '#:call-trapping-errors-Ldc9FC5Hr))
     (let* ((keys '(operation error-form no-backtrace class level resignal))
 	   (keys-with-colon
 	    (mapcar #'(lambda (sym)
@@ -1473,11 +1488,11 @@ is displayed and the ERROR-FORM is executed."
 	(let* ((key-with-colon (pop keys-body))
 	       (key (intern (substring (symbol-name key-with-colon) 1))))
 	  (set key (pop keys-body)))))
-    `(condition-case ,(if resignal '__cte_cc_var__ nil)
+    `(condition-case ,(if resignal cte-cc-var nil)
 	 (call-with-condition-handler
-	     #'(lambda (__call_trapping_errors_arg__)
+	     #'(lambda (,call-trapping-errors-arg)
 		 (let ((errstr (error-message-string
-				__call_trapping_errors_arg__)))
+				,call-trapping-errors-arg)))
 		   ,(if no-backtrace
 			`(lwarn ,class ,level
 			   (if (warning-level-<
@@ -1490,12 +1505,12 @@ is displayed and the ERROR-FORM is executed."
 			 "Error in %s: %s\n\nBacktrace follows:\n\n%s"
 			 ,operation errstr
 			 (backtrace-in-condition-handler-eliminating-handler
-			  '__call_trapping_errors_arg__)))))
+			  ',call-trapping-errors-arg)))))
 	     #'(lambda ()
 		 (progn ,@keys-body)))
        (error
 	,error-form
-	,@(if resignal '((signal (car __cte_cc_var__) (cdr __cte_cc_var__)))))
+	,@(if resignal `((signal (car ,cte-cc-var) (cdr ,cte-cc-var)))))
        )))
 
 ;;;; Miscellanea.
@@ -1749,17 +1764,32 @@ in Lisp; do not use it in performance-critical code."
 SUBR must be a built-in function (not just a symbol that refers to one).
 The returned value is a pair (MIN . MAX).  MIN is the minimum number
 of args.  MAX is the maximum number or the symbol `many', for a
-function with `&rest' args, or `unevalled' for a special form.
+function with `&rest' args, or `unevalled' for a special operator.
 
-See also `special-form-p', `subr-min-args', `subr-max-args',
+See also `special-operator-p', `subr-min-args', `subr-max-args',
 `function-allows-args'. "
   (check-argument-type #'subrp subr)
   (cons (subr-min-args subr)
         (cond
-         ((special-form-p subr)
+         ((special-operator-p subr)
           'unevalled)
          ((null (subr-max-args subr))
           'many)
          (t (subr-max-args subr)))))
+
+;; XEmacs; move these here from C. Would be nice to drop them entirely, but
+;; they're used reasonably often, since they've been around for a long time
+;; and they're portable to GNU.
+
+;; Used in fileio.c if format-annotate-function has a function binding
+;; (which it won't have before this file is loaded):
+(defun car-less-than-car (a b)
+  "Return t if the car of A is numerically less than the car of B."
+  (< (car a) (car b)))
+
+;; Used in packages.
+(defun cdr-less-than-cdr (a b)
+  "Return t if (cdr A) is numerically less than (cdr B)."
+  (< (cdr a) (cdr b)))
 
 ;;; subr.el ends here

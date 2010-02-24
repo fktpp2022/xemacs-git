@@ -112,14 +112,16 @@ mark_char_table_entry (Lisp_Object obj)
 }
 
 static int
-char_table_entry_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
+char_table_entry_equal (Lisp_Object obj1, Lisp_Object obj2, int depth,
+			int foldcase)
 {
   Lisp_Char_Table_Entry *cte1 = XCHAR_TABLE_ENTRY (obj1);
   Lisp_Char_Table_Entry *cte2 = XCHAR_TABLE_ENTRY (obj2);
   int i;
 
   for (i = 0; i < 96; i++)
-    if (!internal_equal (cte1->level2[i], cte2->level2[i], depth + 1))
+    if (!internal_equal_0 (cte1->level2[i], cte2->level2[i], depth + 1,
+			   foldcase))
       return 0;
 
   return 1;
@@ -225,6 +227,7 @@ symbol_to_char_table_type (Lisp_Object symbol)
 static void
 decode_char_table_range (Lisp_Object range, struct chartab_range *outrange)
 {
+  xzero (*outrange);
   if (EQ (range, Qt))
     outrange->type = CHARTAB_RANGE_ALL;
   else if (CHAR_OR_CHAR_INTP (range))
@@ -312,7 +315,7 @@ print_table_entry (struct chartab_range *range, Lisp_Object UNUSED (table),
   struct gcpro gcpro1;
   Lisp_Object lisprange;
   if (!a->first)
-    write_c_string (a->printcharfun, " ");
+    write_ascstring (a->printcharfun, " ");
   a->first = 0;
   lisprange = encode_char_table_range (range);
   GCPRO1 (lisprange);
@@ -336,14 +339,14 @@ print_char_table (Lisp_Object obj, Lisp_Object printcharfun,
   write_fmt_string_lisp (printcharfun, "#s(char-table type %s data (",
 			 1, char_table_type_to_symbol (ct->type));
   map_char_table (obj, &range, print_table_entry, &arg);
-  write_c_string (printcharfun, "))");
+  write_ascstring (printcharfun, "))");
 
   /* #### need to print and read the default; but that will allow the
      default to be modified, which we don't (yet) support -- but FSF does */
 }
 
 static int
-char_table_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
+char_table_equal (Lisp_Object obj1, Lisp_Object obj2, int depth, int foldcase)
 {
   Lisp_Char_Table *ct1 = XCHAR_TABLE (obj1);
   Lisp_Char_Table *ct2 = XCHAR_TABLE (obj2);
@@ -353,16 +356,16 @@ char_table_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
     return 0;
 
   for (i = 0; i < NUM_ASCII_CHARS; i++)
-    if (!internal_equal (ct1->ascii[i], ct2->ascii[i], depth + 1))
+    if (!internal_equal_0 (ct1->ascii[i], ct2->ascii[i], depth + 1, foldcase))
       return 0;
 
 #ifdef MULE
   for (i = 0; i < NUM_LEADING_BYTES; i++)
-    if (!internal_equal (ct1->level1[i], ct2->level1[i], depth + 1))
+    if (!internal_equal_0 (ct1->level1[i], ct2->level1[i], depth + 1, foldcase))
       return 0;
 #endif /* MULE */
 
-  return internal_equal (ct1->default_, ct2->default_, depth + 1);
+  return internal_equal_0 (ct1->default_, ct2->default_, depth + 1, foldcase);
 }
 
 static Hashcode
@@ -793,7 +796,7 @@ static int
 copy_mapper (struct chartab_range *range, Lisp_Object UNUSED (table),
 	     Lisp_Object val, void *arg)
 {
-  put_char_table (VOID_TO_LISP (arg), range, val);
+  put_char_table (GET_LISP_FROM_VOID (arg), range, val);
   return 0;
 }
 
@@ -801,7 +804,7 @@ void
 copy_char_table_range (Lisp_Object from, Lisp_Object to,
 		       struct chartab_range *range)
 {
-  map_char_table (from, range, copy_mapper, LISP_TO_VOID (to));
+  map_char_table (from, range, copy_mapper, STORE_LISP_IN_VOID (to));
 }
 
 static Lisp_Object

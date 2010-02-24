@@ -53,7 +53,7 @@ Boston, MA 02111-1307, USA.  */
    entry; these groups are called "equivalence classes" and `eqv' lists them
    by linking the characters in each equivalence class together in a
    circular list. That is, to find out all all the members of a given char's
-   equivalence classe, you need something like the following code:
+   equivalence class, you need something like the following code:
 
     (let* ((char ?i)
            (original-char char)
@@ -105,7 +105,7 @@ print_case_table (Lisp_Object obj, Lisp_Object printcharfun,
 {
   Lisp_Case_Table *ct = XCASE_TABLE (obj);
   if (print_readably)
-    printing_unreadable_object ("#<case-table 0x%x>", ct->header.uid);
+    printing_unreadable_lcrecord (obj, 0);
   write_fmt_string_lisp
     (printcharfun, "#<case-table downcase=%s upcase=%s canon=%s eqv=%s ", 4,
      CASE_TABLE_DOWNCASE (ct), CASE_TABLE_UPCASE (ct),
@@ -303,7 +303,7 @@ static int
 compute_canon_mapper (struct chartab_range *range,
 		      Lisp_Object UNUSED (table), Lisp_Object val, void *arg)
 {
-  Lisp_Object casetab = VOID_TO_LISP (arg);
+  Lisp_Object casetab = GET_LISP_FROM_VOID (arg);
   if (range->type == CHARTAB_RANGE_CHAR)
     SET_TRT_TABLE_OF (XCASE_TABLE_CANON (casetab), range->ch,
 		      TRT_TABLE_OF (XCASE_TABLE_DOWNCASE (casetab),
@@ -318,7 +318,7 @@ initialize_identity_mapper (struct chartab_range *range,
 			    Lisp_Object UNUSED (table),
 			    Lisp_Object UNUSED (val), void *arg)
 {
-  Lisp_Object trt = VOID_TO_LISP (arg);
+  Lisp_Object trt = GET_LISP_FROM_VOID (arg);
   if (range->type == CHARTAB_RANGE_CHAR)
     SET_TRT_TABLE_OF (trt, range->ch, range->ch);
   
@@ -330,7 +330,7 @@ compute_up_or_eqv_mapper (struct chartab_range *range,
 			  Lisp_Object UNUSED (table),
 			  Lisp_Object val, void *arg)
 {
-  Lisp_Object inverse = VOID_TO_LISP (arg);
+  Lisp_Object inverse = GET_LISP_FROM_VOID (arg);
   Ichar toch = XCHAR (val);
 
   if (range->type == CHARTAB_RANGE_CHAR && range->ch != toch)
@@ -360,13 +360,13 @@ recompute_case_table (Lisp_Object casetab)
      retrieving the values below! */
   XCASE_TABLE (casetab)->dirty = 0;
   map_char_table (XCASE_TABLE_DOWNCASE (casetab), &range,
-		  compute_canon_mapper, LISP_TO_VOID (casetab));
+		  compute_canon_mapper, STORE_LISP_IN_VOID (casetab));
   map_char_table (XCASE_TABLE_CANON (casetab), &range,
 		  initialize_identity_mapper,
-		  LISP_TO_VOID (XCASE_TABLE_EQV (casetab)));
+		  STORE_LISP_IN_VOID (XCASE_TABLE_EQV (casetab)));
   map_char_table (XCASE_TABLE_CANON (casetab), &range,
 		  compute_up_or_eqv_mapper,
-		  LISP_TO_VOID (XCASE_TABLE_EQV (casetab)));
+		  STORE_LISP_IN_VOID (XCASE_TABLE_EQV (casetab)));
 }  
 
 DEFUN ("current-case-table", Fcurrent_case_table, 0, 1, 0, /*
@@ -403,23 +403,19 @@ set_case_table (Lisp_Object table, int standard)
   /* This function can GC */
   struct buffer *buf =
     standard ? XBUFFER (Vbuffer_defaults) : current_buffer;
+  Lisp_Object casetab;
 
   check_case_table (table);
 
   if (CASE_TABLEP (table))
-    {
-      if (standard)
-	Vstandard_case_table = table;
-
-      buf->case_table = table;
-    }
+    casetab = table;
   else
     {
       /* For backward compatibility. */
       Lisp_Object down, up, canon, eqv, tail = table;
-      Lisp_Object casetab =
-	standard ? Vstandard_case_table :  buf->case_table;
       struct chartab_range range;
+
+      casetab = Fmake_case_table ();
 
       range.type = CHARTAB_RANGE_ALL;
 
@@ -439,17 +435,17 @@ set_case_table (Lisp_Object table, int standard)
 	{
 	  map_char_table (XCASE_TABLE_DOWNCASE (casetab), &range,
 			  initialize_identity_mapper,
-			  LISP_TO_VOID (XCASE_TABLE_UPCASE (casetab)));
+			  STORE_LISP_IN_VOID (XCASE_TABLE_UPCASE (casetab)));
 	  map_char_table (XCASE_TABLE_DOWNCASE (casetab), &range,
 			  compute_up_or_eqv_mapper,
-			  LISP_TO_VOID (XCASE_TABLE_UPCASE (casetab)));
+			  STORE_LISP_IN_VOID (XCASE_TABLE_UPCASE (casetab)));
 	}
       else
 	convert_old_style_syntax_string (XCASE_TABLE_UPCASE (casetab), up);
 
       if (NILP (canon))
 	map_char_table (XCASE_TABLE_DOWNCASE (casetab), &range,
-			compute_canon_mapper, LISP_TO_VOID (casetab));
+			compute_canon_mapper, STORE_LISP_IN_VOID (casetab));
       else
 	convert_old_style_syntax_string (XCASE_TABLE_CANON (casetab), canon);
 
@@ -457,14 +453,20 @@ set_case_table (Lisp_Object table, int standard)
 	{
 	  map_char_table (XCASE_TABLE_CANON (casetab), &range,
 			  initialize_identity_mapper,
-			  LISP_TO_VOID (XCASE_TABLE_EQV (casetab)));
+			  STORE_LISP_IN_VOID (XCASE_TABLE_EQV (casetab)));
 	  map_char_table (XCASE_TABLE_CANON (casetab), &range,
 			  compute_up_or_eqv_mapper,
-			  LISP_TO_VOID (XCASE_TABLE_EQV (casetab)));
+			  STORE_LISP_IN_VOID (XCASE_TABLE_EQV (casetab)));
 	}
       else
 	convert_old_style_syntax_string (XCASE_TABLE_CANON (casetab), eqv);
     }
+
+
+  if (standard)
+    Vstandard_case_table = casetab;
+
+  buf->case_table = casetab;
 
   return buf->case_table;
 }

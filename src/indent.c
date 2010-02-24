@@ -41,8 +41,6 @@ Boston, MA 02111-1307, USA.  */
 #endif
 #include "window.h"
 
-Lisp_Object Qcoerce;
-
 /* Indentation can insert tabs if this is non-zero;
    otherwise always uses spaces */
 int indent_tabs_mode;
@@ -663,7 +661,7 @@ vmotion_1 (struct window *w, Charbpos orig, int vtarget,
           if (ret_vpix)
             *ret_vpix = vpix_motion (w->line_start_cache, 0, elt);
 	  /* #### This should be BUF_BEGV (b), right? */
-	  return Dynarr_atp (w->line_start_cache, 0)->start;
+	  return Dynarr_begin (w->line_start_cache)->start;
 	}
       else
 	{
@@ -937,8 +935,6 @@ syms_of_indent (void)
 #endif
   DEFSUBR (Fvertical_motion);
   DEFSUBR (Fvertical_motion_pixels);
-
-  DEFSYMBOL (Qcoerce);
 }
 
 void

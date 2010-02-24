@@ -238,17 +238,24 @@ Boston, MA 02111-1307, USA.  */
 # else
 #  define USED_IF_MULE(decl) UNUSED (decl)
 # endif
-# if defined (MULE) || defined (ERROR_CHECK_TEXT)
-#  define USED_IF_MULE_OR_CHECK_TEXT(decl) decl
-# else
-#  define USED_IF_MULE_OR_CHECK_TEXT(decl) UNUSED (decl)
-# endif
-# ifdef USE_XFT
+# ifdef HAVE_XFT
 #  define USED_IF_XFT(decl) decl
 # else
 #  define USED_IF_XFT(decl) UNUSED (decl)
 # endif
+# ifdef HAVE_SCROLLBARS
+#  define USED_IF_SCROLLBARS(decl) decl
+# else
+#  define USED_IF_SCROLLBARS(decl) UNUSED (decl)
+# endif
 #endif /* UNUSED */
+
+/* Declaration that variable or expression X is "used" to defeat
+   "unused variable" warnings.  DON'T DO THIS FOR PARAMETERS IF IT ALL
+   POSSIBLE.  Use an UNUSED() or USED_IF_*() declaration on the parameter
+   instead.  Don't do this for unused local variables that should really
+   just be deleted. */
+#define USED(x) ((void) (x))
 
 #ifdef DEBUG_XEMACS
 # define REGISTER

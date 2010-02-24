@@ -306,13 +306,19 @@ static void
 print_window (Lisp_Object obj, Lisp_Object printcharfun,
 	      int UNUSED (escapeflag))
 {
-  if (print_readably)
-    printing_unreadable_object ("#<window 0x%x>", XWINDOW (obj)->header.uid);
+  Lisp_Object buf;
 
-  write_c_string (printcharfun, "#<window");
-  if (!NILP (XWINDOW (obj)->buffer))
+  if (print_readably)
+    printing_unreadable_lcrecord (obj, 0);
+
+  write_ascstring (printcharfun, "#<window");
+  buf = XWINDOW_BUFFER (obj);
+  if (EQ (buf, Qt))
+    write_ascstring (printcharfun, " during creation");
+  else if (!NILP (buf))
     {
-      Lisp_Object name = XBUFFER (XWINDOW (obj)->buffer)->name;
+      
+      Lisp_Object name = XBUFFER (buf)->name;
       write_fmt_string_lisp (printcharfun, " on %S", 1, name);
     }
   write_fmt_string (printcharfun, " 0x%x>", XWINDOW (obj)->header.uid);
@@ -1033,7 +1039,7 @@ window_divider_width (struct window *w)
 }
 
 int
-window_scrollbar_width (struct window *w)
+window_scrollbar_width (struct window * USED_IF_SCROLLBARS (w))
 {
 #ifdef HAVE_SCROLLBARS
   if (!WINDOW_WIN_P (w)
@@ -1052,7 +1058,7 @@ window_scrollbar_width (struct window *w)
 /* Horizontal scrollbars are only active on windows with truncation
    turned on. */
 int
-window_scrollbar_height (struct window *w)
+window_scrollbar_height (struct window * USED_IF_SCROLLBARS (w))
 {
 #ifdef HAVE_SCROLLBARS
   if (!WINDOW_WIN_P (w)
@@ -1110,15 +1116,15 @@ window_modeline_height (struct window *w)
              since there is a redisplay condition that these
              structures be identical outside of redisplay. */
 	  dla = window_display_lines (w, DESIRED_DISP);
-	  if (dla && Dynarr_length (dla) && Dynarr_atp (dla, 0)->modeline)
-	    modeline_height = (Dynarr_atp (dla, 0)->ascent +
-			       Dynarr_atp (dla, 0)->descent);
+	  if (dla && Dynarr_length (dla) && Dynarr_begin (dla)->modeline)
+	    modeline_height = (Dynarr_begin (dla)->ascent +
+			       Dynarr_begin (dla)->descent);
 	  else
 	    {
 	      dla = window_display_lines (w, CURRENT_DISP);
-	      if (dla && Dynarr_length (dla) && Dynarr_atp (dla, 0)->modeline)
-		modeline_height = (Dynarr_atp (dla, 0)->ascent +
-				   Dynarr_atp (dla, 0)->descent);
+	      if (dla && Dynarr_length (dla) && Dynarr_begin (dla)->modeline)
+		modeline_height = (Dynarr_begin (dla)->ascent +
+				   Dynarr_begin (dla)->descent);
 	      else
 		/* This should be an abort except I'm not yet 100%
                    confident that it won't ever get hit (though I
@@ -1259,7 +1265,8 @@ window_bottom_gutter_height (struct window *w)
 }
 
 static int
-window_left_window_gutter_width (struct window *w, int modeline)
+window_left_window_gutter_width (struct window *w,
+				 int USED_IF_SCROLLBARS (modeline))
 {
   if (!NILP (w->hchild) || !NILP (w->vchild))
     return 0;
@@ -1279,7 +1286,8 @@ window_left_gutter_width (struct window *w, int modeline)
 }
 
 static int
-window_right_window_gutter_width (struct window *w, int modeline)
+window_right_window_gutter_width (struct window *w,
+				  int USED_IF_SCROLLBARS (modeline))
 {
   int gutter = 0;
 
@@ -1906,7 +1914,7 @@ If the last line is not clipped, return nil.
   struct display_line *dl;
 
   /* No lines - no clipped lines */
-  if (num_lines == 0 || (num_lines == 1 && Dynarr_atp (dla, 0)->modeline))
+  if (num_lines == 0 || (num_lines == 1 && Dynarr_begin (dla)->modeline))
     return Qnil;
 
   dl = Dynarr_atp (dla, num_lines - 1);
@@ -4191,7 +4199,7 @@ window_displayed_height (struct window *w)
      indicates that end-of-buffer is being displayed. */
   if (end_pos == -1)
     {
-      struct display_line *dl = Dynarr_atp (dla, 0);
+      struct display_line *dl = Dynarr_begin (dla);
       int ypos1 = dl->ypos + dl->descent;
       int ypos2 = WINDOW_TEXT_BOTTOM (w);
       Lisp_Object window;
@@ -4226,7 +4234,7 @@ window_displayed_height (struct window *w)
     }
   else
     {
-      if (num_lines > 1 && Dynarr_atp (dla, 0)->modeline)
+      if (num_lines > 1 && Dynarr_begin (dla)->modeline)
 	num_lines--;
 
       if (scroll_on_clipped_lines
@@ -4599,7 +4607,7 @@ window_scroll (Lisp_Object window, Lisp_Object count, int direction,
     default_face_height_and_width (window, &fheight, &fwidth);
 
   if (Dynarr_length (dla) >= 1)
-    modeline = Dynarr_atp (dla, 0)->modeline;
+    modeline = Dynarr_begin (dla)->modeline;
 
   dl = Dynarr_atp (dla, modeline);
 
@@ -5287,7 +5295,7 @@ get_current_pixel_pos (Lisp_Object window, Lisp_Object pos,
       CHECK_INT (pos);
       point = XINT (pos);
 
-      if (Dynarr_length (dla) && Dynarr_atp (dla, 0)->modeline)
+      if (Dynarr_length (dla) && Dynarr_begin (dla)->modeline)
 	first_line = 1;
       else
 	first_line = 0;

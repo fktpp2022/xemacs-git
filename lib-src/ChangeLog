@@ -1,3 +1,68 @@
+2010-02-11  Vin Shelton  <acs@xemacs.org>
+ 
+ 	* winclient.c: Bump connection retries to 20 because some people
+	have long startup files.
+	(openConversation): If CreateProcess cannot find
+ 	xemacs.exe, try again with the name of the version-specific
+ 	executable.  This is useful because the cygwin version of XEmacs
+ 	doesn't install an xemacs.exe executable.
+	(parseCommandLine): Fix tracker issue 675 - add current	directory
+	to filenames under cygwin. 
+
+2010-01-26  Ben Wing  <ben@xemacs.org>
+
+	* make-msgfile.lex: Vague hacking on this file, insert a comment
+	about what should be done if we ever want this to work.
+
+2010-01-24  Ben Wing  <ben@xemacs.org>
+
+	* fakemail.c (args_size):
+	* fakemail.c (parse_header):
+	* ootags.c (C_entries):
+	Fix warnings about possible use of uninitialized vars.
+
+2010-02-01  Vin Shelton  <acs@xemacs.org>
+
+	* make-mswin-unicode.pl: Add description of override.
+
+2010-01-30  Ben Wing  <ben@xemacs.org>
+
+	* make-mswin-unicode.pl:
+	Make it possible to specify an overridden prototype in cases where
+	either Cygwin or Visual Studio has errors in their headers that
+	can be corrected by falling back to a less qualified type (typically
+	without const).
+
+2010-01-28  Jerry James  <james@xemacs.org>
+
+	* Makefile.in.in: Remove make-msgfile and make-po rules.
+	* make-msgfile.c: Removed, obsolete code.
+	* make-po.c: Removed, obsolete code.
+
+2010-01-15  Ben Wing  <ben@xemacs.org>
+
+	* make-mswin-unicode.pl:
+	Process the command `review'.  Cause an error to happen if we try to
+	use the command, indicating that the command needs review to determine
+	how to handle it.
+
+2010-01-15  Ben Wing  <ben@xemacs.org>
+
+	* make-mswin-unicode.pl:
+	Various fixes to get this to work when using the Cygwin header files
+	in /usr/include/w32api instead of the VC++ ones:
+	-- Use /usr/include/w32api as default; don't assume that a passed-in
+	   directory always ends in .../include.
+	-- Add `const' to list of known type modifiers.
+	-- If function already seen, warn but don't generate twice.
+	-- Eliminate `extern' from return type modifiers.
+	-- Cosmetic: When eliminating APIENTRY, also eliminate following
+	   whitespace.
+
+2010-01-13  Ben Wing  <ben@xemacs.org>
+
+	* fix-perms.sh: New file.
+
 2009-12-21  Jerry James  <james@xemacs.org>
 
 	* Makefile.in.in: Remove rules for building yow.

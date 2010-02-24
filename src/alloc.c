@@ -71,6 +71,9 @@ Boston, MA 02111-1307, USA.  */
 #ifdef DOUG_LEA_MALLOC
 #include <malloc.h>
 #endif
+#ifdef USE_VALGRIND
+#include <valgrind/memcheck.h>
+#endif
 
 EXFUN (Fgarbage_collect, 0);
 
@@ -226,7 +229,7 @@ release_breathing_space (void)
     {
       void *tmp = breathing_space;
       breathing_space = 0;
-      xfree (tmp, void *);
+      xfree (tmp);
     }
 }
 #endif /* not NEW_GC */
@@ -269,7 +272,7 @@ do									\
   /* Unbelievably, calling free() on 0xDEADBEEF doesn't cause an	\
      error until much later on for many system mallocs, such as		\
      the one that comes with Solaris 2.3.  FMH!! */			\
-  assert (block != (void *) 0xDEADBEEF);				\
+  assert (block != (void *) DEADBEEF_CONSTANT);				\
   MALLOC_BEGIN ();							\
 }									\
 while (0)
@@ -280,7 +283,7 @@ do									\
   /* Unbelievably, calling free() on 0xDEADBEEF doesn't cause an	\
      error until much later on for many system mallocs, such as		\
      the one that comes with Solaris 2.3.  FMH!! */			\
-  assert (block != (void *) 0xDEADBEEF);				\
+  assert (block != (void *) DEADBEEF_CONSTANT);				\
   /* You cannot free something within dumped space, because there is	\
      no longer any sort of malloc structure associated with the block.	\
      If you are tripping this, you may need to conditionalize on	\
@@ -1255,15 +1258,15 @@ mark_cons (Lisp_Object obj)
 }
 
 static int
-cons_equal (Lisp_Object ob1, Lisp_Object ob2, int depth)
+cons_equal (Lisp_Object ob1, Lisp_Object ob2, int depth, int foldcase)
 {
   depth++;
-  while (internal_equal (XCAR (ob1), XCAR (ob2), depth))
+  while (internal_equal_0 (XCAR (ob1), XCAR (ob2), depth, foldcase))
     {
       ob1 = XCDR (ob1);
       ob2 = XCDR (ob2);
       if (! CONSP (ob1) || ! CONSP (ob2))
-	return internal_equal (ob1, ob2, depth);
+	return internal_equal_0 (ob1, ob2, depth, foldcase);
     }
   return 0;
 }
@@ -1575,7 +1578,7 @@ size_vector (const void *lheader)
 }
 
 static int
-vector_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
+vector_equal (Lisp_Object obj1, Lisp_Object obj2, int depth, int foldcase)
 {
   int len = XVECTOR_LENGTH (obj1);
   if (len != XVECTOR_LENGTH (obj2))
@@ -1585,7 +1588,7 @@ vector_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
     Lisp_Object *ptr1 = XVECTOR_DATA (obj1);
     Lisp_Object *ptr2 = XVECTOR_DATA (obj2);
     while (len--)
-      if (!internal_equal (*ptr1++, *ptr2++, depth + 1))
+      if (!internal_equal_0 (*ptr1++, *ptr2++, depth + 1, foldcase))
 	return 0;
   }
   return 1;
@@ -1957,19 +1960,7 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
   f->stack_depth = (unsigned short) XINT (stack_depth);
 
 #ifdef COMPILED_FUNCTION_ANNOTATION_HACK
-  if (!NILP (Vcurrent_compiled_function_annotation))
-    f->annotated = Fcopy (Vcurrent_compiled_function_annotation);
-  else if (!NILP (Vload_file_name_internal_the_purecopy))
-    f->annotated = Vload_file_name_internal_the_purecopy;
-  else if (!NILP (Vload_file_name_internal))
-    {
-      struct gcpro gcpro1;
-      GCPRO1 (fun);		/* don't let fun get reaped */
-      Vload_file_name_internal_the_purecopy =
-	Ffile_name_nondirectory (Vload_file_name_internal);
-      f->annotated = Vload_file_name_internal_the_purecopy;
-      UNGCPRO;
-    }
+  f->annotated = Vload_file_name_internal;
 #endif /* COMPILED_FUNCTION_ANNOTATION_HACK */
 
   /* doc_string may be nil, string, int, or a cons (string . int).
@@ -2278,11 +2269,15 @@ mark_string (Lisp_Object obj)
 }
 
 static int
-string_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth))
+string_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth),
+	      int foldcase)
 {
   Bytecount len;
-  return (((len = XSTRING_LENGTH (obj1)) == XSTRING_LENGTH (obj2)) &&
-	  !memcmp (XSTRING_DATA (obj1), XSTRING_DATA (obj2), len));
+  if (foldcase)
+    return !lisp_strcasecmp_i18n (obj1, obj2);
+  else
+    return (((len = XSTRING_LENGTH (obj1)) == XSTRING_LENGTH (obj2)) &&
+	    !memcmp (XSTRING_DATA (obj1), XSTRING_DATA (obj2), len));
 }
 
 static const struct memory_description string_description[] = {
@@ -2680,7 +2675,7 @@ resize_string (Lisp_Object s, Bytecount pos, Bytecount delta)
 		      XSTRING_LENGTH (s) + 1 - pos);
 	    }
 	  XSET_STRING_DATA (s, new_data);
-	  xfree (old_data, Ibyte *);
+	  xfree (old_data);
 	}
     }
   else /* old string is small */
@@ -2898,7 +2893,7 @@ make_string (const Ibyte *contents, Bytecount length)
 /* Take some raw memory, encoded in some external data format,
    and convert it into a Lisp string. */
 Lisp_Object
-make_ext_string (const Extbyte *contents, EMACS_INT length,
+make_extstring (const Extbyte *contents, EMACS_INT length,
 		 Lisp_Object coding_system)
 {
   Lisp_Object string;
@@ -2909,39 +2904,93 @@ make_ext_string (const Extbyte *contents, EMACS_INT length,
 }
 
 Lisp_Object
-build_intstring (const Ibyte *str)
+build_istring (const Ibyte *str)
 {
   /* Some strlen's crash and burn if passed null. */
   return make_string (str, (str ? qxestrlen (str) : (Bytecount) 0));
 }
 
 Lisp_Object
-build_string (const CIbyte *str)
+build_cistring (const CIbyte *str)
 {
-  /* Some strlen's crash and burn if passed null. */
-  return make_string ((const Ibyte *) str, (str ? strlen (str) : 0));
+  return build_istring ((const Ibyte *) str);
 }
 
 Lisp_Object
-build_ext_string (const Extbyte *str, Lisp_Object coding_system)
+build_ascstring (const Ascbyte *str)
+{
+  ASSERT_ASCTEXT_ASCII (str);
+  return build_istring ((const Ibyte *) str);
+}
+
+Lisp_Object
+build_extstring (const Extbyte *str, Lisp_Object coding_system)
 {
   /* Some strlen's crash and burn if passed null. */
-  return make_ext_string ((const Extbyte *) str,
+  return make_extstring ((const Extbyte *) str,
 			  (str ? dfc_external_data_len (str, coding_system) :
 			   0),
 			  coding_system);
 }
 
+/* Build a string whose content is a translatable message, and translate
+   the message according to the current language environment. */
+
 Lisp_Object
-build_msg_intstring (const Ibyte *str)
+build_msg_istring (const Ibyte *str)
 {
-  return build_intstring (GETTEXT (str));
+  return build_istring (IGETTEXT (str));
+}
+
+/* Build a string whose content is a translatable message, and translate
+   the message according to the current language environment. */
+
+Lisp_Object
+build_msg_cistring (const CIbyte *str)
+{
+  return build_msg_istring ((const Ibyte *) str);
+}
+
+/* Build a string whose content is a translatable message, and translate
+   the message according to the current language environment.
+   String must be pure-ASCII, and when compiled with error-checking,
+   an abort will have if not pure-ASCII. */
+
+Lisp_Object
+build_msg_ascstring (const Ascbyte *str)
+{
+  ASSERT_ASCTEXT_ASCII (str);
+  return build_msg_istring ((const Ibyte *) str);
+}
+
+/* Build a string whose content is a translatable message, but don't
+   translate the message immediately.  Perhaps do something else instead,
+   such as put a property on the string indicating that it needs to be
+   translated.
+
+   This is useful for strings that are built at dump time or init time,
+   rather than on-the-fly when the current language environment is set
+   properly. */
+
+Lisp_Object
+build_defer_istring (const Ibyte *str)
+{
+  Lisp_Object retval = build_istring ((Ibyte *) str);
+  /* Possibly do something to the return value */
+  return retval;
 }
 
 Lisp_Object
-build_msg_string (const CIbyte *str)
+build_defer_cistring (const CIbyte *str)
 {
-  return build_string (CGETTEXT (str));
+  return build_defer_istring ((Ibyte *) str);
+}
+
+Lisp_Object
+build_defer_ascstring (const Ascbyte *str)
+{
+  ASSERT_ASCTEXT_ASCII (str);
+  return build_defer_istring ((Ibyte *) str);
 }
 
 Lisp_Object
@@ -3133,6 +3182,14 @@ free_managed_lcrecord (Lisp_Object lcrecord_list, Lisp_Object lcrecord)
   const struct lrecord_implementation *implementation
     = LHEADER_IMPLEMENTATION (lheader);
 
+  /* If we try to debug-print during GC, we'll likely get a crash on the
+     following assert (called from Lstream_delete(), from prin1_to_string()).
+     Instead, just don't do anything.  Worst comes to worst, we have a
+     small memory leak -- and programs being debugged usually won't be
+     super long-lived afterwards, anyway. */
+  if (gc_in_progress && in_debug_print)
+    return;
+
   /* Finalizer methods may try to free objects within them, which typically
      won't be marked and thus are scheduled for demolition.  Putting them
      on the free list would be very bad, as we'd have xfree()d memory in
@@ -3257,62 +3314,58 @@ static const struct sized_memory_description staticpros_description = {
 
 #ifdef DEBUG_XEMACS
 
-static const struct memory_description staticpro_one_name_description_1[] = {
-  { XD_ASCII_STRING, 0 },
-  { XD_END }
-};
-
-static const struct sized_memory_description staticpro_one_name_description = {
-  sizeof (char *),
-  staticpro_one_name_description_1
-};
-
-static const struct memory_description staticpro_names_description_1[] = {
-  XD_DYNARR_DESC (char_ptr_dynarr, &staticpro_one_name_description),
-  { XD_END }
-};
-
-
-extern const struct sized_memory_description staticpro_names_description;
-
-const struct sized_memory_description staticpro_names_description = {
-  sizeof (char_ptr_dynarr),
-  staticpro_names_description_1
-};
-
 /* Help debug crashes gc-marking a staticpro'ed object. */
 
 Lisp_Object_ptr_dynarr *staticpros;
-char_ptr_dynarr *staticpro_names;
+const_Ascbyte_ptr_dynarr *staticpro_names;
 
 /* Mark the Lisp_Object at non-heap VARADDRESS as a root object for
    garbage collection, and for dumping. */
 void
-staticpro_1 (Lisp_Object *varaddress, char *varname)
+staticpro_1 (Lisp_Object *varaddress, const Ascbyte *varname)
 {
   Dynarr_add (staticpros, varaddress);
   Dynarr_add (staticpro_names, varname);
   dump_add_root_lisp_object (varaddress);
 }
 
+const Ascbyte *staticpro_name (int count);
+
+/* External debugging function: Return the name of the variable at offset
+   COUNT. */
+const Ascbyte *
+staticpro_name (int count)
+{
+  return Dynarr_at (staticpro_names, count);
+}
 
 Lisp_Object_ptr_dynarr *staticpros_nodump;
-char_ptr_dynarr *staticpro_nodump_names;
+const_Ascbyte_ptr_dynarr *staticpro_nodump_names;
 
 /* Mark the Lisp_Object at heap VARADDRESS as a root object for
    garbage collection, but not for dumping. (See below.) */
 void
-staticpro_nodump_1 (Lisp_Object *varaddress, char *varname)
+staticpro_nodump_1 (Lisp_Object *varaddress, const Ascbyte *varname)
 {
   Dynarr_add (staticpros_nodump, varaddress);
   Dynarr_add (staticpro_nodump_names, varname);
+}
+
+const Ascbyte *staticpro_nodump_name (int count);
+
+/* External debugging function: Return the name of the variable at offset
+   COUNT. */
+const Ascbyte *
+staticpro_nodump_name (int count)
+{
+  return Dynarr_at (staticpro_nodump_names, count);
 }
 
 #ifdef HAVE_SHLIB
 /* Stop treating the Lisp_Object at non-heap VARADDRESS as a root object
    for garbage collection, but not for dumping. */
 void
-unstaticpro_nodump_1 (Lisp_Object *varaddress, char *varname)
+unstaticpro_nodump_1 (Lisp_Object *varaddress, const Ascbyte *varname)
 {
   Dynarr_delete_object (staticpros, varaddress);
   Dynarr_delete_object (staticpro_names, varname);
@@ -3396,40 +3449,26 @@ static const struct sized_memory_description mcpros_description = {
 
 #ifdef DEBUG_XEMACS
 
-static const struct memory_description mcpro_one_name_description_1[] = {
-  { XD_ASCII_STRING, 0 },
-  { XD_END }
-};
-
-static const struct sized_memory_description mcpro_one_name_description = {
-  sizeof (char *),
-  mcpro_one_name_description_1
-};
-
-static const struct memory_description mcpro_names_description_1[] = {
-  XD_DYNARR_DESC (char_ptr_dynarr, &mcpro_one_name_description),
-  { XD_END }
-};
-
-extern const struct sized_memory_description mcpro_names_description;
-
-const struct sized_memory_description mcpro_names_description = {
-  sizeof (char_ptr_dynarr),
-  mcpro_names_description_1
-};
-
 /* Help debug crashes gc-marking a mcpro'ed object. */
 
 Lisp_Object_dynarr *mcpros;
-char_ptr_dynarr *mcpro_names;
+const_Ascbyte_ptr_dynarr *mcpro_names;
 
 /* Mark the Lisp_Object at non-heap VARADDRESS as a root object for
    garbage collection, and for dumping. */
 void
-mcpro_1 (Lisp_Object varaddress, char *varname)
+mcpro_1 (Lisp_Object varaddress, const Ascbyte *varname)
 {
   Dynarr_add (mcpros, varaddress);
   Dynarr_add (mcpro_names, varname);
+}
+
+/* External debugging function: Return the name of the variable at offset
+   COUNT. */
+const Ascbyte *
+mcpro_name (int count)
+{
+  return Dynarr_at (mcpro_names, count);
 }
 
 #else /* not DEBUG_XEMACS */
@@ -3550,7 +3589,7 @@ sweep_lcrecords_1 (struct old_lcrecord_header **prev, int *used)
           *prev = next;
 	  tick_lcrecord_stats (h, 1);
 	  /* used to call finalizer right here. */
-	  xfree (header, struct old_lcrecord_header *);
+	  xfree (header);
 	  header = next;
 	}
     }
@@ -3674,7 +3713,7 @@ do {									     \
 	  SFTB_current = SFTB_current->prev;				     \
 	  {								     \
 	    *SFTB_prev = SFTB_current;					     \
-	    xfree (SFTB_victim_block, struct typename##_block *);	     \
+	    xfree (SFTB_victim_block);	     \
 	    /* Restore free list to what it was before victim was swept */   \
 	    typename##_free_list = SFTB_old_free_list;			     \
 	    num_free -= SFTB_limit;					     \
@@ -3780,7 +3819,7 @@ sweep_compiled_functions (void)
 {
 #define UNMARK_compiled_function(ptr) UNMARK_RECORD_HEADER (&((ptr)->lheader))
 #define ADDITIONAL_FREE_compiled_function(ptr) \
-  if (ptr->args_in_array) xfree (ptr->args, Lisp_Object *)
+  if (ptr->args_in_array) xfree (ptr->args)
 
   SWEEP_FIXED_TYPE_BLOCK (compiled_function, Lisp_Compiled_Function);
 }
@@ -4126,7 +4165,7 @@ verify_string_chars_integrity (void)
 #ifndef NEW_GC
 /* Compactify string chars, relocating the reference to each --
    free any empty string_chars_block we see. */
-void
+static void
 compact_string_chars (void)
 {
   struct string_chars_block *to_sb = first_string_chars_block;
@@ -4213,7 +4252,7 @@ compact_string_chars (void)
     for (victim = to_sb->next; victim; )
       {
 	struct string_chars_block *next = victim->next;
-	xfree (victim, struct string_chars_block *);
+	xfree (victim);
 	victim = next;
       }
 
@@ -4273,7 +4312,7 @@ sweep_strings (void)
 #define ADDITIONAL_FREE_string(ptr) do {	\
     Bytecount size = ptr->size_;		\
     if (BIG_STRING_SIZE_P (size))		\
-      xfree (ptr->data_, Ibyte *);		\
+      xfree (ptr->data_);		\
   } while (0)
 
   SWEEP_FIXED_TYPE_BLOCK_1 (string, Lisp_String, u.lheader);
@@ -4463,8 +4502,8 @@ object_memory_usage_stats (int set_total_gc_usage)
     {
       if (lrecord_stats[i].instances_in_use != 0)
         {
-          char buf [255];
-          const char *name = lrecord_implementations_table[i]->name;
+          Ascbyte buf[255];
+          const Ascbyte *name = lrecord_implementations_table[i]->name;
 	  int len = strlen (name);
 
 	  if (lrecord_stats[i].bytes_in_use_including_overhead != 
@@ -4507,8 +4546,8 @@ object_memory_usage_stats (int set_total_gc_usage)
           || lcrecord_stats[i].bytes_freed != 0
 	  || lcrecord_stats[i].instances_on_free_list != 0)
         {
-          char buf [255];
-          const char *name = lrecord_implementations_table[i]->name;
+          Ascbyte buf[255];
+          const Ascbyte *name = lrecord_implementations_table[i]->name;
 	  int len = strlen (name);
 
           sprintf (buf, "%s-storage", name);
@@ -4724,6 +4763,29 @@ See also `consing-since-gc' and `object-memory-usage-stats'.
 }
 #endif /* ALLOC_TYPE_STATS */
 
+#ifdef USE_VALGRIND
+DEFUN ("valgrind-leak-check", Fvalgrind_leak_check, 0, 0, "", /*
+Ask valgrind to perform a memory leak check.
+The results of the leak check are sent to stderr.
+*/
+       ())
+{
+  VALGRIND_DO_LEAK_CHECK;
+  return Qnil;
+}
+
+DEFUN ("valgrind-quick-leak-check", Fvalgrind_quick_leak_check, 0, 0, "", /*
+Ask valgrind to perform a quick memory leak check.
+This just prints a summary of leaked memory, rather than all the details.
+The results of the leak check are sent to stderr.
+*/
+       ())
+{
+  VALGRIND_DO_QUICK_LEAK_CHECK;
+  return Qnil;
+}
+#endif /* USE_VALGRIND */
+
 void
 recompute_funcall_allocation_flag (void)
 {
@@ -4927,7 +4989,8 @@ common_init_alloc_early (void)
 #ifdef DEBUG_XEMACS
   if (staticpro_nodump_names)
     Dynarr_free (staticpro_nodump_names);
-  staticpro_nodump_names = Dynarr_new2 (char_ptr_dynarr, char *);
+  staticpro_nodump_names = Dynarr_new2 (const_Ascbyte_ptr_dynarr,
+					const Ascbyte *);
   Dynarr_resize (staticpro_nodump_names, 100); /* ditto */
 #endif
 
@@ -4936,9 +4999,10 @@ common_init_alloc_early (void)
   Dynarr_resize (mcpros, 1410); /* merely a small optimization */
   dump_add_root_block_ptr (&mcpros, &mcpros_description);
 #ifdef DEBUG_XEMACS
-  mcpro_names = Dynarr_new2 (char_ptr_dynarr, char *);
+  mcpro_names = Dynarr_new2 (const_Ascbyte_ptr_dynarr, const Ascbyte *);
   Dynarr_resize (mcpro_names, 1410); /* merely a small optimization */
-  dump_add_root_block_ptr (&mcpro_names, &mcpro_names_description);
+  dump_add_root_block_ptr (&mcpro_names,
+			   &const_Ascbyte_ptr_dynarr_description);
 #endif
 #endif /* NEW_GC */
 
@@ -5031,9 +5095,10 @@ init_alloc_once_early (void)
   Dynarr_resize (staticpros, 1410); /* merely a small optimization */
   dump_add_root_block_ptr (&staticpros, &staticpros_description);
 #ifdef DEBUG_XEMACS
-  staticpro_names = Dynarr_new2 (char_ptr_dynarr, char *);
+  staticpro_names = Dynarr_new2 (const_Ascbyte_ptr_dynarr, const Ascbyte *);
   Dynarr_resize (staticpro_names, 1410); /* merely a small optimization */
-  dump_add_root_block_ptr (&staticpro_names, &staticpro_names_description);
+  dump_add_root_block_ptr (&staticpro_names,
+			   &const_Ascbyte_ptr_dynarr_description);
 #endif
 
 #ifdef NEW_GC
@@ -5041,9 +5106,10 @@ init_alloc_once_early (void)
   Dynarr_resize (mcpros, 1410); /* merely a small optimization */
   dump_add_root_block_ptr (&mcpros, &mcpros_description);
 #ifdef DEBUG_XEMACS
-  mcpro_names = Dynarr_new2 (char_ptr_dynarr, char *);
+  mcpro_names = Dynarr_new2 (const_Ascbyte_ptr_dynarr, const Ascbyte *);
   Dynarr_resize (mcpro_names, 1410); /* merely a small optimization */
-  dump_add_root_block_ptr (&mcpro_names, &mcpro_names_description);
+  dump_add_root_block_ptr (&mcpro_names,
+			   &const_Ascbyte_ptr_dynarr_description);
 #endif
 #else /* not NEW_GC */
   init_lcrecord_lists ();
@@ -5078,6 +5144,10 @@ syms_of_alloc (void)
 #endif
   DEFSUBR (Ftotal_memory_usage);
   DEFSUBR (Fconsing_since_gc);
+#ifdef USE_VALGRIND
+  DEFSUBR (Fvalgrind_leak_check);
+  DEFSUBR (Fvalgrind_quick_leak_check);
+#endif
 }
 
 void

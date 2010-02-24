@@ -1,6 +1,6 @@
 /* Lisp object printing and output streams.
    Copyright (C) 1985, 1986, 1988, 1992-1995 Free Software Foundation, Inc.
-   Copyright (C) 1995, 1996, 2000, 2001, 2002, 2003, 2005 Ben Wing.
+   Copyright (C) 1995, 1996, 2000, 2001, 2002, 2003, 2005, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -114,6 +114,9 @@ Lisp_Object Qprint_message_label;
 /* Force immediate output of all printed data.  Used for debugging. */
 int print_unbuffered;
 
+/* Non-zero if in debug-printing */
+int in_debug_print;
+
 FILE *termscript;	/* Stdio stream being used for copy of all output.  */
 
 static void write_string_to_alternate_debugging_output (const Ibyte *str,
@@ -127,13 +130,15 @@ struct debug_bindings
   int print_depth;
   int print_readably;
   int print_unbuffered;
+  int in_debug_print;
   int gc_currently_forbidden;
   Lisp_Object Vprint_length;
   Lisp_Object Vprint_level;
   Lisp_Object Vinhibit_quit;
 };
 
-static Lisp_Object debug_prin1_bindings;
+static int begin_inhibit_non_essential_conversion_operations (void);
+
 
 
 int stdout_needs_newline;
@@ -358,10 +363,12 @@ external_out (int dest, const CIbyte *fmt, ...)
 void
 debug_out (const CIbyte *fmt, ...)
 {
+  int depth =  begin_inhibit_non_essential_conversion_operations ();
   va_list args;
   va_start (args, fmt);
   write_string_to_external_output_va (fmt, args, EXT_PRINT_ALL);
   va_end (args);
+  unbind_to (depth);
 }
 
 DOESNT_RETURN
@@ -651,17 +658,47 @@ write_string_1 (Lisp_Object stream, const Ibyte *str, Bytecount size)
 }
 
 void
-write_string (Lisp_Object stream, const Ibyte *str)
+write_istring (Lisp_Object stream, const Ibyte *str)
 {
   /* This function can GC */
   write_string_1 (stream, str, qxestrlen (str));
 }
 
 void
-write_c_string (Lisp_Object stream, const CIbyte *str)
+write_cistring (Lisp_Object stream, const CIbyte *str)
 {
   /* This function can GC */
-  write_string_1 (stream, (const Ibyte *) str, strlen (str));
+  write_istring (stream, (const Ibyte *) str);
+}
+
+void
+write_ascstring (Lisp_Object stream, const Ascbyte *str)
+{
+  /* This function can GC */
+  ASSERT_ASCTEXT_ASCII (str);
+  write_istring (stream, (const Ibyte *) str);
+}
+
+void
+write_msg_istring (Lisp_Object stream, const Ibyte *str)
+{
+  /* This function can GC */
+  write_istring (stream, IGETTEXT (str));
+}
+
+void
+write_msg_cistring (Lisp_Object stream, const CIbyte *str)
+{
+  /* This function can GC */
+  write_msg_istring (stream, (const Ibyte *) str);
+}
+
+void
+write_msg_ascstring (Lisp_Object stream, const Ascbyte *str)
+{
+  /* This function can GC */
+  ASSERT_ASCTEXT_ASCII (str);
+  write_msg_istring (stream, (const Ibyte *) str);
 }
 
 void
@@ -844,7 +881,7 @@ If STREAM is omitted or nil, the value of `standard-output' is used.
        (stream))
 {
   /* This function can GC */
-  write_c_string (canonicalize_printcharfun (stream), "\n");
+  write_ascstring (canonicalize_printcharfun (stream), "\n");
   return Qt;
 }
 
@@ -941,9 +978,9 @@ Output stream is STREAM, or value of `standard-output' (which see).
 
   GCPRO2 (object, stream);
   stream = print_prepare (stream, &frame);
-  write_c_string (stream, "\n");
+  write_ascstring (stream, "\n");
   print_internal (object, stream, 1);
-  write_c_string (stream, "\n");
+  write_ascstring (stream, "\n");
   print_finish (stream, frame);
   UNGCPRO;
   return object;
@@ -1019,7 +1056,7 @@ print_error_message (Lisp_Object error_object, Lisp_Object stream)
       }
     while (!NILP (tail))
       {
-	write_c_string (stream, first ? ": " : ", ");
+	write_ascstring (stream, first ? ": " : ", ");
 	/* Most errors have an explanatory string as their first argument,
 	   and it looks better not to put the quotes around it. */
 	print_internal (Fcar (tail), stream,
@@ -1039,7 +1076,7 @@ print_error_message (Lisp_Object error_object, Lisp_Object stream)
  error_throw:
   if (NILP (method))
     {
-      write_c_string (stream, GETTEXT ("Peculiar error "));
+      write_ascstring (stream, GETTEXT ("Peculiar error "));
       print_internal (error_object, stream, 1);
       return;
     }
@@ -1323,17 +1360,17 @@ print_vector_internal (const char *start, const char *end,
       if (max < len) last = max;
     }
 
-  write_c_string (printcharfun, start);
+  write_cistring (printcharfun, start);
   for (i = 0; i < last; i++)
     {
       Lisp_Object elt = XVECTOR_DATA (obj)[i];
-      if (i != 0) write_c_string (printcharfun, " ");
+      if (i != 0) write_ascstring (printcharfun, " ");
       print_internal (elt, printcharfun, escapeflag);
     }
   UNGCPRO;
   if (last != len)
-    write_c_string (printcharfun, " ...");
-  write_c_string (printcharfun, end);
+    write_ascstring (printcharfun, " ...");
+  write_cistring (printcharfun, end);
 }
 
 void
@@ -1354,14 +1391,14 @@ print_cons (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
     {
       obj = XCAR (XCDR (obj));
       GCPRO2 (obj, printcharfun);
-      write_c_string (printcharfun, "\'");
+      write_ascstring (printcharfun, "\'");
       UNGCPRO;
       print_internal (obj, printcharfun, escapeflag);
       return;
     }
 
   GCPRO2 (obj, printcharfun);
-  write_c_string (printcharfun, "(");
+  write_ascstring (printcharfun, "(");
 
   {
     int len;
@@ -1374,20 +1411,20 @@ print_cons (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 	 obj = XCDR (obj), len++)
       {
 	if (len > 0)
-	  write_c_string (printcharfun, " ");
+	  write_ascstring (printcharfun, " ");
 	if (EQ (obj, tortoise) && len > 0)
 	  {
 	    if (print_readably)
 	      printing_unreadable_object ("circular list");
 	    else
-	      write_c_string (printcharfun, "... <circular list>");
+	      write_ascstring (printcharfun, "... <circular list>");
 	    break;
 	  }
 	if (len & 1)
 	  tortoise = XCDR (tortoise);
 	if (len > max)
 	  {
-	    write_c_string (printcharfun, "...");
+	    write_ascstring (printcharfun, "...");
 	    break;
 	  }
 	print_internal (XCAR (obj), printcharfun, escapeflag);
@@ -1395,12 +1432,12 @@ print_cons (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
   }
   if (!LISTP (obj))
     {
-      write_c_string (printcharfun, " . ");
+      write_ascstring (printcharfun, " . ");
       print_internal (obj, printcharfun, escapeflag);
     }
   UNGCPRO;
 
-  write_c_string (printcharfun, ")");
+  write_ascstring (printcharfun, ")");
   return;
 }
 
@@ -1438,13 +1475,13 @@ print_string (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
       /* This deals with GC-relocation and Mule. */
       output_string (printcharfun, 0, obj, 0, bcmax);
       if (max < size)
-	write_c_string (printcharfun, " ...");
+	write_ascstring (printcharfun, " ...");
     }
   else
     {
       Bytecount i, last = 0;
 
-      write_c_string (printcharfun, "\"");
+      write_ascstring (printcharfun, "\"");
       for (i = 0; i < bcmax; i++)
 	{
 	  Ibyte ch = string_byte (obj, i);
@@ -1458,17 +1495,17 @@ print_string (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 		}
 	      if (ch == '\n')
 		{
-		  write_c_string (printcharfun, "\\n");
+		  write_ascstring (printcharfun, "\\n");
 		}
 	      else
 		{
 		  Ibyte temp[2];
-		  write_c_string (printcharfun, "\\");
+		  write_ascstring (printcharfun, "\\");
 		  /* This is correct for Mule because the
 		     character is either \ or " */
 		  temp[0] = string_byte (obj, i);
 		  temp[1] = '\0';
-		  write_string (printcharfun, temp);
+		  write_istring (printcharfun, temp);
 		}
 	      last = i + 1;
 	    }
@@ -1479,19 +1516,47 @@ print_string (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 			 bcmax - last);
 	}
       if (max < size)
-	write_c_string (printcharfun, " ...");
-      write_c_string (printcharfun, "\"");
+	write_ascstring (printcharfun, " ...");
+      write_ascstring (printcharfun, "\"");
     }
   UNGCPRO;
 }
 
-void
-external_object_printer (Lisp_Object obj, Lisp_Object printcharfun,
-			 int UNUSED (escapeflag))
+DOESNT_RETURN
+printing_unreadable_object (const Ascbyte *fmt, ...)
+{
+  Lisp_Object obj;
+  va_list args;
+
+  va_start (args, fmt);
+  obj = emacs_vsprintf_string (GETTEXT (fmt), args);
+  va_end (args);
+
+  /* Fsignal GC-protects its args */
+  signal_error (Qprinting_unreadable_object, 0, obj);
+}
+
+DOESNT_RETURN
+printing_unreadable_lcrecord (Lisp_Object obj, const Ibyte *name)
 {
   LISP_OBJECT_HEADER *header = (LISP_OBJECT_HEADER *) XPNTR (obj);
 
-  if (print_readably)
+#ifndef NEW_GC
+  /* This must be a real lcrecord */
+  assert (!LHEADER_IMPLEMENTATION (&header->lheader)->basic_p);
+#endif
+
+  if (name)
+    printing_unreadable_object
+      ("#<%s %s 0x%x>",
+#ifdef NEW_GC
+       LHEADER_IMPLEMENTATION (header)->name,
+#else /* not NEW_GC */
+       LHEADER_IMPLEMENTATION (&header->lheader)->name,
+#endif /* not NEW_GC */
+       name,
+       header->uid);
+  else
     printing_unreadable_object
       ("#<%s 0x%x>",
 #ifdef NEW_GC
@@ -1500,6 +1565,21 @@ external_object_printer (Lisp_Object obj, Lisp_Object printcharfun,
        LHEADER_IMPLEMENTATION (&header->lheader)->name,
 #endif /* not NEW_GC */
        header->uid);
+}
+
+void
+external_object_printer (Lisp_Object obj, Lisp_Object printcharfun,
+			 int UNUSED (escapeflag))
+{
+  LISP_OBJECT_HEADER *header = (LISP_OBJECT_HEADER *) XPNTR (obj);
+
+#ifndef NEW_GC
+  /* This must be a real lcrecord */
+  assert (!LHEADER_IMPLEMENTATION (&header->lheader)->basic_p);
+#endif
+
+  if (print_readably)
+    printing_unreadable_lcrecord (obj, 0);
 
   write_fmt_string (printcharfun, "#<%s 0x%x>",
 #ifdef NEW_GC
@@ -1520,6 +1600,9 @@ internal_object_printer (Lisp_Object obj, Lisp_Object printcharfun,
        XRECORD_LHEADER_IMPLEMENTATION (obj)->name,
        (unsigned long) XPNTR (obj));
 
+  /* Internal objects shouldn't normally escape to the Lisp level;
+     that's why we say "XEmacs bug?".  This can happen, however, when
+     printing backtraces. */
   write_fmt_string (printcharfun,
 		    "#<INTERNAL OBJECT (XEmacs bug?) (%s) 0x%lx>",
 		    XRECORD_LHEADER_IMPLEMENTATION (obj)->name,
@@ -1530,25 +1613,31 @@ enum printing_badness
 {
   BADNESS_INTEGER_OBJECT,
   BADNESS_POINTER_OBJECT,
+  BADNESS_POINTER_OBJECT_WITH_DATA,
   BADNESS_NO_TYPE
 };
 
 static void
 printing_major_badness (Lisp_Object printcharfun,
 			const Ascbyte *badness_string, int type, void *val,
-			enum printing_badness badness)
+			void *val2, enum printing_badness badness)
 {
   Ibyte buf[666];
 
   switch (badness)
     {
     case BADNESS_INTEGER_OBJECT:
-      qxesprintf (buf, "%s %d object %ld", badness_string, type,
+      qxesprintf (buf, "%s type %d object %ld", badness_string, type,
 		  (EMACS_INT) val);
       break;
 
     case BADNESS_POINTER_OBJECT:
-      qxesprintf (buf, "%s %d object %p", badness_string, type, val);
+      qxesprintf (buf, "%s type %d object %p", badness_string, type, val);
+      break;
+
+    case BADNESS_POINTER_OBJECT_WITH_DATA:
+      qxesprintf (buf, "%s type %d object %p data %p", badness_string, type,
+		  val, val2);
       break;
 
     case BADNESS_NO_TYPE:
@@ -1564,12 +1653,14 @@ printing_major_badness (Lisp_Object printcharfun,
       ABORT ();
 #else  /* not ERROR_CHECK_TYPES */
       if (print_readably)
-	signal_ferror (Qinternal_error, "printing %s", buf);
+	signal_ferror (Qinternal_error, "SERIOUS XEMACS BUG: printing %s; "
+		       "save your buffers immediately and please report "
+		       "this bug", buf);
 #endif /* not ERROR_CHECK_TYPES */
     }
   write_fmt_string (printcharfun,
-		    "#<EMACS BUG: %s Save your buffers immediately and "
-		    "please report this bug>", buf);
+		    "#<SERIOUS XEMACS BUG: %s Save your buffers immediately "
+		    "and please report this bug>", buf);
 }
 
 void
@@ -1589,6 +1680,13 @@ print_internal (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
   /* Just to be safe ... */
   GCPRO2 (obj, printcharfun);
 
+  /* WARNING WARNING WARNING!!!  Don't put anything here that might
+     dereference memory.  Instead, put it down inside of
+     the case Lisp_Type_Record, after the appropriate checks to make sure
+     we're not dereferencing bad memory.  The idea is that, ideally,
+     calling debug_print() should *NEVER* make the program crash, even when
+     something very bad has happened. --ben */
+
 #ifdef I18N3
   /* #### Both input and output streams should have a flag associated
      with them indicating whether output to that stream, or strings
@@ -1601,23 +1699,6 @@ print_internal (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
      output. */
 #endif
 
-  /* Detect circularities and truncate them.
-     No need to offer any alternative--this is better than an error.  */
-  if (CONSP (obj) || VECTORP (obj) || COMPILED_FUNCTIONP (obj))
-    {
-      int i;
-      for (i = 0; i < print_depth; i++)
-	if (EQ (obj, being_printed[i]))
-	  {
-	    char buf[DECIMAL_PRINT_SIZE (long) + 1];
-	    *buf = '#';
-	    long_to_string (buf + 1, i);
-	    write_c_string (printcharfun, buf);
-	    UNGCPRO;
-	    return;
-	  }
-    }
-
   being_printed[print_depth] = obj;
 
   /* Avoid calling internal_bind_int, which conses, when called from
@@ -1627,7 +1708,8 @@ print_internal (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
       specdepth = internal_bind_int (&print_depth, print_depth + 1);
 
       if (print_depth > PRINT_CIRCLE)
-	signal_error (Qstack_overflow, "Apparently circular structure being printed", Qunbound);
+	signal_error (Qstack_overflow,
+		      "Apparently circular structure being printed", Qunbound);
     }
 
   switch (XTYPE (obj))
@@ -1635,9 +1717,9 @@ print_internal (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
     case Lisp_Type_Int_Even:
     case Lisp_Type_Int_Odd:
       {
-	char buf[DECIMAL_PRINT_SIZE (EMACS_INT)];
+	Ascbyte buf[DECIMAL_PRINT_SIZE (EMACS_INT)];
 	long_to_string (buf, XINT (obj));
-	write_c_string (printcharfun, buf);
+	write_ascstring (printcharfun, buf);
 	break;
       }
 
@@ -1710,69 +1792,100 @@ print_internal (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
       {
 	struct lrecord_header *lheader = XRECORD_LHEADER (obj);
 
-	/* Try to check for various sorts of bogus pointers if we're in a
-	   situation where it may be likely -- i.e. called from
-	   debug_print() or we're already crashing.  In such cases,
-	   (further) crashing is counterproductive. */
+	/* Try to check for various sorts of bogus pointers or bad memory
+	   if we're in a situation where it may be likely -- i.e. called
+	   from debug_print() or we're already crashing.  In such cases,
+	   (further) crashing is counterproductive.
 
-	if (inhibit_non_essential_conversion_operations &&
-	    !debug_can_access_memory (lheader, sizeof (*lheader)))
-	    {
-	      write_fmt_string (printcharfun, "#<EMACS BUG: BAD MEMORY %p>",
-				lheader);
-	      break;
-	    }
+	   We don't normally do these because they may be expensive or
+	   weird (e.g. under Unix we typically have to set a SIGSEGV
+	   handler and try to trigger a seg fault). */
 
-	if (CONSP (obj) || VECTORP (obj))
+	if (!lheader)
 	  {
-	    /* If deeper than spec'd depth, print placeholder.  */
-	    if (INTP (Vprint_level)
-		&& print_depth > XINT (Vprint_level))
-	      {
-		write_c_string (printcharfun, "...");
-		break;
-	      }
+	    /* i.e. EQ Qnull_pointer */
+	    printing_major_badness (printcharfun, "NULL POINTER LRECORD", 0,
+				    0, 0, BADNESS_NO_TYPE);
+	    break;
 	  }
 
+	/* First check to see if the lrecord header itself is garbage. */
+	if (inhibit_non_essential_conversion_operations &&
+	    !debug_can_access_memory (lheader, sizeof (*lheader)))
+	  {
+	    printing_major_badness (printcharfun,
+				    "BAD MEMORY in LRECORD HEADER", 0,
+				    lheader, 0, BADNESS_NO_TYPE);
+	      break;
+	  }
+
+	/* Check to see if the lrecord type is garbage. */
 #ifndef NEW_GC
 	if (lheader->type == lrecord_type_free)
 	  {
-	    printing_major_badness (printcharfun, "freed lrecord", 0,
-				    lheader, BADNESS_NO_TYPE);
+	    printing_major_badness (printcharfun, "FREED LRECORD", 0,
+				    lheader, 0, BADNESS_NO_TYPE);
 	    break;
 	  }
-	else if (lheader->type == lrecord_type_undefined)
+	if (lheader->type == lrecord_type_undefined)
 	  {
-	    printing_major_badness (printcharfun, "lrecord_type_undefined", 0,
-				    lheader, BADNESS_NO_TYPE);
+	    printing_major_badness (printcharfun, "LRECORD_TYPE_UNDEFINED", 0,
+				    lheader, 0, BADNESS_NO_TYPE);
 	    break;
 	  }
 #endif /* not NEW_GC */
-	else if ((int) (lheader->type) >= lrecord_type_count)
+	if ((int) (lheader->type) >= lrecord_type_count)
 	  {
-	    printing_major_badness (printcharfun, "illegal lrecord type",
+	    printing_major_badness (printcharfun, "ILLEGAL LRECORD TYPE",
 				    (int) (lheader->type),
-				    lheader, BADNESS_POINTER_OBJECT);
+				    lheader, 0, BADNESS_POINTER_OBJECT);
 	    break;
 	  }
 
-	/* Further checks for bad memory in critical situations.  We don't
-	   normally do these because they may be expensive or weird
-	   (e.g. under Unix we typically have to set a SIGSEGV handler and
-	   try to trigger a seg fault). */
+	/* Check to see if the lrecord implementation is missing or garbage. */
+	{
+	  const struct lrecord_implementation *imp =
+	    LHEADER_IMPLEMENTATION (lheader);
+
+	  if (!imp)
+	    {
+	      printing_major_badness
+		(printcharfun, "NO IMPLEMENTATION FOR LRECORD TYPE",
+		 (int) (lheader->type),
+		 lheader, 0, BADNESS_POINTER_OBJECT);
+	      break;
+	    }
+
+	  if (inhibit_non_essential_conversion_operations)
+	    {
+	      if (!debug_can_access_memory (imp, sizeof (*imp)))
+		{
+		  printing_major_badness
+		    (printcharfun, "BAD MEMORY IN LRECORD IMPLEMENTATION",
+		     (int) (lheader->type),
+		     lheader, 0, BADNESS_POINTER_OBJECT);
+		}
+	    }
+	}
+
+	/* Check to see if any of the memory of the lrecord is inaccessible.
+	   Note that we already checked above to see if the first part of
+	   the lrecord (the header) is inaccessible, which will catch most
+	   cases of a totally bad pointer.  */
 
 	if (inhibit_non_essential_conversion_operations)
 	  {
 	    if (!debug_can_access_memory
 		(lheader, detagged_lisp_object_size (lheader)))
 	      {
-		write_fmt_string (printcharfun,
-				  "#<EMACS BUG: type %s BAD MEMORY %p>",
-				  LHEADER_IMPLEMENTATION (lheader)->name,
-				  lheader);
+		printing_major_badness (printcharfun,
+					"BAD MEMORY IN LRECORD",
+					(int) (lheader->type),
+					lheader, 0, BADNESS_POINTER_OBJECT);
 		break;
 	      }
 
+	    /* For strings, also check the data of the string itself. */
 	    if (STRINGP (obj))
 	      {
 #ifdef NEW_GC
@@ -1789,13 +1902,42 @@ print_internal (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 		Lisp_String *l = (Lisp_String *) lheader;
 		if (!debug_can_access_memory (l->data_, l->size_))
 		  {
-		    write_fmt_string
-		      (printcharfun,
-		       "#<EMACS BUG: %p (BAD STRING DATA %p)>",
-		       lheader, l->data_);
+		    printing_major_badness (printcharfun,
+		       "BAD STRING DATA", (int) (lheader->type),
+					    lheader, l->data_,
+					    BADNESS_POINTER_OBJECT_WITH_DATA);
 		    break;
 		  }
 #endif /* not NEW_GC */
+	      }
+	  }
+
+	/* Detect circularities and truncate them.
+	   No need to offer any alternative--this is better than an error.  */
+	if (CONSP (obj) || VECTORP (obj) || COMPILED_FUNCTIONP (obj))
+	  {
+	    int i;
+	    for (i = 0; i < print_depth - 1; i++)
+	      if (EQ (obj, being_printed[i]))
+		{
+		  Ascbyte buf[DECIMAL_PRINT_SIZE (long) + 1];
+		  *buf = '#';
+		  long_to_string (buf + 1, i);
+		  write_ascstring (printcharfun, buf);
+		  break;
+		}
+	    if (i < print_depth - 1) /* Did we print something? */
+	      break;
+	  }
+
+	if (CONSP (obj) || VECTORP (obj))
+	  {
+	    /* If deeper than spec'd depth, print placeholder.  */
+	    if (INTP (Vprint_level)
+		&& print_depth > XINT (Vprint_level))
+	      {
+		write_ascstring (printcharfun, "...");
+		break;
 	      }
 	  }
 
@@ -1812,8 +1954,9 @@ print_internal (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
     default:
       {
 	/* We're in trouble if this happens! */
-	printing_major_badness (printcharfun, "illegal data type", XTYPE (obj),
-				LISP_TO_VOID (obj), BADNESS_INTEGER_OBJECT);
+	printing_major_badness (printcharfun, "ILLEGAL LISP OBJECT TAG TYPE",
+				XTYPE (obj), STORE_LISP_IN_VOID (obj), 0,
+				BADNESS_INTEGER_OBJECT);
 	break;
       }
     }
@@ -1827,10 +1970,10 @@ void
 print_float (Lisp_Object obj, Lisp_Object printcharfun,
 	     int UNUSED (escapeflag))
 {
-  char pigbuf[350];	/* see comments in float_to_string */
+  Ascbyte pigbuf[350];	/* see comments in float_to_string */
 
   float_to_string (pigbuf, XFLOAT_DATA (obj));
-  write_c_string (printcharfun, pigbuf);
+  write_ascstring (printcharfun, pigbuf);
 }
 
 void
@@ -1866,9 +2009,9 @@ print_symbol (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 	  Lisp_Object tem = Fassq (obj, Vprint_gensym_alist);
 	  if (CONSP (tem))
 	    {
-	      write_c_string (printcharfun, "#");
+	      write_ascstring (printcharfun, "#");
 	      print_internal (XCDR (tem), printcharfun, escapeflag);
-	      write_c_string (printcharfun, "#");
+	      write_ascstring (printcharfun, "#");
 	      UNGCPRO;
 	      return;
 	    }
@@ -1886,12 +2029,12 @@ print_symbol (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 		tem = make_int (1);
 	      Vprint_gensym_alist = Fcons (Fcons (obj, tem), Vprint_gensym_alist);
 
-	      write_c_string (printcharfun, "#");
+	      write_ascstring (printcharfun, "#");
 	      print_internal (tem, printcharfun, escapeflag);
-	      write_c_string (printcharfun, "=");
+	      write_ascstring (printcharfun, "=");
 	    }
 	}
-      write_c_string (printcharfun, "#:");
+      write_ascstring (printcharfun, "#:");
     }
 
   /* Does it look like an integer or a float? */
@@ -1926,7 +2069,7 @@ print_symbol (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
          from FSF.  --hniksic */
       confusing = isfloat_string ((char *) data);
     if (confusing)
-      write_c_string (printcharfun, "\\");
+      write_ascstring (printcharfun, "\\");
   }
 
   {
@@ -1951,7 +2094,7 @@ print_symbol (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 	  case '[': case ']' : case '?' :
 	    if (i > last)
 	      output_string (printcharfun, 0, name, last, i - last);
-	    write_c_string (printcharfun, "\\");
+	    write_ascstring (printcharfun, "\\");
 	    last = i;
 	  }
       }
@@ -2010,8 +2153,8 @@ write_string_to_alternate_debugging_output (const Ibyte *str, Bytecount len)
   if (alternate_do_pointer + extlen >= alternate_do_size)
     {
       alternate_do_size =
-	max(alternate_do_size * 2, alternate_do_pointer + extlen + 1);
-      XREALLOC_ARRAY (alternate_do_string, char, alternate_do_size);
+	max (alternate_do_size * 2, alternate_do_pointer + extlen + 1);
+      XREALLOC_ARRAY (alternate_do_string, CIbyte, alternate_do_size);
     }
   memcpy (alternate_do_string + alternate_do_pointer, extptr, extlen);
   alternate_do_pointer += extlen;
@@ -2128,28 +2271,90 @@ FILENAME = nil means just close any termscript file currently open.
   return Qnil;
 }
 
+static Lisp_Object
+restore_inhibit_non_essential_conversion_operations (Lisp_Object obj)
+{
+  inhibit_non_essential_conversion_operations = XINT (obj);
+  return Qnil;
+}
+
+/* Bind the value of inhibit_non_essential_conversion_operations to 1
+   in a way that involves no consing. */
+static int
+begin_inhibit_non_essential_conversion_operations (void)
+{
+  int depth =
+    record_unwind_protect
+    (restore_inhibit_non_essential_conversion_operations,
+     make_int (inhibit_non_essential_conversion_operations));
+  inhibit_non_essential_conversion_operations = 1;
+  return depth;
+}
+
 static int debug_print_length   = 50;
 static int debug_print_level    = 15;
 static int debug_print_readably = -1;
 
 /* Restore values temporarily bound by debug_prin1.  We use this approach to
-   avoid consing in debug_prin1.  That is verboten, since debug_prin1 can be
+   avoid consing in debug_prin1.  That is verboten, since debug_print can be
    called by cons debugging code. */
 static Lisp_Object
-debug_prin1_exit (Lisp_Object UNUSED (ignored))
+debug_print_exit (Lisp_Object val)
 {
-  struct debug_bindings *bindings = 
-    (struct debug_bindings *) XOPAQUE (debug_prin1_bindings)->data;
+  struct debug_bindings *bindings =
+    (struct debug_bindings *) GET_VOID_FROM_LISP (val);
   inhibit_non_essential_conversion_operations =
     bindings->inhibit_non_essential_conversion_operations;
   print_depth = bindings->print_depth;
   print_readably = bindings->print_readably;
   print_unbuffered = bindings->print_unbuffered;
+  in_debug_print = bindings->in_debug_print;
   gc_currently_forbidden = bindings->gc_currently_forbidden;
   Vprint_length = bindings->Vprint_length;
   Vprint_level = bindings->Vprint_level;
   Vinhibit_quit = bindings->Vinhibit_quit;
   return Qnil;
+}
+
+/* Save values and bind them to new values suitable for debug output.  We
+   try very hard to avoid any Lisp allocation (i.e. consing) during the
+   operation of debug printing, since we might be calling it from inside GC
+   or other sensitive places.  This means we have to be a bit careful with
+   record_unwind_protect to not create any temporary Lisp objects. */
+
+static int
+debug_print_enter (struct debug_bindings *bindings)
+{
+  /* by doing this, we trick various things that are non-essential
+     but might cause crashes into not getting executed. */
+  int specdepth;
+
+  bindings->inhibit_non_essential_conversion_operations =
+    inhibit_non_essential_conversion_operations;
+  bindings->print_depth = print_depth;
+  bindings->print_readably = print_readably;
+  bindings->print_unbuffered = print_unbuffered;
+  bindings->in_debug_print = in_debug_print;
+  bindings->gc_currently_forbidden = gc_currently_forbidden;
+  bindings->Vprint_length = Vprint_length;
+  bindings->Vprint_level = Vprint_level;
+  bindings->Vinhibit_quit = Vinhibit_quit;
+  specdepth = record_unwind_protect (debug_print_exit,
+				     STORE_VOID_IN_LISP (bindings));
+
+  inhibit_non_essential_conversion_operations = 1;
+  print_depth = 0;
+  print_readably = debug_print_readably != -1 ? debug_print_readably : 0;
+  print_unbuffered++;
+  in_debug_print = 1;
+  gc_currently_forbidden = 1;
+  if (debug_print_length > 0)
+    Vprint_length = make_int (debug_print_length);
+  if (debug_print_level > 0)
+    Vprint_level = make_int (debug_print_level);
+  Vinhibit_quit = Qt;
+
+  return specdepth;
 }
 
 /* Print an object, `prin1'-style, to various possible debugging outputs.
@@ -2159,34 +2364,9 @@ debug_prin1_exit (Lisp_Object UNUSED (ignored))
 static void
 debug_prin1 (Lisp_Object debug_print_obj, int flags)
 {
-  /* This function can GC */
-
-  /* by doing this, we trick various things that are non-essential
-     but might cause crashes into not getting executed. */
-  int specdepth;
-  struct debug_bindings *bindings = 
-    (struct debug_bindings *) XOPAQUE (debug_prin1_bindings)->data;
-
-  bindings->inhibit_non_essential_conversion_operations =
-    inhibit_non_essential_conversion_operations;
-  bindings->print_depth = print_depth;
-  bindings->print_readably = print_readably;
-  bindings->print_unbuffered = print_unbuffered;
-  bindings->gc_currently_forbidden = gc_currently_forbidden;
-  bindings->Vprint_length = Vprint_length;
-  bindings->Vprint_level = Vprint_level;
-  bindings->Vinhibit_quit = Vinhibit_quit;
-  specdepth = record_unwind_protect (debug_prin1_exit, Qnil);
-
-  inhibit_non_essential_conversion_operations = 1;
-  print_depth = 0;
-  print_readably = debug_print_readably != -1 ? debug_print_readably : 0;
-  print_unbuffered++;
-  if (debug_print_length > 0)
-    Vprint_length = make_int (debug_print_length);
-  if (debug_print_level > 0)
-    Vprint_level = make_int (debug_print_level);
-  Vinhibit_quit = Qt;
+  /* This function cannot GC, since GC is forbidden */
+  struct debug_bindings bindings;
+  int specdepth = debug_print_enter (&bindings);
 
   if ((flags & EXT_PRINT_STDOUT) || (flags & EXT_PRINT_STDERR))
     print_internal (debug_print_obj, Qexternal_debugging_output, 1);
@@ -2206,7 +2386,6 @@ debug_prin1 (Lisp_Object debug_print_obj, int flags)
 void
 debug_p4 (Lisp_Object obj)
 {
-  inhibit_non_essential_conversion_operations = 1;
   if (STRINGP (obj))
     debug_out ("\"%s\"", XSTRING_DATA (obj));
   else if (CONSP (obj))
@@ -2280,42 +2459,41 @@ debug_p4 (Lisp_Object obj)
 				((struct old_lcrecord_header *) header)->uid));
 #endif /* not NEW_GC */
     }
-
-  inhibit_non_essential_conversion_operations = 0;
 }
 
-static void
+static int
 ext_print_begin (int dest)
 {
+  int depth = begin_inhibit_non_essential_conversion_operations ();
   if (dest & EXT_PRINT_ALTERNATE)
     alternate_do_pointer = 0;
   if (dest & (EXT_PRINT_STDERR | EXT_PRINT_STDOUT))
     stdout_clear_before_next_output = 1;
+  return depth;
 }
 
 static void
-ext_print_end (int dest)
+ext_print_end (int dest, int depth)
 {
   if (dest & (EXT_PRINT_MSWINDOWS | EXT_PRINT_STDERR | EXT_PRINT_STDOUT))
     external_out (dest & (EXT_PRINT_MSWINDOWS | EXT_PRINT_STDERR |
 			  EXT_PRINT_STDOUT), "\n");
+  unbind_to (depth);
 }
 
 static void
 external_debug_print (Lisp_Object object, int dest)
 {
-  ext_print_begin (dest);
+  int depth = ext_print_begin (dest);
   debug_prin1 (object, dest);
-  ext_print_end (dest);
+  ext_print_end (dest, depth);
 }
 
 void
 debug_p3 (Lisp_Object obj)
 {
   debug_p4 (obj);
-  inhibit_non_essential_conversion_operations = 1;
   debug_out ("\n");
-  inhibit_non_essential_conversion_operations = 0;
 }
 
 void
@@ -2347,22 +2525,9 @@ dpa (Lisp_Object debug_print_obj)
 void
 debug_backtrace (void)
 {
-  /* This function can GC */
-
-  /* by doing this, we trick various things that are non-essential
-     but might cause crashes into not getting executed. */
-  int specdepth = 
-    internal_bind_int (&inhibit_non_essential_conversion_operations, 1);
-
-  internal_bind_int (&print_depth, 0);
-  internal_bind_int (&print_readably, 0);
-  internal_bind_int (&print_unbuffered, print_unbuffered + 1);
-  if (debug_print_length > 0)
-    internal_bind_lisp_object (&Vprint_length, make_int (debug_print_length));
-  if (debug_print_level > 0)
-    internal_bind_lisp_object (&Vprint_level, make_int (debug_print_level));
-  /* #### Do we need this?  It was in the old code. */
-  internal_bind_lisp_object (&Vinhibit_quit, Vinhibit_quit);
+  /* This function cannot GC, since GC is forbidden */
+  struct debug_bindings bindings;
+  int specdepth = debug_print_enter (&bindings);
 
   Fbacktrace (Qexternal_debugging_output, Qt);
   stderr_out ("\n");
@@ -2383,6 +2548,7 @@ debug_short_backtrace (int length)
 {
   int first = 1;
   struct backtrace *bt = backtrace_list;
+
   debug_out ("   [");
   while (length > 0 && bt)
     {
@@ -2562,10 +2728,9 @@ generally be bound with `let' rather than set.  (See `display-message'.)
 */ );
   Vprint_message_label = Qprint;
 
-  debug_prin1_bindings =
-    make_opaque (OPAQUE_UNINIT, sizeof (struct debug_bindings));
-  staticpro (&debug_prin1_bindings);
-
+  /* The exact size doesn't matter since we realloc when necessary.
+     Use CIbyte instead of Ibyte so that debuggers show the associated
+     string automatically. */
   alternate_do_size = 5000;
-  alternate_do_string = xnew_array(char, 5000);
+  alternate_do_string = xnew_array (CIbyte, 5000);
 }

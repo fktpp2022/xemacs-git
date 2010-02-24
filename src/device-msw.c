@@ -300,7 +300,7 @@ mswindows_delete_device (struct device *d)
 
   DeleteDC (DEVICE_MSWINDOWS_HCDC (d));
 #ifndef NEW_GC
-  xfree (d->device_data, void *);
+  xfree (d->device_data);
 #endif /* not NEW_GC */
 }
 
@@ -441,7 +441,7 @@ msprinter_init_device_internal (struct device *d, Lisp_Object printer_name)
 
   DEVICE_MSPRINTER_NAME (d) = printer_name;
 
-  LISP_STRING_TO_TSTR (printer_name, printer_ext);
+  printer_ext = LISP_STRING_TO_TSTR (printer_name);
 
   if (!qxeOpenPrinter (printer_ext, &DEVICE_MSPRINTER_HPRINTER (d), NULL))
     {
@@ -493,7 +493,7 @@ msprinter_default_printer (void)
   if (qxeGetProfileString (XETEXT ("windows"), XETEXT ("device"), NULL, name,
 			   sizeof (name) / XETCHAR_SIZE) <= 0)
     return Qnil;
-  TSTR_TO_C_STRING (name, nameint);
+  nameint = TSTR_TO_ITEXT (name);
 
   if (nameint[0] == '\0')
     return Qnil;
@@ -502,7 +502,7 @@ msprinter_default_printer (void)
      name[] or ALLOCA ()ed */
   qxestrtok (nameint, ",");
 
-  return build_intstring (nameint);
+  return build_istring (nameint);
 }
 
 
@@ -539,7 +539,7 @@ msprinter_init_device (struct device *d, Lisp_Object UNUSED (props))
   if (!msprinter_init_device_internal (d, DEVICE_CONNECTION (d)))
     signal_open_printer_error (d);
 
-  LISP_STRING_TO_TSTR (DEVICE_CONNECTION (d), printer_name);
+  printer_name = LISP_STRING_TO_TSTR (DEVICE_CONNECTION (d));
   /* Determine DEVMODE size and store the default DEVMODE */
   dm_size = qxeDocumentProperties (NULL, DEVICE_MSPRINTER_HPRINTER (d),
 				   printer_name, NULL, NULL, 0);
@@ -573,7 +573,7 @@ msprinter_delete_device (struct device *d)
 	}
 
 #ifndef NEW_GC
-      xfree (d->device_data, void *);
+      xfree (d->device_data);
 #endif /* not NEW_GC */
     }
 }
@@ -652,7 +652,7 @@ sync_printer_with_devmode (struct device* d, DEVMODEW* devmode_in,
 {
   /* Change connection if the device changed */
   if (!NILP (devname)
-      && lisp_strcasecmp (devname, DEVICE_MSPRINTER_NAME (d)) != 0)
+      && lisp_strcasecmp_i18n (devname, DEVICE_MSPRINTER_NAME (d)) != 0)
     {
       Lisp_Object new_connection = devname;
 
@@ -666,7 +666,7 @@ sync_printer_with_devmode (struct device* d, DEVMODEW* devmode_in,
 	  Ibyte new_connext[20];
 
 	  qxesprintf (new_connext, ":%X", d->header.uid);
-	  new_connection = concat2 (devname, build_intstring (new_connext));
+	  new_connection = concat2 (devname, build_istring (new_connext));
 	}
       DEVICE_CONNECTION (d) = new_connection;
 
@@ -681,7 +681,7 @@ sync_printer_with_devmode (struct device* d, DEVMODEW* devmode_in,
   {
     Extbyte *nameext;
 
-    LISP_STRING_TO_TSTR (DEVICE_MSPRINTER_NAME (d), nameext);
+    nameext = LISP_STRING_TO_TSTR (DEVICE_MSPRINTER_NAME (d));
 
     /* Apply the new devmode to the printer */
     qxeDocumentProperties (NULL, DEVICE_MSPRINTER_HPRINTER (d),
@@ -1037,7 +1037,7 @@ Return value is the previously selected settings object.
       Extbyte *nameext;
       LONG dm_size;
 
-      LISP_STRING_TO_TSTR (DEVICE_MSPRINTER_NAME (d), nameext);
+      nameext = LISP_STRING_TO_TSTR (DEVICE_MSPRINTER_NAME (d));
       dm_size = qxeDocumentProperties (NULL, DEVICE_MSPRINTER_HPRINTER (d),
 				       nameext, NULL, NULL, 0);
       if (dm_size <= 0)
@@ -1148,9 +1148,8 @@ print_devmode (Lisp_Object obj, Lisp_Object printcharfun,
 {
   Lisp_Devmode *dm = XDEVMODE (obj);
   if (print_readably)
-    printing_unreadable_object ("#<msprinter-settings 0x%x>",
-				dm->header.uid);
-  write_c_string (printcharfun, "#<msprinter-settings");
+    printing_unreadable_lcrecord (obj, 0);
+  write_ascstring (printcharfun, "#<msprinter-settings");
   if (!NILP (dm->printer_name))
     write_fmt_string_lisp (printcharfun, " for %S", 1, dm->printer_name);
   if (!NILP (dm->device))
@@ -1167,7 +1166,8 @@ finalize_devmode (void *header)
 }
 
 static int
-equal_devmode (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth))
+equal_devmode (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth),
+	       int UNUSED (foldcase))
 {
   Lisp_Devmode *dm1 = XDEVMODE (obj1);
   Lisp_Devmode *dm2 = XDEVMODE (obj2);
@@ -1180,7 +1180,7 @@ equal_devmode (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth))
     return 0;
   if (NILP (dm1->printer_name) || NILP (dm2->printer_name))
     return 1;
-  return lisp_strcasecmp (dm1->printer_name, dm2->printer_name) == 0;
+  return lisp_strcasecmp_i18n (dm1->printer_name, dm2->printer_name) == 0;
 }
 
 static Hashcode
