@@ -61,6 +61,45 @@
 
 	Some cosmetic changes.
 	
+2010-03-02  Ben Wing  <ben@xemacs.org>
+
+	* lisp.h:
+	* text.h:
+	Move inclusion point of text.h earlier in lisp.h -- just before
+	the definition of characters, which needs some of the stuff in
+	text.h.  With text.h later, some basic character properties had to
+	be defined in lisp.h -- put them back into text.h where they belong.
+	Move some text in lisp.h at the point of text.h inclusion into
+	text.h -- it serves as a mini-introduction.
+
+2010-03-02  Ben Wing  <ben@xemacs.org>
+
+	* Makefile.in.in:
+	* Makefile.in.in (objs):
+	glyphs-shared.o, glyphs-eimage.o only needed when HAVE_WINDOW_SYSTEM.
+	glyphs-widget.o should be too, but we need a bit of work ifdeffing
+	out the subwindow stuff from redisplay.c et al.
+	
+	* bytecode.c (init_opcode_table_multi_op):
+	Change var name to avoid shadowing with `basename'.
+	
+	* emacs.c (main_1):
+	Don't call init/etc. routines for glyphs-shared, glyphs-eimage unless
+	HAVE_WINDOW_SYSTEM is defined.
+	
+	* linuxplay.c:
+	* linuxplay.c (sighandler):
+	* vdb-posix.c (vdb_fault_handler):
+	Use const for variables holding string constants to avoid C++
+	warnings.
+
+2010-02-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* file-coding.c (Fmake_coding_system_internal):
+	Be somewhat clearer in this docstring, especially for the sake of
+	people running non-Mule builds who will see this docstring when
+	they do F1 f make-coding-system RET.
+
 2010-02-25  Didier Verna  <didier@xemacs.org>
 
 	The background-placement face property.
