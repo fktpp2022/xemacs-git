@@ -1503,7 +1503,6 @@ INFODIR = $(SRCROOT)\info
 INFO_FILES= \
 	$(INFODIR)\beta.info \
 	$(INFODIR)\cl.info \
-	$(INFODIR)\custom.info \
 	$(INFODIR)\emodules.info \
 	$(INFODIR)\external-widget.info \
 	$(INFODIR)\info.info \
