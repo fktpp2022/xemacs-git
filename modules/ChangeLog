@@ -7,6 +7,25 @@
 	Fix file to follow GNU coding standards for indentation, spacing
 	before parens.
 
+2010-03-13  Ben Wing  <ben@xemacs.org>
+
+	* postgresql/postgresql.c (print_pgconn):
+	* postgresql/postgresql.c (print_pgresult):
+	printing_unreadable_object -> printing_unreadable_object_fmt.
+
+2010-03-13  Ben Wing  <ben@xemacs.org>
+
+	* ldap/eldap.c (print_ldap):
+	printing_unreadable_object -> printing_unreadable_object_fmt.
+
+2010-03-07  Ben Wing  <ben@xemacs.org>
+
+	* postgresql/postgresql.c (finalize_pgconn):
+	* postgresql/postgresql.c (finalize_pgresult):
+	* ldap/eldap.c (finalize_ldap):
+	Fix the finalizers to go with the new calling sequence.  Done
+	previously but somehow got lost.
+
 2010-03-05  Ben Wing  <ben@xemacs.org>
 
 	* postgresql/postgresql.c (allocate_pgconn):
