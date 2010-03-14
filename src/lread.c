@@ -3477,6 +3477,7 @@ character escape syntaxes or just read them incorrectly.
 
 #ifdef I18N3
   Vfile_domain = Qnil;
+  staticpro (&Vfile_domain);
 #endif
 
   Vread_objects = Qnil;

@@ -243,6 +243,8 @@ int inhibit_input_event_recording;
 
 Lisp_Object Qself_insert_defer_undo;
 
+Lisp_Object Qsans_modifiers;
+
 int in_modal_loop;
 
 /* the number of keyboard characters read.  callint.c wants this. */
@@ -1119,7 +1121,7 @@ event_stream_resignal_wakeup (int interval_id, int async_p,
   op = XCAR (rest);
   timeout = XTIMEOUT (op);
   /* We make sure to snarf the data out of the timeout object before
-     we free it with free_managed_lcrecord(). */
+     we free it with free_normal_lisp_object(). */
   id = timeout->id;
   *function = timeout->function;
   *object = timeout->object;
@@ -4886,6 +4888,8 @@ syms_of_event_stream (void)
 
   DEFSYMBOL (Qnext_event);
   DEFSYMBOL (Qdispatch_event);
+
+  DEFSYMBOL (Qsans_modifiers);
 }
 
 void

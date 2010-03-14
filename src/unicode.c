@@ -1475,7 +1475,7 @@ print_precedence_array (Lisp_Object obj, Lisp_Object printcharfun,
   int i;
 
   if (print_readably)
-    printing_unreadable_object ("precedence array");
+    printing_unreadable_object_fmt ("precedence array");
 
   write_ascstring (printcharfun,
 		   "#<INTERNAL OBJECT (XEmacs bug?) (precedence-array)");

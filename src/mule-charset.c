@@ -238,7 +238,7 @@ print_charset (Lisp_Object obj, Lisp_Object printcharfun,
 	       int UNUSED (escapeflag))
 {
   if (print_readably)
-    printing_unreadable_lcrecord
+    printing_unreadable_lisp_object
       (obj, XSTRING_DATA (XSYMBOL (XCHARSET_NAME (obj))->name));
 
   write_fmt_string_lisp (printcharfun, "#<charset %s %S %S %S", 4,
@@ -262,7 +262,8 @@ print_charset (Lisp_Object obj, Lisp_Object printcharfun,
     write_fmt_string (printcharfun, "final='%c' ", XCHARSET_FINAL (obj));
   write_fmt_string (printcharfun, "reg=");
   print_internal (XCHARSET_REGISTRIES (obj), printcharfun, 0);
-  write_fmt_string (printcharfun, " 0x%x>", XCHARSET (obj)->header.uid);
+  write_fmt_string (printcharfun, " 0x%x>",
+		    NORMAL_LISP_OBJECT_UID (XCHARSET (obj)));
 }
 
 static const struct memory_description charset_description[] = {
