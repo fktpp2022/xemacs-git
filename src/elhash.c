@@ -280,6 +280,28 @@ hash_table_hash (Lisp_Object hash_table, int UNUSED (depth))
   return XHASH_TABLE (hash_table)->count;
 }
 
+#ifdef MEMORY_USAGE_STATS
+
+struct hash_table_stats
+{
+  struct usage_stats u;
+  Bytecount hentries;
+};
+
+static void
+hash_table_memory_usage (Lisp_Object hashtab,
+			 struct generic_usage_stats *gustats)
+{
+  Lisp_Hash_Table *ht = XHASH_TABLE (hashtab);
+  struct hash_table_stats *stats = (struct hash_table_stats *) gustats;
+  stats->hentries +=
+    malloced_storage_size (ht->hentries,
+			   sizeof (htentry) * (ht->size + 1),
+			   &stats->u);
+}
+
+#endif /* MEMORY_USAGE_STATS */
+
 
 /* Printing hash tables.
 
@@ -395,25 +417,23 @@ print_hash_table (Lisp_Object obj, Lisp_Object printcharfun,
   if (print_readably)
     write_ascstring (printcharfun, ")");
   else
-    write_fmt_string (printcharfun, " 0x%x>", NORMAL_LISP_OBJECT_UID (ht));
+    write_fmt_string (printcharfun, " 0x%x>", LISP_OBJECT_UID (obj));
 }
 
 #ifndef NEW_GC
 static void
 free_hentries (htentry *hentries,
 #ifdef ERROR_CHECK_STRUCTURES
-	       size_t size
+	       Elemcount size
 #else /* not ERROR_CHECK_STRUCTURES) */
-	       size_t UNUSED (size)
+	       Elemcount UNUSED (size)
 #endif /* not ERROR_CHECK_STRUCTURES) */
 	       )
 {
 #ifdef ERROR_CHECK_STRUCTURES
   /* Ensure a crash if other code uses the discarded entries afterwards. */
-  htentry *e, *sentinel;
-
-  for (e = hentries, sentinel = e + size; e < sentinel; e++)
-    * (unsigned long *) e = 0xdeadbeef; /* -559038737 base 10 */
+  deadbeef_memory (hentries,
+		   (Rawbyte *) (hentries + size) - (Rawbyte *) hentries);
 #endif
 
   if (!DUMPEDP (hentries))
@@ -1807,6 +1827,14 @@ The value is returned as (HIGH . LOW).
 /************************************************************************/
 
 void
+hash_table_objects_create (void)
+{
+#ifdef MEMORY_USAGE_STATS
+  OBJECT_HAS_METHOD (hash_table, memory_usage);
+#endif
+}
+
+void
 syms_of_elhash (void)
 {
   DEFSUBR (Fhash_table_p);
@@ -1853,6 +1881,15 @@ syms_of_elhash (void)
   DEFKEYWORD (Q_rehash_threshold);
   DEFKEYWORD (Q_weakness);
   DEFKEYWORD (Q_type); /* obsolete */
+}
+
+void
+vars_of_elhash (void)
+{
+#ifdef MEMORY_USAGE_STATS
+  OBJECT_HAS_PROPERTY
+    (hash_table, memusage_stats_list, list1 (intern ("hash-entries")));
+#endif /* MEMORY_USAGE_STATS */
 }
 
 void

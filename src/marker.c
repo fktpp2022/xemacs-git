@@ -60,7 +60,7 @@ print_marker (Lisp_Object obj, Lisp_Object printcharfun,
   Lisp_Marker *marker = XMARKER (obj);
 
   if (print_readably)
-    printing_unreadable_object_fmt ("#<marker 0x%lx>", (long) marker);
+    printing_unreadable_object_fmt ("#<marker 0x%x>", LISP_OBJECT_UID (obj));
 
   write_ascstring (printcharfun, GETTEXT ("#<marker "));
   if (!marker->buffer)
@@ -73,7 +73,7 @@ print_marker (Lisp_Object obj, Lisp_Object printcharfun,
     }
   if (marker->insertion_type)
     write_ascstring (printcharfun, " insertion-type=t");
-  write_fmt_string (printcharfun, " 0x%lx>", (long) marker);
+  write_fmt_string (printcharfun, " 0x%x>", LISP_OBJECT_UID (obj));
 }
 
 static int
@@ -498,7 +498,7 @@ Return t if there are markers pointing at POSITION in the current buffer.
 #ifdef MEMORY_USAGE_STATS
 
 int
-compute_buffer_marker_usage (struct buffer *b, struct overhead_stats *ovstats)
+compute_buffer_marker_usage (struct buffer *b, struct usage_stats *ustats)
 {
   Lisp_Marker *m;
   int total = 0;
@@ -506,7 +506,7 @@ compute_buffer_marker_usage (struct buffer *b, struct overhead_stats *ovstats)
 
   for (m = BUF_MARKERS (b); m; m = m->next)
     total += sizeof (Lisp_Marker);
-  ovstats->was_requested += total;
+  ustats->was_requested += total;
 #ifdef NEW_GC
   overhead = mc_alloced_storage_size (total, 0) - total;
 #else /* not NEW_GC */
@@ -514,7 +514,7 @@ compute_buffer_marker_usage (struct buffer *b, struct overhead_stats *ovstats)
 #endif /* not NEW_GC */
   /* #### claiming this is all malloc overhead is not really right,
      but it has to go somewhere. */
-  ovstats->malloc_overhead += overhead;
+  ustats->malloc_overhead += overhead;
   return total + overhead;
 }
 

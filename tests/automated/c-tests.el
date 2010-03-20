@@ -39,8 +39,9 @@
        (push (file-name-directory load-file-name) load-path))
      (require 'test-harness))))
 
-(when (boundp 'test-function-list)	; Only if configure --debug
-  (loop for fun in test-function-list do
-    ;; #### I hope there's no way we can signal ...
-    (loop for result in (reverse (funcall fun)) do
-      (Assert (nth 1 result) (nth 2 result) (nth 0 result)))))
+(with-temp-buffer
+  (when (boundp 'test-function-list)	; Only if configure --debug
+    (loop for fun in test-function-list do
+      ;; #### I hope there's no way we can signal ...
+      (loop for result in (reverse (funcall fun)) do
+	(Assert (nth 1 result) (nth 2 result) (nth 0 result))))))

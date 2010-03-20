@@ -565,13 +565,15 @@ free_charset_unicode_tables (Lisp_Object charset)
 			 TO_TABLE_SIZE_FROM_CHARSET (charset));
   free_from_unicode_table (XCHARSET_FROM_UNICODE_TABLE (charset),
 			   XCHARSET_FROM_UNICODE_LEVELS (charset));
+  XCHARSET_FROM_UNICODE_TABLE (charset) = 0;
+  XCHARSET_TO_UNICODE_TABLE (charset) = 0;
 }
 
 #ifdef MEMORY_USAGE_STATS
 
 static Bytecount
 compute_from_unicode_table_size_1 (void *table, int level,
-				   struct overhead_stats *stats)
+				   struct usage_stats *stats)
 {
   Bytecount size = 0;
 
@@ -596,7 +598,7 @@ compute_from_unicode_table_size_1 (void *table, int level,
 
 static Bytecount
 compute_to_unicode_table_size_1 (void *table, int level,
-				 struct overhead_stats *stats)
+				 struct usage_stats *stats)
 {
   Bytecount size = 0;
 
@@ -622,7 +624,7 @@ compute_to_unicode_table_size_1 (void *table, int level,
 
 Bytecount
 compute_from_unicode_table_size (Lisp_Object charset,
-				 struct overhead_stats *stats)
+				 struct usage_stats *stats)
 {
   return (compute_from_unicode_table_size_1
 	  (XCHARSET_FROM_UNICODE_TABLE (charset),
@@ -632,7 +634,7 @@ compute_from_unicode_table_size (Lisp_Object charset,
 
 Bytecount
 compute_to_unicode_table_size (Lisp_Object charset,
-			       struct overhead_stats *stats)
+			       struct usage_stats *stats)
 {
   return (compute_to_unicode_table_size_1
 	  (XCHARSET_TO_UNICODE_TABLE (charset),
@@ -2160,11 +2162,15 @@ Unicode tables or in the charset:
 {
   int st = 0, en = INT_MAX, of = 0;
   FILE *file;
-  struct gcpro gcpro1;
   char line[1025];
   int fondo = specpdl_depth (); /* "fondo" = depth */
   int flgs;
 
+  /* This may be called to autoload the Unicode tables, from a function
+     that converts between Unicode and charset codepoints.  It's not at all
+     clear that all callers can tolerate GC, which may happen as a result
+     of `expand-file-name'. */
+  begin_gc_forbidden ();
   charset = Fget_charset (charset);
   verify_load_unicode_args (filename, start, end, offset, flags,
 			    &st, &en, &of, &flgs);
@@ -2180,7 +2186,6 @@ Unicode tables or in the charset:
     }
 #endif /* not UNICODE_INTERNAL */
 
-  GCPRO1 (filename);
   if (!NILP (Vdata_directory))
     filename = Fexpand_file_name (filename, Vdata_directory);
   else
@@ -2326,8 +2331,7 @@ Unicode tables or in the charset:
   if (ferror (file))
     report_file_error ("IO error when reading", filename);
 
-  unbind_to (fondo); /* close file */
-  UNGCPRO;
+  unbind_to (fondo); /* close file, permit GC */
   return Qnil;
 }
 

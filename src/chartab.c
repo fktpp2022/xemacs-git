@@ -227,12 +227,13 @@ free_chartab_table (SUBTAB_TYPE table, int level)
 
 struct char_table_stats
 {
-  int page_tables;
+  struct usage_stats u;
+  Bytecount page_tables;
 };
 
 static Bytecount
 compute_chartab_table_size_1 (SUBTAB_TYPE table, int level,
-			      struct overhead_stats *stats)
+			      struct usage_stats *stats)
 {
   Bytecount size = 0;
 
@@ -253,7 +254,7 @@ compute_chartab_table_size_1 (SUBTAB_TYPE table, int level,
 
 static Bytecount
 compute_chartab_table_size (Lisp_Object chartab,
-			    struct overhead_stats *stats)
+			    struct usage_stats *stats)
 {
   return (compute_chartab_table_size_1
 	  (XCHAR_TABLE_TABLE (chartab),
@@ -263,46 +264,19 @@ compute_chartab_table_size (Lisp_Object chartab,
 
 static void
 compute_char_table_usage (Lisp_Object chartab, struct char_table_stats *stats,
-			  struct overhead_stats *ovstats)
+			  struct usage_stats *ovstats)
 {
-  xzero (*stats);
   stats->page_tables += compute_chartab_table_size (chartab, ovstats);
 }
 
-DEFUN ("char-table-memory-usage", Fchar_table_memory_usage, 1, 1, 0, /*
-Return stats about the memory usage of char table CHAR_TABLE.
-The values returned are in the form of an alist of usage types and
-byte counts.  The byte counts attempt to encompass all the memory used
-by the char table (separate from memory used by objects pointed to by
-the char table), including internal structures and any malloc()
-overhead associated with them.  In practice, the byte counts are
-underestimated for various reasons, e.g. because certain memory usage
-is very hard to determine.
 
-Multiple slices of the total memory usage may be returned, separated
-by a nil.  Each slice represents a particular view of the memory, a
-particular way of partitioning it into groups.  Within a slice, there
-is no overlap between the groups of memory, and each slice collectively
-represents all the memory concerned.
-*/
-       (char_table))
+static void
+char_table_memory_usage (Lisp_Object char_table,
+			 struct generic_usage_stats *gustats)
 {
-  struct char_table_stats stats;
-  struct overhead_stats ovstats;
-  Lisp_Object val = Qnil;
+  struct char_table_stats *stats = (struct char_table_stats *) gustats;
 
-  CHECK_CHAR_TABLE (char_table);
-  xzero (ovstats);
-  compute_char_table_usage (char_table, &stats, &ovstats);
-
-  val = acons (Qpage_tables,       make_int (stats.page_tables),      val);
-  val = Fcons (Qnil, val);
-  val = acons (Qactually_requested, make_int (ovstats.was_requested),   val);
-  val = acons (Qmalloc_overhead,    make_int (ovstats.malloc_overhead), val);
-  val = acons (Qgap_overhead,       make_int (ovstats.gap_overhead),    val);
-  val = acons (Qdynarr_overhead,    make_int (ovstats.dynarr_overhead), val);
-
-  return Fnreverse (val);
+  compute_char_table_usage (char_table, stats, &stats->u);
 }
 
 #endif /* MEMORY_USAGE_STATS */
@@ -1943,6 +1917,14 @@ word_boundary_p (struct buffer *buf, Ichar c1, Ichar c2)
 
 
 void
+chartab_objects_create (void)
+{
+#ifdef MEMORY_USAGE_STATS
+  OBJECT_HAS_METHOD (char_table, memory_usage);
+#endif
+}
+
+void
 syms_of_chartab (void)
 {
   INIT_LISP_OBJECT (char_table);
@@ -1959,7 +1941,6 @@ syms_of_chartab (void)
 
 #ifdef MEMORY_USAGE_STATS
   DEFSYMBOL (Qpage_tables);
-  DEFSUBR (Fchar_table_memory_usage);
 #endif
 
   DEFSUBR (Fchar_table_p);
@@ -1995,6 +1976,11 @@ syms_of_chartab (void)
 void
 vars_of_chartab (void)
 {
+#ifdef MEMORY_USAGE_STATS
+  OBJECT_HAS_PROPERTY
+    (char_table, memusage_stats_list, list2 (Qt, Qpage_tables));
+#endif /* MEMORY_USAGE_STATS */
+
   /* DO NOT staticpro this.  It works just like Vweak_hash_tables. */
   Vall_syntax_tables = Qnil;
   dump_add_weak_object_chain (&Vall_syntax_tables);

@@ -75,6 +75,13 @@
 	* automated/mule-tests.el (featurep):
 	Various fixes to make tests more correct in Unicode-internal.
 
+2010-03-18  Ben Wing  <ben@xemacs.org>
+
+	* automated/c-tests.el:
+	* automated/c-tests.el (when):
+	Use `with-temp-buffer' so results don't get written into source
+	file.
+
 2010-03-12  Ben Wing  <ben@xemacs.org>
 
 	* automated/base64-tests.el (bt-base64-encode-string):

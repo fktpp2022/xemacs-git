@@ -263,7 +263,22 @@ print_charset (Lisp_Object obj, Lisp_Object printcharfun,
   write_fmt_string (printcharfun, "reg=");
   print_internal (XCHARSET_REGISTRIES (obj), printcharfun, 0);
   write_fmt_string (printcharfun, " 0x%x>",
-		    NORMAL_LISP_OBJECT_UID (XCHARSET (obj)));
+		    LISP_OBJECT_UID (obj));
+}
+
+static void
+disksave_charset (Lisp_Object charset)
+{
+  /* If the charset Unicode tables were loaded from a file, then throw them
+     away and arrange for them to be loaded again */
+  if (CONSP (XCHARSET_UNICODE_MAP (charset)) &&
+      STRINGP (X1ST (XCHARSET_UNICODE_MAP (charset))) &&
+      !XCHARSET_DO_AUTOLOAD (charset))
+    {
+      free_charset_unicode_tables (charset);
+      init_charset_unicode_tables (charset);
+      XCHARSET_DO_AUTOLOAD (charset) = 1;
+    }
 }
 
 static const struct memory_description charset_description[] = {
@@ -1719,55 +1734,25 @@ octets C1 and C2 are stored in the high and low byte, respectively.
 
 struct charset_stats
 {
-  int from_unicode;
-  int to_unicode;
-  int other;
+  struct usage_stats u;
+  Bytecount from_unicode;
+  Bytecount to_unicode;
 };
 
 static void
 compute_charset_usage (Lisp_Object charset, struct charset_stats *stats,
-		      struct overhead_stats *ovstats)
+		      struct usage_stats *ustats)
 {
-  xzero (*stats);
-  stats->other   += lisp_object_storage_size (charset, ovstats);
-  stats->from_unicode += compute_from_unicode_table_size (charset, ovstats);
-  stats->to_unicode += compute_to_unicode_table_size (charset, ovstats);
+  stats->from_unicode += compute_from_unicode_table_size (charset, ustats);
+  stats->to_unicode += compute_to_unicode_table_size (charset, ustats);
 }
 
-DEFUN ("charset-memory-usage", Fcharset_memory_usage, 1, 1, 0, /*
-Return stats about the memory usage of charset CHARSET.
-The values returned are in the form of an alist of usage types and
-byte counts.  The byte counts attempt to encompass all the memory used
-by the charset, including internal structures and any malloc()
-overhead associated with them.  In practice, the byte counts are
-underestimated for various reasons, e.g. because certain memory usage
-is very hard to determine.
-
-Multiple slices of the total memory usage may be returned, separated
-by a nil.  Each slice represents a particular view of the memory, a
-particular way of partitioning it into groups.  Within a slice, there
-is no overlap between the groups of memory, and each slice collectively
-represents all the memory concerned.
-*/
-       (charset))
+static void
+charset_memory_usage (Lisp_Object charset, struct generic_usage_stats *gustats)
 {
-  struct charset_stats stats;
-  struct overhead_stats ovstats;
-  Lisp_Object val = Qnil;
+  struct charset_stats *stats = (struct charset_stats *) gustats;
 
-  charset = Fget_charset (charset);
-  xzero (ovstats);
-  compute_charset_usage (charset, &stats, &ovstats);
-
-  val = acons (Qfrom_unicode,       make_int (stats.from_unicode),      val);
-  val = acons (Qto_unicode,         make_int (stats.to_unicode),        val);
-  val = Fcons (Qnil, val);
-  val = acons (Qactually_requested, make_int (ovstats.was_requested),   val);
-  val = acons (Qmalloc_overhead,    make_int (ovstats.malloc_overhead), val);
-  val = acons (Qgap_overhead,       make_int (ovstats.gap_overhead),    val);
-  val = acons (Qdynarr_overhead,    make_int (ovstats.dynarr_overhead), val);
-
-  return Fnreverse (val);
+  compute_charset_usage (charset, stats, &stats->u);
 }
 
 #endif /* MEMORY_USAGE_STATS */
@@ -1776,6 +1761,15 @@ represents all the memory concerned.
 /************************************************************************/
 /*                            initialization                            */
 /************************************************************************/
+
+void
+mule_charset_objects_create (void)
+{
+#ifdef MEMORY_USAGE_STATS
+  OBJECT_HAS_METHOD (charset, memory_usage);
+#endif
+  OBJECT_HAS_PREMETHOD (charset, disksave);
+}
 
 void
 syms_of_mule_charset (void)
@@ -1805,10 +1799,6 @@ syms_of_mule_charset (void)
   DEFSUBR (Fset_charset_tags);
   DEFSUBR (Fcharsets_in_region);
   DEFSUBR (Fmap_charset_chars);
-
-#ifdef MEMORY_USAGE_STATS
-  DEFSUBR (Fcharset_memory_usage);
-#endif
 
   DEFSYMBOL (Qcharsetp);
   DEFSYMBOL (Qregistries);
@@ -1902,6 +1892,11 @@ void
 vars_of_mule_charset (void)
 {
   int i, j, k;
+
+#ifdef MEMORY_USAGE_STATS
+  OBJECT_HAS_PROPERTY
+    (charset, memusage_stats_list, list2 (Qfrom_unicode, Qto_unicode));
+#endif /* MEMORY_USAGE_STATS */
 
   chlook = xnew_and_zero (struct charset_lookup); /* zero for Purify. */
   dump_add_root_block_ptr (&chlook, &charset_lookup_description);

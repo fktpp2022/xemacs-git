@@ -495,6 +495,8 @@ Lisp_Object Vdefault_text_properties;
    changes */
 int in_modeline_generation;
 
+int debug_soe;
+
 
 /************************************************************************/
 /*                       Generalized gap array                          */
@@ -1518,24 +1520,7 @@ buffer_or_string_stack_of_extents_force (Lisp_Object object)
   return info->soe;
 }
 
-/* #### don't even think of #define'ing this, the prototype of
-   print_extent_1 has changed! */
-/* #define SOE_DEBUG */
-
-#ifdef SOE_DEBUG
-
-static void print_extent_1 (char *buf, Lisp_Object extent);
-
-static void
-print_extent_2 (EXTENT e)
-{
-  Lisp_Object extent;
-  char buf[200];
-
-  extent = wrap_extent (e);
-  print_extent_1 (buf, extent);
-  fputs (buf, stdout);
-}
+#ifdef DEBUG_XEMACS
 
 static void
 soe_dump (Lisp_Object obj)
@@ -1547,29 +1532,29 @@ soe_dump (Lisp_Object obj)
 
   if (!soe)
     {
-      printf ("No SOE");
+      stderr_out ("No SOE");
       return;
     }
   sel = soe->extents;
-  printf ("SOE pos is %d (memxpos %d)\n",
-	  soe->pos < 0 ? soe->pos :
-	  buffer_or_string_memxpos_to_bytexpos (obj, soe->pos),
-	  soe->pos);
+  stderr_out ("SOE pos is %ld (memxpos %ld)\n",
+	      soe->pos < 0 ? soe->pos :
+	      buffer_or_string_memxpos_to_bytexpos (obj, soe->pos),
+	      soe->pos);
   for (endp = 0; endp < 2; endp++)
     {
-      printf (endp ? "SOE end:" : "SOE start:");
+      stderr_out (endp ? "SOE end:" : "SOE start:");
       for (i = 0; i < extent_list_num_els (sel); i++)
 	{
 	  EXTENT e = extent_list_at (sel, i, endp);
-	  putchar ('\t');
-	  print_extent_2 (e);
+	  stderr_out ("\t");
+	  debug_print (wrap_extent (e));
 	}
-      putchar ('\n');
+      stderr_out ("\n");
     }
-  putchar ('\n');
+  stderr_out ("\n");
 }
 
-#endif
+#endif /* DEBUG_XEMACS */
 
 /* Insert EXTENT into OBJ's stack of extents, if necessary. */
 
@@ -1578,23 +1563,30 @@ soe_insert (Lisp_Object obj, EXTENT extent)
 {
   Stack_Of_Extents *soe = buffer_or_string_stack_of_extents (obj);
 
-#ifdef SOE_DEBUG
-  printf ("Inserting into SOE: ");
-  print_extent_2 (extent);
-  putchar ('\n');
+#ifdef DEBUG_XEMACS
+  if (debug_soe)
+    {
+      stderr_out ("Inserting into SOE: ");
+      debug_print (wrap_extent (extent));
+      stderr_out ("\n");
+    }
 #endif
   if (!soe || soe->pos < extent_start (extent) ||
       soe->pos > extent_end (extent))
     {
-#ifdef SOE_DEBUG
-      printf ("(not needed)\n\n");
+#ifdef DEBUG_XEMACS
+      if (debug_soe)
+	stderr_out ("(not needed)\n\n");
 #endif
       return;
     }
   extent_list_insert (soe->extents, extent);
-#ifdef SOE_DEBUG
-  puts ("SOE afterwards is:");
-  soe_dump (obj);
+#ifdef DEBUG_XEMACS
+  if (debug_soe)
+    {
+      stderr_out ("SOE afterwards is:\n");
+      soe_dump (obj);
+    }
 #endif
 }
 
@@ -1605,23 +1597,30 @@ soe_delete (Lisp_Object obj, EXTENT extent)
 {
   Stack_Of_Extents *soe = buffer_or_string_stack_of_extents (obj);
 
-#ifdef SOE_DEBUG
-  printf ("Deleting from SOE: ");
-  print_extent_2 (extent);
-  putchar ('\n');
+#ifdef DEBUG_XEMACS
+  if (debug_soe)
+    {
+      stderr_out ("Deleting from SOE: ");
+      debug_print (wrap_extent (extent));
+      stderr_out ("\n");
+    }
 #endif
   if (!soe || soe->pos < extent_start (extent) ||
       soe->pos > extent_end (extent))
     {
-#ifdef SOE_DEBUG
-      puts ("(not needed)\n");
+#ifdef DEBUG_XEMACS
+      if (debug_soe)
+	stderr_out ("(not needed)\n\n");
 #endif
       return;
     }
   extent_list_delete (soe->extents, extent);
-#ifdef SOE_DEBUG
-  puts ("SOE afterwards is:");
-  soe_dump (obj);
+#ifdef DEBUG_XEMACS
+  if (debug_soe)
+    {
+      stderr_out ("SOE afterwards is:\n");
+      soe_dump (obj);
+    }
 #endif
 }
 
@@ -1641,11 +1640,12 @@ soe_move (Lisp_Object obj, Memxpos pos)
   assert (bel);
 #endif
 
-#ifdef SOE_DEBUG
-  printf ("Moving SOE from %d (memxpos %d) to %d (memxpos %d)\n",
-	  soe->pos < 0 ? soe->pos :
-	  buffer_or_string_memxpos_to_bytexpos (obj, soe->pos), soe->pos,
-	  buffer_or_string_memxpos_to_bytexpos (obj, pos), pos);
+#ifdef DEBUG_XEMACS
+  if (debug_soe)
+    stderr_out ("Moving SOE from %ld (memxpos %ld) to %ld (memxpos %ld)\n",
+		soe->pos < 0 ? soe->pos :
+		buffer_or_string_memxpos_to_bytexpos (obj, soe->pos), soe->pos,
+		buffer_or_string_memxpos_to_bytexpos (obj, pos), pos);
 #endif
   if (soe->pos < pos)
     {
@@ -1659,8 +1659,9 @@ soe_move (Lisp_Object obj, Memxpos pos)
     }
   else
     {
-#ifdef SOE_DEBUG
-      puts ("(not needed)\n");
+#ifdef DEBUG_XEMACS
+      if (debug_soe)
+	stderr_out ("(not needed)\n\n");
 #endif
       return;
     }
@@ -1745,9 +1746,12 @@ soe_move (Lisp_Object obj, Memxpos pos)
   }
 
   soe->pos = pos;
-#ifdef SOE_DEBUG
-  puts ("SOE afterwards is:");
-  soe_dump (obj);
+#ifdef DEBUG_XEMACS
+  if (debug_soe)
+    {
+      stderr_out ("SOE afterwards is:\n");
+      soe_dump (obj);
+    }
 #endif
 }
 
@@ -3239,10 +3243,10 @@ extent_fragment_update (struct window *w, struct extent_fragment *ef,
 	      Lisp_Object function = extent_initial_redisplay_function (e);
 	      Lisp_Object obj;
 
-	      /* printf ("initial redisplay function called!\n "); */
+	      /* stderr_out ("initial redisplay function called!\n "); */
 
-	      /* print_extent_2 (e);
-	         printf ("\n"); */
+	      /* debug_print (wrap_extent (e));
+	         stderr_out ("\n"); */
 
 	      /* FIXME: One should probably inhibit the displaying of
 		 this extent to reduce flicker */
@@ -3327,8 +3331,6 @@ print_extent_1 (Lisp_Object obj, Lisp_Object printcharfun,
       if (NILP (v)) continue;
       write_fmt_string_lisp (printcharfun, "%S ", 1, XCAR (tail));
     }
-
-  write_fmt_string (printcharfun, "0x%lx", (long) ext);
 }
 
 static void
@@ -3372,10 +3374,11 @@ print_extent (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
       if (print_readably)
 	{
 	  if (!EXTENT_LIVE_P (XEXTENT (obj)))
-	    printing_unreadable_object_fmt ("#<destroyed extent>");
+	    printing_unreadable_object_fmt ("#<destroyed extent 0x%x>",
+					    LISP_OBJECT_UID (obj));
 	  else
-	    printing_unreadable_object_fmt ("#<extent 0x%lx>",
-		   (long) XEXTENT (obj));
+	    printing_unreadable_object_fmt ("#<extent 0x%x>",
+					    LISP_OBJECT_UID (obj));
 	}
 
       if (!EXTENT_LIVE_P (XEXTENT (obj)))
@@ -3385,17 +3388,19 @@ print_extent (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 	  write_ascstring (printcharfun, "#<extent ");
 	  print_extent_1 (obj, printcharfun, escapeflag);
 	  write_ascstring (printcharfun, extent_detached_p (XEXTENT (obj))
-			  ? " from " : " in ");
+			  ? "from " : "in ");
 	  write_fmt_string (printcharfun, "%s%s%s", title, name, posttitle);
 	}
     }
   else
     {
       if (print_readably)
-	printing_unreadable_object_fmt ("#<extent>");
+	printing_unreadable_object_fmt ("#<extent 0x%x>",
+					LISP_OBJECT_UID (obj));
       write_ascstring (printcharfun, "#<extent");
     }
-  write_ascstring (printcharfun, ">");
+
+  write_fmt_string (printcharfun, " 0x%x>", LISP_OBJECT_UID (obj));
 }
 
 static int
@@ -3496,20 +3501,17 @@ extent_plist (Lisp_Object obj)
   return Fextent_properties (obj);
 }
 
-DEFINE_DUMPABLE_FROB_BLOCK_GENERAL_LISP_OBJECT ("extent", extent,
-						mark_extent,
-						print_extent,
-						/* NOTE: If you declare a
-						   finalization method here,
-						   it will NOT be called.
-						   Shaft city. */
-						0,
-						extent_equal, extent_hash,
-						extent_description,
-						extent_getprop, extent_putprop,
-						extent_remprop, extent_plist,
-						0 /* no disksaver */,
-						struct extent);
+DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("extent", extent,
+					mark_extent,
+					print_extent,
+					/* NOTE: If you declare a
+					   finalization method here,
+					   it will NOT be called.
+					   Shaft city. */
+					0,
+					extent_equal, extent_hash,
+					extent_description,
+					struct extent);
 
 /************************************************************************/
 /*			basic extent accessors				*/
@@ -7386,7 +7388,7 @@ If two or more extents with conflicting non-nil values for PROP overlap
  use the text-property primitives.)
 
 This function looks only at extents created using the text-property primitives.
-To look at all extents, use `next-single-char-property-change'.
+To look at all extents, use `previous-single-char-property-change'.
 */
        (pos, prop, object, limit))
 {
@@ -7413,7 +7415,7 @@ If two or more extents with conflicting non-nil values for PROP overlap
  use the text-property primitives.)
 
 This function looks at all extents.  To look at only extents created using the
-text-property primitives, use `next-single-char-property-change'.
+text-property primitives, use `next-single-property-change'.
 */
        (pos, prop, object, limit))
 {
@@ -7441,7 +7443,7 @@ If two or more extents with conflicting non-nil values for PROP overlap
  use the text-property primitives.)
 
 This function looks at all extents.  To look at only extents created using the
-text-property primitives, use `next-single-char-property-change'.
+text-property primitives, use `previous-single-property-change'.
 */
        (pos, prop, object, limit))
 {
@@ -7453,7 +7455,7 @@ text-property primitives, use `next-single-char-property-change'.
 
 int
 compute_buffer_extent_usage (struct buffer *UNUSED (b),
-			     struct overhead_stats *UNUSED (ovstats))
+			     struct usage_stats *UNUSED (ustats))
 {
   /* #### not yet written */
   return 0;
@@ -7465,6 +7467,15 @@ compute_buffer_extent_usage (struct buffer *UNUSED (b),
 /************************************************************************/
 /*				initialization				*/
 /************************************************************************/
+
+void
+extent_objects_create (void)
+{
+  OBJECT_HAS_METHOD (extent, getprop);
+  OBJECT_HAS_METHOD (extent, putprop);
+  OBJECT_HAS_METHOD (extent, remprop);
+  OBJECT_HAS_METHOD (extent, plist);
+}
 
 void
 syms_of_extents (void)
@@ -7599,6 +7610,15 @@ syms_of_extents (void)
 void
 vars_of_extents (void)
 {
+#ifdef DEBUG_XEMACS 
+  DEFVAR_BOOL ("debug-soe", &debug_soe /*
+If non-nil, display debugging information about the SOE ("stack of extents").
+The SOE is a cache of extents overlapping a specified region, used to
+speed up `map-extents' and certain other functions.
+*/ );
+  debug_soe = 0;
+#endif /* DEBUG_XEMACS */
+
   DEFVAR_INT ("mouse-highlight-priority", &mouse_highlight_priority /*
 The priority to use for the mouse-highlighting pseudo-extent
 that is used to highlight extents with the `mouse-face' attribute set.

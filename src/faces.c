@@ -315,13 +315,10 @@ static const struct memory_description face_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_GENERAL_LISP_OBJECT ("face", face,
-				     mark_face, print_face, 0, face_equal,
-				     face_hash, face_description,
-				     face_getprop,
-				     face_putprop, face_remprop,
-				     face_plist, 0 /* no disksaver */,
-				     Lisp_Face);
+DEFINE_DUMPABLE_LISP_OBJECT ("face", face,
+			     mark_face, print_face, 0, face_equal,
+			     face_hash, face_description,
+			     Lisp_Face);
 
 /************************************************************************/
 /*                             face read syntax                         */
@@ -1675,7 +1672,7 @@ mark_face_cachels_as_not_updated (struct window *w)
 
 int
 compute_face_cachel_usage (face_cachel_dynarr *face_cachels,
-			   struct overhead_stats *ovstats)
+			   struct usage_stats *ustats)
 {
   int total = 0;
 
@@ -1683,13 +1680,13 @@ compute_face_cachel_usage (face_cachel_dynarr *face_cachels,
     {
       int i;
 
-      total += Dynarr_memory_usage (face_cachels, ovstats);
+      total += Dynarr_memory_usage (face_cachels, ustats);
       for (i = 0; i < Dynarr_length (face_cachels); i++)
 	{
 	  struct face_cachel *cachel = Dynarr_atp (face_cachels, i);
 	  /* #### Hack; look inside of the Stynarr struct */
 	  if (cachel->merged_faces.els)
-	    total += Dynarr_memory_usage (cachel->merged_faces.els, ovstats);
+	    total += Dynarr_memory_usage (cachel->merged_faces.els, ustats);
 	}
     }
 
@@ -2122,6 +2119,15 @@ shouldn't ever need to call this.
 #endif /* MULE */
 
 
+void
+face_objects_create (void)
+{
+  OBJECT_HAS_METHOD (face, getprop);
+  OBJECT_HAS_METHOD (face, putprop);
+  OBJECT_HAS_METHOD (face, remprop);
+  OBJECT_HAS_METHOD (face, plist);
+}
+
 void
 syms_of_faces (void)
 {

@@ -290,6 +290,23 @@
 	instead. Thank you for the bug reports, Robert Pluim, Stephen
 	Turnbull.
 
+2010-03-19  Ben Wing  <ben@xemacs.org>
+
+	* diagnose.el (show-object-memory-usage-stats):
+	Rewrite to take into account non-lisp-storage statistics
+	returned by garbage-collect-1 and friends.
+
+2010-03-18  Ben Wing  <ben@xemacs.org>
+
+	* diagnose.el (show-memory-usage):
+	Rewrite to take into account API changes in memory-usage functions.
+
+2010-03-15  Ben Wing  <ben@xemacs.org>
+
+	* mule/mule-cmds.el:
+	* mule/mule-cmds.el (finish-set-language-environment):
+	Fix bug in generating display-table entries for error octet characters.
+
 2010-03-12  Ben Wing  <ben@xemacs.org>
 
 	* test-harness.el (test-harness-from-buffer):

@@ -5533,6 +5533,8 @@ then
 
   $as_echo "#define ETCDIR_USER_DEFINED 1" >>confdefs.h
 
+  $as_echo "#define LATE_PACKAGE_DIRECTORIES_USER_DEFINED 1" >>confdefs.h
+
 fi
 
 if test "x$libdir" != "x\${exec_prefix}/lib"
@@ -5557,6 +5559,7 @@ with_sitelispdir='${datadir}/${inststaticdir}/site-lisp'
 inststaticdir='${PROGNAME}'
 instvardir='${PROGNAME}-${version}'
 sitemoduledir='${libdir}/${inststaticdir}/site-modules'
+with_late_packages='${datadir}/${PROGNAME}'
 
 
 statedir=$with_statedir
