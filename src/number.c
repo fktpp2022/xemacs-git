@@ -1,5 +1,6 @@
 /* Numeric types for XEmacs.
    Copyright (C) 2004 Jerry James.
+   Copyright (C) 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -32,7 +33,7 @@ Boston, MA 02111-1301, USA.  */
 
 Lisp_Object Qrationalp, Qfloatingp, Qrealp;
 Lisp_Object Vdefault_float_precision;
-Fixnum Vmost_negative_fixnum, Vmost_positive_fixnum;
+
 static Lisp_Object Qunsupported_type;
 static Lisp_Object Vbigfloat_max_prec;
 static int number_initialized;
@@ -53,20 +54,21 @@ static void
 bignum_print (Lisp_Object obj, Lisp_Object printcharfun,
 	      int UNUSED (escapeflag))
 {
-  CIbyte *bstr = bignum_to_string (XBIGNUM_DATA (obj), 10);
-  write_c_string (printcharfun, bstr);
-  xfree (bstr, CIbyte *);
+  Ascbyte *bstr = bignum_to_string (XBIGNUM_DATA (obj), 10);
+  write_ascstring (printcharfun, bstr);
+  xfree (bstr);
 }
 
 #ifdef NEW_GC
 static void
-bignum_finalize (void *header, int for_disksave)
+bignum_finalize (Lisp_Object obj)
 {
-  if (!for_disksave)
-    {
-      struct Lisp_Bignum *num = (struct Lisp_Bignum *) header;
-      bignum_fini (num->data);
-    }
+  struct Lisp_Bignum *num = XBIGNUM (obj);
+  /* #### WARNING: It would be better to put some sort of check to make
+     sure this doesn't happen more than once, just in case ---
+     e.g. checking if it's zero before finalizing and then setting it to
+     zero after finalizing. */
+  bignum_fini (num->data);
 }
 #define BIGNUM_FINALIZE bignum_finalize
 #else
@@ -74,7 +76,8 @@ bignum_finalize (void *header, int for_disksave)
 #endif
 
 static int
-bignum_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth))
+bignum_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth),
+	      int UNUSED (foldcase))
 {
   return bignum_eql (XBIGNUM_DATA (obj1), XBIGNUM_DATA (obj2));
 }
@@ -97,7 +100,7 @@ static void
 bignum_convfree (const void * UNUSED (object), void *data,
 		 Bytecount UNUSED (size))
 {
-  xfree (data, void *);
+  xfree (data);
 }
 
 static void *
@@ -121,10 +124,10 @@ static const struct memory_description bignum_description[] = {
   { XD_END }
 };
 
-DEFINE_BASIC_LRECORD_IMPLEMENTATION ("bignum", bignum, 1, 0, bignum_print,
-				     BIGNUM_FINALIZE, bignum_equal,
-				     bignum_hash, bignum_description,
-				     Lisp_Bignum);
+DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("bignum", bignum, 0, bignum_print,
+					BIGNUM_FINALIZE, bignum_equal,
+					bignum_hash, bignum_description,
+					Lisp_Bignum);
 
 #endif /* HAVE_BIGNUM */
 
@@ -139,38 +142,6 @@ Return t if OBJECT is a bignum, nil otherwise.
 }
 
 
-/********************************* Integers *********************************/
-DEFUN ("integerp", Fintegerp, 1, 1, 0, /*
-Return t if OBJECT is an integer, nil otherwise.
-*/
-       (object))
-{
-  return INTEGERP (object) ? Qt : Qnil;
-}
-
-DEFUN ("evenp", Fevenp, 1, 1, 0, /*
-Return t if INTEGER is even, nil otherwise.
-*/
-       (integer))
-{
-  CONCHECK_INTEGER (integer);
-  return (BIGNUMP (integer)
-	  ? bignum_evenp (XBIGNUM_DATA (integer))
-	  : XTYPE (integer) == Lisp_Type_Int_Even) ? Qt : Qnil;
-}
-
-DEFUN ("oddp", Foddp, 1, 1, 0, /*
-Return t if INTEGER is odd, nil otherwise.
-*/
-       (integer))
-{
-  CONCHECK_INTEGER (integer);
-  return (BIGNUMP (integer)
-	  ? bignum_oddp (XBIGNUM_DATA (integer))
-	  : XTYPE (integer) == Lisp_Type_Int_Odd) ? Qt : Qnil;
-}
-
-
 /********************************** Ratios **********************************/
 #ifdef HAVE_RATIO
 static void
@@ -178,19 +149,20 @@ ratio_print (Lisp_Object obj, Lisp_Object printcharfun,
 	     int UNUSED (escapeflag))
 {
   CIbyte *rstr = ratio_to_string (XRATIO_DATA (obj), 10);
-  write_c_string (printcharfun, rstr);
-  xfree (rstr, CIbyte *);
+  write_ascstring (printcharfun, rstr);
+  xfree (rstr);
 }
 
 #ifdef NEW_GC
 static void
-ratio_finalize (void *header, int for_disksave)
+ratio_finalize (Lisp_Object obj)
 {
-  if (!for_disksave)
-    {
-      struct Lisp_Ratio *num = (struct Lisp_Ratio *) header;
-      ratio_fini (num->data);
-    }
+  struct Lisp_Ratio *num = XRATIO (obj);
+  /* #### WARNING: It would be better to put some sort of check to make
+     sure this doesn't happen more than once, just in case ---
+     e.g. checking if it's zero before finalizing and then setting it to
+     zero after finalizing. */
+  ratio_fini (num->data);
 }
 #define RATIO_FINALIZE ratio_finalize
 #else
@@ -198,7 +170,8 @@ ratio_finalize (void *header, int for_disksave)
 #endif
 
 static int
-ratio_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth))
+ratio_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth),
+	     int UNUSED (foldcase))
 {
   return ratio_eql (XRATIO_DATA (obj1), XRATIO_DATA (obj2));
 }
@@ -214,9 +187,9 @@ static const struct memory_description ratio_description[] = {
   { XD_END }
 };
 
-DEFINE_BASIC_LRECORD_IMPLEMENTATION ("ratio", ratio, 0, 0, ratio_print,
-				     RATIO_FINALIZE, ratio_equal, ratio_hash,
-				     ratio_description, Lisp_Ratio);
+DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("ratio", ratio, 0, ratio_print,
+				      RATIO_FINALIZE, ratio_equal, ratio_hash,
+				      ratio_description, Lisp_Ratio);
 
 #endif /* HAVE_RATIO */
 
@@ -248,12 +221,13 @@ If RATIONAL is an integer, RATIONAL is returned.
 {
   CONCHECK_RATIONAL (rational);
 #ifdef HAVE_RATIO
-  return RATIOP (rational)
-    ? make_bignum_bg (XRATIO_NUMERATOR (rational))
-    : rational;
-#else
-  return rational;
+  if (RATIOP (rational))
+    {
+      return
+	Fcanonicalize_number (make_bignum_bg (XRATIO_NUMERATOR (rational)));
+    }
 #endif
+  return rational;
 }
 
 DEFUN ("denominator", Fdenominator, 1, 1, 0, /*
@@ -264,12 +238,13 @@ If RATIONAL is an integer, 1 is returned.
 {
   CONCHECK_RATIONAL (rational);
 #ifdef HAVE_RATIO
-  return RATIOP (rational)
-    ? make_bignum_bg (XRATIO_DENOMINATOR (rational))
-    : make_int (1);
-#else
-  return rational;
+  if (RATIOP (rational))
+    {
+      return Fcanonicalize_number (make_bignum_bg
+				   (XRATIO_DENOMINATOR (rational)));
+    }
 #endif
+  return make_int (1);
 }
 
 
@@ -279,20 +254,21 @@ static void
 bigfloat_print (Lisp_Object obj, Lisp_Object printcharfun,
 		int UNUSED (escapeflag))
 {
-  CIbyte *fstr = bigfloat_to_string (XBIGFLOAT_DATA (obj), 10);
-  write_c_string (printcharfun, fstr);
-  xfree (fstr, CIbyte *);
+  Ascbyte *fstr = bigfloat_to_string (XBIGFLOAT_DATA (obj), 10);
+  write_ascstring (printcharfun, fstr);
+  xfree (fstr);
 }
 
 #ifdef NEW_GC
 static void
-bigfloat_finalize (void *header, int for_disksave)
+bigfloat_finalize (Lisp_Object obj)
 {
-  if (!for_disksave)
-    {
-      struct Lisp_Bigfloat *num = (struct Lisp_Bigfloat *) header;
-      bigfloat_fini (num->bf);
-    }
+  struct Lisp_Bigfloat *num = XBIGFLOAT (obj);
+  /* #### WARNING: It would be better to put some sort of check to make
+     sure this doesn't happen more than once, just in case ---
+     e.g. checking if it's zero before finalizing and then setting it to
+     zero after finalizing. */
+  bigfloat_fini (num->bf);
 }
 #define BIGFLOAT_FINALIZE bigfloat_finalize
 #else
@@ -300,7 +276,8 @@ bigfloat_finalize (void *header, int for_disksave)
 #endif
 
 static int
-bigfloat_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth))
+bigfloat_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth),
+		int UNUSED (foldcase))
 {
   return bigfloat_eql (XBIGFLOAT_DATA (obj1), XBIGFLOAT_DATA (obj2));
 }
@@ -316,10 +293,10 @@ static const struct memory_description bigfloat_description[] = {
   { XD_END }
 };
 
-DEFINE_BASIC_LRECORD_IMPLEMENTATION ("bigfloat", bigfloat, 1, 0,
-				     bigfloat_print, BIGFLOAT_FINALIZE,
-				     bigfloat_equal, bigfloat_hash,
-				     bigfloat_description, Lisp_Bigfloat);
+DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("bigfloat", bigfloat, 0,
+					bigfloat_print, BIGFLOAT_FINALIZE,
+					bigfloat_equal, bigfloat_hash,
+					bigfloat_description, Lisp_Bigfloat);
 
 #endif /* HAVE_BIGFLOAT */
 
@@ -451,7 +428,7 @@ Return the canonical form of NUMBER.
   if (RATIOP (number) &&
       bignum_fits_long_p (XRATIO_DENOMINATOR (number)) &&
       bignum_to_long (XRATIO_DENOMINATOR (number)) == 1L)
-    number = make_bignum_bg (XRATIO_NUMERATOR (number));
+    number = Fcanonicalize_number (make_bignum_bg (XRATIO_NUMERATOR (number)));
 #endif
 #ifdef HAVE_BIGNUM
   if (BIGNUMP (number) && bignum_fits_emacs_int_p (XBIGNUM_DATA (number)))
@@ -789,13 +766,13 @@ void
 syms_of_number (void)
 {
 #ifdef HAVE_BIGNUM
-  INIT_LRECORD_IMPLEMENTATION (bignum);
+  INIT_LISP_OBJECT (bignum);
 #endif
 #ifdef HAVE_RATIO
-  INIT_LRECORD_IMPLEMENTATION (ratio);
+  INIT_LISP_OBJECT (ratio);
 #endif
 #ifdef HAVE_BIGFLOAT
-  INIT_LRECORD_IMPLEMENTATION (bigfloat);
+  INIT_LISP_OBJECT (bigfloat);
 #endif
 
   /* Type predicates */
@@ -808,9 +785,6 @@ syms_of_number (void)
 
   /* Functions */
   DEFSUBR (Fbignump);
-  DEFSUBR (Fintegerp);
-  DEFSUBR (Fevenp);
-  DEFSUBR (Foddp);
   DEFSUBR (Fratiop);
   DEFSUBR (Frationalp);
   DEFSUBR (Fnumerator);
@@ -852,16 +826,6 @@ This is determined by the underlying library used to implement bigfloats.
 #else
   Vbigfloat_max_prec = make_int (0);
 #endif /* HAVE_BIGFLOAT */
-
-  DEFVAR_CONST_INT ("most-negative-fixnum", &Vmost_negative_fixnum /*
-The fixnum closest in value to negative infinity.
-*/);
-  Vmost_negative_fixnum = EMACS_INT_MIN;
-
-  DEFVAR_CONST_INT ("most-positive-fixnum", &Vmost_positive_fixnum /*
-The fixnum closest in value to positive infinity.
-*/);
-  Vmost_positive_fixnum = EMACS_INT_MAX;
 
   Fprovide (intern ("number-types"));
 #ifdef HAVE_BIGNUM

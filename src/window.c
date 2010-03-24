@@ -1,7 +1,7 @@
 /* Window creation, deletion and examination for XEmacs.
    Copyright (C) 1985-1987, 1992-1995 Free Software Foundation, Inc.
    Copyright (C) 1994, 1995 Board of Trustees, University of Illinois.
-   Copyright (C) 1995, 1996, 2002 Ben Wing.
+   Copyright (C) 1995, 1996, 2002, 2010 Ben Wing.
    Copyright (C) 1996 Chuck Thompson.
 
 This file is part of XEmacs.
@@ -182,11 +182,9 @@ static const struct memory_description face_cachel_description_1[] = {
 };
 
 #ifdef NEW_GC
-DEFINE_LRECORD_IMPLEMENTATION ("face-cachel", face_cachel,
-			       1, /*dumpable-flag*/
-                               0, 0, 0, 0, 0,
-			       face_cachel_description_1,
-			       Lisp_Face_Cachel);
+DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("face-cachel", face_cachel,
+				      0, face_cachel_description_1,
+				      Lisp_Face_Cachel);
 #endif /* NEW_GC */
 
 static const struct sized_memory_description face_cachel_description = {
@@ -204,11 +202,9 @@ static const struct memory_description face_cachel_dynarr_description_1[] = {
 };
 
 #ifdef NEW_GC
-DEFINE_LRECORD_IMPLEMENTATION ("face-cachel-dynarr", face_cachel_dynarr,
-			       1, /*dumpable-flag*/
-                               0, 0, 0, 0, 0,
-			       face_cachel_dynarr_description_1,
-			       face_cachel_dynarr);
+DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("face-cachel-dynarr", face_cachel_dynarr,
+				      0, face_cachel_dynarr_description_1,
+				      face_cachel_dynarr);
 #else /* not NEW_GC */
 static const struct sized_memory_description face_cachel_dynarr_description = {
   sizeof (face_cachel_dynarr),
@@ -222,11 +218,9 @@ static const struct memory_description glyph_cachel_description_1[] = {
 };
 
 #ifdef NEW_GC
-DEFINE_LRECORD_IMPLEMENTATION ("glyph-cachel", glyph_cachel,
-			       1, /*dumpable-flag*/
-                               0, 0, 0, 0, 0,
-			       glyph_cachel_description_1,
-			       Lisp_Glyph_Cachel);
+DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("glyph-cachel", glyph_cachel,
+				      0, glyph_cachel_description_1,
+				      Lisp_Glyph_Cachel);
 #endif /* NEW_GC */
 
 static const struct sized_memory_description glyph_cachel_description = {
@@ -244,11 +238,10 @@ static const struct memory_description glyph_cachel_dynarr_description_1[] = {
 };
 
 #ifdef NEW_GC
-DEFINE_LRECORD_IMPLEMENTATION ("glyph-cachel-dynarr", glyph_cachel_dynarr,
-			       1, /*dumpable-flag*/
-                               0, 0, 0, 0, 0,
-			       glyph_cachel_dynarr_description_1,
-			       glyph_cachel_dynarr);
+DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("glyph-cachel-dynarr",
+				      glyph_cachel_dynarr, 0,
+				      glyph_cachel_dynarr_description_1,
+				      glyph_cachel_dynarr);
 #else /* not NEW_GC */
 static const struct sized_memory_description glyph_cachel_dynarr_description = {
   sizeof (glyph_cachel_dynarr),
@@ -313,22 +306,28 @@ static void
 print_window (Lisp_Object obj, Lisp_Object printcharfun,
 	      int UNUSED (escapeflag))
 {
-  if (print_readably)
-    printing_unreadable_object ("#<window 0x%x>", XWINDOW (obj)->header.uid);
+  Lisp_Object buf;
 
-  write_c_string (printcharfun, "#<window");
-  if (!NILP (XWINDOW (obj)->buffer))
+  if (print_readably)
+    printing_unreadable_lisp_object (obj, 0);
+
+  write_ascstring (printcharfun, "#<window");
+  buf = XWINDOW_BUFFER (obj);
+  if (EQ (buf, Qt))
+    write_ascstring (printcharfun, " during creation");
+  else if (!NILP (buf))
     {
-      Lisp_Object name = XBUFFER (XWINDOW (obj)->buffer)->name;
+      
+      Lisp_Object name = XBUFFER (buf)->name;
       write_fmt_string_lisp (printcharfun, " on %S", 1, name);
     }
-  write_fmt_string (printcharfun, " 0x%x>", XWINDOW (obj)->header.uid);
+  write_fmt_string (printcharfun, " 0x%x>", LISP_OBJECT_UID (obj));
 }
 
 static void
-finalize_window (void *header, int UNUSED (for_disksave))
+finalize_window (Lisp_Object obj)
 {
-  struct window *w = (struct window *) header;
+  struct window *w = XWINDOW (obj);
 
   if (w->line_start_cache)
     {
@@ -369,10 +368,9 @@ make_saved_buffer_point_cache (void)
   return make_lisp_hash_table (20, HASH_TABLE_KEY_WEAK, HASH_TABLE_EQ);
 }
 
-DEFINE_LRECORD_IMPLEMENTATION ("window", window,
-			       0, /*dumpable-flag*/
-                               mark_window, print_window, finalize_window,
-			       0, 0, window_description, struct window);
+DEFINE_NODUMP_LISP_OBJECT ("window", window,
+			   mark_window, print_window, finalize_window,
+			   0, 0, window_description, struct window);
 
 #define INIT_DISP_VARIABLE(field, initialization)	\
   p->field[CURRENT_DISP] = initialization;		\
@@ -391,8 +389,8 @@ DEFINE_LRECORD_IMPLEMENTATION ("window", window,
 Lisp_Object
 allocate_window (void)
 {
-  struct window *p = ALLOC_LCRECORD_TYPE (struct window, &lrecord_window);
-  Lisp_Object val = wrap_window (p);
+  Lisp_Object obj = ALLOC_NORMAL_LISP_OBJECT (window);
+  struct window *p = XWINDOW (obj);
 
 #define WINDOW_SLOT(slot) p->slot = Qnil;
 #include "winslots.h"
@@ -426,7 +424,7 @@ allocate_window (void)
   p->windows_changed = 1;
   p->shadow_thickness_changed = 1;
 
-  return val;
+  return obj;
 }
 #undef INIT_DISP_VARIABLE
 
@@ -525,19 +523,18 @@ mark_window_mirror (Lisp_Object obj)
     return Qnil;
 }
 
-DEFINE_LRECORD_IMPLEMENTATION ("window-mirror", window_mirror,
-			       0, /*dumpable-flag*/
-                               mark_window_mirror, internal_object_printer,
-			       0, 0, 0, window_mirror_description,
-			       struct window_mirror);
+DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("window-mirror", window_mirror,
+				    mark_window_mirror,
+				    window_mirror_description,
+				    struct window_mirror);
 
 /* Create a new window mirror structure and associated redisplay
    structs. */
 static struct window_mirror *
 new_window_mirror (struct frame *f)
 {
-  struct window_mirror *t =
-    ALLOC_LCRECORD_TYPE (struct window_mirror, &lrecord_window_mirror);
+  Lisp_Object obj = ALLOC_NORMAL_LISP_OBJECT (window_mirror);
+  struct window_mirror *t = XWINDOW_MIRROR (obj);
 
   t->frame = f;
   t->current_display_lines = Dynarr_new (display_line);
@@ -681,7 +678,7 @@ free_window_mirror (struct window_mirror *mir)
 #endif
       free_display_structs (mir);
       mir = mir->next;
-      /* not worth calling free_managed_lcrecord() -- window mirrors
+      /* not worth calling free_normal_lisp_object() -- window mirrors
 	 are not created that frequently and it's dangerous.  we don't
 	 know for sure that there aren't other pointers around -- e.g.
 	 in a scrollbar instance. */
@@ -696,8 +693,7 @@ real_window (struct window_mirror *mir, int no_abort)
   Lisp_Object retval =
     real_window_internal (mir->frame->root_window,
 			  XWINDOW_MIRROR (mir->frame->root_mirror), mir);
-  if (NILP (retval) && !no_abort)
-    ABORT ();
+  assert (!NILP (retval) || no_abort);
 
   return retval;
 }
@@ -759,8 +755,7 @@ window_display_lines (struct window *w, int which)
   if (XFRAME (w->frame)->mirror_dirty)
     update_frame_window_mirror (XFRAME (w->frame));
   t = find_window_mirror (w);
-  if (!t)
-    ABORT ();
+  assert (t);
 
   if (which == CURRENT_DISP)
     return t->current_display_lines;
@@ -783,8 +778,7 @@ window_display_buffer (struct window *w)
   if (XFRAME (w->frame)->mirror_dirty)
     update_frame_window_mirror (XFRAME (w->frame));
   t = find_window_mirror (w);
-  if (!t)
-    ABORT ();
+  assert (t);
 
   return t->buffer;
 }
@@ -797,8 +791,7 @@ set_window_display_buffer (struct window *w, struct buffer *b)
   if (XFRAME (w->frame)->mirror_dirty)
     update_frame_window_mirror (XFRAME (w->frame));
   t = find_window_mirror (w);
-  if (!t)
-    ABORT ();
+  assert (t);
 
   t->buffer = b;
 }
@@ -1042,7 +1035,7 @@ window_divider_width (struct window *w)
 }
 
 int
-window_scrollbar_width (struct window *w)
+window_scrollbar_width (struct window * USED_IF_SCROLLBARS (w))
 {
 #ifdef HAVE_SCROLLBARS
   if (!WINDOW_WIN_P (w)
@@ -1061,7 +1054,7 @@ window_scrollbar_width (struct window *w)
 /* Horizontal scrollbars are only active on windows with truncation
    turned on. */
 int
-window_scrollbar_height (struct window *w)
+window_scrollbar_height (struct window * USED_IF_SCROLLBARS (w))
 {
 #ifdef HAVE_SCROLLBARS
   if (!WINDOW_WIN_P (w)
@@ -1119,15 +1112,15 @@ window_modeline_height (struct window *w)
              since there is a redisplay condition that these
              structures be identical outside of redisplay. */
 	  dla = window_display_lines (w, DESIRED_DISP);
-	  if (dla && Dynarr_length (dla) && Dynarr_atp (dla, 0)->modeline)
-	    modeline_height = (Dynarr_atp (dla, 0)->ascent +
-			       Dynarr_atp (dla, 0)->descent);
+	  if (dla && Dynarr_length (dla) && Dynarr_begin (dla)->modeline)
+	    modeline_height = (Dynarr_begin (dla)->ascent +
+			       Dynarr_begin (dla)->descent);
 	  else
 	    {
 	      dla = window_display_lines (w, CURRENT_DISP);
-	      if (dla && Dynarr_length (dla) && Dynarr_atp (dla, 0)->modeline)
-		modeline_height = (Dynarr_atp (dla, 0)->ascent +
-				   Dynarr_atp (dla, 0)->descent);
+	      if (dla && Dynarr_length (dla) && Dynarr_begin (dla)->modeline)
+		modeline_height = (Dynarr_begin (dla)->ascent +
+				   Dynarr_begin (dla)->descent);
 	      else
 		/* This should be an abort except I'm not yet 100%
                    confident that it won't ever get hit (though I
@@ -1173,7 +1166,7 @@ margin_width_internal (struct window *w, int left_margin)
   margin_cwidth = (left_margin ? XINT (w->left_margin_width) :
 		   XINT (w->right_margin_width));
 
-  default_face_height_and_width (window, 0, &font_width);
+  default_face_width_and_height (window, &font_width, 0);
 
   /* The left margin takes precedence over the right margin so we
      subtract its width from the space available for the right
@@ -1268,7 +1261,8 @@ window_bottom_gutter_height (struct window *w)
 }
 
 static int
-window_left_window_gutter_width (struct window *w, int modeline)
+window_left_window_gutter_width (struct window *w,
+				 int USED_IF_SCROLLBARS (modeline))
 {
   if (!NILP (w->hchild) || !NILP (w->vchild))
     return 0;
@@ -1288,7 +1282,8 @@ window_left_gutter_width (struct window *w, int modeline)
 }
 
 static int
-window_right_window_gutter_width (struct window *w, int modeline)
+window_right_window_gutter_width (struct window *w,
+				  int USED_IF_SCROLLBARS (modeline))
 {
   int gutter = 0;
 
@@ -1654,7 +1649,7 @@ is non-nil, do not include space occupied by clipped lines.
   hlimit = WINDOW_TEXT_HEIGHT (w);
   eobuf  = BUF_ZV (XBUFFER (w->buffer));
 
-  default_face_height_and_width (window, &defheight, NULL);
+  default_face_width_and_height (window, NULL, &defheight);
 
   /* guess lines needed in line start cache + a few extra */
   needed = (hlimit + defheight-1) / defheight + 3;
@@ -1809,10 +1804,8 @@ of this area, while the scrollbars are considered to be inside.
   struct window *w = decode_window (window);
   struct frame *f = XFRAME (w->frame);
 
-  int left =
-    w->pixel_left - FRAME_LEFT_BORDER_END (f) - FRAME_LEFT_GUTTER_BOUNDS (f);
-  int top =
-    w->pixel_top - FRAME_TOP_BORDER_END (f) - FRAME_TOP_GUTTER_BOUNDS (f);
+  int left = w->pixel_left - FRAME_PANED_LEFT_EDGE (f);
+  int top = w->pixel_top - FRAME_PANED_TOP_EDGE (f);
 
   return list4 (make_int (left),
 		make_int (top),
@@ -1915,7 +1908,7 @@ If the last line is not clipped, return nil.
   struct display_line *dl;
 
   /* No lines - no clipped lines */
-  if (num_lines == 0 || (num_lines == 1 && Dynarr_atp (dla, 0)->modeline))
+  if (num_lines == 0 || (num_lines == 1 && Dynarr_begin (dla)->modeline))
     return Qnil;
 
   dl = Dynarr_atp (dla, num_lines - 1);
@@ -2016,8 +2009,7 @@ unshow_buffer (struct window *w)
   Lisp_Object buf = w->buffer;
   struct buffer *b = XBUFFER (buf);
 
-  if (b != XMARKER (w->pointm[CURRENT_DISP])->buffer)
-    ABORT ();
+  assert (b == XMARKER (w->pointm[CURRENT_DISP])->buffer);
 
   /* FSF disables this check, so I'll do it too.  I hope it won't
      break things.  --ben */
@@ -2143,7 +2135,7 @@ mark_window_as_deleted (struct window *w)
   /* Free the extra data structures attached to windows immediately so
      they don't sit around consuming excess space.  They will be
      reinitialized by the window-configuration code as necessary. */
-  finalize_window ((void *) w, 0);
+  finalize_window (wrap_window (w));
 
   /* Nobody should be accessing anything in this object any more,
      and making them Qnil allows for better GC'ing in case a pointer
@@ -3130,7 +3122,7 @@ Any other non-nil value means search all devices.
   w = window_loop (GET_LRU_WINDOW, Qnil, 0, which_frames, 1, which_devices);
 
   /* At this point we damn well better have found something. */
-  if (NILP (w)) ABORT ();
+  assert (!NILP (w));
 #endif
 
   return w;
@@ -3474,8 +3466,8 @@ frame_min_height (struct frame *frame)
 
 /* Return non-zero if both frame sizes are less than or equal to
    minimal allowed values. ROWS and COLS are in characters */
-int
-frame_size_valid_p (struct frame *frame, int rows, int cols)
+static int
+frame_size_valid_p (struct frame *frame, int cols, int rows)
 {
   return (rows >= frame_min_height (frame)
 	  && cols >= MIN_SAFE_WINDOW_WIDTH);
@@ -3487,21 +3479,30 @@ int
 frame_pixsize_valid_p (struct frame *frame, int width, int height)
 {
   int rows, cols;
-  pixel_to_real_char_size (frame, width, height, &cols, &rows);
-  return frame_size_valid_p (frame, rows, cols);
+  pixel_to_char_size (frame, width, height, &cols, &rows);
+  return frame_size_valid_p (frame, cols, rows);
 }
 
 /* If *ROWS or *COLS are too small a size for FRAME, set them to the
    minimum allowable size.  */
 void
-check_frame_size (struct frame *frame, int *rows, int *cols)
+check_frame_size (struct frame *frame, int *cols, int *rows)
 {
   int min_height = frame_min_height (frame);
+  int min_pixwidth, min_pixheight;
+  int min_geomwidth, min_geomheight;
 
-  if (*rows < min_height)
-    *rows = min_height;
-  if (*cols  < MIN_SAFE_WINDOW_WIDTH)
-    *cols = MIN_SAFE_WINDOW_WIDTH;
+  /* There is no char_to_frame_unit_size().  This can be done with
+     frame_conversion_internal(), but that's currently static, and we can
+     do it fine with two steps, as follows. */
+  char_to_pixel_size (frame, MIN_SAFE_WINDOW_WIDTH, min_height,
+		      &min_pixwidth, &min_pixheight);
+  pixel_to_frame_unit_size (frame, min_pixwidth, min_pixheight,
+			   &min_geomwidth, &min_geomheight);
+  if (*rows < min_geomheight)
+    *rows = min_geomheight;
+  if (*cols  < min_geomwidth)
+    *cols = min_geomwidth;
 }
 
 /* Normally the window is deleted if it gets too small.
@@ -3520,7 +3521,7 @@ set_window_pixsize (Lisp_Object window, int new_pixsize, int nodelete,
   int line_size;
   int defheight, defwidth;
 
-  default_face_height_and_width (window, &defheight, &defwidth);
+  default_face_width_and_height (window, &defwidth, &defheight);
   line_size = (set_height ? defheight : defwidth);
 
   check_min_window_sizes ();
@@ -3862,12 +3863,11 @@ temp_output_buffer_show (Lisp_Object buf, Lisp_Object same_frame)
 static void
 make_dummy_parent (Lisp_Object window)
 {
-  Lisp_Object new_;
   struct window *o = XWINDOW (window);
-  struct window *p = ALLOC_LCRECORD_TYPE (struct window, &lrecord_window);
+  Lisp_Object obj = ALLOC_NORMAL_LISP_OBJECT (window);
+  struct window *p = XWINDOW (obj);
 
-  new_ = wrap_window (p);
-  COPY_LCRECORD (p, o);
+  copy_lisp_object (obj, window);
 
   /* Don't copy the pointers to the line start cache or the face
      instances. */
@@ -3887,13 +3887,13 @@ make_dummy_parent (Lisp_Object window)
     make_image_instance_cache_hash_table ();
 
   /* Put new into window structure in place of window */
-  replace_window (window, new_);
+  replace_window (window, obj);
 
   o->next = Qnil;
   o->prev = Qnil;
   o->vchild = Qnil;
   o->hchild = Qnil;
-  o->parent = new_;
+  o->parent = obj;
 
   p->start[CURRENT_DISP] = Qnil;
   p->start[DESIRED_DISP] = Qnil;
@@ -4124,7 +4124,7 @@ window_pixel_height_to_char_height (struct window *w, int pixel_height,
 		   window_top_window_gutter_height (w) +
 		   window_bottom_window_gutter_height (w)));
 
-  default_face_height_and_width (window, &defheight, &defwidth);
+  default_face_width_and_height (window, &defwidth, &defheight);
 
   if (defheight)
     char_height = avail_height / defheight;
@@ -4148,7 +4148,7 @@ window_char_height_to_pixel_height (struct window *w, int char_height,
   Lisp_Object window = wrap_window (w);
 
 
-  default_face_height_and_width (window, &defheight, &defwidth);
+  default_face_width_and_height (window, &defwidth, &defheight);
 
   avail_height = char_height * defheight;
   pixel_height = (avail_height +
@@ -4201,7 +4201,7 @@ window_displayed_height (struct window *w)
      indicates that end-of-buffer is being displayed. */
   if (end_pos == -1)
     {
-      struct display_line *dl = Dynarr_atp (dla, 0);
+      struct display_line *dl = Dynarr_begin (dla);
       int ypos1 = dl->ypos + dl->descent;
       int ypos2 = WINDOW_TEXT_BOTTOM (w);
       Lisp_Object window;
@@ -4228,7 +4228,7 @@ window_displayed_height (struct window *w)
 	    }
 	}
 
-      default_face_height_and_width (window, &defheight, &defwidth);
+      default_face_width_and_height (window, &defwidth, &defheight);
       /* #### This probably needs to know about the clipping area once a
          final definition is decided on. */
       if (defheight)
@@ -4236,7 +4236,7 @@ window_displayed_height (struct window *w)
     }
   else
     {
-      if (num_lines > 1 && Dynarr_atp (dla, 0)->modeline)
+      if (num_lines > 1 && Dynarr_begin (dla)->modeline)
 	num_lines--;
 
       if (scroll_on_clipped_lines
@@ -4271,7 +4271,7 @@ window_pixel_width_to_char_width (struct window *w, int pixel_width,
 		 (include_margins_p ? 0 : window_left_margin_width (w)) -
 		 (include_margins_p ? 0 : window_right_margin_width (w)));
 
-  default_face_height_and_width (window, &defheight, &defwidth);
+  default_face_width_and_height (window, &defwidth, &defheight);
 
   if (defwidth) 
     char_width = (avail_width / defwidth);
@@ -4294,7 +4294,7 @@ window_char_width_to_pixel_width (struct window *w, int char_width,
   Lisp_Object window = wrap_window (w);
 
 
-  default_face_height_and_width (window, &defheight, &defwidth);
+  default_face_width_and_height (window, &defwidth, &defheight);
 
   avail_width = char_width * defwidth;
   pixel_width = (avail_width +
@@ -4377,7 +4377,7 @@ change_window_height (Lisp_Object window, int delta, Lisp_Object horizontalp,
   if (EQ (window, FRAME_ROOT_WINDOW (f)))
     invalid_operation ("Won't change only window", Qunbound);
 
-  default_face_height_and_width (window, &defheight, &defwidth);
+  default_face_width_and_height (window, &defwidth, &defheight);
 
   while (1)
     {
@@ -4606,10 +4606,10 @@ window_scroll (Lisp_Object window, Lisp_Object count, int direction,
   if (INTP (Vwindow_pixel_scroll_increment))
     fheight = XINT (Vwindow_pixel_scroll_increment);
   else if (!NILP (Vwindow_pixel_scroll_increment))
-    default_face_height_and_width (window, &fheight, &fwidth);
+    default_face_width_and_height (window, &fwidth, &fheight);
 
   if (Dynarr_length (dla) >= 1)
-    modeline = Dynarr_atp (dla, 0)->modeline;
+    modeline = Dynarr_begin (dla)->modeline;
 
   dl = Dynarr_atp (dla, modeline);
 
@@ -5158,101 +5158,63 @@ some_window_value_changed (Lisp_Object UNUSED (specifier),
 
 struct window_stats
 {
-  int face;
-  int glyph;
+  struct usage_stats u;
+  Bytecount face;
+  Bytecount glyph;
+  Bytecount line_start;
+  Bytecount other_redisplay;
 #ifdef HAVE_SCROLLBARS
-  int scrollbar;
+  Bytecount scrollbar;
 #endif
-  int line_start;
-  int other_redisplay;
-  int other;
 };
 
 static void
 compute_window_mirror_usage (struct window_mirror *mir,
 			     struct window_stats *stats,
-			     struct overhead_stats *ovstats)
+			     struct usage_stats *ustats)
 {
   if (!mir)
     return;
-  stats->other += LISPOBJ_STORAGE_SIZE (mir, sizeof (*mir), ovstats);
 #ifdef HAVE_SCROLLBARS
   {
     struct device *d = XDEVICE (FRAME_DEVICE (mir->frame));
 
     stats->scrollbar +=
       compute_scrollbar_instance_usage (d, mir->scrollbar_vertical_instance,
-					ovstats);
+					ustats);
     stats->scrollbar +=
       compute_scrollbar_instance_usage (d, mir->scrollbar_horizontal_instance,
-					ovstats);
+					ustats);
   }
 #endif /* HAVE_SCROLLBARS */
   stats->other_redisplay +=
-    compute_display_line_dynarr_usage (mir->current_display_lines, ovstats);
+    compute_display_line_dynarr_usage (mir->current_display_lines, ustats);
   stats->other_redisplay +=
-    compute_display_line_dynarr_usage (mir->desired_display_lines, ovstats);
+    compute_display_line_dynarr_usage (mir->desired_display_lines, ustats);
 }
 
 static void
 compute_window_usage (struct window *w, struct window_stats *stats,
-		      struct overhead_stats *ovstats)
+		      struct usage_stats *ustats)
 {
-  xzero (*stats);
-  stats->other += LISPOBJ_STORAGE_SIZE (w, sizeof (*w), ovstats);
-  stats->face += compute_face_cachel_usage (w->face_cachels, ovstats);
-  stats->glyph += compute_glyph_cachel_usage (w->glyph_cachels, ovstats);
+  stats->face += compute_face_cachel_usage (w->face_cachels, ustats);
+  stats->glyph += compute_glyph_cachel_usage (w->glyph_cachels, ustats);
   stats->line_start +=
-    compute_line_start_cache_dynarr_usage (w->line_start_cache, ovstats);
-  compute_window_mirror_usage (find_window_mirror (w), stats, ovstats);
+    compute_line_start_cache_dynarr_usage (w->line_start_cache, ustats);
+  compute_window_mirror_usage (find_window_mirror (w), stats, ustats);
 }
 
-DEFUN ("window-memory-usage", Fwindow_memory_usage, 1, 1, 0, /*
-Return stats about the memory usage of window WINDOW.
-The values returned are in the form of an alist of usage types and byte
-counts.  The byte counts attempt to encompass all the memory used
-by the window (separate from the memory logically associated with a
-buffer or frame), including internal structures and any malloc()
-overhead associated with them.  In practice, the byte counts are
-underestimated because certain memory usage is very hard to determine
-\(e.g. the amount of memory used inside the Xt library or inside the
-X server) and because there is other stuff that might logically
-be associated with a window, buffer, or frame (e.g. window configurations,
-glyphs) but should not obviously be included in the usage counts.
-
-Multiple slices of the total memory usage may be returned, separated
-by a nil.  Each slice represents a particular view of the memory, a
-particular way of partitioning it into groups.  Within a slice, there
-is no overlap between the groups of memory, and each slice collectively
-represents all the memory concerned.
-*/
-       (window))
+static void
+window_memory_usage (Lisp_Object window, struct generic_usage_stats *gustats)
 {
-  struct window_stats stats;
-  struct overhead_stats ovstats;
-  Lisp_Object val = Qnil;
+  struct window_stats *stats = (struct window_stats *) gustats;
 
-  CHECK_WINDOW (window); /* dead windows should be allowed, no? */
-  xzero (ovstats);
-  compute_window_usage (XWINDOW (window), &stats, &ovstats);
-
-  val = acons (Qface_cache,          make_int (stats.face),              val);
-  val = acons (Qglyph_cache,         make_int (stats.glyph),             val);
-#ifdef HAVE_SCROLLBARS
-  val = acons (Qscrollbar_instances, make_int (stats.scrollbar),         val);
-#endif
-  val = acons (Qline_start_cache,    make_int (stats.line_start),        val);
-  val = acons (Qother_redisplay,     make_int (stats.other_redisplay),   val);
-  val = acons (Qother,               make_int (stats.other),             val);
-  val = Fcons (Qnil, val);
-  val = acons (Qactually_requested,  make_int (ovstats.was_requested),   val);
-  val = acons (Qmalloc_overhead,     make_int (ovstats.malloc_overhead), val);
-  val = acons (Qdynarr_overhead,     make_int (ovstats.dynarr_overhead), val);
-
-  return Fnreverse (val);
+  compute_window_usage (XWINDOW (window), stats, &stats->u);
 }
 
 #endif /* MEMORY_USAGE_STATS */
+
+
 
 /* Mark all subwindows of a window as deleted.  The argument
    W is actually the subwindow tree of the window in question. */
@@ -5297,7 +5259,7 @@ get_current_pixel_pos (Lisp_Object window, Lisp_Object pos,
       CHECK_INT (pos);
       point = XINT (pos);
 
-      if (Dynarr_length (dla) && Dynarr_atp (dla, 0)->modeline)
+      if (Dynarr_length (dla) && Dynarr_begin (dla)->modeline)
 	first_line = 1;
       else
 	first_line = 0;
@@ -5406,7 +5368,7 @@ debug_print_window (Lisp_Object window, int level)
     if (!NILP (buffer) && BUFFERP (buffer))
       stderr_out (" on %s", XSTRING_DATA (XBUFFER (buffer)->name));
   }
-  stderr_out (" 0x%x>", XWINDOW (window)->header.uid);
+  stderr_out (" 0x%x>", LISP_OBJECT_UID (window));
 
   while (!NILP (child))
     {
@@ -5430,15 +5392,23 @@ debug_print_windows (struct frame *f)
 /************************************************************************/
 
 void
+window_objects_create (void)
+{
+#ifdef MEMORY_USAGE_STATS
+  OBJECT_HAS_METHOD (window, memory_usage);
+#endif
+}
+
+void
 syms_of_window (void)
 {
-  INIT_LRECORD_IMPLEMENTATION (window);
-  INIT_LRECORD_IMPLEMENTATION (window_mirror);
+  INIT_LISP_OBJECT (window);
+  INIT_LISP_OBJECT (window_mirror);
 #ifdef NEW_GC
-  INIT_LRECORD_IMPLEMENTATION (face_cachel);
-  INIT_LRECORD_IMPLEMENTATION (face_cachel_dynarr);
-  INIT_LRECORD_IMPLEMENTATION (glyph_cachel);
-  INIT_LRECORD_IMPLEMENTATION (glyph_cachel_dynarr);
+  INIT_LISP_OBJECT (face_cachel);
+  INIT_LISP_OBJECT (face_cachel_dynarr);
+  INIT_LISP_OBJECT (glyph_cachel);
+  INIT_LISP_OBJECT (glyph_cachel_dynarr);
 #endif /* NEW_GC */
 
   DEFSYMBOL (Qwindowp);
@@ -5453,7 +5423,6 @@ syms_of_window (void)
   DEFSYMBOL (Qscrollbar_instances);
 #endif
   DEFSYMBOL (Qother_redisplay);
-  /* Qother in general.c */
 #endif
 
   DEFSYMBOL (Qtruncate_partial_width_windows);
@@ -5531,9 +5500,6 @@ syms_of_window (void)
   DEFSUBR (Fscroll_other_window);
   DEFSUBR (Fcenter_to_window_line);
   DEFSUBR (Fmove_to_window_line);
-#ifdef MEMORY_USAGE_STATS
-  DEFSUBR (Fwindow_memory_usage);
-#endif
   DEFSUBR (Fcurrent_pixel_column);
   DEFSUBR (Fcurrent_pixel_row);
 }
@@ -5549,6 +5515,23 @@ reinit_vars_of_window (void)
 void
 vars_of_window (void)
 {
+#ifdef MEMORY_USAGE_STATS
+#ifdef HAVE_SCROLLBARS
+  OBJECT_HAS_PROPERTY
+    (window, memusage_stats_list,
+     listu (Qface_cache, Qglyph_cache,
+	    Qline_start_cache, Qother_redisplay,
+	    Qscrollbar_instances,
+	    Qunbound));
+#else
+  OBJECT_HAS_PROPERTY
+    (window, memusage_stats_list,
+     listu (Qface_cache, Qglyph_cache,
+	    Qline_start_cache, Qother_redisplay,
+	    Qunbound));
+#endif
+#endif /* MEMORY_USAGE_STATS */
+
   DEFVAR_BOOL ("scroll-on-clipped-lines", &scroll_on_clipped_lines /*
 *Non-nil means to scroll if point lands on a line which is clipped.
 */ );

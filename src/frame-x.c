@@ -1,6 +1,7 @@
 /* Functions for the X window system.
    Copyright (C) 1989, 1992-5, 1997 Free Software Foundation, Inc.
-   Copyright (C) 1995, 1996, 2001, 2002, 2004 Ben Wing.
+   Copyright (C) 1995, 1996, 2001, 2002, 2004, 2010 Ben Wing.
+   Copyright (C) 2010 Didier Verna
 
 This file is part of XEmacs.
 
@@ -74,11 +75,9 @@ static const struct memory_description x_frame_data_description_1 [] = {
 };
 
 #ifdef NEW_GC
-DEFINE_LRECORD_IMPLEMENTATION ("x-frame", x_frame,
-			       1, /*dumpable-flag*/
-                               0, 0, 0, 0, 0,
-			       x_frame_data_description_1,
-			       Lisp_X_Frame);
+DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("x-frame", x_frame,
+				      0, x_frame_data_description_1,
+				      Lisp_X_Frame);
 #else /* not NEW_GC */
 extern const struct sized_memory_description x_frame_data_description;
 
@@ -226,14 +225,14 @@ decode_x_frame (Lisp_Object frame)
 void
 x_wm_mark_shell_size_user_specified (Widget wmshell)
 {
-  if (! XtIsWMShell (wmshell)) ABORT ();
+  assert (XtIsWMShell (wmshell));
   EmacsShellSetSizeUserSpecified (wmshell);
 }
 
 void
 x_wm_mark_shell_position_user_specified (Widget wmshell)
 {
-  if (! XtIsWMShell (wmshell)) ABORT ();
+  assert (XtIsWMShell (wmshell));
   EmacsShellSetPositionUserSpecified (wmshell);
 }
 
@@ -242,7 +241,7 @@ x_wm_mark_shell_position_user_specified (Widget wmshell)
 void
 x_wm_set_shell_iconic_p (Widget shell, int iconic_p)
 {
-  if (! XtIsWMShell (shell)) ABORT ();
+  assert (XtIsWMShell (shell));
 
   /* Because of questionable logic in Shell.c, this sequence can't work:
 
@@ -271,10 +270,8 @@ x_wm_set_cell_size (Widget wmshell, int cw, int ch)
 {
   Arg al [2];
 
-  if (!XtIsWMShell (wmshell))
-    ABORT ();
-  if (cw <= 0 || ch <= 0)
-    ABORT ();
+  assert (XtIsWMShell (wmshell));
+  assert (cw > 0 && ch > 0);
 
   Xt_SET_ARG (al[0], XtNwidthInc,  cw);
   Xt_SET_ARG (al[1], XtNheightInc, ch);
@@ -286,8 +283,7 @@ x_wm_set_variable_size (Widget wmshell, int width, int height)
 {
   Arg al [2];
 
-  if (!XtIsWMShell (wmshell))
-    ABORT ();
+  assert (XtIsWMShell (wmshell));
 #ifdef DEBUG_GEOMETRY_MANAGEMENT
   /* See comment in EmacsShell.c */
   printf ("x_wm_set_variable_size: %d %d\n", width, height);
@@ -355,8 +351,7 @@ x_wm_store_class_hints (Widget shell, Extbyte *frame_name)
   Extbyte *app_name, *app_class;
   XClassHint classhint;
 
-  if (!XtIsWMShell (shell))
-    ABORT ();
+  assert (XtIsWMShell (shell));
 
   XtGetApplicationNameAndClass (dpy, &app_name, &app_class);
   classhint.res_name = frame_name;
@@ -372,8 +367,7 @@ x_wm_maybe_store_wm_command (struct frame *f)
   Widget w = FRAME_X_SHELL_WIDGET (f);
   struct device *d = XDEVICE (FRAME_DEVICE (f));
 
-  if (!XtIsWMShell (w))
-    ABORT ();
+  assert (XtIsWMShell (w));
 
   if (NILP (DEVICE_X_WM_COMMAND_FRAME (d)))
     {
@@ -466,7 +460,7 @@ static void
 init_x_prop_symbols (void)
 {
 #define def(sym, rsrc) \
-   Fput (sym, Qx_resource_name, build_string (rsrc))
+   Fput (sym, Qx_resource_name, build_ascstring (rsrc))
 #define defi(sym,rsrc) \
    def (sym, rsrc); Fput (sym, Qintegerp, Qt)
 
@@ -515,7 +509,7 @@ color_to_string (Widget w, unsigned long pixel)
   color.pixel = pixel;
   XQueryColor (XtDisplay (w), w->core.colormap, &color);
   qxesprintf (buf, "#%04x%04x%04x", color.red, color.green, color.blue);
-  return build_intstring (buf);
+  return build_istring (buf);
 }
 
 static void
@@ -540,6 +534,23 @@ x_get_top_level_position (Display *d, Window w, Position *x, Position *y)
   XGetWindowAttributes (d, w, &xwa);
   *x = xwa.x;
   *y = xwa.y;
+}
+
+void x_get_frame_text_position (struct frame *f)
+{
+  Display *dpy = DEVICE_X_DISPLAY (XDEVICE (FRAME_DEVICE (f)));
+  Window window = XtWindow (FRAME_X_TEXT_WIDGET (f));
+  Window root, child;
+  int x, y;
+  unsigned int width, height, border_width;
+  unsigned int depth;
+
+  XGetGeometry (dpy, window, &root, &x, &y, &width, &height, &border_width,
+		&depth);
+  XTranslateCoordinates (dpy, window, root, 0, 0, &x, &y, &child);
+
+  FRAME_X_X (f) = x;
+  FRAME_X_Y (f) = y;
 }
 
 #if 0
@@ -651,10 +662,8 @@ x_set_frame_text_value (struct frame *f, Ibyte *value,
   for (ptr = value; *ptr; ptr++)
     if (!byte_ascii_p (*ptr))
       {
-        const Extbyte *tmp;
         encoding = DEVICE_XATOM_COMPOUND_TEXT (XDEVICE (FRAME_DEVICE (f)));
-	C_STRING_TO_EXTERNAL (value, tmp, Qctext);
-        new_XtValue = (String) tmp;
+        new_XtValue = (String) ITEXT_TO_EXTERNAL (value, Qctext);
         break;
       }
 #endif /* MULE */
@@ -762,7 +771,7 @@ x_set_frame_properties (struct frame *f, Lisp_Object plist)
 	  if (XSTRING_LENGTH (prop) == 0)
 	    continue;
 
-	  LISP_STRING_TO_EXTERNAL (prop, extprop, Qxt_widget_arg_encoding);
+	  extprop = LISP_STRING_TO_EXTERNAL (prop, Qxt_widget_arg_encoding);
 	  if (STRINGP (val))
 	    {
 	      const Extbyte *extval;
@@ -772,9 +781,8 @@ x_set_frame_properties (struct frame *f, Lisp_Object plist)
 		 for the value of a widget argument; it depends on the
 		 semantics of the argument.  So use of
 		 Qxt_widget_arg_encoding is totally bogus. --ben */
-	      TO_EXTERNAL_FORMAT (LISP_STRING, val,
-				  ALLOCA, (extval, extvallen),
-				  Qxt_widget_arg_encoding);
+	      LISP_STRING_TO_SIZED_EXTERNAL (val, extval, extvallen,
+					     Qxt_widget_arg_encoding);
 	      XtVaSetValues (w, XtVaTypedArg, extprop,
 			     /* !!#### Verify this + 1 and document
 				as zero-termination */
@@ -854,7 +862,7 @@ x_set_frame_properties (struct frame *f, Lisp_Object plist)
 	      internal_border_width_specified = True;
 	    }
 
-	  LISP_STRING_TO_EXTERNAL (str, strext, Qxt_widget_arg_encoding);
+	  strext = LISP_STRING_TO_EXTERNAL (str, Qxt_widget_arg_encoding);
 	  if (int_p)
 	    {
 	      CHECK_INT (val);
@@ -874,9 +882,8 @@ x_set_frame_properties (struct frame *f, Lisp_Object plist)
 	      Bytecount extvallen;
 	      CHECK_STRING (val);
 
-	      TO_EXTERNAL_FORMAT (LISP_STRING, val,
-				  ALLOCA, (extval, extvallen),
-				  Qxt_widget_arg_encoding);
+	      LISP_STRING_TO_SIZED_EXTERNAL (val, extval, extvallen,
+					     Qxt_widget_arg_encoding);
 	      XtVaSetValues (w, XtVaTypedArg,
 			     /* XtN... */
 			     strext,
@@ -990,9 +997,9 @@ maybe_set_frame_title_format (Widget shell)
 			 shell->core.widget_class->core_class.class_name,
 			 resources, XtNumber (resources), 0, 0);
       if (results[0])
-	Vframe_title_format = build_ext_string (results[0], Qctext);
+	Vframe_title_format = build_extstring (results[0], Qctext);
       if (results[1])
-	Vframe_icon_title_format = build_ext_string (results[1], Qctext);
+	Vframe_icon_title_format = build_extstring (results[1], Qctext);
     }
 
   frame_title_format_already_set = 1;
@@ -1037,9 +1044,9 @@ start_drag_internal_1 (Lisp_Object event, Lisp_Object data,
 	  (*num_items_out)++;
 	}
       eicat_ch (ei, '\0');
-      SIZED_C_STRING_TO_SIZED_EXTERNAL_MALLOC (eidata (ei), eilen (ei),
-					       dnd_data, *len_out,
-					       encoding);
+      TO_EXTERNAL_FORMAT (DATA, (eidata (ei), eilen (ei)),
+			  MALLOC, (dnd_data, *len_out),
+			  encoding);
     }
   else
     {
@@ -1131,7 +1138,7 @@ x_cde_destroy_callback (Widget widget, XtPointer clientData,
     }
 
   /* free the data string */
-  xfree (clientData, XtPointer);
+  xfree (clientData);
 
   CurrentDragWidget = NULL;
 }
@@ -1229,7 +1236,7 @@ WARNING: can only handle plain/text and file: transfers!
 		    dnd_destroy_cb_rec,
 		    NULL, 0);
 
-  xfree (dnd_data, Extbyte *);
+  xfree (dnd_data);
 
   return num_items ? Qt : Qnil;
 }
@@ -1270,12 +1277,13 @@ x_cde_transfer_callback (Widget widget, XtPointer clientData,
 	  Ibyte *fileint;
 	  Ibyte *hurl;
 
-	  EXTERNAL_TO_C_STRING (transferInfo->dropData->data.files[ii],
-				fileint, Qfile_name);
+	  fileint =
+	    EXTERNAL_TO_ITEXT (transferInfo->dropData->data.files[ii],
+				      Qfile_name);
 
 	  hurl = dnd_url_hexify_string (fileint, "file:");
-	  l_data = Fcons (build_intstring (hurl), l_data);
-	  xfree (hurl, Ibyte *);
+	  l_data = Fcons (build_istring (hurl), l_data);
+	  xfree (hurl);
 	}
     }
   else if (transferInfo->dropData->protocol == DtDND_BUFFER_TRANSFER)
@@ -1297,12 +1305,12 @@ x_cde_transfer_callback (Widget widget, XtPointer clientData,
 	  /* let us forget this name thing for now... */
  	  /* filePath = transferInfo->dropData->data.buffers[ii].name;
 	     path = (filePath == NULL) ? Qnil
-	     : build_ext_string (filePath, Q???); */
+	     : build_extstring (filePath, Q???); */
 	  /* what, if the data is no text, and how can I tell it? */
 	  l_data =
-	    Fcons (list3 (list1 (build_string ("text/plain")),
-			  build_string ("8bit"),
-			  make_ext_string
+	    Fcons (list3 (list1 (build_ascstring ("text/plain")),
+			  build_ascstring ("8bit"),
+			  make_extstring
 			  (transferInfo->dropData->data.buffers[ii].bp,
 			   transferInfo->dropData->data.buffers[ii].size,
 			   /* !!#### what goes here? */
@@ -1442,16 +1450,13 @@ x_initialize_frame_size (struct frame *f)
   {
     struct window *win = XWINDOW (f->root_window);
 
-    WINDOW_LEFT (win) = FRAME_LEFT_BORDER_END (f)
-      + FRAME_LEFT_GUTTER_BOUNDS (f);
-    WINDOW_TOP (win) = FRAME_TOP_BORDER_END (f)
-      + FRAME_TOP_GUTTER_BOUNDS (f);
+    WINDOW_LEFT (win) = FRAME_PANED_LEFT_EDGE (f);
+    WINDOW_TOP (win) = FRAME_PANED_TOP_EDGE (f);
 
     if (!NILP (f->minibuffer_window))
       {
 	win = XWINDOW (f->minibuffer_window);
-	WINDOW_LEFT (win) = FRAME_LEFT_BORDER_END (f)
-	  + FRAME_LEFT_GUTTER_BOUNDS (f);
+	WINDOW_LEFT (win) = FRAME_PANED_LEFT_EDGE (f);
       }
   }
 
@@ -1529,8 +1534,7 @@ x_initialize_frame_size (struct frame *f)
 
   /* OK, we're a top-level shell. */
 
-  if (!XtIsWMShell (wmshell))
-    ABORT ();
+  assert (XtIsWMShell (wmshell));
 
   /* If the EmacsFrame doesn't have a geometry but the shell does,
      treat that as the geometry of the frame.
@@ -1771,7 +1775,7 @@ x_create_widgets (struct frame *f, Lisp_Object lisp_window_id,
 #endif
 
   if (STRINGP (f->name))
-    LISP_STRING_TO_EXTERNAL (f->name, name, Qctext);
+    name = LISP_STRING_TO_EXTERNAL (f->name, Qctext);
   else
     name = "emacs";
 
@@ -2044,7 +2048,7 @@ allocate_x_frame_struct (struct frame *f)
 {
   /* zero out all slots. */
 #ifdef NEW_GC
-  f->frame_data = alloc_lrecord_type (struct x_frame, &lrecord_x_frame);
+  f->frame_data = XX_FRAME (ALLOC_NORMAL_LISP_OBJECT (x_frame));
 #else /* not NEW_GC */
   f->frame_data = xnew_and_zero (struct x_frame);
 #endif /* not NEW_GC */
@@ -2128,9 +2132,13 @@ x_init_frame_2 (struct frame *f, Lisp_Object UNUSED (props))
 static void
 x_init_frame_3 (struct frame *f)
 {
-  /* Pop up the frame. */
-
+  /* #### NOTE: This whole business of splitting frame initialization into
+     #### different functions is somewhat messy. The latest one seems a good
+     #### place to initialize the edit widget's position because we're sure
+     #### that the frame is now relalized. -- dvl */
+  
   x_popup_frame (f);
+  x_get_frame_text_position (f);
 }
 
 static void
@@ -2208,7 +2216,7 @@ a string.
   struct frame *f = decode_x_frame (frame);
 
   qxesprintf (str, "%lu", XtWindow (FRAME_X_TEXT_WIDGET (f)));
-  return build_intstring (str);
+  return build_istring (str);
 }
 
 
@@ -2606,7 +2614,7 @@ x_delete_frame (struct frame *f)
   DtDndDropUnregister (FRAME_X_TEXT_WIDGET (f));
 #endif /* HAVE_CDE */
 
-#ifdef USE_XFT
+#ifdef HAVE_XFT
   /* If we have an XftDraw structure, we need to free it here.
      We can't ever have an XftDraw without a Display, so we are safe
      to free it in here, and we avoid too much playing around with the 
@@ -2642,14 +2650,14 @@ x_delete_frame (struct frame *f)
 
   if (FRAME_X_GEOM_FREE_ME_PLEASE (f))
     {
-      xfree (FRAME_X_GEOM_FREE_ME_PLEASE (f), Ascbyte *);
+      xfree (FRAME_X_GEOM_FREE_ME_PLEASE (f));
       FRAME_X_GEOM_FREE_ME_PLEASE (f) = 0;
     }
 
   if (f->frame_data)
     {
 #ifndef NEW_GC
-      xfree (f->frame_data, void *);
+      xfree (f->frame_data);
 #endif /* not NEW_GC */
       f->frame_data = 0;
     }
@@ -2713,7 +2721,7 @@ x_update_frame_external_traits (struct frame *frm, Lisp_Object name)
        {
 	 if (0)
 	   ;
-#ifdef USE_XFT
+#ifdef HAVE_XFT
 	 else if (FONT_INSTANCE_X_XFTFONT (XFONT_INSTANCE (font)))
 	   {
 	     Xt_SET_ARG (al[ac], XtNxftFont,
@@ -2757,7 +2765,7 @@ void
 syms_of_frame_x (void)
 {
 #ifdef NEW_GC
-  INIT_LRECORD_IMPLEMENTATION (x_frame);
+  INIT_LISP_OBJECT (x_frame);
 #endif /* NEW_GC */
 
   DEFSYMBOL (Qoverride_redirect);

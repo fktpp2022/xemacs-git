@@ -650,7 +650,7 @@ a buffer or the name of a buffer, in which case the buffer's process is
 used.  If it is @code{nil}, the current buffer's process is used.
 
 Optional arguments @var{start} and @var{end} specify part of @var{string};
-see @code{substring}.
+see @code{subseq}.
 
   The function returns @code{nil}.
 
@@ -757,7 +757,7 @@ job-control shells won't work when a pipe is used.  See
 @code{process-connection-type} in @ref{Asynchronous Processes}.
 
   Some of the functions below take a @var{signal} argument, which
-identifies a signal to be sent.  It must be either an integer or a
+identifies a signal to be sent.  It must be either a fixnum or a
 symbol which names the signal, like @code{SIGSEGV}.
 
 @defun process-send-signal signal &optional process current-group

@@ -145,7 +145,7 @@ struct console_methods
   /* redisplay methods */
   int (*left_margin_width_method) (struct window *);
   int (*right_margin_width_method) (struct window *);
-  int (*text_width_method) (struct frame *f, struct face_cachel *cachel,
+  int (*text_width_method) (struct window *w, struct face_cachel *cachel,
 			    const Ichar *str, Charcount len);
   void (*output_display_block_method) (struct window *, struct display_line *,
 				       int, int, int, int, int, int, int);
@@ -153,9 +153,10 @@ struct console_methods
   int (*eol_cursor_width_method) (void);
   void (*output_vertical_divider_method) (struct window *, int);
   void (*clear_to_window_end_method) (struct window *, int, int);
-  void (*clear_region_method) (Lisp_Object, struct device*, struct frame*, face_index,
-			       int, int, int, int,
-			       Lisp_Object, Lisp_Object, Lisp_Object);
+  void (*clear_region_method) (Lisp_Object, struct device*, struct frame*,
+			       face_index, int, int, int, int,
+			       Lisp_Object, Lisp_Object,
+			       Lisp_Object, Lisp_Object);
   void (*clear_frame_method) (struct frame *);
   void (*window_output_begin_method) (struct window *);
   void (*frame_output_begin_method) (struct frame *);
@@ -291,7 +292,7 @@ struct console_methods
 #ifdef MEMORY_USAGE_STATS
   int (*compute_scrollbar_instance_usage_method) (struct device *,
 						  struct scrollbar_instance *,
-						  struct overhead_stats *);
+						  struct usage_stats *);
 #endif
   /* Paint the window's deadbox, a rectangle between window
      borders and two short edges of both scrollbars. */
@@ -409,7 +410,7 @@ struct console_methods * type##_console_methods
 
 struct console
 {
-  struct LCRECORD_HEADER header;
+  NORMAL_LISP_OBJECT_HEADER header;
 
   /* Description of this console's methods.  */
   struct console_methods *conmeths;
@@ -453,7 +454,11 @@ struct console
 /* Redefine basic properties more efficiently */
 
 #undef CONSOLE_LIVE_P
-#define CONSOLE_LIVE_P(con) (!EQ (CONSOLE_TYPE (con), Qdead))
+/* The following is the old way, but it can lead to crashes in certain
+   weird circumstances, where you might want to be printing a console via
+   debug_print() */
+/* #define CONSOLE_LIVE_P(con) (!EQ (CONSOLE_TYPE (con), Qdead)) */
+#define CONSOLE_LIVE_P(con) ((con)->contype != dead_console)
 #undef CONSOLE_DEVICE_LIST
 #define CONSOLE_DEVICE_LIST(con) ((con)->device_list)
 

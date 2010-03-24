@@ -1,6 +1,6 @@
 /* Database access routines
    Copyright (C) 1996, William M. Perry
-   Copyright (C) 2001, 2002, 2005 Ben Wing.
+   Copyright (C) 2001, 2002, 2005, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -85,26 +85,28 @@ Lisp_Object Qqueue;
 #endif /* HAVE_BERKELEY_DB */
 
 #ifdef HAVE_DBM
-#if defined (CYGWIN) || defined (MINGW)
+# ifdef TRUST_NDBM_H_PROTOTYPES
+#  include NDBM_H_FILE
+# else /* not TRUST_NDBM_H_PROTOTYPES */
+
+/* The prototypes in gdbm/ndbm.h currently are broken when compiling
+using C++, since they are of the form `datum dbm_firstkey()', without any
+args given. */
 
 #if defined(__cplusplus) || defined(c_plusplus)
 extern "C" {
 #endif
 
-/* As of Cygwin 1.7.0, the prototypes in ndbm.h are broken when compiling
-using C++, since they are of the form `datum dbm_firstkey()', without any
-args given. */
 /* Parameters to dbm_store for simple insertion or replacement. */
 #define  DBM_INSERT  0
 #define  DBM_REPLACE 1
 
-
 /* The data and key structure.  This structure is defined for compatibility. */
-typedef struct {
-        char *dptr;
-        int   dsize;
-      } datum;
-
+typedef struct
+{
+  char *dptr;
+  int   dsize;
+} datum;
 
 /* The file information header. This is good enough for most applications. */
 typedef struct {int dummy[10];} DBM;
@@ -123,9 +125,7 @@ int     dbm_store(DBM *, datum, datum, int);
 }
 #endif
 
-#else
-#include NDBM_H_FILE
-#endif
+# endif /* (not) TRUST_NDBM_H_PROTOTYPES */
 Lisp_Object Qdbm;
 #endif /* HAVE_DBM */
 
@@ -147,7 +147,7 @@ typedef struct
 
 struct Lisp_Database
 {
-  struct LCRECORD_HEADER header;
+  NORMAL_LISP_OBJECT_HEADER header;
   Lisp_Object fname;
   int mode;
   int access_;
@@ -180,7 +180,8 @@ struct Lisp_Database
 static Lisp_Database *
 allocate_database (void)
 {
-  Lisp_Database *db = ALLOC_LCRECORD_TYPE (Lisp_Database, &lrecord_database);
+  Lisp_Object obj = ALLOC_NORMAL_LISP_OBJECT (database);
+  Lisp_Database *db = XDATABASE (obj);
 
   db->fname = Qnil;
   db->live_p = 0;
@@ -216,7 +217,7 @@ print_database (Lisp_Object obj, Lisp_Object printcharfun,
   Lisp_Database *db = XDATABASE (obj);
 
   if (print_readably)
-    printing_unreadable_object ("#<database 0x%x>", db->header.uid);
+    printing_unreadable_lisp_object (obj, 0);
 
   write_fmt_string_lisp (printcharfun, "#<database \"%s\" (%s/%s/",
 			 3, db->fname, db->funcs->get_type (db),
@@ -231,29 +232,22 @@ print_database (Lisp_Object obj, Lisp_Object printcharfun,
                          XSYMBOL_NAME (XCODING_SYSTEM_NAME
                                        (db->coding_system)));
 
-  write_fmt_string (printcharfun, "0x%x>", db->header.uid);
+  write_fmt_string (printcharfun, "0x%x>", LISP_OBJECT_UID (obj));
 }
 
 static void
-finalize_database (void *header, int for_disksave)
+finalize_database (Lisp_Object obj)
 {
-  Lisp_Database *db = (Lisp_Database *) header;
+  Lisp_Database *db = XDATABASE (obj);
 
-  if (for_disksave)
-    {
-      invalid_operation
-	("Can't dump an emacs containing database objects",
-	 wrap_database (db));
-    }
   db->funcs->close (db);
 }
 
-DEFINE_LRECORD_IMPLEMENTATION ("database", database,
-			       0, /*dumpable-flag*/
-                               mark_database, print_database,
-			       finalize_database, 0, 0, 
-			       database_description,
-			       Lisp_Database);
+DEFINE_NODUMP_LISP_OBJECT ("database", database,
+			   mark_database, print_database,
+			   finalize_database, 0, 0, 
+			   database_description,
+			   Lisp_Database);
 
 DEFUN ("close-database", Fclose_database, 1, 1, 0, /*
 Close database DATABASE.
@@ -327,9 +321,9 @@ dbm_map (Lisp_Database *db, Lisp_Object func)
        keydatum = dbm_nextkey (db->dbm_handle))
     {
       valdatum = dbm_fetch (db->dbm_handle, keydatum);
-      key = make_ext_string ((Extbyte *) keydatum.dptr, keydatum.dsize,
+      key = make_extstring ((Extbyte *) keydatum.dptr, keydatum.dsize,
 			     db->coding_system);
-      val = make_ext_string ((Extbyte *) valdatum.dptr, valdatum.dsize,
+      val = make_extstring ((Extbyte *) valdatum.dptr, valdatum.dsize,
 			     db->coding_system);
       call2 (func, key, val);
     }
@@ -340,13 +334,12 @@ dbm_get (Lisp_Database *db, Lisp_Object key)
 {
   datum keydatum, valdatum;
 
-  TO_EXTERNAL_FORMAT (LISP_STRING, key,
-		      ALLOCA, (keydatum.dptr, keydatum.dsize),
-		      db->coding_system);
+  LISP_STRING_TO_SIZED_EXTERNAL (key, keydatum.dptr, keydatum.dsize,
+				 db->coding_system);
   valdatum = dbm_fetch (db->dbm_handle, keydatum);
 
   return (valdatum.dptr
-	  ? make_ext_string ((Extbyte *) valdatum.dptr, valdatum.dsize,
+	  ? make_extstring ((Extbyte *) valdatum.dptr, valdatum.dsize,
 			     db->coding_system)
 	  : Qnil);
 }
@@ -357,12 +350,10 @@ dbm_put (Lisp_Database *db,
 {
   datum keydatum, valdatum;
 
-  TO_EXTERNAL_FORMAT (LISP_STRING, val,
-		      ALLOCA, (valdatum.dptr, valdatum.dsize),
-		      db->coding_system);
-  TO_EXTERNAL_FORMAT (LISP_STRING, key,
-		      ALLOCA, (keydatum.dptr, keydatum.dsize),
-		      db->coding_system);
+  LISP_STRING_TO_SIZED_EXTERNAL (val, valdatum.dptr, valdatum.dsize,
+				 db->coding_system);
+  LISP_STRING_TO_SIZED_EXTERNAL (key, keydatum.dptr, keydatum.dsize,
+				 db->coding_system);
 
   return !dbm_store (db->dbm_handle, keydatum, valdatum,
 		     NILP (replace) ? DBM_INSERT : DBM_REPLACE);
@@ -373,9 +364,8 @@ dbm_remove (Lisp_Database *db, Lisp_Object key)
 {
   datum keydatum;
 
-  TO_EXTERNAL_FORMAT (LISP_STRING, key,
-		      ALLOCA, (keydatum.dptr, keydatum.dsize),
-		      db->coding_system);
+  LISP_STRING_TO_SIZED_EXTERNAL (key, keydatum.dptr, keydatum.dsize,
+				 db->coding_system);
 
   return dbm_delete (db->dbm_handle, keydatum);
 }
@@ -462,9 +452,8 @@ berkdb_get (Lisp_Database *db, Lisp_Object key)
   xzero (keydatum);
   xzero (valdatum);
 
-  TO_EXTERNAL_FORMAT (LISP_STRING, key,
-		      ALLOCA, (keydatum.data, keydatum.size),
-		      db->coding_system);
+  LISP_STRING_TO_SIZED_EXTERNAL (key, keydatum.data, keydatum.size,
+				 db->coding_system);
 
 #if DB_VERSION_MAJOR == 1
   status = db->db_handle->get (db->db_handle, &keydatum, &valdatum, 0);
@@ -473,7 +462,7 @@ berkdb_get (Lisp_Database *db, Lisp_Object key)
 #endif /* DB_VERSION_MAJOR */
 
   if (!status)
-    return make_ext_string ((const Extbyte *) valdatum.data, valdatum.size,
+    return make_extstring ((const Extbyte *) valdatum.data, valdatum.size,
 			    db->coding_system);
 
 #if DB_VERSION_MAJOR == 1
@@ -498,12 +487,10 @@ berkdb_put (Lisp_Database *db,
   xzero (keydatum);
   xzero (valdatum);
 
-  TO_EXTERNAL_FORMAT (LISP_STRING, key,
-		      ALLOCA, (keydatum.data, keydatum.size),
-		      db->coding_system);
-  TO_EXTERNAL_FORMAT (LISP_STRING, val,
-		      ALLOCA, (valdatum.data, valdatum.size),
-		      db->coding_system);
+  LISP_STRING_TO_SIZED_EXTERNAL (key, keydatum.data, keydatum.size,
+				 db->coding_system);
+  LISP_STRING_TO_SIZED_EXTERNAL (val, valdatum.data, valdatum.size,
+				 db->coding_system);
 #if DB_VERSION_MAJOR == 1
   status = db->db_handle->put (db->db_handle, &keydatum, &valdatum,
  			       NILP (replace) ? R_NOOVERWRITE : 0);
@@ -526,9 +513,8 @@ berkdb_remove (Lisp_Database *db, Lisp_Object key)
   /* DB Version 2 requires DBT's to be zeroed before use. */
   xzero (keydatum);
 
-  TO_EXTERNAL_FORMAT (LISP_STRING, key,
-		      ALLOCA, (keydatum.data, keydatum.size),
-		      db->coding_system);
+  LISP_STRING_TO_SIZED_EXTERNAL (key, keydatum.data, keydatum.size,
+				 db->coding_system);
 
 #if DB_VERSION_MAJOR == 1
   status = db->db_handle->del (db->db_handle, &keydatum, 0);
@@ -564,9 +550,9 @@ berkdb_map (Lisp_Database *db, Lisp_Object func)
        status == 0;
        status = dbp->seq (dbp, &keydatum, &valdatum, R_NEXT))
     {
-      key = make_ext_string ((const Extbyte *) keydatum.data, keydatum.size,
+      key = make_extstring ((const Extbyte *) keydatum.data, keydatum.size,
 			     db->coding_system);
-      val = make_ext_string ((const Extbyte *) valdatum.data, valdatum.size,
+      val = make_extstring ((const Extbyte *) valdatum.data, valdatum.size,
 			     db->coding_system);
       call2 (func, key, val);
     }
@@ -583,9 +569,9 @@ berkdb_map (Lisp_Database *db, Lisp_Object func)
 	 status == 0;
 	 status = dbcp->c_get (dbcp, &keydatum, &valdatum, DB_NEXT))
       {
-	key = make_ext_string ((const Extbyte *) keydatum.data, keydatum.size,
+	key = make_extstring ((const Extbyte *) keydatum.data, keydatum.size,
 			       db->coding_system);
-	val = make_ext_string ((const Extbyte *) valdatum.data, valdatum.size,
+	val = make_extstring ((const Extbyte *) valdatum.data, valdatum.size,
 			       db->coding_system);
 	call2 (func, key, val);
       }
@@ -653,7 +639,7 @@ variable `database-coding-system'.
   int modemask;
   int accessmask = 0;
   Lisp_Database *db = NULL;
-  char *filename;
+  Extbyte *filename;
   struct gcpro gcpro1, gcpro2;
 
   CHECK_STRING (file);
@@ -661,9 +647,7 @@ variable `database-coding-system'.
   file = Fexpand_file_name (file, Qnil);
   UNGCPRO;
 
-  TO_EXTERNAL_FORMAT (LISP_STRING, file,
-		      C_STRING_ALLOCA, filename,
-		      Qfile_name);
+  LISP_PATHNAME_CONVERT_OUT (file, filename);
 
   if (NILP (access_))
     {
@@ -671,16 +655,16 @@ variable `database-coding-system'.
     }
   else
     {
-      char *acc;
+      Ibyte *acc;
       CHECK_STRING (access_);
-      acc = (char *) XSTRING_DATA (access_);
+      acc = XSTRING_DATA (access_);
 
-      if (strchr (acc, '+'))
+      if (qxestrchr (acc, '+'))
 	accessmask |= O_CREAT;
 
       {
-	char *rp = strchr (acc, 'r');
-	char *wp = strchr (acc, 'w');
+	int rp = !!qxestrchr (acc, 'r');
+	int wp = !!qxestrchr (acc, 'w');
 	if (rp && wp) accessmask |= O_RDWR;
 	else if (wp)  accessmask |= O_WRONLY;
 	else          accessmask |= O_RDONLY;
@@ -870,7 +854,7 @@ each key and value in the database.
 void
 syms_of_database (void)
 {
-  INIT_LRECORD_IMPLEMENTATION (database);
+  INIT_LISP_OBJECT (database);
 
   DEFSYMBOL (Qdatabasep);
 #ifdef HAVE_DBM

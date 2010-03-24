@@ -107,13 +107,13 @@ print_range_table (Lisp_Object obj, Lisp_Object printcharfun,
     write_fmt_string_lisp (printcharfun, "#s(range-table type %s data (",
 			   1, range_table_type_to_symbol (rt->type));
   else
-    write_c_string (printcharfun, "#<range-table ");
+    write_ascstring (printcharfun, "#<range-table ");
   for (i = 0; i < Dynarr_length (rt->entries); i++)
     {
       struct range_table_entry *rte = Dynarr_atp (rt->entries, i);
       int so, ec;
       if (i > 0)
-	write_c_string (printcharfun, " ");
+	write_ascstring (printcharfun, " ");
       switch (rt->type)
 	{
 	case RANGE_START_CLOSED_END_OPEN: so = 0, ec = 0; break;
@@ -131,13 +131,13 @@ print_range_table (Lisp_Object obj, Lisp_Object printcharfun,
       print_internal (rte->val, printcharfun, 1);
     }
   if (print_readably)
-    write_c_string (printcharfun, "))");
+    write_ascstring (printcharfun, "))");
   else
-    write_fmt_string (printcharfun, " 0x%x>", rt->header.uid);
+    write_fmt_string (printcharfun, " 0x%x>", LISP_OBJECT_UID (obj));
 }
 
 static int
-range_table_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
+range_table_equal (Lisp_Object obj1, Lisp_Object obj2, int depth, int foldcase)
 {
   Lisp_Range_Table *rt1 = XRANGE_TABLE (obj1);
   Lisp_Range_Table *rt2 = XRANGE_TABLE (obj2);
@@ -153,7 +153,7 @@ range_table_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
 
       if (rte1->first != rte2->first
 	  || rte1->last != rte2->last
-	  || !internal_equal (rte1->val, rte2->val, depth + 1))
+	  || !internal_equal_0 (rte1->val, rte2->val, depth + 1, foldcase))
 	return 0;
     }
 
@@ -220,12 +220,11 @@ static const struct memory_description range_table_description[] = {
   { XD_END }
 };
 
-DEFINE_LRECORD_IMPLEMENTATION ("range-table", range_table,
-			       1, /*dumpable-flag*/
-                               mark_range_table, print_range_table, 0,
-			       range_table_equal, range_table_hash,
-			       range_table_description,
-			       Lisp_Range_Table);
+DEFINE_DUMPABLE_LISP_OBJECT ("range-table", range_table,
+			     mark_range_table, print_range_table, 0,
+			     range_table_equal, range_table_hash,
+			     range_table_description,
+			     Lisp_Range_Table);
 
 /************************************************************************/
 /*                        Range table operations                        */
@@ -332,11 +331,11 @@ Range tables allow you to efficiently set values for ranges of integers.
 */
        (type))
 {
-  Lisp_Range_Table *rt = ALLOC_LCRECORD_TYPE (Lisp_Range_Table,
-					      &lrecord_range_table);
+  Lisp_Object obj = ALLOC_NORMAL_LISP_OBJECT (range_table);
+  Lisp_Range_Table *rt = XRANGE_TABLE (obj);
   rt->entries = Dynarr_new (range_table_entry);
   rt->type = range_table_symbol_to_type (type);
-  return wrap_range_table (rt);
+  return obj;
 }
 
 DEFUN ("copy-range-table", Fcopy_range_table, 1, 1, 0, /*
@@ -347,17 +346,19 @@ The values will not themselves be copied.
        (range_table))
 {
   Lisp_Range_Table *rt, *rtnew;
+  Lisp_Object obj;
 
   CHECK_RANGE_TABLE (range_table);
   rt = XRANGE_TABLE (range_table);
 
-  rtnew = ALLOC_LCRECORD_TYPE (Lisp_Range_Table, &lrecord_range_table);
+  obj = ALLOC_NORMAL_LISP_OBJECT (range_table);
+  rtnew = XRANGE_TABLE (obj);
   rtnew->entries = Dynarr_new (range_table_entry);
   rtnew->type = rt->type;
 
-  Dynarr_add_many (rtnew->entries, Dynarr_atp (rt->entries, 0),
+  Dynarr_add_many (rtnew->entries, Dynarr_begin (rt->entries),
 		   Dynarr_length (rt->entries));
-  return wrap_range_table (rtnew);
+  return obj;
 }
 
 DEFUN ("get-range-table", Fget_range_table, 2, 3, 0, /*
@@ -374,7 +375,7 @@ If there is no corresponding value, return DEFAULT (defaults to nil).
   CHECK_INT_COERCE_CHAR (pos);
 
   return get_range_table (XINT (pos), Dynarr_length (rt->entries),
-			  Dynarr_atp (rt->entries, 0), default_);
+			  Dynarr_begin (rt->entries), default_);
 }
 
 static void
@@ -810,7 +811,7 @@ unified_range_table_copy_data (Lisp_Object rangetab, void *dest)
   un = (struct unified_range_table *) new_dest;
   un->nentries = Dynarr_length (rted);
   un->type = XRANGE_TABLE (rangetab)->type;
-  memcpy (&un->first, Dynarr_atp (rted, 0),
+  memcpy (&un->first, Dynarr_begin (rted),
 	  sizeof (struct range_table_entry) * Dynarr_length (rted));
 }
 
@@ -902,7 +903,7 @@ unified_range_table_get_range (void *unrangetab, int offset,
 void
 syms_of_rangetab (void)
 {
-  INIT_LRECORD_IMPLEMENTATION (range_table);
+  INIT_LISP_OBJECT (range_table);
 
   DEFSYMBOL_MULTIWORD_PREDICATE (Qrange_tablep);
   DEFSYMBOL (Qrange_table);

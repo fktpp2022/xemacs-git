@@ -1,6 +1,6 @@
 /* Functions for the GTK toolkit.
    Copyright (C) 1989, 1992-5, 1997 Free Software Foundation, Inc.
-   Copyright (C) 1995, 1996, 2002, 2003 Ben Wing.
+   Copyright (C) 1995, 1996, 2002, 2003, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -61,7 +61,7 @@ Boston, MA 02111-1307, USA.  */
 #define STUPID_X_SPECIFIC_GTK_STUFF
 
 #ifdef STUPID_X_SPECIFIC_GTK_STUFF
-#include <gdk/gdkx.h>
+#include "sysgdkx.h"
 #endif
 
 /* Default properties to use when creating frames.  */
@@ -103,11 +103,9 @@ static const struct memory_description gtk_frame_data_description_1 [] = {
 };
 
 #ifdef NEW_GC
-DEFINE_LRECORD_IMPLEMENTATION ("gtk-frame", gtk_frame,
-			       1, /*dumpable-flag*/
-                               0, 0, 0, 0, 0,
-			       gtk_frame_data_description_1,
-			       Lisp_Gtk_Frame);
+DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("gtk-frame", gtk_frame,
+				      0, gtk_frame_data_description_1,
+				      Lisp_Gtk_Frame);
 #else /* not NEW_GC */
 extern const struct sized_memory_description gtk_frame_data_description;
 
@@ -332,8 +330,7 @@ gtk_set_frame_text_value (struct frame *UNUSED (f), Ibyte *value,
     for (ptr = value; *ptr; ptr++)
       if (!byte_ascii_p (*ptr))
 	{
-	  char *tmp;
-	  C_STRING_TO_EXTERNAL (value, tmp, Qctext);
+	  char *tmp = ITEXT_TO_EXTERNAL (value, Qctext);
 	  the_text = tmp;
 	  break;
 	}
@@ -374,7 +371,7 @@ gtk_set_initial_frame_size (struct frame *f, int x, int y,
     {
       GdkWindowHints geometry_mask = GDK_HINT_RESIZE_INC;
       /* Deal with the cell size */
-      default_face_height_and_width (wrap_frame (f), &geometry.height_inc, &geometry.width_inc);
+      default_face_width_and_height (wrap_frame (f), &geometry.width_inc, &geometry.height_inc);
 
       gtk_window_set_geometry_hints (GTK_WINDOW (shell),
 				     FRAME_GTK_TEXT_WIDGET (f), &geometry, geometry_mask);
@@ -385,7 +382,7 @@ gtk_set_initial_frame_size (struct frame *f, int x, int y,
   FRAME_HEIGHT (f) = h;
   FRAME_WIDTH (f) = w;
 
-  change_frame_size (f, h, w, 0);
+  change_frame_size (f, w, h, 0);
   {
     GtkRequisition req;
  
@@ -636,13 +633,13 @@ gtk_initialize_frame_size (struct frame *f)
   {
     struct window *win = XWINDOW (f->root_window);
 
-    WINDOW_LEFT (win) = FRAME_LEFT_BORDER_END (f);
-    WINDOW_TOP (win) = FRAME_TOP_BORDER_END (f);
+    WINDOW_LEFT (win) = FRAME_PANED_LEFT_EDGE (f);
+    WINDOW_TOP (win) = FRAME_PANED_TOP_EDGE (f);
 
     if (!NILP (f->minibuffer_window))
       {
 	win = XWINDOW (f->minibuffer_window);
-	WINDOW_LEFT (win) = FRAME_LEFT_BORDER_END (f);
+	WINDOW_LEFT (win) = FRAME_PANED_LEFT_EDGE (f);
       }
   }
 
@@ -812,7 +809,7 @@ gtk_create_widgets (struct frame *f, Lisp_Object lisp_window_id, Lisp_Object par
 #endif
 
   if (STRINGP (f->name))
-    TO_EXTERNAL_FORMAT (LISP_STRING, f->name, C_STRING_ALLOCA, name, Qctext);
+    name = LISP_STRING_TO_EXTERNAL (f->name, Qctext);
   else
     name = "emacs";
 
@@ -975,7 +972,7 @@ allocate_gtk_frame_struct (struct frame *f)
 
   /* zero out all slots. */
 #ifdef NEW_GC
-  f->frame_data = alloc_lrecord_type (struct gtk_frame, &lrecord_gtk_frame);
+  f->frame_data = XGTK_FRAME (ALLOC_NORMAL_LISP_OBJECT (gtk_frame));
 #else /* not NEW_GC */
   f->frame_data = xnew_and_zero (struct gtk_frame);
 #endif /* not NEW_GC */
@@ -988,9 +985,11 @@ allocate_gtk_frame_struct (struct frame *f)
     FRAME_GTK_LISP_WIDGETS (f)[i] = Qnil;
 
   /*
-    Hashtables of callback data for glyphs on the frame.  Make them EQ because
-    we only use ints as keys.  Otherwise we run into stickiness in redisplay
-    because internal_equal() can QUIT.  See enter_redisplay_critical_section().
+    Hashtables of callback data for glyphs on the frame.  [[ Make them EQ
+    because we only use ints as keys.  Otherwise we run into stickiness in
+    redisplay because internal_equal() can QUIT.  See
+    enter_redisplay_critical_section() ]] -- probably not true any more,
+    now that we have internal_equal_trapping_problems(). --ben
 */
   FRAME_GTK_WIDGET_INSTANCE_HASH_TABLE (f) =
     make_lisp_hash_table (50, HASH_TABLE_VALUE_WEAK, HASH_TABLE_EQ);
@@ -1157,12 +1156,12 @@ a string.
 */
        (frame))
 {
-  char str[255];
+  Ascbyte str[255];
   struct frame *f = decode_gtk_frame (frame);
 
   /* Arrrrggghhh... this defeats the whole purpose of using Gdk... do we really need this? */
   sprintf (str, "%lu", GDK_WINDOW_XWINDOW( GET_GTK_WIDGET_WINDOW (FRAME_GTK_TEXT_WIDGET (f))));
-  return build_string (str);
+  return build_ascstring (str);
 }
 #endif
 
@@ -1190,13 +1189,14 @@ gtk_set_frame_size (struct frame *f, int cols, int rows)
       GdkWindowHints geometry_mask = GDK_HINT_RESIZE_INC;
 
       /* Update the cell size */
-      default_face_height_and_width (wrap_frame (f), &geometry.height_inc, &geometry.width_inc);
+      default_face_width_and_height (wrap_frame (f), &geometry.width_inc,
+				     &geometry.height_inc);
 
       gtk_window_set_geometry_hints (GTK_WINDOW (shell),
 				     FRAME_GTK_TEXT_WIDGET (f), &geometry, geometry_mask);
     }
 
-  change_frame_size (f, rows, cols, 0);
+  change_frame_size (f, cols, rows, 0);
 
   {
     GtkRequisition req;
@@ -1353,9 +1353,9 @@ gtk_delete_frame (struct frame *f)
     gtk_widget_destroy (w);
 
     if (FRAME_GTK_GEOM_FREE_ME_PLEASE (f))
-	xfree (FRAME_GTK_GEOM_FREE_ME_PLEASE (f), char *);
+	xfree (FRAME_GTK_GEOM_FREE_ME_PLEASE (f));
 #ifndef NEW_GC
-    xfree (f->frame_data, void *);
+    xfree (f->frame_data);
 #endif /* not NEW_GC */
     f->frame_data = 0;
 }
@@ -1371,7 +1371,7 @@ gtk_recompute_cell_sizes (struct frame *frm)
       gint width_inc = 10;
       gint height_inc = 10;
 
-      default_face_height_and_width (wrap_frame (frm), &height_inc, &width_inc);
+      default_face_width_and_height (wrap_frame (frm), &width_inc, &height_inc);
       geometry_mask = GDK_HINT_RESIZE_INC;
       geometry.width_inc = width_inc;
       geometry.height_inc = height_inc;
@@ -1473,7 +1473,7 @@ void
 syms_of_frame_gtk (void)
 {
 #ifdef NEW_GC
-  INIT_LRECORD_IMPLEMENTATION (gtk_frame);
+  INIT_LISP_OBJECT (gtk_frame);
 #endif /* NEW_GC */
 
   DEFSYMBOL (Qtext_widget);

@@ -21,7 +21,7 @@ Boston, MA 02111-1307, USA.  */
 
 /* Synched up with: Not in FSF. */
 
-/* Emacs uses a lot of different display attributes; for example, assume
+/* XEmacs uses a lot of different display attributes; for example, assume
    that only four fonts are in use (normal, bold, italic, and bold-italic).
    Then assume that one stipple or background is used for text selections,
    and another is used for highlighting mousable regions.  That makes 16
@@ -53,18 +53,14 @@ Boston, MA 02111-1307, USA.  */
  */
 
 #include <config.h>
-#include <gtk/gtk.h>
 #include "lisp.h"
+#include "hash.h"
+
 #include "gccache-gtk.h"
 
 #define GC_CACHE_SIZE 100
 
 #define GCCACHE_HASH
-
-#ifdef GCCACHE_HASH
-#include "lisp.h"
-#include "hash.h"
-#endif
 
 struct gcv_and_mask {
 	GdkGCValues gcv;
@@ -145,13 +141,13 @@ free_gc_cache (struct gc_cache *cache)
     {
       gdk_gc_destroy(rest->gc);
       next = rest->next;
-      xfree (rest, struct gc_cache_cell *);
+      xfree (rest);
       rest = next;
     }
 #ifdef GCCACHE_HASH
   free_hash_table (cache->table);
 #endif
-  xfree (cache, struct gc_cache *);
+  xfree (cache);
 }
 
 GdkGC *
@@ -160,8 +156,8 @@ gc_cache_lookup (struct gc_cache *cache, GdkGCValues *gcv, unsigned long mask)
   struct gc_cache_cell *cell, *next, *prev;
   struct gcv_and_mask gcvm;
 
-  if ((!!cache->head) != (!!cache->tail)) ABORT ();
-  if (cache->head && (cache->head->prev || cache->tail->next)) ABORT ();
+  assert ((!!cache->head) == (!!cache->tail));
+  assert (!(cache->head && (cache->head->prev || cache->tail->next)));
 
   /* Gdk does not have the equivalent of 'None' for the clip_mask, so
      we need to check it carefully, or gdk_gc_new_with_values will
@@ -216,10 +212,10 @@ gc_cache_lookup (struct gc_cache *cache, GdkGCValues *gcv, unsigned long mask)
       cell->prev = cache->tail;
       cache->tail->next = cell;
       cache->tail = cell;
-      if (cache->head == cell) ABORT ();
-      if (cell->next) ABORT ();
-      if (cache->head->prev) ABORT ();
-      if (cache->tail->next) ABORT ();
+      assert (cache->head != cell);
+      assert (!cell->next);
+      assert (!cache->head->prev);
+      assert (!cache->tail->next);
       return cell->gc;
     }
 

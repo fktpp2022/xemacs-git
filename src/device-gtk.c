@@ -76,11 +76,9 @@ static const struct memory_description gtk_device_data_description_1 [] = {
 };
 
 #ifdef NEW_GC
-DEFINE_LRECORD_IMPLEMENTATION ("gtk-device", gtk_device,
-			       1, /*dumpable-flag*/
-                               0, 0, 0, 0, 0,
-			       gtk_device_data_description_1,
-			       Lisp_Gtk_Device);
+DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("gtk-device", gtk_device,
+				      0, gtk_device_data_description_1,
+				      Lisp_Gtk_Device);
 #else /* not NEW_GC */
 extern const struct sized_memory_description gtk_device_data_description;
 
@@ -117,7 +115,7 @@ static void
 allocate_gtk_device_struct (struct device *d)
 {
 #ifdef NEW_GC
-  d->device_data = alloc_lrecord_type (struct gtk_device, &lrecord_gtk_device);
+  d->device_data = XGTK_DEVICE (ALLOC_NORMAL_LISP_OBJECT (gtk_device));
 #else /* not NEW_GC */
   d->device_data = xnew_and_zero (struct gtk_device);
 #endif /* not NEW_GC */
@@ -236,7 +234,7 @@ gtk_init_device (struct device *d, Lisp_Object UNUSED (props))
 
   /* Attempt to load a site-specific gtkrc */
   {
-    Lisp_Object gtkrc = Fexpand_file_name (build_string ("gtkrc"), Vdata_directory);
+    Lisp_Object gtkrc = Fexpand_file_name (build_ascstring ("gtkrc"), Vdata_directory);
     gchar **default_files = gtk_rc_get_default_files ();
     gint num_files;
 
@@ -250,7 +248,7 @@ gtk_init_device (struct device *d, Lisp_Object UNUSED (props))
 
 	new_rc_files = xnew_array_and_zero (gchar *, num_files + 3);
 
-	LISP_STRING_TO_EXTERNAL (gtkrc, new_rc_files[0], Qfile_name);
+	LISP_PATHNAME_CONVERT_OUT (gtkrc, new_rc_files[0]);
 
 	for (ctr = 1; default_files[ctr-1]; ctr++)
 	  new_rc_files[ctr] = g_strdup (default_files[ctr-1]);
@@ -260,7 +258,7 @@ gtk_init_device (struct device *d, Lisp_Object UNUSED (props))
 	for (ctr = 1; new_rc_files[ctr]; ctr++)
 	  free(new_rc_files[ctr]);
 
-	xfree (new_rc_files, gchar **);
+	xfree (new_rc_files);
       }
   }
 
@@ -356,7 +354,7 @@ gtk_mark_device (struct device *d)
 static void
 free_gtk_device_struct (struct device *d)
 {
-  xfree (d->device_data, void *);
+  xfree (d->device_data);
 }
 #endif /* not NEW_GC */
 
@@ -666,7 +664,7 @@ Get the style information for a Gtk device.
 
   result = nconc2 (result, list2 (Qfont, convert_font (style->font)));
 
-#define FROB_PIXMAP(state) (style->rc_style->bg_pixmap_name[state] ? build_string (style->rc_style->bg_pixmap_name[state]) : Qnil)
+#define FROB_PIXMAP(state) (style->rc_style->bg_pixmap_name[state] ? build_cistring (style->rc_style->bg_pixmap_name[state]) : Qnil)
 
   if (style->rc_style)
     result = nconc2 (result, list2 (Qbackground,
@@ -689,7 +687,7 @@ void
 syms_of_device_gtk (void)
 {
 #ifdef NEW_GC
-  INIT_LRECORD_IMPLEMENTATION (gtk_device);
+  INIT_LISP_OBJECT (gtk_device);
 #endif /* NEW_GC */
 
   DEFSUBR (Fgtk_keysym_on_keyboard_p);
@@ -746,7 +744,8 @@ This is used during startup to communicate the default geometry to GTK.
   Qgtk_seen_characters = Qnil;
 }
 
-#include <gdk/gdkx.h>
+#include "sysgdkx.h"
+
 static void
 gtk_device_init_x_specific_cruft (struct device *d)
 {

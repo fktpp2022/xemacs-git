@@ -1,6 +1,6 @@
 /* XEmacs site configuration template file.  -*- C -*-
    Copyright (C) 1986, 1991-1994, 1998, 1999 Free Software Foundation, Inc.
-   Copyright (C) 2000, 2001, 2002, 2004, 2005 Ben Wing.
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -217,11 +217,11 @@ things are arranged in config.h.in.  In particular:
 #undef HAVE_FCCONFIGSETRESCANINTERVAL
 
 /* Compile with support for Xft? */
-#undef USE_XFT
+#undef HAVE_XFT
 /* Per-widget stuff will go away? */
-#undef USE_XFT_MENUBARS
-#undef USE_XFT_TABS
-#undef USE_XFT_GAUGES
+#undef HAVE_XFT_MENUBARS
+#undef HAVE_XFT_TABS
+#undef HAVE_XFT_GAUGES
 
 /* Defines for building X applications */
 #ifdef HAVE_X_WINDOWS
@@ -375,6 +375,9 @@ things are arranged in config.h.in.  In particular:
 /* Is scanf() broken? (Under certain versions of Cygwin) */
 #undef CYGWIN_SCANF_BUG
 
+/* UTF-8-aware path-conversion function in Cygwin 1.7 and on */
+#undef HAVE_CYGWIN_CONV_PATH
+
 #undef HAVE_MMAP
 #undef HAVE_STRCOLL
 #undef HAVE_GETPGRP
@@ -412,7 +415,6 @@ things are arranged in config.h.in.  In particular:
 #undef HAVE_READLINK
 #undef HAVE_RENAME
 #undef HAVE_RES_INIT
-#undef HAVE_RINT
 #undef HAVE_RMDIR
 #undef HAVE_SELECT
 #undef HAVE_SETITIMER
@@ -532,6 +534,8 @@ things are arranged in config.h.in.  In particular:
 #undef HAVE_DBM
 /* Full #include file path for GDBM's or platforms ndbm.h */
 #undef NDBM_H_FILE
+/* Can we trust the prototypes in ndbm.h?  If not, we need to declare our own */
+#undef TRUST_NDBM_H_PROTOTYPES
 
 /* Define to 1 if the system has the type `u_int8_t'. */
 #undef HAVE_U_INT8_T
@@ -1090,7 +1094,8 @@ extern "C" {
 
 /* Use DECLARE_INLINE_HEADER() to declare an inline function in a header
    file, like this: (This avoids the need to write a prototype directly
-   followed by the function header itself.)
+   followed by the function header itself, in order to avoid a
+   "no prototype" warning from GCC.)
 
   DECLARE_INLINE_HEADER (int foo (int x))
   {
@@ -1173,9 +1178,9 @@ extern "C" {
    aren't using the C++ preprocessor when processing xemacs.def.in.in
    even if we're using a C++ compiler.  I suspect we only need this at
    all GCC is being used. */
-#if defined (ERROR_CHECK_TYPES) && !defined (USE_GPLUSPLUS)
+#if !defined (USE_GPLUSPLUS)
 /* #if !defined (INLINE_HEADERS_ARE_STATIC) */
-#define NEED_ERROR_CHECK_TYPES_INLINES
+#define XEMACS_DEFS_NEEDS_INLINE_DECLS
 #endif
 
 #endif /* _SRC_CONFIG_H_ */

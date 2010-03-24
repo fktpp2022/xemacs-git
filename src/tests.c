@@ -1,6 +1,6 @@
 /* C support for testing XEmacs - see tests/automated/c-tests.el
    Copyright (C) 2000 Martin Buchholz
-   Copyright (C) 2001, 2002 Ben Wing.
+   Copyright (C) 2001, 2002, 2010 Ben Wing.
    Copyright (C) 2006 The Free Software Foundation, Inc.
 
 This file is part of XEmacs.
@@ -49,7 +49,7 @@ REASON is nil or a string describing the failure (not required).
        ())
 {
   void *ptr; Bytecount len;
-  Lisp_Object string, opaque, conversion_result = Qnil;
+  Lisp_Object string = Qnil, opaque = Qnil, conversion_result = Qnil;
 
   Ibyte int_foo[] = "\n\nfoo\nbar";
   Extbyte ext_unix[]= "\n\nfoo\nbar";
@@ -72,6 +72,20 @@ REASON is nil or a string describing the failure (not required).
   Lisp_Object string_latin1 = make_string (int_latin1, sizeof (int_latin1) - 1);
   int autodetect_eol_p =
     !NILP (Fsymbol_value (intern ("eol-detection-enabled-p")));
+  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
+  struct gcpro ngcpro1, ngcpro2, ngcpro3;
+#ifdef MULE
+  struct gcpro ngcpro4;
+#endif
+
+  /* DFC conversion inhibits GC, but we have a call2() below which calls
+     Lisp, which can trigger GC, so we need to GC-protect everything here. */
+  GCPRO5 (string, opaque, conversion_result, opaque_dos, string_foo);
+#ifdef MULE
+  NGCPRO4 (string_latin2, opaque_latin, opaque0_latin, string_latin1);
+#else
+  NGCPRO3 (opaque_latin, opaque0_latin, string_latin1);
+#endif
 
   /* Check for expected strings before and after conversion.
      Conversions depend on whether MULE is defined. */
@@ -148,20 +162,20 @@ REASON is nil or a string describing the failure (not required).
 #define DFC_CHECK_LENGTH(len1,len2,str1)	\
     else if ((len1) != (len2))			\
       conversion_result =			\
-        Fcons (list3 (build_string(str1), Qnil, build_string("wrong length")), \
+        Fcons (list3 (build_cistring(str1), Qnil, build_ascstring("wrong length")), \
 	       conversion_result)
 
 #define DFC_CHECK_CONTENT(str1,str2,len1,str3)	\
     else if (memcmp (str1, str2, len1))		\
       conversion_result =			\
-	Fcons (list3 (build_string(str3), Qnil,			\
-		      build_string("octet comparison failed")),	\
+	Fcons (list3 (build_cistring(str3), Qnil,			\
+		      build_ascstring("octet comparison failed")),	\
 	       conversion_result)
 
 #define DFC_RESULT_PASS(str1)		\
     else				\
       conversion_result =		\
-	Fcons (list3 (build_string(str1), Qt, Qnil),	\
+	Fcons (list3 (build_cistring(str1), Qt, Qnil),	\
 	       conversion_result)
 
 #ifdef MULE
@@ -191,7 +205,7 @@ REASON is nil or a string describing the failure (not required).
 		      MALLOC, (ptr, len),
 		      intern ("iso-8859-2"));
   DFC_CHECK_DATA (ptr, len, ext_latin, "Latin-2 DATA, MALLOC, Latin-2");
-  xfree (ptr, void *);
+  xfree (ptr);
 
   TO_EXTERNAL_FORMAT (DATA, (int_latin2, sizeof (int_latin2) - 1),
 		      LISP_OPAQUE, opaque,
@@ -212,7 +226,7 @@ REASON is nil or a string describing the failure (not required).
 		      intern ("iso-latin-2-with-esc"));
   DFC_CHECK_DATA (ptr, len, int_latin2,
 		  "Latin-2/ESC, MALLOC, Latin-1 DATA");
-  xfree (ptr, void *);
+  xfree (ptr);
 
   TO_INTERNAL_FORMAT (DATA, (ext_latin, sizeof (ext_latin) - 1),
 		      LISP_STRING, string,
@@ -309,7 +323,7 @@ REASON is nil or a string describing the failure (not required).
 		      Qbinary);
   DFC_CHECK_DATA_COND_MULE (ptr, len, ext_latin, int_latin1,
 			    "Latin-1 DATA, MALLOC, binary");
-  xfree (ptr, void *);
+  xfree (ptr);
 
   ptr = NULL, len = rand();
   TO_EXTERNAL_FORMAT (DATA, (int_latin2, sizeof (int_latin2)),
@@ -317,7 +331,7 @@ REASON is nil or a string describing the failure (not required).
 		      Qbinary);
   DFC_CHECK_DATA_COND_MULE_NUL (ptr, len, ext_tilde, int_latin2,
 				"Latin-2 DATA, MALLOC, binary/NUL");
-  xfree (ptr, void *);
+  xfree (ptr);
 
   ptr = NULL, len = rand();
   TO_EXTERNAL_FORMAT (DATA, (int_latin1, sizeof (int_latin1) - 1),
@@ -325,7 +339,7 @@ REASON is nil or a string describing the failure (not required).
 		      intern ("iso-8859-1"));
   DFC_CHECK_DATA_COND_MULE (ptr, len, ext_latin, int_latin1,
 			    "Latin-1 DATA, MALLOC, Latin-1");
-  xfree (ptr, void *);
+  xfree (ptr);
 
   TO_EXTERNAL_FORMAT (DATA, (int_latin1, sizeof (int_latin1) - 1),
 		      LISP_OPAQUE, opaque,
@@ -368,7 +382,7 @@ REASON is nil or a string describing the failure (not required).
 		      intern ("iso-8859-1"));
   DFC_CHECK_DATA_COND_MULE_NUL (ptr, len, int_latin1, ext_latin,
 				"Latin-1 DATA, MALLOC, Latin-1");
-  xfree (ptr, void *);
+  xfree (ptr);
 
   ptr = NULL, len = rand();
   TO_INTERNAL_FORMAT (DATA, (ext_latin, sizeof (ext_latin)),
@@ -376,7 +390,7 @@ REASON is nil or a string describing the failure (not required).
 		      Qnil);
   DFC_CHECK_DATA_COND_MULE_NUL (ptr, len, int_latin1, ext_latin,
 				"Latin-1 DATA, MALLOC, nil");
-  xfree (ptr, void *);
+  xfree (ptr);
 
   TO_INTERNAL_FORMAT (DATA, (ext_latin, sizeof (ext_latin) - 1),
 		      LISP_STRING, string,
@@ -407,7 +421,7 @@ REASON is nil or a string describing the failure (not required).
 		      Qbinary);
   DFC_CHECK_DATA_NUL (ptr, len, ext_unix,
 		      "ASCII DATA, MALLOC, binary/LF/NUL");
-  xfree (ptr, void *);
+  xfree (ptr);
 
   ptr = NULL, len = rand();
   TO_EXTERNAL_FORMAT (DATA, (int_foo, sizeof (int_foo) - 1),
@@ -433,7 +447,7 @@ REASON is nil or a string describing the failure (not required).
 		      MALLOC, (ptr, len),
 		      intern ("no-conversion-mac"));
   DFC_CHECK_DATA (ptr, len, ext_mac, "ASCII Lisp string, MALLOC, binary/CR");
-  xfree (ptr, void *);
+  xfree (ptr);
 
   ptr = NULL, len = rand();
   TO_EXTERNAL_FORMAT (DATA, (int_foo, sizeof (int_foo) - 1),
@@ -541,6 +555,8 @@ REASON is nil or a string describing the failure (not required).
 		      Qbinary);
   DFC_CHECK_DATA (ptr, len, ext_dos, "DOS Lisp opaque, ALLOCA, binary");
 
+  NUNGCPRO;
+  UNGCPRO;
   return conversion_result;
 }
 
@@ -607,17 +623,17 @@ REASON is nil or a string describing the failure (not required).
   data.sum = 0;
   elisp_maphash_unsafe (test_hash_tables_mapper,
 			data.hash_table, (void *) &data);
-  hash_result = Fcons (list3 (build_string ("simple mapper"),
+  hash_result = Fcons (list3 (build_ascstring ("simple mapper"),
 				   (data.sum == 2 + 4) ? Qt : Qnil,
-				   build_string ("sum != 2 + 4")),
+				   build_ascstring ("sum != 2 + 4")),
 			    hash_result);
 
   data.sum = 0;
   elisp_maphash (test_hash_tables_modifying_mapper,
 		 data.hash_table, (void *) &data);
-  hash_result = Fcons (list3 (build_string ("modifying mapper"),
+  hash_result = Fcons (list3 (build_ascstring ("modifying mapper"),
 				   (data.sum == 2 + 4) ? Qt : Qnil,
-				   build_string ("sum != 2 + 4")),
+				   build_ascstring ("sum != 2 + 4")),
 			    hash_result);
 
   /* hash table now contains:  (1, 2) (3, 4) (-1, 2*2) (-3, 2*4) */
@@ -625,9 +641,9 @@ REASON is nil or a string describing the failure (not required).
   data.sum = 0;
   elisp_maphash_unsafe (test_hash_tables_mapper,
 			data.hash_table, (void *) &data);
-  hash_result = Fcons (list3 (build_string ("simple mapper"),
+  hash_result = Fcons (list3 (build_ascstring ("simple mapper"),
 				   (data.sum == 3 * (2 + 4)) ? Qt : Qnil,
-				   build_string ("sum != 3 * (2 + 4)")),
+				   build_ascstring ("sum != 3 * (2 + 4)")),
 			    hash_result);
 
   /* Remove entries with negative keys, added by modifying mapper */
@@ -637,12 +653,52 @@ REASON is nil or a string describing the failure (not required).
   data.sum = 0;
   elisp_maphash_unsafe (test_hash_tables_mapper,
 			data.hash_table, (void *) &data);
-  hash_result = Fcons (list3 (build_string ("remove negatives mapper"),
+  hash_result = Fcons (list3 (build_ascstring ("remove negatives mapper"),
 				   (data.sum == 2 + 4) ? Qt : Qnil,
-				   build_string ("sum != 2 + 4")),
+				   build_ascstring ("sum != 2 + 4")),
 			    hash_result);
 
   return hash_result;
+}
+
+DEFUN ("test-store-void-in-lisp", Ftest_store_void_in_lisp, 0, 0, "", /*
+  Test STORE_VOID_IN_LISP and its inverse GET_VOID_FROM_LISP.
+Tests by internal assert(); only returns if it succeeds.
+*/
+       ())
+{
+  struct foobar { int x; int y; short z; void *q; } baz;
+
+#define FROB(val)							\
+do									\
+{									\
+  void *pval = (void *) (val);						\
+  assert (GET_VOID_FROM_LISP (STORE_VOID_IN_LISP (pval)) == pval);	\
+}									\
+while (0)
+  assert (INT_VALBITS >= 31);
+  FROB (&baz);
+  FROB (&baz.x);
+  FROB (&baz.y);
+  FROB (&baz.z);
+  FROB (&baz.q);
+  FROB (0);
+  FROB (2);
+  FROB (&Vtest_function_list);
+  FROB (0x00000080);
+  FROB (0x00008080);
+  FROB (0x00808080);
+  FROB (0x80808080);
+  FROB (0xCAFEBABE);
+  FROB (0xFFFFFFFE);
+#if INT_VALBITS >= 63
+  FROB (0x0000808080808080);
+  FROB (0x8080808080808080);
+  FROB (0XDEADBEEFCAFEBABE);
+  FROB (0XFFFFFFFFFFFFFFFE);
+#endif /* INT_VALBITS >= 63 */
+
+  return list1 (list3 (build_ascstring ("STORE_VOID_IN_LISP"), Qt, Qnil));
 }
 
 
@@ -671,6 +727,7 @@ syms_of_tests (void)
 
   TESTS_DEFSUBR (Ftest_data_format_conversion);
   TESTS_DEFSUBR (Ftest_hash_tables);
+  TESTS_DEFSUBR (Ftest_store_void_in_lisp);
   /* Add other test functions here with TESTS_DEFSUBR */
 }
 

@@ -1,4 +1,5 @@
 ;; Copyright (C) 1999 Free Software Foundation, Inc.
+;; Copyright (C) 2010 Ben Wing.
 
 ;; Author: Hrvoje Niksic <hniksic@xemacs.org>
 ;; Maintainers: Hrvoje Niksic <hniksic@xemacs.org>,
@@ -375,6 +376,29 @@ This is a naive implementation in Lisp.  "
       (Assert (equal (substring string (* 94 k) (* 94 (1+ k))) ascii-string))))
 
   ;;---------------------------------------------------------------
+  ;; Test string character conversion
+  ;;---------------------------------------------------------------
+
+  ;; #### This should test all coding systems!
+
+  (let ((all-octets (let ((s (make-string 256 ?\000)))
+		      (loop for i from (1- (length s)) downto 0 do
+			(aset s i (int-char i)))
+		      s))
+	(escape-quoted-result (let ((schar '(27 155 142 143 14 15))
+				    (s (make-string 262 ?\000))
+				    (pos 0))
+				(loop for ord from 0 to 255 do
+				  (when (member ord schar)
+				    (aset s pos ?\033)
+				    (incf pos))
+				  (aset s pos (int-char ord))
+				  (incf pos))
+				s)))
+    (Assert (string= (encode-coding-string all-octets 'escape-quoted)
+		     escape-quoted-result)))
+
+  ;;---------------------------------------------------------------
   ;; Test file-system character conversion (and, en passant, file ops)
   ;;---------------------------------------------------------------
   (let* ((dstroke (make-char 'latin-iso8859-2 80))
@@ -385,7 +409,8 @@ This is a naive implementation in Lisp.  "
 	 (file-name-coding-system
 	  ;; 'iso-8859-X doesn't work on darwin (as of "Panther" 10.3), it
 	  ;; seems to know that file-name-coding-system is definitely utf-8
-	  (if (string-match "darwin" system-configuration)
+	  (if (or (string-match "darwin" system-configuration)
+		  (featurep 'cygwin-use-utf-8))
 	      'utf-8
 	    'iso-8859-2))
          ;; make-temp-name does stat(), which on OS X requires that you
@@ -550,25 +575,23 @@ This is a naive implementation in Lisp.  "
   ;;---------------------------------------------------------------
   (with-temp-buffer
     (insert-file-contents (locate-data-file "HELLO"))
-    (Assert (equal 
-             ;; The sort is to make the algorithm of charsets-in-region
-             ;; irrelevant.
-             (sort (charsets-in-region (point-min) (point-max))
-                   #'string<)
-             '(ascii chinese-big5-1 chinese-gb2312 cyrillic-iso8859-5
-               ethiopic greek-iso8859-7 hebrew-iso8859-8 japanese-jisx0208
-               japanese-jisx0212 jit-ucs-charset-0 katakana-jisx0201
-               korean-ksc5601 latin-iso8859-1 latin-iso8859-2 thai-xtis
-               vietnamese-viscii-lower)))
-    (Assert (equal 
-             (sort (charsets-in-string (buffer-substring (point-min)
-							 (point-max)))
-                   #'string<)
-             '(ascii chinese-big5-1 chinese-gb2312 cyrillic-iso8859-5
-               ethiopic greek-iso8859-7 hebrew-iso8859-8 japanese-jisx0208
-               japanese-jisx0212 jit-ucs-charset-0 katakana-jisx0201
-               korean-ksc5601 latin-iso8859-1 latin-iso8859-2 thai-xtis
-               vietnamese-viscii-lower))))
+    (let ((sorted-charsets-in-HELLO
+	   '(arabic-iso8859-6 ascii chinese-big5-1 chinese-gb2312
+	     cyrillic-iso8859-5 ethiopic greek-iso8859-7
+	     hebrew-iso8859-8 japanese-jisx0208 japanese-jisx0212
+	     katakana-jisx0201 korean-ksc5601 latin-iso8859-1
+	     latin-iso8859-2 vietnamese-viscii-lower)))
+      (Assert (equal 
+       ;; The sort is to make the algorithm of charsets-in-region
+       ;; irrelevant.
+       (sort (charsets-in-region (point-min) (point-max))
+	     #'string<)
+       sorted-charsets-in-HELLO))
+      (Assert (equal 
+       (sort (charsets-in-string (buffer-substring (point-min)
+						   (point-max)))
+	     #'string<)
+       sorted-charsets-in-HELLO))))
 
   ;;---------------------------------------------------------------
   ;; Language environments, and whether the specified values are sane.

@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 1991-1994, 1997, 2003 Free Software Foundation, Inc.
 ;; Copyright (C) 1995 Tinker Systems and INS Engineering Corp.
-;; Copyright (C) 1996, 2000, 2002, 2003, 2004 Ben Wing.
+;; Copyright (C) 1996, 2000, 2002, 2003, 2004, 2010 Ben Wing.
 
 ;; Original Author: Roland McGrath <roland@gnu.ai.mit.edu>
 ;; Heavily Modified: XEmacs Maintainers
@@ -286,14 +286,11 @@ or macro definition or a defcustom)."
 	     (body (nthcdr (get car 'doc-string-elt) form))
 	     (doc (if (stringp (car body)) (pop body))))
 	(if (memq car '(defmacro defmacro* defun defun*))
-	    (let ((arglist (nth 2 form))
-		  (placeholder (eval-when-compile (gensym))))
+	    (let ((arglist (nth 2 form)))
 	      (setq doc (concat (or doc "")
 				"\n\narguments: "
-				(replace-in-string
-				 (cl-function-arglist placeholder arglist)
-				 (format "^(%s ?" placeholder)
-				 "(") "\n"))))
+				(cl-function-arglist arglist)
+				"\n"))))
 	;; `define-generic-mode' quotes the name, so take care of that
 	(list 'autoload (if (listp name) name (list 'quote name)) file doc
 	      (or (and (memq car '(define-skeleton define-derived-mode
@@ -1091,11 +1088,13 @@ Works just like `update-file-autoloads'."
 	   ;; recognized only one of the two magic-cookie styles (the -*- kind)
 	   ;; in find-file, but both of them in load.  We go ahead and put both
 	   ;; in, just to be safe.
+	   (insert (format " -*- coding: %s -*-\n" buffer-file-coding-system))
 	   (when (eq buffer-file-coding-system 'escape-quoted)
-	     (insert " -*- coding: escape-quoted; -*-
-\(or (featurep 'mule) (error \"Loading this file requires Mule support\"))
-;;;###coding system: escape-quoted"))
-	   (insert "\n(if (featurep '" sym ")")
+	     (insert "(or (featurep 'mule) ")
+	     (insert "(error \"Loading this file requires Mule support\"))\n"))
+	   (insert (format ";;;###coding system: %s\n"
+			   buffer-file-coding-system))
+	   (insert "(if (featurep '" sym ")")
 	   (insert " (error \"Feature " sym " already loaded\"))\n")
 	   (goto-char (point-max))
 	   (save-excursion

@@ -1,7 +1,7 @@
 /* Primitive operations on Lisp data types for XEmacs Lisp interpreter.
    Copyright (C) 1985, 1986, 1988, 1992, 1993, 1994, 1995
    Free Software Foundation, Inc.
-   Copyright (C) 2000, 2001, 2002, 2003 Ben Wing.
+   Copyright (C) 2000, 2001, 2002, 2003, 2005 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -41,7 +41,8 @@ Lisp_Object Qmalformed_list, Qmalformed_property_list;
 Lisp_Object Qcircular_list, Qcircular_property_list;
 Lisp_Object Qinvalid_argument, Qinvalid_constant, Qwrong_type_argument;
 Lisp_Object Qargs_out_of_range;
-Lisp_Object Qwrong_number_of_arguments, Qinvalid_function, Qno_catch;
+Lisp_Object Qwrong_number_of_arguments, Qinvalid_function;
+Lisp_Object Qinvalid_keyword_argument, Qno_catch;
 Lisp_Object Qinternal_error, Qinvalid_state, Qstack_overflow, Qout_of_memory;
 Lisp_Object Qvoid_variable, Qcyclic_variable_indirection;
 Lisp_Object Qvoid_function, Qcyclic_function_indirection;
@@ -65,6 +66,8 @@ Lisp_Object Qbit_vectorp, Qbitp, Qcdr;
 Lisp_Object Qerror_lacks_explanatory_string;
 Lisp_Object Qfloatp;
 
+Fixnum Vmost_negative_fixnum, Vmost_positive_fixnum;
+
 #ifdef DEBUG_XEMACS
 
 int debug_issue_ebola_notices;
@@ -79,13 +82,13 @@ eq_with_ebola_notice (Lisp_Object obj1, Lisp_Object obj2)
     {
       /* #### It would be really nice if this were a proper warning
          instead of brain-dead print to Qexternal_debugging_output.  */
-      write_c_string
+      write_msg_string
 	(Qexternal_debugging_output,
 	 "Comparison between integer and character is constant nil (");
       Fprinc (obj1, Qexternal_debugging_output);
-      write_c_string (Qexternal_debugging_output, " and ");
+      write_msg_string (Qexternal_debugging_output, " and ");
       Fprinc (obj2, Qexternal_debugging_output);
-      write_c_string (Qexternal_debugging_output, ")\n");
+      write_msg_string (Qexternal_debugging_output, ")\n");
       debug_short_backtrace (debug_ebola_backtrace_length);
     }
   return EQ (obj1, obj2);
@@ -295,10 +298,7 @@ Return t if OBJECT is an array (string, vector, or bit vector).
 */
        (object))
 {
-  return (VECTORP	(object) ||
-	  STRINGP	(object) ||
-	  BIT_VECTORP	(object))
-    ? Qt : Qnil;
+  return ARRAYP (object) ? Qt : Qnil;
 }
 
 DEFUN ("sequencep", Fsequencep, 1, 1, 0, /*
@@ -306,11 +306,7 @@ Return t if OBJECT is a sequence (list or array).
 */
        (object))
 {
-  return (LISTP		(object) ||
-	  VECTORP	(object) ||
-	  STRINGP	(object) ||
-	  BIT_VECTORP	(object))
-    ? Qt : Qnil;
+  return SEQUENCEP (object) ? Qt : Qnil;
 }
 
 DEFUN ("markerp", Fmarkerp, 1, 1, 0, /*
@@ -340,7 +336,7 @@ Return minimum number of args built-in function SUBR may be called with.
 
 DEFUN ("subr-max-args", Fsubr_max_args, 1, 1, 0, /*
 Return maximum number of args built-in function SUBR may be called with,
-or nil if it takes an arbitrary number of arguments or is a special form.
+or nil if it takes an arbitrary number of arguments or is a special operator.
 */
        (subr))
 {
@@ -363,7 +359,7 @@ If non-nil, the return value will be a list whose first element is
   const CIbyte *prompt;
   CHECK_SUBR (subr);
   prompt = XSUBR (subr)->prompt;
-  return prompt ? list2 (Qinteractive, build_msg_string (prompt)) : Qnil;
+  return prompt ? list2 (Qinteractive, build_msg_cistring (prompt)) : Qnil;
 }
 
 
@@ -420,7 +416,7 @@ nil is returned.
 */
        (integer))
 {
-  CHECK_INT (integer);
+  CHECK_INTEGER (integer);
   if (CHAR_INTP (integer))
     return make_char (XINT (integer));
   else
@@ -456,31 +452,34 @@ confoundedness in older versions of E-Lisp.
   return CHAR_OR_CHAR_INTP (object) || STRINGP (object) ? Qt : Qnil;
 }
 
-#ifdef HAVE_BIGNUM
-/* In this case, integerp is defined in number.c. */
 DEFUN ("fixnump", Ffixnump, 1, 1, 0, /*
 Return t if OBJECT is a fixnum.
+
+In this implementation, a fixnum is an immediate integer, and has a
+maximum value described by the constant `most-positive-fixnum'.  This
+contrasts with bignums, integers where the values are limited by your
+available memory.
 */
        (object))
 {
   return INTP (object) ? Qt : Qnil;
 }
-#else
 DEFUN ("integerp", Fintegerp, 1, 1, 0, /*
-Return t if OBJECT is an integer.
+Return t if OBJECT is an integer, nil otherwise.
+
+On builds without bignum support, this function is identical to `fixnump'.
 */
        (object))
 {
-  return INTP (object) ? Qt : Qnil;
+  return INTEGERP (object) ? Qt : Qnil;
 }
-#endif
 
 DEFUN ("integer-or-marker-p", Finteger_or_marker_p, 1, 1, 0, /*
 Return t if OBJECT is an integer or a marker (editor pointer).
 */
        (object))
 {
-  return INTP (object) || MARKERP (object) ? Qt : Qnil;
+  return INTEGERP (object) || MARKERP (object) ? Qt : Qnil;
 }
 
 DEFUN ("integer-or-char-p", Finteger_or_char_p, 1, 1, 0, /*
@@ -488,7 +487,7 @@ Return t if OBJECT is an integer or a character.
 */
        (object))
 {
-  return INTP (object) || CHARP (object) ? Qt : Qnil;
+  return INTEGERP (object) || CHARP (object) ? Qt : Qnil;
 }
 
 DEFUN ("integer-char-or-marker-p", Finteger_char_or_marker_p, 1, 1, 0, /*
@@ -496,7 +495,7 @@ Return t if OBJECT is an integer, character or a marker (editor pointer).
 */
        (object))
 {
-  return INTP (object) || CHARP (object) || MARKERP (object) ? Qt : Qnil;
+  return INTEGERP (object) || CHARP (object) || MARKERP (object) ? Qt : Qnil;
 }
 
 DEFUN ("natnump", Fnatnump, 1, 1, 0, /*
@@ -542,11 +541,7 @@ Return t if OBJECT is a number (floating point or integer).
 */
        (object))
 {
-#ifdef WITH_NUMBER_TYPES
   return NUMBERP (object) ? Qt : Qnil;
-#else
-  return INT_OR_FLOATP (object) ? Qt : Qnil;
-#endif
 }
 
 DEFUN ("number-or-marker-p", Fnumber_or_marker_p, 1, 1, 0, /*
@@ -554,7 +549,7 @@ Return t if OBJECT is a number or a marker.
 */
        (object))
 {
-  return INT_OR_FLOATP (object) || MARKERP (object) ? Qt : Qnil;
+  return NUMBERP (object) || MARKERP (object) ? Qt : Qnil;
 }
 
 DEFUN ("number-char-or-marker-p", Fnumber_char_or_marker_p, 1, 1, 0, /*
@@ -562,9 +557,7 @@ Return t if OBJECT is a number, character or a marker.
 */
        (object))
 {
-  return (INT_OR_FLOATP (object) ||
-	  CHARP         (object) ||
-	  MARKERP       (object))
+  return (NUMBERP (object) || CHARP (object) || MARKERP (object))
     ? Qt : Qnil;
 }
 
@@ -740,6 +733,19 @@ ARRAY may be a vector, bit vector, or string.  INDEX starts at 0.
 
   if      (INTP  (index_)) idx = XINT  (index_);
   else if (CHARP (index_)) idx = XCHAR (index_); /* yuck! */
+#ifdef HAVE_BIGNUM
+  else if (BIGNUMP (index_))
+    {
+      Lisp_Object canon = Fcanonicalize_number (index_);
+      if (EQ (canon, index_))
+	{
+	  /* We don't support non-fixnum indices. */
+	  goto range_error;
+	}
+      index_ = canon;
+      goto retry;
+    }
+#endif
   else
     {
       index_ = wrong_type_argument (Qinteger_or_char_p, index_);
@@ -795,6 +801,19 @@ ARRAY may be a vector, bit vector, or string.  INDEX starts at 0.
 
   if      (INTP  (index_)) idx = XINT (index_);
   else if (CHARP (index_)) idx = XCHAR (index_); /* yuck! */
+#ifdef HAVE_BIGNUM
+  else if (BIGNUMP (index_))
+    {
+      Lisp_Object canon = Fcanonicalize_number (index_);
+      if (EQ (canon, index_))
+	{
+	  /* We don't support non-fixnum indices. */
+	  goto range_error;
+	}
+      index_ = canon;
+      goto retry;
+    }
+#endif
   else
     {
       index_ = wrong_type_argument (Qinteger_or_char_p, index_);
@@ -884,7 +903,7 @@ number_char_or_marker_to_double (Lisp_Object obj)
 #endif /* WITH_NUMBER_TYPES */
 
 static EMACS_INT
-integer_char_or_marker_to_int (Lisp_Object obj)
+fixnum_char_or_marker_to_int (Lisp_Object obj)
 {
  retry:
   if      (INTP    (obj)) return XINT  (obj);
@@ -892,6 +911,9 @@ integer_char_or_marker_to_int (Lisp_Object obj)
   else if (MARKERP (obj)) return marker_position (obj);
   else
     {
+      /* On bignum builds, we can only be called from #'lognot, which
+	 protects against this happening: */
+      assert (!BIGNUMP (obj));
       obj = wrong_type_argument (Qinteger_char_or_marker_p, obj);
       goto retry;
     }
@@ -1192,52 +1214,48 @@ If supported, it may also be a ratio.
 */
        (number))
 {
-#ifdef WITH_NUMBER_TYPES
   CHECK_NUMBER (number);
-#else
-  CHECK_INT_OR_FLOAT (number);
-#endif
 
   if (FLOATP (number))
     {
-      char pigbuf[350];	/* see comments in float_to_string */
+      Ascbyte pigbuf[350];	/* see comments in float_to_string */
 
       float_to_string (pigbuf, XFLOAT_DATA (number));
-      return build_string (pigbuf);
+      return build_ascstring (pigbuf);
     }
 #ifdef HAVE_BIGNUM
   if (BIGNUMP (number))
     {
-      char *str = bignum_to_string (XBIGNUM_DATA (number), 10);
-      Lisp_Object retval = build_string (str);
-      xfree (str, char *);
+      Ascbyte *str = bignum_to_string (XBIGNUM_DATA (number), 10);
+      Lisp_Object retval = build_ascstring (str);
+      xfree (str);
       return retval;
     }
 #endif
 #ifdef HAVE_RATIO
   if (RATIOP (number))
     {
-      char *str = ratio_to_string (XRATIO_DATA (number), 10);
-      Lisp_Object retval = build_string (str);
-      xfree (str, char *);
+      Ascbyte *str = ratio_to_string (XRATIO_DATA (number), 10);
+      Lisp_Object retval = build_ascstring (str);
+      xfree (str);
       return retval;
     }
 #endif
 #ifdef HAVE_BIGFLOAT
   if (BIGFLOATP (number))
     {
-      char *str = bigfloat_to_string (XBIGFLOAT_DATA (number), 10);
-      Lisp_Object retval = build_string (str);
-      xfree (str, char *);
+      Ascbyte *str = bigfloat_to_string (XBIGFLOAT_DATA (number), 10);
+      Lisp_Object retval = build_ascstring (str);
+      xfree (str);
       return retval;
     }
 #endif
 
   {
-    char buffer[DECIMAL_PRINT_SIZE (long)];
+    Ascbyte buffer[DECIMAL_PRINT_SIZE (long)];
 
     long_to_string (buffer, XINT (number));
-    return build_string (buffer);
+    return build_ascstring (buffer);
   }
 }
 
@@ -2132,7 +2150,7 @@ arguments: (&rest ARGS)
   Lisp_Object *args_end = args + nargs;
 
   while (args < args_end)
-    bits &= integer_char_or_marker_to_int (*args++);
+    bits &= fixnum_char_or_marker_to_int (*args++);
 
   return make_int (bits);
 #endif /* HAVE_BIGNUM */
@@ -2184,7 +2202,7 @@ arguments: (&rest ARGS)
   Lisp_Object *args_end = args + nargs;
 
   while (args < args_end)
-    bits |= integer_char_or_marker_to_int (*args++);
+    bits |= fixnum_char_or_marker_to_int (*args++);
 
   return make_int (bits);
 #endif /* HAVE_BIGNUM */
@@ -2206,7 +2224,7 @@ arguments: (&rest ARGS)
     return make_int (0);
 
   while (!(CHARP (args[0]) || MARKERP (args[0]) || INTEGERP (args[0])))
-    args[0] = wrong_type_argument (Qnumber_char_or_marker_p, args[0]);
+    args[0] = wrong_type_argument (Qinteger_char_or_marker_p, args[0]);
 
   result = args[0];
   if (CHARP (result))
@@ -2216,7 +2234,7 @@ arguments: (&rest ARGS)
   for (i = 1; i < nargs; i++)
     {
       while (!(CHARP (args[i]) || MARKERP (args[i]) || INTEGERP (args[i])))
-	args[i] = wrong_type_argument (Qnumber_char_or_marker_p, args[i]);
+	args[i] = wrong_type_argument (Qinteger_char_or_marker_p, args[i]);
       other = args[i];
       if (promote_args (&result, &other) == FIXNUM_T)
 	{
@@ -2235,7 +2253,7 @@ arguments: (&rest ARGS)
   Lisp_Object *args_end = args + nargs;
 
   while (args < args_end)
-    bits ^= integer_char_or_marker_to_int (*args++);
+    bits ^= fixnum_char_or_marker_to_int (*args++);
 
   return make_int (bits);
 #endif /* !HAVE_BIGNUM */
@@ -2247,6 +2265,9 @@ NUMBER may be an integer, marker or character converted to integer.
 */
        (number))
 {
+  while (!(CHARP (number) || MARKERP (number) || INTEGERP (number)))
+    number = wrong_type_argument (Qinteger_char_or_marker_p, number);
+
 #ifdef HAVE_BIGNUM
   if (BIGNUMP (number))
     {
@@ -2254,7 +2275,8 @@ NUMBER may be an integer, marker or character converted to integer.
       return make_bignum_bg (scratch_bignum);
     }
 #endif /* HAVE_BIGNUM */
-  return make_int (~ integer_char_or_marker_to_int (number));
+
+  return make_int (~ fixnum_char_or_marker_to_int (number));
 }
 
 DEFUN ("%", Frem, 2, 2, 0, /*
@@ -2284,8 +2306,8 @@ Both must be integers, characters or markers.
       return Fcanonicalize_number (make_bignum_bg (scratch_bignum));
     }
 #else /* !HAVE_BIGNUM */
-  EMACS_INT ival1 = integer_char_or_marker_to_int (number1);
-  EMACS_INT ival2 = integer_char_or_marker_to_int (number2);
+  EMACS_INT ival1 = fixnum_char_or_marker_to_int (number1);
+  EMACS_INT ival2 = fixnum_char_or_marker_to_int (number2);
 
   if (ival2 == 0)
     Fsignal (Qarith_error, Qnil);
@@ -2592,7 +2614,7 @@ print_weak_list (Lisp_Object obj, Lisp_Object printcharfun,
 		 int UNUSED (escapeflag))
 {
   if (print_readably)
-    printing_unreadable_object ("#<weak-list>");
+    printing_unreadable_lisp_object (obj, 0);
 
   write_fmt_string_lisp (printcharfun, "#<weak-list %s %S>", 2,
 			 encode_weak_list_type (XWEAK_LIST (obj)->type),
@@ -2600,13 +2622,13 @@ print_weak_list (Lisp_Object obj, Lisp_Object printcharfun,
 }
 
 static int
-weak_list_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
+weak_list_equal (Lisp_Object obj1, Lisp_Object obj2, int depth, int foldcase)
 {
   struct weak_list *w1 = XWEAK_LIST (obj1);
   struct weak_list *w2 = XWEAK_LIST (obj2);
 
   return ((w1->type == w2->type) &&
-	  internal_equal (w1->list, w2->list, depth + 1));
+	  internal_equal_0 (w1->list, w2->list, depth + 1, foldcase));
 }
 
 static Hashcode
@@ -2621,13 +2643,11 @@ weak_list_hash (Lisp_Object obj, int depth)
 Lisp_Object
 make_weak_list (enum weak_list_type type)
 {
-  Lisp_Object result;
-  struct weak_list *wl =
-    ALLOC_LCRECORD_TYPE (struct weak_list, &lrecord_weak_list);
+  Lisp_Object result = ALLOC_NORMAL_LISP_OBJECT (weak_list);
+  struct weak_list *wl = XWEAK_LIST (result);
 
   wl->list = Qnil;
   wl->type = type;
-  result = wrap_weak_list (wl);
   wl->next_weak = Vall_weak_lists;
   Vall_weak_lists = result;
   return result;
@@ -2641,12 +2661,11 @@ static const struct memory_description weak_list_description[] = {
   { XD_END }
 };
 
-DEFINE_LRECORD_IMPLEMENTATION ("weak-list", weak_list,
-			       1, /*dumpable-flag*/
-			       mark_weak_list, print_weak_list,
-			       0, weak_list_equal, weak_list_hash,
-			       weak_list_description,
-			       struct weak_list);
+DEFINE_DUMPABLE_LISP_OBJECT ("weak-list", weak_list,
+			     mark_weak_list, print_weak_list,
+			     0, weak_list_equal, weak_list_hash,
+			     weak_list_description,
+			     struct weak_list);
 /*
    -- we do not mark the list elements (either the elements themselves
       or the cons cells that hold them) in the normal marking phase.
@@ -3067,21 +3086,21 @@ mark_weak_box (Lisp_Object UNUSED (obj))
 }
 
 static void
-print_weak_box (Lisp_Object UNUSED (obj), Lisp_Object printcharfun,
+print_weak_box (Lisp_Object obj, Lisp_Object printcharfun,
 		int UNUSED (escapeflag))
 {
   if (print_readably)
-    printing_unreadable_object ("#<weak_box>");
-  write_fmt_string (printcharfun, "#<weak_box>");
+    printing_unreadable_lisp_object (obj, 0);
+  write_fmt_string (printcharfun, "#<weak-box>"); /* #### fix */
 }
 
 static int
-weak_box_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
+weak_box_equal (Lisp_Object obj1, Lisp_Object obj2, int depth, int foldcase)
 {
   struct weak_box *wb1 = XWEAK_BOX (obj1);
   struct weak_box *wb2 = XWEAK_BOX (obj2);
 
-  return (internal_equal (wb1->value, wb2->value, depth + 1));
+  return (internal_equal_0 (wb1->value, wb2->value, depth + 1, foldcase));
 }
 
 static Hashcode
@@ -3095,10 +3114,8 @@ weak_box_hash (Lisp_Object obj, int depth)
 Lisp_Object
 make_weak_box (Lisp_Object value)
 {
-  Lisp_Object result;
-
-  struct weak_box *wb =
-    ALLOC_LCRECORD_TYPE (struct weak_box, &lrecord_weak_box);
+  Lisp_Object result = ALLOC_NORMAL_LISP_OBJECT (weak_box);
+  struct weak_box *wb = XWEAK_BOX (result);
 
   wb->value = value;
   result = wrap_weak_box (wb);
@@ -3112,12 +3129,10 @@ static const struct memory_description weak_box_description[] = {
   { XD_END}
 };
 
-DEFINE_LRECORD_IMPLEMENTATION ("weak_box", weak_box,
-			       0, /*dumpable-flag*/
-			       mark_weak_box, print_weak_box,
-			       0, weak_box_equal, weak_box_hash,
-			       weak_box_description,
-			       struct weak_box);
+DEFINE_NODUMP_LISP_OBJECT ("weak-box", weak_box, mark_weak_box,
+			   print_weak_box, 0, weak_box_equal,
+			   weak_box_hash, weak_box_description,
+			   struct weak_box);
 
 DEFUN ("make-weak-box", Fmake_weak_box, 1, 1, 0, /*
 Return a new weak box from value CONTENTS.
@@ -3293,19 +3308,20 @@ mark_ephemeron (Lisp_Object UNUSED (obj))
 }
 
 static void
-print_ephemeron (Lisp_Object UNUSED (obj), Lisp_Object printcharfun,
+print_ephemeron (Lisp_Object obj, Lisp_Object printcharfun,
 		 int UNUSED (escapeflag))
 {
   if (print_readably)
-    printing_unreadable_object ("#<ephemeron>");
-  write_fmt_string (printcharfun, "#<ephemeron>");
+    printing_unreadable_lisp_object (obj, 0);
+  write_fmt_string (printcharfun, "#<ephemeron>"); /* #### fix */
 }
 
 static int
-ephemeron_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
+ephemeron_equal (Lisp_Object obj1, Lisp_Object obj2, int depth, int foldcase)
 {
   return
-    internal_equal (XEPHEMERON_REF (obj1), XEPHEMERON_REF(obj2), depth + 1);
+    internal_equal_0 (XEPHEMERON_REF (obj1), XEPHEMERON_REF(obj2), depth + 1,
+		      foldcase);
 }
 
 static Hashcode
@@ -3315,24 +3331,23 @@ ephemeron_hash(Lisp_Object obj, int depth)
 }
 
 Lisp_Object
-make_ephemeron(Lisp_Object key, Lisp_Object value, Lisp_Object finalizer)
+make_ephemeron (Lisp_Object key, Lisp_Object value, Lisp_Object finalizer)
 {
-  Lisp_Object result, temp = Qnil;
+  Lisp_Object temp = Qnil;
   struct gcpro gcpro1, gcpro2;
-
-  struct ephemeron *eph =
-    ALLOC_LCRECORD_TYPE (struct ephemeron, &lrecord_ephemeron);
+  Lisp_Object result = ALLOC_NORMAL_LISP_OBJECT (ephemeron);
+  struct ephemeron *eph = XEPHEMERON (result);
 
   eph->key = Qnil;
   eph->cons_chain = Qnil;
   eph->value = Qnil;
 
-  result = wrap_ephemeron(eph);
+  result = wrap_ephemeron (eph);
   GCPRO2 (result, temp);
 
   eph->key = key;
-  temp = Fcons(value, finalizer);
-  eph->cons_chain = Fcons(temp, Vall_ephemerons);
+  temp = Fcons (value, finalizer);
+  eph->cons_chain = Fcons (temp, Vall_ephemerons);
   eph->value = value;
 
   Vall_ephemerons = result;
@@ -3353,12 +3368,11 @@ static const struct memory_description ephemeron_description[] = {
   { XD_END }
 };
 
-DEFINE_LRECORD_IMPLEMENTATION ("ephemeron", ephemeron,
-			       0, /*dumpable-flag*/
-			       mark_ephemeron, print_ephemeron,
-			       0, ephemeron_equal, ephemeron_hash,
-			       ephemeron_description,
-			       struct ephemeron);
+DEFINE_NODUMP_LISP_OBJECT ("ephemeron", ephemeron,
+			   mark_ephemeron, print_ephemeron,
+			   0, ephemeron_equal, ephemeron_hash,
+			   ephemeron_description,
+			   struct ephemeron);
 
 DEFUN ("make-ephemeron", Fmake_ephemeron, 2, 3, 0, /*
 Return a new ephemeron with key KEY, value VALUE, and finalizer FINALIZER.
@@ -3450,6 +3464,7 @@ init_errors_once_early (void)
   DEFERROR_STANDARD (Qwrong_number_of_arguments, Qinvalid_argument);
   DEFERROR_STANDARD (Qinvalid_function, Qinvalid_argument);
   DEFERROR_STANDARD (Qinvalid_constant, Qinvalid_argument);
+  DEFERROR_STANDARD (Qinvalid_keyword_argument, Qinvalid_argument);
   DEFERROR (Qno_catch, "No catch for tag", Qinvalid_argument);
 
   DEFERROR_STANDARD (Qinvalid_state, Qerror);
@@ -3496,9 +3511,9 @@ init_errors_once_early (void)
 void
 syms_of_data (void)
 {
-  INIT_LRECORD_IMPLEMENTATION (weak_list);
-  INIT_LRECORD_IMPLEMENTATION (ephemeron);
-  INIT_LRECORD_IMPLEMENTATION (weak_box);
+  INIT_LISP_OBJECT (weak_list);
+  INIT_LISP_OBJECT (ephemeron);
+  INIT_LISP_OBJECT (weak_box);
 
   DEFSYMBOL (Qquote);
   DEFSYMBOL (Qlambda);
@@ -3550,11 +3565,8 @@ syms_of_data (void)
   DEFSUBR (Fchar_to_int);
   DEFSUBR (Fint_to_char);
   DEFSUBR (Fchar_or_char_int_p);
-#ifdef HAVE_BIGNUM
   DEFSUBR (Ffixnump);
-#else
   DEFSUBR (Fintegerp);
-#endif
   DEFSUBR (Finteger_or_marker_p);
   DEFSUBR (Finteger_or_char_p);
   DEFSUBR (Finteger_char_or_marker_p);
@@ -3643,6 +3655,16 @@ vars_of_data (void)
 
   Vall_weak_boxes = Qnil;
   dump_add_weak_object_chain (&Vall_weak_boxes);
+
+  DEFVAR_CONST_INT ("most-negative-fixnum", &Vmost_negative_fixnum /*
+The fixnum closest in value to negative infinity.
+*/);
+  Vmost_negative_fixnum = EMACS_INT_MIN;
+
+  DEFVAR_CONST_INT ("most-positive-fixnum", &Vmost_positive_fixnum /*
+The fixnum closest in value to positive infinity.
+*/);
+  Vmost_positive_fixnum = EMACS_INT_MAX;
 
 #ifdef DEBUG_XEMACS
   DEFVAR_BOOL ("debug-issue-ebola-notices", &debug_issue_ebola_notices /*

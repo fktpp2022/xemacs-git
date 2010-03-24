@@ -30,7 +30,7 @@ DECLARE_DOESNT_RETURN (finalose (void *ptr));
  *                           Color Instance Object                          *
  ****************************************************************************/
 
-DECLARE_LRECORD (color_instance, Lisp_Color_Instance);
+DECLARE_LISP_OBJECT (color_instance, Lisp_Color_Instance);
 #define XCOLOR_INSTANCE(x) XRECORD (x, color_instance, Lisp_Color_Instance)
 #define wrap_color_instance(p) wrap_record (p, color_instance)
 #define COLOR_INSTANCEP(x) RECORDP (x, color_instance)
@@ -51,7 +51,7 @@ void set_color_attached_to (Lisp_Object obj, Lisp_Object face,
 void initialize_charset_font_caches (struct device *d);
 void invalidate_charset_font_caches (Lisp_Object charset);
 
-DECLARE_LRECORD (font_instance, Lisp_Font_Instance);
+DECLARE_LISP_OBJECT (font_instance, Lisp_Font_Instance);
 #define XFONT_INSTANCE(x) XRECORD (x, font_instance, Lisp_Font_Instance)
 #define wrap_font_instance(p) wrap_record (p, font_instance)
 #define FONT_INSTANCEP(x) RECORDP (x, font_instance)
@@ -76,8 +76,12 @@ void set_font_attached_to (Lisp_Object obj, Lisp_Object face,
 void set_face_boolean_attached_to (Lisp_Object obj, Lisp_Object face,
 				   Lisp_Object property);
 
-/* Defined in search.c, used in mule-charset.c; slightly ugly to declare it
-   here, but oh well.  */
-EXFUN (Fregexp_quote, 1);
+/*****************************************************************************
+ *              Face Background Placement Specifier Object                   *
+ *****************************************************************************/
+
+void set_face_background_placement_attached_to
+(Lisp_Object obj, Lisp_Object face);
+
 
 #endif /* INCLUDED_objects_h_ */

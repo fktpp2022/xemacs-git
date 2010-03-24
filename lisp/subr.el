@@ -218,7 +218,11 @@ ELT must be a string.  Upper-case and lower-case letters are treated as equal."
 (define-function 'remove-directory 'delete-directory)
 (define-function 'set-match-data 'store-match-data)
 (define-function 'send-string-to-terminal 'external-debugging-output)
+(define-function 'special-form-p 'special-operator-p)
 
+;; XEmacs; this is in Lisp, its bytecode now taken by subseq.
+(define-function 'substring 'subseq)
+  
 ;; XEmacs:
 (defun local-variable-if-set-p (sym buffer)
   "Return t if SYM would be local to BUFFER after it is set.
@@ -1763,17 +1767,32 @@ in Lisp; do not use it in performance-critical code."
 SUBR must be a built-in function (not just a symbol that refers to one).
 The returned value is a pair (MIN . MAX).  MIN is the minimum number
 of args.  MAX is the maximum number or the symbol `many', for a
-function with `&rest' args, or `unevalled' for a special form.
+function with `&rest' args, or `unevalled' for a special operator.
 
-See also `special-form-p', `subr-min-args', `subr-max-args',
+See also `special-operator-p', `subr-min-args', `subr-max-args',
 `function-allows-args'. "
   (check-argument-type #'subrp subr)
   (cons (subr-min-args subr)
         (cond
-         ((special-form-p subr)
+         ((special-operator-p subr)
           'unevalled)
          ((null (subr-max-args subr))
           'many)
          (t (subr-max-args subr)))))
+
+;; XEmacs; move these here from C. Would be nice to drop them entirely, but
+;; they're used reasonably often, since they've been around for a long time
+;; and they're portable to GNU.
+
+;; Used in fileio.c if format-annotate-function has a function binding
+;; (which it won't have before this file is loaded):
+(defun car-less-than-car (a b)
+  "Return t if the car of A is numerically less than the car of B."
+  (< (car a) (car b)))
+
+;; Used in packages.
+(defun cdr-less-than-cdr (a b)
+  "Return t if (cdr A) is numerically less than (cdr B)."
+  (< (cdr a) (cdr b)))
 
 ;;; subr.el ends here

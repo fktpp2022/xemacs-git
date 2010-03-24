@@ -2,7 +2,7 @@
    Copyright (C) 1985, 1986, 1991, 1992, 1993, 1994, 1995
    Free Software Foundation, Inc.
    Copyright (C) 1995 Sun Microsystems, Inc.
-   Copyright (C) 2001, 2002, 2003, 2004 Ben Wing.
+   Copyright (C) 2001, 2002, 2003, 2004, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -420,8 +420,7 @@ gap_right (struct buffer *buf, Charbpos cpos, Bytebpos bpos)
 static void
 move_gap (struct buffer *buf, Charbpos cpos, Bytebpos bpos)
 {
-  if (! BUF_BEG_ADDR (buf))
-    ABORT ();
+  assert (BUF_BEG_ADDR (buf));
   if (bpos < BYTE_BUF_GPT (buf))
     gap_left (buf, cpos, bpos);
   else if (bpos > BYTE_BUF_GPT (buf))
@@ -1305,11 +1304,12 @@ buffer_insert_lisp_string_1 (struct buffer *buf, Charbpos pos, Lisp_Object str,
 /* Insert the null-terminated string S (in external format). */
 
 Charcount
-buffer_insert_c_string_1 (struct buffer *buf, Charbpos pos, const char *s,
+buffer_insert_ascstring_1 (struct buffer *buf, Charbpos pos, const Ascbyte *s,
 			  int flags)
 {
   /* This function can GC */
-  const char *translated = GETTEXT (s);
+  const CIbyte *translated = GETTEXT (s);
+  ASSERT_ASCTEXT_ASCII (s);
   return buffer_insert_string_1 (buf, pos, (const Ibyte *) translated, Qnil,
 				 0, strlen (translated), flags);
 }
@@ -1837,9 +1837,9 @@ uninit_buffer_text (struct buffer *b)
   if (!b->base_buffer)
     {
       BUFFER_FREE (b->text->beg);
-      xfree (b->text->changes, struct buffer_text_change_data *);
+      xfree (b->text->changes);
     }
-  xfree (b->changes, struct each_buffer_change_data *);
+  xfree (b->changes);
 
 #ifdef REGION_CACHE_NEEDS_WORK
   if (b->newline_cache)

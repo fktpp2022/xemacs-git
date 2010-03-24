@@ -2,7 +2,7 @@
 
 ### make-mswin-unicode --- generate Unicode-encapsulation code for MS Windows
 
-## Copyright (C) 2001, 2002, 2004 Ben Wing.
+## Copyright (C) 2001, 2002, 2004, 2010 Ben Wing.
 
 ## Author: Ben Wing <ben@xemacs.org>
 ## Maintainer: Ben Wing <ben@xemacs.org>
@@ -63,11 +63,16 @@ file specifies a file to start reading from.
 yes indicates a function to be automatically Unicode-encapsulated.
    (All parameters either need no special processing or are LPTSTR or
    LPCTSTR.)
+override indidates a function where the prototype can be overridden
+   due to errors in Cygwin or Visual Studio.
 soon indicates a function that should be automatically Unicode-encapsulated,
    but we're not ready to process it yet.
 no indicates a function we don't support (it will be #defined to cause
    a compile error, with the text after the function included in the
    erroneous definition to indicate why we don't support it).
+review indicates a function that we still need to review to determine whether
+   or how to support it.  This has the same effect as `no', with a comment
+   indicating that the function needs review.
 skip indicates a function we support manually; only a comment about this
    will be generated.
 split indicates a function with a split structure (different versions
@@ -102,6 +107,9 @@ my $slurp;
 my ($cout, $hout, $dir) = ($options{"c-output"},
                           $options{"h-output"},
                           $options{"includedir"});
+
+$dir = '/usr/include/w32api' if !$dir && -f '/usr/include/w32api/windows.h';
+
 if (!$dir)
   {
     for my $sdkroot (("WindowsSdkDir", "MSSdk", "MSVCDIR"))
@@ -115,8 +123,9 @@ if (!$dir)
       {
         die "Can't find the Windows SDK headers; run vcvars32.bat from your MSVC installation, or setenv.cmd from the Platform SDK installation";
       }
-    $dir.='/include';
   }
+$dir.='/include' if ((-f $dir.'/include/WINDOWS.H') ||
+		     (-f $dir.'/include/windows.h'));
 die "Can't find MSVC include files in \"$dir\"" unless ((-f $dir.'/WINDOWS.H') || (-f $dir.'/windows.h'));
 
 open (COUT, ">$cout") or die "Can't open C output file $cout: $!";
@@ -149,6 +158,43 @@ my %bracket;
 my $current_file;
 my @current_bracket;
 
+my ($ws_re, $must_ws_re, $tok_ch) =
+  ("\\s*", "\\s+", "\\w");
+# unfortunately there is no surefire way short of
+# parsing all include files for typedefs to
+# distinguish types from parameters, and prototypes
+# appear in the include files both with and without
+# parameters -- the latter kinds appear in a very
+# different style and were obviously added later.  so
+# we rely on the fact that defined types are all
+# upper-case, and parameters generally are not, and
+# special-case the exceptions.
+my $typeword_re =
+  # note the negative lookahead assertions: the first
+  # one excludes the words "X" and "Y" from type
+  # words, since they appear as parameter names in
+  # CreateWindowEx; the second prevents "void
+  # *Argument" from being parsed as a type "void *A"
+  # followed by a parameter "rgument".
+  "(?:(?!(?:X\\b|Y\\b))(?:unsigned|int|long|const|short|va_list|[A-Z_0-9]+)(?!${tok_ch}))";
+my $typetoken_re = "(?:$typeword_re$ws_re\\**$ws_re)";
+# Regexp matching a particular argument
+my $arg_re = "(?:(?:$typetoken_re+)(?:${tok_ch}+)?(?: OPTIONAL)?)";
+# Same, but with groups to match the type and name
+my $argmatch_re = "(?:($typetoken_re+)(${tok_ch}+)?(?: OPTIONAL)?)";
+# regexp matching a parenthesized argument list in a prototype
+my $args_re = "\\(((?:${ws_re}${arg_re}${ws_re},)*${ws_re}${arg_re}${ws_re})\\)";
+# regexp matching a return type in a protype
+my $rettype_re = "(SHSTDAPI_\\(${tok_ch}+\\)|${tok_ch}" . "[A-Za-z_0-9 \t\n\r\f]*?${tok_ch})";
+# regexp matching a function name
+my $funname_re = "(${tok_ch}+)";
+# Regexp matching a function prototype, $1 = rettype, $2 = name, $3 = args
+my $fun_re = "${rettype_re}${ws_re}${funname_re}${ws_re}${args_re};";
+# Regexp matching a particular Unicode function (ending in ...W)
+my $wfun_re = "${rettype_re}${ws_re}${funname_re}W${ws_re}${args_re};";
+
+# print "regexp: $wfun_re\n";
+
 while (<>)
   {
     chomp;
@@ -169,7 +215,7 @@ while (<>)
       {
 	next if (m!^//!);
 	next if (/^[ \t]*$/);
-	if (/(file|yes|soon|no|skip|split|begin-bracket|end-bracket)(?: (.*))?/)
+	if (/(file|yes|soon|no|review|skip|split|begin-bracket|end-bracket|override)(?: (.*))?/)
 	  {
 	    my ($command, $parms) = ($1, $2);
 	    if ($command eq "file")
@@ -192,6 +238,15 @@ while (<>)
 	    elsif ($command eq "end-bracket")
 	      {
 		pop @current_bracket;
+	      }
+	    elsif ($command eq "override")
+	      {
+		die "Cannot parse prototype $parms" unless $parms =~ /$wfun_re(?: ?(.*))?/;
+		my ($rettype, $fun, $args, $reason) = ($1, $2, $3, $4);
+		$files{$current_file}{$fun} =
+		  [$command, $reason, $rettype, $fun, $args];
+		$bracket{$current_file}{$fun} =
+		  $current_bracket[$#current_bracket];
 	      }
 	    else
 	      {
@@ -226,37 +281,26 @@ foreach my $file (keys %files)
 
 ";
 
-    my ($ws_re, $must_ws_re, $tok_ch) =
-      ("\\s*", "\\s+", "\\w");
-    # unfortunately there is no surefire way short of
-    # parsing all include files for typedefs to
-    # distinguish types from parameters, and prototypes
-    # appear in the include files both with and without
-    # parameters -- the latter kinds appear in a very
-    # different style and were obviously added later.  so
-    # we rely on the fact that defined types are all
-    # upper-case, and parameters generally are not, and
-    # special-case the exceptions.
-    my $typeword_re =
-      # note the negative lookahead assertions: the first
-      # one excludes the words "X" and "Y" from type
-      # words, since they appear as parameter names in
-      # CreateWindowEx; the second prevents "void
-      # *Argument" from being parsed as a type "void *A"
-      # followed by a parameter "rgument".
-      "(?:(?!(?:X\\b|Y\\b))(?:unsigned|int|long|short|va_list|[A-Z_0-9]+)(?!${tok_ch}))";
-    my $typetoken_re = "(?:$typeword_re$ws_re\\**$ws_re)";
-    my $arg_re = "(?:($typetoken_re+)(${tok_ch}+)?(?: OPTIONAL)?)";
-    my $fun_re = "(SHSTDAPI_\\(${tok_ch}+\\)|${tok_ch}" . "[A-Za-z_0-9 \t\n\r\f]*?${tok_ch})${ws_re}(${tok_ch}+)W${ws_re}\\(((${ws_re}${arg_re}${ws_re},)*${ws_re}${arg_re}${ws_re})\\);";
-
-    # print "regexp: $fun_re\n";
-    while ($slurp =~ /$fun_re/g)
+    while ($slurp =~ /$wfun_re/g)
       {
 	my ($rettype, $fun, $args) = ($1, $2, $3);
+
+	if ($processed{$fun})
+	  {
+	    print "Warning: Function $fun already seen\n";
+	    next;
+	  }
+
 	$processed{$fun} = 1;
+
 	print "Processing: $fun";
 
-	my ($command, $reason) = ($files{$file}{$fun}[0], $files{$file}{$fun}[1]);
+	#my ($command, $reason) = ($files{$file}{$fun}[0], $files{$file}{$fun}[1]);
+	# Fuck perl!  There seems to be no way to write something like
+	# my ($command, $reason) = @$files{$file}{$fun};
+	# You have to use a temporary var.
+	my $filesarr = $files{$file}{$fun};
+	my ($command, $reason) = @$filesarr;
 	if (!defined ($command))
 	  {
 	    print " (no command found)\n";
@@ -270,8 +314,11 @@ foreach my $file (keys %files)
 		print HOUT "#if $bracket\n";
 		print COUT "#if $bracket\n\n";
 	      }
-	    if ($command eq "no")
+	    if ($command eq "no" || $command eq "review")
 	      {
+		$reason = "Function needs review to determine how to handle it"
+		  if !defined ($reason) && $command eq "review";
+
 		if (!defined ($reason))
 		  {
 		    print "WARNING: No reason given for `no' with function $fun\n";
@@ -309,8 +356,21 @@ foreach my $file (keys %files)
 		  {
 		    ($split_struct, $reason) = split /\s+/, $reason, 2;
 		  }
+		elsif ($command eq "override")
+		  {
+		    my ($nrettype, $nfun, $nargs) = @$filesarr[2 .. 4];
+		    $reason = "$reason.\n   NOTE: " if $reason;
+		    $reason = "${reason}Prototype manually overridden.
+         Header file claims:
+           $rettype $fun($args)
+         Overridden with:
+           $nrettype $nfun($nargs)
+         Differences in return-type qualifiers, e.g. WINAPI, are not important.
+";
+		    ($rettype, $fun, $args) = ($nrettype, $nfun, $nargs);
+		  }
 		my $argno = 0;
-		while ($args =~ /$arg_re/g)
+		while ($args =~ /$argmatch_re/g)
 		  {
 		    $argno++;
 		    my ($argtype, $argname) = ($1, $2);
@@ -334,8 +394,9 @@ foreach my $file (keys %files)
 		}
 		$rettype =~ s/\bSHSTDAPI_\((.*)\)/$1/;
 		$rettype =~ s/\s*WIN\w*?API\s*//g;
-		$rettype =~ s/\bAPIENTRY\b//;
+		$rettype =~ s/\bAPIENTRY\b\s*//;
 		$rettype =~ s/\bSHSTDAPI\b/HRESULT/;
+		$rettype =~ s/\bextern\b\s*//;
 		if ($rettype =~ /LPC?WSTR/)
 		  {
 		    $split_rettype = 1;

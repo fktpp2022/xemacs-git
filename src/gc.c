@@ -1,5 +1,6 @@
 /* New incremental garbage collector for XEmacs.
    Copyright (C) 2005 Marcus Crestani.
+   Copyright (C) 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -183,7 +184,7 @@ gc_state_type gc_state;
   gc_state.stat[GC_STAT_IN_THIS_GC] = 0;	\
   GC_STAT_RESUME (stat)
 
-void
+static void
 gc_stat_start_new_gc (void)
 {
   gc_state.n_gc[GC_STAT_TOTAL]++;
@@ -200,7 +201,7 @@ gc_stat_start_new_gc (void)
   GC_STAT_RESTART (freed);
 } 
 
-void
+static void
 gc_stat_resume_gc (void)
 {
   gc_state.n_cycles[GC_STAT_TOTAL]++;
@@ -588,8 +589,8 @@ lispdesc_block_size_1 (const void *obj, Bytecount size,
 #else /* not NEW_GC */
 #define GC_CHECK_NOT_FREE(lheader)					\
       gc_checking_assert (! LRECORD_FREE_P (lheader));			\
-      gc_checking_assert (LHEADER_IMPLEMENTATION (lheader)->basic_p ||	\
-			  ! ((struct old_lcrecord_header *) lheader)->free)
+      gc_checking_assert (LHEADER_IMPLEMENTATION (lheader)->frob_block_p || \
+			  ! (lheader)->free)
 #endif /* not NEW_GC */
 
 #ifdef USE_KKCC
@@ -1021,20 +1022,14 @@ mark_lisp_object_block_contents_1 (const void *data,
    on the kkcc_gc_stack. This function processes all elements on the stack
    according to their descriptions. */
 static void
-kkcc_marking (
-#ifdef NEW_GC
-	      int cnt
-#else /* not NEW_GC */
-	      int UNUSED(cnt)
-#endif /* not NEW_GC */ 
-	      )
+kkcc_marking (int USED_IF_NEW_GC (cnt))
 {
   kkcc_gc_stack_entry *stack_entry = 0;
   void *data = 0;
   const struct memory_description *desc = 0;
   int pos;
 #ifdef NEW_GC
-  int count = cnt;
+  int obj_count = cnt;
 #endif /* NEW_GC */
 #ifdef DEBUG_XEMACS
   int level = 0;
@@ -1181,7 +1176,7 @@ kkcc_marking (
 
 #ifdef NEW_GC
       if (cnt) 
-	if (!--count)
+	if (!--obj_count)
 	  break;
 #endif /* NEW_GC */
     }
@@ -1376,7 +1371,7 @@ register_for_finalization (void)
       finalize_elem *temp = rest;
       Vfinalizers_to_run = Fcons (rest->obj, Vfinalizers_to_run);
       Vall_finalizable_objs = rest->next;
-      xfree (temp, finalize_elem *);
+      xfree (temp);
       rest = Vall_finalizable_objs;
     }
 
@@ -1388,7 +1383,7 @@ register_for_finalization (void)
 	  finalize_elem *temp = rest->next;
 	  Vfinalizers_to_run = Fcons (rest->next->obj, Vfinalizers_to_run);
 	  rest->next = rest->next->next;
-	  xfree (temp, finalize_elem *);
+	  xfree (temp);
 	}
       else
 	{
@@ -1448,7 +1443,7 @@ struct backtrace backtrace;
 #define MAX_SAVE_STACK 0 /* 16000 */
 #endif
 
-void
+static void
 show_gc_cursor_and_message (void) 
 {
   /* Now show the GC cursor/message. */
@@ -1496,7 +1491,7 @@ show_gc_cursor_and_message (void)
 	      Lisp_Object args[2], whole_msg;
 	      args[0] = (STRINGP (Vgc_message) ? Vgc_message :
 			 build_msg_string (gc_default_message));
-	      args[1] = build_string ("...");
+	      args[1] = build_ascstring ("...");
 	      whole_msg = Fconcat (2, args);
 	      echo_area_message (f, (Ibyte *) 0, whole_msg, 0, -1,
 				 Qgarbage_collecting);
@@ -1505,7 +1500,7 @@ show_gc_cursor_and_message (void)
     }
 }
 
-void
+static void
 remove_gc_cursor_and_message (void)
 {
   /* Now remove the GC cursor/message */
@@ -1535,7 +1530,7 @@ remove_gc_cursor_and_message (void)
     }
 }
 
-void
+static void
 gc_prepare (void)
 {
 #if MAX_SAVE_STACK > 0
@@ -1567,7 +1562,7 @@ gc_prepare (void)
 
   gc_in_progress = 1;
 #ifndef NEW_GC
-  inhibit_non_essential_conversion_operations = 1;
+  inhibit_non_essential_conversion_operations++;
 #endif /* not NEW_GC */
 
 #if MAX_SAVE_STACK > 0
@@ -1603,7 +1598,7 @@ gc_prepare (void)
   cleanup_buffer_undo_lists ();
 }
 
-void
+static void
 gc_mark_root_set (
 #ifdef NEW_GC
 		  enum gc_phase phase
@@ -1624,8 +1619,9 @@ gc_mark_root_set (
 
   { /* staticpro() */
     Lisp_Object **p = Dynarr_begin (staticpros);
+    Elemcount len = Dynarr_length (staticpros);
     Elemcount count;
-    for (count = Dynarr_length (staticpros); count; count--, p++)
+    for (count = 0; count < len; count++, p++)
       /* Need to check if the pointer in the staticpro array is not
 	 NULL. A gc can occur after variable is added to the staticpro
 	 array and _before_ it is correctly initialized. In this case
@@ -1636,8 +1632,9 @@ gc_mark_root_set (
 
   { /* staticpro_nodump() */
     Lisp_Object **p = Dynarr_begin (staticpros_nodump);
+    Elemcount len = Dynarr_length (staticpros_nodump);
     Elemcount count;
-    for (count = Dynarr_length (staticpros_nodump); count; count--, p++)
+    for (count = 0; count < len; count++, p++)
       /* Need to check if the pointer in the staticpro array is not
 	 NULL. A gc can occur after variable is added to the staticpro
 	 array and _before_ it is correctly initialized. In this case
@@ -1649,9 +1646,10 @@ gc_mark_root_set (
 #ifdef NEW_GC
   { /* mcpro () */
     Lisp_Object *p = Dynarr_begin (mcpros);
+    Elemcount len = Dynarr_length (mcpros);
     Elemcount count;
-    for (count = Dynarr_length (mcpros); count; count--)
-      mark_object (*p++);
+    for (count = 0; count < len; count++, p++)
+      mark_object (*p);
   }
 #endif /* NEW_GC */
 
@@ -1707,7 +1705,7 @@ gc_mark_root_set (
 #endif
 }
 
-void
+static void
 gc_finish_mark (void)
 {
 #ifdef NEW_GC
@@ -1754,14 +1752,14 @@ gc_finish_mark (void)
 }
 
 #ifdef NEW_GC
-void
+static void
 gc_finalize (void)
 {
   GC_SET_PHASE (FINALIZE);
   register_for_finalization ();
 }
 
-void
+static void
 gc_sweep (void)
 {
   GC_SET_PHASE (SWEEP);
@@ -1770,12 +1768,13 @@ gc_sweep (void)
 #endif /* NEW_GC */
 
 
-void
+static void
 gc_finish (void)
 {
 #ifdef NEW_GC
   GC_SET_PHASE (FINISH_GC);
 #endif /* NEW_GC */
+  finish_object_memory_usage_stats ();
   consing_since_gc = 0;
 #ifndef DEBUG_XEMACS
   /* Allow you to set it really fucking low if you really want ... */
@@ -1785,7 +1784,7 @@ gc_finish (void)
   recompute_need_to_garbage_collect ();
 
 #ifndef NEW_GC
-  inhibit_non_essential_conversion_operations = 0;
+  inhibit_non_essential_conversion_operations--;
 #endif /* not NEW_GC */
   gc_in_progress = 0;
 
@@ -1811,7 +1810,7 @@ gc_finish (void)
 }
 
 #ifdef NEW_GC
-void
+static void
 gc_suspend_mark_phase (void)
 {
   PROFILE_RECORD_EXITING_SECTION (QSin_garbage_collection);
@@ -1820,7 +1819,7 @@ gc_suspend_mark_phase (void)
   vdb_start_dirty_bits_recording ();
 }
 
-int
+static int
 gc_resume_mark_phase (void)
 {
   PROFILE_RECORD_ENTERING_SECTION (QSin_garbage_collection);
@@ -1830,7 +1829,7 @@ gc_resume_mark_phase (void)
   return vdb_read_dirty_bits ();
 }
 
-int
+static int
 gc_mark (int incremental)
 {
   GC_SET_PHASE (MARK);
@@ -1850,7 +1849,7 @@ gc_mark (int incremental)
   return 1;
 }
 
-int
+static int
 gc_resume_mark (int incremental)
 {
   if (!incremental)
@@ -1890,7 +1889,7 @@ gc_resume_mark (int incremental)
 }
 
 
-void
+static void
 gc_1 (int incremental)
 {
   switch (GC_PHASE)
@@ -1926,7 +1925,8 @@ gc_1 (int incremental)
     }
 }
 
-void gc (int incremental)
+static void
+gc (int incremental)
 {
   if (gc_currently_forbidden
       || in_display
@@ -2098,7 +2098,7 @@ vars_of_gc (void)
 {
   staticpro_nodump (&pre_gc_cursor);
 
-  QSin_garbage_collection = build_msg_string ("(in garbage collection)");
+  QSin_garbage_collection = build_defer_string ("(in garbage collection)");
   staticpro (&QSin_garbage_collection);
 
   DEFVAR_INT ("gc-cons-threshold", &gc_cons_threshold /*
@@ -2193,7 +2193,7 @@ window system and `gc-pointer-glyph' specifies a value (i.e. a pointer
 image instance) in the domain of the selected frame, the mouse pointer
 will change instead of this message being printed.
 */ );
-  Vgc_message = build_string (gc_default_message);
+  Vgc_message = build_defer_string (gc_default_message);
 
   DEFVAR_LISP ("gc-pointer-glyph", &Vgc_pointer_glyph /*
 Pointer glyph used to indicate that a garbage collection is in progress.

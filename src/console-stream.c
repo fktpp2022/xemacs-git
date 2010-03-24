@@ -54,11 +54,9 @@ static const struct memory_description stream_console_data_description_1 [] = {
 };
 
 #ifdef NEW_GC
-DEFINE_LRECORD_IMPLEMENTATION ("stream-console", stream_console,
-			       1, /*dumpable-flag*/
-                               0, 0, 0, 0, 0,
-			       stream_console_data_description_1,
-			       Lisp_Stream_Console);
+DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("stream-console", stream_console,
+				      0, stream_console_data_description_1,
+				      Lisp_Stream_Console);
 #else /* not NEW_GC */
 const struct sized_memory_description stream_console_data_description = {
   sizeof (struct stream_console), stream_console_data_description_1
@@ -73,8 +71,8 @@ stream_init_console (struct console *con, Lisp_Object UNUSED (params))
 
 #ifdef NEW_GC
   if (CONSOLE_STREAM_DATA (con) == NULL)
-    CONSOLE_STREAM_DATA (con) = alloc_lrecord_type (struct stream_console,
-						    &lrecord_stream_console);
+    CONSOLE_STREAM_DATA (con) =
+      XSTREAM_CONSOLE (ALLOC_NORMAL_LISP_OBJECT (stream_console));
 #else /* not NEW_GC */
   if (CONSOLE_STREAM_DATA (con) == NULL)
     CONSOLE_STREAM_DATA (con) = xnew_and_zero (struct stream_console);
@@ -138,7 +136,7 @@ stream_delete_console (struct console *con)
 	retry_fclose (stream_con->in);
 
 #ifndef NEW_GC
-      xfree (stream_con, struct stream_console *);
+      xfree (stream_con);
 #endif /* not NEW_GC */
       CONSOLE_STREAM_DATA (con) = NULL;
     }
@@ -194,7 +192,7 @@ stream_init_frame_1 (struct frame *f, Lisp_Object UNUSED (props),
     invalid_operation ("Only one frame allowed on stream devices", Qunbound);
 #endif
   if (frame_name_is_defaulted)
-    f->name = build_string ("stream");
+    f->name = build_ascstring ("stream");
   f->height = 80;
   f->width = 24;
   f->visible = 0; /* so redisplay doesn't try to do anything */
@@ -202,7 +200,7 @@ stream_init_frame_1 (struct frame *f, Lisp_Object UNUSED (props),
 
 
 static int
-stream_text_width (struct frame *UNUSED (f),
+stream_text_width (struct window *UNUSED (w),
 		   struct face_cachel *UNUSED (cachel),
 		   const Ichar *UNUSED (str), Charcount len)
 {
@@ -282,7 +280,8 @@ stream_clear_region (Lisp_Object UNUSED (window), struct device* UNUSED (d),
 		     int UNUSED (x), int UNUSED (y), int UNUSED (width),
 		     int UNUSED (height), Lisp_Object UNUSED (fcolor),
 		     Lisp_Object UNUSED (bcolor),
-		     Lisp_Object UNUSED (background_pixmap))
+		     Lisp_Object UNUSED (background_pixmap),
+		     Lisp_Object UNUSED (background_placement))
 {
   ABORT ();
 }
@@ -374,7 +373,7 @@ The initial frame object, which represents XEmacs' stdout.
   Vterminal_frame = Qnil;
 
   /* Moved from console-tty.c */
-  Vstdio_str = build_string ("stdio");
+  Vstdio_str = build_ascstring ("stdio");
   staticpro (&Vstdio_str);
 }
 

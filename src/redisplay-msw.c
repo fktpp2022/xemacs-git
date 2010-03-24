@@ -2,7 +2,7 @@
    Copyright (C) 1994, 1995 Board of Trustees, University of Illinois.
    Copyright (C) 1994 Lucid, Inc.
    Copyright (C) 1995 Sun Microsystems, Inc.
-   Copyright (C) 2001, 2002, 2003 Ben Wing.
+   Copyright (C) 2001, 2002, 2003, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -469,9 +469,10 @@ mswindows_output_string (struct window *w, struct display_line *dl,
 #if 0	/* #### FIXME? */
   /* We can't work out the width before we've set the font in the DC */
   if (width < 0)
-    width = mswindows_text_width (cachel, Dynarr_atp (buf, 0), Dynarr_length (buf));
+    width = mswindows_text_width (w, cachel, Dynarr_begin (buf),
+				  Dynarr_length (buf));
 #else
-  assert(width>=0);
+  assert (width >= 0);
 #endif
 
   /* Regularize the variables passed in. */
@@ -517,7 +518,7 @@ mswindows_output_string (struct window *w, struct display_line *dl,
       cachel = WINDOW_FACE_CACHEL (w, findex);
     }
 
-  nruns = separate_textual_runs (&runs, Dynarr_atp (buf, 0),
+  nruns = separate_textual_runs (&runs, Dynarr_begin (buf),
 				 Dynarr_length (buf));
 
   for (i = 0; i < nruns; i++)
@@ -632,6 +633,17 @@ mswindows_output_dibitmap (struct frame *f, Lisp_Image_Instance *p,
   SelectObject (hcompdc, old);
 }
 
+/* Return x MOD y, but the result is guaranteed positive */
+
+static int
+posmod (int x, int y)
+{
+  int retval = x % y;
+  if (retval < 0)
+    retval += y;
+  return retval;
+}
+
 /* X gc's have this nice property that setting the bg pixmap will
  * output it offset relative to the window. Windows doesn't have this
  * feature so we have to emulate this by outputting multiple pixmaps.
@@ -641,13 +653,15 @@ static void
 mswindows_output_dibitmap_region (struct frame *f, 
 				  Lisp_Image_Instance *p,
 				  struct display_box *db,
-				  struct display_glyph_area *dga)
+				  struct display_glyph_area *dga,
+				  int absolute)
 {
   struct display_box xdb = { db->xpos, db->ypos, db->width, db->height };
   struct display_glyph_area xdga
     = { 0, 0, IMAGE_INSTANCE_PIXMAP_WIDTH (p),
 	IMAGE_INSTANCE_PIXMAP_HEIGHT (p) };
   int pxoffset = 0, pyoffset = 0;
+  int absolute_pxoffset = 0, absolute_pyoffset = 0;
 
   if (dga)
     {	
@@ -657,16 +671,30 @@ mswindows_output_dibitmap_region (struct frame *f,
   else if (!redisplay_normalize_glyph_area (&xdb, &xdga))
     return;
 
+  if (absolute)
+    {
+      POINT point;
+      point.x = 0;
+      point.y = 0;
+      if (ScreenToClient (FRAME_MSWINDOWS_HANDLE (f), &point))
+	{
+	  absolute_pxoffset = point.x;
+	  absolute_pyoffset = point.y;
+	}
+    }
+
   /* when doing a bg pixmap do a partial pixmap first so that we
      blt whole pixmaps thereafter */
   xdga.height = min (xdga.height, IMAGE_INSTANCE_PIXMAP_HEIGHT (p) -
-		      db->ypos % IMAGE_INSTANCE_PIXMAP_HEIGHT (p));
+		     posmod (db->ypos - absolute_pyoffset,
+			     IMAGE_INSTANCE_PIXMAP_HEIGHT (p)));
 
   while (xdga.height > 0)
     {
       xdga.width = min (min (db->width, IMAGE_INSTANCE_PIXMAP_WIDTH (p)),
 			IMAGE_INSTANCE_PIXMAP_WIDTH (p) -
-			db->xpos % IMAGE_INSTANCE_PIXMAP_WIDTH (p));
+			posmod (db->xpos - absolute_pxoffset,
+				IMAGE_INSTANCE_PIXMAP_WIDTH (p)));
       pxoffset = 0;
       while (xdga.width > 0)
 	{
@@ -674,9 +702,13 @@ mswindows_output_dibitmap_region (struct frame *f,
 	  xdb.ypos = db->ypos + pyoffset;
 	    /* do we need to offset the pixmap vertically? this is necessary
 	       for background pixmaps. */
-	  xdga.yoffset = xdb.ypos % IMAGE_INSTANCE_PIXMAP_HEIGHT (p);
-	  xdga.xoffset = xdb.xpos % IMAGE_INSTANCE_PIXMAP_WIDTH (p);
-	  /* the width is handled by mswindows_output_pixmap_region */
+	  xdga.xoffset = posmod (xdb.xpos - absolute_pxoffset,
+				 IMAGE_INSTANCE_PIXMAP_WIDTH (p));
+	  xdga.yoffset = posmod (xdb.ypos - absolute_pyoffset,
+				 IMAGE_INSTANCE_PIXMAP_HEIGHT (p));
+	  /* [[ the width is handled by mswindows_output_pixmap_region ]]
+	     #### -- What is the correct meaning of this comment?  There is
+	     no mswindows_output_pixmap_region(). --ben*/
 	  mswindows_output_dibitmap (f, p, &xdb, &xdga);
 	  pxoffset += xdga.width;
 	  xdga.width = min ((db->width - pxoffset),
@@ -710,7 +742,9 @@ mswindows_output_pixmap (struct window *w, Lisp_Object image_instance,
 		       WINDOW_FACE_CACHEL_BACKGROUND (w, findex), Qnil);
 
   if (bg_pixmap)
-    mswindows_output_dibitmap_region (f, p, db, dga);
+    mswindows_output_dibitmap_region
+      (f, p, db, dga,
+       EQ (WINDOW_FACE_CACHEL_BACKGROUND_PLACEMENT (w, findex), Qabsolute));
   else
     mswindows_output_dibitmap (f, p, db, dga);
 }
@@ -1181,9 +1215,10 @@ mswindows_output_vertical_divider (struct window *w, int UNUSED (clear_unused))
  displayed in the font associated with the face.
  ****************************************************************************/
 static int
-mswindows_text_width (struct frame *f, struct face_cachel *cachel,
+mswindows_text_width (struct window *w, struct face_cachel *cachel,
 		      const Ichar *str, Charcount len)
 {
+  struct frame *f = WINDOW_XFRAME (w);
   HDC hdc = get_frame_dc (f, 0);
   int width_so_far = 0;
   textual_run *runs;
@@ -1206,16 +1241,13 @@ mswindows_text_width (struct frame *f, struct face_cachel *cachel,
  given face.
  ****************************************************************************/
 static void
-mswindows_clear_region (
-#ifdef HAVE_SCROLLBARS
-			Lisp_Object locale,
-#else
-			Lisp_Object UNUSED (locale),
-#endif
+mswindows_clear_region (Lisp_Object USED_IF_SCROLLBARS (locale),
 			struct device *UNUSED (d), struct frame *f, 
 			face_index UNUSED (findex), int x, int y,
 			int width, int height, Lisp_Object fcolor,
-			Lisp_Object bcolor, Lisp_Object background_pixmap)
+			Lisp_Object bcolor,
+			Lisp_Object background_pixmap,
+			Lisp_Object background_placement)
 {
   RECT rect = { x, y, x+width, y+height };
   HDC hdc = get_frame_dc (f, 1);
@@ -1226,7 +1258,8 @@ mswindows_clear_region (
       mswindows_update_dc (hdc,
 			   fcolor, bcolor, background_pixmap);
       mswindows_output_dibitmap_region 
-	( f, XIMAGE_INSTANCE (background_pixmap), &db, 0);
+	(f, XIMAGE_INSTANCE (background_pixmap), &db, 0,
+	 EQ (background_placement, Qabsolute));
     }
   else
     {

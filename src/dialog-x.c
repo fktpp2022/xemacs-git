@@ -51,14 +51,14 @@ maybe_run_dbox_text_callback (LWLIB_ID id)
     {
       Lisp_Object text_field_callback;
       Extbyte *text_field_value = wv->value;
-      text_field_callback = VOID_TO_LISP (wv->call_data);
+      text_field_callback = GET_LISP_FROM_VOID (wv->call_data);
       text_field_callback = XCAR (XCDR (text_field_callback));
       if (text_field_value)
 	{
 	  void *tmp =
-	    LISP_TO_VOID (cons3 (Qnil,
+	    STORE_LISP_IN_VOID (cons3 (Qnil,
 				 list2 (text_field_callback,
-					build_ext_string (text_field_value,
+					build_extstring (text_field_value,
 							  Qlwlib_encoding)),
 				 Qnil));
 	  popup_selection_callback (0, id, (XtPointer) tmp);
@@ -171,7 +171,7 @@ dbox_descriptor_to_widget_value (Lisp_Object keys)
   wv_closure = make_opaque_ptr (kids);
   record_unwind_protect (widget_value_unwind, wv_closure);
   prev->name = xstrdup ("message");
-  LISP_STRING_TO_EXTERNAL_MALLOC (question, prev->value, Qlwlib_encoding);
+  prev->value = LISP_STRING_TO_EXTERNAL_MALLOC (question, Qlwlib_encoding);
   prev->enabled = 1;
 
   {
@@ -207,7 +207,7 @@ dbox_descriptor_to_widget_value (Lisp_Object keys)
 	  {
 	    allow_text_p = 0;	 /* only allow text field at the front */
 	    if (wv->value)
-	      xfree (wv->value, char *);
+	      xfree (wv->value);
 	    wv->value = wv->name;	/* what a mess... */
 	    wv->name = xstrdup (button_names [n]);
 

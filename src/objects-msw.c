@@ -2,7 +2,7 @@
    Copyright (C) 1993, 1994 Free Software Foundation, Inc.
    Copyright (C) 1995 Board of Trustees, University of Illinois.
    Copyright (C) 1995 Tinker Systems.
-   Copyright (C) 1995, 1996, 2000, 2001, 2002, 2004 Ben Wing.
+   Copyright (C) 1995, 1996, 2000, 2001, 2002, 2004, 2005, 2010 Ben Wing.
    Copyright (C) 1995 Sun Microsystems, Inc.
    Copyright (C) 1997 Jonathan Harris.
 
@@ -27,8 +27,9 @@ Boston, MA 02111-1307, USA.  */
 
 /* Authorship:
 
-   Jamie Zawinski, Chuck Thompson, Ben Wing
-   Rewritten for mswindows by Jonathan Harris, November 1997 for 21.0.
+   This file created by Jonathan Harris, November 1997 for 21.0; based
+   heavily on objects-x.c (see authorship there).  Much further work
+   by Ben Wing.
  */
 
 /* This function Mule-ized by Ben Wing, 3-24-02. */
@@ -1016,11 +1017,11 @@ mswindows_color_to_string (COLORREF color)
 
   for (i = 0; i < countof (mswindows_X_color_map); i++)
     if (pcolor == (mswindows_X_color_map[i].colorref))
-      return  build_string (mswindows_X_color_map[i].name);
+      return  build_ascstring (mswindows_X_color_map[i].name);
 
   sprintf (buf, "#%02X%02X%02X",
 	   GetRValue (color), GetGValue (color), GetBValue (color));
-  return build_string (buf);
+  return build_ascstring (buf);
 }
 
 /*
@@ -1109,7 +1110,7 @@ font_enum_callback_2 (ENUMLOGFONTEXW *lpelfe, NEWTEXTMETRICEXW *lpntme,
    * weights unspecified. This means that we have to weed out duplicates of
    * those fonts that do get enumerated with different weights.
    */
-  TSTR_TO_C_STRING (lpelfe->elfLogFont.lfFaceName, facename);
+  facename = TSTR_TO_ITEXT (lpelfe->elfLogFont.lfFaceName);
   if (itext_ichar (facename) == '@')
     /* This is a font for writing vertically. We ignore it. */
     return 1;
@@ -1141,7 +1142,7 @@ font_enum_callback_2 (ENUMLOGFONTEXW *lpelfe, NEWTEXTMETRICEXW *lpntme,
     return 1;
 
   /* Add the font name to the list if not already there */
-  fontname_lispstr = build_intstring (fontname);
+  fontname_lispstr = build_istring (fontname);
   if (NILP (Fassoc (fontname_lispstr, font_enum->list)))
     font_enum->list =
       Fcons (Fcons (fontname_lispstr,
@@ -1376,7 +1377,7 @@ mswindows_finalize_color_instance (Lisp_Color_Instance *c)
 {
   if (c->data)
     {
-      xfree (c->data, void *);
+      xfree (c->data);
       c->data = 0;
     }
 }
@@ -1489,7 +1490,7 @@ parse_font_spec (const Ibyte *namestr,
     {
       Extbyte *extfontname;
 
-      C_STRING_TO_TSTR (fontname, extfontname);
+      extfontname = ITEXT_TO_TSTR (fontname);
       if (logfont)
 	{
           qxetcsncpy ((Extbyte *) logfont->lfFaceName, extfontname,
@@ -1797,7 +1798,7 @@ create_hfont_from_font_spec (const Ibyte *namestr,
 			    ERROR_ME_DEBUG_WARN, &logfont, fontname, weight,
 			    points, effects, charset))
 	signal_error (Qinternal_error, "Bad value in device font list?",
-		      build_intstring (truername));
+		      build_istring (truername));
     }
   else if (!parse_font_spec (namestr, hdc, name_for_errors,
 			     errb, &logfont, fontname, weight, points,
@@ -1817,7 +1818,7 @@ create_hfont_from_font_spec (const Ibyte *namestr,
   qxesprintf (truename, "%s:%s:%s:%s:%s", fontname, weight,
 	      points, effects, charset);
   
-  *truename_ret = build_intstring (truename);
+  *truename_ret = build_istring (truename);
   return hfont;
 }
 
@@ -1837,6 +1838,8 @@ initialize_font_instance (Lisp_Font_Instance *f, Lisp_Object name,
 
   hfont = create_hfont_from_font_spec (namestr, hdc, name, device_font_list,
 				       errb, &truename);
+  if (!hfont)
+    return 0;
   f->truename = truename;
   f->data = xnew_and_zero (struct mswindows_font_instance_data);
   FONT_INSTANCE_MSWINDOWS_HFONT_VARIANT (f, 0, 0) = hfont;
@@ -1902,7 +1905,7 @@ mswindows_finalize_font_instance (Lisp_Font_Instance *f)
 	    DeleteObject (FONT_INSTANCE_MSWINDOWS_HFONT_I (f, i));
 	}
 
-      xfree (f->data, void *);
+      xfree (f->data);
       f->data = 0;
    }
 }
@@ -1946,7 +1949,7 @@ mswindows_font_list (Lisp_Object pattern, Lisp_Object device,
       if (match_font (XSTRING_DATA (XCAR (XCAR (fonttail))),
 		      XSTRING_DATA (pattern),
 		      fontname))
-	result = Fcons (build_intstring (fontname), result);
+	result = Fcons (build_istring (fontname), result);
     }
 
   return Fnreverse (result);
@@ -2014,6 +2017,8 @@ mswindows_font_spec_matches_charset_stage_1 (struct device *UNUSED (d),
 
 /*
 
+#### The following comment is old and probably not applicable any longer.
+
 1. handle standard mapping and inheritance vectors properly in Face-frob-property.
 2. finish impl of mswindows-charset-registry.
 3. see if everything works under fixup, now that i copied the stuff over.
@@ -2052,7 +2057,7 @@ mswindows_font_spec_matches_charset_stage_2 (struct device *d,
      spec.  See if the FONTSIGNATURE data is already cached.  If not, get
      it and cache it. */
   if (!STRINGP (reloc) || the_nonreloc != XSTRING_DATA (reloc))
-    reloc = build_intstring (the_nonreloc);
+    reloc = build_istring (the_nonreloc);
   GCPRO1 (reloc);
   fontsig = Fgethash (reloc, Vfont_signature_data, Qunbound);
 
@@ -2065,6 +2070,7 @@ mswindows_font_spec_matches_charset_stage_2 (struct device *d,
     {
       HDC hdc = CreateCompatibleDC (NULL);
       Lisp_Object font_list = Qnil, truename; 
+      HFONT hfont;
 
       if (DEVICE_TYPE_P (d, mswindows))
 	{
@@ -2079,10 +2085,10 @@ mswindows_font_spec_matches_charset_stage_2 (struct device *d,
 	  assert(0);
 	}
 
-      HFONT hfont = create_hfont_from_font_spec (the_nonreloc, hdc, Qnil,
-						 font_list,
-						 ERROR_ME_DEBUG_WARN,
-						 &truename);
+      hfont = create_hfont_from_font_spec (the_nonreloc, hdc, Qnil,
+					   font_list,
+					   ERROR_ME_DEBUG_WARN,
+					   &truename);
 
       if (!hfont || !(hfont = (HFONT) SelectObject (hdc, hfont)))
 	{
@@ -2091,7 +2097,7 @@ mswindows_font_spec_matches_charset_stage_2 (struct device *d,
 	  UNGCPRO;
 	  return 0;
 	}
-    
+      
       if (GetTextCharsetInfo (hdc, &fs, 0) == DEFAULT_CHARSET)
 	{
 	  SelectObject (hdc, hfont);
@@ -2182,7 +2188,7 @@ mswindows_font_spec_matches_charset (struct device *d, Lisp_Object charset,
 				     Bytecount offset, Bytecount length,
 				     enum font_specifier_matchspec_stages stage)
 {
-  return stage ?
+  return stage == STAGE_FINAL ?
      mswindows_font_spec_matches_charset_stage_2 (d, charset, nonreloc,
 						  reloc, offset, length)
     : mswindows_font_spec_matches_charset_stage_1 (d, charset, nonreloc,
@@ -2204,7 +2210,7 @@ mswindows_find_charset_font (Lisp_Object device, Lisp_Object font,
      that charset; otherwise, it will list fonts with all charsets. */
   fontlist = mswindows_font_list (font, device, Qnil);
 
-  if (!stage)
+  if (stage == STAGE_INITIAL)
     {
       LIST_LOOP (fonttail, fontlist)
 	{
@@ -2240,7 +2246,7 @@ mswindows_color_list (void)
   int i;
 
   for (i = 0; i < countof (mswindows_X_color_map); i++)
-    result = Fcons (build_string (mswindows_X_color_map[i].name), result);
+    result = Fcons (build_ascstring (mswindows_X_color_map[i].name), result);
 
   return Fnreverse (result);
 }

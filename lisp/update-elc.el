@@ -137,7 +137,7 @@ If any of these files are changed, we need to redump.")
 
 (defun update-elc-chop-extension (file)
   (if (string-match "\\.elc?$" file)
-      (substring file 0 (match-beginning 0))
+      (subseq file 0 (match-beginning 0))
     file))
 
 ;; we used to call packages-list-autoloads here, but it's false generality.
@@ -382,7 +382,7 @@ If any of these files are changed, we need to redump.")
 				(append '("-f" "batch-byte-compile-one-file")
 					(list arg))))
 			  bootstrap-other))))
-	     (mapc-internal
+	     (mapc
 	      #'(lambda (arg)
 		  (setq update-elc-files-to-compile
 			(delete arg update-elc-files-to-compile)))

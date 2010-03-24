@@ -100,13 +100,13 @@ Lisp_Object Qpng;
 
 BEGIN_C_DECLS
 
-#ifdef WIN32_NATIVE
-/* #### Yuck!  More horrifitude.  tiffio.h, below, includes <windows.h>,
-   which defines INT32 and INT16, the former differently and incompatibly
-   from jmorecfg.h, included by jpeglib.h.  We can disable the stuff in
-   jmorecfg.h by defining XMD_H (clever, huh?); then we define these
-   typedefs the way that <windows.h> wants them (which is more correct,
-   anyway; jmorecfg.h defines INT32 as `long'). */
+#ifdef WIN32_ANY
+/* #### Yuck!  More horrifitude.  tiffio.h, below, and sysfile.h above,
+   include <windows.h>, which defines INT32 and INT16, the former
+   differently and incompatibly from jmorecfg.h, included by jpeglib.h.  We
+   can disable the stuff in jmorecfg.h by defining XMD_H (clever, huh?);
+   then we define these typedefs the way that <windows.h> wants them (which
+   is more correct, anyway; jmorecfg.h defines INT32 as `long'). */
 #define XMD_H
 typedef signed int INT32;
 typedef signed short INT16;
@@ -120,8 +120,15 @@ typedef unsigned char boolean;
 #define HAVE_BOOLEAN		/* prevent jmorecfg.h from redefining it */
 #endif
 
+/* Yet more breakage... jmorecfg.h unconditionally defines FAR either as
+   "far" or as blank.  Windef.h unconditionally defines FAR as "far".
+   We'll avoid the compile warning by redefing FAR the way windows defines it,
+   after loading the JPEG headers. */
+#undef FAR
 #include <jpeglib.h>
 #include <jerror.h>
+#undef FAR
+#define FAR far
 
 END_C_DECLS
 
@@ -173,7 +180,7 @@ jpeg_instantiate_unwind (Lisp_Object unwind_obj)
     retry_fclose (data->instream);
 
   if (data->eimage)
-    xfree (data->eimage, Binbyte *);
+    xfree (data->eimage);
 
   return Qnil;
 }
@@ -321,7 +328,7 @@ my_jpeg_output_message (j_common_ptr cinfo)
 
   /* Create the message */
   (*cinfo->err->format_message) (cinfo, buffer);
-  EXTERNAL_TO_C_STRING (buffer, intbuf, Qnative);
+  intbuf = EXTERNAL_TO_ITEXT (buffer, Qjpeg_error_message_encoding);
   warn_when_safe (Qjpeg, Qinfo, "%s", intbuf);
 }
 
@@ -375,7 +382,7 @@ jpeg_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
 
 	/* Create the message */
 	(*cinfo.err->format_message) ((j_common_ptr) &cinfo, buffer);
-	errstring = build_ext_string (buffer, Qnative);
+	errstring = build_extstring (buffer, Qjpeg_error_message_encoding);
 
 	signal_image_error_2 ("JPEG decoding error",
 			      errstring, instantiator);
@@ -396,7 +403,7 @@ jpeg_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
     /* #### This is a definite problem under Mule due to the amount of
        stack data it might allocate.  Need to be able to convert and
        write out to a file. */
-    TO_EXTERNAL_FORMAT (LISP_STRING, data, ALLOCA, (bytes, len), Qbinary);
+    LISP_STRING_TO_SIZED_EXTERNAL (data, bytes, len, Qbinary);
     jpeg_memory_src (&cinfo, (JOCTET *) bytes, len);
   }
 
@@ -573,7 +580,7 @@ gif_instantiate_unwind (Lisp_Object unwind_obj)
       FreeSavedImages(data->giffile);
     }
   if (data->eimage)
-    xfree (data->eimage, Binbyte *);
+    xfree (data->eimage);
 
   return Qnil;
 }
@@ -598,7 +605,7 @@ gif_read_from_memory (GifFileType *gif, GifByteType *buf, int size)
 }
 
 static const char *
-gif_decode_error_string ()
+gif_decode_error_string (void)
 {
   switch (GifLastError ())
     {
@@ -660,7 +667,7 @@ gif_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
 
     assert (!NILP (data));
 
-    TO_EXTERNAL_FORMAT (LISP_STRING, data, ALLOCA, (bytes, len), Qbinary);
+    LISP_STRING_TO_SIZED_EXTERNAL (data, bytes, len, Qbinary); 
     mem_struct.bytes = bytes;
     mem_struct.len = len;
     mem_struct.index = 0;
@@ -874,7 +881,7 @@ png_instantiate_unwind (Lisp_Object unwind_obj)
     retry_fclose (data->instream);
 
   if (data->eimage)
-    xfree(data->eimage, Binbyte *);
+    xfree (data->eimage);
 
   return Qnil;
 }
@@ -902,7 +909,8 @@ png_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
       /* Something blew up:
 	 just display the error (cleanup happens in the unwind) */
       signal_image_error_2 ("Error decoding PNG",
-			     build_string(png_err_stct.err_str),
+			     build_extstring (png_err_stct.err_str,
+					       Qerror_message_encoding),
 			     instantiator);
     }
 
@@ -942,7 +950,7 @@ png_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
 
     /* #### This is a definite problem under Mule due to the amount of
        stack data it might allocate.  Need to think about using Lstreams */
-    TO_EXTERNAL_FORMAT (LISP_STRING, data, ALLOCA, (bytes, len), Qbinary);
+    LISP_STRING_TO_SIZED_EXTERNAL (data, bytes, len, Qbinary); 
     tbr.bytes = bytes;
     tbr.len = len;
     tbr.index = 0;
@@ -1069,7 +1077,7 @@ png_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
 	}
     }
 
-    xfree (row_pointers, Binbyte **);
+    xfree (row_pointers);
   }
 
   /* now instantiate */
@@ -1129,7 +1137,7 @@ tiff_instantiate_unwind (Lisp_Object unwind_obj)
       TIFFClose(data->tiff);
     }
   if (data->eimage)
-    xfree (data->eimage, Binbyte *);
+    xfree (data->eimage);
 
   return Qnil;
 }
@@ -1300,7 +1308,8 @@ tiff_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
       /* An error was signaled. No clean up is needed, as unwind handles that
 	 for us.  Just pass the error along. */
       signal_image_error_2 ("TIFF decoding error",
-			    build_string(tiff_err_data.err_str),
+			    build_extstring (tiff_err_data.err_str,
+					      Qerror_message_encoding),
 			    instantiator);
     }
   TIFFSetErrorHandler ((TIFFErrorHandler)tiff_error_func);
@@ -1318,9 +1327,7 @@ tiff_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
 
     /* #### This is a definite problem under Mule due to the amount of
        stack data it might allocate.  Think about Lstreams... */
-    TO_EXTERNAL_FORMAT (LISP_STRING, data,
-			ALLOCA, (bytes, len),
-			Qbinary);
+    LISP_STRING_TO_SIZED_EXTERNAL (data, bytes, len, Qbinary);
     mem_struct.bytes = bytes;
     mem_struct.len = len;
     mem_struct.index = 0;

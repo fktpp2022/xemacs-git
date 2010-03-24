@@ -220,7 +220,7 @@ struct specifier_methods
 
 struct Lisp_Specifier
 {
-  struct LCRECORD_HEADER header;
+  NORMAL_LISP_OBJECT_HEADER header;
   struct specifier_methods *methods;
 
   /* we keep a chained list of all current specifiers, for GC cleanup
@@ -259,7 +259,7 @@ struct Lisp_Specifier
 };
 typedef struct Lisp_Specifier Lisp_Specifier;
 
-DECLARE_LRECORD (specifier, Lisp_Specifier);
+DECLARE_LISP_OBJECT (specifier, Lisp_Specifier);
 #define XSPECIFIER(x) XRECORD (x, specifier, Lisp_Specifier)
 #define wrap_specifier(p) wrap_record (p, specifier)
 #define SPECIFIERP(x) RECORDP (x, specifier)
@@ -428,7 +428,7 @@ enum spec_add_meth
 struct specifier_caching
 {
 #ifdef NEW_GC
-  struct lrecord_header header;
+  NORMAL_LISP_OBJECT_HEADER header;
 #endif /* NEW_GC */
   int offset_into_struct_window;
   void (*value_changed_in_window) (Lisp_Object specifier, struct window *w,
@@ -440,7 +440,7 @@ struct specifier_caching
 };
 
 #ifdef NEW_GC
-DECLARE_LRECORD (specifier_caching, struct specifier_caching);
+DECLARE_LISP_OBJECT (specifier_caching, struct specifier_caching);
 #define XSPECIFIER_CACHING(x) \
   XRECORD (x, specifier_caching, struct specifier_caching)
 #define wrap_specifier_caching(p) \
@@ -571,16 +571,6 @@ DECLARE_SPECIFIER_TYPE (display_table);
 #define DISPLAYTABLE_SPECIFIERP(x) SPECIFIER_TYPEP (x, display_table)
 #define CHECK_DISPLAYTABLE_SPECIFIER(x) CHECK_SPECIFIER_TYPE (x, display_table)
 #define CONCHECK_DISPLAYTABLE_SPECIFIER(x) CONCHECK_SPECIFIER_TYPE (x, display_table)
-
-/* The various stages of font instantiation; initial means "find a font for
-   CHARSET that matches the charset's registries" and final means "find a
-   font for CHARSET that matches iso10646-1, since we haven't found a font
-   that matches its registry."  */
-enum font_specifier_matchspec_stages {
-  initial,
-  final,
-  impossible,
-};
 
 Lisp_Object define_specifier_tag(Lisp_Object tag,
 				 Lisp_Object device_predicate,

@@ -95,7 +95,7 @@ init_editfns (void)
   if ((p = egetenv ("NAME")))
     /* I don't think it's the right thing to do the ampersand
        modification on NAME.  Not that it matters anymore...  -hniksic */
-    Vuser_full_name = build_intstring (p);
+    Vuser_full_name = build_istring (p);
   else
     Vuser_full_name = Fuser_full_name (Qnil);
 }
@@ -649,7 +649,7 @@ On Unix it is obtained from TMPDIR, with /tmp as the default.
     }
 #endif
 
-  return build_intstring (tmpdir);
+  return build_istring (tmpdir);
 }
 
 DEFUN ("user-login-name", Fuser_login_name, 0, 1, 0, /*
@@ -678,7 +678,7 @@ ignored and this function returns the login name for that UID, or nil.
   /* #### - I believe this should return nil instead of "unknown" when pw==0
      pw=0 is indicated by a null return from user_login_name
   */
-  return returned_name ? build_intstring (returned_name) : Qnil;
+  return returned_name ? build_istring (returned_name) : Qnil;
 }
 
 /* This function may be called from other C routines when a
@@ -744,7 +744,7 @@ This ignores the environment variables LOGNAME and USER, so it differs from
   struct passwd *pw = qxe_getpwuid (getuid ());
   /* #### - I believe this should return nil instead of "unknown" when pw==0 */
 
-  return build_string (pw ? pw->pw_name : "unknown");
+  return build_extstring (pw ? pw->pw_name : "unknown", Quser_name_encoding);
 }
 
 DEFUN ("user-uid", Fuser_uid, 0, 0, 0, /*
@@ -831,7 +831,7 @@ void
 uncache_home_directory (void)
 {
   if (cached_home_directory)
-    xfree (cached_home_directory, Ibyte *);
+    xfree (cached_home_directory);
   cached_home_directory = NULL;
 }
 
@@ -869,7 +869,7 @@ get_home_directory (void)
                  We probably should try to extract pw_dir from /etc/passwd,
                  before falling back to this. */
 	      cached_home_directory
-                = qxestrdup ((const Ibyte *)DEFAULT_DIRECTORY_FALLBACK);
+                = qxestrdup ((const Ibyte *) DEFAULT_DIRECTORY_FALLBACK);
 	      output_home_warning = 1;
 	    }
 	}
@@ -895,7 +895,7 @@ Return the user's home directory, as a string.
   Ibyte *path = get_home_directory ();
 
   return !path ? Qnil :
-    Fexpand_file_name (Fsubstitute_in_file_name (build_intstring (path)),
+    Fexpand_file_name (Fsubstitute_in_file_name (build_istring (path)),
 		       Qnil);
 }
 
@@ -1068,16 +1068,17 @@ characters appearing in the day and month names may be incorrect.
       Extbyte *buf = alloca_extbytes (size);
       Extbyte *formext;
       /* make a copy of the static buffer returned by localtime() */
-      struct tm tm = * localtime(&value); 
+      struct tm tm = *localtime (&value); 
       
       *buf = 1;
 
       /* !!#### this use of external here is not totally safe, and
 	 potentially data lossy. */
-      LISP_STRING_TO_EXTERNAL (format_string, formext, Qnative);
+      formext = LISP_STRING_TO_EXTERNAL (format_string,
+					 Qtime_function_encoding);
       if (emacs_strftime (buf, size, formext, &tm)
 	  || !*buf)
-	return build_ext_string (buf, Qnative);
+	return build_extstring (buf, Qtime_function_encoding);
       /* If buffer was too small, make it bigger.  */
       size *= 2;
     }
@@ -1187,7 +1188,7 @@ arguments: (SECOND MINUTE HOUR DAY MONTH YEAR &optional ZONE &rest REST)
       Extbyte **oldenv = environ, **newenv;
 
       if (STRINGP (zone))
-	LISP_STRING_TO_EXTERNAL (zone, tzstring, Qnative);
+	tzstring = LISP_STRING_TO_EXTERNAL (zone, Qtime_zone_encoding);
       else if (INTP (zone))
 	{
 	  int abszone = abs (XINT (zone));
@@ -1236,7 +1237,7 @@ and from `file-attributes'.
 {
   time_t value;
   Ibyte *the_ctime;
-  EMACS_INT len; /* this is what make_ext_string() accepts; ####
+  EMACS_INT len; /* this is what make_extstring() accepts; ####
 		    should it be an Bytecount? */
 
   if (! lisp_to_time (specified_time, &value))
@@ -1319,7 +1320,7 @@ the data it can't find.
 #endif
 #endif /* not HAVE_TM_ZONE */
       if (s)
-	tem = build_ext_string (s, Qnative);
+	tem = build_extstring (s, Qtime_zone_encoding);
       else
 	{
 	  Ibyte buf[6];
@@ -1328,7 +1329,7 @@ the data it can't find.
 	  int am = (offset < 0 ? -offset : offset) / 60;
 	  qxesprintf (buf, "%c%02d%02d", (offset < 0 ? '-' : '+'), am/60,
 		      am%60);
-	  tem = build_intstring (buf);
+	  tem = build_istring (buf);
 	}
       return list2 (make_int (offset), tem);
     }
@@ -1433,12 +1434,12 @@ If TZ is nil, use implementation-defined default time zone information.
   else
     {
       CHECK_STRING (tz);
-      LISP_STRING_TO_EXTERNAL (tz, tzstring, Qnative);
+      tzstring = LISP_STRING_TO_EXTERNAL (tz, Qtime_zone_encoding);
     }
 
   set_time_zone_rule (tzstring);
   if (environbuf)
-    xfree (environbuf, Extbyte **);
+    xfree (environbuf);
   environbuf = environ;
 
   return Qnil;
@@ -2130,8 +2131,8 @@ DEFUN ("save-restriction", Fsave_restriction, 0, UNEVALLED, 0, /*
 Execute BODY, saving and restoring current buffer's restrictions.
 The buffer's restrictions make parts of the beginning and end invisible.
 \(They are set up with `narrow-to-region' and eliminated with `widen'.)
-This special form, `save-restriction', saves the current buffer's restrictions
-when it is entered, and restores them when it is exited.
+This special operator, `save-restriction', saves the current buffer's
+restrictions when it is entered, and restores them when it is exited.
 So any `narrow-to-region' within BODY lasts only until the end of the form.
 The old restrictions settings are restored
 even in case of abnormal exit (throw or error).
@@ -2257,7 +2258,7 @@ If BUFFER is nil, the current buffer is assumed.
   x2 = XCHAR (character2);
 
   return (!NILP (b->case_fold_search)
-	  ? DOWNCASE (b, x1) == DOWNCASE (b, x2)
+	  ? CANONCASE (b, x1) == CANONCASE (b, x2)
 	  : x1 == x2)
     ? Qt : Qnil;
 }

@@ -1,6 +1,7 @@
 ;;; cl.el --- Common Lisp extensions for XEmacs Lisp
 
 ;; Copyright (C) 1993, 1997 Free Software Foundation, Inc.
+;; Copyright (C) 2010 Ben Wing.
 
 ;; Author: Dave Gillespie <daveg@synaptics.com>
 ;; Maintainer: XEmacs Development Team
@@ -123,10 +124,17 @@ a future Emacs interpreter will be able to use it.")
 ;;; Predicates.
 
 (defun eql (a b)    ; See compiler macro in cl-macs.el
-  "Return t if the two args are the same Lisp object.
-Floating-point numbers of equal value are `eql', but they may not be `eq'."
-  (or (eq a b)
-      (and (numberp a) (numberp b) (equal a b))))
+  "Return t if the arguments are the same Lisp object, or numerically equal.
+
+They must be of the same type; the difference between `eq' and `eql' is most
+relevant when it comes to the non-fixnum number types.  In this
+implementation, fixnums of the same numeric value are always `eq', but this
+is not true for other numeric types, among them floats, bignums and ratios,
+if available.
+
+See also `=' (which doesn't require that its arguments be of the same type,
+but only accepts numeric arguments, characters and markers) and `equal'."
+  (or (eq a b) (and (numberp a) (equal a b))))
 
 ;;; Generalized variables.  These macros are defined here so that they
 ;;; can safely be used in .emacs files.
@@ -172,7 +180,8 @@ lists.  "
   "Add NEWELT at the beginning of LISTNAME, unless it's already in LISTNAME.
 Like (push NEWELT LISTNAME), except that the list is unmodified if NEWELT is
 `eql' to an element already on the list.
-Keywords supported:  :test :test-not :key"
+Keywords supported:  :test :test-not :key
+See `member*' for the meaning of :test, :test-not and :key."
   (if (symbolp listname) (list 'setq listname 
 			       (list* 'adjoin newelt listname keys))
     (list* 'callf2 'adjoin newelt listname keys)))
@@ -317,11 +326,7 @@ If ARG is not a string, it is ignored."
 
 ;;; Numbers.
 
-;; XEmacs change: use floatp, which is right even in the presence of ratios
-;; and bigfloats
-(defun floatp-safe (object)
-  "Return t if OBJECT is a floating point number."
-  (floatp object))
+;; XEmacs change: ditch floatp-safe.
 
 (defun plusp (number)
   "Return t if NUMBER is positive."
@@ -344,15 +349,6 @@ If ARG is not a string, it is ignored."
 
 (defvar *random-state* (vector 'cl-random-state-tag -1 30 (cl-random-time)))
 
-;; XEmacs: These constants are defined in C when 'number-types is provided.
-;; They are always defined in C on Emacs.  Maybe we should, too.
-(unless (featurep 'number-types)
-;;; We use `eval' in case VALBITS differs from compile-time to load-time.
-  (defconst most-positive-fixnum (eval '(lsh -1 -1))
-    "The integer closest in value to positive infinity.")
-  (defconst most-negative-fixnum (eval '(- -1 (lsh -1 -1)))
-    "The integer closest in value to negative infinity."))
-
 ;;; The following are set by code in cl-extra.el
 (defconst most-positive-float nil
   "The float closest in value to positive infinity.")
@@ -371,21 +367,6 @@ If ARG is not a string, it is ignored."
 ;;; Sequence functions.
 
 (defalias 'copy-seq 'copy-sequence)
-
-(defun mapcar* (cl-func cl-x &rest cl-rest)
-  "Apply FUNCTION to each element of SEQ, and make a list of the results.
-If there are several SEQs, FUNCTION is called with that many arguments,
-and mapping stops as soon as the shortest list runs out.  With just one
-SEQ, this is like `mapcar'.  With several, it is like the Common Lisp
-`mapcar' function extended to arbitrary sequence types."
-  (if cl-rest
-      (if (or (cdr cl-rest) (nlistp cl-x) (nlistp (car cl-rest)))
-	  (cl-mapcar-many cl-func (cons cl-x cl-rest))
-	(let ((cl-res nil) (cl-y (car cl-rest)))
-	  (while (and cl-x cl-y)
-	    (push (funcall cl-func (pop cl-x) (pop cl-y)) cl-res))
-	  (nreverse cl-res)))
-    (mapcar cl-func cl-x)))
 
 (defalias 'svref 'aref)
 
@@ -604,7 +585,8 @@ Thus, `(list* A B C D)' is equivalent to `(nconc (list A B C) D)', or to
 (defun adjoin (cl-item cl-list &rest cl-keys)  ; See compiler macro in cl-macs
   "Return ITEM consed onto the front of LIST only if it's not already there.
 Otherwise, return LIST unmodified.
-Keywords supported:  :test :test-not :key"
+Keywords supported:  :test :test-not :key
+See `member*' for the meaning of :test, :test-not and :key."
   (cond ((or (equal cl-keys '(:test eq))
 	     (and (null cl-keys) (not (numberp cl-item))))
 	 (if (memq cl-item cl-list) cl-list (cons cl-item cl-list)))
@@ -615,8 +597,9 @@ Keywords supported:  :test :test-not :key"
 (defun subst (cl-new cl-old cl-tree &rest cl-keys)
   "Substitute NEW for OLD everywhere in TREE (non-destructively).
 Return a copy of TREE with all elements `eql' to OLD replaced by NEW.
-Keywords supported:  :test :test-not :key"
-  (if (or cl-keys (and (numberp cl-old) (not (integerp cl-old))))
+Keywords supported:  :test :test-not :key
+See `member*' for the meaning of :test, :test-not and :key."
+  (if (or cl-keys (and (numberp cl-old) (not (fixnump cl-old))))
       (apply 'sublis (list (cons cl-old cl-new)) cl-tree cl-keys)
     (cl-do-subst cl-new cl-old cl-tree)))
 
@@ -644,9 +627,9 @@ Keywords supported:  :test :test-not :key"
 ;; XEmacs change: omit the autoload rules; we handle those a different way
 
 ;;; Define data for indentation and edebug.
-(mapc-internal
+(mapc
  #'(lambda (entry)
-     (mapc-internal
+     (mapc
       #'(lambda (func)
 	  (put func 'lisp-indent-function (nth 1 entry))
 	  (put func 'lisp-indent-hook (nth 1 entry))

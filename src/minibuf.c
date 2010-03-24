@@ -1,7 +1,7 @@
 /* Minibuffer input and completion.
    Copyright (C) 1985, 1986, 1992-1995 Free Software Foundation, Inc.
    Copyright (C) 1995 Sun Microsystems, Inc.
-   Copyright (C) 2002 Ben Wing.
+   Copyright (C) 2002, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -218,8 +218,8 @@ scmp_1 (const Ibyte *s1, const Ibyte *s2, Charcount len,
     {
       while (l)
         {
-          Ichar c1 = DOWNCASE (0, itext_ichar (s1));
-          Ichar c2 = DOWNCASE (0, itext_ichar (s2));
+          Ichar c1 = CANONCASE (0, itext_ichar (s1));
+          Ichar c2 = CANONCASE (0, itext_ichar (s2));
 
           if (c1 == c2)
             {
@@ -513,7 +513,7 @@ or the symbol from the obarray.
     return Qt;
 
   /* Else extract the part in which all completions agree */
-  return Fsubstring (bestmatch, Qzero, make_int (bestmatchsize));
+  return Fsubseq (bestmatch, Qzero, make_int (bestmatchsize));
 }
 
 
@@ -990,11 +990,11 @@ reinit_complex_vars_of_minibuf (void)
      at runtime instead of at load time. */
 #endif
   Vminibuffer_zero
-    = Fget_buffer_create
-      (build_string (DEFER_GETTEXT (" *Minibuf-0*")));
+    = Fget_buffer_create (build_ascstring (" *Minibuf-0*"));
+  staticpro_nodump (&Vminibuffer_zero);
   Vecho_area_buffer
-    = Fget_buffer_create
-      (build_string (DEFER_GETTEXT (" *Echo Area*")));
+    = Fget_buffer_create (build_ascstring (" *Echo Area*"));
+  staticpro_nodump (&Vecho_area_buffer);
 }
 
 void

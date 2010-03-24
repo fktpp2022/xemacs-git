@@ -1,5 +1,5 @@
 /* Unicode-encapsulation of Win32 library functions.
-   Copyright (C) 2000, 2001, 2002, 2004 Ben Wing.
+   Copyright (C) 2000, 2001, 2002, 2004, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -51,11 +51,16 @@ file specifies a file to start reading from.
 yes indicates a function to be automatically Unicode-encapsulated.
    (All parameters either need no special processing or are LPTSTR or
    LPCTSTR.)
+override indidates a function where the prototype can be overridden
+   due to errors in Cygwin or Visual Studio.
 soon indicates a function that should be automatically Unicode-encapsulated,
    but we're not ready to process it yet.
 no indicates a function we don't support (it will be #defined to cause
    a compile error, with the text after the function included in the
    erroneous definition to indicate why we don't support it).
+review indicates a function that we still need to review to determine whether
+   or how to support it.  This has the same effect as `no', with a comment
+   indicating that the function needs review.
 skip indicates a function we support manually; only a comment about this
    will be generated.
 split indicates a function with a split structure (different versions
@@ -103,6 +108,25 @@ begin-unicode-encapsulation-script
 file ACLAPI.h
 
 yes GetNamedSecurityInfo
+review BuildExplicitAccessWithName
+review BuildSecurityDescriptor
+review BuildTrusteeWithName
+review BuildTrusteeWithObjectsAndName
+review BuildTrusteeWithObjectsAndSid
+review BuildTrusteeWithSid
+review GetAuditedPermissionsFromAcl
+review GetEffectiveRightsFromAcl
+review GetExplicitEntriesFromAcl
+review GetTrusteeForm
+review GetTrusteeName
+review GetTrusteeType
+review LookupSecurityDescriptorParts
+review SetEntriesInAcl
+review SetNamedSecurityInfo
+review BuildImpersonateExplicitAccessWithName
+review BuildImpersonateTrustee
+review GetMultipleTrustee
+review GetMultipleTrusteeOperation
 
 file WINBASE.H
 
@@ -251,6 +275,34 @@ no GetCurrentHwProfile split-sized LPHW_PROFILE_INFO; NT 4.0+ only
 no GetVersionEx split-sized LPOSVERSIONINFO
 no CreateJobObject NT 5.0+ only
 no OpenJobObject NT 5.0+ only
+review CheckNameLegalDOS8Dot3
+review CreateActCtx
+review CreateProcessWithLogon
+review DeleteVolumeMountPoint
+review DnsHostnameToComputerName
+review FileEncryptionStatus
+review FindActCtxSectionString
+review FindFirstVolume
+review FindFirstVolumeMountPoint
+review FindNextVolume
+review FindNextVolumeMountPoint
+review GetFirmwareEnvironmentVariable
+review GetComputerNameEx
+review GetDllDirectory
+review GetModuleHandleEx
+review GetSystemWindowsDirectory
+review GetSystemWow64Directory
+review GetVolumeNameForVolumeMountPoint
+review GetVolumePathName
+review GetVolumePathNamesForVolumeName
+review QueryActCtx
+review ReplaceFile
+review SetComputerNameEx
+review SetDllDirectory
+review SetFileShortName
+review SetFirmwareEnvironmentVariable
+review SetVolumeMountPoint
+review VerifyVersionInfo
 
 file WINUSER.H
 
@@ -262,7 +314,7 @@ yes GetKeyboardLayoutName
 no CreateDesktop split-sized LPDEVMODE
 yes OpenDesktop
 split EnumDesktops DESKTOPENUMPROC // callback fun differs only in string pointer type
-yes CreateWindowStation
+override HWINSTA CreateWindowStationW(LPWSTR,DWORD,DWORD,LPSECURITY_ATTRIBUTES); error arg 1, VS6 prototype, missing const
 yes OpenWindowStation
 split EnumWindowStations WINSTAENUMPROC // callback fun differs only in string pointer type
 yes GetUserObjectInformation
@@ -272,7 +324,7 @@ yes GetMessage
 yes DispatchMessage
 yes PeekMessage
 skip SendMessage split messages and structures
-yes SendMessageTimeout
+no SendMessageTimeout VS6 has erroneous seventh parameter DWORD_PTR instead of PDWORD_PTR
 yes SendNotifyMessage
 yes SendMessageCallback
 no BroadcastSystemMessage win95 version not split; NT 4.0+ only
@@ -355,7 +407,8 @@ yes GetWindowText
 yes GetWindowTextLength
 yes MessageBox
 yes MessageBoxEx
-split MessageBoxIndirect LPMSGBOXPARAMS NT 4.0+ only
+// split MessageBoxIndirect LPMSGBOXPARAMS NT 4.0+ only
+no MessageBoxIndirect Cygwin has split MSGBOXPARAMS* instead of LPMSGBOXPARAMS
 yes GetWindowLong
 yes SetWindowLong
 yes GetClassLong
@@ -378,8 +431,7 @@ yes DlgDirListComboBox
 yes DlgDirSelectComboBoxEx
 yes DefFrameProc
 no DefMDIChildProc return value is conditionalized on _MAC, messes up parser
-
-yes CreateMDIWindow
+override HWND CreateMDIWindowW(LPWSTR,LPWSTR,DWORD,int,int,int,int,HWND,HINSTANCE,LPARAM); error arg 1, VS6 prototype, missing const
 yes WinHelp
 no ChangeDisplaySettings split-sized LPDEVMODE
 no ChangeDisplaySettingsEx split-sized LPDEVMODE; NT 5.0/Win98+ only
@@ -390,9 +442,17 @@ no GetMonitorInfo NT 5.0/Win98+ only
 no GetWindowModuleFileName NT 5.0+ only
 no RealGetWindowClass NT 5.0+ only
 no GetAltTabInfo NT 5.0+ only
+review BroadcastSystemMessageEx
+review EnumDisplaySettingsEx
+review GetClassLongPtr
+review GetRawInputDeviceInfo
+review GetWindowLongPtr
+review SetClassLongPtr
+review SetWindowLongPtr
 
 file WINGDI.H
 
+begin-bracket defined (HAVE_MS_WINDOWS)
 // split-sized LOGCOLORSPACE
 // split-sized TEXTMETRIC
 // split-sized NEWTEXTMETRIC
@@ -458,7 +518,7 @@ yes GetKerningPairs
 // split-simple function pointer ICMENUMPROC
 no GetLogColorSpace split-sized LPLOGCOLORSPACE; NT 4.0+ only
 no CreateColorSpace split-sized LPLOGCOLORSPACE; NT 4.0+ only
-skip GetICMProfile NT 4.0+ only, error in Cygwin prototype
+yes GetICMProfile NT 4.0+ only, former error in Cygwin prototype but no more (Cygwin 1.7, 1-30-10)
 yes SetICMProfile NT 4.0+ only
 split EnumICMProfiles ICMENUMPROC NT 4.0+ only
 skip UpdateICMRegKey NT 4.0+ only, error in Cygwin prototype
@@ -467,6 +527,7 @@ skip UpdateICMRegKey NT 4.0+ only, error in Cygwin prototype
 // Unicode-only EMREXTCREATEFONTINDIRECTW
 no wglUseFontBitmaps causes link error
 no wglUseFontOutlines causes link error
+end-bracket
 
 file WINSPOOL.H
 
@@ -533,6 +594,7 @@ no AddPrintProvidor not used, complicated interface with split structures
 no DeletePrintProvidor not used, complicated interface with split structures
 no SetPrinterHTMLView not used, complicated interface with split structures
 no GetPrinterHTMLView not used, complicated interface with split structures
+review GetDefaultPrinter
 end-bracket
 
 file SHELLAPI.H
@@ -542,14 +604,14 @@ yes ShellExecute
 yes FindExecutable
 no CommandLineToArgv Unicode-only
 yes ShellAbout
-yes ExtractAssociatedIcon
+override HICON ExtractAssociatedIconW(HINSTANCE, LPWSTR, LPWORD); error arg2, Cygwin prototype, extra const
 yes ExtractIcon
 // split-simple DRAGINFO, used ??? (docs say "Not currently supported")
 begin-bracket !defined (CYGWIN_HEADERS)
 yes DoEnvironmentSubst NT 4.0+ only
 end-bracket
 no FindEnvironmentString causes link error; NT 4.0+ only
-skip ExtractIconEx NT 4.0+ only, error in Cygwin prototype
+yes ExtractIconEx NT 4.0+ only, former error in Cygwin prototype but no more (Cygwin 1.7, 1-30-10)
 // split-simple SHFILEOPSTRUCT, used in SHFileOperation
 // split-simple SHNAMEMAPPING, used in SHFileOperation
 split SHFileOperation LPSHFILEOPSTRUCT NT 4.0+ only
@@ -762,6 +824,7 @@ begin-unicode-encapsulation-script
 
 file COMMDLG.H
 
+begin-bracket defined (HAVE_MS_WINDOWS)
 split GetOpenFileName LPOPENFILENAME
 split GetSaveFileName LPOPENFILENAME
 yes GetFileTitle
@@ -782,6 +845,8 @@ no ChooseFont split-sized LPLOGFONT in LPCHOOSEFONT
 // FINDMSGSTRING
 skip PrintDlg LPPRINTDLG with split-sized DEVMODE handle
 skip PageSetupDlg LPPAGESETUPDLG with split-sized DEVMODE handle
+review PrintDlgEx
+end-bracket
 
 file DDE.H
 
@@ -790,7 +855,7 @@ file DDE.H
 file DDEML.H
 
 yes DdeInitialize
-skip DdeCreateStringHandle error in Cygwin prototype
+yes DdeCreateStringHandle former error in Cygwin prototype, but no more (Cygwin 1.7, 1-30-10)
 yes DdeQueryString
 // #### split-sized (or split-simple??? not completely obvious) structure MONHSZSTRUCT, used when DDE event MF_HSZ_INFO is sent as part of the XTYP_MONITOR transaction sent to a DDE callback; not yet handled
 
@@ -871,9 +936,12 @@ yes WNetGetNetworkInformation
 // split-simple function pointer PFNPROCESSPOLICIES
 yes WNetGetLastError
 split MultinetGetConnectionPerformance LPNETRESOURCE
+review WNetSetConnection
+review WNetGetResourceInformation
+review WNetGetResourceParent
 end-bracket
 
-file IME.H
+// file IME.H -- doesn't exist under Cygwin
 
 no SendIMEMessageEx obsolete, no docs available
 
@@ -918,6 +986,10 @@ skip SHBrowseForFolder need to intercept callback for SendMessage
 // split flag SHCNF_PRINTER; we intercept SHChangeNotify
 // split flag SHARD_PATH; we intercept SHAddToRecentDocs
 skip SHGetDataFromIDList split-sized WIN32_FIND_DATA or split-simple NETRESOURCE, missing from Cygwin libraries
+review SHGetFolderPath
+review SHGetIconOverlayIndex
+review SHCreateDirectoryEx
+review SHGetFolderPathAndSubDir
 
 file WINNLS.H
 
@@ -947,6 +1019,12 @@ no GetStringType no such fun; A and W versions have different nos. of args
 no FoldString not used, not examined yet
 no EnumSystemLocales not used, not examined yet
 no EnumSystemCodePages not used, not examined yet
+review GetCalendarInfo
+review GetGeoInfo
+review SetCalendarInfo
+review EnumSystemLanguageGroups
+review EnumLanguageGroupLocales
+review EnumUILanguages
 
 end-unicode-encapsulation-script
 
@@ -979,7 +1057,7 @@ yes WriteConsole
 
 file WINREG.H
 
-skip RegConnectRegistry error in Cygwin prototype
+yes RegConnectRegistry former error in Cygwin prototype, but no more (Cygwin 1.7, 1-30-10)
 yes RegCreateKey
 yes RegCreateKeyEx
 yes RegDeleteKey
@@ -1001,7 +1079,8 @@ yes RegSetValue
 yes RegSetValueEx
 yes RegUnLoadKey
 yes InitiateSystemShutdown
-yes AbortSystemShutdown
+override BOOL AbortSystemShutdownW(LPWSTR); error arg 1, Cygwin prototype, extra const
+review RegDeleteKeyEx
 
 file EXCPT.H
 
@@ -1164,60 +1243,13 @@ qxeGetEnvironmentStrings (void)
 /*           would be encapsulatable but for Cygwin problems            */
 /************************************************************************/
 
-LONG
-qxeRegConnectRegistry (const Extbyte * lpMachineName, HKEY hKey, PHKEY phkResult)
-{
-  /* Cygwin mistakenly omits const in first argument. */
-  if (XEUNICODE_P)
-    return RegConnectRegistryW ((LPWSTR) lpMachineName, hKey, phkResult);
-  else
-    return RegConnectRegistryA ((LPSTR) lpMachineName, hKey, phkResult);
-}
-
-HSZ
-qxeDdeCreateStringHandle (DWORD idInst, const Extbyte * psz, int iCodePage)
-{
-  /* Cygwin mistakenly omits const in second argument. */
-  if (XEUNICODE_P)
-    return DdeCreateStringHandleW (idInst, (LPWSTR) psz, iCodePage);
-  else
-    return DdeCreateStringHandleA (idInst, (LPSTR) psz, iCodePage);
-}
-
-/* NOTE: NT 4.0+ only */
-UINT
-qxeExtractIconEx (const Extbyte * lpszFile, int nIconIndex, HICON FAR * phiconLarge, HICON FAR * phiconSmall, UINT nIcons)
-{
-  /* Cygwin mistakenly declares the return type as HICON. */
-  if (XEUNICODE_P)
-    return (UINT) ExtractIconExW ((LPCWSTR) lpszFile, nIconIndex, phiconLarge, phiconSmall, nIcons);
-  else
-    return (UINT) ExtractIconExA ((LPCSTR) lpszFile, nIconIndex, phiconLarge, phiconSmall, nIcons);
-}
-
-/* NOTE: NT 4.0+ only */
-BOOL
-qxeGetICMProfile (HDC arg1, LPDWORD arg2, Extbyte * arg3)
-{
-#if 0 /* defined (CYGWIN_HEADERS) */ /* fixed at some point <= GCC 3.4.4 */
-  /* Cygwin mistakenly declares the second argument as DWORD. */
-  if (XEUNICODE_P)
-    return GetICMProfileW (arg1, (DWORD) arg2, (LPWSTR) arg3);
-  else
-    return GetICMProfileA (arg1, (DWORD) arg2, (LPSTR) arg3);
-#else
-  if (XEUNICODE_P)
-    return GetICMProfileW (arg1, arg2, (LPWSTR) arg3);
-  else
-    return GetICMProfileA (arg1, arg2, (LPSTR) arg3);
-#endif /* CYGWIN_HEADERS */
-}
+#ifdef HAVE_MS_WINDOWS
 
 /* NOTE: NT 4.0+ only */
 BOOL
 qxeUpdateICMRegKey (DWORD arg1, Extbyte * arg2, Extbyte * arg3, UINT arg4)
 {
-#if defined (CYGWIN_HEADERS)
+#ifdef CYGWIN_HEADERS
   /* Cygwin mistakenly declares the second argument as DWORD. */
   if (XEUNICODE_P)
     return UpdateICMRegKeyW (arg1, (DWORD) arg2, (LPWSTR) arg3, arg4);
@@ -1230,6 +1262,8 @@ qxeUpdateICMRegKey (DWORD arg1, Extbyte * arg2, Extbyte * arg3, UINT arg4)
     return UpdateICMRegKeyA (arg1, (LPSTR) arg2, (LPSTR) arg3, arg4);
 #endif /* CYGWIN_HEADERS */
 }
+
+#endif /* HAVE_MS_WINDOWS */
 
 #ifndef CYGWIN /* present in headers but missing in shell32.a */
 

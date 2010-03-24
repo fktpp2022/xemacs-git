@@ -1,4 +1,5 @@
-;; Copyright (C) 1998 Free Software Foundation, Inc.
+;; Copyright (C) 1998 Free Software Foundation, Inc. -*- coding: iso-8859-1 -*-
+;; Copyright (C) 2010 Ben Wing.
 
 ;; Author: Martin Buchholz <martin@xemacs.org>
 ;; Maintainer: Martin Buchholz <martin@xemacs.org>
@@ -973,6 +974,12 @@
       (car y))
     x)))
 
+(Assert (eql
+ (length (multiple-value-list
+          (car (mapcar #'(lambda (argument) (floor argument)) (list pi e)))))
+ 1)
+ "checking multiple values are correctly discarded in mapcar")
+
 ;;-----------------------------------------------------
 ;; Test vector functions
 ;;-----------------------------------------------------
@@ -1070,16 +1077,75 @@
 (Assert (equal (split-string "foobar" split-string-default-separators)
 	       '("foobar")))
 
-(Assert (not (string-match "\\(\\.\\=\\)" ".")))
-(Assert (string= "" (let ((str "test string"))
-		      (if (string-match "^.*$" str)
-			  (replace-match "\\U" t nil str)))))
-(with-temp-buffer
-  (erase-buffer)
-  (insert "test string")
-  (re-search-backward "^.*$")
-  (replace-match "\\U" t)
-  (Assert (and (bobp) (eobp))))
+;;-----------------------------------------------------
+;; Test split-string-by-char
+;;-----------------------------------------------------
+
+(Assert
+ (equal
+  (split-string-by-char
+   #r"re\:ee:this\\is\\text\\\\:oo\ps:
+Eine Sprache, die stagnirt, ist zu vergleichen mit einem See, dem der
+bisherige Quellenzufluß versiegt oder abgeleitet wird. Aus dem Wasser,
+worüber der Geist Gottes schwebte, wird Sumpf und Moder, worüber die
+unreinen\: Geister brüten.\\
+Serum concentrations of vitamin E: (alpha-tocopherol) depend on the liver,
+which takes up the nutrient after the various forms are absorbed from the
+small intestine. The liver preferentially resecretes only alpha-tocopherol
+via the hepatic alpha-tocopherol transfer protein"
+  ?: ?\\)
+  '("re:ee" "this\\is\\text\\\\" "oops" "
+Eine Sprache, die stagnirt, ist zu vergleichen mit einem See, dem der
+bisherige Quellenzufluß versiegt oder abgeleitet wird. Aus dem Wasser,
+worüber der Geist Gottes schwebte, wird Sumpf und Moder, worüber die
+unreinen: Geister brüten.\\
+Serum concentrations of vitamin E" " (alpha-tocopherol) depend on the liver,
+which takes up the nutrient after the various forms are absorbed from the
+small intestine. The liver preferentially resecretes only alpha-tocopherol
+via the hepatic alpha-tocopherol transfer protein")))
+(Assert
+ (equal
+  (split-string-by-char
+   #r"re\:ee:this\\is\\text\\\\:oo\ps:
+Eine Sprache, die stagnirt, ist zu vergleichen mit einem See, dem der
+bisherige Quellenzufluß versiegt oder abgeleitet wird. Aus dem Wasser,
+worüber der Geist Gottes schwebte, wird Sumpf und Moder, worüber die
+unreinen\: Geister brüten.\\
+Serum concentrations of vitamin E: (alpha-tocopherol) depend on the liver,
+which takes up the nutrient after the various forms are absorbed from the
+small intestine. The liver preferentially resecretes only alpha-tocopherol
+via the hepatic alpha-tocopherol transfer protein"
+   ?: ?\x00)
+  '("re\\" "ee" "this\\\\is\\\\text\\\\\\\\" "oo\\ps" "
+Eine Sprache, die stagnirt, ist zu vergleichen mit einem See, dem der
+bisherige Quellenzufluß versiegt oder abgeleitet wird. Aus dem Wasser,
+worüber der Geist Gottes schwebte, wird Sumpf und Moder, worüber die
+unreinen\\" " Geister brüten.\\\\
+Serum concentrations of vitamin E" " (alpha-tocopherol) depend on the liver,
+which takes up the nutrient after the various forms are absorbed from the
+small intestine. The liver preferentially resecretes only alpha-tocopherol
+via the hepatic alpha-tocopherol transfer protein")))
+(Assert
+ (equal
+  (split-string-by-char
+   #r"re\:ee:this\\is\\text\\\\:oo\ps:
+Eine Sprache, die stagnirt, ist zu vergleichen mit einem See, dem der
+bisherige Quellenzufluß versiegt oder abgeleitet wird. Aus dem Wasser,
+worüber der Geist Gottes schwebte, wird Sumpf und Moder, worüber die
+unreinen\: Geister brüten.\\
+Serum concentrations of vitamin E: (alpha-tocopherol) depend on the liver,
+which takes up the nutrient after the various forms are absorbed from the
+small intestine. The liver preferentially resecretes only alpha-tocopherol
+via the hepatic alpha-tocopherol transfer protein" ?\\)
+  '("re" ":ee:this" "" "is" "" "text" "" "" "" ":oo" "ps:
+Eine Sprache, die stagnirt, ist zu vergleichen mit einem See, dem der
+bisherige Quellenzufluß versiegt oder abgeleitet wird. Aus dem Wasser,
+worüber der Geist Gottes schwebte, wird Sumpf und Moder, worüber die
+unreinen" ": Geister brüten." "" "
+Serum concentrations of vitamin E: (alpha-tocopherol) depend on the liver,
+which takes up the nutrient after the various forms are absorbed from the
+small intestine. The liver preferentially resecretes only alpha-tocopherol
+via the hepatic alpha-tocopherol transfer protein")))
 
 ;;-----------------------------------------------------
 ;; Test near-text buffer functions.
@@ -1968,36 +2034,29 @@
 		 (foo-zero 400 (1+ most-positive-fixnum)))))
    "Checking multiple values are discarded correctly when forced")
   (Check-Error setting-constant (setq multiple-values-limit 20))
-  (Assert
-   (equal '(-1 1)
-	  (multiple-value-list (floor -3 4)))
-   "Checking #'multiple-value-list gives a sane result")
+  (Assert (equal '(-1 1)
+		 (multiple-value-list (floor -3 4)))
+	  "Checking #'multiple-value-list gives a sane result")
   (let ((ey 40000)
 	(bee "this is a string")
 	(cee #s(hash-table size 256 data (969 ?\xF9))))
-    (Assert
-     (equal
-      (multiple-value-list (values ey bee cee))
-      (multiple-value-list (values-list (list ey bee cee))))
-     "Checking that #'values and #'values-list are correctly related")
-    (Assert
-     (equal
-      (multiple-value-list (values-list (list ey bee cee)))
-      (multiple-value-list (apply #'values (list ey bee cee))))
-     "Checking #'values-list and #'apply with #values are correctly related"))
-  (Assert
-   (= (multiple-value-call #'+ (floor 5 3) (floor 19 4)) 10)
-   "Checking #'multiple-value-call gives reasonable results.")
-  (Assert
-   (= (multiple-value-call (values '+ '*) (floor 5 3) (floor 19 4)) 10)
-   "Checking #'multiple-value-call correct when first arg multiple.")
-  (Assert
-   (= 1 (length (multiple-value-list (prog1 (floor pi) "hi there"))))
-   "Checking #'prog1 does not pass back multiple values")
-  (Assert
-   (= 2 (length (multiple-value-list
-		 (multiple-value-prog1 (floor pi) "hi there"))))
-   "Checking #'multiple-value-prog1 passes back multiple values")
+    (Assert (equal
+	     (multiple-value-list (values ey bee cee))
+	     (multiple-value-list (values-list (list ey bee cee))))
+	    "Checking that #'values and #'values-list are correctly related")
+    (Assert (equal
+	     (multiple-value-list (values-list (list ey bee cee)))
+	     (multiple-value-list (apply #'values (list ey bee cee))))
+	    "Checking #'values-list and #'apply with #values are correctly related"))
+  (Assert (= (multiple-value-call #'+ (floor 5 3) (floor 19 4)) 10)
+	  "Checking #'multiple-value-call gives reasonable results.")
+  (Assert (= (multiple-value-call (values '+ '*) (floor 5 3) (floor 19 4)) 10)
+	  "Checking #'multiple-value-call correct when first arg multiple.")
+  (Assert (= 1 (length (multiple-value-list (prog1 (floor pi) "hi there"))))
+	  "Checking #'prog1 does not pass back multiple values")
+  (Assert (= 2 (length (multiple-value-list
+			(multiple-value-prog1 (floor pi) "hi there"))))
+	  "Checking #'multiple-value-prog1 passes back multiple values")
   (multiple-value-bind (floored remainder this-is-nil)
       (floor pi 1.0)
     (Assert (= floored 3)
@@ -2014,59 +2073,45 @@
     (Assert (eql 2.0 ey) "Checking ey set correctly")
     (Assert (eql bee (- e 2.0)) "Checking bee set correctly")
     (Assert (null cee) "Checking cee set to nil correctly"))
-  (Assert
-   (= 3 (length (multiple-value-list (eval '(values nil t pi)))))
-   "Checking #'eval passes back multiple values")
-  (Assert
-   (= 2 (length (multiple-value-list (apply #'floor '(5 3)))))
-   "Checking #'apply passes back multiple values")
-  (Assert 
-   (= 2 (length (multiple-value-list (funcall #'floor 5 3))))
-   "Checking #'funcall passes back multiple values")
-  (Assert 
-   (equal '(1 2) (multiple-value-list 
-		  (multiple-value-call #'floor (values 5 3))))
-   "Checking #'multiple-value-call passes back multiple values correctly")
-  (Assert
-   (= 1 (length (multiple-value-list
-		 (and (multiple-value-function-returning-nil) t))))
-   "Checking multiple values from non-trailing forms discarded by #'and")
-  (Assert
-   (= 5 (length (multiple-value-list 
-		 (and t (multiple-value-function-returning-nil)))))
-   "Checking multiple values from final forms not discarded by #'and")
-  (Assert
-   (= 1 (length (multiple-value-list
-		 (or (multiple-value-function-returning-t) t))))
-   "Checking multiple values from non-trailing forms discarded by #'and")
-  (Assert
-   (= 5 (length (multiple-value-list 
-		 (or nil (multiple-value-function-returning-t)))))
-   "Checking multiple values from final forms not discarded by #'and")
-  (Assert
-   (= 1 (length (multiple-value-list
-		 (cond ((multiple-value-function-returning-t))))))
-   "Checking cond doesn't pass back multiple values in tests.")
-  (Assert
-   (equal (list nil pi e radians-to-degrees degrees-to-radians)
-	  (multiple-value-list
-	   (cond (t (multiple-value-function-returning-nil)))))
-   "Checking cond passes back multiple values in clauses.")
-  (Assert
-   (= 1 (length (multiple-value-list
-		 (prog1 (multiple-value-function-returning-nil)))))
-   "Checking prog1 discards multiple values correctly.")
-  (Assert
-   (= 5 (length (multiple-value-list
-		 (multiple-value-prog1
-		  (multiple-value-function-returning-nil)))))
-   "Checking multiple-value-prog1 passes back multiple values correctly.")
-  (Assert
-   (equal (list t pi e degrees-to-radians radians-to-degrees)
+  (Assert (= 3 (length (multiple-value-list (eval '(values nil t pi)))))
+	  "Checking #'eval passes back multiple values")
+  (Assert (= 2 (length (multiple-value-list (apply #'floor '(5 3)))))
+	  "Checking #'apply passes back multiple values")
+  (Assert (= 2 (length (multiple-value-list (funcall #'floor 5 3))))
+	  "Checking #'funcall passes back multiple values")
+  (Assert (equal '(1 2) (multiple-value-list 
+			 (multiple-value-call #'floor (values 5 3))))
+	  "Checking #'multiple-value-call passes back multiple values correctly")
+  (Assert (= 1 (length (multiple-value-list
+			(and (multiple-value-function-returning-nil) t))))
+	  "Checking multiple values from non-trailing forms discarded by #'and")
+  (Assert (= 5 (length (multiple-value-list 
+			(and t (multiple-value-function-returning-nil)))))
+	  "Checking multiple values from final forms not discarded by #'and")
+  (Assert (= 1 (length (multiple-value-list
+			(or (multiple-value-function-returning-t) t))))
+	  "Checking multiple values from non-trailing forms discarded by #'and")
+  (Assert (= 5 (length (multiple-value-list 
+			(or nil (multiple-value-function-returning-t)))))
+	  "Checking multiple values from final forms not discarded by #'and")
+  (Assert (= 1 (length (multiple-value-list
+			(cond ((multiple-value-function-returning-t))))))
+	  "Checking cond doesn't pass back multiple values in tests.")
+  (Assert (equal (list nil pi e radians-to-degrees degrees-to-radians)
+		 (multiple-value-list
+		  (cond (t (multiple-value-function-returning-nil)))))
+	  "Checking cond passes back multiple values in clauses.")
+  (Assert (= 1 (length (multiple-value-list
+			(prog1 (multiple-value-function-returning-nil)))))
+	  "Checking prog1 discards multiple values correctly.")
+  (Assert (= 5 (length (multiple-value-list
+			(multiple-value-prog1
+			 (multiple-value-function-returning-nil)))))
+	  "Checking multiple-value-prog1 passes back multiple values correctly.")
+  (Assert (equal (list t pi e degrees-to-radians radians-to-degrees)
 	  (multiple-value-list
 	   (catch 'VoN61Lo4Y (function-throwing-multiple-values)))))
-  (Assert
-   (equal (list t pi e degrees-to-radians radians-to-degrees)
+  (Assert (equal (list t pi e degrees-to-radians radians-to-degrees)
 	  (multiple-value-list
 	   (loop
 	     for eye in `(a b c d ,e f g ,nil ,pi)
@@ -2076,11 +2121,9 @@
   (Assert
    (null (or))
    "Checking #'or behaves correctly with zero arguments.")
-  (Assert
-   (eq t (and))
+  (Assert (eq t (and))
    "Checking #'and behaves correctly with zero arguments.")
-  (Assert
-   (= (* 3.0 (- pi 3.0))
+  (Assert (= (* 3.0 (- pi 3.0))
       (letf (((values three one-four-one-five-nine) (floor pi)))
         (* three one-four-one-five-nine)))
    "checking letf handles #'values in a basic sense"))
@@ -2090,11 +2133,41 @@
       (eacute-character ?\u00E9)
       (Eacute-character ?\u00c9)
       (+base-chars+ (loop
-		       with res = (make-string 96 ?\x20)
-		       for int-char from #x20 to #x7f
-		       for char being each element in-ref res
-		       do (setf char (int-to-char int-char))
-		       finally return res)))
+		      with res = (make-string 96 ?\x20)
+		      for int-char from #x20 to #x7f
+		      for char being each element in-ref res
+		      do (setf char (int-to-char int-char))
+		      finally return res)))
+  (let ((equal-lists
+	 '((111111111111111111111111111111111111111111111111111
+	    111111111111111111111111111111111111111111111111111.0)
+	   (0 0.0 0.000 -0 -0.0 -0.000 #b0 0/5 -0/5)
+	   (21845 #b101010101010101 #x5555)
+	   (1.5 1.500000000000000000000000000000000000000000000000000000000
+		3/2)
+	   (-55 -110/2)
+	   ;; Can't use this, these values aren't `='.
+	   ;;(-12345678901234567890123457890123457890123457890123457890123457890
+	   ;; -12345678901234567890123457890123457890123457890123457890123457890.0)
+	   )))
+    (loop for li in equal-lists do
+      (loop for (x . tail) on li do
+	(loop for y in tail do
+	  (Assert (equalp x y))
+	  (Assert (equalp y x))))))
+
+  (let ((diff-list
+	 `(0 1 2 3 1000 5000000000 5555555555555555555555555555555555555
+	   -1 -2 -3 -1000 -5000000000 -5555555555555555555555555555555555555
+	   1/2 1/3 2/3 8/2 355/113 (/ 3/2 0.2) (/ 3/2 0.7)
+	   55555555555555555555555555555555555555555/2718281828459045
+	   0.111111111111111111111111111111111111111111111111111111111111111
+	   1e+300 1e+301 -1e+300 -1e+301)))
+    (loop for (x . tail) on diff-list do
+      (loop for y in tail do
+	(Assert (not (equalp x y)))
+	(Assert (not (equalp y x))))))
+
   (Assert (equalp "hi there" "Hi There")
 	  "checking equalp isn't case-sensitive")
   (Assert (equalp 99 99.0)
@@ -2104,52 +2177,61 @@
   ;; Fixed in Hg d0ea57eb3de4.
   (Assert (null (equalp "hi there" [hi there]))
 	  "checking equalp doesn't error with string and non-string")
-  (Assert (eq t (equalp "ABCDEEFGH\u00CDJ" string-variable))
+  (Assert (equalp "ABCDEEFGH\u00CDJ" string-variable)
 	  "checking #'equalp is case-insensitive with an upcased constant") 
-  (Assert (eq t (equalp "abcdeefgh\xedj" string-variable))
+  (Assert (equalp "abcdeefgh\xedj" string-variable)
 	  "checking #'equalp is case-insensitive with a downcased constant")
-  (Assert (eq t (equalp string-variable string-variable))
+  (Assert (equalp string-variable string-variable)
 	  "checking #'equalp works when handed the same string twice")
-  (Assert (eq t (equalp string-variable "aBcDeeFgH\u00Edj"))
+  (Assert (equalp string-variable "aBcDeeFgH\u00Edj")
 	  "check #'equalp is case-insensitive with a variable-cased constant")
-  (Assert (eq t (equalp "" (bit-vector))) 
+  (Assert (equalp "" (bit-vector)) 
 	  "check empty string and empty bit-vector are #'equalp.")
-  (Assert (eq t (equalp (string) (bit-vector))) 
+  (Assert (equalp (string) (bit-vector)) 
 	  "check empty string and empty bit-vector are #'equalp, no constants")
-  (Assert (eq t (equalp "hi there" (vector ?h ?i ?\  ?t ?h ?e ?r ?e)))
+  (Assert (equalp "hi there" (vector ?h ?i ?\  ?t ?h ?e ?r ?e))
 	  "check string and vector with same contents #'equalp")
-  (Assert (eq t (equalp (string ?h ?i ?\  ?t ?h ?e ?r ?e)
-			(vector ?h ?i ?\  ?t ?h ?e ?r ?e)))
+  (Assert (equalp (string ?h ?i ?\  ?t ?h ?e ?r ?e)
+		  (vector ?h ?i ?\  ?t ?h ?e ?r ?e))
 	  "check string and vector with same contents #'equalp, no constants")
-  (Assert (eq t (equalp [?h ?i ?\  ?t ?h ?e ?r ?e]
-			(string ?h ?i ?\  ?t ?h ?e ?r ?e)))
+  (Assert (equalp [?h ?i ?\  ?t ?h ?e ?r ?e]
+		  (string ?h ?i ?\  ?t ?h ?e ?r ?e))
 	  "check string and vector with same contents #'equalp, vector constant")
-  (Assert (eq t (equalp [0 1.0 0.0 0 1]
-			(bit-vector 0 1 0 0 1)))
+  (Assert (equalp [0 1.0 0.0 0 1]
+		 (bit-vector 0 1 0 0 1))
 	  "check vector and bit-vector with same contents #'equalp,\
  vector constant")
-  (Assert (eq t (equalp #*01001
-			(vector 0 1.0 0.0 0 1)))
+  (Assert (not (equalp [0 2 0.0 0 1]
+		       (bit-vector 0 1 0 0 1)))
+	  "check vector and bit-vector with different contents not #'equalp,\
+ vector constant")
+  (Assert (equalp #*01001
+		 (vector 0 1.0 0.0 0 1))
 	  "check vector and bit-vector with same contents #'equalp,\
  bit-vector constant")
-  (Assert (eq t (equalp ?\u00E9 Eacute-character))
+  (Assert (equalp ?\u00E9 Eacute-character)
 	  "checking characters are case-insensitive, one constant")
-  (Assert (eq nil (equalp ?\u00E9 (aref (format "%c" ?a) 0)))
+  (Assert (not (equalp ?\u00E9 (aref (format "%c" ?a) 0)))
 	  "checking distinct characters are not equalp, one constant")
-  (Assert (eq t (equalp t (and)))
+  (Assert (equalp t (and))
 	  "checking symbols are correctly #'equalp")
-  (Assert (eq nil (equalp t (or nil '#:t)))
+  (Assert (not (equalp t (or nil '#:t)))
 	  "checking distinct symbols with the same name are not #'equalp")
-  (Assert (eq t (equalp #s(char-table type generic data (?\u0080 "hi-there"))
-			(let ((aragh (make-char-table 'generic)))
-			  (put-char-table ?\u0080 "hi-there" aragh)
-			  aragh)))
+  (Assert (equalp #s(char-table type generic data (?\u0080 "hi-there"))
+		  (let ((aragh (make-char-table 'generic)))
+		    (put-char-table ?\u0080 "hi-there" aragh)
+		    aragh))
 	  "checking #'equalp succeeds correctly, char-tables")
-  (Assert (eq nil (equalp #s(char-table type generic data (?\u0080 "hi-there"))
-			  (let ((aragh (make-char-table 'generic)))
-			    (put-char-table ?\u0080 "HI-THERE" aragh)
-			    aragh)))
-	  "checking #'equalp fails correctly, char-tables"))
+  (Assert (equalp #s(char-table type generic data (?\u0080 "hi-there"))
+		  (let ((aragh (make-char-table 'generic)))
+		    (put-char-table ?\u0080 "HI-THERE" aragh)
+		    aragh))
+	  "checking #'equalp succeeds correctly, char-tables")
+  (Assert (not (equalp #s(char-table type generic data (?\u0080 "hi-there"))
+		       (let ((aragh (make-char-table 'generic)))
+			 (put-char-table ?\u0080 "hi there" aragh)
+			 aragh)))
+	  "checking #'equalp fails correctly, char-tables")
 
 ;; There are more tests available for equalp here: 
 ;;
@@ -2180,5 +2262,51 @@
   for real-function in '(find-file quote-maybe + - find-file-read-only)
   do (Assert (functionp real-function)
 	     (format "checking %S is a function" real-function)))
+
+;; #'member, #'assoc tests.
+
+(when (featurep 'bignum)
+  (let* ((member*-list `(0 9 342 [hi there] ,(1+ most-positive-fixnum) 0
+			 0.0 ,(1- most-negative-fixnum) nil))
+	 (assoc*-list (loop
+			for elt in member*-list
+			collect (cons elt (random))))
+	 (hashing (make-hash-table :test 'eql))
+	 hashed-bignum)
+    (macrolet
+	((1+most-positive-fixnum ()
+	   (1+ most-positive-fixnum))
+	 (1-most-negative-fixnum ()
+	   (1- most-negative-fixnum))
+	 (*-2-most-positive-fixnum ()
+	   (* 2 most-positive-fixnum))) 
+      (Assert (eq
+	       (member* (1+ most-positive-fixnum) member*-list)
+	       (member* (1+ most-positive-fixnum) member*-list :test #'eql))
+	      "checking #'member* correct if #'eql not explicitly specified")
+      (Assert (eq
+	       (assoc* (1+ most-positive-fixnum) assoc*-list)
+	       (assoc* (1+ most-positive-fixnum) assoc*-list :test #'eql))
+	      "checking #'assoc* correct if #'eql not explicitly specified")
+      (Assert (eq
+	       (rassoc* (1- most-negative-fixnum) assoc*-list)
+	       (rassoc* (1- most-negative-fixnum) assoc*-list :test #'eql))
+	      "checking #'rassoc* correct if #'eql not explicitly specified")
+      (Assert (eql (1+most-positive-fixnum) (1+ most-positive-fixnum))
+	      "checking #'eql handles a bignum literal properly.")
+      (Assert (eq 
+	       (member* (1+most-positive-fixnum) member*-list)
+	       (member* (1+ most-positive-fixnum) member*-list :test #'equal))
+	      "checking #'member* compiler macro correct with literal bignum")
+      (Assert (eq
+	       (assoc* (1+most-positive-fixnum) assoc*-list)
+	       (assoc* (1+ most-positive-fixnum) assoc*-list :test #'equal))
+	      "checking #'assoc* compiler macro correct with literal bignum")
+      (puthash (setq hashed-bignum (*-2-most-positive-fixnum)) 
+	       (gensym) hashing)
+      (Assert (eq
+	       (gethash (* 2 most-positive-fixnum) hashing)
+	       (gethash hashed-bignum hashing))
+	      "checking hashing works correctly with #'eql tests and bignums"))))
 
 ;;; end of lisp-tests.el

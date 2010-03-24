@@ -48,7 +48,7 @@ connector (const gchar *handler_name, GtkObject *object,
   Lisp_Object func;
   Lisp_Object lisp_data = Qnil;
 
-  func = VOID_TO_LISP (user_data);
+  func = GET_LISP_FROM_VOID (user_data);
 
   if (NILP (func))
     {
@@ -59,7 +59,7 @@ connector (const gchar *handler_name, GtkObject *object,
   if (signal_data && signal_data[0])
     {
       lisp_data
-        = IGNORE_MULTIPLE_VALUES (Feval (Fread (build_string (signal_data))));
+        = IGNORE_MULTIPLE_VALUES (Feval (Fread (build_cistring (signal_data))));
     }
 
   /* obj, name, func, cb_data, object_signal, after_p */
@@ -97,7 +97,7 @@ Connect a glade handler.
 
   glade_xml_signal_connect_full (GLADE_XML (XGTK_OBJECT (xml)->object),
 				 (char*) XSTRING_DATA (handler_name),
-				 connector, LISP_TO_VOID (func));
+				 connector, STORE_LISP_IN_VOID (func));
   return (Qt);
 }
 
@@ -109,7 +109,7 @@ Connect all glade handlers.
   CHECK_GTK_OBJECT (xml);
 
   glade_xml_signal_autoconnect_full (GLADE_XML (XGTK_OBJECT (xml)->object),
-				     connector, LISP_TO_VOID (Qnil));
+				     connector, STORE_LISP_IN_VOID (Qnil));
   return (Qt);
 }
 
@@ -132,7 +132,7 @@ Return the textdomain of a GladeXML object.
 #else
   the_domain = GLADE_XML (XGTK_OBJECT (xml)->object)->textdomain;
 #endif  
-  return (build_string (the_domain));
+  return (build_cistring (the_domain));
 }
 
 void syms_of_glade (void)

@@ -1,7 +1,7 @@
 ;;; cl-macs.el --- Common Lisp extensions for XEmacs Lisp (part four)
 
 ;; Copyright (C) 1993, 2003, 2004 Free Software Foundation, Inc.
-;; Copyright (C) 2002 Ben Wing.
+;; Copyright (C) 2002, 2010 Ben Wing.
 
 ;; Author: Dave Gillespie <daveg@synaptics.com>
 ;; Version: 2.02
@@ -297,9 +297,9 @@ ARGLIST allows full Common Lisp conventions."
 	   (mapcar 'cl-upcase-arg arg)))
 	(t arg)))                         ; Maybe we are in initializer
 
-;; npak@ispras.ru
+;; npak@ispras.ru, modified by ben@666.com
 ;;;###autoload
-(defun cl-function-arglist (name arglist)
+(defun cl-function-arglist (arglist)
   "Returns string with printed representation of arguments list.
 Supports Common Lisp lambda lists."
   (if (not (or (listp arglist) (symbolp arglist)))
@@ -307,21 +307,20 @@ Supports Common Lisp lambda lists."
     (check-argument-type #'true-list-p arglist)
     (let ((print-gensym nil))
       (condition-case nil
-          (prin1-to-string
-           (cons (if (eq name 'cl-none) 'lambda name)
-                 (cond ((null arglist) nil)
-                       ((listp arglist) (cl-upcase-arg arglist))
-                       ((symbolp arglist)
-                        (cl-upcase-arg (list '&rest arglist)))
-                       (t (wrong-type-argument 'listp arglist)))))
-      (t "Not available")))))
+	  (let ((args (cond ((null arglist) nil)
+			    ((listp arglist) (cl-upcase-arg arglist))
+			    ((symbolp arglist)
+			     (cl-upcase-arg (list '&rest arglist)))
+			    (t (wrong-type-argument 'listp arglist)))))
+	    (if args (prin1-to-string args) "()"))
+	(t "Not available")))))
 
 (defun cl-transform-lambda (form bind-block)
   (let* ((args (car form)) (body (cdr form))
 	 (bind-defs nil) (bind-enquote nil)
 	 (bind-inits nil) (bind-lets nil) (bind-forms nil)
 	 (header nil) (simple-args nil)
-         (complex-arglist (cl-function-arglist bind-block args))
+         (complex-arglist (cl-function-arglist args))
          (doc ""))
     (while (or (stringp (car body)) (eq (car-safe (car body)) 'interactive))
       (push (pop body) header))
@@ -348,12 +347,12 @@ Supports Common Lisp lambda lists."
     ;; Add CL lambda list to documentation, if the CL lambda list differs
     ;; from the non-CL lambda list. npak@ispras.ru
     (unless (equal complex-arglist
-                   (cl-function-arglist bind-block simple-args))
+                   (cl-function-arglist simple-args))
       (and (stringp (car header)) (setq doc (pop header)))
-      (push (concat doc
-                    "\n\nCommon Lisp lambda list:\n" 
-                    "  " complex-arglist "\n\n")
-	  header))
+      ;; Stick the arguments onto the end of the doc string in a way that
+      ;; will be recognized specially by `function-arglist'.
+      (push (concat doc "\n\narguments: " complex-arglist "\n")
+	    header))
     (if (null args)
 	(list* nil simple-args (nconc header body))
       (if (memq '&optional simple-args) (push '&optional args))
@@ -495,8 +494,7 @@ Supports Common Lisp lambda lists."
 			  (list t
 				(list
 				 'error
-				 (format "Keyword argument %%s not one of %s"
-					 keys)
+                                 ''invalid-keyword-argument
 				 (list 'car var)))))))
 	    (push (list 'let (list (list var restarg)) check) bind-forms)))
       (while (and (eq (car args) '&aux) (pop args))
@@ -2160,6 +2158,8 @@ Example: (defsetf nth (n x) (v) (list 'setcar (list 'nthcdr n x) v))."
 (defsetf face-background (f &optional s) (x) (list 'set-face-background f x s))
 (defsetf face-background-pixmap (f &optional s) (x)
   (list 'set-face-background-pixmap f x s))
+(defsetf face-background-placement (f &optional s) (x)
+  (list 'set-face-background-placement f x s))
 (defsetf face-font (f &optional s) (x) (list 'set-face-font f x s))
 (defsetf face-foreground (f &optional s) (x) (list 'set-face-foreground f x s))
 (defsetf face-underline-p (f &optional s) (x)
@@ -3026,9 +3026,9 @@ The type name can then be used in `typecase', `check-type', etc."
 	     (cl-make-type-test val (funcall (get type 'cl-deftype-handler))))
 	    ((memq type '(nil t)) type)
 	    ((eq type 'null) `(null ,val))
-	    ((eq type 'float) `(floatp-safe ,val))
+	    ((eq type 'float) `(floatp ,val))
 	    ((eq type 'real) `(numberp ,val))
-	    ((eq type 'fixnum) `(integerp ,val))
+	    ((eq type 'fixnum) `(fixnump ,val))
 	    ;; XEmacs change: we do not have char-valid-p
 	    ((memq type '(character string-char)) `(characterp ,val))
 	    (t
@@ -3205,12 +3205,12 @@ surrounded by (block NAME ...)."
 (define-compiler-macro eql (&whole form a b)
   (cond ((eq (cl-const-expr-p a) t)
 	 (let ((val (cl-const-expr-val a)))
-	   (if (and (numberp val) (not (integerp val)))
+	   (if (and (numberp val) (not (fixnump val)))
 	       (list 'equal a b)
 	     (list 'eq a b))))
 	((eq (cl-const-expr-p b) t)
 	 (let ((val (cl-const-expr-val b)))
-	   (if (and (numberp val) (not (integerp val)))
+	   (if (and (numberp val) (not (fixnump val)))
 	       (list 'equal a b)
 	     (list 'eq a b))))
 	((cl-simple-expr-p a 5)
@@ -3226,20 +3226,25 @@ surrounded by (block NAME ...)."
 
 (define-compiler-macro member* (&whole form a list &rest keys)
   (let ((test (and (= (length keys) 2) (eq (car keys) :test)
-		   (cl-const-expr-val (nth 1 keys)))))
+		   (cl-const-expr-val (nth 1 keys))))
+	a-val)
     (cond ((eq test 'eq) (list 'memq a list))
 	  ((eq test 'equal) (list 'member a list))
 	  ((or (null keys) (eq test 'eql))
 	   (if (eq (cl-const-expr-p a) t)
-	       (list (if (floatp-safe (cl-const-expr-val a)) 'member 'memq)
+	       (list (if (and (numberp (setq a-val (cl-const-expr-val a)))
+			      (not (fixnump a-val)))
+			 'member
+		       'memq)
 		     a list)
 	     (if (eq (cl-const-expr-p list) t)
 		 (let ((p (cl-const-expr-val list)) (mb nil) (mq nil))
 		   (if (not (cdr p))
 		       (and p (list 'eql a (list 'quote (car p))))
 		     (while p
-		       (if (floatp-safe (car p)) (setq mb t)
-			 (or (integerp (car p)) (symbolp (car p)) (setq mq t)))
+		       (if (and (numberp (car p)) (not (fixnump (car p))))
+			   (setq mb t)
+			 (or (fixnump (car p)) (symbolp (car p)) (setq mq t)))
 		       (setq p (cdr p)))
 		     (if (not mb) (list 'memq a list)
 		       (if (not mq) (list 'member a list) form))))
@@ -3248,11 +3253,13 @@ surrounded by (block NAME ...)."
 
 (define-compiler-macro assoc* (&whole form a list &rest keys)
   (let ((test (and (= (length keys) 2) (eq (car keys) :test)
-		   (cl-const-expr-val (nth 1 keys)))))
+		   (cl-const-expr-val (nth 1 keys))))
+	a-val)
     (cond ((eq test 'eq) (list 'assq a list))
 	  ((eq test 'equal) (list 'assoc a list))
 	  ((and (eq (cl-const-expr-p a) t) (or (null keys) (eq test 'eql)))
-	   (if (floatp-safe (cl-const-expr-val a))
+	   (if (and (numberp (setq a-val (cl-const-expr-val a)))
+		    (not (fixnump a-val)))
 	       (list 'assoc a list) (list 'assq a list)))
 	  (t form))))
 
@@ -3285,62 +3292,113 @@ surrounded by (block NAME ...)."
 	    (list 'let (list (list temp val)) (subst temp val res)))))
     form))
 
-;; XEmacs; inline delete-duplicates if it's called with a literal
-;; #'equal or #'eq and no other keywords, we want the speed in
-;; font-lock.el.
+(define-compiler-macro delete-dups (list)
+  `(delete-duplicates (the list ,list) :test #'equal :from-end t))
+
+;; XEmacs; inline delete-duplicates if it's called with one of the
+;; common compile-time constant tests and an optional :from-end
+;; argument, we want the speed in font-lock.el.
 (define-compiler-macro delete-duplicates (&whole form cl-seq &rest cl-keys)
   (let ((listp-check 
-         (if (memq (car-safe cl-seq)
-                   ;; No need to check for a list at runtime with these. We
-                   ;; could expand the list, but these are all the functions
-                   ;; in the relevant context at the moment.
-                   '(nreverse append nconc mapcan mapcar))
-             t
-           '(listp begin))))
-    (cond ((and (= 4 (length form))
-                (eq :test (third form))
-                (or (equal '(quote eq) (fourth form))
-                    (equal '(function eq) (fourth form))))
-           `(let* ((begin ,cl-seq)
-                   (cl-seq begin))
-             (if ,listp-check
-                 (progn
-                   (while cl-seq
-                     (setq cl-seq (setcdr cl-seq (delq (car cl-seq)
-                                                       (cdr cl-seq)))))
-                   begin)
-               ;; Call cl-delete-duplicates explicitly, to avoid the form
-               ;; getting compiler-macroexpanded again:
-               (cl-delete-duplicates begin ',cl-keys nil))))
-          ((and (= 4 (length form))
-                (eq :test (third form))
-                (or (equal '(quote equal) (fourth form))
-                    (equal '(function equal) (fourth form))))
-           `(let* ((begin ,cl-seq)
-                   (cl-seq begin))
-             (if ,listp-check
-                 (progn
-                   (while cl-seq
-                     (setq cl-seq (setcdr cl-seq (delete (car cl-seq)
-                                                         (cdr cl-seq)))))
-                   begin)
-               ;; Call cl-delete-duplicates explicitly, to avoid the form
-               ;; getting compiler-macroexpanded again:
-               (cl-delete-duplicates begin ',cl-keys nil))))
+         (cond
+          ((memq (car-safe cl-seq)
+                 ;; No need to check for a list at runtime with these. We
+                 ;; could expand the list, but these are all the functions
+                 ;; in the relevant context at the moment.
+                 '(nreverse append nconc mapcan mapcar string-to-list))
+             t)
+          ((and (listp cl-seq) (eq (first cl-seq) 'the)
+                (eq (second cl-seq) 'list))
+           ;; Allow users to force this, if they really want to.
+           t)
           (t
-           form))))
+           '(listp begin)))))
+    (cond ((loop
+	     for relevant-key-values
+	     in '((:test 'eq)
+		  (:test #'eq)
+		  (:test 'eq :from-end nil)
+		  (:test #'eq :from-end nil))
+	     ;; One of the above corresponds exactly to CL-KEYS:
+	     thereis (not (set-difference cl-keys relevant-key-values
+					  :test #'equal)))
+           `(let* ((begin ,cl-seq)
+		   cl-seq)
+             (if ,listp-check
+                 (progn
+                   (while (memq (car begin) (cdr begin))
+                     (setq begin (cdr begin)))
+                   (setq cl-seq begin)
+                   (while (cddr cl-seq)
+                     (if (memq (cadr cl-seq) (cddr cl-seq))
+                         (setcdr (cdr cl-seq) (cddr cl-seq)))
+                     (setq cl-seq (cdr cl-seq)))
+                   begin)
+               ;; Call cl-delete-duplicates explicitly, to avoid the form
+               ;; getting compiler-macroexpanded again:
+               (cl-delete-duplicates begin ',cl-keys nil))))
+          ((loop
+	     for relevant-key-values
+	     in '((:test 'eq :from-end t)
+		  (:test #'eq :from-end t))
+	     ;; One of the above corresponds exactly to CL-KEYS:
+	     thereis (not (set-difference cl-keys relevant-key-values
+					  :test #'equal)))
+           `(let* ((begin ,cl-seq)
+		   (cl-seq begin))
+             (if ,listp-check
+                 (progn
+                   (while cl-seq
+                     (setq cl-seq (setcdr cl-seq
+                                          (delq (car cl-seq) (cdr cl-seq)))))
+                   begin)
+               ;; Call cl-delete-duplicates explicitly, to avoid the form
+               ;; getting compiler-macroexpanded again:
+               (cl-delete-duplicates begin ',cl-keys nil))))
 
-;; XEmacs change, the GNU mapc doesn't accept the Common Lisp args, so this
-;; change isn't helpful.
-(define-compiler-macro mapc (&whole form cl-func cl-seq &rest cl-rest)
-  (if cl-rest
-      form
-    (cons 'mapc-internal (cdr form))))
-
-(define-compiler-macro mapcar* (&whole form cl-func cl-x &rest cl-rest)
-  (if cl-rest
-      form
-    (cons 'mapcar (cdr form))))
+          ((loop
+	     for relevant-key-values
+	     in '((:test 'equal)
+		  (:test #'equal)
+		  (:test 'equal :from-end nil)
+		  (:test #'equal :from-end nil))
+	     ;; One of the above corresponds exactly to CL-KEYS:
+	     thereis (not (set-difference cl-keys relevant-key-values
+					  :test #'equal)))
+           `(let* ((begin ,cl-seq)
+		   cl-seq)
+             (if ,listp-check
+                 (progn
+		   (while (member (car begin) (cdr begin))
+		     (setq begin (cdr begin)))
+		   (setq cl-seq begin)
+		   (while (cddr cl-seq)
+		     (if (member (cadr cl-seq) (cddr cl-seq))
+			 (setcdr (cdr cl-seq) (cddr cl-seq)))
+		     (setq cl-seq (cdr cl-seq)))
+		   begin)
+               ;; Call cl-delete-duplicates explicitly, to avoid the form
+               ;; getting compiler-macroexpanded again:
+               (cl-delete-duplicates begin ',cl-keys nil))))
+          ((loop
+	     for relevant-key-values
+	     in '((:test 'equal :from-end t)
+		  (:test #'equal :from-end t))
+	     ;; One of the above corresponds exactly to CL-KEYS:
+	     thereis (not (set-difference cl-keys relevant-key-values
+					  :test #'equal)))
+           `(let* ((begin ,cl-seq)
+                   (cl-seq begin))
+             (if ,listp-check
+                 (progn
+                   (while cl-seq
+                     (setq cl-seq
+			   (setcdr cl-seq (delete (car cl-seq) (cdr cl-seq)))))
+		   begin)
+               ;; Call cl-delete-duplicates explicitly, to avoid the form
+               ;; getting compiler-macroexpanded again:
+               (cl-delete-duplicates begin ',cl-keys nil))))
+          (t form))))
 
 ;; XEmacs; it's perfectly reasonable, and often much clearer to those
 ;; reading the code, to call regexp-quote on a constant string, which is
@@ -3349,6 +3407,21 @@ surrounded by (block NAME ...)."
   (if (stringp string)
       (regexp-quote string)
     form))
+
+;; NOTE: `equalp' is now a primitive, although as of yet it still doesn't
+;; have a byte-compiler opcode for it.  The compiler-macro for `equalp' used
+;; to try and remove as much as possible of the logic of the Lisp `equalp' as
+;; possible whenever one of the arguments is a constant, boiling things down
+;; to a few if-statements and some calls to various no-longer-defined
+;; helper functions.  Besides the fact that the helper functions aren't
+;; defined, there's little point in doing any of that expansion, since it will
+;; end up executing in Lisp what would otherwise be done in C by a direct
+;; call to `equalp'.  The only exception is when the reduction is quite
+;; simple and is to functions that do have op-codes; that may gain something.
+;; However, if `equalp' becomes an opcode itself, consider removing everything
+;; here except maybe when the call can directly be reduced to `equal' or `eq'.
+;;
+;; --ben
 
 (define-compiler-macro equalp (&whole form x y) 
   "Expand calls to `equalp' where X or Y is a constant expression.
@@ -3365,8 +3438,6 @@ the byte optimizer in those cases."
   ;; constant here.
   (let* ((equalp-sym (eval-when-compile (gensym)))
 	(let-form '(progn))
-	(check-bit-vector t)
-	(check-string t)
 	(original-y y)
 	equalp-temp checked)
   (macrolet
@@ -3391,98 +3462,192 @@ the byte optimizer in those cases."
 	    ((member x '("" #* []))
 	     ;; No need to protect against multiple evaluation here:
 	     `(and (member ,original-y '("" #* [])) t))
-	    ((stringp x)
-	     `(,@let-form
-	       (if (stringp ,y)
-		   (eq t (compare-strings ,x nil nil
-					  ,y nil nil t))
-		 (if (vectorp ,y) 
-		     (cl-string-vector-equalp ,x ,y)))))
-	    ((bit-vector-p x)
-	     `(,@let-form
-	       (if (bit-vector-p ,y)
-		   ;; No need to call equalp on each element here:
-		   (equal ,x ,y)
-		 (if (vectorp ,y) 
-		     (cl-bit-vector-vector-equalp ,x ,y)))))
-	    (t
-	     (loop
-	       for elt across x
-	       ;; We may not need to check the other argument if it's a
-	       ;; string or bit vector, depending on the contents of x:
-	       always (progn
-			(unless (characterp elt) (setq check-string nil))
-			(unless (and (numberp elt) (or (= elt 0) (= elt 1)))
-			  (setq check-bit-vector nil))
-			(or check-string check-bit-vector)))
-	     `(,@let-form
-	       (cond
-		,@(if check-string
-		      `(((stringp ,y) 
-			 (cl-string-vector-equalp ,y ,x))))
-		,@(if check-bit-vector 
-		      `(((bit-vector-p ,y)
-			 (cl-bit-vector-vector-equalp ,y ,x))))
-		((vectorp ,y)
-		 (cl-vector-array-equalp ,x ,y)))))))
-	  ((unordered-check (and (characterp x) (not (cl-const-expr-p y))))
-	   `(,@let-form
-	     (or (eq ,x ,y)
-		  ;; eq has a bytecode, char-equal doesn't.
-		 (and (characterp ,y)
-		      (eq (downcase ,x) (downcase ,y))))))
+	    (t form)))
 	  ((unordered-check (and (numberp x) (not (cl-const-expr-p y))))
 	   `(,@let-form
 	     (and (numberp ,y)
 		  (= ,x ,y))))
 	  ((unordered-check (and (hash-table-p x) (not (cl-const-expr-p y))))
-	   ;; Hash tables; follow the CL spec.
-	   `(,@let-form
-	     (and (hash-table-p ,y)
-		  (eq ',(hash-table-test x) (hash-table-test ,y))
-		  (= ,(hash-table-count x) (hash-table-count ,y))
-		  (cl-hash-table-contents-equalp ,x ,y))))
+	   form)
 	  ((unordered-check
 	    ;; Symbols; eq. 
 	    (and (not (cl-const-expr-p y))
 		 (or (memq x '(nil t))
 		     (and (eq (car-safe x) 'quote) (symbolp (second x))))))
 	   (cons 'eq (cdr form)))
-	  ((unordered-check
-	    ;; Compare conses at runtime, there's no real upside to
-	    ;; unrolling the function -> they fall through to the next
-	    ;; clause in this function.
-	    (and (cl-const-expr-p x) (not (consp x))
-		 (not (cl-const-expr-p y))))
-	   ;; All other types; use equal.
-	   (cons 'equal (cdr form)))
+
+	  ;; This clause is wrong -- e.g. when comparing a constant char-table
+	  ;; against a non-constant expression that evaluates to a char-table,
+	  ;; or some for range tables or certain other types, `equalp' is
+	  ;; not the same as `equal'.  We could insert the known list of
+	  ;; types with special `equalp' property, but it's fragile and may
+	  ;; not be much of an optimization, esp. since these types don't
+	  ;; occur that often are often big.
+	  ;;((unordered-check
+	  ;;  ;; Compare conses at runtime, there's no real upside to
+	  ;;  ;; unrolling the function -> they fall through to the next
+	  ;;  ;; clause in this function.
+	  ;;  (and (cl-const-expr-p x) (not (consp x))
+	  ;;       (not (cl-const-expr-p y))))
+	  ;; ;; All other types; use equal.
+	  ;; (cons 'equal (cdr form)))
+	  
 	  ;; Neither side is a constant expression, do all our evaluation at
 	  ;; runtime (or both are, and equalp will be called from
 	  ;; byte-optimize.el).
 	  (t form)))))
 
-(define-compiler-macro map (&whole form cl-type cl-func cl-seq
-                            &rest cl-rest)
-  "If CL-TYPE is a constant expression that we know how to handle, transform
-the call to `map' to a more efficient expression."
+;;(define-compiler-macro equalp (&whole form x y) 
+;;  "Expand calls to `equalp' where X or Y is a constant expression.
+;;
+;;Much of the processing that `equalp' does is dependent on the types of both
+;;of its arguments, and with type information for one of them, we can
+;;eliminate much of the body of the function at compile time.
+;;
+;;Where both X and Y are constant expressions, `equalp' is evaluated at
+;;compile time by byte-optimize.el--this compiler macro passes FORM through to
+;;the byte optimizer in those cases."
+;;  ;; Cases where both arguments are constant are handled in
+;;  ;; byte-optimize.el, we only need to handle those cases where one is
+;;  ;; constant here.
+;;  (let* ((equalp-sym (eval-when-compile (gensym)))
+;;	(let-form '(progn))
+;;	(check-bit-vector t)
+;;	(check-string t)
+;;	(original-y y)
+;;	equalp-temp checked)
+;;  (macrolet
+;;      ((unordered-check (check)
+;;	 `(prog1
+;;	     (setq checked
+;;		   (or ,check
+;;		       (prog1 ,(sublis '((x . y) (y . x)) check :test #'eq)
+;;			 (setq equalp-temp x x y y equalp-temp))))
+;;	   (when checked
+;;	     (unless (symbolp y)
+;;	       (setq let-form `(let ((,equalp-sym ,y))) y equalp-sym))))))
+;;    ;; In the bodies of the below clauses, x is always a constant expression
+;;    ;; of the type we're interested in, and y is always a symbol that refers
+;;    ;; to the result non-constant side of the comparison. 
+;;    (cond ((unordered-check (and (arrayp x) (not (cl-const-expr-p y))))
+;;	   ;; Strings and other arrays. A vector containing the same
+;;	   ;; character elements as a given string is equalp to that string;
+;;	   ;; a bit-vector can only be equalp to a string if both are
+;;	   ;; zero-length.
+;;	   (cond
+;;	    ((member x '("" #* []))
+;;	     ;; No need to protect against multiple evaluation here:
+;;	     `(and (member ,original-y '("" #* [])) t))
+;;	    ((stringp x)
+;;	     `(,@let-form
+;;	       (if (stringp ,y)
+;;		   (eq t (compare-strings ,x nil nil
+;;					  ,y nil nil t))
+;;		 (if (vectorp ,y) 
+;;		     (cl-string-vector-equalp ,x ,y)))))
+;;	    ((bit-vector-p x)
+;;	     `(,@let-form
+;;	       (if (bit-vector-p ,y)
+;;		   ;; No need to call equalp on each element here:
+;;		   (equal ,x ,y)
+;;		 (if (vectorp ,y) 
+;;		     (cl-bit-vector-vector-equalp ,x ,y)))))
+;;	    (t
+;;	     (loop
+;;	       for elt across x
+;;	       ;; We may not need to check the other argument if it's a
+;;	       ;; string or bit vector, depending on the contents of x:
+;;	       always (progn
+;;			(unless (characterp elt) (setq check-string nil))
+;;			(unless (and (numberp elt) (or (= elt 0) (= elt 1)))
+;;			  (setq check-bit-vector nil))
+;;			(or check-string check-bit-vector)))
+;;	     `(,@let-form
+;;	       (cond
+;;		,@(if check-string
+;;		      `(((stringp ,y) 
+;;			 (cl-string-vector-equalp ,y ,x))))
+;;		,@(if check-bit-vector 
+;;		      `(((bit-vector-p ,y)
+;;			 (cl-bit-vector-vector-equalp ,y ,x))))
+;;		((vectorp ,y)
+;;		 (cl-vector-array-equalp ,x ,y)))))))
+;;	  ((unordered-check (and (characterp x) (not (cl-const-expr-p y))))
+;;	   `(,@let-form
+;;	     (or (eq ,x ,y)
+;;		  ;; eq has a bytecode, char-equal doesn't.
+;;		 (and (characterp ,y)
+;;		      (eq (downcase ,x) (downcase ,y))))))
+;;	  ((unordered-check (and (numberp x) (not (cl-const-expr-p y))))
+;;	   `(,@let-form
+;;	     (and (numberp ,y)
+;;		  (= ,x ,y))))
+;;	  ((unordered-check (and (hash-table-p x) (not (cl-const-expr-p y))))
+;;	   ;; Hash tables; follow the CL spec.
+;;	   `(,@let-form
+;;	     (and (hash-table-p ,y)
+;;		  (eq ',(hash-table-test x) (hash-table-test ,y))
+;;		  (= ,(hash-table-count x) (hash-table-count ,y))
+;;		  (cl-hash-table-contents-equalp ,x ,y))))
+;;	  ((unordered-check
+;;	    ;; Symbols; eq. 
+;;	    (and (not (cl-const-expr-p y))
+;;		 (or (memq x '(nil t))
+;;		     (and (eq (car-safe x) 'quote) (symbolp (second x))))))
+;;	   (cons 'eq (cdr form)))
+;;	  ((unordered-check
+;;	    ;; Compare conses at runtime, there's no real upside to
+;;	    ;; unrolling the function -> they fall through to the next
+;;	    ;; clause in this function.
+;;	    (and (cl-const-expr-p x) (not (consp x))
+;;		 (not (cl-const-expr-p y))))
+;;	   ;; All other types; use equal.
+;;	   (cons 'equal (cdr form)))
+;;	  ;; Neither side is a constant expression, do all our evaluation at
+;;	  ;; runtime (or both are, and equalp will be called from
+;;	  ;; byte-optimize.el).
+;;	  (t form)))))
+
+(define-compiler-macro notany (&whole form &rest cl-rest)
+  `(not (some ,@(cdr form))))
+
+(define-compiler-macro notevery (&whole form &rest cl-rest)
+  `(not (every ,@(cdr form))))
+
+(define-compiler-macro constantly (&whole form value &rest more-values)
   (cond
-   ;; The first two here rely on the compiler macros for mapc and mapcar*,
-   ;; to convert to mapc-internal and mapcar, where appropriate (that is, in
-   ;; the absence of cl-rest.)
-   ((null cl-type)
-    `(prog1 nil (mapc ,@(nthcdr 2 form))))
-   ((equal '(quote list) cl-type)
-    (cons 'mapcar* (nthcdr 2 form)))
-   ((or (equal '(quote vector) cl-type)
-        (equal '(quote array) cl-type))
-    (if cl-rest
-        `(vconcat (mapcar* ,@(nthcdr 2 form)))
-      (cons 'mapvector (nthcdr 2 form))))
-   ((equal '(quote string) cl-type)
-    `(concat (mapcar* ,@(nthcdr 2 form))))
-   ((equal '(quote bit-vector) cl-type)
-    `(bvconcat (mapcar* ,@(nthcdr 2 form))))
-   (t form)))
+   ((< (length form) 2)
+    ;; Error at runtime:
+    form)
+   ((cl-const-exprs-p (cdr form))
+    `#'(lambda (&rest ignore) (values ,@(cdr form))))
+   (t
+    (let* ((num-values (length (cdr form)))
+	   (placeholders-counts (make-vector num-values -1))
+	   (placeholders (loop
+			   for i from 0 below num-values
+			   collect (make-symbol (format "%d" i))))
+	   (compiled
+	    (byte-compile-sexp
+	     `#'(lambda (&rest ignore)
+		  ;; Compiles to a references into the compiled function
+		  ;; constants vector:
+		  (values ,@(mapcar #'quote-maybe placeholders)))))
+	   position)
+      `(make-byte-code '(&rest ignore)
+	,(compiled-function-instructions compiled)
+	(vector ,@(loop
+		    for constant across (compiled-function-constants compiled)
+		    collect (if (setq position
+				      (position constant placeholders))
+				(prog2
+				    (incf (aref placeholders-counts position))
+				    (nth position (cdr form)))
+			      (quote-maybe constant))
+		    finally
+		    (assert (every #'zerop placeholders-counts)
+			    t "Placeholders should each have been used once")))
+	,(compiled-function-stack-depth compiled))))))
 
 (mapc
  #'(lambda (y)
@@ -3511,7 +3676,7 @@ the call to `map' to a more efficient expression."
    (cddadr cdr cdadr) (cdddar cdr cddar) (cddddr cdr cdddr)))
 
 ;;; Things that are inline.
-(proclaim '(inline floatp-safe acons map concatenate notany notevery
+(proclaim '(inline acons map concatenate
 ;; XEmacs omission: gethash is builtin
 		   cl-set-elt revappend nreconc))
 
@@ -3523,7 +3688,7 @@ the call to `map' to a more efficient expression."
 
 ;;; Things that are side-effect-and-error-free.  Moved to byte-optimize.el
 ;(mapcar (function (lambda (x) (put x 'side-effect-free 'error-free)))
-;	'(eql floatp-safe list* subst acons equalp random-state-p
+;	'(eql list* subst acons equalp random-state-p
 ;	  copy-tree sublis))
 
 

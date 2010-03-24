@@ -1,7 +1,7 @@
 /* Generic device functions.
    Copyright (C) 1994, 1995 Board of Trustees, University of Illinois.
    Copyright (C) 1994, 1995 Free Software Foundation, Inc.
-   Copyright (C) 1995, 1996, 2002 Ben Wing.
+   Copyright (C) 1995, 1996, 2002, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -160,21 +160,19 @@ print_device (Lisp_Object obj, Lisp_Object printcharfun,
   struct device *d = XDEVICE (obj);
 
   if (print_readably)
-    printing_unreadable_object ("#<device %s 0x%x>",
-				XSTRING_DATA (d->name), d->header.uid);
+    printing_unreadable_lisp_object (obj, XSTRING_DATA (d->name));
 
   write_fmt_string (printcharfun, "#<%s-device", !DEVICE_LIVE_P (d) ? "dead" :
 		    DEVICE_TYPE_NAME (d));
   if (DEVICE_LIVE_P (d) && !NILP (DEVICE_CONNECTION (d)))
     write_fmt_string_lisp (printcharfun, " on %S", 1, DEVICE_CONNECTION (d));
-  write_fmt_string (printcharfun, " 0x%x>", d->header.uid);
+  write_fmt_string (printcharfun, " 0x%x>", LISP_OBJECT_UID (obj));
 }
 
-DEFINE_LRECORD_IMPLEMENTATION ("device", device,
-			       0, /*dumpable-flag*/
-			       mark_device, print_device, 0, 0, 0, 
-			       device_description,
-			       struct device);
+DEFINE_NODUMP_LISP_OBJECT ("device", device,
+			   mark_device, print_device, 0, 0, 0, 
+			   device_description,
+			   struct device);
 
 int
 valid_device_class_p (Lisp_Object class_)
@@ -202,7 +200,7 @@ Return a list of valid device classes.
 static void
 nuke_all_device_slots (struct device *d, Lisp_Object zap)
 {
-  ZERO_LCRECORD (d);
+  zero_nonsized_lisp_object (wrap_device (d));
 
 #define MARKED_SLOT(x)	d->x = zap;
 #include "devslots.h"
@@ -211,12 +209,11 @@ nuke_all_device_slots (struct device *d, Lisp_Object zap)
 static struct device *
 allocate_device (Lisp_Object console)
 {
-  Lisp_Object device;
-  struct device *d = ALLOC_LCRECORD_TYPE (struct device, &lrecord_device);
+  Lisp_Object obj = ALLOC_NORMAL_LISP_OBJECT (device);
+  struct device *d = XDEVICE (obj);
   struct gcpro gcpro1;
 
-  device = wrap_device (d);
-  GCPRO1 (device);
+  GCPRO1 (obj);
 
   nuke_all_device_slots (d, Qnil);
 
@@ -753,7 +750,7 @@ find_nonminibuffer_frame_not_on_device_predicate (Lisp_Object frame,
 {
   Lisp_Object device;
 
-  device = VOID_TO_LISP (closure);
+  device = GET_LISP_FROM_VOID (closure);
   if (FRAME_MINIBUF_ONLY_P (XFRAME (frame)))
     return 0;
   if (EQ (device, FRAME_DEVICE (XFRAME (frame))))
@@ -765,7 +762,7 @@ Lisp_Object
 find_nonminibuffer_frame_not_on_device (Lisp_Object device)
 {
   return find_some_frame (find_nonminibuffer_frame_not_on_device_predicate,
-			  LISP_TO_VOID (device));
+			  STORE_LISP_IN_VOID (device));
 }
 
 
@@ -1399,7 +1396,7 @@ call_critical_lisp_code (struct device *d, Lisp_Object function,
 void
 syms_of_device (void)
 {
-  INIT_LRECORD_IMPLEMENTATION (device);
+  INIT_LISP_OBJECT (device);
 
   DEFSUBR (Fvalid_device_class_p);
   DEFSUBR (Fdevice_class_list);

@@ -3,7 +3,7 @@
 ;; Copyright (C) 1995,1999 Electrotechnical Laboratory, JAPAN.
 ;; Licensed to the Free Software Foundation.
 ;; Copyright (C) 1997 MORIOKA Tomohiko
-;; Copyright (C) 2000, 2001, 2002, 2003 Ben Wing.
+;; Copyright (C) 2000, 2001, 2002, 2003, 2010 Ben Wing.
 
 ;; Keywords: mule, multilingual
 
@@ -789,8 +789,8 @@ the language environment for the major languages of Western Europe."
 	     (setq string (format "%c" unicode-error-lookup)))
            ;; Treat control characters specially:
            (setq first-char (aref string 0))
-           (when (or (and (>= #x00 first-char) (<= first-char #x1f))
-                     (and (>= #x80 first-char) (<= first-char #x9f)))
+           (when (or (and (>= first-char #x00) (<= first-char #x1f))
+                     (and (>= first-char #x80) (<= first-char #x9f)))
 	     (setq string (format "^%c" (+ ?@ (aref string 0))))))
          (setq glyph (make-glyph (vector 'string :data string)))
          (set-glyph-face glyph 'unicode-invalid-sequence-warning-face)
@@ -1191,21 +1191,24 @@ system locale and is not influenced by LOCALE. (In other words, a program
 can't set the text encoding used to communicate with the OS.  To get around
 this, we use Unicode whenever available, i.e. on Windows NT always and on
 Windows 9x whenever a Unicode version of a system call is available.)"
-  (if (eq system-type 'windows-nt)
-      ;; should not apply to Cygwin, I don't think
-      'mswindows-multibyte-system-default
-    (let ((ncod (get-language-info langenv 'native-coding-system)))
-      (if (or (functionp ncod) (not (listp ncod)))
-	  (setq ncod (list ncod)))
-      (let ((native
-	     (dolist (try-native ncod)
-	       (let ((result
-		      (if (functionp try-native)
-			  (funcall try-native locale)
-			try-native)))
-		 (if result (return result))))))
-	(or native (car (get-language-info langenv 'coding-system))
-	    'raw-text)))))
+  (cond ((eq system-type 'windows-nt)
+	 ;; should not apply to Cygwin, I don't think
+	 'mswindows-multibyte-system-default)
+	((featurep 'cygwin-use-utf-8)
+	 'utf-8)
+	(t
+	 (let ((ncod (get-language-info langenv 'native-coding-system)))
+	   (if (or (functionp ncod) (not (listp ncod)))
+	       (setq ncod (list ncod)))
+	   (let ((native
+		  (dolist (try-native ncod)
+		    (let ((result
+			   (if (functionp try-native)
+			       (funcall try-native locale)
+			     try-native)))
+		      (if result (return result))))))
+	     (or native (car (get-language-info langenv 'coding-system))
+		 'raw-text))))))
 
 (defun get-coding-system-from-locale (locale)
   "Return the coding system corresponding to a locale string."

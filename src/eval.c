@@ -1,7 +1,7 @@
 /* Evaluator for XEmacs Lisp interpreter.
    Copyright (C) 1985-1987, 1992-1994 Free Software Foundation, Inc.
    Copyright (C) 1995 Sun Microsystems, Inc.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004 Ben Wing.
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -418,6 +418,29 @@ static int warning_will_be_discarded (Lisp_Object level);
 static Lisp_Object maybe_get_trapping_problems_backtrace (void);
 
 
+
+/* When parsing keyword arguments; is some element of NARGS
+   :allow-other-keys, and is that element followed by a non-nil Lisp
+   object? */
+
+Boolint
+non_nil_allow_other_keys_p (Elemcount offset, int nargs, Lisp_Object *args)
+{
+  Lisp_Object key, value;
+  while (offset + 1 < nargs)
+    {
+      key = args[offset++];
+      value = args[offset++];
+      if (EQ (key, Q_allow_other_keys)) 
+	{
+          /* The ANSI Common Lisp standard says the first value for a given
+             keyword overrides. */
+          return !NILP (value);
+	}
+    }
+  return 0;
+}
+
 /************************************************************************/
 /*			The subr object type				*/
 /************************************************************************/
@@ -426,17 +449,17 @@ static void
 print_subr (Lisp_Object obj, Lisp_Object printcharfun, int UNUSED (escapeflag))
 {
   Lisp_Subr *subr = XSUBR (obj);
-  const CIbyte *header =
-    (subr->max_args == UNEVALLED) ? "#<special-form " : "#<subr ";
-  const CIbyte *name = subr_name (subr);
-  const CIbyte *trailer = subr->prompt ? " (interactive)>" : ">";
+  const Ascbyte *header =
+    (subr->max_args == UNEVALLED) ? "#<special-operator " : "#<subr ";
+  const Ascbyte *name = subr_name (subr);
+  const Ascbyte *trailer = subr->prompt ? " (interactive)>" : ">";
 
   if (print_readably)
-    printing_unreadable_object ("%s%s%s", header, name, trailer);
+    printing_unreadable_object_fmt ("%s%s%s", header, name, trailer);
 
-  write_c_string (printcharfun, header);
-  write_c_string (printcharfun, name);
-  write_c_string (printcharfun, trailer);
+  write_ascstring (printcharfun, header);
+  write_ascstring (printcharfun, name);
+  write_ascstring (printcharfun, trailer);
 }
 
 static const struct memory_description subr_description[] = {
@@ -444,11 +467,10 @@ static const struct memory_description subr_description[] = {
   { XD_END }
 };
 
-DEFINE_BASIC_LRECORD_IMPLEMENTATION ("subr", subr,
-				     1, /*dumpable-flag*/
-				     0, print_subr, 0, 0, 0,
-				     subr_description,
-				     Lisp_Subr);
+DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("subr", subr,
+					0, print_subr, 0, 0, 0,
+					subr_description,
+					Lisp_Subr);
 
 /************************************************************************/
 /*			 Entering the debugger				*/
@@ -738,7 +760,7 @@ signal_call_debugger (Lisp_Object conditions,
       specbind (Qstack_trace_on_signal, Qnil);
 
       if (!noninteractive)
-	internal_with_output_to_temp_buffer (build_string ("*Backtrace*"),
+	internal_with_output_to_temp_buffer (build_ascstring ("*Backtrace*"),
 					     backtrace_259,
 					     Qnil,
 					     Qnil);
@@ -780,7 +802,7 @@ signal_call_debugger (Lisp_Object conditions,
       specbind (Qstack_trace_on_signal, Qnil);
 
       if (!noninteractive)
-	internal_with_output_to_temp_buffer (build_string ("*Backtrace*"),
+	internal_with_output_to_temp_buffer (build_ascstring ("*Backtrace*"),
 					     backtrace_259,
 					     Qnil,
 					     Qnil);
@@ -823,7 +845,7 @@ signal_call_debugger (Lisp_Object conditions,
 /*		       The basic special forms				*/
 /************************************************************************/
 
-/* Except for Fprogn(), the basic special forms below are only called
+/* Except for Fprogn(), the basic special operators below are only called
    from interpreted code.  The byte compiler turns them into bytecodes. */
 
 DEFUN ("or", For, 0, UNEVALLED, 0, /*
@@ -1767,8 +1789,7 @@ throw_or_bomb_out (Lisp_Object tag, Lisp_Object val, int bomb_out_p,
 {
 #ifdef DEFEND_AGAINST_THROW_RECURSION
   /* die if we recurse more than is reasonable */
-  if (++throw_level > 20)
-    ABORT ();
+  assert (++throw_level <= 20);
 #endif
 
 #ifdef ERROR_CHECK_TRAPPING_PROBLEMS
@@ -2610,8 +2631,7 @@ maybe_signal_error_1 (Lisp_Object sig, Lisp_Object data, Lisp_Object class_,
   else if (ERRB_EQ (errb, ERROR_ME_WARN))
     warn_when_safe_lispobj (class_, Qwarning, Fcons (sig, data));
   else
-    for (;;)
-      Fsignal (sig, data);
+    signal_error_1 (sig, data);
 }
 
 /* Signal a continuable error or display a warning or do nothing,
@@ -2654,7 +2674,7 @@ maybe_signal_continuable_error_1 (Lisp_Object sig, Lisp_Object data,
    to signal_error_1(). */
 
 Lisp_Object
-build_error_data (const CIbyte *reason, Lisp_Object frob)
+build_error_data (const Ascbyte *reason, Lisp_Object frob)
 {
   if (EQ (frob, Qunbound))
     frob = Qnil;
@@ -2669,13 +2689,20 @@ build_error_data (const CIbyte *reason, Lisp_Object frob)
 }
 
 DOESNT_RETURN
-signal_error (Lisp_Object type, const CIbyte *reason, Lisp_Object frob)
+signal_error (Lisp_Object type, const Ascbyte *reason, Lisp_Object frob)
 {
   signal_error_1 (type, build_error_data (reason, frob));
 }
 
+/* NOTE NOTE NOTE: If you feel you need signal_ierror() or something
+   similar when reason is a non-ASCII message, you're probably doing
+   something wrong.  When you have an error message from an external
+   source, you should put the error message as the first item in FROB and
+   put a string in REASON indicating what you were doing when the error
+   message occurred.  Use signal_error_2() for such a case. */
+
 void
-maybe_signal_error (Lisp_Object type, const CIbyte *reason,
+maybe_signal_error (Lisp_Object type, const Ascbyte *reason,
 		    Lisp_Object frob, Lisp_Object class_,
 		    Error_Behavior errb)
 {
@@ -2686,14 +2713,14 @@ maybe_signal_error (Lisp_Object type, const CIbyte *reason,
 }
 
 Lisp_Object
-signal_continuable_error (Lisp_Object type, const CIbyte *reason,
+signal_continuable_error (Lisp_Object type, const Ascbyte *reason,
 			  Lisp_Object frob)
 {
   return Fsignal (type, build_error_data (reason, frob));
 }
 
 Lisp_Object
-maybe_signal_continuable_error (Lisp_Object type, const CIbyte *reason,
+maybe_signal_continuable_error (Lisp_Object type, const Ascbyte *reason,
 				Lisp_Object frob, Lisp_Object class_,
 				Error_Behavior errb)
 {
@@ -2715,7 +2742,7 @@ maybe_signal_continuable_error (Lisp_Object type, const CIbyte *reason,
    but these are more convenient in this particular case.) */
 
 DOESNT_RETURN
-signal_error_2 (Lisp_Object type, const CIbyte *reason,
+signal_error_2 (Lisp_Object type, const Ascbyte *reason,
 		Lisp_Object frob0, Lisp_Object frob1)
 {
   signal_error_1 (type, list3 (build_msg_string (reason), frob0,
@@ -2723,7 +2750,7 @@ signal_error_2 (Lisp_Object type, const CIbyte *reason,
 }
 
 void
-maybe_signal_error_2 (Lisp_Object type, const CIbyte *reason,
+maybe_signal_error_2 (Lisp_Object type, const Ascbyte *reason,
 		      Lisp_Object frob0, Lisp_Object frob1,
 		      Lisp_Object class_, Error_Behavior errb)
 {
@@ -2735,7 +2762,7 @@ maybe_signal_error_2 (Lisp_Object type, const CIbyte *reason,
 }
 
 Lisp_Object
-signal_continuable_error_2 (Lisp_Object type, const CIbyte *reason,
+signal_continuable_error_2 (Lisp_Object type, const Ascbyte *reason,
 			    Lisp_Object frob0, Lisp_Object frob1)
 {
   return Fsignal (type, list3 (build_msg_string (reason), frob0,
@@ -2743,7 +2770,7 @@ signal_continuable_error_2 (Lisp_Object type, const CIbyte *reason,
 }
 
 Lisp_Object
-maybe_signal_continuable_error_2 (Lisp_Object type, const CIbyte *reason,
+maybe_signal_continuable_error_2 (Lisp_Object type, const Ascbyte *reason,
 				  Lisp_Object frob0, Lisp_Object frob1,
 				  Lisp_Object class_, Error_Behavior errb)
 {
@@ -2763,13 +2790,13 @@ maybe_signal_continuable_error_2 (Lisp_Object type, const CIbyte *reason,
    is a single string, created using the arguments. */
 
 DOESNT_RETURN
-signal_ferror (Lisp_Object type, const CIbyte *fmt, ...)
+signal_ferror (Lisp_Object type, const Ascbyte *fmt, ...)
 {
   Lisp_Object obj;
   va_list args;
 
   va_start (args, fmt);
-  obj = emacs_vsprintf_string (CGETTEXT (fmt), args);
+  obj = emacs_vsprintf_string (GETTEXT (fmt), args);
   va_end (args);
 
   /* Fsignal GC-protects its args */
@@ -2778,7 +2805,7 @@ signal_ferror (Lisp_Object type, const CIbyte *fmt, ...)
 
 void
 maybe_signal_ferror (Lisp_Object type, Lisp_Object class_, Error_Behavior errb,
-		     const CIbyte *fmt, ...)
+		     const Ascbyte *fmt, ...)
 {
   Lisp_Object obj;
   va_list args;
@@ -2788,7 +2815,7 @@ maybe_signal_ferror (Lisp_Object type, Lisp_Object class_, Error_Behavior errb,
     return;
 
   va_start (args, fmt);
-  obj = emacs_vsprintf_string (CGETTEXT (fmt), args);
+  obj = emacs_vsprintf_string (GETTEXT (fmt), args);
   va_end (args);
 
   /* Fsignal GC-protects its args */
@@ -2796,13 +2823,13 @@ maybe_signal_ferror (Lisp_Object type, Lisp_Object class_, Error_Behavior errb,
 }
 
 Lisp_Object
-signal_continuable_ferror (Lisp_Object type, const CIbyte *fmt, ...)
+signal_continuable_ferror (Lisp_Object type, const Ascbyte *fmt, ...)
 {
   Lisp_Object obj;
   va_list args;
 
   va_start (args, fmt);
-  obj = emacs_vsprintf_string (CGETTEXT (fmt), args);
+  obj = emacs_vsprintf_string (GETTEXT (fmt), args);
   va_end (args);
 
   /* Fsignal GC-protects its args */
@@ -2811,7 +2838,7 @@ signal_continuable_ferror (Lisp_Object type, const CIbyte *fmt, ...)
 
 Lisp_Object
 maybe_signal_continuable_ferror (Lisp_Object type, Lisp_Object class_,
-				 Error_Behavior errb, const CIbyte *fmt, ...)
+				 Error_Behavior errb, const Ascbyte *fmt, ...)
 {
   Lisp_Object obj;
   va_list args;
@@ -2821,7 +2848,7 @@ maybe_signal_continuable_ferror (Lisp_Object type, Lisp_Object class_,
     return Qnil;
 
   va_start (args, fmt);
-  obj = emacs_vsprintf_string (CGETTEXT (fmt), args);
+  obj = emacs_vsprintf_string (GETTEXT (fmt), args);
   va_end (args);
 
   /* Fsignal GC-protects its args */
@@ -2844,14 +2871,14 @@ maybe_signal_continuable_ferror (Lisp_Object type, Lisp_Object class_,
 */
 
 DOESNT_RETURN
-signal_ferror_with_frob (Lisp_Object type, Lisp_Object frob, const CIbyte *fmt,
+signal_ferror_with_frob (Lisp_Object type, Lisp_Object frob, const Ascbyte *fmt,
 			 ...)
 {
   Lisp_Object obj;
   va_list args;
 
   va_start (args, fmt);
-  obj = emacs_vsprintf_string (CGETTEXT (fmt), args);
+  obj = emacs_vsprintf_string (GETTEXT (fmt), args);
   va_end (args);
 
   /* Fsignal GC-protects its args */
@@ -2861,7 +2888,7 @@ signal_ferror_with_frob (Lisp_Object type, Lisp_Object frob, const CIbyte *fmt,
 void
 maybe_signal_ferror_with_frob (Lisp_Object type, Lisp_Object frob,
 			       Lisp_Object class_, Error_Behavior errb,
-			       const CIbyte *fmt, ...)
+			       const Ascbyte *fmt, ...)
 {
   Lisp_Object obj;
   va_list args;
@@ -2871,7 +2898,7 @@ maybe_signal_ferror_with_frob (Lisp_Object type, Lisp_Object frob,
     return;
 
   va_start (args, fmt);
-  obj = emacs_vsprintf_string (CGETTEXT (fmt), args);
+  obj = emacs_vsprintf_string (GETTEXT (fmt), args);
   va_end (args);
 
   /* Fsignal GC-protects its args */
@@ -2881,13 +2908,13 @@ maybe_signal_ferror_with_frob (Lisp_Object type, Lisp_Object frob,
 
 Lisp_Object
 signal_continuable_ferror_with_frob (Lisp_Object type, Lisp_Object frob,
-				     const CIbyte *fmt, ...)
+				     const Ascbyte *fmt, ...)
 {
   Lisp_Object obj;
   va_list args;
 
   va_start (args, fmt);
-  obj = emacs_vsprintf_string (CGETTEXT (fmt), args);
+  obj = emacs_vsprintf_string (GETTEXT (fmt), args);
   va_end (args);
 
   /* Fsignal GC-protects its args */
@@ -2898,7 +2925,7 @@ Lisp_Object
 maybe_signal_continuable_ferror_with_frob (Lisp_Object type, Lisp_Object frob,
 					   Lisp_Object class_,
 					   Error_Behavior errb,
-					   const CIbyte *fmt, ...)
+					   const Ascbyte *fmt, ...)
 {
   Lisp_Object obj;
   va_list args;
@@ -2908,7 +2935,7 @@ maybe_signal_continuable_ferror_with_frob (Lisp_Object type, Lisp_Object frob,
     return Qnil;
 
   va_start (args, fmt);
-  obj = emacs_vsprintf_string (CGETTEXT (fmt), args);
+  obj = emacs_vsprintf_string (GETTEXT (fmt), args);
   va_end (args);
 
   /* Fsignal GC-protects its args */
@@ -2987,171 +3014,163 @@ signal_circular_property_list_error (Lisp_Object list)
 
 /* Called from within emacs_doprnt_1, so REASON is not formatted. */
 DOESNT_RETURN
-syntax_error (const CIbyte *reason, Lisp_Object frob)
+syntax_error (const Ascbyte *reason, Lisp_Object frob)
 {
   signal_error (Qsyntax_error, reason, frob);
 }
 
 DOESNT_RETURN
-syntax_error_2 (const CIbyte *reason, Lisp_Object frob1, Lisp_Object frob2)
+syntax_error_2 (const Ascbyte *reason, Lisp_Object frob1, Lisp_Object frob2)
 {
   signal_error_2 (Qsyntax_error, reason, frob1, frob2);
 }
 
 void
-maybe_syntax_error (const CIbyte *reason, Lisp_Object frob,
+maybe_syntax_error (const Ascbyte *reason, Lisp_Object frob,
 		    Lisp_Object class_, Error_Behavior errb)
 {
   maybe_signal_error (Qsyntax_error, reason, frob, class_, errb);
 }
 
 DOESNT_RETURN
-sferror (const CIbyte *reason, Lisp_Object frob)
+sferror (const Ascbyte *reason, Lisp_Object frob)
 {
   signal_error (Qstructure_formation_error, reason, frob);
 }
 
 DOESNT_RETURN
-sferror_2 (const CIbyte *reason, Lisp_Object frob1, Lisp_Object frob2)
+sferror_2 (const Ascbyte *reason, Lisp_Object frob1, Lisp_Object frob2)
 {
   signal_error_2 (Qstructure_formation_error, reason, frob1, frob2);
 }
 
 void
-maybe_sferror (const CIbyte *reason, Lisp_Object frob,
+maybe_sferror (const Ascbyte *reason, Lisp_Object frob,
 	       Lisp_Object class_, Error_Behavior errb)
 {
   maybe_signal_error (Qstructure_formation_error, reason, frob, class_, errb);
 }
 
 DOESNT_RETURN
-invalid_argument (const CIbyte *reason, Lisp_Object frob)
+invalid_argument (const Ascbyte *reason, Lisp_Object frob)
 {
   signal_error (Qinvalid_argument, reason, frob);
 }
 
 DOESNT_RETURN
-invalid_argument_2 (const CIbyte *reason, Lisp_Object frob1,
+invalid_argument_2 (const Ascbyte *reason, Lisp_Object frob1,
 		    Lisp_Object frob2)
 {
   signal_error_2 (Qinvalid_argument, reason, frob1, frob2);
 }
 
 void
-maybe_invalid_argument (const CIbyte *reason, Lisp_Object frob,
+maybe_invalid_argument (const Ascbyte *reason, Lisp_Object frob,
 			Lisp_Object class_, Error_Behavior errb)
 {
   maybe_signal_error (Qinvalid_argument, reason, frob, class_, errb);
 }
 
 DOESNT_RETURN
-invalid_constant (const CIbyte *reason, Lisp_Object frob)
+invalid_keyword_argument (Lisp_Object function, Lisp_Object keyword)
+{
+  signal_error_1 (Qinvalid_keyword_argument, list2 (function, keyword));
+}
+
+DOESNT_RETURN
+invalid_constant (const Ascbyte *reason, Lisp_Object frob)
 {
   signal_error (Qinvalid_constant, reason, frob);
 }
 
 DOESNT_RETURN
-invalid_constant_2 (const CIbyte *reason, Lisp_Object frob1,
+invalid_constant_2 (const Ascbyte *reason, Lisp_Object frob1,
 		    Lisp_Object frob2)
 {
   signal_error_2 (Qinvalid_constant, reason, frob1, frob2);
 }
 
 void
-maybe_invalid_constant (const CIbyte *reason, Lisp_Object frob,
+maybe_invalid_constant (const Ascbyte *reason, Lisp_Object frob,
 			Lisp_Object class_, Error_Behavior errb)
 {
   maybe_signal_error (Qinvalid_constant, reason, frob, class_, errb);
 }
 
 DOESNT_RETURN
-invalid_operation (const CIbyte *reason, Lisp_Object frob)
+invalid_operation (const Ascbyte *reason, Lisp_Object frob)
 {
   signal_error (Qinvalid_operation, reason, frob);
 }
 
 DOESNT_RETURN
-invalid_operation_2 (const CIbyte *reason, Lisp_Object frob1,
+invalid_operation_2 (const Ascbyte *reason, Lisp_Object frob1,
 		     Lisp_Object frob2)
 {
   signal_error_2 (Qinvalid_operation, reason, frob1, frob2);
 }
 
 void
-maybe_invalid_operation (const CIbyte *reason, Lisp_Object frob,
+maybe_invalid_operation (const Ascbyte *reason, Lisp_Object frob,
 			 Lisp_Object class_, Error_Behavior errb)
 {
   maybe_signal_error (Qinvalid_operation, reason, frob, class_, errb);
 }
 
 DOESNT_RETURN
-invalid_change (const CIbyte *reason, Lisp_Object frob)
+invalid_change (const Ascbyte *reason, Lisp_Object frob)
 {
   signal_error (Qinvalid_change, reason, frob);
 }
 
 DOESNT_RETURN
-invalid_change_2 (const CIbyte *reason, Lisp_Object frob1, Lisp_Object frob2)
+invalid_change_2 (const Ascbyte *reason, Lisp_Object frob1, Lisp_Object frob2)
 {
   signal_error_2 (Qinvalid_change, reason, frob1, frob2);
 }
 
 void
-maybe_invalid_change (const CIbyte *reason, Lisp_Object frob,
+maybe_invalid_change (const Ascbyte *reason, Lisp_Object frob,
 		      Lisp_Object class_, Error_Behavior errb)
 {
   maybe_signal_error (Qinvalid_change, reason, frob, class_, errb);
 }
 
 DOESNT_RETURN
-invalid_state (const CIbyte *reason, Lisp_Object frob)
+invalid_state (const Ascbyte *reason, Lisp_Object frob)
 {
   signal_error (Qinvalid_state, reason, frob);
 }
 
 DOESNT_RETURN
-invalid_state_2 (const CIbyte *reason, Lisp_Object frob1, Lisp_Object frob2)
+invalid_state_2 (const Ascbyte *reason, Lisp_Object frob1, Lisp_Object frob2)
 {
   signal_error_2 (Qinvalid_state, reason, frob1, frob2);
 }
 
 void
-maybe_invalid_state (const CIbyte *reason, Lisp_Object frob,
+maybe_invalid_state (const Ascbyte *reason, Lisp_Object frob,
 		     Lisp_Object class_, Error_Behavior errb)
 {
   maybe_signal_error (Qinvalid_state, reason, frob, class_, errb);
 }
 
 DOESNT_RETURN
-wtaerror (const CIbyte *reason, Lisp_Object frob)
+wtaerror (const Ascbyte *reason, Lisp_Object frob)
 {
   signal_error (Qwrong_type_argument, reason, frob);
 }
 
 DOESNT_RETURN
-stack_overflow (const CIbyte *reason, Lisp_Object frob)
+stack_overflow (const Ascbyte *reason, Lisp_Object frob)
 {
   signal_error (Qstack_overflow, reason, frob);
 }
 
 DOESNT_RETURN
-out_of_memory (const CIbyte *reason, Lisp_Object frob)
+out_of_memory (const Ascbyte *reason, Lisp_Object frob)
 {
   signal_error (Qout_of_memory, reason, frob);
-}
-
-DOESNT_RETURN
-printing_unreadable_object (const CIbyte *fmt, ...)
-{
-  Lisp_Object obj;
-  va_list args;
-
-  va_start (args, fmt);
-  obj = emacs_vsprintf_string (CGETTEXT (fmt), args);
-  va_end (args);
-
-  /* Fsignal GC-protects its args */
-  signal_error (Qprinting_unreadable_object, 0, obj);
 }
 
 
@@ -3316,7 +3335,7 @@ and input is currently coming from the keyboard (not in keyboard macro).
     btp = btp->next;
 
   /* If this isn't a byte-compiled function, then we may now be
-     looking at several frames for special forms.  Skip past them.  */
+     looking at several frames for special operators.  Skip past them.  */
   while (btp &&
 	 btp->nargs == UNEVALLED)
     btp = btp->next;
@@ -3634,6 +3653,10 @@ funcall_compiled_function (Lisp_Object fun, int nargs, Lisp_Object args[])
   {
     Lisp_Object value =
       execute_optimized_program ((Opbyte *) XOPAQUE_DATA (f->instructions),
+#ifdef ERROR_CHECK_BYTE_CODE
+				 XOPAQUE_SIZE (f->instructions) /
+				 sizeof (Opbyte),
+#endif
 				 f->stack_depth,
 				 XVECTOR_DATA (f->constants));
 
@@ -4074,7 +4097,7 @@ arguments: (FUNCTION &rest ARGS)
 	  val = SUBR_FUNCTION (subr, MANY) (fun_nargs, fun_args);
 	  PROFILE_EXIT_FUNCTION ();
 	}
-      else if (max_args == UNEVALLED) /* Can't funcall a special form */
+      else if (max_args == UNEVALLED) /* Can't funcall a special operator */
 	{
           /* Ugh, ugh, ugh. */
           if (EQ (fun, XSYMBOL_FUNCTION (Qthrow)))
@@ -4257,7 +4280,7 @@ function_argcount (Lisp_Object function, int function_min_args_p)
 DEFUN ("function-min-args", Ffunction_min_args, 1, 1, 0, /*
 Return the minimum number of arguments a function may be called with.
 The function may be any form that can be passed to `funcall',
-any special form, or any macro.
+any special operator, or any macro.
 
 To check if a function can be called with a specified number of
 arguments, use `function-allows-args'.
@@ -4270,9 +4293,9 @@ arguments, use `function-allows-args'.
 DEFUN ("function-max-args", Ffunction_max_args, 1, 1, 0, /*
 Return the maximum number of arguments a function may be called with.
 The function may be any form that can be passed to `funcall',
-any special form, or any macro.
+any special operator, or any macro.
 If the function takes an arbitrary number of arguments or is
-a built-in special form, nil is returned.
+a built-in special operator, nil is returned.
 
 To check if a function can be called with a specified number of
 arguments, use `function-allows-args'.
@@ -4429,7 +4452,7 @@ funcall_lambda (Lisp_Object fun, int nargs, Lisp_Object args[])
    A multiple value object is returned by #'values if:
 
    -- The number of arguments to #'values is not one, and: 
-   -- Some special form in the call stack is prepared to handle more than
+   -- Some special operator in the call stack is prepared to handle more than
    one multiple value.
    
    The return value of #'values-list is analogous to that of #'values.
@@ -4444,7 +4467,7 @@ funcall_lambda (Lisp_Object fun, int nargs, Lisp_Object args[])
    objects should be converted to heap allocation at that point.
 
    The specific multiple values saved and returned depend on how many
-   multiple-values special forms in the stack are interested in; for
+   multiple-values special operators in the stack are interested in; for
    example, if #'multiple-value-call is somewhere in the call stack, all
    values passed to #'values will be saved and returned.  If an expansion of
    #'multiple-value-setq with 10 SYMS is the only part of the call stack
@@ -4496,6 +4519,7 @@ make_multiple_value (Lisp_Object first_value, Elemcount count,
   Bytecount sizem;
   struct multiple_value *mv;
   Elemcount i, allocated_count;
+  Lisp_Object mvobj;
 
   assert (count != 1);
 
@@ -4521,8 +4545,8 @@ make_multiple_value (Lisp_Object first_value, Elemcount count,
   sizem = FLEXIBLE_ARRAY_STRUCT_SIZEOF (multiple_value,
                                         Lisp_Object,
                                         contents, allocated_count);
-  mv = (multiple_value *) BASIC_ALLOC_LCRECORD (sizem,
-                                                &lrecord_multiple_value);
+  mvobj = ALLOC_SIZED_LISP_OBJECT (sizem, multiple_value);
+  mv = XMULTIPLE_VALUE (mvobj);
 
   mv->count = count;
   mv->first_desired = first_desired;
@@ -4534,7 +4558,7 @@ make_multiple_value (Lisp_Object first_value, Elemcount count,
       mv->contents[1 + (i - first_desired)] = Qunbound;
     }
 
-  return wrap_multiple_value (mv);
+  return mvobj;
 }
 
 void
@@ -4581,13 +4605,13 @@ print_multiple_value (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 
   if (print_readably)
     {
-      printing_unreadable_object ("multiple values");
+      printing_unreadable_object_fmt ("#<multiple values 0x%x>",
+				      LISP_OBJECT_UID (obj));
     }
 
-  if (0 == count)
-    {
-      write_c_string (printcharfun, "#<zero-length multiple value>");
-    }
+  write_fmt_string (printcharfun,
+                    "#<INTERNAL OBJECT (XEmacs bug?) %d multiple values,"
+                    " data (", count);
 
   for (index = 0; index < count;)
     {
@@ -4608,9 +4632,11 @@ print_multiple_value (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 
       if (count > 1 && index < count)
         {
-          write_c_string (printcharfun, " ;\n");
+          write_ascstring (printcharfun, " ");
         }
     }
+
+  write_fmt_string (printcharfun, ") 0x%x>", LISP_OBJECT_UID (obj));
 }
 
 static Lisp_Object
@@ -4628,12 +4654,11 @@ mark_multiple_value (Lisp_Object obj)
 }
 
 static Bytecount
-size_multiple_value (const void *lheader)
+size_multiple_value (Lisp_Object obj)
 {
   return FLEXIBLE_ARRAY_STRUCT_SIZEOF (struct multiple_value,
                                        Lisp_Object, contents,
-                                       ((struct multiple_value *) lheader)->
-                                       allocated_count);
+                                       XMULTIPLE_VALUE (obj)->allocated_count);
 }
 
 static const struct memory_description multiple_value_description[] = {
@@ -4645,15 +4670,14 @@ static const struct memory_description multiple_value_description[] = {
   { XD_END }
 };
 
-DEFINE_LRECORD_SEQUENCE_IMPLEMENTATION ("multiple-value", multiple_value,
-					1, /*dumpable-flag*/
-					mark_multiple_value,
-                                        print_multiple_value, 0,
-					0, /* No equal method. */
-					0, /* No hash method. */
-					multiple_value_description,
-					size_multiple_value,
-                                        struct multiple_value);
+DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("multiple-value", multiple_value,
+				     mark_multiple_value,
+				     print_multiple_value, 0,
+				     0, /* No equal method. */
+				     0, /* No hash method. */
+				     multiple_value_description,
+				     size_multiple_value,
+				     struct multiple_value);
 
 /* Given that FIRST and UPPER are the inclusive lower and exclusive upper
    bounds for the multiple values we're interested in, modify (or don't) the
@@ -4727,11 +4751,11 @@ multiple_value_call (int nargs, Lisp_Object *args)
       if (MULTIPLE_VALUEP (result))
         {
           Lisp_Object val;
-          Elemcount i, count = XMULTIPLE_VALUE_COUNT (result);
+          Elemcount j, count = XMULTIPLE_VALUE_COUNT (result);
 
-          for (i = 0; i < count; i++)
+          for (j = 0; j < count; j++)
             {
-              val = multiple_value_aref (result, i);
+              val = multiple_value_aref (result, j);
               assert (!UNBOUNDP (val));
 
               XSETCDR (list_offset, Fcons (val, Qnil));
@@ -5727,7 +5751,7 @@ issue_call_trapping_problems_warning (Lisp_Object warning_class,
 	    ("%s: Attempt to throw outside of function:"
 	     "To catch `%s' with value `%s'\n\nBacktrace follows:\n\n%s",
 	     Qnil, 4,
-	     build_msg_string (warning_string ? warning_string : "error"),
+	     build_msg_cistring (warning_string ? warning_string : "error"),
 	     p->thrown_tag, p->thrown_value, p->backtrace);
 	  warn_when_safe_lispobj (Qerror, current_warning_level (), errstr);
 	}
@@ -5742,7 +5766,7 @@ issue_call_trapping_problems_warning (Lisp_Object warning_class,
 	    emacs_sprintf_string_lisp
 	    ("%s: (%s %s)\n\nBacktrace follows:\n\n%s",
 	     Qnil, 4,
-	     build_msg_string (warning_string ? warning_string : "error"),
+	     build_msg_cistring (warning_string ? warning_string : "error"),
 	     p->error_conditions, p->data, p->backtrace);
 
 	  warn_when_safe_lispobj (warning_class, current_warning_level (),
@@ -6345,7 +6369,7 @@ run_hook_trapping_problems (Lisp_Object warning_class,
 static Lisp_Object
 safe_run_hook_trapping_problems_1 (void *puta)
 {
-  Lisp_Object hook = VOID_TO_LISP (puta);
+  Lisp_Object hook = GET_LISP_FROM_VOID (puta);
 
   run_hook (hook);
   return Qnil;
@@ -6373,7 +6397,7 @@ safe_run_hook_trapping_problems (Lisp_Object warning_class,
 				flags | POSTPONE_WARNING_ISSUE,
 				&prob,
 				safe_run_hook_trapping_problems_1,
-				LISP_TO_VOID (hook_symbol));
+				STORE_LISP_IN_VOID (hook_symbol));
   {
     Lisp_Object hook_name = XSYMBOL_NAME (hook_symbol);
     Ibyte *hook_str = XSTRING_DATA (hook_name);
@@ -6705,10 +6729,9 @@ record_unwind_protect (Lisp_Object (*function) (Lisp_Object arg),
 static Lisp_Object
 restore_lisp_object (Lisp_Object cons)
 {
-  Lisp_Object opaque = XCAR (cons);
-  Lisp_Object *addr = (Lisp_Object *) get_opaque_ptr (opaque);
+  Lisp_Object laddr = XCAR (cons);
+  Lisp_Object *addr = (Lisp_Object *) GET_VOID_FROM_LISP (laddr);
   *addr = XCDR (cons);
-  free_opaque_ptr (opaque);
   free_cons (cons);
   return Qnil;
 }
@@ -6719,9 +6742,11 @@ static int
 record_unwind_protect_restoring_lisp_object (Lisp_Object *addr,
 					     Lisp_Object val)
 {
-  Lisp_Object opaque = make_opaque_ptr (addr);
+  /* We use a cons rather than a malloc()ed structure because we want the
+     Lisp object to have garbage-collection protection */
+  Lisp_Object laddr = STORE_VOID_IN_LISP (addr);
   return record_unwind_protect (restore_lisp_object,
-				noseeum_cons (opaque, val));
+				noseeum_cons (laddr, val));
 }
 
 /* Similar to specbind() but for any C variable whose value is a
@@ -6738,35 +6763,18 @@ internal_bind_lisp_object (Lisp_Object *addr, Lisp_Object newval)
   return count;
 }
 
-static Lisp_Object
-restore_int (Lisp_Object cons)
+struct restore_int
 {
-  Lisp_Object opaque = XCAR (cons);
-  Lisp_Object lval = XCDR (cons);
-  int *addr = (int *) get_opaque_ptr (opaque);
+  int *addr;
   int val;
+};
 
-  /* In the event that a C integer will always fit in an Emacs int, we
-     haven't ever stored a C integer as an opaque pointer. This #ifdef
-     eliminates a warning on AMD 64, where EMACS_INT has 63 value bits and C
-     integers have 32 value bits.  */
-#if INT_VALBITS < INTBITS
-  if (INTP (lval))
-    {
-      val = XINT (lval);
-    }
-  else
-    {
-      val = (int) get_opaque_ptr (lval);
-      free_opaque_ptr (lval);
-    }
-#else /* !(INT_VALBITS < INTBITS) */
-  val = XINT(lval);
-#endif /* INT_VALBITS < INTBITS */
-
-  *addr = val;
-  free_opaque_ptr (opaque);
-  free_cons (cons);
+static Lisp_Object
+restore_int (Lisp_Object obj)
+{
+  struct restore_int *ri = (struct restore_int *) GET_VOID_FROM_LISP (obj);
+  *(ri->addr) = ri->val;
+  xfree (ri);
   return Qnil;
 }
 
@@ -6776,23 +6784,10 @@ restore_int (Lisp_Object cons)
 int
 record_unwind_protect_restoring_int (int *addr, int val)
 {
-  Lisp_Object opaque = make_opaque_ptr (addr);
-  Lisp_Object lval;
-
-  /* In the event that a C integer will always fit in an Emacs int, we don't
-     ever want to store a C integer as an opaque pointer. This #ifdef
-     eliminates a warning on AMD 64, where EMACS_INT has 63 value bits and C
-     integers have 32 value bits.  */
-#if INT_VALBITS <= INTBITS
-  if (NUMBER_FITS_IN_AN_EMACS_INT (val))
-    lval = make_int (val);
-  else
-    lval = make_opaque_ptr ((void *) val);
-#else /* !(INT_VALBITS < INTBITS) */
-  lval = make_int (val);
-#endif /* INT_VALBITS <= INTBITS */
-
-  return record_unwind_protect (restore_int, noseeum_cons (opaque, lval));
+  struct restore_int *ri = xnew (struct restore_int);
+  ri->addr = addr;
+  ri->val = val;
+  return record_unwind_protect (restore_int, STORE_VOID_IN_LISP (ri));
 }
 
 /* Similar to specbind() but for any C variable whose value is an int.
@@ -6813,8 +6808,8 @@ internal_bind_int (int *addr, int newval)
 static Lisp_Object
 free_pointer (Lisp_Object opaque)
 {
-  xfree (get_opaque_ptr (opaque), void *);
-  free_opaque_ptr (opaque);
+  void *ptr = GET_VOID_FROM_LISP (opaque);
+  xfree (ptr);
   return Qnil;
 }
 
@@ -6823,23 +6818,20 @@ free_pointer (Lisp_Object opaque)
 int
 record_unwind_protect_freeing (void *ptr)
 {
-  Lisp_Object opaque = make_opaque_ptr (ptr);
-  return record_unwind_protect (free_pointer, opaque);
+  return record_unwind_protect (free_pointer, STORE_VOID_IN_LISP (ptr));
 }
 
 static Lisp_Object
 free_dynarr (Lisp_Object opaque)
 {
-  Dynarr_free (get_opaque_ptr (opaque));
-  free_opaque_ptr (opaque);
+  Dynarr_free (GET_VOID_FROM_LISP (opaque));
   return Qnil;
 }
 
 int
 record_unwind_protect_freeing_dynarr (void *ptr)
 {
-  Lisp_Object opaque = make_opaque_ptr (ptr);
-  return record_unwind_protect (free_dynarr, opaque);
+  return record_unwind_protect (free_dynarr, STORE_VOID_IN_LISP (ptr));
 }
 
 /* Unwind the stack till specpdl_depth() == COUNT.
@@ -7014,18 +7006,18 @@ backtrace_specials (int speccount, int speclimit, Lisp_Object stream)
           || specpdl[speccount - 1].func == specbind_unwind_local
           || specpdl[speccount - 1].func == specbind_unwind_wasnt_local)
 	{
-	  write_c_string (stream, !printing_bindings ? "  # bind (" : " ");
+	  write_ascstring (stream, !printing_bindings ? "  # bind (" : " ");
 	  Fprin1 (specpdl[speccount - 1].symbol, stream);
 	  printing_bindings = 1;
 	}
       else
 	{
-	  if (printing_bindings) write_c_string (stream, ")\n");
-	  write_c_string (stream, "  # (unwind-protect ...)\n");
+	  if (printing_bindings) write_ascstring (stream, ")\n");
+	  write_ascstring (stream, "  # (unwind-protect ...)\n");
 	  printing_bindings = 0;
 	}
     }
-  if (printing_bindings) write_c_string (stream, ")\n");
+  if (printing_bindings) write_ascstring (stream, ")\n");
 }
 
 static Lisp_Object
@@ -7034,7 +7026,7 @@ backtrace_unevalled_args (Lisp_Object *args)
   if (args)
     return *args;
   else
-    return list1 (build_string ("[internal]"));
+    return list1 (build_ascstring ("[internal]"));
 }
 
 DEFUN ("backtrace", Fbacktrace, 0, 2, "", /*
@@ -7092,15 +7084,15 @@ unwind-protects, as well as function calls, were made.
           speccount = catches->pdlcount;
           if (catchpdl == speccount)
 	    {
-	      write_c_string (stream, "  # (catch ");
+	      write_ascstring (stream, "  # (catch ");
 	      Fprin1 (catches->tag, stream);
-	      write_c_string (stream, " ...)\n");
+	      write_ascstring (stream, " ...)\n");
 	    }
           else
             {
-              write_c_string (stream, "  # (condition-case ... . ");
+              write_ascstring (stream, "  # (condition-case ... . ");
               Fprin1 (Fcdr (Fcar (catches->tag)), stream);
-              write_c_string (stream, ")\n");
+              write_ascstring (stream, ")\n");
             }
           catches = catches->next;
 	}
@@ -7113,19 +7105,19 @@ unwind-protects, as well as function calls, were made.
 	      backtrace_specials (speccount, backlist->pdlcount, stream);
 	      speccount = backlist->pdlcount;
 	    }
-	  write_c_string (stream, backlist->debug_on_exit ? "* " : "  ");
+	  write_ascstring (stream, backlist->debug_on_exit ? "* " : "  ");
 	  if (backlist->nargs == UNEVALLED)
 	    {
 	      Fprin1 (Fcons (*backlist->function,
 			     backtrace_unevalled_args (backlist->args)),
 		      stream);
-	      write_c_string (stream, "\n"); /* from FSFmacs 19.30 */
+	      write_ascstring (stream, "\n"); /* from FSFmacs 19.30 */
 	    }
 	  else
 	    {
 	      Lisp_Object tem = *backlist->function;
 	      Fprin1 (tem, stream); /* This can QUIT */
-	      write_c_string (stream, "(");
+	      write_ascstring (stream, "(");
 	      if (backlist->nargs == MANY)
 		{
 		  int i;
@@ -7137,7 +7129,7 @@ unwind-protects, as well as function calls, were made.
 		       !NILP (tail);
 		       tail = Fcdr (tail), i++)
 		    {
-		      if (i != 0) write_c_string (stream, " ");
+		      if (i != 0) write_ascstring (stream, " ");
 		      Fprin1 (Fcar (tail), stream);
 		    }
 		  NUNGCPRO;
@@ -7149,14 +7141,14 @@ unwind-protects, as well as function calls, were made.
 		    {
 		      if (!i && EQ (tem, Qbyte_code))
 			{
-			  write_c_string (stream, "\"...\"");
+			  write_ascstring (stream, "\"...\"");
 			  continue;
 			}
-		      if (i != 0) write_c_string (stream, " ");
+		      if (i != 0) write_ascstring (stream, " ");
 		      Fprin1 (backlist->args[i], stream);
 		    }
 		}
-	      write_c_string (stream, ")\n");
+	      write_ascstring (stream, ")\n");
 	    }
 	  backlist = backlist->next;
 	}
@@ -7172,8 +7164,8 @@ unwind-protects, as well as function calls, were made.
 
 DEFUN ("backtrace-frame", Fbacktrace_frame, 1, 1, 0, /*
 Return the function and arguments NFRAMES up from current execution point.
-If that frame has not evaluated the arguments yet (or is a special form),
-the value is (nil FUNCTION ARG-FORMS...).
+If that frame has not evaluated the arguments yet (or involves a special
+operator), the value is (nil FUNCTION ARG-FORMS...).
 If that frame has evaluated its arguments and called its function already,
 the value is (t FUNCTION ARG-VALUES...).
 A &rest arg is represented as the tail of the list ARG-VALUES.
@@ -7248,7 +7240,7 @@ warn_when_safe_lispobj (Lisp_Object class_, Lisp_Object level,
    automatically be called when it is safe to do so. */
 
 void
-warn_when_safe (Lisp_Object class_, Lisp_Object level, const CIbyte *fmt, ...)
+warn_when_safe (Lisp_Object class_, Lisp_Object level, const Ascbyte *fmt, ...)
 {
   Lisp_Object obj;
   va_list args;
@@ -7257,7 +7249,7 @@ warn_when_safe (Lisp_Object class_, Lisp_Object level, const CIbyte *fmt, ...)
     return;
 
   va_start (args, fmt);
-  obj = emacs_vsprintf_string (CGETTEXT (fmt), args);
+  obj = emacs_vsprintf_string (GETTEXT (fmt), args);
   va_end (args);
 
   warn_when_safe_lispobj (class_, level, obj);
@@ -7273,8 +7265,8 @@ warn_when_safe (Lisp_Object class_, Lisp_Object level, const CIbyte *fmt, ...)
 void
 syms_of_eval (void)
 {
-  INIT_LRECORD_IMPLEMENTATION (subr);
-  INIT_LRECORD_IMPLEMENTATION (multiple_value);
+  INIT_LISP_OBJECT (subr);
+  INIT_LISP_OBJECT (multiple_value);
 
   DEFSYMBOL (Qinhibit_quit);
   DEFSYMBOL (Qautoload);
@@ -7541,7 +7533,7 @@ If due to `eval' entry, one arg, t.
 The exclusive upper bound on the number of multiple values. 
 
 This applies to `values', `values-list', `multiple-value-bind' and related
-macros and special forms.
+macros and special operators.
 */);
   Vmultiple_values_limit = EMACS_INT_MAX > INT_MAX ? INT_MAX : EMACS_INT_MAX;
 

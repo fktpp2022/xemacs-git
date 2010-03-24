@@ -27,7 +27,7 @@ BEGIN_C_DECLS
 /* struct Lisp_Process is defined in procimpl.h; only process-*.c need
    to know about the guts of it. */
 
-DECLARE_LRECORD (process, Lisp_Process);
+DECLARE_LISP_OBJECT (process, Lisp_Process);
 #define XPROCESS(x) XRECORD (x, process, Lisp_Process)
 #define wrap_process(p) wrap_record (p, process)
 #define PROCESSP(x) RECORDP (x, process)
@@ -55,8 +55,8 @@ EXFUN (Fprocess_kill_without_query, 2);
 EXFUN (Fprocess_id, 1);
 
 MODULE_API
-DECLARE_DOESNT_RETURN (report_process_error (const char *, Lisp_Object));
-DECLARE_DOESNT_RETURN (report_network_error (const char *, Lisp_Object));
+DECLARE_DOESNT_RETURN (report_process_error (const Ascbyte *, Lisp_Object));
+DECLARE_DOESNT_RETURN (report_network_error (const Ascbyte *, Lisp_Object));
 extern Lisp_Object Vlisp_EXEC_SUFFIXES;
 
 MODULE_API Ibyte *egetenv (const CIbyte *var);

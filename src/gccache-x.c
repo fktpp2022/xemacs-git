@@ -1,6 +1,7 @@
 /* Efficient caching of X GCs (graphics contexts).
    Copyright (C) 1993 Free Software Foundation, Inc.
    Copyright (C) 1994, 1995 Board of Trustees, University of Illinois.
+   Copyright (C) 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -52,19 +53,14 @@ Boston, MA 02111-1307, USA.  */
  */
 
 #include <config.h>
-#include <X11/Xlib.h>
-#include "xgccache.h"
+#include "lisp.h"
+#include "hash.h"
 
+#include "gccache-x.h"
 
 #define GC_CACHE_SIZE 100
 
 #define GCCACHE_HASH
-
-
-#ifdef GCCACHE_HASH
-#include "lisp.h"
-#include "hash.h"
-#endif
 
 struct gcv_and_mask {
   XGCValues gcv;
@@ -143,13 +139,13 @@ free_gc_cache (struct gc_cache *cache)
     {
       XFreeGC (cache->dpy, rest->gc);
       next = rest->next;
-      xfree (rest, struct gc_cache_cell *);
+      xfree (rest);
       rest = next;
     }
 #ifdef GCCACHE_HASH
   free_hash_table (cache->table);
 #endif
-  xfree (cache, struct gc_cache *);
+  xfree (cache);
 }
 
 GC
@@ -162,8 +158,8 @@ gc_cache_lookup (struct gc_cache *cache, XGCValues *gcv, unsigned long mask)
   (void) describe_gc_cache (cache, DGCCFLAG_DISABLE);
 #endif
 
-  if ((!!cache->head) != (!!cache->tail)) ABORT ();
-  if (cache->head && (cache->head->prev || cache->tail->next)) ABORT ();
+  assert ((!!cache->head) == (!!cache->tail));
+  assert (!(cache->head && (cache->head->prev || cache->tail->next)));
 
   gcvm.mask = mask;
   gcvm.gcv = *gcv;	/* this copies... */
@@ -215,10 +211,10 @@ gc_cache_lookup (struct gc_cache *cache, XGCValues *gcv, unsigned long mask)
       cell->prev = cache->tail;
       cache->tail->next = cell;
       cache->tail = cell;
-      if (cache->head == cell) ABORT ();
-      if (cell->next) ABORT ();
-      if (cache->head->prev) ABORT ();
-      if (cache->tail->next) ABORT ();
+      assert (cache->head != cell);
+      assert (!cell->next);
+      assert (!cache->head->prev);
+      assert (!cache->tail->next);
       return cell->gc;
     }
 

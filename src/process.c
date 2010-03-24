@@ -2,7 +2,7 @@
    Copyright (C) 1985, 1986, 1987, 1988, 1992, 1993, 1994, 1995
    Free Software Foundation, Inc.
    Copyright (C) 1995 Sun Microsystems, Inc.
-   Copyright (C) 1995, 1996, 2001, 2002, 2004, 2005 Ben Wing.
+   Copyright (C) 1995, 1996, 2001, 2002, 2004, 2005, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -145,12 +145,12 @@ mark_process (Lisp_Object object)
 }
 
 static void
-print_process (Lisp_Object object, Lisp_Object printcharfun, int escapeflag)
+print_process (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 {
-  Lisp_Process *process = XPROCESS (object);
+  Lisp_Process *process = XPROCESS (obj);
 
   if (print_readably)
-    printing_unreadable_object ("#<process %s>", XSTRING_DATA (process->name));
+    printing_unreadable_lisp_object (obj, XSTRING_DATA (process->name));
 
   if (!escapeflag)
     {
@@ -158,16 +158,16 @@ print_process (Lisp_Object object, Lisp_Object printcharfun, int escapeflag)
     }
   else
     {
-      int netp = network_connection_p (object);
-      write_c_string (printcharfun,
+      int netp = network_connection_p (obj);
+      write_ascstring (printcharfun,
 		      netp ? GETTEXT ("#<network connection ") :
 		      GETTEXT ("#<process "));
       print_internal (process->name, printcharfun, 1);
-      write_c_string (printcharfun, (netp ? " " : " pid "));
+      write_ascstring (printcharfun, (netp ? " " : " pid "));
       print_internal (process->pid, printcharfun, 1);
       write_fmt_string_lisp (printcharfun, " state:%S", 1, process->status_symbol);
       MAYBE_PROCMETH (print_process_data, (process, printcharfun));
-      write_c_string (printcharfun, ">");
+      write_ascstring (printcharfun, ">");
     }
 }
 
@@ -176,30 +176,25 @@ extern void debug_process_finalization (Lisp_Process *p);
 #endif /* HAVE_WINDOW_SYSTEM */
 
 static void
-finalize_process (void *header, int for_disksave)
+finalize_process (Lisp_Object obj)
 {
   /* #### this probably needs to be tied into the tty event loop */
   /* #### when there is one */
-  Lisp_Process *p = (Lisp_Process *) header;
+  Lisp_Process *p = XPROCESS (obj);
 #ifdef HAVE_WINDOW_SYSTEM
-  if (!for_disksave)
-    {
-      debug_process_finalization (p);
-    }
+  debug_process_finalization (p);
 #endif /* HAVE_WINDOW_SYSTEM */
 
   if (p->process_data)
     {
-      MAYBE_PROCMETH (finalize_process_data, (p, for_disksave));
-      if (!for_disksave)
-	xfree (p->process_data, void *);
+      MAYBE_PROCMETH (finalize_process_data, (p));
+      xfree (p->process_data);
     }
 }
 
-DEFINE_LRECORD_IMPLEMENTATION ("process", process,
-			       0, /*dumpable-flag*/
-                               mark_process, print_process, finalize_process,
-                               0, 0, process_description, Lisp_Process);
+DEFINE_NODUMP_LISP_OBJECT ("process", process,
+			   mark_process, print_process, finalize_process,
+			   0, 0, process_description, Lisp_Process);
 
 /************************************************************************/
 /*                       basic process accessors                        */
@@ -232,7 +227,7 @@ get_process_from_usid (USID usid)
   if (gethash ((const void*)usid, usid_to_process, &vval))
     {
       Lisp_Object process;
-      process = VOID_TO_LISP (vval);
+      process = GET_LISP_FROM_VOID (vval);
       return XPROCESS (process);
     }
   else
@@ -454,23 +449,24 @@ and the rest of the strings being the arguments given to it.
 /************************************************************************/
 
 DOESNT_RETURN
-report_process_error (const char *string, Lisp_Object data)
+report_process_error (const Ascbyte *reason, Lisp_Object data)
 {
-  report_error_with_errno (Qprocess_error, string, data);
+  report_error_with_errno (Qprocess_error, reason, data);
 }
 
 DOESNT_RETURN
-report_network_error (const char *string, Lisp_Object data)
+report_network_error (const Ascbyte *reason, Lisp_Object data)
 {
-  report_error_with_errno (Qnetwork_error, string, data);
+  report_error_with_errno (Qnetwork_error, reason, data);
 }
 
 Lisp_Object
 make_process_internal (Lisp_Object name)
 {
-  Lisp_Object val, name1;
+  Lisp_Object name1;
   int i;
-  Lisp_Process *p = ALLOC_LCRECORD_TYPE (Lisp_Process, &lrecord_process);
+  Lisp_Object obj = ALLOC_NORMAL_LISP_OBJECT (process);
+  Lisp_Process *p = XPROCESS (obj);
 
 #define MARKED_SLOT(x)	p->x = Qnil;
 #include "process-slots.h"
@@ -479,12 +475,12 @@ make_process_internal (Lisp_Object name)
   name1 = name;
   for (i = 1; ; i++)
     {
-      char suffix[10];
+      Ascbyte suffix[10];
       Lisp_Object tem = Fget_process (name1);
       if (NILP (tem))
         break;
       sprintf (suffix, "<%d>", i);
-      name1 = concat2 (name, build_string (suffix));
+      name1 = concat2 (name, build_ascstring (suffix));
     }
   name = name1;
   p->name = name;
@@ -495,10 +491,8 @@ make_process_internal (Lisp_Object name)
 
   MAYBE_PROCMETH (alloc_process_data, (p));
 
-  val = wrap_process (p);
-
-  Vprocess_list = Fcons (val, Vprocess_list);
-  return val;
+  Vprocess_list = Fcons (obj, Vprocess_list);
+  return obj;
 }
 
 void
@@ -560,14 +554,14 @@ init_process_io_handles (Lisp_Process *p, void* in, void* out, void* err,
     {
       Lisp_Object process = Qnil;
       process = wrap_process (p);
-      puthash ((const void*) in_usid, LISP_TO_VOID (process), usid_to_process);
+      puthash ((const void*) in_usid, STORE_LISP_IN_VOID (process), usid_to_process);
     }
 
   if (err_usid != USID_DONTHASH)
     {
       Lisp_Object process = Qnil;
       process = wrap_process (p);
-      puthash ((const void*) err_usid, LISP_TO_VOID (process),
+      puthash ((const void*) err_usid, STORE_LISP_IN_VOID (process),
 	       usid_to_process);
     }
 
@@ -746,7 +740,7 @@ arguments: (NAME BUFFER PROGRAM &rest PROGRAM-ARGS)
 
       tem = Qnil;
       NGCPRO1 (tem);
-      locate_file (list1 (build_string ("")), program, Vlisp_EXEC_SUFFIXES,
+      locate_file (list1 (build_ascstring ("")), program, Vlisp_EXEC_SUFFIXES,
 		   &tem, X_OK);
       if (NILP (tem))
 	signal_error (Qprocess_error, "Searching for program", program);
@@ -1570,11 +1564,11 @@ status_message (Lisp_Process *p)
 
   if (EQ (symbol, Qsignal) || EQ (symbol, Qstop))
     {
-      string = build_string (signal_name (code));
+      string = build_cistring (signal_name (code));
       if (coredump)
 	string2 = build_msg_string (" (core dumped)\n");
       else
-	string2 = build_string ("\n");
+	string2 = build_ascstring ("\n");
       set_string_char (string, 0,
 		       DOWNCASE (0, string_ichar (string, 0)));
       return concat2 (string, string2);
@@ -1587,7 +1581,7 @@ status_message (Lisp_Process *p)
       if (coredump)
 	string2 = build_msg_string (" (core dumped)\n");
       else
-	string2 = build_string ("\n");
+	string2 = build_ascstring ("\n");
       return concat2 (build_msg_string ("exited abnormally with code "),
 		      concat2 (string, string2));
     }
@@ -1696,9 +1690,9 @@ status_notify (void)
 	      int spec = process_setup_for_insertion (process, 0);
 
 	      NGCPRO1 (process);
-	      buffer_insert_c_string (current_buffer, "\nProcess ");
+	      buffer_insert_ascstring (current_buffer, "\nProcess ");
 	      Finsert (1, &p->name);
-	      buffer_insert_c_string (current_buffer, " ");
+	      buffer_insert_ascstring (current_buffer, " ");
 	      Finsert (1, &msg);
 	      Fset_marker (p->mark, make_int (BUF_PT (current_buffer)),
 			   p->buffer);
@@ -2308,14 +2302,14 @@ putenv_internal (const Ibyte *var,
 	  )
 	{
 	  XCAR (scan) = concat3 (make_string (var, varlen),
-				 build_string ("="),
+				 build_ascstring ("="),
 				 make_string (value, valuelen));
 	  return;
 	}
     }
 
   Vprocess_environment = Fcons (concat3 (make_string (var, varlen),
-					 build_string ("="),
+					 build_ascstring ("="),
 					 make_string (value, valuelen)),
 				Vprocess_environment);
 }
@@ -2348,7 +2342,7 @@ When invoked interactively, prints the value in the echo area.
 */
        (var, interactivep))
 {
-  Ibyte *value;
+  Ibyte *value = NULL;
   Bytecount valuelen;
   Lisp_Object v = Qnil;
   struct gcpro gcpro1;
@@ -2434,12 +2428,13 @@ init_xemacs_process (void)
     _wgetenv (L""); /* force initialization of _wenviron */
     for (envp = (Extbyte **) _wenviron; envp && *envp; envp++)
       Vprocess_environment =
-	Fcons (build_ext_string (*envp, Qmswindows_unicode),
+	Fcons (build_extstring (*envp, Qmswindows_unicode),
 	       Vprocess_environment);
 #else
     for (envp = environ; envp && *envp; envp++)
       Vprocess_environment =
-	Fcons (build_ext_string (*envp, Qnative), Vprocess_environment);
+	Fcons (build_extstring (*envp, Qenvironment_variable_encoding),
+	       Vprocess_environment);
 #endif
     /* This gets set back to 0 in disksave_object_finalization() */
     env_initted = 1;
@@ -2478,19 +2473,19 @@ init_xemacs_process (void)
       {
 	Ibyte *faux_var = alloca_ibytes (7 + qxestrlen (shell));
 	qxesprintf (faux_var, "SHELL=%s", shell);
-	Vprocess_environment = Fcons (build_intstring (faux_var),
+	Vprocess_environment = Fcons (build_istring (faux_var),
 				      Vprocess_environment);
       }
 #endif /* 0 */
 
-    Vshell_file_name = build_intstring (shell);
+    Vshell_file_name = build_istring (shell);
   }
 }
 
 void
 syms_of_process (void)
 {
-  INIT_LRECORD_IMPLEMENTATION (process);
+  INIT_LISP_OBJECT (process);
 
   DEFSYMBOL (Qprocessp);
   DEFSYMBOL (Qprocess_live_p);
@@ -2604,7 +2599,7 @@ with memory-mapping.  We don't provide a Lisp variable for this because
 the operations needing this are lower level than what ELisp programs
 typically do, and in any case no equivalent exists under native MS Windows.
 */ );
-  Vnull_device = build_string (NULL_DEVICE);
+  Vnull_device = build_ascstring (NULL_DEVICE);
 
   DEFVAR_LISP ("process-connection-type", &Vprocess_connection_type /*
 Control type of device used to communicate with subprocesses.
@@ -2684,6 +2679,6 @@ The environment which Emacs inherits is placed in this variable
 when Emacs starts.
 */ );
 
-  Vlisp_EXEC_SUFFIXES = build_string (EXEC_SUFFIXES);
+  Vlisp_EXEC_SUFFIXES = build_ascstring (EXEC_SUFFIXES);
   staticpro (&Vlisp_EXEC_SUFFIXES);
 }

@@ -78,11 +78,6 @@
 
 ;; (message (concat "Options: " (prin1-to-string options)))
 
-;; insert-file-contents-internal calls out to `format-decode' afterwards,
-;; so it must be defined.  if non-zero, it tries to do a bunch more stuff
-;; so say, "NOOOOOOOOOOOOO!  Basta!  Ca soufit!   Enough, already, OK?"
-(defun format-decode (fuck me harder) 0)
-
 ;; Next process the list of C files.
 (defun process-args (args)
   (while args
@@ -97,7 +92,7 @@
 	  ;; no generate-new-buffer so use its implementation.
 	  (let ((buf (get-buffer-create (generate-new-buffer-name "foo"))))
 	    (set-buffer buf)
-	    (insert-file-contents-internal (substring arg 1))
+	    (insert-file-contents-internal (subseq arg 1))
 	    ;; now majorly grind up the response file.
 	    ;; backslashes get doubled, quotes around strings,
 	    ;; get rid of pesky CR's and NL's, and put parens around
@@ -128,8 +123,7 @@
 		       (concat 
 			(file-name-nondirectory
 			 ;; no match-string so use its implementation.
-			 (substring arg (match-beginning 1)
-				    (match-end 1)))
+			 (subseq arg (match-beginning 1) (match-end 1)))
 			".c")
 		       source-src)))
 	  (if (and (null docfile-out-of-date)

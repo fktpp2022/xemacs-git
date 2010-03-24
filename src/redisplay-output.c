@@ -3,6 +3,7 @@
    Copyright (C) 1995, 1996, 2002, 2003 Ben Wing.
    Copyright (C) 1996 Chuck Thompson.
    Copyright (C) 1999, 2002 Andy Piper.
+   Copyright (C) 2010 Didier Verna
 
 This file is part of XEmacs.
 
@@ -83,7 +84,7 @@ sync_rune_structs (struct window *UNUSED (w), rune_dynarr *cra,
 	 redisplay performance so avoiding all excess overhead is a
 	 good thing.  Is all of this true? */
       memcpy (cra->base, dra->base, sizeof (struct rune) * max_move);
-      Dynarr_set_size (cra, max_move);
+      Dynarr_set_lengthr (cra, max_move);
     }
   else
     Dynarr_reset (cra);
@@ -171,7 +172,7 @@ sync_display_line_structs (struct window *w, int line, int do_blocks,
 	      tr = cdb->runes;
 	      memcpy (cdb, ddb, sizeof (struct display_block));
 	      cdb->runes = tr;
-	      Dynarr_increment (clp->display_blocks);
+	      Dynarr_incrementr (clp->display_blocks);
 	    }
 
 	  sync_rune_structs (w, cdb->runes, ddb->runes);
@@ -183,7 +184,7 @@ sync_display_line_structs (struct window *w, int line, int do_blocks,
   else if (line >= Dynarr_length (cdla))
     {
       assert (line == Dynarr_length (cdla));
-      Dynarr_increment (cdla);
+      Dynarr_incrementr (cdla);
     }
 }
 
@@ -422,7 +423,10 @@ get_next_display_block (layout_bounds bounds, display_block_dynarr *dba,
       else if (start_pos <= bounds.right_out)
 	*next_start = bounds.right_out;
       else
-	ABORT ();
+	{
+	  ABORT ();
+	  *next_start = 0;
+	}
     }
 
   for (block = 0; block < Dynarr_length (dba); block++)
@@ -472,7 +476,7 @@ get_cursor_size_and_location (struct window *w, struct display_block *db,
   rb = Dynarr_atp (db->runes, cursor_location);
   *cursor_start = rb->xpos;
 
-  default_face_height_and_width (window, &defheight, &defwidth);
+  default_face_width_and_height (window, &defwidth, &defheight);
   *cursor_height = defheight;
 
   if (rb->type == RUNE_BLANK)
@@ -513,8 +517,8 @@ compare_display_blocks (struct window *w, struct display_line *cdl,
   block_end =
     (!Dynarr_length (ddb->runes)
      ? 0
-     : (Dynarr_atp (ddb->runes, Dynarr_length (ddb->runes) - 1)->xpos +
-	Dynarr_atp (ddb->runes, Dynarr_length (ddb->runes) - 1)->width));
+     : (Dynarr_lastp (ddb->runes)->xpos +
+	Dynarr_lastp (ddb->runes)->width));
 #endif
 
   /* If the new block type is not text and the cursor status is
@@ -634,8 +638,8 @@ clear_left_border (struct window *w, int y, int height)
   Lisp_Object window = wrap_window (w);
 
   redisplay_clear_region (window, DEFAULT_INDEX,
-		FRAME_LEFT_BORDER_START (f), y,
-		FRAME_BORDER_WIDTH (f), height);
+			  FRAME_LEFT_INTERNAL_BORDER_START (f), y,
+			  FRAME_INTERNAL_BORDER_WIDTH (f), height);
 }
 
 /*****************************************************************************
@@ -650,8 +654,8 @@ clear_right_border (struct window *w, int y, int height)
   Lisp_Object window = wrap_window (w);
 
   redisplay_clear_region (window, DEFAULT_INDEX,
-		FRAME_RIGHT_BORDER_START (f),
-		y, FRAME_BORDER_WIDTH (f), height);
+			  FRAME_RIGHT_INTERNAL_BORDER_START (f),
+			  y, FRAME_INTERNAL_BORDER_WIDTH (f), height);
 }
 
 /*****************************************************************************
@@ -690,7 +694,8 @@ output_display_line (struct window *w, display_line_dynarr *cdla,
       cdba = NULL;
     }
 
-  ddl = Dynarr_atp (ddla, line);      /* assert line < Dynarr_length (ddla) */
+  /* The following will assert line < Dynarr_length (ddla) */
+  ddl = Dynarr_atp (ddla, line);
   ddba = ddl->display_blocks;
 
   if (force_start >= 0 && force_start >= ddl->bounds.left_out)
@@ -714,7 +719,7 @@ output_display_line (struct window *w, display_line_dynarr *cdla,
 	 block, if present, must always be the first display block. */
       assert (Dynarr_length (ddba) != 0);
 
-      db = Dynarr_atp (ddba, 0);
+      db = Dynarr_begin (ddba);
       assert (db->type == TEXT);
 
       get_cursor_size_and_location (w, db, ddl->cursor_elt, &cursor_start,
@@ -1025,7 +1030,7 @@ redisplay_move_cursor (struct window *w, Charbpos new_point, int no_output_end)
       w->last_point_y[CURRENT_DISP] = y;
       Fset_marker (w->last_point[CURRENT_DISP], Qzero, w->buffer);
 
-      rb = Dynarr_atp (db->runes, 0);
+      rb = Dynarr_begin (db->runes);
       rb->cursor_type = CURSOR_ON;
       dl->cursor_elt = 0;
 
@@ -1658,8 +1663,7 @@ redisplay_output_pixmap (struct window *w,
   dga->width = IMAGE_INSTANCE_PIXMAP_WIDTH (p);
 
 #ifdef DEBUG_REDISPLAY
-  printf ("redisplay_output_pixmap(request) \
-[%dx%d@%d+%d] in [%dx%d@%d+%d]\n",
+  printf ("redisplay_output_pixmap(request) [%dx%d@%d+%d] in [%dx%d@%d+%d]\n",
 	  db->width, db->height, db->xpos, db->ypos,
 	  dga->width, dga->height, dga->xoffset, dga->yoffset);
 #endif
@@ -1669,8 +1673,7 @@ redisplay_output_pixmap (struct window *w,
     return;
 
 #ifdef DEBUG_REDISPLAY
-  printf ("redisplay_output_pixmap(normalized) \
-[%dx%d@%d+%d] in [%dx%d@%d+%d]\n",
+  printf ("redisplay_output_pixmap(normalized) [%dx%d@%d+%d] in [%dx%d@%d+%d]\n",
 	  db->width, db->height, db->xpos, db->ypos,
 	  dga->width, dga->height, dga->xoffset, dga->yoffset);
 #endif
@@ -1717,6 +1720,7 @@ redisplay_clear_region (Lisp_Object locale, face_index findex, int x, int y,
   struct frame *f = NULL;
   struct device *d;
   Lisp_Object background_pixmap = Qunbound;
+  Lisp_Object background_placement = Qunbound;
   Lisp_Object fcolor = Qnil, bcolor = Qnil;
 
   if (!width || !height)
@@ -1743,11 +1747,12 @@ redisplay_clear_region (Lisp_Object locale, face_index findex, int x, int y,
   /* #### This isn't quite right for when this function is called
      from the toolbar code. */
 
+  /* #### GEOM! This uses a backing pixmap in the gutter.  Correct? */
   /* Don't use a backing pixmap in the border area */
-  if (x >= FRAME_LEFT_BORDER_END (f)
-      && x < FRAME_RIGHT_BORDER_START (f)
-      && y >= FRAME_TOP_BORDER_END (f)
-      && y < FRAME_BOTTOM_BORDER_START (f))
+  if (x >= FRAME_LEFT_INTERNAL_BORDER_END (f)
+      && x < FRAME_RIGHT_INTERNAL_BORDER_START (f)
+      && y >= FRAME_TOP_INTERNAL_BORDER_END (f)
+      && y < FRAME_BOTTOM_INTERNAL_BORDER_START (f))
     {
       Lisp_Object temp;
 
@@ -1761,22 +1766,26 @@ redisplay_clear_region (Lisp_Object locale, face_index findex, int x, int y,
 	      /* #### maybe we could implement such that a string
 		 can be a background pixmap? */
 	      background_pixmap = temp;
+	      background_placement
+		= WINDOW_FACE_CACHEL_BACKGROUND_PLACEMENT (w, findex);
 	    }
 	}
       else
 	{
 	  temp = FACE_BACKGROUND_PIXMAP (Vdefault_face, locale);
-
+	  
 	  if (IMAGE_INSTANCEP (temp)
 	      && IMAGE_INSTANCE_PIXMAP_TYPE_P (XIMAGE_INSTANCE (temp)))
 	    {
 	      background_pixmap = temp;
+	      background_placement
+		= FACE_BACKGROUND_PLACEMENT (Vdefault_face, locale);
 	    }
 	}
     }
 
-  if (!UNBOUNDP (background_pixmap) &&
-      XIMAGE_INSTANCE_PIXMAP_DEPTH (background_pixmap) == 0)
+  if (!UNBOUNDP (background_pixmap)
+      && XIMAGE_INSTANCE_PIXMAP_DEPTH (background_pixmap) == 0)
     {
       if (w)
 	{
@@ -1800,8 +1809,9 @@ redisplay_clear_region (Lisp_Object locale, face_index findex, int x, int y,
   if (UNBOUNDP (background_pixmap))
     background_pixmap = Qnil;
 
-  DEVMETH (d, clear_region,
-	   (locale, d, f, findex, x, y, width, height, fcolor, bcolor, background_pixmap));
+  DEVMETH (d, clear_region, (locale, d, f, findex, x, y, width, height,
+			     fcolor, bcolor, 
+			     background_pixmap, background_placement));
 }
 
 /****************************************************************************
@@ -2087,7 +2097,10 @@ redisplay_clear_top_of_window (struct window *w)
 {
   Lisp_Object window = wrap_window (w);
 
-
+  /* #### GEOM! FIXME #### This is definitely wrong.  It was clearly not
+     fixed up to accommodate the gutter.  The internal border width is now
+     no longer adjacent to the leftmost window, since the gutter
+     intervenes. */
   if (!NILP (Fwindow_highest_p (window)))
     {
       struct frame *f = XFRAME (w->frame);
@@ -2098,14 +2111,15 @@ redisplay_clear_top_of_window (struct window *w)
 
       if (window_is_leftmost (w))
 	{
-	  x -= FRAME_BORDER_WIDTH (f);
-	  width += FRAME_BORDER_WIDTH (f);
+	  x -= FRAME_INTERNAL_BORDER_WIDTH (f);
+	  width += FRAME_INTERNAL_BORDER_WIDTH (f);
 	}
       if (window_is_rightmost (w))
-	width += FRAME_BORDER_WIDTH (f);
+	width += FRAME_INTERNAL_BORDER_WIDTH (f);
 
-      y = FRAME_TOP_BORDER_START (f) - 1;
-      height = FRAME_BORDER_HEIGHT (f) + 1;
+      /* #### This off-by-one stuff also occurs in XLIKE_clear_frame(). */
+      y = FRAME_TOP_INTERNAL_BORDER_START (f) - 1;
+      height = FRAME_INTERNAL_BORDER_HEIGHT (f) + 1;
 
       redisplay_clear_region (window, DEFAULT_INDEX, x, y, width, height);
     }
@@ -2140,12 +2154,15 @@ redisplay_clear_to_window_end (struct window *w, int ypos1, int ypos2)
 	  window = wrap_window (w);
 
 	  if (window_is_leftmost (w))
-	    redisplay_clear_region (window, DEFAULT_INDEX, FRAME_LEFT_BORDER_START (f),
-				    ypos1, FRAME_BORDER_WIDTH (f), height);
+	    redisplay_clear_region (window, DEFAULT_INDEX,
+				    FRAME_LEFT_INTERNAL_BORDER_START (f),
+				    ypos1, FRAME_INTERNAL_BORDER_WIDTH (f),
+				    height);
 
 	  if (bounds.left_in - bounds.left_out > 0)
 	    redisplay_clear_region (window,
-				    get_builtin_face_cache_index (w, Vleft_margin_face),
+				    get_builtin_face_cache_index
+				    (w, Vleft_margin_face),
 				    bounds.left_out, ypos1,
 				    bounds.left_in - bounds.left_out, height);
 
@@ -2157,13 +2174,17 @@ redisplay_clear_to_window_end (struct window *w, int ypos1, int ypos2)
 
 	  if (bounds.right_out - bounds.right_in > 0)
 	    redisplay_clear_region (window,
-				    get_builtin_face_cache_index (w, Vright_margin_face),
+				    get_builtin_face_cache_index
+				    (w, Vright_margin_face),
 				    bounds.right_in, ypos1,
-				    bounds.right_out - bounds.right_in, height);
+				    bounds.right_out - bounds.right_in,
+				    height);
 
 	  if (window_is_rightmost (w))
-	    redisplay_clear_region (window, DEFAULT_INDEX, FRAME_RIGHT_BORDER_START (f),
-				    ypos1, FRAME_BORDER_WIDTH (f), height);
+	    redisplay_clear_region (window, DEFAULT_INDEX,
+				    FRAME_RIGHT_INTERNAL_BORDER_START (f),
+				    ypos1, FRAME_INTERNAL_BORDER_WIDTH (f),
+				    height);
 	}
     }
 }
@@ -2192,7 +2213,7 @@ redisplay_clear_bottom_of_window (struct window *w, display_line_dynarr *ddla,
 
   if (ddla_len)
     {
-      if (ddla_len == 1 && Dynarr_atp (ddla, 0)->modeline)
+      if (ddla_len == 1 && Dynarr_begin (ddla)->modeline)
 	{
 	  ypos1 = WINDOW_TEXT_TOP (w);
 #ifdef HAVE_SCROLLBARS
@@ -2213,7 +2234,7 @@ redisplay_clear_bottom_of_window (struct window *w, display_line_dynarr *ddla,
   /* #### See if this can be made conditional on the frame
      changing size. */
   if (MINI_WINDOW_P (w))
-    ypos2 += FRAME_BORDER_HEIGHT (f);
+    ypos2 += FRAME_INTERNAL_BORDER_HEIGHT (f);
 
   if (min_start >= 0 && ypos1 < min_start)
     ypos1 = min_start;
@@ -2394,9 +2415,9 @@ redisplay_output_window (struct window *w)
 	  cdl = ddl = 0;
 
 	  if (cdla_len)
-	    cdl = Dynarr_atp (cdla, 0);
+	    cdl = Dynarr_begin (cdla);
 	  if (ddla_len)
-	    ddl = Dynarr_atp (ddla, 0);
+	    ddl = Dynarr_begin (ddla);
 
 	  if (!cdl || !ddl)
 	    need_to_clear_bottom = 1;
@@ -2460,7 +2481,7 @@ redisplay_output_window (struct window *w)
   /* If the number of display lines has shrunk, adjust. */
   if (cdla_len > ddla_len)
     {
-      Dynarr_length (cdla) = ddla_len;
+      Dynarr_set_lengthr (cdla, ddla_len);
     }
 
   /* Output a vertical divider between windows, if necessary. */

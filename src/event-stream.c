@@ -2,7 +2,7 @@
    Copyright (C) 1991, 1992, 1993, 1994, 1995 Free Software Foundation, Inc.
    Copyright (C) 1995 Board of Trustees, University of Illinois.
    Copyright (C) 1995 Sun Microsystems, Inc.
-   Copyright (C) 1995, 1996, 2001, 2002, 2003 Ben Wing.
+   Copyright (C) 1995, 1996, 2001, 2002, 2003, 2005, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -243,6 +243,8 @@ int inhibit_input_event_recording;
 
 Lisp_Object Qself_insert_defer_undo;
 
+Lisp_Object Qsans_modifiers;
+
 int in_modal_loop;
 
 /* the number of keyboard characters read.  callint.c wants this. */
@@ -255,13 +257,14 @@ static Lisp_Object QSexecute_internal_event;
 Fixnum debug_emacs_events;
 
 static void
-external_debugging_print_event (const char *event_description, Lisp_Object event)
+external_debugging_print_event (const Ascbyte *event_description,
+				Lisp_Object event)
 {
-  write_c_string (Qexternal_debugging_output, "(");
-  write_c_string (Qexternal_debugging_output, event_description);
-  write_c_string (Qexternal_debugging_output, ") ");
+  write_ascstring (Qexternal_debugging_output, "(");
+  write_ascstring (Qexternal_debugging_output, event_description);
+  write_ascstring (Qexternal_debugging_output, ") ");
   print_internal (event,	     Qexternal_debugging_output, 1);
-  write_c_string (Qexternal_debugging_output, "\n");
+  write_ascstring (Qexternal_debugging_output, "\n");
 }
 #define DEBUG_PRINT_EMACS_EVENT(event_description, event) do {	\
   if (debug_emacs_events)					\
@@ -329,10 +332,6 @@ static int is_scrollbar_event (Lisp_Object event);
 #define CHECK_COMMAND_BUILDER(x) CHECK_RECORD (x, command_builder)
 #define CONCHECK_COMMAND_BUILDER(x) CONCHECK_RECORD (x, command_builder)
 
-#ifndef NEW_GC
-static Lisp_Object Vcommand_builder_free_list;
-#endif /* not NEW_GC */
-
 static const struct memory_description command_builder_description [] = {
   { XD_LISP_OBJECT, offsetof (struct command_builder, current_events) },
   { XD_LISP_OBJECT, offsetof (struct command_builder, most_current_event) },
@@ -355,25 +354,22 @@ mark_command_builder (Lisp_Object obj)
 }
 
 static void
-finalize_command_builder (void *header, int for_disksave)
+finalize_command_builder (Lisp_Object obj)
 {
-  if (!for_disksave)
+  struct command_builder *b = XCOMMAND_BUILDER (obj);
+  if (b->echo_buf)
     {
-      struct command_builder *b = (struct command_builder *) header;
-      if (b->echo_buf)
-	{
-	  xfree (b->echo_buf, Ibyte *);
-	  b->echo_buf = 0;
-	}
+      xfree (b->echo_buf);
+      b->echo_buf = 0;
     }
 }
 
-DEFINE_LRECORD_IMPLEMENTATION ("command-builder", command_builder,
-			       0, /*dumpable-flag*/
-                               mark_command_builder, internal_object_printer,
-			       finalize_command_builder, 0, 0, 
-			       command_builder_description,
-			       struct command_builder);
+DEFINE_NODUMP_LISP_OBJECT ("command-builder", command_builder,
+			   mark_command_builder,
+			   internal_object_printer,
+			   finalize_command_builder, 0, 0, 
+			   command_builder_description,
+			   struct command_builder);
 
 static void
 reset_command_builder_event_chain (struct command_builder *builder)
@@ -388,13 +384,7 @@ reset_command_builder_event_chain (struct command_builder *builder)
 Lisp_Object
 allocate_command_builder (Lisp_Object console, int with_echo_buf)
 {
-  Lisp_Object builder_obj =
-#ifdef NEW_GC
-    wrap_pointer_1 (alloc_lrecord_type (struct command_builder,
-					 &lrecord_command_builder));
-#else /* not NEW_GC */
-    alloc_managed_lcrecord (Vcommand_builder_free_list);
-#endif /* not NEW_GC */
+  Lisp_Object builder_obj = ALLOC_NORMAL_LISP_OBJECT (command_builder);
   struct command_builder *builder = XCOMMAND_BUILDER (builder_obj);
 
   builder->console = console;
@@ -462,15 +452,10 @@ free_command_builder (struct command_builder *builder)
 {
   if (builder->echo_buf)
     {
-      xfree (builder->echo_buf, Ibyte *);
+      xfree (builder->echo_buf);
       builder->echo_buf = NULL;
     }
-#ifdef NEW_GC
-  free_lrecord (wrap_command_builder (builder));
-#else /* not NEW_GC */
-  free_managed_lcrecord (Vcommand_builder_free_list,
-			 wrap_command_builder (builder));
-#endif /* not NEW_GC */
+  free_normal_lisp_object (wrap_command_builder (builder));
 }
 
 static void
@@ -846,7 +831,7 @@ execute_help_form (struct command_builder *command_builder,
 
   help = IGNORE_MULTIPLE_VALUES (Feval (Vhelp_form));
   if (STRINGP (help))
-    internal_with_output_to_temp_buffer (build_string ("*Help*"),
+    internal_with_output_to_temp_buffer (build_ascstring ("*Help*"),
 					 print_help, help, Qnil);
   Fnext_command_event (event, Qnil);
   /* Remove the help from the frame */
@@ -1034,10 +1019,6 @@ static int timeout_id_tick;
 
 static Lisp_Object pending_timeout_list, pending_async_timeout_list;
 
-#ifndef NEW_GC
-static Lisp_Object Vtimeout_free_list;
-#endif /* not NEW_GC */
-
 static Lisp_Object
 mark_timeout (Lisp_Object obj)
 {
@@ -1052,10 +1033,9 @@ static const struct memory_description timeout_description[] = {
   { XD_END }
 };
 
-DEFINE_LRECORD_IMPLEMENTATION ("timeout", timeout,
-			       1, /*dumpable-flag*/
-			       mark_timeout, internal_object_printer,
-			       0, 0, 0, timeout_description, Lisp_Timeout);
+DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("timeout", timeout,
+				      mark_timeout, timeout_description,
+				      Lisp_Timeout);
 
 /* Generate a timeout and return its ID. */
 
@@ -1065,12 +1045,7 @@ event_stream_generate_wakeup (unsigned int milliseconds,
 			      Lisp_Object function, Lisp_Object object,
 			      int async_p)
 {
-#ifdef NEW_GC
-  Lisp_Object op = 
-    wrap_pointer_1 (alloc_lrecord_type (Lisp_Timeout, &lrecord_timeout));
-#else /* not NEW_GC */
-  Lisp_Object op = alloc_managed_lcrecord (Vtimeout_free_list);
-#endif /* not NEW_GC */
+  Lisp_Object op = ALLOC_NORMAL_LISP_OBJECT (timeout);
   Lisp_Timeout *timeout = XTIMEOUT (op);
   EMACS_TIME current_time;
   EMACS_TIME interval;
@@ -1146,7 +1121,7 @@ event_stream_resignal_wakeup (int interval_id, int async_p,
   op = XCAR (rest);
   timeout = XTIMEOUT (op);
   /* We make sure to snarf the data out of the timeout object before
-     we free it with free_managed_lcrecord(). */
+     we free it with free_normal_lisp_object(). */
   id = timeout->id;
   *function = timeout->function;
   *object = timeout->object;
@@ -1188,11 +1163,7 @@ event_stream_resignal_wakeup (int interval_id, int async_p,
       *timeout_list = noseeum_cons (op, *timeout_list);
     }
   else
-#ifdef NEW_GC
-    free_lrecord (op);
-#else /* not NEW_GC */
-    free_managed_lcrecord (Vtimeout_free_list, op);
-#endif /* not NEW_GC */
+    free_normal_lisp_object (op);
 
   UNGCPRO;
   return id;
@@ -1229,11 +1200,7 @@ event_stream_disable_wakeup (int id, int async_p)
 	signal_remove_async_interval_timeout (timeout->interval_id);
       else
 	event_stream_remove_timeout (timeout->interval_id);
-#ifdef NEW_GC
-      free_lrecord (op);
-#else /* not NEW_GC */
-      free_managed_lcrecord (Vtimeout_free_list, op);
-#endif /* not NEW_GC */
+      free_normal_lisp_object (op);
     }
 }
 
@@ -1328,7 +1295,7 @@ is a race condition.  That's why the RESIGNAL argument exists.
   Lisp_Object lid;
   id = event_stream_generate_wakeup (msecs, msecs2, function, object, 0);
   lid = make_int (id);
-  if (id != XINT (lid)) ABORT ();
+  assert (id == XINT (lid));
   return lid;
 }
 
@@ -1407,7 +1374,7 @@ is a race condition.  That's why the RESIGNAL argument exists.
   Lisp_Object lid;
   id = event_stream_generate_wakeup (msecs, msecs2, function, object, 1);
   lid = make_int (id);
-  if (id != XINT (lid)) ABORT ();
+  assert (id == XINT (lid));
   return lid;
 }
 
@@ -3777,8 +3744,7 @@ modify them.
   {
     Lisp_Object e = XVECTOR_DATA (Vrecent_keys_ring)[j];
 
-    if (NILP (e))
-      ABORT ();
+    assert (!NILP (e));
     XVECTOR_DATA (val)[i] = Fcopy_event (e, Qnil);
     if (++j >= recent_keys_ring_size)
       j = 0;
@@ -4137,7 +4103,7 @@ lookup_command_event (struct command_builder *command_builder,
 }
 
 static int
-is_scrollbar_event (Lisp_Object event)
+is_scrollbar_event (Lisp_Object USED_IF_SCROLLBARS (event))
 {
 #ifdef HAVE_SCROLLBARS
   Lisp_Object fun;
@@ -4875,8 +4841,8 @@ CONSOLE defaults to the selected console if omitted.
 void
 syms_of_event_stream (void)
 {
-  INIT_LRECORD_IMPLEMENTATION (command_builder);
-  INIT_LRECORD_IMPLEMENTATION (timeout);
+  INIT_LISP_OBJECT (command_builder);
+  INIT_LISP_OBJECT (timeout);
 
   DEFSYMBOL (Qdisabled);
   DEFSYMBOL (Qcommand_event_p);
@@ -4922,6 +4888,8 @@ syms_of_event_stream (void)
 
   DEFSYMBOL (Qnext_event);
   DEFSYMBOL (Qdispatch_event);
+
+  DEFSYMBOL (Qsans_modifiers);
 }
 
 void
@@ -4930,15 +4898,6 @@ reinit_vars_of_event_stream (void)
   recent_keys_ring_index = 0;
   recent_keys_ring_size = 100;
   num_input_chars = 0;
-#ifndef NEW_GC
-  Vtimeout_free_list = make_lcrecord_list (sizeof (Lisp_Timeout),
-					   &lrecord_timeout);
-  staticpro_nodump (&Vtimeout_free_list);
-  Vcommand_builder_free_list =
-    make_lcrecord_list (sizeof (struct command_builder),
-			&lrecord_command_builder);
-  staticpro_nodump (&Vcommand_builder_free_list);
-#endif /* not NEW_GC */
   the_low_level_timeout_blocktype =
     Blocktype_new (struct low_level_timeout_blocktype);
   something_happened = 0;
@@ -4979,9 +4938,9 @@ vars_of_event_stream (void)
   last_point_position_buffer = Qnil;
   staticpro (&last_point_position_buffer);
 
-  QSnext_event_internal = build_string ("next_event_internal()");
+  QSnext_event_internal = build_ascstring ("next_event_internal()");
   staticpro (&QSnext_event_internal);
-  QSexecute_internal_event = build_string ("execute_internal_event()");
+  QSexecute_internal_event = build_ascstring ("execute_internal_event()");
   staticpro (&QSexecute_internal_event);
 
   DEFVAR_LISP ("echo-keystrokes", &Vecho_keystrokes /*

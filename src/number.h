@@ -71,12 +71,12 @@ Boston, MA 02111-1301, USA.  */
 
 struct Lisp_Bignum
 {
-  struct lrecord_header lheader;
+  FROB_BLOCK_LISP_OBJECT_HEADER lheader;
   bignum data;
 };
 typedef struct Lisp_Bignum Lisp_Bignum;
 
-DECLARE_LRECORD (bignum, Lisp_Bignum);
+DECLARE_LISP_OBJECT (bignum, Lisp_Bignum);
 #define XBIGNUM(x) XRECORD (x, bignum, Lisp_Bignum)
 #define wrap_bignum(p) wrap_record (p, bignum)
 #define BIGNUMP(x) RECORDP (x, bignum)
@@ -130,8 +130,7 @@ EXFUN (Fbignump, 1);
 
 
 /********************************* Integers *********************************/
-extern Lisp_Object Qintegerp;
-
+/* Qintegerp in lisp.h */
 #define INTEGERP(x) (INTP(x) || BIGNUMP(x))
 #define CHECK_INTEGER(x) do {			\
  if (!INTEGERP (x))				\
@@ -160,12 +159,12 @@ EXFUN (Foddp, 1);
 
 struct Lisp_Ratio
 {
-  struct lrecord_header lheader;
+  FROB_BLOCK_LISP_OBJECT_HEADER lheader;
   ratio data;
 };
 typedef struct Lisp_Ratio Lisp_Ratio;
 
-DECLARE_LRECORD (ratio, Lisp_Ratio);
+DECLARE_LISP_OBJECT (ratio, Lisp_Ratio);
 #define XRATIO(x) XRECORD (x, ratio, Lisp_Ratio)
 #define wrap_ratio(p) wrap_record (p, ratio)
 #define RATIOP(x) RECORDP (x, ratio)
@@ -234,12 +233,12 @@ EXFUN (Fdenominator, 1);
 #ifdef HAVE_BIGFLOAT
 struct Lisp_Bigfloat
 {
-  struct lrecord_header lheader;
+  FROB_BLOCK_LISP_OBJECT_HEADER lheader;
   bigfloat bf;
 };
 typedef struct Lisp_Bigfloat Lisp_Bigfloat;
 
-DECLARE_LRECORD (bigfloat, Lisp_Bigfloat);
+DECLARE_LISP_OBJECT (bigfloat, Lisp_Bigfloat);
 #define XBIGFLOAT(x) XRECORD (x, bigfloat, Lisp_Bigfloat)
 #define wrap_bigfloat(p) wrap_record (p, bigfloat)
 #define BIGFLOATP(x) RECORDP (x, bigfloat)
@@ -285,7 +284,7 @@ extern Lisp_Object Qbigfloatp;
 EXFUN (Fbigfloatp, 1);
 
 /********************************* Floating *********************************/
-extern Lisp_Object Qfloatingp, Qbigfloat;
+extern Lisp_Object Qfloatingp;
 extern Lisp_Object Qread_default_float_format, Vread_default_float_format;
 
 #define FLOATINGP(x) (FLOATP (x) || BIGFLOATP (x))
@@ -319,8 +318,7 @@ EXFUN (Frealp, 1);
 
 
 /********************************* Numbers **********************************/
-extern Lisp_Object Qnumberp;
-
+/* Qnumberp in lisp.h */
 #define NUMBERP(x) REALP (x)
 #define CHECK_NUMBER(x) do {			\
   if (!NUMBERP (x))				\
@@ -337,5 +335,36 @@ enum number_type {FIXNUM_T, BIGNUM_T, RATIO_T, FLOAT_T, BIGFLOAT_T};
 
 extern enum number_type get_number_type (Lisp_Object);
 extern enum number_type promote_args (Lisp_Object *, Lisp_Object *);
+
+#ifdef WITH_NUMBER_TYPES
+DECLARE_INLINE_HEADER (
+int
+non_fixnum_number_p (Lisp_Object object))
+{
+  if (LRECORDP (object))
+    {
+      switch (XRECORD_LHEADER (object)->type)
+        {
+        case lrecord_type_float:
+#ifdef HAVE_BIGNUM
+        case lrecord_type_bignum:
+#endif
+#ifdef HAVE_RATIO
+        case lrecord_type_ratio:
+#endif
+#ifdef HAVE_BIGFLOAT
+        case lrecord_type_bigfloat:
+#endif
+          return 1;
+        }
+    }
+  return 0;
+}
+#define NON_FIXNUM_NUMBER_P(X) non_fixnum_number_p (X)
+
+#else
+#define NON_FIXNUM_NUMBER_P FLOATP
+#endif
+
 
 #endif /* INCLUDED_number_h_ */

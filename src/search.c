@@ -1,7 +1,7 @@
 /* String search routines for XEmacs.
    Copyright (C) 1985, 1986, 1987, 1992-1995 Free Software Foundation, Inc.
    Copyright (C) 1995 Sun Microsystems, Inc.
-   Copyright (C) 2001, 2002 Ben Wing.
+   Copyright (C) 2001, 2002, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -50,9 +50,16 @@ Boston, MA 02111-1307, USA.  */
 #ifdef DEBUG_XEMACS
 
 /* Used in tests/automated/case-tests.el if available. */
-Fixnum debug_xemacs_searches;
+Fixnum debug_searches;
+
+/* Declare as int rather than Bitflags because it's used by regex.c, which
+   may be used outside of XEmacs (e.g. etags.c). */
+int debug_regexps;
+Lisp_Object Vdebug_regexps;
 
 Lisp_Object Qsearch_algorithm_used, Qboyer_moore, Qsimple_search;
+
+Lisp_Object Qcompilation, Qfailure_point, Qmatching;
 
 #endif
 
@@ -184,7 +191,7 @@ compile_pattern_1 (struct regexp_cache *cp, Lisp_Object pattern,
   re_set_syntax (old);
   if (val)
     {
-      maybe_signal_error (Qinvalid_regexp, 0, build_string (val),
+      maybe_signal_error (Qinvalid_regexp, 0, build_cistring (val),
 			  Qsearch, errb);
       return 0;
     }
@@ -1425,12 +1432,43 @@ search_buffer (struct buffer *buf, Lisp_Object string, Charbpos charbpos,
                           break;
                         }
                     }
+
+		  if (ichar_len (c) > 2)
+		    {
+		      /* Case-equivalence plus repeated octets throws off
+			 the construction of the stride table; avoid this.
+
+		         It should be possible to correct boyer_moore to
+		         behave correctly even in this case--it doesn't have
+		         problems with repeated octets when case conversion
+		         is not involved--but this is not a critical
+		         issue. */
+		      Ibyte encoded[MAX_ICHAR_LEN];
+		      Bytecount clen = set_itext_ichar (encoded, c);
+		      int a, b;
+		      for (a = 0; a < clen && boyer_moore_ok; ++a)
+			{
+			  for (b = a + 1; b < clen && boyer_moore_ok; ++b)
+			    {
+			      if (encoded[a] == encoded[b])
+				{
+				  boyer_moore_ok = 0;
+				}
+			    }
+			}
+
+		      if (0 == boyer_moore_ok)
+			{
+			  break;
+			}
+		    }
+			  
                 } while (c != starting_c);
 
               if (!checked)
                 {
 #ifdef DEBUG_XEMACS
-                  if (debug_xemacs_searches)
+                  if (debug_searches)
                     {
                       Lisp_Symbol *sym = XSYMBOL (Qsearch_algorithm_used);
                       sym->value = Qnil;
@@ -1496,7 +1534,7 @@ search_buffer (struct buffer *buf, Lisp_Object string, Charbpos charbpos,
       pat = base_pat = patbuf;
 
 #ifdef DEBUG_XEMACS
-      if (debug_xemacs_searches)
+      if (debug_searches)
         {
           Lisp_Symbol *sym = XSYMBOL (Qsearch_algorithm_used);
           sym->value = boyer_moore_ok ? Qboyer_moore : Qsimple_search;
@@ -1779,7 +1817,8 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
       if (!NILP (trt))
 	{
 #ifdef MULE
-	  Ichar ch, untranslated;
+	  Ichar ch = -1, untranslated;
+	  Ibyte byte;
 	  int this_translated = 1;
 
 	  /* Is *PTR the last byte of a character?  */
@@ -1829,16 +1868,23 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
                      for charset_base.) */
                   assert (1 == count || starting_ch != ch);
 		}
+	      {
+		Ibyte tmp[MAX_ICHAR_LEN];
+		Bytecount chlen;
+
+		chlen = set_itext_ichar (tmp, ch);
+		byte = tmp[chlen - 1];
+	      }
 	    }
 	  else
 	    {
-	      ch = *ptr;
+	      byte = *ptr;
 	      this_translated = 0;
+	      ch = -1;
 	    }
-	  if (ch > 0400)
-	    j = ((unsigned char) ch | 0200);
-	  else
-	    j = (unsigned char) ch;
+
+	  /* BYTE = last byte of character CH when represented as text */
+	  j = byte;
 	      
 	  if (i == infinity)
 	    stride_for_teases = BM_tab[j];
@@ -1849,6 +1895,8 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 	    {
 	      Ichar starting_ch = ch;
 	      EMACS_INT starting_j = j;
+
+	      text_checking_assert (valid_ichar_p (ch));
 	      do
 		{
 		  ch = TRANSLATE (inverse_trt, ch);
@@ -1859,20 +1907,27 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
                   if (ch > 0xFF && buffer_nothing_greater_than_0xff)
                     continue;
 
-                  if (ch > 0400)
-                    j = ((unsigned char) ch | 0200);
-                  else
-                    j = (unsigned char) ch;
 
+		  /* Retrieve last byte of character CH when represented as
+		     text */
+		  {
+		    Ibyte tmp[MAX_ICHAR_LEN];
+		    Bytecount chlen;
+
+		    chlen = set_itext_ichar (tmp, ch);
+		    j = tmp[chlen - 1];
+		  }
+	      
                   /* For all the characters that map into CH, set up
                      simple_translate to map the last byte into
                      STARTING_J.  */
                   simple_translate[j] = (Ibyte) starting_j;
                   BM_tab[j] = dirlen - i;
 
-		} while (ch != starting_ch);
+		}
+	      while (ch != starting_ch);
 	    }
-#else
+#else /* not MULE */
 	  EMACS_INT k;
 	  j = *ptr;
 	  k = (j = TRANSLATE (trt, j));
@@ -1886,7 +1941,7 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 	      simple_translate[j] = (Ibyte) k;
 	      BM_tab[j] = dirlen - i;
 	    }
-#endif
+#endif /* (not) MULE */
 	}
       else
 	{
@@ -2199,7 +2254,7 @@ wordify (Lisp_Object buffer, Lisp_Object string)
       }
   if (WORD_SYNTAX_P (syntax_table, string_ichar (string, len - 1)))
     word_count++;
-  if (!word_count) return build_string ("");
+  if (!word_count) return build_ascstring ("");
 
   {
     /* The following value is an upper bound on the amount of storage we
@@ -2746,8 +2801,8 @@ rare.)
       Lisp_Object before, after;
 
       speccount = specpdl_depth ();
-      before = Fsubstring (string, Qzero, make_int (search_regs.start[sub]));
-      after = Fsubstring (string, make_int (search_regs.end[sub]), Qnil);
+      before = Fsubseq (string, Qzero, make_int (search_regs.start[sub]));
+      after = Fsubseq (string, make_int (search_regs.end[sub]), Qnil);
 
       /* Do case substitution into REPLACEMENT if desired.  */
       if (NILP (literal))
@@ -2833,13 +2888,12 @@ rare.)
 		  Lisp_Object literal_text = Qnil;
 		  Lisp_Object substring = Qnil;
 		  if (literal_end != literal_start)
-		    literal_text = Fsubstring (replacement,
-					       make_int (literal_start),
-					       make_int (literal_end));
+		    literal_text = Fsubseq (replacement,
+                                            make_int (literal_start),
+                                            make_int (literal_end));
 		  if (substart >= 0 && subend != substart)
-		    substring = Fsubstring (string,
-					    make_int (substart),
-					    make_int (subend));
+		    substring = Fsubseq (string, make_int (substart),
+                                         make_int (subend));
 		  if (!NILP (literal_text) || !NILP (substring))
 		    accum = concat3 (accum, literal_text, substring);
 		  literal_start = strpos + 1;
@@ -2848,16 +2902,16 @@ rare.)
 
 	  if (strpos != literal_start)
 	    /* some literal text at end to be inserted */
-	    replacement = concat2 (accum, Fsubstring (replacement,
-						      make_int (literal_start),
-						      make_int (strpos)));
+	    replacement = concat2 (accum, Fsubseq (replacement,
+                                                   make_int (literal_start),
+                                                   make_int (strpos)));
 	  else
 	    replacement = accum;
 	}
 
       /* replacement can be nil. */
       if (NILP (replacement))
-	replacement = build_string ("");
+	replacement = build_ascstring ("");
 
       if (case_action == all_caps)
 	replacement = Fupcase (replacement, buffer);
@@ -3285,6 +3339,35 @@ Set the regexp to be used to match a word in regular-expression searching.
 }
 
 
+#ifdef DEBUG_XEMACS
+
+static int
+debug_regexps_changed (Lisp_Object UNUSED (sym), Lisp_Object *val,
+		       Lisp_Object UNUSED (in_object),
+		       int UNUSED (flags))
+{
+  int newval = 0;
+
+  EXTERNAL_LIST_LOOP_2 (elt, *val)
+    {
+      CHECK_SYMBOL (elt);
+      if (EQ (elt, Qcompilation))
+	newval |= RE_DEBUG_COMPILATION;
+      else if (EQ (elt, Qfailure_point))
+	newval |= RE_DEBUG_FAILURE_POINT;
+      else if (EQ (elt, Qmatching))
+	newval |= RE_DEBUG_MATCHING;
+      else
+	invalid_argument
+	  ("Expected `compilation', `failure-point' or `matching'", elt);
+    }
+  debug_regexps = newval;
+  return 0;
+}
+
+#endif /* DEBUG_XEMACS */
+
+
 /************************************************************************/
 /*                            initialization                            */
 /************************************************************************/
@@ -3373,10 +3456,26 @@ occur and a back reference to one of them is directly followed by a digit.
   DEFSYMBOL (Qboyer_moore);
   DEFSYMBOL (Qsimple_search);
 
-  DEFVAR_INT ("debug-xemacs-searches", &debug_xemacs_searches /*
+  DEFSYMBOL (Qcompilation);
+  DEFSYMBOL (Qfailure_point);
+  DEFSYMBOL (Qmatching);
+
+  DEFVAR_INT ("debug-searches", &debug_searches /*
 If non-zero, bind `search-algorithm-used' to `boyer-moore' or `simple-search',
 depending on the algorithm used for each search.  Used for testing.
 */ );
-  debug_xemacs_searches = 0;
-#endif 
+  debug_searches = 0;
+
+  DEFVAR_LISP_MAGIC ("debug-regexps", &Vdebug_regexps, /*
+List of areas to display debug info about during regexp operation.
+The following areas are recognized:
+
+`compilation'    Display the result of compiling a regexp.
+`failure-point'	 Display info about failure points reached.
+`matching'	 Display info about the process of matching a regex against
+                 text.
+*/ debug_regexps_changed);
+  Vdebug_regexps = Qnil;
+  debug_regexps = 0;
+#endif /* DEBUG_XEMACS */
 }

@@ -1,7 +1,7 @@
 /* Portable data dumper for XEmacs.
    Copyright (C) 1999-2000,2004 Olivier Galibert
    Copyright (C) 2001 Martin Buchholz
-   Copyright (C) 2001, 2002, 2003, 2004, 2005 Ben Wing.
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -253,8 +253,20 @@ pdump_objects_unmark (void)
 	    for (i=0; i<rt->count; i++)
 	      {
 		struct lrecord_header *lh = * (struct lrecord_header **) p;
+#ifdef ALLOC_TYPE_STATS
+		if (C_READONLY_RECORD_HEADER_P (lh))
+		  tick_lrecord_stats (lh, ALLOC_IN_USE);
+
+		else
+		  {
+		    tick_lrecord_stats (lh, MARKED_RECORD_HEADER_P (lh) ?
+					ALLOC_IN_USE : ALLOC_ON_FREE_LIST);
+		    UNMARK_RECORD_HEADER (lh);
+		  }
+#else /* not ALLOC_TYPE_STATS */
 		if (! C_READONLY_RECORD_HEADER_P (lh))
 		  UNMARK_RECORD_HEADER (lh);
+#endif /* (not) ALLOC_TYPE_STATS */
 		p += sizeof (EMACS_INT);
 	      }
 	  } else
@@ -2123,11 +2135,11 @@ pdump (void)
 		   O_WRONLY | O_CREAT | O_TRUNC | OPEN_BINARY, 0666);
   if (pdump_fd < 0)
     report_file_error ("Unable to open dump file",
-		       build_string (EMACS_PROGNAME ".dmp"));
+		       build_ascstring (EMACS_PROGNAME ".dmp"));
   pdump_out = fdopen (pdump_fd, "w");
   if (pdump_out < 0)
     report_file_error ("Unable to open dump file for writing",
-		       build_string (EMACS_PROGNAME ".dmp"));
+		       build_ascstring (EMACS_PROGNAME ".dmp"));
 
   retry_fwrite (&header, sizeof (header), 1, pdump_out);
   PDUMP_ALIGN_OUTPUT (max_align_t);
@@ -2402,7 +2414,7 @@ pdump_load_finish (void)
     }
 
 #ifdef NEW_GC
-  xfree (pdump_mc_hash, mc_addr_elt *);
+  xfree (pdump_mc_hash);
 #endif /* NEW_GC */
 
 #ifdef NEW_GC
@@ -2518,7 +2530,7 @@ pdump_resource_get (void)
 static void
 pdump_file_free (void)
 {
-  xfree (pdump_start, Rawbyte *);
+  xfree (pdump_start);
 }
 
 #ifdef HAVE_MMAP

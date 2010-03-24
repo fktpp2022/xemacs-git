@@ -1,3 +1,324 @@
+2010-03-18  Mike Sperber  <mike@xemacs.org>
+
+	* xemacs/startup.texi (Startup Paths): Reflect the (long-ago)
+	change from `lib' to `share' for the architecture-independent
+	directories.
+
+2010-03-13  Ben Wing  <ben@xemacs.org>
+
+	* internals/internals.texi (Working with Lisp Objects):
+	* internals/internals.texi (Writing Macros):
+	* internals/internals.texi (lrecords):
+	More rewriting to correspond with changes from
+	*LRECORD* to *LISP_OBJECT*.
+
+2010-03-05  Ben Wing  <ben@xemacs.org>
+
+	* internals/internals.texi (Introduction to Allocation):
+	* internals/internals.texi (Integers and Characters):
+	* internals/internals.texi (Allocation from Frob Blocks):
+	* internals/internals.texi (lrecords):
+	* internals/internals.texi (Low-level allocation):
+	Rewrite section on allocation of Lisp objects to reflect the new
+	reality.  Remove references to nonexistent XSETINT and XSETCHAR.
+
+2010-03-04  Ben Wing  <ben@xemacs.org>
+
+	* internals/internals.texi (Top):
+	* internals/internals.texi (list-to-texinfo): Removed.
+	* internals/internals.texi (convert-list-to-texinfo): New.
+	* internals/internals.texi (table-to-texinfo): Removed.
+	* internals/internals.texi (convert-table-to-texinfo): New.
+	Update Lisp functions at top to newest versions.
+	
+	* internals/internals.texi (A History of Emacs):
+	* internals/internals.texi (Through Version 18):
+	* internals/internals.texi (Lucid Emacs):
+	* internals/internals.texi (XEmacs):
+	* internals/internals.texi (The XEmacs Split):
+	* internals/internals.texi (Modules for Other Aspects of the Lisp Interpreter and Object System):
+	* internals/internals.texi (Introduction to Writing C Code):
+	* internals/internals.texi (Writing Good Comments):
+	* internals/internals.texi (Writing Macros):
+	* internals/internals.texi (Major Textual Changes):
+	* internals/internals.texi (Great Integral Type Renaming):
+	* internals/internals.texi (How to Regression-Test):
+	* internals/internals.texi (Creating a Branch):
+	* internals/internals.texi (Dynamic Arrays):
+	* internals/internals.texi (Allocation by Blocks):
+	* internals/internals.texi (mark_object):
+	* internals/internals.texi (gc_sweep):
+	* internals/internals.texi (Byte-Char Position Conversion):
+	* internals/internals.texi (Searching and Matching):
+	* internals/internals.texi (Introduction to Multilingual Issues #3):
+	* internals/internals.texi (Byte Types):
+	* internals/internals.texi (Different Ways of Seeing Internal Text):
+	* internals/internals.texi (Buffer Positions):
+	* internals/internals.texi (Basic internal-format APIs):
+	* internals/internals.texi (The DFC API):
+	* internals/internals.texi (General Guidelines for Writing Mule-Aware Code):
+	* internals/internals.texi (Mule-izing Code):
+	* internals/internals.texi (Locales):
+	* internals/internals.texi (More about code pages):
+	* internals/internals.texi (More about locales):
+	* internals/internals.texi (Unicode support under Windows):
+	* internals/internals.texi (The Frame):
+	* internals/internals.texi (The Non-Client Area):
+	* internals/internals.texi (The Client Area):
+	* internals/internals.texi (The Paned Area):
+	* internals/internals.texi (Text Areas):
+	* internals/internals.texi (The Displayable Area):
+	* internals/internals.texi (Event Queues):
+	* internals/internals.texi (Event Stream Callback Routines):
+	* internals/internals.texi (Focus Handling):
+	* internals/internals.texi (Future Work -- Autodetection):
+	Replace " with ``, '' (not complete, maybe about halfway through).
+
+2010-03-03  Ben Wing  <ben@xemacs.org>
+
+	* internals/internals.texi (Intro to Window and Frame Geometry):
+	* internals/internals.texi (The Paned Area):
+	* internals/internals.texi (The Displayable Area):
+	Update to make note of e.g. the fact that the bottom gutter is
+	actually above the minibuffer.
+
+2010-03-02  Jerry James  <james@xemacs.org>
+
+	* custom.texi: Delete, redundant with xemacs/custom.texi and
+	lispref/customize.texi.
+	* Makefile: Remove all rules relating to custom.texi.
+
+2010-03-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/tips.texi (Comment Tips):
+	* lispref/text.texi (Text Properties):
+	* lispref/strings.texi (Creating Strings):
+	* lispref/processes.texi (Input to Processes):
+	* lispref/functions.texi (Argument List):
+	* lispref/extents.texi (Duplicable Extents):
+	Move examples that used substring to using subseq; in
+	strings.texi, do not change the examples, but document that in
+	this XEmacs, it is an alias for subseq, and that there may be some
+	incompatibilities if you depend on that.
+
+2010-02-25  Didier Verna  <didier@xemacs.org>
+
+	The background-placement face property.
+	* xemacs/custom.texi (Faces): Document it.
+
+2010-02-20  Ben Wing  <ben@xemacs.org>
+
+	* internals/internals.texi (Intro to Window and Frame Geometry):
+	Shrink diagram to fit when offset by five spaces as a result of
+	quoting.
+
+2010-02-16  Ben Wing  <ben@xemacs.org>
+
+	* internals/internals.texi (Top):
+	* internals/internals.texi (Modules for the Basic Displayable Lisp Objects):
+	* internals/internals.texi (Creating a Window-System Type):
+	* internals/internals.texi (Window and Frame Geometry):
+	* internals/internals.texi (Intro to Window and Frame Geometry):
+	* internals/internals.texi (The Frame):
+	* internals/internals.texi (The Non-Client Area):
+	* internals/internals.texi (The Client Area):
+	* internals/internals.texi (The Paned Area):
+	* internals/internals.texi (Text Areas):
+	* internals/internals.texi (The Displayable Area):
+	* internals/internals.texi (Which Functions Use Which?):
+	* internals/internals.texi (The Redisplay Mechanism):
+	Integrate the long comment in frame.c into the internals manual.
+
+2010-02-17  Jerry James  <james@xemacs.org>
+
+	* term.texi: Move to the eterm package.
+	* Makefile: Remove all rules relating to term.texi.
+
+2010-02-10  Stephen J. Turnbull  <stephen@xemacs.org>
+
+	* xemacs-faq.texi (Top): Update menu.
+	(Legacy Versions): Update next pointer.
+	(Bleeding Edge):
+	(Q11.0.1):
+	(Q11.0.2):
+	(Q11.0.3):
+	(Q11.0.4):
+	(Q11.0.5):
+	(Q11.1.1):
+	(Q11.2.1):
+	(Q11.2.2):
+	(Q11.2.3):
+	(Q11.2.4):
+	(Q11.2.5):
+	(Q11.2.6):
+	(Q11.2.7):
+	New nodes, describing repositories and VCS usage.
+
+2010-02-08  Ben Wing  <ben@xemacs.org>
+
+	* internals/internals.texi (How Lisp Objects Are Represented in C):
+	* internals/internals.texi (Allocation of Objects in XEmacs Lisp):
+	DEC Alpha is hardly the only 64-bit processor any more.
+	Also, ERROR_CHECK_TYPECHECK is now ERROR_CHECK_TYPES.
+
+2010-02-08  Jerry James  <james@xemacs.org>
+
+	* emodules.texi: Relicense as GPL v2 or later, using J. Kean
+	Johnston's blanket permission for such relicensing of his works.
+
+2010-02-05  Ben Wing  <ben@xemacs.org>
+
+	* internals/internals.texi (A Summary of the Various XEmacs Modules):
+	* internals/internals.texi (Conversion to and from External Data):
+	* internals/internals.texi (General Guidelines for Writing Mule-Aware Code):
+	Correct names of files renamed common -> xlike.
+	Fix up outdated explanation of old-style DFC conversion macros.
+	Add a section on the different types of character and their uses,
+	taken from a long comment in lisp.h.
+
+2010-01-27  Ben Wing  <ben@xemacs.org>
+
+	* internals/internals.texi (lrecords):
+	* internals/internals.texi (The DFC API):
+	* internals/internals.texi (Conversion to and from External Data):
+	* internals/internals.texi (Mule-izing Code):
+	* internals/internals.texi (Pervasive changes throughout XEmacs sources):
+	* internals/internals.texi (Ben's README):
+	* internals/internals.texi (Future Work -- Localized Text/Messages):
+	* emodules.texi (Defining Variables):
+	Rename:
+
+	write_c_string -> write_cistring
+	build_intstring -> build_istring
+	build_string -> build_cistring
+	build_ext_string -> build_extstring
+	make_ext_string -> make_extstring
+	buffer_insert_c_string -> buffer_insert_ascstring
+	intern_int -> intern_istring
+
+	See comment in src/ChangeLog about this.
+
+2010-02-03  Ben Wing  <ben@xemacs.org>
+
+	* internals/internals.texi (Top):
+	* internals/internals.texi (Evaluation; Stack Frames; Bindings):
+	* internals/internals.texi (Ben's README):
+	* internals/internals.texi (Consoles; Devices; Frames; Windows):
+	* internals/internals.texi (Window Hierarchy):
+	* internals/internals.texi (The Window Object):
+	* internals/internals.texi (Modules for the Basic Displayable Lisp Objects):
+	* internals/internals.texi (Window-System Support):
+	* internals/internals.texi (Creating a Window-System Type):
+	* internals/internals.texi (Discussion -- Garbage Collection):
+	Update the part at the top about how to maintain the file with
+	more tips.
+
+	Add a chapter on "window-system support" describing in a general
+	way how the support for different window systems/device types
+	works, including the separation between device-independent and
+	device-dependent parts, device methods, the specific device types
+	and the "xlike" pseudo-type.
+
+2010-01-31  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* xemacs/programs.texi (Defuns): 
+	* lispref/variables.texi (Local Variables, Defining Variables)
+	(Setting Variables, Default Value):
+	* lispref/symbols.texi (Definitions): 
+	* lispref/searching.texi (Saving Match Data): 
+	* lispref/positions.texi (Excursions, Narrowing):
+	* lispref/objects.texi (Primitive Function Type): 
+	* lispref/macros.texi (Defining Macros, Backquote): 
+	* lispref/lispref.texi (Top): 
+	* lispref/intro.texi (A Sample Function Description):
+	* lispref/help.texi (Help Functions):
+	* lispref/functions.texi (What Is a Function, Simple Lambda)
+	(Defining Functions, Calling Functions, Anonymous Functions):
+	* lispref/frames.texi (Input Focus):
+	* lispref/eval.texi (Forms, Function Indirection)
+	(Special Operators, Quoting):
+	* lispref/edebug-inc.texi (Instrumenting)
+	(Specification Examples):
+	* lispref/debugging.texi (Internals of Debugger):
+	* lispref/control.texi (Control Structures, Sequencing):
+	(Conditionals, Combining Conditions, Iteration):
+	(Catch and Throw, Handling Errors):
+	* lispref/commands.texi (Defining Commands, Using Interactive):
+	Terminology change; special operator -> special form. 
+
+	Don't attempt to change this in texinfo.texi or cl.texi, which use
+	macros I don't understand.
+
+	* lispref/macros.texi (Defining Macros): Give an anonymous macro
+	example here. 
+	* lispref/positions.texi (Excursions):
+	Correct some documentation that called a couple of macros special
+	forms.
+	* lispref/searching.texi (Saving Match Data):
+	Drop some documentation of how to write code that works with Emacs
+	18.
+	* lispref/specifiers.texi (Adding Specifications):
+	Correct this; #'let-specifier is a macro, not a special operator.
+	* lispref/windows.texi (Window Configurations)
+	(Selecting Windows): 
+	Correct this, #'save-selected-window and #'save-window-excursion
+	are macros, not special operators.
+
+2010-01-28  Jerry James  <loganjerry@gmail.com>
+
+	* external-widget.texi: Add copyright and license boilerplate text
+	based on Ben's recollections.
+	* lispref/internationalization.texi (Documentation String Extraction):
+	Removed, as it refers to the obsolete make-po program.
+
+2010-01-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Generally: be careful to say fixnum, not integer, when talking
+	about fixed-precision integral types. I'm sure I've missed
+	instances, both here and in the docstrings, but this is a decent
+	start.
+
+	* lispref/text.texi (Columns): 
+	Document where only fixnums, not integers generally, are accepted.
+	(Registers):
+	Remove some ancient char-int confoundance here.
+	* lispref/strings.texi (Creating Strings, Creating Strings):
+	Be more exact in describing where fixnums but not integers in
+	general are accepted.
+	(Creating Strings): Use a more contemporary example to illustrate
+	how concat deals with lists including integers about #xFF.  Delete
+	some obsolete documentation on same.
+	(Char Table Types): Document that only fixnums are accepted as
+	values in syntax tables.
+	* lispref/searching.texi (String Search, Search and Replace):
+	Be exact in describing where fixnums but not integers in general
+	are accepted.
+	* lispref/range-tables.texi (Range Tables): Be exact in describing
+	them; only fixnums are accepted to describe ranges.
+	* lispref/os.texi (Killing XEmacs, User Identification)
+	(Time of Day, Time Conversion):
+	Be more exact about using fixnum where only fixed-precision
+	integers are accepted.
+	* lispref/objects.texi (Integer Type): Be more exact (and
+	up-to-date) about the possible values for
+	integers. Cross-reference to documentation of the bignum extension.
+	(Equality Predicates):
+	(Range Table Type):
+	(Array Type): Use fixnum, not integer, to describe a
+	fixed-precision integer.
+	(Syntax Table Type): Correct some English syntax here.
+	* lispref/numbers.texi (Numbers): Change the phrasing here to use
+	fixnum to mean the fixed-precision integers normal in emacs.
+	Document that our terminology deviates from that of Common Lisp,
+	and that we're working on it.
+	(Compatibility Issues): Reiterate the Common Lisp versus Emacs
+	Lisp compatibility issues.
+	(Comparison of Numbers, Arithmetic Operations):
+	* lispref/commands.texi (Command Loop Info, Working With Events): 
+	* lispref/buffers.texi (Modification Time): 
+	Be more exact in describing where fixnums but not integers in
+	general are accepted.
+
 2010-01-06  Jerry James  <james@xemacs.org>
 
 	* internals/internals.texi (Debugging and Testing): Document

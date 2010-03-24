@@ -4,6 +4,7 @@
 **
 ** Created by: William M. Perry <wmperry@gnu.org>
 ** Copyright (c) 2000 William M. Perry <wmperry@gnu.org>
+** Copyright (C) 2010 Ben Wing.
 **
 ** This file is part of XEmacs.
 **
@@ -21,24 +22,23 @@
 ** along with XEmacs; see the file COPYING.  If not, write to
 ** the Free Software Foundation, Inc., 51 Franklin Street - Fifth Floor,
 ** Boston, MA 02111-1301, USA.  */
-*/
 
 #include <config.h>
 #include "lisp.h"
 
 #include "buffer.h"
-#include "console-gtk-impl.h"
 #include "device.h"
 #include "elhash.h"
-#include "event-gtk.h"
 #include "events.h"
 #include "faces.h"
-#include "glyphs-gtk.h"
 #include "hash.h"
-#include "objects-gtk.h"
 #include "sysdll.h"
-#include "ui-gtk.h"
 #include "window.h"
+
+#include "console-gtk-impl.h"
+#include "glyphs-gtk.h"
+#include "objects-gtk.h"
+#include "ui-gtk.h"
 
 /* XEmacs specific GTK types */
 #include "gtk-glue.c"
@@ -94,7 +94,7 @@ This is for loading dependency DLLs into XEmacs.
 
   /* If the dll name has a directory component in it, then we should
      expand it. */
-  if (!NILP (Fstring_match (build_string ("/"), dll, Qnil, Qnil)))
+  if (!NILP (Fstring_match (build_ascstring ("/"), dll, Qnil, Qnil)))
     dll = Fexpand_file_name (dll, Qnil);
 
   /* Check if we have already opened it first */
@@ -296,7 +296,8 @@ import_gtk_type (GtkType t)
 static emacs_ffi_data *
 allocate_ffi_data (void)
 {
-  emacs_ffi_data *data = ALLOC_LCRECORD_TYPE (emacs_ffi_data, &lrecord_emacs_ffi);
+  Lisp_Object obj = ALLOC_NORMAL_LISP_OBJECT (emacs_ffi);
+  emacs_ffi_data *data = XFFI (obj);
 
   data->return_type = GTK_TYPE_NONE;
   data->n_args = 0;
@@ -326,7 +327,7 @@ ffi_object_printer (Lisp_Object obj, Lisp_Object printcharfun,
 		    int UNUSED (escapeflag))
 {
   if (print_readably)
-    printing_unreadable_object ("#<ffi %p>", XFFI (obj)->function_ptr);
+    printing_unreadable_lisp_object (obj, 0);
 
   write_fmt_string_lisp (printcharfun, "#<ffi %S", 1, XFFI (obj)->function_name);
   if (XFFI (obj)->n_args)
@@ -334,11 +335,10 @@ ffi_object_printer (Lisp_Object obj, Lisp_Object printcharfun,
   write_fmt_string (printcharfun, " %p>", (void *)XFFI (obj)->function_ptr);
 }
 
-DEFINE_LRECORD_IMPLEMENTATION ("ffi", emacs_ffi,
-			       0, /*dumpable-flag*/
-			       mark_ffi_data, ffi_object_printer,
-			       0, 0, 0, 
-			       ffi_data_description, emacs_ffi_data);
+DEFINE_NODUMP_LISP_OBJECT ("ffi", emacs_ffi,
+			   mark_ffi_data, ffi_object_printer,
+			   0, 0, 0, 
+			   ffi_data_description, emacs_ffi_data);
 
 #if defined (__cplusplus)
 #define MANY_ARGS ...
@@ -385,7 +385,7 @@ typedef GList * (*__LIST_fn) (MANY_ARGS);
 	GTK_VALUE_POINTER (a) = * (void **) v;		\
 	break;						\
       }							\
-    if (freep) xfree(v, void *);			\
+    if (freep) xfree (v);			\
   } while (0)
 
 static gpointer __allocate_object_storage (GtkType t)
@@ -463,43 +463,43 @@ static Lisp_Object type_to_marshaller_type (GtkType t)
   switch (GTK_FUNDAMENTAL_TYPE (t))
     {
     case GTK_TYPE_NONE:
-      return (build_string ("NONE"));
+      return (build_ascstring ("NONE"));
       /* flag types */
     case GTK_TYPE_CHAR:
     case GTK_TYPE_UCHAR:
-      return (build_string ("CHAR"));
+      return (build_ascstring ("CHAR"));
     case GTK_TYPE_BOOL:
-      return (build_string ("BOOL"));
+      return (build_ascstring ("BOOL"));
     case GTK_TYPE_ENUM:
     case GTK_TYPE_FLAGS:
     case GTK_TYPE_INT:
     case GTK_TYPE_UINT:
-      return (build_string ("INT"));
+      return (build_ascstring ("INT"));
     case GTK_TYPE_LONG:
     case GTK_TYPE_ULONG:
-      return (build_string ("LONG"));
+      return (build_ascstring ("LONG"));
     case GTK_TYPE_FLOAT:
     case GTK_TYPE_DOUBLE:
-      return (build_string ("FLOAT"));
+      return (build_ascstring ("FLOAT"));
     case GTK_TYPE_STRING:
-      return (build_string ("STRING"));
+      return (build_ascstring ("STRING"));
     case GTK_TYPE_BOXED:
     case GTK_TYPE_POINTER:
-      return (build_string ("POINTER"));
+      return (build_ascstring ("POINTER"));
     case GTK_TYPE_OBJECT:
-      return (build_string ("OBJECT"));
+      return (build_ascstring ("OBJECT"));
     case GTK_TYPE_CALLBACK:
-      return (build_string ("CALLBACK"));
+      return (build_ascstring ("CALLBACK"));
     default:
       /* I can't put this in the main switch statement because it is a
          new fundamental type that is not fixed at compile time.
          *sigh*
 	 */
       if (IS_XEMACS_GTK_FUNDAMENTAL_TYPE(t, GTK_TYPE_ARRAY))
-	return (build_string ("ARRAY"));
+	return (build_ascstring ("ARRAY"));
 
       if (IS_XEMACS_GTK_FUNDAMENTAL_TYPE(t, GTK_TYPE_LISTOF))
-	return (build_string ("LIST"));
+	return (build_ascstring ("LIST"));
       return (Qnil);
     }
 }
@@ -643,13 +643,13 @@ Import a function into the XEmacs namespace.
 	    {
 	      invalid_argument ("Do not know how to marshal", type);
 	    }
-	  marshaller = concat3 (marshaller, build_string ("_"), marshaller_type);
+	  marshaller = concat3 (marshaller, build_ascstring ("_"), marshaller_type);
 	  n_args++;
 	}
     }
   else
     {
-      marshaller = concat3 (marshaller, build_string ("_"), type_to_marshaller_type (GTK_TYPE_NONE));
+      marshaller = concat3 (marshaller, build_ascstring ("_"), type_to_marshaller_type (GTK_TYPE_NONE));
     }
 
   rettype = Fsymbol_name (rettype);
@@ -662,8 +662,8 @@ Import a function into the XEmacs namespace.
 
   import_gtk_type (data->return_type);
 
-  marshaller = concat3 (type_to_marshaller_type (data->return_type), build_string ("_"), marshaller);
-  marshaller = concat2 (build_string ("emacs_gtk_marshal_"), marshaller);
+  marshaller = concat3 (type_to_marshaller_type (data->return_type), build_ascstring ("_"), marshaller);
+  marshaller = concat2 (build_ascstring ("emacs_gtk_marshal_"), marshaller);
 
   marshaller_func = (ffi_marshalling_function) find_marshaller ((char *) XSTRING_DATA (marshaller));
 
@@ -796,18 +796,18 @@ emacs_gtk_object_printer (Lisp_Object obj, Lisp_Object printcharfun,
 			  int UNUSED (escapeflag))
 {
   if (print_readably)
-    printing_unreadable_object ("#<GtkObject %p>", XGTK_OBJECT (obj)->object);
+    printing_unreadable_lisp_object (obj, 0);
 
-  write_c_string (printcharfun, "#<GtkObject (");
+  write_ascstring (printcharfun, "#<GtkObject (");
   if (XGTK_OBJECT (obj)->alive_p)
-    write_c_string (printcharfun, gtk_type_name (GTK_OBJECT_TYPE (XGTK_OBJECT (obj)->object)));
+    write_cistring (printcharfun, gtk_type_name (GTK_OBJECT_TYPE (XGTK_OBJECT (obj)->object)));
   else
-    write_c_string (printcharfun, "dead");
+    write_ascstring (printcharfun, "dead");
   write_fmt_string (printcharfun, ") %p>", (void *) XGTK_OBJECT (obj)->object);
 }
 
 static Lisp_Object
-object_getprop (Lisp_Object obj, Lisp_Object prop)
+emacs_gtk_object_getprop (Lisp_Object obj, Lisp_Object prop)
 {
   Lisp_Object rval = Qnil;
   Lisp_Object prop_name = Qnil;
@@ -871,7 +871,7 @@ object_getprop (Lisp_Object obj, Lisp_Object prop)
 }
 
 static int
-object_putprop (Lisp_Object obj, Lisp_Object prop, Lisp_Object value)
+emacs_gtk_object_putprop (Lisp_Object obj, Lisp_Object prop, Lisp_Object value)
 {
   GtkArgInfo *info = NULL;
   Lisp_Object prop_name = Qnil;
@@ -924,44 +924,28 @@ mark_gtk_object_data (Lisp_Object obj)
 }
 
 static void
-emacs_gtk_object_finalizer (void *header, int for_disksave)
+emacs_gtk_object_finalizer (Lisp_Object obj)
 {
-  emacs_gtk_object_data *data = (emacs_gtk_object_data *) header;
-
-  if (for_disksave)
-    {
-      Lisp_Object obj = wrap_emacs_gtk_object (data);
-
-
-      invalid_operation
-	("Can't dump an emacs containing GtkObject objects", obj);
-    }
+  emacs_gtk_object_data *data = XEMACS_GTK_OBJECT_DATA (obj);
 
   if (data->alive_p)
-    {
-      gtk_object_unref (data->object);
-    }
+    gtk_object_unref (data->object);
 }
 
-DEFINE_LRECORD_IMPLEMENTATION_WITH_PROPS ("GtkObject", emacs_gtk_object,
-					  0, /*dumpable-flag*/
-					  mark_gtk_object_data,
-					  emacs_gtk_object_printer,
-					  emacs_gtk_object_finalizer,
-					  0, /* equality */
-					  0, /* hash */
-					  gtk_object_data_description,
-					  object_getprop,
-					  object_putprop,
-					  0, /* rem prop */
-					  0, /* plist */
-					  emacs_gtk_object_data);
+DEFINE_NODUMP_LISP_OBJECT ("GtkObject", emacs_gtk_object,
+			   mark_gtk_object_data,
+			   emacs_gtk_object_printer,
+			   emacs_gtk_object_finalizer,
+			   0, /* equality */
+			   0, /* hash */
+			   gtk_object_data_description,
+			   emacs_gtk_object_data);
 
 static emacs_gtk_object_data *
 allocate_emacs_gtk_object_data (void)
 {
-  emacs_gtk_object_data *data = ALLOC_LCRECORD_TYPE (emacs_gtk_object_data,
-						     &lrecord_emacs_gtk_object);
+  Lisp_Object obj = ALLOC_NORMAL_LISP_OBJECT (emacs_gtk_object);
+  emacs_gtk_object_data *data = XGTK_OBJECT (obj);
 
   data->object = NULL;
   data->alive_p = FALSE;
@@ -1017,7 +1001,7 @@ __internal_callback_destroy (gpointer data)
 {
   Lisp_Object lisp_data;
 
-  lisp_data = VOID_TO_LISP (data);
+  lisp_data = GET_LISP_FROM_VOID (data);
 
   ungcpro_popup_callbacks (XINT (XCAR (lisp_data)));
 }
@@ -1033,7 +1017,7 @@ __internal_callback_marshal (GtkObject *obj, gpointer data, guint n_args, GtkArg
   struct gcpro gcpro1;
   int i;
 
-  callback_fn = VOID_TO_LISP (data);
+  callback_fn = GET_LISP_FROM_VOID (data);
 
   /* Nuke the GUI_ID off the front */
   callback_fn = XCDR (callback_fn);
@@ -1099,7 +1083,7 @@ DEFUN ("gtk-signal-connect", Fgtk_signal_connect, 3, 6, 0, /*
   gcpro_popup_callbacks (id, func);
 
   gtk_signal_connect_full (XGTK_OBJECT (obj)->object, (char *) XSTRING_DATA (name),
-			   NULL, __internal_callback_marshal, LISP_TO_VOID (func),
+			   NULL, __internal_callback_marshal, STORE_LISP_IN_VOID (func),
 			   __internal_callback_destroy, c_object_signal, c_after);
   return (Qt);
 }
@@ -1115,10 +1099,10 @@ emacs_gtk_boxed_printer (Lisp_Object obj, Lisp_Object printcharfun,
 			 int UNUSED (escapeflag))
 {
   if (print_readably)
-    printing_unreadable_object ("#<GtkBoxed %p>", XGTK_BOXED (obj)->object);
+    printing_unreadable_lisp_object (obj, 0);
 
-  write_c_string (printcharfun, "#<GtkBoxed (");
-  write_c_string (printcharfun, gtk_type_name (XGTK_BOXED (obj)->object_type));
+  write_ascstring (printcharfun, "#<GtkBoxed (");
+  write_cistring (printcharfun, gtk_type_name (XGTK_BOXED (obj)->object_type));
   write_fmt_string (printcharfun, ") %p>", (void *) XGTK_BOXED (obj)->object);
 }
 
@@ -1139,19 +1123,14 @@ emacs_gtk_boxed_hash (Lisp_Object obj, int UNUSED (depth))
   return (HASH2 ((Hashcode) data->object, data->object_type));
 }
 
-DEFINE_LRECORD_IMPLEMENTATION_WITH_PROPS ("GtkBoxed", emacs_gtk_boxed,
-					  0, /*dumpable-flag*/
-					  0, /* marker function */
-					  emacs_gtk_boxed_printer,
-					  0, /* nuker */
-					  emacs_gtk_boxed_equality,
-					  emacs_gtk_boxed_hash,
-					  emacs_gtk_boxed_description,
-					  0, /* get prop */
-					  0, /* put prop */
-					  0, /* rem prop */
-					  0, /* plist */
-					  emacs_gtk_boxed_data);
+DEFINE_NODUMP_LISP_OBJECT ("GtkBoxed", emacs_gtk_boxed,
+			   0, /* marker function */
+			   emacs_gtk_boxed_printer,
+			   0, /* nuker */
+			   emacs_gtk_boxed_equality,
+			   emacs_gtk_boxed_hash,
+			   emacs_gtk_boxed_description,
+			   emacs_gtk_boxed_data);
 /* Currently defined GTK_TYPE_BOXED structures are:
 
    GtkAccelGroup -
@@ -1169,8 +1148,8 @@ DEFINE_LRECORD_IMPLEMENTATION_WITH_PROPS ("GtkBoxed", emacs_gtk_boxed,
 static emacs_gtk_boxed_data *
 allocate_emacs_gtk_boxed_data (void)
 {
-  emacs_gtk_boxed_data *data = ALLOC_LCRECORD_TYPE (emacs_gtk_boxed_data,
-						    &lrecord_emacs_gtk_boxed);
+  Lisp_Object obj = ALLOC_NORMAL_LISP_OBJECT (emacs_gtk_boxed);
+  emacs_gtk_boxed_data *data = XGTK_BOXED (obj);
 
   data->object = NULL;
   data->object_type = GTK_TYPE_INVALID;
@@ -1354,11 +1333,19 @@ The cdr is a list of all the magic properties it has.
 
 
 void
+ui_gtk_objects_create (void)
+{
+  OBJECT_HAS_METHOD (emacs_gtk_object, getprop);
+  OBJECT_HAS_METHOD (emacs_gtk_object, putprop);
+  /* #### No remprop or plist methods */
+}
+
+void
 syms_of_ui_gtk (void)
 {
-  INIT_LRECORD_IMPLEMENTATION (emacs_ffi);
-  INIT_LRECORD_IMPLEMENTATION (emacs_gtk_object);
-  INIT_LRECORD_IMPLEMENTATION (emacs_gtk_boxed);
+  INIT_LISP_OBJECT (emacs_ffi);
+  INIT_LISP_OBJECT (emacs_gtk_object);
+  INIT_LISP_OBJECT (emacs_gtk_boxed);
   DEFSYMBOL_MULTIWORD_PREDICATE (Qemacs_ffip);
   DEFSYMBOL_MULTIWORD_PREDICATE (Qemacs_gtk_objectp);
   DEFSYMBOL_MULTIWORD_PREDICATE (Qemacs_gtk_boxedp);
@@ -1497,7 +1484,7 @@ Lisp_Object gtk_type_to_lisp (GtkArg *arg)
     case GTK_TYPE_DOUBLE:
       return (make_float (GTK_VALUE_DOUBLE (*arg)));
     case GTK_TYPE_STRING:
-      return (build_string (GTK_VALUE_STRING (*arg)));
+      return (build_cistring (GTK_VALUE_STRING (*arg)));
     case GTK_TYPE_FLAGS:
       return (flags_to_list (GTK_VALUE_FLAGS (*arg), arg->type));
     case GTK_TYPE_ENUM:
@@ -1517,7 +1504,7 @@ Lisp_Object gtk_type_to_lisp (GtkArg *arg)
 	{
 	  Lisp_Object rval;
 	  
-	  rval = VOID_TO_LISP (GTK_VALUE_POINTER (*arg));
+	  rval = GET_LISP_FROM_VOID (GTK_VALUE_POINTER (*arg));
 	  return (rval);
 	}
       else
@@ -1532,7 +1519,7 @@ Lisp_Object gtk_type_to_lisp (GtkArg *arg)
       {
 	Lisp_Object rval;
 
-	rval = VOID_TO_LISP (GTK_VALUE_CALLBACK (*arg).data);
+	rval = GET_LISP_FROM_VOID (GTK_VALUE_CALLBACK (*arg).data);
 
 	return (rval);
       }
@@ -1753,7 +1740,7 @@ int lisp_to_gtk_type (Lisp_Object obj, GtkArg *arg)
       if (NILP (obj))
 	GTK_VALUE_POINTER(*arg) = NULL;
       else
-	GTK_VALUE_POINTER(*arg) = LISP_TO_VOID (obj);
+	GTK_VALUE_POINTER(*arg) = STORE_LISP_IN_VOID (obj);
       break;
 
       /* structured types */
@@ -2033,7 +2020,7 @@ int lisp_to_gtk_ret_type (Lisp_Object obj, GtkArg *arg)
       if (NILP (obj))
 	*(GTK_RETLOC_POINTER(*arg)) = NULL;
       else
-	*(GTK_RETLOC_POINTER(*arg)) = LISP_TO_VOID (obj);
+	*(GTK_RETLOC_POINTER(*arg)) = STORE_LISP_IN_VOID (obj);
       break;
 
       /* structured types */
@@ -2137,7 +2124,7 @@ symbol_to_enum (Lisp_Object obj, GtkType t)
 
   if (NILP (alist))
     {
-      invalid_argument ("Unknown enumeration", build_string (gtk_type_name (t)));
+      invalid_argument ("Unknown enumeration", build_cistring (gtk_type_name (t)));
     }
 
   value = Fassq (obj, alist);
@@ -2206,7 +2193,7 @@ enum_to_symbol (guint value, GtkType t)
 
   if (NILP (alist))
     {
-      invalid_argument ("Unknown enumeration", build_string (gtk_type_name (t)));
+      invalid_argument ("Unknown enumeration", build_cistring (gtk_type_name (t)));
     }
 
   cell = Frassq (make_int (value), alist);

@@ -1,6 +1,6 @@
 /* Functions for the mswindows window system.
    Copyright (C) 1989, 1992, 1993, 1994, 1995 Free Software Foundation, Inc.
-   Copyright (C) 1995, 1996, 2001, 2002 Ben Wing.
+   Copyright (C) 1995, 1996, 2001, 2002, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -93,11 +93,9 @@ static const struct memory_description mswindows_frame_data_description_1 [] = {
 };
 
 #ifdef NEW_GC
-DEFINE_LRECORD_IMPLEMENTATION ("mswindows-frame", mswindows_frame,
-			       1, /*dumpable-flag*/
-                               0, 0, 0, 0, 0,
-			       mswindows_frame_data_description_1,
-			       Lisp_Mswindows_Frame);
+DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("mswindows-frame", mswindows_frame,
+				      0, mswindows_frame_data_description_1,
+				      Lisp_Mswindows_Frame);
 #else /* not NEW_GC */
 extern const struct sized_memory_description mswindows_frame_data_description;
 
@@ -174,8 +172,7 @@ mswindows_init_frame_1 (struct frame *f, Lisp_Object props,
     CHECK_INT (height);
 
 #ifdef NEW_GC
-  f->frame_data = alloc_lrecord_type (struct mswindows_frame,
-				      &lrecord_mswindows_frame);
+  f->frame_data = XMSWINDOWS_FRAME (ALLOC_NORMAL_LISP_OBJECT (mswindows_frame));
 #else /* not NEW_GC */
   f->frame_data = xnew_and_zero (struct mswindows_frame);
 #endif /* not NEW_GC */
@@ -195,10 +192,11 @@ mswindows_init_frame_1 (struct frame *f, Lisp_Object props,
   FRAME_MSWINDOWS_TOOLBAR_HASH_TABLE (f) = 
     make_lisp_hash_table (50, HASH_TABLE_NON_WEAK, HASH_TABLE_EQ);
 #endif
-  /* hashtable of instantiated glyphs on the frame.  Make them EQ because
+  /* hashtable of instantiated glyphs on the frame. [[ Make them EQ because
      we only use ints as keys.  Otherwise we run into stickiness in
      redisplay because internal_equal() can QUIT.  See
-     enter_redisplay_critical_section(). */
+     enter_redisplay_critical_section(). ]] -- probably not true any more,
+    now that we have internal_equal_trapping_problems(). --ben */
   FRAME_MSWINDOWS_WIDGET_HASH_TABLE1 (f) =
     make_lisp_hash_table (50, HASH_TABLE_VALUE_WEAK, HASH_TABLE_EQ);
   FRAME_MSWINDOWS_WIDGET_HASH_TABLE2 (f) =
@@ -237,7 +235,7 @@ mswindows_init_frame_1 (struct frame *f, Lisp_Object props,
       GetWindowRect (hwnd_parent, &rect);
       rect_default.left = rect.left + POPUP_OFFSET;
       rect_default.top = rect.top + POPUP_OFFSET;
-      char_to_real_pixel_size (f, POPUP_WIDTH, POPUP_HEIGHT,
+      char_to_pixel_size (f, POPUP_WIDTH, POPUP_HEIGHT,
 			       &rect_default.width, &rect_default.height);
       FRAME_MSWINDOWS_POPUP (f) = 1;
     }
@@ -251,9 +249,9 @@ mswindows_init_frame_1 (struct frame *f, Lisp_Object props,
     const Extbyte *nameext = 0;
 
     if (STRINGP (f->name))
-      LISP_STRING_TO_TSTR (f->name, nameext);
+      nameext = LISP_STRING_TO_TSTR (f->name);
     else if (STRINGP (name))
-      LISP_STRING_TO_TSTR (name, nameext);
+      nameext = LISP_STRING_TO_TSTR (name);
     else
       nameext = XETEXT (XEMACS_CLASS);
     hwnd = qxeCreateWindowEx (exstyle,
@@ -275,7 +273,7 @@ mswindows_init_frame_1 (struct frame *f, Lisp_Object props,
 			   
   FRAME_MSWINDOWS_HANDLE (f) = hwnd;
 
-  qxeSetWindowLong (hwnd, XWL_FRAMEOBJ, (LONG)LISP_TO_VOID (frame_obj));
+  qxeSetWindowLong (hwnd, XWL_FRAMEOBJ, (LONG)STORE_LISP_IN_VOID (frame_obj));
   FRAME_MSWINDOWS_DC (f) = GetDC (hwnd);
   SetTextAlign (FRAME_MSWINDOWS_DC (f), TA_BASELINE | TA_LEFT | TA_NOUPDATECP);
 
@@ -364,7 +362,7 @@ mswindows_delete_frame (struct frame *f)
       ReleaseDC (FRAME_MSWINDOWS_HANDLE (f), FRAME_MSWINDOWS_DC (f));
       DestroyWindow (FRAME_MSWINDOWS_HANDLE (f));
 #ifndef NEW_GC
-      xfree (f->frame_data, void *);
+      xfree (f->frame_data);
 #endif /* not NEW_GC */
     }
   f->frame_data = 0;
@@ -374,14 +372,14 @@ static void
 mswindows_set_frame_size (struct frame *f, int width, int height)
 {
   RECT rect;
-  int columns, rows;
+  int pwidth, pheight;
+
+  change_frame_size (f, width, height, 0);
+  frame_unit_to_pixel_size (f, width, height, &pwidth, &pheight);
 
   rect.left = rect.top = 0;
-  rect.right = width;
-  rect.bottom = height;
-
-  pixel_to_char_size (f, rect.right, rect.bottom, &columns, &rows);
-  change_frame_size (f, rows, columns, 0);
+  rect.right = pwidth;
+  rect.bottom = pheight;
 
   /* This can call Lisp, because it runs the window procedure, which can
      call redisplay() */
@@ -555,7 +553,7 @@ mswindows_get_mouse_position (struct device *UNUSED (d), Lisp_Object *frame,
 
   /* Yippie! */
   ScreenToClient (hwnd, &pt);
-  *frame = VOID_TO_LISP ((void *) qxeGetWindowLong (hwnd, XWL_FRAMEOBJ));
+  *frame = GET_LISP_FROM_VOID ((void *) qxeGetWindowLong (hwnd, XWL_FRAMEOBJ));
   *x = pt.x;
   *y = pt.y;
   return 1;
@@ -595,7 +593,7 @@ mswindows_set_title_from_ibyte (struct frame *f, Ibyte *title)
       Extbyte *title_ext;
 
       FRAME_MSWINDOWS_TITLE_CHECKSUM (f) = new_checksum;
-      C_STRING_TO_TSTR (title, title_ext);
+      title_ext = ITEXT_TO_TSTR (title);
       qxeSetWindowText (FRAME_MSWINDOWS_HANDLE (f), title_ext);
     }
 }
@@ -607,7 +605,7 @@ mswindows_window_id (Lisp_Object frame)
   struct frame *f = decode_mswindows_frame (frame);
 
   qxesprintf (str, "%lu", (unsigned long) FRAME_MSWINDOWS_HANDLE (f));
-  return build_intstring (str);
+  return build_istring (str);
 }
 
 static Lisp_Object
@@ -740,7 +738,7 @@ mswindows_size_frame_internal (struct frame *f, XEMACS_RECT_WH *dest)
   int pixel_width, pixel_height;
   int size_p = (dest->width >=0 || dest->height >=0);
   int move_p = (dest->top >=0 || dest->left >=0);
-  char_to_real_pixel_size (f, dest->width, dest->height, &pixel_width,
+  char_to_pixel_size (f, dest->width, dest->height, &pixel_width,
 			   &pixel_height);
 
   if (dest->width < 0)
@@ -823,7 +821,7 @@ mswindows_get_frame_parent (struct frame *f)
   if (hwnd)
     {
       Lisp_Object parent;
-      parent = VOID_TO_LISP ((void *) qxeGetWindowLong (hwnd, XWL_FRAMEOBJ));
+      parent = GET_LISP_FROM_VOID ((void *) qxeGetWindowLong (hwnd, XWL_FRAMEOBJ));
       assert (FRAME_MSWINDOWS_P (XFRAME (parent)));
       return parent;
     }
@@ -939,7 +937,7 @@ msprinter_init_frame_3 (struct frame *f)
 
   if (FRAME_MSPRINTER_CHARWIDTH (f) > 0)
     {
-      char_to_real_pixel_size (f, FRAME_MSPRINTER_CHARWIDTH (f), 0,
+      char_to_pixel_size (f, FRAME_MSPRINTER_CHARWIDTH (f), 0,
 			       &frame_width, NULL);
       FRAME_MSPRINTER_RIGHT_MARGIN(f) =
 	MulDiv (physicalwidth - (frame_left + frame_width), 1440,
@@ -955,7 +953,7 @@ msprinter_init_frame_3 (struct frame *f)
 
   if (FRAME_MSPRINTER_CHARHEIGHT (f) > 0)
     {
-      char_to_real_pixel_size (f, 0, FRAME_MSPRINTER_CHARHEIGHT (f),
+      char_to_pixel_size (f, 0, FRAME_MSPRINTER_CHARHEIGHT (f),
 			       NULL, &frame_height);
 
       FRAME_MSPRINTER_BOTTOM_MARGIN(f) =
@@ -985,8 +983,8 @@ msprinter_init_frame_3 (struct frame *f)
     int rows, columns;
     FRAME_PIXWIDTH (f) = frame_width;
     FRAME_PIXHEIGHT (f) = frame_height;
-    pixel_to_char_size (f, frame_width, frame_height, &columns, &rows);
-    change_frame_size (f, rows, columns, 0);
+    pixel_to_frame_unit_size (f, frame_width, frame_height, &columns, &rows);
+    change_frame_size (f, columns, rows, 0);
   }
 
   FRAME_MSPRINTER_PIXLEFT(f) = frame_left;
@@ -998,7 +996,7 @@ msprinter_init_frame_3 (struct frame *f)
     const Extbyte *nameext;
 
     if (STRINGP (f->name))
-      LISP_STRING_TO_TSTR (f->name, nameext);
+      nameext = LISP_STRING_TO_TSTR (f->name);
     else
       nameext = XETEXT ("XEmacs print document");
     di.lpszDocName = (XELPTSTR) nameext;
@@ -1033,7 +1031,7 @@ msprinter_delete_frame (struct frame *f)
 	EndPage (hdc);
       if (FRAME_MSPRINTER_JOB_STARTED (f))
 	EndDoc (hdc);
-      xfree (f->frame_data, void *);
+      xfree (f->frame_data);
     }
 
   f->frame_data = 0;
@@ -1211,7 +1209,7 @@ void
 syms_of_frame_mswindows (void)
 {
 #ifdef NEW_GC
-  INIT_LRECORD_IMPLEMENTATION (mswindows_frame);
+  INIT_LISP_OBJECT (mswindows_frame);
 #endif /* NEW_GC */
 }
 

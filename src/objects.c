@@ -1,7 +1,8 @@
 /* Generic Objects and Functions.
    Copyright (C) 1995 Free Software Foundation, Inc.
    Copyright (C) 1995 Board of Trustees, University of Illinois.
-   Copyright (C) 1995, 1996, 2002, 2004 Ben Wing.
+   Copyright (C) 1995, 1996, 2002, 2004, 2005, 2010 Ben Wing.
+   Copyright (C) 2010 Didier Verna
 
 This file is part of XEmacs.
 
@@ -43,7 +44,8 @@ Boston, MA 02111-1307, USA.  */
    If we leave in the Qunbound value, we will probably get crashes. */
 Lisp_Object Vthe_null_color_instance, Vthe_null_font_instance;
 
-/* Authors: Ben Wing, Chuck Thompson */
+/* Author: Ben Wing; some earlier code from Chuck Thompson, Jamie
+   Zawinski. */
 
 DOESNT_RETURN
 finalose (void *ptr)
@@ -102,30 +104,27 @@ print_color_instance (Lisp_Object obj, Lisp_Object printcharfun,
 {
   Lisp_Color_Instance *c = XCOLOR_INSTANCE (obj);
   if (print_readably)
-    printing_unreadable_object ("#<color-instance 0x%x>",
-	   c->header.uid);
+    printing_unreadable_lisp_object (obj, 0);
   write_fmt_string_lisp (printcharfun, "#<color-instance %s", 1, c->name);
   write_fmt_string_lisp (printcharfun, " on %s", 1, c->device);
   if (!NILP (c->device)) /* Vthe_null_color_instance */
     MAYBE_DEVMETH (XDEVICE (c->device), print_color_instance,
 		   (c, printcharfun, escapeflag));
-  write_fmt_string (printcharfun, " 0x%x>", c->header.uid);
+  write_fmt_string (printcharfun, " 0x%x>", LISP_OBJECT_UID (obj));
 }
 
 static void
-finalize_color_instance (void *header, int for_disksave)
+finalize_color_instance (Lisp_Object obj)
 {
-  Lisp_Color_Instance *c = (Lisp_Color_Instance *) header;
+  Lisp_Color_Instance *c = XCOLOR_INSTANCE (obj);
 
   if (!NILP (c->device))
-    {
-      if (for_disksave) finalose (c);
-      MAYBE_DEVMETH (XDEVICE (c->device), finalize_color_instance, (c));
-    }
+    MAYBE_DEVMETH (XDEVICE (c->device), finalize_color_instance, (c));
 }
 
 static int
-color_instance_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
+color_instance_equal (Lisp_Object obj1, Lisp_Object obj2, int depth,
+		      int UNUSED (foldcase))
 {
   Lisp_Color_Instance *c1 = XCOLOR_INSTANCE (obj1);
   Lisp_Color_Instance *c2 = XCOLOR_INSTANCE (obj2);
@@ -149,13 +148,12 @@ color_instance_hash (Lisp_Object obj, int depth)
 				    LISP_HASH (obj)));
 }
 
-DEFINE_LRECORD_IMPLEMENTATION ("color-instance", color_instance,
-			       0, /*dumpable-flag*/
-			       mark_color_instance, print_color_instance,
-			       finalize_color_instance, color_instance_equal,
-			       color_instance_hash,
-			       color_instance_description,
-			       Lisp_Color_Instance);
+DEFINE_NODUMP_LISP_OBJECT ("color-instance", color_instance,
+			   mark_color_instance, print_color_instance,
+			   finalize_color_instance, color_instance_equal,
+			   color_instance_hash,
+			   color_instance_description,
+			   Lisp_Color_Instance);
 
 DEFUN ("make-color-instance", Fmake_color_instance, 1, 3, 0, /*
 Return a new `color-instance' object named NAME (a string).
@@ -176,13 +174,15 @@ is deallocated as well.
 */
        (name, device, noerror))
 {
+  Lisp_Object obj;
   Lisp_Color_Instance *c;
   int retval;
 
   CHECK_STRING (name);
   device = wrap_device (decode_device (device));
 
-  c = ALLOC_LCRECORD_TYPE (Lisp_Color_Instance, &lrecord_color_instance);
+  obj = ALLOC_NORMAL_LISP_OBJECT (color_instance);
+  c = XCOLOR_INSTANCE (obj);
   c->name = name;
   c->device = device;
   c->data = 0;
@@ -194,7 +194,7 @@ is deallocated as well.
   if (!retval)
     return Qnil;
 
-  return wrap_color_instance (c);
+  return obj;
 }
 
 DEFUN ("color-instance-p", Fcolor_instance_p, 1, 1, 0, /*
@@ -319,7 +319,7 @@ print_font_instance (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 {
   Lisp_Font_Instance *f = XFONT_INSTANCE (obj);
   if (print_readably)
-    printing_unreadable_object ("#<font-instance 0x%x>", f->header.uid);
+    printing_unreadable_lisp_object (obj, 0);
   write_fmt_string_lisp (printcharfun, "#<font-instance %S", 1, f->name);
   write_fmt_string_lisp (printcharfun, " on %s", 1, f->device);
   if (!NILP (f->device))
@@ -328,17 +328,16 @@ print_font_instance (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 		     (f, printcharfun, escapeflag));
 
     }
-  write_fmt_string (printcharfun, " 0x%x>", f->header.uid);
+  write_fmt_string (printcharfun, " 0x%x>", LISP_OBJECT_UID (obj));
 }
 
 static void
-finalize_font_instance (void *header, int for_disksave)
+finalize_font_instance (Lisp_Object obj)
 {
-  Lisp_Font_Instance *f = (Lisp_Font_Instance *) header;
+  Lisp_Font_Instance *f = XFONT_INSTANCE (obj);
 
   if (!NILP (f->device))
     {
-      if (for_disksave) finalose (f);
       MAYBE_DEVMETH (XDEVICE (f->device), finalize_font_instance, (f));
     }
 }
@@ -348,7 +347,8 @@ finalize_font_instance (void *header, int for_disksave)
    this means the `equal' could cause XListFonts to be run the first time.
  */
 static int
-font_instance_equal (Lisp_Object obj1, Lisp_Object obj2, int depth)
+font_instance_equal (Lisp_Object obj1, Lisp_Object obj2, int depth,
+		     int UNUSED (foldcase))
 {
   /* #### should this be moved into a device method? */
   return internal_equal (font_instance_truename_internal
@@ -366,12 +366,11 @@ font_instance_hash (Lisp_Object obj, int depth)
 			depth + 1);
 }
 
-DEFINE_LRECORD_IMPLEMENTATION ("font-instance", font_instance,
-			       0, /*dumpable-flag*/
-			       mark_font_instance, print_font_instance,
-			       finalize_font_instance, font_instance_equal,
-			       font_instance_hash, font_instance_description,
-			       Lisp_Font_Instance);
+DEFINE_NODUMP_LISP_OBJECT ("font-instance", font_instance,
+			   mark_font_instance, print_font_instance,
+			   finalize_font_instance, font_instance_equal,
+			   font_instance_hash, font_instance_description,
+			   Lisp_Font_Instance);
 
 
 /* #### Why is this exposed to Lisp?  Used in:
@@ -392,6 +391,7 @@ these objects are GCed, the underlying GUI data is deallocated as well.
 */
        (name, device, noerror, charset))
 {
+  Lisp_Object obj;
   Lisp_Font_Instance *f;
   int retval = 0;
   Error_Behavior errb = decode_error_behavior_flag (noerror);
@@ -403,7 +403,8 @@ these objects are GCed, the underlying GUI data is deallocated as well.
 
   device = wrap_device (decode_device (device));
 
-  f = ALLOC_LCRECORD_TYPE (Lisp_Font_Instance, &lrecord_font_instance);
+  obj = ALLOC_NORMAL_LISP_OBJECT (font_instance);
+  f = XFONT_INSTANCE (obj);
   f->name = name;
   f->truename = Qnil;
   f->device = device;
@@ -424,7 +425,7 @@ these objects are GCed, the underlying GUI data is deallocated as well.
   if (!retval)
     return Qnil;
 
-  return wrap_font_instance (f);
+  return obj;
 }
 
 DEFUN ("font-instance-p", Ffont_instance_p, 1, 1, 0, /*
@@ -844,6 +845,32 @@ invalidate_charset_font_caches (Lisp_Object charset)
 
 #endif /* MULE */
 
+/* It's a little non-obvious what's going on here.  Specifically:
+
+   MATCHSPEC is a somewhat bogus way in the specifier mechanism of passing
+   in additional information needed to instantiate some object.  For fonts,
+   it's a cons of (CHARSET . SECOND-STAGE-P).  SECOND-STAGE-P, if set,
+   means "try harder to find an appropriate font" and is a very bogus way
+   of dealing with the fact that it may not be possible to may a charset
+   directly onto a font; it's used esp. under Windows.  @@#### We need to
+   change this so that MATCHSPEC is just a character.
+
+   When redisplay is building up its structure, and needs font info, it
+   calls functions in faces.c such as ensure_face_cachel_complete() (map
+   fonts needed for a string of text) or
+   ensure_face_cachel_contains_charset() (map fonts needed for a charset
+   derived from a single character).  The former function calls the latter;
+   the latter calls face_property_matching_instance(); this constructs the
+   MATCHSPEC and calls specifier_instance_no_quit() twice (first stage and
+   second stage, updating MATCHSPEC appropriately).  That function, in
+   turn, looks up the appropriate specifier method to do the instantiation,
+   which, lo and behold, is this function here (because we set it in
+   initialization using `SPECIFIER_HAS_METHOD (font, instantiate);').  We
+   in turn call the device method `find_charset_font', which maps to
+   mswindows_find_charset_font(), x_find_charset_font(), or similar, in
+   objects-msw.c or the like.
+
+   --ben */
 
 static Lisp_Object
 font_instantiate (Lisp_Object UNUSED (specifier),
@@ -858,19 +885,20 @@ font_instantiate (Lisp_Object UNUSED (specifier),
   Lisp_Object instance;
   Lisp_Object charset = Qnil;
 #ifdef MULE
-  enum font_specifier_matchspec_stages stage = initial;
+  enum font_specifier_matchspec_stages stage = STAGE_INITIAL;
 
   if (!UNBOUNDP (matchspec))
     {
       charset = Fget_charset (XCAR (matchspec));
 
-#define FROB(new_stage) if (EQ(Q##new_stage, XCDR(matchspec)))	\
-	    {							\
-	      stage = new_stage;				\
+#define FROB(new_stage, enumstage)			\
+          if (EQ(Q##new_stage, XCDR(matchspec)))	\
+	    {						\
+	      stage = enumstage;			\
 	    }
 
-	  FROB(initial)
-	  else FROB(final)
+	  FROB (initial, STAGE_INITIAL)
+	  else FROB (final, STAGE_FINAL)
 	  else assert(0);
 
 #undef FROB
@@ -898,7 +926,8 @@ font_instantiate (Lisp_Object UNUSED (specifier),
     {
 #ifdef MULE
       /* #### rename these caches. */
-      Lisp_Object cache = stage ? d->charset_font_cache_stage_2 :
+      Lisp_Object cache = stage == STAGE_FINAL ?
+	d->charset_font_cache_stage_2 :
 	d->charset_font_cache_stage_1;
 #else
       Lisp_Object cache = d->font_instance_cache;
@@ -960,13 +989,13 @@ font_instantiate (Lisp_Object UNUSED (specifier),
 
       match_inst = face_property_matching_instance
 	(Fget_face (XVECTOR_DATA (instantiator)[0]), Qfont,
-	 charset, domain, ERROR_ME, no_fallback, depth, initial);
+	 charset, domain, ERROR_ME, no_fallback, depth, STAGE_INITIAL);
 
       if (UNBOUNDP(match_inst))
 	{
 	  match_inst = face_property_matching_instance
 	    (Fget_face (XVECTOR_DATA (instantiator)[0]), Qfont,
-	     charset, domain, ERROR_ME, no_fallback, depth, final);
+	     charset, domain, ERROR_ME, no_fallback, depth, STAGE_FINAL);
 	}
 
       return match_inst;
@@ -1182,6 +1211,130 @@ face-boolean instantiators.
 }
 
 
+/*****************************************************************************
+ Face Background Placement Object
+ ****************************************************************************/
+Lisp_Object Qabsolute, Qrelative;
+
+static const struct memory_description
+face_background_placement_specifier_description[] = {
+  { XD_LISP_OBJECT, offsetof (struct face_background_placement_specifier,
+			      face) },
+  { XD_END }
+};
+
+DEFINE_SPECIFIER_TYPE_WITH_DATA (face_background_placement);
+Lisp_Object Qface_background_placement;
+
+static void
+face_background_placement_create (Lisp_Object obj)
+{
+  Lisp_Specifier *face_background_placement
+    = XFACE_BACKGROUND_PLACEMENT_SPECIFIER (obj);
+
+  FACE_BACKGROUND_PLACEMENT_SPECIFIER_FACE (face_background_placement) = Qnil;
+}
+
+static void
+face_background_placement_mark (Lisp_Object obj)
+{
+  Lisp_Specifier *face_background_placement
+    = XFACE_BACKGROUND_PLACEMENT_SPECIFIER (obj);
+
+  mark_object
+    (FACE_BACKGROUND_PLACEMENT_SPECIFIER_FACE (face_background_placement));
+}
+
+/* No equal or hash methods; ignore the face the background-placement is based
+   off of for `equal' */
+
+extern Lisp_Object Qbackground_placement;
+
+static Lisp_Object
+face_background_placement_instantiate (Lisp_Object UNUSED (specifier),
+				       Lisp_Object UNUSED (matchspec),
+				       Lisp_Object domain,
+				       Lisp_Object instantiator,
+				       Lisp_Object depth,
+				       int no_fallback)
+{
+  /* When called, we're inside of call_with_suspended_errors(),
+     so we can freely error. */
+  if (EQ (instantiator, Qabsolute) || EQ (instantiator, Qrelative))
+    return instantiator;
+  else if (VECTORP (instantiator))
+    {
+      assert (XVECTOR_LENGTH (instantiator) == 1);
+
+      return FACE_PROPERTY_INSTANCE_1
+	(Fget_face (XVECTOR_DATA (instantiator)[0]),
+	 Qbackground_placement, domain, ERROR_ME, no_fallback, depth);
+    }
+  else
+    ABORT ();	/* Eh? */
+
+  return Qunbound;
+}
+
+static void
+face_background_placement_validate (Lisp_Object instantiator)
+{
+  if (EQ (instantiator, Qabsolute) || EQ (instantiator, Qrelative))
+    return;
+  else if (VECTORP (instantiator) &&
+	   (XVECTOR_LENGTH (instantiator) == 1))
+    {
+      Lisp_Object face = XVECTOR_DATA (instantiator)[0];
+
+      Fget_face (face); /* just to check that the face exists -- dvl */
+    }
+  else if (VECTORP (instantiator))
+    sferror ("Wrong length for background-placement inheritance spec",
+	     instantiator);
+  else
+    invalid_argument
+      ("\
+Background-placement instantiator must be absolute, relative or vector",
+       instantiator);
+}
+
+static void
+face_background_placement_after_change (Lisp_Object specifier,
+					Lisp_Object locale)
+{
+  Lisp_Object face
+    = FACE_BACKGROUND_PLACEMENT_SPECIFIER_FACE
+    (XFACE_BACKGROUND_PLACEMENT_SPECIFIER (specifier));
+
+  if (!NILP (face))
+    {
+      face_property_was_changed (face, Qbackground_placement, locale);
+      if (BUFFERP (locale))
+	XBUFFER (locale)->buffer_local_face_property = 1;
+    }
+}
+
+void
+set_face_background_placement_attached_to (Lisp_Object obj, Lisp_Object face)
+{
+  Lisp_Specifier *face_background_placement
+    = XFACE_BACKGROUND_PLACEMENT_SPECIFIER (obj);
+
+  FACE_BACKGROUND_PLACEMENT_SPECIFIER_FACE (face_background_placement) = face;
+}
+
+DEFUN ("face-background-placement-specifier-p", Fface_background_placement_specifier_p, 1, 1, 0, /*
+Return non-nil if OBJECT is a face-background-placement specifier.
+
+See `make-face-background-placement-specifier' for a description of possible
+face-background-placement instantiators.
+*/
+       (object))
+{
+  return FACE_BACKGROUND_PLACEMENT_SPECIFIERP (object) ? Qt : Qnil;
+}
+
+
 /************************************************************************/
 /*                            initialization                            */
 /************************************************************************/
@@ -1189,12 +1342,13 @@ face-boolean instantiators.
 void
 syms_of_objects (void)
 {
-  INIT_LRECORD_IMPLEMENTATION (color_instance);
-  INIT_LRECORD_IMPLEMENTATION (font_instance);
+  INIT_LISP_OBJECT (color_instance);
+  INIT_LISP_OBJECT (font_instance);
 
   DEFSUBR (Fcolor_specifier_p);
   DEFSUBR (Ffont_specifier_p);
   DEFSUBR (Fface_boolean_specifier_p);
+  DEFSUBR (Fface_background_placement_specifier_p);
 
   DEFSYMBOL_MULTIWORD_PREDICATE (Qcolor_instancep);
   DEFSUBR (Fmake_color_instance);
@@ -1219,6 +1373,10 @@ syms_of_objects (void)
 
   /* Qcolor, Qfont defined in general.c */
   DEFSYMBOL (Qface_boolean);
+
+  DEFSYMBOL (Qface_background_placement);
+  DEFSYMBOL (Qabsolute);
+  DEFSYMBOL (Qrelative);
 }
 
 void
@@ -1228,26 +1386,35 @@ specifier_type_create_objects (void)
   INITIALIZE_SPECIFIER_TYPE_WITH_DATA (font, "font", "font-specifier-p");
   INITIALIZE_SPECIFIER_TYPE_WITH_DATA (face_boolean, "face-boolean",
 					 "face-boolean-specifier-p");
+  INITIALIZE_SPECIFIER_TYPE_WITH_DATA (face_background_placement,
+				       "face-background-placement",
+				       "\
+face-background-placement-specifier-p");
 
   SPECIFIER_HAS_METHOD (color, instantiate);
   SPECIFIER_HAS_METHOD (font, instantiate);
   SPECIFIER_HAS_METHOD (face_boolean, instantiate);
+  SPECIFIER_HAS_METHOD (face_background_placement, instantiate);
 
   SPECIFIER_HAS_METHOD (color, validate);
   SPECIFIER_HAS_METHOD (font, validate);
   SPECIFIER_HAS_METHOD (face_boolean, validate);
+  SPECIFIER_HAS_METHOD (face_background_placement, validate);
 
   SPECIFIER_HAS_METHOD (color, create);
   SPECIFIER_HAS_METHOD (font, create);
   SPECIFIER_HAS_METHOD (face_boolean, create);
+  SPECIFIER_HAS_METHOD (face_background_placement, create);
 
   SPECIFIER_HAS_METHOD (color, mark);
   SPECIFIER_HAS_METHOD (font, mark);
   SPECIFIER_HAS_METHOD (face_boolean, mark);
+  SPECIFIER_HAS_METHOD (face_background_placement, mark);
 
   SPECIFIER_HAS_METHOD (color, after_change);
   SPECIFIER_HAS_METHOD (font, after_change);
   SPECIFIER_HAS_METHOD (face_boolean, after_change);
+  SPECIFIER_HAS_METHOD (face_background_placement, after_change);
 
 #ifdef MULE
   SPECIFIER_HAS_METHOD (font, validate_matchspec);
@@ -1260,26 +1427,26 @@ reinit_specifier_type_create_objects (void)
   REINITIALIZE_SPECIFIER_TYPE (color);
   REINITIALIZE_SPECIFIER_TYPE (font);
   REINITIALIZE_SPECIFIER_TYPE (face_boolean);
+  REINITIALIZE_SPECIFIER_TYPE (face_background_placement);
 }
 
 void
 reinit_vars_of_objects (void)
 {
-  staticpro_nodump (&Vthe_null_color_instance);
   {
-    Lisp_Color_Instance *c =
-      ALLOC_LCRECORD_TYPE (Lisp_Color_Instance, &lrecord_color_instance);
+    Lisp_Object obj = ALLOC_NORMAL_LISP_OBJECT (color_instance);
+    Lisp_Color_Instance *c = XCOLOR_INSTANCE (obj);
     c->name = Qnil;
     c->device = Qnil;
     c->data = 0;
 
-    Vthe_null_color_instance = wrap_color_instance (c);
+    Vthe_null_color_instance = obj;
+    staticpro_nodump (&Vthe_null_color_instance);
   }
 
-  staticpro_nodump (&Vthe_null_font_instance);
   {
-    Lisp_Font_Instance *f =
-      ALLOC_LCRECORD_TYPE (Lisp_Font_Instance, &lrecord_font_instance);
+    Lisp_Object obj = ALLOC_NORMAL_LISP_OBJECT (font_instance);
+    Lisp_Font_Instance *f = XFONT_INSTANCE (obj);
     f->name = Qnil;
     f->truename = Qnil;
     f->device = Qnil;
@@ -1290,7 +1457,8 @@ reinit_vars_of_objects (void)
     f->width = 0;
     f->proportional_p = 0;
 
-    Vthe_null_font_instance = wrap_font_instance (f);
+    Vthe_null_font_instance = obj;
+    staticpro_nodump (&Vthe_null_font_instance);
   }
 }
 

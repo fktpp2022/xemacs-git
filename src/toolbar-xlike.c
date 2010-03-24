@@ -1,7 +1,7 @@
 /* toolbar implementation -- "Generic" (X or GTK) redisplay interface.
    Copyright (C) 1995 Board of Trustees, University of Illinois.
    Copyright (C) 1995 Sun Microsystems, Inc.
-   Copyright (C) 1995, 1996, 2002 Ben Wing.
+   Copyright (C) 1995, 1996, 2002, 2010 Ben Wing.
    Copyright (C) 1996 Chuck Thompson.
 
 This file is part of XEmacs.
@@ -38,14 +38,14 @@ Boston, MA 02111-1307, USA.  */
 
 /* Only a very few things need to differ based on the toolkit used.
 **
-** Some of the routines used assert(FRAME_yyy_P(f)) checks, this is
+** Some of the routines used assert (FRAME_yyy_P(f)) checks, this is
 ** now abstracted into __INTERNAL_APPROPRIATENESS_CHECK().  When we
 ** add new window systems that use this code, we should either add a
 ** new case here, or just remove the checks completely.
 **
 ** At least for X & GTK redraw_frame_toolbars() might end up getting
 ** called before we are completely initialized.  To avoid this, we use
-** the __INTERNAL_MAPPED_P(f) macro, that should return 0 if we should
+** the __INTERNAL_MAPPED_P (f) macro, that should return 0 if we should
 ** not draw the toolbars yet.  When we add new window systems that use
 ** this code, we should add a new case here, if they need it.
 **
@@ -68,7 +68,7 @@ Boston, MA 02111-1307, USA.  */
 #define __INTERNAL_FLUSH(f) ABORT()
 #endif
 
-#include "toolbar-common.h"
+#include "toolbar-xlike.h"
 
 extern Lisp_Object Vtoolbar_shadow_thickness;
 
@@ -85,7 +85,7 @@ static void __prepare_button_area (struct frame *f,
   Lisp_Object  window = FRAME_LAST_NONMINIBUF_WINDOW (f);
   struct window *w = XWINDOW (window);
   int shadow_thickness;
-  int def_shadow_thickness = XINT (Fspecifier_instance(Vtoolbar_shadow_thickness, window, Qnil, Qnil));
+  int def_shadow_thickness = XINT (Fspecifier_instance (Vtoolbar_shadow_thickness, window, Qnil, Qnil));
   face_index toolbar_findex;
 
   if (tb->vertical)
@@ -103,7 +103,7 @@ static void __prepare_button_area (struct frame *f,
 
   toolbar_findex = get_builtin_face_cache_index (w, Vtoolbar_face);
 
-  /* Blank toolbar buttons that should be 3d will have EQ(tb->up_glyph, Qt)
+  /* Blank toolbar buttons that should be 3d will have EQ (tb->up_glyph, Qt)
   ** Blank toolbar buttons that should be flat will have NILP (tb->up_glyph)
   **
   ** Real toolbar buttons will check tb->enabled && tb->down
@@ -143,7 +143,7 @@ static void __prepare_button_area (struct frame *f,
       MAYBE_DEVMETH (d, bevel_area,
 		     (w, toolbar_findex, sx + x_adj,
 		      sy + y_adj, swidth + width_adj,
-		      sheight + height_adj, abs(shadow_thickness),
+		      sheight + height_adj, abs (shadow_thickness),
 		      EDGE_ALL, (shadow_thickness < 0) ? EDGE_BEVEL_IN
 						       : EDGE_BEVEL_OUT));
     }
@@ -160,10 +160,10 @@ static void __prepare_button_area (struct frame *f,
 			  (tb->vertical ? sheight : border_width));
 }
 
-#define common_draw_blank_toolbar_button(f,tb) __prepare_button_area (f,tb)
+#define xlike_draw_blank_toolbar_button(f,tb) __prepare_button_area (f,tb)
 
 void
-common_output_toolbar_button (struct frame *f, Lisp_Object button)
+xlike_output_toolbar_button (struct frame *f, Lisp_Object button)
 {
   int shadow_thickness = 2;
   int x_adj, y_adj, width_adj, height_adj;
@@ -296,7 +296,7 @@ common_output_toolbar_button (struct frame *f, Lisp_Object button)
 	  buf = Dynarr_new (Ichar);
 	  convert_ibyte_string_into_ichar_dynarr
 	    (XSTRING_DATA (string), XSTRING_LENGTH (string), buf);
-	  find_charsets_in_ichar_string (charsets, Dynarr_atp (buf, 0),
+	  find_charsets_in_ichar_string (charsets, Dynarr_begin (buf),
 					  Dynarr_length (buf));
 	  ensure_face_cachel_complete (cachel, window, charsets);
 	  face_cachel_charset_font_metric_info (cachel, charsets, &fm);
@@ -328,7 +328,7 @@ common_output_toolbar_button (struct frame *f, Lisp_Object button)
 }
 
 static int
-common_get_button_size (struct frame *f, Lisp_Object window,
+xlike_get_button_size (struct frame *f, Lisp_Object window,
 			struct toolbar_button *tb, int vert, int pos)
 {
   int shadow_thickness = 2;
@@ -370,7 +370,7 @@ common_get_button_size (struct frame *f, Lisp_Object window,
   return (size);
 }
 
-#define COMMON_OUTPUT_BUTTONS_LOOP(left)				\
+#define XLIKE_OUTPUT_BUTTONS_LOOP(left)					\
   do {									\
     while (!NILP (button))						\
       {									\
@@ -380,7 +380,7 @@ common_get_button_size (struct frame *f, Lisp_Object window,
 	if (left && tb->pushright)					\
 	  break;							\
 									\
-        size = common_get_button_size (f, window, tb, vert, pos);	\
+        size = xlike_get_button_size (f, window, tb, vert, pos);	\
 									\
 	if (vert)							\
 	  {								\
@@ -417,10 +417,10 @@ common_get_button_size (struct frame *f, Lisp_Object window,
 									\
                 if (tb->blank || NILP (tb->up_glyph))			\
 		  {							\
-		    common_draw_blank_toolbar_button (f, tb);		\
+		    xlike_draw_blank_toolbar_button (f, tb);		\
 		  }							\
 	        else							\
-		  common_output_toolbar_button (f, button);		\
+		  xlike_output_toolbar_button (f, button);		\
 	      }								\
 	  }								\
 									\
@@ -436,29 +436,8 @@ common_get_button_size (struct frame *f, Lisp_Object window,
       }									\
   } while (0)
 
-#define SET_TOOLBAR_WAS_VISIBLE_FLAG(frame, pos, flag)			\
-  do {									\
-    switch (pos)							\
-      {									\
-      case TOP_TOOLBAR:							\
-	(frame)->top_toolbar_was_visible = flag;			\
-	break;								\
-      case BOTTOM_TOOLBAR:						\
-	(frame)->bottom_toolbar_was_visible = flag;			\
-	break;								\
-      case LEFT_TOOLBAR:						\
-	(frame)->left_toolbar_was_visible = flag;			\
-	break;								\
-      case RIGHT_TOOLBAR:						\
-	(frame)->right_toolbar_was_visible = flag;			\
-	break;								\
-      default:								\
-	ABORT ();							\
-      }									\
-  } while (0)
-
 static void
-common_output_toolbar (struct frame *f, enum toolbar_pos pos)
+xlike_output_toolbar (struct frame *f, enum edge_pos pos)
 {
   int x, y, bar_width, bar_height, vert;
   int max_pixpos, right_size, right_start, blank_size;
@@ -502,7 +481,7 @@ common_output_toolbar (struct frame *f, enum toolbar_pos pos)
   while (!NILP (button))
     {
       struct toolbar_button *tb = XTOOLBAR_BUTTON (button);
-      int size = common_get_button_size (f, window, tb, vert, pos);
+      int size = xlike_get_button_size (f, window, tb, vert, pos);
 
       if (tb->pushright)
 	right_size += size;
@@ -513,7 +492,7 @@ common_output_toolbar (struct frame *f, enum toolbar_pos pos)
   button = FRAME_TOOLBAR_BUTTONS (f, pos);
 
   /* Loop over the left buttons, updating and outputting them. */
-  COMMON_OUTPUT_BUTTONS_LOOP (1);
+  XLIKE_OUTPUT_BUTTONS_LOOP (1);
 
   /* Now determine where the right buttons start. */
   right_start = max_pixpos - right_size;
@@ -566,7 +545,7 @@ common_output_toolbar (struct frame *f, enum toolbar_pos pos)
     }
 
   /* Loop over the right buttons, updating and outputting them. */
-  COMMON_OUTPUT_BUTTONS_LOOP (0);
+  XLIKE_OUTPUT_BUTTONS_LOOP (0);
 
   if (!vert)
     {
@@ -582,7 +561,7 @@ common_output_toolbar (struct frame *f, enum toolbar_pos pos)
 }
 
 static void
-common_clear_toolbar (struct frame *f, enum toolbar_pos pos, int thickness_change)
+xlike_clear_toolbar (struct frame *f, enum edge_pos pos, int thickness_change)
 {
   Lisp_Object frame;
   int x, y, width, height, vert;
@@ -594,7 +573,7 @@ common_clear_toolbar (struct frame *f, enum toolbar_pos pos, int thickness_chang
      to clear any excess toolbar if the size shrinks. */
   if (thickness_change < 0)
     {
-      if (pos == LEFT_TOOLBAR || pos == RIGHT_TOOLBAR)
+      if (pos == LEFT_EDGE || pos == RIGHT_EDGE)
 	{
 	  x = x + width + thickness_change;
 	  width = -thickness_change;
@@ -614,44 +593,34 @@ common_clear_toolbar (struct frame *f, enum toolbar_pos pos, int thickness_chang
 }
 
 void
-common_output_frame_toolbars (struct frame *f)
+xlike_output_frame_toolbars (struct frame *f)
 {
-  __INTERNAL_APPROPRIATENESS_CHECK(f);
+  enum edge_pos pos;
+  __INTERNAL_APPROPRIATENESS_CHECK (f);
 
-  if (FRAME_REAL_TOP_TOOLBAR_VISIBLE (f))
-    common_output_toolbar (f, TOP_TOOLBAR);
-
-  if (FRAME_REAL_BOTTOM_TOOLBAR_VISIBLE (f))
-    common_output_toolbar (f, BOTTOM_TOOLBAR);
-
-  if (FRAME_REAL_LEFT_TOOLBAR_VISIBLE (f))
-    common_output_toolbar (f, LEFT_TOOLBAR);
-
-  if (FRAME_REAL_RIGHT_TOOLBAR_VISIBLE (f))
-    common_output_toolbar (f, RIGHT_TOOLBAR);
+  EDGE_POS_LOOP (pos)
+    {
+      if (FRAME_REAL_TOOLBAR_VISIBLE (f, pos))
+	xlike_output_toolbar (f, pos);
+    }
 }
 
 void
-common_clear_frame_toolbars (struct frame *f)
+xlike_clear_frame_toolbars (struct frame *f)
 {
-  __INTERNAL_APPROPRIATENESS_CHECK(f);
+  enum edge_pos pos;
+  __INTERNAL_APPROPRIATENESS_CHECK (f);
 
-  if (f->top_toolbar_was_visible
-      && !FRAME_REAL_TOP_TOOLBAR_VISIBLE (f))
-    common_clear_toolbar (f, TOP_TOOLBAR, 0);
-  if (f->bottom_toolbar_was_visible
-      && !FRAME_REAL_BOTTOM_TOOLBAR_VISIBLE (f))
-    common_clear_toolbar (f, BOTTOM_TOOLBAR, 0);
-  if (f->left_toolbar_was_visible 
-      && !FRAME_REAL_LEFT_TOOLBAR_VISIBLE (f))
-    common_clear_toolbar (f, LEFT_TOOLBAR, 0);
-  if (f->right_toolbar_was_visible 
-       && !FRAME_REAL_RIGHT_TOOLBAR_VISIBLE (f))
-    common_clear_toolbar (f, RIGHT_TOOLBAR, 0);
+  EDGE_POS_LOOP (pos)
+    {
+      if (f->toolbar_was_visible[pos]
+	  && !FRAME_REAL_TOOLBAR_VISIBLE (f, pos))
+	xlike_clear_toolbar (f, pos, 0);
+    }
 }
 
 static void
-common_redraw_exposed_toolbar (struct frame *f, enum toolbar_pos pos, int x, int y,
+xlike_redraw_exposed_toolbar (struct frame *f, enum edge_pos pos, int x, int y,
 			    int width, int height)
 {
   int bar_x, bar_y, bar_width, bar_height, vert;
@@ -694,37 +663,32 @@ common_redraw_exposed_toolbar (struct frame *f, enum toolbar_pos pos, int x, int
   /* Even if none of the buttons is in the area, the blank region at
      the very least must be because the first thing we did is verify
      that some portion of the toolbar is in the exposed region. */
-  common_output_toolbar (f, pos);
+  xlike_output_toolbar (f, pos);
 }
 
 void
-common_redraw_exposed_toolbars (struct frame *f, int x, int y, int width,
+xlike_redraw_exposed_toolbars (struct frame *f, int x, int y, int width,
 				int height)
 {
-  __INTERNAL_APPROPRIATENESS_CHECK(f);
+  enum edge_pos pos;
+  __INTERNAL_APPROPRIATENESS_CHECK (f);
 
-  if (FRAME_REAL_TOP_TOOLBAR_VISIBLE (f))
-    common_redraw_exposed_toolbar (f, TOP_TOOLBAR, x, y, width, height);
-
-  if (FRAME_REAL_BOTTOM_TOOLBAR_VISIBLE (f))
-    common_redraw_exposed_toolbar (f, BOTTOM_TOOLBAR, x, y, width, height);
-
-  if (FRAME_REAL_LEFT_TOOLBAR_VISIBLE (f))
-    common_redraw_exposed_toolbar (f, LEFT_TOOLBAR, x, y, width, height);
-
-  if (FRAME_REAL_RIGHT_TOOLBAR_VISIBLE (f))
-    common_redraw_exposed_toolbar (f, RIGHT_TOOLBAR, x, y, width, height);
+  EDGE_POS_LOOP (pos)
+    {
+      if (FRAME_REAL_TOOLBAR_VISIBLE (f, pos))
+	xlike_redraw_exposed_toolbar (f, pos, x, y, width, height);
+    }
 }
 
 void
-common_redraw_frame_toolbars (struct frame *f)
+xlike_redraw_frame_toolbars (struct frame *f)
 {
   /* There are certain startup paths that lead to update_EmacsFrame in
      faces.c being called before a new frame is fully initialized.  In
      particular before we have actually mapped it.  That routine can
      call this one.  So, we need to make sure that the frame is
      actually ready before we try and draw all over it. */
-  if (__INTERNAL_MAPPED_P(f))
-    common_redraw_exposed_toolbars (f, 0, 0, FRAME_PIXWIDTH (f),
+  if (__INTERNAL_MAPPED_P (f))
+    xlike_redraw_exposed_toolbars (f, 0, 0, FRAME_PIXWIDTH (f),
 				    FRAME_PIXHEIGHT (f));
 }

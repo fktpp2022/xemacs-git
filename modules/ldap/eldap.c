@@ -1,6 +1,6 @@
 /* LDAP client interface for XEmacs.
    Copyright (C) 1998 Free Software Foundation, Inc.
-   Copyright (C) 2004 Ben Wing.
+   Copyright (C) 2004, 2005, 2010 Ben Wing.
    
 
 This file is part of XEmacs.
@@ -99,7 +99,7 @@ signal_ldap_error (LDAP *ld,
 #endif
     }
   invalid_operation ("LDAP error",
-		     build_ext_string (ldap_err2string (ldap_err), Qnative));
+		     build_extstring (ldap_err2string (ldap_err), Qnative));
 }
 
 
@@ -130,18 +130,18 @@ print_ldap (Lisp_Object obj, Lisp_Object printcharfun, int UNUSED (escapeflag))
   Lisp_LDAP *ldap = XLDAP (obj);
 
   if (print_readably)
-    printing_unreadable_object ("#<ldap %s>", XSTRING_DATA (ldap->host));
+    printing_unreadable_object_fmt ("#<ldap %s>", XSTRING_DATA (ldap->host));
 
   write_fmt_string_lisp (printcharfun, "#<ldap %S", 1, ldap->host);
   if (!ldap->ld)
-    write_c_string (printcharfun,"(dead) ");
+    write_ascstring (printcharfun,"(dead) ");
   write_fmt_string (printcharfun, " 0x%lx>", (long)ldap);
 }
 
 static Lisp_LDAP *
 allocate_ldap (void)
 {
-  Lisp_LDAP *ldap = ALLOC_LCRECORD_TYPE (Lisp_LDAP, &lrecord_ldap);
+  Lisp_LDAP *ldap = XLDAP (ALLOC_NORMAL_LISP_OBJECT (ldap));
 
   ldap->ld = NULL;
   ldap->host = Qnil;
@@ -149,23 +149,19 @@ allocate_ldap (void)
 }
 
 static void
-finalize_ldap (void *header, int for_disksave)
+finalize_ldap (Lisp_Object obj)
 {
-  Lisp_LDAP *ldap = (Lisp_LDAP *) header;
-
-  if (for_disksave)
-    invalid_operation ("Can't dump an emacs containing LDAP objects",
-			 make_ldap (ldap));
+  Lisp_LDAP *ldap = XLDAP (obj);
 
   if (ldap->ld)
     ldap_unbind (ldap->ld);
   ldap->ld = NULL;
 }
 
-DEFINE_LRECORD_IMPLEMENTATION ("ldap", ldap, 0,
-                               mark_ldap, print_ldap, finalize_ldap,
-                               NULL, NULL, ldap_description, Lisp_LDAP);
-
+DEFINE_NODUMP_LISP_OBJECT ("ldap", ldap, mark_ldap,
+			   print_ldap, finalize_ldap,
+			   NULL, NULL, ldap_description,
+			   Lisp_LDAP);
 
 /************************************************************************/
 /*                        Basic ldap accessors                          */
@@ -263,13 +259,13 @@ the LDAP library XEmacs was compiled with: `simple', `krbv41' and `krbv42'.
 	else if (EQ (keyword, Qbinddn))
 	  {
 	    CHECK_STRING (value);
-	    LISP_STRING_TO_EXTERNAL (value, ldap_binddn, Qnative);
+	    ldap_binddn = LISP_STRING_TO_EXTERNAL (value, Qnative);
 	  }
 	/* Password */
 	else if (EQ (keyword, Qpasswd))
 	  {
 	    CHECK_STRING (value);
-	    LISP_STRING_TO_EXTERNAL (value, ldap_password, Qnative);
+	    ldap_password = LISP_STRING_TO_EXTERNAL (value, Qnative);
 	  }
 	/* Deref */
 	else if (EQ (keyword, Qderef))
@@ -307,7 +303,7 @@ the LDAP library XEmacs was compiled with: `simple', `krbv41' and `krbv42'.
 
   /* Connect to the server and bind */
   slow_down_interrupts ();
-  ld = ldap_open (NEW_LISP_STRING_TO_EXTERNAL (host, Qnative), ldap_port);
+  ld = ldap_open (LISP_STRING_TO_EXTERNAL (host, Qnative), ldap_port);
   speed_up_interrupts ();
 
   if (ld == NULL )
@@ -346,7 +342,7 @@ the LDAP library XEmacs was compiled with: `simple', `krbv41' and `krbv42'.
   if (err != LDAP_SUCCESS)
     {
       signal_error (Qprocess_error, "Failed binding to the server",
-		    build_ext_string (ldap_err2string (err), Qnative));
+		    build_extstring (ldap_err2string (err), Qnative));
     }
 
   ldap = allocate_ldap ();
@@ -486,7 +482,7 @@ entry according to the value of WITHDN.
 	EXTERNAL_LIST_LOOP_2 (current, attrs)
 	  {
 	    CHECK_STRING (current);
-	    LISP_STRING_TO_EXTERNAL (current, ldap_attributes[i], Qnative);
+	    ldap_attributes[i] = LISP_STRING_TO_EXTERNAL (current, Qnative);
 	    ++i;
 	  }
       }
@@ -498,9 +494,9 @@ entry according to the value of WITHDN.
 
   /* Perform the search */
   bs = NILP (base) ? (Extbyte *) "" :
-    NEW_LISP_STRING_TO_EXTERNAL (base, Qnative);
+    LISP_STRING_TO_EXTERNAL (base, Qnative);
   filt = NILP (filter) ? (Extbyte *) "" :
-    NEW_LISP_STRING_TO_EXTERNAL (filter, Qnative);
+    LISP_STRING_TO_EXTERNAL (filter, Qnative);
   if (ldap_search (ld, bs, ldap_scope, filt, ldap_attributes,
 		   NILP (attrsonly) ? 0 : 1)
       == -1)
@@ -535,19 +531,19 @@ entry according to the value of WITHDN.
           dn = ldap_get_dn (ld, e);
           if (dn == NULL)
             signal_ldap_error (ld, e, 0);
-          entry = Fcons (build_ext_string (dn, Qnative), Qnil);
+          entry = Fcons (build_extstring (dn, Qnative), Qnil);
         }
       for (a = ldap_first_attribute (ld, e, &ptr);
            a != NULL;
            a = ldap_next_attribute (ld, e, ptr))
         {
-          list = Fcons (build_ext_string (a, Qnative), Qnil);
+          list = Fcons (build_extstring (a, Qnative), Qnil);
           unwind.vals = ldap_get_values_len (ld, e, a);
           if (unwind.vals != NULL)
             {
               for (i = 0; unwind.vals[i] != NULL; i++)
                 {
-                  list = Fcons (make_ext_string ((Extbyte *) unwind.vals[i]->bv_val,
+                  list = Fcons (make_extstring ((Extbyte *) unwind.vals[i]->bv_val,
                                                  unwind.vals[i]->bv_len,
                                                  Qnative),
                                 list);
@@ -616,7 +612,6 @@ containing attribute/value string pairs.
   int rc;
   int i, j;
   Elemcount len;
-
   Lisp_Object values  = Qnil;
   struct gcpro gcpro1;
 
@@ -646,8 +641,8 @@ containing attribute/value string pairs.
 	CHECK_CONS (current);
 	CHECK_STRING (XCAR (current));
 	ldap_mods_ptrs[i] = &(ldap_mods[i]);
-	LISP_STRING_TO_EXTERNAL (XCAR (current), ldap_mods[i].mod_type,
-				 Qnative);
+	ldap_mods[i].mod_type =
+	  LISP_STRING_TO_EXTERNAL (XCAR (current), Qnative);
 	ldap_mods[i].mod_op = LDAP_MOD_ADD | LDAP_MOD_BVALUES;
 	values = XCDR (current);
 	if (CONSP (values))
@@ -688,7 +683,7 @@ containing attribute/value string pairs.
       }
   }
   ldap_mods_ptrs[i] = NULL;
-  rc = ldap_add_s (ld, NEW_LISP_STRING_TO_EXTERNAL (dn, Qnative),
+  rc = ldap_add_s (ld, LISP_STRING_TO_EXTERNAL (dn, Qnative),
 		   ldap_mods_ptrs);
   if (rc != LDAP_SUCCESS)
     signal_ldap_error (ld, NULL, rc);
@@ -715,7 +710,6 @@ or `replace'. ATTR is the LDAP attribute type to modify.
   int i, j, rc;
   Lisp_Object mod_op;
   Elemcount len;
-
   Lisp_Object values  = Qnil;
   struct gcpro gcpro1;
 
@@ -756,8 +750,8 @@ or `replace'. ATTR is the LDAP attribute type to modify.
 	  invalid_constant ("Invalid LDAP modification type", mod_op);
 	current = XCDR (current);
 	CHECK_STRING (XCAR (current));
-	LISP_STRING_TO_EXTERNAL (XCAR (current), ldap_mods[i].mod_type,
-				 Qnative);
+	ldap_mods[i].mod_type =
+	  LISP_STRING_TO_EXTERNAL (XCAR (current), Qnative);
 	values = XCDR (current);
 	len = (Elemcount) XINT (Flength (values));
 	bervals = alloca_array (struct berval, len);
@@ -781,7 +775,7 @@ or `replace'. ATTR is the LDAP attribute type to modify.
       }
   }
   ldap_mods_ptrs[i] = NULL;
-  rc = ldap_modify_s (ld, NEW_LISP_STRING_TO_EXTERNAL (dn, Qnative),
+  rc = ldap_modify_s (ld, LISP_STRING_TO_EXTERNAL (dn, Qnative),
 		      ldap_mods_ptrs);
   if (rc != LDAP_SUCCESS)
     signal_ldap_error (ld, NULL, rc);
@@ -806,7 +800,7 @@ DN is the distinguished name of the entry to delete.
   ld = XLDAP (ldap)->ld;
   CHECK_STRING (dn);
 
-  rc = ldap_delete_s (ld, NEW_LISP_STRING_TO_EXTERNAL (dn, Qnative));
+  rc = ldap_delete_s (ld, LISP_STRING_TO_EXTERNAL (dn, Qnative));
   if (rc != LDAP_SUCCESS)
     signal_ldap_error (ld, NULL, rc);
 
@@ -816,7 +810,7 @@ DN is the distinguished name of the entry to delete.
 void
 syms_of_eldap (void)
 {
-  INIT_LRECORD_IMPLEMENTATION (ldap);
+  INIT_LISP_OBJECT (ldap);
 
   DEFSYMBOL (Qeldap);
   DEFSYMBOL (Qldapp);
@@ -878,7 +872,7 @@ void
 unload_eldap (void)
 {
   /* Remove defined types */
-  UNDEF_LRECORD_IMPLEMENTATION (ldap);
+  UNDEF_LISP_OBJECT (ldap);
 
   /* Remove staticpro'ing of symbols */
   unstaticpro_nodump (&Qeldap);
