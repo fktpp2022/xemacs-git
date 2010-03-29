@@ -320,6 +320,17 @@
 	lisp_object_storage_size() and malloced_storage_size() when
 	non-MEMORY_USAGE_STATS in the previous change set.
 
+2010-03-22  Vin Shelton  <acs@xemacs.org>
+
+	* window.c (vars_of_window): Move HAVE_SCROLLBARS test so the code
+	can compile under Visual Studio 6.
+
+2010-03-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* alloc.c (tick_lrecord_stats):
+	Fix the union build after Ben's last change, don't assume that a
+	Lisp_Object will fit into a Bytecount.
+
 2010-03-20  Ben Wing  <ben@xemacs.org>
 
 	* alloc.c:

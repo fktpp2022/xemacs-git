@@ -7,6 +7,27 @@
 	the ancillary Lisp overhead used with each type; shrink columns for
 	windows in show-memory-usage to get it to fit in 79 chars.
 
+2010-03-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* descr-text.el (describe-char-display):
+	Behave better on builds without database support, and for
+	characters where no font is available. Especially relevant on
+	Win32.
+
+2010-03-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* x-win-xfree86.el (x-win-init-xfree86):
+	If iso-left-tab (something ISO-specified and portable in theory;
+	in practice only seen with XFree86 and derived non-US layouts)
+	exists on the keyboard layout, make it equivalent to shift-tab,
+	addressing the issue FKtPp sees in
+	http://mid.gmane.org/1269358206.4873.1.camel@fktpp-laptop .
+
+2010-03-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl-extra.el (cl-prettyprint):
+	Handle (function ...) specially here, as we do (quote ...).
+
 2010-03-20  Ben Wing  <ben@xemacs.org>
 
 	* diagnose.el (show-memory-usage):
