@@ -648,7 +648,7 @@ static struct window_mirror *
 find_window_mirror_internal (Lisp_Object win, struct window_mirror *rmir,
 			    struct window *w)
 {
-  for (; !NILP (win); win = XWINDOW (win)->next, rmir = rmir->next)
+  for (; !NILP (win) && rmir; win = XWINDOW (win)->next, rmir = rmir->next)
     {
       if (w == XWINDOW (win))
 	return rmir;
@@ -785,8 +785,6 @@ window_display_lines (struct window *w, int which)
 {
   struct window_mirror *t;
 
-  if (XFRAME (w->frame)->mirror_dirty)
-    update_frame_window_mirror (XFRAME (w->frame));
   t = find_window_mirror (w);
   assert (t);
 
@@ -808,8 +806,6 @@ window_display_buffer (struct window *w)
 {
   struct window_mirror *t;
 
-  if (XFRAME (w->frame)->mirror_dirty)
-    update_frame_window_mirror (XFRAME (w->frame));
   t = find_window_mirror (w);
   assert (t);
 
@@ -821,8 +817,6 @@ set_window_display_buffer (struct window *w, struct buffer *b)
 {
   struct window_mirror *t;
 
-  if (XFRAME (w->frame)->mirror_dirty)
-    update_frame_window_mirror (XFRAME (w->frame));
   t = find_window_mirror (w);
   assert (t);
 

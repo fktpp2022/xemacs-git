@@ -430,6 +430,460 @@
 	when needed.
 
 2010-03-15  Ben Wing  <ben@xemacs.org>
+2010-03-28  Ben Wing  <ben@xemacs.org>
+
+	* window.c (find_window_mirror_internal):
+	Stop looking if no window mirror, and return 0.
+	
+	* window.c (window_display_lines):
+	* window.c (window_display_buffer):
+	* window.c (set_window_display_buffer):
+	Don't need to update window mirror before calling find_window_mirror
+	because does the updating automatically.
+
+2010-03-25  Ben Wing  <ben@xemacs.org>
+
+	* abbrev.c:
+	* abbrev.c (describe_abbrev):
+	* alloc.c:
+	* alloc.c (common_init_alloc_early):
+	* callint.c (Fprefix_numeric_value):
+	* callint.c (syms_of_callint):
+	* console.c (common_init_complex_vars_of_console):
+	* data.c (Fdiv):
+	* data.c (Fquo):
+	* event-stream.c (vars_of_event_stream):
+	* fileio.c (auto_save_error):
+	* fileio.c (Fdo_auto_save):
+	* fns.c:
+	* fns.c (bump_string_modiff):
+	* keymap.c (where_is_recursive_mapper):
+	* lisp.h (ONEP):
+	* lisp-disunion.h:
+	* lisp-disunion.h (INT_PLUS1):
+	* lisp-disunion.h (Qone):
+	* lisp-union.h:
+	* lisp-union.h (INT_MINUS):
+	* macros.c (Fstart_kbd_macro):
+	* marker.c (init_buffer_markers):
+	* marker.c (uninit_buffer_markers):
+	* minibuf.c (read_minibuffer_internal_unwind):
+	* number.c (Fdenominator):
+	* number.c (bigfloat_print):
+	* print.c (print_symbol):
+	* process-unix.c (get_internet_address):
+	* scrollbar.c (Fscrollbar_line_up):
+	* scrollbar.c (Fscrollbar_line_down):
+	* symbols.c:
+	* symbols.c (Fuser_variable_p):
+	* syntax.c (reset_buffer_syntax_cache_range):
+	* sysdep.c (init_system_name):
+	* tests.c (Ftest_hash_tables):
+	* unicode.c (allocate_jit_ucs_charset):
+	* window.c (temp_output_buffer_show):
+	* window.c (specifier_vars_of_window):
+	Create Qone, similar to Qzero, along with ONEP.  Use it.
+
+	* alloc.c (clone_bit_vector):
+	* lisp.h:
+	New function.
+	
+	* casetab.c (case_table_char):
+	* casetab.c (compute_canon_mapper):
+	* casetab.c (initialize_identity_mapper):
+	* casetab.c (compute_up_or_eqv_mapper):
+	* casetab.h:
+	* chartab.c:
+	* chartab.c (check_chartab_invariants):
+	* chartab.c (clone_chartab_table):
+	* chartab.c (create_new_chartab_table):
+	* chartab.c (free_chartab_table):
+	* chartab.c (compute_chartab_table_size_1):
+	* chartab.c (compute_chartab_table_size):
+	* chartab.c (compute_char_table_usage):
+	* chartab.c (char_table_memory_usage):
+	* chartab.c (put_chartab_table):
+	* chartab.c (put_char_table):
+	* chartab.c (map_chartab_table):
+	* chartab.c (check_if_blank):
+	* chartab.c (chartab_tables_equal):
+	* chartab.c (char_table_equal):
+	* chartab.c (hash_raw_chartab_val):
+	* chartab.c (char_table_hash):
+	* chartab.c (FROB1):
+	* chartab.c (init_chartab_tables):
+	* chartab.c (free_chartab_tables):
+	* chartab.c (print_table_entry):
+	* chartab.c (print_char_table):
+	* chartab.c (Fmake_char_table):
+	* chartab.c (Fcopy_char_table):
+	* chartab.c (Fget_char_table):
+	* chartab.c (put_char_table_range):
+	* chartab.c (Fput_char_table):
+	* chartab.c (map_char_table):
+	* chartab.c (slow_map_char_table_fun):
+	* chartab.c (chartab_data_validate):
+	* chartab.c (chartab_instantiate):
+	* chartab.c (category_table_equal):
+	* chartab.c (check_char_in_category):
+	* chartab.c (slow_map_category_table_fun):
+	* chartab.c (syms_of_chartab):
+	* chartab.c (vars_of_chartab):
+	* chartab.c (structure_type_create_chartab):
+	* chartab.h:
+	* chartab.h (SUBTAB_ARRAY_FROM_SUBTAB):
+	* chartab.h (ALLOCATE_LEVEL_1_CATEGORY_SUBTAB):
+	* chartab.h (GET_CHAR_BYTES):
+	* chartab.h (struct Lisp_Char_Table):
+	* chartab.h (enum chartab_range_type):
+	* chartab.h (CHAR_TABLES_PER_CATEGORY_TABLE):
+	* chartab.h (DESIGNATOR_TO_CHAR_TABLE):
+	* cmds.c (internal_self_insert):
+	* cmds.c (vars_of_cmds):
+	* editfns.c (Ftranslate_region):
+	* glyphs.c (display_table_entry):
+	* lrecord.h (enum lrecord_type):
+	* syntax.c (syntax_match):
+	* syntax.c (copy_to_mirrortab):
+	* syntax.c (copy_if_not_already_present):
+	* syntax.c (update_just_this_syntax_table):
+	* syntax.h:
+	* text.c:
+	* text.c (old_mule_round_up_to_valid_ichar):
+	* text.c (old_mule_round_down_to_valid_ichar):
+	* text.c (Fchar_octet):
+	Redo char tables and category tables again:
+
+	(1) In a category table, store one char table per bit.  These char
+	tables are category char tables, and at level 1 instead of storing
+	a category subtable they store a size-256 bit vector.
+	Accordingly, the `category-subtable' object has been removed. All
+	the junk that involved multiplexing integral and Lisp_Object
+	values into a void * pointer has been removed.  Now we're back to
+	always just using Lisp_Object pointers.
+
+	Accordingly, we rename/merge functions:
+
+	get_char_table_lisp merged into get_char_table
+	get_char_table_lisp_raw merged into get_char_table_raw
+	get_char_table_lisp_1 -> get_char_table_1
+
+	(2) We now efficiently store ranges of characters, not just single
+	characters.  Essentially, at any level of the char tables, we can
+	store a non-table Lisp object, indicating that all the characters
+	spanned by that entry have the value of the given object.  Accordingly,
+	put_char_table() now takes a range, and the function passed to
+	map_char_table() is given a range.  Various places where
+	map_char_table() is called have been changed.
+
+	This also means that there is no more need for blank tables of the
+	sort that still exist in the Unicode tables.
+	
+	IMPORTANT: The ranges passed in to put_char_table() may encompass
+	non-characters, especially in old-Mule where there are lots of gaps
+	in the representation of characters.  put_char_table() simply stores
+	the ranges as-is, and does not try to avoid storing values for
+	non-characters.  This doesn't affect get_char_table(), but it
+	definitely does affect map_char_table().  To deal with this, we
+	create new functions round_up_to_valid_ichar() and
+	round_down_to_valid_ichar() that are used to take raw ranges in
+	map_char_table() and coerce them into possibly smaller ranges where
+	the characters on both ends are valid characters.  It may still be
+	the case that characters within the range are invalid.
+
+	This also means that if you copy a table in Lisp using
+	`map-char-table', the new table may not be `equal' to the first table
+	-- essentially, the "junk" areas where non-characters lie may be
+	set in the original table but unset in the new table, and
+	char_table_equal() isn't smart enough to ignore those "junk" areas.
+	Possibly this can be fixed by making map_char_table() expand its
+	ranges to the maximum extent.
+
+	* text.h:
+	* unicode.c (decode_utf_8):
+	* unicode.c (unicode_decode):
+
+	Rename the following functions and make them work correctly when
+	passed any Unicode codepoint:
+
+	valid_utf_16_first_surrogate() -> valid_unicode_leading_surrogate()
+	valid_utf_16_last_surrogate() -> valid_unicode_trailing_surrogate()
+	valid_utf_16_surrogate() -> valid_unicode_surrogate()
+
+	Change the definition of valid_unicode_codepoint_p() to reject
+	codepoints in the surrogate area.  This also affects valid_ichar_p().
+	Also make valid_ichar_p() reject characters that don't fit into
+	30 bits, which is as much as we can store.  Create ICHAR_MAX to
+	represent the maximum Ichar that fits in 30 bits.
+	Use the newer definition of valid_unicode_codepoint_p() in
+	decode_utf_8() rather than manually duplicating it.
+
+2010-03-25  Ben Wing  <ben@xemacs.org>
+
+	* chartab.c: Expand comment at top about recent change involving
+	category tables.
+	* unicode.c: #ifdnef UNICODE_INTERNAL around a label to avoid a
+	"label" unused" warning.
+
+2010-03-25  Ben Wing  <ben@xemacs.org>
+
+	* charset.h:
+	* charset.h (to_unicode_base):
+	* charset.h (ASSERT_VALID_CHARSET_CODEPOINT_OR_ERROR):
+	* unicode.c:
+	* unicode.c (needed_sizeof_to_unicode_base):
+	* unicode.c (init_blank_unicode_tables):
+	* unicode.c (init_charset_unicode_tables):
+	* unicode.c (free_from_unicode_table):
+	* unicode.c (free_to_unicode_table):
+	* unicode.c (compute_from_unicode_table_size_1):
+	* unicode.c (compute_to_unicode_table_size_1):
+	* unicode.c (assert_not_any_blank_table):
+	* unicode.c (sledgehammer_check_from_table):
+	* unicode.c (sledgehammer_check_to_table):
+	* unicode.c (sledgehammer_check_unicode_tables):
+	* unicode.c (ensure_to_unicode_holds_range):
+	* unicode.c (set_unicode_conversion_char_to_unicode):
+	At the lowest level of the charset to-Unicode tables, store a
+	`struct to_unicode_base *' of variable size, instead of a fixed
+	size-256 array.  Since large charsets are usually of size 94x94,
+	the lowest levels will consist of 94-element arrays instead of
+	256-element arrays, saving more than half of the memory needed.
+	This makes the memory usage for these tables comparable to what
+	it was when charsets were not allowed to be larger than 96x96.
+
+	Also, when initializing the to-Unicode tables, start with a
+	blank table at level-2 rather than a 256-element table, and
+	change functions that process the to-Unicode tables so they
+	can handle this.  Change the functions that handle from-Unicode
+	tables similarly, although we haven't yet made the corresponding
+	change to the from-Unicode tables themselves.
+
+2010-03-23  Ben Wing  <ben@xemacs.org>
+
+	* alloc.c (free_normal_lisp_object): Fix unused var warning.
+	
+	* array.c:
+	* array.c (Stynarr_insert_many_1):
+	* array.h:
+	* array.h (Stynarr_declare):
+	* array.h (struct):
+	* array.h (Stynarr_init):
+	* array.h (Stynarr_free):
+	* array.h (Stynarr_add):
+	* faces.h:
+	* faces.h (struct):
+	* faces.h (struct face_cachel):
+	* window.c:
+	Stynarr code and especially the hacked-up way of describing stynarrs
+	for KKCC had various problems that led to crashes.  Fix it by adding
+	a nels_static tracking how many static elements have been created,
+	and make Stynarr_declare() parallel to Dynarr_declare(), add add
+	XD_STYNARR_DESC parallel to XD_DYNARR_DESC.
+	
+	Use new stynarr code to declare various foo-stynarr objects and
+	associated descriptions; use both in face_cachel definition
+	(faces.h) and description (window.c).
+	
+	* file-coding.c:
+	* file-coding.c (chain_finalize_coding_stream_1):
+	* file-coding.c (chain_finalize):
+	When xfree()ing a value, set the value to 0 afterwards so KKCC
+	doesn't end up trying to mark 0xDEADBEEF and crashing.
+	
+	* file-coding.c (detection_state_description_0): Deleted.
+	* file-coding.c (mark_detection_state):
+	`struct detection_state *' is actually a Lisp object, so declare it
+	that way in the description or KKCC will crash.
+	
+	* file-coding.c (coding_system_type_create):
+	* file-coding.h:
+	* file-coding.h (INITIALIZE_DETECTOR_DESCRIPTION):
+	* file-coding.h (INITIALIZE_DETECTOR_WITH_DESCRIPTION):
+	* mule-coding.c (reinit_coding_system_type_create_mule_coding):
+	Don't dump coding_detector_description_lines_count; instead, we
+	need to reinitialize the description of a `struct detection_state'
+	after pdump load because it's dynamically initialized; else we
+	will get a KKCC crash due to uninitialized description.
+	* gc.c (kkcc_backtrace_1):
+	Stop backtracing when we reach the bottom; else, we crash.
+	
+	* mule-coding.c (iso2022_finalize_detection_state):
+	When xfreeing a value, set the value to 0 afterwards so KKCC
+	doesn't end up trying to mark 0xDEADBEEF and crashing.
+	
+2010-03-22  Ben Wing  <ben@xemacs.org>
+
+	* casetab.c (case_table_char):
+	* casetab.c (compute_canon_mapper):
+	* casetab.c (initialize_identity_mapper):
+	* casetab.c (compute_up_or_eqv_mapper):
+	* casetab.h:
+	* chartab.c:
+	* chartab.c (init_blank_chartab_tables_1):
+	* chartab.c (init_blank_chartab_tables):
+	* chartab.c (copy_chartab_table):
+	* chartab.c (create_new_chartab_table):
+	* chartab.c (free_chartab_table):
+	* chartab.c (compute_chartab_table_size_1):
+	* chartab.c (compute_chartab_table_size):
+	* chartab.c (compute_char_table_usage):
+	* chartab.c (put_char_table):
+	* chartab.c (map_chartab_table):
+	* chartab.c (check_if_blank):
+	* chartab.c (chartab_tables_equal):
+	* chartab.c (char_table_equal):
+	* chartab.c (hash_raw_chartab_val):
+	* chartab.c (char_table_hash):
+	* chartab.c (FROB1):
+	* chartab.c (init_chartab_tables):
+	* chartab.c (free_chartab_tables):
+	* chartab.c (struct ptemap):
+	* chartab.c (print_table_entry):
+	* chartab.c (print_char_table):
+	* chartab.c (check_non_category_char_table):
+	* chartab.c (make_char_table):
+	* chartab.c (Fmake_char_table):
+	* chartab.c (Fcopy_char_table):
+	* chartab.c (Fchar_table_default):
+	* chartab.c (Fget_char_table):
+	* chartab.c (check_valid_char_table_value):
+	* chartab.c (put_char_table_range):
+	* chartab.c (Fput_char_table):
+	* chartab.c (Fremove_char_table):
+	* chartab.c (map_char_table):
+	* chartab.c (slow_map_char_table_fun):
+	* chartab.c (Fmap_char_table):
+	* chartab.c (init_blank_category_chartab_tables):
+	* chartab.c (category_table_equal):
+	* chartab.c (category_table_hash):
+	* chartab.c (mark_category_table):
+	* chartab.c (print_category_table):
+	* chartab.c (Fmake_category_table):
+	* chartab.c (check_category_table):
+	* chartab.c (check_char_in_category):
+	* chartab.c (Fcheck_category_at):
+	* chartab.c (Fchar_in_category_p):
+	* chartab.c (Fcopy_category_table):
+	* chartab.c (struct slow_map_category_table_arg):
+	* chartab.c (slow_map_category_table_fun):
+	* chartab.c (Fmap_category_table):
+	* chartab.c (word_boundary_p):
+	* chartab.c (syms_of_chartab):
+	* chartab.c (vars_of_chartab):
+	* chartab.c (structure_type_create_chartab):
+	* chartab.h:
+	* chartab.h (ALLOCATE_LEVEL_N_SUBTAB):
+	* chartab.h (FREE_ONE_SUBTAB):
+	* chartab.h (SUBTAB_EQ):
+	* chartab.h (enum chartab_range_type):
+	* chartab.h (CATEGORY_DESIGNATORP):
+	* cmds.c:
+	* cmds.c (internal_self_insert):
+	* cmds.c (vars_of_cmds):
+	* editfns.c:
+	* editfns.c (Ftranslate_region):
+	* elhash.c:
+	* elhash.c (print_hash_table_data):
+	* glyphs.c (display_table_entry):
+	* lisp.h:
+	* lrecord.h (enum lrecord_type):
+	* print.c:
+	* print.c (vars_of_print):
+	* rangetab.c (print_range_table):
+	* regex.c (re_match_2_internal):
+	* syntax.c (syntax_match):
+	* syntax.c (copy_to_mirrortab):
+	* syntax.c (copy_if_not_already_present):
+	* syntax.h:
+	Rewrite category tables to reduce memory usage.  Instead of a
+	regular char table with pointers to bit vectors, we now have a
+	category-table object holding a set of 12 special char tables,
+	each of which reserves only 8 bits instead of 32 or 64 for each
+	value, corresponding to 8 tags.  #### It might make sense to
+	reserve even less space per char table, but we'd have to do some
+	trickiness to stuff multiple values into a single byte.
+
+	Add a variable `print-table-nonreadably-length' controlling the
+	number of entries printed in char, range, and hash tables when
+	`print-readably' is nil; defaults to 20. (When `print-readably'
+	is t, we print everything out.)
+
+	Renames:
+	
+	get_char_table -> get_char_table_lisp
+	get_char_table_raw -> get_char_table_lisp_raw
+	get_char_table_1 -> get_char_table_lisp_1
+
+	We also add a new get_char_table and get_char_table_raw that
+	return a void * pointer, which holds either a Lisp_Object or
+	a bit array of 8 bits or whatever, for category char tables.
+
+	To handle these new category tables, we have two new object
+	types: category tables and category subtables (which sit at
+	the lowest level of the page tables inside a char table, to
+	hold the 8-bit-wide bit arrays).
+	
+2010-03-19  Ben Wing  <ben@xemacs.org>
+
+	* charset.h:
+	* charset.h (struct Lisp_Charset):
+	* charset.h (CHARSET_DO_AUTOLOAD):
+	* charset.h (XCHARSET_DO_AUTOLOAD):
+	* lisp.h:
+	Add a `do_autoload' flag indicating whether the Unicode tables need
+	to be autoloaded still.
+
+	In charset_codepoint_to_unicode_raw_1(), autoload Unicode tables
+	if needed.
+	
+	* lisp.h:
+	* lisp.h (XCADDDDDDR):
+	Add X7TH() - X10TH(), as well as X1STCDR() - X10THCDR(), and
+	corresponding XCAD*R and XDD*R macros.
+	
+	* mule-charset.c (Fmake_charset):
+	Document the `unicode-map' property.
+	
+	* unicode.c (get_unicode_conversion_1):
+	Autoload Unicode tables if needed.
+
+	* unicode.c (set_unicode_conversion):
+	Don't try to retrieve previous conversion if we haven't yet autoloaded
+	the Unicode map, or we will trigger an infinite loop.
+
+	* unicode.c (enum load_unicode_flags):
+	* unicode.c (verify_load_unicode_args):
+	New function, to verify arguments to `load-unicode-mapping-table'.
+	Add bit flags to correspond to the `flags' argument.
+
+	* lisp.h:
+	* unicode.c (Fload_unicode_mapping_table):
+	Use verify_load_unicode_args().  If filename is relative, expand it
+	relative to `data-directory' (or `../etc' relative to `lisp-directory'
+	during loadup).  Document this behavior in the docstring.
+	
+	* unicode.c (autoload_charset_unicode_tables):
+	Load charset Unicode tables by calling Fload_unicode_mapping_table().
+	
+	* unicode.c (init_charset_unicode_map):
+	Instead of directly loading the Unicode tables from a file,
+	verify the arguments to `load-unicode-mapping-table', store them,
+	and set the `do_autoload' flag, so that the tables will be autoloaded
+	when needed.
+
+2010-03-22  Vin Shelton  <acs@xemacs.org>
+
+	* window.c (vars_of_window): Move HAVE_SCROLLBARS test so the code
+	can compile under Visual Studio 6.
+
+2010-03-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* alloc.c (tick_lrecord_stats):
+	Fix the union build after Ben's last change, don't assume that a
+	Lisp_Object will fit into a Bytecount.
+
+2010-03-20  Ben Wing  <ben@xemacs.org>
 
 	* tests.c (Ftest_data_format_conversion):
 	Fix remaining test failures with c-tests -- problem was with the
