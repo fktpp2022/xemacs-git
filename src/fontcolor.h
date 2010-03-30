@@ -1,6 +1,6 @@
 /* Generic object functions -- interface.
    Copyright (C) 1995 Board of Trustees, University of Illinois.
-   Copyright (C) 1995, 1996, 2002 Ben Wing.
+   Copyright (C) 1995, 1996, 2002, 2010 Ben Wing.
 
 This file is part of XEmacs.
 
@@ -21,8 +21,8 @@ Boston, MA 02111-1307, USA.  */
 
 /* Synched up with: Not in FSF. */
 
-#ifndef INCLUDED_objects_h_
-#define INCLUDED_objects_h_
+#ifndef INCLUDED_fontcolor_h_
+#define INCLUDED_fontcolor_h_
 
 DECLARE_DOESNT_RETURN (finalose (void *ptr));
 
@@ -80,8 +80,8 @@ void set_face_boolean_attached_to (Lisp_Object obj, Lisp_Object face,
  *              Face Background Placement Specifier Object                   *
  *****************************************************************************/
 
-void set_face_background_placement_attached_to
-(Lisp_Object obj, Lisp_Object face);
+void set_face_background_placement_attached_to (Lisp_Object obj,
+						Lisp_Object face);
 
 
-#endif /* INCLUDED_objects_h_ */
+#endif /* INCLUDED_fontcolor_h_ */
