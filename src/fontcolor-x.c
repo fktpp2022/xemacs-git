@@ -38,7 +38,7 @@ Boston, MA 02111-1307, USA.  */
 #include "insdel.h"
 
 #include "console-x-impl.h"
-#include "objects-x-impl.h"
+#include "fontcolor-x-impl.h"
 #include "elhash.h"
 
 #ifdef HAVE_XFT
@@ -901,7 +901,7 @@ x_font_list (Lisp_Object pattern, Lisp_Object device, Lisp_Object maxnumber)
 
 /* Include the charset support, shared, for the moment, with GTK.  */
 #define THIS_IS_X
-#include "objects-xlike-inc.c"
+#include "fontcolor-xlike-inc.c"
 
 
 /************************************************************************/
@@ -909,12 +909,12 @@ x_font_list (Lisp_Object pattern, Lisp_Object device, Lisp_Object maxnumber)
 /************************************************************************/
 
 void
-syms_of_objects_x (void)
+syms_of_fontcolor_x (void)
 {
 }
 
 void
-console_type_create_objects_x (void)
+console_type_create_fontcolor_x (void)
 {
   /* object methods */
 
@@ -940,7 +940,7 @@ console_type_create_objects_x (void)
 }
 
 void
-vars_of_objects_x (void)
+vars_of_fontcolor_x (void)
 {
 #ifdef DEBUG_XEMACS
   DEFVAR_INT ("debug-x-objects", &debug_x_objects /*
@@ -969,7 +969,7 @@ cause problems this is set to nil by default.
 }
 
 void
-Xatoms_of_objects_x (struct device *d)
+Xatoms_of_fontcolor_x (struct device *d)
 {
   Display *D = DEVICE_X_DISPLAY (d);
 

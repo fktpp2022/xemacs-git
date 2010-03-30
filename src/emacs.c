@@ -1587,7 +1587,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #ifdef WITH_NUMBER_TYPES
       syms_of_number ();
 #endif
-      syms_of_objects ();
+      syms_of_fontcolor ();
       syms_of_print ();
       syms_of_process ();
 #ifdef HAVE_WIN32_PROCESSES
@@ -1621,14 +1621,14 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       syms_of_console_tty ();
       syms_of_device_tty ();
       syms_of_frame_tty ();
-      syms_of_objects_tty ();
+      syms_of_fontcolor_tty ();
 #endif
 
 #ifdef HAVE_GTK
       syms_of_device_gtk ();
       syms_of_frame_gtk ();
       syms_of_glyphs_gtk ();
-      syms_of_objects_gtk ();
+      syms_of_fontcolor_gtk ();
       syms_of_ui_gtk ();
       syms_of_select_gtk ();
 #ifdef HAVE_DIALOGS
@@ -1654,7 +1654,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #endif
       syms_of_frame_x ();
       syms_of_glyphs_x ();
-      syms_of_objects_x ();
+      syms_of_fontcolor_x ();
 #ifdef HAVE_MENUBARS
       syms_of_menubar_x ();
 #endif
@@ -1683,7 +1683,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       syms_of_dialog_mswindows ();
 #endif
       syms_of_frame_mswindows ();
-      syms_of_objects_mswindows ();
+      syms_of_fontcolor_mswindows ();
       syms_of_select_mswindows ();
       syms_of_glyphs_mswindows ();
 #ifdef HAVE_GUI_OBJECTS
@@ -1807,7 +1807,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       console_type_create_tty ();
       console_type_create_device_tty ();
       console_type_create_frame_tty ();
-      console_type_create_objects_tty ();
+      console_type_create_fontcolor_tty ();
       console_type_create_redisplay_tty ();
 #endif
 
@@ -1816,7 +1816,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       console_type_create_select_gtk ();
       console_type_create_device_gtk ();
       console_type_create_frame_gtk ();
-      console_type_create_objects_gtk ();
+      console_type_create_fontcolor_gtk ();
       console_type_create_glyphs_gtk ();
       console_type_create_redisplay_gtk ();
 #ifdef HAVE_MENUBARS
@@ -1842,7 +1842,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #ifdef HAVE_MENUBARS
       console_type_create_menubar_x ();
 #endif
-      console_type_create_objects_x ();
+      console_type_create_fontcolor_x ();
       console_type_create_redisplay_x ();
 #ifdef HAVE_SCROLLBARS
       console_type_create_scrollbar_x ();
@@ -1859,7 +1859,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       console_type_create_mswindows ();
       console_type_create_device_mswindows ();
       console_type_create_frame_mswindows ();
-      console_type_create_objects_mswindows ();
+      console_type_create_fontcolor_mswindows ();
       console_type_create_redisplay_mswindows ();
       console_type_create_glyphs_mswindows ();
       console_type_create_select_mswindows ();
@@ -1891,7 +1891,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 
       specifier_type_create_image ();
       specifier_type_create_gutter ();
-      specifier_type_create_objects ();
+      specifier_type_create_fontcolor ();
 #ifdef HAVE_TOOLBARS
       specifier_type_create_toolbar ();
 #endif
@@ -1966,7 +1966,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       reinit_specifier_type_create ();
       reinit_specifier_type_create_image ();
       reinit_specifier_type_create_gutter ();
-      reinit_specifier_type_create_objects ();
+      reinit_specifier_type_create_fontcolor ();
 #ifdef HAVE_TOOLBARS
       reinit_specifier_type_create_toolbar ();
 #endif
@@ -2190,7 +2190,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #ifdef WITH_NUMBER_TYPES
       vars_of_number ();
 #endif
-      vars_of_objects ();
+      vars_of_fontcolor ();
       vars_of_print ();
 
       vars_of_process ();
@@ -2229,7 +2229,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #ifdef HAVE_TTY
       vars_of_console_tty ();
       vars_of_frame_tty ();
-      vars_of_objects_tty ();
+      vars_of_fontcolor_tty ();
 #endif
 
 #ifdef HAVE_GTK
@@ -2245,7 +2245,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #ifdef HAVE_MENUBARS
       vars_of_menubar_gtk ();
 #endif
-      vars_of_objects_gtk ();
+      vars_of_fontcolor_gtk ();
       vars_of_select_gtk ();
 #ifdef HAVE_SCROLLBARS
       vars_of_scrollbar_gtk ();
@@ -2269,7 +2269,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #ifdef HAVE_MENUBARS
       vars_of_menubar_x ();
 #endif
-      vars_of_objects_x ();
+      vars_of_fontcolor_x ();
       vars_of_select_x ();
 #ifdef HAVE_SCROLLBARS
       vars_of_scrollbar_x ();
@@ -2289,7 +2289,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       vars_of_device_mswindows ();
       vars_of_console_mswindows ();
       vars_of_frame_mswindows ();
-      vars_of_objects_mswindows ();
+      vars_of_fontcolor_mswindows ();
       vars_of_select_mswindows ();
       vars_of_glyphs_mswindows ();
 #ifdef HAVE_SCROLLBARS
@@ -2378,7 +2378,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #ifdef HAVE_SHLIB
       reinit_vars_of_module ();
 #endif
-      reinit_vars_of_objects ();
+      reinit_vars_of_fontcolor ();
       reinit_vars_of_print ();
       reinit_vars_of_search ();
       reinit_vars_of_text ();
@@ -2388,7 +2388,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #ifdef HAVE_MS_WINDOWS
       reinit_vars_of_event_mswindows ();
       reinit_vars_of_frame_mswindows ();
-      reinit_vars_of_object_mswindows ();
+      reinit_vars_of_fontcolor_mswindows ();
 #endif
 
 #ifdef HAVE_GTK

@@ -61,7 +61,7 @@ Boston, MA 02111-1307, USA.  */
 #include "gui.h"
 #include "keymap.h"
 #include "lstream.h"
-#include "objects-impl.h"
+#include "fontcolor-impl.h"
 #include "opaque.h"
 #include "process.h"
 #include "rangetab.h"
@@ -117,7 +117,7 @@ Boston, MA 02111-1307, USA.  */
 
 #ifdef HAVE_TTY
 #include "console-tty-impl.h"
-#include "objects-tty-impl.h"
+#include "fontcolor-tty-impl.h"
 #endif
 
 #ifdef HAVE_GTK
