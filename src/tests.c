@@ -644,7 +644,7 @@ REASON is nil or a string describing the failure (not required).
 
   test_hash_tables_data data;
   data.hash_table = make_lisp_hash_table (50, HASH_TABLE_NON_WEAK,
-					  HASH_TABLE_EQUAL);
+					  Qequal);
 
   Fputhash (Qone, make_int (2), data.hash_table);
   Fputhash (make_int (3), make_int (4), data.hash_table);

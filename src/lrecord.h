@@ -366,6 +366,7 @@ enum lrecord_type
   lrecord_type_glyph,			/* Lisp_Glyph */
   lrecord_type_gui_item,		/* Lisp_Gui_Item */
   lrecord_type_hash_table,		/* Lisp_Hash_Table */
+  lrecord_type_hash_table_test,		/* Hash_Table_Test */
   lrecord_type_image_instance,		/* Lisp_Image_Instance */
   lrecord_type_keymap,			/* Lisp_Keymap */
   /* #ifndef NEW_GC */
@@ -505,7 +506,7 @@ struct lrecord_implementation
      hash to the same value in order for hash tables to work properly.
      This means that `hash' can be NULL only if the `equal' method is
      also NULL. */
-  Hashcode (*hash) (Lisp_Object, int);
+  Hashcode (*hash) (Lisp_Object, int, Boolint);
 
   /* Data layout description for your object.  See long comment below. */
   const struct memory_description *description;

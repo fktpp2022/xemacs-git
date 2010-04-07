@@ -119,6 +119,7 @@ Boston, MA 02111-1307, USA.  */
 #include <stddef.h>		/* offsetof */
 #include <sys/types.h>
 #include <limits.h>
+#include <math.h>
 #ifdef __cplusplus
 #include <limits>		/* necessary for max()/min() under G++ 4 */
 #endif
@@ -3060,12 +3061,12 @@ XINT_1 (Lisp_Object obj, const Ascbyte *file, int line)
 
 #define CHECK_INT(x) do {			\
   if (!INTP (x))				\
-    dead_wrong_type_argument (Qintegerp, x);	\
+    dead_wrong_type_argument (Qfixnump, x);	\
 } while (0)
 
 #define CONCHECK_INT(x) do {			\
   if (!INTP (x))				\
-    x = wrong_type_argument (Qintegerp, x);	\
+    x = wrong_type_argument (Qfixnump, x);	\
 } while (0)
 
 /* NOTE NOTE NOTE! This definition of "natural number" is mathematically
@@ -3285,6 +3286,10 @@ DECLARE_LISP_OBJECT (float, Lisp_Float);
 } while (0)
 
 # define INT_OR_FLOATP(x) (INTP (x) || FLOATP (x))
+
+/* #### change for 64-bit machines */
+#define FLOAT_HASHCODE_FROM_DOUBLE(dbl)         \
+  (unsigned long)(fmod (dbl, 4e9))
 
 /*--------------------------- readonly objects -------------------------*/
 
@@ -3861,8 +3866,9 @@ int begin_do_check_for_quit (void);
 
 #define LISP_HASH(obj) ((unsigned long) STORE_LISP_IN_VOID (obj))
 Hashcode memory_hash (const void *xv, Bytecount size);
-Hashcode internal_hash (Lisp_Object obj, int depth);
-Hashcode internal_array_hash (Lisp_Object *arr, int size, int depth);
+Hashcode internal_hash (Lisp_Object obj, int depth, Boolint equalp);
+Hashcode internal_array_hash (Lisp_Object *arr, int size, int depth,
+                              Boolint equalp);
 
 
 /************************************************************************/
@@ -5437,6 +5443,11 @@ extern const struct sized_memory_description Lisp_Object_pair_description;
 #undef SYMBOL_MODULE_API
 #undef SYMBOL_KEYWORD
 #undef SYMBOL_GENERAL
+
+extern Lisp_Object Qeq;
+extern Lisp_Object Qeql;
+extern Lisp_Object Qequal;
+extern Lisp_Object Qequalp;
 
 /* Defined in glyphs.c */
 EXFUN (Fmake_glyph_internal, 1);

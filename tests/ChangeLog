@@ -75,6 +75,15 @@
 	* automated/mule-tests.el (featurep):
 	Various fixes to make tests more correct in Unicode-internal.
 
+2010-04-05  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/hash-table-tests.el:
+	Test the new built-in #'equalp hash table test. Test
+	#'define-hash-table-test.
+	* automated/lisp-tests.el:
+	When asserting that two objects are #'equalp, also assert that 
+	their #'equalp-hash is identical. 
+
 2010-04-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/lisp-tests.el:

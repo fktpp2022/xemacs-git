@@ -991,7 +991,8 @@ ensure_to_unicode_holds_range (Lisp_Object charset, int c1, int offset,
 	new_size = needed_sizeof_to_unicode_base (new_past_max - new_min);
 	if (DUMPEDP (to_table))
 	  {
-	    to_unicode_base *new_to_table = xmalloc (new_size);
+	    to_unicode_base *new_to_table =
+	      (to_unicode_base *) xmalloc (new_size);
 	    memcpy (new_to_table, to_table, sizeof_to_unicode_base (to_table));
 	    to_table = new_to_table;
 	  }
@@ -3963,23 +3964,23 @@ vars_of_unicode (void)
 
   staticpro (&Vprecedence_array_charsets_seen_hash);
   Vprecedence_array_charsets_seen_hash =
-    make_lisp_hash_table (20, HASH_TABLE_NON_WEAK, HASH_TABLE_EQ);
+    make_lisp_hash_table (20, HASH_TABLE_NON_WEAK, Qeq);
 
   staticpro (&Vprecedence_array_charsets_seen_hash);
   Vprecedence_array_charsets_seen_hash =
-    make_lisp_hash_table (20, HASH_TABLE_NON_WEAK, HASH_TABLE_EQ);
+    make_lisp_hash_table (20, HASH_TABLE_NON_WEAK, Qeq);
 
   staticpro (&Vprecedence_list_to_array);
   Vprecedence_list_to_array =
     /* The entries are lists, but for speed in lookup, we only compare
        using `eq'. */
-    make_lisp_hash_table (20, HASH_TABLE_KEY_WEAK, HASH_TABLE_EQ);
+    make_lisp_hash_table (20, HASH_TABLE_KEY_WEAK, Qeq);
   staticpro (&Vprecedence_array_cons_to_array);
   Vprecedence_array_cons_to_array =
     /* We must compare with `equal' since we have conses.  We make the table
        key-weak but then we depend on the cons being stored somewhere when
        it's in use.  So we store it in a slot in the buffer. */
-    make_lisp_hash_table (20, HASH_TABLE_KEY_WEAK, HASH_TABLE_EQUAL);
+    make_lisp_hash_table (20, HASH_TABLE_KEY_WEAK, Qequal);
 
   init_blank_unicode_tables ();
 

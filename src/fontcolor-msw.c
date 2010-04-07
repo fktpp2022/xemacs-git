@@ -2330,7 +2330,7 @@ vars_of_fontcolor_mswindows (void)
 {
 #ifdef MULE
   Vfont_signature_data =
-    make_lisp_hash_table (100, HASH_TABLE_NON_WEAK, HASH_TABLE_EQUAL);
+    make_lisp_hash_table (100, HASH_TABLE_NON_WEAK, Qequal);
   staticpro (&Vfont_signature_data);
 #endif /* MULE */
 }

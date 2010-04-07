@@ -847,27 +847,28 @@ char_table_equal (Lisp_Object obj1, Lisp_Object obj2, int depth, int foldcase)
 static const Ascbyte *likely_test = "\t\n\r\f\016\025\0330128!@#$%^&*`'_+=-,.<>?;:/~()[]{}\\\"acehijlnortuxyzADEGIKMOQSVY";
 
 static inline Hashcode
-hash_raw_chartab_val (Ichar ch, Lisp_Object chartab, int depth)
+hash_raw_chartab_val (Ichar ch, Lisp_Object chartab, int depth, Boolint equalp)
 {
   Lisp_Object val = get_char_table_raw (ch, chartab);
-  return internal_hash (val, depth + 1);
+  return internal_hash (val, depth + 1, equalp);
 }
 
 static Hashcode
-char_table_hash (Lisp_Object obj, int depth)
+char_table_hash (Lisp_Object obj, int depth, Boolint equalp)
 {
   Hashcode hashval = HASH2 (XCHAR_TABLE_TYPE (obj),
 			    internal_hash (XCHAR_TABLE_DEFAULT (obj),
-					   depth + 1));
+					   depth + 1, equalp));
   const Ascbyte *p;
   Ichar ch;
 
   /* Hash those most likely to have values */
   for (p = likely_test; *p; p++)
-    hashval = HASH2 (hashval, hash_raw_chartab_val ((Ichar) *p, obj, depth));
+    hashval = HASH2 (hashval, hash_raw_chartab_val ((Ichar) *p, obj, depth,
+						    equalp));
   /* Hash some random Latin characters */
   for (ch = 130; ch <= 255; ch += 5)
-    hashval = HASH2 (hashval, hash_raw_chartab_val (ch, obj, depth));
+    hashval = HASH2 (hashval, hash_raw_chartab_val (ch, obj, depth, equalp));
   /* Don't bother trying to hash higher stuff if there is none. */
   if (XCHAR_TABLE_LEVELS (obj) > 1)
     {
@@ -880,16 +881,20 @@ char_table_hash (Lisp_Object obj, int depth)
 	 change if the Unicode-to-charset tables are changed. */
       /* Hash some random extended Latin characters */
       for (ch = 260; ch <= 500; ch += 10)
-	hashval = HASH2 (hashval, hash_raw_chartab_val (ch, obj, depth));
+	hashval = HASH2 (hashval, hash_raw_chartab_val (ch, obj, depth,
+							equalp));
       /* Hash some higher characters */
       for (ch = 500; ch <= 4000; ch += 50)
-	hashval = HASH2 (hashval, hash_raw_chartab_val (ch, obj, depth));
+	hashval = HASH2 (hashval, hash_raw_chartab_val (ch, obj, depth,
+							equalp));
       /* Hash some random CJK characters */
       for (ch = 0x4E00; ch <= 0x9FFF; ch += 791)
-	hashval = HASH2 (hashval, hash_raw_chartab_val (ch, obj, depth));
+	hashval = HASH2 (hashval, hash_raw_chartab_val (ch, obj, depth,
+							equalp));
       /* Hash some random Hangul characters */
       for (ch = 0xAC00; ch <= 0xD7AF; ch += 791)
-	hashval = HASH2 (hashval, hash_raw_chartab_val (ch, obj, depth));
+	hashval = HASH2 (hashval, hash_raw_chartab_val (ch, obj, depth,
+							equalp));
 #elif defined (MULE)
 /* 0xA1 is usually the first alphabetic character and differs across
    charsets, whereas 0xA0 is no-break-space across many of them.
@@ -898,13 +903,13 @@ char_table_hash (Lisp_Object obj, int depth)
 #define FROB1(cs)							\
   hashval = HASH2 (hashval,						\
 		   hash_raw_chartab_val (charset_codepoint_to_ichar_raw	\
-                                         (cs, 0, 0xA1), obj, depth))
+                                         (cs, 0, 0xA1), obj, depth, equalp))
 /* 0x3021 is the first CJK character in a number of different CJK charsets
    and differs across them. */
 #define FROB2(cs)							\
   hashval = HASH2 (hashval,						\
 		   hash_raw_chartab_val (charset_codepoint_to_ichar_raw	\
-				         (cs, 0x30, 0x21), obj, depth))
+				         (cs, 0x30, 0x21), obj, depth, equalp))
       FROB1 (Vcharset_latin_iso8859_2);
       FROB1 (Vcharset_latin_iso8859_3);
       FROB1 (Vcharset_latin_iso8859_4);
@@ -1978,7 +1983,7 @@ category_table_equal (Lisp_Object obj1, Lisp_Object obj2, int depth,
 }
 
 static Hashcode
-category_table_hash (Lisp_Object obj, int depth)
+category_table_hash (Lisp_Object obj, int depth, Boolint equalp)
 {
   int i;
   Hashcode hashval = 0;
@@ -1986,7 +1991,7 @@ category_table_hash (Lisp_Object obj, int depth)
   for (i = 0; i < CHAR_TABLES_PER_CATEGORY_TABLE; i++)
     hashval = HASH2 (hashval,
 		     internal_hash (XCATEGORY_TABLE_TABLES (obj)[i],
-				    depth + 1));
+				    depth + 1, equalp));
 
   return hashval;
 }
