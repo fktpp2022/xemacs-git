@@ -618,8 +618,7 @@ menu_convert (Lisp_Object desc, GtkWidget *reuse,
       {
 	GtkWidget *bogus_item = gtk_menu_item_new_with_label ("A suitably long label here...");
 
-	gtk_object_set_data (GTK_OBJECT (menu_item), XEMACS_MENU_FIRSTTIME_TAG,
-                             GINT_TO_POINTER ()0x01);
+	gtk_object_set_data (GTK_OBJECT (menu_item), XEMACS_MENU_FIRSTTIME_TAG, (gpointer)0x01);
 	gtk_widget_show_all (bogus_item);
 	gtk_menu_append (GTK_MENU (submenu), bogus_item);
       }
@@ -661,10 +660,8 @@ menu_convert (Lisp_Object desc, GtkWidget *reuse,
 	    invalid_argument ("unknown menu cascade keyword", cascade);
 	}
 
-      gtk_object_set_data (GTK_OBJECT (menu_item), XEMACS_MENU_DESCR_TAG,
-                           STORE_LISP_IN_VOID (desc));
-      gtk_object_set_data (GTK_OBJECT (menu_item), XEMACS_MENU_FILTER_TAG,
-                           STORE_LISP_IN_VOID (hook_fn));
+      gtk_object_set_data (GTK_OBJECT (menu_item), XEMACS_MENU_DESCR_TAG, STORE_LISP_IN_VOID (desc));
+      gtk_object_set_data (GTK_OBJECT (menu_item), XEMACS_MENU_FILTER_TAG, STORE_LISP_IN_VOID (hook_fn));
 
       if ((!NILP (config_tag)
 	   && NILP (Fmemq (config_tag, Vmenubar_configuration)))
@@ -722,16 +719,16 @@ menu_convert (Lisp_Object desc, GtkWidget *reuse,
       GUI_ID id = new_gui_id ();
 
       gtk_object_set_data (GTK_OBJECT (menu_item), XEMACS_MENU_GUIID_TAG,
-                           GUINT_TO_POINTER (id));
+			   (gpointer) id);
 
       /* Make sure we gcpro the menu descriptions */
       gcpro_popup_callbacks (id, desc);
       gtk_object_weakref (GTK_OBJECT (menu_item), __remove_gcpro_by_id,
-			  GUINT_TO_POINTER (id));
+			  (gpointer) id);
 
       gtk_signal_connect (GTK_OBJECT (menu_item), "activate",
 			  GTK_SIGNAL_FUNC (__activate_menu),
-			  GUINT_TO_POINTER (0x01));
+			  (gpointer) 0x01);
     }
 
   return (menu_item);
@@ -1238,8 +1235,8 @@ create_menubar_widget (struct frame *f)
 		      GTK_SIGNAL_FUNC (run_menubar_hook), NULL);
 
   FRAME_GTK_MENUBAR_WIDGET (f) = menubar;
-  gtk_object_set_data (GTK_OBJECT (menubar), XEMACS_MENU_GUIID_TAG, GUINT_TO_POINTER (id));
-  gtk_object_weakref (GTK_OBJECT (menubar), __remove_gcpro_by_id, GUINT_TO_POINTER (id)), NULL);
+  gtk_object_set_data (GTK_OBJECT (menubar), XEMACS_MENU_GUIID_TAG, (gpointer) id);
+  gtk_object_weakref (GTK_OBJECT (menubar), __remove_gcpro_by_id, (gpointer) id, NULL);
 }
 
 static int

@@ -27,8 +27,6 @@ GType GTK_TYPE_OBJECT_SLIST = 0;
 #include "fontcolor-gtk-impl.h"
 #include "frame.h"
 
-int lisp_to_gtk_type (Lisp_Object obj, GValue *arg);
-
 static GType
 xemacs_type_register (const gchar *name, GType parent)
 {
@@ -72,30 +70,15 @@ xemacs_init_gtk_classes (void)
 static void
 xemacs_list_to_gtklist (Lisp_Object obj, GValue *arg)
 {
-  int len;
-  GValueArray *array;
   CHECK_LIST (obj);
 
-  /*
-   * The list is converted into an array.   I'll figure out
-   * how to a make a real list later, perhaps.  -jsparkes
-   */
-  GET_LIST_LENGTH (obj, len);
-  //array = g_array_new (0, TRUE, sizeof (GValue *));  // XXX leak?
-  g_value_array_new (len);
-
-  SAFE_LIST_LOOP_2 (elt, obj)
-    {
-      GValue tmp, *copy;
-      lisp_to_gtk_type (elt, &tmp);
-      g_value_copy (&tmp, copy);/* leak XXX */
-      g_value_array_append (array, copy);
-    }
-
-  g_value_init (arg, G_TYPE_VALUE_ARRAY);
-  g_value_set_boxed (arg, array);
+  printf ("%d\n", (int) arg);
+  ABORT();
 
 #if 0
+  assert (G_TYPE_IS_VALUE (arg));
+#endif
+ 
   //if (*arg == GTK_TYPE_POINTER)
     {
       Lisp_Object temp = obj;
@@ -115,14 +98,14 @@ xemacs_list_to_gtklist (Lisp_Object obj, GValue *arg)
 	  temp = XCDR (temp);
 	}
 
-
+#if 0
       arg = strings;
-
+#endif
     }
     //  else if (*arg == GTK_TYPE_OBJECT_LIST)
     {
       ABORT();
-
+#if 0
       Lisp_Object temp = obj;
       GList *objects = NULL;
 
@@ -141,13 +124,12 @@ xemacs_list_to_gtklist (Lisp_Object obj, GValue *arg)
 	}
 
       GTK_VALUE_POINTER (*arg) = objects;
+#endif
     }
-    else 
+    //else
     {
       ABORT ();
     }
-#endif
-
 }
 
 static void
@@ -189,6 +171,8 @@ xemacs_gtklist_to_list (GType *arg)
 #endif
   return (rval);
 }
+
+int lisp_to_gtk_type (Lisp_Object obj, GValue *arg);
 
 static void
 xemacs_list_to_array (Lisp_Object obj, GValue *arg)

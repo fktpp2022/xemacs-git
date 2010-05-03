@@ -156,7 +156,7 @@ Lisp_Object Qgtk_widget_redisplay_internal, Qgtk_widget_set_style;
 #endif
 
 #ifdef HAVE_GTK
-Lisp_Object Vgtk_cursors;
+Lisp_Object Vgtk_cursor_names;
 #endif
 
 
@@ -599,22 +599,53 @@ locate_pixmap_file (Lisp_Object name)
 /*                           cursor functions                           */
 /************************************************************************/
 
+#ifdef HAVE_GTK
+/*
+ * Cursor names are stored a list, since they are retrieved by name.
+ * The first one is default. We initialize a few useful ones here,
+ * the rest are done in lisp.
+ */
+static void 
+check_cursor_names ()
+{
+  if (NILP (Vgtk_cursor_names))
+    {
+      Lisp_Object names = Qnil;
+      Vgtk_cursor_names = call2 (intern ("make-hashtable"), 
+                                 make_int (101), Qequal);
+      names = Fcons (build_ascstring ("x-cursor"), names);
+      names = Fcons (build_ascstring ("arrow"), names);
+      names = Fcons (build_ascstring ("dot"), names);
+      names = Fcons (build_ascstring ("xterm"), names);
+
+      Vgtk_cursor_names = Fnreverse (names);
+    }
+}
+#endif
+
 /* Check that this server supports cursors of size WIDTH * HEIGHT.  If
    not, signal an error.  INSTANTIATOR is only used in the error
    message. */
 
 static void
-check_pointer_sizes (GdkDisplay *display, guint width, guint height,
-		     Lisp_Object instantiator)
+check_pointer_sizes (unsigned int UNUSED (width), unsigned int UNUSED (height),
+		     Lisp_Object UNUSED (instantiator))
 {
-  guint max_width, max_height;
-  gdk_display_get_maximal_cursor_size (display, &max_width, &max_height);
-  
-  if (width > max_width || height > max_height)
+    /* #### BILL!!! There is no way to call XQueryBestCursor from Gdk! */
+#if 0
+  unsigned int best_width, best_height;
+  if (! XQueryBestCursor (DisplayOfScreen (xs), RootWindowOfScreen (xs),
+			  width, height, &best_width, &best_height))
+    /* this means that an X error of some sort occurred (we trap
+       these so they're not fatal). */
+    gui_error ("XQueryBestCursor() failed?", instantiator);
+
+  if (width > best_width || height > best_height)
     signal_ferror_with_frob (Qgui_error, instantiator,
 			     "pointer too large (%dx%d): "
 			     "server requires %dx%d or smaller",
-			     width, height, max_width, max_height);
+			     width, height, best_width, best_height);
+#endif
 }
 
 static void
@@ -651,9 +682,6 @@ maybe_recolor_cursor (Lisp_Object UNUSED (image_instance),
 		      Lisp_Object UNUSED (foreground),
 		      Lisp_Object UNUSED (background))
 {
-  /* We can get the cursor as a GdkPixBuf using gdk_cursor_get_image().
-     and maybe edit the data. Maybe gdk_pixdata_from_pixbuf()?
-     --jsparkes */
 #if 0
     /* #### BILL!!! */
   Lisp_Object device = XIMAGE_INSTANCE_DEVICE (image_instance);
@@ -690,7 +718,6 @@ image_instance_convert_to_pointer (Lisp_Image_Instance *ii,
   GdkPixmap *pixmap = IMAGE_INSTANCE_GTK_PIXMAP (ii);
   GdkPixmap *mask = (GdkPixmap *) IMAGE_INSTANCE_GTK_MASK (ii);
   GdkColor fg, bg;
-  GdkDisplay *disp;
   int xhot = 0, yhot = 0;
   int w, h;
 
@@ -701,8 +728,7 @@ image_instance_convert_to_pointer (Lisp_Image_Instance *ii,
   w = IMAGE_INSTANCE_PIXMAP_WIDTH (ii);
   h = IMAGE_INSTANCE_PIXMAP_HEIGHT (ii);
 
-  disp = gdk_drawable_get_display (pixmap);
-  check_pointer_sizes (disp, w, h, instantiator);
+  check_pointer_sizes (w, h, instantiator);
 
   /* If the loaded pixmap has colors allocated (meaning it came from an
      XPM file), then use those as the default colors for the cursor we
@@ -812,54 +838,13 @@ init_image_instance_from_gdk_image (struct Lisp_Image_Instance *ii,
 				       pointer_bg);
 }
 
-
+#if 0
 void init_image_instance_from_gdk_pixmap (struct Lisp_Image_Instance *ii,
 					  struct device *device,
 					  GdkPixmap *gdk_pixmap,
 					  int dest_mask,
 					  Lisp_Object instantiator)
 {
-  {
-    Lisp_Object device = IMAGE_INSTANCE_DEVICE (ii);
-    enum image_instance_type type;
-    gint x, y;
-
-    if (!DEVICE_GTK_P (XDEVICE (device)))
-      gui_error ("Not a Gtk device", device);
-
-    gdk_drawable_get_size (gdk_pixmap, &x, &y);
-
-    if (dest_mask & IMAGE_COLOR_PIXMAP_MASK)
-      type = IMAGE_COLOR_PIXMAP;
-    else if (dest_mask & IMAGE_POINTER_MASK)
-      type = IMAGE_POINTER;
-    else
-      incompatible_image_types (instantiator, dest_mask,
-                                IMAGE_COLOR_PIXMAP_MASK
-                                | IMAGE_POINTER_MASK);
-
-    //gtk_initialize_pixmap_image_instance (ii, slices, IMAGE_COLOR_PIXMAP);
-
-    IMAGE_INSTANCE_PIXMAP_FILENAME (ii) =
-      find_keyword_in_vector (instantiator, Q_file);
-
-    IMAGE_INSTANCE_GTK_PIXMAP (ii) = gdk_pixmap;
-    IMAGE_INSTANCE_PIXMAP_MASK (ii) = 0;
-    IMAGE_INSTANCE_PIXMAP_WIDTH (ii) = x;
-    IMAGE_INSTANCE_PIXMAP_HEIGHT (ii) = y;
-    IMAGE_INSTANCE_PIXMAP_DEPTH (ii) = gdk_drawable_get_depth (gdk_pixmap);
-    IMAGE_INSTANCE_GTK_COLORMAP (ii) = gdk_drawable_get_colormap (gdk_pixmap);
-    //    IMAGE_INSTANCE_GTK_PIXELS (ii) = pixels;
-    IMAGE_INSTANCE_GTK_NPIXELS (ii) = x * y;
-
-#ifdef JSPARKES
-    if (type == IMAGE_POINTER)
-      image_instance_convert_to_pointer (ii, instantiator, pointer_fg,
-                                         pointer_bg);
-#endif
-  }
-
-#if 0
   GdkWindow *d;
   gint width, height, depth;
 
@@ -876,7 +861,8 @@ void init_image_instance_from_gdk_pixmap (struct Lisp_Image_Instance *ii,
 
   gtk_initialize_pixmap_image_instance (ii, IMAGE_COLOR_PIXMAP);
 
-  gdk_window_get_geometry (gdk_pixmap, NULL, NULL, &width, &height, &depth);
+  depth = gdk_drawable_get_depth (pixmap);
+  gdk_drawable_get_size (pixmap, &w, &h);
 
   IMAGE_INSTANCE_PIXMAP_FILENAME (ii) = Qnil;
   IMAGE_INSTANCE_GTK_PIXMAP (ii) = gdk_pixmap;
@@ -887,8 +873,8 @@ void init_image_instance_from_gdk_pixmap (struct Lisp_Image_Instance *ii,
   IMAGE_INSTANCE_GTK_COLORMAP (ii) = gdk_window_get_colormap (gdk_pixmap);
   IMAGE_INSTANCE_GTK_PIXELS (ii) = 0;
   IMAGE_INSTANCE_GTK_NPIXELS (ii) = 0;
-#endif
 }
+#endif
 
 static void
 image_instance_add_gdk_image (Lisp_Image_Instance *ii,
@@ -1086,8 +1072,8 @@ init_image_instance_from_xbm_inline (struct Lisp_Image_Instance *ii,
 	GdkColor fg_color, bg_color;
 	GdkPixmap *source;
 
-	check_pointer_sizes (gdk_drawable_get_display (mask), width, height,
-                             instantiator);
+	check_pointer_sizes (width, height, instantiator);
+
 	source = gdk_pixmap_create_from_data (draw, (char *) bits, width, height, 1, &black, &white);
 
 	if (NILP (foreground))
@@ -1262,7 +1248,7 @@ gtk_xpm_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
 							   Q_color_symbols);
   enum image_instance_type type;
   int force_mono;
-  gint w = 16, h = 16;
+  gint w, h;
   struct gcpro gcpro1, gcpro2, gcpro3;
   const Extbyte * volatile dstring;
 
@@ -1348,7 +1334,8 @@ gtk_xpm_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
   if (!pixmap)
     signal_image_error ("Error reading pixmap", data);
 
-  //  gdk_window_get_geometry (pixmap, NULL, NULL, &w, &h, &depth);
+  depth = gdk_drawable_get_depth (pixmap);
+  gdk_drawable_get_size (pixmap, &w, &h);
 
   IMAGE_INSTANCE_GTK_PIXMAP (ii) = pixmap;
   IMAGE_INSTANCE_PIXMAP_MASK (ii) = mask;
@@ -1425,7 +1412,7 @@ gtk_xface_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
 
   dstring = LISP_STRING_TO_EXTERNAL (data, Qbinary);
 
-  if ((p = strchr ((char *)dstring, ':')))
+  if ((p = strchr (dstring, ':')))
     {
       dstring = p + 1;
     }
@@ -1511,8 +1498,8 @@ static guint resource_name_to_resource (Lisp_Object name,
 {
   if (type == IMAGE_POINTER)
     {
-      stderr_out ("Lisp-level creation of widget failed... falling back\n");
-      //return (symbol_to_gtk_enum (name, GTK_TYPE_GDK_CURSOR_TYPE));
+      // return (symbol_to_gtk_enum (name, G_TYPE_ENUM));
+      return 1;
     }
   else
     return (0);
@@ -1523,7 +1510,7 @@ resource_symbol_to_type (Lisp_Object data)
 {
   if (EQ (data, Qcursor))
     return IMAGE_POINTER;
-#if 0
+#ifdef JSPARKES
   else if (EQ (data, Qicon))
     return IMAGE_ICON;
   else if (EQ (data, Qbitmap))
@@ -1888,65 +1875,71 @@ static GdkCursorType
 cursor_name_to_index (const char *name)
 {
     int i;
-    Lisp_Object elt;
-    
-    //return gdk_cursor_new_from_name (name);
+#if 0
+    static char *the_gdk_cursors[GDK_NUM_GLYPHS];
 
-    if (NILP (Vgtk_cursors)) {
-      /* I really should check the hash table size to be zero before initializing. */
-      if (!HASH_TABLEP (Vgtk_cursors))
-        Vgtk_cursors = call2 (intern ("make-hashtable"), make_int (101), Qequal);
-      
-       
-#define FROB_CURSOR(x) Fputhash (build_ascstring (__downcase(#x)), \
-                                 make_int (GDK_##x), Vgtk_cursors);
-    
-      FROB_CURSOR(ARROW);		FROB_CURSOR(BASED_ARROW_DOWN);
-      FROB_CURSOR(BASED_ARROW_UP);	FROB_CURSOR(BOAT);
-      FROB_CURSOR(BOGOSITY);		FROB_CURSOR(BOTTOM_LEFT_CORNER);
-      FROB_CURSOR(BOTTOM_RIGHT_CORNER);	FROB_CURSOR(BOTTOM_SIDE);
-      FROB_CURSOR(BOTTOM_TEE);		FROB_CURSOR(BOX_SPIRAL);
-      FROB_CURSOR(CENTER_PTR);		FROB_CURSOR(CIRCLE);
-      FROB_CURSOR(CLOCK);		FROB_CURSOR(COFFEE_MUG);
-      FROB_CURSOR(CROSS);		FROB_CURSOR(CROSS_REVERSE);
-      FROB_CURSOR(CROSSHAIR);		FROB_CURSOR(DIAMOND_CROSS);
-      FROB_CURSOR(DOT);			FROB_CURSOR(DOTBOX);
-      FROB_CURSOR(DOUBLE_ARROW);	FROB_CURSOR(DRAFT_LARGE);
-      FROB_CURSOR(DRAFT_SMALL);		FROB_CURSOR(DRAPED_BOX);
-      FROB_CURSOR(EXCHANGE);		FROB_CURSOR(FLEUR);
-      FROB_CURSOR(GOBBLER);		FROB_CURSOR(GUMBY);
-      FROB_CURSOR(HAND1);		FROB_CURSOR(HAND2);
-      FROB_CURSOR(HEART);		FROB_CURSOR(ICON);
-      FROB_CURSOR(IRON_CROSS);		FROB_CURSOR(LEFT_PTR);
-      FROB_CURSOR(LEFT_SIDE);		FROB_CURSOR(LEFT_TEE);
-      FROB_CURSOR(LEFTBUTTON);		FROB_CURSOR(LL_ANGLE);
-      FROB_CURSOR(LR_ANGLE);		FROB_CURSOR(MAN);
-      FROB_CURSOR(MIDDLEBUTTON);	FROB_CURSOR(MOUSE);
-      FROB_CURSOR(PENCIL);		FROB_CURSOR(PIRATE);
-      FROB_CURSOR(PLUS);		FROB_CURSOR(QUESTION_ARROW);
-      FROB_CURSOR(RIGHT_PTR);		FROB_CURSOR(RIGHT_SIDE);
-      FROB_CURSOR(RIGHT_TEE);		FROB_CURSOR(RIGHTBUTTON);
-      FROB_CURSOR(RTL_LOGO);		FROB_CURSOR(SAILBOAT);
-      FROB_CURSOR(SB_DOWN_ARROW);	FROB_CURSOR(SB_H_DOUBLE_ARROW);
-      FROB_CURSOR(SB_LEFT_ARROW);	FROB_CURSOR(SB_RIGHT_ARROW);
-      FROB_CURSOR(SB_UP_ARROW);		FROB_CURSOR(SB_V_DOUBLE_ARROW);
-      FROB_CURSOR(SHUTTLE);		FROB_CURSOR(SIZING);
-      FROB_CURSOR(SPIDER);		FROB_CURSOR(SPRAYCAN);
-      FROB_CURSOR(STAR);		FROB_CURSOR(TARGET);
-      FROB_CURSOR(TCROSS);		FROB_CURSOR(TOP_LEFT_ARROW);
-      FROB_CURSOR(TOP_LEFT_CORNER);	FROB_CURSOR(TOP_RIGHT_CORNER);
-      FROB_CURSOR(TOP_SIDE);		FROB_CURSOR(TOP_TEE);
-      FROB_CURSOR(TREK);		FROB_CURSOR(UL_ANGLE);
-      FROB_CURSOR(UMBRELLA);		FROB_CURSOR(UR_ANGLE);
-      FROB_CURSOR(WATCH);		FROB_CURSOR(XTERM);
-      FROB_CURSOR(X_CURSOR);
+    if (!the_gdk_cursors[GDK_BASED_ARROW_UP])
+    {
+	/* Need to initialize the array */
+	/* Supposedly since this array is static it should be
+	   initialized to NULLs for us, but I'm very paranoid. */
+	for (i = 0; i < GDK_NUM_GLYPHS; i++)
+	{
+	    the_gdk_cursors[i] = NULL;
+	}
+
+#define FROB_CURSOR(x) the_gdk_cursors[GDK_##x] = __downcase(#x)
+	FROB_CURSOR(ARROW);			FROB_CURSOR(BASED_ARROW_DOWN);
+	FROB_CURSOR(BASED_ARROW_UP);		FROB_CURSOR(BOAT);
+	FROB_CURSOR(BOGOSITY);			FROB_CURSOR(BOTTOM_LEFT_CORNER);
+	FROB_CURSOR(BOTTOM_RIGHT_CORNER);	FROB_CURSOR(BOTTOM_SIDE);
+	FROB_CURSOR(BOTTOM_TEE);		FROB_CURSOR(BOX_SPIRAL);
+	FROB_CURSOR(CENTER_PTR);		FROB_CURSOR(CIRCLE);
+	FROB_CURSOR(CLOCK);			FROB_CURSOR(COFFEE_MUG);
+	FROB_CURSOR(CROSS);			FROB_CURSOR(CROSS_REVERSE);
+	FROB_CURSOR(CROSSHAIR);			FROB_CURSOR(DIAMOND_CROSS);
+	FROB_CURSOR(DOT);			FROB_CURSOR(DOTBOX);
+	FROB_CURSOR(DOUBLE_ARROW);		FROB_CURSOR(DRAFT_LARGE);
+	FROB_CURSOR(DRAFT_SMALL);		FROB_CURSOR(DRAPED_BOX);
+	FROB_CURSOR(EXCHANGE);			FROB_CURSOR(FLEUR);
+	FROB_CURSOR(GOBBLER);			FROB_CURSOR(GUMBY);
+	FROB_CURSOR(HAND1);			FROB_CURSOR(HAND2);
+	FROB_CURSOR(HEART);			FROB_CURSOR(ICON);
+	FROB_CURSOR(IRON_CROSS);		FROB_CURSOR(LEFT_PTR);
+	FROB_CURSOR(LEFT_SIDE);			FROB_CURSOR(LEFT_TEE);
+	FROB_CURSOR(LEFTBUTTON);		FROB_CURSOR(LL_ANGLE);
+	FROB_CURSOR(LR_ANGLE);			FROB_CURSOR(MAN);
+	FROB_CURSOR(MIDDLEBUTTON);		FROB_CURSOR(MOUSE);
+	FROB_CURSOR(PENCIL);			FROB_CURSOR(PIRATE);
+	FROB_CURSOR(PLUS);			FROB_CURSOR(QUESTION_ARROW);
+	FROB_CURSOR(RIGHT_PTR);			FROB_CURSOR(RIGHT_SIDE);
+	FROB_CURSOR(RIGHT_TEE);			FROB_CURSOR(RIGHTBUTTON);
+	FROB_CURSOR(RTL_LOGO);			FROB_CURSOR(SAILBOAT);
+	FROB_CURSOR(SB_DOWN_ARROW);		FROB_CURSOR(SB_H_DOUBLE_ARROW);
+	FROB_CURSOR(SB_LEFT_ARROW);		FROB_CURSOR(SB_RIGHT_ARROW);
+	FROB_CURSOR(SB_UP_ARROW);		FROB_CURSOR(SB_V_DOUBLE_ARROW);
+	FROB_CURSOR(SHUTTLE);			FROB_CURSOR(SIZING);
+	FROB_CURSOR(SPIDER);			FROB_CURSOR(SPRAYCAN);
+	FROB_CURSOR(STAR);			FROB_CURSOR(TARGET);
+	FROB_CURSOR(TCROSS);			FROB_CURSOR(TOP_LEFT_ARROW);
+	FROB_CURSOR(TOP_LEFT_CORNER);		FROB_CURSOR(TOP_RIGHT_CORNER);
+	FROB_CURSOR(TOP_SIDE);			FROB_CURSOR(TOP_TEE);
+	FROB_CURSOR(TREK);			FROB_CURSOR(UL_ANGLE);
+	FROB_CURSOR(UMBRELLA);			FROB_CURSOR(UR_ANGLE);
+	FROB_CURSOR(WATCH);			FROB_CURSOR(XTERM);
+	FROB_CURSOR(X_CURSOR);
 #undef FROB_CURSOR
     }
 
-    elt = call2 (intern ("gethash"), build_ascstring (name), Vgtk_cursors);
-    if (!NILP (elt))
-        return (GdkCursorType) XINT (elt);
-
+    for (i = 0; i < GDK_NUM_GLYPHS; i++)
+    {
+	if (!the_gdk_cursors[i]) continue;
+	if (!strcmp (the_gdk_cursors[i], name))
+	{
+	  return (GdkCursorType) i;
+	}
+    }
+#endif
     return (GdkCursorType) -1;
 }
 
@@ -2969,10 +2962,10 @@ the environment variable XBMLANGPATH is set, it is consulted first).
   Vgtk_bitmap_file_path = Qnil;
 
 #ifdef HAVE_GTK
-  DEFVAR_LISP ("gtk-cursors", &Vgtk_cursors /*
-A hash table of cursor name to GdkCursorType values.
+  DEFVAR_LISP ("gtk-cursor-names", &Vgtk_cursor_names /*
+A list of Gtk cursor names and internal integer values.
 */);
-  Vgtk_cursors = Qnil;
+  Vgtk_cursor_names = Qnil;
 #endif
 }
 

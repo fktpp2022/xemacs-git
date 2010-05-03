@@ -107,7 +107,8 @@ decode_gtk_device (Lisp_Object device)
 extern Lisp_Object
 xemacs_gtk_convert_color(GdkColor *c, GtkWidget *w);
 
-extern Lisp_Object __get_gtk_font_truename (GdkFont *gdk_font, int expandp);
+extern Lisp_Object __get_gtk_font_truename (GdkFont *gdk_font,
+					    int expandp);
 
 #define convert_font(f) __get_gtk_font_truename (f, 0)
 
