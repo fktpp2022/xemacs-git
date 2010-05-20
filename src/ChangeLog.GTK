@@ -1,7 +1,17 @@
 2010-05-19  Jeff Sparkes  <jsparkes@gmail.com>
 
-	* device-gtk.c (gtk_init_device): Create PangoContext and
-	PangoFontMap in device initialization.
+	* redisplay-gtk.c (XLIKE_bevel_area): Commented out use of shadow
+	enums until they're updated to 2.X values.
+
+	* ui-gtk.c: Use g_type* functions instead of deprecated gtk_type*
+	ones. Rename lisp_to_gtk_type to lisp_to_g_value.
+	Remove lisp_to_gtk_ret_type, lisp_to_gvalue now does that job.
+	(type_already_imported_p): Make internal type hash table visible
+	as gtk-types so it's viewable in lisp.
+	(mark_type_as_imported): Use Vgtk_types.
+	(vars_of_ui_gtk): DEFVAR Vgtk_types.
+
+	* gtk-glue.c: use renamed function.
 
 	* menubar-gtk.c: Use GQuarks instead of text keys for attaching
 	data to widgets.
