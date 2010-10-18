@@ -54,9 +54,12 @@ Boston, MA 02111-1307, USA.  */
 /* NOTE: This symbol is also used in lread.c */
 #define FEATUREP_SYNTAX
 
-Lisp_Object Qstring_lessp, Qsort, Qmerge, Qfill;
+Lisp_Object Qstring_lessp, Qsort, Qmerge, Qfill, Qreplace;
 Lisp_Object Qidentity;
-Lisp_Object Qvector, Qarray, Qbit_vector, QsortX, Qreduce, Q_from_end, Q_initial_value;
+Lisp_Object Qvector, Qarray, Qbit_vector, QsortX, Q_from_end, Q_initial_value;
+Lisp_Object Qmapconcat, QmapcarX, Qmapvector, Qmapcan, Qmapc, Qmap, Qmap_into;
+Lisp_Object Qsome, Qevery, Qmaplist, Qmapl, Qmapcon, Qreduce;
+Lisp_Object Q_start1, Q_start2, Q_end1, Q_end2;
 
 Lisp_Object Qbase64_conversion_error;
 
@@ -64,6 +67,26 @@ Lisp_Object Vpath_separator;
 
 static int internal_old_equal (Lisp_Object, Lisp_Object, int);
 Lisp_Object safe_copy_tree (Lisp_Object arg, Lisp_Object vecp, int depth);
+
+static DOESNT_RETURN
+mapping_interaction_error (Lisp_Object func, Lisp_Object object)
+{
+  invalid_state_2 ("object modified while traversing it", func, object);
+}
+
+static void
+check_sequence_range (Lisp_Object sequence, Lisp_Object start,
+		      Lisp_Object end, Lisp_Object length)
+{
+  Elemcount starting = XINT (start), ending, len = XINT (length);
+
+  ending = NILP (end) ? XINT (length) : XINT (end);
+
+  if (!(0 <= starting && starting <= ending && ending <= len))
+    {
+      args_out_of_range_3 (sequence, start, make_int (ending));
+    }
+}
 
 static Lisp_Object
 mark_bit_vector (Lisp_Object UNUSED (obj))
@@ -314,6 +337,29 @@ which is at least the number of distinct elements.
     }
 
   return make_int (len);
+}
+
+/* This is almost the above, but is defined by Common Lisp. We need it in C
+   for shortest_length_among_sequences(), below, for the various sequence
+   functions that can usefully operate on circular lists. */
+
+DEFUN ("list-length", Flist_length, 1, 1, 0, /*
+Return the length of LIST.  Return nil if LIST is circular.
+*/
+       (list))
+{
+  Lisp_Object hare, tortoise;
+  Elemcount len;
+
+  for (hare = tortoise = list, len = 0;
+       CONSP (hare) && (! EQ (hare, tortoise) || len == 0);
+       hare = XCDR (hare), len++)
+    {
+      if (len & 1)
+	tortoise = XCDR (tortoise);
+    }
+
+  return EQ (hare, tortoise) && len != 0 ? Qnil : make_int (len);
 }
 
 /*** string functions. ***/
@@ -877,7 +923,7 @@ concat (int nargs, Lisp_Object *args,
 	    {
 	      CHECK_CHAR_COERCE_INT (elt);
 	      string_result_ptr += set_itext_ichar (string_result_ptr,
-						       XCHAR (elt));
+						    XCHAR (elt));
 	    }
 	}
       if (args_mse)
@@ -988,7 +1034,9 @@ safe_copy_tree (Lisp_Object arg, Lisp_Object vecp, int depth)
 DEFUN ("subseq", Fsubseq, 2, 3, 0, /*
 Return the subsequence of SEQUENCE starting at START and ending before END.
 END may be omitted; then the subsequence runs to the end of SEQUENCE.
-If START or END is negative, it counts from the end.
+
+If START or END is negative, it counts from the end, in contravention of
+Common Lisp.
 The returned subsequence is always of the same type as SEQUENCE.
 If SEQUENCE is a string, relevant parts of the string-extent-data
 are copied to the new string.
@@ -998,89 +1046,139 @@ not copy extent data.
 */
        (sequence, start, end))
 {
-  EMACS_INT len, s, e;
+  Elemcount len, ss, ee = EMACS_INT_MAX, ii;
+  Lisp_Object result = Qnil;
+
+  CHECK_SEQUENCE (sequence);
+  CHECK_INT (start);
+  ss = XINT (start);
+
+  if (!NILP (end))
+    {
+      CHECK_INT (end);
+      ee = XINT (end);
+    }
 
   if (STRINGP (sequence))
     {
-      Charcount ccstart, ccend;
       Bytecount bstart, blen;
-      Lisp_Object val;
 
-      CHECK_INT (start);
-      get_string_range_char (sequence, start, end, &ccstart, &ccend,
+      get_string_range_char (sequence, start, end, &ss, &ee,
                              GB_HISTORICAL_STRING_BEHAVIOR);
-      bstart = string_index_char_to_byte (sequence, ccstart);
-      blen = string_offset_char_to_byte_len (sequence, bstart, ccend - ccstart);
-      val = make_string (XSTRING_DATA (sequence) + bstart, blen);
+      bstart = string_index_char_to_byte (sequence, ss);
+      blen = string_offset_char_to_byte_len (sequence, bstart, ee - ss);
+
+      result = make_string (XSTRING_DATA (sequence) + bstart, blen);
       /* Copy any applicable extent information into the new string. */
-      copy_string_extents (val, sequence, 0, bstart, blen);
-      return val;
+      copy_string_extents (result, sequence, 0, bstart, blen);
     }
+  else if (CONSP (sequence))
+    {
+      Lisp_Object result_tail, saved = sequence;
 
-  CHECK_SEQUENCE (sequence);
+      if (ss < 0 || ee < 0)
+        {
+          len = XINT (Flength (sequence));
+	  if (ss < 0)
+	    {
+	      ss = len + ss;
+	      start = make_integer (ss);
+	    }
 
-  len = XINT (Flength (sequence));
+	  if (ee < 0)
+	    {
+	      ee  = len + ee;
+	      end = make_integer (ee);
+	    }
+	  else
+	    {
+	      ee = min (ee, len);
+	    }
+        }
 
-  CHECK_INT (start);
-  s = XINT (start);
-  if (s < 0)
-    s = len + s;
+      if (0 != ss)
+        {
+          sequence = Fnthcdr (make_int (ss), sequence);
+        }
 
-  if (NILP (end))
-    e = len;
+      if (ss < ee && !NILP (sequence))
+        {
+	  result = result_tail = Fcons (Fcar (sequence), Qnil);
+	  sequence = Fcdr (sequence);
+	  ii = ss + 1;
+
+	  {
+	    EXTERNAL_LIST_LOOP_2 (elt, sequence)
+	      {
+		if (!(ii < ee))
+		  {
+		    break;
+		  }
+
+		XSETCDR (result_tail, Fcons (elt, Qnil));
+		result_tail = XCDR (result_tail);
+		ii++;
+	      }
+	  }
+        }
+
+      if (NILP (result) || (ii < ee && !NILP (end)))
+        {
+          /* We were handed a cons, which definitely has elements. nil
+             result means either ss >= ee or SEQUENCE was nil after the
+             nthcdr; in both cases that means START and END were incorrectly
+             specified for this sequence. ii < ee with a non-nil end means
+             the user handed us a bogus end value. */
+          check_sequence_range (saved, start, end, Flength (saved));
+        }
+    }
   else
     {
-      CHECK_INT (end);
-      e = XINT (end);
-      if (e < 0)
-	e = len + e;
-    }
-
-  if (!(0 <= s && s <= e && e <= len))
-    args_out_of_range_3 (sequence, make_int (s), make_int (e));
-
-  if (VECTORP (sequence))
-    {
-      Lisp_Object result = make_vector (e - s, Qnil);
-      EMACS_INT i;
-      Lisp_Object *in_elts  = XVECTOR_DATA (sequence);
-      Lisp_Object *out_elts = XVECTOR_DATA (result);
-
-      for (i = s; i < e; i++)
-	out_elts[i - s] = in_elts[i];
-      return result;
-    }
-  else if (LISTP (sequence))
-    {
-      Lisp_Object result = Qnil;
-      EMACS_INT i;
-
-      sequence = Fnthcdr (make_int (s), sequence);
-
-      for (i = s; i < e; i++)
+      len = XINT (Flength (sequence));
+      if (ss < 0)
 	{
-	  result = Fcons (Fcar (sequence), result);
-	  sequence = Fcdr (sequence);
+	  ss = len + ss;
+	  start = make_integer (ss);
 	}
 
-      return Fnreverse (result);
-    }
-  else if (BIT_VECTORP (sequence))
-    {
-      Lisp_Object result = make_bit_vector (e - s, Qzero);
-      EMACS_INT i;
+      if (ee < 0)
+	{
+	  ee = len + ee;
+	  end = make_integer (ee);
+	}
+      else
+	{
+	  ee = min (len, ee);
+	}
 
-      for (i = s; i < e; i++)
-	set_bit_vector_bit (XBIT_VECTOR (result), i - s,
-			    bit_vector_bit (XBIT_VECTOR (sequence), i));
-      return result;
+      check_sequence_range (sequence, start, end, make_int (len));
+
+      if (VECTORP (sequence))
+        {
+          result = Fvector (ee - ss, XVECTOR_DATA (sequence) + ss);
+        }
+      else if (BIT_VECTORP (sequence))
+        {
+          result = make_bit_vector (ee - ss, Qzero);
+
+          for (ii = ss; ii < ee; ii++)
+            {
+              set_bit_vector_bit (XBIT_VECTOR (result), ii - ss,
+                                  bit_vector_bit (XBIT_VECTOR (sequence), ii));
+            }
+        }
+      else if (NILP (sequence))
+        {
+          DO_NOTHING;
+        }
+      else
+        {
+          /* Won't happen, since CHECK_SEQUENCE didn't error. */
+          ABORT ();
+        }
     }
-  else
-    {
-      ABORT (); /* unreachable, since CHECK_SEQUENCE (sequence) did not
-                   error */
-      return Qnil;
-    }
+
+  return result;
 }
 
 DEFUN ("substring-no-properties", Fsubstring_no_properties, 1, 3, 0, /* 
@@ -1472,72 +1570,99 @@ If N is greater than the length of LIST, then LIST itself is returned.
 
 DEFUN ("nbutlast", Fnbutlast, 1, 2, 0, /*
 Modify LIST to remove the last N (default 1) elements.
+
 If LIST has N or fewer elements, nil is returned and LIST is unmodified.
+Otherwise, LIST may be dotted, but not circular.
 */
        (list, n))
 {
-  EMACS_INT int_n;
+  Elemcount int_n = 1;
 
   CHECK_LIST (list);
 
-  if (NILP (n))
-    int_n = 1;
-  else
+  if (!NILP (n))
     {
       CHECK_NATNUM (n);
       int_n = XINT (n);
     }
 
-  {
-    Lisp_Object last_cons = list;
+  if (CONSP (list))
+    {
+      Lisp_Object last_cons = list;
 
-    EXTERNAL_LIST_LOOP_1 (list)
-      {
-	if (int_n-- < 0)
-	  last_cons = XCDR (last_cons);
-      }
+      EXTERNAL_LIST_LOOP_3 (elt, list, tail)
+	{
+	  if (int_n-- < 0)
+	    {
+	      last_cons = XCDR (last_cons);
+	    }
 
-    if (int_n >= 0)
-      return Qnil;
+	  if (!CONSP (XCDR (tail)))
+	    {
+	      break;
+	    }
+	}
 
-    XCDR (last_cons) = Qnil;
-    return list;
-  }
+      if (int_n >= 0)
+	{
+	  return Qnil;
+	}
+
+      XCDR (last_cons) = Qnil;
+    }
+
+  return list;
 }
 
 DEFUN ("butlast", Fbutlast, 1, 2, 0, /*
 Return a copy of LIST with the last N (default 1) elements removed.
+
 If LIST has N or fewer elements, nil is returned.
+Otherwise, LIST may be dotted, but not circular, and `(butlast LIST 0)'
+converts a dotted into a true list.
 */
        (list, n))
 {
-  EMACS_INT int_n;
+  Lisp_Object retval = Qnil, retval_tail = Qnil;
+  Elemcount int_n = 1;
 
   CHECK_LIST (list);
 
-  if (NILP (n))
-    int_n = 1;
-  else
+  if (!NILP (n))
     {
       CHECK_NATNUM (n);
       int_n = XINT (n);
     }
 
-  {
-    Lisp_Object retval = Qnil;
-    Lisp_Object tail = list;
+  if (CONSP (list))
+    {
+      Lisp_Object tail = list;
 
-    EXTERNAL_LIST_LOOP_1 (list)
-      {
-	if (--int_n < 0)
-	  {
-	    retval = Fcons (XCAR (tail), retval);
-	    tail = XCDR (tail);
-	  }
-      }
+      EXTERNAL_LIST_LOOP_3 (elt, list, list_tail)
+	{
+	  if (--int_n < 0)
+	    {
+	      if (NILP (retval_tail))
+		{
+		  retval = retval_tail = Fcons (XCAR (tail), Qnil);
+		}
+	      else
+		{
+		  XSETCDR (retval_tail, Fcons (XCAR (tail), Qnil));
+		  retval_tail = XCDR (retval_tail);
+		}
 
-    return Fnreverse (retval);
-  }
+	      tail = XCDR (tail);
+	    }
+
+	  if (!CONSP (XCDR (list_tail)))
+	    {
+	      break;
+	    }
+	}
+    }
+
+  return retval;
 }
 
 DEFUN ("member", Fmember, 2, 2, 0, /*
@@ -2057,13 +2182,16 @@ list_merge (Lisp_Object org_l1, Lisp_Object org_l2,
   Lisp_Object tail;
   Lisp_Object tem;
   Lisp_Object l1, l2;
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
-  int looped = 0;
+  Lisp_Object tortoises[2];
+  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
+  int l1_count = 0, l2_count = 0;
 
   l1 = org_l1;
   l2 = org_l2;
   tail = Qnil;
   value = Qnil;
+  tortoises[0] = org_l1;
+  tortoises[1] = org_l2; 
 
   if (NULL == c_predicate)
     {
@@ -2075,7 +2203,8 @@ list_merge (Lisp_Object org_l1, Lisp_Object org_l2,
      When l1 and l2 are updated, we copy the new values
      back into the org_ vars.  */
 
-  GCPRO4 (org_l1, org_l2, predicate, value);
+  GCPRO5 (org_l1, org_l2, predicate, value, tortoises[0]);
+  gcpro5.nvars = 2;
 
   while (1)
     {
@@ -2101,32 +2230,56 @@ list_merge (Lisp_Object org_l1, Lisp_Object org_l2,
 	  tem = l1;
 	  l1 = Fcdr (l1);
 	  org_l1 = l1;
+
+	  if (l1_count++ > CIRCULAR_LIST_SUSPICION_LENGTH)
+	    {
+	      if (l1_count & 1)
+		{
+		  if (!CONSP (tortoises[0]))
+		    {
+		      mapping_interaction_error (Qmerge, tortoises[0]);
+		    }
+
+		  tortoises[0] = XCDR (tortoises[0]);
+		}
+
+	      if (EQ (org_l1, tortoises[0]))
+		{
+		  signal_circular_list_error (org_l1);
+		}
+	    }
 	}
       else
 	{
 	  tem = l2;
 	  l2 = Fcdr (l2);
 	  org_l2 = l2;
+
+	  if (l2_count++ > CIRCULAR_LIST_SUSPICION_LENGTH)
+	    {
+	      if (l2_count & 1)
+		{
+		  if (!CONSP (tortoises[1]))
+		    {
+		      mapping_interaction_error (Qmerge, tortoises[1]);
+		    }
+
+		  tortoises[1] = XCDR (tortoises[1]);
+		}
+
+	      if (EQ (org_l2, tortoises[1]))
+		{
+		  signal_circular_list_error (org_l2);
+		}
+	    }
 	}
+
       if (NILP (tail))
 	value = tem;
       else
 	Fsetcdr (tail, tem);
+
       tail = tem;
-
-      if (++looped % CIRCULAR_LIST_SUSPICION_LENGTH) continue;
-
-      /* Just check the lists aren't circular:*/
-      {
-        EXTERNAL_LIST_LOOP_1 (l1)
-          {
-          }
-      }
-      {
-        EXTERNAL_LIST_LOOP_1 (l2)
-          {
-          }
-      }
     }
 }
 
@@ -2224,12 +2377,12 @@ list_array_merge_into_list (Lisp_Object list,
                             Lisp_Object predicate, Lisp_Object key_func,
                             Boolint reverse_order)
 {
-  Lisp_Object tail = Qnil, value = Qnil;
-  struct gcpro gcpro1, gcpro2, gcpro3;
+  Lisp_Object tail = Qnil, value = Qnil, tortoise = list;
+  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
   Elemcount array_index = 0;
   int looped = 0;
 
-  GCPRO3 (list, tail, value);
+  GCPRO4 (list, tail, value, tortoise);
 
   while (1)
     {
@@ -2291,13 +2444,18 @@ list_array_merge_into_list (Lisp_Object list,
           ++array_index;
         }
 
-      if (++looped % CIRCULAR_LIST_SUSPICION_LENGTH) continue;
+      if (++looped > CIRCULAR_LIST_SUSPICION_LENGTH)
+        {
+          if (looped & 1)
+            {
+              tortoise = XCDR (tortoise);
+            }
 
-      {
-        EXTERNAL_LIST_LOOP_1 (list)
-          {
-          }
-      }
+          if (EQ (list, tortoise))
+            {
+              signal_circular_list_error (list);
+            }
+        }
     }
 }
 
@@ -2371,7 +2529,7 @@ list_array_merge_into_array (Lisp_Object *output, Elemcount output_len,
         {
           if (array_len - array_index != output_len - output_index)
             {
-              invalid_state ("List length modified during merge", Qunbound);
+	      mapping_interaction_error (Qmerge, list);
             }
 
           while (array_index < array_len)
@@ -2463,7 +2621,7 @@ arguments: (TYPE SEQUENCE-ONE SEQUENCE-TWO PREDICATE &key (KEY #'IDENTITY))
   Lisp_Object (*c_predicate) (Lisp_Object, Lisp_Object, Lisp_Object,
 			      Lisp_Object);
 
-  PARSE_KEYWORDS (Qmerge, nargs, args, 4, 1, (key), NULL, 0);
+  PARSE_KEYWORDS (Fmerge, nargs, args, 1, (key), NULL);
 
   CHECK_SEQUENCE (sequence_one);
   CHECK_SEQUENCE (sequence_two);
@@ -2715,7 +2873,7 @@ arguments: (SEQUENCE PREDICATE &key (KEY #'IDENTITY))
                               Lisp_Object);
   Elemcount sequence_len, i;
 
-  PARSE_KEYWORDS (QsortX, nargs, args, 2, 1, (key), NULL, 0);
+  PARSE_KEYWORDS (FsortX, nargs, args, 1, (key), NULL);
 
   CHECK_SEQUENCE (sequence);
 
@@ -3523,7 +3681,8 @@ Return the value of OBJECT's PROPERTY property.
 This is the last VALUE stored with `(put OBJECT PROPERTY VALUE)'.
 If there is no such property, return optional third arg DEFAULT
 \(which defaults to `nil').  OBJECT can be a symbol, string, extent,
-face, or glyph.  See also `put', `remprop', and `object-plist'.
+face, glyph, or process.  See also `put', `remprop', `object-plist', and
+`object-setplist'.
 */
        (object, property, default_))
 {
@@ -3567,9 +3726,10 @@ See also `get', `remprop', and `object-plist'.
 
 DEFUN ("remprop", Fremprop, 2, 2, 0, /*
 Remove, from OBJECT's property list, PROPERTY and its corresponding value.
-OBJECT can be a symbol, string, extent, face, or glyph.  Return non-nil
-if the property list was actually modified (i.e. if PROPERTY was present
-in the property list).  See also `get', `put', and `object-plist'.
+OBJECT can be a symbol, string, extent, face, glyph, or process.
+Return non-nil if the property list was actually modified (i.e. if PROPERTY
+was present in the property list).  See also `get', `put', `object-plist',
+and `object-setplist'.
 */
        (object, property))
 {
@@ -3605,6 +3765,26 @@ this may or may not have the desired effects.  Use `put' instead.
 
   return Qnil;
 }
+
+DEFUN ("object-setplist", Fobject_setplist, 2, 2, 0, /*
+Set OBJECT's property list to NEWPLIST, and return NEWPLIST.
+For a symbol, this is equivalent to `setplist'.
+
+OBJECT can be a symbol or a process, other objects with visible plists do
+not allow their modification with `object-setplist'.
+*/
+       (object, newplist))
+{
+  if (LRECORDP (object) && XRECORD_LHEADER_IMPLEMENTATION (object)->setplist)
+    {
+      return XRECORD_LHEADER_IMPLEMENTATION (object)->setplist (object,
+								newplist);
+    }
+
+  invalid_operation ("Not possible to set object's plist", object);
+  return Qnil;
+}
+
 
 
 static Lisp_Object
@@ -3828,6 +4008,29 @@ Do not use it.
 }
 
 
+static Lisp_Object replace_string_range_1 (Lisp_Object dest,
+					   Lisp_Object start,
+					   Lisp_Object end,
+					   const Ibyte *source,
+					   const Ibyte *source_limit,
+					   Lisp_Object item);
+
+/* Fill the substring of DEST beginning at START and ending before END with
+   the character ITEM. If DEST does not have sufficient space for END -
+   START characters at START, write as many as is possible without changing
+   the character length of DEST.  Update the string modification flag and do
+   any sledgehammer checks we have turned on.
+
+   START must be a Lisp integer. END can be nil, indicating the length of the
+   string, or a Lisp integer.  The condition (<= 0 START END (length DEST))
+   must hold, or fill_string_range() will signal an error. */
+static Lisp_Object
+fill_string_range (Lisp_Object dest, Lisp_Object item, Lisp_Object start,
+		   Lisp_Object end)
+{
+  return replace_string_range_1 (dest, start, end, NULL, NULL, item);
+}
+
 DEFUN ("fill", Ffill, 2, MANY, 0, /*
 Destructively modify SEQUENCE by replacing each element with ITEM.
 SEQUENCE is a list, vector, bit vector, or string.
@@ -3837,21 +4040,20 @@ to be modified, and defaults to zero.  Optional keyword END is the
 exclusive upper bound on the elements of SEQUENCE to be modified, and
 defaults to the length of SEQUENCE.
 
-arguments: (SEQUENCE ITEM &key (START 0) END)
+arguments: (SEQUENCE ITEM &key (START 0) (END (length SEQUENCE)))
 */
        (int nargs, Lisp_Object *args))
 {
   Lisp_Object sequence = args[0];
   Lisp_Object item = args[1];
-  Elemcount starting = 0, ending = EMACS_INT_MAX, ii;
+  Elemcount starting = 0, ending = EMACS_INT_MAX, ii, len;
 
-  PARSE_KEYWORDS (Qfill, nargs, args, 2, 2, (start, end),
-                  (start = Qzero, end = Qunbound), 0);
+  PARSE_KEYWORDS (Ffill, nargs, args, 2, (start, end), (start = Qzero));
 
   CHECK_NATNUM (start);
   starting = XINT (start);
 
-  if (!UNBOUNDP (end))
+  if (!NILP (end))
     {
       CHECK_NATNUM (end);
       ending = XINT (end);
@@ -3860,49 +4062,21 @@ arguments: (SEQUENCE ITEM &key (START 0) END)
  retry:
   if (STRINGP (sequence))
     {
-      Bytecount prefix_bytecount, item_bytecount, delta;
-      Ibyte item_buf[MAX_ICHAR_LEN];
-      Ibyte *p, *pend;
-
       CHECK_CHAR_COERCE_INT (item);
-
       CHECK_LISP_WRITEABLE (sequence);
-      sledgehammer_check_ascii_begin (sequence);
-      item_bytecount = set_itext_ichar (item_buf, XCHAR (item));
 
-      p = XSTRING_DATA (sequence);
-      p = (Ibyte *) itext_n_addr (p, starting);
-      prefix_bytecount = p - XSTRING_DATA (sequence);
-
-      ending = min (ending, string_char_length (sequence));
-      pend = (Ibyte *) itext_n_addr (p, ending - starting); 
-      delta = ((ending - starting) * item_bytecount) - (pend - p);
-
-      /* Resize the string if the bytecount for the area being modified is
-	 different. */
-      if (delta)
-	{
-	  resize_string (sequence, prefix_bytecount, delta);
-	  /* No need to zero-terminate the string, resize_string has done
-	     that for us. */
-	  p = XSTRING_DATA (sequence) + prefix_bytecount;
-	  pend = p + ((ending - starting) * item_bytecount);
-	}
-
-      for (; p < pend; p += item_bytecount)
-	memcpy (p, item_buf, item_bytecount);
-
-
-      init_string_ascii_begin (sequence);
-      bump_string_modiff (sequence);
-      sledgehammer_check_ascii_begin (sequence);
+      fill_string_range (sequence, item, start, end);
     }
   else if (VECTORP (sequence))
     {
       Lisp_Object *p = XVECTOR_DATA (sequence);
-      CHECK_LISP_WRITEABLE (sequence);
 
-      ending = min (ending, XVECTOR_LENGTH (sequence));
+      CHECK_LISP_WRITEABLE (sequence);
+      len = XVECTOR_LENGTH (sequence);
+
+      check_sequence_range (sequence, start, end, make_int (len));
+      ending = min (ending, len);
+
       for (ii = starting; ii < ending; ++ii)
         {
           p[ii] = item;
@@ -3912,11 +4086,15 @@ arguments: (SEQUENCE ITEM &key (START 0) END)
     {
       Lisp_Bit_Vector *v = XBIT_VECTOR (sequence);
       int bit;
+
       CHECK_BIT (item);
       bit = XINT (item);
       CHECK_LISP_WRITEABLE (sequence);
+      len = bit_vector_length (v);
 
-      ending = min (ending, bit_vector_length (v));
+      check_sequence_range (sequence, start, end, make_int (len));
+      ending = min (ending, len);
+
       for (ii = starting; ii < ending; ++ii)
         {
           set_bit_vector_bit (v, ii, bit);
@@ -3941,6 +4119,11 @@ arguments: (SEQUENCE ITEM &key (START 0) END)
             }
           ++counting;
         }
+
+      if (counting < starting || (counting != ending && !NILP (end)))
+	{
+	  check_sequence_range (args[0], start, end, Flength (args[0]));
+	}
     }
   else
     {
@@ -4085,6 +4268,24 @@ arguments: (&rest ARGS)
 }
 
 
+/* Replace the substring of DEST beginning at START and ending before END
+   with the text at SOURCE, which is END - START characters long and
+   SOURCE_LIMIT - SOURCE octets long.  If DEST does not have sufficient
+   space for END - START characters at START, write as many as is possible
+   without changing the length of DEST.  Update the string modification flag
+   and do any sledgehammer checks we have turned on in this build.
+
+   START must be a Lisp integer. END can be nil, indicating the length of the
+   string, or a Lisp integer.  The condition (<= 0 START END (length DEST))
+   must hold, or replace_string_range() will signal an error. */
+static Lisp_Object
+replace_string_range (Lisp_Object dest, Lisp_Object start, Lisp_Object end,
+                      const Ibyte *source, const Ibyte *source_limit)
+{
+  return replace_string_range_1 (dest, start, end, source, source_limit,
+				 Qnil);
+}
+
 /* This is the guts of several mapping functions.
 
    Call FUNCTION CALL_COUNT times, with NSEQUENCES arguments each time,
@@ -4099,35 +4300,35 @@ arguments: (&rest ARGS)
    so FUNCTION cannot insert a non-cons into SEQUENCES[0] and throw off
    mapcarX.
 
-   Otherwise, mapcarX signals a wrong-type-error if it encounters a
-   non-cons, non-array when traversing SEQUENCES.  Common Lisp specifies in
+   Otherwise, mapcarX signals an invalid state error (see
+   mapping_interaction_error(), above) if it encounters a non-cons,
+   non-array when traversing SEQUENCES.  Common Lisp specifies in
    MAPPING-DESTRUCTIVE-INTERACTION that it is an error when FUNCTION
    destructively modifies SEQUENCES in a way that might affect the ongoing
    traversal operation.
 
-   If SOME_OR_EVERY is SOME_OR_EVERY_SOME, return the (possibly multiple)
-   values given by FUNCTION the first time it is non-nil, and abandon the
-   iterations.  LISP_VALS must be a cons, and the return value will be
-   stored in its car.  If SOME_OR_EVERY is SOME_OR_EVERY_EVERY, store Qnil
-   in the car of LISP_VALS if FUNCTION gives nil; otherwise leave it
-   alone. */
+   CALLER is a symbol describing the Lisp-visible function that was called,
+   and any errors thrown because SEQUENCES was modified will reflect it.
 
-#define SOME_OR_EVERY_NEITHER 0
-#define SOME_OR_EVERY_SOME    1
-#define SOME_OR_EVERY_EVERY   2
+   If CALLER is Qsome, return the (possibly multiple) values given by
+   FUNCTION the first time it is non-nil, and abandon the iterations.
+   LISP_VALS must be the result of calling STORE_VOID_IN_LISP on the address
+   of a Lisp object, and the return value will be stored at that address.
+   If CALLER is Qevery, LISP_VALS must also reflect a pointer to a Lisp
+   object, and Qnil will be stored at that address if FUNCTION gives nil;
+   otherwise it will be left alone. */
 
 static void
 mapcarX (Elemcount call_count, Lisp_Object *vals, Lisp_Object lisp_vals,
 	 Lisp_Object function, int nsequences, Lisp_Object *sequences, 
-	 int some_or_every)
+	 Lisp_Object caller)
 {
   Lisp_Object called, *args;
   struct gcpro gcpro1, gcpro2;
+  Ibyte *lisp_vals_staging, *cursor;
   int i, j;
-  enum lrecord_type lisp_vals_type;
 
-  assert (LRECORDP (lisp_vals));
-  lisp_vals_type = (enum lrecord_type) XRECORD_LHEADER (lisp_vals)->type;
+  assert ((EQ (caller, Qsome) || EQ (caller, Qevery)) ? vals == NULL : 1);
 
   args = alloca_array (Lisp_Object, nsequences + 1);
   args[0] = function;
@@ -4171,11 +4372,26 @@ mapcarX (Elemcount call_count, Lisp_Object *vals, Lisp_Object lisp_vals,
     }
   else
     {
+      enum lrecord_type lisp_vals_type;
       Binbyte *sequence_types = alloca_array (Binbyte, nsequences);
       for (j = 0; j < nsequences; ++j)
 	{
 	  sequence_types[j] = XRECORD_LHEADER (sequences[j])->type;
 	}
+
+      if (!EQ (caller, Qsome) && !EQ (caller, Qevery))
+        {
+          assert (LRECORDP (lisp_vals));
+
+          lisp_vals_type
+            = (enum lrecord_type) XRECORD_LHEADER (lisp_vals)->type;
+
+	  if (lrecord_type_string == lisp_vals_type)
+	    {
+	      lisp_vals_staging = cursor
+		= alloca_ibytes (call_count * MAX_ICHAR_LEN);
+	    }
+        }
 
       for (i = 0; i < call_count; ++i)
 	{
@@ -4187,13 +4403,12 @@ mapcarX (Elemcount call_count, Lisp_Object *vals, Lisp_Object lisp_vals,
 		  {
 		    if (!CONSP (sequences[j]))
 		      {
-			/* This means FUNCTION has probably messed
-			   around with a cons in one of the sequences,
-			   since we checked the type
-			   (CHECK_SEQUENCE()) and the length and
+			/* This means FUNCTION has messed around with a cons
+			   in one of the sequences, since we checked the
+			   type (CHECK_SEQUENCE()) and the length and
 			   structure (with Flength()) correctly in our
 			   callers. */
-			dead_wrong_type_argument (Qconsp, sequences[j]);
+                        mapping_interaction_error (caller, sequences[j]);
 		      }
 		    args[j + 1] = XCAR (sequences[j]);
 		    sequences[j] = XCDR (sequences[j]);
@@ -4226,94 +4441,126 @@ mapcarX (Elemcount call_count, Lisp_Object *vals, Lisp_Object lisp_vals,
 	      vals[i] = IGNORE_MULTIPLE_VALUES (called);
 	      gcpro2.nvars += 1;
 	    }
-	  else
-	    {
-	      switch (lisp_vals_type)
-		{
-		case lrecord_type_symbol:
-		  break;
-		case lrecord_type_cons:
-		  {
-		    if (SOME_OR_EVERY_NEITHER == some_or_every)
-		      {
-			called = IGNORE_MULTIPLE_VALUES (called);
-			if (!CONSP (lisp_vals))
-			  {
-			    /* If FUNCTION has inserted a non-cons non-nil
-			       cdr into the list before we've processed the
-			       relevant part, error. */
-			    dead_wrong_type_argument (Qconsp, lisp_vals);
-			  }
+          else if (EQ (Qsome, caller))
+            {
+              if (!NILP (IGNORE_MULTIPLE_VALUES (called)))
+                {
+                  Lisp_Object *result
+                    = (Lisp_Object *) GET_VOID_FROM_LISP (lisp_vals);
+                  *result = called;
+                  UNGCPRO;
+                  return;
+                }
+            }
+          else if (EQ (Qevery, caller))
+            {
+	      if (NILP (IGNORE_MULTIPLE_VALUES (called)))
+                {
+                  Lisp_Object *result
+                    = (Lisp_Object *) GET_VOID_FROM_LISP (lisp_vals);
+                  *result = Qnil;
+                  UNGCPRO;
+                  return;
+                }
+            }
+          else
+            {
+              called = IGNORE_MULTIPLE_VALUES (called);
+              switch (lisp_vals_type)
+                {
+                case lrecord_type_symbol:
+		  /* Discard the result of funcall. */
+                  break;
+                case lrecord_type_cons:
+                  {
+                    if (!CONSP (lisp_vals))
+                      {
+                        /* If FUNCTION has inserted a non-cons non-nil
+                           cdr into the list before we've processed the
+                           relevant part, error. */
+                        mapping_interaction_error (caller, lisp_vals);
+                      }
+                    XSETCAR (lisp_vals, called);
+                    lisp_vals = XCDR (lisp_vals);
+                    break;
+                  }
+                case lrecord_type_vector:
+                  {
+                    i < XVECTOR_LENGTH (lisp_vals) ?
+                      (XVECTOR_DATA (lisp_vals)[i] = called) :
+                      /* Let #'aset error. */
+                      Faset (lisp_vals, make_int (i), called);
+                    break;
+                  }
+                case lrecord_type_string:
+                  {
+		    CHECK_CHAR_COERCE_INT (called);
+		    cursor += set_itext_ichar (cursor, XCHAR (called));
+                    break;
+                  }
+                case lrecord_type_bit_vector:
+                  {
+                    (BITP (called) &&
+                     i < bit_vector_length (XBIT_VECTOR (lisp_vals))) ?
+                      set_bit_vector_bit (XBIT_VECTOR (lisp_vals), i,
+                                          XINT (called)) :
+                      (void) Faset (lisp_vals, make_int (i), called);
+                    break;
+                  }
+                default:
+                  {
+                    ABORT();
+                    break;
+                  }
+                }
+            }
+	}
 
-			XSETCAR (lisp_vals, called);
-			lisp_vals = XCDR (lisp_vals);
-			break;
-		      }
-
-		    if (SOME_OR_EVERY_SOME == some_or_every)
-		      {
-			if (!NILP (IGNORE_MULTIPLE_VALUES (called)))
-			  {
-			    XCAR (lisp_vals) = called;
-			    UNGCPRO;
-			    return;
-			  }
-			break;
-		      }
-
-		    if (SOME_OR_EVERY_EVERY == some_or_every)
-		      {
-			called = IGNORE_MULTIPLE_VALUES (called);
-			if (NILP (called))
-			  {
-			    XCAR (lisp_vals) = Qnil;
-			    UNGCPRO;
-			    return;
-			  }
-			break;
-		      }
-
-		    goto bad_some_or_every_flag;
-		  }
-		case lrecord_type_vector:
-		  {
-		    called = IGNORE_MULTIPLE_VALUES (called);
-		    i < XVECTOR_LENGTH (lisp_vals) ?
-		      (XVECTOR_DATA (lisp_vals)[i] = called) :
-		      /* Let #'aset error. */
-		      Faset (lisp_vals, make_int (i), called);
-		    break;
-		  }
-		case lrecord_type_string:
-		  {
-		    /* If this ever becomes a code hotspot, we can keep
-		       around pointers into the data of the string, checking
-		       each time that it hasn't been relocated. */
-		    called = IGNORE_MULTIPLE_VALUES (called);
-		    Faset (lisp_vals, make_int (i), called);
-		    break;
-		  }
-		case lrecord_type_bit_vector:
-		  {
-		    called = IGNORE_MULTIPLE_VALUES (called);
-		    (BITP (called) &&
-		     i < bit_vector_length (XBIT_VECTOR (lisp_vals))) ?
-		      set_bit_vector_bit (XBIT_VECTOR (lisp_vals), i,
-					  XINT (called)) :
-		      (void) Faset (lisp_vals, make_int (i), called);
-		    break;
-		  }
-		bad_some_or_every_flag:
-		default:
-		  {
-		    ABORT();
-		    break;
-		  }
-		}
-	    }
+      if (!EQ (caller, Qsome) && !EQ (caller, Qevery) &&
+	  lrecord_type_string == lisp_vals_type)
+	{
+	  replace_string_range (lisp_vals, Qzero, make_int (call_count),
+				lisp_vals_staging, cursor);
 	}
     }
+
   UNGCPRO;
+}
+
+/* Given NSEQUENCES objects at the address pointed to by SEQUENCES, return
+   the length of the shortest sequence. Error if all are circular, or if any
+   one of them is not a sequence. */
+static Elemcount
+shortest_length_among_sequences (int nsequences, Lisp_Object *sequences)
+{
+  Elemcount len = EMACS_INT_MAX;
+  Lisp_Object length;
+  int i;
+
+  for (i = 0; i < nsequences; ++i)
+    {
+      if (CONSP (sequences[i]))
+        {
+          length = Flist_length (sequences[i]);
+          if (!NILP (length))
+            {
+              len = min (len, XINT (length));
+            }
+        }
+      else
+        {
+          CHECK_SEQUENCE (sequences[i]);
+          length = Flength (sequences[i]);
+          len = min (len, XINT (length));
+        }
+    }
+
+  if (NILP (length))
+    {
+      signal_circular_list_error (sequences[0]);
+    }
+
+  return len;
 }
 
 DEFUN ("mapconcat", Fmapconcat, 3, MANY, 0, /*
@@ -4343,11 +4590,7 @@ arguments: (FUNCTION SEQUENCE SEPARATOR &rest SEQUENCES)
   args[2] = sequence;
   args[1] = separator;
 
-  for (i = 2; i < nargs; ++i)
-    {
-      CHECK_SEQUENCE (args[i]);
-      len = min (len, XINT (Flength (args[i])));
-    }
+  len = shortest_length_among_sequences (nargs - 2, args + 2);
 
   if (len == 0) return build_ascstring ("");
 
@@ -4367,8 +4610,7 @@ arguments: (FUNCTION SEQUENCE SEPARATOR &rest SEQUENCES)
     }
   else
     {
-      mapcarX (len, args0, Qnil, function, nargs - 2, args + 2,
-	       SOME_OR_EVERY_NEITHER);
+      mapcarX (len, args0, Qnil, function, nargs - 2, args + 2, Qmapconcat);
     }
 
   for (i = len - 1; i >= 0; i--)
@@ -4395,19 +4637,11 @@ arguments: (FUNCTION SEQUENCE &rest SEQUENCES)
        (int nargs, Lisp_Object *args))
 {
   Lisp_Object function = args[0];
-  Elemcount len = EMACS_INT_MAX;
+  Elemcount len = shortest_length_among_sequences (nargs - 1, args + 1);
   Lisp_Object *args0;
-  int i;
-
-  for (i = 1; i < nargs; ++i)
-    {
-      CHECK_SEQUENCE (args[i]);
-      len = min (len, XINT (Flength (args[i])));
-    }
 
   args0 = alloca_array (Lisp_Object, len);
-  mapcarX (len, args0, Qnil, function, nargs - 1, args + 1,
-	   SOME_OR_EVERY_NEITHER);
+  mapcarX (len, args0, Qnil, function, nargs - 1, args + 1, QmapcarX);
 
   return Flist ((int) len, args0);
 }
@@ -4427,26 +4661,16 @@ arguments: (FUNCTION SEQUENCE &rest SEQUENCES)
        (int nargs, Lisp_Object *args))
 {
   Lisp_Object function = args[0];
-  Elemcount len = EMACS_INT_MAX;
-  Lisp_Object result;
+  Elemcount len = shortest_length_among_sequences (nargs - 1, args + 1);
+  Lisp_Object result = make_vector (len, Qnil);
+
   struct gcpro gcpro1;
-  int i;
-
-  for (i = 1; i < nargs; ++i)
-    {
-      CHECK_SEQUENCE (args[i]);
-      len = min (len, XINT (Flength (args[i])));
-    }
-
-  result = make_vector (len, Qnil);
   GCPRO1 (result);
   /* Don't pass result as the lisp_object argument, we want mapcarX to protect 
      a single list argument's elements from being garbage-collected. */
   mapcarX (len, XVECTOR_DATA (result), Qnil, function, nargs - 1, args +1,
-	   SOME_OR_EVERY_NEITHER);
-  UNGCPRO;
-
-  return result;
+           Qmapvector);
+  RETURN_UNGCPRO (result);
 }
 
 DEFUN ("mapcan", Fmapcan, 2, MANY, 0, /*
@@ -4464,40 +4688,13 @@ arguments: (FUNCTION SEQUENCE &rest SEQUENCES)
 */
        (int nargs, Lisp_Object *args))
 {
-  Lisp_Object function = args[0], nconcing;
-  Elemcount len = EMACS_INT_MAX;
-  Lisp_Object *args0;
-  struct gcpro gcpro1;
-  int i;
+  Elemcount len = shortest_length_among_sequences (nargs - 1, args + 1);
+  Lisp_Object function = args[0], *result = alloca_array (Lisp_Object, len);
 
-  for (i = 1; i < nargs; ++i)
-    {
-      CHECK_SEQUENCE (args[i]);
-      len = min (len, XINT (Flength (args[i])));
-    }
+  mapcarX (len, result, Qnil, function, nargs - 1, args + 1, Qmapcan);
 
-  args0 = alloca_array (Lisp_Object, len + 1);
-  mapcarX (len, args0 + 1, Qnil, function, nargs - 1, args + 1,
-	   SOME_OR_EVERY_NEITHER);
-
-  if (len < 2)
-    {
-      return len ? args0[1] : Qnil;
-    }
-
-  /* bytecode_nconc2 can signal and return, we need to GCPRO the args, since
-     mapcarX is no longer doing this for us. */
-  args0[0] = Fcons (Qnil, Qnil);
-  GCPRO1 (args0[0]);
-  gcpro1.nvars = len + 1;
-
-  for (i = 0; i < len; ++i)
-    {
-      nconcing = bytecode_nconc2 (args0 + i);
-      args0[i + 1] = nconcing;
-    }
-
-  RETURN_UNGCPRO (XCDR (nconcing));
+  /* #'nconc GCPROs its args in case of signals and error. */
+  return Fnconc (len, result);
 }
 
 DEFUN ("mapc", Fmapc, 2, MANY, 0, /*
@@ -4518,23 +4715,14 @@ arguments: (FUNCTION SEQUENCE &rest SEQUENCES)
 */
        (int nargs, Lisp_Object *args))
 {
-  Elemcount len = EMACS_INT_MAX;
+  Elemcount len = shortest_length_among_sequences (nargs - 1, args + 1);
   Lisp_Object sequence = args[1];
   struct gcpro gcpro1;
-  int i;
-
-  for (i = 1; i < nargs; ++i)
-    {
-      CHECK_SEQUENCE (args[i]);
-      len = min (len, XINT (Flength (args[i])));
-    }
-
   /* We need to GCPRO sequence, because mapcarX will modify the
      elements of the args array handed to it, and this may involve
      elements of sequence getting garbage collected. */
   GCPRO1 (sequence);
-  mapcarX (len, NULL, Qnil, args[0], nargs - 1, args + 1,
-	   SOME_OR_EVERY_NEITHER);
+  mapcarX (len, NULL, Qnil, args[0], nargs - 1, args + 1, Qmapc);
   RETURN_UNGCPRO (sequence);
 }
 
@@ -4559,23 +4747,15 @@ arguments: (TYPE FUNCTION SEQUENCE &rest SEQUENCES)
   Lisp_Object function = args[1];
   Lisp_Object result = Qnil;
   Lisp_Object *args0 = NULL;
-  Elemcount len = EMACS_INT_MAX;
-  int i;
+  Elemcount len = shortest_length_among_sequences (nargs - 2, args + 2);
   struct gcpro gcpro1;
-
-  for (i = 2; i < nargs; ++i)
-    {
-      CHECK_SEQUENCE (args[i]);
-      len = min (len, XINT (Flength (args[i])));
-    }
 
   if (!NILP (type))
     {
       args0 = alloca_array (Lisp_Object, len);
     }
 
-  mapcarX (len, args0, Qnil, function, nargs - 2, args + 2,
-	   SOME_OR_EVERY_NEITHER);
+  mapcarX (len, args0, Qnil, function, nargs - 2, args + 2, Qmap);
 
   if (EQ (type, Qnil))
     {
@@ -4625,22 +4805,17 @@ arguments: (RESULT-SEQUENCE FUNCTION &rest SEQUENCES)
 */
        (int nargs, Lisp_Object *args))
 {
-  Elemcount len = EMACS_INT_MAX;
+  Elemcount len;
   Lisp_Object result_sequence = args[0];
   Lisp_Object function = args[1];
-  int i;
 
   args[0] = function;
   args[1] = result_sequence;
 
-  for (i = 1; i < nargs; ++i)
-    {
-      CHECK_SEQUENCE (args[i]);
-      len = min (len, XINT (Flength (args[i])));
-    }
+  len = shortest_length_among_sequences (nargs - 1, args + 1);
 
   mapcarX (len, NULL, result_sequence, function, nargs - 2, args + 2,
-	   SOME_OR_EVERY_NEITHER);
+           Qmap_into);
 
   return result_sequence;
 }
@@ -4657,23 +4832,13 @@ arguments: (PREDICATE SEQUENCE &rest SEQUENCES)
 */
        (int nargs, Lisp_Object *args))
 {
-  Lisp_Object result_box = Fcons (Qnil, Qnil);
-  struct gcpro gcpro1;
-  Elemcount len = EMACS_INT_MAX;
-  int i;
+  Lisp_Object result = Qnil,
+    result_ptr = STORE_VOID_IN_LISP ((void *) &result);
+  Elemcount len = shortest_length_among_sequences (nargs - 1, args + 1);
 
-  GCPRO1 (result_box);
+  mapcarX (len, NULL, result_ptr, args[0], nargs - 1, args +1, Qsome);
 
-  for (i = 1; i < nargs; ++i)
-    {
-      CHECK_SEQUENCE (args[i]);
-      len = min (len, XINT (Flength (args[i])));
-    }
-
-  mapcarX (len, NULL, result_box, args[0], nargs - 1, args +1,
-	   SOME_OR_EVERY_SOME);
-
-  RETURN_UNGCPRO (XCAR (result_box));
+  return result;
 }
 
 DEFUN ("every", Fevery, 2, MANY, 0, /* 
@@ -4688,43 +4853,35 @@ arguments: (PREDICATE SEQUENCE &rest SEQUENCES)
 */
        (int nargs, Lisp_Object *args))
 {
-  Lisp_Object result_box = Fcons (Qt, Qnil);
-  struct gcpro gcpro1;
-  Elemcount len = EMACS_INT_MAX;
-  int i;
+  Lisp_Object result = Qt, result_ptr = STORE_VOID_IN_LISP ((void *) &result);
+  Elemcount len = shortest_length_among_sequences (nargs - 1, args + 1);
 
-  GCPRO1 (result_box);
+  mapcarX (len, NULL, result_ptr, args[0], nargs - 1, args +1, Qevery);
 
-  for (i = 1; i < nargs; ++i)
-    {
-      CHECK_SEQUENCE (args[i]);
-      len = min (len, XINT (Flength (args[i])));
-    }
-
-  mapcarX (len, NULL, result_box, args[0], nargs - 1, args +1,
-	   SOME_OR_EVERY_EVERY);
-
-  RETURN_UNGCPRO (XCAR (result_box));
+  return result;
 }
 
 /* Call FUNCTION with NLISTS arguments repeatedly, each Nth argument
    corresponding to the result of calling (nthcdr ITERATION-COUNT LISTS[N]),
    until that #'nthcdr expression gives nil for some element of LISTS.
 
-   If MAPLP is zero, return LISTS[0]. Otherwise, return a list of the return
-   values from FUNCTION; if NCONCP is non-zero, nconc them together.
+   CALLER is a symbol reflecting the Lisp-visible function that was called,
+   and any errors thrown because SEQUENCES was modified will reflect it.
+
+   If CALLER is Qmapl, return LISTS[0]. Otherwise, return a list of the
+   return values from FUNCTION; if caller is Qmapcan, nconc them together.
 
    In contrast to mapcarX, we don't require our callers to check LISTS for
    well-formedness, we signal wrong-type-argument if it's not a list, or
    circular-list if it's circular. */
 
 static Lisp_Object
-maplist (Lisp_Object function, int nlists, Lisp_Object *lists, int maplp,
-	 int nconcp)
+maplist (Lisp_Object function, int nlists, Lisp_Object *lists,
+         Lisp_Object caller)
 {
-  Lisp_Object result = maplp ? lists[0] : Fcons (Qnil, Qnil), funcalled;
-  Lisp_Object nconcing[2], accum = result, *args;
-  struct gcpro gcpro1, gcpro2, gcpro3;
+  Lisp_Object nconcing[2], accum = Qnil, *args, *tortoises, funcalled;
+  Lisp_Object result = EQ (caller, Qmapl) ? lists[0] : Qnil;
+  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
   int i, j, continuing = (nlists > 0), called_count = 0;
 
   args = alloca_array (Lisp_Object, nlists + 1);
@@ -4734,18 +4891,23 @@ maplist (Lisp_Object function, int nlists, Lisp_Object *lists, int maplp,
       args[i] = Qnil;
     }
 
-  if (nconcp)
+  tortoises = alloca_array (Lisp_Object, nlists);
+  memcpy (tortoises, lists, nlists * sizeof (Lisp_Object));
+
+  if (EQ (caller, Qmapcon))
     {
-      nconcing[0] = result;
+      nconcing[0] = Qnil;
       nconcing[1] = Qnil;
-      GCPRO3 (args[0], nconcing[0], result);
+      GCPRO4 (args[0], nconcing[0], tortoises[0], result);
       gcpro1.nvars = 1;
       gcpro2.nvars = 2;
+      gcpro3.nvars = nlists;
     }
   else
     {
-      GCPRO2 (args[0], result);
+      GCPRO3 (args[0], tortoises[0], result);
       gcpro1.nvars = 1;
+      gcpro2.nvars = nlists;
     }
 
   while (continuing)
@@ -4764,45 +4926,64 @@ maplist (Lisp_Object function, int nlists, Lisp_Object *lists, int maplp,
 	    }
 	  else
 	    {
-	      dead_wrong_type_argument (Qlistp, lists[j]);
+	      lists[j] = wrong_type_argument (Qlistp, lists[j]);
 	    }
 	}
       if (!continuing) break;
       funcalled = IGNORE_MULTIPLE_VALUES (Ffuncall (nlists + 1, args));
-      if (!maplp)
+
+      if (EQ (caller, Qmapl))
 	{
-	  if (nconcp)
-	    {
-	      /* This order of calls means we check that each list is
-		 well-formed once and once only. The last result does
-		 not have to be a list. */
-	      nconcing[1] = funcalled;
-	      nconcing[0] = bytecode_nconc2 (nconcing);
-	    }
-	  else
-	    {
-	      /* Add to the end, avoiding the need to call nreverse
-		 once we're done: */
-	      XSETCDR (accum, Fcons (funcalled, Qnil));
-	      accum = XCDR (accum);
-	    }
+          DO_NOTHING;
+        }
+      else if (EQ (caller, Qmapcon))
+        {
+          nconcing[1] = funcalled;
+          accum = bytecode_nconc2 (nconcing);
+          if (NILP (result))
+            {
+              result = accum;
+            }
+          /* Only check a given stretch of result for well-formedness
+             once: */
+          nconcing[0] = funcalled;
+        }
+      else if (NILP (accum))
+        {
+          accum = result = Fcons (funcalled, Qnil);
+        }
+      else
+        {
+          /* Add to the end, avoiding the need to call nreverse
+             once we're done: */
+          XSETCDR (accum, Fcons (funcalled, Qnil));
+          accum = XCDR (accum);
 	}
 
-      if (++called_count % CIRCULAR_LIST_SUSPICION_LENGTH) continue;
-
-      for (j = 0; j < nlists; ++j)
-	{
-	  EXTERNAL_LIST_LOOP_1 (lists[j])
-	    {
-	      /* Just check the lists aren't circular, using the
-		 EXTERNAL_LIST_LOOP_1 macro. */
-	    }
-	}
-    }
-
-  if (!maplp)
-    {
-      result = XCDR (result);
+      if (++called_count > CIRCULAR_LIST_SUSPICION_LENGTH)
+        {
+          if (called_count & 1)
+            {
+              for (j = 0; j < nlists; ++j)
+                {
+                  tortoises[j] = XCDR (tortoises[j]);
+                  if (EQ (lists[j], tortoises[j]))
+                    {
+                      signal_circular_list_error (lists[j]);
+                    }
+                }
+            }
+          else
+            {
+              for (j = 0; j < nlists; ++j)
+                {
+                  if (EQ (lists[j], tortoises[j]))
+                    {
+                      signal_circular_list_error (lists[j]);
+                    }
+                }
+            }
+        }
     }
 
   RETURN_UNGCPRO (result);
@@ -4817,7 +4998,7 @@ arguments: (FUNCTION LIST &rest LISTS)
 */
        (int nargs, Lisp_Object *args))
 {
-  return maplist (args[0], nargs - 1, args + 1, 0, 0);
+  return maplist (args[0], nargs - 1, args + 1, Qmaplist);
 }
 
 DEFUN ("mapl", Fmapl, 2, MANY, 0, /*
@@ -4827,7 +5008,7 @@ arguments: (FUNCTION LIST &rest LISTS)
 */
        (int nargs, Lisp_Object *args))
 {
-  return maplist (args[0], nargs - 1, args + 1, 1, 0);
+  return maplist (args[0], nargs - 1, args + 1, Qmapl);
 }
 
 DEFUN ("mapcon", Fmapcon, 2, MANY, 0, /*
@@ -4840,7 +5021,7 @@ arguments: (FUNCTION LIST &rest LISTS)
 */
        (int nargs, Lisp_Object *args))
 {
-  return maplist (args[0], nargs - 1, args + 1, 0, 1);
+  return maplist (args[0], nargs - 1, args + 1, Qmapcon);
 }
 
 /* Extra random functions */
@@ -4870,16 +5051,19 @@ arguments: (FUNCTION SEQUENCE &key (START 0) (END (length SEQUENCE)) FROM-END IN
   Lisp_Object function = args[0], sequence = args[1], accum = Qunbound;
   Elemcount starting, ending = EMACS_INT_MAX, ii = 0;
 
-  PARSE_KEYWORDS (Qreduce, nargs, args, 2, 5,
+  PARSE_KEYWORDS (Freduce, nargs, args, 5,
                   (start, end, from_end, initial_value, key),
-                  (start = Qzero, initial_value = Qunbound), 0);
+                  (start = Qzero, initial_value = Qunbound));
 
   CHECK_SEQUENCE (sequence);
   CHECK_NATNUM (start);
 
   CHECK_KEY_ARGUMENT (key);
 
-#define KEY(key, item) (EQ (key, Qidentity) ? item : call1 (key, item))
+#define KEY(key, item) (EQ (Qidentity, key) ? item :			\
+			IGNORE_MULTIPLE_VALUES (call1 (key, item)))
+#define CALL2(function, accum, item)				\
+  IGNORE_MULTIPLE_VALUES (call2 (function, accum, item))
 
   starting = XINT (start);
   if (!NILP (end))
@@ -4888,16 +5072,24 @@ arguments: (FUNCTION SEQUENCE &key (START 0) (END (length SEQUENCE)) FROM-END IN
       ending = XINT (end);
     }
 
+  if (!(starting <= ending))
+    {
+      check_sequence_range (sequence, start, end, Flength (sequence));
+    }
+
   if (VECTORP (sequence))
     {
       Lisp_Vector *vv = XVECTOR (sequence);
+
+      check_sequence_range (sequence, start, end, make_int (vv->size));
+
       ending = min (ending, vv->size);
 
       if (!UNBOUNDP (initial_value))
         {
           accum = initial_value;
         }
-      else if (ending - starting && starting < ending)
+      else if (ending - starting)
         {
           if (NILP (from_end))
             {
@@ -4915,14 +5107,14 @@ arguments: (FUNCTION SEQUENCE &key (START 0) (END (length SEQUENCE)) FROM-END IN
         {
           for (ii = starting; ii < ending; ++ii)
             {
-              accum = call2 (function, accum, KEY (key, vv->contents[ii]));
+              accum = CALL2 (function, accum, KEY (key, vv->contents[ii]));
             }
         }
       else
         {
           for (ii = ending - 1; ii >= starting; --ii)
             {
-              accum = call2 (function, KEY (key, vv->contents[ii]), accum);
+              accum = CALL2 (function, KEY (key, vv->contents[ii]), accum);
             }
         }
     }
@@ -4930,13 +5122,15 @@ arguments: (FUNCTION SEQUENCE &key (START 0) (END (length SEQUENCE)) FROM-END IN
     {
       Lisp_Bit_Vector *bv = XBIT_VECTOR (sequence);
 
+      check_sequence_range (sequence, start, end, make_int (bv->size));
+
       ending = min (ending, bv->size);
 
       if (!UNBOUNDP (initial_value))
         {
           accum = initial_value;
         }
-      else if (ending - starting && starting < ending)
+      else if (ending - starting)
         {
           if (NILP (from_end))
             {
@@ -4954,7 +5148,7 @@ arguments: (FUNCTION SEQUENCE &key (START 0) (END (length SEQUENCE)) FROM-END IN
         {
           for (ii = starting; ii < ending; ++ii)
             {
-              accum = call2 (function, accum,
+              accum = CALL2 (function, accum,
                              KEY (key, make_int (bit_vector_bit (bv, ii))));
             }
         }
@@ -4962,13 +5156,12 @@ arguments: (FUNCTION SEQUENCE &key (START 0) (END (length SEQUENCE)) FROM-END IN
         {
           for (ii = ending - 1; ii >= starting; --ii)
             {
-              accum = call2 (function, KEY (key,
+              accum = CALL2 (function, KEY (key,
                                             make_int (bit_vector_bit (bv,
                                                                       ii))),
                              accum);
             }
         }
-
     }
   else if (STRINGP (sequence))
     {
@@ -4989,37 +5182,55 @@ arguments: (FUNCTION SEQUENCE &key (START 0) (END (length SEQUENCE)) FROM-END IN
             {
               accum = initial_value;
             }
-          else if (ending - starting && starting < ending)
+          else if (ending - starting)
             {
               accum = KEY (key, make_char (itext_ichar (cursor)));
               starting++;
               startp = XSTRING_DATA (sequence);
               cursor = startp + cursor_offset;
-              INC_IBYTEPTR (cursor);
-              cursor_offset = cursor - startp;
-            }
 
-          while (cursor_offset < byte_len && starting < ending)
-            {
-              if (cursor_offset > XSTRING_LENGTH (sequence))
+              if (byte_len != XSTRING_LENGTH (sequence)
+                  || !valid_ibyteptr_p (cursor))
                 {
-                  invalid_state ("sequence modified during reduce", sequence);
+                  mapping_interaction_error (Qreduce, sequence);
                 }
 
-              startp = XSTRING_DATA (sequence);
-              cursor = startp + cursor_offset;
-              accum = call2 (function, accum,
-                             KEY (key, make_char (itext_ichar (cursor))));
               INC_IBYTEPTR (cursor);
               cursor_offset = cursor - startp;
-              ++starting;
             }
+
+          while (cursor_offset < byte_len && ii < ending)
+            {
+              accum = CALL2 (function, accum, 
+                             KEY (key, make_char (itext_ichar (cursor))));
+
+	      startp = XSTRING_DATA (sequence);
+	      cursor = startp + cursor_offset;
+
+              if (byte_len != XSTRING_LENGTH (sequence)
+                  || !valid_ibyteptr_p (cursor))
+                {
+                  mapping_interaction_error (Qreduce, sequence);
+                }
+
+              INC_IBYTEPTR (cursor);
+              cursor_offset = cursor - startp;
+              ++ii;
+            }
+
+	  if (ii < starting || (ii < ending && !NILP (end)))
+	    {
+	      check_sequence_range (sequence, start, end, Flength (sequence));
+	      ABORT ();
+	    }
         }
       else
         {
           Elemcount len = string_char_length (sequence);
-          Bytecount cursor_offset;
+          Bytecount cursor_offset, byte_len = XSTRING_LENGTH (sequence);
           const Ibyte *cursor;
+
+	  check_sequence_range (sequence, start, end, make_int (len));
 
           ending = min (ending, len);
           cursor = string_char_addr (sequence, ending - 1);
@@ -5029,12 +5240,19 @@ arguments: (FUNCTION SEQUENCE &key (START 0) (END (length SEQUENCE)) FROM-END IN
             {
               accum = initial_value;
             }
-          else if (ending - starting && starting < ending)
+          else if (ending - starting)
             {
               accum = KEY (key, make_char (itext_ichar (cursor)));
               ending--;
               if (ending > 0)
                 {
+		  cursor = XSTRING_DATA (sequence) + cursor_offset;
+
+                  if (!valid_ibyteptr_p (cursor))
+                    {
+                      mapping_interaction_error (Qreduce, sequence);
+                    }
+
                   DEC_IBYTEPTR (cursor);
                   cursor_offset = cursor - XSTRING_DATA (sequence);
                 }
@@ -5042,18 +5260,19 @@ arguments: (FUNCTION SEQUENCE &key (START 0) (END (length SEQUENCE)) FROM-END IN
 
           for (ii = ending - 1; ii >= starting; --ii)
             {
-              if (cursor_offset > XSTRING_LENGTH (sequence))
-                {
-                  invalid_state ("sequence modified during reduce", sequence);
-                }
-
-              cursor = XSTRING_DATA (sequence) + cursor_offset;
-              accum = call2 (function, KEY (key,
+              accum = CALL2 (function, KEY (key,
                                             make_char (itext_ichar (cursor))),
                              accum);
-              if (ii > 1)
+              if (ii > 0)
                 {
                   cursor = XSTRING_DATA (sequence) + cursor_offset;
+
+                  if (byte_len != XSTRING_LENGTH (sequence)
+                      || !valid_ibyteptr_p (cursor))
+                    {
+                      mapping_interaction_error (Qreduce, sequence);
+                    }
+
                   DEC_IBYTEPTR (cursor);
                   cursor_offset = cursor - XSTRING_DATA (sequence);
                 }
@@ -5064,45 +5283,64 @@ arguments: (FUNCTION SEQUENCE &key (START 0) (END (length SEQUENCE)) FROM-END IN
     {
       if (NILP (from_end))
         {
+	  struct gcpro gcpro1;
+	  Lisp_Object tailed = Qnil;
+
+	  GCPRO1 (tailed);
+
           if (!UNBOUNDP (initial_value))
             {
               accum = initial_value;
             }
-          else if (ending - starting && starting < ending)
+          else if (ending - starting)
             {
-              Elemcount counting = 0;
               EXTERNAL_LIST_LOOP_3 (elt, sequence, tail)
                 {
-                  if (counting == starting)
+		  /* KEY may amputate the list behind us; make sure what
+		     remains to be processed is still reachable.  */
+		  tailed = tail;
+                  if (ii == starting)
                     {
                       accum = KEY (key, elt);
                       starting++;
                       break;
                     }
-                  ++counting;
+                  ++ii;
                 }
             }
 
-          if (ending - starting && starting < ending)
-            {
-              Elemcount counting = 0;
+	  ii = 0;
 
+          if (ending - starting)
+            {
               EXTERNAL_LIST_LOOP_3 (elt, sequence, tail)
                 {
-                  if (counting >= starting)
+		  /* KEY or FUNCTION may amputate the list behind us; make
+		     sure what remains to be processed is still
+		     reachable.  */
+		  tailed = tail;
+                  if (ii >= starting)
                     {
-                      if (counting < ending)
+                      if (ii < ending)
                         {
-                          accum = call2 (function, accum, KEY (key, elt));
+                          accum = CALL2 (function, accum, KEY (key, elt));
                         }
-                      else if (counting == ending)
+                      else if (ii == ending)
                         {
                           break;
                         }
                     }
-                  ++counting;
+                  ++ii;
                 }
             }
+
+	  UNGCPRO;
+
+	  if (ii < starting || (ii < ending && !NILP (end)))
+	    {
+	      check_sequence_range (sequence, start, end, Flength (sequence));
+	      ABORT ();
+	    }
         }
       else
         {
@@ -5111,10 +5349,9 @@ arguments: (FUNCTION SEQUENCE &key (START 0) (END (length SEQUENCE)) FROM-END IN
           Elemcount counting = 0, len = 0;
 	  struct gcpro gcpro1;
 
-          if (ending - starting && starting < ending && EMACS_INT_MAX == ending)
-            {
-              ending = XINT (Flength (sequence));
-            }
+	  len = XINT (Flength (sequence));
+	  check_sequence_range (sequence, start, end, make_int (len));
+	  ending = min (ending, len);
 
           /* :from-end with a list; make an alloca copy of the relevant list
              data, attempting to go backwards isn't worth the trouble. */
@@ -5171,7 +5408,7 @@ arguments: (FUNCTION SEQUENCE &key (START 0) (END (length SEQUENCE)) FROM-END IN
           for (ii = len; ii != 0;)
             {
               --ii;
-              accum = call2 (function, KEY (key, subsequence[ii]), accum);
+              accum = CALL2 (function, KEY (key, subsequence[ii]), accum);
             }
 
 	  if (subsequence != NULL)
@@ -5186,7 +5423,7 @@ arguments: (FUNCTION SEQUENCE &key (START 0) (END (length SEQUENCE)) FROM-END IN
      arguments. */
   if (UNBOUNDP (accum))
     {
-      accum = call0 (function);
+      accum = IGNORE_MULTIPLE_VALUES (call0 (function));
     }
 
   return accum;
@@ -5232,6 +5469,588 @@ length, no consing will take place.
   return old;
 }
 
+/* This function is the implementation of fill_string_range() and
+   replace_string_range(); see the comments for those functions. */
+static Lisp_Object
+replace_string_range_1 (Lisp_Object dest, Lisp_Object start, Lisp_Object end,
+			const Ibyte *source, const Ibyte *source_limit,
+			Lisp_Object item)
+{
+  Ibyte *destp = XSTRING_DATA (dest), *p = destp,
+    *pend = p + XSTRING_LENGTH (dest), *pcursor, item_buf[MAX_ICHAR_LEN];
+  Bytecount prefix_bytecount, source_len = source_limit - source;
+  Charcount ii = 0, starting = XINT (start), ending, len;
+  Elemcount delta;
+
+  while (ii < starting && p < pend)
+    {
+      INC_IBYTEPTR (p);
+      ii++;
+    }
+
+  pcursor = p;
+
+  if (NILP (end))
+    {
+      while (pcursor < pend)
+	{
+	  INC_IBYTEPTR (pcursor);
+	  ii++;
+	}
+
+      ending = len = ii;
+    }
+  else
+    {
+      ending = XINT (end);
+      while (ii < ending && pcursor < pend)
+	{
+	  INC_IBYTEPTR (pcursor);
+	  ii++;
+	}
+    }
+
+  if (pcursor == pend)
+    {
+      /* We have the length, check it for our callers. */
+      check_sequence_range (dest, start, end, make_int (ii));
+    }
+
+  if (!(p == pend || p == pcursor))
+    {
+      prefix_bytecount = p - destp;
+
+      if (!NILP (item))
+	{
+	  assert (source == NULL && source_limit == NULL);
+	  source_len = set_itext_ichar (item_buf, XCHAR (item));
+	  delta = (source_len * (ending - starting)) - (pcursor - p);
+	}
+      else
+	{
+	  assert (source != NULL && source_limit != NULL);
+	  delta = source_len - (pcursor - p);
+	}
+
+      if (delta)
+        {
+          resize_string (dest, prefix_bytecount, delta);
+          destp = XSTRING_DATA (dest);
+          pcursor = destp + prefix_bytecount + (pcursor - p);
+          p = destp + prefix_bytecount;
+        }
+
+      if (CHARP (item))
+	{
+	  while (starting < ending)
+	    {
+	      memcpy (p, item_buf, source_len);
+	      p += source_len;
+	      starting++;
+	    }
+	}
+      else
+	{
+	  while (starting < ending && source < source_limit)
+	    {
+	      source_len = itext_copy_ichar (source, p);
+	      p += source_len, source += source_len;
+	    }
+	}
+
+      init_string_ascii_begin (dest);
+      bump_string_modiff (dest);
+      sledgehammer_check_ascii_begin (dest);
+    }
+
+  return dest;
+}
+
+DEFUN ("replace", Freplace, 2, MANY, 0, /*
+Replace the elements of SEQUENCE-ONE with the elements of SEQUENCE-TWO.
+
+SEQUENCE-ONE is destructively modified, and returned.  Its length is not
+changed.
+
+Keywords :start1 and :end1 specify a subsequence of SEQUENCE-ONE, and
+:start2 and :end2 a subsequence of SEQUENCE-TWO.  See `search' for more
+information.
+
+arguments: (SEQUENCE-ONE SEQUENCE-TWO &key (START1 0) (END1 (length SEQUENCE-ONE)) (START2 0) (END2 (length SEQUENCE-TWO)))
+*/
+       (int nargs, Lisp_Object *args))
+{
+  Lisp_Object sequence1 = args[0], sequence2 = args[1],
+    result = sequence1;
+  Elemcount starting1, ending1 = EMACS_INT_MAX, starting2;
+  Elemcount ending2 = EMACS_INT_MAX, counting = 0, startcounting;
+  Boolint sequence1_listp, sequence2_listp,
+    overwriting = EQ (sequence1, sequence2);
+
+  PARSE_KEYWORDS (Freplace, nargs, args, 4, (start1, end1, start2, end2),
+                  (start1 = start2 = Qzero));
+
+  CHECK_SEQUENCE (sequence1);
+  CHECK_LISP_WRITEABLE (sequence1);
+
+  CHECK_SEQUENCE (sequence2);
+
+  CHECK_NATNUM (start1);
+  starting1 = XINT (start1);
+  CHECK_NATNUM (start2);
+  starting2 = XINT (start2);
+
+  if (!NILP (end1))
+    {
+      CHECK_NATNUM (end1);
+      ending1 = XINT (end1);
+
+      if (!(starting1 <= ending1))
+        {
+          args_out_of_range_3 (sequence1, start1, end1);
+        }
+    }
+
+  if (!NILP (end2))
+    {
+      CHECK_NATNUM (end2);
+      ending2 = XINT (end2);
+
+      if (!(starting2 <= ending2))
+        {
+          args_out_of_range_3 (sequence1, start2, end2);
+        }
+    }
+
+  sequence1_listp = LISTP (sequence1);
+  sequence2_listp = LISTP (sequence2);
+
+  overwriting = overwriting && starting2 <= starting1;
+
+  if (sequence1_listp && !ZEROP (start1))
+    {
+      sequence1 = Fnthcdr (start1, sequence1);
+
+      if (NILP (sequence1))
+        {
+          check_sequence_range (args[0], start1, end1, Flength (args[0]));
+          /* Give up early here. */
+          return result;
+        }
+
+      ending1 -= starting1;
+      starting1 = 0;
+    }
+
+  if (sequence2_listp && !ZEROP (start2))
+    {
+      sequence2 = Fnthcdr (start2, sequence2);
+
+      if (NILP (sequence2))
+        {
+          check_sequence_range (args[1], start1, end1, Flength (args[1]));
+          /* Nothing available to replace sequence1's contents. */
+          return result;
+        }
+
+      ending2 -= starting2;
+      starting2 = 0;
+    }
+
+  if (overwriting)
+    {
+      if (EQ (start1, start2))
+        {
+          return result;
+        }
+
+      /* Our ranges may overlap. Save the data that might be overwritten. */
+
+      if (CONSP (sequence2))
+        {
+          Elemcount len = XINT (Flength (sequence2));
+          Lisp_Object *subsequence
+            = alloca_array (Lisp_Object, min (ending2, len));
+          Elemcount ii = 0;
+
+          LIST_LOOP_2 (elt, sequence2)
+            {
+              if (counting == ending2)
+                {
+                  break;
+                }
+
+              subsequence[ii++] = elt;
+              counting++;
+            }
+
+          check_sequence_range (sequence1, start1, end1,
+                                /* The XINT (start2) is intentional here; we
+                                   called #'length after doing (nthcdr
+                                   start2 sequence2). */
+                                make_int (XINT (start2) + len));
+          check_sequence_range (sequence2, start2, end2,
+                                make_int (XINT (start2) + len));
+
+          while (starting1 < ending1
+                 && starting2 < ending2 && !NILP (sequence1))
+            {
+              XSETCAR (sequence1, subsequence[starting2]);
+              sequence1 = XCDR (sequence1);
+              starting1++;
+              starting2++;
+            }
+        }
+      else if (STRINGP (sequence2))
+        {
+          Ibyte *p = XSTRING_DATA (sequence2),
+            *pend = p + XSTRING_LENGTH (sequence2), *pcursor,
+            *staging;
+          Bytecount ii = 0;
+
+          while (ii < starting2 && p < pend)
+            {
+              INC_IBYTEPTR (p);
+              ii++;
+            }
+
+          pcursor = p;
+
+          while (ii < ending2 && starting1 < ending1 && pcursor < pend)
+            {
+              INC_IBYTEPTR (pcursor);
+              starting1++;
+              ii++;
+            }
+
+          if (pcursor == pend)
+            {
+              check_sequence_range (sequence1, start1, end1, make_int (ii));
+              check_sequence_range (sequence2, start2, end2, make_int (ii));
+            }
+          else
+            {
+              assert ((pcursor - p) > 0);
+              staging = alloca_ibytes (pcursor - p);
+              memcpy (staging, p, pcursor - p);
+              replace_string_range (result, start1,
+                                    make_int (starting1),
+                                    staging, staging + (pcursor - p));
+            }
+        }
+      else 
+        {
+          Elemcount seq_len = XINT (Flength (sequence2)), ii = 0,
+            subseq_len = min (min (ending1 - starting1, seq_len - starting1),
+                              min (ending2 - starting2, seq_len - starting2));
+          Lisp_Object *subsequence = alloca_array (Lisp_Object, subseq_len);
+
+          check_sequence_range (sequence1, start1, end1, make_int (seq_len));
+          check_sequence_range (sequence2, start2, end2, make_int (seq_len));
+
+          while (starting2 < ending2 && ii < seq_len)
+            {
+              subsequence[ii] = Faref (sequence2, make_int (starting2));
+              ii++, starting2++;
+            }
+
+          ii = 0;
+
+          while (starting1 < ending1 && ii < seq_len)
+            {
+              Faset (sequence1, make_int (starting1), subsequence[ii]);
+              ii++, starting1++;
+            }
+        }
+    }
+  else if (sequence1_listp && sequence2_listp)
+    {
+      Lisp_Object sequence1_tortoise = sequence1,
+        sequence2_tortoise = sequence2;
+      Elemcount shortest_len = 0;
+
+      counting = startcounting = min (ending1, ending2);
+
+      while (counting-- > 0 && !NILP (sequence1) && !NILP (sequence2))
+        {
+          XSETCAR (sequence1,
+                   CONSP (sequence2) ? XCAR (sequence2)
+                   : Fcar (sequence2));
+          sequence1 = CONSP (sequence1) ? XCDR (sequence1)
+            : Fcdr (sequence1);
+          sequence2 = CONSP (sequence2) ? XCDR (sequence2)
+            : Fcdr (sequence2);
+
+          shortest_len++;
+
+          if (startcounting - counting > CIRCULAR_LIST_SUSPICION_LENGTH)
+            {
+              if (counting & 1)
+                {
+                  sequence1_tortoise = XCDR (sequence1_tortoise);
+                  sequence2_tortoise = XCDR (sequence2_tortoise);
+                }
+
+              if (EQ (sequence1, sequence1_tortoise))
+                {
+                  signal_circular_list_error (sequence1);
+                }
+
+              if (EQ (sequence2, sequence2_tortoise))
+                {
+                  signal_circular_list_error (sequence2);
+                }
+            }
+        }
+
+      if (NILP (sequence1))
+        {
+          check_sequence_range (sequence1, start1, end1,
+                                make_int (XINT (start1) + shortest_len));
+        }
+      else if (NILP (sequence2))
+        {
+          check_sequence_range (sequence2, start2, end2,
+                                make_int (XINT (start2) + shortest_len));
+        }
+    }
+  else if (sequence1_listp)
+    {
+      if (STRINGP (sequence2))
+        {
+          Ibyte *s2_data = XSTRING_DATA (sequence2),
+            *s2_end = s2_data + XSTRING_LENGTH (sequence2);
+          Elemcount char_count = 0;
+          Lisp_Object character;
+
+          while (char_count < starting2 && s2_data < s2_end)
+            {
+              INC_IBYTEPTR (s2_data);
+              char_count++;
+            }
+
+          while (starting1 < ending1 && starting2 < ending2
+                 && s2_data < s2_end && !NILP (sequence1))
+            {
+              character = make_char (itext_ichar (s2_data));
+              CONSP (sequence1) ?
+                XSETCAR (sequence1, character)
+                : Fsetcar (sequence1, character);
+              sequence1 = XCDR (sequence1);
+              starting1++;
+              starting2++;
+              char_count++;
+              INC_IBYTEPTR (s2_data);
+            }
+
+          if (NILP (sequence1))
+            {
+              check_sequence_range (sequence1, start1, end1,
+                                    make_int (XINT (start1) + starting1));
+            }
+
+          if (s2_data == s2_end)
+            {
+              check_sequence_range (sequence2, start2, end2,
+                                    make_int (char_count));
+            }
+        }
+      else
+        {
+          Elemcount len2 = XINT (Flength (sequence2));
+          check_sequence_range (sequence2, start2, end2, make_int (len2));
+
+          ending2 = min (ending2, len2);
+          while (starting2 < ending2
+                 && starting1 < ending1 && !NILP (sequence1))
+            {
+              CHECK_CONS (sequence1);
+              XSETCAR (sequence1, Faref (sequence2, make_int (starting2)));
+              sequence1 = XCDR (sequence1);
+              starting1++;
+              starting2++;
+            }
+
+          if (NILP (sequence1))
+            {
+              check_sequence_range (sequence1, start1, end1,
+                                    make_int (XINT (start1) + starting1));
+            }
+        }
+    }
+  else if (sequence2_listp)
+    {
+      if (STRINGP (sequence1))
+        {
+          Elemcount ii = 0, count, len = string_char_length (sequence1);
+          Ibyte *staging, *cursor;
+          Lisp_Object obj;
+
+          check_sequence_range (sequence1, start1, end1, make_int (len));
+          ending1 = min (ending1, len);
+          count = ending1 - starting1;
+          staging = cursor = alloca_ibytes (count * MAX_ICHAR_LEN);
+
+          while (ii < count && !NILP (sequence2))
+            {
+              obj = CONSP (sequence2) ? XCAR (sequence2)
+                : Fcar (sequence2);
+
+              CHECK_CHAR_COERCE_INT (obj);
+              cursor += set_itext_ichar (cursor, XCHAR (obj));
+              ii++;
+              sequence2 = XCDR (sequence2);
+            }
+
+          if (NILP (sequence2))
+            {
+              check_sequence_range (sequence2, start2, end2,
+                                    make_int (XINT (start2) + ii));
+            }
+
+          replace_string_range (result, start1, make_int (XINT (start1) + ii),
+                                staging, cursor);
+        }
+      else
+        {
+          Elemcount len = XINT (Flength (sequence1));
+
+          check_sequence_range (sequence1, start2, end1, make_int (len));
+          ending1 = min (ending2, min (ending1, len));
+
+          while (starting1 < ending1 && !NILP (sequence2))
+            {
+              Faset (sequence1, make_int (starting1),
+                     CONSP (sequence2) ? XCAR (sequence2)
+                     : Fcar (sequence2));
+              sequence2 = XCDR (sequence2);
+              starting1++;
+              starting2++;
+            }
+
+          if (NILP (sequence2))
+            {
+              check_sequence_range (sequence2, start2, end2,
+                                    make_int (XINT (start2) + starting2));
+            }
+        }
+    }
+  else
+    {
+      if (STRINGP (sequence1) && STRINGP (sequence2))
+        {
+          Ibyte *p2 = XSTRING_DATA (sequence2),
+            *p2end = p2 + XSTRING_LENGTH (sequence2), *p2cursor;
+          Charcount ii = 0, len1 = string_char_length (sequence1);
+
+          while (ii < starting2 && p2 < p2end)
+            {
+              INC_IBYTEPTR (p2);
+              ii++;
+            }
+
+          p2cursor = p2;
+          ending1 = min (ending1, len1);
+
+          while (ii < ending2 && starting1 < ending1 && p2cursor < p2end)
+            {
+              INC_IBYTEPTR (p2cursor);
+              ii++;
+              starting1++;
+            }
+
+          if (p2cursor == p2end)
+            {
+              check_sequence_range (sequence2, start2, end2, make_int (ii));
+            }
+
+          /* This isn't great; any error message won't necessarily reflect
+             the END1 that was supplied to #'replace. */
+          replace_string_range (result, start1, make_int (starting1),
+                                p2, p2cursor);
+        }
+      else if (STRINGP (sequence1))
+        {
+          Ibyte *staging, *cursor;
+          Elemcount count, len1 = string_char_length (sequence1);
+          Elemcount len2 = XINT (Flength (sequence2)), ii = 0;
+          Lisp_Object obj;
+
+          check_sequence_range (sequence1, start1, end1, make_int (len1));
+          check_sequence_range (sequence2, start2, end2, make_int (len2));
+
+          ending1 = min (ending1, len1);
+          ending2 = min (ending2, len2);
+          count = min (ending1 - starting1, ending2 - starting2);
+          staging = cursor = alloca_ibytes (count * MAX_ICHAR_LEN);
+
+          ii = 0;
+          while (ii < count)
+            {
+              obj = Faref (sequence2, make_int (starting2));
+
+              CHECK_CHAR_COERCE_INT (obj);
+              cursor += set_itext_ichar (cursor, XCHAR (obj));
+              starting2++, ii++;
+            }
+
+          replace_string_range (result, start1,
+                                make_int (XINT (start1) + count),
+                                staging, cursor);
+        }
+      else if (STRINGP (sequence2))
+        {
+          Ibyte *p2 = XSTRING_DATA (sequence2),
+            *p2end = p2 + XSTRING_LENGTH (sequence2);
+          Elemcount len1 = XINT (Flength (sequence1)), ii = 0;
+
+          check_sequence_range (sequence1, start1, end1, make_int (len1));
+          ending1 = min (ending1, len1);
+
+          while (ii < starting2 && p2 < p2end)
+            {
+              INC_IBYTEPTR (p2);
+              ii++;
+            }
+
+          while (p2 < p2end && starting1 < ending1 && starting2 < ending2)
+            {
+              Faset (sequence1, make_int (starting1),
+                     make_char (itext_ichar (p2)));
+              INC_IBYTEPTR (p2);
+              starting1++;
+              starting2++;
+              ii++;
+            }
+
+          if (p2 == p2end)
+            {
+              check_sequence_range (sequence2, start2, end2, make_int (ii));
+            }
+        }
+      else
+        {
+          Elemcount len1 = XINT (Flength (sequence1)),
+            len2 = XINT (Flength (sequence2));
+
+          check_sequence_range (sequence1, start1, end1, make_int (len1));
+          check_sequence_range (sequence2, start2, end2, make_int (len2));
+
+          ending1 = min (ending1, len1);
+          ending2 = min (ending2, len2);
+          
+          while (starting1 < ending1 && starting2 < ending2)
+            {
+              Faset (sequence1, make_int (starting1),
+                     Faref (sequence2, make_int (starting2)));
+              starting1++;
+              starting2++;
+            }
+        }
+    }
+
+  return result;
+}
 
 Lisp_Object
 add_suffix_to_symbol (Lisp_Object symbol, const Ascbyte *ascii_string)
@@ -5877,9 +6696,27 @@ syms_of_fns (void)
   DEFSYMBOL (Qbit_vector);
   defsymbol (&QsortX, "sort*");
   DEFSYMBOL (Qreduce);
+  DEFSYMBOL (Qreplace);
+
+  DEFSYMBOL (Qmapconcat);
+  defsymbol (&QmapcarX, "mapcar*");
+  DEFSYMBOL (Qmapvector);
+  DEFSYMBOL (Qmapcan);
+  DEFSYMBOL (Qmapc);
+  DEFSYMBOL (Qmap);
+  DEFSYMBOL (Qmap_into);
+  DEFSYMBOL (Qsome);
+  DEFSYMBOL (Qevery);
+  DEFSYMBOL (Qmaplist);
+  DEFSYMBOL (Qmapl);
+  DEFSYMBOL (Qmapcon);
 
   DEFKEYWORD (Q_from_end);
   DEFKEYWORD (Q_initial_value);
+  DEFKEYWORD (Q_start1);
+  DEFKEYWORD (Q_start2);
+  DEFKEYWORD (Q_end1);
+  DEFKEYWORD (Q_end2);
 
   DEFSYMBOL (Qyes_or_no_p);
 
@@ -5889,6 +6726,7 @@ syms_of_fns (void)
   DEFSUBR (Frandom);
   DEFSUBR (Flength);
   DEFSUBR (Fsafe_length);
+  DEFSUBR (Flist_length);
   DEFSUBR (Fstring_equal);
   DEFSUBR (Fcompare_strings);
   DEFSUBR (Fstring_lessp);
@@ -5954,6 +6792,7 @@ syms_of_fns (void)
   DEFSUBR (Fput);
   DEFSUBR (Fremprop);
   DEFSUBR (Fobject_plist);
+  DEFSUBR (Fobject_setplist);
   DEFSUBR (Fequal);
   DEFSUBR (Fequalp);
   DEFSUBR (Fold_equal);
@@ -5978,6 +6817,7 @@ syms_of_fns (void)
 
   DEFSUBR (Freduce);
   DEFSUBR (Freplace_list);
+  DEFSUBR (Freplace);
   DEFSUBR (Fload_average);
   DEFSUBR (Ffeaturep);
   DEFSUBR (Frequire);

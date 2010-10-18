@@ -198,15 +198,23 @@ intern (const CIbyte *str)
 }
 
 Lisp_Object
-intern_converting_underscores_to_dashes (const CIbyte *str)
+intern_massaging_name (const CIbyte *str)
 {
   Bytecount len = strlen (str);
   CIbyte *tmp = alloca_extbytes (len + 1);
   Bytecount i;
   strcpy (tmp, str);
   for (i = 0; i < len; i++)
-    if (tmp[i] == '_')
-      tmp[i] = '-';
+    {
+      if (tmp[i] == '_')
+	{
+	  tmp[i] = '-';
+	}
+      else if (tmp[i] == 'X')
+	{
+	  tmp[i] = '*';
+	}
+    }
   return intern_istring ((Ibyte *) tmp);
 }
 
@@ -3530,6 +3538,7 @@ reinit_symbol_objects_early (void)
   OBJECT_HAS_METHOD (symbol, putprop);
   OBJECT_HAS_METHOD (symbol, remprop);
   OBJECT_HAS_NAMED_METHOD (symbol, plist, Fsymbol_plist);
+  OBJECT_HAS_NAMED_METHOD (symbol, setplist, Fsetplist);
 }
 
 void

@@ -18,6 +18,38 @@
 
 	* reproduce-crashes.el: Amend "this file" to "XEmacs is free...".
 
+2010-10-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el (x):
+	Test #'nbutlast, #'butlast with dotted lists.
+	Check that #'ldiff and #'tailp don't hang on circular lists; check
+	that #'tailp returns t with circular lists when that is
+	appropriate.  Test them both with dotted lists.
+
+2010-10-12  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el:
+	Make sure circularity checking with #'merge is sane.
+
+2010-08-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el:
+	(not, not, invalid-argument, invalid-argument):
+	Check that error messages from the image specifier instantiator
+	code are clearer than they used to be.
+
+2010-08-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el:
+	Test that symbols with names that look like ratios are printed
+	distinctly from the equivalent ratios.
+
+2010-07-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el:
+	Test a couple of things #'reduce was just made more careful
+	about.
+
 2010-06-13  Stephen J. Turnbull  <stephen@xemacs.org>
 
 	* gtk/event-stream-tests.el:

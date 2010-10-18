@@ -493,13 +493,25 @@ easily determined from the input file.")
 	  (fset (car elt) (cdr elt)))))))
 
 (defconst byte-compile-initial-macro-environment
-  '((byte-compiler-options . (lambda (&rest forms)
-			       (apply 'byte-compiler-options-handler forms)))
-    (eval-when-compile . (lambda (&rest body)
-			   (list 'quote (byte-compile-eval (cons 'progn body)))))
-    (eval-and-compile . (lambda (&rest body)
-			  (byte-compile-eval (cons 'progn body))
-			  (cons 'progn body))))
+  `((byte-compiler-options
+      . ,#'(lambda (&rest forms)
+	     (apply 'byte-compiler-options-handler forms)))
+    (eval-when-compile
+      . ,#'(lambda (&rest body)
+	     (list 'quote (byte-compile-eval (cons 'progn body)))))
+    (eval-and-compile
+      . ,#'(lambda (&rest body)
+	     (byte-compile-eval (cons 'progn body))
+	     (cons 'progn body)))
+    (the .
+      ,#'(lambda (type form)
+	   (if (cl-const-expr-p form)
+	       (or (eval (cl-make-type-test form type))
+		   (byte-compile-warn
+		    "%s is not of type %s" form type)))
+	   (if byte-compile-delete-errors
+	       form
+	     (funcall (cdr (symbol-function 'the)) type form)))))
   "The default macro-environment passed to macroexpand by the compiler.
 Placing a macro here will cause a macro to have different semantics when
 expanded by the compiler as when expanded by the interpreter.")
@@ -1383,7 +1395,7 @@ otherwise pop it")
 
 (defmacro byte-compile-constp (form)
   ;; Returns non-nil if FORM is a constant.
-  `(cond ((consp ,form) (eq (car ,form) 'quote))
+  `(cond ((consp ,form) (memq (car ,form) '(quote function)))
 	 ((symbolp ,form) (byte-compile-constant-symbol-p ,form))
 	 (t)))
 
@@ -3573,10 +3585,13 @@ forcing function quoting" ,en (car form))))
 ;; and (funcall (function foo)) will lose with autoloads.
 
 (defun byte-compile-function-form (form)
-  (byte-compile-constant
-   (cond ((symbolp (nth 1 form))
-	  (nth 1 form))
-	 ((byte-compile-lambda (nth 1 form))))))
+  (if (cddr form)
+      (byte-compile-normal-call
+       `(signal 'wrong-number-of-arguments '(function ,(length (cdr form)))))
+    (byte-compile-constant
+     (cond ((symbolp (nth 1 form))
+            (nth 1 form))
+           ((byte-compile-lambda (nth 1 form)))))))
 
 (defun byte-compile-insert (form)
   (cond ((null (cdr form))
@@ -3706,11 +3721,16 @@ forcing function quoting" ,en (car form))))
 
 
 (defun byte-compile-quote (form)
-  (byte-compile-constant (car (cdr form))))
+  (if (cddr form)
+      (byte-compile-normal-call
+       `(signal 'wrong-number-of-arguments '(quote ,(length (cdr form)))))
+    (byte-compile-constant (car (cdr form)))))
 
 (defun byte-compile-quote-form (form)
-  (byte-compile-constant (byte-compile-top-level (nth 1 form))))
-
+  (if (cddr form)
+      (byte-compile-normal-call
+       `(signal 'wrong-number-of-arguments '(quote ,(length (cdr form)))))
+    (byte-compile-constant (byte-compile-top-level (nth 1 form)))))
 
 ;;; control structures
 

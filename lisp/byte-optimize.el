@@ -1119,17 +1119,26 @@
   ;; The funcall optimizer can then transform (funcall 'foo ...) -> (foo ...).
   (let ((fn (nth 1 form))
 	(last (nth (1- (length form)) form))) ; I think this really is fastest
-    (or (if (or (null last)
-		(eq (car-safe last) 'quote))
-	    (if (listp (nth 1 last))
-		(let ((butlast (nreverse (cdr (reverse (cdr (cdr form)))))))
-		  (nconc (list 'funcall fn) butlast
-			 (mapcar #'(lambda (x) (list 'quote x)) (nth 1 last))))
-	      (byte-compile-warn
-	       "last arg to apply can't be a literal atom: %s"
-	       (prin1-to-string last))
-	      nil))
-	form)))
+    (if (and (eq last (third form))
+             (consp last)
+             (eq 'mapcar (car last))
+             (equal fn ''nconc))
+        (progn
+          (byte-compile-warn
+           "(apply 'nconc (mapcar ..)), use #'mapcan instead: %s" last)
+          (cons 'mapcan (cdr last)))
+      (or (if (or (null last)
+                  (eq (car-safe last) 'quote))
+              (if (listp (nth 1 last))
+                  (let ((butlast (nreverse (cdr (reverse (cdr (cdr form)))))))
+                    (nconc (list 'funcall fn) butlast
+                           (mapcar #'(lambda (x) (list 'quote x))
+                                   (nth 1 last))))
+                (byte-compile-warn
+                 "last arg to apply can't be a literal atom: %s"
+                 (prin1-to-string last))
+                nil))
+          form))))
 
 (put 'funcall 'byte-optimizer 'byte-optimize-funcall)
 (put 'apply   'byte-optimizer 'byte-optimize-apply)
@@ -1216,7 +1225,7 @@
 	 ;; coordinates-in-window-p not in XEmacs
 	 copy-marker cos count-lines
 	 default-boundp default-value denominator documentation downcase
-	 elt exp expt fboundp featurep
+	 elt endp exp expt fboundp featurep
 	 file-directory-p file-exists-p file-locked-p file-name-absolute-p
 	 file-newer-than-file-p file-readable-p file-symlink-p file-writable-p
 	 float floor format

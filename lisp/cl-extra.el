@@ -64,11 +64,11 @@ TYPE is a Common Lisp type specifier."
 	((and (eq type 'character) (symbolp x)) (coerce (symbol-name x) type))
 	;; XEmacs addition character <-> integer coercions
 	((and (eq type 'character) (char-int-p x)) (int-char x))
-	((and (eq type 'integer) (characterp x)) (char-int x))
+	((and (memq type '(integer fixnum)) (characterp x)) (char-int x))
 	((eq type 'float) (float x))
 	;; XEmacs addition: enhanced numeric type coercions
 	((and-fboundp 'coerce-number
-	   (memq type '(integer ratio bigfloat))
+	   (memq type '(integer ratio bigfloat fixnum))
 	   (coerce-number x type)))
 	;; XEmacs addition: bit-vector coercion
 	((or (eq type 'bit-vector)
@@ -392,6 +392,7 @@ If STATE is t, return a new state object seeded from the time of day."
     (vector (apply 'vconcat seqs))
     (string (apply 'concat seqs))
     (list   (apply 'append (append seqs '(nil))))
+    (bit-vector (apply 'bvconcat seqs))
     (t (error 'invalid-argument "Not a sequence type name" type))))
 
 ;;; List functions.
@@ -404,18 +405,17 @@ If STATE is t, return a new state object seeded from the time of day."
   "Equivalent to (nconc (nreverse X) Y)."
   (nconc (nreverse x) y))
 
-(defun list-length (list)
-  "Return the length of LIST.  Return nil if LIST is circular."
-  (if (listp list)
-      (condition-case nil (length list) (circular-list))
-    ;; Error on not-a-list:
-    (car list)))
-
+;; XEmacs; check LIST for type and circularity.
 (defun tailp (sublist list)
   "Return true if SUBLIST is a tail of LIST."
-  (while (and (consp list) (not (eq sublist list)))
-    (setq list (cdr list)))
-  (if (numberp sublist) (equal sublist list) (eq sublist list)))
+  (check-argument-type #'listp list)
+  (let ((before list) (evenp t))
+    (while (and (consp list) (not (eq sublist list)))
+      (setq list (cdr list)
+	    evenp (not evenp))
+      (if evenp (setq before (cdr before)))
+      (if (eq before list) (error 'circular-list list)))
+    (eql sublist list)))
 
 (defalias 'cl-copy-tree 'copy-tree)
 
@@ -425,17 +425,9 @@ If STATE is t, return a new state object seeded from the time of day."
 (defalias 'get* 'get)
 (defalias 'getf 'plist-get)
 
-(defun cl-set-getf (plist tag val)
-  (let ((p plist))
-    (while (and p (not (eq (car p) tag))) (setq p (cdr (cdr p))))
-    (if p (progn (setcar (cdr p) val) plist) (list* tag val plist))))
-
-(defun cl-do-remf (plist tag)
-  (let ((p (cdr plist)))
-    (while (and (cdr p) (not (eq (car (cdr p)) tag))) (setq p (cdr (cdr p))))
-    (and (cdr p) (progn (setcdr p (cdr (cdr (cdr p)))) t))))
-
-;; XEmacs change: we have a builtin remprop
+;; XEmacs; these are built-in.
+(defalias 'cl-set-getf 'plist-put)
+(defalias 'cl-do-remf 'plist-remprop)
 (defalias 'cl-remprop 'remprop)
 
 (defun get-properties (plist indicator-list)
@@ -662,6 +654,11 @@ This also does some trivial optimizations to make the form prettier."
     (message "Formatting...")
     (prog1 (cl-prettyprint form)
       (message ""))))
+
+;; XEmacs addition; force cl-macs to be available from here on when
+;; compiling files to be dumped.  This is more reasonable than forcing other
+;; files to do the same, multiple times.
+(eval-when-compile (or (cl-compiling-file) (load "cl-macs")))
 
 (run-hooks 'cl-extra-load-hook)
 

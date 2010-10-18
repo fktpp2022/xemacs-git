@@ -3,10 +3,291 @@
 	* ui-byhand.c:
 	* gtk-glue.c:
 	Add copyright notice based on internal evidence.
-	
+
 2010-06-14  Stephen J. Turnbull  <stephen@xemacs.org>
 
 	* number.h: Another permission consistency fix.
+
+2010-10-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fns.c (Fnbutlast, Fbutlast):
+	Tighten up Common Lisp compatibility for these two functions; they
+	need to operate on dotted lists without erroring.
+
+2010-10-12  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fns.c (list_merge):
+	Circularity checking here needs to be done independently for each
+	list, they can't share a loop counter. Thank you for the bug
+	report, Robert Pluim!
+
+2010-09-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lisp.h (GET_DEFUN_LISP_OBJECT): Make the NEW_GC version of this
+	work, remove a needless and unhelpful semicolon.
+	(GET_DEFUN_LISP_OBJECT): Remove a needless semicolon from the
+	non-NEW_GC version of this.
+	(PARSE_KEYWORDS): Fix the indentation for the DEBUG_XEMACS
+	version of this macro.
+	(PARSE_KEYWORDS): Use GET_DEFUN_LISP_OBJECT() for both the NEW_GC
+	and non-NEW_GC versions of this macro, when working out the
+	function's min args. 
+
+2010-09-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lisp.h (PARSE_KEYWORDS):
+	Turns out #elsif is not valid preprocessor syntax, who knew!
+
+2010-09-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lisp.h (PARSE_KEYWORDS):
+	Correct the NEW_GC non-DEBUG_XEMACS version of this macro; under
+	such builds S##function is a pointer, not a Lisp_Subr structure.
+
+2010-09-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Simplify the API of PARSE_KEYWORDS for callers.
+
+	* lisp.h (PARSE_KEYWORDS): Simply the API, while making the
+	implementation a little more complex; work out KEYWORDS_OFFSET
+	from the appropriate Lisp_Subr struct, take the function name as
+	the C name of the DEFUN rather than a symbol visible as a
+	Lisp_Object, on debug builds assert that we're actually in the
+	function so we choke on badly-done copy-and-pasting,
+
+	* lisp.h (PARSE_KEYWORDS_8): New. This is the old PARSE_KEYWORDS.
+
+	* fns.c (Fmerge, FsortX, Ffill, Freduce, Freplace):
+	Change to use the new PARSE_KEYWORDS syntax.
+	* elhash.c (Fmake_hash_table): Chance to the new PARSE_KEYWORDS
+	syntax, rename a define to correspond to what other files use.
+	
+	* symbols.c (intern_massaging_name):
+	* buffer.c (ADD_INT):
+	Rename intern_converting_underscores_to_dashes() to
+	intern_massaging_name(), now it does a little more.
+
+2010-09-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* termcap.c:
+	Add a couple of missing includes here, which should fix builds
+	that use this file. (I have no access to such builds, but Mats'
+	buildbot shows output that indicates they fail at link time since
+	DEVICE_BAUD_RATE and IS_DIRECTORY_SEP are available.)
+
+2010-09-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fns.c (Freduce):
+	Move statements outside of the braces surrounding the
+	EXTERNAL_LIST_LOOP_3 macro, fixing strict C89 builds. Thank you
+	for the report, Vin!
+
+2010-09-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fns.c (Flist_length): New, moved here from cl-extra.el, needed
+	by the next function.
+	(shortest_length_among_sequences): New.
+	(Fmapconcat, FmapcarX, Fmapvector, Fmapcan, Fmapc, Fmap)
+	(Fmap_into, Fsome, Fevery):
+	Use shortest_length_among_sequences() when working out how many
+	iterations to do, only giving circular list errors if all
+	arguments are circular.
+
+2010-09-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fns.c (Fsubseq):
+	Change the string code to better fit in with the rest of this
+	function (it still uses get_string_range_char(), though, which *may*
+	diverge algorithmically from what we're doing).
+
+	If dealing with a cons, only call #'length if we have reason to
+	believe that the START and END arguments are badly specified, and
+	check for circular lists ourselves when that's appropriate.
+
+	If dealing with a vector, call Fvector() on the appropriate subset
+	of the old vector's data directly, don't initialise the result
+	with nil and then copy.
+
+	(Ffill):
+	Only check the range arguments for a cons SEQUENCE if we have good
+	reason to think they were badly specified.
+	
+	(Freduce):
+	Handle multiple values properly. Add bounds checking to this
+	function, as specificied by ANSI Common Lisp.
+
+2010-09-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* eval.c (Ffunction, Fquote):
+	Add argument information in the arguments: () format for these two
+	special operators.
+
+2010-09-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fns.c (Freplace): 
+	Replace an accidental double semi-colon with a single semi-colon,
+	hopefully fixing Vin's Visual Studio 6 build. (Visual Studio 2005
+	had no problem with it, oddly.)
+
+2010-09-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Move #'replace to C; add bounds checking to it and to #'fill.
+
+	* fns.c (Fsubseq, Ffill, mapcarX):
+	Don't #'nreverse in #'subseq, use fill_string_range and check
+	bounds in #'fill, use replace_string_range() in #'map-into
+	avoiding quadratic time when modfiying the string.
+
+	* fns.c (check_sequence_range, fill_string_range)
+	(replace_string_range, replace_string_range_1, Freplace):
+	New functions; check that arguments fit sequence dimensions, fill
+	a string range with a given character, replace a string range from
+	an Ibyte pointer.
+
+2010-09-05  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* chartab.c (char_table_default_for_type,
+	chartab_default_validate): New. 
+	(print_char_table, Freset_char_table, chartab_default_validate)
+	(chartab_instantiate, structure_type_create_chartab):
+	Accept keyword :default in the read syntax for char tables, and
+	print the default when it is not what was expected for the
+	time. Makes it a little easier to debug things.
+
+2010-09-05  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* editfns.c (Fformat_time_string):
+	Use two backslashes so that there is at least one present in the
+	output of describe function, when describing the Roman month
+	number syntax in this function's docstring. Thanks for provoking
+	me to look at this, Stephen Turnbull.
+
+2010-09-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* symsinit.h: Declare reinit_process_early() here, fixing the C++
+	build; thank you for pointing this out, Adam Sjøgren!
+	* fontcolor-msw.c (mswindows_string_to_color):
+	Cast the result of bsearch() to a colormap_t pointer, fixing the
+	Visual Studio 2005 build.
+
+2010-09-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* strftime.c (roman_upper, roman_lower, strftime):
+	Implement Roman month numbers, as used in central and eastern
+	Europe.
+	* editfns.c (Fformat_time_string):
+	Document two new escapes, to allow uppercase and lowercase Roman
+	month numbers. Remove documentation of a bug that we didn't
+	actually have.
+	* text.h (Qtime_function_encoding): We know the text encoding
+	coming from strftime(), because we always use the one in
+	strftime.c. Don't use Qnative.
+
+2010-09-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fns.c (list_merge, list_array_merge_into_list)
+	(list_array_merge_into_array):
+	Avoid algorithmic complexity surprises when checking for
+	circularity in these functions.
+	(Freduce): Fix some formatting, in passing.
+
+	(mapcarX): Drop the SOME_OR_EVERY argument to this function;
+	instead, take CALLER, a symbol reflecting the Lisp-visible
+	function that called mapcarX(). Use CALLER with
+	mapping_interaction_error() when sequences are modified
+	illegally. Don't cons with #'some, #'every, not even a little.
+	(Fmapconcat, FmapcarX, Fmapvector, Fmapcan, Fmapc, Fmap)
+	(Fmap_into, Fsome, Fevery): Call mapcarX() with its new
+	arguments.
+	(Fmapcan): Don't unnecessarily complicate the nconc call.
+
+	(maplist): Take CALLER, a symbol reflecting the Lisp-visible
+	function that called maplist(), rather than having separate
+	arguments to indicate mapl vs. mapcon.
+	Avoid algorithmic complexity surprises when checking for
+	circularity. In #'mapcon, check a given stretch of
+	result for well-formedness once, which was not previously the
+	case, despite what the comments said.
+	(Fmaplist, Fmapl, Fmapcon):
+	Call maplist() with its new arguments.	
+
+2010-09-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* process.c (process_getprop, process_putprop, process_remprop)
+	(process_plist, process_setplist, reinit_process_early):
+	Add functions to modify a process's property list.
+	* process-slots.h (MARKED_SLOT): Add a plist slot.
+
+	* fns.c (Fobject_setplist): New function, analogous to #'setplist,
+	but more general.
+	Update the documentation in the other plist functions to reflect
+	that processes now have property lists.
+	* emacs.c (main_1): Call reinit_process_early(), now processes have
+	plist methods that need to be initialised.
+	* symbols.c (reinit_symbol_objects_early): Fsetplist is the named
+	setplist method for symbols.
+
+2010-08-30  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* floatfns.c (ceiling_one_mundane_arg, floor_one_mundane_arg)
+	(round_one_mundane_arg, truncate_one_mundane_arg):
+	INTEGERP is always available, no need to wrap calls to it with
+	#ifdef HAVE_BIGNUM.
+	(Fceiling, Ffloor, Fround, Ftruncate, Ffceiling, Fffloor)
+	(Ffround, Fftruncate):
+	Correct some code formatting here.
+	* doprnt.c (emacs_doprnt_1):
+	Remove some needless #ifdef WITH_NUMBER_TYPES, now number.h is
+	always #included. 
+
+2010-08-26  Adam Sjøgren <asjo@koldfront.dk>
+
+	* glyphs-eimage.c (gif_instantiate): Try harder to find an
+	appropriate GIF colormap and then flag an error if one can't be
+	found.
+
+2010-08-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lread.c (read_escape):
+	Make error messages better reflect the text that was encountered,
+	when overlong hex character escapes or non-Latin-1 octal character
+	escapes are encountered.
+
+2010-08-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* print.c (print_symbol):
+	Escape any symbols that look like ratios, in the same way we do
+	symbols that look like floats or integers. Prevents confusion in
+	the Lisp reader.
+	* lread.c (isratio_string): Make this available even on builds
+	without HAVE_RATIO, so we can print symbols that look like ratios
+	with the appropriate escapes.
+	* lisp.h:
+	Make isratio_string available even if HAVE_RATIO is not defined.
+
+2010-07-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lisp.h (PARSE_KEYWORDS):
+	Always accept a nil :allow-other-keys keyword argument, as
+	described in the ALLOW-OTHER-KEYS-NIL Common Lisp issue writeup,
+	and as necessary for Paul Dietz' tests for #'reduce.
+
+	* fns.c (mapping_interaction_error): New.
+	(Freduce): Call mapping_interaction_error when KEY or FUNCTION
+	have modified a string SEQUENCE such that the byte length of the
+	string has changed, or such that the current cursor pointer
+	doesn't point to the beginning of a character.
+	Cf. the MAPPING-DESTRUCTIVE-INTERACTION Common Lisp issue
+	writeup.
+	When traversing a list, GCPRO the part of it we still have to
+	traverse, to avoid any crashes if FUNCTION or KEY amputate it
+	behind us and force a garbage collection.
+
+2010-06-05  Marcus Crestani  <crestani@informatik.uni-tuebingen.de>
+
+	* gc.c:
+	* mc-alloc.c:
+	Document the new allocator and the new garbage collector.
 
 2010-06-13  Stephen J. Turnbull  <stephen@xemacs.org>
 

@@ -1962,7 +1962,19 @@ Returns the first of the multiple values given by FORM."
 ;;;###autoload
 (defmacro locally (&rest body) (cons 'progn body))
 ;;;###autoload
-(defmacro the (type form) form)
+(defmacro the (type form)
+  "Assert that FORM gives a result of type TYPE, and return that result.
+
+TYPE is a Common Lisp type specifier.
+
+If macro expansion of a `the' form happens during byte compilation, and the
+byte compiler customization variable `byte-compile-delete-errors' is
+non-nil, `the' is equivalent to FORM without any type checks."
+  (if (cl-safe-expr-p form)
+      `(prog1 ,form (assert ,(cl-make-type-test form type) t))
+    (let ((saved (gensym)))
+      `(let ((,saved ,form))
+        (prog1 ,saved (assert ,(cl-make-type-test saved type) t))))))
 
 (defvar cl-proclaim-history t)    ; for future compilers
 (defvar cl-declare-stack t)       ; for future compilers
@@ -2395,7 +2407,7 @@ Example: (defsetf nth (n x) (v) (list 'setcar (list 'nthcdr n x) v))."
 	  (append (nth 1 method) (list tag def))
 	  (list store-temp)
 	  (list 'let (list (list (car (nth 2 method))
-				 (list 'cl-set-getf (nth 4 method)
+				 (list 'plist-put (nth 4 method)
 				       tag-temp store-temp)))
 		(nth 3 method) store-temp)
 	  (list 'getf (nth 4 method) tag-temp def-temp))))
@@ -2585,7 +2597,7 @@ The form returns true if TAG was found and removed, nil otherwise."
 		(list 'progn
 		      (cl-setf-do-store (nth 1 method) (list 'cddr tval))
 		      t)
-		(list 'cl-do-remf tval ttag)))))
+		(list 'plist-remprop tval ttag)))))
 
 ;;;###autoload
 (defmacro shiftf (place &rest args)
@@ -3751,6 +3763,35 @@ the byte optimizer in those cases."
                                     :test #'equal))
         ,stack-depth))))
 
+(define-compiler-macro concatenate (&whole form type &rest seqs)
+  (if (and (cl-const-expr-p type) (memq (cl-const-expr-val type)
+                                        '(vector bit-vector list string)))
+      (case (cl-const-expr-val type)
+        (list (append (list 'append) (cddr form) '(nil)))
+        (vector (cons 'vconcat (cddr form)))
+        (bit-vector (cons 'bvconcat (cddr form)))
+        (string (cons 'concat (cddr form))))
+    form))
+
+(map nil
+     #'(lambda (function)
+         ;; There are byte codes for the two-argument versions of these
+         ;; functions; if the form has more arguments and those arguments
+         ;; have no side effects, transform to a series of two-argument
+         ;; calls.
+         (put function 'cl-compiler-macro
+              #'(lambda (form &rest arguments)
+                  (if (or (null (nthcdr 3 form))
+                          (notevery #'cl-safe-expr-p (cdr form)))
+                      form
+                    (cons 'and (mapcon
+                                #'(lambda (rest)
+                                    (and (cdr rest)
+                                         `((,(car form) ,(pop rest)
+                                            ,(car rest)))))
+                                (cdr form)))))))
+     '(= < > <= >=))
+
 (mapc
  #'(lambda (y)
      (put (car y) 'side-effect-free t)
@@ -3764,7 +3805,7 @@ the byte optimizer in those cases."
  '((first 'car x) (second 'cadr x) (third 'caddr x) (fourth 'cadddr x)
    (fifth 'nth 4 x) (sixth 'nth 5 x) (seventh 'nth 6 x)
    (eighth 'nth 7 x) (ninth 'nth 8 x) (tenth 'nth 9 x)
-   (rest 'cdr x) (endp 'null x) (plusp '> x 0) (minusp '< x 0)
+   (rest 'cdr x) (plusp '> x 0) (minusp '< x 0)
    (oddp  'eq (list 'logand x 1) 1)
    (evenp 'eq (list 'logand x 1) 0)
    (caar car car) (cadr car cdr) (cdar cdr car) (cddr cdr cdr)

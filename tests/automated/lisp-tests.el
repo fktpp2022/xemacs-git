@@ -200,6 +200,14 @@
   (Assert (equal y '(0 1 2 3)))
   (Assert (equal z y)))
 
+(let* ((x (list* 0 1 2 3 4 5 6.0 ?7 ?8 (vector 'a 'b 'c)))
+       (y (butlast x 0))
+       (z (nbutlast x 0)))
+  (Assert (eq z x))
+  (Assert (not (eq y x)))
+  (Assert (equal y '(0 1 2 3 4 5 6.0 ?7 ?8)))
+  (Assert (equal z y)))
+
 (Assert (eq (butlast  '(x)) nil))
 (Assert (eq (nbutlast '(x)) nil))
 (Assert (eq (butlast  '()) nil))
@@ -217,6 +225,58 @@
 (dolist (x '((1) (1 2) (1 2 3) (1 2 . 3)))
   (let ((y (copy-list x)))
     (Assert (and (equal x y) (not (eq x y))))))
+
+;;-----------------------------------------------------
+;; Test `ldiff'
+;;-----------------------------------------------------
+(Check-Error wrong-type-argument (ldiff 'foo pi))
+(Check-Error wrong-number-of-arguments (ldiff))
+(Check-Error wrong-number-of-arguments (ldiff '(1 2)))
+(Check-Error circular-list (ldiff (make-circular-list 1) nil))
+(Check-Error circular-list (ldiff (make-circular-list 2000) nil))
+(Assert (eq '() (ldiff '() pi)))
+(dolist (x '((1) (1 2) (1 2 3) (1 2 . 3)))
+  (let ((y (ldiff x nil)))
+    (Assert (and (equal x y) (not (eq x y))))))
+
+(let* ((vector (vector 'foo))
+       (dotted `(1 2 3 ,pi 40 50 . ,vector))
+       (dotted-pi `(1 2 3 . ,pi))
+       without-vector without-pi)
+  (Assert (equal dotted (ldiff dotted nil))
+	  "checking ldiff handles dotted lists properly")
+  (Assert (equal (butlast dotted 0) (ldiff dotted vector))
+	  "checking ldiff discards dotted elements correctly")
+  (Assert (equal (butlast dotted-pi 0) (ldiff dotted-pi (* 4 (atan 1))))
+	  "checking ldiff handles float equivalence correctly"))
+
+;;-----------------------------------------------------
+;; Test `tailp'
+;;-----------------------------------------------------
+(Check-Error wrong-type-argument (tailp pi 'foo))
+(Check-Error wrong-number-of-arguments (tailp))
+(Check-Error wrong-number-of-arguments (tailp '(1 2)))
+(Check-Error circular-list (tailp nil (make-circular-list 1)))
+(Check-Error circular-list (tailp nil (make-circular-list 2000)))
+(Assert (null (tailp pi '()))
+	"checking pi is not a tail of the list nil")
+(Assert (tailp 3 '(1 2 . 3))
+	"checking #'tailp works with a dotted integer.")
+(Assert (tailp pi `(1 2 . ,(* 4 (atan 1))))
+	"checking tailp works with non-eq dotted floats.")
+(let ((list (make-list 2048 nil)))
+  (Assert (tailp (nthcdr 2000 list) (nconc list list))
+	  "checking #'tailp succeeds with circular LIST containing SUBLIST"))
+
+;;-----------------------------------------------------
+;; Test `endp'
+;;-----------------------------------------------------
+(Check-Error wrong-type-argument (endp 'foo))
+(Check-Error wrong-number-of-arguments (endp))
+(Check-Error wrong-number-of-arguments (endp '(1 2) 'foo))
+(Assert (endp nil) "checking nil is recognized as the end of a list")
+(Assert (not (endp (list 200 200 4 0 9)))
+	"checking a cons is not recognised as the end of a list")
 
 ;;-----------------------------------------------------
 ;; Arithmetic operations
@@ -2340,5 +2400,79 @@ via the hepatic alpha-tocopherol transfer protein")))
 	       (gethash (* 2 most-positive-fixnum) hashing)
 	       (gethash hashed-bignum hashing))
 	      "checking hashing works correctly with #'eql tests and bignums"))))
+
+;; 
+(when (decode-char 'ucs #x0192)
+  (Check-Error
+   invalid-state
+   (let ((str "aaaaaaaaaaaaa")
+	 (called 0)
+	 modified)
+     (reduce #'+ str
+	     :key #'(lambda (object)
+		      (prog1
+			  object
+			(incf called) 
+			(or modified
+			    (and (> called 5)
+				 (setq modified
+				       (fill str (read #r"?\u0192")))))))))))
+
+(Assert
+ (eql 55
+      (let ((sequence '(1 2 3 4 5 6 7 8 9 10))
+	    (called 0)
+	    modified)
+	(reduce #'+
+		sequence
+		:key
+		#'(lambda (object) (prog1
+				       object
+				     (incf called)
+				     (and (eql called 5)
+					  (setcdr (nthcdr 3 sequence) nil))
+				     (garbage-collect))))))
+ "checking we can amputate lists without crashing #'reduce")
+
+(Assert (not (eq t (canonicalize-inst-list
+		    `(((mswindows) . [string :data ,(make-string 20 0)])
+		      ((tty) . [string :data " "])) 'image t)))
+	"checking mswindows is always available as a specifier tag")
+
+(Assert (not (eq t (canonicalize-inst-list
+		    `(((mswindows) . [nothing])
+		      ((tty) . [string :data " "]))
+		    'image t)))
+	"checking the correct syntax for a nothing image specifier works")
+
+(Check-Error-Message invalid-argument "^Invalid specifier tag set"
+		     (canonicalize-inst-list
+		      `(((,(gensym)) . [nothing])
+			((tty) . [string :data " "]))
+		      'image))
+
+(Check-Error-Message invalid-argument "^Unrecognized keyword"
+		     (canonicalize-inst-list
+		      `(((mswindows) . [nothing :data "hi there"])
+			((tty) . [string :data " "])) 'image))
+
+;; If we combine both the specifier inst list problems, we get the
+;; unrecognized keyword error first, not the invalid specifier tag set
+;; error. This is a little unintuitive; the specifier tag set thing is
+;; processed first, and would seem to be more important. But anyone writing
+;; code needs to solve both problems, it's reasonable to ask them to do it
+;; in series rather than in parallel.
+
+(when (featurep 'ratio)
+  (Assert (not (eql '1/2 (read (prin1-to-string (intern "1/2")))))
+	  "checking symbols with ratio-like names are printed distinctly")
+  (Assert (not (eql '1/5 (read (prin1-to-string (intern "2/10")))))
+	  "checking symbol named \"2/10\" not eql to ratio 1/5 on read"))
+
+(let* ((count 0)
+       (list (map-into (make-list 2048 nil) #'(lambda () (decf count))))
+       (expected (append list '(1))))
+  (Assert (equal expected (merge 'list list '(1) #'<))
+	  "checking merge's circularity checks are sane"))
 
 ;;; end of lisp-tests.el

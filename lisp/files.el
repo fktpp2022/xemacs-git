@@ -606,15 +606,10 @@ colon-separated list of directories when resolving a relative directory name."
 	(setq cd-path (or (and trypath
 			       (mapcar #'file-name-as-directory trypath))
 			  (list (file-name-as-directory "")))))
-      (or (catch 'found
-	    (mapc #'(lambda (x)
-                      (let ((f (expand-file-name (concat x dir))))
-                        (if (file-directory-p f)
-                            (progn
-                              (cd-absolute f)
-                              (throw 'found t)))))
-                  cd-path)
-	    nil)
+      (or (some #'(lambda (x)
+                    (let ((f (expand-file-name (concat x dir))))
+                      (when (file-directory-p f) (cd-absolute f))))
+                cd-path)
 	  ;; jwz: give a better error message to those of us with the
 	  ;; good taste not to use a kludge like $CDPATH.
 	  (if (equal cd-path '("./"))
@@ -3060,6 +3055,122 @@ always returns non-nil."
 	(basic-save-buffer-1))
     'continue-save-buffer))
 
+(defun diff-buffer-with-file (&optional buffer)
+  "View the differences between BUFFER and its associated file.
+This requires the external program `diff' to be in your `exec-path'."
+  (interactive "bBuffer: ")
+  (with-current-buffer (get-buffer (or buffer (current-buffer)))
+    (if (and buffer-file-name
+	     (file-exists-p buffer-file-name))
+	(let ((tempfile (make-temp-file "buffer-content-")))
+	  (unwind-protect
+	      (save-restriction
+		(widen)
+		(write-region (point-min) (point-max) tempfile nil 'nomessage)
+		(diff-files-for-recover "File" 
+					buffer-file-name tempfile buffer-file-name tempfile
+					buffer-file-coding-system)
+		(sit-for 0))
+	    (when (file-exists-p tempfile)
+	      (delete-file tempfile))))
+      (message "Buffer %s has no associated file on disc" (buffer-name))
+      ;; Display that message for 1 second so that user can read it
+      ;; in the minibuffer.
+      (sit-for 1)))
+  ;; return always nil, so that save-buffers-kill-emacs will not move
+  ;; over to the next unsaved buffer when calling `d'.
+  nil)
+
+(defvar save-some-buffers-action-alist
+  ;;instead of this we just say "yes all", "no all", etc.
+  ;;"save all the rest"
+  ;;"save only this buffer" "save no more buffers")
+  ;; this is rather bogus. --ben
+  ;; (it makes the dialog box too big, and you get an error
+  ;; "wrong type argument: framep, nil" when you hit q after
+  ;; choosing the option from the dialog box)
+
+  ;; We should fix the dialog box rather than disabling
+  ;; this!  --hniksic
+  (list (list ?\C-r (lambda (buf)
+		      ;; #### FSF has an EXIT-ACTION argument
+		      ;; to `view-buffer'.
+		      (view-buffer buf
+;				   (function
+;				    (lambda (ignore)
+;				      (exit-recursive-edit))))
+				   )
+		      (with-boundp 'view-exit-action
+			(setq view-exit-action
+			      (lambda (ignore)
+				(exit-recursive-edit))))
+		      (recursive-edit)
+		      ;; Return nil to ask about BUF again.
+		      nil)
+	      "%_Display Buffer") 
+	(list ?d (lambda (buf)
+		   (save-window-excursion (diff-buffer-with-file buf))
+		   (view-buffer (get-buffer-create "*File Diff*") t)
+		   (with-boundp 'view-exit-action
+		     (setq view-exit-action 
+			   (lambda (ignore)
+			     (exit-recursive-edit))))
+		   (recursive-edit)
+		   ;; Return nil to ask about BUF again.
+		   nil)
+	      "View %_Changes in Buffer")))
+
+(defun diff-files-for-recover (purpose file-1 file-2
+			       failed-file-1 failed-file-2
+			       coding-system)
+  "Diff two files for recovering or comparing against the last saved version.
+PURPOSE is an informational string used for naming the resulting buffer.
+FILE-1 and FILE-2 are the two files to compare.
+FAILED-FILE-1 and FAILED-FILE-2 are the names of files for which we should 
+generate directory listings on failure.
+CODING-SYSTEM is the coding system of the resulting buffer."
+  (with-output-to-temp-buffer (concat "*" purpose " Diff*")
+    (buffer-disable-undo standard-output)
+    (let ((coding-system-for-read coding-system))
+	(condition-case ferr
+	     (progn
+	      (apply #'call-process
+		     recover-file-diff-program
+		     nil standard-output nil
+		     (append
+		      recover-file-diff-arguments
+		      (list file-1 file-2)))
+	      (if (fboundp 'diff-mode)
+		  (save-excursion
+		    (set-buffer standard-output)
+		    (declare-fboundp (diff-mode)))))
+	(io-error
+	 (save-excursion
+	   (let ((switches
+		  (declare-boundp
+		   dired-listing-switches)))
+	     (if (file-symlink-p failed-file-2)
+		 (setq switches (concat switches "L")))
+	     (set-buffer standard-output)
+	     ;; XEmacs had the following line, not in FSF.
+	     (setq default-directory (file-name-directory failed-file-2))
+	     ;; Use insert-directory-safely,
+	     ;; not insert-directory, because
+	     ;; these files might not exist.
+	     ;; In particular, FAILED-FILE-2 might not
+	     ;; exist if the auto-save file
+	     ;; was for a buffer that didn't
+	     ;; visit a file, such as
+	     ;; "*mail*".  The code in v20.x
+	     ;; called `ls' directly, so we
+	     ;; need to emulate what `ls' did
+	     ;; in that case.
+	     (insert-directory-safely failed-file-1 switches)
+	     (insert-directory-safely failed-file-2 switches))
+	   (terpri)
+	   (princ "Error during diff: ")
+	   (display-error ferr standard-output)))))))
+
 (defcustom save-some-buffers-query-display-buffer t
   "*Non-nil makes `\\[save-some-buffers]' switch to the buffer offered for saving."
   :type 'boolean
@@ -3138,32 +3249,7 @@ to consider it or not when called with that buffer current."
 	       (error nil)))
 	   (buffer-list)
 	   '("buffer" "buffers" "save")
-	   ;;instead of this we just say "yes all", "no all", etc.
-	   ;;"save all the rest"
-	   ;;"save only this buffer" "save no more buffers")
-	   ;; this is rather bogus. --ben
-	   ;; (it makes the dialog box too big, and you get an error
-	   ;; "wrong type argument: framep, nil" when you hit q after
-	   ;; choosing the option from the dialog box)
-
-	   ;; We should fix the dialog box rather than disabling
-	   ;; this!  --hniksic
-	   (list (list ?\C-r (lambda (buf)
-			       ;; #### FSF has an EXIT-ACTION argument
-			       ;; to `view-buffer'.
-			       (view-buffer buf
-; 					    (function
-; 					     (lambda (ignore)
-; 					       (exit-recursive-edit))))
-			       )
-			       (with-boundp 'view-exit-action
-				 (setq view-exit-action
-				       (lambda (ignore)
-					 (exit-recursive-edit))))
-			       (recursive-edit)
-			       ;; Return nil to ask about BUF again.
-			       nil)
-		       "%_Display Buffer"))))
+	   save-some-buffers-action-alist))
 	 (abbrevs-done
 	  (and save-abbrevs abbrevs-changed
 	       (progn
@@ -3689,44 +3775,7 @@ Return nil if identical, and the new buffer if different."
 					 'escape-quoted))
 				    (write-region (point-min) (point-max)
 						  temp nil 'silent)))
-				(with-output-to-temp-buffer "*Autosave Diff*"
-				  (buffer-disable-undo standard-output)
-				  (let ((coding-system-for-read
-					 'escape-quoted))
-				    (condition-case ferr
-					(apply #'call-process
-					       recover-file-diff-program
-					       nil standard-output nil
-					       (append
-						recover-file-diff-arguments
-						(list temp file-name)))
-				      (io-error
-				       (save-excursion
-					 (let ((switches
-						(declare-boundp
-						 dired-listing-switches)))
-					   (if (file-symlink-p file)
-					       (setq switches (concat switches "L")))
-					   (set-buffer standard-output)
-					   ;; XEmacs had the following line, not in FSF.
-					   (setq default-directory (file-name-directory file))
-					   ;; Use insert-directory-safely,
-					   ;; not insert-directory, because
-					   ;; these files might not exist.
-					   ;; In particular, FILE might not
-					   ;; exist if the auto-save file
-					   ;; was for a buffer that didn't
-					   ;; visit a file, such as
-					   ;; "*mail*".  The code in v20.x
-					   ;; called `ls' directly, so we
-					   ;; need to emulate what `ls' did
-					   ;; in that case.
-					   (insert-directory-safely file switches)
-					   (insert-directory-safely file-name switches))
-					 (terpri)
-					 (princ "Error during diff: ")
-					 (display-error ferr
-							standard-output)))))))
+				(diff-files-for-recover "Autosave" temp file-name file file-name 'escape-quoted))
 			    (ignore-errors (kill-buffer buffer))
 			    (ignore-file-errors
 			     (delete-file temp)))))))))))))))
@@ -4400,9 +4449,10 @@ be a predicate function such as `yes-or-no-p'."
 With prefix arg, silently save all file-visiting buffers, then kill."
   (interactive "P")
   (save-some-buffers arg t)
-  (and (or (not (memq t (mapcar #'(lambda (buf) (and (buffer-file-name buf)
-						     (buffer-modified-p buf)))
-				(buffer-list))))
+  (and (or (not (some #'(lambda (buf)
+                          (and (buffer-file-name buf)
+			       (buffer-modified-p buf)))
+                      (buffer-list)))
 	   (yes-or-no-p "Modified buffers exist; exit anyway? "))
        (or (not (fboundp 'process-list))
 	   ;; process-list is not defined on VMS.
