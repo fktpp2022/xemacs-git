@@ -1038,6 +1038,12 @@
  1)
  "checking multiple values are correctly discarded in mapcar")
 
+(let ((malformed-list '(1 2 3 4 hi there . tail)))
+  (Check-Error malformed-list (mapcar #'identity malformed-list))
+  (Check-Error malformed-list (map nil #'eq [1 2 3 4]
+				   malformed-list))
+  (Check-Error malformed-list (list-length malformed-list)))
+
 ;;-----------------------------------------------------
 ;; Test vector functions
 ;;-----------------------------------------------------
@@ -2475,5 +2481,32 @@ via the hepatic alpha-tocopherol transfer protein")))
        (expected (append list '(1))))
   (Assert (equal expected (merge 'list list '(1) #'<))
 	  "checking merge's circularity checks are sane"))
+
+(flet ((list-nreverse (list)
+	 (do ((list1 list (cdr list1))
+	      (list2 nil (prog1 list1 (setcdr list1 list2))))
+	     ((atom list1) list2))))
+  (let* ((integers (loop for i from 0 to 6000 collect i))
+	 (characters (mapcan #'(lambda (integer)
+				 (if (char-int-p integer)
+				     (list (int-char integer)))) integers))
+	 (fourth-bit #'(lambda (integer) (ash (logand #x10 integer) -4)))
+	 (bits (mapcar fourth-bit integers))
+	 (vector (vconcat integers))
+	 (string (concat characters))
+	 (bit-vector (bvconcat bits)))
+    (Assert (equal (reverse vector)
+	     (vconcat (list-nreverse (copy-list integers)))))
+    (Assert (eq vector (nreverse vector)))
+    (Assert (equal vector (vconcat (list-nreverse (copy-list integers)))))
+    (Assert (equal (reverse string)
+	     (concat (list-nreverse (copy-list characters)))))
+    (Assert (eq string (nreverse string)))
+    (Assert (equal string (concat (list-nreverse (copy-list characters)))))
+    (Assert (eq bit-vector (nreverse bit-vector)))
+    (Assert (equal (bvconcat (list-nreverse (copy-list bits))) bit-vector))
+    (Assert (not (equal bit-vector
+			(mapcar fourth-bit
+				(loop for i from 0 to 6000 collect i)))))))
 
 ;;; end of lisp-tests.el
