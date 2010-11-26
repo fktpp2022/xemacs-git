@@ -1369,7 +1369,8 @@ CHARACTER is one of the following:
   int ichar, unicode;
 
   CHECK_CHAR (character);
-  CHECK_NATNUM (code);
+
+  check_integer_range (code, Qzero, make_integer (EMACS_INT_MAX));
 
   unicode = XINT (code);
   ichar = XCHAR (character);
@@ -1445,7 +1446,7 @@ internal encoding.
   int lbs[NUM_LEADING_BYTES];
   int c;
 
-  CHECK_NATNUM (code);
+  check_integer_range (code, Qzero, make_integer (EMACS_INT_MAX));
   c = XINT (code);
   {
     EXTERNAL_LIST_LOOP_2 (elt, charsets)
@@ -1471,7 +1472,7 @@ internal encoding.
     return make_char (ret);
   }
 #else
-  CHECK_NATNUM (code);
+  check_integer_range (code, Qzero, make_integer (EMACS_INT_MAX));
   return Fint_to_char (code);
 #endif /* MULE */
 }
