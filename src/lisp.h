@@ -3639,6 +3639,10 @@ extern MODULE_API int specpdl_depth_counter;
   DECLARE_N_KEYWORDS_5(a,b,c,d,e), f = Qnil
 #define DECLARE_N_KEYWORDS_7(a,b,c,d,e,f,g)     \
   DECLARE_N_KEYWORDS_6(a,b,c,d,e,f), g = Qnil
+#define DECLARE_N_KEYWORDS_8(a,b,c,d,e,f,g,h)	\
+  DECLARE_N_KEYWORDS_7(a,b,c,d,e,f,g), h = Qnil
+#define DECLARE_N_KEYWORDS_9(a,b,c,d,e,f,g,h,i)	\
+  DECLARE_N_KEYWORDS_8(a,b,c,d,e,f,g,h), i = Qnil
 
 #define CHECK_N_KEYWORDS_1(a)                                           \
     else if (EQ (pk_key, Q_##a)) { a = pk_value; }
@@ -3654,6 +3658,12 @@ extern MODULE_API int specpdl_depth_counter;
     else if (EQ (pk_key, Q_##f)) { f = pk_value; }
 #define CHECK_N_KEYWORDS_7(a,b,c,d,e,f,g)   CHECK_N_KEYWORDS_6(a,b,c,d,e,f) \
     else if (EQ (pk_key, Q_##g)) { g = pk_value; }
+#define CHECK_N_KEYWORDS_8(a,b,c,d,e,f,g,h)		\
+  CHECK_N_KEYWORDS_7(a,b,c,d,e,f,g)			\
+  else if (EQ (pk_key, Q_##h)) { h = pk_value; }
+#define CHECK_N_KEYWORDS_9(a,b,c,d,e,f,g,h,i)		\
+  CHECK_N_KEYWORDS_8(a,b,c,d,e,f,g,h)			\
+  else if (EQ (pk_key, Q_##i)) { i = pk_value; }
 
 Boolint non_nil_allow_other_keys_p (Elemcount offset, int nargs,
                                     Lisp_Object *args);
@@ -5303,9 +5313,11 @@ EXFUN (Freally_free, 1);
 /* Defined in general.c */
 #define SYMBOL(fou) extern Lisp_Object fou
 #define SYMBOL_MODULE_API(fou) extern MODULE_API Lisp_Object fou
-#define SYMBOL_KEYWORD(la_cle_est_fou) extern Lisp_Object la_cle_est_fou
+#define SYMBOL_KEYWORD(la_cle_est_folle) extern Lisp_Object la_cle_est_folle
 #define SYMBOL_GENERAL(tout_le_monde, est_fou) \
   extern Lisp_Object tout_le_monde
+#define SYMBOL_KEYWORD_GENERAL(y_compris_ben, mais_que_peut_on_faire) \
+  extern Lisp_Object y_compris_ben
 
 #include "general-slots.h"
 
@@ -5313,6 +5325,7 @@ EXFUN (Freally_free, 1);
 #undef SYMBOL_MODULE_API
 #undef SYMBOL_KEYWORD
 #undef SYMBOL_GENERAL
+#undef SYMBOL_KEYWORD_GENERAL
 
 extern Lisp_Object Qeq;
 extern Lisp_Object Qeql;

@@ -73,7 +73,7 @@ Fixnum last_abbrev_location;
 /* Hook to run before expanding any abbrev.  */
 Lisp_Object Vpre_abbrev_expand_hook, Qpre_abbrev_expand_hook;
 
-Lisp_Object Qsystem_type, Qcount;
+Lisp_Object Qsystem_type;
 
 struct abbrev_match_mapper_closure
 {
@@ -556,9 +556,6 @@ READABLE is non-nil, they are listed.  */
 void
 syms_of_abbrev (void)
 {
-  DEFSYMBOL(Qcount);
-  Qcount = intern ("count");
-  staticpro (&Qcount);
   DEFSYMBOL(Qsystem_type);
   Qsystem_type = intern ("system-type");
   DEFSYMBOL (Qpre_abbrev_expand_hook);

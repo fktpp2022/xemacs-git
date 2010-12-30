@@ -30,6 +30,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    SYMBOL_KEYWORD (Q_foo); declares a keyword symbol ":foo"
    SYMBOL_GENERAL (Qfoo, "bar"); declares a symbol named "bar" but stored in
      the variable Qfoo
+   SYMBOL_KEYWORD_GENERAL (Q_foo_, ":bar"); declares a keyword named ":bar"
+      but stored in the variable Q_foo_. 
 
 To sort the crap in this file, use the following:
 
@@ -90,6 +92,7 @@ SYMBOL_KEYWORD (Q_config);
 SYMBOL (Qconsole);
 SYMBOL (Qcontrol_1);
 SYMBOL (Qcopies);
+SYMBOL (Qcount);
 SYMBOL_MODULE_API (Qcritical);
 SYMBOL (Qctext);
 SYMBOL (Qcurrent);
@@ -100,6 +103,9 @@ SYMBOL (Qdde);
 SYMBOL (Qdead);
 SYMBOL (Qdebug);
 SYMBOL (Qdefault);
+/* We name the C variable corresponding to the keyword Q_default_, not
+   Q_default, to allow it to be useful with PARSE_KEYWORDS (). */
+SYMBOL_KEYWORD_GENERAL (Q_default_, ":default");
 SYMBOL_MODULE_API (Qdelete);
 SYMBOL (Qdelq);
 SYMBOL (Qdescription);
@@ -268,6 +274,7 @@ SYMBOL (Qstandard);
 SYMBOL_KEYWORD (Q_start);
 SYMBOL (Qstream);
 SYMBOL (Qstring);
+SYMBOL (Qstring_match);
 SYMBOL_KEYWORD (Q_style);
 SYMBOL_KEYWORD (Q_suffix);
 SYMBOL (Qsubtype);
@@ -277,6 +284,7 @@ SYMBOL (Qsyntax);
 SYMBOL (Qsystem_default);
 SYMBOL (Qterminal);
 SYMBOL (Qtest);
+SYMBOL_KEYWORD (Q_test);
 SYMBOL (Qtext);
 SYMBOL_KEYWORD (Q_text);
 SYMBOL (Qthis_command);

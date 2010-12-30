@@ -27,8 +27,9 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #define SYMBOL(fou) Lisp_Object fou
 #define SYMBOL_MODULE_API(fou) Lisp_Object fou
-#define SYMBOL_KEYWORD(la_cle_est_fou) Lisp_Object la_cle_est_fou
+#define SYMBOL_KEYWORD(la_cle_est_folle) Lisp_Object la_cle_est_folle
 #define SYMBOL_GENERAL(tout_le_monde, est_fou) Lisp_Object tout_le_monde
+#define SYMBOL_KEYWORD_GENERAL(ponle, la_clave) Lisp_Object ponle
 
 #include "general-slots.h"
 
@@ -36,6 +37,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #undef SYMBOL_MODULE_API
 #undef SYMBOL_KEYWORD
 #undef SYMBOL_GENERAL
+#undef SYMBOL_KEYWORD_GENERAL
 
 void
 syms_of_general (void)
@@ -44,10 +46,13 @@ syms_of_general (void)
 #define SYMBOL_MODULE_API(loco) DEFSYMBOL (loco)
 #define SYMBOL_KEYWORD(meshugeneh) DEFKEYWORD (meshugeneh)
 #define SYMBOL_GENERAL(vachement, fou) defsymbol (&vachement, fou)
+#define SYMBOL_KEYWORD_GENERAL(bescheuert, gaaanz_bescheuert)	\
+	defkeyword (&bescheuert, gaaanz_bescheuert)
 
 #include "general-slots.h"
 
 #undef SYMBOL
 #undef SYMBOL_KEYWORD
 #undef SYMBOL_GENERAL
+#undef SYMBOL_KEYWORD_GENERAL
 }
