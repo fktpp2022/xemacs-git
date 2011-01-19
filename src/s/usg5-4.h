@@ -122,7 +122,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 /* This sets the name of the master side of the PTY. */
 
-#define PTY_NAME_SPRINTF strcpy (pty_name, "/dev/ptmx");
+#define PTY_NAME_SPRINTF qxestrcpy_ascii (pty_name, "/dev/ptmx");
 
 /* This sets the name of the slave side of the PTY.  On SysVr4,
    grantpt(3) forks a subprocess, so keep sigchld_handler() from
@@ -148,7 +148,8 @@ char *ptsname ();
       { close (fd); return -1; }			\
     if (!(ptyname = ptsname (fd)))			\
       { close (fd); return -1; }			\
-    strncpy (pty_name, ptyname, sizeof (pty_name));	\
+    qxestrncpy_ascii (pty_name, ptyname,		\
+		      sizeof (pty_name));		\
     pty_name[sizeof (pty_name) - 1] = 0;		\
   }
 

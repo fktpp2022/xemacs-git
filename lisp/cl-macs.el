@@ -3340,12 +3340,44 @@ surrounded by (block NAME ...)."
       (list 'if (list* 'member* a list keys) list (list 'cons a list))
     form))
 
-(define-compiler-macro remove (item sequence)
-  `(remove* ,item ,sequence :test #'equal))
+(define-compiler-macro delete (&whole form &rest args)
+  (symbol-macrolet
+      ((not-constant '#:not-constant))
+    (let ((cl-const-expr-val (cl-const-expr-val (nth 1 form) not-constant)))
+      (if (and (cdr form) (not (eq not-constant cl-const-expr-val))
+	       (or (symbolp cl-const-expr-val) (fixnump cl-const-expr-val)
+		   (characterp cl-const-expr-val)))
+	  (cons 'delete* (cdr form))
+	`(delete* ,@(cdr form) :test #'equal)))))
 
-(define-compiler-macro remq (item sequence)
-  `(remove* ,item ,sequence :test #'eq))
+(define-compiler-macro delq (&whole form &rest args)
+  (symbol-macrolet
+      ((not-constant '#:not-constant))
+    (let ((cl-const-expr-val (cl-const-expr-val (nth 1 form) not-constant)))
+      (if (and (cdr form) (not (eq not-constant cl-const-expr-val))
+	       (not (cl-non-fixnum-number-p cl-const-expr-val)))
+	  (cons 'delete* (cdr form))
+	`(delete* ,@(cdr form) :test #'eq)))))
 
+(define-compiler-macro remove (&whole form &rest args)
+  (symbol-macrolet
+      ((not-constant '#:not-constant))
+    (let ((cl-const-expr-val (cl-const-expr-val (nth 1 form) not-constant)))
+      (if (and (cdr form) (not (eq not-constant cl-const-expr-val))
+	       (or (symbolp cl-const-expr-val) (fixnump cl-const-expr-val)
+		   (characterp cl-const-expr-val)))
+	  (cons 'remove* (cdr form))
+	`(remove* ,@(cdr form) :test #'equal)))))
+
+(define-compiler-macro remq (&whole form &rest args)
+  (symbol-macrolet
+      ((not-constant '#:not-constant))
+    (let ((cl-const-expr-val (cl-const-expr-val (nth 1 form) not-constant)))
+      (if (and (cdr form) (not (eq not-constant cl-const-expr-val))
+	       (not (cl-non-fixnum-number-p cl-const-expr-val)))
+	  (cons 'remove* (cdr form))
+	`(remove* ,@(cdr form) :test #'eq)))))
+ 
 (macrolet
     ((define-foo-if-compiler-macros (&rest alist)
        "Avoid the funcall, variable binding and keyword parsing overhead
@@ -3797,10 +3829,9 @@ the byte optimizer in those cases."
    (cdadar cdr cadar) (cdaddr cdr caddr) (cddaar cdr cdaar)
    (cddadr cdr cdadr) (cdddar cdr cddar) (cddddr cdr cdddr)))
 
-;;; Things that are inline.
-(proclaim '(inline acons map concatenate
-;; XEmacs omission: gethash is builtin
-		   cl-set-elt revappend nreconc))
+;;; Things that are inline. XEmacs; the functions that used to be here have
+;;; compiler macros or are built-in.
+(proclaim '(inline cl-set-elt))
 
 ;;; Things that are side-effect-free.  Moved to byte-optimize.el
 ;(mapcar (function (lambda (x) (put x 'side-effect-free t)))
