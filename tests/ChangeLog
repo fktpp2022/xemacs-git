@@ -1,3 +1,25 @@
+2011-02-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el:
+	Test lexical scope for `block', `return-from'; add a
+	Known-Bug-Expect-Failure for a contorted example that fails when
+	byte-compiled.
+
+2011-01-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el:
+	When sanity-checking :start and :end keyword arguments, loop at
+	macroexpansion time, not runtime, allowing us to pick up any
+	compiler macros and giving a clearer *Test-Log* buffer.
+
+2011-01-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el (test-fun):
+	#'delete* and friends can now throw a wrong-type-argument if
+	handed a non-sequence; accept this too when checking for an error
+	when passing a fixnum as the SEQUENCE argument.
+	Check #'remove*, #'remove and #'remq too.
+
 2011-01-15  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/lisp-tests.el (list): Test #'concatenate, especially

@@ -509,7 +509,11 @@ easily determined from the input file.")
 		    "%s is not of type %s" form type)))
 	   (if byte-compile-delete-errors
 	       form
-	     (funcall (cdr (symbol-function 'the)) type form)))))
+	     (funcall (cdr (symbol-function 'the)) type form))))
+    (return-from .
+      ,#'(lambda (name &optional result) `(return-from-1 ',name ,result)))
+    (block .
+      ,#'(lambda (name &rest body) `(block-1 ',name ,@body))))
   "The default macro-environment passed to macroexpand by the compiler.
 Placing a macro here will cause a macro to have different semantics when
 expanded by the compiler as when expanded by the interpreter.")
@@ -3727,13 +3731,10 @@ forcing function quoting" ,en (car form))))
 	    ;; Odd number of args?  Let `set' get the error.
 	    (byte-compile-form `(set ',var) for-effect)
 	  (setq val (pop args))
-	  (if (keywordp var)
-	      ;; (setq :foo ':foo) compatibility kludge
-	      (byte-compile-form `(set ',var ,val) (if args t for-effect))
-	    (byte-compile-form val)
-	    (unless (or args for-effect)
-	      (byte-compile-out 'byte-dup 0))
-	    (byte-compile-variable-ref 'byte-varset var))))))
+          (byte-compile-form val)
+          (unless (or args for-effect)
+            (byte-compile-out 'byte-dup 0))
+          (byte-compile-variable-ref 'byte-varset var)))))
   (setq for-effect nil))
 
 (defun byte-compile-set (form)
@@ -3743,11 +3744,10 @@ forcing function quoting" ,en (car form))))
   (let ((symform (nth 1 form))
 	(valform (nth 2 form))
 	sym)
-    (if (and (= (length form) 3)
-	     (= (safe-length symform) 2)
+    (if (and (eql (length form) 3)
+	     (eql (safe-length symform) 2)
 	     (eq (car symform) 'quote)
-	     (symbolp (setq sym (car (cdr symform))))
-	     (not (byte-compile-constant-symbol-p sym)))
+	     (symbolp (setq sym (car (cdr symform)))))
 	(byte-compile-setq `(setq ,sym ,valform))
       (byte-compile-two-args form))))
 
@@ -4184,6 +4184,8 @@ forcing function quoting" ,en (car form))))
 ;;; other tricky macro-like special-operators
 
 (byte-defop-compiler-1 catch)
+(byte-defop-compiler-1 block-1)
+(byte-defop-compiler-1 return-from-1)
 (byte-defop-compiler-1 unwind-protect)
 (byte-defop-compiler-1 condition-case)
 (byte-defop-compiler-1 save-excursion)
@@ -4197,6 +4199,39 @@ forcing function quoting" ,en (car form))))
   (byte-compile-push-constant
     (byte-compile-top-level (cons 'progn (cdr (cdr form))) for-effect))
   (byte-compile-out 'byte-catch 0))
+
+;; `return-from' and `block' are different from `throw' and `catch' when it
+;; comes to scope and extent. These differences are implemented for
+;; interpreted code in cl-macs.el, in compiled code in bytecomp.el. There's
+;; a certain amount of bootstrapping needed for the latter, and until this
+;; is done return-from and block behave as throw and catch in their scope
+;; and extent. This is only relevant to people working on bytecomp.el.
+
+(defalias 'return-from-1 'throw)
+(defalias 'block-1 'catch)
+
+(defvar byte-compile-active-blocks nil)
+
+(defun byte-compile-block-1 (form)
+  (let* ((name (nth 1 (nth 1 form)))
+	 (elt (list name (copy-symbol name) nil))
+	 (byte-compile-active-blocks (cons elt byte-compile-active-blocks))
+	 (body (byte-compile-top-level (cons 'progn (cddr form)))))
+    (if (nth 2 elt)
+	(byte-compile-catch `(catch ',(nth 1 elt) ,body))
+      (byte-compile-form body))))
+
+(defun byte-compile-return-from-1 (form)
+  (let* ((name (nth 1 (nth 1 form)))
+	 (assq (assq name byte-compile-active-blocks)))
+    (if assq
+	(setf (nth 2 assq) t)
+      (byte-compile-warn
+       "return-from: %S: no current lexical block with this name"
+       name))
+    (byte-compile-throw
+     `(throw ',(or (nth 1 assq) (copy-symbol name))
+             ,@(nthcdr 2 form)))))
 
 (defun byte-compile-unwind-protect (form)
   (byte-compile-push-constant

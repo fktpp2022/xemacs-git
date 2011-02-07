@@ -1,3 +1,74 @@
+2011-02-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* keymap.c (describe_map_sort_predicate): Correct the order of
+	arguments to map_keymap_sort_predicate() here. Thanks again, Mats.
+
+2011-02-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* symbols.c (Fapropos_internal):
+	Supply check_string_lessp_nokey explicitly as the CHECK_MERGE
+	argument to list_sort(), NULL no longer works. Thank you Mats
+	Lidell in IRC!
+
+2011-02-05  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fns.c:
+	* fns.c (check_lss_key, check_lss_key_car): New.
+	* fns.c (check_string_lessp_key check_string_lessp_key_car): New.
+	* fns.c (get_merge_predicate): New.
+	* fns.c (list_merge):
+	* fns.c (array_merge):
+	* fns.c (list_array_merge_into_list):
+	* fns.c (list_list_merge_into_array):
+	* fns.c (list_array_merge_into_array):
+	* fns.c (Fmerge):
+	* fns.c (list_sort):
+	* fns.c (array_sort):
+	* fns.c (FsortX):
+	* fns.c (syms_of_fns):
+	* lisp.h:
+	Move #'sort, #'merge to using the same test approach as is used in
+	the functions that take TEST, TEST-NOT and KEY arguments.  This
+	allows us to avoid the Ffuncall() overhead when the most common
+	PREDICATE arguments are supplied, in particular #'< and
+	#'string-lessp.
+
+	* fontcolor-msw.c (sort_font_list_function):
+	* fontcolor-msw.c (mswindows_enumerate_fonts):
+	* dired.c:
+	* dired.c (Fdirectory_files):
+	* fileio.c:
+	* fileio.c (build_annotations):
+	* fileio.c (syms_of_fileio):
+	* keymap.c:
+	* keymap.c (keymap_submaps):
+	* keymap.c (map_keymap_sort_predicate):
+	* keymap.c (describe_map_sort_predicate):
+	* keymap.c (describe_map):
+	Change the various C predicates passed to list_sort () and
+	list_merge () to fit the new calling convention, returning
+	non-zero if the first argument is less than the second, zero
+	otherwise.
+
+2011-01-30  Michael Sperber  <mike@xemacs.org>
+
+	* redisplay.h: 
+	* redisplay.c: 
+	(redisplay_cancel_ritual_suicide): 
+	* eval.c (throw_or_bomb_out_unsafe): 
+	* device-x.c (x_IO_error_handler): Don't commit suicide when an X
+	device dies.
+
+2011-01-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* file-coding.c (complex_vars_of_file_coding):
+	* intl-win32.c (complex_vars_of_intl_win32):
+	* profile.c (Fget_profiling_info):
+	* unicode.c (complex_vars_of_unicode):
+	Replace various awkward calls to nconc2 () with list6 () with
+	analogous calls to Ben's relatively-recently introduced listu (),
+	constructing a list from an arbitrary number of C arguments.
+
 2011-01-18  Mike Sperber  <mike@xemacs.org>
 
 	* s/freebsd.h: Zap. Not really needed anymore, and it has unclear

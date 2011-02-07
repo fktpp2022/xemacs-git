@@ -61,7 +61,7 @@ Lisp_Object Q_start1, Q_start2, Q_end1, Q_end2, Q_if_, Q_if_not, Q_stable;
 Lisp_Object Q_test_not, Q_count, Qnsubstitute, Qdelete_duplicates, Qmismatch;
 
 Lisp_Object Qintersection, Qset_difference, Qnset_difference;
-Lisp_Object Qnunion, Qnintersection, Qsubsetp;
+Lisp_Object Qnunion, Qnintersection, Qsubsetp, Qcar_less_than_car;
 
 Lisp_Object Qbase64_conversion_error;
 
@@ -207,9 +207,6 @@ DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("bit-vector", bit_vector,
 
 /* Various test functions for #'member*, #'assoc* and the other functions
    that take both TEST and KEY arguments.  */
-
-typedef Boolint (*check_test_func_t) (Lisp_Object test, Lisp_Object key,
-				      Lisp_Object item, Lisp_Object elt);
 
 static Boolint
 check_eq_nokey (Lisp_Object UNUSED (test), Lisp_Object UNUSED (key),
@@ -437,7 +434,84 @@ check_match_other_key (Lisp_Object test, Lisp_Object key,
 
   return !NILP (elt1);
 }
+
+static Boolint
+check_lss_nokey (Lisp_Object UNUSED (test), Lisp_Object UNUSED (key),
+		 Lisp_Object elt1, Lisp_Object elt2)
+{
+  return bytecode_arithcompare (elt1, elt2) < 0;
+}
 
+static Boolint
+check_lss_key (Lisp_Object UNUSED (test), Lisp_Object key,
+	       Lisp_Object elt1, Lisp_Object elt2)
+{
+  Lisp_Object args[] = { key, elt1, elt2 };
+  struct gcpro gcpro1;
+
+  GCPRO1 (args[0]);
+  gcpro1.nvars = countof (args);
+  args[0] = IGNORE_MULTIPLE_VALUES (Ffuncall (2, args));
+  args[1] = key;
+  args[1] = IGNORE_MULTIPLE_VALUES (Ffuncall (2, args + 1));
+  UNGCPRO;
+
+  return bytecode_arithcompare (args[0], args[1]) < 0;
+}
+
+Boolint
+check_lss_key_car (Lisp_Object UNUSED (test), Lisp_Object UNUSED (key),
+		   Lisp_Object elt1, Lisp_Object elt2)
+{
+  struct gcpro gcpro1, gcpro2;
+
+  GCPRO2 (elt1, elt2);
+  elt1 = CONSP (elt1) ? XCAR (elt1) : Fcar (elt1);
+  elt2 = CONSP (elt2) ? XCAR (elt2) : Fcar (elt2);
+  UNGCPRO;
+
+  return bytecode_arithcompare (elt1, elt2) < 0;
+}
+
+Boolint
+check_string_lessp_nokey (Lisp_Object UNUSED (test), Lisp_Object UNUSED (key),
+			  Lisp_Object elt1, Lisp_Object elt2)
+{
+  return !NILP (Fstring_lessp (elt1, elt2));
+}
+
+static Boolint
+check_string_lessp_key (Lisp_Object UNUSED (test), Lisp_Object key,
+			Lisp_Object elt1, Lisp_Object elt2)
+{
+  Lisp_Object args[] = { key, elt1, elt2 };
+  struct gcpro gcpro1;
+
+  GCPRO1 (args[0]);
+  gcpro1.nvars = countof (args);
+  args[0] = IGNORE_MULTIPLE_VALUES (Ffuncall (2, args));
+  args[1] = key;
+  args[1] = IGNORE_MULTIPLE_VALUES (Ffuncall (2, args + 1));
+  UNGCPRO;
+
+  return !NILP (Fstring_lessp (args[0], args[1]));
+}
+
+static Boolint
+check_string_lessp_key_car (Lisp_Object UNUSED (test),
+			    Lisp_Object UNUSED (key),
+			    Lisp_Object elt1, Lisp_Object elt2)
+{
+  struct gcpro gcpro1, gcpro2;
+
+  GCPRO2 (elt1, elt2);
+  elt1 = CONSP (elt1) ? XCAR (elt1) : Fcar (elt1);
+  elt2 = CONSP (elt2) ? XCAR (elt2) : Fcar (elt2);
+  UNGCPRO;
+
+  return !NILP (Fstring_lessp (elt1, elt2));
+}
+
 static check_test_func_t
 get_check_match_function_1 (Lisp_Object item,
 			    Lisp_Object *test_inout, Lisp_Object test_not,
@@ -644,6 +718,72 @@ get_check_match_function (Lisp_Object *test_inout, Lisp_Object test_not,
 				     test_not_unboundp_out, test_func_out);
 }
 
+/* Given PREDICATE and KEY, return a C function pointer appropriate for use
+   in deciding whether one given elements of a sequence is less than
+   another. */
+
+static check_test_func_t
+get_merge_predicate (Lisp_Object predicate, Lisp_Object key)
+{
+  predicate = indirect_function (predicate, 1);
+
+  if (NILP (key))
+    {
+      key = Qidentity;
+    }
+  else
+    {
+      key = indirect_function (key, 1);
+      if (EQ (key, XSYMBOL_FUNCTION (Qidentity)))
+	{
+	  key = Qidentity;
+	}
+    }
+
+  if (EQ (key, Qidentity) && EQ (predicate,
+				 XSYMBOL_FUNCTION (Qcar_less_than_car)))
+    {
+      key = XSYMBOL_FUNCTION (Qcar);
+      predicate = XSYMBOL_FUNCTION (Qlss);
+    }
+
+  if (EQ (predicate, XSYMBOL_FUNCTION (Qlss)))
+    {
+      if (EQ (key, Qidentity))
+	{
+	  return check_lss_nokey;
+	}
+
+      if (EQ (key, XSYMBOL_FUNCTION (Qcar)))
+	{
+	  return check_lss_key_car;
+	}
+
+      return check_lss_key;
+    }
+
+  if (EQ (predicate, XSYMBOL_FUNCTION (Qstring_lessp)))
+    {
+      if (EQ (key, Qidentity))
+	{
+	  return check_string_lessp_nokey;
+	}
+
+      if (EQ (key, XSYMBOL_FUNCTION (Qcar)))
+	{
+	  return check_string_lessp_key_car;
+	}
+
+      return check_string_lessp_key;
+    }
+
+  if (EQ (key, Qidentity))
+    {
+      return check_other_nokey;
+    }
+
+  return check_match_other_key;
+}
 
 DEFUN ("identity", Fidentity, 1, 1, 0, /*
 Return the argument unchanged.
@@ -4692,58 +4832,10 @@ See also the function `nreverse', which is used more often.
   return result;
 }
 
-static Lisp_Object
-c_merge_predicate_key (Lisp_Object obj1, Lisp_Object obj2,
-                       Lisp_Object pred, Lisp_Object key_func)
-{
-  struct gcpro gcpro1;
-  Lisp_Object args[3];
-
-  /* We could use call2() and call3() here, but we're called O(nlogn) times
-     for a sequence of length n, it make some sense to inline them. */
-  args[0] = key_func;
-  args[1] = obj1;
-  args[2] = Qnil;
-
-  GCPRO1 (args[0]);
-  gcpro1.nvars = countof (args);
-
-  obj1 = IGNORE_MULTIPLE_VALUES (Ffuncall (2, args));
-
-  args[1] = obj2;
-  obj2 = IGNORE_MULTIPLE_VALUES (Ffuncall (2, args));
-
-  args[0] = pred;
-  args[1] = obj1;
-  args[2] = obj2;
-
-  RETURN_UNGCPRO (IGNORE_MULTIPLE_VALUES (Ffuncall (countof (args), args)));
-}
-
-static Lisp_Object
-c_merge_predicate_nokey (Lisp_Object obj1, Lisp_Object obj2,
-                         Lisp_Object pred, Lisp_Object UNUSED (key_func))
-{
-  struct gcpro gcpro1;
-  Lisp_Object args[3];
-
-  /* This is (almost) the implementation of call2, it makes some sense to
-     inline it here. */
-  args[0] = pred;
-  args[1] = obj1;
-  args[2] = obj2;
-
-  GCPRO1 (args[0]);
-  gcpro1.nvars = countof (args);
-
-  RETURN_UNGCPRO (IGNORE_MULTIPLE_VALUES (Ffuncall (countof (args), args)));
-}
-
 Lisp_Object
 list_merge (Lisp_Object org_l1, Lisp_Object org_l2,
-            Lisp_Object (*c_predicate) (Lisp_Object, Lisp_Object,
-                                        Lisp_Object, Lisp_Object),
-            Lisp_Object predicate, Lisp_Object key_func)
+	    check_test_func_t check_merge,
+	    Lisp_Object predicate, Lisp_Object key)
 {
   Lisp_Object value;
   Lisp_Object tail;
@@ -4760,15 +4852,8 @@ list_merge (Lisp_Object org_l1, Lisp_Object org_l2,
   tortoises[0] = org_l1;
   tortoises[1] = org_l2; 
 
-  if (NULL == c_predicate)
-    {
-      c_predicate = EQ (key_func, Qidentity) ?
-        c_merge_predicate_nokey : c_merge_predicate_key;
-    }
-
-  /* It is sufficient to protect org_l1 and org_l2.
-     When l1 and l2 are updated, we copy the new values
-     back into the org_ vars.  */
+  /* It is sufficient to protect org_l1 and org_l2.  When l1 and l2 are
+     updated, we copy the new values back into the org_ vars.  */
 
   GCPRO5 (org_l1, org_l2, predicate, value, tortoises[0]);
   gcpro5.nvars = 2;
@@ -4792,7 +4877,7 @@ list_merge (Lisp_Object org_l1, Lisp_Object org_l2,
 	  return value;
 	}
 
-      if (NILP (c_predicate (Fcar (l2), Fcar (l1), predicate, key_func)))
+      if (check_merge (predicate, key, Fcar (l2), Fcar (l1)) == 0)
 	{
 	  tem = l1;
 	  l1 = Fcdr (l1);
@@ -4854,9 +4939,8 @@ static void
 array_merge (Lisp_Object *dest, Elemcount dest_len,
              Lisp_Object *front, Elemcount front_len,
              Lisp_Object *back, Elemcount back_len,
-             Lisp_Object (*c_predicate) (Lisp_Object, Lisp_Object,
-                                         Lisp_Object, Lisp_Object),
-             Lisp_Object predicate, Lisp_Object key_func)
+	     check_test_func_t check_merge,
+             Lisp_Object predicate, Lisp_Object key)
 {
   Elemcount ii, fronting, backing;
   Lisp_Object *front_staging = front;
@@ -4918,8 +5002,8 @@ array_merge (Lisp_Object *dest, Elemcount dest_len,
           return;
         }
 
-      if (NILP (c_predicate (back_staging[backing], front_staging[fronting],
-                             predicate, key_func)))
+      if (check_merge (predicate, key, back_staging[backing],
+		       front_staging[fronting]) == 0)
         {
           dest[ii] = front_staging[fronting];
           ++fronting;
@@ -4937,11 +5021,8 @@ array_merge (Lisp_Object *dest, Elemcount dest_len,
 static Lisp_Object
 list_array_merge_into_list (Lisp_Object list,
                             Lisp_Object *array, Elemcount array_len,
-                            Lisp_Object (*c_predicate) (Lisp_Object,
-                                                        Lisp_Object,
-                                                        Lisp_Object,
-                                                        Lisp_Object),
-                            Lisp_Object predicate, Lisp_Object key_func,
+			    check_test_func_t check_merge,
+                            Lisp_Object predicate, Lisp_Object key,
                             Boolint reverse_order)
 {
   Lisp_Object tail = Qnil, value = Qnil, tortoise = list;
@@ -4980,10 +5061,8 @@ list_array_merge_into_list (Lisp_Object list,
 
 
       if (reverse_order ?
-          !NILP (c_predicate (Fcar (list), array [array_index], predicate,
-                              key_func)) :
-          NILP (c_predicate (array [array_index], Fcar (list), predicate,
-                             key_func)))
+	  check_merge (predicate, key, Fcar (list), array [array_index])
+	  : !check_merge (predicate, key, array [array_index], Fcar (list)))
         {
           if (NILP (tail))
             {
@@ -5029,11 +5108,8 @@ list_array_merge_into_list (Lisp_Object list,
 static void
 list_list_merge_into_array (Lisp_Object *output, Elemcount output_len,
                             Lisp_Object list_one, Lisp_Object list_two,
-                            Lisp_Object (*c_predicate) (Lisp_Object,
-                                                        Lisp_Object,
-                                                        Lisp_Object,
-                                                        Lisp_Object),
-                            Lisp_Object predicate, Lisp_Object key_func)
+			    check_test_func_t check_merge,
+                            Lisp_Object predicate, Lisp_Object key)
 {
   Elemcount output_index = 0;
 
@@ -5059,8 +5135,8 @@ list_list_merge_into_array (Lisp_Object *output, Elemcount output_len,
           return;
         }
 
-      if (NILP (c_predicate (Fcar (list_two), Fcar (list_one), predicate,
-                             key_func)))
+      if (check_merge (predicate, key, Fcar (list_two), Fcar (list_one))
+	  == 0)
         {
           output [output_index] = XCAR (list_one);
           list_one = XCDR (list_one);
@@ -5081,11 +5157,8 @@ static void
 list_array_merge_into_array (Lisp_Object *output, Elemcount output_len,
                              Lisp_Object list,
                              Lisp_Object *array, Elemcount array_len,
-                             Lisp_Object (*c_predicate) (Lisp_Object,
-                                                         Lisp_Object,
-                                                         Lisp_Object,
-                                                         Lisp_Object),
-                             Lisp_Object predicate, Lisp_Object key_func,
+			     check_test_func_t check_merge,
+                             Lisp_Object predicate, Lisp_Object key,
                              Boolint reverse_order)
 {
   Elemcount output_index = 0, array_index = 0;
@@ -5119,10 +5192,8 @@ list_array_merge_into_array (Lisp_Object *output, Elemcount output_len,
         }
 
       if (reverse_order ? 
-          !NILP (c_predicate (Fcar (list), array [array_index], predicate,
-                              key_func)) :
-          NILP (c_predicate (array [array_index], Fcar (list), predicate,
-                             key_func)))
+	  check_merge (predicate, key, Fcar (list), array [array_index]) :
+	  !check_merge (predicate, key, array [array_index], Fcar (list)))
         {
           output [output_index] = XCAR (list);
           list = XCDR (list);
@@ -5170,8 +5241,7 @@ arguments: (TYPE SEQUENCE-ONE SEQUENCE-TWO PREDICATE &key (KEY #'IDENTITY))
 {
   Lisp_Object type = args[0], sequence_one = args[1], sequence_two = args[2],
     predicate = args[3], result = Qnil;
-  Lisp_Object (*c_predicate) (Lisp_Object, Lisp_Object, Lisp_Object,
-			      Lisp_Object);
+  check_test_func_t check_merge = NULL;
 
   PARSE_KEYWORDS (Fmerge, nargs, args, 1, (key), NULL);
 
@@ -5180,8 +5250,7 @@ arguments: (TYPE SEQUENCE-ONE SEQUENCE-TWO PREDICATE &key (KEY #'IDENTITY))
 
   CHECK_KEY_ARGUMENT (key);
 
-  c_predicate = EQ (key, Qidentity) ?
-    c_merge_predicate_nokey : c_merge_predicate_key;
+  check_merge = get_merge_predicate (predicate, key);
 
   if (EQ (type, Qlist) && (LISTP (sequence_one) || LISTP (sequence_two)))
     {
@@ -5197,7 +5266,7 @@ arguments: (TYPE SEQUENCE-ONE SEQUENCE-TWO PREDICATE &key (KEY #'IDENTITY))
         }
       else if (CONSP (sequence_one) && CONSP (sequence_two))
 	{
-	  result = list_merge (sequence_one, sequence_two, c_predicate,
+	  result = list_merge (sequence_one, sequence_two, check_merge,
                                predicate, key);
 	}
       else
@@ -5239,8 +5308,7 @@ arguments: (TYPE SEQUENCE-ONE SEQUENCE-TWO PREDICATE &key (KEY #'IDENTITY))
 
           result = list_array_merge_into_list (sequence_one,
                                                array_storage, array_length,
-                                               c_predicate,
-                                               predicate, key,
+                                               check_merge, predicate, key,
                                                reverse_order);
         }
     }
@@ -5304,8 +5372,7 @@ arguments: (TYPE SEQUENCE-ONE SEQUENCE-TWO PREDICATE &key (KEY #'IDENTITY))
         {
           list_list_merge_into_array (output + 1, output_len - 1,
                                       sequence_one, sequence_two,
-                                      c_predicate, predicate,
-                                      key);
+                                      check_merge, predicate, key);
         }
       else if (LISTP (sequence_one))
         {
@@ -5313,8 +5380,7 @@ arguments: (TYPE SEQUENCE-ONE SEQUENCE-TWO PREDICATE &key (KEY #'IDENTITY))
                                        sequence_one,
                                        sequence_two_storage,
                                        sequence_two_len,
-                                       c_predicate, predicate,
-                                       key, 0);
+                                       check_merge, predicate, key, 0);
         }
       else if (LISTP (sequence_two))
         {
@@ -5322,15 +5388,14 @@ arguments: (TYPE SEQUENCE-ONE SEQUENCE-TWO PREDICATE &key (KEY #'IDENTITY))
                                        sequence_two,
                                        sequence_one_storage,
                                        sequence_one_len,
-                                       c_predicate, predicate,
-                                       key, 1);
+                                       check_merge, predicate, key, 1);
         }
       else
         {
           array_merge (output + 1, output_len - 1,
                        sequence_one_storage, sequence_one_len,
                        sequence_two_storage, sequence_two_len,
-                       c_predicate, predicate,
+                       check_merge, predicate,
                        key);
         }
 
@@ -5347,13 +5412,9 @@ arguments: (TYPE SEQUENCE-ONE SEQUENCE-TWO PREDICATE &key (KEY #'IDENTITY))
   return result;
 }
 
-/* The sort function should return non-nil if OBJ1 < OBJ2, nil otherwise.
-   NOTE: This is backwards from the way qsort() works. */
 Lisp_Object
-list_sort (Lisp_Object list,
-           Lisp_Object (*c_predicate) (Lisp_Object, Lisp_Object, 
-                                       Lisp_Object, Lisp_Object),
-           Lisp_Object predicate, Lisp_Object key_func)
+list_sort (Lisp_Object list, check_test_func_t check_merge,
+	   Lisp_Object predicate, Lisp_Object key)
 {
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
   Lisp_Object back, tem;
@@ -5363,29 +5424,22 @@ list_sort (Lisp_Object list,
   if (XINT (len) < 2)
     return list;
 
-  if (NULL == c_predicate)
-    {
-      c_predicate = EQ (key_func, Qidentity) ? c_merge_predicate_nokey :
-        c_merge_predicate_key;
-    }
-
   len = make_int (XINT (len) / 2 - 1);
   tem = Fnthcdr (len, list);
   back = Fcdr (tem);
   Fsetcdr (tem, Qnil);
 
-  GCPRO4 (front, back, predicate, key_func);
-  front = list_sort (front, c_predicate, predicate, key_func);
-  back = list_sort (back, c_predicate, predicate, key_func);
+  GCPRO4 (front, back, predicate, key);
+  front = list_sort (front, check_merge, predicate, key);
+  back = list_sort (back, check_merge, predicate, key);
 
-  RETURN_UNGCPRO (list_merge (front, back, c_predicate, predicate, key_func));
+  RETURN_UNGCPRO (list_merge (front, back, check_merge, predicate, key));
 }
 
 static void
 array_sort (Lisp_Object *array, Elemcount array_len,
-            Lisp_Object (*c_predicate) (Lisp_Object, Lisp_Object, 
-                                        Lisp_Object, Lisp_Object),
-            Lisp_Object predicate, Lisp_Object key_func)
+	    check_test_func_t check_merge,
+	    Lisp_Object predicate, Lisp_Object key)
 {
   Elemcount split;
 
@@ -5394,11 +5448,11 @@ array_sort (Lisp_Object *array, Elemcount array_len,
 
   split = array_len / 2;
 
-  array_sort (array, split, c_predicate, predicate, key_func);
-  array_sort (array + split, array_len - split, c_predicate, predicate,
-	      key_func);
+  array_sort (array, split, check_merge, predicate, key);
+  array_sort (array + split, array_len - split, check_merge, predicate,
+	      key);
   array_merge (array, array_len, array, split, array + split,
-	       array_len - split, c_predicate, predicate, key_func);
+	       array_len - split, check_merge, predicate, key);
 }            
 
 DEFUN ("sort*", FsortX, 2, MANY, 0, /*
@@ -5421,8 +5475,7 @@ arguments: (SEQUENCE PREDICATE &key (KEY #'IDENTITY))
 {
   Lisp_Object sequence = args[0], predicate = args[1];
   Lisp_Object *sequence_carray;
-  Lisp_Object (*c_predicate) (Lisp_Object, Lisp_Object, Lisp_Object,
-                              Lisp_Object);
+  check_test_func_t check_merge = NULL;
   Elemcount sequence_len, i;
 
   PARSE_KEYWORDS (FsortX, nargs, args, 1, (key), NULL);
@@ -5431,17 +5484,16 @@ arguments: (SEQUENCE PREDICATE &key (KEY #'IDENTITY))
 
   CHECK_KEY_ARGUMENT (key);
 
-  c_predicate = EQ (key, Qidentity) ?
-    c_merge_predicate_nokey : c_merge_predicate_key;
+  check_merge = get_merge_predicate (predicate, key);
 
   if (LISTP (sequence))
     {
-      sequence = list_sort (sequence, c_predicate, predicate, key);
+      sequence = list_sort (sequence, check_merge, predicate, key);
     }
   else if (VECTORP (sequence))
     {
       array_sort (XVECTOR_DATA (sequence), XVECTOR_LENGTH (sequence),
-                  c_predicate, predicate, key);
+                  check_merge, predicate, key);
     }
   else if (STRINGP (sequence))
     {
@@ -5452,7 +5504,7 @@ arguments: (SEQUENCE PREDICATE &key (KEY #'IDENTITY))
       STRING_DATA_TO_OBJECT_ARRAY (strdata, sequence_carray, i, sequence_len);
 
       /* No GCPRO necessary, characters are immediate. */
-      array_sort (sequence_carray, sequence_len, c_predicate, predicate, key);
+      array_sort (sequence_carray, sequence_len, check_merge, predicate, key);
 
       strdata = XSTRING_DATA (sequence);
 
@@ -5474,7 +5526,7 @@ arguments: (SEQUENCE PREDICATE &key (KEY #'IDENTITY))
       BIT_VECTOR_TO_OBJECT_ARRAY (v, sequence_carray, i, sequence_len);
 
       /* No GCPRO necessary, bits are immediate. */
-      array_sort (sequence_carray, sequence_len, c_predicate, predicate, key);
+      array_sort (sequence_carray, sequence_len, check_merge, predicate, key);
 
       for (i = 0; i < sequence_len; ++i)
         {
@@ -11696,6 +11748,7 @@ syms_of_fns (void)
   DEFSYMBOL (Qintersection);
   DEFSYMBOL (Qnintersection);
   DEFSYMBOL (Qsubsetp);
+  DEFSYMBOL (Qcar_less_than_car);
   DEFSYMBOL (Qset_difference);
   DEFSYMBOL (Qnset_difference);
   DEFSYMBOL (Qnunion);
