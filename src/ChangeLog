@@ -1,3 +1,63 @@
+2011-04-17  Jeff Sparkes  <jsparkes@gmail.com>
+
+	* device-tty.c (tty_device_system_metrics): Fix compile issues for
+	C89 compilers.  Use log() instead of log2().
+
+2011-04-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fns.c (count_with_tail):
+	This can be legitimately called from #'delete* with a specified
+	COUNT keyword value, accept this in the assertion.
+	* fns.c (FdeleteX):
+	* fns.c (FremoveX):
+	If COUNT is specified and FROM-END is non-nil, set COUNT to nil in
+	the argument vector, so count_with_tail doesn't see it when
+	calculating the total number of times an item occurs.  Fixes
+	problems with the interaction of :count and :from-end.
+
+2011-04-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fns.c (FremoveX):
+	* fns.c (sublis):
+	Correct some nesting of GCPRO and UNGCPRO here, revealed by the
+	the C++ build compiling core Lisp. Thank you Mats' buildbot!
+
+2011-04-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lisp.h (GC_EXTERNAL_LIST_LOOP_3, GC_EXTERNAL_LIST_LOOP_4): New.
+	* fns.c (count_with_tail, list_position_cons_before, FassocX):
+	* fns.c (FrassocX, position, FdeleteX, FremoveX):
+	* fns.c (list_delete_duplicates_from_end):
+	* fns.c (Fdelete_duplicates, Fremove_duplicates, Freduce):
+	* fns.c (Fnsubstitute, Fsubstitute, sublis, nsublis, Fnsublis):
+	* fns.c (venn, nvenn, Funion, Fset_exclusive_or, Fnset_exclusive_or):
+	Use GC_EXTERNAL_LIST_LOOP_* in the sequence functions in fns.c
+	where appropriate, there were some corner cases where my old
+	approach was unsafe (mainly if the circularity checking's tortoise
+	lost GCPRO protection.
+	Add GC_EXTERNAL_LIST_LOOP_{3,4}, analogous to
+	GC_EXTERNAL_LIST_LOOP_2.
+
+2011-03-28  Jeff Sparkes  <jsparkes@gmail.com>
+
+	* console-tty-impl.h (struct tty_console): Add field for number of
+	displayable colors.
+	* device-tty.c (tty_device_system_metrics): Return metrics for
+	num-color-cells and num-bit-planes.  Tracker issue 757.
+	* device.c: There are two required args for device-system-metric.
+	* redisplay-tty.c (init_tty_for_redisplay): Retrieve number of
+	colors from terminal description.  Default to 2 if none found.
+
+2011-03-24  Jerry James  <james@xemacs.org>
+
+	* alloc.c (listu): Assemble the list in the right order so we don't
+	have to reverse it.
+	(listn): Ditto.
+	* dired.c (Ffile_attributes): Use listn instead of building an array
+	to pass to Flist.  GC protect the mode string.
+	* editfns.c (Fdecode_time): Use listn instead of Flist.
+	* faces.c (vars_of_faces): Use listu instead of Flist.
+
 2011-03-24  Jerry James  <james@xemacs.org>
 
 	* README.kkcc: "occured" -> "occurred".

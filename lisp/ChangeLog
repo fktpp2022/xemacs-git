@@ -1,3 +1,110 @@
+2011-04-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* font.el:
+	* font.el (font-warn): Removed.
+	* font.el (font-hex-string-to-number): Removed.
+	* font.el (internal-facep):
+	* font.el (font-lookup-rgb-components):
+	* font.el (font-parse-rgb-components):
+	Use #'string-to-number with the BASE argument instead of
+	#'font-hex-string-to-number, #'display-warning instead of
+	#'font-warn.
+	This entire file smells bitrotted, with lots of functions of very
+	little relevance to XEmacs, but addressing that is more work than
+	I can do today.
+
+2011-04-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl-extra.el:
+	* cl-extra.el ('char<): New.
+	* cl-extra.el ('char>=): New.
+	* cl-extra.el ('char>): New.
+	* cl-extra.el ('char<=): New.
+	* cl-extra.el (alpha-char-p): New.
+	* cl-extra.el (graphic-char-p): New.
+	* cl-extra.el (standard-char-p): New.
+	* cl-extra.el (char-name): New.
+	* cl-extra.el (name-char): New.
+	* cl-extra.el (upper-case-p): New.
+	* cl-extra.el (lower-case-p): New.
+	* cl-extra.el (both-case-p): New.
+	* cl-extra.el (char-upcase): New.
+	* cl-extra.el (char-downcase): New.
+	* cl-extra.el (integer-length): New.
+	Add various functions dealing (mainly) with characters, making
+	some Common Lisp code easier to port.
+	* descr-text.el (describe-char-unicode-data):
+	Add an autoload for this function, used by #'char-name.
+
+2011-04-12  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* mule/mule-win32-init.el (windows-874):
+	No longer create this coding system, now it's provided by thai.el;
+	thanks for the report of the associated Win32 build problem, Mats!
+
+2011-04-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* unicode.el (load-unicode-tables):
+	No longer include thai-xtis in the default Unicode precedence list.
+	* mule/thai.el:
+	* mule/thai.el (tis-620):
+	* mule/thai.el (windows-874):
+	* mule/thai.el ("Thai"):
+	Move the Thai language environment and the TIS-620 coding system
+	to this file; add support for Microsoft's code page 874.
+	* mule/thai-util.el:
+	* mule/thai-xtis.el:
+	Remove these two files; XTIS was always non-standard and was never
+	widely implemented, and we've never supported the character
+	composition necessary for thai-util.el.
+	* dumped-lisp.el (preloaded-file-list):
+	Drop thai-xtis, dump thai.el instead.
+
+2011-04-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl.el (cadr, caddr, cadddr):
+	Document some equivalences for these functions.
+
+2011-04-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecomp.el (byte-compile-output-preface): New.
+	* bytecomp.el (byte-compile-output-file-form):
+	* bytecomp.el (byte-compile-output-docform):
+	* bytecomp.el (byte-compile-file-form):
+	* bytecomp.el (byte-compile-file-form-defmumble):
+	* bytecomp.el (symbol-value):
+	* bytecomp.el (byte-compile-symbol-value): New.
+	* cl-macs.el (load-time-value):
+	No longer implement load-time-value by very hackishly redefining
+	#'byte-compile-file-form-defmumble, instead make the appropriate
+	changes in #'byte-compile-file-form-defmumble and
+	#'byte-compile-file-form instead. We also add a specific byte-compile
+	method for #'symbol-value, using the add-properties-to-a-gensym
+	approach that worked for #'block and #'return-from.
+
+2011-03-29  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl-extra.el (cl-finite-do, cl-float-limits):
+	Don't make these available as functions in the dumped image, since
+	they're only called at dump time.
+	* obsolete.el (cl-float-limits):
+	Make this an alias to #'identity (since it's called at dump time),
+	mark it as obsolete in 21.5.
+
+2011-03-29  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl.el:
+	* cl.el (least-positive-float):
+	* cl.el (least-positive-normalized-float):
+	* cl.el (least-negative-normalized-float):
+	* cl.el (float-epsilon):
+	* cl.el (float-negative-epsilon):
+	Document some previously-undocumented float constants here.
+	* cl.el (oddp):
+	* cl.el (evenp):
+	Change numeric comparison to use #'eql instead of #'eq in
+	passing.
+
 2011-03-24  Jerry James  <james@xemacs.org>
 
 	* cl-macs.el (loop): "arbitary" -> "arbitrary".

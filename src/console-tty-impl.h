@@ -61,6 +61,8 @@ struct tty_console
   int height;
   int width;
 
+  int colors;
+
   /* The count of frame number. */
   int frame_count;
 
