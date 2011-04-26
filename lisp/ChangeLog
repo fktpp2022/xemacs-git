@@ -1,3 +1,26 @@
+2011-04-26  Stephen J. Turnbull  <stephen@xemacs.org>
+
+	* XEmacs 21.5.30 "garlic" is released.
+
+2011-04-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl-macs.el (symbol-macrolet):
+	* cl-macs.el (lexical-let):
+	* cl.el:
+	* cl.el (cl-macroexpand):
+	Distinct symbol macros with identical string names should
+	nonetheless expand to different things; implement this, storing
+	the symbol's eq-hash in the macro environment, rather than its
+	string name.
+
+2011-04-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl-extra.el (define-char-comparisons):
+	Add type-checking when the various character-specific comparison
+	predicates are used; don't check types if
+	byte-compile-delete-errors is non-nil at compile-time, instead use
+	the corresponding built-in numeric byte codes.
+
 2011-04-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* font.el:
