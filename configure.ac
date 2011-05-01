@@ -63,20 +63,18 @@ in the this directory.  You must have autoconf version 2.59.
 
 This file is part of XEmacs.
 
-XEmacs is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your
+XEmacs is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
 option) any later version.
 
-XEmacs is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-General Public License for more details.
+XEmacs is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
 
 You should have received a copy of the GNU General Public License
-along with XEmacs; see the file COPYING.  If not, write to the Free
-Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.
+along with XEmacs.  If not, see <http://www.gnu.org/licenses/>.
 
 For usage, run `./configure --help'
 For more detailed information on building and installing XEmacs,
@@ -977,9 +975,6 @@ XE_MERGED_ARG([workshop],
 XE_MERGED_ARG([sparcworks],
 	AS_HELP_STRING([--with-sparcworks],[Alias for --with-workshop]),
 	[], [])
-XE_MERGED_ARG([infodock],
-	AS_HELP_STRING([--with-infodock],[Support the Infodock version of XEmacs.  Infodock is a SourceForge project).]),
-	[], [])
 dnl
 XE_HELP_SUBSECTION([Debugging options])
 XE_MERGED_ARG([debug],
@@ -1032,13 +1027,13 @@ XE_MERGED_ARG([quick-build],
 	AS_HELP_STRING([--with-quick-build],[Speed up the build cycle by leaving out steps where
                         XEmacs will still work (more or less) without them.
                         Potentially dangerous if you don't know what you're
-                        doing. This (1) doesn't garbage-collect after loading
-                        each file during dumping, (2) doesn't
+                        doing. This (1) Doesn't garbage-collect after loading
+                        each file during dumping, (2) Doesn't
                         automatically rebuild the DOC file (remove it by hand
                         to get it rebuilt), (3) Removes config.h, lisp.h and
                         associated files from the dependency lists, so changes
                         to these files don't automatically cause all .c files
-                        to be rebuilt.]),
+                        to be rebuilt, (4) Doesn't check for Lisp shadows.]),
 	[], [])
 XE_MERGED_ARG([union-type],
 	AS_HELP_STRING([--with-union-type],[Use union definition of Lisp_Object type.  Known to trigger bugs in some compilers.]),
@@ -1108,6 +1103,7 @@ then
   AC_DEFINE(INFODIR_USER_DEFINED)
   AC_DEFINE(LISPDIR_USER_DEFINED)
   AC_DEFINE(ETCDIR_USER_DEFINED)
+  AC_DEFINE(LATE_PACKAGE_DIRECTORIES_USER_DEFINED)
 fi
 
 if test "x$libdir" != "x\${exec_prefix}/lib"
@@ -1128,6 +1124,7 @@ with_sitelispdir='${datadir}/${inststaticdir}/site-lisp'
 inststaticdir='${PROGNAME}'
 instvardir='${PROGNAME}-${version}'
 sitemoduledir='${libdir}/${inststaticdir}/site-modules'
+with_late_packages='${datadir}/${PROGNAME}'
 
 AC_SUBST(inststaticdir)
 AC_SUBST(statedir,$with_statedir)
@@ -1226,27 +1223,8 @@ if test "$xemacs_release_date" != ""; then
 fi
 AC_DEFINE_UNQUOTED(EMACS_VERSION, "$version")
 
-if test "$with_infodock" = "yes"; then
-  if test ! -f ../../ID-INSTALL; then
-    echo "Cannot build InfoDock without InfoDock sources"
-    with_infodock=no
-  fi
-fi
-
-if test "$with_infodock" = "yes"; then
-  dnl InfoDock version numbers.  XEmacs will use the same style of numbering
-  dnl after the release of XEmacs 21.0.
-  AC_DEFINE_UNQUOTED(INFODOCK_MAJOR_VERSION, $infodock_major_version)
-  AC_DEFINE_UNQUOTED(INFODOCK_MINOR_VERSION, $infodock_minor_version)
-  AC_DEFINE_UNQUOTED(INFODOCK_BUILD_VERSION, $infodock_build_version)
-  version=${infodock_major_version}.${infodock_minor_version}.${infodock_build_version}
-  PROGNAME=infodock
-  SHEBANG_PROGNAME=infodock-script
-  CPPFLAGS="$CPPFLAGS -DINFODOCK"
-else
-  PROGNAME=xemacs
-  SHEBANG_PROGNAME=xemacs-script
-fi
+PROGNAME=xemacs
+SHEBANG_PROGNAME=xemacs-script
 
 AC_SUBST(SHEBANG_PROGNAME)
 
@@ -4489,7 +4467,7 @@ else
   dnl We define our own getloadavg() using lower level functions.
   XE_ADD_OBJS(getloadavg.o)
 
-  dnl Used by getloadavg() - does not require root priveleges
+  dnl Used by getloadavg() - does not require root privileges
   AC_CHECK_LIB(kstat, kstat_open)
   AC_CHECK_HEADERS(kstat.h)
 

@@ -8,7 +8,7 @@
 
 ;; This file is part of XEmacs.
 
-;; GNU Emacs is free software: you can redistribute it and/or modify
+;; XEmacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
@@ -19,7 +19,7 @@
 ;; General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with XEmacs.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Synced up with: FSF 23.1.92.
 ;;; Synced by: Ben Wing, 2-17-10.
@@ -364,7 +364,7 @@ Returns the count of paragraphs left to move."
 	  (forward-char 1))
 	(if (< (point) (point-max))
 	    (goto-char start))))
-    (if-fboundp #'constrain-to-field
+    (if-fboundp 'constrain-to-field
         (constrain-to-field nil opoint t)
       (error
        'void-function
@@ -490,7 +490,7 @@ sentences.  Also, every paragraph boundary terminates sentences as well."
 	   (skip-chars-backward " \t\n")
 	 (goto-char par-end)))
       (setq arg (1- arg)))
-    (if-fboundp #'constrain-to-field
+    (if-fboundp 'constrain-to-field
         (constrain-to-field nil opoint t)
       (error
        'void-function
