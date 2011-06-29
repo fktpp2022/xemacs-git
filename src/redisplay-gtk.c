@@ -24,6 +24,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define THIS_IS_GTK
 #include "redisplay-xlike-inc.c"
 
+void gtk_fill_rectangle (cairo_t *cr, gint x, gint y, gint width, gint height);
+
 /*****************************************************************************
  Draw a shadow around the given area using the standard theme engine routines.
  ****************************************************************************/
@@ -44,11 +46,11 @@ XLIKE_bevel_area (struct window *w, face_index UNUSED (findex),
   else
     switch (style)
       {
-      case EDGE_BEVEL_IN: style = GTK_SHADOW_IN; break;
-      case EDGE_BEVEL_OUT: style = GTK_SHADOW_OUT; break;
-      case EDGE_ETCHED_IN: style = GTK_SHADOW_ETCHED_IN; break;
-      case EDGE_ETCHED_OUT: style = GTK_SHADOW_ETCHED_OUT; break;
-      default: ABORT (); style = GTK_SHADOW_OUT;
+      case EDGE_BEVEL_IN: stype = GTK_SHADOW_IN; break;
+      case EDGE_BEVEL_OUT: stype = GTK_SHADOW_OUT; break;
+      case EDGE_ETCHED_IN: stype = GTK_SHADOW_ETCHED_IN; break;
+      case EDGE_ETCHED_OUT: stype = GTK_SHADOW_ETCHED_OUT; break;
+      default: ABORT (); stype = GTK_SHADOW_OUT;
       }
 
   /* Do we want to have some magic constants to set
@@ -74,70 +76,89 @@ XLIKE_ring_bell (struct device *UNUSED (d), int volume, int UNUSED (pitch),
 }
 
 
-/* This makes me feel incredibly dirty... but there is no other way to
-   get this done right other than calling clear_area before every
-   single $#!%@ing piece of text, which I do NOT want to do. */
-#define USE_X_SPECIFIC_DRAW_ROUTINES 1
-
 #include "sysgdkx.h"
 
-static void
-gdk_draw_text_image (GdkDrawable *drawable,
-		     GdkFont     *font,
-		     GdkGC       *gc,
-		     gint         x,
-		     gint         y,
-		     const gchar *text,
-		     gint         text_length)
+void gtk_fill_rectangle (cairo_t *cr, gint x, gint y,
+                         gint width, gint height)
 {
-#if !USE_X_SPECIFIC_DRAW_ROUTINES
-  int width = gdk_text_measure (font, text, text_length);
-  int height = gdk_text_height (font, text, text_length);
+  GdkRectangle area;
+  area.x = x; area.y = y;
+  area.width = width;
+  area.height = height;
 
-  gdk_draw_rectangle (drawable, gc, TRUE, x, y, width, height);
-  gdk_draw_text (drawable, font, gc, x, y, text, text_length);
-#else
-  GdkWindowPrivate *drawable_private;
-  GdkFontPrivate *font_private;
-  GdkGCPrivate *gc_private;
-
-  g_return_if_fail (drawable != NULL);
-  g_return_if_fail (font != NULL);
-  g_return_if_fail (gc != NULL);
-  g_return_if_fail (text != NULL);
-
-  drawable_private = (GdkWindowPrivate*) drawable;
-  if (drawable_private->destroyed)
-    return;
-  gc_private = (GdkGCPrivate*) gc;
-  font_private = (GdkFontPrivate*) font;
-
-  if (font->type == GDK_FONT_FONT)
-    {
-      XFontStruct *xfont = (XFontStruct *) font_private->xfont;
-      XSetFont(drawable_private->xdisplay, gc_private->xgc, xfont->fid);
-      if ((xfont->min_byte1 == 0) && (xfont->max_byte1 == 0))
-	{
-	  XDrawImageString (drawable_private->xdisplay, drawable_private->xwindow,
-			    gc_private->xgc, x, y, text, text_length);
-	}
-      else
-	{
-	  XDrawImageString16 (drawable_private->xdisplay, drawable_private->xwindow,
-			      gc_private->xgc, x, y, (XChar2b *) text, text_length / 2);
-	}
-    }
-  else if (font->type == GDK_FONT_FONTSET)
-    {
-      XFontSet fontset = (XFontSet) font_private->xfont;
-      XmbDrawImageString (drawable_private->xdisplay, drawable_private->xwindow,
-			  fontset, gc_private->xgc, x, y, text, text_length);
-    }
-  else
-    g_error("undefined font type\n");
-#endif
+  /* Set new clip region and fill it. */
+  cairo_save (cr);
+  cairo_new_path (cr);
+  gdk_cairo_rectangle (cr, &area);
+  cairo_fill (cr);
+  cairo_new_path (cr);
+  gdk_cairo_rectangle (cr, &area);
+  cairo_restore (cr);
 }
 
+/*
+ * Only this function can erase the text area because the text area
+ * is calculated by pango.
+ */
+static void
+gdk_draw_text_image (GtkWidget *widget, struct face_cachel *cachel, GdkGC *gc,
+		     gint x, gint y, struct textual_run *run)
+{
+  Lisp_Object font_inst = FACE_CACHEL_FONT (cachel, run->charset);
+  Lisp_Font_Instance *fi = XFONT_INSTANCE (font_inst);
+  gint width = 0;
+  gint height = 0;
+  
+  GdkDrawable *drawable = gtk_widget_get_window (widget);
+  cairo_t *cr = gdk_cairo_create (drawable);
+  PangoContext *context = gtk_widget_get_pango_context (widget);
+  PangoLayout *layout = pango_layout_new (context);
+  PangoFontDescription *pfd = FONT_INSTANCE_GTK_FONT_DESC (fi);
+  PangoFontMetrics *pfm = FONT_INSTANCE_GTK_FONT_METRICS (fi);
+  PangoAttrList *attr_list = pango_attr_list_new ();
+  gint ascent;
+
+  GdkColor *fg = XCOLOR_INSTANCE_GTK_COLOR (cachel->foreground);
+  GdkColor *bg = XCOLOR_INSTANCE_GTK_COLOR (cachel->background);
+
+  pango_attr_list_insert (attr_list,
+                          pango_attr_foreground_new (fg->red,
+                                                     fg->green,
+                                                     fg->blue));
+  if (bg)
+    pango_attr_list_insert (attr_list,
+                            pango_attr_background_new (bg->red,
+                                                       bg->green,
+                                                       bg->blue));
+  if (cachel->strikethru)
+    pango_attr_list_insert (attr_list,
+                            pango_attr_strikethrough_new (TRUE));
+  if (cachel->underline)
+    pango_attr_list_insert (attr_list,
+                            pango_attr_underline_new (PANGO_UNDERLINE_SINGLE));
+  
+  pango_layout_set_attributes (layout, attr_list);
+  pango_layout_set_font_description (layout, pfd);
+  
+  assert (run->dimension == 1);  /* UTF-8 only. */
+  pango_layout_set_text (layout, (const char *)run->ptr, run->len);
+  pango_layout_get_pixel_size (layout, &width, &height);
+  ascent = pango_font_metrics_get_ascent (pfm) / PANGO_SCALE;
+
+  /* gdk_cairo_set_source_color (cr, bg); */
+  /* gtk_fill_rectangle (cr, x, y - ascent, width, height); */
+
+  /* xft draw */
+  /* pango_xft_layout_render (xft_draw, xft_color, layout, x, y); */
+
+  /* Gtk draw */
+  gdk_draw_layout (drawable, gc, x, y - ascent, layout);
+  cairo_destroy (cr);
+  g_object_unref (layout);
+  pango_attr_list_unref (attr_list);
+}
+
+#ifdef NOTUSED
 static void
 our_draw_bitmap (GdkDrawable *drawable,
 		 GdkGC       *gc,
@@ -149,30 +170,53 @@ our_draw_bitmap (GdkDrawable *drawable,
 		 gint         width,
 		 gint         height)
 {
-  GdkWindowPrivate *drawable_private;
-  GdkWindowPrivate *src_private;
-  GdkGCPrivate *gc_private;
+  gint src_width, src_height;
 
   g_return_if_fail (drawable != NULL);
   g_return_if_fail (src != NULL);
   g_return_if_fail (gc != NULL);
 
-  drawable_private = (GdkWindowPrivate*) drawable;
-  src_private = (GdkWindowPrivate*) src;
-  if (drawable_private->destroyed || src_private->destroyed)
-    return;
-  gc_private = (GdkGCPrivate*) gc;
+  gdk_drawable_get_size (src, &src_width, &src_height);
 
   if (width == -1)
-    width = src_private->width;
+    width = src_width;
   if (height == -1)
-    height = src_private->height;
+    height = src_height;
 
-  XCopyPlane (drawable_private->xdisplay,
-	     src_private->xwindow,
-	     drawable_private->xwindow,
-	     gc_private->xgc,
-	     xsrc, ysrc,
-	     width, height,
-	     xdest, ydest, 1L);
+  gdk_draw_drawable(drawable, gc, src, xsrc, ysrc, xdest, ydest,
+                    width, height);
+}
+
+#endif
+
+/* We always have to layout text to include combining marks etc. */
+static int
+XLIKE_text_width_single_run (struct frame *f,
+			     struct face_cachel *cachel,
+			     struct textual_run *run)
+{
+  Lisp_Object font_inst = FACE_CACHEL_FONT (cachel, run->charset);
+  Lisp_Font_Instance *fi = XFONT_INSTANCE (font_inst);
+  GtkWidget *widget = FRAME_GTK_TEXT_WIDGET (f);
+  gint width, height;
+  PangoContext *context = gtk_widget_get_pango_context (widget);
+  PangoLayout *layout = pango_layout_new (context);
+  PangoFontDescription *pfd = FONT_INSTANCE_GTK_FONT_DESC (fi);
+  Lisp_Object font = FACE_CACHEL_FONT (cachel, run->charset);
+  PangoAttrList *attr_list = pango_attr_list_new ();
+
+  if (cachel->strikethru)
+    pango_attr_list_insert (attr_list,
+                            pango_attr_strikethrough_new (TRUE));
+  if (cachel->underline)
+    pango_attr_list_insert (attr_list,
+                            pango_attr_underline_new (PANGO_UNDERLINE_SINGLE));
+  
+  pango_layout_set_attributes (layout, attr_list);
+  pango_layout_set_font_description (layout, pfd);
+  pango_layout_set_text (layout, (const char *)run->ptr, run->len);
+  pango_layout_get_pixel_size (layout, &width, &height);
+  g_object_unref (layout);
+  pango_attr_list_unref (attr_list);
+  return width;
 }

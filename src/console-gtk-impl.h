@@ -39,9 +39,12 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "console-gtk.h"
 #include <X11/Xlib.h>
 
-#define GDK_DRAWABLE(x) (GdkDrawable *) (x)
+#ifndef GDK_DRAWABLE
+//#define GDK_DRAWABLE(x) (GdkDrawable *) (x)
+#endif
 #define GET_GTK_WIDGET_WINDOW(x) (GTK_WIDGET (x)->window)
 #define GET_GTK_WIDGET_PARENT(x) (GTK_WIDGET (x)->parent)
+#define GCHAR(x) ((gchar *)x)
 
 DECLARE_CONSOLE_TYPE (gtk);
 
@@ -61,6 +64,9 @@ struct gtk_device
   int depth;
   GdkColormap *device_cmap;
 
+  PangoContext *context;
+  PangoFontMap *font_map;
+  
   /* Used by x_bevel_modeline in redisplay-x.c */
   GdkBitmap *gray_pixmap;
 
@@ -126,6 +132,8 @@ DECLARE_LISP_OBJECT (gtk_device, Lisp_Gtk_Device);
 #define DEVICE_GTK_VISUAL(d)	(DEVICE_GTK_DATA (d)->visual)
 #define DEVICE_GTK_DEPTH(d)	(DEVICE_GTK_DATA (d)->depth)
 #define DEVICE_GTK_COLORMAP(d) 	(DEVICE_GTK_DATA (d)->device_cmap)
+#define DEVICE_GTK_CONTEXT(d) 	(DEVICE_GTK_DATA (d)->context)
+#define DEVICE_GTK_FONT_MAP(d)	(DEVICE_GTK_DATA (d)->font_map)
 #define DEVICE_GTK_APP_SHELL(d) 	(DEVICE_GTK_DATA (d)->gtk_app_shell)
 #define DEVICE_GTK_GC_CACHE(d) 	(DEVICE_GTK_DATA (d)->gc_cache)
 #define DEVICE_GTK_GRAY_PIXMAP(d) (DEVICE_GTK_DATA (d)->gray_pixmap)
@@ -246,12 +254,12 @@ DECLARE_LISP_OBJECT (gtk_frame, Lisp_Gtk_Frame);
 extern struct console_type *gtk_console_type;
 
 /* Special data used to quickly identify the frame that contains a widget. */
-#define GTK_DATA_FRAME_IDENTIFIER "xemacs::frame"
+#define GTK_DATA_FRAME_IDENTIFIER g_quark_from_string ("xemacs::frame")
 
 /* The hashcode in the frame hash table of a tab_control tab's callback data. */
-#define GTK_DATA_TAB_HASHCODE_IDENTIFIER "xemacs::tab_hashcode"
+#define GTK_DATA_TAB_HASHCODE_IDENTIFIER g_quark_from_string ("xemacs::tab_hashcode")
 
-#define GTK_DATA_GUI_IDENTIFIER "xemacs::gui_id"
+#define GTK_DATA_GUI_IDENTIFIER g_quark_from_string ("xemacs::gui_id")
 
 #endif /* HAVE_GTK */
 #endif /* INCLUDED_console_gtk_impl_h_ */

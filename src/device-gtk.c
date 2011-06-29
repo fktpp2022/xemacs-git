@@ -46,10 +46,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "sysfile.h"
 #include "systime.h"
 
-#ifdef HAVE_GNOME
-#include <libgnomeui/libgnomeui.h>
-#endif
-
 #ifdef HAVE_BONOBO
 #include <bonobo.h>
 #endif
@@ -105,7 +101,13 @@ decode_gtk_device (Lisp_Object device)
 extern Lisp_Object
 xemacs_gtk_convert_color(GdkColor *c, GtkWidget *w);
 
-extern Lisp_Object __get_gtk_font_truename (GdkFont *gdk_font, int expandp);
+#ifdef USE_PANGO
+extern Lisp_Object __get_gtk_font_truename (PangoFont *font,
+					    int expandp);
+#else
+extern Lisp_Object __get_gtk_font_truename (GdkFont *gdk_font,
+					    int expandp);
+#endif
 
 #define convert_font(f) __get_gtk_font_truename (f, 0)
 
@@ -181,11 +183,7 @@ mode.
   make_argc_argv (args, &argc, &argv);
 
   slow_down_interrupts ();
-#ifdef HAVE_GNOME
-  gnome_init ("XEmacs", EMACS_VERSION, argc, argv);
-#else
   gtk_init (&argc, &argv);
-#endif
 
 #ifdef HAVE_BONOBO
   orb = oaf_init (argc, argv);
@@ -201,6 +199,7 @@ mode.
   speed_up_interrupts ();
 
   free_argc_argv (argv);
+  done = 1;
   return (Qt);
 }
 
@@ -288,6 +287,17 @@ gtk_init_device (struct device *d, Lisp_Object UNUSED (props))
     gtk_container_add (GTK_CONTAINER (w), app_shell);
 
     gtk_widget_realize (w);
+    {
+      PangoContext *context = 0;
+      PangoFontMap *font_map = 0;
+      Display *disp = GDK_DISPLAY_XDISPLAY (gtk_widget_get_display (w));
+      int screen = GDK_SCREEN_XNUMBER (gtk_widget_get_screen (w));
+
+      font_map = pango_xft_get_font_map (disp, screen);
+      DEVICE_GTK_FONT_MAP (d) = font_map;
+      context = pango_font_map_create_context (font_map);
+      DEVICE_GTK_CONTEXT (d) = context;
+    }
   }
 
   DEVICE_GTK_APP_SHELL (d) = app_shell;
@@ -303,12 +313,12 @@ gtk_init_device (struct device *d, Lisp_Object UNUSED (props))
                             gdk_atom_intern("CLIPBOARD", FALSE),
 			    GDK_SELECTION_TYPE_STRING, 0);
   
-  gtk_signal_connect (GTK_OBJECT (app_shell), "selection_get",
+  g_signal_connect (G_OBJECT (app_shell), "selection_get",
 		      GTK_SIGNAL_FUNC (emacs_gtk_selection_handle), NULL);
-  gtk_signal_connect (GTK_OBJECT (app_shell), "selection_clear_event",
+  g_signal_connect (G_OBJECT (app_shell), "selection_clear_event",
                       GTK_SIGNAL_FUNC (emacs_gtk_selection_clear_event_handle),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (app_shell), "selection_received",
+  g_signal_connect (G_OBJECT (app_shell), "selection_received",
 		      GTK_SIGNAL_FUNC (emacs_gtk_selection_received), NULL);
 
   DEVICE_GTK_WM_COMMAND_FRAME (d) = Qnil;
@@ -348,7 +358,9 @@ gtk_mark_device (struct device *d)
 static void
 free_gtk_device_struct (struct device *d)
 {
+  //xfree (DEVICE_GTK_DATA (d));
   xfree (d->device_data);
+  d->device_data = 0;
 }
 #endif /* not NEW_GC */
 
@@ -377,8 +389,10 @@ gtk_delete_device (struct device *d)
 	enable_strict_free_check ();
 #endif
     }
-
+  /* g_free(DEVICE_GTK_CONTEXT (d)); */
+#ifndef NEW_GC
   free_gtk_device_struct (d);
+#endif
 }
 
 
@@ -389,14 +403,15 @@ gtk_delete_device (struct device *d)
 const char *
 gtk_event_name (GdkEventType event_type)
 {
-  GtkEnumValue *vals = gtk_type_enum_get_values (GTK_TYPE_GDK_EVENT_TYPE);
+  //GtkEnumValue *vals = gtk_type_enum_get_values (GTK_TYPE_GDK_EVENT_TYPE);
 
-  while (vals && ((GdkEventType)(vals->value) != event_type)) vals++;
+  //while (vals && ((GdkEventType)(vals->value) != event_type)) vals++;
 
-  if (vals)
-    return (vals->value_nick);
+  //if (vals)
+  //return (vals->value_nick);
 
-  return (NULL);
+  //return (NULL);
+  return "GdkEvent";
 }
 
 
@@ -656,8 +671,13 @@ Get the style information for a Gtk device.
   FROB_COLOR (base, "base");
 #undef FROB_COLOR
 
-  result = nconc2 (result, list2 (Qfont, convert_font (style->font)));
-
+#ifdef USE_PANGO
+  result = nconc2 (result, list2 (Qfont,
+                                  build_cistring (pango_font_description_to_string (style->font_desc))
+                                  /* convert_font (style->font_desc) */
+                                  ));
+#endif
+  
 #define FROB_PIXMAP(state) (style->rc_style->bg_pixmap_name[state] ? build_cistring (style->rc_style->bg_pixmap_name[state]) : Qnil)
 
   if (style->rc_style)
