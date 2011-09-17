@@ -60,7 +60,7 @@ gtk_xemacs_get_type (void)
     {
       static const GtkTypeInfo xemacs_info =
       {
-	"GtkXEmacs",
+	(gchar *) "GtkXEmacs",
 	sizeof (GtkXEmacs),
 	sizeof (GtkXEmacsClass),
 	(GtkClassInitFunc) gtk_xemacs_class_init,
@@ -88,7 +88,7 @@ gtk_xemacs_class_init (GtkXEmacsClass *class_)
 
   widget_class->size_allocate = gtk_xemacs_size_allocate;
   widget_class->size_request = gtk_xemacs_size_request;
-  widget_class->draw = gtk_xemacs_draw;
+  //widget_class->draw = gtk_xemacs_draw;
   widget_class->expose_event = gtk_xemacs_expose;
   widget_class->realize = gtk_xemacs_realize;
   widget_class->button_press_event = emacs_gtk_button_event_handler;
@@ -111,6 +111,7 @@ gtk_xemacs_new (struct frame *f)
   GtkXEmacs *xemacs;
 
   xemacs = (GtkXEmacs*) gtk_type_new (gtk_xemacs_get_type ());
+  gtk_widget_set_has_window (GTK_WIDGET (xemacs), TRUE);
   xemacs->f = f;
 
   return GTK_WIDGET (xemacs);
@@ -202,14 +203,14 @@ smash_scrollbar_specifiers (struct frame *f, GtkStyle *style)
   Lisp_Object frame;
   int slider_size = 0;
   int hsize, vsize;
-  GtkRangeClass *klass;
 
   frame = wrap_frame (f);
 
-  klass = (GtkRangeClass *) gtk_type_class (GTK_TYPE_SCROLLBAR);
-  slider_size = klass->slider_width;
-  hsize = slider_size + (style->klass->ythickness * 2);
-  vsize = slider_size + (style->klass->xthickness * 2);
+  // Note: where do I get this?  -- jsparkes
+  //slider_size = style->slider_width;
+  slider_size = 10;
+  hsize = slider_size + (style->ythickness * 2);
+  vsize = slider_size + (style->xthickness * 2);
 
   style = gtk_style_attach (style,
 			    GTK_WIDGET (DEVICE_GTK_APP_SHELL (XDEVICE (FRAME_DEVICE (f))))->window);
@@ -226,12 +227,12 @@ static void
 smash_toolbar_specifiers(struct frame *f, GtkStyle *style)
 {
   Lisp_Object frame;
-  GtkStyleClass *klass = (GtkStyleClass *) style->klass;
 
   frame = wrap_frame (f);
 
-  Fadd_spec_to_specifier (Vtoolbar_shadow_thickness, make_int (klass->xthickness),
-			  Qnil, list2 (Qgtk, Qdefault), Qprepend);
+  Fadd_spec_to_specifier (Vtoolbar_shadow_thickness,
+			  make_int (style->xthickness), Qnil, 
+			  list2 (Qgtk, Qdefault), Qprepend);
 }
 #endif /* HAVE_TOOLBARS */
 

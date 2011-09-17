@@ -88,22 +88,24 @@ static int last_quit_check_signal_tick_count;
  * Identify if the keysym is a modifier.  This implementation mirrors x.org's
  * IsModifierKey(), but for GDK keysyms.
  */
-#ifdef GDK_ISO_Lock
+#ifdef GDK_KEY_ISO_Lock
 #define IS_MODIFIER_KEY(keysym)  \
-  ((((keysym) >= GDK_Shift_L) && ((keysym) <= GDK_Hyper_R)) \
-   || (((keysym) >= GDK_ISO_Lock) && \
-       ((keysym) <= GDK_ISO_Last_Group_Lock)) \
-   || ((keysym) == GDK_Mode_switch) \
-   || ((keysym) == GDK_Num_Lock))
+  ((((keysym) >= GDK_KEY_Shift_L) && ((keysym) <= GDK_KEY_Hyper_R)) \
+   || (((keysym) >= GDK_KEY_ISO_Lock) && \
+       ((keysym) <= GDK_KEY_ISO_Last_Group_Lock)) \
+   || ((keysym) == GDK_KEY_Mode_switch) \
+   || ((keysym) == GDK_KEY_Num_Lock))
 #else
 #define IS_MODIFIER_KEY(keysym)  \
-  ((((keysym) >= GDK_Shift_L) && ((keysym) <= GDK_Hyper_R)) \
-   || ((keysym) == GDK_Mode_switch) \
-   || ((keysym) == GDK_Num_Lock))
+  ((((keysym) >= GDK_KEY_Shift_L) && ((keysym) <= GDK_KEY_Hyper_R)) \
+   || ((keysym) == GDK_KEY_Mode_switch) \
+   || ((keysym) == GDK_KEY_Num_Lock))
 #endif
 
 #define THIS_IS_GTK
 #include "event-xlike-inc.c"
+
+Time x_focus_timestamp_really_sucks_fix_me_better;
 
 
 /************************************************************************/
@@ -120,6 +122,7 @@ handle_focus_event_1 (struct frame *f, int in_p)
      box cursor for redisplay, but we don't call any hooks or do any
      select-frame stuff until after the sit-for.
    */
+  x_focus_timestamp_really_sucks_fix_me_better = time(0);
 
     if (in_p)
     {
@@ -130,7 +133,8 @@ handle_focus_event_1 (struct frame *f, int in_p)
 	GTK_WIDGET_UNSET_FLAGS (FRAME_GTK_TEXT_WIDGET (f), GTK_HAS_FOCUS);
     }
     gtk_widget_grab_focus (FRAME_GTK_TEXT_WIDGET (f));
-    gtk_widget_draw_focus (FRAME_GTK_TEXT_WIDGET (f));
+    // Note: what is this replaced with?
+    // gtk_widget_draw_focus (FRAME_GTK_TEXT_WIDGET (f));
 
     {
 	Lisp_Object frm;
@@ -329,16 +333,16 @@ keysym_obeys_caps_lock_p (guint sym, struct device *d)
      characters, where "alphabetic" means something more than simply A-Z.
      That is, if Caps_Lock is down, typing ESC doesn't produce Shift-ESC.
      But if shift-lock is down, then it does. */
-  if (gd->lock_interpretation == GDK_Shift_Lock)
+  if (gd->lock_interpretation == GDK_KEY_Shift_Lock)
     return 1;
 
   return
-    ((sym >= GDK_A)        && (sym <= GDK_Z))          ||
-    ((sym >= GDK_a)        && (sym <= GDK_z))          ||
-    ((sym >= GDK_Agrave)   && (sym <= GDK_Odiaeresis)) ||
-    ((sym >= GDK_agrave)   && (sym <= GDK_odiaeresis)) ||
-    ((sym >= GDK_Ooblique) && (sym <= GDK_Thorn))      ||
-    ((sym >= GDK_oslash)   && (sym <= GDK_thorn));
+    ((sym >= GDK_KEY_A)        && (sym <= GDK_KEY_Z))          ||
+    ((sym >= GDK_KEY_a)        && (sym <= GDK_KEY_z))          ||
+    ((sym >= GDK_KEY_Agrave)   && (sym <= GDK_KEY_Odiaeresis)) ||
+    ((sym >= GDK_KEY_agrave)   && (sym <= GDK_KEY_odiaeresis)) ||
+    ((sym >= GDK_KEY_Ooblique) && (sym <= GDK_KEY_Thorn))      ||
+    ((sym >= GDK_KEY_oslash)   && (sym <= GDK_KEY_thorn));
 }
 
 static void
@@ -369,7 +373,7 @@ static Lisp_Object
 gtk_keysym_to_emacs_keysym (guint keysym, int simple_p)
 {
   char *name;
-  if (keysym >= GDK_exclam && keysym <= GDK_asciitilde)
+  if (keysym >= GDK_KEY_exclam && keysym <= GDK_KEY_asciitilde)
     /* We must assume that the X keysym numbers for the ASCII graphic
        characters are the same as their ASCII codes.  */
     return make_char (keysym);
@@ -379,13 +383,15 @@ gtk_keysym_to_emacs_keysym (guint keysym, int simple_p)
       /* These would be handled correctly by the default case, but by
 	 special-casing them here we don't garbage a string or call
 	 intern().  */
-    case GDK_BackSpace:	return QKbackspace;
-    case GDK_Tab:	return QKtab;
-    case GDK_Linefeed:	return QKlinefeed;
-    case GDK_Return:	return QKreturn;
-    case GDK_Escape:	return QKescape;
-    case GDK_space:	return QKspace;
-    case GDK_Delete:	return QKdelete;
+    case GDK_KEY_BackSpace:	return QKbackspace;
+    case GDK_KEY_Tab:	return QKtab;
+    case GDK_KEY_Linefeed:	return QKlinefeed;
+    case GDK_KEY_Return:	return QKreturn;
+    case GDK_KEY_Escape:	return QKescape;
+    case GDK_KEY_space:	return QKspace;
+    case GDK_KEY_Delete:	return QKdelete;
+    case GDK_KEY_Prior:     return KEYSYM("prior");
+    case GDK_KEY_Next:      return KEYSYM("next");
     case 0:		return Qnil;
     default:
       if (simple_p) return Qnil;
@@ -453,51 +459,14 @@ static Lisp_Object
 gtk_to_emacs_keysym (struct device *d, GdkEventKey *event, int simple_p)
      /* simple_p means don't try too hard (ASCII only) */
 {
-  if (event->length != 1)
+  if (IS_MODIFIER_KEY (event->keyval) || (event->keyval == GDK_Mode_switch))
     {
-      /* Generate multiple emacs events */
-      Ichar ch;
-      Lisp_Object instream, fb_instream;
-      Lstream *istr;
-      struct gcpro gcpro1, gcpro2;
-
-      fb_instream =
-	make_fixed_buffer_input_stream ((unsigned char *) event->string, event->length);
-
-      /* #### Use get_coding_system_for_text_file
-         (Vcomposed_input_coding_system, 0) */
-      instream =
-	make_coding_input_stream (XLSTREAM (fb_instream),
-				  Qundecided, CODING_DECODE, 0);
-      
-      istr = XLSTREAM (instream);
-
-      GCPRO2 (instream, fb_instream);
-      while ((ch = Lstream_get_ichar (istr)) != EOF)
-	{
-	  Lisp_Object emacs_event = Fmake_event (Qnil, Qnil);
-	  Lisp_Event *ev          = XEVENT (emacs_event);
-	  ev->channel	            = DEVICE_CONSOLE (d);
-	  ev->timestamp	    = event->time;
-	  XSET_EVENT_TYPE (emacs_event, key_press_event);
-	  XSET_EVENT_KEY_MODIFIERS (emacs_event, 0);
-	  XSET_EVENT_KEY_KEYSYM (emacs_event, make_char (ch));
-	  enqueue_dispatch_event (emacs_event);
-	}
-      Lstream_close (istr);
-      UNGCPRO;
-      Lstream_delete (istr);
-      Lstream_delete (XLSTREAM (fb_instream));
-      if (IS_MODIFIER_KEY (event->keyval) || (event->keyval == GDK_Mode_switch))
-	return (Qnil);
-      return (gtk_keysym_to_emacs_keysym (event->keyval, simple_p));
+      return Qnil;
     }
-  else
-    {
-      if (IS_MODIFIER_KEY (event->keyval) || (event->keyval == GDK_Mode_switch))
-	return (Qnil);
-      return (gtk_keysym_to_emacs_keysym (event->keyval, simple_p));
-    }
+
+  /* This function used to attempt to handle input methods, but that's no
+     longer correct with GTK2.  */
+  return gtk_keysym_to_emacs_keysym (event->keyval, simple_p);
 }
 
 
@@ -557,9 +526,9 @@ emacs_gtk_add_timeout (EMACS_TIME thyme)
     EMACS_USECS (thyme) / 1000;
   if (milliseconds < 1)
     milliseconds = 1;
-  timeout->timeout_id = gtk_timeout_add (milliseconds,
-					 gtk_timeout_callback,
-					 (gpointer) timeout);
+  timeout->timeout_id = g_timeout_add (milliseconds,
+                                       gtk_timeout_callback,
+                                       timeout);
   return timeout->id;
 }
 
@@ -590,7 +559,7 @@ emacs_gtk_remove_timeout (int id)
 	}
       /* if it was pending, we have removed it from the list */
       if (timeout)
-	  gtk_timeout_remove (timeout->timeout_id);
+        g_source_remove (timeout->timeout_id);
     }
 
   /* It could be that the call back was already called but we didn't convert
@@ -1337,14 +1306,16 @@ gtk_event_to_emacs_event (struct frame *frame, GdkEvent *gdk_event, struct Lisp_
 	       processing so send a null event into XEmacs to make sure it
 	       does nothing.
 	    */
+#if 0
 	    if (!NILP (Vmenu_accelerator_enabled)
-		&& gtk_accel_groups_activate(GTK_OBJECT (FRAME_GTK_SHELL_WIDGET(frame)),
+		&& gtk_accel_groups_activate(G_OBJECT (FRAME_GTK_SHELL_WIDGET(frame)),
 					     key_event->keyval,
 					     (GdkModifierType) *state))
 	      {
 		zero_event(emacs_event);
 		return 1;
 	      }
+#endif
 #endif
 
 	    /* This used to compute the frame from the given X window and
