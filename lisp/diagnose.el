@@ -489,7 +489,7 @@
               (princ (make-string 78 ?-))
               (princ "\n")
               (princ (format fmt "stat" "total" "last-gc" "this-gc" 
-                             "last-cycle" "this-cycle"))
+                             "last-cycle" "this-cylce"))
               (princ (make-string 78 ?-))
               (princ "\n")
               (show-stats "n-gc")

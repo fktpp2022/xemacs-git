@@ -272,7 +272,7 @@ typedef gulong   XLIKE_PIXEL;
 /* functions */
 
 /* Avoid unused-variable warning involving D */
-#define GET_XLIKE_DISPLAY(d) (USED (d), NULL)
+#define GET_XLIKE_DISPLAY(d) (d)
 #define GET_XLIKE_X_DISPLAY(d) (USED (d), GDK_DISPLAY ())
 #define GET_XLIKE_WINDOW(w) GET_GTK_WIDGET_WINDOW (FRAME_GTK_TEXT_WIDGET (w))
 #define XLIKE_FILL_RECTANGLE(dpy, x_win, gc, x, y, width, height)	\
@@ -285,8 +285,13 @@ typedef gulong   XLIKE_PIXEL;
   (USED (dpy), gdk_draw_line (GDK_DRAWABLE (x_win), gc, x1, y1, x2, y2))
 #define XLIKE_TEXT_WIDTH(fi, ptr, len) \
   gdk_text_width (fi, (char *) ptr, len)
-#define XLIKE_TEXT_WIDTH_WIDE(fi, ptr, len) \
+#ifdef USE_PANGO
+#define XLIKE_TEXT_WIDTH_WIDE(fi, ptr, len)             \
+  pango_text_width_wc (fi, (GdkWChar *) ptr, len)
+#else
+#define XLIKE_TEXT_WIDTH_WIDE(fi, ptr, len)             \
   gdk_text_width_wc (fi, (GdkWChar *) ptr, len)
+#endif
 
 /* FIXME: This is totally bogus.  It removes dl->top_clip from the
    equations.  If there is a bug involving this, fix it properly!
