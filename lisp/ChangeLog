@@ -3353,6 +3353,541 @@
 	* etags.el (find-tag-default):
 	Correct :operation arguments in `with-trapping-errors'.
 
+2011-12-31  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* ffi-curl.el:
+	* ffi-curl.el ("libcurl"):
+	* ffi-curl.el (curl-option): New.
+	* ffi-curl.el (curl-info): New.
+	* ffi-curl.el (curl:curl_easy_init): Removed.
+	* ffi-curl.el (curl:easy-init):
+	* ffi-curl.el (curl:curl_easy_cleanup): Removed.
+	* ffi-curl.el (curl:curl_easy_setopt): Removed.
+	* ffi-curl.el (curl:curl_easy_getinfo): Removed.
+	* ffi-curl.el (curl:curl_easy_perform): Removed.
+	* ffi-curl.el (curl:easy-cleanup):
+	* ffi-curl.el (curl:easy-setopt):
+	* ffi-curl.el (curl:easy-perform):
+	* ffi-curl.el (curl:easy-perform&):
+	* ffi-curl.el (curl:easy-perform-sentinel):
+	* ffi-curl.el (curl:easy-getinfo):
+	* ffi-curl.el (curl:easy-getinfo-internal): Removed.
+	* ffi-curl.el (curl:download):
+	* ffi-curl.el (curl:download-history): New.
+	* ffi-curl.el (curl:cb-write-to-buffer): New.
+	* ffi-curl.el (curl:download&):
+	* ffi-libc.el:
+	* ffi-libc.el (c:SEEK_SET): Removed.
+	* ffi-libc.el (c:SEEK_CUR): Removed.
+	* ffi-libc.el (c:SEEK_END): Removed.
+	* ffi-libc.el (c:FILE): New.
+	* ffi-libc.el (c:fopen): Removed.
+	* ffi-libc.el (c:fdopen): Removed.
+	* ffi-libc.el ("fopen"):
+	* ffi-libc.el (c:fseek): Removed.
+	* ffi-libc.el (c:fclose): Removed.
+	* ffi-libc.el (c:WHENCE): New.
+	* ffi-libc.el (c:strerror): Removed.
+	* ffi-libc.el ("dup"):
+	* ffi-libc.el ("memset"):
+	* ffi-libc.el (c:fread): Removed.
+	* ffi-libc.el ("shmget"):
+	* ffi-libc.el (c:fwrite): Removed.
+	* ffi-libc.el ("shmat"):
+	* ffi-libc.el (c:IPC-PRIVATE): New.
+	* ffi-libc.el (c:IPC-R): New.
+	* ffi-libc.el (c:IPC-W): New.
+	* ffi-libc.el (c:IPC-CREAT): New.
+	* ffi-libc.el (c:IPC-0777-MASK): New.
+	* ffi-libc.el (c:dup-1): Removed.
+	* ffi-libc.el (c:dup): Removed.
+	* ffi-magic.el:
+	* ffi-magic.el ("libmagic"):
+	* ffi-magic.el (ffi-magic-shared): New.
+	* ffi-magic.el (magic_t):
+	* ffi-magic.el (magic-open): Removed.
+	* ffi-magic.el (magic-load): Removed.
+	* ffi-magic.el (magic:file-type):
+	* ffi-magic.el (magic-error): New.
+	* ffi-magic.el (magic-file): Removed.
+	* ffi-magic.el (magic-close): Removed.
+	* ffi-magic.el (magic:error): New.
+	* ffi-wand.el:
+	* ffi-wand.el (wid-edit):
+	* ffi-wand.el (Wand-ffio-as-image-data): New.
+	* ffi-wand.el (Wand-GM-p): New.
+	* ffi-wand.el (ffi-load-library):
+	* ffi-wand.el (MagickWand-private): New.
+	* ffi-wand.el (MagickStatusType): New.
+	* ffi-wand.el (MagickInfo): New.
+	* ffi-wand.el (MagickExceptionType): New.
+	* ffi-wand.el (MagickExceptionInfo): New.
+	* ffi-wand.el (Wand:Storage): Removed.
+	* ffi-wand.el (Wand:Storage-UndefinedPixel): Removed.
+	* ffi-wand.el (Wand:Storage-CharPixel): Removed.
+	* ffi-wand.el (Wand:Storage-ShortPixel): Removed.
+	* ffi-wand.el (Wand:Storage-IntegerPixel): Removed.
+	* ffi-wand.el (Wand:Storage-LongPixel): Removed.
+	* ffi-wand.el (Wand:Storage-FloatPixel): Removed.
+	* ffi-wand.el (Wand:Storage-DoublePixel): Removed.
+	* ffi-wand.el (Wand:Channel): Removed.
+	* ffi-wand.el (Wand:Channel-UndefinedChannel): Removed.
+	* ffi-wand.el (Wand:Channel-RedChannel): Removed.
+	* ffi-wand.el (Wand:Channel-CyanChannel): Removed.
+	* ffi-wand.el (Wand:Channel-GrayChannel): Removed.
+	* ffi-wand.el (Wand:Channel-GreenChannel): Removed.
+	* ffi-wand.el (Wand:Channel-MagentaChannel): Removed.
+	* ffi-wand.el (Wand:Channel-BlueChannel): Removed.
+	* ffi-wand.el (Wand:Channel-YellowChannel): Removed.
+	* ffi-wand.el (Wand:Channel-AlphaChannel): Removed.
+	* ffi-wand.el (Wand:Channel-OpacityChannel): Removed.
+	* ffi-wand.el (Wand:Channel-BlackChannel): Removed.
+	* ffi-wand.el (Wand:Channel-IndexChannel): Removed.
+	* ffi-wand.el (Wand:Channel-AllChannel): Removed.
+	* ffi-wand.el (Wand:NewMagicWand): Removed.
+	* ffi-wand.el (Wand:make-wand): Removed.
+	* ffi-wand.el (Wand:ClearMagickWand): Removed.
+	* ffi-wand.el (Wand:clear-wand): Removed.
+	* ffi-wand.el (Wand:CloneMagickWand): Removed.
+	* ffi-wand.el (Wand:copy-wand): Removed.
+	* ffi-wand.el (Wand:DestroyMagickWand): Removed.
+	* ffi-wand.el (Wand:delete-wand): Removed.
+	* ffi-wand.el (Wand:eval-MagickBoolean): Removed.
+	* ffi-wand.el (Wand:IsMagickWand): Removed.
+	* ffi-wand.el (Wand:wandp): Removed.
+	* ffi-wand.el (Wand:MagickReadImage): Removed.
+	* ffi-wand.el (DrawingWand): New.
+	* ffi-wand.el (PixelWand): New.
+	* ffi-wand.el (PointInfo): New.
+	* ffi-wand.el (WandCompositeOperator): New.
+	* ffi-wand.el (wand-camel-case-kw-string): New.
+	* ffi-wand.el (wand-camel-case-kw-completion): New.
+	* ffi-wand.el (WandCompositeOperator-completion-table): New.
+	* ffi-wand.el (FillRule): New.
+	* ffi-wand.el (PaintMethod): New.
+	* ffi-wand.el (MagickAlphaType): New.
+	* ffi-wand.el (MagickNoiseType): New.
+	* ffi-wand.el (MagickFilterType): New.
+	* ffi-wand.el (MagickColorspaceType): New.
+	* ffi-wand.el (MagickAlignType): New.
+	* ffi-wand.el (MagickDecorationType): New.
+	* ffi-wand.el (MagickGravityType): New.
+	* ffi-wand.el (MagickStretchType): New.
+	* ffi-wand.el (MagickStyleType): New.
+	* ffi-wand.el (wand-font): New.
+	* ffi-wand.el (MagickPreviewType): New.
+	* ffi-wand.el (MagickPreviewType-completion-table): New.
+	* ffi-wand.el (Wand:version): New.
+	* ffi-wand.el (wand-format-mime-type): New.
+	* ffi-wand.el (Wand:image-mime-type): New.
+	* ffi-wand.el (Wand-with-wand): New.
+	* ffi-wand.el (Wand:read-image):
+	* ffi-wand.el (Wand:identify-image): New.
+	* ffi-wand.el (Wand:reset-image-page): New.
+	* ffi-wand.el (Wand:display-image):
+	* ffi-wand.el (Wand:get-magick-property): New.
+	* ffi-wand.el (Wand:image-orig-width): New.
+	* ffi-wand.el (Wand:image-orig-height): New.
+	* ffi-wand.el (Wand:write-image):
+	* ffi-wand.el (Wand:iterator-index): New.
+	* ffi-wand.el (Wand:MagickDisplayImage): Removed.
+	* ffi-wand.el (Wand:read-image-blob): New.
+	* ffi-wand.el (Wand:MagickWriteImage): Removed.
+	* ffi-wand.el (Wand:image-blob): New.
+	* ffi-wand.el (Wand:MagickGetImagePixels): Removed.
+	* ffi-wand.el (Wand:query-formats): New.
+	* ffi-wand.el (Wand:wand-format): New.
+	* ffi-wand.el (Wand:image-format): New.
+	* ffi-wand.el (Wand:get-image-pixels):
+	* ffi-wand.el (Wand-with-pixel-wand): New.
+	* ffi-wand.el (Wand:pixel-hsl): New.
+	* ffi-wand.el (Wand:pixel-red): New.
+	* ffi-wand.el (Wand:pixel-green): New.
+	* ffi-wand.el (Wand:pixel-blue): New.
+	* ffi-wand.el (Wand:pixel-rgb-components): New.
+	* ffi-wand.el (Wand:pixel-color): New.
+	* ffi-wand.el ("MagickContrastImage"):
+	* ffi-wand.el (Wand:pixel-alpha): New.
+	* ffi-wand.el (Wand:decrease-contrast-image):
+	* ffi-wand.el (Wand:MagickScaleImage): Removed.
+	* ffi-wand.el (Wand:scale-image): Removed.
+	* ffi-wand.el (Wand:MagickCropImage): Removed.
+	* ffi-wand.el (Wand:crop-image): Removed.
+	* ffi-wand.el (Wand:MagickFlipImage): Removed.
+	* ffi-wand.el (Wand:MagickFlopImage): Removed.
+	* ffi-wand.el (Wand:flip-image): Removed.
+	* ffi-wand.el (Wand:flop-image): Removed.
+	* ffi-wand.el (Wand:MagickRollImage): Removed.
+	* ffi-wand.el (Wand:posterize-image):
+	* ffi-wand.el (Wand:roll-image): Removed.
+	* ffi-wand.el (Wand:set-image-pixels-internal): New.
+	* ffi-wand.el (Wand:pixels-extract-colors): New.
+	* ffi-wand.el (Wand:pixels-arrange-colors): New.
+	* ffi-wand.el (Wand:MagickContrastImage): Removed.
+	* ffi-wand.el (Wand:MagickDespeckleImage): Removed.
+	* ffi-wand.el (Wand:despeckle-image): Removed.
+	* ffi-wand.el (Wand:MagickEnhanceImage): Removed.
+	* ffi-wand.el (Wand:enhance-image): Removed.
+	* ffi-wand.el (Wand:MagickEqualizeImage): Removed.
+	* ffi-wand.el (Wand:negate-image):
+	* ffi-wand.el (Wand:equalize-image): Removed.
+	* ffi-wand.el (Wand:MagickNormalizeImage): Removed.
+	* ffi-wand.el (Wand:negate-image-channel):
+	* ffi-wand.el (Wand:normalize-image): Removed.
+	* ffi-wand.el (Wand:MagickCharcoalImage): Removed.
+	* ffi-wand.el (Wand:charcoal-image): Removed.
+	* ffi-wand.el (Wand:MagickOilPaintImage): Removed.
+	* ffi-wand.el (Wand:oil-paint-image): Removed.
+	* ffi-wand.el (Wand:MagickEdgeImage): Removed.
+	* ffi-wand.el (Wand:edge-image): Removed.
+	* ffi-wand.el (Wand:MagickEmbossImage): Removed.
+	* ffi-wand.el (Wand:emboss-image): Removed.
+	* ffi-wand.el (Wand:MagickWaveImage): Removed.
+	* ffi-wand.el (Wand:wave-image): Removed.
+	* ffi-wand.el (Wand:MagickSwirlImage): Removed.
+	* ffi-wand.el (Wand:swirl-image): Removed.
+	* ffi-wand.el (Wand:MagickPosterizeImage): Removed.
+	* ffi-wand.el (Wand:MagickReduceNoiseImage): Removed.
+	* ffi-wand.el (Wand:reduce-noise-image): Removed.
+	* ffi-wand.el (Wand:MagickGammaImage): Removed.
+	* ffi-wand.el (Wand:gamma-image): Removed.
+	* ffi-wand.el (Wand:MagickGammaImageChannel): Removed.
+	* ffi-wand.el (Wand:gamma-image-channel): Removed.
+	* ffi-wand.el (Wand:MagickMedianFilterImage): Removed.
+	* ffi-wand.el (Wand:median-filter-image): Removed.
+	* ffi-wand.el (Wand:MagickSolarizeImage): Removed.
+	* ffi-wand.el (Wand:solarize-image): Removed.
+	* ffi-wand.el (Wand:MagickModulateImage): Removed.
+	* ffi-wand.el (Wand:MagickThresholdImage): Removed.
+	* ffi-wand.el (Wand:threshold-image): Removed.
+	* ffi-wand.el (Wand:MagickThresholdImageChannel): Removed.
+	* ffi-wand.el (Wand:threshold-image-channel): Removed.
+	* ffi-wand.el (Wand:MagickWhiteThresholdImage): Removed.
+	* ffi-wand.el (Wand:white-threshold-image): Removed.
+	* ffi-wand.el (Wand:MagickBlurImage): Removed.
+	* ffi-wand.el (Wand:blur-image): Removed.
+	* ffi-wand.el (Wand:MagickBlurImageChannel): Removed.
+	* ffi-wand.el (Wand:blur-image-channel): Removed.
+	* ffi-wand.el (Wand:MagickGaussianBlurImage): Removed.
+	* ffi-wand.el (Wand:gaussian-blur-image): Removed.
+	* ffi-wand.el (Wand:MagickGaussianBlurImageChannel): Removed.
+	* ffi-wand.el (Wand:gaussian-blur-image-channel): Removed.
+	* ffi-wand.el (Wand:MagickMotionBlurImage): Removed.
+	* ffi-wand.el (Wand:motion-blur-image): Removed.
+	* ffi-wand.el (Wand:MagickRadialBlurImage): Removed.
+	* ffi-wand.el (Wand:radial-blur-image): Removed.
+	* ffi-wand.el (Wand:MagickSharpenImage): Removed.
+	* ffi-wand.el (Wand:sharpen-image): Removed.
+	* ffi-wand.el (Wand:MagickSharpenImageChannel): Removed.
+	* ffi-wand.el (Wand:sharpen-image-channel): Removed.
+	* ffi-wand.el (Wand:MagickUnsharpMaskImage): Removed.
+	* ffi-wand.el (Wand:unsharp-mask-image): Removed.
+	* ffi-wand.el (Wand:MagickUnsharpMaskImageChannel): Removed.
+	* ffi-wand.el (Wand:unsharp-mask-image-channel): Removed.
+	* ffi-wand.el (Wand:MagickNegateImage): Removed.
+	* ffi-wand.el (Wand:raise-image): New.
+	* ffi-wand.el (Wand:MagickNegateImageChannel): Removed.
+	* ffi-wand.el (cffi:defcfun):
+	* ffi-wand.el (Wand:MagickGetImageHeight): Removed.
+	* ffi-wand.el (Wand:get-image-height): Removed.
+	* ffi-wand.el (Wand:MagickGetImageWidth): Removed.
+	* ffi-wand.el (Wand:get-image-width): Removed.
+	* ffi-wand.el (Wand:image-size): New.
+	* ffi-wand.el (Wand-fetch-relinquish-strings): New.
+	* ffi-wand.el (Wand:image-profiles): New.
+	* ffi-wand.el (Wand-iptc-names-table): New.
+	* ffi-wand.el (Wand:image-profile-iptc): New.
+	* ffi-wand.el (Wand:image-save-iptc-profile): New.
+	* ffi-wand.el (Wand:image-properties): New.
+	* ffi-wand.el (Wand:image-property): New.
+	* ffi-wand.el (Wand:quantum-range): New.
+	* ffi-wand.el (Wand-mode-prop-editor): New.
+	* ffi-wand.el (Wand:clip-mask): New.
+	* ffi-wand.el (Wand:image-alpha-channel): New.
+	* ffi-wand.el (Wand-with-drawing-wand): New.
+	* ffi-wand.el (Wand:draw-font): New.
+	* ffi-wand.el (Wand:draw-font-font): New.
+	* ffi-wand.el (Wand:draw-font-family): New.
+	* ffi-wand.el (Wand:draw-font-size): New.
+	* ffi-wand.el (Wand:draw-font-stretch): New.
+	* ffi-wand.el (Wand:draw-font-style): New.
+	* ffi-wand.el (Wand:draw-font-weight): New.
+	* ffi-wand.el (Wand:draw-fill-rule): New.
+	* ffi-wand.el (Wand:draw-points): New.
+	* ffi-wand.el (Wand:text-antialias): New.
+	* ffi-wand.el (Wand:text-alignment): New.
+	* ffi-wand.el (Wand:text-gravity): New.
+	* ffi-wand.el (Wand:points-PointInfo): New.
+	* ffi-wand.el (Wand:draw-polygon): New.
+	* ffi-wand.el (Wand:draw-lines): New.
+	* ffi-wand.el (Wand:draw-bezier): New.
+	* ffi-wand.el (Wand:draw-segment): New.
+	* ffi-wand.el (Wand:draw-segments): New.
+	* ffi-wand.el (Wand:draw-fill-color): New.
+	* ffi-wand.el (Wand:draw-stroke-color): New.
+	* ffi-wand.el (Wand:draw-fill-opacity): New.
+	* ffi-wand.el (Wand:draw-stroke-width): New.
+	* ffi-wand.el (Wand:draw-stroke-opacity): New.
+	* ffi-wand.el (Wand:draw-stroke-antialias): New.
+	* ffi-wand.el (Wand:draw-clip-path): New.
+	* ffi-wand.el (Wand:show-image-file-here): Removed.
+	* ffi-wand.el (Wand:emacs-image-type): New.
+	* ffi-wand.el (Wand:emacs-image-internal): New.
+	* ffi-wand.el (Wand:emacs-image): New.
+	* ffi-wand.el (Wand:glyph-internal): New.
+	* ffi-wand.el (Wand:glyph): New.
+	* ffi-wand.el (Wand:correct-orientation): New.
+	* ffi-wand.el (Wand:fit-size): New.
+	* ffi-wand.el (Wand-mode-preview-glyph): New.
+	* ffi-wand.el (Wand-mode-redeye-threshold): New.
+	* ffi-wand.el (Wand-mode-sigma): New.
+	* ffi-wand.el (Wand-mode-zoom-factor): New.
+	* ffi-wand.el (Wand-mode-region-outline-color): New.
+	* ffi-wand.el (Wand-mode-region-fill-color): New.
+	* ffi-wand.el (Wand-mode-region-outline-width): New.
+	* ffi-wand.el (Wand-mode-region-outline-opacity): New.
+	* ffi-wand.el (Wand-mode-region-fill-opacity): New.
+	* ffi-wand.el (Wand-mode-show-fileinfo): New.
+	* ffi-wand.el (Wand-mode-show-iptc-info): New.
+	* ffi-wand.el (Wand-mode-show-operations): New.
+	* ffi-wand.el (Wand-mode-auto-fit): New.
+	* ffi-wand.el (Wand-mode-auto-rotate): New.
+	* ffi-wand.el (Wand-mode-query-for-overwrite): New.
+	* ffi-wand.el (Wand-mode-properties-pattern): New.
+	* ffi-wand.el (Wand-global-operations-list): New.
+	* ffi-wand.el (Wand-mode-scaler): New.
+	* ffi-wand.el (Wand-mode-hook): New.
+	* ffi-wand.el (Wand-insert-info-hook): New.
+	* ffi-wand.el (Wand-menu): New.
+	* ffi-wand.el (Wand-menu-page-navigations): New.
+	* ffi-wand.el (Wand-menu-region-operations): New.
+	* ffi-wand.el (Wand-mode-commands-by-tag): New.
+	* ffi-wand.el (Wand-menu-generate): New.
+	* ffi-wand.el (Wand-mode-popup-menu): New.
+	* ffi-wand.el (define-Wand-operation): New.
+	* ffi-wand.el (Wand-possible-for-region): New.
+	* ffi-wand.el (flip): New.
+	* ffi-wand.el (flop): New.
+	* ffi-wand.el (rotate): New.
+	* ffi-wand.el (contrast): New.
+	* ffi-wand.el (normalize): New.
+	* ffi-wand.el (despeckle): New.
+	* ffi-wand.el (enhance): New.
+	* ffi-wand.el (equalize): New.
+	* ffi-wand.el (gauss-blur): New.
+	* ffi-wand.el (sharpen): New.
+	* ffi-wand.el (radial-blur): New.
+	* ffi-wand.el (negate): New.
+	* ffi-wand.el (modulate): New.
+	* ffi-wand.el (grayscale): New.
+	* ffi-wand.el (solarize): New.
+	* ffi-wand.el (Wand-mode-quit):
+	* ffi-wand.el (swirl): New.
+	* ffi-wand.el (oil): New.
+	* ffi-wand.el (charcoal): New.
+	* ffi-wand.el (sepia-tone): New.
+	* ffi-wand.el (implode): New.
+	* ffi-wand.el (wave): New.
+	* ffi-wand.el (vignette): New.
+	* ffi-wand.el (edge): New.
+	* ffi-wand.el (emboss): New.
+	* ffi-wand.el (reduce-noise): New.
+	* ffi-wand.el (add-noise): New.
+	* ffi-wand.el (spread): New.
+	* ffi-wand.el (trim): New.
+	* ffi-wand.el (raise): New.
+	* ffi-wand.el (crop): New.
+	* ffi-wand.el (chop): New.
+	* ffi-wand.el (preview-op): New.
+	* ffi-wand.el (Wand:get-image-rgb-pixels): New.
+	* ffi-wand.el (Wand:get-rgb-pixel-at): New.
+	* ffi-wand.el (Wand-fix-red-pixels): New.
+	* ffi-wand.el (Wand-mode-redeye-blur-radius): New.
+	* ffi-wand.el (redeye-remove): New.
+	* ffi-wand.el (zoom): New.
+	* ffi-wand.el (sample): New.
+	* ffi-wand.el (Wand-make-scaler): New.
+	* ffi-wand.el (fit-size): New.
+	* ffi-wand.el (liquid-rescale): New.
+	* ffi-wand.el (posterize): New.
+	* ffi-wand.el (Wand-pattern-composite-op): New.
+	* ffi-wand.el (Wand-patterns): New.
+	* ffi-wand.el (pattern): New.
+	* ffi-wand.el (Wand-operation-lookup): New.
+	* ffi-wand.el (Wand-operation-apply): New.
+	* ffi-wand.el (Wand-operation-list-apply): New.
+	* ffi-wand.el (Wand-mode-image-region): New.
+	* ffi-wand.el (Wand-mode-file-info): New.
+	* ffi-wand.el (Wand-mode-iptc-split-keywords): New.
+	* ffi-wand.el (Wand-mode-iptc-from-widgets): New.
+	* ffi-wand.el (Wand-mode-iptc-notify): New.
+	* ffi-wand.el (Wand-mode-insert-iptc-tags): New.
+	* ffi-wand.el (Wand-mode-add-iptc-tag): New.
+	* ffi-wand.el (Wand-mode-insert-info): New.
+	* ffi-wand.el (Wand-mode-update-info): New.
+	* ffi-wand.el (Wand-mode-update-file-info): New.
+	* ffi-wand.el (Wand-mode-preview-with-region): New.
+	* ffi-wand.el (Wand-mode-insert-preview): New.
+	* ffi-wand.el (Wand-redisplay): New.
+	* ffi-wand.el (Wand-display-noselect): New.
+	* ffi-wand.el (Wand-display): New.
+	* ffi-wand.el (Wand:show-image-file): Removed.
+	* ffi-wand.el (Wand-mode-map): Removed.
+	* ffi-wand.el (Wand-find-file-enable): New.
+	* ffi-wand.el (Wand-mode-cleanup): New.
+	* ffi-wand.el (Wand-mode-reload): New.
+	* ffi-wand.el (Wand-mode-identify): New.
+	* ffi-wand.el (Wand-mode-operations-table): New.
+	* ffi-wand.el (Wand-mode-operate): New.
+	* ffi-wand.el (Wand-formats-read-unsupported): New.
+	* ffi-wand.el (Wand-format-supported-for-read-p): New.
+	* ffi-wand.el (Wand-formats-write-unsupported): New.
+	* ffi-wand.el (Wand-format-supported-for-write-p): New.
+	* ffi-wand.el (Wand-file-supported-for-read-p): New.
+	* ffi-wand.el (Wand-formats-list): New.
+	* ffi-wand.el (Wand-next-file): New.
+	* ffi-wand.el (Wand-mode-next-image): New.
+	* ffi-wand.el (Wand-mode-prev-image): New.
+	* ffi-wand.el (Wand-mode-last-image): New.
+	* ffi-wand.el (Wand-mode-first-image): New.
+	* ffi-wand.el (Wand-mode-next-page): New.
+	* ffi-wand.el (Wand-mode-prev-page): New.
+	* ffi-wand.el (Wand-mode-first-page): New.
+	* ffi-wand.el (Wand-mode-last-page): New.
+	* ffi-wand.el (Wand-mode-goto-page): New.
+	* ffi-wand.el (Wand-mode-flip): New.
+	* ffi-wand.el (Wand-mode-flop): New.
+	* ffi-wand.el (Wand-mode-trim): New.
+	* ffi-wand.el (Wand:MagickWandGenesis):
+	* ffi-wand.el (Wand-mode-rotate): New.
+	* ffi-wand.el (Wand-mode-rotate-left): New.
+	* ffi-wand.el (Wand-mode-rotate-right): New.
+	* ffi-wand.el (Wand-mode-raise): New.
+	* ffi-wand.el (Wand-mode-radial-blur): New.
+	* ffi-wand.el (Wand-mode-sharpen): New.
+	* ffi-wand.el (Wand-mode-gaussian-blur): New.
+	* ffi-wand.el (Wand-mode-despeckle): New.
+	* ffi-wand.el (Wand-mode-edge): New.
+	* ffi-wand.el (Wand-mode-emboss): New.
+	* ffi-wand.el (Wand-mode-reduce-noise): New.
+	* ffi-wand.el (Wand-mode-add-noise): New.
+	* ffi-wand.el (Wand-mode-spread): New.
+	* ffi-wand.el (Wand-mode-contrast): New.
+	* ffi-wand.el (Wand-mode-normalize): New.
+	* ffi-wand.el (Wand-mode-enhance): New.
+	* ffi-wand.el (Wand-mode-equalize): New.
+	* ffi-wand.el (Wand-mode-negate): New.
+	* ffi-wand.el (Wand-mode-grayscale): New.
+	* ffi-wand.el (Wand-mode-modulate): New.
+	* ffi-wand.el (Wand-mode-solarize): New.
+	* ffi-wand.el (Wand-mode-swirl): New.
+	* ffi-wand.el (Wand-mode-oil-paint): New.
+	* ffi-wand.el (Wand-mode-charcoal): New.
+	* ffi-wand.el (Wand-mode-sepia-tone): New.
+	* ffi-wand.el (Wand-mode-implode): New.
+	* ffi-wand.el (Wand-mode-vignette): New.
+	* ffi-wand.el (Wand-mode-wave): New.
+	* ffi-wand.el (Wand-mode-select-region): New.
+	* ffi-wand.el (Wand-mode-activate-region): New.
+	* ffi-wand.el (Wand-mode-drag-image): New.
+	* ffi-wand.el (Wand-mode-crop): New.
+	* ffi-wand.el (Wand-mode-chop): New.
+	* ffi-wand.el (Wand-mode-redeye-remove): New.
+	* ffi-wand.el (Wand-mode-preview-op): New.
+	* ffi-wand.el (Wand-mode-zoom-in): New.
+	* ffi-wand.el (Wand-mode-zoom-out): New.
+	* ffi-wand.el (Wand-mode-sample): New.
+	* ffi-wand.el (Wand-mode-fit-size): New.
+	* ffi-wand.el (Wand-mode-liquid-rescale): New.
+	* ffi-wand.el (Wand-mode-posterize): New.
+	* ffi-wand.el (Wand-mode-pattern): New.
+	* ffi-wand.el (Wand-list-composite-ops): New.
+	* ffi-wand.el (Wand-list-patterns): New.
+	* ffi-wand.el (Wand-mode-toggle-fit): New.
+	* ffi-wand.el (Wand-mode-undo): New.
+	* ffi-wand.el (Wand-mode-redo): New.
+	* ffi-wand.el (Wand-mode-repeat-last-operation): New.
+	* ffi-wand.el (Wand-mode-global-operations-list): New.
+	* ffi-wand.el (Wand-mode-write-file): New.
+	* ffi-wand.el (Wand-mode-save-file): New.
+	* ffi.el:
+	* ffi.el (globally-declare-boundp):
+	* ffi.el (ffi-create-fo):
+	* ffi.el (ffi-find-named-type):
+	* ffi.el (ffi-null-pointer): New.
+	* ffi.el (ffi-null-p): New.
+	* ffi.el (ffi-type-to-translators): New.
+	* ffi.el (ffi-type-from-translators): New.
+	* ffi.el (define-ffi-translator): New.
+	* ffi.el (define-ffi-translator-to-foreign): New.
+	* ffi.el (define-ffi-translator-from-foreign): New.
+	* ffi.el (ffi-translate-foreign): New.
+	* ffi.el (ffi-translate-to-foreign): New.
+	* ffi.el (ffi-translate-from-foreign): New.
+	* ffi.el (ffi-define-type-internal):
+	* ffi.el (define-ffi-type):
+	* ffi.el (define-ffi-struct):
+	* ffi.el (ffi-type-p):
+	* ffi.el (ffi-load):
+	* ffi.el (ffi-get):
+	* ffi.el (ffi-slot-type):
+	* ffi.el (ffi-set):
+	* ffi.el (ffi-deref):
+	* ffi.el (define-ffi-function):
+	* ffi.el (ffi-enum):
+	* ffi.el (define-ffi-enum): New.
+	* ffi.el (ffi-enum-values): New.
+	* ffi.el (define-ffi-callback): New.
+	* ffi.el (ffi-callback-fo): New.
+	* ffi.el (boolean): New.
+	* ffi.el (lisp-object): New.
+	* ffi.el (safe-string): New.
+	* ffi.el (callback): New.
+	* ffi.el (:uchar): New.
+	* ffi.el (:ushort): New.
+	* ffi.el (:uint): New.
+	* ffi.el (:ulong): New.
+	* ffi.el (:boolean): New.
+	* ffi.el (:string): New.
+	* ffi.el (cffi:lisp-var-name): New.
+	* ffi.el (cffi:foreign-var-name): New.
+	* ffi.el (cffi:get-var-pointer): New.
+	* ffi.el (cffi:defcvar): New.
+	* ffi.el (cffi:defcfun):
+	* ffi.el (ffi:canonicalize-symbol-name-case): New.
+	* ffi.el (cffi:foreign-alloc): New.
+	* ffi.el (cffi:foreign-free): New.
+	* ffi.el (cffi:with-foreign-pointer): New.
+	* ffi.el (ffi-pointer-p): New.
+	* ffi.el ('cffi:make-pointer): New.
+	* ffi.el ('ffi-pointer-address): New.
+	* ffi.el ('cffi:pointer-address): New.
+	* ffi.el ('cffi:pointerp): New.
+	* ffi.el ('cffi:null-pointer): New.
+	* ffi.el ('cffi:null-pointer-p): New.
+	* ffi.el (cffi:inc-pointer): New.
+	* ffi.el (cffi:pointer-eq): New.
+	* ffi.el (cffi:mem-ref): New.
+	* ffi.el ('cffi:foreign-type-size): New.
+	* ffi.el ('cffi:foreign-type-alignment): New.
+	* ffi.el ('cffi:load-foreign-library): New.
+	* ffi.el (cffi:%defcallback): New.
+	* ffi.el (cffi:%callback): New.
+	* ffi.el (cffi:foreign-symbol-pointer): New.
+	* ffi.el (cffi:finalize): New.
+	* ffi.el (cffi:cancel-finalization): New.
+	Update to the latest SXEmacs version of the FFI Lisp code.
+
+2008-05-08  Steve Youngs  <steve@sxemacs.org>
+
+	* ffi-curl.el: New.
+	* ffi-libc.el: New.
+	* ffi-magic.el: New.
+	* ffi-wand.el: New.
+	* ffi.el: New.
+
+	Foreign Function Interface, backported from SXEmacs.
+
 2009-10-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* cl-macs.el (delete-duplicates):

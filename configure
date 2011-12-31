@@ -1007,6 +1007,8 @@ enable_modules
 with_modules
 enable_bignum
 with_bignum
+enable_ffi
+with_ffi
 enable_workshop
 with_workshop
 enable_sparcworks
@@ -1950,6 +1952,8 @@ Emacs Lisp options
   --with-bignum=TYPE      Compile in support for bignums, ratios, or bigfloats
                           using library support. TYPE must be one of "gmp"
                           (for GNU MP), "mp" (for BSD MP), or "no" (disabled).
+  --with-ffi              Compile in experimental support for Foreign Function
+                          Interface.
 
 Platform Specific options
 -------------------------
@@ -5164,6 +5168,22 @@ unset _bignum_bogus
 
 else
   with_bignum="no"
+fi;
+# If --with-ffi or --without-ffi were given then copy the value to the
+# equivalent enable_ffi variable.
+if test "${with_ffi+set}" = set; then
+  enable_ffi="$with_ffi"
+fi;
+# If -enable-ffi or --disable-ffi were given then copy the value to the
+# equivalent with_ffi variable.
+if test "${enable_ffi+set}" = set; then
+  with_ffi="$enable_ffi"
+fi;
+# Check whether --with-ffi or --without-ffi was given.
+if test "${with_ffi+set}" = set; then
+  enableval="$with_ffi"
+  withval="$with_ffi"
+
 fi;
 
 # If --with-workshop or --without-workshop were given then copy the value to the
@@ -20567,6 +20587,66 @@ fi
 
 fi
 
+if test "x$with_ffi" = "xyes"; then
+  ac_fn_c_check_header_mongrel "$LINENO" "ffi.h" "ac_cv_header_ffi_h" "$ac_includes_default"
+if test "x$ac_cv_header_ffi_h" = xyes; then :
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ffi_prep_args in -lffi" >&5
+$as_echo_n "checking for ffi_prep_args in -lffi... " >&6; }
+if ${ac_cv_lib_ffi_ffi_prep_args+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lffi  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char ffi_prep_args ();
+int
+main ()
+{
+return ffi_prep_args ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_ffi_ffi_prep_args=yes
+else
+  ac_cv_lib_ffi_ffi_prep_args=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ffi_ffi_prep_args" >&5
+$as_echo "$ac_cv_lib_ffi_ffi_prep_args" >&6; }
+if test "x$ac_cv_lib_ffi_ffi_prep_args" = xyes; then :
+  have_ffi=yes
+fi
+
+fi
+
+
+  if test "x$have_ffi" = "xyes"; then
+    $as_echo "#define HAVE_LIBFFI 1" >>confdefs.h
+
+    LIBS="-lffi $LIBS" &&  if test "$verbose" = "yes"; then echo "    Prepending \"-lffi\" to \$LIBS"; fi
+    extra_objs="$extra_objs effi.o" &&  if test "$verbose" = "yes"; then
+   echo "    xemacs will be linked with \"effi.o\""
+ fi
+  else
+    { echo "Error:" "Requied FFI support cannot be provided." >&2; exit 1; }
+  fi
+fi
+
+
 if test "$cross_compiling" = yes; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -21316,6 +21396,7 @@ test "$with_dnet" = yes && echo "  Compiling in support for DNET."
 test "$with_modules" = "yes" && echo "  Compiling in support for dynamic shared object modules."
 test "$with_bignum" = "gmp" && echo "  Compiling in support for more number types using the GNU MP library."
 test "$with_bignum" = "mp" && echo "  Compiling in support for more number types using the BSD MP library."
+test "$with_ffi" = "yes" && echo "  Compiling in support for foreign function interface (FFI)."
 if test "$with_union_type" = yes ; then
   echo "  Using the union type for Lisp_Objects."
   echo "  WARNING: ---------------------------------------------------------"

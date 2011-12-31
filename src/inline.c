@@ -126,3 +126,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #ifdef TOOLTALK
 #include "tooltalk.h"
 #endif
+
+#ifdef HAVE_LIBFFI
+#include "effi.h"
+#endif
