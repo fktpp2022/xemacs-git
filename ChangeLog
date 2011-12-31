@@ -113,7 +113,7 @@
 	* configure: 
 	Regenerate.
 
-008-04-01  Andreas Schwab  <schwab@suse.de>
+2008-04-01  Andreas Schwab  <schwab@suse.de>
 
 	Thanks to Mike Fabian for posting a patch to the mainline, to Martin
 	Buchholz for writing the ChangeLog, and to Aidan Kehoe for finding

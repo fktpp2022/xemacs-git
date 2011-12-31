@@ -1,6 +1,6 @@
 ;;; ffi.el --- FFI lisp layer.
 
-;; Copyright (C) 2005 by Zajcev Evgeny.
+;; Copyright (C) 2005-2010 by Zajcev Evgeny
 
 ;; Author: Zajcev Evgeny <zevlg@yandex.ru>
 ;; Created: Fri Feb 18 18:56:43 MSK 2005
@@ -50,9 +50,11 @@
    '(ffi-type-checker ffi-named-types ffi-loaded-libraries))
   (globally-declare-fboundp
    '(ffi-size-of-type make-ffi-object ffi-canonicalise-type
-		      ffi-basic-type-p ffi-load-library ffi-dlerror ffi-object-type
-		      ffi-fetch ffi-slot-offset ffi-store ffi-aref)))
-
+		      ffi-basic-type-p ffi-load-library ffi-dlerror
+                      ffi-object-type ffi-fetch ffi-slot-offset
+                      ffi-store ffi-aref ffi-make-pointer
+                      ffi-object-address ffi-call-function
+                      ffi-defun ffi-bind)))
 
 
 (require 'alist)
@@ -62,21 +64,20 @@
 (defun ffi-create-fo (type val)
   "Create a foreign object of TYPE and set its value to VAL.
 Return created FFI object."
-  (let* ((size (cond ((or (eq type 'c-string)
-                          (eq type 'c-data))
+  (let* ((ctype (ffi-canonicalise-type type))
+         (size (cond ((or (eq ctype 'c-string) (eq ctype 'c-data))
                       (1+ (length val)))
-                     ((and (consp type)
-                           (eq (car type) 'c-data)
-                           (intp (cdr type)))
-                      (cdr type))
+                     ((and (consp ctype) (eq (car ctype) 'c-data)
+                           (intp (cdr ctype)))
+                      (cdr ctype))
                      (t
-                      (ffi-size-of-type type))))
+                      (ffi-size-of-type ctype))))
          (fo (make-ffi-object type size)))
     (ffi-set fo val)
     fo))
 
 (defun ffi-find-named-type (type-name)
-  "Search for named FFI type."
+  "Search for TYPE-NAME in named FFI types."
   (cdr (assq type-name ffi-named-types)))
 
 (defmacro declare-ffi-type (name)
@@ -86,6 +87,44 @@ Return created FFI object."
   `(and (symbolp ,name) (get ,name 'declared-ffi-type)))
 (defsetf ffi-declared-type-p (name) (val)
   `(and (symbolp ,name) (put ,name 'declared-ffi-type ,val)))
+
+;; Null pointer
+(defun ffi-null-pointer ()
+  "Return null-pointer."
+  (ffi-make-pointer 0))
+
+(defun ffi-null-p (ptr)
+  "Return non-nil if PTR is null pointer."
+  (zerop (ffi-pointer-address ptr)))
+
+;;; Type translators
+(defvar ffi-type-to-translators nil)
+(defvar ffi-type-from-translators nil)
+
+(defmacro define-ffi-translator (translators type body)
+  `(pushnew (cons ,type '(progn ,@body)) ,translators :key #'car))
+
+(defmacro define-ffi-translator-to-foreign (type &rest body)
+  "Define translator to foreign type for TYPE.
+BODY should use `value' to reference typed value."
+  `(define-ffi-translator ffi-type-to-translators ',type ,body))
+
+(defmacro define-ffi-translator-from-foreign (type &rest body)
+  "Define translator from foreign type for TYPE.
+BODY should use `value' to reference typed value."
+  `(define-ffi-translator ffi-type-from-translators ',type ,body))
+
+(defmacro ffi-translate-foreign (value type translators)
+  `(let ((translator (assq ,type ,translators)))
+     (if translator
+         (eval (cdr translator))
+       value)))
+
+(defun ffi-translate-to-foreign (value type)
+  (ffi-translate-foreign value type ffi-type-to-translators))
+
+(defun ffi-translate-from-foreign (value type)
+  (ffi-translate-foreign value type ffi-type-from-translators))
 
 ;;;###autoload
 (defun ffi-define-type-internal (name type)
@@ -104,17 +143,27 @@ Return created FFI object."
 
     (setq ffi-named-types
           (put-alist name type ffi-named-types))
+
+    ;; Copy translators, if any
+    (let ((fft (assq type ffi-type-to-translators))
+          (tft (assq type ffi-type-from-translators)))
+      (when fft
+        (pushnew (cons name (cdr fft)) ffi-type-to-translators :key #'car))
+      (when tft
+        (pushnew (cons name (cdr tft)) ffi-type-from-translators :key #'car)))
+
     name))
 
 (defmacro define-ffi-type (name type)
   "Associate NAME with FFI TYPE.
 When defining global structures or unions, NAME may be
-`nil', in that case NAME is derived from the name of
+nil, in that case NAME is derived from the name of
 TYPE."
   `(ffi-define-type-internal ',name ',type))
 
 (defmacro define-ffi-struct (name &rest slots)
-  "Define a new structure of NAME and SLOTS."
+  "Define a new structure of NAME and SLOTS.
+SLOTS are in form (NAME TYPE &key :offset)."
   (let ((forms `(progn
                   (define-ffi-type ,name (struct ,name ,@slots)))))
     (loop for sn in slots
@@ -124,28 +173,38 @@ TYPE."
                                `((defun ,sym (obj)
                                    (ffi-fetch obj (ffi-slot-offset ',name ',sn)
                                               (ffi-slot-type ',name ',sn))))))
-           (setq forms (append forms
-                               `((defsetf ,sym (obj) (nv)
-                                   (list 'ffi-store obj (list 'ffi-slot-offset '',name '',sn)
-                                               (list 'ffi-slot-type '',name '',sn)
-                                               nv)))))))
+           (setq forms
+                 (append forms
+                         `((defsetf ,sym (obj) (nv)
+                             (list 'ffi-store obj
+                                   (list 'ffi-slot-offset '',name '',sn)
+                                   (list 'ffi-slot-type '',name '',sn)
+                                   nv)))))))
     forms))
 
 ;;;###autoload
 (defun ffi-type-p (type &optional signal-p)
   "Return non-nil if TYPE is a valid FFI type.
 If optional argument SIGNAL-P is non-nil and TYPE is not an
-FFI type, additionally signal an error."
+FFI type, additionally signal an error.
+
+NOTE: returned non-nil value is actuall canonicalised type."
   (setq type (ffi-canonicalise-type type))
-  (if (cond ((ffi-basic-type-p type) t)
+  (if (cond ((ffi-basic-type-p type) type)
+
+            ;; Pointer
+            ((or (eq type 'pointer)
+                 (and (listp type)
+                      (eq (car type) 'pointer)
+                      (ffi-type-p (cadr type)))) type)
 
             ;; Maybe TYPE is declared
-            ((ffi-declared-type-p type) t)
+            ((ffi-declared-type-p type) type)
 
             ;; Struct or Union
             ((and (listp type)
                   (memq (car type) '(struct union)))
-             t)
+             type)
 ;             (not (memq nil
 ;                        (mapcar #'(lambda (slot-type)
 ;                                    (ffi-type-p (cadr slot-type)))
@@ -154,32 +213,29 @@ FFI type, additionally signal an error."
             ;; Complex c-data
             ((and (consp type) (eq (car type) 'c-data)
                   (or (numberp (cdr type)) (null (cdr type))))
-             t)
+             type)
 
             ;; Array
             ((and (listp type) (eq 'array (car type))
                   (ffi-type-p (cadr type))
                   (integerp (caddr type))
                   (> (caddr type) 0))
-             t)
-
-            ;; Pointer
-            ((and (listp type) (eq 'pointer (car type))
-                  (ffi-type-p (cadr type))))
+             type)
 
             ;; Function
             ((and (listp type) (eq 'function (car type))
                   (ffi-type-p (cadr type)))
              (not (memq nil (mapcar 'ffi-type-p (cddr type))))))
-      t                                 ; TYPE is valid FFI type
+      type                              ; TYPE is valid FFI type
 
     (when signal-p
       (signal-error 'invalid-argument type))))
 
 ;;;###autoload
 (defun ffi-load (libname)
-  "Load library LIBNAME and return a foreign object handle if successful,
-or indicate an error if the library cannot be loaded.
+  "Load library LIBNAME.
+Return a foreign object handle if successful, or indicate an error if
+the library cannot be loaded.
 
 The argument LIBNAME should be the file-name string of a shared
 object library (usual extension is `.so').
@@ -194,44 +250,64 @@ $LD_LIBRARY_PATH environment variable or the more global ld.so.cache."
           (put-alist libname fo ffi-loaded-libraries))
     fo))
 
-(defun* ffi-get (fo &key (type (ffi-object-type fo)) (off 0))
+(defun* ffi-get (fo &key (type (ffi-object-type fo)) (off 0)
+                    (from-call nil))
   "Return FO's value.
-
 Optional key :TYPE may be used to cast FO to the specified
 type, it defaults to the object's assigned type.
 Optional key :OFF may be used to specify an offset, it
-defaults to 0."
-  (setq type (ffi-canonicalise-type type))
-  (if (ffi-basic-type-p type)
-      (ffi-fetch fo off type)
-    (cond ((and (listp type)
-                (eq (car type) 'array))
-           (vconcat
-            (loop for idx from 0 below (third type)
-              collect (ffi-get fo :type (second type)
-                               :off (+ off (* idx (ffi-size-of-type (second type))))))))
-          ((and (listp type)
-                (eq (car type) 'struct))
-           (loop for sslot in (cddr type)
-             collect (list (first sslot)
-                           (ffi-get fo :type (second sslot)
-                                    :off (+ off (ffi-slot-offset type (first sslot)))))))
-
-          ((and (listp type)
-                (eq (car type) 'pointer))
+defaults to 0.
+FROM-CALL is magic, do not use it!"
+  (let ((ctype (ffi-canonicalise-type type)))
+    (cond ((ffi-basic-type-p ctype)
            (ffi-fetch fo off type))
+          ;; Arrays
+          ((and (listp ctype)
+                (eq (car ctype) 'array))
+           (vconcat
+            (loop for idx from 0 below (third ctype)
+              collect (ffi-get
+                       fo :type (second ctype)
+                       :off (+ off (* idx (ffi-size-of-type
+                                           (second ctype))))))))
 
-          (t (error "Unsupported type: %S" type)))))
+          ;; Structures
+          ((and (listp ctype)
+                (eq (car ctype) 'struct))
+           (loop for sslot in (cddr ctype)
+             collect (list (first sslot)
+                           (ffi-get
+                            fo :type (second sslot)
+                            :off (+ off (ffi-slot-offset
+                                         ctype (first sslot)))))))
+
+          ;; Extremely special case for safe-string!
+          ((eq type 'safe-string)
+           (unless (ffi-null-p fo)
+             (ffi-fetch fo off 'c-string)))
+
+          ((and (not from-call)
+                (or (eq ctype 'pointer)
+                    (and (listp ctype)
+                         (eq (car ctype) 'pointer)
+                         (ffi-type-p (cadr ctype)))))
+           (if (ffi-null-p fo)
+               nil
+             (ffi-fetch fo off type)))
+
+          (t
+           ;; Can't get value in proper form,
+           ;; just return FO unmodified
+           fo))))
 
 (defun ffi-slot-type (type slot)
   "Return TYPE's SLOT type.
 TYPE must be of structure or union type."
-  (setq type (ffi-canonicalise-type type))
-  (unless (memq (car type) '(struct union))
-    (error "Not struct or union: %S" type))
-  (loop for sl in (cddr type)
-    do (if (eq (car sl) slot)
-	   (return (cadr sl)))))
+  (let ((ctype (ffi-canonicalise-type type)))
+    (unless (memq (car ctype) '(struct union))
+      (error "Not struct or union: %S" type))
+    (or (cadr (find slot (cddr ctype) :key #'car :test #'eq))
+        (error "No such slot: %S" slot))))
 
 (defun ffi-slot (fo slot)
   "Setf-able slot accessor.
@@ -247,9 +323,16 @@ FO's SLOT."
 
 (defun ffi-set (fo val)
   "Set FO's foreign value to VAL."
-  (let ((ft (ffi-canonicalise-type (ffi-object-type fo))))
-    (if (ffi-basic-type-p ft)
-        (ffi-store fo 0 ft val)
+  (let* ((type (ffi-object-type fo))
+         (ctype (ffi-canonicalise-type type)))
+    (if (or (ffi-basic-type-p ctype)
+            (eq ctype 'pointer))
+        (ffi-store fo 0 type val)
+
+      ;; Pointer type, same as for basic
+      (when (or (eq ctype 'pointer)
+                (and (listp ctype) (eq (car ctype) 'pointer)))
+        (ffi-store fo 0 type val))
 
       ;; TODO: Compound type
       )))
@@ -258,11 +341,9 @@ FO's SLOT."
 ;; find it misleading, so ...
 (defun ffi-deref (fo-pointer)
   "Return the data FO-POINTER points to.
-
-This is the equivalent of the `*' operator in C."
-  ;; hm, (ffi-pointer-p ...) would be nice
+This is the equivalent of the `*' operator in C.
+Error will be signaled if FO-POINTER is not of pointer type."
   (ffi-aref fo-pointer 0))
-
 
 (defmacro define-ffi-function (fsym args doc-string ftype ename)
   "Define ffi function visible from Emacs lisp as FSYM."
@@ -282,9 +363,7 @@ This is the equivalent of the `*' operator in C."
                   (cddr ,ftype) (list ,@args))
          (setq ffiargs (nreverse ffiargs))
          (setq ret (apply #'ffi-call-function ,fsym ffiargs))
-         (if (ffi-basic-type-p (ffi-canonicalise-type (cadr ,ftype)))
-             (ffi-get ret)
-           ret)))))
+         (ffi-get ret :from-call t)))))
 
 (put 'define-ffi-function 'lisp-indent-function 'defun)
 
@@ -320,13 +399,14 @@ Furthermore, two functions \(named `NAME' and `NAME'-value\) will be
 defined.  The first one is a simple lookup function returning the
 C-value of a passed symbol.  The second does basically the same
 but returns the representing \(elisp\) integer of a symbol.
-Both functions return `nil' if the symbol is not in the enumeration."
+Both functions return nil if the symbol is not in the enumeration."
 
   ;; first check if we were passed a docstring
   (unless (stringp docstring)
     ;; docstring is missing, the value of docstring already
     ;; contains the first symbol, hence we pump that one to specs
-    (setq specs (cons docstring specs))
+    (unless (null docstring)
+      (setq specs (cons docstring specs)))
     (setq docstring (format "Enumeration `%s'" name)))
 
   ;; now build that pig of code
@@ -445,40 +525,308 @@ Both functions return `nil' if the symbol is not in the enumeration."
 ;;   guesswhat)
 ;; (example-enum-value 'guesswhat)
 
+(defmacro define-ffi-enum (type-name &rest spec)
+  "Create enumarate type which you can pass to C functions.
+For example:
+  \(define-ffi-enum MyEnum
+    \(Boris 0\)
+    Vova
+    Micha\)"
+  `(progn
+     (define-ffi-type ,type-name int)
+     (let* ((cv 0)
+            (fev (mapcar #'(lambda (sv)
+                             (prog1
+                                 (if (and (listp sv)
+                                          (symbolp (car sv))
+                                          (numberp (cadr sv)))
+                                     (prog1
+                                         (cons (car sv) (cadr sv))
+                                       (setq cv (cadr sv)))
+                                   (cons sv cv))
+                               (incf cv)))
+                         '(,@spec))))
+       (put ',type-name 'ffi-enum-values fev))
+     ;; Translators
+     (define-ffi-translator-to-foreign ,type-name
+       (or (cdr (assq value (get ',type-name 'ffi-enum-values)))
+           0))
+     (define-ffi-translator-from-foreign ,type-name
+       (or (car (find-if #'(lambda (v)
+                             (= (cdr v) value))
+                         (get ',type-name 'ffi-enum-values)))
+           'undefined-enum-value))))
+
+(defun ffi-enum-values (enum-type)
+  "Return alist for ENUM-TYPE.
+Where car is symbol and cdr is the numeric value for it."
+  (get enum-type 'ffi-enum-values))
+
+;;; Callbacks
+(defmacro define-ffi-callback (sym retype args &rest body)
+  "Create new callback to be called from C.
+Return foreign object that you can pass as callback to some C
+function.
+
+For example:
+
+\(define-ffi-callback my-nice-cb int
+  \(\(proname c-string\) \(event pointer\)\)
+  \"Print nice message in the minibuffer and return 10000.\"
+  \(message \"nice message\"\)
+  10000\)
+
+To get foreign object for this callback function use `ffi-callback-fo'
+and pass the name of the callback."
+  (let ((argnames (mapcar #'first args))
+        (argtypes (mapcar #'second args)))
+  `(progn
+     (defun ,sym ,argnames
+       ,@body)
+     (let ((cfo (ffi-make-callback ',sym ',retype ',argtypes 0)))
+       (put ',sym 'ffi-callback-fo cfo)
+       cfo))))
+
+(put 'define-ffi-callback 'lisp-indent-function 'defun)
+
+(defmacro ffi-callback-fo (sym)
+  "Return SYM callback's foreign object."
+  `(get ,sym 'ffi-callback-fo))
+
 
-;;; cffi
+;; Define some types
+(define-ffi-type boolean int)
+(define-ffi-translator-to-foreign boolean
+  (if value 1 0))
+(define-ffi-translator-from-foreign boolean
+  (not (zerop value)))
+
+(define-ffi-type lisp-object pointer)
+(define-ffi-translator-to-foreign lisp-object
+  (ffi-lisp-object-to-pointer value))
+(define-ffi-translator-from-foreign lisp-object
+  (ffi-pointer-to-lisp-object value))
+
+;; NOTE: use only for return values
+(define-ffi-type safe-string pointer)
+
+(define-ffi-type callback pointer)
+(define-ffi-translator-to-foreign callback
+  (ffi-callback-fo value))
+
+
+;;; CFFI
 (define-ffi-type :byte byte)
 (define-ffi-type :unsigned-byte unsigned-byte)
 (define-ffi-type :char char)
 (define-ffi-type :unsigned-char unsigned-char)
+(define-ffi-type :uchar unsigned-char)
 (define-ffi-type :short short)
 (define-ffi-type :unsigned-short unsigned-short)
+(define-ffi-type :ushort unsigned-short)
 (define-ffi-type :int int)
 (define-ffi-type :unsigned-int unsigned-int)
+(define-ffi-type :uint unsigned-int)
 (define-ffi-type :long long)
 (define-ffi-type :unsigned-long unsigned-long)
+(define-ffi-type :ulong unsigned-long)
 (define-ffi-type :float float)
 (define-ffi-type :double double)
 (define-ffi-type :void void)
 (define-ffi-type :pointer pointer)
+(define-ffi-type :boolean boolean)
+(define-ffi-type :string c-string)
+
+;;;# Accessing Foreign Globals
+
+(defun cffi:lisp-var-name (name &optional fun-p)
+  "Return the Lisp symbol for foreign var NAME."
+  (etypecase name
+    (list (second name))
+    (string (intern (format "%s%s%s" (if fun-p "" "*")
+                            (downcase (substitute ?- ?_ name)) (if fun-p "" "*"))))
+    (symbol name)))
+
+(defun cffi:foreign-var-name (name)
+  "Return the foreign var name of NAME."
+  (etypecase name
+    (list (first name))
+    (string name)
+    (symbol (let ((dname (downcase (symbol-name name))))
+              (replace-in-string (substitute ?_ ?- dname) "\\*" "")))))
+
+(defun cffi:get-var-pointer (symbol)
+  "Return a pointer to the foreign global variable relative to SYMBOL."
+  (cffi:foreign-symbol-pointer (get symbol 'foreign-var-name)))
 
 (defmacro cffi:defcstruct (name &rest args)
   `(define-ffi-struct ,name ,@args))
 
-(defmacro cffi:defcfun (name ret-type &rest in-args)
-  (let* ((ns (intern name))
+(defmacro cffi:defcvar (name type)
+  (let ((ns (cffi:lisp-var-name name)))
+    `(defvar ,ns (ffi-bind ,type (cffi:foreign-var-name ',name)))))
+
+(defmacro cffi:defcfun (name ret-type &optional docstring &rest in-args)
+  ;; First check if we were passed a docstring
+  (unless (stringp docstring)
+    ;; docstring is missing, the value of docstring already contains
+    ;; the first argument, hence we pump that one to in-args
+    (unless (null docstring)
+      (setq in-args (cons docstring in-args)))
+    (setq docstring
+          (format "Lisp variant for `%s' foreign function."
+                  (cffi:foreign-var-name name))))
+
+  (let* ((nsl (cffi:lisp-var-name name t))
+         (nsf (cffi:foreign-var-name name))
+         (with-rest (when (eq (car (last in-args)) '&rest)
+                      (setq in-args (butlast in-args))
+                      t))
          (as (mapcar 'first in-args))
-         (at (mapcar 'second in-args)))
-    `(define-ffi-function ,ns (,@as)
-       ""
-       '(function ,ret-type ,@at)
-       ,name)))
+         (at (mapcar 'second in-args))
+         (flet-form) (defun-form nil))
+    (setq flet-form
+          (append (list `(mapcar* #'setarg ',at (list ,@as)))
+                  (when with-rest
+                    (list '(while rest-args
+                             (if (ffi-object-p (car rest-args))
+                                 (progn
+                                   (setarg (ffi-object-type (car rest-args))
+                                           (car rest-args))
+                                   (setq rest-args (cdr rest-args)))
+                             (setarg (car rest-args) (cadr rest-args))
+                             (setq rest-args (cddr rest-args))))))
+                  (list '(setq ffiargs (nreverse ffiargs)))
+                  (list `(setq ret (apply #'ffi-call-function
+                                          (get ',nsl 'ffi-fun) ffiargs)))
+                  (list `(ffi-get ret :from-call t))))
+    (setq defun-form
+          (append `(defun ,nsl)
+                  (list (if with-rest
+                            (append as '(&rest rest-args))
+                          as))
+                  (list docstring)
+                  (list (append
+                         '(let (ffiargs ret))
+                         (list (append
+                                '(flet ((setarg (type arg)
+                                          (setq ffiargs
+                                                (cons
+                                                 (if (ffi-object-p arg)
+                                                     arg
+                                                   (ffi-create-fo type arg))
+                                                 ffiargs)))))
+                                flet-form))
+                         ))))
+    (append '(progn) (list defun-form)
+            (list `(put ',nsl 'ffi-fun
+                        (ffi-defun '(function ,ret-type ,@at) ,nsf))))))
 
-
-;;; TODO: - UFFI
+(put 'cffi:defcfun 'lisp-indent-function 'defun)
 
+(defun ffi:canonicalize-symbol-name-case (name)
+  (upcase name))
 
-
+;;;# Allocation
+
+(defun cffi:foreign-alloc (type)
+  "Return pointer."
+  (ffi-call-function
+   (ffi-defun '(function pointer unsigned-int) "malloc")
+   (ffi-create-fo 'unsigned-int (ffi-size-of-type type))))
+
+(defun cffi:foreign-free (ptr)
+  "Frees a PTR previously allocated with `cffi:foreign-alloc'."
+  (ffi-call-function
+   (ffi-defun '(function void pointer) "free")
+   ptr))
+
+(defmacro cffi:with-foreign-pointer (spec &rest body)
+  "Bind VAR to SIZE bytes of foreign memory during BODY.  The
+pointer in VAR is invalid beyond the dynamic extent of BODY, and
+may be stack-allocated if supported by the implementation.  If
+SIZE-VAR is supplied, it will be bound to SIZE during BODY."
+  (let ((var (car spec))
+        (size (cadr spec))
+        (size-var (caddr spec)))
+    (unless size-var
+      (setf size-var (gensym "SIZE")))
+    `(let* ((,size-var ,size)
+            (,var (cffi:foreign-alloc ,size-var)))
+       (unwind-protect
+           (progn ,@body)
+         (cffi:foreign-free ,var)))))
+
+;;;# Misc. Pointer Operations
+
+(defun ffi-pointer-p (fo)
+  "Return non-nil if ffi objct FO has pointer type."
+  (let ((ctype (ffi-canonicalise-type (ffi-object-type fo))))
+    (or (eq ctype 'pointer)
+        (and (listp ctype)
+             (eq (car ctype) 'pointer)
+             (ffi-type-p (cadr ctype))))))
+
+(defalias 'cffi:make-pointer 'ffi-make-pointer)
+(defalias 'ffi-pointer-address 'ffi-object-address)
+(defalias 'cffi:pointer-address 'ffi-pointer-address)
+(defalias 'cffi:pointerp 'ffi-pointer-p)
+(defalias 'cffi:null-pointer 'ffi-null-pointer)
+(defalias 'cffi:null-pointer-p 'ffi-null-p)
+
+(defun cffi:inc-pointer (ptr offset)
+  "Return a pointer OFFSET bytes past PTR."
+  (ffi-make-pointer (+ (ffi-object-address ptr) offset)))
+
+(defun cffi:pointer-eq (ptr1 ptr2)
+  "Return true if PTR1 and PTR2 point to the same address."
+  (= (ffi-object-address ptr1) (ffi-object-address ptr2)))
+
+;;;# Dereferencing
+
+(defun* cffi:mem-ref (ptr type &optional (offset 0))
+  "Dereference an object of TYPE at OFFSET bytes from PTR."
+  (ffi-fetch ptr offset type))
+
+; (defun cffi:%mem-set (value ptr type &optional (offset 0))
+;   "Set an object of TYPE at OFFSET bytes from PTR."
+;   (let* ((type (convert-foreign-type type))
+;          (type-size (ffi:size-of-foreign-type type)))
+;     (si:foreign-data-set-elt
+;      (si:foreign-data-recast ptr (+ offset type-size) :void)
+;      offset type value)))
+
+;;;# Type Operations
+
+(defalias 'cffi:foreign-type-size 'ffi-size-of-type)
+(defalias 'cffi:foreign-type-alignment 'ffi-type-alignment)
+
+(defalias 'cffi:load-foreign-library 'ffi-load)
+
+;;;# Callbacks
+(defmacro cffi:%defcallback (name rettype arg-names arg-types &rest body)
+  `(define-ffi-callback ,name ,rettype ,(mapcar* #'list arg-names arg-types)
+     ,@body))
+
+(put 'cffi:%defcallback 'lisp-indent-function 'defun)
+
+(defmacro cffi:%callback (name)
+  `(ffi-callback-fo ,name))
+
+;;;# Foreign Globals
+
+(defun cffi:foreign-symbol-pointer (name)
+  "Returns a pointer to a foreign symbol NAME."
+  (ffi-bind 'pointer name))
+
+;;;# Finalizers
+
+(defun cffi:finalize (object function)
+  (error "SXEmacs FFI does not support finalizers."))
+
+(defun cffi:cancel-finalization (object)
+  (error "SXEmacs FFI does not support finalizers."))
+
 (provide 'ffi)
 
 ;;; ffi.el ends here

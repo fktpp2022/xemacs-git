@@ -1,8 +1,9 @@
 ;;; ffi-libc.el --- FFI bindings for libc.
 
-;; Copyright (C) 2005 by XWEM Org.
+;; Copyright (C) 2005-2008 by Zajcev Evgeny.
 
 ;; Author: Zajcev Evgeny <zevlg@yandex.ru>
+;; Created: 2005
 ;; Keywords: ffi
 
 ;; This file is part of SXEmacs.
@@ -29,40 +30,96 @@
 ;;; Code:
 (require 'ffi)
 
-(defconst c:SEEK_SET 0)
-(defconst c:SEEK_CUR 1)
-(defconst c:SEEK_END 2)
+(define-ffi-type c:FILE pointer)
 
-;; libc Bindings
-(defconst c:fopen
-  (ffi-defun '(function (pointer void) c-string c-string) "fopen")
-  "Emacs lisp binding to fopen(3)")
-(defconst c:fdopen
-  (ffi-defun '(function (pointer void) int c-string) "fdopen")
-  "Emacs lisp binding to fdopen(3)")
-(defconst c:fread
-  (ffi-defun '(function unsigned-int c-string unsigned-int
-                        unsigned-int (pointer void)) "fread")
-  "Emacs lisp binding to fread(3)")
-(defconst c:fwrite
-  (ffi-defun '(function unsigned-int c-string unsigned-int
-                        unsigned-int (pointer void)) "fwrite")
-  "Emacs lisp binding to fwrite(3)")
-(defconst c:fseek
-  (ffi-defun '(function int (pointer void) long int) "fseek")
-  "Emacs lisp binding to fseek(3)")
-(defconst c:fclose
-  (ffi-defun '(function int (pointer void)) "fclose")
-  "Emacs lisp binding to fclose(3)")
-(defconst c:strerror
-  (ffi-defun '(function c-string int) "strerror")
-  "Emacs lisp binding to strerror(3)")
+(define-ffi-enum c:WHENCE
+  (seek-set 0)
+  (seek-cur 1)
+  (seek-end 2))
 
-(defconst c:errno (ffi-bind 'int "errno"))
+;;; FILE operations
+(defconst c:errno (ffi-bind 'int "errno")
+  "Current errno value.
+Get lisp value for it with `(ffi-get c:errno)'.")
 
-;; libc Functions
-(defun c:strerror (error)
-  (ffi-get (ffi-call-function c:strerror (ffi-create-fo 'int error))))
+(cffi:defcfun ("fopen" c:fopen-1) c:FILE
+  "Elisp binding to fopen(3).
+Consider using `c:fopen' instead."
+  (filename c-string) (mode c-string))
+
+(cffi:defcfun ("fdopen" c:fdopen) c:FILE
+  "Create stream from descriptor FD using MODE."
+  (fd int) (mode c-string))
+
+(cffi:defcfun ("clearerr" c:clearerr) void
+  "Clear the end-of-file and error indicators for the STREAM."
+  (stream c:FILE))
+
+(cffi:defcfun ("ferror" c:ferror-p) boolean
+  "Return non-nil if STREAM has errors.
+Tests the error indicator for the stream pointed to by stream,
+returning non-zero if it is set.  The error indicator can only be
+reset by the `c:clearerr' function."
+  (stream c:FILE))
+
+(cffi:defcfun ("feof" c:feof-p) boolean
+  "Return non-nil if STREAM has end-of-file indicator set.
+The end-of-file indicator can only be cleared by the function
+`c:clearerr'."
+  (stream c:FILE))
+
+(cffi:defcfun ("fread" c:fread-1) unsigned-int
+  "Elisp binding to fread(3).
+Consider using `c:fread' in your programs."
+  (ptr pointer) (size unsigned-int) (nmemb unsigned-int)
+  (stream c:FILE))
+
+(defun c:fread (size stream)
+  "Read at most SIZE bytes from STREAM.
+STREAM is object returned by call to `c:fopen' function.
+Empty stream is returned if end-of-file indicated.
+Error raises if some error occurs."
+  (let* ((fod (make-ffi-object (cons 'c-data size)))
+         (rsz (c:fread-1 fod 1 size stream)))
+    (if (zerop rsz)
+        (cond ((c:feof-p stream) "")
+              ((c:ferror-p stream)
+               (error 'io-error "c:fread error"
+                      (c:strerror (ffi-get c:errno))))
+              (t (error 'io-error "c:fread unknown error")))
+      (ffi-get fod :type (cons 'c-data rsz)))))
+    
+(cffi:defcfun ("fwrite" c:fwrite-1) unsigned-int
+  "Elisp binding to fwrite(3).
+Consider using `c:fwrite' in your programs."
+  (ptr pointer) (size unsigned-int) (nmemb unsigned-int)
+  (stream c:FILE))
+
+(defun c:fwrite (data stream)
+  "Write DATA to STREAM.
+DATA must be an Emacs lisp string.
+STREAM is object returned by call to `c:fopen' function."
+  (let ((fod (ffi-create-fo (cons 'c-data (length data)) data)))
+    (c:fwrite-1 fod 1 (length data) stream)))
+
+(cffi:defcfun ("fseek" c:fseek) int
+  "Set the file position indicator for the STREAM.
+The new position, measured in bytes, is obtained by adding OFFSET
+bytes to the position specified by WHENCE.
+WHENCE is one of:
+ 'seek-set   - relative to the start of file.
+ 'seek-cur   - relative to the current position.
+ 'seek-end   - relative to the end of file."
+  (stream c:FILE) (offset long) (whence c:WHENCE))
+
+(cffi:defcfun ("fclose" c:fclose) int
+  "Close STREAM.
+Elisp binding to close(3)."
+  (stream c:FILE))
+
+(cffi:defcfun ("strerror" c:strerror) c-string
+  "Emacs lisp binding to strerror(3)"
+  (error int))
 
 (defun c:fopen (file mode)
   "Open the FILE and associates a stream with it.
@@ -97,59 +154,67 @@ The mode string can also include the letter ``b'' either as a third char-
 acter or as a character between the characters in any of the two-charac-
 ter strings described above.  This is strictly for compatibility with
 ISO/IEC 9899:1990 (``ISO C90'') and has no effect; the ``b'' is ignored."
-  (let ((rv (ffi-call-function
-             c:fopen (ffi-create-fo 'c-string file)
-             (ffi-create-fo 'c-string mode))))
+  (let ((rv (c:fopen-1 file mode)))
     (when (ffi-null-p rv)
       (error 'file-error "c:fopen open error"
              file (c:strerror (ffi-get c:errno))))
     rv))
 
-(defun c:fdopen (fd mode)
-  "Create stream from descriptor FD using MODE."
-  (ffi-call-function
-   c:fdopen (ffi-create-fo 'int fd) (ffi-create-fo 'c-string mode)))
-
-(defun c:fclose (fstream)
-  "Close FSTREAM."
-  (ffi-get (ffi-call-function c:fclose fstream)))
-
-(defun c:fread (fstream len)
-  "From FSTREAM, read LEN bytes."
-  (let* ((fs (make-ffi-object 'c-string (1+ len)))
-         (rv (ffi-get (ffi-call-function
-                       c:fread fs (ffi-create-fo 'unsigned-int 1)
-                       (ffi-create-fo 'unsigned-int len) fstream))))
-    (when (< rv 0)
-      (error 'io-error "c:fread reading error" (c:strerror (ffi-get c:errno))))
-    ;; Terminating '\0'
-    (ffi-store fs rv 'char ?\x0)
-    (ffi-get fs)))
-
-(defun c:fwrite (fstream str)
-  "To FSTREAM write STR."
-  (let ((ret (ffi-get (ffi-call-function
-                       c:fwrite (ffi-create-fo 'c-string str)
-                       (ffi-create-fo 'unsigned-int 1)
-                       (ffi-create-fo 'unsigned-int (length str))
-                       fstream))))
-    (when (< ret 0)
-      (error 'io-error "c:fwrite writing error" (c:strerror (ffi-get c:errno))))
-    ret))
-
-(define-ffi-function c:dup-1 (fd)
+(cffi:defcfun ("dup" c:dup) int
   "Duplicate existing file descriptor FD.
-Return newly created file descriptor."
-  '(function int int)
-  "dup")
+Return newly created file descriptor.
+On error negative value is returned."
+  (fd int))
 
-(defun c:dup (fd)
-  "Duplicate existing file descriptor FD.
-Return newly created file descriptor."
-  (let ((ret (c:dup-1 fd)))
-    (when (< ret 0)
-      (error 'io-error "c:dup error" (c:strerror (ffi-get c:errno))))
-    ret))
+;;; Memory
+(cffi:defcfun ("memcpy" c:memcpy) pointer
+  "Elisp binding for memcpy(3)."
+  (dst pointer) (src pointer) (len unsigned-int))
+
+(cffi:defcfun ("memset" c:memset) pointer
+  "Write LEN bytes of value C to the string B."
+  (b pointer) (c int) (len unsigned-int))
+
+;;; SHM
+(defconst c:IPC-PRIVATE 0)
+(defconst c:IPC-R #o000400)
+(defconst c:IPC-W #o000200)
+(defconst c:IPC-CREAT #o001000)
+(defconst c:IPC-0777-MASK #o0777)
+
+(cffi:defcfun ("shmget" c:shmget) int
+  "Return id of newly created or previously existing shared memory segment.
+KEY names an IPC object.  There are three ways to specify a KEY:
+
+ o  `c:IPC-PRIVATE' may be specified, in which case a new IPC object
+    will be created.
+
+ o  An integer constant may be specified.  If no IPC object
+    corresponding to key is specified and the `c:IPC-CREAT' bit is set in
+    FLAG, a new one will be created.
+
+ o  The `c:ftok' may be used to generate a key from a pathname.
+
+SIZE indicates the desired size of the new segment in bytes."
+  (key long) (size unsigned-int) (flag int))
+
+(cffi:defcfun ("shmat" c:shmat) pointer
+  "Attaches the shared memory segment identified by SHMID to proccess.
+The address where the segment is attached is determined as follows:
+
+ o  If ADDR is null-pointer, the segment is attached at an address
+    selected by the kernel.
+
+ o  If ADDR is not null-pointer and `c:SHM-RND' is not specified in
+    FLAG, the segment is attached the specified address.
+
+ o  If ADDR is specified and `c:SHM-RND' is specified, ADDR is rounded
+    down to the nearest multiple of SHMLBA."
+  (shmid int) (addr pointer) (flag int))
+
+(cffi:defcfun ("shmdt" c:shmdt) int
+  "Detaches the shared memory segment at the ADDR from process."
+  (addr pointer))
 
 (provide 'ffi-libc)
 

@@ -58,56 +58,54 @@
 (require 'ffi-libc)
 
 ;; Can't do anything without this
-(ffi-load "libmagic.so")
+(ffi-load "libmagic")
+
+(defvar ffi-magic-shared nil
+  "Shared context with preloaded magic file, to speed up things.")
 
 
-(define-ffi-type magic_t (pointer void))
+(define-ffi-type magic_t pointer)
 
-(defvar magic-open
-  (ffi-defun '(function magic_t int) "magic_open")
-  "FFI object for libmagic's magic_open().")
-
-(defun magic-open (flag)
+(define-ffi-function magic-open (flag)
   "Call libmagic's magic_open()."
-  (ffi-call-function magic-open flag))
+  '(function magic_t int)
+  "magic_open")
 
-(defvar magic-load
-  (ffi-defun '(function int (pointer magic_t) c-string) "magic_load")
-  "FFI object for libmagic's magic_load().")
-
-(defun magic-load (magic &optional magicfile)
+(define-ffi-function magic-load (magic magicfile)
   "Call libmagic's magic_load()."
-  (ffi-call-function magic-load magic magicfile))
+  '(function int magic_t c-string)
+  "magic_load")
 
-(defvar magic-file
-  (ffi-defun '(function c-string (pointer magic_t) c-string) "magic_file")
-  "FFI object for libmagic's magic_file().")
-
-(defun magic-file (magic file)
+(define-ffi-function magic-file (magic file)
   "Call libmagic's magic_file()."
-  (ffi-call-function magic-file magic file))
+  '(function safe-string magic_t c-string)
+  "magic_file")
 
-(defvar magic-close
-  (ffi-defun '(function void (pointer magic_t)) "magic_close")
-  "FFI object for libmagic's magic_close().")
-
-(defun magic-close (magic)
+(define-ffi-function magic-close (magic)
   "Call libmagic's magic_close()."
-  (ffi-call-function magic-close magic))
+  '(function void magic_t)
+  "magic_close")
 
+(define-ffi-function magic-error (magic)
+  "Call libmagic's magic_error()."
+  '(function safe-string magic_t)
+  "magic_error")
+
+;;;###autoload
 (defun magic:file-type (file)
   "Return as a string what type FILE is using libmagic."
   (interactive "fFile name: ")
-  (let ((magic (magic-open (ffi-create-fo 'int 0)))
-	(cfile (ffi-create-fo 'c-string (expand-file-name file)))
-	type)
-    (magic-load magic (ffi-null-pointer))
-    (setq type (magic-file magic cfile))
-    (setq type (ffi-get type))
-    (magic-close magic)
+  (unless ffi-magic-shared
+    (setq ffi-magic-shared (magic-open 0))
+    (magic-load ffi-magic-shared (ffi-null-pointer)))
+
+  (let ((ftype (magic-file ffi-magic-shared (expand-file-name file))))
     (if (interactive-p)
-	(message type)
-      type)))
-  
+        (message ftype)
+      ftype)))
+
+(defun magic:error (&optional magic)
+  (magic-error (or magic ffi-magic-shared)))
+
 (provide 'ffi-magic)
 ;;; ffi-magic.el ends here

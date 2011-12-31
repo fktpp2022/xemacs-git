@@ -1,3 +1,31 @@
+2011-12-31  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* effi.c:
+	* effi.c (WRITE_FMT_STRING):
+	* effi.c (FFI_POINTERP):
+	* effi.c (print_ffiobject):
+	* effi.c (ffi_check_type):
+	* effi.c (ffi_canonicalise_type):
+	* effi.c (Fffi_object_address):
+	* effi.c (Fffi_make_pointer):
+	* effi.c (Fffi_type_alignment):
+	* effi.c (ffi_fetch_foreign):
+	* effi.c (Fffi_fetch):
+	* effi.c (Fffi_lisp_object_to_pointer):
+	* effi.c (extffi_setup_argument):
+	* effi.c (ffi_call_using_libffi):
+	* effi.c (print_ffi_job):
+	* effi.c (finish_ffi_job_data):
+	* effi.c (make_ffi_asyneq_job):
+	* effi.c (Fx_device_display):
+	* effi.c (ffi_callback_call_x86):
+	* effi.c (ffi_make_callback_x86):
+	* effi.c (Fffi_make_callback):
+	* effi.c (syms_of_ffi):
+	Update to the latest version of the SXEmacs FFI code,
+	coincidentally getting it working on OS X with dylib supports
+	(previously the requirement for a .so extension prevented this).
+
 2008-05-08  Steve Youngs  <steve@sxemacs.org>
 
 	* config.h.in: #undef HAVE_LIBFFI
@@ -19,6 +47,7 @@
 	Declare.
 
 	Foreign Function Interface, backported from SXEmacs.
+
 2009-10-01  Mike Sperber  <mike@xemacs.org>
 
 	* frame-x.c (x_focus_on_frame): Use correct timestamp with

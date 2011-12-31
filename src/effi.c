@@ -1,7 +1,7 @@
 /*
  * effi.c --- Foreign Function Interface for SXEmacs.
  *
- * Copyright (C) 2004 Evgeny Zajcev
+ * Copyright (C) 2004-2008 Zajcev Evgeny
  * Copyright (C) 2008 Steve Youngs
  *
  This file is part of SXEmacs
@@ -39,9 +39,15 @@
 #endif  /* HAVE_LIBFFI */
 
 #ifdef EF_USE_ASYNEQ
-#  include "workers.h"
-#  include "worker-asyneq.h"
+#  include "events/workers.h"
+#  include "events/worker-asyneq.h"
 #endif	/* EF_USE_ASYNEQ */
+
+/* For `x-device-display' */
+#include "device-impl.h"
+#include "console-x-impl.h"
+
+#define EFFI_CODING	Qnative
 
 /*
  * Some compatibility for XEmacs
@@ -50,11 +56,13 @@
 #  define SIGNAL_ERROR signal_error
 #  define FFIBYTE Bufbyte
 #  define WRITE_C_STRING(x,y) write_c_string((x),(y))
+#  define WRITE_FMT_STRING(x,y,...) write_fmt_string((x),(y),__VA_ARGS__)
 #  define LRECORD_DESCRIPTION lrecord_description
 #else
 #  define SIGNAL_ERROR Fsignal
 #  define FFIBYTE Ibyte
 #  define WRITE_C_STRING(x,y) write_c_string((y),(x))
+#  define WRITE_FMT_STRING(x,y,...) write_fmt_string((x),(y),__VA_ARGS__)
 #  define LRECORD_DESCRIPTION memory_description
 #endif	/* SXEMACS */
 
@@ -84,7 +92,7 @@
  *
  * Pointers:
  *
- *   (pointer TYPE)
+ *   pointer or (pointer TYPE)
  */
 
 /* Foreign types */
@@ -101,13 +109,18 @@ Lisp_Object Q_function;
 Lisp_Object Q_c_string, Q_c_data;
 Lisp_Object Q_boolean;
 
-#define FFI_TPTR(type) (EQ(type, Q_c_string)				\
-                        || EQ(type, Q_c_data)				\
-                        || (CONSP(type) && ((EQ(XCAR(type), Q_c_data))	\
-                                            || EQ(XCAR(type), Q_pointer) \
+#define FFI_POINTERP(type) (EQ(type, Q_pointer)                                \
+                            || (CONSP(type) && EQ(XCAR(type), Q_pointer)))
+
+#define FFI_TPTR(type) (EQ(type, Q_c_string)                                   \
+                        || EQ(type, Q_c_data)                                  \
+                        || FFI_POINTERP(type)                                  \
+                        || (CONSP(type) && ((EQ(XCAR(type), Q_c_data))         \
                                             || EQ(XCAR(type), Q_array))))
 
 Lisp_Object Qffiobjectp;
+Lisp_Object Qffi_translate_to_foreign;
+Lisp_Object Qffi_translate_from_foreign;
 
 /* Alist with elements in form (NAME . TYPE) */
 Lisp_Object Vffi_loaded_libraries;
@@ -116,6 +129,8 @@ Lisp_Object Vffi_named_types;
 Lisp_Object Vffi_type_checker;
 
 static Lisp_Object Vffi_all_objects;
+
+Lisp_Object Q_ffi_callback;
 
 static Lisp_Object
 mark_ffiobject(Lisp_Object obj)
@@ -132,7 +147,6 @@ print_ffiobject(Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 {
   /* This function can GC */
   Lisp_EffiObject *ffio = XEFFIO(obj);
-  char buf[256];
 
   escapeflag = escapeflag;        /* shutup compiler */
   if (print_readably) {
@@ -152,9 +166,9 @@ print_ffiobject(Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
     print_internal(ffio->type, printcharfun, 1);
     WRITE_C_STRING(" ", printcharfun);
   }
-  snprintf(buf, 255, "size=%ld fotype=%d foptr=%p>",
-	   (long)XINT(ffio->size), ffio->fotype, ffio->fop.generic);
-  WRITE_C_STRING(buf, printcharfun);
+  WRITE_FMT_STRING (printcharfun, "size=%ld fotype=%d foptr=%p>",
+		    (long) XINT (ffio->size), ffio->fotype,
+		    ffio->fop.generic);
 }
 
 static const struct LRECORD_DESCRIPTION ffiobject_description[] = {
@@ -270,10 +284,10 @@ const struct lrecord_implementation lrecord_ffiobject = {
  *                        |        j         |
  *                        `------------------'
  */
-static void
+static Lisp_Object
 ffi_check_type(Lisp_Object type)
 {
-  apply1(Vffi_type_checker, Fcons(type, Fcons(Qt, Qnil)));
+  return apply1(Vffi_type_checker, Fcons(type, Fcons(Qt, Qnil)));
 }
 
 DEFUN("ffi-basic-type-p", Fffi_basic_type_p, 1, 1, 0, /*
@@ -289,28 +303,26 @@ function, and there is a corresponding built-in type in C.
       || EQ(type, Q_unsigned_short) || EQ(type, Q_int)
       || EQ(type, Q_unsigned_int) || EQ(type, Q_long)
       || EQ(type, Q_unsigned_long) || EQ(type, Q_float)
-      || EQ(type, Q_double) || EQ(type, Q_void) || EQ(type, Q_c_string)
-      || EQ(type, Q_c_data) || (CONSP(type) && EQ(XCAR(type), Q_c_data))
-      || EQ(type, Q_boolean))
+      || EQ (type, Q_double) || EQ (type, Q_void)
+      || EQ (type, Q_c_string) || EQ (type, Q_c_data)
+      || (CONSP (type) && EQ (XCAR (type), Q_c_data)))
     return Qt;
   else
     return Qnil;
 }
 
 
-Lisp_Object ffi_canonicalise_type(Lisp_Object type)
+static Lisp_Object
+ffi_canonicalise_type(Lisp_Object type)
 {
-  /* this function can GC */
-  Lisp_Object stype = type;
-  struct gcpro gcpro1, gcpro2;
-  GCPRO2(stype, type);
+/* this function canNOT GC */
 
-  while (!NILP(type) &&
-	 NILP(Fffi_basic_type_p(type)) &&
-	 SYMBOLP(type))
-    type = Fcdr(Fassq(type, Vffi_named_types));
+  while (!NILP(type) && NILP(Fffi_basic_type_p(type)) && SYMBOLP(type))
+    {
+      if EQ (type, Q_pointer) break;
+      type = Fcdr (Fassq (type, Vffi_named_types));
+    }
 
-  UNGCPRO;
   return type;
 }
 
@@ -335,7 +347,7 @@ Return the size of the foreign type TYPE.
 
 Valid foreign types are: `byte', `unsigned-byte', `char',
 `unsigned-char', `short', `unsigned-short', `int', `unsigned-int',
-`long', `unsigned-long', `pointer-void', `float', `double', 
+`long', `unsigned-long', `pointer', `float', `double', 
 `object', and `c-string'.
                                                         */
       (type))
@@ -373,13 +385,18 @@ Valid foreign types are: `byte', `unsigned-byte', `char',
     tsize = sizeof(int);
   else if (EQ(type, Q_c_string))
     tsize = sizeof(char *);
-  else if (EQ(type, Q_c_data) ||
-	   (CONSP(type) && EQ(XCAR(type), Q_c_data)))
+  else if (FFI_POINTERP (type))
     tsize = sizeof(void *);
+  else if (EQ (type, Q_c_data))
+    tsize = sizeof (void *);
+  else if (CONSP (type) && EQ (XCAR (type), Q_c_data))
+    {
+      Lisp_Object cdsize = XCDR (type);
+      CHECK_INT (cdsize);
+      tsize = XINT (cdsize);
+    }
   else if (CONSP(type) && EQ(XCAR(type), Q_function))
     tsize = sizeof(void(*));
-  else if (CONSP(type) && EQ(XCAR(type), Q_pointer))
-    tsize = sizeof(void *);
   else if (CONSP(type) && EQ(XCAR(type), Q_array)) {
     Lisp_Object atype = Fcar(XCDR(type));
     Lisp_Object asize = Fcar(Fcdr(XCDR(type)));
@@ -414,46 +431,45 @@ Valid foreign types are: `byte', `unsigned-byte', `char',
 
 DEFUN("make-ffi-object", Fmake_ffi_object, 1, 2, 0, /*
 Create a new FFI object of type TYPE.
-If optional argument SIZE is non-`nil' it should be an
+If optional argument SIZE is non-nil it should be an
 integer, in this case additional storage size to hold data 
 of at least length SIZE is allocated.
 						    */
       (type, size))
 {
+  int cs_or_cd;
+  Lisp_Object ctype;
   Lisp_Object result = Qnil;
   Lisp_EffiObject *ffio;
   struct gcpro gcpro1;
 
   GCPRO1(result);
 
-  ffi_check_type(type);
+  /* NOTE: ffi_check_type returns canonical type */
+  ctype = ffi_check_type (type);
   if (NILP(size))
     size = Fffi_size_of_type(type);
   CHECK_INT(size);
 
-  if (CONSP(type) && EQ(XCAR(type), Q_c_data) && INTP(XCDR(type)))
+  if (CONSP (ctype) && EQ (XCAR (ctype), Q_c_data) && INTP (XCDR (ctype)))
     size = XCDR(type);
 
+  cs_or_cd = EQ (ctype, Q_c_string) || (EQ (ctype, Q_c_data));
+  if ((cs_or_cd && (XINT (size) < 1))
+      || (!(cs_or_cd || FFI_POINTERP (ctype))
+	  && (XINT(size) < XINT(Fffi_size_of_type(type)))))
 #ifdef SXEMACS
-  if ((EQ(type, Q_c_string) && (XINT(size) < 1))
-      || (!(EQ(type, Q_c_string) ||
-	    (CONSP(type) && EQ(XCAR(type), Q_pointer)))
-	  && (XINT(size) < XINT(Fffi_size_of_type(type))))) {
     signal_simple_error("storage size too small to store type",
-			list2(size, type));
-  }
+                        list2(size, type));
+
   ffio = alloc_lcrecord(sizeof(Lisp_EffiObject)+XINT(size),
 			&lrecord_ffiobject);
   XSETEFFIO(result, ffio);
 #else
-  if ((EQ(type, Q_c_string) && (XINT(size) < 1))
-      || (!(EQ(type, Q_c_string) ||
-	    (CONSP(type) && EQ(XCAR(type), Q_pointer)))
-	  && (XINT(size) < XINT(Fffi_size_of_type(type))))) {
     signal_error(Qinternal_error,
 		 "storage size too small to store type",
 		 list2(size, type));
-  }
+
   ffio = old_basic_alloc_lcrecord(sizeof(Lisp_EffiObject)+XINT(size),
 				  &lrecord_ffiobject);
   result = wrap_effio(ffio);
@@ -481,6 +497,40 @@ Return non-nil if FO is an FFI object, nil otherwise.
       (fo))
 {
   return (EFFIOP(fo) ? Qt : Qnil);
+}
+
+DEFUN("ffi-object-address", Fffi_object_address, 1, 1, 0, /*
+Return the address FO points to.
+*/
+      (fo))
+{
+  CHECK_EFFIO(fo);
+  return make_float((long)XEFFIO(fo)->fop.ptr);
+}
+
+DEFUN("ffi-make-pointer", Fffi_make_pointer, 1, 1, 0, /*
+Return a pointer pointing to ADDRESS.
+*/
+      (address))
+{
+  long addr;
+  Lisp_Object ptr;
+
+  if (INTP(address))
+    addr = XINT(address);
+  else if (FLOATP(address))
+    addr = XFLOATINT(address);
+  else {
+#ifdef SXEMACS
+    signal_simple_error("FFI: invalid address type", address);
+#else
+    signal_error(Qinternal_error, "FFI: invalid address type", address);
+#endif	/* SXEMACS */
+  }
+
+  ptr = Fmake_ffi_object(Q_pointer, Qnil);
+  XEFFIO(ptr)->fop.ptr = (void*)addr;
+  return ptr;
 }
 
 DEFUN("ffi-object-canonical-type", Fffi_object_canonical_type, 1, 1, 0, /*
@@ -538,27 +588,60 @@ DEFUN("ffi-load-library", Fffi_load_library, 1, 1, 0, /*
 Load library LIBNAME and return a foreign object handle if successful,
 or `nil' if the library cannot be loaded.
 
-The argument LIBNAME should be the file-name string of a shared
-object library (usual extension is `.so').
+The argument LIBNAME should be the file-name string of a shared object
+library.  Normally you should omit the file extension, as this
+function will add the appripriate extension for the current platform
+if one is missing.
 
 The library should reside in one of the directories specified by the
 $LD_LIBRARY_PATH environment variable or the more global ld.so.cache.
 						      */
       (libname))
 {
-  void *handler;
+
+#ifdef LTDL_SHLIB_EXT
+#  define EXT LTDL_SHLIB_EXT
+#elif defined(HAVE_DYLD) || defined(HAVE_MACH_O_DYLD_H)
+#    define EXT ".dylib"
+#  else
+#    define EXT ".so"
+#endif /* LTDL_SHLIB_EXT */
+
+  void *handler, *dotpos;
   Lisp_Object fo = Qnil;
   Lisp_EffiObject *ffio;
   struct gcpro gcpro1;
+  char *soname = NULL;
 
   CHECK_STRING(libname);
 
-  handler = dlopen((const char *)XSTRING_DATA(libname), RTLD_GLOBAL|RTLD_NOW);
+  /* Add an extension if we need to */
+  dotpos = strrchr ((char *) XSTRING_DATA (libname), '.');
+  if (dotpos == NULL || strncmp (dotpos, EXT, sizeof (EXT)))
+    {
+      ssize_t liblen = XSTRING_LENGTH (libname);
+      ssize_t soname_len = liblen + sizeof (EXT);
+      soname = xmalloc (soname_len + 1);
+      strncpy (soname, (char *) XSTRING_DATA (libname), liblen + 1);
+      strncat (soname, EXT, sizeof (EXT) + 1);
+    }
+
+  if (soname == NULL)
+    {
+      handler = dlopen ((const char *) XSTRING_DATA (libname),
+			RTLD_GLOBAL | RTLD_NOW);
+    }
+  else
+    {
+      handler = dlopen (soname, RTLD_GLOBAL | RTLD_NOW);
+      xfree (soname, char *);
+    }
+
   if (handler == NULL)
     return Qnil;
         
   GCPRO1(fo);
-  fo = Fmake_ffi_object(Fcons(Q_pointer, Fcons(Q_void, Qnil)), Qnil);
+  fo = Fmake_ffi_object (Q_pointer, Qnil);
   ffio = XEFFIO(fo);
 
   ffio->fotype = EFFI_FOT_BIND;
@@ -590,7 +673,7 @@ returned.
   GCPRO1(fo);
   fo = Fmake_ffi_object(type, Qnil);
   ffio = XEFFIO(fo);
-  ffio->fop.ptr = dlsym(RTLD_NEXT, (const char*)XSTRING_DATA(sym));
+  ffio->fop.ptr = dlsym (RTLD_DEFAULT, (const char *) XSTRING_DATA (sym));
   if (ffio->fop.ptr == NULL) {
     UNGCPRO;
     return Qnil;
@@ -608,10 +691,15 @@ Return dl error string.
 {
   const char *dles = dlerror();
 
-  if (dles)
-    return make_string((const FFIBYTE*)dles, strlen(dles));
+  if (dles != NULL)
+    {
+      size_t sz = strlen (dles);
+      return make_ext_string ((const Extbyte *) dles, sz, EFFI_CODING);
+    }
   else
-    return Qnil;
+    {
+      return Qnil;
+    }
 }
 
 DEFUN("ffi-defun", Fffi_defun, 2, 2, 0, /*
@@ -640,7 +728,7 @@ This is like `ffi-bind' but for function objects.
 
   fo = Fmake_ffi_object(type, Qnil);
   ffio = XEFFIO(fo);
-  ffio->fop.fun = dlsym(RTLD_NEXT, (const char *)XSTRING_DATA(sym));
+  ffio->fop.fun = dlsym (RTLD_DEFAULT, (const char *) XSTRING_DATA (sym));
   if (ffio->fop.fun == NULL) {
 #ifdef SXEMACS
     signal_simple_error("Can't define function", sym);
@@ -696,6 +784,14 @@ ffi_type_align(Lisp_Object type)
   return 4;
 }
 
+DEFUN("ffi-type-alignment", Fffi_type_alignment, 1, 1, 0, /*
+Return TYPE alignment.
+*/
+      (type))
+{
+  return make_int(ffi_type_align(type));
+}
+
 DEFUN("ffi-slot-offset", Fffi_slot_offset, 2, 2, 0, /*
 Return the offset of SLOT in TYPE.
 SLOT can be either a valid (named) slot in TYPE or `nil'.
@@ -733,6 +829,7 @@ If SLOT is `nil' return the size of the struct.
 
     if (EQ(XCAR(XCAR(slots)), slot)) {
       /* SLOT found */
+      /* TODO: add support for :offset keyword in SLOT */
       if (lpad < tmp_align) {
 	retoff += lpad;
 	lpad = 0;
@@ -754,34 +851,34 @@ If SLOT is `nil' return the size of the struct.
 
     slots = XCDR(slots);
   }
+  if (NILP (slots) && !NILP (slot))
+    {
+#ifdef SXEMACS
+      signal_simple_error ("FFI: Slot not found", slot);
+#else
+      signal_error (Qinternal_error, "FFI: Slot not found", slot);
+#endif /* SXEMACS */
+    }
   return make_int(retoff + lpad);
 }
 
-DEFUN("ffi-fetch", Fffi_fetch, 3, 3, 0, /*
-Fetch value from the foreign object FO from OFFSET position.
-TYPE specifies value for data to be fetched.
-					*/
-      (fo, offset, type))
+/*
+ * TYPE must be already canonicalised
+ */
+static Lisp_Object
+ffi_fetch_foreign(void *ptr, Lisp_Object type)
 {
-  Lisp_Object retval = Qnil;
-  Lisp_EffiObject *ffio;
-  void *ptr;
-  struct gcpro gcpro1;
+/* this function canNOT GC */
+  Lisp_Object retval = Qnone;
 
-  CHECK_EFFIO(fo);
-  CHECK_INT(offset);
-
-  ffio = XEFFIO(fo);
-  ptr = (void*)((char*)ffio->fop.ptr + XINT(offset));
-
-  type = ffi_canonicalise_type(type);
-
-  GCPRO1(retval);
-  /* Import from foreign level */
-  if (EQ(type, Q_byte) || EQ(type, Q_char))
+  if (EQ(type, Q_char))
     retval = make_char(*(char*)ptr);
-  else if (EQ(type, Q_unsigned_byte) || EQ(type, Q_unsigned_char))
+  else if (EQ(type, Q_unsigned_char))
     retval = make_char(*(char unsigned*)ptr);
+  else if (EQ(type, Q_byte))
+    retval = make_int(*(char*)ptr);
+  else if (EQ(type, Q_unsigned_byte))
+    retval = make_int(*(unsigned char*)ptr);
   else if (EQ(type, Q_short))
     retval = make_int(*(short*)ptr);
   else if (EQ(type, Q_unsigned_short))
@@ -798,47 +895,71 @@ TYPE specifies value for data to be fetched.
     retval = make_float(*(float*)ptr);
   else if (EQ(type, Q_double))
     retval = make_float(*(double*)ptr);
-  else if (EQ(type, Q_boolean))
-    retval = (*(int*)ptr) ? Qt : Qnil;
   else if (EQ(type, Q_c_string)) {
-    size_t tlen;
-    tlen = strlen((char*)ptr);
-#if 0
-    /* dangerous if ptr has a non-native encoding, like UTF8 */
-    retval = make_string((const FFIBYTE*)ptr, tlen);
-#elif defined(MULE)
-    TO_INTERNAL_FORMAT(DATA, (ptr, tlen),
-		       LISP_STRING, retval, Qnil);
-#else
-    retval = make_ext_string((char*)ptr, tlen, Qbinary);
-#endif
-  } else if (EQ(type, Q_c_data) ||
-	     (CONSP(type) && EQ(XCAR(type), Q_c_data))) {
-    size_t tlen;
-    if (EQ(type, Q_c_data)) {
-      tlen = ffio->storage_size - XINT(offset);
-    } else {
-      CHECK_INT(XCDR(type));
-      tlen = XUINT(XCDR(type));
-    }
-    retval = make_ext_string((char*)ptr, tlen, Qbinary);
+    retval = build_ext_string((char*)ptr, Qbinary);
   } else if (EQ(type, Q_void)) {
     retval = Qnil;
-  } else if (CONSP(type) && EQ(XCAR(type), Q_pointer)) {
+  } else if (FFI_POINTERP(type)) {
     retval = Fmake_ffi_object(type, Qnil);
     XEFFIO(retval)->fop.ptr = *(void**)ptr;
   } else if (CONSP(type) && EQ(XCAR(type), Q_function)) {
     retval = Fmake_ffi_object(type, Qnil);
     XEFFIO(retval)->fop.fun = (void*)ptr;
     XEFFIO(retval)->fotype = EFFI_FOT_FUNC;
-  } else {
-#ifdef SXEMACS
-    signal_simple_error("Can't fetch for this type", type);
-#else
-    signal_error(Qinternal_error, "Can't fetch for this type",
-		 type);
-#endif	/* SXEMACS */
   }
+
+  return retval;
+}
+
+DEFUN("ffi-fetch", Fffi_fetch, 3, 3, 0, /*
+Fetch value from the foreign object FO from OFFSET position.
+TYPE specifies value for data to be fetched.
+*/
+      (fo, offset, type))
+{
+  Lisp_Object origtype = type;
+  Lisp_Object retval = Qnil;
+  Lisp_EffiObject *ffio;
+  void *ptr;
+  struct gcpro gcpro1;
+
+  CHECK_EFFIO(fo);
+  CHECK_INT(offset);
+
+  ffio = XEFFIO(fo);
+  ptr = (void*)((char*)ffio->fop.ptr + XINT(offset));
+
+  type = ffi_canonicalise_type(type);
+
+  GCPRO1(retval);
+  /* Fetch value and translate it according to translators */
+  retval = ffi_fetch_foreign(ptr, type);
+  if (EQ(retval, Qnone)) {
+    /* Special case for c-data */
+    if (EQ(type, Q_c_data) ||
+        (CONSP(type) && EQ(XCAR(type), Q_c_data)))
+      {
+        size_t tlen;
+        if (EQ(type, Q_c_data)) {
+          tlen = ffio->storage_size - XINT(offset);
+        } else {
+          CHECK_INT(XCDR(type));
+          tlen = XUINT(XCDR(type));
+        }
+        
+        retval = make_ext_string(ptr, tlen, Qbinary);
+      } else {
+#ifdef SXEMACS
+      signal_simple_error("Can't fetch for this type", origtype);
+#else
+      signal_error(Qinternal_error, "Can't fetch for this type",
+                   origtype);
+#endif	/* SXEMACS */
+    }
+  }
+  retval = apply1(Findirect_function(Qffi_translate_from_foreign),
+                  list2(retval, origtype));
+
   RETURN_UNGCPRO(retval);
 }
 
@@ -882,6 +1003,7 @@ object of the underlying type pointed to.
 					*/
       (fo, offset, val_type, val))
 {
+  Lisp_Object origtype = val_type;
   Lisp_EffiObject *ffio;
   void *ptr;
 
@@ -893,14 +1015,27 @@ object of the underlying type pointed to.
 
   val_type = ffi_canonicalise_type(val_type);
 
-  if (EQ(val_type, Q_byte) || EQ(val_type, Q_char)
-      || EQ(val_type, Q_unsigned_byte) || EQ(val_type, Q_unsigned_char)) {
+  /* Translate value */
+  val = apply1 (Findirect_function (Qffi_translate_to_foreign),
+		list2 (val, origtype));
+
+  if (EQ (val_type, Q_char) || EQ (val_type, Q_unsigned_char))
+    {
     if (!CHARP(val)) {
       SIGNAL_ERROR(Qwrong_type_argument,
 		   list2(Qcharacterp, val));
     }
     *(char*)ptr = XCHAR(val);
-  } else if (EQ(val_type, Q_short) || EQ(val_type, Q_unsigned_short)) {
+    }
+  else if (EQ (val_type, Q_byte) || EQ (val_type, Q_unsigned_byte))
+    {
+      if (!INTP (val))
+	{
+	  SIGNAL_ERROR (Qwrong_type_argument, list2 (Qintegerp, val));
+	}
+      *(char *) ptr = XINT (val);
+    }
+  else if (EQ(val_type, Q_short) || EQ(val_type, Q_unsigned_short)) {
     if (!INTP(val)) {
       SIGNAL_ERROR(Qwrong_type_argument,
 		   list2(Qintegerp, val));
@@ -908,20 +1043,32 @@ object of the underlying type pointed to.
     *(short*)ptr = (short)XINT(val);
   } else if (EQ(val_type, Q_int) || EQ(val_type, Q_unsigned_int)) {
     if (INTP(val))
-      *(int*)ptr = XINT(val);
+      {
+        *(int*)ptr = XINT(val);
+      }
     else if (FLOATP(val))
-      *(int*)ptr = (int)XFLOATINT(val);
+      {
+        double tmp = XFLOATINT (val);
+        *(int *) ptr = (int) tmp;
+      }
     else {
       SIGNAL_ERROR(Qwrong_type_argument,
 		   list2(Qfloatp, val));
     }
   } else if (EQ(val_type, Q_long) || EQ(val_type, Q_unsigned_long)) {
     if (INTP(val))
-      *(long*)ptr = (long)XINT(val);
-    else if (FLOATP(val))
-      *(long*)ptr = (long)XFLOATINT(val);
+      {
+        *(long *) ptr = (long) XINT (val);
+      }
+    else if (FLOATP (val))
+      {
+        double tmp = XFLOATINT (val);
+        *(long *) ptr = (long int) tmp;
+      }
     else
-      SIGNAL_ERROR(Qwrong_type_argument, list2(Qfloatp, val));
+      {
+        SIGNAL_ERROR (Qwrong_type_argument, list2 (Qfloatp, val));
+      }
   } else if (EQ(val_type, Q_float)) {
     if (!FLOATP(val))
       SIGNAL_ERROR(Qwrong_type_argument, list2(Qfloatp, val));
@@ -930,14 +1077,12 @@ object of the underlying type pointed to.
     if (!FLOATP(val))
       SIGNAL_ERROR(Qwrong_type_argument, list2(Qfloatp, val));
     *(double*)ptr = XFLOAT_DATA(val);
-  } else if (EQ(val_type, Q_boolean)) {
-    *(int*)ptr = !NILP(val_type);
   } else if (EQ(val_type, Q_c_string)) {
+    char *tmp;
+    int tmplen;
     if (!STRINGP(val))
       SIGNAL_ERROR(Qwrong_type_argument, list2(Qstringp, val));
 #if defined(MULE)
-    char *tmp;
-    int tmplen;
     TO_EXTERNAL_FORMAT(LISP_STRING, val,
 		       ALLOCA, (tmp, tmplen), Qnil);
     memcpy((char*)ptr, tmp, tmplen + 1);
@@ -953,8 +1098,11 @@ object of the underlying type pointed to.
     unsigned int val_ext_len;
     if (!STRINGP(val))
       SIGNAL_ERROR(Qwrong_type_argument, list2(Qstringp, val));
-    if (CONSP(val_type) &&
-	XSTRING_LENGTH(val) > XINT(XCDR(val_type)) - 1) {
+
+    TO_EXTERNAL_FORMAT (LISP_STRING, val, ALLOCA,
+                        (val_ext, val_ext_len), Qbinary);
+    if (CONSP (val_type) && (val_ext_len > XINT (XCDR (val_type))))
+      {
 #ifdef SXEMACS
       error("storage size too small");
 #else
@@ -963,28 +1111,47 @@ object of the underlying type pointed to.
 		    build_string("storage size too small")));
 #endif	/* SXEMACS */
     }
-    TO_EXTERNAL_FORMAT(LISP_STRING, val, ALLOCA,
-		       (val_ext, val_ext_len), Qbinary);
-    memcpy((char*)ptr, (const char *)val_ext, val_ext_len+1);
-  } else if (CONSP(val_type) && EQ(XCAR(val_type), Q_pointer)) {
-    if (!EFFIOP(val)) {
+    memcpy ((char *) ptr, (const char *) val_ext, val_ext_len);
+  }
+  else if (FFI_POINTERP (val_type))
+    {
+      if (!EFFIOP(val))
+        {
 #ifdef SXEMACS
-      error("type");
+          signal_simple_error ("FFI: Value not of pointer type",
+			       list2 (origtype, val));
 #else
-      Fsignal(Qwrong_type_argument,
-	      list2(Qstringp, build_string("type")));
+ 	  Fsignal (Qwrong_type_argument,
+ 		   list2 (Qstringp, build_string ("type")));
+#endif	/* SXEMACS */
+        }
+      *(void**)ptr = (void*)XEFFIO(val)->fop.ptr;
+    }
+  else if (CONSP (val_type) && EQ (XCAR (val_type), Q_struct))
+    {
+      if (!EFFIOP (val))
+        {
+#ifdef SXEMACS
+          signal_simple_error ("FFI: Value not FFI object",
+                               list2 (origtype, val));
+#else
+          Fsignal (Qwrong_type_argument,
+                   list2 (Qstringp, build_string ("type")));
+#endif /* SXEMACS */
+        }
+      memcpy ((char *) ptr, (const char *) XEFFIO (val)->fop.ptr,
+              XINT (Fffi_size_of_type (val_type)));
+    }
+  else
+    {
+#ifdef SXEMACS
+      error("non basic or pointer type");
+#else
+      Fsignal(Qinternal_error,
+              list2(Qstringp,
+                    build_string("non basic or pointer type")));
 #endif	/* SXEMACS */
     }
-    *(void**)ptr = (void*)XEFFIO(val)->fop.ptr;
-  } else {
-#ifdef SXEMACS
-    error("non basic or pointer type");
-#else
-    Fsignal(Qinternal_error,
-	    list2(Qstringp,
-		  build_string("non basic or pointer type")));
-#endif	/* SXEMACS */
-  }
 
   return val;
 }
@@ -1044,6 +1211,37 @@ This is the equivalent of the `&' operator in C.
   RETURN_UNGCPRO(newfo);
 }
 
+DEFUN ("ffi-lisp-object-to-pointer", Fffi_lisp_object_to_pointer, 1, 1, 0, /*
+Convert lisp object to FFI pointer.
+*/
+       (obj))
+{
+  Lisp_Object newfo = Qnil;
+  Lisp_EffiObject *newffio;
+  struct gcpro gcpro1;
+
+  GCPRO1 (obj);
+
+  newfo = Fmake_ffi_object (Q_pointer, Qnil);
+  newffio = XEFFIO (newfo);
+  newffio->fotype = EFFI_FOT_BIND;
+  newffio->fop.ptr = (void *) obj;
+
+  /* Hold a reference to OBJ in NEWFO's plist */
+  Fput (newfo, intern ("lisp-object"), obj);
+
+  RETURN_UNGCPRO (newfo);
+}
+
+DEFUN ("ffi-pointer-to-lisp-object", Fffi_pointer_to_lisp_object, 1, 1, 0, /*
+Convert FFI pointer to lisp object.
+*/
+       (ptr))
+{
+  CHECK_EFFIO (ptr);
+  return (Lisp_Object) XEFFIO (ptr)->fop.ptr;
+}
+
 DEFUN("ffi-plist", Fffi_plist, 1, 1, 0, /*
 Return properties list for FFI object FO.
 					*/
@@ -1057,7 +1255,15 @@ Return properties list for FFI object FO.
 
 static int lf_cindex = 0;
 
+/*
+ * XXX
+ *  This will work in most cases.
+ *  However it might not work for large structures,
+ *  In general we should allocate these spaces dynamically
+ */
 #define MAX_TYPES_VALUES 1024
+/* ex_ffitypes_dummies used for structure types */
+static ffi_type ex_ffitypes_dummies[MAX_TYPES_VALUES + 1];
 static ffi_type *ex_ffitypes[MAX_TYPES_VALUES + 1];
 static void *ex_values[MAX_TYPES_VALUES + 1];
 
@@ -1093,8 +1299,6 @@ extffi_setup_argument(Lisp_Object type, ffi_type **ft)
     *ft = &ffi_type_float;
   else if (EQ(type, Q_double))
     *ft = &ffi_type_double;
-  else if (EQ(type, Q_boolean))
-    *ft = &ffi_type_sint;
   else if (EQ(type, Q_void))
     *ft = &ffi_type_void;
   else if (FFI_TPTR(type))
@@ -1118,10 +1322,14 @@ extffi_setup_argument(Lisp_Object type, ffi_type **ft)
 #endif	/* SXEMACS */
     }
     ntypes = &ex_ffitypes[lf_cindex];
+    *ft = &ex_ffitypes_dummies[lf_cindex];
 
-    /* BUG BUG BUG */
+    /* Update lf_cindex in case TYPE struct contains other
+     * structures */
+    lf_cindex += nt_size;
+
     (*ft)->type = FFI_TYPE_STRUCT;
-    (*ft)->alignment = 0;
+    (*ft)->alignment = ffi_type_align (type);
     (*ft)->elements = ntypes;
 
     for (i = 0; (i < nt_size) && !NILP(slots); slots = XCDR(slots), i++)
@@ -1170,7 +1378,13 @@ ffi_call_using_libffi(Lisp_Object fo_fun, Lisp_Object ret_fo,
   if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, in_nargs,
 		   rtype, ex_ffitypes) == FFI_OK)
     {
+#ifdef EF_USE_ASYNEQ
+      stop_async_timeouts ();
+#endif
       ffi_call(&cif, (void(*)(void))XEFFIO(fo_fun)->fop.fun, rvalue, ex_values);
+#ifdef EF_USE_ASYNEQ
+      start_async_timeouts ();
+#endif
       return 0;
     }
 
@@ -1322,12 +1536,10 @@ static void
 print_ffi_job(worker_job_t job, Lisp_Object pcf)
 {
   ffi_job_t ffij = ffi_job(job);
-  char *str = alloca(64);
 
   SXE_MUTEX_LOCK(&ffij->mtx);
-  WRITE_C_STRING(" carrying ", pcf);
-  snprintf(str, 63, " #<ffi-job 0x%lx>", (long unsigned int)ffij);
-  WRITE_C_STRING(str, pcf);
+  WRITE_FMT_STRING (pcf, " carrying  #<ffi-job 0x%lx>",
+		    (long unsigned int) ffij);
   SXE_MUTEX_UNLOCK(&ffij->mtx);
   return;
 }
@@ -1336,13 +1548,13 @@ static inline void
 finish_ffi_job_data(ffi_job_t ffij)
 {
   SXE_MUTEX_LOCK(&ffij->mtx);
-  xfree(ffij->fof_args);
-  xfree(ffij->sntnl_args);
+  xfree(ffij->fof_args, Lisp_Object *);
+  xfree(ffij->sntnl_args, Lisp_Object *);
   SXE_MUTEX_UNLOCK(&ffij->mtx);
   SXE_MUTEX_FINI(&ffij->mtx);
 
   EFFI_DEBUG_JOB("finished: 0x%lx\n", (long unsigned int)ffij);
-  xfree(ffij);
+  xfree(ffij, ffi_job_t);
 }
 
 static void
@@ -1420,7 +1632,7 @@ make_ffi_asyneq_job(ffi_job_t ffij)
   struct gcpro gcpro1;
 
   GCPRO1(job);
-  job = (Lisp_Object)make_worker_job(&ffi_job_handler);
+  job = wrap_object (make_worker_job (&ffi_job_handler));
   XWORKER_JOB_DATA(job) = ffij;
   /* the scratch buffer thingie */
   UNGCPRO;
@@ -1479,39 +1691,194 @@ may be specified by passing further SENTINEL-ARGS.
 }
 #endif	/* EF_USE_ASYNEQ */
 
-DEFUN("ffi-null-p", Fffi_null_p, 1, 1, 0, /*
-Return non-nil if FO is a null pointer, nil otherwise.
-Non-nil may be returned only for pointer types or the type c-string.
-					  */
-      (fo))
+extern struct device *decode_x_device (Lisp_Object device);
+
+DEFUN ("x-device-display", Fx_device_display, 0, 1, 0,	/*
+Return DEVICE display as FFI object.
+*/
+       (device))
 {
-  Lisp_EffiObject *ffio;
-  Lisp_Object real_type;
+#if HAVE_X_WINDOWS
+  Lisp_Object fo;
 
-  CHECK_EFFIO(fo);
-  ffio = XEFFIO(fo);
-  real_type = ffi_canonicalise_type(ffio->type);
-
-  if ((EQ(real_type, Q_c_string)
-       || EQ(real_type, Q_c_data)
-       || (CONSP(real_type) && EQ(XCAR(real_type), Q_pointer)))
-      && (ffio->fop.ptr == NULL))
-    return Qt;
-  else
-    return Qnil;
+  fo = Fmake_ffi_object (Q_pointer, Qnil);
+  XEFFIO (fo)->fotype = EFFI_FOT_BIND;
+  XEFFIO (fo)->fop.ptr = (void *) DEVICE_X_DISPLAY (decode_x_device (device));
+  return fo;
+#else
+  return Qnil;
+#endif
 }
 
-DEFUN("ffi-null-pointer", Fffi_null_pointer, 0, 0, 0, /*
-Return ffi object that represents null pointer.
-This is the equivalent of `NULL' in C.
-						      */
-      ())
-{
-  Lisp_Object npfo = Fmake_ffi_object(Fcons(Q_pointer,
-					    Fcons(Q_void, Qnil)), Qnil);
+/* Callbacks */
+#define FFI_CC_CDECL 0
 
-  XEFFIO(npfo)->fop.ptr = NULL;
-  return npfo;
+#if defined __i386__
+static void
+ffi_callback_call_x86 (Lisp_Object cbk_info, char *arg_buffer)
+{
+  Lisp_Object fun, alist = Qnil, retlo, foret;
+  Lisp_Object rtype, argtypes;
+  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
+  void *ptr;
+
+  fun = Fcar (cbk_info);
+  rtype = Fcar (Fcdr (cbk_info));
+  argtypes = Fcar (Fcdr (Fcdr (cbk_info)));
+
+  CHECK_LIST (argtypes);
+
+  arg_buffer += 4;		/* Skip return address */
+  while (!NILP (argtypes))
+    {
+      Lisp_Object result, ctype;
+      int size;
+
+      ctype = ffi_canonicalise_type (XCAR (argtypes));
+      size = XINT (Fffi_size_of_type (ctype));
+      if (EQ (ctype, Q_c_string))
+	{
+	  char *aptr = *(char **) arg_buffer;
+	  if (aptr)
+	    result = ffi_fetch_foreign (aptr, ctype);
+	  else
+	    result = Qnil;
+	}
+      else
+	result = ffi_fetch_foreign (arg_buffer, ctype);
+      /* Apply translators and put the result into alist */
+      result = apply1 (Findirect_function (Qffi_translate_from_foreign),
+		       list2 (result, XCAR (argtypes)));
+      alist = Fcons (result, alist);
+      {
+	int mask = 3;
+	int sp = (size + mask) & ~mask;
+	arg_buffer += (sp);
+      }
+      argtypes = XCDR (argtypes);
+    }
+  alist = Fnreverse (alist);
+
+  /* Special case, we have no return value */
+  if (EQ (rtype, Q_void))
+    {
+      GCPRO3 (fun, alist, rtype);
+      apply1 (fun, alist);
+      UNGCPRO;
+      return;
+    }
+
+  GCPRO5 (fun, alist, rtype, retlo, foret);
+  retlo = apply1 (fun, alist);
+  foret = Fmake_ffi_object (rtype, Qnil);
+  Fffi_store (foret, make_int (0), rtype, retlo);
+  ptr = (void *) XEFFIO (foret)->fop.ptr;
+  if (EQ (rtype, Q_double))
+    {
+      UNGCPRO;
+      {
+	asm volatile ("fldl (%0)"::"a" (ptr));
+      }
+      return;
+    }
+  else if (EQ (rtype, Q_float))
+    {
+      UNGCPRO;
+      {
+	asm volatile ("flds (%0)"::"a" (ptr));
+      }
+      return;
+    }
+  else
+    {
+      int iv;
+
+      if (EQ (rtype, Q_byte) || EQ (rtype, Q_char))
+	iv = *(char *) ptr;
+      else if (EQ (rtype, Q_unsigned_byte) || EQ (rtype, Q_unsigned_char))
+	iv = *(char unsigned *) ptr;
+      else if (EQ (rtype, Q_short))
+	iv = *(short *) ptr;
+      else if (EQ (rtype, Q_unsigned_short))
+	iv = *(unsigned short *) ptr;
+      else
+	iv = *(int *) ptr;
+      UNGCPRO;
+      {
+	asm volatile ("movl %0,%%eax;"::"r" (iv):"%eax");
+      }
+      return;
+    }
+}
+
+void *
+ffi_make_callback_x86 (Lisp_Object data, int cc_type)
+{
+  /*
+   *      push    %esp                            54
+   *      pushl   <data>                          68 <addr32>
+   *      call    ffi_callback_call_x86           E8 <disp32>
+   *      pop     %ecx                            59
+   *      pop     %ecx                            59
+   *      ret                                     c3
+   *      nop                                     90
+   *      nop                                     90
+   */
+
+  char *buf = xmalloc (sizeof (char) * 16);
+  *(char *) (buf + 0) = 0x54;
+  *(char *) (buf + 1) = 0x68;
+  *(long *) (buf + 2) = (long) data;
+  *(char *) (buf + 6) = 0xE8;
+  *(long *) (buf + 7) = (long) ffi_callback_call_x86 - (long) (buf + 11);
+  *(char *) (buf + 11) = 0x59;
+  *(char *) (buf + 12) = 0x59;
+  if (cc_type == FFI_CC_CDECL)
+    {
+      *(char *) (buf + 13) = 0xc3;
+      *(short *) (buf + 14) = 0x9090;
+    }
+  else
+    {
+      Lisp_Object arg_types = Fcar (Fcdr (Fcdr (data)));
+      int byte_size = 0;
+      int mask = 3;
+
+      CHECK_CONS (arg_types);
+
+      while (!NILP (arg_types))
+	{
+	  int sz = XINT (Fffi_size_of_type (XCAR (arg_types)));
+	  byte_size += ((sz + mask) & (~mask));
+	  arg_types = XCDR (arg_types);
+	}
+
+      *(char *) (buf + 13) = 0xc2;
+      *(short *) (buf + 14) = (short) byte_size;
+    }
+
+  return buf;
+}
+#endif /* __i386__ */
+
+DEFUN ("ffi-make-callback", Fffi_make_callback, 4, 4, 0, /*
+Create dynamic callback and return pointer to it.
+*/
+       (fun, rtype, argtypes, cctype))
+{
+  Lisp_Object data;
+  Lisp_Object ptr;
+
+  CHECK_INT (cctype);
+
+  data = list3 (fun, rtype, argtypes);
+  /* Put data as property of the fun, so it(data) wont be GCed */
+  Fput (fun, Q_ffi_callback, data);
+  ptr = Fmake_ffi_object (Q_pointer, Qnil);
+#ifdef __i386__
+  XEFFIO (ptr)->fop.ptr = ffi_make_callback_x86 (data, XINT (cctype));
+#endif /* __i386__ */
+  return ptr;
 }
 
 void
@@ -1539,15 +1906,21 @@ syms_of_ffi(void)
   defsymbol(&Q_function, "function");
   defsymbol(&Q_c_string, "c-string");
   defsymbol(&Q_c_data, "c-data");
-  defsymbol(&Q_boolean, "boolean");
 
   defsymbol(&Qffiobjectp, "ffiobjectp");
+
+  defsymbol (&Qffi_translate_to_foreign, "ffi-translate-to-foreign");
+  defsymbol (&Qffi_translate_from_foreign, "ffi-translate-from-foreign");
+
+  defsymbol (&Q_ffi_callback, "ffi-callback");
 
   DEFSUBR(Fffi_basic_type_p);
   DEFSUBR(Fffi_canonicalise_type);
   DEFSUBR(Fffi_size_of_type);
   DEFSUBR(Fmake_ffi_object);
   DEFSUBR(Fffi_object_p);
+  DEFSUBR (Fffi_make_pointer);
+  DEFSUBR (Fffi_object_address);
   DEFSUBR(Fffi_object_canonical_type);
   DEFSUBR(Fffi_object_type);
   DEFSUBR(Fffi_object_size);
@@ -1557,22 +1930,27 @@ syms_of_ffi(void)
   DEFSUBR(Fffi_aref);
   DEFSUBR(Fffi_store);
   DEFSUBR(Fffi_aset);
-  DEFSUBR(Fffi_address_of);
+  DEFSUBR (Fffi_address_of);
+  DEFSUBR (Fffi_type_alignment);
   DEFSUBR(Fffi_slot_offset);
   DEFSUBR(Fffi_load_library);
   DEFSUBR(Fffi_bind);
   DEFSUBR(Fffi_dlerror);
   DEFSUBR(Fffi_defun);
   DEFSUBR(Fffi_call_function);
-  DEFSUBR(Fffi_null_p);
-  DEFSUBR(Fffi_null_pointer);
 
+  DEFSUBR (Fffi_lisp_object_to_pointer);
+  DEFSUBR (Fffi_pointer_to_lisp_object);
   DEFSUBR(Fffi_plist);
 
 #ifdef EF_USE_ASYNEQ
   DEFSUBR(Fffi_call_functionX);
   defsymbol(&Qffi_jobp, "ffi-job-p");
 #endif
+
+  DEFSUBR (Fx_device_display);
+
+  DEFSUBR (Fffi_make_callback);
 }
 
 void
