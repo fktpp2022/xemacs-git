@@ -3239,31 +3239,35 @@ surrounded by (block NAME ...)."
   (if (consp object) (cdr object) pi))
 
 (define-compiler-macro equal (&whole form a b)
-  (if (or (cl-equal-equivalent-to-eq-p (cl-const-expr-val a pi))
-          (cl-equal-equivalent-to-eq-p (cl-const-expr-val b pi)))
+  (if (and (eql 3 (length form))
+           (or (cl-equal-equivalent-to-eq-p (cl-const-expr-val a pi))
+               (cl-equal-equivalent-to-eq-p (cl-const-expr-val b pi))))
       (cons 'eq (cdr form))
     form))
 
 (define-compiler-macro member (&whole form elt list)
-  (if (or (cl-equal-equivalent-to-eq-p (cl-const-expr-val elt pi))
-          (every #'cl-equal-equivalent-to-eq-p
-                 (cl-const-expr-val list '(1.0))))
+  (if (and (eql 3 (length form))
+           (or (cl-equal-equivalent-to-eq-p (cl-const-expr-val elt pi))
+               (every #'cl-equal-equivalent-to-eq-p
+                      (cl-const-expr-val list '(1.0)))))
       (cons 'memq (cdr form))
     form))
 
 (define-compiler-macro assoc (&whole form elt list)
-  (if (or (cl-equal-equivalent-to-eq-p (cl-const-expr-val elt pi))
-          (not (find-if-not #'cl-equal-equivalent-to-eq-p
-                            (cl-const-expr-val list '((1.0 . nil)))
-                            :key #'cl-car-or-pi)))
+  (if (and (eql 3 (length form))
+           (or (cl-equal-equivalent-to-eq-p (cl-const-expr-val elt pi))
+               (not (find-if-not #'cl-equal-equivalent-to-eq-p
+                                 (cl-const-expr-val list '((1.0 . nil)))
+                                 :key #'cl-car-or-pi))))
       (cons 'assq (cdr form))
     form))
 
 (define-compiler-macro rassoc (&whole form elt list)
-  (if (or (cl-equal-equivalent-to-eq-p (cl-const-expr-val elt pi))
-          (not (find-if-not #'cl-equal-equivalent-to-eq-p
-                            (cl-const-expr-val list '((nil . 1.0)))
-                            :key #'cl-cdr-or-pi)))
+  (if (and (eql 3 (length form))
+           (or (cl-equal-equivalent-to-eq-p (cl-const-expr-val elt pi))
+               (not (find-if-not #'cl-equal-equivalent-to-eq-p
+                                 (cl-const-expr-val list '((nil . 1.0)))
+                                 :key #'cl-cdr-or-pi))))
       (cons 'rassq (cdr form))
     form))
 
