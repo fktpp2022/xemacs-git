@@ -391,6 +391,7 @@ enum lrecord_type
   lrecord_type_emacs_ffi,
   lrecord_type_emacs_gtk_object,
   lrecord_type_emacs_gtk_boxed,
+  lrecord_type_ffiobject,
   lrecord_type_weak_box,
   lrecord_type_ephemeron,
   lrecord_type_bignum,
