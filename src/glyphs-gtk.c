@@ -153,26 +153,28 @@ Lisp_Object Qgtk_widget_instantiate_internal, Qgtk_widget_property_internal;
 Lisp_Object Qgtk_widget_redisplay_internal, Qgtk_widget_set_style;
 #endif
 
+#ifdef HAVE_GTK
+Lisp_Object Vgtk_cursor_names;
+#endif
+
 
 /************************************************************************/
 /*                      image instance methods                          */
 /************************************************************************/
 
-/************************************************************************/
-/* convert from a series of RGB triples to an XImage formated for the   */
-/* proper display							*/
-/************************************************************************/
-static GdkImage *
+/* Convert from a series of RGB triples to a GdkPixbuf. */
+static GdkPixbuf *
 convert_EImage_to_GDKImage (Lisp_Object device, int width, int height,
 			    unsigned char *pic, unsigned long **pixtbl,
 			    int *npixels)
 {
   GdkColormap *cmap;
   GdkVisual *vis;
-  GdkImage *outimg;
+  GdkPixbuf *out;
   int depth, byte_cnt, i, j;
+  int rowstride, n_channels;
   int rd,gr,bl,q;
-  unsigned char *data, *ip, *dp = NULL;
+  guchar *data, *ip, *dp = NULL;
   quant_table *qtable = NULL;
   union {
     UINT_32_BIT val;
@@ -193,27 +195,28 @@ convert_EImage_to_GDKImage (Lisp_Object device, int width, int height,
   if (vis->type == GDK_VISUAL_PSEUDO_COLOR)
     {
       /* Quantize the image and get a histogram while we're at it.
+         This should not be necessary for cairo.  -jsparkes
 	 Do this first to save memory */
       qtable = build_EImage_quantable(pic, width, height, 256);
-      if (qtable == NULL) return NULL;
+      if (qtable == NULL)
+        return NULL;
     }
 
-  /* The first parameter (GdkWindow *) is allowed to be NULL if we
-  ** specify the depth */
-  outimg = gdk_image_new (GDK_IMAGE_FASTEST, vis, width, height);
+  out = gdk_pixbuf_new (GDK_COLORSPACE_RGB, TRUE /* has_alpha */,
+                        8, width, height);
 
-  if (!outimg) return NULL;
+  if (!out)
+    return NULL;
 
-  byte_cnt = outimg->bpp;
+  byte_cnt = 4;
+  rowstride = gdk_pixbuf_get_rowstride (out);
+  n_channels = gdk_pixbuf_get_n_channels (out);
 
-  data = (unsigned char *) outimg->mem;
+  data = gdk_pixbuf_get_pixels (out);
 
   if (!data)
-    {
-      gdk_image_destroy (outimg);
-      return NULL;
-    }
-
+    return NULL;
+  
   if (vis->type == GDK_VISUAL_PSEUDO_COLOR)
     {
       unsigned long pixarray[256];
@@ -246,14 +249,19 @@ convert_EImage_to_GDKImage (Lisp_Object device, int width, int height,
       ip = pic;
       for (i = 0; i < height; i++)
 	{
-	  dp = data + (i * outimg->bpl);
 	  for (j = 0; j < width; j++)
 	    {
 	      rd = *ip++;
 	      gr = *ip++;
 	      bl = *ip++;
+              dp = data + i * rowstride + j * n_channels;
+              dp[0] = rd;
+              dp[1] = gr;
+              dp[2] = bl;
+              dp[3] = 255;
+#ifdef OLD
 	      conv.val = pixarray[QUANT_GET_COLOR(qtable,rd,gr,bl)];
-#if WORDS_BIGENDIAN
+#if G_BYTE_ORDER == G_BIG_ENDIAN
 	      if (outimg->byte_order == GDK_MSB_FIRST)
 		for (q = 4-byte_cnt; q < 4; q++) *dp++ = conv.cp[q];
 	      else
@@ -263,6 +271,7 @@ convert_EImage_to_GDKImage (Lisp_Object device, int width, int height,
 		for (q = byte_cnt-1; q >= 0; q--) *dp++ = conv.cp[q];
 	      else
 		for (q = 0; q < byte_cnt; q++) *dp++ = conv.cp[q];
+#endif
 #endif
 	    }
 	}
@@ -311,7 +320,6 @@ convert_EImage_to_GDKImage (Lisp_Object device, int width, int height,
       ip = pic;
       for (i = 0; i < height; i++)
 	{
-	  dp = data + (i * outimg->bpl);
 	  for (j = 0; j < width; j++)
 	    {
 	      if (rbits > 8)
@@ -327,8 +335,14 @@ convert_EImage_to_GDKImage (Lisp_Object device, int width, int height,
 	      else
 		bl = *ip++ >> (8 - bbits);
 
+              dp = data + i * rowstride + j * n_channels;
+              dp[0] = rd;
+              dp[1] = gr;
+              dp[2] = bl;
+              dp[3] = 255;
+#ifdef OLD
 	      conv.val = (rd << rshift) | (gr << gshift) | (bl << bshift);
-#if WORDS_BIGENDIAN
+#if G_BYTE_ORDER == G_BIG_ENDIAN
 	      if (outimg->byte_order == GDK_MSB_FIRST)
 		for (q = 4-byte_cnt; q < 4; q++) *dp++ = conv.cp[q];
 	      else
@@ -339,10 +353,11 @@ convert_EImage_to_GDKImage (Lisp_Object device, int width, int height,
 	      else
 		for (q = 0; q < byte_cnt; q++) *dp++ = conv.cp[q];
 #endif
+#endif
 	    }
 	}
     }
-  return outimg;
+  return out;
 }
 
 static void
@@ -480,9 +495,10 @@ gtk_image_instance_equal (struct Lisp_Image_Instance *p1,
   return 1;
 }
 
+#ifdef NOT_USED
 static Hashcode
 gtk_image_instance_hash (struct Lisp_Image_Instance *p, int UNUSED (depth),
-                         Boolint UNUSED (equalp))
+			 Boolint UNUSED (equalp))
 {
   switch (IMAGE_INSTANCE_TYPE (p))
     {
@@ -499,6 +515,7 @@ gtk_image_instance_hash (struct Lisp_Image_Instance *p, int UNUSED (depth),
       return 0;
     }
 }
+#endif
 
 /* Set all the slots in an image instance structure to reasonable
    default values.  This is used somewhere within an instantiate
@@ -593,29 +610,145 @@ locate_pixmap_file (Lisp_Object name)
 /*                           cursor functions                           */
 /************************************************************************/
 
+#ifdef HAVE_GTK
+static void
+register_cursor_name (const char *real_name, int value)
+{
+  Ibyte *name = alloca_ibytes (strlen (real_name));
+  int len = strlen (real_name);
+  int i;
+
+  /* real_name is an ASCII string. */
+  /* strlen ("GDK_") == 4 */
+  for (i = 4; i < len; i++)
+    {
+      if (real_name[i] == 0)
+        break;
+      if (real_name[i] == '_')
+        name[i - 4] = '-';
+      else
+        name[i - 4] = tolower (real_name[i]);
+    }
+  name[i-4] = 0;
+  
+  Vgtk_cursor_names = Facons (intern_istring (name), make_fixnum (value),
+                              Vgtk_cursor_names);
+}
+
+/*
+ * Cursor names are stored as an alist, symbol->internal enum value.
+ * The first one is default.
+ */
+static void 
+register_cursor_names (void)
+{
+  if (NILP (Vgtk_cursor_names))
+    {
+      /* Generated from GtkCursorType declaration. */
+#define FROB_CURSOR_NAME(name, value) \
+      register_cursor_name (#name , value)
+
+      FROB_CURSOR_NAME (GDK_X_CURSOR, 0);
+      FROB_CURSOR_NAME (GDK_ARROW, 2);
+      FROB_CURSOR_NAME (GDK_BASED_ARROW_DOWN, 4);
+      FROB_CURSOR_NAME (GDK_BASED_ARROW_UP, 6);
+      FROB_CURSOR_NAME (GDK_BOAT, 8);
+      FROB_CURSOR_NAME (GDK_BOGOSITY, 10);
+      FROB_CURSOR_NAME (GDK_BOTTOM_LEFT_CORNER, 12);
+      FROB_CURSOR_NAME (GDK_BOTTOM_RIGHT_CORNER, 14);
+      FROB_CURSOR_NAME (GDK_BOTTOM_SIDE, 16);
+      FROB_CURSOR_NAME (GDK_BOTTOM_TEE, 18);
+      FROB_CURSOR_NAME (GDK_BOX_SPIRAL, 20);
+      FROB_CURSOR_NAME (GDK_CENTER_PTR, 22);
+      FROB_CURSOR_NAME (GDK_CIRCLE, 24);
+      FROB_CURSOR_NAME (GDK_CLOCK, 26);
+      FROB_CURSOR_NAME (GDK_COFFEE_MUG, 28);
+      FROB_CURSOR_NAME (GDK_CROSS, 30);
+      FROB_CURSOR_NAME (GDK_CROSS_REVERSE, 32);
+      FROB_CURSOR_NAME (GDK_CROSSHAIR, 34);
+      FROB_CURSOR_NAME (GDK_DIAMOND_CROSS, 36);
+      FROB_CURSOR_NAME (GDK_DOT, 38);
+      FROB_CURSOR_NAME (GDK_DOTBOX, 40);
+      FROB_CURSOR_NAME (GDK_DOUBLE_ARROW, 42);
+      FROB_CURSOR_NAME (GDK_DRAFT_LARGE, 44);
+      FROB_CURSOR_NAME (GDK_DRAFT_SMALL, 46);
+      FROB_CURSOR_NAME (GDK_DRAPED_BOX, 48);
+      FROB_CURSOR_NAME (GDK_EXCHANGE, 50);
+      FROB_CURSOR_NAME (GDK_FLEUR, 52);
+      FROB_CURSOR_NAME (GDK_GOBBLER, 54);
+      FROB_CURSOR_NAME (GDK_GUMBY, 56);
+      FROB_CURSOR_NAME (GDK_HAND1, 58);
+      FROB_CURSOR_NAME (GDK_HAND2, 60);
+      FROB_CURSOR_NAME (GDK_HEART, 62);
+      FROB_CURSOR_NAME (GDK_ICON, 64);
+      FROB_CURSOR_NAME (GDK_IRON_CROSS, 66);
+      FROB_CURSOR_NAME (GDK_LEFT_PTR, 68);
+      FROB_CURSOR_NAME (GDK_LEFT_SIDE, 70);
+      FROB_CURSOR_NAME (GDK_LEFT_TEE, 72);
+      FROB_CURSOR_NAME (GDK_LEFTBUTTON, 74);
+      FROB_CURSOR_NAME (GDK_LL_ANGLE, 76);
+      FROB_CURSOR_NAME (GDK_LR_ANGLE, 78);
+      FROB_CURSOR_NAME (GDK_MAN, 80);
+      FROB_CURSOR_NAME (GDK_MIDDLEBUTTON, 82);
+      FROB_CURSOR_NAME (GDK_MOUSE, 84);
+      FROB_CURSOR_NAME (GDK_PENCIL, 86);
+      FROB_CURSOR_NAME (GDK_PIRATE, 88);
+      FROB_CURSOR_NAME (GDK_PLUS, 90);
+      FROB_CURSOR_NAME (GDK_QUESTION_ARROW, 92);
+      FROB_CURSOR_NAME (GDK_RIGHT_PTR, 94);
+      FROB_CURSOR_NAME (GDK_RIGHT_SIDE, 96);
+      FROB_CURSOR_NAME (GDK_RIGHT_TEE, 98);
+      FROB_CURSOR_NAME (GDK_RIGHTBUTTON, 100);
+      FROB_CURSOR_NAME (GDK_RTL_LOGO, 102);
+      FROB_CURSOR_NAME (GDK_SAILBOAT, 104);
+      FROB_CURSOR_NAME (GDK_SB_DOWN_ARROW, 106);
+      FROB_CURSOR_NAME (GDK_SB_H_DOUBLE_ARROW, 108);
+      FROB_CURSOR_NAME (GDK_SB_LEFT_ARROW, 110);
+      FROB_CURSOR_NAME (GDK_SB_RIGHT_ARROW, 112);
+      FROB_CURSOR_NAME (GDK_SB_UP_ARROW, 114);
+      FROB_CURSOR_NAME (GDK_SB_V_DOUBLE_ARROW, 116);
+      FROB_CURSOR_NAME (GDK_SHUTTLE, 118);
+      FROB_CURSOR_NAME (GDK_SIZING, 120);
+      FROB_CURSOR_NAME (GDK_SPIDER, 122);
+      FROB_CURSOR_NAME (GDK_SPRAYCAN, 124);
+      FROB_CURSOR_NAME (GDK_STAR, 126);
+      FROB_CURSOR_NAME (GDK_TARGET, 128);
+      FROB_CURSOR_NAME (GDK_TCROSS, 130);
+      FROB_CURSOR_NAME (GDK_TOP_LEFT_ARROW, 132);
+      FROB_CURSOR_NAME (GDK_TOP_LEFT_CORNER, 134);
+      FROB_CURSOR_NAME (GDK_TOP_RIGHT_CORNER, 136);
+      FROB_CURSOR_NAME (GDK_TOP_SIDE, 138);
+      FROB_CURSOR_NAME (GDK_TOP_TEE, 140);
+      FROB_CURSOR_NAME (GDK_TREK, 142);
+      FROB_CURSOR_NAME (GDK_UL_ANGLE, 144);
+      FROB_CURSOR_NAME (GDK_UMBRELLA, 146);
+      FROB_CURSOR_NAME (GDK_UR_ANGLE, 148);
+      FROB_CURSOR_NAME (GDK_WATCH, 150);
+      FROB_CURSOR_NAME (GDK_XTERM, 152);
+
+#undef FROB_CURSOR_NAME
+
+      Vgtk_cursor_names = Fnreverse (Vgtk_cursor_names);
+    }
+}
+#endif
+
 /* Check that this server supports cursors of size WIDTH * HEIGHT.  If
    not, signal an error.  INSTANTIATOR is only used in the error
    message. */
 
 static void
-check_pointer_sizes (unsigned int UNUSED (width), unsigned int UNUSED (height),
-		     Lisp_Object UNUSED (instantiator))
+check_pointer_sizes (GdkDisplay *display, guint width, guint height,
+		     Lisp_Object instantiator)
 {
-    /* #### BILL!!! There is no way to call XQueryBestCursor from Gdk! */
-#if 0
-  unsigned int best_width, best_height;
-  if (! XQueryBestCursor (DisplayOfScreen (xs), RootWindowOfScreen (xs),
-			  width, height, &best_width, &best_height))
-    /* this means that an X error of some sort occurred (we trap
-       these so they're not fatal). */
-    gui_error ("XQueryBestCursor() failed?", instantiator);
+  guint max_width, max_height;
 
-  if (width > best_width || height > best_height)
+  gdk_display_get_maximal_cursor_size(display, &max_width, &max_height);
+  if (width > max_width || height > max_height)
     signal_ferror_with_frob (Qgui_error, instantiator,
 			     "pointer too large (%dx%d): "
 			     "server requires %dx%d or smaller",
-			     width, height, best_width, best_height);
-#endif
+			     width, height, max_width, max_height);
 }
 
 static void
@@ -698,7 +831,9 @@ image_instance_convert_to_pointer (Lisp_Image_Instance *ii,
   w = IMAGE_INSTANCE_PIXMAP_WIDTH (ii);
   h = IMAGE_INSTANCE_PIXMAP_HEIGHT (ii);
 
-  check_pointer_sizes (w, h, instantiator);
+  check_pointer_sizes (gtk_widget_get_display
+                       (DEVICE_GTK_APP_SHELL (XDEVICE (device))),
+                       w, h, instantiator);
 
   /* If the loaded pixmap has colors allocated (meaning it came from an
      XPM file), then use those as the default colors for the cursor we
@@ -787,7 +922,7 @@ init_image_instance_from_gdk_image (struct Lisp_Image_Instance *ii,
   gdk_draw_image (GDK_DRAWABLE (pixmap), gc, gdk_image,
 		  0, 0, 0, 0, gdk_image->width, gdk_image->height);
 
-  gdk_gc_destroy (gc);
+  g_object_unref (gc);
 
   gtk_initialize_pixmap_image_instance (ii, slices, IMAGE_COLOR_PIXMAP);
 
@@ -831,7 +966,8 @@ void init_image_instance_from_gdk_pixmap (struct Lisp_Image_Instance *ii,
 
   gtk_initialize_pixmap_image_instance (ii, IMAGE_COLOR_PIXMAP);
 
-  gdk_window_get_geometry (gdk_pixmap, NULL, NULL, &width, &height, &depth);
+  depth = gdk_drawable_get_depth (pixmap);
+  gdk_drawable_get_size (pixmap, &w, &h);
 
   IMAGE_INSTANCE_PIXMAP_FILENAME (ii) = Qnil;
   IMAGE_INSTANCE_GTK_PIXMAP (ii) = gdk_pixmap;
@@ -874,7 +1010,7 @@ image_instance_add_gdk_image (Lisp_Image_Instance *ii,
   gdk_draw_image (GDK_DRAWABLE (pixmap), gc, gdk_image, 0, 0, 0, 0,
 		  gdk_image->width, gdk_image->height);
 
-  gdk_gc_destroy (gc);
+  g_object_unref (gc);
 
   IMAGE_INSTANCE_GTK_PIXMAP_SLICE (ii, slice) = pixmap;
 }
@@ -900,7 +1036,7 @@ gtk_init_image_instance_from_eimage (struct Lisp_Image_Instance *ii,
 
   for (slice = 0; slice < slices; slice++)
     {
-      gdk_image = convert_EImage_to_GDKImage (device, width, height, eimage,
+      gdk_image = (GdkImage *)convert_EImage_to_GDKImage (device, width, height, eimage,
 					      &pixtbl, &npixels);
       if (!gdk_image)
 	{
@@ -1041,7 +1177,8 @@ init_image_instance_from_xbm_inline (struct Lisp_Image_Instance *ii,
 	GdkColor fg_color, bg_color;
 	GdkPixmap *source;
 
-	check_pointer_sizes (width, height, instantiator);
+	check_pointer_sizes (gdk_drawable_get_display (draw), width, height,
+                             instantiator);
 
 	source = gdk_pixmap_create_from_data (draw, (char *) bits, width, height, 1, &black, &white);
 
@@ -1219,7 +1356,7 @@ gtk_xpm_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
   int force_mono;
   gint w, h;
   struct gcpro gcpro1, gcpro2, gcpro3;
-  const Binbyte * volatile dstring;
+  const Extbyte * volatile dstring;
 
   if (!DEVICE_GTK_P (XDEVICE (device)))
     gui_error ("Not a Gtk device", device);
@@ -1303,7 +1440,8 @@ gtk_xpm_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
   if (!pixmap)
     signal_image_error ("Error reading pixmap", data);
 
-  gdk_window_get_geometry (pixmap, NULL, NULL, &w, &h, &depth);
+  depth = gdk_drawable_get_depth (pixmap);
+  gdk_drawable_get_size (pixmap, &w, &h);
 
   IMAGE_INSTANCE_GTK_PIXMAP (ii) = pixmap;
   IMAGE_INSTANCE_PIXMAP_MASK (ii) = mask;
@@ -1338,7 +1476,6 @@ gtk_xpm_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
     default:
       ABORT ();
     }
-
   UNGCPRO;
 }
 #endif /* HAVE_XPM */
@@ -1375,7 +1512,7 @@ gtk_xface_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
   int i, stattis;
   char *p, *bits, *bp;
   const char * volatile emsg = 0;
-  const char * volatile dstring;
+  char * volatile dstring;
 
   assert (!NILP (data));
 
@@ -1460,13 +1597,16 @@ gtk_resource_possible_dest_types (void)
   return IMAGE_POINTER_MASK | IMAGE_COLOR_PIXMAP_MASK;
 }
 
-extern guint symbol_to_enum (Lisp_Object, GtkType);
+extern gint lisp_to_gtk_enum (Lisp_Object);
 
 static guint resource_name_to_resource (Lisp_Object name,
 					enum image_instance_type type)
 {
   if (type == IMAGE_POINTER)
-    return (symbol_to_enum (name, GTK_TYPE_GDK_CURSOR_TYPE));
+    {
+      // return (lisp_to_gtk_enum (name));
+      return 1;
+    }
   else
     return (0);
 }
@@ -1476,7 +1616,7 @@ resource_symbol_to_type (Lisp_Object data)
 {
   if (EQ (data, Qcursor))
     return IMAGE_POINTER;
-#if 0
+#ifdef JSPARKES
   else if (EQ (data, Qicon))
     return IMAGE_ICON;
   else if (EQ (data, Qbitmap))
@@ -1823,88 +1963,28 @@ cursor_font_possible_dest_types (void)
   return IMAGE_POINTER_MASK;
 }
 
-static char *__downcase (const char *name)
-{
-    char *converted = strdup(name);
-    char *work = converted;
-
-    while (*work)
-    {
-	*work = tolower(*work);
-	work++;
-    }
-    return(converted);
-}
-
 /* This is basically the equivalent of XmuCursorNameToIndex */
 static GdkCursorType
 cursor_name_to_index (const char *name)
 {
-    int i;
-    static char *the_gdk_cursors[GDK_NUM_GLYPHS];
-
-    if (!the_gdk_cursors[GDK_BASED_ARROW_UP])
-    {
-	/* Need to initialize the array */
-	/* Supposedly since this array is static it should be
-	   initialized to NULLs for us, but I'm very paranoid. */
-	for (i = 0; i < GDK_NUM_GLYPHS; i++)
-	{
-	    the_gdk_cursors[i] = NULL;
-	}
-
-#define FROB_CURSOR(x) the_gdk_cursors[GDK_##x] = __downcase(#x)
-	FROB_CURSOR(ARROW);			FROB_CURSOR(BASED_ARROW_DOWN);
-	FROB_CURSOR(BASED_ARROW_UP);		FROB_CURSOR(BOAT);
-	FROB_CURSOR(BOGOSITY);			FROB_CURSOR(BOTTOM_LEFT_CORNER);
-	FROB_CURSOR(BOTTOM_RIGHT_CORNER);	FROB_CURSOR(BOTTOM_SIDE);
-	FROB_CURSOR(BOTTOM_TEE);		FROB_CURSOR(BOX_SPIRAL);
-	FROB_CURSOR(CENTER_PTR);		FROB_CURSOR(CIRCLE);
-	FROB_CURSOR(CLOCK);			FROB_CURSOR(COFFEE_MUG);
-	FROB_CURSOR(CROSS);			FROB_CURSOR(CROSS_REVERSE);
-	FROB_CURSOR(CROSSHAIR);			FROB_CURSOR(DIAMOND_CROSS);
-	FROB_CURSOR(DOT);			FROB_CURSOR(DOTBOX);
-	FROB_CURSOR(DOUBLE_ARROW);		FROB_CURSOR(DRAFT_LARGE);
-	FROB_CURSOR(DRAFT_SMALL);		FROB_CURSOR(DRAPED_BOX);
-	FROB_CURSOR(EXCHANGE);			FROB_CURSOR(FLEUR);
-	FROB_CURSOR(GOBBLER);			FROB_CURSOR(GUMBY);
-	FROB_CURSOR(HAND1);			FROB_CURSOR(HAND2);
-	FROB_CURSOR(HEART);			FROB_CURSOR(ICON);
-	FROB_CURSOR(IRON_CROSS);		FROB_CURSOR(LEFT_PTR);
-	FROB_CURSOR(LEFT_SIDE);			FROB_CURSOR(LEFT_TEE);
-	FROB_CURSOR(LEFTBUTTON);		FROB_CURSOR(LL_ANGLE);
-	FROB_CURSOR(LR_ANGLE);			FROB_CURSOR(MAN);
-	FROB_CURSOR(MIDDLEBUTTON);		FROB_CURSOR(MOUSE);
-	FROB_CURSOR(PENCIL);			FROB_CURSOR(PIRATE);
-	FROB_CURSOR(PLUS);			FROB_CURSOR(QUESTION_ARROW);
-	FROB_CURSOR(RIGHT_PTR);			FROB_CURSOR(RIGHT_SIDE);
-	FROB_CURSOR(RIGHT_TEE);			FROB_CURSOR(RIGHTBUTTON);
-	FROB_CURSOR(RTL_LOGO);			FROB_CURSOR(SAILBOAT);
-	FROB_CURSOR(SB_DOWN_ARROW);		FROB_CURSOR(SB_H_DOUBLE_ARROW);
-	FROB_CURSOR(SB_LEFT_ARROW);		FROB_CURSOR(SB_RIGHT_ARROW);
-	FROB_CURSOR(SB_UP_ARROW);		FROB_CURSOR(SB_V_DOUBLE_ARROW);
-	FROB_CURSOR(SHUTTLE);			FROB_CURSOR(SIZING);
-	FROB_CURSOR(SPIDER);			FROB_CURSOR(SPRAYCAN);
-	FROB_CURSOR(STAR);			FROB_CURSOR(TARGET);
-	FROB_CURSOR(TCROSS);			FROB_CURSOR(TOP_LEFT_ARROW);
-	FROB_CURSOR(TOP_LEFT_CORNER);		FROB_CURSOR(TOP_RIGHT_CORNER);
-	FROB_CURSOR(TOP_SIDE);			FROB_CURSOR(TOP_TEE);
-	FROB_CURSOR(TREK);			FROB_CURSOR(UL_ANGLE);
-	FROB_CURSOR(UMBRELLA);			FROB_CURSOR(UR_ANGLE);
-	FROB_CURSOR(WATCH);			FROB_CURSOR(XTERM);
-	FROB_CURSOR(X_CURSOR);
-#undef FROB_CURSOR
-    }
-
-    for (i = 0; i < GDK_NUM_GLYPHS; i++)
-    {
-	if (!the_gdk_cursors[i]) continue;
-	if (!strcmp (the_gdk_cursors[i], name))
-	{
-	  return (GdkCursorType) i;
-	}
-    }
+  Lisp_Object sym;
+  Lisp_Object val;
+  
+  if (name == 0 || name[0] == 0)
+    /* wtaerror? */
     return (GdkCursorType) -1;
+
+  sym = intern (name);
+
+  if (NILP (Vgtk_cursor_names))
+    invalid_state ("Gtk cursor names not registered", build_ascstring (name));
+
+  val = Fassoc (Vgtk_cursor_names, sym);
+
+  if (!NILP (val))
+    return (GdkCursorType) XFIXNUM (Fcdr (val));
+
+  return (GdkCursorType) -1;
 }
 
 static void
@@ -1998,7 +2078,7 @@ gtk_map_subwindow (Lisp_Image_Instance *p, int x, int y,
       a.width = dga->width;
       a.height = dga->height;
 
-      /* Is the widget cganging position? */
+      /* Is the widget changing position? */
       moving = (a.x != wid->allocation.x) ||
 	(a.y != wid->allocation.y);
 
@@ -2011,13 +2091,12 @@ gtk_map_subwindow (Lisp_Image_Instance *p, int x, int y,
 
       if (moving)
 	{
-	  guint32 old_flags = GTK_WIDGET_FLAGS (FRAME_GTK_TEXT_WIDGET (f));
-
 	  /* GtkFixed widget queues a resize when you add a widget.
 	  ** But only if it is visible.
 	  ** losers.
+          ** Check if still truce for Gtk 2.0 - jsparkes
 	  */
-	  GTK_WIDGET_FLAGS(FRAME_GTK_TEXT_WIDGET (f)) &= ~GTK_VISIBLE;
+          gtk_widget_hide (FRAME_GTK_TEXT_WIDGET (f));
 
 	  if (IMAGE_INSTANCE_GTK_ALREADY_PUT(p))
 	    {
@@ -2033,7 +2112,7 @@ gtk_map_subwindow (Lisp_Image_Instance *p, int x, int y,
 			     a.x, a.y);
 	    }
 
-	  GTK_WIDGET_FLAGS(FRAME_GTK_TEXT_WIDGET (f)) = old_flags;
+          gtk_widget_show (FRAME_GTK_TEXT_WIDGET (f));
 	}
       else
 	{
@@ -2056,7 +2135,7 @@ gtk_map_subwindow (Lisp_Image_Instance *p, int x, int y,
 	  gtk_widget_map (wid);
 	}
 
-      gtk_widget_draw (wid, NULL);
+      gtk_widget_queue_draw (wid);
     }
 }
 
@@ -2409,13 +2488,13 @@ gtk_button_redisplay (Lisp_Object image_instance)
   Lisp_Image_Instance *p = XIMAGE_INSTANCE (image_instance);
   GtkWidget *w = IMAGE_INSTANCE_GTK_CLIPWIDGET (p);
 
-  if (GTK_WIDGET_TYPE (w) == gtk_button_get_type ())
+  if (G_OBJECT_TYPE (w) == gtk_button_get_type ())
     {
     }
-  else if (GTK_WIDGET_TYPE (w) == gtk_check_button_get_type ())
+  else if (G_OBJECT_TYPE (w) == gtk_check_button_get_type ())
     {
     }
-  else if (GTK_WIDGET_TYPE (w) == gtk_radio_button_get_type ())
+  else if (G_OBJECT_TYPE (w) == gtk_radio_button_get_type ())
     {
     }
   else
@@ -2434,7 +2513,7 @@ gtk_button_property (Lisp_Object image_instance, Lisp_Object prop)
   /* check the state of a button */
   if (EQ (prop, Q_selected))
     {
-      if (GTK_WIDGET_HAS_FOCUS (IMAGE_INSTANCE_SUBWINDOW_ID (ii)))
+      if (gtk_widget_has_focus (GTK_WIDGET (IMAGE_INSTANCE_SUBWINDOW_ID (ii))))
 	return Qt;
       else
 	return Qnil;
@@ -2459,8 +2538,8 @@ gtk_progress_gauge_redisplay (Lisp_Object image_instance)
       val = XGUI_ITEM (IMAGE_INSTANCE_WIDGET_PENDING_ITEMS (ii))->value;
       f = XFLOATFIXNUM (val);
 
-      gtk_progress_set_value (GTK_PROGRESS (IMAGE_INSTANCE_SUBWINDOW_ID (ii)),
-			      f);
+      gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (IMAGE_INSTANCE_SUBWINDOW_ID (ii)),
+                                     f / 100.0);
     }
 }
 
@@ -2528,7 +2607,7 @@ gtk_add_tab_item(Lisp_Object image_instance,
       name = item;
     }
 
-  c_name = LISP_STRING_TO_EXTERNAL (name, Qctext);
+  c_name = LISP_STRING_TO_EXTERNAL (name, Qutf_8);
 
   /* Dummy widget that the notbook wants to display when a tab is selected. */
   box = gtk_vbox_new (FALSE, 3);
@@ -2539,16 +2618,16 @@ gtk_add_tab_item(Lisp_Object image_instance,
     worry about the garbage collector running between here and the callback
     function.
   */
-  gtk_object_set_data(GTK_OBJECT(box), GTK_DATA_TAB_HASHCODE_IDENTIFIER,
-		      (gpointer) hash_id);
+  g_object_set_qdata(G_OBJECT(box), GTK_DATA_TAB_HASHCODE_IDENTIFIER,
+                     GUINT_TO_POINTER (hash_id));
 
   gtk_notebook_append_page (nb, box, gtk_label_new (c_name));
 }
 
 /* Signal handler for the switch-page signal. */
 static void gtk_tab_control_callback(GtkNotebook *notebook,
-				     GtkNotebookPage *page,
-				     gint UNUSED (page_num),
+				     gpointer *page,
+				     gint page_num,
 				     gpointer UNUSED (user_data))
 {
   /*
@@ -2569,8 +2648,8 @@ static void gtk_tab_control_callback(GtkNotebook *notebook,
 	return;
       frame = wrap_frame (f);
 
-      id             = (int) gtk_object_get_data(GTK_OBJECT(page->child),
-						 GTK_DATA_TAB_HASHCODE_IDENTIFIER);
+      id             = GPOINTER_TO_UINT (g_object_get_qdata(G_OBJECT(page),
+                                                            GTK_DATA_TAB_HASHCODE_IDENTIFIER));
       image_instance = Fgethash(make_fixnum_verify(id),
 				FRAME_GTK_WIDGET_INSTANCE_HASH_TABLE(f), Qnil);
       callback       = Fgethash(make_fixnum(id),
@@ -2651,11 +2730,11 @@ gtk_tab_control_instantiate (Lisp_Object image_instance,
       i++;
     }
 
-  gtk_notebook_set_page(nb, selected);
+  gtk_notebook_set_current_page(nb, selected);
 
   /* Call per-tab lisp callback when a tab is pressed. */
-  gtk_signal_connect (GTK_OBJECT (nb), "switch-page",
-		      GTK_SIGNAL_FUNC (gtk_tab_control_callback), NULL);
+  assert (g_signal_connect (G_OBJECT (nb), "switch-page",
+                            G_CALLBACK (gtk_tab_control_callback), NULL));
 }
 
 /* Set the properties of a tab control */
@@ -2697,8 +2776,9 @@ gtk_tab_control_redisplay (Lisp_Object image_instance)
 		  IMAGE_INSTANCE_WIDGET_ITEMS_CHANGED (ii) = 0;
 		  IMAGE_INSTANCE_WIDGET_PENDING_ITEMS (ii) = Qnil;
 
-		  gtk_notebook_set_page(GTK_NOTEBOOK (IMAGE_INSTANCE_GTK_CLIPWIDGET (ii)),
-					i);
+		  gtk_notebook_set_current_page
+                    (GTK_NOTEBOOK (IMAGE_INSTANCE_GTK_CLIPWIDGET (ii)),
+                     i);
 		  break;
 		}
 
@@ -2718,7 +2798,7 @@ gtk_tab_control_redisplay (Lisp_Object image_instance)
 	    {
 	      for (i = num_pages; i >= 0; --i)
 		{
-		  gtk_notebook_remove_page (nb, i);
+		  gtk_notebook_remove_page (nb, -1);
 		}
 	    }
 
@@ -2772,7 +2852,9 @@ console_type_create_glyphs_gtk (void)
   CONSOLE_HAS_METHOD (gtk, print_image_instance);
   CONSOLE_HAS_METHOD (gtk, finalize_image_instance);
   CONSOLE_HAS_METHOD (gtk, image_instance_equal);
+#if 0
   CONSOLE_HAS_METHOD (gtk, image_instance_hash);
+#endif
   CONSOLE_HAS_METHOD (gtk, colorize_image_instance);
   CONSOLE_HAS_METHOD (gtk, init_image_instance_from_eimage);
   CONSOLE_HAS_METHOD (gtk, locate_pixmap_file);
@@ -2922,6 +3004,13 @@ This is used by the `make-image-instance' function (however, note that if
 the environment variable XBMLANGPATH is set, it is consulted first).
 */ );
   Vgtk_bitmap_file_path = Qnil;
+
+#ifdef HAVE_GTK
+  DEFVAR_LISP ("gtk-cursor-names", &Vgtk_cursor_names /*
+An alist of Gtk cursor names and internal integer values.
+*/);
+  Vgtk_cursor_names = Qnil;
+#endif
 }
 
 void
@@ -2944,6 +3033,7 @@ complex_vars_of_glyphs_gtk (void)
   BUILD_GLYPH_INST (Vhscroll_glyph, hscroll);
 
 #undef BUILD_GLYPH_INST
+  register_cursor_names ();
 }
 
 /* X specific crap */
@@ -2993,7 +3083,7 @@ gtk_colorize_image_instance (Lisp_Object image_instance,
 		IMAGE_INSTANCE_PIXMAP_HEIGHT (p),
 		0, 0, 1);
 
-    gdk_gc_destroy (gc);
+    g_object_unref (gc);
     IMAGE_INSTANCE_GTK_PIXMAP (p) = new_pxmp;
     IMAGE_INSTANCE_PIXMAP_DEPTH (p) = DEVICE_GTK_DEPTH (XDEVICE (IMAGE_INSTANCE_DEVICE (p)));
     IMAGE_INSTANCE_PIXMAP_FG (p) = foreground;
