@@ -1,3 +1,17 @@
+2013-01-04  Stephen J. Turnbull  <stephen@xemacs.org>
+
+	* XEmacs 21.5.33 "horseradish" is released.
+
+2013-01-02  Vin Shelton  <acs@xemacs.org>
+
+	* lispref/menus.texi (Creating Menu Accelerators): Clarify that
+	the menu accelerator must be lowercase.
+
+2012-12-28  Stephen J. Turnbull  <stephen@xemacs.org>
+
+	* xemacs/programs.texi (Defuns): Improve description of `mark-defun'.
+	Thanks to Steven Mitchell for the suggestion.
+
 2012-12-28  Byrel Mitchell  <byrel.mitchell@gmail.com>
 
 	* lispref/menus.texi (Menu Format):
