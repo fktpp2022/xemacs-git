@@ -964,9 +964,11 @@ XE_MERGED_ARG([modules],
 XE_KEYWORD_ARG([bignum],
 	AS_HELP_STRING([--with-bignum=TYPE],[Compile in support for bignums, ratios, or bigfloats
                         using library support.  TYPE must be one of "gmp"
-                        (for GNU MP), "mpir" (for MPIR), "mp" (for BSD MP),
-                        or "no" (disabled).]),
+                        (for GNU MP), "mp" (for BSD MP), or "no" (disabled).]),
 	[], [with_bignum="no"],[no,gmp,mpir,mp])
+XE_MERGED_ARG([ffi],
+	AS_HELP_STRING([--with-ffi],[Compile in experimental support for Foreign Function Interface.]),
+	[], [])
 dnl
 XE_HELP_SUBSECTION([Platform Specific options])
 XE_MERGED_ARG([workshop],
@@ -5327,6 +5329,20 @@ elif test "$with_bignum" = "mp"; then
   AC_DEFINE(WITH_MP)
 fi
 
+dnl FFI
+if test "x$with_ffi" = "xyes"; then
+  AC_CHECK_HEADER(ffi.h, [
+    AC_CHECK_LIB(ffi, ffi_prep_args, have_ffi=yes)])
+  if test "x$have_ffi" = "xyes"; then
+    AC_DEFINE(HAVE_LIBFFI)
+    XE_PREPEND(-lffi, LIBS)
+    XE_ADD_OBJS(effi.o)
+  else
+    XE_DIE("Requied FFI support cannot be provided.")
+  fi
+fi
+  
+
 dnl Unfortunately, just because we can link doesn't mean we can run.
 dnl One of the above link tests may have succeeded but caused resulting
 dnl executables to fail to run.  Also any tests using AC_RUN_IFELSE will
@@ -5967,6 +5983,7 @@ test "$with_modules" = "yes" && echo "  Compiling in support for dynamic shared 
 test "$with_bignum" = "gmp" && echo "  Compiling in support for more number types using the GNU MP library."
 test "$with_bignum" = "mpir" && echo "  Compiling in support for more number types using the MPIR library."
 test "$with_bignum" = "mp" && echo "  Compiling in support for more number types using the BSD MP library."
+test "$with_ffi" = "yes" && echo "  Compiling in support for foreign function interface (FFI)."
 if test "$with_union_type" = yes ; then
   echo "  Using the union type for Lisp_Objects."
   echo "  WARNING: ---------------------------------------------------------"

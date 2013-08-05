@@ -753,6 +753,9 @@ things are arranged in config.h.in.  In particular:
 #undef HAVE_MP_MOVE
 #undef HAVE_MP_SET_MEMORY_FUNCTIONS
 
+/* FFI */
+#undef HAVE_LIBFFI
+
 #undef SIZEOF_SHORT
 #undef SIZEOF_INT
 #undef SIZEOF_LONG
