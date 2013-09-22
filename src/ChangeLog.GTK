@@ -1,3 +1,99 @@
+2013-09-19  Jeff Sparkes  <jsparkes@gmail.com>
+
+	* frame-gtk.c (gtk_update_frame_external_traits): Set the
+	background on widget, not on its window.
+
+2013-09-18  Jeff Sparkes  <jsparkes@gmail.com>
+
+	* fontcolor-gtk.c (gtk_parse_nearest_color): Unused parameter.
+	* glyphs-gtk.c (init_image_instance_from_xbm_inline): Ditto.
+
+	* glyphs-gtk.c (gtk_tab_control_redisplay): Cleaner method to
+	remove all notebook pages.
+
+	* select-gtk.c (emacs_gtk_selection_handle): Use access function
+	for GtkSelectionData.
+	(emacs_gtk_selection_received): Ditto.
+
+	* glyphs-gtk.c (gtk_map_subwindow): Get size allocation via access
+	function and use it.
+	(gtk_redisplay_widget): Ditto.
+	(convert_EImage_to_GDKPixbuf): Get visual type via access function
+	and use it.
+
+	* gccache-gtk.c (make_gc_cache): Use gtk_widget_get_window.
+
+	* menubar-gtk.c (menu_convert): Use menu types access functions
+	instead of widget fields.
+	(menu_can_reuse_widget): Ditto.
+	(menu_create_menubar): Ditto.
+	(gtk_popup_menu): Ditto.
+
+	* scrollbar-gtk.c (gtk_create_scrollbar_instance): Use
+	GtkAdjustment access functions instead of using the fields
+	directly.
+	(gtk_update_scrollbar_instance_status): Ditto.
+	(scrollbar_cb): Ditto.
+
+	* redisplay-gtk.c (XLIKE_bevel_area): Use gtk_widget_get_style
+	instead of directly accessing the field.
+	(XLIKE_output_vertical_divider): Ditto.
+	(XLIKE_output_horizontal_line): Ditto.
+
+	* frame-gtk.c (gtk_set_icon_name_from_ibyte): Use
+	gtk_widget_get_window() instead of directly accessing the field.
+	(gtk_update_frame_external_traits): Ditto.
+	(gtk_frame_property): Ditto.
+
+	* device-gtk.c (gtk_init_device_class): Use access functions
+	instead of directly accessing GdkVisual fields.
+ 	(gtk_init_device): Ditto.
+	(Fgtk_display_visual_class): Ditto.
+
+	* console-gtk-impl.h: Delete GET_GTK_WIDGET_WINDOW.
+	* console-xlike-inc.h (GET_XLIKE_WINDOW): Use
+	gtk_widget_get_window() instead of GET_GTK_WIDGET_WINDOW.
+	* device-gtk.c (Fgtk_grab_pointer): Ditto.
+	(Fgtk_grab_keyboard): Ditto.
+	(Fgtk_style_info): Ditto.
+	* event-gtk.c (emacs_gtk_handle_magic_event): Ditto.
+	* frame-gtk.c (gtk_window_to_frame): Ditto.
+	(gtk_any_window_to_frame): Ditto.
+	(gtk_any_widget_or_parent_to_frame): Ditto.
+	(gtk_frame_property): Ditto.
+	(gtk_frame_properties): Ditto.
+	(gtk_set_initial_frame_size): Ditto.
+	(gtk_set_frame_properties): Ditto.
+	(gtk_set_frame_icon): Ditto.
+	(gtk_set_frame_pointer): Ditto.
+	(Fgtk_window_id): Ditto.
+	(gtk_get_mouse_position): Ditto.
+	(gtk_raise_frame_1): Ditto.
+	(gtk_lower_frame): Ditto.
+	(gtk_iconify_frame): Ditto.
+	(gtk_focus_on_frame): Ditto.
+	* glyphs-gtk.c (init_image_instance_from_gdk_pixbuf): Ditto.
+	(init_image_instance_from_xbm_inline): Ditto.
+	* redisplay-gtk.c (XLIKE_bevel_area): Ditto.
+	* scrollbar-gtk.c (update_one_widget_scrollbar_pointer): Ditto.
+	(gtk_scrollbar_loop): Ditto.
+
+	* frame-gtk.c (gtk_widget_to_frame): Use gtk_widget_get_parent
+	instead of accessing the parent field directly.
+	* menubar-gtk.c (__activate_menu): Ditto.
+	(menu_create_menubar): Ditto.
+
+2013-09-17  Jeff Sparkes  <jsparkes@gmail.com>
+
+	* emacs.c (main_1): Call syms and complex_vars for event-gtk.c
+
+	* event-gtk.c (complex_vars_of_event_gtk): New function.
+	(register_event_names): New function.
+	(register_event_name): New function.
+	(vars_of_event_gtk): Add gdk-event-names.
+
+	* symsinit.h: Add complex_vars_of_event_gtk.
+
 2013-09-15  Jeff Sparkes  <jsparkes@gmail.com>
 
 	* scrollbar-gtk.c (scrollbar_cb): Remove unused variable.

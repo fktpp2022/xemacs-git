@@ -124,7 +124,7 @@ gtk_init_device_class (struct device *d)
 {
   if (DEVICE_GTK_DEPTH(d) > 2)
     {
-      switch (DEVICE_GTK_VISUAL(d)->type)
+      switch (gdk_visual_get_visual_type (DEVICE_GTK_VISUAL(d)))
 	{
 	case GDK_VISUAL_STATIC_GRAY:
 	case GDK_VISUAL_GRAYSCALE:
@@ -265,7 +265,7 @@ gtk_init_device (struct device *d, Lisp_Object UNUSED (props))
   visual = gdk_visual_get_best();
 
   DEVICE_GTK_VISUAL (d) = visual;
-  DEVICE_GTK_DEPTH (d) = visual->depth;
+  DEVICE_GTK_DEPTH (d) = gdk_visual_get_depth (visual);
 
   {
     GtkWidget *w = gtk_window_new (GTK_WINDOW_TOPLEVEL);
@@ -498,7 +498,7 @@ The returned value will be one of the symbols `static-gray', `gray-scale',
        (device))
 {
   GdkVisual *vis = DEVICE_GTK_VISUAL (decode_gtk_device (device));
-  switch (vis->type)
+  switch (gdk_visual_get_visual_type (vis))
     {
     case GDK_VISUAL_STATIC_GRAY:  return intern ("static-gray");
     case GDK_VISUAL_GRAYSCALE:    return intern ("gray-scale");
@@ -632,7 +632,7 @@ Returns t if the grab is successful, nil otherwise.
     }
 
   /* We should call gdk_pointer_grab() and (possibly) gdk_keyboard_grab() here instead */
-  w = GET_GTK_WIDGET_WINDOW (FRAME_GTK_TEXT_WIDGET (device_selected_frame (d)));
+  w = gtk_widget_get_window (FRAME_GTK_TEXT_WIDGET (device_selected_frame (d)));
 
   result = gdk_pointer_grab (w, FALSE,
 			     (GdkEventMask) (GDK_POINTER_MOTION_MASK |
@@ -685,7 +685,7 @@ Returns t if the grab is successful, nil otherwise.
        (device))
 {
   struct device *d = decode_gtk_device (device);
-  GdkWindow *w = GET_GTK_WIDGET_WINDOW (FRAME_GTK_TEXT_WIDGET (device_selected_frame (d)));
+  GdkWindow *w = gtk_widget_get_window (FRAME_GTK_TEXT_WIDGET (device_selected_frame (d)));
 
   gdk_keyboard_grab (w, FALSE, GDK_CURRENT_TIME );
 
@@ -714,7 +714,7 @@ Get the style information for a Gtk device.
   GtkStyle *style = NULL;
   Lisp_Object result = Qnil;
   GtkWidget *app_shell = GTK_WIDGET (DEVICE_GTK_APP_SHELL (d));
-  GdkWindow *w = GET_GTK_WIDGET_WINDOW (app_shell);
+  GdkWindow *w = gtk_widget_get_window (app_shell);
 
   if (!DEVICE_GTK_P (d))
     return (Qnil);

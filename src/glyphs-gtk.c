@@ -168,6 +168,7 @@ convert_EImage_to_GDKPixbuf (Lisp_Object device, int width, int height,
 			     unsigned char *pic)
 {
   GdkVisual *vis;
+  GdkVisualType vtype;
   GdkPixbuf *out;
   int i, j;
   /* int depth, byte_cnt; */
@@ -176,9 +177,10 @@ convert_EImage_to_GDKPixbuf (Lisp_Object device, int width, int height,
   guchar *data, *ip, *dp = NULL;
 
   vis = DEVICE_GTK_VISUAL (XDEVICE(device));
+  vtype = gdk_visual_get_visual_type (vis);
 
-  if (vis->type == GDK_VISUAL_GRAYSCALE || vis->type == GDK_VISUAL_STATIC_COLOR ||
-      vis->type == GDK_VISUAL_STATIC_GRAY)
+  if (vtype == GDK_VISUAL_GRAYSCALE || vtype == GDK_VISUAL_STATIC_COLOR ||
+      vtype == GDK_VISUAL_STATIC_GRAY)
     {
       /* #### Implement me!!! */
       return NULL;
@@ -776,7 +778,7 @@ init_image_instance_from_gdk_pixbuf (struct Lisp_Image_Instance *ii,
   if (!DEVICE_GTK_P (XDEVICE (device)))
     gui_error ("Not a Gtk device", device);
 
-  /* d = GET_GTK_WIDGET_WINDOW (DEVICE_GTK_APP_SHELL (XDEVICE (device))); */
+  /* d = gtk_widget_get_window (DEVICE_GTK_APP_SHELL (XDEVICE (device))); */
 
   if (dest_mask & IMAGE_COLOR_PIXMAP_MASK)
     type = IMAGE_COLOR_PIXMAP;
@@ -935,7 +937,7 @@ init_image_instance_from_xbm_inline (struct Lisp_Image_Instance *ii,
 				     Lisp_Object pointer_fg,
 				     Lisp_Object pointer_bg,
 				     int dest_mask,
-				     GdkPixbuf *mask,
+				     GdkPixbuf * UNUSED (mask),
 				     Lisp_Object UNUSED (mask_filename))
 {
   Lisp_Object device = IMAGE_INSTANCE_DEVICE (ii);
@@ -944,7 +946,7 @@ init_image_instance_from_xbm_inline (struct Lisp_Image_Instance *ii,
   GdkColor fg;
   GdkColor bg;
   enum image_instance_type type;
-  GdkWindow *draw = GET_GTK_WIDGET_WINDOW (DEVICE_GTK_APP_SHELL (XDEVICE (device)));
+  GdkWindow *draw = gtk_widget_get_window (DEVICE_GTK_APP_SHELL (XDEVICE (device)));
   GdkColor black;
   GdkColor white;
 
@@ -1916,7 +1918,7 @@ gtk_map_subwindow (Lisp_Image_Instance *p, int x, int y,
     {
       struct frame *f = XFRAME (IMAGE_INSTANCE_FRAME (p));
       GtkWidget *wid = IMAGE_INSTANCE_GTK_CLIPWIDGET (p);
-      GtkAllocation a;
+      GtkAllocation a, wa;
       int moving;
 
       if (!wid) return;
@@ -1926,13 +1928,12 @@ gtk_map_subwindow (Lisp_Image_Instance *p, int x, int y,
       a.width = dga->width;
       a.height = dga->height;
 
+      gtk_widget_get_allocation (wid, &wa);
       /* Is the widget changing position? */
-      moving = (a.x != wid->allocation.x) ||
-	(a.y != wid->allocation.y);
+      moving = (a.x != wa.x) ||
+	(a.y != wa.y);
 
-      if ((a.width  != wid->allocation.width)  ||
-	  (a.height != wid->allocation.height) ||
-	  moving)
+      if ((a.width != wa.width) || (a.height != wa.height) || moving)
 	{
 	  gtk_widget_size_allocate (IMAGE_INSTANCE_GTK_CLIPWIDGET (p), &a);
 	}
@@ -1942,7 +1943,7 @@ gtk_map_subwindow (Lisp_Image_Instance *p, int x, int y,
 	  /* GtkFixed widget queues a resize when you add a widget.
 	  ** But only if it is visible.
 	  ** losers.
-          ** Check if still truce for Gtk 2.0 - jsparkes
+          ** Check if still true for Gtk 2.0 - jsparkes
 	  */
           gtk_widget_hide (FRAME_GTK_TEXT_WIDGET (f));
 
@@ -2065,10 +2066,12 @@ gtk_redisplay_widget (Lisp_Image_Instance *p)
       IMAGE_INSTANCE_TEXT_CHANGED (p))
     {
       GtkRequisition r;
-      GtkAllocation a = IMAGE_INSTANCE_GTK_CLIPWIDGET (p)->allocation;
+      GtkAllocation a;
 
       assert (IMAGE_INSTANCE_GTK_WIDGET_ID (p) &&
 	      IMAGE_INSTANCE_GTK_CLIPWIDGET (p)) ;
+
+      gtk_widget_get_allocation (IMAGE_INSTANCE_GTK_CLIPWIDGET (p), &a);
 
       a.width = r.width = IMAGE_INSTANCE_WIDTH (p);
       a.height = r.height = IMAGE_INSTANCE_HEIGHT (p);
@@ -2639,25 +2642,20 @@ gtk_tab_control_redisplay (Lisp_Object image_instance)
 	{
 	  /* More than just the order has changed... let's get busy! */
 	  GtkNotebook *nb = GTK_NOTEBOOK (IMAGE_INSTANCE_GTK_CLIPWIDGET (ii));
-	  guint num_pages = g_list_length (nb->children);
+	  GList *children = gtk_container_get_children (GTK_CONTAINER (nb));
 	  Lisp_Object rest;
-	  int i;
 
 	  /* Why is there no API to remove everything from a notebook? */
-	  if (num_pages >= 0)
+	  while (children)
 	    {
-	      for (i = num_pages; i >= 0; --i)
-		{
-		  gtk_notebook_remove_page (nb, -1);
-		}
+	      gtk_widget_destroy (GTK_WIDGET (children->data));
+	      children = children->next;
 	    }
-
-	  i = 0;
 
 	  LIST_LOOP (rest, XCDR (IMAGE_INSTANCE_WIDGET_PENDING_ITEMS (ii)))
 	    {
 	      gtk_add_tab_item(image_instance, nb, XCAR(rest),
-			       IMAGE_INSTANCE_FRAME(ii), i);
+			       IMAGE_INSTANCE_FRAME(ii), 0);
 	    }
 
 	  /* Show all the new widgets we just added... */
