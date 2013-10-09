@@ -106,7 +106,7 @@ __maybe_destroy (GtkWidget *child, GtkWidget *UNUSED (precious))
 	     not be visible the next time the window is shown.
 	  */
 	  gtk_widget_set_sensitive (child, FALSE);
-	  gtk_widget_hide_all (child);
+	  gtk_widget_hide (child);
 	}
       else
 	{
@@ -1132,7 +1132,7 @@ gtk_update_frame_menubar_internal (struct frame *f)
     }
   else
     {
-      gtk_widget_hide_all (gtk_widget_get_parent (FRAME_GTK_MENUBAR_WIDGET (f)));
+      gtk_widget_hide (gtk_widget_get_parent (FRAME_GTK_MENUBAR_WIDGET (f)));
     }
 
   MARK_FRAME_SIZE_SLIPPED (f);
