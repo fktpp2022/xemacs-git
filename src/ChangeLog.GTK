@@ -3,7 +3,14 @@
 	* gtk-xemacs.c (gtk_xemacs_draw): Convert cairo_rectangle_t to
 	cairo_rectangle_int_t to indicate area to be redrawn.
 
+2013-11-09  Jeff Sparkes  <jsparkes@gmail.com>
+
+	* event-gtk.c (emacs_gtk_drain_queue): Use non-blocking gtk
+	iteration, just in case.
+
 2013-11-03  Jeff Sparkes  <jsparkes@gmail.com>
+
+	* frame-gtk.c (gtk_set_frame_icon): Update to include Gtk 3.
 
 	* gtk-xemacs.c (gtk_xemacs_class_init): Call gtk_xemacs_draw.
 	(gtk_xemacs_draw): Implement for Gtk 3.
