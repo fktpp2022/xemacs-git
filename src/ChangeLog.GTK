@@ -1,3 +1,21 @@
+2013-11-14  Jeff Sparkes  <jsparkes@gmail.com>
+
+	* event-gtk.c (IS_MODIFIER_KEY): Use old key definitions for Gtk 2.
+	(keysym_obeys_caps_lock_p): Ditto.
+
+2013-11-13  Jeff Sparkes  <jsparkes@gmail.com>
+
+	* event-gtk.c (gtk_event_to_emacs_event): Ifdef window lookup for
+	versions previous to 2.24.
+
+	* device-gtk.c (Fgtk_init): Turn ubuntu unity overlay scrollbars
+	off.  They were accidentally re-enabled.
+
+2013-11-12  Jeff Sparkes  <jsparkes@gmail.com>
+
+	* redisplay-gtk.c (gdk_draw_text_image): Advance past the last
+	item drawn.
+
 2013-11-11  Jeff Sparkes  <jsparkes@gmail.com>
 
 	* gtk-xemacs.c (gtk_xemacs_draw): Convert cairo_rectangle_t to
