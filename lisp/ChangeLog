@@ -1,3 +1,140 @@
+2014-10-11  Stephen J. Turnbull  <stephen@xemacs.org>
+
+	* mule/korea-util.el (korean-key-bindings): 
+	* mule/ethio-util.el (setup-ethiopic-environment-internal):
+	Change invalid GNU-style key definitions to XEmacs format.
+
+2014-10-07  Jerry James  <james@xemacs.org>
+
+	* code-process.el (network-stream-get-response):
+	(network-stream-command):
+	(network-stream-open-plain):
+	(network-stream-open-tls):
+	(network-stream-certificate):
+	(network-stream-open-starttls):
+	(network-stream-open-shell): New functions.
+	(open-network-stream): Accept Emacs-compatible arguments.
+
+2014-09-27  Michael Sperber  <mike@xemacs.org>
+
+	* custom.el (defcustom): 
+	(custom-handle-keyword): Handle :package-version without bailing out.
+
+2014-09-25  Jerry James  <james@xemacs.org>
+
+	* bytecomp.el (byte-compile-insert-header): do not insert
+	timestamps in .elc comments to get reproducible builds.
+
+2014-08-05  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* keymap.el:
+	* keymap.el (event-apply-modifiers):
+	When a character keysym has case information, apply the shift
+	modifier to it by upcasing it.
+	* keymap.el (synthesize-keysym):
+	Document this a little.
+	* keymap.el (synthesize-unicode-codepoint): New.
+	Like #'synthesize-keysym, but synthesizing a Unicode codepoint.
+	* keymap.el (function-key-map-parent): Bind control shift u to
+	synthesize a Unicode character input, as does GTK+ and as
+	specified by ISO 14755.	
+
+2014-08-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fontconfig.el (fc-name-parse-harder):
+	Improve style here, don't re-implement #'split-string-by-char with
+	its ESCAPE-CHAR argument, look for a string prefix in a list of
+	candidates in a more CL-idiomatic way, use the language's features
+	for boolean or.
+
+2014-07-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* simple.el (raw-append-message):
+	Use #'write-sequence in this, take its START and END keyword
+	arguments, so our callers don't have to cons as much.
+	* simple.el (append-message):
+	Pass through START and END here.
+
+2014-07-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* byte-optimize.el (side-effect-free-fns):
+	#'keymapp is not side-effect-free, it can autoload.
+
+2014-07-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cmdloop.el:
+	* cmdloop.el (read-char-1): New.
+	* cmdloop.el (read-char, read-char-exclusive):
+	Use #'read-char-1 in these function; sync their API with that of
+	GNU, respect `function-key-map' where we didn't before, add
+	initial support for Quail input methods.
+	* keymap.el (next-key-event):
+	Accept EVENT and PROMPT arguments, as does #'next-command-event.
+	* keymap.el (event-apply-modifiers):
+	Use #'functionp here, no need to exclude lambdas from
+	`function-key-map'.
+	* keymap.el (synthesize-keysym):
+	Correct this function's docstring.
+
+2014-04-19  Mats Lidell  <matsl@xemacs.org>
+
+	* help.el: Sync from GNU - Link to customize if applicable and
+	display version info. Other changes: Remove use of button-2.
+	return and button-1 use activate-function. Move between
+	activate-function-extents with tab.
+
+2014-01-27  Michael Sperber  <mike@xemacs.org>
+
+	* font-lock.el (font-lock-regexp-grouping-backslash,
+	font-lock-regexp-grouping-construct): Add these, as in GNU Emacs.
+
+2014-01-27  Michael Sperber  <mike@xemacs.org>
+
+	* lisp.el (check-parens): Add, from GNU Emacs.
+	
+2014-01-27  Michael Sperber  <mike@xemacs.org>
+
+	* custom.el (custom-declare-variable, defcustom): Add :risky and
+	:safe options
+
+2013-12-30  Byrel Mitchell <byrel.mitchell@gmail.com>
+
+	* menubar.el (add-menu-item-1, delete-menu-item): Do not assume
+	every top-level menu is on current-menubar.
+
+2013-12-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl-macs.el:
+	* cl-macs.el (princ): New compiler macro.
+	Transform #'princ to #'write-sequence if we can determine at
+	compile time that it is being passed a string. Initialising the
+	printer is expensive enough, but much of our code took this
+	approach because #'write-sequence wasn't available.
+
+2013-12-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* simple.el (blink-matching-open):
+	When showing the opening parenthesis in the minibiffer, use the
+	isearch face for it, in case there are multiple parentheses in the
+	text shown.
+	When writing moderately involved macros, it's often not enough
+	just to show the backquote context before the parenthesis
+	(e.g. @,.`). Skip over that when searching for useful context in
+	the same way we skip over space and tab.
+	* simple.el (message):
+	* simple.el (lmessage):
+	If there are no ARGS, don't call #'format. This allows extent
+	information to be passed through to the minibuffer.
+	It's probably better still to update #'format to preserve extent
+	info.
+
+2013-12-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl-extra.el:
+	* cl-extra.el (write-string): New.
+	* cl-extra.el (write-line): New.
+	Add these here, implemented in terms of #'write-sequence in print.c.
+
 2013-09-15  Mats Lidell  <matsl@cxemacs.org>
 
 	* files.el (mode-require-final-newline): Variable synced from

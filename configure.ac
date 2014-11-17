@@ -917,6 +917,9 @@ XE_MERGED_ARG([dnet],
 XE_MERGED_ARG([ipv6-cname],
 	AS_HELP_STRING([--with-ipv6-cname],[Try IPv6 information first when canonicalizing host names.  This option has no effect unless system supports getaddrinfo(3) and getnameinfo(3).]),
 	[], [with_ipv6_cname="no"])
+XE_MERGED_ARG([tls],
+	AS_HELP_STRING([--with-tls=TYPE],[Support TLS connections.  TYPE must be one of "nss", "gnutls", and "openssl".  If TYPE is omitted or "yes", support is determined automatically.]),
+	[], [])
 dnl
 XE_HELP_SUBSECTION([Memory allocation options])
 XE_MERGED_ARG([rel-alloc],
@@ -2817,8 +2820,8 @@ fi
 dnl Disable ASLR on systems where it breaks pdump.
 AC_MSG_CHECKING([whether ASLR needs to be disabled]) 
 case `uname -s`:`uname -r` in
-	dnl Mac OS X 10.7 Lion, 10.8 Mountain Lion, 10.9 Mavericks
-    Darwin:1[[123]].*)
+	dnl Mac OS X 10.7 Lion, 10.8 Mountain Lion, 10.9 Mavericks, 10.10 Yosemite
+    Darwin:1[[1234]].*)
 	AC_MSG_RESULT(yes)
 	XE_APPEND([-Wl,-no_pie], LDFLAGS) 
 	;;
@@ -5386,6 +5389,76 @@ elif test "$with_bignum" = "mp"; then
   AC_DEFINE(WITH_MP)
 fi
 
+dnl TLS support
+if test "$with_tls" = "gnutls"; then
+  AC_CHECK_HEADER([gnutls/gnutls.h],
+    [AC_CHECK_LIB(gnutls, gnutls_global_init, [with_tls=gnutls],
+      [XE_DIE("Required gnutls support cannot be provided.")])],
+    [XE_DIE("Required gnutls support cannot be provided.")])
+elif test "$with_tls" = "nss"; then
+  AC_CHECK_HEADER([nss.h],
+    [AC_CHECK_LIB(nss3, NSS_InitContext, [with_tls=nss],
+      [XE_DIE("Required NSS support cannot be provided.")])],
+    [XE_DIE("Required NSS support cannot be provided.")])
+elif test "$with_tls" = "openssl"; then
+  AC_CHECK_HEADER([openssl/ssl.h],
+    [AC_CHECK_LIB(ssl, SSL_library_init, [with_tls=openssl],
+      [XE_DIE("Required openssl support cannot be provided.")])],
+    [XE_DIE("Required openssl support cannot be provided.")])
+fi
+dnl Autodetection
+if test "$with_tls" = "yes"; then
+  AC_CHECK_HEADER([gnutls/gnutls.h],
+    [AC_CHECK_LIB(gnutls, gnutls_global_init, [with_tls=gnutls])])
+fi
+if test "$with_tls" = "yes"; then
+  AC_CHECK_HEADER([nss.h],
+    [AC_CHECK_LIB(nss3, NSS_InitContext, [with_tls=nss])])
+fi
+if test "$with_tls" = "yes"; then
+  AC_CHECK_HEADER([openssl/ssl.h],
+    [AC_CHECK_LIB(ssl, SSL_library_init, [with_tls=openssl], [with_tls=no])])
+fi
+if test "$with_tls" != "no"; then
+  AC_DEFINE(WITH_TLS)
+  if test "$with_tls" = "gnutls"; then
+    AC_DEFINE(HAVE_GNUTLS)
+    gnutls_cflags=`pkg-config --cflags gnutls`
+    if test "$?" = 0; then
+      XE_PREPEND("$gnutls_cflags", CPPFLAGS)
+    fi
+    gnutls_libs=`pkg-config --libs gnutls`
+    if test "$?" = 0; then
+      XE_APPEND("$gnutls_libs", LIBS)
+    fi
+    AC_CHECK_FUNC(gnutls_certificate_verification_status_print,
+	[AC_DEFINE(HAVE_GNUTLS_CERTIFICATE_VERIFICATION_STATUS_PRINT)])
+    AC_CHECK_FUNC(gnutls_certificate_verify_peers3,
+	[AC_DEFINE(HAVE_GNUTLS_CERTIFICATE_VERIFY_PEERS3)])
+  elif test "$with_tls" = "nss"; then
+    AC_DEFINE(HAVE_NSS)
+    nss_cflags=`pkg-config --cflags nss`
+    if test "$?" = 0; then
+      XE_PREPEND("$nss_cflags", CPPFLAGS)
+    fi
+    nss_libs=`pkg-config --libs nss`
+    if test "$?" = 0; then
+      XE_APPEND("$nss_libs", LIBS)
+    fi
+  else
+    AC_DEFINE(HAVE_OPENSSL)
+    openssl_cflags=`pkg-config --cflags openssl`
+    if test "$?" = 0; then
+      XE_PREPEND("$openssl_cflags", CPPFLAGS)
+    fi
+    openssl_libs=`pkg-config --libs openssl`
+    if test "$?" = 0; then
+      XE_APPEND("$openssl_libs", LIBS)
+    fi
+    AC_CHECK_FUNC(X509_check_host, [AC_DEFINE(HAVE_X509_CHECK_HOST)])
+  fi
+fi
+
 dnl Unfortunately, just because we can link doesn't mean we can run.
 dnl One of the above link tests may have succeeded but caused resulting
 dnl executables to fail to run.  Also any tests using AC_RUN_IFELSE will
@@ -6021,12 +6094,18 @@ test "$with_hesiod" = yes && echo "  Compiling in support for Hesiod POP server 
 test -n "$with_mail_locking" && echo "  Compiling in support for \"$with_mail_locking\" mail spool file locking method."
 
 echo "
-Other Features:"
+Network:"
 test "$with_ipv6_cname" = no && echo "  Inhibiting IPv6 canonicalization at startup."
 test "$with_tooltalk" = yes && echo "  Compiling in support for ToolTalk."
 test "$with_workshop" = yes && echo "  Compiling in support for Sun WorkShop."
 test "$with_socks" = yes && echo "  Compiling in support for SOCKS."
 test "$with_dnet" = yes && echo "  Compiling in support for DNET."
+test "$with_tls" = nss && echo "  Compiling in support for TLS with NSS."
+test "$with_tls" = gnutls && echo "  Compiling in support for TLS with gnutls."
+test "$with_tls" = openssl && echo "  Compiling in support for TLS with OpenSSL."
+
+echo "
+Other Features:"
 test "$with_modules" = "yes" && echo "  Compiling in support for dynamic shared object modules."
 test "$with_bignum" = "gmp" && echo "  Compiling in support for more number types using the GNU MP library."
 test "$with_bignum" = "mpir" && echo "  Compiling in support for more number types using the MPIR library."

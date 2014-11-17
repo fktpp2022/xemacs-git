@@ -2204,79 +2204,6 @@ eicpyout_malloc_fmt (Eistring *eistr, Bytecount *len_out, Internal_Format fmt,
 
 #ifdef MULE
 
-#ifdef EFFICIENT_INT_128_BIT
-# define STRIDE_TYPE INT_128_BIT
-# define HIGH_BIT_MASK \
-    MAKE_128_BIT_UNSIGNED_CONSTANT (0x80808080808080808080808080808080)
-#elif defined (EFFICIENT_INT_64_BIT)
-# define STRIDE_TYPE INT_64_BIT
-# define HIGH_BIT_MASK MAKE_64_BIT_UNSIGNED_CONSTANT (0x8080808080808080)
-#else
-# define STRIDE_TYPE INT_32_BIT
-# define HIGH_BIT_MASK MAKE_32_BIT_UNSIGNED_CONSTANT (0x80808080)
-#endif
-
-#define ALIGN_BITS ((EMACS_UINT) (ALIGNOF (STRIDE_TYPE) - 1))
-#define ALIGN_MASK (~ ALIGN_BITS)
-#define ALIGNED(ptr) ((((EMACS_UINT) ptr) & ALIGN_BITS) == 0)
-#define STRIDE sizeof (STRIDE_TYPE)
-
-/* Skip as many ASCII bytes as possible in the memory block [PTR, END).
-   Return pointer to the first non-ASCII byte.  optimized for long
-   stretches of ASCII. */
-inline static const Ibyte *
-skip_ascii (const Ibyte *ptr, const Ibyte *end)
-{
-  const unsigned STRIDE_TYPE *ascii_end;
-
-  /* Need to do in 3 sections -- before alignment start, aligned chunk,
-     after alignment end. */
-  while (!ALIGNED (ptr))
-    {
-      if (ptr == end || !byte_ascii_p (*ptr))
-	return ptr;
-      ptr++;
-    }
-  ascii_end = (const unsigned STRIDE_TYPE *) ptr;
-  /* This loop screams, because we can detect ASCII
-     characters 4 or 8 at a time. */
-  while ((const Ibyte *) ascii_end + STRIDE <= end
-	 && !(*ascii_end & HIGH_BIT_MASK))
-    ascii_end++;
-  ptr = (Ibyte *) ascii_end;
-  while (ptr < end && byte_ascii_p (*ptr))
-    ptr++;
-  return ptr;
-}
-
-/* Skip as many ASCII bytes as possible in the memory block [END, PTR),
-   going downwards.  Return pointer to the location above the first
-   non-ASCII byte.  Optimized for long stretches of ASCII. */
-inline static const Ibyte *
-skip_ascii_down (const Ibyte *ptr, const Ibyte *end)
-{
-  const unsigned STRIDE_TYPE *ascii_end;
-
-  /* Need to do in 3 sections -- before alignment start, aligned chunk,
-     after alignment end. */
-  while (!ALIGNED (ptr))
-    {
-      if (ptr == end || !byte_ascii_p (*(ptr - 1)))
-	return ptr;
-      ptr--;
-    }
-  ascii_end = (const unsigned STRIDE_TYPE *) ptr - 1;
-  /* This loop screams, because we can detect ASCII
-     characters 4 or 8 at a time. */
-  while ((const Ibyte *) ascii_end >= end
-	 && !(*ascii_end & HIGH_BIT_MASK))
-    ascii_end--;
-  ptr = (Ibyte *) (ascii_end + 1);
-  while (ptr > end && byte_ascii_p (*(ptr - 1)))
-    ptr--;
-  return ptr;
-}
-
 /* Function equivalents of bytecount_to_charcount/charcount_to_bytecount.
    These work on strings of all sizes but are more efficient than a simple
    loop on large strings and probably less efficient on sufficiently small
@@ -2312,6 +2239,60 @@ bytecount_to_charcount_fun (const Ibyte *ptr, Bytecount len)
   text_checking_assert (ptr == end);
 
   return count;
+}
+
+/* Return the character count of an lstream or coding buffer of
+   internal-format text, counting partial characters at the beginning of the
+   buffer as whole characters, and *not* counting partial characters at the
+   end of the buffer. The result of this function is subtracted from the
+   character count given by the coding system character tell methods, and we
+   need to treat each buffer in the same way to avoid double-counting. */
+
+Charcount
+buffered_bytecount_to_charcount (const Ibyte *bufptr, Bytecount len)
+{
+  Boolint partial_first = 0;
+  Bytecount impartial;
+
+  if (valid_ibyteptr_p (bufptr))
+    {
+      if (rep_bytes_by_first_byte (*bufptr) > len)
+        {
+          /* This is a partial last character. Return 0, avoid treating it
+             as a partial first character, since that would lead to it being
+             counted twice. */
+          return (Charcount) 0;
+        }
+    }
+  else
+    {
+      const Ibyte *newstart = bufptr, *limit = newstart + len;
+
+      /* Our consumer has the start of a partial character, we have the
+         rest. */
+      while (newstart < limit && !valid_ibyteptr_p (newstart))
+        {
+          newstart++;
+        }
+                  
+      partial_first = 1;
+      bufptr = newstart;
+      len = limit - newstart;
+    }
+
+  if (len && valid_ibyteptr_p (bufptr))
+    {
+      /* There's at least one valid starting char in the string,
+         validate_ibyte_string_backward won't run off the begining. */
+      impartial = validate_ibyte_string_backward (bufptr, len);
+    }
+  else
+    {
+      impartial = 0;
+    }
+
+  return (Charcount) partial_first + bytecount_to_charcount (bufptr,
+                                                             impartial);
 }
 
 Bytecount

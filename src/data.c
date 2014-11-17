@@ -899,7 +899,7 @@ fixnum_char_or_marker_to_int (Lisp_Object obj)
 
 #ifdef HAVE_BIGNUM
 #define BIGNUM_CASE(op)							\
-	case BIGNUM_T:							\
+        case LAZY_BIGNUM_T:                                             \
 	  if (!bignum_##op (XBIGNUM_DATA (obj1), XBIGNUM_DATA (obj2)))	\
 	    return Qnil;						\
 	  break;
@@ -909,7 +909,7 @@ fixnum_char_or_marker_to_int (Lisp_Object obj)
 
 #ifdef HAVE_RATIO
 #define RATIO_CASE(op)							\
-	case RATIO_T:							\
+        case LAZY_RATIO_T:                                              \
 	  if (!ratio_##op (XRATIO_DATA (obj1), XRATIO_DATA (obj2)))	\
 	    return Qnil;						\
 	  break;
@@ -919,7 +919,7 @@ fixnum_char_or_marker_to_int (Lisp_Object obj)
 
 #ifdef HAVE_BIGFLOAT
 #define BIGFLOAT_CASE(op)						\
-	case BIGFLOAT_T:						\
+	case LAZY_BIGFLOAT_T:						\
 	  if (!bigfloat_##op (XBIGFLOAT_DATA (obj1), XBIGFLOAT_DATA (obj2))) \
 	    return Qnil;						\
 	  break;
@@ -936,24 +936,33 @@ fixnum_char_or_marker_to_int (Lisp_Object obj)
     {								\
       obj1 = args[i - 1];					\
       obj2 = args[i];						\
-      switch (promote_args (&obj1, &obj2))			\
+      switch (promote_args_lazy (&obj1, &obj2))                 \
 	{							\
-	case FIXNUM_T:						\
-	  if (!(XREALFIXNUM (obj1) c_op XREALFIXNUM (obj2)))		\
+        case LAZY_FIXNUM_T:                                     \
+          if (!(XREALFIXNUM (obj1) c_op XREALFIXNUM (obj2)))    \
 	    return Qnil;					\
 	  break;						\
 	BIGNUM_CASE (op)					\
 	RATIO_CASE (op)						\
-	case FLOAT_T:						\
+        case LAZY_FLOAT_T:                                      \
 	  if (!(XFLOAT_DATA (obj1) c_op XFLOAT_DATA (obj2)))	\
 	    return Qnil;					\
 	  break;						\
 	BIGFLOAT_CASE (op)					\
+        case LAZY_MARKER_T:                                     \
+          if (!(byte_marker_position (obj1) c_op                \
+                byte_marker_position (obj2)))                   \
+            return Qnil;                                        \
+          break;                                                \
 	}							\
     }								\
   return Qt;							\
 }
 #else /* !WITH_NUMBER_TYPES */
+/* We don't convert markers lazily here, although we could. It's more
+   important that we do this lazily in bytecode, which is the case; see
+   bytecode_arithcompare().
+   */
 #define ARITHCOMPARE_MANY(c_op,op)				\
 {								\
   int_or_double iod1, iod2, *p = &iod1, *q = &iod2;		\
@@ -1891,7 +1900,6 @@ arguments: (FIRST &rest ARGS)
 {
 #ifdef WITH_NUMBER_TYPES
   REGISTER int i, maxindex = 0;
-  Lisp_Object comp1, comp2;
 
   while (!(CHARP (args[0]) || MARKERP (args[0]) || REALP (args[0])))
     args[0] = wrong_type_argument (Qnumber_char_or_marker_p, args[0]);
@@ -1901,33 +1909,33 @@ arguments: (FIRST &rest ARGS)
     args[0] = make_fixnum (marker_position (args[0]));
   for (i = 1; i < nargs; i++)
     {
-      comp1 = args[maxindex];
-      comp2 = args[i];
-      switch (promote_args (&comp1, &comp2))
+      switch (promote_args (args + maxindex, args + i))
 	{
 	case FIXNUM_T:
-	  if (XREALFIXNUM (comp1) < XREALFIXNUM (comp2))
+	  if (XREALFIXNUM (args[maxindex]) < XREALFIXNUM (args[i]))
 	    maxindex = i;
 	  break;
 #ifdef HAVE_BIGNUM
 	case BIGNUM_T:
-	  if (bignum_lt (XBIGNUM_DATA (comp1), XBIGNUM_DATA (comp2)))
+	  if (bignum_lt (XBIGNUM_DATA (args[maxindex]),
+			 XBIGNUM_DATA (args[i])))
 	    maxindex = i;
 	  break;
 #endif
 #ifdef HAVE_RATIO
 	case RATIO_T:
-	  if (ratio_lt (XRATIO_DATA (comp1), XRATIO_DATA (comp2)))
+	  if (ratio_lt (XRATIO_DATA (args[maxindex]), XRATIO_DATA (args[i])))
 	    maxindex = i;
 	  break;
 #endif
 	case FLOAT_T:
-	  if (XFLOAT_DATA (comp1) < XFLOAT_DATA (comp2))
+	  if (XFLOAT_DATA (args[maxindex]) < XFLOAT_DATA (args[i]))
 	    maxindex = i;
 	  break;
 #ifdef HAVE_BIGFLOAT
 	case BIGFLOAT_T:
-	  if (bigfloat_lt (XBIGFLOAT_DATA (comp1), XBIGFLOAT_DATA (comp2)))
+	  if (bigfloat_lt (XBIGFLOAT_DATA (args[maxindex]),
+			   XBIGFLOAT_DATA (args[i])))
 	    maxindex = i;
 	  break;
 #endif
@@ -1988,7 +1996,6 @@ arguments: (FIRST &rest ARGS)
 {
 #ifdef WITH_NUMBER_TYPES
   REGISTER int i, minindex = 0;
-  Lisp_Object comp1, comp2;
 
   while (!(CHARP (args[0]) || MARKERP (args[0]) || REALP (args[0])))
     args[0] = wrong_type_argument (Qnumber_char_or_marker_p, args[0]);
@@ -1998,33 +2005,34 @@ arguments: (FIRST &rest ARGS)
     args[0] = make_fixnum (marker_position (args[0]));
   for (i = 1; i < nargs; i++)
     {
-      comp1 = args[minindex];
-      comp2 = args[i];
-      switch (promote_args (&comp1, &comp2))
+      switch (promote_args (args + minindex, args + i))
 	{
 	case FIXNUM_T:
-	  if (XREALFIXNUM (comp1) > XREALFIXNUM (comp2))
+	  if (XREALFIXNUM (args[minindex]) > XREALFIXNUM (args[i]))
 	    minindex = i;
 	  break;
 #ifdef HAVE_BIGNUM
 	case BIGNUM_T:
-	  if (bignum_gt (XBIGNUM_DATA (comp1), XBIGNUM_DATA (comp2)))
+	  if (bignum_gt (XBIGNUM_DATA (args[minindex]),
+			 XBIGNUM_DATA (args[i])))
 	    minindex = i;
 	  break;
 #endif
 #ifdef HAVE_RATIO
 	case RATIO_T:
-	  if (ratio_gt (XRATIO_DATA (comp1), XRATIO_DATA (comp2)))
+	  if (ratio_gt (XRATIO_DATA (args[minindex]),
+			XRATIO_DATA (args[i])))
 	    minindex = i;
 	  break;
 #endif
 	case FLOAT_T:
-	  if (XFLOAT_DATA (comp1) > XFLOAT_DATA (comp2))
+	  if (XFLOAT_DATA (args[minindex]) > XFLOAT_DATA (args[i]))
 	    minindex = i;
 	  break;
 #ifdef HAVE_BIGFLOAT
 	case BIGFLOAT_T:
-	  if (bigfloat_gt (XBIGFLOAT_DATA (comp1), XBIGFLOAT_DATA (comp2)))
+	  if (bigfloat_gt (XBIGFLOAT_DATA (args[minindex]),
+			   XBIGFLOAT_DATA (args[i])))
 	    minindex = i;
 	  break;
 #endif

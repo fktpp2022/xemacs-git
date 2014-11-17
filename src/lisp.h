@@ -1370,12 +1370,12 @@ twice anywhere in the same expression; but that seems highly unlikely.  The
 alternative is to force all callers to declare a local temporary if the
 expression has side effects -- something easy to forget. */
 
-#define ALLOCA(size)					\
-  (REGEX_MALLOC_CHECK (),				\
-   __temp_alloca_size__ = (size),			\
-   __temp_alloca_size__  > MAX_ALLOCA_VS_C_ALLOCA ?	\
-   xemacs_c_alloca (__temp_alloca_size__) :		\
-   (need_to_check_c_alloca ? xemacs_c_alloca (0) : 0,	\
+#define ALLOCA(size)                                            \
+  (REGEX_MALLOC_CHECK (),                                       \
+   __temp_alloca_size__ = (size),                               \
+   __temp_alloca_size__  > MAX_ALLOCA_VS_C_ALLOCA ?             \
+   xemacs_c_alloca (__temp_alloca_size__) :                     \
+   (need_to_check_c_alloca ? xemacs_c_alloca (0) : NULL,        \
     alloca (__temp_alloca_size__)))
 
 /* Version of ALLOCA() that is guaranteed to work inside of function calls
@@ -1404,12 +1404,12 @@ xmalloc_and_record_unwind (Bytecount size)
 /* WARNING: If you use this, you must unbind_to() at the end of your
    function! */
 
-#define MALLOC_OR_ALLOCA(size)				\
-  (REGEX_MALLOC_CHECK (),				\
-   __temp_alloca_size__ = (size),			\
-   __temp_alloca_size__  > MAX_ALLOCA_VS_MALLOC ?	\
-   xmalloc_and_record_unwind (__temp_alloca_size__) :	\
-   (need_to_check_c_alloca ? xemacs_c_alloca (0) : 0,	\
+#define MALLOC_OR_ALLOCA(size)                                  \
+  (REGEX_MALLOC_CHECK (),                                       \
+   __temp_alloca_size__ = (size),                               \
+   __temp_alloca_size__  > MAX_ALLOCA_VS_MALLOC ?               \
+   xmalloc_and_record_unwind (__temp_alloca_size__) :           \
+   (need_to_check_c_alloca ? xemacs_c_alloca (0) : NULL,        \
     alloca (__temp_alloca_size__)))
 
 /* -------------- convenience functions for memory allocation ------------- */
@@ -2650,13 +2650,27 @@ DECLARE_MODULE_API_LISP_OBJECT (string, Lisp_String);
 #ifdef NEW_GC
 #define STRING_DATA_OBJECT(s) ((s)->data_object)
 #define XSTRING_DATA_OBJECT(s) (STRING_DATA_OBJECT (XSTRING (s)))
-#define XSTRING_LENGTH(s) (XSTRING_DATA_SIZE (XSTRING (s)))
+DECLARE_INLINE_HEADER (
+Bytecount
+XSTRING_LENGTH (Lisp_Object s)
+)
+{
+  Lisp_String *str = XSTRING (s);
+  return XSTRING_DATA_SIZE (str);
+}
 #else /* not NEW_GC */
 #define XSTRING_LENGTH(s) (XSTRING (s)->size_)
 #endif /* not NEW_GC */
 #define XSTRING_PLIST(s) (XSTRING (s)->plist)
 #ifdef NEW_GC
-#define XSTRING_DATA(s) (XSTRING_DATA_DATA (XSTRING (s)))
+DECLARE_INLINE_HEADER (
+Ibyte *
+XSTRING_DATA (Lisp_Object s)
+)
+{
+  Lisp_String *str = XSTRING (s);
+  return XSTRING_DATA_DATA (str);
+}
 #else /* not NEW_GC */
 #define XSTRING_DATA(s) (XSTRING (s)->data_ + 0)
 #endif /* not NEW_GC */
@@ -3640,7 +3654,7 @@ extern MODULE_API int specpdl_depth_counter;
       Elemcount pk_i = nargs - 1, pk_offset = keywords_offset;		\
       Boolint pk_allow_other_keys = allow_other_keys;                   \
                                                                         \
-      if ((nargs - pk_offset) & 1)					\
+      if ((nargs - pk_offset) & 1 && (nargs > pk_offset))               \
         {                                                               \
           if (!allow_other_keys                                         \
               && !(pk_allow_other_keys                                  \
@@ -4626,6 +4640,8 @@ Lisp_Object make_directory_hash_table (Lisp_Object);
 /* Defined in doc.c */
 EXFUN (Fsubstitute_command_keys, 1);
 
+extern Lisp_Object Qfunction_documentation;
+
 Lisp_Object unparesseuxify_doc_string (int fd, EMACS_INT position,
 				       Ibyte *name_nonreloc,
 				       Lisp_Object name_reloc,
@@ -5314,6 +5330,9 @@ EXFUN (Fstring_lessp, 2);
 EXFUN (Fsubseq, 3);
 EXFUN (Fvalid_plist_p, 1);
 
+extern void check_sequence_range (Lisp_Object, Lisp_Object, Lisp_Object,
+                                  Lisp_Object);
+
 extern Boolint check_eq_nokey (Lisp_Object, Lisp_Object, Lisp_Object,
                                Lisp_Object);
 extern Boolint check_lss_key_car (Lisp_Object, Lisp_Object, Lisp_Object,
@@ -5770,6 +5789,9 @@ Bytecount fast_string_match (Lisp_Object, const Ibyte *,
 Bytecount fast_lisp_string_match (Lisp_Object, Lisp_Object);
 extern Fixnum warn_about_possibly_incompatible_back_references;
 
+/* Defined in sequence.c */
+EXFUN (Ffill, MANY);
+EXFUN (Freplace, MANY);
 
 /* Defined in signal.c */
 void init_interrupts_late (void);

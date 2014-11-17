@@ -1,3 +1,20 @@
+2014-10-10  Marcus Crestani  <crestani@xemacs.org>
+
+	* configure.ac: Disable ASLR on Yosemite.
+	* configure: Rebuild.
+
+2014-10-09  Jerry James  <james@xemacs.org>
+
+	* configure.ac: Check for TLS headers as well as libraries.
+
+2014-10-07  Jerry James  <james@xemacs.org>
+
+	* configure.ac: Add TLS support.
+
+2014-02-11  Jerry James  <james@xemacs.org>
+
+	* .hgignore: Add man/Makefile.
+
 2013-11-19  Jeff Sparkes  <jsparkes@gmail.com>
 
 	* configure.ac: Add support for --with-gtk=2 and --with-gtk=3 to
@@ -10,7 +27,6 @@
 	Simplify version checking code.
 	Check for GTK 3.X first, then 2.X.
 	(HAVE_GTK2): Remove incorrect second setting.
-
 	* configure: Regenerate.
 
 2013-10-28  Marcus Crestani  <crestani@xemacs.org>
@@ -24,6 +40,7 @@
 	* configure: Regenerate.
 
 2013-09-08  Marcus Crestani  <crestani@xemacs.org>
+
 	* configure.ac: x86_64 Macs also use POSIX virtual-dirty-bit write
 	barrier.
 	* configure: Rebuild.

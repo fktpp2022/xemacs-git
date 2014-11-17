@@ -1,3 +1,54 @@
+2014-10-11  Stephen J. Turnbull  <stephen@xemacs.org>
+
+	* automated/keymap-tests.el:
+	Reformat loops for readability and maintainability.
+
+2014-10-11  Stephen J. Turnbull  <stephen@xemacs.org>
+
+	* automated/keymap-tests.el:
+	Avoid commands defined in packages in some tests.
+	Packages may not be available at make check time.
+
+2014-07-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/extent-tests.el:
+	Check that extent information is passed through to the echo area
+	correctly with #'next-event's PROMPT argument.
+
+2014-04-19  Mats Lidell  <matsl@xemacs.org>
+
+	* automated/keymap-tests.el: Use
+	help-activate-function-or-scroll-up.
+
+2013-12-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el:
+	Up max-lisp-eval-depth when compiling this file, some of what
+	we're doing in testing #'write-sequence is demanding.
+	* automated/lisp-tests.el (make-circular-list):
+	New argument VALUE, the car of the conses to create.
+	* automated/lisp-tests.el:
+	Test #'write-sequence, #'write-string, #'write-line with function,
+	buffer and marker STREAMs; test argument types, keyword argument
+	ranges and values.
+
+2013-12-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el (character):
+	Remove a debugging statement from this.
+
+2013-12-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/face-tests.el:
+	Only test fontconfig if the font-mgr feature is available, avoid
+	errors when it isn't.
+
+2013-12-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el:
+	Test arithmetic comparisons with markers, check the type of the
+	returned values for #'min and #'max.
+
 2013-09-15  Mats Lidell  <matsl@xemacs.org>
 
 	* automated/files-tests.el: New file. Test new states in

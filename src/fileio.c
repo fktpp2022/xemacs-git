@@ -1785,6 +1785,8 @@ barf_or_query_if_file_exists (Lisp_Object absname, const Ascbyte *querystring,
     }
   return;
 }
+
+#define READ_BUF_SIZE 0x20000
 
 DEFUN ("copy-file", Fcopy_file, 2, 4,
        "fCopy file: \nFCopy %s to file: \np\nP", /*
@@ -1801,7 +1803,7 @@ A prefix arg makes KEEP-TIME non-nil.
 {
   /* This function can call Lisp.  GC checked 2000-07-28 ben */
   int ifd, ofd, n;
-  Rawbyte buf[16 * 1024];
+  Rawbyte *buf = alloca_rawbytes (READ_BUF_SIZE);
   struct stat st, out_st;
   Lisp_Object handler;
   int speccount = specpdl_depth ();
@@ -1907,7 +1909,7 @@ A prefix arg makes KEEP-TIME non-nil.
 
     record_unwind_protect (close_file_unwind, ofd_locative);
 
-    while ((n = read_allowing_quit (ifd, buf, sizeof (buf))) > 0)
+    while ((n = read_allowing_quit (ifd, buf, READ_BUF_SIZE)) > 0)
     {
       if (write_allowing_quit (ofd, buf, n) != n)
 	report_file_error ("I/O error", newname);
@@ -2870,10 +2872,6 @@ otherwise, if FILE2 does not exist, the answer is t.
 }
 
 
-/* Stack sizes > 2**16 is a good way to elicit compiler bugs */
-/* #define READ_BUF_SIZE (2 << 16) */
-#define READ_BUF_SIZE (1 << 15)
-
 DEFUN ("insert-file-contents-internal", Finsert_file_contents_internal,
        1, 7, 0, /*
 Insert contents of file FILENAME after point; no coding-system frobbing.
@@ -2901,7 +2899,7 @@ under Mule, is very difficult.)
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
   Lisp_Object val;
   int total;
-  Ibyte read_buf[READ_BUF_SIZE];
+  Ibyte *read_buf = alloca_ibytes (READ_BUF_SIZE);
   int mc_count;
   struct buffer *buf = current_buffer;
   Lisp_Object curbuf;
@@ -3179,7 +3177,8 @@ under Mule, is very difficult.)
     Charbpos cur_point = BUF_PT (buf);
     struct gcpro ngcpro1;
     Lisp_Object stream = make_filedesc_input_stream (fd, 0, total,
-						     LSTR_ALLOW_QUIT);
+						     LSTR_ALLOW_QUIT, NULL);
+    Charcount last_tell = -1;
 
     NGCPRO1 (stream);
     Lstream_set_buffering (XLSTREAM (stream), LSTREAM_BLOCKN_BUFFERED, 65536);
@@ -3187,6 +3186,7 @@ under Mule, is very difficult.)
       (XLSTREAM (stream), get_coding_system_for_text_file (codesys, 1),
        CODING_DECODE, 0);
     Lstream_set_buffering (XLSTREAM (stream), LSTREAM_BLOCKN_BUFFERED, 65536);
+    last_tell = Lstream_character_tell (XLSTREAM (stream));
 
     record_unwind_protect (delete_stream_unwind, stream);
 
@@ -3196,11 +3196,10 @@ under Mule, is very difficult.)
     while (1)
       {
 	Bytecount this_len;
-	Charcount cc_inserted;
+	Charcount cc_inserted, this_tell = last_tell;
 
 	QUIT;
-	this_len = Lstream_read (XLSTREAM (stream), read_buf,
-				 sizeof (read_buf));
+	this_len = Lstream_read (XLSTREAM (stream), read_buf, READ_BUF_SIZE);
 
 	if (this_len <= 0)
 	  {
@@ -3209,12 +3208,17 @@ under Mule, is very difficult.)
 	    break;
 	  }
 
-	cc_inserted = buffer_insert_raw_string_1 (buf, cur_point, read_buf,
-						  this_len,
-						  !NILP (visit)
-						  ? INSDEL_NO_LOCKING : 0);
+	cc_inserted
+          = buffer_insert_string_1 (buf, cur_point, read_buf, Qnil,
+                                    0, this_len, last_tell >= 0
+                                    ? (this_tell
+                                       = Lstream_character_tell (XLSTREAM
+                                                                 (stream)))
+                                    - last_tell : -1,
+                                    !NILP (visit) ? INSDEL_NO_LOCKING : 0);
 	inserted  += cc_inserted;
 	cur_point += cc_inserted;
+        last_tell = this_tell;
       }
     if (!NILP (used_codesys))
       {
@@ -3512,7 +3516,7 @@ here because write-region handler writers need to be aware of it.
        that need to be made, and there could be a large latency
        for each request.  So I've increased the buffer size
        to 64K.) */
-    outstream = make_filedesc_output_stream (desc, 0, -1, 0);
+    outstream = make_filedesc_output_stream (desc, 0, -1, 0, NULL);
     Lstream_set_buffering (XLSTREAM (outstream),
 			   LSTREAM_BLOCKN_BUFFERED, 65536);
     outstream =

@@ -1,3 +1,470 @@
+2014-11-05  Jerry James  <james@xemacs.org>
+
+	* ExternalClient-Xlib.c (ExternalClientEventHandler): Cast integer
+	to long before casting to XPointer, which may be larger than int.
+	* database.c: Use BEGIN_C_DECLS/END_C_DECLS around dbm definitions.
+	* lisp.h (ALLOCA): Use NULL instead of (void) 0 to placate g++.
+	(MALLOC_OR_ALLOCA): Ditto.
+	(XSTRING_LENGTH): Use an explicit temporary with NEW_GC so g++ 4.8
+	won't create an uninitialized anonymous temporary.
+	(XSTRING_DATA): Ditto.
+	* sysdll.c: Check whether HAVE_LTDL is defined, not its value.
+	* tls.c (tls_open): Add typecast to xmalloc call in the nss,
+	gnutls, and openssl versions to satisfy g++.  In the gnutls version,
+	use gnutls_certificate_type_t appropriately.
+
+2014-10-25  Michael Sperber  <mike@xemacs.org>
+
+	* fontcolor-x.c (x_font_instance_truename): 
+	* font-mgr.c (Ffc_name_unparse): 
+	* font-mgr.h (PRINT_XFT_PATTERN): Don't modify
+	fontconfig pattern passed in in place.
+
+2014-10-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Some changes to eliminate warnings with Apple clang version 1.7.
+	* cm.c (send_string_to_tty_console):
+	* doprnt.c (doprnt_2):
+	* doprnt.c (parse_off_posnum):
+	* event-stream.c (dribble_out_event):
+	Cast various calls to Lstream_putc() to void when the result isn't
+	being used, for the sake of clang.
+	* lisp.h:
+	Declare #'replace here too, it's used in event-stream.c.
+	* lisp.h (ALLOCA):
+	* lisp.h (MALLOC_OR_ALLOCA):
+	Cast a couple of zeros in the context of the ternary operator to
+	void to prevent unused value warnings with clang.
+	* sysdep.c (child_setup_tty):
+	* text.h (ASSERT_ASCTEXT_ASCII_LEN):
+	Use DO_NOTHING in these files to quieten the compiler.
+
+2014-10-18  Stephen J. Turnbull  <stephen@xemacs.org>
+
+	* fontcolor-xlike-inc.c (xft_find_charset_font):
+	* fontcolor-x.c (x_font_instance_truename):
+	* font-mgr.h (PRINT_XFT_PATTERN):
+	* font-mgr.c (Ffc_name_unparse):
+	Protect Ffc_name_unparse from FcNameUnparse crash on charset property.
+
+2014-10-08  Jerry James  <james@xemacs.org>
+
+	* tls.c (init_tls): Remove blatant Fedoraism from the OpenSSL version.
+	* tls.h (tls_open):
+	(make_tls_input_stream):
+	(make_tls_output_stream):
+	(tls_get_fd): Fix build failures in the !WITH_TLS case.
+
+2014-10-07  Jerry James  <james@xemacs.org>
+
+	* Makefile.in.in: Add tls.o to the link.
+	* config.h.in: Add TLS symbols (WITH_TLS, etc.).
+	* emacs.c (main_1): Call new functions in tls.c.
+	* events.h (STREAM_USE_TLS): New macro.
+	* lisp.h (Ffill): Export for nss_pk11_password.
+	* lstream.c (Lstream_tls_p): New function.
+	(Lstream_tls_negotiate): New function.
+	(struct filedesc_stream): Add tls_state member.
+	(make_filedesc_stream_1): Add state parameter.  Use tls_get_fd.
+	(make_filedesc_input_stream): Add state parameter.
+	(make_filedesc_output_stream): Ditto.
+	(filedesc_reader): Use tls_read if tls_state is non-null.
+	(filedesc_writer): Use tls_write if tls_state is non-null.
+	(filedesc_closer): Use tls_close if tls_state is non-null.
+	(filedesc_tls_p): New function.
+	(fildesc_tls_negotiater): New function.
+	* lstream.h (Lstream_implementation): Add tls_p and tls_negotiater
+	members.
+	* process-nt.c (nt_open_network_stream): Add tls parameter.
+	* process-unix.c (unix_open_network_stream): Ditto.  Call TLS
+	functions to set up the socket, if requested.
+	* process.c (tls_connection_p): New function.
+	(print_process): Use it.
+	(Fopen_network_stream_internal): Add optional tls argument.
+	(Ftls_negotiate): New function.
+	* tls.c: New file, with NSS, gnutls, and OpenSSL implementations.
+	* tls.h: New file.
+
+	* console-tty.c (tty_init_console):
+	* doc.c (extract_object_file_name):
+	(unparesseuxify_doc_string):
+	* event-stream.c (Fopen_dribble_file):
+	* event-unixoid.c (event_stream_unixoid_create_io_streams):
+	* file-coding.c (Ffind_coding_system_magic_cookie_in_file):
+	* fileio.c (Finsert_file_contents_internal):
+	(Fwrite_region_internal):
+	* gpmevent.c (tty_get_foreign_selection):
+	* lread.c (Fload_internal): Supply new tls arg to
+	make_filedesc_input_stream and make_filedesc_output_stream.
+
+2014-09-30  Marcus Crestani  <crestani@informatik.uni-tuebingen.de>
+
+	* editfns.c (Fencode_time): Switch signs when calculating the time
+	zone string. (The offset indicates the value one must add to the
+	local time to arrive at UTC.)
+
+2014-09-23  Jerry James  <james@xemacs.org>
+
+	* floatfns.c (round_two_bignum_1): Fix memory leak.
+	(round_two_bigfloat): Ditto.
+
+2014-09-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* select-x.c (Fx_store_cutbuffer_internal):
+	Correct the order of XSTRING_{DATA,LENGTH} vs. CHECK_STRING, make
+	sure the former is after the latter, avoiding crashes when passing
+	in arguments of the wrong type, or when ERROR_CHECK_STRUCTURES is
+	defined.
+
+2014-08-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* event-stream.c (allocate_command_builder):
+	* event-stream.c (Fnext_event):
+	Use #'make-string rather than make_uninit_string() when allocating
+	the command builder's echo_buf, avoiding having octets in the
+	string that do not correspond to valid internal-format text.
+	* buffer.c (finish_init_buffer):
+	Pass a character as the second argument to #'make-string, not a
+	fixnum.
+
+2014-07-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* event-stream.c:
+	* event-stream.c (mark_command_builder):
+	* event-stream.c (finalize_command_builder): Removed.
+	* event-stream.c (allocate_command_builder):
+	* event-stream.c (free_command_builder): Removed. Use
+	free_normal_lisp_object() instead.
+	* event-stream.c (echo_key_event):
+	* event-stream.c (regenerate_echo_keys_from_this_command_keys):
+	Detach all extents here.
+	* event-stream.c (maybe_echo_keys):
+	* event-stream.c (reset_key_echo):
+	* event-stream.c (execute_help_form):
+	* event-stream.c (Fnext_event):
+	* event-stream.c (command_builder_find_leaf_no_jit_binding):
+	* event-stream.c (command_builder_find_leaf):
+	* event-stream.c (lookup_command_event):
+	* events.h (struct command_builder):
+	Move the command builder's echo_buf to being a Lisp string rather
+	than a malloced Ibyte array. This allows passing through extent
+	information, which was previously dropped. It also simplifies the
+	allocation and release code for the command builder.
+	Rename echo_buf_index to echo_buf_fill_pointer, better reflecting
+	its function.
+	Don't rely on zero-termination (something not particularly
+	compatible with Lisp-level code) when showing a substring of
+	echo_buf that differs from that designated by
+	echo_buf_fill_pointer, keep a separate counter instead and use
+	that.
+	* minibuf.c:
+	* minibuf.c (echo_area_append):
+	Use the new START and END keyword arguments to #'append-message,
+	rather than consing a new string for basically every #'next-event
+	prompt displayed.
+	
+2014-07-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* keymap.c (Fkeymapp):
+	Autoload within this, as documented. Our callers are not prepared
+	to do the intelligent thing if a symbol that is fboundp to an
+	autoloaded keymap, is not itself #'keymapp.
+
+2014-07-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* event-stream.c (Fnext_command_event):
+	Only snooze displaying keystrokes if PROMPT is nil. If prompt is
+	non-nil, our callers want to see it.
+
+2014-06-19  Stephen J. Turnbull  <stephen@xemacs.org>
+
+	* buffer.c (case_fold_search): Improve docstring.
+
+2014-06-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Correct a couple of things in my last change.
+	* extents.h:
+	Make #'delete-extent available.
+	* window.c:
+	* window.c (delete_saved_point): New.
+	* window.c (Fdelete_window): Delete the saved point extents on
+	deletion of the window, since otherwise they will only be
+	garbage-collected when the buffer is.
+	* window.c (Fset_window_buffer): Correct a thinko here, use a
+	saved point when it *hasn't* been detached.
+
+2014-06-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* extents.h:
+	* window.c:
+	* window.c (unshow_buffer):
+	* window.c (Fset_window_buffer):
+	Use extents, rather than markers, for the window buffer point
+	cache, so that when the text containing that window buffer point
+	is deleted, the window display code uses the buffer's actual point
+	instead of the position that the marker had been moved to.
+	Fixes Michael Heinrich's problem of
+	http://mid.gmane.org/6zr42uxtf5.fsf@elektra.science-computing.de ,
+	introduced by Ben's patch of
+	https://bitbucket.org/xemacs/xemacs/commits/047d37eb70d70f43803 . 
+
+2014-05-08  Jerry James  <james@xemacs.org>
+
+	* print.c (struct debug_bindings): Add print_circle field.
+	(debug_print_exit): Restore print_circle.
+	(debug_print_enter): Save print_circle binding and set it.
+
+2014-05-06  Jerry James  <james@xemacs.org>
+
+	* file-coding.c (encode_decode_coding_region): Signal an error if
+	Lstream_read encounters an error (returns -1).
+	(detect_coding_type): Ditto.  Add an argument for the stream error.
+	(look_for_coding_system_magic_cookie): Ditto.
+	(determine_real_coding_system): Pass new stream error argument.
+	(undecided_convert): Ditto.
+	(Ffind_coding_system_magic_cookie_in_file): Ditto.
+	* lstream.c (Lstream_errno): New function.
+	(struct filedesc_stream): Add saved_errno member.
+	(make_filedesc_stream_1): Initialize it.
+	(filedesc_reader): Set it.
+	(filedesc_writer): Set it.
+	(filedesc_error): New function.
+	(lstream_type_create): Record that filedesc has an error method.
+	* lstream.h (struct lstream_implementation): Add error member.
+	(Lstream_errno): Declare.
+
+2014-01-27  Michael Sperber  <mike@xemacs.org>
+
+	* symbols.c (Fdefine_function): Allow optional `docstring'
+	argument, as in GNU Emacs.
+
+	* lisp.h (Qfunction_documentation): Add extern declaration.
+
+	* doc.c (Fdocumentation_property): Move before its use.
+	(Fdocumentation): Retrieve documentation from `define-function'
+	docstring for symbols.
+
+2014-01-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* text.h (buffered_bytecount_to_charcount): This was
+	declared wrong for non-mule, correct this. Thank you Mats Lidell
+	and the buildbot.
+
+	* lstream.c (Lstream_read_1):
+	Don't include the unread partial character in
+	unget_character_count, since our consumers will never be aware of it.
+	* text.c:
+	* text.c (buffered_bytecount_to_charcount):
+	A buffer consisting entirely of a partial character needs to be
+	treated as a partial last character, not a partial first
+	character, to avoid double-counting.
+
+2014-01-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* text.c (buffered_bytecount_to_charcount): New.
+	Return the number of characters in a coding or lstream buffer,
+	including partial characters at the beginning of the buffer, but
+	not including those at the end. Refactored from
+	Lstream_character_tell().
+	* text.h:
+	* text.h (buffered_bytecount_to_charcount): Declare it.
+	* lstream.c (Lstream_character_tell):
+	Use the refactored buffered_bytecount_to_charcount () here, both
+	for the unget buffer and in_buffer.
+	* file-coding.c (coding_character_tell):
+	Check the character count of the lstream buffer too, when passing
+	back the character count from the coding stream.
+
+2014-01-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* redisplay.c (start_with_line_at_pixpos):
+	Apply Julian Bradfield's change of
+	slrnlc7tnv.l3h.jcb@home.stevens-bradfield.com , never returning a
+	Charbpos before the visible region. Thank you Julian!
+
+2014-01-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fileio.c (Fcopy_file, Finsert_file_contents_internal):
+	Use alloca_{rawbytes,ibytes} here instead of the implicit alloca
+	on the stack; doesn't change where the buffers are allocated for
+	these two functions, but does mean that decisions about alloca
+	vs. malloc based on buffer size are made in the same place
+	(ultimately, the ALLOCA() macro).
+	(READ_BUF_SIZE): Use an explicit hexadecimal constant for the
+	0x20000 value for this, don't left-shift 2 16 times. Correct the
+	last ChangeLog entry after Jerry James pointed out a mistake on my
+	part. Thank you for review and discussion, Jerry and Stephen
+	Turnbull.
+
+2014-01-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fileio.c (READ_BUF_SIZE):
+	Stack sizes > 2**16 elicited bugs back in August 1996, but there's
+	nothing to indicate this is still the case. GNU uses a block size
+	of #x10000 without problems, we can afford to be a bit more
+	adventurous with a value of #x20000.
+
+	Use it in #'copy-file too, move its #define earlier to make that
+	possible. Not relevant to the coding system buffering, but still
+	helpful.
+
+2014-01-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* file-coding.c:
+	* file-coding.c (struct no_conversion_coding_stream):
+	* file-coding.c (const struct sized_memory_description
+	no_conversion_coding_stream_description): Removed.
+	* file-coding.c (coding_system_type_create):
+	Remove structure and description for struct
+	no_conversion_coding_system, which confused pdump on some builds
+	after the last change.
+
+2014-01-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Pass character count information from the no-conversion and
+	unicode coding systems to the buffer insertion code, making
+	#'find-file on large buffers a little snappier (if
+	ERROR_CHECK_TEXT is not defined).
+	
+	* file-coding.c:
+	* file-coding.c (coding_character_tell): New.
+	* file-coding.c (conversion_coding_stream_description): New.
+	* file-coding.c (no_conversion_convert):
+	Update characters_seen when decoding.
+	* file-coding.c (no_conversion_character_tell): New.
+	* file-coding.c (lstream_type_create_file_coding): Create the
+	no_conversion type with data.
+	* file-coding.c (coding_system_type_create):
+	Make the character_tell method available here.
+	* file-coding.h:
+	* file-coding.h (struct coding_system_methods):
+	Add a new character_tell() method, passing charcount information
+	from the coding systems to the buffer code, avoiding duplicate
+	bytecount-to-charcount work especially with large buffers.
+
+	* fileio.c (Finsert_file_contents_internal):
+	Update this to pass charcount information to
+	buffer_insert_string_1(), if that is available from the lstream code.
+	
+	* insdel.c:
+	* insdel.c (buffer_insert_string_1):
+	Add a new CCLEN argument, giving the character count of the string
+	to insert. It can be -1 to indicate that te function should work
+	it out itself using bytecount_to_charcount(), as it used to.
+	* insdel.c (buffer_insert_raw_string_1):
+	* insdel.c (buffer_insert_lisp_string_1):
+	* insdel.c (buffer_insert_ascstring_1):
+	* insdel.c (buffer_insert_emacs_char_1):
+	* insdel.c (buffer_insert_from_buffer_1):
+	* insdel.c (buffer_replace_char):
+	Update these functions to use the new calling convention.
+	* insdel.h:
+	* insdel.h (buffer_insert_string):
+	Update this header to reflect the new buffer_insert_string_1()
+	argument.
+
+	* lstream.c (Lstream_character_tell): New.
+	Return the number of characters *read* and seen by the consumer so
+	far, taking into account the unget buffer, and buffered reading.
+
+	* lstream.c (Lstream_unread):
+	Update unget_character_count here as appropriate.
+	* lstream.c (Lstream_rewind):
+	Reset unget_character_count here too.
+
+	* lstream.h:
+	* lstream.h (struct lstream):
+	Provide the character_tell method, add a new field,
+	unget_character_count, giving the number of characters ever passed
+	to Lstream_unread().
+	Declare Lstream_character_tell().
+	Make Lstream_ungetc(), which happens to be unused, an inline
+	function rather than a macro, in the course of updating it to
+	modify unget_character_count.
+
+	* print.c (output_string):
+	Use the new argument to buffer_insert_string_1().
+	* tests.c:
+	* tests.c (Ftest_character_tell):
+	New test function.
+	* tests.c (syms_of_tests):
+	Make it available.
+	* unicode.c:
+	* unicode.c (struct unicode_coding_stream):
+	* unicode.c (unicode_character_tell):
+	New method.
+	* unicode.c (unicode_convert):
+	Update the character counter as appropriate.
+	* unicode.c (coding_system_type_create_unicode):
+	Make the character_tell method available.
+
+2013-12-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* text.c:
+	* text.h:
+	* text.h (skip_ascii):
+	Move skip_ascii (), the very fast inline function from the
+	bytecount-to-charcount code, to text.h, to allow the coding
+	systems to use it too as needed.
+	* file-coding.c (no_conversion_convert):
+	Use skip_ascii() as appropriate here, halving the time taken to
+	write large files in my tests (again, relevant to VM buffers, but
+	not a panacea to our issues with them.)
+
+2013-12-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lisp.h:
+	* lisp.h (PARSE_KEYWORDS_8):
+	Correct this in cases where we can have noticeably fewer arguments
+	than KEYWORDS_OFFSET, check whether nargs > pk_offset.
+	Declare check_sequence_range in this header.
+	* print.c:
+	* print.c (Fwrite_sequence) New:
+	Write a sequence to a stream, in the same way #'write-char and
+	#'terpri do. API from Common Lisp, not GNU, so while there is some
+	char-int confoundance, it's more limited than usual with GNU APIs.
+	* print.c (syms_of_print):
+	Make it available.
+	* sequence.c (check_sequence_range):
+	Export this to other files.
+
+2013-12-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* number.h:
+	Only make promote_args_lazy() available on builds
+	WITH_NUMBER_TYPES, in case linking complains about promote_args()
+	not being available.
+
+2013-12-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecode.c (bytecode_arithcompare):
+	* bytecode.c (bytecode_arithop):
+	Call promote_args_lazy () in these two functions, only converting
+	markers to fixnums if absolutely necessary (since that is ON with
+	large, mule buffers).
+
+	* data.c (BIGNUM_CASE):
+	* data.c (RATIO_CASE):
+	* data.c (BIGFLOAT_CASE):
+	* data.c (ARITHCOMPARE_MANY):
+	Call promote_args_lazy () here too if WITH_NUMBER_TYPES is defined.
+	We're not doing the equivalent with the non-NUMBER_TYPES code, but
+	that's mostly fine, we are doing it in the bytecode.
+	
+	* number.h:
+	* number.h (NUMBER_TYPES):
+	* number.h (promote_args_lazy):
+	Add this, returning LAZY_MARKER_T if both arguments are markers
+	that point to the same buffer.
+
+2013-12-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* data.c (Fmax):
+	* data.c (Fmin):
+	When an argument is a marker or a character, and WITH_NUMBER_TYPES
+	is defined, return a fixnum in these functions as is documented
+	and as the non-NUMBER_TYPES code does.
+
 2013-09-10  Stephen J. Turnbull  <stephen@xemacs.org>
 
 	* font-mgr.c: Fix a bunch of comments and reformat some docstrings.
