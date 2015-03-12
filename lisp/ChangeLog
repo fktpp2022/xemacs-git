@@ -52,6 +52,11 @@
 	* simple.el (append-message):
 	Update this to reflect a changed message-stack structure.
 
+2015-02-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl-extra.el (digit-char-p): Moved to data.c.
+	* cl-extra.el (digit-char): Moved to data.c.
+	
 2014-12-31  Michael Sperber  <mike@xemacs.org>
 
 	* simple.el (line-move): Add `noerror' optional argument, as in
