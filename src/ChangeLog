@@ -436,7 +436,6 @@
 
 	* src/fileio.c (Ffile_truename): Fix off-by-one error.
 
->>>>>>> other
 2014-11-23  Michael Sperber  <mike@xemacs.org>
 
 	* font-mgr.c (Ffc_name_unparse): Do the previous change to this
