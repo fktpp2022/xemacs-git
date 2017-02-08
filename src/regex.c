@@ -2140,8 +2140,10 @@ typedef struct
 #ifdef emacs
 /* Parse the longest number we can, but don't produce a bignum, that can't
    correspond to anything we're interested in and would needlessly complicate
-   code. Also avoid the silent overflow issues of the non-emacs code below. */
-#define GET_UNSIGNED_NUMBER(num) do \
+   code. Also avoid the silent overflow issues of the non-emacs code below.
+   If the string at P is not exhausted, leave P pointing at the next
+   (probable-)non-digit byte encountered. */
+#define GET_UNSIGNED_NUMBER_1(num) do \
     {                                                                   \
       Ibyte *_gus_numend = NULL;                                        \
       Lisp_Object _gus_numno;                                           \
@@ -2162,17 +2164,14 @@ typedef struct
         {                                                               \
           num = XREALFIXNUM (_gus_numno);                               \
           p = _gus_numend;                                              \
-          if (p != pend)                                                \
-            {                                                           \
-              PATFETCH (c);                                             \
-            }                                                           \
         }                                                               \
     } while (0)
 #else
 /* Get the next unsigned number in the uncompiled pattern.  */
-#define GET_UNSIGNED_NUMBER(num) 					\
+#define GET_UNSIGNED_NUMBER_1(num) 					\
   { if (p != pend)							\
      {									\
+       int _gun_do_unfetch = 1;                                         \
        PATFETCH (c); 							\
        while (ISDIGIT (c)) 						\
          { 								\
@@ -2180,12 +2179,30 @@ typedef struct
               num = 0;							\
            num = num * 10 + c - '0'; 					\
            if (p == pend) 						\
-              break; 							\
+             {                                                          \
+               _gun_do_unfetch = 0;                                     \
+               break; 							\
+             }                                                          \
            PATFETCH (c);						\
          } 								\
-       } 								\
-    }
+       if (_gun_do_unfetch)                                             \
+         {                                                              \
+           /* Make sure P points to the next non-digit character. */    \
+           PATUNFETCH;                                                  \
+         }                                                              \
+     }                                                                  \
+  }
 #endif
+
+#define GET_UNSIGNED_NUMBER(num) do                                     \
+    {                                                                   \
+      GET_UNSIGNED_NUMBER_1 (num);                                      \
+      if (p != pend)                                                    \
+        {                                                               \
+          PATFETCH (c);                                                 \
+        }                                                               \
+    } while (0)
+
 
 /* Map a string to the char class it names (if any). BEG points to the string
    to be parsed and LIMIT is the length, in bytes, of that string.
@@ -3714,7 +3731,10 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 		  goto normal_char;
 
                 PATUNFETCH;
-                GET_UNSIGNED_NUMBER (reg);
+                GET_UNSIGNED_NUMBER_1 (reg); /* We want P pointing at the next
+                                                non-digit character, don't use
+                                                GET_UNSIGNED_NUMBER, which
+                                                consumes that. */
 		  
                 /* Progressively divide down the backreference until we find
                    one that corresponds to an existing register. */
@@ -5984,11 +6004,11 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
           old_regstart[*p] = REG_MATCH_NULL_STRING_P (reg_info[*p])
                              ? REG_UNSET (regstart[*p]) ? d : regstart[*p]
                              : regstart[*p];
-	  DEBUG_MATCH_PRINT2 ("  old_regstart: %d\n",
+	  DEBUG_MATCH_PRINT2 ("  old_regstart: %ld\n",
 			 POINTER_TO_OFFSET (old_regstart[*p]));
 
           regstart[*p] = d;
-	  DEBUG_MATCH_PRINT2 ("  regstart: %d\n", POINTER_TO_OFFSET (regstart[*p]));
+	  DEBUG_MATCH_PRINT2 ("  regstart: %ld\n", POINTER_TO_OFFSET (regstart[*p]));
 
           IS_ACTIVE (reg_info[*p]) = 1;
           MATCHED_SOMETHING (reg_info[*p]) = 0;
@@ -6025,11 +6045,12 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
           old_regend[*p] = REG_MATCH_NULL_STRING_P (reg_info[*p])
                            ? REG_UNSET (regend[*p]) ? d : regend[*p]
 			   : regend[*p];
-	  DEBUG_MATCH_PRINT2 ("      old_regend: %d\n",
-			 POINTER_TO_OFFSET (old_regend[*p]));
+	  DEBUG_MATCH_PRINT2 ("      old_regend: %ld\n",
+			      POINTER_TO_OFFSET (old_regend[*p]));
 
           regend[*p] = d;
-	  DEBUG_MATCH_PRINT2 ("      regend: %d\n", POINTER_TO_OFFSET (regend[*p]));
+	  DEBUG_MATCH_PRINT2 ("      regend: %ld\n",
+			      POINTER_TO_OFFSET (regend[*p]));
 
           /* This register isn't active anymore.  */
           IS_ACTIVE (reg_info[*p]) = 0;

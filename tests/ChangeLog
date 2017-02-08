@@ -1,3 +1,33 @@
+2017-01-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/regexp-tests.el:
+	Test a change just committed to avoid eating the next non-digit
+	character after a backreference.
+
+2017-01-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/format-tests.el:
+	The design of (format "%ld" ...) has changed slightly, there's no
+	guarantee it will represent most-positive-fixnum correctly,
+	comment out a couple of tests here.
+
+2017-01-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/format-tests.el:
+	The design of (format "%ld" ...) has changed slightly, there's no
+	guarantee it will represent most-positive-fixnum correctly,
+	comment out a couple of tests here.
+
+2017-01-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/regexp-tests.el:
+	Trivial tests of #'string-match-p, #'looking-at-p. The bulk of the
+	regexp code is tested when the other functions are tested.
+	* automated/regexp-tests.el (test-regexp-charset-paranoid):
+	* automated/regexp-tests.el (test-regex-charset-mule-paranoid):
+	Use char-code-limit in passing in these two functions, rather than
+	a magic constant.
+
 2017-01-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/extent-tests.el:
