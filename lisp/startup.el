@@ -119,11 +119,10 @@ See `run-hooks'.  This variable exists for users to set, so as to
 override the definitions made by the terminal-specific file.  XEmacs
 never sets this variable itself.")
 
-(defvar keyboard-type nil
-  "The brand of keyboard you are using.
-This variable is used to define the proper function and keypad keys
-for use under X.  It is used in a fashion analogous to the environment
-value TERM.")
+;; XEmacs; this has been present since at least 1991, documented in the GNU
+;; sources at that time. It has never been set or examined by any code. Trash
+;; it.
+; (defvar keyboard-type nil ...)
 
 (defvar window-setup-hook nil
   "Normal hook run to initialize window system display.

@@ -908,6 +908,14 @@
 	* subr.el (bvconcat):
 	Clarify the types of the elements accepted in the argument sequences.
 
+2017-09-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* startup.el:
+	Remove `keyboard-type', which has been present since 1991 and
+	never used. Don't do a make-compatible with it, since though it is
+	present in GNU code it is not set or examined there. The byte
+	compiler warning should be enough.
+
 2017-09-07  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* rect.el (delete-extract-rectangle-line):
