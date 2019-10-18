@@ -1747,8 +1747,7 @@ error occurred (i.e. the handler itself)."
 		    bt) (match-string 1 bt) bt))))
     bt))
 
-(put 'with-trapping-errors 'lisp-indent-function 0)
-(defmacro with-trapping-errors (&rest keys-body)
+(defmacro with-trapping-errors (&rest rest)
   "Trap errors in BODY, outputting a warning and a backtrace.
 Usage looks like
 
@@ -1769,52 +1768,55 @@ CLASS and LEVEL are the warning class and level (default to class
 `general', level `warning').  If NO-BACKTRACE is given, no backtrace is
 displayed.  If RESIGNAL is given, the error is resignaled after the warning
 is displayed and the ERROR-FORM is executed.  If DEBUG is given, the
-debugger is entered."
-  (let ((operation "unknown")
-	(error-form nil)
-	(no-backtrace nil)
-	(class ''general)
-	(level ''warning)
-	(resignal nil)
-	(debug nil)
-	(cte-cc-var '#:cte-cc-var)
-	(call-trapping-errors-arg '#:call-trapping-errors-Ldc9FC5Hr))
-    (let* ((keys '(operation error-form no-backtrace class level resignal
-		   debug))
-	   (keys-with-colon
-	    (mapcar #'(lambda (sym)
-			(intern (concat ":" (symbol-name sym)))) keys)))
-      (while (memq (car keys-body) keys-with-colon)
-	(let* ((key-with-colon (pop keys-body))
-	       (key (intern (substring (symbol-name key-with-colon) 1))))
-	  (set key (pop keys-body)))))
-    `(condition-case ,(if resignal cte-cc-var nil)
-      (call-with-condition-handler
-	  #'(lambda (,call-trapping-errors-arg)
-	      (let ((errstr (error-message-string
-			     ,call-trapping-errors-arg)))
-		,@(if debug `((funcall debugger 'error
-				       ,call-trapping-errors-arg)))
-		,(if no-backtrace
-		     `(lwarn ,class ,level
-		       (if (warning-level-<
-			    ,level
-			    display-warning-minimum-level)
-			   "Error in %s: %s"
-			 "Error in %s:\n%s\n")
-		       ,operation errstr)
-		   `(lwarn ,class ,level
-		     "Error in %s: %s\n\nBacktrace follows:\n\n%s"
-		     ,operation errstr
-		     (backtrace-in-condition-handler-eliminating-handler
-		      ',call-trapping-errors-arg)))
-		))
-	  #'(lambda ()
-	      (progn ,@keys-body)))
-      (error
-       ,error-form
-       ,@(if resignal `((signal (car ,cte-cc-var) (cdr ,cte-cc-var)))))
-      )))
+debugger is entered.
+
+Common Lisp conventions are accepted for the keywords, with the constraint
+that any keywords need to be constant at macro-expansion time (so, in
+practice, you need to type the keywords explicitly in your call to
+`with-trapping-errors').  Otherwise it becomes impractical to figure out where
+BODY starts.
+
+arguments: (&key (OPERATION \"unknown\") (CLASS ''GENERAL) (LEVEL ''WARNING) ERROR-FORM NO-BACKTRACE RESIGNAL DEBUG &body BODY)"
+  (declare (indent 0))
+  (let ((body rest))
+    (while (keywordp (car body)) (setf body (cddr body)))
+    (funcall
+     (function*
+      (lambda ((&key (operation "unknown") (class ''general)
+                    (level ''warning) error-form no-backtrace resignal
+                    debug)
+               body
+               &aux (cte-cc-var '#:cte-cc-var) 
+               ;; This ideally should be lexically unique within the call
+               ;; stack, can't use the same uninterned symbol name for every
+               ;; macro expansion:
+               (call-trapping-errors-arg (gensym "AymGisUF")))
+       `(condition-case ,(if resignal cte-cc-var nil)
+         (call-with-condition-handler
+             #'(lambda (,call-trapping-errors-arg)
+                 (let ((errstr (error-message-string
+                                ,call-trapping-errors-arg)))
+                   ,@(if debug `((funcall debugger 'error
+                                  ,call-trapping-errors-arg)))
+                   ,(if no-backtrace
+                        `(lwarn ,class ,level
+                          (if (warning-level-< ,level
+                                               display-warning-minimum-level)
+                              "Error in %s: %s"
+                            "Error in %s:\n%s\n")
+                          ,operation errstr)
+                        `(lwarn ,class ,level
+                          "Error in %s: %s\n\nBacktrace follows:\n\n%s"
+                          ,operation errstr
+                          (backtrace-in-condition-handler-eliminating-handler
+                           ',call-trapping-errors-arg)))))
+             #'(lambda () (progn ,@body)))
+         (error ,error-form
+          ,@(if resignal
+                `((signal (car ,cte-cc-var) (cdr ,cte-cc-var))))))))
+     ;; Get CL-conformant keyword parsing for free:
+     (ldiff rest body)
+     body)))
 
 ;;;; Miscellanea.
 

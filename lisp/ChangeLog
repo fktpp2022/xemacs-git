@@ -38,6 +38,15 @@
 	* x-scrollbar.el (x-init-scrollbar-from-resources):
 	Use #'string-match-p for the last four.
 
+2019-10-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* subr.el (with-trapping-errors):
+	Revise this to use the Common Lisp keyword parsing
+	infrastructure, which will accept :allow-other-keys t and explicitly
+	have the trailing keyword override.
+	Declare its indentation using (declare (indent ...)) rather than
+	using #'put.
+
 2019-04-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* process.el (setenv):
