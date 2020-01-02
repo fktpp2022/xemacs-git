@@ -353,6 +353,28 @@
 	Make these four functions available to the XEmacs code, necessary
 	for 64-bit support.
 
+2020-01-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* data.c (uint32_t_to_lisp, lisp_to_uint32_t):
+	* data.c (int32_t_to_lisp, lisp_to_int32_t):
+	Rename these using the UINT_32_BIT, INT_32_BIT XEmacs #defines,
+	generate them automatically using the
+	DEFINE_C_INTEGER_TYPE_LISP_CONVERSION() macro further down in the
+	file, for the sake of code consistency, and, all going well, code
+	reliability.
+
+	* lisp.h:
+	Use their new names here when declaring them.
+	* select-gtk.c (gtk_own_selection):
+	* select-gtk.c (gtk_disown_selection):
+	* select-x.c:
+	* select-x.c (x_handle_selection_request):
+	* select-x.c (x_handle_selection_clear):
+	* select-x.c (x_disown_selection):
+	* select-xlike-inc.c (selection_data_to_lisp_data):
+	* select-xlike-inc.c (lisp_data_to_selection_data):
+	Use the new names for these functions throughout the code.
+
 2019-07-28  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* elhash.c (intern_istring):

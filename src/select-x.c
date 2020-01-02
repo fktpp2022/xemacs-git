@@ -238,7 +238,7 @@ x_own_selection (Lisp_Object selection_name,
 #endif
 
   /* Time is a 32-bit unsigned value, its size dictated by the X protocol. */
-  return uint32_t_to_lisp (thyme);
+  return UINT_32_BIT_to_lisp (thyme);
 }
 
 #ifdef MOTIF_CLIPBOARDS /* Bend over baby.  Take it and like it. */
@@ -632,7 +632,7 @@ x_handle_selection_request (XSelectionRequestEvent *event)
       goto DONE_LABEL;
     }
 
-  local_selection_time = lisp_to_uint32_t (temp_obj);
+  local_selection_time = lisp_to_UINT_32_BIT (temp_obj);
 
   if (event->time != CurrentTime &&
       local_selection_time > event->time)
@@ -709,7 +709,7 @@ x_handle_selection_clear (XSelectionClearEvent *event)
   if (NILP (local_selection_time_lisp))
     return;
 
-  local_selection_time = lisp_to_uint32_t (local_selection_time_lisp);
+  local_selection_time = lisp_to_UINT_32_BIT (local_selection_time_lisp);
 
   /* This SelectionClear is for a selection that we no longer own, so we can
      disregard it.  (That is, we have reasserted the selection since this
@@ -1245,7 +1245,7 @@ x_disown_selection (Lisp_Object selection, Lisp_Object timeval)
 
   CHECK_SYMBOL (selection);
   timestamp = NILP (timeval) ? DEVICE_X_MOUSE_TIMESTAMP (d)
-    : lisp_to_uint32_t (timeval);
+    : lisp_to_UINT_32_BIT (timeval);
   selection_atom = symbol_to_x_atom (d, selection, 0);
 
   XSetSelectionOwner (display, selection_atom, None, timestamp);

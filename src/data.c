@@ -1012,123 +1012,6 @@ arguments: (FIRST &rest ARGS)
   return Qt;
 #endif /* WITH_NUMBER_TYPES */
 }
-
-
-/* Convert between an unsigned 32-bit value and some Lisp value that preserves
-   all its bits. Use an integer if the value will fit (that is, if the value
-   is <= MOST_POSITIVE_FIXNUM_UNSIGNED, or if we have bignums available);
-   otherwise, return a cons of two sixteen-bit values.  Both types of return
-   value need GC protection.
-
-   This is used to pass 32-bit integers to and from the user.  Use
-   make_time() and lisp_to_time() for time_t values.
-
-   If you're thinking of using this to store a pointer into a Lisp Object
-   for internal purposes (such as when calling record_unwind_protect()),
-   try using make_opaque_ptr()/get_opaque_ptr() instead. */
-Lisp_Object
-uint32_t_to_lisp (UINT_32_BIT item)
-{
-  if (sizeof (item) < sizeof (EMACS_INT) /* Fits in a positive fixnum? */
-      || item <= MOST_POSITIVE_FIXNUM_UNSIGNED)
-    {
-      return make_fixnum (item);
-    }
-
-#ifdef HAVE_BIGNUM
-  return make_unsigned_integer ((EMACS_UINT) item);
-#else
-  return Fcons (make_fixnum (item >> 16), make_fixnum (item & 0xffff));
-#endif
-}
-
-UINT_32_BIT
-lisp_to_uint32_t (Lisp_Object item)
-{
-  if (INTEGERP (item))
-    {
-      check_integer_range (item, Qzero,
-#if defined (HAVE_BIGNUM) || (SIZEOF_EMACS_INT > 4)
-                           make_unsigned_integer (MAKE_32_BIT_UNSIGNED_CONSTANT
-                                                  (0xffffffff))
-#else
-                           make_fixnum (MOST_POSITIVE_FIXNUM)
-#endif
-                           );
-
-#ifdef HAVE_BIGNUM
-      if (BIGNUMP (item))
-        {
-          /* EMACS_UINT will have at least 32 value bits, and we've checked
-             the range above, this value is not greater than #xFFFFFFFF. */
-          return (UINT_32_BIT) bignum_to_emacs_uint (XBIGNUM_DATA (item));
-        }
-#endif
-      return (UINT_32_BIT) XFIXNUM (item);
-    }
-  else
-    {
-      Lisp_Object top = Fcar (item);
-      Lisp_Object bot = Fcdr (item);
-
-      check_integer_range (top, Qzero, make_fixnum (0xFFFF));
-      check_integer_range (bot, Qzero, make_fixnum (0xFFFF));
-
-      type_checking_assert (FIXNUMP (top) && FIXNUMP (bot));
-
-      return ((UINT_32_BIT) XFIXNUM (top) << 16) |
-	      (UINT_32_BIT) (XFIXNUM (bot) & 0xffff);
-    }
-}
-
-Lisp_Object
-int32_t_to_lisp (INT_32_BIT item)
-{
-  if (NUMBER_FITS_IN_A_FIXNUM ((EMACS_INT) item))
-    {
-      return make_fixnum (item);
-    }
-
-#ifdef HAVE_BIGNUM
-  return make_integer ((EMACS_INT) item);
-#else
-  return Fcons (make_fixnum ((UINT_32_BIT) item >> 16),
-                make_fixnum (item & 0xffff));
-#endif
-}
-
-INT_32_BIT
-lisp_to_int32_t (Lisp_Object item)
-{
-  if (INTEGERP (item))
-    {
-#if (FIXNUM_VALBITS > 32) || defined(HAVE_BIGNUM)
-      check_integer_range (item, make_integer ((INT_32_BIT) (~0x7FFFFFFF)),
-                           make_integer (0x7fffffff));
-#endif
-#ifdef HAVE_BIGNUM
-      if (BIGNUMP (item))
-        {
-          /* EMACS_INT will have at least 32 value bits, and we've checked the
-             range above, this value fits 32 bits. */
-          return (INT_32_BIT) bignum_to_emacs_int (XBIGNUM_DATA (item));
-        }
-#endif
-      return (UINT_32_BIT) XFIXNUM (item);
-    }
-  else
-    {
-      Lisp_Object top = Fcar (item);
-      Lisp_Object bot = XCDR (item);
-
-      check_integer_range (top, Qzero, make_fixnum (0xFFFF));
-      check_integer_range (bot, Qzero, make_fixnum (0xFFFF));
-
-      type_checking_assert (FIXNUMP (top) && FIXNUMP (bot));
-
-      return (XFIXNUM (top) << 16) | (XFIXNUM (bot) & 0xffff);
-    }
-}
 
 #ifndef HAVE_BIGNUM
 static int
@@ -4220,8 +4103,14 @@ DEFINE_C_INTEGER_TYPE_LISP_CONVERSION (extern, OFF_T);
 /* Definitions for lisp_to_uid_t, uid_t_to_lisp: */
 DEFINE_C_INTEGER_TYPE_LISP_CONVERSION (extern, uid_t);
 
-/* Definitions for lisp_to_uid_t, uid_t_to_lisp: */
+/* Definitions for lisp_to_gid_t, gid_t_to_lisp: */
 DEFINE_C_INTEGER_TYPE_LISP_CONVERSION (extern, gid_t);
+
+/* Definitions for lisp_to_UINT_32_BIT, UINT_32_BIT_to_lisp: */
+DEFINE_C_INTEGER_TYPE_LISP_CONVERSION (extern, UINT_32_BIT);
+
+/* Definitions for lisp_to_INT_32_BIT, INT_32_BIT_to_lisp: */
+DEFINE_C_INTEGER_TYPE_LISP_CONVERSION (extern, INT_32_BIT);
 
 /************************************************************************/
 /*                            initialization                            */

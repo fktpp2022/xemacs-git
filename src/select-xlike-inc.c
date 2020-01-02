@@ -133,11 +133,11 @@ selection_data_to_lisp_data (struct device *d,
 #ifdef THIS_IS_X
       if (type == DEVICE_XATOM_TIMESTAMP (d))
         {
-          return uint32_t_to_lisp (((UINT_32_BIT *) data) [0]);
+	  return UINT_32_BIT_to_lisp (((UINT_32_BIT *) data) [0]);
         }
 #endif
 
-      return int32_t_to_lisp (((INT_32_BIT *) data) [0]);
+      return INT_32_BIT_to_lisp (((INT_32_BIT *) data) [0]);
     }
   else if (format == 32 && size == sizeof (long) &&
            sizeof (long) != sizeof (INT_32_BIT))
@@ -145,13 +145,13 @@ selection_data_to_lisp_data (struct device *d,
 #ifdef THIS_IS_X
       if (type == DEVICE_XATOM_TIMESTAMP (d))
         {
-          return uint32_t_to_lisp ((UINT_32_BIT)(*((long *) data)));
+	  return UINT_32_BIT_to_lisp ((UINT_32_BIT)(*((long *) data)));
         }
 #endif
 
       /* Sigh. 32 bit values are always passed back as longs, independent of
          the size of longs. */
-      return int32_t_to_lisp ((INT_32_BIT)(*((long *) data)));
+      return INT_32_BIT_to_lisp ((INT_32_BIT)(*((long *) data)));
     }
 
   /* Convert any other kind of data to a vector of numbers, represented
@@ -188,7 +188,7 @@ selection_data_to_lisp_data (struct device *d,
       for (i = 0; i < size / 4; i++)
 	{
 	  INT_32_BIT j = ((INT_32_BIT *) data) [i];
-	  XVECTOR_DATA (v) [i] = int32_t_to_lisp (j);
+	  XVECTOR_DATA (v) [i] = INT_32_BIT_to_lisp (j);
 	}
       return v;
     }
@@ -200,7 +200,7 @@ selection_data_to_lisp_data (struct device *d,
       for (ii = 0; ii < count; ++ii)
         {
           INT_32_BIT jj = (INT_32_BIT) (((long *)(data))[ii]);
-          XVECTOR_DATA (v) [ii] = int32_t_to_lisp (jj);
+          XVECTOR_DATA (v) [ii] = INT_32_BIT_to_lisp (jj);
         }
 
       return v;
@@ -304,7 +304,7 @@ lisp_data_to_selection_data (struct device *d,
 
          Mozilla and Chrome have special magic so timestamps don't wrap around
          on long-running processes, and this may be reasonable for us too. */
-      UINT_32_BIT staging = lisp_to_uint32_t (obj);
+      UINT_32_BIT staging = lisp_to_UINT_32_BIT (obj);
 
       *format_ret = 32;
       *size_ret = 1;
@@ -316,8 +316,8 @@ lisp_data_to_selection_data (struct device *d,
     }
   else if (INTEGERP (obj) || CONSP (obj))
     {
-      /* lisp_to_int32_t() can error, call it before allocating anything. */
-      INT_32_BIT staging = lisp_to_int32_t (obj);
+      /* lisp_to_INT_32_BIT() can error, call it before allocating anything. */
+      INT_32_BIT staging = lisp_to_INT_32_BIT (obj);
 
       if (!((UINT_32_BIT) staging & ~0xFFFF))
         {
@@ -399,7 +399,7 @@ lisp_data_to_selection_data (struct device *d,
             {
               /* Dry-run conversion for type checking, so we error before any
                  allocation. */
-              INT_32_BIT checked = lisp_to_int32_t (XVECTOR_DATA (obj)[i]);
+              INT_32_BIT checked = lisp_to_INT_32_BIT (XVECTOR_DATA (obj)[i]);
 
               if ((UINT_32_BIT) checked & ~0xFFFF)
                 {
@@ -418,7 +418,7 @@ lisp_data_to_selection_data (struct device *d,
                   /* Yes, this is intentionally long **. See
                      select-x.c and the XChangeProperty man page. */
                   (*((long **) data_ret)) [i] =
-                    lisp_to_int32_t (XVECTOR_DATA (obj) [i]);
+                    lisp_to_INT_32_BIT (XVECTOR_DATA (obj) [i]);
                 }
             }
           else
@@ -426,7 +426,7 @@ lisp_data_to_selection_data (struct device *d,
               for (i = 0; i < *size_ret; i++)
                 {
                   (*((INT_16_BIT **) data_ret)) [i] =
-                    (INT_16_BIT) lisp_to_int32_t (XVECTOR_DATA (obj) [i]);
+                    (INT_16_BIT) lisp_to_INT_32_BIT (XVECTOR_DATA (obj) [i]);
                 }
             }
         }

@@ -419,7 +419,7 @@ gtk_own_selection (Lisp_Object selection_name,
 
   gtk_selection_owner_set (selecting_window, selection_atom, thyme);
 
-  return uint32_t_to_lisp (thyme);
+  return UINT_32_BIT_to_lisp (thyme);
 }
 
 static void

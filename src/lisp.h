@@ -4650,14 +4650,14 @@ enum arith_comparison {
   arith_grtr_or_equal };
 Lisp_Object arithcompare (Lisp_Object, Lisp_Object, enum arith_comparison);
 
-/* Do NOT use uint32_t_to_lisp to decode time_t's unless you KNOW arg is
+/* Do NOT use UINT_32_BIT_to_lisp to decode time_t's unless you KNOW arg is
    non-negative. They cannot return negative values!  Use make_time. */
-Lisp_Object uint32_t_to_lisp (UINT_32_BIT);
-Lisp_Object int32_t_to_lisp (INT_32_BIT);
+Lisp_Object UINT_32_BIT_to_lisp (UINT_32_BIT);
+Lisp_Object INT_32_BIT_to_lisp (INT_32_BIT);
 
 /* Use lisp_to_time() for time_t instead of these functions. */
-UINT_32_BIT lisp_to_uint32_t (Lisp_Object);
-INT_32_BIT lisp_to_int32_t (Lisp_Object);
+UINT_32_BIT lisp_to_UINT_32_BIT (Lisp_Object);
+INT_32_BIT lisp_to_INT_32_BIT (Lisp_Object);
 
 Lisp_Object build_fixnum_to_char_maps (Lisp_Object);
 extern Lisp_Object Vdigit_fixnum_calculated_data;
