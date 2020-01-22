@@ -55,6 +55,20 @@
 	Declare its indentation using (declare (indent ...)) rather than
 	using #'put.
 
+2020-01-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* wid-edit.el (widget-default-create):
+	* wid-edit.el (widget-checklist-add-item):
+	* wid-edit.el (widget-radio-add-item):
+	* wid-edit.el (widget-editable-list-entry-create):
+	Move away from code using #'re-search-forward to parse format
+	strings within all these functions, use #'position instead.
+
+	In #'widget-default-create, use the more reasonable and readable
+	(case escape ...) rather than funcalling an uncompiled lambda
+	which is in a vector indexed according to a string offset, which
+	offset is produced using #'string-match.
+
 2019-04-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* process.el (setenv):
