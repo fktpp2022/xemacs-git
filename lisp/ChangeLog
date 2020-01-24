@@ -55,6 +55,19 @@
 	Declare its indentation using (declare (indent ...)) rather than
 	using #'put.
 
+2020-01-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* wid-edit.el (widget-parsing-escapes): New.
+	Macro to do most of the work of parsing %-escapes in widget format
+	strings, refactored out.
+	* wid-edit.el (widget-value-convert-widget):
+	Use it. 
+	Adjust the order of frequency of the value escape in passing, that
+	is much more common in the customize code than in the about-xemacs
+	code which I had been testing on.
+	* wid-edit.el (widget-checklist-add-item, widget-radio-add-item):
+	Use `widget-parsing-escapes' in these functions.
+
 2020-01-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* wid-edit.el (widget-default-create):

@@ -1785,82 +1785,98 @@ If that does not exists, call the value of `widget-complete-field'."
   (call-interactively (or (widget-get widget :complete-function)
 			  widget-complete-field)))
 
+(defmacro widget-parsing-escapes (control-string escape-symbol &rest body)
+  "Insert text at point formatted according to CONTROL-STRING.
+
+If there are any two-character %-sequences in CONTROL-STRING, for each of them
+encountered, bind ESCAPE-SYMBOL to the second, non-% character, and execute
+BODY.
+
+BODY is usually a (case ...) expression responsible for the specific
+interpretation of the %-sequence, inserting glyphs, widget values and so
+forth.
+
+Return nil."
+  (declare (indent 1))
+  `(let* ((w-p-e-string ,control-string)
+          (w-p-e-max (1- (length w-p-e-string)))
+          (w-p-e-last 0)
+          (w-p-e-position (position ?% w-p-e-string :start w-p-e-last))
+          ,escape-symbol)
+    ;; Parse escapes in format. XEmacs; these format strings are short, so
+    ;; this code isn't as much of a loop hotspot as you might worry.
+    ;;
+    ;; We used to insert the format string into the current buffer and parse
+    ;; it there, using #'re-search-forward and then (replace-match "" t t).
+    ;; This turns out to be more expensive than parsing the string and only
+    ;; inserting what you need to insert.
+    ;;
+    ;; SJT suggested that #'skip-chars-forward would be less expensive than
+    ;; #'re-search-forward; against all intuition, this is not true, it seems
+    ;; the compiled regexp caching does a better job than the nonexistent
+    ;; #'skip-chars-forward caching, and the fact that #'skip-chars-forward
+    ;; has a byte code doesn't outweigh that.
+    ;;
+    ;; On checking, #'position is faster than #'string-match-p, as intuition
+    ;; would suggest.
+    (while w-p-e-position
+      (if (eql w-p-e-position w-p-e-max) ;; Percent as the last character in
+					 ;; the string?
+          (progn
+            (insert (subseq w-p-e-string w-p-e-last)) ;; Insert it.
+            (setq w-p-e-position nil
+                  w-p-e-last (length w-p-e-string)))
+        ;; (insert (substring STR S E)) is equivalent to (write-sequence STR
+        ;; (current-buffer) :start S :end E), except that the former is
+        ;; faster since both function calls have byte-codes. That said, the
+        ;; latter generates no garbage.
+        (insert (subseq w-p-e-string w-p-e-last w-p-e-position))
+        (setq ,escape-symbol (aref w-p-e-string (1+ w-p-e-position))
+              w-p-e-last (+ w-p-e-position 2)
+              w-p-e-position (position ?% w-p-e-string :start w-p-e-last))
+        ,@body))
+    ;; Insert the trailing part of STRING.
+    (when (<= w-p-e-last w-p-e-max)
+      (insert (subseq w-p-e-string w-p-e-last)))))
+
 (defun widget-default-create (widget)
   "Create WIDGET at point in the current buffer."
   (widget-specify-insert
-   (let* (button-begin button-end button-glyph
-          sample-begin sample-end
-          doc-begin doc-end
-          value-pos escape
-          (string (widget-get widget :format))
-          (max (1- (length string)))
-          (last 0)
-          (position (position ?% string :start last)))
-     ;; Parse escapes in format. XEmacs; these format strings are short, so
-     ;; this code isn't as much of a loop hotspot as you might worry.
-     ;;
-     ;; We used to insert the format string into the current buffer and parse
-     ;; it there, using #'re-search-forward and then (replace-match "" t t).
-     ;; This turns out to be more expensive than parsing the string and only
-     ;; inserting what you need to insert.
-     ;;
-     ;; SJT suggested that #'skip-chars-forward would be less expensive than
-     ;; #'re-search-forward; against all intuition, this is not true, it seems
-     ;; the compiled regexp caching does a better job than the nonexistent
-     ;; #'skip-chars-forward caching, and the fact that #'skip-chars-forward
-     ;; has a byte code doesn't outweigh that.
-     ;;
-     ;; On checking, #'position is faster than #'string-match-p, as intuition
-     ;; would suggest.
-     (while position
-       (if (eql position max) ;; Percent as the last character in the string?
-           (progn
-             (insert (subseq string last)) ;; Insert it.
-             (setq position nil
-                   last (length string)))
-         ;; (insert (substring STR S E)) is equivalent to (write-sequence STR
-         ;; (current-buffer) :start S :end E), except that the former is
-         ;; faster since both function calls have byte-codes. That said, the
-         ;; latter generates no garbage.
-         (insert (subseq string last position))
-         (setq escape (aref string (1+ position))
-               last (+ position 2)
-               position (position ?% string :start last))
-         (case escape
-           ;; XEmacs; order CLAUSES by inverse order of frequency.
-           (?t (let* ((tag (widget-get widget :tag))
-                      (glyph (widget-get widget :tag-glyph)))
-                 (cond (glyph
-                        (setq button-glyph
-                              (widget-glyph-insert widget (or tag "Image")
-                                                   glyph)))
-                       (tag (insert tag))
-                       (t (princ (widget-get widget :value)
-                                 (current-buffer))))))
-           (?\[ (setf button-begin (point-marker)
-                      (marker-insertion-type button-begin) nil))
-           (?\] (setf button-end (point-marker)
-                      (marker-insertion-type button-end) nil))
-           (?\{ (setq sample-begin (point)))
-           (?\} (setq sample-end (point)))
-           (?n (when (widget-get widget :indent)
-                 (format-into (current-buffer) "\n%*s"
-                              (widget-get widget :indent) "")))
-           (?d (let* ((doc (widget-get widget :doc))
-                      (body (position ?\n doc :from-end t :test-not #'eq)))
-                 (when doc
-                   (setq doc-begin (point))
-                   (write-sequence doc (current-buffer)
-                                   :end (if body (1+ body)))
-                   (insert ?\n)
-                   (setq doc-end (point)))))
-           (?v (if (and button-begin (not button-end))
-                   (widget-apply widget :value-create)
-                 (setq value-pos (point-marker))))
-           (?% (insert ?%))
-           (otherwise (widget-apply widget :format-handler escape)))))
-     ;; Insert the trailing part of STRING.
-     (when (<= last (length string)) (insert (subseq string last)))
+   (let* (button-begin button-end button-glyph sample-begin sample-end
+          doc-begin doc-end value-pos indent)
+     (widget-parsing-escapes (widget-get widget :format) escape
+       (case escape
+         ;; XEmacs; order CLAUSES by inverse order of frequency.
+         (?v (if (and button-begin (not button-end))
+                 (widget-apply widget :value-create)
+               (setq value-pos (point-marker))))
+         (?t (let* ((tag (widget-get widget :tag))
+                    (glyph (widget-get widget :tag-glyph)))
+               (cond (glyph
+                      (setq button-glyph
+                            (widget-glyph-insert widget (or tag "Image")
+                                                 glyph)))
+                     (tag (insert tag))
+                     (t (princ (widget-get widget :value)
+                               (current-buffer))))))
+         (?\[ (setf button-begin (point-marker)
+                    (marker-insertion-type button-begin) nil))
+         (?\] (setf button-end (point-marker)
+                    (marker-insertion-type button-end) nil))
+         (?\{ (setq sample-begin (point)))
+         (?\} (setq sample-end (point)))
+         (?n (when (setq indent (widget-get widget :indent))
+               (format-into (current-buffer) "\n%*s" indent "")))
+         (?d (let* ((doc (widget-get widget :doc))
+                    (body (position ?\n doc :from-end t :test-not #'eq)))
+               (when doc
+                 (setq doc-begin (point))
+                 (write-sequence doc (current-buffer)
+                                 :end (if body (1+ body)))
+                 (insert ?\n)
+                 (setq doc-end (point)))))
+         (?% (insert ?%))
+         (otherwise (widget-apply widget :format-handler escape))))
      ;; Specify button, sample, and doc, and insert value.
      (when (and button-begin button-end)
        (unless button-glyph
@@ -2640,44 +2656,28 @@ If the item is checked, CHOSEN is a cons whose cdr is the value."
 	  (buttons (widget-get widget :buttons))
 	  (button-args (or (widget-get type :sibling-args)
 			   (widget-get widget :button-args)))
-          (string (widget-get widget :entry-format))
-          (max (1- (length string))) 
-          (last 0)
-          (position (position ?% string :start last))
-	  child button escape)
-     ;; Parse % escapes in format.
-     (while position
-       (if (eql position max) ;; Percent as the last character in the string?
-           (progn
-             (insert (subseq string last)) ;; Insert it.
-             (setq position nil
-                   last (length string)))
-         (insert (subseq string last position))
-         (setq escape (aref string (1+ position))
-               last (+ position 2)
-               position (position ?% string :start last))
-         (case escape
-           (?b
-            (setq button (apply 'widget-create-child-and-convert
-                                widget 'checkbox
-                                :value (not (null chosen))
-                                button-args)))
-           (?v
-            (setq child
-                  (cond ((not chosen)
-                         (let ((child (widget-create-child widget type)))
-                           (widget-apply child :deactivate)
-                           child))
-                        ((widget-get type :inline)
-                         (widget-create-child-value
-                          widget type (cdr chosen)))
-                        (t
-                         (widget-create-child-value
-                          widget type (car (cdr chosen)))))))
-           (?% (insert ?%))
-           (otherwise (insert (subseq string position (+ position 2)))))))
-     ;; Insert the trailing part of STRING.
-     (when (<= last max) (insert (subseq string last)))
+          child button)
+     (widget-parsing-escapes (widget-get widget :entry-format) escape
+       (case escape
+         (?b
+          (setq button (apply 'widget-create-child-and-convert
+                              widget 'checkbox
+                              :value (not (null chosen))
+                              button-args)))
+         (?v
+          (setq child
+                (cond ((not chosen)
+                       (let ((child (widget-create-child widget type)))
+                         (widget-apply child :deactivate)
+                         child))
+                      ((widget-get type :inline)
+                       (widget-create-child-value
+                        widget type (cdr chosen)))
+                      (t
+                       (widget-create-child-value
+                        widget type (car (cdr chosen)))))))
+         (?% (insert ?%))
+         (otherwise (insert ?% escape))))
      ;; Update properties.
      (and button child (widget-put child :button button))
      (and button (widget-put widget :buttons (cons button buttons)))
@@ -2857,36 +2857,20 @@ The parent of several `radio-button' widgets, one for each option."
 			   (widget-get widget :button-args)))
 	  (chosen (and (null (widget-get widget :choice))
 		       (widget-apply type :match value)))
-          (string (widget-get widget :entry-format))
-          (max (1- (length string)))
-          (last 0)
-          (position (position ?% string :start last))
-          escape child button)
-     ;; Parse % escapes in format.
-     (while position
-       (if (eql position max) ;; Percent as the last character in the string?
-           (progn
-             (insert (subseq string last)) ;; Insert it.
-             (setq position nil
-                   last (length string)))
-         (insert (subseq string last position))
-         (setq escape (aref string (1+ position))
-               last (+ position 2)
-               position (position ?% string :start last))
-         (case escape
-           (?b
-            (setq button (apply 'widget-create-child-and-convert
-                                widget 'radio-button
-                                :value (not (null chosen)) button-args)))
-           (?v
-            (setq child (if chosen
-                            (widget-create-child-value widget type value)
-                          (widget-create-child widget type)))
-            (unless chosen (widget-apply child :deactivate)))
-           (?% (insert ?%))
-           (otherwise (insert (subseq string position (+ position 2)))))))
-     ;; Insert the trailing part of STRING.
-     (when (<= last max) (insert (subseq string last)))
+          button child)
+     (widget-parsing-escapes (widget-get widget :entry-format) escape
+       (case escape
+         (?b
+          (setq button (apply 'widget-create-child-and-convert
+                              widget 'radio-button
+                              :value (not (null chosen)) button-args)))
+         (?v
+          (setq child (if chosen
+                          (widget-create-child-value widget type value)
+                        (widget-create-child widget type)))
+          (unless chosen (widget-apply child :deactivate)))
+         (?% (insert ?%))
+         (otherwise (insert ?% escape))))
      ;; Update properties.
      (when chosen
        (widget-put widget :choice type))
