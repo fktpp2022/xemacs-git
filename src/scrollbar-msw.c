@@ -81,8 +81,8 @@ mswindows_create_scrollbar_instance (struct frame *f, int vertical,
   ptr = make_opaque_ptr (SCROLLBAR_MSW_HANDLE (sb));
   Fputhash (ptr, wrap_scrollbar_instance (sb),
 	    Vmswindows_scrollbar_instance_table);
-  qxeSetWindowLong (SCROLLBAR_MSW_HANDLE (sb), GWL_USERDATA,
-		 (LONG) STORE_LISP_IN_VOID (ptr));
+  qxeSetWindowLongPtr (SCROLLBAR_MSW_HANDLE (sb), GWLP_USERDATA,
+		       STORE_LISP_IN_VOID (ptr));
 }
 
 static void
@@ -91,7 +91,7 @@ mswindows_free_scrollbar_instance (struct scrollbar_instance *sb)
   if (sb->scrollbar_data)
     {
       void *opaque =
-	(void *) qxeGetWindowLong (SCROLLBAR_MSW_HANDLE (sb), GWL_USERDATA);
+	qxeGetWindowLongPtr (SCROLLBAR_MSW_HANDLE (sb), GWLP_USERDATA);
       Lisp_Object ptr;
 
       ptr = GET_LISP_FROM_VOID (opaque);
@@ -210,7 +210,7 @@ mswindows_handle_scrollbar_event (HWND hwnd, int code, int UNUSED (pos))
   int vert = qxeGetWindowLong (hwnd, GWL_STYLE) & SBS_VERT;
   int value;
 
-  v = (void *) qxeGetWindowLong (hwnd, GWL_USERDATA);
+  v = qxeGetWindowLongPtr (hwnd, GWLP_USERDATA);
   if (!v)
     {
       /* apparently this can happen, as it was definitely necessary

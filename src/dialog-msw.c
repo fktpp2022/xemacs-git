@@ -194,13 +194,13 @@ dialog_proc (HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param)
   switch (msg)
     {
     case WM_INITDIALOG:
-      qxeSetWindowLong (hwnd, DWL_USER, l_param);
+      qxeSetWindowLongPtr (hwnd, DWLP_USER, l_param);
       break;
       
     case WM_DESTROY:
       {
 	Lisp_Object data;
-	data = GET_LISP_FROM_VOID ((void *) qxeGetWindowLong (hwnd, DWL_USER));
+	data = GET_LISP_FROM_VOID (qxeGetWindowLongPtr (hwnd, DWLP_USER));
 	Vdialog_data_list = delq_no_quit (data, Vdialog_data_list);
       }
       break;
@@ -210,7 +210,7 @@ dialog_proc (HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param)
 	Lisp_Object fn, arg, data;
 	struct mswindows_dialog_id *did;
 
-	data = GET_LISP_FROM_VOID ((void *) qxeGetWindowLong (hwnd, DWL_USER));
+	data = GET_LISP_FROM_VOID (qxeGetWindowLongPtr (hwnd, DWLP_USER));
 	did = XMSWINDOWS_DIALOG_ID (data);
 	if (w_param != IDCANCEL) /* user pressed escape */
 	  {

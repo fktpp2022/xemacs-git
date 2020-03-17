@@ -271,7 +271,7 @@ mswindows_init_frame_1 (struct frame *f, Lisp_Object props,
 			   
   FRAME_MSWINDOWS_HANDLE (f) = hwnd;
 
-  qxeSetWindowLong (hwnd, XWL_FRAMEOBJ, (LONG)STORE_LISP_IN_VOID (frame_obj));
+  qxeSetWindowLongPtr (hwnd, XWLP_FRAMEOBJ, STORE_LISP_IN_VOID (frame_obj));
   FRAME_MSWINDOWS_DC (f) = GetDC (hwnd);
   SetTextAlign (FRAME_MSWINDOWS_DC (f), TA_BASELINE | TA_LEFT | TA_NOUPDATECP);
 
@@ -488,8 +488,8 @@ mswindows_set_frame_icon (struct frame *f)
 						    FALSE);
 	}
 
-      qxeSetClassLong (FRAME_MSWINDOWS_HANDLE (f), GCL_HICON,
-		       (LONG) XIMAGE_INSTANCE_MSWINDOWS_ICON (f->icon));
+      qxeSetClassLongPtr (FRAME_MSWINDOWS_HANDLE (f), GCLP_HICON,
+			  XIMAGE_INSTANCE_MSWINDOWS_ICON (f->icon));
     }
 }
 
@@ -499,8 +499,8 @@ mswindows_set_frame_pointer (struct frame *f)
   if (IMAGE_INSTANCEP (f->pointer)
       && IMAGE_INSTANCE_TYPE (XIMAGE_INSTANCE (f->pointer)) == IMAGE_POINTER)
     {
-      qxeSetClassLong (FRAME_MSWINDOWS_HANDLE (f), GCL_HCURSOR,
-		       (LONG) XIMAGE_INSTANCE_MSWINDOWS_ICON (f->pointer));
+      qxeSetClassLongPtr (FRAME_MSWINDOWS_HANDLE (f), GCLP_HCURSOR,
+			  XIMAGE_INSTANCE_MSWINDOWS_ICON (f->pointer));
       /* we only have to do this because GC doesn't cause a mouse
          event and doesn't give time to event processing even if it
          did. */
@@ -551,7 +551,7 @@ mswindows_get_mouse_position (struct device *UNUSED (d), Lisp_Object *frame,
 
   /* Yippie! */
   ScreenToClient (hwnd, &pt);
-  *frame = GET_LISP_FROM_VOID ((void *) qxeGetWindowLong (hwnd, XWL_FRAMEOBJ));
+  *frame = GET_LISP_FROM_VOID (qxeGetWindowLongPtr (hwnd, XWLP_FRAMEOBJ));
   *x = pt.x;
   *y = pt.y;
   return 1;
@@ -819,7 +819,7 @@ mswindows_get_frame_parent (struct frame *f)
   if (hwnd)
     {
       Lisp_Object parent;
-      parent = GET_LISP_FROM_VOID ((void *) qxeGetWindowLong (hwnd, XWL_FRAMEOBJ));
+      parent = GET_LISP_FROM_VOID (qxeGetWindowLongPtr (hwnd, XWLP_FRAMEOBJ));
       assert (FRAME_MSWINDOWS_P (XFRAME (parent)));
       return parent;
     }

@@ -268,10 +268,10 @@ DECLARE_LISP_OBJECT (mswindows_frame, Lisp_Mswindows_Frame);
 #define CHECK_MSWINDOWS_FRAME(z) CHECK_FRAME_TYPE (z, mswindows)
 #define CONCHECK_MSWINDOWS_FRAME(z) CONCHECK_FRAME_TYPE (z, mswindows)
 
-/* win32 window LONG indices */
-#define XWL_FRAMEOBJ	0
-#define XWL_COUNT	1	/* Number of LONGs that we use */
-#define MSWINDOWS_WINDOW_EXTRA_BYTES	(XWL_COUNT * 4)
+/* win32 window LONG_PTR indices */
+#define XWLP_FRAMEOBJ	0
+#define XWLP_COUNT	1
+#define MSWINDOWS_WINDOW_EXTRA_BYTES	(XWLP_COUNT * sizeof (LONG_PTR))
 
 /*
  * Printer frame, aka printer job

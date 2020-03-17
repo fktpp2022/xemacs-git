@@ -2524,7 +2524,7 @@ mswindows_wnd_proc (HWND hwnd, UINT message_, WPARAM wParam, LPARAM lParam)
     debug_output_mswin_message (hwnd, message_, wParam, lParam);
 #endif /* DEBUG_XEMACS */
 
-  assert (!qxeGetWindowLong (hwnd, GWL_USERDATA));
+  assert (!qxeGetWindowLongPtr (hwnd, GWLP_USERDATA));
   switch (message_)
     {
     case WM_DESTROYCLIPBOARD:
@@ -3641,11 +3641,11 @@ mswindows_wnd_proc (HWND hwnd, UINT message_, WPARAM wParam, LPARAM lParam)
 	/* if we get an opportunity to paint a widget then do so if
 	   there is an appropriate face */
 	HWND crtlwnd = (HWND) lParam;
-	LONG ii = qxeGetWindowLong (crtlwnd, GWL_USERDATA);
+	LONG_PTR ii = qxeGetWindowLongPtr (crtlwnd, GWLP_USERDATA);
 	if (ii)
 	  {
 	    Lisp_Object image_instance;
-	    image_instance = GET_LISP_FROM_VOID ((void *) ii);
+	    image_instance = GET_LISP_FROM_VOID (ii);
 	    if (IMAGE_INSTANCEP (image_instance)
 		&&
 		IMAGE_INSTANCE_TYPE_P (image_instance, IMAGE_WIDGET))
@@ -4161,7 +4161,7 @@ mswindows_find_console (HWND UNUSED (hwnd))
 Lisp_Object
 mswindows_find_frame (HWND hwnd)
 {
-  LONG l = qxeGetWindowLong (hwnd, XWL_FRAMEOBJ);
+  LONG_PTR l = qxeGetWindowLongPtr (hwnd, XWLP_FRAMEOBJ);
   Lisp_Object f;
   if (l == 0)
     {
@@ -4171,7 +4171,7 @@ mswindows_find_frame (HWND hwnd)
       assert (!NILP (Vmswindows_frame_being_created));
       return Vmswindows_frame_being_created;
     }
-  f = GET_LISP_FROM_VOID ((void *) l);
+  f = GET_LISP_FROM_VOID (l);
   return f;
 }
 

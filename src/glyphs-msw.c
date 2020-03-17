@@ -2136,12 +2136,13 @@ mswindows_subwindow_instantiate (Lisp_Object image_instance,
 			 IMAGE_INSTANCE_MSWINDOWS_CLIPWINDOW (ii),
 			 0,
 			 (HINSTANCE)
-			 qxeGetWindowLong
+			 qxeGetWindowLongPtr
 			 (FRAME_MSWINDOWS_HANDLE (XFRAME (frame)),
-			  GWL_HINSTANCE),
+			  GWLP_HINSTANCE),
 			 NULL);
 
-  qxeSetWindowLong (wnd, GWL_USERDATA, (LONG)STORE_LISP_IN_VOID(image_instance));
+  qxeSetWindowLongPtr (wnd, GWLP_USERDATA,
+		       STORE_LISP_IN_VOID(image_instance));
   IMAGE_INSTANCE_SUBWINDOW_ID (ii) = wnd;
 }
 
@@ -2281,15 +2282,16 @@ mswindows_widget_instantiate (Lisp_Object image_instance,
 				IMAGE_INSTANCE_MSWINDOWS_CLIPWINDOW (ii),
 				(HMENU)id,       /* No menu */
 				(HINSTANCE)
-				qxeGetWindowLong
+				qxeGetWindowLongPtr
 				(FRAME_MSWINDOWS_HANDLE (XFRAME (frame)),
-				 GWL_HINSTANCE),
+				 GWLP_HINSTANCE),
 				NULL)) == NULL)
     gui_error ("window creation failed with code",
 	       make_fixnum (GetLastError()));
 
   IMAGE_INSTANCE_SUBWINDOW_ID (ii) = wnd;
-  qxeSetWindowLong (wnd, GWL_USERDATA, (LONG)STORE_LISP_IN_VOID(image_instance));
+  qxeSetWindowLongPtr (wnd, GWLP_USERDATA,
+		       STORE_LISP_IN_VOID(image_instance));
   /* set the widget font from the widget face */
   if (!NILP (IMAGE_INSTANCE_WIDGET_TEXT (ii)))
     qxeSendMessage (wnd, WM_SETFONT,

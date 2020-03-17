@@ -185,7 +185,7 @@ Lisp_Object mswindows_find_frame (HWND hwnd);
 EXFUN (Fmswindows_message_box, 3);
 extern int mswindows_message_outputted;
 void mswindows_hide_console (void);
-int mswindows_output_console_string (const Ibyte *ptr, Bytecount len);
+Bytecount mswindows_output_console_string (const Ibyte *ptr, Bytecount len);
 void write_string_to_mswindows_debugging_output (const Ibyte *str,
 						 Bytecount len);
 

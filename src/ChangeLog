@@ -1,5 +1,47 @@
 2020-03-17  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Do just enough native Windows 64-bit bug fixing to get building
+	and running on Cygwin.
+
+	* console-msw-impl.h:
+	Change the XWL_* defines to XWLP_ for consistency with the native
+	code. Correct the extra byte count needed on allocation.
+	
+	* console-msw.h:
+	mswindows_output_console_string() now returns a Bytecount, correct
+	that.
+
+	* dialog-msw.c (dialog_proc):
+	Use qxeSetWindowLongPtr(), qxeGetWindowLongPtr() as appropriate in
+	this function.
+	
+	* event-msw.c:
+	* event-msw.c (mswindows_wnd_proc):
+	* event-msw.c (mswindows_find_frame):
+	Use qxeGetWindowLongPtr() as appropriate in these functions.
+
+	* frame-msw.c (mswindows_init_frame_1):
+	Use qxeSetWindowLongPtr() as appropriate in this function.
+	* frame-msw.c (mswindows_set_frame_icon):
+	* frame-msw.c (mswindows_set_frame_pointer):
+	Use qxeSetClassLongPtr() in these two functions as appropriate.
+
+	* frame-msw.c (mswindows_get_mouse_position):
+	* frame-msw.c (mswindows_get_frame_parent):
+	Use qxeSetWindowLongPtr() as appropriate in these functions.
+	
+	* glyphs-msw.c (mswindows_subwindow_instantiate):
+	* glyphs-msw.c (mswindows_widget_instantiate):
+	Use qxeGetWindowLongPtr(), qxeSetWindowLongPtr() as appropriate in
+	these functions.
+
+	* scrollbar-msw.c (mswindows_create_scrollbar_instance):
+	* scrollbar-msw.c (mswindows_free_scrollbar_instance):
+	* scrollbar-msw.c (mswindows_handle_scrollbar_event):
+	Ditto.
+
+2020-03-17  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* intl-auto-encap-win32.c:
 	* intl-auto-encap-win32.c (qxeGetClassLongPtr):
 	* intl-auto-encap-win32.c (qxeGetWindowLongPtr):

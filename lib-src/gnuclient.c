@@ -45,10 +45,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>.
  * ../etc/gnuserv.README relative to the directory containing this file)
  */
 
-#ifdef  CYGWIN
-extern void cygwin_conv_to_posix_path(const char *path, char *posix_path);
-#endif
-
 #include "gnuserv.h"
 #include "compiler.h"
 
@@ -57,6 +53,10 @@ char gnuserv_version[] = "gnuclient version " GNUSERV_VERSION;
 #include "getopt.h"
 
 #include <sysfile.h>
+
+#ifdef  CYGWIN
+#include <sys/cygwin.h> /* For cygwin_conv_path() */
+#endif
 
 #if !defined(SYSV_IPC) && !defined(UNIX_DOMAIN_SOCKETS) && \
     !defined(INTERNET_DOMAIN_SOCKETS)
@@ -178,21 +178,38 @@ filename_expand (char *fullpath, char *filename)
   /* fullpath - returned full pathname */
   /* filename - filename to expand */
 {
-#ifdef  CYGWIN
-  char cygwinFilename[QXE_PATH_MAX+1];
-  extern void cygwin_conv_to_posix_path(const char *, char *);
-#endif
-
   int len;
-  fullpath[0] = fullpath[QXE_PATH_MAX] = '\0';
-
 #ifdef  CYGWIN
+  char *cygwinFilename;
+  ssize_t size;
+
   /*
-    If we're in cygwin, just convert it and let the unix stuff handle it.
-  */
-  cygwin_conv_to_posix_path(filename, cygwinFilename);
-  filename = cygwinFilename;
+    If we're in cygwin, just convert it and let the unix stuff handle it. */
+  do
+    {
+      size = cygwin_conv_path (CCP_WIN_A_TO_POSIX | CCP_RELATIVE,
+			       filename, NULL, 0);
+      if (size < 0)
+	{
+	  /* If cygwin_conv_path() just throws up its hands, let our
+	     own code do its thing. */
+	  break;
+	}
+			   
+      cygwinFilename = (char *) malloc (size);
+      if (cygwinFilename == NULL)
+	{
+	  break;
+	}
+
+      cygwin_conv_path (CCP_WIN_A_TO_POSIX | CCP_RELATIVE,
+			filename, cygwinFilename, size);
+      filename = cygwinFilename;
+    } while (0);
+
 #endif
+
+  fullpath[0] = fullpath[QXE_PATH_MAX] = '\0';
 
   if (filename[0] && filename[0] == '/')
      {
@@ -218,6 +235,13 @@ filename_expand (char *fullpath, char *filename)
       /* Don't forget to add the filename! */
       strncat (fullpath, filename, QXE_PATH_MAX - len);
     }
+#ifdef CYGWIN
+  if (cygwinFilename)
+    {
+      free (cygwinFilename);
+    }
+#endif
+
 } /* filename_expand */
 
 /* Encase the string in quotes, escape all the backslashes and quotes
