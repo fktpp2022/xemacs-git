@@ -1,3 +1,14 @@
+2020-03-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* intl-auto-encap-win32.c:
+	* intl-auto-encap-win32.c (qxeGetClassLongPtr):
+	* intl-auto-encap-win32.c (qxeGetWindowLongPtr):
+	* intl-auto-encap-win32.c (qxeSetClassLongPtr):
+	* intl-auto-encap-win32.c (qxeSetWindowLongPtr):
+	* intl-auto-encap-win32.h:
+	Make these four functions available to the XEmacs code, necessary
+	for 64-bit support.
+
 2019-07-28  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* elhash.c (intern_istring):
