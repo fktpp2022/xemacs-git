@@ -1,3 +1,14 @@
+2020-03-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi:
+	Document the encoding of this file in its header, now texinfo
+	worries about that.
+	* lispref/mule.texi:
+	Re-encode this file as UTF-8, now texinfo restricts the encodings
+	it can use. Document this encoding in its header.
+	* xemacs-faq.texi:
+	Ditto. Revise the XEmacs coding cookie.
+
 2018-10-01  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lispref/compile.texi (Different Behavior):

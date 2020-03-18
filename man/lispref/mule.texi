@@ -1,7 +1,8 @@
-@c -*-texinfo-*-
+@c -*- mode: texinfo; coding: utf-8 -*-
 @c This is part of the XEmacs Lisp Reference Manual.
 @c Copyright (C) 1996 Ben Wing, 2001-2002 Free Software Foundation.
 @c See the file lispref.texi for copying conditions.
+@documentencoding UTF-8
 @setfilename ../../info/internationalization.info
 @node MULE, Tips, Internationalization, Top
 @chapter MULE
@@ -3077,10 +3078,10 @@ itself when a user enters characters using input methods associated with
 different coded character sets into a single buffer.
 
 There are two problems stemming from this design.  First, Mule
-represents the same character in different ways.  Abstractly, 'σ'
+represents the same character in different ways.  Abstractly, 'Γ³'
 (LATIN SMALL LETTER O WITH ACUTE) can get represented as
 [latin-iso8859-1 #x73] or as [latin-iso8859-2 #x73].  So what looks like
-'σσ' in the display might actually be represented [latin-iso8859-1
+'Γ³Γ³' in the display might actually be represented [latin-iso8859-1
 #x73][latin-iso8859-2 #x73] in the buffer, and saved as [#xF3 ESC - B
 #xF3 ESC - A] in the file.  In some cases this treatment would be
 appropriate (consider HYPHEN, MINUS SIGN, EN DASH, EM DASH, and U+4E00
@@ -3128,7 +3129,7 @@ set which contains all of the Latin characters in the buffer.
 The primary purpose of Unification is to fix the problem by giving the
 user the choice to change the representation of all characters to one
 character set and give sensible recommendations based on context.  In
-the 'σ' example, either ISO 8859/1 or ISO 8859/2 is satisfactory, and
+the 'Γ³' example, either ISO 8859/1 or ISO 8859/2 is satisfactory, and
 both will be suggested.  In the EURO SIGN example, only ISO 8859/15
 makes sense, and that is what will be recommended.  In both cases, the
 user will be reminded that there are universal encodings available.
@@ -3139,7 +3140,7 @@ letter has the same code point in both character sets.  (Not entirely,
 but there are many examples of Latin characters that have different code
 points in different Latin-X sets.)
 
-Note that, in the 'σ' example, that treating the buffer in this way will
+Note that, in the 'Γ³' example, that treating the buffer in this way will
 result in a representation such as [latin-iso8859-2
 #x73][latin-iso8859-2 #x73], and the file will be saved as [#xF3 #xF3].
 This is guaranteed to occasionally result in the second problem you
