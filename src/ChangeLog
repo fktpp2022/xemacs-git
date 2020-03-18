@@ -1,3 +1,14 @@
+2020-03-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* config.h.in:
+	Update the implementation of the INLINE_HEADER macro and,
+	indirectly, the DECLARE_INLINE_HEADER() macro.
+	Add some more documentation and explanation.
+	Rename the confusingly-named DONT_EXTERN_INLINE_HEADER_FUNCTIONS
+	define to FORCE_INLINE_FUNCTION_DEFINITION.
+	* inline.c (FORCE_INLINE_FUNCTION_DEFINITION):
+	Use this new name in this file.
+
 2020-03-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Do just enough native Windows 64-bit bug fixing to get building

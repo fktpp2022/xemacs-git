@@ -37,7 +37,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    that use the INLINE macro, either directly, or by using DECLARE_LISP_OBJECT.
    i.e. the output of ``grep -l -w 'DECLARE_LISP_OBJECT|INLINE_HEADER' *.h'' */
 
-#define DONT_EXTERN_INLINE_HEADER_FUNCTIONS
+#define FORCE_INLINE_FUNCTION_DEFINITION 1
 
 #include <config.h>
 #include "lisp.h"

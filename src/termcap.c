@@ -67,8 +67,7 @@ memory_out ()
 }
 
 static char *
-xmalloc (size)
-     unsigned int size;
+xmalloc (unsigned int size)
 {
   char *tem = malloc (size);
 
@@ -78,9 +77,7 @@ xmalloc (size)
 }
 
 static char *
-xrealloc (ptr, size)
-     char *ptr;
-     unsigned size;
+xrealloc (char *ptr, unsigned size)
 {
   char *tem = realloc (ptr, size);
 
@@ -103,9 +100,7 @@ static const char *tgetst1 (const char *ptr, char **area);
    0 if not found.  */
 
 static const char *
-find_capability (bp, cap)
-     const char *bp;
-     const char *cap;
+find_capability (const char *bp, const char *cap)
 {
   for (; *bp; bp++)
     if (bp[0] == ':'
@@ -116,8 +111,7 @@ find_capability (bp, cap)
 }
 
 int
-tgetnum (cap)
-     const char *cap;
+tgetnum (const char *cap)
 {
   const char *ptr = find_capability (term_entry, cap);
   if (!ptr || ptr[-1] != '#')
@@ -126,8 +120,7 @@ tgetnum (cap)
 }
 
 int
-tgetflag (cap)
-     const char *cap;
+tgetflag (const char *cap)
 {
   const char *ptr = find_capability (term_entry, cap);
   return 0 != ptr && ptr[-1] == ':';
@@ -139,9 +132,7 @@ tgetflag (cap)
    If AREA is zero, space is allocated with `malloc'.  */
 
 const char *
-tgetstr (cap, area)
-     const char *cap;
-     char **area;
+tgetstr (const char *cap, char **area)
 {
   const char *ptr = find_capability (term_entry, cap);
   if (!ptr || (ptr[-1] != '=' && ptr[-1] != '~'))
@@ -153,7 +144,7 @@ tgetstr (cap, area)
    gives meaning of character following \, or a space if no special meaning.
    Eight characters per line within the string.  */
 
-static char esctab[]
+static const char *esctab
   = " \007\010  \033\014 "
 "      \012 "
 "  \015 \011 \013 "
@@ -165,9 +156,7 @@ static char esctab[]
    or to newly allocated storage if AREA is 0.  */
 
 static const char *
-tgetst1 (ptr, area)
-     const char *ptr;
-     char **area;
+tgetst1 (const char *ptr, char **area)
 {
   const char *p;
   char *r;
@@ -251,10 +240,7 @@ static short speeds[] =
   };
 
 void
-tputs (string, nlines, outfun)
-     const char *string;
-     int nlines;
-     void (*outfun) (int);
+tputs (const char *string, int nlines, void (*outfun) (int))
 {
   int padcount = 0;
   int speed;
@@ -318,11 +304,10 @@ struct buffer
 
 /* Forward declarations of static functions.  */
 
-static int scan_file ();
-static char *gobble_line ();
-static int compare_contin ();
-static int name_match ();
-
+static int scan_file (char *, int, struct buffer *);
+static char *gobble_line (int, struct buffer *, char *);
+static int compare_contin (char *, char *);
+static int name_match (char *, char *);
 
 /* Find the termcap entry data for terminal type NAME
    and store it in the block that BP points to.
@@ -331,20 +316,18 @@ static int name_match ();
    If BP is zero, space is dynamically allocated.  */
 
 int
-tgetent (bp, name)
-     char *bp;
-     const char *name;
+tgetent (char *bp, const char *name)
 {
-  char *tem;
+  Ibyte *tem;
   int fd;
   struct buffer buf;
   char *bp1;
   char *bp2;
-  const char *term;
+  char *term;
   int malloc_size = 0;
   int c;
   char *tcenv;			/* TERMCAP value, if it contains :tc=.  */
-  const char *indirect = 0;	/* Terminal type in :tc= in TERMCAP value.  */
+  char *indirect = 0;	/* Terminal type in :tc= in TERMCAP value.  */
 
   tem = egetenv ("TERMCAP");
   if (tem && *tem == 0) tem = 0;
@@ -356,20 +339,20 @@ tgetent (bp, name)
      it is the entry itself, but only if
      the name the caller requested matches the TERM variable.  */
 
-  if (tem && !IS_DIRECTORY_SEP (*tem) && !strcmp (name, egetenv ("TERM")))
+  if (tem && !IS_DIRECTORY_SEP (*tem) && !qxestrcmp ((const Ibyte *) name, egetenv ("TERM")))
     {
-      indirect = tgetst1 (find_capability (tem, "tc"), 0);
+      indirect = (char *) tgetst1 (find_capability ((const char *) tem, "tc"), 0);
       if (!indirect)
 	{
 	  if (!bp)
-	    bp = tem;
+	    bp = (char *) tem;
 	  else
-	    strcpy (bp, tem);
+	    strcpy (bp, (const char *) tem);
 	  goto ret;
 	}
       else
 	{			/* We will need to read /etc/termcap.  */
-	  tcenv = tem;
+	  tcenv = (char *) tem;
  	  tem = 0;
 	}
     }
@@ -377,18 +360,18 @@ tgetent (bp, name)
     indirect = (char *) 0;
 
   if (!tem)
-    tem = "/etc/termcap";
+    tem = (Ibyte *) "/etc/termcap";
 
   /* Here we know we must search a file and tem has its name.  */
 
-  fd = qxe_open ((Ibyte *) tem, 0, 0);
+  fd = qxe_open (tem, 0, 0);
   if (fd < 0)
     return -1;
 
   buf.size = BUFSIZE;
   /* Add 1 to size to ensure room for terminating null.  */
   buf.beg = (char *) xmalloc (buf.size + 1);
-  term = indirect ? indirect : name;
+  term = indirect ? indirect : (char *) name;
 
   if (!bp)
     {
@@ -418,15 +401,15 @@ tgetent (bp, name)
       if (malloc_size)
 	{
 	  malloc_size = bp1 - bp + buf.size;
-	  tem = (char *) xrealloc (bp, malloc_size);
-	  bp1 += tem - bp;
-	  bp = tem;
+	  tem = (Ibyte *) xrealloc (bp, malloc_size);
+          bp1 = (char *) tem + (bp1 - bp);
+	  bp = (char *) tem;
 	}
 
       bp2 = bp1;
 
       /* Copy the line of the entry from buf into bp.  */
-      tem = buf.ptr;
+      tem = (Ibyte *) (buf.ptr);
       while ((*bp1++ = c = *tem++) && c != '\n')
 	/* Drop out any \ newline sequence.  */
 	if (c == '\\' && *tem == '\n')
@@ -438,7 +421,7 @@ tgetent (bp, name)
 
       /* Does this entry refer to another terminal type's entry?
 	 If something is found, copy it into heap and null-terminate it.  */
-      term = tgetst1 (find_capability (bp2, "tc"), 0);
+      term = (char *) tgetst1 (find_capability (bp2, "tc"), 0);
     }
 
   retry_close (fd);
@@ -464,10 +447,7 @@ tgetent (bp, name)
    or returns 0 if no entry found in the file.  */
 
 static int
-scan_file (string, fd, bufp)
-     char *string;
-     int fd;
-     struct buffer *bufp;
+scan_file (char *string, int fd, struct buffer *bufp)
 {
   char *end;
 
@@ -504,8 +484,7 @@ scan_file (string, fd, bufp)
    by termcap entry LINE.  */
 
 static int
-name_match (line, name)
-     char *line, *name;
+name_match (char *line, char *name)
 {
   char *tem;
 
@@ -520,8 +499,7 @@ name_match (line, name)
 }
 
 static int
-compare_contin (str1, str2)
-     char *str1, *str2;
+compare_contin (char *str1, char *str2)
 {
   int c1, c2;
   while (1)
@@ -561,10 +539,7 @@ compare_contin (str1, str2)
    thing as one line.  The caller decides when a line is continued.  */
 
 static char *
-gobble_line (fd, bufp, append_end)
-     int fd;
-     struct buffer *bufp;
-     char *append_end;
+gobble_line (int fd, struct buffer *bufp, char *append_end)
 {
   char *end;
   int nread;
@@ -612,9 +587,8 @@ gobble_line (fd, bufp, append_end)
 
 #include <stdio.h>
 
-main (argc, argv)
-     int argc;
-     char **argv;
+int
+main (int argc, char **argv)
 {
   char *term;
   char *buf;
@@ -638,8 +612,8 @@ main (argc, argv)
   printf ("am: %d\n", tgetflag ("am"));
 }
 
-tprint (cap)
-     const char *cap;
+void
+tprint (const char *cap)
 {
   char *x = tgetstr (cap, 0);
   char *y;
