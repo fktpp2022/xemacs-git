@@ -928,9 +928,10 @@ Returns the window displaying BUFFER."
                     (let ((car (car tem)))
                       (if (or
                            (and (stringp car)
-                                (string-match car (buffer-name buffer)))
+                                (string-match-p car (buffer-name buffer)))
                            (and (consp car) (stringp (car car))
-                                (string-match (car car) (buffer-name buffer))))
+                                (string-match-p (car car)
+                                                (buffer-name buffer))))
                           (progn
                             (switch-to-buffer buffer)
                             (return (display-buffer-1 (selected-window))))))
@@ -973,13 +974,13 @@ Returns the window displaying BUFFER."
                       (while tem
                         (let ((car (car tem)))
                           (if (and (stringp car)
-                                   (string-match car (buffer-name buffer)))
+                                   (string-match-p car (buffer-name buffer)))
                               (return
                                (funcall special-display-function buffer)))
                           (if (and (consp car)
                                    (stringp (car car))
-                                   (string-match (car car)
-                                                 (buffer-name buffer)))
+                                   (string-match-p (car car)
+                                                   (buffer-name buffer)))
                               (return (funcall special-display-function buffer
                                                (cdr car)))))
                         (setq tem (cdr tem))))))

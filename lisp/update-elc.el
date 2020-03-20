@@ -139,9 +139,7 @@ differently depending on the presence of certain features, especially
 `unicode-internal'.")
 
 (defun update-elc-chop-extension (file)
-  (if (string-match "\\.elc?$" file)
-      (subseq file 0 (match-beginning 0))
-    file))
+  (subseq file 0 (string-match-p "\\.elc?$" file)))
 
 ;; we used to call packages-list-autoloads here, but it's false generality.
 ;; we need to handle each autoload file differently and there are only

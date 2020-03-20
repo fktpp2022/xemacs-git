@@ -483,7 +483,7 @@ is used in a loop."
 	      ;; wrong_type_argument(), there's no reason only FROBs.
 	      ;; If this gets fixed, fix tests in regexp-tests.el.
 	      (let ((error-message (second error-info)))
-		(if (string-match ,expected-error-regexp error-message)
+		(if (string-match-p ,expected-error-regexp error-message)
 		    (progn
 		      (Print-Pass "%S ==> error %S %S, as expected"
 				  ,quoted-body error-message ',expected-error)
@@ -518,7 +518,7 @@ is used in a loop."
 			(test-harness-unexpected-error-do-debug error-info))
 		    #'(lambda ()
 			(setq trick-optimizer (progn ,@body))
-			(if (string-match ,expected-message-regexp messages)
+			(if (string-match-p ,expected-message-regexp messages)
 			    (progn
 			      (Print-Pass
 			       "%S ==> value %S, message %S, matching %S, as expected"
@@ -701,7 +701,7 @@ For example, invoke \"xemacs -batch -f batch-test-emacs tests\""
     (dolist (file command-line-args-left)
       (if (file-directory-p file)
 	  (dolist (file-in-dir (directory-files file t))
-	    (when (and (string-match emacs-lisp-file-regexp file-in-dir)
+	    (when (and (string-match-p emacs-lisp-file-regexp file-in-dir)
 		       (not (or (auto-save-file-name-p file-in-dir)
 				(backup-file-name-p file-in-dir))))
 	      (or (batch-test-emacs-1 file-in-dir)

@@ -356,7 +356,7 @@ FILE should be in a form suitable for passing to `locate-library'."
   (interactive)
   (let ((key (finder-current-item)))
     ;; XEmacs change
-    (if (string-match finder-file-regexp key)
+    (if (string-match-p finder-file-regexp key)
 	(finder-commentary key)
       (finder-list-matches key))))
 

@@ -355,7 +355,7 @@ impossible to edit a zero size field."
 (defcustom widget-field-use-before-change
   (and (or (> emacs-minor-version 34)
 	   (> emacs-major-version 19))
-       (not (string-match "XEmacs" emacs-version)))
+       (not (featurep 'xemacs)))
   "Non-nil means use `before-change-functions' to track editable fields.
 This enables the use of undo, but doesn't work on Emacs 19.34 and earlier.
 Using before hooks also means that the :notify function can't know the
@@ -2310,8 +2310,8 @@ and `widget-toggle-action' use `run-hook-with-args' to run these functions.")
 (defun widget-field-validate (widget)
   "Valid if the content matches `:valid-regexp'."
   (save-excursion			; XEmacs
-    (unless (string-match (widget-get widget :valid-regexp)
-			  (widget-apply widget :value-get))
+    (unless (string-match-p (widget-get widget :valid-regexp)
+                            (widget-apply widget :value-get))
       widget)))
 
 (defun widget-field-value-create (widget)

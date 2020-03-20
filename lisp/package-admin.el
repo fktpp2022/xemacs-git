@@ -220,10 +220,9 @@ all else fails.  As a side effect of installing packages under
 		     (member autoload-dir (append early-package-load-path late-package-load-path)))
 	    ;; Find the corresponding entry in late-package
 	    (setq pkg-dir
-		  (car-safe (member-if (lambda (h)
-					 (string-match (concat "^" (regexp-quote h))
-						       autoload-dir))
-				       (append (cdr early-package-hierarchies) late-package-hierarchies)))))
+		  (find-if (lambda (h) (eql (search h autoload-dir) 0))
+                           (append (cdr early-package-hierarchies)
+                                   late-package-hierarchies))))
 	  (if (and pkg-dir
 		   (file-writable-p (directory-file-name pkg-dir)))
 	      pkg-dir

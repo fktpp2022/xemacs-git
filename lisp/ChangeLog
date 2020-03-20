@@ -1,3 +1,43 @@
+2020-03-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Further reduce potential match data corruption bugs by avoiding
+	#'string-match when the match data isn't used, mostly using
+	#'string-match-p instead but sometimes the CL sequence functions
+	for particularly trivial regexps.
+
+	* finder.el:
+	* finder.el (finder-select):
+	* font-lock.el (font-lock-set-defaults-1):
+	As well as the above, use a label instead of binding a symbol's
+	value to a lambda and then funcalling that.
+	* newcomment.el (comment-indent-new-line):
+	Use #'search instead of #'string-match for a trivial regexp.
+	* package-admin.el (package-admin-get-install-dir):
+	Ditto.
+	* register.el (describe-register-1):
+	* startup.el (load-terminal-library):
+	* startup.el (find-init-file-1):
+	* startup.el (command-line-1):
+	Use #'string-match-p in these four functions.
+	* startup.el (splash-screen-window-body):
+	Use #'search instead of #'string-match for a trivial regexp.
+	* syntax.el (syntax-string-to-code):
+	* test-harness.el (test-harness-from-buffer):
+	* test-harness.el (batch-test-emacs):
+	* update-elc-2.el (do-update-elc-2):
+	* update-elc.el:
+	* update-elc.el (update-elc-chop-extension):
+	* version.el (emacs-version):
+	* wid-browse.el (widget-browse-sexp):
+	* wid-edit.el (widget-field-use-before-change):
+	Searching `emacs-version' for the string XEmacs is not the way to
+	check whether this emacs is XEmacs, use featurep instead.
+	* wid-edit.el (widget-field-validate):
+	* wid-edit.el (widget-field-value-create):
+	* window-xemacs.el (display-buffer):
+	* x-scrollbar.el (x-init-scrollbar-from-resources):
+	Use #'string-match-p for the last four.
+
 2019-04-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* process.el (setenv):

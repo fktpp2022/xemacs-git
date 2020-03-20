@@ -81,7 +81,7 @@
       (if compile-stage-p
 	  ;; Stage 2: Recompile necessary .els
 	  (dolist (file files)
-	    (when (string-match "\\.el$" file)
+	    (when (string-match-p "\\.el$" file)
 	      (let ((file-c (concat file "c")))
 		(when (and (not (member file-c files))
 			   ;; no need to check for out-of-date-ness because
@@ -101,7 +101,7 @@
 	;; Remove out-of-date elcs
 	(let (deleted)
 	  (dolist (file files)
-	    (when (string-match "\\.el$" file)
+	    (when (string-match-p "\\.el$" file)
 	      (let ((file-c (concat file "c")))
 		(when (and (member file-c files)
 			   (file-newer-than-file-p file file-c))
@@ -111,8 +111,8 @@
 
 	;; Remove elcs without corresponding el
 	(dolist (file-c files)
-	  (when (string-match "\\.elc$" file-c)
-	    (let ((file (replace-in-string file-c "c$" "")))
+	  (when (string-match-p "\\.elc$" file-c)
+	    (let ((file (subseq file-c 0 -1)))
 	      (when (not (member file files))
 		(message "Removing %s; no corresponding .el" file-c)
 		(delete-file file-c)

@@ -243,7 +243,7 @@ The Lisp value REGISTER is a character."
 			val)
 	  (princ "text starting with\n    ")
 	  (princ (match-string 0 val)))
-	 ((string-match "^[ \t\n]+$" val)
+	 ((string-match-p "^[ \t\n]+$" val)
 	  (princ "whitespace"))
 	 (t
 	  (princ "the empty string")))))

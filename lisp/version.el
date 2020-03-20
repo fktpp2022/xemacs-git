@@ -97,9 +97,9 @@ to the system configuration; look at `system-configuration' instead."
 		       (memq 'mule features)) ", Mule")
 		  (t ""))
 	    (substring emacs-build-time 0
-		       (string-match " *[0-9]*:" emacs-build-time))
+		       (string-match-p " *[0-9]*:" emacs-build-time))
 	    (substring emacs-build-time
-		       (string-match "[0-9]*$" emacs-build-time))
+		       (string-match-p "[0-9]*$" emacs-build-time))
 	    emacs-build-system)))
       (cond
        ((null arg) version-string)

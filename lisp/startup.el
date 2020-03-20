@@ -809,7 +809,7 @@ If this is nil, no message will be displayed.")
       (while (and term
 		  (not (load (concat term-file-prefix term) t t)))
 	;; Strip off last hyphen and what follows, then try again
-	(if (setq hyphend (string-match "[-_][^-_]+\\'" term))
+	(if (setq hyphend (string-match-p "[-_][^-_]+\\'" term))
 	    (setq term (substring term 0 hyphend))
 	  (setq term nil))))))
 
@@ -817,7 +817,7 @@ If this is nil, no message will be displayed.")
   (catch 'found
     (dolist (file base-list)
       (let ((expanded (expand-file-name file dir)))
-	  (if (string-match "el$" expanded)
+	  (if (string-match-p "el$" expanded)
 	      (let* ((elc (concat expanded "c"))
 		     (el-ok (file-readable-p expanded))
 		     (elc-ok (file-readable-p elc)))
@@ -1171,7 +1171,7 @@ a new format, when variables have changed, etc."
 			  (assoc (substring arg 1)
 				 command-switch-alist))))
 	  (funcall (cdr tem) arg))
-	 ((string-match "\\`\\+[0-9]+\\'" arg)
+	 ((string-match-p "\\`\\+[0-9]+\\'" arg)
 	  (setq line (string-to-int arg)))
 	 ;; "- file" means don't treat "file" as a switch
 	 ;;  ("+0 file" has the same effect; "-" added
@@ -1335,7 +1335,7 @@ All other XEmacs packages are provided to you \"AS IS\".\n"
 		       (not (featurep 'mule)) ;; Already got mule?
 		       lang ;; Non-English locale?
 		       (not (string= lang "C"))
-		       (not (string-match "^en" lang))
+		       (not (eql 0 (search "en" lang :test #'equalp)))
 		       ;; Comes with Sun WorkShop
 		       (locate-file "xemacs-mule" exec-path))
 		      '( "\

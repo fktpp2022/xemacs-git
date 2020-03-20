@@ -127,8 +127,7 @@ If STRING is invalid, signal an error."
          (b3 0)
          (ch0 (aref string 0))
          (len (length string))
-         (code (string-match (regexp-quote (char-to-string ch0))
-                             (syntax-designator-chars)))
+         (code (position ch0 (syntax-designator-chars)))
          (i 2)
          ch)
     (or code

@@ -1059,9 +1059,7 @@ unless optional argument SOFT is non-nil."
 					       (+ 2 (current-indentation))))))
 		 (comstart (buffer-substring compos comin))
 		 (normalp
-		  (string-match (regexp-quote (comment-string-strip
-					       comment-start t t))
-				comstart))
+		  (search (comment-string-strip comment-start t t) comstart))
 		 (comment-end
 		  (if normalp comment-end
 		    ;; The comment starter is not the normal comment-start

@@ -2110,24 +2110,26 @@ Each keyword has the form (MATCHER HIGHLIGHT ...).  See `font-lock-keywords'."
 	      ;; older way:
 	      ;; try to look for a variable `foo-mode-font-lock-keywords',
 	      ;; or similar.
-	      (let ((major (symbol-name major-mode))
-		    (try #'(lambda (n)
-			     (if (stringp n) (setq n (intern-soft n)))
-			     (if (and n
-				      (boundp n))
-				 n
-			       nil))))
-		(setq font-lock-keywords 
-		      (symbol-value
-		       (or (funcall try (get major-mode 'font-lock-keywords))
-			   (funcall try (concat major "-font-lock-keywords"))
-			   (funcall try (and (string-match "-mode\\'" major)
-					     (concat (substring 
-						      major 0 
-						      (match-beginning 0))
-						     "-font-lock-keywords")))
-			   'font-lock-keywords)))))
-
+              (labels
+                  ((try (n)
+                     (if (stringp n) (setq n (intern-soft n)))
+                     (if (and n (boundp n))
+                         n
+                       nil)))
+                (let (major)
+                  (setq font-lock-keywords 
+                        (symbol-value
+                         (or (try (get major-mode 'font-lock-keywords))
+                             (try (concat (setq major (symbol-name major))
+                                          "-font-lock-keywords"))
+                             (try (and (> (length major) (length "-mode"))
+                                       (not (mismatch major "-mode" :start1 
+                                                      (- (length major)
+                                                         (length "-mode"))))
+                                       (concat (substring major 0 
+                                                          (- (length "-mode")))
+                                               "-font-lock-keywords")))
+			   'font-lock-keywords))))))
 	  ;; Case fold?
 	  (if (>= (length defaults) 3)
 	      (setq font-lock-keywords-case-fold-search (nth 2 defaults))
