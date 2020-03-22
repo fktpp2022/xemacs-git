@@ -70,8 +70,7 @@ Lisp_Object Qfloatp;
 Lisp_Object Q_junk_allowed,  Q_radix, Q_radix_table;
 
 Lisp_Object Vdigit_fixnum_map, Vdigit_fixnum_ascii;
-Lisp_Object Vfixnum_to_majuscule_map, Vfixnum_to_minuscule_map;
-Lisp_Object Vfixnum_to_majuscule_ascii;
+Lisp_Object Vdigit_fixnum_calculated_data;
 
 Fixnum Vmost_negative_fixnum, Vmost_positive_fixnum;
 
@@ -102,7 +101,6 @@ eq_with_ebola_notice (Lisp_Object obj1, Lisp_Object obj2)
 }
 
 #endif /* DEBUG_XEMACS */
-
 
 
 Lisp_Object
@@ -1339,28 +1337,32 @@ find_highest_value (Lisp_Object UNUSED (table), Ichar UNUSED (from),
 }
 
 static int
-fill_ichar_array (Lisp_Object UNUSED (table), Ichar start,
-                  Ichar UNUSED (end), Lisp_Object val, void *extra_arg)
+fill_majuscule_char_vector (Lisp_Object UNUSED (table), Ichar start,
+                            Ichar UNUSED (end), Lisp_Object val,
+                            void *extra_arg)
 {
-  Ichar *cctable = (Ichar *) extra_arg;
+  Lisp_Object cctable = GET_LISP_FROM_VOID (extra_arg);
   EMACS_INT valint = XFIXNUM (val);
+  Lisp_Object current_entry = XVECTOR_DATA (cctable) [valint];
 
   /* Save the value if it hasn't been seen yet. */
-  if (-1 == cctable[valint])
+  if (NILP (current_entry))
     {
-      cctable[valint] = start;
+      XVECTOR_DATA (cctable) [valint] = make_char (start);
     }
   else
     {
+      const Ichar currch = XCHAR (current_entry);
+
       /* Otherwise, save it if the existing value is not uppercase, and this
 	 one is. Use the standard case table rather than any buffer-specific
 	 one because a) this can be called early before current_buffer is
 	 available and b) it's better to have these independent of particular
 	 buffer case tables. */
       if (current_buffer != NULL && UPCASE (0, start) == start
-          && UPCASE (0, cctable[valint]) != cctable[valint])
+          && UPCASE (0, currch) != currch)
 	{
-	  cctable[valint] = start;
+          XVECTOR_DATA (cctable) [valint] = make_char (start);
 	}
       /* Maybe our own case infrastructure is not available yet. Use the C
          library's. */
@@ -1369,29 +1371,92 @@ fill_ichar_array (Lisp_Object UNUSED (table), Ichar start,
 	  /* The C library can't necessarily handle values outside of
 	     the range EOF to CHAR_MAX, inclusive. */
 	  assert (start == EOF || start <= CHAR_MAX);
-	  if (isupper (start) && !isupper (cctable[valint]))
+	  if (isupper (start) && !isupper (currch))
 	    {
-	      cctable[valint] = start;
+              XVECTOR_DATA (cctable) [valint] = make_char (start);
 	    }
         }
       /* Otherwise, save it if this character has a numerically lower value
          (preferring ASCII over fullwidth Chinese and so on). */
-      else if (start < cctable[valint])
+      else if (start < currch)
 	{
-	  cctable[valint] = start;
+          XVECTOR_DATA (cctable) [valint] = make_char (start);
 	}
     }
 
   return 0;
 }
 
-Lisp_Object
-build_fixnum_to_char_map (Lisp_Object radix_table)
+static int
+fill_minuscule_char_vector (Lisp_Object UNUSED (table), Ichar start,
+                            Ichar UNUSED (end), Lisp_Object val,
+                            void *extra_arg)
 {
-  Lisp_Object highest_value, result;
+  Lisp_Object cctable = GET_LISP_FROM_VOID (extra_arg);
+  EMACS_INT valint = XFIXNUM (val);
+  Lisp_Object current_entry = XVECTOR_DATA (cctable) [valint];
+  /* cctable should already be populated from fill_majuscule_char_vector so
+     that both get the same behaviour for the non-cased characters. */
+  const Ichar currch = XCHAR (current_entry);
+
+  /* Save this character if the existing value is not lowercase, and this one
+     is. Use the standard case table rather than any buffer-specific one
+     because a) this can be called early before current_buffer is available
+     and b) it's better to have these independent of particular buffer case
+     tables. */
+  if (current_buffer != NULL && DOWNCASE (0, start) == start
+      && DOWNCASE (0, currch) != currch)
+    {
+      XVECTOR_DATA (cctable) [valint] = make_char (start);
+    }
+  /* Maybe our own case infrastructure is not available yet. Use the C
+     library's. */
+  else if (current_buffer == NULL)
+    {
+      /* The C library can't necessarily handle values outside of
+         the range EOF to CHAR_MAX, inclusive. */
+      assert (start == EOF || start <= CHAR_MAX);
+      if (islower (start) && !islower (currch))
+        {
+          XVECTOR_DATA (cctable) [valint] = make_char (start);
+        }
+    }
+  /* Otherwise, save it if this character has a numerically lower value
+     (preferring ASCII over fullwidth Chinese and so on). */
+  else if (start < currch)
+    {
+      XVECTOR_DATA (cctable) [valint] = make_char (start);
+    }
+
+  return 0;
+}
+
+/* Given RADIX_TABLE, a char table mapping characters to fixnum weights for
+   use by `digit-char-p', `parse-integer', construct a list `(RADIX_TABLE
+   GREATEST_RADIX MAJUSCULE_MAP MINUSCULE_MAP)', where:
+
+   GREATEST_RADIX is a Lisp fixnum, one more than the greatest weight seen.
+   MAJUSCULE_MAP is a Lisp string of length GREATEST_WEIGHT * MAX_ICHAR_LEN,
+   with the Ibyte * representation of the upper case character corresponding
+   to WEIGHT at offset (WEIGHT * MAX_ICHAR_LEN) in the string data.
+   MINUSCULE_MAP is a Lisp string of the same length, with the Ibyte *
+   representation of the lower case character corresponding to WEIGHT at
+   the corresponding offset in the string data.
+
+   Error if there are any gaps in the weights seen in RADIX_TABLE. That is,
+   there must be at least one character corresponding to every weight >= 0 and
+   <= GREATEST_WEIGHT.
+   Also error if GREATEST_RADIX would be #xFFFF or greater, this is a limit
+   chosen by this implementation.
+
+   Add this list to Vdigit_fixnum_calculated_data, and return it. */
+Lisp_Object
+build_fixnum_to_char_maps (Lisp_Object radix_table)
+{
+  Lisp_Object highest_value, majuscule, minuscule, cctable;
   struct chartab_range ctr = { CHARTAB_RANGE_ALL, 0, 0, Qnil, 0 };
-  Ichar *cctable;
-  EMACS_INT ii, cclen;
+  Elemcount cclen;
+  EMACS_INT ii;
   Ibyte *data;
 
   /* What's the greatest fixnum value seen? In passing, check all the char
@@ -1402,43 +1467,59 @@ build_fixnum_to_char_map (Lisp_Object radix_table)
   map_char_table (radix_table, &ctr, find_highest_value, &highest_value);
   cclen = XFIXNUM (highest_value) + 1;
 
-  cctable = (Ichar *)malloc (sizeof (Ichar) * cclen);
-  if (cctable == NULL)
+  if (cclen > 0xFFFF)
     {
-      out_of_memory ("Could not allocate data for `digit-char'", Qunbound);
+      signal_error (Qunimplemented,
+                    "Radix values greater than #xFFFF",
+                    radix_table);
     }
+
+  /* Create a staging table, don't map directly into the result because
+     we need to use a non-char value in order to indicate no result map. */
+  cctable = make_vector (cclen, Qnil);
+  map_char_table (radix_table, &ctr, fill_majuscule_char_vector, 
+                  STORE_LISP_IN_VOID (cctable));
 
   for (ii = 0; ii < cclen; ++ii)
     {
-      cctable[ii] = (Ichar) -1;
-    }
-
-  map_char_table (radix_table, &ctr, fill_ichar_array, cctable);
-
-  for (ii = 0; ii < cclen; ++ii)
-    {
-      if (cctable[ii] < 0)
+      if (NILP (XVECTOR_DATA (cctable)[ii]))
 	{
-	  free (cctable);
 	  invalid_argument ("No digit specified for weight", make_fixnum (ii));
 	}
     }
 
-  result = Fmake_string (make_fixnum (cclen * MAX_ICHAR_LEN), make_char (0));
-
-  data = XSTRING_DATA (result);
+  majuscule
+    = Fmake_string (make_fixnum (cclen * MAX_ICHAR_LEN), make_char (0));
+  data = XSTRING_DATA (majuscule);
   for (ii = 0; ii < cclen; ii++)
     {
-      (void) set_itext_ichar (data + (MAX_ICHAR_LEN * ii), cctable[ii]);
+      (void) set_itext_ichar (data + (MAX_ICHAR_LEN * ii),
+                              XCHAR (XVECTOR_DATA (cctable)[ii]));
     }
 
-  init_string_ascii_begin (result);
-  bump_string_modiff (result);
-  sledgehammer_check_ascii_begin (result);
+  init_string_ascii_begin (majuscule);
+  bump_string_modiff (majuscule);
+  sledgehammer_check_ascii_begin (majuscule);
 
-  free (cctable);
+  map_char_table (radix_table, &ctr, fill_minuscule_char_vector,
+                  STORE_LISP_IN_VOID (cctable));
+  minuscule = Fmake_string (make_fixnum (cclen * MAX_ICHAR_LEN),
+                            make_char (0));
+  data = XSTRING_DATA (minuscule);
+  for (ii = 0; ii < cclen; ii++)
+    {
+      (void) set_itext_ichar (data + (MAX_ICHAR_LEN * ii),
+                              XCHAR (XVECTOR_DATA (cctable)[ii]));
+    }
+  init_string_ascii_begin (minuscule);
+  bump_string_modiff (minuscule);
+  sledgehammer_check_ascii_begin (minuscule);
 
-  return result;
+  XWEAK_LIST_LIST (Vdigit_fixnum_calculated_data) =
+    Fcons (list4 (radix_table, make_fixnum (cclen), majuscule, minuscule),
+           XWEAK_LIST_LIST (Vdigit_fixnum_calculated_data));
+
+  return XCAR (XWEAK_LIST_LIST (Vdigit_fixnum_calculated_data));
 }
 
 DEFUN ("set-digit-fixnum-map", Fset_digit_fixnum_map, 1, 1, 0, /*
@@ -1452,20 +1533,22 @@ RADIX-TABLE itself is not saved, a read-only copy of it is made and returned.
 */
        (radix_table))
 {
-  Lisp_Object ftctable = Qnil;
+  Lisp_Object radix_table_copy;
+  struct gcpro gcpro1;
 
   CHECK_CHAR_TABLE (radix_table);
 
-  /* Create a table for `digit-char', checking the consistency of
+  radix_table_copy = Fcopy_char_table (radix_table);
+  GCPRO1 (radix_table_copy);
+  /* Create the tables for `digit-char', checking the consistency of
      radix_table while doing so. */
-  ftctable = build_fixnum_to_char_map (radix_table);
+  (void) get_radix_table_greatest_radix (radix_table);
 
-  Vdigit_fixnum_map = Fcopy_char_table (radix_table);
-  LISP_READONLY (Vdigit_fixnum_map) = 1;
-  Vfixnum_to_majuscule_map = ftctable;
-  Vfixnum_to_minuscule_map = Fcanoncase (ftctable, Qnil);
+  /* Now set Vdigit_fixnum_map, in this order so that the tables for
+     digit-char are always available. */
+  Vdigit_fixnum_map = radix_table_copy; 
 
-  return Vdigit_fixnum_map;
+  RETURN_UNGCPRO (Vdigit_fixnum_map);
 }
 
 DEFUN ("digit-char-p", Fdigit_char_p, 1, 3, 0, /*
@@ -1486,31 +1569,30 @@ values. See `parse-integer' and `digit-fixnum-map'.
   CHECK_CHAR (character);
   cc = XCHAR (character);
 
+  if (NILP (radix_table))
+    {
+      radix_table = Vdigit_fixnum_map;
+    }
+
   if (!NILP (radix))
     {
       check_integer_range (radix, Qzero,
-                           NILP (radix_table) ?
-                           /* If we are using the default radix table, the
-                              maximum possible value for the radix is
-                              available to us now. */
-                           make_fixnum
-                           (XSTRING_LENGTH (Vfixnum_to_majuscule_map)
-                            / MAX_ICHAR_LEN)
-                           /* Otherwise, calculating that is expensive. Check
-                              at least that the radix is not a bignum, the
-                              maximum count of characters available will not
-                              exceed the size of a fixnum. */
-                           : make_fixnum (MOST_POSITIVE_FIXNUM));
+                           /* If we are using a known radix table, the maximum
+                              possible value for the radix is available to us
+                              now. Otherwise, calculating that is expensive;
+                              we have chose to limit RADIX to the range (<= 0
+                              RADIX #xFFFF) in this implementation, check
+                              against that. */
+                           NILP (assq_no_quit
+                                 (radix_table, XWEAK_LIST_LIST
+                                  (Vdigit_fixnum_calculated_data))) ?
+                           make_fixnum (0xFFFF)
+                           : get_radix_table_greatest_radix (radix_table));
       radixing = XFIXNUM (radix);
     }
   else
     {
       radixing = 10;
-    }
-
-  if (NILP (radix_table))
-    {
-      radix_table = Vdigit_fixnum_map;
     }
 
   got = get_char_table (cc, radix_table);
@@ -1540,53 +1622,46 @@ expensive, since the inverse map needs to be calculated.
 */
        (weight, radix, radix_table))
 {
-  EMACS_INT radixing = 10, weighting;
-  Lisp_Object fixnum_to_char_table = Qnil;
+  EMACS_INT radixing, weighting;
   Ichar cc;
 
   CHECK_NATNUM (weight);
-
-  if (!NILP (radix_table) && !EQ (radix_table, Vdigit_fixnum_map))
-    {
-      CHECK_CHAR_TABLE (radix_table);
-      if (EQ (Vdigit_fixnum_ascii, radix_table))
-        {
-          fixnum_to_char_table = Vfixnum_to_majuscule_ascii;
-        }
-      else
-        {
-          /* The result of this isn't GCPROd, but the rest of this function
-             won't GC and continue. */
-          fixnum_to_char_table = build_fixnum_to_char_map (radix_table);
-        }
-    }
-  else
-    {
-      fixnum_to_char_table = Vfixnum_to_majuscule_map;
-    }
-
-  if (!NILP (radix))
-    {
-      check_integer_range (radix, Qzero,
-                           make_fixnum (XSTRING_LENGTH (fixnum_to_char_table)
-                                        / MAX_ICHAR_LEN));
-      radixing = XFIXNUM (radix);
-    }
-
-  /* If weight is in its canonical form (and there's no reason to think it
-     isn't), Vfixnum_to_majuscule_map can't be long enough to handle
-     this. */
   if (BIGNUMP (weight))
     {
-      return Qnil;
+      weight = Fcanonicalize_number (weight);
+      if (BIGNUMP (weight))
+        {
+          /* If WEIGHT is in its canonical form and remains a bignum, the
+             inverse map can't be big enough to hold a corresponding
+             entry. Return nil. */
+          return Qnil;
+        }
     }
 
   weighting = XFIXNUM (weight);
 
+  if (NILP (radix_table))
+    {
+      radix_table = Vdigit_fixnum_map;
+    }
+
+  if (NILP (radix))
+    {
+      radix = make_fixnum (10);
+    }
+
+  check_integer_range (radix, Qzero, 
+                       /* This constructs the map as a side-effect if needed;
+                          we have to do that anyway for the
+                          get_radix_fable_fixnum_majuscule_map() call, so no
+                          significant extra algorithmic complexity.  */
+                       get_radix_table_greatest_radix (radix_table));
+  radixing = XFIXNUM (radix);
+
   if (weighting < radixing)
     {
-      cc = itext_ichar (XSTRING_DATA (fixnum_to_char_table)
-			+ MAX_ICHAR_LEN * weighting);
+      Lisp_Object map = get_radix_table_fixnum_majuscule_map (radix_table);
+      cc = itext_ichar (XSTRING_DATA (map) + (MAX_ICHAR_LEN * weighting));
       return make_char (cc);
     }
 
@@ -1915,16 +1990,17 @@ arguments: (STRING &key (START 0) end (RADIX 10) junk-allowed radix-table)
       radix_table = Vdigit_fixnum_map;
     }
 
+  /* If we are using a known radix table, the maximum possible value for the
+     radix is available to us now. Otherwise, calculating that is
+     algorithmically expensive and overkill for this function; check at least
+     that the radix is limited to <= #xFFFF as is this implementation's
+     limit. */
   check_integer_range (radix, Qzero,
-                       EQ (radix_table, Vdigit_fixnum_map) ?
-                       make_fixnum (XSTRING_LENGTH (Vfixnum_to_majuscule_map)
-                                    / MAX_ICHAR_LEN)
-                       /* Non-default radix table; calculating the upper limit
-                          is is expensive. Check at least that the radix is
-                          not a bignum, the maximum count of characters
-                          available in our XEmacs will not exceed the size of
-                          a fixnum. */
-                       : make_fixnum (MOST_POSITIVE_FIXNUM));
+                       NILP (assq_no_quit (radix_table, XWEAK_LIST_LIST
+                                           (Vdigit_fixnum_calculated_data))) ?
+                       make_fixnum (0xFFFF) :
+                       get_radix_table_greatest_radix (radix_table));
+
   radixing = XFIXNUM (radix);
 
   startp = cursor = saved_start = XSTRING_DATA (string);
@@ -4371,6 +4447,8 @@ syms_of_data (void)
 void
 vars_of_data (void)
 {
+  Lisp_Object majuscule, minuscule;
+
   DUMP_ADD_WEAK_OBJECT_CHAIN (Vall_weak_lists);
 
   DUMP_ADD_WEAK_OBJECT_CHAIN (Vall_ephemerons);
@@ -4388,6 +4466,9 @@ The fixnum closest in value to positive infinity.
 */);
   Vmost_positive_fixnum = MOST_POSITIVE_FIXNUM;
 
+  staticpro (&Vdigit_fixnum_calculated_data);
+  Vdigit_fixnum_calculated_data = make_weak_list (WEAK_LIST_KEY_ASSOC);
+
   DEFVAR_CONST_LISP ("digit-fixnum-ascii", &Vdigit_fixnum_ascii /*
 Version of `digit-fixnum-map' supporting only ASCII digits.
 
@@ -4399,6 +4480,8 @@ parsing text formats defined to support only ASCII digits.
   set_char_table_default (Vdigit_fixnum_ascii, make_fixnum (-1));
   {
     int ii = 0;
+    Ascbyte *fixnum_tab = alloca_ascbytes (36 * MAX_ICHAR_LEN), *ptr;
+    Ichar cc;
 
     for (ii = 0; ii < 10; ++ii)
       {
@@ -4413,21 +4496,9 @@ parsing text formats defined to support only ASCII digits.
         put_char_table (Vdigit_fixnum_ascii, 'A' + (ii - 10),
                         'A' + (ii - 10), make_fixnum (ii));
       }
-  }
-  LISP_READONLY (Vdigit_fixnum_ascii) = 1;
 
-  DEFVAR_CONST_LISP ("digit-fixnum-map", &Vdigit_fixnum_map /*
-Table used to determine a character's numeric value when parsing.
+    LISP_READONLY (Vdigit_fixnum_ascii) = 1;
 
-This is a character table with fixnum values. A value of -1 indicates this
-character does not have an assigned numeric value. See `parse-integer',
-`digit-char-p', and `digit-char'.
-*/);
-  Vdigit_fixnum_map = Fcopy_char_table (Vdigit_fixnum_ascii);
-  {
-    Ascbyte *fixnum_tab = alloca_ascbytes (36 * MAX_ICHAR_LEN), *ptr;
-    int ii;
-    Ichar cc;
     memset ((void *)fixnum_tab, 0, 36 * MAX_ICHAR_LEN);
 
     /* The whole point of fixnum_to_character_table is access as an array,
@@ -4439,18 +4510,12 @@ character does not have an assigned numeric value. See `parse-integer',
 	(void) set_itext_ichar ((Ibyte *) ptr, cc);
       }
 
-    /* Sigh, we can't call build_fixnum_to_char_map() on Vdigit_fixnum_map,
+    /* Sigh, we can't call build_fixnum_to_char_maps() on Vdigit_fixnum_ascii,
        this is too early in the boot sequence to map across a char table. Do
        it by hand. */
     ASSERT_ASCTEXT_ASCII_LEN (fixnum_tab, 36 * MAX_ICHAR_LEN);
-    Vfixnum_to_majuscule_map
+    majuscule
       = make_string ((const Ibyte*) fixnum_tab, 36 * MAX_ICHAR_LEN);
-    staticpro (&Vfixnum_to_majuscule_map);
-
-    /* For those occasional times we don't want localised numbers. */
-    Vfixnum_to_majuscule_ascii
-      = make_string ((const Ibyte*) fixnum_tab, 36 * MAX_ICHAR_LEN);
-    staticpro (&Vfixnum_to_majuscule_ascii);
 
     memset ((void *)fixnum_tab, 0, 36 * MAX_ICHAR_LEN);
 
@@ -4459,10 +4524,31 @@ character does not have an assigned numeric value. See `parse-integer',
 	cc = ii < 10 ? '0' + ii : 'a' + (ii - 10);
 	(void) set_itext_ichar ((Ibyte *) ptr, cc);
       }
-    Vfixnum_to_minuscule_map 
+    minuscule
       = make_string ((const Ibyte*) fixnum_tab, 36 * MAX_ICHAR_LEN);
-    staticpro (&Vfixnum_to_minuscule_map);
+
+    XWEAK_LIST_LIST (Vdigit_fixnum_calculated_data) =
+      Fcons (list4 (Vdigit_fixnum_ascii, make_fixnum (36), majuscule,
+                    minuscule),
+             XWEAK_LIST_LIST (Vdigit_fixnum_calculated_data));
   }
+
+  DEFVAR_CONST_LISP ("digit-fixnum-map", &Vdigit_fixnum_map /*
+Table used to determine a character's numeric value when parsing.
+
+This is a character table with fixnum values. A value of -1 indicates this
+character does not have an assigned numeric value. See `parse-integer',
+`digit-char-p', and `digit-char'.
+
+This implementation places an exclusive limit of #xFFFF on the highest weight
+(the highest fixnum value) in `digit-fixnum-map' or any argument RADIX-TABLE
+argument to `parse-integer' `digit-char-p', `digit-char'.
+*/);
+  Vdigit_fixnum_map = Fcopy_char_table (Vdigit_fixnum_ascii);
+  XWEAK_LIST_LIST (Vdigit_fixnum_calculated_data) =
+    Fcons (list4 (Vdigit_fixnum_map, make_fixnum (36), majuscule,
+                  minuscule),
+           XWEAK_LIST_LIST (Vdigit_fixnum_calculated_data));
 
 #ifdef DEBUG_XEMACS
   DEFVAR_BOOL ("debug-issue-ebola-notices", &debug_issue_ebola_notices /*

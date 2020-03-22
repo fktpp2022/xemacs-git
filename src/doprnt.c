@@ -53,12 +53,11 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 /* Conversion to string, radix handling for rationals. */
 
 /* Print an unsigned NUMBER into BUFFER, which comprises SIZE octets, as a
-   base (expt 2 POWOF2) string, using TABLE (usually Vfixnum_to_majuscule_map)
-   to transform numbers to character values. Start at the *end*, and return
-   the length of the string written. Note that this usually means there is
-   slack before the actual text wanted. Do not zero-terminate. Throw an
-   assertion failure if text checking is turned on and the conversion overruns
-   BUFFER.
+   base (expt 2 POWOF2) string, using TABLE to transform numbers to character
+   values. Start at the *end*, and return the length of the string
+   written. Note that this usually means there is slack before the actual text
+   wanted. Do not zero-terminate. Throw an assertion failure if text checking
+   is turned on and the conversion overruns BUFFER.
 
    See fixnum_to_string() for a more reasonable function for callers. */
 static Bytecount
@@ -102,9 +101,6 @@ emacs_uint_to_string_rshift_1 (Ibyte *buffer, Bytecount size,
     Ibyte *end = buffer + size, *cursor = end, *this_digit;             \
     Ibyte *ftmdata = XSTRING_DATA (table);                              \
                                                                         \
-    text_checking_assert (XSTRING_LENGTH (Vfixnum_to_majuscule_map)     \
-                          >= (radix) * MAX_ICHAR_LEN);                  \
-                                                                        \
     while (number)                                                      \
       {                                                                 \
         this_digit = ftmdata + ((number % radix) * MAX_ICHAR_LEN);      \
@@ -126,11 +122,12 @@ emacs_uint_to_string_rshift_1 (Ibyte *buffer, Bytecount size,
   }
 
 /* Print an unsigned NUMBER into BUFFER, which comprises SIZE octets, as a
-   base RADIX string, using TABLE (usually Vfixnum_to_majuscule_map) to
-   transform numbers to character values.  Start at the *end*, and return the
-   length of the string written. Note that this usually means there is slack
-   before the actual text wanted. Do not zero-terminate. Throw an assertion
-   failure if text checking is turned on and the conversion overruns BUFFER.
+   base RADIX string, using TABLE (usually the result of
+   get_radix_table_fixnum_majuscule_map (Vdigit_fixnum_map)) to transform
+   numbers to character values.  Start at the *end*, and return the length of
+   the string written. Note that this usually means there is slack before the
+   actual text wanted. Do not zero-terminate. Throw an assertion failure if
+   text checking is turned on and the conversion overruns BUFFER.
 
    See fixnum_to_string() for a more reasonable function for callers. */
 
@@ -140,11 +137,11 @@ UNSIGNED_TYPE_TO_STRING_GENERAL_1 (EMACS_UINT, emacs_uint);
 #define uint_64_bit_to_string_general_1 emacs_uint_to_string_general_1
 #else
 /* Print an unsigned 64-bit UVAL into BUFFER, which comprises SIZE octets, as
-   a base RADIX string, using TABLE (usually Vfixnum_to_majuscule_map) to
-   transform numbers to character values.  Start at the *end*, and return the
-   length of the string written. Note that this usually means there is slack
-   before the actual text wanted. Do not zero-terminate. Throw an assertion
-   failure if text checking is turned on and the conversion overruns BUFFER.
+   a base RADIX string, using TABLE to transform numbers to character values.
+   Start at the *end*, and return the length of the string written. Note that
+   this usually means there is slack before the actual text wanted. Do not
+   zero-terminate. Throw an assertion failure if text checking is turned on
+   and the conversion overruns BUFFER.
 
    This is used in the unsigned integer handling, for negative integers only.
 
@@ -183,14 +180,15 @@ UNSIGNED_TYPE_TO_STRING_GENERAL_1 (UINT_64_BIT, uint_64_bit);
 /* Print a signed NUMBER to BUFFER in base 10, starting with its most
    significant digit at the beginning, and zero-terminating. SIZE is the
    number of octets comprising BUFFER. TABLE describes a mapping from fixnum
-   to characters and is usually Vfixnum_to_majuscule_map. Return length of the
-   printed representation, without the zero termination. Throw an assertion
-   failure if printing has overrun BUFFER.
+   to characters (usually obtained from
+   get_radix_table_fixnum_majuscule_map()). Return length of the printed
+   representation, without the zero termination. Throw an assertion failure if
+   printing has overrun BUFFER.
 
    fixnum_to_string_base_10 (buf, sizeof (buf), number,
-   Vfixnum_to_majuscule_ascii) is equivalent to snprintf (buf, sizeof (buf),
-   "%ld" number), except for behaviour on overrun (snprintf won't throw an
-   assertion failure).
+   get_radix_table_fixnum_majuscule_map(Vdigit_fixnum_ascii)) is equivalent to
+   snprintf (buf, sizeof (buf), "%ld" number), except for behaviour on overrun
+   (snprintf won't throw an assertion failure).
 
    Use the DECIMAL_PRINT_SIZE() macro to size a buffer for
    fixnum_to_string_base_10().
@@ -276,9 +274,9 @@ fixnum_to_string_base_10 (Ibyte *buffer, Bytecount size, Fixnum number,
    as a base RADIX string. The returned number will start with its most
    significant digits at the beginning of BUFFER, and will be zero terminated.
 
-   TABLE_OR_NIL describes a map from fixnums to digits. If Qnil, it defaults
-   to Vfixnum_to_majuscule_map. Another useful value is
-   Vfixnum_to_majuscule_ascii, to avoid language-specific digit characters
+   TABLE_OR_NIL describes a map from characters to fixnums, a char-table. If
+   Qnil, it defaults to Vdigit_fixnum_map. Another useful value is
+   Vdigit_fixnum_ascii, to avoid language-specific digit characters
    (e.g. Persian, fullwidth Chinese).
 
    Return the length of the printed string, without the terminating zero. If
@@ -291,7 +289,8 @@ fixnum_to_string (Ibyte *buffer, Bytecount size, Fixnum number,
 {
   Bytecount len = 0, slack;
   Lisp_Object table
-    = NILP (table_or_nil) ? Vfixnum_to_majuscule_map : table_or_nil;
+    = get_radix_table_fixnum_majuscule_map (NILP (table_or_nil) ?
+                                            Vdigit_fixnum_map : table_or_nil);
   Boolint minusp;
   EMACS_UINT uval;
 
@@ -432,9 +431,9 @@ bignum_to_string_1 (Ibyte **buf, Bytecount *size_inout, bignum bn,
    The returned printed number will start with its most significant digits at
    the beginning of *BUFFER_INOUT, and will be zero-terminated.
 
-   TABLE_OR_NIL describes a map from fixnums to digits. If Qnil, it defaults
-   to Vfixnum_to_majuscule_map. Another useful value is
-   Vfixnum_to_majuscule_ascii, to avoid language-specific digit characters
+   TABLE_OR_NIL describes a map from characters to fixnums, a char-table. If
+   Qnil, it defaults to Vdigit_fixnum_map. Another useful value is
+   Vdigit_fixnum_ascii, to avoid language-specific digit characters
    (e.g. Persian, fullwidth Chinese).
 
    Return the length of the printed string, without the terminating zero. If
@@ -447,7 +446,9 @@ bignum_to_string (Ibyte **buffer_inout, Bytecount size, bignum number,
 {
   Bytecount len = 0, slack;
   Lisp_Object table
-    = NILP (table_or_nil) ? Vfixnum_to_majuscule_map : table_or_nil;
+    = get_radix_table_fixnum_majuscule_map (NILP (table_or_nil) ?
+                                            Vdigit_fixnum_map :
+                                            table_or_nil);
 
   len = bignum_to_string_1 (buffer_inout, &size, number, radix, table);
 
@@ -502,7 +503,8 @@ ratio_to_string (Ibyte **buffer_inout, Bytecount size, ratio number,
 {
   Bytecount len = 0, slack;
   Lisp_Object table
-    = NILP (table_or_nil) ? Vfixnum_to_majuscule_map : table_or_nil;
+    = get_radix_table_fixnum_majuscule_map (NILP (table_or_nil) ?
+                                            Vdigit_fixnum_map : table_or_nil);
 
   len = ratio_to_string_1 (buffer_inout, size, number, radix, table);
 
@@ -534,37 +536,24 @@ arguments: (NUMBER &optional (RADIX 10) RADIX_TABLE)
 */
        (number, radix, radix_table))
 {
-  UINT_16_BIT radixing = 10;
-  Lisp_Object fixnum_to_char_table;
+  EMACS_UINT radixing = 10;
 
   CHECK_NUMBER (number);
 
-  if (!NILP (radix_table) && !EQ (radix_table, Vdigit_fixnum_map))
+  if (NILP (radix_table))
     {
-      CHECK_CHAR_TABLE (radix_table);
-      if (EQ (Vdigit_fixnum_ascii, radix_table))
-        {
-          fixnum_to_char_table = Vfixnum_to_majuscule_ascii;
-        }
-      else
-        {
-          /* The result of this isn't GCPROd, but the rest of this function
-             won't GC and continue. */
-          fixnum_to_char_table = build_fixnum_to_char_map (radix_table);
-        }
-    }
-  else
-    {
-      fixnum_to_char_table = Vfixnum_to_majuscule_map;
+      radix_table = Vdigit_fixnum_map;
     }
 
-  if (!NILP (radix))
+  if (NILP (radix))
     {
-      check_integer_range (radix, make_fixnum (2),
-                           make_fixnum (XSTRING_LENGTH (fixnum_to_char_table)
-                                        / MAX_ICHAR_LEN));
-      radixing = (UINT_16_BIT) XFIXNUM (radix);
+      radix = make_fixnum (10);
     }
+
+  check_integer_range (radix, make_fixnum (2),
+                       get_radix_table_greatest_radix (radix_table));
+
+  radixing = XFIXNUM (radix);
 
   if (FLOATP (number))
     {
@@ -594,8 +583,9 @@ arguments: (NUMBER &optional (RADIX 10) RADIX_TABLE)
       size = -1;
       buf = NULL;
 #endif
-      len = bignum_to_string_1 (&buf, &size, XBIGNUM_DATA (number), radixing,
-                                fixnum_to_char_table);
+      len = bignum_to_string_1
+        (&buf, &size, XBIGNUM_DATA (number), radixing,
+         get_radix_table_fixnum_majuscule_map (radix_table));
       retval = make_string (buf + size - len, len);
 
 #ifndef bignum_size_decimal
@@ -619,8 +609,9 @@ arguments: (NUMBER &optional (RADIX 10) RADIX_TABLE)
 
       buffer = alloca_ibytes (size);
 
-      len = ratio_to_string_1 (&buffer, size, XRATIO_DATA (number), radixing,
-                               fixnum_to_char_table);
+      len = ratio_to_string_1
+        (&buffer, size, XRATIO_DATA (number), radixing,
+         get_radix_table_fixnum_majuscule_map (radix_table));
       return make_string (buffer + size - len, len);
     }
 #endif
@@ -649,7 +640,7 @@ arguments: (NUMBER &optional (RADIX 10) RADIX_TABLE)
     return make_string (to_print,
                         fixnum_to_string (to_print, sizeof (to_print),
                                           XFIXNUM (number), radixing,
-                                          fixnum_to_char_table));
+                                          radix_table));
   }
 }
 
@@ -1785,7 +1776,7 @@ rewrite_floating_spec (struct printf_spec *spec, Lisp_Object obj)
   return ch;
 }
 
-#define FIXNUM_SPEC_PREAMBLE_1(buffer, size, radix, table, noargs) do   \
+#define FIXNUM_SPEC_PREAMBLE_1(buffer, size, radix) do                  \
     {                                                                   \
       if (spec->precision > -1)                                         \
         {                                                               \
@@ -1808,33 +1799,38 @@ rewrite_floating_spec (struct printf_spec *spec, Lisp_Object obj)
         }                                                               \
     } while (0)
 
-#define FIXNUM_SPEC_PREAMBLE(buffer, size, radix, table) do             \
-  {                                                                     \
-    FIXNUM_SPEC_PREAMBLE_1 (buffer, size, radix, table, 0);             \
-    if (spec->unsigned_flag)                                            \
-      {                                                                 \
-        if (UNBOUNDP (obj))                                             \
-          {                                                             \
-            ch = 'u';                                                   \
-            goto reconsider;                                            \
-          }                                                             \
-        if (arg.l < 0)                                                  \
-          {                                                             \
-            dead_wrong_type_argument (Qnatnump,                         \
-                                      make_integer (arg.l));            \
-          }                                                             \
-      }                                                                 \
+#define FIXNUM_SPEC_PREAMBLE(buffer, size, radix) do                    \
+    {                                                                   \
+      FIXNUM_SPEC_PREAMBLE_1 (buffer, size, radix);                     \
+      if (spec->unsigned_flag)                                          \
+        {                                                               \
+          if (UNBOUNDP (obj))                                           \
+            {                                                           \
+              ch = 'u';                                                 \
+              goto reconsider;                                          \
+            }                                                           \
+          if (arg.l < 0)                                                \
+            {                                                           \
+              dead_wrong_type_argument (Qnatnump,                       \
+                                        make_integer (arg.l));          \
+            }                                                           \
+        }                                                               \
   } while (0)
 
 
 /* Most basic entry point into string formatting.  Generate output from a
    format-spec (either a Lisp string FORMAT_RELOC, or a C string
    FORMAT_NONRELOC of length FORMAT_LENGTH -- which *MUST NOT* come from Lisp
-   string data, unless GC is inhibited).  SPECS is a printf_spec_dynarr
-   reflecting the forrmat spec. Output goes to STREAM.  Returns the number of
-   bytes stored into STREAM.  Arguments are either C-type arguments in ARGS,
-   or an array of Lisp objects in LARGS.  (Behavior is different in the two
-   cases -- you either get standard sprintf() behavior or `format' behavior.)
+   string data, unless GC is inhibited).
+   RADIX_TABLE describes the map from characters to fixnum weights and is
+   usually Vdigit_fixnum_map.
+   SPECS is a printf_spec_dynarr reflecting the format spec.
+   Output goes to STREAM.
+
+   Returns the number of bytes stored into STREAM.  Arguments are either
+   C-type arguments in ARGS, or an array of Lisp objects in LARGS.  (Behavior
+   is different in the two cases -- you either get standard sprintf() behavior
+   or `format' behavior.)
 
    The maximum index into the argument vector that is used depends on SPECS;
    see the ARGS_NEEDED_OUT argument to parse_doprnt_spec (). */
@@ -1842,7 +1838,7 @@ rewrite_floating_spec (struct printf_spec *spec, Lisp_Object obj)
 static Bytecount
 emacs_doprnt (Lisp_Object stream,
               const Ibyte *format_nonreloc, Bytecount format_length,
-              Lisp_Object format_reloc,
+              Lisp_Object format_reloc, Lisp_Object radix_table,
               printf_spec_dynarr *specs,
               const Lisp_Object *largs, const printf_arg *args)
 {
@@ -1957,13 +1953,13 @@ emacs_doprnt (Lisp_Object stream,
             Bytecount len;
 
             /* Print as unsigned if that's requested; handle various flags. */
-            FIXNUM_SPEC_PREAMBLE (to_print, sizeof (to_print), 10,
-                                  Vfixnum_to_majuscule_map);
+            FIXNUM_SPEC_PREAMBLE (to_print, sizeof (to_print), 10);
             
             spec->number_flag = NUMBER_FLAG_NOTHING;
 
-            len = fixnum_to_string_base_10 (to_print, sizeof (to_print),
-                                            arg.l, Vfixnum_to_majuscule_map);
+            len = fixnum_to_string_base_10
+              (to_print, sizeof (to_print), arg.l,
+               get_radix_table_fixnum_majuscule_map (radix_table));
 
             if (arg.l < 0)
               {
@@ -2072,13 +2068,14 @@ emacs_doprnt (Lisp_Object stream,
             Ibyte to_print[SIZEOF_EMACS_INT * 2 * MAX_ICHAR_LEN
                            + MAX_ICHAR_LEN + 1];
             Ibyte *end = to_print + sizeof (to_print), *cursor;
-            Lisp_Object table = (ch == 'X') ? Vfixnum_to_majuscule_map
-              : Vfixnum_to_minuscule_map;
+            Lisp_Object table = (ch == 'X') ?
+              get_radix_table_fixnum_majuscule_map (radix_table) : 
+              get_radix_table_fixnum_minuscule_map (radix_table);
             Bytecount len;
             EMACS_UINT uval;
  
             /* Print as unsigned if that's requested; handle various flags. */
-            FIXNUM_SPEC_PREAMBLE (to_print, sizeof (to_print), 16, table);
+            FIXNUM_SPEC_PREAMBLE (to_print, sizeof (to_print), 16);
 
             if (arg.l < 0)
               {
@@ -2110,8 +2107,7 @@ emacs_doprnt (Lisp_Object stream,
             Bytecount len;
             EMACS_UINT uval;
 
-            FIXNUM_SPEC_PREAMBLE (to_print, sizeof (to_print), 8,
-                                  Vfixnum_to_majuscule_map);
+            FIXNUM_SPEC_PREAMBLE (to_print, sizeof (to_print), 8);
             if (arg.l < 0)
               {
                 spec->sign_flag = SIGN_FLAG_MINUS;
@@ -2122,17 +2118,17 @@ emacs_doprnt (Lisp_Object stream,
                 uval = arg.l;
               }
 
-            len = emacs_uint_to_string_rshift_1 (to_print, sizeof (to_print),
-                                                 uval, 3,
-                                                 Vfixnum_to_majuscule_map);
+            len = emacs_uint_to_string_rshift_1
+              (to_print, sizeof (to_print), uval, 3,
+               get_radix_table_fixnum_majuscule_map (radix_table));
             cursor = end - len;
 
             if (NUMBER_FLAG_C_LIKEP (spec->number_flag))
               {
                 if (arg.l != 0)
                   {
-                    /* Note, ASCII zero, not the current
-                       Vfixnum_to_majuscule_map value for zero. */
+                    /* Note, ASCII zero, not the current radix_table value for
+                       zero. */
                     *--cursor = '0';
                   }
                 spec->number_flag = NUMBER_FLAG_NOTHING;
@@ -2222,7 +2218,7 @@ emacs_doprnt (Lisp_Object stream,
                                                constructed_size
                                                - (p - constructed_spec),
                                                spec->minwidth,
-                                               Vfixnum_to_majuscule_ascii);
+                                               get_radix_table_fixnum_majuscule_map (Vdigit_fixnum_ascii));
               }
             if (spec->precision >= 0)
               {
@@ -2231,7 +2227,7 @@ emacs_doprnt (Lisp_Object stream,
                                                constructed_size
                                                - (p - constructed_spec),
                                                spec->precision,
-                                               Vfixnum_to_majuscule_ascii);
+                                               get_radix_table_fixnum_majuscule_map (Vdigit_fixnum_ascii));
               }
             *p++ = ch;
             *p++ = '\0';
@@ -2320,8 +2316,7 @@ emacs_doprnt (Lisp_Object stream,
             Bytecount len;
             EMACS_UINT uval;
 
-            FIXNUM_SPEC_PREAMBLE (to_print, sizeof (to_print), 2,
-                                  Vfixnum_to_majuscule_map);
+            FIXNUM_SPEC_PREAMBLE (to_print, sizeof (to_print), 2);
             if (arg.l < 0)
               {
                 spec->sign_flag = SIGN_FLAG_MINUS;
@@ -2337,9 +2332,9 @@ emacs_doprnt (Lisp_Object stream,
                 spec->number_flag = NUMBER_FLAG_NOTHING;
               }
 
-            len = emacs_uint_to_string_rshift_1 (to_print, sizeof (to_print),
-                                                 uval, 1,
-                                                 Vfixnum_to_majuscule_map);
+            len = emacs_uint_to_string_rshift_1
+              (to_print, sizeof (to_print), uval, 1,
+               get_radix_table_fixnum_majuscule_map (radix_table));
             cursor = end - len;
 
             byte_count += doprnt_1 (stream, cursor, Qnil, 0, end - cursor, 
@@ -2381,9 +2376,9 @@ emacs_doprnt (Lisp_Object stream,
 
             spec->number_flag = NUMBER_FLAG_C_SYNTAX;
             spec->converter = 'x';
-            len = emacs_uint_to_string_rshift_1 (to_print, sizeof (to_print),
-                                                 arg.ul, 4,
-                                                 Vfixnum_to_minuscule_map);
+            len = emacs_uint_to_string_rshift_1
+              (to_print, sizeof (to_print), arg.ul, 4,
+               get_radix_table_fixnum_minuscule_map (Vdigit_fixnum_ascii));
             cursor = end - len;
             byte_count += doprnt_1 (stream, cursor, Qnil, 0, end - cursor,
                                     spec, format_reloc);
@@ -2425,8 +2420,9 @@ emacs_doprnt (Lisp_Object stream,
 
             spec->number_flag = NUMBER_FLAG_NOTHING;
 
-            len = bignum_to_string_1 (&to_print, &size, XBIGNUM_DATA (obj),
-                                      10, Vfixnum_to_majuscule_map);
+            len = bignum_to_string_1
+              (&to_print, &size, XBIGNUM_DATA (obj), 10,
+               get_radix_table_fixnum_majuscule_map (radix_table));
             cursor = end - len;
 
             if (bignum_sign (XBIGNUM_DATA (obj)) < 0)
@@ -2476,8 +2472,9 @@ emacs_doprnt (Lisp_Object stream,
             to_print = alloca_ibytes (size);
             end = to_print + size; 
 
-            len = bignum_to_string_1 (&to_print, &size, XBIGNUM_DATA (obj),
-                                      8, Vfixnum_to_majuscule_map);
+            len = bignum_to_string_1
+              (&to_print, &size, XBIGNUM_DATA (obj), 8,
+               get_radix_table_fixnum_majuscule_map (radix_table));
             cursor = end - len;
 
             if (signum < 0)
@@ -2491,8 +2488,8 @@ emacs_doprnt (Lisp_Object stream,
               {
                 if (signum == 0)
                   {
-                    /* Note, ASCII zero, not the current
-                       Vfixnum_to_majuscule_map value for zero. */
+                    /* Note, ASCII zero, not the current radix_table value for
+                       zero. */
                     *--cursor = '0';
                   }
                 spec->number_flag = NUMBER_FLAG_NOTHING;
@@ -2539,8 +2536,9 @@ emacs_doprnt (Lisp_Object stream,
                 spec->number_flag = NUMBER_FLAG_NOTHING;
               }
 
-            len = bignum_to_string_1 (&to_print, &size, XBIGNUM_DATA (obj),
-                                      2, Vfixnum_to_majuscule_map);
+            len = bignum_to_string_1
+              (&to_print, &size, XBIGNUM_DATA (obj), 2,
+               get_radix_table_fixnum_majuscule_map (radix_table));
             cursor = end - len;
 
             if (bignum_sign (XBIGNUM_DATA (obj)) < 0)
@@ -2591,9 +2589,10 @@ emacs_doprnt (Lisp_Object stream,
             to_print = alloca_ibytes (size);
             end = to_print + size; 
 
-            len = bignum_to_string_1 (&to_print, &size, XBIGNUM_DATA (obj),
-                                      16, ch == 'Y' ? Vfixnum_to_majuscule_map
-                                      : Vfixnum_to_minuscule_map);
+            len = bignum_to_string_1
+              (&to_print, &size, XBIGNUM_DATA (obj), 16,
+               ch == 'Y' ? get_radix_table_fixnum_majuscule_map (radix_table)
+               : get_radix_table_fixnum_minuscule_map (radix_table));
             cursor = end - len;
 
             if (signum < 0)
@@ -2641,8 +2640,9 @@ emacs_doprnt (Lisp_Object stream,
 
             spec->number_flag = NUMBER_FLAG_NOTHING;
 
-            len = ratio_to_string_1 (&to_print, size, XRATIO_DATA (obj),
-                                      10, Vfixnum_to_majuscule_map);
+            len = ratio_to_string_1
+              (&to_print, size, XRATIO_DATA (obj), 10,
+               get_radix_table_fixnum_majuscule_map (radix_table));
             cursor = end - len;
 
             if (ratio_sign (XRATIO_DATA (obj)) < 0)
@@ -2681,8 +2681,9 @@ emacs_doprnt (Lisp_Object stream,
             to_print = alloca_ibytes (size);
             end = to_print + size; 
 
-            len = ratio_to_string_1 (&to_print, size, XRATIO_DATA (obj),
-                                      8, Vfixnum_to_majuscule_map);
+            len = ratio_to_string_1
+              (&to_print, size, XRATIO_DATA (obj), 8,
+               get_radix_table_fixnum_majuscule_map (radix_table));
             cursor = end - len;
 
             if (signum < 0)
@@ -2696,8 +2697,8 @@ emacs_doprnt (Lisp_Object stream,
               {
                 if (signum == 0)
                   {
-                    /* Note, ASCII zero, not the current
-                       Vfixnum_to_majuscule_map value for zero. */
+                    /* Note, ASCII zero, not the current radix_table value for
+                       zero. */
                     *--cursor = '0';
                   }
                 spec->number_flag = NUMBER_FLAG_NOTHING;
@@ -2734,8 +2735,9 @@ emacs_doprnt (Lisp_Object stream,
                 spec->number_flag = NUMBER_FLAG_NOTHING;
               }
 
-            len = ratio_to_string_1 (&to_print, size, XRATIO_DATA (obj),
-                                      2, Vfixnum_to_majuscule_map);
+            len = ratio_to_string_1
+              (&to_print, size, XRATIO_DATA (obj), 2,
+               get_radix_table_fixnum_majuscule_map (radix_table));
             cursor = end - len;
 
             if (ratio_sign (XRATIO_DATA (obj)) < 0)
@@ -2775,9 +2777,10 @@ emacs_doprnt (Lisp_Object stream,
             to_print = alloca_ibytes (size);
             end = to_print + size; 
 
-            len = ratio_to_string_1 (&to_print, size, XRATIO_DATA (obj),
-                                      16, ch == 'V' ? Vfixnum_to_majuscule_map
-                                      : Vfixnum_to_minuscule_map);
+            len = ratio_to_string_1
+              (&to_print, size, XRATIO_DATA (obj), 16,
+               ch == 'V' ? get_radix_table_fixnum_majuscule_map (radix_table)
+               : get_radix_table_fixnum_minuscule_map (radix_table));
             cursor = end - len;
 
             if (signum < 0)
@@ -2822,11 +2825,8 @@ emacs_doprnt (Lisp_Object stream,
         case 'u':
           {
             Ibyte buffer[(sizeof (INT_64_BIT) * 8 + 1) * MAX_ICHAR_LEN];
-
             Ibyte *end = buffer + sizeof (buffer), *cursor;
             Bytecount len;
-            Lisp_Object table = spec->converter == 'x' ?
-              Vfixnum_to_minuscule_map : Vfixnum_to_majuscule_map;
             UINT_16_BIT radix = 10;
 
             switch (spec->converter)
@@ -2838,10 +2838,13 @@ emacs_doprnt (Lisp_Object stream,
               default: break;
               }
 
-            FIXNUM_SPEC_PREAMBLE_1 (buffer, sizeof (buffer), radix, table, 1);
+            FIXNUM_SPEC_PREAMBLE_1 (buffer, sizeof (buffer), radix);
 
-            len = uint_64_bit_to_string_general_1 (buffer, sizeof (buffer),
-                                                   arg.u64, radix, table);
+            len = uint_64_bit_to_string_general_1
+              (buffer, sizeof (buffer), arg.u64, radix,
+               spec->converter == 'x' ?
+               get_radix_table_fixnum_minuscule_map (radix_table)
+               : get_radix_table_fixnum_majuscule_map (radix_table));
             cursor = end - len;
 
             if (radix == 10)
@@ -2854,8 +2857,8 @@ emacs_doprnt (Lisp_Object stream,
                   {
                     if (8 == radix)
                       {
-                        /* Note, ASCII zero, not the current
-                           Vfixnum_to_majuscule_map value for zero. */
+                        /* Note, ASCII zero, not the current Vdigit_fixnum_map
+                           value for zero. */
                         *--cursor = '0';
                       }
                     spec->number_flag = NUMBER_FLAG_NOTHING;
@@ -2936,8 +2939,8 @@ write_fmt_string_va (Lisp_Object stream, const CIbyte *fmt, va_list va)
       args = alloca_array (printf_arg, nargs);
 
       get_doprnt_c_args (args, nargs, &specs, va);
-      return emacs_doprnt (stream, (const Ibyte *) fmt, len, Qnil, &specs,
-			   NULL, args);
+      return emacs_doprnt (stream, (const Ibyte *) fmt, len, Qnil,
+                           Vdigit_fixnum_map, &specs, NULL, args);
     }
 }
 
@@ -2974,8 +2977,8 @@ write_fmt_string_lisp_va (Lisp_Object stream, const CIbyte *fmt, va_list va)
 
   GCPRO2 (largs[0], stream);
   gcpro1.nvars = nargs;
-  result = emacs_doprnt (stream, (const Ibyte *) fmt, len, Qnil, specs,
-			 largs, NULL);
+  result = emacs_doprnt (stream, (const Ibyte *) fmt, len, Qnil,
+                         Vdigit_fixnum_map, specs, largs, NULL);
   UNGCPRO;
   unbind_to (count);
 
@@ -3009,8 +3012,8 @@ write_fmt_string_lisp (Lisp_Object stream, const CIbyte *fmt, ...)
 
   GCPRO2 (largs[0], stream);
   gcpro1.nvars = nargs;
-  result = emacs_doprnt (stream, (const Ibyte *) fmt, len, Qnil, specs, largs,
-			 NULL);
+  result = emacs_doprnt (stream, (const Ibyte *) fmt, len, Qnil,
+                         Vdigit_fixnum_map, specs, largs, NULL);
   UNGCPRO;
   unbind_to (count);
 
@@ -3306,7 +3309,8 @@ emacs_vsnprintf (Ibyte *output, Bytecount size, const CIbyte *format,
       get_doprnt_c_args (args, nargs, &specs, vargs);
 
       retval = emacs_doprnt (stream, (const Ibyte *) format, len,
-                             Qnil, &specs, NULL, args);
+                             Qnil, Vdigit_fixnum_map,
+                             &specs, NULL, args);
     }
 
   if (retval < size - 1)
@@ -3402,8 +3406,8 @@ format_into (Lisp_Object stream, Lisp_Object format_reloc, int nargs,
   GCPRO3 (largs[0], format_reloc, stream);
   gcpro1.nvars = nargs;
 
-  emacs_doprnt (stream, NULL, format_length, format_reloc, specs, largs,
-                NULL);
+  emacs_doprnt (stream, NULL, format_length, format_reloc, Vdigit_fixnum_map,
+                specs, largs, NULL);
 
   UNGCPRO;
   unbind_to (count);

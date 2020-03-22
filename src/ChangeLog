@@ -1,3 +1,78 @@
+2020-03-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Generalise the reverse mapping from fixnum weights to characters,
+	rather than hard-coding Vfixnum_to_majuscule_map,
+	Vfixnum_to_minuscle_map, Vfixnum_to_majuscule_ascii.  Use this
+	generalisation in doprnt.c.
+
+	* lisp.h (get_radix_table_greatest_radix): New.
+	* lisp.h (get_radix_table_fixnum_majuscule_map): New.
+	* lisp.h (get_radix_table_fixnum_minuscule_map): New.
+	Make these three inline functions available to the Lisp code,
+	generalising Vfixnum_to_majuscule_map, Vfixnum_to_majuscule_ascii
+	as above.
+	
+	* data.c:
+	* data.c (fill_majuscule_char_vector): Renamed from
+	fill_ichar_array(). 
+	Revise this to save the data into a Lisp vector, to reduce the
+	chance of leaking memory on interruption or error.
+	* data.c (fill_minuscule_char_vector): New.
+	Similar to fill_majuscule_char_vector(), but generate results that
+	prefer lowercase characters, rather calling DOWNCASE() on the
+	first result, which may have issues if the lowercase characters
+	thus arrived at don't have fixnum weights.
+	* data.c (build_fixnum_to_char_maps):
+	Use the two mapping functions.
+	Save the generated data into Vdigit_fixnum_calculated_data, a weak
+	alist mapping from the char-table to the generated majuscule,
+	minuscule, and greatest radix information.
+	* data.c (Fset_digit_fixnum_map):
+	Revise this to use get_radix_table_greatest_radix() rather than
+	calling build_fixnum_to_char_map() explicitly. 
+	* data.c (Fdigit_char_p):
+	Be a bit more reasonable about checking the possible values for
+	RADIX.
+	* data.c (Fdigit_char):
+	Ditto.
+	* data.c (Fparse_integer):
+	Ditto.
+	* data.c (vars_of_data):
+	Add Vdigit_fixnum_calculated_data here.
+	Initialise it for Vdigit_fixnum_ascii, Vdigit_fixnum_map.
+
+	* doprnt.c:
+	Revise this file to use the get_radix_table_* functions; for the
+	externally-visible functions (fixnum_to_string(), bignum_to_string
+	(), ratio_to_string()), use the associated char-table object to
+	indicate which mapping to use.
+
+	* doprnt.c (UNSIGNED_TYPE_TO_STRING_GENERAL_1):
+	* doprnt.c (fixnum_to_string):
+	* doprnt.c (bignum_to_string):
+	* doprnt.c (ratio_to_string):
+	* doprnt.c (Fnumber_to_string):
+	* doprnt.c (FIXNUM_SPEC_PREAMBLE_1):
+	* doprnt.c (FIXNUM_SPEC_PREAMBLE):
+	* doprnt.c (emacs_doprnt):
+	Revise this to take a TABLE argument, usually Vdigit_fixnum_map,
+	and to determine the appropriate fixnum to majuscule or fixnum to
+	minuscule map depending on it.
+
+	* doprnt.c (write_fmt_string_va):
+	* doprnt.c (write_fmt_string_lisp_va):
+	* doprnt.c (write_fmt_string_lisp):
+	* doprnt.c (emacs_vsnprintf):
+	* doprnt.c (format_into):
+	Revise all these functions to pass the TABLE argument to
+	emacs_doprnt().
+
+	* redisplay.c (decode_mode_spec):
+	Call fixnum_to_string() with its new calling convention.
+
+	* tests.c (Ftest_fixnum_to_string):
+	Ditto.
+
 2020-03-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* config.h.in:

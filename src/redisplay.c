@@ -7391,7 +7391,7 @@ decode_mode_spec (struct window *w, Ichar spec, int type)
 
 	Dynarr_add_many (mode_spec_ibyte_string, buf,
                          fixnum_to_string (buf, sizeof (buf), col, 10,
-                                           Vfixnum_to_majuscule_ascii));
+                                           Vdigit_fixnum_ascii));
 	goto decode_mode_spec_done;
       }
       /* print the file coding system */
@@ -7418,7 +7418,7 @@ decode_mode_spec (struct window *w, Ichar spec, int type)
 
         Dynarr_add_many (mode_spec_ibyte_string, buf,
                          fixnum_to_string (buf, sizeof (buf), line + 1, 10,
-                                           Qnil));
+                                           Vdigit_fixnum_ascii));
         goto decode_mode_spec_done;
       }
       break;
@@ -7445,7 +7445,7 @@ decode_mode_spec (struct window *w, Ichar spec, int type)
                                                /* Put a minus before the
                                                   number. */
                                                -(f->order_count), 10,
-                                               Vfixnum_to_majuscule_ascii));
+                                               Vdigit_fixnum_ascii));
             goto decode_mode_spec_done;
 	  }
       }
@@ -7537,8 +7537,8 @@ decode_mode_spec (struct window *w, Ichar spec, int type)
 	    percent = 99;
 
 	  Dynarr_add_many (mode_spec_ibyte_string, buf,
-                           fixnum_to_string (buf, sizeof (buf), percent,
-                                             10, Vfixnum_to_majuscule_ascii));
+                           fixnum_to_string (buf, sizeof (buf), percent, 10,
+                                             Vdigit_fixnum_ascii));
           Dynarr_add_literal_string (mode_spec_ibyte_string, "%");
           
 	  goto decode_mode_spec_done;
@@ -7594,8 +7594,8 @@ decode_mode_spec (struct window *w, Ichar spec, int type)
             }
 
 	  Dynarr_add_many (mode_spec_ibyte_string, buf,
-                           fixnum_to_string (buf, sizeof (buf), percent,
-                                             10, Vfixnum_to_majuscule_ascii));
+                           fixnum_to_string (buf, sizeof (buf), percent, 10,
+                                             Vdigit_fixnum_ascii));
           Dynarr_add_literal_string (mode_spec_ibyte_string, "%");
 	  goto decode_mode_spec_done;
 	}

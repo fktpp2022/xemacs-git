@@ -4436,7 +4436,6 @@ extern int purify_flag;
 #define BIT_VECTOR_TOTAL_SIZE_LIMIT (MOST_POSITIVE_FIXNUM + 1)
 
 extern Fixnum Varray_dimension_limit, Vstring_total_size_limit;
-extern Fixnum Vfixnum_total_size_limit;
 
 #ifndef NEW_GC
 extern EMACS_INT gc_generation_number[1];
@@ -4660,7 +4659,87 @@ Lisp_Object int32_t_to_lisp (INT_32_BIT);
 UINT_32_BIT lisp_to_uint32_t (Lisp_Object);
 INT_32_BIT lisp_to_int32_t (Lisp_Object);
 
-Lisp_Object build_fixnum_to_char_map (Lisp_Object radix_table);
+Lisp_Object build_fixnum_to_char_maps (Lisp_Object);
+extern Lisp_Object Vdigit_fixnum_calculated_data;
+
+/* Given RADIX_TABLE, a char-table mapping from characters to fixnum weights
+   as used by #'parse-integer, #'digit-char, return the greatest radix
+   possible, a fixnum one more than the highest weight seen within
+   RADIX_TABLE.
+
+   Error if RADIX_TABLE is not a character table or does not otherwise meet
+   the criteria for use by those functions (it must have no gaps in the
+   weights used, and the maximum radix possible cannot exceed #xFFFF).
+
+   Cache the result (and the related majuscule, minuscule maps) in
+   Vdigit_fixnum_calculated_data. */
+DECLARE_INLINE_HEADER (
+Lisp_Object
+get_radix_table_greatest_radix (Lisp_Object radix_table)
+)
+{
+  LIST_LOOP_2 (elt, XWEAK_LIST_LIST (Vdigit_fixnum_calculated_data))
+    {
+      if (EQ (XCAR (elt), radix_table))
+        {
+          return XCAR (XCDR (elt));
+        }
+    }
+
+  return XCAR (XCDR (build_fixnum_to_char_maps (radix_table)));
+}
+
+/* See the documentation of get_radix_table_greatest_radix(). Return a Lisp
+   string mapping from fixnum weight (when multiplied by MAX_ICHAR_LEN) to an
+   uppercase character as described by RADIX_TABLE.
+
+   Error if RADIX_TABLE is not a character table or does not otherwise meet
+   the criteria for use by those functions (it must have no gaps in the
+   weights used, and the maximum radix possible cannot exceed #xFFFF).
+
+   Cache the result (and the related minuscule map, greatest radix
+   information) in Vdigit_fixnum_calculated_data. */
+DECLARE_INLINE_HEADER (
+Lisp_Object
+get_radix_table_fixnum_majuscule_map (Lisp_Object radix_table)
+)
+{
+  LIST_LOOP_2 (elt, XWEAK_LIST_LIST (Vdigit_fixnum_calculated_data))
+    {
+      if (EQ (XCAR (elt), radix_table))
+        {
+          return XCAR (XCDR (XCDR (elt)));
+        }
+    }
+
+  return XCAR (XCDR (XCDR (build_fixnum_to_char_maps (radix_table))));
+}
+
+/* See the documentation of get_radix_table_greatest_radix(). Return a Lisp
+   string mapping from fixnum weight (when multiplied by MAX_ICHAR_LEN) to an
+   lowercase character as described by RADIX_TABLE.
+
+   Error if RADIX_TABLE is not a character table or does not otherwise meet
+   the criteria for use by those functions (it must have no gaps in the
+   weights used, and the maximum radix possible cannot exceed #xFFFF).
+
+   Cache the result (and the related majuscule map, greatest radix
+   information) in Vdigit_fixnum_calculated_data. */
+DECLARE_INLINE_HEADER (
+Lisp_Object
+get_radix_table_fixnum_minuscule_map (Lisp_Object radix_table)
+)
+{
+  LIST_LOOP_2 (elt, XWEAK_LIST_LIST (Vdigit_fixnum_calculated_data))
+    {
+      if (EQ (XCAR (elt), radix_table))
+        {
+          return XCAR (XCDR (XCDR (XCDR (elt))));
+        }
+    }
+
+  return XCAR (XCDR (XCDR (XCDR (build_fixnum_to_char_maps (radix_table)))));
+}
 
 enum parse_integer_flags
 {
@@ -4673,8 +4752,6 @@ Lisp_Object parse_integer (const Ibyte *buf, Ibyte **buf_end_out,
 			   int flags, Lisp_Object base_table);
 
 extern Lisp_Object Vdigit_fixnum_map, Vdigit_fixnum_ascii;
-extern Lisp_Object Vfixnum_to_majuscule_map, Vfixnum_to_minuscule_map;
-extern Lisp_Object Vfixnum_to_majuscule_ascii;
 
 extern Lisp_Object Qarrayp, Qbitp, Qchar_or_string_p, Qcharacterp,
     Qerror_conditions, Qerror_message, Qinteger_char_or_marker_p,

@@ -1005,7 +1005,7 @@ Make sure `fixnum_to_string' can print LONG_MIN as a decimal correctly.
 {
   Ibyte buf[DECIMAL_PRINT_SIZE (Fixnum) + 1];
   Bytecount res = fixnum_to_string (buf, sizeof (buf), LONG_MIN, 10,
-                                    Vfixnum_to_majuscule_ascii);
+                                    Vdigit_fixnum_ascii);
   Ascbyte buf1[DECIMAL_PRINT_SIZE (long) + 1];
   Lisp_Object result = Qnil;
   /* No point using emacs_snprintf(), that uses our algorithm. */
