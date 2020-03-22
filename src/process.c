@@ -2601,9 +2601,8 @@ init_xemacs_process (void)
 
     if (!egetenv ("SHELL"))
       {
-	Ibyte *faux_var = alloca_ibytes (7 + qxestrlen (shell));
-	qxesprintf (faux_var, "SHELL=%s", shell);
-	Vprocess_environment = Fcons (build_istring (faux_var),
+        Vprocess_environment = Fcons (emacs_sprintf_string ("SHELL=%s",
+                                                            shell),
 				      Vprocess_environment);
       }
 #endif /* 0 */

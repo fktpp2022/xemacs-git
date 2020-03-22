@@ -599,11 +599,9 @@ mswindows_set_title_from_ibyte (struct frame *f, Ibyte *title)
 static Lisp_Object
 mswindows_window_id (Lisp_Object frame)
 {
-  Ibyte str[255];
   struct frame *f = decode_mswindows_frame (frame);
 
-  qxesprintf (str, "%lu", (unsigned long) FRAME_MSWINDOWS_HANDLE (f));
-  return build_istring (str);
+  return emacs_sprintf_string ("%lu", (EMACS_UINT) FRAME_MSWINDOWS_HANDLE (f));
 }
 
 static Lisp_Object

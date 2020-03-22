@@ -577,18 +577,20 @@ truename_via_random_props (Display *dpy, XFontStruct *font)
 {
   struct device *d = get_device_from_display (dpy);
   unsigned long value = 0;
-  Extbyte *foundry, *family, *weight, *slant, *setwidth, *add_style;
+  Ibyte *foundry, *family, *weight, *slant, *setwidth, *add_style, *spacing;
+  Ibyte *registry, *encoding;
   unsigned long pixel, point, res_x, res_y;
-  Extbyte *spacing;
   unsigned long avg_width;
-  Extbyte *registry, *encoding;
-  Extbyte composed_name [2048];
+  Ibyte composed_name [2048];
   int ok = 0;
   Extbyte *result;
 
 #define get_string(atom,var)				\
   if (XGetFontProperty (font, (atom), &value))		\
-    var = XGetAtomName (dpy, value);			\
+    {                                                   \
+      var = EXTERNAL_TO_ITEXT (XGetAtomName (dpy, value),       \
+                               Qx_hpc_encoding);        \
+    }                                                   \
   else	{						\
     var = 0;						\
     goto FAIL; }
@@ -617,19 +619,16 @@ truename_via_random_props (Display *dpy, XFontStruct *font)
 #undef get_number
 #undef get_string
 
-  sprintf (composed_name,
-	   "-%s-%s-%s-%s-%s-%s-%ld-%ld-%ld-%ld-%s-%ld-%s-%s",
-	   foundry, family, weight, slant, setwidth, add_style, pixel,
-	   point, res_x, res_y, spacing, avg_width, registry, encoding);
+  emacs_snprintf (composed_name, sizeof (composed_name),
+                  "-%s-%s-%s-%s-%s-%s-%ld-%ld-%ld-%ld-%s-%ld-%s-%s",
+                  foundry, family, weight, slant, setwidth, add_style,
+                  pixel, point, res_x, res_y, spacing, avg_width, registry,
+                  encoding);
   ok = 1;
 
  FAIL:
   if (ok)
-    {
-      int L = strlen (composed_name) + 1;
-      result = xnew_extbytes (L);
-      strncpy (result, composed_name, L);
-    }
+    result = ITEXT_TO_EXTERNAL_MALLOC (composed_name, Qx_hpc_encoding);
   else
     result = 0;
 

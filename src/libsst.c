@@ -222,8 +222,9 @@ int fd, value;
 
     if ( ( value < -10 ) || ( value > 18 ) )
 	{
-	  Extbyte buf [255];
-	  sprintf (buf, "sst_set_ger: GER %d out of range", value);
+	  Ibyte buf [255];
+	  emacs_snprintf (buf, sizeof (buf),
+                          "sst_set_ger: GER %d out of range", value);
 	  sound_warn(buf);
 	  return;
 	}
@@ -258,8 +259,9 @@ int fd, value;
 
     if ( ( value < -18 ) || ( value > 12 ) )
 	{
-	  Extbyte buf [255];
-	  sprintf (buf,  "sst_set_gr: GR %d out of range", value);
+	  Ibyte buf [255];
+	  emacs_snprintf (buf, sizeof (buf),
+                          "sst_set_gr: GR %d out of range", value);
 	  sound_warn (buf);
 	  return;
 	}
@@ -290,11 +292,12 @@ sst_set_gx( fd, value )
 int fd, value;
     {
     struct audio_ioctl ai;
-    Extbyte buf [255];
+    Ibyte buf [255];
 
     if ( ( value < -18 ) || ( value > 12 ) )
 	{
-	  sprintf (buf, "sst_set_gx: GX %d out of range", value);
+	  emacs_snprintf (buf, sizeof (buf),
+                          "sst_set_gx: GX %d out of range", value);
 	  sound_warn (buf);
 	  return;
 	}
@@ -327,7 +330,7 @@ void
 sst_tones( fd, dhz1, dhz2, thz, rhz, usec )
 int fd, dhz1, dhz2, thz, rhz, usec;
     {
-    Extbyte buf [255];
+    Ibyte buf [255];
     struct audio_ioctl ai;
     int dval1, dval2, tval, rval;
     Binbyte oldmmr2, newmmr2;
@@ -339,7 +342,8 @@ int fd, dhz1, dhz2, thz, rhz, usec;
 	dval1 = ( dhz1 * 128 + 63 ) / 1000;
 	if ( ( dval1 < 1 ) || ( dval1 > 255 ) )
 	    {
-	      sprintf(buf, "sst_tones: dhz1 %d out of range", dhz1 );
+	      emacs_snprintf (buf, sizeof (buf),
+                              "sst_tones: dhz1 %d out of range", dhz1 );
 	      sound_warn (buf);
 	      return;
 	    }
@@ -352,7 +356,8 @@ int fd, dhz1, dhz2, thz, rhz, usec;
 	dval2 = ( dhz2 * 128 + 63 ) / 1000;
 	if ( ( dval2 < 1 ) || ( dval2 > 255 ) )
 	    {
-	      sprintf(buf, "sst_tones: dhz2 %d out of range", dhz2 );
+	      emacs_snprintf (buf, sizeof (buf),
+                              "sst_tones: dhz2 %d out of range", dhz2);
 	      sound_warn (buf);
 	      return;
 	    }
@@ -365,7 +370,8 @@ int fd, dhz1, dhz2, thz, rhz, usec;
 	tval = ( thz * 128 + 63 ) / 2000;
 	if ( ( tval < 1 ) || ( tval > 255 ) )
 	    {
-	      sprintf(buf, "sst_tones: thz %d out of range", thz );
+	      emacs_snprintf (buf, sizeof (buf),
+                              "sst_tones: thz %d out of range", thz);
 	      sound_warn (buf);
 	      return;
 	    }
@@ -378,7 +384,8 @@ int fd, dhz1, dhz2, thz, rhz, usec;
 	rval = ( rhz * 128 + 63 ) / 2000;
 	if ( ( rval < 1 ) || ( rval > 255 ) )
 	    {
-	      sprintf(buf, "sst_tones: rhz %d out of range", dhz2 );
+	      emacs_snprintf (buf, sizeof (buf),
+                              "sst_tones: rhz %d out of range", dhz2 );
 	      sound_warn (buf);
 	      return;
 	    }
@@ -386,14 +393,16 @@ int fd, dhz1, dhz2, thz, rhz, usec;
 
     if ( ( dval1 != 0 || dval2 != 0 ) && ( tval != 0 || rval != 0 ) )
 	{
-	  sprintf(buf, "sst_tones: cannot use DTMF and TONE or RINGER at the same time", dhz2 );
+	  emacs_snprintf (buf, sizeof (buf),
+                          "sst_tones: cannot use DTMF and TONE or RINGER at the same time", dhz2 );
 	  sound_warn (buf);
 	  return;
 	}
 
     if ( tval != 0 && rval != 0 )
 	{
-	  sprintf(buf, "sst_tones: cannot use TONE and RINGER at the same time", dhz2 );
+	  emacs_snprintf (buf, sizeof (buf),
+                          "sst_tones: cannot use TONE and RINGER at the same time", dhz2);
 	  sound_warn (buf);
 	return;
 	}
@@ -492,8 +501,9 @@ Extbyte *dial;
 
 	    default:
 	      {
-		Extbyte buf [255];
-		sprintf( buf, "sst_dtmf: unknown dialing code '%c'", *cp );
+		Ibyte buf [255];
+		emacs_snprintf (buf, sizeof (buf),
+                                "sst_dtmf: unknown dialing code '%c'", *cp );
 		sound_warn (buf);
 	      }
 	    }

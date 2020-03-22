@@ -87,10 +87,6 @@ typedef struct
   pid_t pid;
 } lock_info_type;
 
-/* When we read the info back, we might need this much more,
-   enough for decimal representation plus null.  */
-#define LOCK_PID_MAX (4 * (int) (sizeof (pid_t)))
-
 /* Free the two dynamically-allocated pieces in PTR.  */
 #define FREE_LOCK_INFO(i) do {			\
     xfree ((i).user);			\
@@ -137,6 +133,7 @@ lock_file_1 (Ibyte *lfname, int force)
   /* Does not GC. */
   int err;
   Ibyte *lock_info_str;
+  Bytecount lock_info_size;
   Ibyte *host_name;
   Ibyte *user_name = user_login_name (NULL);
 
@@ -148,11 +145,12 @@ lock_file_1 (Ibyte *lfname, int force)
   else
     host_name = (Ibyte *) "";
 
-  lock_info_str =
-    alloca_ibytes (qxestrlen (user_name) + qxestrlen (host_name)
-		   + LOCK_PID_MAX + 5);
+  lock_info_size = qxestrlen (user_name) + sizeof ("@.") +
+    qxestrlen (host_name) + DECIMAL_PRINT_SIZE (pid_t);
+  lock_info_str = alloca_ibytes (lock_info_size);
 
-  qxesprintf (lock_info_str, "%s@%s.%d", user_name, host_name, qxe_getpid ());
+  emacs_snprintf (lock_info_str, lock_info_size,
+                  "%s@%s.%d", user_name, host_name, qxe_getpid ());
 
   err = qxe_symlink (lock_info_str, lfname);
   if (err != 0 && errno == EEXIST && force)
@@ -320,18 +318,16 @@ lock_file (Lisp_Object fn)
      comment.  -slb */
 
   register Lisp_Object attack, orig_fn;
-  register Ibyte *lfname, *locker;
+  register Ibyte *lfname;
   lock_info_type lock_info;
-  struct gcpro gcpro1, gcpro2, gcpro3;
-  Lisp_Object old_current_buffer;
-  Lisp_Object subject_buf;
+  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
+  Lisp_Object old_current_buffer, subject_buf = Qnil, locker = Qnil;
 
   if (inhibit_clash_detection)
     return;
 
   old_current_buffer = wrap_buffer (current_buffer);
-  subject_buf = Qnil;
-  GCPRO3 (fn, subject_buf, old_current_buffer);
+  GCPRO4 (fn, subject_buf, old_current_buffer, locker);
   orig_fn = fn;
   fn = Fexpand_file_name (fn, Qnil);
 
@@ -357,16 +353,13 @@ lock_file (Lisp_Object fn)
     goto done;
 
   /* Else consider breaking the lock */
-  locker = alloca_ibytes (qxestrlen (lock_info.user)
-			  + qxestrlen (lock_info.host)
-			  + LOCK_PID_MAX + 9);
-  qxesprintf (locker, "%s@%s (pid %d)", lock_info.user, lock_info.host,
-	      lock_info.pid);
+  locker = emacs_sprintf_string ("%s@%s (pid %d)", lock_info.user,
+                                 lock_info.host, lock_info.pid);
   FREE_LOCK_INFO (lock_info);
 
   attack = call2_in_buffer (BUFFERP (subject_buf) ? XBUFFER (subject_buf) :
 			    current_buffer, Qask_user_about_lock , fn,
-			    build_istring (locker));
+			    locker);
   if (!NILP (attack) && current_buffer == XBUFFER (old_current_buffer))
     /* User says take the lock */
     {

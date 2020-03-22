@@ -662,10 +662,11 @@ sync_printer_with_devmode (struct device* d, DEVMODEW* devmode_in,
 	     Nothing wrong on the Windows side, just forge a unique
 	     connection name. Use the memory address of d as a unique
 	     suffix. */
-	  Ibyte new_connext[20];
-
-	  qxesprintf (new_connext, ":%X", LISP_OBJECT_UID (wrap_device (d)));
-	  new_connection = concat2 (devname, build_istring (new_connext));
+	  new_connection = emacs_sprintf_string ("%s:%luX",
+                                                 XSTRING_DATA (devname),
+                                                 (EMACS_INT)
+                                                 (LISP_OBJECT_UID
+                                                  (wrap_device (d))));
 	}
       DEVICE_CONNECTION (d) = new_connection;
 

@@ -4045,8 +4045,11 @@ do {								\
 								\
   if (!__gserr__)						\
     {								\
-      var = alloca_ibytes (99);					\
-      qxesprintf (var, "Unknown error %d", __gsnum__);		\
+      Bytecount __varsize__ = sizeof ("Unknown error ") +       \
+        DECIMAL_PRINT_SIZE (__gsnum__);                         \
+      var = alloca_ibytes (__varsize__);                        \
+      emacs_snprintf (var, __varsize__, "Unknown error %d",     \
+                      __gsnum__);                               \
     }								\
   else								\
     var = EXTERNAL_TO_ITEXT (__gserr__, Qstrerror_encoding);	\

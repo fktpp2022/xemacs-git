@@ -123,24 +123,28 @@ void
 report_sheap_usage (int die_if_pure_storage_exceeded)
 {
   int rc = 0;
+  Bytecount lost = STATIC_HEAP_SIZE - (static_heap_ptr - static_heap_buffer);
+  Ibyte buf[200], *bufcursor = buf;
 
-  Bytecount lost = STATIC_HEAP_SIZE
-    - (static_heap_ptr - static_heap_buffer);
-  char buf[200];
-  sprintf (buf, "Static heap usage: %ldk of %ldk, slop is %ldk",
-               (long) ((static_heap_ptr - static_heap_buffer) /1024),
-	   (long) (STATIC_HEAP_SIZE / 1024),
-	   (long) STATIC_HEAP_SLOP / 1024);
+  bufcursor += emacs_snprintf (buf, sizeof (buf),
+                               "Static heap usage: %ldk of %ldk, slop is %ldk",
+                               (EMACS_INT) ((static_heap_ptr
+                                             - static_heap_buffer) /1024),
+                               (EMACS_INT) (STATIC_HEAP_SIZE / 1024),
+                               (EMACS_INT) STATIC_HEAP_SLOP / 1024);
 
   if (lost > STATIC_HEAP_SLOP)
     {
-      sprintf (buf + strlen (buf), " -- %ldk wasted", (long)(lost/1024));
+      bufcursor += emacs_snprintf (buf, sizeof (buf) - (bufcursor - buf),
+                                   " -- %ldk wasted", (EMACS_INT)(lost/1024));
       if (die_if_pure_storage_exceeded)
 	{
 	  sheap_adjust_h(STATIC_HEAP_SLOP - lost);
-	  sprintf (buf + strlen (buf), " -- reset to %ldk", 
-		   (long) ((STATIC_HEAP_SIZE + STATIC_HEAP_SLOP - lost) /
-			   1024));
+          bufcursor += emacs_snprintf (buf, sizeof (buf) - (bufcursor - buf),
+                                       " -- reset to %ldk", 
+                                       (EMACS_INT) ((STATIC_HEAP_SIZE +
+                                                     STATIC_HEAP_SLOP - lost) /
+                                                    1024));
 	  rc = -1;
 	}
       message ("%s\n", buf);

@@ -1,5 +1,188 @@
 2020-03-22  Aidan Kehoe  <kehoea@parhasard.net>
 
+	1. Switch away from sprintf(3) in the C code as much as possible,
+	given that it doesn't do bounds checking and we have
+	emacs_snprintf{_ascbyte} as core XEmacs code.
+
+	2. Use write_external_fmt_string_va() in the glyphs error handling
+	code now it's available.
+
+	* ExternalShell.c (GetGeometry):
+	Use emacs_snprintf_ascbyte() here.
+	* alloc.c (object_memory_usage_stats):
+	Ditto.
+	* bytecode.c (assert_failed_with_remembered_ops):
+	Ditto.
+	* bytecode.c (UNUSED):
+	Ditto.	
+	* bytecode.c (init_opcode_table_multi_op):
+	Ditto.	
+	* console-msw.c (GetConsoleHwnd):
+	Ditto.
+	* data.c (DEFINE_C_INTEGER_TYPE_LISP_CONVERSION):
+	Correct a spelling in this macro.
+	* device-gtk.c (gtk_init_device):
+	Use emacs_snprintf_ascbyte() here.
+	* device-gtk.c (vars_of_device_gtk):
+	Use emacs_sprintf_string() instead of qxesprintf() when
+	constructing Vgtk_version.
+	* device-msw.c (sync_printer_with_devmode):
+	Use emacs_sprintf_string() instead of qxesprintf() when
+	constructing the device connection Lisp string.
+	* device-x.c (get_device_from_display):
+	Be more careful about character types in this function,
+	stderr_out() now takes Ibyte *s.
+	* device-x.c (coding_system_of_xrm_database):
+	Be more careful about the coding system when interpreting the
+	result of XrmLocaleOfDatabase().
+	* device-x.c (have_xemacs_resources_in_xrdb):
+	Be a bit more careful about character types in this function.
+	* device-x.c (x_init_device):
+	Be more careful about character types and the file name coding
+	system in this function. Use memcpy() when appropriate,
+	emacs_snprintf() when not, when constructing strings to pass to
+	the X11 functions.
+	* device-x.c (x_error_handler):
+	Be more careful about character types passed to stderr_out().
+	* device-x.c (signal_if_x_error):
+	Use emacs_sprintf_string() instead of qxesprintf with
+	build_istring().
+	Use emacs_snprintf_ascbyte() to construct a string to pass to
+	XGetErrorDatabaseText().
+	* device-x.c (x_IO_error_handler):
+	Be a bit more careful about the types passed to stderr_out().
+	* dialog-x.c (dbox_descriptor_to_widget_value):
+	Use emacs_snprintf_ascbyte() instead of sprintf() + xstrdup().
+	* dired-msw.c (mswindows_format_file):
+	Use emacs_snprintf() instead of sprintf().
+	* editfns.c (get_home_directory):
+	Use emacs_asprintf() instead of qxesprintf() + xnew_ibytes().
+	* editfns.c (Fcurrent_time_zone):
+	Use emacs_sprintf_string() instead of qxesprintf() + build_istring().
+	* emacs.c (guts_of_fatal_error_signal):
+	Remove some long-obsolete Sun-specific code.
+	* esd.c (esd_play_sound_data):
+	Replace sprintf() with emacs_snprintf().
+	* eval.c (safe_run_hook_trapping_problems):
+	Replace qxesprintf() with emacs_snprintf().
+	* eval.c (run_hook_with_args_in_buffer_trapping_problems):
+	Ditto.
+	* event-Xt.c (x_keysym_to_emacs_keysym):
+	Replace sprintf() with emacs_snprintf().
+	* extents.c (print_extent_1):
+	Replace sprintf() with emacs_snprintf_ascbyte().
+	* fileio.c (lisp_strerror):
+	Replace qxesprintf() and build_istring() with emacs_sprintf_string().
+	* filelock.c (lock_file_1):
+	Replace qxesprintf() with emacs_snprintf().
+	* filelock.c (lock_file):
+	Replace qxesprintf() and build_istring() with emacs_sprintf_string().
+	* fontcolor-msw.c (mswindows_color_to_string):
+	Replace sprintf() and build_ascstring() with emacs_sprintf_string().
+	* fontcolor-msw.c (font_enum_callback_2):
+	Replace qxesprintf() with emacs_snprintf().
+	* fontcolor-msw.c (create_hfont_from_font_spec):
+	Ditto.
+	* fontcolor-x.c (truename_via_random_props):
+	Replace sprintf() with emacs_snprintf(), be more careful about
+	character types.
+	* frame-gtk.c (Fgtk_window_id):
+	Used emacs_sprintf_string() instead of sprintf() with
+	build_ascstring().
+	* frame-msw.c (mswindows_window_id):
+	Ditto.
+	* frame-x.c (color_to_string):
+	Replace qxesprintf() and build_istring() with
+	emacs_sprintf_string().
+	* frame-x.c (x_set_initial_frame_size):
+	Replace sprintf with emacs_snprintf_ascbyte().
+	* frame-x.c (Fx_window_id):
+	Replace qxesprintf() and build_istring() with
+	emacs_sprintf_string().
+	* glyphs-eimage.c (struct tiff_error_struct):
+	No longer needed, we just throw a Lisp error ourselves rather than
+	longjmp()ing to a place that throws a Lisp error (so no jmp_buf
+	needed) and we construct the error message as a Lisp string using
+	write_external_fmt_string_va (). 
+
+	* glyphs-eimage.c (tiff_error_func):
+	See just above.
+
+	* glyphs-eimage.c (tiff_warning_func):
+	Use write_external_fmt_string_va() in this function.
+
+	* glyphs-gtk.c (gtk_xpm_instantiate):
+	Replace xnew_ascbytes() and sprintf() with emacs_asprintf ().
+	* gtk-xemacs.c (xemacs_gtk_convert_color):
+	Replace sprintf() and build_cistring() with emacs_sprintf_string ().
+	* input-method-xlib.c (DefaultXIMStyles):
+	Make this into a #define, to make it easier for the compiler to
+	optimise away strlen() calls 
+	* input-method-xlib.c (EmacsXtCvtStringToXIMStyles):
+
+	* input-method-xlib.c (describe_Window):
+	Use emacs_snprintf_ascbyte() instead of sprintf() here.
+	* keymap.c (Ftext_char_description):
+	Use emacs_snprintf() instead of qxesprintf ().
+	Use emacs_snprintf("%08X" ...) and emacs_snprintf ("%04X" ...)
+	instead of reimplementing these.
+
+	* sound.h:
+	* sound.h (sound_warn):
+	* libsst.c:
+	* libsst.c (dial;):
+	* linuxplay.c (audio_init):
+	* linuxplay.c (linux_play_data_or_file):
+	* sunplay.c (init_device):
+	* sunplay.c (play_sound_file):
+	* sunplay.c (play_sound_data):
+	Switch to emacs_snprintf() in the sound code, use warn_when_safe()
+	for sound_warn(); all the strings can be represented in internal
+	format without trouble.
+
+	* md5.c (Fmd5):
+	Use emacs_sprintf_string() rather than sprintf() with make_string().
+	* mule-charset.c (make_charset):
+	Ditto.
+	* number-gmp.c (bigfloat_to_string):
+	Use emacs_snprintf_ascbyte() when constructing scientific
+	notation.
+	* process-unix.c (allocate_pty_the_old_fashioned_way):
+	Use emacs_snprintf() rather than qxesprintf().
+	* print.c (printing_major_badness): 
+	Ditto.
+	* process.c (init_xemacs_process):
+	Use emacs_sprintf_string() rather than alloca_ibytes() with
+	qxesprintf(), build_istring().
+
+	* redisplay-tty.c (term_get_fkeys_1):
+	Use emacs_sprintf_string() rather than sprintf().
+
+	* scrollbar-x.c (x_create_scrollbar_instance):
+	Use emacs_asprintf() rather than sprintf() with xstrdup().
+	* scrollbar-x.h (struct x_scrollbar_data):
+	Document the scrollbar name as internal format.
+
+	* sheap.c (report_sheap_usage):
+	Use emacs_snprintf() in this function rather than sprintf().
+	* strftime.c (add_num_time_t):
+	Ditto.
+
+	* tooltalk.c (tt_opnum_string):
+	Use emacs_sprintf_string() rather than sprintf() +
+	build_ascstring().
+	* tooltalk.c (tt_message_arg_ival_string):
+	Size BUF more clearly for the fixnum_to_string() call.
+
+	* tooltalk.c (tt_message_arg_bval_vector):
+	Mule-ize this function in passing.
+
+	* unicode.c (allocate_jit_ucs_charset):
+	Use Fintern (emacs_sprintf_string(...)) rather than sprintf() +
+	intern().
+
+2020-03-22  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Add write_external_fmt_string_va(), emacs_snprintf_ascbyte().
 
 	* doprnt.c:

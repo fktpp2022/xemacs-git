@@ -214,8 +214,9 @@ audio_init(int mixx_fd, int auddio_fd, int fmt, int speed,
      "the_speed" is still unchanged */
   ioctl(audio_fd,SOUND_PCM_READ_RATE,&the_speed);
   if (speed*14 < the_speed*10 || speed*6 > the_speed*10) {
-    Extbyte buffer[256];
-    sprintf(buffer,"SNDCTL_DSP_SPEED (req: %d, rtn: %d)",speed,the_speed);
+    Ibyte buffer[256];
+    emacs_snprintf (buffer, sizeof (buffer),
+                    "SNDCTL_DSP_SPEED (req: %d, rtn: %d)", speed, the_speed);
     sound_perror(buffer);
     return(0); }
 
@@ -333,8 +334,9 @@ linux_play_data_or_file(int fd, Binbyte *data,
 	  else if (ioctl(audio_fd,SNDCTL_DSP_SYNC,NULL) < 0) {
 	    sound_perror("SNDCTL_DSP_SYNC"); goto END_OF_PLAY; } }
 	if (wrtn != crtn) {
-	  Extbyte buf[255];
-	  sprintf(buf,"play: crtn = %d, wrtn = %d",crtn,wrtn);
+	  Ibyte buf[255];
+	  emacs_snprintf (buf, sizeof (buf),
+                          "play: crtn = %d, wrtn = %d",crtn,wrtn);
 	  sound_warn(buf);
 	  goto END_OF_PLAY; } }
     if (fd >= 0) {

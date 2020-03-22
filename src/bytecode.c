@@ -183,14 +183,16 @@ assert_failed_with_remembered_ops (const Ascbyte *file, int line,
       int pos;
       Opcode op;
 
-      sprintf (msg2, "%5d:  ", i - num_remembered + 1);
+      emacs_snprintf_ascbyte (msg2, sizeof (msg2), "%5d:  ",
+                              i - num_remembered + 1);
       strcat (msg, msg2);
       pos = (remembered_op_next_pos + NUM_REMEMBERED_BYTE_OPS +
 	     i - num_remembered) % NUM_REMEMBERED_BYTE_OPS;
       op = remembered_ops[pos];
       if (op >= Bconstant)
 	{
-	  sprintf (msg2, "constant+%d", op - Bconstant);
+	  emacs_snprintf_ascbyte (msg2, sizeof (msg2), "constant+%d",
+                                  op - Bconstant);
 	  strcat (msg, msg2);
 	}
       else
@@ -204,7 +206,7 @@ assert_failed_with_remembered_ops (const Ascbyte *file, int line,
 	  else
 	    strcat (msg, opname);
 	}
-      sprintf (msg2, " (%d)\n", op);
+      emacs_snprintf_ascbyte (msg2, sizeof (msg2), " (%d)\n", op);
       strcat (msg, msg2);
     }
 
@@ -1955,8 +1957,8 @@ execute_rare_opcode (Lisp_Object *stack_ptr,
 
     default:
       {
-	Ascbyte msg[100];
-	sprintf (msg, "Unknown opcode %d", opcode);
+	Ascbyte msg[sizeof ("Unknown opcode ") + DECIMAL_PRINT_SIZE (opcode)];
+	emacs_snprintf_ascbyte (msg, sizeof (msg), "Unknown opcode %d", opcode);
 	bytecode_abort_with_message (msg);
       }
       break;
@@ -3159,7 +3161,7 @@ init_opcode_table_multi_op (Opcode op)
   for (i = 1; i < 7; i++)
     {
       assert (!opcode_name_table[op + i]);
-      sprintf (temp, "%s+%d", base, i);
+      emacs_snprintf_ascbyte (temp, sizeof (temp), "%s+%d", base, i);
       opcode_name_table[op + i] = xstrdup (temp);
     }
 }

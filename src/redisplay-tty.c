@@ -1435,7 +1435,7 @@ term_get_fkeys_1 (Lisp_Object function_key_map)
 
   /* Set up cookies for numbered function keys above f10. */
   {
-    char fcap[3], fkey[4];
+    char fcap[3];
 
     fcap[0] = 'F'; fcap[2] = '\0';
     for (i = 11; i < 64; i++)
@@ -1451,10 +1451,13 @@ term_get_fkeys_1 (Lisp_Object function_key_map)
 	  char *sequence = tgetstr (fcap, address);
 	  if (sequence)
 	    {
-	      sprintf (fkey, "f%d", i);
+              Lisp_Object fstring = emacs_sprintf_string ("f%d", i);
 	      Fdefine_key (function_key_map,
 			   build_extstring (sequence, Qbinary),
-			   vector1 (intern (fkey)));
+			   vector1 (intern_istring (XSTRING_DATA (fstring),
+                                                    XSTRING_LENGTH (fstring),
+                                                    fstring,
+                                                    Qnil)));
 	    }
 	}
       }

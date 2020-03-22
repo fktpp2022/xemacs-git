@@ -4200,7 +4200,7 @@ Return non-nil if OBJECT is an ephemeron.
                                                                         \
     if (dval != result)                                                 \
       {                                                                 \
-        invalid_argument ("Fractional or two wide " #c_type,            \
+        invalid_argument ("Fractional or too wide " #c_type,            \
                           objeto);                                      \
       }                                                                 \
                                                                         \

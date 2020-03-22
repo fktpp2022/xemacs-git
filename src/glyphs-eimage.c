@@ -1343,65 +1343,54 @@ tiff_memory_size (thandle_t data)
   return mem->len;
 }
 
-struct tiff_error_struct
-{
-#ifdef HAVE_VSNPRINTF
-  char err_str[256];
-#else
-  char err_str[1024];		/* return the error string */
-#endif
-  jmp_buf setjmp_buffer;	/* for return to caller */
-};
-
-/* jh 98/03/12 - ###This struct for passing data to the error functions
-   is an ugly hack caused by the fact that libtiff (as of v3.4) doesn't
-   have any place to store error func data.  This should be rectified
-   before XEmacs gets threads! */
-static struct tiff_error_struct tiff_err_data;
-
 static void
-tiff_error_func (const char *UNUSED (module), const char *fmt, ...)
+tiff_error_func (const char *module_external, const char *fmt, ...)
 {
+  Lisp_Object stream = make_resizing_buffer_output_stream ();
+  Ibyte *module = EXTERNAL_TO_ITEXT (module_external,
+                                     Qerror_message_encoding);
   va_list vargs;
+  struct gcpro gcpro1;
+
+  GCPRO1 (stream); /* Apotropaic, we won't GC in this. */
+
+  write_istring (stream, module);
+  write_ascstring (stream, " - ");
 
   va_start (vargs, fmt);
-#ifdef HAVE_VSNPRINTF
-  vsnprintf (tiff_err_data.err_str, 255, fmt, vargs);
-#else
-  /* pray this doesn't overflow... */
-  vsprintf (tiff_err_data.err_str, fmt, vargs);
-#endif
+  write_external_fmt_string_va (stream, Qerror_message_encoding, fmt, vargs);
   va_end (vargs);
-  /* return to setjmp point */
-  longjmp (tiff_err_data.setjmp_buffer, 1);
+
+  UNGCPRO;
+
+  /* An error was signaled. No clean up is needed, as unwind handles that
+     for us.  Just pass the error along. */
+  signal_image_error ("TIFF decoding error",
+                      resizing_buffer_to_lisp_string (XLSTREAM (stream)));
 }
 
 static void
-tiff_warning_func (const char *module, const char *fmt, ...)
+tiff_warning_func (const char *module_external, const char *fmt, ...)
 {
+  Lisp_Object stream = make_resizing_buffer_output_stream ();
+  Ibyte *module = EXTERNAL_TO_ITEXT (module_external, Qerror_message_encoding);
   va_list vargs;
-#ifdef HAVE_VSNPRINTF
-  char warn_str[256];
-#else
-  char warn_str[1024];
-#endif
-  DECLARE_EISTRING (eimodule);
-  DECLARE_EISTRING (eiwarnstr);
+  struct gcpro gcpro1;
+
+  GCPRO1 (stream); /* Apotropaic, we won't GC in this. */
+
+  write_istring (stream, module);
+  write_ascstring (stream, " - ");
 
   va_start (vargs, fmt);
-#ifdef HAVE_VSNPRINTF
-  vsnprintf (warn_str, 255, fmt, vargs);
-#else
-  vsprintf (warn_str, fmt, vargs);
-#endif
+  write_external_fmt_string_va (stream, Qerror_message_encoding, fmt, vargs);
   va_end (vargs);
 
-  eicpy_ext(eimodule, module, Qbinary);  
-  eicpy_ext(eiwarnstr, warn_str, Qbinary);  
+  warn_when_safe_lispobj (Qtiff, Qinfo,
+                          resizing_buffer_to_lisp_string (XLSTREAM (stream)));
+  UNGCPRO;
 
-  warn_when_safe (Qtiff, Qinfo, "%s - %s",
-                  eidata(eimodule), 
-                  eidata(eiwarnstr));
+  Lstream_delete (XLSTREAM (stream));
 }
 
 static void
@@ -1422,15 +1411,6 @@ tiff_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
   record_unwind_protect (tiff_instantiate_unwind, make_opaque_ptr (&unwind));
 
   /* set up error facilities */
-  if (setjmp (tiff_err_data.setjmp_buffer))
-    {
-      /* An error was signaled. No clean up is needed, as unwind handles that
-	 for us.  Just pass the error along. */
-      signal_image_error_2 ("TIFF decoding error",
-			    build_extstring (tiff_err_data.err_str,
-					      Qerror_message_encoding),
-			    instantiator);
-    }
   TIFFSetErrorHandler ((TIFFErrorHandler)tiff_error_func);
   TIFFSetWarningHandler ((TIFFErrorHandler)tiff_warning_func);
   {

@@ -4467,14 +4467,15 @@ object_memory_usage_stats (int set_total_gc_usage)
 	  if (lrecord_stats[i].bytes_in_use_including_overhead != 
 	      lrecord_stats[i].bytes_in_use)
 	    {
-	      sprintf (buf, "%s-storage-including-overhead", name);
+	      emacs_snprintf_ascbyte (buf, sizeof (buf),
+                                      "%s-storage-including-overhead", name);
 	      pl = gc_plist_hack (buf, 
 				  lrecord_stats[i]
 				  .bytes_in_use_including_overhead,
 				  pl);
 	    }
 	  
-	  sprintf (buf, "%s-storage", name);
+	  emacs_snprintf_ascbyte (buf, sizeof (buf), "%s-storage", name);
 	  pl = gc_plist_hack (buf, 
 			      lrecord_stats[i].bytes_in_use,
 			      pl);
@@ -4496,23 +4497,27 @@ object_memory_usage_stats (int set_total_gc_usage)
           Ascbyte buf[255];
           const Ascbyte *name = lrecord_implementations_table[i]->name;
 
-          sprintf (buf, "%s-storage-overhead", name);
+          emacs_snprintf_ascbyte (buf, sizeof (buf), "%s-storage-overhead",
+                                  name);
           pl = gc_plist_hack (buf, lrecord_stats[i].bytes_in_use_overhead, pl);
 	  tgu_val += lrecord_stats[i].bytes_in_use_overhead;
-          sprintf (buf, "%s-storage", name);
+          emacs_snprintf_ascbyte (buf, sizeof (buf), "%s-storage", name);
           pl = gc_plist_hack (buf, lrecord_stats[i].bytes_in_use, pl);
 	  tgu_val += lrecord_stats[i].bytes_in_use;
 #ifdef MEMORY_USAGE_STATS
 	  if (lrecord_stats[i].nonlisp_bytes_in_use)
 	    {
-	      sprintf (buf, "%s-non-lisp-storage", name);
+	      emacs_snprintf_ascbyte (buf, sizeof (buf),
+                                      "%s-non-lisp-storage", name);
 	      pl = gc_plist_hack (buf, lrecord_stats[i].nonlisp_bytes_in_use,
 				  pl);
 	      tgu_val += lrecord_stats[i].nonlisp_bytes_in_use;
 	    }
 	  if (lrecord_stats[i].lisp_ancillary_bytes_in_use)
 	    {
-	      sprintf (buf, "%s-lisp-ancillary-storage", name);
+	      emacs_snprintf_ascbyte (buf, sizeof (buf),
+                                      "%s-lisp-ancillary-storage",
+                                      name);
 	      pl = gc_plist_hack (buf, lrecord_stats[i].
 				  lisp_ancillary_bytes_in_use,
 				  pl);

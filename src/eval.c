@@ -6608,18 +6608,23 @@ safe_run_hook_trapping_problems (Lisp_Object warning_class,
 				STORE_LISP_IN_VOID (hook_symbol));
   {
     Lisp_Object hook_name = XSYMBOL_NAME (hook_symbol);
-    Ibyte *hook_str = XSTRING_DATA (hook_name);
-    Ibyte *err = alloca_ibytes (XSTRING_LENGTH (hook_name) + 100);
+    const Ibyte *hook_str = XSTRING_DATA (hook_name);
+    const Bytecount errsize = XSTRING_LENGTH (hook_name) + 
+      max (sizeof ("Error in `%s' (resetting to nil)"),
+           sizeof ("Quit in `%s'"));
+    Ibyte *err = alloca_ibytes (errsize);
 
     if (prob.caught_throw || (prob.caught_error && !EQ (prob.error_conditions,
 							Qquit)))
       {
 	Fset (hook_symbol, Qnil);
-	qxesprintf (err, "Error in `%s' (resetting to nil)", hook_str);
+	emacs_snprintf (err, errsize,
+                        "Error in `%s' (resetting to nil)", hook_str);
       }
     else
-      qxesprintf (err, "Quit in `%s'", hook_str);
-
+      {
+	emacs_snprintf (err, errsize, "Quit in `%s'", hook_str);
+      }
   
     issue_call_trapping_problems_warning (warning_class, (CIbyte *) err,
 					  &prob);
@@ -6661,8 +6666,8 @@ run_hook_with_args_in_buffer_trapping_problems (Lisp_Object warning_class,
   struct run_hook_with_args_in_buffer_trapping_problems diversity_and_distrust;
   struct gcpro gcpro1;
   Lisp_Object hook_name;
-  Ibyte *hook_str;
   Ibyte *err;
+  Bytecount errsize;
 
   if (!initialized || preparing_for_armageddon)
     /* We need to bail out of here pronto. */
@@ -6683,9 +6688,10 @@ run_hook_with_args_in_buffer_trapping_problems (Lisp_Object warning_class,
   diversity_and_distrust.cond = cond;
 
   hook_name = XSYMBOL_NAME (args[0]);
-  hook_str = XSTRING_DATA (hook_name);
-  err = alloca_ibytes (XSTRING_LENGTH (hook_name) + 100);
-  qxesprintf (err, "Error in `%s'", hook_str);
+
+  errsize = XSTRING_LENGTH (hook_name) + sizeof ("Error in `%s'");
+  err = alloca_ibytes (errsize);
+  emacs_snprintf (err, errsize, "Error in `%s'", XSTRING_DATA (hook_name));
   RETURN_UNGCPRO
     (call_trapping_problems
      (warning_class, (CIbyte *) err, flags, 0,

@@ -1043,9 +1043,8 @@ mswindows_color_to_string (COLORREF color)
     if (pcolor == (mswindows_X_color_map[i].colorref))
       return  build_ascstring (mswindows_X_color_map[i].name);
 
-  sprintf (buf, "#%02X%02X%02X",
-	   GetRValue (color), GetGValue (color), GetBValue (color));
-  return build_ascstring (buf);
+  return emacs_sprintf_string ("#%02X%02X%02X", GetRValue (color),
+                               GetGValue (color), GetBValue (color));
 }
 
 /*
@@ -1141,10 +1140,10 @@ font_enum_callback_2 (ENUMLOGFONTEXW *lpelfe, NEWTEXTMETRICEXW *lpntme,
 
   if (FontType == 0 /*vector*/ || FontType & TRUETYPE_FONTTYPE)
     /* Scalable, so leave pointsize blank */
-    qxesprintf (fontname, "%s::::", facename);
+    emacs_snprintf (fontname, sizeof (fontname), "%s::::", facename);
   else
     /* Formula for pointsize->height from LOGFONT docs in Platform SDK */
-    qxesprintf (fontname, "%s::%d::", facename,
+    emacs_snprintf (fontname, sizeof (fontname), "%s::%d::", facename,
 		MulDiv (lpntme->ntmTm.tmHeight -
 			lpntme->ntmTm.tmInternalLeading,
 			72, GetDeviceCaps (font_enum->hdc, LOGPIXELSY)));
@@ -1787,8 +1786,8 @@ create_hfont_from_font_spec (const Ibyte *namestr,
 
       if (!points[0])
 	{
-	  qxesprintf (truename, "%s:%s:10:%s:%s",
-		      fontname, weight, effects, charset);
+          emacs_snprintf (truename, sizeof (truename), "%s:%s:10:%s:%s",
+                          fontname, weight, effects, charset);
 
 	  LIST_LOOP (fonttail, device_font_list)
 	    {
@@ -1800,8 +1799,8 @@ create_hfont_from_font_spec (const Ibyte *namestr,
 
       if (NILP (fonttail))
 	{
-	  qxesprintf (truename, "%s:%s:%s:%s:%s",
-		      fontname, weight, points, effects, charset);
+          emacs_snprintf (truename, sizeof (truename), "%s:%s:%s:%s:%s",
+                          fontname, weight, points, effects, charset);
 
 	  LIST_LOOP (fonttail, device_font_list)
 	    {
@@ -1836,13 +1835,11 @@ create_hfont_from_font_spec (const Ibyte *namestr,
       return 0;
     }
 
-  /* #### Truename will not have all its fields filled in when we have no
-     list of fonts.  Doesn't really matter now, since we always have one.
-     See above. */
-  qxesprintf (truename, "%s:%s:%s:%s:%s", fontname, weight,
-	      points, effects, charset);
-  
-  *truename_ret = build_istring (truename);
+  /* #### *truename_ret will not have all its fields filled in when we have no
+     list of fonts.  Doesn't really matter now, since we always have one.  See
+     above. */
+  *truename_ret = emacs_sprintf_string ("%s:%s:%s:%s:%s", fontname,
+                                        weight, points, effects, charset);
   return hfont;
 }
 

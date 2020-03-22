@@ -345,7 +345,8 @@ gtk_init_device (struct device *d, Lisp_Object UNUSED (props))
                            Vselection_converter_out_alist);
               }
             targets[ii].target = alloca_array (gchar, sizeof ("TARGETFF"));
-            sprintf (targets[ii].target, "TARGET%02X", ii);
+            emacs_snprintf_ascbyte (targets[ii].target, sizeof ("TARGETFF"),
+                                    "TARGET%02X", ii);
           }
         tail = Fcdr (tail);
       }
@@ -943,15 +944,16 @@ vars_of_device_gtk (void)
   DEFVAR_LISP ("gtk-version", &Vgtk_version /*
 GTK version string.
 */ );
+  Vgtk_version
+    = emacs_sprintf_string ("%d.%d.%d",
 #ifdef HAVE_GTK2
-  qxesprintf (version, "%d.%d.%d", GTK_MAJOR_VERSION, GTK_MINOR_VERSION,
-	      GTK_MICRO_VERSION);
+                            GTK_MAJOR_VERSION, GTK_MINOR_VERSION,
+                            GTK_MICRO_VERSION
+#else
+                            gtk_get_major_version(), gtk_get_minor_version(),
+                            gtk_get_micro_version()
 #endif
-#ifdef HAVE_GTK3
-  qxesprintf (version, "%d.%d.%d", gtk_get_major_version(), gtk_get_minor_version(),
-	      gtk_get_micro_version());
-#endif
-  Vgtk_version = build_istring (version);
+                            );
 
   DEFVAR_LISP ("gtk-major-version", &Vgtk_major_version /*
 GTK major version as integer.

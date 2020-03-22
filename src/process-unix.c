@@ -386,7 +386,8 @@ allocate_pty_the_old_fashioned_way (void)
 #ifdef PTY_NAME_SPRINTF
 	PTY_NAME_SPRINTF
 #else
-	qxesprintf (pty_name, "/dev/pty%c%x", c, i);
+        emacs_snprintf_ascbyte ((Ascbyte *) pty_name, sizeof (pty_name),
+                                "/dev/pty%c%x", c, i);
 #endif /* no PTY_NAME_SPRINTF */
 
 	if (qxe_stat (pty_name, &stb) < 0)
@@ -403,7 +404,8 @@ allocate_pty_the_old_fashioned_way (void)
 #ifdef PTY_TTY_NAME_SPRINTF
 	    PTY_TTY_NAME_SPRINTF
 #else
-	    qxesprintf (pty_name, "/dev/tty%c%x", c, i);
+            emacs_snprintf_ascbyte ((Ascbyte *) pty_name, sizeof (pty_name),
+                                    "/dev/tty%c%x", c, i);
 #endif /* no PTY_TTY_NAME_SPRINTF */
 	    if (qxe_access (pty_name, R_OK | W_OK) == 0)
 	      {

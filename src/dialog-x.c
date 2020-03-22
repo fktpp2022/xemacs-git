@@ -229,12 +229,14 @@ dbox_descriptor_to_widget_value (Lisp_Object keys)
     sferror ("Dialog boxes must have some buttons", keys);
 
   {
-    Extbyte type = (text_field_p ? 'P' : 'Q');
-    static Extbyte tmp_dbox_name [255];
-
+    Ascbyte type = (text_field_p ? 'P' : 'Q');
     widget_value *dbox;
-    sprintf (tmp_dbox_name, "%c%dBR%d", type, lbuttons + rbuttons, rbuttons);
+    Ascbyte tmp_dbox_name[sizeof ("PQ") + DECIMAL_PRINT_SIZE (lbuttons)
+                          + sizeof ("BR") + DECIMAL_PRINT_SIZE (rbuttons)];
+
     dbox = xmalloc_widget_value ();
+    emacs_snprintf_ascbyte (tmp_dbox_name, sizeof (tmp_dbox_name),
+                            "%c%dBR%d", type, lbuttons + rbuttons, rbuttons);
     dbox->name = xstrdup (tmp_dbox_name);
     dbox->contents = kids;
 

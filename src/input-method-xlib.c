@@ -107,16 +107,15 @@ do {									\
 } while (0)
 #endif /* DEBUG_XEMACS */
 
-static char DefaultXIMStyles[] =
-"XIMPreeditPosition|XIMStatusArea\n"
-"XIMPreeditPosition|XIMStatusNone\n"
-"XIMPreeditPosition|XIMStatusNothing\n"
-"XIMPreeditNothing|XIMStatusArea\n"
-"XIMPreeditNothing|XIMStatusNothing\n"
-"XIMPreeditNothing|XIMStatusNone\n"
-"XIMPreeditNone|XIMStatusArea\n"
-"XIMPreeditNone|XIMStatusNothing\n"
-"XIMPreeditNone|XIMStatusNone";
+#define DefaultXIMStyles ("XIMPreeditPosition|XIMStatusArea\n" \
+                          "XIMPreeditPosition|XIMStatusNone\n" \
+                          "XIMPreeditPosition|XIMStatusNothing\n" \
+                          "XIMPreeditNothing|XIMStatusArea\n" \
+                          "XIMPreeditNothing|XIMStatusNothing\n" \
+                          "XIMPreeditNothing|XIMStatusNone\n" \
+                          "XIMPreeditNone|XIMStatusArea\n" \
+                          "XIMPreeditNone|XIMStatusNothing\n" \
+                          "XIMPreeditNone|XIMStatusNone")
 
 static XIMStyle best_style (XIMStyles *user, XIMStyles *xim);
 
@@ -670,15 +669,17 @@ EmacsXtCvtStringToXIMStyles (
   if (p->count_styles == 0)
     {   /* No valid styles? */
       /* !!#### */
-      char *buf = (char *) ALLOCA (strlen (fromVal->addr)
-				   + strlen (DefaultXIMStyles)
-				   + 100);
+      Bytecount buflen = strlen (fromVal->addr) + strlen (DefaultXIMStyles)
+        + 100;
+      Ascbyte *buf = alloca_ascbytes (buflen);
       XrmValue new_from;
       XtAppContext the_app_con = XtDisplayToApplicationContext (dpy);
 
-      sprintf(buf, "Cannot convert string \"%s\" to type XIMStyles.\n"
-              "Using default string \"%s\" instead.\n",
-              fromVal->addr, DefaultXIMStyles);
+      emacs_snprintf_ascbyte (buf, buflen,
+                              "Cannot convert string \"%s\" to type "
+                              "XIMStyles.\n"
+                              "Using default string \"%s\" instead.\n",
+                              fromVal->addr, DefaultXIMStyles);
       XtAppWarningMsg(the_app_con, "wrongParameters", "cvtStringToXIMStyle",
                       "XtToolkitError",
                       buf, (String *)NULL, (Cardinal *)NULL);
@@ -895,9 +896,11 @@ describe_Status (Status status)
 void
 describe_Window (Window win)
 {
-  char xwincmd[128];
-  sprintf (xwincmd, "xwininfo -id 0x%x >&2; xwininfo -events -id 0x%x >&2",
-           (int) win, (int) win);
+  Ascbyte xwincmd[128];
+  emacs_snprintf_ascbyte (xwincmd, sizeof (xwincmd),
+                          "xwininfo -id 0x%lx >&2; "
+                          "xwininfo -events -id 0x%lx >&2",
+                          win, win);
   if (system (xwincmd) == -1)
     stderr_out ("Unable to execute xwininfo\n");
 }

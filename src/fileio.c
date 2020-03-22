@@ -158,9 +158,7 @@ lisp_strerror (int errnum)
   Extbyte *ret = strerror (errnum);
   if (!ret)
     {
-      Ibyte ffff[99];
-      qxesprintf (ffff, "Unknown error %d", errnum);
-      return build_istring (ffff);
+      return emacs_sprintf_string ("Unknown error %d", errnum);
     }
   return build_extstring (ret, Qstrerror_encoding);
 }

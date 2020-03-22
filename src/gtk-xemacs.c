@@ -549,9 +549,5 @@ gtk_xemacs_expose (GtkWidget *widget, GdkEventExpose *event)
 Lisp_Object
 xemacs_gtk_convert_color(GdkColor *c, GtkWidget *UNUSED (w))
 {
-  char color_buf[255];
-
-  sprintf (color_buf, "#%04x%04x%04x", c->red, c->green, c->blue);
-
-  return (build_cistring (color_buf));
+  return emacs_sprintf_string ("#%04x%04x%04x", c->red, c->green, c->blue);
 }

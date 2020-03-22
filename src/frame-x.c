@@ -502,13 +502,11 @@ init_x_prop_symbols (void)
 static Lisp_Object
 color_to_string (Widget w, unsigned long pixel)
 {
-  Ibyte buf[255];
-
   XColor color;
   color.pixel = pixel;
   XQueryColor (XtDisplay (w), w->core.colormap, &color);
-  qxesprintf (buf, "#%04x%04x%04x", color.red, color.green, color.blue);
-  return build_istring (buf);
+  return emacs_sprintf_string ("#%04x%04x%04x", color.red, color.green,
+                               color.blue);
 }
 
 static void
@@ -716,16 +714,25 @@ x_set_initial_frame_size (struct frame *f, int flags, int x, int y,
   (flags & YNegative) ? (yval = -y, ysign = '-') : (yval = y, ysign = '+');
 
   if (uspos && ussize)
-    sprintf (shell_geom, "=%dx%d%c%d%c%d", w, h, xsign, xval, ysign, yval);
+    {
+      emacs_snprintf_ascbyte (shell_geom, sizeof (shell_geom),
+                              "=%dx%d%c%d%c%d", w, h, xsign, xval, ysign,
+                              yval);
+    }
   else if (uspos)
-    sprintf (shell_geom, "=%c%d%c%d", xsign, xval, ysign, yval);
+    {
+      emacs_snprintf_ascbyte (shell_geom, sizeof (shell_geom), "=%c%d%c%d",
+                              xsign, xval, ysign, yval);
+    }
   else if (ussize)
-    sprintf (shell_geom, "=%dx%d", w, h);
+    {
+      emacs_snprintf_ascbyte (shell_geom, sizeof (shell_geom), "=%dx%d", w,
+                              h);
+    }
 
   if (uspos || ussize)
     {
-      temp = xnew_ascbytes (1 + strlen (shell_geom));
-      strcpy (temp, shell_geom);
+      temp = xstrdup (shell_geom);
       FRAME_X_GEOM_FREE_ME_PLEASE (f) = temp;
     }
   else
@@ -2211,11 +2218,10 @@ a string.
 */
        (frame))
 {
-  Ibyte str[255];
   struct frame *f = decode_x_frame (frame);
-
-  qxesprintf (str, "%lu", XtWindow (FRAME_X_TEXT_WIDGET (f)));
-  return build_istring (str);
+  return emacs_sprintf_string ("%lu",
+                               (EMACS_UINT) XtWindow
+                               (FRAME_X_TEXT_WIDGET (f)));
 }
 
 

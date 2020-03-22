@@ -1231,18 +1231,18 @@ a string.
 */
        (frame))
 {
-  Ascbyte str[255];
   struct frame *f = decode_gtk_frame (frame);
 
+  return emacs_sprintf_string ("%lu",
 #ifdef HAVE_GTK2
-  sprintf (str, "%lu",
-	   GDK_WINDOW_XWINDOW (gtk_widget_get_window (FRAME_GTK_TEXT_WIDGET (f))));
-  #endif
-#ifdef HAVE_GTK3
-  sprintf (str, "%lu",
-	   gdk_x11_window_get_xid (gtk_widget_get_window (FRAME_GTK_TEXT_WIDGET (f))));
+                  GDK_WINDOW_XWINDOW (gtk_widget_get_window
+                                      (FRAME_GTK_TEXT_WIDGET (f)))
 #endif
-  return build_ascstring (str);
+#ifdef HAVE_GTK3
+                  gdk_x11_window_get_xid (gtk_widget_get_window
+                                          (FRAME_GTK_TEXT_WIDGET (f)))
+#endif
+                               );
 }
 #endif
 

@@ -105,14 +105,15 @@ static void
 x_create_scrollbar_instance (struct frame *f, int vertical,
 			     struct scrollbar_instance *instance)
 {
-  char buffer[32];
+  char *buffer;
 
   /* initialize the X specific data section. */
   instance->scrollbar_data = xnew_and_zero (struct x_scrollbar_data);
 
   SCROLLBAR_X_ID (instance) = new_lwlib_id ();
-  sprintf (buffer, "scrollbar_%d", SCROLLBAR_X_ID (instance));
-  SCROLLBAR_X_NAME (instance) = xstrdup (buffer);
+  emacs_asprintf ((Ibyte **)&buffer,
+                  "scrollbar_%ld", (EMACS_INT) (SCROLLBAR_X_ID (instance)));
+  SCROLLBAR_X_NAME (instance) = (CIbyte *) buffer;
 #if defined (LWLIB_SCROLLBARS_MOTIF) || defined (LWLIB_SCROLLBARS_LUCID) || \
     defined (LWLIB_SCROLLBARS_ATHENA3D)
   SCROLLBAR_X_VDRAG_ORIG_VALUE (instance) = -1;

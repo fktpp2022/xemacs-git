@@ -805,12 +805,8 @@ get_home_directory (void)
 	  if ((homedrive = egetenv ("HOMEDRIVE")) != NULL &&
 	      (homepath = egetenv ("HOMEPATH")) != NULL)
 	    {
-	      cached_home_directory =
-		xnew_ibytes (qxestrlen (homedrive) + qxestrlen (homepath) +
-				ITEXT_ZTERM_SIZE);
-	      qxesprintf (cached_home_directory, "%s%s",
-			  homedrive,
-			  homepath);
+              emacs_asprintf (&cached_home_directory,
+                              "%s%s", homedrive, homepath);
 	    }
 	  else
 #endif	/* !WIN32_NATIVE */
@@ -1356,13 +1352,11 @@ the data it can't find.
 	tem = build_extstring (s, Qtime_zone_encoding);
       else
 	{
-	  Ibyte buf[6];
-
 	  /* No local time zone name is available; use "+-NNNN" instead.  */
-	  int am = (offset < 0 ? -offset : offset) / 60;
-	  qxesprintf (buf, "%c%02d%02d", (offset < 0 ? '-' : '+'), am/60,
-		      am%60);
-	  tem = build_istring (buf);
+	  long am = (offset < 0 ? -offset : offset) / 60;
+	  tem = emacs_sprintf_string ("%c%02ld%02ld",
+                                      (offset < 0 ? '-' : '+'),
+                                      am/60, am%60);
 	}
       return list2 (make_fixnum (offset), tem);
     }

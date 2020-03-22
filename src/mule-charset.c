@@ -694,10 +694,8 @@ make_charset (int id, int no_init_unicode_tables,
      based on the id. */
   if (EQ (name, Qunbound))
     {
-      Ibyte tempname[80];
-
-      qxesprintf (tempname, "___temporary___%d__", id);
-      name = Fmake_symbol (build_istring (tempname)); /* Uninterned. */
+      /* Uninterned. */
+      name = Fmake_symbol (emacs_sprintf_string ("___temporary___%d__", id));
     }
 
   /* Set certain other default values.  SHORT_NAME cannot be computed

@@ -3823,20 +3823,6 @@ guts_of_fatal_error_signal (int sig)
       shut_down_emacs (sig, Qnil, 1);
       stderr_out ("\nLisp backtrace follows:\n\n");
       debug_backtrace ();
-# if 0	/* This is evil, rarely useful, and causes grief in some cases. */
-      /* Check for Sun-style stack printing via /proc */
-      {
-        const Ascbyte *pstack = "/usr/proc/bin/pstack";
-        if (access (pstack, X_OK) == 0)
-          {
-            Ascbyte buf[100];
-            stderr_out ("\nC backtrace follows:\n"
-                       "(A real debugger may provide better information)\n\n");
-            sprintf (buf, "%s %d >&2", pstack, (int) getpid());
-            system (buf);
-          }
-      }
-# endif
 #if defined (NEED_WINDOWS_MESSAGE_PAUSE) && !defined (USER_IS_DEVELOPING_XEMACS)
       pause_so_user_can_read_messages (0);
 #endif

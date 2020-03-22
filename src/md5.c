@@ -505,8 +505,6 @@ file-coding or Mule support.  Otherwise, they are ignored.
   /* Can this really GC?  How?  */
   struct md5_ctx ctx;
   unsigned char digest[16];
-  unsigned char thehash[33];
-  int i;
 
   Lisp_Object raw_instream = Qnil, instream = Qnil;
   struct gcpro gcpro1, gcpro2;
@@ -560,10 +558,12 @@ file-coding or Mule support.  Otherwise, they are ignored.
   UNGCPRO;
 
   md5_finish_ctx (&ctx, digest);
-  for (i = 0; i < 16; i++)
-    sprintf ((char *) (thehash + (i * 2)), "%02x", digest[i]);
-
-  return make_string (thehash, 32);
+  return emacs_sprintf_string ("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x"
+                               "%02x%02x%02x%02x%02x%02x",
+                               digest[0], digest[1], digest[2], digest[3],
+                               digest[4], digest[5], digest[6], digest[7],
+                               digest[8], digest[9], digest[10], digest[11],
+                               digest[12], digest[13], digest[14], digest[15]);
 }
 
 void

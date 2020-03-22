@@ -3680,46 +3680,33 @@ of a character from a buffer rather than a key read from the user.
 #ifdef MULE
 #ifdef UNICODE_INTERNAL
       /* Output Unicode codes directly */
-#define FROB(x) ((Ibyte) ((x) >= 10 ? (x) + 'A' - 10 : (x) + '0'))
       if (c >= 65536)
 	{
 	  *p++ = 'U';
-	  *p++ = FROB (c >> 28);
-	  *p++ = FROB (c >> 24 & 0x0F);
-	  *p++ = FROB (c >> 20 & 0x0F);
-	  *p++ = FROB (c >> 16 & 0x0F);
-	  *p++ = FROB (c >> 12 & 0x0F);
-	  *p++ = FROB (c >>  8 & 0x0F);
-	  *p++ = FROB (c >>  4 & 0x0F);
-	  *p++ = FROB (c & 0x0F);
+          p += emacs_snprintf (p, sizeof (buf) - (p - buf),
+                               "%08X", c);
+
 	}
       else if (c >= 256)
 	{
 	  *p++ = 'u';
-	  *p++ = FROB (c >> 12 & 0x0F);
-	  *p++ = FROB (c >>  8 & 0x0F);
-	  *p++ = FROB (c >>  4 & 0x0F);
-	  *p++ = FROB (c & 0x0F);
+          p += emacs_snprintf (p, sizeof (buf) - (p - buf),
+                               "%04X", c);
 	}
-#undef FROB
 #else /* not UNICODE_INTERNAL */
       /* Don't output Unicode because it is lossy. */
       if (c >= 256)
 	{
-	  Ibyte hexbuf[200]; /* Way more than enough */
-	  Ibyte *hp = hexbuf;
-	  qxesprintf (hexbuf, "%X", c);
 	  *p++ = 'x';
-	  while (*hp)
-	    *p++ = *hp++;
+          p += emacs_snprintf (p, sizeof (buf) - (p - buf),
+                               "%X", c);
 	}
 #endif /* not UNICODE_INTERNAL */
       else
 #endif /* MULE */
 	{
-	  *p++ = '0' + ((c & 0700) >> 6);
-	  *p++ = '0' + ((c & 0070) >> 3);
-	  *p++ = '0' + ((c & 0007));
+          p += emacs_snprintf (p, sizeof (buf) - (p - buf),
+                               "%o", c);
 	}
     }
   else

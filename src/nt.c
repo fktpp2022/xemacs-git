@@ -1162,7 +1162,11 @@ int
 mswindows_rename (const Ibyte *oldname, const Ibyte *newname)
 {
   int result;
-  Ibyte *temp;
+  Bytecount old_len = qxestrlen (oldname);
+  /* XEmacs: We sprintf() part of OLDNAME into part of OLDNAME + a number,
+     so the following calculation should certainly be enough. */
+  Bytecount temp_len = alloca_ibytes (2 * old_len + 100);
+  Ibyte *temp = alloca_ibytes (temp_len);
 
   /* MoveFile on Windows 95 doesn't correctly change the short file name
      alias in a number of circumstances (it is not easy to predict when
@@ -1177,10 +1181,7 @@ mswindows_rename (const Ibyte *oldname, const Ibyte *newname)
      So, on Windows 95 we always rename through a temp name, and we make sure
      the temp name has a long extension to ensure correct renaming.  */
 
-  /* XEmacs: We sprintf() part of OLDNAME into part of OLDNAME + a number,
-     so the following calculation should certainly be enough. */
-
-  temp = qxestrcpy (alloca_ibytes (2 * qxestrlen (oldname) + 100), oldname);
+  memcpy (temp, oldname, old_len + 1);
 
   if (mswindows_windows9x_p)
     {
@@ -1203,7 +1204,7 @@ mswindows_rename (const Ibyte *oldname, const Ibyte *newname)
 	  Extbyte *oldext, *tempext;
 	  /* Force temp name to require a manufactured 8.3 alias - this
 	     seems to make the second rename work properly.  */
-	  qxesprintf (p, "_.%s.%u", o, i);
+          emacs_snprintf (p, temp_len - (p - temp), "_.%s.%u", o, i);
 	  i++;
 	  PATHNAME_CONVERT_OUT (oldname, oldext);
 	  PATHNAME_CONVERT_OUT (temp, tempext);

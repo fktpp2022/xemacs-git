@@ -94,7 +94,7 @@ static HWND
 GetConsoleHwnd (void)
 { 
   HWND hwndFound;
-  Ascbyte newtitle[100];
+  Ascbyte newtitle[(DECIMAL_PRINT_SIZE (EMACS_INT) * 2) + sizeof ("/")];
   Extbyte *oldtitle;
   int numchars;
 
@@ -113,7 +113,9 @@ GetConsoleHwnd (void)
 
   /* format a "unique" new title */
 
-  sprintf (newtitle, "%ld/%ld", GetTickCount (), GetCurrentProcessId ());
+  emacs_snprintf_ascbyte (newtitle, sizeof (newtitle),
+                          "%ld/%ld", (EMACS_INT) (GetTickCount ()),
+                          (EMACS_INT) (GetCurrentProcessId ()));
 
   /* change current window title; we may be called during armageddon
      so don't do any conversion */

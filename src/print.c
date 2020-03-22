@@ -1641,21 +1641,22 @@ printing_major_badness (Lisp_Object printcharfun,
   switch (badness)
     {
     case BADNESS_INTEGER_OBJECT:
-      qxesprintf (buf, "%s type %d object %ld", badness_string, type,
-		  (EMACS_INT) val);
+      emacs_snprintf (buf, sizeof (buf), "%s type %d object %ld",
+                      badness_string, type, (EMACS_INT) val);
       break;
 
     case BADNESS_POINTER_OBJECT:
-      qxesprintf (buf, "%s type %d object %p", badness_string, type, val);
+      emacs_snprintf (buf, sizeof (buf), "%s type %d object %p",
+                      badness_string, type, val);
       break;
 
     case BADNESS_POINTER_OBJECT_WITH_DATA:
-      qxesprintf (buf, "%s type %d object %p data %p", badness_string, type,
-		  val, val2);
+      emacs_snprintf (buf, sizeof (buf), "%s type %d object %p data %p",
+                      badness_string, type, val, val2);
       break;
 
     case BADNESS_NO_TYPE:
-      qxesprintf (buf, "%s object %p", badness_string, val);
+      emacs_snprintf (buf, sizeof (buf), "%s object %p", badness_string, val);
       break;
     }
 

@@ -87,8 +87,9 @@ esd_play_sound_data (Binbyte *data, size_t length, int UNUSED (vol))
       break;
     default:
       {
-	Extbyte warn_buf[255];
-	sprintf (warn_buf, "byte format %d unimplemented", fmt);
+	Ibyte warn_buf[255];
+	emacs_snprintf (warn_buf, sizeof (warn_buf),
+                        "byte format %d unimplemented", fmt);
 	sound_warn (warn_buf);
 	return 0;
       }
@@ -99,8 +100,9 @@ esd_play_sound_data (Binbyte *data, size_t length, int UNUSED (vol))
     case 2: flags |= ESD_STEREO; break;
     default:
       {
-	Extbyte warn_buf[255];
-	sprintf (warn_buf, "%d channels - only 1 or 2 supported", tracks);
+	Ibyte warn_buf[255];
+	emacs_snprintf (warn_buf, sizeof (warn_buf),
+                        "%d channels - only 1 or 2 supported", tracks);
 	sound_warn (warn_buf);
 	return 0;
       }
@@ -124,8 +126,11 @@ esd_play_sound_data (Binbyte *data, size_t length, int UNUSED (vol))
 	  }
 	if (wrtn != crtn)
 	  {
-	    Extbyte warn_buf[255];
-	    sprintf (warn_buf, "only wrote %ld of %ld bytes", wrtn, crtn);
+	    Ibyte warn_buf[DECIMAL_PRINT_SIZE (wrtn)
+                           + DECIMAL_PRINT_SIZE (crtn) +
+                           + sizeof ("only wrote %ld of %ld bytes")];
+	    emacs_snprintf (warn_buf, sizeof (warn_buf),
+                            "only wrote %ld of %ld bytes", wrtn, crtn);
 	    sound_warn (warn_buf);
 	    goto END_OF_PLAY;
 	  }

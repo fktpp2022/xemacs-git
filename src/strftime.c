@@ -204,14 +204,14 @@ add_str (char *to, const char *from, int max)
 static int
 add_num_time_t (char *string, int max, time_t num)
 {
-  /* This buffer is large enough to hold the character representation
-     (including the trailing NUL) of any unsigned decimal quantity
-     whose binary representation fits in 128 bits.  */
-  char buf[40];
+  Ascbyte buf[DECIMAL_PRINT_SIZE (num) + 1];
 
-  if (sizeof (num) > 16)
+#ifdef ERROR_CHECK_ANY
+  if (sizeof (num) > sizeof (EMACS_UINT))
     ABORT ();
-  sprintf (buf, "%lu", (unsigned long) num);
+#endif
+
+  emacs_snprintf_ascbyte (buf, sizeof (buf), "%lu", (EMACS_UINT) num);
   return add_str (string, buf, max);
 }
 

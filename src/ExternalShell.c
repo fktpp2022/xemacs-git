@@ -382,8 +382,8 @@ GetGeometry (Widget W, Widget UNUSED (child))
     }
 
     if(w->shell.geometry != NULL) {
-	char def_geom[128];
 	int width, height;
+        Ascbyte def_geom[sizeof ("x++") + (DECIMAL_PRINT_SIZE (width) * 4)];
 
 	x = w->core.x;
 	y = w->core.y;
@@ -391,14 +391,14 @@ GetGeometry (Widget W, Widget UNUSED (child))
 	height = w->core.height;
 	hints.flags = 0;
 
-	sprintf( def_geom, "%dx%d+%d+%d", width, height, x, y );
-	flag = XWMGeometry( XtDisplay(W),
+	emacs_snprintf_ascbyte (def_geom, sizeof (def_geom), "%dx%d+%d+%d",
+                                width, height, x, y);
+	flag = XWMGeometry (XtDisplay(W),
 			    XScreenNumberOfScreen(XtScreen(W)),
 			    w->shell.geometry, def_geom,
 			    (unsigned int)w->core.border_width,
 			    &hints, &x, &y, &width, &height,
-			    &win_gravity
-			   );
+			    &win_gravity);
 	if (flag) {
 	    if (flag & XValue) w->core.x = (Position)x;
 	    if (flag & YValue) w->core.y = (Position)y;

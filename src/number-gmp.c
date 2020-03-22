@@ -124,7 +124,7 @@ bigfloat_to_string (mpf_t f, int base)
   CIbyte *str = mpf_get_str (NULL, &expt, base, 0, f);
   const int sign = mpf_sgn (f);
   const int neg = (sign < 0) ? 1 : 0;
-  int len = strlen (str) + 1;  /* Count the null terminator */
+  Bytecount len = strlen (str) + 1;  /* Count the null terminator */
 
   if (sign == 0)
     {
@@ -176,7 +176,9 @@ bigfloat_to_string (mpf_t f, int base)
 	    memmove (&str[neg + 2], &str[neg + 1], len - neg);
 	    str[neg + 1] = '.';
 	  }
-	sprintf (&str[len + point - 1], "E%ld", expt);
+	emacs_snprintf_ascbyte (&str[len + point - 1],
+                                (len + space) - (len + point - 1),
+                                "E%ld", expt);
       }
     }
   return str;

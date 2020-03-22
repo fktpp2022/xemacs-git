@@ -2881,21 +2881,25 @@ print_extent_1 (Lisp_Object obj, Lisp_Object printcharfun,
 		int UNUSED (escapeflag))
 {
   EXTENT ext = XEXTENT (obj);
+  /* Retrieve the ancestor and use it, for faster retrieval of properties */
   EXTENT anc = extent_ancestor (ext);
   Lisp_Object tail;
   Ascbyte buf[64], *bp = buf;
 
-  /* Retrieve the ancestor and use it, for faster retrieval of properties */
-
   if (!NILP (extent_begin_glyph (anc))) *bp++ = '*';
   *bp++ = (extent_start_open_p (anc) ? '(': '[');
   if (extent_detached_p (ext))
-    strcpy (bp, "detached");
+    {
+      strcpy (bp, "detached");
+      bp += sizeof ("detached") - sizeof ("");
+    }
   else
-    sprintf (bp, "%ld, %ld",
-	     XFIXNUM (Fextent_start_position (obj)),
-	     XFIXNUM (Fextent_end_position (obj)));
-  bp += strlen (bp);
+    {
+      bp += emacs_snprintf_ascbyte (bp, sizeof (buf) - (bp - buf),
+                                    "%ld, %ld",
+                                    XFIXNUM (Fextent_start_position (obj)),
+                                    XFIXNUM (Fextent_end_position (obj)));
+    }
   *bp++ = (extent_end_open_p (anc) ? ')': ']');
   if (!NILP (extent_end_glyph (anc))) *bp++ = '*';
   *bp++ = ' ';

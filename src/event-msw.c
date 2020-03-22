@@ -1841,10 +1841,8 @@ Allocate an advise item, and return its token.
   else
     {
       static int num = 0;
-      Ascbyte buf[20];
-      sprintf (buf, "Tok%d", num);
+      name = emacs_sprintf_string ("Tok%d", name);
       ++num;
-      name = build_ascstring (buf);
     }
 
   token = Qnil;

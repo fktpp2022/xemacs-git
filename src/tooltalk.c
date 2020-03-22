@@ -512,17 +512,14 @@ tt_build_c_string (char *s)
 static Lisp_Object
 tt_opnum_string (int n)
 {
-  Ascbyte buf[32];
-
-  sprintf (buf, "%u", n);
-  return build_ascstring (buf);
+  return emacs_sprintf_string ("%lu", (EMACS_INT) n);
 }
 
 static Lisp_Object
 tt_message_arg_ival_string (Tt_message m, int n)
 {
-  Ibyte buf[DECIMAL_PRINT_SIZE (int)];
   int value;
+  Ibyte buf[DECIMAL_PRINT_SIZE (value)];
 
   check_status (tt_message_arg_ival (m, n, &value));
   return make_string (buf, fixnum_to_string (buf, sizeof (buf), value,
@@ -532,13 +529,12 @@ tt_message_arg_ival_string (Tt_message m, int n)
 static Lisp_Object
 tt_message_arg_bval_vector (Tt_message m, int n)
 {
-  /* !!#### This function has not been Mule-ized */
-  Ibyte *value;
+  Extbyte *value;
   int len = 0;
 
   check_status (tt_message_arg_bval (m, n, &value, &len));
 
-  return make_string (value, len);
+  return make_extstring (value, len, Qtooltalk_encoding);
 }
 
 DEFUN ("get-tooltalk-message-attribute", Fget_tooltalk_message_attribute,

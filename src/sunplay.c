@@ -82,7 +82,8 @@ init_device (int volume, Binbyte *data, int fd,
 	  Extbyte buf1 [100], buf2 [100], buf3 [250];
 	  audio_enc_to_str (&file_hdr, buf1);
 	  audio_enc_to_str (&new_hdr, buf2);
-	  sprintf (buf3, "wanted %s, got %s", buf1, buf2);
+	  emacs_snprintf (buf3, sizeof (buf3),
+                          "wanted %s, got %s", buf1, buf2);
 	  sound_warn (buf3);
 	  return 1;
 	}
@@ -91,7 +92,8 @@ init_device (int volume, Binbyte *data, int fd,
   if (volume < 0 || volume > 100)
     {
       Extbyte buf [255];
-      sprintf (buf, "volume must be between 0 and 100 (not %d)", volume);
+      emacs_snprintf (buf, sizeof (buf),
+                      "volume must be between 0 and 100 (not %d)", volume);
       sound_warn (buf);
       return 1;
     }
@@ -178,7 +180,8 @@ play_sound_file (Extbyte *sound_file, int volume)
       if (wrtn != rrtn)
 	{
 	  Extbyte warn_buf [255];
-	  sprintf (warn_buf, "play: rrtn = %d, wrtn = %d", rrtn, wrtn);
+	  emacs_snprintf (warn_buf, sizeof (warn_buf),
+                          "play: rrtn = %d, wrtn = %d", rrtn, wrtn);
 	  sound_warn (warn_buf);
 	  goto END_OF_PLAY;
 	}
@@ -258,7 +261,8 @@ play_sound_data (Binbyte *data, int length, int volume)
   if (wrtn != length)
     {
       Extbyte buf [255];
-      sprintf (buf, "play: rrtn = %d, wrtn = %d", length, wrtn);
+      emacs_snprintf (buf, sizeof (buf),
+                      "play: rrtn = %d, wrtn = %d", length, wrtn);
       sound_warn (buf);
       goto END_OF_PLAY;
     }

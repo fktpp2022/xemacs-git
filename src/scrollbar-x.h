@@ -29,7 +29,7 @@ struct x_scrollbar_data
 {
   /* Unique scrollbar identifier and name. */
   unsigned int id;
-  char *name;
+  CIbyte *name;
 
   /* Is set if we have already set the backing_store attribute correctly */
   char backing_store_initialized;

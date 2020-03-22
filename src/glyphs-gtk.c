@@ -1370,18 +1370,21 @@ gtk_xpm_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
 	    if (image.colorTable[j].symbolic != NULL &&
 		!qxestrcasecmp_ascii(color_symbols[i].name, image.colorTable[j].symbolic))
 	      {
-		image.colorTable[j].c_color = xnew_ascbytes (16);
 #ifdef HAVE_GTK2
-		sprintf(image.colorTable[j].c_color, "#%.4x%.4x%.4x",
-			color_symbols[i].color.red,
-			color_symbols[i].color.green,
-			color_symbols[i].color.blue);
-#endif
-#ifdef HAVE_GTK3
-		sprintf(image.colorTable[j].c_color, "#%.4x%.4x%.4x",
-			(unsigned int)(color_symbols[i].color.red * 65535),
-			(unsigned int)(color_symbols[i].color.green * 65535),
-			(unsigned int)(color_symbols[i].color.blue * 65535));
+		emacs_asprintf (&(image.colorTable[j].c_color),
+                               "#%.4x%.4x%.4x",
+                               color_symbols[i].color.red,
+                               color_symbols[i].color.green,
+                               color_symbols[i].color.blue);
+#else
+		emacs_asprintf (&(image.colorTable[j].c_color),
+                                "#%.4x%.4x%.4x",
+                                (unsigned int)(color_symbols[i].color.red
+                                               * 65535),
+                                (unsigned int)(color_symbols[i].color.green
+                                               * 65535),
+                                (unsigned int)(color_symbols[i].color.blue
+                                               * 65535));
 #endif
 	      }
 	  }

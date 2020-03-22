@@ -1904,9 +1904,10 @@ x_keysym_to_emacs_keysym (KeySym keysym)
 	  case 0x1005FF11: return KEYSYM ("SunF37"); /* labeled F12 */
 	  default:
 	    {
-	      Ascbyte buf [64];
-	      sprintf (buf, "unknown-keysym-0x%X", (int) keysym);
-	      return KEYSYM (buf);
+	      Ibyte buf [(sizeof (int) * 2) + sizeof ("unknown-keysym-0x")];
+	      emacs_snprintf (buf, sizeof (buf),
+                              "unknown-keysym-0x%X", (int) keysym);
+	      return KEYSYM ((const CIbyte *) (buf));
 	    }
 	  }
       
@@ -2843,7 +2844,7 @@ emacs_Xt_format_magic_event (Lisp_Event *event, Lisp_Object pstream)
   Lisp_Object console = CDFW_CONSOLE (EVENT_CHANNEL (event));
   if (CONSOLE_X_P (XCONSOLE (console)))
     {
-      return write_ascstring
+      return write_istring
 	(pstream, x_event_name ((EVENT_MAGIC_X_EVENT (event)).type));
     }
 
@@ -3541,12 +3542,13 @@ XEvent_visibility_to_string (int state)
 static void
 describe_event (XEvent *event, Lisp_Object pstream)
 {
-  Ascbyte buf[100];
   struct device *d = get_device_from_display (event->xany.display);
 
-  sprintf (buf, "%s%s", x_event_name (event->type),
-	   event->xany.send_event ? " (send)" : "");
-  write_fmt_string (pstream, "%-30s", buf);
+  write_fmt_string (pstream, "%s%*s",
+                    x_event_name (event->type),
+                    (int) (-30 + qxestrlen (x_event_name (event->type))),
+                    event->xany.send_event ? " (send)" : "");
+
   switch (event->type)
     {
     case FocusIn:

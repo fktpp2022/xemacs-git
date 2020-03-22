@@ -152,17 +152,28 @@ get_device_from_display_1 (Display *dpy)
 struct device *
 get_device_from_display (Display *dpy)
 {
-#define FALLBACK_RESOURCE_NAME "xemacs"
+#define FALLBACK_RESOURCE_NAME ((const Ibyte *) "xemacs")
   struct device *d = get_device_from_display_1 (dpy);
 
   if (!d)
     {
+      const Ibyte *display_string;
+
+      if (DisplayString (dpy) != NULL)
+        {
+          display_string = EXTERNAL_TO_ITEXT (DisplayString (dpy),
+                                              Qx_hpc_encoding);
+        }
+      else
+        {
+          display_string = (const Ibyte *) "???";
+        }
       /* This isn't one of our displays.  Let's crash? */
       stderr_out
 	("\n%s: Fatal X Condition.  Asked about display we don't own: \"%s\"\n",
 	 (STRINGP (Vinvocation_name) ?
-	  (char *) XSTRING_DATA (Vinvocation_name) : FALLBACK_RESOURCE_NAME),
-	 DisplayString (dpy) ? DisplayString (dpy) : "???");
+	  XSTRING_DATA (Vinvocation_name) : FALLBACK_RESOURCE_NAME),
+         display_string);
       ABORT();
     }
 
@@ -190,7 +201,6 @@ coding_system_of_xrm_database (XrmDatabase USED_IF_MULE (db))
 {
 #ifdef MULE
   const Extbyte *locale;
-  Lisp_Object localestr;
   static XrmDatabase last_xrm_db; 
 
   /* This will always be zero, nil or an actual coding system object, so no
@@ -206,8 +216,9 @@ coding_system_of_xrm_database (XrmDatabase USED_IF_MULE (db))
   last_xrm_db = db;
 
   locale = XrmLocaleOfDatabase (db);
-  localestr = build_extstring (locale, Qbinary);
-  last_coding_system = call1 (Qget_coding_system_from_locale, localestr);
+  last_coding_system = call1 (Qget_coding_system_from_locale,
+			      /* call1() does the GCPRO. */
+			      build_extstring (locale, Qx_hpc_encoding));
 
   return last_coding_system;
 #else
@@ -339,11 +350,8 @@ compute_x_app_name (int argc, Extbyte **argv)
 static int
 have_xemacs_resources_in_xrdb (Display *dpy)
 {
-  const char *xdefs, *key;
-  int len;
-
-  key = "XEmacs";
-  len = strlen (key);
+  const Extbyte *xdefs, *key = "XEmacs";
+  Bytecount len = sizeof ("XEmacs") - sizeof ("");
 
   if (!dpy)
     return 0;
@@ -527,8 +535,8 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
   Widget app_shell;
   int argc;
   Extbyte **argv;
-  const char *app_class;
-  const char *app_name;
+  char *app_class;
+  char *app_name;
   const char *disp_name;
   Visual *visual = NULL;
   int depth = 8;		/* shut up the compiler */
@@ -648,14 +656,14 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
     {
       if (egetenv ("USE_EMACS_AS_DEFAULT_APPLICATION_CLASS"))
 	{
-	  app_class = (NILP (Vx_emacs_application_class)  &&
+	  app_class = (NILP (Vx_emacs_application_class) &&
 		       have_xemacs_resources_in_xrdb (dpy))
-	    ? "XEmacs"
-	    : "Emacs";
+	    ? (char *) "XEmacs"
+	    : (char *) "Emacs";
 	}
       else 
 	{
-	  app_class = "XEmacs";
+	  app_class = (char *) "XEmacs";
 	}
 
       /* need to update Vx_emacs_application_class: */
@@ -678,25 +686,32 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
        data-directory/app-defaults/$LANG/Emacs.
        This is in addition to the standard app-defaults files, and
        does not override resources defined elsewhere */
-    const Extbyte *data_dir;
-    Extbyte *path;
-    const Extbyte *format;
+    Ibyte *path, *locale, *locale_end;
+    Bytecount path_len;
+    const CIbyte *format;
+    const Ibyte *data_dir;
     XrmDatabase db = XtDatabase (dpy); /* #### XtScreenDatabase(dpy) ? */
-    Extbyte *locale = xstrdup (XrmLocaleOfDatabase (db));
-    Extbyte *locale_end;
+    const Extbyte *locale_ext = XrmLocaleOfDatabase (db);
+    Extbyte *pathout;
+
+    locale = EXTERNAL_TO_ITEXT (locale_ext, Qx_hpc_encoding);
 
     if (STRINGP (Vx_app_defaults_directory) &&
 	XSTRING_LENGTH (Vx_app_defaults_directory) > 0)
       {
-	LISP_PATHNAME_CONVERT_OUT (Vx_app_defaults_directory, data_dir);
-	path = alloca_extbytes (strlen (data_dir) + strlen (locale) + 7);
-	format = "%s%s/Emacs";
+        path_len = XSTRING_LENGTH (Vx_app_defaults_directory)
+          + qxestrlen (locale) + sizeof ("/Emacs");
+	path = alloca_ibytes (path_len);
+	format = (const CIbyte *) "%s%s/Emacs";
+        data_dir = XSTRING_DATA (Vx_app_defaults_directory);
       }
     else if (STRINGP (Vdata_directory) && XSTRING_LENGTH (Vdata_directory) > 0)
       {
-	LISP_PATHNAME_CONVERT_OUT (Vdata_directory, data_dir);
-	path = alloca_extbytes (strlen (data_dir) + 13 + strlen (locale) + 7);
-	format = "%sapp-defaults/%s/Emacs";
+        path_len = XSTRING_LENGTH (Vdata_directory)
+          + qxestrlen (locale) + sizeof ("app-defaults//Emacs");
+	path = alloca_ibytes (path_len);
+	format = (const CIbyte *) "%sapp-defaults/%s/Emacs";
+        data_dir = XSTRING_DATA (Vdata_directory);
       }
     else
       {
@@ -709,53 +724,71 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
      * app-defaults file found.
      */
 
-    sprintf (path, format, data_dir, locale);
-    if (!access (path, R_OK))
-      XrmCombineFileDatabase (path, &db, False);
-
-    if ((locale_end = strchr (locale, '.')))
+    emacs_snprintf (path, path_len, format, data_dir, locale);
+    if (!qxe_access (path, R_OK))
       {
-	*locale_end = '\0';
-	sprintf (path, format, data_dir, locale);
-
-	if (!access (path, R_OK))
-	  XrmCombineFileDatabase (path, &db, False);
+        PATHNAME_CONVERT_OUT (path, pathout);
+        XrmCombineFileDatabase (pathout, &db, False);
       }
 
-    if ((locale_end = strchr (locale, '_')))
+    if ((locale_end = qxestrchr (locale, '.')))
       {
 	*locale_end = '\0';
-	sprintf (path, format, data_dir, locale);
+	emacs_snprintf (path, path_len, format, data_dir, locale);
 
-	if (!access (path, R_OK))
-	  XrmCombineFileDatabase (path, &db, False);
+	if (!qxe_access (path, R_OK))
+          {
+            PATHNAME_CONVERT_OUT (path, pathout);
+            XrmCombineFileDatabase (pathout, &db, False);
+          }
       }
 
-  no_data_directory:
-    xfree (locale);
+    if ((locale_end = qxestrchr (locale, '_')))
+      {
+	*locale_end = '\0';
+	emacs_snprintf (path, path_len, format, data_dir, locale);
+
+	if (!qxe_access (path, R_OK))
+          {
+            PATHNAME_CONVERT_OUT (path, pathout);
+            XrmCombineFileDatabase (pathout, &db, False);
+          }
+      }
  }
+
+ no_data_directory:
 #endif /* MULE */
 
   if (NILP (DEVICE_NAME (d)))
     DEVICE_NAME (d) = display;
 
-  /* We're going to modify the string in-place, so be a nice XEmacs */
-  DEVICE_NAME (d) = Fcopy_sequence (DEVICE_NAME (d));
-  /* colons and periods can't appear in individual elements of resource
-     strings */
+  XtGetApplicationNameAndClass (dpy, &app_name, &app_class);
 
-  XtGetApplicationNameAndClass (dpy, (char **) &app_name, (char **) &app_class);
-  /* search for a matching visual if requested by the user, or setup the display default */
+  /* Search for a matching visual if requested by the user, or setup the
+     display default. */
   {
-    int resource_name_length = max (sizeof (".emacsVisual"),
-				    sizeof (".privateColormap"));
-    char *buf1 = alloca_array (char, strlen (app_name)  + resource_name_length);
-    char *buf2 = alloca_array (char, strlen (app_class) + resource_name_length);
-    char *type;
+    Bytecount resource_name_length = max (sizeof (".emacsVisual"),
+                                          sizeof (".privateColormap"));
+    Bytecount app_name_len = strlen (app_name);
+    Bytecount buf1len = app_name_len + resource_name_length;
+    Extbyte *buf1 = alloca_extbytes (buf1len);
+    Bytecount app_class_len = strlen (app_class);
+    Bytecount buf2len = app_class_len + resource_name_length;
+    Extbyte *buf2 = alloca_extbytes (buf2len), *type;
     XrmValue value;
 
-    sprintf (buf1, "%s.emacsVisual", app_name);
-    sprintf (buf2, "%s.EmacsVisual", app_class);
+    text_checking_assert ((EMACS_UINT) buf1len >=
+                          ((EMACS_UINT) app_name_len
+                           + sizeof (".emacsVisual")));
+    memcpy (buf1, app_name, app_name_len);
+    memcpy (buf1 + app_name_len, ".emacsVisual", sizeof (".emacsVisual"));
+
+    text_checking_assert ((EMACS_UINT) buf2len >=
+                          ((EMACS_UINT) app_class_len
+                           + sizeof (".EmacsVisual")));
+    memcpy (buf2, app_class, app_class_len);
+    memcpy (buf2 + app_class_len, ".EmacsVisual", sizeof (".EmacsVisual"));
+
     if (XrmGetResource (XtDatabase (dpy), buf1, buf2, &type, &value) == True)
       {
 	int cnt = 0;
@@ -782,7 +815,8 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
 	    if (depth == 0)
 	      {
 		stderr_out ("Invalid Depth specification in %s... "
-			    "ignoring...\n", str);
+			    "ignoring...\n",
+                            EXTERNAL_TO_ITEXT (str, Qx_hpc_encoding));
 	      }
 	    else
 	      {
@@ -793,14 +827,16 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
 		else
 		  {
 		    stderr_out ("Can't match the requested visual %s... "
-				"using defaults\n", str);
+				"using defaults\n",
+                                EXTERNAL_TO_ITEXT (str, Qx_hpc_encoding));
 		  }
 	      }
 	  }
 	else
 	  {
 	    stderr_out ("Invalid Visual specification in %s... "
-			"ignoring.\n", str);
+			"ignoring.\n",
+                        EXTERNAL_TO_ITEXT (str, Qx_hpc_encoding));
 	  }
       }
     if (visual == NULL)
@@ -818,8 +854,15 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
        check to see if the user specified that we need a private colormap */
     if (visual == DefaultVisual (dpy, screen))
       {
-	sprintf (buf1, "%s.privateColormap", app_name);
-	sprintf (buf2, "%s.PrivateColormap", app_class);
+        assert (buf1len >= app_name_len
+                + (Bytecount) (sizeof (".privateColormap")));
+        memcpy (buf1 + app_name_len, ".privateColormap",
+                sizeof (".privateColormap"));
+
+        assert (buf2len >= app_class_len
+                + (Bytecount) (sizeof (".PrivateColormap")));
+        memcpy (buf2 + app_class_len, ".PrivateColormap",
+                sizeof (".PrivateColormap"));
 	if ((visual->X_CLASSFIELD == PseudoColor) &&
 	    (XrmGetResource (XtDatabase (dpy), buf1, buf2, &type, &value)
 	     == True))
@@ -847,8 +890,6 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
   DEVICE_X_VISUAL   (d) = visual;
   DEVICE_X_COLORMAP (d) = cmap;
   DEVICE_X_DEPTH    (d) = depth;
-  validify_resource_component ((char *) XSTRING_DATA (DEVICE_NAME (d)),
-			       XSTRING_LENGTH (DEVICE_NAME (d)));
 
   /* #### If we're going to implement X session management, this would
      be the place.  Make sure it doesn't conflict with GNOME. */
@@ -996,7 +1037,7 @@ x_delete_device (struct device *d)
 /*				handle X errors				*/
 /************************************************************************/
 
-const Ascbyte *
+const Ibyte *
 x_event_name (int event_type)
 {
   static const Ascbyte *events[] =
@@ -1041,7 +1082,9 @@ x_event_name (int event_type)
 
   if (event_type < 0 || event_type >= countof (events))
     return NULL;
-  return events [event_type];
+
+  ASSERT_VALID_ITEXT ((const Ibyte *) (events [event_type]));
+  return (const Ibyte *) (events [event_type]);
 }
 
 /* Handling errors.
@@ -1150,8 +1193,7 @@ x_error_handler (Display *disp, XErrorEvent *event)
        */
       stderr_out ("\n%s: ",
 		  (STRINGP (Vinvocation_name)
-		   ? (char *) XSTRING_DATA (Vinvocation_name)
-		   : "xemacs"));
+                   ? XSTRING_DATA (Vinvocation_name) : "xemacs"));
 #endif
       XmuPrintDefaultErrorMessage (disp, event, stderr);
       unbind_to (depth);
@@ -1183,22 +1225,22 @@ int
 signal_if_x_error (Display *dpy, int resumable_p)
 {
   Extbyte buf[1024];
-  Ibyte num[100];
+  Ascbyte num[DECIMAL_PRINT_SIZE (last_error.request_code) + sizeof ("")];
   Lisp_Object data;
   if (! x_error_occurred_p (dpy))
     return 0;
-  data = Qnil;
-  qxesprintf (num, "0x%X", (unsigned int) last_error.resourceid);
-  data = Fcons (build_istring (num), data);
-  qxesprintf (num, "%d", last_error.request_code);
-  XGetErrorDatabaseText (last_error.display, "XRequest", (char *) num, "",
-			 buf, sizeof (buf));
+  data = Fcons (emacs_sprintf_string ("0x%X",
+                                      (unsigned) last_error.resourceid),
+                Qnil);
+  emacs_snprintf_ascbyte (num, sizeof (num), "%d", last_error.request_code);
+  XGetErrorDatabaseText (last_error.display, "XRequest", num, "", buf,
+                         sizeof (buf));
   if (*buf)
     data = Fcons (build_extstring (buf, Qx_error_message_encoding), data);
   else
     {
-      qxesprintf (num, "Request-%d", last_error.request_code);
-      data = Fcons (build_istring (num), data);
+      data = Fcons (emacs_sprintf_string ("Request-%d",
+                                          last_error.request_code), data);
     }
   XGetErrorText (last_error.display, last_error.error_code, buf, sizeof (buf));
   data = Fcons (build_extstring (buf, Qx_error_message_encoding), data);
@@ -1232,23 +1274,31 @@ x_IO_error_handler (Display *disp)
     {
       int depth = begin_dont_check_for_quit ();
       /* We're going down. */
+      const Ibyte *display_string = DisplayString (disp) ? 
+        EXTERNAL_TO_ITEXT (DisplayString (disp), Qx_hpc_encoding) :
+        (const Ibyte *) "???";
       Ibyte *errmess;
       GET_STRERROR (errmess, errno);
+
       stderr_out ("\n%s: Fatal I/O Error %d (%s) on display "
 		  "connection \"%s\"\n",
 		  (STRINGP (Vinvocation_name) ?
-		   (char *) XSTRING_DATA (Vinvocation_name) : "xemacs"),
-		  errno, errmess, DisplayString (disp));
-      stderr_out ("  after %lu requests (%lu known processed) with %d "
+		   (const CIbyte *) (XSTRING_DATA (Vinvocation_name)) :
+                   (const CIbyte *) "xemacs"),
+		  errno, errmess, display_string);
+      stderr_out ("  after %lu requests (%lu known processed) with %u "
 		  "events remaining.\n",
-		  NextRequest (disp) - 1, LastKnownRequestProcessed (disp),
+		  (EMACS_UINT) (NextRequest (disp) - 1),
+                  (EMACS_UINT) LastKnownRequestProcessed (disp),
 		  QLength (disp));
       /* assert (!_Xdebug); */
       unbind_to (depth);
     }
   else
     {
-      Ibyte *errmess;
+      Ibyte *errmess, *display_string = DisplayString (disp) ? 
+        EXTERNAL_TO_ITEXT (DisplayString (disp), Qx_hpc_encoding) :
+        (Ibyte *) "???";
       GET_STRERROR (errmess, errno);
       warn_when_safe
 	(Qx, Qcritical,
@@ -1256,9 +1306,9 @@ x_IO_error_handler (Display *disp)
 	 "  \"%s\" after %lu requests (%lu known processed)\n"
 	 "  with %d events remaining.\n"
 	 "  Throwing to top level.\n",
-	 errno, errmess, DisplayString (disp),
-         NextRequest (disp) - 1, LastKnownRequestProcessed (disp),
-         QLength (disp));
+	 errno, errmess, display_string,
+         (EMACS_INT) (NextRequest (disp) - 1),
+         LastKnownRequestProcessed (disp), QLength (disp));
     }
 
   /* According to X specs, we should not return from this function, or

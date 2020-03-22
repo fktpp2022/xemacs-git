@@ -1297,12 +1297,11 @@ unicode_to_one_charset_codepoint (int code, Lisp_Object charset,
 static void
 allocate_jit_ucs_charset (void)
 {
-  Ascbyte setname[100];
-
-  sprintf (setname, "jit-ucs-charset-%d", number_of_jit_charsets);
-
   Vcurrent_jit_charset
-    = Fmake_charset (intern (setname), Vcharset_descr, 
+    = Fmake_charset (Fintern (emacs_sprintf_string ("jit-ucs-charset-%d",
+                                                    number_of_jit_charsets),
+                              Qnil),
+                     Vcharset_descr,
                      listu (Qcolumns, Qone, Qchars, make_fixnum (96),
                             Qdimension, make_fixnum (2),
                             /* not allowed to set non-nil tags when not yet

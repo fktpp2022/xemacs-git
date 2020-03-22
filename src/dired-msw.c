@@ -319,7 +319,8 @@ mswindows_format_file (Win32_file *file, int display_size, int add_newline)
 #endif
   if (display_size)
     {
-      sprintf (buf, "%6d ", (int)((file_size + 1023.) / 1024.));
+      emacs_snprintf (buf, sizeof (buf), "%6d ",
+                      (int)((file_size + 1023.) / 1024.));
       eicat_ascii (puta, buf);
     }
   if (file->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
@@ -365,29 +366,28 @@ mswindows_format_file (Win32_file *file, int display_size, int add_newline)
       eicat_ascii (puta, "   1 ");
   luser = Fuser_login_name (Qnil);
   if (!STRINGP (luser))
-    sprintf (buf, "%-9d", 0);
+    emacs_snprintf (buf, sizeof (buf), "%-9d", 0);
   else
     {
-      Ibyte *str;
-
-      str = XSTRING_DATA (luser);
-      sprintf (buf, "%-8s ", str);
+      emacs_snprintf (buf, sizeof (buf), "%-8s ", XSTRING_DATA (luser));
     }
   eicat_raw (puta, (Ibyte *) buf, strlen (buf));
   {
     CIbyte *cptr = buf;
-    sprintf (buf, "%-8d ", getgid ());
-    cptr += 9;
+    cptr += emacs_snprintf (buf, sizeof (buf), "%-8d ", getgid ());
     if (file_size > 99999999.0)
       {
 	file_size = (file_size + 1023.0) / 1024.;
 	if (file_size > 999999.0)
-	  sprintf (cptr, "%6.0fMB ", (file_size + 1023.0) / 1024.);
+	  emacs_snprintf (cptr, sizeof (buf) - (cptr - buf),
+                          "%6.0fMB ", (file_size + 1023.0) / 1024.);
 	else
-	  sprintf (cptr, "%6.0fKB ", file_size);
+	  emacs_snprintf (cptr, sizeof (buf) - (cptr - buf),
+                          "%6.0fKB ", file_size);
       }
     else
-      sprintf (cptr, "%8.0f ", file_size);
+      emacs_snprintf (cptr, sizeof (buf) - (cptr - buf),
+                      "%8.0f ", file_size);
     while (*cptr)
       ++cptr;
     {
