@@ -212,6 +212,7 @@ Lstream_new (const Lstream_implementation *imp, int flags)
       Vlstream_free_list[lstream_type_count] =
 	make_lcrecord_list (aligned_sizeof_lstream (imp->size),
 			    &lrecord_lstream);
+      staticpro_nodump (&Vlstream_free_list[i]);
       lstream_type_count++;
     }
 
@@ -2259,20 +2260,6 @@ lstream_type_create (void)
   LSTREAM_HAS_METHOD (lisp_buffer, rewinder);
   LSTREAM_HAS_METHOD (lisp_buffer, marker);
 }
-
-#ifndef NEW_GC
-void
-reinit_vars_of_lstream (void)
-{
-  int i;
-
-  for (i = 0; i < countof (Vlstream_free_list); i++)
-    {
-      Vlstream_free_list[i] = Qnil;
-      staticpro_nodump (&Vlstream_free_list[i]);
-    }
-}
-#endif /* not NEW_GC */
 
 void
 vars_of_lstream (void)

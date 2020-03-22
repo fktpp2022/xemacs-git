@@ -2351,9 +2351,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       reinit_vars_of_glyphs_widget ();
       reinit_vars_of_insdel ();
       reinit_vars_of_lread ();
-#ifndef NEW_GC
-      reinit_vars_of_lstream ();
-#endif /* not NEW_GC */
       reinit_vars_of_minibuf ();
 #ifdef HAVE_SHLIB
       reinit_vars_of_module ();

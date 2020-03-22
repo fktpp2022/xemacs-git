@@ -453,7 +453,6 @@ void vars_of_keymap (void);
 void vars_of_lread (void);
 void reinit_vars_of_lread (void);
 void vars_of_lstream (void);
-void reinit_vars_of_lstream (void);
 void vars_of_macros (void);
 void vars_of_md5 (void);
 void vars_of_menubar (void);

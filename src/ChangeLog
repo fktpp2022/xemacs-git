@@ -1,5 +1,16 @@
 2020-03-22  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* emacs.c (main_1):
+	* lstream.c (Lstream_new):
+	* lstream.c (vars_of_lstream):
+	* symsinit.h:
+	Drop reinit_vars_of_lstream() completely. Call staticpro_nodump()
+	dynamically, at the point the lstream lcrecord_lists are created
+	instead, which avoids an order-of-execution problem with very
+	early calls to Lstream_new() and the old GC.
+
+2020-03-22  Aidan Kehoe  <kehoea@parhasard.net>
+
 	1. Switch away from sprintf(3) in the C code as much as possible,
 	given that it doesn't do bounds checking and we have
 	emacs_snprintf{_ascbyte} as core XEmacs code.
