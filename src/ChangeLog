@@ -1,5 +1,27 @@
 2020-03-22  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Add write_external_fmt_string_va(), emacs_snprintf_ascbyte().
+
+	* doprnt.c:
+	* doprnt.c (write_external_fmt_string_va): New.
+	Like write_fmt_string_va(), but takes CODESYS, a coding system
+	describing the encoding the format string and any string arguments
+	within VARGS.
+	* doprnt.c (emacs_vsnprintf_ascbyte): New.
+	Like emacs_vsnprintf(), but force ASCII digits for integer format
+	specs, and with assertions turned on, assert that the input and
+	the output are all ASCII.
+	* doprnt.c (emacs_snprintf_ascbyte): New.  Like emacs_snprintf(),
+	but force ASCII digits for integer format specs, and with
+	assertions turned on, assert that the input and the output are all
+	ASCII.
+	* doprnt.c (get_doprnt_c_args):
+	Correct some indentation here in passing.
+	* lisp.h:
+	Declare the externally visible functions.
+
+2020-03-22  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Generalise the reverse mapping from fixnum weights to characters,
 	rather than hard-coding Vfixnum_to_majuscule_map,
 	Vfixnum_to_minuscle_map, Vfixnum_to_majuscule_ascii.  Use this

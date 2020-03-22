@@ -4873,6 +4873,14 @@ Bytecount emacs_vsnprintf (Ibyte *output, Bytecount size,
 Bytecount emacs_snprintf (Ibyte *output, Bytecount size,
                           const CIbyte *format, ...)
   PRINTF_ARGS (3, 4);
+Bytecount emacs_snprintf_ascbyte (Ascbyte *output, Bytecount size,
+                                  const Ascbyte *format, ...)
+  PRINTF_ARGS (3, 4);
+
+Bytecount write_external_fmt_string_va (Lisp_Object stream,
+                                        Lisp_Object codesys,
+                                        const Extbyte *format_external,
+                                        va_list vargs);
 
 /* Defined in editfns.c */
 EXFUN (Fbobp, 1);

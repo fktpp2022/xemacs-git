@@ -1413,7 +1413,7 @@ parse_doprnt_spec (printf_spec_dynarr *specs,
 
 static void
 get_doprnt_c_args (printf_arg *args, Elemcount args_needed,
-                 printf_spec_dynarr *specs, va_list vargs)
+                   printf_spec_dynarr *specs, va_list vargs)
 {
   printf_arg *argp = args;
   union printf_arg arg;
@@ -2957,6 +2957,66 @@ write_fmt_string (Lisp_Object stream, const CIbyte *fmt, ...)
   return result;
 }
 
+/* Like write_fmt_string_va(), but FORMAT_EXTERNAL and any of VARGS referring
+   to strings are external-format C strings that should be converted to
+   internal using CODESYS before processing. */
+Bytecount
+write_external_fmt_string_va (Lisp_Object stream, Lisp_Object codesys,
+                              const Extbyte *format_external,
+                              va_list vargs)
+{
+  Bytecount retval, len, speccount = 1;
+  const Ibyte *format = EXTERNAL_TO_ITEXT (format_external, codesys);
+  const Ibyte *cursor = format;
+  printf_spec_dynarr specs;
+  printf_spec *sbase;
+  printf_arg *args;
+  Elemcount nargs, ii;
+
+  while (*cursor)
+    {
+      speccount += (*cursor == '%' || *cursor == '*'), cursor += 1;
+      assert (*cursor != '$'); /* We don't handle the repositioning specs in
+                                  emacs_snprintf, error early if someone
+                                  passes us a format string with this.*/
+    }
+
+  len = cursor - format;
+
+  sbase = alloca_array (printf_spec, speccount);
+
+  INIT_STACK_DYNARR (specs, printf_spec,
+                     /* This is actually not exact, but will always be at
+                        least the number of specs. */
+                     speccount, sbase);
+
+  parse_doprnt_spec (&specs, format, len, &nargs);
+  /* Check we allocated enough on the stack for the specs. If we haven't,
+     we've probably crashed already, though, since the dynarr code will have
+     attempted to realloc stack-based data. */
+  structure_checking_assert (sbase == specs.base);
+
+  args = alloca_array (printf_arg, nargs);
+
+  get_doprnt_c_args (args, nargs, &specs, vargs);
+
+  for (ii = 0; ii < Dynarr_length (&specs); ii++)
+    {
+      struct printf_spec *spec = Dynarr_atp (&specs, ii);
+
+      if (spec->converter == 's')
+        {
+          args[spec->argnum - 1].bp
+            = EXTERNAL_TO_ITEXT (args[spec->argnum - 1].bp, codesys);
+        }
+    }
+
+  retval = emacs_doprnt (stream, format, len, Qnil, Vdigit_fixnum_map,
+                         &specs, NULL, args);
+
+  return retval;
+}
+
 /* Write a printf-style string to STREAM, an object accepted by
    output_string(), using FMT as the format string, and taking Lisp_Object
    arguments from the va_list VA. */
@@ -3343,6 +3403,93 @@ emacs_snprintf (Ibyte *output, Bytecount size, const CIbyte *format, ...)
 
   va_start (vargs, format);
   retval = emacs_vsnprintf (output, size, format, vargs);
+  va_end (vargs);
+
+  return retval;
+}
+
+static Bytecount
+emacs_vsnprintf_ascbyte (Ascbyte *output, Bytecount size,
+                         const Ascbyte *format, va_list vargs)
+{
+  Bytecount retval, len, speccount = 1;
+  const Ascbyte *cursor = format;
+  printf_spec_dynarr specs;
+  printf_spec *sbase;
+  printf_arg *args;
+  Elemcount nargs, ii;
+  DECLARE_STACK_FIXED_BUFFER_LSTREAM (stream);
+
+  ASSERT_ASCTEXT_ASCII (format);
+
+  while (*cursor)
+    {
+      speccount += (*cursor == '%' || *cursor == '*'), cursor += 1;
+      assert (*cursor != '$'); /* We don't handle the repositioning specs in
+                                  emacs_snprintf, error early if someone
+                                  passes us a format string with this.*/
+    }
+
+  len = cursor - format;
+
+  sbase = alloca_array (printf_spec, speccount);
+
+  INIT_STACK_FIXED_BUFFER_OUTPUT_STREAM (stream, (Ibyte *) output, size);
+  INIT_STACK_DYNARR (specs, printf_spec,
+                     /* This is actually not exact, but will always be at
+                        least the number of specs. */
+                     speccount, sbase);
+
+  parse_doprnt_spec (&specs, (const Ibyte *) format, len, &nargs);
+  /* Check we allocated enough on the stack for the specs. If we haven't,
+     we've probably crashed already, though, since the dynarr code will have
+     attempted to realloc stack-based data. */
+  structure_checking_assert (sbase == specs.base);
+
+  args = alloca_array (printf_arg, nargs);
+
+  get_doprnt_c_args (args, nargs, &specs, vargs);
+
+  for (ii = 0; ii < Dynarr_length (&specs); ii++)
+    {
+      struct printf_spec *spec = Dynarr_atp (&specs, ii);
+
+      if (spec->converter == 's')
+        {
+          ASSERT_ASCTEXT_ASCII ((const Ascbyte *)(args[spec->argnum - 1].bp));
+        }
+    }
+
+  retval = emacs_doprnt (stream, (const Ibyte *) format, len, Qnil,
+                         Vdigit_fixnum_ascii, &specs, NULL, args);
+
+  if (retval < size - 1)
+    {
+      output[retval] = '\0';
+    }
+  else
+    {
+      output[size - 1] = '\0';
+    }
+
+  ASSERT_ASCTEXT_ASCII (output);
+
+  return retval;
+}
+
+/* Equivalent to emacs_snprintf(), but forces use of the ASCII digits rather
+   than fullwidth Persian or Chinese. With error-checking turned on, asserts
+   that FORMAT, any strings in the vargs, and the output are seven-bit
+   ASCII. */
+Bytecount
+emacs_snprintf_ascbyte (Ascbyte *output, Bytecount size,
+                        const Ascbyte *format, ...)
+{
+  va_list vargs;
+  Bytecount retval;
+
+  va_start (vargs, format);
+  retval = emacs_vsnprintf_ascbyte (output, size, format, vargs);
   va_end (vargs);
 
   return retval;
