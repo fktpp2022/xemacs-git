@@ -939,6 +939,7 @@
 (put 'car-safe 'byte-optimizer 'byte-optimize-predicate)
 (put 'cdr-safe 'byte-optimizer 'byte-optimize-predicate)
 
+(put 'prefix-numeric-value 'byte-optimizer 'byte-optimize-predicate)
 
 ;; I'm not convinced that this is necessary.  Doesn't the optimizer loop
 ;; take care of this? - Jamie

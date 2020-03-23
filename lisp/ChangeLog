@@ -1,5 +1,10 @@
 2020-03-23  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* byte-optimize.el:
+	#'prefix-numeric-value is a pure function, optimise it as such.
+
+2020-03-23  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* subr.el (with-trapping-errors):
 	If RESIGNAL is non-nil and ERROR-FORM is nil, don't wrap the
 	#'call-with-condition-handler with #'condition-case.
