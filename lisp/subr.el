@@ -1791,29 +1791,50 @@ arguments: (&key (OPERATION \"unknown\") (CLASS ''GENERAL) (LEVEL ''WARNING) ERR
                ;; stack, can't use the same uninterned symbol name for every
                ;; macro expansion:
                (call-trapping-errors-arg (gensym "AymGisUF")))
-       `(condition-case ,(if resignal cte-cc-var nil)
-         (call-with-condition-handler
-             #'(lambda (,call-trapping-errors-arg)
-                 (let ((errstr (error-message-string
-                                ,call-trapping-errors-arg)))
-                   ,@(if debug `((funcall debugger 'error
-                                  ,call-trapping-errors-arg)))
-                   ,(if no-backtrace
-                        `(lwarn ,class ,level
-                          (if (warning-level-< ,level
-                                               display-warning-minimum-level)
-                              "Error in %s: %s"
-                            "Error in %s:\n%s\n")
-                          ,operation errstr)
-                        `(lwarn ,class ,level
-                          "Error in %s: %s\n\nBacktrace follows:\n\n%s"
-                          ,operation errstr
-                          (backtrace-in-condition-handler-eliminating-handler
-                           ',call-trapping-errors-arg)))))
-             #'(lambda () (progn ,@body)))
-         (error ,error-form
-          ,@(if resignal
-                `((signal (car ,cte-cc-var) (cdr ,cte-cc-var))))))))
+       (labels
+           ((handler (call-trapping-errors-arg no-backtrace class level
+                                               operation debug &optional
+                                               return-block)
+              `(lambda (,call-trapping-errors-arg)
+                ,@(if debug
+                      `((funcall debugger 'error ,call-trapping-errors-arg)))
+                ,(if no-backtrace
+                     `(lwarn ,class ,level
+                       (if (warning-level-< ,level
+                                            display-warning-minimum-level)
+                           "Error in %s: %s"
+                         "Error in %s:\n%s\n")
+                       ,operation (error-message-string
+                                   ,call-trapping-errors-arg))
+                     `(lwarn ,class ,level
+                       "Error in %s: %s\n\nBacktrace follows:\n\n%s"
+                       ,operation (error-message-string
+                                   ,call-trapping-errors-arg)
+                       (backtrace-in-condition-handler-eliminating-handler
+                        ',call-trapping-errors-arg)))
+                ,@(if return-block `((return-from ,return-block))))))
+         (declare (inline handler))
+         (cond
+           (error-form
+            `(condition-case ,(if resignal cte-cc-var nil)
+              (call-with-condition-handler
+                  ,(handler call-trapping-errors-arg no-backtrace class
+                           level operation debug)
+                  #'(lambda () (progn ,@body)))
+              (error ,error-form
+               ,@(if resignal
+                     `((signal (car ,cte-cc-var) (cdr ,cte-cc-var)))))))
+           (resignal
+            `(call-with-condition-handler
+              ,(handler call-trapping-errors-arg no-backtrace class
+                        level operation debug)
+              #'(lambda () (progn ,@body))))
+           (t
+            `(block trapping-errors
+              (call-with-condition-handler
+                  ,(handler call-trapping-errors-arg no-backtrace class
+                            level operation debug 'trapping-errors)
+                  #'(lambda () (progn ,@body)))))))))
      ;; Get CL-conformant keyword parsing for free:
      (ldiff rest body)
      body)))

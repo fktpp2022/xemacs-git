@@ -1,3 +1,11 @@
+2020-03-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* subr.el (with-trapping-errors):
+	If RESIGNAL is non-nil and ERROR-FORM is nil, don't wrap the
+	#'call-with-condition-handler with #'condition-case.
+	If ERROR-FORM is nil and RESIGNAL is nil, use `block' to return
+	control to the caller.
+
 2020-03-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Further reduce potential match data corruption bugs by avoiding
