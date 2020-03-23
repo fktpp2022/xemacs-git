@@ -1220,45 +1220,53 @@ like `kill-whole-line-when-at-beginning'.  If you simply want
   :type 'boolean
   :group 'killing)
 
-(defun kill-line-1 (arg entire-line)
-  (kill-region (if entire-line
-		   (save-excursion
-		     (beginning-of-line)
-		     (point))
-		 (point))
-	       ;; Don't shift point before doing the delete; that way,
-	       ;; undo will record the right position of point.
-;; FSF
-;	       ;; It is better to move point to the other end of the kill
-;	       ;; before killing.  That way, in a read-only buffer, point
-;	       ;; moves across the text that is copied to the kill ring.
-;	       ;; The choice has no effect on undo now that undo records
-;	       ;; the value of point from before the command was run.
-;              (progn
-	       (save-excursion
-		 (if arg
-		     (forward-line (prefix-numeric-value arg))
-		   (if (eobp)
-		       (signal 'end-of-buffer nil))
-		   (if (or (looking-at "[ \t]*$")
-			   (or entire-line
-			       (and kill-whole-line (bolp))))
-		       (forward-line 1)
-		     (end-of-line)))
-		 (point))))
-
-(defun kill-entire-line (&optional arg)
-  "Kill the entire line.
+(macrolet
+    ((kill-line-1 (arg1 entire-line1)
+       (let* ((arg-bound nil)
+              (arg (if (or (symbolp arg1) (cl-const-expr-p arg1))
+                        arg1
+                      (prog1 (copy-symbol 'arg)  (setq arg-bound t))))
+              (entire-line-bound nil)
+              (entire-line (if (or (symbolp entire-line1)
+                                   (cl-const-expr-p entire-line1))
+                                entire-line1
+                              (prog1 (copy-symbol 'entire-line)
+                                (setq entire-line-bound t))))
+              (binds
+               `(let (,@(if arg-bound `((,arg ,arg1)))
+                      ,@(if entire-line-bound
+                            `((,entire-line ,entire-line1)))))))
+         (nconc binds
+                `((kill-region (if ,entire-line (point-at-bol) (point))
+                   ;; Don't shift point before doing the delete; that
+                   ;; way, undo will record the right position of
+                   ;; point.
+;                  ;; FSF
+;                  ;; It is better to move point to the other end of
+;                  ;; the kill before killing.  That way, in a
+;                  ;; read-only buffer, point moves across the text
+;                  ;; that is copied to the kill ring.  The choice has
+;                  ;; no effect on undo now that undo records the
+;                  ;; value of point from before the command was run.
+                   (if ,arg
+                       (point-at-bol (prefix-numeric-value ,arg))
+                     (if (eobp) (signal 'end-of-buffer nil))
+                     (if (or ,entire-line (and kill-whole-line (bolp))
+                             (looking-at-p "[ \t]*$"))
+                         (point-at-bol 2)
+                       (point-at-eol)))))))))
+  (defun kill-entire-line (&optional arg)
+    "Kill the entire line.
 With prefix argument, kill that many lines from point.  Negative
 arguments kill lines backward.
 
 When calling from a program, nil means \"no arg\",
 a number counts as a prefix arg."
-  (interactive "*P")
-  (kill-line-1 arg t))
+    (interactive "*P")
+    (kill-line-1 arg t))
 
-(defun kill-line (&optional arg)
-  "Kill the rest of the current line, or the entire line.
+  (defun kill-line (&optional arg)
+    "Kill the rest of the current line, or the entire line.
 If no nonblanks there, kill thru newline.  If called interactively,
 may kill the entire line when given no argument at the beginning of a
 line; see `kill-whole-line'.  With prefix argument, kill that many
@@ -1270,17 +1278,14 @@ current line, use `kill-entire-line'.
 
 When calling from a program, nil means \"no arg\",
 a number counts as a prefix arg."
-  (interactive "*P")
-  (kill-line-1 arg nil))
+    (interactive "*P")
+    (kill-line-1 arg nil))
 
 ;; XEmacs
-(defun backward-kill-line nil
-  "Kill back to the beginning of the line."
-  (interactive)
-  (let ((point (point)))
-    (beginning-of-line nil)
-    (kill-region (point) point)))
-
+  (defun backward-kill-line ()
+    "Kill back to the beginning of the line."
+    (interactive)
+    (kill-line-1 1 nil)))
 
 ;;;; Window system cut and paste hooks.
 ;;;

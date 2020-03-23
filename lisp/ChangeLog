@@ -1,5 +1,15 @@
 2020-03-23  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* simple.el (kill-line-1): Implement this with #'macrolet rather
+	than keeping around a function in the dumped Lisp.
+	* simple.el (kill-entire-line): Use the macro.
+	* simple.el (kill-line): Use the macro.
+	* simple.el (backward-kill-line): Use the macro. This function
+	differs from the other two in that it previously did not use
+	#'kill-line-1.
+
+2020-03-23  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* simple.el (digit-argument):
 	Use #'digit-char-p in this function rather than re-implementing
 	it.
