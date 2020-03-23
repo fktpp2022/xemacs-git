@@ -1,5 +1,11 @@
 2020-03-23  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* simple.el (digit-argument):
+	Use #'digit-char-p in this function rather than re-implementing
+	it.
+
+2020-03-23  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* byte-optimize.el:
 	#'prefix-numeric-value is a pure function, optimise it as such.
 
