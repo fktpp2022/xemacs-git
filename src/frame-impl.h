@@ -82,9 +82,6 @@ struct frame
 
   int modiff;
 
-  struct expose_ignore *subwindow_exposures;
-  struct expose_ignore *subwindow_exposures_tail;
-
 #ifdef HAVE_SCROLLBARS
   /* frame-local scrollbar information.  See scrollbar.c. */
   int scrollbar_y_offset;

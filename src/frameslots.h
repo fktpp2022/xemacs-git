@@ -162,6 +162,16 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
   MARKED_SLOT (left_margin_width)
   MARKED_SLOT (right_margin_width)
 
+  /* List of subwindow exposure expose_ignore structures, see glyphs.c. */
+  MARKED_SLOT (subwindow_exposures)
+
+  /* Cons holding the last element of subwindow_exposures. Also marked through
+     that variable, so technically no need for a MARKED_SLOT, but putting a
+     Lisp_Object outside of this file is asking for trouble, and there will be
+     limited duplication of marking anyway given this is a one-element
+     list. */
+  MARKED_SLOT (subwindow_exposures_tail)
+
 #undef MARKED_SLOT
 #undef MARKED_SLOT_ARRAY
 #undef FRAME_SLOT_DECLARATION

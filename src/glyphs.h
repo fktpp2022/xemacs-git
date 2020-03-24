@@ -1195,22 +1195,17 @@ void clear_frame_subwindow_instance_caches (struct frame*);
 
 struct expose_ignore
 {
-#ifdef NEW_GC
   NORMAL_LISP_OBJECT_HEADER header;
-#endif /* NEW_GC */
   int x, y;
   int width, height;
-  struct expose_ignore *next;
 };
 
-#ifdef NEW_GC
 DECLARE_LISP_OBJECT (expose_ignore, struct expose_ignore);
 #define XEXPOSE_IGNORE(x) XRECORD (x, expose_ignore, struct expose_ignore)
 #define wrap_expose_ignore(p) wrap_record (p, expose_ignore)
 #define EXPOSE_IGNOREP(x) RECORDP (x, expose_ignore)
 #define CHECK_EXPOSE_IGNORE(x) CHECK_RECORD (x, expose_ignore)
 #define CONCHECK_EXPOSE_IGNORE(x) CONCHECK_RECORD (x, expose_ignore)
-#endif /* NEW_GC */
 
 int check_for_ignored_expose (struct frame* f, int x, int y, int width,
 			      int height);

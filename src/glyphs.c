@@ -4623,21 +4623,16 @@ clear_frame_subwindow_instance_caches (struct frame* f)
    expose events that are going to come and ignore them as
    required. */
 
-#ifndef NEW_GC
-struct expose_ignore_blocktype
-{
-  Blocktype_declare (struct expose_ignore);
-} *the_expose_ignore_blocktype;
-#endif /* not NEW_GC */
-
 int
 check_for_ignored_expose (struct frame* f, int x, int y, int width, int height)
 {
-  struct expose_ignore *ei, *prev;
+  Lisp_Object prev_tail_elt = Qnil;
+
   /* the ignore list is FIFO so we should generally get a match with
      the first element in the list */
-  for (ei = f->subwindow_exposures, prev = 0; ei; ei = ei->next)
+  LIST_LOOP_3 (elt, f->subwindow_exposures, tail_elt)
     {
+      struct expose_ignore *ei = XEXPOSE_IGNORE (elt);
       /* Checking for exact matches just isn't good enough as we
 	 might get exposures for partially obscured subwindows, thus
 	 we have to check for overlaps. Being conservative, we will
@@ -4651,20 +4646,18 @@ check_for_ignored_expose (struct frame* f, int x, int y, int width, int height)
 	  stderr_out ("ignored %d+%d, %dx%d for exposure %d+%d, %dx%d\n",
 		      x, y, width, height, ei->x, ei->y, ei->width, ei->height);
 #endif
-	  if (!prev)
-	    f->subwindow_exposures = ei->next;
+	  if (NILP (prev_tail_elt))
+	    f->subwindow_exposures = XCDR (tail_elt);
 	  else
-	    prev->next = ei->next;
+	    XCDR (prev_tail_elt) = XCDR (tail_elt);
 
-	  if (ei == f->subwindow_exposures_tail)
-	    f->subwindow_exposures_tail = prev;
+          if (EQ (tail_elt, f->subwindow_exposures_tail))
+	    f->subwindow_exposures_tail = prev_tail_elt;
 
-#ifndef NEW_GC
-	  Blocktype_free (the_expose_ignore_blocktype, ei);
-#endif /* not NEW_GC */
+          free_cons (tail_elt);
 	  return 1;
 	}
-      prev = ei;
+      prev_tail_elt = tail_elt;
     }
   return 0;
 }
@@ -4675,31 +4668,29 @@ register_ignored_expose (struct frame* f, int x, int y, int width, int height)
   if (!hold_ignored_expose_registration)
     {
       struct expose_ignore *ei;
+      Lisp_Object list;
 
-#ifdef NEW_GC
       ei = XEXPOSE_IGNORE (ALLOC_NORMAL_LISP_OBJECT (expose_ignore));
-#else /* not NEW_GC */
-      ei = Blocktype_alloc (the_expose_ignore_blocktype);
-#endif /* not NEW_GC */
-
-      ei->next = NULL;
       ei->x = x;
       ei->y = y;
       ei->width = width;
       ei->height = height;
 
+      list = noseeum_cons (wrap_expose_ignore (ei), Qnil);
+
       /* we have to add the exposure to the end of the list, since we
 	 want to check the oldest events first. for speed we keep a record
 	 of the end so that we can add right to it. */
-      if (f->subwindow_exposures_tail)
+      if (!NILP (f->subwindow_exposures_tail))
 	{
-	  f->subwindow_exposures_tail->next = ei;
+          XSETCDR (f->subwindow_exposures_tail, list);
 	}
-      if (!f->subwindow_exposures)
+
+      if (NILP (f->subwindow_exposures))
 	{
-	  f->subwindow_exposures = ei;
+	  f->subwindow_exposures = list;
 	}
-      f->subwindow_exposures_tail = ei;
+      f->subwindow_exposures_tail = list;
     }
 }
 
@@ -5530,11 +5521,6 @@ image_instantiator_format_create (void)
 void
 reinit_vars_of_glyphs (void)
 {
-#ifndef NEW_GC
-  the_expose_ignore_blocktype =
-    Blocktype_new (struct expose_ignore_blocktype);
-#endif /* not NEW_GC */
-
   hold_ignored_expose_registration = 0;
 }
 

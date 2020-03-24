@@ -1,3 +1,38 @@
+2020-03-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Don't reimplement linked lists, struct expose_ignore.
+
+	* frame-impl.h (struct frame):
+	Move subwindow_exposures, subwindow_exposures_tail to
+	frameslots.h, now they are Lisp_Objects.
+	* frame.c:
+	* frame.c (expose_ignore_description): Removed.
+	* frame.c (allocate_frame_core):
+	No need to initialize subwindow_exposures,
+	subwindow_exposures_tail explicitly, now they are in
+	frameslots.h.
+	* frame.c (compute_frame_usage):
+	Do an explicit loop through the subwindow_exposures Lisp list
+	rather than re-implementing this.
+	* frame.c (syms_of_frame):
+	Always make the expose_ignore Lisp_Object available.
+	* frameslots.h:
+	Move subwindow_exposures, subwindow_exposure_tail here from
+	frame-impl.h, now they're Lisp_Objects.
+	* glyphs.h:
+	* glyphs.h (struct expose_ignore):
+	Update this declaration, there's no need for a NEXT slot, and the
+	header is needed even when non-NEW_GC.
+	* glyphs.c (check_for_ignored_expose):
+	Do a normal Lisp LIST_LOOP_3 rather than re-implementing a linked
+	list.
+	* glyphs.c (register_ignored_expose):
+	subwindow_exposures is now a normal Lisp list, implement this
+	function using our normal Lisp list infrastructure rather than
+	re-implementing it.
+	* glyphs.c (vars_of_glyphs):
+	No need for an expose_ignore_blocktype in this function.
+
 2020-03-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* emacs.c (main_1):

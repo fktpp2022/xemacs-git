@@ -534,29 +534,13 @@ static const struct sized_memory_description frame_data_description = {
   sizeof (void *), frame_data_description_1
 };
 
-#ifdef NEW_GC
 static const struct memory_description expose_ignore_description_1 [] = {
-  { XD_LISP_OBJECT, offsetof (struct expose_ignore, next) },
   { XD_END }
 };
 
 DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("expose-ignore", expose_ignore,
 				      0, expose_ignore_description_1,
 				      struct expose_ignore);
-#else /* not NEW_GC */
-extern const struct sized_memory_description expose_ignore_description;
-
-static const struct memory_description expose_ignore_description_1 [] = {
-  { XD_BLOCK_PTR, offsetof (struct expose_ignore, next),
-    1, { &expose_ignore_description } },
-  { XD_END }
-};
-
-const struct sized_memory_description expose_ignore_description = {
-  sizeof (struct expose_ignore),
-  expose_ignore_description_1
-};
-#endif /* not NEW_GC */
 
 static const struct memory_description display_line_dynarr_pointer_description_1 []= {
   { XD_BLOCK_PTR, 0, 1, { &display_line_dynarr_description} },
@@ -573,16 +557,6 @@ static const struct memory_description frame_description [] = {
 #define MARKED_SLOT_ARRAY(slot, size) \
   { XD_LISP_OBJECT_ARRAY, offsetof (struct frame, slot), size },
 #include "frameslots.h"
-
-#ifdef NEW_GC
-  { XD_LISP_OBJECT, offsetof (struct frame, subwindow_exposures) },
-  { XD_LISP_OBJECT, offsetof (struct frame, subwindow_exposures_tail) },
-#else /* not NEW_GC */
-  { XD_BLOCK_PTR, offsetof (struct frame, subwindow_exposures),
-    1, { &expose_ignore_description } },
-  { XD_BLOCK_PTR, offsetof (struct frame, subwindow_exposures_tail),
-    1, { &expose_ignore_description } },
-#endif /* not NEW_GC */
 
 #ifdef HAVE_SCROLLBARS
   { XD_LISP_OBJECT, offsetof (struct frame, sb_vcache) },
@@ -699,10 +673,6 @@ allocate_frame_core (Lisp_Object device)
 
   /* cache of subwindows visible on frame */
   f->subwindow_instance_cache    = make_weak_list (WEAK_LIST_SIMPLE);
-
-  /* associated exposure ignore list */
-  f->subwindow_exposures = 0;
-  f->subwindow_exposures_tail = 0;
 
   FRAME_SET_PAGENUMBER (f, 1);
 
@@ -4097,10 +4067,13 @@ compute_frame_usage (struct frame *f, struct frame_stats *stats,
 					   ustats);
     }
   {
-    struct expose_ignore *e;
-
-    for (e = f->subwindow_exposures; e; e = e->next)
-      stats->expose_ignore += malloced_storage_size (e, sizeof (*e), ustats);
+    LIST_LOOP_2 (elt, f->subwindow_exposures)
+      {
+        stats->expose_ignore
+          += malloced_storage_size (XEXPOSE_IGNORE (elt),
+                                    sizeof (struct expose_ignore),
+                                    ustats);
+      }
   }
 
 #if 0
@@ -4148,9 +4121,7 @@ void
 syms_of_frame (void)
 {
   INIT_LISP_OBJECT (frame);
-#ifdef NEW_GC
   INIT_LISP_OBJECT (expose_ignore);
-#endif /* NEW_GC */
 
   DEFSYMBOL (Qdelete_frame_hook);
   DEFSYMBOL (Qselect_frame_hook);
