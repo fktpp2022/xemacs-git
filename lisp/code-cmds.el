@@ -103,12 +103,8 @@ EOL-TYPE may also be one of the symbols `unix', `dos' or `mac', meaning
 				t))
 		       (coding-system-name buffer-file-coding-system)))
 	 (coding-system
-	  (read-coding-system
-	   (if default
-	       (format "Coding system for following command (default, %s): "
-		       default)
-	     "Coding system for following command: ")
-	   default))
+	  (read-coding-system "Coding system for following command: "
+                              default))
 	 (keyseq (read-key-sequence
 		  (format "Command to execute with %s:" coding-system)))
 	 (cmd (key-binding keyseq)))

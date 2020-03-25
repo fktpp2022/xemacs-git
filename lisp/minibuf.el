@@ -1189,6 +1189,7 @@ list is specified.")
 (defvar buffer-history '())
 (defvar shell-command-history '())
 (defvar file-name-history '())
+(defvar coding-system-history '())
 
 (defvar read-expression-history nil)
 
@@ -1667,7 +1668,7 @@ This will prompt with a dialog box if appropriate, according to
 Value is not expanded---you must call `expand-file-name' yourself.
 Value is subject to interpretation by `substitute-in-file-name' however.
 Default name to DEFAULT if user enters a null string.
- (If DEFAULT is omitted, the visited file name is used,
+ \(If DEFAULT is omitted, the visited file name is used,
   except that if INITIAL-CONTENTS is specified, that combined with DIR is
   used.)
 Fourth arg MUST-MATCH non-nil means require existing file's name.
@@ -1701,7 +1702,7 @@ This will prompt with a dialog box if appropriate, according to
 Value is not expanded---you must call `expand-file-name' yourself.
 Value is subject to interpreted by substitute-in-file-name however.
 Default name to DEFAULT if user enters a null string.
- (If DEFAULT is omitted, the current buffer's default directory is used.)
+ \(If DEFAULT is omitted, the current buffer's default directory is used.)
 Fourth arg MUST-MATCH non-nil means require existing directory's name.
  Non-nil and non-t means also require confirmation after completion.
 Fifth arg INITIAL-CONTENTS specifies text to start with.
@@ -2118,28 +2119,60 @@ On mswindows devices, this uses `mswindows-color-list'."
 
 
 (defun read-coding-system (prompt &optional default-coding-system)
-  "Read a coding-system (or nil) from the minibuffer.
-Prompting with string PROMPT.
+  "Read a coding system name from the minibuffer, using PROMPT.
+
 If the user enters null input, return second argument DEFAULT-CODING-SYSTEM.
-DEFAULT-CODING-SYSTEM can be a string, symbol, or coding-system object."
-  (intern (completing-read prompt obarray 'find-coding-system t nil nil 
-			   (cond ((symbolp default-coding-system)
-				  (symbol-name default-coding-system))
-				 ((coding-system-p default-coding-system)
-				  (symbol-name (coding-system-name default-coding-system)))
-				 (t
-				  default-coding-system)))))
+DEFAULT-CODING-SYSTEM can be a string, symbol, or coding-system object.
+
+XEmacs coding system name are usually lowercase, but there are exceptions.
+Case is ignored by this function and by `read-non-nil-coding-system', though
+other XEmacs functions related to coding systesm require that case be
+preserved.
+
+The return value will be a symbol which can usefully be passed to
+`find-coding-system'."
+  (let* ((default-coding-system
+          (cond ((coding-system-p default-coding-system)
+                 (symbol-name (coding-system-name default-coding-system)))
+                (default-coding-system
+                    (if (symbolp default-coding-system)
+                        (symbol-name default-coding-system)
+                      default-coding-system))
+                (t "nil")))
+         (prompt
+          (if (and (not (equal default-coding-system "nil"))
+                   (eql (mismatch prompt ": " :from-end t)
+                        (- (length prompt) (length ": ")))
+                   (not (eql (mismatch prompt "): " :from-end t)
+                             (- (length prompt) (length "): ")))))
+              (format "%.*s (default `%s'): " (- (length prompt) (length ": "))
+                      prompt default-coding-system)
+            prompt))
+         (completion-ignore-case t)
+         (result
+          (completing-read prompt obarray 'find-coding-system t nil
+                           'coding-system-history default-coding-system)))
+    (or (and (find-coding-system (intern result)) (intern result))
+        (find result (coding-system-list) :key #'symbol-name :test #'equalp)
+        result)))
 
 (defun read-non-nil-coding-system (prompt)
-  "Read a non-nil coding-system from the minibuffer.
-Prompt with string PROMPT."
-  (let ((retval (intern "")))
-    (while (eql 0 (length (symbol-name retval)))
-      (setq retval (intern (completing-read prompt obarray
-					    'find-coding-system
-					    t))))
-    retval))
+  "Read a non-nil coding system name from the minibuffer, using PROMPT.
 
+Case is ignored by this function and by `read-coding-system', though other
+XEmacs functions related to coding systesm require that case be preserved.
+XEmacs coding system name are usually lowercase, but there are exceptions.
+
+The return value will be a non-nil symbol which can usefully be passed to
+`find-coding-system'."
+  (let ((result '##) (completion-ignore-case t))
+    (while (or (eq '## result) (not result))
+      (setq result (intern (completing-read prompt obarray 'find-coding-system
+                                            t nil 'coding-system-history))))
+    (or (and (find-coding-system result) result)
+        (find (symbol-name result)
+              (coding-system-list) :key #'symbol-name :test #'equalp)
+        result)))
 
 
 (defcustom force-dialog-box-use nil

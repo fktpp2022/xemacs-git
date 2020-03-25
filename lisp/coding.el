@@ -93,8 +93,10 @@ or a function symbol which, when called, returns such a cons cell."
 
 (defun set-keyboard-coding-system (coding-system)
   "Set the coding system used for TTY keyboard input. Currently broken."
-  (interactive "zkeyboard-coding-system: ")
-  (get-coding-system coding-system) ; correctness check
+  (interactive
+   (list (read-coding-system "Keyboard coding system: "
+                             keyboard-coding-system)))
+  (check-coding-system coding-system) ; correctness check
   (setq keyboard-coding-system coding-system)
   (if (eq (device-type) 'tty)
       (declare-fboundp (set-console-tty-input-coding-system
@@ -107,8 +109,10 @@ or a function symbol which, when called, returns such a cons cell."
 
 (defun set-terminal-coding-system (coding-system)
   "Set the coding system used for TTY display output."
-  (interactive "zterminal-coding-system: ")
-  (get-coding-system coding-system) ; correctness check
+  (interactive
+   (list (read-coding-system "Terminal coding system: "
+                             terminal-coding-system)))
+  (check-coding-system coding-system) ; correctness check
   (setq terminal-coding-system coding-system)
   ; #### should this affect all current tty consoles ?
   (if (eq (device-type) 'tty)

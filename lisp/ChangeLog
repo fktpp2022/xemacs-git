@@ -1,3 +1,39 @@
+2020-03-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* code-cmds.el (universal-coding-system-argument):
+	Use the DEFAULT argument to #'read-coding-system, trust it to
+	rewrite the prompt rather than doing it ourselves.
+	* code-files.el (set-buffer-file-coding-system):
+	Call #'read-coding-system expicitly, take a default from
+	coding-system-history.
+	* code-files.el (set-buffer-file-coding-system-for-read):
+	Call #'check-coding-system rather than #'get-coding-system, which
+	is clearer for what we want.
+	* code-files.el (insert-file-contents):
+	Ditto.
+	* code-process.el:
+	* code-process.el (set-buffer-process-coding-system):
+	Explicitly call #'read-coding-system in the (interactive) spec
+	here, so we can pass in the existing default-process-coding-system
+	as a DEFAULT argument.
+	* coding.el (set-keyboard-coding-system):
+	Explicitly call #'read-coding-system in the (interactive) spec
+	here, displaying keyboard-coding-system as the default.
+	* coding.el (set-terminal-coding-system):
+	Explicitly call #'read-coding-system in the (interactive) spec
+	here, displaying terminal-coding-system as the default.
+	* minibuf.el (coding-system-history): New.
+	* minibuf.el (read-file-name):
+	Backslash some parentheses in the first column for the sake of
+	fontification. 
+	* minibuf.el (read-directory-name):
+	Ditto.
+	* minibuf.el (read-coding-system):
+	Revise this to use coding-system-history, to adjust PROMPT
+	depending on DEFAULT-CODING-SYSTEM, to ignore case (as does GNU).
+	* minibuf.el (read-non-nil-coding-system):
+	Revise this to use coding-system-history and to ignore case.
+
 2020-03-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* simple.el (kill-line-1): Implement this with #'macrolet rather

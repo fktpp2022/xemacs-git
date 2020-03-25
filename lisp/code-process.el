@@ -613,12 +613,15 @@ ENCODING is the coding system to be used to encode output to the process.
 
 For a list of possible values of CODING-SYSTEM, use \\[coding-system-list]."
   (interactive
-   "zCoding-system for process input: \nzCoding-system for process output: ")
+   (list (read-coding-system "Coding-system for process input: "
+                             (car default-process-coding-system))
+         (read-coding-system "Coding-system for process output: "
+                             (cdr default-process-coding-system))))
   (let ((proc (get-buffer-process (current-buffer))))
     (if (null proc)
 	(error "no process")
-      (get-coding-system decoding)
-      (get-coding-system encoding)
+      (check-coding-system decoding)
+      (check-coding-system encoding)
       (set-process-coding-system proc decoding encoding)))
   (force-mode-line-update))
 

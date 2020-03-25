@@ -120,7 +120,10 @@ surely saves the buffer with CODING-SYSTEM.  From a program, if you
 don't want to mark the buffer modified, specify t for NOMODIFY.
 If you know exactly what coding system you want to use,
 just set the variable `buffer-file-coding-system' directly."
-  (interactive "zCoding system for saving file (default nil): \nP")
+  (interactive (list
+                (read-coding-system "Coding system for saving file: "
+                                    (car coding-system-history))
+                current-prefix-arg))
   (check-coding-system coding-system)
   (if (and coding-system buffer-file-coding-system (null force))
        (setq coding-system
@@ -159,7 +162,7 @@ This is equivalent to setting the variable
 `file-coding-system-alist' to specify the coding system for
 particular files."
   (interactive "zFile coding system for read: ")
-  (get-coding-system coding-system) ;; correctness check
+  (check-coding-system coding-system) ;; correctness check
   (setq buffer-file-coding-system-for-read coding-system))
 
 (define-obsolete-function-alias
@@ -560,7 +563,7 @@ and `insert-file-contents-post-hook'."
 	;; of set-buffer-file-coding-system cause the actual coding system
 	;; object to be stored, so do that here, too.
 	(setq buffer-file-coding-system-when-loaded 
-	      (get-coding-system coding-system))
+	      (check-coding-system coding-system))
 	return-val))))
 
 (defvar write-region-pre-hook nil
