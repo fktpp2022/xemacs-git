@@ -3254,50 +3254,103 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 
             handle_open:
               {
-                regnum_t r;
-		int shy = 0;
+                regnum_t r = 0;
+		re_bool shy = 0, named_nonshy = 0;
 
                 if (!(syntax & RE_NO_SHY_GROUPS)
-                    && p != pend
-                    && *p == '?')
+                    && p != pend && itext_ichar_eql (p, '?'))
                   {
-                    p++;
-                    PATFETCH (c);
+                    INC_IBYTEPTR (p); /* Gobble up the '?'.  */
+                    PATFETCH (c); /* Fetch the next character, which may be a
+                                     digit. */
                     switch (c)
                       {
                       case ':': /* shy groups */
                         shy = 1;
                         break;
 
-                      /* All others are reserved for future constructs. */
+                      case '1': case '2': case '3': case '4':
+                      case '5': case '6': case '7': case '8': case '9':
+                        PATUNFETCH;
+                        GET_UNSIGNED_NUMBER (r);
+                        if (itext_ichar_eql (p, ':'))
+                          {
+                            named_nonshy = 1;
+                            INC_IBYTEPTR (p); /* Gobble up the ':'. */
+                            break;
+                            /* Otherwise, fall through and error. */
+                          }
+
+                        /* An explicitly specified regnum must start with
+                           non-0. */
+                      case '0':
                       default:
                         FREE_STACK_RETURN (REG_BADPAT);
                       }
                   }
 
-		r = ++regnum;
+                ++regnum;
 		bufp->re_ngroups++;
+
+                if (bufp->re_ngroups > MAX_REGNUM)
+                  {
+                    FREE_STACK_RETURN (REG_ESUBREG);
+                  }
+
 		if (!shy)
 		  {
-		    bufp->re_nsub++;
+                    if (named_nonshy)
+                      {
+                        if (r < bufp->external_to_internal_register_size)
+                          {
+                            if (group_in_compile_stack
+                                (compile_stack,
+                                 bufp->external_to_internal_register[r]))
+                              {
+                                /* GNU errors in this context, which is
+                                   inconsistent; it otherwise has no problem
+                                   with named non-shy groups overriding
+                                   previously-assigned group numbers. I choose
+                                   to error here for consistency with GNU for
+                                   those writing code that should target
+                                   both. */
+                                FREE_STACK_RETURN (REG_ESUBREG);
+                              }
+                          }
+
+                        if (r > bufp->re_nsub)
+                          {
+                            bufp->re_nsub = r;
+                          }
+                      }
+                    else
+                      {
+                        r = ++(bufp->re_nsub);
+                      }
+
 		    while (bufp->external_to_internal_register_size <=
 			   bufp->re_nsub)
 		      {
 			int i;
 			int old_size =
 			  bufp->external_to_internal_register_size;
-			bufp->external_to_internal_register_size += 5;
+			bufp->external_to_internal_register_size
+                          += max (old_size + 5, bufp->re_nsub + 5);
+
 			RETALLOC (bufp->external_to_internal_register,
 				  bufp->external_to_internal_register_size,
 				  int);
-			/* debugging */
+
 			for (i = old_size;
 			     i < bufp->external_to_internal_register_size; i++)
 			  bufp->external_to_internal_register[i] =
 			    (int) 0xDEADBEEF;
 		      }
 
-		    bufp->external_to_internal_register[bufp->re_nsub] =
+                    /* This is explicitly [r] rather than [bufp->re_nsub] for
+                       the case that the named nonshy group references an
+                       unused register number less than bufp->re_nsub. */
+		    bufp->external_to_internal_register[r] =
 		      bufp->re_ngroups;
 		  }
 
@@ -3318,7 +3371,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
                 COMPILE_STACK_TOP.fixup_alt_jump
                   = fixup_alt_jump ? fixup_alt_jump - bufp->buffer + 1 : 0;
                 COMPILE_STACK_TOP.laststart_offset = buf_end - bufp->buffer;
-                COMPILE_STACK_TOP.regnum = r;
+                COMPILE_STACK_TOP.regnum = bufp->re_ngroups;
 
                 /* We will eventually replace the 0 with the number of
                    groups inner to this one.  But do not push a
@@ -3327,11 +3380,11 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 		   #### bad bad bad.  this will fail in lots of ways, if we
 		   ever have to backtrack for these groups.
 		*/
-                if (r <= MAX_REGNUM)
+                if (bufp->re_ngroups <= MAX_REGNUM)
                   {
                     COMPILE_STACK_TOP.inner_group_offset
                       = buf_end - bufp->buffer + 2;
-                    BUF_PUSH_3 (start_memory, r, 0);
+                    BUF_PUSH_3 (start_memory, bufp->re_ngroups, 0);
                   }
 
                 compile_stack.avail++;
@@ -3742,16 +3795,29 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
                    one that corresponds to an existing register. */
                 while (reg > 10 &&
                        (syntax & RE_NO_MULTI_DIGIT_BK_REFS
-                        || (reg > bufp->re_nsub)))
+                        || reg > bufp->re_nsub
+                        || (bufp->external_to_internal_register[reg]
+                            == (int) 0xDEADBEEF)))
+
                   {
                     PATUNFETCH;
                     reg /= 10;
                   }
 
-                if (reg > bufp->re_nsub)
+                if (reg > bufp->re_nsub
+                    || (bufp->external_to_internal_register[reg]
+                        == (int) 0xDEADBEEF))
                   {
                     /* \N with one digit with a non-existing group has always
-                       been a syntax error. */
+                       been a syntax error.
+
+                       GNU as of Fr 27 Mär 2020 16:24:07 GMT do not accept
+                       multidigit backreferences; if they did there would be
+                       an argument for this not being an error for those
+                       backreferences that are less than some known named
+                       backreference. As it is currently we should error, this
+                       will give those writing code for XEmacs better
+                       feedback. */
                     FREE_STACK_RETURN (REG_ESUBREG);
                   }
 
@@ -5863,7 +5929,8 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 		     mcnt++)
 		  {
 		    int internal_reg = bufp->external_to_internal_register[mcnt];
-		    if (REG_UNSET (regstart[internal_reg]) ||
+		    if ((int)0xDEADBEEF == internal_reg 
+                        || REG_UNSET (regstart[internal_reg]) ||
 			REG_UNSET (regend[internal_reg]))
 		      regs->start[mcnt] = regs->end[mcnt] = -1;
 		    else

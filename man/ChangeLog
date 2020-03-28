@@ -1,3 +1,9 @@
+2020-03-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/searching.texi (Syntax of Regexps):
+	Document the named non-shy groups, or explicitly numbered groups,
+	just added.
+
 2020-03-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi:

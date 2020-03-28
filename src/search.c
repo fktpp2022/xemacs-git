@@ -3348,15 +3348,17 @@ rare.)
 static Lisp_Object
 match_limit (Lisp_Object num, int beginningp)
 {
-  int n;
+  EMACS_INT n;
 
-  CHECK_FIXNUM (num);
+  /* search_regs.num_regs is a C int, we don't have to worry about the
+     EMACS_INT / C int size difference in this call. */
+  check_integer_range (num, Qzero,
+                       make_fixnum (search_regs.num_regs - 1));
+
   n = XFIXNUM (num);
-  if (n < 0 || n >= search_regs.num_regs)
-    args_out_of_range (num, make_fixnum (search_regs.num_regs));
-  if (search_regs.num_regs == 0 ||
-      search_regs.start[n] < 0)
+  if (search_regs.num_regs == 0 || search_regs.start[n] < 0)
     return Qnil;
+
   return make_fixnum (beginningp ? search_regs.start[n] : search_regs.end[n]);
 }
 

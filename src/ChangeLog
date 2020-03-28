@@ -1,3 +1,21 @@
+2020-03-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* regex.c (regex_compile):
+	Add support for named non-shy ("explicitly numbered") groups.
+	Explicitly use bufp->re_ngroups for the saved group info, making
+	it clearer that the saved group number is the internal group
+	number.
+	* regex.c (re_match_2_internal):
+	There can now be gaps in the external_to_internal_register map
+	array; check for these when erroring with non-existing register
+	references and when translating from internal to external
+	registers after a successful match.
+	* regex.h (struct re_pattern_buffer):
+	Update the documentation of re_nsub, re_ngroups.
+	* search.c (match_limit):
+	Revise this to use check_integer_range() rather than
+	re-implementing it.
+
 2020-03-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Don't reimplement linked lists, struct expose_ignore.

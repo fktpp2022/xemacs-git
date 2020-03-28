@@ -1,3 +1,11 @@
+2020-03-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/regexp-tests.el:
+	* automated/regexp-tests.el (text1):
+	* automated/regexp-tests.el (probe-backref-limits):
+	Test subpatterns and backreferences with named non-shy (explicitly
+	numbered) groups.
+
 2019-04-28  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/symbol-tests.el (Check-package-case-sensitivity):

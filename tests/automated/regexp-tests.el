@@ -497,6 +497,30 @@ baaaa
   (Assert (null (match-string 2 text2)))
 )
 
+;; Subpatterns and backreferences with named non-shy groups.
+(symbol-macrolet
+    ((text1 "abb") (text2 "aba")
+     (re1 "\\(?42:a\\)\\(b\\)\\42") (re1-named-group 42)
+     (re2 "\\(a\\)\\(?84:b\\)\\1") (re2-named-group 84))
+  (let ((log-warning-suppressed-classes
+         (cons 'regex log-warning-suppressed-classes))
+        (display-warning-suppressed-classes
+         (cons 'regex display-warning-suppressed-classes)))
+
+    (Assert (null (string-match re1 text1)))
+    (Assert (eql 0 (string-match re1 text2)))
+    (Assert (equal text2 (match-string 0 text2)))
+    (Assert (equal "b" (match-string (1+ re1-named-group) text1)))
+    (Assert (null (match-string 2 text1)))
+
+    (Assert (null (string-match re2 text1)))
+    (Assert (eql 0 (string-match re2 text2)))
+    (Assert (equal text2 (match-string 0 text2)))
+    (Assert (equal "a" (match-string 1 text2)))
+    (Assert (null (match-string 2 text2)))
+    (Assert (equal "b" (match-string re2-named-group text2)))
+    (Assert (null (match-string (1+ re2-named-group) text2)))))
+
 ;; replace-regexp-in-string (regexp rep source
 ;;                           fixedcase literal buf-or-subexp start)
 
@@ -573,12 +597,12 @@ baaaa
 	 'progn
 	 (loop for limit in limits
 	   collect
-	   `(,(if (fixnump limit)
-		  'progn
+	   `(progn
+	     (,@(if (fixnump limit)
+		  '(Assert)
 		(progn
 		  (setq limit (cdr limit))
-		  'Known-Bug-Expect-Failure))
-	     (Assert 
+		  '(Check-Error invalid-regexp)))
 	      (equal
 	       (replace-regexp-in-string
 		(with-output-to-string
@@ -609,7 +633,11 @@ appropriately, ASCII digits" limit)))))
            (loop
                for limit in limits
                collect
-               `(Assert
+               `(,@(if (fixnump limit)
+                       '(Assert)
+                       (progn
+                         (setq limit (cdr limit))
+                         '(Check-Error invalid-regexp)))
                  (equal
                   (replace-regexp-in-string
                    (with-output-to-string

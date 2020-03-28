@@ -372,12 +372,14 @@ struct re_pattern_buffer
            when it is matched.  */
   RE_TRANSLATE_TYPE translate;
 
-	/* Number of subpatterns (returnable groups) found by the compiler.
-	   (This does not count shy groups.) */
+        /* Inclusive upper bound on the subpattern numbers (the returnable
+           groups) found by the compiler. This ignores shy groups. The range 0
+           to re_nsub may have one or more discontinuities if one or more
+           named non-shy groups were used. */
   int re_nsub;
 
-	/* Total number of groups found by the compiler. (Including
-	   shy ones.) */
+        /* Total number of groups found by the compiler, including shy
+           ones. The range 0 to re_ngroups should have no discontinuities. */
   int re_ngroups;
 
         /* Zero if this pattern cannot match the empty string, one else.
