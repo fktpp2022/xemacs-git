@@ -55,16 +55,16 @@ static int last_quit_check_signal_tick_count;
    absolute. */
 static struct low_level_timeout *tty_timer_queue;
 
-static int
+static EMACS_INT
 emacs_tty_add_timeout (EMACS_TIME thyme)
 {
-  return add_low_level_timeout (&tty_timer_queue, thyme);
+  return (EMACS_INT) add_low_level_timeout (&tty_timer_queue, thyme);
 }
 
 static void
-emacs_tty_remove_timeout (int id)
+emacs_tty_remove_timeout (EMACS_INT id)
 {
-  remove_low_level_timeout (&tty_timer_queue, id);
+  remove_low_level_timeout (&tty_timer_queue, (int) id);
 }
 
 static void

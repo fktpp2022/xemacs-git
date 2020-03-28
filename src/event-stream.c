@@ -503,7 +503,7 @@ event_stream_hash_magic_event (Lisp_Event *e)
   return event_stream->hash_magic_event_cb (e);
 }
 
-static int
+static EMACS_INT
 event_stream_add_timeout (EMACS_TIME timeout)
 {
   check_event_stream_ok ();
@@ -511,7 +511,7 @@ event_stream_add_timeout (EMACS_TIME timeout)
 }
 
 static void
-event_stream_remove_timeout (int id)
+event_stream_remove_timeout (EMACS_INT id)
 {
   check_event_stream_ok ();
   event_stream->remove_timeout_cb (id);
@@ -1103,8 +1103,8 @@ event_stream_generate_wakeup (unsigned int milliseconds,
    NOTE: The returned FUNCTION and OBJECT are *not* GC-protected at all.
 */
 
-int
-event_stream_resignal_wakeup (int interval_id, int async_p,
+EMACS_INT
+event_stream_resignal_wakeup (EMACS_INT interval_id, Boolint async_p,
 			      Lisp_Object *function, Lisp_Object *object)
 {
   Lisp_Object op = Qnil, rest;

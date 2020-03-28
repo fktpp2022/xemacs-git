@@ -47,8 +47,8 @@ struct event_stream
   Bytecount (*format_magic_event_cb)	(Lisp_Event *, Lisp_Object pstream);
   int (*compare_magic_event_cb) (Lisp_Event *, Lisp_Event *);
   Hashcode (*hash_magic_event_cb)(Lisp_Event *);
-  int  (*add_timeout_cb)	(EMACS_TIME);
-  void (*remove_timeout_cb)	(int);
+  EMACS_INT  (*add_timeout_cb)	(EMACS_TIME);
+  void (*remove_timeout_cb)	(EMACS_INT);
   void (*select_console_cb)	(struct console *);
   void (*unselect_console_cb)	(struct console *);
   void (*select_process_cb)	(Lisp_Process *, int doin, int doerr);
@@ -353,10 +353,10 @@ struct Lisp_Timeout_Data
 #ifdef EVENT_DATA_AS_OBJECTS
   FROB_BLOCK_LISP_OBJECT_HEADER lheader;
 #endif /* EVENT_DATA_AS_OBJECTS */
-  int interval_id;
-  int id_number;
+  EMACS_INT interval_id;
   Lisp_Object function;
   Lisp_Object object;
+  int id_number;
 };
 typedef struct Lisp_Timeout_Data Lisp_Timeout_Data;
 
@@ -661,9 +661,8 @@ struct Lisp_Timeout
 {
   NORMAL_LISP_OBJECT_HEADER header;
   int id; /* Id we use to identify the timeout over its lifetime */
-  int interval_id; /* Id for this particular interval; this may
-                      be different each time the timeout is
-                      signalled.*/
+  EMACS_INT interval_id; /* Id for this particular interval; this may be
+                            different each time the timeout is signalled.*/
   Lisp_Object function, object; /* Function and object associated
                                    with timeout. */
   EMACS_TIME next_signal_time;  /* Absolute time when the timeout
@@ -1051,8 +1050,10 @@ int event_stream_generate_wakeup (unsigned int milliseconds,
                                   Lisp_Object function,
                                   Lisp_Object object,
                                   int async_p);
-int event_stream_resignal_wakeup (int interval_id, int async_p,
-                                  Lisp_Object *function, Lisp_Object *object);
+EMACS_INT event_stream_resignal_wakeup (EMACS_INT interval_id,
+                                        Boolint async_p,
+                                        Lisp_Object *function,
+                                        Lisp_Object *object);
 void event_stream_disable_wakeup (int id, int async_p);
 
 /* from signal.c */

@@ -1,5 +1,65 @@
 2020-03-28  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Don't reimplement linked lists for timeouts, event-gtk.c, event-Xt.c.
+
+	* data.c:
+	Move the LISP_INTEGER_TO_C_TYPE(), C_TYPE_TO_LISP_INTEGER(),
+	DEFINE_C_INTEGER_TYPE_LISP_CONVERSION() macros to number.h.
+
+	* event-Xt.c:
+	* event-Xt.c (Xt_timeout_callback):
+	* event-Xt.c (emacs_Xt_add_timeout):
+	* event-Xt.c (emacs_Xt_remove_timeout):
+	* event-Xt.c (Xt_timeout_to_emacs_event):
+	* event-Xt.c (emacs_Xt_next_event):
+	* event-Xt.c (reinit_vars_of_event_Xt):
+	* event-Xt.c (vars_of_event_Xt):
+	* event-Xt.c (init_event_Xt_late):
+	pending_timeouts, completed_timeouts were just linked lists. No
+	need for a specialised structure implementation and memory
+	allocation blocktype, use Lisp lists, Fcons(), and
+	LIST_LOOP_DELETE_IF().
+	The one thing that required Xt-specific code was the Lisp
+	representation of an XtIntervalId; make this available and robust
+	using DEFINE_C_INTEGER_TYPE_LISP_CONVERSION().
+	
+	* event-gtk.c:
+	* event-gtk.c (gtk_timeout_callback):
+	* event-gtk.c (emacs_gtk_add_timeout):
+	* event-gtk.c (emacs_gtk_remove_timeout):
+	* event-gtk.c (gtk_timeout_to_emacs_event):
+	* event-gtk.c (emacs_gtk_next_event):
+	* event-gtk.c (reinit_vars_of_event_gtk):
+	* event-gtk.c (init_event_gtk_late):
+	* event-gtk.c (vars_of_event_gtk):
+	Same approach as with event-Xt.c, move to Lisp lists rather than
+	rolling our own linked list implementation.
+	
+	* event-stream.c (event_stream_add_timeout):
+	* event-stream.c (event_stream_remove_timeout):
+	* event-stream.c (event_stream_resignal_wakeup):
+	* event-stream.c (event_stream_force_event_pending):
+	Revise the types of all these functions to use an EMACS_INT as the
+	platform-specific interval ID, which is wide enough to store a
+	pointer.
+	
+	* event-tty.c (emacs_tty_add_timeout):
+	* event-tty.c (emacs_tty_remove_timeout):
+	Ditto.
+
+	* events.h:
+	* events.h (struct event_stream):
+	* events.h (struct Lisp_Timeout_Data):
+	* events.h (struct Lisp_Timeout):
+	Move types for platform-specific interval IDs here to being
+	EMACS_INT (guaranteed big enough to hold a pointer) rather than int.
+
+	* number.h:
+	Move the LISP_INTEGER_TO_C_TYPE(), C_TYPE_TO_LISP_INTEGER(),
+	DEFINE_C_INTEGER_TYPE_LISP_CONVERSION() macros here from data.c.
+
+2020-03-28  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* regex.c (regex_compile):
 	Add support for named non-shy ("explicitly numbered") groups.
 	Explicitly use bufp->re_ngroups for the saved group info, making

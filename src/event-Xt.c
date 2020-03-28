@@ -3024,137 +3024,96 @@ emacs_Xt_handle_magic_event (Lisp_Event *emacs_event)
 /*				timeout events				*/
 /************************************************************************/
 
-static int timeout_id_tick;
+DEFINE_C_INTEGER_TYPE_LISP_CONVERSION (static, XtIntervalId);
 
-/* Xt interval id's might not fit into an int (they're pointers, as it
-   happens), so we need to provide a conversion list. */
-
-static struct Xt_timeout
-{
-  int id;
-  XtIntervalId interval_id;
-  struct Xt_timeout *next;
-} *pending_timeouts, *completed_timeouts;
-
-static struct Xt_timeout_blocktype
-{
-  Blocktype_declare (struct Xt_timeout);
-} *the_Xt_timeout_blocktype;
+static Lisp_Object VXt_pending_timeouts, VXt_completed_timeouts;
 
 /* called by XtAppNextEvent() */
 static void
 Xt_timeout_callback (XtPointer closure, XtIntervalId *UNUSED (id))
 {
-  struct Xt_timeout *timeout = (struct Xt_timeout *) closure;
-  struct Xt_timeout *t2 = pending_timeouts;
+  Lisp_Object timeout = GET_LISP_FROM_VOID (closure);
+  Boolint found = 0;
+
   /* Remove this one from the list of pending timeouts */
-  if (t2 == timeout)
-    pending_timeouts = pending_timeouts->next;
-  else
+  LIST_LOOP_DELETE_IF (elt, VXt_pending_timeouts, 
+                       (EQ (timeout, tail_elt) && ((found = 1),
+                                                   USED (elt), 1)));
+
+  if (found)
     {
-      while (t2->next && t2->next != timeout) t2 = t2->next;
-      assert (t2->next);
-      t2->next = t2->next->next;
+      /* Add this one to the list of completed timeouts */
+      XCDR (timeout) = VXt_completed_timeouts;
+      VXt_completed_timeouts = timeout;
     }
-  /* Add this one to the list of completed timeouts */
-  timeout->next = completed_timeouts;
-  completed_timeouts = timeout;
 }
 
-static int
+static EMACS_INT
 emacs_Xt_add_timeout (EMACS_TIME thyme)
 {
-  struct Xt_timeout *timeout = Blocktype_alloc (the_Xt_timeout_blocktype);
   EMACS_TIME current_time;
   int milliseconds;
 
-  timeout->id = timeout_id_tick++;
-  timeout->next = pending_timeouts;
-  pending_timeouts = timeout;
   EMACS_GET_TIME (current_time);
   EMACS_SUB_TIME (thyme, thyme, current_time);
   milliseconds = EMACS_SECS (thyme) * 1000 +
     EMACS_USECS (thyme) / 1000;
   if (milliseconds < 1)
     milliseconds = 1;
-  timeout->interval_id = XtAppAddTimeOut (Xt_app_con, milliseconds,
-					  Xt_timeout_callback,
-					  (XtPointer) timeout);
-  return timeout->id;
+
+  VXt_pending_timeouts = Fcons (Qnil, VXt_pending_timeouts);
+  XSETCAR (VXt_pending_timeouts,
+           XtIntervalId_to_lisp (XtAppAddTimeOut
+                                 (Xt_app_con, milliseconds,
+                                  Xt_timeout_callback,
+                                  STORE_LISP_IN_VOID (VXt_pending_timeouts))));
+
+  return (EMACS_INT) (STORE_LISP_IN_VOID (VXt_pending_timeouts));
 }
 
 static void
-emacs_Xt_remove_timeout (int id)
+emacs_Xt_remove_timeout (EMACS_INT id)
 {
-  struct Xt_timeout *timeout, *t2;
+  Lisp_Object timeout = GET_LISP_FROM_VOID ((void *) id);
+  Boolint found = 0;
 
-  timeout = NULL;
+  /* Find the timeout on the list of pending ones, if it's still there. Remove
+     it if found. */
+  LIST_LOOP_DELETE_IF (elt, VXt_pending_timeouts, 
+                       (EQ (timeout, tail_elt)
+                        && ((found = 1), USED (elt), 1)));
 
-  /* Find the timeout on the list of pending ones, if it's still there. */
-  if (pending_timeouts)
+  if (found)
     {
-      if (id == pending_timeouts->id)
-	{
-	  timeout = pending_timeouts;
-	  pending_timeouts = pending_timeouts->next;
-	}
-      else
-	{
-	  t2 = pending_timeouts;
-	  while (t2->next && t2->next->id != id) t2 = t2->next;
-	  if ( t2->next)   /*found it */
-	    {
-	      timeout = t2->next;
-	      t2->next = t2->next->next;
-	    }
-	}
-      /* if it was pending, we have removed it from the list */
-      if (timeout)
-	XtRemoveTimeOut (timeout->interval_id);
+      XtRemoveTimeOut (lisp_to_XtIntervalId (XCAR (timeout)));
     }
-
-  /* It could be that the Xt call back was already called but we didn't convert
-     into an Emacs event yet */
-  if (!timeout && completed_timeouts)
+  else
     {
-      /* Code duplication! */
-      if (id == completed_timeouts->id)
-	{
-	  timeout = completed_timeouts;
-	  completed_timeouts = completed_timeouts->next;
-	}
-      else
-	{
-	  t2 = completed_timeouts;
-	  while (t2->next && t2->next->id != id) t2 = t2->next;
-	  if ( t2->next)   /*found it */
-	    {
-	      timeout = t2->next;
-	      t2->next = t2->next->next;
-	    }
-	}
-    }
+      /* It could be that the call back was already called but we didn't
+         convert into an Emacs event yet. No need to XtRemoveTimeOut() in that
+         case, the timeout handling code has done the cleanup already. */
+      LIST_LOOP_DELETE_IF (elt, VXt_completed_timeouts,
+                           (USED (elt), EQ (timeout, tail_elt)));
 
-  /* If we found the thing on the lists of timeouts,
-     and removed it, deallocate
-  */
-  if (timeout)
-    Blocktype_free (the_Xt_timeout_blocktype, timeout);
+    }
 }
 
 static void
 Xt_timeout_to_emacs_event (Lisp_Event *emacs_event)
 {
-  struct Xt_timeout *timeout = completed_timeouts;
-  assert (timeout);
-  completed_timeouts = completed_timeouts->next;
+  Lisp_Object timeout = VXt_completed_timeouts;
+
+  assert (!NILP (timeout));
+
+  VXt_completed_timeouts = XCDR (VXt_completed_timeouts);
+
   /* timeout events have nil as channel */
   set_event_type (emacs_event, timeout_event);
   SET_EVENT_TIMESTAMP_ZERO (emacs_event); /* #### wrong!! */
-  SET_EVENT_TIMEOUT_INTERVAL_ID (emacs_event, timeout->id);
+  SET_EVENT_TIMEOUT_INTERVAL_ID (emacs_event,
+                                 (EMACS_INT) STORE_LISP_IN_VOID (timeout));
   SET_EVENT_TIMEOUT_FUNCTION (emacs_event, Qnil);
   SET_EVENT_TIMEOUT_OBJECT (emacs_event, Qnil);
-  Blocktype_free (the_Xt_timeout_blocktype, timeout);
 }
 
 
@@ -3733,7 +3692,7 @@ emacs_Xt_next_event (Lisp_Event *emacs_event)
  we_didnt_get_an_event:
 
   while (NILP (dispatch_event_queue) &&
-	 !completed_timeouts         &&
+	 NILP (VXt_completed_timeouts)  &&
 	 !fake_event_occurred        &&
 	 !process_events_occurred    &&
 	 !tty_events_occurred)
@@ -3819,7 +3778,7 @@ emacs_Xt_next_event (Lisp_Event *emacs_event)
       if (!Xt_tty_to_emacs_event (emacs_event))
 	goto we_didnt_get_an_event;
     }
-  else if (completed_timeouts)
+  else if (!NILP (VXt_completed_timeouts))
     Xt_timeout_to_emacs_event (emacs_event);
   else if (fake_event_occurred)
     {
@@ -4158,8 +4117,6 @@ reinit_vars_of_event_Xt (void)
   Xt_event_stream->current_event_timestamp_cb =
     emacs_Xt_current_event_timestamp;
 
-  the_Xt_timeout_blocktype = Blocktype_new (struct Xt_timeout_blocktype);
-
   last_quit_check_signal_tick_count = 0;
 
   /* this function only makes safe calls */
@@ -4214,6 +4171,12 @@ The X11 documentation for XDisplayKeycodes says this can never be less than
 8, but XEmacs doesn't enforce any limitation on what you set it to. 
 */ );
   Vx_us_keymap_first_keycode = 0;
+
+  VXt_pending_timeouts = Qnil;
+  staticpro (&VXt_pending_timeouts);
+
+  VXt_completed_timeouts = Qnil;
+  staticpro (&VXt_completed_timeouts);
 }
 
 /* This mess is a hack that patches the shell widget to treat visual inheritance
@@ -4241,10 +4204,6 @@ static void ShellVisualPatch(Widget wanted, Widget new_,
 void
 init_event_Xt_late (void) /* called when already initialized */
 {
-  timeout_id_tick = 1;
-  pending_timeouts = 0;
-  completed_timeouts = 0;
-
   event_stream = Xt_event_stream;
 
   XtToolkitInitialize ();

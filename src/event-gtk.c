@@ -575,136 +575,95 @@ gtk_to_emacs_keysym (GdkEventKey *event)
 /*				timeout events				*/
 /************************************************************************/
 
-static int timeout_id_tick;
+DEFINE_C_INTEGER_TYPE_LISP_CONVERSION (static, guint); 
 
-struct GTK_timeout
-{
-  int id;
-  guint timeout_id;
-  struct GTK_timeout *next;
-} *pending_timeouts, *completed_timeouts;
-
-struct GTK_timeout_blocktype
-{
-  Blocktype_declare (struct GTK_timeout);
-} *the_GTK_timeout_blocktype;
+static Lisp_Object Vgtk_pending_timeouts, Vgtk_completed_timeouts;
 
 /* called by the gtk main loop */
 static gint
 gtk_timeout_callback (gpointer closure)
 {
-  struct GTK_timeout *timeout = (struct GTK_timeout *) closure;
-  struct GTK_timeout *t2 = pending_timeouts;
+  Lisp_Object timeout = GET_LISP_FROM_VOID (closure);
+  Boolint found = 0;
 
   /* Remove this one from the list of pending timeouts */
-  if (t2 == timeout)
-    pending_timeouts = pending_timeouts->next;
-  else
+  LIST_LOOP_DELETE_IF (elt, Vgtk_pending_timeouts, 
+                       (EQ (timeout, tail_elt) && ((found = 1),
+                                                   USED (elt), 1)));
+
+  if (found)
     {
-      while (t2->next && t2->next != timeout) t2 = t2->next;
-      assert (t2->next);
-      t2->next = t2->next->next;
+      /* Add this one to the list of completed timeouts */
+      XCDR (timeout) = Vgtk_completed_timeouts;
+      Vgtk_completed_timeouts = timeout;
     }
-  /* Add this one to the list of completed timeouts */
-  timeout->next = completed_timeouts;
-  completed_timeouts = timeout;
+
   return FALSE;
 }
 
-static int
+static EMACS_INT
 emacs_gtk_add_timeout (EMACS_TIME thyme)
 {
-  struct GTK_timeout *timeout = Blocktype_alloc (the_GTK_timeout_blocktype);
   EMACS_TIME current_time;
   int milliseconds;
 
-  timeout->id = timeout_id_tick++;
-  timeout->next = pending_timeouts;
-  pending_timeouts = timeout;
   EMACS_GET_TIME (current_time);
   EMACS_SUB_TIME (thyme, thyme, current_time);
-  milliseconds = EMACS_SECS (thyme) * 1000 +
-    EMACS_USECS (thyme) / 1000;
+  milliseconds = EMACS_SECS (thyme) * 1000 + EMACS_USECS (thyme) / 1000;
   if (milliseconds < 1)
     milliseconds = 1;
-  timeout->timeout_id = g_timeout_add (milliseconds,
-                                       gtk_timeout_callback,
-                                       timeout);
-  return timeout->id;
+
+  Vgtk_pending_timeouts = Fcons (Qnil, Vgtk_pending_timeouts);
+  XSETCAR (Vgtk_pending_timeouts,
+           guint_to_lisp (g_timeout_add
+                          (milliseconds, gtk_timeout_callback,
+                           STORE_LISP_IN_VOID (Vgtk_pending_timeouts))));
+
+  return (EMACS_INT) (STORE_LISP_IN_VOID (Vgtk_pending_timeouts));
 }
 
 static void
-emacs_gtk_remove_timeout (int id)
+emacs_gtk_remove_timeout (EMACS_INT id)
 {
-  struct GTK_timeout *timeout, *t2;
+  Lisp_Object timeout = GET_LISP_FROM_VOID ((void *) id);
+  Boolint found = 0;
 
-  timeout = NULL;
-  
-  /* Find the timeout on the list of pending ones, if it's still there. */
-  if (pending_timeouts)
+  /* Find the timeout on the list of pending ones, if it's still there. Remove
+     it if found. */
+  LIST_LOOP_DELETE_IF (elt, Vgtk_pending_timeouts, 
+                       (EQ (timeout, tail_elt)
+                        && ((found = 1), USED (elt), 1)));
+
+  if (found)
     {
-      if (id == pending_timeouts->id)
-	{
-	  timeout = pending_timeouts;
-	  pending_timeouts = pending_timeouts->next;
-	}
-      else
-	{
-	  t2 = pending_timeouts;
-	  while (t2->next && t2->next->id != id) t2 = t2->next;
-	  if ( t2->next)   /*found it */
-	    {
-	      timeout = t2->next;
-	      t2->next = t2->next->next;
-	    }
-	}
-      /* if it was pending, we have removed it from the list */
-      if (timeout)
-        g_source_remove (timeout->timeout_id);
+      g_source_remove (lisp_to_guint (XCAR (timeout)));
     }
-
-  /* It could be that the call back was already called but we didn't convert
-     into an Emacs event yet */
-  if (!timeout && completed_timeouts)
+  else
     {
-      /* Code duplication! */
-      if (id == completed_timeouts->id)
-	{
-	  timeout = completed_timeouts;
-	  completed_timeouts = completed_timeouts->next;
-	}
-      else
-	{
-	  t2 = completed_timeouts;
-	  while (t2->next && t2->next->id != id) t2 = t2->next;
-	  if ( t2->next)   /*found it */
-	    {
-	      timeout = t2->next;
-	      t2->next = t2->next->next;
-	    }
-	}
+      /* It could be that the call back was already called but we didn't
+         convert into an Emacs event yet. No need to g_source_remove() in that
+         case, the timeout handling code has done the cleanup already. */
+      LIST_LOOP_DELETE_IF (elt, Vgtk_completed_timeouts,
+                           (USED (elt), EQ (timeout, tail_elt)));
     }
-
-  /* If we found the thing on the lists of timeouts,
-     and removed it, deallocate
-  */
-  if (timeout)
-    Blocktype_free (the_GTK_timeout_blocktype, timeout);
 }
 
 static void
 gtk_timeout_to_emacs_event (struct Lisp_Event *emacs_event)
 {
-  struct GTK_timeout *timeout = completed_timeouts;
-  assert (timeout);
-  completed_timeouts = completed_timeouts->next;
+  Lisp_Object timeout = Vgtk_completed_timeouts;
+
+  assert (!NILP (timeout));
+
+  Vgtk_completed_timeouts = XCDR (Vgtk_completed_timeouts);
+
   /* timeout events have nil as channel */
   set_event_type (emacs_event, timeout_event);
   SET_EVENT_TIMESTAMP_ZERO (emacs_event); /* #### wrong!! */
-  SET_EVENT_TIMEOUT_INTERVAL_ID (emacs_event, timeout->id);
+  SET_EVENT_TIMEOUT_INTERVAL_ID (emacs_event,
+                                 (EMACS_INT) STORE_LISP_IN_VOID (timeout));
   SET_EVENT_TIMEOUT_FUNCTION (emacs_event, Qnil);
   SET_EVENT_TIMEOUT_OBJECT (emacs_event, Qnil);
-  Blocktype_free (the_GTK_timeout_blocktype, timeout);
 }
 
 
@@ -1244,7 +1203,7 @@ emacs_gtk_next_event (struct Lisp_Event *emacs_event)
  we_didnt_get_an_event:
 
   while (NILP (dispatch_event_queue) &&
-	 !completed_timeouts         &&
+	 NILP (Vgtk_completed_timeouts)  &&
 	 !fake_event_occurred        &&
 	 !process_events_occurred    &&
 	 !tty_events_occurred)
@@ -1271,7 +1230,7 @@ emacs_gtk_next_event (struct Lisp_Event *emacs_event)
       if (!gtk_tty_to_emacs_event (emacs_event))
 	goto we_didnt_get_an_event;
     }
-  else if (completed_timeouts)
+  else if (!NILP (Vgtk_completed_timeouts))
     gtk_timeout_to_emacs_event (emacs_event);
   else if (fake_event_occurred)
     {
@@ -1759,8 +1718,6 @@ reinit_vars_of_event_gtk (void)
   gtk_event_stream->delete_io_streams_cb= emacs_gtk_delete_io_streams;
   gtk_event_stream->force_event_pending_cb= emacs_gtk_force_event_pending;
 
-  the_GTK_timeout_blocktype = Blocktype_new (struct GTK_timeout_blocktype);
-
   /* this function only makes safe calls */
   init_what_input_once ();
 }
@@ -1768,10 +1725,6 @@ reinit_vars_of_event_gtk (void)
 void
 init_event_gtk_late (void) /* called when already initialized */
 {
-  timeout_id_tick = 1;
-  pending_timeouts = 0;
-  completed_timeouts = 0;
-
   event_stream = gtk_event_stream;
 
 #if 0
@@ -2188,5 +2141,11 @@ An alist of Gdk event types to names.
 Do NOT modify.
 */);
   Vgdk_event_names = register_event_names ();
+
+  Vgtk_pending_timeouts = Qnil;
+  staticpro (&Vgtk_pending_timeouts);
+
+  Vgtk_completed_timeouts = Qnil;
+  staticpro (&Vgtk_completed_timeouts);
 }
 
