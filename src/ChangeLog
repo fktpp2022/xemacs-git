@@ -1,5 +1,13 @@
 2020-03-28  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* event-msw.c (Fdde_alloc_advise_item):
+	Correct a bug here, NUM is the counter for the token, not NAME.
+	* redisplay-tty.c (term_get_fkeys_1):
+	Correct a bug here, intern_istring() doesn't accept Qnil as the
+	package name.
+
+2020-03-28  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Don't reimplement linked lists for timeouts, event-gtk.c, event-Xt.c.
 
 	* data.c:

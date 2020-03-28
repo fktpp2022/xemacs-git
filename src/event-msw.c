@@ -1841,7 +1841,7 @@ Allocate an advise item, and return its token.
   else
     {
       static int num = 0;
-      name = emacs_sprintf_string ("Tok%d", name);
+      name = emacs_sprintf_string ("Tok%d", num);
       ++num;
     }
 

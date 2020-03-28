@@ -1456,8 +1456,7 @@ term_get_fkeys_1 (Lisp_Object function_key_map)
 			   build_extstring (sequence, Qbinary),
 			   vector1 (intern_istring (XSTRING_DATA (fstring),
                                                     XSTRING_LENGTH (fstring),
-                                                    fstring,
-                                                    Qnil)));
+                                                    fstring, Vobarray)));
 	    }
 	}
       }
