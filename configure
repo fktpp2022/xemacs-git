@@ -19805,7 +19805,23 @@ $as_echo "" >&6; }
 
 
     if test -z "$with_ncurses"; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for tgetent in -lncurses" >&5
+    if pkg-config --exists ncurses; then
+      ac_save_LIBS="$LIBS"
+      LIBS="`pkg-config --libs ncurses` $LIBS" &&  if test "$verbose" = "yes"; then echo "    Prepending \"`pkg-config --libs ncurses`\" to \$LIBS"; fi;
+      ac_fn_c_check_func "$LINENO" "tgetent" "ac_cv_func_tgetent"
+if test "x$ac_cv_func_tgetent" = xyes; then :
+  with_ncurses=yes
+else
+  with_ncurses=no
+fi
+
+      if test "$with_ncurses" = "yes"; then
+        CFLAGS="`pkg-config --cflags ncurses` $CFLAGS" &&  if test "$verbose" = "yes"; then echo "    Prepending \"`pkg-config --cflags ncurses`\" to \$CFLAGS"; fi;
+      else
+        LIBS="$ac_save_LIBS"
+      fi
+    else
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for tgetent in -lncurses" >&5
 $as_echo_n "checking for tgetent in -lncurses... " >&6; }
 if ${ac_cv_lib_ncurses_tgetent+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -19847,6 +19863,10 @@ else
   with_ncurses=no
 fi
 
+      if test "$with_ncurses" = "yes"; then
+        LIBS="-lncurses $LIBS" &&  if test "$verbose" = "yes"; then echo "    Prepending \"-lncurses\" to \$LIBS"; fi
+      fi
+    fi
   fi
   if test "$with_ncurses" = "yes"; then
     $as_echo "#define HAVE_NCURSES 1" >>confdefs.h
@@ -19866,7 +19886,6 @@ fi
     extra_objs="$extra_objs terminfo.o" &&  if test "$verbose" = "yes"; then
    echo "    xemacs will be linked with \"terminfo.o\""
  fi
-    LIBS="-lncurses $LIBS" &&  if test "$verbose" = "yes"; then echo "    Prepending \"-lncurses\" to \$LIBS"; fi
 
     if test "$ac_cv_header_ncurses_curses_h" != "yes" ; then
                         save_c_switch_site="$c_switch_site"

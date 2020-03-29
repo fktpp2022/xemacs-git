@@ -1,3 +1,10 @@
+2020-03-29  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* configure.ac:
+	Use pkg-info if available to determine the linked libraries
+	necessary for ncurses, thank you Mats Lidell.
+	* configure: Regenerate.
+
 2018-11-01  Jerry James  <james@xemacs.org>
 
 	* configure.ac: OPENSSL_init_crypto is gone; check for

@@ -5176,14 +5176,27 @@ if test "$with_tty" = "yes"  ; then
 
   dnl Autodetect ncurses.
   if test -z "$with_ncurses"; then
-    AC_CHECK_LIB(ncurses, tgetent, with_ncurses=yes, with_ncurses=no)
+    if pkg-config --exists ncurses; then
+      ac_save_LIBS="$LIBS"
+      XE_PREPEND(`pkg-config --libs ncurses`, LIBS);
+      AC_CHECK_FUNC(tgetent, with_ncurses=yes, with_ncurses=no)
+      if test "$with_ncurses" = "yes"; then
+        XE_PREPEND(`pkg-config --cflags ncurses`, CFLAGS);
+      else
+        LIBS="$ac_save_LIBS"
+      fi
+    else
+      AC_CHECK_LIB(ncurses, tgetent, with_ncurses=yes, with_ncurses=no)
+      if test "$with_ncurses" = "yes"; then
+        XE_PREPEND(-lncurses, LIBS)
+      fi
+    fi
   fi
   if test "$with_ncurses" = "yes"; then
     AC_DEFINE(HAVE_NCURSES)
     AC_CHECK_HEADER(ncurses/curses.h, curses_h_file=ncurses/curses.h)
     AC_CHECK_HEADER(ncurses/term.h, term_h_file=ncurses/term.h)
     XE_ADD_OBJS(terminfo.o)
-    XE_PREPEND(-lncurses, LIBS)
 
     if test "$ac_cv_header_ncurses_curses_h" != "yes" ; then
       dnl Try again, and check for the bogus ncurses/ include bug.
