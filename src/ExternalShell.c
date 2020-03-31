@@ -39,6 +39,7 @@ along with this library.  If not, see <http://www.gnu.org/licenses/>. */
 #ifdef emacs
 
 #include <config.h>
+#include <lisp.h>
 
 #ifndef EXTERNAL_WIDGET
 ERROR!  This ought not be getting compiled if EXTERNAL_WIDGET is undefined

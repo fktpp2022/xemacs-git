@@ -1,3 +1,9 @@
+2020-03-31  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* ExternalShell.c:
+	Now we use emacs_snprintf_ascbyte(), #include lisp.h in this
+	file. Thank you Andrés Ramírez.
+
 2020-03-28  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* event-msw.c (Fdde_alloc_advise_item):
