@@ -4198,6 +4198,11 @@ buffer_mule_signal_deleted_region (struct buffer *buf, Charbpos start,
      of the range.  If the positions are reversed, an error is
      signalled.
 
+   GB_NEED_CHAR_BEFORE, GB_NEED_CHAR_AFTER
+
+     The character before or after POS must be in the accessible portion
+     of the buffer (BUF_BEGV to BUF_ZV).
+
    The following is a combination flag:
 
    GB_HISTORICAL_STRING_BEHAVIOR
@@ -4224,7 +4229,9 @@ get_buffer_pos_char (struct buffer *b, Lisp_Object pos, unsigned int flags)
   CHECK_FIXNUM_COERCE_MARKER (pos);
   ind = XFIXNUM (pos);
   min_allowed = flags & GB_ALLOW_PAST_ACCESSIBLE ? BUF_BEG (b) : BUF_BEGV (b);
+  if (flags & GB_NEED_CHAR_BEFORE) min_allowed += 1;
   max_allowed = flags & GB_ALLOW_PAST_ACCESSIBLE ? BUF_Z   (b) : BUF_ZV   (b);
+  if (flags & GB_NEED_CHAR_AFTER) max_allowed -= 1;
 
   if (ind < min_allowed || ind > max_allowed)
     {
@@ -4400,8 +4407,8 @@ get_string_pos_char_1 (Lisp_Object string, Lisp_Object pos, unsigned int flags,
 		       Charcount known_length)
 {
   Charcount ccpos;
-  Charcount min_allowed = 0;
-  Charcount max_allowed = known_length;
+  Charcount min_allowed = (flags & GB_NEED_CHAR_BEFORE) ? 1 : 0;
+  Charcount max_allowed = (flags & GB_NEED_CHAR_AFTER) ? known_length -1 : known_length;
 
   /* Computation of KNOWN_LENGTH is potentially expensive so we pass
      it in. */

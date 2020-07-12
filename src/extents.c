@@ -4385,17 +4385,18 @@ you should use `map-extents', which gives you more control.
 {
   Bytexpos position;
   EXTENT before_extent;
-  enum extent_at_flag fl;
+  enum extent_at_flag fl = decode_extent_at_flag (at_flag);
+  unsigned int flags = (fl == EXTENT_AT_BEFORE) ? GB_NEED_CHAR_BEFORE :
+      (fl == EXTENT_AT_AFTER) ? GB_NEED_CHAR_AFTER : 0;
 
   object = decode_buffer_or_string (object);
-  position = get_buffer_or_string_pos_byte (object, pos, GB_NO_ERROR_IF_BAD);
+  position = get_buffer_or_string_pos_byte (object, pos, flags | GB_NO_ERROR_IF_BAD);
   if (NILP (before))
     before_extent = 0;
   else
     before_extent = decode_extent (before, DE_MUST_BE_ATTACHED);
   if (before_extent && !EQ (object, extent_object (before_extent)))
     invalid_argument ("extent not in specified buffer or string", object);
-  fl = decode_extent_at_flag (at_flag);
 
   return extent_at (position, object, property, before_extent, fl, 0);
 }
@@ -4435,17 +4436,18 @@ you should use `map-extents', which gives you more control.
 {
   Bytexpos position;
   EXTENT before_extent;
-  enum extent_at_flag fl;
+  enum extent_at_flag fl = decode_extent_at_flag (at_flag);
+  unsigned int flags = (fl == EXTENT_AT_BEFORE) ? GB_NEED_CHAR_BEFORE :
+      (fl == EXTENT_AT_AFTER) ? GB_NEED_CHAR_AFTER : 0;
 
   object = decode_buffer_or_string (object);
-  position = get_buffer_or_string_pos_byte (object, pos, GB_NO_ERROR_IF_BAD);
+  position = get_buffer_or_string_pos_byte (object, pos, flags | GB_NO_ERROR_IF_BAD);
   if (NILP (before))
     before_extent = 0;
   else
     before_extent = decode_extent (before, DE_MUST_BE_ATTACHED);
   if (before_extent && !EQ (object, extent_object (before_extent)))
     invalid_argument ("extent not in specified buffer or string", object);
-  fl = decode_extent_at_flag (at_flag);
 
   return extent_at (position, object, property, before_extent, fl, 1);
 }
@@ -6549,9 +6551,12 @@ get_char_property_char (Lisp_Object pos, Lisp_Object prop, Lisp_Object object,
 {
   Bytexpos position;
   int invert = 0;
+  enum extent_at_flag fl = decode_extent_at_flag (at_flag);
+  unsigned int flags = (fl == EXTENT_AT_BEFORE) ? GB_NEED_CHAR_BEFORE :
+      (fl == EXTENT_AT_AFTER) ? GB_NEED_CHAR_AFTER : 0;
 
   object = decode_buffer_or_string (object);
-  position = get_buffer_or_string_pos_byte (object, pos, GB_NO_ERROR_IF_BAD);
+  position = get_buffer_or_string_pos_byte (object, pos, flags | GB_NO_ERROR_IF_BAD);
 
   /* We canonicalize the start/end-open/closed properties to the
      non-default version -- "adding" the default property really
@@ -6571,9 +6576,7 @@ get_char_property_char (Lisp_Object pos, Lisp_Object prop, Lisp_Object object,
 
   {
     Lisp_Object val =
-      get_char_property (position, prop, object,
-			 decode_extent_at_flag (at_flag),
-			 text_props_only);
+      get_char_property (position, prop, object, fl, text_props_only);
     if (invert)
       val = NILP (val) ? Qt : Qnil;
     return val;

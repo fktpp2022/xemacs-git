@@ -1,3 +1,19 @@
+2020-07-11  Alan Mackenzie  <acm@muc.de>
+
+	Prevent update_syntax_cache from accessing buffer parts outside
+	the accessible region.  Do the same for Fextent_at, etc.
+
+	* extents.c (Fextent_at, Fextents_at, get_char_property_char):
+	Respect AT-FLAG and accessible region when accessing a buffer.
+
+	* lisp.h (GB_NEED_CHAR_BEFORE. GB_NEED_CHAR_AFTER): New flags.
+
+	* text.c: (get_buffer_pos_char, get_string_pos_char_1): Fix
+	off-by-one's in determining the accessible portion of a buffer.
+
+	* syntax.c (update_syntax_cache): Check POS is not right up
+	against POINT-MAX before setting TMP_TABLE from POS.
+
 2020-03-31  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* ExternalShell.c:

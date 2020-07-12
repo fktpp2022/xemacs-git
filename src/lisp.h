@@ -6247,6 +6247,8 @@ Bytecount copy_buffer_text_out (struct buffer *buf, Bytebpos pos,
 #define GB_COERCE_RANGE			(1 << 3)
 #define GB_NO_ERROR_IF_BAD		(1 << 4)
 #define GB_NEGATIVE_FROM_END		(1 << 5)
+#define GB_NEED_CHAR_BEFORE             (1 << 6)
+#define GB_NEED_CHAR_AFTER              (1 << 7)
 #define GB_HISTORICAL_STRING_BEHAVIOR	(GB_NEGATIVE_FROM_END | GB_ALLOW_NIL)
 
 Charbpos get_buffer_pos_char (struct buffer *b, Lisp_Object pos,

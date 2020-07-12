@@ -462,8 +462,12 @@ update_syntax_cache (struct syntax_cache *cache, Charxpos cpos,
 
   pos = buffer_or_string_charxpos_to_bytexpos (cache->object, cpos);
 
-  tmp_table = get_char_property (pos, Qsyntax_table, cache->object,
-				 EXTENT_AT_AFTER, 0);
+  if (pos < buffer_or_string_accessible_end_byte (cache->object))
+      tmp_table = get_char_property (pos, Qsyntax_table, cache->object,
+                                     EXTENT_AT_AFTER, 0);
+  else
+      tmp_table = Qnil;
+
   lim = next_previous_single_property_change (pos, Qsyntax_table,
 					      cache->object, -1, 1, 0);
   if (lim < 0)
