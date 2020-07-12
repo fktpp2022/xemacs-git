@@ -1,5 +1,15 @@
 2020-07-11  Alan Mackenzie  <acm@muc.de>
 
+	Make Fscan_sexps respect syntax-table properties on putative
+	terminating quotes whilst scanning strings (both directions).
+
+	* syntax.c (scan_lists): New variables temp_code (forward),
+	temp_code2 (backward) used to hold the syntax-table property of
+	the current character and checking this when that character is a
+	string quote.
+
+2020-07-11  Alan Mackenzie  <acm@muc.de>
+
 	Fix the value returned by Fforward_line.
 
 	* cmds.c (Fforward_line): Negate the value returned by

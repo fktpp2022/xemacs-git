@@ -1527,16 +1527,20 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 
                 while (1)
 		  {
+                    enum syntaxcode temp_code;
+
 		    if (from >= stop)
 		      goto lose;
 		    UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
 		    c = BUF_FETCH_CHAR (buf, from);
+                    temp_code = SYNTAX_FROM_CACHE (scache, c);
 		    if (code == Sstring
 			? c == stringterm
-			: SYNTAX_FROM_CACHE (scache, c) == Sstring_fence)
+                          && temp_code == Sstring
+                        : temp_code == Sstring_fence)
 		      break;
 
-		    switch (SYNTAX_FROM_CACHE (scache, c))
+		    switch (temp_code)
 		      {
 		      case Scharquote:
 		      case Sescape:
@@ -1708,14 +1712,17 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 
                 while (1)
 		  {
+                    enum syntaxcode temp_code2;
+
 		    if (from == stop) goto lose;
 
 		    UPDATE_SYNTAX_CACHE_BACKWARD (scache, from - 1);
 		    c = BUF_FETCH_CHAR (buf, from - 1);
-
+                    temp_code2 = SYNTAX_FROM_CACHE (scache, c);
 		    if ((code == Sstring
 			? c == stringterm
-			 : SYNTAX_FROM_CACHE (scache, c) == Sstring_fence)
+                          && temp_code2 == Sstring
+                        : temp_code2 == Sstring_fence)
 			&& !char_quoted (buf, from - 1))
 		      {
 		      break;
