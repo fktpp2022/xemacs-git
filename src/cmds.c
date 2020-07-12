@@ -160,7 +160,7 @@ the documentation for this variable for more details.
       && (negp
 	  || (BYTE_BUF_ZV (buf) > BYTE_BUF_BEGV (buf)
 	      && pos != BYTE_BUF_PT (buf)
-	      && byte_beginning_of_line_p (buf, pos))))
+	      && !byte_beginning_of_line_p (buf, pos))))
     shortage--;
   BYTE_BUF_SET_PT (buf, pos);
   return make_fixnum (negp ? - shortage : shortage);

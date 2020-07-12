@@ -1,5 +1,12 @@
 2020-07-11  Alan Mackenzie  <acm@muc.de>
 
+	Fix the value returned by Fforward_line.
+
+	* cmds.c (Fforward_line): Negate the value returned by
+	byte_beginning_of_line_p.
+
+2020-07-11  Alan Mackenzie  <acm@muc.de>
+
 	Prevent update_syntax_cache from accessing buffer parts outside
 	the accessible region.  Do the same for Fextent_at, etc.
 
