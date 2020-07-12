@@ -4529,14 +4529,17 @@ DEFUN ("mapconcat", Fmapconcat, 3, MANY, 0, /*
 Call FUNCTION on each element of SEQUENCE, and concat results to a string.
 Between each pair of results, insert SEPARATOR.
 
-Each result, and SEPARATOR, should be strings.  Thus, using " " as SEPARATOR
-results in spaces between the values returned by FUNCTION.  SEQUENCE itself
-may be a list, a vector, a bit vector, or a string.
-
 With optional SEQUENCES, call FUNCTION each time with as many arguments as
 there are SEQUENCES, plus one for the element from SEQUENCE.  One element
 from each sequence will be used each time FUNCTION is called, and
 `mapconcat' will give up once the shortest sequence is exhausted.
+
+SEQUENCE and each element of SEQUENCES may be a list or an array (see
+`arrayp').
+
+SEPARATOR, and each result, are usually strings, but can be a sequence of any
+type; see the documentation for `concat'.  Thus, using " " as SEPARATOR
+results in spaces between the values returned by FUNCTION.
 
 arguments: (FUNCTION SEQUENCE SEPARATOR &rest SEQUENCES)
 */

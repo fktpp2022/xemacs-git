@@ -1,3 +1,9 @@
+2020-07-12  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* sequence.c (Fmapconcat):
+	Update and correct the documentation of the allowed types of
+	SEPARATOR and SEQUENCES.
+
 2020-07-11  Alan Mackenzie  <acm@muc.de>
 
 	Make Fscan_sexps respect syntax-table properties on putative
