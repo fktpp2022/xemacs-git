@@ -1,3 +1,18 @@
+2020-07-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* buffer.c (Fline_number):
+	* editfns.c (Fchar_after):
+	* editfns.c (Fchar_before):
+	Use the new GB_ALLOW_NIL flag to get_buffer_pos_byte () in these
+	functions.
+	* text.c:
+	Document GB_ALLOW_NIL when the result is not oriented towards
+	buffer ranges.
+	* text.c (get_buffer_pos_char):
+	* text.c (get_buffer_pos_byte):
+	Implement this change, so GB_ALLOW_NIL means to return the
+	position of point in get_buffer_pos_{char,byte}.
+
 2020-07-12  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* sequence.c (Fmapconcat):

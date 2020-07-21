@@ -4182,15 +4182,21 @@ buffer_mule_signal_deleted_region (struct buffer *buf, Charbpos start,
      If a value is negative, treat it as an offset from the end.
      Only applies to strings.
 
-   The following additional flags apply only to the functions
-   that return ranges:
-
    GB_ALLOW_NIL
 
-     Either or both positions can be nil.  If FROM is nil,
-     FROM_OUT will contain the lower bound of the allowed range.
-     If TO is nil, TO_OUT will contain the upper bound of the
+     If this flag is supplied to get_buffer_pos_{byte,char}, a nil position
+     returns the value of point.
+
+     When supplied to a function that returns ranges, either or both positions
+     can be nil. If FROM is nil, FROM_OUT will contain the lower bound of the
+     allowed range.  If TO is nil, TO_OUT will contain the upper bound of the
      allowed range.
+
+     If this flag is supplied to get_string_pos_{byte,char} a nil position
+     will provoke an error.
+
+   The following additional flags apply only to the functions
+   that return ranges:
 
    GB_CHECK_ORDER
 
@@ -4226,8 +4232,16 @@ get_buffer_pos_char (struct buffer *b, Lisp_Object pos, unsigned int flags)
   Charbpos ind;
   Charbpos min_allowed, max_allowed;
 
-  CHECK_FIXNUM_COERCE_MARKER (pos);
-  ind = XFIXNUM (pos);
+  if (NILP (pos) && (flags & GB_ALLOW_NIL))
+    {
+      ind = BUF_PT (b);
+    }
+  else
+    {
+      CHECK_FIXNUM_COERCE_MARKER (pos);
+      ind = XFIXNUM (pos);
+    }
+
   min_allowed = flags & GB_ALLOW_PAST_ACCESSIBLE ? BUF_BEG (b) : BUF_BEGV (b);
   if (flags & GB_NEED_CHAR_BEFORE) min_allowed += 1;
   max_allowed = flags & GB_ALLOW_PAST_ACCESSIBLE ? BUF_Z   (b) : BUF_ZV   (b);
@@ -4253,6 +4267,11 @@ get_buffer_pos_char (struct buffer *b, Lisp_Object pos, unsigned int flags)
 Bytebpos
 get_buffer_pos_byte (struct buffer *b, Lisp_Object pos, unsigned int flags)
 {
+  if (NILP (pos) && (flags & GB_ALLOW_NIL))
+    {
+      pos = b->point_marker;
+    }
+
   if (MARKERP (pos) && XMARKER (pos)->buffer == b)
     {
       /* Does not GC */

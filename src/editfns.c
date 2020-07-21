@@ -508,8 +508,8 @@ If BUFFER is nil, the current buffer is assumed.
        (pos, buffer))
 {
   struct buffer *b = decode_buffer (buffer, 1);
-  Bytebpos bn = (NILP (pos) ? BYTE_BUF_PT (b) :
-                get_buffer_pos_byte (b, pos, GB_NO_ERROR_IF_BAD));
+  Bytebpos bn = get_buffer_pos_byte (b, pos,
+                                     GB_NO_ERROR_IF_BAD | GB_ALLOW_NIL);
 
   if (bn < 0 || bn == BYTE_BUF_ZV (b))
     return Qnil;
@@ -526,8 +526,8 @@ If BUFFER is nil, the current buffer is assumed.
        (pos, buffer))
 {
   struct buffer *b = decode_buffer (buffer, 1);
-  Bytebpos bn = (NILP (pos) ? BYTE_BUF_PT (b) :
-                 get_buffer_pos_byte (b, pos, GB_NO_ERROR_IF_BAD));
+  Bytebpos bn = get_buffer_pos_byte (b, pos,
+                                     GB_NO_ERROR_IF_BAD | GB_ALLOW_NIL);
 
   if (bn <= BYTE_BUF_BEGV (b))
     return Qnil;
