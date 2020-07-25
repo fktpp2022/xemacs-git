@@ -34,6 +34,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "frame-impl.h"
 #include "glyphs.h"
 #include "gutter.h"
+#include "lisp.h"
 #include "window.h"
 
 Lisp_Object Qinit_scrollbar_from_resources;
@@ -693,39 +694,48 @@ scrollbar_reset_cursor (Lisp_Object win, Lisp_Object orig_pt)
      accurate.  We know this because either set-window-start or
      recenter was called immediately prior to it being called. */
   Lisp_Object buf;
-  Charbpos start_pos = XFIXNUM (Fwindow_start (win));
-  Charbpos ptint = XFIXNUM (orig_pt);
   struct window *w = XWINDOW (win);
   int selected = ((w == XWINDOW (Fselected_window (XFRAME (w->frame)->device)))
 		  ? 1
 		  : 0);
+  Bytebpos start_pos, ptint;
 
   buf = Fwindow_buffer (win);
   if (NILP (buf))
     return;	/* the window was deleted out from under us */
 
-  if (ptint < XFIXNUM (Fwindow_start (win)))
+  ptint = get_buffer_pos_byte (XBUFFER (buf), orig_pt, 0);
+  start_pos = marker_byte_position (w->start[CURRENT_DISP]);
+
+  if (ptint < start_pos)
     {
       if (selected)
-	Fgoto_char (make_fixnum (start_pos), buf);
+	Fgoto_char (w->start[CURRENT_DISP], buf);
       else
-	Fset_window_point (win, make_fixnum (start_pos));
+	Fset_window_point (win, w->start[CURRENT_DISP]);
     }
   else if (!point_would_be_visible (XWINDOW (win), start_pos, ptint, 0))
     {
       Fmove_to_window_line (make_fixnum (-1), win);
 
       if (selected)
-        BUF_SET_PT (XBUFFER (buf), XFIXNUM (Fpoint_at_bol (Qnil, buf)));
+        BYTE_BUF_SET_PT (XBUFFER (buf),
+                         byte_find_next_newline_no_quit (XBUFFER (buf),
+                                                         BYTE_BUF_PT (XBUFFER (buf)),
+                                                         -1));
       else
 	{
-	  /* #### Taken from forward-line. */
-	  Charbpos pos;
+	  Bytebpos pos
+            = byte_find_next_newline_no_quit
+            (XBUFFER (buf), marker_byte_position (w->pointm[CURRENT_DISP]),
+             -1);
 
-	  pos = find_next_newline (XBUFFER (buf),
-				   marker_position (w->pointm[CURRENT_DISP]),
-				   -1);
-	  Fset_window_point (win, make_fixnum (pos));
+          /* Adjust this so we don't have to call set_marker_restricted(). */
+          pos = bytebpos_clip_to_bounds (BYTE_BUF_BEGV (XBUFFER (buf)),
+                                         pos,
+                                         BYTE_BUF_ZV (XBUFFER (buf)));
+
+          set_marker_byte_position (w->pointm[CURRENT_DISP], pos, buf);
 	}
     }
   else
@@ -1010,13 +1020,12 @@ This is a specifier; use `set-specifier' to change it.
   Vscrollbar_width = make_magic_specifier (Qnatnum);
   set_specifier_fallback
     (Vscrollbar_width,
+     listu (
 #ifdef HAVE_TTY
-     list2 (Fcons (list1 (Qtty), make_fixnum (0)),
-	    Fcons (Qnil, make_fixnum (DEFAULT_SCROLLBAR_WIDTH)))
-#else
-     list1 (Fcons (Qnil, make_fixnum (DEFAULT_SCROLLBAR_WIDTH)))
+            Fcons (list1 (Qtty), Qzero),
 #endif
-     );
+	    Fcons (Qnil, make_fixnum (DEFAULT_SCROLLBAR_WIDTH)),
+            Qunbound));
   set_specifier_caching (Vscrollbar_width,
 			 offsetof (struct window, scrollbar_width),
 			 vertical_scrollbar_changed_in_window,

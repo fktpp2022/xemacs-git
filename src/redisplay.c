@@ -8081,33 +8081,34 @@ find_point_loop:
     }
 }
 
-/* Return a boolean indicating if POINT would be visible in window W
-   if display of the window was to begin at STARTP.  If PARTIALLY is
-   zero, then if POINT has fewer visible pixels than the window clip,
-   0 is returned; otherwise, 1 is returned if POINT has any visible
-   pixels. */
-int
-point_would_be_visible (struct window *w, Charbpos startp, Charbpos point,
-			int partially)
+/* Return a boolean indicating if BYTE_POINT would be visible in window W if
+   display of the window was to begin at BYTE_STARTP.  If PARTIALLY is zero,
+   then if POINT has fewer visible pixels than the window clip, 0 is returned;
+   otherwise, 1 is returned if POINT has any visible pixels. */
+Boolint
+point_would_be_visible (struct window *w, Bytebpos byte_startp,
+                        Bytebpos byte_point, Boolint partially)
 {
   struct buffer *b = XBUFFER (w->buffer);
   int pixpos = -WINDOW_TEXT_TOP_CLIP (w);
   int bottom = WINDOW_TEXT_HEIGHT (w);
   int start_elt;
+  Charbpos startp, point = -1;
 
   /* If point is before the intended start it obviously can't be visible. */
-  if (point < startp)
+  if (byte_point < byte_startp)
     return 0;
 
   /* If point or start are not in the accessible buffer range, then
      fail. */
-  if (startp < BUF_BEGV (b) || startp > BUF_ZV (b)
-      || point < BUF_BEGV (b) || point > BUF_ZV (b))
+  if (byte_startp < BYTE_BUF_BEGV (b) || byte_startp > BYTE_BUF_ZV (b)
+      || byte_point < BYTE_BUF_BEGV (b) || byte_point > BYTE_BUF_ZV (b))
     return 0;
 
   validate_line_start_cache (w);
   w->line_cache_validation_override++;
 
+  startp = bytebpos_to_charbpos (b, byte_startp);
   start_elt = point_in_line_start_cache (w, startp, 0);
   if (start_elt == -1)
     {
@@ -8155,6 +8156,12 @@ point_would_be_visible (struct window *w, Charbpos startp, Charbpos point,
 	}
 
       pixpos += height;
+
+      if (point < 0)
+        {
+          point = bytebpos_to_charbpos (b, byte_point);
+        }
+
       if (point <= Dynarr_atp (w->line_start_cache, start_elt)->end)
 	{
 	  w->line_cache_validation_override--;

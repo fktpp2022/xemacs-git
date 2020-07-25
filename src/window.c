@@ -1506,23 +1506,17 @@ POS defaults to point in WINDOW's buffer; WINDOW, to the selected window.
        (pos, window, partially))
 {
   struct window *w = decode_window (window);
-  Charbpos top = marker_position (w->start[CURRENT_DISP]);
-  Charbpos posint;
+  Bytebpos top = marker_byte_position (w->start[CURRENT_DISP]);
   struct buffer *buf = XBUFFER (w->buffer);
+  Bytebpos posint = get_buffer_pos_byte (buf, pos,
+                                         GB_ALLOW_PAST_ACCESSIBLE
+                                         | GB_ALLOW_NIL);
 
-  if (NILP (pos))
-    posint = BUF_PT (buf);
-  else
-    {
-      CHECK_FIXNUM_COERCE_MARKER (pos);
-      posint = XFIXNUM (pos);
-    }
-
-  if (posint < top || posint > BUF_ZV (buf))
+  if (posint < top || posint > BYTE_BUF_ZV (buf))
     return Qnil;
 
   /* w->start can be out of range.  If it is, do something reasonable.  */
-  if (top < BUF_BEGV (buf) || top > BUF_ZV (buf))
+  if (top < BYTE_BUF_BEGV (buf) || top > BYTE_BUF_ZV (buf))
     return Qnil;
 
   return point_would_be_visible (w, top, posint, !NILP (partially))
@@ -1970,8 +1964,6 @@ perhaps more logical.)
        (window, pos))
 {
   struct window *w = decode_window (window);
-
-  CHECK_FIXNUM_COERCE_MARKER (pos);
 
   /* Don't dereference selected-window because there may not
      be one -- e.g. at startup */
@@ -3326,7 +3318,7 @@ value is reasonable when this function is called.
 {
   struct window *w = decode_window (window);
   struct buffer *b;
-  Charbpos start_pos;
+  Bytebpos start_pos;
   int old_top = WINDOW_TOP (w);
 
   if (NILP (WINDOW_BUFFER (w)))
@@ -3341,17 +3333,20 @@ value is reasonable when this function is called.
   /* Ignore dedicated windows. */
   window_loop (DELETE_OTHER_WINDOWS, window, 0, w->frame, 0, Qnil);
 
-  start_pos = marker_position (w->start[CURRENT_DISP]);
+  start_pos = marker_byte_position (w->start[CURRENT_DISP]);
 
   /* Try to minimize scrolling, by setting the window start to the
      point which will cause the text at the old window start to be at
      the same place on the frame.  But don't try to do this if the
      window start is outside the visible portion (as might happen when
      the display is not current, due to typeahead). */
-  if (start_pos >= BUF_BEGV (b) && start_pos <= BUF_ZV (b)
+  if (start_pos >= BYTE_BUF_BEGV (b) && start_pos <= BYTE_BUF_ZV (b)
       && !MINI_WINDOW_P (w))
     {
-      Charbpos new_start = start_with_line_at_pixpos (w, start_pos, old_top);
+      Charbpos new_start
+        = start_with_line_at_pixpos (w,
+                                     marker_position (w->start[CURRENT_DISP]),
+                                     old_top);
 
       if (new_start >= BUF_BEGV (b) && new_start <= BUF_ZV (b))
 	{
@@ -3909,10 +3904,9 @@ global or per-frame buffer ordering.
     {
       struct window *ow = XWINDOW (old_selected_window);
 
-      Fset_marker (ow->pointm[CURRENT_DISP],
-		   make_fixnum (BUF_PT (XBUFFER (ow->buffer))),
-		   ow->buffer);
-
+      set_marker_byte_position (ow->pointm[CURRENT_DISP],
+                                BYTE_BUF_PT (XBUFFER (ow->buffer)),
+                                ow->buffer);
       MARK_WINDOWS_CHANGED (ow);
     }
 
@@ -3931,16 +3925,8 @@ global or per-frame buffer ordering.
      than one window.  It also matters when
      redisplay_window has altered point after scrolling,
      because it makes the change only in the window.  */
-  {
-    Charbpos new_point = marker_position (w->pointm[CURRENT_DISP]);
-    if (new_point < BUF_BEGV (current_buffer))
-      new_point = BUF_BEGV (current_buffer);
-    else if (new_point > BUF_ZV (current_buffer))
-      new_point = BUF_ZV (current_buffer);
-
-    BUF_SET_PT (current_buffer, new_point);
-  }
-
+  set_marker_restricted (current_buffer->point_marker, w->pointm[CURRENT_DISP],
+                         w->buffer);
   MARK_WINDOWS_CHANGED (w);
 
   return window;
@@ -3963,7 +3949,7 @@ temp_output_buffer_show (Lisp_Object buf, Lisp_Object same_frame)
 
   BUF_SAVE_MODIFF (XBUFFER (buf)) = BUF_MODIFF (b);
   widen_buffer (b, 0);
-  BUF_SET_PT (b, BUF_BEG (b));
+  BOTH_BUF_SET_PT (b, BUF_BEG (b), BYTE_BUF_BEG (b));
 
   if (!NILP (Vtemp_buffer_show_function))
     call1 (Vtemp_buffer_show_function, buf);
@@ -4660,20 +4646,36 @@ window_scroll (Lisp_Object window, Lisp_Object count, int direction,
   display_line_dynarr *dla;
   int fheight, fwidth, modeline = 0;
   struct display_line* dl;
-
+  Boolint unchain_point = 0;
+  struct gcpro gcpro1;
+  
   if (selected)
-    point = make_fixnum (BUF_PT (b));
+    point = b->point_marker;
   else
     {
-      Charbpos pos = marker_position (w->pointm[CURRENT_DISP]);
+      Bytebpos pos = marker_byte_position (w->pointm[CURRENT_DISP]);
 
-      if (pos < BUF_BEGV (b))
-	pos = BUF_BEGV (b);
-      else if (pos > BUF_ZV (b))
-	pos = BUF_ZV (b);
-
-      point = make_fixnum (pos);
+      if (pos < BYTE_BUF_BEGV (b))
+        {
+          point = set_marker_byte_position (noseeum_make_marker (),
+                                            BYTE_BUF_BEGV (b),
+                                            wrap_buffer (b));
+          unchain_point = 1;
+        }
+      else if (pos > BYTE_BUF_ZV (b))
+        {
+          point = set_marker_byte_position (noseeum_make_marker (),
+                                            BYTE_BUF_ZV (b),
+                                            wrap_buffer (b));
+          unchain_point = 1;
+        }
+      else
+        {
+          point = w->pointm[CURRENT_DISP];
+        }
     }
+
+  GCPRO1 (point); /* Apotropaic, we won't GC in this. */
 
   /* Always set force_start so that redisplay_window will run
      the window-scroll-functions.  */
@@ -4706,8 +4708,15 @@ window_scroll (Lisp_Object window, Lisp_Object count, int direction,
 	  value = XFIXNUM (count) * direction;
 
 	  if (!value)
-	    return;	/* someone just made a pointless call */
-	}
+            {
+              if (unchain_point)
+                {
+                  unchain_marker (point);
+                }
+              UNGCPRO;
+              return;	/* someone just made a pointless call */
+            }
+        }
     }
 
   /* If the user didn't specify how far to scroll then we have to figure it
@@ -4734,6 +4743,11 @@ window_scroll (Lisp_Object window, Lisp_Object count, int direction,
 
   if (direction == 1 && !value)
     {
+      if (unchain_point)
+        {
+          unchain_marker (point);
+        }
+      UNGCPRO;
       return;
     }
 
@@ -4783,6 +4797,11 @@ window_scroll (Lisp_Object window, Lisp_Object count, int direction,
 	       || (BUF_Z (b) - w->window_end_pos[CURRENT_DISP] > BUF_ZV (b))))
 	    {
 	      maybe_signal_error_1 (Qend_of_buffer, Qnil, Qwindow, errb);
+              if (unchain_point)
+                {
+                  unchain_marker (point);
+                }
+              UNGCPRO;
 	      return;
 	    }
 	  else
@@ -4796,8 +4815,13 @@ window_scroll (Lisp_Object window, Lisp_Object count, int direction,
                 (b, marker_byte_position (w->start[CURRENT_DISP]));
 	      MARK_WINDOWS_CHANGED (w);
 
-	      if (!point_would_be_visible (w, startp, XFIXNUM (point), 0))
-		Fset_window_point (wrap_window (w), make_fixnum (startp));
+	      if (!point_would_be_visible (w,
+                                           marker_byte_position (w->start[CURRENT_DISP]),
+
+                                           marker_byte_position (point),
+                                           0))
+		Fset_window_point (wrap_window (w),
+                                   w->start[CURRENT_DISP]);
 	    }
 	}
     }
@@ -4833,14 +4857,20 @@ window_scroll (Lisp_Object window, Lisp_Object count, int direction,
 	  startp = vmotion (w, old_start, value, &vtarget);
 
 	  if (vtarget > value
-	      && marker_position (w->start[CURRENT_DISP]) == BUF_BEGV (b))
+	      && marker_byte_position (w->start[CURRENT_DISP]) == BYTE_BUF_BEGV (b))
 	    {
+              if (unchain_point)
+                {
+                  unchain_marker (point);
+                }
+              UNGCPRO;
 	      maybe_signal_error_1 (Qbeginning_of_buffer, Qnil, Qwindow, errb);
 	      return;
 	    }
 	  else
 	    {
-	      set_marker_restricted (w->start[CURRENT_DISP], make_fixnum (startp),
+	      set_marker_restricted (w->start[CURRENT_DISP],
+                                     make_fixnum (startp),
 				     w->buffer);
 	      w->force_start = 1;
 	      w->start_at_line_beg
@@ -4866,16 +4896,19 @@ window_scroll (Lisp_Object window, Lisp_Object count, int direction,
 		  WINDOW_TEXT_TOP_CLIP (w) = (dl->ascent + fheight * value);
 		}
 
-	      if (!point_would_be_visible (w, startp, XFIXNUM (point), 0))
+	      if (!point_would_be_visible (w,
+                                           marker_byte_position (w->start[CURRENT_DISP]),
+                                           marker_byte_position (point),
+                                           0))
 		{
-		  Charbpos new_point;
+		  Lisp_Object new_point;
 
 		  if (MINI_WINDOW_P (w))
-		    new_point = startp;
+		    new_point = w->start[CURRENT_DISP];
 		  else
-		    new_point = start_of_last_line (w, startp);
+		    new_point = make_fixnum (start_of_last_line (w, startp));
 
-		  Fset_window_point (wrap_window (w), make_fixnum (new_point));
+		  Fset_window_point (wrap_window (w), new_point);
 		}
 	    }
 	}
@@ -4887,8 +4920,13 @@ window_scroll (Lisp_Object window, Lisp_Object count, int direction,
 	  WINDOW_TEXT_TOP_CLIP (w) = 0;
 	  MARK_WINDOWS_CHANGED (w);
 	}
-      if (marker_position (w->start[CURRENT_DISP]) == BUF_BEGV (b))
+      if (marker_byte_position (w->start[CURRENT_DISP]) == BYTE_BUF_BEGV (b))
 	{
+          if (unchain_point)
+            {
+              unchain_marker (point);
+            }
+          UNGCPRO;
 	  maybe_signal_error_1 (Qbeginning_of_buffer, Qnil, Qwindow, errb);
 	  return;
 	}
@@ -4913,14 +4951,22 @@ window_scroll (Lisp_Object window, Lisp_Object count, int direction,
             (b, marker_byte_position (w->start[CURRENT_DISP]));
 	  MARK_WINDOWS_CHANGED (w);
 
-	  if (!point_would_be_visible (w, startp, XFIXNUM (point), 0))
+	  if (!point_would_be_visible (w,
+                                       marker_byte_position (w->start[CURRENT_DISP]),
+                                       marker_byte_position (point),
+                                       0))
 	    {
-	      Charbpos new_point = start_of_last_line (w, startp);
-
-	      Fset_window_point (wrap_window (w), make_fixnum (new_point));
+	      Fset_window_point (wrap_window (w),
+                                 make_fixnum (start_of_last_line (w, startp)));
 	    }
 	}
     }
+
+  if (unchain_point)
+    {
+      unchain_marker (point);
+    }
+  UNGCPRO;
 }
 
 DEFUN ("scroll-up", Fscroll_up, 0, 1, "_P", /*
@@ -5126,8 +5172,9 @@ If WINDOW is nil, the selected window is used.
   struct window *w;
   struct buffer *b;
   int height;
-  Charbpos start, new_point;
+  Charbpos new_point;
   int selected;
+  Bytebpos byte_start;
 
   /* Don't use decode_window() because we need the new value of
      WINDOW.  */
@@ -5143,7 +5190,7 @@ If WINDOW is nil, the selected window is used.
 
   if (NILP (arg))
     {
-      int retval;
+      Charcount retval;
 
       if (buf_tick_arithcompare (XFIXNUM (w->last_modified[CURRENT_DISP]),
                                  BUF_MODIFF (b)) >= 0
@@ -5164,16 +5211,20 @@ If WINDOW is nil, the selected window is used.
 	}
       else
 	{
-	  start = marker_position (w->start[CURRENT_DISP]);
-	  if (start < BUF_BEGV (b))
-	    start = BUF_BEGV (b);
-	  else if (start > BUF_ZV (b))
-	    start = BUF_ZV (b);
-
-	  if (selected)
-	    new_point = BUF_PT (b);
-	  else
-	    new_point = marker_position (w->pointm[CURRENT_DISP]);
+	  Bytebpos bstart = marker_byte_position (w->start[CURRENT_DISP]);
+          Charbpos start = -1;
+	  if (bstart < BYTE_BUF_BEGV (b))
+            {
+              start = BUF_BEGV (b);
+            }
+	  else if (start > BYTE_BUF_ZV (b))
+            {
+              start = BUF_ZV (b);
+            }
+          else
+            {
+              start = bytebpos_to_charbpos (b, bstart);
+            }
 
 	  new_point = point_at_center (w, CMOTION_DISP, start, BUF_PT (b));
 
@@ -5196,8 +5247,8 @@ If WINDOW is nil, the selected window is used.
 	arg = make_fixnum (XFIXNUM (arg) + height);
     }
 
-  start = marker_position (w->start[CURRENT_DISP]);
-  if (start < BUF_BEGV (b) || start > BUF_ZV (b))
+  byte_start = marker_byte_position (w->start[CURRENT_DISP]);
+  if (byte_start < BYTE_BUF_BEGV (b) || byte_start > BYTE_BUF_ZV (b))
     {
       if (selected)
 	new_point = BUF_PT (b);
@@ -5207,12 +5258,18 @@ If WINDOW is nil, the selected window is used.
       new_point = vmotion (XWINDOW (window), new_point, -height / 2, 0);
 
       if (selected)
-	BUF_SET_PT (b, new_point);
+        {
+          BUF_SET_PT (b, new_point);
+          Fset_marker (w->start[CURRENT_DISP], b->point_marker,
+                       w->buffer);
+        }
       else
-	Fset_window_point (window, make_fixnum (new_point));
+        {
+          Fset_window_point (window, make_fixnum (new_point));
+          Fset_marker (w->start[CURRENT_DISP], w->pointm[CURRENT_DISP],
+                       w->buffer);
+        }
 
-      Fset_marker (w->start[CURRENT_DISP], make_fixnum (new_point),
-		   w->buffer);
       w->start_at_line_beg
         = byte_beginning_of_line_p
         (b, marker_byte_position (w->start[CURRENT_DISP]));
@@ -5221,9 +5278,9 @@ If WINDOW is nil, the selected window is used.
   else
     {
       if (selected)
-	BUF_SET_PT (b, start);
+	BYTE_BUF_SET_PT (b, byte_start);
       else
-	Fset_window_point (window, make_fixnum (start));
+	Fset_window_point (window, w->start[CURRENT_DISP]);
     }
 
   if (selected)

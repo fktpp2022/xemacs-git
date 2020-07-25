@@ -46,6 +46,45 @@
 	Add an entry for N or M too beg in \{n,m\} in the reg_errcode_t
 	enum.
 
+2020-07-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* redisplay.c (point_would_be_visible):
+	Make this take a Bytebpos startp and point, which is cheaper for
+	our callers.
+	* redisplay.h: Adjust the declaration of
+	point_would_be_visible().
+	* scrollbar.c (scrollbar_reset_cursor):
+	Use the new calling convention of point_would_be_visible(),
+	minimise byte-char conversion in this function.
+	* scrollbar.c (specifier_vars_of_scrollbar):
+	In passing, make the initialisation of Vscrollbar_width a bit more
+	maintainable.
+	* window.c (Fpos_visible_in_window_p):
+	Ditto.
+	* window.c (Fset_window_point):
+	Leave the type checking of POS to #'goto-char,
+	set_marker_restricted(), in passing avoiding needless byte-char
+	conversion.
+	* window.c (Fset_window_point):
+	Ditto.
+	* window.c (Fselect_window):
+	No need for char->byte conversion when setting the old selected
+	window's point marker.
+	If restricting the new byte position, avoid char->byte conversion
+	completely.
+	Otherwise, just do byte->char conversion for setting point, it's
+	not needed to get the marker character position before doing
+	that.
+	* window.c (window_scroll):
+	Drop a useless call to marker_position() on the point marker of
+	the window.
+	Access the relevant point value as a marker, rather than a fixnum,
+	creating a new marker that minority of times that point is outside
+	of the accessible region.
+	Use the new calling convention for marker_byte_position().
+	* window.c (Fmove_to_window_line):
+	Minimise calls to marker_position() in this function.
+
 2020-07-21  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* buffer.c (Fline_number):
