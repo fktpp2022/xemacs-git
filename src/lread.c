@@ -236,15 +236,19 @@ readchar (Lisp_Object readcharfun)
     {
       Ichar c;
       struct buffer *b = XBUFFER (readcharfun);
+      Bytebpos bpos;
 
       if (!BUFFER_LIVE_P (b))
         invalid_operation ("Reading from killed buffer", Qunbound);
 
-      if (BUF_PT (b) >= BUF_ZV (b))
+      bpos = BYTE_BUF_PT (b);
+      if (bpos >= BYTE_BUF_ZV (b))
         return -1;
-      c = BUF_FETCH_CHAR (b, BUF_PT (b));
-      BUF_SET_PT (b, BUF_PT (b) + 1);
 
+      c = BYTE_BUF_FETCH_CHAR (b, bpos);
+      INC_BYTEBPOS (b, bpos);
+
+      BOTH_BUF_SET_PT (b, BUF_PT (b) + 1, bpos);
       return c;
     }
   else if (LSTREAMP (readcharfun))

@@ -46,6 +46,13 @@
 	Add an entry for N or M too beg in \{n,m\} in the reg_errcode_t
 	enum.
 
+2020-08-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lread.c (readchar):
+	When reading from a buffer, avoid needless char-byte conversion in
+	the same way as when reading from a marker, no need to call the C
+	function charbpos_to_bytebpos() for every character read.
+
 2020-07-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* redisplay.c (point_would_be_visible):
