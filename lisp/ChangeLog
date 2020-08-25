@@ -1,3 +1,10 @@
+2020-08-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecomp-runtime.el (eval-when-feature): Removed.
+	This never worked (the after-load-alist entry syntax was
+	incorrect), it is not used in packages and GNU have removed it. No
+	indication to continue with it in XEmacs.
+
 2020-03-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* code-cmds.el (universal-coding-system-argument):

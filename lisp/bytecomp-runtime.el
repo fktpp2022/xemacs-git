@@ -235,22 +235,6 @@ arguments: ((&rest WHEN) &body BODY)"
       (error 'syntax-error "not a valid value for WHEN" when))
   (if (or (member* :execute when) (member* 'eval when))
       (cons 'progn body)))
-
-;;; From Emacs 20.
-(put 'eval-when-feature 'lisp-indent-hook 1)
-(defmacro eval-when-feature (feature &rest body)
-  "Run the body forms when FEATURE is featurep, be it now or later.
-Called (eval-when-feature (FEATURE [. FILENAME]) BODYFORMS...).
-If (featurep 'FEATURE), evals now; otherwise adds an elt to
-`after-load-alist' (which see), using FEATURE as filename if FILENAME is nil."
-  (let ((file (or (cdr feature) (symbol-name (car feature)))))
-    `(let ((bodythunk #'(lambda () ,@body)))
-       (if (featurep ',(car feature))
-	   (funcall bodythunk)
-	 (setq after-load-alist (cons '(,file . (list 'lambda '() bodythunk))
-				      after-load-alist))))))
-
-
 
 ;;; Functions to cleanly eliminate warnings about undefined functions
 ;;; or variables when the code knows what it's doing.  These macros DO
