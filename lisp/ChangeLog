@@ -1,3 +1,21 @@
+2020-09-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Some style, efficiency changes to wid-edit.el.
+
+	* wid-edit.el:
+	* wid-edit.el (widget-shadow-subrs): Removed.
+	No longer necessary.
+	* wid-edit.el (widget-princ-to-string):
+	Remove the commented old implementation.
+	* wid-edit.el (widget-member):
+	Use #'plist-get rather than #'widget-plist-member (which
+	ultimately calls #'plist-get).
+	No need for a final clause that returns nil, that's what #'cond
+	does by default.
+	* wid-edit.el (widget-default-menu-tag-get):
+	Call #'prin1-to-string rather than #'widget-princ-to-string, which
+	calls #'prin1-to-string anyway.	
+
 2020-08-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* bytecomp-runtime.el (eval-when-feature): Removed.

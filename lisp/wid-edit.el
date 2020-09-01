@@ -136,42 +136,16 @@ This exists as a variable so it can be set locally in certain buffers.")
 ;(set-face-display-table 'widget-single-line-field-face
 ;			widget-single-line-display-table)
 
-
-;; Some functions from this file have been ported to C for speed.
-;; Setting this to t (*before* loading wid-edit.el) will make them
-;; shadow the subrs.  It should be used only for debugging purposes.
-(defvar widget-shadow-subrs nil)
-
 
 ;;; Utility functions.
 ;;
 ;; These are not really widget specific.
 
-(when (or (not (fboundp 'widget-plist-member))
-	  widget-shadow-subrs)
-  ;; Recoded in C, for efficiency.  It used to be a defsubst, but old
-  ;; compiled code won't fail -- it will just be slower.
-  (defun widget-plist-member (plist prop)
-    ;; Return non-nil if PLIST has the property PROP.
-    ;; PLIST is a property list, which is a list of the form
-    ;; (PROP1 VALUE1 PROP2 VALUE2 ...).  PROP is a symbol.
-    ;; Unlike `plist-get', this allows you to distinguish between a missing
-    ;; property and a property with the value nil.
-    ;; The value is actually the tail of PLIST whose car is PROP.
-    (while (and plist (not (eq (car plist) prop)))
-      (setq plist (cddr plist)))
-    plist))
-
 (defsubst widget-princ-to-string (object)
   "Return string representation of OBJECT, any Lisp object.
 
 No quoting characters or string delimiters are used."
-  ;(with-current-buffer (get-buffer-create " *widget-tmp*")
-  ;  (erase-buffer)
-  ;  (princ object (current-buffer))
-  ;  (buffer-string))
-  (prin1-to-string object t)
-  )
+  (prin1-to-string object t))
 
 (defun widget-prettyprint-to-string (object)
   "Use `cl-prettyprint' to generate a string representation of OBJECT.
@@ -623,32 +597,6 @@ Suitable for use with `map-extents'."
 	 (symbolp (car widget))
 	 (get (car widget) 'widget-type))))
 
-(when (or (not (fboundp 'widget-put))
-	  widget-shadow-subrs)
-  (defun widget-put (widget property value)
-    "In WIDGET set PROPERTY to VALUE.
-The value can later be retrieved with `widget-get'."
-    (setcdr widget (plist-put (cdr widget) property value))))
-
-;; Recoded in C, for efficiency:
-(when (or (not (fboundp 'widget-get))
-	  widget-shadow-subrs)
-  (defun widget-get (widget property)
-    "In WIDGET, get the value of PROPERTY.
-The value may have been specified when the widget was created, or
-later with `widget-put'."
-    (let ((missing t)
-	  value tmp)
-      (while missing
-	(cond ((setq tmp (widget-plist-member (cdr widget) property))
-	       (setq value (car (cdr tmp))
-		     missing nil))
-	      ((setq tmp (car widget))
-	       (setq widget (get tmp 'widget-type)))
-	      (t
-	       (setq missing nil))))
-      value)))
-
 (defun widget-get-indirect (widget property)
   "In WIDGET, get the value of PROPERTY.
 If the value is a symbol, return its binding.
@@ -660,19 +608,10 @@ Otherwise, just return the value."
 
 (defun widget-member (widget property)
   "Non-nil iff there is a definition in WIDGET for PROPERTY."
-  (cond ((widget-plist-member (cdr widget) property)
-	 t)
+  (cond ((symbol-macrolet ((nonce '#:nonceCNwU4tKK))
+           (not (eq nonce (plist-get (cdr widget) property nonce)))))
 	((car widget)
-	 (widget-member (get (car widget) 'widget-type) property))
-	(t nil)))
-
-(when (or (not (fboundp 'widget-apply))
-	  widget-shadow-subrs)
-  ;;This is in C, so don't ###utoload
-  (defun widget-apply (widget property &rest args)
-    "Apply the value of WIDGET's PROPERTY to the widget itself.
-ARGS are passed as extra arguments to the function."
-    (apply (widget-get widget property) widget args)))
+	 (widget-member (get (car widget) 'widget-type) property))))
 
 (defun widget-value (widget)
   "Extract the current value of WIDGET."
@@ -2021,7 +1960,7 @@ Return nil."
   "Use tag or value for menus."
   (or (widget-get widget :menu-tag)
       (widget-get widget :tag)
-      (widget-princ-to-string (widget-get widget :value))))
+      (prin1-to-string (widget-get widget :value) t)))
 
 (defun widget-default-active (widget)
   "Return non-nil iff WIDGET is user-modifiable."
