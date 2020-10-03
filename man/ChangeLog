@@ -1,3 +1,10 @@
+2020-10-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/searching.texi (Syntax of Regexps):
+	Document the limitations on M and N for interval qualifiers;
+	clarify that the limits are #xFFFF for both, which limits were
+	just added.
+
 2020-03-28  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lispref/searching.texi (Syntax of Regexps):

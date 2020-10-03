@@ -267,7 +267,10 @@ extern reg_syntax_t re_syntax_options;
 #ifdef RE_DUP_MAX
 #undef RE_DUP_MAX
 #endif
-#define RE_DUP_MAX ((1 << 15) - 1)
+/* Repeat counts are stored in opcodes as 2 byte integers.  This was
+   previously limited to 7fff because the parsing code uses signed
+   ints.  But Emacs only runs on 32 bit platforms anyway.  */
+#define RE_DUP_MAX (0xffff)
 
 
 /* POSIX `cflags' bits (i.e., information for `regcomp').  */
@@ -328,7 +331,8 @@ typedef enum
   /* Error codes we've added.  */
   REG_EEND,		/* Premature end.  */
   REG_ESIZE,		/* Compiled pattern bigger than 2^16 bytes.  */
-  REG_ERPAREN		/* Unmatched ) or \); not returned from regcomp.  */
+  REG_ERPAREN,		/* Unmatched ) or \); not returned from regcomp.  */
+  REG_ESIZEBR           /* n or m too big in \{n,m\} */
 #ifdef emacs
   ,REG_ESYNTAX		/* Invalid syntax designator. */
 #endif

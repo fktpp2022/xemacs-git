@@ -303,6 +303,10 @@ utilities, and has been introduced to XEmacs for the version 20.3.
 Unfortunately, the non-greedy version of this quantifier does not exist
 currently, although it does in Perl.
 
+@var{m}, if not specified, defaults to zero. @var{n}, if not specified,
+defaults to #xffff (that is, two the power of sixteen minus
+one). Neither value may exceed #xffff.
+
 @item [ @dots{} ]
 @cindex character set (in regexp)
 @cindex @samp{[} in regexp

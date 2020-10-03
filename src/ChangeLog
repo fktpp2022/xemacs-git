@@ -1,3 +1,51 @@
+2020-10-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Take up to #xFFFF repetitions when using the \{N,M\} regexp
+	repetition syntax. Document this, error when supplied repetition
+	numbers beyond that.
+
+	* regex.c:
+	* regex.c (EXTRACT_NUMBER):
+	* regex.c (EXTRACT_NUMBER_AND_INCR):
+	Revise these to always use the static function implementations
+	(which will be inlined if and when optimization is turned on).
+	* regex.c (EXTRACT_NONNEGATIVE): New.
+	* regex.c (EXTRACT_NONNEGATIVE_AND_INCR): New.
+	Like the corresponding EXTRACT_NUMBER() macros, but never return a
+	negative number.
+	Document why these are implemented while GNU doesn't.
+
+	* regex.c (print_partial_compiled_pattern):
+	Declare P as an re_char.
+	* regex.c (re_error_msgid):
+	Add an entry for REG_ESIZEBR here.
+	* regex.c (BAD_INTERVAL):
+	Take the error number as an argument to this macro.
+
+	* regex.c (regex_compile):
+	Cast the arguments to unified_range_table_{nentries,get_range} as
+	appropriate.
+	* regex.c (re_compile_fastmap):
+	Use EXTRACT_NONNEGATIVE_AND_INCR() when processing succeed_n here,
+	mostly for consistency.
+
+	* regex.c (re_match_2_internal):
+	Declare PEND as a re_char *; keep P as an unsigned char *, since
+	it is repeatedly modified.
+	* regex.c (group_match_null_string_p):
+	Update this to declare P and END as re_char ** and re_char *,
+	respectively.
+	* regex.c (alt_match_null_string_p):
+	Update this to declare P and END as re_char *.
+	* regex.c (common_op_match_null_string_p):
+	Update this to declare P and END as re_char ** and re_char *,
+	respectively. 
+	* regex.h:
+	Document RE_DUP_MAX in this header, declare it explicitly as 0xFFFF.
+	* regex.h (enum):
+	Add an entry for N or M too beg in \{n,m\} in the reg_errcode_t
+	enum.
+
 2020-07-21  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* buffer.c (Fline_number):

@@ -1280,6 +1280,10 @@ appropriately, ASCII digits" limit)))))
 (Assert (null (string-match "\\([\t\f\n\r]\\{,1\\}\\)\\-1" "hello\tthere")))
 (Assert (null (string-match "\\([\t\f\n\r]\\{,1\\}\\)\\0" "hello\tthere"))
 
+(Assert (eql (string-match "\\`x\\{65535\\}" (make-string 65535 ?x)) 0))
+(Assert (null (string-match "\\`x\\{65535\\}" (make-string 65534 ?x))))
+(Check-Error invalid-regexp (string-match "\\`x\\{65536\\}" "X"))
+        
 (with-temp-buffer
   (insert "hi there")
   (goto-char 1)

@@ -1,3 +1,9 @@
+2020-10-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/regexp-tests.el (eql):
+	Test the limits of the regexp ranges with #'string-match, recently
+	explicitly introduced.
+
 2020-03-28  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/regexp-tests.el:

@@ -646,7 +646,8 @@ typedef enum
 
 /* Common operations on the compiled pattern.  */
 
-/* Store NUMBER in two contiguous bytes starting at DESTINATION.  */
+/* Store NUMBER in little-endian format in two contiguous bytes starting at
+   DESTINATION.  */
 
 #define STORE_NUMBER(destination, number)				\
   do {									\
@@ -664,55 +665,69 @@ typedef enum
     (destination) += 2;							\
   } while (0)
 
-/* Put into DESTINATION a number stored in two contiguous bytes starting
-   at SOURCE.  */
+/* Put into DESTINATION a little-endian number stored in two contiguous bytes
+   starting at SOURCE.  */
 
 #define EXTRACT_NUMBER(destination, source)				\
-  do {									\
-    (destination) = *(source) & 0377;					\
-    (destination) += SIGN_EXTEND_CHAR (*((source) + 1)) << 8;		\
-  } while (0)
+  ((destination) = extract_number (source))
 
-#ifdef DEBUG
-static void
-extract_number (int *dest, re_char *source)
+static inline int
+extract_number (re_char *source)
 {
-  int temp = SIGN_EXTEND_CHAR (*(source + 1));
-  *dest = *source & 0377;
-  *dest += temp << 8;
+  int leading_byte = SIGN_EXTEND_CHAR (source[1]);
+  return (leading_byte << 8) + (int) ((unsigned char) (source[0]));
 }
 
-#ifndef EXTRACT_MACROS /* To debug the macros.  */
-#undef EXTRACT_NUMBER
-#define EXTRACT_NUMBER(dest, src) extract_number (&dest, src)
-#endif /* not EXTRACT_MACROS */
+/* Similar to EXTRACT_NUMBER, but treat the two bytes at SOURCE as an unsigned
+   sixteen bit little-endian value; convert this to a non-negative signed
+   integer before assigning it to DESTINATION.
 
-#endif /* DEBUG */
+   GNU get away without this--they use EXTRACT_NUMBER() instead, relying on
+   the fact that decrementing a negative MCNT within the set_number_at,
+   jump_n, and succeed_n handling silently wraps with two's complement, giving
+   the desired behaviour.
+
+   That would make our debugging significantly harder. Also, optimizing
+   compilers have a habit of munging silent wrapping of two's complement,
+   since the standards do not guarantee that it is preserved. This approach
+   with extract_nonnegative() is cheap (it will be made inline) and
+   comprehensible for anyone debugging. */
+#define EXTRACT_NONNEGATIVE(destination, source)     \
+  ((destination) = extract_nonnegative (source))
+
+static inline int
+extract_nonnegative (re_char *source)
+{
+  int leading_byte = ((unsigned char) source[1]);
+  return (leading_byte << 8) + (int) (((unsigned char) (source[0])));
+}
 
 /* Same as EXTRACT_NUMBER, except increment SOURCE to after the number.
    SOURCE must be an lvalue.  */
 
 #define EXTRACT_NUMBER_AND_INCR(destination, source)			\
-  do {									\
-    EXTRACT_NUMBER (destination, source);				\
-    (source) += 2; 							\
-  } while (0)
+  ((destination) = extract_number_and_incr ((re_char **) (&source)))
 
-#ifdef DEBUG
-static void
-extract_number_and_incr (int *destination, unsigned char **source)
+static int
+extract_number_and_incr (re_char **source)
 {
-  extract_number (destination, *source);
+  int num = extract_number (*source);
   *source += 2;
+  return num;
 }
 
-#ifndef EXTRACT_MACROS
-#undef EXTRACT_NUMBER_AND_INCR
-#define EXTRACT_NUMBER_AND_INCR(dest, src) \
-  extract_number_and_incr (&dest, &src)
-#endif /* not EXTRACT_MACROS */
+/* Similar to EXTRACT_NONNEGATIVE_AND_INCR, but treat the two bytes at SOURCE
+   as an unsigned sixteen bit little-endian value. */
+#define EXTRACT_NONNEGATIVE_AND_INCR(destination, source)               \
+  ((destination) = extract_nonnegative_and_incr ((re_char **) (&source)))
 
-#endif /* DEBUG */
+static int
+extract_nonnegative_and_incr (re_char **source)
+{
+  int num = extract_nonnegative (*source);
+  *source += 2;
+  return num;
+}
 
 /* If DEBUG is defined, Regex prints many voluminous messages about what
    it is doing (if the variable `debug' is nonzero).  If linked with the
@@ -813,7 +828,7 @@ static void
 print_partial_compiled_pattern (re_char *start, re_char *end)
 {
   int mcnt, mcnt2;
-  unsigned char *p = (unsigned char *) start;
+  re_char *p = start;
   re_char *pend = end;
 
   if (start == NULL)
@@ -913,14 +928,14 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
 	    printf ("/charset_mule [%s",
 	            (re_opcode_t) *(p - 1) == charset_mule_not ? "^" : "");
 	    printf (" flags: 0x%02x ", *p++);
-	    nentries = unified_range_table_nentries (p);
+	    nentries = unified_range_table_nentries ((void *) p);
 	    for (i = 0; i < nentries; i++)
 	      {
 		EMACS_INT first, last;
 		Lisp_Object dummy_val;
 
-		unified_range_table_get_range (p, i, &first, &last,
-					       &dummy_val);
+		unified_range_table_get_range ((void *) p, i, &first,
+                                               &last, &dummy_val);
 		if (first < 0x80)
 		  putchar (first);
 		else
@@ -935,7 +950,7 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
 		  }
 	      }
 	    putchar (']');
-	    p += unified_range_table_bytes_used (p);
+	    p += unified_range_table_bytes_used ((void *) p);
 	  }
 	  break;
 #endif
@@ -949,17 +964,17 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
           break;
 
 	case on_failure_jump:
-          extract_number_and_incr (&mcnt, &p);
+	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
   	  printf ("/on_failure_jump to %ld", (long)(p + mcnt - start));
           break;
 
 	case on_failure_keep_string_jump:
-          extract_number_and_incr (&mcnt, &p);
+	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
   	  printf ("/on_failure_keep_string_jump to %ld", (long)(p + mcnt - start));
           break;
 
 	case dummy_failure_jump:
-          extract_number_and_incr (&mcnt, &p);
+	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
   	  printf ("/dummy_failure_jump to %ld", (long)(p + mcnt - start));
           break;
 
@@ -968,40 +983,40 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
           break;
 
         case maybe_pop_jump:
-          extract_number_and_incr (&mcnt, &p);
+          EXTRACT_NUMBER_AND_INCR (mcnt, p);
   	  printf ("/maybe_pop_jump to %ld", (long)(p + mcnt - start));
 	  break;
 
         case pop_failure_jump:
-	  extract_number_and_incr (&mcnt, &p);
+	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
   	  printf ("/pop_failure_jump to %ld", (long)(p + mcnt - start));
 	  break;
 
         case jump_past_alt:
-	  extract_number_and_incr (&mcnt, &p);
+	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
   	  printf ("/jump_past_alt to %ld", (long)(p + mcnt - start));
 	  break;
 
         case jump:
-	  extract_number_and_incr (&mcnt, &p);
+	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
   	  printf ("/jump to %ld", (long)(p + mcnt - start));
 	  break;
 
         case succeed_n:
-          extract_number_and_incr (&mcnt, &p);
-          extract_number_and_incr (&mcnt2, &p);
+          EXTRACT_NUMBER_AND_INCR (mcnt, p);
+          EXTRACT_NONNEGATIVE_AND_INCR (mcnt2, p);
 	  printf ("/succeed_n to %ld, %d times", (long)(p + mcnt - start), mcnt2);
           break;
 
         case jump_n:
-          extract_number_and_incr (&mcnt, &p);
-          extract_number_and_incr (&mcnt2, &p);
+          EXTRACT_NUMBER_AND_INCR (mcnt, p);
+          EXTRACT_NONNEGATIVE_AND_INCR (mcnt2, p);
 	  printf ("/jump_n to %ld, %d times", (long)(p + mcnt - start), mcnt2);
           break;
 
         case set_number_at:
-          extract_number_and_incr (&mcnt, &p);
-          extract_number_and_incr (&mcnt2, &p);
+          EXTRACT_NUMBER_AND_INCR (mcnt, p);
+          EXTRACT_NONNEGATIVE_AND_INCR (mcnt2, p);
 	  printf ("/set_number_at location %ld to %d", (long)(p + mcnt - start), mcnt2);
           break;
 
@@ -1237,6 +1252,7 @@ static const char *re_error_msgid[] =
   "Premature end of regular expression",	/* REG_EEND */
   "Regular expression too big",			/* REG_ESIZE */
   "Unmatched ) or \\)",				/* REG_ERPAREN */
+  "Invalid content of \\{\\}, repetitions too big", /* REG_ESIZEBR  */
 #ifdef emacs
   "Invalid syntax designator",			/* REG_ESYNTAX */
 #endif
@@ -2389,13 +2405,12 @@ reg_errcode_t compile_char_class (re_wctype_t cc, Lisp_Object rtab,
                                   Bitbyte *flags_out);
 #endif
 
-static re_bool group_match_null_string_p (unsigned char **p,
-					  unsigned char *end,
+static re_bool group_match_null_string_p (re_char **p, re_char *end,
 					  register_info_type *reg_info);
-static re_bool alt_match_null_string_p (unsigned char *p, unsigned char *end,
+static re_bool alt_match_null_string_p (re_char *p, re_char *end,
 					register_info_type *reg_info);
-static re_bool common_op_match_null_string_p (unsigned char **p,
-					      unsigned char *end,
+static re_bool common_op_match_null_string_p (re_char **p,
+					      re_char *end,
 					      register_info_type *reg_info);
 static int bcmp_translate (re_char *s1, re_char *s2,
 			   REGISTER int len, RE_TRANSLATE_TYPE translate
@@ -3522,7 +3537,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
                   || (p - 2 == pattern  &&  p == pend))
                 goto normal_backslash;
 
-#define BAD_INTERVAL()                                  \
+#define BAD_INTERVAL(errnum)                            \
                 do                                      \
                   {                                     \
                     if (syntax & RE_NO_BK_BRACES)       \
@@ -3531,7 +3546,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
                       }                                 \
                     else                                \
                       {                                 \
-                        FREE_STACK_RETURN (REG_EBRACE); \
+                        FREE_STACK_RETURN (errnum);     \
                       }                                 \
                   } while (0)
 
@@ -3544,22 +3559,25 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 
                 beg_interval = p - 1;
 
-                if (p == pend || itext_ichar_eql (p, '+')) BAD_INTERVAL ();
+                if (p == pend || itext_ichar_eql (p, '+'))
+                  {
+                    BAD_INTERVAL (REG_EBRACE);
+                  }
 
                 GET_UNSIGNED_NUMBER (lower_bound);
 
-                if (p == pend) BAD_INTERVAL ();
+                if (p == pend) BAD_INTERVAL (REG_EBRACE);
                 PATFETCH (c);
 
                 if (c == ',')
                   {
                     if (p == pend || itext_ichar_eql (p, '+'))
-                      BAD_INTERVAL ();
+                      BAD_INTERVAL (REG_EBRACE);
 
                     GET_UNSIGNED_NUMBER (upper_bound);
                     if (upper_bound < 0) upper_bound = RE_DUP_MAX;
 
-                    if (p == pend) BAD_INTERVAL ();
+                    if (p == pend) BAD_INTERVAL (REG_EBRACE);
                     PATFETCH (c);
                   }
                 else
@@ -3568,9 +3586,14 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
                     upper_bound = lower_bound;
                   }
 
-                if (upper_bound > RE_DUP_MAX || lower_bound > upper_bound)
+                if (lower_bound > upper_bound)
                   {
-                    BAD_INTERVAL ();
+                    BAD_INTERVAL (REG_EBRACE);
+                  }
+
+                if (upper_bound > RE_DUP_MAX)
+                  {
+                    BAD_INTERVAL (REG_ESIZEBR);
                   }
 
                 if (!(syntax & RE_NO_BK_BRACES))
@@ -3584,7 +3607,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 
                 if (c != '}')
                   {
-                    BAD_INTERVAL ();
+                    BAD_INTERVAL (REG_EBRACE);
                   }
 
                 /* We just parsed a valid interval.  */
@@ -4326,8 +4349,8 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
   REGISTER char *fastmap = bufp->fastmap;
   unsigned char *pattern = bufp->buffer;
   long size = bufp->used;
-  unsigned char *p = pattern;
-  REGISTER unsigned char *pend = pattern + size;
+  re_char *p = pattern;
+  REGISTER re_char *pend = pattern + size;
 
 #ifdef REGEX_REL_ALLOC
   /* This holds the pointer to the failure stack, when
@@ -4444,7 +4467,7 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
                 goto done;
 	      }
 
-	    nentries = unified_range_table_nentries (p);
+	    nentries = unified_range_table_nentries ((void *) p);
 	    for (j = 0; j < nentries; j++)
 	      {
 		EMACS_INT first, last;
@@ -4452,7 +4475,7 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 		int jj;
 		Ibyte strr[MAX_ICHAR_LEN];
 
-		unified_range_table_get_range (p, j, &first, &last,
+		unified_range_table_get_range ((void *) p, j, &first, &last,
 					       &dummy_val);
 #ifndef UNICODE_INTERNAL
 		for (jj = first; jj <= last && jj < 0x80; jj++)
@@ -4518,7 +4541,7 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
                 goto done;
               }
 
-	    nentries = unified_range_table_nentries (p);
+	    nentries = unified_range_table_nentries ((void *) p);
 #ifndef UNICODE_INTERNAL
 	    for (j = 0; j < nentries; j++)
 	      {
@@ -4526,7 +4549,7 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 		Lisp_Object dummy_val;
 		int jj;
 
-		unified_range_table_get_range (p, j, &first, &last,
+		unified_range_table_get_range ((void *) p, j, &first, &last,
 					       &dummy_val);
 		for (jj = smallest_prev; jj < first && jj < 0x80; jj++)
 		  fastmap[jj] = 1;
@@ -4876,7 +4899,7 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
           p += 2;
 
           /* Increment p past the n for when k != 0.  */
-          EXTRACT_NUMBER_AND_INCR (k, p);
+          EXTRACT_NONNEGATIVE_AND_INCR (k, p);
           if (k == 0)
 	    {
               p -= 4;
@@ -5514,7 +5537,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 {
   /* General temporaries.  */
   int mcnt;
-  unsigned char *p1;
+  re_char *p1;
   int should_succeed; /* XEmacs change */
 
   /* Just past the end of the corresponding string.  */
@@ -5529,7 +5552,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
   /* Where we are in the pattern, and the end of the pattern.  */
   unsigned char *p = bufp->buffer;
-  REGISTER unsigned char *pend = p + bufp->used;
+  REGISTER re_char *pend = p + bufp->used;
 
   /* Mark the opcode just after a start_memory, so we can test for an
      empty subpattern when we get to the stop_memory.  */
@@ -6138,12 +6161,12 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
                        && !NOCASEP (lispbuf, c))
                       : ((class_bits & BIT_UPPER && ISUPPER (c))
                          || (class_bits & BIT_LOWER && ISLOWER (c))))))
-                || EQ (Qt, unified_range_table_lookup (p, c, Qnil)))
+                || EQ (Qt, unified_range_table_lookup ((void *) p, c, Qnil)))
 	      {
 		not_p = !not_p;
 	      }
 
-	    p += unified_range_table_bytes_used (p);
+	    p += unified_range_table_bytes_used ((void *) p);
 
 	    if (!not_p) goto fail;
 
@@ -6568,7 +6591,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
           EXTRACT_NUMBER_AND_INCR (mcnt, p);
           DEBUG_MATCH_PRINT2 ("EXECUTING maybe_pop_jump %d.\n", mcnt);
           {
-	    REGISTER unsigned char *p2 = p;
+	    REGISTER const unsigned char *p2 = p;
 
             /* Compare the beginning of the repeat with what in the
                pattern follows its end. If we can establish that there
@@ -6611,7 +6634,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 		/* Consider what happens when matching ":\(.*\)"
 		   against ":/".  I don't really understand this code
 		   yet.  */
-  	        p[-3] = (unsigned char) pop_failure_jump;
+  	        ((unsigned char *)p)[-3] = (re_char) pop_failure_jump;
                 DEBUG_MATCH_PRINT1
                   ("  End of pattern: change to `pop_failure_jump'.\n");
               }
@@ -6624,7 +6647,8 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
                 if ((re_opcode_t) p1[3] == exactn && p1[5] != c)
                   {
-  		    p[-3] = (unsigned char) pop_failure_jump;
+                    ((unsigned char *)p)[-3]
+                      = (unsigned char) pop_failure_jump;
                     DEBUG_MATCH_PRINT3 ("  %c != %c => pop_failure_jump.\n",
                                   c, p1[5]);
                   }
@@ -6642,7 +6666,8 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
                         that we can't change to pop_failure_jump.  */
 		    if (!not_p)
                       {
-  		        p[-3] = (unsigned char) pop_failure_jump;
+                        ((unsigned char *)p)[-3]
+                          = (unsigned char) pop_failure_jump;
                         DEBUG_MATCH_PRINT1 ("  No match => pop_failure_jump.\n");
                       }
 		  }
@@ -6659,7 +6684,8 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
                           && (p2[2 + p1[5] / BYTEWIDTH]
                               & (1 << (p1[5] % BYTEWIDTH)))))
                   {
-  		    p[-3] = (unsigned char) pop_failure_jump;
+                    unsigned char *p3 = (unsigned char *)p;
+  		    p3[-3] = (unsigned char) pop_failure_jump;
                     DEBUG_MATCH_PRINT3 ("  %c != %c => pop_failure_jump.\n",
                                   c, p1[5]);
                   }
@@ -6677,7 +6703,8 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
 		    if (idx == p2[1])
                       {
-  		        p[-3] = (unsigned char) pop_failure_jump;
+                        unsigned char *p3 = (unsigned char *) p;
+  		        p3[-3] = (unsigned char) pop_failure_jump;
                         DEBUG_MATCH_PRINT1 ("  No match => pop_failure_jump.\n");
                       }
 		  }
@@ -6694,7 +6721,8 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
 		    if (idx == p2[1] || idx == p1[4])
                       {
-  		        p[-3] = (unsigned char) pop_failure_jump;
+                        unsigned char *p3 = (unsigned char *)p;
+                        p3[-3] = (unsigned char) pop_failure_jump;
                         DEBUG_MATCH_PRINT1 ("  No match => pop_failure_jump.\n");
                       }
 		  }
@@ -6783,19 +6811,18 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
         /* Have to succeed matching what follows at least n times.
            After that, handle like `on_failure_jump'.  */
         case succeed_n:
-          EXTRACT_NUMBER (mcnt, p + 2);
+          EXTRACT_NONNEGATIVE (mcnt, p + 2);
           DEBUG_MATCH_PRINT2 ("EXECUTING succeed_n %d.\n", mcnt);
 
-          assert (mcnt >= 0);
           /* Originally, this is how many times we HAVE to succeed.  */
-          if (mcnt > 0)
+          if (mcnt)
             {
                mcnt--;
 	       p += 2;
-               STORE_NUMBER_AND_INCR (p, mcnt);
                DEBUG_MATCH_PRINT3 ("  Setting 0x%lx to %d.\n", (long) p, mcnt);
+               STORE_NUMBER_AND_INCR (p, mcnt);
             }
-	  else if (mcnt == 0)
+	  else
             {
               DEBUG_MATCH_PRINT2 ("  Setting two bytes from 0x%lx to no_op.\n",
 			    (long) (p+2));
@@ -6806,7 +6833,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
           break;
 
         case jump_n:
-          EXTRACT_NUMBER (mcnt, p + 2);
+          EXTRACT_NONNEGATIVE (mcnt, p + 2);
           DEBUG_MATCH_PRINT2 ("EXECUTING jump_n %d.\n", mcnt);
 
           /* Originally, this is how many times we CAN jump.  */
@@ -6823,13 +6850,16 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
 	case set_number_at:
 	  {
+	    unsigned char *p2;	/* Location of the counter.  */
             DEBUG_MATCH_PRINT1 ("EXECUTING set_number_at.\n");
 
             EXTRACT_NUMBER_AND_INCR (mcnt, p);
-            p1 = p + mcnt;
-            EXTRACT_NUMBER_AND_INCR (mcnt, p);
-            DEBUG_MATCH_PRINT3 ("  Setting 0x%lx to %d.\n", (long) p1, mcnt);
-	    STORE_NUMBER (p1, mcnt);
+	    /* Discard 'const', making re_search non-reentrant.  */
+	    p2 = (unsigned char *) p + mcnt;
+            EXTRACT_NONNEGATIVE_AND_INCR (mcnt, p);
+
+            DEBUG_MATCH_PRINT3 ("  Setting 0x%lx to %d.\n", (long) p2, mcnt);
+	    STORE_NUMBER (p2, mcnt);
             break;
           }
 
@@ -7192,12 +7222,12 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
    We don't handle duplicates properly (yet).  */
 
 static re_bool
-group_match_null_string_p (unsigned char **p, unsigned char *end,
+group_match_null_string_p (re_char **p, re_char *end,
 			   register_info_type *reg_info)
 {
   int mcnt;
   /* Point to after the args to the start_memory.  */
-  unsigned char *p1 = *p + 2;
+  re_char *p1 = *p + 2;
 
   while (p1 < end)
     {
@@ -7300,11 +7330,11 @@ group_match_null_string_p (unsigned char **p, unsigned char *end,
    byte past the last. The alternative can contain groups.  */
 
 static re_bool
-alt_match_null_string_p (unsigned char *p, unsigned char *end,
-			 register_info_type *reg_info)
+alt_match_null_string_p (re_char *p, re_char *end,
+                         register_info_type *reg_info)
 {
   int mcnt;
-  unsigned char *p1 = p;
+  re_char *p1 = p;
 
   while (p1 < end)
     {
@@ -7336,13 +7366,13 @@ alt_match_null_string_p (unsigned char *p, unsigned char *end,
    Sets P to one after the op and its arguments, if any.  */
 
 static re_bool
-common_op_match_null_string_p (unsigned char **p, unsigned char *end,
-			       register_info_type *reg_info)
+common_op_match_null_string_p (re_char **p, re_char *end,
+                               register_info_type *reg_info)
 {
   int mcnt;
   re_bool ret;
   int reg_no;
-  unsigned char *p1 = *p;
+  re_char *p1 = *p;
 
   switch ((re_opcode_t) *p1++)
     {
