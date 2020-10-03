@@ -1,5 +1,11 @@
 2020-10-03  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* window.c (set_window_point):
+	Revise this to fix the build, B needs to be declared outside of
+	ERROR_CHECK_ANY.
+
+2020-10-03  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Take up to #xFFFF repetitions when using the \{N,M\} regexp
 	repetition syntax. Document this, error when supplied repetition
 	numbers beyond that.

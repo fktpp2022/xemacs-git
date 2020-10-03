@@ -1961,9 +1961,9 @@ Bytebpos
 set_window_point (Lisp_Object window, Bytebpos bpos)
 {
   struct window *w = decode_window (window);
-#ifdef ERROR_CHECK_ANY
   struct buffer *b = XBUFFER (w->buffer);
 
+#ifdef ERROR_CHECK_ANY
   assert (!(b == current_buffer &&
             EQ (wrap_window (w), Fselected_window (Qnil))));
 #endif
