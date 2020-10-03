@@ -1952,6 +1952,29 @@ If the last line is not clipped, return nil.
   return make_fixnum (dl->ascent + dl->descent - dl->clip);
 }
 
+/* Like Fset_window_point(), but don't special-case the selected window and
+   the current buffer. See the docstring of Fset_window_point(). Throw an
+   assertion failure if the window is the selected window and its buffer is
+   the current buffer. */
+Bytebpos
+set_window_point (Lisp_Object window, Bytebpos bpos)
+{
+  struct window *w = decode_window (window);
+#ifdef ERROR_CHECK_ANY
+  struct buffer *b = XBUFFER (w->buffer);
+
+  assert (!(EQ (wrap_window (w), Fselected_window (Qnil))
+            && EQ (buffer, Fcurrent_buffer ())));
+#endif
+  
+  bpos = bytebpos_clip_to_bounds (BYTE_BUF_BEGV (b), bpos, BYTE_BUF_ZV (b));
+
+  set_marker_byte_position (w->pointm[CURRENT_DISP], bpos, w->buffer);
+  MARK_POINT_CHANGED;
+
+  return bpos;
+}
+
 DEFUN ("set-window-point", Fset_window_point, 2, 2, 0, /*
 Make point value in WINDOW be at position POS in WINDOW's buffer.
 If WINDOW is the selected window, and window's buffer is the current
@@ -1969,11 +1992,10 @@ perhaps more logical.)
      be one -- e.g. at startup */
   if (EQ (wrap_window (w), Fselected_window (Qnil))
       && EQ (w->buffer, Fcurrent_buffer ()))
-    Fgoto_char (pos, Qnil);
+    Fgoto_char (pos, w->buffer);
   else
-    set_marker_restricted (w->pointm[CURRENT_DISP], pos, w->buffer);
-
-  MARK_POINT_CHANGED;
+    set_window_point (window,
+                      get_buffer_pos_byte (XBUFFER (w->buffer), pos, 0));
   return pos;
 }
 
@@ -5280,7 +5302,8 @@ If WINDOW is nil, the selected window is used.
       if (selected)
 	BYTE_BUF_SET_PT (b, byte_start);
       else
-	Fset_window_point (window, w->start[CURRENT_DISP]);
+	set_window_point (window,
+                          marker_byte_position (w->start[CURRENT_DISP]));
     }
 
   if (selected)

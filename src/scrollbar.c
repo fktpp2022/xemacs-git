@@ -688,7 +688,7 @@ scrollbar_pointer_changed_in_window (Lisp_Object UNUSED (specifier),
 
 /* #### This function should be moved into Lisp */
 static void
-scrollbar_reset_cursor (Lisp_Object win, Lisp_Object orig_pt)
+scrollbar_reset_cursor (Lisp_Object win, Bytebpos orig_pt)
 {
   /* When this function is called we know that start is already
      accurate.  We know this because either set-window-start or
@@ -698,23 +698,22 @@ scrollbar_reset_cursor (Lisp_Object win, Lisp_Object orig_pt)
   int selected = ((w == XWINDOW (Fselected_window (XFRAME (w->frame)->device)))
 		  ? 1
 		  : 0);
-  Bytebpos start_pos, ptint;
+  Bytebpos start_pos;
 
   buf = Fwindow_buffer (win);
   if (NILP (buf))
     return;	/* the window was deleted out from under us */
 
-  ptint = get_buffer_pos_byte (XBUFFER (buf), orig_pt, 0);
   start_pos = marker_byte_position (w->start[CURRENT_DISP]);
 
-  if (ptint < start_pos)
+  if (orig_pt < start_pos)
     {
       if (selected)
 	Fgoto_char (w->start[CURRENT_DISP], buf);
       else
-	Fset_window_point (win, w->start[CURRENT_DISP]);
+        set_window_point (win, marker_byte_position (w->start[CURRENT_DISP]));
     }
-  else if (!point_would_be_visible (XWINDOW (win), start_pos, ptint, 0))
+  else if (!point_would_be_visible (XWINDOW (win), start_pos, orig_pt, 0))
     {
       Fmove_to_window_line (make_fixnum (-1), win);
 
@@ -741,9 +740,11 @@ scrollbar_reset_cursor (Lisp_Object win, Lisp_Object orig_pt)
   else
     {
       if (selected)
-	Fgoto_char (orig_pt, buf);
+        {
+          BYTE_BUF_SET_PT (XBUFFER (buf), orig_pt);
+        }
       else
-	Fset_window_point (win, orig_pt);
+        set_window_point (win, orig_pt);
     }
 }
 
@@ -857,8 +858,23 @@ scrollbar behavior.
 */
        (window))
 {
-  Lisp_Object orig_pt = Fwindow_point (window);
-  Fset_window_point (window, Fpoint_min (Fwindow_buffer (window)));
+  struct window *w = decode_window (window);
+  struct buffer *b = XBUFFER (w->buffer);
+  Boolint selectedp
+    = (w == XWINDOW (Fselected_window (XFRAME (w->frame)->device))
+       && current_buffer == b);
+  Bytebpos orig_pt = selectedp ? BYTE_BUF_PT (b)
+    : marker_byte_position (w->pointm[CURRENT_DISP]);
+
+  if (selectedp)
+    {
+      BOTH_BUF_SET_PT (b, BUF_BEGV (b), BYTE_BUF_BEGV (b));
+    }
+  else
+    {
+      set_window_point (window, BYTE_BUF_BEGV (b));
+    }
+
   Fcenter_to_window_line (Qzero, window);
   scrollbar_reset_cursor (window, orig_pt);
   zmacs_region_stays = 1;
@@ -874,8 +890,23 @@ scrollbar behavior.
 */
        (window))
 {
-  Lisp_Object orig_pt = Fwindow_point (window);
-  Fset_window_point (window, Fpoint_max (Fwindow_buffer (window)));
+  struct window *w = decode_window (window);
+  struct buffer *b = XBUFFER (w->buffer);
+  Boolint selectedp
+    = (w == XWINDOW (Fselected_window (XFRAME (w->frame)->device))
+       && current_buffer == b);
+  Bytebpos orig_pt = selectedp ? BYTE_BUF_PT (b)
+    : marker_byte_position (w->pointm[CURRENT_DISP]);
+
+  if (selectedp)
+    {
+      BOTH_BUF_SET_PT (b, BUF_ZV (b), BYTE_BUF_ZV (b));
+    }
+  else
+    {
+      set_window_point (window, BYTE_BUF_ZV (b));
+    }
+
   Fcenter_to_window_line (make_fixnum (-3), window);
   scrollbar_reset_cursor (window, orig_pt);
   zmacs_region_stays = 1;
@@ -890,12 +921,23 @@ change the scrollbar behavior.
 */
        (object))
 {
-  Charbpos start_pos;
-  Lisp_Object orig_pt;
   Lisp_Object window = Fcar (object);
   Lisp_Object value = Fcdr (object);
+  Charbpos start_pos;
+  struct buffer *b;
+  struct window *w;
+  Boolint selectedp;
+  Bytebpos orig_pt;
 
-  orig_pt = Fwindow_point (window);
+  CHECK_WINDOW (window);
+
+  w = XWINDOW (window);
+  b = XBUFFER (w->buffer);
+  selectedp = (w == XWINDOW (Fselected_window (XFRAME (w->frame)->device))
+               && current_buffer == b);
+  orig_pt = selectedp ? BYTE_BUF_PT (b)
+    : marker_byte_position (w->pointm[CURRENT_DISP]);
+
   Fset_marker (XWINDOW (window)->sb_point, value, Fwindow_buffer (window));
   start_pos = scrollbar_point (XWINDOW (window), 1);
   Fset_window_start (window, make_fixnum (start_pos), Qnil);

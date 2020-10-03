@@ -86,6 +86,8 @@ DECLARE_LISP_OBJECT (window_mirror, struct window_mirror);
 #define CHECK_WINDOW_MIRROR(x) CHECK_RECORD (x, window_mirror)
 #define CONCHECK_WINDOW_MIRROR(x) CONCHECK_RECORD (x, window_mirror)
 
+Bytebpos set_window_point (Lisp_Object, Bytebpos);
+
 EXFUN (Fget_buffer_window, 3);
 EXFUN (Fmove_to_window_line, 2);
 EXFUN (Frecenter, 2);

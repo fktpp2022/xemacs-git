@@ -48,6 +48,35 @@
 
 2020-08-01  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Add set_window_point, which is like Fset_window_point() but
+	doesn't call Fgoto_char() with the selected window, and takes a
+	Bytebpos POS, avoiding byte-char conversion overhead.
+
+	* buffer.c (set_buffer_internal):
+	Call set_window_point() from this function rather than
+	Fset_window_point().
+	* scrollbar.c (scrollbar_reset_cursor):
+	Revise this to take a Bytebpos ORIG_PT, avoiding needless
+	byte-char conversion.
+	* scrollbar.c (Fscrollbar_to_top):
+	Avoid needless byte-char conversion in this function.
+	* scrollbar.c (Fscrollbar_to_bottom):
+	Ditto.
+	* scrollbar.c (Fscrollbar_vertical_drag):
+	Ditto. Error when the car of VALUE is not a window, rather than
+	leaving that to Fwindow_point().
+	* window.c (set_window_point): New.
+	Like Fset_window_point(), but don't special-case the selected
+	window and the current buffer.
+	* window.c (Fset_window_point):
+	Use it.
+	* window.c (Fmove_to_window_line):
+	Use it. Declare VPOS, the result of vmotion(), as a Charbpos.
+	* window.h:
+	Declare set_window_point().
+
+2020-08-01  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* lread.c (readchar):
 	When reading from a buffer, avoid needless char-byte conversion in
 	the same way as when reading from a marker, no need to call the C
