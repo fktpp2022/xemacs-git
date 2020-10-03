@@ -301,9 +301,9 @@ static void create_right_glyph_block (struct window *w,
 static void redisplay_windows (Lisp_Object window, int skip_selected);
 static void decode_mode_spec (struct window *w, Ichar spec, int type);
 static void free_display_line (struct display_line *dl);
-static void update_line_start_cache (struct window *w, Charbpos from,
-				     Charbpos to, Charbpos point,
-				     int no_regen);
+static void update_line_start_cache (struct window *w, Bytebpos from,
+				     Bytebpos to, Bytebpos point,
+				     Boolint no_regen);
 static int point_visible (struct window *w, Charbpos point, int type);
 static void calculate_yoffset (struct display_line *dl,
 			       struct display_block *fixup);
@@ -955,7 +955,9 @@ generate_display_line (struct window *w, struct display_line *dl, int bounds,
   }
   dl->charpos = start_pos;
   if (dl->end_charpos < dl->charpos)
-    dl->end_charpos = dl->charpos;
+    {
+      dl->end_charpos = dl->charpos;
+    }
 
   if (MARKERP (Voverlay_arrow_position)
       && EQ (w->buffer, Fmarker_buffer (Voverlay_arrow_position))
@@ -2305,7 +2307,7 @@ create_text_block (struct window *w, struct display_line *dl,
       if (data.byte_charpos > BYTE_BUF_ZV (b))
 	{
 	  /* #### urk!  More of this lossage! */
-	  data.byte_charpos--;
+          data.byte_charpos = prev_bytebpos (b, data.byte_charpos);
 	  goto done;
 	}
 
@@ -2985,7 +2987,7 @@ done:
   /* #### lossage lossage lossage! Fix this shit! */
   if (data.byte_charpos > BYTE_BUF_ZV (b))
     {
-      dl->end_charpos = BUF_ZV (b);
+      dl->end_charpos = BUF_ZV (b) - dl->offset;
       if (truncate_win)
         {
           data.dl->num_chars = column_at_point (b, BYTE_BUF_ZV (b), 0);
@@ -3000,7 +3002,8 @@ done:
     }
   else
     {
-      dl->end_charpos = bytebpos_to_charbpos (b, data.byte_charpos) - 1;
+      dl->end_charpos = bytebpos_to_charbpos (b, data.byte_charpos) - 1
+        - dl->offset;
       if (truncate_win)
         {
           data.dl->num_chars = column_at_point (b, data.byte_charpos > 1 ?
@@ -5261,6 +5264,7 @@ create_string_text_block (struct window *w, Lisp_Object disp_string,
 
     if (data.byte_charpos > byte_string_zv)
       {
+        assert (dl->offset == 0);
         dl->end_charpos
           = string_index_byte_to_char (disp_string, byte_string_zv);
         end_bytecount = byte_string_zv;
@@ -5355,7 +5359,9 @@ generate_string_display_line (struct window *w, Lisp_Object disp_string,
 					    prop, default_face);
   dl->charpos = start_pos;
   if (dl->end_charpos < dl->charpos)
-    dl->end_charpos = dl->charpos;
+    {
+      dl->end_charpos = dl->charpos;
+    }
 
   /* If there are left glyphs associated with any character in the
      text block, then create a display block to handle them. */
@@ -5892,10 +5898,8 @@ regenerate_window_extents_only_changed (struct window *w, Charbpos startp,
   w->last_modified[DESIRED_DISP] = make_fixnum (BUF_MODIFF (b));
   w->last_facechange[DESIRED_DISP] = make_fixnum (BUF_FACECHANGE (b));
   Fset_marker (w->last_start[DESIRED_DISP], make_fixnum (startp), w->buffer);
-  set_marker_byte_position (w->last_point[DESIRED_DISP],
-                            min (BYTE_BUF_Z (XBUFFER (w->buffer)),
-                                 max (BYTE_BUF_BEG (XBUFFER (w->buffer)),
-                                      byte_pointm)), w->buffer);
+  set_marker_byte_position_restricted (w->last_point[DESIRED_DISP],
+                                       byte_pointm, w->buffer);
 
   first_line = last_line = line;
   while (line <= dla_end)
@@ -6170,15 +6174,26 @@ regenerate_window_incrementally (struct window *w, Charbpos startp,
 static Charbpos
 regenerate_window_point_center (struct window *w, Charbpos point, int type)
 {
+  struct buffer *b = XBUFFER (WINDOW_BUFFER (w));
+  Bytebpos byte_startp, byte_point;
   Charbpos startp;
 
   /* We need to make sure that the modeline is generated so that the
      window height can be calculated correctly. */
   ensure_modeline_generated (w, type);
 
-  startp = start_with_line_at_pixpos (w, point, window_half_pixpos (w));
+  byte_point = charbpos_to_bytebpos (b, point);
+
+  byte_startp
+    = bytebpos_clip_to_bounds (BYTE_BUF_BEGV (b),
+                               start_with_line_at_pixpos
+                               (w, byte_point, window_half_pixpos (w)),
+                               BYTE_BUF_ZV (b));
+
+  startp = bytebpos_to_charbpos (b, byte_startp);
+
   regenerate_window (w, startp, point, type);
-  Fset_marker (w->start[type], make_fixnum (startp), w->buffer);
+  set_marker_byte_position (w->start[type], byte_startp, wrap_buffer (b));
 
   return startp;
 }
@@ -6681,13 +6696,18 @@ regeneration_done:
 
   if (!skip_output)
     {
-      Charbpos start = marker_position (w->start[DESIRED_DISP]);
-      Charbpos end = (w->window_end_pos[DESIRED_DISP] == -1
-		    ? BUF_ZV (b)
-		    : BUF_Z (b) - w->window_end_pos[DESIRED_DISP] - 1);
+      Bytebpos start = marker_byte_position (w->start[DESIRED_DISP]);
+      Bytebpos end = (w->window_end_pos[DESIRED_DISP] == -1
+		    ? BYTE_BUF_ZV (b)
+                      /* This value is a bit of a mess, but that's OK, it's
+                         only used to determine a part of the cache to
+                         update. */
+		    : BYTE_BUF_Z (b) - w->window_end_pos[DESIRED_DISP] - 1);
       /* Don't pollute the cache if not sure if we are correct */
       if (w->start_at_line_beg)
-	update_line_start_cache (w, start, end, pointm, 1);
+	update_line_start_cache
+          (w, start, end, marker_byte_position (w->last_point[DESIRED_DISP]),
+           1);
       redisplay_output_window (w);
       /*
        * If we just displayed the echo area, the line start cache is
@@ -7803,6 +7823,7 @@ update_internal_cache_list (struct window *w, int type)
 {
   int line;
   display_line_dynarr *dla = window_display_lines (w, type);
+  struct buffer *b = XBUFFER (w->buffer);
 
   Dynarr_reset (internal_cache);
   for (line = 0; line < Dynarr_length (dla); line++)
@@ -7814,10 +7835,15 @@ update_internal_cache_list (struct window *w, int type)
       else
 	{
 	  struct line_start_cache lsc;
+          Charbpos end_charpos;
 
-	  lsc.start = dl->charpos;
-	  lsc.end = dl->end_charpos;
+	  lsc.start = charbpos_to_bytebpos (b, dl->offset + dl->charpos);
 	  lsc.height = dl->ascent + dl->descent;
+
+          end_charpos = charbpos_clip_to_bounds (BUF_BEGV (b),
+                                                 dl->offset + dl->end_charpos,
+                                                 BUF_ZV (b));
+          lsc.end = charbpos_to_bytebpos (b, end_charpos);
 
 	  Dynarr_add (internal_cache, lsc);
 	}
@@ -7860,7 +7886,7 @@ validate_line_start_cache (struct window *w)
    window's cache, or -1 if the cache is empty.  Assumes that the
    cache is valid. */
 
-static Charbpos
+static Bytebpos
 line_start_cache_start (struct window *w)
 {
   line_start_cache_dynarr *cache = w->line_start_cache;
@@ -7875,7 +7901,7 @@ line_start_cache_start (struct window *w)
    window's cache, or -1 if the cache is empty.  Assumes that the
    cache is valid. */
 
-static Charbpos
+static Bytebpos
 line_start_cache_end (struct window *w)
 {
   line_start_cache_dynarr *cache = w->line_start_cache;
@@ -7896,7 +7922,7 @@ line_start_cache_end (struct window *w)
    for any reason. */
 
 int
-point_in_line_start_cache (struct window *w, Charbpos point, int min_past)
+point_in_line_start_cache (struct window *w, Bytebpos point, int min_past)
 {
   struct buffer *b = XBUFFER (w->buffer);
   line_start_cache_dynarr *cache = w->line_start_cache;
@@ -7918,15 +7944,16 @@ point_in_line_start_cache (struct window *w, Charbpos point, int min_past)
       int win_char_height = window_char_height (w, 1);
 
       /* Occasionally we get here with a 0 height
-	 window. find_next_newline_no_quit will abort if we pass it a
+	 window. byte_find_next_newline_no_quit will abort if we pass it a
 	 count of 0 so handle that case. */
       if (!win_char_height)
 	win_char_height = 1;
 
       if (!Dynarr_length (cache))
 	{
-	  Charbpos from = find_next_newline_no_quit (b, point, -1);
-	  Charbpos to = find_next_newline_no_quit (b, from, win_char_height);
+	  Bytebpos from = byte_find_next_newline_no_quit (b, point, -1);
+	  Bytebpos to
+            = byte_find_next_newline_no_quit (b, from, (int) win_char_height);
 
 	  update_line_start_cache (w, from, to, point, 0);
 
@@ -7943,13 +7970,13 @@ point_in_line_start_cache (struct window *w, Charbpos point, int min_past)
       while (line_start_cache_start (w) > point
 	     && (loop < cache_adjustment || min_past == -1))
 	{
-	  Charbpos from, to;
+	  Bytebpos from, to;
 
 	  from = line_start_cache_start (w);
-	  if (from <= BUF_BEGV (b))
+	  if (from <= BYTE_BUF_BEGV (b))
 	    break;
 
-	  from = find_next_newline_no_quit (b, from, -win_char_height);
+	  from = byte_find_next_newline_no_quit (b, from, -win_char_height);
 	  to = line_start_cache_end (w);
 
 	  update_line_start_cache (w, from, to, point, 0);
@@ -7958,17 +7985,18 @@ point_in_line_start_cache (struct window *w, Charbpos point, int min_past)
 
       if (line_start_cache_start (w) > point)
 	{
-	  Charbpos from, to;
+	  Bytebpos from, to;
 
-	  from = find_next_newline_no_quit (b, point, -1);
-	  if (from >= BUF_ZV (b))
+	  from = byte_find_next_newline_no_quit (b, point, -1);
+	  if (from >= BYTE_BUF_ZV (b))
 	    {
-	      to = find_next_newline_no_quit (b, from, -win_char_height);
+	      to =
+                byte_find_next_newline_no_quit (b, from, -win_char_height);
 	      from = to;
-	      to = BUF_ZV (b);
+	      to = BYTE_BUF_ZV (b);
 	    }
 	  else
-	    to = find_next_newline_no_quit (b, from, win_char_height);
+	    to = byte_find_next_newline_no_quit (b, from, win_char_height);
 
 	  update_line_start_cache (w, from, to, point, 0);
 	}
@@ -7977,14 +8005,13 @@ point_in_line_start_cache (struct window *w, Charbpos point, int min_past)
       while (line_start_cache_end (w) < point
 	     && (loop < cache_adjustment || min_past == -1))
 	{
-	  Charbpos from, to;
-
-	  to = line_start_cache_end (w);
-	  if (to >= BUF_ZV (b))
-	    break;
+	  Bytebpos from, to;
 
 	  from = line_start_cache_end (w);
-	  to = find_next_newline_no_quit (b, from, win_char_height);
+	  if (from >= BYTE_BUF_ZV (b))
+	    break;
+
+	  to = byte_find_next_newline_no_quit (b, from, win_char_height);
 
 	  update_line_start_cache (w, from, to, point, 0);
 	  loop++;
@@ -7992,17 +8019,17 @@ point_in_line_start_cache (struct window *w, Charbpos point, int min_past)
 
       if (line_start_cache_end (w) < point)
 	{
-	  Charbpos from, to;
+	  Bytebpos from, to;
 
-	  from = find_next_newline_no_quit (b, point, -1);
-	  if (from >= BUF_ZV (b))
+	  from = byte_find_next_newline_no_quit (b, point, -1);
+	  if (from >= BYTE_BUF_ZV (b))
 	    {
-	      to = find_next_newline_no_quit (b, from, -win_char_height);
+	      to = byte_find_next_newline_no_quit (b, from, -win_char_height);
 	      from = to;
-	      to = BUF_ZV (b);
+	      to = BYTE_BUF_ZV (b);
 	    }
 	  else
-	    to = find_next_newline_no_quit (b, from, win_char_height);
+	    to = byte_find_next_newline_no_quit (b, from, win_char_height);
 
 	  update_line_start_cache (w, from, to, point, 0);
 	}
@@ -8029,7 +8056,7 @@ find_point_loop:
   while (1)
     {
       int new_pos;
-      Charbpos start, end;
+      Bytebpos start, end;
 
       pos = (bottom + top + 1) >> 1;
       start = Dynarr_atp (cache, pos)->start;
@@ -8039,10 +8066,10 @@ find_point_loop:
 	{
 	  if (pos < min_past && line_start_cache_start (w) > BUF_BEGV (b))
 	    {
-	      Charbpos from =
-		find_next_newline_no_quit (b, line_start_cache_start (w),
-					   -min_past - 1);
-	      Charbpos to = line_start_cache_end (w);
+	      Bytebpos from =
+		byte_find_next_newline_no_quit (b, line_start_cache_start (w),
+                                                -min_past - 1);
+	      Bytebpos to = line_start_cache_end (w);
 
 	      update_line_start_cache (w, from, to, point, 0);
 	      goto find_point_loop;
@@ -8050,11 +8077,11 @@ find_point_loop:
 	  else if ((Dynarr_length (cache) - pos - 1) < min_past
 		   && line_start_cache_end (w) < BUF_ZV (b))
 	    {
-	      Charbpos from = line_start_cache_end (w);
-	      Charbpos to = find_next_newline_no_quit (b, from,
-						     (min_past
-						      ? min_past
-						      : 1));
+	      Bytebpos from = line_start_cache_end (w);
+	      Bytebpos to = byte_find_next_newline_no_quit (b, from,
+                                                            (min_past
+                                                             ? min_past
+                                                             : 1));
 
 	      update_line_start_cache (w, from, to, point, 0);
 	      goto find_point_loop;
@@ -8093,7 +8120,6 @@ point_would_be_visible (struct window *w, Bytebpos byte_startp,
   int pixpos = -WINDOW_TEXT_TOP_CLIP (w);
   int bottom = WINDOW_TEXT_HEIGHT (w);
   int start_elt;
-  Charbpos startp, point = -1;
 
   /* If point is before the intended start it obviously can't be visible. */
   if (byte_point < byte_startp)
@@ -8108,16 +8134,15 @@ point_would_be_visible (struct window *w, Bytebpos byte_startp,
   validate_line_start_cache (w);
   w->line_cache_validation_override++;
 
-  startp = bytebpos_to_charbpos (b, byte_startp);
-  start_elt = point_in_line_start_cache (w, startp, 0);
+  start_elt = point_in_line_start_cache (w, byte_startp, 0);
   if (start_elt == -1)
     {
       w->line_cache_validation_override--;
       return 0;
     }
 
-  assert (line_start_cache_start (w) <= startp
-	  && line_start_cache_end (w) >= startp);
+  assert (line_start_cache_start (w) <= byte_startp
+	  && line_start_cache_end (w) >= byte_startp);
 
   while (1)
     {
@@ -8126,7 +8151,7 @@ point_would_be_visible (struct window *w, Bytebpos byte_startp,
       /* Expand the cache if necessary. */
       if (start_elt == Dynarr_length (w->line_start_cache))
 	{
-	  Charbpos old_startp =
+	  Bytebpos old_startp =
 	    Dynarr_atp (w->line_start_cache, start_elt - 1)->start;
 
 	  start_elt = point_in_line_start_cache (w, old_startp,
@@ -8157,12 +8182,7 @@ point_would_be_visible (struct window *w, Bytebpos byte_startp,
 
       pixpos += height;
 
-      if (point < 0)
-        {
-          point = bytebpos_to_charbpos (b, byte_point);
-        }
-
-      if (point <= Dynarr_atp (w->line_start_cache, start_elt)->end)
+      if (byte_point <= Dynarr_atp (w->line_start_cache, start_elt)->end)
 	{
 	  w->line_cache_validation_override--;
 	  return 1;
@@ -8186,29 +8206,31 @@ point_would_be_visible (struct window *w, Bytebpos byte_startp,
    #### With a little work this could probably be reworked as just a
    call to start_with_line_at_pixpos. */
 
-static Charbpos
-start_end_of_last_line (struct window *w, Charbpos startp, int end,
+static Bytebpos
+start_end_of_last_line (struct window *w, Bytebpos startp, int end,
 			int may_error)
 {
   struct buffer *b = XBUFFER (w->buffer);
   line_start_cache_dynarr *cache = w->line_start_cache;
   int pixpos = 0;
   int bottom = WINDOW_TEXT_HEIGHT (w);
-  Charbpos cur_start;
+  Bytebpos cur_start;
   int start_elt;
 
   validate_line_start_cache (w);
   w->line_cache_validation_override++;
 
-  if (startp < BUF_BEGV (b))
-    startp = BUF_BEGV (b);
-  else if (startp > BUF_ZV (b))
-    startp = BUF_ZV (b);
+  if (startp < BYTE_BUF_BEGV (b))
+    startp = BYTE_BUF_BEGV (b);
+  else if (startp > BYTE_BUF_ZV (b))
+    startp = BYTE_BUF_ZV (b);
   cur_start = startp;
 
   start_elt = point_in_line_start_cache (w, cur_start, 0);
   if (start_elt == -1)
+    {
       return may_error ? 0 : startp;
+    }
 
   while (1)
     {
@@ -8226,9 +8248,9 @@ start_end_of_last_line (struct window *w, Charbpos startp, int end,
 	    {
 	      w->line_cache_validation_override--;
 	      if (end)
-		return BUF_ZV (b);
+		return BYTE_BUF_ZV (b);
 	      else
-		return BUF_BEGV (b);
+		return BYTE_BUF_BEGV (b);
 	    }
 	  else
 	    {
@@ -8244,21 +8266,21 @@ start_end_of_last_line (struct window *w, Charbpos startp, int end,
       start_elt++;
       if (start_elt == Dynarr_length (cache))
 	{
-	  Charbpos from = line_start_cache_end (w);
+	  Bytebpos from = line_start_cache_end (w);
 	  int win_char_height = window_char_height (w, 0);
-	  Charbpos to = find_next_newline_no_quit (b, from,
-						 (win_char_height
-						  ? win_char_height
-						  : 1));
+	  Bytebpos to = byte_find_next_newline_no_quit (b, from,
+                                                        (win_char_height
+                                                         ? win_char_height
+                                                         : 1));
 
 	  /* We've hit the end of the bottom so that's what it is. */
-	  if (from >= BUF_ZV (b))
+	  if (from >= BYTE_BUF_ZV (b))
 	    {
 	      w->line_cache_validation_override--;
-	      return BUF_ZV (b);
+	      return BYTE_BUF_ZV (b);
 	    }
 
-	  update_line_start_cache (w, from, to, BUF_PT (b), 0);
+	  update_line_start_cache (w, from, to, BYTE_BUF_PT (b), 0);
 
 	  /* Updating the cache invalidates any current indexes. */
 	  start_elt = point_in_line_start_cache (w, cur_start, -1) + 1;
@@ -8269,8 +8291,8 @@ start_end_of_last_line (struct window *w, Charbpos startp, int end,
 /* For the given window W, if display starts at STARTP, what will be
    the buffer position at the beginning of the last line displayed. */
 
-Charbpos
-start_of_last_line (struct window *w, Charbpos startp)
+Bytebpos
+start_of_last_line (struct window *w, Bytebpos startp)
 {
   return start_end_of_last_line (w, startp, 0 , 0);
 }
@@ -8279,14 +8301,14 @@ start_of_last_line (struct window *w, Charbpos startp)
    the buffer position at the end of the last line displayed.  This is
    also know as the window end position. */
 
-Charbpos
-end_of_last_line (struct window *w, Charbpos startp)
+Bytebpos
+end_of_last_line (struct window *w, Bytebpos startp)
 {
   return start_end_of_last_line (w, startp, 1, 0);
 }
 
-static Charbpos
-end_of_last_line_may_error (struct window *w, Charbpos startp)
+static Bytebpos
+end_of_last_line_may_error (struct window *w, Bytebpos startp)
 {
   return start_end_of_last_line (w, startp, 1, 1);
 }
@@ -8295,12 +8317,12 @@ end_of_last_line_may_error (struct window *w, Charbpos startp)
 /* For window W, what does the starting position have to be so that
    the line containing POINT will cover pixel position PIXPOS. */
 
-Charbpos
-start_with_line_at_pixpos (struct window *w, Charbpos point, int pixpos)
+Bytebpos
+start_with_line_at_pixpos (struct window *w, Bytebpos point, int pixpos)
 {
   struct buffer *b = XBUFFER (w->buffer);
   int cur_elt;
-  Charbpos cur_pos, prev_pos = point;
+  Bytebpos cur_pos, prev_pos = point;
   int point_line_height;
   int pixheight = pixpos - WINDOW_TEXT_TOP (w);
 
@@ -8334,28 +8356,31 @@ start_with_line_at_pixpos (struct window *w, Charbpos point, int pixpos)
           if (-pixheight > point_line_height)
             /* We can't make the target line cover pixpos, so put it
                above pixpos.  That way it will at least be visible. */
-            return (prev_pos <= BUF_BEGV (b)) ? BUF_BEGV (b) : prev_pos;
+            return (prev_pos <= BYTE_BUF_BEGV (b)) ?
+              BYTE_BUF_BEGV (b) : prev_pos;
           else
-            return (cur_pos <= BUF_BEGV (b)) ? BUF_BEGV (b) : cur_pos;
+            return (cur_pos <= BYTE_BUF_BEGV (b)) ?
+              BYTE_BUF_BEGV (b) : cur_pos;
 	}
 
       cur_elt--;
       while (cur_elt < 0)
 	{
-	  Charbpos from, to;
+	  Bytebpos from, to;
 	  int win_char_height;
 
-	  if (cur_pos <= BUF_BEGV (b))
+	  if (cur_pos <= BYTE_BUF_BEGV (b))
 	    {
 	      w->line_cache_validation_override--;
-	      return BUF_BEGV (b);
+	      return BYTE_BUF_BEGV (b);
 	    }
 
 	  win_char_height = window_char_height (w, 0);
 	  if (!win_char_height)
 	    win_char_height = 1;
 
-	  from = find_next_newline_no_quit (b, cur_pos, -win_char_height);
+	  from
+            = byte_find_next_newline_no_quit (b, cur_pos, -win_char_height);
 	  to = line_start_cache_end (w);
 	  update_line_start_cache (w, from, to, point, 0);
 
@@ -8386,8 +8411,8 @@ start_with_line_at_pixpos (struct window *w, Charbpos point, int pixpos)
    considered to be the number of lines from the bottom (-1 is the
    bottom line). */
 
-Charbpos
-start_with_point_on_display_line (struct window *w, Charbpos point, int line)
+Bytebpos
+start_with_point_on_display_line (struct window *w, Bytebpos point, int line)
 {
   validate_line_start_cache (w);
   w->line_cache_validation_override++;
@@ -8412,7 +8437,7 @@ start_with_point_on_display_line (struct window *w, Charbpos point, int line)
       int new_line = -line - 1;
       int cur_elt = point_in_line_start_cache (w, point, new_line);
       int pixpos = WINDOW_TEXT_BOTTOM (w);
-      Charbpos retval, search_point;
+      Bytebpos retval, search_point;
 
       /* If scroll_on_clipped_lines is false, the last "visible" line of
 	 the window covers the pixel at WINDOW_TEXT_BOTTOM (w) - 1.
@@ -8469,20 +8494,21 @@ start_with_point_on_display_line (struct window *w, Charbpos point, int line)
    overhead for too little gain. */
 
 static void
-update_line_start_cache (struct window *w, Charbpos from, Charbpos to,
-			 Charbpos point, int no_regen)
+update_line_start_cache (struct window *w, Bytebpos from, Bytebpos to,
+			 Bytebpos point, Boolint no_regen)
 {
   struct buffer *b = XBUFFER (w->buffer);
   line_start_cache_dynarr *cache = w->line_start_cache;
-  Charbpos low_bound, high_bound;
+  Bytebpos low_bound, high_bound;
+  Charbpos char_point = -1;
 
   validate_line_start_cache (w);
   w->line_cache_validation_override++;
 
-  if (from < BUF_BEGV (b))
-    from = BUF_BEGV (b);
-  if (to > BUF_ZV (b))
-    to = BUF_ZV (b);
+  if (from < BYTE_BUF_BEGV (b))
+    from = BYTE_BUF_BEGV (b);
+  if (to > BYTE_BUF_ZV (b))
+    to = BYTE_BUF_ZV (b);
 
   if (from > to)
     {
@@ -8521,7 +8547,7 @@ update_line_start_cache (struct window *w, Charbpos from, Charbpos to,
      to follow what's going on by having it separate. */
   if (no_regen)
     {
-      Charbpos start, end;
+      Bytebpos start, end;
 
       update_internal_cache_list (w, DESIRED_DISP);
       if (!Dynarr_length (internal_cache))
@@ -8621,16 +8647,22 @@ update_line_start_cache (struct window *w, Charbpos from, Charbpos to,
 
   if (!Dynarr_length (cache) || from < low_bound)
     {
-      Charbpos startp = find_next_newline_no_quit (b, from, -1);
+      Bytebpos startp = byte_find_next_newline_no_quit (b, from, -1);
       int marker = 0;
       int old_lb = low_bound;
 
       while (startp < old_lb || low_bound == -1)
 	{
 	  int ic_elt;
-	  Charbpos new_startp;
+	  Bytebpos new_startp;
+          Charbpos char_startp = bytebpos_to_charbpos (b, startp);
 
-	  regenerate_window (w, startp, point, CMOTION_DISP);
+          if (char_point < 0)
+            {
+              char_point = bytebpos_to_charbpos (b, point);
+            }
+
+	  regenerate_window (w, char_startp, char_point, CMOTION_DISP);
 	  update_internal_cache_list (w, CMOTION_DISP);
 
 	  /* If this assert is triggered then regenerate_window failed
@@ -8680,7 +8712,7 @@ update_line_start_cache (struct window *w, Charbpos from, Charbpos to,
 	  if (startp < low_bound || low_bound == -1)
 	    low_bound = startp;
 	  startp = new_startp;
-	  if (startp > BUF_ZV (b))
+	  if (startp > BYTE_BUF_ZV (b))
 	    {
 	      w->line_cache_validation_override--;
 	      return;
@@ -8697,11 +8729,18 @@ update_line_start_cache (struct window *w, Charbpos from, Charbpos to,
 
   if (to > high_bound)
     {
-      Charbpos startp = Dynarr_lastp (cache)->end + 1;
+      Bytebpos startp = Dynarr_lastp (cache)->end + 1;
 
       do
 	{
-	  regenerate_window (w, startp, point, CMOTION_DISP);
+          Charbpos char_startp = bytebpos_to_charbpos (b, startp);
+
+          if (char_point < 0)
+            {
+              char_point = bytebpos_to_charbpos (b, point);
+            }
+
+	  regenerate_window (w, char_startp, char_point, CMOTION_DISP);
 	  update_internal_cache_list (w, CMOTION_DISP);
 
 	  /* See comment above about regenerate_window failing. */
@@ -9434,7 +9473,7 @@ pixel_to_glyph_translation (struct frame *f, int x_coord, int y_coord,
     *closest = 0;
   else
     *closest = end_of_last_line_may_error (*w,
-				 marker_position ((*w)->start[CURRENT_DISP]));
+                                           marker_byte_position ((*w)->start[CURRENT_DISP]));
   *col = 0;
   UPDATE_CACHE_RETURN;
 }

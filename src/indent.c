@@ -597,15 +597,15 @@ vpix_motion (line_start_cache_dynarr *cache, int start, int end)
  vmotion_1
 
  Given a starting position ORIG, move point VTARGET lines in WINDOW.
- Returns the new value for point.  If the arg ret_vpos is not nil, it is
- taken to be a pointer to an int and the number of lines actually moved is
- returned in it.  If the arg ret_vpix is not nil, it is taken to be a
+ Returns the new value for point.  If the arg ret_vpos is not NULL, it is
+ taken to be a pointer to a Charcount and the number of lines actually moved is
+ returned in it.  If the arg ret_vpix is not NULL, it is taken to be a
  pointer to an int and the vertical pixel height of the motion which
  took place is returned in it.
  ****************************************************************************/
-static Charbpos
-vmotion_1 (struct window *w, Charbpos orig, int vtarget,
-           int *ret_vpos, int *ret_vpix)
+static Bytebpos
+vmotion_1 (struct window *w, Bytebpos orig, Charcount vtarget,
+           Charcount *ret_vpos, int *ret_vpix)
 {
   struct buffer *b = XBUFFER (w->buffer);
   int elt;
@@ -624,7 +624,7 @@ vmotion_1 (struct window *w, Charbpos orig, int vtarget,
   if (vtarget > 0)
     {
       int cur_line = Dynarr_length (w->line_start_cache) - 1 - elt;
-      Charbpos ret_pt;
+      Bytebpos ret_pt;
 
       if (cur_line > vtarget)
 	cur_line = vtarget;
@@ -632,11 +632,11 @@ vmotion_1 (struct window *w, Charbpos orig, int vtarget,
       /* The traditional FSF behavior is to return the end of buffer
          position if we couldn't move far enough because we hit it.  */
       if (cur_line < vtarget)
-	ret_pt = BUF_ZV (b);
+	ret_pt = BYTE_BUF_ZV (b);
       else
 	ret_pt = Dynarr_atp (w->line_start_cache, cur_line + elt)->start;
 
-      while (ret_pt > BUF_ZV (b) && cur_line > 0)
+      while (ret_pt > BYTE_BUF_ZV (b) && cur_line > 0)
 	{
 	  cur_line--;
 	  ret_pt = Dynarr_atp (w->line_start_cache, cur_line + elt)->start;
@@ -654,7 +654,7 @@ vmotion_1 (struct window *w, Charbpos orig, int vtarget,
 	  if (ret_vpos) *ret_vpos = -elt;
           if (ret_vpix)
             *ret_vpix = vpix_motion (w->line_start_cache, 0, elt);
-	  /* #### This should be BUF_BEGV (b), right? */
+	  /* #### This should be BYTE_BUF_BEGV (b), right? */
 	  return Dynarr_begin (w->line_start_cache)->start;
 	}
       else
@@ -683,54 +683,62 @@ vmotion_1 (struct window *w, Charbpos orig, int vtarget,
  vmotion
 
  Given a starting position ORIG, move point VTARGET lines in WINDOW.
- Returns the new value for point.  If the arg ret_vpos is not nil, it is
- taken to be a pointer to an int and the number of lines actually moved is
- returned in it.
+ Returns the new value for point.  If the arg ret_vpos is not NULL, it is
+ taken to be a pointer to a Charcount and the number of lines actually moved
+ is returned in it.
  ****************************************************************************/
-Charbpos
-vmotion (struct window *w, Charbpos orig, int vtarget, int *ret_vpos)
+Bytebpos
+vmotion (struct window *w, Bytebpos orig, Charcount vtarget,
+         Charcount *ret_vpos)
 {
   return vmotion_1 (w, orig, vtarget, ret_vpos, NULL);
 }
 
-/* Helper for Fvertical_motion.
- */
-static
-Lisp_Object vertical_motion_1 (Lisp_Object lines, Lisp_Object window,
-                               int pixels)
+/* Helper for Fvertical_motion. */
+static Lisp_Object
+vertical_motion_1 (Lisp_Object lines, Lisp_Object window,
+                   Boolint pixels)
 {
-  Charbpos charbpos;
-  Charbpos orig;
-  Boolint selected;
-  int *vpos, *vpix;
-  int value=0;
+  Bytebpos bpos, orig;
+  Boolint selected = 0;
+  Charcount *vpos;
+  int *vpix;
+  Charcount value = 0;
+  int pixvalue = 0;
   struct window *w;
 
   if (NILP (window))
-    window = Fselected_window (Qnil);
+    {
+      window = Fselected_window (Qnil);
+      selected = 1;
+    }
 
   CHECK_LIVE_WINDOW (window);
   CHECK_FIXNUM (lines);
 
-  selected = (EQ (window, Fselected_window (Qnil)));
+  selected = selected || EQ (window, Fselected_window (Qnil));
 
   w = XWINDOW (window);
 
-  orig = selected ? BUF_PT (XBUFFER (w->buffer))
-                  : marker_position (w->pointm[CURRENT_DISP]);
+  orig = selected ? BYTE_BUF_PT (XBUFFER (w->buffer))
+                  : marker_byte_position (w->pointm[CURRENT_DISP]);
 
   vpos = pixels ? NULL   : &value;
-  vpix = pixels ? &value : NULL;
+  vpix = pixels ? &pixvalue : NULL;
 
-  charbpos = vmotion_1 (w, orig, XFIXNUM (lines), vpos, vpix);
+  bpos = vmotion_1 (w, orig, XFIXNUM (lines), vpos, vpix);
 
   /* Note that the buffer's point is set, not the window's point. */
   if (selected)
-    BUF_SET_PT (XBUFFER (w->buffer), charbpos);
+    BYTE_BUF_SET_PT (XBUFFER (w->buffer), bpos);
   else
-    set_marker_restricted (w->pointm[CURRENT_DISP],
-			   make_fixnum(charbpos),
-			   w->buffer);
+    set_marker_byte_position_restricted (w->pointm[CURRENT_DISP],
+                                         bpos, w->buffer);
+
+  if (pixels)
+    {
+      return make_fixnum (pixvalue);
+    }
 
   return make_fixnum (value);
 }
@@ -770,12 +778,12 @@ the current buffer if it wasn't already.
  * HOW specifies the stopping condition.  Positive means move at least
  * PIXELS.  Negative means at most.  Zero means as close as possible.
  */
-Charbpos
-vmotion_pixels (Lisp_Object window, Charbpos start, int pixels, int how,
+Bytebpos
+vmotion_pixels (Lisp_Object window, Bytebpos start, int pixels, int how,
                 int *motion)
 {
   struct window *w;
-  Charbpos eobuf, bobuf;
+  Bytebpos eobuf, bobuf;
   int defheight;
   int needed;
   int line, next;
@@ -792,8 +800,8 @@ vmotion_pixels (Lisp_Object window, Charbpos start, int pixels, int how,
   CHECK_LIVE_WINDOW (window);
   w = XWINDOW (window);
 
-  eobuf = BUF_ZV (XBUFFER (w->buffer));
-  bobuf = BUF_BEGV (XBUFFER (w->buffer));
+  eobuf = BYTE_BUF_ZV (XBUFFER (w->buffer));
+  bobuf = BYTE_BUF_BEGV (XBUFFER (w->buffer));
 
   default_face_width_and_height (window, NULL, &defheight);
 
@@ -882,8 +890,7 @@ that the motion should be as close as possible to PIXELS.
 */
        (pixels, window, how))
 {
-  Charbpos charbpos;
-  Charbpos orig;
+  Bytebpos bpos, orig;
   Boolint selected;
   int motion;
   int howto = 0;
@@ -899,8 +906,8 @@ that the motion should be as close as possible to PIXELS.
 
   w = XWINDOW (window);
 
-  orig = selected ? BUF_PT (XBUFFER (w->buffer))
-                  : marker_position (w->pointm[CURRENT_DISP]);
+  orig = selected ? BYTE_BUF_PT (XBUFFER (w->buffer))
+                  : marker_byte_position (w->pointm[CURRENT_DISP]);
 
   if (INTEGERP (how))
     {
@@ -916,14 +923,12 @@ that the motion should be as close as possible to PIXELS.
 #endif
     }
 
-  charbpos = vmotion_pixels (window, orig, XFIXNUM (pixels), howto, &motion);
+  bpos = vmotion_pixels (window, orig, XFIXNUM (pixels), howto, &motion);
 
   if (selected)
-    BUF_SET_PT (XBUFFER (w->buffer), charbpos);
+    BYTE_BUF_SET_PT (XBUFFER (w->buffer), bpos);
   else
-    set_marker_restricted (w->pointm[CURRENT_DISP],
-			   make_fixnum(charbpos),
-			   w->buffer);
+    set_window_point (w->pointm[CURRENT_DISP], bpos);
 
   return make_fixnum (motion);
 }

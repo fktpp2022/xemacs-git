@@ -48,7 +48,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 typedef struct line_start_cache line_start_cache;
 struct line_start_cache
 {
-  Charbpos start, end;
+  Bytebpos start, end;
   int height;
 };
 
@@ -761,11 +761,11 @@ int point_in_line_start_cache (struct window *w, Charbpos point,
 			       int min_past);
 Boolint point_would_be_visible (struct window *w, Bytebpos startp,
                                 Bytebpos point, Boolint partially);
-Charbpos start_of_last_line (struct window *w, Charbpos startp);
-Charbpos end_of_last_line (struct window *w, Charbpos startp);
-Charbpos start_with_line_at_pixpos (struct window *w, Charbpos point,
+Bytebpos start_of_last_line (struct window *w, Bytebpos startp);
+Bytebpos end_of_last_line (struct window *w, Bytebpos startp);
+Bytebpos start_with_line_at_pixpos (struct window *w, Bytebpos point,
 				    int pixpos);
-Charbpos start_with_point_on_display_line (struct window *w, Charbpos point,
+Bytebpos start_with_point_on_display_line (struct window *w, Bytebpos point,
 					   int line);
 int redisplay_variable_changed (Lisp_Object sym, Lisp_Object *val,
 				Lisp_Object in_object, int flags);

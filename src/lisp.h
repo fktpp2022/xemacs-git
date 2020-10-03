@@ -5694,8 +5694,8 @@ Charcount column_at_point (struct buffer *, Bytebpos, Charcount);
 Charcount string_column_at_point (Lisp_Object, Bytecount, Charcount);
 Charcount current_column (struct buffer *);
 void invalidate_current_column (void);
-Charbpos vmotion (struct window *, Charbpos, int, int *);
-Charbpos vmotion_pixels (Lisp_Object, Charbpos, int, int, int *);
+Bytebpos vmotion (struct window *, Bytebpos, Charcount, Charcount *);
+Bytebpos vmotion_pixels (Lisp_Object, Bytebpos, int, int, int *);
 
 /* Defined in insdel.c */
 void set_buffer_point (struct buffer *buf, Charbpos pos, Bytebpos bipos);

@@ -48,6 +48,109 @@
 
 2020-10-02  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Use Bytebpos values in the line start cache, not Charbpos, making
+	scrolling cheaper and bringing us a step closer to eliminating
+	significant byte-char conversion in redisplay.
+
+	* indent.c:
+	* indent.c (vmotion_1):
+	As well as taking ORIG as a Bytebpos value and returning a
+	Bytebpos value, take VTARGET and RET_VPOS as Charcount and pointer
+	to Charcount values respectively, since they are line numbers.
+
+	* indent.c (vmotion):
+	Update this to return a Bytebpos, to take ORIG as a Bytebpos, and
+	to take VTARGET as a Charcount and RET_VPOS as a Charcount *.
+
+	* indent.c (vertical_motion_1):
+	Make PIXELS into a Boolint in this function's arguments; implement
+	it dealing with buffer byte positions rather than character
+	positions.
+	Use PIXVALUE if returning pixels, VALUE if returning line numbers.
+
+	* indent.c (vmotion_pixels):
+	Change this to deal with byte buffer positions, not characters.
+
+	* indent.c (Fvertical_motion_pixels):
+	Ditto.
+
+	* lisp.h:
+	Update the declarations for vmotion(), vmotion_pixels() to reflect
+	that the line start cache operates in Bytebpos values.
+	
+	* redisplay.c:
+	Revise the declaration of update_line_start_cache() here.
+	* redisplay.c (generate_display_line):
+	Adjust the calculation of dl->end_charpos here to take dl->offset
+	into account. 
+	* redisplay.c (create_text_block):
+	* redisplay.c (create_string_text_block):
+	* redisplay.c (generate_string_display_line):
+	* redisplay.c (regenerate_window_extents_only_changed):
+	Use set_marker_byte_position_restricted() in this function.
+	* redisplay.c (regenerate_window_point_center):
+	Update this to use the Bytebpos-oriented
+	start_with_line_at_pixpos() function.
+	* redisplay.c (redisplay_window):
+	Update the line start cache using the relevant byte, not
+	character, positions.
+	* redisplay.c (update_internal_cache_list):
+	Add Bytebpos-oriented line start cache entries here.
+	* redisplay.c (line_start_cache_start):
+	Update this to return a Bytebpos, not a Charbpos.
+	* redisplay.c (line_start_cache_end):
+	Ditto.
+	* redisplay.c (point_in_line_start_cache):
+	Update this to take POINT as a Bytebpos.
+	* redisplay.c (start_end_of_last_line):
+	Update this to use byte_find_next_newline_no_quit(), rather than
+	its more expensive, character-oriented equivalent.
+	* redisplay.c (start_of_last_line):
+	* redisplay.c (end_of_last_line):
+	* redisplay.c (end_of_last_line_may_error):
+	Take Bytebpos STARTP arguments in this three functions, return a
+	Bytebpos in all three.
+	* redisplay.c (point_would_be_visible):
+	Take byte oriented STARTP and POINT arguments, take PARTIALLY as a
+	Boolint, return a Boolint.
+	* redisplay.c (start_with_point_on_display_line):
+	Revise to take POINT as a Bytebpos and to return a Bytebpos.
+	* redisplay.c (start_with_line_at_pixpos):
+	Ditto.
+	* redisplay.c (update_line_start_cache):
+	Revise this to take FROM and TO as Bytebpos rather than Charbpos
+	values.
+	* redisplay.c (pixel_to_glyph_translation):
+	Revise call to end_of_last_line_may_error() to use a marker byte
+	position.
+	* redisplay.h (struct line_start_cache):
+	Revise this to use Bytebpos START, END values.
+	* redisplay.h:
+	Revise declarations of start_of_last_line(), end_of_last_line(),
+	start_with_line_at_pixpos(), start_with_point_on_display_line() to
+	use Bytebpos STARTP and POINT values.
+	* window.c (Fwindow_end):
+	Revise this to reflect that end_of_last_line() now takes a
+	Bytebpos STARTP argument.
+	* window.c (set_window_point):
+	Use set_marker_byte_position_restricted() here rather than
+	re-implementing it. 
+	* window.c (Fdelete_other_windows):
+	Call start_with_line_at_pixpos() with its new calling convention.
+	* window.c (Fset_window_buffer):
+	Call set_marker_byte_position_restricted() here, rather than
+	re-implementing it.
+	* window.c (window_scroll):
+	Call vmotion() with its new calling convention. 
+	* window.c (Fcenter_to_window_line):
+	Call start_with_point_on_display_line(),
+	start_with_line_at_pixpos() with their new calling conventions.
+	* window.c (Fmove_to_window_line):
+	Revise to take the new calling convention for vmotion() into
+	account.
+
+2020-10-02  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* marker.c (set_marker_byte_position_restricted): New.
 	Like set_marker_restricted(), but take a byte rather than a
 	character position. Perform error checking analagous to
