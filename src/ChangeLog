@@ -46,6 +46,14 @@
 	Add an entry for N or M too beg in \{n,m\} in the reg_errcode_t
 	enum.
 
+2020-10-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* marker.c (set_marker_byte_position_restricted): New.
+	Like set_marker_restricted(), but take a byte rather than a
+	character position. Perform error checking analagous to
+	set_marker_byte_position() when ERROR_CHECK_STRUCTURES is defined.
+	* lisp.h: Declare it.
+
 2020-08-01  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Add set_window_point, which is like Fset_window_point() but

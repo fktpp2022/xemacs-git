@@ -375,6 +375,38 @@ set_marker_byte_position (Lisp_Object marker, Bytebpos byteno,
   return set_marker_internal (marker, byteno, XBUFFER (buffer), 0);
 }
 
+
+/* Set the byte position of MARKER, a marker object, to BYTENO in BUFFER. If
+   BYTENO is outside BUFFER's visible region, constrain it
+   appropriately. MARKER must be a marker object, BUFFER must be a valid
+   buffer, and MARKER may not be BUFFER's point marker. */
+Lisp_Object
+set_marker_byte_position_restricted (Lisp_Object marker, Bytebpos byteno,
+                                     Lisp_Object buffer)
+{
+  struct buffer *b = XBUFFER (buffer);
+
+  byteno = bytebpos_clip_to_bounds (BYTE_BUF_BEGV (b), byteno,
+                                    BYTE_BUF_ZV (b));
+
+#ifdef ERROR_CHECK_STRUCTURES
+  {
+    Boolint point_p = 0;
+    Bytebpos old_byteno = byteno;
+
+    /* For the type, range checking. */
+    byteno = fixup_set_marker_args (marker, Qnil, byteno, buffer, 0, &b,
+                                    &point_p);
+
+    structure_checking_assert (!point_p);
+    structure_checking_assert (byteno == old_byteno);
+    structure_checking_assert (b == XBUFFER (buffer));
+  }
+#endif
+
+  return set_marker_internal (marker, byteno, b, 0);
+}
+
 DEFUN ("set-marker", Fset_marker, 2, 3, 0, /*
 Move MARKER to position POSITION in BUFFER.
 POSITION can be a marker, an integer or nil.  If POSITION is an

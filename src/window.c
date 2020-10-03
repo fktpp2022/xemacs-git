@@ -1963,8 +1963,8 @@ set_window_point (Lisp_Object window, Bytebpos bpos)
 #ifdef ERROR_CHECK_ANY
   struct buffer *b = XBUFFER (w->buffer);
 
-  assert (!(EQ (wrap_window (w), Fselected_window (Qnil))
-            && EQ (buffer, Fcurrent_buffer ())));
+  assert (!(b == current_buffer &&
+            EQ (wrap_window (w), Fselected_window (Qnil))));
 #endif
   
   bpos = bytebpos_clip_to_bounds (BYTE_BUF_BEGV (b), bpos, BYTE_BUF_ZV (b));

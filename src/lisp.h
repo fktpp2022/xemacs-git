@@ -5800,6 +5800,14 @@ Bytebpos marker_byte_position (Lisp_Object);
    if out of range, so callers need to check values themselves. */
 Lisp_Object set_marker_byte_position (Lisp_Object marker, Bytebpos byteno,
                                       Lisp_Object buffer);
+
+/* Like set_marker_byte_position, but if BYTENO is outside of the visible
+   region for BUFFER, restrict it as does set_marker_restricted(). Values for
+   MARKER and BUFFER are checked if ERROR_CHECK_STRUCTURES is defined, and
+   cause an assertion failure if ill-formed. */
+Lisp_Object set_marker_byte_position_restricted (Lisp_Object marker,
+                                                 Bytebpos byteno,
+                                                 Lisp_Object buffer);
 /* No set_marker_position (); use Fset_marker (). */
 
 void unchain_marker (Lisp_Object);
