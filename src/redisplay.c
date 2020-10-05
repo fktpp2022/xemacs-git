@@ -8064,7 +8064,8 @@ find_point_loop:
 
       if (point >= start && point <= end)
 	{
-	  if (pos < min_past && line_start_cache_start (w) > BUF_BEGV (b))
+	  if (pos < min_past
+              && line_start_cache_start (w) > BYTE_BUF_BEGV (b))
 	    {
 	      Bytebpos from =
 		byte_find_next_newline_no_quit (b, line_start_cache_start (w),
@@ -8075,7 +8076,7 @@ find_point_loop:
 	      goto find_point_loop;
 	    }
 	  else if ((Dynarr_length (cache) - pos - 1) < min_past
-		   && line_start_cache_end (w) < BUF_ZV (b))
+		   && line_start_cache_end (w) < BYTE_BUF_ZV (b))
 	    {
 	      Bytebpos from = line_start_cache_end (w);
 	      Bytebpos to = byte_find_next_newline_no_quit (b, from,

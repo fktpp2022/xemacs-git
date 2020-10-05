@@ -1,3 +1,11 @@
+2020-10-05  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* redisplay.c (point_in_line_start_cache):
+	Update this to compare line_start_cache_start() against
+	BYTE_BUF_BEGV() (rather than BUF_BEGV()), similarly for
+	line_start_cache_end() and BYTE_BUF_ZV(). Obviously correct, and
+	fixes a performance issue for me.
+
 2020-10-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* window.c (set_window_point):
