@@ -1,3 +1,12 @@
+2020-10-13  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* redisplay.c (redisplay_window):
+	Correct some byte-char confusion in this, vmotion() takes a Bytebpos.
+	* scrollbar.c (Fscrollbar_page_up):
+	Correct some byte-char confusion in this, just call
+	Fvertical_motion() directly, rather than breaking it out into
+	vmotion() and Fset_window_point().
+
 2020-10-05  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* redisplay.c (point_in_line_start_cache):

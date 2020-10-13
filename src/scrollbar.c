@@ -798,18 +798,8 @@ behavior.
     window_scroll (window, Qnil, -1, ERROR_ME_NOT);
   else
     {
-      Charbpos charbpos;
-      Lisp_Object value = Fcdr (object);
-
-      CHECK_FIXNUM (value);
       Fmove_to_window_line (Qzero, window);
-      /* can't use Fvertical_motion() because it moves the buffer point
-	 rather than the window's point.
-
-	 #### It does?  Why does it take a window argument then? */
-      charbpos = vmotion (XWINDOW (window), XFIXNUM (Fwindow_point (window)),
-			XFIXNUM (value), 0);
-      Fset_window_point (window, make_fixnum (charbpos));
+      Fvertical_motion (Fcdr (object), window, Qnil);
       Fcenter_to_window_line (Qzero, window);
     }
 

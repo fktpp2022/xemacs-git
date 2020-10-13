@@ -6316,8 +6316,7 @@ redisplay_window (Lisp_Object window, int skip_selected)
   Lisp_Object the_buffer = w->buffer;
   struct buffer *b;
   int echo_active = 0;
-  int startp = 1;
-  int pointm;
+  Charbpos startp = 1, pointm;
   Lisp_Object old_startp = Qnil;
   Lisp_Object old_pointm = Qnil;
   int selected_in_its_frame;
@@ -6647,10 +6646,13 @@ redisplay_window (Lisp_Object window, int skip_selected)
   if (scroll_step > 0)
     {
       int scrolled = scroll_conservatively;
+      Bytebpos byte_startp = charbpos_to_bytebpos (b, startp);
       for (; scrolled >= 0; scrolled -= scroll_step)
 	{
-	  startp = vmotion (w, startp,
-			    (pointm < startp) ? -scroll_step : scroll_step, 0);
+	  byte_startp = vmotion (w, byte_startp,
+                                 (pointm < startp)
+                                 ? -scroll_step : scroll_step, 0);
+          startp = bytebpos_to_charbpos (b, byte_startp);
 	  regenerate_window (w, startp, pointm, DESIRED_DISP);
 
 	  if (point_visible (w, pointm, DESIRED_DISP))
