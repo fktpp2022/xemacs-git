@@ -97,7 +97,10 @@ EXFUN (Fselected_window, 1);
 EXFUN (Fset_window_buffer, 3);
 EXFUN (Fset_window_hscroll, 2);
 EXFUN (Fset_window_point, 2);
+
+Bytebpos set_window_start (Lisp_Object window, Bytebpos bpos, Boolint forcep);
 EXFUN (Fset_window_start, 3);
+
 EXFUN (Fwindow_buffer, 1);
 EXFUN (Fwindow_highest_p, 1);
 EXFUN (Fwindow_point, 1);

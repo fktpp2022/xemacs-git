@@ -38,9 +38,10 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    relatively fast line numbers caching (even in buffers where point
    moves a lot), and low memory usage.  All of this is done only in
    the buffers where the cache is actually initialized -- i.e. where
-   line-numbering is on, and you move the point farther than
-   LINE_NUMBER_FAR from the beginning of buffer.  In this sense, the
-   cache is lazy -- if you don't use it, you don't pay for it.
+   line-numbering is on (or there is a vertical scrollbar), and you
+   move the point farther than LINE_NUMBER_FAR from the beginning of
+   buffer.  In this sense, the cache is lazy -- if you don't use it,
+   you don't pay for it.
 
    NOTE: line-number cache should not be confused with line-start
    cache.  Line-start cache (a part of redisplay) works with the
@@ -86,7 +87,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
    Line number cache should never, ever, be visible to Lisp (because
    destructively modifying its elements can cause crashes.)  Debug it
-   using debug_print (current_buffer->text->last_number_cache).  */
+   using debug_print (current_buffer->text->line_number_cache).  */
 static void
 allocate_line_number_cache (struct buffer *b)
 {

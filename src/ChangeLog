@@ -1,3 +1,40 @@
+2020-10-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Make vertical scrollbars function in terms of lines, now we have
+	the line number cache.
+
+	* line-number.c:
+	Document that the line number cache is now turned on if you have a
+	vertical scroll bar.
+	* line-number.c (allocate_line_number_cache):
+	Correct a spelling in the docstring for this function.
+
+	* scrollbar.c:
+	* scrollbar.c (scrollbar_point):
+	Update this to return the corresponding Bytebpos, not the
+	Charbpos, saving some char-byte conversion for our callers.
+
+	* scrollbar.c (update_scrollbar_instance):
+	Use window_displayed_height() to get a (rough) number of lines
+	displayed in the window for new_slider_size, and then
+	buffer_line_number() for the position of scrollbar_point () and
+	the position of the end of the visible portion of the buffer.
+	
+	* scrollbar.c (Fscrollbar_vertical_drag):
+	Call set_window_start() with a Bytebpos here, rather than
+	Fset_window_start()..
+
+	* window.c:
+	* window.c (set_window_start): New.
+	Move the bulk of Fset_window_start() here, but take the new buffer
+	position as a Bytebpos, which saves some byte-char conversion with
+	Fscrollbar_vertical_drag().
+	* window.c (Fset_window_start):
+	Delegate the bulk of this to set_window_start().
+	* window.c (Fwindow_dedicated_p):
+	* window.h:
+	Add a declaration for set_window_start() here.
+
 2020-10-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* redisplay.c (redisplay_window):

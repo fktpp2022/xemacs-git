@@ -36,6 +36,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "gutter.h"
 #include "lisp.h"
 #include "window.h"
+#include "line-number.h"
 
 Lisp_Object Qinit_scrollbar_from_resources;
 
@@ -399,18 +400,18 @@ release_window_mirror_scrollbars (struct window_mirror *mir)
  * return w->start.  If flag, then return beginning point of line
  * which w->sb_point lies on.
  */
-static Charbpos
-scrollbar_point (struct window *w, int flag)
+static Bytebpos
+scrollbar_point (struct window *w, Boolint flag)
 {
-  Charbpos start_pos, end_pos, sb_pos;
+  Bytebpos start_pos, end_pos, sb_pos;
   Lisp_Object buf;
   struct buffer *b;
 
   if (NILP (w->buffer)) /* non-leaf window */
     return 0;
 
-  start_pos = marker_position (w->start[CURRENT_DISP]);
-  sb_pos = marker_position (w->sb_point);
+  start_pos = marker_byte_position (w->start[CURRENT_DISP]);
+  sb_pos = marker_byte_position (w->sb_point);
 
   if (!flag && sb_pos < start_pos)
     return start_pos;
@@ -422,9 +423,9 @@ scrollbar_point (struct window *w, int flag)
     return start_pos;
 
   if (flag)
-    end_pos = find_next_newline_no_quit (b, sb_pos, -1);
+    end_pos = byte_find_next_newline_no_quit (b, sb_pos, -1);
   else
-    end_pos = find_next_newline_no_quit (b, start_pos, 1);
+    end_pos = byte_find_next_newline_no_quit (b, start_pos, 1);
 
   if (flag)
     return end_pos;
@@ -444,7 +445,6 @@ update_scrollbar_instance (struct window *w, int vertical,
   struct frame *f = XFRAME (w->frame);
   struct device *d = XDEVICE (f->device);
   struct buffer *b = XBUFFER (w->buffer);
-  Charbpos start_pos, end_pos, sb_pos;
   int scrollbar_width  = window_scrollbar_width  (w);
   int scrollbar_height = window_scrollbar_height (w);
 
@@ -455,16 +455,6 @@ update_scrollbar_instance (struct window *w, int vertical,
 #if 0
   struct window *new_window = 0; /* #### currently unused */
 #endif
-
-  end_pos = BUF_Z (b) - w->window_end_pos[CURRENT_DISP];
-  sb_pos = scrollbar_point (w, 0);
-  start_pos = sb_pos;
-
-  /* The end position must be strictly greater than the start
-     position, at least for the Motify scrollbar.  It shouldn't hurt
-     anything for other scrollbar implementations. */
-  if (end_pos <= start_pos)
-    end_pos = start_pos + 1;
 
   if (vertical)
     {
@@ -486,8 +476,8 @@ update_scrollbar_instance (struct window *w, int vertical,
 
   assert (instance->mirror && XWINDOW (real_window(instance->mirror, 0)) == w);
 
-  /* Only character-based scrollbars are implemented at the moment.
-     Line-based will be implemented in the future. */
+  /* Vertical scrollbars are line-based, horizontal scrollbars are
+     character-based. */
 
   instance->scrollbar_is_active = 1;
   new_line_increment = 1;
@@ -540,14 +530,20 @@ update_scrollbar_instance (struct window *w, int vertical,
     {
       if (!DEVMETH_OR_GIVEN (d, inhibit_scrollbar_slider_size_change, (), 0))
 	{
-	  new_minimum = BUF_BEGV (b);
-	  new_maximum = max (BUF_ZV (b), new_minimum + 1);
-	  new_slider_size = min ((end_pos - start_pos),
-				 (new_maximum - new_minimum));
-	  new_slider_position = sb_pos;
-#if 0
-	  new_window = w;
-#endif
+          /* window_displayed_height() gives the number of display lines,
+             which conceptually does not directly reflect the number of
+             newlines in the buffer. buffer_line_number () deals with the
+             latter. This conceptual dissonance doesn't matter. */
+          new_slider_size = window_displayed_height (w);
+          new_minimum = 0;
+          new_slider_position
+            = buffer_line_number (b, scrollbar_point (w, 0), 1, 1);
+          new_maximum = buffer_line_number (b, BYTE_BUF_ZV (b), 1, 1);
+
+          /* The end position must be strictly greater than the start
+             position, at least for the Motify scrollbar.  It shouldn't hurt
+             anything for other scrollbar implementations. */
+          new_maximum = max (new_minimum + 1, new_maximum);
 	}
     }
   else if (!MINI_WINDOW_P (w))
@@ -913,7 +909,6 @@ change the scrollbar behavior.
 {
   Lisp_Object window = Fcar (object);
   Lisp_Object value = Fcdr (object);
-  Charbpos start_pos;
   struct buffer *b;
   struct window *w;
   Boolint selectedp;
@@ -929,8 +924,7 @@ change the scrollbar behavior.
     : marker_byte_position (w->pointm[CURRENT_DISP]);
 
   Fset_marker (XWINDOW (window)->sb_point, value, Fwindow_buffer (window));
-  start_pos = scrollbar_point (XWINDOW (window), 1);
-  Fset_window_start (window, make_fixnum (start_pos), Qnil);
+  set_window_start (window, scrollbar_point (XWINDOW (window), 1), 1);
   scrollbar_reset_cursor (window, orig_pt);
   Fsit_for(Qzero, Qnil);
   zmacs_region_stays = 1;

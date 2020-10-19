@@ -2000,6 +2000,22 @@ perhaps more logical.)
   return pos;
 }
 
+Bytebpos
+set_window_start (Lisp_Object window, Bytebpos bpos, Boolint forcep)
+{
+  struct window *w = XWINDOW (window);
+  set_marker_byte_position (w->start[CURRENT_DISP], bpos, w->buffer);
+  w->start_at_line_beg = byte_beginning_of_line_p (XBUFFER (w->buffer), bpos);
+  if (forcep)
+    w->force_start = 1;
+  w->redo_modeline = 1;
+  SET_LAST_MODIFIED (w, 0);
+  SET_LAST_FACECHANGE (w);
+  MARK_WINDOWS_CHANGED (w);
+
+  return bpos;
+}
+
 DEFUN ("set-window-start", Fset_window_start, 2, 3, 0, /*
 Make display in WINDOW start at position POS in WINDOW's buffer.
 Optional third arg NOFORCE non-nil inhibits next redisplay
@@ -2008,22 +2024,8 @@ from overriding motion of point in order to display at this exact start.
        (window, pos, noforce))
 {
   struct window *w = decode_window (window);
-
-  set_marker_restricted (w->start[CURRENT_DISP], pos, w->buffer);
-  /* this is not right, but much easier than doing what is right. */
-  /* w->start_at_line_beg = 0; */
-  /* WTF is the above supposed to mean?  GE */
-  w->start_at_line_beg
-    = byte_beginning_of_line_p (XBUFFER (w->buffer),
-                                marker_byte_position (w->start[CURRENT_DISP]));
-  if (NILP (noforce))
-    w->force_start = 1;
-  w->redo_modeline = 1;
-  SET_LAST_MODIFIED (w, 0);
-  SET_LAST_FACECHANGE (w);
-
-  MARK_WINDOWS_CHANGED (w);
-
+  set_window_start (window, get_buffer_pos_byte (XBUFFER (w->buffer), pos, 0),
+                           NILP (noforce));
   return pos;
 }
 
