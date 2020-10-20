@@ -1509,8 +1509,8 @@ POS defaults to point in WINDOW's buffer; WINDOW, to the selected window.
   Bytebpos top = marker_byte_position (w->start[CURRENT_DISP]);
   struct buffer *buf = XBUFFER (w->buffer);
   Bytebpos posint = get_buffer_pos_byte (buf, pos,
-                                         GB_ALLOW_PAST_ACCESSIBLE
-                                         | GB_ALLOW_NIL);
+                                         GB_ALLOW_PAST_ACCESSIBLE |
+                                         GB_ALLOW_NIL | GB_NO_ERROR_IF_BAD);
 
   if (posint < top || posint > BYTE_BUF_ZV (buf))
     return Qnil;
