@@ -1,5 +1,23 @@
 2020-10-20  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Move line-number.c to caching buffer positions as zero-length
+	extents, avoiding issues with Finsert_before_markers().
+
+	* line-number.c:
+	* line-number.c (invalidate_line_number_cache):
+	Manipulate the cached position as a zero-length extent.
+	* line-number.c (get_nearest_line_number):
+	Ditto.
+	* line-number.c (add_position_to_cache):
+	Ditto.
+	* line-number.c (buffer_line_number):
+	Change the declaration of this in passing to return a Charcount, a
+	more correct type for a line number.
+	* line-number.h (buffer_line_number):
+	Ditto.
+
+2020-10-20  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* window.c (Fpos_visible_in_window_p):
 	Pass GB_NO_ERROR_IF_BAD to get_buffer_pos_byte() here, previous to
 	my f9b4cee0d743 of July this function never errored on invalid

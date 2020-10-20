@@ -26,8 +26,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    To make line numbering efficient, we maintain a buffer-local cache
    of recently used positions and their line numbers.  The cache is
    implemented as a small ring of cache positions.  A cache position
-   is either nil or a cons of a buffer position (marker) and the
-   corresponding line number.
+   is either nil or a cons of a buffer position (zero-length extent)
+   and the corresponding line number.
 
    When calculating the line numbers, this cache is consulted if it
    would otherwise take too much time to count the newlines in the
@@ -53,6 +53,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "buffer.h"
 
 #include "line-number.h"
+#include "extents-impl.h"
 
 /* #### The following three values could stand more exploration for
    best performance.  */
@@ -82,7 +83,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    INITIALIZED-CACHE	= cons (RING, BEGV-LINE)
    RING			= vector (*RING-ELEMENT)
    RING-ELEMENT		= nil | RING-PAIR
-   RING-PAIR		= cons (marker, integer)
+   RING-PAIR		= cons (extent, integer)
    BEGV-LINE		= integer
 
    Line number cache should never, ever, be visible to Lisp (because
@@ -121,24 +122,17 @@ invalidate_line_number_cache (struct buffer *b, Bytebpos pos)
 {
   EMACS_INT i, j;
   Lisp_Object *ring = XVECTOR_DATA (LINE_NUMBER_RING (b));
+  Memxpos mpos = bytebpos_to_membpos (b, pos);
 
   for (i = 0; i < LINE_NUMBER_RING_SIZE; i++)
     {
       if (!CONSP (ring[i]))
 	break;
-      /* As the marker stays behind the insertions, this check might
-         as well be `>'.  However, Finsert_before_markers can advance
-         the marker anyway, which bites in shell buffers.
 
-	 #### This forces recreation of the cached marker (and
-	 recalculation of newlines) every time a newline is inserted
-	 at point, which is way losing.  Isn't there a way to make a
-	 marker impervious to Finsert_before_markers()??  Maybe I
-	 should convert the code to use extents.  */
-      if (marker_byte_position (XCAR (ring[i])) >= pos)
+      if (extent_start (XEXTENT (XCAR (ring[i]))) >= mpos)
 	{
-	  /* Get the marker out of the way.  */
-	  Fset_marker (XCAR (ring[i]), Qnil, Qnil);
+	  /* Delete the extent.  */
+	  Fdelete_extent (XCAR (ring[i]));
 	  /* ...and shift the ring elements, up to the first nil.  */
 	  for (j = i; !NILP (ring[j]) && j < LINE_NUMBER_RING_SIZE - 1; j++)
 	    ring[j] = ring[j + 1];
@@ -205,7 +199,7 @@ delete_invalidate_line_number_cache (struct buffer *b, Bytebpos from,
    This will initialize the cache, if necessary.  */
 static void
 get_nearest_line_number (struct buffer *b, Bytebpos *beg, Bytebpos pos,
-			 EMACS_INT *line)
+			 Charcount *line)
 {
   EMACS_INT i;
   Lisp_Object *ring = XVECTOR_DATA (LINE_NUMBER_RING (b));
@@ -217,7 +211,8 @@ get_nearest_line_number (struct buffer *b, Bytebpos *beg, Bytebpos pos,
   /* Find the ring entry closest to POS, if it is closer than BEG. */
   for (i = 0; i < LINE_NUMBER_RING_SIZE && CONSP (ring[i]); i++)
     {
-      Bytebpos newpos = marker_byte_position (XCAR (ring[i]));
+      Bytebpos newpos
+        = membpos_to_bytebpos (b, extent_start (XEXTENT (XCAR (ring[i]))));
       Bytecount howfar = newpos - pos;
       if (howfar < 0)
 	howfar = -howfar;
@@ -232,23 +227,37 @@ get_nearest_line_number (struct buffer *b, Bytebpos *beg, Bytebpos pos,
 
 /* Add a (POS . LINE) pair to the ring, and rotate it. */
 static void
-add_position_to_cache (struct buffer *b, Bytebpos pos, EMACS_INT line)
+add_position_to_cache (struct buffer *b, Bytebpos pos, Charcount line)
 {
   Lisp_Object *ring = XVECTOR_DATA (LINE_NUMBER_RING (b));
   int i = LINE_NUMBER_RING_SIZE - 1;
+  struct extent *e;
+  Lisp_Object extent;
 
-  /* Set the last marker in the ring to point nowhere. */
   if (CONSP (ring[i]))
-    Fset_marker (XCAR (ring[i]), Qnil, Qnil);
+    {
+      /* Re-use the last extent in the ring. */
+      extent = XCAR (ring[i]);
+      e = XEXTENT (extent);
+      ring[i] = Qnil;
+    }
+  else
+    {
+      /* Make a fresh extent. */
+      extent = Fmake_extent (Qnil, Qnil, wrap_buffer (b));
+      e = XEXTENT (extent);
+    }
+
+  /* Make the extent reflect POS. */
+  set_extent_start (e, bytebpos_to_membpos (b, pos));
+  set_extent_end (e, extent_start (e));
 
   /* Rotate the ring... */
   for (; i > 0; i--)
     ring[i] = ring[i - 1];
 
-  /* ...and update it. */
-  ring[0] = Fcons (set_marker_byte_position (Fmake_marker (), pos,
-                                             wrap_buffer (b)),
-		   make_fixnum (line));
+  /* And add a fresh entry. */
+  ring[0] = Fcons (extent, make_fixnum (line));
 }
 
 /* Calculate the line number in buffer B at position POS.  If CACHEP
@@ -267,12 +276,12 @@ add_position_to_cache (struct buffer *b, Bytebpos pos, EMACS_INT line)
 
    If the calculation (with or without the cache lookup) required more
    than LINE_NUMBER_FAR characters of traversal, update the cache.  */
-EMACS_INT
+Charcount
 buffer_line_number (struct buffer *b, Bytebpos pos, Boolint cachep,
                     Boolint respect_narrowing)
 {
   Bytebpos beg = respect_narrowing ? BYTE_BUF_BEGV (b) : BYTE_BUF_BEG (b);
-  EMACS_INT cached_lines = 0;
+  Charcount cached_lines = 0;
   EMACS_INT shortage, line;
 
   if ((pos > beg ? pos - beg : beg - pos) <= LINE_NUMBER_FAR)
@@ -303,7 +312,7 @@ buffer_line_number (struct buffer *b, Bytebpos pos, Boolint cachep,
     line = -line;
   line += cached_lines;
 
-  if (cachep && (respect_narrowing || BUF_BEG (b) == BUF_BEGV (b)))
+  if (cachep && (respect_narrowing || BYTE_BUF_BEG (b) == BYTE_BUF_BEGV (b)))
     {
       /* If too far, update the cache. */
       if ((pos > beg ? pos - beg : beg - pos) > LINE_NUMBER_FAR)
