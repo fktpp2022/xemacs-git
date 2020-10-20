@@ -244,13 +244,12 @@ add_position_to_cache (struct buffer *b, Bytebpos pos, Charcount line)
   else
     {
       /* Make a fresh extent. */
-      extent = Fmake_extent (Qnil, Qnil, wrap_buffer (b));
+      extent = Fmake_extent (Qnil, Qnil, Qnil);
       e = XEXTENT (extent);
     }
 
   /* Make the extent reflect POS. */
-  set_extent_start (e, bytebpos_to_membpos (b, pos));
-  set_extent_end (e, extent_start (e));
+  set_extent_endpoints (e, pos, pos, wrap_buffer (b));
 
   /* Rotate the ring... */
   for (; i > 0; i--)

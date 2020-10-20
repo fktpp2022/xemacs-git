@@ -15,6 +15,9 @@
 	more correct type for a line number.
 	* line-number.h (buffer_line_number):
 	Ditto.
+	* line-number.c (add_position_to_cache): Call
+	set_extent_endpoints() here, so the stack of extents is kept
+	current--set_extent_{start,end} don't do this.
 
 2020-10-20  Aidan Kehoe  <kehoea@parhasard.net>
 
