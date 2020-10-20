@@ -148,26 +148,63 @@ invalidate_line_number_cache (struct buffer *b, Bytebpos pos)
     }
 }
 
-/* Invalidate the cache positions after POS, if the string to be
-   inserted contains a newline.  If the string is too large (larger
-   than LINE_NUMBER_LARGE_STRING), invalidate the cache positions
-   after POS without prior search.
+/* If the string to be inserted is short and contains no newlines, do
+   nothing. If it is short and contains one newline, adjust the
+   positions in the cache to reflect that. If it contains more than
+   one newline, or if LENGTH is greater than than
+   LINE_NUMBER_LARGE_STRING, invalidate the cache positions after POS
+   without prior search.
 
    This will do nothing if the cache is uninitialized.  */
 void
-insert_invalidate_line_number_cache (struct buffer *b, Bytebpos pos,
-				     const Ibyte *nonreloc, Bytecount length)
+insert_adjust_line_number_cache (struct buffer *b, Bytebpos pos,
+                                 const Ibyte *nonreloc, Bytecount length)
 {
   if (NILP (b->text->line_number_cache))
     return;
 
-  if (length > LINE_NUMBER_LARGE_STRING
-      ||
-      /* We could also count how many newlines there are in the string
-         and update the cache accordingly, but it would be too much
-         work for too little gain. */
-      memchr ((void *)nonreloc, '\n', length))
-    invalidate_line_number_cache (b, pos);
+  if (length > LINE_NUMBER_LARGE_STRING)
+    {
+      invalidate_line_number_cache (b, pos);
+      return;
+    }
+
+  {
+    const Ibyte *newline = memchr ((const void *)nonreloc, '\n', length);
+
+    if (!newline)
+      {
+        return;
+      }
+          
+    INC_IBYTEPTR (newline);
+
+    if (memchr ((const void *) newline, '\n', length - (newline - nonreloc)))
+      {
+        /* More than one newline, throw up our hands. */
+        invalidate_line_number_cache (b, pos);
+        return;
+      }
+
+    /* If there is only one newline (the commonest case with insertions),
+       increment the line numbers following POS. */
+    {
+      EMACS_INT i;
+      Lisp_Object *ring = XVECTOR_DATA (LINE_NUMBER_RING (b));
+      Memxpos mpos = bytebpos_to_membpos (b, pos);
+
+      for (i = 0; i < LINE_NUMBER_RING_SIZE; i++)
+        {
+          if (!CONSP (ring[i]))
+            break;
+
+          if (extent_start (XEXTENT (XCAR (ring[i]))) > mpos)
+            {
+              XSETCDR (ring[i], FIXNUM_PLUS1 (XCDR (ring[i])));
+            }
+        }
+    }
+  }
 }
 
 /* Invalidate the cache positions after FROM, if the region to be

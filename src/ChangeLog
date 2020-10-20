@@ -1,5 +1,20 @@
 2020-10-20  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Rename insert_invalidate_line_number_cache() to
+	insert_adjust_line_number_cache(). Revise it to preserve cache
+	info if a short insertion contains one, and only one, newline.
+
+	* insdel.c (buffer_insert_string_1):
+	Call the function using the new name.
+	* line-number.c:
+	Update the docstring.
+	* line-number.c (insert_adjust_line_number_cache):
+	Revise this function.
+	* line-number.h:
+	Update its declaration.
+
+2020-10-20  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* line-number.c:
 	Update LINE_NUMBER_FAR to an empirically-discovered value that
 	gives much the same performance for the non-cache vs. cache

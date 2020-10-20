@@ -1161,8 +1161,7 @@ buffer_insert_string_1 (struct buffer *buf, Charbpos pos,
      in a consistent state.  Following code puts buffer in an inconsistent
      state and can be considered a "critical section". */
   
-  insert_invalidate_line_number_cache (buf, bytepos, nonreloc + offset,
-                                       length);
+  insert_adjust_line_number_cache (buf, bytepos, nonreloc + offset, length);
 
   MAP_INDIRECT_BUFFERS (buf, mbuf, bufcons)
     {
