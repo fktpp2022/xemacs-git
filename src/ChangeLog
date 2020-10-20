@@ -1,5 +1,12 @@
 2020-10-20  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* line-number.c:
+	Update LINE_NUMBER_FAR to an empirically-discovered value that
+	gives much the same performance for the non-cache vs. cache
+	cases.
+
+2020-10-20  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Move line-number.c to caching buffer positions as zero-length
 	extents, avoiding issues with Finsert_before_markers().
 

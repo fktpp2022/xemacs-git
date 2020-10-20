@@ -65,8 +65,13 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 /* How much traversal has to be exceeded for two points to be
    considered "far" from each other.  When two points are far, cache
-   will be used.  */
-#define LINE_NUMBER_FAR 16384
+   will be used.
+
+   As of October 2020 with a 2006 Mac Mini and GCC 8.4 -Os -flto
+   -momit-leaf-frame-pointer -mfpmath=both -march=native, this
+   threshold means performance for the non-LINE_NUMBER_FAR case is
+   much the same as performace for the LINE_NUMBER_FAR case. */
+#define LINE_NUMBER_FAR 2730
 
 /* How large a string has to be to give up searching it for newlines,
    before change. */
