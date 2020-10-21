@@ -55,17 +55,23 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "line-number.h"
 #include "extents-impl.h"
 
-/* #### The following three values could stand more exploration for
-   best performance.  */
-
 /* Size of the ring.  The current code expects this to be a small
    number.  If you make it larger, you should probably optimize the
-   code below to keep it sorted. */
+   code below to keep it sorted.
+
+   As of October 2020, newlines are usually calculated for point and
+   for point-max (if the vertical scrollbar is turned on, as it
+   usually is if you have a GUI). Other positions frequently,
+   predictably accessed are the line number for a screen down or a
+   screen up, and the line number for the beginning of the visible
+   part of the buffer, which is trivial. No indication for a bigger
+   ring size than 8. */
 #define LINE_NUMBER_RING_SIZE 8
 
 /* How much traversal has to be exceeded for two points to be
-   considered "far" from each other.  When two points are far, cache
-   will be used.
+   considered "far" from each other.  When two points are far, this
+   cache will be used, and when they are near, the level 1 processor
+   cache is likely to be used.
 
    As of October 2020 with a 2006 Mac Mini and GCC 8.4 -Os -flto
    -momit-leaf-frame-pointer -mfpmath=both -march=native, this
@@ -74,7 +80,17 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define LINE_NUMBER_FAR 2730
 
 /* How large a string has to be to give up searching it for newlines,
-   before change. */
+   before change.
+
+   The calls to insert_adjust_line_number_cache are roughly bimodal;
+   there are insertions because the user typed something, where the
+   string is of length < MAX_ICHAR_LEN, and there are longer
+   programmatic insertions, from inferior shells or similar, where
+   there is a big cluster of lengths at 1024. The former occasionally
+   will have newlines, rarely more than one; the latter will basically
+   always have multiple newlines. With the current design it's
+   completely appropriate to have this threshold at 256; the only
+   question is whether it should be smaller. */
 #define LINE_NUMBER_LARGE_STRING 256
 
 /* To be used only when you *know* the cache has been allocated!  */
@@ -170,7 +186,8 @@ insert_adjust_line_number_cache (struct buffer *b, Bytebpos pos,
     }
 
   {
-    const Ibyte *newline = memchr ((const void *)nonreloc, '\n', length);
+    const Ibyte *newline
+      = (const Ibyte *) memchr ((const void *)nonreloc, '\n', length);
 
     if (!newline)
       {

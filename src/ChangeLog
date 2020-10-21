@@ -1,3 +1,11 @@
+2020-10-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* line-number.c:
+	Update some documentation here, LINE_NUMBER_RING_SIZE as 8 is
+	fine, as is LINE_NUMBER_FAR as 2730.
+	* line-number.c (insert_adjust_line_number_cache):
+	Update this to compile as C++.
+
 2020-10-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Rename insert_invalidate_line_number_cache() to
