@@ -1,3 +1,10 @@
+2020-10-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* window.c (set_window_start):
+	Call set_marker_byte_position_restricted() within this,
+	#'set-window-start always restricted its position arguments to the
+	visible region.
+
 2020-10-21  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* line-number.c:

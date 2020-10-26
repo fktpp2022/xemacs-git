@@ -2004,7 +2004,8 @@ Bytebpos
 set_window_start (Lisp_Object window, Bytebpos bpos, Boolint forcep)
 {
   struct window *w = XWINDOW (window);
-  set_marker_byte_position (w->start[CURRENT_DISP], bpos, w->buffer);
+  set_marker_byte_position_restricted (w->start[CURRENT_DISP], bpos,
+                                       w->buffer);
   w->start_at_line_beg = byte_beginning_of_line_p (XBUFFER (w->buffer), bpos);
   if (forcep)
     w->force_start = 1;
