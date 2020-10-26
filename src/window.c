@@ -2021,12 +2021,16 @@ DEFUN ("set-window-start", Fset_window_start, 2, 3, 0, /*
 Make display in WINDOW start at position POS in WINDOW's buffer.
 Optional third arg NOFORCE non-nil inhibits next redisplay
 from overriding motion of point in order to display at this exact start.
+
+POS can be any marker or integer, but the new window start will be
+constrained to the visible region of the buffer.
 */
        (window, pos, noforce))
 {
   struct window *w = decode_window (window);
-  set_window_start (window, get_buffer_pos_byte (XBUFFER (w->buffer), pos, 0),
-                           NILP (noforce));
+  set_window_start (window, get_buffer_pos_byte (XBUFFER (w->buffer), pos,
+						 GB_COERCE_RANGE),
+		    NILP (noforce));
   return pos;
 }
 

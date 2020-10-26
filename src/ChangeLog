@@ -4,6 +4,9 @@
 	Call set_marker_byte_position_restricted() within this,
 	#'set-window-start always restricted its position arguments to the
 	visible region.
+	(Fset_window_start): Do this restriction within the
+	get_buffer_pos_byte() call here too, using the GB_COERCE_RANGE
+	flag to the call.
 
 2020-10-21  Aidan Kehoe  <kehoea@parhasard.net>
 
