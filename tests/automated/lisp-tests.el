@@ -4492,4 +4492,9 @@ run-hook-with-args-until-success")
 
 ;; See extent-tests.el for normalize-menu-text, checked in passing.
 
+;; Check #'set-window-start doesn't choke on a nil WINDOW.
+
+(Assert (eql (set-window-start nil most-negative-fixnum)
+             most-negative-fixnum))
+
 ;;; end of lisp-tests.el

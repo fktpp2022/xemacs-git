@@ -2028,8 +2028,9 @@ constrained to the visible region of the buffer.
        (window, pos, noforce))
 {
   struct window *w = decode_window (window);
-  set_window_start (window, get_buffer_pos_byte (XBUFFER (w->buffer), pos,
-						 GB_COERCE_RANGE),
+  set_window_start (wrap_window (w),
+                    get_buffer_pos_byte (XBUFFER (w->buffer), pos,
+                                         GB_COERCE_RANGE),
 		    NILP (noforce));
   return pos;
 }

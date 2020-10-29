@@ -1,3 +1,8 @@
+2020-10-29  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el (eql):
+	Check for a bug just fixed in #'set-window-start.
+
 2020-10-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/regexp-tests.el (eql):
