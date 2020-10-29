@@ -1502,8 +1502,10 @@ get_doprnt_c_args (printf_arg *args, Elemcount args_needed,
 	arg.obj = va_arg (vargs, Lisp_Object);
       else if (strchr (DOUBLE_CONVERTERS, ch))
 	arg.d = va_arg (vargs, double);
-      /* We get here, e.g., if a repositioning field width or precision was
-         supplied at the C level, something not implemented. */
+      else if ('*' == ch)
+        arg.l = va_arg (vargs, int);
+      /* We get here if a repositioning specifier was supplied at the C level,
+         something not implemented. */
       else ABORT ();
 
       *argp++ = arg;
@@ -2279,6 +2281,11 @@ emacs_doprnt (Lisp_Object stream,
                specified as an argument.  Extract the data and forward it to
                the next spec, to which it will apply.  */
             struct printf_spec *nextspec = Dynarr_atp (specs, i + 1);
+
+            if (UNBOUNDP (obj))
+              {
+                obj = make_fixnum (arg.l);
+              }
 
             /* No bignums or random Lisp objects, thanks, and restrict range
                as appropriate for a charcount. */

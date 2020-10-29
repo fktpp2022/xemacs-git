@@ -4,6 +4,15 @@
 	If WINDOW is Qnil, don't pass it to set_window_start(), pass the
 	result of decode_window() instead.
 
+2020-10-29  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* doprnt.c (get_doprnt_c_args):
+	If a field width or precision was specified as an argument, read
+	it from the args as an int. This means both those things work with
+	C arguments and write_fmt_string().
+	(emacs_doprnt): When the argument to '*' is not supplied as a
+	Lisp_Object, read it from arg.l.
+
 2020-10-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* window.c (set_window_start):
