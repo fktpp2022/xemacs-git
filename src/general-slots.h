@@ -81,6 +81,7 @@ SYMBOL (Qchain);
 SYMBOL (Qchange);
 SYMBOL (Qchannel);
 SYMBOL (Qchar);
+SYMBOL (Qchar_or_char_int_p);
 SYMBOL (Qcharacter);
 SYMBOL (Qchars);
 SYMBOL (Qclicked);

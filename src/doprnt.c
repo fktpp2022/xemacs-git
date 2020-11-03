@@ -1065,13 +1065,13 @@ doprnt_1 (Lisp_Object stream,
       }                                                         \
   } while (0)
 
-/* Given FERMAT, an internal-format string of length FERMAT_LENGTH, parse it
+/* Given FORMAT, an internal-format string of length FORMAT_LENGTH, parse it
    into a Dynarr of struct printf_spec reflecting the % conversion specifiers
-   within FERMAT, and return that Dynarr. In ARGS_NEEDED_OUT, return the
+   within FORMAT, and return that Dynarr. In ARGS_NEEDED_OUT, return the
    greatest argument number encountered. Note this function has no access to
    the actual args specified, and in theory could run at compile time.
 
-   Error if FERMAT ends in the middle of a conversion specifier, if its
+   Error if FORMAT ends in the middle of a conversion specifier, if its
    conversion specifiers contain non-ASCII non-pad characters, or if the
    minimum widths and precisions supplied are nonsensical.
 
@@ -1996,14 +1996,14 @@ emacs_doprnt (Lisp_Object stream,
                 if (!valid_ichar_p (fa))
                   {
                     UNGCPRO;
-                    syntax_error ("Invalid integer value for %c spec", obj);
+                    dead_wrong_type_argument (Qchar_or_char_int_p, obj);
                   }
 		a = (Ichar) fa;
               }
             else
               {
                 UNGCPRO;
-                syntax_error ("Value doesn't match char specifier", obj);
+                dead_wrong_type_argument (Qchar_or_char_int_p, obj);
               }
 
             if (spec->precision != -1)
@@ -2016,8 +2016,7 @@ emacs_doprnt (Lisp_Object stream,
               }
 
             /* XEmacs; don't attempt (badly) to handle floats, bignums or
-               ratios when 'c' is specified, error instead, "Format specifier
-               doesn't match arg type". */
+               ratios when 'c' is specified, error instead. */
             byte_count += doprnt_1 (stream, charbuf, Qnil, 0,
                                     set_itext_ichar (charbuf, a),
                                     spec, format_reloc);

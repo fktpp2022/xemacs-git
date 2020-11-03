@@ -1,3 +1,14 @@
+2020-11-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* doprnt.c:
+	Revert the previous change to the docstring here, no need to
+	rename FORMAT to FERMAT.
+	* doprnt.c (emacs_doprnt):
+	When supplied a non-char non-char-int, give a wrong type argument
+	with the Qchar_or_char_int_p predicate.
+	* general-slots.h:
+	Add Qchar_or_char_int_p to these slots.
+
 2020-10-29  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* window.c (Fset_window_start):

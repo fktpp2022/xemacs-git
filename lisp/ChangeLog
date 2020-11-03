@@ -1,3 +1,11 @@
+2020-11-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* minibuf.el (read-coding-system):
+	Correct the spelling in the docstring here.
+	* subr.el (format):
+	CONTROL-STRING isn't optional in #'format, correct the arglist
+	here.
+
 2020-09-01  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Some style, efficiency changes to wid-edit.el.

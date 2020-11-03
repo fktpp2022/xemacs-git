@@ -2124,9 +2124,9 @@ On mswindows devices, this uses `mswindows-color-list'."
 If the user enters null input, return second argument DEFAULT-CODING-SYSTEM.
 DEFAULT-CODING-SYSTEM can be a string, symbol, or coding-system object.
 
-XEmacs coding system name are usually lowercase, but there are exceptions.
+XEmacs coding system names are usually lowercase, but there are exceptions.
 Case is ignored by this function and by `read-non-nil-coding-system', though
-other XEmacs functions related to coding systesm require that case be
+other XEmacs functions related to coding systems require that case be
 preserved.
 
 The return value will be a symbol which can usefully be passed to

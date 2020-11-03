@@ -169,7 +169,7 @@ Used for compatibility among different emacs variants."
      (define-function ,@args)))
 
 
-(defun format (&optional control-string &rest arguments)
+(defun format (control-string &rest arguments)
   "Format a string out of CONTROL-STRING and ARGUMENTS.
 
 The first argument is a control string.
