@@ -1,4 +1,4 @@
-@c -*-texinfo-*-
+@c -*- mode: texinfo; coding: utf-8 -*-
 @c This is part of the XEmacs Lisp Reference Manual.
 @c Copyright (C) 1990, 1991, 1992, 1993, 1994 Free Software Foundation, Inc.
 @c Copyright (C) 1996 Ben Wing.
@@ -239,7 +239,7 @@ if it has none.
 
   Contrary to popular belief, the world is not @sc{ascii}.  When running
 under a window manager, XEmacs can tell the difference between, for
-example, the keystrokes @kbd{control-h}, @kbd{control-shift-h}, and
+example, the keystrokes @kbd{control-?h}, @kbd{control-?H}, and
 @kbd{backspace}.  You can, in fact, bind different commands to each of
 these.
 
@@ -247,49 +247,41 @@ these.
 keysym and some set of modifiers (such as @key{CONTROL} and @key{META}).
 A @dfn{keysym} is what is printed on the keys on your keyboard.
 
-  A keysym may be represented by a symbol, by a character, or by a
-character's Mule code. The @kbd{A} key may be represented by the symbol
-@code{A}, the character @code{?A}, or by the number 65.  The @kbd{break}
-key may be represented only by the symbol @code{break}, and non-ASCII
-X11 keys in general are limited to the symbol form with XEmacs.
-@footnote{A quirk of our X11 implementation means that non-ASCII keysyms
-have different internal representations in the X11 (with GTK) and other
-worlds (like the TTY, or Microsoft Windows), so, for example, binding
-@kbd{EuroSign} to a command will normally work, but will not invoke that
-command if someone presses the Euro sign in a TTY console; conversely,
-binding @code{(make-char 'latin-iso8859-15 #xa4)} or @code{(char-to-int
-(make-char 'latin-iso8859-15 #xa4))} to a command will call that command
-on a TTY console, but not in an X11 window of the same process.}
-@footnote{See the documentation for `set-input-mode' and
+  A keysym may be represented by a character, by a symbol, or by a
+character's Mule code. The @kbd{A} key may be represented by the
+character @code{?A}, the symbol @code{A}, or by the number 65.  The
+@kbd{break} key may be represented only by the symbol @code{break}, and
+non-character X11 keys in general are limited to the symbol form with
+XEmacs.  @footnote{See the documentation for `set-input-mode' and
 `set-console-tty-coding-system' if you're having trouble inputting
 non-ASCII characters in the TTY.}
 
   A keystroke may be represented by a list: the last element of the list
-is the key (a symbol, character, or number, as above) and the preceding
+is the key (a character, symbol, or number, as above) and the preceding
 elements are the symbolic names of modifier keys (@key{CONTROL},
 @key{META}, @key{SUPER}, @key{HYPER}, @key{ALT}, and @key{SHIFT}).
-Thus, the sequence @kbd{control-b} is represented by the forms
-@code{(control b)}, @code{(control ?b)}, and @code{(control 98)}.  A
+Thus, the sequence @kbd{control-?b} is represented by the forms
+@code{(control ?b)}, @code{(control b)}, and @code{(control 98)}.  A
 keystroke may also be represented by an event object, as returned by the
 @code{next-command-event} and @code{read-key-sequence} functions.
 
-  Note that in this context, the keystroke @kbd{control-b} is @emph{not}
+  Note that in this context, the keystroke @kbd{control-?b} is @emph{not}
 represented by the number 2 (the @sc{ascii} code for @samp{^B}) or the
 character @code{?\^B}.  See below.
 
-  The @key{SHIFT} modifier is somewhat of a special case.  You cannot
-say @code{(shift =)} to mean @code{+}, as that sort of thing varies from
-keyboard layout to keyboard layout.  When it comes to alphabetic
-keysyms, @code{(meta shift a)} is transformed internally to mean
-@code{(meta A)}, and similarly for other keysyms with case
-information. @code{(shift A)} is transformed internally to simply
-@code{(A)}.  Note that the case correspondence used by XEmacs and that
-used by your window system may differ, and when binding keysyms the
-XEmacs correspondence overrides.  The @key{SHIFT} modifier is most
+  The @key{SHIFT} modifier is somewhat of a special case. If you have a
+US keyboard, you cannot say @code{(shift =)} to mean @code{+}, as that
+correspondence varies from keyboard layout to keyboard layout.  When it
+comes to alphabetic keysyms, @code{(meta shift ?a)} is transformed
+internally to mean @code{(meta ?A)}, and similarly for other keysyms
+with case information. @code{(shift ?A)} is transformed internally to
+simply @code{(?A)}.  Note that the case correspondence used by XEmacs
+and that used by your window system may differ, and when binding keysyms
+the XEmacs correspondence overrides.  The @key{SHIFT} modifier is most
 useful for those characters that do not have a second keysym on the same
 key, such as @code{backspace} and @code{tab}.
 
-Older XEmacs code only accepts @code{(A)}, not @code{(shift a)}, so the
+Older XEmacs code only accepts @code{(?A)}, not @code{(shift ?a)}, so the
 former syntax is to be preferred for the moment.  GNU Emacs supports
 both syntaxes as of February 2017.
 
@@ -298,14 +290,14 @@ elements of this vector may also be keysyms if they have no modifiers.
 That is, the @kbd{A} keystroke is represented by all of these forms:
 
 @example
-        A       ?A      65      (A)     (?A)    (65)
+        ?A      A        65      (A)     (?A)    (65)
         [A]     [?A]    [65]    [(A)]   [(?A)]  [(65)]
 @end example
 
 the @kbd{control-a} keystroke is represented by these forms:
 
 @example
-        (control A)     (control ?A)    (control 65)
+        (control ?A)     (control A)    (control 65)
         [(control A)]   [(control ?A)]  [(control 65)]
 @end example
 
@@ -313,7 +305,7 @@ the key sequence @kbd{control-c control-a} is represented by these
 forms:
 
 @example
-        [(control c) (control a)]       [(control ?c) (control ?a)]
+        [(control ?c) (control ?a)]       [(control c) (control a)]
         [(control 99) (control 65)]     etc.
 @end example
 
@@ -338,11 +330,11 @@ actually bind both of those key sequences.  Likewise for the following
 pairs:
 
 @example
-                control h       backspace
-                control i       tab
-                control m       return
-                control j       linefeed
-                control [       escape
+                control ?h       backspace
+                control ?i       tab
+                control ?m       return
+                control ?j       linefeed
+                control ?[       escape
                 control @@      control space
 @end example
 
@@ -356,8 +348,8 @@ pairs:
 it is possible to redefine only one of those sequences like so:
 
 @example
-        (define-key global-map [(control x) (control i)] 'command-2)
-        (define-key global-map [(control x) tab] 'command-3)
+        (define-key global-map [(control ?x) (control ?i)] 'command-2)
+        (define-key global-map [(control ?x) tab] 'command-3)
 @end example
 
   Of course, all of this applies only when running under a window
@@ -367,9 +359,35 @@ don't get any of these features.
 @defun event-matches-key-specifier-p event key-specifier
 This function returns non-@code{nil} if @var{event} matches
 @var{key-specifier}, which can be any valid form representing a key
-sequence.  This can be useful, e.g., to determine if the user pressed
-@code{help-char} or @code{quit-char}.
+sequence, taking the console @var{event} into account.  This can be
+useful, e.g., to determine if the user pressed @code{help-char} or
+@code{quit-char}.
 @end defun
+
+@defun canonicalize-keysym keysym
+This function returns the canonical internal keysym corresponding to
+@code{keysym}. If @code{keysym} is a cons, it is taken to be a list of
+modifiers followed by a keysym, and a list may be returned (but a single
+keysym may be returned instead; see the documentation above about the
+shift modifier for those keys which have case). This makes it practical
+to use it to compare two specified keysyms. See the following examples:
+
+@example
+        (equal (canonicalize-keysym '(control shift a))
+               (canonicalize-keysym '(control ?A)))
+@result{} t
+        (equal (canonicalize-keysym
+        	(reverse '(escape meta alt control shift)))
+               (canonicalize-keysym
+        	'(control control shift shift alt meta alt shift alt escape)))
+@result{} t
+        (equal (canonicalize-keysym ?É)
+               (canonicalize-keysym '(shift alt ?e))) 
+@result{} nil
+        (equal (canonicalize-keysym ?É)
+               (canonicalize-keysym '(shift ?é)))
+@result{} t       
+@end example
 
 @node Prefix Keys, Active Keymaps, Key Sequences, Keymaps
 @section Prefix Keys

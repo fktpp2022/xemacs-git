@@ -5736,6 +5736,7 @@ EXFUN (Fmake_sparse_keymap, 1);
 EXFUN (Fset_keymap_parents, 2);
 
 Bytecount where_is_to_Ibyte (Lisp_Object, Ibyte *, Bytecount);
+Lisp_Object canonicalize_keysym (Lisp_Object, int *modifiers_inout);
 
 /* Defined in lread.c */
 EXFUN (Fread, 1);

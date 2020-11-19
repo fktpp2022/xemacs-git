@@ -620,8 +620,8 @@ WARNING: the event object returned may be a reused one; see the function
 	    switch (EVENT_TYPE (e))
 	      {
 	      case key_press_event:
-		if (!SYMBOLP (value) && !CHARP (value))
-		  invalid_argument ("Invalid event key", value);
+                /* No type checking just now, leave that to
+                   canonicalize_keysym() further down. */
 		SET_EVENT_KEY_KEYSYM (e, value);
 		break;
 	      default:
@@ -813,9 +813,14 @@ WARNING: the event object returned may be a reused one; see the function
   switch (EVENT_TYPE (e))
     {
     case key_press_event:
-      if (UNBOUNDP (EVENT_KEY_KEYSYM (e)))
-	sferror ("A key must be specified to make a keypress event",
-		      plist);
+      {
+        int modifiers = XEVENT_KEY_MODIFIERS (event);
+        /* We can call canonicalize_keysym() now we have all the
+           modifiers. Let it error if the keysym is still unbound. */
+        SET_EVENT_KEY_KEYSYM (e, canonicalize_keysym (EVENT_KEY_KEYSYM (e),
+                                                      &modifiers));
+        SET_EVENT_KEY_MODIFIERS (e, modifiers);
+      }
       break;
     case button_press_event:
       if (!EVENT_BUTTON_BUTTON (e))
@@ -1500,17 +1505,6 @@ format_event_object (Lisp_Object printcharfun, Lisp_Object event,
       {
 	mod = XEVENT_KEY_MODIFIERS (event);
 	key = XEVENT_KEY_KEYSYM (event);
-        /* Hack. */
-        if (! brief && CHARP (key) &&
-            mod & (XEMACS_MOD_CONTROL | XEMACS_MOD_META | XEMACS_MOD_SUPER |
-		   XEMACS_MOD_HYPER))
-	{
-	  Ichar k = XCHAR (key);
-	  if (k >= 'a' && k <= 'z')
-	    key = make_char (k - ('a' - 'A'));
-	  else if (k >= 'A' && k <= 'Z')
-	    mod |= XEMACS_MOD_SHIFT;
-	}
         break;
       }
     case button_release_event:
@@ -1564,15 +1558,21 @@ format_event_object (Lisp_Object printcharfun, Lisp_Object event,
       ABORT ();
       return 0;
     }
+
+  if (mod && !brief)
+    {
+      result += write_ascstring (printcharfun, "(");
+    }
+
 #define modprint(x,y)							\
   do { if (brief) result += write_ascstring (printcharfun, (y));	\
     else result += write_ascstring (printcharfun, (x)); } while (0)
-  if (mod & XEMACS_MOD_CONTROL) modprint ("control-", "C-");
-  if (mod & XEMACS_MOD_META)    modprint ("meta-",    "M-");
-  if (mod & XEMACS_MOD_SUPER)   modprint ("super-",   "S-");
-  if (mod & XEMACS_MOD_HYPER)   modprint ("hyper-",   "H-");
-  if (mod & XEMACS_MOD_ALT)	modprint ("alt-",     "A-");
-  if (mod & XEMACS_MOD_SHIFT)   modprint ("shift-",   "Sh-");
+  if (mod & XEMACS_MOD_CONTROL) modprint ("control ", "C-");
+  if (mod & XEMACS_MOD_META)    modprint ("meta ",    "M-");
+  if (mod & XEMACS_MOD_SUPER)   modprint ("super ",   "S-");
+  if (mod & XEMACS_MOD_HYPER)   modprint ("hyper ",   "H-");
+  if (mod & XEMACS_MOD_ALT)	modprint ("alt ",     "A-");
+  if (mod & XEMACS_MOD_SHIFT)   modprint ("shift ",   "Sh-");
   if (mouse_p)
     {
       result += write_ascstring (printcharfun, "button");
@@ -1584,6 +1584,11 @@ format_event_object (Lisp_Object printcharfun, Lisp_Object event,
   if (CHARP (key))
     {
       Ibyte str[MAX_ICHAR_LEN];
+
+      if (!brief)
+        {
+          result += write_ascstring (printcharfun, "?");
+        }
       result += write_string_1 (printcharfun, str,
 				set_itext_ichar (str, XCHAR (key)));
     }
@@ -1614,6 +1619,11 @@ format_event_object (Lisp_Object printcharfun, Lisp_Object event,
     ABORT ();
   if (mouse_p)
     result += write_ascstring (printcharfun, "up");
+
+  if (mod && !brief)
+    {
+      result += write_ascstring (printcharfun, ")");
+    }
 
   return result;
 }

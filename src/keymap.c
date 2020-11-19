@@ -467,24 +467,10 @@ control_meta_superify (Lisp_Object frob, int modifiers)
 }
 
 static Lisp_Object
-make_key_description (const Lisp_Key_Data *key, int prettify)
+make_key_description (const Lisp_Key_Data *key)
 {
-  Lisp_Object keysym = KEY_DATA_KEYSYM (key);
-  int modifiers = KEY_DATA_MODIFIERS (key);
-  if (prettify && CHARP (keysym))
-    {
-      /* This is a little slow, but (control a) is prettier than (control ?a).
-	 It's now ok to do this for digit-chars too, since we've fixed the
-	 bug where \9 read as the integer 9 instead of as the symbol with
-	 "9" as its name.
-       */
-      /* !!#### I'm not sure how correct this is. */
-      Ibyte str [1 + MAX_ICHAR_LEN];
-      Bytecount count = set_itext_ichar (str, XCHAR (keysym));
-      str[count] = 0;
-      keysym = intern ((const CIbyte *) str);
-    }
-  return control_meta_superify (keysym, modifiers);
+  return control_meta_superify (KEY_DATA_KEYSYM (key),
+                                KEY_DATA_MODIFIERS (key));
 }
 
 
@@ -1283,33 +1269,34 @@ Return the number of bindings in the keymap.
   return make_fixnum (keymap_fullness (get_keymap (keymap, 1, 1)));
 }
 
-
-/************************************************************************/
-/*                        Defining keys in keymaps                      */
-/************************************************************************/
+/* Perform any necessary canonicalization on KEYSYM, such that symbols whose
+   names comprise one printable character become just that character object,
+   among other things. Error if KEYSYM is not printable, is not the
+   appropriate type, or uses a GNU syntax that would otherwise silently fail
+   in XEmacs.
 
-/* Given a keysym (should be a symbol, int, char), make sure it's valid
-   and perform any necessary canonicalization. */
-
-static void
-define_key_check_and_coerce_keysym (Lisp_Object *keysym, int *modifiers_inout)
+   If MODIFIERS_INOUT is non-NULL, KEYSYM reflects a lower-case character, and
+   XEMACS_MOD_SHIFT is present in the corresponding modifier bits, transform
+   KEYSYM to upper case and remove XEMACS_MOD_SHIFT from the modifier bits. */
+Lisp_Object
+canonicalize_keysym (Lisp_Object keysym, int *modifiers_inout)
 {
   /* Now, check and massage the trailing keysym specifier. */
-  if (SYMBOLP (*keysym)
-      && ((itext_ichar_len (XSTRING_DATA (XSYMBOL (*keysym)->name))
-           == XSTRING_LENGTH (XSYMBOL (*keysym)->name)) ?
-          ((*keysym = make_char (string_ichar (XSYMBOL (*keysym)->name, 0))),
+  if (SYMBOLP (keysym)
+      && ((itext_ichar_len (XSTRING_DATA (XSYMBOL (keysym)->name))
+           == XSTRING_LENGTH (XSYMBOL (keysym)->name)) ?
+          ((keysym = make_char (string_ichar (XSYMBOL (keysym)->name, 0))),
            0) : 1))
     {
       DO_NOTHING;
     }
-  else if (CHAR_OR_CHAR_INTP (*keysym))
+  else if (CHAR_OR_CHAR_INTP (keysym))
     {
-      CHECK_CHAR_COERCE_INT (*keysym);
+      CHECK_CHAR_COERCE_INT (keysym);
 
-      if (!ISPRINT (XCHAR (*keysym)))
+      if (!ISPRINT (XCHAR (keysym)))
         {
-          invalid_argument ("keysym char must be printable", *keysym);
+          invalid_argument ("Keysym char must be printable", keysym);
         }
 
       if (modifiers_inout && (*modifiers_inout & XEMACS_MOD_SHIFT))
@@ -1322,16 +1309,16 @@ define_key_check_and_coerce_keysym (Lisp_Object *keysym, int *modifiers_inout)
              while accepting (define-key global-map '(?U) ...) is worse. It's
              better to go for the XEmacs decision in order to have at least a
              little bit of platform-independence.  */
-          Ichar uc = UPCASE (0, XCHAR (*keysym)), lc;
+          Ichar uc = UPCASE (0, XCHAR (keysym)), lc;
 
-          /* If our character can be made uppercase, bind its uppercase
+          /* If our character can be made uppercase, return its uppercase
              variant, and remove the shift modifier. */
-          if (uc != XCHAR (*keysym))
+          if (uc != XCHAR (keysym))
             {
-              *keysym = make_char (uc);
+              keysym = make_char (uc);
               *modifiers_inout &= ~XEMACS_MOD_SHIFT;
             }
-          else if ((lc = DOWNCASE (0, XCHAR (*keysym))) != XCHAR (*keysym))
+          else if ((lc = DOWNCASE (0, XCHAR (keysym))) != XCHAR (keysym))
             {
               /* If our character is already uppercase, then just remove the
                  shift modifier. */
@@ -1340,15 +1327,28 @@ define_key_check_and_coerce_keysym (Lisp_Object *keysym, int *modifiers_inout)
           /* Otherwise, we don't have any case information on the character,
              and so we preserve the shift modifier. */
         }
+
+      /* Space is the only printable character where we do not use the
+         character itself as the keysym. */
+      if (XCHAR (keysym) == ' ')
+        {
+          keysym = Qspace;
+        }
+
+      return keysym;
+    }
+  else if (UNBOUNDP (keysym))
+    {
+      invalid_argument ("No keysym specified", Qunbound);
     }
   else
     {
-      invalid_argument ("Unknown keysym specifier", *keysym);
+      invalid_argument ("Unknown keysym specifier", keysym);
     }
 
-  if (SYMBOLP (*keysym))
+  if (SYMBOLP (keysym))
     {
-      Lisp_Object name = XSYMBOL (*keysym)->name;
+      Lisp_Object name = XSYMBOL (keysym)->name;
 
       /* GNU Emacs uses symbols with the printed representation of keysyms in
 	 their names, like `M-x', and we use the syntax '(meta x).  So, to
@@ -1368,21 +1368,21 @@ define_key_check_and_coerce_keysym (Lisp_Object *keysym, int *modifiers_inout)
            && itext_ichar_eql (string_char_addr (name, 1), '-')
            /* Check for a function binding if the symbol looks like c-...,
               otherwise command remapping and C mode interact badly. */
-           && NILP (Ffunctionp (XSYMBOL_FUNCTION (*keysym))))
+           && NILP (Ffunctionp (XSYMBOL_FUNCTION (keysym))))
 	  /* Ok, this is a bit more dubious - prevent people from doing things
 	     like (global-set-key 'RET 'something) because that will have the
 	     same problem as above.  (Gag!)  Maybe we should just silently
 	     accept these as aliases for the "real" names?
 	     */
-          || (EQ (*keysym, QBS))
+          || (EQ (keysym, QBS))
           || (XSTRING_LENGTH (name) == 3 &&
-              (EQ (*keysym, QLFD) || EQ (*keysym, QTAB) ||
-               EQ (*keysym, QRET) || EQ (*keysym, QESC) ||
-               EQ (*keysym, QDEL) || EQ (*keysym, QSPC))))
+              (EQ (keysym, QLFD) || EQ (keysym, QTAB) ||
+               EQ (keysym, QRET) || EQ (keysym, QESC) ||
+               EQ (keysym, QDEL) || EQ (keysym, QSPC))))
         {
           invalid_argument
             ("Invalid (GNU Emacs) key format (see doc of define-key)",
-             *keysym);
+             keysym);
         }
       else if (XSTRING_LENGTH (name) > 3 &&
                !qxestrncmp_ascii (XSTRING_DATA (name), "kp_", 3))
@@ -1391,17 +1391,79 @@ define_key_check_and_coerce_keysym (Lisp_Object *keysym, int *modifiers_inout)
 	  DECLARE_EISTRING (temp);
 	  eicpy_lstr (temp, name);
 	  eisetch_char (temp, 2, '-');
-	  *keysym = Fintern_soft (eimake_string (temp), Qnil, Qnil);
+	  keysym = Fintern_soft (eimake_string (temp), Qnil, Qnil);
 	}
 #define FROB(num)				\
-      else if (EQ(*keysym, Qdown_mouse_##num))	\
-        *keysym = Qbutton##num;			\
-      else if (EQ(*keysym, Qmouse_##num))	\
-	*keysym = Qbutton##num##up;
+      else if (EQ (keysym, Qdown_mouse_##num))	\
+        keysym = Qbutton##num;			\
+      else if (EQ (keysym, Qmouse_##num))	\
+	keysym = Qbutton##num##up;
 #include "keymap-buttons.h"
+
+      else if (NILP (keysym))
+        {
+          warn_when_safe (Qkeymap, Qinfo,
+                          "`nil' keysym supplied to `canonicalize-keysym', "
+                          "likely a bug");
+        }
     }
+
+  return keysym;
 }
 
+DEFUN ("canonicalize-keysym", Fcanonicalize_keysym, 1, 1, 0, /*
+Return the canonical internal keysym corresponding to KEYSYM.
+
+This means that a KEYSYM where the name comprises one printable character
+becomes just that character object, that the character ?\x20 becomes the
+symbol `space', that symbol keysyms where the name starts with `kp_' have that
+transformed to `kp-', that `down-mouse-N' is transformed to `buttonN', and
+that `mouse-N' is transformed to `buttonNup'.
+
+Error if KEYSYM is not printable, is not the appropriate type, or uses a GNU
+syntax that would otherwise silently fail in XEmacs.
+
+If KEYSYM is a cons, it must be a list of modifiers followed by a keysym. In
+this case if that keysym reflects a lower-case character, and `shift' is
+present in the list of modifiers, transform KEYSYM to upper case, and remove
+`shift' from the list of modifiers. Return either the canonical internal
+keysym (if the list of modifiers is now empty), or the updated list of
+modifiers followed by the canonical internal keysym.
+*/
+       (keysym))
+{
+  int modifiers = 0;
+
+  if (CONSP (keysym))
+    {
+      /* First, parse out the modifier symbols. */
+      EXTERNAL_LIST_LOOP_3 (elt, keysym, rest)
+        {
+          int modifier = bucky_sym_to_bucky_bit (elt);
+          modifiers |= modifier;
+
+	  if (!NILP (XCDR (rest)))
+	    {
+	      if (!modifier)
+		invalid_argument ("Unknown modifier", elt);
+	    }
+	  else
+	    {
+	      if (modifier)
+		sferror ("Nothing but modifiers here", keysym);
+	    }
+        }
+      keysym = elt;
+    }
+
+  keysym = canonicalize_keysym (keysym, &modifiers);
+  return control_meta_superify (keysym, modifiers);
+}
+
+
+/************************************************************************/
+/*                        Defining keys in keymaps                      */
+/************************************************************************/
 
 /* Given any kind of key-specifier, return a keysym and modifier mask.
    Proper canonicalization is performed:
@@ -1467,8 +1529,8 @@ define_key_parser (Lisp_Object spec, Lisp_Key_Data *returned_value)
       /* Be nice, allow = to mean (=) */
       if (bucky_sym_to_bucky_bit (spec) != 0)
         invalid_argument ("Key is a modifier name", spec);
-      define_key_check_and_coerce_keysym (&spec, &modifiers);
-      SET_KEY_DATA_KEYSYM (returned_value, spec);
+      SET_KEY_DATA_KEYSYM (returned_value,
+                           canonicalize_keysym (spec, &modifiers));
       SET_KEY_DATA_MODIFIERS (returned_value, modifiers);
     }
   else if (CONSP (spec))
@@ -1494,14 +1556,13 @@ define_key_parser (Lisp_Object spec, Lisp_Key_Data *returned_value)
 	    }
 	}
 
-      define_key_check_and_coerce_keysym (&keysym, &modifiers);
-      SET_KEY_DATA_KEYSYM(returned_value, keysym);
+      SET_KEY_DATA_KEYSYM (returned_value,
+                           canonicalize_keysym (keysym, &modifiers));
       SET_KEY_DATA_MODIFIERS (returned_value, modifiers);
     }
   else
     {
-      invalid_argument ("Unknown key-sequence specifier",
-			   spec);
+      invalid_argument ("Unknown key-sequence specifier", spec);
     }
 }
 
@@ -2021,7 +2082,7 @@ it is possible to redefine only one of those sequences like so:
 	  {
 	    cmd = Fmake_sparse_keymap (Qnil);
 	    XKEYMAP (cmd)->name /* for debugging */
-	      = list2 (make_key_description (&raw_key1, 1), keymap);
+	      = list2 (make_key_description (&raw_key1), keymap);
 	    keymap_store (keymap, &raw_key1, cmd);
 	  }
 	if (NILP (Fkeymapp (cmd)))
@@ -2050,7 +2111,7 @@ remap_command (Lisp_Object keymap, Lisp_Object old, Lisp_Object new_)
     {
       cmd = Fmake_sparse_keymap (Qnil);
       XKEYMAP (cmd)->name /* for debugging */
-        = list2 (make_key_description (&parsed, 1), keymap);
+        = list2 (make_key_description (&parsed), keymap);
       keymap_store (keymap, &parsed, cmd);
     }
 
@@ -3289,7 +3350,7 @@ map_keymap_mapper (const Lisp_Key_Data *key,
       return;
     }
 
-  call2 (fn, make_key_description (key, 1), binding);
+  call2 (fn, make_key_description (key), binding);
 }
 
 
@@ -3405,7 +3466,7 @@ accessible_keymaps_mapper_1 (Lisp_Object keysym, Lisp_Object contents,
 
       for (j = 0; j < len; j++)
 	XVECTOR_DATA (vec) [j] = XVECTOR_DATA (thisseq) [j];
-      XVECTOR_DATA (vec) [j] = make_key_description (&key, 1);
+      XVECTOR_DATA (vec) [j] = make_key_description (&key);
 
       nconc2 (closure->tail, list1 (Fcons (vec, cmd)));
     }
@@ -3481,7 +3542,7 @@ then the value includes only maps for prefixes that start with PREFIX.
 	{
 	  Lisp_Key_Data key;
 	  define_key_parser (Faref (prefix, make_fixnum (iii)), &key);
-	  XVECTOR_DATA (p)[iii] = make_key_description (&key, 1);
+	  XVECTOR_DATA (p)[iii] = make_key_description (&key);
 	}
       NUNGCPRO;
       prefix = p;
@@ -3859,7 +3920,7 @@ raw_keys_to_keys (Lisp_Key_Data *keys, int count)
 {
   Lisp_Object result = make_vector (count, Qnil);
   while (count--)
-    XVECTOR_DATA (result) [count] = make_key_description (&(keys[count]), 1);
+    XVECTOR_DATA (result) [count] = make_key_description (&(keys[count]));
   return result;
 }
 
@@ -4700,6 +4761,7 @@ syms_of_keymap (void)
 
   DEFSUBR (Fcopy_keymap);
   DEFSUBR (Fkeymap_fullness);
+  DEFSUBR (Fcanonicalize_keysym);
   DEFSUBR (Fmap_keymap);
   DEFSUBR (Fevent_matches_key_specifier_p);
   DEFSUBR (Fdefine_key);

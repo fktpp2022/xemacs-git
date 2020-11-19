@@ -1,3 +1,14 @@
+2020-11-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* events.el (keyboard-translate):
+	Use `canonicalize-keysym' here, just introduced, so the keyboard
+	translate processing is more reliable.
+
+2020-11-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* events.el (keyboard-translate):
+	* events.el (set-character-of-keysym):
+
 2020-11-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* minibuf.el (read-coding-system):

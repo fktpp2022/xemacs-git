@@ -131,7 +131,8 @@ Multiple FROM-TO pairs may be specified.
 
 See `keyboard-translate-table' for more information."
   (while pairs
-    (puthash (pop pairs) (pop pairs) keyboard-translate-table)))
+    (puthash (pop pairs) (canonicalize-keysym (pop pairs))
+             keyboard-translate-table)))
 
 (defun set-character-of-keysym (keysym character)
   "Make CHARACTER be inserted when KEYSYM is pressed, 

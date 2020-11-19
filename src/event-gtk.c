@@ -1435,24 +1435,9 @@ gtk_event_to_emacs_event (struct frame *frame, GdkEvent *gdk_event, struct Lisp_
               {
                 modifiers &= (~XEMACS_MOD_SHIFT);
               }
-	    /* [ If this key contains two distinct keysyms, that is, "shift"
-                 generates a different keysym than the non-shifted key, then
-                 don't apply the shift modifier bit: it's implicit.
-                 Otherwise, if there would be no other way to tell the
-                 difference between the shifted and unshifted version of this
-                 key, apply the shift bit.  Non-graphics, like Backspace and
-                 F1 get the shift bit in the modifiers slot.  Neither the
-                 characters "a", "A", "2", nor "@" normally have the shift bit
-                 set.  However, "F1" normally does. ]
-
-               The above is very complicated, and the corresponding code in
-               event-Xt.c is complicated too. Bill Perry's late-90s approach,
-               below, however, is much simpler, and I can't find any problems
-               with it. Non-graphic characters won't have XEmacs characters as
-               their keysyms, graphic characters under GTK will have XEmacs
-               characters as their keysyms, and if the platform supplies us
-               with a graphic character, then we should strip the shift
-               mask. Aidan Kehoe, Do 29 Dez 2016 14:23:31 GMT */
+	    /* Non-graphics, like Backspace and F1 get the shift bit in the
+	       modifiers slot.  Neither the characters ?a, ?A, ?\2, nor ?@
+	       normally have the shift bit set.  However, F1 normally does. */
 	    else if (CHARP (keysym))
               {
                 modifiers &= ~XEMACS_MOD_SHIFT;

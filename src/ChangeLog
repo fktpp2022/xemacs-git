@@ -1,3 +1,41 @@
+2020-11-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* event-gtk.c (gtk_event_to_emacs_event):
+	Update one of the comments here.
+	* events.c (Fmake_event):
+	Call canonicalize_keysym() here, let it error if KEYSYM is not
+	specified, or if it is inappropriate as a keysym.
+	* events.c (format_event_object):
+	Print an event's keysym (and modifiers) in its canonical form,
+	hopefully making life a little easier for coders.
+	* keymap.c:
+	* keymap.c (make_key_description):
+	When the Lisp_Key_Data's keysym is a character, print it as such,
+	not as a symbol, since this is the canonical form and printing it
+	as a symbol brings very little.
+	No longer take a PRETTIFY arg.
+	* keymap.c (canonicalize_keysym): New.
+	Renamed from define_key_check_and_coerce_keysym().
+	Return the canonical form of the keysym, take a MODIFIERS_INOUT
+	pointer argument and update that if needed as was done previously.
+	* keymap.c (Fcanonicalize_keysym):
+	Make it available to Lisp. Take any modifiers if the keysym is
+	supplied as a list.
+	* keymap.c (define_key_parser):
+	Call the new name of canonicalize_keysym().
+	* keymap.c (Fdefine_key):
+	* keymap.c (remap_command):
+	* keymap.c (map_keymap_mapper):
+	* keymap.c (accessible_keymaps_mapper_1):
+	* keymap.c (Faccessible_keymaps):
+	* keymap.c (raw_keys_to_keys):
+	Call make_key_description() with its new calling convention in
+	these functions.
+	* keymap.c (syms_of_keymap):
+	Make Fcanonicalize_keysym() available as a Lisp subr.
+	* lisp.h:
+	Make canonicalize_keysym() available to other files.
+
 2020-11-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* doprnt.c:

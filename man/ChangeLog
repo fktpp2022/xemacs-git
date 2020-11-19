@@ -1,3 +1,10 @@
+2020-11-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/keymaps.texi:
+	* lispref/keymaps.texi (Key Sequences):
+	Prefer the character rather than the symbol keysym in this
+	documentation, since that is its canonical form.
+
 2020-10-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lispref/searching.texi (Syntax of Regexps):
