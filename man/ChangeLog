@@ -1,3 +1,8 @@
+2020-11-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/keymaps.texi (Key Sequences): End the open @defun for
+	canonicalize-keysym.
+
 2020-11-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lispref/keymaps.texi:

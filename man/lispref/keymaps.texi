@@ -388,6 +388,7 @@ to use it to compare two specified keysyms. See the following examples:
                (canonicalize-keysym '(shift ?é)))
 @result{} t       
 @end example
+@end defun
 
 @node Prefix Keys, Active Keymaps, Key Sequences, Keymaps
 @section Prefix Keys
