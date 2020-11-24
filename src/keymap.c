@@ -3341,16 +3341,28 @@ map_keymap_mapper (const Lisp_Key_Data *key,
                    void *function)
 {
   /* This function can GC */
-  Lisp_Object fn;
+  Lisp_Object fn, keysym = KEY_DATA_KEYSYM (key);
   fn = GET_LISP_FROM_VOID (function);
 
   /* Don't expose our remapping here. */
-  if (EQ (KEY_DATA_KEYSYM (key), Qxemacs_command_remapping))
+  if (EQ (keysym, Qxemacs_command_remapping))
     {
       return;
     }
 
-  call2 (fn, make_key_description (key), binding);
+  /* Follow the Lucid Emacs habit of passing one-character keysyms to Lisp as
+     symbols, a practice dating from when we didn't have characters distinct
+     from integers. */
+  if (CHARP (keysym))
+    {
+      Ibyte str[1 + MAX_ICHAR_LEN];
+      Bytecount count = set_itext_ichar (str, XCHAR (keysym));
+      str[count] = 0;
+      keysym = intern ((const CIbyte *) str);
+    }
+
+  call2 (fn, control_meta_superify (keysym, KEY_DATA_MODIFIERS (key)),
+         binding);
 }
 
 
@@ -3393,6 +3405,11 @@ If the optional third argument SORT-FIRST is non-nil, then the elements of
 the keymap will be passed to the mapper function in a canonical order.
 Otherwise, they will be passed in hash (that is, random) order, which is
 faster.
+
+The key-description list passed to FUNCTION has the quirk that any
+single-character keysym is passed as a symbol, rather than as its canonical
+character form. This is a longstanding XEmacs convention, dating back to when
+Lucid Emacs did not have a character type.
 */
      (function, keymap, sort_first))
 {

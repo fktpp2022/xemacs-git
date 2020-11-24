@@ -1,5 +1,11 @@
 2020-11-24  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* keymap.c (map_keymap_mapper):
+	Revert to passing one-character keysyms to Lisp as symbols from
+	#'map-keymap, as we have since Lucid Emacs.
+
+2020-11-24  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* line-number.c (get_nearest_line_number):
 	Avoid a crash with error checking turned on, ignore detached
 	extents here (they mean the relevant text has been deleted).
