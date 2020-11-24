@@ -270,17 +270,24 @@ get_nearest_line_number (struct buffer *b, Bytebpos *beg, Bytebpos pos,
   /* Find the ring entry closest to POS, if it is closer than BEG. */
   for (i = 0; i < LINE_NUMBER_RING_SIZE && CONSP (ring[i]); i++)
     {
-      Bytebpos newpos
-        = membpos_to_bytebpos (b, extent_start (XEXTENT (XCAR (ring[i]))));
-      Bytecount howfar = newpos - pos;
-      if (howfar < 0)
-	howfar = -howfar;
-      if (howfar < length)
-	{
-	  length = howfar;
-	  *beg = newpos;
-	  *line = XFIXNUM (XCDR (ring[i]));
-	}
+      if (extent_detached_p (XEXTENT (XCAR (ring[i]))))
+        {
+          continue;
+        }
+      else
+        {
+          Bytebpos newpos
+            = membpos_to_bytebpos (b, extent_start (XEXTENT (XCAR (ring[i]))));
+          Bytecount howfar = newpos - pos;
+          if (howfar < 0)
+            howfar = -howfar;
+          if (howfar < length)
+            {
+              length = howfar;
+              *beg = newpos;
+              *line = XFIXNUM (XCDR (ring[i]));
+            }
+        }
     }
 }
 

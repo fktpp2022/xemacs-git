@@ -1,5 +1,11 @@
 2020-11-24  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* line-number.c (get_nearest_line_number):
+	Avoid a crash with error checking turned on, ignore detached
+	extents here (they mean the relevant text has been deleted).
+
+2020-11-24  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Move a couple more functions from C to Lisp.
 	* cmds.c:
 	* cmds.c (Fpoint_at_eol):
