@@ -1,3 +1,15 @@
+2020-11-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Move a couple more functions from C to Lisp.
+	* cmds.c:
+	* cmds.c (Fpoint_at_eol):
+	Document difficulty implementing #'point-at-bol in terms of
+	#'point-of-eol.
+	* cmds.c (Fdelete_backward_char): Move this to simple.el, its lisp
+	implementation is trivial.
+	* device.c:
+	Move Fget_device to device.el, its Lisp implementation is trivial.
+
 2020-11-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* event-gtk.c (gtk_event_to_emacs_event):

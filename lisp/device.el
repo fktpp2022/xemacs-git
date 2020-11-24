@@ -59,6 +59,19 @@ Value is `tty' for a tty device (a character-only terminal),
   (if (not (device-live-p device)) 'dead
     (console-type (device-console device))))
 
+(defun get-device (&optional connection type)
+  "Look for an existing device attached to connection CONNECTION.
+Return the device if found; otherwise, signal an error.
+
+If TYPE is specified, only return devices of that type; otherwise,
+return devices of any type. (It is possible, although unlikely,
+that two devices of different types could have the same connection
+name; in such a case, the first device found is returned.)"
+  (or (find-device connection type)
+      (if type
+          (error 'invalid-argument "No such device" type connection)
+        (error 'invalid-argument "No such device" connection))))
+
 (defun make-tty-device (&optional tty terminal-type controlling-process)
   "Create a new device on TTY.
   TTY should be the name of a tty device file (e.g. \"/dev/ttyp3\" under

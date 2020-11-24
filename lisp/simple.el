@@ -486,6 +486,14 @@ column specified by the function `current-left-margin'."
   (if (eq arg '-) (setq arg -1))
   (kill-region (point) (+ (point) arg)))
 
+(defun delete-backward-char (count killp)
+  "Delete the previous COUNT characters (following, with negative COUNT).
+Optional second arg KILLP non-nil means kill instead (save in kill ring).
+Interactively, COUNT is the prefix arg, and KILLP is set if
+COUNT was explicitly specified."
+  (interactive "*p\nP")
+  (delete-char (- (or count 1)) killp))
+
 (defun backward-delete-char-untabify (arg &optional killp)
   "Delete characters backward, changing tabs into spaces.
 Delete ARG chars, and kill (save in kill ring) if KILLP is non-nil.

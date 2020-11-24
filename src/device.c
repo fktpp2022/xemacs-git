@@ -579,28 +579,6 @@ name; in such a case, the first device found is returned.)
     }
 }
 
-DEFUN ("get-device", Fget_device, 1, 2, 0, /*
-Look for an existing device attached to connection CONNECTION.
-Return the device if found; otherwise, signal an error.
-
-If TYPE is specified, only return devices of that type; otherwise,
-return devices of any type. (It is possible, although unlikely,
-that two devices of different types could have the same connection
-name; in such a case, the first device found is returned.)
-*/
-       (connection, type))
-{
-  Lisp_Object device = Ffind_device (connection, type);
-  if (NILP (device))
-    {
-      if (NILP (type))
-	invalid_argument ("No such device", connection);
-      else
-	invalid_argument_2 ("No such device", type, connection);
-    }
-  return device;
-}
-
 static Lisp_Object
 delete_deviceless_console (Lisp_Object console)
 {
@@ -1445,7 +1423,6 @@ syms_of_device (void)
   DEFSUBR (Fdevice_connection);
   DEFSUBR (Fdevice_console);
   DEFSUBR (Ffind_device);
-  DEFSUBR (Fget_device);
   DEFSUBR (Fmake_device);
   DEFSUBR (Fdefault_device);
   DEFSUBR (Fdelete_device);

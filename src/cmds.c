@@ -217,6 +217,8 @@ This function does not move point.
 
   if (shortage == 0)
     {
+      /* The SHORTAGE handling means we can't easily do a Lisp implementation
+         of #'point-at-bol in terms of #'point-at-eol, or vice versa. */
       pos = prev_bytebpos (buf, pos);
     }
 
@@ -267,28 +269,6 @@ COUNT was explicitly specified.
       call1 (Qkill_forward_chars, count);
     }
   return Qnil;
-}
-
-DEFUN ("delete-backward-char", Fdelete_backward_char, 0, 2, "*p\nP", /*
-Delete the previous COUNT characters (following, with negative COUNT).
-Optional second arg KILLP non-nil means kill instead (save in kill ring).
-Interactively, COUNT is the prefix arg, and KILLP is set if
-COUNT was explicitly specified.
-*/
-       (count, killp))
-{
-  /* This function can GC */
-  EMACS_INT n;
-
-  if (NILP (count))
-    n = 1;
-  else
-    {
-      CHECK_FIXNUM (count);
-      n = XFIXNUM (count);
-    }
-
-  return Fdelete_char (make_fixnum (- n), killp);
 }
 
 static void internal_self_insert (Ichar ch, int noautofill);
@@ -494,7 +474,6 @@ syms_of_cmds (void)
   DEFSUBR (Fpoint_at_eol);
 
   DEFSUBR (Fdelete_char);
-  DEFSUBR (Fdelete_backward_char);
 
   DEFSUBR (Fself_insert_command);
   DEFSUBR (Fself_insert_internal);
