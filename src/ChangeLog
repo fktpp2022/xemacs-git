@@ -1,3 +1,30 @@
+2020-11-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* config.h.in:
+	Include an entry here for HAVE_STRSIGNAL.
+	* text.h:
+	Provide a GET_STRSIGNAL macro here, on the model of GET_STRERROR,
+	creating a stack-allocated internal format string corresponding
+	to a given signal number.
+	* process-unix.c (unix_reap_exited_processes):
+	Use GET_STRSIGNAL().
+	* process.c:
+	Remove signal_name(), which duplicates strsignal().
+	* process.c (update_process_status):
+	Use GET_STRSIGNAL().
+	* process.c (status_message):
+	Use GET_STRSIGNAL().
+	* process.h:
+	Remove the declaration for signal_name().
+	* sysdep.c:
+	* sysdep.c (wait_for_termination):
+	Use GET_STRSIGNAL(), copy it to the heap for synch_process_death.
+	* sysdep.c (strsignal):
+	Implement strsignal() in terms of sys_siglist[] for those systems
+	without strsignal().
+	* syssignal.h:
+	Don't force sys_siglist[] to be declared.
+
 2020-11-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* keymap.c (map_keymap_mapper):

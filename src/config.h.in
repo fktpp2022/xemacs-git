@@ -336,7 +336,9 @@ things are arranged in config.h.in.  In particular:
 #undef HAVE_LIBDNET
 #undef HAVE_LIBRESOLV
 
-/* Is `sys_siglist' declared by <signal.h>? */
+#undef HAVE_STRSIGNAL
+
+/* If we don't HAVE_STRSIGNAL, is `sys_siglist' declared by <signal.h>? */
 #undef HAVE_DECL_SYS_SIGLIST
 
 /* Is `struct timeval' declared by <sys/time.h>? */

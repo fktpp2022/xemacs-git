@@ -4055,4 +4055,23 @@ do {								\
     var = EXTERNAL_TO_ITEXT (__gserr__, Qstrerror_encoding);	\
 } while (0)
 
+
+#define GET_STRSIGNAL(var, num)					\
+do {								\
+  int __gssnum__ = (num);					\
+  Extbyte * __gsserr__ = strsignal (__gssnum__);		\
+								\
+  if (!__gsserr__)						\
+    {								\
+      Bytecount __varsize__ = sizeof ("Unknown signal ") +	\
+	      DECIMAL_PRINT_SIZE (__gssnum__);			\
+      var = alloca_ibytes (__varsize__);                        \
+      emacs_snprintf (var, __varsize__, "Unknown signal %d",	\
+                      __gssnum__);				\
+    }								\
+  else								\
+    var = EXTERNAL_TO_ITEXT (__gsserr__, Qnative);		\
+} while (0)
+
+
 #endif /* INCLUDED_text_h_ */

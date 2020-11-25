@@ -73,7 +73,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "syswait.h"
 
 #include <setjmp.h>
-
+#include <string.h>
 
 /* ------------------------------- */
 /*         TTY definitions         */
@@ -118,7 +118,7 @@ static int baud_convert[] =
 volatile int synch_process_alive;
 
 /* Nonzero => this is a string explaining death of synchronous subprocess.  */
-const char *synch_process_death;
+const Ibyte *synch_process_death;
 
 /* If synch_process_death is zero,
    this is exit code of synchronous subprocess.  */
@@ -291,7 +291,20 @@ wait_for_termination (pid_t pid)
       if (WIFEXITED (status))
 	synch_process_retcode = WEXITSTATUS (status);
       else if (WIFSIGNALED (status))
-	synch_process_death = signal_name (WTERMSIG (status));
+	{
+	  Ibyte *spd;
+
+	  GET_STRSIGNAL (spd, WTERMSIG (w));
+
+	  if (synch_process_death)
+	    {
+	      xfree ((void *) synch_process_death);
+	    }
+
+	  /* Move the string to the heap. */
+	  synch_process_death = qxestrdup (spd);
+	}
+
     }
   /* On exiting the loop, ret will be -1, with errno set to ECHILD if
      the child has already been reaped, e.g. in the signal handler.  */
@@ -3519,6 +3532,7 @@ get_random (void)
 /************************************************************************/
 /*               Strings corresponding to defined signals               */
 /************************************************************************/
+#ifndef HAVE_STRSIGNAL
 
 #if (!defined(HAVE_DECL_SYS_SIGLIST) || !HAVE_DECL_SYS_SIGLIST ) && !defined (HAVE_SYS_SIGLIST)
 
@@ -3647,6 +3661,15 @@ const char *sys_siglist[NSIG + 1] =
 
 #endif /* (!defined(HAVE_DECL_SYS_SIGLIST) || !HAVE_DECL_SYS_SIGLIST ) && !defined (HAVE_SYS_SIGLIST) */
 
+char *
+strsignal (int signum)
+{
+  if (signum >= 0 && signum < NSIG)
+    return (char *) (sys_siglist[signum]);
+
+  return GETTEXT ("unknown signal");
+}
+#endif
 
 /************************************************************************/
 /*         Directory routines for systems that don't have them          */

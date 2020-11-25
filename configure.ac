@@ -2612,14 +2612,14 @@ AC_CHECK_HEADERS(dnl
 AC_HEADER_SYS_WAIT
 AC_HEADER_STDC
 AC_HEADER_TIME
-AC_CHECK_DECLS([sys_siglist],,,
+
+AC_CHECK_FUNCS(strsignal, ,AC_CHECK_DECLS([sys_siglist],,,
 [#include <signal.h>
 /* NetBSD declares sys_siglist in unistd.h.  */
 #if HAVE_UNISTD_H
 # include <unistd.h>
 #endif
-])
-
+]))
 
 dnl ----------------------------------------------------------------
 dnl Checking for utime() or utimes().

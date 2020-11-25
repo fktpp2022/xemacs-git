@@ -1642,15 +1642,6 @@ See `set-process-sentinel' for more info on sentinels.
 }
 
 
-const char *
-signal_name (int signum)
-{
-  if (signum >= 0 && signum < NSIG)
-    return (const char *) sys_siglist[signum];
-
-  return (const char *) GETTEXT ("unknown signal");
-}
-
 void
 update_process_status (Lisp_Object p,
 		       Lisp_Object status_symbol,
@@ -1676,7 +1667,10 @@ status_message (Lisp_Process *p)
 
   if (EQ (symbol, Qsignal) || EQ (symbol, Qstop))
     {
-      string = build_cistring (signal_name (code));
+      Ibyte *istring;
+
+      GET_STRSIGNAL (istring, code);
+      string = build_istring (istring);
       if (coredump)
 	string2 = build_msg_string (" (core dumped)\n");
       else

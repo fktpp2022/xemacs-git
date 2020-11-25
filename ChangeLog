@@ -1,3 +1,10 @@
+2020-11-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* configure.ac: Check for strsignal().
+	Only in its absence check for sys_siglist, which recent glibc no
+	longer provides given its lack of thread safety.
+	* configure: Regenerate.
+
 2020-03-29  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* configure.ac:

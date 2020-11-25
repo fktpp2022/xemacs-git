@@ -101,7 +101,6 @@ void kick_status_notify (void);
 void deactivate_process (Lisp_Object proc);
 Bytecount read_process_output (Lisp_Object proc, int read_stderr);
 int process_has_separate_stderr (Lisp_Object proc);
-const char *signal_name (int signum);
 Lisp_Object canonicalize_host_name (Lisp_Object host);
 
 END_C_DECLS

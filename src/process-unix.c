@@ -1472,7 +1472,18 @@ unix_reap_exited_processes (void)
 	      if (WIFEXITED (w))
 		synch_process_retcode = WEXITSTATUS (w);
 	      else if (WIFSIGNALED (w))
-		synch_process_death = signal_name (WTERMSIG (w));
+		{
+		  Ibyte *spd;
+		  GET_STRSIGNAL (spd, WTERMSIG (w));
+
+		  if (synch_process_death != NULL)
+		    {
+		      xfree ((void *)synch_process_death);
+		    }
+
+		  /* Move the string to the heap. */
+		  synch_process_death = qxestrdup (spd);
+		}
 	    }
         }
 #endif /* NEED_SYNC_PROCESS_CODE */
