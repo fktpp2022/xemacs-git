@@ -3537,7 +3537,7 @@ get_random (void)
 #if (!defined(HAVE_DECL_SYS_SIGLIST) || !HAVE_DECL_SYS_SIGLIST ) && !defined (HAVE_SYS_SIGLIST)
 
 #if defined(WIN32_NATIVE) || defined(CYGWIN)
-const char *sys_siglist[] =
+const Ascbyte *sys_siglist[] =
   {
     /* @@@begin-snarf@@@ */
     "bum signal!!",
@@ -3572,7 +3572,7 @@ const char *sys_siglist[] =
 
 #ifdef USG
 #ifdef AIX
-const char *sys_siglist[NSIG + 1] =
+const Ascbyte *sys_siglist[NSIG + 1] =
   {
     /* AIX has changed the signals a bit */
     /* @@@begin-snarf@@@ */
@@ -3608,7 +3608,7 @@ const char *sys_siglist[NSIG + 1] =
     0
   };
 #else /* USG, not AIX */
-const char *sys_siglist[NSIG + 1] =
+const Ascbyte *sys_siglist[NSIG + 1] =
   {
     /* @@@begin-snarf@@@ */
     "bogus signal",				/* 0 */
@@ -3665,10 +3665,16 @@ char *
 strsignal (int signum)
 {
   if (signum >= 0 && signum < NSIG)
-    return (char *) (sys_siglist[signum]);
+    {
+#if (!defined(HAVE_DECL_SYS_SIGLIST) || !HAVE_DECL_SYS_SIGLIST ) && !defined (HAVE_SYS_SIGLIST)
+      ASSERT_ASCTEXT_ASCII (sys_siglist[signum]);
+#endif
+      return (char *) (sys_siglist[signum]);
+    }
 
-  return GETTEXT ("unknown signal");
+  return (char *) GETTEXT ("unknown signal");
 }
+
 #endif
 
 /************************************************************************/

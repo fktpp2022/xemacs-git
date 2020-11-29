@@ -116,6 +116,8 @@ char *strlwr (char *);
 char *strupr (char *);
 #endif
 
+#include "syssignal.h"
+
 
 /************************************************************************/
 /*                  Unicode properties and codepoints                   */
@@ -4070,7 +4072,7 @@ do {								\
                       __gssnum__);				\
     }								\
   else								\
-    var = EXTERNAL_TO_ITEXT (__gsserr__, Qnative);		\
+    var = EXTERNAL_TO_ITEXT (__gsserr__, Qstrsignal_encoding);  \
 } while (0)
 
 

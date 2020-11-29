@@ -1,3 +1,22 @@
+2020-11-29  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Be more careful about the encoding of text from strsignal().
+
+	* sysdep.c:
+	Declare the XEmacs-provided sys_siglists as arrays of Ascbyte *,
+	emphasising that we don't plan to put any non-ASCII into them.
+	* sysdep.c (strsignal):
+	If using one of our sys_siglist, do an ASSERT_ASCTEXT_ASCII() so
+	we're certain our coding system handling is sane.
+	* syssignal.h:
+	Declare strsignal() as extern.
+	Provide a Qstrsignal_encoding, equivalent to Qnative if we have a
+	system-provided strsignal() or a system-provided sys_siglist[],
+	equivalent to Qbinary otherwise.
+	* text.h:
+	* text.h (GET_STRSIGNAL):
+	Use Qstrsignal_encoding here.
+
 2020-11-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* config.h.in:

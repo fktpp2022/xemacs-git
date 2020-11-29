@@ -282,5 +282,13 @@ mswindows_sighandler mswindows_sigset (int sig, mswindows_sighandler handler);
 signal_handler_t set_timeout_signal (int signal_number,
 				     signal_handler_t action);
 
+extern char *strsignal (int);
+
+#if defined(HAVE_STRSIGNAL) || defined(HAVE_DECL_SYS_SIGLIST) || HAVE_DECL_SYS_SIGLIST || defined (HAVE_SYS_SIGLIST)
+#define Qstrsignal_encoding Qnative
+#else
+#define Qstrsignal_encoding Qbinary /* Qascii would be nice, but that doesn't
+                                       exist as a coding system.  */
+#endif
 
 #endif /* INCLUDED_syssignal_h_ */
