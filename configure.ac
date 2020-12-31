@@ -5178,6 +5178,7 @@ if test "$with_tty" = "yes"  ; then
   if test -z "$with_ncurses"; then
     if pkg-config --exists ncurses; then
       ac_save_LIBS="$LIBS"
+      auto_libs=yes
       XE_PREPEND(`pkg-config --libs ncurses`, LIBS);
       AC_CHECK_FUNC(tgetent, with_ncurses=yes, with_ncurses=no)
       if test "$with_ncurses" = "yes"; then
@@ -5188,16 +5189,27 @@ if test "$with_tty" = "yes"  ; then
     else
       AC_CHECK_LIB(ncurses, tgetent, with_ncurses=yes, with_ncurses=no)
       if test "$with_ncurses" = "yes"; then
+        auto_ncurses_libs=yes
         XE_PREPEND(-lncurses, LIBS)
+      else
+        auto_ncurses_libs=no
       fi
     fi
+  else
+    auto_ncurses_libs=no
   fi
   if test "$with_ncurses" = "yes"; then
     AC_DEFINE(HAVE_NCURSES)
     AC_CHECK_HEADER(ncurses/curses.h, curses_h_file=ncurses/curses.h)
     AC_CHECK_HEADER(ncurses/term.h, term_h_file=ncurses/term.h)
     XE_ADD_OBJS(terminfo.o)
-
+    if test "$auto_ncurses_libs" = "no"; then
+      if pkg-config --exists ncurses; then
+        XE_PREPEND(`pkg-config --libs ncurses`, LIBS);
+      else
+        XE_PREPEND(-lncurses, LIBS)            
+      fi
+    fi
     if test "$ac_cv_header_ncurses_curses_h" != "yes" ; then
       dnl Try again, and check for the bogus ncurses/ include bug.
       dnl (i.e. ncurses/curses.h bogusly includes <unctrl.h> instead of
