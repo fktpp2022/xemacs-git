@@ -5178,7 +5178,7 @@ if test "$with_tty" = "yes"  ; then
   if test -z "$with_ncurses"; then
     if pkg-config --exists ncurses; then
       ac_save_LIBS="$LIBS"
-      auto_libs=yes
+      auto_ncurses_libs=yes
       XE_PREPEND(`pkg-config --libs ncurses`, LIBS);
       AC_CHECK_FUNC(tgetent, with_ncurses=yes, with_ncurses=no)
       if test "$with_ncurses" = "yes"; then
@@ -5205,9 +5205,9 @@ if test "$with_tty" = "yes"  ; then
     XE_ADD_OBJS(terminfo.o)
     if test "$auto_ncurses_libs" = "no"; then
       if pkg-config --exists ncurses; then
-        XE_PREPEND(`pkg-config --libs ncurses`, LIBS);
+        XE_PREPEND(`pkg-config --libs ncurses`, LIBS)
       else
-        XE_PREPEND(-lncurses, LIBS)            
+        XE_PREPEND(-lncurses, LIBS)
       fi
     fi
     if test "$ac_cv_header_ncurses_curses_h" != "yes" ; then

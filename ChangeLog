@@ -1,3 +1,10 @@
+2021-01-01  Henry S. Thompson  <ht@home.hst.name>
+
+	* configure.ac: make explicit --with-ncurses work again
+	--with-ncurses stopped working as a result of the 2020-03-29
+	change that made it unnecessary, fixed.
+	* configure: Regenerate.
+
 2020-11-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* configure.ac: Check for strsignal().
