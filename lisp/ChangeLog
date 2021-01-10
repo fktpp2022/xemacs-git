@@ -1,3 +1,15 @@
+2021-01-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecomp.el (byte-compile-file):
+	When loading TARGET-FILE, pass a non-nil NOSUFFIX argument to
+	#'load, avoiding issues when FILENAME.elc.elc exists in the target
+	directory.
+	* code-files.el (load):
+	Warn if FILENAME.elc was supplied, NOSUFFIX is nil, and
+	#'locate-file returned FILENAME.elc.elc.
+	Don't error, this is rare and there may be compatibility issues if
+	we do that.
+
 2020-12-28  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* simple.el (delete-backward-char):

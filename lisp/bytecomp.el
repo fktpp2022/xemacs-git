@@ -2002,7 +2002,7 @@ With prefix arg (noninteractively: 2nd arg), load the file after compiling."
 	  (save-excursion
 	    (display-call-tree filename)))
       (if load
-	  (load target-file))
+	  (load target-file nil nil t))
       t)))
 
 ;; RMS comments the next two out.

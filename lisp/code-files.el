@@ -293,6 +293,19 @@ Return t if file exists."
          (message "%s%s %s... (file %s is out-of-date)" spaces
                   (if (eq nomessage 'require) "Requiring" "Loading")
                   (if load-show-full-path-in-messages path filename) old))
+       (when (and (not nosuffix) (position ?. filename)
+                  (> (count ?. path) (count ?. filename))
+                  (not (equal (file-name-sans-extension filename)
+                              (file-name-sans-extension path))))
+         (lwarn 'locate-file 'critical
+           (format "Attempting to %s:
+
+Filename `%s' already has an extension, locate-file gave us an existing file \
+with a further extension, `%s'. This is unlikely to be intended.
+
+Our caller should pass the NOSUFFIX argument to `load'."
+                   (if (eq nomessage 'require) "require" "load")
+                   filename path)))
        ;; Now use #'load-internal to actually load the file.
        (prog1
            (load-internal
