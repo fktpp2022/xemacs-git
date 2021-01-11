@@ -1,5 +1,32 @@
 2021-01-11  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Move various number predicates to Lisp, they are easily and cheaply
+	implemented there and their implementation is independent of
+	whether the current process has support for bignums, ratios,
+	bigfloats.
+
+	* data.c:
+	* data.c (Fnumerator, Fdenominator): Move these here from
+	number.c, so they are available (and trivial) on builds without
+	support for ratios.
+	* data.c (syms_of_data):
+	Add them here.
+
+	* general-slots.h:
+	Add symbols for some type predicates, moved from C to Lisp today.
+
+	* number.c: (Fbignump, Fratiop, Frationalp, Fbigfloatp,
+	Ffloatingp, Frealp): Removed, now in lisp/cl-extra.el.
+	* number.c (Fnumerator, Fdenominator): Moved to data.c.
+	* number.c (syms_of_number):
+	Update this function to reflect the above changes.
+
+	* number.h:
+	Update this file to reflect changes in number.c. In passing remove
+	declarations for Fintegerp(), Fevenp(), Foddp(), now in Lisp.
+
+2021-01-11  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Move Fcar_safe(), Fcdr_safe(), Fcopy_sequence(), Fintegerp(),
 	Fwrong_type_argument() to Lisp.
 

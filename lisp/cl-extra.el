@@ -920,7 +920,35 @@ most significant non-zero bit."
                       (% integer 16)))
             integer (/ integer 16)))
     count))
+
+;; Type checking for the enhanced numeric types. These will all
+;; appropriately give nil if the corresponding enhanced type is not
+;; available in this XEmacs.
 
+(defsubst* bignump (object)
+  "Return t if OBJECT is a bignum, nil otherwise."
+  (eq (type-of object) 'bignum))
+
+(defsubst* ratiop (object)
+  "Return t if OBJECT is a ratio, nil otherwise."
+  (eq (type-of object) 'ratio))
+
+(defsubst* rationalp (object)
+  "Return t if OBJECT is a rational, nil otherwise."
+  (and (member* (type-of object) '(fixnum bignum ratio)) t))
+
+(defsubst* bigfloatp (object)
+  "Return t if OBJECT is a bigfloat, nil otherwise."
+  (eq (type-of object) 'bigfloat))
+
+(defsubst* floatingp (object)
+  "Return t if OBJECT is a floating point number of any kind, nil otherwise."
+  (and (member* (type-of object) '(float bigfloat)) t))
+
+(defsubst* realp (object)
+  "Return t if OBJECT is a real, nil otherwise."
+  (or (rationalp object) (floatingp object)))
+
 ;; These are here because labels and symbol-macrolet are not available in
 ;; obsolete.el. They are, however, all marked as obsolete in that file.
 (symbol-macrolet ((not-nil '#:not-nil))

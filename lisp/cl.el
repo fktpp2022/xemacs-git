@@ -259,7 +259,9 @@ is the prefix, otherwise the prefix defaults to \"G\".  If ARG is an integer,
 the internal counter is reset to that number before creating the name.
 There is no way to specify both using this function."
   (let ((prefix (if (stringp arg) arg "G"))
-	(num (if (integerp arg) arg
+	(num (if (or (fixnump arg) (and (numberp arg)
+                                        (eq (type-of arg) 'bignum)))
+                 arg
 	       (prog1 *gensym-counter*
 		 (setq *gensym-counter* (1+ *gensym-counter*))))))
     (make-symbol (format "%s%d" prefix num))))

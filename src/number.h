@@ -157,10 +157,6 @@ typedef void bignum;
 #define make_bignum_bg(b)  This XEmacs does not support bignums
 
 #endif /* HAVE_BIGNUM */
-
-extern Lisp_Object Qbignump;
-EXFUN (Fbignump, 1);
-
 
 /********************************* Integers *********************************/
 /* Qintegerp in lisp.h */
@@ -201,9 +197,6 @@ EXFUN (Fbignump, 1);
 #endif
 
 extern Fixnum Vmost_negative_fixnum, Vmost_positive_fixnum;
-EXFUN (Fintegerp, 1);
-EXFUN (Fevenp, 1);
-EXFUN (Foddp, 1);
 
 /* There are varying mathematical definitions of what a natural number is,
    differing about whether 0 is inside or outside the set. The Oxford
@@ -293,13 +286,8 @@ typedef void ratio;
 
 #endif /* HAVE_RATIO */
 
-extern Lisp_Object Qratiop;
-EXFUN (Fratiop, 1);
-
 
 /******************************** Rationals *********************************/
-extern Lisp_Object Qrationalp;
-
 #define RATIONALP(x) (INTEGERP(x) || RATIOP(x))
 #define CHECK_RATIONAL(x) do {			\
  if (!RATIONALP (x))				\
@@ -310,7 +298,6 @@ extern Lisp_Object Qrationalp;
    x = wrong_type_argument (Qrationalp, x);	\
 }  while (0)
 
-EXFUN (Frationalp, 1);
 EXFUN (Fnumerator, 1);
 EXFUN (Fdenominator, 1);
 
@@ -365,12 +352,8 @@ typedef void bigfloat;
 #define make_bigfloat_bf(f)  This XEmacs does not support bigfloast
 
 #endif /* HAVE_BIGFLOAT */
-
-extern Lisp_Object Qbigfloatp;
-EXFUN (Fbigfloatp, 1);
 
 /********************************* Floating *********************************/
-extern Lisp_Object Qfloatingp;
 extern Lisp_Object Qread_default_float_format, Vread_default_float_format;
 
 #define FLOATINGP(x) (FLOATP (x) || BIGFLOATP (x))
@@ -388,8 +371,6 @@ EXFUN (Ffloatp, 1);
 
 
 /********************************** Reals ***********************************/
-extern Lisp_Object Qrealp;
-
 #define REALP(x) (RATIONALP (x) || FLOATINGP (x))
 #define CHECK_REAL(x) do {			\
  if (!REALP (x))				\
@@ -400,11 +381,8 @@ extern Lisp_Object Qrealp;
    x = wrong_type_argument (Qrealp, x);		\
 }  while (0)
 
-EXFUN (Frealp, 1);
-
 
 /********************************* Numbers **********************************/
-/* Qnumberp in lisp.h */
 #define NUMBERP(x) REALP (x)
 #define CHECK_NUMBER(x) do {			\
   if (!NUMBERP (x))				\

@@ -1,5 +1,20 @@
 2021-01-11  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* cl-extra.el (bignump): New.
+	* cl-extra.el (ratiop): New.
+	* cl-extra.el (rationalp): New.
+	* cl-extra.el (bigfloatp): New.
+	* cl-extra.el (floatingp): New.
+	* cl-extra.el (realp): New.
+	Move all these from number.c.
+	They are very short and mostly translate to one funcall +/- a
+	couple of bytecodes, make them available with defsubst*.
+	* make-docfile.el (docfile-out-of-date):
+	#'integerp no longer available on bare-metal XEmacs, and it is only
+	relevant if STATUS is zero; use #'fixnump instead.
+
+2021-01-11  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Move some further simple functions to Lisp from C.
 	* subr.el:
 	* subr.el (integerp): New.

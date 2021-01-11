@@ -150,17 +150,6 @@ DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("bignum", bignum, 0, bignum_print,
 					bignum_equal, bignum_hash,
 					bignum_description, Lisp_Bignum); 
 #endif /* HAVE_BIGNUM */
-
-Lisp_Object Qbignump;
-
-DEFUN ("bignump", Fbignump, 1, 1, 0, /*
-Return t if OBJECT is a bignum, nil otherwise.
-*/
-       (object))
-{
-  return BIGNUMP (object) ? Qt : Qnil;
-}
-
 
 /********************************** Ratios **********************************/
 #ifdef HAVE_RATIO
@@ -219,60 +208,6 @@ DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("ratio", ratio, 0, ratio_print,
 				      ratio_description, Lisp_Ratio);
 
 #endif /* HAVE_RATIO */
-
-Lisp_Object Qratiop;
-
-DEFUN ("ratiop", Fratiop, 1, 1, 0, /*
-Return t if OBJECT is a ratio, nil otherwise.
-*/
-       (object))
-{
-  return RATIOP (object) ? Qt : Qnil;
-}
-
-
-/******************************** Rationals *********************************/
-DEFUN ("rationalp", Frationalp, 1, 1, 0, /*
-Return t if OBJECT is a rational, nil otherwise.
-*/
-       (object))
-{
-  return RATIONALP (object) ? Qt : Qnil;
-}
-
-DEFUN ("numerator", Fnumerator, 1, 1, 0, /*
-Return the numerator of the canonical form of RATIONAL.
-If RATIONAL is an integer, RATIONAL is returned.
-*/
-       (rational))
-{
-  CONCHECK_RATIONAL (rational);
-#ifdef HAVE_RATIO
-  if (RATIOP (rational))
-    {
-      return
-	Fcanonicalize_number (make_bignum_bg (XRATIO_NUMERATOR (rational)));
-    }
-#endif
-  return rational;
-}
-
-DEFUN ("denominator", Fdenominator, 1, 1, 0, /*
-Return the denominator of the canonical form of RATIONAL.
-If RATIONAL is an integer, 1 is returned.
-*/
-       (rational))
-{
-  CONCHECK_RATIONAL (rational);
-#ifdef HAVE_RATIO
-  if (RATIOP (rational))
-    {
-      return Fcanonicalize_number (make_bignum_bg
-				   (XRATIO_DENOMINATOR (rational)));
-    }
-#endif
-  return Qone;
-}
 
 
 /******************************** Bigfloats *********************************/
@@ -337,14 +272,6 @@ extern Lisp_Object float_to_bigfloat (const Ascbyte *, Lisp_Object,
 #endif /* HAVE_BIGFLOAT */
 
 Lisp_Object Qbigfloatp;
-
-DEFUN ("bigfloatp", Fbigfloatp, 1, 1, 0, /*
-Return t if OBJECT is a bigfloat, nil otherwise.
-*/
-       (object))
-{
-  return BIGFLOATP (object) ? Qt : Qnil;
-}
 
 DEFUN ("bigfloat-get-precision", Fbigfloat_get_precision, 1, 1, 0, /*
 Return the precision of bigfloat F as an integer.
@@ -432,24 +359,6 @@ make_floating (double d)
   else
     return make_bigfloat (d, 0UL);
 #endif
-}
-
-DEFUN ("floatingp", Ffloatingp, 1, 1, 0, /*
-Return t if OBJECT is a floating point number of any kind, nil otherwise.
-*/
-       (object))
-{
-  return FLOATINGP (object) ? Qt : Qnil;
-}
-
-
-/********************************** Reals ***********************************/
-DEFUN ("realp", Frealp, 1, 1, 0, /*
-Return t if OBJECT is a real, nil otherwise.
-*/
-       (object))
-{
-  return REALP (object) ? Qt : Qnil;
 }
 
 
@@ -823,25 +732,9 @@ syms_of_number (void)
   INIT_LISP_OBJECT (bigfloat);
 #endif
 
-  /* Type predicates */
-  DEFSYMBOL (Qrationalp);
-  DEFSYMBOL (Qfloatingp);
-  DEFSYMBOL (Qrealp);
-  DEFSYMBOL (Qbignump);
-  DEFSYMBOL (Qratiop);
-  DEFSYMBOL (Qbigfloatp);
-
   /* Functions */
-  DEFSUBR (Fbignump);
-  DEFSUBR (Fratiop);
-  DEFSUBR (Frationalp);
-  DEFSUBR (Fnumerator);
-  DEFSUBR (Fdenominator);
-  DEFSUBR (Fbigfloatp);
   DEFSUBR (Fbigfloat_get_precision);
   DEFSUBR (Fbigfloat_set_precision);
-  DEFSUBR (Ffloatingp);
-  DEFSUBR (Frealp);
   DEFSUBR (Fcanonicalize_number);
   DEFSUBR (Fcoerce_number);
 }

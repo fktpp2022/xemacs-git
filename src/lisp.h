@@ -4625,6 +4625,7 @@ EXFUN (Fsub1, 1);
 EXFUN (Fsubr_max_args, 1);
 EXFUN (Fsubr_min_args, 1);
 EXFUN (Ftimes, MANY);
+EXFUN (Ftype_of, 1);
 
 DECLARE_DOESNT_RETURN (c_write_error (Lisp_Object));
 DECLARE_DOESNT_RETURN (lisp_write_error (Lisp_Object));

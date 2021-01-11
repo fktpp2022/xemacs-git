@@ -361,6 +361,40 @@ available memory.
   return FIXNUMP (object) ? Qt : Qnil;
 }
 
+DEFUN ("numerator", Fnumerator, 1, 1, 0, /*
+Return the numerator of the canonical form of RATIONAL.
+If RATIONAL is an integer, RATIONAL is returned.
+*/
+       (rational))
+{
+  CONCHECK_RATIONAL (rational);
+#ifdef HAVE_RATIO
+  if (RATIOP (rational))
+    {
+      return
+	Fcanonicalize_number (make_bignum_bg (XRATIO_NUMERATOR (rational)));
+    }
+#endif
+  return rational;
+}
+
+DEFUN ("denominator", Fdenominator, 1, 1, 0, /*
+Return the denominator of the canonical form of RATIONAL.
+If RATIONAL is an integer, 1 is returned.
+*/
+       (rational))
+{
+  CONCHECK_RATIONAL (rational);
+#ifdef HAVE_RATIO
+  if (RATIOP (rational))
+    {
+      return Fcanonicalize_number (make_bignum_bg
+				   (XRATIO_DENOMINATOR (rational)));
+    }
+#endif
+  return Qone;
+}
+
 DEFUN ("numberp", Fnumberp, 1, 1, 0, /*
 Return t if OBJECT is a number (floating point or rational).
 */
@@ -4018,6 +4052,8 @@ syms_of_data (void)
   DEFSUBR (Ffixnump);
   DEFSUBR (Fnumberp);
   DEFSUBR (Ffloatp);
+  DEFSUBR (Fnumerator);
+  DEFSUBR (Fdenominator);
   DEFSUBR (Fsymbolp);
   DEFSUBR (Fkeywordp);
   DEFSUBR (Fstringp);
