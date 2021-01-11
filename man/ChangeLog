@@ -1,3 +1,9 @@
+2021-01-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/loading.texi (Named Features):
+	Document a couple of workarounds to avoid the compile-time
+	evaluation of (require ...) forms, should that be needed.
+
 2020-11-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lispref/keymaps.texi (Key Sequences): End the open @defun for

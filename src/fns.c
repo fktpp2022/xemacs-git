@@ -2533,6 +2533,18 @@ them at compile time (and then compiling them normally).  Thus a library may
 request that definitions that should be inlined such as macros and defsubsts
 be loaded into its compilation environment.  Achieving this in other contexts
 requires an explicit \(eval-and-compile ...\) block.
+
+For libraries without macros or defsubsts that may not be available at compile
+time, a portable way to avoid this evaluation is to bypass the top-level
+handling of `require', e.g. with a top-level call like so:
+
+  \(funcall #'require FEATURE\)
+
+A more clear alternative is the following syntax, which also happens to be
+portable to GNU Emacs with the CL package available:
+
+  \(eval-when \(:load-toplevel :execute\)
+    \(require FEATURE\)\)
 */
        (feature, filename, noerror))
 {

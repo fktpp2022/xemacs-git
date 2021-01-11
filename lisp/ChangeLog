@@ -1,3 +1,12 @@
+2021-01-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecomp.el (byte-compile-file-form-eval-boundary): Removed.
+	* bytecomp.el (byte-compile-file-form-require): New.
+	Use a more sensible name for #'require's byte hunk handler, also
+	used by GNU.  Only evaluate the call to require if
+	byte-compile-eval-when-seen is non-nil, allowing users to
+	explicitly avoid compile time evaluation if that is needed.
+
 2021-01-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* bytecomp.el (byte-compile-file):

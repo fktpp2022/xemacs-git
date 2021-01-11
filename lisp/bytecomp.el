@@ -2534,9 +2534,16 @@ list that represents a doc string reference.
 ;		(list 'quote byte-compile-file-domain)))))
     form))
 
-(put 'require 'byte-hunk-handler 'byte-compile-file-form-eval-boundary)
-(defun byte-compile-file-form-eval-boundary (form)
-  (eval form)
+(put 'require 'byte-hunk-handler 'byte-compile-file-form-require)
+(defun byte-compile-file-form-require (form)
+  ;; XEmacs: allow callers to override the compile-time evaluation by wrapping
+  ;; the form in an (eval-when (:load-toplevel :execute) ...).
+  ;;
+  ;; This syntax actually worked with the old cl-macs implementation of
+  ;; eval-when, because it incorrectly forced its BODY to be treated as
+  ;; non-top-level. This means that this syntax is portable to GNU once there
+  ;; is an `(eval-when-compile (require 'cl))' form earlier in the file.
+  (unless byte-compile-eval-when-seen (byte-compile-eval form))
   (byte-compile-keep-pending form 'byte-compile-normal-call))
 
 (put 'progn 'byte-hunk-handler 'byte-compile-file-form-progn)

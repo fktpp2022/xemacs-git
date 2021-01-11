@@ -600,6 +600,33 @@ is not, then @code{require} loads @var{filename} with @code{load}.  If
 If loading the file fails to provide @var{feature}, @code{require}
 signals an error, @samp{Required feature @var{feature} was not
 provided}.
+
+Top level calls to @code{require} are handled specially by the compiler;
+they are evaluated at compile time and also compiled in the normal way,
+see above.  This allows compile-time expansion of any macros and correct
+compile-time inlining of any inline functions (@pxref{Inline
+Functions}).
+
+Should this create a problem (for example, with a feature available as a
+module that is not necessarily available at compile time, with no macros
+and no inline functions), a portable work-around is to call
+@code{require} in a way that avoids the top level form handling:
+
+@example
+(funcall 'require 'FEATURE)
+@end example
+
+This will compile to the normal code and will avoid compile-time
+evaluation. A more clear equivalent that works in GNU Emacs and XEmacs
+(with the exception of beta XEmacs builds from 2018 to early 2021) is
+the following:
+
+@example
+(eval-when-compile (require 'cl))
+
+(eval-when (:load-toplevel :execute)
+  (require 'FEATURE))
+@end example
 @end defun
 
 @defun featurep fexp
