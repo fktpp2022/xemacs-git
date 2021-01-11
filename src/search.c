@@ -192,7 +192,8 @@ compile_pattern_1 (struct regexp_cache *cp, Lisp_Object pattern,
       return 0;
     }
 
-  cp->regexp = Fcopy_sequence (pattern);
+  cp->regexp
+    = make_string (XSTRING_DATA (pattern), XSTRING_LENGTH (pattern));
   return 1;
 }
 

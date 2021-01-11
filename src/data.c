@@ -123,18 +123,6 @@ dead_wrong_type_argument (Lisp_Object predicate, Lisp_Object value)
   signal_error_1 (Qwrong_type_argument, list2 (predicate, value));
 }
 
-DEFUN ("wrong-type-argument", Fwrong_type_argument, 2, 2, 0, /*
-Signal an error until the correct type value is given by the user.
-This function loops, signalling a continuable `wrong-type-argument' error
-with PREDICATE and VALUE as the data associated with the error and then
-calling PREDICATE on the returned value, until the value gotten satisfies
-PREDICATE.  At that point, the gotten value is returned.
-*/
-       (predicate, value))
-{
-  return wrong_type_argument (predicate, value);
-}
-
 DOESNT_RETURN
 c_write_error (Lisp_Object obj)
 {
@@ -372,15 +360,6 @@ available memory.
 {
   return FIXNUMP (object) ? Qt : Qnil;
 }
-DEFUN ("integerp", Fintegerp, 1, 1, 0, /*
-Return t if OBJECT is an integer, nil otherwise.
-
-On builds without bignum support, this function is identical to `fixnump'.
-*/
-       (object))
-{
-  return INTEGERP (object) ? Qt : Qnil;
-}
 
 DEFUN ("numberp", Fnumberp, 1, 1, 0, /*
 Return t if OBJECT is a number (floating point or rational).
@@ -436,14 +415,6 @@ Error if LIST is not nil and not a cons cell.  See also `car-safe'.
     }
 }
 
-DEFUN ("car-safe", Fcar_safe, 1, 1, 0, /*
-Return the car of OBJECT if it is a cons cell, or else nil.
-*/
-       (object))
-{
-  return CONSP (object) ? XCAR (object) : Qnil;
-}
-
 DEFUN ("cdr", Fcdr, 1, 1, 0, /*
 Return the cdr of LIST.  If LIST is nil, return nil.
 The cdr of a list is the list without its first element.  The cdr of a
@@ -462,14 +433,6 @@ Error if arg is not nil and not a cons cell.  See also `cdr-safe'.
       else
 	list = wrong_type_argument (Qlistp, list);
     }
-}
-
-DEFUN ("cdr-safe", Fcdr_safe, 1, 1, 0, /*
-Return the cdr of OBJECT if it is a cons cell, else nil.
-*/
-       (object))
-{
-  return CONSP (object) ? XCDR (object) : Qnil;
 }
 
 DEFUN ("setcar", Fsetcar, 2, 2, 0, /*
@@ -4044,8 +4007,6 @@ syms_of_data (void)
   DEFKEYWORD (Q_junk_allowed);
   DEFKEYWORD (Q_radix_table);
 
-  DEFSUBR (Fwrong_type_argument);
-
 #ifdef HAVE_RATIO
   DEFSUBR (Fdiv);
 #endif
@@ -4055,7 +4016,6 @@ syms_of_data (void)
   DEFSUBR (Fchar_to_int);
   DEFSUBR (Fint_to_char);
   DEFSUBR (Ffixnump);
-  DEFSUBR (Fintegerp);
   DEFSUBR (Fnumberp);
   DEFSUBR (Ffloatp);
   DEFSUBR (Fsymbolp);
@@ -4071,8 +4031,6 @@ syms_of_data (void)
   DEFSUBR (Ftype_of);
   DEFSUBR (Fcar);
   DEFSUBR (Fcdr);
-  DEFSUBR (Fcar_safe);
-  DEFSUBR (Fcdr_safe);
   DEFSUBR (Fsetcar);
   DEFSUBR (Fsetcdr);
   DEFSUBR (Findirect_function);

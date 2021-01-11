@@ -652,7 +652,7 @@ allocate_frame_core (Lisp_Object device)
   f->device = device;
   f->framemeths = XDEVICE (device)->devmeths;
   f->frametype = get_console_variant (XDEVICE_TYPE (device));
-  f->buffer_alist = Fcopy_sequence (Vbuffer_alist);
+  f->buffer_alist = Fcopy_list (Vbuffer_alist);
 
   root_window = allocate_window ();
   XWINDOW (root_window)->frame = frame;
@@ -799,7 +799,7 @@ make_sure_its_a_fresh_plist (Lisp_Object foolist)
       foolist = Fdestructive_alist_to_plist (foolist);
     }
   else
-    foolist = Fcopy_sequence (foolist);
+    foolist = Fcopy_list (foolist);
 
   return foolist;
 }
@@ -2843,7 +2843,7 @@ recognized for particular types of frames.
   frame = wrap_frame (f);
   GCPRO2 (frame, plist);
   Fcheck_valid_plist (plist);
-  plist = Fcopy_sequence (plist);
+  plist = Fcopy_list (plist);
   Fcanonicalize_lax_plist (plist, Qnil);
   for (tail = plist; !NILP (tail); tail = Fcdr (Fcdr (tail)))
     {
@@ -3002,11 +3002,11 @@ Do not modify this list; use `set-frame-property' instead.
   frame = wrap_frame (f);
 
   /* #### for the moment (since old code uses `frame-parameters'),
-     we call `copy-sequence' on f->plist.  That allows frame-parameters
+     we call `copy-list' on f->plist.  That allows frame-parameters
      to destructively convert the plist into an alist, which is more
      efficient than doing it non-destructively.  At some point we
-     should remove the call to copy-sequence. */
-  result = Fcopy_sequence (f->plist);
+     should remove the call to copy-list. */
+  result = Fcopy_list (f->plist);
 
   /* #### should we be adding all the specifiers and glyphs?
      That would entail having a list of them all. */

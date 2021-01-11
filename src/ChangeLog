@@ -1,5 +1,158 @@
 2021-01-11  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Move Fcar_safe(), Fcdr_safe(), Fcopy_sequence(), Fintegerp(),
+	Fwrong_type_argument() to Lisp.
+
+	Replace calls to the first two with the obvious C implementations;
+	replace calls to Fcopy_sequence usually either with calls to
+	Fcopy_list() for definite lists, or calls to concatenate() for
+	objects that may be arrays.
+
+	The other functions were not in general called from C.
+
+	* buffer.c (finish_init_buffer):
+	* buffer.c (Fbuffer_indirect_children):
+	Replace calls to Fcopy_sequence() in these functions.
+
+	* callint.c (Fcall_interactively):
+	The args list can be copied with Fcopy_list(), quotify_args()
+	explicitly traverses it as a list.
+
+	* console.c (Fconsole_type_list):
+	* console.c (Fconsole_list):
+	* console.c (Fconsole_device_list):
+	Fcopy_list() is fine in all these.
+
+	* data.c:
+	* data.c (Fwrong_type_argument): Removed.
+	* data.c (Fintegerp): Removed.
+	* data.c (Fcar_safe): Removed.
+	* data.c (Fcdr_safe): Removed.	
+	* data.c (syms_of_data):
+	Remove declarations for all these, now in Lisp.
+
+	* device.c (Fdevice_class_list):
+	* device.c (Fdevice_frame_list):
+	Fcopy_list() is fine for both these functions.
+
+	* doc.c (Fbuilt_in_symbol_file):
+	Use the obvious C implementation of Fcar_safe here.
+
+	* editfns.c (Fsystem_name):
+	Use concatenate() here instead of Fcopy_sequence.
+
+	* emacs.c:
+	* emacs.c (Finvocation_name):
+	* emacs.c (Finvocation_directory):
+	Use concatenate() in both these functions.
+
+	* eval.c (Ffunctionp):
+	Provide a better implementation of Ffunctionp() for autoloads.
+
+	* eval.c (Fvalues_list):
+	Make this implementation better in the course of removing
+	Fcar_safe(), Fcdr_safe().
+
+	* events.c (Fmake_event):
+	Use Fcopy_list for the plist here.
+
+	* extents.c (Fextent_children):
+	* extents.c (copy_extent):
+	* extents.c (memoize_extent_face_internal):
+	* extents.c (Fset_extent_properties):
+	Use Fcopy_list() rather than Fcopy_sequence() in these functions.
+
+	* faces.c (Fcopy_face):
+	Ditto.
+
+	* file-coding.c (Fcoding_system_type_list):
+	Ditto.
+
+	* fileio.c (a_write):
+	Use the obvious C implementation of Fcar_safe here.
+
+	* fns.c (Fcopy_sequence): Removed, now in Lisp.
+	* fns.c (syms_of_fns): Remove its declaration.
+
+	* frame.c (allocate_frame_core):
+	* frame.c (make_sure_its_a_fresh_plist):
+	* frame.c (Fset_frame_properties):
+	* frame.c (Fframe_properties):
+	Use Fcopy_list() rather than Fcopy_sequence() in these functions.
+
+	* glade.c (__almost_functionp):
+	Use the obvious C implementation of Fcar_safe here.
+
+	* glyphs-widget.c (layout_property):
+	Use Fcopy_list() rather than Fcopy_sequence() in this function.
+
+	* glyphs.c:
+	* glyphs.c (alist_to_tagged_vector):
+	Use make_uninit_vector() rather than allocating stack space and
+	then moving the elements from there to a new vector.
+
+	* glyphs.c (process_image_string_instantiator):
+	* glyphs.c (Fimage_instance_type_list):
+	* glyphs.c (image_copy_vector_instantiator):
+	* glyphs.c (image_copy_instantiator):
+	* glyphs.c (Fglyph_type_list):
+	Use Fcopy_list() or concatenate() as appropriate in all these
+	functions. 
+
+	* gui.c (copy_gui_item_tree):
+	Use Fcopy_list() here.
+
+	* keymap.c (Fkeymap_parents):
+	* keymap.c (Fset_keymap_parents):
+	* keymap.c (copy_keymap_internal):
+	Use Fcopy_list() in this file.
+
+	* lisp.h: Remove declarations for functions now in Lisp.
+
+	* lread.c (Fload_internal):
+	Use concatenate() rather than Fcopy_sequence().
+
+	* menubar-x.c (command_builder_find_menu_accelerator):
+	Use Fcopy_list() here, we've already just checked that
+	Vmenu_accelerator_modifiers is a list.
+
+	* minibuf.c (Fminibuffer_prompt):
+	Use concatenate() rather than Fcopy_sequence in this commented-out
+	function.
+
+	* mule-ccl.c (resolve_symbol_ccl_program):
+	Use concatenate() rather than Fcopy_sequence() in this function.
+
+	* print.c (print_error_message):
+	Use the obvious C implementation of Fcar_safe here.
+
+	* process.c:
+	* process.c (Fprocess_list):
+	Use Fcopy_list(), not Fcopy_sequence() here.
+	* process.c (status_message):
+	Use concat2(X, Qnil) rather than Fcopy_sequence(), would need
+	another temp variable to use concatenate().
+
+	* search.c:
+	* search.c (compile_pattern_1):
+	Use make_string() on a string's data to copy it, rather than a
+	call to Fcopy_sequence.
+	
+	* sequence.c (safe_copy_tree):
+	* sequence.c (Fsubstitute):
+	Use Fcopy_list() or concatenate() in these functions, as appropriate.
+
+	* specifier.c (Fspecifier_type_list):
+	Use Fcopy_list() here.
+	* specifier.c (Fspecifier_tag_list):
+	Call (mapcar #'car ...) rather than writing C code to do that,
+	then call concatenate() to add its result to copies of
+	Vdevice_class_list, Vconsole_class_list.
+	* tooltalk.c (Ftooltalk_pattern_plist_get):
+	Use Fcopy_list() in this file.
+
+2021-01-11  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* fns.c (Frequire):
 	Document workarounds that avoid the compile-time evaluation of a
 	top-level #'require form.

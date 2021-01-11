@@ -354,7 +354,7 @@ Return a list of all processes.
 */
        ())
 {
-  return Fcopy_sequence (Vprocess_list);
+  return Fcopy_list (Vprocess_list);
 }
 
 DEFUN ("get-process", Fget_process, 1, 1, 0, /*
@@ -1663,7 +1663,7 @@ status_message (Lisp_Process *p)
   Lisp_Object symbol = p->status_symbol;
   int code = p->exit_code;
   int coredump = p->core_dumped;
-  Lisp_Object string, string2;
+  Lisp_Object string, string2, name;
 
   if (EQ (symbol, Qsignal) || EQ (symbol, Qstop))
     {
@@ -1691,8 +1691,8 @@ status_message (Lisp_Process *p)
       return concat2 (build_msg_string ("exited abnormally with code "),
 		      concat2 (string, string2));
     }
-  else
-    return Fcopy_sequence (Fsymbol_name (symbol));
+
+  return concat2 (Fsymbol_name (symbol), Qnil);
 }
 
 /* Tell status_notify() to check for terminated processes.  We do this

@@ -283,7 +283,7 @@ Return a list of valid console types.
 */
        ())
 {
-  return Fcopy_sequence (Vconsole_type_list);
+  return Fcopy_list (Vconsole_type_list);
 }
 
 DEFUN ("cdfw-console", Fcdfw_console, 1, 1, 0, /*
@@ -852,7 +852,7 @@ Return a list of all consoles.
 */
        ())
 {
-  return Fcopy_sequence (Vconsole_list);
+  return Fcopy_list (Vconsole_list);
 }
 
 DEFUN ("console-device-list", Fconsole_device_list, 0, 1, 0, /*
@@ -861,7 +861,7 @@ If CONSOLE is nil, the selected console is used.
 */
        (console))
 {
-  return Fcopy_sequence (CONSOLE_DEVICE_LIST (decode_console (console)));
+  return Fcopy_list (CONSOLE_DEVICE_LIST (decode_console (console)));
 }
 
 DEFUN ("console-enable-input", Fconsole_enable_input, 1, 1, 0, /*

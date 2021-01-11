@@ -313,25 +313,6 @@ with the original.
   goto again;
 }
 
-DEFUN ("copy-sequence", Fcopy_sequence, 1, 1, 0, /*
-Return a copy of list, vector, bit vector or string SEQUENCE.
-The elements of a list or vector are not copied; they are shared
-with the original. SEQUENCE may be a dotted list.
-*/
-       (sequence))
-{
- again:
-  if (NILP (sequence)) return sequence;
-  if (CONSP (sequence)) return copy_list (sequence);
-  if (STRINGP (sequence)) return concatenate (1, &sequence, Qstring, 0);
-  if (VECTORP (sequence)) return concatenate (1, &sequence, Qvector, 0);
-  if (BIT_VECTORP (sequence))
-    return concatenate (1, &sequence, Qbit_vector, 0);
-
-  check_losing_bytecode ("copy-sequence", sequence);
-  sequence = wrong_type_argument (Qsequencep, sequence);
-  goto again;
-}
 
 DEFUN ("copy-alist", Fcopy_alist, 1, 1, 0, /*
 Return a copy of ALIST.
@@ -2971,7 +2952,6 @@ syms_of_fns (void)
   DEFSUBR (Fcompare_strings);
   DEFSUBR (Fstring_lessp);
   DEFSUBR (Fcopy_list);
-  DEFSUBR (Fcopy_sequence);
   DEFSUBR (Fcopy_alist);
   DEFSUBR (Fnthcdr);
   DEFSUBR (Flast);

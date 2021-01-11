@@ -669,8 +669,8 @@ value returned by `arg_bval' like a string is fine.
     return Fget (XTOOLTALK_MESSAGE (message_)->plist_sym, argn, Qnil);
 
   else if (EQ (attribute, Qtt_plist))
-    return Fcopy_sequence (Fsymbol_plist
-			   (XTOOLTALK_MESSAGE (message_)->plist_sym));
+    return Fcopy_list (Fsymbol_plist 
+                       (XTOOLTALK_MESSAGE (message_)->plist_sym));
 
   else
     invalid_constant ("Invalid value for `get-tooltalk-message-attribute'",
@@ -1194,7 +1194,7 @@ Return the a list of all the properties currently set in PATTERN.
 {
   CHECK_TOOLTALK_PATTERN (pattern);
   return
-    Fcopy_sequence (Fsymbol_plist (XTOOLTALK_PATTERN (pattern)->plist_sym));
+    Fcopy_list (Fsymbol_plist (XTOOLTALK_PATTERN (pattern)->plist_sym));
 }
 
 DEFUN ("tooltalk-default-procid", Ftooltalk_default_procid, 0, 0, 0, /*

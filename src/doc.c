@@ -521,7 +521,7 @@ If TYPE is `defvar', then variable definitions are acceptable.
     {
       fun = Findirect_function (symbol);
 
-      if (EQ (Qmacro, Fcar_safe (fun)))
+      if (CONSP (fun) && EQ (Qmacro, XCAR (fun)))
         {
           fun = XCDR (fun);
         }

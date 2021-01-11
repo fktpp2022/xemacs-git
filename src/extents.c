@@ -3390,7 +3390,7 @@ This function does not recursively trace children of children.
   Lisp_Object children = extent_children (e);
 
   if (!NILP (children))
-    return Fcopy_sequence (XWEAK_LIST_LIST (children));
+    return Fcopy_list (XWEAK_LIST_LIST (children));
   else
     return Qnil;
 }
@@ -3665,7 +3665,7 @@ copy_extent (EXTENT original, Bytexpos from, Bytexpos to, Lisp_Object object)
   if (from >= 0)
     set_extent_endpoints (e, from, to, Qnil);
 
-  e->plist = Fcopy_sequence (original->plist);
+  e->plist = Fcopy_list (original->plist);
   memcpy (&e->flags, &original->flags, sizeof (e->flags));
   if (e->flags.has_aux)
     {
@@ -4873,8 +4873,8 @@ memoize_extent_face_internal (Lisp_Object list)
 		   Qnil);
   if (NILP (list))
     {
-      Lisp_Object symlist = Fcopy_sequence (Vextent_face_reusable_list);
-      Lisp_Object facelist = Fcopy_sequence (Vextent_face_reusable_list);
+      Lisp_Object symlist = Fcopy_list (Vextent_face_reusable_list);
+      Lisp_Object facelist = Fcopy_list (Vextent_face_reusable_list);
 
       LIST_LOOP (cons, facelist)
 	{
@@ -5518,7 +5518,7 @@ For a list of built-in properties, see `set-extent-property'.
   struct gcpro gcpro1;
   GCPRO1 (plist);
 
-  plist = Fcopy_sequence (plist);
+  plist = Fcopy_list (plist);
   Fcanonicalize_plist (plist, Qnil);
 
   while (!NILP (plist))

@@ -4308,10 +4308,30 @@ using for example `funcall' or `apply'.
       Lisp_Object car = XCAR (object);
       if (EQ (car, Qlambda))
 	return Qt;
-      if (EQ (car, Qautoload)
-	  && NILP (Fcar_safe (Fcdr_safe(Fcdr_safe
-					(Fcdr_safe (XCDR (object)))))))
-	return Qt;
+
+      if (EQ (car, Qautoload))
+	{
+	  Lisp_Object len = Flist_length (object);
+
+	  if (NILP (len) || XFIXNUM (len) < 3)
+	    {
+              /* Ill-formed, or not long enough to be a valid autoload
+                 form. */
+	      return Qnil;
+	    }
+
+	  if (XFIXNUM (len) >= 5)
+	    {
+              /* Examine the fifth element of the list. */
+	      return NILP (Fcar (Fnthcdr (make_fixnum (4),
+                                          object))) ? Qt : Qnil;
+	    }
+
+          /* List is the right length, and TYPE is not specified; this might
+             be a valid function, and within #'functionp we have made the
+             design decision to not run the autoload form to be certain. */
+          return Qt;
+        }
     }
   return Qnil;
 }
@@ -5132,19 +5152,20 @@ Return all the elements of LIST as multiple values.
   Lisp_Object result = Qnil;
   int counting = 1, listcount; 
 
+  /* Get the length, and, in passing, check for well-formedness: */
   GET_EXTERNAL_LIST_LENGTH (list, listcount);
 
   /* Pathological cases, no need to cons up an object: */
   if (1 == listcount || 1 == multiple_value_current_limit)
     {
-      return Fcar_safe (list);
+      return XCAR (list);
     }
 
-  result = make_multiple_value (Fcar_safe (list), listcount,
+  result = make_multiple_value (Fcar (list), listcount,
                                 first_desired_multiple_value,
                                 multiple_value_current_limit);
 
-  list = Fcdr_safe (list);
+  list = Fcdr (list);
 
   {
     EXTERNAL_LIST_LOOP_2 (elt, list)

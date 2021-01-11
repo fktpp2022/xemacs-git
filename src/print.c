@@ -1131,7 +1131,7 @@ static void
 print_error_message (Lisp_Object error_object, Lisp_Object stream)
 {
   /* This function can GC */
-  Lisp_Object type = Fcar_safe (error_object);
+  Lisp_Object type = CONSP (error_object) ? XCAR (error_object) : Qnil;
   Lisp_Object method = Qnil;
   Lisp_Object tail;
 

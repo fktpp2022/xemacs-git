@@ -522,7 +522,7 @@ Return a list of valid specifier types.
 */
        ())
 {
-  return Fcopy_sequence (Vspecifier_type_list);
+  return Fcopy_list (Vspecifier_type_list);
 }
 
 void
@@ -1419,19 +1419,21 @@ This includes the built-in ones (the device types and classes).
 */
        ())
 {
-  Lisp_Object list = Qnil, rest;
+  Lisp_Object argz[3];
   struct gcpro gcpro1;
 
-  GCPRO1 (list);
+  GCPRO1 (argz[0]);
+  gcpro1.nvars = countof (argz);
 
-  LIST_LOOP (rest, Vuser_defined_tags)
-    list = Fcons (XCAR (XCAR (rest)), list);
+  argz[0] = Qcar;
+  argz[1] = Vuser_defined_tags;
+  argz[2] = Qnil; /* Initialise it to nil so we don't have an issue with GCing
+                     random stack data. */
+  argz[2] = FmapcarX (2, argz); /* Get the cars of Vuser_defined_tags. */
+  argz[0] = Vconsole_type_list;
+  argz[1] = Vdevice_class_list;
 
-  list = Fnreverse (list);
-  list = nconc2 (Fcopy_sequence (Vdevice_class_list), list);
-  list = nconc2 (Fcopy_sequence (Vconsole_type_list), list);
-
-  RETURN_UNGCPRO (list);
+  RETURN_UNGCPRO (concatenate (countof (argz), argz, Qlist, 1));
 }
 
 DEFUN ("specifier-tag-device-predicate", Fspecifier_tag_device_predicate,

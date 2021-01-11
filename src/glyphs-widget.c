@@ -1596,10 +1596,9 @@ layout_property (Lisp_Object image_instance, Lisp_Object prop)
     {
       if (FIXNUMP (IMAGE_INSTANCE_LAYOUT_BORDER (ii)) &&
 	  CONSP (IMAGE_INSTANCE_LAYOUT_CHILDREN (ii)))
-	return Fcopy_sequence (XCDR
-			       (IMAGE_INSTANCE_LAYOUT_CHILDREN (ii)));
+	return Fcopy_list (XCDR (IMAGE_INSTANCE_LAYOUT_CHILDREN (ii)));
       else
-	return Fcopy_sequence (IMAGE_INSTANCE_LAYOUT_CHILDREN (ii));
+	return Fcopy_list (IMAGE_INSTANCE_LAYOUT_CHILDREN (ii));
     }
   return Qunbound;
 }

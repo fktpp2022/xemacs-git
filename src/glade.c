@@ -76,7 +76,7 @@ static int __almost_functionp (Lisp_Object obj)
   return (SYMBOLP (obj) ||
 	  SUBRP (obj) ||
 	  COMPILED_FUNCTIONP (obj) ||
-	  EQ (Fcar_safe (obj), Qlambda));
+	  (CONSP (obj) && EQ (XCAR (obj), Qlambda)));
 }
 
 DEFUN ("glade-xml-signal-connect", Fglade_xml_signal_connect, 3, 3, 0, /*

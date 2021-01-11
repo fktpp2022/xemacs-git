@@ -768,7 +768,7 @@ Any directory names are omitted.
 */
        ())
 {
-  return Fcopy_sequence (Vinvocation_name);
+  return concatenate (1, &Vinvocation_name, Qstring, 0);
 }
 
 DEFUN ("invocation-directory", Finvocation_directory, 0, 0, 0, /*
@@ -776,7 +776,7 @@ Return the directory name in which the Emacs executable was located.
 */
        ())
 {
-  return Fcopy_sequence (Vinvocation_directory);
+  return concatenate (1, &Vinvocation_directory, Qstring, 0);
 }
 
 

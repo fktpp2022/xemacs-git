@@ -807,7 +807,7 @@ If no minibuffer is active, return nil.
 */
 	 ())
 {
-  return Fcopy_sequence (Vminibuf_prompt);
+  return concatenate (1, &Vminibuf_prompt, Qstring, 0);
 }
 
 DEFUN ("minibuffer-prompt-width", Fminibuffer_prompt_width, 0, 0, 0, /*

@@ -268,7 +268,7 @@ Return a list of valid image-instantiator formats.
 */
        ())
 {
-  return Fcopy_sequence (Vimage_instantiator_format_list);
+  return Fcopy_list (Vimage_instantiator_format_list);
 }
 
 void
@@ -352,7 +352,7 @@ specifiers will not be affected.
 		  (pos, Qzero, make_fixnum (XVECTOR_LENGTH (typevec) - 1));
 	    }
 
-	  newvec = Fcopy_sequence (typevec);
+	  newvec = concatenate (1, &typevec, Qvector, 0);
 	  if (FIXNUMP (pos))
 	    XVECTOR_DATA (newvec)[XFIXNUM (pos)] = regexp;
 	  GCPRO1 (newvec);
@@ -405,8 +405,8 @@ process_image_string_instantiator (Lisp_Object data,
 	{
 	  if (!NILP (XCDR (XCDR (mapping))))
 	    {
-	      int pos = XFIXNUM (XCAR (XCDR (XCDR (mapping))));
-	      Lisp_Object newvec = Fcopy_sequence (typevec);
+	      Elemcount pos = XFIXNUM (XCAR (XCDR (XCDR (mapping))));
+              Lisp_Object newvec = concatenate (1, &typevec, Qvector, 0);
 	      XVECTOR_DATA (newvec)[pos] = data;
 	      return newvec;
 	    }
@@ -631,9 +631,9 @@ tagged_vector_to_alist (Lisp_Object vector)
 Lisp_Object
 alist_to_tagged_vector (Lisp_Object tag, Lisp_Object alist)
 {
-  int len = 1 + 2 * XFIXNUM (Flength (alist));
-  Lisp_Object *elt = alloca_array (Lisp_Object, len);
-  int i;
+  Elemcount len = 1 + 2 * XFIXNUM (Flength (alist));
+  Lisp_Object result = make_uninit_vector (len), *elt = XVECTOR_DATA (result);
+  Elemcount i;
   Lisp_Object rest;
 
   i = 0;
@@ -646,7 +646,7 @@ alist_to_tagged_vector (Lisp_Object tag, Lisp_Object alist)
       i += 2;
     }
 
-  return Fvector (len, elt);
+  return result;
 }
 
 #ifdef ERROR_CHECK_GLYPHS
@@ -1474,7 +1474,7 @@ Return a list of valid image-instance types.
 */
        ())
 {
-  return Fcopy_sequence (Vimage_instance_type_list);
+  return Fcopy_list (Vimage_instance_type_list);
 }
 
 Error_Behavior
@@ -3625,7 +3625,7 @@ image_copy_vector_instantiator (Lisp_Object instantiator)
 
   CHECK_VECTOR (instantiator);
 
-  instantiator = Fcopy_sequence (instantiator);
+  instantiator = concatenate (1, &instantiator, Qvector, 0);
   elt = XVECTOR_DATA (instantiator);
   instantiator_len = XVECTOR_LENGTH (instantiator);
 
@@ -3662,7 +3662,7 @@ image_copy_instantiator (Lisp_Object arg)
   if (CONSP (arg))
     {
       Lisp_Object rest;
-      rest = arg = Fcopy_sequence (arg);
+      rest = arg = Fcopy_list (arg);
       while (CONSP (rest))
 	{
 	  Lisp_Object elt = XCAR (rest);
@@ -3932,7 +3932,7 @@ Return a list of valid glyph types.
 */
        ())
 {
-  return Fcopy_sequence (Vglyph_type_list);
+  return Fcopy_list (Vglyph_type_list);
 }
 
 DEFUN ("make-glyph-internal", Fmake_glyph_internal, 0, 1, 0, /*

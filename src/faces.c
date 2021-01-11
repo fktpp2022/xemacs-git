@@ -2088,7 +2088,7 @@ LOCALE, TAG-SET, EXACT-P, and HOW-TO-ADD are as in `copy-specifier'.
   COPY_PROPERTY (shrink);
 #undef COPY_PROPERTY
   /* #### should it copy the individual specifiers, if they exist? */
-  fnew->plist = Fcopy_sequence (fold->plist);
+  fnew->plist = Fcopy_list (fold->plist);
 
   UNGCPRO;
 

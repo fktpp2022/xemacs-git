@@ -613,7 +613,7 @@ finish_init_buffer (struct buffer *b, Lisp_Object name)
 {
   Lisp_Object buf = wrap_buffer (b);
 
-  name = Fcopy_sequence (name);
+  name = make_string (XSTRING_DATA (name), XSTRING_LENGTH (name));
   /* #### This really does not need to be called.  We already
      initialized the buffer-local variables in allocate_buffer().
      local_var_alist is set to Qnil at the same point, in
@@ -911,7 +911,7 @@ If BUFFER is indirect, the return value will always be nil; see
 {
   struct buffer *buf = decode_buffer (buffer, 0);
 
-  return Fcopy_sequence (buf->indirect_children);
+  return Fcopy_list (buf->indirect_children);
 }
 
 DEFUN ("buffer-local-variables", Fbuffer_local_variables, 0, 1, 0, /*

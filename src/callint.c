@@ -389,7 +389,7 @@ when reading the arguments.
 	  Lisp_Object values, car;
 	  /* Make a copy of the list of values, for the command history,
 	     and turn them into things we can eval.  */
-	  values = quotify_args (Fcopy_sequence (specs));
+	  values = quotify_args (Fcopy_list (specs));
 	  /* If the list of args was produced with an explicit call to `list',
 	     look for elements that were computed with (region-beginning)
 	     or (region-end), and put those expressions into VALUES

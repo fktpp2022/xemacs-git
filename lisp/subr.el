@@ -424,6 +424,12 @@ your use case."
   "Return t if OBJECT is a sequence (list or array)."
   (or (stringp object) (listp object) (vectorp object) (bit-vector-p object)))
 
+(defun integerp (object)
+  "Return t if OBJECT is an integer, nil otherwise.
+
+On builds without bignum support, this function is identical to `fixnump'."
+  (or (fixnump object) (bignump object)))
+
 (defun natnump (object)
   "Return t if OBJECT is a nonnegative integer."
   (and (integerp object) (not (eql (signum object) -1))))
@@ -508,6 +514,25 @@ which is at least the number of distinct elements."
   "Return the Nth element of LIST.
 N counts from zero.  If LIST is not that long, nil is returned."
   (car (nthcdr n list)))
+
+(defun car-safe (object)
+  "Return the car of OBJECT if it is a cons cell, or else nil."
+  (if (consp object) (car object)))
+
+(defun cdr-safe (object)
+  "Return the cdr of OBJECT if it is a cons cell, else nil."
+  (if (consp object) (cdr object)))
+
+(defun copy-sequence (sequence)
+  "Return a copy of list, vector, bit vector or string SEQUENCE.
+The elements of a list or vector are not copied; they are shared
+with the original. SEQUENCE may be a dotted list.
+
+See also `copy-tree'."
+  (cond ((stringp sequence) (concat sequence nil))
+        ((consp sequence) (copy-list sequence))
+        ((not sequence) nil)
+        (t (concatenate (type-of sequence) sequence))))
 
 ;;;; Keymap support.
 ;; XEmacs: removed to keymap.el
@@ -1636,6 +1661,15 @@ See also `cerror', `signal', and `signal-error'."
 	 (signal datum args))
 	(t
 	 (error 'invalid-argument "datum not string or error symbol" datum))))
+
+(defun wrong-type-argument (predicate value)
+  "Signal an error until the correct type value is given by the user.
+This function loops, signalling a continuable `wrong-type-argument' error
+with PREDICATE and VALUE as the data associated with the error and then
+calling PREDICATE on the returned value, until the value gotten satisfies
+PREDICATE.  At that point, the gotten value is returned."
+  (do ((result value (signal 'wrong-type-argument (list predicate result))))
+      ((funcall predicate result) result)))
 
 (defmacro check-argument-type (predicate argument)
   "Check that ARGUMENT satisfies PREDICATE.

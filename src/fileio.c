@@ -3773,7 +3773,8 @@ a_write (Lisp_Object outstream, Lisp_Object instream, int pos,
 
   while (LISTP (*annot))
     {
-      tem = Fcar_safe (Fcar (*annot));
+      tem = Fcar (*annot);
+      tem = CONSP (tem) ? XCAR (tem) : Qnil;
       if (FIXNUMP (tem))
 	nextpos = XFIXNUM (tem);
       else

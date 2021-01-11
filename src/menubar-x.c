@@ -1257,7 +1257,7 @@ command_builder_find_menu_accelerator (struct command_builder *builder)
 	{
 	  val = val->contents;
 
-	  fake = Fcopy_sequence (Vmenu_accelerator_modifiers);
+	  fake = Fcopy_list (Vmenu_accelerator_modifiers);
 	  last = fake;
 
 	  while (!NILP (Fcdr (last)))

@@ -592,7 +592,7 @@ WARNING: the event object returned may be a reused one; see the function
 
   EVENT_CHANNEL (e) = Qnil;
 
-  plist = Fcopy_sequence (plist);
+  plist = Fcopy_list (plist);
   Fcanonicalize_plist (plist, Qnil);
 
 #define WRONG_EVENT_TYPE_FOR_PROPERTY(event_type, prop) \

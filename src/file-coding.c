@@ -429,7 +429,7 @@ Return a list of valid coding system types.
 */
        ())
 {
-  return Fcopy_sequence (Vcoding_system_type_list);
+  return Fcopy_list (Vcoding_system_type_list);
 }
 
 void

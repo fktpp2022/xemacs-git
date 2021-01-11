@@ -723,7 +723,7 @@ copy_gui_item_tree (Lisp_Object arg)
 {
   if (CONSP (arg))
     {
-      Lisp_Object rest = arg = Fcopy_sequence (arg);
+      Lisp_Object rest = arg = Fcopy_list (arg);
       while (CONSP (rest))
 	{
 	  XCAR (rest) = copy_gui_item_tree (XCAR (rest));

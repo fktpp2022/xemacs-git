@@ -193,7 +193,7 @@ Return a list of valid device classes.
 */
        ())
 {
-  return Fcopy_sequence (Vdevice_class_list);
+  return Fcopy_list (Vdevice_class_list);
 }
 
 static void
@@ -982,7 +982,7 @@ If DEVICE is nil, the selected device will be used.
 */
        (device))
 {
-  return Fcopy_sequence (DEVICE_FRAME_LIST (decode_device (device)));
+  return Fcopy_list (DEVICE_FRAME_LIST (decode_device (device)));
 }
 
 DEFUN ("device-class", Fdevice_class, 0, 1, 0, /*

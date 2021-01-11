@@ -2092,7 +2092,9 @@ resolve_symbol_ccl_program (Lisp_Object ccl)
 	     an index number.  */
 
 	  if (EQ (result, ccl))
-	    result =  Fcopy_sequence (ccl);
+            {
+              result = concatenate (1, &ccl, Qvector, 0);
+            }
 
 	  val = Fget (XCAR (contents), XCDR (contents), Qnil);
 	  if (NATNUMP (val))
@@ -2107,7 +2109,9 @@ resolve_symbol_ccl_program (Lisp_Object ccl)
              may lead to a bug if, for instance, a translation table
              and a code conversion map have the same name.  */
 	  if (EQ (result, ccl))
-	    result = Fcopy_sequence (ccl);
+            {
+              result = concatenate (1, &ccl, Qvector, 0);
+            }
 
 	  val = Fget (contents, Qcode_conversion_map_id, Qnil);
 	  if (NATNUMP (val))

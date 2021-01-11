@@ -844,7 +844,7 @@ of all keymaps.
        (keymap))
 {
   keymap = get_keymap (keymap, 1, 1);
-  return Fcopy_sequence (XKEYMAP (keymap)->parents);
+  return Fcopy_list (XKEYMAP (keymap)->parents);
 }
 
 
@@ -890,7 +890,7 @@ of all keymaps.
   /* Check for circularities */
   traverse_keymaps (keymap, parents, traverse_keymaps_noop, 0);
   keymap_tick++;
-  XKEYMAP (keymap)->parents = Fcopy_sequence (parents);
+  XKEYMAP (keymap)->parents = Fcopy_list (parents);
   UNGCPRO;
   return parents;
 }
@@ -1165,7 +1165,7 @@ copy_keymap_internal (Lisp_Keymap *keymap)
   struct copy_keymap_inverse_closure copy_keymap_inverse_closure;
   copy_keymap_inverse_closure.inverse_table = keymap->inverse_table;
 
-  new_keymap->parents        = Fcopy_sequence (keymap->parents);
+  new_keymap->parents        = Fcopy_list (keymap->parents);
   new_keymap->sub_maps_cache = Qnil; /* No submaps */
   new_keymap->table          = Fcopy_hash_table (keymap->table);
   new_keymap->inverse_table  = Fcopy_hash_table (keymap->inverse_table);

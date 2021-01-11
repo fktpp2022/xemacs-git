@@ -694,7 +694,8 @@ do {								\
 			   Vload_force_doc_string_list);
     Vload_force_doc_string_list = Qnil;
     /* load-file-name is not read-only to Lisp. */
-    internal_bind_lisp_object (&Vload_file_name, Fcopy_sequence(found));
+    internal_bind_lisp_object (&Vload_file_name,
+                               concatenate (1, &found, Qstring, 0));
 #ifdef I18N3
     /* set it to nil; a call to #'domain will set it. */
     internal_bind_lisp_object (&Vfile_domain, Qnil);

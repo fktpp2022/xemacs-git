@@ -1177,7 +1177,7 @@ safe_copy_tree (Lisp_Object arg, Lisp_Object vecp, int depth)
   if (CONSP (arg))
     {
       Lisp_Object rest;
-      rest = arg = Fcopy_sequence (arg);
+      rest = arg = Fcopy_list (arg);
       while (CONSP (rest))
 	{
 	  Lisp_Object elt = XCAR (rest);
@@ -1193,7 +1193,7 @@ safe_copy_tree (Lisp_Object arg, Lisp_Object vecp, int depth)
     {
       Elemcount i = XVECTOR_LENGTH (arg), j;
 
-      arg = Fcopy_sequence (arg);
+      arg = concatenate (1, &arg, Qvector, 0);
       for (j = 0; j < i; j++)
 	{
 	  Lisp_Object elt = XVECTOR_DATA (arg) [j];
@@ -6515,7 +6515,7 @@ arguments: (NEW OLD SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (
 	}
       else
 	{
-	  args[2] = Fcopy_sequence (sequence);
+	  args[2] = concatenate (1, &sequence, Ftype_of (sequence), 0);
 	  return Fnsubstitute (nargs, args);
 	}
     }

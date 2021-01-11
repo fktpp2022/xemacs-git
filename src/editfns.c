@@ -851,7 +851,7 @@ Return the name of the machine you are running on, as a string.
 */
        ())
 {
-  return Fcopy_sequence (Vsystem_name);
+  return concatenate (1, &Vsystem_name, Qstring, 0);
 }
 
 DEFUN ("emacs-pid", Femacs_pid, 0, 0, 0, /*
