@@ -270,8 +270,6 @@ extern Lisp_Object float_to_bigfloat (const Ascbyte *, Lisp_Object,
 
 #endif /* HAVE_BIGFLOAT */
 
-Lisp_Object Qbigfloatp;
-
 DEFUN ("bigfloat-get-precision", Fbigfloat_get_precision, 1, 1, 0, /*
 Return the precision of bigfloat F as an integer.
 */

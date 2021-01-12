@@ -3,6 +3,7 @@
 	* number.c:
 	Remove duplicate declarations for the C variables Qrationalp,
 	Qfloatingp, Qrealp, thank you Mats Lidell and the Buildbot.
+	Remove Qbigfloatp too.
 
 2021-01-11  Aidan Kehoe  <kehoea@parhasard.net>
 
