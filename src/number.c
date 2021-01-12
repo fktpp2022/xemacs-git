@@ -29,7 +29,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define USED_IF_BIGFLOAT(decl) UNUSED (decl)
 #endif
 
-Lisp_Object Qrationalp, Qfloatingp, Qrealp;
 Lisp_Object Vdefault_float_precision;
 
 static Lisp_Object Vbigfloat_max_prec;
