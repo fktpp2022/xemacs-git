@@ -1,3 +1,10 @@
+2021-01-13  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* number.h:
+	Wrap declarations in this file in BEGIN_C_DECLS/END_C_DECLS, which
+	allows me to build locally with g++ and, all going well, should
+	help along the smoketest too.
+
 2021-01-12  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* number.c:

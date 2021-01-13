@@ -63,6 +63,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "number-mp.h"
 #endif
 
+BEGIN_C_DECLS
+
 
 /********************************* Bignums **********************************/
 #ifdef HAVE_BIGNUM
@@ -697,5 +699,7 @@ non_fixnum_number_p (Lisp_Object object))
     C_TYPE_TO_LISP_INTEGER (c_type, value);                             \
   }                                                                     \
   visibility Lisp_Object c_type##_to_lisp (c_type)
+
+END_C_DECLS
 
 #endif /* INCLUDED_number_h_ */
