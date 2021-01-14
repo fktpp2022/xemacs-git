@@ -1663,7 +1663,7 @@ status_message (Lisp_Process *p)
   Lisp_Object symbol = p->status_symbol;
   int code = p->exit_code;
   int coredump = p->core_dumped;
-  Lisp_Object string, string2, name;
+  Lisp_Object string, string2;
 
   if (EQ (symbol, Qsignal) || EQ (symbol, Qstop))
     {

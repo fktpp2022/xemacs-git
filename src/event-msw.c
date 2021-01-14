@@ -2828,7 +2828,7 @@ mswindows_wnd_proc (HWND hwnd, UINT message_, WPARAM wParam, LPARAM lParam)
 	    if (!NILP (lastev))
 	      {
 		int i;
-		int scan = (lParam >> 16) && 0xFF;
+		int scan = (lParam >> 16) & 0xFF;
 
 		for (i = 0; i < KEYCHAR_LAST; i++)
 		  {
@@ -4204,7 +4204,7 @@ mswindows_find_frame (HWND hwnd)
 /*                            methods                                   */
 /************************************************************************/
 
-static int
+static EMACS_INT
 emacs_mswindows_add_timeout (EMACS_TIME thyme)
 {
   int milliseconds;
@@ -4225,7 +4225,7 @@ remove_timeout_mapper (Lisp_Object ev, void *data)
 {
   if (XEVENT_TYPE (ev) == timeout_event)
     {
-      if ((int) data == XEVENT_TIMEOUT_INTERVAL_ID (ev))
+      if ((EMACS_UINT) data == (EMACS_UINT) (XEVENT_TIMEOUT_INTERVAL_ID (ev)))
 	return 1;
     }
 
@@ -4233,7 +4233,7 @@ remove_timeout_mapper (Lisp_Object ev, void *data)
 }
 
 static void
-emacs_mswindows_remove_timeout (int id)
+emacs_mswindows_remove_timeout (EMACS_INT id)
 {
   if (KillTimer (NULL, id))
     --mswindows_pending_timers_count;
@@ -4243,7 +4243,8 @@ emacs_mswindows_remove_timeout (int id)
   map_event_chain_remove (remove_timeout_mapper,
 			  &mswindows_s_dispatch_event_queue,
 			  &mswindows_s_dispatch_event_queue_tail,
-			  (void *) id, MECR_DEALLOCATE_EVENT);
+			  (void *) (EMACS_UINT) id,
+                          MECR_DEALLOCATE_EVENT);
 }
 
 /* If `user_p' is false, then return whether there are any win32, timeout,
@@ -4325,8 +4326,8 @@ emacs_mswindows_format_magic_event (Lisp_Event *emacs_event,
   
   if (!NILP (EVENT_CHANNEL (emacs_event)))
     {
-      result += write_fmt_string (pstream, " %S",
-				  EVENT_CHANNEL (emacs_event));
+      result += write_fmt_string_lisp (pstream, " %s",
+				       EVENT_CHANNEL (emacs_event));
     }
 
   return result;

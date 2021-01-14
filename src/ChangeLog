@@ -91,6 +91,63 @@
 	* sequence.c (position):
 	Cast the result of XSTRING_ASCII_BEGIN() to a Bytecount.
 
+2021-01-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Clean up some compiler warnings and convincing bugs elicited with
+	64-bit Cygwin, both clang and GCC.
+	These are general bugs, not specific to 64-bit support; further
+	patch pending for the latter.
+
+	* database.c (Fopen_database):
+	Mark SUBTYPE used to quiet the compiler if HAVE_BERKELEY_DB is not
+	defined.
+
+	* device-msw.c (equal_devmode):
+	Fix a bug here, don't just compare dm1->devmode against NULL twice.
+
+	* event-msw.c (mswindows_wnd_proc):
+	&& isn't a bitwise operator as was intended.
+
+	* event-msw.c (emacs_mswindows_add_timeout):
+	Move to EMACS_INT as the timeout ID, as have the other platforms.
+
+	* event-msw.c (remove_timeout_mapper): Ditto.
+	* event-msw.c (emacs_mswindows_remove_timeout): Ditto.
+	* event-msw.c (emacs_mswindows_format_magic_event):
+	Print the channel as a Lisp object, use write_fmt_string_lisp()
+	for that, quieting the compiler.
+	* fontcolor-msw.c (mswindows_color_to_string): buf[] no longer
+	used, remove it.
+	* fontcolor-msw.c (mswindows_print_color_instance):
+	Be more careful about the type passed to write_fmt_string.
+	* glyphs-msw.c (mswindows_widget_instantiate):
+	STYLE not actually used. Declare ID as an EMACS_UINT to avoid
+	warnings when using it as a handle.
+	* glyphs-msw.c (mswindows_progress_gauge_instantiate):
+	Move the declaration of WND inside the #if 0 that wraps its use.
+
+	* intl-win32.c:
+	* intl-win32.c (set_current_lcid):
+	Only call mswindows_locale_to_code_page() if we use the output.
+	* intl-win32.c (wcscpy): Keep declarations before code in this
+	function.
+	* intl-win32.c (wcsdup): Ditto.
+	
+	* process.c (status_message): NAME isn't used as a local variable,
+	remove it.
+	* regex.c (re_compile_fastmap):
+	Cast P to (void *) when using it as the first argument to
+	unified_range_table_get_range(), thank you the C++ compiler.
+	* select-msw.c (mswindows_own_selection):
+	* select-msw.c (mswindows_get_foreign_selection):
+	is_X_type set but not used in these functions, remove.
+	* sysdll.c (dll_error):
+	Use emacs_sprintf_string() rather than build_ascstring + snprintf,
+	so the bit-width of a type passed to %lu is more predictable.
+	* win32.c (Fmswindows_shell_execute):
+	Check SHOW_FLAG for range if it is non-nil, avoiding surprises
+	with the XFIXNUM further down.
+
 2021-01-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* number.h:

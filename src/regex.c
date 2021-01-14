@@ -4579,7 +4579,7 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 		Lisp_Object dummy_val;
 		int jj;
 
-		unified_range_table_get_range (p, j, &first, &last,
+		unified_range_table_get_range ((void *) p, j, &first, &last,
 					       &dummy_val);
 		/* With Unicode-internal, lead bytes that are entirely
 		   within the range and not including the beginning or end

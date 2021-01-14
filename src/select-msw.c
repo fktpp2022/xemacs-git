@@ -229,7 +229,6 @@ mswindows_own_selection (Lisp_Object selection_name,
 {
   HGLOBAL 	hValue = NULL;
   UINT		cfType;
-  int		is_X_type = FALSE;
   Lisp_Object	cfObject;
   Lisp_Object	data = Qnil;
   int		size;
@@ -256,7 +255,6 @@ mswindows_own_selection (Lisp_Object selection_name,
 	  cfType = CF_TEXT;
 	  cfObject = QCF_TEXT;
 	}
-      is_X_type = TRUE;
     }
   else
     {
@@ -491,7 +489,6 @@ mswindows_get_foreign_selection (Lisp_Object selection_symbol,
   HGLOBAL	hValue = NULL;
   UINT		cfType;
   Lisp_Object	cfObject = Qnil, ret = Qnil, value = Qnil;
-  int		is_X_type = FALSE;
   int		size;
   void		*data;
   struct frame  *f = NULL;
@@ -517,7 +514,6 @@ mswindows_get_foreign_selection (Lisp_Object selection_symbol,
 	  cfType = CF_TEXT;
 	  cfObject = QCF_TEXT;
 	}
-      is_X_type = TRUE;
     }
   else
     {

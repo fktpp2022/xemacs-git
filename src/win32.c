@@ -326,9 +326,14 @@ otherwise it is an integer representing a ShowWindow flag:
 {
   /* Encode filename and current directory.  */
   Lisp_Object current_dir = Ffile_name_directory (document);
-  int ret;
+  EMACS_UINT ret;
 
   CHECK_STRING (document);
+
+  if (!NILP (show_flag))
+    {
+      check_integer_range (show_flag, Qzero, make_integer (6));
+    }	
 
   if (NILP (current_dir))
     current_dir = current_buffer->directory;
@@ -349,9 +354,10 @@ otherwise it is an integer representing a ShowWindow flag:
     if (STRINGP (document))
       LISP_LOCAL_FILE_FORMAT_MAYBE_URL_TO_TSTR (document, doc);
 
-    ret = (int) qxeShellExecute (NULL, opext, doc, parmext, path,
-				 (FIXNUMP (show_flag) ?
-				  XFIXNUM (show_flag) : SW_SHOWDEFAULT));
+    ret = (EMACS_UINT) qxeShellExecute (NULL, opext, doc, parmext, path,
+				        (FIXNUMP (show_flag) ?
+				         XFIXNUM (show_flag) :
+					 SW_SHOWDEFAULT));
   }
 
   if (ret <= 32)

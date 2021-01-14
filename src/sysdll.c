@@ -217,9 +217,8 @@ dll_variable (dll_handle h, const Ibyte *n)
 Lisp_Object
 dll_error ()
 {
-  Ascbyte err[32];
-  snprintf (err, 32, "Windows DLL Error %lu", GetLastError ());
-  return build_ascstring (err);
+  return emacs_sprintf_string ("Windows DLL Error %lu",
+		       	       (EMACS_INT) (GetLastError ()));
 }
 #elif defined (HAVE_DYLD)
 /* This section supports MacOSX dynamic libraries. Dynamically

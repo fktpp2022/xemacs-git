@@ -2224,12 +2224,12 @@ mswindows_widget_instantiate (Lisp_Object image_instance,
 {
   /* this function can call lisp */
   Lisp_Image_Instance *ii = XIMAGE_INSTANCE (image_instance);
-  Lisp_Object device = IMAGE_INSTANCE_DEVICE (ii), style;
+  Lisp_Object device = IMAGE_INSTANCE_DEVICE (ii);
   Lisp_Object frame = DOMAIN_FRAME (domain);
   Extbyte *nm = 0;
   Extbyte *classext;
   HWND wnd;
-  int id = 0xffff;
+  EMACS_UINT id = 0xffff;
   Lisp_Object gui = IMAGE_INSTANCE_WIDGET_ITEM (ii);
   Lisp_Gui_Item *pgui = XGUI_ITEM (gui);
 
@@ -2436,13 +2436,16 @@ mswindows_progress_gauge_instantiate (Lisp_Object image_instance,
 				      Lisp_Object pointer_bg,
 				      int dest_mask, Lisp_Object domain)
 {
-  HWND wnd;
+
   Lisp_Image_Instance *ii = XIMAGE_INSTANCE (image_instance);
   Lisp_Object val;
+#if 0
+  HWND wnd = WIDGET_INSTANCE_MSWINDOWS_HANDLE (ii);
+#endif
+
   mswindows_widget_instantiate (image_instance, instantiator, pointer_fg,
 				pointer_bg, dest_mask, domain, PROGRESS_CLASS,
 				WS_BORDER | PBS_SMOOTH, WS_EX_CLIENTEDGE);
-  wnd = WIDGET_INSTANCE_MSWINDOWS_HANDLE (ii);
   /* set the colors */
 #if 0 /* #### fix this */
   qxeSendMessage (wnd, PBM_SETBKCOLOR, 0,

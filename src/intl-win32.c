@@ -762,15 +762,16 @@ mswindows_locale_to_oem_code_page (LCID lcid)
 static void
 set_current_lcid (LCID lcid)
 {
-  int cp;
-
   /* This will fail under Win9x, so we remember our own locale rather than
      consulting GetThreadLocale. */
   SetThreadLocale (lcid);
   current_locale = lcid;
-  cp = mswindows_locale_to_code_page (lcid);
 #ifndef NO_EXT_MULTIBYTE_FEATURES
-  _setmbcp (cp);
+  {
+    int cp = mswindows_locale_to_code_page (lcid);
+
+    _setmbcp (cp);
+  }
 #endif
 }
 
@@ -1619,8 +1620,8 @@ wcsncpy (wchar_t *dst0, const wchar_t *src0, size_t count)
 wchar_t *
 wcscpy (wchar_t *dst0, const wchar_t *src0)
 {
-  if (dst0 == NULL || src0 == NULL) return NULL;
   wchar_t *s = dst0;
+  if (dst0 == NULL || src0 == NULL) return NULL;
 
   while ((*dst0++ = *src0++))
     ;
@@ -1631,12 +1632,18 @@ wcscpy (wchar_t *dst0, const wchar_t *src0)
 wchar_t *
 wcsdup (const wchar_t *str)
 {
-  if (str == NULL) return NULL;
-  int len = wcslen (str) + 1;
-  wchar_t *val = xnew_array (wchar_t, len);
+  if (str == NULL)
+   {
+     return NULL;
+   }
+  else
+   {
+     int len = wcslen (str) + 1;
+     wchar_t *val = xnew_array (wchar_t, len);
 
-  if (val == 0) return 0;
-  return (wchar_t *) memcpy (val, str, len * sizeof (wchar_t));
+     if (val == 0) return 0;
+     return (wchar_t *) memcpy (val, str, len * sizeof (wchar_t));
+   }
 }
 
 #endif /* CYGWIN */

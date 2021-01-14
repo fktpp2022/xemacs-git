@@ -1035,7 +1035,6 @@ Lisp_Object
 mswindows_color_to_string (COLORREF color)
 {
   int i;
-  Ascbyte buf[8];
   COLORREF pcolor = PALETTERGB (GetRValue (color), GetGValue (color),
 				GetBValue (color));
 
@@ -1390,7 +1389,7 @@ mswindows_print_color_instance (Lisp_Color_Instance *c,
 {
   COLORREF color = COLOR_INSTANCE_MSWINDOWS_COLOR (c);
   write_fmt_string (printcharfun,
-		    " %06ld=(%04X,%04X,%04X)", color & 0xffffff,
+		    " %06d=(%04X,%04X,%04X)", (int) (color & 0xffffff),
 		    GetRValue (color) * 257, GetGValue (color) * 257,
 		    GetBValue (color) * 257);
 }

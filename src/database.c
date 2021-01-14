@@ -771,6 +771,8 @@ variable `database-coding-system'.
       db->coding_system = codesys;
       goto db_done;
     }
+#else /* HAVE_BERKELEY_DB */
+  USED (subtype);
 #endif /* HAVE_BERKELEY_DB */
 
   invalid_constant ("Unsupported database type", type);

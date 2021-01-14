@@ -1172,7 +1172,7 @@ equal_devmode (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth),
   Lisp_Devmode *dm1 = XDEVMODE (obj1);
   Lisp_Devmode *dm2 = XDEVMODE (obj2);
 
-  if ((dm1->devmode != NULL) != (dm1->devmode != NULL))
+  if ((dm1->devmode != NULL) != (dm2->devmode != NULL))
     return 0;
   if (dm1->devmode == NULL)
     return 1;
