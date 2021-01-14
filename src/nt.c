@@ -1165,7 +1165,7 @@ mswindows_rename (const Ibyte *oldname, const Ibyte *newname)
   Bytecount old_len = qxestrlen (oldname);
   /* XEmacs: We sprintf() part of OLDNAME into part of OLDNAME + a number,
      so the following calculation should certainly be enough. */
-  Bytecount temp_len = alloca_ibytes (2 * old_len + 100);
+  Bytecount temp_len = 2 * old_len + 100;
   Ibyte *temp = alloca_ibytes (temp_len);
 
   /* MoveFile on Windows 95 doesn't correctly change the short file name

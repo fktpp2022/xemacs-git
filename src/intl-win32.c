@@ -1505,8 +1505,8 @@ mswindows_start_ime_composition (struct frame *f)
 
     /* Get Mule charset from current ime font charset. */
     qxeImmGetCompositionFont (himc, &old_logfont);
-    TranslateCharsetInfo ((DWORD *) (DWORD) old_logfont.lfCharSet, &info,
-			  TCI_SRCCHARSET);
+    TranslateCharsetInfo ((DWORD *) ((EMACS_UINT) (old_logfont.lfCharSet)),
+	                  &info, TCI_SRCCHARSET);
     charset = mswindows_get_code_page_charset (info.ciACP);
 
     if (CHARSETP (charset))

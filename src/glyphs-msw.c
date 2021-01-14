@@ -2140,9 +2140,9 @@ mswindows_subwindow_instantiate (Lisp_Object image_instance,
 			 (FRAME_MSWINDOWS_HANDLE (XFRAME (frame)),
 			  GWLP_HINSTANCE),
 			 NULL);
-
+  assert (SIZEOF_VOID_P <= sizeof (LPARAM));
   qxeSetWindowLongPtr (wnd, GWLP_USERDATA,
-		       STORE_LISP_IN_VOID(image_instance));
+		       (LPARAM) (STORE_LISP_IN_VOID (image_instance)));
   IMAGE_INSTANCE_SUBWINDOW_ID (ii) = wnd;
 }
 
@@ -2238,8 +2238,6 @@ mswindows_widget_instantiate (Lisp_Object image_instance,
   if (!gui_item_active_p (gui))
     flags |= WS_DISABLED;
 
-  style = pgui->style;
-
   if (!NILP (pgui->callback) || !NILP (pgui->callback_ex))
     {
       id = mswindows_register_widget_instance (image_instance, domain);
@@ -2290,8 +2288,9 @@ mswindows_widget_instantiate (Lisp_Object image_instance,
 	       make_fixnum (GetLastError()));
 
   IMAGE_INSTANCE_SUBWINDOW_ID (ii) = wnd;
+  assert (SIZEOF_VOID_P <= sizeof (LPARAM));
   qxeSetWindowLongPtr (wnd, GWLP_USERDATA,
-		       STORE_LISP_IN_VOID(image_instance));
+		       (LPARAM) (STORE_LISP_IN_VOID (image_instance)));
   /* set the widget font from the widget face */
   if (!NILP (IMAGE_INSTANCE_WIDGET_TEXT (ii)))
     qxeSendMessage (wnd, WM_SETFONT,

@@ -864,11 +864,7 @@ BOOL qxeImmGetCompositionFont (HIMC imc, LOGFONTW *lplf);
 #undef ImmSetCompositionString
 #define ImmSetCompositionString error_use_qxeImmSetCompositionString_or_ImmSetCompositionStringA_and_ImmSetCompositionStringW
 #endif
-#if MSC_VERSION >= 1300
-BOOL qxeImmSetCompositionString (HIMC arg1, DWORD dwIndex, LPVOID lpComp, DWORD arg4, LPCVOID lpRead, DWORD arg6);
-#else
-BOOL qxeImmSetCompositionString (HIMC arg1, DWORD dwIndex, LPCVOID lpComp, DWORD arg4, LPCVOID lpRead, DWORD arg6);
-#endif
+BOOL qxeImmSetCompositionString (HIMC arg1, DWORD dwIndex, LPVOID lpComp, DWORD arg4, LPVOID lpRead, DWORD arg6);
 #endif /* defined (HAVE_MS_WINDOWS) */
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED

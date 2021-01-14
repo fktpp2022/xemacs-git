@@ -188,7 +188,10 @@ DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("mswindows-dialog-id",
 				    struct mswindows_dialog_id);
 
 /* Dialog procedure */
-static BOOL CALLBACK 
+/* The return type is either BOOL (with the older, pre-64-bit Windows SDKs) or
+   INT_PTR. WPARAM resolves to UINT_PTR on the 64-bit SDKs, and a reasonable
+   value on 32-bit SDKs. Let's see how that works out. */
+static WPARAM CALLBACK 
 dialog_proc (HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param)
 {
   switch (msg)
@@ -584,8 +587,8 @@ handle_question_dialog_box (struct frame *f, Lisp_Object keys)
       }
   }
   
-  if (Dynarr_length (dialog_items) == 0)
-    sferror ("Dialog descriptor provides no buttons", keys);
+  check_integer_range (make_integer (Dynarr_length (dialog_items)),
+                       Qone, make_integer (INT_16_BIT_MAX));
   
   if (NILP (question))
     sferror ("Dialog descriptor provides no question", keys);
@@ -655,7 +658,7 @@ handle_question_dialog_box (struct frame *f, Lisp_Object keys)
     dlg_tem.style = (DS_CENTER | DS_MODALFRAME
 		     | WS_CAPTION | WS_POPUP | WS_VISIBLE);
     dlg_tem.dwExtendedStyle = 0;
-    dlg_tem.cdit = Dynarr_length (dialog_items) + 1;
+    dlg_tem.cdit = (WORD) (Dynarr_length (dialog_items) + 1);
     dlg_tem.x = 0;
     dlg_tem.y = 0;
     dlg_tem.cx = text_width + 2 * X_TEXT_FROM_EDGE;
@@ -760,7 +763,8 @@ handle_question_dialog_box (struct frame *f, Lisp_Object keys)
     did->hwnd =
       qxeCreateDialogIndirectParam (NULL,
 				    (LPDLGTEMPLATE) Dynarr_begin (template_),
-				    FRAME_MSWINDOWS_HANDLE (f), dialog_proc,
+				    FRAME_MSWINDOWS_HANDLE (f),
+                                    (DLGPROC) (dialog_proc),
 				    (LPARAM) STORE_LISP_IN_VOID (obj));
     if (!did->hwnd)
       /* Something went wrong creating the dialog */

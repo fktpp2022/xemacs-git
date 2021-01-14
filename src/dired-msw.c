@@ -310,7 +310,7 @@ mswindows_format_file (Win32_file *file, int display_size, int add_newline)
   Lisp_Object luser;
   double file_size;
   DECLARE_EISTRING (puta);
-  CIbyte buf[666];
+  Ascbyte buf[666];
 
   file_size =
     file->nFileSizeHigh * (double)UINT_MAX + file->nFileSizeLow;
@@ -319,7 +319,7 @@ mswindows_format_file (Win32_file *file, int display_size, int add_newline)
 #endif
   if (display_size)
     {
-      emacs_snprintf (buf, sizeof (buf), "%6d ",
+      emacs_snprintf_ascbyte (buf, sizeof (buf), "%6d ",
                       (int)((file_size + 1023.) / 1024.));
       eicat_ascii (puta, buf);
     }
@@ -366,28 +366,30 @@ mswindows_format_file (Win32_file *file, int display_size, int add_newline)
       eicat_ascii (puta, "   1 ");
   luser = Fuser_login_name (Qnil);
   if (!STRINGP (luser))
-    emacs_snprintf (buf, sizeof (buf), "%-9d", 0);
+    emacs_snprintf_ascbyte (buf, sizeof (buf), "%-9d", 0);
   else
     {
-      emacs_snprintf (buf, sizeof (buf), "%-8s ", XSTRING_DATA (luser));
+      emacs_snprintf_ascbyte (buf, sizeof (buf), "%-8s ",
+                              XSTRING_DATA (luser));
     }
   eicat_raw (puta, (Ibyte *) buf, strlen (buf));
   {
-    CIbyte *cptr = buf;
-    cptr += emacs_snprintf (buf, sizeof (buf), "%-8d ", getgid ());
+    Ascbyte *cptr = buf;
+    cptr += emacs_snprintf_ascbyte (buf, sizeof (buf), "%-8ld ",
+                                    (EMACS_INT) getgid ());
     if (file_size > 99999999.0)
       {
 	file_size = (file_size + 1023.0) / 1024.;
 	if (file_size > 999999.0)
-	  emacs_snprintf (cptr, sizeof (buf) - (cptr - buf),
-                          "%6.0fMB ", (file_size + 1023.0) / 1024.);
+	  emacs_snprintf_ascbyte (cptr, sizeof (buf) - (cptr - buf),
+                                  "%6.0fMB ", (file_size + 1023.0) / 1024.);
 	else
-	  emacs_snprintf (cptr, sizeof (buf) - (cptr - buf),
-                          "%6.0fKB ", file_size);
+	  emacs_snprintf_ascbyte (cptr, sizeof (buf) - (cptr - buf),
+                                  "%6.0fKB ", file_size);
       }
     else
-      emacs_snprintf (cptr, sizeof (buf) - (cptr - buf),
-                      "%8.0f ", file_size);
+      emacs_snprintf_ascbyte (cptr, sizeof (buf) - (cptr - buf),
+                              "%8.0f ", file_size);
     while (*cptr)
       ++cptr;
     {

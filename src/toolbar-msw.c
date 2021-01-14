@@ -97,7 +97,7 @@ mswindows_clear_toolbar (struct frame *f, enum edge_pos pos,
 	  
       /* finally get rid of the image list assuming it clears up its
          bitmaps */
-      qxeSendMessage (toolbarwnd, TB_GETIMAGELIST, 0, (LONG) &ilist);
+      qxeSendMessage (toolbarwnd, TB_GETIMAGELIST, 0, (LPARAM) &ilist);
       if (ilist)
 	{
 	  ImageList_Destroy (ilist);

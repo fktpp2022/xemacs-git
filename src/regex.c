@@ -2325,9 +2325,9 @@ re_iswctype (int ch, re_wctype_t cc
     case RECC_UNIBYTE: return ISUNIBYTE (ch) != 0;
     case RECC_WORD: return ISWORD (ch) != 0;
     case RECC_ERROR: return false;
-    default:
-      abort ();
     }
+  assert (0);
+  return -1;
 }
 
 #ifdef MULE

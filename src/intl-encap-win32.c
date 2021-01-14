@@ -1248,17 +1248,13 @@ BOOL
 qxeUpdateICMRegKey (DWORD arg1, Extbyte * arg2, Extbyte * arg3, UINT arg4)
 {
 #ifdef CYGWIN_HEADERS
-  /* Cygwin mistakenly declares the second argument as DWORD. */
-  if (XEUNICODE_P)
-    return UpdateICMRegKeyW (arg1, (DWORD) arg2, (LPWSTR) arg3, arg4);
-  else
-    return UpdateICMRegKeyA (arg1, (DWORD) arg2, (LPSTR) arg3, arg4);
-#else
+  /* Cygwin used to mistakenly declare the second argument as DWORD, but no
+     longer, and we need to use the correct declaration for 64 bit support. */
+#endif /* CYGWIN_HEADERS */
   if (XEUNICODE_P)
     return UpdateICMRegKeyW (arg1, (LPWSTR) arg2, (LPWSTR) arg3, arg4);
   else
     return UpdateICMRegKeyA (arg1, (LPSTR) arg2, (LPSTR) arg3, arg4);
-#endif /* CYGWIN_HEADERS */
 }
 
 #endif /* HAVE_MS_WINDOWS */
@@ -1324,27 +1320,27 @@ BOOL
 qxeEnumResourceTypes (HMODULE hModule, ENUMRESTYPEPROC lpEnumFunc, LONG lParam)
 {
   if (XEUNICODE_P)
-    return EnumResourceTypesW (hModule, lpEnumFunc, lParam);
+    return EnumResourceTypesW (hModule, (ENUMRESTYPEPROCW) lpEnumFunc, lParam);
   else
-    return EnumResourceTypesA (hModule, lpEnumFunc, lParam);
+    return EnumResourceTypesA (hModule, (ENUMRESTYPEPROCA) lpEnumFunc, lParam);
 }
 
 BOOL
 qxeEnumResourceNames (HMODULE hModule, const Extbyte * lpType, ENUMRESNAMEPROC lpEnumFunc, LONG lParam)
 {
   if (XEUNICODE_P)
-    return EnumResourceNamesW (hModule, (LPCWSTR) lpType, lpEnumFunc, lParam);
+    return EnumResourceNamesW (hModule, (LPCWSTR) lpType, (ENUMRESNAMEPROCW) lpEnumFunc, lParam);
   else
-    return EnumResourceNamesA (hModule, (LPCSTR) lpType, lpEnumFunc, lParam);
+    return EnumResourceNamesA (hModule, (LPCSTR) lpType, (ENUMRESNAMEPROCA) lpEnumFunc, lParam);
 }
 
 BOOL
 qxeEnumResourceLanguages (HMODULE hModule, const Extbyte * lpType, const Extbyte * lpName, ENUMRESLANGPROC lpEnumFunc, LONG lParam)
 {
   if (XEUNICODE_P)
-    return EnumResourceLanguagesW (hModule, (LPCWSTR) lpType, (LPCWSTR) lpName, lpEnumFunc, lParam);
+    return EnumResourceLanguagesW (hModule, (LPCWSTR) lpType, (LPCWSTR) lpName, (ENUMRESLANGPROCW) lpEnumFunc, lParam);
   else
-    return EnumResourceLanguagesA (hModule, (LPCSTR) lpType, (LPCSTR) lpName, lpEnumFunc, lParam);
+    return EnumResourceLanguagesA (hModule, (LPCSTR) lpType, (LPCSTR) lpName, (ENUMRESLANGPROCA) lpEnumFunc, lParam);
 }
 
 #endif /* MSC_VERSION >= 1300 */
@@ -2147,8 +2143,6 @@ qxeImmGetCompositionFont (HIMC imc, LOGFONTW *lplf)
     }
 }
 
-#if MSC_VERSION >= 1300
-
 BOOL
 qxeImmSetCompositionString (HIMC arg1, DWORD dwIndex, LPVOID lpComp, DWORD arg4, LPVOID lpRead, DWORD arg6)
 {
@@ -2157,19 +2151,6 @@ qxeImmSetCompositionString (HIMC arg1, DWORD dwIndex, LPVOID lpComp, DWORD arg4,
   else
     return ImmSetCompositionStringA (arg1, dwIndex, lpComp, arg4, lpRead, arg6);
 }
-
-#else
-
-BOOL
-qxeImmSetCompositionString (HIMC arg1, DWORD dwIndex, LPCVOID lpComp, DWORD arg4, LPCVOID lpRead, DWORD arg6)
-{
-  if (XEUNICODE_P)
-    return ImmSetCompositionStringW (arg1, dwIndex, lpComp, arg4, lpRead, arg6);
-  else
-    return ImmSetCompositionStringA (arg1, dwIndex, lpComp, arg4, lpRead, arg6);
-}
-
-#endif /* MSC_VERSION >= 1300 */
 
 int
 qxeGetObject (HGDIOBJ hgdiobj, int cbBuffer, LPVOID lpvObject)

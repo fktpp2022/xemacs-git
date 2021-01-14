@@ -1817,9 +1817,12 @@ dde_eval (Lisp_Object str)
 		 mswindows_dde_item_result);
 }
 
-/* A list of DDE advise tokens. Each token is an uninterned symbol,
- * whose value is the DDE string handle for its name (stored as a float,
- * as a Lisp int cannot hold a full C int).
+/* A list of DDE advise [oh it pains me not to change that to "advice", maybe
+ * I should anyway] tokens. Each token is an uninterned symbol, whose value is
+ * the DDE string handle for its name stored as an integer. This integer will
+ * be a fixnum, right-shifted to avoid losing information when translating
+ * between aligned pointers and fixnums.
+
  * The token's `dde-data' property is used to store data for a dde-advise.
  */
 Lisp_Object Vdde_advise_items;
@@ -1827,7 +1830,40 @@ Lisp_Object Vdde_advise_items;
 /* The symbol `HSZ' */
 Lisp_Object QHSZ;
 
-DEFUN("dde-alloc-advise-item", Fdde_alloc_advise_item, 0, 1, 0, /*
+/* Definitions for lisp_to_HSZ, HSZ_to_lisp. We can't do this using
+   DEFINE_C_INTEGER_TYPE_LISP_CONVERSION() because << is not defined for
+   pointer types in C89.
+
+   We know HSZ is a pointer type, we know that it is almost certainly going to
+   be four-byte aligned (cf. DECLARE_HANDLE in WinNT.h, Windows SDK, v7.0a),
+   so use GET_VOID_FROM_LISP () / STORE_VOID_IN_LISP ().
+
+   Should the assertions below fail at any point (and this is unlikely, it
+   suggests the the alignment assumption does not hold) an alternative would
+   be to DEFINE_C_INTEGER_TYPE_LISP_CONVERSION() for EMACS_UINT and implement
+   lisp_to_HSZ() / HSZ_to_lisp() in terms of that, which would still be cheap,
+   with a static lisp_to_EMACS_UINT/EMACS_UINT_to_lisp, the compiler will
+   inline the only use of those functions. */
+static HSZ
+lisp_to_HSZ (Lisp_Object objeto)
+{
+  void *resultvp;
+  CHECK_FIXNUM (objeto); 
+  
+  resultvp = GET_VOID_FROM_LISP (objeto);
+  assert (((EMACS_UINT) resultvp & 1) == 0);
+  assert (sizeof (HSZ) <= SIZEOF_EMACS_INT);
+  return (HSZ) resultvp;
+}
+
+static Lisp_Object
+HSZ_to_lisp (HSZ handel)
+{
+  assert (sizeof (HSZ) <= SIZEOF_EMACS_INT);
+  return STORE_VOID_IN_LISP ((void *) handel);
+}
+
+DEFUN ("dde-alloc-advise-item", Fdde_alloc_advise_item, 0, 1, 0, /*
 Allocate an advise item, and return its token.
 */
       (name))
@@ -1852,13 +1888,13 @@ Allocate an advise item, and return its token.
 				  LISP_STRING_TO_TSTR (name),
 				  XEUNICODE_P ? CP_WINUNICODE : CP_WINANSI);
 
-  Fput(token, QHSZ, make_float ((int)hsz));
+  Fput (token, QHSZ, HSZ_to_lisp (hsz));
   Vdde_advise_items = Fcons (token, Vdde_advise_items);
 
   RETURN_UNGCPRO (token);
 }
 
-DEFUN("dde-free-advise-item", Fdde_free_advise_item, 1, 1, 0, /*
+DEFUN ("dde-free-advise-item", Fdde_free_advise_item, 1, 1, 0, /*
 Free the resources associated with advise item ITEM.
 
 Frees all resources allocated to allow clients to set up advise loops
@@ -1871,19 +1907,16 @@ If the user does not free an advise item, resources will be leaked.
       (item))
 {
   HSZ hsz;
-  Lisp_Object val;
 
   CHECK_SYMBOL (item);
-  val = Fget (item, QHSZ, Qnil);
-  if (!FLOATP (val))
-    return Qnil;
-  hsz = (HSZ)(int)XFLOAT_DATA (val);
+
+  hsz = lisp_to_HSZ (Fget (item, QHSZ, Qnil));
   DdeFreeStringHandle (mswindows_dde_mlid, hsz);
   Vdde_advise_items = delq_no_quit (item, Vdde_advise_items);
   return Qnil;
 }
 
-DEFUN("dde-advise", Fdde_advise, 2, 2, 0, /*
+DEFUN ("dde-advise", Fdde_advise, 2, 2, 0, /*
 Post a DDE advise for ITEM with associated data DATA.
 
 Records the value DATA for sending back to clients waiting for
@@ -1895,13 +1928,9 @@ ITEM must be an advise token allocated using dde-alloc-advise-item.
       (item, data))
 {
   HSZ hsz;
-  Lisp_Object val;
 
   CHECK_SYMBOL (item);
-  val = Fget (item, QHSZ, Qnil);
-  if (!FLOATP (val))
-    return Qnil;
-  hsz = (HSZ)(int)XFLOAT_DATA (val);
+  hsz = lisp_to_HSZ (Fget (item, QHSZ, Qnil));
 
   Fset (item, data);
   DdePostAdvise (mswindows_dde_mlid, mswindows_dde_topic_eval, hsz);
@@ -1956,14 +1985,11 @@ mswindows_dde_callback (UINT uType, UINT uFmt, HCONV UNUSED (hconv),
 	  {
 	    EXTERNAL_LIST_LOOP_2 (elt, Vdde_advise_items)
 	      {
-		Lisp_Object val;
 		HSZ hsz;
 		if (!SYMBOLP (elt))
 		  continue;
-		val = Fget (elt, QHSZ, Qnil);
-		if (!FLOATP (val))
-		  continue;
-		hsz = (HSZ) (int) XFLOAT_DATA (val);
+
+		hsz = lisp_to_HSZ (Fget (elt, QHSZ, Qnil));
 		if (!DdeCmpStringHandles (hszItem, hsz))
 		  return (HDDEDATA) TRUE;
 	      }
@@ -2018,14 +2044,11 @@ mswindows_dde_callback (UINT uType, UINT uFmt, HCONV UNUSED (hconv),
 	  {
 	    EXTERNAL_LIST_LOOP_2 (elt, Vdde_advise_items)
 	      {
-		Lisp_Object val;
 		HSZ hsz;
 		if (!SYMBOLP (elt))
 		  continue;
-		val = Fget (elt, QHSZ, Qnil);
-		if (!FLOATP (val))
-		  continue;
-		hsz = (HSZ) (int) XFLOAT_DATA (val);
+
+		hsz = lisp_to_HSZ (Fget (elt, QHSZ, Qnil));
 		if (!DdeCmpStringHandles (hszItem, hsz))
 		  args[2] = Fsymbol_value (elt);
 	      }
@@ -2758,7 +2781,8 @@ mswindows_wnd_proc (HWND hwnd, UINT message_, WPARAM wParam, LPARAM lParam)
 				mswindows_locale_to_code_page
 				/* See intl-win32.c for an explanation of
 				   the following */
-				((LCID) GetKeyboardLayout (0) & 0xFFFF),
+				((LCID) (((EMACS_UINT) (GetKeyboardLayout (0)))
+					 & 0xFFFF)),
 				NULL));
 		    ch = itext_ichar (intchar);
 		    xfree (intchar);
@@ -2842,7 +2866,9 @@ mswindows_wnd_proc (HWND hwnd, UINT message_, WPARAM wParam, LPARAM lParam)
 		    /* VERY CONFUSING!  See intl-win32.c. */
 		    lcid = lcid & 0xFFFF;
 
-		    virtual_key = qxeMapVirtualKeyEx (scan, 1, (HKL) lcid);
+		    virtual_key
+		      = qxeMapVirtualKeyEx (scan, 1,
+					    (HKL) ((EMACS_UINT) lcid));
 		    if (!vk_only)
 		      {
 			if (XEUNICODE_P)
@@ -2856,7 +2882,7 @@ mswindows_wnd_proc (HWND hwnd, UINT message_, WPARAM wParam, LPARAM lParam)
 				 0, /* #### what about this flag? "if
 				       bit 0 is set, a menu is
 				       active???" */
-				 (HKL) lcid);
+				 (HKL) ((EMACS_UINT) lcid));
 			    if (tounret > 0)
 			      {
 				Ibyte *intchar;
@@ -2878,7 +2904,7 @@ mswindows_wnd_proc (HWND hwnd, UINT message_, WPARAM wParam, LPARAM lParam)
 					 0, /* #### what about this
 					       flag? "if bit 0 is set, a
 					       menu is active???" */
-					 (HKL) lcid);
+					 (HKL) ((EMACS_UINT) lcid));
 			    if (tounret > 0)
 			      {
 				/* #### I cannot find proper
@@ -4990,8 +5016,8 @@ debug_output_mswin_message (HWND hwnd, UINT message_, WPARAM wParam,
 
   if (debug_mswindows_events > 1)
     {
-      stderr_out (" wparam=%d lparam=%d hwnd=%x frame: ",
-		  wParam, (int) lParam, (unsigned int) hwnd);
+      stderr_out (" wparam=%ld lparam=%ld hwnd=%lux frame: ",
+		  (EMACS_INT) (wParam), (EMACS_INT) lParam, (EMACS_INT) hwnd);
       debug_print (frame);
       if (message_ == WM_WINDOWPOSCHANGED ||
           message_ == WM_WINDOWPOSCHANGING)

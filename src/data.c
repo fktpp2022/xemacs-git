@@ -1506,6 +1506,7 @@ expensive, since the inverse map needs to be calculated.
   Ichar cc;
 
   CHECK_NATNUM (weight);
+#ifdef HAVE_BIGNUM
   if (BIGNUMP (weight))
     {
       weight = Fcanonicalize_number (weight);
@@ -1517,6 +1518,7 @@ expensive, since the inverse map needs to be calculated.
           return Qnil;
         }
     }
+#endif
 
   weighting = XFIXNUM (weight);
 

@@ -271,7 +271,10 @@ mswindows_init_frame_1 (struct frame *f, Lisp_Object props,
 			   
   FRAME_MSWINDOWS_HANDLE (f) = hwnd;
 
-  qxeSetWindowLongPtr (hwnd, XWLP_FRAMEOBJ, STORE_LISP_IN_VOID (frame_obj));
+  assert (sizeof (LPARAM) < SIZEOF_VOID_P);
+  qxeSetWindowLongPtr (hwnd, XWLP_FRAMEOBJ,
+                       (LPARAM) (STORE_LISP_IN_VOID (frame_obj)));
+
   FRAME_MSWINDOWS_DC (f) = GetDC (hwnd);
   SetTextAlign (FRAME_MSWINDOWS_DC (f), TA_BASELINE | TA_LEFT | TA_NOUPDATECP);
 
@@ -488,8 +491,10 @@ mswindows_set_frame_icon (struct frame *f)
 						    FALSE);
 	}
 
+      assert (sizeof (HICON) <= sizeof (LPARAM));
       qxeSetClassLongPtr (FRAME_MSWINDOWS_HANDLE (f), GCLP_HICON,
-			  XIMAGE_INSTANCE_MSWINDOWS_ICON (f->icon));
+			  (LPARAM)
+                          (XIMAGE_INSTANCE_MSWINDOWS_ICON (f->icon)));
     }
 }
 
@@ -499,8 +504,10 @@ mswindows_set_frame_pointer (struct frame *f)
   if (IMAGE_INSTANCEP (f->pointer)
       && IMAGE_INSTANCE_TYPE (XIMAGE_INSTANCE (f->pointer)) == IMAGE_POINTER)
     {
+      assert (sizeof (HICON) <= sizeof (LPARAM));
       qxeSetClassLongPtr (FRAME_MSWINDOWS_HANDLE (f), GCLP_HCURSOR,
-			  XIMAGE_INSTANCE_MSWINDOWS_ICON (f->pointer));
+			  (LPARAM)
+                          (XIMAGE_INSTANCE_MSWINDOWS_ICON (f->pointer)));
       /* we only have to do this because GC doesn't cause a mouse
          event and doesn't give time to event processing even if it
          did. */

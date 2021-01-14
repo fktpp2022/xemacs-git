@@ -1685,7 +1685,8 @@ position (Lisp_Object *object_out, Lisp_Object item, Lisp_Object sequence,
       Bytecount byte_len = XSTRING_LENGTH (sequence), cursor_offset;
       Lisp_Object character = Qnil;
 
-      cursor_offset = ii = (Bytecount) (min (XSTRING_ASCII_BEGIN (sequence),
+      cursor_offset = ii = (Bytecount) (min ((Bytecount)
+                                             (XSTRING_ASCII_BEGIN (sequence)),
 					     starting));
       cursor = startp + cursor_offset;
       /* It's probably worth making this even faster for the

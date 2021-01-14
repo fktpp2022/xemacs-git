@@ -96,7 +96,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 /* #### */
 #define REPLACE_ME_WITH_GLOBAL_VARIABLE_WHICH_CONTROLS_RIGHT_FLUSH 0
 
-#define EMPTY_ITEM_ID ((UINT)STORE_LISP_IN_VOID (Qunbound))
+#define EMPTY_ITEM_ID ((EMACS_UINT) STORE_LISP_IN_VOID (Qunbound))
 #define EMPTY_ITEM_NAME "(empty)" /* WARNING: uses of this need XETEXT */
 
 /* Current menu (bar or popup) descriptor. gcpro'ed */

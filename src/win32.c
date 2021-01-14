@@ -256,12 +256,12 @@ mswindows_lisp_error_1 (int errnum, int no_recurse)
 	  if (no_recurse)
 	    return emacs_sprintf_string
 	      ("Unknown error code %d (error return %ld from FormatMessage())",
-	       errnum, GetLastError ());
+	       errnum, (EMACS_INT) (GetLastError ()));
 	  else
-	    return emacs_sprintf_string
+	    return emacs_sprintf_string_lisp
 	      ("Unknown error code %d (error return %s from FormatMessage())",
-	       /* It's OK, emacs_sprintf_string disables GC explicitly */
-	       errnum, XSTRING_DATA (mswindows_lisp_error_1 (errnum, 1)));
+	       make_integer (errnum),
+	       mswindows_lisp_error_1 (errnum, 1));
 	}
       else
 	break;
@@ -775,11 +775,12 @@ MMRESULT tid_alarm = 0;
 MMRESULT tid_prof = 0;
 
 static void CALLBACK
-setitimer_helper_proc (UINT UNUSED (uID), UINT UNUSED (uMsg), DWORD dwUser,
-		       DWORD UNUSED (dw1), DWORD UNUSED (dw2))
+setitimer_helper_proc (UINT UNUSED (uID), UINT UNUSED (uMsg),
+		       DWORD_PTR dwUser,
+		       DWORD_PTR UNUSED (dw1), DWORD_PTR UNUSED (dw2))
 {
   /* Just raise the signal indicated by the dwUser parameter */
-  mswindows_raise (dwUser);
+  mswindows_raise ((int)((EMACS_UINT) dwUser));
 }
 
 /* Divide time in ms specified by IT by DENOM. Return 1 ms

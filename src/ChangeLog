@@ -1,3 +1,96 @@
+2021-01-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Clean up 64-bit issues, thank you Cygwin, GCC, Clang and Microsoft.
+	* dialog-msw.c (dialog_proc):
+	Declare this as returning WPARAM (equivalent to a pointer to int),
+	not BOOL.
+	* event-msw.c:
+	Provide lisp_to_HSZ(), HSZ_to_lisp() as static functions.
+	* event-msw.c (Fdde_alloc_advise_item):
+	Use HSZ_to_lisp() here.
+	* event-msw.c (Fdde_free_advise_item):
+	Use lisp_to_HSZ() here.
+	* event-msw.c (Fdde_advise):
+	Ditto.
+	* event-msw.c (mswindows_dde_callback):
+	Ditto.
+	* event-msw.c (mswindows_wnd_proc):
+	Quiet the compiler here, cast the result of GetKeyboardLayout(0)
+	to an EMACS_UINT before passing it to &.
+	Similarly with an argument to qxeMapVirtualKeyEx().
+	Similarly with an argument to ToUnicodeEx(), ToAsciiEx().
+	* event-msw.c (debug_output_mswin_message):
+	Cast some parameters to stderr_out() in a way that is now
+	portable, with our doprnt.c implementation.
+	* frame-msw.c (mswindows_init_frame_1):
+	Cast the third argument of qxeSetWindowLongPtr() to an LPARAM, add
+	an assertion about the bit width of LPARAM vs. a void pointer.
+	* frame-msw.c (mswindows_set_frame_icon):
+	Ditto.
+	* frame-msw.c (mswindows_set_frame_pointer):
+	Ditto.
+	* glyphs-msw.c (mswindows_subwindow_instantiate):
+	Ditto.
+	* glyphs-msw.c (mswindows_widget_instantiate):
+	Ditto.
+	* intl-auto-encap-win32.c (qxeSetWindowLongPtr):
+	Use LRESULT as the result type for qxeSetWindowLongPtr, LPARAM as
+	the type of its third arg, in an attempt at portability.
+	* intl-encap-win32.c (qxeUpdateICMRegKey):
+	No longer use a separate declaration for Cygwin here.
+	* intl-encap-win32.c (qxeEnumResourceTypes):
+	* intl-encap-win32.c (qxeEnumResourceNames):
+	* intl-encap-win32.c (qxeEnumResourceLanguages):
+	Declare the types of lpEnumFunc appropriately for these three
+	functions.
+	* intl-encap-win32.c (qxeImmSetCompositionString):
+	This now only takes LPVOID for lpComp, lpRead, as per recent
+	Cygwin headers.
+	* intl-win32.c (mswindows_start_ime_composition):
+	Be a little more compatible in our TranslateCharsetInfo() call.
+	* menubar-msw.c:
+	* menubar-msw.c (EMPTY_ITEM_ID):
+	Don't lose bits randomly with this #define.
+	* scrollbar-msw.c (mswindows_create_scrollbar_instance):
+	* scrollbar-msw.c (mswindows_free_scrollbar_instance):
+	* scrollbar-msw.c (mswindows_handle_scrollbar_event):
+	Make uses of qxeSetWindowLongPtr() more compatible in this file.
+	* syswindows.h:
+	Use the newer convention for ImmSetCompositionString() here.
+	* toolbar-msw.c (mswindows_clear_toolbar):
+	Cast the fourth argument to qxeSendMessage to LPARAM appropriately.
+	* win32.c (mswindows_lisp_error_1):
+	Make better choices about the types passed to our internal string
+	formatting functions here.
+	* win32.c (setitimer_helper_proc):
+	Update the declaration of this function.
+	* console-msw.c:
+	* console-msw.c (write_string_to_mswindows_debugging_output):
+	The rest of our code now expects a Bytecount from this soft of
+	function, return that.
+	* console-msw.h:
+	Update the declaration of
+	write_string_to_mswindows_debugging_output() to reflect that.
+	* data.c (Fdigit_char):
+	Wrap the calls to Fcanonicalize_number() for the sake of the
+	Windows build.
+	* dialog-msw.c (dialog_proc): Update a comment here.
+	* dialog-msw.c (handle_question_dialog_box):
+	Place a limit on how many dialog_items we are given, cast
+	dlg_tem.cdit to WORD appropriately.
+	* dired-msw.c (mswindows_format_file):
+	Use emacs_snprintf_ascbyte() here, declare BUF as Ascbyte.
+	* glyphs-msw.c (mswindows_widget_instantiate):
+	Cast the argument to the call to qxeSetWindowLongPtr() call here.
+	* nt.c (mswindows_rename):
+	TEMP_LEN is not a pointer, correct its initialisation.
+	* regex.c:
+	* regex.c (re_iswctype):
+	Do an assert (0); return -1; in this function to quiet the C
+	compiler.
+	* sequence.c (position):
+	Cast the result of XSTRING_ASCII_BEGIN() to a Bytecount.
+
 2021-01-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* number.h:

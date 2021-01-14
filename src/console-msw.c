@@ -350,7 +350,7 @@ This function can be used as the STREAM argument of Fprint() or the like.
   return char_or_string;
 }
 
-void
+Bytecount
 write_string_to_mswindows_debugging_output (const Ibyte *str, Bytecount len)
 {
   const Extbyte *extptr;
@@ -371,6 +371,10 @@ write_string_to_mswindows_debugging_output (const Ibyte *str, Bytecount len)
       ext[len] = '\0';
       OutputDebugStringA (ext);
     }
+
+  /* No mechanism to return the actual amount of bytes written. It's cheap to
+     just return LEN, do that. */
+  return len;
 }
 
 #ifdef DEBUG_XEMACS

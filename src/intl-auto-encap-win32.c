@@ -1716,13 +1716,13 @@ qxeSetWindowLong (HWND arg1, int arg2, LONG arg3)
     return SetWindowLongA (arg1, arg2, arg3);
 }
 
-LONG_PTR
-qxeSetWindowLongPtr(HWND arg1, int arg2, LONG_PTR arg3)
+LRESULT
+qxeSetWindowLongPtr(HWND arg1, int arg2, LPARAM arg3)
 {
   if (XEUNICODE_P)
-    return SetWindowLongPtrW (arg1, arg2, arg3);
+    return (LRESULT) SetWindowLongPtrW (arg1, arg2, arg3);
   else
-    return SetWindowLongPtrA (arg1, arg2, arg3);
+    return (LRESULT) SetWindowLongPtrA (arg1, arg2, arg3);
 }
 
 /* Error if SetWindowLongPtr used: Function needs review to determine how to handle it */
