@@ -114,25 +114,30 @@ struct window
   line_start_cache_dynarr *line_start_cache;
   int line_cache_validation_override;
 
-  /* Length of longest line currently displayed.  Used to control the
-     width of the horizontal scrollbars. */
-  int max_line_len;
+  /* The result of window_truncation_on() at the start of the
+     currently-executing or most recently-executed call to redisplay_window()
+     on this window. */
+  Boolint truncatep;
+
+  /* Length of longest line currently displayed.  Used to control the width of
+     the horizontal scrollbars.  Only calculated if TRUNCATEP is non-zero. */
+  Charcount max_line_len;
 
   /* Frame coords of point at that time */
   int last_point_x[3];
   int last_point_y[3];
 
-  /* Number of characters in buffer past bottom of window,
+  /* Number of bytes in buffer past bottom of window,
      as of last redisplay that finished. */
   /* need one for each set of display structures */
-  int window_end_pos[3];
+  Bytecount window_end_pos[3];
 
   /* Set by the extent code when extents in the gutter are changed. */
   int gutter_extent_modiff[4];
 
   /* Set by redisplay to the last position seen.  This is used
      to implement the redisplay-end-trigger-functions. */
-  Charbpos last_redisplay_pos;
+  Bytebpos last_redisplay_pos;
 
 #define WINDOW_SLOT_DECLARATION
 #define WINDOW_SLOT(slot) Lisp_Object slot;
@@ -267,6 +272,9 @@ struct window_mirror
 #define WINDOW_TEXT_WIDTH(w) (WINDOW_TEXT_RIGHT (w) - WINDOW_TEXT_LEFT (w))
 
 #define WINDOW_HAS_MODELINE_P(w) (!NILP (w->has_modeline_p))
+
+#define WINDOW_TRUNCATEP(w) ((w)->truncatep + 0)
+#define WINDOW_SET_TRUNCATEP(w, newval) ((w)->truncatep = (newval))
 
 #define MODELINE_OFF_SHADOW_THICKNESS_ADJUSTED(win)		\
  EMACS_INT_ABS ((!WINDOW_HAS_MODELINE_P (win)			\

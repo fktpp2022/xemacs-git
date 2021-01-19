@@ -230,7 +230,8 @@ gtk_update_scrollbar_instance_status (struct window *w, int active, int size,
           gtk_adjustment_set_lower (adj, pos_data->minimum);
           gtk_adjustment_set_upper (adj, pos_data->maximum);
           gtk_adjustment_set_page_increment (adj, pos_data->slider_size + 1);
-          gtk_adjustment_set_step_increment (adj, w->max_line_len - 1);
+          gtk_adjustment_set_step_increment (adj, 
+                                             window_max_line_len (w) - 1);
 	  gtk_adjustment_set_page_size (adj, pos_data->slider_size + 1);
 
           if (gtk_adjustment_get_value (adj) != pos_data->slider_position)

@@ -2279,8 +2279,8 @@ the device's selected window for WINDOW and nil for X and Y.
   struct window *w;
   Lisp_Object frame, window = Qnil, lisp_x = Qnil, lisp_y = Qnil;
   int x, y, obj_x, obj_y;
-  Charbpos charbpos, closest;
-  Charcount modeline_closest;
+  Bytebpos charbpos, closest;
+  Bytecount modeline_closest;
   Lisp_Object obj1, obj2;
 
   if (mouse_pixel_position_1 (d, &frame, &x, &y) > 0)

@@ -95,10 +95,10 @@ struct buffer_text_change_data
 
 struct each_buffer_change_data
 {
-  Charcount begin_unchanged, end_unchanged;
+  Bytecount begin_unchanged, end_unchanged;
   /* redisplay needs to know if a newline was deleted so its
      incremental-redisplay algorithm will fail */
-  int newline_was_deleted;
+  Boolint newline_was_deleted;
   Bytecount begin_extent_unchanged, end_extent_unchanged;
 };
 

@@ -341,8 +341,8 @@ mswindows_handle_mousewheel_event (Lisp_Object frame, int keys, int delta,
   Lisp_Object win = Qnil, corpore, sano;
   struct window_mirror *mirror;
   int mene, _mene, tekel, upharsin;
-  Charbpos mens, sana;
-  Charcount in;
+  Bytebpos mens, sana;
+  Bytecount in;
   struct window *needle_in_haystack = 0;
   POINT donde_esta;
 

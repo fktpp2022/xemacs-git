@@ -1,3 +1,207 @@
+2021-01-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Move the display lines to working in terms of Bytebpos rather than
+	Charbpos, moving closer still to having no byte->char conversion in
+	redisplay.
+
+	* device-impl.h (struct pixel_to_glyph_translation_cache):
+	CHARPOS and CLOSEST are now Bytebpos, MODELINE_CLOSEST is a Bytecount.
+
+	* events.c (event_pixel_translation):
+	BUFP, CLOSEST, RET_BUFP, RET_CLOSEST are now Bytebpos,
+	RET_MODELINE_CLOSEST and MODELINE_CLOSEST are Bytecounts.
+
+	* events.c (Fevent_point):
+	Adjst the result of event_pixel_translation to reflect that BUFP
+	is now a Bytebpos, use bytebpos_to_charbpos() as appropriate.
+	Document a subtlety with the relevant buffer, cross reference to
+	the docstring for #'current-pixel-row.
+
+	* events.c (Fevent_closest_point):
+	Ditto.
+
+	* events.c (Fevent_modeline_position):
+	Adjst the result of event_pixel_translation to reflect that MBUFP
+	is now a Bytebpos, use string_index_byte_to_char() as appropriate.
+
+	* frame.c (Fmouse_position): Declare CHARBPOS and CLOSEST as
+	Bytebpos, MODELINE_CLOSEST as Bytecount in this function
+
+	* insdel.c (buffer_signal_changed_region):
+	Have this take Bytebpos arguments, not Charbpos, change the range
+	checks appropriately.
+
+	* insdel.c (signal_after_change):
+	Pass byte positions to buffer_signal_changed_region(); document
+	that I feel the multiple changes infrastructure should work in
+	terms of Bytebpos.
+
+	* insdel.h:
+	* insdel.h (struct each_buffer_change_data):
+	Update the declaration of this structure to reflect Bytebpos
+	rather than Charbpos
+
+	* redisplay-output.c:
+	* redisplay-output.c (compare_runes):
+	Update a comment here now the runes have byte positions stored.
+
+	* redisplay-output.c (ADJ_BYTEPOS): Rename ADJ_CHARPOS.
+
+	* redisplay-output.c (redisplay_move_cursor):
+	Update this to take a Bytebpos argument; in passing, explicitly
+	document that NO_OUTPUT_END and the return value are Booleans.
+	Update its implementation to work in terms of byte positions,
+	calling set_marker_byte_position() as appropriate and using
+	ADJ_BYTEPOS rather than ADJ_CHARPOS.
+
+	* redisplay-output.c (redisplay_update_line):
+	Work in terms of Bytebpos here.
+	Add an assertion that dl->num_chars is 0xDEADBEEF if the current
+	window is not to be truncated.
+
+	* redisplay.c:
+	* redisplay.c (position_redisplay_data_type):
+	MODELINE_CHARPOS was set but not used in this structure, remove it.
+	* redisplay.c (generate_display_line):
+	Update this to take START_POS as a Bytebpos, and to return a
+	Bytebpos.
+	Remove BYTE_START_POS, a local variable, now superseded by
+	START_POS.
+
+	* redisplay.c (add_ichar_rune_1): No need to convert to a
+	character position when creating the rune structure, runes now
+	work in byte positions too.
+	* redisplay.c (add_blank_rune):
+	Ditto.
+
+	* redisplay.c (add_disp_table_entry_runes_1):
+	Correct a declaration type for LEN, which is a Bytecount, not a
+	Bytebpos.
+
+	* redisplay.c (add_glyph_rune):
+	No need to convert to a character position when creating the rune
+	structure.
+
+	* redisplay.c (create_text_block):
+	Use WINDOW_TRUNCATEP() instead of calling window_truncation_on()
+	on every invocation.
+	Correct some indentation, line wrapping.
+	If window truncation isn't on, instead of saving an inaccurate
+	random value as dl->num_chars, save 0xDEADBEEF, and add
+	appropriate assertions.
+
+	* redisplay.c (add_margin_blank):
+	Save the rune's position as a Bytepos.
+	* redisplay.c (generate_modeline):
+	Ditto.
+	Also remove manipulation of data->modeline_charpos, not actually
+	used anywhere else.
+	* redisplay.c (add_string_to_fstring_db_runes):
+	Save the rune's position as a Bytepos.
+	* redisplay.c (create_string_text_block):
+	Take START_POS as a Bytepos, return a Bytepos.
+	Make much the same other changes as were made to
+	create_text_block().
+
+	* redisplay.c (generate_string_display_line):
+	Take START_POS as a Bytepos, return a Bytepos.
+	Make much the same other changes as were made to
+	generate_display_line().
+
+	* redisplay.c (generate_displayable_area):
+	Take START_POS as a Bytecount, don't process the string in terms
+	of characters.
+
+	* redisplay.c (regenerate_window):
+	Take START_POS, POINT as Bytebpos, use set_marker_byte_position()
+	as appropriate.
+
+	* redisplay.c (REGEN_INC_FIND_START_END):
+	Check for the display line BYTEPOS rather than CHARPOS.
+
+	* redisplay.c (regenerate_window_extents_only_changed):
+	Take STARTP, POINTM, BEG_UNCHANGED, END_UNCHANGED as Bytebpos and
+	Bytecount as appropriate.
+	Use set_marker_byte_position() as appropriate, return a Boolint
+	declared as such.
+
+	* redisplay.c (regenerate_window_incrementally):
+	Ditto.
+	* redisplay.c (regenerate_window_point_center):
+	Ditto.
+	* redisplay.c (point_visible):
+	Ditto.
+	* redisplay.c (line_at_center):
+	Take START, POINT as Bytebpos.
+	* redisplay.c (point_at_center):
+	Ditto.
+	* redisplay.c (redisplay_window):
+	Set WINDOW_TRUNCATEP ourselves rather than having all the
+	functions we call invoke window_truncation_on().
+	Process STARTP and POINTM as Bytebpos.
+	Call set_marker_byte_position() as appropriate.
+	* redisplay.c (decode_mode_spec):
+	window_end_pos[] now works in terms of bytes.
+	* redisplay.c (update_internal_cache_list):
+	No need to call charbpos_to_bytebpos() when updating the line
+	start cache.
+	* redisplay.c (update_line_start_cache):
+	Ditto.
+	* redisplay.c (pixel_to_glyph_translation):
+	Operate in terms of Bytebpos and Bytecount in this function.
+	* redisplay.h:
+	* redisplay.h (struct rune):
+	Revise this structure to include buffer and string byte positions,
+	and to move the larger values earlier in the structure.
+	* redisplay.h (struct display_line):
+	Ditto.
+	Declare point_at_center as taking a Bytebpos START and returning a
+	Bytebpos.
+	Declare generate_displayable_area(), pixel_to_glyph_translation(),
+	redisplay_move_cursor() as taking Bytebpos arguments as
+	appropriate.
+	Declare redisplay_move_cursor() as returning Boolint and taking
+	NO_OUTPUT_END as a Boolint.
+	* scrollbar-gtk.c (gtk_update_scrollbar_instance_status):
+	Call the new window_max_line_len() to force determination of the
+	window max line line even if truncation is turned off.
+
+	* scrollbar-msw.c (mswindows_handle_mousewheel_event):
+	Declare a few variables used by pixel_to_glyph_translation() in
+	terms of bytes as appropriate.
+
+	* scrollbar.c (update_scrollbar_instance):
+	Assert that w->max_line_len is not equal to 0xDEADBEEF, redisplay
+	should have calculated it if window truncation is on.
+
+	* window-impl.h:
+	* window-impl.h (struct window):
+	Add TRUNCATEP to this structure.
+	Updates the type of MAX_LINE_LEN, WINDOW_END_POS, LAST_REDISPLAY_POS.
+	* window-impl.h (WINDOW_TRUNCATEP): New, access TRUNCATEP as an
+	lvalue. 
+	* window-impl.h (WINDOW_SET_TRUNCATEP): New, set TRUNCATEP to
+	NEWVAL. 
+
+	* window.h (window_max_line_len): Declare this; if window
+	truncation is on, return w->max_line_len, otherwise calculate what
+	it would be were window truncation on and return that.
+
+	* window.c:
+	* window.c (window_max_line_len):
+	Implement this.
+	* window.c (window_truncation_on): Return a Boolint.
+	Move checks that don't involve C function calls earlier, which
+	should make us a little faster.
+	* window.c (Fcenter_to_window_line):
+	Fix my bug of 8a643f5e37, call set_marker_byte_position() as a
+	replacement for Fset_marker(), inappropriate to call
+	set_marker_byte_position_restricted().
+	* window.c (get_current_pixel_pos):
+	Call get_buffer_pos_byte() with the result of
+	window_display_buffer (w); ignore the modeline completely, no
+	buffer position can be over it.
+
 2021-01-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Clean up 64-bit issues, thank you Cygwin, GCC, Clang and Microsoft.

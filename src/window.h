@@ -128,7 +128,7 @@ int window_is_leftmost (struct window *w);
 int window_is_rightmost (struct window *w);
 int window_is_lowest (struct window *w);
 int window_is_highest (struct window *w);
-int window_truncation_on (struct window *w);
+Boolint window_truncation_on (struct window *w);
 int window_needs_vertical_divider (struct window *);
 int window_scrollbar_width (struct window *w);
 int window_scrollbar_height (struct window *w);
@@ -170,5 +170,7 @@ void some_window_value_changed (Lisp_Object specifier, struct window *w,
 int invalidate_vertical_divider_cache_in_window (struct window *w,
 						 void *u_n_u_s_e_d);
 int window_divider_width (struct window *w);
+
+Charcount window_max_line_len (struct window *);
 
 #endif /* INCLUDED_window_h_ */

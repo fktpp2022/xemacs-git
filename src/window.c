@@ -829,6 +829,34 @@ set_window_display_buffer (struct window *w, struct buffer *b)
   t->buffer = b;
 }
 
+Charcount
+window_max_line_len (struct window *w)
+{
+  assert (BUFFERP (w->buffer));
+
+  if (WINDOW_TRUNCATEP (w))
+    {
+      return w->max_line_len;
+    }
+  else
+    {
+      struct buffer *b = XBUFFER (w->buffer);
+      display_line_dynarr *dla = window_display_lines (w, CURRENT_DISP);
+      Charcount max_line_len = 0, this_line_len;
+      int ii, len = Dynarr_length (dla);
+
+      for (ii = 0; ii < len; ii++)
+        {
+          struct display_line *dl = Dynarr_atp (dla, ii);
+          this_line_len = column_at_point (b, dl->offset + dl->end_bytepos,
+                                           0);
+          max_line_len = max (max_line_len, this_line_len);
+        }
+
+      return max_line_len;
+    }
+}
+
 
 /* Determining a window's position based solely on its pixel
    positioning doesn't work.  Instead, we do it the intelligent way,
@@ -946,11 +974,11 @@ window_full_height_p (struct window *w)
 
 #endif
 
-int
+Boolint
 window_truncation_on (struct window *w)
 {
-    /* Minibuffer windows are never truncated.
-       #### is this the right way ? */
+  /* Minibuffer windows are never truncated.
+     #### is this the right way ? */
   if (MINI_WINDOW_P (w))
     return 0;
 
@@ -958,16 +986,21 @@ window_truncation_on (struct window *w)
   if (w->hscroll)
     return 1;
 
+  if (!BUFFERP (w->buffer))
+    {
+      return 0;
+    }
+
+  /* If the window's buffer's value of truncate_lines is non-nil, then
+     the window is truncated. */
+  if (!NILP (XBUFFER (w->buffer)->truncate_lines))
+    return 1;
+
   /* If truncate_partial_width_windows is true and the window is not
      the full width of the frame it is truncated. */
   if (!NILP (symbol_value_in_buffer (Qtruncate_partial_width_windows,
 				     w->buffer))
       && !(window_is_leftmost (w) && window_is_rightmost (w)))
-    return 1;
-
-  /* If the window's buffer's value of truncate_lines is non-nil, then
-     the window is truncated. */
-  if (!NILP (XBUFFER (w->buffer)->truncate_lines))
     return 1;
 
   return 0;
@@ -5181,14 +5214,10 @@ If WINDOW is nil, the selected window is used.
       startp = start_with_point_on_display_line (w, opoint, XFIXNUM (n));
     }
 
-  set_marker_byte_position_restricted (w->start[CURRENT_DISP], startp,
-                                       wrap_buffer (b));
+  set_marker_byte_position (w->start[CURRENT_DISP], startp, wrap_buffer (b));
 
-  w->start_at_line_beg
-    = byte_beginning_of_line_p
-    (b, marker_byte_position (w->start[CURRENT_DISP]));
+  w->start_at_line_beg = byte_beginning_of_line_p (b, startp);
   w->force_start = 1;
-
   MARK_WINDOWS_CHANGED (w);
   return Qnil;
 }
@@ -5555,37 +5584,38 @@ get_current_pixel_pos (Lisp_Object window, Lisp_Object pos,
   if (y<0 || x<0 || y >= Dynarr_length (dla) || !NILP (pos))
     {
       int first_line, i;
-      Charbpos point;
+      Bytebpos point;
 
       if (NILP (pos))
-	pos = Fwindow_point (window);
+        {
+          pos = Fwindow_point (wrap_window (*w));
+        }
 
-      CHECK_FIXNUM (pos);
-      point = XFIXNUM (pos);
+      point = get_buffer_pos_byte (window_display_buffer (w), pos,
+                                   GB_NO_ERROR_IF_BAD);
 
-      if (Dynarr_length (dla) && Dynarr_begin (dla)->modeline)
-	first_line = 1;
-      else
-	first_line = 0;
+      /* If the window has a modeline, ignore it for our purposes, POS can't
+         be over it. Start examining the display lines from 1. */
+      first_line = (Dynarr_length (dla) && Dynarr_begin (dla)->modeline);
 
       for (i = first_line; i < Dynarr_length (dla); i++)
 	{
 	  *dl = Dynarr_atp (dla, i);
 	  /* find the vertical location first */
-	  if (point >= (*dl)->charpos && point <= (*dl)->end_charpos)
+	  if (point >= (*dl)->bytepos && point <= (*dl)->end_bytepos)
 	    {
 	      db = get_display_block_from_line (*dl, TEXT);
 	      for (i = 0; i < Dynarr_length (db->runes); i++)
 		{
 		  *rb = Dynarr_atp (db->runes, i);
-		  if (point <= (*rb)->charpos)
-		    goto found_charpos;
+		  if (point <= (*rb)->bytepos)
+		    goto found_bytepos;
 		}
 	      return 0;
 	    }
 	}
       return 0;
-    found_charpos:
+    found_bytepos:
       ;
     }
   else
@@ -5620,7 +5650,7 @@ a new frame, use the following instead:
   struct display_line *dl;
   struct rune* rb;
 
-  if (!get_current_pixel_pos(window, pos, &w, &rb, &dl))
+  if (!get_current_pixel_pos (window, pos, &w, &rb, &dl))
     return Qnil;
 
   return make_fixnum (rb->xpos - WINDOW_LEFT (w));
@@ -5643,7 +5673,7 @@ use the following instead:
   struct display_line *dl;
   struct rune* rb;
 
-  if (!get_current_pixel_pos(window, pos, &w, &rb, &dl))
+  if (!get_current_pixel_pos (window, pos, &w, &rb, &dl))
     return Qnil;
 
   return make_fixnum (dl->ypos - dl->ascent - WINDOW_TOP (w));

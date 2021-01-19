@@ -67,11 +67,13 @@ typedef struct
    the text of multiple text glyphs together -- this makes displaying
    binary files (with lots of control chars, etc.) very very slow. */
 
-#define RUNE_BLANK	0
-#define RUNE_CHAR	1
-#define RUNE_DGLYPH	2
-#define RUNE_HLINE	3
-#define RUNE_VLINE	4
+enum rune_type {
+  RUNE_BLANK = 0,
+  RUNE_CHAR,
+  RUNE_DGLYPH,
+  RUNE_HLINE,
+  RUNE_VLINE
+};
 
 #define CURSOR_ON	0
 #define CURSOR_OFF	1
@@ -118,39 +120,12 @@ struct rune_dglyph
 typedef struct rune rune;
 struct rune
 {
-  face_index findex;		/* face rune is displayed with.  The
-				   face_index is an index into a
-				   window-specific array of face cache
-				   elements.  Each face cache element
-				   corresponds to one "merged face"
-				   (the result of merging all the
-				   faces that overlap the rune) and
-				   contains the instance values for
-				   each of the face properties in this
-				   particular window. */
-
-  Charxpos charpos;		/* buffer position this rune is displaying;
-				   for the modeline, the value here is a
-				   Charcount, but who's looking? */
-  Charxpos endpos;		/* if set this rune covers a range of pos;
+  Bytexpos bytepos;		/* buffer position this rune is displaying. */
+  Bytexpos endpos;		/* if set this rune covers a range of pos;
 				   used in redisplay_move_cursor(). */
 				/* #### Chuck, what does it mean for a rune
 				   to cover a range of pos?  I don't get
 				   this. */
-
-
-  short xpos;			/* horizontal starting position in pixels */
-  short width;			/* pixel width of rune */
-
-
-  unsigned char cursor_type;	/* is this rune covered by the cursor? */
-  unsigned int type;		/* type of rune object */
-				/* We used to do bitfields here, but if I
-				   (JV) count correctly that doesn't matter
-				   for the size of the structure. All the bit
-				   fiddling _does_ slow down redisplay by
-				   about 10%. So don't do that */
-
   union				/* Information specific to the type of rune */
   {
     /* #### Glyphs are rare. Is it really necessary to waste 8 bytes on every
@@ -171,6 +146,25 @@ struct rune
       short yoffset;	/* how far down from top of line to put top */
     } hline;
   } object;			/* actual rune object */
+  face_index findex;		/* face rune is displayed with.  The
+				   face_index is an index into a
+				   window-specific array of face cache
+				   elements.  Each face cache element
+				   corresponds to one "merged face"
+				   (the result of merging all the
+				   faces that overlap the rune) and
+				   contains the instance values for
+				   each of the face properties in this
+				   particular window. */
+  enum rune_type type;		/* type of rune object */
+				/* We used to do bitfields here, but if I
+				   (JV) count correctly that doesn't matter
+				   for the size of the structure. All the bit
+				   fiddling _does_ slow down redisplay by
+				   about 10%. So don't do that */
+  short xpos;			/* horizontal starting position in pixels */
+  short width;			/* pixel width of rune */
+  unsigned char cursor_type;	/* is this rune covered by the cursor? */
 };
 
 typedef struct
@@ -261,8 +255,8 @@ typedef struct
 
 /* Modeline commentary: IMO the modeline is handled very badly, we
   special case virtually *everything* in the redisplay routines for
-  the modeline. The fact that dl->charpos can be either a buffer
-  position or a char count highlights this. There is no abstraction at
+  the modeline. The fact that dl->bytebpos can be either a buffer
+  position or a string point highlights this. There is no abstraction at
   all that I can find and it means that the code is made very ugly as
   a result. Either we should treat the modeline *entirely* separately,
   or we should abstract to something that applies equally well to the
@@ -284,6 +278,30 @@ typedef struct
 typedef struct display_line display_line;
 struct display_line
 {
+  layout_bounds bounds;			/* line boundary positions */
+
+  Bytexpos bytepos;			/* first buffer position on line */
+  Bytexpos end_bytepos;			/* last buffer position on line */
+  Bytecount offset;			/* adjustment to bytepos vals */
+  Charcount num_chars;			/* # of chars on line
+					   including expansion of tabs
+					   and control chars.
+                                           Only used if window truncation is
+					   on, 0xDEADBEEF otherwise. */
+
+  /* Dynamic array of display blocks */
+  display_block_dynarr *display_blocks;
+
+  /* Dynamic arrays of left and right glyph blocks */
+  glyph_block_dynarr *left_glyphs;
+  glyph_block_dynarr *right_glyphs;
+
+  face_index left_margin_findex;
+  face_index right_margin_findex;
+  face_index clear_findex;
+
+  int cursor_elt;			/* rune block of TEXT display
+					   block cursor is at or -1 */
   short ypos;				/* vertical position in pixels
 					   of the baseline for this line. */
   unsigned short ascent, descent;	/* maximum values for this line.
@@ -297,34 +315,11 @@ struct display_line
 					   in pixels.*/
   unsigned short top_clip;		/* amount of top of line to clip
 					   in pixels.*/
-  Charxpos charpos;			/* first buffer position on line */
-  Charxpos end_charpos;			/* last buffer position on line */
-  Charcount offset;			/* adjustment to charpos vals */
-  Charcount num_chars;			/* # of chars on line
-					   including expansion of tabs
-					   and control chars */
-  int cursor_elt;			/* rune block of TEXT display
-					   block cursor is at or -1 */
-  char used_prop_data;			/* can't incrementally update if line
+  Boolbyte used_prop_data;		/* can't incrementally update if line
 					   used propagation data */
-
-  layout_bounds bounds;			/* line boundary positions */
-
-  char modeline;			/* t if this line is a modeline */
-
-  char line_continuation;		/* t if this line continues to
+  Boolbyte modeline;			/* t if this line is a modeline */
+  Boolbyte line_continuation;		/* t if this line continues to
 					   next display line. */
-
-  /* Dynamic array of display blocks */
-  display_block_dynarr *display_blocks;
-
-  /* Dynamic arrays of left and right glyph blocks */
-  glyph_block_dynarr *left_glyphs;
-  glyph_block_dynarr *right_glyphs;
-
-  face_index left_margin_findex;
-  face_index right_margin_findex;
-  face_index clear_findex;
 };
 
 #define DISPLAY_LINE_INIT(dl)		\
@@ -727,10 +722,10 @@ struct display_block *get_display_block_from_line (struct display_line *dl,
 						   enum display_type type);
 layout_bounds calculate_display_line_boundaries (struct window *w,
 						 int modeline);
-Charbpos point_at_center (struct window *w, int type, Charbpos start,
-			  Charbpos point);
-int line_at_center (struct window *w, int type, Charbpos start,
-		    Charbpos point);
+Bytebpos point_at_center (struct window *w, int type, Bytebpos start,
+			  Bytebpos point);
+int line_at_center (struct window *w, int type, Bytebpos start,
+		    Bytebpos point);
 int window_half_pixpos (struct window *w);
 void redisplay_echo_area (void);
 void free_display_structs (struct window_mirror *mir);
@@ -739,7 +734,8 @@ void mark_redisplay_structs (display_line_dynarr *dla);
 void generate_displayable_area (struct window *w, Lisp_Object disp_string,
 				int xpos, int ypos, int width, int height,
 				display_line_dynarr* dl,
-				Charbpos start_pos, face_index default_face);
+				Bytecount start_pos,
+                                face_index default_face);
 /* `generate_title_string' in frame.c needs this */
 void generate_formatted_string_db (Lisp_Object format_str,
 				   Lisp_Object result_str,
@@ -752,8 +748,9 @@ int real_current_modeline_height (struct window *w);
 int pixel_to_glyph_translation (struct frame *f, int x_coord,
 				int y_coord, int *col, int *row,
 				int *obj_x, int *obj_y,
-				struct window **w, Charbpos *charbpos,
-				Charbpos *closest, Charcount *modeline_closest,
+				struct window **w, Bytebpos *charbpos,
+				Bytebpos *closest,
+                                Bytecount *modeline_closest,
 				Lisp_Object *obj1, Lisp_Object *obj2);
 void glyph_to_pixel_translation (struct window *w, int char_x,
 				 int char_y, int *pix_x, int *pix_y);
@@ -824,8 +821,8 @@ void redisplay_update_line (struct window *w, int first_line,
 			    int last_line, int update_values);
 void redisplay_output_window (struct window *w);
 void bevel_modeline (struct window *w, struct display_line *dl);
-int redisplay_move_cursor (struct window *w, Charbpos new_point,
-			   int no_output_end);
+Boolint redisplay_move_cursor (struct window *w, Bytebpos new_point,
+                               Boolint no_output_end);
 void redisplay_redraw_cursor (struct frame *f, int run_begin_end_meths);
 void output_display_line (struct window *w, display_line_dynarr *cdla,
 			  display_line_dynarr *ddla, int line,

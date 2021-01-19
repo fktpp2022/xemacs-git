@@ -552,6 +552,8 @@ update_scrollbar_instance (struct window *w, int vertical,
       int wcw = window_char_width (w, 0) - 1;
       int max_width, max_slide;
 
+      assert (w->max_line_len != ((Charcount) 0xDEADBEEF));
+
       if (w->max_line_len < wcw)
 	{
 	  max_width = 1;

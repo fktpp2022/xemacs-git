@@ -2106,8 +2106,8 @@ See also `mouse-event-p' `event-window-y-pixel'.
 static int
 event_pixel_translation (Lisp_Object event, int *char_x, int *char_y,
 			 int *obj_x, int *obj_y,
-			 struct window **w, Charbpos *bufp, Charbpos *closest,
-			 Charcount *modeline_closest,
+			 struct window **w, Bytebpos *bufp, Bytebpos *closest,
+			 Bytecount *modeline_closest,
 			 Lisp_Object *obj1, Lisp_Object *obj2)
 {
   int pix_x = 0;
@@ -2117,8 +2117,8 @@ event_pixel_translation (Lisp_Object event, int *char_x, int *char_y,
 
   int ret_x, ret_y, ret_obj_x, ret_obj_y;
   struct window *ret_w;
-  Charbpos ret_bufp, ret_closest;
-  Charcount ret_modeline_closest;
+  Bytebpos ret_bufp, ret_closest;
+  Bytecount ret_modeline_closest;
   Lisp_Object ret_obj1, ret_obj2;
 
   CHECK_LIVE_EVENT (event);
@@ -2287,22 +2287,30 @@ The modeline is considered to be within the window it describes.
 
 DEFUN ("event-point", Fevent_point, 1, 1, 0, /*
 Return the character position of the mouse event EVENT.
+
 If the event did not occur over a window, or did not occur over text,
 then this returns nil.  Otherwise, it returns a position in the buffer
-visible in the event's window.
+visible in the event's window as of last redisplay.
 */
        (event))
 {
-  Charbpos bufp;
+  Bytebpos bufp;
   struct window *w;
 
   event_pixel_translation (event, 0, 0, 0, 0, &w, &bufp, 0, 0, 0, 0);
 
-  return w && bufp ? make_fixnum (bufp) : Qnil;
+  if (w && bufp)
+    {
+      return make_integer (bytebpos_to_charbpos (window_display_buffer (w),
+                                                 bufp));
+    }
+
+  return Qnil;
 }
 
 DEFUN ("event-closest-point", Fevent_closest_point, 1, 1, 0, /*
 Return the character position closest to the mouse event EVENT.
+
 If the event did not occur over a window or over text, return the
 closest point to the location of the event.  If the Y pixel position
 overlaps a window and the X pixel position is to the left of that
@@ -2312,14 +2320,25 @@ position is to the right of that window, the closest point is the end
 of the line containing the Y position.  If the Y pixel position is
 above a window, return 0.  If it is below the last character in a window,
 return the value of (window-end).
+
+The position will reflect the buffer displayed in EVENT's window as of last
+redisplay, which sometimes differs from that buffer returned by
+`window-buffer'.  See the documentation of `current-pixel-column'.
 */
        (event))
 {
-  Charbpos bufp;
+  Bytebpos bufp;
+  struct window *w;
 
-  event_pixel_translation (event, 0, 0, 0, 0, 0, 0, &bufp, 0, 0, 0);
+  event_pixel_translation (event, 0, 0, 0, 0, &w, 0, &bufp, 0, 0, 0);
 
-  return bufp ? make_fixnum (bufp) : Qnil;
+  if (w && bufp)
+    {
+      return make_integer (bytebpos_to_charbpos (window_display_buffer (w),
+                                                 bufp));
+    }
+
+  return Qnil;
 }
 
 DEFUN ("event-x", Fevent_x, 1, 1, 0, /*
@@ -2359,12 +2378,20 @@ is buffer-local, and you must use EVENT's buffer when retrieving
 */
        (event))
 {
-  Charcount mbufp;
+  Bytecount mbufp;
+  struct window *w = 0;
   int where;
 
-  where = event_pixel_translation (event, 0, 0, 0, 0, 0, 0, 0, &mbufp, 0, 0);
+  where = event_pixel_translation (event, 0, 0, 0, 0, &w, 0, 0, &mbufp, 0, 0);
 
-  return (mbufp < 0 || where != OVER_MODELINE) ? Qnil : make_fixnum (mbufp);
+  if (mbufp < 0 || where != OVER_MODELINE || w == NULL)
+    {
+      return Qnil;
+    }
+
+  return make_integer (string_index_byte_to_char
+                       (window_display_buffer (w)->generated_modeline_string,
+                        mbufp));
 }
 
 DEFUN ("event-glyph", Fevent_glyph, 1, 1, 0, /*

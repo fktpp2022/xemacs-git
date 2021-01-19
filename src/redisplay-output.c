@@ -195,7 +195,7 @@ sync_display_line_structs (struct window *w, int line, int do_blocks,
 static int
 compare_runes (struct window *w, struct rune *crb, struct rune *drb)
 {
-  /* Do not compare the values of charbpos and endpos.  They do not
+  /* Do not compare the values of bytepos and endpos.  They do not
      affect the display characteristics. */
 
   /* Note: (hanoi 6) spends 95% of its time in redisplay, and about
@@ -944,11 +944,12 @@ output_display_line (struct window *w, display_line_dynarr *cdla,
  boolean indicating success or failure.
  ****************************************************************************/
 
-#define ADJ_CHARPOS (rb->charpos + dl->offset)
+#define ADJ_BYTEPOS (rb->bytepos + dl->offset)
 #define ADJ_ENDPOS (rb->endpos + dl->offset)
 
-int
-redisplay_move_cursor (struct window *w, Charbpos new_point, int no_output_end)
+Boolint
+redisplay_move_cursor (struct window *w, Bytebpos new_point,
+                       Boolint no_output_end)
 {
   struct frame *f = XFRAME (w->frame);
   struct device *d = XDEVICE (f->device);
@@ -984,14 +985,15 @@ redisplay_move_cursor (struct window *w, Charbpos new_point, int no_output_end)
 
   if (rb->cursor_type == CURSOR_OFF)
     return 0;
-  else if (ADJ_CHARPOS == new_point
-	   || (ADJ_ENDPOS && (new_point >= ADJ_CHARPOS)
+  else if (ADJ_BYTEPOS == new_point
+	   || (ADJ_ENDPOS && (new_point >= ADJ_BYTEPOS)
 	       && (new_point <= ADJ_ENDPOS)))
     {
       w->last_point_x[CURRENT_DISP] = x;
       w->last_point_y[CURRENT_DISP] = y;
-      Fset_marker (w->last_point[CURRENT_DISP], make_fixnum (ADJ_CHARPOS),
-		   w->buffer);
+      /* Not _restricted! */
+      set_marker_byte_position (w->last_point[CURRENT_DISP], ADJ_BYTEPOS,
+                                w->buffer);
       dl->cursor_elt = x;
       return 1;
     }
@@ -1049,7 +1051,7 @@ redisplay_move_cursor (struct window *w, Charbpos new_point, int no_output_end)
       int first = 0;
       int cur_dl, up;
 
-      if (ADJ_CHARPOS < new_point)
+      if (ADJ_BYTEPOS < new_point)
 	{
 	  up = 1;
 	  cur_rb = x + 1;
@@ -1087,9 +1089,9 @@ redisplay_move_cursor (struct window *w, Charbpos new_point, int no_output_end)
 
 	      if (rb->cursor_type != IGNORE_CURSOR
 		  && rb->cursor_type != NO_CURSOR &&
-		  (ADJ_CHARPOS == new_point
-		   || (ADJ_ENDPOS && (new_point >= ADJ_CHARPOS)
-		       && (new_point <= ADJ_CHARPOS))))
+		  (ADJ_BYTEPOS == new_point
+		   || (ADJ_ENDPOS && (new_point >= ADJ_BYTEPOS)
+		       && (new_point <= ADJ_ENDPOS))))
 		{
 		  rb->cursor_type = CURSOR_ON;
 		  dl->cursor_elt = cur_rb;
@@ -1100,9 +1102,10 @@ redisplay_move_cursor (struct window *w, Charbpos new_point, int no_output_end)
 
 		  w->last_point_x[CURRENT_DISP] = cur_rb;
 		  w->last_point_y[CURRENT_DISP] = cur_dl;
-		  Fset_marker (w->last_point[CURRENT_DISP],
-			       make_fixnum (ADJ_CHARPOS), w->buffer);
-
+                  /* Not _restricted! */
+                  set_marker_byte_position (w->last_point[CURRENT_DISP],
+                                            ADJ_BYTEPOS,
+                                            w->buffer);
 		  if (!no_output_end)
 		    {
 		      MAYBE_DEVMETH (d, window_output_end, (w));
@@ -1126,7 +1129,7 @@ redisplay_move_cursor (struct window *w, Charbpos new_point, int no_output_end)
     }
   return 0;
 }
-#undef ADJ_CHARPOS
+#undef ADJ_BYTEPOS
 #undef ADJ_ENDPOS
 
 /*****************************************************************************
@@ -2257,10 +2260,10 @@ redisplay_update_line (struct window *w, int first_line, int last_line,
 
   while (first_line <= last_line)
     {
-      Charcount old_len = (Dynarr_atp (cdla, first_line)->end_charpos -
-			   Dynarr_atp (cdla, first_line)->charpos);
-      Charcount new_len = (Dynarr_atp (ddla, first_line)->end_charpos -
-			   Dynarr_atp (ddla, first_line)->charpos);
+      Bytecount old_len = (Dynarr_atp (cdla, first_line)->end_bytepos -
+			   Dynarr_atp (cdla, first_line)->bytepos);
+      Bytecount new_len = (Dynarr_atp (ddla, first_line)->end_bytepos -
+			   Dynarr_atp (ddla, first_line)->bytepos);
 
       assert (Dynarr_length (cdla) == Dynarr_length (ddla));
 
@@ -2307,7 +2310,11 @@ redisplay_update_line (struct window *w, int first_line, int last_line,
 	  struct display_line *dl = Dynarr_atp (ddla, line);
 
 	  if (!dl->modeline)
-	    w->max_line_len = max (dl->num_chars, w->max_line_len);
+            {
+              assert (WINDOW_TRUNCATEP (w) ||
+                      dl->num_chars == ((Charcount) 0xDEADBEEF));
+              w->max_line_len = max (dl->num_chars, w->max_line_len);
+            }
 
 	  line++;
 	}

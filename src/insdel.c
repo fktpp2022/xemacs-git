@@ -553,8 +553,8 @@ make_gap (struct buffer *buf, Bytecount increment)
 /* Those magic changes ... */
 
 static void
-buffer_signal_changed_region (struct buffer *buf, Charbpos start,
-			      Charbpos end)
+buffer_signal_changed_region (struct buffer *buf, Bytebpos start,
+			      Bytebpos end)
 {
   /* The changed region is recorded as the number of unchanged
      characters from the beginning and from the end of the
@@ -562,11 +562,11 @@ buffer_signal_changed_region (struct buffer *buf, Charbpos start,
      region around to compensate for insertions and deletions.
      */
   if (buf->changes->begin_unchanged < 0 ||
-      buf->changes->begin_unchanged > start - BUF_BEG (buf))
-    buf->changes->begin_unchanged = start - BUF_BEG (buf);
+      buf->changes->begin_unchanged > start - BYTE_BUF_BEG (buf))
+    buf->changes->begin_unchanged = start - BYTE_BUF_BEG (buf);
   if (buf->changes->end_unchanged < 0 ||
-      buf->changes->end_unchanged > BUF_Z (buf) - end)
-    buf->changes->end_unchanged = BUF_Z (buf) - end;
+      buf->changes->end_unchanged > BYTE_BUF_Z (buf) - end)
+    buf->changes->end_unchanged = BYTE_BUF_Z (buf) - end;
 }
 
 void
@@ -869,11 +869,14 @@ signal_after_change (struct buffer *buf, Charbpos start, Charbpos orig_end,
   /* This function can GC */
   struct buffer *mbuf;
   Lisp_Object bufcons;
+  /* #### Revise the multiple changes infrastructure to work in Bytebpos */
+  Bytexpos bstart = charbpos_to_bytebpos (buf, start);
+  Bytexpos bend = charbpos_to_bytebpos (buf, new_end);
 
   MAP_INDIRECT_BUFFERS (buf, mbuf, bufcons)
     {
       /* always do this. */
-      buffer_signal_changed_region (mbuf, start, new_end);
+      buffer_signal_changed_region (mbuf, bstart, bend);
     }
 #ifdef USE_C_FONT_LOCK
   MAP_INDIRECT_BUFFERS (buf, mbuf, bufcons)
