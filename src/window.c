@@ -5591,7 +5591,7 @@ get_current_pixel_pos (Lisp_Object window, Lisp_Object pos,
           pos = Fwindow_point (wrap_window (*w));
         }
 
-      point = get_buffer_pos_byte (window_display_buffer (w), pos,
+      point = get_buffer_pos_byte (window_display_buffer (*w), pos,
                                    GB_NO_ERROR_IF_BAD);
 
       /* If the window has a modeline, ignore it for our purposes, POS can't

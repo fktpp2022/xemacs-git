@@ -1,5 +1,11 @@
 2021-01-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* window.c (get_current_pixel_pos):
+	Correct a pointer dereference here, thank you Microsoft Visual
+	C++.	
+
+2021-01-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Move the display lines to working in terms of Bytebpos rather than
 	Charbpos, moving closer still to having no byte->char conversion in
 	redisplay.
