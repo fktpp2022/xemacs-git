@@ -1415,7 +1415,7 @@ DEFUN ("canonicalize-keysym", Fcanonicalize_keysym, 1, 1, 0, /*
 Return the canonical internal keysym corresponding to KEYSYM.
 
 This means that a KEYSYM where the name comprises one printable character
-becomes just that character object, that the character ?\x20 becomes the
+becomes just that character object, that the character ?\\x20 becomes the
 symbol `space', that symbol keysyms where the name starts with `kp_' have that
 transformed to `kp-', that `down-mouse-N' is transformed to `buttonN', and
 that `mouse-N' is transformed to `buttonNup'.

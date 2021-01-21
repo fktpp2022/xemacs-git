@@ -1,3 +1,9 @@
+2021-01-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* x-init.el (pseudo-canonicalize-keysym):
+	Document why there's no need to call #'canonicalize-keysym in this
+	function.
+
 2021-01-11  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* cl-extra.el (bignump): New.

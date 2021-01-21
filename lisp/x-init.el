@@ -99,8 +99,9 @@ keysym that XEmacs has seen, that string won't be in obarray."
          ((symbolp keysym) keysym)
 	 ((stringp keysym) (or (intern-soft keysym)
                                (intern-soft
-                                (nsubstitute ?- ?_
-                                             (downcase keysym)))))
+                                (substitute ?- ?_ (downcase keysym)))))
+         ;; No need for the shift handling that #'canonicalize-keysym does,
+         ;; since we don't take modifiers.
          ((characterp keysym) keysym))))
   (declare (inline pseudo-canonicalize-keysym))
 

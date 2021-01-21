@@ -1,3 +1,9 @@
+2021-01-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* keymap.c (Fcanonicalize_keysym):
+	Double a backslash in this docstring so ?\x20 is shown as such in
+	the generated DOC file.
+
 2021-01-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* window.c (get_current_pixel_pos):
