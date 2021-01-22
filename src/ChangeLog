@@ -1,3 +1,10 @@
+2021-01-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* scrollbar.c (update_scrollbar_instance):
+	Revert to buffer position based scrolling rather than line based
+	scrolling if the buffer is sufficiently big that the difference is
+	not visible.
+
 2021-01-21  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* keymap.c (Fcanonicalize_keysym):

@@ -530,15 +530,54 @@ update_scrollbar_instance (struct window *w, int vertical,
     {
       if (!DEVMETH_OR_GIVEN (d, inhibit_scrollbar_slider_size_change, (), 0))
 	{
-          /* window_displayed_height() gives the number of display lines,
-             which conceptually does not directly reflect the number of
-             newlines in the buffer. buffer_line_number () deals with the
-             latter. This conceptual dissonance doesn't matter. */
-          new_slider_size = window_displayed_height (w);
-          new_minimum = 0;
-          new_slider_position
-            = buffer_line_number (b, scrollbar_point (w, 0), 1, 1);
-          new_maximum = buffer_line_number (b, BYTE_BUF_ZV (b), 1, 1);
+          /* If the buffer size is so big that calculating the buffer line
+             number makes no difference to the slider size when compared to
+             calculating the buffer position, use the buffer position rather
+             than calculating the line number, since the buffer position is so
+             much cheaper. This improves performance when scrolling with huge
+             buffers, where redisplay ended up tied up in calculating the line
+             number.
+
+             WINDOW_HEIGHT (w) is the window's pixel height. 
+
+             The Bytecount of the visible region divided by 64 was my first
+             empirical estimate as to how many lines per putative window
+             displayed. The below calculation works much better, in particular
+             because we prefer to err in the direction of calculating using
+             line numbers rather than buffer positions, the performance
+             difference is only really an issue when scrolling with huge
+             buffers.
+
+             With a window size of 863 pixels, the buffer size calculation
+             kicks in with a buffer above 220k; for context, emacs.c is 149k,
+             UnicodeData.txt is about 1700k (1.7 megabytes), Unihan.txt is
+             close on 29 megabytes.
+
+             This will get things wrong if we have a huge buffer with very few
+             newlines, it will degrade to the older XEmacs performance. In the
+             couple of decades I have been reading the XEmacs lists, the
+             traditional XEmacs performance has never been reported as a
+             problem. Aidan Kehoe, Thu Jan 21 20:19:09 GMT 2021 */
+          if (WINDOW_HEIGHT (w)
+              < ((BYTE_BUF_ZV (b) - BYTE_BUF_BEGV (b)) / 256))
+            {
+              new_minimum = BYTE_BUF_BEGV (b);
+              new_maximum = BYTE_BUF_ZV (b);
+              new_slider_position = scrollbar_point (w, 0);
+              new_slider_size = window_displayed_height (w) * 512;
+            }
+          else
+            {
+              new_maximum = buffer_line_number (b, BYTE_BUF_ZV (b), 1, 1);
+              /* window_displayed_height() gives the number of display lines,
+                 which conceptually does not directly reflect the number of
+                 newlines in the buffer. buffer_line_number () deals with the
+                 latter. This conceptual dissonance doesn't matter. */
+              new_slider_size = window_displayed_height (w);
+              new_minimum = 0;
+              new_slider_position
+                = buffer_line_number (b, scrollbar_point (w, 0), 1, 1);
+            }
 
           /* The end position must be strictly greater than the start
              position, at least for the Motify scrollbar.  It shouldn't hurt
