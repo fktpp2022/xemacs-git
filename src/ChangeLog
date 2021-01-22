@@ -1,5 +1,17 @@
 2021-01-22  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Update some bitrotted GTK code.
+	* event-gtk.c (dragndrop_data_received):
+	* event-gtk.c (dragndrop_dropped):
+	There has been some information hiding with the GtkSelectionData
+	type, use the corresponding getter methods rather than accessing
+	the structure data directly.
+	* select-gtk.c (emacs_gtk_selection_handle):
+	* select-gtk.c (emacs_gtk_selection_clear_event_handle):
+	Use our new name for lisp_to_UINT_32_BIT in these two functions.
+
+2021-01-22  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* scrollbar.c (update_scrollbar_instance):
 	Revert to buffer position based scrolling rather than line based
 	scrolling if the buffer is sufficiently big that the difference is

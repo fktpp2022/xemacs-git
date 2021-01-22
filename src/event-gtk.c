@@ -1012,12 +1012,14 @@ dragndrop_data_received (GtkWidget          *widget,
 			 guint               time)
 {
   Lisp_Object event = Fmake_event (Qnil, Qnil);
-  struct device *d = gtk_any_window_to_device (widget->window);
+  struct device *d
+    = gtk_any_window_to_device (gtk_widget_get_window (widget));
   struct frame *f = gtk_any_widget_or_parent_to_frame (d, widget);
   struct Lisp_Event *ev = XEVENT (event);
   Lisp_Object l_type = Qnil, l_data = Qnil;
   Lisp_Object l_dndlist = Qnil, l_item = Qnil;
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
+  GdkAtom data_type = gtk_selection_data_get_data_type (data);
 
   GCPRO4 (l_type, l_data, l_dndlist, l_item);
 
@@ -1027,11 +1029,12 @@ dragndrop_data_received (GtkWidget          *widget,
   SET_EVENT_MISC_USER_X (ev, x);
   SET_EVENT_MISC_USER_Y (ev, y);
 
-  if (data->type == preferred_targets[TARGET_URI_LIST])
+  if (data_type == preferred_targets[TARGET_URI_LIST])
     {
       /* newline-separated list of URLs */
       int start, end;
-      const Extbyte *string_data = (Extbyte *) data->data;
+      const Extbyte *string_data
+        = (const Extbyte *) (gtk_selection_data_get_data (data));
 
       l_type = Qdragdrop_URL;
 
@@ -1047,31 +1050,35 @@ dragndrop_data_received (GtkWidget          *widget,
 	    }
 	}
     }
-  else if (data->type == preferred_targets[TARGET_TEXT_PLAIN])
+  else if (data_type == preferred_targets[TARGET_TEXT_PLAIN])
     {
+      const Extbyte *string_data
+        = (const Extbyte *) (gtk_selection_data_get_data (data));
+
       /* Arbitrary string */
       l_type = Qdragdrop_MIME;
       l_dndlist = list1 (list3 (list1 (build_ascstring ("text/plain")),
 				build_ascstring ("8_bit"),
-				make_extstring (data->data,
-						 strlen ((char *)data->data),
-						 Qctext)));
+				make_extstring (string_data,
+                                                strlen ((char *) string_data),
+                                                Qctext)));
     }
-  else if (data->type == preferred_targets[TARGET_FILE_NAME])
+  else if (data_type == preferred_targets[TARGET_FILE_NAME])
     {
       /* Random filename */
-      char *hurl = dnd_url_hexify_string (data->data, "file:");
+      Ibyte *hurl = dnd_url_hexify_string (gtk_selection_data_get_data (data),
+                                           (const UAscbyte *) "file:");
 
-      l_dndlist = list1 (make_string ((Ibyte *)hurl, strlen (hurl)));
+      l_dndlist = list1 (make_string (hurl, qxestrlen (hurl)));
       l_type = Qdragdrop_URL;
 
       xfree (hurl);
     }
-  else if (data->type == preferred_targets[TARGET_NETSCAPE])
+  else if (data_type == preferred_targets[TARGET_NETSCAPE])
     {
+      const Extbyte *edata = gtk_selection_data_get_data (data);
       /* Single URL */
-      l_dndlist = list1 (make_string ((Extbyte *)data->data, 
-				      strlen ((char *)data->data)));
+      l_dndlist = list1 (build_extstring (edata, Qutf_8));
       l_type = Qdragdrop_URL;
     }
   else
@@ -1079,11 +1086,12 @@ dragndrop_data_received (GtkWidget          *widget,
       /* Unknown type - what to do?
 	 We just pass it up to lisp - we already have a mime type.
       */
+      const Extbyte *edata = gtk_selection_data_get_data (data);
       l_type = Qdragdrop_MIME;
-      l_dndlist = list1 (list3 (list1 (build_cistring (gdk_atom_name (data->type))),
+      l_dndlist = list1 (list3 (list1 (build_cistring
+                                       (gdk_atom_name (data_type))),
 				build_ascstring ("8bit"),
-				make_extstring ((Extbyte *) data->data,
-						 data->length, Qbinary)));
+                                build_extstring (edata, Qutf_8)));
     }
 
 
@@ -1126,7 +1134,7 @@ dragndrop_dropped (GtkWidget *UNUSED (widget),
      first one
   */
   GdkAtom found = 0;
-  GList *list = drag_context->targets;
+  GList *list = gdk_drag_context_list_targets (drag_context);
 
   int i;
 
@@ -1162,7 +1170,7 @@ dragndrop_dropped (GtkWidget *UNUSED (widget),
 
   if (!found)
     {
-      found = (GdkAtom) drag_context->targets->data;
+      found = (GdkAtom) (gdk_drag_context_list_targets (drag_context)->data);
     }
 
   gtk_drag_get_data (GTK_WIDGET (user_data), drag_context, found, time);

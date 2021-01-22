@@ -165,7 +165,7 @@ emacs_gtk_selection_handle (GtkWidget *UNUSED (widget),
       goto DONE_LABEL;
     }
 
-  local_selection_time = lisp_to_uint32_t (temp_obj);
+  local_selection_time = lisp_to_UINT_32_BIT (temp_obj);
 
   if (time_stamp != GDK_CURRENT_TIME &&
       local_selection_time > time_stamp)
@@ -254,7 +254,7 @@ emacs_gtk_selection_clear_event_handle (GtkWidget *UNUSED (widget),
   if (NILP (local_selection_time_lisp))
     return;
 
-  local_selection_time = lisp_to_uint32_t (local_selection_time_lisp);
+  local_selection_time = lisp_to_UINT_32_BIT (local_selection_time_lisp);
 
   /* This SelectionClear is for a selection that we no longer own, so we can
      disregard it.  (That is, we have reasserted the selection since this
