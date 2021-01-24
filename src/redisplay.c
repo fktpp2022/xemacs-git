@@ -5733,7 +5733,38 @@ Info on reentrancy crashes, with backtraces given:
 
      JV sez: Because BYTE_BUF_Z (b) would be a good initial value, however
      that can change. This representation allows initalizing with 0.
-  */
+
+       I think what Jan is getting at there is that, if, in a given redisplay,
+       we manage to get away with incremental regeneration of the window, that
+       is probably because there have been changes (likely text that has been
+       typed) only in the visible display lines.
+       If WINDOW_END_POS were represented as a Bytebpos, then its value would
+       need to be adjusted with a full redisplay, meaning we would have to do
+       a full redisplay more often.
+
+       Except we already do adjust window_end_pos[] when adjusting lines
+       incrementally, see redisplay_update_line(), and as far as I can see we
+       shouldn't!
+
+       GNU does it the same way as of January 2021, I suspected we just
+       inherited a bad decision from them. Lucid 19.2 certainly followed this
+       approach.
+
+       printer.el complains that #'window-end gives illegitimate buffer
+       positions, and that's a completely reasonable complaint.
+
+       We have a couple of options.
+       1. Make window_end_pos[] into an array of markers.
+       2. Make them into Bytebpos, stop this messing around with subtracting
+       from BYTE_BUF_Z (b).
+       3. Delete them completely, and use the byte_endpos of the last entry in
+       the display line dynarr instead.
+
+       I plan to switch them to markers, more reliably correct, we don't have
+       the byte-char intermittently-O(N) entertainment with markers that we
+       had in 2018 any more, and the memory usage, given the number of windows
+       we will ever have created, will be limited.
+       Aidan Kehoe, Sun Jan 24 17:22:53 GMT 2021 */
   w->window_end_pos[type] = BYTE_BUF_Z (b) - w->window_end_pos[type];
 
   if (need_modeline)
@@ -5927,7 +5958,7 @@ regenerate_window_extents_only_changed (struct window *w, Bytebpos startp,
 			     &prop, DESIRED_DISP);
       ddl->offset = 0;
 
-      /* #### If there is propagated stuff the fail.  We could
+      /* #### If there is propagated stuff then fail.  We could
 	 probably actually deal with this if the line had propagated
 	 information when originally created by a full
 	 regeneration. */
@@ -5938,7 +5969,7 @@ regenerate_window_extents_only_changed (struct window *w, Bytebpos startp,
 	}
 
       /* If any line position parameters have changed or a
-	 cursor has disappeared or disappeared, fail.  */
+	 cursor has disappeared or appeared, fail.  */
       db = get_display_block_from_line (ddl, TEXT);
       if (cdl->ypos != ddl->ypos
 	  || cdl->ascent != ddl->ascent
@@ -6092,7 +6123,7 @@ regenerate_window_incrementally (struct window *w, Bytebpos startp,
 	return 0;
 
       /* If any line position parameters have changed or a
-	 cursor has disappeared or disappeared, fail. */
+	 cursor has disappeared or appeared, fail. */
       if (cdl->ypos != ddl->ypos
 	  || cdl->ascent != ddl->ascent
 	  || cdl->descent != ddl->descent
@@ -6213,9 +6244,9 @@ point_visible (struct window *w, Bytebpos point, int type)
       struct display_line *dl = Dynarr_atp (dla, first_line);
 
       start = dl->bytepos;
-      end = BYTE_BUF_Z (b) - w->window_end_pos[type] - 1;
+      end = BYTE_BUF_Z (b) - w->window_end_pos[type];
 
-      if (point >= start && point <= end)
+      if (point >= start && point < end)
 	{
 	  if (!MINI_WINDOW_P (w) && scroll_on_clipped_lines)
 	    {
@@ -8617,7 +8648,8 @@ update_line_start_cache (struct window *w, Bytebpos from, Bytebpos to,
     {
       Bytebpos startp = byte_find_next_newline_no_quit (b, from, -1);
       int marker = 0;
-      int old_lb = low_bound;
+      Bytebpos old_lb = low_bound;
+      Boolint finished = 0;
 
       while (startp < old_lb || low_bound == -1)
 	{
@@ -8646,7 +8678,20 @@ update_line_start_cache (struct window *w, Bytebpos from, Bytebpos to,
 	    }
 	  assert (ic_elt >= 0);
 
-	  new_startp = Dynarr_atp (internal_cache, ic_elt)->end + 1;
+          if (Dynarr_atp (internal_cache, ic_elt)->end < BYTE_BUF_Z (b))
+            {
+              new_startp
+                = next_bytebpos (b, Dynarr_atp (internal_cache, ic_elt)->end);
+              if (new_startp > BYTE_BUF_ZV (b))
+                {
+                  finished = 1;
+                }
+            }
+          else
+            {
+              new_startp  = BYTE_BUF_Z (b);
+              finished = 1;
+            }
 
 	  /*
 	   * Handle invisible text properly:
@@ -8674,7 +8719,7 @@ update_line_start_cache (struct window *w, Bytebpos from, Bytebpos to,
 	  if (startp < low_bound || low_bound == -1)
 	    low_bound = startp;
 	  startp = new_startp;
-	  if (startp > BYTE_BUF_ZV (b))
+          if (finished)
 	    {
 	      w->line_cache_validation_override--;
 	      return;
@@ -8688,13 +8733,14 @@ update_line_start_cache (struct window *w, Bytebpos from, Bytebpos to,
   /* Readjust the high_bound to account for any changes made while
      correcting the low_bound. */
   high_bound = Dynarr_lastp (cache)->end;
-
   if (to > high_bound)
     {
-      Bytebpos startp = Dynarr_lastp (cache)->end + 1;
-
       do
 	{
+          /* TO is at most BYTE_BUF_ZV (b), and TO is greater than
+             HIGH_BOUND. This means the next_bytebpos() call will give a sane
+             result. */
+          Bytebpos startp = next_bytebpos (b, high_bound);
 	  regenerate_window (w, startp, point, CMOTION_DISP);
 	  update_internal_cache_list (w, CMOTION_DISP);
 
@@ -8704,7 +8750,6 @@ update_line_start_cache (struct window *w, Bytebpos from, Bytebpos to,
 	  Dynarr_add_many (cache, Dynarr_begin (internal_cache),
 			   Dynarr_length (internal_cache));
 	  high_bound = Dynarr_lastp (cache)->end;
-	  startp = high_bound + 1;
 	}
       while (to > high_bound);
     }

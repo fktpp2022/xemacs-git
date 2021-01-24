@@ -832,15 +832,13 @@ set_window_display_buffer (struct window *w, struct buffer *b)
 Charcount
 window_max_line_len (struct window *w)
 {
-  assert (BUFFERP (w->buffer));
-
   if (WINDOW_TRUNCATEP (w))
     {
       return w->max_line_len;
     }
   else
     {
-      struct buffer *b = XBUFFER (w->buffer);
+      struct buffer *b = window_display_buffer (w);
       display_line_dynarr *dla = window_display_lines (w, CURRENT_DISP);
       Charcount max_line_len = 0, this_line_len;
       int ii, len = Dynarr_length (dla);
@@ -1935,26 +1933,44 @@ This is updated by redisplay or by calling `set-window-start'.
 }
 
 DEFUN ("window-end", Fwindow_end, 0, 2, 0, /*
-Return position at which display currently ends in WINDOW.
-This is updated by redisplay, when it runs to completion.
-Simply changing the buffer text or setting `window-start' does not
+Return position at which display ended in WINDOW at last redisplay.
+
+Neither changing the buffer text without redisplay nor setting `window-start'
 update this value.  WINDOW defaults to the selected window.
 
 If optional arg GUARANTEE is non-nil, the return value is guaranteed
 to be the same value as this function would return at the end of the
 next full redisplay assuming nothing else changes in the meantime.
 This function is potentially much slower with this flag set.
-*/
+
+In the absence of a non-nil GUARANTEE argument, this function is only
+potentially useful if you are certain that no buffer or window change that
+might have impacted it has taken place since last redisplay. In any other
+context it may return results that do not reflect a valid buffer position,
+e.g. if the window's current buffer has been killed. */
        (window, guarantee))
 {
   struct window *w = decode_window (window);
 
   if (NILP (guarantee))
     {
-      Lisp_Object buf;
-      buf = w->buffer;
-      CHECK_BUFFER (buf);
-      return make_fixnum (BUF_Z (XBUFFER (buf)) - w->window_end_pos[CURRENT_DISP]);
+      struct buffer *b = window_display_buffer (w);
+      display_line_dynarr *dla = window_display_lines (w, CURRENT_DISP);
+      Bytebpos byte_endp = Dynarr_lastp (dla)->end_bytepos;
+
+      if (BUFFER_LIVE_P (b) && BYTE_BUF_BEG (b) <= byte_endp
+          && byte_endp <= BYTE_BUF_Z (b)
+          && EQ (wrap_buffer (b), XWINDOW_BUFFER (w))
+          && VALID_BYTEBPOS_P (b, byte_endp))
+        {
+          return make_integer (bytebpos_to_charbpos (b, byte_endp));
+        }
+
+      /* ### We have never guaranteed a valid buffer position in this
+         ### function. Maybe we should, and just force GUARANTEE if things
+         ### have changed sufficiently from last redisplay that we can't give
+         ### a sensible answer.  */
+      return make_integer (byte_endp); 
     }
   else
     {
@@ -4366,9 +4382,9 @@ window_displayed_height (struct window *w)
   struct buffer *b = XBUFFER (w->buffer);
   display_line_dynarr *dla = window_display_lines (w, CURRENT_DISP);
   int num_lines;
-  Charcount end_pos = (BUF_Z (b) - w->window_end_pos[CURRENT_DISP] > BUF_ZV (b)
-		       ? -1
-		       : w->window_end_pos[CURRENT_DISP]);
+  Bytebpos end_pos = (BYTE_BUF_Z (b) - w->window_end_pos[CURRENT_DISP]
+                      > BYTE_BUF_ZV (b)
+		       ? -1 : w->window_end_pos[CURRENT_DISP]);
 
   if (!Dynarr_length (dla))
     return window_char_height (w, 0);
@@ -4852,7 +4868,8 @@ window_scroll (Lisp_Object window, Lisp_Object count, int direction,
 
 	  if (vtarget < value &&
 	      (w->window_end_pos[CURRENT_DISP] == -1
-	       || (BUF_Z (b) - w->window_end_pos[CURRENT_DISP] > BUF_ZV (b))))
+	       || (BYTE_BUF_Z (b) - w->window_end_pos[CURRENT_DISP]
+                   > BYTE_BUF_ZV (b))))
 	    {
 	      maybe_signal_error_1 (Qend_of_buffer, Qnil, Qwindow, errb);
               if (unchain_point)

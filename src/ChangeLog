@@ -1,3 +1,30 @@
+2021-01-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Some further byte-char cleanups, documentation in the redisplay code.
+
+	* redisplay.c (regenerate_window):
+	Document window_end_pos[] some more.
+	* redisplay.c (regenerate_window_extents_only_changed):
+	* redisplay.c (regenerate_window_incrementally):
+	Correct spelling in some comments in these functions.
+	* redisplay.c (point_visible):
+	In passing, don't ever set END to an invalid buffer position.
+	* redisplay.c (update_line_start_cache):
+	Don't ever set NEW_STARTP to an invalid buffer position, ditto for
+	STARTP further down.
+	* window.c:
+	* window.c (window_max_line_len):
+	Use the more correct window_display_buffer() when working out the
+	window_max_line_len here.
+	* window.c (Fwindow_end):
+	Update the implementation of this to only ever call
+	bytebpos_to_charbpos on a valid buffer position in the window's
+	current buffer.
+	* window.c (window_displayed_height):
+	Correct some window_end_pos handling here.
+	* window.c (window_scroll):
+	Ditto.
+
 2021-01-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Update some bitrotted GTK code.
@@ -71146,7 +71173,6 @@ Mon Jan  6 15:16:46 1997  Carsten Leonhardt  <leo@arioch.tng.oche.de>
 Mon Jan  6 12:22:57 1997  Frederic Poncin  <fp@info.ucl.ac.be>
 
 	* gmalloc.c: Don't declare __sbrk on SparcLinux.
-
 Sun Jan  5 18:04:47 1997  Soren Dayton  <csdayton@cs.uchicago.edu>
 
 	* Makefile.in.in: IRIX6 can use sgiplay.c too.
