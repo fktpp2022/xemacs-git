@@ -4308,6 +4308,97 @@ get_buffer_pos_byte (struct buffer *b, Lisp_Object pos, unsigned int flags)
     }
 }
 
+void
+get_buffer_pos_both (struct buffer *b, Lisp_Object pos, unsigned int flags,
+                     Charbpos *cpos_out, Bytebpos *bpos_out)
+{
+  /* Does not GC */
+  Bytebpos byte_ind = -1, byte_min_allowed, byte_max_allowed;
+  Charbpos char_ind = -1, char_min_allowed, char_max_allowed;
+
+  if (flags & GB_ALLOW_PAST_ACCESSIBLE)
+    {
+      byte_min_allowed = BYTE_BUF_BEG (b);
+      byte_max_allowed = BYTE_BUF_Z (b);
+      char_min_allowed = BUF_BEG (b);
+      char_max_allowed = BUF_Z (b);
+    }
+  else
+    {
+      byte_min_allowed = BYTE_BUF_BEGV (b);
+      byte_max_allowed = BYTE_BUF_ZV (b);
+      char_min_allowed = BUF_BEGV (b);
+      char_max_allowed = BUF_ZV (b);
+    }
+
+  if (NILP (pos) && (flags & GB_ALLOW_NIL))
+    {
+      pos = b->point_marker;
+      char_ind = BUF_PT (b);
+    }
+
+  if (MARKERP (pos) && XMARKER (pos)->buffer == b)
+    {
+      byte_ind = marker_byte_position (pos);
+
+      if (byte_ind < byte_min_allowed || byte_ind > byte_max_allowed)
+        {
+          if (flags & GB_COERCE_RANGE)
+            {
+              if (byte_ind < byte_min_allowed)
+                {
+                  *cpos_out = char_min_allowed;
+                  *bpos_out = byte_min_allowed;
+                  return;
+                }
+
+              *cpos_out = char_max_allowed;
+              *bpos_out = byte_max_allowed;
+              return;
+            }
+          else if (flags & GB_NO_ERROR_IF_BAD)
+            {
+              *cpos_out = -1;
+              *bpos_out = -1;
+              return;
+            }
+
+          args_out_of_range (wrap_buffer (b), pos);
+        }
+
+      *bpos_out = byte_ind;
+      *cpos_out
+        = char_ind < 0 ? bytebpos_to_charbpos (b, byte_ind) : char_ind;
+      return;
+    }
+
+  CHECK_FIXNUM_COERCE_MARKER (pos);
+
+  char_ind = XFIXNUM (pos);
+
+  if (char_ind < char_min_allowed || char_ind > char_max_allowed)
+    {
+      if (char_ind < char_min_allowed)
+        {
+          *cpos_out = char_min_allowed;
+          *bpos_out = byte_min_allowed;
+          return;
+        }
+      else if (flags & GB_NO_ERROR_IF_BAD)
+        {
+          *cpos_out = -1;
+          *bpos_out = -1;
+          return;
+        }
+
+      args_out_of_range (wrap_buffer (b), pos);
+    }
+
+  *cpos_out = char_ind;
+  *bpos_out = charbpos_to_bytebpos (b, char_ind);
+  return;
+}
+
 /* Return a pair of buffer positions representing a range of text,
    taken from a pair of Lisp_Objects.  Full error-checking is
    done on the positions.  Flags can be specified to control the

@@ -146,10 +146,13 @@ Return value of POSITION, as an integer.
        (position, buffer))
 {
   struct buffer *b = decode_buffer (buffer, 1);
-  Charbpos n = get_buffer_pos_char (b, position, GB_COERCE_RANGE);
-  BUF_SET_PT (b, n);
+  Charbpos char_n = -1;
+  Bytebpos byte_n = -1;
+
+  get_buffer_pos_both (b, position, GB_COERCE_RANGE, &char_n, &byte_n);
+  BOTH_BUF_SET_PT (b, char_n, byte_n);
   atomic_extent_goto_char_p = 1;
-  return make_fixnum (n);
+  return make_fixnum (char_n);
 }
 
 static Lisp_Object

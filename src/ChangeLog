@@ -1,3 +1,19 @@
+2021-01-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Avoid a bytebpos_to_charbpos() followed by charbpos_to_bytebpos()
+	with (goto-char MARKER). This has a particular performance impact
+	with large VM buffers.
+
+	* text.c (get_buffer_pos_both): New.
+	Like get_buffer_pos_{byte,char}, but return both the character and
+	the byte positions in *cpos_out, *bpos_out.
+
+	* editfns.c (Fgoto_char):
+	Use it.
+
+	* lisp.h:
+	Declare it.
+
 2021-01-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Some further byte-char cleanups, documentation in the redisplay code.

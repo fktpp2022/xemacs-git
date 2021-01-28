@@ -6262,6 +6262,9 @@ Charbpos get_buffer_pos_char (struct buffer *b, Lisp_Object pos,
 			    unsigned int flags);
 Bytebpos get_buffer_pos_byte (struct buffer *b, Lisp_Object pos,
 			    unsigned int flags);
+void get_buffer_pos_both (struct buffer *, Lisp_Object pos,
+                          unsigned int flags, Charbpos *cpos_out,
+                          Bytebpos *bpos_out);
 void get_buffer_range_char (struct buffer *b, Lisp_Object from, Lisp_Object to,
 			    Charbpos *from_out, Charbpos *to_out,
 			    unsigned int flags);
