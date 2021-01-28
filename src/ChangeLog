@@ -1,5 +1,11 @@
 2021-01-28  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* window.c (Fwindow_end): 
+	Call window_buffer () to get a Lisp_Object before calling EQ(),
+	avoiding an assertion failure with error-checking builds.
+
+2021-01-28  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Avoid a bytebpos_to_charbpos() followed by charbpos_to_bytebpos()
 	with (goto-char MARKER). This has a particular performance impact
 	with large VM buffers.

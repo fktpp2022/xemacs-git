@@ -1960,7 +1960,7 @@ e.g. if the window's current buffer has been killed. */
 
       if (BUFFER_LIVE_P (b) && BYTE_BUF_BEG (b) <= byte_endp
           && byte_endp <= BYTE_BUF_Z (b)
-          && EQ (wrap_buffer (b), XWINDOW_BUFFER (w))
+          && EQ (wrap_buffer (b), window_buffer (w))
           && VALID_BYTEBPOS_P (b, byte_endp))
         {
           return make_integer (bytebpos_to_charbpos (b, byte_endp));
