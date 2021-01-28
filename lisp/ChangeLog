@@ -1,3 +1,10 @@
+2021-01-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* code-files.el (load):
+	Revise my change of 2021-01-10 looking for unwanted duplicate
+	extensions to strip directory information before calling #'equal,
+	something which will give us fewer false-positives.
+
 2021-01-21  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* x-init.el (pseudo-canonicalize-keysym):
