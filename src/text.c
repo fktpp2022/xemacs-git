@@ -4378,12 +4378,19 @@ get_buffer_pos_both (struct buffer *b, Lisp_Object pos, unsigned int flags,
 
   if (char_ind < char_min_allowed || char_ind > char_max_allowed)
     {
-      if (char_ind < char_min_allowed)
-        {
-          *cpos_out = char_min_allowed;
-          *bpos_out = byte_min_allowed;
-          return;
-        }
+      if (flags & GB_COERCE_RANGE)
+	{
+	  if (char_ind < char_min_allowed)
+	    {
+	      *cpos_out = char_min_allowed;
+	      *bpos_out = byte_min_allowed;
+	      return;
+	    }
+
+	  *cpos_out = char_max_allowed;
+	  *bpos_out = byte_max_allowed;
+	  return;
+	}
       else if (flags & GB_NO_ERROR_IF_BAD)
         {
           *cpos_out = -1;
