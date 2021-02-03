@@ -224,11 +224,12 @@
     (checking-pad-chars
      #xa0 #xff #x4e00 #x2194 #x2122 #x0e9e #xd55c)))
 
-(Check-Error 'syntax-error (format "%c" char-code-limit))
-(Check-Error 'syntax-error (format "%c" 'a))
-(Check-Error 'syntax-error (format "%c" pi)) ;; Newly fails
-(if (featurep 'ratio) (Check-Error 'syntax-error (format "%c" (read "7/5"))))
-(Check-Error 'syntax-error (format "%c" (1+ most-positive-fixnum)))
+(Check-Error 'wrong-type-argument (format "%c" char-code-limit))
+(Check-Error 'wrong-type-argument (format "%c" 'a))
+(Check-Error 'wrong-type-argument (format "%c" pi)) ;; Newly fails
+(if (featurep 'ratio)
+    (Check-Error 'wrong-type-argument (format "%c" (read "7/5"))))
+(Check-Error 'wrong-type-argument (format "%c" (1+ most-positive-fixnum)))
 (Check-Error 'syntax-error (format "%.20c" ?a)) ;; Newly fails.
 (Check-Error 'syntax-error (format "%.*c" 20 ?a)) ;; Newly fails.
 

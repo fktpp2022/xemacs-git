@@ -1,3 +1,10 @@
+2021-02-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/format-tests.el (wrong-type-argument):
+	We give a wrong-type-argument when providing (format "%c" ...)
+	with an argument that is not char-or-char-int-p as of cd3447b28a4a
+	, update this test to reflect that.
+
 2020-10-29  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/lisp-tests.el (eql):
