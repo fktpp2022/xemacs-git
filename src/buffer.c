@@ -214,7 +214,7 @@ Lisp_Object Qchange_major_mode_hook, Vchange_major_mode_hook;
 
 Lisp_Object Qfind_file_compare_truenames;
 
-Lisp_Object Qswitch_to_buffer;
+Lisp_Object Qswitch_to_buffer, Qgenerated_modeline_string;
 
 /* Two thresholds controlling how much undo information to keep.  */
 Fixnum undo_threshold;
@@ -641,6 +641,14 @@ finish_init_buffer (struct buffer *b, Lisp_Object name)
 
   b->generated_modeline_string = Fmake_string (make_fixnum (84),
                                                make_char (' '));
+  /* I considered doing this with an uninterned symbol, which would make it
+     harder for Lisp to mark arbitrary strings as being
+     generated-modeline-strings. But it doesn't make it impossible, and the
+     only consequence of marking an arbitrary string as being a
+     generated-modeline-string is that XEmacs is a little slower, there is no
+     catastrophe that would be avoided by doing more to hide this
+     information. */
+  Fput (b->generated_modeline_string, Qgenerated_modeline_string, Qt);
   b->modeline_extent_table = make_lisp_hash_table (20, HASH_TABLE_KEY_WEAK,
                                                    Qeq);
 
@@ -652,6 +660,27 @@ finish_init_buffer (struct buffer *b, Lisp_Object name)
 #endif
 
   return buf;
+}
+
+/* If STRING is a string that is the generated_modeline_string of some buffer,
+   return non-Qnil. Otherwise, return Qnil. */
+Lisp_Object
+generated_modeline_stringp (Lisp_Object string)
+{
+  Lisp_Object result; 
+
+  if (!STRINGP (string))
+    {
+      return Qnil;
+    }
+
+  result = Fget (string, Qgenerated_modeline_string, Qunbound);
+  if (!UNBOUNDP (result))
+    {
+      return result;
+    }
+
+  return Qnil;
 }
 
 DEFUN ("get-buffer-create", Fget_buffer_create, 1, 1, 0, /*
@@ -2008,6 +2037,7 @@ syms_of_buffer (void)
   DEFSYMBOL (Qfind_file_compare_truenames);
 
   DEFSYMBOL (Qswitch_to_buffer);
+  DEFSYMBOL (Qgenerated_modeline_string);
 
   DEFSUBR (Fbufferp);
   DEFSUBR (Fbuffer_live_p);

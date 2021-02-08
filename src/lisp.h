@@ -4505,6 +4505,7 @@ void mark_Lisp_Object_dynarr (Lisp_Object_dynarr *dyn);
 
 /* Defined in buffer.c */
 Lisp_Object get_truename_buffer (Lisp_Object);
+Lisp_Object generated_modeline_stringp (Lisp_Object);
 void switch_to_buffer (Lisp_Object, Lisp_Object);
 extern int find_file_compare_truenames;
 extern int find_file_use_truenames;

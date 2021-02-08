@@ -1446,25 +1446,23 @@ signal_single_extent_changed (EXTENT extent, Lisp_Object property,
 
       else if (STRINGP (object))
 	{
-	  /* #### Changes to string extents can affect redisplay if they are
+	  /* Changes to string extents can affect redisplay if they are
 	     in the modeline or in the gutters.
 	     
 	     If the extent is in some generated-modeline-string: when we
 	     change an extent in generated-modeline-string, this changes its
 	     parent, which is in `modeline-format', so we should force the
-	     modeline to be updated.  But how to determine whether a string
-	     is a `generated-modeline-string'?  Looping through all buffers
-	     is not very efficient.  Should we add all
-	     `generated-modeline-string' strings to a hash table?  Maybe
-	     efficiency is not the greatest concern here and there's no big
-	     loss in looping over the buffers.
+	     modeline to be updated. generated_modeline_stringp() gives
+	     non-Qnil if its argument is the generated_modeline_string of some
+	     buffer.
 	     
 	     If the extent is in a gutter we mark the gutter as
 	     changed. This means (a) we can update extents in the gutters
 	     when we need it. (b) we don't have to update the gutters when
 	     only extents attached to buffers have changed. */
 
-	  if (!in_modeline_generation)
+	  if (!in_modeline_generation &&
+              !NILP (generated_modeline_stringp (object)))
 	    MARK_EXTENTS_CHANGED;
 	  gutter_extent_signal_changed_region_maybe
             (object, extent_endpoint_byte (extent, 0),

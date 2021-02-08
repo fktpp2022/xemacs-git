@@ -1,3 +1,21 @@
+2021-02-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lisp.h: Declare generated_modeline_stringp().
+	* buffer.c:
+	* buffer.c (finish_init_buffer): Give the
+	generated_modeline_string a non-nil Qgenerated_modeline_string
+	property, to make it easier for the extent code to determine if
+	redisplay needs to recalculate things.
+	* buffer.c (generated_modeline_stringp): New.  Use this property,
+	returning non-nil if its argument is (likely) the
+	generated_modeline_string of a buffer.
+	* buffer.c (syms_of_buffer):
+	DEFSYMBOL Qgenerated_modeline_string, used by
+	generated_modeline_stringp(), finish_init_buffer() above.
+	* extents.c (signal_single_extent_changed):
+	Call generated_modeline_stringp() as appropriate. Update a comment
+	to reflect that it is available.
+
 2021-02-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* text.c (get_buffer_pos_both):
