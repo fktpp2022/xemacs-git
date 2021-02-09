@@ -1663,10 +1663,10 @@ If BUFFER is nil, the current buffer is assumed.
        (start, end, buffer))
 {
   /* This function can GC */
-  Charbpos begv, zv;
+  Bytebpos begv, zv;
   struct buffer *b = decode_buffer (buffer, 1);
 
-  get_buffer_range_char (b, start, end, &begv, &zv, GB_ALLOW_NIL);
+  get_buffer_range_byte (b, start, end, &begv, &zv, GB_ALLOW_NIL);
   return make_string_from_buffer (b, begv, zv - begv);
 }
 
@@ -1680,10 +1680,10 @@ Return the text from START to END as a string, without copying the extents.
        (start, end, buffer))
 {
   /* This function can GC */
-  Charbpos begv, zv;
+  Bytebpos begv, zv;
   struct buffer *b = decode_buffer (buffer, 1);
 
-  get_buffer_range_char (b, start, end, &begv, &zv, GB_ALLOW_NIL);
+  get_buffer_range_byte (b, start, end, &begv, &zv, GB_ALLOW_NIL);
   return make_string_from_buffer_no_extents (b, begv, zv - begv);
 }
 
@@ -2288,8 +2288,10 @@ Transposing beyond buffer boundaries is an error.
   else if (startr1 == endr1 || startr2 == endr2)
     invalid_argument ("transposed region may not be of length 0", Qunbound);
 
-  string1 = make_string_from_buffer (buf, startr1, len1);
-  string2 = make_string_from_buffer (buf, startr2, len2);
+  string1 = Fbuffer_substring (make_fixnum (startr1), make_fixnum (endr1),
+                               wrap_buffer (buf));
+  string2 = Fbuffer_substring (make_fixnum (startr2), make_fixnum (endr2),
+                               wrap_buffer (buf));
   buffer_delete_range (buf, startr2, endr2, 0);
   buffer_insert_lisp_string_1 (buf, startr2, string1, 0);
   buffer_delete_range (buf, startr1, endr1, 0);

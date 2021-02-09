@@ -1345,7 +1345,9 @@ buffer_insert_from_buffer_1 (struct buffer *buf, Charbpos pos,
 			     Charcount length, int flags)
 {
   /* This function can GC */
-  Lisp_Object str = make_string_from_buffer (buf2, pos2, length);
+  Bytebpos bpos2 = charbpos_to_bytebpos (buf2, pos2);
+  Bytebpos bpos3 = charbpos_to_bytebpos (buf2, pos2 + length);
+  Lisp_Object str = make_string_from_buffer (buf2, bpos2, bpos3 - bpos2);
   return buffer_insert_string_1 (buf, pos, 0, str, 0,
 				 XSTRING_LENGTH (str), -1, flags);
 }
@@ -1695,12 +1697,11 @@ buffer_replace_char (struct buffer *buf, Charbpos pos, Ichar ch,
    and add any necessary extents from the buffer. */
 
 static Lisp_Object
-make_string_from_buffer_1 (struct buffer *buf, Charbpos pos, Charcount length,
-			   int no_extents)
+make_string_from_buffer_1 (struct buffer *buf, Bytebpos bytepos,
+                           Bytecount bytelen,
+			   Boolint no_extents)
 {
   /* This function can GC */
-  Bytebpos bytepos = charbpos_to_bytebpos (buf, pos);
-  Bytecount bytelen = charbpos_to_bytebpos (buf, pos + length) - bytepos;
   Bytecount needed = copy_buffer_text_out (buf, bytepos, bytelen, NULL, 0,
 					   FORMAT_DEFAULT, Qnil, NULL);
   Lisp_Object val = make_uninit_string (needed);
@@ -1720,14 +1721,14 @@ make_string_from_buffer_1 (struct buffer *buf, Charbpos pos, Charcount length,
 }
 
 Lisp_Object
-make_string_from_buffer (struct buffer *buf, Charbpos pos, Charcount length)
+make_string_from_buffer (struct buffer *buf, Bytebpos pos, Bytecount length)
 {
   return make_string_from_buffer_1 (buf, pos, length, 0);
 }
 
 Lisp_Object
-make_string_from_buffer_no_extents (struct buffer *buf, Charbpos pos,
-				    Charcount length)
+make_string_from_buffer_no_extents (struct buffer *buf, Bytebpos pos,
+				    Bytecount length)
 {
   return make_string_from_buffer_1 (buf, pos, length, 1);
 }

@@ -3128,9 +3128,9 @@ query_coding_1 (Lisp_Object buffer_or_string, Charxpos b, Charxpos e,
 		    (Qtext_conversion_error,
 		     "Cannot encode using coding system",
 		     BUFFERP (buffer_or_string) ?
-		     make_string_from_buffer (XBUFFER (buffer_or_string),
-					      errstart,
-					      errend - errstart) :
+                     Fbuffer_substring (make_fixnum (errstart),
+                                        make_fixnum (errend),
+                                        buffer_or_string) :
 		     Fsubseq (buffer_or_string, make_fixnum (errstart),
 			      make_fixnum (errend)),
 		     XCODING_SYSTEM_NAME (coding_system));

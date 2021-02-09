@@ -160,10 +160,11 @@ record_delete (struct buffer *b, Charbpos beg, Charcount length)
       && last_point_position != XFIXNUM (sbeg))
     b->undo_list = Fcons (make_fixnum (last_point_position), b->undo_list);
 
-  b->undo_list = Fcons (Fcons (make_string_from_buffer (b, beg,
-							length),
-                               sbeg),
-                        b->undo_list);
+  b->undo_list
+    = Fcons (Fcons (Fbuffer_substring (make_fixnum (beg),
+                                       make_fixnum (beg + length),
+                                       wrap_buffer (b)), sbeg),
+             b->undo_list);
 }
 
 /* Record that a replacement is about to take place,

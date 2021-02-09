@@ -16,6 +16,34 @@
 	Call generated_modeline_stringp() as appropriate. Update a comment
 	to reflect that it is available.
 
+2021-02-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Move make_string_from_buffer() to taking a Bytebpos and a
+	Bytecount, rather than working in characters.
+
+	* abbrev.c (Fexpand_abbrev):
+	Call Fbuffer_substring() rather than make_string_from_buffer()
+	when saving the text the prompted the last abbreviation
+	expansion.
+	* editfns.c (Fbuffer_substring):
+	* editfns.c (Fbuffer_substring_no_properties):
+	Use get_buffer_range_byte() in these two function.
+	* editfns.c (Ftranspose_regions):
+	Use Fbuffer_substring() here.
+	* file-coding.c (query_coding_1):
+	Ditto.
+	* insdel.c (buffer_insert_from_buffer_1):
+	Call charbpos_to_bytebpos() before calling
+	make_string_from_buffer() here.
+	* insdel.c (make_string_from_buffer_1):
+	* insdel.c (make_string_from_buffer):
+	* insdel.c (make_string_from_buffer_no_extents):
+	Update all these to work with Bytebpos and Bytecount.
+	* lisp.h: Update their declarations.
+	* undo.c (record_delete):
+	Call Fbuffer_substring() rather than make_string_from_buffer()
+	given we're working in character counts and positions.
+
 2021-02-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* text.c (get_buffer_pos_both):

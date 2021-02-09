@@ -352,8 +352,10 @@ If no abbrev matched, but `pre-abbrev-expand-hook' changed the buffer,
 
   /* Remember the last abbrev text, location, etc. */
   Vlast_abbrev = wrap_symbol (abbrev_symbol);
-  Vlast_abbrev_text =
-    make_string_from_buffer (buf, abbrev_start, abbrev_length);
+  Vlast_abbrev_text = Fbuffer_substring (make_fixnum (abbrev_start),
+                                         make_fixnum (abbrev_start +
+                                                      abbrev_length),
+                                         wrap_buffer (buf));
   last_abbrev_location = abbrev_start;
 
   /* Add an undo boundary, in case we are doing this for a
