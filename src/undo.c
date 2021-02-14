@@ -198,8 +198,13 @@ record_extent (Lisp_Object extent, int attached)
       if (attached)
 	token = extent;
       else
-	token = list3 (extent, Fextent_start_position (extent),
-		       Fextent_end_position (extent));
+	token = list3 (extent,
+                       /* No getting away from the bytebpos_to_charbpos(),
+                          since the extent is no longer attached to the buffer
+                          and its byte position (memory position) won't be
+                          updated with changes. */
+                       Fextent_start_position (extent, Qnil),
+		       Fextent_end_position (extent, Qnil));
       b->undo_list = Fcons (token, b->undo_list);
     }
   else

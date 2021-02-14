@@ -1,3 +1,62 @@
+2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Fix some bugs, add some functionality in anticipation of
+	implementing the match data in terms of extents (rather than
+	*character* positions stored as C integers).
+
+	* extents-impl.h:
+	The extent plists are not visible directly to Lisp, and we have
+	never seen bugs with them in my couple of decades working on
+	XEmacs. On a non debug build it is completely reasonable to offer
+	extent_plist_{put,get,remprop} implemented in terms of their
+	internal_plist_ counterparts, rather than
+	external_plist_{get_put}, external_remprop, with their
+	error-checking.
+	* extents.c:
+	* extents.c (object_extent_list_force): New.
+	* extents.c (extent_attach): Use it, don't segfault on attaching
+	to a string from C.
+	* extents.c (print_extent_1):
+	Leave printing the plist to print_extent(). Call
+	Fextent_start_position(), Fextent_end_position() with their new
+	optional arguments.
+	* extents.c (print_extent):
+	When printing the associated object, just call print_internal(),
+	don't try to make our own object print infrastructure that fails
+	when we add in another extent object type.
+	* extents.c (extent_endpoint_external):
+	Implement a new MARKERP argument to this function, returning
+	markers and avoiding byte-char conversion when the extent is in a
+	buffer. Make a choice for the marker insertion type depending on
+	the Qstart_open, Qend_open properties.
+	* extents.c (Fextent_start_position): Use this new argument to
+	extent_endpoint_external(), document it.
+	* extents.c (Fextent_end_position): Ditto.
+	* extents.c (Fmap_extents):
+	Call extent_endpoint_byte() here rather than
+	Fextent_start_position(), Fextent_end_position(), since we need
+	the byte positions ultimately anyway.
+	* extents.c (Fmap_extent_children):
+	Ditto.
+	* extents.c (Fset_extent_property):
+	Use the new extent_plist_remprop(), extent_plist_put() in this
+	function if appropriate.
+	* extents.c (Fextent_property):
+	Use the new extent_plist_get() in this function as appropriate.
+	* extents.c (splice_in_string_extents_mapper):
+	* extents.c (splice_in_string_extents_the_hard_way_mapper):
+	* extents.c (copy_string_extents_mapper):
+	* extents.c (stretch_string_extents_buffer_mapper):
+	* extents.c (stretch_string_extents_mapper):
+	All of these functions incorrectly failed to pass through
+	zero-length duplicable extents, correct that.
+	* extents.h:
+	Update the declarations for Fextent_start_position,
+	Fextent_end_position(), add a declaration for Fcopy_extent().
+	* undo.c (record_extent):
+	Call Fextent_start_position(), Fextent_end_position() with their
+	new args.
+
 2021-02-08  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lisp.h: Declare generated_modeline_stringp().

@@ -189,12 +189,28 @@ as necessary.
 position, and then by decreasing end position (this is called the
 @dfn{display order}).
 
-@defun extent-start-position extent
+@defun extent-start-position extent &optional markerp
 This function returns the start position of @var{extent}.
+
+If @var{markerp} is non-nil, and @var{extent} reflects a buffer position, it
+returns the start position as a marker. This avoids expensive byte-char
+conversion in large buffers. If the extent's `start-open' property is non-nil,
+the returned marker will have a non-nil insertion type, reflecting what would
+have happened to the extent's start position on insertion of text at that
+position. Note that the default value for `start-open' means the marker
+insertion type of the returned marker will be nil.
 @end defun
 
-@defun extent-end-position extent
+@defun extent-end-position extent &optional markerp
 This function returns the end position of @var{extent}.
+
+If @var{markerp} is non-nil, and @var{extent} reflects a buffer position, it
+returns the start position as a marker. As above, this avoids expensive
+byte-char conversion in large buffers. If the extent's `end-open' property is
+nil the returned marker will have a non-nil insertion type, reflecting what
+would have happened to the extent's end position on insertion of text at that
+position. The default (t) value for the `end-open' property means that the
+maker insertion type of the returned marker defaults to nil.
 @end defun
 
 @defun extent-length extent

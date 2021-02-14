@@ -377,11 +377,14 @@
                        string))
        (ee (make-extent (search "meinem" string) (search "Herzen" string)
                        string))
+       (ZZ (make-extent (search " kocht" string)
+                        (search " kocht" string) string))
        (property-name '#:secret-token)
        event list)
   (setf (extent-property e 'duplicable) t
         (extent-property e property-name) t
-        (extent-property ee 'duplicable) nil) ;; Actually the default.
+        (extent-property ee 'duplicable) nil ;; Actually the default.
+        (extent-property ZZ 'duplicable) t)
   (block enough
     (enqueue-eval-event #'(lambda (ignore) (return-from enough)) nil)
     ;; Silence prompt on TTY. Maybe we shouldn't be doing this.
@@ -390,9 +393,19 @@
         (dispatch-event event))))
   (setq list (extent-list (get-buffer " *Echo Area*")))
   (Assert list "checking extent info was preserved in #'next-event")
-  (Assert (eql 1 (length list)) "checking only one extent was preserved")
+  (Assert (eql 2 (length list)) "checking only two extents were preserved")
   (Assert (eql t (get (car list) property-name))
-          "checking it was our duplicable extent that was preserved"))
+          "checking it our duplicable extent was preserved")
+  (Assert (eql 0 (extent-length (cadr list)))
+          "checking zero-length extent preserved")
+  (Assert (eql (extent-start-position (cadr list))
+               (save-excursion
+                 (save-match-data
+                   (set-buffer (get-buffer " *Echo Area*"))
+                   (goto-char (point-min))
+                   (search-forward " kocht" nil t)
+                   (match-beginning 0))))
+          "checking zero-length extent in the appropriate place"))
 
 ;;-----------------------------------------------------
 ;; Extents and string output streams.
@@ -404,6 +417,8 @@
                        string))
        (ee (make-extent (search " um " string) (search "her!" string)
                        string))
+       (ZZ (make-extent (search "er!" string)
+                        (search "er!" string) string))
        (property-name '#:secret-token)
        event list output)
   (Assert (eq 'stream (type-of stream))
@@ -413,7 +428,9 @@
   (setf (extent-property e 'duplicable) t
         (extent-property e property-name) t
         (extent-property ee 'count) most-positive-fixnum
-        (extent-property ee 'duplicable) nil) ;; Actually the default.
+        (extent-property ee 'duplicable) nil ;; Actually the default.
+        (extent-property ZZ 'duplicable) nil ;; Ditto.
+        (extent-property ZZ 'zero-length) t)
   (write-sequence string stream) ;; Includes both ee and e, since the
                                  ;; stream is treated like a string,
                                  ;; not a buffer.
@@ -427,14 +444,18 @@
           output)
    "checking #'get-output-stream-string functioned as expected")
   (setf list (extent-list output))
-  (Assert (eql 3 (length list)))
+  (Assert (eql 4 (length list)))
   (Assert (eq (get (car list) property-name) t)
           "checking property preserved, duplicable extent")
   (Assert (eql (get (cadr list) 'count) most-positive-fixnum)
           "checking property preserved, non-duplicable extent")
-  (Assert (eq (get (caddr list) property-name) t)
+  (Assert (eq (get (cadddr list) property-name) t)
           "checking property preserved, second duplicable extent")
-
+  (Assert (eql 0 (extent-length (caddr list)))
+          "checking zero-length non-duplicable extent passed through")
+  (Assert (eql (extent-start-position (caddr list))
+               (search "er!" output))
+          "checking zero-length non-duplicable extent in the correct place")
   (Assert (eq string (write-sequence string stream))
           "checking return value of #'write-sequence")
   (Assert (eq nil (clear-output stream))
@@ -479,6 +500,9 @@
 			       (search "nimmer" string) string))
 	       (EE (make-extent (search " mehr" string) (search "!" string)
 				string))
+               ;; As should this zero-length extent.
+               (ZZ (make-extent (search " mehr" string)
+                                (search " mehr" string) string))
 	       (property-name '#:secret-token)
                last marker)
 	 (setf (extent-property E 'duplicable) t
@@ -490,6 +514,8 @@
 	       (extent-property ee 'face) 'isearch
 	       (extent-property ee 'duplicable) 't
 	       (extent-property ee 'shorter) t
+               (extent-property ZZ 'duplicable) t
+               (extent-property ZZ 'zero-length) t
 	       (extent-property extent 'longer) t
 	       (extent-property extent 'face) 'blue
 	       (extent-property extent 'duplicable) 't)
@@ -538,6 +564,19 @@
 	   (Assert (not (cdr (extent-list (current-buffer) nil nil nil
 					  property-name)))
 		   "checking no duplicates passed through")
+           (Assert (eql (extent-length
+                         (car (extent-list (current-buffer) nil nil nil
+                                           'zero-length)))
+                        0)
+                   "checking zero-length extent passed through")
+           (Assert (eql (extent-end-position
+                         (car (extent-list (current-buffer) nil nil nil
+                                           'zero-length)))
+                        (save-excursion
+                          (goto-char (point-min))
+                          (and (search-forward " mehr" nil t)
+                               (match-beginning 0))))
+                   "checking zero-length extent in the correct place")
            (setf last (point) marker (point-marker))
 	   (Assert (eq (format-into marker format string) marker)
 		   "checking return value of #'format-into, marker")

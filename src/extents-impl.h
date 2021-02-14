@@ -281,6 +281,22 @@ extent_no_chase_plist_addr (EXTENT e)
 #define extent_plist_addr(e) extent_no_chase_plist_addr (extent_ancestor (e))
 #define extent_plist_slot(e) extent_no_chase_plist (extent_ancestor (e))
 
+#ifdef ERROR_CHECK_STRUCTURES
+#define extent_plist_put(e, property, value)    \
+  external_plist_put (extent_plist_addr (e), (property), (value), 0, ERROR_ME)
+#define extent_plist_get(e, property)           \
+  external_plist_get (extent_plist_addr (e), (property), 0, ERROR_ME)
+#define extent_plist_remprop(e, property)       \
+  external_remprop (extent_plist_addr (e), (property), 0, ERROR_ME)
+#else
+#define extent_plist_put(e, property, value)    \
+  internal_plist_put (extent_plist_addr (e), (property), (value))
+#define extent_plist_get(e, property)           \
+  internal_plist_get (*(extent_plist_addr (e)), (property))
+#define extent_plist_remprop(e, property)       \
+  internal_remprop (extent_plist_addr (e), (property))
+#endif /* ERROR_CHECK_STRUCTURES */
+
 
 #define EXTENT_LIVE_P(e)	(!EQ (extent_object (e), Qt))
 

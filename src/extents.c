@@ -995,6 +995,13 @@ object_extent_info_force (Lisp_Object object)
   return info;
 }
 
+static Extent_List *
+object_extent_list_force (Lisp_Object object)
+{
+  struct extent_info *info = object_extent_info_force (object);
+  return info->extents;
+}
+
 /* Detach all the extents in OBJECT.  Called from redisplay. */
 
 void
@@ -1672,7 +1679,7 @@ extent_e_previous (EXTENT e)
 static void
 extent_attach (EXTENT extent)
 {
-  Extent_List *el = extent_extent_list (extent);
+  Extent_List *el = object_extent_list_force (extent_object (extent));
 
   extent_list_insert (el, extent);
   soe_insert (extent_object (extent), extent);
@@ -2881,7 +2888,6 @@ print_extent_1 (Lisp_Object obj, Lisp_Object printcharfun,
   EXTENT ext = XEXTENT (obj);
   /* Retrieve the ancestor and use it, for faster retrieval of properties */
   EXTENT anc = extent_ancestor (ext);
-  Lisp_Object tail;
   Ascbyte buf[64], *bp = buf;
 
   if (!NILP (extent_begin_glyph (anc))) *bp++ = '*';
@@ -2895,8 +2901,10 @@ print_extent_1 (Lisp_Object obj, Lisp_Object printcharfun,
     {
       bp += emacs_snprintf_ascbyte (bp, sizeof (buf) - (bp - buf),
                                     "%ld, %ld",
-                                    XFIXNUM (Fextent_start_position (obj)),
-                                    XFIXNUM (Fextent_end_position (obj)));
+                                    XFIXNUM (Fextent_start_position (obj,
+                                                                     Qnil)),
+                                    XFIXNUM (Fextent_end_position (obj,
+                                                                   Qnil)));
     }
   *bp++ = (extent_end_open_p (anc) ? ')': ']');
   if (!NILP (extent_end_glyph (anc))) *bp++ = '*';
@@ -2914,15 +2922,6 @@ print_extent_1 (Lisp_Object obj, Lisp_Object printcharfun,
     *bp++ = ' ';
   *bp = '\0';
   write_ascstring (printcharfun, buf);
-
-  tail = extent_plist_slot (anc);
-
-  for (; !NILP (tail); tail = Fcdr (Fcdr (tail)))
-    {
-      Lisp_Object v = XCAR (XCDR (tail));
-      if (NILP (v)) continue;
-      write_fmt_string_lisp (printcharfun, "%S ", XCAR (tail));
-    }
 }
 
 static void
@@ -2930,38 +2929,12 @@ print_extent (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 {
   if (escapeflag)
     {
-      const char *title = "";
-      const char *name = "";
-      const char *posttitle = "";
-      Lisp_Object obj2 = Qnil;
+      Lisp_Object obj2 = Qnil, tail = Qnil;
 
       /* Destroyed extents have 't' in the object field, causing
 	 extent_object() to ABORT (maybe). */
       if (EXTENT_LIVE_P (XEXTENT (obj)))
 	obj2 = extent_object (XEXTENT (obj));
-
-      if (NILP (obj2))
-	title = "no buffer";
-      else if (BUFFERP (obj2))
-	{
-	  if (BUFFER_LIVE_P (XBUFFER (obj2)))
-	    {
-	      title = "buffer ";
-	      name = (char *) XSTRING_DATA (XBUFFER (obj2)->name);
-	    }
-	  else
-	    {
-	      title = "Killed Buffer";
-	      name = "";
-	    }
-	}
-      else
-	{
-	  assert (STRINGP (obj2));
-	  title = "string \"";
-	  posttitle = "\"";
-	  name = (char *) XSTRING_DATA (obj2);
-	}
 
       if (print_readably)
 	{
@@ -2981,7 +2954,25 @@ print_extent (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 	  print_extent_1 (obj, printcharfun, escapeflag);
 	  write_ascstring (printcharfun, extent_detached_p (XEXTENT (obj))
 			  ? "from " : "in ");
-	  write_fmt_string (printcharfun, "%s%s%s", title, name, posttitle);
+          print_internal (obj2, printcharfun, 1);
+
+          tail = extent_plist_slot (XEXTENT (obj));
+
+          write_ascstring (printcharfun, NILP (tail) ? "" : " plist: (");
+
+          if (!NILP (tail)) 
+            {
+              EXTERNAL_PROPERTY_LIST_LOOP_3 (key, value, tail)
+                {
+                  if (NILP (value)) continue;
+
+                  print_internal (key, printcharfun, escapeflag);
+                  write_ascstring (printcharfun, " ");
+                  print_internal (value, printcharfun, escapeflag);
+                }
+
+              write_ascstring (printcharfun, ")");
+            }
 	}
     }
   else
@@ -3166,14 +3157,44 @@ decode_extent (Lisp_Object extent_obj, unsigned int flags)
 /* Note that the returned value is a char position, not a byte position. */
 
 static Lisp_Object
-extent_endpoint_external (Lisp_Object extent_obj, int endp)
+extent_endpoint_external (Lisp_Object extent_obj, Boolint endp,
+                          Boolint markerp)
 {
   EXTENT extent = decode_extent (extent_obj, 0);
 
   if (extent_detached_p (extent))
     return Qnil;
-  else
-    return make_fixnum (extent_endpoint_char (extent, endp));
+
+  if (markerp)
+    {
+      Lisp_Object obj = extent_object (extent);
+
+      if (BUFFERP (obj))
+        {
+          Lisp_Object result
+            = set_marker_byte_position (Fmake_marker (),
+                                        extent_endpoint_byte (extent, endp),
+                                        obj);
+          if (endp)
+            {
+              if (!extent_end_open_p (extent))
+                {
+                  Fset_marker_insertion_type (result, Qt);
+                }
+            }
+          else
+            {
+              if (extent_start_open_p (extent))
+                {
+                  Fset_marker_insertion_type (result, Qt);
+                }
+            }
+          
+          return result;
+        }
+    }
+
+  return make_fixnum (extent_endpoint_char (extent, endp));
 }
 
 DEFUN ("extentp", Fextentp, 1, 1, 0, /*
@@ -3208,20 +3229,32 @@ Return object (buffer or string) that EXTENT refers to.
   return extent_object (decode_extent (extent, 0));
 }
 
-DEFUN ("extent-start-position", Fextent_start_position, 1, 1, 0, /*
+DEFUN ("extent-start-position", Fextent_start_position, 1, 2, 0, /*
 Return start position of EXTENT, or nil if EXTENT is detached.
+
+If MARKERP is non-nil and EXTENT is attached to a buffer, return its start
+position as a marker, and avoid the algorithmic expense of byte-char
+conversion.  The marker will have a non-nil insertion type if the `start-open'
+property is non-nil, to reflect that insertions exactly at the beginning of
+the extent remain outside of the extent.
 */
-       (extent))
+       (extent, markerp))
 {
-  return extent_endpoint_external (extent, 0);
+  return extent_endpoint_external (extent, 0, !NILP (markerp));
 }
 
-DEFUN ("extent-end-position", Fextent_end_position, 1, 1, 0, /*
+DEFUN ("extent-end-position", Fextent_end_position, 1, 2, 0, /*
 Return end position of EXTENT, or nil if EXTENT is detached.
+
+If MARKERP is non-nil and EXTENT is attached to a buffer, return its end
+position as a marker, and avoid the algorithmic expense of byte-char
+conversion.  The marker will have a non-nil insertion type if the extent's
+`end-open' property is nil, to reflect that characters inserted exactly at the
+end of the extent remain outside of it.
 */
-       (extent))
+       (extent, markerp))
 {
-  return extent_endpoint_external (extent, 1);
+  return extent_endpoint_external (extent, 1, !NILP (markerp));
 }
 
 DEFUN ("extent-length", Fextent_length, 1, 1, 0, /*
@@ -4032,7 +4065,7 @@ whose value for that property is `eq' to VALUE will be visited.
   /* This function can GC */
   struct slow_map_extents_arg closure;
   unsigned int me_flags;
-  Bytexpos start, end;
+  Bytexpos start = -1, end = -1;
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
   EXTENT after = 0;
 
@@ -4040,16 +4073,20 @@ whose value for that property is `eq' to VALUE will be visited.
     {
       after = decode_extent (object, DE_MUST_BE_ATTACHED);
       if (NILP (from))
-	from = Fextent_start_position (object);
+        start = extent_endpoint_byte (after, 0);
       if (NILP (to))
-	to = Fextent_end_position (object);
+        end = extent_endpoint_byte (after, 1);
       object = extent_object (after);
     }
   else
     object = decode_buffer_or_string (object);
 
-  get_buffer_or_string_range_byte (object, from, to, &start, &end,
-				   GB_ALLOW_NIL | GB_ALLOW_PAST_ACCESSIBLE);
+  if (start == -1 || end == -1)
+    {
+      get_buffer_or_string_range_byte
+        (object, from, to, &start, &end,
+         GB_ALLOW_NIL | GB_ALLOW_PAST_ACCESSIBLE);
+    }
 
   me_flags = decode_map_extents_flags (flags);
 
@@ -4173,7 +4210,7 @@ Thus, this function may be used to walk a tree of extents in a buffer:
   /* This function can GC */
   struct slow_map_extent_children_arg closure;
   unsigned int me_flags;
-  Bytexpos start, end;
+  Bytexpos start = -1, end = -1;
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
   EXTENT after = 0;
 
@@ -4181,16 +4218,20 @@ Thus, this function may be used to walk a tree of extents in a buffer:
     {
       after = decode_extent (object, DE_MUST_BE_ATTACHED);
       if (NILP (from))
-	from = Fextent_start_position (object);
+        start = extent_endpoint_byte (after, 0);
       if (NILP (to))
-	to = Fextent_end_position (object);
+        end = extent_endpoint_byte (after, 1);
       object = extent_object (after);
     }
   else
     object = decode_buffer_or_string (object);
 
-  get_buffer_or_string_range_byte (object, from, to, &start, &end,
-				   GB_ALLOW_NIL | GB_ALLOW_PAST_ACCESSIBLE);
+  if (start == -1 || end == -1)
+    {
+      get_buffer_or_string_range_byte
+        (object, from, to, &start, &end,
+         GB_ALLOW_NIL | GB_ALLOW_PAST_ACCESSIBLE);
+    }
 
   me_flags = decode_map_extents_flags (flags);
 
@@ -5406,8 +5447,7 @@ The following property is available if `atomic-extents.el'--part of the
 	  || EQ (property, Qkeymap))
 	return Qunbound;
 
-      retval = external_remprop (extent_plist_addr (e), property, 0,
-				 ERROR_ME);
+      retval = extent_plist_remprop (e, property);
       if (retval)
 	signal_extent_property_changed (e, property, 1);
       return retval ? Qt : Qnil;
@@ -5495,7 +5535,7 @@ The following property is available if `atomic-extents.el'--part of the
 	while (!NILP (value) && NILP (Fkeymapp (value)))
 	  value = wrong_type_argument (Qkeymapp, value);
 
-      external_plist_put (extent_plist_addr (e), property, value, 0, ERROR_ME);
+      extent_plist_put (e, property, value);
       signal_change = 1;
     }
 
@@ -5590,8 +5630,7 @@ See `set-extent-property' for the built-in property names.
     return extent_end_glyph (e);
   else
     {
-      Lisp_Object value = external_plist_get (extent_plist_addr (e),
-					      property, 0, ERROR_ME);
+      Lisp_Object value = extent_plist_get (e, property);
       return UNBOUNDP (value) ? default_ : value;
     }
 }
@@ -6068,12 +6107,13 @@ splice_in_string_extents_mapper (EXTENT extent, void *arg)
 			closure->pos);
   Bytexpos new_end = (base_start + extent_endpoint_byte (extent, 1) -
 		      closure->pos);
+  Boolint zero_lengthp = new_start == new_end;
 
   if (new_start < base_start)
     new_start = base_start;
   if (new_end > base_end)
     new_end = base_end;
-  if (new_end <= new_start)
+  if ((new_end + zero_lengthp) <= new_start)
     return 0;
 
   if (!extent_duplicable_p (extent))
@@ -6114,12 +6154,13 @@ splice_in_string_extents_the_hard_way_mapper (EXTENT extent, void *arg)
   Charxpos new_end = (base_start + extent_endpoint_char (extent, 1) -
 		      closure->pos);
   Bytexpos new_start_byte, new_end_byte;
+  Boolint zero_lengthp = new_start == new_end;
 
   if (new_start < base_start)
     new_start = base_start;
   if (new_end > base_end)
     new_end = base_end;
-  if (new_end <= new_start)
+  if ((new_end + zero_lengthp) <= new_start)
     return 0;
 
   if (!extent_duplicable_p (extent))
@@ -6212,14 +6253,16 @@ copy_string_extents_mapper (EXTENT extent, void *arg)
   struct copy_string_extents_arg *closure =
     (struct copy_string_extents_arg *) arg;
   Bytecount old_start, old_end, new_start, new_end;
+  Boolint zero_lengthp;
 
   old_start = extent_endpoint_byte (extent, 0);
   old_end   = extent_endpoint_byte (extent, 1);
+  zero_lengthp = old_start == old_end;
 
   old_start = max (closure->old_pos, old_start);
   old_end   = min (closure->old_pos + closure->length, old_end);
 
-  if (old_start >= old_end)
+  if (old_start >= (old_end + zero_lengthp))
     return 0;
 
   new_start = old_start + closure->new_pos - closure->old_pos;
@@ -6275,6 +6318,7 @@ stretch_string_extents_buffer_mapper (EXTENT extent, void *arg)
     (struct stretch_string_extents_arg *) arg;
   Bytecount old_start = extent_endpoint_byte (extent, 0);
   Bytecount old_end = extent_endpoint_byte (extent, 1);
+  Boolint zero_lengthp = old_start == old_end;
 
   /* If the old extent started before the beginning of the old chunk of
      string, or it started at the beginning of the old chunk of string and the
@@ -6294,7 +6338,7 @@ stretch_string_extents_buffer_mapper (EXTENT extent, void *arg)
   struct buffer *buffer;
 
   old_start = max (closure->old_pos, old_start);
-  if (old_start >= old_end)
+  if (old_start >= (old_end + zero_lengthp))
     {
       return 0;
     }
@@ -6374,6 +6418,7 @@ stretch_string_extents_mapper (EXTENT extent, void *arg)
     (struct stretch_string_extents_arg *) arg;
   Bytecount old_start = extent_endpoint_byte (extent, 0);
   Bytecount old_end = extent_endpoint_byte (extent, 1);
+  Boolint zero_lengthp = old_start == old_end;
   /* See above for this reasoning. */
   Boolint stretchp = old_start < closure->old_pos
     || (old_start == closure->old_pos && !extent_start_open_p (extent));
@@ -6382,7 +6427,7 @@ stretch_string_extents_mapper (EXTENT extent, void *arg)
   const Ibyte *data, *limit, *cursor;
 
   old_start = max (closure->old_pos, old_start);
-  if (old_start >= old_end)
+  if (old_start >= (old_end + zero_lengthp))
     {
       return 0;
     }
