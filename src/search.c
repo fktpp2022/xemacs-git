@@ -1481,22 +1481,27 @@ search_command (Lisp_Object string, Lisp_Object limit, Lisp_Object noerror,
   return make_fixnum (BUF_PT (buf));
 }
 
-static int
+static Boolint
 trivial_regexp_p (Lisp_Object regexp)
 {
-  Bytecount len = XSTRING_LENGTH (regexp);
-  Ibyte *s = XSTRING_DATA (regexp);
-  while (--len >= 0)
+  Ibyte *s = XSTRING_DATA (regexp), *send = s + XSTRING_LENGTH (regexp);
+  while (s < send)
     {
-      switch (*s++)
+      Ichar c = itext_ichar (s);
+      INC_IBYTEPTR (s);
+      switch (c)
 	{
 	/* #### howcum ']' doesn't appear here, but ... */
 	case '.': case '*': case '+': case '?': case '[': case '^': case '$':
 	  return 0;
 	case '\\':
-	  if (--len < 0)
-	    return 0;
-	  switch (*s++)
+          if (s == send)
+            {
+              return 0; 
+            }
+          c = itext_ichar (s);
+          INC_IBYTEPTR (s);
+	  switch (c)
 	    {
 	    /* ... ')' does appear here?  ('<' and '>' can appear singly.) */
 	    /* #### are there other constructs to check? */
@@ -1520,8 +1525,8 @@ trivial_regexp_p (Lisp_Object regexp)
  * Itext format, and the second given as a character -- differ in the
  * non-final bytes of their respective Itext representations. */
 
-inline static int
-chars_differ_in_non_final_bytes (Ibyte *astr, Bytecount alen, Ichar b)
+inline static Boolint
+chars_differ_in_non_final_bytes (const Ibyte *astr, Bytecount alen, Ichar b)
 {
   Ibyte bstr[MAX_ICHAR_LEN];
   Bytecount blen = set_itext_ichar (bstr, b);

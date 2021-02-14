@@ -1,5 +1,15 @@
 2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	A couple of cosmetic changes, search.c
+	* search.c (trivial_regexp_p):
+	Modernize the return value of this. Make its implementation more
+	Mule-clean, use INC_IBYTEPTR() rather than looking at *s++.
+	* search.c (chars_differ_in_non_final_bytes):
+	Declare this as returning a Boolint, declare ASTR as being const
+	Ibyte* rather than just Ibyte *.
+
+2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* search.c (search_command): 
 	LIM is a byte offset, compare it to BYTE_BUF_ZV(),
 	BYTE_BUF_BEGV().
