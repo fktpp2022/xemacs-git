@@ -262,6 +262,8 @@ with the exception of `loadup.el'.")
   (setq stack-trace-on-error nil
 	load-always-display-messages nil
 	debug-on-error nil)
+  ;; String extent info is not dumpable, clear it from the match data.
+  (store-match-data nil)
   (dump-emacs
    "xemacs"
    "temacs")

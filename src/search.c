@@ -36,6 +36,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "region-cache.h"
 #endif
 #include "syntax.h"
+#include "extents.h"
+#include "extents-impl.h"
 
 #define TRANSLATE(table, pos)	\
  (!NILP (table) ? TRT_TABLE_OF (table, (Ichar) pos) : pos)
@@ -55,7 +57,6 @@ Lisp_Object Vdebug_regexps;
 Lisp_Object Qsearch_algorithm_used, Qboyer_moore, Qsimple_search;
 
 Lisp_Object Qcompilation, Qfailure_point, Qmatching;
-
 #endif
 
 /* If the regexp is non-nil, then the buffer contains the compiled form
@@ -94,15 +95,21 @@ static struct regexp_cache *searchbuf_head;
    to call re_set_registers after compiling a new pattern or after
    setting the match registers, so that the regex functions will be
    able to free or re-allocate it properly.  */
-
-/* Note: things get trickier under Mule because the values returned from
-   the regexp routines are in Bytebpos's but we need them to be in Charbpos's.
-   We take the easy way out for the moment and just convert them immediately.
-   We could be more clever by not converting them until necessary, but
-   that gets real ugly real fast since the buffer might have changed and
-   the positions might be out of sync or out of range.
-   */
 static struct re_registers search_regs;
+
+/* A cons of a fixnum (corresponding to search.regs.NUM_REGS) and a Lisp
+   vector of extents, or Qnil. These reflect the entries in START and END of
+   search_regs as of the last search, allow lazy conversion of Bytebpos to
+   Charbpos values, and allow (match-string NUM) to give sane results even if
+   the last item searched for was a string (though we don't actually do that
+   currently for compatibility reasons; we do give a warning). Only
+   initialized after a successful match, which does not need to be a
+   successful regexp match.  */
+static Lisp_Object Vsearch_registers;
+
+/* An uninterned symbol used by Freplace_match () to communicate where \U, \E,
+   \l, etc, were encountered to its output. */
+static Lisp_Object Vcase_flag_symbol;
 
 /* Every function that sets the match data _must_ clear unused search
    registers on success.  An unsuccessful search or match _must_ preserve
@@ -112,17 +119,21 @@ static struct re_registers search_regs;
    plausible code depends on this behavior (cf. `w3-configuration-data'
    in library "w3-cfg").
 
-   Ordinary string searchs use set_search_regs to set the whole-string
-   match.  That function takes care of clearing the unused subexpression
-   registers.
-   */
-static void set_search_regs (struct buffer *buf, Charbpos beg, Charcount len);
-static void clear_search_regs (void);
+   The ordinary string matches use the zeroth element of the match data in the
+   same way that the regexp matches do.
 
-/* The buffer in which the last search was performed, or
-   Qt if the last search was done in a string;
-   Qnil if no searching has been done yet.  */
-static Lisp_Object last_thing_searched;
+   This function assumes that SEARCH_REGSP reflects a struct re_registers
+   corresponding to the most recent regexp or non-regexp search, and that
+   SEARCH_OBJ is a string or buffer that was searched in that operation. It
+   clears unused search registers, and it updates Vsearch_registers
+   accordingly, see the description of that variable.
+
+   This should be called after both regexp and non-regexp successful searches,
+   though with non-regexp searches search_regs.{start,end}[0] will need to be
+   explicitly initialized. */
+static void set_lisp_search_registers (Lisp_Object search_obj,
+                                       const struct re_registers *
+                                       search_regsp);
 
 /* error condition signalled when regexp compile_pattern fails */
 
@@ -268,60 +279,229 @@ signal_failure (Lisp_Object arg)
     Fsignal (Qsearch_failed, list1 (arg));
 }
 
-/* Convert the search registers from Bytebpos's to Charbpos's.  Needs to be
-   done after each regexp match that uses the search regs.
-
-   We could get a potential speedup by not converting the search registers
-   until it's really necessary, e.g. when match-data or replace-match is
-   called.  However, this complexifies the code a lot (e.g. the buffer
-   could have changed and the Bytebpos's stored might be invalid) and is
-   probably not a great time-saver. */
-
 static void
-fixup_search_regs_for_buffer (struct buffer *buf)
+clear_lisp_search_registers (void)
 {
-  int i;
-  int num_regs = search_regs.num_regs;
-
-  for (i = 0; i < num_regs; i++)
+  Elemcount ii;
+  Lisp_Object *string_extent_info_to_destroy = NULL, *cursor = NULL;
+  
+  if (purify_flag)
     {
-      if (search_regs.start[i] >= 0)
-	search_regs.start[i] = bytebpos_to_charbpos (buf,
-						     search_regs.start[i]);
-      if (search_regs.end[i] >= 0)
-	search_regs.end[i] = bytebpos_to_charbpos (buf, search_regs.end[i]);
+      /* We can normally lazily reuse our saved extents, but unfortunately
+         string extents are not currently dumpable, so don't reuse them when
+         dumping, and clear all string extent info once we are done with
+         it, after the loop. */
+      cursor = string_extent_info_to_destroy
+        = alloca_array (Lisp_Object,
+                        XVECTOR_LENGTH (XCDR (Vsearch_registers)) + 1);
+      *cursor++ = XSYMBOL_NAME (Qsearch);
+    }
+
+  for (ii = 0; ii < XVECTOR_LENGTH (XCDR (Vsearch_registers)); ii++)
+    {
+      if (EXTENTP (XVECTOR_DATA (XCDR (Vsearch_registers))[ii]))
+        {
+          Lisp_Object obj
+            = extent_object (XEXTENT (XVECTOR_DATA
+                                      (XCDR (Vsearch_registers))[ii]));
+          if (purify_flag && STRINGP (obj))
+            {
+              *cursor++ = obj;
+              Fdelete_extent (XVECTOR_DATA (XCDR (Vsearch_registers))[ii]);
+              XVECTOR_DATA (XCDR (Vsearch_registers))[ii] = Qnil;
+            }
+          else if (EQ (obj, XSYMBOL_NAME (Qsearch))
+                   && extent_detached_p
+                   (XEXTENT (XVECTOR_DATA
+                             (XCDR (Vsearch_registers))[ii])))
+            {
+              DO_NOTHING; /* Usual case for our lazily-reused extents, no need
+                             to do anything. */
+            }
+          else
+            {
+              set_extent_endpoints (XEXTENT (XVECTOR_DATA
+                                             (XCDR (Vsearch_registers))
+                                             [ii]),
+                                    0, 0, XSYMBOL_NAME (Qsearch));
+              Fdetach_extent (XVECTOR_DATA (XCDR (Vsearch_registers)) [ii]);
+              if (ii < 1)
+                {
+                  Fput (XVECTOR_DATA (XCDR (Vsearch_registers)) [ii],
+                        Qcontext, Qunbound);
+                }
+            }
+        }
+      else
+        {
+          XVECTOR_DATA (XCDR (Vsearch_registers))[ii] = Qnil;          
+        }
+    }
+
+  while (string_extent_info_to_destroy < cursor)
+    {
+      XSTRING_PLIST (*string_extent_info_to_destroy)
+        = Fcdr (XSTRING_PLIST (*string_extent_info_to_destroy));
+      string_extent_info_to_destroy++;
     }
 }
 
-/* Similar but for strings. */
 static void
-fixup_search_regs_for_string (Lisp_Object string)
+set_lisp_search_registers (Lisp_Object search_obj,
+                           const struct re_registers *search_regsp)
 {
-  int i;
-  int num_regs = search_regs.num_regs;
+  Elemcount num_regs = search_regsp->num_regs, num_regs_out = -1;
+  Lisp_Object registers_vector = XCDR (Vsearch_registers);
+  Boolint bufferp = BUFFERP (search_obj), nonnil_seen = 0;
 
-  /* #### bytecount_to_charcount() is not that efficient.  This function
-     could be faster if it did its own conversion (using INC_IBYTEPTR()
-     and such), because the register ends are likely to be somewhat ordered.
-     (Even if not, you could sort them.)
+  clear_lisp_search_registers ();
 
-     Think about this if this function is a time hog, which it's probably
-     not. */
-  for (i = 0; i < num_regs; i++)
+  while (num_regs > 0)
     {
-      if (search_regs.start[i] > 0)
-	{
-	  search_regs.start[i] =
-	    string_index_byte_to_char (string, search_regs.start[i]);
-	}
-      if (search_regs.end[i] > 0)
-	{
-	  search_regs.end[i] =
-	    string_index_byte_to_char (string, search_regs.end[i]);
-	}
+      num_regs--;
+      structure_checking_assert (search_regsp->start[num_regs] >= bufferp ?
+                                 (search_regsp->end[num_regs] >= bufferp)
+                                 : (search_regsp->end[num_regs] < 0));
+
+      if (search_regsp->start[num_regs] >= bufferp)
+        {
+          if (!nonnil_seen)
+            {
+              num_regs_out = num_regs + 1;
+              nonnil_seen = 1;
+
+              if (num_regs_out > XVECTOR_LENGTH (registers_vector))
+                {
+                  Lisp_Object new_registers_vector
+                    = Fmake_vector (make_fixnum (num_regs_out * 2), Qnil);
+                  memcpy (XVECTOR_DATA (new_registers_vector),
+                          XVECTOR_DATA (registers_vector),
+                          sizeof (Lisp_Object) *
+                          XVECTOR_LENGTH (registers_vector));
+                  XSETCDR (Vsearch_registers, new_registers_vector);
+                  registers_vector = XCDR (Vsearch_registers);
+                }
+            }
+
+          if (!EXTENTP (XVECTOR_DATA (registers_vector)[num_regs]))
+            {
+              XVECTOR_DATA (registers_vector)[num_regs]
+                = Fmake_extent (Qnil, Qnil, search_obj);
+	      set_extent_start_open_p (XEXTENT (XVECTOR_DATA
+						(registers_vector)[num_regs]),
+				       1);
+            }
+
+          set_extent_endpoints (XEXTENT (XVECTOR_DATA (registers_vector)
+                                         [num_regs]),
+                                search_regsp->start[num_regs],
+                                search_regsp->end[num_regs], search_obj);
+        }
+    }
+
+  if (!bufferp)
+    {
+      /* Both the regexp and the non-regexp code need to supply (match-string
+         0), otherwise this wasn't a successful call, and
+         set_lisp_search_registers() shouldn't have been called at all. */
+      structure_checking_assert (search_regsp->start[0] >= 0);
+      /* Tell Freplace_match what buffer to use for the case, syntax tables if
+         needed. Yes, I have thought about the performance impact of this, and
+         it doesn't matter; while Fset_extent_property is one of the more
+         expensive of the object plist methods, it's still plenty fast, and
+         this won't be hit for buffer matches, which are the most costly
+         (given the, in general, larger search size of the text searched). */
+      Fset_extent_property (XVECTOR_DATA (registers_vector) [0], Qcontext,
+                            wrap_buffer (current_buffer));
+    }
+
+  XSETCAR (Vsearch_registers, make_fixnum (num_regs_out));
+}
+
+static void
+canonicalize_lisp_search_registers_for_replace (Lisp_Object match_obj)
+{
+  Elemcount jj = 0, num_regs = XFIXNUM (XCAR (Vsearch_registers));
+  Lisp_Object registers = XCDR (Vsearch_registers);
+
+  while (jj < num_regs)
+    {
+      if (EXTENTP (XVECTOR_DATA (registers)[jj])
+          && !extent_detached_p (XEXTENT (XVECTOR_DATA (registers)[jj])))
+        {
+          if (!EQ (extent_object (XEXTENT (XVECTOR_DATA (registers)[jj])),
+                   match_obj))
+            {
+              if (STRINGP (match_obj) && 
+                  internal_equal (match_obj,
+                                  extent_object
+                                  (XEXTENT (XVECTOR_DATA (registers)[jj])),
+                                  0))
+                {
+                  DO_NOTHING;
+                }
+              else
+                {
+                  warn_when_safe_lispobj
+                    (Qsearch, Qerror,
+                     emacs_sprintf_string_lisp
+                     ("Likely bug: #'replace-match asked to operate on %S, "
+                      "match data reflect %S, which is distinct", match_obj,
+                      extent_object (XEXTENT
+                                     (XVECTOR_DATA (registers)[jj]))));
+                }
+
+              /* This is brutal from a byte-char perspective, but will be
+                 rare, and is bug-compatible with the old code. */
+              Fset_extent_endpoints
+                (XVECTOR_DATA (registers)[jj],
+                 Fextent_start_position (XVECTOR_DATA (registers)[jj], Qnil),
+                 Fextent_end_position (XVECTOR_DATA (registers)[jj], Qnil),
+                 match_obj);
+            }
+        }
+      else if (CONSP (XVECTOR_DATA (registers)[jj]))
+        {
+          XVECTOR_DATA (registers)[jj]
+            /* Canonicalize the fixnum char positions values to extents, and
+               error if they are out of range for this match object. */
+            = Fmake_extent (XCAR (XVECTOR_DATA (registers)[jj]),
+                            XCDR (XVECTOR_DATA (registers)[jj]),
+                            match_obj);
+          set_extent_start_open_p (XEXTENT (XVECTOR_DATA
+                                            (registers)[jj]),
+                                   1);
+        }
+      jj++;
     }
 }
 
+/* Discard those internal extents not currently used prior to GC.  Don't
+   replace XCDR (Vsearch_registers) with a smaller vector, it is unlikely to
+   ever get larger than about 512 and its's not a frob block object anyway,
+   less likely to be reused. If the number of registers currently in use is
+   less than 16, leave the lower 16 registers as they are, they are more
+   likely to be regularly reused than are registers 17-512. */
+void
+flush_unused_lisp_search_registers (void)
+{
+  Elemcount ii = XVECTOR_LENGTH (XCDR (Vsearch_registers));
+  Elemcount num_regs = XFIXNUM (XCAR (Vsearch_registers));
+
+  num_regs = max (16, num_regs);
+
+  while (--ii >= num_regs)
+    {
+      if (EXTENTP (XVECTOR_DATA (XCDR (Vsearch_registers))[ii]))
+        {
+          structure_checking_assert
+            (extent_detached_p
+             (XEXTENT (XVECTOR_DATA (XCDR (Vsearch_registers))[ii])));
+          Fdelete_extent (XVECTOR_DATA (XCDR (Vsearch_registers))[ii]);
+          XVECTOR_DATA (XCDR (Vsearch_registers))[ii] = Qnil;
+        }
+    }
+}
 
 static Lisp_Object
 looking_at_1 (Lisp_Object string, struct buffer *buf, int posix, int nodata)
@@ -386,18 +566,18 @@ looking_at_1 (Lisp_Object string, struct buffer *buf, int posix, int nodata)
 	  }
     }
   
-  last_thing_searched = wrap_buffer (buf);
-  fixup_search_regs_for_buffer (buf);
+  set_lisp_search_registers (wrap_buffer (buf), &search_regs);
   return val;
 }
 
 DEFUN ("looking-at", Flooking_at, 1, 2, 0, /*
 Return t if text after point matches regular expression REGEXP.
-When the match is successful, this function modifies the match data
-that `match-beginning', `match-end' and `match-data' access; save the
-match data with `match-data' and restore it with `store-match-data' if
-you want to preserve them.  If the match fails, the match data from the
-previous success match is preserved.
+
+When the match is successful, this function modifies the match data that
+`match-string', `replace-match' and friends access.  If the match fails,
+the match data from the previous successful match are preserved.  If you have
+no need for the match data, call `looking-at-p' instead, which always
+preserves the match data.  See also `save-match-data'.
 
 Optional argument BUFFER defaults to the current buffer.
 */
@@ -408,12 +588,13 @@ Optional argument BUFFER defaults to the current buffer.
 
 DEFUN ("posix-looking-at", Fposix_looking_at, 1, 2, 0, /*
 Return t if text after point matches regular expression REGEXP.
-Find the longest match, in accord with Posix regular expression rules.
-When the match is successful, this function modifies the match data
-that `match-beginning', `match-end' and `match-data' access; save the
-match data with `match-data' and restore it with `store-match-data' if
-you want to preserve them.  If the match fails, the match data from the
-previous success match is preserved.
+Find the longest match, in accord with POSIX regular expression rules.
+
+When the match is successful, this function modifies the match data that
+`match-string', `replace-match' and friends access.  If the match fails, the
+match data from the previous successful match are preserved. Wrap your code in
+the macro `save-match-data' if you prefer to always preserve the match data
+for other code, an approach which will reduce the amount of bugs users see.
 
 Optional argument BUFFER defaults to the current buffer.
 */
@@ -497,8 +678,8 @@ string_match_1 (Lisp_Object regexp, Lisp_Object string, Lisp_Object start,
   if (val == -2)
     matcher_overflow ();
   if (val < 0) return Qnil;
-  last_thing_searched = Qt;
-  fixup_search_regs_for_string (string);
+
+  set_lisp_search_registers (string, &search_regs);
   return make_fixnum (string_index_byte_to_char (string, val));
 }
 
@@ -524,11 +705,11 @@ or unspecified, it defaults *NOT* to the current buffer but instead:
    which are accessed through functions `default-{case,syntax,category}-table'
    and serve as the parents of the tables in particular buffer.
 
-When the match is successful, this function modifies the match data
-that `match-beginning', `match-end' and `match-data' access; save the
-match data with `match-data' and restore it with `store-match-data' if
-you want to preserve them.  If the match fails, the match data from the
-previous success match is preserved.
+When the match is successful, this function modifies the match data that
+`match-string', `replace-match' and friends access.  If the match fails,
+the match data from the previous successful match are preserved.  If you have
+no need for the match data, call `string-match-p' instead, which always
+preserves the match data.  See also `save-match-data'.
 */
        (regexp, string, start, buffer))
 {
@@ -549,11 +730,11 @@ Optional arg BUFFER controls how case folding is done (according to
 the value of `case-fold-search' in that buffer and that buffer's case
 tables) and defaults to the current buffer.
 
-When the match is successful, this function modifies the match data
-that `match-beginning', `match-end' and `match-data' access; save the
-match data with `match-data' and restore it with `store-match-data' if
-you want to preserve them.  If the match fails, the match data from the
-previous success match is preserved.
+When the match is successful, this function modifies the match data that
+`match-string', `replace-match' and friends access.  If the match fails, the
+match data from the previous successful match are preserved. Wrap your code in
+the macro `save-match-data' if you prefer to always preserve the match data
+for other code, an approach which will reduce the amount of bugs users see.
 */
        (regexp, string, start, buffer))
 {
@@ -1175,6 +1356,8 @@ With arg "^a-zA-Z", skips nonletters stopping before first letter.
 Returns the distance traveled, either zero or positive.
 
 Optional argument BUFFER defaults to the current buffer.
+
+This function does not modify the match data.
 */
        (string, limit, buffer))
 {
@@ -1187,6 +1370,8 @@ See `skip-chars-forward' for details.
 Returns the distance traveled, either zero or negative.
 
 Optional argument BUFFER defaults to the current buffer.
+
+This function does not modify the match data.
 */
        (string, limit, buffer))
 {
@@ -1202,6 +1387,8 @@ If SYNTAX starts with ^, skip characters whose syntax is NOT in SYNTAX.
 This function returns the distance traveled, either zero or positive.
 
 Optional argument BUFFER defaults to the current buffer.
+
+This function does not modify the match data.
 */
        (syntax, limit, buffer))
 {
@@ -1216,6 +1403,8 @@ If SYNTAX starts with ^, skip characters whose syntax is NOT in SYNTAX.
 This function returns the distance traveled, either zero or negative.
 
 Optional argument BUFFER defaults to the current buffer.
+
+This function does not modify the match data.
 */
        (syntax, limit, buffer))
 {
@@ -1389,14 +1578,19 @@ search_buffer (struct buffer *buf, Lisp_Object string, Charbpos charbpos,
   if (n == 0)
     return charbpos;
 
+  pos = charbpos_to_bytebpos (buf, charbpos);
+
   /* Null string is found at starting position.  */
   if (len == 0)
     {
-      set_search_regs (buf, charbpos, 0);
+      structure_checking_assert (search_regs.num_regs > 0);
+
+      search_regs.start[0] = search_regs.end[0] = pos;
+      search_regs.num_regs = 1;
+      set_lisp_search_registers (wrap_buffer (buf), &search_regs);
       return charbpos;
     }
 
-  pos = charbpos_to_bytebpos (buf, charbpos);
   lim = charbpos_to_bytebpos (buf, buflim);
   if (RE && !trivial_regexp_p (string))
     {
@@ -1451,12 +1645,12 @@ search_buffer (struct buffer *buf, Lisp_Object string, Charbpos charbpos,
 		    search_regs.start[i] += j;
 		    search_regs.end[i] += j;
 		  }
-	      last_thing_searched = wrap_buffer (buf);
+
 	      /* Set pos to the new position. */
 	      pos = n > 0 ? search_regs.end[0] : search_regs.start[0];
-	      fixup_search_regs_for_buffer (buf);
+              set_lisp_search_registers (wrap_buffer (buf), &search_regs);
 	      /* And charbpos too. */
-	      charbpos = n > 0 ? search_regs.end[0] : search_regs.start[0];
+              charbpos = bytebpos_to_charbpos (buf, pos);
 	    }
 	  else
 	    return (n > 0 ? 0 - n : n);
@@ -1763,18 +1957,26 @@ simple_search (struct buffer *buf, Ibyte *base_pat, Bytecount len,
  stop:
   if (n == 0)
     {
-      Charbpos beg, end, retval;
+      Charbpos retval;
+      structure_checking_assert (search_regs.num_regs > 0);
+      search_regs.num_regs = 1;
+
       if (forward)
 	{
-	  beg = bytebpos_to_charbpos (buf, pos - buf_len);
-	  retval = end = bytebpos_to_charbpos (buf, pos);
+          search_regs.start[0] = pos - buf_len;
+          search_regs.end[0] = pos;
+
+	  retval = bytebpos_to_charbpos (buf, pos);
 	}
       else
 	{
-	  retval = beg = bytebpos_to_charbpos (buf, pos);
-	  end = bytebpos_to_charbpos (buf, pos + buf_len);
+          search_regs.start[0] = pos;
+          search_regs.end[0] = pos + buf_len;
+
+	  retval = bytebpos_to_charbpos (buf, pos);
 	}
-      set_search_regs (buf, beg, end - beg);
+
+      set_lisp_search_registers (wrap_buffer (buf), &search_regs);
 
       return retval;
     }
@@ -2212,23 +2414,30 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 	      cursor += dirlen - i - direction;	/* fix cursor */
 	      if (i + direction == 0)
 		{
+                  Bytebpos bytstart;
+
 		  cursor -= direction;
+                  bytstart = (pos + cursor - ptr2 + ((direction > 0)
+                                                     ? 1 - len : 0));
 
-		  {
-		    Bytebpos bytstart = (pos + cursor - ptr2 +
-				       ((direction > 0)
-					? 1 - len : 0));
-		    Charbpos bufstart = bytebpos_to_charbpos (buf, bytstart);
-		    Charbpos bufend = bytebpos_to_charbpos (buf, bytstart + len);
+                  structure_checking_assert (search_regs.num_regs > 0);
 
-		    set_search_regs (buf, bufstart, bufend - bufstart);
-		  }
+                  search_regs.start[0] = bytstart;
+                  search_regs.end[0] = bytstart + len;
+                  search_regs.num_regs = 1;
+
+                  set_lisp_search_registers (wrap_buffer (buf), &search_regs);
 
 		  if ((n -= direction) != 0)
 		    cursor += dirlen; /* to resume search */
-		  else
-		    return ((direction > 0)
-			    ? search_regs.end[0] : search_regs.start[0]);
+		  else if (direction > 0)
+                    {
+                      return bytebpos_to_charbpos (buf, search_regs.end[0]);
+                    }
+                  else
+                    {
+                      return bytebpos_to_charbpos (buf, search_regs.start[0]);
+                    }
 		}
 	      else
 		cursor += stride_for_teases; /* <sigh> we lose -  */
@@ -2315,23 +2524,28 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 	      pos += dirlen - i- direction;
 	      if (i + direction == 0)
 		{
+                  Bytebpos bytstart;
 		  pos -= direction;
 
-		  {
-		    Bytebpos bytstart = (pos +
-				       ((direction > 0)
-					? 1 - len : 0));
-		    Charbpos bufstart = bytebpos_to_charbpos (buf, bytstart);
-		    Charbpos bufend = bytebpos_to_charbpos (buf, bytstart + len);
+                  bytstart = (pos + ((direction > 0) ? 1 - len : 0));
+                  structure_checking_assert (search_regs.num_regs > 0);
 
-		    set_search_regs (buf, bufstart, bufend - bufstart);
-		  }
+                  search_regs.start[0] = bytstart;
+                  search_regs.end[0] = bytstart + len;
+                  search_regs.num_regs = 1;
+
+                  set_lisp_search_registers (wrap_buffer (buf), &search_regs);
 
 		  if ((n -= direction) != 0)
 		    pos += dirlen; /* to resume search */
-		  else
-		    return ((direction > 0)
-			    ? search_regs.end[0] : search_regs.start[0]);
+		  else if (direction > 0)
+                    {
+                      return bytebpos_to_charbpos (buf, search_regs.end[0]);
+                    }
+                  else
+                    {
+                      return bytebpos_to_charbpos (buf, search_regs.start[0]);
+                    }
 		}
 	      else
 		pos += stride_for_teases;
@@ -2343,40 +2557,6 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
     }
   return bytebpos_to_charbpos (buf, pos);
 }
-
-/* Record the whole-match data (beginning BEG and end BEG + LEN) and the
-   buffer for a match just found.  */
-
-static void
-set_search_regs (struct buffer *buf, Charbpos beg, Charcount len)
-{
-  /* Make sure we have registers in which to store
-     the match position.  */
-  if (search_regs.num_regs == 0)
-    {
-      search_regs.start = xnew (regoff_t);
-      search_regs.end   = xnew (regoff_t);
-      search_regs.num_regs = 1;
-    }
-
-  clear_search_regs ();
-  search_regs.start[0] = beg;
-  search_regs.end[0] = beg + len;
-  last_thing_searched = wrap_buffer (buf);
-}
-
-/* Clear search registers so match data will be null. */
-
-static void
-clear_search_regs (void)
-{
-  /* This function has been Mule-ized. */
-  int i;
-
-  for (i = 0; i < search_regs.num_regs; i++)
-    search_regs.start[i] = search_regs.end[i] = -1;
-}
-
 
 /* Given a string of words separated by word delimiters,
    compute a regexp that matches those exact words
@@ -2460,13 +2640,11 @@ successive occurrences.
 Optional fifth argument BUFFER specifies the buffer to search in and
 defaults to the current buffer.
 
-When the match is successful, this function modifies the match data
-that `match-beginning', `match-end' and `match-data' access; save the
-match data with `match-data' and restore it with `store-match-data' if
-you want to preserve them.  If the match fails, the match data from the
-previous success match is preserved.
-
-See also the function `replace-match'.
+When the match is successful, this function modifies the match data that
+`match-string', `replace-match' and friends access.  If the match fails, the
+match data from the previous successful match are preserved. Wrap your code in
+the macro `save-match-data' if you prefer to always preserve the match data
+for other code, an approach which will reduce the amount of bugs users see.
 */
        (string, limit, noerror, count, buffer))
 {
@@ -2491,13 +2669,11 @@ successive occurrences.
 Optional fifth argument BUFFER specifies the buffer to search in and
 defaults to the current buffer.
 
-When the match is successful, this function modifies the match data
-that `match-beginning', `match-end' and `match-data' access; save the
-match data with `match-data' and restore it with `store-match-data' if
-you want to preserve them.  If the match fails, the match data from the
-previous success match is preserved.
-
-See also the function `replace-match'.
+When the match is successful, this function modifies the match data that
+`match-string', `replace-match' and friends access.  If the match fails, the
+match data from the previous successful match are preserved. Wrap your code in
+the macro `save-match-data' if you prefer to always preserve the match data
+for other code, an approach which will reduce the amount of bugs users see.
 */
        (string, limit, noerror, count, buffer))
 {
@@ -2523,13 +2699,11 @@ successive occurrences.
 Optional fifth argument BUFFER specifies the buffer to search in and
 defaults to the current buffer.
 
-When the match is successful, this function modifies the match data
-that `match-beginning', `match-end' and `match-data' access; save the
-match data with `match-data' and restore it with `store-match-data' if
-you want to preserve them.  If the match fails, the match data from the
-previous success match is preserved.
-
-See also the function `replace-match'.
+When the match is successful, this function modifies the match data that
+`match-string', `replace-match' and friends access.  If the match fails, the
+match data from the previous successful match are preserved. Wrap your code in
+the macro `save-match-data' if you prefer to always preserve the match data
+for other code, an approach which will reduce the amount of bugs users see.
 */
        (string, limit, noerror, count, buffer))
 {
@@ -2555,13 +2729,11 @@ successive occurrences.
 Optional fifth argument BUFFER specifies the buffer to search in and
 defaults to the current buffer.
 
-When the match is successful, this function modifies the match data
-that `match-beginning', `match-end' and `match-data' access; save the
-match data with `match-data' and restore it with `store-match-data' if
-you want to preserve them.  If the match fails, the match data from the
-previous success match is preserved.
-
-See also the function `replace-match'.
+When the match is successful, this function modifies the match data that
+`match-string', `replace-match' and friends access.  If the match fails, the
+match data from the previous successful match are preserved. Wrap your code in
+the macro `save-match-data' if you prefer to always preserve the match data
+for other code, an approach which will reduce the amount of bugs users see.
 */
        (string, limit, noerror, count, buffer))
 {
@@ -2590,13 +2762,11 @@ successive occurrences.
 Optional fifth argument BUFFER specifies the buffer to search in and
 defaults to the current buffer.
 
-When the match is successful, this function modifies the match data
-that `match-beginning', `match-end' and `match-data' access; save the
-match data with `match-data' and restore it with `store-match-data' if
-you want to preserve them.  If the match fails, the match data from the
-previous success match is preserved.
-
-See also the function `replace-match'.
+When the match is successful, this function modifies the match data that
+`match-string', `replace-match' and friends access.  If the match fails, the
+match data from the previous successful match are preserved. Wrap your code in
+the macro `save-match-data' if you prefer to always preserve the match data
+for other code, an approach which will reduce the amount of bugs users see.
 */
        (regexp, limit, noerror, count, buffer))
 {
@@ -2621,11 +2791,11 @@ successive occurrences.
 Optional fifth argument BUFFER specifies the buffer to search in and
 defaults to the current buffer.
 
-When the match is successful, this function modifies the match data
-that `match-beginning', `match-end' and `match-data' access; save the
-match data with `match-data' and restore it with `store-match-data' if
-you want to preserve them.  If the match fails, the match data from the
-previous success match is preserved.
+When the match is successful, this function modifies the match data that
+`match-string', `replace-match' and friends access.  If the match fails,
+the match data from the previous successful match are preserved.  If you have
+no need for the match data, call `looking-at-p' instead, which always
+preserves the match data.  See also `save-match-data'.
 
 See also the function `replace-match'.
 */
@@ -2656,13 +2826,11 @@ successive occurrences.
 Optional fifth argument BUFFER specifies the buffer to search in and
 defaults to the current buffer.
 
-When the match is successful, this function modifies the match data
-that `match-beginning', `match-end' and `match-data' access; save the
-match data with `match-data' and restore it with `store-match-data' if
-you want to preserve them.  If the match fails, the match data from the
-previous success match is preserved.
-
-See also the function `replace-match'.
+When the match is successful, this function modifies the match data that
+`match-string', `replace-match' and friends access.  If the match fails,
+the match data from the previous successful match are preserved.  If you have
+no need for the match data, call `looking-at-p' instead, which always
+preserves the match data.  See also `save-match-data'.
 */
        (regexp, limit, noerror, count, buffer))
 {
@@ -2688,13 +2856,11 @@ successive occurrences.
 Optional fifth argument BUFFER specifies the buffer to search in and
 defaults to the current buffer.
 
-When the match is successful, this function modifies the match data
-that `match-beginning', `match-end' and `match-data' access; save the
-match data with `match-data' and restore it with `store-match-data' if
-you want to preserve them.  If the match fails, the match data from the
-previous success match is preserved.
-
-See also the function `replace-match'.
+When the match is successful, this function modifies the match data that
+`match-string', `replace-match' and friends access.  If the match fails,
+the match data from the previous successful match are preserved.  If you have
+no need for the match data, call `looking-at-p' instead, which always
+preserves the match data.  See also `save-match-data'.
 */
        (regexp, limit, noerror, count, buffer))
 {
@@ -2702,17 +2868,6 @@ See also the function `replace-match'.
 }
 
 
-static Lisp_Object
-free_created_dynarrs (Lisp_Object cons)
-{
-  Dynarr_free (get_opaque_ptr (XCAR (cons)));
-  Dynarr_free (get_opaque_ptr (XCDR (cons)));
-  free_opaque_ptr (XCAR (cons));
-  free_opaque_ptr (XCDR (cons));
-  free_cons (cons);
-  return Qnil;
-}
-
 DEFUN ("replace-match", Freplace_match, 1, 5, 0, /*
 Replace text matched by last search with REPLACEMENT.
 Leaves point at end of replacement text.
@@ -2763,36 +2918,40 @@ may be appropriate.
 
 If STRING is nil but the last thing matched (or searched) was a string, or
 STRING is a string but the last thing matched was a buffer, an
-`invalid-argument' error will be signaled.  (XEmacs does not check that the
-last thing searched is the source string, but it is not useful to use a
-different string as source.)
+`invalid-argument' error will be signaled.  XEmacs checks and warns if the
+last thing searched is not the source string, but it does not currently error.
+It is unusual to have it useful to to use a different string as source, and so
+this warning generally reflects a bug.
 
 If no match (including searches) has been successful or the requested
 subexpression was not matched, an `args-out-of-range' error will be
-signaled.  (If no match has ever been conducted in this instance of
-XEmacs, an `invalid-operation' error will be signaled.  This is very
-rare.)
+signaled.  If the match data have been cleared, or if no match has ever been
+conducted in this instance of XEmacs, an `invalid-operation' error will be
+signaled.
 */
        (replacement, fixedcase, literal, string, strbuffer))
 {
   /* This function can GC */
   enum { nochange, all_caps, cap_initial } case_action;
-  Charbpos pos, last;
-  int some_multiletter_word;
-  int some_lowercase;
-  int some_uppercase;
-  int some_nonuppercase_initial;
+  Bytebpos pos, last;
+  Boolint some_multiletter_word;
+  Boolint some_lowercase;
+  Boolint some_uppercase;
+  Boolint some_nonuppercase_initial;
   Ichar c, prevc;
-  Charcount inslen;
-  struct buffer *buf;
-  Lisp_Object syntax_table;
+  Lisp_Object match_context_buffer, buffer;
+  struct buffer *match_context_buf, *buf = NULL;
+  Lisp_Object syntax_table, registers_vector, staging = Qnil;
+  /* A better default than Qnil, because write_lisp_string () will interpret
+     Qnil as Vstandard_output and silently print rather than erroring. */
+  Lisp_Object accum = Qunbound; 
   int mc_count;
-  Lisp_Object buffer;
-  int_dynarr *ul_action_dynarr = 0;
-  int_dynarr *ul_pos_dynarr = 0;
-  int sub = 0;
-  int speccount;
-
+  int case_escapes_seen = 0;
+  Elemcount sub = 0;
+  Charbpos substartchar, subendchar;
+  Charcount inslen;
+  struct gcpro gcpro1, gcpro2;
+  
   CHECK_STRING (replacement);
 
   /* Because GNU decided to be incompatible here, we support the following
@@ -2804,7 +2963,7 @@ rare.)
      nil      other       ***** error *****
      string   nil         source   current buffer provides syntax table
                                    subexpression = 0 (whole match)
-     string   buffer      source   buffer providing syntax table
+     string   buffer      source   buffer provides syntax table
                                    subexpression = 0 (whole match)
      string   integer     source   current buffer provides syntax table
                                    subexpression = STRBUFFER
@@ -2812,77 +2971,146 @@ rare.)
   */
 
   /* Do STRBUFFER first; if STRING is nil, we'll overwrite BUF and BUFFER. */
-
-  /* If the match data were abstracted into a special "match data" type
-     instead of the typical half-assed "let the implementation be visible"
-     form it's in, we could extend it to include the last string matched
-     and the buffer used for that matching.  But of course we can't change
-     it as it is.
-  */
   if (NILP (strbuffer) || BUFFERP (strbuffer))
     {
-      buf = decode_buffer (strbuffer, 0);
+      match_context_buf = decode_buffer (strbuffer, 0);
     }
   else if (!NILP (strbuffer))
     {
-      CHECK_FIXNUM (strbuffer);
-      sub = XFIXNUM (strbuffer);
-      if (sub < 0 || sub >= (int) search_regs.num_regs)
-	invalid_argument ("match data register invalid", strbuffer);
-      if (search_regs.start[sub] < 0)
-	invalid_argument ("match data register not set", strbuffer);
-      buf = current_buffer;
+      CHECK_NATNUM (strbuffer);
+
+      if (BIGNUMP (strbuffer)
+          || ((sub = XFIXNUM (strbuffer)),
+              sub >= XFIXNUM (XCAR (Vsearch_registers)))
+          || NILP (XVECTOR_DATA (XCDR (Vsearch_registers))[sub])
+          || (EXTENTP (XVECTOR_DATA (XCDR (Vsearch_registers))[sub])
+              && extent_detached_p
+              (XEXTENT (XVECTOR_DATA (XCDR (Vsearch_registers))[sub]))))
+        {
+          invalid_argument ("match data register not set", strbuffer);
+        }
+
+      match_context_buf = current_buffer;
     }
   else
     invalid_argument ("STRBUFFER must be nil, a buffer, or an integer",
 		      strbuffer);
-  buffer = wrap_buffer (buf);
 
-  if (! NILP (string))
-    {
-      CHECK_STRING (string);
-      if (!EQ (last_thing_searched, Qt))
-	invalid_argument ("last thing matched was not a string", Qunbound);
-    }
-  else
-    {
-      if (!BUFFERP (last_thing_searched))
-	invalid_argument ("last thing matched was not a buffer", Qunbound);
-      buffer = last_thing_searched;
-      buf = XBUFFER (buffer);
-    }
+  match_context_buffer = wrap_buffer (match_context_buf);
 
-  syntax_table = BUFFER_MIRROR_SYNTAX_TABLE (buf);
-
+  syntax_table = BUFFER_MIRROR_SYNTAX_TABLE (match_context_buf);
   case_action = nochange;	/* We tried an initialization */
 				/* but some C compilers blew it */
 
-  if (search_regs.num_regs == 0)
-    signal_error (Qinvalid_operation,
-		  "replace-match called before any match found", Qunbound);
-
-  if (NILP (string))
+  if (EQ (Qzero, XCAR (Vsearch_registers)))
     {
-      if (search_regs.start[sub] < BUF_BEGV (buf)
-	  || search_regs.start[sub] > search_regs.end[sub]
-	  || search_regs.end[sub] > BUF_ZV (buf))
-	args_out_of_range (make_fixnum (search_regs.start[sub]),
-			   make_fixnum (search_regs.end[sub]));
+      signal_error (Qinvalid_operation,
+                    "replace-match called with no match data available",
+                    Qunbound);
+    }
+
+  if (!NILP (string))
+    {
+      CHECK_STRING (string);
+      if (EXTENTP (XVECTOR_DATA (XCDR (Vsearch_registers))[0])
+          && !STRINGP (extent_object
+                       (XEXTENT (XVECTOR_DATA
+                                 (XCDR (Vsearch_registers))[0]))))
+        {
+          invalid_argument ("last thing matched was not a string",
+                            extent_object
+                            (XEXTENT (XVECTOR_DATA
+                                      (XCDR (Vsearch_registers))[0])));
+        }
+
+      if (!EQ (match_context_buffer,
+               Fextent_property (XVECTOR_DATA (XCDR (Vsearch_registers))[0],
+                                 Qcontext,
+                                 match_context_buffer)))
+        {
+          if (BUFFERP (strbuffer))
+            {
+              warn_when_safe_lispobj
+                (Qsearch, Qerror,
+                 emacs_sprintf_string_lisp
+                 ("Likely bug: #'replace-match called with match context "
+                  "buffer (arg STRBUFFER) %S, match data have a distinct "
+                  "match context buffer %S", strbuffer,
+                  Fextent_property (XVECTOR_DATA (XCDR (Vsearch_registers))[0],
+                                    Qcontext,
+                                    match_context_buffer)));
+              /* For better compatibility, do the wrong thing. */
+            }
+          else
+            {
+              match_context_buffer
+                = Fextent_property (XVECTOR_DATA (XCDR
+                                                  (Vsearch_registers))[0],
+                                    Qcontext, match_context_buffer);
+              if (BUFFERP (match_context_buffer)
+                  && BUFFER_LIVE_P (XBUFFER (match_context_buffer)))
+                {
+                  match_context_buf = XBUFFER (match_context_buffer);
+                }
+              else
+                {
+                  match_context_buffer = wrap_buffer (current_buffer);
+                  match_context_buf = current_buffer;
+                }
+            }
+        }
+      canonicalize_lisp_search_registers_for_replace (string);
     }
   else
     {
-      if (search_regs.start[0] < 0
-	  || search_regs.start[0] > search_regs.end[0]
-	  || search_regs.end[0] > string_char_length (string))
-	args_out_of_range (make_fixnum (search_regs.start[0]),
-			   make_fixnum (search_regs.end[0]));
+      if (EXTENTP (XVECTOR_DATA (XCDR (Vsearch_registers))[0])
+          && !BUFFERP (extent_object
+                       (XEXTENT (XVECTOR_DATA
+                                 (XCDR (Vsearch_registers))[0]))))
+        {
+          invalid_argument ("last thing matched was not a buffer",
+                            extent_object (XEXTENT (XVECTOR_DATA
+                                                    (XCDR (Vsearch_registers))
+                                                    [0])));
+        }
+      buffer = extent_object (XEXTENT (XVECTOR_DATA
+                                       (XCDR (Vsearch_registers))[0]));
+      buf = XBUFFER (buffer);
+      canonicalize_lisp_search_registers_for_replace (buffer);
     }
+
+  registers_vector = XCDR (Vsearch_registers);
+
+  if (NILP (string))
+    {
+      if (extent_endpoint_byte
+          (XEXTENT (XVECTOR_DATA (registers_vector)[sub]), 0)
+          < BYTE_BUF_BEGV (buf))
+        {
+          args_out_of_range
+            (wrap_buffer (buf), 
+             Fextent_start_position (XVECTOR_DATA (registers_vector)[sub],
+                                     Qnil));
+        }
+
+      if (extent_endpoint_byte
+          (XEXTENT (XVECTOR_DATA (registers_vector)[sub]), 1)
+          > BYTE_BUF_ZV (buf))
+        {
+          args_out_of_range
+            (wrap_buffer (buf), 
+             Fextent_end_position (XVECTOR_DATA (registers_vector)[sub],
+                                   Qnil));
+        }
+    }
+
+  GCPRO2 (staging, accum);
 
   if (NILP (fixedcase))
     {
       /* Decide how to casify by examining the matched text. */
-
-      last = search_regs.end[sub];
+      last = extent_endpoint_byte (XEXTENT (XVECTOR_DATA
+                                            (registers_vector)[sub]), 1);
       prevc = '\n';
       case_action = all_caps;
 
@@ -2892,15 +3120,24 @@ rare.)
       some_lowercase = 0;
       some_nonuppercase_initial = 0;
       some_uppercase = 0;
-
-      for (pos = search_regs.start[sub]; pos < last; pos++)
+      
+      pos = extent_endpoint_byte (XEXTENT (XVECTOR_DATA
+                                           (registers_vector)[sub]),
+                                  0);
+      while (pos < last)
 	{
 	  if (NILP (string))
-	    c = BUF_FETCH_CHAR (buf, pos);
+            {
+              c = BYTE_BUF_FETCH_CHAR (buf, pos);
+              INC_BYTEBPOS (buf, pos);
+            }
 	  else
-	    c = string_ichar (string, pos);
+            {
+              c = itext_ichar (string_byte_addr (string, pos));
+              pos = next_string_index (string, pos);
+            }
 
-	  if (LOWERCASEP (buf, c))
+	  if (LOWERCASEP (match_context_buf, c))
 	    {
 	      /* Cannot be all caps if any original char is lower case */
 
@@ -2910,7 +3147,7 @@ rare.)
 	      else
 		some_multiletter_word = 1;
 	    }
-	  else if (!NOCASEP (buf, c))
+	  else if (!NOCASEP (match_context_buf, c))
 	    {
 	      some_uppercase = 1;
 	      if (!WORD_SYNTAX_P (syntax_table, prevc))
@@ -2944,266 +3181,59 @@ rare.)
 	case_action = nochange;
     }
 
-  /* Do replacement in a string.  */
-  if (!NILP (string))
+  /* Do regexp substitution and set up for \U, \E case transforms into
+     REPLACEMENT if desired.  */
+  if (NILP (literal))
     {
-      Lisp_Object before, after;
+      Bytecount stlen = XSTRING_LENGTH (replacement);
+      Bytecount strpos;
+      /* XEmacs change: rewrote this loop somewhat to make it cleaner.  Also
+         added \U, \E, etc. */
+      Bytecount literal_start = 0;
 
-      speccount = specpdl_depth ();
-      before = Fsubseq (string, Qzero, make_fixnum (search_regs.start[sub]));
-      after = Fsubseq (string, make_fixnum (search_regs.end[sub]), Qnil);
+      /* OK, the basic idea here is that we scan through the replacement
+         string until we find a backslash, which represents a substring of the
+         original string to be substituted.  We then append onto ACCUM the
+         literal text before the backslash (LASTPOS marks the beginning of
+         this) followed by the substring of the original string that needs to
+         be inserted. */
+      for (strpos = 0; strpos < stlen;
+           strpos = next_string_index (replacement, strpos))
+        {
+          /* If LITERAL_END is set, we've encountered a backslash
+             (the end of literal text to be inserted). */
+          Bytecount literal_end = -1;
+          /* If SUBSTART is set, we need to also insert the text from SUBSTART
+             to SUBEND in the original string (or buffer). */
+          Bytecount substart = -1;
+          Bytecount subend = -1;
+          Lisp_Object casing = Qnil;
 
-      /* Do case substitution into REPLACEMENT if desired.  */
-      if (NILP (literal))
-	{
-	  Charcount stlen = string_char_length (replacement);
-	  Charcount strpos;
-	  /* XEmacs change: rewrote this loop somewhat to make it
-	     cleaner.  Also added \U, \E, etc. */
-	  Charcount literal_start = 0;
-	  /* We build up the substituted string in ACCUM.  */
-	  Lisp_Object accum;
-
-	  accum = Qnil;
-
-	  /* OK, the basic idea here is that we scan through the
-	     replacement string until we find a backslash, which
-	     represents a substring of the original string to be
-	     substituted.  We then append onto ACCUM the literal
-	     text before the backslash (LASTPOS marks the
-	     beginning of this) followed by the substring of the
-	     original string that needs to be inserted. */
-	  for (strpos = 0; strpos < stlen; strpos++)
-	    {
-	      /* If LITERAL_END is set, we've encountered a backslash
-		 (the end of literal text to be inserted). */
-	      Charcount literal_end = -1;
-	      /* If SUBSTART is set, we need to also insert the
-		 text from SUBSTART to SUBEND in the original string. */
-	      Charcount substart = -1;
-	      Charcount subend   = -1;
-
-	      c = string_ichar (replacement, strpos);
-	      if (c == '\\' && strpos < stlen - 1)
-		{
-		  c = string_ichar (replacement, ++strpos);
-		  switch (c)
-		    {
-		    case '&':
-		      literal_end = strpos - 1;
-		      substart = search_regs.start[0];
-		      subend = search_regs.end[0];
-		      break;
-		    case '\\':
-		      /* So we get just one backslash. */
-		      literal_end = strpos;
-		      break;
-		    case '1': case '2': case '3': case '4': case '5':
-		    case '6': case '7': case '8': case '9':
-		      {
-			const Ibyte *charpos
-                          = string_char_addr (replacement, strpos);
-			Ibyte *regend = NULL;
-                        Bytecount limit = min (XSTRING_LENGTH (replacement)
-                                               - (charpos -
-                                                  XSTRING_DATA (replacement)),
-                                                /* most-positive-fixnum on 32
-                                                   bit is ten decimal digits,
-                                                   nine will keep us in fixnum
-                                                   territory. */
-                                               9);
-			Lisp_Object regno;
-			Fixnum regnoing;
-
-                        /* Parse the longest backreference we can, but don't
-                           produce a bignum, that can't correspond to a
-                           backreference and would needlessly complicate code
-                           further down.  */
-                        regno = parse_integer (charpos, &regend, limit, 10, 1,
-                                               /* Don't accept non-ASCII
-                                                  decimal digits. See the
-                                                  reasoning in regex.c. */
-                                               Vdigit_fixnum_ascii);
-
-			if (FIXNUMP (regno) &&
-                            ((regnoing = XREALFIXNUM (regno), regnoing > -1)))
-                          {
-                            /* Progressively divide down the backreference
-                               until we find one that corresponds to an
-                               existing register. */
-                            while (regnoing > 10 &&
-                                   !(regnoing <= search_regs.num_regs))
-                              {
-                                DEC_IBYTEPTR (regend);
-                                regnoing /= 10;
-                              }
-
-                            if (regnoing <= search_regs.num_regs)
-                              {
-                                literal_end = strpos - 1;
-                                strpos = string_index_byte_to_char
-                                  (replacement,
-                                   regend - XSTRING_DATA (replacement)) - 1;
-                                substart = search_regs.start[regnoing];
-                                subend = search_regs.end[regnoing];
-                              }
-                          }
-			break;
-		      }
-		    case 'U': case 'u': case 'L': case 'l': case 'E':
-		      {
-			/* Keep track of all case changes requested, but don't
-			   make them now.  Do them later so we override
-			   everything else. */
-			if (!ul_pos_dynarr)
-			  {
-			    ul_pos_dynarr = Dynarr_new (int);
-			    ul_action_dynarr = Dynarr_new (int);
-			    record_unwind_protect
-			      (free_created_dynarrs,
-			       noseeum_cons
-			       (make_opaque_ptr (ul_pos_dynarr),
-				make_opaque_ptr (ul_action_dynarr)));
-			  }
-			literal_end = strpos - 1;
-			Dynarr_add (ul_pos_dynarr,
-				    (!NILP (accum)
-				     ? string_char_length (accum)
-				     : 0) + (literal_end - literal_start));
-			Dynarr_add (ul_action_dynarr, c);
-		      }
-		    }
-		}
-
-	      if (literal_end >= 0)
-		{
-		  Lisp_Object literal_text = Qnil;
-		  Lisp_Object substring = Qnil;
-		  if (literal_end != literal_start)
-		    literal_text = Fsubseq (replacement,
-                                            make_fixnum (literal_start),
-                                            make_fixnum (literal_end));
-		  if (substart >= 0 && subend != substart)
-		    substring = Fsubseq (string, make_fixnum (substart),
-                                         make_fixnum (subend));
-		  if (!NILP (literal_text) || !NILP (substring))
-		    accum = concat3 (accum, literal_text, substring);
-		  literal_start = strpos + 1;
-		}
-	    }
-
-	  if (strpos != literal_start)
-	    /* some literal text at end to be inserted */
-	    replacement = concat2 (accum, Fsubseq (replacement,
-                                                   make_fixnum (literal_start),
-                                                   make_fixnum (strpos)));
-	  else
-	    replacement = accum;
-	}
-
-      /* replacement can be nil. */
-      if (NILP (replacement))
-	replacement = build_ascstring ("");
-
-      if (case_action == all_caps)
-	replacement = Fupcase (replacement, buffer);
-      else if (case_action == cap_initial)
-	replacement = Fupcase_initials (replacement, buffer);
-
-      /* Now finally, we need to process the \U's, \E's, etc. */
-      if (ul_pos_dynarr)
-	{
-	  int i = 0;
-	  int cur_action = 'E';
-	  Charcount stlen = string_char_length (replacement);
-	  Charcount strpos;
-
-	  for (strpos = 0; strpos < stlen; strpos++)
-	    {
-	      Ichar curchar = string_ichar (replacement, strpos);
-	      Ichar newchar = -1;
-	      if (i < Dynarr_length (ul_pos_dynarr) &&
-		  strpos == Dynarr_at (ul_pos_dynarr, i))
-		{
-		  int new_action = Dynarr_at (ul_action_dynarr, i);
-		  i++;
-		  if (new_action == 'u')
-		    newchar = UPCASE (buf, curchar);
-		  else if (new_action == 'l')
-		    newchar = DOWNCASE (buf, curchar);
-		  else
-		    cur_action = new_action;
-		}
-	      if (newchar == -1)
-		{
-		  if (cur_action == 'U')
-		    newchar = UPCASE (buf, curchar);
-		  else if (cur_action == 'L')
-		    newchar = DOWNCASE (buf, curchar);
-		  else
-		    newchar = curchar;
-		}
-	      if (newchar != curchar)
-		set_string_char (replacement, strpos, newchar);
-	    }
-	}
-
-      /* frees the Dynarrs if necessary. */
-      unbind_to (speccount);
-      return concat3 (before, replacement, after);
-    }
-
-  mc_count = begin_multiple_change (buf, search_regs.start[sub],
-				    search_regs.end[sub]);
-
-  /* begin_multiple_change() records an unwind-protect, so we need to
-     record this value now. */
-  speccount = specpdl_depth ();
-
-  /* We insert the replacement text before the old text, and then
-     delete the original text.  This means that markers at the
-     beginning or end of the original will float to the corresponding
-     position in the replacement.  */
-  BUF_SET_PT (buf, search_regs.start[sub]);
-  if (!NILP (literal))
-    Finsert (1, &replacement);
-  else
-    {
-      Charcount stlen = string_char_length (replacement);
-      Charcount strpos;
-      struct gcpro gcpro1;
-      GCPRO1 (replacement);
-      for (strpos = 0; strpos < stlen; strpos++)
-	{
-	  /* on the first iteration assert(offset==0),
-	     exactly complementing BUF_SET_PT() above.
-	     During the loop, it keeps track of the amount inserted.
-	   */
-	  Charcount offset = BUF_PT (buf) - search_regs.start[sub];
-
-	  c = string_ichar (replacement, strpos);
-	  if (c == '\\' && strpos < stlen - 1)
-	    {
-	      /* XXX FIXME: replacing just a substring non-literally
-		 using backslash refs to the match looks dangerous.  But
-		 <15366.18513.698042.156573@ns.caldera.de> from Torsten Duwe
-		 <duwe@caldera.de> claims Finsert_buffer_substring already
-		 handles this correctly.
-	      */
-	      c = string_ichar (replacement, ++strpos);
+          c = itext_ichar (string_byte_addr (replacement, strpos));
+          if (c == '\\' && strpos < stlen - 1)
+            {
+              strpos = next_string_index (replacement, strpos);
+              c = itext_ichar (string_byte_addr (replacement, strpos));
               switch (c)
                 {
                 case '&':
-                  Finsert_buffer_substring
-                    (buffer,
-                     make_fixnum (search_regs.start[0] + offset),
-                     make_fixnum (search_regs.end[0] + offset));
+                  literal_end = prev_string_index (replacement, strpos);
+                  substart = extent_endpoint_byte
+                    (XEXTENT (XVECTOR_DATA (registers_vector)[0]), 0);
+                  subend = extent_endpoint_byte
+                    (XEXTENT (XVECTOR_DATA (registers_vector)[0]), 1);
                   break;
+
+                case '\\':
+                  /* So we get just one backslash. */
+                  literal_end = strpos;
+                  break;
+
                 case '1': case '2': case '3': case '4': case '5':
                 case '6': case '7': case '8': case '9':
                   {
                     const Ibyte *charpos
-                      = string_char_addr (replacement, strpos);
+                      = string_byte_addr (replacement, strpos);
                     Ibyte *regend = NULL;
                     Bytecount limit = min (XSTRING_LENGTH (replacement)
                                            - (charpos -
@@ -3220,147 +3250,335 @@ rare.)
                        produce a bignum, that can't correspond to a
                        backreference and would needlessly complicate code
                        further down.  */
-                    regno
-                      = parse_integer (charpos, &regend, limit, 10, 1,
-                                       /* Don't accept non-ASCII decimal
-                                          digits. See the reasoning in
-                                          regex.c. */
-                                       Vdigit_fixnum_ascii);
+                    regno = parse_integer (charpos, &regend, limit, 10, 1,
+                                           /* Don't accept non-ASCII
+                                              decimal digits. See the
+                                              reasoning in regex.c. */
+                                           Vdigit_fixnum_ascii);
 
                     if (FIXNUMP (regno) &&
                         ((regnoing = XREALFIXNUM (regno), regnoing > -1)))
                       {
+                        Elemcount num_regs
+                          = XFIXNUM (XCAR (Vsearch_registers));
                         /* Progressively divide down the backreference until
                            we find one that corresponds to an existing
                            register. */
-                        while (regnoing > 10 &&
-                               !(regnoing <= search_regs.num_regs))
+                        while (regnoing > 10 && regnoing >= num_regs)
                           {
                             DEC_IBYTEPTR (regend);
                             regnoing /= 10;
                           }
 
-                        if (regnoing <= search_regs.num_regs
-                            && search_regs.start[regnoing] >= 1)
+                        if (regnoing < num_regs
+                            && EXTENTP (XVECTOR_DATA (registers_vector)
+                                        [regnoing])
+                            && !extent_detached_p
+                            (XEXTENT (XVECTOR_DATA (registers_vector)
+                                      [regnoing])))
                           {
-                            Finsert_buffer_substring
-                              (buffer,
-                               make_fixnum (search_regs.start[regnoing]
-                                            + offset),
-                               make_fixnum (search_regs.end[regnoing]
-                                            + offset));
+                            literal_end
+                              = prev_string_index (replacement, strpos);
+                            strpos
+                              = prev_string_index (replacement,
+                                                   regend -
+                                                   XSTRING_DATA
+                                                   (replacement));
+                            substart = extent_endpoint_byte
+                              (XEXTENT (XVECTOR_DATA (registers_vector)
+                                        [regnoing]), 0);
+                            subend = extent_endpoint_byte
+                              (XEXTENT (XVECTOR_DATA (registers_vector)
+                                        [regnoing]), 1);
                           }
-                        else
-                          {
-                            goto otherwise;
-                          }
-                      }
-                    else
-                      {
-                        goto otherwise;
                       }
                     break;
                   }
                 case 'U': case 'u': case 'L': case 'l': case 'E':
                   {
                     /* Keep track of all case changes requested, but don't
-                       make them now.  Do them later so we override
-                       everything else. */
-                    if (!ul_pos_dynarr)
-                      {
-                        ul_pos_dynarr = Dynarr_new (int);
-                        ul_action_dynarr = Dynarr_new (int);
-                        record_unwind_protect
-                          (free_created_dynarrs,
-                           Fcons (make_opaque_ptr (ul_pos_dynarr),
-                                  make_opaque_ptr (ul_action_dynarr)));
-                      }
-                    Dynarr_add (ul_pos_dynarr, BUF_PT (buf));
-                    Dynarr_add (ul_action_dynarr, c);
-                    break;
-                  }
-                default:
-                otherwise:
-                  buffer_insert_emacs_char (buf, c);
-                }
-	    }
-	  else
-	    buffer_insert_emacs_char (buf, c);
-	}
-      UNGCPRO;
-    }
+                       make them now.  Do them later so we override everything
+                       else. */
+                    literal_end
+                      = prev_string_index (replacement, strpos);
 
-  inslen = BUF_PT (buf) - (search_regs.start[sub]);
-  buffer_delete_range (buf, search_regs.start[sub] + inslen,
-		       search_regs.end[sub] +  inslen, 0);
+                    /* Don't yet attach the extent to ACCUM, its offset won't
+                       be correct. */
+                    casing = Fmake_extent (Qnil, Qnil, Qnil);
+                    Fset_extent_property (casing, Vcase_flag_symbol,
+                                          make_char (c));
+                    Fset_extent_property (casing, Qduplicable, Qt);
+                    case_escapes_seen++;
+                  }
+                }
+            }
+
+          if (literal_end >= 0)
+            {
+              if (UNBOUNDP (accum))
+                {
+                  accum = make_resizing_buffer_output_stream ();
+                }
+
+              if (literal_end != literal_start)
+                {
+                  write_lisp_string (accum, replacement, literal_start,
+                                     literal_end - literal_start);
+                }
+
+              if (!NILP (casing))
+                {
+                  set_extent_endpoints (XEXTENT (casing),
+                                        stream_extent_position (accum),
+                                        stream_extent_position (accum),
+                                        accum);
+                  casing = Qnil;
+                }
+
+              if (substart >= 0 && subend != substart)
+                {
+                  if (NILP (string))
+                    {
+                      staging = make_string_from_buffer (buf, substart,
+                                                         subend - substart);
+                      write_lisp_string (accum, staging, 0,
+                                         XSTRING_LENGTH (staging));
+                      staging = Qnil;
+                    }
+                  else
+                    {
+                      write_lisp_string (accum, string, substart,
+                                         subend - substart);
+                    }
+                }
+
+              literal_start = next_string_index (replacement, strpos);
+            }
+        }
+
+      if (!UNBOUNDP (accum))
+        {
+          if (literal_start < XSTRING_LENGTH (replacement))
+            {
+              write_lisp_string (accum, replacement, literal_start,
+                                 XSTRING_LENGTH (replacement)
+                                 - literal_start);
+            }
+
+          replacement = Fget_output_stream_string (accum);
+        }
+    }
 
   if (case_action == all_caps)
-    Fupcase_region (make_fixnum (BUF_PT (buf) - inslen),
-		    make_fixnum (BUF_PT (buf)),  buffer);
+    replacement = Fupcase (replacement, match_context_buffer);
   else if (case_action == cap_initial)
-    Fupcase_initials_region (make_fixnum (BUF_PT (buf) - inslen),
-			     make_fixnum (BUF_PT (buf)), buffer);
+    replacement = Fupcase_initials (replacement, match_context_buffer);
 
-  /* Now go through and make all the case changes that were requested
-     in the replacement string. */
-  if (ul_pos_dynarr)
+  /* Now finally, we need to process the \U's, \E's, etc. */
+  if (case_escapes_seen)
     {
-      Charbpos eend = BUF_PT (buf);
       int i = 0;
-      int cur_action = 'E';
+      Ichar cur_action = 'E';
+      Bytecount stlen = XSTRING_LENGTH (replacement);
+      Bytecount strpos;
+      Ibyte *byte_staging = alloca_ibytes (stlen * MAX_ICHAR_LEN);
+      Ibyte *byte_staging_ptr = byte_staging;
+      Boolint modifiedp = 0, force_new_string = 0;
+      Lisp_Object escape_extent = Qnil, escape_flag = Qnil;
 
-      for (pos = BUF_PT (buf) - inslen; pos < eend; pos++)
-	{
-	  Ichar curchar = BUF_FETCH_CHAR (buf, pos);
-	  Ichar newchar = -1;
-	  if (i < Dynarr_length (ul_pos_dynarr) &&
-	      pos == Dynarr_at (ul_pos_dynarr, i))
-	    {
-	      int new_action = Dynarr_at (ul_action_dynarr, i);
-	      i++;
-	      if (new_action == 'u')
-		newchar = UPCASE (buf, curchar);
-	      else if (new_action == 'l')
-		newchar = DOWNCASE (buf, curchar);
-	      else
-		cur_action = new_action;
-	    }
-	  if (newchar == -1)
-	    {
-	      if (cur_action == 'U')
-		newchar = UPCASE (buf, curchar);
-	      else if (cur_action == 'L')
-		newchar = DOWNCASE (buf, curchar);
-	      else
-		newchar = curchar;
-	    }
-	  if (newchar != curchar)
-	    buffer_replace_char (buf, pos, newchar, 0, 0);
-	}
+      for (strpos = 0; strpos < stlen;
+           strpos = next_string_index (replacement, strpos))
+        {
+          Ichar curchar
+            = itext_ichar (string_byte_addr (replacement, strpos));
+          Ichar newchar = -1;
+
+          if (i < case_escapes_seen)
+            {
+              escape_extent = extent_at (strpos, replacement,
+                                         Vcase_flag_symbol, 0,
+                                         EXTENT_AT_AT, 0);
+              if (EXTENTP (escape_extent))
+                {
+                  escape_flag = Fextent_property (escape_extent,
+                                                  Vcase_flag_symbol, Qnil);
+                  Fdetach_extent (escape_extent);
+                }
+              else
+                {
+                  escape_flag = Qnil;
+                }
+            }
+
+          if (CHARP (escape_flag))
+            {
+              Ichar new_action = XCHAR (escape_flag);
+              i++;
+              if (new_action == 'u')
+                newchar = UPCASE (match_context_buf, curchar);
+              else if (new_action == 'l')
+                newchar = DOWNCASE (match_context_buf, curchar);
+              else
+                cur_action = new_action;
+
+              Fdelete_extent (escape_extent);
+              if (i == case_escapes_seen && purify_flag)
+                {
+                  XSTRING_PLIST (replacement) = Fcdr (replacement);
+                }
+            }
+          if (newchar == -1)
+            {
+              if (cur_action == 'U')
+                newchar = UPCASE (match_context_buf, curchar);
+              else if (cur_action == 'L')
+                newchar = DOWNCASE (match_context_buf, curchar);
+              else
+                newchar = curchar;
+            }
+          if (newchar != curchar)
+            {
+              if (ichar_len (newchar) != ichar_len (curchar))
+                {
+                  /* Need to do this explicitly now, can't check the byte
+                     length at the end and compare, one character getting
+                     longer may have been evened out by another character
+                     getting shorter, and that would make the extent info
+                     inaccurate. */
+                  force_new_string = 1;
+                }
+
+              modifiedp = 1;
+            }
+          
+          byte_staging_ptr += set_itext_ichar (byte_staging_ptr, newchar);
+        }
+      
+      if (modifiedp)
+        {
+          if (!force_new_string)
+            {
+              memcpy (XSTRING_DATA (replacement), byte_staging,
+                      byte_staging_ptr - byte_staging);
+              init_string_ascii_begin (replacement);
+              bump_string_modiff (replacement);
+              sledgehammer_check_ascii_begin (replacement);
+            }
+          else
+            {
+              Lisp_Object repl
+                = make_string (byte_staging, byte_staging_ptr - byte_staging);
+              stretch_string_extents (repl, replacement, 0, 0,
+                                      XSTRING_LENGTH (replacement),
+                                      XSTRING_LENGTH (repl));
+              replacement = repl;
+            }
+        }
     }
 
-  /* frees the Dynarrs if necessary. */
-  unbind_to (speccount);
+  /* Do replacement in a string.  */
+  if (!NILP (string))
+    {
+      if (UNBOUNDP (accum))
+        {
+          accum = make_resizing_buffer_output_stream ();
+        }
+
+      write_lisp_string (accum, string, 0,
+                         extent_endpoint_byte
+                         (XEXTENT (XVECTOR_DATA (registers_vector) [sub]),
+                          0));
+      write_lisp_string (accum, replacement, 0,
+                         XSTRING_LENGTH (replacement));
+      write_lisp_string (accum, string, 
+                         extent_endpoint_byte
+                         (XEXTENT (XVECTOR_DATA (registers_vector) [sub]),
+                          1),
+                         XSTRING_LENGTH (string) - 
+                         extent_endpoint_byte
+                         (XEXTENT (XVECTOR_DATA (registers_vector) [sub]),
+                          1));
+      UNGCPRO;
+      return resizing_buffer_to_lisp_string (XLSTREAM (accum));
+    }
+
+  substartchar
+    = XFIXNUM (Fextent_start_position (XVECTOR_DATA (registers_vector)[sub],
+                                       Qnil));
+  subendchar
+    = XFIXNUM (Fextent_end_position (XVECTOR_DATA (registers_vector)[sub],
+                                     Qnil));
+
+  mc_count = begin_multiple_change (buf, substartchar, subendchar);
+
+  /* We insert the replacement text before the old text, and then delete the
+     original text.  This means that markers at the beginning or end of the
+     original will float to the corresponding position in the replacement.  */
+  BUF_SET_PT (buf, substartchar);
+  Finsert (1, &replacement);
+
+  inslen = BUF_PT (buf) - substartchar;
+  buffer_delete_range (buf, substartchar + inslen,
+                       subendchar + inslen, 0);
   end_multiple_change (buf, mc_count);
 
+  UNGCPRO;
   return Qnil;
 }
 
 static Lisp_Object
-match_limit (Lisp_Object num, int beginningp)
+match_limit (Lisp_Object num, Boolint beginningp)
 {
-  EMACS_INT n;
+  Elemcount n = 0;
 
-  /* search_regs.num_regs is a C int, we don't have to worry about the
-     EMACS_INT / C int size difference in this call. */
-  check_integer_range (num, Qzero,
-                       make_fixnum (search_regs.num_regs - 1));
+  CHECK_NATNUM (num);
+  if (BIGNUMP (num) || ((n = XFIXNUM (num)),
+                        n >= XFIXNUM (XCAR (Vsearch_registers))))
+    {
+      return Qnil;
+    }
 
-  n = XFIXNUM (num);
-  if (search_regs.num_regs == 0 || search_regs.start[n] < 0)
-    return Qnil;
+  if (EXTENTP (XVECTOR_DATA (XCDR (Vsearch_registers))[n]))
+    {
+      EXTENT ext = XEXTENT (XVECTOR_DATA (XCDR (Vsearch_registers))[n]);
+      Lisp_Object extent_object;
 
-  return make_fixnum (beginningp ? search_regs.start[n] : search_regs.end[n]);
+      extent_object = extent_object (ext);
+
+      if (BUFFERP (extent_object) &&
+          !EQ (extent_object, wrap_buffer (current_buffer)))
+        {
+          warn_when_safe_lispobj
+            (Qsearch, Qerror,
+             beginningp ?
+             emacs_sprintf_string_lisp ("Likely bug: (match-beginning %d) "
+                                        "called with current buffer %S, "
+                                        "match data reflect buffer %S",
+                                        num, wrap_buffer (current_buffer),
+                                        extent_object)
+             : emacs_sprintf_string_lisp ("Likely bug: (match-end %d) called"
+                                          "with current buffer %S, match "
+                                          "data reflect buffer %S",
+                                          num, wrap_buffer (current_buffer),
+                                          extent_object));
+        }
+
+
+      if (extent_detached_p (ext))
+        {
+          return Qnil;
+        }
+
+      return make_fixnum (extent_endpoint_char (ext, !beginningp));
+    }
+
+  if (CONSP (XVECTOR_DATA (XCDR (Vsearch_registers))[n]))
+    {
+      return beginningp ? XCAR (XVECTOR_DATA (XCDR (Vsearch_registers))[n])
+        : XCDR (XVECTOR_DATA (XCDR (Vsearch_registers))[n]);
+    }
+
+  return Qnil;
 }
 
 DEFUN ("match-beginning", Fmatch_beginning, 1, 1, 0, /*
@@ -3385,159 +3603,630 @@ Zero means the entire text matched by the whole regexp or whole string.
   return match_limit (num, 0);
 }
 
+DEFUN ("match-string", Fmatch_string, 1, 2, 0, /*
+Return string of text matched by last search.
+
+NUM specifies which parenthesized expression in the last regexp.
+Value is nil if NUMth pair didn't match, or there were fewer than NUM pairs.
+Zero means the entire text matched by the whole regexp or whole string.
+
+STRING should be given if the last search was by `string-match' on STRING.
+
+In this implementation, `match-string' can be significantly less costly than
+`match-beginning' or `match-end' in large buffers, since it has no need to
+convert the byte position of the underlying buffer text to the character
+position exposed to Lisp, an O(N) operation where N is the buffer text
+position. Whatever the implementation, it usually gives more natural code.
+
+This optimization will be hampered if the programmer attempts to manipulate
+the match data by hand, using `store-match-data' or `match-data'.  In general
+the only operation on the match data that is likely to be reliable and
+performant across implementations is `save-match-data', which see.
+*/
+       (num, string))
+{
+  Lisp_Object obj;
+  Fixnum n = -1;
+
+  if (!FIXNUMP (num) || ((n = XREALFIXNUM (num)), n < 0))
+    {
+      CHECK_NATNUM (num);
+      return Qnil;
+    }
+
+  if (n >= XFIXNUM (XCAR (Vsearch_registers)))
+    {
+      return Qnil;
+    }
+
+  obj = XVECTOR_DATA (XCDR (Vsearch_registers))[n];
+
+  if (EXTENTP (obj))
+    {
+      Lisp_Object extent_object;
+
+      if (extent_detached_p (XEXTENT (obj)))
+        {
+          return Qnil;
+        }
+
+      extent_object = extent_object (XEXTENT (obj));
+
+      if (BUFFERP (extent_object))
+        {
+          if (EQ (extent_object, wrap_buffer (current_buffer)))
+            {
+              return make_string_from_buffer
+                (XBUFFER (extent_object),
+                 extent_endpoint_byte (XEXTENT (obj), 0),
+                 extent_endpoint_byte (XEXTENT (obj), 1) -
+                 extent_endpoint_byte (XEXTENT (obj), 0));
+            }
+          else
+            {
+              warn_when_safe_lispobj
+                (Qsearch, Qerror,
+                 emacs_sprintf_string_lisp ("Likely bug: (match-string %d) "
+                                            "called with current buffer %S"
+                                            " match data reflect buffer %S",
+                                            num, wrap_buffer (current_buffer),
+                                            extent_object));
+              /* Give the wrong result, and the byte->char hit, for
+                 compatibility's sake. */
+              return Fbuffer_substring (Fextent_start_position (obj, Qnil),
+                                        Fextent_end_position (obj, Qnil),
+                                        wrap_buffer (current_buffer));
+            }
+        }
+      else if (STRINGP (extent_object))
+        {
+          if (EQ (extent_object, string))
+            {
+              return make_string (XSTRING_DATA (extent_object) + 
+                                  extent_endpoint_byte (XEXTENT (obj), 0),
+                                  extent_endpoint_byte (XEXTENT (obj), 1) -
+                                  extent_endpoint_byte (XEXTENT (obj), 0));
+            }
+          else if (NILP (string))
+            {
+              warn_when_safe_lispobj
+                (Qsearch, Qinfo,
+                 emacs_sprintf_string_lisp ("(match-string %d ...) called with"
+                                            " nil STRING, match data reflect "
+                                            "string `%s', this code will not "
+                                            "work on GNU or old XEmacs",
+                                            num, extent_object));
+              return make_string (XSTRING_DATA (extent_object) + 
+                                  extent_endpoint_byte (XEXTENT (obj), 0),
+                                  extent_endpoint_byte (XEXTENT (obj), 1) -
+                                  extent_endpoint_byte (XEXTENT (obj), 0));
+            }
+          else
+            {
+              warn_when_safe_lispobj
+                (Qsearch, Qerror,
+                 emacs_sprintf_string_lisp ("Likely bug: (match-string %d "
+                                            "STRING) called with STRING %S"
+                                            ", match data reflect distinct"
+                                            "string %S",
+                                            num, string, extent_object));
+              return Fsubseq (string,
+                              Fextent_start_position (obj, Qnil),
+                              Fextent_end_position (obj, Qnil));
+            }
+        }
+      else if (LSTREAMP (extent_object))
+        {
+          Lisp_Object result
+            = make_string (resizing_buffer_stream_ptr (XLSTREAM (extent_object))
+                           + extent_endpoint_byte (XEXTENT (obj), 0),
+                           extent_endpoint_byte (XEXTENT (obj), 1) -
+                           extent_endpoint_byte (XEXTENT (obj), 0));
+          copy_string_extents (result, extent_object, 0,
+                               extent_endpoint_byte (XEXTENT (obj), 0),
+                               XSTRING_LENGTH (result));
+          return result;
+        }
+      else
+        {
+          assert (0);
+        }
+    }
+
+  if (!NILP (string) && CONSP (obj))
+    {
+      return Fsubseq (string, XCAR (obj), XCDR (obj));
+    }
+
+  if (CONSP (obj))
+    {
+      return Fbuffer_substring (XCAR (obj), XCDR (obj),
+                                wrap_buffer (current_buffer));
+    }
+
+  return Qnil;
+}
+
+DEFUN ("match-data-canonical", Fmatch_data_canonical, 0, 0, 0, /*
+Return the canonical internal form of the match data.
+
+This is a list of extents, with each extent end position corresponding to the
+boundaries of the corresponding subexpression, and the extent's object
+corresponding to the object (string or buffer) that was matched. An entry can
+also be nil, to indicate the corresponding subexpression did not match.
+
+The returned list will be nil if there is no saved match data available.
+
+If `store-match-data' has been called with a LIST that comprises exclusively
+fixnums, there is no way for XEmacs to work out the corresponding object until
+`match-string' or `replace-match' is called, but it still needs to store the
+match data internally for later access as needed. In that case, this function
+returns those stored fixnums as elements comprising a cons of integers.
+
+This function returns freshly allocated conses and extents each time, you need
+to call `store-match-data' with the result list in order to affect the saved
+match data as known to XEmacs.  Modification by side effect will not work.
+See also `match-data' and `store-match-data'.
+*/
+       ())
+{
+  Elemcount num_regs = XFIXNUM (XCAR (Vsearch_registers));
+  Lisp_Object result = Qnil, reg_vector = XCDR (Vsearch_registers), elt;
+  Lisp_Object object = Qunbound;
+  Boolint nonnil_seen = 0;
+
+  while (num_regs > 0)
+    {
+      elt = XVECTOR_DATA (reg_vector)[--num_regs];
+      if (EXTENTP (elt))
+        {
+          Lisp_Object elt1;
+
+          if (extent_detached_p (XEXTENT (elt)))
+            {
+              elt1 = Qnil;
+            }
+          else
+            {
+              nonnil_seen = 1;
+              if (UNBOUNDP (object))
+                {
+                  object = extent_object (XEXTENT (elt));
+                }
+
+              elt1 = Fcopy_extent (elt, object);
+              set_extent_endpoints (XEXTENT (elt1),
+                                    extent_endpoint_byte (XEXTENT (elt), 0),
+                                    extent_endpoint_byte (XEXTENT (elt), 1),
+                                    object);
+            }
+
+          if (nonnil_seen)
+            {
+              result = Fcons (elt1, result);
+            }
+        }
+      else
+        {
+          structure_checking_assert (LISTP (elt));
+          if (CONSP (elt))
+            {
+              structure_checking_assert (FIXNUMP (XCAR (elt)));
+              structure_checking_assert (FIXNUMP (XCDR (elt)));
+              elt = Fcons (XCAR (elt), (XCDR (elt)));
+              nonnil_seen = 1;
+            }
+
+          if (nonnil_seen)
+            {
+              result = Fcons (elt, result);
+            }
+        }
+    }
+
+  return result;
+}
+
+#define PUTF_WITH_REUSE(plist, elt1, elt2) do                 \
+    {                                                         \
+      Lisp_Object pwr_elt1 = (elt1), pwr_elt2 = (elt2);       \
+      if (CONSP (reuse))                                      \
+        {                                                     \
+          Lisp_Object old_reuse_cdr = XCDR (reuse);           \
+                                                              \
+          XSETCAR (reuse, pwr_elt2);                          \
+          XSETCDR (reuse, plist);                             \
+          plist = reuse;                                      \
+                                                              \
+          reuse = old_reuse_cdr;                              \
+                                                              \
+          if (CONSP (reuse))                                  \
+            {                                                 \
+              old_reuse_cdr = XCDR (reuse);                   \
+              XSETCAR (reuse, pwr_elt1);                      \
+              XSETCDR (reuse, plist);                         \
+              plist = reuse;                                  \
+              reuse = old_reuse_cdr;                          \
+            }                                                 \
+          else                                                \
+            {                                                 \
+              plist = Fcons (pwr_elt1, plist);                \
+            }                                                 \
+        }                                                     \
+      else                                                    \
+        {                                                     \
+          plist = Fcons (pwr_elt1, Fcons (pwr_elt2, plist));  \
+        }                                                     \
+    } while (0)
+
 DEFUN ("match-data", Fmatch_data, 0, 2, 0, /*
-Return a list containing all info on what the last regexp search matched.
+Return a list containing info on what the last regexp search matched.
+
 Element 2N is `(match-beginning N)'; element 2N + 1 is `(match-end N)'.
 All the elements are markers or nil (nil if the Nth pair didn't match)
 if the last match was on a buffer; integers or nil if a string was matched.
 Use `store-match-data' to reinstate the data in this list.
 
-If INTEGERS (the optional first argument) is non-nil, always use integers
+If INTEGERS (the optional first argument) is non-nil, always use fixnums
 \(rather than markers) to represent buffer positions.
-If REUSE is a list, reuse it as part of the value.  If REUSE is long enough
-to hold all the values, and if INTEGERS is non-nil, no consing is done.
+
+If REUSE is a list, reuse it as part of the value.  If REUSE is long enough to
+hold all the values, and if INTEGERS is non-nil, no new memory is allocated.
+
+Match offsets are internally stored as extents, and so passing INTEGERS to
+this function forces calculation of these offset's character position, an O(N)
+operation on the underlying byte position. So any gain in memory use will be
+outweighed by poor and worsening performance as buffers get larger, involving
+poorly-localized operations that interact poorly with processor caching.
+
+If INTEGERS is non-nil, the returned markers' byte positions are directly set
+from the underlying extents' byte end points, avoiding this performance trap.
+
+In general the only operation on the match data that is likely to be reliable
+and performant across implementations is `save-match-data', which see.
+
+See also `match-data-canonical', which returns extents, allowing knowledge of
+which string was matched to carry over with `save-match-data', and avoiding
+the above performance trap for strings as well as integers.
 */
        (integers, reuse))
 {
-  Lisp_Object tail, prev;
-  Lisp_Object *data;
-  int i;
-  Charcount len;
+  Elemcount num_regs = XFIXNUM (XCAR (Vsearch_registers));
+  Lisp_Object result = Qnil, reg_vector = XCDR (Vsearch_registers), elt;
+  Lisp_Object object = Qunbound;
+  Boolint nonnil_seen = 0;
 
-  if (NILP (last_thing_searched))
-    /*error ("match-data called before any match found", Qunbound);*/
-    return Qnil;
-
-  data = alloca_array (Lisp_Object, 2 * search_regs.num_regs);
-
-  len = -1;
-  for (i = 0; i < search_regs.num_regs; i++)
+  while (num_regs > 0)
     {
-      Charbpos start = search_regs.start[i];
-      if (start >= 0)
-	{
-	  if (EQ (last_thing_searched, Qt)
-	      || !NILP (integers))
-	    {
-	      data[2 * i] = make_fixnum (start);
-	      data[2 * i + 1] = make_fixnum (search_regs.end[i]);
-	    }
-	  else if (BUFFERP (last_thing_searched))
-	    {
-	      data[2 * i] = Fmake_marker ();
-	      Fset_marker (data[2 * i],
-			   make_fixnum (start),
-			   last_thing_searched);
-	      data[2 * i + 1] = Fmake_marker ();
-	      Fset_marker (data[2 * i + 1],
-			   make_fixnum (search_regs.end[i]),
-			   last_thing_searched);
-	    }
-	  else
-	    /* last_thing_searched must always be Qt, a buffer, or Qnil.  */
-	    ABORT ();
+      elt = XVECTOR_DATA (reg_vector)[--num_regs];
+      if (EXTENTP (elt))
+        {
+          Lisp_Object elt1, elt2;
 
-	  len = i;
-	}
+          if (extent_detached_p (XEXTENT (elt)))
+            {
+              elt1 = elt2 = Qnil;
+            }
+          else
+            {
+              nonnil_seen = 1;
+              if (UNBOUNDP (object))
+                {
+                  object = extent_object (XEXTENT (elt));
+                }
+
+              structure_checking_assert (EQ (object,
+                                             extent_object (XEXTENT (elt))));
+              
+              if (BUFFERP (object) && NILP (integers))
+                {
+                  elt1 = Fextent_start_position (elt, Qt);
+                  elt2 = Fextent_end_position (elt, Qt);
+                }
+              else
+                {
+                  elt1 = Fextent_start_position (elt, Qnil);
+                  elt2 = Fextent_end_position (elt, Qnil);
+                }
+            }
+
+          if (nonnil_seen)
+            {
+              PUTF_WITH_REUSE (result, elt1, elt2);
+            }
+        }
+      else if (NILP (elt))
+        {
+          if (nonnil_seen)
+            {
+              PUTF_WITH_REUSE (result, Qnil, Qnil);
+            }
+        }
+      else if (CONSP (elt))
+        {
+          structure_checking_assert (FIXNUMP (XCAR (elt)));
+          structure_checking_assert (FIXNUMP (XCDR (elt)));
+
+          PUTF_WITH_REUSE (result, XCAR (elt), XCDR (elt));
+
+          nonnil_seen = 1;
+        }
       else
-	data[2 * i] = data [2 * i + 1] = Qnil;
+        {
+          structure_checking_assert (0);
+        }
     }
-  if (!CONSP (reuse))
-    return Flist (2 * len + 2, data);
-
-  /* If REUSE is a list, store as many value elements as will fit
-     into the elements of REUSE.  */
-  for (prev = Qnil, i = 0, tail = reuse; CONSP (tail); i++, tail = XCDR (tail))
-    {
-      if (i < 2 * len + 2)
-	XCAR (tail) = data[i];
-      else
-	XCAR (tail) = Qnil;
-      prev = tail;
-    }
-
-  /* If we couldn't fit all value elements into REUSE,
-     cons up the rest of them and add them to the end of REUSE.  */
-  if (i < 2 * len + 2)
-    XCDR (prev) = Flist (2 * len + 2 - i, data + i);
-
-  return reuse;
+  return result;
 }
 
+#undef PUTF_WITH_REUSE
+
+static void
+store_match_data_fixnums (Lisp_Object list,
+                          Lisp_Object *staging,
+                          Elemcount *num_regs)
+{
+  Elemcount ii = 0, expected_regs = (*num_regs) / 2;
+
+  LIST_LOOP_3 (elt, list, tail)
+    {
+      if (FIXNUMP (elt) && CONSP (XCDR (tail))
+          && FIXNUMP (XCAR (XCDR (tail))))
+        {
+          if (XREALFIXNUM (elt) < 0)
+            {
+              /* This has always worked as a way to indicate no match. */
+              staging[ii] = Qnil;
+            }
+          else
+            {
+              staging[ii] = Fcons (elt, XCAR (XCDR (tail)));
+            }
+          tail = XCDR (tail);
+        }
+      else if (NILP (elt) && CONSP (XCDR (tail))
+               && NILP (XCAR (XCDR (tail))))
+        {
+          staging[ii] = Qnil;
+          tail = XCDR (tail);
+        }
+      else if (ii < expected_regs)
+        {
+          staging[ii] = Qnil;
+          tail = XCDR (tail);
+        }
+      ii++;
+    }
+  *num_regs = ii;
+}
+
+static void
+store_match_data_markers (Lisp_Object list,
+                          Lisp_Object *staging,
+                          Elemcount *num_regs)
+{
+  Lisp_Object obj = Qunbound;
+  Elemcount ii = 0, expected_regs = (*num_regs) / 2;
+
+  /* Validate the entries in the list, copying the values into the staging
+     array. No need for EXTERNAL_LIST_LOOP_2, we've checked type and
+     circularity in our caller. */
+  LIST_LOOP_3 (elt, list, tail)
+    {
+      if (MARKERP (elt) && CONSP (XCDR (tail)) && MARKERP (XCAR (XCDR (tail))))
+        {
+          if (!UNBOUNDP (obj) && 
+              (!EQ (Fmarker_buffer (elt), obj) ||
+               !EQ (Fmarker_buffer (XCAR (XCDR (tail))), obj)))
+            {
+              sferror_2 ("Distinct search objects in match data",
+                         obj, Fmarker_buffer (elt));
+            }
+          obj = Fmarker_buffer (elt);
+
+          if (!EQ (obj, Fmarker_buffer (XCAR (XCDR (tail)))))
+            {
+              sferror_2 ("Distinct search objects in match data",
+                         obj, Fmarker_buffer (XCAR (XCDR (tail))));
+            }
+          /* Don't create the extent just yet. */
+          staging[ii] = Fcons (elt, XCAR (XCDR (tail)));
+          tail = XCDR (tail);
+        }
+      else if (NILP (elt) && CONSP (XCDR (tail)) && NILP (XCAR (XCDR (tail))))
+        {
+          staging[ii] = Qnil;
+          tail = XCDR (tail);
+        }
+      else if (ii < expected_regs)
+        {
+          staging[ii] = Qnil;
+          tail = XCDR (tail);
+        }
+      ii++;
+    }
+  *num_regs = ii;
+}
 
 DEFUN ("store-match-data", Fstore_match_data, 1, 1, 0, /*
 Set internal data on last search match from elements of LIST.
-LIST should have been created by calling `match-data' previously,
-or be nil, to clear the internal match data.
+
+LIST should have been created by calling `match-data' previously, or be nil,
+to clear the internal match data.
+
+This function also accepts the output of `match-data-canonical', something not
+true of GNU Emacs, nor of older XEmacs.  See also the macro `save-match-data'.
 */
        (list))
 {
-  REGISTER int i;
-  REGISTER Lisp_Object marker;
-  int num_regs;
-  int length;
+  Elemcount num_regs, ii = 0;
+  Lisp_Object registers_vector = XCDR (Vsearch_registers), obj = Qunbound;
+  Lisp_Object *staging = NULL;
 
-  /* Some FSF junk with running_asynch_code, to preserve the match
-     data.  Not necessary because we don't call process filters
-     asynchronously (i.e. from within QUIT). */
+  GET_EXTERNAL_LIST_LENGTH (list, num_regs);
 
-  CONCHECK_LIST (list);
+  staging = alloca_array (Lisp_Object, num_regs);
 
-  /* Unless we find a marker with a buffer in LIST, assume that this
-     match data came from a string.  */
-  last_thing_searched = Qt;
+  {
+    /* Validate the entries in the list, copying the values into the staging
+       array. No need for EXTERNAL_LIST_LOOP_2, we've checked type and
+       circularity above. */
+    LIST_LOOP_3 (elt, list, tail) 
+      {
+        if (EXTENTP (elt))
+          {
+            Lisp_Object extent_obj = extent_object (XEXTENT (elt));
 
-  /* Allocate registers if they don't already exist.  */
-  length = XFIXNUM (Flength (list)) / 2;
-  num_regs = search_regs.num_regs;
+            if (extent_detached_p (XEXTENT (elt)))
+              {
+                staging[ii] = Qnil;
+              }
+            else if (NILP (extent_obj))
+              {
+                sferror ("Extent doesn't have an associated object", elt);
+              }
+            else if (!UNBOUNDP (obj) && !EQ (extent_obj, obj))
+              {
+                sferror_2 ("Distinct search objects in match data",
+                           obj, extent_obj);
+              }
+            else
+              {
+                if (UNBOUNDP (obj))
+                  {
+                    obj = extent_obj;
+                  }
 
-  if (length > num_regs)
+                staging[ii] = elt;
+              }
+          }
+        else if (NILP (elt))
+          {
+            staging[ii] = elt;
+          }
+        else if (MARKERP (elt) && CONSP (XCDR (tail))
+                 && MARKERP (XCAR (XCDR (tail))))
+          {
+            if (ii == 0)
+              {
+                /* Representing the match data as markers is sufficiently
+                   sensible behaviour that I want to encourage it, implement
+                   this in C. */
+                store_match_data_markers (list, staging, &num_regs);
+                break;
+              }
+            dead_wrong_type_argument (Qextentp, elt);
+          }
+        else if (FIXNUMP (elt))
+          {
+            if (ii == 0)
+              {
+                /* And I wanted to do this in Lisp, but GCPROing with stack
+                   allocation is a chore. */
+                store_match_data_fixnums (list, staging, &num_regs);
+                break;
+              }
+            dead_wrong_type_argument (Qextentp, elt);
+          }
+        else if (CONSP (elt) && FIXNUMP (XCAR (elt)) && FIXNUMP (XCDR (elt)))
+          {
+            if (XREALFIXNUM (XCAR (elt)) < 0)
+              {
+                staging[ii] = Qnil;
+              }
+            else
+              {
+                staging[ii] = elt;
+              }
+          }
+        else
+          {
+            dead_wrong_type_argument (Qextentp, elt);
+          }
+        ii++;
+      }
+  }
+
+  clear_lisp_search_registers ();
+  
+  for (ii = 0; ii < num_regs; ii++)
     {
-      if (search_regs.num_regs == 0)
-	{
-	  search_regs.start = xnew_array (regoff_t, length);
-	  search_regs.end   = xnew_array (regoff_t, length);
-	}
+      if (EXTENTP (staging[ii]))
+        {
+          if (!EXTENTP (XVECTOR_DATA (registers_vector)[ii]))
+            {
+              XVECTOR_DATA (registers_vector)[ii]
+                = Fcopy_extent (staging[ii], Qnil);
+	      set_extent_start_open_p (XEXTENT (XVECTOR_DATA
+						(registers_vector)[ii]),
+				       1);
+            }
+          set_extent_endpoints (XEXTENT (XVECTOR_DATA
+                                         (registers_vector)[ii]),
+                                extent_endpoint_byte (XEXTENT (staging
+                                                               [ii]),
+                                                      0),
+                                extent_endpoint_byte (XEXTENT (staging
+                                                               [ii]),
+                                                      1),
+                                extent_object (XEXTENT (staging[ii])));
+          if (STRINGP (extent_object (XEXTENT (staging[ii]))))
+            {
+              Lisp_Object context =
+                extent_plist_get (XEXTENT (staging[ii]), Qcontext);
+              if (!EQ (context,
+                       extent_plist_get (XEXTENT
+                                         (XVECTOR_DATA (registers_vector)
+                                          [ii]), Qcontext)))
+                {
+                  Fset_extent_property (XVECTOR_DATA (registers_vector) [ii],
+                                        Qcontext, context);
+                }
+            }
+        }
+      else if (CONSP (staging[ii]) && MARKERP (XCAR (staging[ii])))
+        {
+          if (!EXTENTP (XVECTOR_DATA (registers_vector)[ii]))
+            {
+              XVECTOR_DATA (registers_vector)[ii]
+                = Fmake_extent (Qnil, Qnil, Qnil);
+	      set_extent_start_open_p (XEXTENT (XVECTOR_DATA
+						(registers_vector)[ii]),
+				       1);
+            }
+          set_extent_endpoints (XEXTENT (XVECTOR_DATA
+                                         (registers_vector)[ii]),
+                                marker_byte_position (XCAR
+                                                      (staging[ii])),
+                                marker_byte_position (XCDR
+                                                      (staging[ii])),
+                                Fmarker_buffer (XCAR (staging[ii])));
+        }
       else
-	{
-	  XREALLOC_ARRAY (search_regs.start, regoff_t, length);
-	  XREALLOC_ARRAY (search_regs.end,   regoff_t, length);
-	}
-
-      search_regs.num_regs = length;
+        {
+          if (EXTENTP (XVECTOR_DATA (registers_vector)[ii]))
+            {
+              set_extent_endpoints (XEXTENT (XVECTOR_DATA
+                                             (XCDR (Vsearch_registers))
+                                             [ii]),
+                                    0, 0, 
+                                    XSYMBOL_NAME (Qsearch));
+              Fdetach_extent (XVECTOR_DATA (registers_vector)[ii]);
+            }
+          
+          if (CONSP (staging[ii]))
+            {
+              XVECTOR_DATA (registers_vector)[ii]
+                = Fcons (XCAR (staging[ii]), XCDR (staging[ii]));
+            }
+          else
+            {
+              XVECTOR_DATA (registers_vector)[ii] = Qnil;
+            }
+        }
     }
 
-  for (i = 0; i < num_regs; i++)
-    {
-      marker = Fcar (list);
-      if (NILP (marker))
-	{
-	  search_regs.start[i] = -1;
-	  list = Fcdr (list);
-	}
-      else
-	{
-	  if (MARKERP (marker))
-	    {
-	      if (XMARKER (marker)->buffer == 0)
-		marker = Qzero;
-	      else
-		last_thing_searched = wrap_buffer (XMARKER (marker)->buffer);
-	    }
-
-	  CHECK_FIXNUM_COERCE_MARKER (marker);
-	  search_regs.start[i] = XFIXNUM (marker);
-	  list = Fcdr (list);
-
-	  marker = Fcar (list);
-	  if (MARKERP (marker) && XMARKER (marker)->buffer == 0)
-	    marker = Qzero;
-
-	  CHECK_FIXNUM_COERCE_MARKER (marker);
-	  search_regs.end[i] = XFIXNUM (marker);
-	}
-      list = Fcdr (list);
-    }
+  XSETCAR (Vsearch_registers, make_fixnum (num_regs));
 
   return Qnil;
 }
@@ -3651,6 +4340,8 @@ syms_of_search (void)
   DEFSUBR (Freplace_match);
   DEFSUBR (Fmatch_beginning);
   DEFSUBR (Fmatch_end);
+  DEFSUBR (Fmatch_string);
+  DEFSUBR (Fmatch_data_canonical);
   DEFSUBR (Fmatch_data);
   DEFSUBR (Fstore_match_data);
   DEFSUBR (Fregexp_quote);
@@ -3662,9 +4353,6 @@ reinit_vars_of_search (void)
 {
   int i;
 
-  last_thing_searched = Qnil;
-  staticpro_nodump (&last_thing_searched);
-
   for (i = 0; i < REGEXP_CACHE_SIZE; ++i)
     {
       searchbufs[i].buf.allocated = 100;
@@ -3675,6 +4363,10 @@ reinit_vars_of_search (void)
       searchbufs[i].next = (i == REGEXP_CACHE_SIZE-1 ? 0 : &searchbufs[i+1]);
     }
   searchbuf_head = &searchbufs[0];
+
+  search_regs.start = xnew_array (regoff_t, RE_NREGS);
+  search_regs.end   = xnew_array (regoff_t, RE_NREGS);
+  search_regs.num_regs = RE_NREGS;
 }
 
 void
@@ -3703,6 +4395,14 @@ occur and a back reference to one of them is directly followed by a digit.
 
   Vskip_chars_range_table = Fmake_range_table (Qstart_closed_end_closed);
   staticpro (&Vskip_chars_range_table);
+
+  Vsearch_registers
+    = Fcons (Qzero, Fmake_vector (make_fixnum (RE_NREGS), Qnil));
+  staticpro (&Vsearch_registers);
+
+  Vcase_flag_symbol = Fmake_symbol (build_ascstring ("case-flag-symbol"));
+  staticpro (&Vcase_flag_symbol);
+
 #ifdef DEBUG_XEMACS 
   DEFSYMBOL (Qsearch_algorithm_used);
   DEFSYMBOL (Qboyer_moore);

@@ -1,5 +1,27 @@
 2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* lispref/searching.texi (Match Data):
+	Document that the underlying match data implementation is now in
+	terms of extents, explain some performance and correctness
+	considerations linked to this.
+	* lispref/searching.texi (Simple Match Data):
+	Flesh out some information on #'match-string and debugging
+	info provided by XEmacs. Clarify algorithmic considerations with
+	#'match-beginning, #'match-end.
+	* lispref/searching.texi (Replacing Match):
+	Update documentation of #'replace-match.
+	* lispref/searching.texi (Entire Match Data):
+	Advise preferential use of `save-match-data' in the opening of
+	this node.
+	Deprecate use of the INTEGERS argument to #'match-data.
+	Document #'match-data-canonical.
+	* lispref/searching.texi (Saving Match Data):
+	Clarify that XEmacs does not treat the match data specially when
+	running process filters and process sentinels and that it usually
+	has no need to.
+
+2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* lispref/extents.texi (Extent Endpoints):
 	#'extent-start-position, #'extent-end-position now have new
 	MARKERP arguments, document this, and document the insertion types

@@ -1005,22 +1005,14 @@ The original current buffer is restored afterwards."
 (defmacro save-match-data (&rest body)
   "Execute BODY forms, restoring the global value of the match data."
   (let ((original (make-symbol "match-data")))
-    (list 'let (list (list original '(match-data)))
-	  (list 'unwind-protect
-		(cons 'progn body)
-		(list 'store-match-data original)))))
-
-
-(defun match-string (num &optional string)
-  "Return string of text matched by last search.
-NUM specifies which parenthesized expression in the last regexp.
- Value is nil if NUMth pair didn't match, or there were less than NUM pairs.
-Zero means the entire text matched by the whole regexp or whole string.
-STRING should be given if the last search was by `string-match' on STRING."
-  (if (match-beginning num)
-      (if string
-          (substring string (match-beginning num) (match-end num))
-        (buffer-substring (match-beginning num) (match-end num)))))
+    `(let ((,original (match-data-canonical)))
+      (unwind-protect (progn ,@body)
+        (store-match-data ,original)
+        (while ,original
+          (and (not (listp (car ,original)))
+               (not (fixnump (car ,original)))
+               (delete-extent (car ,original)))
+          (setq ,original (cdr ,original)))))))
 
 (defun match-string-no-properties (num &optional string)
   "Return string of text matched by last search, without text properties.
@@ -1028,14 +1020,9 @@ NUM specifies which parenthesized expression in the last regexp.
  Value is nil if NUMth pair didn't match, or there were less than NUM pairs.
 Zero means the entire text matched by the whole regexp or whole string.
 STRING should be given if the last search was by `string-match' on STRING."
-  (if (match-beginning num)
-      (if string
-	  (let ((result
-		 (substring string (match-beginning num) (match-end num))))
-	    (set-text-properties 0 (length result) nil result)
-	    result)
-	(buffer-substring-no-properties (match-beginning num)
-					(match-end num)))))
+  (let ((result (match-string num string)))
+    (if result (set-text-properties 0 (length result) nil result))
+    result))
 
 ;; Imported from GNU Emacs 23.3.1 -- dvl
 (defun looking-back (regexp &optional limit greedy)

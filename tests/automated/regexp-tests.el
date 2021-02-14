@@ -506,12 +506,11 @@ baaaa
          (cons 'regex log-warning-suppressed-classes))
         (display-warning-suppressed-classes
          (cons 'regex display-warning-suppressed-classes)))
-
     (Assert (null (string-match re1 text1)))
     (Assert (eql 0 (string-match re1 text2)))
     (Assert (equal text2 (match-string 0 text2)))
-    (Assert (equal "b" (match-string (1+ re1-named-group) text1)))
-    (Assert (null (match-string 2 text1)))
+    (Assert (equal "b" (match-string (1+ re1-named-group) text2)))
+    (Assert (null (match-string 2 text2)))
 
     (Assert (null (string-match re2 text1)))
     (Assert (eql 0 (string-match re2 text2)))
@@ -569,12 +568,9 @@ baaaa
 					     " foo foo" nil nil
 					     'symbol))
       ;; #### Can't test the FROB (-1), see test-harness.el.
-      (Check-Error-Message invalid-argument
-			   "match data register invalid"
-			   (replace-regexp-in-string "\\(foo\\).*\\'"
-						     "bar"
-						     " foo foo" nil nil
-						     -1))
+      (Check-Error wrong-type-argument
+		   (replace-regexp-in-string "\\(foo\\).*\\'" "bar" 
+					     " foo foo" nil nil -1))
       ;; #### Can't test the FROB (-1), see test-harness.el.
       (Check-Error-Message invalid-argument
 			   "match data register not set"
@@ -716,12 +712,34 @@ appropriately, ASCII digits" limit)))))
 (Assert (string= "" (let ((str "test string"))
 		      (if (string-match "^.*$" str)
 			  (replace-match "\\U" t nil str)))))
-(with-temp-buffer
-  (erase-buffer)
-  (insert "test string")
-  (re-search-backward "^.*$")
-  (replace-match "\\U" t)
-  (Assert (and (bobp) (eobp))))
+(symbol-macrolet
+    ((complex-regexp-replacement
+      "\\U\\&\\E \\u\\1 \\U\\2 la d\\lo\\ln\\ln\\la è mobile\\E, qual piuma al \
+vento")
+     (complex-regexp-replaced
+      "TEST STRING Test STRING LA Donna È MOBILE, qual piuma al vento")
+     (test-string "test string")
+     (complex-regexp "^\\(test\\).*\\(string\\)$"))
+  (with-temp-buffer
+    (erase-buffer)
+    (insert test-string)
+    (re-search-backward "^.*$")
+    (replace-match "\\U" t)
+    (Assert (and (bobp) (eobp)))
+    (erase-buffer)
+    (insert test-string)
+    (re-search-backward complex-regexp)
+    (replace-match complex-regexp-replacement t)
+    (Assert (equal (buffer-string)
+                   complex-regexp-replaced)
+            "checking case transforms with backslash escapes, #'replace-match")
+    (with-temp-buffer
+      (string-match complex-regexp test-string)
+      (Assert (equal (replace-match complex-regexp-replacement nil nil
+                                    test-string)
+                     complex-regexp-replaced)
+              "checking string case transforms with backslash escapes, \
+#'replace-match"))))
 
 ;; Control-1 characters were second-class citizens in regexp ranges
 ;; for a while there.  Addressed in Ben's Mercurial changeset

@@ -1,3 +1,27 @@
+2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Minor changes to deal with moving the match data to being extents.
+	
+	* cl-extra.el (cl-prettyprint):
+	Call #'replace-match instead of accessing the match data after
+	deleting the relevant text in this function.
+	* loadup.el:
+	Clear the match data before dumping, now we use string extent info
+	for it and that is not dumpable.
+	* replace.el (perform-replace): Use the more exhaustive
+	#'match-data-canonical instead of #'match-data when saving the
+	match data associated with the real match in this function.
+	Don't pass the INTEGERS argument to #'match-data given its
+	performance issues with large buffers.
+	* subr.el (save-match-data):
+	Update this to save the match data with the more exhaustive
+	#'match-data-canonical, and to explicitly detach any extents in
+	the saved data once done with them.
+	* subr.el (match-string): Moved to C, now its algorithmic
+	complexity is better there.
+	* subr.el (match-string-no-properties):
+	Implement in terms of #'match-string.
+
 2021-01-28  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* code-files.el (load):

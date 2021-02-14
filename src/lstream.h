@@ -531,6 +531,7 @@ const Ibyte *resizing_buffer_stream_ptr (Lstream *stream);
 Lisp_Object resizing_buffer_to_lisp_string (Lstream *stream);
 Lisp_Object make_dynarr_output_stream (unsigned_char_dynarr *dyn);
 
+EXFUN (Fget_output_stream_string, 1);
 
 /* Flags we can pass to lisp buffer streams. */
 

@@ -1959,6 +1959,7 @@ gc_prepare (void)
 
   need_to_signal_post_gc = 0;
   recompute_funcall_allocation_flag ();
+  flush_unused_lisp_search_registers ();
 
   if (!gc_hooks_inhibited)
     run_hook_trapping_problems

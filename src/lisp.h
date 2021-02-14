@@ -6102,6 +6102,9 @@ EXFUN (Fregexp_quote, 1);
 
 struct re_pattern_buffer;
 struct re_registers;
+
+void flush_unused_lisp_search_registers (void);
+
 Charbpos scan_buffer (struct buffer *, Ichar, Charbpos, Charbpos, EMACS_INT,
 		      EMACS_INT *, int);
 Bytebpos byte_scan_buffer (struct buffer *, Ichar, Bytebpos, Bytebpos ,

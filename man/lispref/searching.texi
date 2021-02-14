@@ -1230,6 +1230,18 @@ match data being preserved in case the search or match signals an
 error.)  If for some reason you need to clear the match data, you may
 use @code{(store-match-data nil)}.
 
+The current XEmacs implementation of the underlying match data is in
+term of extents. @pxref{Intro to Extents}. The older XEmacs
+implementation and current GNU Emacs implementation uses C integers
+internally that reflect the character offset of the matched data at the
+time of matching. This has performance problems in large buffers and,
+while neither implementation is perfect when it comes to do-what-I-mean
+behavior with editing, XEmacs will return sensible results if characters
+are inserted in a buffer before the match which GNU will not. Given the
+larger user base of GNU Emacs this implementation otherwise attempts to
+be bug-compatible with its implementation, often to the detriment of
+sensible behavior.
+
 @menu
 * Simple Match Data::     Accessing single items of match data,
 			    such as where a particular subexpression started.
@@ -1272,7 +1284,10 @@ argument @var{in-string}.  Otherwise, after a buffer search or match,
 you should omit @var{in-string} or pass @code{nil} for it; but you
 should make sure that the current buffer when you call
 @code{match-string} is the one in which you did the searching or
-matching.
+matching. XEmacs checks for both these problems and warns if there is a
+discrepancy, but GNU Emacs and older XEmacs versions silently gave the
+wrong answer. Current XEmacs still gives the wrong answer, for
+compatibility with the editor with a bigger user base.
 @end defun
 
 @defun match-beginning count
@@ -1286,12 +1301,19 @@ position of the match for that subexpression.
 
 The value is @code{nil} for a subexpression inside a @samp{\|}
 alternative that wasn't used in the match.
+
+For matches in large buffers this can have a performance impact, in that
+it requires conversion from the underlying byte offset to the character
+offset, potentially an O(N) operation where N is the underlying byte
+offset.  @code{match-string} does not have this problem, though of
+course it allocates a new string.
 @end defun
 
 @defun match-end count
 This function is like @code{match-beginning} except that it returns the
 position of the end of the match, rather than the position of the
-beginning.
+beginning.  It has the same impact on performance in large buffers as
+does @code{match-beginning}.
 @end defun
 
   Here is an example of using the match data, with a comment showing the
@@ -1374,14 +1396,17 @@ was matched by the last search.  It replaces that text with
 @var{replacement}.
 
 If you did the last search in a buffer, you should specify @code{nil}
-for @var{string}.  (An error will be signaled if you don't.)  Then
-@code{replace-match} does the replacement by editing the buffer; it
-leaves point at the end of the replacement text, and returns @code{t}.
+for @var{string}.  (An error will be signaled if you don't; current
+XEmacs will warn if you searched in a distinct buffer, but this is a
+debugging aid, this behavior cannot be relied on in GNU Emacs nor in
+older XEmacs.)  Then @code{replace-match} does the replacement by
+editing the buffer; it leaves point at the end of the replacement text,
+and returns @code{nil}.
 
 If you did the search in a string, pass the same string as @var{string}.
-(An error will be signaled if you specify nil.)  Then
-@code{replace-match} does the replacement by constructing and returning
-a new string.
+(An error will be signaled if you specify nil; again, current XEmacs
+will warn if you searched a distinct object.)  Then @code{replace-match}
+does the replacement by constructing and returning a new string.
 
 If @var{fixedcase} is non-@code{nil}, then the case of the replacement
 text is not changed; otherwise, the replacement text is converted to a
@@ -1397,10 +1422,14 @@ If @code{case-replace} is @code{nil}, then case conversion is not done,
 regardless of the value of @var{fixedcase}.  @xref{Searching and Case}.
 
 If @var{literal} is non-@code{nil}, then @var{replacement} is inserted
-exactly as it is, the only alterations being case changes as needed.
-If it is @code{nil} (the default), then the character @samp{\} is treated
-specially.  If a @samp{\} appears in @var{replacement}, then it must be
-part of one of the following sequences:
+exactly as it is, the only alterations being case changes as needed. (To
+be clear, this means that the replacement is ``literal'' in the
+figurative sense, in the absence of a @var{fixedcase} argument. A
+mnemonic is that this argument means the replacement is at least a
+little bit closer to being literal.)
+If it is @code{nil} (the default), then the character @samp{\} is
+treated specially.  If a @samp{\} appears in @var{replacement}, then it
+must be part of one of the following sequences:
 
 @table @asis
 @item @samp{\&}
@@ -1444,14 +1473,16 @@ override all other case changes that may be made in the replaced text.
 
 The fifth argument @var{strbuffer} may be a buffer to be used for
 syntax-table and case-table lookup.  If @var{strbuffer} is not a buffer,
-the current buffer is used.  When @var{string} is not a string, the
-buffer that the match occurred in has automatically been remembered and
-you do not need to specify it.  @var{string} may also be an integer,
-specifying the index of the subexpression to match.  When @var{string}
-is not an integer, the ``subexpression'' is 0, @emph{i.e.}, the whole
-match.  An @code{invalid-argument} error will be signaled if you specify
-a buffer when @var{string} is nil, or specify a subexpression which was
-not matched.
+the buffer that the match occurred in is used; if that is not available
+(usually for compatibility reasons associated with
+@code{save-match-data}), then the current buffer is used.
+
+@var{string} may also be an integer, specifying the index of the
+subexpression to match.  When @var{string} is not an integer, the
+``subexpression'' is 0, @emph{i.e.}, the whole match.  An
+@code{invalid-argument} error will be signaled if you specify a buffer
+when @var{string} is nil, or specify a subexpression which was not
+matched.
 
 It is not possible to specify both a buffer and a subexpression, but the
 idiom
@@ -1467,7 +1498,9 @@ may be used.
 @subsection Accessing the Entire Match Data
 
   The functions @code{match-data} and @code{set-match-data} read or
-write the entire match data, all at once.
+write the entire match data, all at once. In the normal course of events
+@code{save-match-data} will be more relevant for most
+programmers. @pxref{Saving Match Data}
 
 @defun match-data &optional integers reuse
 This function returns a newly constructed list containing all the
@@ -1502,6 +1535,15 @@ If the optional second argument @var{reuse} is a list, reuse it as part
 of the value.  If @var{reuse} is long enough to hold all the values, and if
 @var{integers} is non-@code{nil}, no new lisp objects are created.
 
+The limits of the match positions are stored internally as byte offsets,
+and Lisp deals in character offsets. Converting from byte to character
+positions is an @var{O(N)} operation, where @var{N} is the underlying
+byte offset, which is a performance problem that gets worse as buffers
+get bigger.  This means that @var{integers} is not in general that
+helpful. @code{match-string} does not have this problem, as the C
+implementation has direct access to the underlying byte positions and
+has no need to calculate the character positions to construct its string.
+
 As always, there must be no possibility of intervening searches between
 the call to a search function and the call to @code{match-data} that is
 intended to access the match data for that search.
@@ -1527,6 +1569,21 @@ an error; that sets the match data in a meaningless but harmless way.
 
 @findex store-match-data
 @code{store-match-data} is an alias for @code{set-match-data}.
+@end defun
+
+@defun match-data-canonical
+This function is only available in XEmacs, and returns a list reflecting
+the internal match data. This usually comprises a list of extents,
+reflecting the start and end of the corresponding match, or nil, to
+reflect that there was no match. This avoids the byte-char conversion
+problem mentioned above, both for buffers and for strings, and the
+XEmacs @code{store-match-data} handles the output of
+@code{match-data-canonical} without problems.
+
+In unusual circumstances the returned list can have have conses of
+nonnegative integers; these are to be interpreted as character offsets
+into an unknown object, and reflect explicit Lisp manipulation of the
+match data, something that is deprecated.
 @end defun
 
 @node Saving Match Data,  , Entire Match Data, Match Data
@@ -1555,9 +1612,11 @@ This macro executes @var{body}, saving and restoring the match
 data around it.
 @end defmac
 
-  Emacs automatically saves and restores the match data when it runs
+  XEmacs does not treat the match data specially when it runs
 process filter functions (@pxref{Filter Functions}) and process
-sentinels (@pxref{Sentinels}).
+sentinels (@pxref{Sentinels}), in contast to GNU Emacs, though XEmacs
+does not run process filters asynchronously, which avoids many of the
+issues with this.
 
 @ignore
   Here is a function which restores the match data provided the buffer

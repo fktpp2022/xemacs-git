@@ -1,5 +1,18 @@
 2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* automated/regexp-tests.el (text1):
+	Correct a couple of tests for explicitly numbered groups here,
+	error revealed by new warnings.
+	* automated/regexp-tests.el (flet):
+	Update the test for #'replace-regexp-in-string to accept a new
+	wrong-type-argument error when passed a non-natnum integer
+	STRBUFFER.
+	* automated/regexp-tests.el (complex-regexp-replacement):
+	Test the case transforms with backslash escapes, in both strings
+	and buffers.
+
+2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* automated/extent-tests.el (string):
 	* automated/extent-tests.el (stream):
 	* automated/extent-tests.el (Assert-format-into-extents):

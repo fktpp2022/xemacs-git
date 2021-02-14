@@ -95,6 +95,7 @@ SYMBOL (Qcolumns);
 SYMBOL (Qcommand);
 SYMBOL_KEYWORD (Q_config);
 SYMBOL (Qconsole);
+SYMBOL (Qcontext);
 SYMBOL (Qcontrol_1);
 SYMBOL (Qcopies);
 SYMBOL (Qcount);

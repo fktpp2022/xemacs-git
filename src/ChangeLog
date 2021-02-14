@@ -1,5 +1,132 @@
 2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Move the match subexpression information to functioning in terms
+	of extents, with lazy conversion to character offsets (meaning
+	faster searches in large buffers), better warnings and more
+	do-what-I-mean behavior generally.
+
+	* gc.c (gc_prepare):
+	Flush the unused extents from the Lisp search registers before GC.
+
+	* general-slots.h: Add an entry for Qcontext here.
+	* lisp.h: Declare flush_unused_lisp_search_registers() here.
+	* lstream.h: Declare Fget_output_stream_string() for the sake of C
+	code.
+
+	* search.c:
+	Declare Vsearch_registers, a cons of the number of registers
+	available currently and a Lisp vector of extent objects reflecting
+	those registers.
+	Remove last_thing_searched, corresponding but more accurate
+	information is available from the Lisp extents.
+
+	* search.c (clear_lisp_search_registers): New. Clear the saved
+	Lisp data regarding the search registers.
+	* search.c (set_lisp_search_registers): New. Set Vsearch_registers
+	from the data passed back into search_regs, allowing use of
+	extents with lazy conversion to characters if needed.
+
+	* search.c (canonicalize_lisp_search_registers_for_replace): New.
+	Make sure that all saved search registers are extents before
+	calling Freplace_match() on MATCH_OBJ, avoiding
+	the kludgy cons-of-fixnum approach maintained a minority of the
+	time given the need for compatibility.
+
+	* search.c (flush_unused_lisp_search_registers): New.
+	If the number of lazily saved but currently unused search
+	registers is greater than 16, make the higher registers
+	unreachable before GC, giving them a chance to be
+	garbage-collected.
+
+	* search.c (fixup_search_regs_for_string): Removed.
+	* search.c (fixup_search_regs_for_buffer): Removed.
+	Functionality of both these functions replaced by
+	set_lisp_search_registers().
+	
+	* search.c (looking_at_1):
+	Call set_lisp_search_registers() in this function.
+	* search.c (string_match_1):
+	Ditto.
+
+	* search.c (Fstring_match):
+	Update the docstring of this, encourage use of #'string-match-p.
+	* search.c (Fposix_string_match):
+	Ditto, encourage use of #'save-match-data.
+	* search.c (search_buffer):
+	Call set_lisp_search_registers() from this.
+	* search.c (simple_search):
+	Ditto. Set search_regs.start[0], search.regs.end[0],
+	search.regs.num_regs explicitly. 
+	* search.c (boyer_moore):
+	Ditto.
+
+	* search.c (set_search_regs): Removed. Functionality moved into
+	set_lisp_search_registers().
+	* search.c (clear_search_regs): Removed. Functionality moved into
+	clear_lisp_search_registers().
+
+	* search.c (Fsearch_backward):
+	Update the docstring of this, encourage the use of
+	`save-match-data'.
+	* search.c (Fsearch_forward):
+	Ditto.
+	* search.c (Fword_search_forward):
+	Ditto.
+	* search.c (Fposix_search_forward):
+	Ditto.
+	* search.c (free_created_dynarrs): Removed.
+	No longer needed.
+
+	* search.c (Freplace_match):
+	Update this to use the extent search register information,
+	allowing warning with string or buffer arguments not consistent
+	with those used at match time, using the same implementation for
+	both buffers and strings for the regexp and case substitution into
+	REPLACEMENT, and passing the case transformation backslash codes
+	through using zero-length extents, rather than creating and
+	freeing dynarrs.
+	Also use saved match buffer context when replacing strings, and
+	warn when this is inconsistent.
+
+	* search.c (match_limit):
+	Implement this using the register extent data, giving warnings
+	when the current buffer is not that which had been used for
+	searching.
+
+	* search.c (Fmatch_string): Move this to C from subr.el, avoiding
+	O(N) time complexity with the endpoints. Warn with inconsistent
+	arguments and saved match data.
+	* search.c (Fmatch_data_canonical): New. Return the saved matched
+	data as extents, their canonical form in this XEmacs.
+	* search.c (Fmatch_data):
+	Caution against the INTEGERS argument.
+	Transform the saved extent endpoints to markers without any
+	byte-char conversion when the matched object is a buffer and
+	INTEGERS is non-nil.
+	Otherwise return nil (for elements that did not match) or fixnums
+	in the old way for string matches.
+
+	* search.c (store_match_data_fixnums): New. Used in this
+	implementation of Fstore_match_data().
+	* search.c (store_match_data_markers): New. Used in this
+	implementation of Fstore_match_data().
+	* search.c (Fstore_match_data): Heavily revised. Prefers the
+	canonical form of match data, but handles markers without
+	problems. Handles fixnums too, transforming negative fixnums to no
+	match.
+	* search.c (syms_of_search):
+	DEFSUBR for Fmatch_string(), Fmatch_data_canonical() here.
+	* search.c (reinit_vars_of_search):
+	No need to initialize last_thing_searched here. Do initialize
+	search_regs.{start,end,num_regs} to make things a little easier
+	for the non-regexp search code.
+	* search.c (vars_of_search):
+	Make Vsearch_registers available here; also make
+	Vcase_flag_symbol available, an uninterned symbol used in the
+	Freplace_match() case transformation code.
+
+2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Fix some bugs, add some functionality in anticipation of
 	implementing the match data in terms of extents (rather than
 	*character* positions stored as C integers).

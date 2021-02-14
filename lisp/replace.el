@@ -607,7 +607,7 @@ When searching for a match, this function uses
 		      t))
 
 	  ;; Save the data associated with the real match.
-	  (setq real-match-data (match-data))
+	  (setq real-match-data (match-data-canonical))
 
 	  ;; Before we make the replacement, decide whether the search string
 	  ;; can match again just after this match.
@@ -703,7 +703,7 @@ When searching for a match, this function uses
 			 (recenter-top-bottom)))
 		      ((eq def 'edit)
 		       (store-match-data
-			(prog1 (match-data)
+			(prog1 (match-data-canonical)
 			  (save-excursion (recursive-edit))))
 		       ;; Before we make the replacement,
 		       ;; decide whether the search string
@@ -712,7 +712,7 @@ When searching for a match, this function uses
 			   (setq match-again (looking-at search-string))))
 		      ((eq def 'delete-and-edit)
 		       (delete-region (match-beginning 0) (match-end 0))
-		       (store-match-data (prog1 (match-data)
+		       (store-match-data (prog1 (match-data-canonical)
 					   (save-excursion (recursive-edit))))
 		       (setq replaced t))
 		      ;; Note: we do not need to treat `exit-prefix'
@@ -728,12 +728,10 @@ When searching for a match, this function uses
 		;; Reset recenter cycling order to initial position.
 		(setq recenter-last-op nil))
 	      ;; Record previous position for ^ when we move on.
-	      ;; Change markers to numbers in the match data
-	      ;; since lots of markers slow down editing.
 	      (setq stack
 		    (cons (cons (point)
 				(or replaced
-				    (match-data t)))
+				    (match-data-canonical)))
 			  stack))
 	      (if replaced (setq replace-count (1+ replace-count)))))
 	  (setq lastrepl (point)))
