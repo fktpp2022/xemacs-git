@@ -1,5 +1,33 @@
 2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove the last of the needless byte->char conversions from
+	search.c.
+
+	* search.c: Update the declarations of simple_search(),
+	boyer_moore(), search_buffer().
+	* search.c (skip_chars):
+	Use get_buffer_pos_char() here; document why we haven't switched
+	to functioning in byte positions.
+	Make the arguments a bit clearer.
+	* search.c (search_command):
+	Update the argument declarations of RE, POSIX, to be Boolints.
+	Declare NP and LIM as Bytebpos immediately, use
+	get_buffer_pos_byte() instead of reimplementing it avant la
+	lettre.
+	Set point from the byte result of the search_buffer() call, and
+	then return make_fixnum (BUF_PT (buf)).
+	* search.c (search_buffer):
+	Update this to take a Bytebpos POS, LIM (instead of Charbpos
+	CHARBPOS, BUFLIM), and to return a Bytebpos. Avoid needless
+	char-byte conversion as a result.
+	* search.c (simple_search):
+	Update this to return a Bytebpos. Avoid needless byte-char
+	conversion as a result.
+	* search.c (boyer_moore):
+	Ditto.
+
+2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Move the match subexpression information to functioning in terms
 	of extents, with lazy conversion to character offsets (meaning
 	faster searches in large buffers), better warnings and more

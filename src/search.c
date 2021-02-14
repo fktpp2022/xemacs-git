@@ -147,18 +147,18 @@ Fixnum warn_about_possibly_incompatible_back_references;
 /* range table for use with skip_chars.  Only needed for Mule. */
 Lisp_Object Vskip_chars_range_table;
 
-static Charbpos simple_search (struct buffer *buf, Ibyte *base_pat,
+static Bytebpos simple_search (struct buffer *buf, Ibyte *base_pat,
 			       Bytecount len, Bytebpos pos, Bytebpos lim,
 			       EMACS_INT n, Lisp_Object trt);
-static Charbpos boyer_moore (struct buffer *buf, Ibyte *base_pat,
+static Bytebpos boyer_moore (struct buffer *buf, Ibyte *base_pat,
 			     Bytecount len, Bytebpos pos, Bytebpos lim,
 			     EMACS_INT n, Lisp_Object trt,
 			     Lisp_Object inverse_trt, Ibyte *char_base,
                              int char_base_len);
-static Charbpos search_buffer (struct buffer *buf, Lisp_Object str,
-			       Charbpos charbpos, Charbpos buflim, EMACS_INT n,
-			       int RE, Lisp_Object trt,
-			       Lisp_Object inverse_trt, int posix);
+static Bytebpos search_buffer (struct buffer *buf, Lisp_Object str,
+			       Bytebpos pos, Bytebpos lim, EMACS_INT n,
+			       Boolint RE, Lisp_Object trt,
+			       Lisp_Object inverse_trt, Boolint posix);
 
 static DECLARE_DOESNT_RETURN (matcher_overflow (void));
 
@@ -1103,7 +1103,7 @@ byte_find_next_ichar_in_string (Lisp_Object str, Ichar target, Bytecount st,
 
 /* This function synched with FSF 21.1 */
 static Lisp_Object
-skip_chars (struct buffer *buf, int forwardp, int syntaxp,
+skip_chars (struct buffer *buf, Boolint forwardp, Boolint syntaxp,
 	    Lisp_Object string, Lisp_Object lim)
 {
   REGISTER Ibyte *p, *pend;
@@ -1120,12 +1120,9 @@ skip_chars (struct buffer *buf, int forwardp, int syntaxp,
     limit = forwardp ? BUF_ZV (buf) : BUF_BEGV (buf);
   else
     {
-      CHECK_FIXNUM_COERCE_MARKER (lim);
-      limit = XFIXNUM (lim);
-
-      /* In any case, don't allow scan outside bounds of buffer.  */
-      if (limit > BUF_ZV   (buf)) limit = BUF_ZV   (buf);
-      if (limit < BUF_BEGV (buf)) limit = BUF_BEGV (buf);
+      /* See the commentary on START_POINT, POS below regarding why we haven't
+         moved to functioning in byte positions. */
+      limit = get_buffer_pos_char (buf, lim, GB_COERCE_RANGE);
     }
 
   CHECK_STRING (string);
@@ -1238,9 +1235,13 @@ skip_chars (struct buffer *buf, int forwardp, int syntaxp,
     fastmap[' '] = 1;
 
   {
+    /* The syntax cache still functions in terms of character positions, so we
+       still need START_POINT and POS. And pleasingly we call BOTH_BUF_SET_PT
+       () at the end, going beyond the standard of care in avoiding byte to
+       char performance issues.  */
     Charbpos start_point = BUF_PT (buf);
     Charbpos pos = start_point;
-    Charbpos pos_byte = BYTE_BUF_PT (buf);
+    Bytebpos pos_byte = BYTE_BUF_PT (buf);
 
     if (syntaxp)
       {
@@ -1267,7 +1268,7 @@ skip_chars (struct buffer *buf, int forwardp, int syntaxp,
 	  {
 	    while (pos > limit)
 	      {
-		Charbpos savepos = pos_byte;
+		Bytebpos savepos = pos_byte;
 		pos--;
 		DEC_BYTEBPOS (buf, pos_byte);
 		UPDATE_SYNTAX_CACHE_BACKWARD (scache, pos);
@@ -1321,7 +1322,7 @@ skip_chars (struct buffer *buf, int forwardp, int syntaxp,
 	  {
 	    while (pos > limit)
 	      {
-		Charbpos prev_pos_byte = pos_byte;
+		Bytebpos prev_pos_byte = pos_byte;
 		Ichar ch;
 
 		DEC_BYTEBPOS (buf, prev_pos_byte);
@@ -1417,10 +1418,10 @@ This function does not modify the match data.
 static Lisp_Object
 search_command (Lisp_Object string, Lisp_Object limit, Lisp_Object noerror,
 		Lisp_Object count, Lisp_Object buffer, int direction,
-		int RE, int posix)
+		Boolint RE, Boolint posix)
 {
-  REGISTER Charbpos np;
-  Charbpos lim;
+  REGISTER Bytebpos np;
+  Bytebpos lim;
   EMACS_INT n = direction;
   struct buffer *buf;
 
@@ -1436,18 +1437,13 @@ search_command (Lisp_Object string, Lisp_Object limit, Lisp_Object noerror,
     lim = n > 0 ? BUF_ZV (buf) : BUF_BEGV (buf);
   else
     {
-      CHECK_FIXNUM_COERCE_MARKER (limit);
-      lim = XFIXNUM (limit);
-      if (n > 0 ? lim < BUF_PT (buf) : lim > BUF_PT (buf))
+      lim = get_buffer_pos_byte (buf, limit, GB_COERCE_RANGE);
+      if (n > 0 ? lim < BYTE_BUF_PT (buf) : lim > BYTE_BUF_PT (buf))
 	invalid_argument ("Invalid search limit (wrong side of point)",
 			  Qunbound);
-      if (lim > BUF_ZV (buf))
-	lim = BUF_ZV (buf);
-      if (lim < BUF_BEGV (buf))
-	lim = BUF_BEGV (buf);
     }
 
-  np = search_buffer (buf, string, BUF_PT (buf), lim, n, RE,
+  np = search_buffer (buf, string, BYTE_BUF_PT (buf), lim, n, RE,
 		      (!NILP (buf->case_fold_search)
 		       ? XCASE_TABLE_CANON (buf->case_table)
                        : Qnil),
@@ -1464,9 +1460,9 @@ search_command (Lisp_Object string, Lisp_Object limit, Lisp_Object noerror,
 	}
       if (!EQ (noerror, Qt))
 	{
-	  if (lim < BUF_BEGV (buf) || lim > BUF_ZV (buf))
+	  if (lim < BYTE_BUF_BEGV (buf) || lim > BYTE_BUF_ZV (buf))
 	    ABORT ();
-	  BUF_SET_PT (buf, lim);
+	  BYTE_BUF_SET_PT (buf, lim);
 	  return Qnil;
 #if 0 /* This would be clean, but maybe programs depend on
 	 a value of nil here.  */
@@ -1477,12 +1473,12 @@ search_command (Lisp_Object string, Lisp_Object limit, Lisp_Object noerror,
         return Qnil;
     }
 
-  if (np < BUF_BEGV (buf) || np > BUF_ZV (buf))
+  if (np < BYTE_BUF_BEGV (buf) || np > BYTE_BUF_ZV (buf))
     ABORT ();
 
-  BUF_SET_PT (buf, np);
+  BYTE_BUF_SET_PT (buf, np);
 
-  return make_fixnum (np);
+  return make_fixnum (BUF_PT (buf));
 }
 
 static int
@@ -1543,14 +1539,14 @@ chars_differ_in_non_final_bytes (Ibyte *astr, Bytecount alen, Ichar b)
 }
 
 /* Search for the n'th occurrence of STRING in BUF,
-   starting at position CHARBPOS and stopping at position BUFLIM,
+   starting at position POS and stopping at position BUFLIM,
    treating PAT as a literal string if RE is false or as
    a regular expression if RE is true.
 
    If N is positive, searching is forward and BUFLIM must be greater
-   than CHARBPOS.
+   than POS.
    If N is negative, searching is backward and BUFLIM must be less
-   than CHARBPOS.
+   than POS.
 
    Returns -x if only N-x occurrences found (x > 0),
    or else the position at the beginning of the Nth occurrence
@@ -1558,17 +1554,16 @@ chars_differ_in_non_final_bytes (Ibyte *astr, Bytecount alen, Ichar b)
 
    POSIX is nonzero if we want full backtracking (POSIX style)
    for this pattern.  0 means backtrack only enough to get a valid match.  */
-static Charbpos
-search_buffer (struct buffer *buf, Lisp_Object string, Charbpos charbpos,
-	       Charbpos buflim, EMACS_INT n, int RE, Lisp_Object trt,
-	       Lisp_Object inverse_trt, int posix)
+static Bytebpos
+search_buffer (struct buffer *buf, Lisp_Object string, Bytebpos pos,
+	       Bytebpos lim, EMACS_INT n, Boolint RE, Lisp_Object trt,
+	       Lisp_Object inverse_trt, Boolint posix)
 {
   Bytecount len = XSTRING_LENGTH (string);
   Ibyte *base_pat = XSTRING_DATA (string);
   REGISTER EMACS_INT i, j;
   Bytebpos p1, p2;
   Bytecount s1, s2;
-  Bytebpos pos, lim;
 
   /* Some FSF junk with running_asynch_code, to preserve the match
      data.  Not necessary because we don't call process filters
@@ -1576,9 +1571,7 @@ search_buffer (struct buffer *buf, Lisp_Object string, Charbpos charbpos,
 
   /* Searching 0 times means noop---don't move, don't touch registers.  */
   if (n == 0)
-    return charbpos;
-
-  pos = charbpos_to_bytebpos (buf, charbpos);
+    return pos;
 
   /* Null string is found at starting position.  */
   if (len == 0)
@@ -1588,10 +1581,9 @@ search_buffer (struct buffer *buf, Lisp_Object string, Charbpos charbpos,
       search_regs.start[0] = search_regs.end[0] = pos;
       search_regs.num_regs = 1;
       set_lisp_search_registers (wrap_buffer (buf), &search_regs);
-      return charbpos;
+      return pos;
     }
 
-  lim = charbpos_to_bytebpos (buf, buflim);
   if (RE && !trivial_regexp_p (string))
     {
       struct re_pattern_buffer *bufp;
@@ -1649,14 +1641,12 @@ search_buffer (struct buffer *buf, Lisp_Object string, Charbpos charbpos,
 	      /* Set pos to the new position. */
 	      pos = n > 0 ? search_regs.end[0] : search_regs.start[0];
               set_lisp_search_registers (wrap_buffer (buf), &search_regs);
-	      /* And charbpos too. */
-              charbpos = bytebpos_to_charbpos (buf, pos);
 	    }
 	  else
 	    return (n > 0 ? 0 - n : n);
 	  if (n > 0) n--; else n++;
 	}
-      return charbpos;
+      return pos;
     }
   else				/* non-RE case */
     {
@@ -1862,7 +1852,7 @@ search_buffer (struct buffer *buf, Lisp_Object string, Charbpos charbpos,
    regardless of what is in TRT.  It is used in cases where
    boyer_moore cannot work.  */
 
-static Charbpos
+static Bytebpos
 simple_search (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 	       Bytebpos pos, Bytebpos lim, EMACS_INT n, Lisp_Object trt)
 {
@@ -1957,7 +1947,6 @@ simple_search (struct buffer *buf, Ibyte *base_pat, Bytecount len,
  stop:
   if (n == 0)
     {
-      Charbpos retval;
       structure_checking_assert (search_regs.num_regs > 0);
       search_regs.num_regs = 1;
 
@@ -1965,20 +1954,16 @@ simple_search (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 	{
           search_regs.start[0] = pos - buf_len;
           search_regs.end[0] = pos;
-
-	  retval = bytebpos_to_charbpos (buf, pos);
 	}
       else
 	{
           search_regs.start[0] = pos;
           search_regs.end[0] = pos + buf_len;
-
-	  retval = bytebpos_to_charbpos (buf, pos);
 	}
 
       set_lisp_search_registers (wrap_buffer (buf), &search_regs);
 
-      return retval;
+      return pos;
     }
   else if (n > 0)
     return -n;
@@ -2000,7 +1985,7 @@ simple_search (struct buffer *buf, Ibyte *base_pat, Bytecount len,
    If that criterion is not satisfied, do not call this function.  You will
    get an assertion failure. */
 	    
-static Charbpos
+static Bytebpos
 boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 	     Bytebpos pos, Bytebpos lim, EMACS_INT n, Lisp_Object trt,
 	     Lisp_Object inverse_trt, Ibyte *USED_IF_MULE (char_base),
@@ -2432,11 +2417,11 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 		    cursor += dirlen; /* to resume search */
 		  else if (direction > 0)
                     {
-                      return bytebpos_to_charbpos (buf, search_regs.end[0]);
+                      return search_regs.end[0];
                     }
                   else
                     {
-                      return bytebpos_to_charbpos (buf, search_regs.start[0]);
+                      return search_regs.start[0];
                     }
 		}
 	      else
@@ -2540,11 +2525,11 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 		    pos += dirlen; /* to resume search */
 		  else if (direction > 0)
                     {
-                      return bytebpos_to_charbpos (buf, search_regs.end[0]);
+                      return search_regs.end[0];
                     }
                   else
                     {
-                      return bytebpos_to_charbpos (buf, search_regs.start[0]);
+                      return search_regs.start[0];
                     }
 		}
 	      else
@@ -2555,7 +2540,7 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
       if ((lim - pos) * direction < 0)
 	return (0 - n) * direction;
     }
-  return bytebpos_to_charbpos (buf, pos);
+  return pos;
 }
 
 /* Given a string of words separated by word delimiters,
