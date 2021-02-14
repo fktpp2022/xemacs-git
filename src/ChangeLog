@@ -1,5 +1,11 @@
 2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* search.c (search_command): 
+	LIM is a byte offset, compare it to BYTE_BUF_ZV(),
+	BYTE_BUF_BEGV().
+
+2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Remove the last of the needless byte->char conversions from
 	search.c.
 

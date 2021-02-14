@@ -1434,7 +1434,7 @@ search_command (Lisp_Object string, Lisp_Object limit, Lisp_Object noerror,
   buf = decode_buffer (buffer, 0);
   CHECK_STRING (string);
   if (NILP (limit))
-    lim = n > 0 ? BUF_ZV (buf) : BUF_BEGV (buf);
+    lim = n > 0 ? BYTE_BUF_ZV (buf) : BYTE_BUF_BEGV (buf);
   else
     {
       lim = get_buffer_pos_byte (buf, limit, GB_COERCE_RANGE);
