@@ -555,9 +555,8 @@ When searching for a match, this function uses
 	  (if (and case-fold-search search-caps-disable-folding)
               (if regexp-flag
                   (no-case-regexp-p search-string)
-                (save-match-data
-                  (let (case-fold-search)
-                    (not (string-match "[[:upper:]]" search-string)))))
+                (let (case-fold-search)
+                  (not (string-match-p "[[:upper:]]" search-string))))
 	    case-fold-search))
 	 (message
 	  (if query-flag

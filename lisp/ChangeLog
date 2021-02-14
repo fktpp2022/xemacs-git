@@ -1,5 +1,12 @@
 2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* replace.el (perform-replace): Update a
+	(save-match-data ... (string-match "[[:upper:]]" ...)) call to
+	call `string-match-p' without the encloding `save-match-data'
+	instead, now `string-match-p' is available.
+
+2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Minor changes to deal with moving the match data to being extents.
 	
 	* cl-extra.el (cl-prettyprint):
