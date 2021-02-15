@@ -3693,13 +3693,16 @@ performant across implementations is `save-match-data', which see.
             }
           else
             {
-              warn_when_safe_lispobj
-                (Qsearch, Qerror,
-                 emacs_sprintf_string_lisp ("Likely bug: (match-string %d "
-                                            "STRING) called with STRING %S"
-                                            ", match data reflect distinct"
-                                            "string %S",
-                                            num, string, extent_object));
+	      if (!internal_equal (string, extent_object, 0))
+		{
+		  warn_when_safe_lispobj
+		    (Qsearch, Qerror,
+		     emacs_sprintf_string_lisp ("Likely bug: (match-string %d "
+						"STRING) called with STRING %S"
+						", match data reflect distinct"
+						" string %S",
+						num, string, extent_object));
+		}
               return Fsubseq (string,
                               Fextent_start_position (obj, Qnil),
                               Fextent_end_position (obj, Qnil));

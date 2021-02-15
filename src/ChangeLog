@@ -1,3 +1,11 @@
+2021-02-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* search.c (Fmatch_string):
+	If STRING and the extent object are #'equal but not #'eq, don't
+	warn, there's no issue with that. Something we already did in
+	canonicalize_lisp_search_registers_for_replace(), but also
+	appropriate here.
+
 2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	A couple of cosmetic changes, search.c
