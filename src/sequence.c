@@ -1686,7 +1686,7 @@ position (Lisp_Object *object_out, Lisp_Object item, Lisp_Object sequence,
       Lisp_Object character = Qnil;
 
       cursor_offset = ii = (Bytecount) (min ((Bytecount)
-                                             (XSTRING_ASCII_BEGIN (sequence)),
+                                             (XSTRING_ASCII_END (sequence)),
 					     starting));
       cursor = startp + cursor_offset;
       /* It's probably worth making this even faster for the
@@ -3247,9 +3247,9 @@ object if SEQUENCE is a list with length greater than one.  See also
       assert (staging == staging_end);
 
       memcpy (XSTRING_DATA (sequence), staging, length);
-      init_string_ascii_begin (sequence);
+      init_string_ascii_end (sequence);
       bump_string_modiff (sequence);
-      sledgehammer_check_ascii_begin (sequence);
+      sledgehammer_check_ascii_end (sequence);
     }
   else if (BIT_VECTORP (sequence))
     {
@@ -4028,9 +4028,9 @@ arguments: (SEQUENCE PREDICATE &key (KEY #'IDENTITY))
           strdata += set_itext_ichar (strdata, XCHAR (sequence_carray[i]));
         }
 
-      init_string_ascii_begin (sequence);
+      init_string_ascii_end (sequence);
       bump_string_modiff (sequence);
-      sledgehammer_check_ascii_begin (sequence);
+      sledgehammer_check_ascii_end (sequence);
     }
   else if (BIT_VECTORP (sequence))
     {
@@ -4219,9 +4219,9 @@ character length of STRING is not changed.
         }
     }
 
-  init_string_ascii_begin (string);
+  init_string_ascii_end (string);
   bump_string_modiff (string);
-  sledgehammer_check_ascii_begin (string);
+  sledgehammer_check_ascii_end (string);
 
   return Qnil;
 }
@@ -4973,10 +4973,10 @@ concatenate (int nsequences, Lisp_Object *sequences,
       else
         {
           /* copy_string_extents() can call Lisp, make sure
-             init_string_ascii_begin() is called on RESULT before its
+             init_string_ascii_end() is called on RESULT before its
              invocation. */
-          init_string_ascii_begin (result);
-          sledgehammer_check_ascii_begin (result);
+          init_string_ascii_end (result);
+          sledgehammer_check_ascii_end (result);
         }
 
       while (args_mse < args_mse_cursor)
@@ -5711,9 +5711,9 @@ replace_string_range_1 (Lisp_Object dest, Lisp_Object start, Lisp_Object end,
 	    }
 	}
 
-      init_string_ascii_begin (dest);
+      init_string_ascii_end (dest);
       bump_string_modiff (dest);
-      sledgehammer_check_ascii_begin (dest);
+      sledgehammer_check_ascii_end (dest);
     }
 
   return dest;

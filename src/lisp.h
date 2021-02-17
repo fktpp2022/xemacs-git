@@ -2747,24 +2747,21 @@ struct Lisp_String
 #ifdef NEW_GC
 	  unsigned int lisp_readonly :1;
 	  unsigned int free :1;
-#define NUM_ASCII_BEGIN_BITS 21
+#define NUM_ASCII_END_BITS 21
 #else /* not NEW_GC */
 	  unsigned int mark :1;
 	  unsigned int c_readonly :1;
 	  unsigned int lisp_readonly :1;
-#define NUM_ASCII_BEGIN_BITS 20
+#define NUM_ASCII_END_BITS 20
 #endif /* not NEW_GC */
 	  /* A flag describing whether this string has ever been
 	     modified; the actual modified tick is stored on the plist
 	     if and only if this flag is non-zero. */
 	  unsigned int modiffp :1;
-	  /* Number of chars at beginning of string that are one byte in length
-	     (byte_ascii_p)
-
-             This is badly named, in that it is a value that describes the
-             *end* of the ASCII stretch. #### Refactor after merging
-             unicode-internal. */
-	  unsigned int ascii_begin :NUM_ASCII_BEGIN_BITS;
+	  /* Length of the stretch of ASCII (byte_ascii_p) octets at the
+	     beginning of the string; equivalently, the byte offset of the
+	     first non-ASCII octet in the string. */
+	  unsigned int ascii_end :NUM_ASCII_END_BITS;
 	} v;
     } u;
 #ifdef NEW_GC
@@ -2778,7 +2775,7 @@ struct Lisp_String
 };
 typedef struct Lisp_String Lisp_String;
 
-#define MAX_STRING_ASCII_BEGIN ((1 << NUM_ASCII_BEGIN_BITS) - 1)
+#define MAX_STRING_ASCII_END ((1 << NUM_ASCII_END_BITS) - 1)
 
 DECLARE_MODULE_API_LISP_OBJECT (string, Lisp_String);
 #define XSTRING(x) XRECORD (x, string, Lisp_String)
@@ -2817,13 +2814,13 @@ DECLARE_MODULE_API_LISP_OBJECT (string, Lisp_String);
 #else /* not NEW_GC */
 #define XSTRING_DATA(s) (XSTRING (s)->data_ + 0)
 #endif /* not NEW_GC */
-#define XSTRING_ASCII_BEGIN(s) (XSTRING (s)->u.v.ascii_begin + 0)
+#define XSTRING_ASCII_END(s) (XSTRING (s)->u.v.ascii_end + 0)
 #define XSET_STRING_LENGTH(s, ptr) set_lispstringp_length (XSTRING (s), ptr)
 #define XSET_STRING_DATA(s, ptr) set_lispstringp_data (XSTRING (s), ptr)
 /* WARNING: If you modify an existing string, you must call
    bump_string_modiff() afterwards. */
-#define XSET_STRING_ASCII_BEGIN(s, val) \
-  ((void) (XSTRING (s)->u.v.ascii_begin = min (val, MAX_STRING_ASCII_BEGIN)))
+#define XSET_STRING_ASCII_END(s, val) \
+  ((void) (XSTRING (s)->u.v.ascii_end = min (val, MAX_STRING_ASCII_END)))
 #define XSTRING_FORMAT(s) FORMAT_DEFAULT
 
 #define XSTRING_MODIFFP(s) (XSTRING (s)->u.v.modiffp + 0)
@@ -4448,7 +4445,7 @@ MODULE_API Lisp_Object build_ascstring (const Ascbyte *);
 MODULE_API Lisp_Object build_extstring (const Extbyte *, Lisp_Object);
 MODULE_API Lisp_Object make_string (const Ibyte *, Bytecount);
 MODULE_API Lisp_Object make_extstring (const Extbyte *, EMACS_INT, Lisp_Object);
-void init_string_ascii_begin (Lisp_Object string);
+void init_string_ascii_end (Lisp_Object string);
 Lisp_Object make_uninit_string (Bytecount);
 void bump_string_modiff (Lisp_Object);
 struct extent_info *string_extent_info (Lisp_Object);

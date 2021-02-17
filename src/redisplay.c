@@ -3928,7 +3928,7 @@ generate_formatted_string_db (Lisp_Object format_str, Lisp_Object result_str,
 
       in_modeline_generation = 1;
 
-      sledgehammer_check_ascii_begin (result_str);
+      sledgehammer_check_ascii_end (result_str);
       detach_all_extents (result_str);
       resize_string (result_str, -1,
 		     data.bytepos - XSTRING_LENGTH (result_str));
@@ -3945,9 +3945,9 @@ generate_formatted_string_db (Lisp_Object format_str, Lisp_Object result_str,
             }
         }
 
-      init_string_ascii_begin (result_str);
+      init_string_ascii_end (result_str);
       bump_string_modiff (result_str);
-      sledgehammer_check_ascii_begin (result_str);
+      sledgehammer_check_ascii_end (result_str);
 
       for (elt = 0; elt < Dynarr_length (formatted_string_extent_dynarr);
 	   elt++)

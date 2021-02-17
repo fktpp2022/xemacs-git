@@ -3450,9 +3450,9 @@ signaled.
             {
               memcpy (XSTRING_DATA (replacement), byte_staging,
                       byte_staging_ptr - byte_staging);
-              init_string_ascii_begin (replacement);
+              init_string_ascii_end (replacement);
               bump_string_modiff (replacement);
-              sledgehammer_check_ascii_begin (replacement);
+              sledgehammer_check_ascii_end (replacement);
             }
           else
             {

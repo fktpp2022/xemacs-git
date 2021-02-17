@@ -1,3 +1,39 @@
+2021-02-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Rename the ascii_begin string field to ascii_end, given that it
+	reflects the *end* of the stretch of ASCII octets at the beginning
+	of the string.
+
+	* alloc.c:
+	* alloc.c (sledgehammer_check_ascii_end):
+	* alloc.c (make_uninit_string):
+	* alloc.c (set_string_char):
+	* alloc.c (Fmake_string):
+	* alloc.c (init_string_ascii_end):
+	* alloc.c (make_string):
+	* alloc.c (make_string_nocopy):
+	* buffer.c (Fstring_char_byte_converion_info):
+	* data.c (Faref):
+	* data.c (build_fixnum_to_char_maps):
+	* event-stream.c (echo_key_event):
+	* event-stream.c (lookup_command_event):
+	* insdel.c (make_string_from_buffer_1):
+	* lisp.h:
+	* lisp.h (NUM_ASCII_END_BITS):
+	* lisp.h (struct Lisp_String):
+	Update and correct the description of ascii_end.
+	* lisp.h (MAX_STRING_ASCII_END):
+	* lisp.h (XSTRING_ASCII_END):
+	* redisplay.c (generate_formatted_string_db):
+	* sequence.c (position):
+	* sequence.c (Fnreverse):
+	* sequence.c (FsortX):
+	* sequence.c (Fclear_string):
+	* sequence.c (concatenate):
+	* sequence.c (replace_string_range_1):
+	* text.h:
+	* text.h (SLEDGEHAMMER_CHECK_ASCII_END):
+
 2021-02-15  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* search.c (Fmatch_string):

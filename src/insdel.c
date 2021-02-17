@@ -1713,8 +1713,8 @@ make_string_from_buffer_1 (struct buffer *buf, Bytebpos bytepos,
     add_string_extents (val, buf, bytepos, bytelen);
   copy_buffer_text_out (buf, bytepos, bytelen, XSTRING_DATA (val), needed,
 			FORMAT_DEFAULT, Qnil, NULL);
-  init_string_ascii_begin (val);
-  sledgehammer_check_ascii_begin (val);
+  init_string_ascii_end (val);
+  sledgehammer_check_ascii_end (val);
 
   UNGCPRO;
   return val;

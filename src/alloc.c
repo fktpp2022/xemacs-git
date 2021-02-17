@@ -2944,9 +2944,9 @@ allocate_string_chars_struct (Lisp_Object string_it_goes_with,
 }
 #endif /* not NEW_GC */
 
-#ifdef SLEDGEHAMMER_CHECK_ASCII_BEGIN
+#ifdef SLEDGEHAMMER_CHECK_ASCII_END
 void
-sledgehammer_check_ascii_begin (Lisp_Object str)
+sledgehammer_check_ascii_end (Lisp_Object str)
 {
   Bytecount i;
 
@@ -2956,15 +2956,15 @@ sledgehammer_check_ascii_begin (Lisp_Object str)
 	break;
     }
 
-  assert (i == (Bytecount) XSTRING_ASCII_BEGIN (str) ||
-	  (i > MAX_STRING_ASCII_BEGIN &&
-	   (Bytecount) XSTRING_ASCII_BEGIN (str) ==
-	   (Bytecount) MAX_STRING_ASCII_BEGIN));
+  assert (i == (Bytecount) XSTRING_ASCII_END (str) ||
+	  (i > MAX_STRING_ASCII_END &&
+	   (Bytecount) XSTRING_ASCII_END (str) ==
+	   (Bytecount) MAX_STRING_ASCII_END));
 }
 #endif
 
 /* You do NOT want to be calling this! (And if you do, you must call
-   XSET_STRING_ASCII_BEGIN() after modifying the string.) Use ALLOCA ()
+   XSET_STRING_ASCII_END() after modifying the string.) Use ALLOCA ()
    instead and then call make_string() like the rest of the world. */
 
 Lisp_Object
@@ -2987,7 +2987,7 @@ make_uninit_string (Bytecount length)
 
   /* The above allocations set the UID field, which overlaps with the
      ascii-length field, to some non-zero value.  We need to zero it. */
-  XSET_STRING_ASCII_BEGIN (wrap_string (s), 0);
+  XSET_STRING_ASCII_END (wrap_string (s), 0);
 
   /* They also override the MODIFFP flag. */
   XCLEAR_STRING_MODIFFP (wrap_string (s));
@@ -3193,9 +3193,9 @@ set_string_char (Lisp_Object ss, Charcount idx, Ichar cc)
 {
   Ibyte newstr[MAX_ICHAR_LEN], *data = XSTRING_DATA (ss);
   Bytecount newlen, oldlen, bytoff;
-  Charcount ii = XSTRING_ASCII_BEGIN (ss);
+  Charcount ii = XSTRING_ASCII_END (ss);
 
-  sledgehammer_check_ascii_begin (ss);
+  sledgehammer_check_ascii_end (ss);
 
   if (idx < ii)
     {
@@ -3233,12 +3233,10 @@ set_string_char (Lisp_Object ss, Charcount idx, Ichar cc)
   memcpy (data, newstr, (size_t) newlen);
   if (oldlen != newlen) 
     {
-      if (newlen > 1 && idx < (Charcount) XSTRING_ASCII_BEGIN (ss))
-      /* Everything starting with the new char is no longer part of
-	 ascii_begin */
-	XSET_STRING_ASCII_BEGIN (ss, idx);
-      else if (newlen == 1 && idx == (Charcount) XSTRING_ASCII_BEGIN (ss))
-	/* We've extended ascii_begin, and we have to figure out how much by */
+      if (newlen > 1 && idx < (Charcount) XSTRING_ASCII_END (ss))
+	XSET_STRING_ASCII_END (ss, idx);
+      else if (newlen == 1 && idx == (Charcount) XSTRING_ASCII_END (ss))
+	/* We've extended ascii_end, and we have to figure out how much by */
 	{
 	  Bytecount jj;
 	  for (jj = (Bytecount) idx + 1; jj < XSTRING_LENGTH (ss); jj++)
@@ -3246,10 +3244,10 @@ set_string_char (Lisp_Object ss, Charcount idx, Ichar cc)
 	      if (!byte_ascii_p (XSTRING_DATA (ss)[jj]))
 		break;
 	    }
-	  XSET_STRING_ASCII_BEGIN (ss, jj);
+	  XSET_STRING_ASCII_END (ss, jj);
 	}
     }
-  sledgehammer_check_ascii_begin (ss);
+  sledgehammer_check_ascii_end (ss);
 }
 
 DEFUN ("make-string", Fmake_string, 2, 2, 0, /*
@@ -3277,7 +3275,7 @@ See the variable `string-total-size-limit' for restrictions on LENGTH.
       val = make_uninit_string (XFIXNUM (length));
       memset (XSTRING_DATA (val), XCHAR (character),
 	      (size_t) XSTRING_LENGTH (val));
-      XSET_STRING_ASCII_BEGIN (val, XSTRING_LENGTH (val));
+      XSET_STRING_ASCII_END (val, XSTRING_LENGTH (val));
     }
   else if (FIXNUMP (length) && XREALFIXNUM (length) >= 0)
     {
@@ -3337,7 +3335,7 @@ See the variable `string-total-size-limit' for restrictions on LENGTH.
       return Qnil;
     }
 
-  sledgehammer_check_ascii_begin (val);
+  sledgehammer_check_ascii_end (val);
   return val;
 }
 
@@ -3391,10 +3389,10 @@ of the string are changed (e.g. with `aset').  It wraps around occasionally.
   return Qzero;
 }
 
-/* Initialize the ascii_begin member of a string to the correct value. */
+/* Initialize the ascii_end member of a string to the correct value. */
 
 void
-init_string_ascii_begin (Lisp_Object string)
+init_string_ascii_end (Lisp_Object string)
 {
 #ifdef MULE
   int i;
@@ -3406,11 +3404,11 @@ init_string_ascii_begin (Lisp_Object string)
       if (!byte_ascii_p (contents[i]))
 	break;
     }
-  XSET_STRING_ASCII_BEGIN (string, i);
+  XSET_STRING_ASCII_END (string, i);
 #else
-  XSET_STRING_ASCII_BEGIN (string, XSTRING_LENGTH (string));
+  XSET_STRING_ASCII_END (string, XSTRING_LENGTH (string));
 #endif
-  sledgehammer_check_ascii_begin (string);
+  sledgehammer_check_ascii_end (string);
 }
 
 /* Take some raw memory, which MUST already be in internal format,
@@ -3427,8 +3425,8 @@ make_string (const Ibyte *contents, Bytecount length)
 
   val = make_uninit_string (length);
   memcpy (XSTRING_DATA (val), contents, (size_t) length);
-  init_string_ascii_begin (val);
-  sledgehammer_check_ascii_begin (val);  
+  init_string_ascii_end (val);
+  sledgehammer_check_ascii_end (val);  
   return val;
 }
 
@@ -3557,8 +3555,8 @@ make_string_nocopy (const Ibyte *contents, Bytecount length)
   set_lheader_implementation (&s->u.lheader, &lrecord_string);
   SET_C_READONLY_RECORD_HEADER (&s->u.lheader);
 #endif /* not NEW_GC */
-  /* Don't need to XSET_STRING_ASCII_BEGIN() here because it happens in
-     init_string_ascii_begin(). */
+  /* Don't need to XSET_STRING_ASCII_END() here because it happens in
+     init_string_ascii_end(). */
   s->plist = Qnil;
 #ifdef NEW_GC
   set_lispstringp_indirect (s);
@@ -3570,8 +3568,8 @@ make_string_nocopy (const Ibyte *contents, Bytecount length)
   set_lispstringp_length (s, length);
 #endif /* not NEW_GC */
   val = wrap_string (s);
-  init_string_ascii_begin (val);
-  sledgehammer_check_ascii_begin (val);
+  init_string_ascii_end (val);
+  sledgehammer_check_ascii_end (val);
 
   return val;
 }

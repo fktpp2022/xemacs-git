@@ -675,9 +675,9 @@ echo_key_event (struct command_builder *command_builder,
 
   write_ascstring (stream, " - ");
 
-  init_string_ascii_begin (command_builder->echo_buf);
+  init_string_ascii_end (command_builder->echo_buf);
   bump_string_modiff (command_builder->echo_buf);
-  sledgehammer_check_ascii_begin (command_builder->echo_buf);
+  sledgehammer_check_ascii_end (command_builder->echo_buf);
 
   command_builder->echo_buf_end
     = buf_fill_pointer + len + qxestrlen ((const Ibyte *) " - ");
@@ -4179,9 +4179,9 @@ lookup_command_event (struct command_builder *command_builder,
                     copy_string_extents (command_builder->echo_buf, prompt,
                                          buf_fill_pointer, 0, len);
 
-                    init_string_ascii_begin (command_builder->echo_buf);
+                    init_string_ascii_end (command_builder->echo_buf);
                     bump_string_modiff (command_builder->echo_buf);
-                    sledgehammer_check_ascii_begin (command_builder->echo_buf);
+                    sledgehammer_check_ascii_end (command_builder->echo_buf);
 
                     /* Show the keymap prompt, but don't adjust the fill
                        pointer to reflect it. */

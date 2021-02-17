@@ -2018,13 +2018,13 @@ set_string_byte(Lisp_Object s, Bytecount i, Ibyte c)
 #define string_ichar(s, i) itext_ichar (string_char_addr (s, i))
 
 #ifdef ERROR_CHECK_TEXT
-#define SLEDGEHAMMER_CHECK_ASCII_BEGIN
+#define SLEDGEHAMMER_CHECK_ASCII_END
 #endif
 
-#ifdef SLEDGEHAMMER_CHECK_ASCII_BEGIN
-void sledgehammer_check_ascii_begin (Lisp_Object str);
+#ifdef SLEDGEHAMMER_CHECK_ASCII_END
+void sledgehammer_check_ascii_end (Lisp_Object str);
 #else
-#define sledgehammer_check_ascii_begin(str)
+#define sledgehammer_check_ascii_end(str)
 #endif
 
 /* Make an alloca'd copy of a Lisp string */
@@ -2047,14 +2047,14 @@ string_index_byte_to_char (Lisp_Object s, Bytecount idx)
   Charcount retval;
   ASSERT_VALID_BYTE_STRING_INDEX_UNSAFE (s, idx);
 #ifdef MULE
-  if (idx <= (Bytecount) XSTRING_ASCII_BEGIN (s))
+  if (idx <= (Bytecount) XSTRING_ASCII_END (s))
     retval = (Charcount) idx;
   else
-    retval = (XSTRING_ASCII_BEGIN (s) +
+    retval = (XSTRING_ASCII_END (s) +
 	      bytecount_to_charcount (XSTRING_DATA (s) +
-				      XSTRING_ASCII_BEGIN (s),
-				      idx - XSTRING_ASCII_BEGIN (s)));
-# ifdef SLEDGEHAMMER_CHECK_ASCII_BEGIN
+				      XSTRING_ASCII_END (s),
+				      idx - XSTRING_ASCII_END (s)));
+# ifdef SLEDGEHAMMER_CHECK_ASCII_END
   assert (retval == bytecount_to_charcount (XSTRING_DATA (s), idx));
 # endif
 #else
@@ -2074,14 +2074,14 @@ string_index_char_to_byte (Lisp_Object s, Charcount idx)
   Bytecount retval;
   ASSERT_VALID_CHAR_STRING_INDEX_UNSAFE (s, idx);
 #ifdef MULE
-  if (idx <= (Charcount) XSTRING_ASCII_BEGIN (s))
+  if (idx <= (Charcount) XSTRING_ASCII_END (s))
     retval = (Bytecount) idx;
   else
-    retval = (XSTRING_ASCII_BEGIN (s) +
+    retval = (XSTRING_ASCII_END (s) +
 	      charcount_to_bytecount (XSTRING_DATA (s) +
-				      XSTRING_ASCII_BEGIN (s),
-				      idx - XSTRING_ASCII_BEGIN (s)));
-# ifdef SLEDGEHAMMER_CHECK_ASCII_BEGIN
+				      XSTRING_ASCII_END (s),
+				      idx - XSTRING_ASCII_END (s)));
+# ifdef SLEDGEHAMMER_CHECK_ASCII_END
   assert (retval == charcount_to_bytecount (XSTRING_DATA (s), idx));
 # endif
 #else
@@ -2102,16 +2102,16 @@ string_offset_byte_to_char_len (Lisp_Object s, Bytecount off, Bytecount len)
   ASSERT_VALID_BYTE_STRING_INDEX_UNSAFE (s, off);
   ASSERT_VALID_BYTE_STRING_INDEX_UNSAFE (s, off + len);
 #ifdef MULE
-  if (off + len <= (Bytecount) XSTRING_ASCII_BEGIN (s))
+  if (off + len <= (Bytecount) XSTRING_ASCII_END (s))
     retval = (Charcount) len;
-  else if (off < (Bytecount) XSTRING_ASCII_BEGIN (s))
+  else if (off < (Bytecount) XSTRING_ASCII_END (s))
     retval =
-      XSTRING_ASCII_BEGIN (s) - (Charcount) off +
-	bytecount_to_charcount (XSTRING_DATA (s) + XSTRING_ASCII_BEGIN (s),
-				len - (XSTRING_ASCII_BEGIN (s) - off));
+      XSTRING_ASCII_END (s) - (Charcount) off +
+	bytecount_to_charcount (XSTRING_DATA (s) + XSTRING_ASCII_END (s),
+				len - (XSTRING_ASCII_END (s) - off));
   else
     retval = bytecount_to_charcount (XSTRING_DATA (s) + off, len);
-# ifdef SLEDGEHAMMER_CHECK_ASCII_BEGIN
+# ifdef SLEDGEHAMMER_CHECK_ASCII_END
   assert (retval == bytecount_to_charcount (XSTRING_DATA (s) + off, len));
 # endif
 #else
@@ -2132,17 +2132,17 @@ string_offset_char_to_byte_len (Lisp_Object s, Bytecount off, Charcount len)
 #ifdef MULE
   /* casts to avoid errors from combining Bytecount/Charcount and warnings
      from signed/unsigned comparisons */
-  if (off + (Bytecount) len <= (Bytecount) XSTRING_ASCII_BEGIN (s))
+  if (off + (Bytecount) len <= (Bytecount) XSTRING_ASCII_END (s))
     retval = (Bytecount) len;
-  else if (off < (Bytecount) XSTRING_ASCII_BEGIN (s))
+  else if (off < (Bytecount) XSTRING_ASCII_END (s))
     retval =
-      XSTRING_ASCII_BEGIN (s) - off +
-	charcount_to_bytecount (XSTRING_DATA (s) + XSTRING_ASCII_BEGIN (s),
-				len - (XSTRING_ASCII_BEGIN (s) -
+      XSTRING_ASCII_END (s) - off +
+	charcount_to_bytecount (XSTRING_DATA (s) + XSTRING_ASCII_END (s),
+				len - (XSTRING_ASCII_END (s) -
 				       (Charcount) off));
   else
     retval = charcount_to_bytecount (XSTRING_DATA (s) + off, len);
-# ifdef SLEDGEHAMMER_CHECK_ASCII_BEGIN
+# ifdef SLEDGEHAMMER_CHECK_ASCII_END
   assert (retval == charcount_to_bytecount (XSTRING_DATA (s) + off, len));
 # endif
 #else

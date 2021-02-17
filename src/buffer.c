@@ -1986,7 +1986,7 @@ The values returned are in the form of a plist of properties and values.
 
   plist = cons3 (make_fixnum (XSTRING_LENGTH (string)),
 		 intern ("byte-length"), plist);
-  plist = cons3 (make_fixnum (XSTRING_ASCII_BEGIN (string)),
+  plist = cons3 (make_fixnum (XSTRING_ASCII_END (string)),
 		 intern ("ascii-begin"), plist);
 
   return Fnreverse (plist);

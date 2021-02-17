@@ -594,9 +594,9 @@ ARRAY may be a vector, bit vector, or string.  INDEX starts at 0.
   else if (STRINGP (array))
     {
       const Ibyte *data = XSTRING_DATA (array);
-      Charcount ii = XSTRING_ASCII_BEGIN (array);
+      Charcount ii = XSTRING_ASCII_END (array);
 
-      sledgehammer_check_ascii_begin (array);
+      sledgehammer_check_ascii_end (array);
 
       if (idx < ii)
         {
@@ -1377,9 +1377,9 @@ build_fixnum_to_char_maps (Lisp_Object radix_table)
                               XCHAR (XVECTOR_DATA (cctable)[ii]));
     }
 
-  init_string_ascii_begin (majuscule);
+  init_string_ascii_end (majuscule);
   bump_string_modiff (majuscule);
-  sledgehammer_check_ascii_begin (majuscule);
+  sledgehammer_check_ascii_end (majuscule);
 
   map_char_table (radix_table, &ctr, fill_minuscule_char_vector,
                   STORE_LISP_IN_VOID (cctable));
@@ -1391,9 +1391,9 @@ build_fixnum_to_char_maps (Lisp_Object radix_table)
       (void) set_itext_ichar (data + (MAX_ICHAR_LEN * ii),
                               XCHAR (XVECTOR_DATA (cctable)[ii]));
     }
-  init_string_ascii_begin (minuscule);
+  init_string_ascii_end (minuscule);
   bump_string_modiff (minuscule);
-  sledgehammer_check_ascii_begin (minuscule);
+  sledgehammer_check_ascii_end (minuscule);
 
   XWEAK_LIST_LIST (Vdigit_fixnum_calculated_data) =
     Fcons (list4 (radix_table, make_fixnum (cclen), majuscule, minuscule),
