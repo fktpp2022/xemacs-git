@@ -1,5 +1,16 @@
 2021-02-18  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Attempt to address an assertion failure Stephen Turnbull is
+	seeing, thank you Stephen.
+
+	* search.c (store_match_data_fixnums):
+	Be careful that the first of the saved fixnums is less than the
+	second.
+	* search.c (store_match_data_markers):
+	Ditto.
+
+2021-02-18  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* search.c (Freplace_match):
 	Correct the call to discard extent info when dumping, code dealing
 	with case escapes.

@@ -3967,14 +3967,31 @@ store_match_data_fixnums (Lisp_Object list,
       if (FIXNUMP (elt) && CONSP (XCDR (tail))
           && FIXNUMP (XCAR (XCDR (tail))))
         {
-          if (XREALFIXNUM (elt) < 0)
+	  Lisp_Object elt0 = elt;
+	  Lisp_Object elt1 = XCAR (XCDR (tail));
+	  Lisp_Object swap = elt0;
+
+	  if (XREALFIXNUM (elt0) < XREALFIXNUM (elt1))
+	    {
+	      elt0 = elt1;
+	      elt1 = swap;
+	    }
+
+          if (XREALFIXNUM (elt0) < 0)
             {
-              /* This has always worked as a way to indicate no match. */
+	      /* The start of a match being negative has always been a way
+		 to indicate no match. 
+
+		 The code above to force whichever value is less to come
+		 first means that this is an incompatibility with the old
+		 code and with GNU, which are happy to store negative end
+		 positions but transform negative start positions to
+		 Qnil. */
               staging[ii] = Qnil;
             }
           else
             {
-              staging[ii] = Fcons (elt, XCAR (XCDR (tail)));
+	      staging[ii] = Fcons (elt0, elt1);
             }
           tail = XCDR (tail);
         }
@@ -4023,8 +4040,18 @@ store_match_data_markers (Lisp_Object list,
               sferror_2 ("Distinct search objects in match data",
                          obj, Fmarker_buffer (XCAR (XCDR (tail))));
             }
-          /* Don't create the extent just yet. */
-          staging[ii] = Fcons (elt, XCAR (XCDR (tail)));
+
+	  /* Don't create the extent just yet. */
+	  if (marker_byte_position (elt)
+	      <= marker_byte_position ((XCAR (XCDR (tail)))))
+	    {
+	      staging[ii] = Fcons (elt, XCAR (XCDR (tail)));
+	    }
+	  else
+	    {
+	      staging[ii] = Fcons (XCAR (XCDR (tail)), elt);
+	    }
+
           tail = XCDR (tail);
         }
       else if (NILP (elt) && CONSP (XCDR (tail)) && NILP (XCAR (XCDR (tail))))
