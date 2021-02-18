@@ -1,3 +1,9 @@
+2021-02-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* search.c (Freplace_match):
+	Correct the call to discard extent info when dumping, code dealing
+	with case escapes.
+
 2021-02-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Rename the ascii_begin string field to ascii_end, given that it

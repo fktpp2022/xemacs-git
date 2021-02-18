@@ -3414,7 +3414,8 @@ signaled.
               Fdelete_extent (escape_extent);
               if (i == case_escapes_seen && purify_flag)
                 {
-                  XSTRING_PLIST (replacement) = Fcdr (replacement);
+                  XSTRING_PLIST (replacement)
+		    = Fcdr (XSTRING_PLIST (replacement));
                 }
             }
           if (newchar == -1)
