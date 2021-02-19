@@ -1,3 +1,8 @@
+2021-02-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* search.c (store_match_data_fixnums):
+	Correct a sign error in my last change.
+
 2021-02-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Attempt to address an assertion failure Stephen Turnbull is

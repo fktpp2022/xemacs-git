@@ -3971,7 +3971,7 @@ store_match_data_fixnums (Lisp_Object list,
 	  Lisp_Object elt1 = XCAR (XCDR (tail));
 	  Lisp_Object swap = elt0;
 
-	  if (XREALFIXNUM (elt0) < XREALFIXNUM (elt1))
+	  if (XREALFIXNUM (elt0) > XREALFIXNUM (elt1))
 	    {
 	      elt0 = elt1;
 	      elt1 = swap;
