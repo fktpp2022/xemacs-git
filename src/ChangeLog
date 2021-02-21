@@ -1,3 +1,11 @@
+2021-02-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* search.c (Freplace_match):
+	Update some comments here.
+	Don't attempt to access the saved buffer context if match zero is
+	not an extent.
+	Be more careful about which syntax table to use.
+
 2021-02-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* search.c (store_match_data_fixnums):

@@ -2951,7 +2951,8 @@ signaled.
      nil      nil         none     0 = index of subexpression to replace
      nil      integer     none     index of subexpression to replace
      nil      other       ***** error *****
-     string   nil         source   current buffer provides syntax table
+     string   nil         source   buffer saved at match time (as a property
+                                   of match zero) provides syntax table.
                                    subexpression = 0 (whole match)
      string   buffer      source   buffer provides syntax table
                                    subexpression = 0 (whole match)
@@ -2988,7 +2989,6 @@ signaled.
 
   match_context_buffer = wrap_buffer (match_context_buf);
 
-  syntax_table = BUFFER_MIRROR_SYNTAX_TABLE (match_context_buf);
   case_action = nochange;	/* We tried an initialization */
 				/* but some C compilers blew it */
 
@@ -3002,53 +3002,57 @@ signaled.
   if (!NILP (string))
     {
       CHECK_STRING (string);
-      if (EXTENTP (XVECTOR_DATA (XCDR (Vsearch_registers))[0])
-          && !STRINGP (extent_object
-                       (XEXTENT (XVECTOR_DATA
-                                 (XCDR (Vsearch_registers))[0]))))
-        {
-          invalid_argument ("last thing matched was not a string",
-                            extent_object
-                            (XEXTENT (XVECTOR_DATA
-                                      (XCDR (Vsearch_registers))[0])));
-        }
+      if (EXTENTP (XVECTOR_DATA (XCDR (Vsearch_registers))[0]))
+	{
+	  if (!STRINGP (extent_object
+			(XEXTENT (XVECTOR_DATA
+				  (XCDR (Vsearch_registers))[0]))))
+	    {
+	      invalid_argument ("last thing matched was not a string",
+				extent_object
+				(XEXTENT (XVECTOR_DATA
+					  (XCDR (Vsearch_registers)) [0])));
+	    }
 
-      if (!EQ (match_context_buffer,
-               Fextent_property (XVECTOR_DATA (XCDR (Vsearch_registers))[0],
-                                 Qcontext,
-                                 match_context_buffer)))
-        {
-          if (BUFFERP (strbuffer))
-            {
-              warn_when_safe_lispobj
-                (Qsearch, Qerror,
-                 emacs_sprintf_string_lisp
-                 ("Likely bug: #'replace-match called with match context "
-                  "buffer (arg STRBUFFER) %S, match data have a distinct "
-                  "match context buffer %S", strbuffer,
-                  Fextent_property (XVECTOR_DATA (XCDR (Vsearch_registers))[0],
-                                    Qcontext,
-                                    match_context_buffer)));
-              /* For better compatibility, do the wrong thing. */
-            }
-          else
-            {
-              match_context_buffer
-                = Fextent_property (XVECTOR_DATA (XCDR
-                                                  (Vsearch_registers))[0],
-                                    Qcontext, match_context_buffer);
-              if (BUFFERP (match_context_buffer)
-                  && BUFFER_LIVE_P (XBUFFER (match_context_buffer)))
-                {
-                  match_context_buf = XBUFFER (match_context_buffer);
-                }
-              else
-                {
-                  match_context_buffer = wrap_buffer (current_buffer);
-                  match_context_buf = current_buffer;
-                }
-            }
-        }
+	  if (!EQ (match_context_buffer,
+		   Fextent_property (XVECTOR_DATA
+				     (XCDR (Vsearch_registers))[0],
+				     Qcontext,
+				     match_context_buffer)))
+	    {
+	      if (BUFFERP (strbuffer))
+		{
+		  warn_when_safe_lispobj
+		    (Qsearch, Qerror,
+		     emacs_sprintf_string_lisp
+		     ("Likely bug: #'replace-match called with match context "
+		      "buffer (arg STRBUFFER) %S, match data have a distinct "
+		      "match context buffer %S", strbuffer,
+		      Fextent_property (XVECTOR_DATA (XCDR
+						      (Vsearch_registers))[0],
+					Qcontext,
+					match_context_buffer)));
+		  /* For better compatibility, do the wrong thing. */
+		}
+	      else
+		{
+		  match_context_buffer
+		    = Fextent_property (XVECTOR_DATA (XCDR
+						      (Vsearch_registers))[0],
+					Qcontext, match_context_buffer);
+		  if (BUFFERP (match_context_buffer)
+		      && BUFFER_LIVE_P (XBUFFER (match_context_buffer)))
+		    {
+		      match_context_buf = XBUFFER (match_context_buffer);
+		    }
+		  else
+		    {
+		      match_context_buffer = wrap_buffer (current_buffer);
+		      match_context_buf = current_buffer;
+		    }
+		}
+	    }
+	}
       canonicalize_lisp_search_registers_for_replace (string);
     }
   else
@@ -3068,6 +3072,8 @@ signaled.
       buf = XBUFFER (buffer);
       canonicalize_lisp_search_registers_for_replace (buffer);
     }
+
+  syntax_table = BUFFER_MIRROR_SYNTAX_TABLE (match_context_buf);
 
   registers_vector = XCDR (Vsearch_registers);
 
