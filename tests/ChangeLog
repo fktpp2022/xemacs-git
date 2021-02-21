@@ -1,3 +1,12 @@
+2021-02-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/regexp-tests.el:
+	Test #'replace-match when the stored match data has its start and
+	end positions reversed, as Stephen describes happens for him and
+	as would have worked without problems in the previous
+	implementation, since #'substring, #'buffer-substring are not
+	strict about the order of the arguments they return.
+
 2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/regexp-tests.el (text1):

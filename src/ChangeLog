@@ -1,5 +1,12 @@
 2021-02-21  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* search.c (store_match_data_fixnums):
+	* search.c (store_match_data_markers):
+	Warn on encountering badly-ordered match end positions in both
+	these functions, they may well reflect corrupt saved match data.
+
+2021-02-21  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* search.c (Freplace_match):
 	Update some comments here.
 	Don't attempt to access the saved buffer context if match zero is

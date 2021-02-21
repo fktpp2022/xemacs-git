@@ -741,6 +741,26 @@ vento")
               "checking string case transforms with backslash escapes, \
 #'replace-match"))))
 
+(symbol-macrolet
+    ((expected-result "Hello, hello, hello, is there anybody in there?"))
+  (let ((log-warning-suppressed-classes
+         (cons 'search log-warning-suppressed-classes))
+        (display-warning-suppressed-classes
+         (cons 'search display-warning-suppressed-classes)))
+    (with-temp-buffer
+      (insert "Hello")
+      (store-match-data (list (point-marker) (point-min-marker)))
+      (insert ", is there anybody in there?")
+      (replace-match "Hello, hello, hello" t)
+      (Assert (equal (buffer-string) expected-result)
+	      "checking badly ordered markers in match data handled OK"))
+
+    (store-match-data (list (length "Hello") 0))
+    (Assert (equal (replace-match "Hello, hello, hello" t t
+				  "Hello, is there anybody in there?")
+		   expected-result)
+	    "checking badly ordered fixnums in match data handled OK")))
+
 ;; Control-1 characters were second-class citizens in regexp ranges
 ;; for a while there.  Addressed in Ben's Mercurial changeset
 ;; 2e15c29cc2b3; attempt to ensure this doesn't happen again.

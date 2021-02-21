@@ -3979,6 +3979,12 @@ store_match_data_fixnums (Lisp_Object list,
 
 	  if (XREALFIXNUM (elt0) > XREALFIXNUM (elt1))
 	    {
+              warn_when_safe_lispobj
+                (Qsearch, Qwarning,
+                 emacs_sprintf_string_lisp ("store-match-data: start fixnum"
+					    " %d greater than end fixnum %d,"
+					    " possible corruption of saved "
+					    "match data", elt0, elt1));
 	      elt0 = elt1;
 	      elt1 = swap;
 	    }
@@ -4055,6 +4061,13 @@ store_match_data_markers (Lisp_Object list,
 	    }
 	  else
 	    {
+              warn_when_safe_lispobj
+                (Qsearch, Qwarning,
+                 emacs_sprintf_string_lisp ("store-match-data: start marker"
+					    " %S greater than end marker %S,"
+					    " possible corruption of saved "
+					    "match data", 
+					    elt, XCAR (XCDR (tail))));
 	      staging[ii] = Fcons (XCAR (XCDR (tail)), elt);
 	    }
 
