@@ -1371,13 +1371,13 @@ gtk_xpm_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
 		!qxestrcasecmp_ascii(color_symbols[i].name, image.colorTable[j].symbolic))
 	      {
 #ifdef HAVE_GTK2
-		emacs_asprintf (&(image.colorTable[j].c_color),
+		emacs_asprintf ((Ibyte **)(&(image.colorTable[j].c_color)),
                                "#%.4x%.4x%.4x",
                                color_symbols[i].color.red,
                                color_symbols[i].color.green,
                                color_symbols[i].color.blue);
 #else
-		emacs_asprintf (&(image.colorTable[j].c_color),
+		emacs_asprintf ((Ibyte **)(&(image.colorTable[j].c_color)),
                                 "#%.4x%.4x%.4x",
                                 (unsigned int)(color_symbols[i].color.red
                                                * 65535),

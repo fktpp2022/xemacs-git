@@ -1,3 +1,11 @@
+2021-02-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Get some of the GTK code compiling with C++.
+	* frame-gtk.c (gtk_recompute_cell_sizes):
+	Cast geometry_mask to a GdkWindowHints.
+	* glyphs-gtk.c (gtk_xpm_instantiate):
+	Cast the first argument to emacs_asprintf() in this function.
+
 2021-02-21  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* search.c (store_match_data_fixnums):

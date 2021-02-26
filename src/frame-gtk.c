@@ -1454,7 +1454,8 @@ gtk_recompute_cell_sizes (struct frame *frm, int *width_incr, int *height_incr)
       default_face_width_and_height (wrap_frame (frm), width_incr, height_incr);
 
       geometry_mask
-        = GDK_HINT_RESIZE_INC | GDK_HINT_MIN_SIZE | GDK_HINT_BASE_SIZE;
+        = (GdkWindowHints)
+        (GDK_HINT_RESIZE_INC | GDK_HINT_MIN_SIZE | GDK_HINT_BASE_SIZE);
       geometry.width_inc = geometry.base_width
         = geometry.min_width = *width_incr;
       geometry.height_inc = geometry.base_height
