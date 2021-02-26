@@ -1063,7 +1063,7 @@ extern "C" {
 #endif
 
 /* Define HAVE_UNIXOID_EVENT_LOOP if we use select() to wait for events. */
-#if defined (HAVE_X_WINDOWS) || defined (HAVE_TTY) || defined (HAVE_MSG_SELECT)
+#if defined (HAVE_X_WINDOWS) || defined (HAVE_TTY) || defined (HAVE_MSG_SELECT) || defined (HAVE_GTK)
 #define HAVE_UNIXOID_EVENT_LOOP
 #endif
 

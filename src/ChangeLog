@@ -1,5 +1,13 @@
 2021-02-26  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* config.h.in:
+	GTK uses select() to wait for events under the hood, #define
+	HAVE_UNIXOID_EVENT_LOOP with it too. This means that
+	init_event_unixoid() will be called at startup, which may improve
+	things with timeouts in GTK.
+
+2021-02-26  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Get some of the GTK code compiling with C++.
 	* frame-gtk.c (gtk_recompute_cell_sizes):
 	Cast geometry_mask to a GdkWindowHints.
