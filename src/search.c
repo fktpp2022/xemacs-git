@@ -59,6 +59,8 @@ Lisp_Object Qsearch_algorithm_used, Qboyer_moore, Qsimple_search;
 Lisp_Object Qcompilation, Qfailure_point, Qmatching;
 #endif
 
+Boolint search_error_on_bad_match_data;
+
 /* If the regexp is non-nil, then the buffer contains the compiled form
    of that regexp, suitable for searching.  */
 struct regexp_cache
@@ -166,6 +168,27 @@ static DOESNT_RETURN
 matcher_overflow ()
 {
   stack_overflow ("Stack overflow in regexp matcher", Qunbound);
+}
+
+static void
+search_warn_or_error (Lisp_Object level, const CIbyte *fmt, ...)
+                              
+{
+  va_list va;
+  Lisp_Object obj;
+
+  va_start (va, fmt);
+  obj = emacs_vsprintf_string_lisp (fmt, va);
+  va_end (va);
+
+  if (search_error_on_bad_match_data)
+    {
+      signal_error_1 (Qinvalid_state, list1 (obj));
+    }
+  else
+    {
+      warn_when_safe_lispobj (Qsearch, level, obj);
+    }
 }
 
 /* Compile a regexp and signal a Lisp error if anything goes wrong.
@@ -442,13 +465,13 @@ canonicalize_lisp_search_registers_for_replace (Lisp_Object match_obj)
                 }
               else
                 {
-                  warn_when_safe_lispobj
-                    (Qsearch, Qerror,
-                     emacs_sprintf_string_lisp
-                     ("Likely bug: #'replace-match asked to operate on %S, "
-                      "match data reflect %S, which is distinct", match_obj,
-                      extent_object (XEXTENT
-                                     (XVECTOR_DATA (registers)[jj]))));
+                  search_warn_or_error (Qerror,
+                                        "Likely bug: #'replace-match asked to"
+                                        " operate on %S, match data reflect "
+                                        "%S, which is distinct", match_obj,
+                                        extent_object (XEXTENT
+                                                       (XVECTOR_DATA
+                                                        (registers)[jj])));
                 }
 
               /* This is brutal from a byte-char perspective, but will be
@@ -3022,16 +3045,15 @@ signaled.
 	    {
 	      if (BUFFERP (strbuffer))
 		{
-		  warn_when_safe_lispobj
-		    (Qsearch, Qerror,
-		     emacs_sprintf_string_lisp
-		     ("Likely bug: #'replace-match called with match context "
-		      "buffer (arg STRBUFFER) %S, match data have a distinct "
-		      "match context buffer %S", strbuffer,
-		      Fextent_property (XVECTOR_DATA (XCDR
-						      (Vsearch_registers))[0],
-					Qcontext,
-					match_context_buffer)));
+		  search_warn_or_error
+		    (Qerror,
+		     "Likely bug: #'replace-match called with match context "
+                     "buffer (arg STRBUFFER) %S, match data have a distinct "
+                     "match context buffer %S", strbuffer,
+                     Fextent_property (XVECTOR_DATA (XCDR
+                                                     (Vsearch_registers))[0],
+                                       Qcontext,
+                                       match_context_buffer));
 		  /* For better compatibility, do the wrong thing. */
 		}
 	      else
@@ -3545,19 +3567,13 @@ match_limit (Lisp_Object num, Boolint beginningp)
       if (BUFFERP (extent_object) &&
           !EQ (extent_object, wrap_buffer (current_buffer)))
         {
-          warn_when_safe_lispobj
-            (Qsearch, Qerror,
-             beginningp ?
-             emacs_sprintf_string_lisp ("Likely bug: (match-beginning %d) "
-                                        "called with current buffer %S, "
-                                        "match data reflect buffer %S",
-                                        num, wrap_buffer (current_buffer),
-                                        extent_object)
-             : emacs_sprintf_string_lisp ("Likely bug: (match-end %d) called"
-                                          "with current buffer %S, match "
-                                          "data reflect buffer %S",
-                                          num, wrap_buffer (current_buffer),
-                                          extent_object));
+          search_warn_or_error
+            (Qerror,
+             beginningp ? "Likely bug: (match-beginning %d) called with "
+             "current buffer %S, match data reflect buffer %S"
+             : "Likely bug: (match-end %d) called with current buffer %S, "
+             "match data reflect buffer %S",
+             num, wrap_buffer (current_buffer), extent_object);
         }
 
 
@@ -3661,13 +3677,11 @@ performant across implementations is `save-match-data', which see.
             }
           else
             {
-              warn_when_safe_lispobj
-                (Qsearch, Qerror,
-                 emacs_sprintf_string_lisp ("Likely bug: (match-string %d) "
-                                            "called with current buffer %S"
-                                            " match data reflect buffer %S",
-                                            num, wrap_buffer (current_buffer),
-                                            extent_object));
+              search_warn_or_error
+                (Qerror,
+                 "Likely bug: (match-string %d) called with current buffer "
+                 "%S match data reflect buffer %S", num,
+                 wrap_buffer (current_buffer), extent_object);
               /* Give the wrong result, and the byte->char hit, for
                  compatibility's sake. */
               return Fbuffer_substring (Fextent_start_position (obj, Qnil),
@@ -3686,13 +3700,11 @@ performant across implementations is `save-match-data', which see.
             }
           else if (NILP (string))
             {
-              warn_when_safe_lispobj
-                (Qsearch, Qinfo,
-                 emacs_sprintf_string_lisp ("(match-string %d ...) called with"
-                                            " nil STRING, match data reflect "
-                                            "string `%s', this code will not "
-                                            "work on GNU or old XEmacs",
-                                            num, extent_object));
+              search_warn_or_error
+                (Qinfo,
+                 "(match-string %d ...) called with nil STRING, match data "
+                 "reflect string `%s', this code will not work on GNU or "
+                 "old XEmacs", num, extent_object);
               return make_string (XSTRING_DATA (extent_object) + 
                                   extent_endpoint_byte (XEXTENT (obj), 0),
                                   extent_endpoint_byte (XEXTENT (obj), 1) -
@@ -3702,13 +3714,11 @@ performant across implementations is `save-match-data', which see.
             {
 	      if (!internal_equal (string, extent_object, 0))
 		{
-		  warn_when_safe_lispobj
-		    (Qsearch, Qerror,
-		     emacs_sprintf_string_lisp ("Likely bug: (match-string %d "
-						"STRING) called with STRING %S"
-						", match data reflect distinct"
-						" string %S",
-						num, string, extent_object));
+		  search_warn_or_error
+		    (Qerror,
+                     "Likely bug: (match-string %d STRING) called with "
+                     "STRING %S, match data reflect distinct string %S",
+                     num, string, extent_object);
 		}
               return Fsubseq (string,
                               Fextent_start_position (obj, Qnil),
@@ -3979,12 +3989,10 @@ store_match_data_fixnums (Lisp_Object list,
 
 	  if (XREALFIXNUM (elt0) > XREALFIXNUM (elt1))
 	    {
-              warn_when_safe_lispobj
-                (Qsearch, Qwarning,
-                 emacs_sprintf_string_lisp ("store-match-data: start fixnum"
-					    " %d greater than end fixnum %d,"
-					    " possible corruption of saved "
-					    "match data", elt0, elt1));
+              search_warn_or_error
+                (Qwarning,
+                 "store-match-data: start fixnum %d greater than end fixnum "
+                 "%d, possible corruption of saved match data", elt0, elt1);
 	      elt0 = elt1;
 	      elt1 = swap;
 	    }
@@ -4061,13 +4069,10 @@ store_match_data_markers (Lisp_Object list,
 	    }
 	  else
 	    {
-              warn_when_safe_lispobj
-                (Qsearch, Qwarning,
-                 emacs_sprintf_string_lisp ("store-match-data: start marker"
-					    " %S greater than end marker %S,"
-					    " possible corruption of saved "
-					    "match data", 
-					    elt, XCAR (XCDR (tail))));
+              search_warn_or_error
+                (Qwarning, "store-match-data: start marker %S greater than "
+                 "end marker %S, possible corruption of saved match data",
+                 elt, XCAR (XCDR (tail)));
 	      staging[ii] = Fcons (XCAR (XCDR (tail)), elt);
 	    }
 
@@ -4442,6 +4447,22 @@ occur and a back reference to one of them is directly followed by a digit.
 
   Vcase_flag_symbol = Fmake_symbol (build_ascstring ("case-flag-symbol"));
   staticpro (&Vcase_flag_symbol);
+
+  DEFVAR_BOOL ("search-error-on-bad-match-data",
+               &search_error_on_bad_match_data /*
+If non-nil, error when encountering match data suggestive of a bug.
+
+This includes `replace-match' receiving a STRING or a current buffer that do
+not reflect those specified when the current match data were generated, when
+`match-beginning', `match-end' or `match-string' are called with a current
+buffer that is distinct from that the saved match data, or when
+`store-match-data' is passed elements that are not appropriately ordered,.
+
+For reasons of compatibility XEmacs normally warns in these situations, and
+continues. This variable prompts it to error instead, which can make it more
+practical to debug any problems; see `debug-on-error'.
+*/ );
+  search_error_on_bad_match_data = 0;
 
 #ifdef DEBUG_XEMACS 
   DEFSYMBOL (Qsearch_algorithm_used);

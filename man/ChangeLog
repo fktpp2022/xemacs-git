@@ -1,3 +1,10 @@
+2021-03-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/searching.texi (Simple Match Data):
+	Document the new search-error-on-bad-match-data variable, which
+	tells the search code to error rather than (more compatibly)
+	warning when it encounters inconsistent match data.
+
 2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lispref/searching.texi (Match Data):

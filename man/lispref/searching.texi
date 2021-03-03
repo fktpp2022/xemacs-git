@@ -1316,6 +1316,13 @@ beginning.  It has the same impact on performance in large buffers as
 does @code{match-beginning}.
 @end defun
 
+@defvar search-error-on-bad-match-data
+If non-nil, when encountering inconsistent match data (e.g. an
+@var{in-string} argument to @code{match-string}, error, rather than
+warning. This can make narrowing down problems easier. @pxref{Error
+Debugging}.
+@end defvar
+
   Here is an example of using the match data, with a comment showing the
 positions within the text:
 
