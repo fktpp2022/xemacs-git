@@ -52,7 +52,7 @@ Especially, make XEmacs crash.
 See reproduce-bugs.el for bug descriptions and bug numbers.
 A debug version of XEmacs may be needed to reproduce some bugs."
   (interactive "nBug Number: ")
-  (funcall (nth 0 (gethash number bug-hashtable))))
+  (funcall (nth 0 (gethash number bug-hash-table))))
 
 (defun describe-bug (number &optional show-code)
   "Describe the bug with index NUMBER in a popup window.
@@ -62,7 +62,7 @@ If optional argument SHOW-CODE is non-nil, also display the reproduction code."
 			((member show-code '(?y ?Y)) t)
 			(t nil)))
   (with-displaying-temp-buffer (format "Bug %d" number)
-    (let ((bug (gethash number bug-hashtable)))
+    (let ((bug (gethash number bug-hash-table)))
       (princ (format "Bug #%d is %s.\n%s\n\n%s"
 		     number
 		     (nth 1 bug)
@@ -86,7 +86,7 @@ Assumes a maximum of 999 bugs and a minimum of 80 column width window."
 						 description)
 				   (match-string 1 description))))
 		       buglist))
-	       bug-hashtable)
+	       bug-hash-table)
       (setq buglist (sort buglist (lambda (b1 b2) (string< b2 b1))))
       (while buglist
 	(let ((bug (pop buglist)))
@@ -95,7 +95,7 @@ Assumes a maximum of 999 bugs and a minimum of 80 column width window."
 
 ;; Database and utilities (internal)
 
-(defvar bug-hashtable (make-hashtable 10)
+(defvar bug-hash-table (make-hash-table)
   "Table of bugs, keyed by bug index number.
 The value is a list (LAMBDA STATUS DOCSTRING), where LAMBDA is a lambda
 expression reproducing the bug, and STATUS and DOCSTRING describe the bug.
@@ -118,8 +118,8 @@ BODY is a sequence of expressions to execute to reproduce the bug."
   (let ((body (if (stringp docstring) body (cons docstring body)))
 	(docstring (if (stringp docstring) docstring "[docstring omitted]")))
     `(puthash ,bug-number
-              '((lambda () ,@body) ,status ,docstring)
-              bug-hashtable)))
+              (cons #'(lambda () ,@body) '(,status ,docstring))
+              bug-hash-table)))
 
 (defconst bug-buffer
   (save-excursion
@@ -167,7 +167,7 @@ Reported: https://bugzilla.redhat.com/show_bug.cgi?id=480845
 Need Mule build with error checking in 21.5.28.
 Fatal error: assertion failed,
 file /Users/steve/Software/XEmacs/alioth/xemacs/src/search.c, line 1487,
-(this_pos) > ((Bytebpos) 1) && this_pos <= ((buf)->text->z + 0)
+\(this_pos) > ((Bytebpos) 1) && this_pos <= ((buf)->text->z + 0)
 Reported: <475B104F.2070807@barco.com>
           <87hcixwkh4.fsf@uwakimon.sk.tsukuba.ac.jp>
 Fixed:    <87hcixwkh4.fsf@uwakimon.sk.tsukuba.ac.jp>"

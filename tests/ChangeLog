@@ -1,3 +1,19 @@
+2021-03-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* reproduce-crashes.el (bug-hashtable): Removed.
+	* reproduce-crashes.el (bug-hash-table): New.
+	In the INITVALUE for this, call #'make-hash-table rather than the
+	obsolete #'make-hashtable.
+	Update the name of the variable for symmetry.
+
+	* reproduce-crashes.el (reproduce-bug):
+	* reproduce-crashes.el (describe-bug):
+	* reproduce-crashes.el (list-bugs):
+	* reproduce-crashes.el (defbug):
+	Use the new name for bug-hash-table in these functions.
+	Allow the byte compiler to compile BODY by quoting a lambda using
+	#'().	
+
 2021-02-21  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/regexp-tests.el:
