@@ -944,7 +944,7 @@ output_display_line (struct window *w, display_line_dynarr *cdla,
  boolean indicating success or failure.
  ****************************************************************************/
 
-#define ADJ_BYTEPOS (rb->bytepos + dl->offset)
+#define ADJ_BYTEPOS (rb->bytepos + dl->offset) /* This can be zero! */
 #define ADJ_ENDPOS (rb->endpos + dl->offset)
 
 Boolint
@@ -992,7 +992,9 @@ redisplay_move_cursor (struct window *w, Bytebpos new_point,
       w->last_point_x[CURRENT_DISP] = x;
       w->last_point_y[CURRENT_DISP] = y;
       /* Not _restricted! */
-      set_marker_byte_position (w->last_point[CURRENT_DISP], ADJ_BYTEPOS,
+      set_marker_byte_position (w->last_point[CURRENT_DISP],
+                                buffer_or_string_clip_to_absolute_byte
+                                (w->buffer, ADJ_BYTEPOS),
                                 w->buffer);
       dl->cursor_elt = x;
       return 1;
@@ -1103,9 +1105,11 @@ redisplay_move_cursor (struct window *w, Bytebpos new_point,
 		  w->last_point_x[CURRENT_DISP] = cur_rb;
 		  w->last_point_y[CURRENT_DISP] = cur_dl;
                   /* Not _restricted! */
-                  set_marker_byte_position (w->last_point[CURRENT_DISP],
-                                            ADJ_BYTEPOS,
-                                            w->buffer);
+                  set_marker_byte_position
+                    (w->last_point[CURRENT_DISP],
+                     buffer_or_string_clip_to_absolute_byte (w->buffer,
+                                                             ADJ_BYTEPOS),
+                     w->buffer);
 		  if (!no_output_end)
 		    {
 		      MAYBE_DEVMETH (d, window_output_end, (w));

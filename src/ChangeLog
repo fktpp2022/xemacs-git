@@ -1,3 +1,12 @@
+2021-03-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* redisplay-output.c (ADJ_BYTEPOS):
+	* redisplay-output.c (redisplay_move_cursor):
+	ADJ_BYTEPOS can sometimes be zero, since runes' byte positions can
+	be initialised to that. Don't trigger an assertion failure within
+	set_marker_byte_position() when that happens. Thank you Stephen
+	Turnbull!
+
 2021-03-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Introduce search-error-on-bad-match-data, easing the debugging of
