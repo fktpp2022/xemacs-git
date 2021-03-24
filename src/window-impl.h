@@ -127,11 +127,6 @@ struct window
   int last_point_x[3];
   int last_point_y[3];
 
-  /* Number of bytes in buffer past bottom of window,
-     as of last redisplay that finished. */
-  /* need one for each set of display structures */
-  Bytecount window_end_pos[3];
-
   /* Set by the extent code when extents in the gutter are changed. */
   int gutter_extent_modiff[4];
 

@@ -2286,11 +2286,9 @@ redisplay_update_line (struct window *w, int first_line, int last_line,
 	    }
 	}
 
-      /* Update the window_end_pos and other settings. */
+      /* Update last_point_x and last_point_y. */
       if (update_values)
 	{
-	  w->window_end_pos[CURRENT_DISP] -= (new_len - old_len);
-
 	  if (Dynarr_atp (ddla, first_line)->cursor_elt != -1)
 	    {
 	      w->last_point_x[CURRENT_DISP] = w->last_point_x[DESIRED_DISP];
@@ -2501,12 +2499,14 @@ redisplay_output_window (struct window *w)
 					need_to_clear_end);
     }
 
-  w->window_end_pos[CURRENT_DISP] = w->window_end_pos[DESIRED_DISP];
   set_marker_byte_position (w->start[CURRENT_DISP],
                             marker_byte_position (w->start[DESIRED_DISP]),
                             w->buffer);
   set_marker_byte_position (w->pointm[CURRENT_DISP],
                             marker_byte_position (w->pointm[DESIRED_DISP]),
+                            w->buffer);
+  set_marker_byte_position (w->end_pos[CURRENT_DISP],
+                            marker_byte_position (w->end_pos[DESIRED_DISP]),
                             w->buffer);
   w->last_modified[CURRENT_DISP] = w->last_modified[DESIRED_DISP];
   w->last_facechange[CURRENT_DISP] = w->last_facechange[DESIRED_DISP];

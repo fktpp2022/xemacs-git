@@ -1,3 +1,52 @@
+2021-03-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Move window_end_pos[] to being an array of markers.
+	This avoids problems maintaining byte-char correspondence.
+
+	* redisplay-output.c (redisplay_update_line):
+	No need to update window_end_pos[] here, insdel.c has done that
+	for us.
+	* redisplay-output.c (redisplay_output_window):
+	Copy the byte position of end_pos[DESIRED_DISP] to
+	end_pos[CURRENT_DISP] as appropriate.
+	* redisplay.c (real_current_modeline_height):
+	Set w->end_pos[CMOTION_DISP] as appropriate here.
+	* redisplay.c (regenerate_window):
+	Initial set w->end_pos[type] to start_pos, then, as the display
+	lines are processed, set it to the end of the last line
+	processed.
+	* redisplay.c (point_visible):
+	Use w->end_pos[type].
+	* redisplay.c (redisplay_window):
+	If dealing with the echo area, save the position of
+	w->end_pos[CURRENT_DISP] as we did with w->start[CURRENT_DISP],
+	and restore after calling Lisp.
+	* redisplay.c (decode_mode_spec):
+	Update this to reference w->end_pos[] rather than
+	w->window_end_pos[].
+	* window-impl.h (struct window):
+	Remove the Bytebpos window_end_pos[] elements from here.
+	* winslots.h:
+	Add end_pos as an array of window slots here, ensuring GC
+	protection.
+	* window.c (allocate_window):
+	Init the end_pos slots here.
+	* window.c (Fwindow_end):
+	Use w->end_pos[CURRENT_DISP] here, rather than the end_bytepos of
+	the last entry in the window display lines.
+	* window.c (Fdelete_window):
+	Unchain the end_pos[] markers here.
+	* window.c (Fset_window_buffer):
+	Initialise end_pos[CURRENT_DISP] here.
+	* window.c (temp_output_buffer_show):
+	Ditto.
+	* window.c (make_dummy_parent):
+	Ditto.
+	* window.c (window_displayed_height):
+	Use w->end_pos[] here.
+	* window.c (window_scroll):
+	Ditto.
+
 2021-03-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* redisplay-output.c (ADJ_BYTEPOS):

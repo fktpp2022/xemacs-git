@@ -116,6 +116,10 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
   /* A marker pointing to where in the text to start displaying */
   /* need one for each set of display structures */
   WINDOW_SLOT_ARRAY (start, 3)
+  /* A marker pointing to the last position seen as of last redisplay. We need
+     one for each of the display structures. */
+  WINDOW_SLOT_ARRAY (end_pos, 3)
+
   /* A marker pointing to where in the text point is in this window,
      used only when the window is not selected.
      This exists so that when multiple windows show one buffer

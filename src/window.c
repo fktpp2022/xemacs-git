@@ -420,6 +420,7 @@ allocate_window (void)
 
   INIT_DISP_VARIABLE (start, Fmake_marker ());
   INIT_DISP_VARIABLE (pointm, Fmake_marker ());
+  INIT_DISP_VARIABLE (end_pos, Fmake_marker ());
   p->sb_point = Fmake_marker ();
   p->saved_point_cache = make_saved_buffer_point_cache ();
   p->saved_last_window_start_cache = make_saved_buffer_point_cache ();
@@ -1955,8 +1956,7 @@ e.g. if the window's current buffer has been killed. */
   if (NILP (guarantee))
     {
       struct buffer *b = window_display_buffer (w);
-      display_line_dynarr *dla = window_display_lines (w, CURRENT_DISP);
-      Bytebpos byte_endp = Dynarr_lastp (dla)->end_bytepos;
+      Bytebpos byte_endp = marker_byte_position (w->end_pos[CURRENT_DISP]);
 
       if (BUFFER_LIVE_P (b) && BYTE_BUF_BEG (b) <= byte_endp
           && byte_endp <= BYTE_BUF_Z (b)
@@ -2456,6 +2456,9 @@ will automatically call `save-buffers-kill-emacs'.)
       unchain_marker (w->start[CURRENT_DISP]);
       unchain_marker (w->start[DESIRED_DISP]);
       unchain_marker (w->start[CMOTION_DISP]);
+      unchain_marker (w->end_pos[CURRENT_DISP]);
+      unchain_marker (w->end_pos[DESIRED_DISP]);
+      unchain_marker (w->end_pos[CMOTION_DISP]);
       unchain_marker (w->sb_point);
       w->buffer = Qnil;
     }
@@ -3864,7 +3867,6 @@ global or per-frame buffer ordering.
     }
 
   w->buffer = buffer;
-  w->window_end_pos[CURRENT_DISP] = 0;
   w->hscroll = 0;
   w->modeline_hscroll = 0;
 
@@ -3916,6 +3918,8 @@ global or per-frame buffer ordering.
 
   set_marker_byte_position (w->start[CURRENT_DISP], bstart, buffer);
   set_marker_byte_position (w->sb_point, bstart, buffer); 
+  /* Set this to the window start pending next redisplay. */
+  set_marker_byte_position (w->end_pos[CURRENT_DISP], bstart, buffer);
 
   /* set start_at_line_beg correctly. GE */
   w->start_at_line_beg = byte_beginning_of_line_p (XBUFFER (buffer), bstart);
@@ -4039,6 +4043,7 @@ temp_output_buffer_show (Lisp_Object buf, Lisp_Object same_frame)
       w->hscroll = 0;
       w->modeline_hscroll = 0;
       set_marker_restricted (w->start[CURRENT_DISP], Qone, buf);
+      set_marker_restricted (w->end_pos[CURRENT_DISP], Qone, buf);
       set_marker_restricted (w->pointm[CURRENT_DISP], Qone, buf);
       set_marker_restricted (w->sb_point, Qone, buf);
     }
@@ -4082,6 +4087,9 @@ make_dummy_parent (Lisp_Object window)
   p->start[CURRENT_DISP] = Qnil;
   p->start[DESIRED_DISP] = Qnil;
   p->start[CMOTION_DISP] = Qnil;
+  p->end_pos[CURRENT_DISP] = Qnil;
+  p->end_pos[DESIRED_DISP] = Qnil;
+  p->end_pos[CMOTION_DISP] = Qnil;
   p->pointm[CURRENT_DISP] = Qnil;
   p->pointm[DESIRED_DISP] = Qnil;
   p->pointm[CMOTION_DISP] = Qnil;
@@ -4382,18 +4390,14 @@ window_displayed_height (struct window *w)
   struct buffer *b = XBUFFER (w->buffer);
   display_line_dynarr *dla = window_display_lines (w, CURRENT_DISP);
   int num_lines;
-  Bytebpos end_pos = (BYTE_BUF_Z (b) - w->window_end_pos[CURRENT_DISP]
-                      > BYTE_BUF_ZV (b)
-		       ? -1 : w->window_end_pos[CURRENT_DISP]);
+  Bytebpos end_pos = marker_byte_position (w->end_pos[CURRENT_DISP]);
 
   if (!Dynarr_length (dla))
     return window_char_height (w, 0);
 
   num_lines = Dynarr_length (dla);
 
-  /* #### Document and assert somewhere that w->window_end_pos == -1
-     indicates that end-of-buffer is being displayed. */
-  if (end_pos == -1)
+  if (end_pos >= BYTE_BUF_ZV (b))
     {
       struct display_line *dl = Dynarr_begin (dla);
       int ypos1 = dl->ypos + dl->descent;
@@ -4866,10 +4870,9 @@ window_scroll (Lisp_Object window, Lisp_Object count, int direction,
 	  old_start = marker_byte_position (w->start[CURRENT_DISP]);
 	  startp = vmotion (w, old_start, value, &vtarget);
 
-	  if (vtarget < value &&
-	      (w->window_end_pos[CURRENT_DISP] == -1
-	       || (BYTE_BUF_Z (b) - w->window_end_pos[CURRENT_DISP]
-                   > BYTE_BUF_ZV (b))))
+	  if (vtarget < value
+              && (marker_byte_position (w->end_pos[CURRENT_DISP])
+                  > BYTE_BUF_ZV (b)))
 	    {
 	      maybe_signal_error_1 (Qend_of_buffer, Qnil, Qwindow, errb);
               if (unchain_point)

@@ -4620,6 +4620,8 @@ real_current_modeline_height (struct window *w)
 {
   Fset_marker (w->start[CMOTION_DISP],  w->start[CURRENT_DISP],  w->buffer);
   Fset_marker (w->pointm[CMOTION_DISP], w->pointm[CURRENT_DISP], w->buffer);
+  Fset_marker (w->end_pos[CMOTION_DISP], w->end_pos[CURRENT_DISP],
+               w->buffer);
 
   if (ensure_modeline_generated (w, CMOTION_DISP))
     {
@@ -5572,6 +5574,9 @@ Info on reentrancy crashes, with backtraces given:
 
   set_marker_byte_position (w->start[type], start_pos, w->buffer);
   set_marker_byte_position (w->pointm[type], point, w->buffer);
+  /* Make sure this is always set. */
+  set_marker_byte_position (w->end_pos[type], start_pos, w->buffer);
+
   w->last_point_x[type] = -1;
   w->last_point_y[type] = -1;
 
@@ -5605,9 +5610,6 @@ Info on reentrancy crashes, with backtraces given:
      sure at least one line is always generated */
   force = (type == CMOTION_DISP);
 
-  /* Make sure this is set always */
-  /* Note the conversion at end */
-  w->window_end_pos[type] = start_pos;
   while (ypos < yend || force)
     {
       struct display_line dl;
@@ -5711,8 +5713,8 @@ Info on reentrancy crashes, with backtraces given:
       else
 	ABORT ();
 
-      /* #### This isn't right, but it is close enough for now. */
-      w->window_end_pos[type] = start_pos;
+      set_marker_byte_position (w->end_pos[type], dlp->end_bytepos,
+                                w->buffer);
 
       /* #### This type of check needs to be done down in the
 	 generate_display_line call. */
@@ -5724,48 +5726,6 @@ Info on reentrancy crashes, with backtraces given:
 
   if (prop)
     Dynarr_free (prop);
-
-  /* #### More not quite right, but close enough. */
-  /* Ben sez: apparently window_end_pos[] is measured
-     as the number of bytes between the window end and the
-     end of the buffer?  This seems rather weirdo.  What's
-     the justification for this?
-
-     JV sez: Because BYTE_BUF_Z (b) would be a good initial value, however
-     that can change. This representation allows initalizing with 0.
-
-       I think what Jan is getting at there is that, if, in a given redisplay,
-       we manage to get away with incremental regeneration of the window, that
-       is probably because there have been changes (likely text that has been
-       typed) only in the visible display lines.
-       If WINDOW_END_POS were represented as a Bytebpos, then its value would
-       need to be adjusted with a full redisplay, meaning we would have to do
-       a full redisplay more often.
-
-       Except we already do adjust window_end_pos[] when adjusting lines
-       incrementally, see redisplay_update_line(), and as far as I can see we
-       shouldn't!
-
-       GNU does it the same way as of January 2021, I suspected we just
-       inherited a bad decision from them. Lucid 19.2 certainly followed this
-       approach.
-
-       printer.el complains that #'window-end gives illegitimate buffer
-       positions, and that's a completely reasonable complaint.
-
-       We have a couple of options.
-       1. Make window_end_pos[] into an array of markers.
-       2. Make them into Bytebpos, stop this messing around with subtracting
-       from BYTE_BUF_Z (b).
-       3. Delete them completely, and use the byte_endpos of the last entry in
-       the display line dynarr instead.
-
-       I plan to switch them to markers, more reliably correct, we don't have
-       the byte-char intermittently-O(N) entertainment with markers that we
-       had in 2018 any more, and the memory usage, given the number of windows
-       we will ever have created, will be limited.
-       Aidan Kehoe, Sun Jan 24 17:22:53 GMT 2021 */
-  w->window_end_pos[type] = BYTE_BUF_Z (b) - w->window_end_pos[type];
 
   if (need_modeline)
     {
@@ -6239,12 +6199,9 @@ point_visible (struct window *w, Bytebpos point, int type)
 
   if (Dynarr_length (dla) > first_line)
     {
-      Bytebpos start;
-      Bytebpos end;
       struct display_line *dl = Dynarr_atp (dla, first_line);
-
-      start = dl->bytepos;
-      end = BYTE_BUF_Z (b) - w->window_end_pos[type];
+      Bytebpos start = dl->bytepos + dl->offset;
+      Bytebpos end = marker_byte_position (w->end_pos[type]);
 
       if (point >= start && point < end)
 	{
@@ -6342,8 +6299,7 @@ redisplay_window (Lisp_Object window, int skip_selected)
   struct buffer *b;
   int echo_active = 0;
   Bytebpos startp, pointm;
-  Lisp_Object old_startp = Qnil;
-  Lisp_Object old_pointm = Qnil;
+  Lisp_Object old_startp = Qnil, old_pointm = Qnil, old_endpos = Qnil;
   int selected_in_its_frame;
   int selected_globally;
   int skip_output = 0;
@@ -6465,6 +6421,7 @@ redisplay_window (Lisp_Object window, int skip_selected)
     {
       old_startp = noseeum_copy_marker (w->start[CURRENT_DISP], Qnil);
       startp = BYTE_BUF_BEG (b);
+      old_endpos = noseeum_copy_marker (w->end_pos[CURRENT_DISP], Qnil);
     }
   else
     {
@@ -6680,10 +6637,12 @@ regeneration_done:
       w->buffer = old_buffer;
 
       Fset_marker (w->pointm[DESIRED_DISP], old_pointm, old_buffer);
-      Fset_marker (w->pointm[DESIRED_DISP], old_startp, old_buffer);
+      Fset_marker (w->start[DESIRED_DISP], old_startp, old_buffer);
+      Fset_marker (w->end_pos[DESIRED_DISP], old_endpos, old_buffer);
 
       unchain_marker (old_pointm);
-      unchain_marker (old_startp);      
+      unchain_marker (old_startp);
+      unchain_marker (old_endpos);
     }
 
   /* These also have to be set before calling redisplay_output_window
@@ -6696,12 +6655,7 @@ regeneration_done:
   if (!skip_output)
     {
       Bytebpos start = marker_byte_position (w->start[DESIRED_DISP]);
-      Bytebpos end = (w->window_end_pos[DESIRED_DISP] == -1
-		    ? BYTE_BUF_ZV (b)
-                      /* This value is a bit of a mess, but that's OK, it's
-                         only used to determine a part of the cache to
-                         update. */
-		    : BYTE_BUF_Z (b) - w->window_end_pos[DESIRED_DISP] - 1);
+      Bytebpos end = marker_byte_position (w->end_pos[DESIRED_DISP]);
       /* Don't pollute the cache if not sure if we are correct */
       if (w->start_at_line_beg)
 	update_line_start_cache
@@ -7530,8 +7484,9 @@ decode_mode_spec (struct window *w, Ichar spec, int type)
     {
       Bytebpos pos = marker_byte_position (w->start[type]);
 
-      /* This had better be while the desired lines are being done. */
-      if (w->window_end_pos[type] <= BYTE_BUF_Z (b) - BYTE_BUF_ZV (b))
+      /* This had better be the case while the desired lines are being
+         calculated. */
+      if (marker_byte_position (w->end_pos[type]) >= BYTE_BUF_ZV (b))
 	{
 	  if (pos <= BYTE_BUF_BEGV (b))
 	    str = "All";
@@ -7569,7 +7524,7 @@ decode_mode_spec (struct window *w, Ichar spec, int type)
        Top, or print Bottom or All */
     case 'P':
     {
-      Bytebpos botpos = BYTE_BUF_Z (b) - w->window_end_pos[type];
+      Bytebpos botpos = marker_byte_position (w->end_pos[type]);
 
       if (botpos >= BYTE_BUF_ZV (b))
 	{
