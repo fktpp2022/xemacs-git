@@ -1,3 +1,9 @@
+2021-03-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (Critical Redisplay Sections):
+	Document that the start_end_of_last_line() code is no longer
+	called if in redisplay.
+
 2021-03-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lispref/searching.texi (Simple Match Data):

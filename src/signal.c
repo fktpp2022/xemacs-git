@@ -711,27 +711,9 @@ check_quit (void)
 #ifdef ERROR_CHECK_TRAPPING_PROBLEMS
       /* Since the code below can call Lisp, make sure that proper wrapping is
 	 in place during redisplay. */
-#if 0
       assert_with_message
 	(proper_redisplay_wrapping_in_place (),
 	 "QUIT called from within redisplay without being properly wrapped");
-#else
-    /* FUCKME!  It looks like we cannot even check for QUIT, *EVER*, during
-       redisplay.  Checking for quit can dispatch events, which can enter
-       redisplay recursively, which can trip on 
-
-Fatal error: assertion failed, file c:\xemacs\build\src\redisplay.c, line 5532,
-!dy->locked
-
-Backtrace given in
-
-  (Info-goto-node "(internals)Critical Redisplay Sections")
-
-    */
-      assert_with_message
-	(!in_display,
-	 "QUIT called from within redisplay without being properly wrapped");
-#endif /* 0 */
 #endif /* ERROR_CHECK_TRAPPING_PROBLEMS */
 
       /* Since arbitrary Lisp code may be executed (e.g. through a menu

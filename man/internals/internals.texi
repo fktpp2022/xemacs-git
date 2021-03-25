@@ -19148,6 +19148,9 @@ large files (which may be fontlocking for awhile). and immediately start
 Alt-TAB-ing back and forth quickly and constantly scrolling up and down using
 the scrolling dial on your mouse.
 
+These two crashes have been addressed by no longer calling the
+start_end_of_last_line() code if already in redisplay.
+
 @example
 
 Fatal error: assertion failed, file c:\xemacs\build\src\redisplay.c, line 5532,

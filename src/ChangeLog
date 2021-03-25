@@ -1,3 +1,22 @@
+2021-03-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* redisplay.c (point_visible):
+	No need to declare B, the window's buffer, here.
+	* redisplay.c (end_of_last_line_may_error): Removed. No longer
+	used.
+	* redisplay.c (pixel_to_glyph_translation):
+	Don't call end_of_last_line_may_error() from this, since that
+	enters redisplay and provokes a crash with error-checking turned
+	on. Use the position of (*w)->end_pos[CURRENT_DISP] instead.
+	* window.c:
+	* window.c (Fwindow_end):
+	Don't call end_of_last_line() if we're currently in redisplay,
+	redisplay is not re-entrant.
+	* signal.c (check_quit):
+	Go back to the old check for proper wrapping within redisplay
+	here, since we should no longer be entering redisplay
+	recursively.
+
 2021-03-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Move window_end_pos[] to being an array of markers.

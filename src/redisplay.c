@@ -6188,7 +6188,6 @@ regenerate_window_point_center (struct window *w, Bytebpos point, int type)
 static Boolint
 point_visible (struct window *w, Bytebpos point, int type)
 {
-  struct buffer *b = XBUFFER (w->buffer);
   display_line_dynarr *dla = window_display_lines (w, type);
   int first_line;
 
@@ -8262,13 +8261,6 @@ end_of_last_line (struct window *w, Bytebpos startp)
   return start_end_of_last_line (w, startp, 1, 0);
 }
 
-static Bytebpos
-end_of_last_line_may_error (struct window *w, Bytebpos startp)
-{
-  return start_end_of_last_line (w, startp, 1, 1);
-}
-
-
 /* For window W, what does the starting position have to be so that
    the line containing POINT will cover pixel position PIXPOS. */
 
@@ -8939,7 +8931,6 @@ pixel_to_glyph_translation (struct frame *f, int x_coord, int y_coord,
   int position = OVER_NOTHING;
   int device_check_failed = 0;
   display_line_dynarr *dla;
-  struct buffer *b;
 
   /* This is a safety valve in case this got called with a frame in
      the middle of being deleted. */
@@ -9170,7 +9161,6 @@ pixel_to_glyph_translation (struct frame *f, int x_coord, int y_coord,
     }
 
   dla = window_display_lines (*w, CURRENT_DISP);
-  b = window_display_buffer (*w);
 
   for (*row = 0; *row < Dynarr_length (dla); (*row)++)
     {
@@ -9426,12 +9416,10 @@ pixel_to_glyph_translation (struct frame *f, int x_coord, int y_coord,
 
   /* #### This should be checked out some more to determine what
      should really be going on. */
-  if (!MARKERP ((*w)->start[CURRENT_DISP]))
+  if (!MARKERP ((*w)->end_pos[CURRENT_DISP]))
     *closest = 0;
   else
-    *closest
-      = end_of_last_line_may_error
-      (*w, marker_byte_position ((*w)->start[CURRENT_DISP]));
+    *closest = marker_byte_position ((*w)->end_pos[CURRENT_DISP]);
   *col = 0;
   UPDATE_CACHE_RETURN;
 }

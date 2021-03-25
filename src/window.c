@@ -1939,10 +1939,11 @@ Return position at which display ended in WINDOW at last redisplay.
 Neither changing the buffer text without redisplay nor setting `window-start'
 update this value.  WINDOW defaults to the selected window.
 
-If optional arg GUARANTEE is non-nil, the return value is guaranteed
-to be the same value as this function would return at the end of the
-next full redisplay assuming nothing else changes in the meantime.
-This function is potentially much slower with this flag set.
+If optional arg GUARANTEE is non-nil, and XEmacs is not currently in
+redisplay, the return value is guaranteed to be the same value as this
+function would return at the end of the next full redisplay assuming nothing
+else changes in the meantime.  This function is potentially much slower with
+this flag set.
 
 In the absence of a non-nil GUARANTEE argument, this function is only
 potentially useful if you are certain that no buffer or window change that
@@ -1952,32 +1953,21 @@ e.g. if the window's current buffer has been killed. */
        (window, guarantee))
 {
   struct window *w = decode_window (window);
+  Bytebpos eoll;
 
-  if (NILP (guarantee))
+  if (NILP (guarantee) || in_display)
     {
       struct buffer *b = window_display_buffer (w);
-      Bytebpos byte_endp = marker_byte_position (w->end_pos[CURRENT_DISP]);
 
-      if (BUFFER_LIVE_P (b) && BYTE_BUF_BEG (b) <= byte_endp
-          && byte_endp <= BYTE_BUF_Z (b)
-          && EQ (wrap_buffer (b), window_buffer (w))
-          && VALID_BYTEBPOS_P (b, byte_endp))
+      if (in_display || 
+          (BUFFER_LIVE_P (b) && EQ (wrap_buffer (b), window_buffer (w))))
         {
-          return make_integer (bytebpos_to_charbpos (b, byte_endp));
+          return Fmarker_position (w->end_pos[CURRENT_DISP]);
         }
+    }
 
-      /* ### We have never guaranteed a valid buffer position in this
-         ### function. Maybe we should, and just force GUARANTEE if things
-         ### have changed sufficiently from last redisplay that we can't give
-         ### a sensible answer.  */
-      return make_integer (byte_endp); 
-    }
-  else
-    {
-      Bytebpos eoll
-        = end_of_last_line (w, marker_byte_position (w->start[CURRENT_DISP]));
-      return make_fixnum (bytebpos_to_charbpos (XBUFFER (w->buffer), eoll));
-    }
+  eoll = end_of_last_line (w, marker_byte_position (w->start[CURRENT_DISP]));
+  return make_fixnum (bytebpos_to_charbpos (XBUFFER (w->buffer), eoll));
 }
 
 DEFUN ("window-last-line-visible-height", Fwindow_last_line_visible_height, 0, 1, 0, /*
