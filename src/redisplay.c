@@ -6430,6 +6430,7 @@ redisplay_window (Lisp_Object window, int skip_selected)
          BYTE_BUF_ZV (b));
     }
   set_marker_byte_position (w->start[DESIRED_DISP], startp, the_buffer);
+  set_marker_byte_position (w->end_pos[DESIRED_DISP], startp, the_buffer);
 
   truncation_changed
     = ((Boolint) (find_window_mirror (w)->truncate_win) 

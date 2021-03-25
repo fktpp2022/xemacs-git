@@ -1,5 +1,11 @@
 2021-03-25  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* redisplay.c (redisplay_window):
+	Init w->end_pos[DESIRED_DISP] early in this function, so the
+	modeline code always has it available.
+
+2021-03-25  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* redisplay.c (point_visible):
 	No need to declare B, the window's buffer, here.
 	* redisplay.c (end_of_last_line_may_error): Removed. No longer
