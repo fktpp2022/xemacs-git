@@ -5244,8 +5244,8 @@ If WINDOW is nil, the selected window is used.
   struct window *w;
   struct buffer *b;
   int height;
-  Charbpos new_point;
-  int selected;
+  Bytebpos new_point;
+  Boolint selected;
   Bytebpos byte_start;
 
   /* Don't use decode_window() because we need the new value of
@@ -5275,39 +5275,30 @@ If WINDOW is nil, the selected window is used.
 	     instead of the selected window period.  Elsewhere we check
 	     the selected window of the device.  What a mess! */
 	  if (selected)
-	    BUF_SET_PT (b, new_point);
+	    BYTE_BUF_SET_PT (b, new_point);
 	  else
-	    Fset_window_point (window, make_fixnum (new_point));
+	    set_window_point (window, new_point);
 
 	  retval = line_at_center (w, CURRENT_DISP, 0, 0);
 	}
       else
 	{
-	  Bytebpos bstart = marker_byte_position (w->start[CURRENT_DISP]);
-          Charbpos start = -1;
-	  if (bstart < BYTE_BUF_BEGV (b))
-            {
-              start = BUF_BEGV (b);
-            }
-	  else if (start > BYTE_BUF_ZV (b))
-            {
-              start = BUF_ZV (b);
-            }
-          else
-            {
-              start = bytebpos_to_charbpos (b, bstart);
-            }
+	  Bytebpos start
+            = bytebpos_clip_to_bounds (BYTE_BUF_BEGV (b), 
+                                       marker_byte_position
+                                       (w->start[CURRENT_DISP]),
+                                       BYTE_BUF_ZV (b));
 
-	  new_point = point_at_center (w, CMOTION_DISP, start, BUF_PT (b));
+	  new_point = point_at_center (w, CMOTION_DISP, start,
+                                       BYTE_BUF_PT (b));
 
 	  if (selected)
-	    BUF_SET_PT (b, new_point);
+	    BYTE_BUF_SET_PT (b, new_point);
 	  else
-	    Fset_window_point (window, make_fixnum (new_point));
+	    set_window_point (window, new_point);
 
-	  retval = line_at_center (w, CMOTION_DISP, start, BUF_PT (b));
-	}
-
+	  retval = line_at_center (w, CMOTION_DISP, start, BYTE_BUF_PT (b));
+	} 
       return make_fixnum (retval);
     }
   else

@@ -1,5 +1,18 @@
 2021-04-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Correct some further byte-char confusion, #'move-to-window-line.
+
+	* redisplay.h: line_at_center() returns a line number, so the
+	appropriate type is Charcount, declare it as such.
+	* redisplay.c (line_at_center): Update the definition accordingly.
+	* redisplay.c (point_at_center): Update a call to line_at_center()
+	accordingly.
+
+	* window.c (Fmove_to_window_line):
+	Call line_at_center(), point_at_center() with byte positions.
+
+2021-04-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	When examining the redisplay display lines for the sake of
 	`event-point', `event-modeline-position' and friends, be certain
 	never to return an invalid buffer position.

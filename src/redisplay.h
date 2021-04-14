@@ -724,8 +724,8 @@ layout_bounds calculate_display_line_boundaries (struct window *w,
 						 int modeline);
 Bytebpos point_at_center (struct window *w, int type, Bytebpos start,
 			  Bytebpos point);
-int line_at_center (struct window *w, int type, Bytebpos start,
-		    Bytebpos point);
+Charcount line_at_center (struct window *w, int type, Bytebpos start,
+                          Bytebpos point);
 int window_half_pixpos (struct window *w);
 void redisplay_echo_area (void);
 void free_display_structs (struct window_mirror *mir);

@@ -6236,7 +6236,7 @@ window_half_pixpos (struct window *w)
 /* Return the display line which is currently in the middle of the
    window W for display lines TYPE. */
 
-int
+Charcount
 line_at_center (struct window *w, int type, Bytebpos start, Bytebpos point)
 {
   display_line_dynarr *dla;
@@ -6271,7 +6271,7 @@ Bytebpos
 point_at_center (struct window *w, int type, Bytebpos start, Bytebpos point)
 {
   /* line_at_center will regenerate the display structures, if necessary. */
-  int line = line_at_center (w, type, start, point);
+  Charcount line = line_at_center (w, type, start, point);
 
   if (line == -1)
     return BYTE_BUF_ZV (XBUFFER (w->buffer));
