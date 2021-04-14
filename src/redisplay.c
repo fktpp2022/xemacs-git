@@ -8858,6 +8858,106 @@ get_position_object (struct display_line *dl, Lisp_Object *obj1,
     }
 }
 
+/* Given W, a window, and BPOS, a buffer position which may be invalid (out of
+   the visible range, not pointing at a valid character offset), return a
+   buffer position reflecting a valid buffer position in W->BUFFER, or zero,
+   to indicate not known.
+
+   This is used when examining the display lines for the sake of `event-point'
+   and friends, and the underlying buffer text may have changed between last
+   redisplay and when `event-point' is called, whence the check for invalid
+   offsets. */
+static Bytebpos
+force_valid_bytebpos_or_zero (struct window *w, Bytebpos bpos)
+{
+  struct buffer *b;
+
+  if (bpos < 1)
+    {
+      return 0;
+    }
+
+  if (XBUFFER (w->buffer) != window_display_buffer (w))
+    {
+      return 0;
+    }
+
+  b = XBUFFER (w->buffer);
+
+  if (bpos < BYTE_BUF_BEGV (b))
+    {
+      return BYTE_BUF_BEGV (b);
+    }
+
+  if (bpos > BYTE_BUF_ZV (b))
+    {
+      return BYTE_BUF_ZV (b);
+    }
+
+  /* There's a sentinel at the gap and at end of buffer, we're not going to
+     run off. */
+  VALIDATE_BYTEBPOS_FORWARD (b, bpos);
+
+  return bpos;
+}
+
+/* Given W, a window, and BPOS, a modeline position which may be invalid (out
+   of the visible range, not pointing at a valid character offset), return a
+   modeline position reflecting a valid modeline position for W->BUFFER, or
+   -1, to indicate not known.
+
+   This is used when examining the display lines for the sake of
+   `event-modeline-position', and the underlying buffer may have changed
+   between last redisplay and when `event-modeline-position' is called. */
+static Bytecount
+force_valid_modeline_offset_or_negative (struct window *w, Bytecount bpos)
+{
+  struct buffer *b;
+
+  if (bpos < 0)
+    {
+      return -1;
+    }
+
+  if (XBUFFER (w->buffer) != window_display_buffer (w))
+    {
+      return -1;
+    }
+
+  b = XBUFFER (w->buffer);
+
+  if (bpos >= XSTRING_LENGTH (b->generated_modeline_string))
+    {
+      const Ibyte *gmlast
+	= XSTRING_DATA (b->generated_modeline_string)
+	+ XSTRING_LENGTH (b->generated_modeline_string);
+
+      if (gmlast == XSTRING_DATA (b->generated_modeline_string))
+	{
+          /* Shouldn't usually happen, the modeline string is 84 bytes long on
+             creation in buffer.c */
+	  return -1;
+	}
+
+      DEC_IBYTEPTR (gmlast);
+      return gmlast - XSTRING_DATA (b->generated_modeline_string);
+    }
+  else
+    {
+      const Ibyte *bbegin = XSTRING_DATA (b->generated_modeline_string);
+      const Ibyte *bptr = bbegin + bpos;
+
+      while (bptr > bbegin && !valid_ibyteptr_p (bptr))
+	{
+	  bptr--; /* Not DEC_IBYTEPTR, not VALIDATE_IBYTEPTR_BACKWARD. */
+	}
+
+      assert (valid_ibyteptr_p (bptr));
+
+      return bptr - bbegin;
+    }
+}
+
 #define UPDATE_CACHE_RETURN						\
   do {									\
     d->pixel_to_glyph_cache.valid = 1;					\
@@ -8959,9 +9059,10 @@ pixel_to_glyph_translation (struct frame *f, int x_coord, int y_coord,
       *obj_x = cache->obj_x;
       *obj_y = cache->obj_y;
       *w = cache->w;
-      *charpos = cache->charpos;
-      *closest = cache->closest;
-      *modeline_closest = cache->modeline_closest;
+      *charpos = force_valid_bytebpos_or_zero (*w, cache->charpos);
+      *closest = force_valid_bytebpos_or_zero (*w, cache->closest);
+      *modeline_closest
+      = force_valid_modeline_offset_or_negative (*w, cache->modeline_closest);
       *obj1 = cache->obj1;
       *obj2 = cache->obj2;
 
@@ -9204,28 +9305,35 @@ pixel_to_glyph_translation (struct frame *f, int x_coord, int y_coord,
 		  if (x_check <= left_bound)
 		    {
 		      if (dl->modeline)
-			*modeline_closest = Dynarr_begin (db->runes)->bytepos;
+			*modeline_closest = 
+                          force_valid_modeline_offset_or_negative
+                          (*w, dl->offset +
+                           Dynarr_begin (db->runes)->bytepos);
 		      else
-			*closest = Dynarr_begin (db->runes)->bytepos;
+			*closest
+                          = force_valid_bytebpos_or_zero
+                          (*w, dl->offset +
+                           Dynarr_begin (db->runes)->bytepos);
 		    }
 		  else
 		    {
 		      if (dl->modeline)
-			*modeline_closest = Dynarr_lastp (db->runes)->bytepos;
+			*modeline_closest
+                          = force_valid_modeline_offset_or_negative
+                          (*w, dl->offset + 
+                           Dynarr_lastp (db->runes)->bytepos);
 		      else
-			*closest = Dynarr_lastp (db->runes)->bytepos;
+			*closest
+                          = force_valid_bytebpos_or_zero
+                          (*w, dl->offset +
+                           Dynarr_lastp (db->runes)->bytepos);
 		    }
-
-		  if (dl->modeline)
-		    *modeline_closest += dl->offset;
-		  else
-		    *closest += dl->offset;
 		}
 	      else
 		{
 		  /* #### What should be here. */
 		  if (dl->modeline)
-		    *modeline_closest = 0;
+		    *modeline_closest = -1;
 		  else
 		    *closest = 0;
 		}
@@ -9260,9 +9368,13 @@ pixel_to_glyph_translation (struct frame *f, int x_coord, int y_coord,
 		     the case below where we failed to find a non-glyph
 		     character. */
 		  if (dl->modeline)
-		    *modeline_closest = dl->end_bytepos + dl->offset;
+		    *modeline_closest
+                      = force_valid_modeline_offset_or_negative
+                      (*w, dl->end_bytepos + dl->offset);
 		  else
-		    *closest = dl->end_bytepos + dl->offset;
+		    *closest
+                      = force_valid_bytebpos_or_zero
+                      (*w, dl->end_bytepos + dl->offset);
 
 		  if (check_margin_glyphs)
 		    get_position_object (dl, obj1, obj2, x_coord,
@@ -9275,8 +9387,9 @@ pixel_to_glyph_translation (struct frame *f, int x_coord, int y_coord,
 
 	      if (rb->xpos <= x_coord && x_coord < rb->xpos + rb->width)
 		{
-
-		  *charpos = rb->bytepos + dl->offset;
+		  *charpos
+                    = force_valid_bytebpos_or_zero (*w,
+                                                    rb->bytepos + dl->offset);
 		  low_x_coord = rb->xpos;
 		  high_x_coord = rb->xpos + rb->width;
 
@@ -9291,12 +9404,14 @@ pixel_to_glyph_translation (struct frame *f, int x_coord, int y_coord,
 			    {
 			      if (dl->modeline)
 				*modeline_closest =
-				  (Dynarr_atp (db->runes, elt)->bytepos +
-				   dl->offset);
+				  force_valid_modeline_offset_or_negative
+                                  (*w, Dynarr_atp (db->runes, elt)->bytepos
+                                   + dl->offset);
 			      else
 				*closest =
-				  (Dynarr_atp (db->runes, elt)->bytepos +
-				   dl->offset);
+                                  force_valid_bytebpos_or_zero
+                                  (*w, Dynarr_atp (db->runes, elt)->bytepos
+                                   + dl->offset);
 			      break;
 			    }
 
@@ -9309,18 +9424,26 @@ pixel_to_glyph_translation (struct frame *f, int x_coord, int y_coord,
 		      if (elt == Dynarr_length (db->runes))
 			{
 			  if (dl->modeline)
-			    *modeline_closest = dl->end_bytepos + dl->offset;
+			    *modeline_closest
+                              = force_valid_modeline_offset_or_negative
+                              (*w, dl->end_bytepos + dl->offset);
 			  else
-			    *closest = dl->end_bytepos + dl->offset;
+			    *closest =
+                              force_valid_bytebpos_or_zero
+                              (*w, dl->end_bytepos + dl->offset);
 			  really_over_nothing = 1;
 			}
 		    }
 		  else
 		    {
 		      if (dl->modeline)
-			*modeline_closest = rb->bytepos + dl->offset;
+			*modeline_closest
+                          = force_valid_modeline_offset_or_negative
+                          (*w, rb->bytepos + dl->offset);
 		      else
-			*closest = rb->bytepos + dl->offset;
+			*closest
+                          = force_valid_bytebpos_or_zero
+                          (*w, rb->bytepos + dl->offset);
 		    }
 
 		  if (dl->modeline)
@@ -9415,12 +9538,9 @@ pixel_to_glyph_translation (struct frame *f, int x_coord, int y_coord,
 	}
     }
 
-  /* #### This should be checked out some more to determine what
-     should really be going on. */
-  if (!MARKERP ((*w)->end_pos[CURRENT_DISP]))
-    *closest = 0;
-  else
-    *closest = marker_byte_position ((*w)->end_pos[CURRENT_DISP]);
+  *closest
+    = force_valid_bytebpos_or_zero
+    (*w, marker_byte_position ((*w)->end_pos[CURRENT_DISP]));
   *col = 0;
   UPDATE_CACHE_RETURN;
 }

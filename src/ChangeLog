@@ -1,3 +1,14 @@
+2021-04-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	When examining the redisplay display lines for the sake of
+	`event-point', `event-modeline-position' and friends, be certain
+	never to return an invalid buffer position.
+
+	* redisplay.c:
+	* redisplay.c (force_valid_bytebpos_or_zero): New.
+	* redisplay.c (force_valid_modeline_offset_or_negative): New.
+	* redisplay.c (pixel_to_glyph_translation): Use them.
+
 2021-03-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* redisplay.c (redisplay_window):
