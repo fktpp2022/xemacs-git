@@ -6202,7 +6202,7 @@ point_visible (struct window *w, Bytebpos point, int type)
       Bytebpos start = dl->bytepos + dl->offset;
       Bytebpos end = marker_byte_position (w->end_pos[type]);
 
-      if (point >= start && point < end)
+      if (point >= start && point <= end)
 	{
 	  if (!MINI_WINDOW_P (w) && scroll_on_clipped_lines)
 	    {

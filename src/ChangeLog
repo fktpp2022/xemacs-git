@@ -1,3 +1,10 @@
+2021-04-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* redisplay.c (point_visible):
+	end_pos[CURRENT_DISP] is now the inclusive upper bound on the
+	positions shown, not exclusive, revise this appropriately. Thank
+	you for the bug report, Stephen Turnbull!
+
 2021-04-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Correct some further byte-char confusion, #'move-to-window-line.
