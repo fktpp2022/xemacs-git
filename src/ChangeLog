@@ -1,3 +1,10 @@
+2021-04-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* redisplay.c (decode_mode_spec): Fix a bug I introduced in
+	3aad17c73ee3 of 2018, no need to add one twice to convert from
+	zero-based to one-based line numbers.
+	Thank you for the bug report Stephen Turnbull!
+
 2021-04-15  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* redisplay.c (point_visible):

@@ -7386,7 +7386,9 @@ decode_mode_spec (struct window *w, Ichar spec, int type)
       {
 	Bytebpos pos = (w == XWINDOW (Fselected_window (Qnil)))
           ? BYTE_BUF_PT (b) : marker_byte_position (w->pointm[type]);
-        Charcount line = buffer_line_number (b, pos, 1, 1) + 1;
+        /* buffer_line_number()'s returns a zero-based line number count, see
+           our adjustment further down. */
+        Charcount line = buffer_line_number (b, pos, 1, 1);
         Ibyte buf[DECIMAL_PRINT_SIZE (line)];
 
         Dynarr_add_many (mode_spec_ibyte_string, buf,
