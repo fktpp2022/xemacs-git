@@ -1,3 +1,8 @@
+2021-04-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* redisplay-tests.el (buffer):
+	Test a bug just fixed with display of line numbers in the modeline.
+
 2021-03-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* reproduce-crashes.el (bug-hashtable): Removed.

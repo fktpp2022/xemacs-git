@@ -26,6 +26,8 @@
 
 ;; Redisplay related tests.
 
+(require 'test-harness)
+
 ;; This used to crash XEmacs.
 (when (featurep 'mule)
   (let ((buffer (generate-new-buffer "*split test*")))
@@ -38,3 +40,15 @@
     (split-window)
     (kill-buffer buffer)
     (delete-other-windows)))
+
+(let ((buffer (generate-new-buffer " hello")))
+  (set-window-buffer (selected-window) buffer)
+  (write-sequence "hello\nhello" buffer)
+  (set-buffer buffer)
+  (setq modeline-format '(line-number-mode "%l")
+        line-number-mode t)
+  (goto-char 1)
+  (sit-for 0.0)
+  (Assert (equal generated-modeline-string "1")
+          "checking a bug fixed with line numbers and the modeline")
+  (kill-buffer buffer))
