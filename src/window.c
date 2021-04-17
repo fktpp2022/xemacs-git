@@ -1697,7 +1697,7 @@ is non-nil, do not include space occupied by clipped lines.
      (window, noclipped))
 {
   struct window *w;
-  Charbpos start, eobuf;
+  Bytebpos start, eobuf;
   int defheight;
   int hlimit, height, prev_height = -1;
   int line;
@@ -1711,9 +1711,9 @@ is non-nil, do not include space occupied by clipped lines.
   CHECK_LIVE_WINDOW (window);
   w = XWINDOW (window);
 
-  start  = marker_position (w->start[CURRENT_DISP]);
+  start  = marker_byte_position (w->start[CURRENT_DISP]);
   hlimit = WINDOW_TEXT_HEIGHT (w);
-  eobuf  = BUF_ZV (XBUFFER (w->buffer));
+  eobuf  = BYTE_BUF_ZV (XBUFFER (w->buffer));
 
   default_face_width_and_height (window, NULL, &defheight);
 

@@ -1,3 +1,12 @@
+2021-04-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* redisplay.h:
+	Update the declaration of point_in_line_start_cache() here, to
+	reflect byte positions.
+	* window.c (Fwindow_displayed_text_pixel_height):
+	Use the buffer byte positions with point_in_line_start_cache(),
+	the last of the byte-char confusion in window.c
+
 2021-04-16  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* redisplay.c (decode_mode_spec): Fix a bug I introduced in

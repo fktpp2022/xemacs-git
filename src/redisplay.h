@@ -754,7 +754,7 @@ int pixel_to_glyph_translation (struct frame *f, int x_coord,
 				Lisp_Object *obj1, Lisp_Object *obj2);
 void glyph_to_pixel_translation (struct window *w, int char_x,
 				 int char_y, int *pix_x, int *pix_y);
-int point_in_line_start_cache (struct window *w, Charbpos point,
+int point_in_line_start_cache (struct window *w, Bytebpos point,
 			       int min_past);
 Boolint point_would_be_visible (struct window *w, Bytebpos startp,
                                 Bytebpos point, Boolint partially);
