@@ -641,23 +641,6 @@ redisplay_window_text_width_string (struct window *w, int findex,
                    string, len));
 }
 
-int
-redisplay_text_width_string (Lisp_Object domain, Lisp_Object face,
-			     const Ibyte *string, Bytecount len)
-{
-  Lisp_Object window = DOMAIN_WINDOW (domain);
-  Lisp_Object frame  = DOMAIN_FRAME (domain);
-  struct face_cachel cachel;
-
-  reset_face_cachel (&cachel);
-  cachel.face = face;
-  ensure_face_cachel_complete (&cachel, NILP (window) ? frame : window,
-                               string, len);
-
-  return DEVMETH (FRAME_XDEVICE (XFRAME (frame)), text_width,
-                  (XFRAME (frame), &cachel, string, len));
-}
-
 /* Return the display block from DL of the given TYPE.  A display line
    can have only one display block of each possible type.  If DL does
    not have a block of type TYPE, one will be created and added to DL. */

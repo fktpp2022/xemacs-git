@@ -1,3 +1,13 @@
+2021-04-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* redisplay.c (redisplay_text_width_string): Removed.
+	No longer used, and equivalent to
+	redisplay_window_text_width_string(). On inspection the only
+	difference appears to be the cachel updating, but r_w_t_w_s does
+	that too, see separate_textual_runs_mule.
+	* redisplay.h:
+	Remove its declaration.
+
 2021-04-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* redisplay.h:
