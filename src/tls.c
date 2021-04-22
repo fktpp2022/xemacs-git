@@ -230,7 +230,7 @@ tls_open (int s, const Extbyte *hostname)
 static void
 tls_set_x509_key_file (const Extbyte *certfile, const Extbyte *keyfile)
 {
-  char name[32];
+  Ascbyte name[sizeof ("PEM_Token ") + DECIMAL_PRINT_SIZE (EMACS_INT)];
   void *proto_win = NULL;
   PK11SlotInfo *slot = NULL;
   PK11GenericObject *obj;
@@ -251,7 +251,8 @@ tls_set_x509_key_file (const Extbyte *certfile, const Extbyte *keyfile)
 	signal_error (Qtls_error, "Cannot load NSS PEM module", NSS_ERRSTR);
     }
 
-  snprintf (name, 32U, "PEM_Token %ld", slot_id);
+  emacs_snprintf_ascbyte (name, sizeof (name), "PEM_Token %ld",
+                          (EMACS_INT) slot_id);
   slot = PK11_FindSlotByName (name);
   if (slot == NULL)
     signal_error (Qtls_error, "Error finding NSS slot", NSS_ERRSTR);

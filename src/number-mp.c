@@ -234,8 +234,9 @@ bignum_set_long (bignum b, long l)
   MINT *temp;
   int neg = l < 0L;
 
-  snprintf (hex, SIZEOF_LONG * 2U + 2U, "%lx",
-	    neg ? (unsigned long) -l : (unsigned long) l);
+  fixnum_to_string ((Ibyte *) hex, sizeof (hex), 
+                    neg ? (EMACS_UINT) -l : (EMACS_UINT) l,
+                    16, Vdigit_fixnum_ascii);
   temp = MP_XTOM (hex);
   if (neg)
     MP_MSUB (bignum_zero, temp, b);

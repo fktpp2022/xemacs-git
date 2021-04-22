@@ -1928,16 +1928,18 @@ unix_open_network_stream (Lisp_Object name, Lisp_Object host,
     struct addrinfo hints, *res;
     struct addrinfo * volatile lres;
     Extbyte *portstring;
-    Extbyte portbuf[128];
+    Extbyte portbuf[DECIMAL_PRINT_SIZE (EMACS_INT)];
     /*
      * Caution: service can either be a string or int.
      * Convert to a C string for later use by getaddrinfo.
      */
     if (FIXNUMP (service))
       {
-	snprintf (portbuf, sizeof (portbuf), "%ld", (long) XFIXNUM (service));
+        check_integer_range (service, Qzero, make_fixnum (0xFFFF));
+	emacs_snprintf_ascbyte ((Ascbyte *) portbuf, sizeof (portbuf),
+                                "%ld", XFIXNUM (service));
 	portstring = portbuf;
-	port = htons ((unsigned short) XFIXNUM (service));
+	port = htons ((UINT_16_BIT) XFIXNUM (service));
       }
     else
       {
@@ -1973,7 +1975,10 @@ unix_open_network_stream (Lisp_Object name, Lisp_Object host,
     volatile int i;
 
     if (FIXNUMP (service))
-      port = htons ((unsigned short) XFIXNUM (service));
+      {
+        check_integer_range (service, Qzero, make_fixnum (0xFFFF));
+        port = htons ((UINT_16_BIT) XFIXNUM (service));
+      }
     else
       {
 	struct servent *svc_info;

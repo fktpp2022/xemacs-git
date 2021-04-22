@@ -285,7 +285,8 @@ FcResultToString (FcResult r)
     case FcResultNoId:
       return "FcResultNoId";
     default:
-      snprintf (buffer, 255, "FcResultUndocumentedValue (%d)", r);
+      emacs_snprintf_ascbyte ((Ibyte *) buffer, sizeof (buffer), 
+                              "FcResultUndocumentedValue (%d)", r);
       return buffer;
     }
 }
@@ -318,7 +319,8 @@ FcTypeOfValueToString (FcValue v)
     case FcTypeFTFace:
       return "FcTypeFTFace";
     default:
-      snprintf (buffer, 255, "FcTypeUndocumentedType (%d)", v.type);
+      emacs_snprintf_ascbyte ((Ibyte *) buffer, sizeof (buffer), 
+                              "FcTypeUndocumentedType (%d)", v.type);
       return buffer;
     }
 }

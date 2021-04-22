@@ -182,9 +182,9 @@ This function is the process handler for the GPM connection.
   return (Qzero);
 }
 
-static void turn_off_gpm (char *process_name)
+static void turn_off_gpm (const Ibyte *process_name)
 {
-  Lisp_Object process = Fget_process (build_cistring (process_name));
+  Lisp_Object process = Fget_process (build_istring (process_name));
   int fd = -1;
 
   if (NILP (process))
@@ -199,7 +199,7 @@ static void turn_off_gpm (char *process_name)
 
   clear_gpm_state (fd);
 
-  Fdelete_process (build_cistring (process_name));
+  Fdelete_process (build_istring (process_name));
 }
 
 #ifdef TIOCLINUX
@@ -481,25 +481,20 @@ Return non-nil if GPM mouse support is currently enabled on DEVICE.
 */
        (device))
 {
-  char *console_name = ttyname (DEVICE_INFD (decode_device (device)));
-  char process_name[1024];
+  Extbyte *console_name_ext = ttyname (DEVICE_INFD (decode_device (device)));
+  Ibyte *console_name;
   Lisp_Object proc;
 
-  if (!console_name)
-    return (Qnil);
+  if (!console_name_ext)
+    return Qnil;
 
-  memset (process_name, '\0', sizeof(process_name));
-  snprintf (process_name, sizeof(process_name) - 1, "gpm for %s",
-	    console_name);
-
-  proc = Fget_process (build_cistring (process_name));
+  console_name = EXTERNAL_TO_ITEXT (console_name_ext, Qfile_name);
+  proc = Fget_process (emacs_sprintf_string ("gpm for %s", console_name));
 
   if (NILP (proc))
-    return (Qnil);
+    return Qnil;
 
-  if (1)			/* (PROCESS_LIVE_P (proc)) */
-    return (Qt);
-  return (Qnil);
+  return Qt;
 }
 
 DEFUN ("gpm-enable", Fgpm_enable, 0, 2, 0, /*
@@ -511,10 +506,13 @@ Toggle accepting of GPM mouse events.
   int rval;
   Lisp_Object gpm_process;
   Lisp_Object gpm_filter;
+  Lisp_Object console_count;
   struct device *d = decode_device (device);
   int fd = DEVICE_INFD (d);
-  char *console_name = ttyname (fd);
-  char process_name[1024];
+  Extbyte *console_name_ext = ttyname (fd);
+  Ibyte *console_name, *end_out;
+  Bytecount process_name_size;
+  Ibyte *process_name;
 
   hook_event_callbacks_once ();
   hook_console_methods_once ();
@@ -522,13 +520,16 @@ Toggle accepting of GPM mouse events.
   if (noninteractive)
     invalid_operation ("Can't connect to GPM in batch mode", Qunbound);
 
-  if (!console_name)
+  if (!console_name_ext)
     /* Something seriously wrong here... */
-    return (Qnil);
+    return Qnil;
 
-  memset (process_name, '\0', sizeof(process_name));
-  snprintf (process_name, sizeof(process_name) - 1, "gpm for %s",
-	    console_name);
+  console_name = EXTERNAL_TO_ITEXT (console_name_ext, Qfile_name);
+  process_name_size = sizeof ("gpm for ") + qxestrlen (console_name);
+  process_name = alloca_ibytes (process_name_size);
+
+  emacs_snprintf (process_name, process_name_size, "gpm for %s",
+                  console_name);
 
   if (NILP (arg))
     {
@@ -566,11 +567,20 @@ Toggle accepting of GPM mouse events.
    ** console you are using, which is of course not correct for the
    ** new tty device.
    */
-  if (strncmp (console_name, "/dev/tty", 8) || !isdigit (console_name[8]))
-    /* Urk, something really wrong */
-    return (Qnil);
+  if (qxestrncmp (console_name, (const Ibyte *) "/dev/tty", 
+		  sizeof ("/dev/tty") - 1))
+    invalid_operation ("Not a Linux console", wrap_device (d));
 
-  rval = Gpm_Open (&conn, atoi (console_name + 8));
+  console_count = parse_integer (console_name + sizeof ("/dev/tty")
+				 - sizeof (""),
+				 &end_out,
+				 qxestrlen (console_name) -
+				 (sizeof ("/dev/tty") - sizeof ("")),
+				 10, 0, Vdigit_fixnum_ascii);
+
+  check_integer_range (console_count, Qzero, make_fixnum (INT_MAX));
+
+  rval = Gpm_Open (&conn, XFIXNUM (console_count));
 
   switch (rval)
     {
@@ -584,7 +594,7 @@ Toggle accepting of GPM mouse events.
       set_descriptor_non_blocking (gpm_fd);
       store_gpm_state (gpm_fd);
       gpm_process =
-	connect_to_file_descriptor (build_cistring (process_name), Qnil,
+	connect_to_file_descriptor (build_istring (process_name), Qnil,
 				    make_fixnum (gpm_fd),
 				    make_fixnum (gpm_fd));
 

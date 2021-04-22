@@ -1,3 +1,24 @@
+2021-04-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fontcolor-xlike-inc.c (FcResultToString):
+	* fontcolor-xlike-inc.c (FcTypeOfValueToString):
+	Use emacs_snprintf_ascbyte() in both these functions rather than
+	snprintf.
+	* gpmevent.c (turn_off_gpm):
+	Mule-ize this function.
+	* gpmevent.c (Fgpm_enabled_p):
+	Ditto.
+	* gpmevent.c (Fgpm_enable):
+	Ditto. Use emacs_snprintf() rather than snprintf(). Give a more
+	informative error when the current tty is not a Linux console.
+	* number-mp.c (bignum_set_long):
+	Use fixnum_to_string here rather than snprintf().
+	* process-unix.c (unix_open_network_stream):
+	Use emacs_snprintf() rather than snprintf() here. Check the
+	integer range for numeric ports.
+	* tls.c (tls_set_x509_key_file):
+	Use emacs_snprintf_ascbyte() here.
+
 2021-04-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* redisplay.c (redisplay_text_width_string): Removed.
