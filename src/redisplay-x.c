@@ -32,6 +32,120 @@ int x_interline_space; /* #### this needs to be implemented, but per-font */
 #define THIS_IS_X
 #include "redisplay-xlike-inc.c"
 
+GC x_get_gc (struct frame *f, Lisp_Object font, Lisp_Object fg,
+             Lisp_Object bg, Lisp_Object bg_pixmap,
+             Lisp_Object bg_placement, Lisp_Object lwidth);
+
+/*****************************************************************************
+ x_get_gc
+
+ Given a number of parameters return a GC with those properties.
+ ****************************************************************************/
+GC
+x_get_gc (struct frame *f, Lisp_Object font, Lisp_Object fg, Lisp_Object bg,
+          Lisp_Object bg_pixmap, Lisp_Object bg_placement, Lisp_Object lwidth)
+{
+  struct device *d = XDEVICE (f->device);
+  XGCValues gcv;
+  unsigned long mask;
+
+  memset (&gcv, ~0, sizeof (gcv));
+  gcv.graphics_exposures = XLIKE_FALSE;
+  /* Make absolutely sure that we don't pick up a clipping region in
+     the GC returned by this function. */
+  gcv.clip_mask = XLIKE_NONE;
+  gcv.clip_x_origin = 0;
+  gcv.clip_y_origin = 0;
+  X_SET_GC_FILL (gcv, XLIKE_FILL_SOLID);
+  mask = GCGraphicsExposures
+    | GCClipMask | GCClipXOrigin | GCClipYOrigin;
+  mask |= GCFillStyle;
+
+  if (!NILP (font)
+#ifdef USE_XFT
+      /* Only set the font if it's a core font */
+      /* the renderfont will be set elsewhere (not part of gc) */
+      && !FONT_INSTANCE_X_XFTFONT (XFONT_INSTANCE (font))
+#endif
+      )
+    {
+      gcv.font =
+	XLIKE_FONT_NUM (FONT_INSTANCE_XLIKE_FONT (XFONT_INSTANCE (font)));
+      mask |= GCFont;
+    }
+
+  /* evil kludge! */
+  if (!NILP (fg) && !COLOR_INSTANCEP (fg) && !FIXNUMP (fg))
+    {
+      /* #### I fixed one case where this was getting hit.  It was a
+         bad macro expansion (compiler bug). */
+      stderr_out ("Help! x_get_gc got a bogus fg value! fg = ");
+      debug_print (fg);
+      fg = Qnil;
+    }
+
+  if (!NILP (fg))
+    {
+      if (COLOR_INSTANCEP (fg))
+	X_SET_GC_COLOR (gcv.foreground, XCOLOR_INSTANCE_XLIKE_COLOR (fg));
+      else
+	X_SET_GC_PIXEL (gcv.foreground, XFIXNUM (fg));
+      mask |= GCForeground;
+    }
+
+  if (!NILP (bg))
+    {
+      if (COLOR_INSTANCEP (bg))
+	X_SET_GC_COLOR (gcv.background, XCOLOR_INSTANCE_XLIKE_COLOR (bg));
+      else
+	X_SET_GC_PIXEL (gcv.background, XFIXNUM (bg));
+      mask |= GCBackground;
+    }
+
+  /* This special case comes from a request to draw text with a face which has
+     the dim property. We'll use a stippled foreground GC. */
+  if (EQ (bg_pixmap, Qdim))
+    {
+      assert (DEVICE_X_GRAY_PIXMAP (d) != XLIKE_NONE);
+
+      X_SET_GC_FILL (gcv, XLIKE_FILL_STIPPLED);
+      gcv.stipple = DEVICE_X_GRAY_PIXMAP (d);
+      mask |= (GCFillStyle | GCStipple);
+    }
+  else if (IMAGE_INSTANCEP (bg_pixmap)
+	   && IMAGE_INSTANCE_PIXMAP_TYPE_P (XIMAGE_INSTANCE (bg_pixmap)))
+    {
+      if (XIMAGE_INSTANCE_PIXMAP_DEPTH (bg_pixmap) == 0)
+	{
+	  X_SET_GC_FILL (gcv, XLIKE_FILL_OPAQUE_STIPPLED);
+	  gcv.stipple = XIMAGE_INSTANCE_XLIKE_PIXMAP (bg_pixmap);
+	  mask |= (GCStipple | GCFillStyle);
+	}
+      else
+	{
+	  X_SET_GC_FILL (gcv, XLIKE_FILL_TILED);
+	  gcv.tile = XIMAGE_INSTANCE_XLIKE_PIXMAP (bg_pixmap);
+	  mask |= (GCTile | GCFillStyle);
+	}
+      if (EQ (bg_placement, Qabsolute))
+	{
+	  gcv.ts_x_origin = - FRAME_X_X (f);
+	  gcv.ts_y_origin = - FRAME_X_Y (f);
+	  mask |= (GCTileStipXOrigin | GCTileStipYOrigin);
+	}
+    }
+  if (!NILP (lwidth))
+    {
+      gcv.line_width = XFIXNUM (lwidth);
+      mask |= GCLineWidth;
+    }
+
+#if 0
+  debug_out ("\nx_get_gc: calling gc_cache_lookup\n");
+#endif
+  return x_gc_cache_lookup (d, &gcv, mask);
+}
+
 /****************************************************************************/
 /*                                                                          */
 /*                           Separate textual runs                          */
@@ -892,7 +1006,7 @@ x_output_horizontal_line (struct window *w, struct display_line *dl,
      above and below the line. */
   if (height - rb->object.hline.thickness > 0)
     {
-      gc = XLIKE_get_gc (f, Qnil,
+      gc = x_get_gc (f, Qnil,
 			 WINDOW_FACE_CACHEL_FOREGROUND (w, rb->findex),
 			 Qnil, Qnil, Qnil, Qnil);
 
@@ -903,7 +1017,7 @@ x_output_horizontal_line (struct window *w, struct display_line *dl,
     }
 
   /* Now draw the line. */
-  gc = XLIKE_get_gc (f, Qnil, WINDOW_FACE_CACHEL_BACKGROUND (w, rb->findex),
+  gc = x_get_gc (f, Qnil, WINDOW_FACE_CACHEL_BACKGROUND (w, rb->findex),
 		     Qnil, Qnil, Qnil, Qnil);
 
   if (ypos2 < ypos1)
@@ -953,10 +1067,10 @@ x_output_vertical_divider (struct window *w, int USED_IF_X (clear))
   tmp_pixel = WINDOW_FACE_CACHEL_BACKGROUND (w, div_face);
 
   /* First, get the GC's. */
-  XLIKE_SET_GC_COLOR (gcv.background, XCOLOR_INSTANCE_XLIKE_COLOR (tmp_pixel));
+  X_SET_GC_COLOR (gcv.background, XCOLOR_INSTANCE_XLIKE_COLOR (tmp_pixel));
   gcv.foreground = gcv.background;
   gcv.graphics_exposures = False;
-  mask = XLIKE_GC_FOREGROUND | XLIKE_GC_BACKGROUND | XLIKE_GC_EXPOSURES;
+  mask = GCForeground | GCBackground | GCGraphicsExposures;
 
   background_gc = x_gc_cache_lookup (d, &gcv, mask);
 
@@ -1021,6 +1135,8 @@ x_ring_bell (struct device *d, int volume, int pitch, int duration)
     }
 }
 
+#define X_COLOR_TO_PIXEL(c) ((c).pixel)
+
 /* briefly swap the foreground and background colors.
  */
 static int
@@ -1039,15 +1155,15 @@ x_flash (struct device *d)
   frame = wrap_frame (f);
 
   tmp_pixel = FACE_FOREGROUND (Vdefault_face, frame);
-  tmp_fcolor = XLIKE_COLOR_TO_PIXEL (XCOLOR_INSTANCE_XLIKE_COLOR (tmp_pixel));
+  tmp_fcolor = X_COLOR_TO_PIXEL (XCOLOR_INSTANCE_XLIKE_COLOR (tmp_pixel));
   tmp_pixel = FACE_BACKGROUND (Vdefault_face, frame);
-  tmp_bcolor = XLIKE_COLOR_TO_PIXEL (XCOLOR_INSTANCE_XLIKE_COLOR (tmp_pixel));
+  tmp_bcolor = X_COLOR_TO_PIXEL (XCOLOR_INSTANCE_XLIKE_COLOR (tmp_pixel));
   memset (&gcv, ~0, sizeof (gcv)); /* initialize all slots to ~0 */
-  XLIKE_SET_GC_PIXEL (gcv.foreground, tmp_fcolor ^ tmp_bcolor);
+  X_SET_GC_PIXEL (gcv.foreground, tmp_fcolor ^ tmp_bcolor);
   gcv.function = XLIKE_GX_XOR;
   gcv.graphics_exposures = False;
   gc = x_gc_cache_lookup (XDEVICE (f->device), &gcv,
-			XLIKE_GC_FOREGROUND | XLIKE_GC_FUNCTION | XLIKE_GC_EXPOSURES);
+			GCForeground | GCFunction | GCGraphicsExposures);
   default_face_width_and_height (frame, 0, &flash_height);
 
   /* If window is tall, flash top and bottom line.  */
@@ -1152,15 +1268,14 @@ x_output_blank (struct window *w, struct display_line *dl, struct rune *rb,
     bg_pmap = Qnil;
 
   if (NILP (bg_pmap))
-    gc = XLIKE_get_gc (f, Qnil, WINDOW_FACE_CACHEL_BACKGROUND (w, rb->findex),
-		       WINDOW_FACE_CACHEL_BACKGROUND (w, rb->findex),
-                       Qnil, Qnil, Qnil);
+    gc = x_get_gc (f, Qnil, WINDOW_FACE_CACHEL_BACKGROUND (w, rb->findex),
+                   WINDOW_FACE_CACHEL_BACKGROUND (w, rb->findex), Qnil, Qnil,
+                   Qnil);
   else
-    gc = XLIKE_get_gc (f, Qnil, WINDOW_FACE_CACHEL_FOREGROUND (w, rb->findex),
-		       WINDOW_FACE_CACHEL_BACKGROUND (w, rb->findex),
-		       bg_pmap,
-		       WINDOW_FACE_CACHEL_BACKGROUND_PLACEMENT (w, rb->findex),
-		       Qnil);
+    gc = x_get_gc (f, Qnil, WINDOW_FACE_CACHEL_FOREGROUND (w, rb->findex),
+                   WINDOW_FACE_CACHEL_BACKGROUND (w, rb->findex), bg_pmap,
+                   WINDOW_FACE_CACHEL_BACKGROUND_PLACEMENT (w, rb->findex),
+                   Qnil);
 
   XFillRectangle (dpy, x_win, gc, x, y, width, height);
 
@@ -1180,8 +1295,8 @@ x_output_blank (struct window *w, struct display_line *dl, struct rune *rb,
 			   (WINDOW_FACE_CACHEL (w, rb->findex),
 			    Vcharset_ascii));
 
-      gc = XLIKE_get_gc (f, Qnil, cursor_cachel->background, Qnil,
-			 Qnil, Qnil, Qnil);
+      gc = x_get_gc (f, Qnil, cursor_cachel->background, Qnil, Qnil, Qnil,
+                     Qnil);
 
       cursor_y = dl->ypos - fi->ascent;
       cursor_height = fi->height;
@@ -1199,9 +1314,8 @@ x_output_blank (struct window *w, struct display_line *dl, struct rune *rb,
 	    {
 	      int bar_width = EQ (bar_cursor_value, Qt) ? 1 : 2;
 
-	      gc = XLIKE_get_gc (f, Qnil, cursor_cachel->background,
-				 Qnil, Qnil, Qnil,
-				 make_fixnum (bar_width));
+	      gc = x_get_gc (f, Qnil, cursor_cachel->background, Qnil, Qnil,
+                             Qnil, make_fixnum (bar_width));
 	      XDrawLine (dpy, x_win, gc, cursor_start + bar_width - 1,
                          cursor_y, cursor_start + bar_width - 1,
                          cursor_y + cursor_height - 1);
@@ -1247,8 +1361,7 @@ x_output_eol_cursor (struct window *w, struct display_line *dl, int xpos,
   if (NILP (w->text_cursor_visible_p))
     return;
 
-  gc = XLIKE_get_gc (f, Qnil, cursor_cachel->background, Qnil,
-		     Qnil, Qnil, Qnil);
+  gc = x_get_gc (f, Qnil, cursor_cachel->background, Qnil, Qnil, Qnil, Qnil);
 
   default_face_font_info (window, &defascent, 0, 0, &defheight, 0);
 
@@ -1271,9 +1384,8 @@ x_output_eol_cursor (struct window *w, struct display_line *dl, int xpos,
 	{
 	  int bar_width = EQ (bar_cursor_value, Qt) ? 1 : 2;
 
-	  gc = XLIKE_get_gc (f, Qnil, cursor_cachel->background, Qnil,
-			     Qnil, Qnil,
-			     make_fixnum (bar_width));
+	  gc = x_get_gc (f, Qnil, cursor_cachel->background, Qnil, Qnil, Qnil,
+                         make_fixnum (bar_width));
 	  XDrawLine (dpy, x_win, gc, x + bar_width - 1, cursor_y,
                      x + bar_width - 1, cursor_y + cursor_height - 1);
 	}
@@ -1299,9 +1411,9 @@ x_output_xlike_pixmap (struct frame *f, Lisp_Image_Instance *p, int x, int y,
 
   memset (&gcv, ~0, sizeof (gcv));
   gcv.graphics_exposures = False;
-  XLIKE_SET_GC_COLOR (gcv.foreground, fg);
-  XLIKE_SET_GC_COLOR (gcv.background, bg);
-  pixmap_mask = XLIKE_GC_FOREGROUND | XLIKE_GC_BACKGROUND | XLIKE_GC_EXPOSURES;
+  X_SET_GC_COLOR (gcv.foreground, fg);
+  X_SET_GC_COLOR (gcv.background, bg);
+  pixmap_mask = GCForeground | GCBackground | GCGraphicsExposures;
 
   if (IMAGE_INSTANCE_XLIKE_MASK (p))
     {
@@ -1309,9 +1421,8 @@ x_output_xlike_pixmap (struct frame *f, Lisp_Image_Instance *p, int x, int y,
       gcv.clip_mask = IMAGE_INSTANCE_XLIKE_MASK (p);
       gcv.clip_x_origin = x - xoffset;
       gcv.clip_y_origin = y - yoffset;
-      pixmap_mask |= (XLIKE_GC_FUNCTION | XLIKE_GC_CLIP_MASK |
-		      XLIKE_GC_CLIP_X_ORIGIN |
-		      XLIKE_GC_CLIP_Y_ORIGIN);
+      pixmap_mask |= (GCFunction | GCClipMask | GCClipXOrigin |
+		      GCClipYOrigin);
       /* Can't set a clip rectangle below because we already have a mask.
 	 We could conceivably create a new clipmask by zeroing out
 	 everything outside the clip region.  Is it worth it?
@@ -1490,8 +1601,8 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
   else
     {
       /* Clear the cursor location? */
-      bgc = XLIKE_get_gc (f, Qnil, cachel->background, cachel->background,
-                          bg_pmap, cachel->background_placement, Qnil);
+      bgc = x_get_gc (f, Qnil, cachel->background, cachel->background,
+                      bg_pmap, cachel->background_placement, Qnil);
       XFillRectangle (dpy, x_win, bgc, clip_start, ypos,
                       clip_end - clip_start, height);
     }
@@ -1569,8 +1680,8 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
 	  fg = XFT_FROB_LISP_COLOR (cursor_cachel->foreground, 0);
 	  bg = XFT_FROB_LISP_COLOR (cursor_cachel->background, 0);
 #endif
-	  gc = XLIKE_get_gc (f, font, cursor_cachel->foreground,
-			     cursor_cachel->background, Qnil, Qnil, Qnil);
+	  gc = x_get_gc (f, font, cursor_cachel->foreground,
+                         cursor_cachel->background, Qnil, Qnil, Qnil);
 	}
       else if (cachel->dim)
 	{
@@ -1587,8 +1698,8 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
 	  fg = XFT_FROB_LISP_COLOR (cachel->foreground, 1);
 	  bg = XFT_FROB_LISP_COLOR (cachel->background, 0);
 #endif
-	  gc = XLIKE_get_gc (f, font, cachel->foreground, cachel->background,
-			     bg_pmap, cachel->background_placement, Qnil);
+	  gc = x_get_gc (f, font, cachel->foreground, cachel->background,
+                         bg_pmap, cachel->background_placement, Qnil);
 	}
       else
 	{
@@ -1596,8 +1707,8 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
 	  fg = XFT_FROB_LISP_COLOR (cachel->foreground, 0);
 	  bg = XFT_FROB_LISP_COLOR (cachel->background, 0);
 #endif
-	  gc = XLIKE_get_gc (f, font, cachel->foreground, cachel->background,
-			     Qnil, Qnil, Qnil);
+	  gc = x_get_gc (f, font, cachel->foreground, cachel->background,
+                         Qnil, Qnil, Qnil);
 	}
 #ifdef USE_XFT
       {
@@ -1822,8 +1933,8 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
 	    {
 	      XRectangle clip_box;
 	      GC cgc;
-	      cgc = XLIKE_get_gc (f, font, cursor_cachel->foreground,
-				  cursor_cachel->background, Qnil, Qnil, Qnil);
+	      cgc = x_get_gc (f, font, cursor_cachel->foreground,
+                              cursor_cachel->background, Qnil, Qnil, Qnil);
 
 	      clip_box.x = 0;
 	      clip_box.y = 0;
@@ -1878,14 +1989,13 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
 
       if (!NILP (bar_cursor_value))
 	{
-	  gc = XLIKE_get_gc (f, Qnil, cursor_cachel->background, Qnil,
-			     Qnil, Qnil,
-			     make_fixnum (bar_width));
+	  gc = x_get_gc (f, Qnil, cursor_cachel->background, Qnil, Qnil,
+                         Qnil, make_fixnum (bar_width));
 	}
       else
 	{
-	  gc = XLIKE_get_gc (f, Qnil, cursor_cachel->background,
-			     Qnil, Qnil, Qnil, Qnil);
+	  gc = x_get_gc (f, Qnil, cursor_cachel->background, Qnil, Qnil,
+                         Qnil, Qnil);
 	}
       tmp_y = dl->ypos - bogusly_obtained_ascent_value;
 

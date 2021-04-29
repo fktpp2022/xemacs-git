@@ -69,7 +69,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    We call the former type XLIKE_PIXEL and the latter XLIKE_COLOR, along
    with routines to convert from one to the other.  Differences between the
    two in specific functions and structures should be abstracted using the
-   XLIKE_FOO() routines, e.g. XLIKE_SET_GC_COLOR(). */
+   XLIKE_FOO() routines, e.g. XLIKE_SET_CLIP_RECTANGLE(). */
 
 #if defined (THIS_IS_X) && defined (THIS_IS_GTK)
 #error "Exactly one of THIS_IS_X and THIS_IS_GTK may be defined."
@@ -142,30 +142,13 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 /* types */
 typedef Display * XLIKE_DISPLAY;
 typedef Window XLIKE_WINDOW;
-typedef GC XLIKE_GC;
 typedef XRectangle XLIKE_RECTANGLE;
-typedef XGCValues XLIKE_GCVALUES;
 typedef XColor XLIKE_COLOR;
 typedef unsigned long XLIKE_PIXEL;
 
 /* constants */
 #define XLIKE_NONE None
 #define XLIKE_FALSE False
-
-#define XLIKE_GC_BACKGROUND GCBackground
-#define XLIKE_GC_CLIP_MASK GCClipMask
-#define XLIKE_GC_CLIP_X_ORIGIN GCClipXOrigin
-#define XLIKE_GC_CLIP_Y_ORIGIN GCClipYOrigin
-#define XLIKE_GC_EXPOSURES GCGraphicsExposures
-#define XLIKE_GC_FILL GCFillStyle
-#define XLIKE_GC_FONT GCFont
-#define XLIKE_GC_FOREGROUND GCForeground
-#define XLIKE_GC_FUNCTION GCFunction
-#define XLIKE_GC_LINE_WIDTH GCLineWidth
-#define XLIKE_GC_STIPPLE GCStipple
-#define XLIKE_GC_TILE GCTile
-#define XLIKE_GC_TS_X_ORIGIN GCTileStipXOrigin
-#define XLIKE_GC_TS_Y_ORIGIN GCTileStipYOrigin
 
 #define XLIKE_GX_COPY GXcopy
 #define XLIKE_GX_XOR GXxor
@@ -209,12 +192,6 @@ while (0)
 #define XIMAGE_INSTANCE_XLIKE_PIXMAP XIMAGE_INSTANCE_X_PIXMAP
 #define COLOR_INSTANCE_XLIKE_COLOR COLOR_INSTANCE_X_COLOR
 #define FONT_INSTANCE_XLIKE_FONT FONT_INSTANCE_X_FONT
-#define DEVICE_XLIKE_GC_CACHE DEVICE_X_GC_CACHE
-#define DEVICE_XLIKE_GRAY_PIXMAP DEVICE_X_GRAY_PIXMAP
-#define XLIKE_SET_GC_FILL(gc, style) ((gc).fill_style = (style))
-#define XLIKE_COLOR_TO_PIXEL(c) ((c).pixel)
-#define XLIKE_SET_GC_COLOR(lval, rval) ((lval) = (rval).pixel)
-#define XLIKE_SET_GC_PIXEL(lval, rval) ((lval) = (rval))
 #define XLIKE_FONT_NUM(val) ((val)->fid)
 #define XLIKE_ICHAR_CHARSET(c) ichar_charset (c)
 
@@ -306,9 +283,6 @@ while (0)
 #define XIMAGE_INSTANCE_XLIKE_PIXMAP XIMAGE_INSTANCE_GTK_PIXMAP
 #define COLOR_INSTANCE_XLIKE_COLOR(ci) (*COLOR_INSTANCE_GTK_COLOR (ci))
 #define FONT_INSTANCE_XLIKE_FONT FONT_INSTANCE_GTK_FONT
-#define DEVICE_XLIKE_GRAY_PIXMAP DEVICE_GTK_GRAY_PIXMAP
-#define DEVICE_XLIKE_GC_CACHE DEVICE_GTK_GC_CACHE
-#define XLIKE_COLOR_TO_PIXEL(c) ((c).pixel)
 #define XLIKE_FONT_NUM(val) (val)
 #define XLIKE_ICHAR_CHARSET(c) Vcharset_ascii
 

@@ -1,3 +1,36 @@
+2021-04-29  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Since GTK has moved to Cairo, it is no longer useful to attempt to
+	cache graphic contexts under that window system. Remove that code.
+
+	* console-xlike-inc.h: Remove those declarations and types
+	specific to the GC caching code.
+	* depend: Regenerate.
+	* gccache-gtk.c: Remove.
+	* gccache-gtk.h: Remove.
+	* gccache-x.h (X_SET_GC_FILL, X_SET_GC_PIXEL): Move these macros
+	here, rename from XLIKE_SET_GC_{FILL,PIXEL}.
+	* redisplay-x.c:
+	* redisplay-x.c (x_get_gc): Move this here from
+	redisplay-xlike-inc.c, renaming it from XLIKE_get_gc()
+	* redisplay-x.c (x_output_horizontal_line): Call it using the new
+	name. Use the X-specific GC masks.
+	* redisplay-x.c (x_output_vertical_divider): Ditto.
+	* redisplay-x.c (X_COLOR_TO_PIXEL): Add this, renamed from
+	XLIKE_COLOR_TO_PIXEL, moved from console-xlike-inc.h
+	* redisplay-x.c (x_flash): Use it, use the X-specific GC mask
+	names and function names.
+	* redisplay-x.c (x_output_blank): Ditto.
+	* redisplay-x.c (x_output_eol_cursor): Ditto.
+	* redisplay-x.c (x_output_xlike_pixmap): Ditto.
+	* redisplay-x.c (x_output_string): Ditto.
+	* redisplay-xlike-inc.c:
+	Move XLIKE_get_gc() to redisplay-x.c.
+	* redisplay-xlike-inc.c (XLIKE_output_blank):
+	Use the X-specific names when appropriate.
+	* redisplay-xlike-inc.c (XLIKE_output_pixmap):
+	Ditto.
+
 2021-04-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* fontcolor-xlike-inc.c (FcResultToString):

@@ -100,7 +100,6 @@ static void gtk_fill_rectangle (cairo_t *cr, gint x, gint y,
 /* Miscellaneous split functions */
 
 #define console_type_create_redisplay_XLIKE XLIKE_PASTE (console_type_create_redisplay, XLIKE_NAME)
-#define XLIKE_get_gc XFUN (get_gc)
 #define XLIKE_output_blank XFUN (output_blank)
 #define XLIKE_output_horizontal_line XFUN (output_horizontal_line)
 #define XLIKE_output_eol_cursor XFUN (output_eol_cursor)
@@ -425,136 +424,9 @@ XLIKE_output_display_block (struct window *w, struct display_line *dl,
 }
 
 #ifdef THIS_IS_X
-
-XLIKE_GC XLIKE_get_gc (struct frame *f, Lisp_Object font,
-		       Lisp_Object fg, Lisp_Object bg,
-		       Lisp_Object bg_pixmap, Lisp_Object bg_placement,
-		       Lisp_Object lwidth);
-
-/*****************************************************************************
- XLIKE_get_gc
-
- Given a number of parameters return a GC with those properties.
- ****************************************************************************/
-XLIKE_GC
-XLIKE_get_gc (struct frame *f, Lisp_Object font, 
-	      Lisp_Object fg, Lisp_Object bg,
-	      Lisp_Object bg_pixmap, Lisp_Object bg_placement, 
-	      Lisp_Object lwidth)
-{
-  struct device *d = XDEVICE (f->device);
-  XLIKE_GCVALUES gcv;
-  unsigned long mask;
-
-  memset (&gcv, ~0, sizeof (gcv));
-  gcv.graphics_exposures = XLIKE_FALSE;
-  /* Make absolutely sure that we don't pick up a clipping region in
-     the GC returned by this function. */
-  gcv.clip_mask = XLIKE_NONE;
-  gcv.clip_x_origin = 0;
-  gcv.clip_y_origin = 0;
-  XLIKE_SET_GC_FILL (gcv, XLIKE_FILL_SOLID);
-  mask = XLIKE_GC_EXPOSURES
-    | XLIKE_GC_CLIP_MASK | XLIKE_GC_CLIP_X_ORIGIN | XLIKE_GC_CLIP_Y_ORIGIN;
-  mask |= XLIKE_GC_FILL;
-
-  if (!NILP (font)
-#ifdef USE_XFT
-      /* Only set the font if it's a core font */
-      /* the renderfont will be set elsewhere (not part of gc) */
-      && !FONT_INSTANCE_X_XFTFONT (XFONT_INSTANCE (font))
-#endif
-      )
-    {
-#ifndef HAVE_GTK
-      gcv.font =
-	XLIKE_FONT_NUM (FONT_INSTANCE_XLIKE_FONT (XFONT_INSTANCE (font)));
-      mask |= XLIKE_GC_FONT;
-#endif
-    }
-
-  /* evil kludge! */
-  if (!NILP (fg) && !COLOR_INSTANCEP (fg) && !FIXNUMP (fg))
-    {
-      /* #### I fixed one case where this was getting hit.  It was a
-         bad macro expansion (compiler bug). */
-      stderr_out ("Help! x_get_gc got a bogus fg value! fg = ");
-      debug_print (fg);
-      fg = Qnil;
-    }
-
-  if (!NILP (fg))
-    {
-      if (COLOR_INSTANCEP (fg))
-	XLIKE_SET_GC_COLOR (gcv.foreground, XCOLOR_INSTANCE_XLIKE_COLOR (fg));
-      else
-	XLIKE_SET_GC_PIXEL (gcv.foreground, XFIXNUM (fg));
-      mask |= XLIKE_GC_FOREGROUND;
-    }
-
-  if (!NILP (bg))
-    {
-      if (COLOR_INSTANCEP (bg))
-	XLIKE_SET_GC_COLOR (gcv.background, XCOLOR_INSTANCE_XLIKE_COLOR (bg));
-      else
-	XLIKE_SET_GC_PIXEL (gcv.background, XFIXNUM (bg));
-      mask |= XLIKE_GC_BACKGROUND;
-    }
-
-  /* This special case comes from a request to draw text with a face which has
-     the dim property. We'll use a stippled foreground GC. */
-  if (EQ (bg_pixmap, Qdim))
-    {
-      assert (DEVICE_XLIKE_GRAY_PIXMAP (d) != XLIKE_NONE);
-
-      XLIKE_SET_GC_FILL (gcv, XLIKE_FILL_STIPPLED);
-      gcv.stipple = DEVICE_XLIKE_GRAY_PIXMAP (d);
-      mask |= (XLIKE_GC_FILL | XLIKE_GC_STIPPLE);
-    }
-#ifdef THIS_IS_X
-  else if (IMAGE_INSTANCEP (bg_pixmap)
-	   && IMAGE_INSTANCE_PIXMAP_TYPE_P (XIMAGE_INSTANCE (bg_pixmap)))
-    {
-      if (XIMAGE_INSTANCE_PIXMAP_DEPTH (bg_pixmap) == 0)
-	{
-	  XLIKE_SET_GC_FILL (gcv, XLIKE_FILL_OPAQUE_STIPPLED);
-	  gcv.stipple = XIMAGE_INSTANCE_XLIKE_PIXMAP (bg_pixmap);
-	  mask |= (XLIKE_GC_STIPPLE | XLIKE_GC_FILL);
-	}
-      else
-	{
-	  XLIKE_SET_GC_FILL (gcv, XLIKE_FILL_TILED);
-	  gcv.tile = XIMAGE_INSTANCE_XLIKE_PIXMAP (bg_pixmap);
-	  mask |= (XLIKE_GC_TILE | XLIKE_GC_FILL);
-	}
-      if (EQ (bg_placement, Qabsolute))
-	{
-#ifdef THIS_IS_GTK
-	  /* #### WARNING: this does not currently work. -- dvl
-	     gcv.ts_x_origin = - FRAME_GTK_X (f);
-	     gcv.ts_y_origin = - FRAME_GTK_Y (f);
-	     mask |= (XLIKE_GC_TS_X_ORIGIN | XLIKE_GC_TS_Y_ORIGIN);
-	  */
-#else
-	  gcv.ts_x_origin = - FRAME_X_X (f);
-	  gcv.ts_y_origin = - FRAME_X_Y (f);
-	  mask |= (XLIKE_GC_TS_X_ORIGIN | XLIKE_GC_TS_Y_ORIGIN);
-#endif
-	}
-    }
-#endif
-  if (!NILP (lwidth))
-    {
-      gcv.line_width = XFIXNUM (lwidth);
-      mask |= XLIKE_GC_LINE_WIDTH;
-    }
-
-#if 0
-  debug_out ("\nx_get_gc: calling gc_cache_lookup\n");
-#endif
-  return x_gc_cache_lookup (d, &gcv, mask);
-}
-
+GC x_get_gc (struct frame *f, Lisp_Object font, Lisp_Object fg,
+             Lisp_Object bg, Lisp_Object bg_pixmap,
+             Lisp_Object bg_placement, Lisp_Object lwidth);
 #endif
 
 static void
@@ -602,15 +474,13 @@ XLIKE_output_pixmap (struct window *w, Lisp_Object image_instance,
 
 #ifdef THIS_IS_X
       {
-	XLIKE_GC gc;
-
-	gc = XLIKE_get_gc (f, Qnil, cursor_cachel->background, Qnil, Qnil, Qnil,
-			   Qnil);
+        GC gc = x_get_gc (f, Qnil, cursor_cachel->background, Qnil, Qnil,
+                          Qnil, Qnil);
 
 	if (focus)
 	  {
-	    XLIKE_FILL_RECTANGLE (dpy, x_win, gc, cursor_start, db->ypos,
-				  cursor_width, cursor_height);
+	    XFillRectangle (dpy, x_win, gc, cursor_start, db->ypos,
+                            cursor_width, cursor_height);
 	  }
 	else
 	  {

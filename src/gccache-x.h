@@ -81,4 +81,8 @@ void describe_gc_cache (struct x_gc_cache *, int flags);
 
 #endif /* DEBUG_XEMACS */
 
+#define X_SET_GC_FILL(gc, style) ((gc).fill_style = (style))
+#define X_SET_GC_COLOR(lval, rval) ((lval) = (rval).pixel)
+#define X_SET_GC_PIXEL(lval, rval) ((lval) = (rval))
+
 #endif /* INCLUDED_gccache_x_h_ */
