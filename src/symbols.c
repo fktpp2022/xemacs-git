@@ -2002,9 +2002,14 @@ sets it.
     bfwd->magic.type = SYMVAL_BUFFER_LOCAL;
 
     bfwd->default_value = find_symbol_value (variable);
-    bfwd->current_value = valcontents;
+    bfwd->current_value = bfwd->default_value;
+
+    /* This function does not make the variable local to the current buffer,
+       that only happens when the variable is set in this buffer once this
+       function has been called. Don't store the current buffer. */
     bfwd->current_alist_element = Qnil;
-    bfwd->current_buffer = Fcurrent_buffer ();
+    bfwd->current_buffer = Qnil;
+
     foo = wrap_symbol_value_magic (bfwd);
     *value_slot_past_magic (variable) = foo;
 #if 1				/* #### Yuck!   FSFmacs bug-compatibility*/

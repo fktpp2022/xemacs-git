@@ -1,3 +1,11 @@
+2021-05-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* symbols.c (Fmake_variable_buffer_local):
+	Don't store the current buffer in this function, this function
+	doesn't actually directly make the symbol have a buffer-local
+	value, and storing a buffer that isn't used leads to minor issues
+	with buffers not getting garbage-collected when they should.
+
 2021-04-29  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Since GTK has moved to Cairo, it is no longer useful to attempt to
