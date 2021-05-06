@@ -236,7 +236,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
     /* Position in buffer at which display started the last time this buffer
        was displayed, as a zero-length extent or Qnil, if this buffer was
        never displayed. It is rare that this is not also reachable through
-       some window saved_last_window_start_cache hash table. */
+       some window' saved_last_window_start_cache. */
     MARKED_SLOT (last_window_start)
 
     /* A hash table that maps from a "generic extent" (an extent in

@@ -1,5 +1,23 @@
 2021-05-06  Aidan Kehoe  <kehoea@parhasard.net>
 
+	The window point and saved_window_start caches are very small,
+	much less than 100 elements, use weak lists rather than weak hash
+	tables.
+
+	* window.c (make_point_cache): New. Renamed from
+	make_saved_buffer_point_cache().
+	* window.c (get_point_cache): New.
+	* window.c (put_point_cache): New.
+
+	* window.c (allocate_window):
+	* window.c (unshow_buffer):
+	* window.c (Fdelete_window):
+	* window.c (Fset_window_buffer):
+	* window.c (make_dummy_parent):
+	Use the new interface in all these functions.
+
+2021-05-06  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* symbols.c (Fmake_variable_buffer_local):
 	Don't store the current buffer in this function, this function
 	doesn't actually directly make the symbol have a buffer-local

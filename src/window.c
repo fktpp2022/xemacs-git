@@ -379,13 +379,33 @@ finalize_window (Lisp_Object obj)
     }
 }
 
-/* These caches map buffers to markers.  They are key-weak so that entries
-   remain around as long as the buffers do. */
+/* These caches map buffers to zero-length extents.  They are key-weak so that
+   entries remain around as long as the buffers do. */
 
 static Lisp_Object
-make_saved_buffer_point_cache (void)
+make_point_cache (void)
 {
-  return make_lisp_hash_table (20, HASH_TABLE_KEY_WEAK, Qeq);
+  return make_weak_list (WEAK_LIST_KEY_ASSOC);
+}
+
+static Lisp_Object
+get_point_cache (Lisp_Object key, Lisp_Object cache)
+{
+  Lisp_Object acons = assq_no_quit (key, XWEAK_LIST_LIST (cache));
+
+  if (CONSP (acons))
+    {
+      return XCDR (acons);
+    }
+
+  return Qnil;
+}
+
+static void
+put_point_cache (Lisp_Object key, Lisp_Object val,
+                              Lisp_Object cache)
+{
+  XWEAK_LIST_LIST (cache) = Facons (key, val, XWEAK_LIST_LIST (cache));
 }
 
 DEFINE_NODUMP_LISP_OBJECT ("window", window,
@@ -422,8 +442,8 @@ allocate_window (void)
   INIT_DISP_VARIABLE (pointm, Fmake_marker ());
   INIT_DISP_VARIABLE (end_pos, Fmake_marker ());
   p->sb_point = Fmake_marker ();
-  p->saved_point_cache = make_saved_buffer_point_cache ();
-  p->saved_last_window_start_cache = make_saved_buffer_point_cache ();
+  p->saved_point_cache = make_point_cache ();
+  p->saved_last_window_start_cache = make_point_cache ();
   p->use_time = Qzero;
   INIT_DISP_VARIABLE (last_modified, Qzero);
   INIT_DISP_VARIABLE (last_point, Fmake_marker ());
@@ -2109,9 +2129,9 @@ static void
 unshow_buffer (struct window *w)
 {
   Lisp_Object buf = w->buffer;
-  Lisp_Object saved_point = Fgethash (buf, w->saved_point_cache, Qnil);
+  Lisp_Object saved_point = get_point_cache (buf, w->saved_point_cache);
   Lisp_Object saved_window_start
-    = Fgethash (buf, w->saved_last_window_start_cache, Qnil);
+    = get_point_cache (buf, w->saved_last_window_start_cache);
   Boolint selected = EQ (wrap_window (w), Fselected_window (Qnil));
   struct buffer *b = XBUFFER (buf);
 
@@ -2133,7 +2153,7 @@ unshow_buffer (struct window *w)
          associated thread. */
       saved_point = Fmake_extent (Qnil, Qnil, buf);
       Fset_extent_property (saved_point, Qstart_open, Qt);
-      Fputhash (buf, saved_point, w->saved_point_cache);
+      put_point_cache (buf, saved_point, w->saved_point_cache);
     }
 
   if (selected)
@@ -2157,7 +2177,8 @@ unshow_buffer (struct window *w)
          associated thread. */
       saved_window_start = Fmake_extent (Qnil, Qnil, buf);
       Fset_extent_property (saved_window_start, Qstart_open, Qt);
-      Fputhash (buf, saved_window_start, w->saved_last_window_start_cache);
+      put_point_cache (buf, saved_window_start,
+                       w->saved_last_window_start_cache);
     }
 
   set_extent_endpoints (XEXTENT (saved_window_start),
@@ -2309,34 +2330,6 @@ contains_window (Lisp_Object window, Lisp_Object pwindow)
     return 0;
 }
 
-static int
-delete_saved_point (Lisp_Object UNUSED (buffer), Lisp_Object saved_point,
-                    void *UNUSED (closure))
-{
-  Fdelete_extent (saved_point);
-  return 0;
-}
-
-static int
-delete_saved_window_start (Lisp_Object UNUSED (buffer),
-                           Lisp_Object saved_window_start,
-                           void *UNUSED (closure))
-{
-  Lisp_Object obj = Fextent_object (saved_window_start);
-  
-  if (BUFFERP (obj)
-      && EQ (saved_window_start, XBUFFER (obj)->last_window_start))
-    {
-      /* Keep this extent around, it may be helpful the next time the buffer
-         is shown. */;
-    }
-  else
-    {
-      Fdelete_extent (saved_window_start);
-    }
-  return 0;
-}
-
 DEFUN ("delete-window", Fdelete_window, 0, 2, "", /*
 Remove WINDOW from the display.  Default is selected window.
 If window is the only one on its frame, the frame is deleted as well.
@@ -2456,12 +2449,35 @@ will automatically call `save-buffers-kill-emacs'.)
   /* Delete the saved point extents, since they will still be referenced
      from the buffer and thus won't be garbage-collected until the buffer
      is. */
-  elisp_maphash_unsafe (delete_saved_point, w->saved_point_cache, NULL);
+  {
+    ALIST_LOOP_3 (buf, saved_point, XWEAK_LIST_LIST (w->saved_point_cache))
+      {
+        Fdelete_extent (saved_point);
+        USED (buf);
+      }
+  }
 
-  /* Ditto the saved window starts. */
-  elisp_maphash_unsafe (delete_saved_window_start,
-                        w->saved_last_window_start_cache, NULL);
+  {
+    /* Ditto the saved window starts. */
+    ALIST_LOOP_3 (sws_buf, saved_window_start,
+                 XWEAK_LIST_LIST (w->saved_last_window_start_cache))
+      {
+        Lisp_Object obj = Fextent_object (saved_window_start);
+  
+        if (BUFFERP (obj)
+            && EQ (saved_window_start, XBUFFER (obj)->last_window_start))
+          {
+            /* Keep this extent around, it may be helpful the next time the
+               buffer is shown. */;
+          }
+        else
+          {
+            Fdelete_extent (saved_window_start);
+          }
 
+        USED (sws_buf);
+      }
+  }
   /* close up the hole in the sibling list */
   if (!NILP (w->next))
     XWINDOW (w->next)->prev = w->prev;
@@ -3859,8 +3875,9 @@ global or per-frame buffer ordering.
   w->buffer = buffer;
   w->hscroll = 0;
   w->modeline_hscroll = 0;
+  
+  saved_point = get_point_cache (buffer, w->saved_point_cache);
 
-  saved_point = Fgethash (buffer, w->saved_point_cache, Qnil);
   bpoint = (EXTENTP (saved_point) && NILP (Fextent_detached_p (saved_point)))
     ? extent_endpoint_byte (XEXTENT (saved_point), 0)
     : BYTE_BUF_PT (XBUFFER (buffer));
@@ -3882,8 +3899,9 @@ global or per-frame buffer ordering.
                        marker_byte_position (w->pointm[CURRENT_DISP]));
     }
 
-  saved_window_start
-    = Fgethash (buffer, w->saved_last_window_start_cache, Qnil);
+  saved_window_start =
+    get_point_cache (buffer, w->saved_last_window_start_cache);
+
   if (!EXTENTP (saved_window_start))
     {
       saved_window_start = XBUFFER (buffer)->last_window_start;
@@ -4084,8 +4102,8 @@ make_dummy_parent (Lisp_Object window)
   p->pointm[DESIRED_DISP] = Qnil;
   p->pointm[CMOTION_DISP] = Qnil;
   p->sb_point = Qnil;
-  p->saved_point_cache = make_saved_buffer_point_cache ();
-  p->saved_last_window_start_cache = make_saved_buffer_point_cache ();
+  p->saved_point_cache = make_point_cache ();
+  p->saved_last_window_start_cache = make_point_cache ();
   p->buffer = Qnil;
 }
 
