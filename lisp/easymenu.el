@@ -180,26 +180,9 @@ non-default value for `mode-popup-menu' that existed when
 
 (defun easy-menu-add (menu &optional map)
   "Add MENU to the current menu bar."
-  ;; If you uncomment the following, do an xemacs -vanilla, type M-x
-  ;; folding-mode RET, you'll see that this code, which theoretically has
-  ;; *scratch* as its buffer context, can't see *scratch*'s value for
-  ;; mode-popup-menu--the default overrides it.  
-  ;;
-  ;; This is not specific to *scratch*--try it on ~/.xemacs/init.el--but it
-  ;; does appear to be specific to the first time mode-popup-menu is
-  ;; accessed as a buffer-local variable in non-interactive code (that is,
-  ;; M-: mode-popup-menu RET gives the correct value).
-  ;; 
-  ;; My fixing this right now isn't going to happen. Aidan Kehoe, 2006-01-03
-;    (message (concat "inside easy-menu-add, menu is %s, "
-;  		   "mode-popup-menu is %s, current buffer is %s, "
-;  		   "default-value mode-popup-menu is %s, "
-;  		   "easy-menu-all-popups is %s")
-;  	   menu mode-popup-menu (current-buffer) 
-;  	   (default-value 'mode-popup-menu) easy-menu-all-popups)
   (when (and (featurep 'menubar) (not noninteractive))
     ;; Save the existing mode-popup-menu, if it's been changed.
-    (when (and (eql (length easy-menu-all-popups) 0)
+    (when (and (eq easy-menu-all-popups nil)
 	       (not (equal (default-value 'mode-popup-menu) mode-popup-menu)))
       (push mode-popup-menu easy-menu-all-popups))
     ;; Add the menu to our list of all the popups for the buffer. 
@@ -228,6 +211,11 @@ non-default value for `mode-popup-menu' that existed when
 (defun easy-menu-remove (menu)
   "Remove MENU from the current menu bar."
   (when (and (featurep 'menubar) (not noninteractive))
+    ;; Save the existing mode-popup-menu, if it's been changed. Yes,
+    ;; #'easy-menu-remove can be called before #'easy-menu-add ever is.
+    (when (and (eq easy-menu-all-popups nil)
+	       (not (equal (default-value 'mode-popup-menu) mode-popup-menu)))
+      (push mode-popup-menu easy-menu-all-popups))
     (setq 
      ;; Remove this menu from the list of popups we know about. 
      easy-menu-all-popups (delete* menu easy-menu-all-popups)

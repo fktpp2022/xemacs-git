@@ -1,3 +1,12 @@
+2021-05-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* easymenu.el (easy-menu-add):
+	* easymenu.el (easy-menu-remove):
+	In the normal course of events #'easy-menu-remove is called before
+	#'easy-menu-add, and so the code in the latter to save any
+	existing non-default mode-popup-menu fails. Add corresponding code
+	to #'easy-menu-remove too.
+
 2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* replace.el (perform-replace): Update a
