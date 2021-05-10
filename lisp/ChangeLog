@@ -1,3 +1,9 @@
+2021-05-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* subr.el (zerop):
+	Error if NUMBER is a character or a marker in this function, as
+	the C code did previously.
+
 2021-05-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* easymenu.el (easy-menu-add):

@@ -482,6 +482,7 @@ confoundedness in older versions of E-Lisp."
 
 (defun zerop (number)
   "Return t if NUMBER is zero."
+  (check-type number number)
   (= number 0))
 
 (defun true-list-p (object)

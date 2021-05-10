@@ -4449,6 +4449,8 @@ run-hook-with-args-until-success")
 (Check-Error 'wrong-type-argument (zerop '#:0))
 (Check-Error 'wrong-type-argument (zerop '\0))
 (Check-Error 'wrong-type-argument (zerop [hello]))
+(Check-Error 'wrong-type-argument (zerop ?\x00))
+(Check-Error 'wrong-type-argument (zerop (copy-marker 1)))
 
 (Assert (char-int-p #x61))
 (Assert (char-int-p #x41))
