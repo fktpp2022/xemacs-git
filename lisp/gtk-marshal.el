@@ -34,9 +34,11 @@
 
 (defvar defined-marshallers nil)
 
+(defun get-marshaller-type-info (rval args)
+  (concat rval "__" (mapconcat 'identity (or args '("NONE")) "_")))
+
 (defun get-marshaller-name (rval args)
-  (concat "emacs_gtk_marshal_" rval "__"
-	  (mapconcat 'identity (or args '("NONE")) "_")))
+  (concat "emacs_gtk_marshal_" (get-marshaller-type-info rval args)))
 
 (defun define-marshaller (rval &rest args)
   (let ((name nil)
@@ -71,7 +73,9 @@
 
     (insert "\n"
 	    "static void\n"
-	    name " (ffi_actual_function func, GValue *args)\n"
+	    name " (ffi_actual_function func,\n"
+	    (format "%*s  " (length name) "")
+	    "GValue *args)\n"
 	    "{\n"
 	    (format "  %s rfunc = (%s) func;\n" func-proto func-proto))
 
@@ -99,7 +103,8 @@
     (when (cdr internal-rval)
       (insert ")"))                     ; close g_value_set
     (insert ");\n")
-    (insert "}\n")))
+    (insert "}\n")
+    (push name defined-marshallers)))
 
 (save-excursion
   (find-file "../src/emacs-marshals.c")
@@ -265,6 +270,7 @@
 		("OBJECT" "STRING")
 		("OBJECT")
 		("POINTER" "BOOL" "INT")
+		("POINTER" "FLOAT" "FLOAT" "FLOAT" "FLOAT" "FLOAT" "FLOAT")
 		("POINTER" "INT" "INT")
 		("POINTER" "INT")
 		("POINTER" "OBJECT" "INT" "INT")
@@ -292,39 +298,38 @@
 	      )
 	)
     (mapc (lambda (x) (apply 'define-marshaller x)) todo)
-
-    (insert "\n
-#include \"hash.h\"
-
-static struct hash_table *marshaller_hashtable;
-
-static void initialize_marshaller_storage (void)
-{
-	if (!marshaller_hashtable)
-	{
-		marshaller_hashtable = make_string_hash_table (200);
-")
-    
-    (mapc (lambda (x)
-	    (let ((name (get-marshaller-name (car x) (cdr x))))
-	      (insert (format "\t\tputhash (\"%s\", (void *) %s, marshaller_hashtable);\n" name name))))
-	  todo)
-    (insert "\t};\n"
-	    "}\n"
-	    "
-static void *find_marshaller (const char *func_name)
-{
-	void *fn = NULL;
-	initialize_marshaller_storage ();
-
-	if (gethash (func_name, marshaller_hashtable, (const void **)&fn))
-	{
-		return (fn);
-	}
-
-	return (NULL);
-}
-"))
-
+    (let* ((type-hash-to-function-alist
+            (sort* 
+             (mapcar
+              (lambda (x)
+		;; We take the low-order sixteen bits of the hash of the
+		;; string type info because this avoids 32-64 bit issues with
+		;; the size of Hashcode. Happily, it also gives a lot of
+		;; variation.
+                (cons (logand #xFFFF
+			      (sxhash (get-marshaller-type-info
+				       (car x) (cdr x))))
+                      (get-marshaller-name (car x) (cdr x))))
+              todo)
+             #'< :key #'car)))
+      (assert (eql (length type-hash-to-function-alist)
+		   (length (remove-duplicates type-hash-to-function-alist
+					      :key #'car)))
+	      t "This code assumes every type string hashes uniquely")
+      (insert "\n#define FOR_ALL_MARSHALLERS(FROB, FROB_LAST) \\\n")
+      (mapl #'(lambda (tail)
+                (let ((x (car tail)))
+                  (if (cdr tail)
+                      (progn
+                        (insert "  FROB(" (number-to-string (car x))
+				", " (cdr x) ")")
+                        (insert " \\"))
+                    (insert "  FROB_LAST(" (number-to-string (car x))
+			    ", " (cdr x) ")")))
+                (insert "\n"))
+            type-hash-to-function-alist))
+    (insert "\n/* emacs-marshal.c ends here. */\n"))
   (save-buffer)
   (kill-buffer "emacs-marshals.c"))
+
+;; gtk-marshal.el ends here

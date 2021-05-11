@@ -13,6 +13,25 @@
 	existing non-default mode-popup-menu fails. Add corresponding code
 	to #'easy-menu-remove too.
 
+2021-05-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* gtk-marshal.el (get-marshaller-type-info): New.
+	Summarize the type info (so return type and argument type) of RVAL
+	and ARGS as a string.
+	* gtk-marshal.el (get-marshaller-name): Implement this using
+	#'get-marshaller-type-info.
+	* gtk-marshal.el (define-marshaller):
+	Add a newline and appropriate indentation to the C definition of
+	the function.
+	Push the now-defined marshal function onto defined-marshallers.
+	* gtk-marshal.el:
+	When creating emacs-marshal.c, instead of creating a long list of
+	puthash() calls to be called the first time any function is
+	imported, create a table mapping the lower 16 bits of the type
+	string hash to the corresponding function, which is faster in my
+	testing (with 10,000 gtk-import-function-internal calls), and has
+	more predictable performance than the old approach.
+
 2021-02-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* replace.el (perform-replace): Update a

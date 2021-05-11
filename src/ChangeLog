@@ -24,6 +24,21 @@
 	value, and storing a buffer that isn't used leads to minor issues
 	with buffers not getting garbage-collected when they should.
 
+2021-05-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* emacs-marshals.c:
+	* emacs-marshals.c (FOR_ALL_MARSHALLERS): New.  Regenerate this
+	file, see ../lisp/gtk-marshal.el.
+	* ui-gtk.c:
+	Make the map from marshaller types to functions a compile-time
+	constant, avoiding the creation of a hash table the first time a
+	marshalled function is called.
+	* ui-gtk.c (find_marshaller):
+	Move this here from emacs-marshals.c.
+	* ui-gtk.c (Fgtk_import_function_internal):
+	No need to prepend "emacs_gtk_marshal_" to the argument passed to
+	find_marshaller(). 
+
 2021-04-29  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Since GTK has moved to Cairo, it is no longer useful to attempt to
