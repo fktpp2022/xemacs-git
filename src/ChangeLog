@@ -1,3 +1,14 @@
+2021-05-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Implement fc_intern() using a normal Lisp hash table, warn if
+	debug-xft is non-zero and the property name is not recognized.
+	* font-mgr.c:
+	* font-mgr.c (fc_intern):
+	* font-mgr.c (vars_of_font_mgr):
+	Initialize Vfc_property_name_hash_table here, and staticpro it.
+	* font-mgr.c (reinit_vars_of_font_mgr):
+	Remove the make_string_hash_table() call here.
+
 2021-05-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	The window point and saved_window_start caches are very small,

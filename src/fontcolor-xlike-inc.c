@@ -273,7 +273,8 @@ const char *FcResultToString (FcResult r);
 const char *
 FcResultToString (FcResult r)
 {
-  static char buffer[256];
+  static Ascbyte buffer[sizeof ("FcResultUndocumentedValue ()")
+			+ DECIMAL_PRINT_SIZE (r)];
   switch (r)
     {
     case FcResultMatch:
@@ -285,7 +286,7 @@ FcResultToString (FcResult r)
     case FcResultNoId:
       return "FcResultNoId";
     default:
-      emacs_snprintf_ascbyte ((Ibyte *) buffer, sizeof (buffer), 
+      emacs_snprintf_ascbyte (buffer, sizeof (buffer), 
                               "FcResultUndocumentedValue (%d)", r);
       return buffer;
     }
@@ -295,7 +296,8 @@ const char *FcTypeOfValueToString (FcValue v);
 const char *
 FcTypeOfValueToString (FcValue v)
 {
-  static char buffer[256];
+  static Ascbyte buffer[sizeof ("FcTypeUndocumentedType ()")
+			+ DECIMAL_PRINT_SIZE (v)];
   switch (v.type)
     {
     case FcTypeMatrix:
@@ -319,7 +321,7 @@ FcTypeOfValueToString (FcValue v)
     case FcTypeFTFace:
       return "FcTypeFTFace";
     default:
-      emacs_snprintf_ascbyte ((Ibyte *) buffer, sizeof (buffer), 
+      emacs_snprintf_ascbyte (buffer, sizeof (buffer), 
                               "FcTypeUndocumentedType (%d)", v.type);
       return buffer;
     }

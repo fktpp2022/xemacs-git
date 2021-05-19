@@ -46,6 +46,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "font-mgr.h"
 
 #include "sysfile.h"
+#include "elhash.h"
 
 /* #### TO DO ####
    . The "x-xft-*" and "x_xft_*" nomenclature is mostly redundant, especially
@@ -86,6 +87,8 @@ Fixnum debug_xft;		/* Set to 1 enables lots of obnoxious messages.
 Lisp_Object Qfc_configp;
 static Lisp_Object Vfc_config_weak_list;
 #endif
+
+Lisp_Object Vfc_property_name_hash_table;
 
 /****************************************************************
 *                       FcPattern objects                       *
@@ -153,61 +156,82 @@ static void string_list_to_fcobjectset (Lisp_Object list, FcObjectSet *os);
 #define build_fcapi_string(str) \
   (build_extstring ((Extbyte *) (str), Qfc_font_name_encoding))
 
-/* #### This homebrew lashup should be replaced with FcConstants.
-
-   #### This isn't true any more (fontconfig v2.10.95), if it ever was.
-   fontconfig assumes that objects (property names) are statically allocated,
-   and you will get bizarre results if you pass Lisp string data or strings
-   allocated on the stack as objects.  fontconfig _does_ copy values, so we
-   (I hope) don't have to worry about that member.
-
-   Probably these functions don't get called so often that the memory leak
-   due to strdup'ing every time we add a property would matter, but XEmacs
-   _is_ a long-running process.  So we hash them.
-
-   I suspect that using symbol names or even keywords does not provide
-   assurance that the string won't move in memory.  So we hash them
-   ourselves; hash.c hashtables do not interpret the value pointers.
-
-   This array should be FcChar8**, but GCC 4.x bitches about signedness. */
-static const Extbyte *fc_standard_properties[] =
-{
-  /* treated specially, ordered first */
-  "family", "size",
-  /* remaining are alphabetized by group */
-  /* standard properties in fontconfig and Xft v.2 */
-  "antialias", "aspect", "autohint", "charset", "dpi", "file",
-  "foundry", "ftface", "globaladvance", "hinting", "index", "lang",
-  "minspace", "outline", "pixelsize", "rasterizer", "rgba", "scalable",
-  "scale", "slant", "spacing", "style", "verticallayout", "weight",
-  /* common in modern fonts */
-  "fontformat", "fontversion",
-  /* obsolete after Xft v. 1 */
-  "charwidth", "charheight", "core", "encoding", "render"
-};
-
-static struct hash_table *fc_property_name_hash_table;
-
-/* #### Maybe fc_intern should be exposed to LISP?  The idea is that
-   fc-pattern-add could warn or error if the property isn't interned. */
-
 static const Extbyte *
 fc_intern (Lisp_Object property)
 {
-  const void *dummy;
-  const Extbyte *prop = extract_fcapi_string (property);
-  const void *val = gethash (prop, fc_property_name_hash_table, &dummy);
+  Lisp_Object sym = Fintern_soft (property,
+				  Vfc_property_name_hash_table,
+				  Qunbound);
+  Lisp_Object new_string;
 
-  /* extract_fcapi_string returns something alloca'd
-     so we can just drop the old value of prop on the floor */
-  if (val)
-    prop = (const Extbyte *) val;
-  else
+  if (!EQ (sym, Qunbound))
     {
-      prop = (const Extbyte *) FcStrCopy ((FcChar8 *) prop);
-      puthash (prop, NULL, fc_property_name_hash_table);
+      return (const Extbyte *) (XSTRING_DATA (XSYMBOL_NAME (sym)));
     }
-  return prop;
+
+  if (memcmp (XSTRING_DATA (property),
+	      extract_fcapi_string (property),
+	      XSTRING_LENGTH (property)))
+    {
+      invalid_argument ("Non-ASCII property names only supported with "
+			"UTF-8 internal", property);
+      /* We know now that the internal-format representation of PROPERTIY is
+	 bit-for-bit identical to its representation under
+	 Qfc_font_name_encoding. */
+    }
+
+  if (debug_xft)
+    {
+      /* This table is small enough that bsearch() doesn't make sense.*/
+      static const Ascbyte *fc_standard_properties[] =
+	{
+	  /* treated specially, ordered first */
+	  "family", "size",
+	  /* remaining are alphabetized by group */
+	  /* standard properties in fontconfig and Xft v.2 */
+	  "antialias", "aspect", "autohint", "charset", "dpi", "file",
+	  "foundry", "ftface", "globaladvance", "hinting", "index", "lang",
+	  "minspace", "outline", "pixelsize", "rasterizer", "rgba",
+	  "scalable",
+	  "scale", "slant", "spacing", "style", "verticallayout", "weight",
+	  /* common in modern fonts */
+	  "fontformat", "fontversion",
+	  /* obsolete after Xft v. 1 */
+	  "charwidth", "charheight", "core", "encoding", "render"
+	};
+      int ii;
+      Boolint known = 0;
+
+      for (ii = 0; ii < countof (fc_standard_properties); ii++)
+	{
+	  if (!qxestrcmp ((const Ibyte *) (fc_standard_properties[ii]),
+			  XSTRING_DATA (property)))
+	    {
+	      known = 1;
+	      break;
+	    }
+	}
+
+      if (!known)
+	{
+	  warn_when_safe_lispobj (Qface, Qwarning,
+				  emacs_sprintf_string_lisp
+				  ("Property not known to fontconfig, %S",
+				   property));
+	}
+    }
+
+  /* FcPatternAdd() doesn't copy its OBJECT argument string, it keeps the
+     pointer value that it is passed. This means a) we can't allocate it on
+     the stack and b) we shouldn't allocate it as Lisp data in the normal way,
+     since with a (potential) relocating GC fontconfig won't have a reliable
+     pointer. Allocate it on the C heap, use make_string_nocopy() with the
+     heap-allocated data for the hash table entry. */
+  new_string = make_string_nocopy (qxestrdup (XSTRING_DATA (property)),
+				   XSTRING_LENGTH (property));
+
+  Fintern (new_string, Vfc_property_name_hash_table);
+  return (const Extbyte *) (XSTRING_DATA (new_string));
 }
 
 DEFUN ("fc-pattern-p", Ffc_pattern_p, 1, 1, 0, /*
@@ -1396,6 +1420,10 @@ It's probably not a disaster if `(> (fc-get-version) fc-version)'.
   fc_version = FC_VERSION;
 
   Fprovide (intern ("font-mgr"));
+
+  Vfc_property_name_hash_table
+    = make_lisp_hash_table (91, HASH_TABLE_NON_WEAK, Qequal);
+  staticpro (&Vfc_property_name_hash_table);
 }
 
 void
@@ -1415,12 +1443,6 @@ The regular expression used to match XLFD font names.
 void
 reinit_vars_of_font_mgr (void)
 {
-  int i, size = (int) countof (fc_standard_properties);
-  
   FcInit ();
-
-  fc_property_name_hash_table = make_string_hash_table (size);
-  for (i = 0; i < size; ++i)
-    puthash (fc_standard_properties[i], NULL, fc_property_name_hash_table);
 }
 
