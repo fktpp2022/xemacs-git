@@ -271,7 +271,7 @@ mswindows_init_frame_1 (struct frame *f, Lisp_Object props,
 			   
   FRAME_MSWINDOWS_HANDLE (f) = hwnd;
 
-  assert (sizeof (LPARAM) < SIZEOF_VOID_P);
+  assert (SIZEOF_VOID_P <= sizeof (LPARAM));
   qxeSetWindowLongPtr (hwnd, XWLP_FRAMEOBJ,
                        (LPARAM) (STORE_LISP_IN_VOID (frame_obj)));
 

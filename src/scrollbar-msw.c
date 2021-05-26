@@ -81,7 +81,7 @@ mswindows_create_scrollbar_instance (struct frame *f, int vertical,
   ptr = make_opaque_ptr (SCROLLBAR_MSW_HANDLE (sb));
   Fputhash (ptr, wrap_scrollbar_instance (sb),
 	    Vmswindows_scrollbar_instance_table);
-  assert (SIZEOF_VOID_P < sizeof (LPARAM));
+  assert (SIZEOF_VOID_P <= sizeof (LPARAM));
   qxeSetWindowLongPtr (SCROLLBAR_MSW_HANDLE (sb), GWLP_USERDATA,
 		       (LPARAM) (STORE_LISP_IN_VOID (ptr)));
 }

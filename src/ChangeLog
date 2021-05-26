@@ -1,3 +1,10 @@
+2021-05-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* frame-msw.c (mswindows_init_frame_1):
+	* scrollbar-msw.c (mswindows_create_scrollbar_instance):
+	Correct a couple of assertions in these functions, avoid crashing
+	at startup on 32-bit Windows.
+
 2021-05-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Implement fc_intern() using a normal Lisp hash table, warn if
