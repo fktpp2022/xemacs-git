@@ -353,8 +353,8 @@ event_stream_unixoid_create_io_streams (void* inhandle, void* outhandle,
 					void *errhandle, Lisp_Object* instream,
 					Lisp_Object* outstream,
 					Lisp_Object* errstream,
-					USID* in_usid,
-					USID* err_usid,
+					Lisp_Object* in_usid,
+					Lisp_Object* err_usid,
 					int flags)
 {
   tls_state_t *tls_state;
@@ -393,16 +393,16 @@ event_stream_unixoid_create_io_streams (void* inhandle, void* outhandle,
 					eof_char);
     }
 
-  *in_usid = FD_TO_USID (infd);
-  *err_usid = FD_TO_USID (errfd);
+  *in_usid = fd_to_lisp_usid (infd);
+  *err_usid = fd_to_lisp_usid (errfd);
 }
 
 void
 event_stream_unixoid_delete_io_streams (Lisp_Object instream,
 					Lisp_Object outstream,
 					Lisp_Object errstream,
-					USID *in_usid,
-					USID *err_usid)
+					Lisp_Object *in_usid,
+					Lisp_Object *err_usid)
 {
   int in = (NILP (instream) ? -1
 	    : filedesc_stream_fd (XLSTREAM (instream)));
@@ -418,8 +418,8 @@ event_stream_unixoid_delete_io_streams (Lisp_Object instream,
   if (err != in && err != out && err >= 0)
     retry_close (err);
 
-  *in_usid = FD_TO_USID (in);
-  *err_usid = FD_TO_USID (err);
+  *in_usid = fd_to_lisp_usid (in);
+  *err_usid = fd_to_lisp_usid (err);
 }
 
 

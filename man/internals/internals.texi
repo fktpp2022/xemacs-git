@@ -20916,24 +20916,27 @@ descriptors may be passed to @code{XtAddInput}.
 The handle given may have special denying value, in which case the
 corresponding lstream should not be created.
 
-The return value of the function is a unique stream identifier. It is used
-by processes implementation, in its  platform-independent part. There is
-the get_process_from_usid function, which returns process object given its
-USID. The event stream is responsible for converting its internal handle
-type into USID.
+The return value of the function is a Lisp object, a unique stream
+identifier. It is used by the process implementation, in its
+platform-independent part. That has the @code{get_process_from_usid()}
+function, which returns a process object given its unique stream ID. The event
+stream is responsible for converting its internal handle type into the unique
+stream ID Lisp object.
 
-Example is the TTY event stream. When a file descriptor signals input, the
-event loop must determine process to which the input is destined. Thus,
-the implementation uses process input stream file descriptor as USID, by
-simply casting the fd value to USID type.
+An example is the TTY event stream. When a file descriptor signals input, the
+event loop must determine the process to which the input is destined. Thus,
+the implementation uses process input stream file descriptor as its unique
+stream ID, by simply calling @code{make_fixnum()} on the file descriptor
+value. This is practical because Unix file descriptor table sizes are
+significantly more limited than is the range of a Lisp fixnum.
 
-There are two special USID values. One, @code{USID_ERROR}, indicates
-that the stream pair cannot be created. The second,
-@code{USID_DONTHASH}, indicates that streams are created, but the event
-stream does not wish to be able to find the process by its
-USID. Specifically, if an event stream implementation never calls
-@code{get_process_from_usid}, this value should always be returned, to
-prevent accumulating useless information on USID to process
+There are two special Lisp objects used as stream identifiers. One, the Lisp
+symbol @code{error}, indicates that the stream pair cannot be created. The
+second, the Lisp symbol @code{discard}, indicates that streams are created,
+but the event stream does not wish to be able to find the process by its
+stream ID. Specifically, if an event stream implementation never calls
+@code{get_process_from_usid()}, this value should always be returned, to
+prevent accumulating useless information on the stream identifier to process
 relationship.
 
 @node Converting Events, Dispatching Events; The Command Builder, Stream Pairs, Events and the Event Loop

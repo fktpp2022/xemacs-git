@@ -862,30 +862,30 @@ emacs_gtk_create_io_streams (void *inhandle, void *outhandle,
 			     void *errhandle, Lisp_Object *instream,
 			     Lisp_Object *outstream,
 			     Lisp_Object *errstream,
-			     USID *in_usid,
-			     USID *err_usid,
+			     Lisp_Object *in_usid,
+			     Lisp_Object *err_usid,
 			     int flags)
 {
   event_stream_unixoid_create_io_streams
     (inhandle, outhandle, errhandle, instream, outstream,
      errstream, in_usid, err_usid, flags);
-  if (*in_usid != USID_ERROR)
-    *in_usid = USID_DONTHASH;
-  if (*err_usid != USID_ERROR)
-    *err_usid = USID_DONTHASH;
+  if (!EQ (*in_usid, Qerror))
+    *in_usid = Qdiscard;
+  if (!EQ (*err_usid, Qerror))
+    *err_usid = Qdiscard;
 }
 
 static void
 emacs_gtk_delete_io_streams (Lisp_Object instream,
 			     Lisp_Object outstream,
 			     Lisp_Object errstream,
-			     USID *in_usid,
-			     USID *err_usid)
+			     Lisp_Object *in_usid,
+			     Lisp_Object *err_usid)
 {
   event_stream_unixoid_delete_io_streams
     (instream, outstream, errstream, in_usid, err_usid);
-  *in_usid = USID_DONTHASH;
-  *err_usid = USID_DONTHASH;
+  *in_usid = Qdiscard;
+  *err_usid = Qdiscard;
 }
 
 /* This is called from GC when a process object is about to be freed.

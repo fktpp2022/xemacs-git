@@ -185,13 +185,30 @@ extern int mswindows_is_blocking;
 
 #ifndef CYGWIN /* Skips past slurp, shove, or winsock streams */
 
+static HANDLE
+lisp_to_HANDLE (Lisp_Object objeto)
+{
+  void *resultvp;
+  CHECK_FIXNUM (objeto); 
+  
+  resultvp = GET_VOID_FROM_LISP (objeto);
+  assert (((EMACS_UINT) resultvp & 1) == 0);
+  assert (sizeof (HANDLE) <= SIZEOF_EMACS_INT);
+  return (HANDLE) resultvp;
+}
+
+static Lisp_Object
+HANDLE_to_lisp (HANDLE handel)
+{
+  assert (sizeof (HANDLE) <= SIZEOF_EMACS_INT);
+  return STORE_VOID_IN_LISP ((void *) handel);
+}
+
 /************************************************************************/
 /*                Pipe instream - reads process output                  */
 /************************************************************************/
 
 #define PIPE_READ_DELAY 20
-
-#define HANDLE_TO_USID(h) ((USID)(h))
 
 #define NTPIPE_SLURP_STREAM_DATA(stream) \
   LSTREAM_TYPE_DATA (stream, ntpipe_slurp)
@@ -1443,7 +1460,7 @@ mswindows_need_event (int badly_p)
 		      if (FD_ISSET (i, &process_only_mask))
 			{
 			  Lisp_Process *p =
-			    get_process_from_usid (FD_TO_USID (i));
+			    get_process_from_usid (fd_to_lisp_usid (i));
 
 			  mswindows_enqueue_process_event (p);
 			}
@@ -1652,7 +1669,7 @@ mswindows_need_event (int badly_p)
 	    { /* no stream console event, look for process event */
 	      /* First, try to find which process' output has signaled */
 	      Lisp_Process *p =
-		get_process_from_usid (HANDLE_TO_USID
+		get_process_from_usid (HANDLE_to_lisp
 				       (mswindows_waitable_handles[ix]));
 	      if (p != NULL)
 		/* Found a signaled process input handle */
@@ -4588,8 +4605,8 @@ emacs_mswindows_create_io_streams (void *inhandle, void *outhandle,
 				   void *errhandle, Lisp_Object *instream,
 				   Lisp_Object *outstream,
 				   Lisp_Object *errstream,
-				   USID *in_usid,
-				   USID *err_usid,
+				   Lisp_Object *in_usid,
+				   Lisp_Object *err_usid,
 				   int flags)
 {
 #ifdef CYGWIN
@@ -4633,16 +4650,16 @@ emacs_mswindows_create_io_streams (void *inhandle, void *outhandle,
 
   *in_usid =
     (NILP (*instream)
-     ? USID_ERROR
+     ? Qerror
      : flags & STREAM_NETWORK_CONNECTION
-     ? HANDLE_TO_USID (get_winsock_stream_waitable (XLSTREAM (*instream)))
-     : HANDLE_TO_USID (get_ntpipe_input_stream_waitable (XLSTREAM
+     ? HANDLE_to_lisp (get_winsock_stream_waitable (XLSTREAM (*instream)))
+     : HANDLE_to_lisp (get_ntpipe_input_stream_waitable (XLSTREAM
 							 (*instream))));
 
   *err_usid =
     (NILP (*errstream)
-     ? USID_DONTHASH
-     : HANDLE_TO_USID (get_ntpipe_input_stream_waitable (XLSTREAM
+     ? Qdiscard
+     : HANDLE_to_lisp (get_ntpipe_input_stream_waitable (XLSTREAM
 							 (*errstream))));
 #endif /* CYGWIN */
 }
@@ -4651,8 +4668,8 @@ static void
 emacs_mswindows_delete_io_streams (Lisp_Object instream,
 				   Lisp_Object USED_IF_CYGWIN (outstream),
 				   Lisp_Object errstream,
-				   USID *in_usid,
-				   USID *err_usid)
+				   Lisp_Object *in_usid,
+				   Lisp_Object *err_usid)
 {
 #ifdef CYGWIN
   event_stream_unixoid_delete_io_streams (instream, outstream, errstream,
@@ -4660,16 +4677,16 @@ emacs_mswindows_delete_io_streams (Lisp_Object instream,
 #else
   *in_usid =
     (NILP (instream)
-     ? USID_DONTHASH
+     ? Qdiscard
      : LSTREAM_TYPE_P (XLSTREAM (instream), winsock)
-     ? HANDLE_TO_USID (get_winsock_stream_waitable (XLSTREAM (instream)))
-     : HANDLE_TO_USID (get_ntpipe_input_stream_waitable (XLSTREAM
+     ? HANDLE_to_lisp (get_winsock_stream_waitable (XLSTREAM (instream)))
+     : HANDLE_to_lisp (get_ntpipe_input_stream_waitable (XLSTREAM
 							 (instream))));
 
   *err_usid =
     (NILP (errstream)
-     ? USID_DONTHASH
-     : HANDLE_TO_USID (get_ntpipe_input_stream_waitable (XLSTREAM
+     ? Qdiscard
+     : HANDLE_to_lisp (get_ntpipe_input_stream_waitable (XLSTREAM
 							 (errstream))));
 #endif /* CYGWIN */
 }

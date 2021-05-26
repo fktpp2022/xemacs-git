@@ -66,8 +66,8 @@ struct process_methods
   int  (*kill_process_by_pid) (int pid, int sigcode);
   int  (*process_send_eof) (Lisp_Object proc);
   void (*deactivate_process) (Lisp_Process *p,
-			      USID* in_usid,
-			      USID* err_usid);
+			      Lisp_Object *in_usid,
+			      Lisp_Object *err_usid);
   void (*init_process) (void);
 };
 
@@ -133,8 +133,7 @@ extern Lisp_Object Qrun, Qstop, Qopen, Qclosed;
 extern Lisp_Object Qtcp, Qudp;
 extern Lisp_Object Vprocess_connection_type;
 extern Lisp_Object Vprocess_list;
-
-extern struct hash_table *usid_to_process;
+extern Lisp_Object Vusid_to_process;
 
 extern volatile int process_tick;
 

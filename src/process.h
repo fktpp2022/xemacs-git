@@ -82,7 +82,7 @@ void get_process_streams (Lisp_Process *p,
 int get_process_selected_p (Lisp_Process *p, int do_err);
 void set_process_selected_p (Lisp_Process *p, int in_selected,
 			     int err_selected);
-Lisp_Process *get_process_from_usid (USID usid);
+Lisp_Process *get_process_from_usid (Lisp_Object usid);
 
 #ifdef HAVE_SOCKETS
 int network_connection_p (Lisp_Object process);

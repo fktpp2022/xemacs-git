@@ -104,9 +104,9 @@ static int update_tick;
 /* Nonzero means delete a process right away if it exits.  */
 int delete_exited_processes;
 
-/* Hash table which maps USIDs as returned by create_io_streams_cb to
+/* Weak list mapping Lisp_Object USIDs as returned by create_io_streams_cb to
    process objects. Processes are not GC-protected through this! */
-struct hash_table *usid_to_process;
+Lisp_Object Vusid_to_process;
 
 /* Read-only to Lisp.  See DEFUN Fprocess_list. */
 Lisp_Object Vprocess_list;
@@ -266,20 +266,19 @@ get_process_streams (Lisp_Process *p, Lisp_Object *instr, Lisp_Object *outstr,
 /* Given a USID referring to either a process's instream or errstream,
    return the associated process. */
 Lisp_Process *
-get_process_from_usid (USID usid)
+get_process_from_usid (Lisp_Object usid)
 {
-  const void *vval;
+  Lisp_Object acons;
 
-  assert (usid != USID_ERROR && usid != USID_DONTHASH);
+  assert (!(EQ (usid, Qerror)) && !EQ (usid, Qdiscard));
 
-  if (gethash ((const void*)usid, usid_to_process, &vval))
+  acons = assq_no_quit (usid, XWEAK_LIST_LIST (Vusid_to_process));
+  if (CONSP (acons))
     {
-      Lisp_Object process;
-      process = GET_LISP_FROM_VOID (vval);
-      return XPROCESS (process);
+      return XPROCESS (XCDR (acons));
     }
-  else
-    return 0;
+
+  return NULL;
 }
 
 int
@@ -582,7 +581,7 @@ void
 init_process_io_handles (Lisp_Process *p, void* in, void* out, void* err,
 			 int flags)
 {
-  USID in_usid, err_usid;
+  Lisp_Object in_usid, err_usid;
   Lisp_Object incode, outcode;
 
   if (flags & STREAM_NETWORK_CONNECTION)
@@ -629,23 +628,22 @@ init_process_io_handles (Lisp_Process *p, void* in, void* out, void* err,
 				  &in_usid, &err_usid,
 				  flags);
 
-  if (in_usid == USID_ERROR || err_usid == USID_ERROR)
+  if (EQ (in_usid, Qerror) || EQ (err_usid, Qerror))
     signal_error (Qprocess_error, "Setting up communication with subprocess",
 		  wrap_process (p));
 
-  if (in_usid != USID_DONTHASH)
+  if (!(EQ (in_usid, Qdiscard)))
     {
-      Lisp_Object process = Qnil;
-      process = wrap_process (p);
-      puthash ((const void*) in_usid, STORE_LISP_IN_VOID (process), usid_to_process);
+      XWEAK_LIST_LIST (Vusid_to_process)
+	= Facons (in_usid, wrap_process (p),
+		  XWEAK_LIST_LIST (Vusid_to_process));
     }
 
-  if (err_usid != USID_DONTHASH)
+  if (!(EQ (err_usid, Qdiscard)))
     {
-      Lisp_Object process = Qnil;
-      process = wrap_process (p);
-      puthash ((const void*) err_usid, STORE_LISP_IN_VOID (process),
-	       usid_to_process);
+      XWEAK_LIST_LIST (Vusid_to_process)
+	= Facons (err_usid, wrap_process (p),
+		  XWEAK_LIST_LIST (Vusid_to_process));
     }
 
   MAYBE_PROCMETH (init_process_io_handles, (p, in, out, err, flags));
@@ -2187,7 +2185,7 @@ text to PROCESS after you call this function.
     {
       if (!NILP (DATA_OUTSTREAM (XPROCESS (process))))
 	{
-	  USID humpty, dumpty;
+	  Lisp_Object humpty, dumpty;
 	  Lstream_close (XLSTREAM (DATA_OUTSTREAM (XPROCESS (process))));
 	  event_stream_delete_io_streams (Qnil,
 					  XPROCESS (process)->pipe_outstream,
@@ -2209,7 +2207,7 @@ void
 deactivate_process (Lisp_Object process)
 {
   Lisp_Process *p = XPROCESS (process);
-  USID in_usid, err_usid;
+  Lisp_Object in_usid = Qdiscard, err_usid = Qdiscard;
 
   /* It's possible that we got as far in the process-creation
      process as creating the descriptors but didn't get so
@@ -2250,10 +2248,19 @@ deactivate_process (Lisp_Object process)
 				    p->pipe_errstream,
 				    &in_usid, &err_usid);
 
-  if (in_usid != USID_DONTHASH)
-    remhash ((const void *) in_usid, usid_to_process);
-  if (err_usid != USID_DONTHASH)
-    remhash ((const void *) err_usid, usid_to_process);
+  if (!(EQ (in_usid, Qdiscard)))
+    {
+      XWEAK_LIST_LIST (Vusid_to_process)
+	= remassq_no_quit (in_usid, 
+			   XWEAK_LIST_LIST (Vusid_to_process));
+    }
+
+  if (!(EQ (err_usid, Qdiscard)))
+    {
+      XWEAK_LIST_LIST (Vusid_to_process)
+	= remassq_no_quit (err_usid, 
+			   XWEAK_LIST_LIST (Vusid_to_process));
+    }
 
   p->pipe_instream = Qnil;
   p->pipe_outstream = Qnil;
@@ -2538,11 +2545,6 @@ init_xemacs_process (void)
 
   Vprocess_list = Qnil;
 
-  if (usid_to_process)
-    clrhash (usid_to_process);
-  else
-    usid_to_process = make_hash_table (32);
-
   {
     /* jwz: always initialize Vprocess_environment, so that egetenv()
        works in temacs. */
@@ -2807,4 +2809,7 @@ when Emacs starts.
 
   Vlisp_EXEC_SUFFIXES = build_ascstring (EXEC_SUFFIXES);
   staticpro (&Vlisp_EXEC_SUFFIXES);
+
+  Vusid_to_process = make_weak_list (WEAK_LIST_VALUE_ASSOC);
+  staticpro (&Vusid_to_process);
 }

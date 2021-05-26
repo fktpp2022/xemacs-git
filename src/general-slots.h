@@ -122,6 +122,7 @@ SYMBOL (Qdevices);
 SYMBOL (Qdialog);
 SYMBOL (Qdimension);
 SYMBOL (Qdirectory);
+SYMBOL (Qdiscard);
 SYMBOL (Qdisplay);
 SYMBOL (Qdoc_string);
 SYMBOL (Qdocumentation);

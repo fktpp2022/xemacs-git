@@ -1,5 +1,54 @@
 2021-05-26  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* event-Xt.c (emacs_Xt_create_io_streams):
+	* event-Xt.c (emacs_Xt_delete_io_streams):
+	* event-Xt.c (debug_process_finalization):
+	* event-gtk.c (emacs_gtk_create_io_streams):
+	* event-gtk.c (emacs_gtk_delete_io_streams):
+	* event-gtk.c (debug_process_finalization):
+	* event-msw.c:
+	* event-msw.c (lisp_to_HANDLE):
+	* event-msw.c (NTPIPE_SLURP_STREAM_DATA):
+	* event-msw.c (mswindows_need_event):
+	* event-msw.c (emacs_mswindows_create_io_streams):
+	* event-msw.c (emacs_mswindows_delete_io_streams):
+	* event-stream.c (event_stream_create_io_streams):
+	* event-stream.c (event_stream_delete_io_streams):
+	* event-tty.c (emacs_tty_next_event):
+	* event-tty.c (emacs_tty_create_io_streams):
+	* event-tty.c (emacs_tty_delete_io_streams):
+	* event-unixoid.c (event_stream_unixoid_create_io_streams):
+	* event-unixoid.c (event_stream_unixoid_delete_io_streams):
+	* event-unixoid.c (init_event_unixoid):
+	* events.h:
+	* events.h (struct event_stream):
+	* general-slots.h:
+	* lisp.h:
+	* process-nt.c (nt_deactivate_process):
+	* process-unix.c (close_process_descs):
+	* process-unix.c (connect_to_file_descriptor):
+	* process-unix.c (unix_deactivate_process):
+	* process.c:
+	* process.c (get_process_from_usid):
+	* process.c (init_process_io_handles):
+	* process.c (Fprocess_send_eof):
+	* process.c (deactivate_process):
+	* process.c (init_xemacs_process):
+	* process.c (vars_of_process):
+	* process.h:
+	* procimpl.h:
+	* procimpl.h (struct process_methods):
+	Move the unique stream identifier (USID) type to being a
+	Lisp_Object rather than a C integer type.
+	Use the symbols Qdiscard, Qerror for USID_ERROR and USID_DONTHASH.
+	Use a weak list for the USID to process mapping, rather than a
+	native (non-Lisp) hash table, the number of streams will be
+	comfortably less than a hundred most of the time.
+	Provide lisp_to_HANDLE(), HANDLE_to_lisp() to this end in the
+	win32 code.	
+
+2021-05-26  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* frame-msw.c (mswindows_init_frame_1):
 	* scrollbar-msw.c (mswindows_create_scrollbar_instance):
 	Correct a couple of assertions in these functions, avoid crashing

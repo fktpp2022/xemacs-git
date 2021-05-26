@@ -1147,8 +1147,8 @@ nt_send_process (Lisp_Object proc, struct lstream *lstream)
 
 static void
 nt_deactivate_process (Lisp_Process *p,
-		       USID *in_usid,
-		       USID *err_usid)
+		       Lisp_Object *in_usid,
+		       Lisp_Object *err_usid)
 {
   event_stream_delete_io_streams (p->pipe_instream, p->pipe_outstream,
 				  p->pipe_errstream, in_usid, err_usid);

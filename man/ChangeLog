@@ -1,3 +1,10 @@
+2021-05-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (Stream Pairs):
+	* internals/internals.texi (Converting Events):
+	Update the documentation of the unique stream identifiers to
+	reflect that these are now Lisp objects.
+
 2021-03-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Critical Redisplay Sections):

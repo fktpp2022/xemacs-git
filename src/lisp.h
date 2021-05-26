@@ -1673,9 +1673,6 @@ struct font_metric_info;
 struct face_cachel;
 struct console_type_entry;
 
-/* This is shared by process.h, events.h and others in future.
-   See events.h for description */
-typedef unsigned EMACS_INT USID;
 typedef int face_index;
 typedef int glyph_index;
 typedef struct lstream Lstream; /* lstream.h */

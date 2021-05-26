@@ -33,11 +33,6 @@ See also
   (Info-goto-node "(internals)Stream Pairs")
 
 */
-
-/* typedef unsigned int USID; in lisp.h */
-#define USID_ERROR ((USID)-1)
-#define USID_DONTHASH ((USID)0)
-
 
 struct event_stream
 {
@@ -60,12 +55,14 @@ struct event_stream
 				 Lisp_Object* /* instream */,
 				 Lisp_Object* /* outstream */,
 				 Lisp_Object* /* errstream */,
-				 USID * /* in_usid */, USID * /* err_usid */,
+				 Lisp_Object * /* in_usid */,
+				 Lisp_Object * /* err_usid */,
 				 int /* flags */);
   void (*delete_io_streams_cb)  (Lisp_Object /* instream */,
 				 Lisp_Object /* outstream */,
 				 Lisp_Object /* errstream */,
-				 USID * /* in_usid */, USID * /* err_usid */);
+				 Lisp_Object* /* in_usid */,
+				 Lisp_Object * /* err_usid */);
   int (*current_event_timestamp_cb) (struct console *);
 };
 
@@ -1015,14 +1012,14 @@ void event_stream_create_io_streams (void* inhandle, void* outhandle,
 				     void *errhandle, Lisp_Object* instream,
 				     Lisp_Object* outstream,
 				     Lisp_Object* errstream,
-				     USID* in_usid,
-				     USID* err_usid,
+				     Lisp_Object* in_usid,
+				     Lisp_Object* err_usid,
 				     int flags);
 void event_stream_delete_io_streams (Lisp_Object instream,
 				     Lisp_Object outstream,
 				     Lisp_Object errstream,
-				     USID* in_usid,
-				     USID* err_usid);
+				     Lisp_Object* in_usid,
+				     Lisp_Object* err_usid);
 Lisp_Object event_stream_protect_modal_loop (const char *error_string,
 					     Lisp_Object (*bfun) (void *barg),
 					     void *barg, int flags);
@@ -1104,23 +1101,34 @@ void event_stream_unixoid_create_io_streams (void* inhandle, void* outhandle,
 					     Lisp_Object* instream,
 					     Lisp_Object* outstream,
 					     Lisp_Object* errstream,
-					     USID* in_usid,
-					     USID* err_usid,
+					     Lisp_Object* in_usid,
+					     Lisp_Object* err_usid,
 					     int flags);
 void event_stream_unixoid_delete_io_streams (Lisp_Object instream,
 					     Lisp_Object outstream,
 					     Lisp_Object errstream,
-					     USID* in_usid,
-					     USID* err_usid);
+					     Lisp_Object* in_usid,
+					     Lisp_Object* err_usid);
 
 #endif /* HAVE_UNIXOID_EVENT_LOOP */
 
 /* The following is not inside of HAVE_UNIXOID_EVENT_LOOP because of the
-   possibility of combiling XEmacs with no-MSW, no-X, no-TTY --
+   possibility of compiling XEmacs with no-MSW, no-X, no-TTY --
    process-unix.c is still compiled.  #### Should we still compile
    subprocesses with no event loops? */
-/* Beware: this evil macro evaluates its arg many times */
-#define FD_TO_USID(fd) ((fd)==0 ? (USID)999999 : ((fd)<0 ? USID_DONTHASH : (USID)(fd)))
+DECLARE_INLINE_HEADER (
+Lisp_Object
+fd_to_lisp_usid (int fd)
+)
+{
+  if (fd < 0)
+    {
+      return Qdiscard;
+    }
+
+  assert (fd < MOST_POSITIVE_FIXNUM);
+  return make_fixnum (fd);
+}
 
 /* Define this if you want the tty event stream to be used when the
    first console is tty, even if HAVE_X_WINDOWS is defined */

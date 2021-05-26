@@ -604,8 +604,8 @@ event_stream_create_io_streams (void *inhandle, void *outhandle,
 				void *errhandle, Lisp_Object *instream,
 				Lisp_Object *outstream,
 				Lisp_Object *errstream,
-				USID *in_usid,
-				USID *err_usid,
+				Lisp_Object *in_usid,
+				Lisp_Object *err_usid,
 				int flags)
 {
   check_event_stream_ok ();
@@ -618,8 +618,8 @@ void
 event_stream_delete_io_streams (Lisp_Object instream,
 				Lisp_Object outstream,
 				Lisp_Object errstream,
-				USID *in_usid,
-				USID *err_usid)
+				Lisp_Object *in_usid,
+				Lisp_Object *err_usid)
 {
   check_event_stream_ok ();
   event_stream->delete_io_streams_cb (instream, outstream, errstream,

@@ -217,7 +217,8 @@ emacs_tty_next_event (Lisp_Event *emacs_event)
 	      if (FD_ISSET (i, &temp_mask) && FD_ISSET (i, &process_only_mask))
 		{
 		  Lisp_Object process;
-		  Lisp_Process *p = get_process_from_usid (FD_TO_USID(i));
+		  Lisp_Process *p
+		    = get_process_from_usid (fd_to_lisp_usid (i));
 
 		  assert (p);
 		  process = wrap_process (p);
@@ -314,8 +315,8 @@ emacs_tty_create_io_streams (void* inhandle, void* outhandle,
 			     void *errhandle, Lisp_Object* instream,
 			     Lisp_Object* outstream,
 			     Lisp_Object* errstream,
-			     USID* in_usid,
-			     USID* err_usid,
+			     Lisp_Object* in_usid,
+			     Lisp_Object* err_usid,
 			     int flags)
 {
   event_stream_unixoid_create_io_streams
@@ -327,8 +328,8 @@ static void
 emacs_tty_delete_io_streams (Lisp_Object instream,
 			     Lisp_Object outstream,
 			     Lisp_Object errstream,
-			     USID* in_usid,
-			     USID* err_usid)
+			     Lisp_Object* in_usid,
+			     Lisp_Object* err_usid)
 {
   event_stream_unixoid_delete_io_streams
     (instream, outstream, errstream, in_usid, err_usid);

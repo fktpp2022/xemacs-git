@@ -120,25 +120,19 @@ close_descriptor_pair (int in, int out)
 /* Close all descriptors currently in use for communication
    with subprocess.  This is used in a newly-forked subprocess
    to get rid of irrelevant descriptors.  */
-
-static int
-close_process_descs_mapfun (const void *UNUSED (key), void *contents,
-			    void *UNUSED (arg))
-{
-  Lisp_Object proc = GET_LISP_FROM_VOID (contents);
-  USID vaffan, culo;
-
-  event_stream_delete_io_streams (XPROCESS (proc)->pipe_instream,
-				  XPROCESS (proc)->pipe_outstream,
-				  XPROCESS (proc)->pipe_errstream,
-				  &vaffan, &culo);
-  return 0;
-}
-
 void
 close_process_descs (void)
 {
-  maphash (close_process_descs_mapfun, usid_to_process, 0);
+  ALIST_LOOP_3 (handel, proc, XWEAK_LIST_LIST (Vusid_to_process))
+    {
+      Lisp_Object vaffan, culo;
+
+      event_stream_delete_io_streams (XPROCESS (proc)->pipe_instream,
+				      XPROCESS (proc)->pipe_outstream,
+				      XPROCESS (proc)->pipe_errstream,
+				      &vaffan, &culo);
+      USED (handel);
+    }
 }
 
 /* connect to an existing file descriptor.  This is very similar to
@@ -176,7 +170,7 @@ connect_to_file_descriptor (Lisp_Object name, Lisp_Object buffer,
   CHECK_FIXNUM (outfd);
 
   inch = XFIXNUM (infd);
-  if (get_process_from_usid (FD_TO_USID (inch)))
+  if (get_process_from_usid (fd_to_lisp_usid (inch)))
     invalid_operation ("There is already a process connected to fd", infd);
   if (!NILP (buffer))
     buffer = Fget_buffer_create (buffer);
@@ -1650,8 +1644,8 @@ unix_process_send_eof (Lisp_Object proc)
 
 static void
 unix_deactivate_process (Lisp_Process *p,
-			 USID *in_usid,
-			 USID *err_usid)
+			 Lisp_Object *in_usid,
+			 Lisp_Object *err_usid)
 {
   SIGTYPE (*old_sigpipe) (int) = 0;
 
