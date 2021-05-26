@@ -123,7 +123,7 @@ close_descriptor_pair (int in, int out)
 void
 close_process_descs (void)
 {
-  ALIST_LOOP_3 (handel, proc, XWEAK_LIST_LIST (Vusid_to_process))
+  LIST_LOOP_2 (proc, Vprocess_list)
     {
       Lisp_Object vaffan, culo;
 
@@ -131,7 +131,6 @@ close_process_descs (void)
 				      XPROCESS (proc)->pipe_outstream,
 				      XPROCESS (proc)->pipe_errstream,
 				      &vaffan, &culo);
-      USED (handel);
     }
 }
 

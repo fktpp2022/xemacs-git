@@ -1,5 +1,15 @@
 2021-05-26  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* process-unix.c (close_process_descs):
+	Vusid_to_process is not used with event-Xt or event-gtk, loop
+	through Vprocess_list instead when closing descriptors in a
+	newly-forked subprocess.
+	* procimpl.h: 
+	Now Vusid_to_process is no longer used outside of process.c,
+	remove it from this file.
+
+2021-05-26  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* event-Xt.c (emacs_Xt_create_io_streams):
 	* event-Xt.c (emacs_Xt_delete_io_streams):
 	* event-Xt.c (debug_process_finalization):

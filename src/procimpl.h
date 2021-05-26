@@ -133,7 +133,6 @@ extern Lisp_Object Qrun, Qstop, Qopen, Qclosed;
 extern Lisp_Object Qtcp, Qudp;
 extern Lisp_Object Vprocess_connection_type;
 extern Lisp_Object Vprocess_list;
-extern Lisp_Object Vusid_to_process;
 
 extern volatile int process_tick;
 
