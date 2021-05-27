@@ -8934,11 +8934,6 @@ parts that have to be marked are the fields for each function
 all objects that are used by the redisplay engine that must not be freed
 are marked by a special function called @code{mark_redisplay} (in
 @code{redisplay.c}).
-@item
-all objects created for profiling purposes are allocated by C functions
-instead of using the lisp allocation mechanisms. In order to receive the
-right ones during the sweep phase, they also have to be marked
-manually. That is done by the function @code{mark_profiling_info}
 @end itemize
 @item
 Hash tables in XEmacs belong to a kind of special objects that
@@ -21500,22 +21495,15 @@ provide a way to have process-time timers, and furthermore, it's broken,
 so we don't use it.) When the signal goes off, we see what we're in, and
 add 1 to the count associated with that function.
 
-It would be nice to use the Lisp allocation mechanism etc. to keep track
-of the profiling information (i.e. to use Lisp hash tables), but we
-can't because that's not safe -- updating the timing information happens
-inside of a signal handler, so we can't rely on not being in the middle
-of Lisp allocation, garbage collection, @code{malloc()}, etc.  Trying to make
-it work would be much more work than it's worth.  Instead we use a basic
-(non-Lisp) hash table, which will not conflict with garbage collection
-or anything else as long as it doesn't try to resize itself.  Resizing
-itself, however (which happens as a result of a @code{puthash()}), could be
-deadly.  To avoid this, we make sure, at points where it's safe
-(e.g. @code{profile_record_about_to_call()} -- recording the entry into a
-function call), that the table always has some breathing room in it so
-that no resizes will occur until at least that many items are added.
-This is safe because any new item to be added in the sigprof would
-likely have the @code{profile_record_about_to_call()} called just before it,
-and the breathing room is checked.
+We use Lisp hash tables to keep track of the profiling information. Updating
+the timing information happens inside of a signal handler, and so we can't
+rely on not being in the middle of Lisp allocation, garbage collection,
+@code{malloc()}, etc. This means we need to be careful to ensure the profiling
+table has an entry for every Lisp function ahead of any call to that handler,
+because otherwise the hash table may need to be resized in the signal
+handler. This is achieved by creating a zero entry in the hash table in 
+@code{profile_record_about_to_call()} and creating zero entries if needed for
+those functions already on the backtrace frame within @code{start-profile}.
 
 In general: any entry that the sigprof handler puts into the table comes
 from a backtrace frame (except "Processing Events at Top Level", and

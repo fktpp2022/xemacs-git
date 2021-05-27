@@ -25,7 +25,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "backtrace.h"
 
-void mark_profiling_info (void);
 void profile_record_unwind (struct backtrace *);
 void profile_record_about_to_call (struct backtrace *);
 void profile_record_just_called (struct backtrace *);

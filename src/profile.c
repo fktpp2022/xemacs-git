@@ -47,9 +47,7 @@ Documented in
   (Info-goto-node "(internals)Profiling")
 */
 
-/* We use a plain table here because we're recording inside of a signal
-   handler. */
-static struct hash_table *big_profile_table;
+Lisp_Object Vbig_profile_table;
 Lisp_Object Vtotal_timing_profile_table;
 Lisp_Object Vcall_count_profile_table;
 Lisp_Object Vtotal_gc_usage_profile_table;
@@ -79,10 +77,6 @@ Lisp_Object QSin_temp_spot_5;
 static Lisp_Object Qtiming, Qtotal_timing, Qcall_count;
 static Lisp_Object Qgc_usage, Qtotal_gc_usage;
 
-/* This needs to be >= the total number of defined internal sections,
-   plus 1 or 2??  Set it extra big just to be ultra-paranoid. */
-#define EXTRA_BREATHING_ROOM 100
-
 /* We use profiling_lock to prevent the signal handler from writing to
    the table while another routine is operating on it.  We also set
    profiling_lock in case the timeout between signal calls is short
@@ -93,47 +87,12 @@ static volatile int profiling_lock;
    Used to indicate amount of time spent profiling. */
 static int in_profiling;
 
-#if 0 /* #### for KKCC, eventually */
-
-static const struct memory_description hentry_description_1[] = {
-  { XD_LISP_OBJECT, offsetof (hentry, key) },
-  { XD_END }
-};
-
-static const struct sized_memory_description hentry_description = {
-  sizeof (hentry),
-  hentry_description_1
-};
-
-static const struct memory_description plain_hash_table_description_1[] = {
-  { XD_ELEMCOUNT,  offsetof (struct hash_table, size) },
-  { XD_BLOCK_PTR, offsetof (struct hash_table, harray), XD_INDIRECT (0, 0),
-    { &hentry_description } },
-  { XD_END }
-};
-
-static const struct sized_memory_description plain_hash_table_description = {
-  sizeof (struct hash_table),
-  plain_hash_table_description_1
-};
-
-#endif /* 0 */
-
-static void
-create_timing_profile_table (void)
-{
-  /* The hash code can safely be called from a signal handler except when
-     it has to grow the hash table.  In this case, it calls realloc(),
-     which is not (in general) reentrant.  The way we deal with this is
-     documented at the top of this file. */
-  if (!big_profile_table)
-    big_profile_table = make_hash_table (2000);
-}
-
 static void
 create_profile_tables (void)
 {
-  create_timing_profile_table ();
+  if (NILP (Vbig_profile_table))
+    Vbig_profile_table =
+      make_lisp_hash_table (2000, HASH_TABLE_NON_WEAK, Qeq);
   if (NILP (Vtotal_timing_profile_table))
     Vtotal_timing_profile_table =
       make_lisp_hash_table (1000, HASH_TABLE_NON_WEAK, Qeq);
@@ -221,6 +180,12 @@ profile_sow_backtrace (struct backtrace *bt)
      possible to the "in-function" window but not in it, we satisfy the
      conditions just mentioned. */
   bt->total_ticks_at_start = total_ticks;
+
+  /* Make sure an entry for this function exists in the big profile table,
+     growing it as needed. */
+  profiling_lock = 1;
+  inchash_eq (*bt->function, Vbig_profile_table, 0);
+  profiling_lock = 0;
 }
 
 void
@@ -228,8 +193,9 @@ profile_record_about_to_call (struct backtrace *bt)
 {
   in_profiling++;
   profiling_lock = 1;
-  /* See comments in create_timing_profile_table(). */
-  pregrow_hash_table_if_necessary (big_profile_table, EXTRA_BREATHING_ROOM);
+  /* Force an entry for this function to exist in Vbig_profile_table,
+     enlarging it now if needed. */
+  inchash_eq (*bt->function, Vbig_profile_table, 0);
   profiling_lock = 0;
   inchash_eq (*bt->function, Vcall_count_profile_table, 1);
   /* This may be set if the function was in its preamble at the time that
@@ -303,26 +269,17 @@ sigprof_handler (int UNUSED (signo))
   if (!profiling_lock && !preparing_for_armageddon)
     {
       Lisp_Object fun = current_profile_function ();
+      htentry *ht;
 
       /* If something below causes an error to be signaled, we'll
 	 not correctly reset this flag.  But we'll be in worse shape
 	 than that anyways, since we'll longjmp back to the last
 	 condition case. */
       profiling_lock = 1;
-
-      {
-	long count;
-	const void *vval;
-
-	if (gethash (STORE_LISP_IN_VOID (fun), big_profile_table, &vval))
-	  count = (long) vval;
-	else
-	  count = 0;
-	count++;
-	vval = (const void *) count;
-	puthash (STORE_LISP_IN_VOID (fun), (void *) vval, big_profile_table);
-      }
-
+      ht = inchash_eq (fun, Vbig_profile_table, 1);
+      /* realloc() is not re-entrant, if we needed to enlarge the table,
+	 crash. */
+      assert (ht != NULL);
       profiling_lock = 0;
     }
   in_profiling--;
@@ -353,11 +310,6 @@ will be properly accumulated. (To clear, use `clear-profiling-info'.)
   depth = internal_bind_int (&in_profiling, 1 + in_profiling);
 
   create_profile_tables ();
-  /* See comments at top of file and in create_timing_profile_table().
-     We ensure enough breathing room for all entries currently on the
-     stack. */
-  pregrow_hash_table_if_necessary (big_profile_table,
-				   EXTRA_BREATHING_ROOM + lisp_eval_depth);
 
   if (NILP (microsecs))
     msecs = default_profiling_interval;
@@ -435,10 +387,10 @@ This clears both the internal timing information and the call counts in
 {
   in_profiling++;
   /* This function does not GC */
-  if (big_profile_table)
+  if (!NILP (Vbig_profile_table))
     {
       profiling_lock = 1;
-      clrhash (big_profile_table);
+      Fclrhash (Vbig_profile_table);
       profiling_lock = 0;
     }
   if (!NILP (Vtotal_timing_profile_table))
@@ -460,20 +412,19 @@ struct get_profiling_info_closure
 };
 
 static int
-get_profiling_info_timing_maphash (const void *void_key,
-				   void *void_val,
+get_profiling_info_timing_maphash (Lisp_Object key,
+				   Lisp_Object val,
 				   void *void_closure)
 {
   /* This function does not GC */
-  Lisp_Object key;
   struct get_profiling_info_closure *closure
     = (struct get_profiling_info_closure *) void_closure;
-  EMACS_INT val;
 
-  key = GET_LISP_FROM_VOID (void_key);
-  val = (EMACS_INT) void_val;
+  if (!EQ (val, Qzero))
+    {
+      Fputhash (key, val, closure->timing);
+    }
 
-  Fputhash (key, make_fixnum (val), closure->timing);
   return 0;
 }
 
@@ -523,16 +474,17 @@ are recorded
   closure.timing =
     make_lisp_hash_table (100, HASH_TABLE_NON_WEAK, Qequal);
 
-  if (big_profile_table)
+  if (!NILP (Vbig_profile_table))
     {
       int count = internal_bind_int ((int *) &profiling_lock, 1);
-      maphash (get_profiling_info_timing_maphash, big_profile_table, &closure);
+      elisp_maphash_unsafe (get_profiling_info_timing_maphash, 
+			    Vbig_profile_table, &closure);
 
       /* OK, OK ...  the total-timing table is not going to have an entry
 	 for profile overhead, and it looks strange for it to come out 0,
 	 so make sure it looks reasonable. */
-      if (!gethash (STORE_LISP_IN_VOID (QSprofile_overhead), big_profile_table,
-		    &overhead))
+      if (UNBOUNDP (Fgethash (QSprofile_overhead, Vbig_profile_table,
+			      Qunbound)))
 	overhead = 0;
       Fputhash (QSprofile_overhead, make_fixnum ((EMACS_INT) overhead),
 		Vtotal_timing_profile_table);
@@ -565,7 +517,7 @@ set_profiling_info_timing_maphash (Lisp_Object key,
       ("Function timing count is not an integer in given entry",
        key, val);
 
-  puthash (STORE_LISP_IN_VOID (key), (void *) XFIXNUM (val), big_profile_table);
+  Fputhash (key, val, Vbig_profile_table);
 
   return 0;
 }
@@ -588,7 +540,11 @@ as described there.
 	if (EQ (key, Qtiming))
 	  {
 	    CHECK_HASH_TABLE (value);
-	    create_timing_profile_table ();
+	    if (NILP (Vbig_profile_table))
+	      {
+		Vbig_profile_table
+		  = make_lisp_hash_table (2000, HASH_TABLE_NON_WEAK, Qeq);
+	      }
 	    profiling_lock = 1;
 	    elisp_maphash_unsafe (set_profiling_info_timing_maphash, value,
 				  NULL);
@@ -609,31 +565,6 @@ as described there.
 
   unbind_to (depth);
   return Qnil;
-}
-
-static int
-mark_profiling_info_maphash (const void *void_key,
-			     void *UNUSED (void_val),
-			     void *UNUSED (void_closure))
-{
-#ifdef USE_KKCC
-  kkcc_gc_stack_push_lisp_object_0 (GET_LISP_FROM_VOID (void_key));
-#else /* NOT USE_KKCC */
-  mark_object (GET_LISP_FROM_VOID (void_key));
-#endif /* NOT USE_KKCC */
-  return 0;
-}
-
-void
-mark_profiling_info (void)
-{
-  /* This function does not GC */
-  if (big_profile_table)
-    {
-      profiling_lock = 1;
-      maphash (mark_profiling_info_maphash, big_profile_table, 0);
-      profiling_lock = 0;
-    }
 }
 
 DEFUN ("profiling-active-p", Fprofiling_active_p, 0, 0, 0, /*
@@ -670,6 +601,9 @@ value can be.
 */ );
   default_profiling_interval = 1000;
 
+  staticpro (&Vbig_profile_table);
+  Vbig_profile_table = Qnil;
+
   staticpro (&Vcall_count_profile_table);
   Vcall_count_profile_table = Qnil;
 
@@ -681,12 +615,6 @@ value can be.
 
   staticpro (&Vtotal_timing_profile_table);
   Vtotal_timing_profile_table = Qnil;
-
-#if 0
-  /* #### This is supposed to be for KKCC but KKCC doesn't use this stuff
-     currently. */
-  dump_add_root_block_ptr (&big_profile_table, &plain_hash_table_description);
-#endif /* 0 */
 
   profiling_lock = 0;
 

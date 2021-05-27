@@ -2107,8 +2107,6 @@ gc_mark_root_set (
       }
   }
 
-  mark_profiling_info ();
-
 #ifdef USE_KKCC
 # undef mark_object
 #endif

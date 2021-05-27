@@ -1,3 +1,53 @@
+2021-05-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Move the main profiling hash table to being a Lisp hash table, it
+	is safe to modify (but not to enlarge) this from a signal handler.
+
+	* gc.c:
+	No special marking for the profiling info now needed, remove the
+	call to mark_profiling_info().
+	* profile.c:
+	Vbig_profile_table is now a Lisp hash table, declare it as such.
+	* profile.c (create_profile_tables):
+	Move the body of create_timing_profile_table() in here, no need to
+	have it separate.
+
+	* profile.c (static const struct sized_memory_description
+	  hentry_description): Removed.
+	* profile.c (static const struct sized_memory_description
+	plain_hash_table_description): Removed.
+	These were never used and are not necessary now Vbig_profile_table
+	is a normal Lisp object.
+
+	* profile.c (profile_sow_backtrace):
+	Add entries for every function on the backtrace to
+	Vbig_profile_table, ensuring there won't be a need to add an entry
+	within sigprof_handler().
+	* profile.c (profile_record_about_to_call):
+	No need to pregrow_hash_table_if_necessary() here; do add zero entry
+	for *bt->function to Vbig_profile_table.
+	* profile.c (sigprof_handler):
+	Call inchash_eq() on the corresponding entry in
+	Vbig_profile_table; assert that the table hasn't been enlarged,
+	this code cannot handle that.
+	* profile.c (Fstart_profiling):
+	Use the Lisp hash table functions when dealing with
+	Vbig_profile_table.
+	* profile.c (Fclear_profiling_info):
+	Ditto.
+	* profile.c (get_profiling_info_timing_maphash): Ditto.
+	* profile.c (Fget_profiling_info): Ditto.
+	* profile.c (set_profiling_info_timing_maphash): Ditto.
+	* profile.c (Fset_profiling_info): Ditto.
+	* profile.c (mark_profiling_info_maphash): Removed. No longer
+	needed.
+	* profile.c (mark_profiling_info): Ditto.
+	* profile.c (vars_of_profile):
+	Just staticpro() Vbig_profile_table, don't dither about adding a
+	root block pointer.
+	* profile.h:
+	Remove the declaration of mark_profiling_info().
+
 2021-05-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* process-unix.c (close_process_descs):

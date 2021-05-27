@@ -1,3 +1,13 @@
+2021-05-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (garbage_collect_1):
+	Remove documentation of special treatment of profiling info by GC,
+	something no longer done.
+	* internals/internals.texi (Profiling):
+	Document that we now use a Lisp hash table for the profiling
+	ticks, being careful to have sufficient space within it so that it
+	is never resized within a signal handler.
+
 2021-05-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Stream Pairs):
