@@ -1,3 +1,9 @@
+2021-06-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl-extra.el (cl-do-prettyprint):
+	Fix a bug in a regexp here, can't start a subexpression within a
+	character set.
+
 2021-05-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* subr.el (zerop):

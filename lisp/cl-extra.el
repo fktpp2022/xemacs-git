@@ -466,7 +466,8 @@ Members of MORE-VALUES, if provided, will be passed as multiple values; see
   (if (looking-at "(")
       (let ((skip (or (looking-at "((")
 		      ;; XEmacs: be selective about trailing stuff after prog
-		      (looking-at "(prog[nv12\\(ress-feedback\\|n-with-message\\)]")
+		      (looking-at
+		       "(prog\\([nv12]\\|ress-feedback\\|n-with-message\\)")
 		      (looking-at "(unwind-protect ")
 		      (looking-at "(function (")
 		      (looking-at "(cl-block-wrapper ")))
