@@ -61,6 +61,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "sysfile.h"
 #include "sysdep.h"
 #include "window.h"
+#include "syswindows.h"
 #ifdef NEW_GC
 #include "vdb.h"
 #endif /* NEW_GC */
@@ -5800,6 +5801,9 @@ disksave_object_finalization (void)
   /* Vdump_load_path = Qnil; */
   /* Release hash tables for locate_file */
   Flocate_file_clear_hashing (Qt);
+#ifdef WIN32_NATIVE
+  Fclrhash (Vmswindows_read_link_hash);
+#endif
   uncache_home_directory ();
   zero_out_command_line_status_vars ();
   clear_default_devices ();

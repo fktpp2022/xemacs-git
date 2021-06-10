@@ -21,6 +21,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "casetab.h"
 #include "console-msw.h"
+#include "elhash.h"
 #include "hash.h"
 #include "profile.h"
 
@@ -46,7 +47,7 @@ Info on Windows issues:
    nil means no, t means yes. */
 Lisp_Object Vmswindows_downcase_file_names;
 
-struct hash_table *mswindows_read_link_hash;
+Lisp_Object Vmswindows_read_link_hash;
 
 int mswindows_windows9x_p;
 Boolint mswindows_shortcuts_are_symlinks;
@@ -410,14 +411,8 @@ No expansion is performed, all conversion is done by the cygwin runtime.
 }
 #endif
 
-struct read_link_hash
-{
-  Ibyte *resolved;
-  DWORD ticks;
-};
-
 static Ibyte *
-mswindows_read_link_1 (const Ibyte *fname)
+mswindows_read_link_1 (const Ibyte *fname, Bytecount len)
 {
 #if defined (NO_CYGWIN_COM_SUPPORT) || !defined (HAVE_MS_WINDOWS)
   return NULL;
@@ -425,36 +420,41 @@ mswindows_read_link_1 (const Ibyte *fname)
   Ibyte *retval = NULL;
   Extbyte *fnameext;
   HANDLE fh;
-  struct read_link_hash *rlh;
-  DWORD ticks;
+  EMACS_UINT ticks;
+  Lisp_Object sym;
 
   /* The call below to resolve a link is rather time-consuming.
      I tried implementing a simple cache based on creation and write time
      of the file, but that didn't help enough -- maybe 30% faster but still
      a lot of time spent here.  So just do something cheesy and don't
      check again if we've recently (< a second) done so. */
+  ticks = GetTickCount () & MOST_POSITIVE_FIXNUM_UNSIGNED;
 
-  if (!mswindows_read_link_hash)
-    mswindows_read_link_hash = make_string_hash_table (1000);
+  /* See if we can find a cached value. The cache is implemented using a
+     case-insensitive hash table, mapping from the unresolved string to a
+     symbol. The tick count at the time of checking is stored as the value of
+     the symbol, and the resolved link target is stored as its plist. */
+  sym = intern_istring (fname, len, Qnil, Vmswindows_read_link_hash);
+  if (FIXNUMP (XSYMBOL_VALUE (sym)))
+    {
+      EMACS_UINT old_ticks = XFIXNUM (XSYMBOL_VALUE (sym));
+
+      if (ticks > old_ticks /* If we have overflow of the tick count,
+                               invalidate this cache entry. */
+          && (ticks - old_ticks < 1000))
+        {
+          if (STRINGP (XSYMBOL_PLIST (sym)))
+            {
+              return qxestrdup (XSTRING_DATA (XSYMBOL_PLIST (sym)));
+            }
+
+          return NULL;
+        }
+    }
+
+  XSYMBOL_VALUE (sym) = make_fixnum (ticks);
+
   fnameext = ITEXT_TO_TSTR (fname);
-
-  /* See if we can find a cached value. */
-
-  /* The intermediate cast fools gcc into not outputting strict-aliasing
-     complaints */
-  ticks = GetTickCount ();
-  if (!gethash (fname, mswindows_read_link_hash,
-		(const void **) (void *) &rlh))
-    {
-      rlh = xnew_and_zero (struct read_link_hash);
-      puthash (qxestrdup (fname), rlh, mswindows_read_link_hash);
-    }
-  else if (ticks - rlh->ticks < 1000)
-    {
-      return rlh->resolved ? qxestrdup (rlh->resolved) : NULL;
-    }
-
-  rlh->ticks = ticks;
 
   /* Retrieve creation/write time of link file. */
 
@@ -602,9 +602,7 @@ mswindows_read_link_1 (const Ibyte *fname)
     }
 
   /* Cache newly found value */
-  if (rlh->resolved)
-    xfree (rlh->resolved);
-  rlh->resolved = retval ? qxestrdup (retval) : NULL;
+  XSYMBOL_PLIST (sym) = retval ? build_istring (retval) : Qnil;
 
   return retval;
 #endif /* NO_CYGWIN_COM_SUPPORT */
@@ -617,16 +615,16 @@ mswindows_read_link_1 (const Ibyte *fname)
 Ibyte *
 mswindows_read_link (const Ibyte *fname)
 {
-  int len = qxestrlen (fname);
+  Bytecount len = qxestrlen (fname);
   if (len > 4 && !qxestrcasecmp_ascii (fname + len - 4, ".LNK"))
-    return mswindows_read_link_1 (fname);
+    return mswindows_read_link_1 (fname, len);
   else
     {
       DECLARE_EISTRING (name2);
 
       eicpy_rawz (name2, fname);
       eicat_ascii (name2, ".LNK");
-      return mswindows_read_link_1 (eidata (name2));
+      return mswindows_read_link_1 (eidata (name2), eilen (name2));
     }
 }
 
@@ -906,6 +904,14 @@ This works also for symlinks created under Cygwin, because they use .LNK
 files to implement symbolic links.
 */ );
   mswindows_shortcuts_are_symlinks = 1;
+
+  staticpro (&Vmswindows_read_link_hash);
+#ifdef WIN32_NATIVE
+  Vmswindows_read_link_hash
+    = make_lisp_hash_table (1000, HASH_TABLE_NON_WEAK, Qequalp);
+#else
+  Vmswindows_read_link_hash = Qnil;
+#endif
 }
 
 void

@@ -1368,6 +1368,8 @@ DECLARE_DOESNT_RETURN (mswindows_report_process_error (const Ascbyte *reason,
 Lisp_Object mswindows_lisp_error (int errnum);
 Ibyte *mswindows_read_link (const Ibyte *fname);
 
+extern Lisp_Object Vmswindows_read_link_hash;
+
 /* in intl-win32.c */
 extern Lisp_Object Qmswindows_tstr, Qmswindows_unicode;
 extern Lisp_Object Qmswindows_multibyte, Qmswindows_multibyte_to_unicode;

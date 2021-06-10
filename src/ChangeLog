@@ -1,3 +1,26 @@
+2021-06-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Implement the mswindows_read_link() cache as a normal Lisp hash
+	table.
+	Be more careful about the result of GetTickCount() wrapping round.
+
+	* alloc.c (disksave_object_finalization):
+	Clear Vmswindows_read_link_hash before dumping, we don't want the
+	path information for build time hanging around.
+	* syswindows.h:
+	Make Vmswindows_read_link_hash available to alloc.c
+	* win32.c:
+	* win32.c (mswindows_read_link_1):
+	Use intern_istring when looking up the cache entry for a given
+	file name, allowing us to use a normal Lisp hash table.
+	Be more careful about the tick count wrapping around.
+	Change the declaration of the function to take the length of
+	FNAME, since it is always calculated anyway.
+	* win32.c (mswindows_read_link):
+	Call mswindows_read_link_1() with its new calling convention.
+	* win32.c (vars_of_win32):
+	Initialise and staticpro() Vmswindows_read_link_hash.
+
 2021-05-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Move the main profiling hash table to being a Lisp hash table, it
