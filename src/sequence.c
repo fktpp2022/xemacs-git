@@ -1436,9 +1436,14 @@ The value is actually the element of ALIST whose car equals KEY.
 Lisp_Object
 assoc_no_quit (Lisp_Object key, Lisp_Object alist)
 {
-  int speccount = specpdl_depth ();
-  specbind (Qinhibit_quit, Qt);
-  return unbind_to_1 (speccount, Fassoc (key, alist));
+  /* This cannot GC. */
+  ALIST_LOOP_4 (elt, elt_car, elt_cdr, alist)
+    {
+      if (internal_equal (key, elt_car, 0))
+	return elt;
+      USED (elt_cdr);
+    }
+  return Qnil;
 }
 
 DEFUN ("assq", Fassq, 2, 2, 0, /*

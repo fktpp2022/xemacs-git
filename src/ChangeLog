@@ -1,5 +1,13 @@
 2021-06-10  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* lisp.h (ALIST_LOOP_4): Correct a bug in this macro, the name of
+	the tail variable reflects _al4_tail_##car.
+	* sequence.c (assoc_no_quit):
+	Implement this using ALIST_LOOP_4() rather than inhibit-quit and
+	Fassoc().
+
+2021-06-10  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Remove hash.h, hash.c, no longer used, since the Lisp hash tables
 	(elhash.[ch]) are preferred.
 

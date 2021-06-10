@@ -2478,7 +2478,7 @@ Lisp_Object acons, car, cdr, _al4_tail_##car;			\
        NILP (_al4_tail_##car) ?					\
 	 0 : (elt = XCAR (_al4_tail_##car), car = XCAR (elt),	\
 	      cdr = XCDR (elt), 1);				\
-       _al4_tail_##car = XCDR (tail))
+       _al4_tail_##car = XCDR (_al4_tail_##car))
 
 /* Macros for looping over external alists.
 
