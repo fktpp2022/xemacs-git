@@ -32,7 +32,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "console-msw.h"
 #include "events.h"
-#include "hash.h"
 #include "lstream.h"
 #include "process.h"
 #include "procimpl.h"

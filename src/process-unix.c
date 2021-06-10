@@ -35,7 +35,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "buffer.h"
 #include "events.h"
 #include "frame.h"
-#include "hash.h"
 #include "lstream.h"
 #include "opaque.h"
 #include "process.h"

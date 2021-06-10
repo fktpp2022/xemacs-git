@@ -22,7 +22,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "casetab.h"
 #include "console-msw.h"
 #include "elhash.h"
-#include "hash.h"
 #include "profile.h"
 
 #include "sysfile.h"

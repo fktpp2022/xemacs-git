@@ -24,7 +24,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "bytecode.h"
 #include "elhash.h"
 #include "gc.h"
-#include "hash.h"
 #include "profile.h"
 
 #include "syssignal.h"

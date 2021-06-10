@@ -52,7 +52,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include <config.h>
 #include "lisp.h"
-#include "hash.h"
 
 #include "gccache-x.h"
 #include "device-impl.h"

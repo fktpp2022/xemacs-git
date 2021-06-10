@@ -2285,9 +2285,28 @@ prune_weak_hash_tables (void)
           }
     }
 }
+
+/* Return a hash for SIZE octets at the location pointed to by XV. */
+Hashcode
+memory_hash (const void *xv, Bytecount size)
+{
+  Hashcode h = 0;
+  unsigned const char *x = (unsigned const char *) xv;
+
+  if (!x) return 0;
+
+  while (size--)
+    {
+      Hashcode g;
+      h = (h << 4) + *x++;
+      if ((g = h & 0xf0000000) != 0)
+	h = (h ^ (g >> 24)) ^ g;
+    }
+
+  return h;
+}
 
 /* Return a hash value for an array of Lisp_Objects of size SIZE. */
-
 Hashcode
 internal_array_hash (Lisp_Object *arr, Elemcount size, int depth,
 		     Boolint equalp)

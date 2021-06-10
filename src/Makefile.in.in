@@ -286,8 +286,7 @@ objs=\
  font-lock.o frame.o\
  gc.o general.o glyphs.o $(glyphs_objs) glyphs-widget.o \
  $(gpm_objs) $(gtk_objs) $(gtk_gui_objs) $(gui_objs) \
- gutter.o\
- hash.o imgproc.o indent.o insdel.o intl.o\
+ gutter.o imgproc.o indent.o insdel.o intl.o\
  keymap.o $(RTC_patch_objs) line-number.o $(ldap_objs) lread.o lstream.o\
  $(new_gc_objs) $(vdb_objs) \
  macros.o marker.o md5.o minibuf.o $(mswindows_objs) $(mswindows_gui_objs)\

@@ -42,7 +42,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "console-x-impl.h"
 #include "fontcolor-x.h"
 #include "fontcolor-x-impl.h"
-#include "hash.h"
 #include "font-mgr.h"
 
 #include "sysfile.h"

@@ -1,5 +1,25 @@
 2021-06-10  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove hash.h, hash.c, no longer used, since the Lisp hash tables
+	(elhash.[ch]) are preferred.
+
+	* font-mgr.c: Remove an #include for hash.h.
+	* gccache-x.c: Ditto.
+	* elhash.c (memory_hash): Move this here from hash.c, it is used
+	by the Lisp hash code.
+	* hash.c: Removed.
+	* hash.h: Removed.	
+	* Makefile.in.in (objs): Remove hash.o from this list
+	* process-nt.c: Remove an #include for hash.h.
+	* process-unix.c: Ditto.
+	* process.c: Ditto.
+	* profile.c: Ditto.
+	* ui-gtk.c: Ditto.
+	* win32.c: Ditto.
+	* depend: Regenerate.
+
+2021-06-10  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* alloc.c: Wrap the #include "syswindows.h" with #ifdef
 	WIN32_NATIVE for the sake of the POSIX build.
 

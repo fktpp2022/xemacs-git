@@ -31,7 +31,6 @@
 #include "elhash.h"
 #include "events.h"
 #include "faces.h"
-#include "hash.h"
 #include "sysdll.h"
 #include "window.h"
 
