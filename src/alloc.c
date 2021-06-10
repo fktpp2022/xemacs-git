@@ -61,7 +61,9 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "sysfile.h"
 #include "sysdep.h"
 #include "window.h"
+#ifdef WIN32_NATIVE
 #include "syswindows.h"
+#endif
 #ifdef NEW_GC
 #include "vdb.h"
 #endif /* NEW_GC */

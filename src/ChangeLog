@@ -1,5 +1,10 @@
 2021-06-10  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* alloc.c: Wrap the #include "syswindows.h" with #ifdef
+	WIN32_NATIVE for the sake of the POSIX build.
+
+2021-06-10  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Implement the mswindows_read_link() cache as a normal Lisp hash
 	table.
 	Be more careful about the result of GetTickCount() wrapping round.
