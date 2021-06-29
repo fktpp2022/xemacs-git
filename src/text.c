@@ -5471,7 +5471,7 @@ internal_to_external_charset_codepoint (Lisp_Object charset,
 	{
 	  text_checking_assert (*ext_c2 == 0);
 	  text_checking_assert (*ext_c1 >= 128 && *ext_c1 <= 159);
-	  *ext_c1 -= 96;
+	  *ext_c1 -= 128;
 	}
 #ifdef MULE
       else if (get_charset_iso2022_type (charset) >= 0)
@@ -5494,8 +5494,8 @@ check_coerce_octet (Lisp_Object charset, Lisp_Object arg, int low, int high,
   retval = XFIXNUM (arg);
   if (munge_codepoints)
     {
-      if (EQ (charset, Vcharset_control_1) && retval >= 32 && retval < 64)
-	retval += 96;
+      if (EQ (charset, Vcharset_control_1) && retval >= 0 && retval < 32)
+	retval += 128;
       else if (get_charset_iso2022_type (charset) >= 0)
 	{
 	  /* It is useful (and safe, according to Olivier Galibert) to strip
@@ -5816,7 +5816,7 @@ Note that there are various ways of representing a character:
    other language-like systems (e.g. mathematical symbols or musical
    notation).
     
-The following funtions deal with the various representations of a
+The following functions deal with the various representations of a
 character:
 
 -- `make-char' and `charset-codepoint-to-char' generate a

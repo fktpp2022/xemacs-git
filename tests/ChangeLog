@@ -1,3 +1,11 @@
+2021-06-29  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/mule-tests.el:
+	Test the range of the OCTET1 argument with (make-char 'control
+	...), there has been some incompatibility and confusion with it.
+	Test the output of #'split-char, there was a similar
+	incompatibility with it.
+
 2021-05-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/lisp-tests.el (wrong-type-argument):

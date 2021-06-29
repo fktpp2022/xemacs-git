@@ -1,3 +1,16 @@
+2021-06-29  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* text.c (check_coerce_octet):
+	Fix an incompatibility introduced by Ben in the unicode-internal
+	code, OCTET1 can range from 0 to 31, inclusive, and from #x80 to
+	#x9f, inclusive. It cannot range from 32 to 63.
+	(internal_to_external_charset_codepoint): 
+	Fix a related incompatibility in the result of #'split-char,
+	(split-char ?\x80) now gives (control-1 0) as it did in all
+	previous versions of XEmacs mule.
+	Thank you for the bug report regarding latin-unity, Henry
+	Thompson!
+
 2021-06-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lisp.h (ALIST_LOOP_4): Correct a bug in this macro, the name of

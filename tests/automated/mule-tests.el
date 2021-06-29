@@ -179,7 +179,101 @@ This is a naive implementation in Lisp.  "
   (goto-char (point-min))
   (Assert (eq (read (copy-marker (point)))
               (intern (concat (list ?\xe4) "quivalent")))))
-  
+
+;;-----------------------------------------------------------------
+;; Check the range of the OCTET1 argument to #'make-char when CHARSET is
+;; control-1.
+;;-----------------------------------------------------------------
+
+;; The following always worked:
+(Assert (eq (make-char 'control-1 #x80) ?\x80))
+(Assert (eq (make-char 'control-1 #x9f) ?\x9f))
+
+;; The following never worked:
+(Check-Error args-out-of-range (make-char 'control-1 most-positive-fixnum))
+(Check-Error args-out-of-range (make-char 'control-1 -1))
+
+;; The following used to work in 21.4 because any bits above eight were just
+;; stripped, no other checks made on the range:
+(Check-Error args-out-of-range (make-char 'control-1 most-negative-fixnum))
+(Check-Error args-out-of-range (make-char 'control-1 #xFF00))
+
+;; The following used to work after Ben's unicode internal work, where he
+;; shifted the range of values accepted incompatibly:
+(Check-Error args-out-of-range (make-char 'control-1 #x20))
+(Check-Error args-out-of-range (make-char 'control-1 #x3f))
+
+;; Check a #'split-char incompatibility introduced at the same time
+;; has been fixed:
+(Assert (equal '(control-1 0) (split-char (make-char 'control-1 0))))
+(Assert (equal '(control-1 0) (split-char (make-char 'control-1 #x80))))
+(Assert (equal '(control-1 31) (split-char (make-char 'control-1 #x1f))))
+(Assert (equal '(control-1 31) (split-char (make-char 'control-1 #x9f))))
+
+((macro
+  . (lambda ()
+      (cons
+       'progn
+       (mapcar
+	(function*
+	 (lambda ((count . result))
+	  "Check all the OCTET1 values below #x100 have sane mappings\
+with control-1"
+	  `(Assert (eql ,result (ignore-errors
+				  (make-char 'control-1 ,count))))))
+	'((0 . ?\x80) (1 . ?\x81) (2 . ?\x82) (3 . ?\x83) (4 . ?\x84)
+	  (5 . ?\x85) (6 . ?\x86) (7 . ?\x87) (8 . ?\x88) (9 . ?\x89)
+	  (10 . ?\x8A) (11 . ?\x8B) (12 . ?\x8C) (13 . ?\x8D) (14 . ?\x8E)
+	  (15 . ?\x8F) (16 . ?\x90) (17 . ?\x91) (18 . ?\x92) (19 . ?\x93)
+	  (20 . ?\x94) (21 . ?\x95) (22 . ?\x96) (23 . ?\x97) (24 . ?\x98)
+	  (25 . ?\x99) (26 . ?\x9A) (27 . ?\x9B) (28 . ?\x9C) (29 . ?\x9D)
+	  (30 . ?\x9E) (31 . ?\x9F)
+	  (32 . nil) (33 . nil) (34 . nil) (35 . nil) (36 . nil) (37 . nil)
+	  (38 . nil) (39 . nil) (40 . nil) (41 . nil) (42 . nil) (43 . nil)
+	  (44 . nil) (45 . nil) (46 . nil) (47 . nil) (48 . nil) (49 . nil)
+	  (50 . nil) (51 . nil) (52 . nil) (53 . nil) (54 . nil) (55 . nil)
+	  (56 . nil) (57 . nil) (58 . nil) (59 . nil) (60 . nil) (61 . nil)
+	  (62 . nil) (63 . nil) (64 . nil) (65 . nil) (66 . nil) (67 . nil)
+	  (68 . nil) (69 . nil) (70 . nil) (71 . nil) (72 . nil) (73 . nil)
+	  (74 . nil) (75 . nil) (76 . nil) (77 . nil) (78 . nil) (79 . nil)
+	  (80 . nil) (81 . nil) (82 . nil) (83 . nil) (84 . nil) (85 . nil)
+	  (86 . nil) (87 . nil) (88 . nil) (89 . nil) (90 . nil) (91 . nil)
+	  (92 . nil) (93 . nil) (94 . nil) (95 . nil) (96 . nil) (97 . nil)
+	  (98 . nil) (99 . nil) (100 . nil) (101 . nil) (102 . nil)
+	  (103 . nil) (104 . nil) (105 . nil) (106 . nil) (107 . nil)
+	  (108 . nil) (109 . nil) (110 . nil) (111 . nil) (112 . nil)
+	  (113 . nil) (114 . nil) (115 . nil) (116 . nil) (117 . nil)
+	  (118 . nil) (119 . nil) (120 . nil) (121 . nil) (122 . nil)
+	  (123 . nil) (124 . nil) (125 . nil) (126 . nil) (127 . nil)
+	  (128 . ?\x80) (129 . ?\x81) (130 . ?\x82) (131 . ?\x83)
+	  (132 . ?\x84) (133 . ?\x85) (134 . ?\x86) (135 . ?\x87)
+	  (136 . ?\x88) (137 . ?\x89) (138 . ?\x8A) (139 . ?\x8B)
+	  (140 . ?\x8C) (141 . ?\x8D) (142 . ?\x8E) (143 . ?\x8F)
+	  (144 . ?\x90) (145 . ?\x91) (146 . ?\x92) (147 . ?\x93)
+	  (148 . ?\x94) (149 . ?\x95) (150 . ?\x96) (151 . ?\x97)
+	  (152 . ?\x98) (153 . ?\x99) (154 . ?\x9A) (155 . ?\x9B)
+	  (156 . ?\x9C) (157 . ?\x9D) (158 . ?\x9E) (159 . ?\x9F)
+	  (160 . nil) (161 . nil) (162 . nil) (163 . nil) (164 . nil)
+	  (165 . nil) (166 . nil) (167 . nil) (168 . nil) (169 . nil)
+	  (170 . nil) (171 . nil) (172 . nil) (173 . nil) (174 . nil)
+	  (175 . nil) (176 . nil) (177 . nil) (178 . nil) (179 . nil)
+	  (180 . nil) (181 . nil) (182 . nil) (183 . nil) (184 . nil)
+	  (185 . nil) (186 . nil) (187 . nil) (188 . nil) (189 . nil)
+	  (190 . nil) (191 . nil) (192 . nil) (193 . nil) (194 . nil)
+	  (195 . nil) (196 . nil) (197 . nil) (198 . nil) (199 . nil)
+	  (200 . nil) (201 . nil) (202 . nil) (203 . nil) (204 . nil)
+	  (205 . nil) (206 . nil) (207 . nil) (208 . nil) (209 . nil)
+	  (210 . nil) (211 . nil) (212 . nil) (213 . nil) (214 . nil)
+	  (215 . nil) (216 . nil) (217 . nil) (218 . nil) (219 . nil)
+	  (220 . nil) (221 . nil) (222 . nil) (223 . nil) (224 . nil)
+	  (225 . nil) (226 . nil) (227 . nil) (228 . nil) (229 . nil)
+	  (230 . nil) (231 . nil) (232 . nil) (233 . nil) (234 . nil)
+	  (235 . nil) (236 . nil) (237 . nil) (238 . nil) (239 . nil)
+	  (240 . nil) (241 . nil) (242 . nil) (243 . nil) (244 . nil)
+	  (245 . nil) (246 . nil) (247 . nil) (248 . nil) (249 . nil)
+	  (250 . nil) (251 . nil) (252 . nil) (253 . nil) (254 . nil)
+	  (255 . nil)))))))
+
 ;;-----------------------------------------------------------------
 ;; Test string modification functions that modify the length of a char.
 ;;-----------------------------------------------------------------
