@@ -2958,20 +2958,32 @@ print_extent (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 
           tail = extent_plist_slot (XEXTENT (obj));
 
-          write_ascstring (printcharfun, NILP (tail) ? "" : " plist: (");
-
           if (!NILP (tail)) 
             {
-              EXTERNAL_PROPERTY_LIST_LOOP_3 (key, value, tail)
-                {
-                  if (NILP (value)) continue;
+	      Boolint need_closep = 0;
+	      EXTERNAL_PROPERTY_LIST_LOOP_5 (key, value, tail,
+					     tail0, iterations)
+		{
+		  if (NILP (value)) continue;
+		  if (iterations > 0)
+		    {
+		      write_ascstring (printcharfun, " ");
+		    }
+		  else
+		    {
+		      write_ascstring (printcharfun, " plist: (");
+		      need_closep = 1;
+		    }
 
-                  print_internal (key, printcharfun, escapeflag);
-                  write_ascstring (printcharfun, " ");
-                  print_internal (value, printcharfun, escapeflag);
-                }
+		  print_internal (key, printcharfun, escapeflag);
+		  write_ascstring (printcharfun, " ");
+		  print_internal (value, printcharfun, escapeflag);
+		}
 
-              write_ascstring (printcharfun, ")");
+	      if (need_closep)
+		{
+		  write_ascstring (printcharfun, ")");
+		}
             }
 	}
     }
