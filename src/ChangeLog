@@ -1,3 +1,10 @@
+2021-07-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* event-stream.c:
+	* event-stream.c (vars_of_event_stream):
+	Expose keystrokes_since_auto_save to Lisp, to allow e.g. more
+	intelligent decisions made in pre-idle-hook about when to autosave.
+
 2021-07-09  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* extents.c (print_extent):

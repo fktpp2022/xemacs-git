@@ -304,7 +304,7 @@ static Lisp_Object dispatch_event_queue_tail;
 static Lisp_Object Vecho_keystrokes;
 
 /* The number of keystrokes since the last auto-save. */
-static int keystrokes_since_auto_save;
+static Fixnum keystrokes_since_auto_save;
 
 /* Used by the C-g signal handler so that it will never "hard quit"
    when waiting for an event.  Otherwise holding down C-g could
@@ -5113,6 +5113,12 @@ Zero means disable autosaving due to number of characters typed.
 See also the variable `auto-save-timeout'.
 */ );
   auto_save_interval = 300;
+
+  DEFVAR_CONST_INT ("keystrokes-since-auto-save",
+		    &keystrokes_since_auto_save /*
+Number of keyboard input characters since last auto-save.
+See the variable `auto-save-interval'.
+*/ );
 
   DEFVAR_LISP ("pre-command-hook", &Vpre_command_hook /*
 Function or functions to run before every command.
