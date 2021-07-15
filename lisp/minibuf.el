@@ -812,7 +812,7 @@ a repetition of this command will exit."
     ;; Short-cut -- don't call minibuffer-do-completion if we already
     ;;  have an (possibly nonunique) exact completion.
     (if (test-completion buffer-string minibuffer-completion-table
-                                minibuffer-completion-predicate)
+			 minibuffer-completion-predicate)
         (throw 'exit nil))
     (let ((status (minibuffer-do-completion buffer-string)))
       (if (or (eq status 'unique)
@@ -844,7 +844,7 @@ the character in question must be typed again)."
       (throw 'exit nil))
   (let ((buffer-string (buffer-string)))
     (if (test-completion buffer-string minibuffer-completion-table
-                                minibuffer-completion-predicate)
+			 minibuffer-completion-predicate)
         (throw 'exit nil))
     (let ((completion (if (not minibuffer-completion-table)
                           t
@@ -1006,10 +1006,9 @@ This is not enabled by default because
   ;; the way filename completion works is funny.  Possibly there's some
   ;; more general way this could be dealt with...
   ;;
-  ;; We do some further voodoo when reading a pathname that is an
-  ;; ange-ftp or efs path, because causing FTP activity as a result of
-  ;; mouse motion is a really bad time.
-  ;;
+  ;; We do some further voodoo when reading a pathname that is a remote path,
+  ;; because causing FTP activity as a result of mouse motion is a really bad
+  ;; time.
   (and minibuffer-smart-completion-tracking-behavior
        (event-point event)
        ;; avoid conflict with display-completion-list extents
@@ -1034,53 +1033,18 @@ This is not enabled by default because
 		  (if filename-kludge-p
 		      (setq string (minibuffer-smart-select-kludge-filename
 				    string)))
-		  ;; try-completion bogusly returns a string even when
-		  ;; that string is complete if that string is also a
-		  ;; prefix for other completions.  This means that we
-		  ;; can't just do the obvious thing, (eq t
-		  ;; (try-completion ...)).
-                  ;; 
-                  ;; Could be reasonable to use #'test-completion
-                  ;; instead. Aidan Kehoe, Mo 14 Mai 2012 08:17:10 IST
-		  (let (comp)
-		    (if (and filename-kludge-p
-			     ;; #### evil evil evil evil
-			     (or (and (fboundp 'ange-ftp-ftp-path)
-				      (declare-fboundp
-				       (ange-ftp-ftp-path string)))
-				 (and (fboundp 'efs-ftp-path)
-				      (declare-fboundp
-				       (efs-ftp-path string)))))
-			(setq comp t)
-		      (setq comp
-			    (try-completion string
-					    minibuffer-completion-table
-					    minibuffer-completion-predicate)))
-		    (or (eq comp t)
-			(and (equal comp string)
-			     (or (null minibuffer-completion-predicate)
-				 (stringp
-				  minibuffer-completion-predicate) ; ???
-				 (funcall minibuffer-completion-predicate
-					  (if (vectorp
-					       minibuffer-completion-table)
-					      (intern-soft
-					       string
-					       minibuffer-completion-table)
-					    string))))
-			(goto-char p))))))))))
+                  (or (and filename-kludge-p (file-remote-p string))
+                      (test-completion string
+                                       minibuffer-completion-table
+                                       minibuffer-completion-predicate)
+		      (goto-char p)))))))))
 
 (defun minibuffer-smart-select-kludge-filename (string)
   (save-excursion
     (set-buffer mouse-grabbed-buffer) ; the minibuf
-    (let ((kludge-string (concat (buffer-string) string)))
-      (if (or (and (fboundp 'ange-ftp-ftp-path)
-		   (declare-fboundp (ange-ftp-ftp-path kludge-string)))
-	       (and (fboundp 'efs-ftp-path)
-		    (declare-fboundp (efs-ftp-path kludge-string))))
-	  ;; #### evil evil evil, but more so.
-	  string
-	(append-expand-filename (buffer-string) string)))))
+    (if (file-remote-p (concat (buffer-string) string))
+	string
+      (append-expand-filename (buffer-string) string))))
 
 (defun minibuffer-smart-select-highlighted-completion (event)
   "Select the highlighted text under the mouse as a minibuffer response.

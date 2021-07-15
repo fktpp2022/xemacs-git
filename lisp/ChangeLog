@@ -1,3 +1,23 @@
+2021-07-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* files.el:
+	* files.el (file-remote-p):
+	If EFS is loaded, use efs-path-regexp to work out if FILE is remote.
+	* minibuf.el (minibuffer-complete-and-exit):
+	* minibuf.el (exit-minibuffer):
+	Fix some indentation in these two functions.
+	* minibuf.el (minibuffer-smart-mouse-tracker):
+	Ignore ange-ftp, long deprecated.
+	Trust that #'file-remote-p will recognise EFS pathnames if EFS is
+	loaded.
+	Use the newer #'test-completion, which always gives t for an exact
+	match, rather than the older #'try-completion, where this is not
+	guaranteed.
+	* minibuf.el (minibuffer-smart-select-kludge-filename):
+	ange-ftp is long deprecated, ignore it.
+	Use the new support of #'file-remote-p for EFS, don't implement
+	that ourselves.
+
 2021-06-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* cl-extra.el (cl-do-prettyprint):
