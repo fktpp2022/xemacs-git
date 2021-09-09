@@ -1,3 +1,9 @@
+2021-09-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* gnuserv.c (handle_unix_request):
+	Update a link to a specific changeset on Heptapod here, now
+	Bitbucket's Mercurial support is dead.
+
 2020-03-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* gnuclient.c:

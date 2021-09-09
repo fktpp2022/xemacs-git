@@ -1,3 +1,9 @@
+2021-09-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* README (Note):
+	Update a link in this file, now Bitbucket support for Mercurial is
+	no longer extant.  Thank you J Lewis Muir on Heptapod!
+
 2021-01-01  Henry S. Thompson  <ht@home.hst.name>
 
 	* configure.ac: make explicit --with-ncurses work again
