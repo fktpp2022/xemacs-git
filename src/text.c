@@ -1974,19 +1974,6 @@ round_down_to_valid_ichar (int charpos)
 
 /* Most are inline functions in lisp.h */
 
-int
-qxesprintf (Ibyte *buffer, const CIbyte *format, ...)
-{
-  va_list args;
-  int retval;
-
-  va_start (args, format);
-  retval = vsprintf ((Chbyte *) buffer, format, args);
-  va_end (args);
-
-  return retval;
-}
-
 /* strcasecmp() implementation from BSD */
 static Ibyte strcasecmp_charmap[] = {
         0000, 0001, 0002, 0003, 0004, 0005, 0006, 0007,

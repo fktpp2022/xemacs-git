@@ -6534,9 +6534,6 @@ DECLARE_INLINE_HEADER (Ibyte *qxestrlwr (Ibyte *s))
   return (Ibyte *) strlwr ((Chbyte *) s);
 }
 
-int qxesprintf (Ibyte *buffer, const CIbyte *format, ...)
-     PRINTF_ARGS (2, 3);
-
 DECLARE_INLINE_HEADER (int qxesscanf_ascii_1 (Ibyte *buffer,
 					      const Ascbyte *format,
 					      void *ptr))
