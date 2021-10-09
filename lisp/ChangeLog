@@ -1,3 +1,10 @@
+2021-10-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* mule/uni-case-conv.el:
+	Update this file to reflect current UnicodeData.txt, last
+	modification on unicode.org 2021-07-06 12:31, md5
+	c98cbeae07758b826ef080c65b9d4d61.
+
 2021-07-15  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* files.el:
