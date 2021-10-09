@@ -1,5 +1,14 @@
 2021-10-09  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* mule/make-digit.el:
+	New. File to generate digit.el from UnicodeData.txt.
+	* mule/digit.el:
+	Regenerate this reflecting the same version of UnicodeData of last
+	commit, last modification on unicode.org 2021-07-06 12:31, md5
+	c98cbeae07758b826ef080c65b9d4d61.
+
+2021-10-09  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* mule/uni-case-conv.el:
 	Update this file to reflect current UnicodeData.txt, last
 	modification on unicode.org 2021-07-06 12:31, md5
