@@ -292,6 +292,10 @@ static const struct memory_description window_description [] = {
 #define WINDOW_SLOT(slot) { XD_LISP_OBJECT, offsetof (struct window, slot) },
 #define WINDOW_SLOT_ARRAY(slot, size) \
   { XD_LISP_OBJECT_ARRAY, offsetof (struct window, slot), size },
+#define WINDOW_INTEGER_SLOT_ARRAY(slot, size) \
+  { XD_LISP_OBJECT_ARRAY, offsetof (struct window, slot), size },
+#define WINDOW_MARKER_SLOT_ARRAY(slot, size) \
+  { XD_LISP_OBJECT_ARRAY, offsetof (struct window, slot), size },
 #include "winslots.h"
 
 #ifdef NEW_GC
@@ -412,11 +416,6 @@ DEFINE_NODUMP_LISP_OBJECT ("window", window,
 			   mark_window, print_window, finalize_window,
 			   0, 0, window_description, struct window);
 
-#define INIT_DISP_VARIABLE(field, initialization)	\
-  p->field[CURRENT_DISP] = initialization;		\
-  p->field[DESIRED_DISP] = initialization;		\
-  p->field[CMOTION_DISP] = initialization;
-
 /* We have an implicit assertion that the first two elements (default
    and modeline faces) are always present in the face_element_cache.
    Normally redisplay ensures this.  However, it is possible for a
@@ -436,19 +435,13 @@ allocate_window (void)
   struct window *p = XWINDOW (obj);
 
 #define WINDOW_SLOT(slot) p->slot = Qnil;
+#define WINDOW_INTEGER_SLOT(slot) p->slot = Qzero;
+#define WINDOW_MARKER_SLOT(slot) p->slot = Fmake_marker ();
 #include "winslots.h"
 
-  INIT_DISP_VARIABLE (start, Fmake_marker ());
-  INIT_DISP_VARIABLE (pointm, Fmake_marker ());
-  INIT_DISP_VARIABLE (end_pos, Fmake_marker ());
-  p->sb_point = Fmake_marker ();
   p->saved_point_cache = make_point_cache ();
   p->saved_last_window_start_cache = make_point_cache ();
-  p->use_time = Qzero;
-  INIT_DISP_VARIABLE (last_modified, Qzero);
-  INIT_DISP_VARIABLE (last_point, Fmake_marker ());
-  INIT_DISP_VARIABLE (last_start, Fmake_marker ());
-  INIT_DISP_VARIABLE (last_facechange, Qzero);
+
 #ifdef NEW_GC
   p->face_cachels = Dynarr_lisp_new (face_cachel,
 				     &lrecord_face_cachel_dynarr,
@@ -462,8 +455,6 @@ allocate_window (void)
 #endif /* not NEW_GC */
   p->line_start_cache = Dynarr_new (line_start_cache);
   p->subwindow_instance_cache = make_image_instance_cache_hash_table ();
-
-  p->line_cache_last_updated = Qzero;
 
   p->windows_changed = 1;
   p->shadow_thickness_changed = 1;
@@ -2301,16 +2292,8 @@ mark_window_as_deleted (struct window *w)
      windows is still being pointed to, by the user, or by a window
      configuration, then *all* of those windows stick around. */
 
-#define WINDOW_SLOT(slot)
-#define WINDOW_SAVED_SLOT(slot, compare) w->slot = Qnil;
+#define WINDOW_SLOT(slot) w->slot = Qnil;
 #include "winslots.h"
-
-  w->next = Qnil;
-  w->prev = Qnil;
-  w->hchild = Qnil;
-  w->vchild = Qnil;
-  w->parent = Qnil;
-  w->subwindow_instance_cache = Qnil;
 
   w->dead = 1;
   note_object_deleted (wrap_window (w));

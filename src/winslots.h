@@ -22,77 +22,86 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 /* Split out of window.h and window.c
    by Kirill Katsnelson <kkm@kis.ru>, May 1998 */
 
-/* Separation into WINDOW_SLOT / WINDOW_SAVED_SLOT by Ben Wing, June 2001.
-
-   NOTE: No semicolons after slot declarations in this file!  The
-   definitions of WINDOW_SLOT (and possibly WINDOW_SAVED_SLOT) need
-   to include a semicolon.  This is because these may be defined as
-   nothing, and some compilers don't tolerate extra semicolons in
+/* NOTE: No semicolons after slot declarations in this file!  The definitions
+   of WINDOW_SLOT need to include a semicolon.  This is because these may be
+   defined as nothing, and some compilers don't tolerate extra semicolons in
    structure definitions.
 
-   WINDOW_SLOT declares a Lisp_Object that is not copied into the
-     saved_window struct of a window configuration, or is handled in
-     a special way in window configurations.
-   WINDOW_SLOT_ARRAY is the same for an array of Lisp_Objects.
-   WINDOW_SAVED_SLOT declares a Lisp_Object that is copied with no
-     special handling into the saved_window struct of a window
-     configuration.  You must also declare the comparison function,
-     either EQ or EQUAL_WRAPPED (i.e. Feq() or Fequal()).
-   WINDOW_SAVED_SLOT_ARRAY is the same for an array of Lisp_Objects.
+   WINDOW_SLOT declares a Lisp_Object that should default to Qnil.
+   WINDOW_INTEGER_SLOT declares a Lisp_Object that should default to
+   Qzero.
+   WINDOW_MARKER_SLOT declares a Lisp_Object that should default to a marker
+   that does not point anywhere.
+
+   WINDOW_SLOT_ARRAY is the same as WINDOW_SLOT for an array of Lisp_Objects.
+
+   WINDOW_INTEGER_SLOT_ARRAY is the same as WINDOW_INTEGER_SLOT for an array
+   of Lisp_Objects. Similarly, WINDOW_MARKER_SLOT_ARRAY is the same as
+   WINDOW_MARKER_SLOT for an array of Lisp_Objects.
 
    Callers should define WINDOW_SLOT (with a terminating semicolon if not
-   blank), and WINDOW_SAVED_SLOT if different; otherwise the latter will be
-   defined using WINDOW_SLOT.  Callers should also either (a) do nothing
-   else (which defines WINDOW_SLOT_ARRAY using a for() loop, appropriate
-   for normal code), define WINDOW_SLOT_DECLARATION (which defines
-   WINDOW_SLOT_ARRAY using WINDOW_SLOT (slot[size]), appropriate for a
-   struct definition), or define WINDOW_SLOT_ARRAY themselves.  In the
-   first two cases, WINDOW_SAVED_SLOT_ARRAY will be defined in the same
-   fashion, using WINDOW_SAVED_SLOT.  In the last case, if
-   WINDOW_SAVED_SLOT is defined, the caller must provide an appropriate
-   definition of WINDOW_SAVED_SLOT_ARRAY; otherwise, it will be defined
-   using WINDOW_SLOT_ARRAY.
+   blank), and WINDOW_INTEGER_SLOT, WINDOW_MARKER_SLOT if different; otherwise
+   the latter two will be defined using WINDOW_SLOT.  Callers should also
+   either (a) do nothing else (which defines WINDOW_SLOT_ARRAY using a for()
+   loop, appropriate for normal code), define WINDOW_SLOT_DECLARATION (which
+   defines WINDOW_SLOT_ARRAY using WINDOW_SLOT (slot[size]), appropriate for a
+   struct definition), or define WINDOW_SLOT_ARRAY themselves.
+
+   This file used to distinguish between saved slots (those stored in window
+   configurations) and unsaved slots. With the window configuration code now
+   in Lisp this is no longer relevant.
 
    Callers do not need to undefine these definitions; it is done
    automatically.
 */
 
-#ifdef WINDOW_SLOT_ARRAY
-# ifndef WINDOW_SAVED_SLOT_ARRAY
-#  ifdef WINDOW_SAVED_SLOT
-#   error must define WINDOW_SAVED_SLOT_ARRAY if WINDOW_SAVED_SLOT and WINDOW_SLOT_ARRAY are defined
-#  else
-#   define WINDOW_SAVED_SLOT_ARRAY(slot, size, compare) \
-     WINDOW_SLOT_ARRAY (slot, size)
-#  endif /* WINDOW_SAVED_SLOT */
-# endif /* not WINDOW_SAVED_SLOT_ARRAY */
-#elif defined (WINDOW_SLOT_DECLARATION) /* not WINDOW_SLOT_ARRAY */
-# define WINDOW_SLOT_ARRAY(slot, size) WINDOW_SLOT (slot[size])
-# define WINDOW_SAVED_SLOT_ARRAY(slot, size, compare) \
-  WINDOW_SAVED_SLOT (slot[size], compare)
-#else /* not WINDOW_SLOT_DECLARATION, not WINDOW_SLOT_ARRAY */
-# define WINDOW_SLOT_ARRAY(slot, size) do {	\
-  int wsaidx;					\
-  for (wsaidx = 0; wsaidx < size; wsaidx++)	\
-    {						\
-      WINDOW_SLOT (slot[wsaidx]);		\
-    }						\
-} while (0);
-# define WINDOW_SAVED_SLOT_ARRAY(slot, size, compare) do {	\
-  int wsaidx;							\
-  for (wsaidx = 0; wsaidx < size; wsaidx++)			\
-    {								\
-      WINDOW_SAVED_SLOT (slot[wsaidx], compare);		\
-    }								\
-} while (0);
-#endif /* WINDOW_SLOT_DECLARATION */
-
-#ifndef WINDOW_SAVED_SLOT
-#define WINDOW_SAVED_SLOT(slot, compare) WINDOW_SLOT (slot)
+#ifndef WINDOW_INTEGER_SLOT
+#define WINDOW_INTEGER_SLOT WINDOW_SLOT
 #endif
 
-#define EQUAL_WRAPPED(x,y) internal_equal ((x), (y), 0)
+#ifndef WINDOW_MARKER_SLOT
+#define WINDOW_MARKER_SLOT WINDOW_SLOT
+#endif
 
+#ifdef WINDOW_SLOT_DECLARATION
+
+#define WINDOW_SLOT_ARRAY(slot, size) WINDOW_SLOT (slot[size])
+#define WINDOW_INTEGER_SLOT_ARRAY(slot, size) WINDOW_INTEGER_SLOT (slot[size])
+#define WINDOW_MARKER_SLOT_ARRAY(slot, size) WINDOW_MARKER_SLOT (slot[size])
+
+#else /* not WINDOW_SLOT_DECLARATION */
+
+#ifndef WINDOW_SLOT_ARRAY
+#define WINDOW_SLOT_ARRAY(slot, size) do {		\
+  int wsaidx;						\
+  for (wsaidx = 0; wsaidx < size; wsaidx++)		\
+    {							\
+      WINDOW_SLOT (slot[wsaidx]);			\
+    }							\
+} while (0);
+#endif
+
+#ifndef WINDOW_INTEGER_SLOT_ARRAY
+#define WINDOW_INTEGER_SLOT_ARRAY(slot, size) do {	\
+  int wsaidx;						\
+  for (wsaidx = 0; wsaidx < size; wsaidx++)		\
+    {							\
+      WINDOW_INTEGER_SLOT (slot[wsaidx]);		\
+    }							\
+} while (0);
+#endif
+
+#ifndef WINDOW_MARKER_SLOT_ARRAY
+#define WINDOW_MARKER_SLOT_ARRAY(slot, size) do {	\
+  int wsaidx;						\
+  for (wsaidx = 0; wsaidx < size; wsaidx++)		\
+    {							\
+      WINDOW_MARKER_SLOT (slot[wsaidx]);		\
+    }							\
+} while (0);
+#endif
+
+#endif /* not WINDOW_SLOT_DECLARATION */
 
   /* The frame this window is on.  */
   WINDOW_SLOT (frame)
@@ -115,20 +124,20 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
   WINDOW_SLOT (buffer)
   /* A marker pointing to where in the text to start displaying */
   /* need one for each set of display structures */
-  WINDOW_SLOT_ARRAY (start, 3)
+  WINDOW_MARKER_SLOT_ARRAY (start, 3)
   /* A marker pointing to the last position seen as of last redisplay. We need
      one for each of the display structures. */
-  WINDOW_SLOT_ARRAY (end_pos, 3)
+  WINDOW_MARKER_SLOT_ARRAY (end_pos, 3)
 
   /* A marker pointing to where in the text point is in this window,
      used only when the window is not selected.
      This exists so that when multiple windows show one buffer
      each one can have its own value of point.  */
   /* need one for each set of display structures */
-  WINDOW_SLOT_ARRAY (pointm, 3)
+  WINDOW_MARKER_SLOT_ARRAY (pointm, 3)
   /* A marker pointing to where in the text the scrollbar is pointing;
      #### moved to scrollbar.c? */
-  WINDOW_SLOT (sb_point)
+  WINDOW_MARKER_SLOT (sb_point)
   /* A table that remembers (in zero-length-extent form) the value of point in
      buffers previously displayed in this window.  Switching back to those
      buffers causes the remembered point value to become current, rather than
@@ -145,15 +154,15 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
   WINDOW_SLOT (saved_last_window_start_cache)
 
   /* Number saying how recently window was selected */
-  WINDOW_SLOT (use_time)
+  WINDOW_INTEGER_SLOT (use_time)
   /* text.modified of displayed buffer as of last time display completed */
-  WINDOW_SLOT_ARRAY (last_modified, 3)
+  WINDOW_INTEGER_SLOT_ARRAY (last_modified, 3)
   /* Value of point at that time */
-  WINDOW_SLOT_ARRAY (last_point, 3)
+  WINDOW_MARKER_SLOT_ARRAY (last_point, 3)
   /* Value of start at that time */
-  WINDOW_SLOT_ARRAY (last_start, 3)
+  WINDOW_MARKER_SLOT_ARRAY (last_start, 3)
   /* buf.face_change as of last time display completed */
-  WINDOW_SLOT_ARRAY (last_facechange, 3)
+  WINDOW_INTEGER_SLOT_ARRAY (last_facechange, 3)
 
   /* we cannot have a per-device cache of widgets / subwindows because
      each visible instance needs to be a separate instance. The lowest
@@ -164,111 +173,112 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
      proper solution is probably not worth the effort. */
   WINDOW_SLOT (subwindow_instance_cache)
 
-  WINDOW_SLOT (line_cache_last_updated)
+  WINDOW_INTEGER_SLOT (line_cache_last_updated)
 
   /*** Non-specifier vars of window and window config ***/
 
   /* Non-nil means window is marked as dedicated.  */
-  WINDOW_SAVED_SLOT (dedicated, EQ)
+  WINDOW_SLOT (dedicated)
 
   /*** specifier values cached in the struct window ***/
 
   /* Display-table to use for displaying chars in this window. */
-  WINDOW_SAVED_SLOT (display_table, EQUAL_WRAPPED)
+  WINDOW_SLOT (display_table)
   /* Thickness of modeline shadow, in pixels.  If negative, draw
      as recessed. */
-  WINDOW_SAVED_SLOT (modeline_shadow_thickness, EQ)
+  WINDOW_INTEGER_SLOT (modeline_shadow_thickness)
   /* Non-nil means to display a modeline for the buffer. */
-  WINDOW_SAVED_SLOT (has_modeline_p, EQ)
+  WINDOW_SLOT (has_modeline_p)
   /* Thickness of vertical divider shadow, in pixels.  If negative, draw as
      recessed. */
-  WINDOW_SAVED_SLOT (vertical_divider_shadow_thickness, EQ)
+  WINDOW_INTEGER_SLOT (vertical_divider_shadow_thickness)
   /* Divider surface width (not counting 3-d borders) */
-  WINDOW_SAVED_SLOT (vertical_divider_line_width, EQ)
+  WINDOW_INTEGER_SLOT (vertical_divider_line_width)
   /* Spacing between outer edge of divider border and window edge */
-  WINDOW_SAVED_SLOT (vertical_divider_spacing, EQ)
+  WINDOW_INTEGER_SLOT (vertical_divider_spacing)
   /* Whether vertical dividers are always displayed */
-  WINDOW_SAVED_SLOT (vertical_divider_always_visible_p, EQ)
+  WINDOW_SLOT (vertical_divider_always_visible_p)
 
 #ifdef HAVE_SCROLLBARS
   /* Width of vertical scrollbars. */
-  WINDOW_SAVED_SLOT (scrollbar_width, EQ)
+  WINDOW_INTEGER_SLOT (scrollbar_width)
   /* Height of horizontal scrollbars. */
-  WINDOW_SAVED_SLOT (scrollbar_height, EQ)
+  WINDOW_INTEGER_SLOT (scrollbar_height)
   /* Whether the scrollbars are visible */
-  WINDOW_SAVED_SLOT (horizontal_scrollbar_visible_p, EQ)
-  WINDOW_SAVED_SLOT (vertical_scrollbar_visible_p, EQ)
+  WINDOW_SLOT (horizontal_scrollbar_visible_p)
+  WINDOW_SLOT (vertical_scrollbar_visible_p)
   /* Scrollbar positions */
-  WINDOW_SAVED_SLOT (scrollbar_on_left_p, EQ)
-  WINDOW_SAVED_SLOT (scrollbar_on_top_p, EQ)
+  WINDOW_SLOT (scrollbar_on_left_p)
+  WINDOW_SLOT (scrollbar_on_top_p)
   /* Pointer to use for vertical and horizontal scrollbars. */
-  WINDOW_SAVED_SLOT (scrollbar_pointer, EQ)
+  WINDOW_SLOT (scrollbar_pointer)
 #endif /* HAVE_SCROLLBARS */
 #ifdef HAVE_TOOLBARS
   /* Toolbar specification for each of the four positions.
      This is not a size hog because the value here is not copied,
      and will be shared with the specs in the specifier. */
-  WINDOW_SAVED_SLOT_ARRAY (toolbar, 4, EQUAL_WRAPPED)
+  WINDOW_INTEGER_SLOT_ARRAY (toolbar, 4)
   /* Toolbar size for each of the four positions. */
-  WINDOW_SAVED_SLOT_ARRAY (toolbar_size, 4, EQUAL_WRAPPED)
+  WINDOW_INTEGER_SLOT_ARRAY (toolbar_size, 4)
   /* Toolbar border width for each of the four positions. */
-  WINDOW_SAVED_SLOT_ARRAY (toolbar_border_width, 4, EQUAL_WRAPPED)
+  WINDOW_INTEGER_SLOT_ARRAY (toolbar_border_width, 4)
   /* Toolbar visibility status for each of the four positions. */
-  WINDOW_SAVED_SLOT_ARRAY (toolbar_visible_p, 4, EQUAL_WRAPPED)
+  WINDOW_SLOT_ARRAY (toolbar_visible_p, 4)
   /* Caption status of toolbar. */
-  WINDOW_SAVED_SLOT (toolbar_buttons_captioned_p, EQ)
+  WINDOW_SLOT (toolbar_buttons_captioned_p)
   /* The following five don't really need to be cached except
      that we need to know when they've changed. */
-  WINDOW_SAVED_SLOT (default_toolbar, EQUAL_WRAPPED)
-  WINDOW_SAVED_SLOT (default_toolbar_width, EQ)
-  WINDOW_SAVED_SLOT (default_toolbar_height, EQ)
-  WINDOW_SAVED_SLOT (default_toolbar_visible_p, EQ)
-  WINDOW_SAVED_SLOT (default_toolbar_border_width, EQ)
-  WINDOW_SAVED_SLOT (toolbar_shadow_thickness, EQ)
+  WINDOW_SLOT (default_toolbar)
+  WINDOW_INTEGER_SLOT (default_toolbar_width)
+  WINDOW_INTEGER_SLOT (default_toolbar_height)
+  WINDOW_SLOT (default_toolbar_visible_p)
+  WINDOW_INTEGER_SLOT (default_toolbar_border_width)
+  WINDOW_INTEGER_SLOT (toolbar_shadow_thickness)
 #endif /* HAVE_TOOLBARS */
 
   /* Gutter specification for each of the four positions.
      This is not a size hog because the value here is not copied,
      and will be shared with the specs in the specifier. */
-  WINDOW_SAVED_SLOT_ARRAY (gutter, 4, EQUAL_WRAPPED)
+  WINDOW_SLOT_ARRAY (gutter, 4)
   /* Real (pre-calculated) gutter specification for each of the four positions.
      This is not a specifier, it is calculated by the specifier change
      functions. */
-  WINDOW_SAVED_SLOT_ARRAY (real_gutter, 4, EQUAL_WRAPPED)
+  WINDOW_SLOT_ARRAY (real_gutter, 4)
   /* Gutter size for each of the four positions. */
-  WINDOW_SAVED_SLOT_ARRAY (gutter_size, 4, EQUAL_WRAPPED)
+  WINDOW_INTEGER_SLOT_ARRAY (gutter_size, 4)
   /* Real (pre-calculated) gutter size for each of the four positions.
      This is not a specifier, it is calculated by the specifier change
      functions. */
-  WINDOW_SAVED_SLOT_ARRAY (real_gutter_size, 4, EQUAL_WRAPPED)
+  WINDOW_INTEGER_SLOT_ARRAY (real_gutter_size, 4)
   /* Gutter border width for each of the four positions. */
-  WINDOW_SAVED_SLOT_ARRAY (gutter_border_width, 4, EQUAL_WRAPPED)
+  WINDOW_INTEGER_SLOT_ARRAY (gutter_border_width, 4)
   /* Gutter visibility status for each of the four positions. */
-  WINDOW_SAVED_SLOT_ARRAY (gutter_visible_p, 4, EQUAL_WRAPPED)
+  WINDOW_SLOT_ARRAY (gutter_visible_p, 4)
   /* The following five don't really need to be cached except
      that we need to know when they've changed. */
-  WINDOW_SAVED_SLOT (default_gutter, EQUAL_WRAPPED)
-  WINDOW_SAVED_SLOT (default_gutter_width, EQ)
-  WINDOW_SAVED_SLOT (default_gutter_height, EQ)
-  WINDOW_SAVED_SLOT (default_gutter_visible_p, EQ)
-  WINDOW_SAVED_SLOT (default_gutter_border_width, EQ)
+  WINDOW_SLOT (default_gutter)
+  WINDOW_INTEGER_SLOT (default_gutter_width)
+  WINDOW_INTEGER_SLOT (default_gutter_height)
+  WINDOW_SLOT (default_gutter_visible_p)
+  WINDOW_INTEGER_SLOT (default_gutter_border_width)
 /* margins */
-  WINDOW_SAVED_SLOT (left_margin_width, EQ)
-  WINDOW_SAVED_SLOT (right_margin_width, EQ)
-  WINDOW_SAVED_SLOT (minimum_line_ascent, EQ)
-  WINDOW_SAVED_SLOT (minimum_line_descent, EQ)
-  WINDOW_SAVED_SLOT (use_left_overflow, EQ)
-  WINDOW_SAVED_SLOT (use_right_overflow, EQ)
+  WINDOW_INTEGER_SLOT (left_margin_width)
+  WINDOW_INTEGER_SLOT (right_margin_width)
+  WINDOW_INTEGER_SLOT (minimum_line_ascent)
+  WINDOW_INTEGER_SLOT (minimum_line_descent)
+  WINDOW_SLOT (use_left_overflow)
+  WINDOW_SLOT (use_right_overflow)
 #ifdef HAVE_MENUBARS
   /* Visibility of menubar. */
-  WINDOW_SAVED_SLOT (menubar_visible_p, EQ)
+  WINDOW_SLOT (menubar_visible_p)
 #endif /* HAVE_MENUBARS */
-  WINDOW_SAVED_SLOT (text_cursor_visible_p, EQ)
+  WINDOW_SLOT (text_cursor_visible_p)
 
   /* Hara-kiri */
-#undef EQUAL_WRAPPED
 #undef WINDOW_SLOT_DECLARATION
 #undef WINDOW_SLOT
 #undef WINDOW_SLOT_ARRAY
-#undef WINDOW_SAVED_SLOT
-#undef WINDOW_SAVED_SLOT_ARRAY
+#undef WINDOW_INTEGER_SLOT
+#undef WINDOW_INTEGER_SLOT_ARRAY
+#undef WINDOW_MARKER_SLOT
+#undef WINDOW_MARKER_SLOT_ARRAY

@@ -1,3 +1,27 @@
+2021-10-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* winslots.h:
+	Rework this file, doing two broad things:
+	1. Remove the support for "saved" slots. This had been used when
+	the window configuration implementation was in C, and is no longer
+	relevant with Mike Sperber having moved it to window-xemacs.el.
+	2. Provide syntactic support for integer (usually fixnum) and
+	marker slots, allowing them to be initialised more systematically
+	from allocate_window(). This has the happy consequence that uses
+	of e.g. left_margin_width without checking its type (see
+	margin_width_internal()) will no longer throw an assertion failure
+	that small minority of times that a window is redisplayed without
+	recompute_all_cached_specifiers_in_window () having been
+	called. In theory shouldn't happen, but see the commit message
+	for a backtrace.
+
+	* window.c (WINDOW_INTEGER_SLOT_ARRAY):
+	* window.c (allocate_window):
+	* window.c (WINDOW_INTEGER_SLOT):
+	* window.c (WINDOW_SLOT):
+	* window.c (mark_window_as_deleted):
+	Use the new syntax for winslots.h in this file.
+
 2021-09-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* text.c:
