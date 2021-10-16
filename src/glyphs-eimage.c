@@ -1405,7 +1405,7 @@ tiff_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
      stack frame is still valid. */
   struct tiff_unwind_data unwind;
   int speccount = specpdl_depth ();
-  uint32 width, height;
+  UINT_32_BIT width, height;
 
   xzero (unwind);
   record_unwind_protect (tiff_instantiate_unwind, make_opaque_ptr (&unwind));
@@ -1418,7 +1418,7 @@ tiff_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
     Binbyte *bytes;
     Bytecount len;
 
-    uint32 *raster;
+    UINT_32_BIT *raster;
     Binbyte *ep;
     UINT_64_BIT pixels_sq;
 
@@ -1449,11 +1449,13 @@ tiff_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
     /* #### This is little more than proof-of-concept/function testing.
        It needs to be reimplemented via scanline reads for both memory
        compactness. */
-    raster = (uint32*) _TIFFmalloc ((tsize_t) (pixels_sq * sizeof (uint32)));
+    raster
+      = (UINT_32_BIT*) _TIFFmalloc ((tsize_t) (pixels_sq *
+					       sizeof (UINT_32_BIT)));
     if (raster != NULL)
       {
 	int i, j;
-	uint32 *rp;
+	UINT_32_BIT *rp;
 	ep = unwind.eimage;
 	rp = raster;
 	if (TIFFReadRGBAImage (unwind.tiff, width, height, raster, 0))

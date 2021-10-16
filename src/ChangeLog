@@ -22,6 +22,12 @@
 	* window.c (mark_window_as_deleted):
 	Use the new syntax for winslots.h in this file.
 
+2021-10-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* glyphs-eimage.c (tiff_instantiate):
+	uint32 is deprecated, use our UINT_32_BIT type instead, thank you
+	the Cygwin GCC install.
+
 2021-09-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* text.c:
