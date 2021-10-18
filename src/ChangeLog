@@ -1,3 +1,11 @@
+2021-10-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* window.c (Fdelete_slot):
+	* window.c (make_dummy_parent):
+	Be more systematic in initialising or clearing marker slots in
+	these other functions in this file, now WINDOW_MARKER_SLOT is
+	available in winslots.h
+
 2021-10-11  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* winslots.h:

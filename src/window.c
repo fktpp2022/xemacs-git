@@ -2416,16 +2416,9 @@ will automatically call `save-buffers-kill-emacs'.)
   if (!NILP (w->buffer))
     {
       unshow_buffer (w);
-      unchain_marker (w->pointm[CURRENT_DISP]);
-      unchain_marker (w->pointm[DESIRED_DISP]);
-      unchain_marker (w->pointm[CMOTION_DISP]);
-      unchain_marker (w->start[CURRENT_DISP]);
-      unchain_marker (w->start[DESIRED_DISP]);
-      unchain_marker (w->start[CMOTION_DISP]);
-      unchain_marker (w->end_pos[CURRENT_DISP]);
-      unchain_marker (w->end_pos[DESIRED_DISP]);
-      unchain_marker (w->end_pos[CMOTION_DISP]);
-      unchain_marker (w->sb_point);
+#define WINDOW_SLOT(slot) /* nothing */
+#define WINDOW_MARKER_SLOT(slot) unchain_marker (w->slot);
+#include "winslots.h"
       w->buffer = Qnil;
     }
 
@@ -4075,16 +4068,10 @@ make_dummy_parent (Lisp_Object window)
   o->hchild = Qnil;
   o->parent = obj;
 
-  p->start[CURRENT_DISP] = Qnil;
-  p->start[DESIRED_DISP] = Qnil;
-  p->start[CMOTION_DISP] = Qnil;
-  p->end_pos[CURRENT_DISP] = Qnil;
-  p->end_pos[DESIRED_DISP] = Qnil;
-  p->end_pos[CMOTION_DISP] = Qnil;
-  p->pointm[CURRENT_DISP] = Qnil;
-  p->pointm[DESIRED_DISP] = Qnil;
-  p->pointm[CMOTION_DISP] = Qnil;
-  p->sb_point = Qnil;
+#define WINDOW_SLOT(slot) /* nothing */
+#define WINDOW_MARKER_SLOT(slot) p->slot = Qnil;
+#include "winslots.h"
+
   p->saved_point_cache = make_point_cache ();
   p->saved_last_window_start_cache = make_point_cache ();
   p->buffer = Qnil;
