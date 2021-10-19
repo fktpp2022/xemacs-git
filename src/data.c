@@ -1456,7 +1456,7 @@ values. See `parse-integer' and `digit-fixnum-map'.
 
   if (!NILP (radix))
     {
-      check_integer_range (radix, Qzero,
+      check_integer_range (radix, Qone,
                            /* If we are using a known radix table, the maximum
                               possible value for the radix is available to us
                               now. Otherwise, calculating that is expensive;
@@ -1491,7 +1491,7 @@ DEFUN ("digit-char", Fdigit_char, 1, 3, 0, /*
 Return a character representing the integer WEIGHT in base RADIX.
 
 RADIX defaults to ten.  If no such character exists, return nil. `digit-char'
-prefers an upper case character if available.  RADIX must be a non-negative
+prefers an upper case character if available.  RADIX must be a positive
 integer of value less than the maximum value in RADIX-TABLE.
 
 RADIX-TABLE, if non-nil, is a character table describing characters' numeric
@@ -1532,10 +1532,10 @@ expensive, since the inverse map needs to be calculated.
       radix = make_fixnum (10);
     }
 
-  check_integer_range (radix, Qzero, 
+  check_integer_range (radix, Qone, 
                        /* This constructs the map as a side-effect if needed;
                           we have to do that anyway for the
-                          get_radix_fable_fixnum_majuscule_map() call, so no
+                          get_radix_table_fixnum_majuscule_map() call, so no
                           significant extra algorithmic complexity.  */
                        get_radix_table_greatest_radix (radix_table));
   radixing = XFIXNUM (radix);
@@ -1550,13 +1550,21 @@ expensive, since the inverse map needs to be calculated.
   return Qnil;
 }
 
+/* INT_LIMIT is a positive unsigned C integer such that ((INT_LIMIT *
+   BASE) + (BASE - 1)) is guaranteed less than or equal to INT_LIMIT. */
+#define CALCULATE_INT_LIMIT(base) ((((EMACS_UINT) (-1)) - base) / base)
+
 Lisp_Object
 parse_integer (const Ibyte *buf, Ibyte **buf_end_out, Bytecount len,
                EMACS_INT base, int flags, Lisp_Object radix_table)
 {
   const Ibyte *lim = buf + len, *p = buf;
   EMACS_UINT num = 0, onum = (EMACS_UINT) -1;
-  EMACS_UINT fixnum_limit = MOST_POSITIVE_FIXNUM;
+  EMACS_UINT int_limit
+    /* This becomes a constant for the usual case, no run-time divide
+       instruction. */
+    = (base == 10) ?
+    CALCULATE_INT_LIMIT (10) : CALCULATE_INT_LIMIT (base);
   EMACS_INT cint = 0;
   Boolint negativland = 0;
   Ichar c = -1;
@@ -1594,7 +1602,6 @@ parse_integer (const Ibyte *buf, Ibyte **buf_end_out, Bytecount len,
   if (c == '-')
     {
       negativland = 1;
-      fixnum_limit = - MOST_NEGATIVE_FIXNUM;
       INC_IBYTEPTR (p);
     }
   else if (c == '+')
@@ -1626,17 +1633,13 @@ parse_integer (const Ibyte *buf, Ibyte **buf_end_out, Bytecount len,
         }
 
       onum = num;
-      num *= base;
-      if (num > fixnum_limit || num < onum)
-        {
-          goto overflow;
-        }
+      if (onum > int_limit)
+	{
+	  goto overflow;
+	}
 
+      num *= base;
       num += cint;
-      if (num > fixnum_limit)
-        {
-          goto overflow;
-        }
 
       INC_IBYTEPTR (p);
     }
@@ -1649,12 +1652,20 @@ parse_integer (const Ibyte *buf, Ibyte **buf_end_out, Bytecount len,
 
   if (negativland)
     {
-      result = make_fixnum (- (EMACS_INT) num);
+      EMACS_INT snum = - num;
+      result = make_integer (snum);
     }
   else
     {
-      result = make_fixnum (num);
+      result = make_integer (num);
     }
+
+#ifndef HAVE_BIGNUM
+  if (EMACS_INT_ABS (XFIXNUM (result)) != num)
+    {
+      goto overflow;
+    }
+#endif
 
   *buf_end_out = (Ibyte *) p;
   return result;
@@ -1706,10 +1717,6 @@ parse_integer (const Ibyte *buf, Ibyte **buf_end_out, Bytecount len,
   bignum_add (XBIGNUM_DATA (result), XBIGNUM_DATA (result), scratch_bignum2);
   INC_IBYTEPTR (p);
 
-  assert (!bignum_fits_emacs_int_p (XBIGNUM_DATA (result))
-          || (fixnum_limit
-              < (EMACS_UINT) bignum_to_emacs_int (XBIGNUM_DATA (result))));
-
   while (p < lim)
     {
       c = itext_ichar (p);    
@@ -1740,6 +1747,21 @@ parse_integer (const Ibyte *buf, Ibyte **buf_end_out, Bytecount len,
       bignum_set_long (scratch_bignum, -1L);
       bignum_mul (XBIGNUM_DATA (result), XBIGNUM_DATA (result),
                   scratch_bignum);
+    }
+
+  /* Since we can't detect overflow with C integer multiplication, we need to
+     be conservative in our choice of INT_LIMIT, above (the use of INT_LIMIT
+     pre-empts overflow); this means that there are some integers that should
+     be represented as fixnums that the fixnum code hands to us instead. We
+     previously threw an assertion failure if such a fixnum ended up in this
+     code, and that's no longer appropriate. */
+  if (bignum_fits_emacs_int_p (XBIGNUM_DATA (result)))
+    {
+      EMACS_INT n = bignum_to_emacs_int (XBIGNUM_DATA (result));
+      if (NUMBER_FITS_IN_A_FIXNUM (n))
+	{
+	  result = make_fixnum (n);
+	}
     }
 
   *buf_end_out = (Ibyte *)  p;
@@ -1797,15 +1819,21 @@ parse_integer (const Ibyte *buf, Ibyte **buf_end_out, Bytecount len,
         }
 
       if (negativland)
-        {
-          assert ((- (EMACS_INT) num) >= MOST_NEGATIVE_FIXNUM);
-          result = make_fixnum (- (EMACS_INT) num);
-        }
+	{
+	  EMACS_INT snum = - num;
+	  result = make_integer (snum);
+	}
       else
-        {
-          assert ((EMACS_INT) num <= MOST_POSITIVE_FIXNUM);
-          result = make_fixnum (num);
-        }
+	{
+	  result = make_integer (num);
+	}
+
+#ifndef HAVE_BIGNUM
+      if (EMACS_INT_ABS (XFIXNUM (result)) != num)
+	{
+	  goto overflow;
+	}
+#endif
     
       return result;
     }
@@ -1829,9 +1857,9 @@ If RADIX-TABLE is non-nil, it is a char table mapping from characters to
 fixnums used with RADIX. Otherwise, `digit-fixnum-map' provides the
 correspondence to use.
 
-RADIX must always be a non-negative fixnum.  RADIX-TABLE constrains its
-possible values further, and the maximum RADIX available is always the largest
-positive value available RADIX-TABLE.
+RADIX must always be a positive fixnum.  RADIX-TABLE constrains its possible
+values further, and the maximum RADIX available is always the largest positive
+value available RADIX-TABLE.
 
 If RADIX-TABLE (or `digit-fixnum-map') assigns a numeric value to `-', its
 digit value will be ignored if ?- is the first character in a string. The
@@ -1877,7 +1905,7 @@ arguments: (STRING &key (START 0) end (RADIX 10) junk-allowed radix-table)
      algorithmically expensive and overkill for this function; check at least
      that the radix is limited to <= #xFFFF as is this implementation's
      limit. */
-  check_integer_range (radix, Qzero,
+  check_integer_range (radix, Qone,
                        NILP (assq_no_quit (radix_table, XWEAK_LIST_LIST
                                            (Vdigit_fixnum_calculated_data))) ?
                        make_fixnum (0xFFFF) :

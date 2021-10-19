@@ -586,8 +586,9 @@
 (Assert (equal (format "%hx" #x12345) "2345")) ;; field size no longer ignored
 (Assert (equal (format "%hhx" #x123) "23")) ;; Truncate to 8 bits
 (Assert (equal (format "%lx" #x123) "123")) ;; To 32
-(Assert (equal (format "%lx" #x123456789a) "3456789a")) ;; Really, to 32
 (when (featurep 'bignum)
+  (Assert (equal (format "%lx" (read "#x123456789a")
+			 "3456789a")) ;; Really, to 32
   (macrolet
       ((very-positive-bignum () (1- (expt 2 96)))
        (very-negative-bignum () (- (1- (expt 2 96)))))

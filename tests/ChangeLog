@@ -1,3 +1,17 @@
+2021-10-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/format-tests.el:
+	Defer reading #x123456789a to runtime now it no longer reads
+	erroneously as a fixnum.
+	* automated/lisp-reader-tests.el:
+	Test for a bug fixed today, where some overflow was not detected
+	by the integer parsing code used by the Lisp reader.
+	* automated/lisp-reader-tests.el:
+	* automated/lisp-tests.el:
+	Check for the same bug having been fixed with explicit calls to
+	#'parse-integer. 
+	Update a test here now zero is no longer allowed as a value for RADIX.
+
 2021-06-29  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/mule-tests.el:

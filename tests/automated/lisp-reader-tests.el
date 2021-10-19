@@ -85,7 +85,24 @@
   ;; This never did.
   (Assert (eql (1- most-positive-fixnum)
 	       (read (format "+%d" (1- most-positive-fixnum))))
-	  "checking leading + is handled properly if reading a fixnum"))
+	  "checking leading + is handled properly if reading a fixnum")
+  (Assert (eql (read (format "%d" (* (/ most-positive-fixnum 2) 10)))
+	       (* (/ most-positive-fixnum 2) 10))
+	  "checking bug with edge case of positive bignum fixed")
+  (Assert (eql (read (format "%d" (* (/ most-negative-fixnum 2) 10)))
+	       (* (/ most-negative-fixnum 2) 10))
+	  "checking bug with edge case of negative bignum preserved"))
+
+(macrolet
+    ((check-reader-overflow-detected (&rest strings)
+       (cons 'progn
+	     (mapcar #'(lambda (string)
+			 `(Check-Error unsupported-type (read ,string)))
+		     strings))))
+  (when (and (not (featurep 'bignum))
+	     (< (integer-length most-positive-fixnum) 32))
+    (check-reader-overflow-detected
+     "4772185884" "5368709119" "-4772185884" "-5368709119")))
 
 ;; Test print-circle.
 (let ((cons '#1=(1 2 3 4 5 6 . #1#))

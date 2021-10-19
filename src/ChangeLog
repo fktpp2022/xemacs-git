@@ -1,3 +1,19 @@
+2021-10-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* data.c:
+	* data.c (Fdigit_char_p):
+	Constrain our range of RADIX from one to the maximum value in
+	RADIX-TABLE.
+	* data.c (Fdigit_char):
+	Document this, do the same in this function.
+	* data.c (parse_integer):
+	Instead of attempting and failing a minority of the time to detect
+	overflow in this function, calculate that limiting number which,
+	on next iteration, may overflow, and hand over the the bignum code
+	when that is picked up.
+	* data.c (Fparse_integer):
+	Document a change to RADIX, zero is no longer accepted.
+
 2021-10-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* window.c (Fdelete_slot):

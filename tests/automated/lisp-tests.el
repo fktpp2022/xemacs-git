@@ -2412,11 +2412,15 @@ via the hepatic alpha-tocopherol transfer protein")))
        ;; -12345678901234567890123457890123457890123457890123457890123457890.0)
        (-55 -55.000 ,@(when (featurep 'ratio) (read "(-110/2)")))))
     (equalp-diff-list-tests
-     `(0 1 2 3 1000 5000000000
+     `(0 1 2 3 1000 ,@(when (or (> (integer-length most-positive-fixnum) 33)
+				(featurep 'bignum))
+			    (read "5000000000"))
        ,@(when (featurep 'bignum)
 	   (read "(5555555555555555555555555555555555555
                        -5555555555555555555555555555555555555)"))
-       -1 -2 -3 -1000 -5000000000 
+       -1 -2 -3 -1000 ,@(when (or (> (integer-length most-positive-fixnum) 33)
+				(featurep 'bignum))
+			    (read "-5000000000"))
        ,@(if (featurep 'ratio) 
              (list
               (read "(1/2 1/3 2/3 8/2 355/113)")
@@ -3784,7 +3788,59 @@ via the hepatic alpha-tocopherol transfer protein")))
       (Check-Error args-out-of-range
                    (parse-integer "123456789" :start (1+ most-positive-fixnum)))
       (Check-Error args-out-of-range
-                   (parse-integer "123456789" :end (1+ most-positive-fixnum))))
+                   (parse-integer "123456789" :end (1+ most-positive-fixnum)))
+      (Assert
+       (eql (parse-integer (format "%d" (/ (* most-positive-fixnum 21) 5)))
+	    (/ (* most-positive-fixnum 21) 5))
+       ;; This always worked (for as long as there was bignum support).
+       "checking parse-integer works OK for (* most-positive-fixnum 4.2)")
+      (Assert
+       ;; This next was broken from the introduction of #'parse-integer to
+       ;; core C code (and previously affected the #'parse-integer of
+       ;; parse-time.el, now called #'parse-time-parse-integer):
+       (eql (parse-integer (format "%d" (/ (* most-positive-fixnum 9) 2)))
+	    (/ (* most-positive-fixnum 9) 2))
+       "checking parse-integer works OK for (* most-positive-fixnum 4.5)")
+      (Assert
+       ;; As for the previous case.
+       (eql (parse-integer (format "%d" (/ (* most-positive-fixnum 9) 2)))
+	    (/ (* most-positive-fixnum 9) 2))
+       "checking parse-integer works OK for (* most-positive-fixnum 4.5)")
+      (Assert
+       ;; As for the previous case.
+       (eql (parse-integer (format "%d" (* most-positive-fixnum 5)))
+	    (* most-positive-fixnum 5))
+       "checking parse-integer works OK for (* most-positive-fixnum 5)")
+      (Assert
+       (eql (parse-integer (format "%d" (/ (* most-positive-fixnum 26) 5)))
+	    (/ (* most-positive-fixnum 26) 5))
+       "checking parse-integer works OK for (* most-positive-fixnum 5.2)")
+      (Assert
+       (eql (parse-integer (format "%d" (/ (* most-negative-fixnum 21) 5)))
+	    (/ (* most-negative-fixnum 21) 5))
+       ;; This always worked (for as long as there was bignum support).
+       "checking parse-integer works OK for (* most-negative-fixnum 4.2)")
+      (Assert
+       ;; This next was broken from the introduction of #'parse-integer to
+       ;; core C code (and previously affected the #'parse-integer of
+       ;; parse-time.el, now called #'parse-time-parse-integer):
+       (eql (parse-integer (format "%d" (/ (* most-negative-fixnum 9) 2)))
+	    (/ (* most-negative-fixnum 9) 2))
+       "checking parse-integer works OK for (* most-negative-fixnum 4.5)")
+      (Assert
+       ;; As for the previous case.
+       (eql (parse-integer (format "%d" (/ (* most-negative-fixnum 9) 2)))
+	    (/ (* most-negative-fixnum 9) 2))
+       "checking parse-integer works OK for (* most-negative-fixnum 4.5)")
+      (Assert
+       ;; As for the previous case.
+       (eql (parse-integer (format "%d" (* most-negative-fixnum 5)))
+	    (* most-negative-fixnum 5))
+       "checking parse-integer works OK for (* most-negative-fixnum 5)")
+      (Assert
+       (eql (parse-integer (format "%d" (/ (* most-negative-fixnum 26) 5)))
+	    (/ (* most-negative-fixnum 26) 5))
+       "checking parse-integer works OK for (* most-negative-fixnum 5.2)"))
   (Check-Error wrong-type-argument
                (parse-integer "123456789" :start (1+ most-positive-fixnum)))
   (Check-Error wrong-type-argument
@@ -3868,10 +3924,10 @@ via the hepatic alpha-tocopherol transfer protein")))
              (Assert (equal (multiple-value-list
                                 (parse-integer "00000" :radix 1)) '(0 5))
               "checking 1 is allowed as a value for RADIX")
-             (Assert (equal (multiple-value-list
-                                (parse-integer "" :radix 0 :junk-allowed t))
-                      '(nil 0))
-              "checking 0 is allowed as a value for RADIX"))
+	     ;; We allowed zero briefly as a radix, but that no longer works
+	     ;; with code that divides by RADIX.
+	     (Check-Error args-out-of-range
+	      (parse-integer "" :radix 0 :junk-allowed t)))
              :test #'(lambda (new old)
                        ;; This function replaces any ASCII decimal digits in
                        ;; any string encountered in the tree with the
