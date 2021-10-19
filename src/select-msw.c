@@ -245,16 +245,8 @@ mswindows_own_selection (Lisp_Object selection_name,
   if (NILP (selection_type) || x_sym_p (selection_type))
     {
       /* Should COMPOUND_TEXT map to CF_UNICODETEXT? */
-      if (XEUNICODE_P)
-	{
-	  cfType = CF_UNICODETEXT;
-	  cfObject = QCF_UNICODETEXT;
-	}
-      else
-	{
-	  cfType = CF_TEXT;
-	  cfObject = QCF_TEXT;
-	}
+      cfType = CF_UNICODETEXT;
+      cfObject = QCF_UNICODETEXT;
     }
   else
     {
@@ -504,16 +496,8 @@ mswindows_get_foreign_selection (Lisp_Object selection_symbol,
   if (NILP (target_type) || x_sym_p (target_type))
     {
       /* Should COMPOUND_TEXT map to CF_UNICODETEXT? */
-      if (XEUNICODE_P)
-	{
-	  cfType = CF_UNICODETEXT;
-	  cfObject = QCF_UNICODETEXT;
-	}
-      else
-	{
-	  cfType = CF_TEXT;
-	  cfObject = QCF_TEXT;
-	}
+      cfType = CF_UNICODETEXT;
+      cfObject = QCF_UNICODETEXT;
     }
   else
     {

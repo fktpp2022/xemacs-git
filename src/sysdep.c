@@ -610,10 +610,8 @@ sys_subshell (void)
     qxe_chdir (str);
 
   /* Waits for process completion */
-  if (XEUNICODE_P ?
-      _wspawnlp (_P_WAIT, (const wchar_t *) shext,
-		 (const wchar_t *) shext, NULL) != 0 :
-      _spawnlp (_P_WAIT, shext, shext, NULL) != 0)
+  if (_wspawnlp (_P_WAIT, (const wchar_t *) shext,
+		 (const wchar_t *) shext, NULL) != 0)
     report_process_error ("Can't spawn subshell", Qunbound);
   else
     return; /* we're done, no need to wait for termination */
@@ -2286,10 +2284,7 @@ strerror (int errnum)
 static int
 underlying_open_1 (const Extbyte *path, int oflag, int mode)
 {
-  if (XEUNICODE_P)
-    return _wopen ((const wchar_t *) path, oflag, mode);
-  else
-    return _open (path, oflag, mode);
+  return _wopen ((const wchar_t *) path, oflag, mode);
 }
 
 #endif /* WIN32_NATIVE */
@@ -2356,10 +2351,7 @@ wext_retry_open (const Wexttext *path, int oflag, ...)
   mode = va_arg (ap, int);
   va_end (ap);
 
-  if (!XEUNICODE_P)
-    return retry_open_1 (WEXTTEXT_TO_MULTIBYTE (path), oflag, mode);
-  else
-    return retry_open_1 ((Extbyte *) path, oflag, mode);
+  return retry_open_1 ((Extbyte *) path, oflag, mode);
 }
 
 #endif
@@ -2643,10 +2635,7 @@ qxe_chdir (const Ibyte *path)
   Extbyte *pathout;
   PATHNAME_CONVERT_OUT (path, pathout);
 #ifdef WIN32_NATIVE
-  if (XEUNICODE_P)
-    return _wchdir ((const wchar_t *) pathout);
-  else
-    return _chdir (pathout);
+  return _wchdir ((const wchar_t *) pathout);
 #else
   return chdir (pathout);
 #endif
@@ -2664,10 +2653,7 @@ qxe_mkdir (const Ibyte *path,
   Extbyte *pathout;
   PATHNAME_CONVERT_OUT (path, pathout);
 #ifdef WIN32_NATIVE
-  if (XEUNICODE_P)
-    return _wmkdir ((const wchar_t *) pathout);
-  else
-    return _mkdir (pathout);
+  return _wmkdir ((const wchar_t *) pathout);
 #else
   return mkdir (pathout, mode);
 #endif
@@ -2764,10 +2750,7 @@ qxe_rmdir (const Ibyte *path)
   Extbyte *pathout;
   PATHNAME_CONVERT_OUT (path, pathout);
 #ifdef WIN32_NATIVE
-  if (XEUNICODE_P)
-    return _wrmdir ((const wchar_t *) pathout);
-  else
-    return _rmdir (pathout);
+  return _wrmdir ((const wchar_t *) pathout);
 #else
   return rmdir (pathout);
 #endif
@@ -2787,11 +2770,8 @@ qxe_allocating_getcwd (void)
 #ifdef WIN32_NATIVE
       Extbyte *ret;
 
-      if (XEUNICODE_P)
-	ret = (Extbyte *) _wgetcwd ((wchar_t *) cwd,
-				    cwdsize / sizeof (wchar_t));
-      else
-	ret = _getcwd (cwd, cwdsize);
+      ret = (Extbyte *) _wgetcwd ((wchar_t *) cwd,
+                                  cwdsize / sizeof (wchar_t));
 
       if (ret)
 	{
@@ -2975,10 +2955,7 @@ qxe_chmod (const Ibyte *path, mode_t mode)
   Extbyte *pathout;
   PATHNAME_CONVERT_OUT (path, pathout);
 #ifdef WIN32_NATIVE
-  if (XEUNICODE_P)
-    return _wchmod ((const wchar_t *) pathout, mode);
-  else
-    return _chmod (pathout, mode);
+  return _wchmod ((const wchar_t *) pathout, mode);
 #else
   return chmod (pathout, mode);
 #endif
@@ -3064,10 +3041,9 @@ qxe_execve (const Ibyte *filename, Ibyte * const argv[],
   new_envp[envc] = NULL;
 
 #if defined (WIN32_NATIVE)
-  if (XEUNICODE_P)
-    return _wexecve ((const wchar_t *) pathext,
-		     (const wchar_t * const *) new_argv,
-		     (const wchar_t * const *) new_envp);
+  return _wexecve ((const wchar_t *) pathext,
+                   (const wchar_t * const *) new_argv,
+                   (const wchar_t * const *) new_envp);
 #endif
   return execve (pathext, new_argv, new_envp);
 }

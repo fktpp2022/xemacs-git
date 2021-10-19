@@ -1163,58 +1163,9 @@ mswindows_rename (const Ibyte *oldname, const Ibyte *newname)
 {
   int result;
   Bytecount old_len = qxestrlen (oldname);
-  /* XEmacs: We sprintf() part of OLDNAME into part of OLDNAME + a number,
-     so the following calculation should certainly be enough. */
-  Bytecount temp_len = 2 * old_len + 100;
-  Ibyte *temp = alloca_ibytes (temp_len);
-
-  /* MoveFile on Windows 95 doesn't correctly change the short file name
-     alias in a number of circumstances (it is not easy to predict when
-     just by looking at oldname and newname, unfortunately).  In these
-     cases, renaming through a temporary name avoids the problem.
-
-     A second problem on Windows 95 is that renaming through a temp name when
-     newname is uppercase fails (the final long name ends up in
-     lowercase, although the short alias might be uppercase) UNLESS the
-     long temp name is not 8.3.
-
-     So, on Windows 95 we always rename through a temp name, and we make sure
-     the temp name has a long extension to ensure correct renaming.  */
+  Ibyte *temp = alloca_ibytes (old_len + 1);
 
   memcpy (temp, oldname, old_len + 1);
-
-  if (mswindows_windows9x_p)
-    {
-      Ibyte *o;
-      Ibyte *p;
-      int i = 0;
-
-      if (o = qxestrrchr (oldname, '\\'))
-	o++;
-      else
-	o = (Ibyte *) oldname;
-
-      if (p = qxestrrchr (temp, '\\'))
-	p++;
-      else
-	p = temp;
-
-      do
-	{
-	  Extbyte *oldext, *tempext;
-	  /* Force temp name to require a manufactured 8.3 alias - this
-	     seems to make the second rename work properly.  */
-          emacs_snprintf (p, temp_len - (p - temp), "_.%s.%u", o, i);
-	  i++;
-	  PATHNAME_CONVERT_OUT (oldname, oldext);
-	  PATHNAME_CONVERT_OUT (temp, tempext);
-	  result = rename (oldext, tempext);
-	}
-      /* This loop must surely terminate!  */
-      while (result < 0 && errno == EEXIST);
-      if (result < 0)
-	return -1;
-    }
 
   /* Emulate Unix behaviour - newname is deleted if it already exists
      (at least if it is a file; don't do this for directories).
@@ -1231,26 +1182,14 @@ mswindows_rename (const Ibyte *oldname, const Ibyte *newname)
     
     PATHNAME_CONVERT_OUT (newname, newext);
     PATHNAME_CONVERT_OUT (temp, tempext);
-    if (XEUNICODE_P)
-      {
-	result = _wrename ((const wchar_t *) tempext,
-			   (const wchar_t *) newext);
-	if (result < 0
-	    && (errno == EEXIST || errno == EACCES)
-	    && _wchmod ((const wchar_t *) newext, 0666) == 0
-	    && _wunlink ((const wchar_t *) newext) == 0)
-	  result = _wrename ((const wchar_t *) tempext,
-			     (const wchar_t *) newext);
-      }
-    else
-      {
-	result = rename (tempext, newext);
-	if (result < 0
-	    && (errno == EEXIST || errno == EACCES)
-	    && _chmod (newext, 0666) == 0
-	    && _unlink (newext) == 0)
-	  result = rename (tempext, newext);
-      }
+    result = _wrename ((const wchar_t *) tempext,
+                       (const wchar_t *) newext);
+    if (result < 0
+        && (errno == EEXIST || errno == EACCES)
+        && _wchmod ((const wchar_t *) newext, 0666) == 0
+        && _wunlink ((const wchar_t *) newext) == 0)
+      result = _wrename ((const wchar_t *) tempext,
+                         (const wchar_t *) newext);
   }
 
   return result;
@@ -1263,16 +1202,8 @@ mswindows_unlink (const Ibyte *path)
 
   PATHNAME_CONVERT_OUT (path, pathout);
   /* On Unix, unlink works without write permission. */
-  if (XEUNICODE_P)
-    {
-      _wchmod ((const wchar_t *) pathout, 0666);
-      return _wunlink ((const wchar_t *) pathout);
-    }
-  else
-    {
-      _chmod (pathout, 0666);
-      return _unlink (pathout);
-    }
+  _wchmod ((const wchar_t *) pathout, 0666);
+  return _wunlink ((const wchar_t *) pathout);
 }
 
 static FILETIME utc_base_ft;
@@ -1802,10 +1733,7 @@ mswindows_utime (Lisp_Object path, struct utimbuf *times)
     newtimes.actime = times->actime;
     newtimes.modtime = times->modtime;
 
-  if (XEUNICODE_P)
     return _wutime ((const wchar_t *) filename, &newtimes);
-  else
-    return _utime (filename, &newtimes);
   }
 #endif
 }
@@ -1836,10 +1764,7 @@ mswindows_getdcwd (int drivelet)
    */
   if (!((1 << (drivelet - 1)) & _getdrives()))
     return NULL;
-  if (XEUNICODE_P)
-    cwdext = (Extbyte *) _wgetdcwd (drivelet, NULL, 0);
-  else
-    cwdext = _getdcwd (drivelet, NULL, 0);
+  cwdext = (Extbyte *) _wgetdcwd (drivelet, NULL, 0);
   if (cwdext == NULL) return NULL;
   cwd = TSTR_TO_ITEXT_MALLOC (cwdext);
   xfree (cwdext);

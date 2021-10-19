@@ -27,8 +27,6 @@ prototypes won't hurt anything. */
 
 /* Earliest environment initializations (dump-time and run-time). */
 
-void init_win32_very_very_early (void);
-
 void init_data_very_early (void);
 void init_floatfns_very_early (void);
 void init_free_hook (void);

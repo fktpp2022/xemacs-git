@@ -11,6 +11,7 @@
 
 #include "syswindows.h"
 
+#define XEUNICODE_P 1
 
 /*----------------------------------------------------------------------*/
 /*                       Processing file WINCON.H                       */
@@ -1186,15 +1187,6 @@ qxeGetClassLong (HWND arg1, int arg2)
     return GetClassLongA (arg1, arg2);
 }
 
-ULONG_PTR
-qxeGetClassLongPtr (HWND arg1, int arg2)
-{
-  if (XEUNICODE_P)
-    return GetClassLongPtrW (arg1, arg2);
-  else
-    return GetClassLongPtrA (arg1, arg2);
-}
-
 int
 qxeGetClassName (HWND arg1, Extbyte * arg2, int arg3)
 {
@@ -1295,15 +1287,6 @@ qxeGetWindowLong (HWND arg1, int arg2)
     return GetWindowLongW (arg1, arg2);
   else
     return GetWindowLongA (arg1, arg2);
-}
-
-LONG_PTR
-qxeGetWindowLongPtr(HWND arg1, int arg2)
-{
-  if (XEUNICODE_P)
-    return GetWindowLongPtrW (arg1, arg2);
-  else
-    return GetWindowLongPtrA (arg1, arg2);
 }
 
 BOOL
@@ -1661,15 +1644,6 @@ qxeSetClassLong (HWND arg1, int arg2, LONG arg3)
     return SetClassLongA (arg1, arg2, arg3);
 }
 
-ULONG_PTR
-qxeSetClassLongPtr(HWND arg1, int arg2, LONG_PTR arg3)
-{
-  if (XEUNICODE_P)
-    return SetClassLongPtrW (arg1, arg2, arg3);
-  else
-    return SetClassLongPtrA (arg1, arg2, arg3);
-}
-
 BOOL
 qxeSetDlgItemText (HWND arg1, int arg2, const Extbyte * arg3)
 {
@@ -1715,17 +1689,6 @@ qxeSetWindowLong (HWND arg1, int arg2, LONG arg3)
   else
     return SetWindowLongA (arg1, arg2, arg3);
 }
-
-LRESULT
-qxeSetWindowLongPtr(HWND arg1, int arg2, LPARAM arg3)
-{
-  if (XEUNICODE_P)
-    return (LRESULT) SetWindowLongPtrW (arg1, arg2, arg3);
-  else
-    return (LRESULT) SetWindowLongPtrA (arg1, arg2, arg3);
-}
-
-/* Error if SetWindowLongPtr used: Function needs review to determine how to handle it */
 
 /* Error if SetWindowsHook used: obsolete; two versions, STRICT and non-STRICT */
 

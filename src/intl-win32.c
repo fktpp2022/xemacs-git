@@ -2356,16 +2356,6 @@ vars_of_intl_win32 (void)
 #endif /* MULE */
 }
 
-static void
-determine_if_using_unicode (void)
-{
-  if (XEUNICODE_P)
-    Fdefine_coding_system_alias (Qmswindows_tstr, Qmswindows_unicode);
-  else
-    Fdefine_coding_system_alias (Qmswindows_tstr,
-				 Qmswindows_multibyte_system_default);
-}
-
 void
 complex_vars_of_intl_win32 (void)
 {
@@ -2404,7 +2394,7 @@ complex_vars_of_intl_win32 (void)
 			       Qraw_text);
 #endif /* MULE */
 
-  determine_if_using_unicode ();
+  Fdefine_coding_system_alias (Qmswindows_tstr, Qmswindows_unicode);
 }
 
 void
@@ -2417,9 +2407,4 @@ init_intl_win32 (void)
 #ifdef HAVE_CYGWIN_CONV_PATH
   Fprovide (intern ("cygwin-use-utf-8"));
 #endif
-
-  if (initialized)
-    /* If not initialized, we also call this, but early -- see the
-       previous function. */
-    determine_if_using_unicode ();
 }

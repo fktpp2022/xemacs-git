@@ -1069,13 +1069,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       }
   }
 
-  /* Handle the -nuni switch, which forces XEmacs to use the ANSI
-     versions of Unicode-split API's even on Windows NT, which has
-     full Unicode support.  This helps flush out problems in the code
-     we've written to convert between ANSI and Unicode. */
-  if (argmatch (argv, argc, "-nuni", "--no-unicode-lib-calls", 0, NULL,
-		&skip_args))
-    no_mswin_unicode_lib_calls = 1;
 #endif /* WIN32_NATIVE */
 
   if (argmatch (argv, argc, "-debug-paths", "--debug-paths",
@@ -1323,7 +1316,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 				       so we can be fairly accurate. */
 
 #ifdef HAVE_MS_WINDOWS
-  /* Depends on XEUNICODE_P */
   init_mswindows_dde_very_early (); /* DDE needs to be initialized early so
 				       that the client doesn't give up
 				       waiting.  */
@@ -3166,8 +3158,12 @@ main (int argc, Extbyte **argv, Extbyte **UNUSED (envp))
 #endif
 
 #ifdef WIN32_ANY
-  /* Figure out which version we're running so XEUNICODE_P works */
-  init_win32_very_very_early ();
+  if (GetVersion () & 0x80000000)
+    {
+      fprintf (stderr,
+	       "Win32 system without native Unicode, no longer supported.\n");
+      exit (1);
+    }
 #endif
 
 #ifdef WIN32_NATIVE
@@ -3178,9 +3174,8 @@ main (int argc, Extbyte **argv, Extbyte **UNUSED (envp))
 
      To fix this we need to copy the argument-expanding and globbing code
      from Cygwin and Unicode-ize it.  Yuck. */
-  if (XEUNICODE_P)
-    /* Set up Unicode versions of the arguments. */
-    vol_argv = CommandLineToArgvW (GetCommandLineW (), &vol_argc);
+  /* Set up Unicode versions of the arguments. */
+  vol_argv = CommandLineToArgvW (GetCommandLineW (), &vol_argc);
 #else
   {
     int i;

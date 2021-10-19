@@ -2449,11 +2449,7 @@ pdump_file_unmap (void)
 static int
 pdump_file_get (const Wexttext *wpath)
 {
-  Extbyte *path;
-  if (XEUNICODE_P)
-    path = (Extbyte *) wpath;
-  else
-    path = WEXTTEXT_TO_MULTIBYTE (wpath);
+  Extbyte *path = (Extbyte *) wpath;
 
   pdump_hFile =
     qxeCreateFile (path,
@@ -2684,11 +2680,6 @@ pdump_load (const Wexttext *argv0)
       bufsize *= 2;
     }
 
-  if (!XEUNICODE_P)
-    {
-      Wexttext *wexe = MULTIBYTE_TO_WEXTTEXT ((Extbyte *) exe_path);
-      wext_strcpy (exe_path, wexe);
-    }
 #else /* !WIN32_NATIVE */
   Wexttext *exe_path;
   Wexttext *w;

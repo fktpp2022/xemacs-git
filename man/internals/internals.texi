@@ -14499,262 +14499,29 @@ the Win32 API itself probably (perhaps always) uses Unicode internally.
 Under Windows there are two different versions of all library routines that
 accept or return text, those that handle Unicode text and those handling
 ``multibyte'' text, i.e. variable-width ASCII-compatible text in some
-national format such as EUC or Shift-JIS.  Because Windows 95 basically
-doesn't support Unicode but Windows NT does, and Microsoft doesn't provide
-any way of writing a single binary that will work on both systems and still
-use Unicode when it's available (although see below, Microsoft Layer for
-Unicode), we need to provide a way of run-time conditionalizing so you
-could have one binary for both systems.  ``Unicode-splitting'' refers to
-writing code that will handle this properly.  This means using
-Qmswindows_tstr as the external conversion format, calling the appropriate
-qxe...() Unicode-split version of library functions, and doing other things
-in certain cases, e.g. when a @code{qxe()} function is not present.
+national format such as EUC or Shift-JIS.  Now that the Windows 95
+codebase, with Windows Me of September 2000 the last major release, is
+long deprecated, XEmacs uses only those library routines that handle
+Unicode text. It previously decided whether to call the ``multibyte'' or
+the Unicode version at run time using encapsulation; this runtime
+decision-making has been removed, but the encapsulation remains for the
+moment. 
 
-Unicode support also requires that the various Windows APIs be
-``Unicode-encapsulated'', so that they automatically call the ANSI or
-Unicode version of the API call appropriately and handle the size
-differences in structures.  What this means is:
+There remains the need to convert between the XEmacs internal text
+encoding (whether that be UTF-8 or the older ISO-2022-oriented encoding)
+when passing text to Windows library routines and when receiving text
+from Windows library routines.
 
-@itemize @bullet
-@item
-first, note that Windows already provides a sort of encapsulation
-of all APIs that deal with text.  All such APIs are underlyingly
-provided in two versions, with an A or W suffix (ANSI or ``wide''
-i.e. Unicode), and the compile-time constant UNICODE controls which is
-selected by the unsuffixed API.  Same thing happens with structures, and
-also with types, where the generic types have names beginning with T --
-TCHAR, LPTSTR, etc..  Unfortunately, this is compile-time only, not
-run-time, so not sufficient. (Creating the necessary run-time encoding
-is not conceptually difficult, but very time-consuming to write.  It
-adds no significant overhead, and the only reason it's not standard in
-Windows is conscious marketing attempts by Microsoft to cripple Windows
-95.  FUCK MICROSOFT!  They even describe in a KnowledgeBase article
-exactly how to create such an API [although we don't exactly follow
-their procedure], and point out its usefulness; the procedure is also
-described more generally in Nadine Kano's book on Win32
-internationalization -- written SIX YEARS AGO!  Obviously Microsoft has
-such an API available internally.)
-
-@item
-what we do is provide an encapsulation of each standard Windows API call
-that is split into A and W versions.  current theory is to avoid all
-preprocessor games; so we name the function with a prefix -- ``qxe''
+What we do at the moment is provide an encapsulation of each standard
+Windows API call that takes a text argument. Current theory is to avoid
+all preprocessor games; so we name the function with a prefix -- ``qxe''
 currently -- and require callers to use the prefixed name.  Callers need
 to explicitly use the W version of all structures, and convert text
-themselves using Qmswindows_tstr.  the qxe encapsulated version will
-automatically call the appropriate A or W version depending on whether
-we're running on 9x or NT (you can force use of the A calls on NT,
-e.g. for testing purposes, using the command- line switch -nuni aka
--no-unicode-lib-calls), and copy data between W and A versions of the
-structures as necessary.
+themselves using Qmswindows_tstr.
 
-@item
-We require the caller to handle the actual translation of text to
-avoid possible overflow when dealing with fixed-size Windows
-structures.  There are no such problems when copying data between
-the A and W versions because ANSI text is never larger than its
-equivalent Unicode representation.
-@end itemize
-
-NOTE NOTE NOTE: As of August 2001, Microsoft (finally!  See my nasty
-comment above) released their own Unicode-encapsulation library, called
-Microsoft Layer for Unicode on Windows 95/98/Me Systems.  It tries to be
-more transparent than we are, in that
-
-@itemize @bullet
-@item
-its routines do ANSI/Unicode string translation, while we don't, for
-efficiency (we already have to do internal/external conversion so it's
-no extra burden to do the proper conversion directly rather than always
-converting to Unicode and then doing a second conversion to ANSI as
-necessary)
-
-@item
-rather than requiring separately-named routines (qxeFooBar), they
-physically override the existing routines at the link level.  it also
-appears that they do this BADLY, in that if you link with the MLU, you
-get an application that runs ONLY on Win9x!!! (hint -- use
-GetProcAddress()).  there's still no way to create a single binary!
-fucking losers.
-
-@item
-they assume you compile with UNICODE defined, so there's no need for the
-application to explicitly use ...W structures, as we require.
-
-@item
-they also intercept windows procedures to deal with notify messages as
-necessary, which we don't do yet.
-
-@item
-they (of course) don't use Extbyte.
-@end itemize
-
-at some point (especially when they fix the single-binary problem!), we
-should consider switching.  for the meantime, we'll stick with what i've
-already written.  perhaps we should think about adopting some of the
-greater transparency they have; but i opted against transparency on
-purpose, to make the code easier to follow for someone who's not familiar
-with it.  until our library is really complete and bug-free, we should
-think twice before doing this.
-
-According to Microsoft documentation, only the following functions are
-provided under Windows 9x to support Unicode (see MSDN page ``Windows
-95/98/Me General Limitations''):
-
-EnumResourceLanguagesW
-EnumResourceNamesW
-EnumResourceTypesW
-ExtTextOutW
-FindResourceW
-FindResourceExW
-GetCharWidthW
-GetCommandLineW
-GetTextExtentPointW
-GetTextExtentPoint32W
-lstrcatW
-lstrcpyW
-lstrlenW
-MessageBoxW
-MessageBoxExW
-MultiByteToWideChar
-TextOutW
-WideCharToMultiByte
-
-also maybe GetTextExtentExPoint? (KB Q125671 ``Unicode Functions Supported
-by Windows 95'')
-
-Q210341 says this in addition:
-
-@quotation
-SUMMARY:
-
-Although Windows 95 is an eight-bit ANSI, or for Far East Windows, a
-Multibyte (MBCS) character set operating system, it implements a few
-Unicode functions. Windows 98 has added support for a few more
-functions and there are techniques to implement additional Unicode
-support.
-
-MORE INFORMATION:
-
-Windows 95 is natively an eight-bit character code operating
-system. That is, it fundamentally processes all character strings one
-byte at a time. Far East versions of Windows 95 are called Multibyte
-Character Set (MBCS) systems because they use a signal or lead byte
-combined with a second trailing byte to expand the character code
-range beyond the 256 limitation of a one-byte representation.
-
-The Unicode standard offers application developers an opportunity to
-work with text without the limitations of character set based
-systems. For more information on the Unicode standard see the
-References" section of this article. Windows NT is a fully Unicode
-capable operating system so it may be desirable to write software that
-supports Unicode on Windows 95.
-
-Even though Windows 95 and Windows 98 are not Unicode based, they do
-provide some limited Unicode functionality. Drawing of Unicode text is
-possible because the TrueType fonts that are used by Windows are
-encoded using Unicode. Therefore, a small subset of Win32 functions
-have wide character (Unicode) equivalents that are implemented in
-Windows 95. To review the list of these functions that was first
-published for Windows 95 see the white paper listed in the
-"References" section of this article.
-
-The Quick Info information in the Platform SDK describes the following
-wide character functions as implemented on Windows 95:
-
-[same list as above minus GetTextExtentExPoint, and minus lstrcpy/lstrcat]
-
-For Windows 98, there have been two more functions implemented:
-
-[lstrcpyW/lstrcatW]
-
-Also available to applications on Windows 95 and later is the
-CF_UNICODETEXT clipboard format for exchanging/converting Unicode text
-across the clipboard. See Nadine Kano's book listed in the
-"References" section of this article.
-
-With this API subset, an application can read, write, display, and
-convert Unicode data. However, in some cases an application developer
-working with Unicode may find a need to work directly with the glyphs
-in the TrueType font file.
-
-Such a case arises if a software developer would like to use the
-services of the GetGlyphOutline() function. Unfortunately, there is no
-wide character implementation of this function on Windows 95. However,
-this function does work with TrueType glyph indices so the solution is
-convert the Unicode character code to a glyph index.
-
-A developer might also want to take advantage of the TrueType Open
-tables of a font to perform ligature or contextual glyph
-substitution. To do this, the application would need to work with
-glyph indices. See the "References" section of this article for more
-information on converting Unicode to glyph indices.
-
-REFERENCES:
-
-For additional information about Unicode and the GetGlyphOutline
-function, click the article number below to view the article in the
-Microsoft Knowledge Base:
-
-241358 PRB: The GetGlyphOutlineW Function Fails on Windows 95 and
-Windows 98
-
-For additional information about converting Unicode character codes,
-click the article number below to view the article in the Microsoft
-Knowledge Base:
-
-241020 HOWTO: Translate Unicode Character Codes to TrueType Glyph
-Indices in Windows 95
-
-For information on writing applications for world wide markets, please
-see the following book:
-
-Developing International Software for Windows 95 and Windows NT by
-Nadine Kano.
-ISBN 1-55615-840-8 
-Microsoft Press. 
-Also available on MSDN in the Books section.
-
-Background white paper: Differences in Win32 API Implementations Among
-Windows Operating Systems by Noel Nyman.
-
-Available on MSDN in the Windows Platform Guidelines section
-@end quotation
-
-However, the C runtime library provides some additional support (according
-to the CRT sources, as the docs are not very clear on this):
-
-@itemize @bullet
-@item
-wmain() is completely supported, and appropriate Unicode-formatted argv
-and envp will always be passed.
-@item
-Likewise, @code{wWinMain()} is completely supported. (NOTE: The docs are not at
-all clear on how these various entry points interact, and implies that
-a windows-subsystem program ``must'' use @code{WinMain()}, while a console-
-subsystem program ``must'' use @code{main()}, and a program compiled with UNICODE
-(which we don't, see above) ``must'' use the @code{w*()} versions, while a program
-not compiled this way ``must'' use the plain versions.  In fact it appears
-that the CRT provides four different compiler entry points, namely
-w?(main|WinMain)CRTStartup, and we simply choose the one we like using
-the appropriate link flag.
-@item
-_wenviron, _wputenv
-@end itemize
-
-NOTE:
-
-@itemize @bullet
-@item
-wsetargv.obj uses routines that were buggily left out of MSVCRT; anyway,
-from looking at the source, it does NOT correctly work under Win 9x as
-it blindly calls the Unicode version of Unicode-split APIs such as
-FindFirstFile)
-
-@item
-the w*() file routines are @strong{NOT} supported -- or at least, they blindly
-call the ...W() versions of the Win32 API calls.
-@end itemize
+NOTE NOTE NOTE: As of August 2001, Microsoft released their own Unicode-encapsulation library, called
+Microsoft Layer for Unicode on Windows 95/98/Me Systems.  Given that we
+have removed support for Windows 95/98/Me, it is not relevant to us.
 
 @node The golden rules of writing Unicode-safe code, The format of the locale in setlocale(), Unicode support under Windows, Microsoft Windows-Related Multilingual Issues
 @subsection The golden rules of writing Unicode-safe code
@@ -14970,19 +14737,20 @@ returned from a system library function, it should be immediately
 converted into the internal coding before any operations are done on
 it.
 
-Unicode, unlike multibyte encodings, is a fixed-width encoding where
-every character is represented using 16 bits. It is also capable of
-encoding all the characters from all the character sets in common use
-in the world. The predictability and completeness of the Unicode
-encoding makes it a very good encoding for strings that may contain
-characters from many character sets mixed up with each other. At the
-same time, of course, it is incompatible with routines that expect
-ASCII characters and also incompatible with general string
-manipulation routines, which will encounter a great number of what
-would appear to be embedded nulls in the string. It also takes twice
-as much room to encode strings containing primarily ASCII
-characters. This is why XEmacs does not use Unicode or similar
-encoding internally for buffers.
+Unicode (more correctly ``UTF-16''; Win32 uses this transformation
+format preferentially) unlike multibyte encodings, is close to being a
+fixed-width encoding where every character is represented using 16
+bits. It is also capable of encoding all the characters from all the
+character sets in common use in the world. The predictability and
+completeness of the Unicode encoding makes it a very good encoding for
+strings that may contain characters from many character sets mixed up
+with each other. At the same time, of course, it is incompatible with
+routines that expect ASCII characters and also incompatible with general
+string manipulation routines, which will encounter a great number of
+what would appear to be embedded nulls in the string. It also takes
+twice as much room to encode strings containing primarily ASCII
+characters. This is why XEmacs does not use Unicode or similar encoding
+internally for buffers.
 
 The Win32 API cleverly deals with the issue of 8 bit vs. 16 bit
 characters by declaring a type called TCHAR which specifies a generic
@@ -15008,28 +14776,24 @@ constant. Generally all structures containing strings in them actually
 map to one of two different kinds of structures, with either an A or a
 W suffix after the structure name.
 
-Unfortunately, not all of the implementations of the Win32 API
-implement all of the functionality described above. In particular,
-Windows 95 does not implement very much Unicode functionality. It does
-implement functions to convert multibyte-encoded strings to and from
-Unicode strings, and provides Unicode versions of certain low-level
-functions like ExtTextOut(). In fact, all of the rest of the Unicode
-versions of API functions are just stubs that return an
-error. Conversely, all versions of Windows NT completely implement all
-the Unicode functionality, but some versions (especially versions
-before Windows NT 4.0) don't implement much of the multibyte
-functionality. For this reason, as well as for general code
-cleanliness, XEmacs needs to be written in such a way that it works
+Not all of the implementations of the Win32 API implemented all of the
+functionality described above. Happily, as of 2021, WinMe, the last
+version that did not, is long obsolete. All versions of Windows NT
+(including Windows XP, Windows 7, Windows 11) completely implement all
+the Unicode functionality, but some versions (especially versions before
+Windows NT 4.0) don't implement much of the multibyte functionality. For
+general code cleanliness, XEmacs is written in such a way that it works
 with or without the UNICODE preprocessor constant being defined.
 
-Getting XEmacs to run when all strings are Unicode primarily involves
-removing any assumptions made about the size of characters. Remember
-what I said earlier about how the point of conversion between
-internally and externally encoded strings should occur at the point of
-entry or exit into or out of a library function. With this in mind, an
-externally encoded string in XEmacs can be treated simply as an
-arbitrary sequence of bytes of some length which has no particular
-relationship to the length of the string in the internal encoding.
+Getting XEmacs to run when all external strings are Unicode primarily
+involves removing any assumptions made about the size of
+characters. Remember what I said earlier about how the point of
+conversion between internally and externally encoded strings should
+occur at the point of entry or exit into or out of a library
+function. With this in mind, an externally encoded string in XEmacs can
+be treated simply as an arbitrary sequence of bytes of some length which
+has no particular relationship to the length of the string in the
+internal encoding.
 
 Use Qnative for Unix conversion, Qmswindows_tstr for Windows ...
 

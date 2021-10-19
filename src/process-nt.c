@@ -432,10 +432,7 @@ find_child_console (HWND hwnd, long putada)
 
       /* GetClassNameA to avoid problems with Unicode return values */
       GetClassNameA (hwnd, window_class, sizeof (window_class));
-      if (strcmp (window_class,
-		  mswindows_windows9x_p
-		  ? "tty"
-		  : "ConsoleWindowClass") == 0)
+      if (strcmp (window_class, "ConsoleWindowClass") == 0)
 	{
 	  cp->hwnd = hwnd;
 	  return FALSE;
@@ -553,60 +550,13 @@ send_signal_the_95_way (struct nt_process_data *cp, int pid, int signo)
     {
       if (NILP (Vmswindows_start_process_share_console) && cp && cp->hwnd)
 	{
-#if 1
-	  if (mswindows_windows9x_p)
-	    {
-/*
-   Another possibility is to try terminating the VDM out-right by
-   calling the Shell VxD (id 0x17) V86 interface, function #4
-   "SHELL_Destroy_VM", ie.
-
-     mov edx,4
-     mov ebx,vm_handle
-     call shellapi
-
-   First need to determine the current VM handle, and then arrange for
-   the shellapi call to be made from the system vm (by using
-   Switch_VM_and_callback).
-
-   Could try to invoke DestroyVM through CallVxD.
-
-*/
-#if 0
-	      /* On Win95, posting WM_QUIT causes the 16-bit subsystem
-		 to hang when cmdproxy is used in conjunction with
-		 command.com for an interactive shell.  Posting
-		 WM_CLOSE pops up a dialog that, when Yes is selected,
-		 does the same thing.  TerminateProcess is also less
-		 than ideal in that subprocesses tend to stick around
-		 until the machine is shutdown, but at least it
-		 doesn't freeze the 16-bit subsystem.  */
-	      qxePostMessage (cp->hwnd, WM_QUIT, 0xff, 0);
-#endif
-	      if (!TerminateProcess (h_process, 0xff))
-		{
-#if 0 /* FSF Emacs */
-		  DebPrint (("sys_kill.TerminateProcess returned %d "
-			     "for pid %lu\n", GetLastError (), pid));
-		  errno = EINVAL;
-#endif
-		  rc = 0;
-		}
-	    }
-	  else
-#endif
-	    qxePostMessage (cp->hwnd, WM_CLOSE, 0, 0);
+	  qxePostMessage (cp->hwnd, WM_CLOSE, 0, 0);
 	}
       /* Kill the process.  On W32 this doesn't kill child processes
 	 so it doesn't work very well for shells which is why it's not
 	 used in every case.  */
       else if (!TerminateProcess (h_process, 0xff))
         {
-#if 0 /* FSF Emacs */
-	  DebPrint (("sys_kill.TerminateProcess returned %d "
-		     "for pid %lu\n", GetLastError (), pid));
-	  errno = EINVAL;
-#endif
 	  rc = 0;
         }
     }
@@ -622,7 +572,7 @@ send_signal_the_95_way (struct nt_process_data *cp, int pid, int signo)
 static int
 send_signal (struct nt_process_data *cp, int pid, int signo)
 {
-  return (!mswindows_windows9x_p && send_signal_the_nt_way (cp, pid, signo))
+  return send_signal_the_nt_way (cp, pid, signo)
     || send_signal_the_95_way (cp, pid, signo);
 }
 
@@ -693,13 +643,6 @@ mswindows_report_winsock_error (const Ascbyte *reason, Lisp_Object data,
 				int errnum)
 {
   signal_error_2 (Qnetwork_error, reason, mswindows_lisp_error (errnum), data);
-}
-
-static void
-ensure_console_window_exists (void)
-{
-  if (mswindows_windows9x_p)
-    mswindows_hide_console ();
 }
 
 int
@@ -977,17 +920,9 @@ nt_create_process (Lisp_Process *p,
 	si.dwFlags |= STARTF_USESTDHANDLES;
       }
 
-    flags = CREATE_SUSPENDED;
-    if (mswindows_windows9x_p)
-      flags |= (!NILP (Vmswindows_start_process_share_console)
-		? CREATE_NEW_PROCESS_GROUP
-		: CREATE_NEW_CONSOLE);
-    else
-      flags |= CREATE_NEW_CONSOLE | CREATE_NEW_PROCESS_GROUP;
+    flags = CREATE_SUSPENDED | CREATE_NEW_CONSOLE | CREATE_NEW_PROCESS_GROUP;
     if (NILP (Vmswindows_start_process_inherit_error_mode))
       flags |= CREATE_DEFAULT_ERROR_MODE;
-
-    ensure_console_window_exists ();
 
     {
       Extbyte *curdirext;
@@ -995,9 +930,7 @@ nt_create_process (Lisp_Process *p,
       LISP_PATHNAME_CONVERT_OUT (cur_dir, curdirext);
 
       err = (qxeCreateProcess (NULL, command_line, NULL, NULL, TRUE,
-			       (XEUNICODE_P ?
-				flags | CREATE_UNICODE_ENVIRONMENT :
-				flags), proc_env,
+                               flags | CREATE_UNICODE_ENVIRONMENT, proc_env,
 			       curdirext, &si, &pi)
 	     ? 0 : GetLastError ());
     }

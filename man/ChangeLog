@@ -1,3 +1,21 @@
+2021-10-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (Q210341 says this in addition): Removed.
+	* internals/internals.texi (SUMMARY): Removed.
+	* internals/internals.texi (MORE INFORMATION): Removed.
+	* internals/internals.texi (wide character functions as
+	implemented on Windows 95): Removed.
+	* internals/internals.texi (REFERENCES): Removed.
+	* internals/internals.texi (Microsoft Knowledge Base): Removed.
+	* internals/internals.texi (Knowledge Base): Removed.
+	* internals/internals.texi (see the following book): Removed.
+	* internals/internals.texi (Background white paper): Removed.
+	* internals/internals.texi (Random other Windows I18N docs):
+	* internals/internals.texi (NOTE): Removed.
+	* internals/internals.texi (Unicode support under Windows):
+	Revise this file in detail now we have removed support for Windows
+	95/98/Me systems.
+
 2021-05-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (garbage_collect_1):

@@ -48,7 +48,6 @@ Lisp_Object Vmswindows_downcase_file_names;
 
 Lisp_Object Vmswindows_read_link_hash;
 
-int mswindows_windows9x_p;
 Boolint mswindows_shortcuts_are_symlinks;
 
 pfSwitchToThread_t xSwitchToThread;
@@ -502,103 +501,60 @@ mswindows_read_link_1 (const Ibyte *fname, Bytecount len)
 
   /* #### Not Unicode-split for the moment; we have to do it
      ourselves. */
-  if (XEUNICODE_P)
-    {
-      IShellLinkW *psl;
+  {
+    IShellLinkW *psl;
 
-      if (CoCreateInstance (
-			    XECOMID (CLSID_ShellLink),
-			    NULL,
-			    CLSCTX_INPROC_SERVER,
-			    XECOMID (IID_IShellLinkW),
-			    &VOIDP_CAST (psl)) == S_OK)
-	{
-	  IPersistFile *ppf;
+    if (CoCreateInstance (XECOMID (CLSID_ShellLink),
+                          NULL,
+                          CLSCTX_INPROC_SERVER,
+                          XECOMID (IID_IShellLinkW),
+                          &VOIDP_CAST (psl)) == S_OK)
+      {
+        IPersistFile *ppf;
 
-	  if (XECOMCALL2 (psl, QueryInterface,
-			  XECOMID (IID_IPersistFile),
-			  &VOIDP_CAST (ppf)) == S_OK)
-	    {
-	      Extbyte *fname_unicode;
-	      WIN32_FIND_DATAW wfd;
-	      LPWSTR resolved = alloca_array (WCHAR, PATH_MAX_TCHAR + 1);
+        if (XECOMCALL2 (psl, QueryInterface,
+                        XECOMID (IID_IPersistFile),
+                        &VOIDP_CAST (ppf)) == S_OK)
+          {
+            Extbyte *fname_unicode;
+            WIN32_FIND_DATAW wfd;
+            LPWSTR resolved = alloca_array (WCHAR, PATH_MAX_TCHAR + 1);
 
-	      /* Always Unicode.  Not obvious from the
-		 IPersistFile documentation, but look under
-		 "Shell Link" for example code. */
-	      fname_unicode = fnameext;
+            /* Always Unicode.  Not obvious from the IPersistFile
+               documentation, but look under "Shell Link" for example code. */
+            fname_unicode = fnameext;
+            
+            if (XECOMCALL2 (ppf, Load,
+                            (LPWSTR) fname_unicode,
+                            STGM_READ) == S_OK &&
+                /* #### YUCK!  Docs read
+                   
+                cchMaxPath 
 
-	      if (XECOMCALL2 (ppf, Load,
-			      (LPWSTR) fname_unicode,
-			      STGM_READ) == S_OK &&
-		  /* #### YUCK!  Docs read
+                Maximum number of bytes to copy to the buffer pointed to by
+               the pszFile parameter.
 
-		  cchMaxPath 
-
-		  Maximum number of bytes to copy to the buffer pointed
-		  to by the pszFile parameter.
-
-		  But "cch" means "count of characters", not bytes.
-		  I'll assume the doc writers messed up and the
-		  programmer was correct.  Also, this approach is safe
-		  even if it's actually the other way around. */
+                But "cch" means "count of characters", not bytes.  I'll assume
+               the doc writers messed up and the programmer was correct.
+               Also, this approach is safe even if it's actually the other way
+               around. */
 #if defined (CYGWIN_HEADERS) && W32API_INSTALLED_VER < W32API_VER(2,2)
-		  /* Another Cygwin prototype error,
-		     fixed in v2.2 of w32api */
-		  XECOMCALL4 (psl, GetPath, (LPSTR) resolved,
-			      PATH_MAX_TCHAR, &wfd, 0)
+                /* Another Cygwin prototype error, fixed in v2.2 of w32api */
+                XECOMCALL4 (psl, GetPath, (LPSTR) resolved,
+                            PATH_MAX_TCHAR, &wfd, 0)
 #else
-		  XECOMCALL4 (psl, GetPath, resolved,
-			      PATH_MAX_TCHAR, &wfd, 0)
+                XECOMCALL4 (psl, GetPath, resolved,
+                            PATH_MAX_TCHAR, &wfd, 0)
 #endif
-		  == S_OK)
-		retval = TSTR_TO_ITEXT_MALLOC (resolved);
-
-	      XECOMCALL0 (ppf, Release);
-	    }
-
-	  XECOMCALL0 (psl, Release);
-	}
-    }
-  else
-    {
-      IShellLinkA *psl;
-
-      if (CoCreateInstance (
-			    XECOMID (CLSID_ShellLink),
-			    NULL,
-			    CLSCTX_INPROC_SERVER,
-			    XECOMID (IID_IShellLinkA),
-			    &VOIDP_CAST (psl)) == S_OK)
-	{
-	  IPersistFile *ppf;
-
-	  if (XECOMCALL2 (psl, QueryInterface,
-			  XECOMID (IID_IPersistFile),
-			  &VOIDP_CAST (ppf)) == S_OK)
-	    {
-	      Extbyte *fname_unicode;
-	      WIN32_FIND_DATAA wfd;
-	      LPSTR resolved = alloca_array (CHAR, PATH_MAX_TCHAR + 1);
-
-	      /* Always Unicode.  Not obvious from the
-		 IPersistFile documentation, but look under
-		 "Shell Link" for example code. */
-	      fname_unicode = ITEXT_TO_EXTERNAL (fname, Qmswindows_unicode);
-
-	      if (XECOMCALL2 (ppf, Load,
-			      (LPWSTR) fname_unicode,
-			      STGM_READ) == S_OK
-		  && XECOMCALL4 (psl, GetPath, resolved,
-				 PATH_MAX_TCHAR, &wfd, 0) == S_OK)
-		retval = TSTR_TO_ITEXT_MALLOC (resolved);
-
-	      XECOMCALL0 (ppf, Release);
-	    }
-
-	  XECOMCALL0 (psl, Release);
-	}
-    }
+                == S_OK)
+              retval = TSTR_TO_ITEXT_MALLOC (resolved);
+            
+            XECOMCALL0 (ppf, Release);
+          }
+        
+        XECOMCALL0 (psl, Release);
+      }
+  }
 
   /* Cache newly found value */
   XSYMBOL_PLIST (sym) = retval ? build_istring (retval) : Qnil;
@@ -919,8 +875,3 @@ init_win32 (void)
   init_potentially_nonexistent_functions ();
 }
 
-void
-init_win32_very_very_early (void)
-{
-  mswindows_windows9x_p = GetVersion () & 0x80000000;
-}

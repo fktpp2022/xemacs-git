@@ -1,5 +1,148 @@
 2021-10-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* device-msw.c (mswindows_init_dde):
+	Remove references to XEUNICODE_P, we always run as a Unicode
+	program under Win32.
+	* device-msw.c (Fmswindows_printer_list):
+	Ditto, remove Windows 95/98/Me-specific code.
+	* dumper.c (pdump_file_get):
+	* dumper.c (pdump_load):
+	Remove references to XEUNICODE_P, we always run as a Unicode
+	program under Win32.
+
+	* emacs.c (main_1):
+	* emacs.c (main):
+	Error early if we are started on a Win32 system without native support
+	for Unicode.
+	No longer do other work to attempt to support Windows 95/98/Me.
+
+	* event-msw.c (Fdde_alloc_advise_item):
+	* event-msw.c (mswindows_wnd_proc):
+	Remove support for running as a non-Unicode program under Win32.
+
+	* intl-auto-encap-win32.c:
+	* intl-auto-encap-win32.c (XEUNICODE_P):
+	#define this to 1 for the moment, until we revise this file to
+	just declare inline headers for the sake of type compatibility. 
+
+	* intl-auto-encap-win32.c (qxeGetClassLongPtr): Removed.
+	* intl-auto-encap-win32.c (qxeGetWindowLongPtr): Removed.
+	* intl-auto-encap-win32.c (qxeSetClassLongPtr): Removed.
+	* intl-auto-encap-win32.c (qxeSetWindowLongPtr): Removed.
+	Move all of these to syswindows.h.
+
+	* intl-auto-encap-win32.h:
+	Remove the declarations of the above functions from this file.
+
+	* intl-encap-win32.c:
+	* intl-encap-win32.c (qxeDefWindowProc):
+	* intl-encap-win32.c (qxeCallWindowProc):
+	* intl-encap-win32.c (qxeDefDlgProc):
+	* intl-encap-win32.c (qxeDefMDIChildProc):
+	* intl-encap-win32.c (qxeGetEnvironmentStrings):
+	* intl-encap-win32.c (qxeUpdateICMRegKey):
+	* intl-encap-win32.c (qxeSHGetSpecialFolderPath):
+	* intl-encap-win32.c (qxeEnumResourceTypes):
+	* intl-encap-win32.c (qxeEnumResourceNames):
+	* intl-encap-win32.c (qxeEnumResourceLanguages):
+	* intl-encap-win32.c (qxeFindFirstFile):
+	* intl-encap-win32.c (qxeFindNextFile):
+	* intl-encap-win32.c (qxeSHGetFileInfo):
+	* intl-encap-win32.c (qxeSHBrowseForFolder):
+	* intl-encap-win32.c (qxeSHAddToRecentDocs):
+	* intl-encap-win32.c (qxeSHChangeNotify):
+	* intl-encap-win32.c (qxeSHGetDataFromIDList):
+	* intl-encap-win32.c (qxeCreateDC):
+	* intl-encap-win32.c (qxeResetDC):
+	* intl-encap-win32.c (qxeOpenPrinter):
+	* intl-encap-win32.c (qxeDocumentProperties):
+	* intl-encap-win32.c (qxePrintDlg):
+	* intl-encap-win32.c (qxePageSetupDlg):
+	* intl-encap-win32.c (qxeEnumFontFamiliesEx):
+	* intl-encap-win32.c (qxeCreateFontIndirect):
+	* intl-encap-win32.c (qxeImmSetCompositionFont):
+	* intl-encap-win32.c (qxeImmGetCompositionFont):
+	* intl-encap-win32.c (qxeImmSetCompositionString):
+	* intl-encap-win32.c (qxeGetObject):
+	* intl-encap-win32.c (qxeGetTextMetrics):
+	* intl-encap-win32.c (qxeRegisterClass):
+	* intl-encap-win32.c (qxeUnregisterClass):
+	* intl-encap-win32.c (qxeRegisterClassEx):
+	* intl-encap-win32.c (qxeSendMessage):
+	Remove support for running as a non-Unicode program under Win32
+	from this file.
+
+	* intl-win32.c (determine_if_using_unicode): Removed.
+	* intl-win32.c (complex_vars_of_intl_win32): Define
+	Qmswindows_tstr as an alias for Qmswindows_unicode
+	unconditionally. 
+	* intl-win32.c (init_intl_win32):
+	No need to dither about doing this again.
+
+	* nt.c (mswindows_rename):
+	* nt.c (mswindows_unlink):
+	* nt.c (mswindows_utime):
+	* nt.c (mswindows_getdcwd):
+	Remove support for running as a non-Unicode program under Win32
+	from this file.
+
+	* process-nt.c (find_child_console):
+	* process-nt.c (send_signal_the_95_way):
+	* process-nt.c (send_signal):
+	* process-nt.c (mswindows_compare_env):
+	* process-nt.c (nt_create_process):
+	Remove support for running as a non-Unicode program under Win32
+	from this file.
+	Maintain support for send_signal_the_95_way(), which was called
+	previously when running on Win32 with Unicode support too.
+
+	* select-msw.c (mswindows_own_selection):
+	* select-msw.c (mswindows_get_foreign_selection)
+	Remove support for running as a non-Unicode program under Win32
+	from this file.
+
+	* symsinit.h:
+	Remove declaration for init_win32_very_very_early() here.
+
+	* sysdep.c:
+	* sysdep.c (sys_subshell):
+	* sysdep.c (underlying_open_1):
+	* sysdep.c (wext_retry_open):
+	* sysdep.c (qxe_chdir):
+	* sysdep.c (qxe_rmdir):
+	* sysdep.c (qxe_allocating_getcwd):
+	* sysdep.c (qxe_chmod):
+	* sysdep.c (qxe_execve):
+	Remove support for running as a non-Unicode program under Win32
+	from this file.
+	
+	* syswindows.h:
+	* syswindows.h (XEUNICODE_P):
+	#define this unconditionally when #including
+	intl-auto-encap-win32.h, pending revision of this to not need this.
+
+	* syswindows.h (qxeGetWindowLongPtr): New. 
+	* syswindows.h (qxeSetWindowLongPtr): New.
+	* syswindows.h (qxeGetClassLongPtr): New.
+	* syswindows.h (qxeSetClassLongPtr): New.
+	All of these moved here from intl-auto-encap-win32.h. 
+	
+	* syswindows.h (XETCHAR_SIZE):
+	* syswindows.h (ITEXT_TO_TSTR):
+	* syswindows.h (build_tstr_string):
+	* syswindows.h (DECLARE_INLINE_HEADER):
+	* syswindows.h (LOCAL_FILE_FORMAT_TO_TSTR):
+	* syswindows.h (TSTR_TO_LOCAL_FILE_FORMAT):
+	Remove support for running as a non-Unicode program under Win32
+	from this file.
+	
+	* win32.c:
+	* win32.c (mswindows_read_link_1):
+	Remove support for running as a non-Unicode program under Win32
+	from this file.
+
+2021-10-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Quiet some warnings from Visual C++.
 	* data.c (parse_integer):
 	Visual C++ advises that unary - applied to an unsigned integer

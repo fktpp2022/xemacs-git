@@ -1903,7 +1903,7 @@ Allocate an advise item, and return its token.
   token = Fmake_symbol (name);
   hsz = qxeDdeCreateStringHandle (mswindows_dde_mlid,
 				  LISP_STRING_TO_TSTR (name),
-				  XEUNICODE_P ? CP_WINUNICODE : CP_WINANSI);
+				  CP_WINUNICODE);
 
   Fput (token, QHSZ, HSZ_to_lisp (hsz));
   Vdde_advise_items = Fcons (token, Vdde_advise_items);
@@ -2778,32 +2778,13 @@ mswindows_wnd_proc (HWND hwnd, UINT message_, WPARAM wParam, LPARAM lParam)
 				      PM_REMOVE))
 	      {
 		int mods_with_quit = mods;
-		int length;
 		Extbyte extchar[4];
-		Ibyte *intchar;
-		Ichar ch;
+		Bytecount length
+		  = unicode_char_to_text (tranmsg.wParam, extchar);
+		Ibyte *intchar = SIZED_EXTERNAL_TO_ITEXT (extchar, length,
+							  Qmswindows_unicode);
 
-		if (XEUNICODE_P)
-		  {
-		    length = unicode_char_to_text (tranmsg.wParam, extchar);
-		    intchar = SIZED_EXTERNAL_TO_ITEXT (extchar, length,
-						       Qmswindows_unicode);
-		    ch = itext_ichar (intchar);
-		  }
-		else
-		  {
-		    length = ansi_char_to_text (tranmsg.wParam, extchar);
-		    intchar = (convert_multibyte_to_internal_malloc
-			       (extchar, length,
-				mswindows_locale_to_code_page
-				/* See intl-win32.c for an explanation of
-				   the following */
-				((LCID) (((EMACS_UINT) (GetKeyboardLayout (0)))
-					 & 0xFFFF)),
-				NULL));
-		    ch = itext_ichar (intchar);
-		    xfree (intchar);
-		  }
+		Ichar ch = itext_ichar (intchar);
 
 #ifdef DEBUG_XEMACS
 		if (debug_mswindows_events)
@@ -2888,68 +2869,25 @@ mswindows_wnd_proc (HWND hwnd, UINT message_, WPARAM wParam, LPARAM lParam)
 					    (HKL) ((EMACS_UINT) lcid));
 		    if (!vk_only)
 		      {
-			if (XEUNICODE_P)
+			Extbyte received_keys[32];
+			int tounret =
+			  ToUnicodeEx (virtual_key, scan, keymap_trans,
+				       (LPWSTR) received_keys,
+				       sizeof (received_keys) / XETCHAR_SIZE,
+				       0, /* #### what about this flag? "if
+					     bit 0 is set, a menu is
+					     active???" */
+				       (HKL) ((EMACS_UINT) lcid));
+			if (tounret > 0)
 			  {
-			    Extbyte received_keys[32];
-			    int tounret =
-			      ToUnicodeEx
-				(virtual_key, scan, keymap_trans,
-				 (LPWSTR) received_keys,
-				 sizeof (received_keys) / XETCHAR_SIZE,
-				 0, /* #### what about this flag? "if
-				       bit 0 is set, a menu is
-				       active???" */
-				 (HKL) ((EMACS_UINT) lcid));
-			    if (tounret > 0)
-			      {
-				Ibyte *intchar;
+			    Ibyte *intchar;
 
-				intchar =
-				  SIZED_EXTERNAL_TO_ITEXT
-				  (received_keys + (tounret - 1) * 2, 2,
-				   Qmswindows_unicode);
-				XSET_EVENT_KEY_ALT_KEYCHARS
-				  (lastev, i, itext_ichar (intchar));
-			      }
-			  }
-			else
-			  {
-			    WORD received_keys[32];
-			    int tounret =
-			      ToAsciiEx (virtual_key, scan, keymap_trans,
-					 received_keys,
-					 0, /* #### what about this
-					       flag? "if bit 0 is set, a
-					       menu is active???" */
-					 (HKL) ((EMACS_UINT) lcid));
-			    if (tounret > 0)
-			      {
-				/* #### I cannot find proper
-				   documentation on what format the
-				   return value is in.  I'm assuming
-				   it's like WM_IME_CHAR: DBCS chars
-				   have the lead byte in bits 8-15 of
-				   the short. */
-				Ibyte *intchar;
-				Extbyte mbstuff[2];
-				Bytecount mblength = 0;
-				WORD thechar = received_keys[tounret - 1];
-
-				mbstuff[mblength++] =
-				  (Extbyte) (thechar & 0xFF);
-				if (thechar > 0xFF)
-				  mbstuff[mblength++] =
-				    (Extbyte) ((thechar >> 8) & 0xFF);
-
-				intchar = convert_multibyte_to_internal_malloc
-				  (mbstuff, mblength,
-				   mswindows_locale_to_code_page (lcid),
-				   NULL);
-
-				XSET_EVENT_KEY_ALT_KEYCHARS
-				  (lastev, i, itext_ichar (intchar));
-				xfree (intchar);
-			      }
+			    intchar =
+			      SIZED_EXTERNAL_TO_ITEXT
+			      (received_keys + (tounret - 1) * 2, 2,
+			       Qmswindows_unicode);
+			    XSET_EVENT_KEY_ALT_KEYCHARS
+			      (lastev, i, itext_ichar (intchar));
 			  }
 		      }
 		    else

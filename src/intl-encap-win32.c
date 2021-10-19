@@ -442,11 +442,11 @@ no RealGetWindowClass NT 5.0+ only
 no GetAltTabInfo NT 5.0+ only
 review BroadcastSystemMessageEx
 review EnumDisplaySettingsEx
-review GetClassLongPtr
+skip GetClassLongPtr macro vs. function depending on arch, prefer function
 review GetRawInputDeviceInfo
-review GetWindowLongPtr
-review SetClassLongPtr
-review SetWindowLongPtr
+skip GetWindowLongPtr macro vs. function depending on arch, prefer function
+skip SetClassLongPtr macro vs. function depending on arch, prefer function
+skip SetWindowLongPtr macro vs. function depending on arch, prefer function
 
 file WINGDI.H
 
@@ -1188,10 +1188,7 @@ CertAddEncodedCertificateToSystemStore
 LRESULT
 qxeDefWindowProc (HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
-  if (XEUNICODE_P)
-    return DefWindowProcW (hWnd, Msg, wParam, lParam);
-  else
-    return DefWindowProcA (hWnd, Msg, wParam, lParam);
+  return DefWindowProcW (hWnd, Msg, wParam, lParam);
 }
 
 
@@ -1199,30 +1196,21 @@ qxeDefWindowProc (HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 LRESULT
 qxeCallWindowProc (WNDPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
-  if (XEUNICODE_P)
-    return CallWindowProcW (lpPrevWndFunc, hWnd, Msg, wParam, lParam);
-  else
-    return CallWindowProcA (lpPrevWndFunc, hWnd, Msg, wParam, lParam);
+  return CallWindowProcW (lpPrevWndFunc, hWnd, Msg, wParam, lParam);
 }
 
 /* NOTE: return value is conditionalized on _MAC, messes up parser */
 LRESULT
 qxeDefDlgProc (HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
-  if (XEUNICODE_P)
-    return DefDlgProcW (hDlg, Msg, wParam, lParam);
-  else
-    return DefDlgProcA (hDlg, Msg, wParam, lParam);
+  return DefDlgProcW (hDlg, Msg, wParam, lParam);
 }
 
 /* NOTE: return value is conditionalized on _MAC, messes up parser */
 LRESULT
 qxeDefMDIChildProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-  if (XEUNICODE_P)
-    return DefMDIChildProcW (hWnd, uMsg, wParam, lParam);
-  else
-    return DefMDIChildProcA (hWnd, uMsg, wParam, lParam);
+  return DefMDIChildProcW (hWnd, uMsg, wParam, lParam);
 }
 
 /* This one has two entry points called GetEnvironmentStringsW and
@@ -1230,10 +1218,7 @@ qxeDefMDIChildProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 Extbyte *
 qxeGetEnvironmentStrings (void)
 {
-  if (XEUNICODE_P)
-    return (Extbyte *) GetEnvironmentStringsW ();
-  else
-    return (Extbyte *) GetEnvironmentStrings ();
+  return (Extbyte *) GetEnvironmentStringsW ();
 }
 
 
@@ -1251,10 +1236,7 @@ qxeUpdateICMRegKey (DWORD arg1, Extbyte * arg2, Extbyte * arg3, UINT arg4)
   /* Cygwin used to mistakenly declare the second argument as DWORD, but no
      longer, and we need to use the correct declaration for 64 bit support. */
 #endif /* CYGWIN_HEADERS */
-  if (XEUNICODE_P)
-    return UpdateICMRegKeyW (arg1, (LPWSTR) arg2, (LPWSTR) arg3, arg4);
-  else
-    return UpdateICMRegKeyA (arg1, (LPSTR) arg2, (LPSTR) arg3, arg4);
+  return UpdateICMRegKeyW (arg1, (LPWSTR) arg2, (LPWSTR) arg3, arg4);
 }
 
 #endif /* HAVE_MS_WINDOWS */
@@ -1267,15 +1249,9 @@ qxeSHGetSpecialFolderPath (HWND hwndOwner, Extbyte * lpszPath, int nFolder, BOOL
 #ifdef CYGWIN_HEADERS
   /* Cygwin mistakenly declares the second argument as LPSTR in both
      versions. */
-  if (XEUNICODE_P)
-    return SHGetSpecialFolderPathW (hwndOwner, (LPSTR) lpszPath, nFolder, fCreate);
-  else
-    return SHGetSpecialFolderPathA (hwndOwner, (LPSTR) lpszPath, nFolder, fCreate);
+  return SHGetSpecialFolderPathW (hwndOwner, (LPSTR) lpszPath, nFolder, fCreate);
 #else
-  if (XEUNICODE_P)
-    return SHGetSpecialFolderPathW (hwndOwner, (LPWSTR) lpszPath, nFolder, fCreate);
-  else
-    return SHGetSpecialFolderPathA (hwndOwner, (LPSTR) lpszPath, nFolder, fCreate);
+  return SHGetSpecialFolderPathW (hwndOwner, (LPWSTR) lpszPath, nFolder, fCreate);
 #endif
 }
 
@@ -1290,28 +1266,19 @@ qxeSHGetSpecialFolderPath (HWND hwndOwner, Extbyte * lpszPath, int nFolder, BOOL
 BOOL
 qxeEnumResourceTypes (HMODULE hModule, ENUMRESTYPEPROCW lpEnumFunc, LONG lParam)
 {
-  if (XEUNICODE_P)
-    return EnumResourceTypesW (hModule, lpEnumFunc, lParam);
-  else
-    return EnumResourceTypesA (hModule, (ENUMRESTYPEPROCA) lpEnumFunc, lParam);
+  return EnumResourceTypesW (hModule, lpEnumFunc, lParam);
 }
 
 BOOL
 qxeEnumResourceNames (HMODULE hModule, const Extbyte * lpType, ENUMRESNAMEPROCW lpEnumFunc, LONG lParam)
 {
-  if (XEUNICODE_P)
-    return EnumResourceNamesW (hModule, (LPCWSTR) lpType, lpEnumFunc, lParam);
-  else
-    return EnumResourceNamesA (hModule, (LPCSTR) lpType, (ENUMRESNAMEPROCA) lpEnumFunc, lParam);
+  return EnumResourceNamesW (hModule, (LPCWSTR) lpType, lpEnumFunc, lParam);
 }
 
 BOOL
 qxeEnumResourceLanguages (HMODULE hModule, const Extbyte * lpType, const Extbyte * lpName, ENUMRESLANGPROCW lpEnumFunc, LONG lParam)
 {
-  if (XEUNICODE_P)
-    return EnumResourceLanguagesW (hModule, (LPCWSTR) lpType, (LPCWSTR) lpName, lpEnumFunc, lParam);
-  else
-    return EnumResourceLanguagesA (hModule, (LPCSTR) lpType, (LPCSTR) lpName, (ENUMRESLANGPROCA) lpEnumFunc, lParam);
+  return EnumResourceLanguagesW (hModule, (LPCWSTR) lpType, (LPCWSTR) lpName, lpEnumFunc, lParam);
 }
 
 #else
@@ -1319,28 +1286,19 @@ qxeEnumResourceLanguages (HMODULE hModule, const Extbyte * lpType, const Extbyte
 BOOL
 qxeEnumResourceTypes (HMODULE hModule, ENUMRESTYPEPROC lpEnumFunc, LONG lParam)
 {
-  if (XEUNICODE_P)
-    return EnumResourceTypesW (hModule, (ENUMRESTYPEPROCW) lpEnumFunc, lParam);
-  else
-    return EnumResourceTypesA (hModule, (ENUMRESTYPEPROCA) lpEnumFunc, lParam);
+  return EnumResourceTypesW (hModule, (ENUMRESTYPEPROCW) lpEnumFunc, lParam);
 }
 
 BOOL
 qxeEnumResourceNames (HMODULE hModule, const Extbyte * lpType, ENUMRESNAMEPROC lpEnumFunc, LONG lParam)
 {
-  if (XEUNICODE_P)
-    return EnumResourceNamesW (hModule, (LPCWSTR) lpType, (ENUMRESNAMEPROCW) lpEnumFunc, lParam);
-  else
-    return EnumResourceNamesA (hModule, (LPCSTR) lpType, (ENUMRESNAMEPROCA) lpEnumFunc, lParam);
+  return EnumResourceNamesW (hModule, (LPCWSTR) lpType, (ENUMRESNAMEPROCW) lpEnumFunc, lParam);
 }
 
 BOOL
 qxeEnumResourceLanguages (HMODULE hModule, const Extbyte * lpType, const Extbyte * lpName, ENUMRESLANGPROC lpEnumFunc, LONG lParam)
 {
-  if (XEUNICODE_P)
-    return EnumResourceLanguagesW (hModule, (LPCWSTR) lpType, (LPCWSTR) lpName, (ENUMRESLANGPROCW) lpEnumFunc, lParam);
-  else
-    return EnumResourceLanguagesA (hModule, (LPCSTR) lpType, (LPCSTR) lpName, (ENUMRESLANGPROCA) lpEnumFunc, lParam);
+  return EnumResourceLanguagesW (hModule, (LPCWSTR) lpType, (LPCWSTR) lpName, (ENUMRESLANGPROCW) lpEnumFunc, lParam);
 }
 
 #endif /* MSC_VERSION >= 1300 */
@@ -1349,57 +1307,17 @@ qxeEnumResourceLanguages (HMODULE hModule, const Extbyte * lpType, const Extbyte
 /*                                files                                 */
 /************************************************************************/
 
-static void
-copy_win32_find_dataa_to_win32_find_dataw (const WIN32_FIND_DATAA *pa,
-					   WIN32_FIND_DATAW *pw)
-{
-  /* the layout of WIN32_FIND_DATA is
-
-     non-split fields;
-     TCHAR cFileName[...];
-     TCHAR cAlternateFileName[...];
-     */
-
-  xzero (*pw);
-  memcpy (pw, pa, offsetof (WIN32_FIND_DATAA, cFileName));
-  memcpy (pw->cFileName, pa->cFileName, sizeof (pa->cFileName));
-  memcpy (pw->cAlternateFileName, pa->cAlternateFileName,
-	  sizeof (pa->cAlternateFileName));
-}
-
 HANDLE
 qxeFindFirstFile (const Extbyte *lpFileName,
 		  WIN32_FIND_DATAW *lpFindFileData)
 {
-  if (XEUNICODE_P)
-    return FindFirstFileW ((LPCWSTR) lpFileName, lpFindFileData);
-  else
-    {
-      WIN32_FIND_DATAA ansidat;
-      HANDLE retval;
-
-      retval = FindFirstFileA ((LPCSTR) lpFileName, &ansidat);
-      if (retval != INVALID_HANDLE_VALUE)
-	copy_win32_find_dataa_to_win32_find_dataw (&ansidat, lpFindFileData);
-      return retval;
-    }
+  return FindFirstFileW ((LPCWSTR) lpFileName, lpFindFileData);
 }
 
 BOOL
 qxeFindNextFile (HANDLE hFindFile, WIN32_FIND_DATAW *lpFindFileData)
 {
-  if (XEUNICODE_P)
-    return FindNextFileW (hFindFile, lpFindFileData);
-  else
-    {
-      WIN32_FIND_DATAA ansidat;
-      BOOL retval;
-
-      retval = FindNextFileA (hFindFile, &ansidat);
-      if (retval)
-	copy_win32_find_dataa_to_win32_find_dataw (&ansidat, lpFindFileData);
-      return retval;
-    }
+  return FindNextFileW (hFindFile, lpFindFileData);
 }
 
 
@@ -1407,128 +1325,19 @@ qxeFindNextFile (HANDLE hFindFile, WIN32_FIND_DATAW *lpFindFileData)
 /*                                shell                                 */
 /************************************************************************/
 
-static void
-copy_shfileinfoa_to_shfileinfow (const SHFILEINFOA *pa,
-				 SHFILEINFOW *pw, UINT sz)
-{
-  /* the layout of SHFILEINFO is
-
-     non-split fields;
-     TCHAR szDisplayName[...];
-     TCHAR szTypeName[...];
-     */
-
-  assert (sz >= sizeof (SHFILEINFOW));
-  xzero (*pw);
-  memcpy (pw, pa, offsetof (SHFILEINFOA, szDisplayName));
-  memcpy (pw->szDisplayName, pa->szDisplayName, sizeof (pa->szDisplayName));
-  memcpy (pw->szTypeName, pa->szTypeName, sizeof (pa->szTypeName));
-}
-
 DWORD
 qxeSHGetFileInfo (const Extbyte *pszPath, DWORD dwFileAttributes,
 		  SHFILEINFOW *psfi, UINT cbFileInfo, UINT uFlags)
 {
-  if (XEUNICODE_P)
-    return SHGetFileInfoW ((LPCWSTR) pszPath, dwFileAttributes,
-			   psfi, cbFileInfo, uFlags);
-  else
-    {
-      SHFILEINFOA ansidat;
-      BOOL retval;
-
-      retval = SHGetFileInfoA ((LPCSTR) pszPath, dwFileAttributes,
-			       (SHFILEINFOA FAR *) &ansidat,
-			       cbFileInfo ? sizeof (ansidat) : 0, uFlags);
-      if (retval && cbFileInfo)
-	copy_shfileinfoa_to_shfileinfow (&ansidat, psfi, cbFileInfo);
-      return retval;
-    }
+  return SHGetFileInfoW ((LPCWSTR) pszPath, dwFileAttributes,
+			 psfi, cbFileInfo, uFlags);
 }
 
-struct intercepted_SHBrowseForFolder
-{
-  BFFCALLBACK lpfn;
-  LPARAM lParam;
-  HWND hwnd;
-  struct intercepted_SHBrowseForFolder *next;
-};
-
-static struct intercepted_SHBrowseForFolder *SHBrowseForFolder_list;
-
-static int
-CALLBACK intercepted_SHBrowseForFolder_proc (HWND hwnd, UINT msg,
-					     LPARAM lParam, LPARAM lpData)
-{
-  struct intercepted_SHBrowseForFolder *s =
-    (struct intercepted_SHBrowseForFolder *) lpData;
-
-  if (s->hwnd == 0)
-    s->hwnd = hwnd;
-  if (s->lpfn)
-    {
-      /* see below */
-      if (XEUNICODE_P && msg == BFFM_VALIDATEFAILEDW)
-	msg = BFFM_VALIDATEFAILEDA;
-      else if (!XEUNICODE_P && msg == BFFM_VALIDATEFAILEDA)
-	msg = BFFM_VALIDATEFAILEDW;
-      return (s->lpfn) (hwnd, msg, lParam, s->lParam);
-    }
-  else
-    return 0;
-}
-
-#ifdef HAVE_MS_WINDOWS
-
-static int
-is_SHBrowseForFolder (HWND hwnd)
-{
-  struct intercepted_SHBrowseForFolder *s;
-
-  for (s = SHBrowseForFolder_list; s; s = s->next)
-    if (s->hwnd == hwnd)
-      return 1;
-  return 0;
-}
-
-#endif /* HAVE_MS_WINDOWS */
 
 LPITEMIDLIST
 qxeSHBrowseForFolder (LPBROWSEINFOW lpbi)
 {
-  struct intercepted_SHBrowseForFolder s;
-  LPITEMIDLIST retval;
-
-  /* There are two outgoing Unicode-split messages:
-
-     BFFM_SETSELECTION
-     BFFM_SETSTATUSTEXT
-
-     and one incoming:
-
-     BFFM_VALIDATEFAILED
-
-     To handle this, we need to intercept the callback.  We handle the
-     incoming message in the callback, and record the window; when
-     qxeSendMessage() is called, we handle the outgoing messages.  None of
-     the messages have split-sized structures so we don't need to do
-     anything complicated there. */
-  
-  s.lParam = lpbi->lParam;
-  s.lpfn = lpbi->lpfn;
-  s.next = SHBrowseForFolder_list;
-  s.hwnd = 0;
-  SHBrowseForFolder_list = &s;
-  
-  lpbi->lpfn = intercepted_SHBrowseForFolder_proc;
-  lpbi->lParam = (LPARAM) &s;
-
-  if (XEUNICODE_P)
-    retval = SHBrowseForFolderW (lpbi);
-  else
-    retval = SHBrowseForFolderA ((LPBROWSEINFOA) lpbi);
-  SHBrowseForFolder_list = SHBrowseForFolder_list->next;
-  return retval;
+  return SHBrowseForFolderW (lpbi);
 }
 
 VOID
@@ -1538,21 +1347,10 @@ qxeSHAddToRecentDocs (UINT uFlags, LPCVOID pv)
      flag SHARD_PATH rather than the function itself.  Fix up the flag to
      be correct.  We write it symmetrically so it doesn't matter whether
      UNICODE is defined. */
-  if (XEUNICODE_P)
+  if (uFlags & SHARD_PATHA)
     {
-      if (uFlags & SHARD_PATHA)
-	{
-	  uFlags |= SHARD_PATHW;
-	  uFlags &= ~SHARD_PATHA;
-	}
-    }
-  else
-    {
-      if (uFlags & SHARD_PATHW)
-	{
-	  uFlags |= SHARD_PATHA;
-	  uFlags &= ~SHARD_PATHW;
-	}
+      uFlags |= SHARD_PATHW;
+      uFlags &= ~SHARD_PATHA;
     }
   SHAddToRecentDocs (uFlags, pv);
 }
@@ -1562,31 +1360,15 @@ qxeSHChangeNotify (LONG wEventId, UINT uFlags, LPCVOID dwItem1,
 		   LPCVOID dwItem2)
 {
   /* works like SHAddToRecentDocs */
-  if (XEUNICODE_P)
+  if (uFlags & SHCNF_PATHA)
     {
-      if (uFlags & SHCNF_PATHA)
-	{
-	  uFlags |= SHCNF_PATHW;
-	  uFlags &= ~SHCNF_PATHA;
-	}
-      if (uFlags & SHCNF_PRINTERA)
-	{
-	  uFlags |= SHCNF_PRINTERW;
-	  uFlags &= ~SHCNF_PRINTERA;
-	}
+      uFlags |= SHCNF_PATHW;
+      uFlags &= ~SHCNF_PATHA;
     }
-  else
+  if (uFlags & SHCNF_PRINTERA)
     {
-      if (uFlags & SHCNF_PATHW)
-	{
-	  uFlags |= SHCNF_PATHA;
-	  uFlags &= ~SHCNF_PATHW;
-	}
-      if (uFlags & SHCNF_PRINTERW)
-	{
-	  uFlags |= SHCNF_PRINTERA;
-	  uFlags &= ~SHCNF_PRINTERW;
-	}
+      uFlags |= SHCNF_PRINTERW;
+      uFlags &= ~SHCNF_PRINTERA;
     }
   SHChangeNotify (wEventId, uFlags, dwItem1, dwItem2);
 }
@@ -1597,24 +1379,7 @@ HRESULT
 qxeSHGetDataFromIDList (IShellFolder *psf, LPCITEMIDLIST pidl, int nFormat,
 			PVOID pv, int cb)
 {
-  if (XEUNICODE_P)
-    return SHGetDataFromIDListW (psf, pidl, nFormat, pv, cb);
-  else if (nFormat == SHGDFIL_FINDDATA)
-    {
-      WIN32_FIND_DATAA ansidat;
-      BOOL retval;
-
-      retval = SHGetDataFromIDListA (psf, pidl, nFormat, &ansidat, cb);
-      if (retval == NOERROR)
-	copy_win32_find_dataa_to_win32_find_dataw (&ansidat,
-						   (WIN32_FIND_DATAW *) pv);
-      return retval;
-    }
-  else
-    /* nFormat == SHGDFIL_NETRESOURCE, and pv is split-simple NETRESOURCE
-       structure, but we don't need to worry about that currently since we
-       don't translate strings */
-    return SHGetDataFromIDListA (psf, pidl, nFormat, pv, cb);
+  return SHGetDataFromIDListW (psf, pidl, nFormat, pv, cb);
 }
 
 #endif /* not CYGWIN */
@@ -1703,59 +1468,14 @@ HDC
 qxeCreateDC (const Extbyte *lpszDriver, const Extbyte *lpszDevice,
 	     const Extbyte *lpszOutput, CONST DEVMODEW *lpInitData)
 {
-  if (XEUNICODE_P)
-    return CreateDCW ((LPCWSTR) lpszDriver, (LPCWSTR) lpszDevice,
-		      (LPCWSTR) lpszOutput, lpInitData);
-  else
-    {
-      HGLOBAL hInitData = NULL;
-      DEVMODEA *lpInitDataa = NULL;
-      HDC retval;
-
-      if (lpInitData)
-	{
-	  hInitData = copy_devmodew_to_devmodea (lpInitData, NULL);
-	  lpInitDataa = (DEVMODEA *) GlobalLock (hInitData);
-	}
-      retval = CreateDCA ((LPCSTR) lpszDriver, (LPCSTR) lpszDevice,
-			  (LPCSTR) lpszOutput, lpInitDataa);
-
-      if (hInitData)
-	{
-	  GlobalUnlock (hInitData);
-	  GlobalFree (hInitData);
-	}
-
-      return retval;
-    }
+  return CreateDCW ((LPCWSTR) lpszDriver, (LPCWSTR) lpszDevice,
+		    (LPCWSTR) lpszOutput, lpInitData);
 }
 
 HDC
 qxeResetDC (HDC hdc, CONST DEVMODEW *lpInitData)
 {
-  if (XEUNICODE_P)
-    return ResetDCW (hdc, lpInitData);
-  else
-    {
-      HGLOBAL hInitData = NULL;
-      DEVMODEA *lpInitDataa = NULL;
-      HDC retval;
-
-      if (lpInitData)
-	{
-	  hInitData = copy_devmodew_to_devmodea (lpInitData, NULL);
-	  lpInitDataa = (DEVMODEA *) GlobalLock (hInitData);
-	}
-      retval = ResetDCA (hdc, lpInitDataa);
-
-      if (hInitData)
-	{
-	  GlobalUnlock (hInitData);
-	  GlobalFree (hInitData);
-	}
-
-      return retval;
-    }
+  return ResetDCW (hdc, lpInitData);
 }
 
 DWORD
@@ -1764,12 +1484,8 @@ qxeOpenPrinter (Extbyte *pPrinterName, LPHANDLE phPrinter,
 {
   assert (!pDefaultconst); /* we don't split it, so let's make sure we
 			      don't try. */
-  if (XEUNICODE_P)
-    return OpenPrinterW ((LPWSTR) pPrinterName, phPrinter,
-			 pDefaultconst);
-  else
-    return OpenPrinterA ((LPSTR) pPrinterName, phPrinter,
-			 (LPPRINTER_DEFAULTSA) pDefaultconst);
+  return OpenPrinterW ((LPWSTR) pPrinterName, phPrinter,
+		       pDefaultconst);
 }
 
 LONG
@@ -1777,128 +1493,28 @@ qxeDocumentProperties (HWND hWnd, HANDLE hPrinter, Extbyte *pDeviceName,
 		       DEVMODEW *pDevModeOutput, DEVMODEW *pDevModeInput,
 		       DWORD fMode)
 {
-  if (XEUNICODE_P)
 #if defined (CYGWIN_HEADERS) && W32API_INSTALLED_VER < W32API_VER(3,1)
-    /* Cygwin used to mistakenly declare the fourth and fifth arguments as
-       PDEVMODEA. */
-    return DocumentPropertiesW (hWnd, hPrinter, (LPWSTR) pDeviceName,
-				(DEVMODEA *) pDevModeOutput,
-				(DEVMODEA *) pDevModeInput, fMode);
+  /* Cygwin used to mistakenly declare the fourth and fifth arguments as
+     PDEVMODEA. */
+  return DocumentPropertiesW (hWnd, hPrinter, (LPWSTR) pDeviceName,
+			      (DEVMODEA *) pDevModeOutput,
+			      (DEVMODEA *) pDevModeInput, fMode);
 #else
-    return DocumentPropertiesW (hWnd, hPrinter, (LPWSTR) pDeviceName,
-				pDevModeOutput, pDevModeInput, fMode);
+  return DocumentPropertiesW (hWnd, hPrinter, (LPWSTR) pDeviceName,
+			      pDevModeOutput, pDevModeInput, fMode);
 #endif /* CYGWIN_HEADERS */
-  else
-    {
-      HGLOBAL hDevModeInput = NULL;
-      DEVMODEA *pDevModeInputa = NULL;
-      LONG retval;
-
-      if (pDevModeInput)
-	{
-	  hDevModeInput = copy_devmodew_to_devmodea (pDevModeInput, NULL);
-	  pDevModeInputa = (DEVMODEA *) GlobalLock (hDevModeInput);
-	}
-
-      /* Here we cheat a bit to avoid a problem: If the output
-	 structure is given but not the input one, how do we know how
-	 big to allocate our shadow output structure?  Since the
-	 shadow structure is ANSI and the original Unicode, we know
-	 the shadow structure is smaller than what's given, so we just
-	 write into the given structure and then fix. */
-      retval = DocumentPropertiesA (hWnd, hPrinter, (LPSTR) pDeviceName,
-				    pDevModeOutput ?
-				    (DEVMODEA *) pDevModeOutput : 0,
-				    pDevModeInput ? pDevModeInputa : 0,
-				    fMode);
-
-      if (hDevModeInput)
-	{
-	  GlobalUnlock (hDevModeInput);
-	  GlobalFree (hDevModeInput);
-	}
-
-      if (retval >= 0 && pDevModeOutput)
-	{
-	  /* copy the shadow structure out of the way and then put the
-             right contents back. */
-	  DEVMODEA *shadow = (DEVMODEA *) pDevModeOutput;
-	  DEVMODEA *newshadow = alloca_array (DEVMODEA, shadow->dmSize +
-					      shadow->dmDriverExtra);
-
-	  memcpy (newshadow, shadow, shadow->dmSize + shadow->dmDriverExtra);
-	  copy_devmodea_to_devmodew (newshadow, pDevModeOutput);
-	}
-
-      if (fMode == 0)
-	retval += (sizeof (DEVMODEW) - sizeof (DEVMODEA));
-      return retval;
-    }
-}
-
-static BOOL
-ansi_printer_dialog_1 (void *strucked, HGLOBAL *devmode_inout, int do_PrintDlg)
-{
-  HGLOBAL hdma = NULL;
-  HGLOBAL hdmw = *devmode_inout;
-  DEVMODEW *dmw = NULL;
-  BOOL retval;
-
-  if (hdmw != NULL)
-    {
-      /* copy to shadow in structure if needed */
-      dmw = (DEVMODEW *) GlobalLock (hdmw);
-      hdma = copy_devmodew_to_devmodea (dmw, NULL);
-      *devmode_inout = hdma;
-    }
-
-  if (do_PrintDlg)
-    retval = PrintDlgA ((PRINTDLGA *) strucked);
-  else
-    retval = PageSetupDlgA ((PAGESETUPDLGA *) strucked);
-
-  if (retval)
-    {
-      /* copy the shadow output structure back to original, or
-	 allocate new one. */
-      if (*devmode_inout)
-	{
-	  DEVMODEA *newdma = (DEVMODEA *) GlobalLock (*devmode_inout);
-	  if (dmw)
-	    {
-	      copy_devmodea_to_devmodew (newdma, dmw);
-	      GlobalUnlock (hdmw);
-	    }
-	  else
-	    hdmw = copy_devmodea_to_devmodew (newdma, NULL);
-	  GlobalUnlock (*devmode_inout);
-	  GlobalFree (*devmode_inout);
-	  *devmode_inout = hdmw;
-	}
-      else if (hdma)
-	/* #### can this happen? */
-	GlobalFree (hdma);
-    }
-
-  return retval;
 }
 
 BOOL
 qxePrintDlg (PRINTDLGW *lppd)
 {
-  if (XEUNICODE_P)
-    return PrintDlgW (lppd);
-  else
-    return ansi_printer_dialog_1 (lppd, &lppd->hDevMode, 1);
+  return PrintDlgW (lppd);
 }
 
 BOOL
 qxePageSetupDlg (PAGESETUPDLGW *lppd)
 {
-  if (XEUNICODE_P)
-    return PageSetupDlgW (lppd);
-  else
-    return ansi_printer_dialog_1 (lppd, &lppd->hDevMode, 0);
+  return PageSetupDlgW (lppd);
 }
 
 
@@ -1906,288 +1522,49 @@ qxePageSetupDlg (PAGESETUPDLGW *lppd)
 /*                                fonts                                 */
 /************************************************************************/
 
-static void
-copy_logfonta_to_logfontw (const LOGFONTA *src, LOGFONTW *dst)
-{
-  /* the layout of LOGFONT is
-
-     non-split fields;
-     TCHAR lfFaceName[...];
-  */
-  memcpy (dst, src, sizeof (LOGFONTA));
-}
-
-static void
-copy_logfontw_to_logfonta (const LOGFONTW *src, LOGFONTA *dst)
-{
-  memcpy (dst, src, sizeof (LOGFONTA));
-}
-
-#if 0 /* unused */
-
-static void
-copy_enumlogfonta_to_enumlogfontw (const ENUMLOGFONTA *src, ENUMLOGFONTW *dst)
-{
-  /* the layout of ENUMLOGFONT is
-
-     LOGFONT elfLogFont; 
-     TCHAR elfFullName[...]; 
-     TCHAR elfStyle[...]; 
-  */
-  xzero (*dst);
-  copy_logfonta_to_logfontw (&src->elfLogFont, &dst->elfLogFont);
-  memcpy (dst->elfFullName, src->elfFullName, sizeof (src->elfFullName));
-  memcpy (dst->elfStyle, src->elfStyle, sizeof (src->elfStyle));
-}
-
-#endif /* 0 */
-
-static void
-copy_enumlogfontexa_to_enumlogfontexw (const ENUMLOGFONTEXA *src,
-				       ENUMLOGFONTEXW *dst)
-{
-  /* the layout of ENUMLOGFONT is
-
-     LOGFONT elfLogFont; 
-     TCHAR elfFullName[...]; 
-     TCHAR elfStyle[...]; 
-     TCHAR elfScript[...];
-  */
-  xzero (*dst);
-  copy_logfonta_to_logfontw (&src->elfLogFont, &dst->elfLogFont);
-  memcpy (dst->elfFullName, src->elfFullName, sizeof (src->elfFullName));
-  memcpy (dst->elfStyle, src->elfStyle, sizeof (src->elfStyle));
-  memcpy (dst->elfScript, src->elfScript, sizeof (src->elfScript));
-}
-
-static void
-copy_newtextmetrica_to_newtextmetricw (const NEWTEXTMETRICA *src,
-				       NEWTEXTMETRICW *dst)
-{
-  /* the layout of NEWTEXTMETRIC is
-
-     non-split fields;
-     WCHAR/BYTE      tmFirstChar;
-     WCHAR/BYTE      tmLastChar;
-     WCHAR/BYTE      tmDefaultChar;
-     WCHAR/BYTE      tmBreakChar;
-     BYTE            tmItalic;
-     non-split fields;
-  */
-  xzero (*dst);
-  memcpy ((char *) dst, (char *) src,
-	  offsetof (NEWTEXTMETRICA, tmFirstChar));
-  memcpy ((char *) dst + offsetof (NEWTEXTMETRICW, tmItalic),
-	  (char *) src + offsetof (NEWTEXTMETRICA, tmItalic),
-	  sizeof (NEWTEXTMETRICA) - offsetof (NEWTEXTMETRICA, tmItalic));
-  dst->tmFirstChar = (WCHAR) src->tmFirstChar;
-  dst->tmLastChar = (WCHAR) src->tmLastChar;
-  dst->tmDefaultChar = (WCHAR) src->tmDefaultChar;
-  dst->tmBreakChar = (WCHAR) src->tmBreakChar;
-}
-
-static void
-copy_newtextmetricexa_to_newtextmetricexw (const NEWTEXTMETRICEXA *src,
-					   NEWTEXTMETRICEXW *dst)
-{
-  /* the layout of NEWTEXTMETRICEX is
-
-     NEWTEXTMETRICA/W  ntmTm;
-     FONTSIGNATURE   ntmFontSig;
-     */
-  copy_newtextmetrica_to_newtextmetricw (&src->ntmTm, &dst->ntmTm);
-  dst->ntmFontSig = src->ntmFontSig;
-}
-
-#if 0 /* unused */
-
-static void
-copy_textmetricw_to_textmetrica (const TEXTMETRICW *src,
-				       TEXTMETRICA *dst)
-{
-  /* the layout of TEXTMETRIC is like NEWTEXTMETRIC; see above. */
-  xzero (*dst);
-  memcpy ((char *) dst, (char *) src,
-	  offsetof (TEXTMETRICA, tmFirstChar));
-  memcpy ((char *) dst + offsetof (TEXTMETRICA, tmItalic),
-	  (char *) src + offsetof (TEXTMETRICW, tmItalic),
-	  sizeof (TEXTMETRICA) - offsetof (TEXTMETRICA, tmItalic));
-  dst->tmFirstChar = (BYTE) src->tmFirstChar;
-  dst->tmLastChar = (BYTE) src->tmLastChar;
-  dst->tmDefaultChar = (BYTE) src->tmDefaultChar;
-  dst->tmBreakChar = (BYTE) src->tmBreakChar;
-}
-
-#endif /* 0 */
-
-static void
-copy_textmetrica_to_textmetricw (const TEXTMETRICA *src,
-				       TEXTMETRICW *dst)
-{
-  /* the layout of TEXTMETRIC is like NEWTEXTMETRIC; see above. */
-  xzero (*dst);
-  memcpy ((char *) dst, (char *) src,
-	  offsetof (TEXTMETRICA, tmFirstChar));
-  memcpy ((char *) dst + offsetof (TEXTMETRICW, tmItalic),
-	  (char *) src + offsetof (TEXTMETRICA, tmItalic),
-	  sizeof (TEXTMETRICA) - offsetof (TEXTMETRICA, tmItalic));
-  dst->tmFirstChar = (WCHAR) src->tmFirstChar;
-  dst->tmLastChar = (WCHAR) src->tmLastChar;
-  dst->tmDefaultChar = (WCHAR) src->tmDefaultChar;
-  dst->tmBreakChar = (WCHAR) src->tmBreakChar;
-}
-
-typedef int (CALLBACK *qxeEnumFontFamExProcW) (ENUMLOGFONTEXW *lpelfe,
-					       NEWTEXTMETRICEXW *lpntme, 
-					       DWORD FontType,
-					       LPARAM lParam);
-
-struct qxeEnumFontFamExProcA_wrapper_t
-{
-  qxeEnumFontFamExProcW orig_proc;
-  LPARAM orig_lparam;
-};
-
-static int CALLBACK
-qxeEnumFontFamExProcA_wrapper (ENUMLOGFONTEXA *lpelfe,
-			       NEWTEXTMETRICEXA *lpntme, 
-			       DWORD fontType,
-			       struct qxeEnumFontFamExProcA_wrapper_t
-			       *closure)
-{
-  ENUMLOGFONTEXW lpelfew;
-  NEWTEXTMETRICEXW lpntmew;
-
-  /* #### if we're on Windows 2000 or above, lpelfe is actually an
-     ENUMLOGFONTEXDV structure, and lpntme is an ENUMTEXTMETRIC structure
-     when TRUETYPE_FONTTYPE.  both are split-sized and need their own copy
-     functions.  need to handle. */
-  copy_enumlogfontexa_to_enumlogfontexw (lpelfe, &lpelfew);
-  if (fontType & TRUETYPE_FONTTYPE)
-    copy_newtextmetricexa_to_newtextmetricexw (lpntme, &lpntmew);
-  else
-    {
-      /* see docs of EnumFontFamExProc */
-      xzero (lpntmew);
-      copy_textmetrica_to_textmetricw ((TEXTMETRICA *) lpntme,
-				       (TEXTMETRICW *) &lpntmew);
-    }
-  return (closure->orig_proc) (&lpelfew, &lpntmew, fontType,
-                               closure->orig_lparam);
-}
-
 int
 qxeEnumFontFamiliesEx (HDC hdc, LOGFONTW *lpLogfont,
 		       FONTENUMPROCW lpEnumFontFamProc, LPARAM lParam,
 		       DWORD dwFlags)
 {
-  if (XEUNICODE_P)
-    return EnumFontFamiliesExW (hdc, lpLogfont, lpEnumFontFamProc, lParam,
-				dwFlags);
-  else
-    {
-      struct qxeEnumFontFamExProcA_wrapper_t closure;
-      LOGFONTA lfa;
-
-      closure.orig_proc = (qxeEnumFontFamExProcW) lpEnumFontFamProc;
-      closure.orig_lparam = lParam;
-      copy_logfontw_to_logfonta (lpLogfont, &lfa);
-      return EnumFontFamiliesExA (hdc, &lfa,
-				  (FONTENUMPROCA)
-				  qxeEnumFontFamExProcA_wrapper,
-				  (LPARAM) &closure, dwFlags);
-    }
+  return EnumFontFamiliesExW (hdc, lpLogfont, lpEnumFontFamProc, lParam,
+			      dwFlags);
 }
 
 HFONT
 qxeCreateFontIndirect (CONST LOGFONTW *lplf)
 {
-  if (XEUNICODE_P)
-    return CreateFontIndirectW (lplf);
-  else
-    {
-      LOGFONTA lfa;
-
-      copy_logfontw_to_logfonta (lplf, &lfa);
-      return CreateFontIndirectA (&lfa);
-    }
+  return CreateFontIndirectW (lplf);
 }
 
 BOOL
 qxeImmSetCompositionFont (HIMC imc, LOGFONTW *lplf)
 {
-  if (XEUNICODE_P)
-    return ImmSetCompositionFontW (imc, lplf);
-  else
-    {
-      LOGFONTA lfa;
-
-      copy_logfontw_to_logfonta (lplf, &lfa);
-      return ImmSetCompositionFontA (imc, &lfa);
-    }
+  return ImmSetCompositionFontW (imc, lplf);
 }
 
 BOOL
 qxeImmGetCompositionFont (HIMC imc, LOGFONTW *lplf)
 {
-  if (XEUNICODE_P)
-    return ImmGetCompositionFontW (imc, lplf);
-  else
-    {
-      LOGFONTA lfa;
-      BOOL retval = ImmGetCompositionFontA (imc, &lfa);
-
-      if (retval)
-	copy_logfonta_to_logfontw (&lfa, lplf);
-      return retval;
-    }
+  return ImmGetCompositionFontW (imc, lplf);
 }
 
 BOOL
 qxeImmSetCompositionString (HIMC arg1, DWORD dwIndex, LPVOID lpComp, DWORD arg4, LPVOID lpRead, DWORD arg6)
 {
-  if (XEUNICODE_P)
-    return ImmSetCompositionStringW (arg1, dwIndex, lpComp, arg4, lpRead, arg6);
-  else
-    return ImmSetCompositionStringA (arg1, dwIndex, lpComp, arg4, lpRead, arg6);
+  return ImmSetCompositionStringW (arg1, dwIndex, lpComp, arg4, lpRead, arg6);
 }
 
 int
 qxeGetObject (HGDIOBJ hgdiobj, int cbBuffer, LPVOID lpvObject)
 {
-  if (XEUNICODE_P)
-    return GetObjectW (hgdiobj, cbBuffer, lpvObject);
-  else
-    {
-      if (cbBuffer == sizeof (LOGFONTW))
-	{
-	  LOGFONTA lfa;
-	  int retval = GetObjectA (hgdiobj, sizeof (LOGFONTA), &lfa);
-
-	  if (!retval)
-	    return retval;
-	  copy_logfonta_to_logfontw (&lfa, (LOGFONTW *) lpvObject);
-	  return retval;
-	}
-      else
-	return GetObjectA (hgdiobj, cbBuffer, lpvObject);
-    }
+  return GetObjectW (hgdiobj, cbBuffer, lpvObject);
 }
 
 BOOL
 qxeGetTextMetrics (HDC hdc, LPTEXTMETRICW lptm)
 {
-  if (XEUNICODE_P)
-    return GetTextMetricsW (hdc, lptm);
-  else
-    {
-      TEXTMETRICA tma;
-      BOOL retval = GetTextMetricsA (hdc, &tma);
-
-      if (retval)
-	copy_textmetrica_to_textmetricw (&tma, lptm);
-      return retval;
-    }
+  return GetTextMetricsW (hdc, lptm);
 }
 
 
@@ -2195,365 +1572,23 @@ qxeGetTextMetrics (HDC hdc, LPTEXTMETRICW lptm)
 /*                                windows                               */
 /************************************************************************/
 
-typedef struct Intercepted_wnd_proc
-{
-  WNDPROC proc;
-  Extbyte *name;
-  int is_ansi;
-} Intercepted_wnd_proc;
-
-typedef struct
-{
-  Dynarr_declare (Intercepted_wnd_proc);
-} Intercepted_wnd_proc_dynarr;
-
-static Intercepted_wnd_proc_dynarr *intercepted_wnd_procs;
-
-static Intercepted_wnd_proc *
-find_window_class (const Extbyte *name, int is_ansi)
-{
-  int i;
-
-  if (!intercepted_wnd_procs)
-    intercepted_wnd_procs = Dynarr_new (Intercepted_wnd_proc);
-
-  for (i = 0; i < Dynarr_length (intercepted_wnd_procs); i++)
-    {
-      Intercepted_wnd_proc *s = Dynarr_atp (intercepted_wnd_procs, i);
-      
-      if (s->is_ansi == is_ansi && (is_ansi ? !strcmp (s->name, name) :
-				    !wcscmp ((wchar_t *) s->name,
-					     (wchar_t *) name)))
-	return s;
-    }
-
-  return 0;
-}
-
-/* ####
-
-   check problem with cutting and pasting in my current mule -- if i cut,
-   then go to another application, then switch back to this one and
-   paste, it seems to get confused -- loses the size or something?
-
-   other things: split flags on CreateProcess and DDE stuff should be
-   handled by us.
-   */  
-
-static LRESULT WINAPI
-intercepted_wnd_proc (HWND hwnd, UINT message_, WPARAM wParam, LPARAM lParam)
-{
-  Intercepted_wnd_proc *s;
-  int is_ansi = XEUNICODE_P ? !IsWindowUnicode (hwnd) : 1;
-  Extbyte *classname;
-  int size = 100;
-
-  /* Just in case XEUNICODE_P changes during the execution of the program
-     (admittedly, unlikely), check whether the window is Unicode and keep
-     track of this in the list of classes. */
-  while (1)
-    {
-      classname = alloca_extbytes (size * XETCHAR_SIZE);
-      if ((is_ansi ? GetClassNameA (hwnd, (LPSTR) classname, size) :
-	   GetClassNameW (hwnd, (LPWSTR) classname, size)) < size - 1)
-	break;
-      size *= 2;
-    }
-
-  s = find_window_class (classname, is_ansi);
-
-  assert (s);
-
-  if (message_ == WM_NOTIFY)
-    {
-      LPNMHDR nmhdr = (LPNMHDR) lParam;
-      int putback = nmhdr->code;
-      int do_putback = 0;
-
-#define FROB(msg)							     \
-        case msg##W:							     \
-        /* split structures are the same size, so no conversion necessary */ \
-	  nmhdr->code = (UINT) msg##A;					     \
-          do_putback = 1;						     \
-          break;
-      switch (nmhdr->code)
-	{
-	  /* NMHEADER */
-	  FROB (HDN_ITEMCHANGING);
-	  FROB (HDN_ITEMCHANGED);
-	  FROB (HDN_ITEMCLICK);
-	  FROB (HDN_ITEMDBLCLICK);
-	  FROB (HDN_DIVIDERDBLCLICK);
-	  FROB (HDN_BEGINTRACK);
-	  FROB (HDN_ENDTRACK);
-	  FROB (HDN_TRACK);
-	  /* NMDISPINFO */
-	  FROB (HDN_GETDISPINFO);
-	  /* NMTBGETINFOTIP */
-	  FROB (TBN_GETINFOTIP);
-  	  /* NMTBDISPINFO */
-	  FROB (TBN_GETDISPINFO);
-	  /* NMTOOLBAR */
-	  FROB (TBN_GETBUTTONINFO);
-
-	  /* split-sized NMTTDISPINFO */
-	  FROB (TTN_GETDISPINFO); /* handle the ...W case; then handle the
-				     ...A case specially, since we need to
-				     mess with the structure */
-	case TTN_GETDISPINFOA: /* same as TTN_NEEDTEXTA */
-	  {
-	    NMTTDISPINFOW *nmw = alloca_new (NMTTDISPINFOW);
-	    NMTTDISPINFOA *nma = (NMTTDISPINFOA *) lParam;
-	    LRESULT retval;
-	    /* the layout of NMTTDISPINFO is
-
-	       non-split fields;
-	       TCHAR szText[...];
-	       non-split fields;
-	       */
-
-	    xzero (*nmw);
-	    /* copy to ...W struct for Unicode code */
-	    memcpy ((char *) nmw, (char *) nma,
-		    offsetof (NMTTDISPINFOA, szText));
-	    memcpy ((char *) nmw + offsetof (NMTTDISPINFOW, szText) +
-		    sizeof (nmw->szText),
-		    (char *) nma + offsetof (NMTTDISPINFOA, szText) +
-		    sizeof (nma->szText),
-		    sizeof (NMTTDISPINFOA) -
-		    (offsetof (NMTTDISPINFOA, szText) + sizeof (nma->szText)));
-	    memcpy (nmw->szText, nma->szText, sizeof (nma->szText));
-	    retval = (s->proc) (hwnd, message_, wParam, lParam);
-	    /* copy back to ...A struct */
-	    xzero (*nma);
-	    memcpy ((char *) nma, (char *) nmw,
-		    offsetof (NMTTDISPINFOA, szText));
-	    memcpy ((char *) nma + offsetof (NMTTDISPINFOA, szText) +
-		    sizeof (nma->szText),
-		    (char *) nmw + offsetof (NMTTDISPINFOW, szText) +
-		    sizeof (nmw->szText),
-		    sizeof (NMTTDISPINFOA) -
-		    (offsetof (NMTTDISPINFOA, szText) + sizeof (nma->szText)));
-	    memcpy (nma->szText, nmw->szText, sizeof (nma->szText));
-	    return retval;
-	  }
-	  
-	  /* NMLVFINDITEM */
-	  FROB (LVN_ODFINDITEM);
-	  /* NMLVDISPINFO */
-	  FROB (LVN_BEGINLABELEDIT);
-	  FROB (LVN_ENDLABELEDIT);
-	  FROB (LVN_GETDISPINFO);
-	  FROB (LVN_SETDISPINFO);
-	  /* NMLVGETINFOTIP */
-	  FROB (LVN_GETINFOTIP);
-	  /* NMTREEVIEW */
-	  FROB (TVN_SELCHANGING);
-	  FROB (TVN_SELCHANGED);
-	  FROB (TVN_ITEMEXPANDING);
-	  FROB (TVN_ITEMEXPANDED);
-	  FROB (TVN_BEGINDRAG);
-	  FROB (TVN_BEGINRDRAG);
-	  FROB (TVN_DELETEITEM);
-	  /* NMTVDISPINFO */
-	  FROB (TVN_GETDISPINFO);
-	  FROB (TVN_SETDISPINFO);
-	  FROB (TVN_BEGINLABELEDIT);
-	  FROB (TVN_ENDLABELEDIT);
-	  /* NMTVGETINFOTIP */
-	  FROB (TVN_GETINFOTIP);
-	  /* NMCOMBOBOXEX */
-	  FROB (CBEN_GETDISPINFO);
-
-	  /* split-sized NMCBEDRAGBEGIN */
-	  FROB (CBEN_DRAGBEGIN); /* handle the ...W case; then handle the
-				    ...A case specially, since we need to
-				    mess with the structure */
-	  {
-	    NMCBEDRAGBEGINW *nmw = alloca_new (NMCBEDRAGBEGINW);
-	    NMCBEDRAGBEGINA *nma = (NMCBEDRAGBEGINA *) lParam;
-	    LRESULT retval;
-	    /* the layout of NNMCBEDRAGBEGIN is
-
-	       non-split fields;
-	       TCHAR szText[...];
-	       */
-
-	    xzero (*nmw);
-	    /* copy to ...W struct for Unicode code */
-	    memcpy ((char *) nmw, (char *) nma,
-		    sizeof (*nma));
-	    retval = (s->proc) (hwnd, message_, wParam, lParam);
-	    /* copy back to ...A struct */
-	    xzero (*nma);
-	    memcpy ((char *) nma, (char *) nmw,
-		    sizeof (*nma));
-	    return retval;
-	  }
-
-	  /* split-sized NMCBEENDEDIT */
-	  FROB (CBEN_ENDEDIT); /* handle the ...W case; then handle the
-				  ...A case specially, since we need to
-				  mess with the structure */
-	  {
-	    NMCBEENDEDITW *nmw = alloca_new (NMCBEENDEDITW);
-	    NMCBEENDEDITA *nma = (NMCBEENDEDITA *) lParam;
-	    LRESULT retval;
-	    /* the layout of NMCBEENDEDIT is
-
-	       non-split fields;
-	       TCHAR szText[...];
-	       non-split fields;
-	       */
-
-	    xzero (*nmw);
-	    /* copy to ...W struct for Unicode code */
-	    memcpy ((char *) nmw, (char *) nma,
-		    offsetof (NMCBEENDEDITA, szText));
-	    memcpy ((char *) nmw + offsetof (NMCBEENDEDITW, szText) +
-		    sizeof (nmw->szText),
-		    (char *) nma + offsetof (NMCBEENDEDITA, szText) +
-		    sizeof (nma->szText),
-		    sizeof (NMCBEENDEDITA) -
-		    (offsetof (NMCBEENDEDITA, szText) + sizeof (nma->szText)));
-	    memcpy (nmw->szText, nma->szText, sizeof (nma->szText));
-	    retval = (s->proc) (hwnd, message_, wParam, lParam);
-	    /* copy back to ...A struct */
-	    xzero (*nma);
-	    memcpy ((char *) nma, (char *) nmw,
-		    offsetof (NMCBEENDEDITA, szText));
-	    memcpy ((char *) nma + offsetof (NMCBEENDEDITA, szText) +
-		    sizeof (nma->szText),
-		    (char *) nmw + offsetof (NMCBEENDEDITW, szText) +
-		    sizeof (nmw->szText),
-		    sizeof (NMCBEENDEDITA) -
-		    (offsetof (NMCBEENDEDITA, szText) + sizeof (nma->szText)));
-	    memcpy (nma->szText, nmw->szText, sizeof (nma->szText));
-	    return retval;
-	  }
-
-	  /* NMDATETIMESTRING */
-	  FROB (DTN_USERSTRING);
-	  /* NMDATETIMEWMKEYDOWN */
-	  FROB (DTN_WMKEYDOWN);
-
-	  /* split-sized NMDATETIMEFORMAT */
-	  FROB (DTN_FORMAT); /* handle the ...W case; then handle the
-				...A case specially, since we need to
-				mess with the structure */
-	  {
-	    NMDATETIMEFORMATW *nmw = alloca_new (NMDATETIMEFORMATW);
-	    NMDATETIMEFORMATA *nma = (NMDATETIMEFORMATA *) lParam;
-	    LRESULT retval;
-	    /* the layout of NMDATETIMEFORMAT is
-
-	       non-split fields;
-	       TCHAR szText[...];
-	       */
-
-	    xzero (*nmw);
-	    /* copy to ...W struct for Unicode code */
-	    memcpy ((char *) nmw, (char *) nma,
-		    sizeof (*nma));
-	    retval = (s->proc) (hwnd, message_, wParam, lParam);
-	    /* copy back to ...A struct */
-	    xzero (*nma);
-	    memcpy ((char *) nma, (char *) nmw,
-		    sizeof (*nma));
-	    return retval;
-	  }
-
-	  /* NMDATETIMEFORMATQUERY */
-	  FROB (DTN_FORMATQUERY);
-	default: break;
-	}
-#undef FROB
-      if (do_putback)
-	{
-	  LRESULT retval = (s->proc) (hwnd, message_, wParam, lParam);
-	  ((LPNMHDR) lParam)->code = putback;
-	  return retval;
-	}
-    }
- 
-  return (s->proc) (hwnd, message_, wParam, lParam);
-}
-
 ATOM
 qxeRegisterClass (CONST WNDCLASSW * lpWndClass)
 {
-  Intercepted_wnd_proc *s =
-    find_window_class ((Extbyte *) lpWndClass->lpszClassName, !XEUNICODE_P);
-  WNDCLASSW classnew;
-
-  if (s)
-    {
-      s->proc = lpWndClass->lpfnWndProc;
-      s->name = (Extbyte *) lpWndClass->lpszClassName;
-      s->is_ansi = !XEUNICODE_P;
-    }
-  else
-    {
-      Intercepted_wnd_proc news;
-      news.proc = lpWndClass->lpfnWndProc;
-      news.name = (Extbyte *) lpWndClass->lpszClassName;
-      news.is_ansi = !XEUNICODE_P;
-      Dynarr_add (intercepted_wnd_procs, news);
-    }
-  classnew = *lpWndClass;
-  classnew.lpfnWndProc = intercepted_wnd_proc;
-  if (XEUNICODE_P)
-    return RegisterClassW (&classnew);
-  else
-    /* The intermediate cast fools gcc into not outputting strict-aliasing
-       complaints */
-    return RegisterClassA ((CONST WNDCLASSA *) (void *) &classnew);
+  return RegisterClassW (lpWndClass);
 }
 
 BOOL
 qxeUnregisterClass (const Extbyte * lpClassName, HINSTANCE hInstance)
 {
-  Intercepted_wnd_proc *s =
-    find_window_class (lpClassName, !XEUNICODE_P);
-
-  if (s)
-    Dynarr_delete_by_pointer (intercepted_wnd_procs, s);
-  if (XEUNICODE_P)
-    return UnregisterClassW ((LPCWSTR) lpClassName, hInstance);
-  else
-    return UnregisterClassA ((LPCSTR) lpClassName, hInstance);
+  return UnregisterClassW ((LPCWSTR) lpClassName, hInstance);
 }
 
 /* NOTE: NT 4.0+ only */
 ATOM
 qxeRegisterClassEx (CONST WNDCLASSEXW *lpWndClass)
 {
-  Intercepted_wnd_proc *s =
-    find_window_class ((Extbyte *) lpWndClass->lpszClassName, !XEUNICODE_P);
-  WNDCLASSEXW classnew;
-
-  if (s)
-    {
-      s->proc = lpWndClass->lpfnWndProc;
-      s->name = (Extbyte *) lpWndClass->lpszClassName;
-      s->is_ansi = !XEUNICODE_P;
-    }
-  else
-    {
-      Intercepted_wnd_proc news;
-      news.proc = lpWndClass->lpfnWndProc;
-      news.name = (Extbyte *) lpWndClass->lpszClassName;
-      news.is_ansi = !XEUNICODE_P;
-      Dynarr_add (intercepted_wnd_procs, news);
-    }
-  classnew = *lpWndClass;
-  classnew.lpfnWndProc = intercepted_wnd_proc;
-  if (XEUNICODE_P)
-    return RegisterClassExW (&classnew);
-  else
-    /* The intermediate cast fools gcc into not outputting strict-aliasing
-       complaints */
-    return RegisterClassExA ((CONST WNDCLASSEXA *) (void *) &classnew);
+  return RegisterClassExW (lpWndClass);
 }
 
 
@@ -2725,169 +1760,7 @@ split macros or macros needing splitting:
 LRESULT
 qxeSendMessage (HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
-#define FROB(msg)							   \
-    case msg##A:							   \
-      /* split structures are the same size, so no conversion necessary */ \
-	Msg = msg##W;							   \
-        break;
-
-  if (XEUNICODE_P)
-    {
-      WCHAR classname[100];
-      /* the name for SHBrowseForFolder windows is non-obvious so we have
-         to intercept the callback */
-      if (is_SHBrowseForFolder (hWnd))
-	{
-	  switch (Msg)
-	    {
-	      FROB (BFFM_SETSELECTION);
-	      FROB (BFFM_SETSTATUSTEXT);
-	    default: break;
-	    }
-	}
-      else if (!GetClassNameW (hWnd, classname, 100))
-	;
-      /* luckily, subclassing leaves the name alone, so we can still
-	 determine fairly easily the correct class to switch on */
-      else if (!wcscmp (classname, WC_HEADERW))
-	{
-	  switch (Msg)
-	    {
-	      FROB (HDM_INSERTITEM);
-	      FROB (HDM_GETITEM);
-	      FROB (HDM_SETITEM);
-	    default: break;
-	    }
-	}
-      else if (!wcscmp (classname, TOOLBARCLASSNAMEW))
-	{
-	  switch (Msg)
-	    {
-	      FROB (TB_GETBUTTONTEXT);
-	      FROB (TB_SAVERESTORE);
-	      FROB (TB_ADDSTRING);
-	      FROB (TB_GETBUTTONINFO);
-	      FROB (TB_SETBUTTONINFO);
-	      FROB (TB_INSERTBUTTON);
-	      FROB (TB_ADDBUTTONS);
-	    default: break;
-	    }
-	}
-      else if (!wcscmp (classname, REBARCLASSNAMEW))
-	{
-	  switch (Msg)
-	    {
-	      FROB (RB_INSERTBAND);
-	      FROB (RB_SETBANDINFO);
-	      FROB (RB_GETBANDINFO);
-	    default: break;
-	    }
-	}
-      else if (!wcscmp (classname, TOOLTIPS_CLASSW))
-	{
-	  switch (Msg)
-	    {
-	      FROB (TTM_ADDTOOL);
-	      FROB (TTM_DELTOOL);
-	      FROB (TTM_NEWTOOLRECT);
-	      FROB (TTM_GETTOOLINFO);
-	      FROB (TTM_SETTOOLINFO);
-	      FROB (TTM_HITTEST);
-	      FROB (TTM_GETTEXT);
-	      FROB (TTM_UPDATETIPTEXT);
-	      FROB (TTM_ENUMTOOLS);
-	      FROB (TTM_GETCURRENTTOOL);
-	    default: break;
-	    }
-	}
-      else if (!wcscmp (classname, STATUSCLASSNAMEW))
-	{
-	  switch (Msg)
-	    {
-	      FROB (SB_GETTEXT);
-	      FROB (SB_SETTEXT);
-	      FROB (SB_GETTEXTLENGTH);
-	      FROB (SB_SETTIPTEXT);
-	      FROB (SB_GETTIPTEXT);
-	    default: break;
-	    }
-	}
-      else if (!wcscmp (classname, WC_LISTVIEWW))
-	{
-	  switch (Msg)
-	    {
-	      FROB (LVM_GETITEM);
-	      FROB (LVM_SETITEM);
-	      FROB (LVM_INSERTITEM);
-	      FROB (LVM_FINDITEM);
-	      FROB (LVM_GETSTRINGWIDTH);
-	      FROB (LVM_EDITLABEL);
-	      FROB (LVM_GETCOLUMN);
-	      FROB (LVM_SETCOLUMN);
-	      FROB (LVM_GETITEMTEXT);
-	      FROB (LVM_SETITEMTEXT);
-	      FROB (LVM_GETISEARCHSTRING);
-	      FROB (LVM_SETBKIMAGE);
-	      FROB (LVM_GETBKIMAGE);
-	    default: break;
-	    }
-	}
-      else if (!wcscmp (classname, WC_TREEVIEWW))
-	{
-	  switch (Msg)
-	    {
-	      FROB (TVM_INSERTITEM); /* no need to split TV_INSERTSTRUCT */
-	      FROB (TVM_GETITEM);
-	      FROB (TVM_SETITEM);
-	      FROB (TVM_EDITLABEL);
-	      FROB (TVM_GETISEARCHSTRING);
-	    default: break;
-	    }
-	}
-      else if (!wcscmp (classname, WC_COMBOBOXEXW))
-	{
-	  switch (Msg)
-	    {
-	      FROB (CBEM_INSERTITEM);
-	      FROB (CBEM_SETITEM);
-	      FROB (CBEM_GETITEM);
-	    default: break;
-	    }
-	}
-      else if (!wcscmp (classname, WC_TABCONTROLW))
-	{
-	  switch (Msg)
-	    {
-	      FROB (TCM_GETITEM);
-	      FROB (TCM_SETITEM);
-	      FROB (TCM_INSERTITEM); /* no need to split TC_ITEM */
-	    default: break;
-	    }
-	}
-      else if (!wcscmp (classname, ANIMATE_CLASSW))
-	{
-	  switch (Msg)
-	    {
-	      FROB (ACM_OPEN);
-	    default: break;
-	    }
-	}
-      else if (!wcscmp (classname, DATETIMEPICK_CLASSW))
-	{
-	  switch (Msg)
-	    {
-	      FROB (DTM_SETFORMAT);
-	    default: break;
-	    }
-	}
-    }
-
-  if (XEUNICODE_P)
-    return SendMessageW (hWnd, Msg, wParam, lParam);
-  else
-    return SendMessageA (hWnd, Msg, wParam, lParam);
-
-#undef FROB
+  return SendMessageW (hWnd, Msg, wParam, lParam);
 }
 
 #endif /* HAVE_MS_WINDOWS */

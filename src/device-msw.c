@@ -223,8 +223,7 @@ mswindows_init_dde (void)
   
   mswindows_dde_service =
     qxeDdeCreateStringHandle (mswindows_dde_mlid,
-			      XETEXT (XEMACS_CLASS),
-			      XEUNICODE_P ? CP_WINUNICODE : CP_WINANSI);
+			      XETEXT (XEMACS_CLASS), CP_WINUNICODE);
   /* The following strings we Unicode-ize ourselves:
      -- SZDDESYS_TOPIC is system-provided
      -- MSWINDOWS_DDE_TOPIC_EVAL is defined by us
@@ -234,19 +233,19 @@ mswindows_init_dde (void)
   mswindows_dde_topic_system =
     qxeDdeCreateStringHandle (mswindows_dde_mlid,
 			      XETEXT (SZDDESYS_TOPIC),
-			      XEUNICODE_P ? CP_WINUNICODE : CP_WINANSI);
+			      CP_WINUNICODE);
   mswindows_dde_topic_eval =
     qxeDdeCreateStringHandle (mswindows_dde_mlid,
 			      XETEXT (MSWINDOWS_DDE_TOPIC_EVAL),
-			      XEUNICODE_P ? CP_WINUNICODE : CP_WINANSI);
+			      CP_WINUNICODE);
   mswindows_dde_item_result =
     qxeDdeCreateStringHandle (mswindows_dde_mlid,
 			      XETEXT (MSWINDOWS_DDE_ITEM_RESULT),
-			      XEUNICODE_P ? CP_WINUNICODE : CP_WINANSI);
+			      CP_WINUNICODE);
   mswindows_dde_item_open =
     qxeDdeCreateStringHandle (mswindows_dde_mlid,
 			      XETEXT (MSWINDOWS_DDE_ITEM_OPEN),
-			      XEUNICODE_P ? CP_WINUNICODE : CP_WINANSI);
+			      CP_WINUNICODE);
   DdeNameService (mswindows_dde_mlid, mswindows_dde_service, 0L, DNS_REGISTER);
 }
 #endif /* HAVE_DRAGNDROP */
@@ -1292,19 +1291,16 @@ values.  Return value is nil if there are no printers installed.
 */
        ())
 {
-  int have_nt, ok;
+  int ok;
   BYTE *data_buf, dummy_byte;
   Bytecount enum_entry_size;
   DWORD enum_flags, enum_level, bytes_needed, num_printers;
   struct gcpro gcpro1, gcpro2;
   Lisp_Object result = Qnil, def_printer = Qnil;
 
-  /* Determine OS flavor, to use the fastest enumeration method available */
-  have_nt = !mswindows_windows9x_p;
-  enum_flags = PRINTER_ENUM_LOCAL | (have_nt ? PRINTER_ENUM_CONNECTIONS : 0);
-  enum_level = have_nt ? 4 : 5;
-  enum_entry_size = (have_nt ? sizeof (PRINTER_INFO_4) :
-		     sizeof (PRINTER_INFO_5));
+  enum_flags = PRINTER_ENUM_LOCAL | PRINTER_ENUM_CONNECTIONS;
+  enum_level = 4;
+  enum_entry_size = sizeof (PRINTER_INFO_4);
 
   /* Allocate memory for printer enum structure */
   ok = qxeEnumPrinters (enum_flags, NULL, enum_level, &dummy_byte, 1,
@@ -1332,21 +1328,12 @@ values.  Return value is nil if there are no printers installed.
 
   while (num_printers--)
     {
-      Extbyte *printer_name;
-      Lisp_Object printer_name_lisp;
-      if (have_nt)
-	{
-	  PRINTER_INFO_4 *info = (PRINTER_INFO_4 *) data_buf;
-	  printer_name = (Extbyte *) info->pPrinterName;
-	}
-      else
-	{
-	  PRINTER_INFO_5 *info = (PRINTER_INFO_5 *) data_buf;
-	  printer_name = (Extbyte *) info->pPrinterName;
-	}
+      PRINTER_INFO_4 *info = (PRINTER_INFO_4 *) data_buf;
+      Extbyte *printer_name = (Extbyte *) info->pPrinterName;
+      Lisp_Object printer_name_lisp = build_tstr_string (printer_name);
+
       data_buf += enum_entry_size;
       
-      printer_name_lisp = build_tstr_string (printer_name);
       if (0 != qxestrcasecmp (XSTRING_DATA (def_printer),
 			      XSTRING_DATA (printer_name_lisp)))
 	{

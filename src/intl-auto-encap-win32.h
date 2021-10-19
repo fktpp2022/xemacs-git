@@ -813,12 +813,6 @@ BOOL qxeGetClassInfoEx (HINSTANCE arg1, const Extbyte * arg2, LPWNDCLASSEXW arg3
 DWORD qxeGetClassLong (HWND arg1, int arg2);
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetClassLongPtr
-#define GetClassLongPtr error_use_qxeGetClassLongPtr_or_GetClassLongPtrA_and_GetClassLongPtrW
-#endif
-ULONG_PTR qxeGetClassLongPtr (HWND arg1, int arg2);
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
 #undef GetClassName
 #define GetClassName error_use_qxeGetClassName_or_GetClassNameA_and_GetClassNameW
 #endif
@@ -886,12 +880,6 @@ DWORD qxeGetTabbedTextExtent (HDC arg1, const Extbyte * arg2, int arg3, int arg4
 #define GetWindowLong error_use_qxeGetWindowLong_or_GetWindowLongA_and_GetWindowLongW
 #endif
 LONG qxeGetWindowLong (HWND arg1, int arg2);
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetWindowLongPtr
-#define GetWindowLongPtr error_use_qxeGetWindowLongPtr_or_GetWindowLongPtrA_and_GetWindowLongPtrW
-#endif
-LONG_PTR qxeGetWindowLongPtr (HWND arg1, int arg2);
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
 #undef GetUserObjectInformation
@@ -1149,12 +1137,6 @@ BOOL qxeSendNotifyMessage (HWND arg1, UINT arg2, WPARAM arg3, LPARAM arg4);
 DWORD qxeSetClassLong (HWND arg1, int arg2, LONG arg3);
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SetClassLongPtr
-#define SetClassLongPtr error_use_qxeSetClassLongPtr_or_SetClassLongPtrA_and_SetClassLongPtrW
-#endif
-ULONG_PTR qxeSetClassLongPtr (HWND arg1, int arg2, LONG_PTR arg3);
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
 #undef SetDlgItemText
 #define SetDlgItemText error_use_qxeSetDlgItemText_or_SetDlgItemTextA_and_SetDlgItemTextW
 #endif
@@ -1183,12 +1165,6 @@ BOOL qxeSetUserObjectInformation (HANDLE arg1, int arg2, PVOID arg3, DWORD arg4)
 #define SetWindowLong error_use_qxeSetWindowLong_or_SetWindowLongA_and_SetWindowLongW
 #endif
 LONG qxeSetWindowLong (HWND arg1, int arg2, LONG arg3);
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SetWindowLongPtr
-#define SetWindowLongPtr error_use_qxeSetWindowLongPtr_or_SetWindowLongPtrA_and_SetWindowLongPtrW
-#endif
-LONG_PTR qxeSetWindowLongPtr (HWND arg1, int arg2, LONG_PTR arg3);
 
 #undef SetWindowsHook
 #define SetWindowsHook error_obsolete__two_versions__STRICT_and_non_STRICT

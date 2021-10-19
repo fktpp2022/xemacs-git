@@ -639,7 +639,9 @@ size_t	wcsxfrm (wchar_t*, const wchar_t*, size_t);
 
 #define ERROR_WHEN_NONINTERCEPTED_FUNS_USED
 
+#define XEUNICODE_P 1
 #include "intl-auto-encap-win32.h"
+#undef XEUNICODE_P
 
 /* would be encapsulatable but for parsing problems */
 
@@ -917,69 +919,114 @@ ATOM qxeRegisterClassEx (CONST WNDCLASSEXW * arg1);
   qxeCreateWindowEx (0L, lpClassName, lpWindowName, dwStyle, x, y,	     \
                      nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam)
 
-/* ------------------------- Unicode conversion ------------------------- */
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetWindowLongPtr
+#define GetWindowLongPtr error use qxeGetWindowLongPtr or GetWindowLongPtrA/GetWindowLongPtrW
+#endif
+DECLARE_INLINE_HEADER (
+LRESULT
+qxeGetWindowLongPtr(HWND arg1, int arg2)
+)
+{
+#if SIZEOF_VOID_P == SIZEOF_LONG
+  return (LRESULT) GetWindowLongW (arg1, arg2);
+#else
+  return (LRESULT) GetWindowLongPtrW (arg1, arg2);
+#endif
+}
 
-/* Set early in command-line processing, when -nuni or
-   --no-unicode-lib-calls is seen. */
-extern int no_mswin_unicode_lib_calls;
-/* Set early, in init_win32_very_very_early(). */
-extern int mswindows_windows9x_p;
-#define XEUNICODE_P (!mswindows_windows9x_p && !no_mswin_unicode_lib_calls)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SetWindowLongPtr
+#define SetWindowLongPtr error use qxeSetWindowLongPtr or SetWindowLongPtrA/SetWindowLongPtrW
+#endif
+DECLARE_INLINE_HEADER (
+LRESULT
+qxeSetWindowLongPtr(HWND arg1, int arg2, LPARAM arg3)
+)
+{
+#if SIZEOF_VOID_P == SIZEOF_LONG
+  return (LRESULT) SetWindowLongW (arg1, arg2, (LONG) arg3);
+#else
+  return (LRESULT) SetWindowLongPtrW (arg1, arg2, (LONG_PTR) arg3);
+#endif
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetClassLongPtr
+#define GetClassLongPtr error use qxeGetClassLongPtr or GetClassLongPtrA/GetClassLongPtrW
+#endif
+DECLARE_INLINE_HEADER (
+LRESULT
+qxeGetClassLongPtr (HWND arg1, int arg2)
+)
+{
+#if SIZEOF_VOID_P == SIZEOF_LONG
+  return (LRESULT) GetClassLongW (arg1, arg2);
+#else
+  return (LRESULT) GetClassLongPtrW (arg1, arg2);
+#endif
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SetClassLongPtr
+#define SetClassLongPtr error use qxeSetClassLongPtr or SetClassLongPtrA/SetClassLongPtrW
+#endif
+DECLARE_INLINE_HEADER (
+LRESULT
+qxeSetClassLongPtr (HWND arg1, int arg2, LPARAM arg3)
+)
+{
+#if SIZEOF_VOID_P == SIZEOF_LONG
+  return (LRESULT) SetClassLongW (arg1, arg2, (LONG) arg3);
+#else
+  return (LRESULT) SetClassLongPtrW (arg1, arg2, (LONG_PTR) arg3);
+#endif
+}
+
+/* ------------------------- Unicode conversion ------------------------- */
 
 #define XELPTSTR LPWSTR
 #define XELPCTSTR LPCWSTR
 
-#define XETCHAR_SIZE (XEUNICODE_P ? sizeof (WCHAR) : sizeof (CHAR))
+#define XETCHAR_SIZE sizeof (WCHAR)
 #define MAX_XETCHAR_SIZE sizeof (WCHAR)
-#define XETEXT1(arg) (XEUNICODE_P ? ((char *) (L##arg)) : (arg))
+#define XETEXT1(arg) ((char *) (L##arg))
 /* We need to do this indirection in case ARG is also a manifest constant.
    I don't really understand why. --ben */
 #define XETEXT(arg) XETEXT1(arg)
-#define XECOPY_TCHAR(ptr, ch) \
-  (XEUNICODE_P ? (* (LPWSTR) (ptr) = L##ch) : (* (LPSTR) (ptr) = (ch)))
-#define qxetcslen(arg) \
-  (XEUNICODE_P ? wcslen ((wchar_t *) arg) : strlen (arg))
-#define qxetcsbytelen(arg) \
-  (XEUNICODE_P ? wcslen ((wchar_t *) arg) * XETCHAR_SIZE : strlen (arg))
-#define qxetcscmp(s1, s2) \
-  (XEUNICODE_P ? wcscmp ((wchar_t *) s1, (wchar_t *) s2) \
-   : strcmp (s1, s2))
-#define qxetcscpy(s1, s2) \
-  (XEUNICODE_P ? (char *) wcscpy ((wchar_t *) s1, (wchar_t *) s2) \
-   : strcpy (s1, s2))
-#define qxetcsncpy(s1, s2, n) \
-  (XEUNICODE_P ? (char *) wcsncpy ((wchar_t *) s1, (wchar_t *) s2, n) \
-   : strncpy (s1, s2, n))
-#define qxetcschr(s, ch) \
-  (XEUNICODE_P ? (char *) wcschr ((wchar_t *) s, (WCHAR) ch) \
-   : strchr (s, ch))
-#define qxetcsrchr(s, ch) \
-  (XEUNICODE_P ? (char *) wcsrchr ((wchar_t *) s, (WCHAR) ch) \
-   : strrchr (s, ch))
-#define qxetcsdup(s) \
-  (XEUNICODE_P ? (char *) wcsdup ((wchar_t *) s) \
-   : xstrdup (s))
+#define XECOPY_TCHAR(ptr, ch) (* (LPWSTR) (ptr) = L##ch)
 
-#define ITEXT_TO_TSTR(in) ITEXT_TO_EXTERNAL (in, Qmswindows_tstr)
-#define LISP_STRING_TO_TSTR(in) LISP_STRING_TO_EXTERNAL (in, Qmswindows_tstr)
-#define TSTR_TO_ITEXT(in) EXTERNAL_TO_ITEXT (in, Qmswindows_tstr)
+#define qxetcslen(arg) wcslen ((wchar_t *) arg)
+
+#define qxetcsbytelen(arg) (wcslen ((wchar_t *) arg) * XETCHAR_SIZE)
+#define qxetcscmp(s1, s2) wcscmp ((wchar_t *) s1, (wchar_t *) s2)
+#define qxetcscpy(s1, s2) (char *) wcscpy ((wchar_t *) s1, (wchar_t *) s2)
+#define qxetcsncpy(s1, s2, n) \
+  (char *) wcsncpy ((wchar_t *) s1, (wchar_t *) s2, n)
+#define qxetcschr(s, ch) (char *) wcschr ((wchar_t *) s, (WCHAR) ch)
+#define qxetcsrchr(s, ch) (char *) wcsrchr ((wchar_t *) s, (WCHAR) ch)
+#define qxetcsdup(s) (char *) wcsdup ((wchar_t *) s)
+
+#define ITEXT_TO_TSTR(in) ITEXT_TO_EXTERNAL (in, Qmswindows_unicode)
+#define LISP_STRING_TO_TSTR(in) LISP_STRING_TO_EXTERNAL (in, Qmswindows_unicode)
+#define TSTR_TO_ITEXT(in) EXTERNAL_TO_ITEXT (in, Qmswindows_unicode)
 #define TSTR_TO_ITEXT_MALLOC(in) \
-  EXTERNAL_TO_ITEXT_MALLOC (in, Qmswindows_tstr)
+  EXTERNAL_TO_ITEXT_MALLOC (in, Qmswindows_unicode)
 
 #define build_tstr_string(in) \
-  make_extstring (in, qxetcsbytelen ((Extbyte *) in), Qmswindows_tstr)
+  make_extstring (in, qxetcsbytelen ((Extbyte *) in), Qmswindows_unicode)
 
 #define MAX_ANSI_CHAR_LEN 1
 #define MAX_UNICODE_CHAR_LEN 2
 
-DECLARE_INLINE_HEADER (int ansi_char_to_text (int ch, Extbyte *t))
+DECLARE_INLINE_HEADER (Bytecount ansi_char_to_text (int ch, Extbyte *t))
 {
   ch &= 0xFF;
   t[0] = ch;
   return 1;
 }
 
-DECLARE_INLINE_HEADER (int unicode_char_to_text (int ch, Extbyte *t))
+DECLARE_INLINE_HEADER (Bytecount unicode_char_to_text (int ch, Extbyte *t))
 {
   t[0] = ch & 0xFF;
   t[1] = (ch >> 8) & 0xFF;
@@ -1050,17 +1097,6 @@ int mswindows_locale_to_oem_code_page (LCID lcid);
 
 /* ------------------------- Filename conversion ------------------------- */
 
-#ifdef CYGWIN
-
-/* We should just remove the Windows 9x support */
-
-#define CCP_POSIX_TO_WIN_T \
-  (XEUNICODE_P ? CCP_POSIX_TO_WIN_W : CCP_POSIX_TO_WIN_A)
-#define CCP_WIN_T_TO_POSIX \
-  (XEUNICODE_P ? CCP_WIN_W_TO_POSIX : CCP_WIN_A_TO_POSIX)
-
-#endif
-
 #ifdef HAVE_CYGWIN_CONV_PATH
 #define LOCAL_FILE_FORMAT_TO_TSTR(path, out)				\
 do {									\
@@ -1075,10 +1111,10 @@ do {									\
       Extbyte *lfftt_tstr_path;						\
 									\
       PATHNAME_CONVERT_OUT_UTF_8 (lfftt, lfftt_utf8_path);		\
-      lfftt_size = cygwin_conv_path (CCP_POSIX_TO_WIN_T | CCP_RELATIVE,	\
+      lfftt_size = cygwin_conv_path (CCP_POSIX_TO_WIN_W | CCP_RELATIVE,	\
 				     lfftt_utf8_path, NULL, 0);		\
       lfftt_tstr_path = alloca_extbytes (lfftt_size);			\
-      cygwin_conv_path (CCP_POSIX_TO_WIN_T | CCP_RELATIVE,		\
+      cygwin_conv_path (CCP_POSIX_TO_WIN_W | CCP_RELATIVE,		\
 			lfftt_utf8_path, lfftt_tstr_path, lfftt_size);	\
       *lffttout = lfftt_tstr_path;					\
     }									\
@@ -1089,10 +1125,10 @@ do {									\
   int ttlff_size;							\
   Extbyte *ttlff_utf8_path;						\
 									\
-  ttlff_size = cygwin_conv_path (CCP_WIN_T_TO_POSIX | CCP_RELATIVE,	\
+  ttlff_size = cygwin_conv_path (CCP_WIN_W_TO_POSIX | CCP_RELATIVE,	\
 				 ttlff, NULL, 0);			\
   ttlff_utf8_path = alloca_extbytes (ttlff_size);			\
-  cygwin_conv_path (CCP_WIN_T_TO_POSIX | CCP_RELATIVE,			\
+  cygwin_conv_path (CCP_WIN_W_TO_POSIX | CCP_RELATIVE,			\
 		    ttlff, ttlff_utf8_path, ttlff_size);		\
   (out) = EXTERNAL_TO_ITEXT (ttlff_utf8_path, Qutf_8);			\
 } while (0)
