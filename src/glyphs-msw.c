@@ -2493,7 +2493,7 @@ static HTREEITEM add_tree_item (Lisp_Object image_instance,
       
   tvitem.item.cchTextMax = qxetcslen ((Extbyte *) tvitem.item.pszText);
       
-  if ((ret = (HTREEITEM) qxeSendMessage (wnd, TVM_INSERTITEM,
+  if ((ret = (HTREEITEM) qxeSendMessage (wnd, TVM_INSERTITEMW,
 					 0, (LPARAM) &tvitem)) == 0)
     gui_error ("error adding tree view entry", item);
 
@@ -2612,7 +2612,7 @@ add_tab_item (Lisp_Object image_instance,
 
   tcitem.cchTextMax = qxetcslen ((Extbyte *) tcitem.pszText);
 
-  if ((ret = qxeSendMessage (wnd, TCM_INSERTITEM, i, (LPARAM) &tcitem)) < 0)
+  if ((ret = qxeSendMessage (wnd, TCM_INSERTITEMW, i, (LPARAM) &tcitem)) < 0)
     gui_error ("error adding tab entry", item);
 
   return ret;

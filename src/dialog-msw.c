@@ -351,22 +351,26 @@ CALLBACK handle_directory_proc (HWND hwnd, UINT msg,
     case BFFM_INITIALIZED:
       /* WParam is TRUE since you are passing a path. 
 	 It would be FALSE if you were passing a pidl. */
-      qxeSendMessage (hwnd, BFFM_SETSELECTION, TRUE, (LPARAM) pd->fname);
+      qxeSendMessage (hwnd, BFFM_SETSELECTIONW, TRUE, (LPARAM) pd->fname);
       break;
       
     case BFFM_SELCHANGED:
       /* Set the status window to the currently selected path. */
       if (qxeSHGetPathFromIDList ((LPITEMIDLIST) lParam, szDir))
-	qxeSendMessage (hwnd, BFFM_SETSTATUSTEXT, 0, (LPARAM) szDir);
+	qxeSendMessage (hwnd, BFFM_SETSTATUSTEXTW, 0, (LPARAM) szDir);
       break;
       
-    case BFFM_VALIDATEFAILED:
+    case BFFM_VALIDATEFAILEDW:
       if (pd->validate)
 	return TRUE;
       else
 	pd->unknown_fname = qxetcsdup ((Extbyte *) lParam);
       break;
-      
+
+    case BFFM_VALIDATEFAILEDA:
+      ABORT();
+      break;
+
     default:
       break;
     }

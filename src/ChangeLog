@@ -1,5 +1,15 @@
 2021-10-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* dialog-msw.c (handle_directory_proc):
+	* event-msw.c (mswindows_wnd_proc):
+	* glyphs-msw.c (add_tree_item):
+	* glyphs-msw.c (add_tab_item):
+	* toolbar-msw.c (mswindows_output_toolbar):
+	Send wide messages explicitly when they are split, restoring
+	functionality for the toolbar labels.
+
+2021-10-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* device-msw.c (mswindows_init_dde):
 	Remove references to XEUNICODE_P, we always run as a Unicode
 	program under Win32.

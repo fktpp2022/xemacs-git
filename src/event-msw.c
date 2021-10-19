@@ -3220,7 +3220,7 @@ mswindows_wnd_proc (HWND hwnd, UINT message_, WPARAM wParam, LPARAM lParam)
 	    frame = XFRAME (mswindows_find_frame (hwnd));
 
 	    item.mask = TCIF_PARAM;
-	    qxeSendMessage (nmhdr->hwndFrom, TCM_GETITEM, (WPARAM) idx,
+	    qxeSendMessage (nmhdr->hwndFrom, TCM_GETITEMW, (WPARAM) idx,
 			    (LPARAM) &item);
 
 	    mswindows_handle_gui_wm_command (frame, 0, item.lParam);

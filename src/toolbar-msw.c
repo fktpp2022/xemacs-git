@@ -405,7 +405,7 @@ mswindows_output_toolbar (struct frame *f, enum edge_pos pos)
       qxeSendMessage (toolbarwnd, TB_AUTOSIZE, 0, 0);
 		   
       /* finally populate with images */
-      if (!qxeSendMessage (toolbarwnd, TB_ADDBUTTONS,
+      if (!qxeSendMessage (toolbarwnd, TB_ADDBUTTONSW,
 			   (WPARAM) nbuttons, (LPARAM) button_tbl))
 	{
 	  mswindows_clear_toolbar (f, pos, 0);
