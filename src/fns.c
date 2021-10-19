@@ -427,7 +427,8 @@ split_string_by_ichar_1 (Lisp_Object reloc, const Ibyte *string,
                   > unescape_buffer_size)
                 {
                   unescape_buffer_size =
-                    ((p - string) - (escaped_len * deleting_escapes)) * 1.5;
+                    ((p - string) - (escaped_len * deleting_escapes));
+		  unescape_buffer_size += unescape_buffer_size / 2;
                   unescape_buffer_ptr = alloca_ibytes (unescape_buffer_size);
                 }
 

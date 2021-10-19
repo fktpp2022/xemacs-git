@@ -1,3 +1,8 @@
+2021-10-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* xemacs.mak (TEMACS_COMMON_OBJS):
+	Remove hash.obj from this, no longer needed.
+
 2014-11-10  Vin Shelton  <acs@xemacs.org>
 
 	* xemacs.mak (TEXINFO_SRCS): XEmacs sources no longer include

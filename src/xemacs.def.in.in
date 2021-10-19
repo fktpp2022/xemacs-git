@@ -193,7 +193,6 @@ qxestrtoul
 qxeatoi
 qxestrupr
 qxestrlwr
-qxesprintf
 qxesscanf_ascii_1
 #endif /* XEMACS_DEFS_NEEDS_INLINE_DECLS */
 record_unwind_protect

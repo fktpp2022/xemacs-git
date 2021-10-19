@@ -536,7 +536,7 @@ arguments: (NUMBER &optional (RADIX 10) RADIX_TABLE)
 */
        (number, radix, radix_table))
 {
-  EMACS_UINT radixing = 10;
+  UINT_16_BIT radixing = 10;
 
   CHECK_NUMBER (number);
 
@@ -553,7 +553,7 @@ arguments: (NUMBER &optional (RADIX 10) RADIX_TABLE)
   check_integer_range (radix, make_fixnum (2),
                        get_radix_table_greatest_radix (radix_table));
 
-  radixing = XFIXNUM (radix);
+  radixing = (UINT_16_BIT) (XFIXNUM (radix));
 
   if (FLOATP (number))
     {

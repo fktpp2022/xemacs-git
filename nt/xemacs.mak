@@ -891,7 +891,6 @@ TEMACS_COMMON_OBJS= \
 	$(OUTDIR)\glyphs-widget.obj \
 	$(OUTDIR)\gui.obj \
 	$(OUTDIR)\gutter.obj \
-	$(OUTDIR)\hash.obj \
 	$(OUTDIR)\indent.obj \
 	$(OUTDIR)\imgproc.obj \
 	$(OUTDIR)\insdel.obj \

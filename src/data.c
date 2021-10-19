@@ -1652,8 +1652,7 @@ parse_integer (const Ibyte *buf, Ibyte **buf_end_out, Bytecount len,
 
   if (negativland)
     {
-      EMACS_INT snum = - num;
-      result = make_integer (snum);
+      result = make_integer (- (EMACS_INT) num);
     }
   else
     {
@@ -1820,8 +1819,7 @@ parse_integer (const Ibyte *buf, Ibyte **buf_end_out, Bytecount len,
 
       if (negativland)
 	{
-	  EMACS_INT snum = - num;
-	  result = make_integer (snum);
+	  result = make_integer (- (EMACS_INT) num);
 	}
       else
 	{

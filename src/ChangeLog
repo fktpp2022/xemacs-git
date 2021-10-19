@@ -1,5 +1,20 @@
 2021-10-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Quiet some warnings from Visual C++.
+	* data.c (parse_integer):
+	Visual C++ advises that unary - applied to an unsigned integer
+	remains unsigned, correct this.
+	* doprnt.c (Fnumber_to_string):
+	Declare RADIXING as a UINT_16_BIT, to quiet the compiler (we are
+	careful to check its range).
+	* fns.c (split_string_by_ichar_1):
+	Avoid multiplying a Bytecount by a double, to quiet the compiler
+	regarding data loss.
+	* xemacs.def.in.in:
+	qxesprintf() no longer available here.
+
+2021-10-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* data.c:
 	* data.c (Fdigit_char_p):
 	Constrain our range of RADIX from one to the maximum value in
