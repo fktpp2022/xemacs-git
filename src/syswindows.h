@@ -928,11 +928,7 @@ LRESULT
 qxeGetWindowLongPtr(HWND arg1, int arg2)
 )
 {
-#if SIZEOF_VOID_P == SIZEOF_LONG
-  return (LRESULT) GetWindowLongW (arg1, arg2);
-#else
   return (LRESULT) GetWindowLongPtrW (arg1, arg2);
-#endif
 }
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
@@ -944,11 +940,7 @@ LRESULT
 qxeSetWindowLongPtr(HWND arg1, int arg2, LPARAM arg3)
 )
 {
-#if SIZEOF_VOID_P == SIZEOF_LONG
-  return (LRESULT) SetWindowLongW (arg1, arg2, (LONG) arg3);
-#else
-  return (LRESULT) SetWindowLongPtrW (arg1, arg2, (LONG_PTR) arg3);
-#endif
+  return (LRESULT) SetWindowLongPtrW (arg1, arg2, arg3);
 }
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
@@ -960,11 +952,7 @@ LRESULT
 qxeGetClassLongPtr (HWND arg1, int arg2)
 )
 {
-#if SIZEOF_VOID_P == SIZEOF_LONG
-  return (LRESULT) GetClassLongW (arg1, arg2);
-#else
   return (LRESULT) GetClassLongPtrW (arg1, arg2);
-#endif
 }
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
@@ -976,11 +964,7 @@ LRESULT
 qxeSetClassLongPtr (HWND arg1, int arg2, LPARAM arg3)
 )
 {
-#if SIZEOF_VOID_P == SIZEOF_LONG
-  return (LRESULT) SetClassLongW (arg1, arg2, (LONG) arg3);
-#else
-  return (LRESULT) SetClassLongPtrW (arg1, arg2, (LONG_PTR) arg3);
-#endif
+  return (LRESULT) SetClassLongPtrW (arg1, arg2, arg3);
 }
 
 /* ------------------------- Unicode conversion ------------------------- */

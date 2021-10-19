@@ -10,6 +10,13 @@
 
 2021-10-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* syswindows.h:
+	Remove some casts from qxeSetWindowLongPtr, qxeGetWindowLongPtr, 
+	qxeSetClassPtr, qxeGetClassPtr, fixing the 64-bit Cygwin build for
+	me.
+
+2021-10-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* device-msw.c (mswindows_init_dde):
 	Remove references to XEUNICODE_P, we always run as a Unicode
 	program under Win32.
