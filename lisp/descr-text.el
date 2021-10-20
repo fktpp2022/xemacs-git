@@ -220,7 +220,8 @@ otherwise."
             (with-string-as-buffer-contents ""
               (shell-command "kpsewhich UnicodeData.txt" t) 
               ;; Delete the final newline
-              (delete-region (- (point-max) 1) (point-max))))
+	      (if (eql (char-before (point-max)) ?\n)
+		  (delete-region (- (point-max) 1) (point-max)))))
       (if (file-exists-p path) path)))
   "Location of Unicode data file.
 This is the UnicodeData.txt file from the Unicode Consortium, used for

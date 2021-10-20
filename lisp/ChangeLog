@@ -1,3 +1,10 @@
+2021-10-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* descr-text.el (describe-char-unicodedata-file):
+	Only delete a trailing newline if one is present, avoiding
+	build-time problems now mule/make-digit.el has (require
+	'descr-text).
+
 2021-10-09  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* mule/make-digit.el:
