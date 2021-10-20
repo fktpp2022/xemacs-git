@@ -638,10 +638,7 @@ size_t	wcsxfrm (wchar_t*, const wchar_t*, size_t);
 /* See intl-win32.c for more information about Unicode-encapsulation */
 
 #define ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-
-#define XEUNICODE_P 1
 #include "intl-auto-encap-win32.h"
-#undef XEUNICODE_P
 
 /* would be encapsulatable but for parsing problems */
 
@@ -713,6 +710,24 @@ BOOL qxeGetICMProfile (HDC arg1, LPDWORD arg2, Extbyte * arg3);
 #define UpdateICMRegKey error use qxeUpdateICMRegKey or UpdateICMRegKeyA/UpdateICMRegKeyW
 #endif
 BOOL qxeUpdateICMRegKey (DWORD arg1, Extbyte * arg2, Extbyte * arg3, UINT arg4);
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetNamedSecurityInfo
+#define GetNamedSecurityInfo error_use_qxeGetNamedSecurityInfo_or_GetNamedSecurityInfoA_and_GetNamedSecurityInfoW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeGetNamedSecurityInfo (Extbyte * pObjectName,
+			       SE_OBJECT_TYPE ObjectType,
+			       SECURITY_INFORMATION SecurityInfo,
+			       PSID * ppsidOwner, PSID * ppsidGroup,
+			       PACL * ppDacl, PACL * ppSacl,
+			       PSECURITY_DESCRIPTOR * ppSecurityDescriptor)
+)
+{
+  return GetNamedSecurityInfoW ((LPWSTR) pObjectName, ObjectType,
+				SecurityInfo, ppsidOwner, ppsidGroup,
+				ppDacl, ppSacl, ppSecurityDescriptor);
+}
 
 /* would be encapsulatable but for header changes in different versions of VC++ */
 
@@ -788,6 +803,12 @@ VOID qxeSHChangeNotify (LONG wEventId, UINT uFlags, LPCVOID dwItem1,
 HRESULT qxeSHGetDataFromIDList (IShellFolder *psf, LPCITEMIDLIST pidl,
 				int nFormat, PVOID pv, int cb);
 
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SHGetPathFromIDList
+#define SHGetPathFromIDList error use qxeSHGetPathFromIDList or SHGetPathFromIDListA/SHGetPathFromIDListW
+#endif
+BOOL qxeSHGetPathFromIDList (LPCITEMIDLIST pidl, Extbyte *pszPath);
+
 /* devmode */
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
 #undef CreateDC
@@ -801,13 +822,6 @@ HDC qxeCreateDC (const Extbyte *lpszDriver, const Extbyte *lpszDevice,
 #define ResetDC error use qxeResetDC or ResetDCA/ResetDCW
 #endif
 HDC qxeResetDC (HDC hdc, CONST DEVMODEW *lpInitData);
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef OpenPrinter
-#define OpenPrinter error use qxeOpenPrinter or OpenPrinterA/OpenPrinterW
-#endif
-DWORD qxeOpenPrinter (Extbyte *pPrinterName, LPHANDLE phPrinter,
-		      LPPRINTER_DEFAULTSW pDefaultconst);
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
 #undef DocumentProperties

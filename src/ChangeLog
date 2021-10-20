@@ -1,3 +1,31 @@
+2021-10-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* Makefile.in.in (win32_objs):
+	* Makefile.in.in (unicode-encapsulate):
+	Remove references to intl-auto-encap-win32.{c,obj} from this
+	file, no longer used.
+	
+	* depend (gccache-xlike-inc.o): Removed.
+	* depend (gccache-xlike.o): Removed.
+	* depend (intl-auto-encap-win32.o): Removed.
+	Regenerate this file, remove references to
+	intl-auto-encap-win32.o; remove reerences to gccache-xlike* in
+	passing.
+
+	* intl-auto-encap-win32.c: Remove, all its functionality is now in
+	the header file (see revision of
+	../lib-src/make-mswin-unicode.pl).
+
+	* intl-auto-encap-win32.h: Regenerate using the Cygwin w32api
+	headers, removing runtime support for Win95/98/Me, with revision
+	of the Cygwin types to be compatible with Visual Studio 8.
+
+	* intl-encap-win32.c:
+	Revise this file to work with the Cygwin w32api headers.
+
+	* syswindows.h:
+	Ditto.
+
 2021-10-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* dialog-msw.c (handle_directory_proc):

@@ -34,8 +34,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "console-msw.h"
 
-int no_mswin_unicode_lib_calls;
-
 
 /************************************************************************/
 /*                              auto-generation                         */
@@ -105,7 +103,7 @@ begin-unicode-encapsulation-script
 
 file ACLAPI.h
 
-yes GetNamedSecurityInfo
+skip GetNamedSecurityInfo Cygwin declaration makes first param const
 review BuildExplicitAccessWithName
 review BuildSecurityDescriptor
 review BuildTrusteeWithName
@@ -218,9 +216,9 @@ yes GetFileAttributes
 yes GetFileAttributesEx
 yes GetCompressedFileSize
 yes DeleteFile
-no FindFirstFileEx split-sized LPWIN32_FIND_DATA; not used, NT 4.0+ only
-skip FindFirstFile split-sized LPWIN32_FIND_DATA
-skip FindNextFile split-sized LPWIN32_FIND_DATA
+yes FindFirstFileEx
+yes FindFirstFile
+yes FindNextFile
 yes SearchPath
 yes CopyFile
 yes CopyFileEx NT 4.0+ only
@@ -247,7 +245,6 @@ no AccessCheckByTypeResultListAndAuditAlarm NT 5.0+ only
 yes ObjectOpenAuditAlarm
 yes ObjectPrivilegeAuditAlarm
 yes ObjectCloseAuditAlarm
-yes ObjectDeleteAuditAlarm
 yes PrivilegedServiceAuditAlarm
 yes SetFileSecurity
 yes GetFileSecurity
@@ -302,6 +299,24 @@ review SetFirmwareEnvironmentVariable
 review SetVolumeMountPoint
 review VerifyVersionInfo
 
+yes OpenMutex
+yes OpenSemaphore
+yes OpenWaitableTimer
+yes CreateFileMapping
+yes OpenFileMapping
+yes GetStartupInfo
+yes WaitNamedPipe
+yes CreateNamedPipe
+yes AccessCheckAndAuditAlarm
+yes ObjectOpenAuditAlarm
+yes ObjectPrivilegeAuditAlarm
+yes ObjectCloseAuditAlarm
+yes ObjectDeleteAuditAlarm
+yes PrivilegedServiceAuditAlarm
+yes SetFileSecurity
+yes GetFileSecurity
+yes CreateProcessAsUser
+
 file WINUSER.H
 
 skip MAKEINTRESOURCE macro
@@ -321,7 +336,7 @@ yes RegisterWindowMessage
 yes GetMessage
 yes DispatchMessage
 yes PeekMessage
-skip SendMessage split messages and structures
+yes SendMessage
 no SendMessageTimeout VS6 has erroneous seventh parameter DWORD_PTR instead of PDWORD_PTR
 yes SendNotifyMessage
 yes SendMessageCallback
@@ -332,10 +347,10 @@ yes PostThreadMessage
 no PostAppMessage macro
 skip DefWindowProc return value is conditionalized on _MAC, messes up parser
 no CallWindowProc two versions, STRICT and non-STRICT
-skip RegisterClass need to intercept so we can provide our own window procedure and handle split notify messages; split-simple WNDCLASS
-skip UnregisterClass need to intercept for reasons related to RegisterClass
+yes RegisterClass
+yes UnregisterClass
 split GetClassInfo LPWNDCLASS
-skip RegisterClassEx need to intercept so we can provide our own window procedure and handle split notify messages; split-simple WNDCLASSEX; NT 4.0+ only
+yes RegisterClassEx
 split GetClassInfoEx LPWNDCLASSEX NT 4.0+ only
 yes CreateWindowEx
 skip CreateWindow macro
@@ -428,7 +443,7 @@ yes DlgDirSelectEx
 yes DlgDirListComboBox
 yes DlgDirSelectComboBoxEx
 yes DefFrameProc
-no DefMDIChildProc return value is conditionalized on _MAC, messes up parser
+yes DefMDIChildProc
 override HWND CreateMDIWindowW(LPWSTR,LPWSTR,DWORD,int,int,int,int,HWND,HINSTANCE,LPARAM); error arg 1, VS6 prototype, missing const
 yes WinHelp
 no ChangeDisplaySettings split-sized LPDEVMODE
@@ -468,14 +483,14 @@ begin-bracket defined (HAVE_MS_WINDOWS)
 // split-sized function pointer FONTENUMPROC
 yes AddFontResource
 yes CopyMetaFile
-skip CreateDC split-sized DEVMODE
-skip CreateFontIndirect split-sized LOGFONT
+yes CreateDC
+yes CreateFontIndirect
 yes CreateFont
 skip CreateIC split-sized DEVMODE
 yes CreateMetaFile
 yes CreateScalableFontResource
 skip DeviceCapabilities split-sized DEVMODE
-skip EnumFontFamiliesEx split-complex FONTENUMPROC; NT 4.0+ only
+yes EnumFontFamiliesEx
 no EnumFontFamilies split-complex FONTENUMPROC
 no EnumFonts split-complex FONTENUMPROC
 yes GetCharWidth
@@ -496,18 +511,18 @@ no RemoveFontResourceEx NT 5.0+ only
 // split-sized AXISINFO, used in AXESLIST; NT 5.0+ only
 // split-sized AXESLIST, used in ENUMLOGFONTEXDV; NT 5.0+ only
 // split-sized ENUMLOGFONTEXDV; NT 5.0+ only
-no CreateFontIndirectEx split-sized ENUMLOGFONTEXDV; NT 5.0+ only
+skip CreateFontIndirectEx building problems with Visual Studio 8, unclear aetiology, possibly related to ENUMLOGFONTEXDV
 // split-sized ENUMTEXTMETRIC, returned in EnumFontFamExProc, on NT 5.0+; NT 5.0+ only
-skip ResetDC split-sized DEVMODE
+yes ResetDC
 yes RemoveFontResource
 yes CopyEnhMetaFile
 yes CreateEnhMetaFile
 yes GetEnhMetaFile
 yes GetEnhMetaFileDescription
-skip GetTextMetrics split-sized LPTEXTMETRIC
+yes GetTextMetrics
 // split-simple DOCINFO
 split StartDoc DOCINFO
-skip GetObject split-sized LOGFONT
+yes GetObject
 yes TextOut
 yes ExtTextOut
 split PolyTextOut POLYTEXT
@@ -519,7 +534,7 @@ no CreateColorSpace split-sized LPLOGCOLORSPACE; NT 4.0+ only
 yes GetICMProfile NT 4.0+ only, former error in Cygwin prototype but no more (Cygwin 1.7, 1-30-10)
 yes SetICMProfile NT 4.0+ only
 split EnumICMProfiles ICMENUMPROC NT 4.0+ only
-skip UpdateICMRegKey NT 4.0+ only, error in Cygwin prototype
+yes UpdateICMRegKey
 // non-split EMREXTTEXTOUT (A and W versions identical)
 // non-split EMRPOLYTEXTOUT (A and W versions identical)
 // Unicode-only EMREXTCREATEFONTINDIRECTW
@@ -531,8 +546,8 @@ file WINSPOOL.H
 
 begin-bracket defined (HAVE_MS_WINDOWS)
 yes EnumPrinters #### problems with DEVMODE pointer in PRINTER_INFO_2
-skip OpenPrinter split-sized DEVMODE pointer in split PRINTER_DEFAULTS
-no ResetPrinter split-sized DEVMODE pointer in split PRINTER_DEFAULTS
+yes OpenPrinter
+yes ResetPrinter
 no SetJob split-sized DEVMODE pointer in split JOB_INFO_2
 no GetJob split-sized DEVMODE pointer in split JOB_INFO_2
 no EnumJobs split-sized DEVMODE pointer in split JOB_INFO_2
@@ -559,7 +574,7 @@ no EnumPrintProcessorDatatypes not used, complicated interface with split struct
 no DeletePrintProcessor not used, complicated interface with split structures
 no StartDocPrinter not used, complicated interface with split structures
 no AddJob not used, complicated interface with split structures
-skip DocumentProperties split-sized DEVMODE, error in Cygwin prototype
+yes DocumentProperties
 no AdvancedDocumentProperties not used, complicated interface with split structures
 no GetPrinterData not used, complicated interface with split structures
 no GetPrinterDataEx not used, complicated interface with split structures
@@ -841,8 +856,8 @@ no ChooseFont split-sized LPLOGFONT in LPCHOOSEFONT
 // SETRGBSTRING
 // HELPMSGSTRING
 // FINDMSGSTRING
-skip PrintDlg LPPRINTDLG with split-sized DEVMODE handle
-skip PageSetupDlg LPPAGESETUPDLG with split-sized DEVMODE handle
+yes PrintDlg
+yes PageSetupDlg
 review PrintDlgEx
 end-bracket
 
@@ -868,8 +883,8 @@ skip ImmSetCompositionString different prototypes in VC6 and VC7
 yes ImmGetCandidateListCount
 yes ImmGetCandidateList
 yes ImmGetGuideLine
-skip ImmGetCompositionFont split-sized LOGFONT
-skip ImmSetCompositionFont split-sized LOGFONT
+yes ImmGetCompositionFont split-sized LOGFONT
+yes ImmSetCompositionFont split-sized LOGFONT
 yes ImmConfigureIME // split-simple REGISTERWORD
 yes ImmEscape // strings of various sorts
 yes ImmGetConversionList
@@ -963,10 +978,10 @@ file SHLOBJ.H
 // split interface INewShortcutHook
 // split interface ICopyHook
 // split interface IFileViewer
-yes SHGetPathFromIDList
+skip SHGetPathFromIDList Cygwin qualifiers confuses parser
 skip SHGetSpecialFolderPath error in Cygwin prototype, missing from Cygwin libraries
 // split-simple structure BROWSEINFO used in SHBrowseForFolder
-skip SHBrowseForFolder need to intercept callback for SendMessage
+yes SHBrowseForFolder
 // split message BFFM_SETSTATUSTEXT handled in qxeSendMessage
 // split message BFFM_SETSELECTION handled in qxeSendMessage
 // split message BFFM_VALIDATEFAILED handled in qxeSHBrowseForFolder intercept proc
@@ -983,7 +998,6 @@ skip SHBrowseForFolder need to intercept callback for SendMessage
 // split flag SHCNF_PATH; we intercept SHChangeNotify
 // split flag SHCNF_PRINTER; we intercept SHChangeNotify
 // split flag SHARD_PATH; we intercept SHAddToRecentDocs
-skip SHGetDataFromIDList split-sized WIN32_FIND_DATA or split-simple NETRESOURCE, missing from Cygwin libraries
 review SHGetFolderPath
 review SHGetIconOverlayIndex
 review SHCreateDirectoryEx
@@ -1104,6 +1118,84 @@ file NB30.H
 
 // nothing
 
+file FILEAPI.H
+yes CreateFile
+yes GetFileAttributes
+yes DefineDosDevice
+yes FindFirstChangeNotification
+yes GetDiskFreeSpace
+yes GetDriveType
+yes GetFileAttributes
+yes GetFullPathName
+yes GetLogicalDriveStrings
+yes GetShortPathName
+yes QueryDosDevice
+yes GetTempFileName
+yes GetVolumeInformation
+yes CreateDirectory
+yes DeleteFile
+yes GetDiskFreeSpaceEx
+yes GetFileAttributes
+yes GetFileAttributesEx
+yes RemoveDirectory
+yes SetFileAttributes
+yes GetTempPath
+
+file debugapi.h
+yes OutputDebugString
+
+file memoryapi.h
+yes CreateFileMapping
+yes OpenFileMapping
+
+file namedpipeapi.h
+yes CreateNamedPipe
+yes WaitNamedPipe
+
+file processenv.h
+yes GetCommandLine
+yes GetCurrentDirectory
+yes SearchPath
+yes SetCurrentDirectory
+yes ExpandEnvironmentStrings
+yes FreeEnvironmentStrings
+yes GetEnvironmentVariable
+yes SetEnvironmentVariable
+
+file synchapi.h
+yes OpenMutex
+yes OpenSemaphore
+yes OpenEvent
+yes CreateMutex
+yes CreateEvent
+yes OpenWaitableTimer
+
+file sysinfoapi.h
+yes GetSystemDirectory
+yes GetWindowsDirectory
+
+file securitybaseapi.h
+yes AccessCheckAndAuditAlarm
+yes GetFileSecurity
+yes ObjectCloseAuditAlarm
+yes ObjectDeleteAuditAlarm
+yes ObjectOpenAuditAlarm
+yes ObjectPrivilegeAuditAlarm
+yes PrivilegedServiceAuditAlarm
+yes SetFileSecurity
+
+file processthreadsapi.h
+yes GetStartupInfo
+yes CreateProcessAsUser
+yes CreateProcess
+
+file LIBLOADERAPI.H
+yes LoadLibrary
+yes LoadLibraryEx
+yes FindResourceEx
+yes GetModuleHandle
+yes GetModuleFileName
+
 end-unicode-encapsulation-script
 
 file WINSOCK2.H
@@ -1205,14 +1297,6 @@ qxeDefDlgProc (HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
   return DefDlgProcW (hDlg, Msg, wParam, lParam);
 }
-
-/* NOTE: return value is conditionalized on _MAC, messes up parser */
-LRESULT
-qxeDefMDIChildProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-  return DefMDIChildProcW (hWnd, uMsg, wParam, lParam);
-}
-
 /* This one has two entry points called GetEnvironmentStringsW and
    GetEnvironmentStrings. (misnamed A version) */
 Extbyte *
@@ -1222,41 +1306,6 @@ qxeGetEnvironmentStrings (void)
 }
 
 
-/************************************************************************/
-/*           would be encapsulatable but for Cygwin problems            */
-/************************************************************************/
-
-#ifdef HAVE_MS_WINDOWS
-
-/* NOTE: NT 4.0+ only */
-BOOL
-qxeUpdateICMRegKey (DWORD arg1, Extbyte * arg2, Extbyte * arg3, UINT arg4)
-{
-#ifdef CYGWIN_HEADERS
-  /* Cygwin used to mistakenly declare the second argument as DWORD, but no
-     longer, and we need to use the correct declaration for 64 bit support. */
-#endif /* CYGWIN_HEADERS */
-  return UpdateICMRegKeyW (arg1, (LPWSTR) arg2, (LPWSTR) arg3, arg4);
-}
-
-#endif /* HAVE_MS_WINDOWS */
-
-#ifndef CYGWIN /* present in headers but missing in shell32.a */
-
-BOOL
-qxeSHGetSpecialFolderPath (HWND hwndOwner, Extbyte * lpszPath, int nFolder, BOOL fCreate)
-{
-#ifdef CYGWIN_HEADERS
-  /* Cygwin mistakenly declares the second argument as LPSTR in both
-     versions. */
-  return SHGetSpecialFolderPathW (hwndOwner, (LPSTR) lpszPath, nFolder, fCreate);
-#else
-  return SHGetSpecialFolderPathW (hwndOwner, (LPWSTR) lpszPath, nFolder, fCreate);
-#endif
-}
-
-#endif /* not CYGWIN */
-
 /********************************************************************************/
 /* would be encapsulatable but for header changes in different versions of VC++ */
 /********************************************************************************/
@@ -1333,13 +1382,6 @@ qxeSHGetFileInfo (const Extbyte *pszPath, DWORD dwFileAttributes,
 			 psfi, cbFileInfo, uFlags);
 }
 
-
-LPITEMIDLIST
-qxeSHBrowseForFolder (LPBROWSEINFOW lpbi)
-{
-  return SHBrowseForFolderW (lpbi);
-}
-
 VOID
 qxeSHAddToRecentDocs (UINT uFlags, LPCVOID pv)
 {
@@ -1373,7 +1415,11 @@ qxeSHChangeNotify (LONG wEventId, UINT uFlags, LPCVOID dwItem1,
   SHChangeNotify (wEventId, uFlags, dwItem1, dwItem2);
 }
 
-#ifndef CYGWIN /* present in headers but missing in shell32.a */
+BOOL
+qxeSHGetPathFromIDList (LPCITEMIDLIST pidl, Extbyte *pszPath)
+{
+  return SHGetPathFromIDListW (pidl, (LPWSTR) pszPath);
+}
 
 HRESULT
 qxeSHGetDataFromIDList (IShellFolder *psf, LPCITEMIDLIST pidl, int nFormat,
@@ -1382,387 +1428,4 @@ qxeSHGetDataFromIDList (IShellFolder *psf, LPCITEMIDLIST pidl, int nFormat,
   return SHGetDataFromIDListW (psf, pidl, nFormat, pv, cb);
 }
 
-#endif /* not CYGWIN */
-
-
-
-#ifdef HAVE_MS_WINDOWS
-
-/************************************************************************/
-/*                              devmode                                 */
-/************************************************************************/
-
-/* These functions return globally allocated blocks because some
-   callers (e.g. qxePrintDlg) want this. */
-
-static HGLOBAL
-copy_devmodew_to_devmodea (const DEVMODEW *src, DEVMODEA *dst)
-{
-  /* the layout of DEVMODE is
-
-     TCHAR dmDeviceName[...];
-     non-split fields, including dmSize (size of structure; differs between
-       Unicode and ANSI) and dmDriverExtra;
-     TCHAR dmFormName[...];
-     non-split fields;
-     extra data, of size DEVMODE->dmDriverExtra
-  */
-  HGLOBAL hdst = NULL;
-
-  if (!dst)
-    {
-      hdst = GlobalAlloc (GHND, src->dmSize + src->dmDriverExtra -
-			  (sizeof (DEVMODEW) - sizeof (DEVMODEA)));
-      dst = (DEVMODEA *) GlobalLock (hdst);
-    }
-
-  memcpy (dst->dmDeviceName, src->dmDeviceName, sizeof (dst->dmDeviceName));
-  memcpy ((char *) dst + sizeof (dst->dmDeviceName),
-	  (char *) src + sizeof (src->dmDeviceName),
-	  offsetof (DEVMODEA, dmFormName) - sizeof (dst->dmDeviceName));
-  dst->dmSize -= sizeof (DEVMODEW) - sizeof (DEVMODEA);
-  memcpy (dst->dmFormName, src->dmFormName, sizeof (dst->dmFormName));
-  memcpy ((char *) dst + offsetof (DEVMODEA, dmFormName) +
-	  sizeof (dst->dmFormName),
-	  (char *) src + offsetof (DEVMODEW, dmFormName) +
-	  sizeof (src->dmFormName),
-	  dst->dmSize + dst->dmDriverExtra -
-	  (offsetof (DEVMODEA, dmFormName) + sizeof (dst->dmFormName)));
-
-  if (hdst)
-    GlobalUnlock (hdst);
-  return hdst;
-}
-
-static HGLOBAL
-copy_devmodea_to_devmodew (const DEVMODEA *src, DEVMODEW *dst)
-{
-  HGLOBAL hdst = NULL;
-
-  if (!dst)
-    {
-      hdst = GlobalAlloc (GHND, src->dmSize + src->dmDriverExtra +
-			  (sizeof (DEVMODEW) - sizeof (DEVMODEA)));
-      dst = (DEVMODEW *) GlobalLock (hdst);
-    }
-
-  memcpy (dst->dmDeviceName, src->dmDeviceName, sizeof (src->dmDeviceName));
-  memcpy ((char *) dst + sizeof (dst->dmDeviceName),
-	  (char *) src + sizeof (src->dmDeviceName),
-	  offsetof (DEVMODEA, dmFormName) - sizeof (src->dmDeviceName));
-  dst->dmSize += sizeof (DEVMODEW) - sizeof (DEVMODEA);
-  memcpy (dst->dmFormName, src->dmFormName, sizeof (src->dmFormName));
-  memcpy ((char *) dst + offsetof (DEVMODEW, dmFormName) +
-	  sizeof (dst->dmFormName),
-	  (char *) src + offsetof (DEVMODEA, dmFormName) +
-	  sizeof (src->dmFormName),
-	  src->dmSize + src->dmDriverExtra -
-	  (offsetof (DEVMODEA, dmFormName) + sizeof (src->dmFormName)));
-
-  if (hdst)
-    GlobalUnlock (hdst);
-  return hdst;
-}
-
-HDC
-qxeCreateDC (const Extbyte *lpszDriver, const Extbyte *lpszDevice,
-	     const Extbyte *lpszOutput, CONST DEVMODEW *lpInitData)
-{
-  return CreateDCW ((LPCWSTR) lpszDriver, (LPCWSTR) lpszDevice,
-		    (LPCWSTR) lpszOutput, lpInitData);
-}
-
-HDC
-qxeResetDC (HDC hdc, CONST DEVMODEW *lpInitData)
-{
-  return ResetDCW (hdc, lpInitData);
-}
-
-DWORD
-qxeOpenPrinter (Extbyte *pPrinterName, LPHANDLE phPrinter,
-		LPPRINTER_DEFAULTSW pDefaultconst)
-{
-  assert (!pDefaultconst); /* we don't split it, so let's make sure we
-			      don't try. */
-  return OpenPrinterW ((LPWSTR) pPrinterName, phPrinter,
-		       pDefaultconst);
-}
-
-LONG
-qxeDocumentProperties (HWND hWnd, HANDLE hPrinter, Extbyte *pDeviceName,
-		       DEVMODEW *pDevModeOutput, DEVMODEW *pDevModeInput,
-		       DWORD fMode)
-{
-#if defined (CYGWIN_HEADERS) && W32API_INSTALLED_VER < W32API_VER(3,1)
-  /* Cygwin used to mistakenly declare the fourth and fifth arguments as
-     PDEVMODEA. */
-  return DocumentPropertiesW (hWnd, hPrinter, (LPWSTR) pDeviceName,
-			      (DEVMODEA *) pDevModeOutput,
-			      (DEVMODEA *) pDevModeInput, fMode);
-#else
-  return DocumentPropertiesW (hWnd, hPrinter, (LPWSTR) pDeviceName,
-			      pDevModeOutput, pDevModeInput, fMode);
-#endif /* CYGWIN_HEADERS */
-}
-
-BOOL
-qxePrintDlg (PRINTDLGW *lppd)
-{
-  return PrintDlgW (lppd);
-}
-
-BOOL
-qxePageSetupDlg (PAGESETUPDLGW *lppd)
-{
-  return PageSetupDlgW (lppd);
-}
-
-
-/************************************************************************/
-/*                                fonts                                 */
-/************************************************************************/
-
-int
-qxeEnumFontFamiliesEx (HDC hdc, LOGFONTW *lpLogfont,
-		       FONTENUMPROCW lpEnumFontFamProc, LPARAM lParam,
-		       DWORD dwFlags)
-{
-  return EnumFontFamiliesExW (hdc, lpLogfont, lpEnumFontFamProc, lParam,
-			      dwFlags);
-}
-
-HFONT
-qxeCreateFontIndirect (CONST LOGFONTW *lplf)
-{
-  return CreateFontIndirectW (lplf);
-}
-
-BOOL
-qxeImmSetCompositionFont (HIMC imc, LOGFONTW *lplf)
-{
-  return ImmSetCompositionFontW (imc, lplf);
-}
-
-BOOL
-qxeImmGetCompositionFont (HIMC imc, LOGFONTW *lplf)
-{
-  return ImmGetCompositionFontW (imc, lplf);
-}
-
-BOOL
-qxeImmSetCompositionString (HIMC arg1, DWORD dwIndex, LPVOID lpComp, DWORD arg4, LPVOID lpRead, DWORD arg6)
-{
-  return ImmSetCompositionStringW (arg1, dwIndex, lpComp, arg4, lpRead, arg6);
-}
-
-int
-qxeGetObject (HGDIOBJ hgdiobj, int cbBuffer, LPVOID lpvObject)
-{
-  return GetObjectW (hgdiobj, cbBuffer, lpvObject);
-}
-
-BOOL
-qxeGetTextMetrics (HDC hdc, LPTEXTMETRICW lptm)
-{
-  return GetTextMetricsW (hdc, lptm);
-}
-
-
-/************************************************************************/
-/*                                windows                               */
-/************************************************************************/
-
-ATOM
-qxeRegisterClass (CONST WNDCLASSW * lpWndClass)
-{
-  return RegisterClassW (lpWndClass);
-}
-
-BOOL
-qxeUnregisterClass (const Extbyte * lpClassName, HINSTANCE hInstance)
-{
-  return UnregisterClassW ((LPCWSTR) lpClassName, hInstance);
-}
-
-/* NOTE: NT 4.0+ only */
-ATOM
-qxeRegisterClassEx (CONST WNDCLASSEXW *lpWndClass)
-{
-  return RegisterClassExW (lpWndClass);
-}
-
-
-/************************************************************************/
-/*                              COMMCTRL.H				*/
-/************************************************************************/
-
-/* there are only four structures in commctrl.h that cannot be cast
-   between Unicode/ANSI versions:
-
-   NMTTDISPINFO aka TOOLTIPTEXT
-   NMCBEDRAGBEGIN
-   NMCBEENDEDIT
-   NMDATETIMEFORMAT
-
-   these are all notify structures, and we handle them above in
-   intercepted_wnd_proc().
-
-   in addition, this constant is weird, being a struct size of one of these:
-
-   NMTTDISPINFO_V1_SIZE
-*/
-
-/*
-split class names:
-
-WC_HEADER
-TOOLBARCLASSNAME
-REBARCLASSNAME
-TOOLTIPS_CLASS
-STATUSCLASSNAME
-TRACKBAR_CLASS
-UPDOWN_CLASS
-PROGRESS_CLASS
-HOTKEY_CLASS
-WC_LISTVIEW
-WC_TREEVIEW
-WC_COMBOBOXEX
-WC_TABCONTROL
-ANIMATE_CLASS
-MONTHCAL_CLASS
-DATETIMEPICK_CLASS
-WC_IPADDRESS
-WC_PAGESCROLLER
-WC_NATIVEFONTCTL
-*/
-
-/*
-SendMessage split messages:
-
-HDM_INSERTITEM
-HDM_GETITEM
-HDM_SETITEM
-TB_GETBUTTONTEXT
-TB_SAVERESTORE
-TB_ADDSTRING
-TB_GETBUTTONINFO
-TB_SETBUTTONINFO
-TB_INSERTBUTTON
-TB_ADDBUTTONS
-RB_INSERTBAND
-RB_SETBANDINFO
-RB_GETBANDINFO
-TTM_ADDTOOL
-TTM_DELTOOL
-TTM_NEWTOOLRECT
-TTM_GETTOOLINFO
-TTM_SETTOOLINFO
-TTM_HITTEST
-TTM_GETTEXT
-TTM_UPDATETIPTEXT
-TTM_ENUMTOOLS
-TTM_GETCURRENTTOOL
-SB_GETTEXT
-SB_SETTEXT
-SB_GETTEXTLENGTH
-SB_SETTIPTEXT
-SB_GETTIPTEXT
-LVM_GETITEM
-LVM_SETITEM
-LVM_INSERTITEM
-LVM_FINDITEM
-LVM_GETSTRINGWIDTH
-LVM_EDITLABEL
-LVM_GETCOLUMN
-LVM_SETCOLUMN
-LVM_GETITEMTEXT
-LVM_SETITEMTEXT
-LVM_GETISEARCHSTRING
-LVM_SETBKIMAGE
-LVM_GETBKIMAGE
-TVM_INSERTITEM
-TVM_GETITEM
-TVM_SETITEM
-TVM_EDITLABEL
-TVM_GETISEARCHSTRING
-CBEM_INSERTITEM
-CBEM_SETITEM
-CBEM_GETITEM
-TCM_GETITEM
-TCM_SETITEM
-TCM_INSERTITEM
-ACM_OPEN
-DTM_SETFORMAT
-BFFM_SETSTATUSTEXT
-BFFM_SETSELECTION
-*/
-
-/*
-split notify messages:
-
-HDN_ITEMCHANGING
-HDN_ITEMCHANGED
-HDN_ITEMCLICK
-HDN_ITEMDBLCLICK
-HDN_DIVIDERDBLCLICK
-HDN_BEGINTRACK
-HDN_ENDTRACK
-HDN_TRACK
-HDN_GETDISPINFO
-TBN_GETINFOTIP
-TBN_GETDISPINFO
-TBN_GETBUTTONINFO
-TTN_GETDISPINFO
-TTN_NEEDTEXTW
-LVN_ODFINDITEM
-LVN_BEGINLABELEDIT
-LVN_ENDLABELEDIT
-LVN_GETDISPINFO
-LVN_SETDISPINFO
-LVN_GETINFOTIP
-TVN_SELCHANGING
-TVN_SELCHANGED
-TVN_GETDISPINFO
-TVN_SETDISPINFO
-TVN_ITEMEXPANDING
-TVN_ITEMEXPANDED
-TVN_BEGINDRAG
-TVN_BEGINRDRAG
-TVN_DELETEITEM
-TVN_BEGINLABELEDIT
-TVN_ENDLABELEDIT
-TVN_GETINFOTIP
-CBEN_GETDISPINFO
-CBEN_DRAGBEGIN
-CBEN_ENDEDIT
-DTN_USERSTRING
-DTN_WMKEYDOWN
-DTN_FORMAT
-DTN_FORMATQUERY
-BFFM_VALIDATEFAILED (send to SHBrowseForFolder procedure)
-*/
-
-/*
-split structures:
-
-TV_INSERTSTRUCT (simple-split, though -- just cast)
-TC_ITEM (simple-split, though -- just cast)
-
-####
-*/
-
-/*
-split macros or macros needing splitting:
-
-####
-*/
-
-LRESULT
-qxeSendMessage (HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
-{
-  return SendMessageW (hWnd, Msg, wParam, lParam);
-}
-
-#endif /* HAVE_MS_WINDOWS */
-
-
+/* end of intl-encap-win32.c */

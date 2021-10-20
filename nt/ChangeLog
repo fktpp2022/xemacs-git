@@ -1,3 +1,10 @@
+2021-10-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* xemacs.mak (TEMACS_COMMON_OBJS):
+	* xemacs.mak (unicode-encapsulate):
+	Remove references to intl-auto-encap-win32.{c,obj} from this file,
+	no longer used or present.
+
 2021-10-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* xemacs.mak (TEMACS_COMMON_OBJS):

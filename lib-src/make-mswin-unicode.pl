@@ -33,7 +33,7 @@ use Getopt::Long;
 my ($myName, $myPath) = fileparse ($0);
 
 my $usage="
-Usage: $myName [--c-output FILE] [--h-output FILE] [--help] [FILES ...]
+Usage: $myName [--h-output FILE] [--help] [FILES ...]
 
 The purpose of this script is to auto-generate Unicode-encapsulation
 code for MS Windows library functions that come in two versions (ANSI
@@ -91,7 +91,6 @@ my @SAVE_ARGV = @ARGV;
 $Getopt::Long::ignorecase = 0;
 &GetOptions (
 	     \%options,
-	     'c-output=s',
 	     'h-output=s',
              'includedir=s',
 	     'help',
@@ -102,9 +101,8 @@ die $usage if $options{"help"};
 my $in_script;
 my $slurp;
 
-my ($cout, $hout, $dir) = ($options{"c-output"},
-                          $options{"h-output"},
-                          $options{"includedir"});
+my ($hout, $dir) = ($options{"h-output"},
+		    $options{"includedir"});
 
 $dir = '/usr/include/w32api' if !$dir && -f '/usr/include/w32api/windows.h';
 
@@ -126,26 +124,15 @@ $dir.='/include' if ((-f $dir.'/include/WINDOWS.H') ||
 		     (-f $dir.'/include/windows.h'));
 die "Can't find MSVC include files in \"$dir\"" unless ((-f $dir.'/WINDOWS.H') || (-f $dir.'/windows.h'));
 
-open (COUT, ">$cout") or die "Can't open C output file $cout: $!";
 open (HOUT, ">$hout") or die "Can't open C output file $hout: $!";
 
 select (STDOUT); $| = 1;
 
-print COUT "/* Automatically-generated Unicode-encapsulation file,
+print HOUT "/* Automatically-generated Unicode-encapsulation file,
    using the command
 
    $myPath$myName @SAVE_ARGV
 
-   Do not edit.  See `$myName'.
-*/
-
-#include <config.h>
-#include \"lisp.h\"
-
-#include \"syswindows.h\"
-
-";
-print HOUT "/* Automatically-generated Unicode-encapsulation header file.
    Do not edit.  See `$myName'.
 */\n\n";
 
@@ -271,7 +258,7 @@ foreach my $file (keys %files)
     $totalspace = 0 if $totalspace < 0;
     my $alignspaceleft = $totalspace / 2;
     my $alignspaceright = ($totalspace + 1) / 2;
-    print COUT "
+    print HOUT "
 /*----------------------------------------------------------------------*/
 /*" . (" " x $alignspaceleft) . "Processing file $file" .
   (" " x $alignspaceright) . "*/
@@ -298,7 +285,7 @@ foreach my $file (keys %files)
 	# my ($command, $reason) = @$files{$file}{$fun};
 	# You have to use a temporary var.
 	my $filesarr = $files{$file}{$fun};
-	my ($command, $reason) = @$filesarr;
+	my ($command, $reason) = @$filesarr if defined ($filesarr);
 	if (!defined ($command))
 	  {
 	    print " (no command found)\n";
@@ -310,7 +297,6 @@ foreach my $file (keys %files)
 	    if (defined ($bracket))
 	      {
 		print HOUT "#if $bracket\n";
-		print COUT "#if $bracket\n\n";
 	      }
 	    if ($command eq "no" || $command eq "review")
 	      {
@@ -326,7 +312,6 @@ foreach my $file (keys %files)
 		print HOUT "#undef $fun\n";
 		(my $munged_reason = $reason) =~ s/[^A-Za-z0-9]/_/g;
 		print HOUT "#define $fun error_$munged_reason\n";
-		print COUT "/* Error if $fun used: $reason */\n\n";
 	      }
 	    elsif ($command eq "skip")
 	      {
@@ -337,14 +322,12 @@ foreach my $file (keys %files)
 		  }
 
 		print HOUT "/* Skipping $fun because $reason */\n";
-		print COUT "/* Skipping $fun because $reason */\n\n";
 	      }
 	    elsif ($command eq "soon")
 	      {
 		$reason = "" if !defined ($reason);
 
 		print HOUT "/* Not yet: $fun $reason */\n";
-		print COUT "/* Not yet: $fun $reason */\n\n";
 	      }
 	    else
 	      {
@@ -375,6 +358,9 @@ foreach my $file (keys %files)
 		    $argtype =~ s/\s*$//;
 		    next if $argtype eq "void" || $argtype eq "VOID";
 		    $argname = "arg$argno" if !defined ($argname);
+		    $argtype =~ s/\bPIDLIST_ABSOLUTE\b/LPITEMIDLIST/;
+		    $argtype =~ s/\bWINBOOL\b/BOOL/;
+		    $argtype =~ s/\bCONST\b/const/;
 		    $argtype{$argname} = $argtype;
 		    $ansiarg{$argname} = $argtype;
 		    $ansiarg{$argname} =~ s/\bLPWSTR\b/LPSTR/;
@@ -394,6 +380,8 @@ foreach my $file (keys %files)
 		$rettype =~ s/\s*WIN\w*?API\s*//g;
 		$rettype =~ s/\bAPIENTRY\b\s*//;
 		$rettype =~ s/\bSHSTDAPI\b/HRESULT/;
+		$rettype =~ s/\bPIDLIST_ABSOLUTE\b/LPITEMIDLIST/;
+		$rettype =~ s/\bWINBOOL\b/BOOL/;
 		$rettype =~ s/\bextern\b\s*//;
 		if ($rettype =~ /LPC?WSTR/)
 		  {
@@ -407,64 +395,48 @@ foreach my $file (keys %files)
 		print HOUT "#endif\n";
 		if (defined ($reason))
 		  {
-		    print COUT "/* NOTE: $reason */\n";
+		    print HOUT "/* NOTE: $reason */\n";
 		  }
-		print COUT "$rettype\nqxe$fun (";
+		print HOUT "DECLARE_INLINE_HEADER (\n";
 		print HOUT "$rettype qxe$fun (";
 		my $first = 1;
 		if (!@args)
 		  {
-		    print COUT "void";
 		    print HOUT "void";
 		  }
 		else
 		  {
 		    foreach my $x (@args)
 		      {
-			print COUT ", " if !$first;
 			print HOUT ", " if !$first;
 			$first = 0;
-			print COUT "$xarg{$x} $x";
 			print HOUT "$xarg{$x} $x";
 		      }
 		  }
-		print HOUT ");\n";
-		print COUT ")\n{\n  if (XEUNICODE_P)\n    ";
+		print HOUT ")\n)\n{\n";
 		if ($rettype ne "void" && $rettype ne "VOID")
 		  {
-		    print COUT "return ";
-		    print COUT "($rettype) " if $split_rettype;
+		    print HOUT "  return ";
+		    print HOUT "($rettype) " if $split_rettype;
 		  }
-		print COUT "${fun}W (";
+		else
+		  {
+		    print HOUT "  ";
+		  }
+		print HOUT "${fun}W (";
 		$first = 1;
 		foreach my $x (@args)
 		  {
-		    print COUT ", " if !$first;
+		    print HOUT ", " if !$first;
 		    $first = 0;
-		    print COUT ($argtype{$x} eq $xarg{$x} ? $x :
+		    print HOUT ($argtype{$x} eq $xarg{$x} ? $x :
 				"($argtype{$x}) $x");
 		  }
-		print COUT ");\n  else\n    ";
-		if ($rettype ne "void" && $rettype ne "VOID")
-		  {
-		    print COUT "return ";
-		    print COUT "($rettype) " if $split_rettype;
-		  }
-		print COUT "${fun}A (";
-		$first = 1;
-		foreach my $x (@args)
-		  {
-		    print COUT ", " if !$first;
-		    $first = 0;
-		    print COUT ($argtype{$x} eq $ansiarg{$x} ? $x :
-				"($ansiarg{$x}) $x");
-		  }
-		print COUT ");\n}\n\n";
+		print HOUT ");\n}\n";
 	      }
 	    if (defined ($bracket))
 	      {
 		print HOUT "#endif /* $bracket */\n";
-		print COUT "#endif /* $bracket */\n\n";
 	      }
 	    print HOUT "\n";
 	  }

@@ -250,7 +250,7 @@ tooltalk_objs=tooltalk.o
 #endif
 
 #ifdef WIN32_ANY
-win32_objs=win32.o intl-win32.o intl-auto-encap-win32.o intl-encap-win32.o \
+win32_objs=win32.o intl-win32.o intl-encap-win32.o \
  xemacs_res.o
 #endif
 
@@ -1047,7 +1047,7 @@ depend: FRC.depend
 FRC.unicode-encapsulate:
 unicode-encapsulate: FRC.unicode-encapsulate
 	cd $(SRC) && \
-	perl ../lib-src/make-mswin-unicode.pl --c-output intl-auto-encap-win32.c --h-output intl-auto-encap-win32.h intl-encap-win32.c
+	perl ../lib-src/make-mswin-unicode.pl --h-output intl-auto-encap-win32.h intl-encap-win32.c
 
 ###################### Case-table generation
 

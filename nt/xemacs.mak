@@ -897,7 +897,6 @@ TEMACS_COMMON_OBJS= \
 	$(OUTDIR)\intl.obj \
 	$(OUTDIR)\intl-win32.obj \
 	$(OUTDIR)\intl-encap-win32.obj \
-	$(OUTDIR)\intl-auto-encap-win32.obj \
 	$(OUTDIR)\keymap.obj \
 	$(OUTDIR)\libinterface.obj \
 	$(OUTDIR)\line-number.obj \
@@ -1839,7 +1838,7 @@ depend:
 
 unicode-encapsulate:
 	cd $(SRC)
-	perl ../lib-src/make-mswin-unicode.pl --c-output intl-auto-encap-win32.c --h-output intl-auto-encap-win32.h intl-encap-win32.c
+	perl ../lib-src/make-mswin-unicode.pl --h-output intl-auto-encap-win32.h intl-encap-win32.c
 
 makeinfo-test: $(DUMP_TARGET)
 	@<<makeinfo_test.bat

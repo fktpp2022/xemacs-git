@@ -1,3 +1,13 @@
+2021-10-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* make-mswin-unicode.pl:
+	Revise this now we have removed support for Win95/98/Me; generate
+	the Unicode encapsulated code as inline headers that no longer
+	check at runtime whether the Unicode versions of the functions
+	should be called. No longer generate intl-auto-encap.c.
+	Revise the file to better deal with the Cygwin headers and types,
+	in a way that is compatible with Visual Studio 8.
+
 2021-09-09  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* gnuserv.c (handle_unix_request):
