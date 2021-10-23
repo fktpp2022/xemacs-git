@@ -1984,31 +1984,12 @@ typedef struct
   Dynarr_declare (struct face_cachel);
 } face_cachel_dynarr;
 
-#ifdef NEW_GC
-DECLARE_LISP_OBJECT (face_cachel_dynarr, face_cachel_dynarr);
-#define XFACE_CACHEL_DYNARR(x) \
-  XRECORD (x, face_cachel_dynarr, face_cachel_dynarr)
-#define wrap_face_cachel_dynarr(p) wrap_record (p, face_cachel_dynarr)
-#define FACE_CACHEL_DYNARRP(x) RECORDP (x, face_cachel_dynarr)
-#define CHECK_FACE_CACHEL_DYNARR(x) CHECK_RECORD (x, face_cachel_dynarr)
-#define CONCHECK_FACE_CACHEL_DYNARR(x) CONCHECK_RECORD (x, face_cachel_dynarr)
-#endif /* NEW_GC */
 
 typedef struct
 {
   Dynarr_declare (struct glyph_cachel);
 } glyph_cachel_dynarr;
 
-#ifdef NEW_GC
-DECLARE_LISP_OBJECT (glyph_cachel_dynarr, glyph_cachel_dynarr);
-#define XGLYPH_CACHEL_DYNARR(x) \
-  XRECORD (x, glyph_cachel_dynarr, glyph_cachel_dynarr)
-#define wrap_glyph_cachel_dynarr(p) wrap_record (p, glyph_cachel_dynarr)
-#define GLYPH_CACHEL_DYNARRP(x) RECORDP (x, glyph_cachel_dynarr)
-#define CHECK_GLYPH_CACHEL_DYNARR(x) CHECK_RECORD (x, glyph_cachel_dynarr)
-#define CONCHECK_GLYPH_CACHEL_DYNARR(x) \
-  CONCHECK_RECORD (x, glyph_cachel_dynarr)
-#endif /* NEW_GC */
 
 typedef struct
 {
@@ -2088,13 +2069,8 @@ DECLARE_MODULE_API_LISP_OBJECT (cons, Lisp_Cons);
 #define CHECK_CONS(x) CHECK_RECORD (x, cons)
 #define CONCHECK_CONS(x) CONCHECK_RECORD (x, cons)
 
-#ifdef NEW_GC
-#define CONS_MARKED_P(c) MARKED_P (&((c)->lheader))
-#define MARK_CONS(c) MARK (&((c)->lheader))
-#else /* not NEW_GC */
 #define CONS_MARKED_P(c) MARKED_RECORD_HEADER_P(&((c)->lheader))
 #define MARK_CONS(c) MARK_RECORD_HEADER (&((c)->lheader))
-#endif /* not NEW_GC */
 
 extern MODULE_API Lisp_Object Qnil;
 
@@ -2668,66 +2644,6 @@ while (0)
 
 /*------------------------------ string --------------------------------*/
 
-#ifdef NEW_GC
-struct Lisp_String_Direct_Data
-{
-  NORMAL_LISP_OBJECT_HEADER header;
-  Bytecount size;
-  Ibyte data[1];
-};
-typedef struct Lisp_String_Direct_Data Lisp_String_Direct_Data;
-
-DECLARE_MODULE_API_LISP_OBJECT (string_direct_data, Lisp_String_Direct_Data);
-#define XSTRING_DIRECT_DATA(x) \
-  XRECORD (x, string_direct_data, Lisp_String_Direct_Data)
-#define wrap_string_direct_data(p) wrap_record (p, string_direct_data)
-#define STRING_DIRECT_DATAP(x) RECORDP (x, string_direct_data)
-#define CHECK_STRING_DIRECT_DATA(x) CHECK_RECORD (x, string_direct_data)
-#define CONCHECK_STRING_DIRECT_DATA(x) CONCHECK_RECORD (x, string_direct_data)
-
-#define XSTRING_DIRECT_DATA_SIZE(x) XSTRING_DIRECT_DATA (x)->size
-#define XSTRING_DIRECT_DATA_DATA(x) XSTRING_DIRECT_DATA (x)->data
-
-
-struct Lisp_String_Indirect_Data
-{
-  NORMAL_LISP_OBJECT_HEADER header;
-  Bytecount size;
-  Ibyte *data;
-};
-typedef struct Lisp_String_Indirect_Data Lisp_String_Indirect_Data;
-
-DECLARE_MODULE_API_LISP_OBJECT (string_indirect_data, Lisp_String_Indirect_Data);
-#define XSTRING_INDIRECT_DATA(x) \
-  XRECORD (x, string_indirect_data, Lisp_String_Indirect_Data)
-#define wrap_string_indirect_data(p) wrap_record (p, string_indirect_data)
-#define STRING_INDIRECT_DATAP(x) RECORDP (x, string_indirect_data)
-#define CHECK_STRING_INDIRECT_DATA(x) CHECK_RECORD (x, string_indirect_data)
-#define CONCHECK_STRING_INDIRECT_DATA(x) \
-  CONCHECK_RECORD (x, string_indirect_data)
-
-#define XSTRING_INDIRECT_DATA_SIZE(x) XSTRING_INDIRECT_DATA (x)->size
-#define XSTRING_INDIRECT_DATA_DATA(x) XSTRING_INDIRECT_DATA (x)->data
-
-
-#define XSTRING_DATA_SIZE(s) ((s)->indirect)?		\
-  XSTRING_INDIRECT_DATA_SIZE ((s)->data_object):	\
-  XSTRING_DIRECT_DATA_SIZE ((s)->data_object)
-#define XSTRING_DATA_DATA(s) ((s)->indirect)?		\
-  XSTRING_INDIRECT_DATA_DATA ((s)->data_object):	\
-  XSTRING_DIRECT_DATA_DATA ((s)->data_object)
-
-#define XSET_STRING_DATA_SIZE(s, len)				\
-  if ((s)->indirect)						\
-    XSTRING_INDIRECT_DATA_SIZE ((s)->data_object) = len;	\
-  else								\
-    XSTRING_DIRECT_DATA_SIZE ((s)->data_object) = len
-#define XSET_STRING_DATA_DATA(s, ptr)				\
-  if ((s)->indirect)						\
-    XSTRING_INDIRECT_DATA_DATA ((s)->data_object) = ptr;	\
-  else								\
-    XSTRING_DIRECT_DATA_DATA ((s)->data_object) = ptr
-#endif /* NEW_GC */
 
 struct Lisp_String
 {
@@ -2741,16 +2657,10 @@ struct Lisp_String
 	     overlaps with modiffp there; we can get away with this
 	     because in old-GC the `free' field is used only for lcrecords. */
 	  unsigned int type :8;
-#ifdef NEW_GC
-	  unsigned int lisp_readonly :1;
-	  unsigned int free :1;
-#define NUM_ASCII_END_BITS 21
-#else /* not NEW_GC */
 	  unsigned int mark :1;
 	  unsigned int c_readonly :1;
 	  unsigned int lisp_readonly :1;
 #define NUM_ASCII_END_BITS 20
-#endif /* not NEW_GC */
 	  /* A flag describing whether this string has ever been
 	     modified; the actual modified tick is stored on the plist
 	     if and only if this flag is non-zero. */
@@ -2761,13 +2671,8 @@ struct Lisp_String
 	  unsigned int ascii_end :NUM_ASCII_END_BITS;
 	} v;
     } u;
-#ifdef NEW_GC
-  int indirect;
-  Lisp_Object data_object;
-#else /* not NEW_GC */
   Bytecount size_;
   Ibyte *data_;
-#endif /* not NEW_GC */
   Lisp_Object plist;
 };
 typedef struct Lisp_String Lisp_String;
@@ -2786,31 +2691,14 @@ DECLARE_MODULE_API_LISP_OBJECT (string, Lisp_String);
    stuff there. */
 
 /* Operations on Lisp_String *'s; only ones left */
-#ifdef NEW_GC
-#define set_lispstringp_direct(s) ((s)->indirect = 0)
-#define set_lispstringp_indirect(s) ((s)->indirect = 1)
-#define set_lispstringp_length(s, len) XSET_STRING_DATA_SIZE (s, len)
-#define set_lispstringp_data(s, ptr) XSET_STRING_DATA_DATA (s, ptr)
-#else /* not NEW_GC */
 #define set_lispstringp_length(s, len) ((void) ((s)->size_ = (len)))
 #define set_lispstringp_data(s, ptr) ((void) ((s)->data_ = (ptr)))
-#endif /* not NEW_GC */
 
 /* Operations on strings as Lisp_Objects.  Don't manipulate Lisp_String *'s
    in any new code. */
-#ifdef NEW_GC
-#define STRING_DATA_OBJECT(s) ((s)->data_object)
-#define XSTRING_DATA_OBJECT(s) (STRING_DATA_OBJECT (XSTRING (s)))
-#define XSTRING_LENGTH(s) (XSTRING_DATA_SIZE (XSTRING (s)))
-#else /* not NEW_GC */
 #define XSTRING_LENGTH(s) (XSTRING (s)->size_)
-#endif /* not NEW_GC */
 #define XSTRING_PLIST(s) (XSTRING (s)->plist)
-#ifdef NEW_GC
-#define XSTRING_DATA(s) (XSTRING_DATA_DATA (XSTRING (s)))
-#else /* not NEW_GC */
 #define XSTRING_DATA(s) (XSTRING (s)->data_ + 0)
-#endif /* not NEW_GC */
 #define XSTRING_ASCII_END(s) (XSTRING (s)->u.v.ascii_end + 0)
 #define XSET_STRING_LENGTH(s, ptr) set_lispstringp_length (XSTRING (s), ptr)
 #define XSET_STRING_DATA(s, ptr) set_lispstringp_data (XSTRING (s), ptr)
@@ -2985,17 +2873,6 @@ struct Lisp_Symbol
       /* Everything before package_count must agree exactly with struct
          lrecord_header. */
       unsigned int type :8;
-#ifdef NEW_GC
-      unsigned int lisp_readonly :1;
-      unsigned int free :1;
-      /* Number of packages this symbol is interned in, zero, one, or many.
-         Packages aren't yet implemented, but we have a design in Common
-         Lisp's. */
-      unsigned int package_count :2;
-      /* ID of the first package this symbol was interned in. Zero is
-         uninterned, one is obarray. */
-      unsigned int first_package_id :20;
-#else /* not NEW_GC */
       unsigned int mark :1;
       unsigned int c_readonly :1;
       unsigned int lisp_readonly :1;
@@ -3004,7 +2881,6 @@ struct Lisp_Symbol
       /* ID of the first package this symbol was interned in. Zero is
          uninterned, one is obarray. */
       unsigned int first_package_id :19;
-#endif /* not NEW_GC */
     } v;
   } u;
 
@@ -3357,12 +3233,10 @@ DECLARE_LISP_OBJECT (float, Lisp_Float);
 
 /*--------------------------- readonly objects -------------------------*/
 
-#ifndef NEW_GC
 #define CHECK_C_WRITEABLE(obj)					\
   do { if (c_readonly (obj)) c_write_error (obj); } while (0)
 
 #define C_READONLY(obj) (C_READONLY_RECORD_HEADER_P(XRECORD_LHEADER (obj)))
-#endif /* not NEW_GC */
 
 #define CHECK_LISP_WRITEABLE(obj)					\
   do { if (lisp_readonly (obj)) lisp_write_error (obj); } while (0)
@@ -3551,49 +3425,6 @@ Lisp_Object,Lisp_Object,Lisp_Object
 /* Can't be const, because then subr->doc is read-only and
    Snarf_documentation chokes */
 
-#ifdef NEW_GC
-#define DEFUN(lname, Fname, min_args, max_args, prompt, arglist)	\
-  Lisp_Object Fname (EXFUN_##max_args);					\
-  static struct Lisp_Subr MC_ALLOC_S##Fname =			        \
-  {									\
-    { /* struct lrecord_header */					\
-      lrecord_type_subr, /* lrecord_type_index */			\
-      1, /* lisp_readonly bit */					\
-      0, /* free */							\
-      0  /* uid */							\
-    },									\
-    min_args,								\
-    max_args,								\
-    prompt,								\
-    0,	/* doc string */						\
-    lname,								\
-    (lisp_fn_t) Fname							\
-  };									\
-  static struct Lisp_Subr *S##Fname;					\
-  Lisp_Object Fname (DEFUN_##max_args arglist)
-
-#define DEFUN_NORETURN(lname, Fname, min_args, max_args, prompt, arglist) \
-  DECLARE_DOESNT_RETURN_TYPE (Lisp_Object, Fname (EXFUN_##max_args));	  \
-  static struct Lisp_Subr MC_ALLOC_S##Fname =				  \
-  {									  \
-    { /* struct lrecord_header */					  \
-      lrecord_type_subr, /* lrecord_type_index */			  \
-      1, /* lisp_readonly bit */					  \
-      0, /* free */							  \
-      0  /* uid */							  \
-    },									  \
-    min_args,								  \
-    max_args,								  \
-    prompt,								  \
-    0,	/* doc string */						  \
-    lname,								  \
-    (lisp_fn_t) Fname							  \
-  };									  \
-  static struct Lisp_Subr *S##Fname;					  \
-  DOESNT_RETURN_TYPE (Lisp_Object) Fname (DEFUN_##max_args arglist)
-#define GET_DEFUN_LISP_OBJECT(Fname) \
-  wrap_subr (&MC_ALLOC_S##Fname)
-#else /* not NEW_GC */
 #define DEFUN(lname, Fname, min_args, max_args, prompt, arglist)	\
   Lisp_Object Fname (EXFUN_##max_args);					\
   static struct Lisp_Subr S##Fname =					\
@@ -3633,7 +3464,6 @@ Lisp_Object,Lisp_Object,Lisp_Object
   DOESNT_RETURN_TYPE (Lisp_Object) Fname (DEFUN_##max_args arglist)
 #define GET_DEFUN_LISP_OBJECT(Fname) \
   wrap_subr (&S##Fname)
-#endif /* not NEW_GC */
 
 /* Heavy ANSI C preprocessor hackery to get DEFUN to declare a
    prototype that matches max_args, and add the obligatory
@@ -4314,17 +4144,6 @@ MODULE_API void unstaticpro_nodump (Lisp_Object *);
 
 #endif
 
-#ifdef NEW_GC
-extern Lisp_Object_dynarr *mcpros;
-#ifdef DEBUG_XEMACS
-/* Help debug crashes gc-marking a mcpro'ed object. */
-MODULE_API void mcpro_1 (Lisp_Object, const Ascbyte *);
-#define mcpro(ptr) mcpro_1 (ptr, #ptr)
-#else /* not DEBUG_XEMACS */
-/* Call mcpro (&var) to protect mc variable `var'. */
-MODULE_API void mcpro (Lisp_Object);
-#endif /* not DEBUG_XEMACS */
-#endif /* NEW_GC */
 
 void register_post_gc_action (void (*fun) (void *), void *arg);
 int begin_gc_forbidden (void);
@@ -4380,9 +4199,7 @@ MODULE_API EXFUN (Fmake_vector, 2);
 MODULE_API EXFUN (Fvector, MANY);
 
 void deadbeef_memory (void *ptr, Bytecount size);
-#ifndef NEW_GC
 void release_breathing_space (void);
-#endif /* not NEW_GC */
 Lisp_Object noseeum_cons (Lisp_Object, Lisp_Object);
 MODULE_API Lisp_Object make_vector (Elemcount, Lisp_Object);
 MODULE_API Lisp_Object vector1 (Lisp_Object);
@@ -4393,9 +4210,7 @@ Lisp_Object make_bit_vector (Elemcount, Lisp_Object);
 Lisp_Object make_bit_vector_from_byte_vector (unsigned char *, Elemcount);
 Lisp_Object clone_bit_vector (Lisp_Object bitvec);
 Lisp_Object noseeum_make_marker (void);
-#ifndef NEW_GC
 void garbage_collect_1 (void);
-#endif /* not NEW_GC */
 MODULE_API Lisp_Object cons3 (Lisp_Object, Lisp_Object, Lisp_Object);
 MODULE_API Lisp_Object list1 (Lisp_Object);
 MODULE_API Lisp_Object list2 (Lisp_Object, Lisp_Object);
@@ -4431,9 +4246,7 @@ extern int purify_flag;
 
 extern Fixnum Varray_dimension_limit, Vstring_total_size_limit;
 
-#ifndef NEW_GC
 extern EMACS_INT gc_generation_number[1];
-#endif /* not NEW_GC */
 int c_readonly (Lisp_Object);
 int lisp_readonly (Lisp_Object);
 MODULE_API Lisp_Object build_istring (const Ibyte *);

@@ -11,7 +11,7 @@ CONFIG_H=
 LISP_H=
 #else
 CONFIG_H=config.h
-LISP_H=lisp.h array.h compiler.h config.h dumper.h gc.h general-slots.h lisp.h lrecord.h mc-alloc.h number-gmp.h number-mp.h number.h symeval.h symsinit.h syssignal.h text.h vdb.h $(LISP_UNION_H)
+LISP_H=lisp.h array.h compiler.h config.h dumper.h gc.h general-slots.h lrecord.h number-gmp.h number-mp.h number.h symeval.h symsinit.h syssignal.h text.h $(LISP_UNION_H)
 #endif
 
 #if defined(HAVE_MS_WINDOWS)
@@ -187,7 +187,6 @@ lread.o: $(CONFIG_H) $(LISP_H) backtrace.h buffer.h bufslots.h bytecode.h charse
 lstream.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h console.h extents.h frame.h insdel.h intl-auto-encap-win32.h lstream.h redisplay.h sysfile.h syswindows.h tls.h unicode.h
 macros.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h commands.h conslots.h console-impl.h console.h device.h events.h frame.h keymap-buttons.h keymap.h macros.h redisplay.h scrollbar.h specifier.h systime.h unicode.h window.h
 marker.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h unicode.h
-mc-alloc.o: $(CONFIG_H) $(LISP_H) blocktype.h getpagesize.h
 md5.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h coding-system-slots.h file-coding.h lstream.h tls.h unicode.h
 menubar.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h casetab.h charset.h chartab.h conslots.h console-impl.h console.h device-impl.h device.h devslots.h frame-impl.h frame.h frameslots.h gui.h keymap-buttons.h keymap.h lstream.h menubar.h redisplay.h scrollbar.h specifier.h tls.h unicode.h window-impl.h window.h winslots.h
 minibuf.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h casetab.h charset.h chartab.h commands.h conslots.h console-impl.h console-stream.h console.h elhash.h events.h frame-impl.h frame.h frameslots.h insdel.h keymap-buttons.h redisplay.h scrollbar.h specifier.h systime.h unicode.h window-impl.h window.h winslots.h
@@ -246,11 +245,6 @@ unexhp9k800.o: $(CONFIG_H) $(LISP_H)
 unexnt.o: $(CONFIG_H) $(LISP_H) intl-auto-encap-win32.h sysfile.h syswindows.h
 unexsol2-6.o: compiler.h
 unicode.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h coding-system-slots.h elhash.h extents.h file-coding.h intl-auto-encap-win32.h lstream.h opaque.h rangetab.h sysfile.h syswindows.h tls.h unicode.h
-vdb-fake.o: $(CONFIG_H) $(LISP_H)
-vdb-mach.o: $(CONFIG_H) $(LISP_H)
-vdb-posix.o: $(CONFIG_H) $(LISP_H)
-vdb-win32.o: $(CONFIG_H) $(LISP_H) intl-auto-encap-win32.h syswindows.h
-vdb.o: $(CONFIG_H) $(LISP_H)
 vm-limit.o: $(CONFIG_H) $(LISP_H) mem-limits.h
 widget.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h unicode.h
 win32.o: $(CONFIG_H) $(LISP_H) backtrace.h buffer.h bufslots.h casetab.h charset.h chartab.h console-msw.h console.h elhash.h intl-auto-encap-win32.h profile.h sysfile.h sysproc.h systime.h syswindows.h unicode.h

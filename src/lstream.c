@@ -177,11 +177,9 @@ Lstream_set_buffering (Lstream *lstr, Lstream_buffering buffering,
     }
 }
 
-#ifndef NEW_GC
 static const Lstream_implementation *lstream_types[32];
 static Lisp_Object Vlstream_free_list[32];
 static int lstream_type_count;
-#endif /* not NEW_GC */
 
 /* Allocate and return a new Lstream.  This function is not really
    meant to be called directly; rather, each stream type should
@@ -193,10 +191,6 @@ Lstream *
 Lstream_new (const Lstream_implementation *imp, int flags)
 {
   Lstream *p;
-#ifdef NEW_GC
-  p = XLSTREAM (ALLOC_SIZED_LISP_OBJECT (aligned_sizeof_lstream (imp->size),
-					 lstream));
-#else /* not NEW_GC */
   int i;
 
   for (i = 0; i < lstream_type_count; i++)
@@ -217,7 +211,6 @@ Lstream_new (const Lstream_implementation *imp, int flags)
     }
 
   p = XLSTREAM (alloc_managed_lcrecord (Vlstream_free_list[i]));
-#endif /* not NEW_GC */
   /* Formerly, we zeroed out the object minus its header, but it's now
      handled automatically.  ALLOC_SIZED_LISP_OBJECT() always zeroes out
      the whole object other than its header, and alloc_managed_lcrecord()
@@ -288,14 +281,9 @@ Lstream_unset_character_mode (Lstream *lstr)
 void
 Lstream_delete (Lstream *lstr)
 {
-#ifndef NEW_GC
   int i;
-#endif /* not NEW_GC */
   Lisp_Object val = wrap_lstream (lstr);
 
-#ifdef NEW_GC
-  free_normal_lisp_object (val);
-#else /* not NEW_GC */
   for (i = 0; i < lstream_type_count; i++)
     {
       if (lstream_types[i] == lstr->imp)
@@ -306,7 +294,6 @@ Lstream_delete (Lstream *lstr)
     }
 
   ABORT ();
-#endif /* not NEW_GC */
 }
 
 #define Lstream_internal_error(reason, lstr) \

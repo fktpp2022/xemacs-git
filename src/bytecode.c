@@ -58,44 +58,6 @@ by Hallvard:
 
 #define NUM_REMEMBERED_BYTE_OPS 100
 
-#ifdef NEW_GC
-static Lisp_Object
-make_compiled_function_args (Elemcount totalargs)
-{
-  size_t bcount
-    = FLEXIBLE_ARRAY_STRUCT_SIZEOF (Lisp_Compiled_Function_Args, 
-				    Lisp_Object, args, (size_t) totalargs);
-  Lisp_Compiled_Function_Args *args;
-  structure_checking_assert ((Bytecount) bcount >= 0);
-
-  args = XCOMPILED_FUNCTION_ARGS
-    (ALLOC_SIZED_LISP_OBJECT ((Bytecount) bcount, compiled_function_args));
-  args->size = totalargs;
-  return wrap_compiled_function_args (args);
-}
-
-static Bytecount
-size_compiled_function_args (Lisp_Object obj)
-{
-  return FLEXIBLE_ARRAY_STRUCT_SIZEOF (Lisp_Compiled_Function_Args, 
-				       Lisp_Object, args,
-				       XCOMPILED_FUNCTION_ARGS (obj)->size);
-}
-
-static const struct memory_description compiled_function_args_description[] = {
-  { XD_LONG,              offsetof (Lisp_Compiled_Function_Args, size) },
-  { XD_LISP_OBJECT_ARRAY, offsetof (Lisp_Compiled_Function_Args, args), 
-    XD_INDIRECT(0, 0) },
-  { XD_END }
-};
-
-DEFINE_DUMPABLE_SIZABLE_INTERNAL_LISP_OBJECT ("compiled-function-args",
-					      compiled_function_args,
-					      0,
-					      compiled_function_args_description,
-					      size_compiled_function_args,
-					      Lisp_Compiled_Function_Args);
-#endif /* NEW_GC */
 
 static void set_compiled_function_arglist (Lisp_Compiled_Function *,
                                            Lisp_Object);
@@ -2383,21 +2345,13 @@ optimize_compiled_function (Lisp_Object compiled_function)
     }
   
     if (totalargs)
-#ifdef NEW_GC
-      f->arguments = make_compiled_function_args (totalargs); 
-#else /* not NEW_GC */
       f->args = xnew_array (Lisp_Object, totalargs);
-#endif /* not NEW_GC */
 
     {
       LIST_LOOP_2 (arg, f->arglist)
 	{
 	  if (!EQ (arg, Qand_optional) && !EQ (arg, Qand_rest))
-#ifdef NEW_GC
-	    XCOMPILED_FUNCTION_ARGS_DATA (f->arguments)[i++] = arg;
-#else /* not NEW_GC */
 	    f->args[i++] = arg;
-#endif /* not NEW_GC */
 	}
     }
 
@@ -2517,11 +2471,7 @@ mark_compiled_function (Lisp_Object obj)
   mark_object (f->annotated);
 #endif
   for (i = 0; i < f->args_in_array; i++)
-#ifdef NEW_GC
-    mark_object (XCOMPILED_FUNCTION_ARGS_DATA (f->arguments)[i]);
-#else /* not NEW_GC */
     mark_object (f->args[i]);
-#endif /* not NEW_GC */
 
   /* tail-recurse on constants */
   return f->constants;
@@ -2628,12 +2578,8 @@ compiled_function_hash (Lisp_Object obj, int depth, Boolint UNUSED (equalp))
 
 static const struct memory_description compiled_function_description[] = {
   { XD_INT,         offsetof (Lisp_Compiled_Function, args_in_array) },
-#ifdef NEW_GC
-  { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, arguments) },
-#else /* not NEW_GC */
   { XD_BLOCK_PTR,   offsetof (Lisp_Compiled_Function, args),
     XD_INDIRECT (0, 0), { &lisp_object_description } },
-#endif /* not NEW_GC */
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, instructions) },
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, constants) },
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, arglist) },
@@ -3088,9 +3034,6 @@ void
 syms_of_bytecode (void)
 {
   INIT_LISP_OBJECT (compiled_function);
-#ifdef NEW_GC
-  INIT_LISP_OBJECT (compiled_function_args);
-#endif /* NEW_GC */
 
   DEFERROR_STANDARD (Qinvalid_byte_code, Qinvalid_state);
   DEFSYMBOL (Qbyte_code);

@@ -275,42 +275,6 @@ DECLARE_LISP_OBJECT (symbol_value_varalias,	struct symbol_value_varalias);
    DEFUN ("name, Fname, ...); // at top level in foo.c
    DEFSUBR (Fname);           // in syms_of_foo();
 */
-#ifdef NEW_GC
-MODULE_API void defsubr (Lisp_Subr *);
-#define DEFSUBR_MC_ALLOC(Fname)						\
-  S##Fname= (struct Lisp_Subr *) mc_alloc (sizeof (struct Lisp_Subr));	\
-  set_lheader_implementation (&S##Fname->lheader, &lrecord_subr);	\
-									\
-  S##Fname->min_args = MC_ALLOC_S##Fname.min_args;			\
-  S##Fname->max_args = MC_ALLOC_S##Fname.max_args;			\
-  S##Fname->prompt = MC_ALLOC_S##Fname.prompt;				\
-  S##Fname->doc = MC_ALLOC_S##Fname.doc;				\
-  S##Fname->name = MC_ALLOC_S##Fname.name;				\
-  S##Fname->subr_fn = MC_ALLOC_S##Fname.subr_fn;			\
-  MARK_LRECORD_AS_LISP_READONLY (S##Fname);
-
-
-#define DEFSUBR(Fname)				\
-do {						\
-  /* #### As far as I can see, this has no upside compared to the non-NEW_GC \
-     code. The MC_ALLOC_S##Fname structure is also in the dumped	\
-     XEmacs. Aidan Kehoe, Mon Sep 20 23:14:01 IST 2010 */		\
-  DEFSUBR_MC_ALLOC (Fname);			\
-  defsubr (S##Fname);				\
-} while (0)
-
-/* To define a Lisp primitive macro using a C function `Fname', do this:
-   DEFUN ("name, Fname, ...); // at top level in foo.c
-   DEFSUBR_MACRO (Fname);     // in syms_of_foo();
-*/
-MODULE_API void defsubr_macro (Lisp_Subr *);
-#define DEFSUBR_MACRO(Fname)			\
-do {						\
-  DEFSUBR_MC_ALLOC (Fname);			\
-  defsubr_macro (S##Fname);			\
-} while (0)
-
-#else /* not NEW_GC */
 /* To define a Lisp primitive function using a C function `Fname', do this:
    DEFUN ("name, Fname, ...); // at top level in foo.c
    DEFSUBR (Fname);           // in syms_of_foo();
@@ -324,7 +288,6 @@ MODULE_API void defsubr (Lisp_Subr *);
 */
 MODULE_API void defsubr_macro (Lisp_Subr *);
 #define DEFSUBR_MACRO(Fname) defsubr_macro (&S##Fname)
-#endif /* not NEW_GC */
 
 MODULE_API void defsymbol_massage_name (Lisp_Object *location,
 					const Ascbyte *name);
@@ -397,23 +360,6 @@ MODULE_API void deferror_massage_name_and_message (Lisp_Object *symbol,
 MODULE_API void defvar_magic (const Ascbyte *symbol_name,
 			      const struct symbol_value_forward *magic);
 
-#ifdef NEW_GC
-#define DEFVAR_SYMVAL_FWD(lname, c_location, forward_type, magic_fun)	\
-do									\
-{									\
-  struct symbol_value_forward *I_hate_C =				\
-    XSYMBOL_VALUE_FORWARD (ALLOC_NORMAL_LISP_OBJECT (symbol_value_forward));	\
-  /*  mcpro ((Lisp_Object) I_hate_C);*/					\
-									\
-  MARK_LRECORD_AS_LISP_READONLY (I_hate_C);				\
-									\
-  I_hate_C->magic.value = c_location;					\
-  I_hate_C->magic.type = forward_type;					\
-  I_hate_C->magicfun = magic_fun;					\
-									\
-  defvar_magic ((lname), I_hate_C);					\
-} while (0)
-#else /* not NEW_GC */
 #define DEFVAR_SYMVAL_FWD(lname, c_location, forward_type, magicfun)	\
 do									\
 {									\
@@ -436,7 +382,6 @@ do									\
   };									\
   defvar_magic ((lname), &I_hate_C);					\
 } while (0)
-#endif /* not NEW_GC */
 #define DEFVAR_SYMVAL_FWD_INT(lname, c_location, forward_type, magicfun) \
 do									 \
 {									 \

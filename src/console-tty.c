@@ -57,26 +57,16 @@ static const struct memory_description tty_console_data_description_1 [] = {
   { XD_END }
 };
 
-#ifdef NEW_GC
-DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("tty-console", tty_console,
-				      0, tty_console_data_description_1,
-				      Lisp_Tty_Console);
-#else /* not NEW_GC */
 const struct sized_memory_description tty_console_data_description = {
   sizeof (struct tty_console), tty_console_data_description_1
 };
-#endif /* not NEW_GC */
 
 
 static void
 allocate_tty_console_struct (struct console *con)
 {
   /* zero out all slots except the lisp ones ... */
-#ifdef NEW_GC
-  CONSOLE_TTY_DATA (con) = XTTY_CONSOLE (ALLOC_NORMAL_LISP_OBJECT (tty_console));
-#else /* not NEW_GC */
   CONSOLE_TTY_DATA (con) = xnew_and_zero (struct tty_console);
-#endif /* not NEW_GC */
   CONSOLE_TTY_DATA (con)->terminal_type = Qnil;
   CONSOLE_TTY_DATA (con)->instream = Qnil;
   CONSOLE_TTY_DATA (con)->outstream = Qnil;
@@ -216,9 +206,7 @@ free_tty_console_struct (struct console *con)
 	  xfree (tty_con->term_entry_buffer);
 	  tty_con->term_entry_buffer = NULL;
 	}
-#ifndef NEW_GC
       xfree (tty_con);
-#endif /* not NEW_GC */
       CONSOLE_TTY_DATA (con) = NULL;
     }
 }

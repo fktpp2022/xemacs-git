@@ -109,17 +109,9 @@ console_type_entry_dynarr *the_console_type_entry_dynarr;
 
 static const struct memory_description console_data_description_1 []= {
 #ifdef HAVE_TTY
-#ifdef NEW_GC
-  { XD_LISP_OBJECT, tty_console },
-#else /* not NEW_GC */
   { XD_BLOCK_PTR, tty_console, 1, { &tty_console_data_description} },
-#endif /* not NEW_GC */
 #endif
-#ifdef NEW_GC
-  { XD_LISP_OBJECT, stream_console },
-#else /* not NEW_GC */
   { XD_BLOCK_PTR, stream_console, 1, { &stream_console_data_description} },
-#endif /* not NEW_GC */
   { XD_END }
 };
 
@@ -1187,12 +1179,6 @@ void
 syms_of_console (void)
 {
   INIT_LISP_OBJECT (console);
-#ifdef NEW_GC
-#ifdef HAVE_TTY
-  INIT_LISP_OBJECT (tty_console);
-#endif
-  INIT_LISP_OBJECT (stream_console);
-#endif /* NEW_GC */
 
   DEFSUBR (Fvalid_console_type_p);
   DEFSUBR (Fconsole_type_list);
@@ -1324,30 +1310,6 @@ for bindings in `function-key-map'.
 }
 
 /* The docstrings for DEFVAR_* are recorded externally by make-docfile.  */
-#ifdef NEW_GC
-#define DEFVAR_CONSOLE_LOCAL_1(lname, field_name, forward_type, magic_fun) \
-do {									   \
-  struct symbol_value_forward *I_hate_C =				   \
-    XSYMBOL_VALUE_FORWARD (ALLOC_NORMAL_LISP_OBJECT (symbol_value_forward));	   \
-  /*mcpro ((Lisp_Object) I_hate_C);*/					   \
-									   \
-  I_hate_C->magic.value = &(console_local_flags.field_name);		   \
-  I_hate_C->magic.type = forward_type;					   \
-  I_hate_C->magicfun = magic_fun;					   \
-									   \
-  MARK_LRECORD_AS_LISP_READONLY (I_hate_C);				   \
-									   \
-  {									   \
-    size_t offset = ((char *)symbol_value_forward_forward (I_hate_C)	   \
-		  - (char *)&console_local_flags);			   \
-									   \
-    defvar_magic (lname, I_hate_C);					   \
-									   \
-    *((Lisp_Object *)(offset + (char *)XCONSOLE (Vconsole_local_symbols))) \
-      = intern (lname);							   \
-  }									   \
-} while (0)
-#else /* not NEW_GC */
 #define DEFVAR_CONSOLE_LOCAL_1(lname, field_name, forward_type, magicfun)   \
 do {									    \
   static const struct symbol_value_forward I_hate_C =			    \
@@ -1378,7 +1340,6 @@ do {									    \
       = intern (lname);							    \
   }									    \
 } while (0)
-#endif /* not NEW_GC */
 
 #define DEFVAR_CONSOLE_LOCAL_MAGIC(lname, field_name, magicfun)		\
 	DEFVAR_CONSOLE_LOCAL_1 (lname, field_name,			\

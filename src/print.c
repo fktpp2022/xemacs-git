@@ -2150,7 +2150,6 @@ print_internal (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 	  }
 
 	/* Check to see if the lrecord type is garbage. */
-#ifndef NEW_GC
 	if (lheader->type == lrecord_type_free)
 	  {
 	    printing_major_badness (printcharfun, "FREED LRECORD", 0,
@@ -2163,7 +2162,6 @@ print_internal (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 				    lheader, 0, BADNESS_NO_TYPE);
 	    break;
 	  }
-#endif /* not NEW_GC */
 	if ((int) (lheader->type) >= lrecord_type_count)
 	  {
 	    printing_major_badness (printcharfun, "ILLEGAL LRECORD TYPE",
@@ -2218,17 +2216,6 @@ print_internal (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 	    /* For strings, also check the data of the string itself. */
 	    if (STRINGP (obj))
 	      {
-#ifdef NEW_GC
-		if (!debug_can_access_memory (XSTRING_DATA (obj), 
-					      XSTRING_LENGTH (obj)))
-		  {
-		    write_fmt_string
-		      (printcharfun,
-		       "#<EMACS BUG: %p (BAD STRING DATA %p)>",
-		       lheader, XSTRING_DATA (obj));
-		    break;
-		  }
-#else /* not NEW_GC */
 		Lisp_String *l = (Lisp_String *) lheader;
 		if (l->size_ && !debug_can_access_memory (l->data_, l->size_))
 		  {
@@ -2238,7 +2225,6 @@ print_internal (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 					    BADNESS_POINTER_OBJECT_WITH_DATA);
 		    break;
 		  }
-#endif /* not NEW_GC */
 	      }
 	  }
 

@@ -257,11 +257,6 @@ range_table_hash (Lisp_Object obj, int depth, Boolint equalp)
   return hash;
 }
 
-#ifndef NEW_GC
-
-/* #### This leaks memory under NEW_GC.  To fix this, convert to Lisp object
-   gap array. */
-
 static void
 finalize_range_table (Lisp_Object obj)
 {
@@ -274,7 +269,6 @@ finalize_range_table (Lisp_Object obj)
     }
 }
 
-#endif /* not NEW_GC */
 
 static const struct memory_description rte_description_1[] = {
   { XD_LISP_OBJECT, offsetof (range_table_entry, val) },

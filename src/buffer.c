@@ -232,11 +232,6 @@ static const struct memory_description buffer_text_description_1 [] = {
   { XD_END }
 };
 
-#ifdef NEW_GC
-DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("buffer-text", buffer_text,
-				      0, buffer_text_description_1,
-				      Lisp_Buffer_Text);
-#endif /* NEW_GC */
 
 static const struct sized_memory_description buffer_text_description = {
   sizeof (struct buffer_text),
@@ -249,16 +244,10 @@ static const struct memory_description buffer_description [] = {
 
   { XD_LISP_OBJECT, offsetof (struct buffer, extent_info) },
 
-#ifdef NEW_GC
-  { XD_BLOCK_PTR, offsetof (struct buffer, text),
-    1, { &buffer_text_description } },
-  { XD_LISP_OBJECT, offsetof (struct buffer, syntax_cache) },
-#else /* not NEW_GC */
   { XD_BLOCK_PTR, offsetof (struct buffer, text),
     1, { &buffer_text_description } },
   { XD_BLOCK_PTR, offsetof (struct buffer, syntax_cache),
     1, { &syntax_cache_description } },
-#endif /* not NEW_GC */
 
   { XD_LISP_OBJECT, offsetof (struct buffer, indirect_children) },
   { XD_LISP_OBJECT, offsetof (struct buffer, base_buffer) },
@@ -2008,9 +1997,6 @@ void
 syms_of_buffer (void)
 {
   INIT_LISP_OBJECT (buffer);
-#ifdef NEW_GC
-  INIT_LISP_OBJECT (buffer_text);
-#endif /* NEW_GC */
 
   DEFSYMBOL (Qbuffer_live_p);
   DEFSYMBOL (Qbuffer_or_string_p);
@@ -2239,31 +2225,6 @@ List of functions called with no args to query before killing a buffer.
 
 /* The docstrings for DEFVAR_* are recorded externally by make-docfile.  */
 
-#ifdef NEW_GC
-#define DEFVAR_BUFFER_LOCAL_1(lname, field_name, forward_type, magic_fun) \
-do									  \
-{									  \
-  struct symbol_value_forward *I_hate_C =				  \
-    XSYMBOL_VALUE_FORWARD (ALLOC_NORMAL_LISP_OBJECT (symbol_value_forward));	  \
-  /*mcpro ((Lisp_Object) I_hate_C);*/					  \
-									  \
-  I_hate_C->magic.value = &(buffer_local_flags.field_name);		  \
-  I_hate_C->magic.type = forward_type;					  \
-  I_hate_C->magicfun = magic_fun;					  \
-									  \
-  MARK_LRECORD_AS_LISP_READONLY (I_hate_C);				  \
-									  \
-  {									  \
-    ssize_t offset = ((char *)symbol_value_forward_forward (I_hate_C) -	  \
-		      (char *)&buffer_local_flags);			  \
-    defvar_magic (lname, I_hate_C);					  \
-									  \
-    *((Lisp_Object *)(offset + (char *)XBUFFER (Vbuffer_local_symbols)))  \
-      = intern (lname);							  \
-  }									  \
-} while (0)
-
-#else /* not NEW_GC */
 /* Renamed from DEFVAR_PER_BUFFER because FSFmacs D_P_B takes
    a bogus extra arg, which confuses an otherwise identical make-docfile.c */
 #define DEFVAR_BUFFER_LOCAL_1(lname, field_name, forward_type, magicfun) \
@@ -2295,7 +2256,6 @@ do {									 \
       = intern (lname);							 \
   }									 \
 } while (0)
-#endif /* not NEW_GC */
 
 #define DEFVAR_BUFFER_LOCAL_MAGIC(lname, field_name, magicfun)		\
 	DEFVAR_BUFFER_LOCAL_1 (lname, field_name,			\

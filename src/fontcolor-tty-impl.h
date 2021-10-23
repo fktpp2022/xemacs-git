@@ -27,24 +27,9 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 struct tty_color_instance_data
 {
-#ifdef NEW_GC
-  NORMAL_LISP_OBJECT_HEADER header;
-#endif /* NEW_GC */
   Lisp_Object symbol; /* so we don't have to constantly call Fintern() */
 };
 
-#ifdef NEW_GC
-DECLARE_LISP_OBJECT (tty_color_instance_data, struct tty_color_instance_data);
-#define XTTY_COLOR_INSTANCE_DATA(x) \
-  XRECORD (x, tty_color_instance_data, struct tty_color_instance_data)
-#define wrap_tty_color_instance_data(p) \
-  wrap_record (p, tty_color_instance_data)
-#define TTY_COLOR_INSTANCE_DATAP(x) RECORDP (x, tty_color_instance_data)
-#define CHECK_TTY_COLOR_INSTANCE_DATA(x) \
-  CHECK_RECORD (x, tty_color_instance_data)
-#define CONCHECK_TTY_COLOR_INSTANCE_DATA(x) \
-  CONCHECK_RECORD (x, tty_color_instance_data)
-#endif /* NEW_GC */
 
 #define TTY_COLOR_INSTANCE_DATA(c) 				\
   ((struct tty_color_instance_data *) (c)->data)
@@ -53,24 +38,9 @@ DECLARE_LISP_OBJECT (tty_color_instance_data, struct tty_color_instance_data);
 
 struct tty_font_instance_data
 {
-#ifdef NEW_GC
-  NORMAL_LISP_OBJECT_HEADER header;
-#endif /* NEW_GC */
   Lisp_Object charset;
 };
 
-#ifdef NEW_GC
-DECLARE_LISP_OBJECT (tty_font_instance_data, struct tty_font_instance_data);
-#define XTTY_FONT_INSTANCE_DATA(x) \
-  XRECORD (x, tty_font_instance_data, struct tty_font_instance_data)
-#define wrap_tty_font_instance_data(p) \
-  wrap_record (p, tty_font_instance_data)
-#define TTY_FONT_INSTANCE_DATAP(x) RECORDP (x, tty_font_instance_data)
-#define CHECK_TTY_FONT_INSTANCE_DATA(x) \
-  CHECK_RECORD (x, tty_font_instance_data)
-#define CONCHECK_TTY_FONT_INSTANCE_DATA(x) \
-  CONCHECK_RECORD (x, tty_font_instance_data)
-#endif /* NEW_GC */
 
 #define TTY_FONT_INSTANCE_DATA(c) 				\
   ((struct tty_font_instance_data *) (c)->data)

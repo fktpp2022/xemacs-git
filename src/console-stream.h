@@ -27,9 +27,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "console.h"
 
-#ifndef NEW_GC
 extern const struct sized_memory_description stream_console_data_description;
-#endif /* not NEW_GC */
 
 extern Lisp_Object Vterminal_console, Vterminal_frame, Vterminal_device;
 

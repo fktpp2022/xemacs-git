@@ -260,13 +260,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #else
 # define USED_IF_SCROLLBARS(decl) UNUSED (decl)
 #endif
-#ifdef NEW_GC
-# define USED_IF_NEW_GC(decl) decl
-# define UNUSED_IF_NEW_GC(decl) UNUSED (decl)
-#else
-# define USED_IF_NEW_GC(decl) UNUSED (decl)
-# define UNUSED_IF_NEW_GC(decl) decl
-#endif
 #ifdef HAVE_TTY
 #define USED_IF_TTY(decl) decl
 #else

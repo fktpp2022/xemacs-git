@@ -32,12 +32,7 @@ BEGIN_C_DECLS
 
 /************* Dynarr declaration *************/
 
-#ifdef NEW_GC
-#define DECLARE_DYNARR_LISP_IMP()			\
-  const struct lrecord_implementation *lisp_imp;
-#else
 #define DECLARE_DYNARR_LISP_IMP()
-#endif
 
 #ifdef ERROR_CHECK_DYNARR
 #define DECLARE_DYNARR_LOCKED()				\
@@ -68,14 +63,6 @@ typedef struct dynarr
   { XD_INT_RESET,  offsetof (base_type, largest_), XD_INDIRECT(1, 0) },	\
   { XD_INT_RESET,  offsetof (base_type, max_), XD_INDIRECT(1, 0) }
 
-#ifdef NEW_GC
-#define XD_LISP_DYNARR_DESC(base_type, sub_desc)			\
-  { XD_INLINE_LISP_OBJECT_BLOCK_PTR, offsetof (base_type, base),		\
-    XD_INDIRECT(1, 0), {sub_desc} },					\
-  { XD_ELEMCOUNT,  offsetof (base_type, len_) },			\
-  { XD_INT_RESET,  offsetof (base_type, largest_), XD_INDIRECT(1, 0) },	\
-  { XD_INT_RESET,  offsetof (base_type, max_), XD_INDIRECT(1, 0) }
-#endif /* NEW_GC */
 
 /************* Dynarr verification *************/
 
@@ -282,17 +269,6 @@ Dynarr_unlock (void *d)
 MODULE_API void *Dynarr_newf (Bytecount elsize);
 MODULE_API void Dynarr_free (void *d);
 
-#ifdef NEW_GC
-MODULE_API void *Dynarr_lisp_newf (Bytecount elsize,
-				   const struct lrecord_implementation 
-				   *dynarr_imp,
-				   const struct lrecord_implementation *imp);
-
-#define Dynarr_lisp_new(type, dynarr_imp, imp)			\
-  ((type##_dynarr *) Dynarr_lisp_newf (sizeof (type), dynarr_imp, imp))
-#define Dynarr_lisp_new2(dynarr_type, type, dynarr_imp, imp)	\
-  ((dynarr_type *) Dynarr_lisp_newf (sizeof (type)), dynarr_imp, imp)
-#endif /* NEW_GC */
 #define Dynarr_new(type) ((type##_dynarr *) Dynarr_newf (sizeof (type)))
 #define Dynarr_new2(dynarr_type, type) \
   ((dynarr_type *) Dynarr_newf (sizeof (type)))
@@ -488,21 +464,6 @@ Bytecount Dynarr_memory_usage (void *d, struct usage_stats *stats);
 
 /************* Adding/deleting elements to/from a dynarr *************/
 
-/* Set the Lisp implementation of the element at POS in dynarr D.  Only
-   does this if the dynarr holds Lisp objects of a particular type (the
-   objects themselves, not pointers to them), and only under NEW_GC. */
-
-#ifdef NEW_GC
-#define DYNARR_SET_LISP_IMP(d, pos)					\
-do {									\
-  if ((d)->lisp_imp)							\
-    set_lheader_implementation						\
-      ((struct lrecord_header *)&(((d)->base)[pos]), (d)->lisp_imp);	\
-} while (0)  
-#else
-#define DYNARR_SET_LISP_IMP(d, pos) DO_NOTHING
-#endif /* (not) NEW_GC */
-
 /* Add Element EL to the end of dynarr D. */
 
 #define Dynarr_add(d, el)			\
@@ -511,7 +472,6 @@ do {						\
   (void) Dynarr_verify_mod (d);			\
   Dynarr_increment (d);				\
   ((d)->base)[_da_pos] = (el);			\
-  DYNARR_SET_LISP_IMP (d, _da_pos);		\
 } while (0)
 
 /* Set EL as the element at position POS in dynarr D.
@@ -526,7 +486,6 @@ do {							\
   if (Dynarr_length (d) < _ds_pos + 1)			\
     Dynarr_increase_length_and_zero (d, _ds_pos + 1);	\
   ((d)->base)[_ds_pos] = (el);				\
-  DYNARR_SET_LISP_IMP (d, _ds_pos);			\
 } while (0)
 
 /* Add LEN contiguous elements, stored at BASE, to dynarr D.  If BASE is
@@ -767,9 +726,6 @@ void stack_like_free (void *val);
 
 typedef struct gap_array_marker
 {
-#ifdef NEW_GC
-  NORMAL_LISP_OBJECT_HEADER header;
-#endif /* NEW_GC */
   Elemcount pos;
   struct gap_array_marker *next;
 } Gap_Array_Marker;
@@ -797,10 +753,6 @@ typedef struct gap_array_marker
 
 typedef struct gap_array
 {
-#ifdef NEW_GC
-  NORMAL_LISP_OBJECT_HEADER header;
-  int is_lisp;
-#endif /* NEW_GC */
   Elemcount gap;
   Elemcount gapsize;
   Elemcount numels;
@@ -813,35 +765,10 @@ typedef struct gap_array
   char array[1];
 } Gap_Array;
 
-#ifdef NEW_GC
-struct gap_array_marker;
 
-DECLARE_LISP_OBJECT (gap_array_marker, struct gap_array_marker);
-#define XGAP_ARRAY_MARKER(x) \
-  XRECORD (x, gap_array_marker, struct gap_array_marker)
-#define wrap_gap_array_marker(p) wrap_record (p, gap_array_marker)
-#define GAP_ARRAY_MARKERP(x) RECORDP (x, gap_array_marker)
-#define CHECK_GAP_ARRAY_MARKER(x) CHECK_RECORD (x, gap_array_marker)
-#define CONCHECK_GAP_ARRAY_MARKER(x) CONCHECK_RECORD (x, gap_array_marker)
-
-struct gap_array;
-
-DECLARE_LISP_OBJECT (gap_array, struct gap_array);
-#define XGAP_ARRAY(x) XRECORD (x, gap_array, struct gap_array)
-#define wrap_gap_array(p) wrap_record (p, gap_array)
-#define GAP_ARRAYP(x) RECORDP (x, gap_array)
-#define CHECK_GAP_ARRAY(x) CHECK_RECORD (x, gap_array)
-#define CONCHECK_GAP_ARRAY(x) CONCHECK_RECORD (x, gap_array)
-#endif /* NEW_GC */
-
-#ifdef NEW_GC
-#define XD_GAP_ARRAY_MARKER_DESC					\
-  { XD_LISP_OBJECT, offsetof (Gap_Array, markers) }
-#else /* not NEW_GC */
 #define XD_GAP_ARRAY_MARKER_DESC					\
   { XD_BLOCK_PTR, offsetof (Gap_Array, markers), 1,			\
     { &gap_array_marker_description }, XD_FLAG_NO_KKCC }
-#endif /* not NEW_GC */
 
 #define XD_GAP_ARRAY_DESC(sub_desc)					\
   { XD_ELEMCOUNT, offsetof (Gap_Array, gap) },				\
@@ -886,10 +813,8 @@ DECLARE_LISP_OBJECT (gap_array, struct gap_array);
    will skip forward past the gap if the gap is at position 0. */
 #define gap_array_begin(ga, type) ((type *) ((ga)->array))
 
-#ifndef NEW_GC
 extern const struct sized_memory_description lispobj_gap_array_description;
 extern const struct sized_memory_description gap_array_marker_description;
-#endif
 
 Bytecount gap_array_byte_size (Gap_Array *ga);
 Gap_Array *gap_array_insert_els (Gap_Array *ga, Elemcount pos, void *elptr,
@@ -903,7 +828,7 @@ void gap_array_delete_all_markers (Gap_Array *ga);
 void gap_array_move_marker (Gap_Array *ga, Gap_Array_Marker *m, Elemcount pos);
 #define gap_array_marker_pos(ga, m) \
   GAP_ARRAY_MEMORY_TO_ARRAY_POS (ga, (m)->pos)
-Gap_Array *make_gap_array (Elemcount elsize, int USED_IF_NEW_GC (do_lisp));
+Gap_Array *make_gap_array (Elemcount elsize, int UNUSED (do_lisp));
 Gap_Array *gap_array_clone (Gap_Array *ga);
 void free_gap_array (Gap_Array *ga);
 Bytecount gap_array_memory_usage (Gap_Array *ga, struct usage_stats *stats,

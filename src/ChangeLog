@@ -1,3 +1,300 @@
+2021-10-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* alloc.c:
+	* alloc.c (FREE_OR_REALLOC_BEGIN):
+	* alloc.c (memory_full):
+	* alloc.c (DECREMENT_CONS_COUNTER):
+	* alloc.c (copy_lisp_object):
+	* alloc.c (zero_sized_lisp_object):
+	* alloc.c (free_normal_lisp_object):
+	* alloc.c (make_compiled_function):
+	* alloc.c (make_uninit_string):
+	* alloc.c (resize_string):
+	* alloc.c (make_string_nocopy):
+	* alloc.c (static const struct sized_memory_description mcpro_description): Removed.
+	* alloc.c (static const struct sized_memory_description mcpros_description): Removed.
+	* alloc.c (fixed_type_block_overhead):
+	* alloc.c (lisp_object_storage_size):
+	* alloc.c (object_memory_usage_stats):
+	* alloc.c (garbage_collection_statistics):
+	* alloc.c (sweep_lcrecords_1):
+	* alloc.c (sweep_conses):
+	* alloc.c (free_cons):
+	* alloc.c (sweep_compiled_functions):
+	* alloc.c (sweep_key_data):
+	* alloc.c (sweep_button_data):
+	* alloc.c (sweep_motion_data):
+	* alloc.c (sweep_process_data):
+	* alloc.c (sweep_timeout_data):
+	* alloc.c (sweep_magic_data):
+	* alloc.c (sweep_magic_eval_data):
+	* alloc.c (sweep_eval_data):
+	* alloc.c (sweep_misc_user_data):
+	* alloc.c (sweep_markers):
+	* alloc.c (compact_string_chars):
+	* alloc.c (disksave_object_finalization_1):
+	* alloc.c (disksave_object_finalization):
+	* alloc.c (Fgarbage_collect):
+	* alloc.c (common_init_alloc_early):
+	* alloc.c (init_lcrecord_lists):
+	* alloc.c (reinit_alloc_early):
+	* alloc.c (init_alloc_once_early):
+	* array.c:
+	* array.c (Dynarr_resize):
+	* array.c (Dynarr_free):
+	* array.c (gap_array_make_gap):
+	* array.c (gap_array_make_marker):
+	* array.c (gap_array_delete_marker):
+	* array.c (gap_array_delete_all_markers):
+	* array.c (make_gap_array):
+	* array.c (gap_array_clone):
+	* array.c (free_gap_array):
+	* array.c (gap_array_memory_usage):
+	* array.c (syms_of_array):
+	* array.h:
+	* array.h (DECLARE_DYNARR_LISP_IMP):
+	* array.h (Dynarr_new):
+	* array.h (DYNARR_SET_LISP_IMP):
+	* array.h (gap_array_marker):
+	* array.h (gap_array):
+	* array.h (XD_GAP_ARRAY_MARKER_DESC):
+	* buffer.c:
+	* buffer.c (syms_of_buffer):
+	* buffer.c (DEFVAR_BUFFER_LOCAL_MAGIC):
+	* buffer.h:
+	* buffer.h (struct buffer_text):
+	* buffer.h (struct buffer):
+	* bytecode.c:
+	* bytecode.c (optimize_compiled_function):
+	* bytecode.c (mark_compiled_function):
+	* bytecode.c (syms_of_bytecode):
+	* bytecode.h:
+	* bytecode.h (struct Lisp_Compiled_Function):
+	* compiler.h (USED_IF_NEW_GC):
+	* console-gtk-impl.h:
+	* console-gtk-impl.h (struct gtk_device):
+	* console-gtk-impl.h (struct gtk_frame):
+	* console-msw-impl.h:
+	* console-msw-impl.h (struct mswindows_device):
+	* console-msw-impl.h (struct msprinter_device):
+	* console-msw-impl.h (struct mswindows_frame):
+	* console-msw-impl.h (FRAME_MSWINDOWS_HANDLE):
+	* console-stream-impl.h:
+	* console-stream-impl.h (struct stream_console):
+	* console-stream.c:
+	* console-stream.c (stream_init_console):
+	* console-stream.c (stream_delete_console):
+	* console-stream.h:
+	* console-stream.h (stream_canonicalize_device_connection):
+	* console-tty-impl.h:
+	* console-tty-impl.h (struct tty_console):
+	* console-tty-impl.h (struct tty_device):
+	* console-tty.c:
+	* console-tty.c (allocate_tty_console_struct):
+	* console-tty.c (free_tty_console_struct):
+	* console-x-impl.h:
+	* console-x-impl.h (struct x_device):
+	* console-x-impl.h (struct x_frame):
+	* console-x-impl.h (FRAME_X_DATA):
+	* console-x-impl.h (FRAME_X_Y):
+	* console.c:
+	* console.c (syms_of_console):
+	* console.c (DEFVAR_CONSOLE_LOCAL_1):
+	* console.c (DEFVAR_CONSOLE_LOCAL_MAGIC):
+	* device-gtk.c:
+	* device-gtk.c (allocate_gtk_device_struct):
+	* device-gtk.c (free_gtk_device_struct):
+	* device-gtk.c (gtk_delete_device):
+	* device-gtk.c (syms_of_device_gtk):
+	* device-msw.c:
+	* device-msw.c (mswindows_init_device):
+	* device-msw.c (mswindows_delete_device):
+	* device-msw.c (msprinter_init_device):
+	* device-msw.c (msprinter_delete_device):
+	* device-msw.c (syms_of_device_mswindows):
+	* device-tty.c:
+	* device-tty.c (allocate_tty_device_struct):
+	* device-tty.c (free_tty_device_struct):
+	* device-tty.c (syms_of_device_tty):
+	* device-tty.c (console_type_create_device_tty):
+	* device-x.c:
+	* device-x.c (allocate_x_device_struct):
+	* device-x.c (free_x_device_struct):
+	* device-x.c (x_delete_device):
+	* device-x.c (syms_of_device_x):
+	* device.c:
+	* dumper.c:
+	* dumper.c (pdump_objects_unmark):
+	* dumper.c (PDUMP_HASHSIZE):
+	* dumper.c (pdump_make_hash):
+	* dumper.c (pdump_register_sub):
+	* dumper.c (pdump_register_object):
+	* dumper.c (pdump_store_new_pointer_offsets):
+	* dumper.c (pdump_dump_rtables):
+	* dumper.c (pdump):
+	* dumper.c (pdump_load_finish):
+	* dumper.c (pdump_load):
+	* dumper.h:
+	* elhash.c:
+	* elhash.c (free_hentries):
+	* elhash.c (static const struct sized_memory_description htentry_weak_description): Removed.
+	* elhash.c (allocate_hash_table_entries):
+	* elhash.c (resize_hash_table):
+	* elhash.c (pdump_reorganize_hash_table):
+	* elhash.c (init_elhash_once_early):
+	* elhash.h:
+	* elhash.h (htentry):
+	* elhash.h (enum hash_table_weakness):
+	* emacs.c:
+	* emacs.c (main_1):
+	* emacs.c (Fdump_emacs):
+	* emacs.c (fatal_error_signal):
+	* eval.c (Fsignal):
+	* eval.c (handle_compiled_function_with_and_rest):
+	* eval.c (funcall_compiled_function):
+	* eval.c (Feval):
+	* eval.c (Ffuncall):
+	* eval.c (run_hook_with_args_in_buffer_1):
+	* event-msw.c (mswindows_wnd_proc):
+	* events.c (reinit_vars_of_events):
+	* events.c (vars_of_events):
+	* extents.c:
+	* extents.c (extent_list_marker):
+	* extents.c (extent_list):
+	* extents.c (stack_of_extents):
+	* extents.c (extent_list_make_marker):
+	* extents.c (extent_list_delete_marker):
+	* extents.c (allocate_extent_list):
+	* extents.c (free_extent_list):
+	* extents.c (flush_cached_extent_info):
+	* extents.c (uninit_buffer_extents):
+	* extents.c (allocate_soe):
+	* extents.c (free_soe):
+	* extents.c (syms_of_extents):
+	* extents.h:
+	* extents.h (glyph_layout):
+	* faces.h:
+	* faces.h (struct face_cachel):
+	* faces.h (wrap_face):
+	* file-coding.c:
+	* file-coding.c (finalize_coding_system):
+	* file-coding.c (sizeof_coding_system):
+	* fontcolor-tty-impl.h:
+	* fontcolor-tty-impl.h (struct tty_color_instance_data):
+	* fontcolor-tty-impl.h (struct tty_font_instance_data):
+	* fontcolor-tty.c:
+	* fontcolor-tty.c (tty_initialize_color_instance):
+	* fontcolor-tty.c (tty_finalize_color_instance):
+	* fontcolor-tty.c (tty_initialize_font_instance):
+	* fontcolor-tty.c (tty_finalize_font_instance):
+	* fontcolor-tty.c (syms_of_fontcolor_tty):
+	* fontcolor.c:
+	* frame-gtk.c:
+	* frame-gtk.c (allocate_gtk_frame_struct):
+	* frame-gtk.c (gtk_delete_frame):
+	* frame-gtk.c (syms_of_frame_gtk):
+	* frame-msw.c:
+	* frame-msw.c (mswindows_init_frame_1):
+	* frame-msw.c (mswindows_delete_frame):
+	* frame-msw.c (syms_of_frame_mswindows):
+	* frame-msw.c (reinit_vars_of_frame_mswindows):
+	* frame-x.c:
+	* frame-x.c (allocate_x_frame_struct):
+	* frame-x.c (x_delete_frame):
+	* frame-x.c (syms_of_frame_x):
+	* frame.c:
+	* frame.c (change_frame_size):
+	* gc.c:
+	* gc.c (recompute_need_to_garbage_collect):
+	* gc.c (lispdesc_one_description_line_size):
+	* gc.c (GC_CHECK_NOT_FREE):
+	* gc.c (kkcc_gc_stack_push):
+	* gc.c (kkcc_gc_stack_pop):
+	* gc.c (kkcc_gc_stack_push_lisp_object):
+	* gc.c (kkcc_marking):
+	* gc.c (gc_prepare):
+	* gc.c (gc_mark_root_set):
+	* gc.c (gc_finish_mark):
+	* gc.c (gc_finish):
+	* gc.c (garbage_collect_1):
+	* gc.c (common_init_gc_early):
+	* gc.c (init_gc_early):
+	* gc.c (syms_of_gc):
+	* gc.c (vars_of_gc):
+	* gc.c (complex_vars_of_gc):
+	* gc.h:
+	* glyphs.h:
+	* glyphs.h (struct glyph_cachel):
+	* glyphs.h (HSCROLL_GLYPH_INDEX):
+	* lisp.h:
+	* lisp.h (CONS_MARKED_P):
+	* lisp.h (struct Lisp_String):
+	* lisp.h (set_lispstringp_length):
+	* lisp.h (XSTRING_LENGTH):
+	* lisp.h (struct Lisp_Symbol):
+	* lisp.h (CHECK_C_WRITEABLE):
+	* lisp.h (DEFUN):
+	* lrecord.h:
+	* lrecord.h (ALLOC_NORMAL_LISP_OBJECT):
+	* lrecord.h (struct lrecord_header):
+	* lrecord.h (set_lheader_implementation):
+	* lrecord.h (struct old_lcrecord_header):
+	* lrecord.h (struct lrecord_implementation):
+	* lrecord.h (enum memory_description_type):
+	* lrecord.h (enum data_description_entry_flags):
+	* lrecord.h (MAKE_LISP_OBJECT):
+	* lrecord.h (MAKE_RECURSIVE_LISP_OBJECT):
+	* lrecord.h (MAKE_MODULE_LISP_OBJECT):
+	* lrecord.h (DUMPEDP):
+	* lstream.c:
+	* lstream.c (Lstream_new):
+	* lstream.c (Lstream_delete):
+	* lstream.c (Lstream_internal_error):
+	* marker.c:
+	* number.c:
+	* opaque.c:
+	* opaque.c (make_opaque_ptr):
+	* opaque.c (free_opaque_ptr):
+	* opaque.c (reinit_opaque_early):
+	* opaque.c (init_opaque_once_early):
+	* print.c (print_internal):
+	* ralloc.c:
+	* ralloc.c (r_alloc_free):
+	* rangetab.c:
+	* rangetab.h (struct range_table_entry):
+	* specifier.c:
+	* specifier.c (finalize_specifier):
+	* specifier.c (set_specifier_caching):
+	* specifier.c (syms_of_specifier):
+	* specifier.h:
+	* specifier.h (struct specifier_caching):
+	* symbols.c:
+	* symbols.c (guts_of_unbound_marker):
+	* symbols.c (init_symbols_once_early):
+	* symeval.h:
+	* symeval.h (DEFVAR_SYMVAL_FWD):
+	* symeval.h (DEFVAR_SYMVAL_FWD_INT):
+	* syntax.c:
+	* syntax.c (init_buffer_syntax_cache):
+	* syntax.c (uninit_buffer_syntax_cache):
+	* syntax.c (syms_of_syntax):
+	* syntax.h:
+	* syntax.h (struct syntax_cache):
+	* tests.c (TESTS_DEFSUBR):
+	* tests.c (syms_of_tests):
+	* window.c:
+	* window.c (allocate_window):
+	* window.c (make_dummy_parent):
+	* window.c (struct window_stats):
+	* window.c (syms_of_window):
+	* window.c (vars_of_window):
+	* xemacs.def.in.in:
+	Remove the incremental garbage collector, it is more unstable,
+	slower and more memory-intensive than the old collection code.
+	See documentation of this experience and the decision in
+	internals.texi.
+	Changes generated with unifdef -UNEW_GC.
+
 2021-10-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* Makefile.in.in (win32_objs):

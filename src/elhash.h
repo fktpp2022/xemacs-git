@@ -33,28 +33,12 @@ DECLARE_LISP_OBJECT (hash_table, Lisp_Hash_Table);
 
 typedef struct htentry
 {
-#ifdef NEW_GC
-  NORMAL_LISP_OBJECT_HEADER lheader;
-#endif /* NEW_GC */  
   Lisp_Object key;
   Lisp_Object value;
 } htentry;
 
 #define HTENTRY_CLEAR_P(htentry) ((*(EMACS_UINT*)(&((htentry)->key))) == 0)
 
-#ifdef NEW_GC
-
-typedef struct htentry Lisp_Hash_Table_Entry;
-
-DECLARE_LISP_OBJECT (hash_table_entry, Lisp_Hash_Table_Entry);
-
-#define XHASH_TABLE_ENTRY(x) \
-  XRECORD (x, hash_table_entry, Lisp_Hash_Table_Entry)
-#define wrap_hash_table_entry(p) wrap_record (p, hash_table_entry)
-#define HASH_TABLE_ENTRYP(x) RECORDP (x, hash_table_entry)
-#define CHECK_HASH_TABLE_ENTRY(x) CHECK_RECORD (x, hash_table_entry)
-#define CONCHECK_HASH_TABLE_ENTRY(x) CONCHECK_RECORD (x, hash_table_entry)
-#endif /* NEW_GC */
 
 enum hash_table_weakness
 {

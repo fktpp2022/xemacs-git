@@ -431,14 +431,6 @@ things are arranged in config.h.in.  In particular:
 #undef HAVE_WCSCMP
 #undef HAVE_WCSLEN
 
-/* Functions and structs checked for vdb. */
-#undef HAVE_MPROTECT
-#undef HAVE_SIGACTION
-#undef HAVE_STRUCT_SIGINFO_SI_ADDR
-#undef HAVE_SIGINFO_T_SI_ADDR
-#undef HAVE_SIGNAL
-#undef HAVE_STRUCT_SIGCONTEXT_CR2
-
 #undef HAVE_UTIME
 #undef HAVE_UTIMES
 #undef HAVE_SIGSETJMP
@@ -731,18 +723,8 @@ things are arranged in config.h.in.  In particular:
    definitions isn't right with 64-bit systems.  */
 #undef USE_UNION_TYPE
 
-/* If defined, use experimental pdump-based GC algorithms. */
+/* If defined, use stable pdump-based GC algorithms. */
 #undef USE_KKCC
-
-/* If defined, use experimental incremental garbage collector and new
-   allocator. */
-#undef NEW_GC
-
-/* Virtual dirty bit implementation for incremental gc. */
-#undef VDB_POSIX
-#undef VDB_MACH
-#undef VDB_WIN32
-#undef VDB_FAKE
 
 /* Enable special GNU Make features in the Makefiles. */
 #undef USE_GNU_MAKE

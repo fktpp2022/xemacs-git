@@ -69,17 +69,11 @@ static const struct memory_description gtk_device_data_description_1 [] = {
   { XD_END }
 };
 
-#ifdef NEW_GC
-DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("gtk-device", gtk_device,
-				      0, gtk_device_data_description_1,
-				      Lisp_Gtk_Device);
-#else /* not NEW_GC */
 extern const struct sized_memory_description gtk_device_data_description;
 
 const struct sized_memory_description gtk_device_data_description = {
   sizeof (struct gtk_device), gtk_device_data_description_1
 };
-#endif /* not NEW_GC */
 
 
 /************************************************************************/
@@ -109,11 +103,7 @@ extern Lisp_Object __get_gtk_font_truename (PangoFont *font,
 static void
 allocate_gtk_device_struct (struct device *d)
 {
-#ifdef NEW_GC
-  d->device_data = XGTK_DEVICE (ALLOC_NORMAL_LISP_OBJECT (gtk_device));
-#else /* not NEW_GC */
   d->device_data = xnew_and_zero (struct gtk_device);
-#endif /* not NEW_GC */
   DEVICE_GTK_DATA (d)->x_keysym_map_hashtable = Qnil;
 }
 
@@ -397,7 +387,6 @@ gtk_mark_device (struct device *d)
 /*                       closing an X connection	                */
 /************************************************************************/
 
-#ifndef NEW_GC
 static void
 free_gtk_device_struct (struct device *d)
 {
@@ -405,7 +394,6 @@ free_gtk_device_struct (struct device *d)
   xfree (d->device_data);
   d->device_data = 0;
 }
-#endif /* not NEW_GC */
 
 static void
 gtk_delete_device (struct device *d)
@@ -431,9 +419,7 @@ gtk_delete_device (struct device *d)
 #endif
     }
   /* g_free(DEVICE_GTK_CONTEXT (d)); */
-#ifndef NEW_GC
   free_gtk_device_struct (d);
-#endif
 }
 
 
@@ -901,9 +887,6 @@ Load a CSS FILE for styling widgets.
 void
 syms_of_device_gtk (void)
 {
-#ifdef NEW_GC
-  INIT_LISP_OBJECT (gtk_device);
-#endif /* NEW_GC */
 
   DEFSUBR (Fgtk_keysym_on_keyboard_p);
   DEFSUBR (Fgtk_display_visual_class);

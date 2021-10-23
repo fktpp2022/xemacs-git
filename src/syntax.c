@@ -259,17 +259,11 @@ static const struct memory_description syntax_cache_description_1 [] = {
   { XD_END }
 };
 
-#ifdef NEW_GC
-DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("syntax-cache", syntax_cache,
-				      0, syntax_cache_description_1,
-				      Lisp_Syntax_Cache);
-#else /* not NEW_GC */
 
 const struct sized_memory_description syntax_cache_description = {
   sizeof (struct syntax_cache),
   syntax_cache_description_1
 };
-#endif /* not NEW_GC */
 
 /* static syntax cache utilities */
 
@@ -569,11 +563,7 @@ void
 init_buffer_syntax_cache (struct buffer *buf)
 {
   struct syntax_cache *cache;
-#ifdef NEW_GC
-  cache = XSYNTAX_CACHE (ALLOC_NORMAL_LISP_OBJECT (syntax_cache));
-#else /* not NEW_GC */
   cache = xnew_and_zero (struct syntax_cache);
-#endif /* not NEW_GC */
 
   init_syntax_cache (cache, wrap_buffer (buf), buf);
   buf->syntax_cache = cache;
@@ -582,15 +572,13 @@ init_buffer_syntax_cache (struct buffer *buf)
 /* finalize the syntax cache for BUF */
 
 void
-uninit_buffer_syntax_cache (struct buffer *UNUSED_IF_NEW_GC (buf))
+uninit_buffer_syntax_cache (struct buffer *buf)
 {
-#ifndef NEW_GC
   if (buf->syntax_cache)
     {
       xfree (buf->syntax_cache);
       buf->syntax_cache = 0;
     }
-#endif /* not NEW_GC */
 }
 
 /* extent-specific APIs used in extents.c and insdel.c */
@@ -2407,9 +2395,6 @@ update_syntax_table (Lisp_Object USED_IF_MIRROR_TABLE (table))
 void
 syms_of_syntax (void)
 {
-#ifdef NEW_GC
-  INIT_LISP_OBJECT (syntax_cache);
-#endif /* NEW_GC */
   DEFSYMBOL (Qsyntax_table_p);
   DEFSYMBOL (Qsyntax_table);
 

@@ -316,7 +316,6 @@ print_coding_system_in_print_method (Lisp_Object cs, Lisp_Object printcharfun,
   write_ascstring (printcharfun, "]");
 }
 
-#ifndef NEW_GC
 static void
 finalize_coding_system (Lisp_Object obj)
 {
@@ -325,7 +324,6 @@ finalize_coding_system (Lisp_Object obj)
      so that coding systems could go away. */
   MAYBE_XCODESYSMETH (obj, finalize, (obj));
 }
-#endif /* not NEW_GC */
 
 static Bytecount
 sizeof_coding_system (Lisp_Object obj)

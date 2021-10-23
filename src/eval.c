@@ -2509,9 +2509,7 @@ user invokes the "return from signal" option.
       ABORT ();
     }
 
-#ifndef NEW_GC
   assert (!gc_in_progress);
-#endif /* not NEW_GC */
 
   /* We abort if in_display and we are not protected, as garbage
      collections and non-local exits will invariably be fatal, but in
@@ -3664,32 +3662,14 @@ handle_compiled_function_with_and_rest (Lisp_Compiled_Function *f, int nargs,
   int bindargs = min (nargs, max_non_rest_args);
 
   for (i = 0; i < bindargs; i++)
-#ifdef NEW_GC
-    SPECBIND_FAST_UNSAFE (XCOMPILED_FUNCTION_ARGS_DATA (f->arguments)[i],
-			  args[i]);
-#else /* not NEW_GC */
     SPECBIND_FAST_UNSAFE (f->args[i], args[i]);
-#endif /* not NEW_GC */
   for (i = bindargs; i < max_non_rest_args; i++)
-#ifdef NEW_GC
-    SPECBIND_FAST_UNSAFE (XCOMPILED_FUNCTION_ARGS_DATA (f->arguments)[i],
-			  Qnil);
-#else /* not NEW_GC */
     SPECBIND_FAST_UNSAFE (f->args[i], Qnil);
-#endif /* not NEW_GC */
-#ifdef NEW_GC
-  SPECBIND_FAST_UNSAFE
-    (XCOMPILED_FUNCTION_ARGS_DATA (f->arguments)[max_non_rest_args],
-     nargs > max_non_rest_args ?
-     Flist (nargs - max_non_rest_args, &args[max_non_rest_args]) :
-     Qnil);
-#else /* not NEW_GC */
   SPECBIND_FAST_UNSAFE
     (f->args[max_non_rest_args],
      nargs > max_non_rest_args ?
      Flist (nargs - max_non_rest_args, &args[max_non_rest_args]) :
      Qnil);
-#endif /* not NEW_GC */
 }
 
 /* Apply compiled-function object FUN to the NARGS evaluated arguments
@@ -3716,12 +3696,7 @@ funcall_compiled_function (Lisp_Object fun, int nargs, Lisp_Object args[])
     {
 #if 1
       for (i = 0; i < nargs; i++)
-#ifdef NEW_GC
-	SPECBIND_FAST_UNSAFE (XCOMPILED_FUNCTION_ARGS_DATA (f->arguments)[i],
-			      args[i]);
-#else /* not NEW_GC */
 	SPECBIND_FAST_UNSAFE (f->args[i], args[i]);
-#endif /* not NEW_GC */
 #else
       /* Here's an alternate way to write the loop that tries to further
          optimize funcalls for functions with few arguments by partially
@@ -3752,19 +3727,9 @@ funcall_compiled_function (Lisp_Object fun, int nargs, Lisp_Object args[])
   else if (nargs < f->max_args)
     {
       for (i = 0; i < nargs; i++)
-#ifdef NEW_GC
-	SPECBIND_FAST_UNSAFE (XCOMPILED_FUNCTION_ARGS_DATA (f->arguments)[i],
-			      args[i]);
-#else /* not NEW_GC */
 	SPECBIND_FAST_UNSAFE (f->args[i], args[i]);
-#endif /* not NEW_GC */
       for (i = nargs; i < f->max_args; i++)
-#ifdef NEW_GC
-	SPECBIND_FAST_UNSAFE (XCOMPILED_FUNCTION_ARGS_DATA (f->arguments)[i],
-			      Qnil);
-#else /* not NEW_GC */
 	SPECBIND_FAST_UNSAFE (f->args[i], Qnil);
-#endif /* not NEW_GC */
     }
   else if (f->max_args == MANY)
     handle_compiled_function_with_and_rest (f, nargs, args);
@@ -3859,11 +3824,7 @@ Evaluate FORM and return its value.
     {
       struct gcpro gcpro1;
       GCPRO1 (form);
-#ifdef NEW_GC
-      gc_incremental ();
-#else /* not NEW_GC */
       garbage_collect_1 ();
-#endif /* not NEW_GC */
       UNGCPRO;
     }
 
@@ -4127,11 +4088,7 @@ arguments: (FUNCTION &rest ARGS)
     {
       if (need_to_garbage_collect)
 	/* Callers should gcpro lexpr args */
-#ifdef NEW_GC
-	gc_incremental ();
-#else /* not NEW_GC */
 	garbage_collect_1 ();
-#endif /* not NEW_GC */
       if (need_to_check_c_alloca)
 	{
 	  if (++funcall_alloca_count >= MAX_FUNCALLS_BETWEEN_ALLOCA_CLEANUP)
@@ -4144,9 +4101,6 @@ arguments: (FUNCTION &rest ARGS)
 	{
 	  need_to_signal_post_gc = 0;
 	  recompute_funcall_allocation_flag ();
-#ifdef NEW_GC
-	  run_finalizers ();
-#endif /* NEW_GC */
 	  run_post_gc_hook ();
 	}
     }
@@ -5349,11 +5303,9 @@ run_hook_with_args_in_buffer_1 (struct buffer *buf,
     /* We need to bail out of here pronto. */
     return Qnil;
 
-#ifndef NEW_GC
   /* Whenever gc_in_progress is true, preparing_for_armageddon
      will also be true unless something is really hosed. */
   assert (!gc_in_progress);
-#endif /* not NEW_GC */
 
   sym = args[0];
   val = symbol_value_in_buffer (sym, wrap_buffer (buf));

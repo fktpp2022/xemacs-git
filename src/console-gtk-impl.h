@@ -49,9 +49,6 @@ DECLARE_CONSOLE_TYPE (gtk);
 
 struct gtk_device
 {
-#ifdef NEW_GC
-  NORMAL_LISP_OBJECT_HEADER header;
-#endif /* NEW_GC */
   /* Gtk application info. */
   GtkWidget *gtk_app_shell;
 
@@ -108,16 +105,6 @@ struct gtk_device
 #endif
 };
 
-#ifdef NEW_GC
-typedef struct gtk_device Lisp_Gtk_Device;
-
-DECLARE_LISP_OBJECT (gtk_device, Lisp_Gtk_Device);
-
-#define XGTK_DEVICE(x) \
-  XRECORD (x, gtk_device, Lisp_Gtk_Device)
-#define wrap_gtk_device(p) wrap_record (p, gtk_device)
-#define GTK_DEVICE_P(x) RECORDP (x, gtk_device)
-#endif /* NEW_GC */
 
 #define DEVICE_GTK_DATA(d) DEVICE_TYPE_DATA (d, gtk)
 
@@ -138,9 +125,6 @@ DECLARE_LISP_OBJECT (gtk_device, Lisp_Gtk_Device);
 
 struct gtk_frame
 {
-#ifdef NEW_GC
-  NORMAL_LISP_OBJECT_HEADER header;
-#endif /* NEW_GC */
 
   /* The widget of this frame. */
   GtkWidget *widget;		/* This is really a GtkWindow */
@@ -197,16 +181,6 @@ struct gtk_frame
   Lisp_Object widget_callback_ex_hash_table;
 };
 
-#ifdef NEW_GC
-typedef struct gtk_frame Lisp_Gtk_Frame;
-
-DECLARE_LISP_OBJECT (gtk_frame, Lisp_Gtk_Frame);
-
-#define XGTK_FRAME(x) \
-  XRECORD (x, gtk_frame, Lisp_Gtk_Frame)
-#define wrap_gtk_frame(p) wrap_record (p, gtk_frame)
-#define GTK_FRAME_P(x) RECORDP (x, gtk_frame)
-#endif /* NEW_GC */
 
 #define FRAME_GTK_DATA(f) FRAME_TYPE_DATA (f, gtk)
 

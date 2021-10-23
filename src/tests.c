@@ -1067,22 +1067,12 @@ Make sure `fixnum_to_string' can print LONG_MIN as a decimal correctly.
 }
 
 
-#ifdef NEW_GC
-#define TESTS_DEFSUBR(Fname) do {		\
-  DEFSUBR_MC_ALLOC (Fname);			\
-  defsubr (S##Fname);				\
-  Vtest_function_list =				\
-    Fcons (intern (subr_name (S##Fname)),	\
-	   Vtest_function_list);		\
-} while (0)
-#else /* not NEW_GC */
 #define TESTS_DEFSUBR(Fname) do {		\
   DEFSUBR (Fname);				\
   Vtest_function_list =				\
     Fcons (intern (subr_name (&S##Fname)),	\
 	   Vtest_function_list);		\
 } while (0)
-#endif /* not NEW_GC */
 
 void
 syms_of_tests (void)

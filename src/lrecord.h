@@ -31,13 +31,9 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    pointer coerced to an integral type the same size as the pointer
    (usually `long').
    
-   Under old-GC (i.e. when NEW_GC is not defined), there are two kinds of
-   record objects: normal objects (those allocated on their own with
-   xmalloc()) and frob-block objects (those allocated as pieces of large,
-   usually 2K, chunks of memory known as "frob blocks").  Under NEW_GC,
-   there is only one type of record object.  Stuff below that applies to
-   frob-block objects is assumed to apply to the same type of object as
-   normal objects under NEW_GC.
+   There are two kinds of record objects: normal objects (those allocated on
+   their own with xmalloc()) and frob-block objects (those allocated as pieces
+   of large, usually 2K, chunks of memory known as "frob blocks").
 
    Record objects have a header at the beginning of their structure, which
    is used internally to identify the type of the object (so that an
@@ -52,48 +48,40 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    hold the type, 2 or 3 bits are used for flags associated with the
    garbage collector, and the remaining 21 or 22 bits hold the UID.
 
-   Under NEW_GC, NORMAL_LISP_OBJECT_HEADER also resolves to `struct
-   lrecord_header'.  Under old-GC, however, NORMAL_LISP_OBJECT_HEADER
-   resolves to a `struct old_lcrecord_header' (note the `c'), which is a
-   larger structure -- on 32-bit machines it occupies 2 machine words
-   instead of 1.  Such an object is known internally as an "lcrecord".  The
-   first word of `struct old_lcrecord_header' is an embedded `struct
-   lrecord_header' with the same information as for frob-block objects;
-   that way, all objects can be cast to a `struct lrecord_header' to
-   determine their type or other info.  The other word is a pointer, used
-   to thread all lcrecords together in one big linked list.
+   NORMAL_LISP_OBJECT_HEADER resolves to a `struct old_lcrecord_header' (note
+   the `c'), which is a larger structure -- on 32-bit machines it occupies 2
+   machine words instead of 1.  Such an object is known internally as an
+   "lcrecord".  The first word of `struct old_lcrecord_header' is an embedded
+   `struct lrecord_header' with the same information as for frob-block
+   objects; that way, all objects can be cast to a `struct lrecord_header' to
+   determine their type or other info.  The other word is a pointer, used to
+   thread all lcrecords together in one big linked list.
 
-   Under old-GC, normal objects (i.e. lcrecords) are allocated in
-   individual chunks using the underlying allocator (i.e. xmalloc(), which
-   is a thin wrapper around malloc()).  Frob-block objects are more
-   efficient than normal objects, as they have a smaller header and don't
-   have the additional memory overhead associated with malloc() -- instead,
-   as mentioned above, they are carved out of 2K chunks of memory called
-   "frob blocks").  However, it is slightly more tricky to create such
-   objects, as they require special routines in alloc.c to create an object
-   of each such type and to sweep them during garbage collection.  In
-   addition, there is currently no mechanism for handling variable-sized
-   frob-block objects (e.g. vectors), whereas variable-sized normal objects
-   are not a problem.  Frob-block objects are typically used for basic
-   objects that exist in large numbers, such as `cons' or `string'.
+   Normal objects (i.e. lcrecords) are allocated in individual chunks using
+   the underlying allocator (i.e. xmalloc(), which is a thin wrapper around
+   malloc()).  Frob-block objects are more efficient than normal objects, as
+   they have a smaller header and don't have the additional memory overhead
+   associated with malloc() -- instead, as mentioned above, they are carved
+   out of 2K chunks of memory called "frob blocks").  However, it is slightly
+   more tricky to create such objects, as they require special routines in
+   alloc.c to create an object of each such type and to sweep them during
+   garbage collection.  In addition, there is currently no mechanism for
+   handling variable-sized frob-block objects (e.g. vectors), whereas
+   variable-sized normal objects are not a problem.  Frob-block objects are
+   typically used for basic objects that exist in large numbers, such as
+   `cons' or `string'.
 
    Note that strings are an apparent exception to the statement above that
-   variable-sized objects can't be handled.  Under old-GC strings work as
-   follows.  A string consists of two parts -- a fixed-size "string header"
-   that is allocated as a standard frob-block object, and a "string-chars"
-   structure that is allocated out of special 8K-sized frob blocks that
-   have a dedicated garbage-collection handler that compacts the blocks
-   during the sweep stage, relocating the string-chars data (but not the
-   string headers) to eliminate gaps.  Strings larger than 8K are not
-   placed in frob blocks, but instead are stored as individually malloc()ed
-   blocks of memory.  Strings larger than 8K are called "big strings" and
-   those smaller than 8K are called "small strings".
-
-   Under new-GC, there is no difference between big and small strings,
-   just as there is no difference between normal and frob-block objects.
-   There is only one allocation method, which is capable of handling
-   variable-sized objects.  This apparently allocates all objects in
-   frob blocks according to the size of the object.
+   variable-sized objects can't be handled.  Strings work as follows.  A
+   string consists of two parts -- a fixed-size "string header" that is
+   allocated as a standard frob-block object, and a "string-chars" structure
+   that is allocated out of special 8K-sized frob blocks that have a dedicated
+   garbage-collection handler that compacts the blocks during the sweep stage,
+   relocating the string-chars data (but not the string headers) to eliminate
+   gaps.  Strings larger than 8K are not placed in frob blocks, but instead
+   are stored as individually malloc()ed blocks of memory.  Strings larger
+   than 8K are called "big strings" and those smaller than 8K are called
+   "small strings".
 
    To create a new normal Lisp object, see the toolbar-button example
    below.  To create a new frob-block Lisp object, follow the lead of
@@ -125,7 +113,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
      size_in_bytes_method rather than a static_size), call
      ALLOC_SIZED_LISP_OBJECT (size, type), where TYPE is the
      name of the type. NOTE: You cannot call free_normal_lisp_object() on such
-     on object! (At least when not NEW_GC)
+     on object!
 
    - For frob-block objects, use
      ALLOC_FROB_BLOCK_LISP_OBJECT (type, lisp_type, var, lrec_ptr).
@@ -151,52 +139,14 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
      is non-NULL, accumulate info about the size and overhead into STATS.
  */
 
-#ifdef NEW_GC
-/*
-  There are some limitations under New-GC that lead to the creation of a
-  large number of new internal object types.  I'm not completely sure what
-  all of them are, but they are at least partially related to limitations
-  on finalizers.  Something else must be going on as well, because
-  non-dumpable, non-finalizable objects like devices and frames also have
-  their window-system-specific substructures converted into Lisp objects.
-  It must have something to do with the fact that these substructures
-  contain pointers to Lisp objects, but it's not completely clear why --
-  object descriptions exist to indicate the size of these structures and
-  the Lisp object pointers within them.
 
-  At least one definite issue is that under New-GC dumpable objects cannot
-  contain any finalizers (see pdump_register_object()).  This means that
-  any substructures in dumpable objects that are allocated separately and
-  normally freed in a finalizer need instead to be made into actual Lisp
-  objects.  If those structures are Dynarrs, they need to be made into
-  Dynarr Lisp objects (e.g. face-cachel-dynarr or glyph-cachel-dynarr),
-  which are created using Dynarr_lisp_new() or Dynarr_new_new2().
-  Furthermore, the objects contained in the Dynarr also need to be Lisp
-  objects (e.g. face-cachel or glyph-cachel).
-
- --ben
- */
-#endif
-
-#ifdef NEW_GC
-#define ALLOC_NORMAL_LISP_OBJECT(type) alloc_lrecord (&lrecord_##type)
-#define ALLOC_SIZED_LISP_OBJECT(size, type) \
-  alloc_sized_lrecord (size, &lrecord_##type)
-#define NORMAL_LISP_OBJECT_HEADER struct lrecord_header
-#define FROB_BLOCK_LISP_OBJECT_HEADER struct lrecord_header
-#define LISP_OBJECT_FROB_BLOCK_P(obj) 0
-#define IF_NEW_GC(x) x
-#define IF_OLD_GC(x) 0
-#else /* not NEW_GC */
 #define ALLOC_NORMAL_LISP_OBJECT(type) alloc_automanaged_lcrecord (&lrecord_##type)
 #define ALLOC_SIZED_LISP_OBJECT(size, type) \
   old_alloc_sized_lcrecord (size, &lrecord_##type)
 #define NORMAL_LISP_OBJECT_HEADER struct old_lcrecord_header
 #define FROB_BLOCK_LISP_OBJECT_HEADER struct lrecord_header
 #define LISP_OBJECT_FROB_BLOCK_P(obj) (XRECORD_LHEADER_IMPLEMENTATION(obj)->frob_block_p)
-#define IF_NEW_GC(x) 0
 #define IF_OLD_GC(x) x
-#endif /* not NEW_GC */
 
 #define LISP_OBJECT_UID(obj) (XRECORD_LHEADER (obj)->uid)
 
@@ -209,21 +159,6 @@ struct lrecord_header
      field. */
   unsigned int type :8;
 
-#ifdef NEW_GC
-  /* 1 if the object is readonly from lisp */
-  unsigned int lisp_readonly :1;
-
-  /* The `free' field is a flag that indicates whether this lrecord
-     is currently free or not. This is used for error checking and
-     debugging. */
-  unsigned int free :1;
-
-  /* The `uid' field is just for debugging/printing convenience.  Having
-     this slot doesn't hurt us spacewise, since the bits are unused
-     anyway. (The bits are used for strings, though.) */
-  unsigned int uid :22;
-
-#else /* not NEW_GC */
   /* If `mark' is 0 after the GC mark phase, the object will be freed
      during the GC sweep phase.  There are 2 ways that `mark' can be 1:
      - by being referenced from other objects during the GC mark phase
@@ -253,22 +188,12 @@ struct lrecord_header
      anyway. (The bits are used for strings, though.) */
   unsigned int uid :20;
 
-#endif /* not NEW_GC */
 };
 
 struct lrecord_implementation;
 int lrecord_type_index (const struct lrecord_implementation *implementation);
 extern int lrecord_uid_counter[];
 
-#ifdef NEW_GC
-#define set_lheader_implementation(header,imp) do {			\
-  struct lrecord_header* SLI_header = (header);				\
-  SLI_header->type = (imp)->lrecord_type_index;				\
-  SLI_header->lisp_readonly = 0;					\
-  SLI_header->free = 0;							\
-  SLI_header->uid = lrecord_uid_counter[(imp)->lrecord_type_index]++;	\
-} while (0)
-#else /* not NEW_GC */
 #define set_lheader_implementation(header,imp) do {			\
   struct lrecord_header* SLI_header = (header);				\
   SLI_header->type = (imp)->lrecord_type_index;				\
@@ -278,9 +203,7 @@ extern int lrecord_uid_counter[];
   SLI_header->free = 0;							\
   SLI_header->uid = lrecord_uid_counter[(imp)->lrecord_type_index]++;   \
 } while (0)
-#endif /* not NEW_GC */
 
-#ifndef NEW_GC
 struct old_lcrecord_header
 {
   struct lrecord_header lheader;
@@ -304,7 +227,6 @@ struct free_lcrecord_header
   struct old_lcrecord_header lcheader;
   Lisp_Object chain;
 };
-#endif /* not NEW_GC */
 
 /* DON'T FORGET to update .gdbinit.in.in if you change this list. */
 enum lrecord_type
@@ -325,9 +247,7 @@ enum lrecord_type
 
   /* Keep the rest of these (up to #ifdef EVENT_DATA_AS_OBJECTS) sorted,
      to facilitate keeping .gdbinit.in.in in sync.  Also sort within
-     the #ifdef EVENT_DATA_AS_OBJECTS and within the commented-out
-     #ifdef NEW_GC.  Leave the symbol-value stuff at the beginning and the
-     free/undefined/last at the end as-is. */
+     the #ifdef EVENT_DATA_AS_OBJECTS and within the commented-out */
   lrecord_type_bigfloat,		/* Lisp_Bigfloat */
   lrecord_type_bignum,			/* Lisp_Bignum */
   lrecord_type_bit_vector,		/* Lisp_Bit_Vector */
@@ -367,9 +287,7 @@ enum lrecord_type
   lrecord_type_hash_table_test,		/* Hash_Table_Test */
   lrecord_type_image_instance,		/* Lisp_Image_Instance */
   lrecord_type_keymap,			/* Lisp_Keymap */
-  /* #ifndef NEW_GC */
   lrecord_type_lcrecord_list,		/* struct lcrecord_list */
-  /* #endif not NEW_GC */
   /* #### Do we need the following module entry? */
   lrecord_type_ldap,			/* Lisp_LDAP */
   lrecord_type_lstream,			/* struct lstream */
@@ -398,6 +316,7 @@ enum lrecord_type
   lrecord_type_weak_list,		/* struct weak_list */
   lrecord_type_window,			/* struct window */
   lrecord_type_window_mirror,		/* struct window_mirror */
+  lrecord_type_expose_ignore,		/* struct expose_ignore */
 
 #ifdef EVENT_DATA_AS_OBJECTS /* not defined */
   lrecord_type_button_data,		/* Lisp_Button_Data */
@@ -411,41 +330,6 @@ enum lrecord_type
   lrecord_type_timeout_data,		/* Lisp_Timeout_Data */
 #endif /* EVENT_DATA_AS_OBJECTS */
 
-  /* #ifdef NEW_GC */
-  /* See comment up top explaining why these extra object types must exist. */
-  lrecord_type_buffer_text,		/* Lisp_Buffer_Text */
-  lrecord_type_compiled_function_args,	/* Lisp_Compiled_Function_Args */
-  lrecord_type_dynarr,			/* Dynarr */
-  lrecord_type_expose_ignore,		/* struct expose_ignore */
-  lrecord_type_extent_list,		/* struct extent_list */
-  lrecord_type_extent_list_marker,	/* struct extent_list_marker */
-  lrecord_type_face_cachel,		/* Lisp_Face_Cachel */
-  lrecord_type_face_cachel_dynarr,	/* face_cachel_dynarr */
-  lrecord_type_gap_array,		/* struct gap_array */
-  lrecord_type_gap_array_marker,	/* struct gap_array_marker */
-  lrecord_type_glyph_cachel,		/* Lisp_Glyph_Cachel */
-  lrecord_type_glyph_cachel_dynarr,	/* glyph_cachel_dynarr */
-  lrecord_type_gtk_device,		/* Lisp_Gtk_Device */
-  lrecord_type_gtk_frame,		/* Lisp_Gtk_Frame */
-  lrecord_type_hash_table_entry,	/* Lisp_Hash_Table_Entry */
-  lrecord_type_msprinter_device,	/* Lisp_Msprinter_Device */
-  lrecord_type_mswindows_device,	/* Lisp_Mswindows_Device */
-  lrecord_type_mswindows_frame,		/* Lisp_Mswindows_Frame */
-  lrecord_type_specifier_caching,	/* struct specifier_caching */
-  lrecord_type_stack_of_extents,	/* struct stack_of_extents */
-  lrecord_type_stream_console,		/* Lisp_Stream_Console */
-  lrecord_type_string_direct_data,	/* Lisp_String_Direct_Data */
-  lrecord_type_string_indirect_data,	/* Lisp_String_Indirect_Data */
-  lrecord_type_syntax_cache,		/* Lisp_Syntax_Cache */
-  lrecord_type_tty_color_instance_data,	/* struct tty_color_instance_data */
-  lrecord_type_tty_console,		/* Lisp_Tty_Console */
-  lrecord_type_tty_device,		/* Lisp_Tty_Device */
-  lrecord_type_tty_font_instance_data,	/* struct tty_font_instance_data */
-  lrecord_type_x_device,		/* Lisp_X_Device */
-  lrecord_type_x_frame,			/* Lisp_X_Frame */
-  /* #endif NEW_GC */
-
-  /* next two not used under NEW_GC */
   lrecord_type_free,			/* only used for "free" lrecords */
   lrecord_type_undefined,		/* only used for debugging */
   lrecord_type_last_built_in_type,	/* must be last */
@@ -519,12 +403,10 @@ struct lrecord_implementation
   /* The (constant) index into lrecord_implementations_table */
   enum lrecord_type lrecord_type_index;
 
-#ifndef NEW_GC
   /* A "frob-block" lrecord is any lrecord that's not an lcrecord, i.e.
      one that does not have an old_lcrecord_header at the front and which
      is (usually) allocated in frob blocks. */
   unsigned int frob_block_p :1;
-#endif /* not NEW_GC */
 
   /* The next two methods are for objects that may be recursive;
      print_preprocess descends OBJ, adding any encountered subobjects to
@@ -656,77 +538,9 @@ lrecord_implementations_table[lrecord_type_last_built_in_type + MODULE_DEFINABLE
 
 #include "gc.h"
 
-#ifdef NEW_GC
-#include "vdb.h"
-#endif /* NEW_GC */
 
 extern int gc_in_progress;
 
-#ifdef NEW_GC
-#include "mc-alloc.h"
-
-#ifdef ALLOC_TYPE_STATS
-void init_lrecord_stats (void);
-void inc_lrecord_stats (Bytecount size, const struct lrecord_header *h);
-void dec_lrecord_stats (Bytecount size_including_overhead, 
-			const struct lrecord_header *h);
-Bytecount lrecord_stats_heap_size (void);
-#endif /* ALLOC_TYPE_STATS */
-
-/* Tell mc-alloc how to call a finalizer. */
-#define MC_ALLOC_CALL_FINALIZER(ptr)					\
-{									\
-  Lisp_Object MCACF_obj = wrap_pointer_1 (ptr);				\
-  struct lrecord_header *MCACF_lheader = XRECORD_LHEADER (MCACF_obj);   \
-  if (XRECORD_LHEADER (MCACF_obj) && LRECORDP (MCACF_obj)		\
-      && !LRECORD_FREE_P (MCACF_lheader)  )				\
-    {									\
-      const struct lrecord_implementation *MCACF_implementation		\
-	= LHEADER_IMPLEMENTATION (MCACF_lheader);			\
-      if (MCACF_implementation && MCACF_implementation->finalizer)	\
-        {								\
-	  GC_STAT_FINALIZED;						\
-          MCACF_implementation->finalizer (MCACF_obj);			\
-        }								\
-    }									\
-} while (0)
-
-/* Tell mc-alloc how to call a finalizer for disksave. */
-#define MC_ALLOC_CALL_FINALIZER_FOR_DISKSAVE(ptr)			\
-{									\
-  Lisp_Object MCACF_obj = wrap_pointer_1 (ptr);				\
-  struct lrecord_header *MCACF_lheader = XRECORD_LHEADER (MCACF_obj);   \
-  if (XRECORD_LHEADER (MCACF_obj) && LRECORDP (MCACF_obj)		\
-      && !LRECORD_FREE_P (MCACF_lheader)  )				\
-    {									\
-      const struct lrecord_implementation *MCACF_implementation		\
-	= LHEADER_IMPLEMENTATION (MCACF_lheader);			\
-      if (MCACF_implementation && MCACF_implementation->disksave)	\
-	MCACF_implementation->disksave (MCACF_obj);			\
-    }									\
-} while (0)
-
-#define LRECORD_FREE_P(ptr)			\
-(((struct lrecord_header *) ptr)->free)
-
-#define MARK_LRECORD_AS_FREE(ptr)			\
-((void) (((struct lrecord_header *) ptr)->free = 1))
-
-#define MARK_LRECORD_AS_NOT_FREE(ptr)			\
-((void) (((struct lrecord_header *) ptr)->free = 0))
-
-#define MARKED_RECORD_P(obj) MARKED_P (obj)
-#define MARKED_RECORD_HEADER_P(lheader) MARKED_P (lheader)
-#define MARK_RECORD_HEADER(lheader)   MARK (lheader)
-#define UNMARK_RECORD_HEADER(lheader) UNMARK (lheader)
-
-#define LISP_READONLY_RECORD_HEADER_P(lheader)  ((lheader)->lisp_readonly)
-#define SET_LISP_READONLY_RECORD_HEADER(lheader) \
-  ((void) ((lheader)->lisp_readonly = 1))
-#define MARK_LRECORD_AS_LISP_READONLY(ptr)			\
-((void) (((struct lrecord_header *) ptr)->lisp_readonly = 1))
-
-#else /* not NEW_GC */
 
 enum lrecord_alloc_status
 {
@@ -759,7 +573,6 @@ void tick_lrecord_stats (const struct lrecord_header *h,
 } while (0)
 #define SET_LISP_READONLY_RECORD_HEADER(lheader) \
   ((void) ((lheader)->lisp_readonly = 1))
-#endif /* not NEW_GC */
 
 #ifdef USE_KKCC
 #define RECORD_DESCRIPTION(lheader) lrecord_memory_descriptions[(lheader)->type]
@@ -1058,17 +871,6 @@ void tick_lrecord_stats (const struct lrecord_header *h,
   use XD_BLOCK_PTR, whose description parameter is a sized_memory_description
   consisting of only XD_LISP_OBJECT and XD_END.
 
-    XD_INLINE_LISP_OBJECT_BLOCK_PTR
-
-  An pointer to a contiguous block of inline Lisp objects -- i.e., the Lisp
-  object itself rather than a Lisp_Object pointer is stored in the block.
-  This is used only under NEW_GC and is useful for increased efficiency when
-  an array of the same kind of object is needed.  Examples of the use of this
-  type are Lisp dynarrs, where the array elements are inline Lisp objects
-  rather than non-Lisp structures, as is normally the case; and hash tables,
-  where the key/value pairs are encapsulated as hash-table-entry objects and
-  an array of inline hash-table-entry objects is stored.
-
     XD_LO_LINK
 
   Weak link in a linked list of objects of the same type.  This is a
@@ -1233,9 +1035,6 @@ enum memory_description_type
 {
   XD_LISP_OBJECT_ARRAY,
   XD_LISP_OBJECT,
-#ifdef NEW_GC
-  XD_INLINE_LISP_OBJECT_BLOCK_PTR,
-#endif /* NEW_GC */
   XD_LO_LINK,
   XD_OPAQUE_PTR,
   XD_OPAQUE_PTR_CONVERTIBLE,
@@ -1278,14 +1077,12 @@ enum data_description_entry_flags
   XD_FLAG_NO_PDUMP = 2,
   /* Indicates that this is a "default" entry in a union map. */
   XD_FLAG_UNION_DEFAULT_ENTRY = 4,
-#ifndef NEW_GC
   /* Indicates that this is a free Lisp object we're marking.
      Only relevant for ERROR_CHECK_GC.  This occurs when we're marking
      lcrecord-lists, where the objects have had their type changed to
      lrecord_type_free and also have had their free bit set, but we mark
      them as normal. */
   XD_FLAG_FREE_LISP_OBJECT = 8,
-#endif /* not NEW_GC */
 #if 0
   /* Suggestions for other possible flags: */
 
@@ -1374,8 +1171,7 @@ struct opaque_convert_functions
 
    DEFINE_*_FROB_BLOCK_LISP_OBJECT is for objects that are allocated in
    large blocks ("frob blocks"), which are parceled up individually.  Such
-   objects need special handling in alloc.c.  This does not apply to
-   NEW_GC, because it does this automatically.
+   objects need special handling in alloc.c.
 
    DEFINE_*_INTERNAL_LISP_OBJECT is for "internal" objects that should
    never be visible on the Lisp level.  This is a shorthand for the most
@@ -1443,33 +1239,12 @@ DEFINE_NODUMP_SIZABLE_LISP_OBJECT(name,c_name,marker,internal_object_printer,0,0
 
 /********* MAKE_LISP_OBJECT, the underlying macro *********** */
 
-#ifdef NEW_GC
-#define MAKE_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,	\
-equal,hash,desc,size,sizer,frob_block_p,structtype)			\
-DECLARE_ERROR_CHECK_TYPES(c_name, structtype)				\
-struct lrecord_implementation lrecord_##c_name =			\
-  { name, dumpable, marker, printer, nuker, equal, hash, desc,		\
-    size, sizer, lrecord_type_##c_name }
-#else /* not NEW_GC */
 #define MAKE_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,size,sizer,frob_block_p,structtype) \
 DECLARE_ERROR_CHECK_TYPES(c_name, structtype)				\
 struct lrecord_implementation lrecord_##c_name =			\
   { name, dumpable, marker, printer, nuker, equal, hash, desc,		\
     size, sizer, lrecord_type_##c_name, frob_block_p }
-#endif /* not NEW_GC */
 
-#ifdef NEW_GC
-#define MAKE_RECURSIVE_LISP_OBJECT(name,c_name,dumpable,marker,printer, \
-                                   nuker,equal,hash,desc,size,sizer,    \
-                                   frob_block_p,structtype,             \
-                                   print_preprocess,                    \
-                                   nsubst_structures_descend)           \
-DECLARE_ERROR_CHECK_TYPES(c_name, structtype)				\
-struct lrecord_implementation lrecord_##c_name =			\
-  { name, dumpable, marker, printer, nuker, equal, hash, desc,		\
-    size, sizer, lrecord_type_##c_name, print_preprocess,               \
-    nsubst_structures_descend }
-#else /* not NEW_GC */
 #define MAKE_RECURSIVE_LISP_OBJECT(name,c_name,dumpable,marker,printer, \
                                    nuker,equal,hash,desc,size,sizer,    \
                                    frob_block_p,structtype,             \
@@ -1480,7 +1255,6 @@ struct lrecord_implementation lrecord_##c_name =			\
   { name, dumpable, marker, printer, nuker, equal, hash, desc,		\
     size, sizer, lrecord_type_##c_name, frob_block_p, print_preprocess, \
     nsubst_structures_descend }
-#endif /* not NEW_GC */
 
 /********* The module dumpable versions *********** */
 
@@ -1504,15 +1278,6 @@ nuker,equal,hash,desc,0,sizer,0,structtype)
 
 /********* MAKE_MODULE_LISP_OBJECT, the underlying macro *********** */
 
-#ifdef NEW_GC
-#define MAKE_MODULE_LISP_OBJECT(name,c_name,dumpable,marker,printer,	\
-nuker,equal,hash,desc,size,sizer,frob_block_p,structtype)		\
-DECLARE_ERROR_CHECK_TYPES(c_name, structtype)				\
-int lrecord_type_##c_name;						\
-struct lrecord_implementation lrecord_##c_name =			\
-  { name, dumpable, marker, printer, nuker, equal, hash, desc,		\
-    size, sizer, lrecord_type_last_built_in_type }
-#else /* not NEW_GC */
 #define MAKE_MODULE_LISP_OBJECT(name,c_name,dumpable,marker,printer,	\
 nuker,equal,hash,desc,size,sizer,frob_block_p,structtype)		\
 DECLARE_ERROR_CHECK_TYPES(c_name, structtype)				\
@@ -1520,7 +1285,6 @@ int lrecord_type_##c_name;						\
 struct lrecord_implementation lrecord_##c_name =			\
   { name, dumpable, marker, printer, nuker, equal, hash, desc,		\
     size, sizer, lrecord_type_last_built_in_type, frob_block_p }
-#endif /* not NEW_GC */
 
 #ifdef MEMORY_USAGE_STATS
 #define INIT_MEMORY_USAGE_STATS(type)					\
@@ -1964,7 +1728,6 @@ extern struct lrecord_implementation lrecord_##c_name
    dead_wrong_type_argument (predicate, x);		\
  } while (0)
 
-#ifndef NEW_GC
 /*-------------------------- lcrecord-list -----------------------------*/
 
 struct lcrecord_list
@@ -2084,22 +1847,6 @@ alloc_automanaged_lcrecord (const struct lrecord_implementation *imp);
 
 void old_free_lcrecord (Lisp_Object rec);
 
-#else /* NEW_GC */
-
-MODULE_API Lisp_Object alloc_sized_lrecord (Bytecount size,
-					    const struct lrecord_implementation *imp);
-Lisp_Object noseeum_alloc_sized_lrecord (Bytecount size,
-					 const struct lrecord_implementation *imp);
-MODULE_API Lisp_Object alloc_lrecord (const struct lrecord_implementation *imp);
-Lisp_Object noseeum_alloc_lrecord (const struct lrecord_implementation *imp);
-
-MODULE_API Lisp_Object alloc_lrecord_array (Elemcount elemcount,
-				 const struct lrecord_implementation *imp);
-MODULE_API Lisp_Object alloc_sized_lrecord_array (Bytecount size,
-						  Elemcount elemcount,
-						  const struct lrecord_implementation *imp);
-
-#endif /* NEW_GC */
 
 DECLARE_INLINE_HEADER (
 Bytecount
@@ -2235,12 +1982,8 @@ extern MODULE_API int initialized;
 
 #ifdef PDUMP
 #include "dumper.h"
-#ifdef NEW_GC
-#define DUMPEDP(adr) 0
-#else /* not NEW_GC */
 #define DUMPEDP(adr) ((((Rawbyte *) (adr)) < pdump_end) && \
                       (((Rawbyte *) (adr)) >= pdump_start))
-#endif /* not NEW_GC */
 #else
 #define DUMPEDP(adr) 0
 #endif

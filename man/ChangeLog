@@ -1,3 +1,12 @@
+2021-10-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (Top):
+	* internals/internals.texi (Debugging and Testing):
+	* internals/internals.texi (lrecords):
+	Remove documentation of details of the implementation of the
+	incremental garbage collector. Document experience with it and its
+	removal in October 2021.
+
 2021-10-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Q210341 says this in addition): Removed.

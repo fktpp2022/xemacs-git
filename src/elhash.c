@@ -623,7 +623,6 @@ print_hash_table (Lisp_Object obj, Lisp_Object printcharfun,
 #define USED_IF_ERROR_CHECK_STRUCTURES(x) UNUSED (x)
 #endif
 
-#ifndef NEW_GC
 static void
 free_hentries (htentry *hentries,
 	       Elemcount USED_IF_ERROR_CHECK_STRUCTURES (size))
@@ -645,7 +644,6 @@ finalize_hash_table (Lisp_Object obj)
   free_hentries (ht->hentries, ht->size);
   ht->hentries = 0;
 }
-#endif /* not NEW_GC */
 
 static const struct memory_description htentry_description_1[] = {
   { XD_LISP_OBJECT, offsetof (htentry, key) },
@@ -658,37 +656,14 @@ static const struct sized_memory_description htentry_description = {
   htentry_description_1
 };
 
-#ifdef NEW_GC
-static const struct memory_description htentry_weak_description_1[] = {
-  { XD_LISP_OBJECT, offsetof (htentry, key), 0, { 0 }, XD_FLAG_NO_KKCC},
-  { XD_LISP_OBJECT, offsetof (htentry, value), 0, { 0 }, XD_FLAG_NO_KKCC},
-  { XD_END }
-};
-
-static const struct sized_memory_description htentry_weak_description = {
-  sizeof (htentry),
-  htentry_weak_description_1
-};
-
-DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("hash-table-entry", hash_table_entry,
-				      0, htentry_description_1,
-				      Lisp_Hash_Table_Entry);
-#endif /* NEW_GC */
 
 static const struct memory_description htentry_union_description_1[] = {
   /* Note: XD_INDIRECT in this table refers to the surrounding table,
      and so this will work. */
-#ifdef NEW_GC
-  { XD_INLINE_LISP_OBJECT_BLOCK_PTR, HASH_TABLE_NON_WEAK,
-    XD_INDIRECT (0, 1), { &htentry_description } },
-  { XD_INLINE_LISP_OBJECT_BLOCK_PTR, 0, XD_INDIRECT (0, 1),
-    { &htentry_weak_description }, XD_FLAG_UNION_DEFAULT_ENTRY },
-#else /* not NEW_GC */
   { XD_BLOCK_PTR, HASH_TABLE_NON_WEAK, XD_INDIRECT (0, 1),
     { &htentry_description } },
   { XD_BLOCK_PTR, 0, XD_INDIRECT (0, 1), { &htentry_description },
     XD_FLAG_UNION_DEFAULT_ENTRY | XD_FLAG_NO_KKCC },
-#endif /* not NEW_GC */
   { XD_END }
 };
 
@@ -741,12 +716,7 @@ compute_hash_table_derived_values (Lisp_Hash_Table *ht)
 static htentry *
 allocate_hash_table_entries (Elemcount size)
 {
-#ifdef NEW_GC
-  return XHASH_TABLE_ENTRY (alloc_lrecord_array
-			    (size, &lrecord_hash_table_entry));
-#else /* not NEW_GC */
   return xnew_array_and_zero (htentry, size);
-#endif /* not NEW_GC */
 }
 
 static Lisp_Object decode_hash_table_test (Lisp_Object obj);
@@ -1299,9 +1269,7 @@ resize_hash_table (Lisp_Hash_Table *ht, Elemcount new_size)
 	*probe = *e;
       }
 
-#ifndef NEW_GC
   free_hentries (old_entries, old_size);
-#endif /* not NEW_GC */
 }
 
 /* After a hash table has been saved to disk and later restored by the
@@ -1327,9 +1295,7 @@ pdump_reorganize_hash_table (Lisp_Object hash_table)
 
   memcpy (ht->hentries, new_entries, ht->size * sizeof (htentry));
 
-#ifndef NEW_GC
   xfree (new_entries);
-#endif /* not NEW_GC */
 }
 
 static void
@@ -2989,9 +2955,6 @@ init_elhash_once_early (void)
   INIT_LISP_OBJECT (hash_table);
   INIT_LISP_OBJECT (hash_table_test);
 
-#ifdef NEW_GC
-  INIT_LISP_OBJECT (hash_table_entry);
-#endif /* NEW_GC */
 
   /* Create Vequal_hash_table_test so we can create Vobarray. */
   staticpro (&Vequal_hash_table_test);

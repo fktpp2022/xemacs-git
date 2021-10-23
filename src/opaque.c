@@ -36,9 +36,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "lisp.h"
 #include "opaque.h"
 
-#ifndef NEW_GC
 Lisp_Object Vopaque_ptr_free_list;
-#endif /* not NEW_GC */
 
 /* Should never, ever be called. (except by an external debugger) */
 static void
@@ -159,11 +157,7 @@ DEFINE_NODUMP_LISP_OBJECT ("opaque-ptr", opaque_ptr,
 Lisp_Object
 make_opaque_ptr (void *val)
 {
-#ifdef NEW_GC
-  Lisp_Object res = ALLOC_NORMAL_LISP_OBJECT (opaque_ptr);
-#else /* not NEW_GC */
   Lisp_Object res = alloc_managed_lcrecord (Vopaque_ptr_free_list);
-#endif /* not NEW_GC */
   set_opaque_ptr (res, val);
   return res;
 }
@@ -174,14 +168,9 @@ make_opaque_ptr (void *val)
 void
 free_opaque_ptr (Lisp_Object ptr)
 {
-#ifdef NEW_GC
-  free_normal_lisp_object (ptr);
-#else /* not NEW_GC */
   free_managed_lcrecord (Vopaque_ptr_free_list, ptr);
-#endif /* not NEW_GC */
 }
 
-#ifndef NEW_GC
 void
 reinit_opaque_early (void)
 {
@@ -189,7 +178,6 @@ reinit_opaque_early (void)
 					      &lrecord_opaque_ptr);
   staticpro_nodump (&Vopaque_ptr_free_list);
 }
-#endif /* not NEW_GC */
 
 void
 init_opaque_once_early (void)
@@ -197,7 +185,5 @@ init_opaque_once_early (void)
   INIT_LISP_OBJECT (opaque);
   INIT_LISP_OBJECT (opaque_ptr);
 
-#ifndef NEW_GC
   reinit_opaque_early ();
-#endif /* not NEW_GC */
 }

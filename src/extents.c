@@ -235,9 +235,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 typedef struct extent_list_marker
 {
-#ifdef NEW_GC
-  NORMAL_LISP_OBJECT_HEADER header;
-#endif /* NEW_GC */
   Gap_Array_Marker *m;
   int endp;
   struct extent_list_marker *next;
@@ -245,17 +242,12 @@ typedef struct extent_list_marker
 
 typedef struct extent_list
 {
-#ifdef NEW_GC
-  NORMAL_LISP_OBJECT_HEADER header;
-#endif /* NEW_GC */
   Gap_Array *start;
   Gap_Array *end;
   Extent_List_Marker *markers;
 } Extent_List;
 
-#ifndef NEW_GC
 static Extent_List_Marker *extent_list_marker_freelist;
-#endif /* not NEW_GC */
 
 #define EXTENT_LESS_VALS(e,st,nd) ((extent_start (e) < (st)) || \
 				   ((extent_start (e) == (st)) && \
@@ -304,9 +296,6 @@ static Extent_List_Marker *extent_list_marker_freelist;
 
 typedef struct stack_of_extents
 {
-#ifdef NEW_GC
-  NORMAL_LISP_OBJECT_HEADER header;
-#endif /* NEW_GC */
   Extent_List *extents;
   Memxpos pos; /* Position of stack of extents.  EXTENTS is the list of
 		 all extents that overlap this position.  This position
@@ -567,9 +556,6 @@ extent_list_make_marker (Extent_List *el, int pos, int endp)
 {
   Extent_List_Marker *m;
 
-#ifdef NEW_GC
-  m = XEXTENT_LIST_MARKER (ALLOC_NORMAL_LISP_OBJECT (extent_list_marker));
-#else /* not NEW_GC */
   if (extent_list_marker_freelist)
     {
       m = extent_list_marker_freelist;
@@ -577,7 +563,6 @@ extent_list_make_marker (Extent_List *el, int pos, int endp)
     }
   else
     m = xnew (Extent_List_Marker);
-#endif /* not NEW_GC */
 
   m->m = gap_array_make_marker (endp ? el->end : el->start, pos);
   m->endp = endp;
@@ -601,13 +586,9 @@ extent_list_delete_marker (Extent_List *el, Extent_List_Marker *m)
     prev->next = p->next;
   else
     el->markers = p->next;
-#ifdef NEW_GC
-  gap_array_delete_marker (m->endp ? el->end : el->start, m->m);
-#else /* not NEW_GC */
   m->next = extent_list_marker_freelist;
   extent_list_marker_freelist = m;
   gap_array_delete_marker (m->endp ? el->end : el->start, m->m);
-#endif /* not NEW_GC */
 }
 
 #define extent_list_marker_pos(el, mkr) \
@@ -616,18 +597,13 @@ extent_list_delete_marker (Extent_List *el, Extent_List_Marker *m)
 static Extent_List *
 allocate_extent_list (void)
 {
-#ifdef NEW_GC
-  Extent_List *el = XEXTENT_LIST (ALLOC_NORMAL_LISP_OBJECT (extent_list));
-#else /* not NEW_GC */
   Extent_List *el = xnew (Extent_List);
-#endif /* not NEW_GC */
   el->start = make_gap_array (sizeof (EXTENT), 1);
   el->end = make_gap_array (sizeof (EXTENT), 1);
   el->markers = 0;
   return el;
 }
 
-#ifndef NEW_GC
 static void
 free_extent_list (Extent_List *el)
 {
@@ -635,7 +611,6 @@ free_extent_list (Extent_List *el)
   free_gap_array (el->end);
   xfree (el);
 }
-#endif /* not NEW_GC */
 
 
 /************************************************************************/
@@ -716,98 +691,55 @@ attach_extent_auxiliary (EXTENT ext)
    structure to be there. */
 
 static struct stack_of_extents *allocate_soe (void);
-#ifndef NEW_GC
 static void free_soe (struct stack_of_extents *soe);
-#endif /* not NEW_GC */
 static void soe_invalidate (Lisp_Object obj);
 
-#ifndef NEW_GC
 extern const struct sized_memory_description extent_list_marker_description;
-#endif /* not NEW_GC */
 
 static const struct memory_description extent_list_marker_description_1[] = { 
-#ifdef NEW_GC
-  { XD_LISP_OBJECT, offsetof (Extent_List_Marker, m) },
-  { XD_LISP_OBJECT, offsetof (Extent_List_Marker, next) },
-#else /* not NEW_GC */
   { XD_BLOCK_PTR, offsetof (Extent_List_Marker, m), 1,
     { &gap_array_marker_description } },
   { XD_BLOCK_PTR, offsetof (Extent_List_Marker, next), 1,
     { &extent_list_marker_description } },
-#endif /* not NEW_GC */
   { XD_END }
 };
 
-#ifdef NEW_GC
-DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("extent-list-marker",
-				    extent_list_marker,
-				    0, extent_list_marker_description_1,
-				    struct extent_list_marker);
-#else /* not NEW_GC */
 const struct sized_memory_description extent_list_marker_description = {
   sizeof (Extent_List_Marker),
   extent_list_marker_description_1
 };
-#endif /* not NEW_GC */
 
 static const struct memory_description extent_list_description_1[] = { 
-#ifdef NEW_GC
-  { XD_LISP_OBJECT, offsetof (Extent_List, start) },
-  { XD_LISP_OBJECT, offsetof (Extent_List, end) },
-  { XD_LISP_OBJECT, offsetof (Extent_List, markers) },
-#else /* not NEW_GC */
   { XD_BLOCK_PTR, offsetof (Extent_List, start), 1,
     { &lispobj_gap_array_description } },
   { XD_BLOCK_PTR, offsetof (Extent_List, end), 1,
     { &lispobj_gap_array_description }, XD_FLAG_NO_KKCC },
   { XD_BLOCK_PTR, offsetof (Extent_List, markers), 1,
     { &extent_list_marker_description }, XD_FLAG_NO_KKCC },
-#endif /* not NEW_GC */
   { XD_END }
 };
 
-#ifdef NEW_GC
-DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("extent-list", extent_list,
-				    0, extent_list_description_1,
-				    struct extent_list);
-#else /* not NEW_GC */
 static const struct sized_memory_description extent_list_description = {
   sizeof (Extent_List),
   extent_list_description_1
 };
-#endif /* not NEW_GC */
 
 static const struct memory_description stack_of_extents_description_1[] = { 
-#ifdef NEW_GC
-  { XD_LISP_OBJECT, offsetof (Stack_Of_Extents, extents) },
-#else /* not NEW_GC */
   { XD_BLOCK_PTR, offsetof (Stack_Of_Extents, extents), 1,
     { &extent_list_description } },
-#endif /* not NEW_GC */
   { XD_END }
 };
 
-#ifdef NEW_GC
-DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("stack-of-extents", stack_of_extents,
-				    0, stack_of_extents_description_1,
-				    struct stack_of_extents);
-#else /* not NEW_GC */
 static const struct sized_memory_description stack_of_extents_description = {
   sizeof (Stack_Of_Extents),
   stack_of_extents_description_1
 };
-#endif /* not NEW_GC */
 
 static const struct memory_description extent_info_description [] = {
-#ifdef NEW_GC
-  { XD_LISP_OBJECT, offsetof (struct extent_info, extents) },
-  { XD_LISP_OBJECT, offsetof (struct extent_info, soe) }, 
-#else /* not NEW_GC */
   { XD_BLOCK_PTR, offsetof (struct extent_info, extents), 1,
     { &extent_list_description } },
   { XD_BLOCK_PTR, offsetof (struct extent_info, soe), 1,
     { &stack_of_extents_description }, XD_FLAG_NO_KKCC },
-#endif /* not NEW_GC */
   { XD_END }
 };
 
@@ -841,7 +773,6 @@ mark_extent_info (Lisp_Object obj)
   return Qnil;
 }
 
-#ifndef NEW_GC
 
 static void
 finalize_extent_info (Lisp_Object obj)
@@ -860,7 +791,6 @@ finalize_extent_info (Lisp_Object obj)
     }
 }
 
-#endif /* not NEW_GC */
 
 DEFINE_NODUMP_LISP_OBJECT ("extent-info", extent_info,
 			   mark_extent_info, internal_object_printer,
@@ -886,9 +816,7 @@ flush_cached_extent_info (Lisp_Object extent_info)
 
   if (data->soe)
     {
-#ifndef NEW_GC
       free_soe (data->soe);
-#endif /* not NEW_GC */
       data->soe = 0;
     }
 }
@@ -1045,9 +973,7 @@ uninit_buffer_extents (struct buffer *b)
   /* Don't destroy the extents here -- there may still be children
      extents pointing to the extents. */
   detach_all_extents (wrap_buffer (b));
-#ifndef NEW_GC
   finalize_extent_info (b->extent_info);
-#endif /* not NEW_GC */
 }
 
 /* Retrieve the extent list that an extent is a member of; the
@@ -1367,25 +1293,18 @@ soe_invalidate (Lisp_Object obj)
 static struct stack_of_extents *
 allocate_soe (void)
 {
-#ifdef NEW_GC
-  struct stack_of_extents *soe =
-    XSTACK_OF_EXTENTS (ALLOC_NORMAL_LISP_OBJECT (stack_of_extents));
-#else /* not NEW_GC */
   struct stack_of_extents *soe = xnew_and_zero (struct stack_of_extents);
-#endif /* not NEW_GC */
   soe->extents = allocate_extent_list ();
   soe->pos = -1;
   return soe;
 }
 
-#ifndef NEW_GC
 static void
 free_soe (struct stack_of_extents *soe)
 {
   free_extent_list (soe->extents);
   xfree (soe);
 }
-#endif /* not NEW_GC */
 
 /* ------------------------------- */
 /*        other primitives         */
@@ -7359,11 +7278,6 @@ syms_of_extents (void)
   INIT_LISP_OBJECT (extent);
   INIT_LISP_OBJECT (extent_info);
   INIT_LISP_OBJECT (extent_auxiliary);
-#ifdef NEW_GC
-  INIT_LISP_OBJECT (extent_list_marker);
-  INIT_LISP_OBJECT (extent_list);
-  INIT_LISP_OBJECT (stack_of_extents);
-#endif /* NEW_GC */
 
   DEFSYMBOL (Qextentp);
   DEFSYMBOL (Qextent_live_p);

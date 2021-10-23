@@ -1065,9 +1065,6 @@ void disable_glyph_animated_timeout (int i);
 typedef struct glyph_cachel glyph_cachel;
 struct glyph_cachel
 {
-#ifdef NEW_GC
-  NORMAL_LISP_OBJECT_HEADER header;
-#endif /* NEW_GC */
   Lisp_Object glyph;
 
   unsigned int dirty :1;	/* I'm copying faces here. I'm not
@@ -1083,18 +1080,6 @@ struct glyph_cachel
   unsigned short descent;
 };
 
-#ifdef NEW_GC
-typedef struct glyph_cachel Lisp_Glyph_Cachel;
-
-DECLARE_LISP_OBJECT (glyph_cachel, Lisp_Glyph_Cachel);
-
-#define XGLYPH_CACHEL(x) \
-  XRECORD (x, glyph_cachel, Lisp_Glyph_Cachel)
-#define wrap_glyph_cachel(p) wrap_record (p, glyph_cachel)
-#define GLYPH_CACHEL_P(x) RECORDP (x, glyph_cachel)
-#define CHECK_GLYPH_CACHEL(x) CHECK_RECORD (x, glyph_cachel)
-#define CONCHECK_GLYPH_CACHEL(x) CONCHECK_RECORD (x, glyph_cachel)
-#endif /* NEW_GC */
 
 #define CONT_GLYPH_INDEX	(glyph_index) 0
 #define TRUN_GLYPH_INDEX	(glyph_index) 1

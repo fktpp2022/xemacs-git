@@ -315,9 +315,6 @@ enum syntax_source { syntax_source_property_code = 0,
 
 struct syntax_cache
 {
-#ifdef NEW_GC
-  NORMAL_LISP_OBJECT_HEADER header;
-#endif /* NEW_GC */
   enum syntax_source source;	/* Source of syntax information: the buffer's
 				   syntax table, a syntax table specified by
 				   a syntax-table property, or a syntax code
@@ -350,18 +347,6 @@ struct syntax_cache
   Charxpos prev_change;		/* Position of the previous extent change. */
 };
 
-#ifdef NEW_GC
-typedef struct syntax_cache Lisp_Syntax_Cache;
-
-DECLARE_LISP_OBJECT (syntax_cache, Lisp_Syntax_Cache);
-
-#define XSYNTAX_CACHE(x) \
-  XRECORD (x, syntax_cache, Lisp_Syntax_Cache)
-#define wrap_syntax_cache(p) wrap_record (p, syntax_cache)
-#define SYNTAX_CACHE_P(x) RECORDP (x, syntax_cache)
-#define CHECK_SYNTAX_CACHE(x) CHECK_RECORD (x, syntax_cache)
-#define CONCHECK_SYNTAX_CACHE(x) CONCHECK_RECORD (x, syntax_cache)
-#endif /* NEW_GC */
 
 extern const struct sized_memory_description syntax_cache_description;
 

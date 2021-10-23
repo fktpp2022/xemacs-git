@@ -3225,7 +3225,6 @@ Lisp_Object Qone;
 Lisp_Object Qnull_pointer;
 #endif
 
-#ifndef NEW_GC
 /* some losing systems can't have static vars at function scope... */
 static const struct symbol_value_magic guts_of_unbound_marker =
 { /* struct symbol_value_magic */
@@ -3241,7 +3240,6 @@ static const struct symbol_value_magic guts_of_unbound_marker =
   0, /* value */
   SYMVAL_UNBOUND_MARKER
 };
-#endif /* not NEW_GC */
 
 static void
 reinit_symbol_objects_early (void)
@@ -3281,22 +3279,7 @@ init_symbols_once_early (void)
   {
     /* Required to get around a GCC syntax error on certain
        architectures */
-#ifdef NEW_GC
-    struct symbol_value_magic *tem = (struct symbol_value_magic *)
-      mc_alloc (sizeof (struct symbol_value_magic));
-    MARK_LRECORD_AS_LISP_READONLY (tem);
-    MARK_LRECORD_AS_NOT_FREE (tem);
-    tem->header.type = lrecord_type_symbol_value_forward;
-    mcpro (wrap_pointer_1 (tem));
-    tem->value = 0;
-    tem->type = SYMVAL_UNBOUND_MARKER;
-#ifdef ALLOC_TYPE_STATS
-    inc_lrecord_stats (sizeof (struct symbol_value_magic), 
-		       (const struct lrecord_header *) tem);
-#endif /* ALLOC_TYPE_STATS */
-#else /* not NEW_GC */
     const struct symbol_value_magic *tem = &guts_of_unbound_marker;
-#endif /* not NEW_GC */
 
     Qunbound = wrap_symbol_value_magic (tem);
   }
@@ -3435,7 +3418,6 @@ check_sane_subr (Lisp_Subr *subr, Lisp_Object sym)
 #endif
 
 #ifdef HAVE_SHLIB
-#ifndef NEW_GC
 /*
  * If we are not in a pure undumped Emacs, we need to make a duplicate of
  * the subr. This is because the only time this function will be called
@@ -3495,45 +3477,6 @@ do {									      \
     subr = newsubr;							      \
   }									      \
 } while (0)
-#else /* NEW_GC */
-/* 
- * If we have the new allocator enabled, we do not need to make a
- * duplicate of the subr.  The new allocator already does allocate all
- * subrs in Lisp-accessible memory rather than have it in the static
- * subr struct.
- *
- * NOTE: The DOC pointer is not set here as described above.
- */   
-#define check_module_subr(subr)						      \
-do {									      \
-  if (initialized) {							      \
-    Lisp_Object f;							      \
-									      \
-    if (subr->min_args < 0)						      \
-      signal_ferror (Qdll_error, "%s min_args (%hd) too small",		      \
-		     subr_name (subr), subr->min_args);			      \
-    if (subr->min_args > SUBR_MAX_ARGS)					      \
-      signal_ferror (Qdll_error, "%s min_args (%hd) too big (max = %d)",      \
-		     subr_name (subr), subr->min_args, SUBR_MAX_ARGS);	      \
-									      \
-    if (subr->max_args != MANY &&					      \
-	subr->max_args != UNEVALLED)					      \
-      {									      \
-	/* Need to fix lisp.h and eval.c if SUBR_MAX_ARGS too small */	      \
-	if (subr->max_args > SUBR_MAX_ARGS)				      \
-	  signal_ferror (Qdll_error, "%s max_args (%hd) too big (max = %d)",  \
-			 subr_name (subr), subr->max_args, SUBR_MAX_ARGS);    \
-	if (subr->min_args > subr->max_args)				      \
-	  signal_ferror (Qdll_error, "%s min_args (%hd) > max_args (%hd)",    \
-			 subr_name (subr), subr->min_args, subr->max_args);   \
-      }									      \
-									      \
-    f = XSYMBOL (sym)->function;					      \
-    if (!UNBOUNDP (f) && (!CONSP (f) || !EQ (XCAR (f), Qautoload)))	      \
-      signal_ferror (Qdll_error, "Attempt to redefine %s", subr_name (subr)); \
-  }									      \
-} while (0)
-#endif /* NEW_GC */
 #else /* ! HAVE_SHLIB */
 #define check_module_subr(subr)
 #endif

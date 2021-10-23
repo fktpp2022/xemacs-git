@@ -499,24 +499,11 @@ static struct display_line title_string_display_line;
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef NEW_GC
 extern const struct sized_memory_description gtk_frame_data_description;
 extern const struct sized_memory_description mswindows_frame_data_description;
 extern const struct sized_memory_description x_frame_data_description;
-#endif /* not NEW_GC */
 
 static const struct memory_description frame_data_description_1 []= {
-#ifdef NEW_GC
-#ifdef HAVE_GTK
-  { XD_LISP_OBJECT, gtk_console },
-#endif
-#ifdef HAVE_MS_WINDOWS
-  { XD_LISP_OBJECT, mswindows_console },
-#endif
-#ifdef HAVE_X_WINDOWS
-  { XD_LISP_OBJECT, x_console },
-#endif
-#else /* not NEW_GC */
 #ifdef HAVE_GTK
   { XD_BLOCK_PTR, gtk_console, 1, { &gtk_frame_data_description} },
 #endif
@@ -526,7 +513,6 @@ static const struct memory_description frame_data_description_1 []= {
 #ifdef HAVE_X_WINDOWS
   { XD_BLOCK_PTR, x_console, 1, { &x_frame_data_description} },
 #endif
-#endif /* not NEW_GC */
   { XD_END }
 };
 
@@ -3748,11 +3734,7 @@ change_frame_size (struct frame *f, int newwidth, int newheight, int delay)
      --andy. */
   MARK_FRAME_SIZE_CHANGED (f);
 
-#ifdef NEW_GC
-  if (delay || hold_frame_size_changes)
-#else /* not NEW_GC */
   if (delay || hold_frame_size_changes || gc_in_progress)
-#endif /* not NEW_GC */
     {
       f->new_width = newwidth;
       f->new_height = newheight;

@@ -974,25 +974,12 @@ XE_MERGED_ARG([pdump],
 	[], [])
 XE_MERGED_ARG([dump-in-exec],
 	AS_HELP_STRING([--with-dump-in-exec],[Enable dumping into executable (enabled by default
-			for `pdump', not enabled by default in combination 
-			with `newgc').]),
+			for `pdump'.]),
 	[], [])
 XE_MERGED_ARG([kkcc],
 	AS_HELP_STRING([--with-kkcc],[Enable experimental new GC mark algorithms.]),
 	[], [with_kkcc=yes])
 
-XE_MERGED_ARG([newgc],
-	AS_HELP_STRING([--with-newgc],[Enable new incremental garbage collector and new allocator.]),
-	[], [])
-XE_COMPLEX_ARG([vdb],
-	AS_HELP_STRING([--with-vdb=TYPE],[Override auto-detection of 
-			virtual-dirty-bit write-barrier implementation for the
-			new garbage collector. TYPE must be one of "auto" (for 
-			auto-detection), "posix", "win32", "mach", or "fake" 
-			(uses the new garbage collector but disables 
-			incremental collections). The default is to
-			use auto-detection.]),
-	[], [with_vdb="auto"],[auto,posix,win32,mach,fake,no])
 dnl
 XE_HELP_SUBSECTION([Emacs Lisp options])
 XE_MERGED_ARG([modules],
@@ -1476,31 +1463,6 @@ if test -z "$with_pdump"; then
   esac
 fi
 
-if test "$with_newgc" = "yes"; then
-  if test "$with_vdb" = "auto"; then
-    case "$opsys" in
-      darwin )  case "$machine" in
-		  intel386 ) check_vdb_posix=yes ;;
-		  x86_64 ) check_vdb_posix=yes ;;
-		  * ) AC_DEFINE(VDB_MACH)  have_vdb_mach=yes ;;
-		esac ;;
-      cygwin* ) AC_DEFINE(VDB_WIN32) have_vdb_win32=yes ;;
-      linux* )  check_vdb_posix=yes ;;
-      freebsd ) check_vdb_posix=yes ;;
-dnl if not sure, try posix first, maybe we are lucky
-      * )       check_vdb_posix=yes ;;
-    esac
-  else
-    case "$with_vdb" in
-      mach )  AC_DEFINE(VDB_MACH)  have_vdb_mach=yes ;;
-      win32 ) AC_DEFINE(VDB_WIN32) have_vdb_win32=yes ;;
-      posix ) check_vdb_posix=yes ;;
-      fake )  have_vdb_fake=yes ;;
-      no )    have_vdb_fake=yes ;;
-    esac
-  fi
-fi
-
 if test -z "$with_dynamic"; then
   case "$opsys" in
     hpux* ) with_dynamic=no ;;
@@ -1853,17 +1815,8 @@ test -z "$with_kkcc" && with_kkcc=yes
 dnl Dump into executable
 if test -z "$with_dump_in_exec"; then
   if test "$with_pdump" = "yes"; then
-    if test "$with_newgc" = "yes"; then
-      with_dump_in_exec=no
-    else
-      with_dump_in_exec=yes
-    fi
+    with_dump_in_exec=yes
   fi
-fi
-
-dnl New incremental garbage collector
-if test "$with_newgc" = "yes"; then
-  with_kkcc=yes
 fi
 
 dnl For debugging...
@@ -4575,50 +4528,6 @@ if test "$ac_cv_func_getaddrinfo" != "no" ; then
   esac
 fi
 
-dnl check for vdb-related stuff
-if test "$check_vdb_posix" = "yes" ; then
-  dnl no mprotect, no vdb
-  AC_CHECK_FUNC(mprotect,AC_DEFINE(HAVE_MPROTECT) have_vdb_mprotect=yes,)
-
-  dnl sigaction needs either struct siginfo or siginfo_t
-  AC_CHECK_FUNC(sigaction, AC_DEFINE(HAVE_SIGACTION) have_vdb_sigaction=yes, 
-	        have_vdb_sigaction=no)
-  AC_CHECK_MEMBER(struct siginfo.si_addr, 
-		  AC_DEFINE(HAVE_STRUCT_SIGINFO_SI_ADDR) have_si_addr=yes,,
-	          [#include <signal.h>])
-  AC_CHECK_MEMBER(siginfo_t.si_addr,
-		  AC_DEFINE(HAVE_SIGINFO_T_SI_ADDR) have_si_addr=yes,,
-	          [#include <signal.h>])
-  if test "$have_si_addr" != "yes" ; then
-    have_vdb_sigaction=no
-  fi
-
-  dnl signal needs struct sigcontext
-  AC_CHECK_FUNC(signal, AC_DEFINE(HAVE_SIGNAL) have_vdb_signal=yes,)
-  AC_CHECK_MEMBER(struct sigcontext.cr2, 
-	          AC_DEFINE(HAVE_STRUCT_SIGCONTEXT_CR2) have_cr2=yes,, 
-		  [#include <signal.h>])
-
-  if test "$have_cr2" != "yes" ; then
-    have_vdb_signal=no
-  fi
-
-  if test "$have_vdb_mprotect" != "yes" ; then 
-    have_vdb_sigaction=no
-    have_vdb_signal=no
-  fi
-
-  if test "$have_vdb_sigaction" != "yes" -a "$have_vdb_signal" != "yes" ; then
-    have_vdb_posix=no
-    have_vdb_fake=yes
-    XE_DIE("No working write-barrier implementation found for this system.
-       Please report this and provide information about your system.")
-  else
-    have_vdb_posix=yes
-    have_vdb_fake=no
-  fi
-fi
-
 dnl ----------------------------------------------------------------
 dnl Check for Unixoid pty/process support.
 dnl ----------------------------------------------------------------
@@ -5898,9 +5807,6 @@ test "$GCC"                  = "yes" && AC_DEFINE(USE_GCC)
 test "$XEMACS_CC_GPP"        = "yes" && AC_DEFINE(USE_GPLUSPLUS)
 test "$with_external_widget" = "yes" && AC_DEFINE(EXTERNAL_WIDGET)
 test "$with_kkcc"            = "yes" && AC_DEFINE(USE_KKCC)
-test "$with_newgc"           = "yes" && AC_DEFINE(NEW_GC)
-test "$have_vdb_posix"       = "yes" && AC_DEFINE(VDB_POSIX)
-test "$have_vdb_fake"        = "yes" && AC_DEFINE(VDB_FAKE)
 test "$with_quick_build"     = "yes" && AC_DEFINE(QUICK_BUILD)
 test "$with_purify"          = "yes" && AC_DEFINE(PURIFY)
 test "$with_quantify"        = "yes" && AC_DEFINE(QUANTIFY)
@@ -6254,23 +6160,6 @@ if test "$with_kkcc" = yes ; then
   echo "  WARNING: default for this release. Use \`--disable-kkcc' to"
   echo "  WARNING: turn it off."
   echo "  WARNING: ---------------------------------------------------------"
-fi
-test "$with_newgc" = yes && echo "  Using the new incremental garbage collector and the new allocator."
-if test "$have_vdb_posix" = yes ; then
-  if test "$have_vdb_sigaction" = yes ; then 
-    echo "  Using POSIX sigaction() to install fault handler."
-  else
-    echo "  Using POSIX signal() to install vdb fault handler."
-  fi
-fi
-if test "$have_vdb_win32" = yes ; then
-  echo "  Using special WIN32 vdb fault handler."
-fi
-if test "$have_vdb_mach" = yes ; then
-  echo "  Using mach exception mechanism as vdb fault handler."
-fi
-if test "$have_vdb_fake" = yes && test "$with_vdb" == fake; then
-  echo "  Virtual dirty bit write barrier manually disabled."
 fi
 test "$with_pdump" = yes && echo "  Using the new portable dumper."
 test "$with_dump_in_exec" = yes && echo "  Dumping into executable."

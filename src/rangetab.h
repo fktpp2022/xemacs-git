@@ -27,9 +27,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 typedef struct range_table_entry range_table_entry;
 struct range_table_entry
 {
-#ifdef NEW_GC
-  NORMAL_LISP_OBJECT_HEADER header;
-#endif /* NEW_GC */
   EMACS_INT first;
   EMACS_INT last;
   Lisp_Object val;

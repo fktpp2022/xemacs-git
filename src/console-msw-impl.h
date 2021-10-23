@@ -79,9 +79,6 @@ struct Lisp_Devmode
 
 struct mswindows_device
 {
-#ifdef NEW_GC
-  NORMAL_LISP_OBJECT_HEADER header;
-#endif /* NEW_GC */
   Lisp_Object fontlist;		/* List of (STRING . FIXED-P), device fonts */
   HDC hcdc;			/* Compatible DC */
   DWORD update_tick;		/* Used when device is modified through
@@ -89,16 +86,6 @@ struct mswindows_device
 				   in event-msw.c */
 };
 
-#ifdef NEW_GC
-typedef struct mswindows_device Lisp_Mswindows_Device;
-
-DECLARE_LISP_OBJECT (mswindows_device, Lisp_Mswindows_Device);
-
-#define XMSWINDOWS_DEVICE(x) \
-  XRECORD (x, mswindows_device, Lisp_Mswindows_Device)
-#define wrap_mswindows_device(p) wrap_record (p, mswindows_device)
-#define MSWINDOWS_DEVICE_P(x) RECORDP (x, mswindows_device)
-#endif /* NEW_GC */
 
 #define DEVICE_MSWINDOWS_DATA(d) DEVICE_TYPE_DATA (d, mswindows)
 #define DEVICE_MSWINDOWS_FONTLIST(d)    (DEVICE_MSWINDOWS_DATA (d)->fontlist)
@@ -107,9 +94,6 @@ DECLARE_LISP_OBJECT (mswindows_device, Lisp_Mswindows_Device);
 
 struct msprinter_device
 {
-#ifdef NEW_GC
-  NORMAL_LISP_OBJECT_HEADER header;
-#endif /* NEW_GC */
   HDC hdc, hcdc;		/* Printer and the comp. DCs */
   HANDLE hprinter;
   Lisp_Object name;
@@ -117,16 +101,6 @@ struct msprinter_device
   Lisp_Object fontlist;
 };
 
-#ifdef NEW_GC
-typedef struct msprinter_device Lisp_Msprinter_Device;
-
-DECLARE_LISP_OBJECT (msprinter_device, Lisp_Msprinter_Device);
-
-#define XMSPRINTER_DEVICE(x) \
-  XRECORD (x, msprinter_device, Lisp_Msprinter_Device)
-#define wrap_msprinter_device(p) wrap_record (p, msprinter_device)
-#define MSPRINTER_DEVICE_P(x) RECORDP (x, msprinter_device)
-#endif /* NEW_GC */
 
 #define DEVICE_MSPRINTER_DATA(d) DEVICE_TYPE_DATA (d, msprinter)
 #define DEVICE_MSPRINTER_HDC(d) 	(DEVICE_MSPRINTER_DATA (d)->hdc)
@@ -165,9 +139,6 @@ DECLARE_LISP_OBJECT (msprinter_device, Lisp_Msprinter_Device);
 
 struct mswindows_frame
 {
-#ifdef NEW_GC
-  NORMAL_LISP_OBJECT_HEADER header;
-#endif /* NEW_GC */
 
   /* win32 window handle */
   HWND hwnd;
@@ -225,16 +196,6 @@ struct mswindows_frame
   XEMACS_RECT_WH *target_rect;
 };
 
-#ifdef NEW_GC
-typedef struct mswindows_frame Lisp_Mswindows_Frame;
-
-DECLARE_LISP_OBJECT (mswindows_frame, Lisp_Mswindows_Frame);
-
-#define XMSWINDOWS_FRAME(x) \
-  XRECORD (x, mswindows_frame, Lisp_Mswindows_Frame)
-#define wrap_mswindows_frame(p) wrap_record (p, mswindows_frame)
-#define MSWINDOWS_FRAME_P(x) RECORDP (x, mswindows_frame)
-#endif /* NEW_GC */
 
 #define FRAME_MSWINDOWS_DATA(f) FRAME_TYPE_DATA (f, mswindows)
 

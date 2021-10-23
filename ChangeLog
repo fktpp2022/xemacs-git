@@ -1,3 +1,11 @@
+2021-10-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* configure: Regenerate.
+	* configure.ac (XE_COMPLEX_ARG):
+	* configure.ac (TAB):
+	Remove support for --with-newgc from this file, it is slower, more
+	unstable, and uses more memory than the old GC.
+
 2021-09-09  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* README (Note):

@@ -76,9 +76,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 struct buffer_text
 {
-#ifdef NEW_GC
-  NORMAL_LISP_OBJECT_HEADER header;
-#endif /* NEW_GC */
   Ibyte *beg;		/* Actual address of buffer contents. */
   Bytebpos gpt;		/* Index of gap in buffer. */
   Charbpos bufgpt;	/* Equivalent as a Charbpos. */
@@ -138,18 +135,6 @@ struct buffer_text
   struct buffer_text_change_data *changes;
 };
 
-#ifdef NEW_GC
-typedef struct buffer_text Lisp_Buffer_Text;
-
-DECLARE_LISP_OBJECT (buffer_text, Lisp_Buffer_Text);
-
-#define XBUFFER_TEXT(x) \
-  XRECORD (x, buffer_text, Lisp_Buffer_Text)
-#define wrap_buffer_text(p) wrap_record (p, buffer_text)
-#define BUFFER_TEXT_P(x) RECORDP (x, buffer_text)
-#define CHECK_BUFFER_TEXT(x) CHECK_RECORD (x, buffer_text)
-#define CONCHECK_BUFFER_TEXT(x) CONCHECK_RECORD (x, buffer_text)
-#endif /* NEW_GC */
 
 
 struct buffer

@@ -25,9 +25,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 BEGIN_C_DECLS
 
-#ifndef NEW_GC
 void pdump_objects_unmark (void);
-#endif /* not NEW_GC */
 void pdump (void);
 int pdump_load (const Wexttext *argv0);
 void pdump_backtrace (void);

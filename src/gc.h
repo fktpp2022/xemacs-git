@@ -25,21 +25,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 BEGIN_C_DECLS
 
 
-#ifdef NEW_GC
-/************************************************************************/
-/*		         Incremental Statistics      			*/
-/************************************************************************/
-#ifdef ERROR_CHECK_GC
-void gc_stat_print_stats (void);
-void gc_stat_finalized (void);
-void gc_stat_freed (void);
-# define GC_STAT_FINALIZED gc_stat_finalized ()
-# define GC_STAT_FREED gc_stat_freed ()
-#else /* not ERROR_CHECK_GC */
-# define GC_STAT_FINALIZED
-# define GC_STAT_FREED
-#endif /* not ERROR_CHECK_GC */
-#endif /* not NEW_GC */
 
 
 /************************************************************************/
@@ -63,20 +48,6 @@ extern EMACS_INT gc_cons_threshold;
 /* Percentage of consing of total data size before another GC. */
 extern EMACS_INT gc_cons_percentage;
 
-#ifdef NEW_GC
-/* Number of bytes of consing since gc before another cycle of the gc
-   should be done in incremental mode. */
-extern EMACS_INT gc_cons_incremental_threshold;
-
-/* Nonzero during gc */
-extern int gc_in_progress;
-
-/* Nonzero during write barrier */
-extern int write_barrier_enabled;
-
-/* Enable/disable incremental garbage collection during runtime. */
-extern int allow_incremental_gc;
-#endif /* NEW_GC */
 
 
 /************************************************************************/
@@ -133,31 +104,6 @@ void kkcc_detailed_backtrace_full (void);
 #define kkcc_detailed_backtrace()
 #endif
 
-#ifdef NEW_GC
-
-/* Repush objects that are caught by the write barrier. */
-#ifdef DEBUG_XEMACS
-#define gc_write_barrier(obj) kkcc_gc_stack_repush_dirty_object (obj, 0, -2)
-#else
-#define gc_write_barrier(obj) kkcc_gc_stack_repush_dirty_object (obj)
-#endif
-
-/* GC functions: */
-
-/* Perform a full garbage collection without interruption. If an
-   incremental garbage collection is already running it is completed
-   without further interruption. This function calls gc() with a
-   negative or zero argument. */
-void gc_full (void);
-
-/* This function starts an incremental garbage collection. If an
-   incremental garbage collection is already running, the next cycle
-   of traversal work is done, or the garbage collection is completed
-   when no more traversal work has to be done. This function calls gc
-   with a positive argument, indicating how many objects can be
-   traversed in this cycle. */
-void gc_incremental (void);
-#endif /* NEW_GC */
 
 /* Initializers */
 void init_gc_early (void);
@@ -168,19 +114,12 @@ void syms_of_gc (void);
 void vars_of_gc (void);
 void complex_vars_of_gc (void);
 
-#ifndef NEW_GC
 /* Needed prototypes due to the garbage collector code move from
    alloc.c to gc.c. */
 void gc_sweep_1 (void);
 
 extern void *breathing_space;
-#endif /* not NEW_GC */
 
-#ifdef NEW_GC
-void add_finalizable_obj (Lisp_Object obj);
-void register_for_finalization (void);
-void run_finalizers (void);
-#endif /* NEW_GC */
 
 END_C_DECLS
 

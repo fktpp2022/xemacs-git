@@ -68,18 +68,6 @@ bignum_print (Lisp_Object obj, Lisp_Object printcharfun,
 #endif
 }
 
-#ifdef NEW_GC
-static void
-bignum_finalize (Lisp_Object obj)
-{
-  struct Lisp_Bignum *num = XBIGNUM (obj);
-  /* #### WARNING: It would be better to put some sort of check to make
-     sure this doesn't happen more than once, just in case ---
-     e.g. checking if it's zero before finalizing and then setting it to
-     zero after finalizing. */
-  bignum_fini (num->data);
-}
-#endif
 
 static int
 bignum_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth),
@@ -145,7 +133,7 @@ static const struct memory_description bignum_description[] = {
 };
 
 DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("bignum", bignum, 0, bignum_print,
-					IF_NEW_GC (bignum_finalize),
+					0,
 					bignum_equal, bignum_hash,
 					bignum_description, Lisp_Bignum); 
 #endif /* HAVE_BIGNUM */
@@ -163,18 +151,6 @@ ratio_print (Lisp_Object obj, Lisp_Object printcharfun,
                   ratio_to_string (&rstr, size, XRATIO_DATA (obj), 10, Qnil));
 }
 
-#ifdef NEW_GC
-static void
-ratio_finalize (Lisp_Object obj)
-{
-  struct Lisp_Ratio *num = XRATIO (obj);
-  /* #### WARNING: It would be better to put some sort of check to make
-     sure this doesn't happen more than once, just in case ---
-     e.g. checking if it's zero before finalizing and then setting it to
-     zero after finalizing. */
-  ratio_fini (num->data);
-}
-#endif /* not NEW_GC */
 
 static int
 ratio_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth),
@@ -202,7 +178,7 @@ static const struct memory_description ratio_description[] = {
 };
 
 DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("ratio", ratio, 0, ratio_print,
-				      IF_NEW_GC (ratio_finalize),
+				      0,
 				      ratio_equal, ratio_hash,
 				      ratio_description, Lisp_Ratio);
 
@@ -220,18 +196,6 @@ bigfloat_print (Lisp_Object obj, Lisp_Object printcharfun,
   xfree (fstr);
 }
 
-#ifdef NEW_GC
-static void
-bigfloat_finalize (Lisp_Object obj)
-{
-  struct Lisp_Bigfloat *num = XBIGFLOAT (obj);
-  /* #### WARNING: It would be better to put some sort of check to make
-     sure this doesn't happen more than once, just in case ---
-     e.g. checking if it's zero before finalizing and then setting it to
-     zero after finalizing. */
-  bigfloat_fini (num->bf);
-}
-#endif /* not NEW_GC */
 
 static int
 bigfloat_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth),
@@ -261,7 +225,7 @@ static const struct memory_description bigfloat_description[] = {
 
 DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("bigfloat", bigfloat, 0,
 					bigfloat_print,
-					IF_NEW_GC (bigfloat_finalize),
+					0,
 					bigfloat_equal, bigfloat_hash,
 					bigfloat_description, Lisp_Bigfloat);
 
@@ -755,8 +719,8 @@ This is determined by the underlying library used to implement bigfloats.
 */);
 
 #ifdef HAVE_BIGFLOAT
-  /* Don't create a bignum here.  Otherwise, we lose with NEW_GC + pdump.
-     See reinit_vars_of_number(). */
+  /* Don't create a bignum here.  Otherwise, we used to lose with NEW_GC +
+     pdump.  See reinit_vars_of_number(). */
   Vbigfloat_max_prec = make_fixnum (MOST_POSITIVE_FIXNUM);
 #else
   Vbigfloat_max_prec = make_fixnum (0);

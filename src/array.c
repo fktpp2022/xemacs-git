@@ -340,37 +340,6 @@ Dynarr_newf (Bytecount elsize)
   return d;
 }
 
-#ifdef NEW_GC
-DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("dynarr", dynarr,
-				      0, 0,
-				      Dynarr);
-
-static void
-Dynarr_lisp_realloc (Dynarr *dy, Elemcount new_size)
-{
-  void *new_base =
-    XPNTR (alloc_sized_lrecord_array (Dynarr_elsize (dy), new_size,
-				      dy->lisp_imp));
-  if (dy->base)
-    memcpy (new_base, dy->base, 
-	    (Dynarr_max (dy) < new_size ? Dynarr_max (dy) : new_size) *
-	    Dynarr_elsize (dy));
-  dy->base = new_base;
-}
-
-void *
-Dynarr_lisp_newf (Bytecount elsize, 
-		  const struct lrecord_implementation *dynarr_imp, 
-		  const struct lrecord_implementation *imp)
-{
-  Dynarr *d = (Dynarr *) XPNTR (alloc_sized_lrecord (sizeof (Dynarr),
-                                                     dynarr_imp));
-  d->elsize_ = elsize;
-  d->lisp_imp = imp;
-
-  return d;
-}
-#endif /* not NEW_GC */
 
 void
 Dynarr_resize (void *d, Elemcount size)
@@ -390,14 +359,7 @@ Dynarr_resize (void *d, Elemcount size)
   /* Don't do anything if the array is already big enough. */
   if (newsize > Dynarr_max (dy))
     {
-#ifdef NEW_GC
-      if (dy->lisp_imp)
-	Dynarr_lisp_realloc (dy, newsize);
-      else
-	Dynarr_realloc (dy, newsize);
-#else /* not NEW_GC */
       Dynarr_realloc (dy, newsize);
-#endif /* not NEW_GC */
       dy->max_ = newsize;
     }
 }
@@ -461,21 +423,6 @@ Dynarr_free (void *d)
 {
   Dynarr *dy = (Dynarr *) d;
 
-#ifdef NEW_GC
-  if (dy->base && !DUMPEDP (dy->base))
-    {
-      if (!dy->lisp_imp)
-	{
-	  xfree (dy->base);
-	  dy->base = 0;
-	}
-    }
-  if (!DUMPEDP (dy))
-    {
-      if (!dy->lisp_imp)
-	xfree (dy);
-    }
-#else /* not NEW_GC */
   if (dy->base && !DUMPEDP (dy->base))
     {
       xfree (dy->base);
@@ -483,7 +430,6 @@ Dynarr_free (void *d)
     }
   if(!DUMPEDP (dy))
     xfree (dy);
-#endif /* not NEW_GC */
 }
 
 #ifdef MEMORY_USAGE_STATS
@@ -691,10 +637,8 @@ stack_like_free (void *val)
    (3) Fewer operations are available than for dynarrs, and may have
        different names and/or different calling conventions.
 
-   (4) The mechanism for creating "Lisp-object gap arrays" isn't completely
-       developed.  Currently it's only possible to create a gap-array Lisp
-       object that wraps Lisp_Object pointers (not Lisp object structures
-       directly), and only under NEW_GC.
+   (4) The mechanism for creating "Lisp-object gap arrays" isn't developed
+       developed.
 
    (5) Gap arrays have a concept of a "gap array marker" that properly
        tracks insertions and deletions; no such thing exists in dynarrs.
@@ -705,54 +649,26 @@ stack_like_free (void *val)
 extern const struct sized_memory_description gap_array_marker_description;
 
 static const struct memory_description gap_array_marker_description_1[] = { 
-#ifdef NEW_GC
-  { XD_LISP_OBJECT, offsetof (Gap_Array_Marker, next) },
-#else /* not NEW_GC */
   { XD_BLOCK_PTR, offsetof (Gap_Array_Marker, next), 1,
     { &gap_array_marker_description } },
-#endif /* not NEW_GC */
   { XD_END }
 };
 
-#ifdef NEW_GC
-DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("gap-array-marker", gap_array_marker,
-				    0, gap_array_marker_description_1,
-				    struct gap_array_marker);
-#else /* not NEW_GC */
 const struct sized_memory_description gap_array_marker_description = {
   sizeof (Gap_Array_Marker),
   gap_array_marker_description_1
 };
-#endif /* not NEW_GC */
 
 static const struct memory_description lispobj_gap_array_description_1[] = {
   XD_GAP_ARRAY_DESC (&lisp_object_description),
   { XD_END }
 };
 
-#ifdef NEW_GC
-
-static Bytecount
-size_gap_array (Lisp_Object obj)
-{
-  Gap_Array *ga = XGAP_ARRAY (obj);
-  return gap_array_byte_size (ga);
-}
-
-DEFINE_DUMPABLE_SIZABLE_INTERNAL_LISP_OBJECT ("gap-array", gap_array,
-					      0,
-					      lispobj_gap_array_description_1,
-					      size_gap_array,
-					      struct gap_array);
-#else /* not NEW_GC */
 const struct sized_memory_description lispobj_gap_array_description = {
   0, lispobj_gap_array_description_1
 };
-#endif /* (not) NEW_GC */
 
-#ifndef NEW_GC
 static Gap_Array_Marker *gap_array_marker_freelist;
-#endif /* not NEW_GC */
 
 /* This generalizes the "array with a gap" model used to store buffer
    characters.  This is based on the stuff in insdel.c and should
@@ -831,14 +747,6 @@ gap_array_make_gap (Gap_Array *ga, Elemcount increment)
      a geometric progression that saves on realloc space. */
   increment += 100 + ga->numels / 8;
 
-#ifdef NEW_GC
-  if (ga->is_lisp)
-    ga = (Gap_Array *) mc_realloc (ga,
-				   offsetof (Gap_Array, array) +
-				   (ga->numels + ga->gapsize + increment) *
-				   ga->elsize);
-  else
-#endif /* not NEW_GC */
     ga = (Gap_Array *) xrealloc (ga,
 				 offsetof (Gap_Array, array) +
 				 (ga->numels + ga->gapsize + increment) *
@@ -940,9 +848,6 @@ gap_array_make_marker (Gap_Array *ga, Elemcount pos)
   Gap_Array_Marker *m;
 
   assert (pos >= 0 && pos <= ga->numels);
-#ifdef NEW_GC
-    m = XGAP_ARRAY_MARKER (ALLOC_NORMAL_LISP_OBJECT (gap_array_marker));
-#else /* not NEW_GC */
   if (gap_array_marker_freelist)
     {
       m = gap_array_marker_freelist;
@@ -950,7 +855,6 @@ gap_array_make_marker (Gap_Array *ga, Elemcount pos)
     }
   else
     m = xnew (Gap_Array_Marker);
-#endif /* not NEW_GC */
 
   m->pos = GAP_ARRAY_ARRAY_TO_MEMORY_POS (ga, pos);
   m->next = ga->markers;
@@ -970,14 +874,11 @@ gap_array_delete_marker (Gap_Array *ga, Gap_Array_Marker *m)
     prev->next = p->next;
   else
     ga->markers = p->next;
-#ifndef NEW_GC
   m->next = gap_array_marker_freelist;
   m->pos = 0xDEADBEEF; /* -559038737 base 10 */
   gap_array_marker_freelist = m;
-#endif /* not NEW_GC */
 }
 
-#ifndef NEW_GC
 void
 gap_array_delete_all_markers (Gap_Array *ga)
 {
@@ -991,7 +892,6 @@ gap_array_delete_all_markers (Gap_Array *ga)
       gap_array_marker_freelist = p;
     }
 }
-#endif /* not NEW_GC */
 
 void
 gap_array_move_marker (Gap_Array *ga, Gap_Array_Marker *m, Elemcount pos)
@@ -1001,26 +901,9 @@ gap_array_move_marker (Gap_Array *ga, Gap_Array_Marker *m, Elemcount pos)
 }
 
 Gap_Array *
-make_gap_array (Elemcount elsize, int USED_IF_NEW_GC (do_lisp))
+make_gap_array (Elemcount elsize, int UNUSED (do_lisp))
 {
   Gap_Array *ga;
-#ifdef NEW_GC
-  /* #### I don't quite understand why it's necessary to make all these
-     internal objects into Lisp objects under NEW_GC.  It's a pain in the
-     ass to code around this.  I'm proceeding on the assumption that it's
-     not really necessary to do it after all, and so we only make a Lisp-
-     object gap array when the object being held is a Lisp_Object, i.e. a
-     pointer to a Lisp object.  In the case where instead we hold a `struct
-     range_table_entry', just blow it off.  Otherwise we either need to do
-     a bunch of painful and/or boring rewriting. --ben */
-  if (do_lisp)
-    {
-      ga = XGAP_ARRAY (ALLOC_SIZED_LISP_OBJECT (sizeof (Gap_Array),
-						gap_array));
-      ga->is_lisp = 1;
-    }
-  else
-#endif /* not NEW_GC */
     ga = xnew_and_zero (Gap_Array);
   ga->elsize = elsize;
   return ga;
@@ -1033,14 +916,6 @@ gap_array_clone (Gap_Array *ga)
   Gap_Array *ga2;
   Gap_Array_Marker *m;
 
-#ifdef NEW_GC
-  if (ga->is_lisp)
-    {
-      ga2 = XGAP_ARRAY (ALLOC_SIZED_LISP_OBJECT (size, gap_array));
-      copy_lisp_object (wrap_gap_array (ga2), wrap_gap_array (ga));
-    }
-  else
-#endif
     {
       ga2 = (Gap_Array *) xmalloc (size);
       memcpy (ga2, ga, size);
@@ -1051,23 +926,19 @@ gap_array_clone (Gap_Array *ga)
   return ga2;
 }
 
-#ifndef NEW_GC
 void
 free_gap_array (Gap_Array *ga)
 {
   gap_array_delete_all_markers (ga);
   xfree (ga);
 }
-#endif /* not NEW_GC */
 
 #ifdef MEMORY_USAGE_STATS
 
 /* Return memory usage for gap array GA.  The returned value is the total
    amount of bytes actually being used for the gap array, including all
    overhead.  The extra amount of space in the gap array that is used
-   for the gap is counted in GAP_OVERHEAD, not in WAS_REQUESTED.
-   If NEW_GC, space for gap-array markers is returned through MARKER_ANCILLARY;
-   otherwise it's added into the gap array usage. */
+   for the gap is counted in GAP_OVERHEAD, not in WAS_REQUESTED. */
 
 Bytecount
 gap_array_memory_usage (Gap_Array *ga, struct usage_stats *stats,
@@ -1087,17 +958,6 @@ gap_array_memory_usage (Gap_Array *ga, struct usage_stats *stats,
   stats->gap_overhead += gap_size;
   stats->malloc_overhead += malloc_used - size;
 
-#ifdef NEW_GC
-  {
-    Bytecount marker_usage = 0;
-    Gap_Array_Marker *p;
-
-    for (p = ga->markers; p; p = p->next)
-      marker_usage += lisp_object_memory_usage (wrap_gap_array_marker (p));
-    if (marker_ancillary)
-      *marker_ancillary = marker_usage;
-  }
-#else
   {
     Gap_Array_Marker *p;
 
@@ -1106,7 +966,6 @@ gap_array_memory_usage (Gap_Array *ga, struct usage_stats *stats,
     if (marker_ancillary)
       *marker_ancillary = 0;
   }
-#endif /* (not) NEW_GC */
   
   return total;
 }
@@ -1121,9 +980,5 @@ gap_array_memory_usage (Gap_Array *ga, struct usage_stats *stats,
 void
 syms_of_array (void)
 {
-#ifdef NEW_GC
-  INIT_LISP_OBJECT (gap_array_marker);
-  INIT_LISP_OBJECT (gap_array);
-#endif /* NEW_GC */
 }
 

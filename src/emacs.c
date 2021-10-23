@@ -886,20 +886,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
   display_use = NULL;
   inhibit_non_essential_conversion_operations = 1;
 
-#ifdef NEW_GC
-#ifndef PDUMP
-  if (!initialized)
-#endif
-    {
-      if (!restart)
-	{
-	  init_mc_allocator ();
-#ifdef ALLOC_TYPE_STATS
-	  init_lrecord_stats ();
-#endif /* ALLOC_TYPE_STATS */
-	}
-    }
-#endif /* NEW_GC */
 
 #if defined (LOSING_GCC_DESTRUCTOR_FREE_BUG)
   /* Prior to XEmacs 21, this was `#if 0'ed out.  */
@@ -1306,9 +1292,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
      the Lisp engine and need to be done both at dump time and at run time. */
 
   init_signals_very_early ();
-#ifdef NEW_GC
-  vdb_install_signal_handler ();
-#endif /* NEW_GC */
   init_data_very_early (); /* Catch math errors. */
   init_floatfns_very_early (); /* Catch floating-point math errors. */
   init_process_times_very_early (); /* Initialize our process timers.
@@ -1432,9 +1415,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       reinit_gc_early ();
       reinit_symbols_early ();
       reinit_process_early ();
-#ifndef NEW_GC
       reinit_opaque_early ();
-#endif /* not NEW_GC */
       reinit_eistring_early ();
 #ifdef WITH_NUMBER_TYPES
       reinit_vars_of_number ();
@@ -1461,13 +1442,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 
       syms_of_abbrev ();
       syms_of_alloc ();
-#ifdef NEW_GC
-      syms_of_mc_alloc ();
-#endif /* NEW_GC */
       syms_of_gc ();
-#ifdef NEW_GC
-      syms_of_vdb ();
-#endif /* NEW_GC */
       syms_of_array ();
       syms_of_buffer ();
       syms_of_bytecode ();
@@ -2539,11 +2514,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       {
 	extern int always_gc;
 	if (always_gc)                /* purification debugging hack */
-#ifdef NEW_GC
-	  gc_full ();
-#else /* not NEW_GC */
 	  garbage_collect_1 ();
-#endif /* not NEW_GC */
       }
 #endif
     }
@@ -3055,11 +3026,7 @@ arguments: (&rest ARGS)
 {
   int i;
 
-#ifdef NEW_GC
-  if (gc_in_progress) gc_full ();
-#else /* not NEW_GC */
   assert (!gc_in_progress);
-#endif /* not NEW_GC */
 
   if (run_temacs_argc < 0)
     invalid_operation ("I've lost my temacs-hood", Qunbound);
@@ -3316,9 +3283,7 @@ and announce itself normally when it is run.
   fflush (stdout);
 
   disksave_object_finalization ();
-#ifndef NEW_GC
   release_breathing_space ();
-#endif /* not NEW_GC */
 
   /* Tell malloc where start of impure now is */
   /* Also arrange for warnings when nearly out of space.  */
@@ -3326,11 +3291,7 @@ and announce itself normally when it is run.
   memory_warnings (my_edata, malloc_warning);
 #endif
 
-#ifdef NEW_GC
-  gc_full ();
-#else /* not NEW_GC */
   garbage_collect_1 ();
-#endif /* not NEW_GC */
 
 #ifdef PDUMP
   pdump ();
@@ -3834,28 +3795,12 @@ fatal_error_signal (int sig)
 
   guts_of_fatal_error_signal (sig);
 
-#ifdef NEW_GC
-  /* This time the signal will really be fatal. To be able to debug
-     SIGSEGV and SIGBUS also during write barrier, send SIGABRT. */
-#ifdef WIN32_NATIVE
-  if (sig == SIGSEGV)
-    raise (SIGABRT);
-  else
-    raise (sig);
-#else
-  if ((sig == SIGSEGV) || (sig == SIGBUS))
-    kill (qxe_getpid (), SIGABRT);
-  else
-    kill (qxe_getpid (),  sig);
-#endif
-#else /* not NEW_GC */
   /* Signal the same code; this time it will really be fatal. */
 #ifdef WIN32_NATIVE
   raise (sig);
 #else
   kill (qxe_getpid (), sig);
 #endif
-#endif /* not NEW_GC */
   SIGRETURN;
 }
 
