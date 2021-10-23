@@ -42,8 +42,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 Lisp_Object Qread_char, Qstandard_input;
 Lisp_Object Qvariable_documentation;
-#define LISP_BACKQUOTES
-#ifdef LISP_BACKQUOTES
+
 /*
    Nonzero means inside a new-style backquote
    with no surrounding parentheses.
@@ -53,9 +52,13 @@ Lisp_Object Qvariable_documentation;
 XEmacs:
    Nested backquotes are perfectly legal and fail utterly with
    this silliness. */
-static int new_backquote_flag, old_backquote_flag;
+static int backquote_flag;
 Lisp_Object Qbackquote, Qbacktick, Qcomma, Qcomma_at, Qcomma_dot;
+
+#ifdef NEED_TO_HANDLE_21_4_CODE
+static int old_backquote_flag;
 #endif
+
 Lisp_Object Qvariable_domain;	/* I18N3 */
 Lisp_Object Vvalues, Vstandard_input, Vafter_load_alist;
 Lisp_Object Vload_suppress_alist;
@@ -2464,11 +2467,11 @@ retry:
     {
     case '(':
       {
-#ifdef LISP_BACKQUOTES	/* old backquote compatibility in lisp reader */
 	/* if this is disabled, then other code in eval.c must be enabled */
 	Ichar ch = reader_nextchar (readcharfun);
 	switch (ch)
 	  {
+#ifdef NEED_TO_HANDLE_21_4_CODE
 	  case '`':
 	    {
 	      Lisp_Object tem;
@@ -2486,8 +2489,10 @@ retry:
 		}
 	      return list2 (Qbacktick, tem);
 	    }
+#endif /* NEED_TO_HANDLE_21_4_CODE */
 	  case ',':
 	    {
+#ifdef NEED_TO_HANDLE_21_4_CODE
 	      if (old_backquote_flag)
 		{
 		  Lisp_Object tem, comma_type;
@@ -2512,6 +2517,7 @@ retry:
 		  return list2 (comma_type, tem);
 		}
 	      else
+#endif /* NEED_TO_HANDLE_21_4_CODE */
 		{
 		  unreadchar (readcharfun, ch);
 #if 0
@@ -2532,7 +2538,6 @@ retry:
 	  default:
 	    unreadchar (readcharfun, ch);
 	  }			/* switch(ch) */
-#endif /* old backquote crap... */
 	return read_list (readcharfun, ')', 1, 1);
       }
     case '[':
@@ -2841,12 +2846,11 @@ retry:
       /* Quote */
     case '\'': return list2 (Qquote, read0 (readcharfun));
 
-#ifdef LISP_BACKQUOTES
     case '`':
       {
 	Lisp_Object tem;
-	int speccount = internal_bind_int (&new_backquote_flag,
-					   1 + new_backquote_flag);
+	int speccount
+	  = internal_bind_int (&backquote_flag, 1 + backquote_flag);
 	tem = read0 (readcharfun);
 	unbind_to (speccount);
 	return list2 (Qbackquote, tem);
@@ -2854,7 +2858,7 @@ retry:
 
     case ',':
       {
-	if (new_backquote_flag)
+	if (backquote_flag)
 	  {
 	    Lisp_Object comma_type = Qnil;
 	    int ch = readchar (readcharfun);
@@ -2884,7 +2888,6 @@ retry:
 	    return read_atom (readcharfun, c);
 	  }
       }
-#endif
 
     case '?':
       {
@@ -3361,13 +3364,11 @@ syms_of_lread (void)
   DEFSYMBOL (Qload_internal);
   DEFSYMBOL (Qfset);
 
-#ifdef LISP_BACKQUOTES
   DEFSYMBOL (Qbackquote);
   defsymbol (&Qbacktick, "`");
   defsymbol (&Qcomma, ",");
   defsymbol (&Qcomma_at, ",@");
   defsymbol (&Qcomma_dot, ",.");
-#endif
 
   DEFSYMBOL (Qexists);
   DEFSYMBOL (Qreadable);
@@ -3556,9 +3557,10 @@ character escape syntaxes or just read them incorrectly.
   Fprovide (intern ("xemacs"));
 #endif /* FEATUREP_SYNTAX */
 
-#ifdef LISP_BACKQUOTES
-  old_backquote_flag = new_backquote_flag = 0;
+#ifdef NEED_TO_HANDLE_21_4_CODE
+  old_backquote_flag = 
 #endif
+  backquote_flag = 0;
 
 #ifdef I18N3
   Vfile_domain = Qnil;

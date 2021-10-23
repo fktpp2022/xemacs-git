@@ -311,6 +311,22 @@
 	* unexec.c:
 	No need to support pre-C89 compilers.
 
+2021-10-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lread.c:
+	* lread.c (read1):
+	* lread.c (syms_of_lread):
+	* lread.c (vars_of_lread):
+	Don't dither about supporting the Lisp backquote syntax, this has
+	been standard XEmacs practice since before I needed to shave
+	(which is to say, comfortably before the turn of the
+	millennium). It is good code that works well, no need to support
+	an alternative.
+	Bracket the old Lisp backquote support with the
+	NEED_TO_HANDLE_21_4_CODE #ifdef, given the removal of the old
+	backquotes from packages we should be in a position to remove this
+	completely soon.
+
 2021-10-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* alloc.c:

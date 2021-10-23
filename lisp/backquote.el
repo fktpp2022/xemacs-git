@@ -127,7 +127,12 @@ Examples:
   `(a . ,p)         is read as (backquote (a \\, p))
 
 \(backquote TEMPLATE) is a macro that produces code to construct TEMPLATE.
-Note that this is very slow in interpreted code, but fast if you compile.
+
+This is relative slow in interpreted code, but fast if compiled; compilation
+is encouraged and usual for all Emacs Lisp code, for reasons of correctness
+and speed, so there is no good reason to avoid ` if you are worried about
+performance.
+
 TEMPLATE is one or more nested lists or vectors, which are `almost quoted'.
 They are copied recursively, with elements preceded by comma evaluated.
  (backquote (a b))     == (list 'a 'b)
@@ -153,13 +158,14 @@ or as
    (defmacro push (v l)
      `(setq ,l (cons ,v ,l)))
 
-For backwards compatibility, old-style emacs-lisp backquotes are still read.
+The following obsolete and non-standard syntax is accepted for the moment.
+Support for it will be removed soon as of October 2021:
      OLD STYLE                        NEW STYLE
      (` (foo (, bar) (,@ bing)))      `(foo ,bar ,@bing)
 
-Because of the old-style backquote support, you cannot use a new-style
-backquoted form as the first element of a list.  Perhaps some day this
-restriction will go away, but for now you should be wary of it:
+Because of the old-style backquote support, for the moment you cannot use a
+new-style backquoted form as the first element of a list.  This restriction
+will go away, but for now you should be wary of it:
     (`(this ,will ,@fail))
     ((` (but (, this) will (,@ work))))
 This is an extremely rare thing to need to do in lisp."
