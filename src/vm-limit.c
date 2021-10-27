@@ -134,31 +134,40 @@ check_memory_limits (void)
     }
 }
 
-#endif /* HAVE_MALLOC_WARNING */
+/* Return the address of the start of the data segment. */
+static void *
+start_of_data (void)
+{
+#ifdef DATA_START
+  return ((void *) DATA_START);
+#else
+  /*
+   * This is a hack.  Since we're not linking crt0.c or pre_crt0.c,
+   * data_start isn't defined.  We take the address of environ, which
+   * is known to live at or near the start of the system crt0.c, and
+   * we don't sweat the handful of bytes that might lose.
+   */
+  return ((void *) &environ);
+#endif /* DATA_START */
+}
 
 /* Cause reinitialization based on job parameters;
    also declare where the end of pure storage is. */
 
 void
 memory_warnings (void *start,
-#ifdef HAVE_MALLOC_WARNING
 		 void (*warnfun) (const char *)
-#else
-		 void (*UNUSED_ARG (warnfun)) (const char *) ATTRIBUTE_UNUSED
-#endif
 		 )
 {
-#ifdef HAVE_MALLOC_WARNING
   extern void (* __after_morecore_hook) (void);	/* From glibc. */
-#endif
 
   if (start)
     data_space_start = (char*) start;
   else
     data_space_start = start_of_data ();
 
-#ifdef HAVE_MALLOC_WARNING
   warn_function = warnfun;
   __after_morecore_hook = check_memory_limits;
-#endif
 }
+
+#endif /* HAVE_MALLOC_WARNING */

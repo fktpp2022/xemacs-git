@@ -124,11 +124,6 @@ int set_window_size (int fd, int height, int width);
 /* Set up the proper status flags for use of a pty.  */
 void setup_pty (int fd);
 
-/* Return the address of the start of the text segment prior to unexec. */
-char *start_of_text (void);
-/* Return the address of the start of the data segment prior to unexec. */
-void *start_of_data (void);
-
 /* Get_system_name returns as its value a string for system-name to return. */
 void init_system_name (void);
 
