@@ -3419,11 +3419,7 @@ finish_marking_weak_lists (void)
 
 	  if (need_to_mark_elem && ! marked_p (elem))
 	    {
-#ifdef USE_KKCC
 	      kkcc_gc_stack_push_lisp_object_0 (elem);
-#else /* NOT USE_KKCC */
-	      mark_object (elem);
-#endif /* NOT USE_KKCC */
 	      did_mark = 1;
 	    }
 
@@ -3447,11 +3443,7 @@ finish_marking_weak_lists (void)
          because we're not removing it */
       if (!NILP (rest2) && ! marked_p (rest2))
 	{
-#ifdef USE_KKCC
 	  kkcc_gc_stack_push_lisp_object_0 (rest2);
-#else /* NOT USE_KKCC */
-	  mark_object (rest2);
-#endif /* NOT USE_KKCC */
 	  did_mark = 1;
 	}
     }
@@ -3698,12 +3690,8 @@ continue_marking_ephemerons (void)
 	  MARK_CONS (XCONS (XEPHEMERON (rest)->cons_chain));
 	  if (marked_p (XEPHEMERON (rest)->key))
 	    {
-#ifdef USE_KKCC
 	      kkcc_gc_stack_push_lisp_object_0 
 		(XCAR (XEPHEMERON (rest)->cons_chain));
-#else /* NOT USE_KKCC */
-	      mark_object (XCAR (XEPHEMERON (rest)->cons_chain));
-#endif /* NOT USE_KKCC */
 	      did_mark = 1;
 	      XSET_EPHEMERON_NEXT (rest, Vnew_all_ephemerons);
 	      Vnew_all_ephemerons = rest;
@@ -3748,12 +3736,8 @@ finish_marking_ephemerons (void)
 	  if (! NILP (XEPHEMERON_FINALIZER (rest)))
 	    {
 	      MARK_CONS (XCONS (XEPHEMERON (rest)->cons_chain));
-#ifdef USE_KKCC
 	      kkcc_gc_stack_push_lisp_object_0
 		(XCAR (XEPHEMERON (rest)->cons_chain));
-#else /* NOT USE_KKCC */
-	      mark_object (XCAR (XEPHEMERON (rest)->cons_chain));
-#endif /* NOT USE_KKCC */
 
 	      /* Register the finalizer */
 	      XSET_EPHEMERON_NEXT (rest, Vfinalize_list);

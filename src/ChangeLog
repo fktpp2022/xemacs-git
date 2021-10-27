@@ -57,6 +57,30 @@
 
 2021-10-27  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* alloc.c:
+	* config.h.in:
+	* data.c (finish_marking_weak_lists):
+	* data.c (continue_marking_ephemerons):
+	* data.c (finish_marking_ephemerons):
+	* dumper.c (pdump):
+	* elhash.c:
+	* elhash.c (MARK_OBJ):
+	* elhash.c (finish_marking_weak_hash_tables):
+	* gc.c:
+	* gc.c (mark_object):
+	* gc.c (gc_mark_root_set):
+	* gc.c (gc_finish_mark):
+	* gc.c (garbage_collect_1):
+	* lrecord.h:
+	* lrecord.h (RECORD_DESCRIPTION):
+	* lrecord.h (UNDEF_LISP_OBJECT):
+	* lrecord.h (UNDEF_MODULE_LISP_OBJECT):
+	* xemacs.def.in.in:
+	Remove support for non-KKCC builds, KKCC is stable, performant
+	code. Changes generated with unifdef -DUSE_KKCC=1.
+
+2021-10-27  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* emodules.h:
 	* lrecord.h:
 	* mem-limits.h:

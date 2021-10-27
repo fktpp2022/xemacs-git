@@ -106,12 +106,6 @@ int lrecord_type_count = lrecord_type_last_built_in_type;
    UID is only 20 bits.) */
 int lrecord_uid_counter[countof (lrecord_implementations_table)];
 
-#ifndef USE_KKCC
-/* Object marker functions are in the lrecord_implementation structure.
-   But copying them to a parallel array is much more cache-friendly.
-   This hack speeds up (garbage-collect) by about 5%. */
-Lisp_Object (*lrecord_markers[countof (lrecord_implementations_table)]) (Lisp_Object);
-#endif /* not USE_KKCC */
 
 struct gcpro *gcprolist;
 

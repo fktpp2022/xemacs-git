@@ -2107,7 +2107,6 @@ PACKAGE defaults to the value of `obarray'.
 /************************************************************************/
 /*		   garbage collecting weak hash tables			*/
 /************************************************************************/
-#ifdef USE_KKCC
 #define MARK_OBJ(obj) do {				\
   Lisp_Object mo_obj = (obj);				\
   if (!marked_p (mo_obj))				\
@@ -2117,17 +2116,6 @@ PACKAGE defaults to the value of `obarray'.
     }							\
 } while (0)
 
-#else /* NO USE_KKCC */
-
-#define MARK_OBJ(obj) do {		\
-  Lisp_Object mo_obj = (obj);		\
-  if (!marked_p (mo_obj))		\
-    {					\
-      mark_object (mo_obj);		\
-      did_mark = 1;			\
-    }					\
-} while (0)
-#endif /*NO USE_KKCC */
 
 
 /* Complete the marking for semi-weak hash tables. */

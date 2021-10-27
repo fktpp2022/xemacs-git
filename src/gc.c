@@ -417,7 +417,6 @@ lispdesc_block_size_1 (const void *obj, Bytecount size,
       gc_checking_assert (LHEADER_IMPLEMENTATION (lheader)->frob_block_p || \
 			  ! (lheader)->free)
 
-#ifdef USE_KKCC
 /* The following functions implement the new mark algorithm. 
    They mark objects according to their descriptions.  They 
    are modeled on the corresponding pdumper procedures. */
@@ -966,7 +965,6 @@ kkcc_marking (void)
 
     }
 }
-#endif /* USE_KKCC */
 
 /* I hate duplicating all this crap! */
 int
@@ -993,50 +991,13 @@ marked_p (Lisp_Object obj)
    seen yet, recursively mark all the references contained in it. */
 void
 mark_object (
-#ifdef USE_KKCC
 	     Lisp_Object UNUSED (obj)
-#else
-	     Lisp_Object obj
-#endif
 	     )
 {
-#ifdef USE_KKCC
   /* this code should never be reached when configured for KKCC */
   stderr_out ("KKCC: Invalid mark_object call.\n");
   stderr_out ("Replace mark_object with kkcc_gc_stack_push_lisp_object.\n");
   ABORT ();
-#else /* not USE_KKCC */
-
- tail_recurse:
-
-  /* Checks we used to perform */
-  /* if (EQ (obj, Qnull_pointer)) return; */
-  /* if (!POINTER_TYPE_P (XGCTYPE (obj))) return; */
-  /* if (PURIFIED (XPNTR (obj))) return; */
-
-  if (XTYPE (obj) == Lisp_Type_Record)
-    {
-      struct lrecord_header *lheader = XRECORD_LHEADER (obj);
-
-      GC_CHECK_LHEADER_INVARIANTS (lheader);
-
-      /* We handle this separately, above, so we can mark free objects */
-      GC_CHECK_NOT_FREE (lheader);
-
-      /* All c_readonly objects have their mark bit set,
-	 so that we only need to check the mark bit here. */
-      if (! MARKED_RECORD_HEADER_P (lheader))
-	{
-	  MARK_RECORD_HEADER (lheader);
-
-	  if (RECORD_MARKER (lheader))
-	    {
-	      obj = RECORD_MARKER (lheader) (obj);
-	      if (!NILP (obj)) goto tail_recurse;
-	    }
-	}
-    }
-#endif /* not KKCC */
 }
 
 
@@ -1313,9 +1274,7 @@ gc_mark_root_set (
 
   /* Mark all the special slots that serve as the roots of accessibility. */
 
-#ifdef USE_KKCC
 # define mark_object(obj) kkcc_gc_stack_push_lisp_object_0 (obj)
-#endif /* USE_KKCC */
 
   { /* staticpro() */
     Lisp_Object **p = Dynarr_begin (staticpros);
@@ -1390,9 +1349,7 @@ gc_mark_root_set (
       }
   }
 
-#ifdef USE_KKCC
 # undef mark_object
-#endif
 }
 
 static void
@@ -1403,13 +1360,9 @@ gc_finish_mark (void)
   while (finish_marking_weak_hash_tables () > 0 ||
 	 finish_marking_weak_lists       () > 0 ||
 	 continue_marking_ephemerons     () > 0)
-#ifdef USE_KKCC
     {
       kkcc_marking ();
     }
-#else /* not USE_KKCC */
-  ;
-#endif /* not USE_KKCC */
 
   /* At this point, we know which objects need to be finalized: we
      still need to resurrect them */
@@ -1417,13 +1370,9 @@ gc_finish_mark (void)
   while (finish_marking_ephemerons       () > 0 ||
 	 finish_marking_weak_lists       () > 0 ||
 	 finish_marking_weak_hash_tables () > 0)
-#ifdef USE_KKCC
     {
       kkcc_marking ();
     }
-#else /* not USE_KKCC */
-  ;
-#endif /* not USE_KKCC */
 
   /* And prune (this needs to be called after everything else has been marked
      and before we do any sweeping). If you're considering whether you would
@@ -1485,23 +1434,17 @@ void garbage_collect_1 (void)
   show_gc_cursor_and_message ();
 
   gc_prepare ();
-#ifdef USE_KKCC
   kkcc_gc_stack_init();
 #ifdef DEBUG_XEMACS
   kkcc_bt_init ();
 #endif
-#endif /* USE_KKCC */
   gc_mark_root_set ();
-#ifdef USE_KKCC
   kkcc_marking ();
-#endif /* USE_KKCC */
   gc_finish_mark ();
-#ifdef USE_KKCC
   kkcc_gc_stack_free ();
 #ifdef DEBUG_XEMACS
   kkcc_bt_free ();
 #endif
-#endif /* USE_KKCC */
   gc_sweep_1 ();
   gc_finish ();
 

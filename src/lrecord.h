@@ -574,11 +574,7 @@ void tick_lrecord_stats (const struct lrecord_header *h,
 #define SET_LISP_READONLY_RECORD_HEADER(lheader) \
   ((void) ((lheader)->lisp_readonly = 1))
 
-#ifdef USE_KKCC
 #define RECORD_DESCRIPTION(lheader) lrecord_memory_descriptions[(lheader)->type]
-#else /* not USE_KKCC */
-#define RECORD_MARKER(lheader) lrecord_markers[(lheader)->type]
-#endif /* not USE_KKCC */
 
 #define RECORD_DUMPABLE(lheader) (lrecord_implementations_table[(lheader)->type])->dumpable
 
@@ -1310,7 +1306,6 @@ do									\
   INIT_MEMORY_USAGE_STATS (type);					\
 } while (0)
 
-#ifdef USE_KKCC
 extern MODULE_API const struct memory_description *lrecord_memory_descriptions[];
 
 #define INIT_LISP_OBJECT(type) do {					\
@@ -1318,15 +1313,6 @@ extern MODULE_API const struct memory_description *lrecord_memory_descriptions[]
   lrecord_memory_descriptions[lrecord_type_##type] =			\
     lrecord_implementations_table[lrecord_type_##type]->description;	\
 } while (0)
-#else /* not USE_KKCC */
-extern MODULE_API Lisp_Object (*lrecord_markers[]) (Lisp_Object);
-
-#define INIT_LISP_OBJECT(type) do {				\
-  INIT_LISP_OBJECT_BEGINNING (type);				\
-  lrecord_markers[lrecord_type_##type] =			\
-    lrecord_implementations_table[lrecord_type_##type]->marker;	\
-} while (0)
-#endif /* not USE_KKCC */
 
 #define INIT_MODULE_LISP_OBJECT(type) do {			\
   lrecord_type_##type = lrecord_type_count++;			\
@@ -1337,17 +1323,10 @@ extern MODULE_API Lisp_Object (*lrecord_markers[]) (Lisp_Object);
 #ifdef HAVE_SHLIB
 /* Allow undefining types in order to support module unloading. */
 
-#ifdef USE_KKCC
 #define UNDEF_LISP_OBJECT(type) do {				\
   lrecord_implementations_table[lrecord_type_##type] = NULL;	\
   lrecord_memory_descriptions[lrecord_type_##type] = NULL;	\
 } while (0)
-#else /* not USE_KKCC */
-#define UNDEF_LISP_OBJECT(type) do {				\
-  lrecord_implementations_table[lrecord_type_##type] = NULL;	\
-  lrecord_markers[lrecord_type_##type] = NULL;			\
-} while (0)
-#endif /* not USE_KKCC */
 
 #define UNDEF_MODULE_LISP_OBJECT(type) do {				\
   if (lrecord_##type.lrecord_type_index == lrecord_type_count - 1) {	\
