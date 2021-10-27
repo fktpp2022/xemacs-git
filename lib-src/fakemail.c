@@ -59,10 +59,8 @@ main (int argc, char *argv[])
 #endif
 
 #include <stdio.h>
-#if __STDC__ || defined(STDC_HEADERS)
 #include <stdlib.h>
 #include <unistd.h>
-#endif
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
@@ -137,12 +135,6 @@ static char *the_user;
 static line_list file_preface;
 static stream_list the_streams;
 static boolean no_problems = true;
-
-#if !__STDC__ && !defined(STDC_HEADERS)
-extern FILE *popen ();
-extern int fclose (), pclose ();
-extern char *malloc (), *realloc ();
-#endif
 
 #if defined(__FreeBSD__)
 #include <osreldate.h>

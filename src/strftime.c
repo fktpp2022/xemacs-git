@@ -98,10 +98,6 @@
 #include <time.h>
 #endif
 
-#ifndef STDC_HEADERS
-time_t mktime ();
-#endif
-
 #if defined(WIN32_NATIVE) || defined(CYGWIN)
 #include <time.h>
 #else

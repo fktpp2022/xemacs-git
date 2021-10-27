@@ -538,7 +538,7 @@ child_setup_tty (int out)
 struct save_signal
 {
   int code;
-  RETSIGTYPE (XCDECL * handler) (SIG_PARAM_TYPE);
+  void (XCDECL * handler) (SIG_PARAM_TYPE);
 };
 
 static void
@@ -547,7 +547,7 @@ save_signal_handlers (struct save_signal *saved_handlers)
   while (saved_handlers->code)
     {
       saved_handlers->handler
-	= (RETSIGTYPE (XCDECL *) (SIG_PARAM_TYPE)) EMACS_SIGNAL (saved_handlers->code, SIG_IGN);
+	= (void (XCDECL *) (SIG_PARAM_TYPE)) EMACS_SIGNAL (saved_handlers->code, SIG_IGN);
       saved_handlers++;
     }
 }

@@ -1,3 +1,8 @@
+2021-10-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lwlib-Xaw.c: Don't check for STDC_HEADERS, unconditionally
+	#include <stdlib.h>
+
 2017-11-23  Stephen J. Turnbull  <stephen@xemacs.org>
 
 	* lwlib-colors.c (xft_convert_color): Remove unused variable.

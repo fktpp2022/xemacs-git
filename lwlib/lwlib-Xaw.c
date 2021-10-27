@@ -20,10 +20,7 @@ along with the Lucid Widget Library.  If not, see
 
 #include <config.h>
 #include <stdio.h>
-
-#ifdef STDC_HEADERS
 #include <stdlib.h>
-#endif
 
 #include "lwlib-Xaw.h"
 

@@ -1,3 +1,25 @@
+2021-10-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Update the source as suggested by autoupdate analysis of
+	configure.ac.
+
+	* config.h.in:
+	* config.h.in (STDC_HEADERS): Remove.
+	* config.h.in (TIME_WITH_SYS_TIME): Remove.
+	* config.h.in (RETSIGTYPE): Remove.
+	Follow autoupdate's advice that these are no longer necessary.
+	* strftime.c:
+	No need to support pre-C89 compilers.
+	* sysdep.c (struct save_signal):
+	* sysdep.c (save_signal_handlers):
+	Signal return type is always void.
+	* syssignal.h:
+	Signal return type is always void.
+	* systime.h:
+	No need to distinguish TIME_WITH_SYS_TIME from HAVE_SYS_TIME_H.
+	* unexec.c:
+	No need to support pre-C89 compilers.
+
 2021-10-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* alloc.c:

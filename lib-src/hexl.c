@@ -35,13 +35,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <fcntl.h>
 #endif
 
-#if __STDC__ || defined(STDC_HEADERS)
 #include <stdlib.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <string.h>
-#endif
 
 #define DEFAULT_GROUPING	0x01
 #define DEFAULT_BASE		16

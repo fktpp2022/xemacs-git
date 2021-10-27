@@ -1,3 +1,15 @@
+2021-10-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* configure.ac (AC_LANG):
+	* configure.ac (XE_COMPLEX_ARG):
+	* configure.ac (TAB):
+	* configure.ac (CPP_MAKEFILE):
+	Run autoupdate on configure.ac, take its advice regarding the lack
+	of a need to #define STDC_HEADERS, the lack of a need for a
+	RETSIGTYPE #define, the lack of a need for a TIME_WITH_SYS_TIME
+	#define that is distinct from HAVE_SYS_TIME_H.
+	* configure: Regenerate.
+
 2021-10-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* configure: Regenerate.

@@ -105,7 +105,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    Possibly we should use the new "qxe" convention.
 */
 
-typedef RETSIGTYPE (XCDECL * signal_handler_t) (int);
+typedef void (XCDECL * signal_handler_t) (int);
 
 #if defined (HAVE_SIGPROCMASK)
 

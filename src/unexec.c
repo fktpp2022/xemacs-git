@@ -150,7 +150,7 @@ pointer looks like an int) but not on all machines.
 #define PERROR(file) report_error (file, new_)
 #endif
 
-#if __STDC__ || defined(STDC_HEADERS)
+#if __STDC__
 
 /* I don't know how correct this attempt to get more prototypes is... */
 # if defined(sun) && defined(_POSIX_SOURCE)

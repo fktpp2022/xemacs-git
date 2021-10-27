@@ -154,26 +154,8 @@ char pot_etags_version[] = "@(#) pot revision number is 17.33";
 #   define HAVE_GETCWD
 # endif /* undef HAVE_GETCWD */
 #else /* not WINDOWSNT */
-# ifdef STDC_HEADERS
 #  include <stdlib.h>
 #  include <string.h>
-# else /* no standard C headers */
-   extern char *getenv ();
-   extern char *strcpy ();
-   extern char *strncpy ();
-   extern char *strcat ();
-   extern char *strncat ();
-   extern unsigned long strlen ();
-   extern PTR malloc ();
-   extern PTR realloc ();
-#  ifdef VMS
-#   define EXIT_SUCCESS	1
-#   define EXIT_FAILURE	0
-#  else /* no VMS */
-#   define EXIT_SUCCESS	0
-#   define EXIT_FAILURE	1
-#  endif
-# endif
 #endif /* !WINDOWSNT */
 
 #ifdef HAVE_UNISTD_H

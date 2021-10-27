@@ -284,34 +284,6 @@ things are arranged in config.h.in.  In particular:
 #undef HAVE_LIBINTL_H
 #undef HAVE_X11_XLOCALE_H
 
-/* About __STDC__: Different compilers differ wrt __STDC__.  Sunpro C
-    defines it, but its value is 0 unless we disable non-ANSI extensions.
-    VC++ doesn't define it at all unless we disable non-ANSI extensions.
-    But these compilers are all ANSI-compliant. So don't go testing
-    __STDC__ anywhere except in code that runs only on known
-    compilers. --ben
-
-    Jamie wrote the following:
-
-    [[ The ANSI standard says that defining __STDC__ to a non-zero value
-    means that the compiler conforms to that standard.  The standard
-    requires certain header files and library functions to be present.
-    Therefore, if your compiler defines __STDC__ to non-0 but does not have
-    ANSI headers and the ANSI library routines, then your compiler is
-    buggy.  Conversely, an ANSI-conforming environment (which has both the
-    ANSI headers and library routines, i.e., stdlib.h and `memmove') does
-    not necessarily define the STDC_HEADERS flag.  Lucid Emacs requires an
-    ANSI compiler.  Therefore, there is no need to consult the abominable
-    STDC_HEADERS flag.  -- jwz ]]
-
-    In reality, we should not be testing STDC_HEADERS at all except
-    possibly in code we're purposely keeping in close sync with FSF code.
-    STDC_HEADERS should be defined on *ALL* compilers.
-*/
-
-#undef STDC_HEADERS
-
-#undef TIME_WITH_SYS_TIME
 #undef WORDS_BIGENDIAN
 
 #undef HAVE_LONG_FILE_NAMES
@@ -985,17 +957,13 @@ extern "C" {
 # define ALLOC_TYPE_STATS 1
 #endif
 
-/* Define the return type of signal handlers if the s/xxx.h file
-   did not already do so. */
-#define RETSIGTYPE void
-
 #ifndef XCDECL
 #define XCDECL
 #endif
 
 /* SIGTYPE is the macro we actually use. */
 #ifndef SIGTYPE
-#define SIGTYPE RETSIGTYPE XCDECL
+#define SIGTYPE void XCDECL
 #define SIGRETURN return
 #endif
 

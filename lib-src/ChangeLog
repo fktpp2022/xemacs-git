@@ -1,3 +1,12 @@
+2021-10-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* etags.c:
+	* fakemail.c:
+	* hexl.c:
+	* ootags.c:
+	No longer check for STDC_HEADERS in these files, pre-C89 compilers
+	are long obsolete.
+
 2021-10-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* make-mswin-unicode.pl:

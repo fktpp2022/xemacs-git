@@ -33,8 +33,8 @@ dnl -------------------------------------------------------------------------
 dnl Autoconf startup.
 dnl
 dnl Due to a dependence on the implementation of certain internal autoconf
-dnl macros, die if any version other than 2.59 is used.
-AC_PREREQ(2.59)dnl
+dnl macros, die if an older version is used.
+AC_PREREQ([2.71])dnl
 AC_INIT([XEmacs],[21.5],[xemacs-beta@xemacs.org])dnl
 AC_CONFIG_SRCDIR(src/lisp.h)dnl
 dnl
@@ -1541,7 +1541,7 @@ fi
 
 xe_save_CFLAGS="$CFLAGS"
 
-AC_AIX dnl Defines _ALL_SOURCE on AIX.
+AC_USE_SYSTEM_EXTENSIONS dnl Defines _ALL_SOURCE on AIX.
 
 AC_PROG_CC dnl Autoconf has its own magic for compiler autodetection
 
@@ -2563,16 +2563,20 @@ AC_CHECK_HEADERS(dnl
   ulimit.h dnl
 )
 AC_HEADER_SYS_WAIT
-AC_HEADER_STDC
-AC_HEADER_TIME
+# Autoupdate added the next two lines to ensure that your configure
+# script's behavior did not change.  They are probably safe to remove.
+AC_CHECK_INCLUDES_DEFAULT
+AC_PROG_EGREP
 
-AC_CHECK_FUNCS(strsignal, ,AC_CHECK_DECLS([sys_siglist],,,
+AC_CHECK_FUNCS(strsignal)
+AC_CHECK_DECLS([sys_siglist],,,
 [#include <signal.h>
 /* NetBSD declares sys_siglist in unistd.h.  */
 #if HAVE_UNISTD_H
 # include <unistd.h>
 #endif
-]))
+]
+)
 
 dnl ----------------------------------------------------------------
 dnl Checking for utime() or utimes().
@@ -2590,9 +2594,6 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <sys/types.h>
    dnl We don't have utime(); how about utimes()?
    AC_CHECK_FUNCS(utimes)])
 
-
-dnl checks for typedefs
-AC_TYPE_SIGNAL
 AC_TYPE_SIZE_T
 AC_TYPE_PID_T
 AC_TYPE_UID_T
@@ -3723,7 +3724,7 @@ if test "$with_postgresql" != "no"; then
   done
 
   if test -n "$pg_header_dir" -a "$header_dir" != "$pg_header_dir"; then
-    AC_WARN([--with-postgresql="$pg_header_dir" specified but not found; using "$libpq_fe_h_file"])
+    AC_MSG_WARN(--with-postgresql="$pg_header_dir" specified but not found; using "$libpq_fe_h_file")
   fi
 
   pq_libs=
@@ -4338,7 +4339,7 @@ if test "$with_unicode_internal" = "yes"; then
 	USAGE_ERROR("Cannot give \`--with-mule=no' and \`--with-unicode-internal=yes'.
 Unicode-internal requires Mule.")
   test "$with_mule" != "yes" && \
-	AC_MSG_WARN([\`--with-mule' forced to \`yes': Unicode-internal requires Mule.])
+	AC_MSG_WARN([`--with-mule' forced to `yes': Unicode-internal requires Mule.])
   with_mule=yes
   AC_DEFINE(UNICODE_INTERNAL)
 fi
@@ -6182,7 +6183,7 @@ echo ""
 dnl -----------------------------------
 dnl Now generate config.h and Makefiles
 dnl -----------------------------------
-AC_CONFIG_HEADER(src/config.h lwlib/config.h)
+AC_CONFIG_HEADERS([src/config.h lwlib/config.h])
 
 dnl This has to be called in order for this variable to get into config.status
 AC_SUBST(internal_makefile_list)
@@ -6330,5 +6331,4 @@ sed < config.status >> lib-src/config.values \
  MAKE_SUBDIR="$MAKE_SUBDIR"
 ])dnl
 
-AC_OUTPUT()dnl
-
+AC_OUTPUT() dnl

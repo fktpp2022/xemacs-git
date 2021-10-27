@@ -74,7 +74,7 @@ char pot_etags_version[] = "@(#) pot revision number is 12.28";
 # endif /* not HAVE_CONFIG_H */
 #endif /* WIN32_NATIVE */
 
-#if !defined (WIN32_NATIVE) && defined (STDC_HEADERS)
+#if !defined (WIN32_NATIVE)
 #include <stdlib.h>
 #include <string.h>
 #endif
