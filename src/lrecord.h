@@ -1962,9 +1962,6 @@ extern MODULE_API int initialized;
 /*                           data descriptions                         */
 /***********************************************************************/
 
-
-#if defined (USE_KKCC) || defined (PDUMP)
-
 extern int in_pdump;
 
 EMACS_INT lispdesc_indirect_count_1 (EMACS_INT code,
@@ -2036,8 +2033,6 @@ lispdesc_process_xd_union (const struct memory_description *desc1,
 
   return NULL;
 }
-
-#endif /* defined (USE_KKCC) || defined (PDUMP) */
 
 END_C_DECLS
 

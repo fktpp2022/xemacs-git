@@ -1,5 +1,16 @@
 2021-10-27  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* emodules.h:
+	* lrecord.h:
+	* mem-limits.h:
+	* mem-limits.h (get_lim_data):
+	* ntheap.c (round_heap):
+	A couple more changes to support removing unexec (these should
+	have been part of the last commit; am unsure why I didn't pick
+	them up in my testing).
+
+2021-10-27  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Remove support for unexec, only support PDUMP, which is stable and
 	performant.
 	Much of the changes generated with unifdef -DPDUMP=1.

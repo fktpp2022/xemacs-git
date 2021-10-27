@@ -82,24 +82,7 @@ extern unsigned long lim_data;
 
 /* The implementation of get_lim_data() is very machine dependent. */
 
-#if defined (HEAP_IN_DATA) && !defined(PDUMP)
-extern unsigned long static_heap_size;
-extern MODULE_API int initialized;
-
-static void
-get_lim_data (void)
-{
-  if (!initialized)
-    {
-      lim_data = (unsigned long) -1; /* static_heap_size; */
-    }
-  else
-    {
-      lim_data = (unsigned long) -1;
-    }
-}
-
-#elif defined(NO_LIM_DATA)
+#ifdef NO_LIM_DATA
 
 static void
 get_lim_data (void)

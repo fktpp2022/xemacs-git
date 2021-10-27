@@ -79,7 +79,7 @@ EXTERN_C MODULE_API void emodules_doc_sym (const Ascbyte *objname,
 #endif /* EMODULES_GATHER_VERSION */
 
 /* We should not expose module entities to the portable dumper. */
-#if defined(PDUMP) && defined(EMACS_MODULE)
+#if defined(EMACS_MODULE)
 #undef dump_add_root_block_ptr
 #define dump_add_root_block_ptr(varaddr,descaddr) DO_NOTHING
 #undef dump_add_opaque
@@ -107,6 +107,6 @@ EXTERN_C MODULE_API void emodules_doc_sym (const Ascbyte *objname,
 #undef defsymbol
 #define defsymbol(location,name) defsymbol_nodump (location, name)
 
-#endif /* defined(PDUMP) && defined(EMACS_MODULE) */
+#endif /* defined(EMACS_MODULE) */
 
 #endif /* EMODULES_HDR */
