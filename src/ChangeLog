@@ -1,5 +1,55 @@
 2021-10-27  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove support for unexec, only support PDUMP, which is stable and
+	performant.
+	Much of the changes generated with unifdef -DPDUMP=1.
+
+	* Makefile.in.in:
+	* Makefile.in.in (sheap_objs): Removed.
+	* Makefile.in.in (objs):
+	* Makefile.in.in (DUMP_TARGET):
+	* Makefile.in.in (RAW_EXE): Removed.
+	* Makefile.in.in (config.h paths.h Emacs.ad.h):
+	* Makefile.in.in (-search-mmaps):
+	* Makefile.in.in (mostlyclean):
+	* alloc.c:
+	* alloc.c (gc_sweep_1):
+	* config.h.in:
+	* console-stream.c:
+	* depend: Regenerate using make-src-depend.
+	* emacs.c:
+	* emacs.c (main_1):
+	* emacs.c (Femacs_run_status):
+	* emacs.c (main):
+	* emacs.c (Fdump_emacs):
+	* emacs.c (really_abort):
+	* frame.c (init_frame):
+	* gc.c:
+	* gc.c (lispdesc_indirect_count_1):
+	* gc.c (GC_CHECK_NOT_FREE):
+	* lrecord.h:
+	* lrecord.h (dump_add_opaque):
+	* lrecord.h (dump_add_opaque_int):
+	* lrecord.h (dump_add_opaque_fixnum):
+	* number.c (init_number):
+	* ralloc.c (init_ralloc):
+	* redisplay.c (init_redisplay):
+	* sheap.c: File removed.
+	* symbols.c (find_symbol_value):
+	* symbols.c (find_symbol_value_quickly):
+	* sysdep.c:
+	* sysdep.c (total_data_usage):
+	* sysdep.h:
+	* unexaix.c: File removed.
+	* unexalpha.c: File removed.
+	* unexcw.c: File removed.
+	* unexelf.c: File removed.
+	* unexhp9k800.c: File removed.
+	* unexnt.c: File removed.
+	* unexsol2-6.c: File removed.
+
+2021-10-27  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Update the source as suggested by autoupdate analysis of
 	configure.ac.
 

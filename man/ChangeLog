@@ -1,3 +1,8 @@
+2021-10-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (Dumping Justification):
+	Update the documentation of the dumping process.
+
 2021-10-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Top):

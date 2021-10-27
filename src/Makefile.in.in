@@ -87,7 +87,6 @@ vpath %.h @srcdir@
 vpath config.h
 vpath paths.h
 vpath Emacs.ad.h
-vpath sheap-adjust.h
 vpath dump-id.c
 #else
 VPATH=@srcdir@
@@ -228,10 +227,6 @@ process_objs=process-unix.o
 profile_objs=profile.o
 #endif
 
-#if defined (HEAP_IN_DATA) && !defined (PDUMP)
-sheap_objs=sheap.o
-#endif
-
 #ifdef HAVE_SHLIB
 shlib_objs=sysdll.o
 # ifdef WIN32_ANY
@@ -279,8 +274,8 @@ objs=\
  $(mule_objs) $(mule_canna_objs) $(mule_wnn_objs) $(number_objs) fontcolor.o\
  opaque.o $(postgresql_objs) print.o process.o $(process_objs) $(profile_objs)\
  rangetab.o realpath.o redisplay.o redisplay-output.o regex.o\
- search.o select.o sequence.o $(sheap_objs) $(shlib_objs) signal.o sound.o\
- specifier.o strftime.o $(sunpro_objs) symbols.o syntax.o sysdep.o\
+ search.o select.o sequence.o $(shlib_objs) signal.o sound.o specifier.o \
+ strftime.o $(sunpro_objs) symbols.o syntax.o sysdep.o\
  text.o tls.o $(tooltalk_objs) $(tty_objs) undo.o unicode.o \
  $(x_objs) $(x_gui_objs) widget.o window.o $(win32_objs)
 
@@ -387,7 +382,6 @@ ldflags  = $(LDFLAGS) $(ld_switch_all) $(ld_dynamic_link_flags)
 ##                     Primary rebuilding process                      ##
 #########################################################################
 
-#ifdef PDUMP
 DUMP_TARGET = $(PROGNAME).dmp
 RAW_EXE  = $(PROGNAME)
 DUMP_ID     = dump-id.o
@@ -398,10 +392,6 @@ RAW_EXE  = temacs
 #else
 RAW_EXE  = temacs.exe
 #endif
-#endif
-#else
-DUMP_TARGET = $(PROGNAME)
-RAW_EXE  = temacs
 #endif
 
 DO_TEMACS = $(DUMPENV) ./$(RAW_EXE)
@@ -512,7 +502,7 @@ dump-id.c: $(LIB_SRC)/make-dump-id $(link_deps)
 
 ## (2) Link the XEmacs executable
 
-#if !defined(PDUMP) || !defined(DUMP_IN_EXEC) || defined(WIN32_NATIVE)
+#if !defined(DUMP_IN_EXEC) || defined(WIN32_NATIVE)
 $(RAW_EXE): $(link_deps) $(DUMP_ID)
 	$(LD) $(ldflags) $(start_flags) -o $@ $(start_files) $(objs) $(otherobjs) $(DUMP_ID) $(LIBES)
 #else
@@ -566,7 +556,7 @@ $(DUMP_TARGET): $(RAW_EXE) $(BLDSRC)/NEEDTODUMP $(LIB_SRC)/DOC
 	@$(RM) $@
 	$(dump_temacs)
 #endif
-#if defined(PDUMP) && defined(DUMP_IN_EXEC) && !defined(WIN32_NATIVE)
+#if defined(DUMP_IN_EXEC) && !defined(WIN32_NATIVE)
 	if test -f dump-size; then \
 		$(LIB_SRC)/insert-data-in-exec $(RAW_EXE) $(DUMP_TARGET).dmp $(DUMP_TARGET) `$(DO_TEMACS) -si`; \
 		ret=$$? ; \
@@ -779,7 +769,7 @@ libextcli_Xlib.so.1: $(external_client_xlib_objs_shared)
 config.h: $(SRC)/config.h.in
 Emacs.ad.h: $(ETC)/Emacs.ad
 
-config.h sheap-adjust.h paths.h Emacs.ad.h :
+config.h paths.h Emacs.ad.h :
 	@echo "The file $@ needs to be re-generated."
 	@echo "Please run a make in the top level directory."
 	@echo "Consult the file \`INSTALL' for instructions for building XEmacs."
@@ -914,9 +904,7 @@ debug-temacs: $(RAW_EXE)
 PURIFY_PROG  = purify
 PURIFY_LIBS  =
 PURIFY_FLAGS =\
-#ifdef PDUMP
  -search-mmaps=yes\
-#endif
  -chain-length=32 -ignore-signals=SIGPOLL\
  -cache-dir=$(blddir)/purecache -always-use-cache-dir=yes
 
@@ -948,7 +936,7 @@ covmacs: $(temacs_deps)
 mostlyclean:
 	-$(RM) *.o *.i *.rtl *.ln core \
 	temacs puremacs quantmacs covmacs rtcmacs temacs.exe \
-	sheap-adjust.h dump-id.c dump-size $(BLDSRC)/NEEDTODUMP SATISFIED \
+	dump-id.c dump-size $(BLDSRC)/NEEDTODUMP SATISFIED \
 	$(LIB_SRC)/*.po $(LIB_SRC)/*.mo
 versionclean:
 	-$(RM) $(RAW_EXE) $(DUMP_TARGET) $(DUMP_TARGET).dmp $(LIB_SRC)/DOC

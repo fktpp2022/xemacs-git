@@ -176,8 +176,6 @@ const struct sized_memory_description Lisp_Object_pair_description = {
   Lisp_Object_pair_description_1
 };
 
-#if defined (USE_KKCC) || defined (PDUMP)
-
 /* This function extracts the value of a count variable described somewhere 
    else in the description. It is converted corresponding to the type */ 
 EMACS_INT
@@ -217,10 +215,8 @@ lispdesc_indirect_count_1 (EMACS_INT code,
       if (gc_in_progress)
 	kkcc_detailed_backtrace ();
 #endif
-#ifdef PDUMP
       if (in_pdump)
 	pdump_backtrace ();
-#endif
       count = 0; /* warning suppression */
       ABORT ();
     }
@@ -415,7 +411,6 @@ lispdesc_block_size_1 (const void *obj, Bytecount size,
     return MAX_ALIGN_SIZE (max_offset + size_at_max);
   }
 }
-#endif /* defined (USE_KKCC) || defined (PDUMP) */
 
 #define GC_CHECK_NOT_FREE(lheader)					\
       gc_checking_assert (! LRECORD_FREE_P (lheader));			\

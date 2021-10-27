@@ -464,10 +464,6 @@ Epoch 4.0 released August 27, 1990.
 /* For PATH_EXEC */
 #include <paths.h>
 
-#if defined (HEAP_IN_DATA) && !defined (PDUMP)
-void report_sheap_usage (int die_if_pure_storage_exceeded);
-#endif
-
 /* Command line args from shell, as list of strings */
 Lisp_Object Vcommand_line_args;
 
@@ -979,11 +975,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
      and quit */
   if (argmatch (argv, argc, "-sd", "--show-dump-id", 0, NULL, &skip_args))
     {
-#ifdef PDUMP
       printf ("%08x\n", dump_id);
-#else
-      printf ("Portable dumper not configured; -sd just forces exit.\n");
-#endif
       exit (0);
     }
 
@@ -991,7 +983,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
      alignment and max size of the inline data and quit */
   if (argmatch (argv, argc, "-si", "--show-inline-info", 0, NULL, &skip_args))
     {
-#if defined (PDUMP) && defined (DUMP_IN_EXEC) && !defined (WIN32_NATIVE)
+#if defined (DUMP_IN_EXEC) && !defined (WIN32_NATIVE)
       /* #### We really should check for sizeof (size_t) > sizeof (long) */
       printf ("%lu %lu\n", (unsigned long) dumped_data_max_size (),
 			   (unsigned long) dumped_data_align_offset ());
@@ -1280,8 +1272,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
      This case is noted in the code below by
 
        initialized +
-       !restart +
-       ifdef PDUMP.
+       !restart
 
      In the comments below, "dump time" or "dumping" == raw-temacs.
      "run time" == run-temacs or post-dump.
@@ -1318,7 +1309,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
      loadup.el will set to nil at end. */
 
   purify_flag = 0;
-#ifdef PDUMP
   in_pdump = 0;
   if (restart)
     initialized = 1;
@@ -1369,10 +1359,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       else
 	purify_flag = 1;
     }
-#else /* not PDUMP */
-  if (!initialized)
-    purify_flag = 1;
-#endif
 
   init_alloc_early ();
 
@@ -1407,9 +1393,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       /* Make sure that eistrings can be created. */
       init_eistring_once_early ();
     }
-#ifdef PDUMP
-  else if (!restart)	      /* after successful pdump_load()
-				 (note, we are inside ifdef PDUMP) */
+  else if (!restart)	      /* after successful pdump_load() */
     {
       reinit_alloc_early ();
       reinit_gc_early ();
@@ -1421,7 +1405,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       reinit_vars_of_number ();
 #endif
     }
-#endif /* PDUMP */
 
   if (!initialized)
     {
@@ -1697,9 +1680,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
     }
 
   if (!initialized
-#ifdef PDUMP
       || !restart
-#endif
       )
     {
       buffer_objects_create ();
@@ -1887,9 +1868,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       image_instantiator_format_create_glyphs_gtk ();
 #endif
     }
-#ifdef PDUMP
-  else if (!restart)	      /* after successful pdump_load()
-				 (note, we are inside ifdef PDUMP) */
+  else if (!restart)	      /* after successful pdump_load() */
     {
       reinit_console_type_create_stream ();
 #ifdef HAVE_TTY
@@ -1923,12 +1902,9 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       reinit_coding_system_type_create_mule_coding ();
 #endif
     }
-#endif /* PDUMP */
 
   if (!initialized
-#ifdef PDUMP
       || !restart
-#endif
       )
     {
       /* Now initialize the structure types and associated symbols.
@@ -2288,9 +2264,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
     }
 
   if (!initialized
-#ifdef PDUMP
       || !restart
-#endif
       )
     {
       /* Now do additional vars_of_*() initialization that happens both
@@ -2524,15 +2498,12 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 	 non-initialized case. */
       inhibit_non_essential_conversion_operations = 0;
 
-#ifdef PDUMP
-      if (!restart)	      /* after successful pdump_load()
-				 (note, we are inside ifdef PDUMP) */
+      if (!restart)	      /* after successful pdump_load() */
 	{
 	  reinit_complex_vars_of_buffer_runtime_only ();
 	  reinit_complex_vars_of_console_runtime_only ();
 	  reinit_complex_vars_of_minibuf ();
 	}
-#endif /* PDUMP */
     }
 
   if (initialized)
@@ -2979,7 +2950,8 @@ Currently defined values:
   If non-nil, `run-emacs-from-temacs' was called.
 
 `pdump'
-  If non-nil, we were compiled with pdump (portable dumping) support.
+  If non-nil, we were compiled with pdump (portable dumping) support. This is
+  always non-nil.
 
 `batch'
   If non-nil, we are running non-interactively. (same as `noninteractive')
@@ -2995,10 +2967,8 @@ Currently defined values:
     ADD_PLIST (Qdumping, Qt);
   if (run_temacs_argc == -2)
     ADD_PLIST (Qrestarted, Qt);
-#ifdef PDUMP
-    ADD_PLIST (Qpdump, Qt);
-#endif
-    if (noninteractive)
+  ADD_PLIST (Qpdump, Qt);
+  if (noninteractive)
     ADD_PLIST (Qbatch, Qt);
 
 #undef ADD_PLIST
@@ -3051,9 +3021,6 @@ arguments: (&rest ARGS)
 		       condition_case_unwind() may lead to GC death. */
   unbind_to (0); /* this closes loadup.el */
   purify_flag = 0;
-#if defined (HEAP_IN_DATA) && !defined (PDUMP)
-  report_sheap_usage (0);
-#endif
 
   /* run-temacs usually only occurs as a result of building, and in all such
      cases we want a backtrace, even if it occurs very early. */
@@ -3191,12 +3158,6 @@ main (int argc, Extbyte **argv, Extbyte **UNUSED (envp))
       }
 #endif /* _SCO_DS */
     }
-#if defined (RUN_TIME_REMAP) && ! defined (PDUMP)
-  else
-    /* obviously no-one uses this because where it was before initialized was
-     *always* true */
-    run_time_remap (argv[0]);
-#endif
 
 #ifdef HAVE_GLIBC
   if (initialized)
@@ -3229,7 +3190,7 @@ main (int argc, Extbyte **argv, Extbyte **UNUSED (envp))
 /*                 dumping XEmacs (to a new EXE file)                   */
 /************************************************************************/
 
-#if !defined (PDUMP) || defined (HAVE_MALLOC_WARNING)
+#if defined (HAVE_MALLOC_WARNING)
 extern Rawbyte my_edata[];
 #endif
 
@@ -3273,10 +3234,6 @@ and announce itself normally when it is run.
   opurify = purify_flag;
   purify_flag = 0;
 
-#if defined (HEAP_IN_DATA) && !defined (PDUMP)
-  report_sheap_usage (1);
-#endif
-
   clear_message ();
 
   fflush (stderr);
@@ -3293,33 +3250,7 @@ and announce itself normally when it is run.
 
   garbage_collect_1 ();
 
-#ifdef PDUMP
   pdump ();
-#elif defined (WIN32_NATIVE)
-  unexec (XSTRING_DATA (filename),
-	  STRINGP (symfile) ? XSTRING_DATA (symfile) : 0,
-	  (uintptr_t) my_edata, 0, 0);
-#else
-  {
-    Extbyte *filename_ext;
-    Extbyte *symfile_ext;
-
-    LISP_PATHNAME_CONVERT_OUT (filename, filename_ext);
-
-    if (STRINGP (symfile))
-      LISP_PATHNAME_CONVERT_OUT (symfile, symfile_ext);
-    else
-      symfile_ext = 0;
-
-  /* here we break our rule that the filename conversion should
-     be performed at the actual time that the system call is made.
-     It's a whole lot easier to do the conversion here than to
-     modify all the unexec routines to ensure that filename
-     conversion is applied everywhere.  Don't worry about memory
-     leakage because this call only happens once. */
-    unexec (filename_ext, symfile_ext, (uintptr_t) my_edata, 0, 0);
-  }
-#endif /* not PDUMP, not WIN32_NATIVE */
 
   purify_flag = opurify;
 
@@ -4670,21 +4601,6 @@ The configured initial path for info documentation.
   Vconfigure_info_path = Qnil;
 #endif
 }
-
-#if defined (__sgi) && !defined (PDUMP)
-/* This is so tremendously ugly I'd puke. But then, it works.
- * The target is to override the static constructor from the
- * libiflPNG.so library which is masquerading as libz, and
- * cores on us when re-started from the dumped executable.
- * This will have to go for 21.1  -- OG.
- */
-void __sti__iflPNGFile_c___ (void);
-void
-__sti__iflPNGFile_c___ (void)
-{
-}
-
-#endif
 
 DOESNT_RETURN
 really_abort (void)

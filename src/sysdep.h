@@ -24,9 +24,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include <setjmp.h>
 
-#ifdef PDUMP
 int pdump_read_file (char **pdump_start_pos, size_t *pdump_length);
-#endif
 
 int eight_bit_tty (struct device *d);
 

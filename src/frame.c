@@ -4091,9 +4091,6 @@ frame_objects_create (void)
 void
 init_frame (void)
 {
-#ifndef PDUMP
-  if (!initialized)
-#endif
     {
       DISPLAY_LINE_INIT (title_string_display_line);
     }

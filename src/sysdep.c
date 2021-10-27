@@ -1901,105 +1901,13 @@ reset_initial_console (void)
 /*                    limits of text/data segments                      */
 /************************************************************************/
 
-/* Need start_of_data() as much as possible now, for total_data_usage();
-   but with PDUMP and WIN32_NATIVE, can't currently do it. */
-#if ! (defined (PDUMP) && defined (WIN32_NATIVE))
-#define NEED_STARTS
-#endif
-
-#ifdef NEED_STARTS
-/* Some systems that cannot dump also cannot implement these.  */
-
-/*
- *	Return the address of the start of the text segment prior to
- *	doing an unexec.  After unexec the return value is undefined.
- *	See crt0.c for further explanation and _start.
- *
- */
-
-#if !defined (HAVE_TEXT_START) && !defined (PDUMP)
-
-EXTERN_C int _start (void);
-
-char *
-start_of_text (void)
-{
-#ifdef TEXT_START
-  return (char *) TEXT_START;
-#else
-  return (char *) _start;
-#endif /* TEXT_START */
-}
-#endif /* !defined(HAVE_TEXT_START) && !defined(PDUMP) */
-
-/*
- *	Return the address of the start of the data segment prior to
- *	doing an unexec.  After unexec the return value is undefined.
- *	See ecrt0.c for further information and definition of data_start.
- *
- *	Apparently, on BSD systems this is etext at startup.  On
- *	USG systems (swapping) this is highly mmu dependent and
- *	is also dependent on whether or not the program is running
- *	with shared text.  Generally there is a (possibly large)
- *	gap between end of text and start of data with shared text.
- *
- *	On Uniplus+ systems with shared text, data starts at a
- *	fixed address.  Each port (from a given oem) is generally
- *	different, and the specific value of the start of data can
- *	be obtained via the UniPlus+ specific "uvar" system call,
- *	however the method outlined in crt0.c seems to be more portable.
- *
- *	Probably what will have to happen when a USG unexec is available,
- *	at least on UniPlus, is temacs will have to be made unshared so
- *	that text and data are contiguous.  Then once loadup is complete,
- *	unexec will produce a shared executable where the data can be
- *	at the normal shared text boundary and the startofdata variable
- *	will be patched by unexec to the correct value.
- *
- */
-
-#if defined (ORDINARY_LINK) && !defined (MINGW)
-extern char **environ;
-#endif
-
-void *
-start_of_data (void)
-{
-#ifdef DATA_START
-  return ((char *) DATA_START);
-#else
-#if defined (ORDINARY_LINK) || defined(PDUMP)
-  /*
-   * This is a hack.  Since we're not linking crt0.c or pre_crt0.c,
-   * data_start isn't defined.  We take the address of environ, which
-   * is known to live at or near the start of the system crt0.c, and
-   * we don't sweat the handful of bytes that might lose.
-   */
-#if defined (HEAP_IN_DATA) && !defined(PDUMP)
-  extern char* static_heap_base;
-  if (!initialized)
-    return static_heap_base;
-#endif
-  return ((char *) &environ);
-#else
-  extern int data_start;
-  return ((char *) &data_start);
-#endif /* ORDINARY_LINK */
-#endif /* DATA_START */
-}
-#endif /* NEED_STARTS aka !(PDUMP && WIN32_NATIVE) */
-
 extern void *minimum_address_seen; /* from xmalloc() */
 extern void *maximum_address_seen; /* from xmalloc() */
 
 Bytecount
 total_data_usage (void)
 {
-#ifdef NEED_STARTS
-  void *data_start = start_of_data ();
-#else
   void *data_start = minimum_address_seen;
-#endif
 
 #ifndef WIN32_ANY
   /* clang emits a deprecation warning but this usage documented OK.

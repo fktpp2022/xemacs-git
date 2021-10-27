@@ -776,8 +776,5 @@ init_number (void)
       bigfloat_init (scratch_bigfloat2);
 #endif
 
-#ifndef PDUMP
-      reinit_vars_of_number ();
-#endif
     }
 }

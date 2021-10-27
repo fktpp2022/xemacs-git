@@ -1460,9 +1460,6 @@ find_symbol_value (Lisp_Object sym)
       /* This can also get called while we're preparing to shutdown.
          #### What should really happen in that case?  Should we
          actually fix things so we can't get here in that case? */
-#ifndef PDUMP
-      assert (!initialized || preparing_for_armageddon);
-#endif
       con = 0;
     }
 
@@ -1498,9 +1495,6 @@ find_symbol_value_quickly (Lisp_Object symbol_cons, int find_it_p)
       /* This can also get called while we're preparing to shutdown.
          #### What should really happen in that case?  Should we
          actually fix things so we can't get here in that case? */
-#ifndef PDUMP
-      assert (!initialized || preparing_for_armageddon);
-#endif
       con = 0;
     }
 

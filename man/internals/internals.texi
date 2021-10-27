@@ -22763,30 +22763,28 @@ to ten times the usual startup time of current xemacs) and requires
 having all the lisp source files around.  Having to reload them each
 time the editor is started would not be acceptable.
 
-The traditional solution to this problem is called dumping: the build
-process first creates the lisp engine under the name @file{temacs}, then
-runs it until it has finished loading and initializing all the lisp
-code, and eventually creates a new executable called @file{xemacs}
-including both the object code in @file{temacs} and all the contents of
-the memory after the initialization.
+The solution to this problem is called dumping: the build process first
+creates the lisp engine under the name @file{temacs}, then runs it until it
+has finished loading and initializing all the lisp code, and eventually
+creates a new executable called @file{xemacs} including both the object code
+in @file{temacs}, and, traditionally all the contents of the memory after the
+initialization. This last feature was termed ``unexec''.
 
-This solution, while working, has a huge problem: the creation of the
-new executable from the actual contents of memory is an extremely
-system-specific process, quite error-prone, and which interferes with a
-lot of system libraries (like malloc).  It is even getting worse
-nowadays with libraries using constructors which are automatically
-called when the program is started (even before @code{main()}) which tend to
-crash when they are called multiple times, once before dumping and once
-after (IRIX 6.x @file{libz.so} pulls in some C++ image libraries thru
-dependencies which have this problem).  Writing the dumper is also one
-of the most difficult parts of porting XEmacs to a new operating system.
-Basically, `dumping' is an operation that is just not officially
-supported on many operating systems.
+Unexec, while it worked, had a huge problem: the creation of the new
+executable from the actual contents of memory was an extremely system-specific
+process, quite error-prone, and interfered with a lot of system libraries
+(like malloc).  This got worse over time with libraries using constructors
+which are automatically called when the program is started (even before
+@code{main()}); those constructors tend to crash when they were called
+multiple times, once before dumping and once after (IRIX 6.x @file{libz.so}
+pulls in some C++ image libraries thru dependencies which have this problem).
 
-The aim of the portable dumper is to solve the same problem as the
-system-specific dumper, that is to be able to reload quickly, using only
-a small number of files, the fully initialized lisp part of the editor,
-without any system-specific hacks.
+Writing the dumper was also one of the most difficult parts of porting
+XEmacs to a new operating system.
+
+Oliver Galibert replaced this approach by adding explicit descrptions of
+objects in memory and implementing a ``portable dumper'', which removes the
+need for unexec. See the rest of this section.
 
 @node Overview, Data descriptions, Dumping Justification, Dumping
 @section Overview

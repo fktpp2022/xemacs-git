@@ -600,7 +600,6 @@ dnl --error-checking          --with-error-checking
 dnl --memory-usage-stats      --with-memory-usage-stats
 dnl --quick-build             --with-quick-build
 dnl --use-union-type          --with-union-type
-dnl --pdump                   --with-pdump
 dnl --use-kkcc                --with-kkcc
 dnl
 dnl parse flags
@@ -967,14 +966,10 @@ XE_MERGED_ARG([tls],
 dnl
 XE_HELP_SUBSECTION([Memory allocation options])
 XE_MERGED_ARG([rel-alloc],
-	AS_HELP_STRING([--with-rel-alloc],[Enable the relocating allocator.]),
+	AS_HELP_STRING([--with-rel-alloc],[Enable the relocating allocator for Lisp buffers.]),
 	[], [with_rel_alloc='default'])
-XE_MERGED_ARG([pdump],
-	AS_HELP_STRING([--with-pdump],[Enable portable LISP preloader.]),
-	[], [])
 XE_MERGED_ARG([dump-in-exec],
-	AS_HELP_STRING([--with-dump-in-exec],[Enable dumping into executable (enabled by default
-			for `pdump'.]),
+	AS_HELP_STRING([--with-dump-in-exec],[Enable dumping into executable (enabled by default).]),
 	[], [])
 XE_MERGED_ARG([kkcc],
 	AS_HELP_STRING([--with-kkcc],[Enable experimental new GC mark algorithms.]),
@@ -1454,15 +1449,6 @@ dnl --------------------------------------------------------------
 dnl $opsys detection complete; defaults depending on $opsys follow
 dnl --------------------------------------------------------------
 
-if test -z "$with_pdump"; then
-  case "$opsys" in
-    linux* )  with_pdump=yes ;;          dnl glibc 2.3.1 seems to hose unexec
-    darwin )  with_pdump=yes ;;          dnl No "native" working dumper available
-    cygwin* ) with_pdump=yes ;;          dnl No "native" dumper available
-    * )       with_pdump=no ;;
-  esac
-fi
-
 if test -z "$with_dynamic"; then
   case "$opsys" in
     hpux* ) with_dynamic=no ;;
@@ -1736,8 +1722,6 @@ CPP_to_sh(C_SWITCH_SYSTEM,    c_switch_system)
 CPP_to_sh(LD_SWITCH_MACHINE,  ld_switch_machine)
 CPP_to_sh(LD_SWITCH_SYSTEM,   ld_switch_system)
 
-CPP_to_sh(UNEXEC, unexec)
-
 CPP_to_sh(SYSTEM_TYPE, system_type)
 
 CPP_to_sh(LD_SWITCH_SHARED, ld_switch_shared, -c)
@@ -1795,35 +1779,25 @@ dnl appropriately emacsulated.
 test -z "$system_type" && \
   AC_DEFINE_UNQUOTED(SYSTEM_TYPE,"`uname -s | tr ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz`")
 
-dnl If the s&m files don't define a system-specific dumper, simply use pdump.
-dnl Sometime in the future, we'll remove all definitions of UNEXEC
-dnl from all the s&m files.
-test -z "$unexec" && with_pdump=yes
-
-if test "$with_pdump" = "yes"; then
-  ordinary_link="yes"
-  ld="${ordinary_ld}"
-  start_files=
-  libs_standard=
-  unexec=
-  lib_gcc=
-fi
+ordinary_link="yes"
+ld="${ordinary_ld}"
+start_files=
+libs_standard=
+lib_gcc=
 
 dnl Enable KKCC by default
 test -z "$with_kkcc" && with_kkcc=yes
 
 dnl Dump into executable
 if test -z "$with_dump_in_exec"; then
-  if test "$with_pdump" = "yes"; then
-    with_dump_in_exec=yes
-  fi
+  with_dump_in_exec=yes
 fi
 
 dnl For debugging...
 test "$verbose" = "yes" && \
   PRINT_VAR(libs_machine libs_system libs_termcap libs_standard
   objects_machine objects_system c_switch_machine c_switch_system
-  ld_switch_machine ld_switch_system unexec ld_switch_shared
+  ld_switch_machine ld_switch_system ld_switch_shared
   ld lib_gcc ld_text_start_addr start_files ordinary_link
   have_terminfo mail_use_flock mail_use_lockf) && echo ""
 
@@ -2151,20 +2125,6 @@ esac
 AC_MSG_RESULT(no)
 fi
 
-dnl GNU ld now defaults to combreloc, which screws up unexec, but not pdump.
-dnl Note that it's OK if the GNU style long option causes non-GNU ld to barf
-dnl a usage message, that's often good enough.  Please report it, though.
-dnl #### Should make this Solaris-friendly.
-dnl Link with -z nocombreloc for now.
-if test "$with_pdump" != "yes"; then
-  AC_MSG_CHECKING([for "-z nocombreloc" linker flag])
-  case "`ld --help 2>&1`" in
-    *-z\ nocombreloc* ) AC_MSG_RESULT(yes)
-      XE_PREPEND(-z nocombreloc, ld_switch_site) ;;
-    *) AC_MSG_RESULT(no) ;;
-  esac
-fi
-
 dnl Inform compiler that certain flags are meant for the linker
 XE_PROTECT_LINKER_FLAGS(ld_switch_system)
 XE_PROTECT_LINKER_FLAGS(ld_switch_machine)
@@ -2172,11 +2132,10 @@ XE_PROTECT_LINKER_FLAGS(ld_switch_site)
 XE_PROTECT_LINKER_FLAGS(LDFLAGS)
 XE_PROTECT_LINKER_FLAGS(ld_call_shared)
 
-dnl Add s&m-determined objects (including unexec) to link line
+dnl Add s&m-determined objects to link line
 test -n "$objects_machine" && XE_ADD_OBJS($objects_machine)
 test -n "$objects_system"  && XE_ADD_OBJS($objects_system)
-test -n "$unexec"          && test ! "$with_pdump" = "yes" && XE_ADD_OBJS($unexec)
-test "$with_pdump" = "yes" && XE_ADD_OBJS(dumper.o)
+XE_ADD_OBJS(dumper.o)
 
 dnl Feed s&m crud to src/Makefile
 
@@ -2186,22 +2145,6 @@ dnl the two most popular PowerPC distributions.]
 dnl test "$machine$opsys" = "powerpclinux" && start_flags="-T $srcdir/src/ppc.ldscript"
 
 AC_LANG(C)
-if test "$unexec" = "unexaix.o"; then
-dnl AIX needs various hacks to make static linking work.
-  if   test "$with_dynamic" = "no"; then
-  start_flags="-Wl,-bnso,-bnodelcsect"
-  test "$GCC" = "yes" && start_flags="-B/bin/ ${start_flags}"
-  for f in "/lib/syscalls.exp" "/lib/threads.exp"; do
-    if test -r "$f"; then start_flags="${start_flags},-bI:${f}"; fi
-  done
-  for f in "/usr/lpp/X11/bin/smt.exp" "/usr/bin/X11/smt.exp"; do
-    if test -r "$f"; then start_flags="${start_flags},-bI:${f}"; break; fi
-  done
-  AC_CHECK_LIB([c], [terminateAndUnload], [XE_APPEND(-lC, libs_system)])
-  fi
-elif test -n "$ld_text_start_addr"; then
-  start_flags="-T $ld_text_start_addr -e __start"
-fi
 AC_SUBST(start_flags)
 
 AC_SUBST(ld_switch_shared)
@@ -3217,21 +3160,6 @@ this to xemacs-beta@xemacs.org.  As a workaround, revert to XEmacs 21.5.29.])
   dnl Autodetect -lXbsd
   dnl #### Someone, please add a better function than main
   AC_CHECK_LIB(Xbsd, main, XE_PREPEND(-lXbsd, libs_x))
-
-  dnl Problem with the MIT distribution of X on AIX
-  if test "$unexec" = "unexaix.o" -a "$x11_release" = "6"; then
-    dnl X11R6 requires thread-safe code on AIX for some reason
-    if test "$GCC" = "yes"; then
-      XE_PREPEND(-mthreads, X_CFLAGS)
-      XE_PREPEND(-mthreads, libs_x)
-    else
-      case "$CC" in
-        "xlc" ) CC="xlc_r" ;;
-        "xlC" ) CC="xlC_r" ;;
-        "cc"  ) CC="cc_r" ;;
-      esac
-    fi
-  fi
 
   dnl include xft/AA support?
   dnl #### need to check for includes here (especially, freetype.h for v.2)
@@ -5816,7 +5744,6 @@ test "$with_pop"             = "yes" && AC_DEFINE(MAIL_USE_POP)
 test "$with_kerberos"        = "yes" && AC_DEFINE(KERBEROS)
 test "$with_hesiod"          = "yes" && AC_DEFINE(HESIOD)
 test "$with_union_type"      = "yes" && AC_DEFINE(USE_UNION_TYPE)
-test "$with_pdump"           = "yes" && AC_DEFINE(PDUMP)
 test "$with_dump_in_exec"    = "yes" && AC_DEFINE(DUMP_IN_EXEC)
 test "$with_ipv6_cname"      = "yes" && AC_DEFINE(IPV6_CANONICALIZE)
 
@@ -5898,10 +5825,6 @@ if test "$CC" != "$XEMACS_CC"; then
 fi
 echo "  libc version:                      $libc_version"
 echo "  Relocating allocator for buffers:  $with_rel_alloc"
-case "$ld_switch_site" in
-  *nocombreloc*) echo "  Linking with \`-z nocombreloc'.
-    - Consider configuring with --with-pdump." ;;
-esac
 echo "
 Package Search (a 'root' contains '{xemacs,mule,site}-packages'):"
 
@@ -6014,14 +5937,8 @@ case "$with_scrollbars" in
      msw ) echo "  Using MS-Windows scrollbars." ;;
 esac
 case "$with_dialogs" in
-  gtk    ) echo "  Using GTK dialog boxes." ;;
-  motif  ) echo "  Using Motif dialog boxes."
-           if test "$unexec" = "unexaix.o"; then if test "`uname -v`" = 4 -a "`uname -r`" -ge 3; then
-             echo "  *WARNING*  The Motif dialog boxes cause problems on AIX 4.3 and higher."
-             echo "             We recommend using the Athena dialog boxes instead."
-             echo "             Install libXaw and re-run configure with --with-dialogs='athena'."
-             echo "             Read the PROBLEMS file for more information."
-           fi; fi ;;
+  gtk    ) echo "  Using GTK dialog boxes."        ;;
+  motif  ) echo "  Using Motif dialog boxes."      ;;
   athena ) echo "  Using Athena dialog boxes."     ;;
      msw ) echo "  Using MS-Windows dialog boxes." ;;
 esac
@@ -6162,7 +6079,6 @@ if test "$with_kkcc" = yes ; then
   echo "  WARNING: turn it off."
   echo "  WARNING: ---------------------------------------------------------"
 fi
-test "$with_pdump" = yes && echo "  Using the new portable dumper."
 test "$with_dump_in_exec" = yes && echo "  Dumping into executable."
 test "$with_debug" = yes && echo "  Compiling in support for extra debugging code."
 test "$usage_tracking" = yes && echo "  Compiling in support for active usage tracking (Sun internal)."

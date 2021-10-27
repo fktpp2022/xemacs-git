@@ -215,7 +215,6 @@ search.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h casetab.h charset.h chartab.
 select.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h conslots.h console-impl.h console.h device-impl.h device.h devslots.h extents.h fontcolor.h frame.h lstream.h opaque.h redisplay.h select.h specifier.h tls.h unicode.h
 sequence.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h extents.h lstream.h tls.h unicode.h
 sgiplay.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h intl-auto-encap-win32.h libst.h sound.h sysfile.h sysproc.h systime.h syswindows.h unicode.h
-sheap.o: $(CONFIG_H) $(LISP_H) intl-auto-encap-win32.h sheap-adjust.h sysfile.h syswindows.h
 signal.o: $(CONFIG_H) $(LISP_H) conslots.h console-impl.h console.h device-impl.h device.h devslots.h events.h frame-impl.h frame.h frameslots.h intl-auto-encap-win32.h keymap-buttons.h process.h redisplay.h specifier.h sysdep.h sysfile.h systime.h syswindows.h
 sound.o: $(CONFIG_H) $(LISP_H) $(LWLIB_SRCDIR)/lwlib.h buffer.h bufslots.h charset.h conslots.h console-impl.h console-x-impl.h console-x.h console.h device-impl.h device.h devslots.h gccache-x.h intl-auto-encap-win32.h redisplay.h sound.h specifier.h sysdep.h sysfile.h sysproc.h systime.h syswindows.h unicode.h xintrinsic.h
 specifier.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h chartab.h conslots.h console-impl.h console.h device-impl.h device.h devslots.h elhash.h frame.h glyphs.h opaque.h rangetab.h redisplay.h scrollbar.h specifier.h unicode.h window-impl.h window.h winslots.h
@@ -236,14 +235,6 @@ toolbar.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h conslots.h consol
 tooltalk.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h elhash.h process.h tooltalk.h unicode.h
 tparam.o: $(CONFIG_H) $(LISP_H)
 undo.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h extents.h lstream.h tls.h unicode.h
-unexaix.o: $(CONFIG_H) $(LISP_H) getpagesize.h
-unexalpha.o: $(CONFIG_H) compiler.h
-unexcw.o: $(CONFIG_H) $(LISP_H) intl-auto-encap-win32.h sysfile.h syswindows.h
-unexec.o: $(CONFIG_H) $(LISP_H) getpagesize.h
-unexelf.o: $(CONFIG_H) $(LISP_H)
-unexhp9k800.o: $(CONFIG_H) $(LISP_H)
-unexnt.o: $(CONFIG_H) $(LISP_H) intl-auto-encap-win32.h sysfile.h syswindows.h
-unexsol2-6.o: compiler.h
 unicode.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h coding-system-slots.h elhash.h extents.h file-coding.h intl-auto-encap-win32.h lstream.h opaque.h rangetab.h sysfile.h syswindows.h tls.h unicode.h
 vm-limit.o: $(CONFIG_H) $(LISP_H) mem-limits.h
 widget.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h unicode.h

@@ -1905,69 +1905,41 @@ void free_normal_lisp_object (Lisp_Object obj);
    description, though, as compared to using dump_add_root_block_ptr(),
    and thus this function is generally more convenient.
     */
-#ifdef PDUMP
 void dump_add_root_block_ptr (void *, const struct sized_memory_description *);
-#else
-#define dump_add_root_block_ptr(varaddr, descaddr) DO_NOTHING
-#endif
 
 /* dump_add_opaque (&var, size) dumps the opaque static structure `var'.
    This is for a static block of memory (in the data segment, not the
    heap), with no relocatable pointers in it. */
-#ifdef PDUMP
 #define dump_add_opaque(varaddr,size) dump_add_root_block (varaddr, size, NULL)
-#else
-#define dump_add_opaque(varaddr,size) DO_NOTHING
-#endif
 
 /* dump_add_root_block (ptr, size, desc) dumps the static structure
    located at `var' of size SIZE and described by DESC.  This is for a
    static block of memory (in the data segment, not the heap), with
    relocatable pointers in it. */
-#ifdef PDUMP
 void dump_add_root_block (const void *ptraddress, Bytecount size,
 			  const struct memory_description *desc);
-#else
-#define dump_add_root_block(ptraddress, size, desc) DO_NOTHING
-#endif
 
 /* Call dump_add_opaque_int (&int_var) to dump `int_var', of type `int'. */
-#ifdef PDUMP
 #define dump_add_opaque_int(int_varaddr) do {	\
   int *dao_ = (int_varaddr); /* type check */	\
   dump_add_opaque (dao_, sizeof (*dao_));	\
 } while (0)
-#else
-#define dump_add_opaque_int(int_varaddr) DO_NOTHING
-#endif
 
 /* Call dump_add_opaque_fixnum (&fixnum_var) to dump `fixnum_var', of type
    `Fixnum'. */
-#ifdef PDUMP
 #define dump_add_opaque_fixnum(fixnum_varaddr) do {	\
   Fixnum *dao_ = (fixnum_varaddr); /* type check */	\
   dump_add_opaque (dao_, sizeof (*dao_));		\
 } while (0)
-#else
-#define dump_add_opaque_fixnum(fixnum_varaddr) DO_NOTHING
-#endif
 
 /* Call dump_add_root_lisp_object (&var) to ensure that var is properly
    updated after pdump. */
-#ifdef PDUMP
 void dump_add_root_lisp_object (Lisp_Object *);
-#else
-#define dump_add_root_lisp_object(varaddr) DO_NOTHING
-#endif
 
 /* Call dump_add_weak_lisp_object (&var) to ensure that var is properly
    updated after pdump.  var must point to a linked list of objects out of
    which some may not be dumped */
-#ifdef PDUMP
 void dump_add_weak_object_chain (Lisp_Object *);
-#else
-#define dump_add_weak_object_chain(varaddr) DO_NOTHING
-#endif
 
 #define DUMP_ADD_WEAK_OBJECT_CHAIN(var) do {                            \
     /* Don't add to the chain before marking it for dumping! */         \
@@ -1980,13 +1952,9 @@ void dump_add_weak_object_chain (Lisp_Object *);
    Used during startup to detect startup of dumped Emacs.  */
 extern MODULE_API int initialized;
 
-#ifdef PDUMP
 #include "dumper.h"
 #define DUMPEDP(adr) ((((Rawbyte *) (adr)) < pdump_end) && \
                       (((Rawbyte *) (adr)) >= pdump_start))
-#else
-#define DUMPEDP(adr) 0
-#endif
 
 #define OBJECT_DUMPED_P(obj) DUMPEDP (XPNTR (obj))
 

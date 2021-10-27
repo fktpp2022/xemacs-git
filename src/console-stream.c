@@ -362,28 +362,6 @@ The initial frame object, which represents XEmacs' stdout.
   staticpro (&Vstdio_str);
 }
 
-#ifndef PDUMP
-void
-init_console_stream (int UNUSED (reinit))
-{
-  /* This function can GC */
-  if (!initialized)
-    {
-      Vterminal_device = Fmake_device (Qstream, Qnil, Qnil);
-      Vterminal_console = Fdevice_console (Vterminal_device);
-      Vterminal_frame = Fmake_frame (Qnil, Vterminal_device);
-      minibuf_window = XFRAME (Vterminal_frame)->minibuffer_window;
-    }
-  else
-    {
-      /* Re-initialize the FILE fields of the console. */
-      stream_init_console (XCONSOLE (Vterminal_console), Qnil);
-      if (noninteractive)
-        event_stream_select_console (XCONSOLE (Vterminal_console));
-    }
-}
-
-#else
 
 void
 init_console_stream (int reinit)
@@ -403,4 +381,3 @@ init_console_stream (int reinit)
 	event_stream_select_console (XCONSOLE (Vterminal_console));
     }
 }
-#endif

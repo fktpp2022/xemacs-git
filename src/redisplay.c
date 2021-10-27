@@ -9984,9 +9984,6 @@ init_redisplay (void)
   disable_preemption = 0;
   preemption_count = 0;
 
-#ifndef PDUMP
-  if (!initialized)
-#endif
     {
       if (!cmotion_display_lines)
 	cmotion_display_lines = Dynarr_new (display_line);

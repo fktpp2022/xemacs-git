@@ -119,9 +119,7 @@ struct gcpro *gcprolist;
 int purify_flag;
 
 /* Non-zero means we're pdumping out or in */
-#ifdef PDUMP
 int in_pdump;
-#endif
 
 #ifdef ERROR_CHECK_TYPES
 
@@ -5217,9 +5215,7 @@ gc_sweep_1 (void)
   sweep_misc_user_data ();
 #endif /* EVENT_DATA_AS_OBJECTS */
 
-#ifdef PDUMP
   pdump_objects_unmark ();
-#endif
 }
 
 
