@@ -57,7 +57,6 @@ typedef void *POINTER;
 typedef unsigned long SIZE;
 #endif
 
-extern POINTER start_of_data (void);
 #define EXCEEDS_LISP_PTR(ptr) 0
 
 #ifdef BSD

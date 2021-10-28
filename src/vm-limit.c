@@ -134,6 +134,8 @@ check_memory_limits (void)
     }
 }
 
+extern char **environ;
+
 /* Return the address of the start of the data segment. */
 static void *
 start_of_data (void)

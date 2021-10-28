@@ -1,3 +1,11 @@
+2021-10-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* mem-limits.h:
+	* mem-limits.h (EXCEEDS_LISP_PTR):
+	* vm-limit.c:
+	And some more tweaks for Linux, thank you Mats and the buildbot
+	for making me aware this is needed.
+
 2021-10-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* sysdep.h:
