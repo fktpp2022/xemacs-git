@@ -295,10 +295,12 @@ static void puts2 (char *s);
 static int dai_end (int no, int server);
 static int yes_or_no (UExtbyte *s);
 
+BEGIN_C_DECLS
  /* Why doesn't wnn have a prototype for these? */
 typedef unsigned int letter;
 int cwnn_yincod_pzy(w_char *, w_char, int);
 int cwnn_pzy_yincod(letter *, letter *, int);
+END_C_DECLS
 
 static struct wnn_buf *wnnfns_buf[NSERVER];
 static struct wnn_env *wnnfns_env_norm[NSERVER];

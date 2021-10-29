@@ -5,6 +5,9 @@
 	Lidell and the buildbot.
 	Wrap the wnn header include files with
 	BEGIN_C_DECLS/END_C_DECLS.
+	Wrap a couple of declarations that the headers should provide but
+	don't in BEGIN_C_DECLS/END_C_DECLS too.	
+
 	* mule-wnnfns.c (Fwnn_open):
 	* mule-wnnfns.c (Fwnn_dict_add):
 	* mule-wnnfns.c (Fwnn_notrans_dict_add):
