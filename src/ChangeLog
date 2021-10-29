@@ -1,3 +1,21 @@
+2021-10-29  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* mule-wnnfns.c:
+	Some fixes for this file when building as C++, thank you Mats
+	Lidell and the buildbot.
+	Wrap the wnn header include files with
+	BEGIN_C_DECLS/END_C_DECLS.
+	* mule-wnnfns.c (Fwnn_open):
+	* mule-wnnfns.c (Fwnn_dict_add):
+	* mule-wnnfns.c (Fwnn_notrans_dict_add):
+	* mule-wnnfns.c (Fwnn_bmodify_dict_add):
+	Add casts to placate the C++ compiler in these functions
+	(underlying problem is that the headers aren't very C++-compatible).
+	* mule-wnnfns.c (vars_of_mule_wnn):
+	Remove Qchinese_sisheng, defined in mule-charset.c
+	* mule-wnnfns.c (yes_or_no):
+	Adjust some indentation to be less misleading.
+
 2021-10-28  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* mem-limits.h:

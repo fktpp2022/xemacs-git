@@ -270,9 +270,11 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "window.h"
 #include "sysdep.h"
 
+BEGIN_C_DECLS
 #include "wnn/commonhd.h"
 #include "wnn/jllib.h"
 #include "wnn/cplib.h"
+END_C_DECLS
 
 /* UCHAR が二重定義されるので */
 #define _UCHAR_T
@@ -319,7 +321,6 @@ Lisp_Object	Vwnn_server_type;
 Lisp_Object	Vcwnn_zhuyin;
 Lisp_Object	Vwnnenv_sticky;
 Lisp_Object	Vwnn_uniq_level;
-Lisp_Object     Qchinese_sisheng;
 
 /* Lisp functions definition */
 
@@ -331,8 +332,8 @@ Return nil if error occurs.
      (hname, lname))
 {
   Extbyte *envname;
-  Ascbyte *langname;
-  Extbyte *hostname;
+  const Ascbyte *langname;
+  const Extbyte *hostname;
   int	snum;
 
   snum = check_wnn_server_type ();
@@ -372,7 +373,9 @@ Return nil if error occurs.
    * libwnn uses SIGALRM, so we need to stop and start interrupts.
    */
   stop_interrupts ();
-  if (!(wnnfns_buf[snum] = jl_open_lang (envname, hostname, langname,
+  if (!(wnnfns_buf[snum] = jl_open_lang ((Chbyte *) envname,
+					 (Chbyte *) hostname,
+					 (Chbyte *) langname,
 					 0, 0, 0, EGG_TIMEOUT)))
     {
       start_interrupts ();
@@ -387,7 +390,9 @@ Return nil if error occurs.
 /*  if (Vwnnenv_sticky == Qt) jl_env_sticky_e (wnnfns_env_norm[snum]);
     else jl_env_un_sticky_e (wnnfns_env_norm[snum]);*/
   strcat (envname, "R");
-  if (!(wnnfns_env_rev[snum] = jl_connect_lang (envname, hostname, langname,
+  if (!(wnnfns_env_rev[snum] = jl_connect_lang ((Chbyte *) envname,
+						(Chbyte *) hostname,
+						(Chbyte *) langname,
 						0, 0, 0, EGG_TIMEOUT)))
     {
       start_interrupts ();
@@ -457,8 +462,8 @@ Specify password files of dictionary and frequency, PW1 and PW2, if needed.
 		  LISP_STRING_TO_EXTERNAL (args[5], Qfile_name),
 		  NILP (args[6]) ? 0 :
 		  LISP_STRING_TO_EXTERNAL (args[6], Qfile_name),
-		  yes_or_no,
-		  puts2 ) < 0)
+		  (int (*) ()) (yes_or_no),
+		  (int (*) ())(puts2)) < 0)
     {
       UNGCPRO;
       return Qnil;
@@ -1379,8 +1384,8 @@ Specify password files of dictionary and frequency PW1 if needed.
 				LISP_STRING_TO_EXTERNAL (args[3],
 							     Qfile_name),
 				0,
-				yes_or_no,
-				puts2)) < 0)
+				(int (*) ()) (yes_or_no),
+				(int (*) ())(puts2))) < 0)
 	{
 	  UNGCPRO;
 	  return Qnil;
@@ -1448,8 +1453,8 @@ Specify password files of dictionary and frequency PW1 if needed.
 				LISP_STRING_TO_EXTERNAL (args[3],
 							 Qfile_name),
 				0,
-				yes_or_no,
-				puts2)) < 0)
+				(int (*) ())(yes_or_no),
+				(int (*) ())(puts2))) < 0)
 	{
           UNGCPRO;
           return Qnil;
@@ -1928,8 +1933,6 @@ vars_of_mule_wnn (void)
   Vcwnn_zhuyin = Qnil;
   Vwnnenv_sticky = Qnil;
 
-  DEFSYMBOL (Qchinese_sisheng);
-
   Vwnn_uniq_level = Qwnn_uniq;
 
   Fprovide (intern ("wnn"));
@@ -2117,7 +2120,12 @@ yes_or_no (UExtbyte *s)
   c2m (s, mbuf, charset);
   /* truncate "(Y/N)" */
   for (len = 0; (mbuf[len]) && (len < 512); len++);
-  for (; (mbuf[len] != '(') && (len > 0); len--);
+  for (; (mbuf[len] != '(') && (len > 0); len--)
+    {
+      DO_NOTHING; /* Quiet the compiler about the for loop not applying to
+		     the following clause as its indentation previously
+		     suggested.  */
+    }
   {
      Lisp_Object yes, str;
      struct gcpro gcpro1;
