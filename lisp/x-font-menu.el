@@ -292,7 +292,9 @@ or if you change your font path, you can call this to re-initialize the menus."
 	       (family (and pattern
 			    (fc-pattern-get-family pattern 0))))
 	  (if (fc-pattern-get-successp family)
-	    (setq entry (assoc family (aref dcache 0))))
+	    (setq entry
+		  (loop for a in (aref dcache 0)
+		    if (equal family (aref a 0)) return a)))
 	  (if (null entry)
 	      (make-vector 5 nil)
 	    (let ((weight (fc-pattern-get-weight pattern 0))
