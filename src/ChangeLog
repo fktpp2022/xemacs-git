@@ -1,3 +1,22 @@
+2021-11-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* window.c (update_mirror_internal):
+	* window.c (find_window_mirror):
+	* window.c (find_window_mirror_maybe):
+	* window.c (window_needs_vertical_divider):
+	* window.c (window_divider_width):
+	* window.c (window_modeline_height):
+	* window.c (WINDOW_INTEGER_SLOT):
+	* window.c (Fdelete_window):
+	* window.c (Fnext_window):
+	* window.c (Fprevious_window):
+	* window.c (Fsplit_window):
+	* window.c (Fmove_to_window_line):
+	Some code in this file assumed a window's frame was always
+	non-nil, something now (correctly) only true for live windows,
+	following my change of 7ee8e7200a8a . Thank you for the bug
+	report, Henry Thompson!
+
 2021-10-29  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* mule-wnnfns.c:
