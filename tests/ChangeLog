@@ -1,3 +1,9 @@
+2021-11-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el (string-variable):
+	Correct some test problems that are easy to fix, don't attempt to
+	use ,@ on a non-sequence.
+
 2021-10-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/format-tests.el:

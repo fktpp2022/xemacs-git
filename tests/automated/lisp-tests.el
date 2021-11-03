@@ -2414,13 +2414,13 @@ via the hepatic alpha-tocopherol transfer protein")))
     (equalp-diff-list-tests
      `(0 1 2 3 1000 ,@(when (or (> (integer-length most-positive-fixnum) 33)
 				(featurep 'bignum))
-			    (read "5000000000"))
+			    (read "(5000000000)"))
        ,@(when (featurep 'bignum)
 	   (read "(5555555555555555555555555555555555555
                        -5555555555555555555555555555555555555)"))
        -1 -2 -3 -1000 ,@(when (or (> (integer-length most-positive-fixnum) 33)
 				(featurep 'bignum))
-			    (read "-5000000000"))
+			    (read "(-5000000000)"))
        ,@(if (featurep 'ratio) 
              (list
               (read "(1/2 1/3 2/3 8/2 355/113)")
