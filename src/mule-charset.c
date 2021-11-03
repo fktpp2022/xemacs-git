@@ -212,21 +212,6 @@ Lisp_Object Vcharset_hash_table, Vcharset_id_table;
 /*                            charset object                            */
 /************************************************************************/
 
-static Lisp_Object
-mark_charset (Lisp_Object obj)
-{
-  Lisp_Charset *cs = XCHARSET (obj);
-
-  mark_object (cs->short_name);
-  mark_object (cs->long_name);
-  mark_object (cs->unicode_map);
-  mark_object (cs->tags);
-  mark_object (cs->doc_string);
-  mark_object (cs->registries);
-  mark_object (cs->ccl_program);
-  return cs->name;
-}
-
 static void
 print_charset (Lisp_Object obj, Lisp_Object printcharfun,
 	       int UNUSED (escapeflag))
@@ -299,8 +284,7 @@ static const struct memory_description charset_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_LISP_OBJECT ("charset", charset,
-			     mark_charset, print_charset, 0,
+DEFINE_DUMPABLE_LISP_OBJECT ("charset", charset, print_charset, 0,
 			     0, 0, charset_description, Lisp_Charset);
 
 #ifndef UNICODE_INTERNAL

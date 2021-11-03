@@ -345,22 +345,6 @@ struct lrecord_implementation
      be dumped. */
   unsigned int dumpable :1;
 
-  /* `marker' is called at GC time, to make sure that all Lisp_Objects
-     pointed to by this object get properly marked.  It should call
-     the mark_object function on all Lisp_Objects in the object.  If
-     the return value is non-nil, it should be a Lisp_Object to be
-     marked (don't call the mark_object function explicitly on it,
-     because the GC routines will do this).  Doing it this way reduces
-     recursion, so the object returned should preferably be the one
-     with the deepest level of Lisp_Object pointers.  This function
-     can be NULL, meaning no GC marking is necessary.
-
-     NOTE NOTE NOTE: This is not used by KKCC (which uses the data
-     description below instead), unless the data description is missing.
-     Yes, this currently means there is logic duplication.  Eventually the
-     mark methods will be removed. */
-  Lisp_Object (*marker) (Lisp_Object);
-
   /* `printer' converts the object to a printed representation.  `printer'
      should never be NULL (if so, you will get an assertion failure when
      trying to print such an object).  Either supply a specific printing
@@ -1195,91 +1179,91 @@ struct opaque_convert_functions
 
 /********* The dumpable versions *********** */
 
-#define DEFINE_DUMPABLE_LISP_OBJECT(name,c_name,marker,printer,nuker,equal,hash,desc,structtype) \
-MAKE_LISP_OBJECT(name,c_name,1 /*dumpable*/,marker,printer,nuker,equal,hash,desc,sizeof (structtype),0,0,structtype)
+#define DEFINE_DUMPABLE_LISP_OBJECT(name,c_name,printer,nuker,equal,hash,desc,structtype) \
+MAKE_LISP_OBJECT(name,c_name,1 /*dumpable*/,printer,nuker,equal,hash,desc,sizeof (structtype),0,0,structtype)
 
-#define DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT(name,c_name,marker,printer,nuker,equal,hash,desc,sizer,structtype) \
-MAKE_LISP_OBJECT(name,c_name,1 /*dumpable*/,marker,printer,nuker,equal,hash,desc,0,sizer,0,structtype)
+#define DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT(name,c_name,printer,nuker,equal,hash,desc,sizer,structtype) \
+MAKE_LISP_OBJECT(name,c_name,1 /*dumpable*/,printer,nuker,equal,hash,desc,0,sizer,0,structtype)
 
-#define DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT(name,c_name,marker,printer,nuker,equal,hash,desc,structtype) \
-MAKE_LISP_OBJECT(name,c_name,1 /*dumpable*/,marker,printer,nuker,equal,hash,desc,sizeof(structtype),0,1,structtype)
+#define DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT(name,c_name,printer,nuker,equal,hash,desc,structtype) \
+MAKE_LISP_OBJECT(name,c_name,1 /*dumpable*/,printer,nuker,equal,hash,desc,sizeof(structtype),0,1,structtype)
 
-#define DEFINE_DUMPABLE_FROB_BLOCK_SIZABLE_LISP_OBJECT(name,c_name,marker,printer,nuker,equal,hash,desc,sizer,structtype) \
-MAKE_LISP_OBJECT(name,c_name,1 /*dumpable*/,marker,printer,nuker,equal,hash,desc,0,sizer,1,structtype)
+#define DEFINE_DUMPABLE_FROB_BLOCK_SIZABLE_LISP_OBJECT(name,c_name,printer,nuker,equal,hash,desc,sizer,structtype) \
+MAKE_LISP_OBJECT(name,c_name,1 /*dumpable*/,printer,nuker,equal,hash,desc,0,sizer,1,structtype)
 
-#define DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT(name,c_name,marker,desc,structtype) \
-DEFINE_DUMPABLE_LISP_OBJECT(name,c_name,marker,internal_object_printer,0,0,0,desc,structtype)
+#define DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT(name,c_name,desc,structtype) \
+DEFINE_DUMPABLE_LISP_OBJECT(name,c_name,internal_object_printer,0,0,0,desc,structtype)
 
-#define DEFINE_DUMPABLE_SIZABLE_INTERNAL_LISP_OBJECT(name,c_name,marker,desc,sizer,structtype) \
-DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT(name,c_name,marker,internal_object_printer,0,0,0,desc,sizer,structtype)
+#define DEFINE_DUMPABLE_SIZABLE_INTERNAL_LISP_OBJECT(name,c_name,desc,sizer,structtype) \
+DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT(name,c_name,internal_object_printer,0,0,0,desc,sizer,structtype)
 
 /********* The non-dumpable versions *********** */
 
-#define DEFINE_NODUMP_LISP_OBJECT(name,c_name,marker,printer,nuker,equal,hash,desc,structtype) \
-MAKE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,marker,printer,nuker,equal,hash,desc,sizeof (structtype),0,0,structtype)
+#define DEFINE_NODUMP_LISP_OBJECT(name,c_name,printer,nuker,equal,hash,desc,structtype) \
+MAKE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,printer,nuker,equal,hash,desc,sizeof (structtype),0,0,structtype)
 
-#define DEFINE_NODUMP_SIZABLE_LISP_OBJECT(name,c_name,marker,printer,nuker,equal,hash,desc,sizer,structtype) \
-MAKE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,marker,printer,nuker,equal,hash,desc,0,sizer,0,structtype)
+#define DEFINE_NODUMP_SIZABLE_LISP_OBJECT(name,c_name,printer,nuker,equal,hash,desc,sizer,structtype) \
+MAKE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,printer,nuker,equal,hash,desc,0,sizer,0,structtype)
 
-#define DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT(name,c_name,marker,printer,nuker,equal,hash,desc,structtype) \
-MAKE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,marker,printer,nuker,equal,hash,desc,sizeof(structtype),0,1,structtype)
+#define DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT(name,c_name,printer,nuker,equal,hash,desc,structtype) \
+MAKE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,printer,nuker,equal,hash,desc,sizeof(structtype),0,1,structtype)
 
-#define DEFINE_NODUMP_FROB_BLOCK_SIZABLE_LISP_OBJECT(name,c_name,marker,printer,nuker,equal,hash,desc,sizer,structtype) \
-MAKE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,marker,printer,nuker,equal,hash,desc,0,sizer,1,structtype)
+#define DEFINE_NODUMP_FROB_BLOCK_SIZABLE_LISP_OBJECT(name,c_name,printer,nuker,equal,hash,desc,sizer,structtype) \
+MAKE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,printer,nuker,equal,hash,desc,0,sizer,1,structtype)
 
-#define DEFINE_NODUMP_INTERNAL_LISP_OBJECT(name,c_name,marker,desc,structtype) \
-DEFINE_NODUMP_LISP_OBJECT(name,c_name,marker,internal_object_printer,0,0,0,desc,structtype)
+#define DEFINE_NODUMP_INTERNAL_LISP_OBJECT(name,c_name,desc,structtype) \
+DEFINE_NODUMP_LISP_OBJECT(name,c_name,internal_object_printer,0,0,0,desc,structtype)
 
-#define DEFINE_NODUMP_SIZABLE_INTERNAL_LISP_OBJECT(name,c_name,marker,desc,sizer,structtype) \
-DEFINE_NODUMP_SIZABLE_LISP_OBJECT(name,c_name,marker,internal_object_printer,0,0,0,desc,sizer,structtype)
+#define DEFINE_NODUMP_SIZABLE_INTERNAL_LISP_OBJECT(name,c_name,desc,sizer,structtype) \
+DEFINE_NODUMP_SIZABLE_LISP_OBJECT(name,c_name,internal_object_printer,0,0,0,desc,sizer,structtype)
 
 /********* MAKE_LISP_OBJECT, the underlying macro *********** */
 
-#define MAKE_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,size,sizer,frob_block_p,structtype) \
+#define MAKE_LISP_OBJECT(name,c_name,dumpable,printer,nuker,equal,hash,desc,size,sizer,frob_block_p,structtype) \
 DECLARE_ERROR_CHECK_TYPES(c_name, structtype)				\
 struct lrecord_implementation lrecord_##c_name =			\
-  { name, dumpable, marker, printer, nuker, equal, hash, desc,		\
+  { name, dumpable, printer, nuker, equal, hash, desc,			\
     size, sizer, lrecord_type_##c_name, frob_block_p }
 
-#define MAKE_RECURSIVE_LISP_OBJECT(name,c_name,dumpable,marker,printer, \
+#define MAKE_RECURSIVE_LISP_OBJECT(name,c_name,dumpable,printer,	\
                                    nuker,equal,hash,desc,size,sizer,    \
                                    frob_block_p,structtype,             \
                                    print_preprocess,                    \
                                    nsubst_structures_descend)           \
 DECLARE_ERROR_CHECK_TYPES(c_name, structtype)				\
 struct lrecord_implementation lrecord_##c_name =			\
-  { name, dumpable, marker, printer, nuker, equal, hash, desc,		\
+  { name, dumpable, printer, nuker, equal, hash, desc,			\
     size, sizer, lrecord_type_##c_name, frob_block_p, print_preprocess, \
     nsubst_structures_descend }
 
 /********* The module dumpable versions *********** */
 
-#define DEFINE_DUMPABLE_MODULE_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,structtype) \
-MAKE_MODULE_LISP_OBJECT(name,c_name,1 /*dumpable*/,marker,printer,nuker,equal,hash,desc,sizeof (structtype),0,0,structtype)
+#define DEFINE_DUMPABLE_MODULE_LISP_OBJECT(name,c_name,dumpable,printer,nuker,equal,hash,desc,structtype) \
+MAKE_MODULE_LISP_OBJECT(name,c_name,1 /*dumpable*/,printer,nuker,equal,hash,desc,sizeof (structtype),0,0,structtype)
 
-#define DEFINE_DUMPABLE_MODULE_SIZABLE_LISP_OBJECT(name,c_name,dumpable,marker,printer,nuker,equal,hash,desc,sizer,structtype) \
-MAKE_MODULE_LISP_OBJECT(name,c_name,1 /*dumpable*/,marker,printer,nuker,equal,hash,desc,0,sizer,0,structtype)
+#define DEFINE_DUMPABLE_MODULE_SIZABLE_LISP_OBJECT(name,c_name,dumpable,printer,nuker,equal,hash,desc,sizer,structtype) \
+MAKE_MODULE_LISP_OBJECT(name,c_name,1 /*dumpable*/,printer,nuker,equal,hash,desc,0,sizer,0,structtype)
 
 /********* The module non-dumpable versions *********** */
 
-#define DEFINE_NODUMP_MODULE_LISP_OBJECT(name,c_name,dumpable,marker,	\
+#define DEFINE_NODUMP_MODULE_LISP_OBJECT(name,c_name,dumpable,		\
 printer,nuker,equal,hash,desc,structtype)				\
-MAKE_MODULE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,marker,printer,	\
+MAKE_MODULE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,printer,		\
 nuker,equal,hash,desc,sizeof (structtype),0,0,structtype)
 
 #define DEFINE_NODUMP_MODULE_SIZABLE_LISP_OBJECT(name,c_name,dumpable,	\
-marker,printer,nuker,equal,hash,desc,sizer,structtype)			\
-MAKE_MODULE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,marker,printer,	\
+printer,nuker,equal,hash,desc,sizer,structtype)				\
+MAKE_MODULE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,printer,		\
 nuker,equal,hash,desc,0,sizer,0,structtype)
 
 /********* MAKE_MODULE_LISP_OBJECT, the underlying macro *********** */
 
-#define MAKE_MODULE_LISP_OBJECT(name,c_name,dumpable,marker,printer,	\
+#define MAKE_MODULE_LISP_OBJECT(name,c_name,dumpable,printer,		\
 nuker,equal,hash,desc,size,sizer,frob_block_p,structtype)		\
 DECLARE_ERROR_CHECK_TYPES(c_name, structtype)				\
 int lrecord_type_##c_name;						\
 struct lrecord_implementation lrecord_##c_name =			\
-  { name, dumpable, marker, printer, nuker, equal, hash, desc,		\
+  { name, dumpable,  printer, nuker, equal, hash, desc,			\
     size, sizer, lrecord_type_last_built_in_type, frob_block_p }
 
 #ifdef MEMORY_USAGE_STATS

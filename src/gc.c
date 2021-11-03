@@ -211,7 +211,7 @@ lispdesc_indirect_count_1 (EMACS_INT code,
     default:
       stderr_out ("Unsupported count type : %d (line = %d, code = %ld)\n",
 		  idesc[line].type, line, (long) code);
-#if defined (USE_KKCC) && defined (DEBUG_XEMACS)
+#ifdef DEBUG_XEMACS
       if (gc_in_progress)
 	kkcc_detailed_backtrace ();
 #endif
@@ -990,9 +990,7 @@ marked_p (Lisp_Object obj)
 /* Mark reference to a Lisp_Object.  If the object referred to has not been
    seen yet, recursively mark all the references contained in it. */
 void
-mark_object (
-	     Lisp_Object UNUSED (obj)
-	     )
+mark_object (Lisp_Object UNUSED (obj))
 {
   /* this code should never be reached when configured for KKCC */
   stderr_out ("KKCC: Invalid mark_object call.\n");
@@ -1222,6 +1220,7 @@ gc_prepare (void)
   need_to_signal_post_gc = 0;
   recompute_funcall_allocation_flag ();
   flush_unused_lisp_search_registers ();
+  flush_cached_extent_info ();
 
   if (!gc_hooks_inhibited)
     run_hook_trapping_problems
@@ -1267,9 +1266,7 @@ gc_prepare (void)
 }
 
 static void
-gc_mark_root_set (
-		  void
-		  )
+gc_mark_root_set (void)
 {
 
   /* Mark all the special slots that serve as the roots of accessibility. */

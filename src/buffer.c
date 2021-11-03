@@ -254,34 +254,6 @@ static const struct memory_description buffer_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_buffer (Lisp_Object obj)
-{
-  struct buffer *buf = XBUFFER (obj);
-
-#define MARKED_SLOT(x) mark_object (buf->x);
-#include "bufslots.h"
-
-  mark_object (buf->extent_info);
-  if (buf->text)
-    mark_object (buf->text->line_number_cache);
-  mark_buffer_syntax_cache (buf);
-
-  /* [[ Don't mark normally through the children slot.  Actually, in this
-     case, it doesn't matter. ]]
-
-     Indirect buffers, like all buffers, are permanent objects and stay
-     around by themselves, so it doesn't matter whether we mark their
-     children.  This used to contain a call to mark_conses_in_list(), to
-     mark only the conses.  I deleted that function, since it's not used
-     any more and causes problems with KKCC.  If we really needed such a
-     weak list, just use a weak list object, like extents do. --ben */
-  if (! EQ (buf->indirect_children, Qnull_pointer))
-    mark_object (buf->indirect_children);
-
-  return buf->base_buffer ? wrap_buffer (buf->base_buffer) : Qnil;
-}
-
 static void
 print_buffer (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 {
@@ -321,8 +293,7 @@ cleanup_buffer_undo_lists (void)
 /* We do not need a finalize method to handle a buffer's children list
    because all buffers have `kill-buffer' applied to them before
    they disappear, and the children removal happens then. */
-DEFINE_NODUMP_LISP_OBJECT ("buffer", buffer, mark_buffer,
-			   print_buffer, 0, 0, 0,
+DEFINE_NODUMP_LISP_OBJECT ("buffer", buffer, print_buffer, 0, 0, 0,
 			   buffer_description,
 			   struct buffer);
 

@@ -120,17 +120,6 @@ struct Hash_Table_Test
   Lisp_Object lisp_hash_function;
 };
 
-static Lisp_Object
-mark_hash_table_test (Lisp_Object obj)
-{
-  Hash_Table_Test *http = XHASH_TABLE_TEST (obj);
-
-  mark_object (http->lisp_equal_function);
-  mark_object (http->lisp_hash_function);
-
-  return http->name;
-}
-
 static const struct memory_description hash_table_test_description[] =
   {
     { XD_LISP_OBJECT, offsetof (struct Hash_Table_Test, name) },
@@ -140,7 +129,6 @@ static const struct memory_description hash_table_test_description[] =
   };
 
 DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("hash-table-test", hash_table_test,
-				      mark_hash_table_test,
                                       hash_table_test_description,
                                       Hash_Table_Test);
 /* A hash table. */
@@ -321,30 +309,6 @@ lisp_object_general_equal (const Hash_Table_Test *http, Lisp_Object obj1,
   UNGCPRO;
 
   return !(NILP (res));
-}
-
-
-static Lisp_Object
-mark_hash_table (Lisp_Object obj)
-{
-  Lisp_Hash_Table *ht = XHASH_TABLE (obj);
-
-  /* If the hash table is weak, we don't want to mark the keys and
-     values (we scan over them after everything else has been marked,
-     and mark or remove them as necessary).  */
-  if (ht->weakness == HASH_TABLE_NON_WEAK)
-    {
-      htentry *e, *sentinel;
-
-      for (e = ht->hentries, sentinel = e + ht->size; e < sentinel; e++)
-	if (!HTENTRY_CLEAR_P (e))
-	  {
-	    mark_object (e->key);
-	    mark_object (e->value);
-	  }
-    }
-
-  return ht->test;
 }
 
 static int
@@ -681,9 +645,8 @@ const struct memory_description hash_table_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_LISP_OBJECT ("hash-table", hash_table,
-			     mark_hash_table, print_hash_table,
-			     IF_OLD_GC (finalize_hash_table),
+DEFINE_DUMPABLE_LISP_OBJECT ("hash-table", hash_table, print_hash_table,
+			     finalize_hash_table,
 			     hash_table_equal, hash_table_hash,
 			     hash_table_description,
 			     Lisp_Hash_Table);

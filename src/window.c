@@ -276,20 +276,6 @@ static const struct memory_description window_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_window (Lisp_Object obj)
-{
-  struct window *window = XWINDOW (obj);
-
-  mark_face_cachels (window->face_cachels);
-  mark_glyph_cachels (window->glyph_cachels);
-
-#define WINDOW_SLOT(slot) mark_object (window->slot);
-#include "winslots.h"
-
-  return Qnil;
-}
-
 static void
 print_window (Lisp_Object obj, Lisp_Object printcharfun,
 	      int UNUSED (escapeflag))
@@ -376,8 +362,7 @@ put_point_cache (Lisp_Object key, Lisp_Object val,
   XWEAK_LIST_LIST (cache) = Facons (key, val, XWEAK_LIST_LIST (cache));
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("window", window,
-			   mark_window, print_window, finalize_window,
+DEFINE_NODUMP_LISP_OBJECT ("window", window, print_window, finalize_window,
 			   0, 0, window_description, struct window);
 
 /* We have an implicit assertion that the first two elements (default
@@ -481,40 +466,7 @@ static const struct memory_description window_mirror_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_window_mirror (Lisp_Object obj)
-{
-  struct window_mirror *mir = XWINDOW_MIRROR (obj);
-
-  if (mir->current_display_lines)
-    mark_redisplay_structs (mir->current_display_lines);
-  if (mir->desired_display_lines)
-    mark_redisplay_structs (mir->desired_display_lines);
-
-  if (mir->hchild)
-    mark_object (wrap_window_mirror (mir->hchild));
-  if (mir->vchild)
-    mark_object (wrap_window_mirror (mir->vchild));
-
-  if (mir->frame)
-    mark_object (wrap_frame (mir->frame));
-  if (mir->buffer)
-    mark_object (wrap_buffer (mir->buffer));
-
-#ifdef HAVE_SCROLLBARS
-  if (mir->scrollbar_vertical_instance)
-    mark_object (wrap_scrollbar_instance (mir->scrollbar_vertical_instance));
-  if (mir->scrollbar_horizontal_instance)
-    mark_object (wrap_scrollbar_instance (mir->scrollbar_horizontal_instance));
-#endif /* HAVE_SCROLLBARS */
-  if (mir->next)
-    return wrap_window_mirror (mir->next);
-  else
-    return Qnil;
-}
-
 DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("window-mirror", window_mirror,
-				    mark_window_mirror,
 				    window_mirror_description,
 				    struct window_mirror);
 

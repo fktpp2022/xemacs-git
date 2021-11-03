@@ -8897,11 +8897,10 @@ objects that are no longer used are pruned. We only have to do this for events
 (@code{cleanup_specifiers}).
 @item
 Now the mark phase begins and marks all accessible elements. In order to
-start from
-all slots that serve as roots of accessibility, the function
-@code{mark_object} is called for each root individually to go out from
-there to mark all reachable objects. All roots that are traversed are
-shown in their processed order:
+start from all slots that serve as roots of accessibility, the function
+@code{kkcc_gc_stack_push_lisp_object_0} is called for each root
+individually to go out from there to mark all reachable objects. All
+roots that are traversed are shown in their processed order:
 @itemize @bullet
 @item
 all constant symbols and static variables that are registered via
@@ -8930,10 +8929,6 @@ on the call stack of the Lisp engine (@code{backtrace_list}). The unique
 parts that have to be marked are the fields for each function
 (@code{function}) and all their arguments (@code{args}).
 @xref{Evaluation}.
-@item
-all objects that are used by the redisplay engine that must not be freed
-are marked by a special function called @code{mark_redisplay} (in
-@code{redisplay.c}).
 @end itemize
 @item
 Hash tables in XEmacs belong to a kind of special objects that
@@ -8950,7 +8945,7 @@ be found in the documentation to the function @code{make-hash-table}.
 
 Because there are complicated dependency rules about when and what to
 mark while processing weak hash tables, the standard @code{marker}
-method is only active if it is marking non-weak hash tables. As soon as
+code is only active if it is marking non-weak hash tables. As soon as
 a weak component is in the table, the hash table entries are ignored
 while marking. Instead their marking is done each separately by the
 function @code{finish_marking_weak_hash_tables}. This function iterates
@@ -9010,14 +9005,8 @@ The same idea applies to the weak lists. It is accomplished by
 carefully by going over it and removing just the unmarked pairs.
 
 @item
-The function @code{prune_specifiers} checks all listed specifiers held
-in @code{Vall_specifiers} and removes the ones from the lists that are
-unmarked.
-
-@item
-All syntax tables are stored in a list called
-@code{Vall_syntax_tables}. The function @code{prune_syntax_tables} walks
-through it and unlinks the tables that are unmarked.
+The function @code{prune_ephemerons} updates the list of ephemerons to
+remove those that are unmarked. 
 
 @item
 Next, we will attack the complete sweeping - the function
@@ -9317,9 +9306,6 @@ is more defensive but less efficient and is used for error-checking.)
 
   [see @file{lrecord.h}]
 
-@strong{This node needs updating for the ``new garbage collection
-algorithms'' (KKCC).}
-
 All lrecords have at the beginning of their structure a @code{struct
 lrecord_header}.  This just contains a type number and some flags,
 including the mark bit.  All builtin type numbers are defined as
@@ -9336,9 +9322,6 @@ beginning.  lcrecords, however, actually have a
 @code{struct old_lcrecord_header}.  This, in turn, has a @code{struct
 lrecord_header} at its beginning, so sanity is preserved; but it also
 has a pointer used to chain all lcrecords together.
-
-@strong{lcrecords are now obsolete when using the write-barrier-based
-collector.}
 
 Frob-block objects are created using @code{ALLOC_FROB_BLOCK_LISP_OBJECT()}.
 All this does is call @code{ALLOCATE_FIXED_TYPE()} to allocate an
@@ -9470,25 +9453,6 @@ the enum's code at compile-time.
   The various methods in the lrecord implementation structure are:
 
 @enumerate
-@item
-@cindex mark method
-A @dfn{mark} method.  This is called during the marking stage and passed
-a function pointer (usually the @code{mark_object()} function), which is
-used to mark an object.  All Lisp objects that are contained within the
-object need to be marked by applying this function to them.  The mark
-method should also return a Lisp object, which should be either @code{nil} or
-an object to mark. (This can be used in lieu of calling
-@code{mark_object()} on the object, to reduce the recursion depth, and
-consequently should be the most heavily nested sub-object, such as a
-long list.)
-
-@strong{Please note:} When the mark method is called, garbage collection
-is in progress, and special precautions need to be taken when accessing
-objects; see section (B) above.
-
-If your mark method does not need to do anything, it can be
-@code{NULL}.
-
 @item
 A @dfn{print} method.  This is called to create a printed representation
 of the object, whenever @code{princ}, @code{prin1}, or the like is

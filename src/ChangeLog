@@ -1,5 +1,138 @@
 2021-11-03  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove the object mark methods now KKCC is the only mark algorithm
+	supported.
+
+	* alloc.c:
+	* alloc.c (cons_equal):
+	* alloc.c (size_vector):
+	* alloc.c (print_bit_vector):
+	* alloc.c (string_equal):
+	* alloc.c (make_lcrecord_list):
+	* buffer.c:
+	* buffer.c (print_buffer):
+	* bytecode.c:
+	* bytecode.c (compiled_function_equal):
+	* casetab.c:
+	* casetab.c (print_case_table):
+	* casetab.c (allocate_case_table):
+	* chartab.c:
+	* chartab.c (init_chartab_tables):
+	* chartab.c (print_category_table):
+	* console.c:
+	* console.c (print_console):
+	* data.c:
+	* data.c (print_weak_list):
+	* data.c (print_ephemeron):
+	* database.c:
+	* database.c (print_database):
+	* device-msw.c:
+	* device-msw.c (print_devmode):
+	* device.c:
+	* device.c (print_device):
+	* dialog-msw.c:
+	* dialog-msw.c (dialog_proc):
+	* elhash.c:
+	* eval.c:
+	* eval.c (size_multiple_value):
+	* event-stream.c:
+	* events.c:
+	* events.c (print_event):
+	* extents.c:
+	* extents.c (finalize_extent_info):
+	* extents.c (flush_cached_extent_info):
+	* extents.c (object_stack_of_extents_force):
+	* extents.c (print_extent_1):
+	* extents.c (vars_of_extents):
+	* extents.h:
+	* faces.c:
+	* faces.c (print_face):
+	* faces.h:
+	* file-coding.c:
+	* file-coding.c (print_coding_system_properties):
+	* file-coding.c (coding_rewinder):
+	* file-coding.c (free_detection_state):
+	* file-coding.c (lstream_type_create_file_coding):
+	* floatfns.c:
+	* floatfns.c (float_equal):
+	* font-mgr.c:
+	* font-mgr.c (Ffc_init):
+	* fontcolor.c:
+	* fontcolor.c (print_color_instance):
+	* fontcolor.c (print_font_instance):
+	* frame.c:
+	* frame.c (print_frame):
+	* gc.c (gc_prepare):
+	* glyphs.c:
+	* glyphs.c (print_image_instance):
+	* glyphs.c (print_glyph):
+	* glyphs.c (update_glyph_cachel_data):
+	* glyphs.h:
+	* gui.c:
+	* gui.c (gui_item_hash):
+	* gui.c (gui_error):
+	* keymap.c:
+	* keymap.c (print_keymap):
+	* lisp.h:
+	* lrecord.h (struct lrecord_implementation):
+	* lrecord.h (DEFINE_DUMPABLE_LISP_OBJECT):
+	* lrecord.h (DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT):
+	* lrecord.h (DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT):
+	* lrecord.h (DEFINE_DUMPABLE_FROB_BLOCK_SIZABLE_LISP_OBJECT):
+	* lrecord.h (DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT):
+	* lrecord.h (DEFINE_DUMPABLE_SIZABLE_INTERNAL_LISP_OBJECT):
+	* lrecord.h (DEFINE_NODUMP_LISP_OBJECT):
+	* lrecord.h (DEFINE_NODUMP_SIZABLE_LISP_OBJECT):
+	* lrecord.h (DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT):
+	* lrecord.h (DEFINE_NODUMP_FROB_BLOCK_SIZABLE_LISP_OBJECT):
+	* lrecord.h (DEFINE_NODUMP_INTERNAL_LISP_OBJECT):
+	* lrecord.h (DEFINE_NODUMP_SIZABLE_INTERNAL_LISP_OBJECT):
+	* lrecord.h (MAKE_LISP_OBJECT):
+	* lrecord.h (MAKE_RECURSIVE_LISP_OBJECT):
+	* lrecord.h (DEFINE_DUMPABLE_MODULE_LISP_OBJECT):
+	* lrecord.h (DEFINE_DUMPABLE_MODULE_SIZABLE_LISP_OBJECT):
+	* lrecord.h (DEFINE_NODUMP_MODULE_LISP_OBJECT):
+	* lrecord.h (DEFINE_NODUMP_MODULE_SIZABLE_LISP_OBJECT):
+	* lrecord.h (MAKE_MODULE_LISP_OBJECT):
+	* lrecord.h (INIT_MEMORY_USAGE_STATS):
+	* lstream.c:
+	* lstream.c (print_lstream):
+	* lstream.c (resizing_buffer_extent_info):
+	* lstream.c (lisp_buffer_stream_startpos):
+	* lstream.c (lstream_type_create):
+	* lstream.c (vars_of_lstream):
+	* lstream.h (lstream_implementation):
+	* marker.c:
+	* marker.c (print_marker):
+	* mule-charset.c:
+	* mule-charset.c (print_charset):
+	* number.c:
+	* opaque.c:
+	* opaque.c (make_opaque_ptr):
+	* process.c:
+	* process.c (tls_connection_p):
+	* rangetab.c:
+	* rangetab.c (print_range_table):
+	* scrollbar.c:
+	* scrollbar.c (free_scrollbar_instance):
+	* specifier.c:
+	* symbols.c:
+	* symbols.c (print_symbol_value_magic):
+	* toolbar.c:
+	* toolbar.c (Ftoolbar_button_p):
+	* tooltalk.c:
+	* tooltalk.c (print_tooltalk_message):
+	* tooltalk.c (print_tooltalk_pattern):
+	* ui-gtk.c:
+	* ui-gtk.c (ffi_object_printer):
+	* ui-gtk.c (emacs_gtk_object_finalizer):
+	* unicode.c:
+	* unicode.c (finalize_precedence_array):
+	* window.c:
+	* window.c (print_window):
+
+2021-11-03  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Make our code play nicely with clang++-9.
 
 	* compiler.h:

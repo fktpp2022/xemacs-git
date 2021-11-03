@@ -3214,12 +3214,6 @@ Lisp_Object Vall_weak_lists; /* Gemarke es nicht!!! */
 
 static Lisp_Object encode_weak_list_type (enum weak_list_type type);
 
-static Lisp_Object
-mark_weak_list (Lisp_Object UNUSED (obj))
-{
-  return Qnil; /* nichts ist gemarkt */
-}
-
 static void
 print_weak_list (Lisp_Object obj, Lisp_Object printcharfun,
 		 int escapeflag)
@@ -3277,8 +3271,7 @@ static const struct memory_description weak_list_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_LISP_OBJECT ("weak-list", weak_list,
-			     mark_weak_list, print_weak_list,
+DEFINE_DUMPABLE_LISP_OBJECT ("weak-list", weak_list, print_weak_list,
 			     0, weak_list_equal, weak_list_hash,
 			     weak_list_description,
 			     struct weak_list);
@@ -3776,12 +3769,6 @@ zap_finalize_list (void)
   return finalizers;
 }
 
-static Lisp_Object
-mark_ephemeron (Lisp_Object UNUSED (obj))
-{
-  return Qnil;
-}
-
 static void
 print_ephemeron (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 {
@@ -3851,8 +3838,7 @@ static const struct memory_description ephemeron_description[] = {
   { XD_END }
 };
 
-DEFINE_NODUMP_LISP_OBJECT ("ephemeron", ephemeron,
-			   mark_ephemeron, print_ephemeron,
+DEFINE_NODUMP_LISP_OBJECT ("ephemeron", ephemeron, print_ephemeron,
 			   0, ephemeron_equal, ephemeron_hash,
 			   ephemeron_description,
 			   struct ephemeron);

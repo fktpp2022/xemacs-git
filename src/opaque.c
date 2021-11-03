@@ -111,8 +111,7 @@ static const struct memory_description opaque_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("opaque", opaque,
-				     0, print_opaque, 0,
+DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("opaque", opaque, print_opaque, 0,
 				     equal_opaque, hash_opaque,
 				     opaque_description,
 				     sizeof_opaque, Lisp_Opaque);
@@ -149,8 +148,7 @@ static const struct memory_description opaque_ptr_description[] = {
   { XD_END }
 };
 
-DEFINE_NODUMP_LISP_OBJECT ("opaque-ptr", opaque_ptr,
-			   0, print_opaque_ptr, 0,
+DEFINE_NODUMP_LISP_OBJECT ("opaque-ptr", opaque_ptr, print_opaque_ptr, 0,
 			   equal_opaque_ptr, hash_opaque_ptr,
 			   opaque_ptr_description, Lisp_Opaque_Ptr);
 

@@ -95,26 +95,7 @@ allocate_toolbar_button (struct frame *f, int pushright)
   return wrap_toolbar_button (tb);
 }
 
-
-static Lisp_Object
-mark_toolbar_button (Lisp_Object obj)
-{
-  struct toolbar_button *data = XTOOLBAR_BUTTON (obj);
-  mark_object (data->next);
-  mark_object (data->frame);
-  mark_object (data->up_glyph);
-  mark_object (data->down_glyph);
-  mark_object (data->disabled_glyph);
-  mark_object (data->cap_up_glyph);
-  mark_object (data->cap_down_glyph);
-  mark_object (data->cap_disabled_glyph);
-  mark_object (data->callback);
-  mark_object (data->enabled_p);
-  return data->help_string;
-}
-
 DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("toolbar-button", toolbar_button,
-				    mark_toolbar_button,
 				    toolbar_button_description,
 				    struct toolbar_button);
 

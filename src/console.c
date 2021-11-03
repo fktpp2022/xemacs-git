@@ -130,24 +130,6 @@ static const struct memory_description console_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_console (Lisp_Object obj)
-{
-  struct console *con = XCONSOLE (obj);
-
-#define MARKED_SLOT(x) mark_object (con->x);
-#include "conslots.h"
-
-  /* Can be zero for Vconsole_defaults, Vconsole_local_symbols */
-  if (con->conmeths)
-    {
-      mark_object (con->conmeths->symbol);
-      MAYBE_CONMETH (con, mark_console, (con));
-    }
-
-  return Qnil;
-}
-
 static void
 print_console (Lisp_Object obj, Lisp_Object printcharfun,
 	       int UNUSED (escapeflag))
@@ -164,8 +146,7 @@ print_console (Lisp_Object obj, Lisp_Object printcharfun,
   write_fmt_string (printcharfun, " 0x%x>", LISP_OBJECT_UID (obj));
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("console", console, mark_console,
-			   print_console, 0, 0, 0, 
+DEFINE_NODUMP_LISP_OBJECT ("console", console, print_console, 0, 0, 0, 
 			   console_description,
 			   struct console);
 

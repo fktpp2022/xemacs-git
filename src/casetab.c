@@ -85,18 +85,6 @@ Lisp_Object case_table_char (Lisp_Object ch, Lisp_Object table);
 
 #define STRING256_P(obj) ((STRINGP (obj) && string_char_length (obj) == 256))
 
-static Lisp_Object
-mark_case_table (Lisp_Object obj)
-{
-  Lisp_Case_Table *ct = XCASE_TABLE (obj);
-
-  mark_object (CASE_TABLE_DOWNCASE (ct));
-  mark_object (CASE_TABLE_UPCASE (ct));
-  mark_object (CASE_TABLE_CANON (ct));
-  mark_object (CASE_TABLE_EQV (ct));
-  return Qnil;
-}
-
 static void
 print_case_table (Lisp_Object obj, Lisp_Object printcharfun,
 		  int UNUSED (escapeflag))
@@ -120,8 +108,7 @@ static const struct memory_description case_table_description [] = {
 };
 
 
-DEFINE_DUMPABLE_LISP_OBJECT ("case-table", case_table,
-			     mark_case_table, print_case_table, 0,
+DEFINE_DUMPABLE_LISP_OBJECT ("case-table", case_table, print_case_table, 0,
 			     0, 0, case_table_description, Lisp_Case_Table);
 
 static Lisp_Object

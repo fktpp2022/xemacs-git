@@ -1081,16 +1081,6 @@ DECLARE_FIXED_TYPE_ALLOC (cons, Lisp_Cons);
 /* #define MINIMUM_ALLOWED_FIXED_TYPE_CELLS_cons 20000 */
 #define MINIMUM_ALLOWED_FIXED_TYPE_CELLS_cons 2000
 
-static Lisp_Object
-mark_cons (Lisp_Object obj)
-{
-  if (NILP (XCDR (obj)))
-    return XCAR (obj);
-
-  mark_object (XCAR (obj));
-  return XCDR (obj);
-}
-
 static int
 cons_equal (Lisp_Object ob1, Lisp_Object ob2, int depth, int foldcase)
 {
@@ -1171,8 +1161,8 @@ static const struct memory_description cons_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("cons", cons,
-					mark_cons, print_cons, 0, cons_equal,
+DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("cons", cons, print_cons, 0,
+					cons_equal,
 					/*
 					 * No `hash' method needed.
 					 * internal_hash knows how to
@@ -1545,17 +1535,6 @@ make_bigfloat_bf (bigfloat float_value)
 /*			   Vector allocation				*/
 /************************************************************************/
 
-static Lisp_Object
-mark_vector (Lisp_Object obj)
-{
-  Lisp_Vector *ptr = XVECTOR (obj);
-  Elemcount len = vector_length (ptr), i;
-
-  for (i = 0; i < len - 1; i++)
-    mark_object (ptr->contents[i]);
-  return (len > 0) ? ptr->contents[len - 1] : Qnil;
-}
-
 static Bytecount
 size_vector (Lisp_Object obj)
 {
@@ -1634,8 +1613,7 @@ static const struct memory_description vector_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("vector", vector,
-				     mark_vector, print_vector, 0,
+DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("vector", vector, print_vector, 0,
 				     vector_equal,
 				     vector_hash,
 				     vector_description,
@@ -1807,12 +1785,6 @@ vector8 (Lisp_Object obj0, Lisp_Object obj1, Lisp_Object obj2,
 /*			 Bit Vector allocation				*/
 /************************************************************************/
 
-static Lisp_Object
-mark_bit_vector (Lisp_Object UNUSED (obj))
-{
-  return Qnil;
-}
-
 static void
 print_bit_vector (Lisp_Object obj, Lisp_Object printcharfun,
 		  int UNUSED (escapeflag))
@@ -1913,7 +1885,6 @@ static const struct memory_description bit_vector_description[] = {
 
 
 DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("bit-vector", bit_vector,
-				     mark_bit_vector,
 				     print_bit_vector, 0,
 				     bit_vector_equal,
 				     bit_vector_hash,
@@ -2443,14 +2414,6 @@ DECLARE_FIXED_TYPE_ALLOC (string, Lisp_String);
 /* #define MINIMUM_ALLOWED_FIXED_TYPE_CELLS_string 10000 */
 #define MINIMUM_ALLOWED_FIXED_TYPE_CELLS_string 1000
 
-static Lisp_Object
-mark_string (Lisp_Object obj)
-{
-  if (CONSP (XSTRING_PLIST (obj)) && EXTENT_INFOP (XCAR (XSTRING_PLIST (obj))))
-    flush_cached_extent_info (XCAR (XSTRING_PLIST (obj)));
-  return XSTRING_PLIST (obj);
-}
-
 static int
 string_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth),
 	      int foldcase)
@@ -2569,8 +2532,7 @@ bump_string_modiff (Lisp_Object str)
    standard way to do finalization when using
    SWEEP_FIXED_TYPE_BLOCK(). */
 
-DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("string", string,
-					mark_string, print_string,
+DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("string", string, print_string,
 					0, string_equal, 0,
 					string_description,
 					Lisp_String);
@@ -3276,7 +3238,7 @@ const struct memory_description free_description[] = {
   { XD_END }
 };
 
-DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("free", free, 0, free_description,
+DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("free", free, free_description,
 				    struct free_lcrecord_header);
 
 const struct memory_description lcrecord_list_description[] = {
@@ -3285,45 +3247,7 @@ const struct memory_description lcrecord_list_description[] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_lcrecord_list (Lisp_Object obj)
-{
-  struct lcrecord_list *list = XLCRECORD_LIST (obj);
-  Lisp_Object chain = list->free;
-
-  while (!NILP (chain))
-    {
-      struct lrecord_header *lheader = XRECORD_LHEADER (chain);
-      struct free_lcrecord_header *free_header =
-	(struct free_lcrecord_header *) lheader;
-
-      gc_checking_assert
-	(/* There should be no other pointers to the free list. */
-	 ! MARKED_RECORD_HEADER_P (lheader)
-	 &&
-	 /* Only lcrecords should be here. */
-	 ! list->implementation->frob_block_p
-	 &&
-	 /* Only free lcrecords should be here. */
-	 lheader->free
-	 &&
-	 /* The type of the lcrecord must be right. */
-	 lheader->type == lrecord_type_free
-	 &&
-	 /* So must the size. */
-	 (list->implementation->static_size == 0 ||
-	  list->implementation->static_size == list->size)
-	 );
-
-      MARK_RECORD_HEADER (lheader);
-      chain = free_header->chain;
-    }
-
-  return Qnil;
-}
-
 DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("lcrecord-list", lcrecord_list,
-				    mark_lcrecord_list,
 				    lcrecord_list_description,
 				    struct lcrecord_list);
 

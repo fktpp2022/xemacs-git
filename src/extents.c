@@ -397,6 +397,8 @@ Lisp_Object Vextent_face_reusable_list;
 /* FSFmacs bogosity */
 Lisp_Object Vdefault_text_properties;
 
+Lisp_Object Vextent_info_needing_flushed;
+
 /* if true, we don't want to set any redisplay flags on modeline extent
    changes */
 int in_modeline_generation;
@@ -624,20 +626,9 @@ static const struct memory_description extent_auxiliary_description[] ={
 #undef SLOT
   { XD_END }
 };
-static Lisp_Object
-mark_extent_auxiliary (Lisp_Object obj)
-{
-  struct extent_auxiliary *data = XEXTENT_AUXILIARY (obj);
-#define SLOT(x) mark_object (data->x);
-  EXTENT_AUXILIARY_SLOTS
-#undef SLOT
-
-  return Qnil;
-}
 
 DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("extent-auxiliary",
 				      extent_auxiliary,
-				      mark_extent_auxiliary,
 				      extent_auxiliary_description,
 				      struct extent_auxiliary);
 
@@ -743,37 +734,6 @@ static const struct memory_description extent_info_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_extent_info (Lisp_Object obj)
-{
-  struct extent_info *data = (struct extent_info *) XEXTENT_INFO (obj);
-  int i;
-  Extent_List *list = data->extents;
-
-  /* Vbuffer_defaults and Vbuffer_local_symbols are buffer-like
-     objects that are created specially and never have their extent
-     list initialized (or rather, it is set to zero in
-     nuke_all_buffer_slots()).  However, these objects get
-     garbage-collected so we have to deal.
-
-     (Also the list can be zero when we're dealing with a destroyed
-     buffer.) */
-
-  if (list)
-    {
-      for (i = 0; i < extent_list_num_els (list); i++)
-	{
-	  struct extent *extent = extent_list_at (list, i, 0);
-	  Lisp_Object exobj = wrap_extent (extent);
-
-	  mark_object (exobj);
-	}
-    }
-
-  return Qnil;
-}
-
-
 static void
 finalize_extent_info (Lisp_Object obj)
 {
@@ -793,7 +753,7 @@ finalize_extent_info (Lisp_Object obj)
 
 
 DEFINE_NODUMP_LISP_OBJECT ("extent-info", extent_info,
-			   mark_extent_info, internal_object_printer,
+			   internal_object_printer,
 			   IF_OLD_GC (finalize_extent_info), 0, 0, 
 			   extent_info_description,
 			   struct extent_info);
@@ -810,15 +770,19 @@ allocate_extent_info (void)
 }
 
 void
-flush_cached_extent_info (Lisp_Object extent_info)
+flush_cached_extent_info (void)
 {
-  struct extent_info *data = XEXTENT_INFO (extent_info);
-
-  if (data->soe)
+  LIST_LOOP_2 (extent_info, XWEAK_LIST_LIST (Vextent_info_needing_flushed))
     {
-      free_soe (data->soe);
-      data->soe = 0;
+      struct extent_info *data = XEXTENT_INFO (extent_info);
+      if (data->soe)
+	{
+	  free_soe (data->soe);
+	  data->soe = 0;
+	}
     }
+
+  XWEAK_LIST_LIST (Vextent_info_needing_flushed) = Qnil;
 }
 
 
@@ -1039,7 +1003,12 @@ object_stack_of_extents_force (Lisp_Object object)
 {
   struct extent_info *info = object_extent_info_force (object);
   if (!info->soe)
-    info->soe = allocate_soe ();
+    {
+      info->soe = allocate_soe ();
+      XWEAK_LIST_LIST (Vextent_info_needing_flushed)
+	= Fcons (wrap_extent_info (info),
+		 XWEAK_LIST_LIST (Vextent_info_needing_flushed));
+    }
   return info->soe;
 }
 
@@ -2790,16 +2759,6 @@ extent_fragment_update (struct window *w, struct extent_fragment *ef,
    extent objects.  They are similar to the functions for other
    frob-block objects.  allocate_extent() is in alloc.c, not here. */
 
-static Lisp_Object
-mark_extent (Lisp_Object obj)
-{
-  struct extent *extent = XEXTENT (obj);
-
-  mark_object (extent_object (extent));
-  mark_object (extent_no_chase_normal_field (extent, face));
-  return extent->plist;
-}
-
 static void
 print_extent_1 (Lisp_Object obj, Lisp_Object printcharfun,
 		int UNUSED (escapeflag))
@@ -3016,7 +2975,6 @@ extent_plist (Lisp_Object obj)
 }
 
 DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("extent", extent,
-					mark_extent,
 					print_extent,
 					/* NOTE: If you declare a
 					   finalization method here,
@@ -7452,4 +7410,7 @@ functions `get-text-property' or `get-char-property' are called.
   Vextent_auxiliary_defaults =
     allocate_extent_auxiliary ();
   staticpro (&Vextent_auxiliary_defaults);
+
+  Vextent_info_needing_flushed = make_weak_list (WEAK_LIST_SIMPLE);
+  staticpro (&Vextent_info_needing_flushed);
 }

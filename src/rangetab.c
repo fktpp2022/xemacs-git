@@ -82,18 +82,6 @@ range_table_type_to_symbol (enum range_table_type type)
    #### We should be using the gap array stuff from extents.c.  This
    is not hard but just requires moving that stuff out of that file. */
 
-static Lisp_Object
-mark_range_table (Lisp_Object obj)
-{
-  Lisp_Range_Table *rt = XRANGE_TABLE (obj);
-  int i;
-
-  for (i = 0; i < gap_array_length (rt->entries); i++)
-    mark_object (rangetab_gap_array_at (rt->entries, i).val);
-  
-  return Qnil;
-}
-
 static void
 print_range_table (Lisp_Object obj, Lisp_Object printcharfun,
 		   int UNUSED (escapeflag))
@@ -295,9 +283,8 @@ static const struct memory_description range_table_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_LISP_OBJECT ("range-table", range_table,
-			     mark_range_table, print_range_table,
-			     IF_OLD_GC (finalize_range_table),
+DEFINE_DUMPABLE_LISP_OBJECT ("range-table", range_table, print_range_table,
+			     finalize_range_table,
 			     range_table_equal, range_table_hash,
 			     range_table_description,
 			     Lisp_Range_Table);

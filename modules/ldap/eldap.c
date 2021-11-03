@@ -116,12 +116,6 @@ static const struct memory_description ldap_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_ldap (Lisp_Object obj)
-{
-  return XLDAP (obj)->host;
-}
-
 static void
 print_ldap (Lisp_Object obj, Lisp_Object printcharfun, int UNUSED (escapeflag))
 {
@@ -156,8 +150,7 @@ finalize_ldap (Lisp_Object obj)
   ldap->ld = NULL;
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("ldap", ldap, mark_ldap,
-			   print_ldap, finalize_ldap,
+DEFINE_NODUMP_LISP_OBJECT ("ldap", ldap, print_ldap, finalize_ldap,
 			   NULL, NULL, ldap_description,
 			   Lisp_LDAP);
 

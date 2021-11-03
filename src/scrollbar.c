@@ -85,19 +85,7 @@ static const struct memory_description scrollbar_instance_description [] = {
 };
 
 
-static Lisp_Object
-mark_scrollbar_instance (Lisp_Object obj)
-{
-  struct scrollbar_instance *data = XSCROLLBAR_INSTANCE (obj);
-  mark_object (wrap_window_mirror (data->mirror));
-  if (data->next)
-    return wrap_scrollbar_instance (data->next);
-  else
-    return Qnil;
-}
-
 DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("scrollbar-instance", scrollbar_instance,
-				    mark_scrollbar_instance,
 				    scrollbar_instance_description,
 				    struct scrollbar_instance);
 

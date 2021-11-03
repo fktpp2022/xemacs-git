@@ -1608,16 +1608,6 @@ static const struct memory_description precedence_array_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_precedence_array (Lisp_Object obj)
-{
-  struct precedence_array *data =
-    (struct precedence_array *) XPRECEDENCE_ARRAY (obj);
-  mark_Lisp_Object_dynarr (data->precdyn);
-
-  return Qnil;
-}
-
 static void
 finalize_precedence_array (Lisp_Object obj)
 {
@@ -1672,7 +1662,7 @@ print_precedence_array (Lisp_Object obj, Lisp_Object printcharfun,
    them when starting up again. */
 
 DEFINE_NODUMP_LISP_OBJECT ("precedence-array", precedence_array,
-			   mark_precedence_array, print_precedence_array,
+			   print_precedence_array,
 			   finalize_precedence_array, 0, 0, 
 			   precedence_array_description,
 			   struct precedence_array);

@@ -2457,26 +2457,6 @@ print_compiled_function (Lisp_Object obj, Lisp_Object printcharfun,
     write_fmt_string (printcharfun, " 0x%x>", LISP_OBJECT_UID (obj));
 }
 
-
-static Lisp_Object
-mark_compiled_function (Lisp_Object obj)
-{
-  Lisp_Compiled_Function *f = XCOMPILED_FUNCTION (obj);
-  int i;
-
-  mark_object (f->instructions);
-  mark_object (f->arglist);
-  mark_object (f->doc_and_interactive);
-#ifdef COMPILED_FUNCTION_ANNOTATION_HACK
-  mark_object (f->annotated);
-#endif
-  for (i = 0; i < f->args_in_array; i++)
-    mark_object (f->args[i]);
-
-  /* tail-recurse on constants */
-  return f->constants;
-}
-
 static int
 compiled_function_equal (Lisp_Object obj1, Lisp_Object obj2, int depth,
 			 int UNUSED (foldcase))
@@ -2591,7 +2571,6 @@ static const struct memory_description compiled_function_description[] = {
 };
 
 DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("compiled-function", compiled_function,
-					mark_compiled_function,
 					print_compiled_function, 0,
 					compiled_function_equal,
 					compiled_function_hash,

@@ -468,7 +468,7 @@ static const struct memory_description subr_description[] = {
 };
 
 DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("subr", subr,
-					0, print_subr, 0, 0, 0,
+					print_subr, 0, 0, 0,
 					subr_description,
 					Lisp_Subr);
 
@@ -4746,20 +4746,6 @@ print_multiple_value (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
   write_fmt_string (printcharfun, ") 0x%x>", LISP_OBJECT_UID (obj));
 }
 
-static Lisp_Object
-mark_multiple_value (Lisp_Object obj)
-{
-  struct multiple_value *mv = XMULTIPLE_VALUE (obj);
-  Elemcount index, allocated_count = mv->allocated_count;
-
-  for (index = 0; index < allocated_count; ++index)
-    {
-      mark_object (mv->contents[index]);
-    }
-
-  return Qnil;
-}
-
 static Bytecount
 size_multiple_value (Lisp_Object obj)
 {
@@ -4778,7 +4764,6 @@ static const struct memory_description multiple_value_description[] = {
 };
 
 DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("multiple-value", multiple_value,
-				     mark_multiple_value,
 				     print_multiple_value, 0,
 				     0, /* No equal method. */
 				     0, /* No hash method. */

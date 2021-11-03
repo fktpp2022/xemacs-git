@@ -132,9 +132,8 @@ static const struct memory_description bignum_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("bignum", bignum, 0, bignum_print,
-					0,
-					bignum_equal, bignum_hash,
+DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("bignum", bignum, bignum_print,
+					0, bignum_equal, bignum_hash,
 					bignum_description, Lisp_Bignum); 
 #endif /* HAVE_BIGNUM */
 
@@ -177,8 +176,7 @@ static const struct memory_description ratio_description[] = {
   { XD_END }
 };
 
-DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("ratio", ratio, 0, ratio_print,
-				      0,
+DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("ratio", ratio, ratio_print, 0,
 				      ratio_equal, ratio_hash,
 				      ratio_description, Lisp_Ratio);
 
@@ -223,10 +221,8 @@ static const struct memory_description bigfloat_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("bigfloat", bigfloat, 0,
-					bigfloat_print,
-					0,
-					bigfloat_equal, bigfloat_hash,
+DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("bigfloat", bigfloat, bigfloat_print,
+					0, bigfloat_equal, bigfloat_hash,
 					bigfloat_description, Lisp_Bigfloat);
 
 extern Lisp_Object float_to_bigfloat (const Ascbyte *, Lisp_Object,

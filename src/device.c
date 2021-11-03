@@ -120,23 +120,6 @@ static const struct memory_description device_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_device (Lisp_Object obj)
-{
-  struct device *d = XDEVICE (obj);
-
-#define MARKED_SLOT(x) mark_object (d->x);
-#include "devslots.h"
-
-  if (d->devmeths)
-    {
-      mark_object (d->devmeths->symbol);
-      MAYBE_DEVMETH (d, mark_device, (d));
-    }
-
-  return (d->frame_list);
-}
-
 static void
 print_device (Lisp_Object obj, Lisp_Object printcharfun,
 	      int UNUSED (escapeflag))
@@ -153,8 +136,7 @@ print_device (Lisp_Object obj, Lisp_Object printcharfun,
   write_fmt_string (printcharfun, " 0x%x>", LISP_OBJECT_UID (obj));
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("device", device,
-			   mark_device, print_device, 0, 0, 0, 
+DEFINE_NODUMP_LISP_OBJECT ("device", device, print_device, 0, 0, 0, 
 			   device_description,
 			   struct device);
 

@@ -134,15 +134,6 @@ static const struct memory_description process_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_process (Lisp_Object object)
-{
-  Lisp_Process *process = XPROCESS (object);
-#define MARKED_SLOT(x) mark_object (process->x);
-#include "process-slots.h"
-  return Qnil;
-}
-
 static int
 tls_connection_p (Lisp_Object process)
 {
@@ -239,9 +230,9 @@ finalize_process (Lisp_Object obj)
     }
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("process", process,
-			   mark_process, print_process, finalize_process,
-			   0, 0, process_description, Lisp_Process);
+DEFINE_NODUMP_LISP_OBJECT ("process", process, print_process,
+			   finalize_process, 0, 0, process_description,
+			   Lisp_Process);
 
 /************************************************************************/
 /*                       basic process accessors                        */

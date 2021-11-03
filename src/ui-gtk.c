@@ -510,15 +510,6 @@ static const struct memory_description ffi_data_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_ffi_data (Lisp_Object obj)
-{
-  /* emacs_ffi_data *data = (emacs_ffi_data *) XFFI (obj); */
-
-  mark_object (XFFI_FUNCTION_NAME (obj));
-  return (Qnil);
-}
-
 static void
 ffi_object_printer (Lisp_Object obj, Lisp_Object printcharfun,
 		    int UNUSED (escapeflag))
@@ -532,8 +523,7 @@ ffi_object_printer (Lisp_Object obj, Lisp_Object printcharfun,
   write_fmt_string (printcharfun, " %p>", (void *)XFFI (obj)->function_ptr);
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("ffi", emacs_ffi,
-			   mark_ffi_data, ffi_object_printer,
+DEFINE_NODUMP_LISP_OBJECT ("ffi", emacs_ffi, ffi_object_printer,
 			   0, 0, 0, 
 			   ffi_data_description, emacs_ffi_data);
 
@@ -1097,12 +1087,6 @@ static const struct memory_description gtk_object_data_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_gtk_object_data (Lisp_Object obj)
-{
-  return (XGTK_OBJECT (obj)->plist);
-}
-
 static void
 emacs_gtk_object_finalizer (Lisp_Object obj)
 {
@@ -1113,7 +1097,6 @@ emacs_gtk_object_finalizer (Lisp_Object obj)
 }
 
 DEFINE_NODUMP_LISP_OBJECT ("GtkObject", emacs_gtk_object,
-			   mark_gtk_object_data,
 			   emacs_gtk_object_printer,
 			   emacs_gtk_object_finalizer,
 			   0, /* equality */
@@ -1320,7 +1303,6 @@ emacs_gtk_boxed_hash (Lisp_Object obj, int UNUSED (depth), int UNUSED (equalp))
  * The allocation is controlled by Gtk, so no need for marker function.
  */
 DEFINE_NODUMP_LISP_OBJECT ("GtkBoxed", emacs_gtk_boxed,
-			   0, /* marker function */
 			   emacs_gtk_boxed_printer,
 			   0, /* nuker */
 			   emacs_gtk_boxed_equality,

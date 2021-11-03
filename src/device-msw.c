@@ -1109,14 +1109,6 @@ static const struct memory_description devmode_description[] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_devmode (Lisp_Object obj)
-{
-  Lisp_Devmode *data = XDEVMODE (obj);
-  mark_object (data->printer_name);
-  return data->device;
-}
-
 static void
 print_devmode (Lisp_Object obj, Lisp_Object printcharfun,
 	       int UNUSED (escapeflag))
@@ -1169,8 +1161,7 @@ hash_devmode (Lisp_Object obj, int depth, Boolint UNUSED (equalp))
 		internal_hash (dm->printer_name, depth + 1, 0));
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("msprinter-settings", devmode,
-			   mark_devmode, print_devmode,
+DEFINE_NODUMP_LISP_OBJECT ("msprinter-settings", devmode, print_devmode,
 			   finalize_devmode,
 			   equal_devmode, hash_devmode, 
 			   devmode_description,

@@ -1,3 +1,10 @@
+2021-11-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (garbage_collect_1):
+	* internals/internals.texi (lrecords):
+	Adjust the documentation of the garbage collector slightly to
+	better reflect that KKCC is the default. Still needs a bit more work.
+
 2021-10-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Dumping Justification):

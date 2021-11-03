@@ -89,17 +89,6 @@ static Lisp_Object map_varalias_chain (Lisp_Object symbol,
                                        Lisp_Object (*fn) (Lisp_Object arg));
 
 
-static Lisp_Object
-mark_symbol (Lisp_Object obj)
-{
-  Lisp_Symbol *sym = XSYMBOL (obj);
-
-  mark_object (sym->value);
-  mark_object (sym->function);
-  mark_object (sym->name);
-  return sym->plist;
-}
-
 static const struct memory_description symbol_description[] = {
   { XD_LISP_OBJECT, offsetof (Lisp_Symbol, name) },
   { XD_LISP_OBJECT, offsetof (Lisp_Symbol, value) },
@@ -140,8 +129,7 @@ symbol_print_preprocess (Lisp_Object UNUSED (symbol),
      for them, rather than a given. */
 }
 
-DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("symbol", symbol,
-					mark_symbol, print_symbol,
+DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("symbol", symbol, print_symbol,
 					0, 0, 0, symbol_description,
 					Lisp_Symbol);
 
@@ -739,24 +727,6 @@ static const struct memory_description symbol_value_buffer_local_description[] =
   { XD_END }
 };
 
-static Lisp_Object
-mark_symbol_value_buffer_local (Lisp_Object obj)
-{
-  struct symbol_value_buffer_local *bfwd;
-
-#ifdef ERROR_CHECK_TYPES
-  assert (XSYMBOL_VALUE_MAGIC_TYPE (obj) == SYMVAL_BUFFER_LOCAL ||
-	  XSYMBOL_VALUE_MAGIC_TYPE (obj) == SYMVAL_SOME_BUFFER_LOCAL);
-#endif
-
-  bfwd = XSYMBOL_VALUE_BUFFER_LOCAL (obj);
-  mark_object (bfwd->default_value);
-  mark_object (bfwd->current_value);
-  mark_object (bfwd->current_buffer);
-  return bfwd->current_alist_element;
-}
-
-
 static const struct memory_description symbol_value_lisp_magic_description[] = {
   { XD_LISP_OBJECT_ARRAY, offsetof (struct symbol_value_lisp_magic, handler), MAGIC_HANDLER_MAX },
   { XD_LISP_OBJECT_ARRAY, offsetof (struct symbol_value_lisp_magic, harg), MAGIC_HANDLER_MAX },
@@ -764,40 +734,11 @@ static const struct memory_description symbol_value_lisp_magic_description[] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_symbol_value_lisp_magic (Lisp_Object obj)
-{
-  struct symbol_value_lisp_magic *bfwd;
-  int i;
-
-  assert (XSYMBOL_VALUE_MAGIC_TYPE (obj) == SYMVAL_LISP_MAGIC);
-
-  bfwd = XSYMBOL_VALUE_LISP_MAGIC (obj);
-  for (i = 0; i < MAGIC_HANDLER_MAX; i++)
-    {
-      mark_object (bfwd->handler[i]);
-      mark_object (bfwd->harg[i]);
-    }
-  return bfwd->shadowed;
-}
-
 static const struct memory_description symbol_value_varalias_description[] = {
   { XD_LISP_OBJECT, offsetof (struct symbol_value_varalias, aliasee) },
   { XD_LISP_OBJECT, offsetof (struct symbol_value_varalias, shadowed) },
   { XD_END }
 };
-
-static Lisp_Object
-mark_symbol_value_varalias (Lisp_Object obj)
-{
-  struct symbol_value_varalias *bfwd;
-
-  assert (XSYMBOL_VALUE_MAGIC_TYPE (obj) == SYMVAL_VARALIAS);
-
-  bfwd = XSYMBOL_VALUE_VARALIAS (obj);
-  mark_object (bfwd->shadowed);
-  return bfwd->aliasee;
-}
 
 /* Should never, ever be called. (except by an external debugger) */
 void
@@ -817,28 +758,24 @@ static const struct memory_description symbol_value_forward_description[] = {
 
 DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-forward",
 			     symbol_value_forward,
-			     0,
 			     print_symbol_value_magic, 0, 0, 0,
 			     symbol_value_forward_description,
 			     struct symbol_value_forward);
 
 DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-buffer-local",
 			     symbol_value_buffer_local,
-			     mark_symbol_value_buffer_local,
 			     print_symbol_value_magic, 0, 0, 0,
 			     symbol_value_buffer_local_description,
 			     struct symbol_value_buffer_local);
 
 DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-lisp-magic",
 			     symbol_value_lisp_magic,
-			     mark_symbol_value_lisp_magic,
 			     print_symbol_value_magic, 0, 0, 0,
 			     symbol_value_lisp_magic_description,
 			     struct symbol_value_lisp_magic);
 
 DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-varalias",
 			     symbol_value_varalias,
-			     mark_symbol_value_varalias,
 			     print_symbol_value_magic, 0, 0, 0,
 			     symbol_value_varalias_description,
 			     struct symbol_value_varalias);

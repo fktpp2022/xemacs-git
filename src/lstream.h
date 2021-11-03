@@ -218,9 +218,6 @@ typedef struct lstream_implementation
      open at this point, the finalizer is called after calling
      Lstream_close().  Called only once (NOT called at disksave time). */
   void (*finalizer) (Lstream *stream);
-  /* Mark this object for garbage collection.  Same semantics as
-     a standard Lisp_Object marker.  This function can be NULL. */
-  Lisp_Object (*marker) (Lisp_Object lstream);
   /* Return nonzero if this stream is using a TLS connection */
   int (*tls_p) (Lstream *stream);
   /* Perform STARTTLS negotiation on a pair of streams, one for input and one

@@ -267,19 +267,6 @@ EXFUN (Fcopy_coding_system, 2);
 /*                     Coding system object methods                     */
 /************************************************************************/
 
-static Lisp_Object
-mark_coding_system (Lisp_Object obj)
-{
-  Lisp_Coding_System *codesys = XCODING_SYSTEM (obj);
-
-#define MARKED_SLOT(x) mark_object (codesys->x);
-#include "coding-system-slots.h"
-
-  MAYBE_CODESYSMETH (codesys, mark, (obj));
-
-  return Qnil;
-}
-
 static void
 print_coding_system_properties (Lisp_Object obj, Lisp_Object printcharfun)
 {
@@ -376,7 +363,6 @@ const struct sized_memory_description coding_system_empty_extra_description = {
 };
 
 DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("coding-system", coding_system,
-				     mark_coding_system,
 				     print_coding_system,
 				     IF_OLD_GC (finalize_coding_system),
 				     0, 0, coding_system_description,
@@ -2454,17 +2440,6 @@ set_coding_character_mode (Lstream *stream)
     }
 }
 
-static Lisp_Object
-coding_marker (Lisp_Object stream)
-{
-  struct coding_stream *str = CODING_STREAM_DATA (XLSTREAM (stream));
-
-  mark_object (str->orig_codesys);
-  mark_object (str->codesys);
-  MAYBE_XCODESYSMETH (str->codesys, mark_coding_stream, (str));
-  return wrap_lstream (str->other_end);
-}
-
 static int
 coding_rewinder (Lstream *stream)
 {
@@ -4281,20 +4256,6 @@ allocate_detection_state (void)
 
 struct memory_description detection_state_description[MAX_DETECTORS + 1];
 
-static Lisp_Object
-mark_detection_state (Lisp_Object obj)
-{
-  int i;
-
-  struct detection_state *st = XDETECTION_STATE (obj);
-  for (i = 0; i < coding_detector_count; i++)
-    {
-      if (Dynarr_at (all_coding_detectors, i).mark_detection_state_method)
-	Dynarr_at (all_coding_detectors, i).mark_detection_state_method (st);
-    }
-  return Qnil;
-}
-
 static void
 free_detection_state (struct detection_state *st)
 {
@@ -4309,7 +4270,6 @@ free_detection_state (struct detection_state *st)
 }
 
 DEFINE_NODUMP_SIZABLE_INTERNAL_LISP_OBJECT ("detection-state", detection_state,
-					    mark_detection_state,
 					    detection_state_description,
 					    sizeof_detection_state,
 					    struct detection_state);
@@ -5786,7 +5746,6 @@ lstream_type_create_file_coding (void)
   LSTREAM_HAS_METHOD (coding, rewinder);
   LSTREAM_HAS_METHOD (coding, seekable_p);
   LSTREAM_HAS_METHOD (coding, character_tell);
-  LSTREAM_HAS_METHOD (coding, marker);
   LSTREAM_HAS_METHOD (coding, flusher);
   LSTREAM_HAS_METHOD (coding, closer);
   LSTREAM_HAS_METHOD (coding, finalizer);

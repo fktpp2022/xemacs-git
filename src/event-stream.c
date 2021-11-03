@@ -350,21 +350,7 @@ static const struct memory_description command_builder_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_command_builder (Lisp_Object obj)
-{
-  struct command_builder *builder = XCOMMAND_BUILDER (obj);
-  mark_object (builder->current_events);
-  mark_object (builder->most_current_event);
-  mark_object (builder->last_non_munged_event);
-  mark_object (builder->first_mungeable_event[0]);
-  mark_object (builder->first_mungeable_event[1]);
-  mark_object (builder->echo_buf);
-  return builder->console;
-}
-
 DEFINE_NODUMP_LISP_OBJECT ("command-builder", command_builder,
-			   mark_command_builder,
 			   internal_object_printer, 0, 0, 0,
 			   command_builder_description,
 			   struct command_builder);
@@ -1028,22 +1014,13 @@ static int timeout_id_tick;
 
 static Lisp_Object pending_timeout_list, pending_async_timeout_list;
 
-static Lisp_Object
-mark_timeout (Lisp_Object obj)
-{
-  Lisp_Timeout *tm = XTIMEOUT (obj);
-  mark_object (tm->function);
-  return tm->object;
-}
-
 static const struct memory_description timeout_description[] = {
   { XD_LISP_OBJECT, offsetof (Lisp_Timeout, function) },
   { XD_LISP_OBJECT, offsetof (Lisp_Timeout, object) },
   { XD_END }
 };
 
-DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("timeout", timeout,
-				      mark_timeout, timeout_description,
+DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("timeout", timeout, timeout_description,
 				      Lisp_Timeout);
 
 /* Generate a timeout and return its ID. */
