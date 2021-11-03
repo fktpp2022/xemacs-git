@@ -1874,6 +1874,7 @@ unwind_to_catch (struct catchtag *c, Lisp_Object val, Lisp_Object tag)
   throw_level = 0;
 #endif
   LONGJMP (c->jmp, 1);
+  RETURN_NOT_REACHED (void);
 }
 
 DECLARE_DOESNT_RETURN (throw_or_bomb_out_unsafe (Lisp_Object, Lisp_Object, int,

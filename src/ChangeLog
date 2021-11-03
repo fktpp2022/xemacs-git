@@ -1,3 +1,19 @@
+2021-11-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Make our code play nicely with clang++-9.
+
+	* compiler.h:
+	Use builtin_unreachable() for RETURN_NOT_REACHED.
+	Checked with clang-mp-3.4 and clang++-mp-9.0.
+	* eval.c (unwind_to_catch):
+	Use RETURN_NOT_REACHED() in this function.
+	* fns.c:
+	Move the code to check that we don't use the (C) symbol vector
+	after all the header files, fixing the build.
+	* profile.c (Fget_profiling_info):
+	Correct some code initially written for the old non-Lisp hash
+	table code, thank you clang++.
+
 2021-11-02  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* window.c (update_mirror_internal):
