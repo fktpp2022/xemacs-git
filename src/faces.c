@@ -98,34 +98,6 @@ Fixnum debug_x_faces;
 # define DEBUG_FACES	(void)
 #endif
 
-static Lisp_Object
-mark_face (Lisp_Object obj)
-{
-  Lisp_Face *face =  XFACE (obj);
-
-  mark_object (face->name);
-  mark_object (face->doc_string);
-
-  mark_object (face->foreground);
-  mark_object (face->foreback);
-  mark_object (face->background);
-  mark_object (face->font);
-  mark_object (face->display_table);
-  mark_object (face->background_pixmap);
-  mark_object (face->background_placement);
-  mark_object (face->underline);
-  mark_object (face->strikethru);
-  mark_object (face->highlight);
-  mark_object (face->dim);
-  mark_object (face->blinking);
-  mark_object (face->reverse);
-  mark_object (face->shrink);
-
-  mark_object (face->charsets_warned_about);
-
-  return face->plist;
-}
-
 static void
 print_face (Lisp_Object obj, Lisp_Object printcharfun, int UNUSED (escapeflag))
 {
@@ -327,8 +299,7 @@ static const struct memory_description face_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_LISP_OBJECT ("face", face,
-			     mark_face, print_face, 0, face_equal,
+DEFINE_DUMPABLE_LISP_OBJECT ("face", face, print_face, 0, face_equal,
 			     face_hash, face_description,
 			     Lisp_Face);
 
@@ -1094,30 +1065,6 @@ Here's an approach that should keep things clean and unconfused:
 
 --ben (?? At least I think I wrote this!)
    */
-
-/* mark for GC a dynarr of face cachels. */
-
-void
-mark_face_cachels (face_cachel_dynarr *elements)
-{
-  int elt;
-
-  if (!elements)
-    return;
-
-  for (elt = 0; elt < Dynarr_length (elements); elt++)
-    {
-      struct face_cachel *cachel = Dynarr_atp (elements, elt);
-
-      mark_object (cachel->face);
-      mark_object (cachel->foreground);
-      mark_object (cachel->foreback);
-      mark_object (cachel->background);
-      mark_object (cachel->display_table);
-      mark_object (cachel->background_pixmap);
-      mark_object (cachel->background_placement);
-    }
-}
 
 /* ensure that the given cachel contains an updated font value for
    the given charset.  Return the updated font value (which can be

@@ -173,17 +173,8 @@ static const struct memory_description mswindows_dialog_id_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_mswindows_dialog_id (Lisp_Object obj)
-{
-  struct mswindows_dialog_id *data = XMSWINDOWS_DIALOG_ID (obj);
-  mark_object (data->frame);
-  return data->callbacks;
-}
-
 DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("mswindows-dialog-id",
 				    mswindows_dialog_id,
-				    mark_mswindows_dialog_id,
 				    mswindows_dialog_id_description,
 				    struct mswindows_dialog_id);
 

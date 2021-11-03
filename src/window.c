@@ -276,20 +276,6 @@ static const struct memory_description window_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_window (Lisp_Object obj)
-{
-  struct window *window = XWINDOW (obj);
-
-  mark_face_cachels (window->face_cachels);
-  mark_glyph_cachels (window->glyph_cachels);
-
-#define WINDOW_SLOT(slot) mark_object (window->slot);
-#include "winslots.h"
-
-  return Qnil;
-}
-
 static void
 print_window (Lisp_Object obj, Lisp_Object printcharfun,
 	      int UNUSED (escapeflag))
@@ -376,8 +362,7 @@ put_point_cache (Lisp_Object key, Lisp_Object val,
   XWEAK_LIST_LIST (cache) = Facons (key, val, XWEAK_LIST_LIST (cache));
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("window", window,
-			   mark_window, print_window, finalize_window,
+DEFINE_NODUMP_LISP_OBJECT ("window", window, print_window, finalize_window,
 			   0, 0, window_description, struct window);
 
 /* We have an implicit assertion that the first two elements (default
@@ -481,40 +466,7 @@ static const struct memory_description window_mirror_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_window_mirror (Lisp_Object obj)
-{
-  struct window_mirror *mir = XWINDOW_MIRROR (obj);
-
-  if (mir->current_display_lines)
-    mark_redisplay_structs (mir->current_display_lines);
-  if (mir->desired_display_lines)
-    mark_redisplay_structs (mir->desired_display_lines);
-
-  if (mir->hchild)
-    mark_object (wrap_window_mirror (mir->hchild));
-  if (mir->vchild)
-    mark_object (wrap_window_mirror (mir->vchild));
-
-  if (mir->frame)
-    mark_object (wrap_frame (mir->frame));
-  if (mir->buffer)
-    mark_object (wrap_buffer (mir->buffer));
-
-#ifdef HAVE_SCROLLBARS
-  if (mir->scrollbar_vertical_instance)
-    mark_object (wrap_scrollbar_instance (mir->scrollbar_vertical_instance));
-  if (mir->scrollbar_horizontal_instance)
-    mark_object (wrap_scrollbar_instance (mir->scrollbar_horizontal_instance));
-#endif /* HAVE_SCROLLBARS */
-  if (mir->next)
-    return wrap_window_mirror (mir->next);
-  else
-    return Qnil;
-}
-
 DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("window-mirror", window_mirror,
-				    mark_window_mirror,
 				    window_mirror_description,
 				    struct window_mirror);
 
@@ -550,7 +502,11 @@ update_mirror_internal (Lisp_Object win, struct window_mirror *mir)
     }
   else
     if (!mir)
-      mir = new_window_mirror (XFRAME (XWINDOW (win)->frame));
+      {
+	/* Should never be called on a deleted window. */
+	assert (!NILP (XWINDOW (win)->frame)); 
+	mir = new_window_mirror (XFRAME (XWINDOW (win)->frame));
+      }
 
   mir->next   = update_mirror_internal (XWINDOW (win)->next, mir->next);
   mir->hchild = update_mirror_internal (XWINDOW (win)->hchild, mir->hchild);
@@ -693,9 +649,17 @@ real_window (struct window_mirror *mir, int no_abort)
 struct window_mirror *
 find_window_mirror (struct window *w)
 {
-  struct frame *f = XFRAME (w->frame);
+  struct frame *f;
+
+  if (NILP (w->frame))
+    {
+      return NULL;
+    }
+
+  f = XFRAME (w->frame);
   if (f->mirror_dirty)
     update_frame_window_mirror (f);
+
   return find_window_mirror_internal (f->root_window,
 				      XWINDOW_MIRROR (f->root_mirror), w);
 }
@@ -707,9 +671,19 @@ find_window_mirror (struct window *w)
 static struct window_mirror *
 find_window_mirror_maybe (struct window *w)
 {
-  struct frame *f = XFRAME (w->frame);
+  struct frame *f;
+
+  if (NILP (w->frame))
+    {
+      return NULL;
+    }
+
+  f = XFRAME (w->frame);
   if (!WINDOW_MIRRORP (f->root_mirror))
-    return 0;
+    {
+      return NULL;
+    }
+
   return find_window_mirror_internal (f->root_window,
 				      XWINDOW_MIRROR (f->root_mirror), w);
 }
@@ -1027,6 +1001,9 @@ window_needs_vertical_divider_1 (struct window *w)
 int
 window_needs_vertical_divider (struct window *w)
 {
+  /* We're basically only called from redisplay, shouldn't be handed a dead
+     window. */
+  structure_checking_assert (!NILP (w->frame));
   if (!w->need_vertical_divider_valid_p)
     {
       w->need_vertical_divider_p =
@@ -1053,6 +1030,10 @@ invalidate_vertical_divider_cache_in_window (struct window *w,
 int
 window_divider_width (struct window *w)
 {
+  /* We're basically only called from redisplay, shouldn't be handed a dead
+     window. */
+  structure_checking_assert (!NILP (w->frame));
+
   /* the shadow thickness can be negative. This means that the divider
      will have a depressed look */
 
@@ -1104,8 +1085,14 @@ window_scrollbar_height (struct window * USED_IF_SCROLLBARS (w))
 int
 window_modeline_height (struct window *w)
 {
-  struct frame *f = XFRAME (w->frame);
+  struct frame *f;
   int modeline_height;
+
+  /* We're basically only called from redisplay, shouldn't be handed a dead
+     window. */
+  structure_checking_assert (!NILP (w->frame));
+
+  f = XFRAME (w->frame);
 
   if (MINI_WINDOW_P (w) || NILP (w->buffer))
     {
@@ -1662,7 +1649,7 @@ is non-nil, do not include space occupied by clipped lines.
 */
      (window, noclipped))
 {
-  struct window *w;
+  struct window *w = decode_window (window);
   Bytebpos start, eobuf;
   int defheight;
   int hlimit, height, prev_height = -1;
@@ -1671,12 +1658,7 @@ is non-nil, do not include space occupied by clipped lines.
   int needed;
   line_start_cache_dynarr *cache;
 
-  if (NILP (window))
-    window = Fselected_window (Qnil);
-
-  CHECK_LIVE_WINDOW (window);
-  w = XWINDOW (window);
-
+  window = wrap_window (w);
   start  = marker_byte_position (w->start[CURRENT_DISP]);
   hlimit = WINDOW_TEXT_HEIGHT (w);
   eobuf  = BYTE_BUF_ZV (XBUFFER (w->buffer));
@@ -2248,6 +2230,13 @@ mark_window_as_deleted (struct window *w)
      configuration, then *all* of those windows stick around. */
 
 #define WINDOW_SLOT(slot) w->slot = Qnil;
+  /* Don't do the following, the crash documented in the commit message of
+     e1d36e7d8bab was from redisplay, and redisplay shouldn't ever see a
+     non-live window, so we want the crash on an error-checking build if the
+     slot is a non-integer.  */
+#if 0
+#define WINDOW_INTEGER_SLOT(slot) w->slot = Qzero;
+#endif
 #include "winslots.h"
 
   w->dead = 1;
@@ -2305,7 +2294,7 @@ will automatically call `save-buffers-kill-emacs'.)
   check_allowed_operation (OPERATION_DELETE_OBJECT, window, Qnil);
 
   frame = WINDOW_FRAME (w);
-  f = XFRAME (frame);
+  f = XFRAME (frame); /* We know the window is live, this is not nil */
   d = XDEVICE (FRAME_DEVICE (f));
 
   if (TOP_LEVEL_WINDOW_P (w))
@@ -2516,12 +2505,7 @@ acceptable windows, eventually ending up back at the window you started with.
   Lisp_Object tem;
   Lisp_Object start_window;
 
-  if (NILP (window))
-    window = Fselected_window (Qnil);
-  else
-    CHECK_LIVE_WINDOW (window);
-
-  start_window = window;
+  start_window = window = wrap_window (decode_window (window));
 
   /* minibuf == nil may or may not include minibuffers.
      Decide if it does.  */
@@ -2662,12 +2646,7 @@ acceptable windows, eventually ending up back at the window you started with.
   Lisp_Object tem;
   Lisp_Object start_window;
 
-  if (NILP (window))
-    window = Fselected_window (Qnil);
-  else
-    CHECK_LIVE_WINDOW (window);
-
-  start_window = window;
+  start_window = window = wrap_window (decode_window (window));
 
   /* minibuf == nil may or may not include minibuffers.
      Decide if it does.  */
@@ -4033,18 +4012,13 @@ returned.
        (window, size, horflag))
 {
   Lisp_Object new_;
-  struct window *o, *p;
+  struct window *o = decode_window (window), *p;
   struct frame *f;
   int csize;
   int psize;
 
-  if (NILP (window))
-    window = Fselected_window (Qnil);
-  else
-    CHECK_LIVE_WINDOW (window);
-
-  o = XWINDOW (window);
   f = XFRAME (WINDOW_FRAME (o));
+  window = wrap_window (o);
 
   if (NILP (size))
     {
@@ -5175,20 +5149,14 @@ If WINDOW is nil, the selected window is used.
 */
        (arg, window))
 {
-  struct window *w;
+  struct window *w = decode_window (window);
   struct buffer *b;
   int height;
   Bytebpos new_point;
   Boolint selected;
   Bytebpos byte_start;
 
-  /* Don't use decode_window() because we need the new value of
-     WINDOW.  */
-  if (NILP (window))
-    window = Fselected_window (Qnil);
-  else
-    CHECK_LIVE_WINDOW (window);
-  w = XWINDOW (window);
+  window = wrap_window (w);
   b = XBUFFER (w->buffer);
 
   height = window_displayed_height (w);

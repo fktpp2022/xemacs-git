@@ -202,90 +202,51 @@ static const struct memory_description event_description [] = {
 #ifdef EVENT_DATA_AS_OBJECTS
 
 DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("key-data", key_data,
-				      0, internal_object_printer, 0, 0, 0,
+				      internal_object_printer, 0, 0, 0,
 				      key_data_description, 
 				      Lisp_Key_Data);
 
 DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("button-data", button_data,
-				      0, internal_object_printer, 0, 0, 0,
+				      internal_object_printer, 0, 0, 0,
 				      button_data_description, 
 				      Lisp_Button_Data);
 
 DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("motion-data", motion_data,
-				      0, internal_object_printer, 0, 0, 0,
+				      internal_object_printer, 0, 0, 0,
 				      motion_data_description,
 				      Lisp_Motion_Data);
 
 DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("process-data", process_data,
-				      0, internal_object_printer, 0, 0, 0,
+				      internal_object_printer, 0, 0, 0,
 				      process_data_description,
 				      Lisp_Process_Data);
 
 DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("timeout-data", timeout_data,
-				      0, internal_object_printer, 0, 0, 0,
+				      internal_object_printer, 0, 0, 0,
 				      timeout_data_description,
 				      Lisp_Timeout_Data);
 
 DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("eval-data", eval_data,
-				      0, internal_object_printer, 0, 0, 0,
+				      internal_object_printer, 0, 0, 0,
 				      eval_data_description,
 				      Lisp_Eval_Data);
 
 DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("misc-user-data", misc_user_data,
-				      0, internal_object_printer, 0, 0, 0,
+				      internal_object_printer, 0, 0, 0,
 				      misc_user_data_description, 
 				      Lisp_Misc_User_Data);
 
 DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("magic-eval-data", magic_eval_data,
-				      0, internal_object_printer, 0, 0, 0,
+				      internal_object_printer, 0, 0, 0,
 				      magic_eval_data_description, 
 				      Lisp_Magic_Eval_Data);
 
 DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("magic-data", magic_data,
-				      0, internal_object_printer, 0, 0, 0,
+				      internal_object_printer, 0, 0, 0,
 				      magic_data_description,
 				      Lisp_Magic_Data);
 
 #endif /* EVENT_DATA_AS_OBJECTS */
-
-static Lisp_Object
-mark_event (Lisp_Object obj)
-{
-  Lisp_Event *event = XEVENT (obj);
-
-  switch (event->event_type)
-    {
-    case key_press_event:
-      mark_object (EVENT_KEY_KEYSYM (event));
-      break;
-    case process_event:
-      mark_object (EVENT_PROCESS_PROCESS (event));
-      break;
-    case timeout_event:
-      mark_object (EVENT_TIMEOUT_FUNCTION (event));
-      mark_object (EVENT_TIMEOUT_OBJECT (event));
-      break;
-    case eval_event:
-    case misc_user_event:
-      mark_object (EVENT_EVAL_FUNCTION (event));
-      mark_object (EVENT_EVAL_OBJECT (event));
-      break;
-    case magic_eval_event:
-      mark_object (EVENT_MAGIC_EVAL_OBJECT (event));
-      break;
-    case button_press_event:
-    case button_release_event:
-    case pointer_motion_event:
-    case magic_event:
-    case empty_event:
-    case dead_event:
-      break;
-    default:
-      ABORT ();
-    }
-  mark_object (event->channel);
-  return event->next;
-}
 
 static void
 print_event (Lisp_Object obj, Lisp_Object printcharfun,
@@ -479,8 +440,7 @@ event_hash (Lisp_Object obj, int depth, Boolint UNUSED (equalp))
   return 0; /* unreached */
 }
 
-DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("event", event,
-				      mark_event, print_event, 0,
+DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("event", event, print_event, 0,
 				      event_equal, event_hash,
 				      event_description,
 				      Lisp_Event);

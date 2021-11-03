@@ -1,6 +1,14 @@
 2021-10-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* configure.ac:
+	We have removed support for the old GC mark algorithms, and so
+	--with-kkcc is no longer needed, since it is the default.
+
+	* configure: Regenerate.
+
+2021-10-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* configure.ac:
 	Remove support for unexec from configure.ac, which means no longer
 	any need for --with-pdump, it is the default.
 

@@ -3214,12 +3214,6 @@ Lisp_Object Vall_weak_lists; /* Gemarke es nicht!!! */
 
 static Lisp_Object encode_weak_list_type (enum weak_list_type type);
 
-static Lisp_Object
-mark_weak_list (Lisp_Object UNUSED (obj))
-{
-  return Qnil; /* nichts ist gemarkt */
-}
-
 static void
 print_weak_list (Lisp_Object obj, Lisp_Object printcharfun,
 		 int escapeflag)
@@ -3277,8 +3271,7 @@ static const struct memory_description weak_list_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_LISP_OBJECT ("weak-list", weak_list,
-			     mark_weak_list, print_weak_list,
+DEFINE_DUMPABLE_LISP_OBJECT ("weak-list", weak_list, print_weak_list,
 			     0, weak_list_equal, weak_list_hash,
 			     weak_list_description,
 			     struct weak_list);
@@ -3419,11 +3412,7 @@ finish_marking_weak_lists (void)
 
 	  if (need_to_mark_elem && ! marked_p (elem))
 	    {
-#ifdef USE_KKCC
 	      kkcc_gc_stack_push_lisp_object_0 (elem);
-#else /* NOT USE_KKCC */
-	      mark_object (elem);
-#endif /* NOT USE_KKCC */
 	      did_mark = 1;
 	    }
 
@@ -3447,11 +3436,7 @@ finish_marking_weak_lists (void)
          because we're not removing it */
       if (!NILP (rest2) && ! marked_p (rest2))
 	{
-#ifdef USE_KKCC
 	  kkcc_gc_stack_push_lisp_object_0 (rest2);
-#else /* NOT USE_KKCC */
-	  mark_object (rest2);
-#endif /* NOT USE_KKCC */
 	  did_mark = 1;
 	}
     }
@@ -3698,12 +3683,8 @@ continue_marking_ephemerons (void)
 	  MARK_CONS (XCONS (XEPHEMERON (rest)->cons_chain));
 	  if (marked_p (XEPHEMERON (rest)->key))
 	    {
-#ifdef USE_KKCC
 	      kkcc_gc_stack_push_lisp_object_0 
 		(XCAR (XEPHEMERON (rest)->cons_chain));
-#else /* NOT USE_KKCC */
-	      mark_object (XCAR (XEPHEMERON (rest)->cons_chain));
-#endif /* NOT USE_KKCC */
 	      did_mark = 1;
 	      XSET_EPHEMERON_NEXT (rest, Vnew_all_ephemerons);
 	      Vnew_all_ephemerons = rest;
@@ -3748,12 +3729,8 @@ finish_marking_ephemerons (void)
 	  if (! NILP (XEPHEMERON_FINALIZER (rest)))
 	    {
 	      MARK_CONS (XCONS (XEPHEMERON (rest)->cons_chain));
-#ifdef USE_KKCC
 	      kkcc_gc_stack_push_lisp_object_0
 		(XCAR (XEPHEMERON (rest)->cons_chain));
-#else /* NOT USE_KKCC */
-	      mark_object (XCAR (XEPHEMERON (rest)->cons_chain));
-#endif /* NOT USE_KKCC */
 
 	      /* Register the finalizer */
 	      XSET_EPHEMERON_NEXT (rest, Vfinalize_list);
@@ -3790,12 +3767,6 @@ zap_finalize_list (void)
   Vfinalize_list = Qnil;
 
   return finalizers;
-}
-
-static Lisp_Object
-mark_ephemeron (Lisp_Object UNUSED (obj))
-{
-  return Qnil;
 }
 
 static void
@@ -3867,8 +3838,7 @@ static const struct memory_description ephemeron_description[] = {
   { XD_END }
 };
 
-DEFINE_NODUMP_LISP_OBJECT ("ephemeron", ephemeron,
-			   mark_ephemeron, print_ephemeron,
+DEFINE_NODUMP_LISP_OBJECT ("ephemeron", ephemeron, print_ephemeron,
 			   0, ephemeron_equal, ephemeron_hash,
 			   ephemeron_description,
 			   struct ephemeron);

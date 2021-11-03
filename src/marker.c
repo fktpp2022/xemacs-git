@@ -34,23 +34,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "buffer.h"
 
-static Lisp_Object
-mark_marker (Lisp_Object obj)
-{
-  Lisp_Marker *marker = XMARKER (obj);
-  Lisp_Object buf;
-  /* DO NOT mark through the marker's chain.
-     The buffer's markers chain does not preserve markers from gc;
-     Instead, markers are removed from the chain when they are freed
-     by gc.
-   */
-  if (!marker->buffer)
-    return (Qnil);
-
-  buf = wrap_buffer (marker->buffer);
-  return (buf);
-}
-
 static void
 print_marker (Lisp_Object obj, Lisp_Object printcharfun,
 	      int UNUSED (escapeflag))
@@ -104,10 +87,8 @@ static const struct memory_description marker_description[] = {
 };
 
 
-DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("marker", marker,
-					mark_marker, print_marker,
-					0,
-					marker_equal, marker_hash,
+DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("marker", marker, print_marker,
+					0, marker_equal, marker_hash,
 					marker_description, Lisp_Marker);
 
 /* Operations on markers. */

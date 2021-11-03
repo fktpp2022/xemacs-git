@@ -1,3 +1,13 @@
+2021-11-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* postgresql/postgresql.c:
+	* postgresql/postgresql.c (print_pgconn):
+	* postgresql/postgresql.c (RESULT_TUPLES_FMT):
+	* ldap/eldap.c:
+	* ldap/eldap.c (print_ldap):
+	Remove the mark methods from modules, now KKCC is the only mark
+	algorithm used.
+
 2015-05-04  Stephen J. Turnbull  <stephen@xemacs.org>
 
 	* postgresql/configure.ac (PostgreSQL): Allow specification of subdir.

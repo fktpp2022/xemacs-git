@@ -65,9 +65,6 @@ struct extent;
 void set_extent_endpoints (EXTENT extent, Bytexpos s, Bytexpos e,
 			   Lisp_Object object);
 
-
-void flush_cached_extent_info (Lisp_Object extent_info);
-
 void set_extent_glyph (EXTENT extent, Lisp_Object glyph, int endp,
 		       glyph_layout layout);
 

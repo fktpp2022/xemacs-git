@@ -134,7 +134,7 @@ static const struct memory_description fcpattern_description [] = {
 };
 
 DEFINE_NODUMP_LISP_OBJECT ("fc-pattern", fc_pattern,
-			   0, external_object_printer, finalize_fc_pattern,
+			   external_object_printer, finalize_fc_pattern,
 			   0, 0, fcpattern_description,
 			   struct fc_pattern);
 
@@ -1154,7 +1154,7 @@ static const struct memory_description fcconfig_description [] = {
 };
 
 DEFINE_NODUMP_LISP_OBJECT ("fc-config", fc_config,
-			   0, external_object_printer, finalize_fc_config,
+			   external_object_printer, finalize_fc_config,
 			   0, 0, fcconfig_description,
 			   struct fc_config);
 

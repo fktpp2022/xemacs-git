@@ -525,7 +525,7 @@ static const struct memory_description expose_ignore_description_1 [] = {
 };
 
 DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("expose-ignore", expose_ignore,
-				      0, expose_ignore_description_1,
+				      expose_ignore_description_1,
 				      struct expose_ignore);
 
 static const struct memory_description display_line_dynarr_pointer_description_1 []= {
@@ -561,29 +561,6 @@ static const struct memory_description frame_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_frame (Lisp_Object obj)
-{
-  struct frame *f = XFRAME (obj);
-
-#define MARKED_SLOT(x) mark_object (f->x);
-#include "frameslots.h"
-
-  if (FRAME_LIVE_P (f)) /* device is nil for a dead frame */
-    MAYBE_FRAMEMETH (f, mark_frame, (f));
-
-#ifdef HAVE_SCROLLBARS
-  if (f->sb_vcache)
-    mark_object (wrap_scrollbar_instance (f->sb_vcache));
-  if (f->sb_hcache)
-    mark_object (wrap_scrollbar_instance (f->sb_hcache));
-#endif
-
-  mark_gutters (f);
-
-  return Qnil;
-}
-
 static void
 print_frame (Lisp_Object obj, Lisp_Object printcharfun,
 	     int UNUSED (escapeflag))
@@ -601,8 +578,7 @@ print_frame (Lisp_Object obj, Lisp_Object printcharfun,
   write_fmt_string (printcharfun, " 0x%x>", LISP_OBJECT_UID (obj));
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("frame", frame,
-			   mark_frame, print_frame, 0, 0, 0,
+DEFINE_NODUMP_LISP_OBJECT ("frame", frame, print_frame, 0, 0, 0,
 			   frame_description,
 			   struct frame);
 

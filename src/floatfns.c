@@ -193,12 +193,6 @@ float_to_bigfloat (const Ascbyte *operation, Lisp_Object num,
 }
 #endif
 
-static Lisp_Object
-mark_float (Lisp_Object UNUSED (obj))
-{
-  return Qnil;
-}
-
 static int
 float_equal (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth),
 	     int UNUSED (foldcase))
@@ -216,8 +210,7 @@ static const struct memory_description float_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("float", float,
-					mark_float, print_float, 0,
+DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("float", float, print_float, 0,
 					float_equal, float_hash,
 					float_description, Lisp_Float);
 

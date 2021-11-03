@@ -81,17 +81,6 @@ static const struct memory_description color_instance_description[] = {
   {XD_END}
 };
 
-static Lisp_Object
-mark_color_instance (Lisp_Object obj)
-{
-  Lisp_Color_Instance *c = XCOLOR_INSTANCE (obj);
-  mark_object (c->name);
-  if (!NILP (c->device)) /* Vthe_null_color_instance */
-    MAYBE_DEVMETH (XDEVICE (c->device), mark_color_instance, (c));
-
-  return c->device;
-}
-
 static void
 print_color_instance (Lisp_Object obj, Lisp_Object printcharfun,
 		      int escapeflag)
@@ -143,7 +132,7 @@ color_instance_hash (Lisp_Object obj, int depth, Boolint UNUSED (equalp))
 }
 
 DEFINE_NODUMP_LISP_OBJECT ("color-instance", color_instance,
-			   mark_color_instance, print_color_instance,
+			   print_color_instance,
 			   finalize_color_instance, color_instance_equal,
 			   color_instance_hash,
 			   color_instance_description,
@@ -290,20 +279,6 @@ static const struct memory_description font_instance_description[] = {
   { XD_END }
 };
 
-
-static Lisp_Object
-mark_font_instance (Lisp_Object obj)
-{
-  Lisp_Font_Instance *f = XFONT_INSTANCE (obj);
-
-  mark_object (f->name);
-  mark_object (f->truename);
-  if (!NILP (f->device)) /* Vthe_null_font_instance */
-    MAYBE_DEVMETH (XDEVICE (f->device), mark_font_instance, (f));
-
-  return f->device;
-}
-
 static void
 print_font_instance (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 {
@@ -357,7 +332,7 @@ font_instance_hash (Lisp_Object obj, int depth, Boolint UNUSED (equalp))
 }
 
 DEFINE_NODUMP_LISP_OBJECT ("font-instance", font_instance,
-			   mark_font_instance, print_font_instance,
+			   print_font_instance,
 			   finalize_font_instance, font_instance_equal,
 			   font_instance_hash, font_instance_description,
 			   Lisp_Font_Instance);

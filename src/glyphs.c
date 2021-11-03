@@ -918,72 +918,6 @@ static const struct memory_description image_instance_description[] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_image_instance (Lisp_Object obj)
-{
-  Lisp_Image_Instance *i = XIMAGE_INSTANCE (obj);
-
-  /* #### I want to check the instance here, but there are way too
-     many instances of the instance being marked while the domain is
-     dead. For instance you can get marked through an event when using
-     callback_ex.*/
-#if 0
-  ERROR_CHECK_IMAGE_INSTANCE (obj);
-#endif
-
-  mark_object (i->name);
-  mark_object (i->instantiator);
-  /* #### Is this legal in marking? We may get in the situation where the
-     domain has been deleted - making the instance unusable. It seems
-     better to remove the domain so that it can be finalized. */
-  if (!DOMAIN_LIVE_P (i->domain))
-    i->domain = Qnil;
-  else
-    mark_object (i->domain);
-
-  /* We don't mark the glyph reference since that would create a
-     circularity preventing GC. Ditto the instantiator. */
-  switch (IMAGE_INSTANCE_TYPE (i))
-    {
-    case IMAGE_TEXT:
-      mark_object (IMAGE_INSTANCE_TEXT_STRING (i));
-      break;
-    case IMAGE_MONO_PIXMAP:
-    case IMAGE_COLOR_PIXMAP:
-      mark_object (IMAGE_INSTANCE_PIXMAP_FILENAME (i));
-      mark_object (IMAGE_INSTANCE_PIXMAP_MASK_FILENAME (i));
-      mark_object (IMAGE_INSTANCE_PIXMAP_HOTSPOT_X (i));
-      mark_object (IMAGE_INSTANCE_PIXMAP_HOTSPOT_Y (i));
-      mark_object (IMAGE_INSTANCE_PIXMAP_FG (i));
-      mark_object (IMAGE_INSTANCE_PIXMAP_BG (i));
-      break;
-
-    case IMAGE_WIDGET:
-      mark_object (IMAGE_INSTANCE_WIDGET_TYPE (i));
-      mark_object (IMAGE_INSTANCE_WIDGET_PROPS (i));
-      mark_object (IMAGE_INSTANCE_SUBWINDOW_FACE (i));
-      mark_object (IMAGE_INSTANCE_WIDGET_ITEMS (i));
-      mark_object (IMAGE_INSTANCE_LAYOUT_CHILDREN (i));
-      mark_object (IMAGE_INSTANCE_WIDGET_PENDING_ITEMS (i));
-      mark_object (IMAGE_INSTANCE_WIDGET_HEIGHT_SUBR (i));
-      mark_object (IMAGE_INSTANCE_WIDGET_WIDTH_SUBR (i));
-    case IMAGE_SUBWINDOW:
-      break;
-
-    default:
-      break;
-    }
-
-  /* The image may have been previously finalized (yes that's weird,
-     see Fdelete_frame() and mark_window_as_deleted()), in which case
-     the domain will be nil, so cope with this. */
-  if (!NILP (IMAGE_INSTANCE_DEVICE (i)))
-    MAYBE_DEVMETH (XDEVICE (IMAGE_INSTANCE_DEVICE (i)),
-		   mark_image_instance, (i));
-
-  return i->device;
-}
-
 static void
 print_image_instance (Lisp_Object obj, Lisp_Object printcharfun,
 		      int escapeflag)
@@ -1315,7 +1249,7 @@ image_instance_hash (Lisp_Object obj, int depth, Boolint UNUSED (equalp))
 }
 
 DEFINE_NODUMP_LISP_OBJECT ("image-instance", image_instance,
-			   mark_image_instance, print_image_instance,
+			   print_image_instance,
 			   finalize_image_instance, image_instance_equal,
 			   image_instance_hash,
 			   image_instance_description,
@@ -3696,19 +3630,6 @@ See `make-image-specifier' for a description of image instantiators.
  *                             Glyph Object                                 *
  ****************************************************************************/
 
-static Lisp_Object
-mark_glyph (Lisp_Object obj)
-{
-  Lisp_Glyph *glyph = XGLYPH (obj);
-
-  mark_object (glyph->image);
-  mark_object (glyph->contrib_p);
-  mark_object (glyph->baseline);
-  mark_object (glyph->face);
-
-  return glyph->plist;
-}
-
 static void
 print_glyph (Lisp_Object obj, Lisp_Object printcharfun,
 	     int UNUSED (escapeflag))
@@ -3827,11 +3748,8 @@ static const struct memory_description glyph_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_LISP_OBJECT ("glyph", glyph,
-			     mark_glyph, print_glyph, 0,
-			     glyph_equal, glyph_hash,
-			     glyph_description,
-			     Lisp_Glyph);
+DEFINE_DUMPABLE_LISP_OBJECT ("glyph", glyph, print_glyph, 0, glyph_equal,
+			     glyph_hash, glyph_description, Lisp_Glyph);
 
 Lisp_Object
 allocate_glyph (enum glyph_type type,
@@ -4318,20 +4236,6 @@ glyph_do_layout (Lisp_Object glyph_or_image, int width, int height,
   contexts. When we have redisplayed we need to know which glyphs to
   reset the dirty flags on - the glyph_cachels give us a nice list we
   can iterate through doing this.  */
-void
-mark_glyph_cachels (glyph_cachel_dynarr *elements)
-{
-  int elt;
-
-  if (!elements)
-    return;
-
-  for (elt = 0; elt < Dynarr_length (elements); elt++)
-    {
-      struct glyph_cachel *cachel = Dynarr_atp (elements, elt);
-      mark_object (cachel->glyph);
-    }
-}
 
 static void
 update_glyph_cachel_data (struct window *w, Lisp_Object glyph,

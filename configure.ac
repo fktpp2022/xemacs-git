@@ -600,7 +600,6 @@ dnl --error-checking          --with-error-checking
 dnl --memory-usage-stats      --with-memory-usage-stats
 dnl --quick-build             --with-quick-build
 dnl --use-union-type          --with-union-type
-dnl --use-kkcc                --with-kkcc
 dnl
 dnl parse flags
 XE_HELP_SUBSECTION([Compilation options])
@@ -971,9 +970,6 @@ XE_MERGED_ARG([rel-alloc],
 XE_MERGED_ARG([dump-in-exec],
 	AS_HELP_STRING([--with-dump-in-exec],[Enable dumping into executable (enabled by default).]),
 	[], [])
-XE_MERGED_ARG([kkcc],
-	AS_HELP_STRING([--with-kkcc],[Enable experimental new GC mark algorithms.]),
-	[], [with_kkcc=yes])
 
 dnl
 XE_HELP_SUBSECTION([Emacs Lisp options])
@@ -1784,9 +1780,6 @@ ld="${ordinary_ld}"
 start_files=
 libs_standard=
 lib_gcc=
-
-dnl Enable KKCC by default
-test -z "$with_kkcc" && with_kkcc=yes
 
 dnl Dump into executable
 if test -z "$with_dump_in_exec"; then
@@ -5735,7 +5728,6 @@ dnl autodetection.
 test "$GCC"                  = "yes" && AC_DEFINE(USE_GCC)
 test "$XEMACS_CC_GPP"        = "yes" && AC_DEFINE(USE_GPLUSPLUS)
 test "$with_external_widget" = "yes" && AC_DEFINE(EXTERNAL_WIDGET)
-test "$with_kkcc"            = "yes" && AC_DEFINE(USE_KKCC)
 test "$with_quick_build"     = "yes" && AC_DEFINE(QUICK_BUILD)
 test "$with_purify"          = "yes" && AC_DEFINE(PURIFY)
 test "$with_quantify"        = "yes" && AC_DEFINE(QUANTIFY)
@@ -6069,14 +6061,6 @@ if test "$with_union_type" = yes ; then
   echo "  WARNING: been seen with various versions of GCC (up to about 2.95),"
   echo "  WARNING: and recently with Visual C++ as well (mid-2003)."
   echo "  WARNING: More recent versions may be safer, or not."
-  echo "  WARNING: ---------------------------------------------------------"
-fi
-if test "$with_kkcc" = yes ; then
-  echo "  Using the new GC mark algorithms (KKCC)."
-  echo "  WARNING: ---------------------------------------------------------"
-  echo "  WARNING: The new algorithms are experimental. They are enabled by"
-  echo "  WARNING: default for this release. Use \`--disable-kkcc' to"
-  echo "  WARNING: turn it off."
   echo "  WARNING: ---------------------------------------------------------"
 fi
 test "$with_dump_in_exec" = yes && echo "  Dumping into executable."

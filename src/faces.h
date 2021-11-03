@@ -266,7 +266,6 @@ void face_cachel_char_font_metric_info (struct face_cachel *cachel,
 					Lisp_Object domain,
 					const Ibyte *ptr, Bytecount len,
 					struct font_metric_info *fm);
-void mark_face_cachels (face_cachel_dynarr *elements);
 void mark_face_cachels_as_clean (struct window *w);
 void mark_face_cachels_as_not_updated (struct window *w);
 void reset_face_cachel (struct face_cachel *inst);

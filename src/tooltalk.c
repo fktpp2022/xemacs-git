@@ -156,13 +156,6 @@ static const struct memory_description tooltalk_message_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_tooltalk_message (Lisp_Object obj)
-{
-  mark_object (XTOOLTALK_MESSAGE (obj)->callback);
-  return XTOOLTALK_MESSAGE (obj)->plist_sym;
-}
-
 static void
 print_tooltalk_message (Lisp_Object obj, Lisp_Object printcharfun,
 			int UNUSED (escapeflag))
@@ -177,8 +170,7 @@ print_tooltalk_message (Lisp_Object obj, Lisp_Object printcharfun,
 }
 
 DEFINE_NODUMP_LISP_OBJECT ("tooltalk-message", tooltalk_message,
-			   mark_tooltalk_message, print_tooltalk_message,
-			   0, 0, 0, 
+			   print_tooltalk_message, 0, 0, 0, 
 			   tooltalk_message_description,
 			   Lisp_Tooltalk_Message);
 
@@ -231,13 +223,6 @@ static const struct memory_description tooltalk_pattern_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_tooltalk_pattern (Lisp_Object obj)
-{
-  mark_object (XTOOLTALK_PATTERN (obj)->callback);
-  return XTOOLTALK_PATTERN (obj)->plist_sym;
-}
-
 static void
 print_tooltalk_pattern (Lisp_Object obj, Lisp_Object printcharfun,
 			int UNUSED (escapeflag))
@@ -252,8 +237,7 @@ print_tooltalk_pattern (Lisp_Object obj, Lisp_Object printcharfun,
 }
 
 DEFINE_NODUMP_LISP_OBJECT ("tooltalk-pattern", tooltalk_pattern,
-			   mark_tooltalk_pattern, print_tooltalk_pattern,
-			   0, 0, 0, 
+			   print_tooltalk_pattern, 0, 0, 0, 
 			   tooltalk_pattern_description,
 			   Lisp_Tooltalk_Pattern);
 

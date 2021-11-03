@@ -1047,8 +1047,6 @@ enable_rel_alloc
 with_rel_alloc
 enable_dump_in_exec
 with_dump_in_exec
-enable_kkcc
-with_kkcc
 enable_modules
 with_modules
 enable_bignum
@@ -1992,7 +1990,6 @@ Memory allocation options
 
   --with-rel-alloc        Enable the relocating allocator for Lisp buffers.
   --with-dump-in-exec     Enable dumping into executable (enabled by default).
-  --with-kkcc             Enable experimental new GC mark algorithms.
 
 Emacs Lisp options
 ------------------
@@ -5595,24 +5592,6 @@ if test "${with_dump_in_exec+set}" = set; then
   enableval="$with_dump_in_exec"
   withval="$with_dump_in_exec"
 
-fi;
-# If --with-kkcc or --without-kkcc were given then copy the value to the
-# equivalent enable_kkcc variable.
-if test "${with_kkcc+set}" = set; then
-  enable_kkcc="$with_kkcc"
-fi;
-# If -enable-kkcc or --disable-kkcc were given then copy the value to the
-# equivalent with_kkcc variable.
-if test "${enable_kkcc+set}" = set; then
-  with_kkcc="$enable_kkcc"
-fi;
-# Check whether --with-kkcc or --without-kkcc was given.
-if test "${with_kkcc+set}" = set; then
-  enableval="$with_kkcc"
-  withval="$with_kkcc"
-
-else
-  with_kkcc=yes
 fi;
 
 
@@ -10313,8 +10292,6 @@ ld="${ordinary_ld}"
 start_files=
 libs_standard=
 lib_gcc=
-
-test -z "$with_kkcc" && with_kkcc=yes
 
 if test -z "$with_dump_in_exec"; then
   with_dump_in_exec=yes
@@ -23469,8 +23446,6 @@ test "$XEMACS_CC_GPP"        = "yes" && printf "%s\n" "#define USE_GPLUSPLUS 1" 
 
 test "$with_external_widget" = "yes" && printf "%s\n" "#define EXTERNAL_WIDGET 1" >>confdefs.h
 
-test "$with_kkcc"            = "yes" && printf "%s\n" "#define USE_KKCC 1" >>confdefs.h
-
 test "$with_quick_build"     = "yes" && printf "%s\n" "#define QUICK_BUILD 1" >>confdefs.h
 
 test "$with_purify"          = "yes" && printf "%s\n" "#define PURIFY 1" >>confdefs.h
@@ -23818,14 +23793,6 @@ if test "$with_union_type" = yes ; then
   echo "  WARNING: been seen with various versions of GCC (up to about 2.95),"
   echo "  WARNING: and recently with Visual C++ as well (mid-2003)."
   echo "  WARNING: More recent versions may be safer, or not."
-  echo "  WARNING: ---------------------------------------------------------"
-fi
-if test "$with_kkcc" = yes ; then
-  echo "  Using the new GC mark algorithms (KKCC)."
-  echo "  WARNING: ---------------------------------------------------------"
-  echo "  WARNING: The new algorithms are experimental. They are enabled by"
-  echo "  WARNING: default for this release. Use \`--disable-kkcc' to"
-  echo "  WARNING: turn it off."
   echo "  WARNING: ---------------------------------------------------------"
 fi
 test "$with_dump_in_exec" = yes && echo "  Dumping into executable."

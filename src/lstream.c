@@ -54,13 +54,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 Lisp_Object Q_element_type;
 
-static Lisp_Object
-mark_lstream (Lisp_Object obj)
-{
-  Lstream *lstr = XLSTREAM (obj);
-  return lstr->imp->marker ? (lstr->imp->marker) (obj) : Qnil;
-}
-
 static void
 print_lstream (Lisp_Object obj, Lisp_Object printcharfun,
 	       int UNUSED (escapeflag))
@@ -147,8 +140,7 @@ const struct sized_memory_description lstream_empty_extra_description = {
   0, lstream_empty_extra_description_1
 };
 
-DEFINE_NODUMP_SIZABLE_LISP_OBJECT ("stream", lstream,
-				   mark_lstream, print_lstream,
+DEFINE_NODUMP_SIZABLE_LISP_OBJECT ("stream", lstream, print_lstream,
 				   finalize_lstream,
 				   0, 0, /* no equal or hash */
 				   lstream_description,
@@ -1640,13 +1632,6 @@ lisp_string_rewinder (Lstream *stream)
   return 0;
 }
 
-static Lisp_Object
-lisp_string_marker (Lisp_Object stream)
-{
-  struct lisp_string_stream *str = LISP_STRING_STREAM_DATA (XLSTREAM (stream));
-  return str->obj;
-}
-
 /*********** a fixed buffer ***********/
 
 /* Much of the implementation of this is in lstream.h, since we need to
@@ -1802,14 +1787,6 @@ resizing_buffer_closer (Lstream *stream)
       str->buf = 0;
     }
   return 0;
-}
-
-static Lisp_Object
-resizing_buffer_marker (Lisp_Object stream)
-{
-  struct resizing_buffer_stream *str
-    = RESIZING_BUFFER_STREAM_DATA (XLSTREAM (stream));
-  return str->extent_info;
 }
 
 static struct extent_info *
@@ -2139,18 +2116,6 @@ lisp_buffer_rewinder (Lstream *stream)
   return 0;
 }
 
-static Lisp_Object
-lisp_buffer_marker (Lisp_Object stream)
-{
-  struct lisp_buffer_stream *str =
-    LISP_BUFFER_STREAM_DATA (XLSTREAM (stream));
-
-  mark_object (str->orig_start);
-  mark_object (str->start);
-  mark_object (str->end);
-  return str->buffer;
-}
-
 Charbpos
 lisp_buffer_stream_startpos (Lstream *stream)
 {
@@ -2224,7 +2189,6 @@ lstream_type_create (void)
 
   LSTREAM_HAS_METHOD (lisp_string, reader);
   LSTREAM_HAS_METHOD (lisp_string, rewinder);
-  LSTREAM_HAS_METHOD (lisp_string, marker);
 
   LSTREAM_HAS_METHOD (fixed_buffer, reader);
   LSTREAM_HAS_METHOD (fixed_buffer, writer);
@@ -2233,7 +2197,6 @@ lstream_type_create (void)
   LSTREAM_HAS_METHOD (resizing_buffer, writer);
   LSTREAM_HAS_METHOD (resizing_buffer, write_with_extents);
   LSTREAM_HAS_METHOD (resizing_buffer, extent_info);
-  LSTREAM_HAS_METHOD (resizing_buffer, marker);
   LSTREAM_HAS_METHOD (resizing_buffer, rewinder);
   LSTREAM_HAS_METHOD (resizing_buffer, closer);
 
@@ -2245,7 +2208,6 @@ lstream_type_create (void)
   LSTREAM_HAS_METHOD (lisp_buffer, writer);
   LSTREAM_HAS_METHOD (lisp_buffer, write_with_extents);
   LSTREAM_HAS_METHOD (lisp_buffer, rewinder);
-  LSTREAM_HAS_METHOD (lisp_buffer, marker);
 }
 
 void

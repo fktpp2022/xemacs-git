@@ -5185,6 +5185,8 @@ extern Lisp_Object Qend_open;
 extern Lisp_Object Qextent_live_p;
 extern Lisp_Object Qstart_open;
 
+void flush_cached_extent_info (void);
+
 /* Defined in faces.c */
 extern Lisp_Object Qforeground;
 extern Lisp_Object Qforeback;

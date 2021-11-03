@@ -224,17 +224,6 @@ static const struct memory_description pgconn_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-#ifdef RUNNING_XEMACS_21_1
-mark_pgconn (Lisp_Object UNUSED (obj),
-	     void (*UNUSED_ARG (markobj)) (Lisp_Object) ATTRIBUTE_UNUSED)
-#else
-mark_pgconn (Lisp_Object UNUSED (obj))
-#endif
-{
-  return Qnil;
-}
-
 static void
 print_pgconn (Lisp_Object obj, Lisp_Object printcharfun,
 	      int UNUSED (escapeflag))
@@ -325,19 +314,19 @@ finalize_pgconn (Lisp_Object obj)
 
 #ifdef RUNNING_XEMACS_21_1
 DEFINE_LRECORD_IMPLEMENTATION ("pgconn", pgconn,
-			       mark_pgconn, print_pgconn, finalize_pgconn,
+			       print_pgconn, finalize_pgconn,
 			       NULL, NULL,
 			       Lisp_PGconn);
 #elif defined (RUNNING_XEMACS_21_4)
 DEFINE_LRECORD_IMPLEMENTATION ("pgconn", pgconn,
 			       0, /*dumpable-flag*/
-			       mark_pgconn, print_pgconn, finalize_pgconn,
+			       print_pgconn, finalize_pgconn,
 			       NULL, NULL,
 			       pgconn_description,
 			       Lisp_PGconn);
 #else
 DEFINE_NODUMP_LISP_OBJECT ("pgconn", pgconn,
-			   mark_pgconn, print_pgconn,
+			   print_pgconn,
 			   finalize_pgconn,
 			   NULL, NULL,
 			   pgconn_description,
@@ -359,18 +348,6 @@ make_pgresult (Lisp_PGresult *pgresult)
 static const struct memory_description pgresult_description [] = {
   { XD_END }
 };
-
-
-static Lisp_Object
-#ifdef RUNNING_XEMACS_21_1
-mark_pgresult (Lisp_Object UNUSED (obj),
-	       void (*UNUSED_ARG (markobj)) (Lisp_Object) ATTRIBUTE_UNUSED)
-#else
-mark_pgresult (Lisp_Object UNUSED (obj))
-#endif
-{
-  return Qnil;
-}
 
 #define RESULT_TUPLES_FMT "#<PGresult %s[%d] - %s>"
 #define RESULT_CMD_TUPLES_FMT "#<PGresult %s[%s] - %s>"
@@ -477,19 +454,19 @@ finalize_pgresult (Lisp_Object obj)
 
 #ifdef RUNNING_XEMACS_21_1
 DEFINE_LRECORD_IMPLEMENTATION ("pgresult", pgresult,
-			       mark_pgresult, print_pgresult, finalize_pgresult,
+			       print_pgresult, finalize_pgresult,
 			       NULL, NULL,
 			       Lisp_PGresult);
 #elif defined (RUNNING_XEMACS_21_4)
 DEFINE_LRECORD_IMPLEMENTATION ("pgresult", pgresult,
 			       0, /*dumpable-flag*/
-			       mark_pgresult, print_pgresult, finalize_pgresult,
+			       print_pgresult, finalize_pgresult,
 			       NULL, NULL,
 			       pgresult_description,
 			       Lisp_PGresult);
 #else
 DEFINE_NODUMP_LISP_OBJECT ("pgresult", pgresult,
-			   mark_pgresult, print_pgresult, finalize_pgresult,
+			   print_pgresult, finalize_pgresult,
 			   NULL, NULL,
 			   pgresult_description,
 			   Lisp_PGresult);

@@ -1138,7 +1138,6 @@ GLYPH_CACHEL_DESCENT (struct window *window, int ind)
 #define GLYPH_CACHEL_DIRTYP(window, ind)		\
   Dynarr_atp (window->glyph_cachels, ind)->dirty
 
-void mark_glyph_cachels (glyph_cachel_dynarr *elements);
 void mark_glyph_cachels_as_not_updated (struct window *w);
 void mark_glyph_cachels_as_clean (struct window *w);
 void reset_glyph_cachels (struct window *w);

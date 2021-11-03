@@ -27,11 +27,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include <config.h>
 
-/* Note on some machines this defines `vector' as a typedef,
-   so make sure we don't use that name in this file.  */
-#undef vector
-#define vector *****
-
 #include "lisp.h"
 
 #include "sysfile.h"
@@ -49,6 +44,11 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "insdel.h"
 #include "lstream.h"
 #include "opaque.h"
+
+/* Note on some machines this defines `vector' as a typedef,
+   so make sure we don't use that name in this file.  */
+#undef vector
+#define vector *****
 
 /* NOTE: This symbol is also used in lread.c */
 #define FEATUREP_SYNTAX

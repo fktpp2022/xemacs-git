@@ -241,23 +241,6 @@ kill_specifier_buffer_locals (Lisp_Object buffer)
     }
 }
 
-static Lisp_Object
-mark_specifier (Lisp_Object obj)
-{
-  Lisp_Specifier *specifier = XSPECIFIER (obj);
-
-  mark_object (specifier->global_specs);
-  mark_object (specifier->device_specs);
-  mark_object (specifier->frame_specs);
-  mark_object (specifier->window_specs);
-  mark_object (specifier->buffer_specs);
-  mark_object (specifier->magic_parent);
-  mark_object (specifier->fallback);
-  if (!GHOST_SPECIFIER_P (XSPECIFIER (obj)))
-    MAYBE_SPECMETH (specifier, mark, (obj));
-  return Qnil;
-}
-
 /* The idea here is that the specifier specs point to locales
    (windows, buffers, frames, and devices), and we want to make sure
    that the specs disappear automatically when the associated locale
@@ -460,9 +443,8 @@ const struct sized_memory_description specifier_empty_extra_description = {
   0, specifier_empty_extra_description_1
 };
 
-DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("specifier", specifier,
-				     mark_specifier, print_specifier,
-				     IF_OLD_GC (finalize_specifier),
+DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("specifier", specifier, print_specifier,
+				     finalize_specifier,
 				     specifier_equal, specifier_hash,
 				     specifier_description,
 				     sizeof_specifier,

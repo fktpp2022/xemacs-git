@@ -286,15 +286,6 @@ keymap_hash (Lisp_Object obj, int depth, Boolint UNUSED (equalp))
   return hash;
 }
 
-static Lisp_Object
-mark_keymap (Lisp_Object obj)
-{
-  Lisp_Keymap *keymap = XKEYMAP (obj);
-#define MARKED_SLOT(x) mark_object (keymap->x);
-#include "keymap-slots.h"
-  return Qnil;
-}
-
 static void
 print_keymap (Lisp_Object obj, Lisp_Object printcharfun,
 	      int UNUSED (escapeflag))
@@ -319,8 +310,7 @@ static const struct memory_description keymap_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_LISP_OBJECT ("keymap", keymap,
-			     mark_keymap, print_keymap, 0,
+DEFINE_DUMPABLE_LISP_OBJECT ("keymap", keymap, print_keymap, 0,
 			     keymap_equal, keymap_hash,
 			     keymap_description,
 			     Lisp_Keymap);

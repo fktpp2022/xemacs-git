@@ -216,19 +216,7 @@ static const struct memory_description char_subtable_description[] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_char_subtable (Lisp_Object obj)
-{
-  int i;
-
-  for (i = 1; i < 256; i++)
-    mark_object (XCHAR_SUBTABLE (obj)->ptr[i]);
-
-  return XCHAR_SUBTABLE (obj)->ptr[0];
-}
-
 DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("char-subtable", char_subtable,
-				      mark_char_subtable,
 				      char_subtable_description,
 				      Lisp_Char_Subtable);
 
@@ -991,17 +979,6 @@ char_table_hash (Lisp_Object obj, int depth, Boolint equalp)
   return hashval;
 }
 
-static Lisp_Object
-mark_char_table (Lisp_Object obj)
-{
-  mark_object (XCHAR_TABLE_PARENT (obj));
-  mark_object (XCHAR_TABLE_DEFAULT (obj));
-#ifdef MIRROR_TABLE
-  mark_object (XCHAR_TABLE_MIRROR_TABLE (obj));
-#endif /* MIRROR_TABLE */
-  return XCHAR_TABLE_TABLE (obj);
-}
-
 static void
 init_chartab_tables (Lisp_Object chartab)
 {
@@ -1152,7 +1129,7 @@ static const struct memory_description char_table_description[] = {
 };
 
 DEFINE_DUMPABLE_LISP_OBJECT ("char-table", char_table,
-			     mark_char_table, print_char_table, 0,
+			     print_char_table, 0,
 			     char_table_equal, char_table_hash,
 			     char_table_description,
 			     Lisp_Char_Table);
@@ -2079,16 +2056,6 @@ category_table_hash (Lisp_Object obj, int depth, Boolint equalp)
   return hashval;
 }
 
-static Lisp_Object
-mark_category_table (Lisp_Object obj)
-{
-  int i;
-
-  for (i = 0; i < CHAR_TABLES_PER_CATEGORY_TABLE; i++)
-    mark_object (XCATEGORY_TABLE_TABLES (obj)[i]);
-  return Qnil;
-}
-
 static void
 print_category_table (Lisp_Object obj, Lisp_Object printcharfun,
 		      int UNUSED (escapeflag))
@@ -2110,7 +2077,7 @@ static const struct memory_description category_table_description[] = {
 };
 
 DEFINE_DUMPABLE_LISP_OBJECT ("category-table", category_table,
-			     mark_category_table, print_category_table, 0,
+			     print_category_table, 0,
 			     category_table_equal, category_table_hash,
 			     category_table_description,
 			     Lisp_Category_Table);

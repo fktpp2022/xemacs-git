@@ -196,13 +196,6 @@ static const struct memory_description database_description[] = {
   { XD_END}
 };
 
-static Lisp_Object
-mark_database (Lisp_Object object)
-{
-  Lisp_Database *db = XDATABASE (object);
-  return db->fname;
-}
-
 static void
 print_database (Lisp_Object obj, Lisp_Object printcharfun,
 		int UNUSED (escapeflag))
@@ -236,8 +229,7 @@ finalize_database (Lisp_Object obj)
   db->funcs->close (db);
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("database", database,
-			   mark_database, print_database,
+DEFINE_NODUMP_LISP_OBJECT ("database", database, print_database,
 			   finalize_database, 0, 0, 
 			   database_description,
 			   Lisp_Database);

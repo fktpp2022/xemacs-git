@@ -580,29 +580,6 @@ static const struct memory_description gui_item_description [] = {
   { XD_END }
 };
 
-static Lisp_Object
-mark_gui_item (Lisp_Object obj)
-{
-  Lisp_Gui_Item *p = XGUI_ITEM (obj);
-
-  mark_object (p->name);
-  mark_object (p->callback);
-  mark_object (p->callback_ex);
-  mark_object (p->config);
-  mark_object (p->suffix);
-  mark_object (p->active);
-  mark_object (p->included);
-  mark_object (p->config);
-  mark_object (p->filter);
-  mark_object (p->style);
-  mark_object (p->selected);
-  mark_object (p->keys);
-  mark_object (p->accelerator);
-  mark_object (p->value);
-
-  return Qnil;
-}
-
 static Hashcode
 gui_item_hash (Lisp_Object obj, int depth, Boolint UNUSED (equalp))
 {
@@ -799,12 +776,9 @@ parse_gui_item_tree_list (Lisp_Object list)
   RETURN_UNGCPRO (ret);
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("gui-item", gui_item,
-			   mark_gui_item, external_object_printer,
-			   0, gui_item_equal,
-			   gui_item_hash,
-			   gui_item_description,
-			   Lisp_Gui_Item);
+DEFINE_NODUMP_LISP_OBJECT ("gui-item", gui_item, external_object_printer,
+			   0, gui_item_equal, gui_item_hash,
+			   gui_item_description, Lisp_Gui_Item);
 
 DOESNT_RETURN
 gui_error (const Ascbyte *reason, Lisp_Object frob)

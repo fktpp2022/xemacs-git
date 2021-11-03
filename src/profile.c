@@ -468,7 +468,7 @@ are recorded
   struct get_profiling_info_closure closure;
   Lisp_Object retv;
   int depth = internal_bind_int (&in_profiling, 1 + in_profiling);
-  const void *overhead;
+  Lisp_Object overhead;
 
   closure.timing =
     make_lisp_hash_table (100, HASH_TABLE_NON_WEAK, Qequal);
@@ -482,12 +482,13 @@ are recorded
       /* OK, OK ...  the total-timing table is not going to have an entry
 	 for profile overhead, and it looks strange for it to come out 0,
 	 so make sure it looks reasonable. */
-      if (UNBOUNDP (Fgethash (QSprofile_overhead, Vbig_profile_table,
-			      Qunbound)))
-	overhead = 0;
-      Fputhash (QSprofile_overhead, make_fixnum ((EMACS_INT) overhead),
-		Vtotal_timing_profile_table);
+      overhead = Fgethash (QSprofile_overhead, Vbig_profile_table, Qunbound);
+      if (UNBOUNDP (overhead))
+	{
+	  overhead = Qzero;
+	}
 
+      Fputhash (QSprofile_overhead, overhead, Vtotal_timing_profile_table);
       unbind_to (count);
     }
 
