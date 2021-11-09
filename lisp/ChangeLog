@@ -1,3 +1,18 @@
+2021-11-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* info.el (Info-find-file-node):
+	makeinfo(1) constructs its tag table using byte positions, and
+	with significant non-ASCII contents info files it is routine for
+	this to get out of synch with our character positions.
+	This gave difficult-to-pin-down "No such node" errors with the
+	Lispref.
+	Take the discrepancy between byte and character positions on board
+	when deciding where to start looking for a node.
+	Thank you for the investigation and bug report, Henry Thompson!
+	In passing there is no need to restrict the range of the position
+	passed to #'goto-char, it has always limited its movement to the
+	visible portion of the buffer.
+
 2021-10-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* descr-text.el (describe-char-unicodedata-file):

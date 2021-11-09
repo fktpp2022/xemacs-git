@@ -797,7 +797,14 @@ node of a file of this name."
 		      (if (not (eq major-mode found-mode))
 			  (setq guesspos
 				(Info-read-subfile guesspos))))))
-	    (goto-char (max (point-min) (- guesspos 1000)))
+	    ;; GUESSPOS is a byte offset into this file, generated in Perl by
+	    ;; makeinfo. In Lisp we work in character offsets.
+	    ;; An inclusive lower bound to the number of characters for a
+	    ;; given byte offset is (/ BYTE-OFFSET MAX_ICHAR_LEN).
+	    ;;
+	    ;; An alternative to the magic constant of 6 is the
+	    ;; following: (/ (integer-length (1- char-code-limit)) 5)
+	    (goto-char (- (/ guesspos 6) 1000))
 	    ;; Now search from our advised position (or from beg of buffer)
 	    ;; to find the actual node.
 	    (catch 'foo
