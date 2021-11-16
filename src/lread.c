@@ -2662,32 +2662,12 @@ retry:
 	      /* #@NUMBER is used to skip NUMBER following characters.
 		 That's used in .elc files to skip over doc strings
 		 and function definitions.  */
-	      UINT_32_BIT i, skip = 0, oskip = 0;
+	      INT_32_BIT i, skip = 0;
+	      Lisp_Object parsed = Qnil;
 
-	      /* Read a decimal integer.  */
-	      while ((c = readchar (readcharfun)) >= 0
-		     && c >= '0' && c <= '9')
-                {
-		  /* #### I think this logic is wrong.  Skip can be in the
-		     range 0x40000000-0xffffffff, the overflow will not
-		     trigger, but this won't fit in a fixnum. */
-                  skip = (10 * skip) + (c - '0');
-                  if (oskip <= skip)
-                    {
-                      oskip = skip;
-                    }
-                  else
-                    {
-                      /* Overflow, error. */
-                      args_out_of_range_3 (make_unsigned_integer (skip),
-                                           Qzero, make_fixnum (0x3fffffff));
-                      break;
-                    }
-                }
-
-	      if (c >= 0)
-		unreadchar (readcharfun, c);
-
+	      parsed = read_rational (readcharfun, 10);
+	      check_integer_range (parsed, Qzero, make_fixnum (0x3fffffff));
+	      skip = (INT_32_BIT) (XFIXNUM (parsed));
 	      /* FSF has code here that maybe caches the skipped
 		 string.  See above for why this is totally
 		 losing.  We handle this differently. */

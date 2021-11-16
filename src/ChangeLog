@@ -1,3 +1,10 @@
+2021-11-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lread.c (read1):
+	Just use read_rational() and check_integer_range() for the NUMBER
+	part of the #@NUMBER syntax, don't reimplement this, avoid
+	overflow issues. Thank you for the comment, Stephen Turnbull.
+
 2021-11-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove the object mark methods now KKCC is the only mark algorithm
