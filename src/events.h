@@ -1126,7 +1126,7 @@ fd_to_lisp_usid (int fd)
       return Qdiscard;
     }
 
-  assert (fd < MOST_POSITIVE_FIXNUM);
+  assert ((EMACS_INT) fd < MOST_POSITIVE_FIXNUM);
   return make_fixnum (fd);
 }
 

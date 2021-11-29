@@ -1409,7 +1409,7 @@ non_ascii_set_itext_ichar (Ibyte *str, Ichar c)
 #ifdef UNICODE_INTERNAL
   /* #### This code is duplicated in encode_unicode_to_dynarr in unicode.c.
      There should be a better way. */
-  register Bytecount bytes;
+  REGISTER Bytecount bytes;
 
   text_checking_assert (c >= 0x80);
   ASSERT_VALID_ICHAR (c);

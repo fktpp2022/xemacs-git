@@ -3911,7 +3911,7 @@ assert_failed (const Ascbyte *file, int line, const Ascbyte *expr)
      same things. */
   /* In Cygwin, abort() doesn't get trapped properly in gdb but seg faults
      do, so we resort to the same trick. */
-  * ((int *) 0) = 666;
+  * ((volatile int *) 0) = 666;
   /* RaiseException (STATUS_ASSERTION_FAILURE, EXCEPTION_NONCONTINUABLE, 0,
 	             0); */
 #else

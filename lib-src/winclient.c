@@ -272,7 +272,7 @@ closeConversation (HCONV hConv)
 int
 doFile (HCONV hConv, LPSTR lpszFileName1, LPSTR lpszFileName2)
 {
-  char            *buf = NULL;
+  LPSTR buf = NULL;
   unsigned        len;
 
   /* Calculate the buffer length */
@@ -280,7 +280,7 @@ doFile (HCONV hConv, LPSTR lpszFileName1, LPSTR lpszFileName2)
     + strlen (COMMAND_FORMAT);
 
   /* Allocate a buffer */
-  buf = (char *) xmalloc (len);
+  buf = (LPSTR) xmalloc (len);
 
   if (!buf)
     {
@@ -295,7 +295,7 @@ doFile (HCONV hConv, LPSTR lpszFileName1, LPSTR lpszFileName2)
   len++;
 
   /* OK. We're connected. Send the message. */
-  DdeClientTransaction (buf, len, hConv, NULL,
+  DdeClientTransaction ((LPBYTE) buf, len, hConv, NULL,
 			0, XTYP_EXECUTE, TRANSACTION_TIMEOUT, NULL);
 
   free (buf);
@@ -400,18 +400,16 @@ getNextArg (const char **ptr, unsigned *len)
 int
 parseCommandLine (HCONV hConv, LPSTR lpszCommandLine)
 {
-  char            *fullpath, *filepart;
+  char            *fullpath;
   char            *arg;
-  unsigned        len, pathlen;
+  unsigned        len;
   int             ret = 0;
-  HANDLE          hFindFile = NULL;
-  WIN32_FIND_DATA wfd;
 
   /* Retrieve arguments */
   while ((arg = getNextArg ((const char**)&lpszCommandLine, &len)) != NULL)
     {
-      fullpath = NULL;
 #ifdef __CYGWIN__
+      fullpath = NULL;
       /* If the filename is not an absolute path,
 	 add the current directory to the pathname */
       if (*arg != '/')
@@ -442,6 +440,11 @@ parseCommandLine (HCONV hConv, LPSTR lpszCommandLine)
 	  ret = doFile (hConv, "", arg);
 	}
 #else
+      HANDLE hFindFile = NULL;
+      WIN32_FIND_DATA wfd;
+      char *filepart;
+      unsigned pathlen;
+
       /* First find the canonical path name */
       fullpath = filepart = NULL;
       pathlen = GetFullPathName (arg, 0, fullpath, &filepart);

@@ -399,7 +399,7 @@ get_char_table_raw (Ichar ch, Lisp_Object chartab)
 #endif /* not MAXIMIZE_CHAR_TABLE_DEPTH */
 
   {
-    register Lisp_Object table = XCHAR_TABLE_TABLE (chartab);
+    REGISTER Lisp_Object table = XCHAR_TABLE_TABLE (chartab);
     /* We are really helping the compiler here.  CHARTAB_LEVELS() will
        evaluate to a constant when MAXIMIZE_CHAR_TABLE_DEPTH is true,
        so any reasonable optimizing compiler should eliminate the

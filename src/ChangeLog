@@ -1,3 +1,48 @@
+2021-11-29  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Some minor updates to get things building with clang++-8.0 on
+	Cygwin.
+
+	* emacs.c (assert_failed):
+	Make ((int *) 0) volatile, so dereferencing it is more likely to
+	crash with C++. Thank you clang++.
+
+	* events.h (fd_to_lisp_usid):
+	Avoid a tautological-comparison warning when comparing FD to
+	MOST_POSITIVE_FIXNUM by casting FD to (EMACS_INT).
+
+	* alloca.c (xemacs_c_alloca):
+	* chartab.h:
+	* compiler.h:
+	* filelock.c (lock_file):
+	* filelock.c (unlock_file):
+	* filelock.c (unlock_all_files):
+	* filelock.c (Ffile_locked_p):
+	* imgproc.c (get_histogram):
+	* imgproc.c (largest_box):
+	* imgproc.c (shrinkbox):
+	* imgproc.c (splitbox):
+	* imgproc.c (create_colorcell):
+	* imgproc.c (map_colortable):
+	* mule-ccl.c (ccl_driver):
+	* text.c (non_ascii_set_itext_ichar):
+	* unicode.c (encode_unicode_to_dynarr):
+	Never use "register" in these files, always use REGISTER, which is
+	#defined to the empty string with C++ builds.
+
+	* config.h.in:
+	New #define, DECLARE_INLINE_MODULE_API(), like
+	DECLARE_INLINE_HEADER() but for functions that should also be
+	available to modules.
+	* lisp.h:
+	Use the new #define for write_istring(), write_cistring(),
+	write_ascstring().
+	Declare write_string_1() using MODULE_API for symmetry.
+
+	* toolbar-msw.c (mswindows_output_toolbar):
+	Cast TOOLBAR_ID_BIAS to an EMACS_UINT to silence a warning
+	regarding type width with its integer cast.
+
 2021-11-16  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lread.c (read1):

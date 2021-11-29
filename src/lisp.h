@@ -5774,11 +5774,11 @@ MODULE_API Bytecount write_lisp_string (Lisp_Object stream, Lisp_Object string,
    If you would like a STREAM value of Qt, Qnil to indicate output to the
    selected frame, rather than C's standard output, call
    canonicalize_printcharfun () before calling this function. */
-Bytecount write_string_1 (Lisp_Object stream, const Ibyte *str,
-			  Bytecount size);
+MODULE_API Bytecount write_string_1 (Lisp_Object stream, const Ibyte *str,
+				      Bytecount size);
 
 /* Same goes for this function. */
-DECLARE_INLINE_HEADER (
+DECLARE_INLINE_MODULE_API (
 Bytecount write_istring (Lisp_Object stream, const Ibyte *str)
 )
 {
@@ -5788,7 +5788,7 @@ Bytecount write_istring (Lisp_Object stream, const Ibyte *str)
 			 (Bytecount) strlen ((const char *) str));
 }
 /* Same goes for this function. */
-DECLARE_INLINE_HEADER (
+DECLARE_INLINE_MODULE_API (
 Bytecount write_cistring (Lisp_Object stream, const CIbyte *str)
 )
 {
@@ -5798,7 +5798,7 @@ Bytecount write_cistring (Lisp_Object stream, const CIbyte *str)
 			 (Bytecount) strlen ((const char *) str));
 }
 /* Same goes for this function. */
-DECLARE_INLINE_HEADER (
+DECLARE_INLINE_MODULE_API (
 Bytecount write_ascstring (Lisp_Object stream, const Ascbyte *str)
 )
 {

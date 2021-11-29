@@ -132,7 +132,7 @@ pointer
 xemacs_c_alloca (size_t size)
 {
   char probe;			/* Probes stack depth: */
-  register char *depth = ADDRESS_FUNCTION (probe);
+  REGISTER char *depth = ADDRESS_FUNCTION (probe);
 
 #if STACK_DIRECTION == 0
   if (STACK_DIR == 0)		/* Unknown growth direction.  */
@@ -149,7 +149,7 @@ xemacs_c_alloca (size_t size)
       if ((STACK_DIR > 0 && hp->h.deep > depth)
 	  || (STACK_DIR < 0 && hp->h.deep < depth))
 	{
-	  register header *np = hp->h.next;
+	  REGISTER header *np = hp->h.next;
 
 #ifdef emacs
 	  xfree (hp);	/* Collect garbage.  */
@@ -178,7 +178,7 @@ xemacs_c_alloca (size_t size)
   {
 #ifdef emacs
     size_t total_size = sizeof (header) + size;
-    register pointer new_;
+    REGISTER pointer new_;
 
     if (total_size < size || ((Bytecount) (total_size) < 0))
       {

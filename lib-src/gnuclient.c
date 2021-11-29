@@ -180,7 +180,7 @@ filename_expand (char *fullpath, char *filename)
 {
   int len;
 #ifdef  CYGWIN
-  char *cygwinFilename;
+  char *cygwinFilename = NULL;
   ssize_t size;
 
   /*

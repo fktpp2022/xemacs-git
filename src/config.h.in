@@ -1078,6 +1078,14 @@ extern "C" {
 # define INLINE_HEADER inline extern
 #endif
 
+/* Sometimes a function is both inline and available to modules,
+   e.g. write_ascstring(). */
+#ifdef FORCE_INLINE_FUNCTION_DEFINITION
+# define MODULE_API_INLINE_HEADER MODULE_API /* extern, noinline is implicit */
+#else
+# define MODULE_API_INLINE_HEADER INLINE_HEADER
+#endif
+
 /* Use DECLARE_INLINE_HEADER() to declare an inline function in a header
    file, like this: (This avoids the need to write a prototype directly
    followed by the function header itself, in order to avoid a
@@ -1092,6 +1100,12 @@ extern "C" {
 
 #define DECLARE_INLINE_HEADER(header) \
   INLINE_HEADER header ; INLINE_HEADER header
+
+/* Use DECLARE_INLINE_MODULE_API() to declare an inline function in a header
+   file, which inline function should also be available to modules
+   (non-inline if necessary). */
+#define DECLARE_INLINE_MODULE_API(header) \
+  MODULE_API_INLINE_HEADER header ; MODULE_API_INLINE_HEADER header
 
 /************************* Misc defines ************************/
 

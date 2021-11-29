@@ -285,9 +285,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    just be deleted. */
 #define USED(x) ((void) (x))
 
-#ifdef DEBUG_XEMACS
+#if defined (DEBUG_XEMACS) || defined (__cplusplus)
 # define REGISTER
-# define register
 #else
 # define REGISTER register
 #endif

@@ -47,9 +47,9 @@ static void
 get_histogram(quant_table *qt, Binbyte *pic,
 	      int width, int height, Colorbox* box)
 {
-  register Binbyte *inptr;
-  register int red, green, blue;
-  register int j, i;
+  REGISTER Binbyte *inptr;
+  REGISTER int red, green, blue;
+  REGISTER int j, i;
 
   box->rmin = box->gmin = box->bmin = 999;
   box->rmax = box->gmax = box->bmax = -1;
@@ -83,8 +83,8 @@ get_histogram(quant_table *qt, Binbyte *pic,
 static Colorbox *
 largest_box(quant_table *qt)
 {
-  register Colorbox *p, *b;
-  register int size;
+  REGISTER Colorbox *p, *b;
+  REGISTER int size;
 
   b = NULL;
   size = -1;
@@ -98,7 +98,7 @@ largest_box(quant_table *qt)
 static void
 shrinkbox(quant_table *qt, Colorbox* box)
 {
-  register int *histp, ir, ig, ib;
+  REGISTER int *histp, ir, ig, ib;
 
   if (box->rmax > box->rmin)
     {
@@ -201,11 +201,11 @@ splitbox(quant_table *qt, Colorbox* ptr)
 {
   int		hist2[B_LEN];
   int		first = 0, last = 0;
-  register Colorbox	*new_;
-  register int	*iptr, *histp;
-  register int	i, j;
-  register int	ir,ig,ib;
-  register int sum, sum1, sum2;
+  REGISTER Colorbox	*new_;
+  REGISTER int	*iptr, *histp;
+  REGISTER int	i, j;
+  REGISTER int	ir,ig,ib;
+  REGISTER int sum, sum1, sum2;
   enum { RED, GREEN, BLUE } axis;
 
   /*
@@ -331,10 +331,10 @@ splitbox(quant_table *qt, Colorbox* ptr)
 static C_cell *
 create_colorcell(quant_table *qt, int num_colors, int red, int green, int blue)
 {
-  register int ir, ig, ib, i;
-  register C_cell *ptr;
+  REGISTER int ir, ig, ib, i;
+  REGISTER C_cell *ptr;
   int mindist, next_n;
-  register int tmp, dist, n;
+  REGISTER int tmp, dist, n;
 
   ir = red >> (COLOR_DEPTH-C_DEPTH);
   ig = green >> (COLOR_DEPTH-C_DEPTH);
@@ -424,9 +424,9 @@ create_colorcell(quant_table *qt, int num_colors, int red, int green, int blue)
 static int
 map_colortable(quant_table *qt, int num_colors)
 {
-  register int *histp = &(qt->histogram[0][0][0]);
-  register C_cell *cell;
-  register int j, tmp, d2, dist;
+  REGISTER int *histp = &(qt->histogram[0][0][0]);
+  REGISTER C_cell *cell;
+  REGISTER int j, tmp, d2, dist;
   int ir, ig, ib, i;
 
   for (ir = 0; ir < B_LEN; ++ir)

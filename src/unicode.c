@@ -3013,8 +3013,8 @@ encode_unicode_to_dynarr (int code, struct coding_stream *str,
 	  Dynarr_add (dst, (unsigned char) code);
 	else
 	  {
-	    register int bytes;
-	    register unsigned char *dstp;
+	    REGISTER int bytes;
+	    REGISTER unsigned char *dstp;
 
           reconsider_length:
 	    if (code <= 0x7ff) bytes = 2;

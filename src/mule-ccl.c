@@ -976,11 +976,11 @@ ccl_driver (struct ccl_program *ccl,
 	    int *consumed,
 	    int conversion_mode)
 {
-  register EMACS_INT *reg = ccl->reg;
-  register EMACS_INT ic = ccl->ic;
-  register EMACS_INT code = -1;
-  register EMACS_INT field1, field2;
-  register Lisp_Object *ccl_prog = ccl->prog;
+  REGISTER EMACS_INT *reg = ccl->reg;
+  REGISTER EMACS_INT ic = ccl->ic;
+  REGISTER EMACS_INT code = -1;
+  REGISTER EMACS_INT field1, field2;
+  REGISTER Lisp_Object *ccl_prog = ccl->prog;
   const unsigned char *src = source, *src_end = src + src_bytes;
   int jump_address;
   int stack_idx = ccl->stack_idx;

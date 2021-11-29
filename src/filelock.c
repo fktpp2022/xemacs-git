@@ -317,8 +317,8 @@ lock_file (Lisp_Object fn)
   /* Somebody updated the code in this function and removed the previous
      comment.  -slb */
 
-  register Lisp_Object attack, orig_fn;
-  register Ibyte *lfname;
+  REGISTER Lisp_Object attack, orig_fn;
+  REGISTER Ibyte *lfname;
   lock_info_type lock_info;
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
   Lisp_Object old_current_buffer, subject_buf = Qnil, locker = Qnil;
@@ -375,7 +375,7 @@ void
 unlock_file (Lisp_Object fn)
 {
   /* This can GC */
-  register Ibyte *lfname;
+  REGISTER Ibyte *lfname;
   struct gcpro gcpro1;
 
   GCPRO1 (fn);
@@ -393,7 +393,7 @@ unlock_file (Lisp_Object fn)
 void
 unlock_all_files (void)
 {
-  register Lisp_Object tail;
+  REGISTER Lisp_Object tail;
 
   for (tail = Vbuffer_alist; CONSP (tail); tail = XCDR (tail))
     {
@@ -462,7 +462,7 @@ t if it is locked by you, else a string of the name of the locker.
        (filename))
 {
   Lisp_Object ret;
-  register Ibyte *lfname;
+  REGISTER Ibyte *lfname;
   int owner;
   lock_info_type locker;
   struct gcpro gcpro1;

@@ -367,7 +367,7 @@ mswindows_output_toolbar (struct frame *f, enum edge_pos pos)
 			      | CCS_ADJUSTABLE,
 			      x, y, bar_width, bar_height,
 			      FRAME_MSWINDOWS_HANDLE (f),
-			      (HMENU)(TOOLBAR_ID_BIAS + pos),
+			      (HMENU)((EMACS_UINT) TOOLBAR_ID_BIAS + pos),
 			      NULL, 
 			      NULL))==NULL)
 	{
