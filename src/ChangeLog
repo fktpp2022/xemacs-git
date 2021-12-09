@@ -1,3 +1,12 @@
+2021-12-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* text.h:
+	Remove the STRIDE typedef, which is just sizeof (STRIDE_TYPE) and
+	adds no generality, and conflicts with system-specific code
+	looking for features specific to a m68k machine of the
+	1980s. This may well fix a subprocess problem on recent
+	Cygwin. Thank you for the report, Henry Thompson!
+
 2021-11-29  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Some minor updates to get things building with clang++-8.0 on

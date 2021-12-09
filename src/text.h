@@ -1578,7 +1578,6 @@ charcount_to_bytecount_fmt (const Ibyte *ptr, Charcount len,
 #define STRIDE_ALIGN_BITS ((EMACS_UINT) (ALIGNOF (STRIDE_TYPE) - 1))
 #define STRIDE_ALIGN_MASK (~ STRIDE_ALIGN_BITS)
 #define STRIDE_ALIGNED(ptr) ((((EMACS_UINT) ptr) & STRIDE_ALIGN_BITS) == 0)
-#define STRIDE sizeof (STRIDE_TYPE)
 
 /* Skip as many ASCII bytes as possible in the memory block [PTR, END).
    Return pointer to the first non-ASCII byte.  optimized for long
@@ -1601,7 +1600,7 @@ skip_ascii (const Ibyte *ptr, const Ibyte *end)
   ascii_end = (const unsigned STRIDE_TYPE *) ptr;
   /* This loop screams, because we can detect ASCII
      characters 4 or 8 at a time. */
-  while ((const Ibyte *) ascii_end + STRIDE <= end
+  while ((const Ibyte *) ascii_end + sizeof (STRIDE_TYPE) <= end
 	 && !(*ascii_end & HIGH_BIT_MASK))
     ascii_end++;
   ptr = (Ibyte *) ascii_end;
