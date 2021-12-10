@@ -1,3 +1,12 @@
+2021-12-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* text.c (check_coerce_octet):
+	* text.c (get_external_charset_codepoint):
+	* unicode.c (verify_load_unicode_args):
+	Avoid problems in these functions when the result of XFIXNUM() is
+	cast to int, check the range appropriately first. Thank you for
+	the bug report, Mats Lidell!
+
 2021-12-09  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* text.h:

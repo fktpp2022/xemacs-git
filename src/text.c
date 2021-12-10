@@ -5476,11 +5476,12 @@ static int
 check_coerce_octet (Lisp_Object charset, Lisp_Object arg, int low, int high,
 		    int munge_codepoints)
 {
-  int retval;
-  CHECK_FIXNUM (arg);
-  retval = XFIXNUM (arg);
+  EMACS_INT retval;
   if (munge_codepoints)
     {
+      CHECK_FIXNUM (arg);
+      retval = XFIXNUM (arg);
+
       if (EQ (charset, Vcharset_control_1) && retval >= 0 && retval < 32)
 	retval += 128;
       else if (get_charset_iso2022_type (charset) >= 0)
@@ -5495,9 +5496,17 @@ check_coerce_octet (Lisp_Object charset, Lisp_Object arg, int low, int high,
 	  if (low >= 128 && retval + 128 >= low && retval + 128 <= high)
 	    retval += 128;
 	}
+      check_integer_range (make_fixnum (retval),
+			   make_fixnum (low),
+			   make_fixnum (high));
     }
-  check_integer_range (make_fixnum (retval), make_fixnum (low), make_fixnum (high));
-  return retval;
+  else
+    {
+      check_integer_range (arg, make_fixnum (low), make_fixnum (high));
+      retval = XFIXNUM (arg);
+    }
+
+  return (int) retval;
 }
 
 #endif /* MULE */
@@ -5538,30 +5547,39 @@ get_external_charset_codepoint (Lisp_Object charset,
   return charset;
 #else /* not MULE */
   CHECK_SYMBOL (charset);
-  CHECK_FIXNUM (arg1);
   CHECK_NIL (arg2);
   *a1 = 0;
-  *a2 = XFIXNUM (arg1);
   if (EQ (charset, Vcharset_ascii))
-    check_integer_range (make_fixnum (*a2), Qzero, make_fixnum (255));
+    {
+      check_integer_range (arg1, Qzero, make_fixnum (255));
+    }
   else if (munge_codepoints)
     {
+      EMACS_INT a1val;
+
       /* If munge checkpoints, we are very free with what we allow, just
 	 to make sure we're backward-compatible with various versions of
 	 XEmacs and GNU Emacs, and coerce to the proper range. */
-      check_integer_range (make_fixnum (*a2), Qzero, make_fixnum (255));
+      check_integer_range (arg1, Qzero, make_fixnum (255));
+
+      a1val = XFIXNUM (arg1);
+
       if (EQ (charset, Vcharset_control_1))
-	*a2 = (*a2 & 0x1F) + 128;
+	a1val = (a1val & 0x1F) + 128;
       else
-	*a2 = (*a2 & 0x7F) + 128;
+	a1val = (a1val & 0x7F) + 128;
+
+      arg1 = make_fixnum (a1val);
     }
   else
     {
       if (EQ (charset, Vcharset_control_1))
-        check_integer_range (make_fixnum (*a2), make_fixnum (128), make_fixnum (159));
+        check_integer_range (arg1, make_fixnum (128), make_fixnum (159));
       else
-        check_integer_range (make_fixnum (*a2), make_fixnum (160), make_fixnum (255));
+        check_integer_range (arg1, make_fixnum (160), make_fixnum (255));
     }
+
+  *a2 = XFIXNUM (arg1);
   return Vcharset_ascii;
 #endif /* (not) MULE */
 }

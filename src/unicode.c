@@ -2215,17 +2215,17 @@ verify_load_unicode_args (Lisp_Object filename, Lisp_Object start,
   CHECK_STRING (filename);
   if (!NILP (start))
     {
-      CHECK_FIXNUM (start);
+      check_integer_range (start, Qzero, make_integer (0x3fffffff));
       *st = XFIXNUM (start);
     }
   if (!NILP (end))
     {
-      CHECK_FIXNUM (end);
+      check_integer_range (end, Qzero, make_integer (0x3fffffff));
       *en = XFIXNUM (end);
     }
   if (!NILP (offset))
     {
-      CHECK_FIXNUM (offset);
+      check_integer_range (offset, Qzero, make_integer (0x3fffffff));
       *of = XFIXNUM (offset);
     }
 
@@ -2301,7 +2301,6 @@ Unicode tables or in the charset:
 `big5'
   The charset codepoints are Big Five codepoints; convert it to the
   hacked-up Mule codepoint in `chinese-big5-1' or `chinese-big5-2'.
-  Not when (featurep 'unicode-internal).
 */
      (filename, charset, start, end, offset, flags))
 {
