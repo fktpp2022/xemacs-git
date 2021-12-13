@@ -174,7 +174,7 @@ set_exclusive_use (
 
 void
 set_descriptor_non_blocking (
-#if defined (STRIDE) || (defined (pfa) && defined (HAVE_PTYS)) || defined (AIX) || defined (F_SETFL)
+#if (defined (pfa) && defined (HAVE_PTYS)) || defined (AIX) || defined (F_SETFL)
 			     int fd
 #else
 			     int UNUSED (fd)
@@ -187,7 +187,7 @@ set_descriptor_non_blocking (
      It seems that O_NONBLOCK applies only to FIFOs?  From
      lowry@watson.ibm.com (Andy Lowry). */
   /* #### Should this be conditionalized on FIONBIO? */
-#if defined (STRIDE) || (defined (pfa) && defined (HAVE_PTYS)) || defined (AIX)
+#if (defined (pfa) && defined (HAVE_PTYS)) || defined (AIX)
 #if !defined(WIN32_NATIVE)
   {
     int one = 1;

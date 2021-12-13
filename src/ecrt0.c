@@ -173,19 +173,10 @@ start1 (CRT0_DUMMIES int argc, char *xargv)
 	asm ("	text");
 	asm ("_start:");
 #ifndef NU
-#ifdef STRIDE
-	asm ("	comm	havefpu%,2");
-#else /* m68k, not STRIDE */
 	asm ("  comm	splimit%,4");
-#endif /* STRIDE */
 	asm ("	global	exit");
 	asm ("	text");
-#ifdef STRIDE
-	asm ("	trap	&3");
-	asm ("	mov.w	%d0,havefpu%");
-#else /* m68k, not STRIDE */
   	asm ("	mov.l	%d0,splimit%");
-#endif /* STRIDE */
 #endif /* not NU */
 	asm ("	jsr	start1");
 	asm ("	mov.l	%d0,(%sp)");

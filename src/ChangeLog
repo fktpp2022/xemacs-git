@@ -1,3 +1,10 @@
+2021-12-13  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* ecrt0.c:
+	* sysdep.c:
+	Remove checks for the STRIDE #define from these files, specific to
+	a machine no longer in wide use.
+	
 2021-12-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* text.c (check_coerce_octet):
