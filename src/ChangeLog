@@ -1,5 +1,19 @@
 2021-12-16  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove the NEED_SYNC_PROCESS_CODE, which only applied to
+	Unix-oriented systems that either lack job control, mkdir, or
+	rmdir. This are very very thin on the ground today, and anyone
+	with one of those systems is welcome to use 21.4 or an earlier
+	beta of 21.5.
+	Change generated with unifdef -UNEED_SYNC_PROCESS_CODE and some
+	manual editing.
+
+	* process-unix.c (unix_reap_exited_processes): As above.
+	* sysdep.c: Ditto.
+	* sysproc.h (qxe_getpid): Ditto.
+
+2021-12-16  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* sysdep.c:
 	* systty.h:
 	* unexec.c (adjust_lnnoptrs):

@@ -1449,36 +1449,6 @@ unix_reap_exited_processes (void)
 		}
 	    }
 	}
-#ifdef NEED_SYNC_PROCESS_CODE
-      else
-	{
-          /* There was no asynchronous process found for that id.  Check
-	     if we have a synchronous process. Only set sync process status
-	     if there is one, so we work OK with the waitpid() call in
-	     wait_for_termination(). */
-	  if (synch_process_alive != 0)
-	    { /* Set the global sync process status variables. */
-	      synch_process_alive = 0;
-
-	      /* Report the status of the synchronous process.  */
-	      if (WIFEXITED (w))
-		synch_process_retcode = WEXITSTATUS (w);
-	      else if (WIFSIGNALED (w))
-		{
-		  Ibyte *spd;
-		  GET_STRSIGNAL (spd, WTERMSIG (w));
-
-		  if (synch_process_death != NULL)
-		    {
-		      xfree ((void *)synch_process_death);
-		    }
-
-		  /* Move the string to the heap. */
-		  synch_process_death = qxestrdup (spd);
-		}
-	    }
-        }
-#endif /* NEED_SYNC_PROCESS_CODE */
     }
 
   exited_processes_index = 0;

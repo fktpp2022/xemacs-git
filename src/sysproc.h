@@ -171,36 +171,4 @@ int qxe_execve (const Ibyte *filename, Ibyte * const argv[],
 		Ibyte * const envp[]);
 pid_t qxe_getpid (void);
 
-/* #### I would really like to delete the remaining synchronous code entirely.
-   We are now using it only for *REALLY* old systems -- how many systems
-   nowadays
-
-   (a) lack job control, or
-   (b) lack mkdir() or rmdir()
-
-   ?????
-
-   --ben
-*/
-
-#include "syssignal.h" /* needed for SIGTSTP */
-
-#if !defined (WIN32_NATIVE) && (!defined (SIGTSTP) || !defined (HAVE_MKDIR) || !defined (HAVE_RMDIR))
-
-#define NEED_SYNC_PROCESS_CODE
-
-/* True iff we are about to fork off a synchronous process or if we
-   are waiting for it.  */
-extern volatile int synch_process_alive;
-
-/* Nonzero => this is a string explaining death of synchronous subprocess.  */
-extern const char *synch_process_death;
-
-/* If synch_process_death is zero,
-   this is exit code of synchronous subprocess.  */
-extern int synch_process_retcode;
-
-#endif
-
-
 #endif /* INCLUDED_sysproc_h_ */
