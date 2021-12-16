@@ -955,13 +955,8 @@ adjust_lnnoptrs (writedesc, readdesc, new_name)
 {
   int nsyms;
   int new_;
-#if defined defined (pfa)
-  SYMENT symentry;
-  AUXENT auxentry;
-#else
   struct syment symentry;
   union auxent auxentry;
-#endif
 
   if (!lnnoptr || !f_hdr.f_symptr)
     return 0;

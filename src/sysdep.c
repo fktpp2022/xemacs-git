@@ -174,20 +174,18 @@ set_exclusive_use (
 
 void
 set_descriptor_non_blocking (
-#if (defined (pfa) && defined (HAVE_PTYS)) || defined (AIX) || defined (F_SETFL)
+#if defined (AIX) || defined (F_SETFL)
 			     int fd
 #else
 			     int UNUSED (fd)
 #endif
 			     )
 {
-/* Stride people say it's a mystery why this is needed
-   as well as the O_NDELAY, but that it fails without this.  */
   /* For AIX: Apparently need this for non-blocking reads on sockets.
      It seems that O_NONBLOCK applies only to FIFOs?  From
      lowry@watson.ibm.com (Andy Lowry). */
   /* #### Should this be conditionalized on FIONBIO? */
-#if (defined (pfa) && defined (HAVE_PTYS)) || defined (AIX)
+#ifdef AIX
 #if !defined(WIN32_NATIVE)
   {
     int one = 1;

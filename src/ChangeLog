@@ -1,3 +1,10 @@
+2021-12-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* sysdep.c:
+	* systty.h:
+	* unexec.c (adjust_lnnoptrs):
+	Remove checks for obsolete system-specific pfa #define.
+
 2021-12-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* ecrt0.c:

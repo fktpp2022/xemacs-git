@@ -116,9 +116,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <sys/pty.h>
 #endif
 
-/* XEmacs: removed some random if defined (pfa) crap for FASYNC (SIGIO).
-   We've cleaned SIGIO up. */
-
 
 /* ----------------------------------------------------- */
 /*           inhibiting particular features              */
