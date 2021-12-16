@@ -4,6 +4,8 @@
 	* systty.h:
 	* unexec.c (adjust_lnnoptrs):
 	Remove checks for obsolete system-specific pfa #define.
+	* unexec.c: Remove this file completely, missed in the definitive
+	move to PDUMP.
 
 2021-12-13  Aidan Kehoe  <kehoea@parhasard.net>
 
