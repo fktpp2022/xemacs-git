@@ -1,3 +1,9 @@
+2021-12-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fns.c (bytecode_nconc2):
+	Add a RETURN_NOT_REACHED(Qnil) to this function, quieting g++-6.0
+	regarding a non-void function not returning.
+
 2021-12-16  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove the NEED_SYNC_PROCESS_CODE, which only applied to

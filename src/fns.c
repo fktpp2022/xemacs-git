@@ -2021,6 +2021,8 @@ bytecode_nconc2 (Lisp_Object *args)
       args[0] = wrong_type_argument (args[0], Qlistp);
       goto retry;
     }
+
+  RETURN_NOT_REACHED (Qnil);
 }
 
 DEFUN ("nconc", Fnconc, 0, MANY, 0, /*
