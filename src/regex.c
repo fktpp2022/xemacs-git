@@ -658,13 +658,25 @@ typedef enum
     (destination)[1] = (number) >> 8;					\
   } while (0)
 
+/* Like STORE_NUMBER(), but check that the destination addresses are between
+   PSTART and PEND, assumed to be available within re_match_2_internal(). */
+#define STORE_MATCH_NUMBER(destination, number)				\
+  do {									\
+    if (destination + 1 >= pend || destination < pstart)		\
+      {									\
+	FREE_VARIABLES ();						\
+	return -2;							\
+      }									\
+    STORE_NUMBER (destination, number);					\
+  } while (0)
+
 /* Same as STORE_NUMBER, except increment DESTINATION to
    the byte after where the number is stored.  Therefore, DESTINATION
    must be an lvalue.  */
 
-#define STORE_NUMBER_AND_INCR(destination, number)			\
+#define STORE_MATCH_NUMBER_AND_INCR(destination, number)		\
   do {									\
-    STORE_NUMBER (destination, number);					\
+    STORE_MATCH_NUMBER (destination, number);				\
     (destination) += 2;							\
   } while (0)
 
@@ -719,7 +731,7 @@ extract_number_and_incr (re_char **source)
   return num;
 }
 
-/* Similar to EXTRACT_NONNEGATIVE_AND_INCR, but treat the two bytes at SOURCE
+/* Similar to EXTRACT_NUMBER_AND_INCR, but treat the two bytes at SOURCE
    as an unsigned sixteen bit little-endian value. */
 #define EXTRACT_NONNEGATIVE_AND_INCR(destination, source)               \
   ((destination) = extract_nonnegative_and_incr ((re_char **) (&source)))
@@ -5555,6 +5567,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
   /* Where we are in the pattern, and the end of the pattern.  */
   unsigned char *p = bufp->buffer;
+  const re_char *pstart = p;
   REGISTER re_char *pend = p + bufp->used;
 
   /* Mark the opcode just after a start_memory, so we can test for an
@@ -6823,14 +6836,13 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
                mcnt--;
 	       p += 2;
                DEBUG_MATCH_PRINT3 ("  Setting 0x%lx to %d.\n", (long) p, mcnt);
-               STORE_NUMBER_AND_INCR (p, mcnt);
+               STORE_MATCH_NUMBER_AND_INCR (p, mcnt);
             }
 	  else
             {
               DEBUG_MATCH_PRINT2 ("  Setting two bytes from 0x%lx to no_op.\n",
 			    (long) (p+2));
-	      p[2] = (unsigned char) no_op;
-              p[3] = (unsigned char) no_op;
+	      STORE_MATCH_NUMBER (p + 2, no_op);
               goto on_failure;
             }
           break;
@@ -6843,7 +6855,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
           if (mcnt)
             {
                mcnt--;
-               STORE_NUMBER (p + 2, mcnt);
+               STORE_MATCH_NUMBER (p + 2, mcnt);
 	       goto unconditional_jump;
             }
           /* If don't have to jump any more, skip over the rest of command.  */
@@ -6857,12 +6869,13 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
             DEBUG_MATCH_PRINT1 ("EXECUTING set_number_at.\n");
 
             EXTRACT_NUMBER_AND_INCR (mcnt, p);
-	    /* Discard 'const', making re_search non-reentrant.  */
+	    /* Discard 'const', making re_match_2_internal()
+	       non-reentrant.  */
 	    p2 = (unsigned char *) p + mcnt;
             EXTRACT_NONNEGATIVE_AND_INCR (mcnt, p);
 
             DEBUG_MATCH_PRINT3 ("  Setting 0x%lx to %d.\n", (long) p2, mcnt);
-	    STORE_NUMBER (p2, mcnt);
+	    STORE_MATCH_NUMBER (p2, mcnt);
             break;
           }
 

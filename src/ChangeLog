@@ -1,6 +1,18 @@
 2021-12-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* regex.c:
+	* regex.c (STORE_MATCH_NUMBER): New #define.
+	* regex.c (STORE_MATCH_NUMBER_AND_INCR): New #define.
+	* regex.c (re_match_2_internal):
+	Within this function, when writing to the compiled regexp, check
+	the destination address for validity and give up, returning -2, if
+	it is invalid. A good idea generally, and done today in
+	preparation for moving the pattern buffer to the stack in
+	re_match_2_internal(), making it truly re-entrant.
+
+2021-12-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* regex.c:
 	* regex.c (re_search_2):
 	* regex.c (re_match_2_internal):
 	In offset_post_relocation(), check LISPOBJ's BYTE_BUF_BEG rather
