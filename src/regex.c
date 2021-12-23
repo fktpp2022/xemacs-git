@@ -5566,9 +5566,9 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
   re_char *d, *dend;
 
   /* Where we are in the pattern, and the end of the pattern.  */
-  unsigned char *p = bufp->buffer;
-  const re_char *pstart = p;
-  REGISTER re_char *pend = p + bufp->used;
+  unsigned char *p;
+  re_char *pstart;
+  REGISTER re_char *pend;
 
   /* Mark the opcode just after a start_memory, so we can test for an
      empty subpattern when we get to the stop_memory.  */
@@ -5698,7 +5698,15 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
   BEGIN_REGEX_MALLOC_OK ();
   INIT_FAIL_STACK ();
+  p = (unsigned char *) ALLOCA (bufp->used);
   END_REGEX_MALLOC_OK ();
+
+  /* re_match_2_internal() modifies the compiled pattern (see the succeed_n,
+     jump_n, set_number_at opcodes), make it re-entrant by working on a
+     copy. This should also give better locality of reference. */
+  memcpy (p, bufp->buffer, bufp->used);
+  pstart = (re_char *) p;
+  pend = pstart + bufp->used;
 
 #ifdef MATCH_MAY_ALLOCATE
   /* Do not bother to initialize all the register variables if there are

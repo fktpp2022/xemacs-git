@@ -553,15 +553,10 @@ looking_at_1 (Lisp_Object string, struct buffer *buf, int posix, int nodata)
   s1 = p2 - p1;
   s2 = BYTE_BUF_ZV (buf) - p2;
 
-  /* By making the regex object, regex buffer, and syntax cache arguments
-     to re_{search,match}{,_2}, we've removed the need to do nasty things
-     to deal with regex reentrancy. (See stack trace in signal.c for proof
-     that this can happen.)
-
-     #### there is still a potential problem with the regex cache --
-     the compiled regex could be overwritten.  we'd need 20-fold
-     reentrancy, though.  Fix this. */
-
+  /* By making the regex object, regex buffer, and syntax cache arguments to
+     re_{search,match}{,_2}, and by having re_match_2_internal() work on
+     (and modify) its own copy of the cached compiled pattern, we've removed
+     the need to do nasty things to deal with regex reentrancy. */
   i = re_match_2 (bufp, (char *) BYTE_BUF_BYTE_ADDRESS (buf, p1),
 		  s1, (char *) BYTE_BUF_BYTE_ADDRESS (buf, p2), s2,
 		  BYTE_BUF_PT (buf) - BYTE_BUF_BEGV (buf),
@@ -685,14 +680,9 @@ string_match_1 (Lisp_Object regexp, Lisp_Object string, Lisp_Object start,
     struct syntax_cache *scache = &scache_struct;
   
     /* By making the regex object, regex buffer, and syntax cache arguments
-       to re_{search,match}{,_2}, we've removed the need to do nasty things
-       to deal with regex reentrancy. (See stack trace in signal.c for proof
-       that this can happen.)
-       
-       #### there is still a potential problem with the regex cache --
-       the compiled regex could be overwritten.  we'd need 20-fold
-       reentrancy, though.  Fix this. */
-
+       to re_{search,match}{,_2}, and by having re_match_2_internal() work
+       on (and modify) its own copy of the cached compiled pattern, we've
+       removed the need to do nasty things to deal with regex reentrancy. */
     val = re_search (bufp, (char *) XSTRING_DATA (string),
 		     XSTRING_LENGTH (string), bis,
 		     XSTRING_LENGTH (string) - bis,
@@ -800,15 +790,10 @@ fast_string_match (Lisp_Object regexp, const Ibyte *nonreloc,
   if (!NILP (reloc))
     newnonreloc = XSTRING_DATA (reloc);
 
-  /* By making the regex object, regex buffer, and syntax cache arguments
-     to re_{search,match}{,_2}, we've removed the need to do nasty things
-     to deal with regex reentrancy. (See stack trace in signal.c for proof
-     that this can happen.)
-
-     #### there is still a potential problem with the regex cache --
-     the compiled regex could be overwritten.  we'd need 20-fold
-     reentrancy, though.  Fix this. */
-  
+  /* By making the regex object, regex buffer, and syntax cache arguments to
+     re_{search,match}{,_2}, and by having re_match_2_internal() work on
+     (and modify) its own copy of the cached compiled pattern, we've removed
+     the need to do nasty things to deal with regex reentrancy. */
   val = re_search (bufp, (char *) newnonreloc + offset, length, 0,
 		   length, 0, reloc, 0, scache);
 
@@ -1635,14 +1620,10 @@ search_buffer (struct buffer *buf, Lisp_Object string, Bytebpos pos,
   
 	  QUIT;
 	  /* By making the regex object, regex buffer, and syntax cache
-	     arguments to re_{search,match}{,_2}, we've removed the need to
-	     do nasty things to deal with regex reentrancy. (See stack
-	     trace in signal.c for proof that this can happen.)
-
-	     #### there is still a potential problem with the regex cache --
-	     the compiled regex could be overwritten.  we'd need 20-fold
-	     reentrancy, though.  Fix this. */
-
+	     arguments to re_{search,match}{,_2}, and by having
+	     re_match_2_internal() work on (and modify) its own copy of the
+	     cached compiled pattern, we've removed the need to do nasty
+	     things to deal with regex reentrancy. */
 	  val = re_search_2 (bufp,
 			     (char *) BYTE_BUF_BYTE_ADDRESS (buf, p1), s1,
 			     (char *) BYTE_BUF_BYTE_ADDRESS (buf, p2), s2,

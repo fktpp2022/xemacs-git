@@ -1,5 +1,19 @@
 2021-12-23  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* regex.c (re_match_2_internal): Make an ALLOCA() copy of
+	BUFP->BUFFER, and work on that, so we're never modifying the
+	cached compiled regexp, and we're not in danger of bugs with
+	re-entrancy.
+
+	* search.c (looking_at_1):
+	* search.c (string_match_1):
+	* search.c (fast_string_match):
+	* search.c (search_buffer):
+	Update comments regarding re-entrancy and the compiled regexps in
+	these functions.
+
+2021-12-23  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* regex.c:
 	* regex.c (STORE_MATCH_NUMBER): New #define.
 	* regex.c (STORE_MATCH_NUMBER_AND_INCR): New #define.
