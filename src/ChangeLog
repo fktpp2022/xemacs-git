@@ -1,3 +1,14 @@
+2021-12-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* regex.c:
+	* regex.c (re_search_2):
+	* regex.c (re_match_2_internal):
+	In offset_post_relocation(), check LISPOBJ's BYTE_BUF_BEG rather
+	that BYTE_BUF_BEGV(), given that it is possible that Lisp has
+	changed the buffer's narrowing with re-entrant calls to these
+	functions.
+	Declare orig_buftext as const.
+
 2021-12-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* fns.c (bytecode_nconc2):

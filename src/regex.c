@@ -443,19 +443,22 @@ offset_to_charxpos (Lisp_Object lispobj, int off)
 
 #ifdef REL_ALLOC
 
-/* STRING1 is the value of STRING1 given to re_match_2().  LISPOBJ is
-   the Lisp object (if any) from which the string is taken.  If LISPOBJ
-   is a buffer, return a relocation offset to be added to all pointers to
-   string data so that they will be accurate again, after an allocation or
-   reallocation that potentially relocated the buffer data.
-*/
+/* ORIG_BUFTEXT is the address of BYTE_BUF_BEG (XBUFFER (lispobj)) as of
+   entry to re_match_2_internal(), or as of last call to
+   RE_MATCH_RELOCATE_MOVEABLE_DATA_POINTERS() when a relocation was done.
+   LISPOBJ is the Lisp object (if any) from which the string to be searched
+   is taken.
+
+   If LISPOBJ is a buffer, return a relocation offset to be added to all
+   pointers to string data so that they will be accurate again, after an
+   allocation or reallocation that potentially relocated the buffer data. */
 static inline Bytecount
-offset_post_relocation (Lisp_Object lispobj, Ibyte *orig_buftext)
+offset_post_relocation (Lisp_Object lispobj, const Ibyte *orig_buftext)
 {
   if (!BUFFERP (lispobj))
     return 0;
   return (BYTE_BUF_BYTE_ADDRESS (XBUFFER (lispobj),
-				 BYTE_BUF_BEGV (XBUFFER (lispobj))) -
+				 BYTE_BUF_BEG (XBUFFER (lispobj))) -
 	  orig_buftext);
 }
 
@@ -5038,10 +5041,10 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
 #ifdef emacs
   Internal_Format fmt = buffer_or_other_internal_format (lispobj);
 #ifdef REL_ALLOC
-  Ibyte *orig_buftext =
+  const Ibyte *orig_buftext =
     BUFFERP (lispobj) ?
     BYTE_BUF_BYTE_ADDRESS (XBUFFER (lispobj),
-			   BYTE_BUF_BEGV (XBUFFER (lispobj))) :
+			   BYTE_BUF_BEG (XBUFFER (lispobj))) :
     0;
 #endif
 #ifdef ERROR_CHECK_MALLOC
@@ -5666,10 +5669,10 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 #ifdef emacs
   Internal_Format fmt = buffer_or_other_internal_format (lispobj);
 #ifdef REL_ALLOC
-  Ibyte *orig_buftext =
+  const Ibyte *orig_buftext =
     BUFFERP (lispobj) ?
     BYTE_BUF_BYTE_ADDRESS (XBUFFER (lispobj),
-			   BYTE_BUF_BEGV (XBUFFER (lispobj))) :
+			   BYTE_BUF_BEG (XBUFFER (lispobj))) :
     0;
 #endif
 
