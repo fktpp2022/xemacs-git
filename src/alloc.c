@@ -5352,9 +5352,7 @@ common_init_alloc_early (void)
   mallopt (M_MMAP_MAX, 64); /* max. number of mmap'ed areas */
 #endif
 #endif
-  init_string_chars_alloc ();
   init_string_alloc ();
-  /* #### Is it intentional that this is called twice? --ben */
   init_string_chars_alloc ();
   init_cons_alloc ();
   init_symbol_alloc ();

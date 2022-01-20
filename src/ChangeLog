@@ -1,3 +1,12 @@
+2022-01-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* alloc.c (common_init_alloc_early):
+	Don't call init_string_chars_alloc twice; the only effect of this
+	is that the first first_string_chars_block struct allocated is
+	leaked, confirmed uambiguously by valgrind for me today, thank you
+	valgrind.
+	Thank you also Ben for raising the issue in a comment.
+
 2021-12-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* regex.c (re_match_2_internal): Make an ALLOCA() copy of
