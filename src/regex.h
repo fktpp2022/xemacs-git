@@ -342,6 +342,27 @@ typedef enum
 #endif
 } reg_errcode_t;
 
+
+/* This is not an arbitrary limit: the arguments which represent offsets
+   into the pattern are two bytes long.  So if 2^16 bytes turns out to
+   be too small, many things would have to change.  */
+#define RE_MAX_BUF_SIZE (1L << 16)
+
+/* Internal register numbers are stored in opcodes as 2 byte
+   integers. Previously they were just one byte, and this was limited to 255,
+   but even shy groups need internal register numbers (something not true in
+   GNU Emacs; this should be looked at further, thank you ooglyhLL in Heptapod
+   issue 1; relevant GNU change is from Stefan Monnier of 2000-03-08, git ID
+   505bde11b0f) and so 255 is unreasonably small.
+
+   Each register in the pattern needs at least a start_memory (five bytes in
+   the buffer) and a stop_memory (five bytes in the buffer), so RE_MAX_BUF_SIZE
+   / 10 is a reasonable limit. */
+#define MAX_REGNUM ((RE_MAX_BUF_SIZE) / 10)
+
+typedef int regnum_t;
+
+
 /* This data structure represents a compiled pattern.  Before calling
    the pattern compiler, the fields `buffer', `allocated', `fastmap',
    `translate', and `no_sub' can be set.  After the pattern has been
@@ -357,10 +378,10 @@ struct re_pattern_buffer
   unsigned char *buffer;
 
 	/* Number of bytes to which `buffer' points.  */
-  long allocated;
+  Bytecount allocated;
 
 	/* Number of bytes actually used in `buffer'.  */
-  long used;
+  Bytecount used;
 
         /* Syntax setting with which the pattern was compiled.  */
   reg_syntax_t syntax;
@@ -380,11 +401,11 @@ struct re_pattern_buffer
            groups) found by the compiler. This ignores shy groups. The range 0
            to re_nsub may have one or more discontinuities if one or more
            named non-shy groups were used. */
-  int re_nsub;
+  regnum_t re_nsub;
 
         /* Total number of groups found by the compiler, including shy
            ones. The range 0 to re_ngroups should have no discontinuities. */
-  int re_ngroups;
+  regnum_t re_ngroups;
 
         /* Zero if this pattern cannot match the empty string, one else.
            Well, in truth it's used only in `re_search_2', to see
@@ -424,9 +445,9 @@ struct re_pattern_buffer
 
 	/* Mapping between back references and groups (may not be
 	   equivalent with shy groups). */
-  int *external_to_internal_register;
+  regnum_t *external_to_internal_register;
 
-  int external_to_internal_register_size;
+  Elemcount external_to_internal_register_size;
 
 /* [[[end pattern_buffer]]] */
 };
@@ -441,7 +462,7 @@ typedef Bytecount regoff_t;
    regex.texinfo for a full description of what registers match.  */
 struct re_registers
 {
-  int num_regs;			/* number of registers allocated */
+  regnum_t num_regs;		/* number of registers allocated */
   regoff_t *start;
   regoff_t *end;
 };
@@ -530,7 +551,7 @@ int re_match_2 (struct re_pattern_buffer *buffer, const char *string1,
    PATTERN_BUFFER will allocate its own register data, without
    freeing the old data.  */
 void re_set_registers (struct re_pattern_buffer *buffer,
-		       struct re_registers *regs, int num_regs,
+		       struct re_registers *regs, regnum_t num_regs,
 		       regoff_t *starts, regoff_t *ends);
 
 #ifdef _REGEX_RE_COMP

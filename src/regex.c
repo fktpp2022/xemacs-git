@@ -517,25 +517,24 @@ typedef enum
   charset_not,
 
         /* Start remembering the text that is matched, for storing in a
-           register.  Followed by one byte with the register number, in
-           the range 1 to the pattern buffer's re_ngroups
-           field.  Then followed by one byte with the number of groups
-           inner to this one.  (This last has to be part of the
-           start_memory only because we need it in the on_failure_jump
-           of re_match_2.)  */
+           register.  Followed by two bytes with the internal register
+           number, in the range 1 to the pattern buffer's re_ngroups field.
+           Then followed by two bytes with the number of groups inner to
+           this one.  (This last has to be part of the start_memory only
+           because we need it in the on_failure_jump of re_match_2.)  */
   start_memory,
 
-        /* Stop remembering the text that is matched and store it in a
-           memory register.  Followed by one byte with the register
-           number, in the range 1 to `re_ngroups' in the
-           pattern buffer, and one byte with the number of inner groups,
-           just like `start_memory'.  (We need the number of inner
-           groups here because we don't have any easy way of finding the
-           corresponding start_memory when we're at a stop_memory.)  */
+        /* Stop remembering the text that is matched and store it in a memory
+           register.  Followed by two bytes with the internal register number,
+           in the range 1 to `re_ngroups' in the pattern buffer, and two bytes
+           with the number of inner groups, just like `start_memory'.  (We
+           need the number of inner groups here because we don't have any easy
+           way of finding the corresponding start_memory when we're at a
+           stop_memory.)  */
   stop_memory,
 
-        /* Match a duplicate of something remembered. Followed by one
-           byte containing the register number.  */
+        /* Match a duplicate of something remembered. Followed by two bytes
+           containing the unsigned internal register number.  */
   duplicate,
 
         /* Fail unless at beginning of line.  */
@@ -874,17 +873,20 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
           break;
 
 	case start_memory:
-          mcnt = *p++;
-          printf ("/start_memory/%d/%d", mcnt, *p++);
+	  EXTRACT_NONNEGATIVE_AND_INCR (mcnt, p);
+	  EXTRACT_NONNEGATIVE_AND_INCR (mcnt2, p);
+          printf ("/start_memory/%d/%d", mcnt, mcnt2);
           break;
 
 	case stop_memory:
-          mcnt = *p++;
-	  printf ("/stop_memory/%d/%d", mcnt, *p++);
+	  EXTRACT_NONNEGATIVE_AND_INCR (mcnt, p);
+	  EXTRACT_NONNEGATIVE_AND_INCR (mcnt2, p);
+	  printf ("/stop_memory/%d/%d", mcnt, mcnt2);
           break;
 
 	case duplicate:
-	  printf ("/duplicate/%d", *p++);
+	  EXTRACT_NONNEGATIVE_AND_INCR (mcnt, p);
+	  printf ("/duplicate/%d", mcnt);
 	  break;
 
 	case anychar:
@@ -2076,25 +2078,18 @@ typedef union
 #define INSERT_JUMP2(op, loc, to, arg) \
   insert_op2 (op, loc, (to) - (loc) - 3, arg, buf_end)
 
-
-/* This is not an arbitrary limit: the arguments which represent offsets
-   into the pattern are two bytes long.  So if 2^16 bytes turns out to
-   be too small, many things would have to change.  */
-#define MAX_BUF_SIZE (1L << 16)
-
-
 /* Extend the buffer by twice its current size via realloc and
    reset the pointers that pointed into the old block to point to the
    correct places in the new one.  If extending the buffer results in it
-   being larger than MAX_BUF_SIZE, then flag memory exhausted.  */
+   being larger than RE_MAX_BUF_SIZE, then flag memory exhausted.  */
 #define EXTEND_BUFFER()							 \
   do {									 \
     re_char *old_buffer = bufp->buffer;					 \
-    if (bufp->allocated == MAX_BUF_SIZE)				 \
+    if (bufp->allocated == RE_MAX_BUF_SIZE)				 \
       return REG_ESIZE;							 \
     bufp->allocated <<= 1;						 \
-    if (bufp->allocated > MAX_BUF_SIZE)					 \
-      bufp->allocated = MAX_BUF_SIZE;					 \
+    if (bufp->allocated > RE_MAX_BUF_SIZE)				 \
+      bufp->allocated = RE_MAX_BUF_SIZE;				 \
     bufp->buffer =							 \
       (unsigned char *) xrealloc (bufp->buffer, bufp->allocated);	 \
     if (bufp->buffer == NULL)						 \
@@ -2113,25 +2108,12 @@ typedef union
       }									 \
   } while (0)
 
-
-/* Since we have one byte reserved for the register number argument to
-   {start,stop}_memory, the maximum number of groups we can report
-   things about is what fits in that byte.  */
-#define MAX_REGNUM 255
-
-/* But patterns can have more than `MAX_REGNUM' registers.  We just
-   ignore the excess.
-   #### not true!  groups past this will fail in lots of ways, if we
-   ever have to backtrack.
-  */
-typedef int regnum_t;
-
 #define INIT_REG_TRANSLATE_SIZE 5
 
 /* Macros for the compile stack.  */
 
-/* Since offsets can go either forwards or backwards, this type needs to
-   be able to hold values from -(MAX_BUF_SIZE - 1) to MAX_BUF_SIZE - 1.  */
+/* Since offsets can go either forwards or backwards, this type needs to be
+   able to hold values from -(RE_MAX_BUF_SIZE - 1) to RE_MAX_BUF_SIZE - 1.  */
 typedef int pattern_offset_t;
 
 typedef struct
@@ -3402,29 +3384,20 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
                   = fixup_alt_jump ? fixup_alt_jump - bufp->buffer + 1 : 0;
                 COMPILE_STACK_TOP.laststart_offset = buf_end - bufp->buffer;
                 COMPILE_STACK_TOP.regnum = bufp->re_ngroups;
-
+		COMPILE_STACK_TOP.inner_group_offset
+		  = buf_end - bufp->buffer + 3;
                 /* We will eventually replace the 0 with the number of
-                   groups inner to this one.  But do not push a
-                   start_memory for groups beyond the last one we can
-                   represent in the compiled pattern.
-		   #### bad bad bad.  this will fail in lots of ways, if we
-		   ever have to backtrack for these groups.
-		*/
-                if (bufp->re_ngroups <= MAX_REGNUM)
-                  {
-                    COMPILE_STACK_TOP.inner_group_offset
-                      = buf_end - bufp->buffer + 2;
-                    BUF_PUSH_3 (start_memory, bufp->re_ngroups, 0);
-                  }
+		   groups inner to this one, using inner_group_offset,
+		   above. */
+		GET_BUFFER_SPACE (5);
+		store_op2 (start_memory, buf_end, bufp->re_ngroups, 0);
+		buf_end += 5;
 
                 compile_stack.avail++;
 
                 fixup_alt_jump = 0;
                 laststart = 0;
                 begalt = buf_end;
-                /* If we've reached MAX_REGNUM groups, then this open
-                   won't actually generate any code, so we'll have to
-                   clear pending_exact explicitly.  */
                 pending_exact = 0;
               }
               break;
@@ -3433,12 +3406,13 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
             case ')':
               if (syntax & RE_NO_BK_PARENS) goto normal_backslash;
 
-              if (COMPILE_STACK_EMPTY) {
-                if (syntax & RE_UNMATCHED_RIGHT_PAREN_ORD)
-                  goto normal_backslash;
-                else
-                  FREE_STACK_RETURN (REG_ERPAREN);
-	      }
+              if (COMPILE_STACK_EMPTY)
+		{
+		  if (syntax & RE_UNMATCHED_RIGHT_PAREN_ORD)
+		    goto normal_backslash;
+		  else
+		    FREE_STACK_RETURN (REG_ERPAREN);
+		}
 
             handle_close:
               if (fixup_alt_jump)
@@ -3454,12 +3428,13 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
                 }
 
               /* See similar code for backslashed left paren above.  */
-              if (COMPILE_STACK_EMPTY) {
-                if (syntax & RE_UNMATCHED_RIGHT_PAREN_ORD)
-                  goto normal_char;
-                else
-                  FREE_STACK_RETURN (REG_ERPAREN);
-	      }
+              if (COMPILE_STACK_EMPTY)
+		{
+		  if (syntax & RE_UNMATCHED_RIGHT_PAREN_ORD)
+		    goto normal_char;
+		  else
+		    FREE_STACK_RETURN (REG_ERPAREN);
+		}
 
               /* Since we just checked for an empty stack above, this
                  ``can't happen''.  */
@@ -3469,6 +3444,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
                    later groups should continue to be numbered higher,
                    as in `(ab)c(de)' -- the second group is #2.  */
                 regnum_t this_group_regnum;
+		unsigned char *inner_group_loc;
 
                 compile_stack.avail--;
                 begalt = bufp->buffer + COMPILE_STACK_TOP.begalt_offset;
@@ -3478,22 +3454,19 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
                     : 0;
                 laststart = bufp->buffer + COMPILE_STACK_TOP.laststart_offset;
                 this_group_regnum = COMPILE_STACK_TOP.regnum;
-		/* If we've reached MAX_REGNUM groups, then this open
-		   won't actually generate any code, so we'll have to
-		   clear pending_exact explicitly.  */
 		pending_exact = 0;
 
                 /* We're at the end of the group, so now we know how many
                    groups were inside this one.  */
-                if (this_group_regnum <= MAX_REGNUM)
-                  {
-                    unsigned char *inner_group_loc
-                      = bufp->buffer + COMPILE_STACK_TOP.inner_group_offset;
+		inner_group_loc
+		  = bufp->buffer + COMPILE_STACK_TOP.inner_group_offset;
 
-                    *inner_group_loc = regnum - this_group_regnum;
-                    BUF_PUSH_3 (stop_memory, this_group_regnum,
-                                regnum - this_group_regnum);
-                  }
+		STORE_NUMBER (inner_group_loc, regnum - this_group_regnum);
+
+		GET_BUFFER_SPACE (5);
+		store_op2 (stop_memory, buf_end, this_group_regnum,
+			   regnum - this_group_regnum);
+		buf_end += 5;
               }
               break;
 
@@ -3884,7 +3857,9 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 #endif
 
 		laststart = buf_end;
-		BUF_PUSH_2 (duplicate, regint);
+		GET_BUFFER_SPACE (3);
+		store_op1 (duplicate, buf_end, regint);
+		buf_end += 3;
 	      }
               break;
 
@@ -4931,7 +4906,7 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 
 	case start_memory:
         case stop_memory:
-	  p += 2;
+	  p += 4;
 	  continue;
 
 
@@ -5135,7 +5110,7 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
       {
 	if (bufp->buffer[i] == start_memory ||
 	    bufp->buffer[i] == stop_memory)
-	  i += 2;
+	  i += 4;
 	else
 	  break;
       }
@@ -5475,13 +5450,12 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
 #endif /* MATCH_MAY_ALLOCATE */
 
 /* These values must meet several constraints.  They must not be valid
-   register values; since we have a limit of 255 registers (because
-   we use only one byte in the pattern for the register number), we can
-   use numbers larger than 255.  They must differ by 1, because of
-   NUM_FAILURE_ITEMS above.  And the value for the lowest register must
-   be larger than the value for the highest register, so we do not try
-   to actually save any registers when none are active.  */
-#define NO_HIGHEST_ACTIVE_REG (1 << BYTEWIDTH)
+   register values, which means we can use numbers larger than MAX_REGNUM.
+   They must differ by 1, because of NUM_FAILURE_ITEMS above.  And the value
+   for the lowest register must be larger than the value for the highest
+   register, so we do not try to actually save any registers when none are
+   active.  */
+#define NO_HIGHEST_ACTIVE_REG (MAX_REGNUM + 1)
 #define NO_LOWEST_ACTIVE_REG (NO_HIGHEST_ACTIVE_REG + 1)
 
 /* Matching routines.  */
@@ -5603,11 +5577,11 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
   /* We fill all the registers internally, independent of what we
      return, for use in backreferences.  The number here includes
      an element for register zero.  */
-  int num_regs = bufp->re_ngroups + 1;
+  regnum_t num_regs = bufp->re_ngroups + 1;
 
   /* The currently active registers.  */
-  int lowest_active_reg = NO_LOWEST_ACTIVE_REG;
-  int highest_active_reg = NO_HIGHEST_ACTIVE_REG;
+  regnum_t lowest_active_reg = NO_LOWEST_ACTIVE_REG;
+  regnum_t highest_active_reg = NO_HIGHEST_ACTIVE_REG;
 
   /* Information on the contents of registers. These are pointers into
      the input strings; they record just what was matched (on this
@@ -5766,8 +5740,8 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
       return -1;
     }
 
-  /* Initialize subexpression text positions to -1 to mark ones that no
-     start_memory/stop_memory has been seen for. Also initialize the
+  /* Initialize subexpression text positions to our sentinel to mark ones that
+     no start_memory/stop_memory has been seen for. Also initialize the
      register information struct.  */
   for (mcnt = 1; mcnt < num_regs; mcnt++)
     {
@@ -6129,7 +6103,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    goto fail;
 
           SET_REGS_MATCHED ();
-          DEBUG_MATCH_PRINT2 ("  Matched `%d'.\n", *d);
+          DEBUG_MATCH_PRINT2 ("  Matched `%c'.\n", *d);
 	  INC_IBYTEPTR_FMT (d, fmt); /* XEmacs change */
 	  break;
 
@@ -6201,144 +6175,159 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 #endif /* MULE */
 
 
-        /* The beginning of a group is represented by start_memory.
-           The arguments are the register number in the next byte, and the
-           number of groups inner to this one in the next.  The text
-           matched within the group is recorded (in the internal
+        /* The beginning of a group is represented by start_memory.  The
+           arguments are the register number in the next two bytes, and the
+           number of groups inner to this one in the two bytes thereafter.
+           The text matched within the group is recorded (in the internal
            registers data structure) under the register number.  */
         case start_memory:
-	  DEBUG_MATCH_PRINT3 ("EXECUTING start_memory %d (%d):\n", *p, p[1]);
+	  {
+	    regnum_t regno;
 
-          /* Find out if this group can match the empty string.  */
-	  p1 = p;		/* To send to group_match_null_string_p.  */
+	    /* Find out if this group can match the empty string.  */
+	    p1 = p;		/* To send to group_match_null_string_p.  */
+	    EXTRACT_NONNEGATIVE_AND_INCR (regno, p);
 
-          if (REG_MATCH_NULL_STRING_P (reg_info[*p]) == MATCH_NULL_UNSET_VALUE)
-	    REG_MATCH_NULL_STRING_P (reg_info[*p])
-	      = group_match_null_string_p (&p1, pend, reg_info);
+	    DEBUG_MATCH_PRINT3 ("EXECUTING start_memory %d (%d):\n",
+				regno, extract_number (p));
 
-	  DEBUG_MATCH_PRINT2 ("  group CAN%s match null string\n",
-			REG_MATCH_NULL_STRING_P (reg_info[*p]) ? "NOT" : "");
+	    if (REG_MATCH_NULL_STRING_P (reg_info[regno])
+		== MATCH_NULL_UNSET_VALUE)
+	      {
+		REG_MATCH_NULL_STRING_P (reg_info[regno])
+		  = group_match_null_string_p (&p1, pend, reg_info);
+	      }
 
-          /* Save the position in the string where we were the last time
-             we were at this open-group operator in case the group is
-             operated upon by a repetition operator, e.g., with `(a*)*b'
-             against `ab'; then we want to ignore where we are now in
-             the string in case this attempt to match fails.  */
-          old_regstart[*p] = REG_MATCH_NULL_STRING_P (reg_info[*p])
-                             ? REG_UNSET (regstart[*p]) ? d : regstart[*p]
-                             : regstart[*p];
-	  DEBUG_MATCH_PRINT2 ("  old_regstart: %ld\n",
-			 POINTER_TO_OFFSET (old_regstart[*p]));
+	    DEBUG_MATCH_PRINT2 ("  group CAN%s match null string\n",
+				REG_MATCH_NULL_STRING_P (reg_info[regno])
+				? "NOT" : "");
 
-          regstart[*p] = d;
-	  DEBUG_MATCH_PRINT2 ("  regstart: %ld\n", POINTER_TO_OFFSET (regstart[*p]));
+	    /* Save the position in the string where we were the last time
+	       we were at this open-group operator in case the group is
+	       operated upon by a repetition operator, e.g., with `(a*)*b'
+	       against `ab'; then we want to ignore where we are now in the
+	       string in case this attempt to match fails.  */
+	    old_regstart[regno] = REG_MATCH_NULL_STRING_P (reg_info[regno])
+	      ? REG_UNSET (regstart[regno]) ? d : regstart[regno]
+	      : regstart[regno];
+	    DEBUG_MATCH_PRINT2 ("  old_regstart: %ld\n",
+				POINTER_TO_OFFSET (old_regstart[regno]));
 
-          IS_ACTIVE (reg_info[*p]) = 1;
-          MATCHED_SOMETHING (reg_info[*p]) = 0;
+	    regstart[regno] = d;
+	    DEBUG_MATCH_PRINT2 ("  regstart: %ld\n",
+				POINTER_TO_OFFSET (regstart[regno]));
 
-	  /* Clear this whenever we change the register activity status.  */
-	  set_regs_matched_done = 0;
+	    IS_ACTIVE (reg_info[regno]) = 1;
+	    MATCHED_SOMETHING (reg_info[regno]) = 0;
 
-          /* This is the new highest active register.  */
-          highest_active_reg = *p;
+	    /* Clear this whenever we change the register activity status.  */
+	    set_regs_matched_done = 0;
 
-          /* If nothing was active before, this is the new lowest active
-             register.  */
-          if (lowest_active_reg == NO_LOWEST_ACTIVE_REG)
-            lowest_active_reg = *p;
+	    /* This is the new highest active register.  */
+	    highest_active_reg = regno;
+	    /* If nothing was active before, this is the new lowest active
+	       register.  */
+	    if (lowest_active_reg == NO_LOWEST_ACTIVE_REG)
+	      lowest_active_reg = regno;
 
-          /* Move past the register number and inner group count.  */
-          p += 2;
-	  just_past_start_mem = p;
-
-          break;
-
+	    /* Move past the inner group count. */
+	    p += 2;
+	    just_past_start_mem = p;
+	    break;
+	  }
 
         /* The stop_memory opcode represents the end of a group.  Its
            arguments are the same as start_memory's: the register
            number, and the number of inner groups.  */
 	case stop_memory:
-	  DEBUG_MATCH_PRINT3 ("EXECUTING stop_memory %d (%d):\n", *p, p[1]);
+	  {
+	    regnum_t regno, inner_groups;
 
-          /* We need to save the string position the last time we were at
-             this close-group operator in case the group is operated
-             upon by a repetition operator, e.g., with `((a*)*(b*)*)*'
-             against `aba'; then we want to ignore where we are now in
-             the string in case this attempt to match fails.  */
-          old_regend[*p] = REG_MATCH_NULL_STRING_P (reg_info[*p])
-                           ? REG_UNSET (regend[*p]) ? d : regend[*p]
-			   : regend[*p];
-	  DEBUG_MATCH_PRINT2 ("      old_regend: %ld\n",
-			      POINTER_TO_OFFSET (old_regend[*p]));
+	    EXTRACT_NONNEGATIVE_AND_INCR (regno, p);
+	    EXTRACT_NONNEGATIVE_AND_INCR (inner_groups, p);
 
-          regend[*p] = d;
-	  DEBUG_MATCH_PRINT2 ("      regend: %ld\n",
-			      POINTER_TO_OFFSET (regend[*p]));
+	    DEBUG_MATCH_PRINT3 ("EXECUTING stop_memory %d (%d):\n",
+				regno, inner_groups);
 
-          /* This register isn't active anymore.  */
-          IS_ACTIVE (reg_info[*p]) = 0;
+	    /* We need to save the string position the last time we were at
+	       this close-group operator in case the group is operated
+	       upon by a repetition operator, e.g., with `((a*)*(b*)*)*'
+	       against `aba'; then we want to ignore where we are now in
+	       the string in case this attempt to match fails.  */
+	    old_regend[regno] = REG_MATCH_NULL_STRING_P (reg_info[regno])
+	      ? REG_UNSET (regend[regno]) ? d : regend[regno]
+	      : regend[regno];
+	    DEBUG_MATCH_PRINT2 ("      old_regend: %ld\n",
+				POINTER_TO_OFFSET (old_regend[regno]));
+	    regend[regno] = d;
+	    DEBUG_MATCH_PRINT2 ("      regend: %ld\n",
+			      POINTER_TO_OFFSET (regend[regno]));
 
-	  /* Clear this whenever we change the register activity status.  */
-	  set_regs_matched_done = 0;
+	    /* This register isn't active anymore.  */
+	    IS_ACTIVE (reg_info[regno]) = 0;
 
-          /* If this was the only register active, nothing is active
-             anymore.  */
-          if (lowest_active_reg == highest_active_reg)
-            {
-              lowest_active_reg = NO_LOWEST_ACTIVE_REG;
-              highest_active_reg = NO_HIGHEST_ACTIVE_REG;
-            }
-          else
-            { /* We must scan for the new highest active register, since
-                 it isn't necessarily one less than now: consider
-                 (a(b)c(d(e)f)g).  When group 3 ends, after the f), the
-                 new highest active register is 1.  */
-              unsigned char r = *p - 1;
-              while (r > 0 && !IS_ACTIVE (reg_info[r]))
-                r--;
+	    /* Clear this whenever we change the register activity status.  */
+	    set_regs_matched_done = 0;
 
-              /* If we end up at register zero, that means that we saved
-                 the registers as the result of an `on_failure_jump', not
-                 a `start_memory', and we jumped to past the innermost
-                 `stop_memory'.  For example, in ((.)*) we save
-                 registers 1 and 2 as a result of the *, but when we pop
-                 back to the second ), we are at the stop_memory 1.
-                 Thus, nothing is active.  */
-	      if (r == 0)
-                {
-                  lowest_active_reg = NO_LOWEST_ACTIVE_REG;
-                  highest_active_reg = NO_HIGHEST_ACTIVE_REG;
-                }
-              else
-		{
-		  highest_active_reg = r;
+	    /* If this was the only register active, nothing is active
+	       anymore.  */
+	    if (lowest_active_reg == highest_active_reg)
+	      {
+		lowest_active_reg = NO_LOWEST_ACTIVE_REG;
+		highest_active_reg = NO_HIGHEST_ACTIVE_REG;
+	      }
+	    else
+	      {
+		/* We must scan for the new highest active register, since it
+		   isn't necessarily one less than now: consider
+		   (a(b)c(d(e)f)g).  When group 3 ends, after the f), the new
+		   highest active register is 1.  */
+		regnum_t r = regno - 1;
+		while (r > 0 && !IS_ACTIVE (reg_info[r]))
+		  r--;
 
-		  /* 98/9/21 jhod:  We've also gotta set lowest_active_reg, don't we? */
-		  r = 1;
-		  while (r < highest_active_reg && !IS_ACTIVE(reg_info[r]))
-		    r++;
-		  lowest_active_reg = r;
-		}
-	    }
+		/* If we end up at register zero, that means that we saved
+		   the registers as the result of an `on_failure_jump', not
+		   a `start_memory', and we jumped to past the innermost
+		   `stop_memory'.  For example, in ((.)*) we save registers
+		   1 and 2 as a result of the *, but when we pop back to the
+		   second ), we are at the stop_memory 1.  Thus, nothing is
+		   active.  */
+		if (r == 0)
+		  {
+		    lowest_active_reg = NO_LOWEST_ACTIVE_REG;
+		    highest_active_reg = NO_HIGHEST_ACTIVE_REG;
+		  }
+		else
+		  {
+		    highest_active_reg = r;
 
-          /* If just failed to match something this time around with a
-             group that's operated on by a repetition operator, try to
-             force exit from the ``loop'', and restore the register
-             information for this group that we had before trying this
-             last match.  */
-          if ((!MATCHED_SOMETHING (reg_info[*p])
-               || just_past_start_mem == p - 1)
-	      && (p + 2) < pend)
-            {
-              re_bool is_a_jump_n = false;
+		    /* 98/9/21 jhod: We've also gotta set lowest_active_reg,
+		       don't we? */
+		    r = 1;
+		    while (r < highest_active_reg && !IS_ACTIVE(reg_info[r]))
+		      r++;
+		    lowest_active_reg = r;
+		  }
+	      }
 
-              p1 = p + 2;
-              mcnt = 0;
-              switch ((re_opcode_t) *p1++)
-                {
-                  case jump_n:
+	    /* If just failed to match something this time around with a
+	       group that's operated on by a repetition operator, try to
+	       force exit from the ``loop'', and restore the register
+	       information for this group that we had before trying this
+	       last match.  */
+	    if ((!MATCHED_SOMETHING (reg_info[regno])
+		 || just_past_start_mem == p - 4) && p < pend)
+	      {
+		re_bool is_a_jump_n = false;
+
+		p1 = p;
+		mcnt = 0;
+		switch ((re_opcode_t) *p1++)
+		  {
+		  case jump_n:
 		    is_a_jump_n = true;
-                  case pop_failure_jump:
+		  case pop_failure_jump:
 		  case maybe_pop_jump:
 		  case jump:
 		  case dummy_failure_jump:
@@ -6349,66 +6338,69 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
                   default:
                     /* do nothing */ ;
-                }
-	      p1 += mcnt;
+		  }
+		p1 += mcnt;
 
-              /* If the next operation is a jump backwards in the pattern
-	         to an on_failure_jump right before the start_memory
-                 corresponding to this stop_memory, exit from the loop
-                 by forcing a failure after pushing on the stack the
-                 on_failure_jump's jump in the pattern, and d.  */
-              if (mcnt < 0 && (re_opcode_t) *p1 == on_failure_jump
-                  && (re_opcode_t) p1[3] == start_memory && p1[4] == *p)
-		{
-                  /* If this group ever matched anything, then restore
-                     what its registers were before trying this last
-                     failed match, e.g., with `(a*)*b' against `ab' for
-                     regstart[1], and, e.g., with `((a*)*(b*)*)*'
-                     against `aba' for regend[3].
+		/* If the next operation is a jump backwards in the pattern
+		   to an on_failure_jump right before the start_memory
+		   corresponding to this stop_memory, exit from the loop
+		   by forcing a failure after pushing on the stack the
+		   on_failure_jump's jump in the pattern, and d.  */
+		if (mcnt < 0 && (re_opcode_t) *p1 == on_failure_jump
+		    && (re_opcode_t) p1[3] == start_memory &&
+		    regno == extract_nonnegative (p1 + 4))
+		  {
+		    /* If this group ever matched anything, then restore
+		       what its registers were before trying this last
+		       failed match, e.g., with `(a*)*b' against `ab' for
+		       regstart[1], and, e.g., with `((a*)*(b*)*)*' against
+		       `aba' for regend[3].
 
-                     Also restore the registers for inner groups for,
-                     e.g., `((a*)(b*))*' against `aba' (register 3 would
-                     otherwise get trashed).  */
+		       Also restore the registers for inner groups for,
+		       e.g., `((a*)(b*))*' against `aba' (register 3 would
+		       otherwise get trashed).  */
+		    if (EVER_MATCHED_SOMETHING (reg_info[regno]))
+		      {
+			int r;
 
-                  if (EVER_MATCHED_SOMETHING (reg_info[*p]))
-		    {
-		      int r;
+			EVER_MATCHED_SOMETHING (reg_info[regno]) = 0;
 
-                      EVER_MATCHED_SOMETHING (reg_info[*p]) = 0;
+			/* Restore this and inner groups' (if any)
+			   registers.  */
+			for (r = regno; r < regno + inner_groups; r++)
+			  {
+			    regstart[r] = old_regstart[r];
 
-		      /* Restore this and inner groups' (if any) registers.  */
-                      for (r = *p; r < *p + *(p + 1); r++)
-                        {
-                          regstart[r] = old_regstart[r];
+			    /* xx why this test?  */
+			    if (old_regend[r] >= regstart[r])
+			      regend[r] = old_regend[r];
+			  }
+		      }
+		    p1++;
+		    EXTRACT_NUMBER_AND_INCR (mcnt, p1);
+		    PUSH_FAILURE_POINT (p1 + mcnt, d, -2);
 
-                          /* xx why this test?  */
-                          if (old_regend[r] >= regstart[r])
-                            regend[r] = old_regend[r];
-                        }
-                    }
-		  p1++;
-                  EXTRACT_NUMBER_AND_INCR (mcnt, p1);
-                  PUSH_FAILURE_POINT (p1 + mcnt, d, -2);
-
-                  goto fail;
-                }
+		    goto fail;
+		  }
             }
+	    /* We used to move past the register number and inner group count
+	       here, when registers were just one byte; that's no longer
+	       necessary with EXTRACT_NUMBER_AND_INCR(), above. */
+	    break;
+	  }
 
-          /* Move past the register number and the inner group count.  */
-          p += 2;
-          break;
-
-
-	/* \<digit> has been turned into a `duplicate' command which is
-           followed by the numeric value of <digit> as the register number.
-	   (Already passed through external-to-internal-register mapping,
-	   so it refers to the actual group number, not the non-shy-only
-	   numbering used in the external world.) */
+	/* \<number> has been turned into a `duplicate' command which is
+           followed by the numeric value of <number> as the register number.
+           (Already passed through external-to-internal-register mapping, so
+           it refers to the actual group number, not the non-shy-only
+           numbering used in the external world.) */
         case duplicate:
 	  {
 	    REGISTER re_char *d2, *dend2;
 	    /* Get which register to match against.  */
-	    int regno = *p++;
+	    regnum_t regno;
+	    
+	    EXTRACT_NONNEGATIVE_AND_INCR (regno, p);
 	    DEBUG_MATCH_PRINT2 ("EXECUTING duplicate %d.\n", regno);
 
 	    /* Can't back reference a group which we've never matched.  */
@@ -7251,7 +7243,7 @@ group_match_null_string_p (re_char **p, re_char *end,
 {
   int mcnt;
   /* Point to after the args to the start_memory.  */
-  re_char *p1 = *p + 2;
+  re_char *p1 = *p + 4;
 
   while (p1 < end)
     {
@@ -7334,8 +7326,8 @@ group_match_null_string_p (re_char **p, re_char *end,
 
 
         case stop_memory:
-	  assert (p1[1] == **p);
-          *p = p1 + 2;
+	  assert (extract_number (p1 + 1) == extract_number (*p));
+          *p = p1 + 4;
           return true;
 
 

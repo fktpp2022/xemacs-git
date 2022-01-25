@@ -1,3 +1,10 @@
+2022-01-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/regexp-tests.el:
+	Check that more than 255 shy groups are supported.
+	Add a Known-Bug-Expect-Error regarding the fact that shy groups
+	take up an internal register number.
+
 2021-11-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/lisp-tests.el (string-variable):

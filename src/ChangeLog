@@ -1,3 +1,45 @@
+2022-01-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Represent internal register numbers with two bytes rather than one
+	in compiled regular expressions.
+
+	* regex.c:
+	* regex.c (enum):
+	Update comments in this to reflect this.
+
+	* regex.c (print_partial_compiled_pattern):
+	Update implementation to reflect this.
+
+	* regex.c:
+	Rename MAX_BUF_SIZE to RE_MAX_BUF_SIZE, move it to regex.h.
+	Move MAX_REGNUM to regex.h.
+
+	* regex.c (regex_compile):
+	Remove code (never executed) that attempted to do nothing if
+	bufp->re_ngroups was greater than or equal to MAX_REGNUM.
+	Store the start_memory instruction as five bytes (four of which
+	are two sixteen-bit register numbers) rather than three.
+	Ditto with the stop_memory instruction.
+	Store the duplicate instruction as three bytes rather than two.
+	Use new values for NO_HIGHEST_ACTIVE_REG, NO_LOWEST_ACTIVE_REG.
+
+	* regex.c (re_compile_fastmap):
+	Use better types in this (regnum_t, not int)
+	* regex.c (re_search_2):
+	Ditto.
+	* regex.c (re_match_2_internal):
+	Implement the match part of start_memory, stop_memory, duplicate
+	with two-byte register numbers.
+	* regex.c (group_match_null_string_p):
+	Update this to reflect the new arguments to start_memory.
+
+	* regex.h:
+	Move RE_MAX_BUF_SIZE, MAX_REGNUM to this file, document them.
+
+	* regex.h (struct re_pattern_buffer):
+	* regex.h (struct re_registers):
+	Improve some types in these structures.
+
 2022-01-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* alloc.c (common_init_alloc_early):

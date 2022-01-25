@@ -650,7 +650,21 @@ appropriately, ASCII digits" limit)))))
                   "bbaacc")
                  ,(format "checking matching backreference %d does not work\
  work, %s" limit script))))))))
-  (probe-backref-limits 1 9 10 50 100 150 200 255 (fail . 500)))
+  (probe-backref-limits 1 9 10 50 100 150 200 255 500))
+
+(Assert (eql (string-match-p (apply #'concat (make-list 260 "\\(?:\\)")) "hello")
+	     0)
+	"checking more than 266 shy groups supported")
+
+(Known-Bug-Expect-Error
+ invalid-regexp
+ (Assert (eql 
+	  ;; Shy groups shouldn't need to take up an internal register
+	  ;; number. They currently do in our implementation but not with
+	  ;; GNU's.
+	  (string-match-p (apply #'concat (make-list (/ 65536 9) "\\(?:\\)"))
+			  "hello")
+	  0)))
 
 (let ((log-warning-suppressed-classes (cons 'regex log-warning-suppressed-classes)))
   (Assert
