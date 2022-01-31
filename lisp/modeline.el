@@ -456,7 +456,7 @@ Example: (add-minor-mode 'view-minor-mode \" View\" view-mode-map)"
 		      (symbol-value sym)))
 	 el toggle-keymap)
     (if toggle-fun
-	(check-argument-type 'commandp toggle-fun)
+	(check-type toggle-fun command)
       (when (commandp toggle)
 	(setq toggle-fun toggle)))
     (when (and toggle-fun name)

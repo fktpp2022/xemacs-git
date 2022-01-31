@@ -890,7 +890,7 @@ Returns the window displaying BUFFER."
               ;; pre-display-buffer-function raised some other frame already.
               (if override-frame
                   (progn
-                    (check-argument-type 'frame-live-p override-frame)
+                    (check-type override-frame frame-live)
                     (setq explicit-frame override-frame)))
 
               (setq target-frame

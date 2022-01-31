@@ -325,13 +325,13 @@ in the string."
 		   (assert (not (null count)) t
 			   "We should never reach this point with null COUNT.")
 		   result))))))
-    (check-argument-type #'integer-or-marker-p start)
-    (check-argument-type #'integer-or-marker-p end)
+    (check-type start integer-or-marker)
+    (check-type end integer-or-marker)
     (check-coding-system coding-system)
-    (when count (check-argument-type #'natnump count)
-	  ;; Special-case zero, sigh. 
-	  (if (zerop count) (setq count 1)))
-    (and string (check-argument-type #'stringp string))
+    (check-type count (or natnum null))
+    (check-type string (or string null))
+    ;; Special-case zero, sigh. 
+    (if (eql count 0) (setq count 1))
     (if string
 	(with-temp-buffer
 	  (insert string)
@@ -386,8 +386,8 @@ This function is for GNU compatibility.  See also `query-coding-region'."
       (with-temp-buffer
 	(insert begin)
 	(funcall thunk (point-min) (point-max) coding-system-list t))
-    (check-argument-type #'integer-or-marker-p begin)
-    (check-argument-type #'integer-or-marker-p end)
+    (check-type begin integer-or-marker)
+    (check-type end integer-or-marker)
     (funcall thunk begin end coding-system-list nil))))
 
 ;; XEmacs; docstring taken from GNU, international/mule-cmds.el, revision

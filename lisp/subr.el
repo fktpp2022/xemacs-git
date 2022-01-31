@@ -1143,8 +1143,8 @@ Otherwise treat `\\' in NEWTEXT as special:
   `\\U' means begin upcasing all following characters.
   `\\L' means begin downcasing all following characters.
   `\\E' means terminate the effect of any `\\U' or `\\L'."
-  (check-argument-type 'stringp str)
-  (check-argument-type 'stringp newtext)
+  (check-type str string)
+  (check-type newtext string)
   (if (> (length str) 50)
       (let ((cfs case-fold-search))
 	(with-temp-buffer

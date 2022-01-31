@@ -447,7 +447,7 @@ invalid octet.  You can use this variable (with `re-search-forward' or
 
 Optional argument BUFFER specifies the buffer that should be examined for
 such sequences.  "
-  (check-argument-type #'functionp frob-function)
+  (check-type frob-function function)
   (check-argument-range begin (point-min buffer) (point-max buffer))
   (check-argument-range end (point-min buffer) (point-max buffer))
     (save-excursion

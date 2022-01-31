@@ -137,14 +137,14 @@ See `keyboard-translate-table' for more information."
 (defun set-character-of-keysym (keysym character)
   "Make CHARACTER be inserted when KEYSYM is pressed, 
 and the key has been bound to `self-insert-command'.  "
-  (check-argument-type 'symbolp keysym) 
-  (check-argument-type 'characterp character)
+  (check-type keysym symbol) 
+  (check-type character character)
   (put keysym 'character-of-keysym character))
 
 (defun get-character-of-keysym (keysym)
   "Return the character inserted when KEYSYM is pressed, 
 and the key is bound to `self-insert-command'.  "
-  (check-argument-type 'symbolp keysym)
+  (check-type keysym symbol)
   (event-to-character (make-event 'key-press (list 'key keysym))))
 
 ;; We could take the first few of these out by removing the "/* Optimize for

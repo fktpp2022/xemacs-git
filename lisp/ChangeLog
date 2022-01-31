@@ -1,3 +1,42 @@
+2022-01-31  Aidan Kehoe  <kehoea@parhasard.net>
+
+	#'check-type gives a clearer error message than
+	#'check-argument-type (it lists PLACE in the error message). It is
+	also better style.  Prefer it in dumped Lisp except in those
+	places where startup dependencies make it not available.
+
+	* auto-save.el (recover-all-files):
+	* coding.el:
+	* coding.el (unencodable-char-position):
+	* coding.el (check-coding-systems-region):
+	* descr-text.el (unidata-initialize-unicodedata-database):
+	* descr-text.el (unidata-initialize-unihan-database):
+	* dialog.el (popup-dialog-box):
+	* events.el:
+	* events.el (set-character-of-keysym):
+	* events.el (get-character-of-keysym):
+	* files.el (file-system-ignore-case-p):
+	* gui.el (insert-gui-button):
+	* menubar.el (find-menu-item):
+	* modeline.el (add-minor-mode):
+	* mule/mule-category.el (define-category):
+	* mule/mule-category.el (undefine-category):
+	* mule/mule-category.el (category-doc-string):
+	* mule/mule-category.el (modify-category-entry):
+	* mule/mule-category.el (char-category-list):
+	* mule/mule-charset.el (set-charset-registry):
+	* mule/mule-charset.el (charset-after):
+	* mule/mule-charset.el (find-translation-table):
+	* mule/mule-charset.el (define-charset-tag):
+	* mule/mule-charset.el (charset-tag-to-charset-list):
+	* simple.el (warning-level-<):
+	* simple.el (display-warning):
+	* specifier.el (let-specifier):
+	* subr.el (replace-in-string):
+	* unicode.el (frob-unicode-errors-region):
+	* widget.el (define-widget):
+	* window-xemacs.el (display-buffer):
+
 2021-11-09  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* info.el (Info-find-file-node):

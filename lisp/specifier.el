@@ -483,7 +483,7 @@ or omitted, it defaults to `global'.
 Example:
     (let-specifier ((modeline-shadow-thickness 0 (selected-window)))
       (sit-for 1))"
-  (check-argument-type 'listp specifier-list)
+  (check-type specifier-list list)
   (labels ((gensym-frob (x name)
              (if (or (atom x) (eq (car x) 'quote))
                  (list x)

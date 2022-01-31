@@ -44,15 +44,15 @@ Letters of 'a' thru 'z' are already used or kept for the system.
 The category should be defined only in category table TABLE, which defaults
 to the current buffer's category table, but this is not implemented.  "
   ;; #### Implement the limiting of the definition. 
-  (check-argument-type 'category-designator-p designator)
-  (check-argument-type 'stringp doc-string)
+  (check-type designator category-designator)
+  (check-type doc-string string)
   (setq table (or table (category-table)))
-  (check-argument-type 'category-table-p table)
+  (check-type table category-table)
   (puthash designator doc-string defined-category-hashtable))
 
 (defun undefine-category (designator)
   "Undefine DESIGNATOR as a designator for a category."
-  (check-argument-type 'category-designator-p designator)
+  (check-type designator category-designator)
   (remhash designator defined-category-hashtable))
 
 (defun defined-category-p (designator)
@@ -76,7 +76,7 @@ Categories are given by their designators."
 
 (defun category-doc-string (designator)
   "Return the doc-string for the category denoted by DESIGNATOR."
-  (check-argument-type 'defined-category-p designator)
+  (check-type designator defined-category)
   (gethash designator defined-category-hashtable))
 
 (defun modify-category-entry (char-range designator &optional category-table reset)
@@ -88,7 +88,7 @@ The changes are made in CATEGORY-TABLE, which defaults to the current
  buffer's category table.
 If optional fourth argument RESET is non-nil, previous categories associated
  with CHAR-RANGE are removed before adding the specified category."
-  (check-argument-type 'defined-category-p designator)
+  (check-type designator defined-category)
   (modify-category-entry-internal char-range designator category-table reset))
 
 (defun char-category-list (character &optional category-table)

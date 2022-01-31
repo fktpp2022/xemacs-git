@@ -116,8 +116,8 @@ Only left-to-right is currently implemented."
 
 (defun set-charset-registry (charset registry)
   "Obsolete; use set-charset-registries instead. "
-  (check-argument-type 'stringp registry)
-  (check-argument-type 'charsetp (find-charset charset))
+  (check-type registry string)
+  (check-type (find-charset charset) charset)
   (unless (equal registry (regexp-quote registry))
     (lwarn 'xintl 'warning
       "Regexps no longer allowed for charset-registry. Treating %s%s"
@@ -174,7 +174,7 @@ If POS is nil, it defauls to the current point.
 If POS is out of range, the value is nil."
   (when (null pos)
     (setq pos (point)))
-  (check-argument-type 'integerp pos)
+  (check-type pos integer)
   (unless (or (< pos (point-min))
 	      (> pos (point-max)))
     (char-charset (char-after pos))))
@@ -313,7 +313,7 @@ translation table, nil is returned.  Otherwise the associated translation
 table object is returned."
   (if (translation-table-p table-or-name)
       table-or-name
-    (check-argument-type 'symbolp table-or-name)
+    (check-type table-or-name symbol)
     (gethash table-or-name named-translation-table-hash-table)))
 
 (defun get-translation-table (table-or-name)
@@ -462,7 +462,7 @@ both of these tags."
   ;; Validate the value of `list'.
   (when list
     (loop for elt in list do
-      (check-argument-type 'charset-or-charset-tag-p elt)))
+      (check-type elt charset-or-charset-tag)))
   )
 
 (defun charset-tag-to-charset-list (tag)
@@ -489,7 +489,7 @@ This is called from the C code."
 		       collect l))
 		 (mapcar #'charset-tag-to-charset-list tag)))
 	(t
-	 (check-argument-type 'charset-tag-p tag)
+	 (check-type tag charset-tag)
 	 (remove-duplicates
 	  ;; First map to list of full tags ...
 	  (let ((full-tags (charset-tag-to-full-tags tag)))

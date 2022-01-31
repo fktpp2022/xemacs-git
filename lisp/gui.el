@@ -112,7 +112,7 @@ When ACTION is called, the buffer containing the button is made current."
 
 (defun insert-gui-button (button &optional pos buffer)
   "Insert GUI button BUTTON at POS in BUFFER."
-  (check-argument-type 'gui-button-p button)
+  (check-type button gui-button)
   (if-fboundp 'make-annotation
       (make-annotation (make-glyph button)
 		       pos 'text buffer nil)

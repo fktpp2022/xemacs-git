@@ -442,7 +442,7 @@ The table is a (non-SQL) database with information on the file offset of
 each Unicode code point described in UNIDATA-FILE-NAME.  In the normal
 course of events UNIDATA-FILE-NAME is the value of
 `unidata-default-file-name', which see.  "
-  (check-argument-type #'file-readable-p unidata-file-name)
+  (check-type unidata-file-name file-readable)
   (unless unidata-database-format
     (error 'unimplemented "No (non-SQL) DB support available"))
   (with-fboundp '(open-database put-database close-database)
@@ -549,7 +549,7 @@ Unihan.txt (see `describe-char-unihan-file', the usual argument to this
 function) is very large, and manipulating it directly can be tedious and
 slow, so creating this cache makes it reasonable to display Unihan info in
 the output of \\[universal-argument] \\[what-cursor-position] .  "
-  (check-argument-type #'file-readable-p unihan-file-name)
+  (check-type unihan-file-name file-readable)
   (unless unidata-database-format
     (error 'unimplemented "No (non-SQL) DB support available"))
   (with-fboundp '(open-database put-database close-database)

@@ -220,7 +220,7 @@ If the item does not exist, the car of the returned value is nil.
 If some menu in the ITEM-PATH-LIST does not exist, an error is signalled."
   (labels
       ((find-menu-item-1 (menubar item-path-list &optional parent)
-         (check-argument-type 'listp item-path-list)
+         (check-type item-path-list list)
          (if (not (consp menubar))
              nil
            (let ((rest menubar)

@@ -696,7 +696,7 @@ This is meant to be executed from a dialog box callback function."
 is equivalent to
 
 \(make-dialog-box 'question :question QUESTION :buttons BUTTONS)"
-  (check-argument-type 'stringp (car desc))
+  (check-type (car desc) string)
   (or (consp (cdr desc))
       (error 'syntax-error
 	     "Dialog descriptor must supply at least one button"

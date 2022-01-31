@@ -4738,8 +4738,8 @@ See also `log-warning-minimum-level' and `display-warning-minimum-level'."
 
 (defun warning-level-< (level1 level2)
   "Non-nil if warning level LEVEL1 is lower than LEVEL2."
-  (check-argument-type 'warning-level-p level1)
-  (check-argument-type 'warning-level-p level2)
+  (check-type level1 warning-level)
+  (check-type level2 warning-level)
   (< (cdr (assq level1 warning-level-alist))
      (cdr (assq level2 warning-level-alist))))
 
@@ -4847,7 +4847,7 @@ warnings on those classes will be treated as if their level is below
 long as they're not listed in that variable as well."
   (or level (setq level 'warning))
   (or (listp class) (setq class (list class)))
-  (check-argument-type 'warning-level-p level)
+  (check-type level warning-level)
   (if (not init-file-loaded)
       (push (list class message level) before-init-deferred-warnings)
     (catch 'ignored

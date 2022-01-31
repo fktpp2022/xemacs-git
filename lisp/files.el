@@ -4558,7 +4558,7 @@ completion; see also `default-file-system-ignore-case'.")
   "Return t if PATH resides on a file system with case-insensitive names.
 Otherwise, return nil.  See `file-system-case-alist' and
 `default-file-system-ignore-case'."
-  (check-argument-type #'stringp path)
+  (check-type path string)
   (if file-system-case-alist
       (loop
         for (pattern . val)

@@ -508,8 +508,8 @@ old or rejected autosave files.
 Hashed files (see `auto-save-hash-p') are not understood, use
 `recover-file' to recover them individually."
   (interactive "P")
-  (let ((savefiles (directory-files auto-save-directory
-				    t "\\`#" nil t))
+  (check-type auto-save-directory string)
+  (let ((savefiles (directory-files auto-save-directory t "\\`#" nil t))
 	afile				; the auto save file
 	file				; its original file
 	(total 0)			; # of files offered to recover

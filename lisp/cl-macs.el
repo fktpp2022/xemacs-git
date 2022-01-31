@@ -316,7 +316,6 @@ ARGLIST allows full Common Lisp conventions."
 Supports Common Lisp lambda lists."
   (if (not (or (listp arglist) (symbolp arglist)))
       "Not available"
-    (check-argument-type #'true-list-p arglist)
     (let ((print-gensym nil))
       (condition-case nil
 	  (let ((args (cond ((null arglist) nil)
