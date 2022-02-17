@@ -1,3 +1,11 @@
+2022-02-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* extents.c:
+	Update some documentation on extent_extent_list().
+	* extents.c (extent_detach):
+	Check that the extent's extent list is non-NULL before calling
+	extent_list_delete() on it, thank you Henry S. Thompson.
+
 2022-01-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Represent internal register numbers with two bytes rather than one

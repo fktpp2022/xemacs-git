@@ -940,10 +940,13 @@ uninit_buffer_extents (struct buffer *b)
   finalize_extent_info (b->extent_info);
 }
 
-/* Retrieve the extent list that an extent is a member of; the
-   return value will never be 0 except in destroyed buffers (in which
-   case the only extents that can refer to this buffer are detached
-   ones). */
+/* Retrieve the extent list that an extent is a member of; the return value
+   will be 0 in destroyed buffers (in which case the only extents that can
+   refer to this buffer are detached ones), or in strings in some rare cases
+   involving extent_info structures deleted before dump, and the
+   corresponding detached extents restored after reload. Strings' extent
+   info is usually NULL, but once an extent is attached to a string it
+   should become non-NULL. */
 
 #define extent_extent_list(e) object_extent_list (extent_object (e))
 
@@ -1587,7 +1590,17 @@ extent_detach (EXTENT extent)
   /* call this before messing with the extent. */
   signal_extent_changed (extent, Qnil, extent_endpoint_byte (extent, 0),
 			 extent_endpoint_byte (extent, 1), 0);
-  extent_list_delete (el, extent);
+
+  /* Henry S. Thompson reports in 87mtircgem.fsf@home.hst.name that EL can
+     sometimes be NULL in this function, even in a non-detached extent. The
+     backtrace involves the code in search.c, likely a C code path that
+     hasn't been thoroughly tested. This check is cheap and Henry reports
+     that it works.*/
+  if (el != NULL)
+    {
+      extent_list_delete (el, extent);      
+    }
+
   soe_delete (extent_object (extent), extent);
   set_extent_start (extent, -1);
   set_extent_end (extent, -1);
