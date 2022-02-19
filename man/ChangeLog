@@ -1,3 +1,10 @@
+2022-02-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/searching.texi (Regexp Search):
+	* lispref/searching.texi (POSIX Regexps):
+	Clarify that implementing versions of #'looking-at-p,
+	#'string-match-p that follow POSIX rules doesn't add anything.
+
 2021-11-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (garbage_collect_1):

@@ -6,6 +6,23 @@
 	Check that the extent's extent list is non-NULL before calling
 	extent_list_delete() on it, thank you Henry S. Thompson.
 
+2022-02-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lisp.h:
+	Use more modern types types in the declaration of
+	fast_string_match().
+	* search.c:
+	* search.c (looking_at_1):
+	Use more modern types in the definition of this function.
+	* search.c (string_match_1):
+	Use more modern types in the definition of this function.
+	Use get_string_pos_byte() rather than re-implementing it.
+	* search.c (fast_string_match):
+	Use more modern types in the definition of this function.
+	Add to the comments in Fposix_string_match(), Fposix_looking_at(),
+	clarifying that #'string-match-p, #'looking-at-p are reasonable
+	alternatives if there is no need for the match data.
+
 2022-01-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Represent internal register numbers with two bytes rather than one

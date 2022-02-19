@@ -875,7 +875,12 @@ This function is equivalent to @code{string-match}, but, if it
 matches, it does not change the match data. This is useful for many
 cases where there is no need for the match data, since there is less
 risk of destroying match data that is needed for some other code.
-Neither function modifies the match data there is no match.
+Neither function modifies the match data if there is no match.
+
+The distinction between @code{posix-string-match} and @code{string-match} is
+not relevant to @code{string-match-p}, so this function is an option in those
+contexts where there is no need for the match data and otherwise
+@code{posix-string-match} would be called.
 @end defun
 
 The function @code{split-string} can be used to parse a string into
@@ -991,6 +996,11 @@ comes back" twice.
 This is a version of @code{looking-at} that never changes the match
 data, useful when you have no need to use the match data for this
 regular expression.
+
+The distinction between @code{posix-looking-at} and @code{looking-at} is not
+relevant to @code{looking-at-p}, so this function is an option in those
+contexts where there is no need for the match data and otherwise
+@code{looking-at} would be called.
 @end defun
 
 @node POSIX Regexps, Search and Replace, Regexp Search, Searching and Matching

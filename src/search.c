@@ -527,7 +527,8 @@ flush_unused_lisp_search_registers (void)
 }
 
 static Lisp_Object
-looking_at_1 (Lisp_Object string, struct buffer *buf, int posix, int nodata)
+looking_at_1 (Lisp_Object string, struct buffer *buf, Boolint posix,
+	      Boolint nodata)
 {
   Lisp_Object val;
   Bytebpos p1, p2;
@@ -606,13 +607,18 @@ Optional argument BUFFER defaults to the current buffer.
 
 DEFUN ("posix-looking-at", Fposix_looking_at, 1, 2, 0, /*
 Return t if text after point matches regular expression REGEXP.
-Find the longest match, in accord with POSIX regular expression rules.
+
+Find the longest match, in accordance with POSIX regular expression rules.
 
 When the match is successful, this function modifies the match data that
 `match-string', `replace-match' and friends access.  If the match fails, the
-match data from the previous successful match are preserved. Wrap your code in
-the macro `save-match-data' if you prefer to always preserve the match data
-for other code, an approach which will reduce the amount of bugs users see.
+match data from the previous successful match are preserved.  See
+`save-match-data'.
+
+The function `looking-at-p' does not modify the match data. Behavior regarding
+the longest match is not relevant to it, and so it is an alternative to the
+use of `save-match-data' for those contexts where the match data is not
+necessary.
 
 Optional argument BUFFER defaults to the current buffer.
 */
@@ -641,10 +647,9 @@ Optional argument BUFFER defaults to the current buffer.
 
 static Lisp_Object
 string_match_1 (Lisp_Object regexp, Lisp_Object string, Lisp_Object start,
-		struct buffer *buf, int posix)
+		struct buffer *buf, Boolint posix)
 {
-  Bytecount val;
-  Charcount s;
+  Bytecount val, bis;
   struct re_pattern_buffer *bufp;
 
   /* Some FSF junk with running_asynch_code, to preserve the match
@@ -655,19 +660,11 @@ string_match_1 (Lisp_Object regexp, Lisp_Object string, Lisp_Object start,
   CHECK_STRING (string);
 
   if (NILP (start))
-    s = 0;
+    bis = 0;
   else
     {
-      Charcount len = string_char_length (string);
-
-      CHECK_FIXNUM (start);
-      s = XFIXNUM (start);
-      if (s < 0 && -s <= len)
-	s = len + s;
-      else if (0 > s || s > len)
-	args_out_of_range (string, start);
+      bis = get_string_pos_byte (string, start, GB_NEGATIVE_FROM_END);
     }
-
 
   bufp = compile_pattern (regexp, &search_regs,
 			  (!NILP (buf->case_fold_search)
@@ -675,7 +672,6 @@ string_match_1 (Lisp_Object regexp, Lisp_Object string, Lisp_Object start,
 			  string, buf, posix, ERROR_ME);
   QUIT;
   {
-    Bytecount bis = string_index_char_to_byte (string, s);
     struct syntax_cache scache_struct;
     struct syntax_cache *scache = &scache_struct;
   
@@ -733,7 +729,9 @@ preserves the match data.  See also `save-match-data'.
 
 DEFUN ("posix-string-match", Fposix_string_match, 2, 4, 0, /*
 Return index of start of first match for REGEXP in STRING, or nil.
-Find the longest match, in accord with Posix regular expression rules.
+
+Find the longest match, in accordance with POSIX regular expression rules.
+
 If third arg START is non-nil, start search at that index in STRING.
 For index of first char beyond the match, do (match-end 0).
 `match-end' and `match-beginning' also give indices of substrings
@@ -748,6 +746,12 @@ When the match is successful, this function modifies the match data that
 match data from the previous successful match are preserved. Wrap your code in
 the macro `save-match-data' if you prefer to always preserve the match data
 for other code, an approach which will reduce the amount of bugs users see.
+
+The function `string-match-p', which does not modify the match data and does
+not differ from `posix-string-match' otherwise (since the distinction between
+the longest match and the first match is not available to callers), is an
+alternative to the use of `save-match-data' for those contexts where use of
+the match data is not necessary.
 */
        (regexp, string, start, buffer))
 {
@@ -762,8 +766,8 @@ for other code, an approach which will reduce the amount of bugs users see.
 Bytecount
 fast_string_match (Lisp_Object regexp, const Ibyte *nonreloc,
 		   Lisp_Object reloc, Bytecount offset,
-		   Bytecount length, int case_fold_search,
-		   Error_Behavior errb, int no_quit)
+		   Bytecount length, Boolint case_fold_search,
+		   Error_Behavior errb, Boolint no_quit)
 {
   Bytecount val;
   Ibyte *newnonreloc = (Ibyte *) nonreloc;
@@ -822,6 +826,11 @@ data on success.  This has the advantage that calls to
 and are less likely to provoke problems with other code when that
 other code has not been written with the consideration of modification
 of the match data at the forefront of the programmer's mind.
+
+This function should be also used in those contexts where the programmer would
+have used `posix-string-match' but prefers not to have the match data
+affected.  There will be no difference in the return value (the start of the
+longest match will also be the start of the first match).
 
 Neither function modifies the match data on failure.
 */

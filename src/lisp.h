@@ -5932,7 +5932,7 @@ struct re_pattern_buffer *compile_pattern (Lisp_Object pattern,
 					   int posix, Error_Behavior errb);
 Bytecount fast_string_match (Lisp_Object, const Ibyte *,
 			     Lisp_Object, Bytecount,
-			     Bytecount, int, Error_Behavior, int);
+			     Bytecount, Boolint, Error_Behavior, Boolint);
 Bytecount fast_lisp_string_match (Lisp_Object, Lisp_Object);
 extern Fixnum warn_about_possibly_incompatible_back_references;
 
