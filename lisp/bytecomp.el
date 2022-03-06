@@ -123,6 +123,19 @@
 ;;;                                             context )
 ;;;                             'format-not-constant (using #'format without
 ;;;                                             a constant CONTROL-STRING)
+;;;				                This is not the issue in
+;;;				                Emacs Lisp that it is in C
+;;;				                and related languages, since
+;;;				                object type information and
+;;;				                an explicit count of
+;;;				                arguments supplied are both
+;;;				                available at runtime,
+;;;				                meaning CONTROL-STRING
+;;;				                cannot be manipulated to
+;;;				                examine (or write to, with
+;;;				                C's %n) the call stack as it
+;;;				                is in C. This defaults to
+;;;				                off.
 ;;; emacs-lisp-file-regexp	Regexp for the extension of source-files;
 ;;;				see also the function `byte-compile-dest-file'.
 ;;; byte-compile-overwrite-file	If nil, delete old .elc files before saving.
@@ -344,7 +357,7 @@ If it is 'byte, then only byte-level optimizations will be logged.")
 ;; byte-compile-warning-types in FSF.
 (defvar byte-compile-default-warnings
   '(redefine callargs subr-callargs free-vars unresolved unused-vars obsolete
-    discarded-consing quoted-lambda format-not-constant)
+    discarded-consing quoted-lambda)
   "*The warnings used when byte-compile-warnings is t.")
 
 (defvar byte-compile-warnings t

@@ -1,3 +1,10 @@
+2022-03-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecomp.el:
+	* bytecomp.el (byte-compile-default-warnings):
+	Disable the format-not-constant warning by default, after
+	discussion with Stephen Turnbull, thank you Steve.
+
 2022-01-31  Aidan Kehoe  <kehoea@parhasard.net>
 
 	#'check-type gives a clearer error message than
