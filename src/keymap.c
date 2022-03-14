@@ -1441,9 +1441,9 @@ modifiers followed by the canonical internal keysym.
 	    {
 	      if (modifier)
 		sferror ("Nothing but modifiers here", keysym);
+	      keysym = elt;
 	    }
         }
-      keysym = elt;
     }
 
   keysym = canonicalize_keysym (keysym, &modifiers);
@@ -1526,23 +1526,25 @@ define_key_parser (Lisp_Object spec, Lisp_Key_Data *returned_value)
   else if (CONSP (spec))
     {
       int modifiers = 0;
+      Lisp_Object keysym = Qunbound;
 
       /* First, parse out the leading modifier symbols. */
-      EXTERNAL_LIST_LOOP_3 (keysym, spec, rest)
+      EXTERNAL_LIST_LOOP_3 (elt, spec, rest)
 	{
 	  int modifier;
 
-	  modifier = bucky_sym_to_bucky_bit (keysym);
+	  modifier = bucky_sym_to_bucky_bit (elt);
 	  modifiers |= modifier;
 	  if (!NILP (XCDR (rest)))
 	    {
 	      if (!modifier)
-		invalid_argument ("Unknown modifier", keysym);
+		invalid_argument ("Unknown modifier", elt);
 	    }
 	  else
 	    {
 	      if (modifier)
 		sferror ("Nothing but modifiers here", spec);
+	      keysym = elt;
 	    }
 	}
 

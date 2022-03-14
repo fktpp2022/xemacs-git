@@ -1,3 +1,9 @@
+2022-03-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* xlwgauge.c (GaugeExpose):
+	* xlwgauge.c (GaugeQueryGeometry):
+	Use our REGISTER #define, avoid warnings with g++ 11.
+
 2021-10-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lwlib-Xaw.c: Don't check for STDC_HEADERS, unconditionally

@@ -795,14 +795,12 @@ static SSL_CTX *ssl_ctx;
 static Lisp_Object
 openssl_error_string (void)
 {
-  Lisp_Object args[5];
+  Lisp_Object args[3];
   unsigned long err = ERR_get_error ();
 
   args[0] = build_ascstring (ERR_lib_error_string (err));
   args[1] = build_ascstring (":");
-  args[2] = build_ascstring (ERR_func_error_string (err));
-  args[3] = build_ascstring (":");
-  args[4] = build_ascstring (ERR_reason_error_string (err));
+  args[2] = build_ascstring (ERR_reason_error_string (err));
   return concatenate (countof (args), args, Qstring, 0);
 }
 
@@ -822,11 +820,9 @@ openssl_report_error_stack (const char *msg, const SSL *ssl)
       else
 	{
 	  const char *lib = ERR_lib_error_string (err);
-	  const char *func = ERR_func_error_string (err);
 	  const char *reason = ERR_reason_error_string (err);
-	  warn_when_safe (Qtls_error, Qerror, "%s:%s:%s:%s", msg,
+	  warn_when_safe (Qtls_error, Qerror, "%s:%s:%s", msg,
 			  lib == NULL ? "<unknown>" : lib,
-			  func == NULL ? "<unknown>" : func,
 			  reason == NULL ? "<unknown>" : reason);
 	}
     }

@@ -59,7 +59,7 @@ EXTERN_C int tgetent (const char *, const char *);
 EXTERN_C int tgetflag (const char *);
 EXTERN_C int tgetnum (const char *);
 EXTERN_C char *tgetstr (const char *, char **);
-EXTERN_C void tputs (const char *, int, void (*)(int));
+EXTERN_C int tputs (const char *, int, void (*)(int));
 
 #define FORCE_CURSOR_UPDATE(c) send_string_to_tty_console (c, 0, 0)
 #define OUTPUTN(c, a, n)			\

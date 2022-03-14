@@ -361,8 +361,8 @@ GaugeExpose (Widget w,
 	     Region UNUSED (region))
 {
 	GaugeWidget gw = (GaugeWidget) w;
-register Display *dpy = XtDisplay(w) ;
-register Window	win = XtWindow(w) ;
+	REGISTER Display *dpy = XtDisplay(w) ;
+	REGISTER Window	win = XtWindow(w) ;
 	GC	gc;	/* foreground, background */
 	GC	gctop, gcbot ;	/* dark, light shadows */
 
@@ -553,7 +553,7 @@ GaugeQueryGeometry (Widget w,
 		    XtWidgetGeometry *intended,
 		    XtWidgetGeometry *preferred)
 {
-    register GaugeWidget gw = (GaugeWidget)w;
+    REGISTER GaugeWidget gw = (GaugeWidget)w;
 
     if( intended->width == w->core.width  &&
 	intended->height == w->core.height )

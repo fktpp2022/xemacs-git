@@ -13,6 +13,22 @@
 	NEED_TO_HANDLE_21_4_CODE, they are long obsolete as bytecodes.
 	Implement them in terms of Fchar_after() for the moment.
 
+2022-03-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* keymap.c (Fcanonicalize_keysym):
+	Only set KEYSYM from ELT if ELT was set to the satisfaction of the
+	compiler, eliminate a compiler warning.
+	* keymap.c (define_key_parser):
+	Only set KEYSYM from the last element of SPEC if that element was
+	set to the satisfaction of the compiler.
+	* redisplay-tty.c:
+	Correct a declaration for tputs(), fix the build under g++-11.
+
+	* tls.c (openssl_error_string):
+	* tls.c (openssl_report_error_stack):
+	Remove calls to the deprecated ERR_func_error_string() from both
+	these functions.
+
 2022-02-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* extents.c:
