@@ -423,39 +423,6 @@ If BUFFER is nil, the current buffer is assumed.
                                    wrap_buffer (b));
 }
 
-DEFUN ("following-char", Ffollowing_char, 0, 1, 0, /*
-Return the character following point.
-At the end of the buffer or accessible region, return 0.
-If BUFFER is nil, the current buffer is assumed.
-*/
-       (buffer))
-{
-  struct buffer *b = decode_buffer (buffer, 1);
-  if (BYTE_BUF_PT (b) >= BYTE_BUF_ZV (b))
-    return Qzero;             /* #### Gag me! */
-  else
-    return make_char (BYTE_BUF_FETCH_CHAR (b, BYTE_BUF_PT (b)));
-}
-
-DEFUN ("preceding-char", Fpreceding_char, 0, 1, 0, /*
-Return the character preceding point.
-At the beginning of the buffer or accessible region, return 0.
-If BUFFER is nil, the current buffer is assumed.
-*/
-       (buffer))
-{
-  struct buffer *b = decode_buffer (buffer, 1);
-  if (BYTE_BUF_PT (b) <= BYTE_BUF_BEGV (b))
-    return Qzero;             /* #### Gag me! */
-  else
-    {
-      Bytebpos bpos = BYTE_BUF_PT (b);
-      DEC_BYTEBPOS (b, bpos);
-
-      return make_char (BYTE_BUF_FETCH_CHAR (b, bpos));
-    }
-}
-
 DEFUN ("bobp", Fbobp, 0, 1, 0, /*
 Return t if point is at the beginning of the buffer.
 If the buffer is narrowed, this means the beginning of the narrowed part.
@@ -2342,8 +2309,6 @@ syms_of_editfns (void)
   DEFSUBR (Feobp);
   DEFSUBR (Fbolp);
   DEFSUBR (Feolp);
-  DEFSUBR (Ffollowing_char);
-  DEFSUBR (Fpreceding_char);
   DEFSUBR (Fchar_after);
   DEFSUBR (Fchar_before);
   DEFSUBR (Finsert);

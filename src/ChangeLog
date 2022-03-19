@@ -1,3 +1,18 @@
+2022-03-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* editfns.c (Ffollowing_char, Fpreceding_char):
+	Move these functions to Lisp. They are already marked obsolete in
+	obsolete.el
+
+	* editfns.c (syms_of_editfns):
+	Remove the DEFSUBR()s for Ffollowing_char(), Fpreceding_char().
+
+	* bytecode-ops.h: 
+	* bytecode.c:
+	Bracket Bfollowing_char, Bpreceding_char with #ifdef
+	NEED_TO_HANDLE_21_4_CODE, they are long obsolete as bytecodes.
+	Implement them in terms of Fchar_after() for the moment.
+
 2022-02-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* extents.c:

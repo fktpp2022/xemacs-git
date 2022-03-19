@@ -980,8 +980,11 @@ Each element is (INDEX . VALUE)")
 (byte-defop 100  1 byte-point-max)
 (byte-defop 101  1 byte-point-min)
 (byte-defop 102  0 byte-char-after)
+
+;; These two should be removed, kept only for the sake of the disassembler:
 (byte-defop 103  1 byte-following-char)
 (byte-defop 104  1 byte-preceding-char)
+
 (byte-defop 105  1 byte-current-column)
 (byte-defop 106  0 byte-indent-to)
 (byte-defop 107 -1 byte-equal) ; new as of v20
@@ -3432,8 +3435,8 @@ keyword %s, forcing function quoting" (car form) function)))
 (byte-defop-compiler eq		2)
 (byte-defop-compiler point-max		0+1)
 (byte-defop-compiler point-min		0+1)
-(byte-defop-compiler following-char	0+1)
-(byte-defop-compiler preceding-char	0+1)
+;(byte-defop-compiler following-char	0+1)
+;(byte-defop-compiler preceding-char	0+1)
 (byte-defop-compiler current-column	0+1)
 ;; FSF has special function here; generalized here by the 1+2 stuff.
 (byte-defop-compiler (indent-to-column byte-indent-to) 1+2)

@@ -1083,6 +1083,10 @@
 ;; (char-before) ==> (char-after (1- (point)))
 (put 'char-before   'byte-optimizer 'byte-optimize-char-before)
 (defun byte-optimize-char-before (form)
+  ;; #### This has the downside over the old #'preceding-char that it is no
+  ;; longer free in terms of byte-char conversion cost. Once we've
+  ;; completely dropped the older bytecodes I would prefer to introduce a
+  ;; char-before bytecode.
   `(char-after
     ,(cond
       ((null (nth 1 form))

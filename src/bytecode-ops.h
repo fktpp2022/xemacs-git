@@ -81,8 +81,10 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
   OPCODE (point_max, 			0144)
   OPCODE (point_min, 			0145)
   OPCODE (char_after, 			0146)
+#ifdef NEED_TO_HANDLE_21_4_CODE
   OPCODE (following_char, 		0147)
   OPCODE (preceding_char, 		0150)
+#endif
   OPCODE (current_column, 		0151)
   OPCODE (indent_to, 			0152)
   OPCODE (equal, 			0153) /* was Bscan_buffer, but no

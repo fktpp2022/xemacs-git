@@ -1,3 +1,17 @@
+2022-03-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecomp.el:
+	Document that the byte-following-char, byte-preceding-char defops
+	are only kept around for the sake of the disassembler. 
+	Remove the corresponding byte-defop-compiler, compile both the
+	functions as normal calls, so the warning that they are obsolete
+	comes through, and so there is no speed upside to calling them.
+
+	* obsolete.el:
+	* obsolete.el (following-char): New.
+	* obsolete.el (preceding-char): New.  Move the implementations of
+	these functions to this file from C.
+
 2022-03-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* bytecomp.el:

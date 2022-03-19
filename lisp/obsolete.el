@@ -452,9 +452,17 @@ because its `find-charset-string' ignores ASCII charset."
 (define-obsolete-function-alias 'string-to-char-list 'string-to-list)
 
 ;; Two loser functions which shouldn't be used.
+(defun following-char (&optional buffer)
+  "Return the result of calling `char-after' with buffer BUFFER.
+If that is nil, return integer zero."
+  (or (char-after nil buffer) 0))
 (make-obsolete 'following-char 'char-after)
-(make-obsolete 'preceding-char 'char-before)
 
+(defun preceding-char (&optional buffer)
+  "Return the result of calling `char-before' with buffer BUFFER.
+If that is nil, return integer zero."
+  (or (char-before nil buffer) 0))
+(make-obsolete 'preceding-char 'char-before)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; misc
 

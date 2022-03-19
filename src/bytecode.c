@@ -1746,13 +1746,32 @@ execute_rare_opcode (Lisp_Object *stack_ptr,
       PUSH (Fwiden (Qnil));
       break;
 
+#ifdef NEED_TO_HANDLE_21_4_CODE
     case Bfollowing_char:
-      PUSH (Ffollowing_char (Qnil));
-      break;
+      {
+	Lisp_Object arg = Fchar_after (Qnil, Qnil);
+
+	if (NILP (arg))
+	  {
+	    arg = Qzero;
+	  }
+	PUSH (arg);
+	break;
+      }
 
     case Bpreceding_char:
-      PUSH (Fpreceding_char (Qnil));
-      break;
+      {
+	Lisp_Object arg = Fchar_before (Qnil, Qnil);
+
+	if (NILP (arg))
+	  {
+	    arg = Qzero;
+	  }
+
+	PUSH (arg);
+	break;
+      }
+#endif /* NEED_TO_HANDLE_21_4_CODE */
 
     case Beolp:
       PUSH (Feolp (Qnil));
