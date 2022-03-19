@@ -258,7 +258,7 @@ positions (integers or markers) specifying the stretch of the region."
     (narrow-to-region from to)
     (goto-char (point-min))
     (while (re-search-forward "\\cv" nil t)
-      (let* ((ch (preceding-char))
+      (let* ((ch (char-before))
 	     (viqr (cdr (assq ch viet-viqr-alist))))
 	(if viqr
 	    (progn

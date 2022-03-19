@@ -235,12 +235,12 @@ of which charset is `japanese-jisx0201-kana'."
     (save-excursion
       (goto-char (point-min))
       (while (re-search-forward "\\cH\\|\\cK" nil t)
-	(let* ((kana (preceding-char))
+	(let* ((kana (char-before))
 	       (composition
 		(and (not hankaku)
 		     (get-char-code-property kana 'kana-composition)))
 	       slot)
-	  (if (and composition (setq slot (assq (following-char) composition)))
+	  (if (and composition (setq slot (assq (char-after) composition)))
 	      (japanese-replace-region (match-beginning 0) (1+ (point))
 				       (cdr slot))
 	    (let ((kata (get-char-code-property
@@ -259,10 +259,10 @@ of which charset is `japanese-jisx0201-kana'."
     (save-excursion
       (goto-char (point-min))
       (while (re-search-forward "\\cK\\|\\ck" nil t)
-	(let* ((kata (preceding-char))
+	(let* ((kata (char-before))
 	       (composition (get-char-code-property kata 'kana-composition))
 	       slot)
-	  (if (and composition (setq slot (assq (following-char) composition)))
+	  (if (and composition (setq slot (assq (char-after) composition)))
 	      (japanese-replace-region (match-beginning 0) (1+ (point))
 				       (get-char-code-property
 					(cdr slot) 'hiragana))
@@ -283,7 +283,7 @@ Optional argument ASCII-ONLY non-nil means to convert only to ASCII char."
     (save-excursion
       (goto-char (point-min))
       (while (re-search-forward "\\cj" nil t)
-	(let* ((zenkaku (preceding-char))
+	(let* ((zenkaku (char-before))
 	       (hankaku (or (and (not ascii-only)
 				 (get-char-code-property zenkaku 'jisx0201))
 			    (get-char-code-property zenkaku 'ascii))))
@@ -306,10 +306,10 @@ Optional argument KATAKANA-ONLY non-nil means to convert only KATAKANA char."
 		      (re-search-forward "\\ck" nil t))
 		 (and (not katakana-only)
 		      (re-search-forward "\\ca\\|\\ck" nil t)))
-	(let* ((hankaku (preceding-char))
+	(let* ((hankaku (char-before))
 	       (composition (get-char-code-property hankaku 'kana-composition))
 	       slot)
-	  (if (and composition (setq slot (assq (following-char) composition)))
+	  (if (and composition (setq slot (assq (char-after) composition)))
 	      (japanese-replace-region (match-beginning 0) (1+ (point))
 				       (cdr slot))
 	    (let ((zenkaku (japanese-zenkaku hankaku)))

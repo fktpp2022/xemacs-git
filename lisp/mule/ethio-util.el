@@ -557,11 +557,11 @@ switch and return the name of the new language as a symbol."
        ;; "\\" :  leave the second "\"
        ((progn
 	  (delete-backward-char 1)
-	  (= (following-char) ?\\ ))
+	  (eql (char-after) ?\\ ))
 	(forward-char 1))
 
        ;; "\ " :  delete the following " "
-       ((= (following-char) 32)
+       ((eql (char-after) ?\ )
 	(delete-char 1)
 	(setq new-language 'toggle))
 
@@ -590,14 +590,14 @@ the conversion of \"a\"."
 	    (if (eq lang 'tigrigna) "$(3"f(B" "$(3"c(B"))	  
 
     (while (and (not (eobp)) (null new-language))
-      (setq ch (following-char))
+      (setq ch (char-after))
       (cond
 
        ;; skip from "<" to ">" (or from "&" to ";") if in w3-mode
        ((and (boundp 'sera-being-called-by-w3)
 	     sera-being-called-by-w3
-	     (or (= ch ?<) (= ch ?&)))
-	(search-forward (if (= ch ?<) ">" ";")
+	     (or (eql ch ?<) (eql ch ?&)))
+	(search-forward (if (eql ch ?<) ">" ";")
 			nil 0))
 
        ;; leave non-ASCII characters as they are
@@ -614,7 +614,7 @@ the conversion of \"a\"."
 	(setq start (point))
 	(forward-char 1)
 	(setq table (aref ethio-sera-to-fidel-table ch))
-	(while (setq table2 (cdr (assoc (following-char) table)))
+	(while (setq table2 (cdr (assoc (char-after) table)))
 	  (setq table table2)
 	  (forward-char 1))
 	(if (setq ch (car table))
@@ -644,8 +644,8 @@ the conversion of \"a\"."
        ;; "\ " : delete the following " "
        ((progn
 	  (delete-char 1)
-	  (setq ch (following-char))
-	  (= ch 32))
+	  (setq ch (char-after))
+	  (eql ch ?\x30))
 	(delete-char 1)
 	(setq new-language 'toggle))
 
@@ -703,7 +703,7 @@ changing anything."
       (setq ethio-primary-language lang1
 	    ethio-secondary-language lang2)
       (delete-region (point) (match-end 2))
-      (if (= (following-char) 32)
+      (if (eql (char-after) ?\ )
 	  (delete-char 1))
       ethio-primary-language)
 
@@ -713,7 +713,7 @@ changing anything."
 		 (ethio-flag-to-language
 		  (buffer-substring (match-beginning 1) (match-end 1)))))
       (delete-region (point) (match-end 1))
-      (if (= (following-char) 32)
+      (if (eql (char-after) ?\ )
 	  (delete-char 1))
       lang1)
 
@@ -729,7 +729,7 @@ Delete the escape even it is not recognised."
     (skip-chars-forward "^ \t\n\\\\")
     (setq command (buffer-substring p (point)))
     (delete-region p (point))
-    (if (= (following-char) 32)
+    (if (eql (char-after) ?\ )
 	(delete-char 1))
 
     (cond
@@ -784,13 +784,13 @@ Delete the escape even it is not recognised."
 (defun ethio-convert-digit nil
   "Convert Arabic digits to Ethiopic digits."
   (let (ch z)
-    (while (and (>= (setq ch (following-char)) ?1)
+    (while (and (>= (setq ch (char-after)) ?1)
 		(<= ch ?9))
       (delete-char 1)
 
       ;; count up following zeros
       (setq z 0)
-      (while (= (following-char) ?0)
+      (while (eql (char-after) ?0)
 	(delete-char 1)
 	(setq z (1+ z)))
 
@@ -1073,7 +1073,7 @@ See also the descriptions of the variables
     ;; main conversion routine
     (goto-char (point-min))
     (while (not (eobp))
-      (setq ch (following-char))
+      (setq ch (char-after))
 
       (cond				; ethiopic, english, neutral
 
@@ -1294,7 +1294,7 @@ The markers \"<sera>\" and \"</sera>\" themselves are not deleted."
 (defun ethio-modify-vowel nil
   "Modify the vowel of the FIDEL that is under the cursor."
   (interactive)
-  (let ((ch (following-char))
+  (let ((ch (char-after))
 	(composite nil)			; geminated or not
 	newch base vowel modulo)
 
@@ -1719,7 +1719,7 @@ Each command is always surrounded by braces."
       (insert
        "{\\"
        (aref ethio-fidel-to-tex-map
-	     (prog1 (ethio-char-to-ethiocode (preceding-char))
+	     (prog1 (ethio-char-to-ethiocode (char-before))
 	       (backward-delete-char 1)))
        "}"))
     (goto-char (point-min))
@@ -1751,8 +1751,8 @@ Each command is always surrounded by braces."
       (if ch
 	  (progn
 	    (delete-region (1- p) (point)) ; don't forget the preceding "\"
-	    (if (and (= (preceding-char) ?{)
-		     (= (following-char) ?}))
+	    (if (and (eql (char-before) ?{)
+		     (eql (char-after) ?}))
 		(progn
 		  (backward-delete-char 1)
 		  (delete-char 1)))
@@ -1793,7 +1793,7 @@ Otherwise, [0-9A-F]."
 
     (goto-char (point-min))
     (while (re-search-forward "\\ce" nil t)
-      (setq ucode (+ #x1200 (ethio-char-to-ethiocode (preceding-char))))
+      (setq ucode (+ #x1200 (ethio-char-to-ethiocode (char-before))))
       (if (> ucode #x13bc)
 	  (setq ucode (+ ucode 59952)))
       (delete-backward-char 1)
@@ -1850,7 +1850,7 @@ Otherwise, [0-9A-F]."
 	(ethio-sera-to-fidel-marker 'force)
 	(goto-char (point-min))
 	(while (re-search-forward "&[lr]aquote;" nil t)
-	  (if (= (char-after (1+ (match-beginning 0))) ?l)
+	  (if (eql (char-after (1+ (match-beginning 0))) ?l)
 	      (replace-match "$(3%v(B")
 	    (replace-match "$(3%w(B")))
 	(set-buffer-modified-p nil))))
@@ -1951,7 +1951,7 @@ many Ethiopic word separators."
     (insert-char 32 arg))
    ((save-excursion
       (skip-chars-backward " ")
-      (memq (preceding-char)
+      (memq (char-before)
 	    '(?$(3$h(B ?$(3$i(B ?$(3$j(B ?$(3$k(B ?$(3$l(B ?$(3$m(B ?$(3$n(B ?$(3$o(B ?$(3%t(B ?$(3%u(B ?$(3%v(B ?$(3%w(B ?$(3%x(B)))
     (insert-char 32 arg))
    (t
@@ -1998,13 +1998,13 @@ If the character is already composed, decompose it and remove the gemination
 mark."
   (interactive "*")
   (cond
-   ((eq (char-charset (preceding-char)) 'ethiopic)
+   ((eq (char-charset (char-before)) 'ethiopic)
     (insert "$(3%s(B")
     (compose-region
      (save-excursion (backward-char 2) (point))
      (point))
     (forward-char 1))
-   ((eq (char-charset (preceding-char)) 'leading-code-composition)
+   ((eq (char-charset (char-before)) 'leading-code-composition)
     (decompose-region
      (save-excursion (backward-char 1) (point))
      (point))

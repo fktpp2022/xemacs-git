@@ -82,8 +82,8 @@ Return the length of resulting text."
 	;; "~\n" -> "\n", "~~" -> "~"
 	(goto-char (point-min))
 	(while (search-forward "~" nil t)
-	  (setq ch (following-char))
-	  (if (or (= ch ?\n) (= ch ?~)) (delete-char -1)))
+	  (setq ch (char-after))
+	  (if (or (eql ch ?\n) (eql ch ?~)) (delete-char -1)))
 
 	;; "^zW...\n" -> Chinese GB2312
 	;; "~{...~}"  -> Chinese GB2312

@@ -142,7 +142,7 @@ if that value is non-nil."
 		   :format "%[%v%]\n%d"
 		   :doc (get widget 'widget-documentation)
 		   widget)
-    (unless (eq (preceding-char) ?\n)
+    (unless (eq (char-before) ?\n)
       (widget-insert "\n"))
     (widget-insert "\nSuper: ")
     (setq widget (get widget 'widget-type)))

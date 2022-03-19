@@ -229,7 +229,7 @@ arguments compiles from `load-path'."
     (if (< col column)
 	(indent-to column)
       (if (and (/= col column)
-	       (= (preceding-char) ?\t))
+	       (eql (char-before) ?\t))
 	  (let (indent-tabs-mode)
 	    (delete-char -1)
             (indent-to col)

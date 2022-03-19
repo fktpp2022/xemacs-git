@@ -463,10 +463,10 @@ The current window remains selected."
     (save-excursion
       (beginning-of-line)
       (forward-char 2)
-      (if (/= (following-char) char)
-          (let (buffer-read-only)
-            (delete-char 1)
-            (insert char))))))
+      (unless (eql (char-after) char)
+	(let (buffer-read-only)
+	  (delete-char 1)
+	  (insert char))))))
 
 ;; XEmacs
 (defvar Buffer-menu-popup-menu

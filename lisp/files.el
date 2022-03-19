@@ -4320,7 +4320,7 @@ If WILDCARD, it also runs the shell specified by `shell-file-name'."
 		;; and record the bounds of each one.
 		(goto-char beg)
 		(while (< (point) linebeg)
-		  (or (eql (following-char) ?\s)
+		  (or (eql (char-after) ?\s)
 		      (push (list (point) (line-end-position)) error-lines))
 		  (forward-line 1))
 		(setq error-lines (nreverse error-lines))

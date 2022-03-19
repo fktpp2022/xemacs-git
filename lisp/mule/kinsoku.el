@@ -287,8 +287,8 @@ pointが行末禁則に触れる場合は行を縮めて、禁則に触れない点を探す。
 		    (kinsoku-eol-p)
 		;;; don't break in the middle of an English word
 		    (and
-		     (char-in-category-p (setq ch1 (following-char)) ?a)
-		     (char-in-category-p (setq ch2 (preceding-char)) ?a)
+		     (char-in-category-p (setq ch1 (char-after)) ?a)
+		     (char-in-category-p (setq ch2 (char-before)) ?a)
 		     (= ?w (char-syntax ch2))
 		     (= ?w (char-syntax ch1)))))
       (backward-char))))

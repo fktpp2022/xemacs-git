@@ -915,7 +915,7 @@ which it understands) are:
 		      ((eq c ?~) compose-tilde-map)
 		      ((eq c ?.) compose-ring-map)
 		      (t (error "unknown diacritic: %s (%c)" c c))))
-	   (base-char (preceding-char))
+	   (base-char (char-before))
 	   (mod-char (and (>= (downcase base-char) ?a) ; only do alphabetics?
 			  (<= (downcase base-char) ?z)
 			  (lookup-key map (make-string 1 base-char)))))

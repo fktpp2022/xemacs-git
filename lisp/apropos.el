@@ -392,7 +392,7 @@ Returns list of symbols and documentation found."
 	    (setq start (match-beginning 0)
 		  end (point))
 	    (goto-char (1+ sepa))
-	    (or (setq type (if (eq ?F (preceding-char))
+	    (or (setq type (if (eq ?F (char-before))
 			       1	; function documentation
 			     2)		; variable documentation
 		      symbol (read)

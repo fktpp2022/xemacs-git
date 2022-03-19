@@ -1,5 +1,54 @@
 2022-03-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* apropos.el (apropos-documentation-check-doc-file):
+	* buff-menu.el (Buffer-menu-toggle-read-only):
+	* buff-menu.el (Buffer-menu-popup-menu):
+	* compose.el (electric-diacritic):
+	* cus-edit.el (custom-buffer-create-internal):
+	* cus-edit.el (custom-variable-value-create):
+	* cus-edit.el (custom-face-value-create):
+	* cus-edit.el (custom-group-value-create):
+	* files.el (insert-directory):
+	* finder.el (finder-insert-at-column):
+	* mode-motion.el (mode-motion-highlight-sexp):
+	* mode-motion.el (mode-motion-add-help-echo):
+	* mule/china-util.el (decode-hz-region):
+	* mule/devan-util.el (indian-to-devanagari-region):
+	* mule/devan-util.el (devanagari-to-indian-region):
+	* mule/ethio-util.el (ethio-sera-to-fidel-english):
+	* mule/ethio-util.el (ethio-sera-to-fidel-ethio):
+	* mule/ethio-util.el (ethio-process-language-flag):
+	* mule/ethio-util.el (ethio-tilde-escape):
+	* mule/ethio-util.el (ethio-convert-digit):
+	* mule/ethio-util.el (ethio-fidel-to-sera-buffer):
+	* mule/ethio-util.el (ethio-modify-vowel):
+	* mule/ethio-util.el (ethio-fidel-to-tex-buffer):
+	* mule/ethio-util.el (ethio-tex-to-fidel-buffer):
+	* mule/ethio-util.el (ethio-fidel-to-java-buffer):
+	* mule/ethio-util.el (ethio-find-file):
+	* mule/ethio-util.el (ethio-insert-space):
+	* mule/ethio-util.el (ethio-gemination):
+	* mule/japan-util.el (japanese-katakana-region):
+	* mule/japan-util.el (japanese-hiragana-region):
+	* mule/japan-util.el (japanese-hankaku-region):
+	* mule/japan-util.el (japanese-zenkaku-region):
+	* mule/kinsoku.el (kinsoku-process-shrink):
+	* mule/tibet-util.el (tibetan-compose-region):
+	* mule/tibet-util.el (tibetan-decompose-region):
+	* mule/viet-util.el (viet-encode-viqr-region):
+	* picture.el (move-to-column-force):
+	* view-less.el (cleanup-backspaces):
+	* wid-browse.el (widget-browse):
+	* wid-edit.el (widget-after-change):
+	* wid-edit.el (widget-default-format-handler):
+	* wid-edit.el (widget-checklist-add-item):
+	* wid-edit.el (widget-radio-add-item):
+	* wid-edit.el (widget-group-value-create):
+	Migrate #'following-char, #'preceding-char to #'char-after,
+	#'char-before in these files.
+
+2022-03-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* bytecomp.el:
 	Document that the byte-following-char, byte-preceding-char defops
 	are only kept around for the sake of the disassembler. 

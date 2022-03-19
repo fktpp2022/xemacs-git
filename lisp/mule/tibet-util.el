@@ -250,7 +250,7 @@ The returned string has no composition information."
 	      (setq components (list (char-after from)))
 	      (forward-char 1))
 	    (while (< (point) to)
-	      (tibetan-add-components components (following-char))
+	      (tibetan-add-components components (char-after))
 	      (forward-char 1))
 	    (compose-region from to components)))))
     ;)
@@ -271,7 +271,7 @@ are decomposed into normal Tiebtan character sequences."
     (decompose-region from to)
     (goto-char from)
     (while (not (eobp))
-      (let* ((char (following-char))
+      (let* ((char (char-after))
 	     (slot (assq char tibetan-decompose-precomposition-alist)))
 	(if slot
 	    (progn

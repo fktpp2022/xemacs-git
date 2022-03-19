@@ -120,11 +120,11 @@ to be added.  This variable is local to every buffer.")
   (mode-motion-highlight-internal
    event
    #'(lambda ()
-       (if (= (char-syntax (following-char)) ?\()
+       (if (= (char-syntax (char-after)) ?\()
 	   nil
 	 (goto-char (scan-sexps (point) -1))))
    #'(lambda ()
-       (if (= (char-syntax (following-char)) ?\))
+       (if (= (char-syntax (char-after)) ?\))
 	   (forward-char 1))
        (goto-char (scan-sexps (point) 1)))))
 

@@ -300,7 +300,7 @@ turned into (+)."
   (interactive)
   (save-excursion
     (goto-char (point-min))
-    (while (= (following-char) ?\C-h)
+    (while (eql (char-after) ?\C-h)
       (delete-char 1))
     (while (search-forward "\C-h" nil t)
       (backward-char 2)

@@ -1628,7 +1628,7 @@ state to `modified'.  when it is being edited)."
 			 (setq begin (point)))
 		       (save-excursion
 			 (goto-char end)
-			 (while (and (eq (preceding-char) ?\ )
+			 (while (and (eq (char-before) ?\ )
 				     (> (point) begin))
 			   (delete-backward-char 1)))))))
 	    (widget-specify-secret field))
@@ -1858,7 +1858,7 @@ Return nil."
 				 doc-try))
 		  (doc-indent (widget-get widget :documentation-indent)))
 	     (when doc-text
-	       (and (eq (preceding-char) ?\n)
+	       (and (eq (char-before) ?\n)
 		    (widget-get widget :indent)
 		    (insert-char ?\  (widget-get widget :indent)))
 	       ;; The `*' in the beginning is redundant.
@@ -2587,7 +2587,7 @@ The parent of several `checkbox' widgets, one for each option."
 (defun widget-checklist-add-item (widget type chosen)
   "Create checklist item in WIDGET of type TYPE.
 If the item is checked, CHOSEN is a cons whose cdr is the value."
-  (and (eq (preceding-char) ?\n)
+  (and (eq (char-before) ?\n)
        (widget-get widget :indent)
        (insert-char ?\  (widget-get widget :indent)))
   (widget-specify-insert
@@ -2785,7 +2785,7 @@ The parent of several `radio-button' widgets, one for each option."
 (defun widget-radio-add-item (widget type)
   "Add to radio widget WIDGET a new radio button item of type TYPE."
   ;; (setq type (widget-convert type))
-  (and (eq (preceding-char) ?\n)
+  (and (eq (char-before) ?\n)
        (widget-get widget :indent)
        (insert-char ?\  (widget-get widget :indent)))
   (widget-specify-insert
@@ -3141,7 +3141,7 @@ The parent of several `radio-button' widgets, one for each option."
 	    args (cdr args)
 	    answer (widget-match-inline arg value)
 	    value (cdr answer))
-      (and (eq (preceding-char) ?\n)
+      (and (eq (char-before) ?\n)
 	   (widget-get widget :indent)
 	   (insert-char ?\  (widget-get widget :indent)))
       (push (cond ((null answer)

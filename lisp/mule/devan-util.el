@@ -71,7 +71,7 @@ positions (integers or markers) specifying the region."
   (save-excursion
     (goto-char from)
     (while (< (point) to)
-      (let ((char (following-char)))
+      (let ((char (char-after)))
 	(if (eq (char-charset char) 'indian-is13194)
 	    (progn
 	      (delete-char 1)
@@ -87,7 +87,7 @@ positions (integers or markers) specifying the region."
   (save-excursion
     (goto-char from)
     (while (< (point) to)
-      (let ((char (following-char)))
+      (let ((char (char-after)))
 	(if (eq (char-charset char) 'indian-2-column)
 	    (progn
 	      (delete-char 1)
