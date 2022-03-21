@@ -242,6 +242,15 @@ with the exception of `loadup.el'.")
 ;; Make the path to this file look a little nicer: 
 (setcar (car load-history) (file-truename (caar load-history)))
 
+;; String extent info is not dumpable, clear it from the match data now.
+(store-match-data
+ (list (let ((extent (make-extent 0 6 "string")))
+	 ;; This property is a signal to the search code, at dump time and
+	 ;; only at dump time, to discard all string extent info that the
+	 ;; search code knows about:
+	 (set-extent-property extent 'search 'discard)
+	 extent)))
+
 (garbage-collect)
 
 ;;; At this point, we're ready to resume undo recording for scratch.
@@ -262,8 +271,6 @@ with the exception of `loadup.el'.")
   (setq stack-trace-on-error nil
 	load-always-display-messages nil
 	debug-on-error nil)
-  ;; String extent info is not dumpable, clear it from the match data.
-  (store-match-data nil)
   (dump-emacs
    "xemacs"
    "temacs")

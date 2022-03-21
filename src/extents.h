@@ -218,8 +218,7 @@ void extent_fragment_delete (struct extent_fragment *ef);
 struct extent *allocate_extent (void);
 
 void attach_extent_auxiliary (EXTENT ext);
-void init_buffer_extents (struct buffer *b);
-void uninit_buffer_extents (struct buffer *b);
+void uninit_object_extents (Lisp_Object);
 
 #ifdef ERROR_CHECK_EXTENTS
 void sledgehammer_extent_check (Lisp_Object obj);

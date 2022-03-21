@@ -13,6 +13,37 @@
 	NEED_TO_HANDLE_21_4_CODE, they are long obsolete as bytecodes.
 	Implement them in terms of Fchar_after() for the moment.
 
+2022-03-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* extents.h:
+	Remove init_buffer_extents(), which is trivial.
+	Ranem uninit_buffer_extents() to uninit_object_extents() since we
+	now also use it for strings.
+	* buffer.c (finish_init_buffer):
+	* buffer.c (Fkill_buffer):
+	Use the new names in both these functions.
+
+	* extents.c:
+	* extents.c (uninit_object_extents): New. Renamed
+	uninit_buffer_extents, now it is also used for strings. When used
+	for strings, remove the struct extent_info from the string's plist.
+
+	* search.c:
+	* search.c (clear_lisp_search_registers):
+	No longer eagerly clear all the extent info for any string
+	encountered, delay that to just before the call to #'dump-emacs,
+	saving the relevant strings in Vstrings_to_nuke_extents.
+	* search.c (Freplace_match):
+	Ditto.
+	* search.c (Fstore_match_data):
+	If purify_flag is non-zero and we are supplied a single-element
+	list comprising an extent with its SEARCH property set to DISCARD,
+	discard the extent information for those entries on
+	Vstrings_to_nuke_extents, and set Vstrings_to_nuke_extents to Qnil.
+	* search.c (vars_of_search):
+	staticpro() Vstrings_to_nuke_extents for the sake of GC protection
+	for temacs.
+
 2022-03-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* keymap.c (Fcanonicalize_keysym):

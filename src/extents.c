@@ -932,12 +932,23 @@ init_buffer_extents (struct buffer *b)
 }
 
 void
-uninit_buffer_extents (struct buffer *b)
+uninit_object_extents (Lisp_Object obj)
 {
+  struct extent_info *info;
+
   /* Don't destroy the extents here -- there may still be children
      extents pointing to the extents. */
-  detach_all_extents (wrap_buffer (b));
-  finalize_extent_info (b->extent_info);
+  detach_all_extents (obj);
+  info = object_extent_info (obj);
+  if (NULL != info)
+    {
+      finalize_extent_info (wrap_extent_info (info));
+      if (STRINGP (obj))
+	{
+	  XSTRING_PLIST (obj)
+	    = delq_no_quit (wrap_extent_info (info), XSTRING_PLIST (obj));
+	}
+    }
 }
 
 /* Retrieve the extent list that an extent is a member of; the return value

@@ -590,7 +590,7 @@ finish_init_buffer (struct buffer *b, Lisp_Object name)
     b->undo_list = Qt;
 
   /* initialize the extent list */
-  init_buffer_extents (b);
+  b->extent_info = allocate_extent_info ();
 
   /* Put this in the alist of all live buffers.  */
   push_buffer_alist (name, buf);
@@ -1409,7 +1409,7 @@ with `delete-process'.
     b->name = Qnil;
     uninit_buffer_text (b);
     b->undo_list = Qnil;
-    uninit_buffer_extents (b);
+    uninit_object_extents (wrap_buffer (b));
     if (b->base_buffer)
       {
 #ifdef ERROR_CHECK_STRUCTURES

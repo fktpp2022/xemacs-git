@@ -302,23 +302,22 @@ signal_failure (Lisp_Object arg)
     Fsignal (Qsearch_failed, list1 (arg));
 }
 
+/* We can normally lazily reuse our saved extents, but extents attached to
+   strings are not currently dumpable. Vstrings_to_nuke_extents is, at dump
+   time, a weak list of those strings having extent info that the search code
+   has encountered. Just before dumping, loadup.el tells #'store-match-data
+   that all extent info for objects on this list should be cleared using
+   uninit_object_extents(). Once that is done (and thus, also for normal, post
+   pdump_load() executions) Vstrings_to_nuke_extents becomes Qnil.
+
+   clear_lisp_search_registers used to eagerly uninit_object_extents() on each
+   dump-time call, but that interacts badly with #'save-match-data. */
+static Lisp_Object Vstrings_to_nuke_extents;
+
 static void
 clear_lisp_search_registers (void)
 {
   Elemcount ii;
-  Lisp_Object *string_extent_info_to_destroy = NULL, *cursor = NULL;
-  
-  if (purify_flag)
-    {
-      /* We can normally lazily reuse our saved extents, but unfortunately
-         string extents are not currently dumpable, so don't reuse them when
-         dumping, and clear all string extent info once we are done with
-         it, after the loop. */
-      cursor = string_extent_info_to_destroy
-        = alloca_array (Lisp_Object,
-                        XVECTOR_LENGTH (XCDR (Vsearch_registers)) + 1);
-      *cursor++ = XSYMBOL_NAME (Qsearch);
-    }
 
   for (ii = 0; ii < XVECTOR_LENGTH (XCDR (Vsearch_registers)); ii++)
     {
@@ -329,8 +328,9 @@ clear_lisp_search_registers (void)
                                       (XCDR (Vsearch_registers))[ii]));
           if (purify_flag && STRINGP (obj))
             {
-              *cursor++ = obj;
-              Fdelete_extent (XVECTOR_DATA (XCDR (Vsearch_registers))[ii]);
+	      XWEAK_LIST_LIST (Vstrings_to_nuke_extents)
+		= Fcons (obj, XWEAK_LIST_LIST (Vstrings_to_nuke_extents));
+	      Fdetach_extent (XVECTOR_DATA (XCDR (Vsearch_registers))[ii]);
               XVECTOR_DATA (XCDR (Vsearch_registers))[ii] = Qnil;
             }
           else if (EQ (obj, XSYMBOL_NAME (Qsearch))
@@ -359,13 +359,6 @@ clear_lisp_search_registers (void)
         {
           XVECTOR_DATA (XCDR (Vsearch_registers))[ii] = Qnil;          
         }
-    }
-
-  while (string_extent_info_to_destroy < cursor)
-    {
-      XSTRING_PLIST (*string_extent_info_to_destroy)
-        = Fcdr (XSTRING_PLIST (*string_extent_info_to_destroy));
-      string_extent_info_to_destroy++;
     }
 }
 
@@ -3432,8 +3425,9 @@ signaled.
               Fdelete_extent (escape_extent);
               if (i == case_escapes_seen && purify_flag)
                 {
-                  XSTRING_PLIST (replacement)
-		    = Fcdr (XSTRING_PLIST (replacement));
+		  XWEAK_LIST_LIST (Vstrings_to_nuke_extents)
+		    = Fcons (replacement,
+			     XWEAK_LIST_LIST (Vstrings_to_nuke_extents));
                 }
             }
           if (newchar == -1)
@@ -4183,6 +4177,19 @@ true of GNU Emacs, nor of older XEmacs.  See also the macro `save-match-data'.
   }
 
   clear_lisp_search_registers ();
+
+  if (purify_flag && num_regs == 1 && EXTENTP (staging[0]) && 
+      /* The Qsearch property is a conspiracy between loadup.el and this
+	 file: */
+      EQ (Qdiscard, Fextent_property (staging[0], Qsearch, Qnil)))
+    {
+      LIST_LOOP_2 (elt, XWEAK_LIST_LIST (Vstrings_to_nuke_extents))
+	{
+	  uninit_object_extents (elt);
+	}
+      num_regs = 0;
+      Vstrings_to_nuke_extents = Qnil;
+    }
   
   for (ii = 0; ii < num_regs; ii++)
     {
@@ -4453,6 +4460,9 @@ continues. This variable prompts it to error instead, which can make it more
 practical to debug any problems; see `debug-on-error'.
 */ );
   search_error_on_bad_match_data = 0;
+
+  Vstrings_to_nuke_extents = make_weak_list (WEAK_LIST_SIMPLE);
+  staticpro (&Vstrings_to_nuke_extents);
 
 #ifdef DEBUG_XEMACS 
   DEFSYMBOL (Qsearch_algorithm_used);

@@ -61,6 +61,14 @@
 	* obsolete.el (preceding-char): New.  Move the implementations of
 	these functions to this file from C.
 
+2022-03-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* loadup.el:
+	We can no longer just (store-match-data nil) to clear the extent
+	information for strings known to the search code before dumping;
+	pass in an extent with its SEARCH property set to DISCARD
+	instead.
+
 2022-03-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* bytecomp.el:
