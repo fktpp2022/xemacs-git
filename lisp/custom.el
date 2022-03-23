@@ -44,8 +44,6 @@
 (autoload 'custom-declare-face "cus-face")
 (autoload 'custom-theme-reset-internal-face "cus-face")
 
-(require 'widget)
-
 (defvar custom-define-hook nil
   ;; Customize information for this option is in `cus-edit.el'.
   "Hook called after defining each customize option.")

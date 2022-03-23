@@ -60,6 +60,7 @@ in dumped-lisp.el and is not itself listed.")
        "console"
        "obsolete"
        "specifier"
+       (when (featurep 'menubar) '("menubar" "menubar-items" "font-menu"))
        "frame"			; needed by faces
        ;; #### this should be (featurep 'xft)
        (when (featurep 'xft-fonts) "fontconfig") ; needed by x-faces
@@ -146,7 +147,6 @@ in dumped-lisp.el and is not itself listed.")
 	   ))
        (when (featurep 'toolbar) "toolbar")
        (when (featurep 'scrollbar) "scrollbar")
-       (when (featurep 'menubar) "menubar")
        (when (featurep 'dialog) "dialog")
        (when (featurep 'gutter) "gutter")
        (when (featurep 'dragdrop-api) "dragdrop")
@@ -159,7 +159,6 @@ in dumped-lisp.el and is not itself listed.")
        ;; should just be able to assume that, if (featurep 'menubar),
        ;; the menubar should work and if items are added, they can be
        ;; seen clearly and usefully.
-       (when (featurep 'menubar) '("menubar-items" "font-menu"))
        (when (featurep 'gutter) "gutter-items")
        (when (featurep 'toolbar) "toolbar-items")
        (when (featurep 'dialog) "dialog-items")

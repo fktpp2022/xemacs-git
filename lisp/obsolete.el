@@ -44,6 +44,7 @@ as obsolete.
 Optional WHEN is for GNU compatibility.  XEmacs ignores it.  \(In Emacs, WHEN
 is a string indicating the version where OLDFUN was first marked obsolete.)
 Optional DOCSTRING describes any changes in semantics users should be aware of."
+  (declare (special when))
   (define-function oldfun newfun)
   (make-obsolete oldfun (or docstring newfun) when))
 
@@ -56,6 +57,7 @@ Optional WHEN is for consistency with `define-obsolete-function-alias'.  XEmacs
 ignores it.  \(If present, it is a string indicating the version where OLDFUN
 was first marked as a compatibility API.)
 Optional DOCSTRING describes any changes in semantics users should be aware of."
+  (declare (special when))
   (define-function oldfun newfun)
   (make-compatible oldfun (or docstring newfun)))
 
@@ -70,6 +72,7 @@ Note: Use this before any other references (defvar/defcustom) to NEWVAR.
 Optional WHEN is for GNU compatibility.  XEmacs ignores it.  \(In Emacs, WHEN
 is a string indicating the version where OLDVAR was first marked obsolete.)
 Optional DOCSTRING describes any changes in semantics users should be aware of."
+  (declare (special when))
   (let ((needs-setting (and (boundp oldvar) (not (boundp newvar))))
         (value (and (boundp oldvar) (symbol-value oldvar))))
      (defvaralias oldvar newvar docstring)
@@ -85,6 +88,7 @@ Optional WHEN is for consistency with `define-obsolete-variable-alias'.  XEmacs
 ignores it.  \(If present, it is a string indicating the version where OLDFUN
 was first marked as a compatibility API.)
 Optional DOCSTRING describes any changes in semantics users should be aware of."
+  (declare (special when))
   (defvaralias oldvar newvar docstring)
   (make-compatible-variable oldvar newvar))
 

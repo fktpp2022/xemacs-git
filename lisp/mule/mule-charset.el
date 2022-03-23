@@ -39,6 +39,9 @@
 ;; Author of charsets-in-string: ?
 
 ;;; Code:
+(eval-when (:compile-toplevel)
+  (autoload 'init-windows-glyph-list-4 "unicode"))
+
 
 ;;;; Classifying text according to charsets
 

@@ -500,7 +500,11 @@ mapping from the error sequences to the desired characters.  "
           unicode-query-coding-skip-chars-arg)))
 
 (make-obsolete 'char-octet 'char-to-charset-codepoint)
-(make-obsolete 'split-char 'char-to-charset-codepoint)
+
+;; Ben made this obsolete with Unicode-internal, but it's sufficiently widely
+;; used and portable to GNU (which char-to-charset-codepoint isn't) that I
+;; prefer to revert that. Aidan Kehoe, Mo 14 Mär 2022 22:17:56 GMT
+;(make-obsolete 'split-char 'char-to-charset-codepoint)
 
 ;; #### UTF-7 is not yet implemented, and it's tricky to do.  There's
 ;; an implementation in appendix A.1 of the Unicode Standard, Version

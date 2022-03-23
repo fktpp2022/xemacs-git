@@ -30,6 +30,8 @@
 
 ;;; Code:
 
+(eval-when (:compile-toplevel) (autoload 'setup-case-pairs "general-late"))
+
 ;; Case table:
 (setup-case-pairs
  'cyrillic-iso8859-5

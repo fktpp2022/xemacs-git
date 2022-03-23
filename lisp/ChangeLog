@@ -1,3 +1,33 @@
+2022-03-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* custom.el:
+	No need to #'require widget, both it and this file are dumped, and
+	doing so makes the output of the dump a little more confusing.
+	* dumped-lisp.el (preloaded-file-list):
+	Move menubar, menubar-items, font-menu ahead of x-font-menu to
+	avoid the latter forcing load of the former.
+	* files.el (file-remote-p):
+	Use and-boundp when checking for efs-path-regexp.
+	* help.el (add-log-current-defun):
+	Use and-fboundp when calling this function, provided as an
+	autoload in xemacs-base.
+	* mule/cyrillic.el:
+	* mule/greek.el:
+	Tell the byte-compiler where to find #'setup-case-pairs in these
+	files.
+	* mule/mule-charset.el:
+	Tell the byte-compiler where to find #'init-windows-glyph-list-4
+	in this file.
+	* obsolete.el (define-obsolete-function-alias):
+	* obsolete.el (define-compatible-function-alias):
+	* obsolete.el (define-obsolete-variable-alias):
+	* obsolete.el (define-compatible-variable-alias):
+	Declare the WHEN argument special to avoid compiler warnings when
+	using these functions.
+	* unicode.el:
+	Un-obsolete #'split-char, portable to GNU and very widely used
+	(and not too bad of an API).
+
 2022-03-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* apropos.el (apropos-documentation-check-doc-file):

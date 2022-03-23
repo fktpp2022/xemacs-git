@@ -4474,8 +4474,7 @@ to that remote system.
     (cond
      (handler
       (funcall handler 'file-remote-p file identification connected))
-     ((boundp 'efs-path-regexp)
-      (string-match-p efs-path-regexp file))
+     ((and-boundp 'efs-path-regexp (string-match-p efs-path-regexp file)))
      (t nil))))
 
 

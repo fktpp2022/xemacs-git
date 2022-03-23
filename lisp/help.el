@@ -1117,9 +1117,8 @@ If that doesn't give a function, return nil."
      (and 
       (member major-mode '(c-mode c++-mode c++-c-mode objc-mode java-mode))
       (intern-soft (transform-function-name (guess-c-symbol))))
-     (and
-      (fboundp 'add-log-current-defun)
-      (intern-soft (transform-function-name (add-log-current-defun))))))
+     (and-fboundp 'add-log-current-defun
+       (intern-soft (transform-function-name (add-log-current-defun))))))
 
   (defun function-at-point ()
     "Return the function whose name is around point.
@@ -1131,9 +1130,8 @@ list containing point.  If that doesn't give a function, return nil."
      (and 
       (member major-mode '(c-mode c++-mode c++-c-mode objc-mode java-mode))
       (intern-soft (transform-function-name (guess-c-symbol))))
-     (and
-      (fboundp 'add-log-current-defun)
-      (intern-soft (transform-function-name (add-log-current-defun))))))
+     (and-fboundp 'add-log-current-defun
+       (intern-soft (transform-function-name (add-log-current-defun))))))
 
   (defun function-at-event (event)
     "Return the function whose name is around the position of EVENT.
