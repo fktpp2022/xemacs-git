@@ -1933,7 +1933,8 @@ sets it.
     bfwd->magic.type = SYMVAL_BUFFER_LOCAL;
 
     bfwd->default_value = find_symbol_value (variable);
-    bfwd->current_value = bfwd->default_value;
+    /* VALCONTENTS may be magic. */
+    bfwd->current_value = valcontents;
 
     /* This function does not make the variable local to the current buffer,
        that only happens when the variable is set in this buffer once this

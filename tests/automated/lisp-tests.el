@@ -4555,4 +4555,18 @@ run-hook-with-args-until-success")
 (Assert (eql (set-window-start nil most-negative-fixnum)
              most-negative-fixnum))
 
+;; Check the C support for indent-tabs-mode is still working, thank you
+;; Henry S. Thompson:
+
+(with-temp-buffer
+  (lisp-mode)
+  (setq indent-tabs-mode nil)
+  (insert "(while t
+  (if e
+      (if pi\n")
+  (indent-for-tab-command)
+  (Assert (eql ?\x20 (char-after (point-at-bol)))
+	  "checking C support for indent-tabs-mode-, \
+a magic buffer-local variable, still working"))
+
 ;;; end of lisp-tests.el

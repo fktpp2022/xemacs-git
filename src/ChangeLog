@@ -1,3 +1,10 @@
+2022-03-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* symbols.c (Fmake_variable_buffer_local):
+	Set bfwd->current_value to VALCONTENTS once more, reverting part
+	of my change of b9e401de31a6, and fixing a bug reported by Henry S
+	Thompson, thank you Henry.
+
 2022-03-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* editfns.c (Ffollowing_char, Fpreceding_char):
