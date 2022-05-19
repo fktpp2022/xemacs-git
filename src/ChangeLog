@@ -1,3 +1,10 @@
+2022-05-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* doprnt.c (fixnum_to_string_base_10):
+	* tests.c (Ftest_fixnum_to_string):
+	Avoid some confusion where SIZEOF_LONG was used where
+	SIZEOF_EMACS_INT was more appropriate in these files.
+
 2022-03-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* symbols.c (Fmake_variable_buffer_local):

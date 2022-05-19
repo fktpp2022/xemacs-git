@@ -224,10 +224,10 @@ fixnum_to_string_base_10 (Ibyte *buffer, Bytecount size, Fixnum number,
   else if (n < 10000000)             { DIGITS_7 (1000000); }
   else if (n < 100000000)            { DIGITS_8 (10000000); }
   else if (n < 1000000000)           { DIGITS_9 (100000000); }
-#if SIZEOF_LONG == 4
+#if SIZEOF_EMACS_INT == 4
   /* ``if (1)'' serves only to preserve editor indentation. */
   else if (1)                        { DIGITS_10 (1000000000); }
-#else  /* SIZEOF_LONG != 4 */
+#else  /* SIZEOF_EMACS_INT != 4 */
   else if (n < 10000000000L)         { DIGITS_10 (1000000000L); }
   else if (n < 100000000000L)        { DIGITS_11 (10000000000L); }
   else if (n < 1000000000000L)       { DIGITS_12 (100000000000L); }
@@ -238,7 +238,7 @@ fixnum_to_string_base_10 (Ibyte *buffer, Bytecount size, Fixnum number,
   else if (n < 100000000000000000L)  { DIGITS_17 (10000000000000000L); }
   else if (n < 1000000000000000000L) { DIGITS_18 (100000000000000000L); }
   else                               { DIGITS_19 (1000000000000000000L); }
-#endif /* SIZEOF_LONG != 4 */
+#endif /* SIZEOF_EMACS_INT != 4 */
 
   *p = '\0';
 

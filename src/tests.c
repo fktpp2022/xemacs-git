@@ -1042,9 +1042,9 @@ Make sure `fixnum_to_string' can print LONG_MIN as a decimal correctly.
     }
 
   if (1 
-#if SIZEOF_LONG == 4
+#if SIZEOF_EMACS_INT == 4
       && !strcmp ((Ascbyte *) buf, "-2147483648")
-#elif SIZEOF_LONG == 8
+#elif SIZEOF_EMACS_INT == 8
       && !strcmp ((Ascbyte *) buf, "-9223372036854775808")
 #else
 #warning "unimplemented"
