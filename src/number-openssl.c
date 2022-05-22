@@ -158,11 +158,10 @@ C3 (bignum_fits_u, TYPE_ALIAS, _p)(bignum b)
 static unsigned long long bignum_bio_number;
 
 static int
-bignum_bio_write(BIO *unused, const char *str, size_t size, size_t *written)
+bignum_bio_write(BIO *unused, const char *str, int size)
 {
   (void) unused;
-  *written = size;
-
+  
   if (*str == '-')
     {
       str++; size--;
@@ -1066,7 +1065,7 @@ init_number_openssl(void)
     (!(ctx_static = BN_CTX_new ()) ||
      (bio_idx = BIO_get_new_index ()) == -1 ||
      !(bio_method = BIO_meth_new (bio_idx, "XEmacs bignum writer BIO")) ||
-     !BIO_meth_set_write_ex (bio_method, bignum_bio_write) ||
+     !BIO_meth_set_write (bio_method, bignum_bio_write) ||
      !(bio_writer_static = BIO_new (bio_method)));
 
   bignum_init (scratch_bignum);
