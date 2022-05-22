@@ -424,9 +424,8 @@ bignum_to_string_1 (Ibyte **buf, Bytecount *size_inout, bignum bn,
 
 /* Print NUMBER, a signed bignum, as a base RADIX string. If BUFFER_INOUT
    points to a non-NULL Ibyte * pointer, take that to be a buffer into which
-   to write, and use the value of *SIZE_INOUT as its size. Otherwise, allocate
-   a new buffer using malloc() and store a pointer to it in
-   *BUFFER_INOUT. Store the size of the new buffer in *SIZE_INOUT.
+   to write, and use the value of SIZE as its size. Otherwise, allocate a new
+   buffer using malloc().
 
    The returned printed number will start with its most significant digits at
    the beginning of *BUFFER_INOUT, and will be zero-terminated.
@@ -436,7 +435,7 @@ bignum_to_string_1 (Ibyte **buf, Bytecount *size_inout, bignum bn,
    Vdigit_fixnum_ascii, to avoid language-specific digit characters
    (e.g. Persian, fullwidth Chinese).
 
-   Return the length of the printed string, without the terminating zero. If
+   Return the length of the printed string, without the terminating zero.
    Throw an assertion failure if BUFFER overflows and ERROR_CHECK_TEXT is
    turned on.  If *BUFFER_INOUT was NULL, the value written to it needs to be
    freed with free() once the caller is finished with it. */
@@ -445,8 +444,14 @@ bignum_to_string (Ibyte **buffer_inout, Bytecount size, bignum number,
                   UINT_16_BIT radix, Lisp_Object table_or_nil)
 {
   Bytecount len = 0, slack;
-  Lisp_Object table
-    = get_radix_table_fixnum_majuscule_map (NILP (table_or_nil) ?
+  Lisp_Object table;
+
+#ifdef WITH_OPENSSL_BIGNUM
+  if (NILP(table_or_nil) && (radix == 10 || radix == 16))
+    return bignum_to_string_openssl (buffer_inout, size, number, radix);
+#endif
+
+  table = get_radix_table_fixnum_majuscule_map (NILP (table_or_nil) ?
                                             Vdigit_fixnum_map :
                                             table_or_nil);
 

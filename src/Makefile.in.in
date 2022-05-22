@@ -212,6 +212,9 @@ number_objs=number-gmp.o number.o
 #ifdef WITH_MP
 number_objs=number-mp.o number.o
 #endif
+#ifdef WITH_OPENSSL_BIGNUM
+number_objs=number-openssl.o number.o
+#endif
 
 #if defined(HAVE_POSTGRESQL) && !defined(HAVE_SHLIB)
 postgresql_objs=postgresql.o

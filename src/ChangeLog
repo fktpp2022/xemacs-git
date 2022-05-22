@@ -4,6 +4,28 @@
 	* tests.c (Ftest_fixnum_to_string):
 	Avoid some confusion where SIZEOF_LONG was used where
 	SIZEOF_EMACS_INT was more appropriate in these files.
+2022-05-18  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* number-openssl.c:
+	* number-openssl.h:
+	New bignum driver using the OpenSSL bignum API.
+
+	* number.c (bignum_convert):
+	* number.c (bignum_convfree):
+	Modify a hardcoded GMP/MPIR API call to a #ifdef selection between
+	GMP/MPIR, OpenSSL and doprnt.c:bignum_to_string().
+
+	* doprnt.c (bignum_to_string):
+	Call number.openssl.c:bignum_to_string_openssl() to render a string
+	representation of a bignum when the number base is decimal or
+	hexadecimal, and thus supported by the OpenSSL API.
+
+	* Makefile.in.in:
+	* config.h.in:
+	* depend:
+	* number.h:
+	* number.c (init_number):
+	Build and code framework support for the OpenSSL bignum driver.
 
 2022-03-26  Aidan Kehoe  <kehoea@parhasard.net>
 

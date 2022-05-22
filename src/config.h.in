@@ -720,6 +720,7 @@ things are arranged in config.h.in.  In particular:
 #undef MP_PREFIX
 #undef HAVE_MP_MOVE
 #undef HAVE_MP_SET_MEMORY_FUNCTIONS
+#undef WITH_OPENSSL_BIGNUM
 
 #undef SIZEOF_SHORT
 #undef SIZEOF_INT

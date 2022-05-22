@@ -981,8 +981,8 @@ XE_KEYWORD_ARG([bignum],
 	AS_HELP_STRING([--with-bignum=TYPE],[Compile in support for bignums, ratios, or bigfloats
                         using library support.  TYPE must be one of "gmp"
                         (for GNU MP), "mpir" (for MPIR), "mp" (for BSD MP),
-                        or "no" (disabled).]),
-	[], [with_bignum="no"],[no,gmp,mpir,mp])
+                        "openssl" (for OpenSSL bignum) or "no" (disabled).]),
+	[], [with_bignum="no"],[no,gmp,mpir,mp,openssl])
 dnl
 XE_HELP_SUBSECTION([Platform Specific options])
 XE_MERGED_ARG([workshop],
@@ -5326,6 +5326,14 @@ elif test "$with_bignum" = "mp"; then
       [AC_DEFINE(HAVE_MP_SET_MEMORY_FUNCTIONS)])])
   AC_DEFINE(WITH_NUMBER_TYPES)
   AC_DEFINE(WITH_MP)
+elif test "$with_bignum" = "openssl"; then
+  AC_CHECK_HEADER([openssl/bn.h],
+    [AC_CHECK_LIB(crypto, BN_new, [:],
+      [XE_DIE("Required OpenSSL numeric support cannot be provided.")])],
+    [XE_DIE("Required OpenSSL numeric support cannot be provided.")])
+  AC_DEFINE(WITH_NUMBER_TYPES)
+  AC_DEFINE(WITH_OPENSSL_BIGNUM)
+  XE_APPEND("-lcrypto", LIBS)
 fi
 
 dnl TLS support
@@ -6053,6 +6061,7 @@ test "$with_modules" = "yes" && echo "  Compiling in support for dynamic shared 
 test "$with_bignum" = "gmp" && echo "  Compiling in support for more number types using the GNU MP library."
 test "$with_bignum" = "mpir" && echo "  Compiling in support for more number types using the MPIR library."
 test "$with_bignum" = "mp" && echo "  Compiling in support for more number types using the BSD MP library."
+test "$with_bignum" = "openssl" && echo "  Compiling in support for more number types using the OpenSSL bignum library."
 if test "$with_union_type" = yes ; then
   echo "  Using the union type for Lisp_Objects."
   echo "  WARNING: ---------------------------------------------------------"

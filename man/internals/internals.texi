@@ -3148,6 +3148,8 @@ The following table contains cross-references from each module in XEmacs
 @item @file{number-mp.h} @tab @ref{BSD MP driver}
 @item @file{number-mpir.c} @tab @ref{GMP and MPIR driver}
 @item @file{number-mpir.h} @tab @ref{GMP and MPIR driver}
+@item @file{number-openssl.c} @tab @ref{OpenSSL bignum driver}
+@item @file{number-openssl.h} @tab @ref{OpenSSL bignum driver}
 @item @file{number.c} @tab @ref{Abstract Numeric Interface}
 @item @file{number.h} @tab @ref{Abstract Numeric Interface}
 @item @file{fontcolor-gtk-impl.h} @tab
@@ -7248,6 +7250,7 @@ Not yet documented.
 * Abstract Numeric Interface::  
 * GMP and MPIR driver::         
 * BSD MP driver::               
+* OpenSSL bignum driver::
 * Numeric driver interface::    
 @end menu
 
@@ -7342,7 +7345,7 @@ respectively.  Most of the abstract numeric interface is defined in
 terms of macros that expand directly into GMP or MPIR API calls, since
 GMP and MPIR provide a rich interface.
 
-@node BSD MP driver, Numeric driver interface, GMP and MPIR driver, Numeric Types
+@node BSD MP driver, OpenSSL bignum driver, GMP and MPIR driver, Numeric Types
 @section BSD MP driver
 @cindex BSD mp
 
@@ -7355,7 +7358,7 @@ intended to work with any variation.
 Some BSD MP libraries use function names that are likely cause name
 collisions, such as @code{gcd}, @code{mult}, and @code{pow}.  Others
 follow the Single Unix Specification recommendation (see
-@uref{http://www.unix.com/man-page/all/3mp/mp_mcmp/}) and prefix all of
+@uref{https://www.freebsd.org/cgi/man.cgi?query=mp_mcmp&apropos=0&sektion=0&manpath=SunOS+5.10&arch=default&format=html}) and prefix all of
 the function names with ``mp_'': @code{mp_gcd}, @code{mp_mult},
 @code{mp_pow}, etc.  The XEmacs configure script detects which of the
 two interfaces is in use, and defines @code{MP_PREFIX} for the latter
@@ -7372,7 +7375,31 @@ that we need, so the implementations sometimes consist of complex
 functions.  See the implementation of @code{bignum_random}, for
 example.
 
-@node Numeric driver interface,  , BSD MP driver, Numeric Types
+@node OpenSSL bignum driver, Numeric driver interface, BSD MP driver, Numeric Types
+@section OpenSSL bignum driver
+@cindex OpenSSL bignum
+
+OpenSSL has its own bignum interface, which is the actual implementation
+behind
+@uref{https://github.com/freebsd/freebsd-src/blob/main/lib/libmp/mpasbn.c,
+FreeBSD's libmp.} It only has arbitrary precision integers, and thus, by
+lacking ratios and bigfloats, is less expressive than the GMP and MPIR
+interfaces.  On the other hand, the API has proper error return codes for
+out of memory scenarioes, unlike the GMP and MPIR interfaces, which call
+@code{abort(3)} internally, terminating the whole process.
+
+Most of the internal bignum API of XEmacs have direct representations in
+the OpenSSL API, but some operations, like @code{bignum_set_string} or the
+bit operations require explicit implementations.
+
+The other major BSD derivatives besides FreeBSD have altogether dropped the
+BSD MP library (@xref{BSD MP driver}), to the point that they don't even have
+it in their third party software repositories.  In essence, the BSD MP
+interface has been deprecated.  On the other hand, OpenSSL (or LibreSSL) is
+included in virtually all modern operating system distributions, including
+Microsoft Windows.
+
+@node Numeric driver interface,  , OpenSSL bignum driver, Numeric Types
 @section Numeric driver interface
 @cindex numeric driver interface
 

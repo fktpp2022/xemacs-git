@@ -1999,7 +1999,7 @@ Emacs Lisp options
   --with-bignum=TYPE      Compile in support for bignums, ratios, or bigfloats
                           using library support. TYPE must be one of "gmp"
                           (for GNU MP), "mpir" (for MPIR), "mp" (for BSD MP),
-                          or "no" (disabled).
+                          "openssl" (for OpenSSL bignum) or "no" (disabled).
 
 Platform Specific options
 -------------------------
@@ -5627,14 +5627,14 @@ if test "${with_bignum+set}" = set; then
   enableval="$with_bignum"
   withval="$with_bignum"
   _bignum_bogus=yes
- for x in no gmp mpir mp ; do
+ for x in no gmp mpir mp openssl ; do
    if test $x = $with_bignum ; then
 	_bignum_bogus=no
    fi
  done
  if test "$_bignum_bogus" = "yes" ; then
 	(echo "$progname: Usage error:"
-echo " " "The --with-bignum option must have one of these values: \`no',\`gmp',\`mpir',\`mp'."
+echo " " "The --with-bignum option must have one of these values: \`no',\`gmp',\`mpir',\`mp',\`openssl'."
 echo "  Use \`$progname --help' to show usage.") >&2 && exit 1
  fi
 unset _bignum_bogus
@@ -22557,6 +22557,61 @@ fi
 
   printf "%s\n" "#define WITH_MP 1" >>confdefs.h
 
+elif test "$with_bignum" = "openssl"; then
+  ac_fn_c_check_header_compile "$LINENO" "openssl/bn.h" "ac_cv_header_openssl_bn_h" "$ac_includes_default"
+if test "x$ac_cv_header_openssl_bn_h" = xyes
+then :
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for BN_new in -lcrypto" >&5
+printf %s "checking for BN_new in -lcrypto... " >&6; }
+if test ${ac_cv_lib_crypto_BN_new+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lcrypto  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+char BN_new ();
+int
+main (void)
+{
+return BN_new ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"
+then :
+  ac_cv_lib_crypto_BN_new=yes
+else $as_nop
+  ac_cv_lib_crypto_BN_new=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_crypto_BN_new" >&5
+printf "%s\n" "$ac_cv_lib_crypto_BN_new" >&6; }
+if test "x$ac_cv_lib_crypto_BN_new" = xyes
+then :
+  :
+else $as_nop
+  { echo "Error:" "Required OpenSSL numeric support cannot be provided." >&2; exit 1; }
+fi
+
+else $as_nop
+  { echo "Error:" "Required OpenSSL numeric support cannot be provided." >&2; exit 1; }
+fi
+
+  printf "%s\n" "#define WITH_NUMBER_TYPES 1" >>confdefs.h
+
+  printf "%s\n" "#define WITH_OPENSSL_BIGNUM 1" >>confdefs.h
+
+  LIBS="$LIBS "-lcrypto"" &&  if test "$verbose" = "yes"; then echo "    Appending \""-lcrypto"\" to \$LIBS"; fi
 fi
 
 if test "$with_tls" = "gnutls"; then
@@ -23785,6 +23840,7 @@ test "$with_modules" = "yes" && echo "  Compiling in support for dynamic shared 
 test "$with_bignum" = "gmp" && echo "  Compiling in support for more number types using the GNU MP library."
 test "$with_bignum" = "mpir" && echo "  Compiling in support for more number types using the MPIR library."
 test "$with_bignum" = "mp" && echo "  Compiling in support for more number types using the BSD MP library."
+test "$with_bignum" = "openssl" && echo "  Compiling in support for more number types using the OpenSSL bignum library."
 if test "$with_union_type" = yes ; then
   echo "  Using the union type for Lisp_Objects."
   echo "  WARNING: ---------------------------------------------------------"

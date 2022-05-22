@@ -92,15 +92,35 @@ bignum_hash (Lisp_Object obj, int UNUSED (depth), Boolint equalp)
 static void
 bignum_convert (const void *object, void **data, Bytecount *size)
 {
-  CIbyte *bstr = mpz_get_str (NULL, 16, *(bignum *)object);
-  *data = bstr;
-  *size = strlen(bstr)+1;
+#ifdef HAVE_BIGNUM
+#  if defined (WITH_GMP) || defined (WITH_MPIR)
 
-  return;
-#if 0
-  len = bignum_to_string (&bstr, -1, *(bignum *)object, 16, Qnil);
+  CIbyte *bstr = mpz_get_str (NULL, 16, *(bignum *) object);
   *data = bstr;
-  *size = len + 1;
+  *size = strlen (bstr) + 1;
+
+#  elif defined (WITH_OPENSSL_BIGNUM)
+
+  CIbyte *bstr = BN_bn2hex (*(bignum *) object);
+
+  if (!bstr) bignum_memory_full ();
+
+  *data = bstr;
+  *size = strlen (bstr) + 1;
+
+#  elif defined (WITH_MP)
+
+  CIbyte *bstr = NULL;
+  *size = bignum_to_string (&bstr, -1, *(bignum *) object, 16, Qnil) + 1;
+  *data = bstr;
+
+#  else
+#    error "Inconsistent defines for bignum support"
+#  endif
+
+#else
+  *data = NULL;
+  *size = 0;
 #endif
 }
 
@@ -108,7 +128,11 @@ static void
 bignum_convfree (const void * UNUSED (object), void *data,
 		 Bytecount UNUSED (size))
 {
+#ifdef WITH_OPENSSL_BIGNUM
+  OPENSSL_free (data);
+#else
   xfree (data);
+#endif
 }
 
 static void *
@@ -755,6 +779,9 @@ init_number (void)
 #endif
 #ifdef WITH_MP
       init_number_mp ();
+#endif
+#ifdef WITH_OPENSSL_BIGNUM
+      init_number_openssl ();
 #endif
 
 #ifdef HAVE_BIGNUM

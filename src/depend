@@ -11,7 +11,7 @@ CONFIG_H=
 LISP_H=
 #else
 CONFIG_H=config.h
-LISP_H=lisp.h array.h compiler.h config.h dumper.h gc.h general-slots.h lrecord.h number-gmp.h number-mp.h number.h symeval.h symsinit.h syssignal.h text.h $(LISP_UNION_H)
+LISP_H=lisp.h array.h compiler.h config.h dumper.h gc.h general-slots.h lrecord.h number-gmp.h number-mp.h number-openssl.h number.h symeval.h symsinit.h syssignal.h text.h $(LISP_UNION_H)
 #endif
 
 #if defined(HAVE_MS_WINDOWS)
@@ -197,6 +197,7 @@ ntheap.o: $(CONFIG_H) $(LISP_H) intl-auto-encap-win32.h sysdep.h syswindows.h
 ntplay.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h intl-auto-encap-win32.h sound.h sysfile.h syswindows.h unicode.h
 number-gmp.o: $(CONFIG_H) $(LISP_H) sysproc.h systime.h
 number-mp.o: $(CONFIG_H) $(LISP_H)
+number-openssl.o: $(CONFIG_H) $(LISP_H)
 number.o: $(CONFIG_H) $(LISP_H)
 opaque.o: $(CONFIG_H) $(LISP_H) opaque.h
 print.o: $(CONFIG_H) $(LISP_H) backtrace.h buffer.h bufslots.h bytecode.h charset.h chartab.h conslots.h console-impl.h console-msw.h console-stream-impl.h console-stream.h console-tty-impl.h console-tty.h console.h device-impl.h device.h devslots.h elhash.h extents.h frame.h insdel.h intl-auto-encap-win32.h lstream.h opaque.h redisplay.h specifier.h sysfile.h systty.h syswindows.h tls.h unicode.h

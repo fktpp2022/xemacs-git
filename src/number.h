@@ -62,6 +62,9 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #ifdef WITH_MP
 #include "number-mp.h"
 #endif
+#ifdef WITH_OPENSSL_BIGNUM
+#include "number-openssl.h"
+#endif
 
 BEGIN_C_DECLS
 
