@@ -19,9 +19,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include <float.h>
 
-/* Uncomment these to test the branches that rely on these defines. */
+/* Uncomment this to test the code that works around no snprintf(). */
 /* #undef HAVE_SNPRINTF */
-/* #undef __STDC_VERSION__ */
 
 static int fail_amount;
 

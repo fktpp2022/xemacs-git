@@ -262,9 +262,6 @@ C(bignum_to_u, TYPE_ALIAS)(bignum b)
 #undef __ROUND2_BIGNUM_TO_INT__
 #undef __ROUND2__
 
-#if defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901
-
-/* Maybe checks for strtod() and strtoull() should be added in configure? */
 double
 bignum_to_double(bignum b)
 {
@@ -277,56 +274,6 @@ bignum_to_double(bignum b)
 
   return ret;
 }
-
-#else
-/* MANTISSA_BIT_SIZE must <= long's size and <= the actual mantissa size. */
-#  if SIZEOF_LONG >= 8
-#    define MANTISSA_BIT_SIZE 53
-#  else
-#    define MANTISSA_BIT_SIZE 32
-#  endif
-#  define PIECE_HEX_LEN ((MANTISSA_BIT_SIZE + 3) / 4 - 1)
-#  define PIECE_SIZE_INT (1UL << (PIECE_HEX_LEN * 4))
-
-double
-bignum_to_double(bignum b)
-{
-  double ret = 0.0, multiplier = 1.0;
-  size_t hexlen;
-  int sign = bignum_sign (b);
-  char *hexstr, *s;
-
-  if (!sign) return 0.0;
-
-  HANDLE_OP_ERROR (!(s = hexstr = BN_bn2hex (b)));
-  while (*s == '-' || *s == '0') s++;
-
-  hexlen = strlen(s);
-  s += hexlen;
-
-  do
-    {
-      size_t piecelen = min(hexlen, PIECE_HEX_LEN);
-
-      s -= piecelen;
-      hexlen -= piecelen;
-
-      ret += multiplier * strtoul(s, NULL, 16);
-      multiplier *= PIECE_SIZE_INT;
-
-      *s = '\0';
-    }
-  while (hexlen);
-
-  OPENSSL_free (hexstr);
-
-  return sign == -1 ? -ret : ret;
-}
-
-#  undef PIECE_SIZE_INT
-#  undef PIECE_HEX_LEN
-#  undef MANTISSA_BIT_SIZE
-#endif /* defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901 */
 
 static Lisp_Object
 free_openssl_string(Lisp_Object str)
@@ -793,55 +740,57 @@ bignum_div_rem_uint_16_bit(bignum res, bignum numerator, UINT_16_BIT denom)
   The bit operations are incredibly clumsy, because there's zero API support
   for them in the OpenSSL bignum suite. We have to do what their responses to
   requests for bitop support say - extract out the bignums as blobs of bits and
-  iterate through them word by word (with the assumption of long being a
-  machine word).
+  iterate through them word by word.
 
   The tendency to use ints for sizes comes from BN_num_(bits|bytes)()
   returning them.
 */
 static void
 bignum_binary_bitop(bignum to, bignum a, bignum b, int abits, int bbits,
-                    int (*process)(int, int, unsigned long *, unsigned long *))
+                    int (*process)(int, int, EMACS_UINT *, EMACS_UINT *))
 {
   bignum bigger  = BIGGER  (abits, bbits, a, b),
          smaller = SMALLER (abits, bbits, a, b);
-  unsigned long *biggerp, *smallerp;
+  EMACS_UINT *biggerp, *smallerp;
   int bigger_bits  = BIGGER  (abits, bbits, abits, bbits),
       smaller_bits = SMALLER (abits, bbits, abits, bbits),
-      bigger_bytes  = ALIGN_FOR_TYPE ((bigger_bits  + 7) / 8, long),
-      smaller_bytes = ALIGN_FOR_TYPE ((smaller_bits + 7) / 8, long),
+      bigger_bytes  = ALIGN_FOR_TYPE ((bigger_bits  + 7) / 8, EMACS_UINT),
+      smaller_bytes = ALIGN_FOR_TYPE ((smaller_bits + 7) / 8, EMACS_UINT),
       result_size;
-  char *buf = (char *) ALLOCA (bigger_bytes + smaller_bytes + sizeof (long));
+  char *buf = (char *) ALLOCA (bigger_bytes + smaller_bytes +
+                               sizeof (EMACS_UINT));
 
   /* Internet says IIUC that alloca() doesn't always give correct alignment. */
-  buf = (char *) ALIGN_FOR_TYPE ((uintptr_t) buf, long);
+  buf = (char *) ALIGN_FOR_TYPE ((uintptr_t) buf, EMACS_UINT);
 
   BN2BIN (bigger, buf, bigger_bytes);
   BN2BIN (smaller, buf + bigger_bytes, smaller_bytes);
 
 #ifdef WORDS_BIGENDIAN
-  biggerp  = (unsigned long *) buf;
-  smallerp = (unsigned long *) (buf + bigger_bytes);
+  biggerp  = (EMACS_UINT *) buf;
+  smallerp = (EMACS_UINT *) (buf + bigger_bytes);
 #else
-  biggerp  = (unsigned long *) (buf + bigger_bytes) - 1;
-  smallerp = (unsigned long *) (buf + bigger_bytes + smaller_bytes) - 1;
+  biggerp  = (EMACS_UINT *) (buf + bigger_bytes) - 1;
+  smallerp = (EMACS_UINT *) (buf + bigger_bytes + smaller_bytes) - 1;
 #endif
 
-  result_size = process (bigger_bytes / sizeof (long),
-                         smaller_bytes / sizeof (long), biggerp, smallerp);
+  result_size = process (bigger_bytes / sizeof (EMACS_UINT),
+                         smaller_bytes / sizeof (EMACS_UINT),
+                         biggerp, smallerp);
 
 #ifdef WORDS_BIGENDIAN
   HANDLE_OP_ERROR (!BIN2BN (to,
-                            buf + (bigger_bytes - result_size * sizeof (long)),
-                            result_size * sizeof (long)));
+                            buf + (bigger_bytes -
+                                   result_size * sizeof (EMACS_UINT)),
+                            result_size * sizeof (EMACS_UINT)));
 #else
-  HANDLE_OP_ERROR (!BIN2BN (to, buf, result_size * sizeof (long)));
+  HANDLE_OP_ERROR (!BIN2BN (to, buf, result_size * sizeof (EMACS_UINT)));
 #endif
 }
 
 static int
-bignum_and_process(int bigger_words, int smaller_words, unsigned long *biggerp,
-                   unsigned long *smallerp)
+bignum_and_process(int bigger_words, int smaller_words, EMACS_UINT *biggerp,
+                   EMACS_UINT *smallerp)
 {
   int count = smaller_words;
 
@@ -885,8 +834,7 @@ bignum_and(bignum to, bignum a, bignum b)
 
 static int
 C3 (bignum_, OP_NAME, _process)(int bigger_words, int smaller_words,
-                                unsigned long *biggerp,
-                                unsigned long *smallerp)
+                                EMACS_UINT *biggerp, EMACS_UINT *smallerp)
 {
   for (INC_OR_DEC (biggerp, bigger_words - smaller_words);
        smaller_words;

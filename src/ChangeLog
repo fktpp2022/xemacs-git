@@ -1,3 +1,13 @@
+2022-06-03  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* number-openssl.c (bignum_to_double):
+	Remove unnecessary manual string -> integer conversion.
+
+	* number-openssl.c (bignum_binary_bitop):
+	* number-openssl.c (bignum_and_process):
+	Change integer type from ulong to EMACS_UINT to ensure machine word
+	size operations.
+
 2022-05-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* number-openssl.c (bignum_bio_write):
