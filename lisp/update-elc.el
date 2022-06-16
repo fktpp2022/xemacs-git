@@ -54,8 +54,11 @@
 (defvar update-elc-files-to-compile nil)
 (defvar need-to-rebuild-autoloads nil)
 (defvar need-to-rebuild-mule-autoloads nil)
+(defvar need-to-rebuild-module-autoloads nil)
 (defvar need-to-recompile-autoloads nil)
 (defvar need-to-recompile-mule-autoloads nil)
+(defvar need-to-recompile-module-autoloads nil)
+
 (defvar exe-target nil)
 (defvar dump-target nil)
 (defvar dump-target-out-of-date-wrt-dump-files nil)
@@ -84,10 +87,14 @@
 
 (defvar source-lisp-mule (expand-file-name "mule" source-lisp))
 (defvar source-directory (expand-file-name ".." source-lisp))
+(defconst module-directory (expand-file-name "modules" source-directory))
+
 (defvar aa-lisp (expand-file-name "auto-autoloads.el" source-lisp))
 (defvar aac-lisp (expand-file-name "auto-autoloads.elc" source-lisp))
 (defvar aa-lisp-mule (expand-file-name "auto-autoloads.el" source-lisp-mule))
 (defvar aac-lisp-mule (expand-file-name "auto-autoloads.elc" source-lisp-mule))
+(defvar aa-modules (expand-file-name "auto-autoloads.el" module-directory))
+(defvar aac-modules (expand-file-name "auto-autoloads.elc" module-directory))
 
 (setq load-path (list source-lisp))
 
@@ -128,7 +135,8 @@ If any of these files are changed, we need to redump.")
 
 (defvar lisp-files-ignored-when-checking-for-autoload-updating
   '("custom-load.el"
-    "auto-autoloads.el")
+    "auto-autoloads.el"
+    "finder-inf.el")
   "Lisp files that should not trigger auto-autoloads rebuilding.")
 
 (defvar lisp-files-dependent-on-configuration
@@ -292,6 +300,18 @@ differently depending on the presence of certain features, especially
 	  (setq all-files-in-dir (cdr all-files-in-dir))))
       (setq dirs-to-check (cdr dirs-to-check))))
 
+  ;; Check for the module autoloads separately, given the need to run
+  ;; directory-files on subdirectories.
+  (let ((autoload-file
+	 (expand-file-name "auto-autoloads.el" module-directory)))
+    (mapc
+     #'(lambda (full-dir)
+	 (mapc #'(lambda (full-arg)
+		   (when (file-newer-than-file-p full-arg autoload-file)
+		     (setq need-to-rebuild-module-autoloads t)))
+	       (directory-files full-dir t "\\.c$" nil t)))
+     (directory-files module-directory t nil t 'subdirs)))
+
   (if dump-target-out-of-date-wrt-dump-files
       (condition-case nil
 	  (write-region-internal
@@ -319,6 +339,14 @@ differently depending on the presence of certain features, especially
 	  (file-newer-than-file-p aa-lisp-mule aac-lisp-mule))
   (setq need-to-recompile-mule-autoloads t))
 
+(when (or need-to-rebuild-module-autoloads
+	  ;; not necessary but ...  see comment above.
+	  (eq (file-exists-p aa-modules) nil)
+	  ;; no need to check for file-exists of .elc due to definition
+	  ;; of file-newer-than-file-p
+	  (file-newer-than-file-p aa-modules aac-modules))
+  (setq need-to-recompile-module-autoloads t))
+
 (unless (featurep 'mule)
   ;; sorry charlie.
   (setq need-to-rebuild-mule-autoloads nil
@@ -340,15 +368,18 @@ differently depending on the presence of certain features, especially
 	(if need-to-rebuild-mule-autoloads
 	    (list "-f" "batch-update-directory-autoloads"
 		  "mule" source-lisp-mule))
+	(if need-to-rebuild-module-autoloads
+	    (list "-f" "batch-update-directory-autoloads"
+		  "auto" module-directory))
 	(if need-to-recompile-autoloads
 	    (list "-f" "batch-byte-compile-one-file"
 		  aa-lisp))
 	(if need-to-recompile-mule-autoloads
 	    (list "-f" "batch-byte-compile-one-file"
-		  aa-lisp-mule)))))
-  (condition-case nil
-      (delete-file (expand-file-name "src/REBUILD_AUTOLOADS" build-directory))
-    (file-error nil))
+		  aa-lisp-mule))
+	(if need-to-recompile-module-autoloads
+	    (list "-f" "batch-byte-compile-one-file"
+		  aa-modules)))))
   (cond ((and (eq update-elc-files-to-compile nil)
 	      (eq need-to-rebuild-autoloads nil)
 	      (eq need-to-rebuild-mule-autoloads nil)
@@ -357,17 +388,25 @@ differently depending on the presence of certain features, especially
 	 ;; (1) Nothing to do at all.
 	 )
 	((eq update-elc-files-to-compile nil)
-	 ;; (2) We have no files to byte-compile, but we do need to
-	 ;;     regenerate and compile the auto-autoloads file, so signal
-	 ;;     update-elc-2 to do it.  This is much faster than loading
-	 ;;     all the .el's and doing it here. (We only need to rebuild
-	 ;;     the autoloads here when we have files to compile, since
-	 ;;     they may depend on the updated autoloads.)
-	 (condition-case nil
-	     (write-region-internal
-	      "foo" nil (expand-file-name "src/REBUILD_AUTOLOADS" build-directory))
-	   (file-error nil))
-	 )
+	 ;; (2) We have no files to byte-compile, but we do need to regenerate
+	 ;;     and compile the auto-autoloads file. Don't pass this on to
+	 ;;     update-elc-2.el to do, since that gives dependency problems
+	 ;;     with parallel builds (make -j and friends). Completely fine to
+	 ;;     use the compiled Lisp infrastructure for this, though, since we
+	 ;;     know it's up to date.
+	 (setq command-line-args
+	       (append
+		'("-l" "loadup-el.el" "run-temacs"
+		  "-batch" "-no-packages" "-no-autoloads"
+		  "-eval" "(setq stack-trace-on-error t)"
+		  "-eval" "(setq load-always-display-messages t)"
+		  "-l" "bytecomp.elc" "-l" "autoload.elc")
+		do-autoload-commands))
+	 (write-sequence "\nNeed to regenerate auto-autoload files... "
+			 'external-debugging-output)
+	 (let ((load-ignore-elc-files nil)
+	       (purify-flag nil))
+	   (load "loadup.el")))
 	(t
 	 (let ((bc-bootstrap
 		(mapcar #'(lambda (arg) 
@@ -410,7 +449,6 @@ differently depending on the presence of certain features, especially
 					   #'equalp
 					 #'equal))))
 	      (append bc-bootstrap bootstrap-other))
-             (autoload 'cl-compile-time-init "cl-macs")
 	     (setq command-line-args
 		   (append
 		    '("-l" "loadup-el.el" "run-temacs"

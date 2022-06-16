@@ -1,3 +1,33 @@
+2022-06-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* update-elc-2.el (batch-update-elc-2):
+	Remove the code to update auto-autoloads from this file.
+	(It was buggy (e.g. it update mule/auto-autoloads.el and then
+	immediately compiled auto-autoloads.el) and caused dependency
+	problems.)
+	Load the module auto-autoloads when byte-compiling,
+	which we didn't previously.
+	* update-elc.el:
+	* update-elc.el (need-to-rebuild-module-autoloads): New.
+	* update-elc.el (need-to-recompile-module-autoloads): New.
+	* update-elc.el (module-directory): Make this available when
+	updating module auto-autoloads.
+	* update-elc.el (aa-modules): New.
+	* update-elc.el (aac-modules): New.
+	The path to the module auto-autoloads.el, auto-autoloads.elc
+	* update-elc.el
+	(lisp-files-ignored-when-checking-for-autoload-updating):
+	Add finder-inf.el to this list.
+	* update-elc.el (or):
+	Check explictly whether module/auto-autoloads.el is out of date in
+	this file, which we did not do previously.
+	* update-elc.el (do-autoload-commands):
+	If there are no files to be byte-compiled but auto-autoloads need
+	updated, do that here (using run-temacs with the byte-compiled
+	files) rather than signalling to update-elc-2.el using
+	../src/REBUILD_AUTOLOADS. This should avoid dependency problems
+	with massively parallel builds.
+
 2022-03-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* custom.el:

@@ -137,37 +137,10 @@
   (let ((dir (car command-line-args-left)))
     ;; don't depend on being able to autoload `update-autoload-files'!
     (load "autoload")
-    (autoload 'cl-compile-time-init "cl-macs")
     (load "bytecomp")
     (load "byte-optimize")
-    ;; #### the API used here is deprecated, convert to one with explicit
-    ;; arguments when it is available
-    ;; update-elc.el signals us to rebuild the autoloads when necessary.
-    ;; in some cases it will rebuild the autoloads itself, but doing it this
-    ;; way is slow, so we avoid it when possible.
-    (when (file-exists-p (expand-file-name "REBUILD_AUTOLOADS"
-					   invocation-directory))
-      ;; if we were instructed to rebuild the autoloads, force the file
-      ;; to be touched even w/o changes; otherwise, we won't ever stop
-      ;; being told to rebuild them.
-      (update-autoload-files dir "auto" nil t)
-      (byte-recompile-file (expand-file-name "auto-autoloads.el" dir) 0)
-      (when (featurep 'mule)
-	(let ((muledir (expand-file-name "../lisp/mule" (file-truename dir))))
-	  ;; force here just like above.
-	  (update-autoload-files muledir "mule" nil t)
-	  (byte-recompile-file (expand-file-name "auto-autoloads.el" dir) 0))))
-    (when (featurep 'modules)
-      (let* ((moddir (expand-file-name "../modules" (file-truename dir)))
-	     (autofile (expand-file-name "auto-autoloads.el" moddir)))
-	(update-autoload-files 
-	 (delete (concat (file-name-as-directory moddir) ".")
-		 (delete (concat (file-name-as-directory moddir) "..")
-			 (directory-files moddir t nil nil 0)))
-	 "modules" autofile)
-	(byte-recompile-file autofile 0)))
-    ;; now load the (perhaps newly rebuilt) autoloads; we were called with
-    ;; -no-autoloads so they're not already loaded.
+    ;; now load the autoloads; we were called with -no-autoloads so they're not
+    ;; already loaded.
     (load (expand-file-name "auto-autoloads" lisp-directory))
     (when (featurep 'mule)
       (load (expand-file-name "mule/auto-autoloads" lisp-directory)))
@@ -175,6 +148,8 @@
     ;; there may be dependencies between one .el and another (even across
     ;; directories), and we don't want to load an out-of-date .elc while
     ;; byte-compiling a file.
+    (when (featurep 'modules)
+      (load (expand-file-name "auto-autoloads" module-directory)))
     (message "Removing old or spurious .elcs in directory tree `%s'..." dir)
     (do-update-elc-2 dir nil nil)
     (message "Removing old or spurious .elcs in directory tree `%s'...done"
