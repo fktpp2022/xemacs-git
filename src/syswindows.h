@@ -1298,7 +1298,7 @@ extern pfNetApiBufferFree_t xNetApiBufferFree;
 typedef struct file_data
 {
   const Ibyte  *name;
-  unsigned long  size;
+  SIZE_T  size;
   HANDLE         file;
   HANDLE         file_mapping;
   void           *file_base;
@@ -1318,7 +1318,7 @@ typedef struct file_data
 
 int open_input_file (file_data *p_file, const Ibyte *name);
 int open_output_file (file_data *p_file, const Ibyte *name,
-		      unsigned long size);
+		      SIZE_T size);
 void close_file_data (file_data *p_file);
 
 /* ------------------------- Heap related stuff ------------------------- */
@@ -1337,8 +1337,8 @@ void close_file_data (file_data *p_file);
 
 unsigned char *get_data_start (void);
 unsigned char *get_data_end (void);
-extern unsigned long  data_region_size;
-extern unsigned long  reserved_heap_size;
+extern EMACS_UINT  data_region_size;
+extern EMACS_UINT  reserved_heap_size;
 extern SYSTEM_INFO    sysinfo_cache;
 extern int    	      nt_major_version;
 extern int    	      nt_minor_version;
@@ -1346,13 +1346,13 @@ extern int    	      nt_minor_version;
 /* To prevent zero-initialized variables from being placed into the bss
    section, use non-zero values to represent an uninitialized state.  */
 #define UNINIT_PTR ((unsigned char*) 0xF0A0F0A0)
-#define UNINIT_LONG (0xF0A0F0A0L)
+#define UNINIT_EMACS_UINT ((EMACS_UINT) (UNINIT_PTR))
 
 /* Recreate the heap created during dumping.  */
 void recreate_heap (Extbyte *executable_path);
 
 /* Round the heap to this size.  */
-void round_heap (unsigned long size);
+void round_heap (SIZE_T size);
 
 /* Load in the dumped .bss section.  */
 void read_in_bss (Extbyte *name);
@@ -1364,8 +1364,7 @@ void map_in_heap (Extbyte *name);
 void cache_system_info (void);
 
 /* Round ADDRESS up to be aligned with ALIGN.  */
-unsigned char *round_to_next (unsigned char *address, 
-			      unsigned long align);
+unsigned char *round_to_next (unsigned char *address, SIZE_T align);
 #endif /* WIN32_NATIVE */
 
 /* ------------------------- Misc prototypes ------------------------- */

@@ -560,16 +560,8 @@ int suppress_early_error_handler_backtrace;
    Tells GC how to save a copy of the stack.  */
 Rawbyte *stack_bottom;
 
-#ifdef USG_SHARED_LIBRARIES
-/* If nonzero, this is the place to put the end of the writable segment
-   at startup.  */
-
-uintptr_t bss_end = 0;
-#endif
-
-/* Number of bytes of writable memory we can expect to be able to get:
-   Leave this as an unsigned int because it could potentially be 4G */
-unsigned long lim_data;
+/* Number of bytes of writable memory we can expect to be able to get. */
+EMACS_UINT lim_data;
 
 /* WARNING!
 
@@ -937,11 +929,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 
   /* Record (approximately) where the stack begins.  */
   stack_bottom = &stack_bottom_variable;
-
-#ifdef USG_SHARED_LIBRARIES
-  if (bss_end)
-    brk ((void *) bss_end);
-#endif
 
   clearerr (stdin);
 

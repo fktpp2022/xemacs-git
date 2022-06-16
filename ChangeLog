@@ -1,3 +1,8 @@
+2022-06-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* configure.ac: Don't check for intptr_t, not needed.
+	* configure: Regenerate.
+
 2022-05-18  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* configure.ac:

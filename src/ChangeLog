@@ -1,3 +1,31 @@
+2022-06-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* config.h.in:
+	* emacs.c:
+	* emacs.c (uintptr_t bss_end): Removed.
+	* emacs.c (main_1):
+	* lisp.h:
+	* mem-limits.h:
+	* mem-limits.h (get_lim_data):
+	* nt.c (open_input_file):
+	* nt.c (open_output_file):
+	* ntheap.c:
+	* ntheap.c (unsigned long  data_region_size): Removed.
+	* ntheap.c (unsigned long  reserved_heap_size): Removed.
+	* ntheap.c (EMACS_UINT  data_region_size): New.
+	* ntheap.c (EMACS_UINT  reserved_heap_size): New.
+	* ntheap.c (allocate_heap):
+	* number-openssl.c (bignum_binary_bitop):
+	* syswindows.h:
+	* syswindows.h (file_data):
+	* syswindows.h (UNINIT_EMACS_UINT):
+	* s/usg5-4.h (LIBS_SYSTEM):
+	Correct some further code that inappropriately assumed that long
+	is the appropriate type to represent a pointer, use EMACS_UINT
+	appropriately. 
+	In the mswindows code use SIZE_T
+	In passing remove some unexec-related code completely.
+
 2022-06-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lisp.h:

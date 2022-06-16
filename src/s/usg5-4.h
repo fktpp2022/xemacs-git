@@ -78,10 +78,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #undef LIBS_DEBUG
 
-/* Enable support for shared libraries in unexec.  */
-
-#define USG_SHARED_LIBRARIES
-
 #define LIBS_SYSTEM "-lsocket -lnsl -lelf"
 #define ORDINARY_LINK
 #define LIB_STANDARD

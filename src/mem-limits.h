@@ -77,7 +77,7 @@ extern char etext;
 static POINTER data_space_start;
 
 /* Number of bytes of writable memory we can expect to be able to get */
-extern unsigned long lim_data;
+extern EMACS_UINT lim_data;
 
 /* The implementation of get_lim_data() is very machine dependent. */
 
@@ -86,7 +86,7 @@ extern unsigned long lim_data;
 static void
 get_lim_data (void)
 {
-  lim_data = (unsigned long) -1;
+  lim_data = (EMACS_UINT) -1;
 }
 
 #elif defined(HAVE_GETRLIMIT)
@@ -109,7 +109,7 @@ get_lim_data (void)
 static void
 get_lim_data (void)
 {
-  lim_data = (unsigned long) -1;
+  lim_data = (EMACS_UINT) -1;
 
   /* Use the ulimit call, if we seem to have it.  */
 #if !defined (ULIMIT_BREAK_VALUE)
@@ -118,11 +118,11 @@ get_lim_data (void)
 
   /* If that didn't work, just use the macro's value.  */
 #ifdef ULIMIT_BREAK_VALUE
-  if (lim_data == (unsigned long) -1)
+  if (lim_data == (EMACS_UINT) -1)
     lim_data = ULIMIT_BREAK_VALUE;
 #endif
 
-  lim_data -= (long) data_space_start;
+  lim_data -= (EMACS_UINT) data_space_start;
 }
 
 #elif defined(WIN32_NATIVE)
@@ -130,7 +130,7 @@ get_lim_data (void)
 static void
 get_lim_data (void)
 {
-  extern unsigned long data_region_size;
+  extern EMACS_UINT data_region_size;
   lim_data = data_region_size;
 }
 

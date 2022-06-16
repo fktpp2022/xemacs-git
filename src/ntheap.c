@@ -64,8 +64,8 @@ round_to_next (URawbyte *address, unsigned long align)
 URawbyte *data_region_base = UNINIT_PTR;
 URawbyte *data_region_end = UNINIT_PTR;
 URawbyte *real_data_region_end = UNINIT_PTR;
-unsigned long  data_region_size = UNINIT_LONG;
-unsigned long  reserved_heap_size = UNINIT_LONG;
+EMACS_UINT  data_region_size = UNINIT_EMACS_UINT;
+EMACS_UINT  reserved_heap_size = UNINIT_EMACS_UINT;
 
 /* The start of the data segment.  */
 URawbyte *
@@ -120,9 +120,9 @@ allocate_heap (void)
      the region below the 256MB line for our malloc arena - 229MB is
      still a pretty decent arena to play in!  */
 
-  unsigned long base = 0x01B00000;   /*  27MB */
+  EMACS_UINT base = 0x01B00000;   /*  27MB */
   /* Temporary hack for the non-starting problem - use 28 (256Mb) rather than VALBITS (1Gb) */
-  unsigned long end  = 1 << 28;      /* 256MB */
+  EMACS_UINT end  = 1 << 28;      /* 256MB */
   void *ptr = NULL;
 
 #define NTHEAP_PROBE_BASE 1

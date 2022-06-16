@@ -11926,28 +11926,6 @@ printf "%s\n" "#define ssize_t int" >>confdefs.h
 fi
 
 
-if test "$ac_cv_header_inttypes_h" != "yes"; then
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for intptr_t in sys/types.h" >&5
-printf %s "checking for intptr_t in sys/types.h... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <sys/types.h>
-intptr_t x;
-
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"
-then :
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf "%s\n" "yes" >&6; }
-      printf "%s\n" "#define HAVE_INTPTR_T_IN_SYS_TYPES_H 1" >>confdefs.h
-
-else $as_nop
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for socklen_t" >&5
 printf %s "checking for socklen_t... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext

@@ -1783,7 +1783,7 @@ open_input_file (file_data *p_file, const Ibyte *filename)
   HANDLE file;
   HANDLE file_mapping;
   void *file_base;
-  DWORD size, upper_size;
+  DWORD size, upper_size = 0;
   Extbyte *fileext;
 
   PATHNAME_CONVERT_OUT (filename, fileext);
@@ -1795,16 +1795,20 @@ open_input_file (file_data *p_file, const Ibyte *filename)
 
   size = GetFileSize (file, &upper_size);
   file_mapping = qxeCreateFileMapping (file, NULL, PAGE_READONLY, 
-				       0, size, NULL);
+				       upper_size, size, NULL);
   if (!file_mapping) 
     return FALSE;
 
-  file_base = MapViewOfFile (file_mapping, FILE_MAP_READ, 0, 0, size);
+  file_base = MapViewOfFile (file_mapping, FILE_MAP_READ, 0, 0,
+                             sizeof (SIZE_T) > 4 ? 
+                             ((((SIZE_T) upper_size) << 32)
+                              | (SIZE_T) (size))
+                             : size);
   if (file_base == 0) 
     return FALSE;
 
   p_file->name = filename;
-  p_file->size = size;
+  p_file->size = ((SIZE_T) (upper_size) << 32) | (SIZE_T) size;
   p_file->file = file;
   p_file->file_mapping = file_mapping;
   p_file->file_base = file_base;
@@ -1814,7 +1818,7 @@ open_input_file (file_data *p_file, const Ibyte *filename)
 
 int
 open_output_file (file_data *p_file, const Ibyte *filename,
-		  unsigned long size)
+		  SIZE_T size)
 {
   /* Synched with FSF 20.6.  We fixed some warnings. */
   HANDLE file;
@@ -1830,7 +1834,10 @@ open_output_file (file_data *p_file, const Ibyte *filename,
     return FALSE;
 
   file_mapping = qxeCreateFileMapping (file, NULL, PAGE_READWRITE, 
-				       0, size, NULL);
+                                       sizeof (size) > 4 ? 
+				       (DWORD) ((size >> 32) & 0xFFFFFFFFL)
+                                       : 0,
+                                       (DWORD) (size & 0xFFFFFFFFL), NULL);
   if (!file_mapping) 
     return FALSE;
   

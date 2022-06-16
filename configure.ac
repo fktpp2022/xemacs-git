@@ -2543,16 +2543,6 @@ AC_CHECK_TYPE([ssize_t],,
                                   [Define to `int' if
                                    <sys/types.h> does not define.])])
 
-dnl not AC_CHECK_TYPE; lisp.h does hairy conditional typedef
-if test "$ac_cv_header_inttypes_h" != "yes"; then
-AC_MSG_CHECKING(for intptr_t in sys/types.h)
-AC_COMPILE_IFELSE([AC_LANG_SOURCE([#include <sys/types.h>
-intptr_t x;
-])],[AC_MSG_RESULT(yes)
-      AC_DEFINE(HAVE_INTPTR_T_IN_SYS_TYPES_H,1)],
-     [AC_MSG_RESULT(no)])
-fi
-
 dnl check for Unix98 socklen_t
 AC_MSG_CHECKING(for socklen_t)
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([#include <sys/types.h>

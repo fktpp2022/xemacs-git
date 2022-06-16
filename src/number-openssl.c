@@ -761,7 +761,7 @@ bignum_binary_bitop(bignum to, bignum a, bignum b, int abits, int bbits,
                                sizeof (EMACS_UINT));
 
   /* Internet says IIUC that alloca() doesn't always give correct alignment. */
-  buf = (char *) ALIGN_FOR_TYPE ((uintptr_t) buf, EMACS_UINT);
+  buf = (char *) ALIGN_FOR_TYPE ((EMACS_UINT) buf, EMACS_UINT);
 
   BN2BIN (bigger, buf, bigger_bytes);
   BN2BIN (smaller, buf + bigger_bytes, smaller_bytes);

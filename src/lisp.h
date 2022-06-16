@@ -444,25 +444,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define INT_64_BIT_MIN -9223372036854775808
 #define INT_128_BIT_MIN -170141183460469231731687303715884105728
 
-#ifdef HAVE_INTTYPES_H
-#include <inttypes.h>
-#elif defined (HAVE_INTPTR_T_IN_SYS_TYPES_H)
-/* included elsewhere */
-#elif SIZEOF_VOID_P == SIZEOF_INT
-typedef int intptr_t;
-typedef unsigned int uintptr_t;
-#elif SIZEOF_VOID_P == SIZEOF_LONG
-typedef long intptr_t;
-typedef unsigned long uintptr_t;
-#elif defined (SIZEOF_LONG_LONG) && SIZEOF_VOID_P == SIZEOF_LONG_LONG
-typedef long long intptr_t;
-typedef unsigned long long uintptr_t;
-#else
-/* Just pray. May break, may not. */
-typedef long intptr_t;
-typedef unsigned long uintptr_t;
-#endif
-
 #if SIZEOF_VOID_P == 8
 #define DEADBEEF_CONSTANT 0xCAFEBABEDEADBEEF
 #elif SIZEOF_VOID_P == 4
@@ -6469,12 +6450,6 @@ void record_insert (struct buffer *, Charbpos, Charcount);
 void record_delete (struct buffer *, Charbpos, Charcount);
 void record_change (struct buffer *, Charbpos, Charcount);
 
-/* Defined in unex*.c */
-#ifdef WIN32_NATIVE
-int unexec (Ibyte *, Ibyte *, uintptr_t, uintptr_t, uintptr_t);
-#else
-int unexec (Extbyte *, Extbyte *, uintptr_t, uintptr_t, uintptr_t);
-#endif
 #ifdef RUN_TIME_REMAP
 int run_time_remap (char *);
 #endif
