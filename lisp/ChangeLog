@@ -1,3 +1,18 @@
+2022-06-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* code-process.el:
+	* code-process.el (:compile-toplevel):
+	Silence compiler warnings about variables provided by starttls.el,
+	functions provided by format-spec.el.
+	* code-process.el (network-stream-open-starttls):
+	Fix a bug in this function, thank you the byte compiler
+	(#'make-network-process is not available on XEmacs, use
+	#'open-network-stream-internal instead.)
+	* x-faces.el (fontconfig):
+	Silence byte compile wfarnings, just (require 'fontconfig)
+	unconditionally, which works even if fontconfig support is not
+	compiled in.
+
 2022-06-16  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* update-elc-2.el (batch-update-elc-2):

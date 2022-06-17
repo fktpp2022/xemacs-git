@@ -26,6 +26,13 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with XEmacs.  If not, see <http://www.gnu.org/licenses/>.
 
+(eval-when (:compile-toplevel)
+  (unless (featurep 'starttls)
+    (globally-declare-boundp '(starttls-use-gnutls starttls-gnutls-program
+			       starttls-program)))
+  (unless (featurep 'format-spec)
+    (globally-declare-fboundp '(format-spec format-spec-make))))
+
 ;;; Code:
 
 (defvar process-coding-system-alist nil
@@ -379,8 +386,8 @@ See also the function `find-operation-coding-system'.")
 	  ;; isn't demanded, reopen an unencrypted connection.
 	  (unless require-tls
 	    (setq stream
-		  (make-network-process :name name :buffer buffer
-					:host host :service service))
+		  (open-network-stream-internal name buffer host service
+						protocol))
 	    (network-stream-get-response stream start eoc)))
 	;; Re-get the capabilities, which may have now changed.
 	(setq capabilities

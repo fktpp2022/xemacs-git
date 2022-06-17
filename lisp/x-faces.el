@@ -64,19 +64,7 @@
  '(x-get-resource-and-maybe-bogosity-check
    x-get-resource x-init-pointer-shape))
 
-(if (featurep 'xft-fonts)
-    (require 'fontconfig)
-  (globally-declare-boundp
-   '(fc-font-name-weight-bold     fc-font-name-weight-black
-     fc-font-name-weight-demibold fc-font-name-weight-medium
-     fc-font-name-slant-oblique   fc-font-name-slant-italic
-     fc-font-name-slant-roman))
-  (globally-declare-fboundp
-    '(fc-font-match fc-pattern-del-size fc-pattern-get-size
-      fc-pattern-add-size fc-pattern-del-style fc-pattern-duplicate
-      fc-copy-pattern-partial fc-pattern-add-weight fc-pattern-del-weight
-      fc-try-font fc-pattern-del-slant fc-pattern-add-slant fc-name-parse
-      fc-name-unparse fc-pattern-get-pixelsize)))
+(require 'fontconfig)
 
 (defconst x-font-regexp nil)
 (defconst x-font-regexp-head nil)
