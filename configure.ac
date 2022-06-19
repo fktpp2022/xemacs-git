@@ -59,7 +59,7 @@ from the file `./configure.ac'.  To rebuild it, execute the command:
 
 	autoconf
 
-in the this directory.  You must have autoconf version 2.59.
+in the this directory.  You must have autoconf version 2.71.
 
 This file is part of XEmacs.
 
@@ -152,6 +152,35 @@ define([XE_PREPEND],
 [[$2]="[$1] $[$2]" && dnl
  if test "$verbose" = "yes"; then echo "    Prepending \"[$1]\" to \$[$2]"; fi])dnl
 dnl
+dnl
+xe_is_entry_in_list() {
+  test $# = 1 && return 1
+  xe_list_entry_test=$1
+  shift
+
+  for xe_list_entry_i in "$@"; do
+    if test "$xe_list_entry_i" = "$xe_list_entry_test"; then
+      unset xe_list_entry_i xe_list_entry_test
+      return 0
+    fi
+  done
+
+  unset xe_list_entry_i xe_list_entry_test
+  return 1
+}
+dnl
+define([XE_ADD_TO_LIST], [
+  if xe_is_entry_in_list "[$1]" $[$2]; then :
+  else XE_APPEND([$1], [$2])
+  fi
+])dnl
+dnl
+dnl
+dnl m4 chokes on a # in macro params. Jump through hoops to workaround.
+xe_hash='#'
+define([XE_REMOVE_DASH_I], [eval [$1]=\${[$1]${xe_hash}-I}])dnl
+dnl
+dnl
 dnl XE_DIE(message)
 define([XE_DIE], [{ echo "Error:" $1 >&2; exit 1; }])dnl
 dnl
@@ -184,10 +213,11 @@ if test "$GCC" = "yes"; then
   set x $[$1]; shift; [$1]=""
   while test -n "[$]1"; do
     case [$]1 in
-      -L  | -l  | -u               ) [$1]="$[$1] [$]1 [$]2"; shift ;;
-      -L* | -l* | -u* | -Wl* | -pg ) [$1]="$[$1] [$]1" ;;
-      -Xlinker* ) ;;
-      * ) [$1]="$[$1] -Xlinker [$]1" ;;
+      -L  | -l  | -u                     ) [$1]="$[$1] [$]1 [$]2"; shift ;;
+      -f                                 ) [$1]="$[$1] -Xlinker [$]1" ;;
+      -L* | -l* | -u* | -Wl* | -f* | -pg ) [$1]="$[$1] [$]1" ;;
+      -Xlinker*                          ) ;;
+      *                                  ) [$1]="$[$1] -Xlinker [$]1" ;;
     esac
     shift
   done
@@ -2268,6 +2298,28 @@ if test -z "libc_version"; then
 fi
 AC_MSG_RESULT([$libc_version])
 
+dnl ---------------------------------------------------------
+dnl These directories are used to search for include subdirs.
+dnl ---------------------------------------------------------
+
+xe_known_include_dirs=
+for y in usr usr/local usr/X11R6 usr/local/X11R6 usr/X11 usr/ucb \
+         usr/ucbinclude usr/contrib usr/xpg4 opt opt/local sw; do
+  if test -d /$y/include; then
+    XE_APPEND(/$y/include, xe_known_include_dirs)
+  fi
+done
+
+dnl Also harvest -I flags from environment.
+for y in : $CFLAGS $CPPFLAGS $CXXFLAGS; do
+  test "$y" = : && continue
+  arg=$y
+  XE_REMOVE_DASH_I(arg)
+  if test "$y" != "$arg" -a -d "$arg"; then
+    XE_ADD_TO_LIST($arg, xe_known_include_dirs)
+  fi
+done
+
 dnl ---------------------------------------------------------------
 dnl Add site and system specific flags to compile and link commands
 dnl ---------------------------------------------------------------
@@ -2297,6 +2349,8 @@ if test -n "$with_site_includes"; then
       arg="-I${arg}" ;;
     esac
     XE_APPEND($arg, c_switch_site)
+    XE_REMOVE_DASH_I(arg)
+    XE_ADD_TO_LIST($arg, xe_known_include_dirs)
   done
 fi
 
@@ -2317,6 +2371,7 @@ if test -n "$with_site_prefixes"; then
     else
       if test -d "$inc_dir"; then
 	XE_APPEND("-I$inc_dir", c_switch_site)
+        XE_ADD_TO_LIST($inc_dir, xe_known_include_dirs)
       fi
       XE_APPEND("-L$lib_dir", ld_switch_site)
     fi
@@ -2385,7 +2440,7 @@ if test "$add_runtime_path" = "yes"; then
       for try_dash_r in "-R" "-R " "-rpath "; do
         xe_check_libs="${try_dash_r}/no/such/file-or-directory"
         XE_PROTECT_LINKER_FLAGS(xe_check_libs)
-        AC_LINK_IFELSE([], dash_r="$try_dash_r")
+        AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])], [dash_r="$try_dash_r"])
         xe_check_libs=""
         test -n "$dash_r" && break
       done ;;
@@ -2729,6 +2784,11 @@ dnl ----------------------
 AC_MSG_CHECKING([for specified window system])
 AC_MSG_RESULT()
 
+dnl Before we start using pkg-config, check if it exists.
+dnl -----------------------------------------------------
+AC_CHECK_PROG(PKG_CONFIG,pkg-config,pkg-config,no)
+test "$PKG_CONFIG" = no && PKG_CONFIG=false
+
 dnl Autodetection of Gdk libraries and includes
 dnl -------------------------------------------
 dnl On some systems (FreeBSD springs to mind), they use
@@ -2751,8 +2811,7 @@ if test "$with_gnome" != "no"; then
    AC_MSG_CHECKING(for GNOME configuration script)
    for possible in libgnome-2.0
    do
-      pkg-config --exists $possible
-      if test $?; then
+      if $PKG_CONFIG --exists $possible; then
               GNOME_CONFIG="pkg-config"
               with_gnome=yes
               with_gtk=yes
@@ -2766,7 +2825,7 @@ if test "$with_gtk" != "no";then
    AC_MSG_CHECKING(for GTK configuration script)
    for possible in $GTK_POSSIBLE
    do
-      possible_version=`pkg-config --modversion ${possible} 2> /dev/null`
+      possible_version=`$PKG_CONFIG --modversion ${possible} 2> /dev/null`
       if test "x${possible_version}" != "x"; then
               GTK_CONFIG="pkg-config ${possible}"
               GTK_VERSION=${possible_version}
@@ -2877,8 +2936,7 @@ if test "${GTK_CONFIG}" != "no"; then
    AC_MSG_CHECKING(for pangoxft configuration)
    for possible in pangoxft
    do
-      pkg-config --exists $possible
-      if test $?; then
+      if $PKG_CONFIG --exists $possible; then
          PANGO_LIBS=`pkg-config --libs $possible`
          PANGO_CFLAGS=`pkg-config --cflags $possible`
          AC_DEFINE(HAVE_PANGOXFT)      
@@ -2895,8 +2953,7 @@ if test "${GTK_CONFIG}" != "no"; then
    AC_MSG_CHECKING(for GNOME gobject introspection)
    for possible in gobject-introspection-1.0
    do
-      pkg-config --exists $possible
-      if test $?; then
+      if $PKG_CONFIG --exists $possible; then
          GIR_LIBS=`pkg-config --libs $possible`
          GIR_CFLAGS=`pkg-config --cflags $possible`
          AC_DEFINE(HAVE_GIR)
@@ -3147,13 +3204,19 @@ this to xemacs-beta@xemacs.org.  As a workaround, revert to XEmacs 21.5.29.])
   dnl include xft/AA support?
   dnl #### need to check for includes here (especially, freetype.h for v.2)
 
+  dnl Add $x_includes to $xe_known_include_paths
+  if test -n "$x_includes" -a "$x_includes" != NONE; then
+    for xe_known_include_dir in $x_includes; do
+      XE_ADD_TO_LIST($xe_known_include_dir, xe_known_include_dirs)
+    done
+  fi
+
   if test "$with_xft_emacs" = "yes"; then
     AC_MSG_CHECKING([for Xrender, fontconfig, and Xft])
     xft_includes_found=no
     dnl try pkg-config
-    xft_config_prog="pkg-config xft"
-    xft_config_ok=`$xft_config_prog --cflags 2>/dev/null`
-    if test "$?" = 0 ; then
+    xft_config_prog="$PKG_CONFIG xft"
+    if $xft_config_prog --exists; then
 	xft_cflags=`$xft_config_prog --cflags`
         dnl #### I tried to create XE_REMOVE_DUPS(original,cleaned),
         dnl but it didn't work.
@@ -3174,18 +3237,15 @@ this to xemacs-beta@xemacs.org.  As a workaround, revert to XEmacs 21.5.29.])
       AC_CHECK_HEADERS([freetype/config/ftheader.h],
 		       [xft_includes_found=yes],
 		       [
-	dnl #### How about /sw/include, and /opt/local/include?
-	dnl these directories need to be the parent of the freetype directory
-	for freetype_include_top in "/usr/local/include/freetype2" \
-				    "/usr/X11R6/include/freetype2" \
-				    "/usr/include/freetype2"
-	do
+	for freetype_include_top in $xe_known_include_dirs; do
+          freetype_include_top="$freetype_include_top/freetype2"
+
 	  if test -d $freetype_include_top; then
 	    AC_MSG_CHECKING([in ${freetype_include_top}])
 	    dnl disable autoconf's fucking cache; why these fuckheads think it
 	    dnl is better to be broken than to be slow, I don't know!
 	    dnl #### there's gotta be a better-looking way to do this!!
-	    unset "$as_ac_Header"
+	    unset ac_cv_header_freetype_config_ftheader_h
 	    save_c_switch_site="$c_switch_site"
 	    c_switch_site="$c_switch_site -I${freetype_include_top}"
 	    AC_CHECK_HEADERS([freetype/config/ftheader.h],
@@ -4997,7 +5057,7 @@ if test "$with_tty" = "yes"  ; then
 
   dnl Autodetect ncurses.
   if test -z "$with_ncurses"; then
-    if pkg-config --exists ncurses; then
+    if $PKG_CONFIG --exists ncurses; then
       ac_save_LIBS="$LIBS"
       auto_ncurses_libs=yes
       XE_PREPEND(`pkg-config --libs ncurses`, LIBS);
@@ -5025,7 +5085,7 @@ if test "$with_tty" = "yes"  ; then
     AC_CHECK_HEADER(ncurses/term.h, term_h_file=ncurses/term.h)
     XE_ADD_OBJS(terminfo.o)
     if test "$auto_ncurses_libs" = "no"; then
-      if pkg-config --exists ncurses; then
+      if $PKG_CONFIG --exists ncurses; then
         XE_PREPEND(`pkg-config --libs ncurses`, LIBS)
       else
         XE_PREPEND(-lncurses, LIBS)
@@ -5327,99 +5387,136 @@ elif test "$with_bignum" = "openssl"; then
 fi
 
 dnl TLS support
-if test "$with_tls" = "gnutls"; then
-  AC_CHECK_HEADER([gnutls/gnutls.h],
-    [AC_CHECK_LIB(gnutls, gnutls_global_init, [with_tls=gnutls],
-      [XE_DIE("Required gnutls support cannot be provided.")])],
-    [XE_DIE("Required gnutls support cannot be provided.")])
-elif test "$with_tls" = "nss"; then
-  AC_CHECK_HEADER([nss.h],
-    [AC_CHECK_LIB(nss3, NSS_InitContext, [with_tls=nss],
-      [XE_DIE("Required NSS support cannot be provided.")])],
-    [XE_DIE("Required NSS support cannot be provided.")])
-elif test "$with_tls" = "openssl"; then
-  AC_CHECK_HEADER([openssl/ssl.h],
-    [AC_CHECK_LIB(ssl, SSL_library_init, [with_tls=openssl],
-      [AC_CHECK_LIB(ssl, OPENSSL_init_ssl, [with_tls=openssl],
-        [XE_DIE("Required openssl support cannot be provided.")])])],
-    [XE_DIE("Required openssl support cannot be provided.")])
-fi
-dnl Autodetection
-dnl Must be requested explicitly with --with-tls.
-dnl To default to autodetection, change the next three tests to
-dnl if test "$with_tls" != "no".
-if test "$with_tls" = "yes"; then
-  AC_CHECK_HEADER([gnutls/gnutls.h],
-    [AC_CHECK_LIB(gnutls, gnutls_global_init, [with_tls=gnutls])])
-fi
-if test "$with_tls" = "yes"; then
-  AC_CHECK_HEADER([nss.h],
-    [AC_CHECK_LIB(nss3, NSS_InitContext, [with_tls=nss])])
-fi
-if test "$with_tls" = "yes"; then
-  AC_CHECK_HEADER([openssl/ssl.h],
-    [AC_CHECK_LIB(ssl, SSL_library_init, [with_tls=openssl], [with_tls=no])])
-fi
-if test "$with_tls" != "no"; then
-  if test "$with_tls" = "gnutls"; then
-    AC_DEFINE(HAVE_GNUTLS)
-    gnutls_cflags=`pkg-config --cflags gnutls`
-    if test "$?" = 0; then
-      XE_PREPEND("$gnutls_cflags", CPPFLAGS)
-    fi
-    gnutls_libs=`pkg-config --libs gnutls`
-    if test "$?" = 0; then
-      XE_APPEND("$gnutls_libs", LIBS)
-    fi
-    AC_CHECK_FUNC(gnutls_certificate_verification_status_print,
-	[AC_DEFINE(HAVE_GNUTLS_CERTIFICATE_VERIFICATION_STATUS_PRINT)])
-    AC_CHECK_FUNC(gnutls_certificate_verify_peers3,
-	[AC_DEFINE(HAVE_GNUTLS_CERTIFICATE_VERIFY_PEERS3)])
-  elif test "$with_tls" = "nss"; then
-    AC_DEFINE(HAVE_NSS)
-    nss_cflags=`pkg-config --cflags nss`
-    if test "$?" = 0; then
-      XE_PREPEND("$nss_cflags", CPPFLAGS)
-    fi
-    nss_libs=`pkg-config --libs nss`
-    if test "$?" = 0; then
-      XE_APPEND("$nss_libs", LIBS)
-    fi
-  elif test "$with_tls" = "openssl"; then
-    AC_DEFINE(HAVE_OPENSSL)
-    openssl_cflags=`pkg-config --cflags openssl`
-    if test "$?" = 0; then
-      XE_PREPEND("$openssl_cflags", CPPFLAGS)
-    fi
-    openssl_libs=`pkg-config --libs openssl`
-    if test "$?" = 0; then
-      XE_APPEND("$openssl_libs", LIBS)
-    fi
-    dnl Check whether X509_check_host can be linked in.
-    AC_CHECK_FUNC(X509_check_host,
-        AC_COMPILE_IFELSE(
-            dnl It can; check that its declaration is compatible with five
-            dnl arguments. An early version of the function took only four.
-            [AC_LANG_PROGRAM([#include <openssl/x509v3.h>],
-                 [return X509_check_host ((void *) 0,
-                                          (const char *) 0, 0, 0, 
-                                          (void *) 0); ])],
-            dnl Now check that it is *not* compatible with just one argument,
-            dnl as would be the case if no declaration was in the header, and
-            dnl the header was old, compared to the DLL. This sort of version
-            dnl sanity-checking is particularly necessary with OpenSSL. E.g. on
-            dnl OS X there has always been an installed system version of it,
-            dnl but pkg-config, above, will pick up the MacPorts version.
-            [ AC_MSG_CHECKING(that X509_check_host is declared)
-              AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <openssl/x509v3.h>],
-                                               [return X509_check_host (-1);])],
-                                AC_MSG_RESULT(no),
-                                [AC_MSG_RESULT(yes)
-                                 AC_DEFINE(HAVE_X509_CHECK_HOST)])]))
+define([XE_TLS_TEST], [
+if test "$with_tls" = "[$1]" -o "$with_tls" = "yes"; then
+  AC_MSG_CHECKING(for [$2] with pkg-config)
+
+  if $PKG_CONFIG --exists [$3]; then
+    AC_MSG_RESULT(yes)
+    AC_DEFINE(m4_join([], [HAVE_], m4_toupper([$1])))
+    with_tls=[$1]
+    XE_PREPEND(`pkg-config --cflags [$3]`, CPPFLAGS)
+    XE_APPEND(`pkg-config --libs [$3]`, LIBS)
+    $9
   else
-    with_tls=no
+    AC_MSG_RESULT(no)
+    cppflags_saved_tls_test=$CPPFLAGS
+    indir([$7], [[$4]],
+      [AC_CHECK_LIB([$5], [$6],
+        [
+          AC_DEFINE(m4_join([], [HAVE_], m4_toupper([$1])))
+          with_tls=[$1]
+          XE_APPEND([$8], LIBS)
+          $9
+        ],
+        [
+          if test "$with_tls" = "[$1]"; then
+            XE_DIE("Required [$2] support cannot be provided.")
+          fi
+          CPPFLAGS=$cppflags_saved_tls_test
+        ])],
+      [
+        if test "$with_tls" = "[$1]"; then
+          XE_DIE("Required [$2] support cannot be provided.")
+        fi
+        CPPFLAGS=$cppflags_saved_tls_test
+      ])
   fi
 fi
+])dnl
+
+define([XE_LOCATE_NSS], [
+  dnl We need both NSPR and NSS include paths.
+  nspr_found=false
+  nss_found=false
+
+  for y in : $xe_known_include_dirs; do
+    if test "$y" != : -a -d "$y/nspr"; then
+      AC_MSG_CHECKING(for nspr.h in $y/nspr)
+      cppflags_saved=$CPPFLAGS
+      XE_APPEND(-I$y/nspr, CPPFLAGS)
+    fi
+
+    unset ac_cv_header_nspr_h
+    AC_CHECK_HEADER(nspr.h, [nspr_found=true])
+
+    if $nspr_found; then
+      break
+    elif test "$y" != :; then
+      CPPFLAGS=$cppflags_saved
+    fi
+  done
+
+  if $nspr_found; then
+    for y in : $xe_known_include_dirs; do
+      dnl nss.h is not a good test header because it's in many base systems.
+      if test "$y" != : -a -d "$y/nss"; then
+        AC_MSG_CHECKING(for pk11pub.h in $y/nss)
+        cppflags_saved=$CPPFLAGS
+        XE_APPEND(-I$y/nss, CPPFLAGS)
+      fi
+
+      unset ac_cv_header_pk11pub_h
+      AC_CHECK_HEADER(pk11pub.h, [nss_found=true])
+
+      if $nss_found; then
+        break
+      elif test "$y" != :; then
+        CPPFLAGS=$cppflags_saved
+      fi
+    done
+  fi
+
+  if $nss_found; then
+    $2
+  else
+    $3
+  fi
+])dnl
+
+XE_TLS_TEST([gnutls],  [GnuTLS],  [gnutls],  [gnutls/gnutls.h], [gnutls],
+            [gnutls_global_init], [AC_CHECK_HEADER],
+            [-lgnutls], [
+  AC_CHECK_FUNC(gnutls_certificate_verification_status_print,
+    [AC_DEFINE(HAVE_GNUTLS_CERTIFICATE_VERIFICATION_STATUS_PRINT)])
+  AC_CHECK_FUNC(gnutls_certificate_verify_peers3,
+    [AC_DEFINE(HAVE_GNUTLS_CERTIFICATE_VERIFY_PEERS3)])
+])
+
+XE_TLS_TEST([nss],     [NSS],     [nss],     [],                [nss3],
+            [NSS_InitContext],    [XE_LOCATE_NSS],
+            [-lnss3 -lsmime3 -lssl3 -lnssutil3 -lplds4 -lplc4 -lnspr4])
+
+XE_TLS_TEST([openssl], [OpenSSL], [openssl], [openssl/ssl.h],   [ssl],
+            [OPENSSL_init_ssl],   [AC_CHECK_HEADER],
+            [-lssl -lcrypto], [
+  dnl Check whether X509_check_host can be linked in.
+  AC_CHECK_FUNC(X509_check_host,
+      AC_COMPILE_IFELSE(
+          dnl It can; check that its declaration is compatible with five
+          dnl arguments. An early version of the function took only four.
+          [AC_LANG_PROGRAM([#include <openssl/x509v3.h>],
+               [return X509_check_host ((void *) 0,
+                                        (const char *) 0, 0, 0,
+                                        (void *) 0); ])],
+          dnl Now check that it is *not* compatible with just one argument,
+          dnl as would be the case if no declaration was in the header, and
+          dnl the header was old, compared to the DLL. This sort of version
+          dnl sanity-checking is particularly necessary with OpenSSL. E.g. on
+          dnl OS X there has always been an installed system version of it,
+          dnl but pkg-config, above, will pick up the MacPorts version.
+          [ AC_MSG_CHECKING(that X509_check_host is declared)
+            AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <openssl/x509v3.h>],
+                                             [return X509_check_host (-1);])],
+                              AC_MSG_RESULT(no),
+                              [AC_MSG_RESULT(yes)
+                               AC_DEFINE(HAVE_X509_CHECK_HOST)])]))
+])
+
+if test "$with_tls" = "yes"; then
+  XE_DIE("Required TLS support cannot be provided.")
+fi
+
 if test "$with_tls" != "no"; then
   AC_DEFINE(WITH_TLS)
 fi

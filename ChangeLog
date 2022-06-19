@@ -1,3 +1,36 @@
+2022-06-19  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* configure.ac:
+	Fix the broken linker -R flag detection under BSD.
+
+	Generalize the include directory detection mechanism, broadening the
+	FreeType detection while at it.
+
+	Fix a pattern of incorrect "test_command; if test "$?"; then ...; fi"
+	usage that made configure quite unreliable.
+
+	Remove the hardcoded pkg-config dependency that caused configure error
+	messages and compile errors with the assumption that a non-existent
+	pkg config yielded a working "--libs". Make all call sites that
+	actually require pkg-config fail-fast autodetection instead of giving
+	false positives that crash builds. This also fixes ncurses support in
+	systems without pkg-config.
+
+	* configure.ac (XE_PROTECT_LINKER_FLAGS):
+	Fix LLVM compilation by making XE_PROTECT_LINKER_FLAGS() recognize
+	-f flags for CLANG like -fstack-protector-strong and not pass them to
+	the linker with -Xlinker.
+
+	* configure.ac (XE_ADD_TO_LIST):
+	New macro, adds an entry if it isn't already in an environment var.
+
+	* configure.ac (XE_TLS_TEST):
+	* configure.ac (XE_LOCATE_NSS):
+	Revamp completely the TLS detection mechanism so that it now actually
+	works with and without pkg-config.
+
+	* configure: Regenerate.
+
 2022-06-16  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* configure.ac: Don't check for intptr_t, not needed.

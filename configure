@@ -29,7 +29,7 @@
 #
 # 	autoconf
 #
-# in the this directory.  You must have autoconf version 2.59.
+# in the this directory.  You must have autoconf version 2.71.
 #
 # This file is part of XEmacs.
 #
@@ -803,6 +803,7 @@ X_PRE_LIBS
 X_CFLAGS
 XMKMF
 GTK_CONFIG
+PKG_CONFIG
 SET_MAKE
 EGREP
 GREP
@@ -2183,7 +2184,7 @@ from the file `./configure.ac'.  To rebuild it, execute the command:
 
 	autoconf
 
-in the this directory.  You must have autoconf version 2.59.
+in the this directory.  You must have autoconf version 2.71.
 
 This file is part of XEmacs.
 
@@ -3878,6 +3879,22 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 progname="`echo $0 | sed 's:^\./\./:\./:'`"
+xe_is_entry_in_list() {
+  test $# = 1 && return 1
+  xe_list_entry_test=$1
+  shift
+
+  for xe_list_entry_i in "$@"; do
+    if test "$xe_list_entry_i" = "$xe_list_entry_test"; then
+      unset xe_list_entry_i xe_list_entry_test
+      return 0
+    fi
+  done
+
+  unset xe_list_entry_i xe_list_entry_test
+  return 1
+}
+xe_hash='#'
 
 MAKE_SUBDIR="$MAKE_SUBDIR lib-src" &&  if test "$verbose" = "yes"; then echo "    Appending \"lib-src\" to \$MAKE_SUBDIR"; fi
 INSTALL_ARCH_DEP_SUBDIR="$INSTALL_ARCH_DEP_SUBDIR lib-src" &&  if test "$verbose" = "yes"; then echo "    Appending \"lib-src\" to \$INSTALL_ARCH_DEP_SUBDIR"; fi
@@ -10595,10 +10612,11 @@ if test "$GCC" = "yes"; then
   set x $ld_switch_system; shift; ld_switch_system=""
   while test -n "$1"; do
     case $1 in
-      -L  | -l  | -u               ) ld_switch_system="$ld_switch_system $1 $2"; shift ;;
-      -L* | -l* | -u* | -Wl* | -pg ) ld_switch_system="$ld_switch_system $1" ;;
-      -Xlinker* ) ;;
-      * ) ld_switch_system="$ld_switch_system -Xlinker $1" ;;
+      -L  | -l  | -u                     ) ld_switch_system="$ld_switch_system $1 $2"; shift ;;
+      -f                                 ) ld_switch_system="$ld_switch_system -Xlinker $1" ;;
+      -L* | -l* | -u* | -Wl* | -f* | -pg ) ld_switch_system="$ld_switch_system $1" ;;
+      -Xlinker*                          ) ;;
+      *                                  ) ld_switch_system="$ld_switch_system -Xlinker $1" ;;
     esac
     shift
   done
@@ -10608,10 +10626,11 @@ if test "$GCC" = "yes"; then
   set x $ld_switch_machine; shift; ld_switch_machine=""
   while test -n "$1"; do
     case $1 in
-      -L  | -l  | -u               ) ld_switch_machine="$ld_switch_machine $1 $2"; shift ;;
-      -L* | -l* | -u* | -Wl* | -pg ) ld_switch_machine="$ld_switch_machine $1" ;;
-      -Xlinker* ) ;;
-      * ) ld_switch_machine="$ld_switch_machine -Xlinker $1" ;;
+      -L  | -l  | -u                     ) ld_switch_machine="$ld_switch_machine $1 $2"; shift ;;
+      -f                                 ) ld_switch_machine="$ld_switch_machine -Xlinker $1" ;;
+      -L* | -l* | -u* | -Wl* | -f* | -pg ) ld_switch_machine="$ld_switch_machine $1" ;;
+      -Xlinker*                          ) ;;
+      *                                  ) ld_switch_machine="$ld_switch_machine -Xlinker $1" ;;
     esac
     shift
   done
@@ -10621,10 +10640,11 @@ if test "$GCC" = "yes"; then
   set x $ld_switch_site; shift; ld_switch_site=""
   while test -n "$1"; do
     case $1 in
-      -L  | -l  | -u               ) ld_switch_site="$ld_switch_site $1 $2"; shift ;;
-      -L* | -l* | -u* | -Wl* | -pg ) ld_switch_site="$ld_switch_site $1" ;;
-      -Xlinker* ) ;;
-      * ) ld_switch_site="$ld_switch_site -Xlinker $1" ;;
+      -L  | -l  | -u                     ) ld_switch_site="$ld_switch_site $1 $2"; shift ;;
+      -f                                 ) ld_switch_site="$ld_switch_site -Xlinker $1" ;;
+      -L* | -l* | -u* | -Wl* | -f* | -pg ) ld_switch_site="$ld_switch_site $1" ;;
+      -Xlinker*                          ) ;;
+      *                                  ) ld_switch_site="$ld_switch_site -Xlinker $1" ;;
     esac
     shift
   done
@@ -10634,10 +10654,11 @@ if test "$GCC" = "yes"; then
   set x $LDFLAGS; shift; LDFLAGS=""
   while test -n "$1"; do
     case $1 in
-      -L  | -l  | -u               ) LDFLAGS="$LDFLAGS $1 $2"; shift ;;
-      -L* | -l* | -u* | -Wl* | -pg ) LDFLAGS="$LDFLAGS $1" ;;
-      -Xlinker* ) ;;
-      * ) LDFLAGS="$LDFLAGS -Xlinker $1" ;;
+      -L  | -l  | -u                     ) LDFLAGS="$LDFLAGS $1 $2"; shift ;;
+      -f                                 ) LDFLAGS="$LDFLAGS -Xlinker $1" ;;
+      -L* | -l* | -u* | -Wl* | -f* | -pg ) LDFLAGS="$LDFLAGS $1" ;;
+      -Xlinker*                          ) ;;
+      *                                  ) LDFLAGS="$LDFLAGS -Xlinker $1" ;;
     esac
     shift
   done
@@ -10647,10 +10668,11 @@ if test "$GCC" = "yes"; then
   set x $ld_call_shared; shift; ld_call_shared=""
   while test -n "$1"; do
     case $1 in
-      -L  | -l  | -u               ) ld_call_shared="$ld_call_shared $1 $2"; shift ;;
-      -L* | -l* | -u* | -Wl* | -pg ) ld_call_shared="$ld_call_shared $1" ;;
-      -Xlinker* ) ;;
-      * ) ld_call_shared="$ld_call_shared -Xlinker $1" ;;
+      -L  | -l  | -u                     ) ld_call_shared="$ld_call_shared $1 $2"; shift ;;
+      -f                                 ) ld_call_shared="$ld_call_shared -Xlinker $1" ;;
+      -L* | -l* | -u* | -Wl* | -f* | -pg ) ld_call_shared="$ld_call_shared $1" ;;
+      -Xlinker*                          ) ;;
+      *                                  ) ld_call_shared="$ld_call_shared -Xlinker $1" ;;
     esac
     shift
   done
@@ -10791,6 +10813,28 @@ fi
 printf "%s\n" "$libc_version" >&6; }
 
 
+xe_known_include_dirs=
+for y in usr usr/local usr/X11R6 usr/local/X11R6 usr/X11 usr/ucb \
+         usr/ucbinclude usr/contrib usr/xpg4 opt opt/local sw; do
+  if test -d /$y/include; then
+    xe_known_include_dirs="$xe_known_include_dirs /$y/include" &&  if test "$verbose" = "yes"; then echo "    Appending \"/$y/include\" to \$xe_known_include_dirs"; fi
+  fi
+done
+
+for y in : $CFLAGS $CPPFLAGS $CXXFLAGS; do
+  test "$y" = : && continue
+  arg=$y
+  eval arg=\${arg${xe_hash}-I}
+  if test "$y" != "$arg" -a -d "$arg"; then
+
+  if xe_is_entry_in_list "$arg" $xe_known_include_dirs; then :
+  else xe_known_include_dirs="$xe_known_include_dirs $arg" &&  if test "$verbose" = "yes"; then echo "    Appending \"$arg\" to \$xe_known_include_dirs"; fi
+  fi
+
+  fi
+done
+
+
 case "$with_site_libraries" in *:* ) with_site_libraries="`echo '' $with_site_libraries | sed -e 's/^ //' -e 's/:/ /g'`";; esac
 if test -n "$with_site_libraries"; then
   for arg in $with_site_libraries; do
@@ -10814,6 +10858,12 @@ if test -n "$with_site_includes"; then
       arg="-I${arg}" ;;
     esac
     c_switch_site="$c_switch_site $arg" &&  if test "$verbose" = "yes"; then echo "    Appending \"$arg\" to \$c_switch_site"; fi
+    eval arg=\${arg${xe_hash}-I}
+
+  if xe_is_entry_in_list "$arg" $xe_known_include_dirs; then :
+  else xe_known_include_dirs="$xe_known_include_dirs $arg" &&  if test "$verbose" = "yes"; then echo "    Appending \"$arg\" to \$xe_known_include_dirs"; fi
+  fi
+
   done
 fi
 
@@ -10829,6 +10879,11 @@ if test -n "$with_site_prefixes"; then
     else
       if test -d "$inc_dir"; then
 	c_switch_site="$c_switch_site "-I$inc_dir"" &&  if test "$verbose" = "yes"; then echo "    Appending \""-I$inc_dir"\" to \$c_switch_site"; fi
+
+  if xe_is_entry_in_list "$inc_dir" $xe_known_include_dirs; then :
+  else xe_known_include_dirs="$xe_known_include_dirs $inc_dir" &&  if test "$verbose" = "yes"; then echo "    Appending \"$inc_dir\" to \$xe_known_include_dirs"; fi
+  fi
+
       fi
       ld_switch_site="$ld_switch_site "-L$lib_dir"" &&  if test "$verbose" = "yes"; then echo "    Appending \""-L$lib_dir"\" to \$ld_switch_site"; fi
     fi
@@ -10874,20 +10929,32 @@ if test "$GCC" = "yes"; then
   set x $xe_check_libs; shift; xe_check_libs=""
   while test -n "$1"; do
     case $1 in
-      -L  | -l  | -u               ) xe_check_libs="$xe_check_libs $1 $2"; shift ;;
-      -L* | -l* | -u* | -Wl* | -pg ) xe_check_libs="$xe_check_libs $1" ;;
-      -Xlinker* ) ;;
-      * ) xe_check_libs="$xe_check_libs -Xlinker $1" ;;
+      -L  | -l  | -u                     ) xe_check_libs="$xe_check_libs $1 $2"; shift ;;
+      -f                                 ) xe_check_libs="$xe_check_libs -Xlinker $1" ;;
+      -L* | -l* | -u* | -Wl* | -f* | -pg ) xe_check_libs="$xe_check_libs $1" ;;
+      -Xlinker*                          ) ;;
+      *                                  ) xe_check_libs="$xe_check_libs -Xlinker $1" ;;
     esac
     shift
   done
 fi
-        if ac_fn_c_try_link "$LINENO"
+        cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"
 then :
   dash_r="$try_dash_r"
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext
+    conftest$ac_exeext conftest.$ac_ext
         xe_check_libs=""
         test -n "$dash_r" && break
       done ;;
@@ -10959,10 +11026,11 @@ if test "$GCC" = "yes"; then
   set x $ld_switch_run; shift; ld_switch_run=""
   while test -n "$1"; do
     case $1 in
-      -L  | -l  | -u               ) ld_switch_run="$ld_switch_run $1 $2"; shift ;;
-      -L* | -l* | -u* | -Wl* | -pg ) ld_switch_run="$ld_switch_run $1" ;;
-      -Xlinker* ) ;;
-      * ) ld_switch_run="$ld_switch_run -Xlinker $1" ;;
+      -L  | -l  | -u                     ) ld_switch_run="$ld_switch_run $1 $2"; shift ;;
+      -f                                 ) ld_switch_run="$ld_switch_run -Xlinker $1" ;;
+      -L* | -l* | -u* | -Wl* | -f* | -pg ) ld_switch_run="$ld_switch_run $1" ;;
+      -Xlinker*                          ) ;;
+      *                                  ) ld_switch_run="$ld_switch_run -Xlinker $1" ;;
     esac
     shift
   done
@@ -13242,6 +13310,51 @@ printf %s "checking for specified window system... " >&6; }
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: " >&5
 printf "%s\n" "" >&6; }
 
+# Extract the first word of "pkg-config", so it can be a program name with args.
+set dummy pkg-config; ac_word=$2
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+printf %s "checking for $ac_word... " >&6; }
+if test ${ac_cv_prog_PKG_CONFIG+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  if test -n "$PKG_CONFIG"; then
+  ac_cv_prog_PKG_CONFIG="$PKG_CONFIG" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  case $as_dir in #(((
+    '') as_dir=./ ;;
+    */) ;;
+    *) as_dir=$as_dir/ ;;
+  esac
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
+    ac_cv_prog_PKG_CONFIG="pkg-config"
+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_PKG_CONFIG" && ac_cv_prog_PKG_CONFIG="no"
+fi
+fi
+PKG_CONFIG=$ac_cv_prog_PKG_CONFIG
+if test -n "$PKG_CONFIG"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $PKG_CONFIG" >&5
+printf "%s\n" "$PKG_CONFIG" >&6; }
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+fi
+
+
+test "$PKG_CONFIG" = no && PKG_CONFIG=false
+
 
 GNOME_CONFIG=no
 GTK_CONFIG=no
@@ -13260,8 +13373,7 @@ if test "$with_gnome" != "no"; then
 printf %s "checking for GNOME configuration script... " >&6; }
    for possible in libgnome-2.0
    do
-      pkg-config --exists $possible
-      if test $?; then
+      if $PKG_CONFIG --exists $possible; then
               GNOME_CONFIG="pkg-config"
               with_gnome=yes
               with_gtk=yes
@@ -13277,7 +13389,7 @@ if test "$with_gtk" != "no";then
 printf %s "checking for GTK configuration script... " >&6; }
    for possible in $GTK_POSSIBLE
    do
-      possible_version=`pkg-config --modversion ${possible} 2> /dev/null`
+      possible_version=`$PKG_CONFIG --modversion ${possible} 2> /dev/null`
       if test "x${possible_version}" != "x"; then
               GTK_CONFIG="pkg-config ${possible}"
               GTK_VERSION=${possible_version}
@@ -13534,8 +13646,7 @@ if test "${GTK_CONFIG}" != "no"; then
 printf %s "checking for pangoxft configuration... " >&6; }
    for possible in pangoxft
    do
-      pkg-config --exists $possible
-      if test $?; then
+      if $PKG_CONFIG --exists $possible; then
          PANGO_LIBS=`pkg-config --libs $possible`
          PANGO_CFLAGS=`pkg-config --cflags $possible`
          printf "%s\n" "#define HAVE_PANGOXFT 1" >>confdefs.h
@@ -13556,8 +13667,7 @@ if test "${GTK_CONFIG}" != "no"; then
 printf %s "checking for GNOME gobject introspection... " >&6; }
    for possible in gobject-introspection-1.0
    do
-      pkg-config --exists $possible
-      if test $?; then
+      if $PKG_CONFIG --exists $possible; then
          GIR_LIBS=`pkg-config --libs $possible`
          GIR_CFLAGS=`pkg-config --cflags $possible`
          printf "%s\n" "#define HAVE_GIR 1" >>confdefs.h
@@ -14466,10 +14576,11 @@ if test "$GCC" = "yes"; then
   set x $ld_switch_run; shift; ld_switch_run=""
   while test -n "$1"; do
     case $1 in
-      -L  | -l  | -u               ) ld_switch_run="$ld_switch_run $1 $2"; shift ;;
-      -L* | -l* | -u* | -Wl* | -pg ) ld_switch_run="$ld_switch_run $1" ;;
-      -Xlinker* ) ;;
-      * ) ld_switch_run="$ld_switch_run -Xlinker $1" ;;
+      -L  | -l  | -u                     ) ld_switch_run="$ld_switch_run $1 $2"; shift ;;
+      -f                                 ) ld_switch_run="$ld_switch_run -Xlinker $1" ;;
+      -L* | -l* | -u* | -Wl* | -f* | -pg ) ld_switch_run="$ld_switch_run $1" ;;
+      -Xlinker*                          ) ;;
+      *                                  ) ld_switch_run="$ld_switch_run -Xlinker $1" ;;
     esac
     shift
   done
@@ -14901,13 +15012,22 @@ fi
 
 
 
+    if test -n "$x_includes" -a "$x_includes" != NONE; then
+    for xe_known_include_dir in $x_includes; do
+
+  if xe_is_entry_in_list "$xe_known_include_dir" $xe_known_include_dirs; then :
+  else xe_known_include_dirs="$xe_known_include_dirs $xe_known_include_dir" &&  if test "$verbose" = "yes"; then echo "    Appending \"$xe_known_include_dir\" to \$xe_known_include_dirs"; fi
+  fi
+
+    done
+  fi
+
   if test "$with_xft_emacs" = "yes"; then
     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for Xrender, fontconfig, and Xft" >&5
 printf %s "checking for Xrender, fontconfig, and Xft... " >&6; }
     xft_includes_found=no
-        xft_config_prog="pkg-config xft"
-    xft_config_ok=`$xft_config_prog --cflags 2>/dev/null`
-    if test "$?" = 0 ; then
+        xft_config_prog="$PKG_CONFIG xft"
+    if $xft_config_prog --exists; then
 	xft_cflags=`$xft_config_prog --cflags`
                         cleaned_xft_cflags=""
         for xft_cflag in $xft_cflags; do
@@ -14932,14 +15052,13 @@ then :
  xft_includes_found=yes
 else $as_nop
 
-			for freetype_include_top in "/usr/local/include/freetype2" \
-				    "/usr/X11R6/include/freetype2" \
-				    "/usr/include/freetype2"
-	do
+	for freetype_include_top in $xe_known_include_dirs; do
+          freetype_include_top="$freetype_include_top/freetype2"
+
 	  if test -d $freetype_include_top; then
 	    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking in ${freetype_include_top}" >&5
 printf %s "checking in ${freetype_include_top}... " >&6; }
-	    	    	    	    unset "$as_ac_Header"
+	    	    	    	    unset ac_cv_header_freetype_config_ftheader_h
 	    save_c_switch_site="$c_switch_site"
 	    c_switch_site="$c_switch_site -I${freetype_include_top}"
 	           for ac_header in freetype/config/ftheader.h
@@ -19041,10 +19160,11 @@ if test "$GCC" = "yes"; then
   set x $ld_switch_run; shift; ld_switch_run=""
   while test -n "$1"; do
     case $1 in
-      -L  | -l  | -u               ) ld_switch_run="$ld_switch_run $1 $2"; shift ;;
-      -L* | -l* | -u* | -Wl* | -pg ) ld_switch_run="$ld_switch_run $1" ;;
-      -Xlinker* ) ;;
-      * ) ld_switch_run="$ld_switch_run -Xlinker $1" ;;
+      -L  | -l  | -u                     ) ld_switch_run="$ld_switch_run $1 $2"; shift ;;
+      -f                                 ) ld_switch_run="$ld_switch_run -Xlinker $1" ;;
+      -L* | -l* | -u* | -Wl* | -f* | -pg ) ld_switch_run="$ld_switch_run $1" ;;
+      -Xlinker*                          ) ;;
+      *                                  ) ld_switch_run="$ld_switch_run -Xlinker $1" ;;
     esac
     shift
   done
@@ -21027,7 +21147,7 @@ printf "%s\n" "" >&6; }
 
 
     if test -z "$with_ncurses"; then
-    if pkg-config --exists ncurses; then
+    if $PKG_CONFIG --exists ncurses; then
       ac_save_LIBS="$LIBS"
       auto_ncurses_libs=yes
       LIBS="`pkg-config --libs ncurses` $LIBS" &&  if test "$verbose" = "yes"; then echo "    Prepending \"`pkg-config --libs ncurses`\" to \$LIBS"; fi;
@@ -21116,7 +21236,7 @@ fi
    echo "    xemacs will be linked with \"terminfo.o\""
  fi
     if test "$auto_ncurses_libs" = "no"; then
-      if pkg-config --exists ncurses; then
+      if $PKG_CONFIG --exists ncurses; then
         LIBS="`pkg-config --libs ncurses` $LIBS" &&  if test "$verbose" = "yes"; then echo "    Prepending \"`pkg-config --libs ncurses`\" to \$LIBS"; fi
       else
         LIBS="-lncurses $LIBS" &&  if test "$verbose" = "yes"; then echo "    Prepending \"-lncurses\" to \$LIBS"; fi
@@ -22592,8 +22712,42 @@ fi
   LIBS="$LIBS "-lcrypto"" &&  if test "$verbose" = "yes"; then echo "    Appending \""-lcrypto"\" to \$LIBS"; fi
 fi
 
-if test "$with_tls" = "gnutls"; then
-  ac_fn_c_check_header_compile "$LINENO" "gnutls/gnutls.h" "ac_cv_header_gnutls_gnutls_h" "$ac_includes_default"
+
+
+
+if test "$with_tls" = "gnutls" -o "$with_tls" = "yes"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for GnuTLS with pkg-config" >&5
+printf %s "checking for GnuTLS with pkg-config... " >&6; }
+
+  if $PKG_CONFIG --exists gnutls; then
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+    printf "%s\n" "#define HAVE_GNUTLS 1" >>confdefs.h
+
+    with_tls=gnutls
+    CPPFLAGS="`pkg-config --cflags gnutls` $CPPFLAGS" &&  if test "$verbose" = "yes"; then echo "    Prepending \"`pkg-config --cflags gnutls`\" to \$CPPFLAGS"; fi
+    LIBS="$LIBS `pkg-config --libs gnutls`" &&  if test "$verbose" = "yes"; then echo "    Appending \"`pkg-config --libs gnutls`\" to \$LIBS"; fi
+
+  ac_fn_c_check_func "$LINENO" "gnutls_certificate_verification_status_print" "ac_cv_func_gnutls_certificate_verification_status_print"
+if test "x$ac_cv_func_gnutls_certificate_verification_status_print" = xyes
+then :
+  printf "%s\n" "#define HAVE_GNUTLS_CERTIFICATE_VERIFICATION_STATUS_PRINT 1" >>confdefs.h
+
+fi
+
+  ac_fn_c_check_func "$LINENO" "gnutls_certificate_verify_peers3" "ac_cv_func_gnutls_certificate_verify_peers3"
+if test "x$ac_cv_func_gnutls_certificate_verify_peers3" = xyes
+then :
+  printf "%s\n" "#define HAVE_GNUTLS_CERTIFICATE_VERIFY_PEERS3 1" >>confdefs.h
+
+fi
+
+
+  else
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+    cppflags_saved_tls_test=$CPPFLAGS
+    ac_fn_c_check_header_compile "$LINENO" "gnutls/gnutls.h" "ac_cv_header_gnutls_gnutls_h" "$ac_includes_default"
 if test "x$ac_cv_header_gnutls_gnutls_h" = xyes
 then :
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for gnutls_global_init in -lgnutls" >&5
@@ -22633,20 +22787,122 @@ fi
 printf "%s\n" "$ac_cv_lib_gnutls_gnutls_global_init" >&6; }
 if test "x$ac_cv_lib_gnutls_gnutls_global_init" = xyes
 then :
-  with_tls=gnutls
-else $as_nop
-  { echo "Error:" "Required gnutls support cannot be provided." >&2; exit 1; }
-fi
 
-else $as_nop
-  { echo "Error:" "Required gnutls support cannot be provided." >&2; exit 1; }
-fi
+          printf "%s\n" "#define HAVE_GNUTLS 1" >>confdefs.h
 
-elif test "$with_tls" = "nss"; then
-  ac_fn_c_check_header_compile "$LINENO" "nss.h" "ac_cv_header_nss_h" "$ac_includes_default"
-if test "x$ac_cv_header_nss_h" = xyes
+          with_tls=gnutls
+          LIBS="$LIBS -lgnutls" &&  if test "$verbose" = "yes"; then echo "    Appending \"-lgnutls\" to \$LIBS"; fi
+
+  ac_fn_c_check_func "$LINENO" "gnutls_certificate_verification_status_print" "ac_cv_func_gnutls_certificate_verification_status_print"
+if test "x$ac_cv_func_gnutls_certificate_verification_status_print" = xyes
 then :
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for NSS_InitContext in -lnss3" >&5
+  printf "%s\n" "#define HAVE_GNUTLS_CERTIFICATE_VERIFICATION_STATUS_PRINT 1" >>confdefs.h
+
+fi
+
+  ac_fn_c_check_func "$LINENO" "gnutls_certificate_verify_peers3" "ac_cv_func_gnutls_certificate_verify_peers3"
+if test "x$ac_cv_func_gnutls_certificate_verify_peers3" = xyes
+then :
+  printf "%s\n" "#define HAVE_GNUTLS_CERTIFICATE_VERIFY_PEERS3 1" >>confdefs.h
+
+fi
+
+
+
+else $as_nop
+
+          if test "$with_tls" = "gnutls"; then
+            { echo "Error:" "Required GnuTLS support cannot be provided." >&2; exit 1; }
+          fi
+          CPPFLAGS=$cppflags_saved_tls_test
+
+fi
+
+else $as_nop
+
+        if test "$with_tls" = "gnutls"; then
+          { echo "Error:" "Required GnuTLS support cannot be provided." >&2; exit 1; }
+        fi
+        CPPFLAGS=$cppflags_saved_tls_test
+
+fi
+
+  fi
+fi
+
+
+
+if test "$with_tls" = "nss" -o "$with_tls" = "yes"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for NSS with pkg-config" >&5
+printf %s "checking for NSS with pkg-config... " >&6; }
+
+  if $PKG_CONFIG --exists nss; then
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+    printf "%s\n" "#define HAVE_NSS 1" >>confdefs.h
+
+    with_tls=nss
+    CPPFLAGS="`pkg-config --cflags nss` $CPPFLAGS" &&  if test "$verbose" = "yes"; then echo "    Prepending \"`pkg-config --cflags nss`\" to \$CPPFLAGS"; fi
+    LIBS="$LIBS `pkg-config --libs nss`" &&  if test "$verbose" = "yes"; then echo "    Appending \"`pkg-config --libs nss`\" to \$LIBS"; fi
+
+  else
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+    cppflags_saved_tls_test=$CPPFLAGS
+
+    nspr_found=false
+  nss_found=false
+
+  for y in : $xe_known_include_dirs; do
+    if test "$y" != : -a -d "$y/nspr"; then
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for nspr.h in $y/nspr" >&5
+printf %s "checking for nspr.h in $y/nspr... " >&6; }
+      cppflags_saved=$CPPFLAGS
+      CPPFLAGS="$CPPFLAGS -I$y/nspr" &&  if test "$verbose" = "yes"; then echo "    Appending \"-I$y/nspr\" to \$CPPFLAGS"; fi
+    fi
+
+    unset ac_cv_header_nspr_h
+    ac_fn_c_check_header_compile "$LINENO" "nspr.h" "ac_cv_header_nspr_h" "$ac_includes_default"
+if test "x$ac_cv_header_nspr_h" = xyes
+then :
+  nspr_found=true
+fi
+
+
+    if $nspr_found; then
+      break
+    elif test "$y" != :; then
+      CPPFLAGS=$cppflags_saved
+    fi
+  done
+
+  if $nspr_found; then
+    for y in : $xe_known_include_dirs; do
+            if test "$y" != : -a -d "$y/nss"; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for pk11pub.h in $y/nss" >&5
+printf %s "checking for pk11pub.h in $y/nss... " >&6; }
+        cppflags_saved=$CPPFLAGS
+        CPPFLAGS="$CPPFLAGS -I$y/nss" &&  if test "$verbose" = "yes"; then echo "    Appending \"-I$y/nss\" to \$CPPFLAGS"; fi
+      fi
+
+      unset ac_cv_header_pk11pub_h
+      ac_fn_c_check_header_compile "$LINENO" "pk11pub.h" "ac_cv_header_pk11pub_h" "$ac_includes_default"
+if test "x$ac_cv_header_pk11pub_h" = xyes
+then :
+  nss_found=true
+fi
+
+
+      if $nss_found; then
+        break
+      elif test "$y" != :; then
+        CPPFLAGS=$cppflags_saved
+      fi
+    done
+  fi
+
+  if $nss_found; then
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for NSS_InitContext in -lnss3" >&5
 printf %s "checking for NSS_InitContext in -lnss3... " >&6; }
 if test ${ac_cv_lib_nss3_NSS_InitContext+y}
 then :
@@ -22683,58 +22939,103 @@ fi
 printf "%s\n" "$ac_cv_lib_nss3_NSS_InitContext" >&6; }
 if test "x$ac_cv_lib_nss3_NSS_InitContext" = xyes
 then :
-  with_tls=nss
-else $as_nop
-  { echo "Error:" "Required NSS support cannot be provided." >&2; exit 1; }
-fi
+
+          printf "%s\n" "#define HAVE_NSS 1" >>confdefs.h
+
+          with_tls=nss
+          LIBS="$LIBS -lnss3 -lsmime3 -lssl3 -lnssutil3 -lplds4 -lplc4 -lnspr4" &&  if test "$verbose" = "yes"; then echo "    Appending \"-lnss3 -lsmime3 -lssl3 -lnssutil3 -lplds4 -lplc4 -lnspr4\" to \$LIBS"; fi
+
 
 else $as_nop
-  { echo "Error:" "Required NSS support cannot be provided." >&2; exit 1; }
+
+          if test "$with_tls" = "nss"; then
+            { echo "Error:" "Required NSS support cannot be provided." >&2; exit 1; }
+          fi
+          CPPFLAGS=$cppflags_saved_tls_test
+
 fi
 
-elif test "$with_tls" = "openssl"; then
-  ac_fn_c_check_header_compile "$LINENO" "openssl/ssl.h" "ac_cv_header_openssl_ssl_h" "$ac_includes_default"
-if test "x$ac_cv_header_openssl_ssl_h" = xyes
+  else
+
+        if test "$with_tls" = "nss"; then
+          { echo "Error:" "Required NSS support cannot be provided." >&2; exit 1; }
+        fi
+        CPPFLAGS=$cppflags_saved_tls_test
+
+  fi
+
+  fi
+fi
+
+
+
+if test "$with_tls" = "openssl" -o "$with_tls" = "yes"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for OpenSSL with pkg-config" >&5
+printf %s "checking for OpenSSL with pkg-config... " >&6; }
+
+  if $PKG_CONFIG --exists openssl; then
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+    printf "%s\n" "#define HAVE_OPENSSL 1" >>confdefs.h
+
+    with_tls=openssl
+    CPPFLAGS="`pkg-config --cflags openssl` $CPPFLAGS" &&  if test "$verbose" = "yes"; then echo "    Prepending \"`pkg-config --cflags openssl`\" to \$CPPFLAGS"; fi
+    LIBS="$LIBS `pkg-config --libs openssl`" &&  if test "$verbose" = "yes"; then echo "    Appending \"`pkg-config --libs openssl`\" to \$LIBS"; fi
+
+    ac_fn_c_check_func "$LINENO" "X509_check_host" "ac_cv_func_X509_check_host"
+if test "x$ac_cv_func_X509_check_host" = xyes
 then :
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
-printf %s "checking for SSL_library_init in -lssl... " >&6; }
-if test ${ac_cv_lib_ssl_SSL_library_init+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lssl  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-char SSL_library_init ();
+                    #include <openssl/x509v3.h>
 int
 main (void)
 {
-return SSL_library_init ();
+return X509_check_host ((void *) 0,
+                                        (const char *) 0, 0, 0,
+                                        (void *) 0);
   ;
   return 0;
 }
 _ACEOF
-if ac_fn_c_try_link "$LINENO"
+if ac_fn_c_try_compile "$LINENO"
 then :
-  ac_cv_lib_ssl_SSL_library_init=yes
-else $as_nop
-  ac_cv_lib_ssl_SSL_library_init=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ssl_SSL_library_init" >&5
-printf "%s\n" "$ac_cv_lib_ssl_SSL_library_init" >&6; }
-if test "x$ac_cv_lib_ssl_SSL_library_init" = xyes
+                                                               { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking that X509_check_host is declared" >&5
+printf %s "checking that X509_check_host is declared... " >&6; }
+            cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <openssl/x509v3.h>
+int
+main (void)
+{
+return X509_check_host (-1);
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"
 then :
-  with_tls=openssl
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
 else $as_nop
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+                               printf "%s\n" "#define HAVE_X509_CHECK_HOST 1" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
+  else
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+    cppflags_saved_tls_test=$CPPFLAGS
+    ac_fn_c_check_header_compile "$LINENO" "openssl/ssl.h" "ac_cv_header_openssl_ssl_h" "$ac_includes_default"
+if test "x$ac_cv_header_openssl_ssl_h" = xyes
+then :
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for OPENSSL_init_ssl in -lssl" >&5
 printf %s "checking for OPENSSL_init_ssl in -lssl... " >&6; }
 if test ${ac_cv_lib_ssl_OPENSSL_init_ssl+y}
@@ -22772,230 +23073,33 @@ fi
 printf "%s\n" "$ac_cv_lib_ssl_OPENSSL_init_ssl" >&6; }
 if test "x$ac_cv_lib_ssl_OPENSSL_init_ssl" = xyes
 then :
-  with_tls=openssl
-else $as_nop
-  { echo "Error:" "Required openssl support cannot be provided." >&2; exit 1; }
-fi
 
-fi
+          printf "%s\n" "#define HAVE_OPENSSL 1" >>confdefs.h
 
-else $as_nop
-  { echo "Error:" "Required openssl support cannot be provided." >&2; exit 1; }
-fi
+          with_tls=openssl
+          LIBS="$LIBS -lssl -lcrypto" &&  if test "$verbose" = "yes"; then echo "    Appending \"-lssl -lcrypto\" to \$LIBS"; fi
 
-fi
-if test "$with_tls" = "yes"; then
-  ac_fn_c_check_header_compile "$LINENO" "gnutls/gnutls.h" "ac_cv_header_gnutls_gnutls_h" "$ac_includes_default"
-if test "x$ac_cv_header_gnutls_gnutls_h" = xyes
-then :
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for gnutls_global_init in -lgnutls" >&5
-printf %s "checking for gnutls_global_init in -lgnutls... " >&6; }
-if test ${ac_cv_lib_gnutls_gnutls_global_init+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lgnutls  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-char gnutls_global_init ();
-int
-main (void)
-{
-return gnutls_global_init ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"
-then :
-  ac_cv_lib_gnutls_gnutls_global_init=yes
-else $as_nop
-  ac_cv_lib_gnutls_gnutls_global_init=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_gnutls_gnutls_global_init" >&5
-printf "%s\n" "$ac_cv_lib_gnutls_gnutls_global_init" >&6; }
-if test "x$ac_cv_lib_gnutls_gnutls_global_init" = xyes
-then :
-  with_tls=gnutls
-fi
-
-fi
-
-fi
-if test "$with_tls" = "yes"; then
-  ac_fn_c_check_header_compile "$LINENO" "nss.h" "ac_cv_header_nss_h" "$ac_includes_default"
-if test "x$ac_cv_header_nss_h" = xyes
-then :
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for NSS_InitContext in -lnss3" >&5
-printf %s "checking for NSS_InitContext in -lnss3... " >&6; }
-if test ${ac_cv_lib_nss3_NSS_InitContext+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lnss3  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-char NSS_InitContext ();
-int
-main (void)
-{
-return NSS_InitContext ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"
-then :
-  ac_cv_lib_nss3_NSS_InitContext=yes
-else $as_nop
-  ac_cv_lib_nss3_NSS_InitContext=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_nss3_NSS_InitContext" >&5
-printf "%s\n" "$ac_cv_lib_nss3_NSS_InitContext" >&6; }
-if test "x$ac_cv_lib_nss3_NSS_InitContext" = xyes
-then :
-  with_tls=nss
-fi
-
-fi
-
-fi
-if test "$with_tls" = "yes"; then
-  ac_fn_c_check_header_compile "$LINENO" "openssl/ssl.h" "ac_cv_header_openssl_ssl_h" "$ac_includes_default"
-if test "x$ac_cv_header_openssl_ssl_h" = xyes
-then :
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for SSL_library_init in -lssl" >&5
-printf %s "checking for SSL_library_init in -lssl... " >&6; }
-if test ${ac_cv_lib_ssl_SSL_library_init+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lssl  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-char SSL_library_init ();
-int
-main (void)
-{
-return SSL_library_init ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"
-then :
-  ac_cv_lib_ssl_SSL_library_init=yes
-else $as_nop
-  ac_cv_lib_ssl_SSL_library_init=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ssl_SSL_library_init" >&5
-printf "%s\n" "$ac_cv_lib_ssl_SSL_library_init" >&6; }
-if test "x$ac_cv_lib_ssl_SSL_library_init" = xyes
-then :
-  with_tls=openssl
-else $as_nop
-  with_tls=no
-fi
-
-fi
-
-fi
-if test "$with_tls" != "no"; then
-  if test "$with_tls" = "gnutls"; then
-    printf "%s\n" "#define HAVE_GNUTLS 1" >>confdefs.h
-
-    gnutls_cflags=`pkg-config --cflags gnutls`
-    if test "$?" = 0; then
-      CPPFLAGS=""$gnutls_cflags" $CPPFLAGS" &&  if test "$verbose" = "yes"; then echo "    Prepending \""$gnutls_cflags"\" to \$CPPFLAGS"; fi
-    fi
-    gnutls_libs=`pkg-config --libs gnutls`
-    if test "$?" = 0; then
-      LIBS="$LIBS "$gnutls_libs"" &&  if test "$verbose" = "yes"; then echo "    Appending \""$gnutls_libs"\" to \$LIBS"; fi
-    fi
-    ac_fn_c_check_func "$LINENO" "gnutls_certificate_verification_status_print" "ac_cv_func_gnutls_certificate_verification_status_print"
-if test "x$ac_cv_func_gnutls_certificate_verification_status_print" = xyes
-then :
-  printf "%s\n" "#define HAVE_GNUTLS_CERTIFICATE_VERIFICATION_STATUS_PRINT 1" >>confdefs.h
-
-fi
-
-    ac_fn_c_check_func "$LINENO" "gnutls_certificate_verify_peers3" "ac_cv_func_gnutls_certificate_verify_peers3"
-if test "x$ac_cv_func_gnutls_certificate_verify_peers3" = xyes
-then :
-  printf "%s\n" "#define HAVE_GNUTLS_CERTIFICATE_VERIFY_PEERS3 1" >>confdefs.h
-
-fi
-
-  elif test "$with_tls" = "nss"; then
-    printf "%s\n" "#define HAVE_NSS 1" >>confdefs.h
-
-    nss_cflags=`pkg-config --cflags nss`
-    if test "$?" = 0; then
-      CPPFLAGS=""$nss_cflags" $CPPFLAGS" &&  if test "$verbose" = "yes"; then echo "    Prepending \""$nss_cflags"\" to \$CPPFLAGS"; fi
-    fi
-    nss_libs=`pkg-config --libs nss`
-    if test "$?" = 0; then
-      LIBS="$LIBS "$nss_libs"" &&  if test "$verbose" = "yes"; then echo "    Appending \""$nss_libs"\" to \$LIBS"; fi
-    fi
-  elif test "$with_tls" = "openssl"; then
-    printf "%s\n" "#define HAVE_OPENSSL 1" >>confdefs.h
-
-    openssl_cflags=`pkg-config --cflags openssl`
-    if test "$?" = 0; then
-      CPPFLAGS=""$openssl_cflags" $CPPFLAGS" &&  if test "$verbose" = "yes"; then echo "    Prepending \""$openssl_cflags"\" to \$CPPFLAGS"; fi
-    fi
-    openssl_libs=`pkg-config --libs openssl`
-    if test "$?" = 0; then
-      LIBS="$LIBS "$openssl_libs"" &&  if test "$verbose" = "yes"; then echo "    Appending \""$openssl_libs"\" to \$LIBS"; fi
-    fi
-        ac_fn_c_check_func "$LINENO" "X509_check_host" "ac_cv_func_X509_check_host"
+    ac_fn_c_check_func "$LINENO" "X509_check_host" "ac_cv_func_X509_check_host"
 if test "x$ac_cv_func_X509_check_host" = xyes
 then :
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
-                        #include <openssl/x509v3.h>
+                    #include <openssl/x509v3.h>
 int
 main (void)
 {
 return X509_check_host ((void *) 0,
-                                          (const char *) 0, 0, 0,
-                                          (void *) 0);
+                                        (const char *) 0, 0, 0,
+                                        (void *) 0);
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_c_try_compile "$LINENO"
 then :
-                                                                           { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking that X509_check_host is declared" >&5
+                                                               { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking that X509_check_host is declared" >&5
 printf %s "checking that X509_check_host is declared... " >&6; }
-              cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+            cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 #include <openssl/x509v3.h>
 int
@@ -23013,7 +23117,7 @@ printf "%s\n" "no" >&6; }
 else $as_nop
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 printf "%s\n" "yes" >&6; }
-                                 printf "%s\n" "#define HAVE_X509_CHECK_HOST 1" >>confdefs.h
+                               printf "%s\n" "#define HAVE_X509_CHECK_HOST 1" >>confdefs.h
 
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
@@ -23021,10 +23125,34 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
 fi
 
-  else
-    with_tls=no
+
+
+else $as_nop
+
+          if test "$with_tls" = "openssl"; then
+            { echo "Error:" "Required OpenSSL support cannot be provided." >&2; exit 1; }
+          fi
+          CPPFLAGS=$cppflags_saved_tls_test
+
+fi
+
+else $as_nop
+
+        if test "$with_tls" = "openssl"; then
+          { echo "Error:" "Required OpenSSL support cannot be provided." >&2; exit 1; }
+        fi
+        CPPFLAGS=$cppflags_saved_tls_test
+
+fi
+
   fi
 fi
+
+
+if test "$with_tls" = "yes"; then
+  { echo "Error:" "Required TLS support cannot be provided." >&2; exit 1; }
+fi
+
 if test "$with_tls" != "no"; then
   printf "%s\n" "#define WITH_TLS 1" >>confdefs.h
 
