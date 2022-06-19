@@ -276,11 +276,15 @@ The new precision of F is returned.  Note that the return value may differ
 from PRECISION if the underlying library is unable to support exactly
 PRECISION bits of precision.
 */
-       (f, precision))
+       (f, USED_IF_BIGFLOAT (precision)))
 {
+#ifdef HAVE_BIGFLOAT
   unsigned long prec;
+#endif
 
   CHECK_BIGFLOAT (f);
+
+#ifdef HAVE_BIGFLOAT
   if (FIXNUMP (precision))
     {
       prec = (XFIXNUM (precision) <= 0) ? 1UL : (unsigned long) XFIXNUM (precision);
@@ -298,10 +302,11 @@ PRECISION bits of precision.
       dead_wrong_type_argument (Qintegerp, f);
       return Qnil;
     }
-#ifdef HAVE_BIGFLOAT
+
   XBIGFLOAT_SET_PREC (f, prec);
-#endif
+
   return Fbigfloat_get_precision (f);
+#endif /* HAVE_BIGFLOAT */
 }
 
 static int
@@ -309,7 +314,9 @@ default_float_precision_changed (Lisp_Object UNUSED (sym), Lisp_Object *val,
 				 Lisp_Object UNUSED (in_object),
 				 int UNUSED (flags))
 {
+#ifdef HAVE_BIGFLOAT
   unsigned long prec;
+#endif
 
   CONCHECK_INTEGER (*val);
 #ifdef HAVE_BIGFLOAT

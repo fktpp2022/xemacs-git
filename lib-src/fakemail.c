@@ -145,9 +145,10 @@ static boolean no_problems = true;
 #endif 
 
 #ifdef CURRENT_USER
-extern struct passwd *getpwuid ();
 #if defined(__FreeBSD_version) && __FreeBSD_version >= 400000 
-extern uid_t geteuid (); 
+#include <sys/types.h>
+#include <pwd.h>
+#include <stdlib.h>
 #else 
 extern unsigned short geteuid (); 
 #endif 

@@ -60,16 +60,6 @@ static BIO *bio_writer_static;
 #  define BIN2BN(b,from,len) BN_lebin2bn ((unsigned char *) (from), len, b)
 #endif
 
-#ifndef min
-#  define min(a,b) ((a) < (b) ? (a) : (b))
-#  define MIN_WAS_DEFINED
-#endif
-
-#ifndef max
-#  define max(a,b) ((a) < (b) ? (a) : (b))
-#  define MAX_WAS_DEFINED
-#endif
-
 int
 bignum_sign(bignum b)
 {
@@ -1034,14 +1024,6 @@ bignum_memory_full(void)
 }
 
 #undef BIGNUM_INIT_MINIMUM
-#ifdef MAX_WAS_DEFINED
-#  undef max
-#  undef MAX_WAS_DEFINED
-#endif
-#ifdef MIN_WAS_DEFINED
-#  undef min
-#  undef MIN_WAS_DEFINED
-#endif
 #undef BIN2BN
 #undef BN2BIN
 #undef HANDLE_OP_ERROR

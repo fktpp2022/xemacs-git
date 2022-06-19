@@ -2455,7 +2455,7 @@ arguments: (FIRST &rest ARGS)
     }
   return args[maxindex];
 #else /* !WITH_NUMBER_TYPES */
-  REGISTER int i, maxindex = 0;
+  REGISTER int i;
   Lisp_Object max_so_far;
 
   while (!(CHARP (args[0]) || MARKERP (args[0]) || REALP (args[0])))

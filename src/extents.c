@@ -924,13 +924,6 @@ detach_all_extents (Lisp_Object object)
     }
 }
 
-
-void
-init_buffer_extents (struct buffer *b)
-{
-  b->extent_info = allocate_extent_info ();
-}
-
 void
 uninit_object_extents (Lisp_Object obj)
 {

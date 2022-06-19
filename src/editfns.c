@@ -2240,15 +2240,11 @@ Transposing beyond buffer boundaries is an error.
        (start1, end1, start2, end2, UNUSED (leave_markers)))
 {
   Charbpos startr1, endr1, startr2, endr2;
-  Charcount len1, len2;
   Lisp_Object string1, string2;
   struct buffer *buf = current_buffer;
 
   get_buffer_range_char (buf, start1, end1, &startr1, &endr1, 0);
   get_buffer_range_char (buf, start2, end2, &startr2, &endr2, 0);
-
-  len1 = endr1 - startr1;
-  len2 = endr2 - startr2;
 
   if (startr2 < endr1)
     invalid_argument ("transposed regions not properly ordered", Qunbound);

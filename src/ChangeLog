@@ -52,6 +52,24 @@
 	longjmp(3)ing over the password in the stack and negating the whole
 	point of wiping it from the working set.
 
+	* mule-coding.c (iso2022_encode):
+	Fix obviously incorrect if (c2 >= 32 || c2 <= 36) to >= 32 && <= 36.
+
+	* number-openssl.c:
+	Remove macro definitions of min() and max(), since they are already
+	defined in the headers.
+
+	* lisp.h:
+	* data.c:
+	* database.c:
+	* editfns.c:
+	* emacs.c:
+	* extents.c:
+	* insdel.c:
+	* text.c:
+
+	Fix compiler warnings.
+
 2022-06-16  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* config.h.in:

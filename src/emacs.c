@@ -464,6 +464,10 @@ Epoch 4.0 released August 27, 1990.
 /* For PATH_EXEC */
 #include <paths.h>
 
+#ifdef HAVE_SOCKS
+#include <socks.h>
+#endif
+
 /* Command line args from shell, as list of strings */
 Lisp_Object Vcommand_line_args;
 

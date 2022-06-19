@@ -231,7 +231,7 @@ termcap.o: $(CONFIG_H) $(LISP_H) conslots.h console-impl.h console.h device-impl
 terminfo.o: $(CONFIG_H)
 tests.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h coding-system-slots.h elhash.h file-coding.h lstream.h opaque.h tls.h unicode.h
 text.o: $(CONFIG_H) $(LISP_H) backtrace.h buffer.h bufslots.h casetab.h charset.h chartab.h coding-system-slots.h file-coding.h lstream.h profile.h tls.h unicode.h
-tls.o: $(CONFIG_H) $(LISP_H) intl-auto-encap-win32.h lstream.h sysfile.h syswindows.h tls.h
+tls.o: $(CONFIG_H) $(LISP_H) intl-auto-encap-win32.h lstream.h process.h sysfile.h syswindows.h tls.h
 toolbar.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h conslots.h console-impl.h console.h device-impl.h device.h devslots.h frame-impl.h frame.h frameslots.h glyphs.h redisplay.h scrollbar.h specifier.h toolbar.h unicode.h window-impl.h window.h winslots.h
 tooltalk.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h elhash.h process.h tooltalk.h unicode.h
 tparam.o: $(CONFIG_H) $(LISP_H)

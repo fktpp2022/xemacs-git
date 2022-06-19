@@ -3068,7 +3068,7 @@ iso2022_encode (struct coding_stream *str, const Ibyte *src,
 		}
 #else /* not ENABLE_COMPOSITE_CHARS */
 	      c2 &= 127;
-	      if (c2 >= 32 || c2 <= 36) /* Someone might have stuck in
+	      if (c2 >= 32 && c2 <= 36) /* Someone might have stuck in
 					   something else */
 		{
 		  Dynarr_add (dst, ISO_CODE_ESC);

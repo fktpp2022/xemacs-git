@@ -2510,16 +2510,6 @@ copy_buffer_text_out (struct buffer *buf, Bytebpos pos,
 }
 
 
-#ifndef MULE
-
-static int leading_byte_prefix_p (Ibyte USED_IF_MULE (lb))
-{
-  assert (!"this shouldn't be called at runtime on non-Mule");
-  return 0;
-}
-
-#endif
-
 /************************************************************************/
 /*                    charset properties of strings                     */
 /************************************************************************/

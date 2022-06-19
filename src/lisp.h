@@ -1168,7 +1168,8 @@ typedef int Boolint;
 /* ------------------------ alignment definitions ------------------- */
 
 #if (!defined (__STDC_VERSION__) || __STDC_VERSION__ < 201112L) && \
-    (!defined (__cplusplus) || __cplusplus < 201103L)
+    (!defined (__cplusplus) || __cplusplus < 201103L) &&           \
+    (!defined (__CLANG_MAX_ALIGN_T_DEFINED) && !defined (_GCC_MAX_ALIGN_T))
 /* No type has a greater alignment requirement than max_align_t.
    (except perhaps for types we don't use, like long double) */
 typedef union
@@ -3550,15 +3551,15 @@ extern MODULE_API int specpdl_depth_counter;
    another function without changing FUNCTION; that would lead to an
    incorrect determination of KEYWORDS_OFFSET. */
 
-#define PARSE_KEYWORDS(function, nargs, args, keyword_count, keywords,	\
-		       keyword_defaults)				\
-  PARSE_KEYWORDS_8 (intern_massaging_name (1 + #function), nargs, args, \
-                    keyword_count, keywords, keyword_defaults,          \
-                    /* Can't XSUBR (Fsymbol_function (...))->min_args,  \
-                       the function may be advised. */                  \
-                    XFIXNUM (Ffunction_min_args                            \
-                          (intern_massaging_name (1 + #function))),     \
-                    0);                                                 \
+#define PARSE_KEYWORDS(function, nargs, args, keyword_count, keywords,    \
+                       keyword_defaults)                                  \
+  PARSE_KEYWORDS_8 (intern_massaging_name (&(#function)[1]), nargs, args, \
+                    keyword_count, keywords, keyword_defaults,            \
+                    /* Can't XSUBR (Fsymbol_function (...))->min_args,    \
+                       the function may be advised. */                    \
+                    XFIXNUM (Ffunction_min_args                           \
+                          (intern_massaging_name (&(#function)[1]))),     \
+                    0);                                                   \
   assert (0 == strcmp (__func__, #function))
 #else /* defined (DEBUG_XEMACS) && ... */
 #define PARSE_KEYWORDS(function, nargs, args, keyword_count, keywords,	\

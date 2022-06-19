@@ -1578,7 +1578,9 @@ buffer_replace_char (struct buffer *buf, Charbpos pos, Ichar ch,
   /* This function can GC */
   Ibyte newstr[MAX_ICHAR_LEN];
   Bytecount newlen;
+#ifdef MULE
   Ichar oldch;
+#endif
 
   /* Defensive steps just in case a buffer gets deleted and a calling
      function doesn't notice it. */
@@ -1587,9 +1589,14 @@ buffer_replace_char (struct buffer *buf, Charbpos pos, Ichar ch,
 
   newlen = set_itext_ichar_fmt (newstr, ch, BUF_FORMAT (buf),
 				   wrap_buffer (buf));
+#ifdef MULE
+  /* If MULE is undefined, ichar_fits_in_format() and ichar_len_fmt() are
+     defined as constant 1. */
+
   oldch = BUF_FETCH_CHAR (buf, pos);
   if (ichar_fits_in_format (ch, BUF_FORMAT (buf), wrap_buffer (buf)) &&
       newlen == ichar_len_fmt (oldch, BUF_FORMAT (buf)))
+#endif
     {
       struct buffer *mbuf;
       Lisp_Object bufcons;
@@ -1651,6 +1658,7 @@ buffer_replace_char (struct buffer *buf, Charbpos pos, Ichar ch,
       /* We do not have to adjust the Mule data; we just replaced a
 	 character with another of the same number of bytes. */
     }
+#ifdef MULE
   else
     {
       /*
@@ -1686,6 +1694,7 @@ buffer_replace_char (struct buffer *buf, Charbpos pos, Ichar ch,
       buffer_insert_string_1 (buf, (movepoint ? -1 : pos),
 			      newstr, Qnil, 0, newlen, -1, 0);
     }
+#endif
 }
 
 
