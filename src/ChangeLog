@@ -1,3 +1,57 @@
+2022-06-19  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* sysproc.h:
+	Add netinet/tcp.h to HAVE_SOCKETS includes to generalize this header
+	to be a common BSD socket API include.
+
+	* tls.c:
+	Wrap all calls to the OpenSSL SSL/TLS API to macros that reset the
+	internal OpenSSL error queue before any calls. See the comments in the
+	file for further details.
+
+	Replace #includes of netinet/in.h and netinet/tcp.h with sysproc.h to
+	fix build errors for missing setsockopt(2) prototypes, since it
+	includes those and sys/socket.h.
+
+	* tls.c (tls_open for NSS):
+	Replace xmalloc()ed 256 byte struct sockaddr parameter to getsockname()
+	with an union of struct sockaddr, struct sockaddr_in and
+	struct sockaddr_in6. The previous code said
+
+	if (getsockname (s, struct sockaddr *, &addrlen) == 0 && addrlen > 256)
+	  allocate_more_space_for struct sockaddr()
+
+	That's not how getsockname(2) works portably. Granted, the BSD socket
+	API is made out of stupid, but according to my tests, the addrlen
+	parameter is only modified to reflect the required size under Linux.
+	In (at least) BSD, the structure will simply be untouched if addrlen
+	isn't large enough to hold the requested address.
+
+	Moreover, the previous test disregarded actual error codes. That has
+	now been fixed, as has been removed allocating heap memory in where it
+	was unnecessary.
+
+	Move the setsockopt(2) call to after the check for initialization. Fix
+	c++ compiler warnings by casting string constants to char * in
+	external NSS API calls.
+
+	* tls.c (nss_pk11_password):
+	* tls.c (gnutls_pk11_password):
+	* tls.c (openssl_password):
+	In openssl_password(), remove a call to strncpy(3) that left the target
+	buffer unterminated with a \0 if the prompted password overflows the
+	size parameter.
+
+	In nss_pk11_password() and openssl_password(), replace
+	LISP_STRING_TO_EXTERNAL() and strlen(3)ing to get the length with calls
+	to LISP_STRING_TO_SIZED_EXTERNAL().
+
+	In all functions, wipe out the copied password in the stack (or
+	emulated stack alloca) before calling Fclear_string(), since
+	Fclear_string() xrealloc()s and thus might trigger error handling,
+	longjmp(3)ing over the password in the stack and negating the whole
+	point of wiping it from the working set.
+
 2022-06-16  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* config.h.in:

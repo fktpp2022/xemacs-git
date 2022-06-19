@@ -23,10 +23,9 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <config.h>
 #include "lisp.h"
 #include "lstream.h"
+#include "sysproc.h"
 #include "tls.h"
 #include <errno.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
 
 #ifdef WITH_TLS
 static Lisp_Object prompt;
@@ -99,14 +98,15 @@ tls_close (tls_state_t *state)
 tls_state_t *
 tls_open (int s, const Extbyte *hostname)
 {
-  struct sockaddr *addr;
-  socklen_t addrlen;
+  union {
+    struct sockaddr addr;
+    struct sockaddr_in addr4;
+    struct sockaddr_in6 addr6;
+  } addr;
+  socklen_t addrlen = sizeof (addr);
   PRNetAddr pr_addr;
   tls_state_t *nspr;
   const int val = 1;
-
-  /* Disable Nagle's algorithm */
-  setsockopt (s, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val));
 
   if (!nss_inited)
     {
@@ -114,23 +114,24 @@ tls_open (int s, const Extbyte *hostname)
       return NULL;
     }
 
+  /* Disable Nagle's algorithm */
+  setsockopt (s, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val));
+
   /* Get the socket address */
-  addrlen = 256;
-  addr = (struct sockaddr *) xmalloc (addrlen);
-  if (getsockname (s, addr, &addrlen) == 0 && addrlen > 256)
+  if (getsockname (s, (struct sockaddr *) &addr, &addrlen) < 0)
     {
-      addr = (struct sockaddr *) xrealloc (addr, addrlen);
-      getsockname (s, addr, &addrlen);
+      warn_when_safe (Qtls_error, Qerror, "Error in getsockname: %s",
+                      strerror (errno));
+      return NULL;
     }
 
   /* Create the socket */
   nspr = (tls_state_t *) xmalloc (sizeof (*nspr));
   nspr->tls_refcount = 2;
   nspr->tls_file_desc =
-    SSL_ImportFD (nss_model, PR_OpenTCPSocket (addr->sa_family));
+    SSL_ImportFD (nss_model, PR_OpenTCPSocket (addr.addr.sa_family));
   if (nspr->tls_file_desc == NULL)
     {
-      xfree (addr);
       xfree (nspr);
       warn_when_safe (Qtls_error, Qerror, "NSS unable to open socket: %s",
 		      PR_ErrorToName (PR_GetError ()));
@@ -139,24 +140,22 @@ tls_open (int s, const Extbyte *hostname)
 
   /* Connect to the server */
   memset (&pr_addr, 0, sizeof (pr_addr));
-  if (addr->sa_family == AF_INET)
+  if (addr.addr.sa_family == AF_INET)
     {
-      struct sockaddr_in *in_addr = (struct sockaddr_in *) addr;
-      pr_addr.inet.family = in_addr->sin_family;
-      pr_addr.inet.port = in_addr->sin_port;
-      pr_addr.inet.ip = in_addr->sin_addr.s_addr;
+      pr_addr.inet.family = AF_INET;
+      pr_addr.inet.port = addr.addr4.sin_port;
+      pr_addr.inet.ip = addr.addr4.sin_addr.s_addr;
     }
   else
     {
-      struct sockaddr_in6 *in_addr = (struct sockaddr_in6 *) addr;
-      pr_addr.ipv6.family = in_addr->sin6_family;
-      pr_addr.ipv6.port = in_addr->sin6_port;
-      pr_addr.ipv6.flowinfo = in_addr->sin6_flowinfo;
-      memcpy (pr_addr.ipv6.ip.pr_s6_addr, in_addr->sin6_addr.s6_addr,
+      pr_addr.ipv6.family = AF_INET6;
+      pr_addr.ipv6.port = addr.addr6.sin6_port;
+      pr_addr.ipv6.flowinfo = addr.addr6.sin6_flowinfo;
+      memcpy (pr_addr.ipv6.ip.pr_s6_addr, addr.addr6.sin6_addr.s6_addr,
 	      sizeof (pr_addr.ipv6.ip.pr_s6_addr));
-      pr_addr.ipv6.scope_id = in_addr->sin6_scope_id;
+      pr_addr.ipv6.scope_id = addr.addr6.sin6_scope_id;
     }
-  xfree (addr);
+
   if (PR_Connect (nspr->tls_file_desc, &pr_addr, PR_INTERVAL_NO_TIMEOUT)
 		 != PR_SUCCESS)
     {
@@ -244,7 +243,7 @@ tls_set_x509_key_file (const Extbyte *certfile, const Extbyte *keyfile)
   /* Load the PEM module if it hasn't already been loaded */
   if (nss_pem_module == NULL)
     {
-      nss_pem_module = SECMOD_LoadUserModule ("library=%s name=PEM parameters=\"\"", NULL, PR_FALSE);
+      nss_pem_module = SECMOD_LoadUserModule ((char *) "library=%s name=PEM parameters=\"\"", NULL, PR_FALSE);
       if (nss_pem_module == NULL)
 	signal_error (Qtls_error, "Cannot find NSS PEM module", NSS_ERRSTR);
       if (!nss_pem_module->loaded)
@@ -308,6 +307,7 @@ nss_pk11_password (PK11SlotInfo *slot, PRBool retry, void * UNUSED (arg))
   Lisp_Object lsp_password;
   Extbyte *c_password, *nss_password;
   const Extbyte *token_name;
+  Bytecount c_password_length;
 
   if (retry)
     return NULL;
@@ -318,12 +318,13 @@ nss_pk11_password (PK11SlotInfo *slot, PRBool retry, void * UNUSED (arg))
   lsp_password =
     call1 (Qread_passwd, concat2 (prompt,
 				    build_extstring (token_name, Qnative)));
-  c_password = LISP_STRING_TO_EXTERNAL (lsp_password, Qnative);
+  LISP_STRING_TO_SIZED_EXTERNAL (lsp_password, c_password, c_password_length,
+                                 Qnative);
   nss_password = PL_strdup (c_password);
 
   /* Wipe out the password on the stack and in the Lisp string */
+  memset (c_password, '*', c_password_length);
   Fclear_string (lsp_password);
-  memset (c_password, '*', strlen (c_password));
 
   return nss_password;
 }
@@ -351,8 +352,8 @@ init_tls (void)
     signal_error (Qtls_error, "NSS unable to set policy", NSS_ERRSTR);
 
   /* Load the root certificates */
-  module = SECMOD_LoadUserModule ("library=libnssckbi.so name=\"Root Certs\"",
-				  NULL, PR_FALSE);
+  module = SECMOD_LoadUserModule ((char *) "library=libnssckbi.so "
+                                  "name=\"Root Certs\"", NULL, PR_FALSE);
   if (module == NULL || !module->loaded)
     signal_error (Qtls_error, "NSS unable to load root certificates",
 		  NSS_ERRSTR);
@@ -385,7 +386,7 @@ init_tls (void)
     signal_error (Qtls_error, "NSS unable to disable deflate", NSS_ERRSTR);
   if (SSL_OptionSet (nss_model, SSL_HANDSHAKE_AS_CLIENT, PR_TRUE)
       != SECSuccess)
-    signal_error (Qtls_error, "NSS unable to ensable handshake as client",
+    signal_error (Qtls_error, "NSS unable to enable handshake as client",
 		  NSS_ERRSTR);
 
   nss_inited = 1;
@@ -733,8 +734,8 @@ gnutls_pk11_password (void * UNUSED (userdata), int UNUSED (attempt),
   pin[len] = '\0';
 
   /* Wipe out the password on the stack and in the Lisp string */
-  Fclear_string (lsp_password);
   memset (c_password, '*', strlen (c_password));
+  Fclear_string (lsp_password);
 
   return GNUTLS_E_SUCCESS;
 }
@@ -788,6 +789,45 @@ init_tls (void)
 #ifdef HAVE_X509_CHECK_HOST
 #include <openssl/x509v3.h>
 #endif
+
+/* If ERR_clear_error() isn't called before every operation that can fail OR
+   ERR_get_error() isn't called after every failed operation, there will be
+   stale leftover entries in the per-thread error queue - in our case, the one
+   and only error queue - and the error handling will start giving wrong
+   reasons for failures. This also affects the OpenSSL bignum support in
+   number-openssl.c.
+
+   The error handling API does, like the great Ben Wing likes to say, FMH. An
+   easy solution is to add these wrapper macros. When extending this API,
+   please adhere to the convention that ERR_clear_error() is called before a
+   call that uses the error handling mechanism.
+
+   See
+
+   https://stackoverflow.com/questions/18179128/how-to-manage-the-error-queue-in-openssl-ssl-get-error-and-err-get-error
+   https://www.freebsd.org/cgi/man.cgi?query=SSL_get_error&apropos=0&sektion=3&manpath=FreeBSD+13.1-RELEASE&arch=default&format=html
+   https://www.freebsd.org/cgi/man.cgi?query=ERR_get_error&apropos=0&sektion=3&manpath=FreeBSD+13.1-RELEASE&arch=default&format=html
+
+   for further details.
+
+   03.06.2022 -Jaakko Salomaa */
+#define SSL_connect(p)  (ERR_clear_error (), SSL_connect p)
+#define SSL_CTX_new(p)  (ERR_clear_error (), SSL_CTX_new p)
+#define SSL_CTX_set_cipher_list(p)                                            \
+  (ERR_clear_error (), SSL_CTX_set_cipher_list p)
+#define SSL_CTX_set_default_verify_paths(p)                                   \
+  (ERR_clear_error (), SSL_CTX_set_default_verify_paths p)
+#define SSL_CTX_use_certificate_file(p)                                       \
+  (ERR_clear_error (), SSL_CTX_use_certificate_file p)
+#define SSL_CTX_use_PrivateKey_file(p)                                        \
+  (ERR_clear_error (), SSL_CTX_use_PrivateKey_file p)
+#define SSL_new(p)      (ERR_clear_error (), SSL_new p)
+#define SSL_read(p)     (ERR_clear_error (), SSL_read p)
+#define SSL_set_fd(p)   (ERR_clear_error (), SSL_set_fd p)
+#define SSL_set_tlsext_host_name_xe(p)                                        \
+  (ERR_clear_error (), SSL_set_tlsext_host_name p)
+#define SSL_shutdown(p) (ERR_clear_error (), SSL_shutdown p)
+#define SSL_write(p)    (ERR_clear_error (), SSL_write p)
 
 /* The context used to create connections */
 static SSL_CTX *ssl_ctx;
@@ -890,14 +930,14 @@ tls_read (tls_state_t *state, unsigned char *data, Bytecount size,
   if (SSL_get_shutdown (state->tls_connection))
     return 0;
 
-  bytes = SSL_read (state->tls_connection, data, size);
+  bytes = SSL_read ((state->tls_connection, data, size));
   action = (bytes > 0) ? 0
     : openssl_report_error_num ("SSL_read", state->tls_connection, bytes, 0);
   while (bytes <= 0 && action > 0)
     {
       if (allow_quit)
 	QUIT;
-      bytes = SSL_read (state->tls_connection, data, size);
+      bytes = SSL_read ((state->tls_connection, data, size));
       action = (bytes > 0) ? 0
 	: openssl_report_error_num ("SSL_read", state->tls_connection,
 				    bytes, 0);
@@ -914,14 +954,14 @@ tls_write (tls_state_t *state, const unsigned char *data, Bytecount size,
   if (SSL_get_shutdown (state->tls_connection))
     return 0;
 
-  bytes = SSL_write (state->tls_connection, data, size);
+  bytes = SSL_write ((state->tls_connection, data, size));
   action = (bytes > 0) ? 0
     : openssl_report_error_num ("SSL_write", state->tls_connection, bytes, 0);
   while (bytes <= 0 && action > 0)
     {
       if (allow_quit)
 	QUIT;
-      bytes = SSL_write (state->tls_connection, data, size);
+      bytes = SSL_write ((state->tls_connection, data, size));
       action = (bytes > 0) ? 0
 	: openssl_report_error_num ("SSL_write", state->tls_connection,
 				    bytes, 0);
@@ -939,7 +979,7 @@ tls_close (tls_state_t *state)
       fd = SSL_get_fd (state->tls_connection);
       if (SSL_get_shutdown (state->tls_connection) == 0)
 	{
-	  err = SSL_shutdown (state->tls_connection);
+          err = SSL_shutdown ((state->tls_connection));
 	  if (err < 0 && errno == EBADF)
 	    err = 0;
 	  if (err < 0)
@@ -975,13 +1015,13 @@ tls_open (int s, const Extbyte *hostname)
   openssl->tls_refcount = 2;
 
   /* Create the connection object */
-  openssl->tls_connection = SSL_new (ssl_ctx);
+  openssl->tls_connection = SSL_new ((ssl_ctx));
   if (openssl->tls_connection == NULL)
     {
       openssl_report_error_stack ("SSL_new failed", NULL);
       goto error;
     }
-  if (SSL_set_fd (openssl->tls_connection, s) == 0)
+  if (SSL_set_fd ((openssl->tls_connection, s)) == 0)
     {
       openssl_report_error_stack ("SSL_set_fd", openssl->tls_connection);
       goto error;
@@ -989,7 +1029,7 @@ tls_open (int s, const Extbyte *hostname)
 
   /* Enable the ServerNameIndication extension */
   if (hostname != NULL &&
-      !SSL_set_tlsext_host_name (openssl->tls_connection, hostname))
+      !SSL_set_tlsext_host_name_xe ((openssl->tls_connection, hostname)))
     {
       openssl_report_error_stack ("SSL_set_tlsext_host_name failed",
 				  openssl->tls_connection);
@@ -997,14 +1037,14 @@ tls_open (int s, const Extbyte *hostname)
     }
 
   /* Perform the handshake */
-  err = SSL_connect (openssl->tls_connection);
+  err = SSL_connect ((openssl->tls_connection));
   while (err != 1)
     {
       int action = openssl_report_error_num ("SSL_connect failed",
 					     openssl->tls_connection, err, 1);
       if (action < 0)
 	goto error;
-      err = SSL_connect (openssl->tls_connection);
+      err = SSL_connect ((openssl->tls_connection));
     }
 
   /* Get the server certificate */
@@ -1059,11 +1099,11 @@ tls_set_x509_key_file (const Extbyte *certfile, const Extbyte *keyfile)
 {
   int err;
 
-  err = SSL_CTX_use_PrivateKey_file (ssl_ctx, keyfile, SSL_FILETYPE_PEM);
+  err = SSL_CTX_use_PrivateKey_file ((ssl_ctx, keyfile, SSL_FILETYPE_PEM));
   if (err <= 0)
     signal_error (Qtls_error, "SSL_CTX_use_PrivateKey_file",
 		  openssl_error_string ());
-  err = SSL_CTX_use_certificate_file (ssl_ctx, certfile, SSL_FILETYPE_PEM);
+  err = SSL_CTX_use_certificate_file ((ssl_ctx, certfile, SSL_FILETYPE_PEM));
   if (err <= 0)
     signal_error (Qtls_error, "SSL_CTX_use_certificate_file",
 		  openssl_error_string ());
@@ -1076,17 +1116,21 @@ openssl_password (char *buf, int size, int UNUSED (rwflag),
 {
   Lisp_Object lsp_password;
   Extbyte *c_password;
+  Bytecount c_password_length, copy_length;
 
   lsp_password =
     call1 (Qread_passwd, concat2 (prompt, build_ascstring ("PEM: ")));
-  c_password = LISP_STRING_TO_EXTERNAL (lsp_password, Qnative);
-  strncpy (buf, c_password, size);
+  LISP_STRING_TO_SIZED_EXTERNAL (lsp_password, c_password, c_password_length,
+                                 Qnative);
+  copy_length = min (c_password_length, (Bytecount) size - 1);
+  memcpy (buf, c_password, copy_length);
+  buf[copy_length] = '\0';
 
   /* Wipe out the password on the stack and in the Lisp string */
+  memset (c_password, '*', c_password_length);
   Fclear_string (lsp_password);
-  memset (c_password, '*', strlen (c_password));
 
-  return (int) strlen (buf);
+  return (int) copy_length;
 }
 
 #if OPENSSL_VERSION_NUMBER >= 0x1010000fL
@@ -1140,7 +1184,7 @@ init_tls (void)
 
   /* Configure a client connection context, and send a handshake for the
    * highest supported TLS version. */
-  ssl_ctx = SSL_CTX_new (SSLv23_client_method ());
+  ssl_ctx = SSL_CTX_new ((SSLv23_client_method ()));
   if (ssl_ctx == NULL)
     signal_error (Qtls_error, "SSL_CTX_new failed", openssl_error_string ());
 
@@ -1152,12 +1196,12 @@ init_tls (void)
 		    SSL_MODE_AUTO_RETRY | SSL_MODE_RELEASE_BUFFERS);
 
   /* Let the system select the ciphers */
-  if (SSL_CTX_set_cipher_list (ssl_ctx, "DEFAULT") != 1)
+  if (SSL_CTX_set_cipher_list ((ssl_ctx, "DEFAULT")) != 1)
     signal_error (Qtls_error, "SSL_CTX_set_cipher_list failed",
 		  openssl_error_string ());
 
   /* Load the set of trusted root certificates. */
-  if (!SSL_CTX_set_default_verify_paths (ssl_ctx))
+  if (!SSL_CTX_set_default_verify_paths ((ssl_ctx)))
     signal_error (Qtls_error, "SSL_CTX_set_default_verify_paths failed",
 		  openssl_error_string ());
 

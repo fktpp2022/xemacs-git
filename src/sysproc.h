@@ -44,6 +44,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #  include <sys/socket.h>
 #  include <netdb.h>
 #  include <netinet/in.h>
+#  include <netinet/tcp.h>
 #  include <arpa/inet.h>
 # endif
 #endif /* HAVE_SOCKETS */
