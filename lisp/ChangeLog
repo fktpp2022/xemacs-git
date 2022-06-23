@@ -1,3 +1,9 @@
+2022-06-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* x-faces.el (:compile-toplevel):
+	Only (require 'fontconfig) at compile time, meaning that file is
+	not dumped on non-Xft builds.
+
 2022-06-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* code-process.el:
@@ -9,7 +15,7 @@
 	(#'make-network-process is not available on XEmacs, use
 	#'open-network-stream-internal instead.)
 	* x-faces.el (fontconfig):
-	Silence byte compile wfarnings, just (require 'fontconfig)
+	Silence byte compile warnings, just (require 'fontconfig)
 	unconditionally, which works even if fontconfig support is not
 	compiled in.
 
@@ -17,7 +23,7 @@
 
 	* update-elc-2.el (batch-update-elc-2):
 	Remove the code to update auto-autoloads from this file.
-	(It was buggy (e.g. it update mule/auto-autoloads.el and then
+	(It was buggy (e.g. it updated mule/auto-autoloads.el and then
 	immediately compiled auto-autoloads.el) and caused dependency
 	problems.)
 	Load the module auto-autoloads when byte-compiling,
