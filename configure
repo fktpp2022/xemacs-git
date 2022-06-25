@@ -23153,7 +23153,7 @@ if test "$with_tls" = "yes"; then
   { echo "Error:" "Required TLS support cannot be provided." >&2; exit 1; }
 fi
 
-if test "$with_tls" != "no"; then
+if test -n "$with_tls" -a "$with_tls" != "no"; then
   printf "%s\n" "#define WITH_TLS 1" >>confdefs.h
 
 fi

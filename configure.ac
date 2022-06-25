@@ -5517,7 +5517,7 @@ if test "$with_tls" = "yes"; then
   XE_DIE("Required TLS support cannot be provided.")
 fi
 
-if test "$with_tls" != "no"; then
+if test -n "$with_tls" -a "$with_tls" != "no"; then
   AC_DEFINE(WITH_TLS)
 fi
 
