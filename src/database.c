@@ -68,10 +68,13 @@ typedef uint64_t u_int64_t;
 #if ! defined (__STDC__) && ! defined(__cplusplus)
 #define __STDC__ 0
 #endif
-#ifndef DB_DBM_HSEARCH
-# define DB_DBM_HSEARCH 1
+#ifdef DB_DBM_HSEARCH
+#  undef DB_DBM_HSEARCH
 #endif
+#define DB_DBM_HSEARCH 0
+
 #include DB_H_FILE              /* Berkeley db's header file */
+
 #ifndef DB_VERSION_MAJOR
 # define DB_VERSION_MAJOR 1
 #endif /* DB_VERSION_MAJOR */

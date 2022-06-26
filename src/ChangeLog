@@ -1,3 +1,11 @@
+2022-06-26  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* database.c:
+	When compiling in both GDBM and Berkeley DB, the datatypes conflict if
+	DB_DBM_HSEARCH is defined to non-zero, since BDB's db.h then defines a
+	NDBM compatibility API. Define it to 0 - we don't use the NDBM API for
+	BDB anyway.
+
 2022-06-19  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* sysproc.h:
