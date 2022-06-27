@@ -95,7 +95,12 @@ VPATH=@srcdir@
 SHELL=/bin/sh
 RM = rm -f
 
-LISP = $(SRC)/../lisp
+## Earlier versions had $(SRC)/../lisp here, but currently ../lisp is a
+## link to $(SRC)/../lisp in out-of-source builds.  $(SRC)/../lisp breaks
+## the modules build because the autoloads end up in $(SRCMODULES), but
+## update-elc-2.el looks for them in $(BLDMODULES).
+LISP = ../lisp
+
 ETC = $(SRC)/../etc
 SRCMODULES = $(SRC)/../modules
 LIB_SRC = ../lib-src
@@ -944,10 +949,14 @@ versionclean:
 	-$(RM) $(RAW_EXE) $(DUMP_TARGET) $(DUMP_TARGET).dmp $(LIB_SRC)/DOC
 ##      Remove the generated load files here; they cause lots of problems
 ##      when they don't work right.
+##      Some older versions tried to put module load files in the SRC tree,
+##      but that breaks module builds, which expect them in the BLD tree,
+##      and that's where they belong anyway.  Clean both.
 clean: mostlyclean versionclean
 	-$(RM) libextcli* $(LISP)/auto-autoloads.el* $(LISP)/custom-load.el* \
 	$(LISP)/mule/auto-autoloads.el* $(LISP)/mule/custom-load.el* \
-	$(SRCMODULES)/auto-autoloads.el* $(SRCMODULES)/custom-load.el*
+	$(SRCMODULES)/auto-autoloads.el* $(SRCMODULES)/custom-load.el* \
+	$(BLDMODULES)/auto-autoloads.el* $(BLDMODULES)/custom-load.el*
 ## This is used in making a distribution.
 ## Do not use it on development directories!
 distclean-noconfig: clean

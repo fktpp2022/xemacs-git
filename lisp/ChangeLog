@@ -1,3 +1,10 @@
+2022-06-27  Stephen J. Turnbull  <turnbull@sk.tsukuba.ac.jp>
+
+	* update-elc-2.el (batch-update-elc-2):
+	Trap missing file errors for autoloads in modules.  Currently
+	there are none, and the build process apparently doesn't produce
+	an empty file in this case.
+
 2022-06-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* finder.el (finder-compile-keywords):

@@ -1,3 +1,11 @@
+2022-06-27  Stephen J. Turnbull  <turnbull@sk.tsukuba.ac.jp>
+
+	* Makefile.in.in (LISP):
+	Use build tree, not source tree, to unbreak modules build.
+	(clean):
+	Clean autoloads in both source tree (left over from before this
+	change) and build tree.
+
 2022-06-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* Makefile.in.in ($(LISP)/finder-inf.el):
