@@ -1,3 +1,11 @@
+2022-06-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* finder.el (finder-compile-keywords):
+	Don't use the save-buffer infrastructure when generating
+	finder-inf.el, since that leads to lock files, making parallel
+	builds less likely to work. Thank you Mats Lidell and the Gentoo
+	users!
+
 2022-06-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* x-faces.el (:compile-toplevel):
