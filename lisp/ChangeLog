@@ -1,3 +1,20 @@
+2022-06-30  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* update-elc.el (source-modules): New.
+	Document where the C source is for modules, which differs from
+	module-directory when --srcdir is specified. This is relevant when
+	deciding whether to build auto-autoloads.el for modules.
+	* update-elc.el (preloaded-file-list):
+	Use this when examining for outdatedness of auto-autoloads.el.
+	* update-elc.el (do-autoload-commands):
+	Correct the code to build the modules' auto-autoload.el, which
+	cannot just use batch-update-directory-autoloads, since that
+	doesn't recurse.  Thank you Stephen Turnbull, Mats Lidell, and the
+	Gentoo users.
+	* update-elc-2.el (batch-update-elc-2):
+	Don't wrap errors loading the auto-autoloads for the modules, if
+	that fails, whatever caused it to fail should be fixed.
+
 2022-06-27  Stephen J. Turnbull  <turnbull@sk.tsukuba.ac.jp>
 
 	* update-elc-2.el (batch-update-elc-2):

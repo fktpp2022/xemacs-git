@@ -87,8 +87,8 @@
 
 (defvar source-lisp-mule (expand-file-name "mule" source-lisp))
 (defvar source-directory (expand-file-name ".." source-lisp))
-(defconst module-directory (expand-file-name "modules" source-directory))
-
+(defvar source-modules (expand-file-name "../modules" (file-truename source-lisp)))
+(defconst module-directory (expand-file-name "modules" build-directory))
 (defvar aa-lisp (expand-file-name "auto-autoloads.el" source-lisp))
 (defvar aac-lisp (expand-file-name "auto-autoloads.elc" source-lisp))
 (defvar aa-lisp-mule (expand-file-name "auto-autoloads.el" source-lisp-mule))
@@ -302,15 +302,13 @@ differently depending on the presence of certain features, especially
 
   ;; Check for the module autoloads separately, given the need to run
   ;; directory-files on subdirectories.
-  (let ((autoload-file
-	 (expand-file-name "auto-autoloads.el" module-directory)))
-    (mapc
-     #'(lambda (full-dir)
-	 (mapc #'(lambda (full-arg)
-		   (when (file-newer-than-file-p full-arg autoload-file)
-		     (setq need-to-rebuild-module-autoloads t)))
-	       (directory-files full-dir t "\\.c$" nil t)))
-     (directory-files module-directory t nil t 'subdirs)))
+  (mapc
+   #'(lambda (full-dir)
+       (mapc #'(lambda (full-arg)
+		 (when (file-newer-than-file-p full-arg aa-modules)
+		   (setq need-to-rebuild-module-autoloads t)))
+	     (directory-files full-dir t "\\.c$" nil t)))
+   (directory-files source-modules t nil t 'subdirs))
 
   (if dump-target-out-of-date-wrt-dump-files
       (condition-case nil
@@ -369,8 +367,21 @@ differently depending on the presence of certain features, especially
 	    (list "-f" "batch-update-directory-autoloads"
 		  "mule" source-lisp-mule))
 	(if need-to-rebuild-module-autoloads
-	    (list "-f" "batch-update-directory-autoloads"
-		  "auto" module-directory))
+	    (list "-eval"
+		  (concatenate 'string
+		   "(update-autoload-files '("
+		   (mapconcat #'prin1-to-string
+			      (mapcan
+			       #'(lambda (full-dir)
+				   (unless (member*
+					    (file-name-nondirectory full-dir)
+					    '("." "..") :test #'equal)
+				     (directory-files full-dir
+						      t "\\.c$" nil t)))
+			       (directory-files source-modules
+						t nil t 'subdirs))
+			      " ")
+		   ") \"modules\" " (prin1-to-string aa-modules) ")")))
 	(if need-to-recompile-autoloads
 	    (list "-f" "batch-byte-compile-one-file"
 		  aa-lisp))

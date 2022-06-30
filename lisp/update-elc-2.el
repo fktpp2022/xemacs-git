@@ -145,12 +145,7 @@
     (when (featurep 'mule)
       (load (expand-file-name "mule/auto-autoloads" lisp-directory)))
     (when (featurep 'modules)
-      (let ((module-autoloads
-	     (expand-file-name "auto-autoloads" module-directory)))
-	(condition-case error-data
-	    (load module-autoloads)
-	  ;; don't bother trying to format nicely, only useful at build time
-	  (file-error (message "Making module autoloads: %s" error-data)))))
+      (load (expand-file-name "auto-autoloads" module-directory)))
     ;; We remove all the bad .elcs before any byte-compilation, because
     ;; there may be dependencies between one .el and another (even across
     ;; directories), and we don't want to load an out-of-date .elc while
