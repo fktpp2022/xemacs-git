@@ -16757,12 +16757,17 @@ printf "%s\n" "" >&6; }
   esac
 
           libpq_fe_h_file=""
-  for header_dir in $pg_header_dir "" "pgsql" "postgresql" "postgresql94" "postgresql-9.4" "postgresql/9.4" "postgresql84" "postgresql-8.4" "postgresql/8.4"; do
-    as_ac_Header=`printf "%s\n" "ac_cv_header_${header_dir}/libpq-fe.h" | $as_tr_sh`
-ac_fn_c_check_header_compile "$LINENO" "${header_dir}/libpq-fe.h" "$as_ac_Header" "$ac_includes_default"
+  for header_dir in "$pg_header_dir" "" "pgsql" "postgresql" "postgresql94" "postgresql-9.4" "postgresql/9.4" "postgresql84" "postgresql-8.4" "postgresql/8.4"; do
+    if test -n "$header_dir" -a "${header_dir%/}" = "$header_dir"; then
+      test_header_dir="$header_dir/"
+    else
+      test_header_dir="$header_dir"
+    fi
+    as_ac_Header=`printf "%s\n" "ac_cv_header_${test_header_dir}libpq-fe.h" | $as_tr_sh`
+ac_fn_c_check_header_compile "$LINENO" "${test_header_dir}libpq-fe.h" "$as_ac_Header" "$ac_includes_default"
 if eval test \"x\$"$as_ac_Header"\" = x"yes"
 then :
-  libpq_fe_h_file=${header_dir}/libpq-fe.h; break
+  libpq_fe_h_file=${test_header_dir}libpq-fe.h; break
 fi
 
   done

@@ -3689,9 +3689,14 @@ if test "$with_postgresql" != "no"; then
   dnl Assume that the most recent version available is the most likely to be
   dnl found in an unversioned directory.
   libpq_fe_h_file=""
-  for header_dir in $pg_header_dir "" "pgsql" "postgresql" "postgresql94" "postgresql-9.4" "postgresql/9.4" "postgresql84" "postgresql-8.4" "postgresql/8.4"; do
-    AC_CHECK_HEADER(${header_dir}/libpq-fe.h,
-                    libpq_fe_h_file=${header_dir}/libpq-fe.h; break)
+  for header_dir in "$pg_header_dir" "" "pgsql" "postgresql" "postgresql94" "postgresql-9.4" "postgresql/9.4" "postgresql84" "postgresql-8.4" "postgresql/8.4"; do
+    if test -n "$header_dir" -a "${header_dir%/}" = "$header_dir"; then
+      test_header_dir="$header_dir/"
+    else
+      test_header_dir="$header_dir"
+    fi
+    AC_CHECK_HEADER(${test_header_dir}libpq-fe.h,
+                    libpq_fe_h_file=${test_header_dir}libpq-fe.h; break)
   done
 
   if test -n "$pg_header_dir" -a "$header_dir" != "$pg_header_dir"; then
