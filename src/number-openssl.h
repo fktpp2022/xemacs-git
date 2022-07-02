@@ -70,10 +70,10 @@ extern int bignum_fits_ullong_p(bignum);
 
 /***** Bignum: conversions *****/
 #define bignum_size_decimal(b) /* From lisp.h:DECIMAL_PRINT_SIZE() */         \
-  ((((2410824 * BN_num_bytes (b)) / 1000000) + 3) * MAX_ICHAR_LEN)
-#define bignum_size_octal(b)   ((BN_num_bytes (b) + 2) * MAX_ICHAR_LEN * 3)
-#define bignum_size_hex(b)     ((BN_num_bytes (b) + 2) * MAX_ICHAR_LEN * 2)
-#define bignum_size_binary(b)  ((BN_num_bytes (b) + 2) * MAX_ICHAR_LEN * 8)
+  ((((2410824ULL * BN_num_bytes (b)) / 1000000) + 3) * MAX_ICHAR_LEN)
+#define bignum_size_octal(b)   ((BN_num_bytes (b) + 2ULL) * MAX_ICHAR_LEN * 3)
+#define bignum_size_hex(b)     ((BN_num_bytes (b) + 2ULL) * MAX_ICHAR_LEN * 2)
+#define bignum_size_binary(b)  ((BN_num_bytes (b) + 2ULL) * MAX_ICHAR_LEN * 8)
 
 extern int bignum_to_int(bignum);
 extern unsigned int bignum_to_uint(bignum);

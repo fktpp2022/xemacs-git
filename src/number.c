@@ -53,7 +53,7 @@ bignum_print (Lisp_Object obj, Lisp_Object printcharfun,
   Ibyte *buf;
   Bytecount size;
 
-#ifdef bignum_size_decimal
+#ifndef BIGNUM_SIZES_ARE_EXPENSIVE
   size = bignum_size_decimal (XBIGNUM_DATA (obj));
   buf = alloca_ibytes (size);
 #else
@@ -63,7 +63,7 @@ bignum_print (Lisp_Object obj, Lisp_Object printcharfun,
   write_string_1 (printcharfun, buf,
                   bignum_to_string (&buf, size, XBIGNUM_DATA (obj), 10,
                                     Qnil));
-#ifndef bignum_size_decimal
+#ifdef BIGNUM_SIZES_ARE_EXPENSIVE
   xfree (buf);
 #endif
 }
@@ -110,9 +110,9 @@ bignum_convert (const void *object, void **data, Bytecount *size)
 
 #  elif defined (WITH_MP)
 
-  CIbyte *bstr = NULL;
+  Ibyte *bstr = NULL;
   *size = bignum_to_string (&bstr, -1, *(bignum *) object, 16, Qnil) + 1;
-  *data = bstr;
+  *data = (void *) bstr;
 
 #  else
 #    error "Inconsistent defines for bignum support"

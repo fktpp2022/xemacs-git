@@ -5360,6 +5360,7 @@ elif test "$with_bignum" = "mp"; then
   for library in "" "-lcrypto"; do
     AC_CHECK_HEADER(mp.h, [
       AC_CHECK_LIB(mp, mp_mfree, have_mp_mfree=yes; break, [
+	unset ac_cv_lib_mp_mp_mfree
 	AC_CHECK_LIB(mp, mfree, have_mfree=yes; break, , $library)],
 	$library)])
   done
@@ -5383,6 +5384,33 @@ elif test "$with_bignum" = "mp"; then
     [AC_DEFINE(HAVE_MP_SET_MEMORY_FUNCTIONS)],
     [AC_CHECK_FUNC(__gmp_set_memory_functions,
       [AC_DEFINE(HAVE_MP_SET_MEMORY_FUNCTIONS)])])
+
+  AC_MSG_CHECKING(if libmp is a wrapper around OpenSSL bignums)
+  mp_is_openssl_wrapper=false
+  xe_save_LIBS="$LIBS"
+  for i in `if xe_is_entry_in_list -lcrypto $LIBS; then echo 1; else echo 1 2; fi`; do
+    if test $i = 2; then
+      XE_APPEND(-lcrypto, LIBS)
+    fi
+
+    AC_LINK_IFELSE(
+      [
+        AC_LANG_PROGRAM([#include <mp.h>],
+                        [return BN_num_bytes(mp_itom(0)->bn);])
+      ],
+      [mp_is_openssl_wrapper=true])
+
+    if $mp_is_openssl_wrapper; then break; fi
+  done
+
+  if $mp_is_openssl_wrapper; then
+    AC_MSG_RESULT(yes)
+    AC_DEFINE(MP_IS_OPENSSL_BIGNUM)
+  else
+    LIBS="$xe_save_LIBS"
+    AC_MSG_RESULT(no)
+  fi
+
   AC_DEFINE(WITH_NUMBER_TYPES)
   AC_DEFINE(WITH_MP)
 elif test "$with_bignum" = "openssl"; then

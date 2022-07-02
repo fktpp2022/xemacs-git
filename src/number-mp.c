@@ -31,6 +31,53 @@ MINT *bignum_min_long, *bignum_max_long, *bignum_max_ulong;
 MINT *bignum_min_llong, *bignum_max_llong, *bignum_max_ullong;
 short div_rem;
 
+#ifndef MP_IS_OPENSSL_BIGNUM
+static EMACS_UINT
+bignum_size_hex_raw(bignum b)
+{
+  char *hexform = MP_MTOX (b);
+  EMACS_UINT ret;
+
+  if (!hexform) memory_full ();
+
+  ret = strlen (hexform);
+  free (hexform);
+  return ret;
+}
+
+EMACS_UINT
+bignum_size_decimal(bignum b)
+{
+  /*
+    After the hex length of the maximum hex value of all F's exceeds 25
+    characters, the decimal to hex ratio never exceeds 1.25. (In fact it
+    approaches asymptotically ~1.20411998265592, aka the 10 based logarithm
+    of 16. Thus let's kaboom approximate by that, overshooting a little.
+  */
+  EMACS_UINT hexlen = bignum_size_hex_raw (b);
+
+  return (hexlen < 30 ? hexlen * 2 : hexlen * 5 / 4 + 1) * MAX_ICHAR_LEN;
+}
+
+EMACS_UINT
+bignum_size_octal(bignum b)
+{
+  return bignum_size_hex_raw (b) * MAX_ICHAR_LEN * 4 / 3 + MAX_ICHAR_LEN;
+}
+
+EMACS_UINT
+bignum_size_hex(bignum b)
+{
+  return bignum_size_hex_raw (b) * MAX_ICHAR_LEN;
+}
+
+EMACS_UINT
+bignum_size_binary(bignum b)
+{
+  return bignum_size_hex_raw (b) * MAX_ICHAR_LEN * 4;
+}
+#endif
+
 #define BIGNUM_TO_TYPE(type,accumtype) do {	\
     if (0 == sign)				\
       {						\
@@ -230,14 +277,13 @@ bignum_set_string (bignum b, const char *s, int base)
 void
 bignum_set_long (bignum b, long l)
 {
-  char hex[SIZEOF_LONG * 2U + 2U];
+  Ibyte hex[SIZEOF_LONG * 2U + 2U];
   MINT *temp;
   int neg = l < 0L;
 
-  fixnum_to_string ((Ibyte *) hex, sizeof (hex), 
-                    neg ? (EMACS_UINT) -l : (EMACS_UINT) l,
-                    16, Vdigit_fixnum_ascii);
-  temp = MP_XTOM (hex);
+  emacs_snprintf (hex, sizeof (hex), "%lux",
+                  neg ? (EMACS_UINT) -l : (EMACS_UINT) l);
+  temp = MP_XTOM ((char *) hex);
   if (neg)
     MP_MSUB (bignum_zero, temp, b);
   else
@@ -248,11 +294,11 @@ bignum_set_long (bignum b, long l)
 void
 bignum_set_ulong (bignum b, unsigned long l)
 {
-  char hex[SIZEOF_LONG * 2U + 2U];
+  Ibyte hex[SIZEOF_LONG * 2U + 2U];
   MINT *temp;
 
-  snprintf (hex, SIZEOF_LONG * 2U + 2U, "%lx", l);
-  temp = MP_XTOM (hex);
+  emacs_snprintf (hex, sizeof (hex), "%lux", (EMACS_UINT) l);
+  temp = MP_XTOM ((char *) hex);
   MP_MOVE (temp, b);
   MP_MFREE (temp);
 }
@@ -260,13 +306,13 @@ bignum_set_ulong (bignum b, unsigned long l)
 void
 bignum_set_llong (bignum b, long long l)
 {
-  char hex[SIZEOF_LONG_LONG * 2U + 2U];
+  Ibyte hex[SIZEOF_LONG_LONG * 2U + 2U];
   MINT *temp;
   int neg = l < 0LL;
 
-  snprintf (hex, SIZEOF_LONG_LONG * 2U + 2U, "%llx",
-	    neg ? (unsigned long long) -l : (unsigned long long) l);
-  temp = MP_XTOM (hex);
+  emacs_snprintf (hex, SIZEOF_LONG_LONG * 2U + 2U, "%llux",
+                  neg ? (unsigned long long) -l : (unsigned long long) l);
+  temp = MP_XTOM ((char *) hex);
   if (neg)
     MP_MSUB (bignum_zero, temp, b);
   else
@@ -277,11 +323,11 @@ bignum_set_llong (bignum b, long long l)
 void
 bignum_set_ullong (bignum b, unsigned long long l)
 {
-  char hex[SIZEOF_LONG_LONG * 2U + 2U];
+  Ibyte hex[SIZEOF_LONG_LONG * 2U + 2U];
   MINT *temp;
 
-  snprintf (hex, SIZEOF_LONG_LONG * 2U + 2U, "%llx", l);
-  temp = MP_XTOM (hex);
+  emacs_snprintf (hex, SIZEOF_LONG_LONG * 2U + 2U, "%llux", l);
+  temp = MP_XTOM ((char *) hex);
   MP_MOVE (temp, b);
   MP_MFREE (temp);
 }

@@ -581,7 +581,7 @@ arguments: (NUMBER &optional (RADIX 10) RADIX_TABLE)
       Ibyte *buf;
       Lisp_Object retval;
 
-#ifdef bignum_size_binary
+#ifndef BIGNUM_SIZES_ARE_EXPENSIVE
       size = bignum_size_binary (XBIGNUM_DATA (number));
       buf = alloca_ibytes (size);
 #else
@@ -593,7 +593,7 @@ arguments: (NUMBER &optional (RADIX 10) RADIX_TABLE)
          get_radix_table_fixnum_majuscule_map (radix_table));
       retval = make_string (buf + size - len, len);
 
-#ifndef bignum_size_decimal
+#ifdef BIGNUM_SIZES_ARE_EXPENSIVE
       xfree (buf);
 #endif
 
