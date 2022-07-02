@@ -28,6 +28,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 /* get headers */
 
 #ifdef HAVE_XFT
+#include <X11/X.h>
 #define _XFT_NO_COMPAT_
 /* shut up GCC */
 #define face_index face_index_arg

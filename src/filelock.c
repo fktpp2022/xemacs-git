@@ -150,7 +150,7 @@ lock_file_1 (Ibyte *lfname, int force)
   lock_info_str = alloca_ibytes (lock_info_size);
 
   emacs_snprintf (lock_info_str, lock_info_size,
-                  "%s@%s.%d", user_name, host_name, qxe_getpid ());
+                  "%s@%s.%d", user_name, host_name, (int) qxe_getpid ());
 
   err = qxe_symlink (lock_info_str, lfname);
   if (err != 0 && errno == EEXIST && force)
@@ -354,7 +354,7 @@ lock_file (Lisp_Object fn)
 
   /* Else consider breaking the lock */
   locker = emacs_sprintf_string ("%s@%s (pid %d)", lock_info.user,
-                                 lock_info.host, lock_info.pid);
+                                 lock_info.host, (int) lock_info.pid);
   FREE_LOCK_INFO (lock_info);
 
   attack = call2_in_buffer (BUFFERP (subject_buf) ? XBUFFER (subject_buf) :

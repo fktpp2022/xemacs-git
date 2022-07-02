@@ -1663,8 +1663,12 @@ case "$opsys" in
    AC_DEFINE(__EXTENSIONS__)
    dnl Solaris 2 before 2.5 had some bugs with feature test macro interaction.
    if test "$os_release" -ge 505; then
-     AC_DEFINE(_XOPEN_SOURCE,500)
-     AC_DEFINE(_XOPEN_SOURCE_EXTENDED)
+     if test "$os_release" -ge 510; then
+       AC_DEFINE(_XOPEN_SOURCE,600)
+     else
+       AC_DEFINE(_XOPEN_SOURCE,500)
+       AC_DEFINE(_XOPEN_SOURCE_EXTENDED)
+     fi
    fi ;;
   linux)
     AC_DEFINE(_POSIX_C_SOURCE,199506L)
@@ -2303,10 +2307,10 @@ dnl These directories are used to search for include subdirs.
 dnl ---------------------------------------------------------
 
 xe_known_include_dirs=
-for y in usr usr/local usr/X11R6 usr/local/X11R6 usr/X11 usr/ucb \
-         usr/ucbinclude usr/contrib usr/xpg4 opt opt/local sw; do
-  if test -d /$y/include; then
-    XE_APPEND(/$y/include, xe_known_include_dirs)
+for y in usr/ usr/local/ usr/X11R6/ usr/local/X11R6/ usr/X11/ usr/ucb \
+         usr/contrib/ usr/xpg4/ usr/sfw/ opt/ opt/local/ sw/ ; do
+  if test -d /${y}include; then
+    XE_APPEND(/${y}include, xe_known_include_dirs)
   fi
 done
 

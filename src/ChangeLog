@@ -1,3 +1,12 @@
+2022-07-02  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* filelock.c:
+	Cast pid_t to int in printf formats.
+
+	* sysdep.c:
+	Change the parameter type of sys_suspend_process() from pid_t to int
+	so it matches the prototype in sysdep.h.
+
 2022-06-27  Stephen J. Turnbull  <turnbull@sk.tsukuba.ac.jp>
 
 	* Makefile.in.in (LISP):

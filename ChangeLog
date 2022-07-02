@@ -1,3 +1,16 @@
+2022-07-02  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* configure.ac:
+	Add Solaris >= 10 _XOPEN_SOURCE=600 define so that sys/feature_test.h
+	doesn't choke on C99 mode. See
+	https://docs.oracle.com/cd/E88353_01/html/E37853/xpg6-7.html for
+	details.
+
+	Fix /usr/ucbinclude in known include paths, add /usr/sfw/include to
+	them.
+
+	* configure: Regenerate
+
 2022-06-30  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* configure.ac: Fix the PostgreSQL header detection.
