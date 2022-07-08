@@ -512,7 +512,6 @@ set_socket_nonblocking_maybe (int fd,
       if (STRINGP (tail_port))
 	{
 	  struct servent *svc_info;
-	  Extbyte *tailportext;
 
 	  CHECK_STRING (tail_port);
 	  svc_info = getservbyname (LISP_STRING_TO_EXTERNAL

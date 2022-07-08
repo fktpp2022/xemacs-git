@@ -10067,10 +10067,15 @@ case "$opsys" in
    printf "%s\n" "#define __EXTENSIONS__ 1" >>confdefs.h
 
       if test "$os_release" -ge 505; then
-     printf "%s\n" "#define _XOPEN_SOURCE 500" >>confdefs.h
+     if test "$os_release" -ge 510; then
+       printf "%s\n" "#define _XOPEN_SOURCE 600" >>confdefs.h
 
-     printf "%s\n" "#define _XOPEN_SOURCE_EXTENDED 1" >>confdefs.h
+     else
+       printf "%s\n" "#define _XOPEN_SOURCE 500" >>confdefs.h
 
+       printf "%s\n" "#define _XOPEN_SOURCE_EXTENDED 1" >>confdefs.h
+
+     fi
    fi ;;
   linux)
     printf "%s\n" "#define _POSIX_C_SOURCE 199506L" >>confdefs.h
@@ -10814,10 +10819,10 @@ printf "%s\n" "$libc_version" >&6; }
 
 
 xe_known_include_dirs=
-for y in usr usr/local usr/X11R6 usr/local/X11R6 usr/X11 usr/ucb \
-         usr/ucbinclude usr/contrib usr/xpg4 opt opt/local sw; do
-  if test -d /$y/include; then
-    xe_known_include_dirs="$xe_known_include_dirs /$y/include" &&  if test "$verbose" = "yes"; then echo "    Appending \"/$y/include\" to \$xe_known_include_dirs"; fi
+for y in usr/ usr/local/ usr/X11R6/ usr/local/X11R6/ usr/X11/ usr/ucb \
+         usr/contrib/ usr/xpg4/ usr/sfw/ opt/ opt/local/ sw/ ; do
+  if test -d /${y}include; then
+    xe_known_include_dirs="$xe_known_include_dirs /${y}include" &&  if test "$verbose" = "yes"; then echo "    Appending \"/${y}include\" to \$xe_known_include_dirs"; fi
   fi
 done
 
@@ -22567,6 +22572,7 @@ then :
   have_mp_mfree=yes; break
 else $as_nop
 
+        unset ac_cv_lib_mp_mp_mfree
 	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for mfree in -lmp" >&5
 printf %s "checking for mfree in -lmp... " >&6; }
 if test ${ac_cv_lib_mp_mfree+y}
@@ -22655,6 +22661,50 @@ then :
 fi
 
 fi
+
+
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if libmp is a wrapper around OpenSSL bignums" >&5
+printf %s "checking if libmp is a wrapper around OpenSSL bignums... " >&6; }
+  mp_is_openssl_wrapper=false
+  xe_save_LIBS="$LIBS"
+  for i in `if xe_is_entry_in_list -lcrypto $LIBS; then echo 1; else echo 1 2; fi`; do
+    if test $i = 2; then
+      LIBS="$LIBS -lcrypto" &&  if test "$verbose" = "yes"; then echo "    Appending \"-lcrypto\" to \$LIBS"; fi
+    fi
+
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+        #include <mp.h>
+int
+main (void)
+{
+return BN_num_bytes(mp_itom(0)->bn);
+  ;
+  return 0;
+}
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"
+then :
+  mp_is_openssl_wrapper=true
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+
+    if $mp_is_openssl_wrapper; then break; fi
+  done
+
+  if $mp_is_openssl_wrapper; then
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+    printf "%s\n" "#define MP_IS_OPENSSL_BIGNUM 1" >>confdefs.h
+
+  else
+    LIBS="$xe_save_LIBS"
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+  fi
 
   printf "%s\n" "#define WITH_NUMBER_TYPES 1" >>confdefs.h
 

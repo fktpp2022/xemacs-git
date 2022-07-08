@@ -41,6 +41,7 @@ END_C_DECLS
 #define MP_GCD   mp_gcd
 #define MP_ITOM  mp_itom
 #define MP_XTOM  mp_xtom
+#define MP_MTOX  mp_mtox
 #define MP_MADD  mp_madd
 #define MP_MCMP  mp_mcmp
 #define MP_MDIV  mp_mdiv
@@ -57,6 +58,7 @@ END_C_DECLS
 #define MP_GCD   gcd
 #define MP_ITOM  itom
 #define MP_XTOM  xtom
+#define MP_MTOX  mtox
 #define MP_MADD  madd
 #define MP_MCMP  mcmp
 #define MP_MDIV  mdiv
@@ -111,14 +113,21 @@ extern short div_rem;
 				     MP_MCMP (b, bignum_max_ullong) <= 0)
 
 /***** Bignum: conversions *****/
-extern Bytecount bignum_to_string (Ibyte **buffer_inout, Bytecount size,
-                                   bignum number, UINT_16_BIT radix,
-                                   int flags);
-#ifdef BN_num_bytes
-#define bignum_size_decimal(b) (DECIMAL_PRINT_SIZE (BN_num_bytes (b)))
-#define bignum_size_octal(b) (BN_num_bytes (b) * MAX_ICHAR_LEN * 3)
-#define bignum_size_hex(b) (BN_num_bytes (b) * MAX_ICHAR_LEN * 2)
-#define bignum_size_binary(b) (BN_num_bytes (b) * MAX_ICHAR_LEN * 4)
+#ifdef MP_IS_OPENSSL_BIGNUM
+#  define bignum_size_decimal(b) /* From lisp.h:DECIMAL_PRINT_SIZE() */       \
+     ((((2410824ULL * BN_num_bytes ((b)->bn)) / 1000000) + 3) * MAX_ICHAR_LEN)
+#  define bignum_size_octal(b)                                                \
+     ((BN_num_bytes ((b)->bn) + 2ULL) * MAX_ICHAR_LEN * 3)
+#  define bignum_size_hex(b)                                                  \
+     ((BN_num_bytes ((b)->bn) + 2ULL) * MAX_ICHAR_LEN * 2)
+#  define bignum_size_binary(b)                                               \
+     ((BN_num_bytes ((b)->bn) + 2ULL) * MAX_ICHAR_LEN * 8)
+#else
+#  define BIGNUM_SIZES_ARE_EXPENSIVE
+extern EMACS_UINT bignum_size_decimal(bignum);
+extern EMACS_UINT bignum_size_octal(bignum);
+extern EMACS_UINT bignum_size_hex(bignum);
+extern EMACS_UINT bignum_size_binary(bignum);
 #endif
 
 extern int bignum_to_int(bignum);
@@ -169,9 +178,9 @@ UINT_16_BIT
 bignum_div_rem_uint_16_bit (bignum res, bignum numerator, UINT_16_BIT denom)
 )
 {
-  UINT_16_BIT rem = 0;
+  short rem = 0;
   MP_SDIV (res, denom, numerator, &rem);
-  return rem;
+  return (UINT_16_BIT) rem;
 }
 
 /***** Bignum: bit manipulations *****/

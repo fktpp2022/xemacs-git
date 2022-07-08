@@ -512,9 +512,9 @@ sys_suspend (void)
 void
 sys_suspend_process (
 #ifdef SIGTSTP
-		     pid_t process
+		     int process
 #else
-		     pid_t UNUSED (process)
+		     int UNUSED (process)
 #endif
 		     )
 {

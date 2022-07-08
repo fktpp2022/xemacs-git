@@ -1,3 +1,48 @@
+2022-07-08  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* filelock.c:
+	Cast pid_t to int in printf formats.
+
+	* sysdep.c:
+	Change the parameter type of sys_suspend_process() from pid_t to int
+	so it matches the prototype in sysdep.h.
+
+	* number-mp.c (bignum_size_hex_raw):
+	* number-mp.c (bignum_size_decimal):
+	* number-mp.c (bignum_set_long):
+	* number-mp.c (bignum_set_llong):
+	Add computationally expensive versions of calculations.
+
+	* number-mp.c (bignum_set_long):
+	* number-mp.c (bignum_set_ulong):
+	* number-mp.c (bignum_set_llong):
+	* number-mp.c (bignum_set_ullong):
+	Switch calls of fixnum_to_string() and snprintf() to emacs_snprintf().
+	This fixes bignum_set_long(b, LONG_MIN), which underflowed the Fixnum
+	type in fixnum_to_string, causing the result to be -LONG_MIN.
+
+	* number-openssl.h (bignum_size_*):
+	* number-mp.h (bignum_size_*):
+	Do the bignum size calculations as 64 bit uints for correctness' sake.
+	Who knows if somebody wants to use numbers that are in the gigabyte
+	range.
+
+	* doprnt.c (Fnumber_to_string):
+	* number.c (bignum_print):
+	Remove the dependency on whether the bignum_size_* macros are defined,
+	since all bignum types now implement them either as macros or as
+	functions. Replace the preprocessor check with a check if calculating
+	bignum sizes beforehand is expensive.
+
+	* number.c (bignum_convert):
+	Fix uchar <-> char pointer mismatch.
+
+	* config.h.in:
+	Add a define for whether libmp is a wrapper for OpenSSL bignums.
+
+	* process-unix.c:
+	Remove an unused variable.
+
 2022-06-27  Stephen J. Turnbull  <turnbull@sk.tsukuba.ac.jp>
 
 	* Makefile.in.in (LISP):
