@@ -217,7 +217,7 @@ dll_variable (dll_handle h, const Ibyte *n)
 Lisp_Object
 dll_error ()
 {
-  return emacs_sprintf_string ("Windows DLL Error %lu",
+  return emacs_sprintf_string ("Windows DLL Error %zu",
 		       	       (EMACS_INT) (GetLastError ()));
 }
 #elif defined (HAVE_DYLD)

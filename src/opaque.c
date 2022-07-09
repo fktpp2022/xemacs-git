@@ -47,8 +47,8 @@ print_opaque (Lisp_Object obj, Lisp_Object printcharfun,
 
   write_fmt_string
     (printcharfun,
-     "#<INTERNAL OBJECT (XEmacs bug?) (opaque, size=%lu) 0x%x>",
-     (long)(p->size), LISP_OBJECT_UID (obj));
+     "#<INTERNAL OBJECT (XEmacs bug?) (opaque, size=%zu) 0x%x>",
+     (EMACS_UINT)(p->size), LISP_OBJECT_UID (obj));
 }
 
 inline static Bytecount
@@ -127,8 +127,8 @@ print_opaque_ptr (Lisp_Object obj, Lisp_Object printcharfun,
 
   write_fmt_string
     (printcharfun,
-     "#<INTERNAL OBJECT (XEmacs bug?) (opaque-ptr, adr=0x%lx) 0x%x>",
-     (long)(p->ptr), LISP_OBJECT_UID (obj));
+     "#<INTERNAL OBJECT (XEmacs bug?) (opaque-ptr, adr=%p) 0x%x>",
+     (const void *) p->ptr, LISP_OBJECT_UID (obj));
 }
 
 static int

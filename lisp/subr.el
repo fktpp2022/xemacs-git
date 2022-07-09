@@ -239,11 +239,11 @@ If the precision is specified as `*', the precision is assumed to have been
 
 An optional length modifier may be specified after any minimum field width or
   precision.  The length modifiers available are `hh', `h', `l' (ell), `ll'
-  \(ell-ell).  These mean that a following integer conversion character will
-  print an integer truncated to eight, sixteen, thirty-two, or sixty-four
-  bits, respectively.  Note that this contrasts with ANSI C, where the bit
-  length depends on the machine choices for the bit width of various integer
-  types.
+  \(ell-ell), and `z'.  These mean that a following integer conversion
+  character will print an integer truncated to eight, sixteen, thirty-two,
+  sixty-four, or (once more) thirty-two bits respectively.  Note that this
+  contrasts with ANSI C, where the bit length depends on the machine choices
+  for the bit width of various integer types.
 
 An optional unsigned modifier, the character `u', may be specified after any
   length modifier and before an integer conversion character.  This specifies

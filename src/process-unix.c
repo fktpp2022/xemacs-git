@@ -839,7 +839,7 @@ unix_init_process_io_handles (Lisp_Process *p, void *in, void *UNUSED (out),
     if (f == -1)
       { 
         warn_when_safe (Qio_error, lisp_strerror (errno),
-                        "failed setting pipe (fd %ld) to nonblocking mode",
+                        "failed setting pipe (fd %zd) to nonblocking mode",
                         (EMACS_INT) in);
       } 
   } 
@@ -1898,7 +1898,7 @@ unix_open_network_stream (Lisp_Object name, Lisp_Object host,
       {
         check_integer_range (service, Qzero, make_fixnum (0xFFFF));
 	emacs_snprintf_ascbyte ((Ascbyte *) portbuf, sizeof (portbuf),
-                                "%ld", XFIXNUM (service));
+                                "%zd", XFIXNUM (service));
 	portstring = portbuf;
 	port = htons ((UINT_16_BIT) XFIXNUM (service));
       }

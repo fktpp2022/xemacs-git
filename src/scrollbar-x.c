@@ -112,7 +112,7 @@ x_create_scrollbar_instance (struct frame *f, int vertical,
 
   SCROLLBAR_X_ID (instance) = new_lwlib_id ();
   emacs_asprintf ((Ibyte **)&buffer,
-                  "scrollbar_%ld", (EMACS_INT) (SCROLLBAR_X_ID (instance)));
+                  "scrollbar_%zd", (EMACS_INT) (SCROLLBAR_X_ID (instance)));
   SCROLLBAR_X_NAME (instance) = (CIbyte *) buffer;
 #if defined (LWLIB_SCROLLBARS_MOTIF) || defined (LWLIB_SCROLLBARS_LUCID) || \
     defined (LWLIB_SCROLLBARS_ATHENA3D)

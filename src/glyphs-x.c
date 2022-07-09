@@ -362,12 +362,11 @@ x_print_image_instance (Lisp_Image_Instance *p,
     case IMAGE_MONO_PIXMAP:
     case IMAGE_COLOR_PIXMAP:
     case IMAGE_POINTER:
-      write_fmt_string (printcharfun, " (0x%lx",
-			(unsigned long) IMAGE_INSTANCE_X_PIXMAP (p));
+      write_fmt_string (printcharfun, " (0x%lx", IMAGE_INSTANCE_X_PIXMAP (p));
       if (IMAGE_INSTANCE_X_MASK (p))
 	{
 	  write_fmt_string (printcharfun, "/0x%lx",
-			    (unsigned long) IMAGE_INSTANCE_X_MASK (p));
+                            IMAGE_INSTANCE_X_MASK (p));
 	}
       write_ascstring (printcharfun, ")");
       break;

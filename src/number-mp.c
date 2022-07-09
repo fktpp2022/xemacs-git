@@ -281,8 +281,8 @@ bignum_set_long (bignum b, long l)
   MINT *temp;
   int neg = l < 0L;
 
-  emacs_snprintf (hex, sizeof (hex), "%lux",
-                  neg ? (EMACS_UINT) -l : (EMACS_UINT) l);
+  emacs_snprintf (hex, sizeof (hex), "%zux",
+                  neg ? -(l + 1) + (EMACS_UINT) 1 : (EMACS_UINT) l);
   temp = MP_XTOM ((char *) hex);
   if (neg)
     MP_MSUB (bignum_zero, temp, b);
@@ -297,7 +297,7 @@ bignum_set_ulong (bignum b, unsigned long l)
   Ibyte hex[SIZEOF_LONG * 2U + 2U];
   MINT *temp;
 
-  emacs_snprintf (hex, sizeof (hex), "%lux", (EMACS_UINT) l);
+  emacs_snprintf (hex, sizeof (hex), "%zux", (EMACS_UINT) l);
   temp = MP_XTOM ((char *) hex);
   MP_MOVE (temp, b);
   MP_MFREE (temp);

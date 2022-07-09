@@ -540,9 +540,9 @@ print_hash_table (Lisp_Object obj, Lisp_Object printcharfun,
   if (ht->count || !print_readably)
     {
       if (print_readably)
-	write_fmt_string (printcharfun, " :size %ld", ht->count);
+	write_fmt_string (printcharfun, " :size %zd", ht->count);
       else
-	write_fmt_string (printcharfun, " :size %ld/%ld", ht->count,
+	write_fmt_string (printcharfun, " :size %zd/%zd", ht->count,
 			  ht->size);
     }
 

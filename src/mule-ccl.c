@@ -1998,20 +1998,21 @@ ccl_driver (struct ccl_program *ccl,
 	{
 	case CCL_STAT_INVALID_CMD:
 	  emacs_snprintf (msg, sizeof (msg),
-			  "\nCCL: Invalid command %lx (ccl_code = %lx) at %ld.",
+			  "\nCCL: Invalid command %lx (ccl_code = %zx) at %zd.",
 			  code & 0x1F, code, this_ic);
 	  goto ccl_error_continue;
 
 	case CCL_STAT_INVALID_CHARSET:
 	  emacs_snprintf (msg, sizeof (msg),
-			  "\nCCL: Invalid charset (command %lx, ccl_code = %lx) at %ld.",
-			  (code & 0x1F), code, this_ic);
+			  "\nCCL: Invalid charset (command %x, ccl_code = %zx)"
+                          " at %zd.", (int) (code & 0x1F), code, this_ic);
 	  goto ccl_error_continue;
 
 	case CCL_STAT_CONVERSION_ERROR:
 	  emacs_snprintf (msg, sizeof (msg),
-			  "\nCCL: Conversion error (command %lx, ccl_code = %lx) at %ld.",
-			  code & 0x1F, code, this_ic);
+			  "\nCCL: Conversion error (command %x, "
+                          "ccl_code = %zx) at %zd.", (int) (code & 0x1F),
+                          code, this_ic);
 	  goto ccl_error_continue;
 
 	ccl_error_continue:
@@ -2029,7 +2030,8 @@ ccl_driver (struct ccl_program *ccl,
 		  break;
 		Dynarr_add_many (destination, msg,
 				 emacs_snprintf (msg, sizeof (msg),
-						 " %ld", ccl_backtrace_table[i]));
+						 " %zd",
+                                                 ccl_backtrace_table[i]));
 	      }
 	    goto ccl_finish;
 	  }

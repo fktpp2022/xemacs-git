@@ -408,14 +408,14 @@ x_print_font_instance (Lisp_Font_Instance *f,
      can't rely on the device charset stage cache for that,
      unfortunately. */
   if (FONT_INSTANCE_X_FONT (f))
-      write_fmt_string (printcharfun, " font id: 0x%lx,",
-			(unsigned long) FONT_INSTANCE_X_FONT (f)->fid);
+    write_fmt_string (printcharfun, " font id: 0x%zx,",
+                      FONT_INSTANCE_X_FONT (f)->fid);
 
 #ifdef HAVE_XFT
   /* #### What should we do here?  For now, print the address. */
   if (FONT_INSTANCE_X_XFTFONT (f))
-    write_fmt_string (printcharfun, " xft font: 0x%lx",
-		      (unsigned long) FONT_INSTANCE_X_XFTFONT (f));
+    write_fmt_string (printcharfun, " xft font: 0x%zx",
+                      FONT_INSTANCE_X_XFTFONT (f));
 #endif
 }
 

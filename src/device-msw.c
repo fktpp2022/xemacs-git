@@ -637,7 +637,7 @@ sync_printer_with_devmode (struct device* d, DEVMODEW* devmode_in,
 	     Nothing wrong on the Windows side, just forge a unique
 	     connection name. Use the memory address of d as a unique
 	     suffix. */
-	  new_connection = emacs_sprintf_string ("%s:%luX",
+	  new_connection = emacs_sprintf_string ("%s:%zuX",
                                                  XSTRING_DATA (devname),
                                                  (EMACS_INT)
                                                  (LISP_OBJECT_UID

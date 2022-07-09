@@ -128,9 +128,9 @@ esd_play_sound_data (Binbyte *data, size_t length, int UNUSED (vol))
 	  {
 	    Ibyte warn_buf[DECIMAL_PRINT_SIZE (wrtn)
                            + DECIMAL_PRINT_SIZE (crtn) +
-                           + sizeof ("only wrote %ld of %ld bytes")];
+                           + sizeof ("only wrote %zd of %zd bytes")];
 	    emacs_snprintf (warn_buf, sizeof (warn_buf),
-                            "only wrote %ld of %ld bytes", wrtn, crtn);
+                            "only wrote %zd of %zd bytes", wrtn, crtn);
 	    sound_warn (warn_buf);
 	    goto END_OF_PLAY;
 	  }

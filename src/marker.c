@@ -48,8 +48,8 @@ print_marker (Lisp_Object obj, Lisp_Object printcharfun,
     write_ascstring (printcharfun, GETTEXT ("in no buffer"));
   else
     {
-      write_fmt_string (printcharfun, "at %ld in ",
-			(long) marker_position (obj));
+      write_fmt_string (printcharfun, "at %zd in ",
+			marker_position (obj));
       print_internal (marker->buffer->name, printcharfun, 0);
     }
   if (marker->insertion_type)

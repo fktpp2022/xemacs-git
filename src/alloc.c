@@ -447,8 +447,8 @@ do {								\
   do {							\
     if (debug_allocation)				\
       {							\
-	stderr_out ("allocating %s (size %ld)\n", type,	\
-		    (long) foosize);			\
+	stderr_out ("allocating %s (size %zd)\n", type,	\
+		    foosize);                           \
 	debug_allocation_backtrace ();			\
       }							\
     INCREMENT_CONS_COUNTER_1 (foosize);			\
@@ -457,8 +457,8 @@ do {								\
   do {								\
     if (debug_allocation > 1)					\
       {								\
-	stderr_out ("allocating noseeum %s (size %ld)\n", type,	\
-		    (long) foosize);				\
+	stderr_out ("allocating noseeum %s (size %zd)\n", type,	\
+		    foosize);                                   \
 	debug_allocation_backtrace ();				\
       }								\
     INCREMENT_CONS_COUNTER_1 (foosize);				\

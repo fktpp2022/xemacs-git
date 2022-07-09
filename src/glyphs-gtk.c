@@ -321,11 +321,10 @@ gtk_print_image_instance (struct Lisp_Image_Instance *p,
     case IMAGE_MONO_PIXMAP:
     case IMAGE_COLOR_PIXMAP:
     case IMAGE_POINTER:
-      write_fmt_string (printcharfun, " (0x%lx",
-			(unsigned long) IMAGE_INSTANCE_GTK_PIXMAP (p));
+      write_fmt_string (printcharfun, " (0x%zx",
+                        IMAGE_INSTANCE_GTK_PIXMAP (p));
       if (IMAGE_INSTANCE_GTK_MASK (p))
-	write_fmt_string (printcharfun, "/0x%lx",
-			  (unsigned long) IMAGE_INSTANCE_GTK_MASK (p));
+	write_fmt_string (printcharfun, "/0x%zx", IMAGE_INSTANCE_GTK_MASK (p));
       write_ascstring (printcharfun, ")");
       break;
 #ifdef HAVE_SUBWINDOWS

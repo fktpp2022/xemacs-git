@@ -538,11 +538,6 @@ send_signal_the_95_way (struct nt_process_data *cp, int pid, int signo)
       /* Ctrl-Break is NT equivalent of SIGINT.  */
       else if (!GenerateConsoleCtrlEvent (CTRL_BREAK_EVENT, pid))
         {
-#if 0 /* FSF Emacs */
-	  DebPrint (("sys_kill.GenerateConsoleCtrlEvent return %d "
-		     "for pid %lu\n", GetLastError (), pid));
-	  errno = EINVAL;
-#endif
 	  rc = 0;
 	}
     }

@@ -1633,7 +1633,7 @@ print_precedence_array (Lisp_Object obj, Lisp_Object printcharfun,
 
   write_ascstring (printcharfun,
 		   "#<INTERNAL OBJECT (XEmacs bug?) (precedence-array)");
-  write_fmt_string (printcharfun, " length=%ld",
+  write_fmt_string (printcharfun, " length=%zd",
 		    Dynarr_length (data->precdyn));
   for (i = 0; i < Dynarr_length (data->precdyn); i++)
     {
@@ -1641,7 +1641,7 @@ print_precedence_array (Lisp_Object obj, Lisp_Object printcharfun,
       write_fmt_string_lisp (printcharfun, " #%d: %s", make_fixnum (i + 1),
 			     XCHARSET_NAME (charset));
     }
-  write_fmt_string (printcharfun, " 0x%lx>", (unsigned long) XPNTR (obj));
+  write_fmt_string (printcharfun, " %p>", XPNTR (obj));
 }
 
 

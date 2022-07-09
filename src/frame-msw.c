@@ -596,7 +596,7 @@ mswindows_window_id (Lisp_Object frame)
 {
   struct frame *f = decode_mswindows_frame (frame);
 
-  return emacs_sprintf_string ("%lu", (EMACS_UINT) FRAME_MSWINDOWS_HANDLE (f));
+  return emacs_sprintf_string ("%zu", (EMACS_UINT) FRAME_MSWINDOWS_HANDLE (f));
 }
 
 static Lisp_Object

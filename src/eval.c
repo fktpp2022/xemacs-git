@@ -4717,7 +4717,7 @@ print_multiple_value (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
     }
 
   write_fmt_string (printcharfun,
-                    "#<INTERNAL OBJECT (XEmacs bug?) %ld multiple values,"
+                    "#<INTERNAL OBJECT (XEmacs bug?) %zd multiple values,"
                     " data (", count);
 
   for (index = 0; index < count;)
@@ -4726,7 +4726,7 @@ print_multiple_value (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
           (index < first_desired ||
            index >= (first_desired + (allocated_count - 1))))
         {
-          write_fmt_string (printcharfun, "#<discarded-multiple-value %ld>",
+          write_fmt_string (printcharfun, "#<discarded-multiple-value %zd>",
                             index);
         }
       else

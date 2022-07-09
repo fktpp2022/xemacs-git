@@ -299,8 +299,8 @@ print_keymap (Lisp_Object obj, Lisp_Object printcharfun,
     {
       write_fmt_string_lisp (printcharfun, "%S ", keymap->name);
     }
-  write_fmt_string (printcharfun, "size %ld 0x%x>",
-		    (long) XFIXNUM (Fkeymap_fullness (obj)),
+  write_fmt_string (printcharfun, "size %zd 0x%x>",
+		    XFIXNUM (Fkeymap_fullness (obj)),
 		    LISP_OBJECT_UID (obj));
 }
 

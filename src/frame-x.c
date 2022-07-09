@@ -1804,25 +1804,43 @@ x_create_widgets (struct frame *f, Lisp_Object lisp_window_id,
 #else
   if (!NILP (lisp_window_id))
     {
-      Ibyte *string;
-
-      CHECK_STRING (lisp_window_id);
-      string = XSTRING_DATA (lisp_window_id);
-      if (string[0] == '0' && (string[1] == 'x' || string[1] == 'X'))
-	qxesscanf_ascii_1 (string + 2, "%lxu", &window_id);
-#if 0
-      else if (string[0] == 'w')
-	{
-	  qxesscanf_ascii (string + 1, "%x", &parent_widget);
-	  if (parent_widget)
-	    window_id = XtWindow (parent_widget);
-	}
-#endif
+      if (INTEGERP (lisp_window_id))
+        {
+          DO_NOTHING;
+        }
       else
-	qxesscanf_ascii_1 (string, "%lu", &window_id);
+        {
+          const Ibyte *string;
+
+          CHECK_STRING (lisp_window_id);
+          string = XSTRING_DATA (lisp_window_id);
+
+          if (itext_ichar_eql (string, '0') &&
+              (itext_ichar_eql (string + ichar_len ('0'), 'X')
+               || itext_ichar_eql (string + ichar_len ('1'), 'x')))
+            {
+              lisp_window_id = parse_integer (string + ichar_len ('0')
+                                              + ichar_len ('x'), NULL,
+                                              XSTRING_LENGTH (lisp_window_id)
+                                              - ichar_len ('0') - 
+                                              ichar_len ('x'),
+                                              16, 0, Vdigit_fixnum_ascii);
+            }
+          else
+            {
+              lisp_window_id = parse_integer (string, NULL,
+                                              XSTRING_LENGTH (lisp_window_id),
+                                              10, 0, Vdigit_fixnum_ascii);
+            }
+        }
+
+      check_integer_range (lisp_window_id, Qzero,
+                           make_unsigned_integer ((Window) (-1)));
+
+      window_id = XFIXNUM (lisp_window_id);
+
       if (!is_valid_window (window_id, d))
-	signal_ferror (Qinvalid_argument, "Invalid window %lu",
-		       (unsigned long) window_id);
+	signal_error (Qinvalid_argument, "Invalid window", lisp_window_id);
       FRAME_X_EXTERNAL_WINDOW_P (f) = 1;
     } else
 #endif /* EXTERNAL_WIDGET */
@@ -2209,7 +2227,7 @@ a string.
        (frame))
 {
   struct frame *f = decode_x_frame (frame);
-  return emacs_sprintf_string ("%lu",
+  return emacs_sprintf_string ("%zu",
                                (EMACS_UINT) XtWindow
                                (FRAME_X_TEXT_WIDGET (f)));
 }

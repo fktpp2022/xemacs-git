@@ -4970,7 +4970,7 @@ debug_output_mswin_message (HWND hwnd, UINT message_, WPARAM wParam,
 
   if (debug_mswindows_events > 1)
     {
-      stderr_out (" wparam=%ld lparam=%ld hwnd=%lux frame: ",
+      stderr_out (" wparam=%zd lparam=%zd hwnd=%zux frame: ",
 		  (EMACS_INT) (wParam), (EMACS_INT) lParam, (EMACS_INT) hwnd);
       debug_print (frame);
       if (message_ == WM_WINDOWPOSCHANGED ||

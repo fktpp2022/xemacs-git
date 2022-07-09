@@ -1,3 +1,9 @@
+2022-07-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* subr.el (format):
+	Update the documentation of the integer length modifiers, now that
+	?z has been added.
+
 2022-06-30  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* finder.el (finder-compile-keywords):

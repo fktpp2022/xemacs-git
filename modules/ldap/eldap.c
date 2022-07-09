@@ -127,7 +127,7 @@ print_ldap (Lisp_Object obj, Lisp_Object printcharfun, int UNUSED (escapeflag))
   write_fmt_string_lisp (printcharfun, "#<ldap %S", 1, ldap->host);
   if (!ldap->ld)
     write_ascstring (printcharfun,"(dead) ");
-  write_fmt_string (printcharfun, " 0x%lx>", (long)ldap);
+  write_fmt_string (printcharfun, " %p>", ldap);
 }
 
 static Lisp_LDAP *

@@ -114,7 +114,7 @@ GetConsoleHwnd (void)
   /* format a "unique" new title */
 
   emacs_snprintf_ascbyte (newtitle, sizeof (newtitle),
-                          "%ld/%ld", (EMACS_INT) (GetTickCount ()),
+                          "%zd/%zd", (EMACS_INT) (GetTickCount ()),
                           (EMACS_INT) (GetCurrentProcessId ()));
 
   /* change current window title; we may be called during armageddon

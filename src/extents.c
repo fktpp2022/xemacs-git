@@ -1035,7 +1035,7 @@ soe_dump (Lisp_Object obj)
       return;
     }
   sel = soe->extents;
-  stderr_out ("SOE pos is %ld (memxpos %ld)\n",
+  stderr_out ("SOE pos is %zd (memxpos %zd)\n",
 	      soe->pos < 0 ? soe->pos :
 	      object_memxpos_to_bytexpos (obj, soe->pos),
 	      soe->pos);
@@ -1141,7 +1141,7 @@ soe_move (Lisp_Object obj, Memxpos pos)
 
 #ifdef DEBUG_XEMACS
   if (debug_soe)
-    stderr_out ("Moving SOE from %ld (memxpos %ld) to %ld (memxpos %ld)\n",
+    stderr_out ("Moving SOE from %zd (memxpos %zd) to %zd (memxpos %zd)\n",
 		soe->pos < 0 ? soe->pos :
 		object_memxpos_to_bytexpos (obj, soe->pos), soe->pos,
 		object_memxpos_to_bytexpos (obj, pos), pos);
@@ -2795,7 +2795,7 @@ print_extent_1 (Lisp_Object obj, Lisp_Object printcharfun,
   else
     {
       bp += emacs_snprintf_ascbyte (bp, sizeof (buf) - (bp - buf),
-                                    "%ld, %ld",
+                                    "%zd, %zd",
                                     XFIXNUM (Fextent_start_position (obj,
                                                                      Qnil)),
                                     XFIXNUM (Fextent_end_position (obj,

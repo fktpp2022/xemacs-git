@@ -812,7 +812,7 @@ is first appended to NAME, to speed up finding a non-existent buffer.
          #'generate-new-buffer-name really matters--and I've seen no real
          evidence that is the case--the approach below with snprintf() and
          ALIST_LOOP_3() is better. */
-      clen = emacs_snprintf (candidate, csize, "%s<%ld>", XSTRING_DATA (name),
+      clen = emacs_snprintf (candidate, csize, "%s<%zd>", XSTRING_DATA (name),
                              ++count);
       if (clen == ignore_length &&
           !qxememcmp (candidate, XSTRING_DATA (ignore), clen))

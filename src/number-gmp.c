@@ -120,11 +120,12 @@ bignum_set_llong (bignum b, long long l)
 CIbyte *
 bigfloat_to_string (mpf_t f, int base)
 {
-  mp_exp_t expt;
-  CIbyte *str = mpf_get_str (NULL, &expt, base, 0, f);
+  mp_exp_t expt_gmp;
+  CIbyte *str = mpf_get_str (NULL, &expt_gmp, base, 0, f);
   const int sign = mpf_sgn (f);
   const int neg = (sign < 0) ? 1 : 0;
   Bytecount len = strlen (str) + 1;  /* Count the null terminator */
+  EMACS_INT expt = expt_gmp; /* So we have a predictable type. */
 
   if (sign == 0)
     {
@@ -136,7 +137,7 @@ bigfloat_to_string (mpf_t f, int base)
       if (expt < 0)
 	{
 	  /* We need room for a radix point and leading zeroes */
-	  const int space = -expt + 2;
+	  const EMACS_INT space = -expt + 2;
 	  XREALLOC_ARRAY (str, CIbyte, len + space);
 	  memmove (&str[space + neg], &str[neg], len - neg);
 	  memset (&str[neg], '0', space);
@@ -178,7 +179,7 @@ bigfloat_to_string (mpf_t f, int base)
 	  }
 	emacs_snprintf_ascbyte (&str[len + point - 1],
                                 (len + space) - (len + point - 1),
-                                "E%ld", expt);
+                                "E%zd", expt);
       }
     }
   return str;

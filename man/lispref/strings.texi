@@ -816,7 +816,7 @@ unusual in that it does not use a value.  For example, @code{(format "%%
 @item %u
 This is syntactic sugar for @samp{%ud}, and means to replace the
 specification with the base-ten representation of an unsigned
-rational. the See below for the documentation of @samp{u}, the unsigned
+rational. See below for the documentation of @samp{u}, the unsigned
 modifier.
 @end table
 
@@ -1010,12 +1010,14 @@ the radix specifier with @samp{#} or @samp{&}, and is the default when
 
 An optional length modifier may be specified after any minimum field
 width or precision.  The length modifiers available are @samp{hh},
-@samp{h}, @samp{l} (ell), @samp{ll} \(ell-ell).  These mean that a
-following integer conversion character will print an integer truncated
-to eight, sixteen, thirty-two, or sixty-four bits, respectively.  Note
-that this contrasts with ANSI C, where the bit length depends on the
-machine choices for the bit width of the various fixed-width integer
-types.
+@samp{h}, @samp{l} (ell), @samp{ll} \(ell-ell), @samp{z}.  These mean
+that a following integer conversion character will print an integer
+truncated to eight, sixteen, thirty-two, sixty-four, or (once more)
+thirty-two bits, respectively.  Note that this contrasts with ANSI C,
+where the bit length depends on the machine choices for the bit width of
+the various fixed-width integer types.  The @samp{z} modifier is
+redundant in the formatting available to Lisp but is used in the
+formatting made available to the XEmacs C code.
 
 @cindex unsigned integers
 An optional unsigned modifier, the character @samp{u}, may be specified

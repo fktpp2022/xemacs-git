@@ -111,7 +111,7 @@ gtk_print_color_instance (struct Lisp_Color_Instance *c,
 {
 #ifdef HAVE_GTK2
   GdkColor *color = COLOR_INSTANCE_GTK_COLOR (c);
-  write_fmt_string (printcharfun, " %ld=(%X,%X,%X)",
+  write_fmt_string (printcharfun, " %zd=(%X,%X,%X)",
 		    color->pixel, color->red, color->green, color->blue);
 #else
   GdkRGBA *color = COLOR_INSTANCE_GTK_COLOR (c);
@@ -309,9 +309,7 @@ gtk_print_font_instance (struct Lisp_Font_Instance *f,
 			 Lisp_Object printcharfun,
 			 int UNUSED (escapeflag))
 {
-  write_fmt_string (printcharfun, " 0x%lx",
-		    (unsigned long) FONT_INSTANCE_GTK_FONT (f));
-  /* write_fmt_string (printcharfun, " %s", f->name); */
+  write_fmt_string (printcharfun, " %#p", FONT_INSTANCE_GTK_FONT (f));
 }
 
 static void

@@ -1,3 +1,103 @@
+2022-07-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* doprnt.c:
+	* doprnt.c (union printf_arg):
+	* doprnt.c (parse_doprnt_spec):
+	* doprnt.c (get_doprnt_c_args):
+	* doprnt.c (rewrite_rational_spec):
+	* doprnt.c (emacs_doprnt):
+	Revise the integer length modifiers made available to the C
+	code. I had previously made the executive decision that HL_FLAG_L
+	should always correspond to the bit width of an EMACS_INT, and had
+	not cleanly implement HL_FLAG_LL. This was a bad decision as
+	revealed by recent code from Jaakko which assumed, quite
+	reasonably, standard C behaviour. It also meant compiler analysis
+	of format strings was likely to be incorrect.
+	As of now a new flag is implemented, HL_FLAG_Z, guaranteed
+	equivalent to the bit width of an EMACS_INT. HL_FLAG_L now just
+	reads a long from the arguments, HL_FLAG_LL reads a long long.
+	The standard C meaning of the z modifier is that the argument is
+	the same bit width as a size_t, which should give correct compiler
+	analysis basically all of the time.
+
+	* frame-x.c (x_create_widgets):
+	Revise this in passing, accept the window ID as an integer, use
+	our parse_integer () rather than sscanf () if the argument is a
+	string.
+
+	* alloc.c (INCREMENT_CONS_COUNTER):
+	* alloc.c (NOSEEUM_INCREMENT_CONS_COUNTER):
+	* buffer.c (Fgenerate_new_buffer_name):
+	* bytecode.c (check_constants_index):
+	* bytecode.c (print_compiled_function):
+	* console-msw.c (GetConsoleHwnd):
+	* device-msw.c (sync_printer_with_devmode):
+	* device-x.c (x_IO_error_handler):
+	* elhash.c (print_hash_table):
+	* emacs.c (main_1):
+	* emacs.c (assert_equal_failed):
+	* emodules.c (emodules_load):
+	* esd.c (esd_play_sound_data):
+	* eval.c (print_multiple_value):
+	* event-Xt.c (describe_event_window):
+	* event-msw.c (debug_output_mswin_message):
+	* events.c (print_event):
+	* extents.c (soe_dump):
+	* extents.c (soe_move):
+	* extents.c (print_extent_1):
+	* file-coding.c (detect_coding_type):
+	* fontcolor-gtk.c (gtk_print_color_instance):
+	* fontcolor-gtk.c (gtk_print_font_instance):
+	* fontcolor-gtk.c (gtk_finalize_font_instance):
+	* fontcolor-msw.c:
+	* fontcolor-msw.c (mswindows_print_font_instance):
+	* fontcolor-x.c (x_print_font_instance):
+	* fontcolor-x.c (x_finalize_font_instance):
+	* frame-gtk.c (Fgtk_window_id):
+	* frame-msw.c (mswindows_window_id):
+	* frame-msw.c (mswindows_frame_property):
+	* frame-x.c (Fx_window_id):
+	* gc.c (lispdesc_indirect_count_1):
+	* glyphs-gtk.c (gtk_print_image_instance):
+	* glyphs-msw.c (mswindows_print_image_instance):
+	* glyphs-msw.c (mswindows_progress_gauge_redisplay):
+	* glyphs-x.c (x_print_image_instance):
+	* glyphs.c (print_image_instance):
+	* input-method-xlib.c (describe_XIC):
+	* keymap.c:
+	* keymap.c (print_keymap):
+	* marker.c (print_marker):
+	* mule-ccl.c (ccl_driver):
+	* number-gmp.c (bigfloat_to_string):
+	* number-mp.c (bignum_set_long):
+	* number-mp.c (bignum_set_ulong):
+	* opaque.c (print_opaque):
+	* opaque.c (print_opaque_ptr):
+	* opaque.c (equal_opaque_ptr):
+	* print.c (printing_major_badness):
+	* print.c (print_gensym_or_circle):
+	* print.c (debug_p4):
+	* process-nt.c (send_signal_the_95_way):
+	* process-unix.c (unix_init_process_io_handles):
+	* process-unix.c (unix_open_network_stream):
+	* rangetab.c (print_range_table):
+	* regex.c (print_partial_compiled_pattern):
+	* regex.c (print_compiled_pattern):
+	* regex.c (PUSH_FAILURE_POINT):
+	* regex.c (POP_FAILURE_POINT):
+	* regex.c (re_match_2_internal):
+	* scrollbar-x.c (x_create_scrollbar_instance):
+	* strftime.c:
+	* strftime.c (add_num_time_t):
+	* sysdll.c (dll_error):
+	* tls.c (tls_set_x509_key_file):
+	* tooltalk.c (print_tooltalk_message):
+	* tooltalk.c (print_tooltalk_pattern):
+	* tooltalk.c (tt_opnum_string):
+	* tooltalk.c (tt_message_arg_ival_string):
+	* unicode.c (print_precedence_array):
+	Use %zd instead of %ld for formatting EMACS_INTs in all these files.
+
 2022-07-08  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* filelock.c:

@@ -967,13 +967,13 @@ print_image_instance (Lisp_Object obj, Lisp_Object printcharfun,
 	{
 	  write_ascstring (printcharfun, " @");
 	  if (!NILP (IMAGE_INSTANCE_PIXMAP_HOTSPOT_X (ii)))
-	    write_fmt_string (printcharfun, "%ld",
+	    write_fmt_string (printcharfun, "%zd",
 			      XFIXNUM (IMAGE_INSTANCE_PIXMAP_HOTSPOT_X (ii)));
 	  else
 	    write_ascstring (printcharfun, "??");
 	  write_ascstring (printcharfun, ",");
 	  if (!NILP (IMAGE_INSTANCE_PIXMAP_HOTSPOT_Y (ii)))
-	    write_fmt_string (printcharfun, "%ld",
+	    write_fmt_string (printcharfun, "%zd",
 			      XFIXNUM (IMAGE_INSTANCE_PIXMAP_HOTSPOT_Y (ii)));
 	  else
 	    write_ascstring (printcharfun, "??");

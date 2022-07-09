@@ -209,8 +209,8 @@ lispdesc_indirect_count_1 (EMACS_INT code,
       count = * (long *) irdata;
       break;
     default:
-      stderr_out ("Unsupported count type : %d (line = %d, code = %ld)\n",
-		  idesc[line].type, line, (long) code);
+      stderr_out ("Unsupported count type : %d (line = %d, code = %zd)\n",
+		  idesc[line].type, line, code);
 #ifdef DEBUG_XEMACS
       if (gc_in_progress)
 	kkcc_detailed_backtrace ();

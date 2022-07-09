@@ -854,7 +854,7 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
   /* Loop over pattern commands.  */
   while (p < pend)
     {
-      printf ("%ld:\t", (long)(p - start));
+      printf ("%zd:\t", (Bytecount)(p - start));
 
       switch ((re_opcode_t) *p++)
 	{
@@ -956,14 +956,14 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
 		if (first < 0x80)
 		  putchar (first);
 		else
-		  printf ("(0x%lx)", (long)first);
+		  printf ("(0x%zx)", (Bytecount)first);
 		if (first != last)
 		  {
 		    putchar ('-');
 		    if (last < 0x80)
 		      putchar (last);
 		    else
-		      printf ("(0x%lx)", (long)last);
+		      printf ("(0x%zx)", (Bytecount)last);
 		  }
 	      }
 	    putchar (']');
@@ -982,17 +982,19 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
 
 	case on_failure_jump:
 	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
-  	  printf ("/on_failure_jump to %ld", (long)(p + mcnt - start));
+  	  printf ("/on_failure_jump to %zd", (Bytecount)(p + mcnt - start));
           break;
 
 	case on_failure_keep_string_jump:
 	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
-  	  printf ("/on_failure_keep_string_jump to %ld", (long)(p + mcnt - start));
+  	  printf ("/on_failure_keep_string_jump to %zd", 
+                  (Bytecount)(p + mcnt - start));
           break;
 
 	case dummy_failure_jump:
 	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
-  	  printf ("/dummy_failure_jump to %ld", (long)(p + mcnt - start));
+  	  printf ("/dummy_failure_jump to %zd",
+                  (Bytecount)(p + mcnt - start));
           break;
 
 	case push_dummy_failure:
@@ -1001,40 +1003,43 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
 
         case maybe_pop_jump:
           EXTRACT_NUMBER_AND_INCR (mcnt, p);
-  	  printf ("/maybe_pop_jump to %ld", (long)(p + mcnt - start));
+  	  printf ("/maybe_pop_jump to %zd", (Bytecount)(p + mcnt - start));
 	  break;
 
         case pop_failure_jump:
 	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
-  	  printf ("/pop_failure_jump to %ld", (long)(p + mcnt - start));
+  	  printf ("/pop_failure_jump to %zd", (Bytecount)(p + mcnt - start));
 	  break;
 
         case jump_past_alt:
 	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
-  	  printf ("/jump_past_alt to %ld", (long)(p + mcnt - start));
+  	  printf ("/jump_past_alt to %zd", (Bytecount)(p + mcnt - start));
 	  break;
 
         case jump:
 	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
-  	  printf ("/jump to %ld", (long)(p + mcnt - start));
+  	  printf ("/jump to %zd", (Bytecount)(p + mcnt - start));
 	  break;
 
         case succeed_n:
           EXTRACT_NUMBER_AND_INCR (mcnt, p);
           EXTRACT_NONNEGATIVE_AND_INCR (mcnt2, p);
-	  printf ("/succeed_n to %ld, %d times", (long)(p + mcnt - start), mcnt2);
+	  printf ("/succeed_n to %zd, %d times",
+                  (Bytecount)(p + mcnt - start), mcnt2);
           break;
 
         case jump_n:
           EXTRACT_NUMBER_AND_INCR (mcnt, p);
           EXTRACT_NONNEGATIVE_AND_INCR (mcnt2, p);
-	  printf ("/jump_n to %ld, %d times", (long)(p + mcnt - start), mcnt2);
+	  printf ("/jump_n to %zd, %d times",
+                  (Bytecount)(p + mcnt - start), mcnt2);
           break;
 
         case set_number_at:
           EXTRACT_NUMBER_AND_INCR (mcnt, p);
           EXTRACT_NONNEGATIVE_AND_INCR (mcnt2, p);
-	  printf ("/set_number_at location %ld to %d", (long)(p + mcnt - start), mcnt2);
+	  printf ("/set_number_at location %zd to %d",
+                  (Bytecount)(p + mcnt - start), mcnt2);
           break;
 
         case wordbound:
@@ -1117,7 +1122,7 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
       putchar ('\n');
     }
 
-  printf ("%ld:\tend of pattern.\n", (long)(p - start));
+  printf ("%zd:\tend of pattern.\n", (Bytecount)(p - start));
 }
 
 
@@ -1127,7 +1132,7 @@ print_compiled_pattern (struct re_pattern_buffer *bufp)
   re_char *buffer = bufp->buffer;
 
   print_partial_compiled_pattern (buffer, buffer + bufp->used);
-  printf ("%ld bytes used/%ld bytes allocated.\n", bufp->used,
+  printf ("%zd bytes used/%zd bytes allocated.\n", bufp->used,
 	  bufp->allocated);
 
   if (bufp->fastmap_accurate && bufp->fastmap)
@@ -1136,8 +1141,8 @@ print_compiled_pattern (struct re_pattern_buffer *bufp)
       print_fastmap (bufp->fastmap);
     }
 
-  printf ("re_nsub: %ld\t", (long)bufp->re_nsub);
-  printf ("re_ngroups: %ld\t", (long)bufp->re_ngroups);
+  printf ("re_nsub: %zd\t", (Bytecount)bufp->re_nsub);
+  printf ("re_ngroups: %zd\t", (Bytecount)bufp->re_ngroups);
   printf ("regs_alloc: %d\t", bufp->regs_allocated);
   printf ("can_be_null: %d\t", bufp->can_be_null);
   printf ("newline_anchor: %d\n", bufp->newline_anchor);
@@ -1738,14 +1743,14 @@ do {									\
   if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_FAILURE_POINT)			\
     {									\
       DEBUG_FAIL_PRINT2 ("\nPUSH_FAILURE_POINT #%d:\n", failure_id);	\
-      DEBUG_FAIL_PRINT2 ("  Before push, next avail: %ld\n",		\
-			 (long) (fail_stack).avail);			\
-      DEBUG_FAIL_PRINT2 ("                     size: %ld\n",		\
-			 (long) (fail_stack).size);			\
+      DEBUG_FAIL_PRINT2 ("  Before push, next avail: %zd\n",		\
+			 (Bytecount) (fail_stack).avail);               \
+      DEBUG_FAIL_PRINT2 ("                     size: %zd\n",		\
+			 (Bytecount) (fail_stack).size);                \
       									\
       DEBUG_FAIL_PRINT2 ("  slots needed: %d\n", NUM_FAILURE_ITEMS);	\
-      DEBUG_FAIL_PRINT2 ("     available: %ld\n",			\
-			 (long) REMAINING_AVAIL_SLOTS);			\
+      DEBUG_FAIL_PRINT2 ("     available: %zd\n",			\
+			 (Bytecount) REMAINING_AVAIL_SLOTS);            \
     }									\
 									\
   /* Ensure we have enough space allocated for what we will push.  */	\
@@ -1763,10 +1768,10 @@ do {									\
 									\
       if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_FAILURE_POINT)			\
 	{								\
-	  DEBUG_FAIL_PRINT2 ("\n  Doubled stack; size now: %ld\n",	\
-			     (long) (fail_stack).size);			\
-	  DEBUG_FAIL_PRINT2 ("  slots available: %ld\n",		\
-			     (long) REMAINING_AVAIL_SLOTS);		\
+	  DEBUG_FAIL_PRINT2 ("\n  Doubled stack; size now: %zd\n",	\
+			     (Bytecount) (fail_stack).size);            \
+	  DEBUG_FAIL_PRINT2 ("  slots available: %zd\n",		\
+			     (Bytecount) REMAINING_AVAIL_SLOTS);        \
 	}								\
     }									\
 									\
@@ -1784,11 +1789,11 @@ do {									\
 	{								\
 	  DEBUG_FAIL_PRINT2 ("  Pushing reg: %d\n", this_reg);		\
 									\
-	  DEBUG_FAIL_PRINT2 ("    start: 0x%lx\n",			\
-			     (long) regstart[this_reg]);		\
-	  DEBUG_FAIL_PRINT2 ("    end: 0x%lx\n",			\
-			     (long) regend[this_reg]);			\
-	  DEBUG_FAIL_PRINT2 ("    info: 0x%lx\n      ",			\
+	  DEBUG_FAIL_PRINT2 ("    start: 0x%zx\n",			\
+			     (Bytecount) regstart[this_reg]);		\
+	  DEBUG_FAIL_PRINT2 ("    end: 0x%zx\n",			\
+			     (Bytecount) regend[this_reg]);             \
+	  DEBUG_FAIL_PRINT2 ("    info: 0x%zx\n      ",			\
 			     * (long *) (&reg_info[this_reg]));		\
 	  DEBUG_FAIL_PRINT2 (" match_null=%d",				\
 			     REG_MATCH_NULL_STRING_P (reg_info		\
@@ -1821,11 +1826,11 @@ do {									\
 			 lowest_active_reg);				\
       DEBUG_FAIL_PRINT2 ("  Pushing high active reg: %d\n",		\
 			 highest_active_reg);				\
-      DEBUG_FAIL_PRINT2 ("  Pushing pattern 0x%lx: \n",			\
-			 (long) pattern_place);				\
+      DEBUG_FAIL_PRINT2 ("  Pushing pattern 0x%zx: \n",			\
+			 (Bytecount) pattern_place);                    \
       DEBUG_FAIL_PRINT_COMPILED_PATTERN (bufp, pattern_place, pend);	\
-      DEBUG_FAIL_PRINT2 ("  Pushing string 0x%lx: `",			\
-			 (long) string_place);				\
+      DEBUG_FAIL_PRINT2 ("  Pushing string 0x%zx: `",			\
+			 (Bytecount) string_place);                     \
       DEBUG_FAIL_PRINT_DOUBLE_STRING (string_place, string1, size1,	\
 				      string2, size2);			\
       DEBUG_FAIL_PRINT1 ("'\n");					\
@@ -1884,10 +1889,10 @@ do {									\
   if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_FAILURE_POINT)			\
     {									\
       DEBUG_FAIL_PRINT1 ("POP_FAILURE_POINT:\n");			\
-      DEBUG_FAIL_PRINT2 ("  Before pop, next avail: %ld\n",		\
-			 (long) fail_stack.avail);			\
-      DEBUG_FAIL_PRINT2 ("                    size: %ld\n",		\
-			 (long) fail_stack.size);			\
+      DEBUG_FAIL_PRINT2 ("  Before pop, next avail: %zd\n",		\
+			 (Bytecount) fail_stack.avail);			\
+      DEBUG_FAIL_PRINT2 ("                    size: %zd\n",		\
+			 (Bytecount) fail_stack.size);			\
     }									\
 									\
   DEBUG_STATEMENT (ffailure_id = POP_FAILURE_INT());			\
@@ -1908,11 +1913,11 @@ do {									\
   if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_FAILURE_POINT)			\
     {									\
       DEBUG_FAIL_PRINT2 ("  Popping failure id: %d\n", ffailure_id);	\
-      DEBUG_FAIL_PRINT2 ("  Popping string 0x%lx: `",  (long) str);	\
+      DEBUG_FAIL_PRINT2 ("  Popping string 0x%zx: `",  (Bytecount) str);	\
       DEBUG_FAIL_PRINT_DOUBLE_STRING (str, string1, size1,		\
 				      string2, size2);			\
       DEBUG_FAIL_PRINT1 ("'\n");					\
-      DEBUG_FAIL_PRINT2 ("  Popping pattern 0x%lx: ", (long) pat);	\
+      DEBUG_FAIL_PRINT2 ("  Popping pattern 0x%zx: ", (Bytecount) pat);	\
       DEBUG_FAIL_PRINT_COMPILED_PATTERN (bufp, pat, pend);		\
       DEBUG_FAIL_PRINT2 ("  Popping high active reg: %d\n", high_reg);	\
       DEBUG_FAIL_PRINT2 ("  Popping  low active reg: %d\n", low_reg);	\
@@ -1927,12 +1932,12 @@ do {									\
       if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_FAILURE_POINT)			\
 	{								\
 	  DEBUG_FAIL_PRINT2 ("    Popping reg: %d\n", this_reg);	\
-	  DEBUG_FAIL_PRINT2 ("      info: 0x%lx\n",			\
-			     * (long *) &reg_info[this_reg]);		\
-	  DEBUG_FAIL_PRINT2 ("      end: 0x%lx\n",			\
-			     (long) regend[this_reg]);			\
-	  DEBUG_FAIL_PRINT2 ("      start: 0x%lx\n",			\
-			     (long) regstart[this_reg]);		\
+	  DEBUG_FAIL_PRINT2 ("      info: 0x%zx\n",			\
+			     * (Bytecount *) &reg_info[this_reg]);      \
+	  DEBUG_FAIL_PRINT2 ("      end: 0x%zx\n",			\
+			     (Bytecount) regend[this_reg]);             \
+	  DEBUG_FAIL_PRINT2 ("      start: 0x%zx\n",			\
+			     (Bytecount) regstart[this_reg]);		\
 	}								\
     }									\
 									\
@@ -5804,7 +5809,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
      fails at this starting point in the input data.  */
   for (;;)
     {
-      DEBUG_MATCH_PRINT2 ("\n0x%lx: ", (long) p);
+      DEBUG_MATCH_PRINT2 ("\n0x%zx: ", (Bytecount) p);
 #ifdef emacs /* XEmacs added, w/removal of immediate_quit */
       if (!no_quit_in_re_search)
 	{
@@ -6210,11 +6215,11 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    old_regstart[regno] = REG_MATCH_NULL_STRING_P (reg_info[regno])
 	      ? REG_UNSET (regstart[regno]) ? d : regstart[regno]
 	      : regstart[regno];
-	    DEBUG_MATCH_PRINT2 ("  old_regstart: %ld\n",
+	    DEBUG_MATCH_PRINT2 ("  old_regstart: %zd\n",
 				POINTER_TO_OFFSET (old_regstart[regno]));
 
 	    regstart[regno] = d;
-	    DEBUG_MATCH_PRINT2 ("  regstart: %ld\n",
+	    DEBUG_MATCH_PRINT2 ("  regstart: %zd\n",
 				POINTER_TO_OFFSET (regstart[regno]));
 
 	    IS_ACTIVE (reg_info[regno]) = 1;
@@ -6257,10 +6262,10 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    old_regend[regno] = REG_MATCH_NULL_STRING_P (reg_info[regno])
 	      ? REG_UNSET (regend[regno]) ? d : regend[regno]
 	      : regend[regno];
-	    DEBUG_MATCH_PRINT2 ("      old_regend: %ld\n",
+	    DEBUG_MATCH_PRINT2 ("      old_regend: %zd\n",
 				POINTER_TO_OFFSET (old_regend[regno]));
 	    regend[regno] = d;
-	    DEBUG_MATCH_PRINT2 ("      regend: %ld\n",
+	    DEBUG_MATCH_PRINT2 ("      regend: %zd\n",
 			      POINTER_TO_OFFSET (regend[regno]));
 
 	    /* This register isn't active anymore.  */
@@ -6542,7 +6547,8 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
           DEBUG_MATCH_PRINT1 ("EXECUTING on_failure_keep_string_jump");
 
           EXTRACT_NUMBER_AND_INCR (mcnt, p);
-          DEBUG_MATCH_PRINT3 (" %d (to 0x%lx):\n", mcnt, (long) (p + mcnt));
+          DEBUG_MATCH_PRINT3 (" %d (to 0x%zx):\n", mcnt,
+                              (Bytecount) (p + mcnt));
 
           PUSH_FAILURE_POINT (p + mcnt, (unsigned char *) 0, -2);
           break;
@@ -6565,7 +6571,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
           DEBUG_MATCH_PRINT1 ("EXECUTING on_failure_jump");
 
           EXTRACT_NUMBER_AND_INCR (mcnt, p);
-          DEBUG_MATCH_PRINT3 (" %d (to 0x%lx)", mcnt, (long) (p + mcnt));
+          DEBUG_MATCH_PRINT3 (" %d (to 0x%zx)", mcnt, (Bytecount) (p + mcnt));
 
           /* If this on_failure_jump comes right before a group (i.e.,
              the original * applied to a group), save the information
@@ -6788,7 +6794,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	  EXTRACT_NUMBER_AND_INCR (mcnt, p);	/* Get the amount to jump.  */
           DEBUG_MATCH_PRINT2 ("EXECUTING jump %d ", mcnt);
 	  p += mcnt;				/* Do the jump.  */
-          DEBUG_MATCH_PRINT2 ("(to 0x%lx).\n", (long) p);
+          DEBUG_MATCH_PRINT2 ("(to 0x%zx).\n", (Bytecount) p);
 	  break;
 
 
@@ -6835,13 +6841,14 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
             {
                mcnt--;
 	       p += 2;
-               DEBUG_MATCH_PRINT3 ("  Setting 0x%lx to %d.\n", (long) p, mcnt);
+               DEBUG_MATCH_PRINT3 ("  Setting 0x%zx to %d.\n", (Bytecount) p,
+                                   mcnt);
                STORE_MATCH_NUMBER_AND_INCR (p, mcnt);
             }
 	  else
             {
-              DEBUG_MATCH_PRINT2 ("  Setting two bytes from 0x%lx to no_op.\n",
-			    (long) (p+2));
+              DEBUG_MATCH_PRINT2 ("  Setting two bytes from 0x%zx to no_op.\n",
+			    (Bytecount) (p+2));
 	      STORE_MATCH_NUMBER (p + 2, no_op);
               goto on_failure;
             }
@@ -6874,7 +6881,8 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    p2 = (unsigned char *) p + mcnt;
             EXTRACT_NONNEGATIVE_AND_INCR (mcnt, p);
 
-            DEBUG_MATCH_PRINT3 ("  Setting 0x%lx to %d.\n", (long) p2, mcnt);
+            DEBUG_MATCH_PRINT3 ("  Setting 0x%zx to %d.\n", (Bytecount) p2,
+                                mcnt);
 	    STORE_MATCH_NUMBER (p2, mcnt);
             break;
           }

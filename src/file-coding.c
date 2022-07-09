@@ -4459,7 +4459,7 @@ detect_coding_type (struct detection_state *st, const UExtbyte *src,
   if (!NILP (Vdebug_coding_detection))
     {
       int bytes = min (16, n);
-      debug_out ("detect_coding_type: processing %ld bytes\n", n);
+      debug_out ("detect_coding_type: processing %zd bytes\n", n);
       debug_out ("First %d: ", bytes);
       output_bytes_in_ascii_and_hex (src, bytes);
       debug_out ("\nLast %d: ", bytes);

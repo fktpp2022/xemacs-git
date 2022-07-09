@@ -976,8 +976,8 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
     {
 #if defined (DUMP_IN_EXEC) && !defined (WIN32_NATIVE)
       /* #### We really should check for sizeof (size_t) > sizeof (long) */
-      printf ("%lu %lu\n", (unsigned long) dumped_data_max_size (),
-			   (unsigned long) dumped_data_align_offset ());
+      printf ("%zu %zu\n", dumped_data_max_size (),
+              dumped_data_align_offset ());
 
 #else
       printf ("Portable dumper not configured for dumping into executable or windows native; -si just forces exit.\n");
@@ -3922,7 +3922,7 @@ assert_equal_failed (const Ascbyte *file, int line, EMACS_INT x, EMACS_INT y,
 {
   Ascbyte bigstr[1000]; /* #### Could overflow, but avoids any need to do any
 			   allocation, even alloca(), hence safer */
-  sprintf (bigstr, "%s (%ld) should == %s (%ld) but doesn't",
+  sprintf (bigstr, "%s (%zd) should == %s (%zd) but doesn't",
 	   exprx, x, expry, y);
   assert_failed (file, line, bigstr);
 }

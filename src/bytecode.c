@@ -1972,7 +1972,7 @@ check_constants_index (int idx, Lisp_Object constants)
   if (idx < 0 || (Elemcount) idx >= XVECTOR_LENGTH (constants))
     signal_ferror
       (Qinvalid_byte_code,
-       "reference %d to constants array out of range 0, %ld",
+       "reference %d to constants array out of range 0, %zd",
        idx, XVECTOR_LENGTH (constants) - 1);
 }
 
@@ -2438,8 +2438,8 @@ print_compiled_function (Lisp_Object obj, Lisp_Object printcharfun,
     if (STRINGP (instructions) && !print_readably)
       {
 	/* We don't usually want to see that junk in the bytecode. */
-	write_fmt_string (printcharfun, "\"...(%ld)\"",
-			  (long) string_char_length (instructions));
+	write_fmt_string (printcharfun, "\"...(%zd)\"",
+			  string_char_length (instructions));
       }
     else
       print_internal (instructions, printcharfun, escapeflag);

@@ -165,8 +165,8 @@ print_tooltalk_message (Lisp_Object obj, Lisp_Object printcharfun,
   if (print_readably)
     printing_unreadable_lisp_object (obj, 0);
 
-  write_fmt_string (printcharfun, "#<tooltalk-message id:0x%lx 0x%x>",
-		    (long) (p->m), LISP_OBJECT_UID (obj));
+  write_fmt_string (printcharfun, "#<tooltalk-message id:0x%zx 0x%x>",
+		    (EMACS_INT) (p->m), LISP_OBJECT_UID (obj));
 }
 
 DEFINE_NODUMP_LISP_OBJECT ("tooltalk-message", tooltalk_message,
@@ -232,8 +232,8 @@ print_tooltalk_pattern (Lisp_Object obj, Lisp_Object printcharfun,
   if (print_readably)
     printing_unreadable_lisp_object (obj, 0);
 
-  write_fmt_string (printcharfun, "#<tooltalk-pattern id:0x%lx 0x%x>",
-		    (long) (p->p), LISP_OBJECT_UID (obj));
+  write_fmt_string (printcharfun, "#<tooltalk-pattern id:0x%zx 0x%x>",
+		    (EMACS_INT) (p->p), LISP_OBJECT_UID (obj));
 }
 
 DEFINE_NODUMP_LISP_OBJECT ("tooltalk-pattern", tooltalk_pattern,
@@ -496,7 +496,7 @@ tt_build_c_string (char *s)
 static Lisp_Object
 tt_opnum_string (int n)
 {
-  return emacs_sprintf_string ("%lu", (EMACS_INT) n);
+  return emacs_sprintf_string ("%zu", (EMACS_INT) n);
 }
 
 static Lisp_Object

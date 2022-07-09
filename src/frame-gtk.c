@@ -1223,7 +1223,7 @@ a string.
 {
   struct frame *f = decode_gtk_frame (frame);
 
-  return emacs_sprintf_string ("%lu",
+  return emacs_sprintf_string ("%zu",
 #ifdef HAVE_GTK2
                   GDK_WINDOW_XWINDOW (gtk_widget_get_window
                                       (FRAME_GTK_TEXT_WIDGET (f)))

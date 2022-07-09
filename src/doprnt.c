@@ -133,21 +133,21 @@ emacs_uint_to_string_rshift_1 (Ibyte *buffer, Bytecount size,
 
 UNSIGNED_TYPE_TO_STRING_GENERAL_1 (EMACS_UINT, emacs_uint);
 
-#if SIZEOF_EMACS_INT == 8
-#define uint_64_bit_to_string_general_1 emacs_uint_to_string_general_1
+#if SIZEOF_EMACS_INT == SIZEOF_LONG_LONG
+#define ullong_to_string_general_1 emacs_uint_to_string_general_1
 #else
-/* Print an unsigned 64-bit UVAL into BUFFER, which comprises SIZE octets, as
-   a base RADIX string, using TABLE to transform numbers to character values.
-   Start at the *end*, and return the length of the string written. Note that
-   this usually means there is slack before the actual text wanted. Do not
-   zero-terminate. Throw an assertion failure if text checking is turned on
-   and the conversion overruns BUFFER.
+/* Print an unsigned long long UVAL into BUFFER, which comprises SIZE octets,
+   as a base RADIX string, using TABLE to transform numbers to character
+   values.  Start at the *end*, and return the length of the string
+   written. Note that this usually means there is slack before the actual text
+   wanted. Do not zero-terminate. Throw an assertion failure if text checking
+   is turned on and the conversion overruns BUFFER.
 
    This is used in the unsigned integer handling, for negative integers only.
 
    See fixnum_to_string() for a more reasonable function for callers. */
 
-UNSIGNED_TYPE_TO_STRING_GENERAL_1 (UINT_64_BIT, uint_64_bit);
+UNSIGNED_TYPE_TO_STRING_GENERAL_1 (unsigned long long, ullong);
 #endif
 
 #define ONE_DIGIT(figure) \
@@ -187,7 +187,7 @@ UNSIGNED_TYPE_TO_STRING_GENERAL_1 (UINT_64_BIT, uint_64_bit);
 
    fixnum_to_string_base_10 (buf, sizeof (buf), number,
    get_radix_table_fixnum_majuscule_map(Vdigit_fixnum_ascii)) is equivalent to
-   snprintf (buf, sizeof (buf), "%ld" number), except for behaviour on overrun
+   snprintf (buf, sizeof (buf), "%zd" number), except for behaviour on overrun
    (snprintf won't throw an assertion failure).
 
    Use the DECIMAL_PRINT_SIZE() macro to size a buffer for
@@ -692,7 +692,7 @@ union printf_arg
   EMACS_UINT ul;
   double d;
   Ibyte *bp;
-  UINT_64_BIT u64;
+  unsigned long long ull;
   Lisp_Object obj;
 };
 
@@ -733,13 +733,14 @@ enum number_flag {
                            before. */
 };
 
-/* Was the h, the l, the hh, or the ll flag specified? */
+/* Was the h, the l, the hh, the ll, or the z flag specified? */
 enum hl_flag {
   HL_FLAG_NOTHING,
   HL_FLAG_HH,
   HL_FLAG_H,
   HL_FLAG_L,
-  HL_FLAG_LL
+  HL_FLAG_LL,
+  HL_FLAG_Z
 };
 
 #define NUMBER_FLAG_C_LIKEP(flag) (flag >= NUMBER_FLAG_C_SYNTAX)
@@ -1366,6 +1367,11 @@ parse_doprnt_spec (printf_spec_dynarr *specs,
                   spec.hl_flag = HL_FLAG_L;
                 }
             }
+          else if ('z' == ch)
+            {
+              spec.hl_flag = HL_FLAG_Z;
+              NEXT_ASCBYTE (ch);
+            }
 
           /* In contrast with C, u is a *modifier* for a following d, b, x, X,
              or o converter. If seen on its own it is equivalent to ud, which
@@ -1447,13 +1453,17 @@ get_doprnt_c_args (printf_arg *args, Elemcount args_needed,
 
       if (strchr (INT_CONVERTERS, ch))
 	{
-          /* Design decision; when dealing with C arguments, the l (ell)
-             modifier means the argument is the same bit length as an
-             EMACS_INT, whether that bit length be 32, 64 or 128. Other
-             modifiers are as documented for Lisp, that is, 8, 16 and 64
+          /* Design decision; when dealing with C arguments, the z modifier
+             means the argument is the same bit length as an EMACS_INT,
+             whether that bit length be 32, 64 or 128. (In standard C the z
+             modifier means the argument is the same bit length as a size_t,
+             which will be for practical purposes the same thing.)
+
+             Other modifiers are as standard for C, that is, 8, 16 and 64
              bits. No modifier means the argument will be read as a C int,
-             which may not be what you want. */
-          if ((spec->hl_flag == HL_FLAG_L ||
+             which may not be what you want. The j, t and q modifiers are not
+             supported. */
+          if ((spec->hl_flag == HL_FLAG_Z ||
                /* Pointers should be the same bit length as an EMACS_INT. */
                (ch == 'p'))
               && SIZEOF_INT != SIZEOF_EMACS_INT)
@@ -1464,24 +1474,29 @@ get_doprnt_c_args (printf_arg *args, Elemcount args_needed,
               arg.l = va_arg (vargs, EMACS_INT);
               spec->hl_flag = HL_FLAG_NOTHING;
             }
-          else if (spec->hl_flag == HL_FLAG_LL && SIZEOF_INT < 8)
+          else if (spec->hl_flag == HL_FLAG_L)
             {
-              INT_64_BIT i64 = va_arg (vargs, INT_64_BIT);
+              arg.l = va_arg (vargs, long);
+              spec->hl_flag = HL_FLAG_NOTHING;
+            }
+          else if (spec->hl_flag == HL_FLAG_LL)
+            {
+	      long long llarg = va_arg (vargs, long long);
 
-              if (SIZEOF_EMACS_INT >= 8)
+              if (SIZEOF_EMACS_INT >= SIZEOF_LONG_LONG)
                 {
-                  arg.l = (EMACS_INT) i64;
+                  arg.l = (EMACS_INT) llarg;
                 }
-              else if (i64 < 0 && !spec->unsigned_flag)
+              else if (llarg < 0 && !spec->unsigned_flag)
                 {
                   spec->sign_flag = SIGN_FLAG_MINUS;
                   spec->unsigned_flag = 1;
-                  arg.u64 = -i64;
+                  arg.ull = -(llarg + 1) + (unsigned long long) 1;
                 }
               else
                 {
                   spec->unsigned_flag = 1;
-                  arg.u64 = i64;
+                  arg.ull = llarg;
                 }
             }
           else
@@ -1592,12 +1607,12 @@ rewrite_rational_spec (struct printf_spec *spec, printf_arg *arg,
          /* Truncate it, and print as a fixnum. */
           if (spec->unsigned_flag)
             {
-              arg->u64 = bignum_to_uint_64_bit (XBIGNUM_DATA (*obj));
+              arg->ull = bignum_to_ullong (XBIGNUM_DATA (*obj));
 
               if (spec->hl_flag <= FIXNUM_SPEC_WIDEST_WIDTH_SPEC)
                 {
                   *obj
-                    = make_fixnum (arg->u64 & MOST_POSITIVE_FIXNUM_UNSIGNED);
+                    = make_fixnum (arg->ull & MOST_POSITIVE_FIXNUM_UNSIGNED);
                   /* Don't return here just yet, fallthrough to the fixnum
                      code. */
                   switch (ch)
@@ -1610,9 +1625,10 @@ rewrite_rational_spec (struct printf_spec *spec, printf_arg *arg,
                 }
               else
                 {
-                  if (spec->hl_flag == HL_FLAG_L)
+                  if (spec->hl_flag == HL_FLAG_L
+                      || spec->hl_flag == HL_FLAG_Z)
                     {
-                      arg->u64 &= 0xFFFFFFFF;
+                      arg->ull &= 0xFFFFFFFF;
                     }
 
                   *obj = Qunbound;
@@ -1623,35 +1639,36 @@ rewrite_rational_spec (struct printf_spec *spec, printf_arg *arg,
             }
           else
             {
-              /* For consistent behaviour with C casts, use
-                 bignum_to_uint_64_bit() and then convert the result into a
-                 signed value. */
-              INT_64_BIT i64val = bignum_to_uint_64_bit (XBIGNUM_DATA (*obj));
+              /* For consistent behaviour with C casts, use bignum_to_llong()
+		 and then convert the result into a signed value. */
+              long long llval = bignum_to_llong (XBIGNUM_DATA (*obj));
 
               switch ((enum hl_flag) (spec->hl_flag))
                 {
                 case HL_FLAG_HH:
-                  *obj = make_fixnum ((signed char) i64val);
+                  *obj = make_fixnum ((signed char) llval);
                   spec->hl_flag = HL_FLAG_NOTHING;
                   break;
                 case HL_FLAG_H:
-                  *obj = make_fixnum ((INT_16_BIT) i64val);
+                  *obj = make_fixnum ((INT_16_BIT) llval);
                   spec->hl_flag = HL_FLAG_NOTHING;
                   break;
                   /* The normal fixnum code can handle this, if the value is
                      not supplied as a Lisp object. */
                 case HL_FLAG_L:
-                  i64val = (INT_32_BIT) i64val;
+                case HL_FLAG_Z: /* We don't expose the size of EMACS_INT to
+                                   Lisp in this code. */
+                  llval = (INT_32_BIT) llval;
                   /* FALLTHROUGH */
                 case HL_FLAG_LL:
-                  if (i64val < 0)
+                  if (llval < 0)
                     {
                       spec->sign_flag = SIGN_FLAG_MINUS;
-                      arg->u64 = -i64val;
+		      arg->ull = -(llval + 1) + (unsigned long long) 1;
                     }
                   else
                     {
-                      arg->u64 = i64val;
+                      arg->ull = llval;
                     }
                   spec->unsigned_flag = 1;
                   *obj = Qunbound;
@@ -1705,12 +1722,12 @@ rewrite_rational_spec (struct printf_spec *spec, printf_arg *arg,
               spec->hl_flag = HL_FLAG_NOTHING;
               break;
             case HL_FLAG_L:          
-              arg->u64 = ((UINT_32_BIT) XREALFIXNUM (*obj));
+              arg->ull = ((UINT_32_BIT) XREALFIXNUM (*obj));
               spec->hl_flag = HL_FLAG_NOTHING;
               *obj = Qunbound;
               return 'u';
             case HL_FLAG_LL:          
-              arg->u64 = XREALFIXNUM (*obj);
+              arg->ull = (UINT_64_BIT) XREALFIXNUM (*obj);
               spec->hl_flag = HL_FLAG_NOTHING;
               *obj = Qunbound;
               return 'u';
@@ -2835,7 +2852,7 @@ emacs_doprnt (Lisp_Object stream,
 #endif /* HAVE_BIGFLOAT */
         case 'u':
           {
-            Ibyte buffer[(sizeof (INT_64_BIT) * 8 + 1) * MAX_ICHAR_LEN];
+            Ibyte buffer[(sizeof (long long) * 8 + 1) * MAX_ICHAR_LEN];
             Ibyte *end = buffer + sizeof (buffer), *cursor;
             Bytecount len;
             UINT_16_BIT radix = 10;
@@ -2851,8 +2868,8 @@ emacs_doprnt (Lisp_Object stream,
 
             FIXNUM_SPEC_PREAMBLE_1 (buffer, sizeof (buffer), radix);
 
-            len = uint_64_bit_to_string_general_1
-              (buffer, sizeof (buffer), arg.u64, radix,
+            len = ullong_to_string_general_1
+              (buffer, sizeof (buffer), arg.ull, radix,
                spec->converter == 'x' ?
                get_radix_table_fixnum_minuscule_map (radix_table)
                : get_radix_table_fixnum_majuscule_map (radix_table));
@@ -2864,7 +2881,7 @@ emacs_doprnt (Lisp_Object stream,
               }
             else if (NUMBER_FLAG_C_LIKEP (spec->number_flag))
               {
-                if (arg.u64 == 0)
+                if (arg.ull == 0)
                   {
                     if (8 == radix)
                       {
@@ -2902,11 +2919,18 @@ emacs_doprnt (Lisp_Object stream,
    from the va_list VA.
 
    Conversion specifiers are interpreted as for Lisp (see the Lispref), with
-   the two exceptions that an l (ell) length modifier to an integer format
-   spec is interpreted to mean that the corresponding argument should be
-   treated as having the bit length of an EMACS_INT, whether that length be
+   the exceptions that the h, hh, l and ll length modifiers to an integer
+   format have their usual C meanings, and that a z modifier to an integer
+   format spec is interpreted to mean that the corresponding argument should
+   be treated as having the bit length of an EMACS_INT, whether that length be
    32, 64, 128, and that %s means the corresponding argument is interpreted as
    an Ibyte pointer, to zero-terminated text.
+
+   (Note that the standard C meaning of the z modifier is that the
+   corresponding argument should be treated as having the bit width of a
+   size_t, which will correspond to the bit width of an EMACS_INT almost all
+   the time; compiler analysis of format strings is likely to do the right
+   thing.)
 
    We also do not handle the $ repositioning specs; they make it harder to
    determine an upper bound on the number of specs. This can be revised if

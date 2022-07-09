@@ -1641,7 +1641,7 @@ printing_major_badness (Lisp_Object printcharfun,
   switch (badness)
     {
     case BADNESS_INTEGER_OBJECT:
-      emacs_snprintf (buf, sizeof (buf), "%s type %d object %ld",
+      emacs_snprintf (buf, sizeof (buf), "%s type %d object %zd",
                       badness_string, type, (EMACS_INT) val);
       break;
 
@@ -1891,7 +1891,7 @@ print_gensym_or_circle (Lisp_Object obj, Lisp_Object printcharfun)
         }
       else if (XFIXNUM (seen) & PRINT_NUMBER_PRINTED_MASK)
         {
-          write_fmt_string (printcharfun, "#%ld#",
+          write_fmt_string (printcharfun, "#%zd#",
                             (XFIXNUM (seen) & PRINT_NUMBER_ORDINAL_MASK)
                             >> PRINT_NUMBER_ORDINAL_SHIFT);
 
@@ -1900,7 +1900,7 @@ print_gensym_or_circle (Lisp_Object obj, Lisp_Object printcharfun)
         }
       else
         {
-          write_fmt_string (printcharfun, "#%ld=",
+          write_fmt_string (printcharfun, "#%zd=",
                             (XFIXNUM (seen) & PRINT_NUMBER_ORDINAL_MASK)
                             >> PRINT_NUMBER_ORDINAL_SHIFT);
 
@@ -2810,7 +2810,7 @@ debug_p4 (Lisp_Object obj)
     }
   else if (FIXNUMP (obj))
     {
-      debug_out ("%ld", XFIXNUM (obj));
+      debug_out ("%zd", XFIXNUM (obj));
     }
   else if (FLOATP (obj))
     {
@@ -2822,10 +2822,9 @@ debug_p4 (Lisp_Object obj)
 	(struct lrecord_header *) XPNTR (obj);
 
       if (header->type >= lrecord_type_last_built_in_type)
-	debug_out ("<< bad object type=%d 0x%lx>>", header->type,
-		   (EMACS_INT) header);
+	debug_out ("<< bad object type=%d %p>>", header->type, header);
       else
-	debug_out ("#<%s addr=0x%lx uid=0x%lx>",
+	debug_out ("#<%s addr=0x%zx uid=0x%zx>",
 		   LHEADER_IMPLEMENTATION (header)->name,
 		   (EMACS_INT) header,
 		   (EMACS_INT) ((struct lrecord_header *) header)->uid);

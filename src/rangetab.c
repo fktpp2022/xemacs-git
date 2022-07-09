@@ -122,10 +122,10 @@ print_range_table (Lisp_Object obj, Lisp_Object printcharfun,
 	case RANGE_START_OPEN_END_CLOSED: so = 1; ec = 1; break;
 	default: ABORT (); so = 0, ec = 0; break;
 	}
-      write_fmt_string (printcharfun, "%c%ld %ld%c ",
+      write_fmt_string (printcharfun, "%c%zd %zd%c ",
 			print_readably ? '(' : so ? '(' : '[',
-			(long) (rte.first - so),
-			(long) (rte.last - ec),
+			(Bytecount) (rte.first - so),
+			(Bytecount) (rte.last - ec),
 			print_readably ? ')' : ec ? ']' : ')'
 			);
       print_internal (rte.val, printcharfun, 1);

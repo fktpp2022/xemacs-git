@@ -3446,7 +3446,7 @@ describe_event_window (Window window, Display *display, Lisp_Object pstream)
 {
   struct frame *f;
   Widget w;
-  write_fmt_string (pstream, "   window: 0x%lx", (unsigned long) window);
+  write_fmt_string (pstream, "   window: 0x%lx", window);
   w = XtWindowToWidget (display, window);
   if (w)
     write_fmt_string (pstream, " %s",

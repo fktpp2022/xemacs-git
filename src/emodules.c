@@ -382,7 +382,7 @@ emodules_load (const Ibyte *module, const Ibyte *modname,
   if (ellcc_rev == NULL || *ellcc_rev <= 0L)
     signal_error (Qdll_error, "Invalid dynamic module: Missing symbol `emodule_compiler'", Qunbound);
   if (*ellcc_rev > EMODULES_REVISION)
-    signal_ferror (Qdll_error, "Invalid dynamic module: Unsupported version `%ld(%ld)'", *ellcc_rev, EMODULES_REVISION);
+    signal_ferror (Qdll_error, "Invalid dynamic module: Unsupported version `%zd(%zd)'", *ellcc_rev, EMODULES_REVISION);
 
   f = (const Extbyte **) dll_variable (dlhandle,
 				       (const Ibyte *) "emodule_name");

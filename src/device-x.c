@@ -1272,7 +1272,7 @@ x_IO_error_handler (Display *disp)
 		   (const CIbyte *) (XSTRING_DATA (Vinvocation_name)) :
                    (const CIbyte *) "xemacs"),
 		  errno, errmess, display_string);
-      stderr_out ("  after %lu requests (%lu known processed) with %u "
+      stderr_out ("  after %zu requests (%zu known processed) with %u "
 		  "events remaining.\n",
 		  (EMACS_UINT) (NextRequest (disp) - 1),
                   (EMACS_UINT) LastKnownRequestProcessed (disp),
@@ -1289,7 +1289,7 @@ x_IO_error_handler (Display *disp)
       warn_when_safe
 	(Qx, Qcritical,
 	 "I/O Error %d (%s) on display connection\n"
-	 "  \"%s\" after %lu requests (%lu known processed)\n"
+	 "  \"%s\" after %zu requests (%zu known processed)\n"
 	 "  with %d events remaining.\n"
 	 "  Throwing to top level.\n",
 	 errno, errmess, display_string,

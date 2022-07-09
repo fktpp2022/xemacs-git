@@ -281,7 +281,7 @@ print_event (Lisp_Object obj, Lisp_Object printcharfun,
 	assert (FIXNUMP (Vx));
 	Vy = Fevent_y_pixel (obj);
 	assert (FIXNUMP (Vy));
-	write_fmt_string (printcharfun, "#<motion-event %ld, %ld",
+	write_fmt_string (printcharfun, "#<motion-event %zd, %zd",
 			  XFIXNUM (Vx), XFIXNUM (Vy));
 	break;
       }

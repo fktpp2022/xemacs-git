@@ -207,7 +207,7 @@ add_num_time_t (char *string, int max, time_t num)
     ABORT ();
 #endif
 
-  emacs_snprintf_ascbyte (buf, sizeof (buf), "%lu", (EMACS_UINT) num);
+  emacs_snprintf_ascbyte (buf, sizeof (buf), "%zu", (EMACS_UINT) num);
   return add_str (string, buf, max);
 }
 

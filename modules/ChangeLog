@@ -1,3 +1,9 @@
+2022-07-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* ldap/eldap.c (print_ldap):
+	Use %p in the format string when printing a pointer, rather than
+	casting to a long and using 0x%lx.
+
 2021-11-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* postgresql/postgresql.c:

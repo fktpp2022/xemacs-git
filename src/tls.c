@@ -250,7 +250,7 @@ tls_set_x509_key_file (const Extbyte *certfile, const Extbyte *keyfile)
 	signal_error (Qtls_error, "Cannot load NSS PEM module", NSS_ERRSTR);
     }
 
-  emacs_snprintf_ascbyte (name, sizeof (name), "PEM_Token %ld",
+  emacs_snprintf_ascbyte (name, sizeof (name), "PEM_Token %zd",
                           (EMACS_INT) slot_id);
   slot = PK11_FindSlotByName (name);
   if (slot == NULL)
