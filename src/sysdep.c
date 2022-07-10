@@ -75,6 +75,14 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <setjmp.h>
 #include <string.h>
 
+#ifdef HAVE_KVM_MEMORY_STATS
+#  include <sys/sysctl.h>
+#  ifdef HAVE_SYS_USER_H
+#    include <sys/user.h>
+#  endif
+#  include <kvm.h>
+#endif
+
 /* ------------------------------- */
 /*         TTY definitions         */
 /* ------------------------------- */
@@ -118,20 +126,20 @@ static int baud_convert[] =
 /* Arrange for character C to be read as the next input from
    the terminal.  */
 void
-stuff_char (struct console *con,
+stuff_char (
 #ifdef TIOCSTI
-	    int c
+	    struct console *con, int c
 #else
-	    int UNUSED (c)
+	    struct console * UNUSED (con), int UNUSED (c)
 #endif
 	    )
 {
+#ifdef TIOCSTI
   int input_fd;
 
   assert (CONSOLE_TTY_P (con));
   input_fd = CONSOLE_TTY_DATA (con)->infd;
 /* Should perhaps error if in batch mode */
-#ifdef TIOCSTI
   ioctl (input_fd, TIOCSTI, &c);
 #else /* no TIOCSTI */
   invalid_operation ("Cannot stuff terminal input characters in this version of Unix.", Qunbound);
@@ -1721,6 +1729,7 @@ reset_initial_console (void)
 /*                    limits of text/data segments                      */
 /************************************************************************/
 
+#ifndef HAVE_KVM_MEMORY_STATS
 extern void *minimum_address_seen; /* from xmalloc() */
 extern void *maximum_address_seen; /* from xmalloc() */
 
@@ -1753,6 +1762,43 @@ total_data_usage (void)
      higher than actual memory usage.  How to fix??? */
   return (char *) data_end - (char *) data_start;
 }
+
+#else
+#define STRINGIFY_(s) #s
+#define STRINGIFY(s) STRINGIFY_ (s)
+Bytecount
+total_data_usage (void)
+{
+  kvm_t *kvm;
+  KVM_GETPROC_RTYPE *kinfo;
+  int count;
+  char errbuf[_POSIX2_LINE_MAX];
+
+  kvm = kvm_openfiles (NULL, KVM_OPEN_COREFILE, NULL, KVM_OPEN_FLAGS, errbuf);
+
+  if (!kvm)
+    signal_error (Qio_error, "kvm_open() failed",
+                  build_extstring (errbuf, Qnative));
+
+  kinfo = KVM_GETPROC_FN (kvm, KERN_PROC_PID, (int) getpid (),
+#ifdef KVM_GETPROC_HAS_SIZE_PARAM
+                          sizeof (*kinfo),
+#endif
+                          &count);
+  kvm_close (kvm);
+
+  if (!kinfo || !count)
+    signal_error (Qio_error, STRINGIFY (KVM_GETPROC_FN) "() failed", Qunbound);
+
+  return (Bytecount) KVM_GET_PROCESS_SIZE (kinfo)
+#ifdef KVM_SIZE_IN_PAGES
+           * getpagesize ()
+#endif
+           ;
+}
+#undef STRINGIFY
+#undef STRINGIFY_
+#endif /* HAVE_KVM_MEMORY_STATS */
 
 
 /************************************************************************/

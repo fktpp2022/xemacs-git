@@ -276,6 +276,7 @@ things are arranged in config.h.in.  In particular:
 #undef HAVE_SYS_TIMEB_H
 #undef HAVE_SYS_TIMES_H
 #undef HAVE_SYS_UN_H
+#undef HAVE_SYS_USER_H
 #undef HAVE_SYS_VLIMIT_H
 #undef HAVE_ULIMIT_H
 #undef HAVE_UNISTD_H
@@ -472,6 +473,16 @@ things are arranged in config.h.in.  In particular:
 #undef HAVE_GNUTLS_CERTIFICATE_VERIFY_PEERS3
 #undef HAVE_OPENSSL
 #undef HAVE_X509_CHECK_HOST
+
+/* BSD libkvm support (not that of Solaris, because it needs root rights.) */
+#undef HAVE_KVM_MEMORY_STATS
+#undef KVM_GETPROC_FN
+#undef KVM_GETPROC_HAS_SIZE_PARAM
+#undef KVM_GETPROC_RTYPE
+#undef KVM_GET_PROCESS_SIZE
+#undef KVM_OPEN_COREFILE
+#undef KVM_OPEN_FLAGS
+#undef KVM_SIZE_IN_PAGES
 
 /* Compile in support for X pixmaps via the `xpm' library? */
 #undef HAVE_XPM

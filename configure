@@ -10927,7 +10927,7 @@ printf %s "checking for runtime libraries flag... " >&6; }
     linux* | irix*) dash_r="-rpath " ;;
     *)
       dash_r=""
-      for try_dash_r in "-R" "-R " "-rpath "; do
+      for try_dash_r in "-Wl,-R" "-R" "-R " "-rpath "; do
         xe_check_libs="${try_dash_r}/no/such/file-or-directory"
 
 if test "$GCC" = "yes"; then
@@ -11547,6 +11547,12 @@ ac_fn_c_check_header_compile "$LINENO" "sys/un.h" "ac_cv_header_sys_un_h" "$ac_i
 if test "x$ac_cv_header_sys_un_h" = xyes
 then :
   printf "%s\n" "#define HAVE_SYS_UN_H 1" >>confdefs.h
+
+fi
+ac_fn_c_check_header_compile "$LINENO" "sys/user.h" "ac_cv_header_sys_user_h" "$ac_includes_default"
+if test "x$ac_cv_header_sys_user_h" = xyes
+then :
+  printf "%s\n" "#define HAVE_SYS_USER_H 1" >>confdefs.h
 
 fi
 ac_fn_c_check_header_compile "$LINENO" "sys/vlimit.h" "ac_cv_header_sys_vlimit_h" "$ac_includes_default"
@@ -22572,7 +22578,7 @@ then :
   have_mp_mfree=yes; break
 else $as_nop
 
-        unset ac_cv_lib_mp_mp_mfree
+	unset ac_cv_lib_mp_mp_mfree
 	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for mfree in -lmp" >&5
 printf %s "checking for mfree in -lmp... " >&6; }
 if test ${ac_cv_lib_mp_mfree+y}
@@ -23212,6 +23218,338 @@ if test -n "$with_tls" -a "$with_tls" != "no"; then
   printf "%s\n" "#define WITH_TLS 1" >>confdefs.h
 
 fi
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for kvm_openfiles in -lkvm" >&5
+printf %s "checking for kvm_openfiles in -lkvm... " >&6; }
+if test ${ac_cv_lib_kvm_kvm_openfiles+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lkvm  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+char kvm_openfiles ();
+int
+main (void)
+{
+return kvm_openfiles ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"
+then :
+  ac_cv_lib_kvm_kvm_openfiles=yes
+else $as_nop
+  ac_cv_lib_kvm_kvm_openfiles=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_kvm_kvm_openfiles" >&5
+printf "%s\n" "$ac_cv_lib_kvm_kvm_openfiles" >&6; }
+if test "x$ac_cv_lib_kvm_kvm_openfiles" = xyes
+then :
+
+  xe_save_LIBS="$LIBS"
+  LIBS="$LIBS -lkvm" &&  if test "$verbose" = "yes"; then echo "    Appending \"-lkvm\" to \$LIBS"; fi
+  kvm_tested=false
+  break_kvm_testing=false
+
+  for i in 1; do
+           for ac_header in kvm.h
+do :
+  ac_fn_c_check_header_compile "$LINENO" "kvm.h" "ac_cv_header_kvm_h" "$ac_includes_default"
+if test "x$ac_cv_header_kvm_h" = xyes
+then :
+  printf "%s\n" "#define HAVE_KVM_H 1" >>confdefs.h
+
+else $as_nop
+  break_kvm_testing=true
+fi
+
+done
+    if $break_kvm_testing; then break; fi
+
+                { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for KVM_NO_FILES" >&5
+printf %s "checking for KVM_NO_FILES... " >&6; }
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <fcntl.h>
+#include <kvm.h>
+#ifdef KVM_NO_FILES
+yes
+#endif
+
+_ACEOF
+if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
+  $EGREP "yes" >/dev/null 2>&1
+then :
+
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+      kvm_openfiles_method=kvm_no_files
+
+else $as_nop
+
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for /dev/null as the kvm_openfiles corefile parameter" >&5
+printf %s "checking for /dev/null as the kvm_openfiles corefile parameter... " >&6; }
+      if test "$cross_compiling" = yes
+then :
+  { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+printf "%s\n" "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else $as_nop
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <fcntl.h>
+#include <kvm.h>
+int main() {
+    return !kvm_open(0, "/dev/null", 0, O_RDONLY, 0);
+}
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"
+then :
+
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+        kvm_openfiles_method=devnull_corefile
+
+else $as_nop
+
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+        break_kvm_testing=true
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
+fi
+rm -rf conftest*
+
+    if $break_kvm_testing; then break; fi
+
+            ac_fn_c_check_func "$LINENO" "kvm_getproc2" "ac_cv_func_kvm_getproc2"
+if test "x$ac_cv_func_kvm_getproc2" = xyes
+then :
+  kvm_getproc=kvm_getproc2
+else $as_nop
+
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for amount of parameters for kvm_getprocs()" >&5
+printf %s "checking for amount of parameters for kvm_getprocs()... " >&6; }
+      kvm_getproc=
+
+      for kvm_getprocs_param_type in \
+         'kvm_getprocs_param_amount=4; kvm_getprocs_params="0, 0, 0, 0"' \
+         'kvm_getprocs_param_amount=5; kvm_getprocs_params="0, 0, 0, 0, 0"'; do
+        eval "$kvm_getprocs_param_type"
+
+                                cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#ifdef HAVE_SYS_USER_H
+#  include <sys/user.h>
+#endif
+#include <kvm.h>
+
+int
+main (void)
+{
+
+kvm_getprocs($kvm_getprocs_params);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"
+then :
+
+          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $kvm_getprocs_param_amount" >&5
+printf "%s\n" "$kvm_getprocs_param_amount" >&6; }
+          kvm_getproc=kvm_getprocs
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+
+        if test -n "$kvm_getproc"; then break; fi
+      done
+
+      if test -z "$kvm_getproc"; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: not available" >&5
+printf "%s\n" "not available" >&6; }
+        break_kvm_testing=true
+      fi
+
+fi
+
+    if $break_kvm_testing; then break; fi
+
+        if test $kvm_getproc = kvm_getproc2; then
+      ac_fn_c_check_member "$LINENO" "struct kinfo_proc2" "p_vm_vsize" "ac_cv_member_struct_kinfo_proc2_p_vm_vsize" "
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#include <kvm.h>
+
+"
+if test "x$ac_cv_member_struct_kinfo_proc2_p_vm_vsize" = xyes
+then :
+
+        kvm_size_in_pages=true
+        kvm_struct_size_members='(k)->p_vm_vsize'
+        kvm_tested=true
+
+fi
+
+    else
+      ac_fn_c_check_member "$LINENO" "struct kinfo_proc" "ki_size" "ac_cv_member_struct_kinfo_proc_ki_size" "
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#ifdef HAVE_SYS_USER_H
+#  include <sys/user.h>
+#endif
+#include <kvm.h>
+
+"
+if test "x$ac_cv_member_struct_kinfo_proc_ki_size" = xyes
+then :
+
+        kvm_size_in_pages=false
+        kvm_struct_size_members='(k)->ki_size'
+        kvm_tested=true
+
+fi
+
+
+      if test $kvm_tested = false; then
+        kvm_have_compound_members=true
+        ac_fn_c_check_member "$LINENO" "struct kinfo_proc" "p_vm_dsize" "ac_cv_member_struct_kinfo_proc_p_vm_dsize" "
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#include <kvm.h>
+
+"
+if test "x$ac_cv_member_struct_kinfo_proc_p_vm_dsize" = xyes
+then :
+
+printf "%s\n" "#define HAVE_STRUCT_KINFO_PROC_P_VM_DSIZE 1" >>confdefs.h
+
+
+else $as_nop
+
+          kvm_have_compound_members=false
+
+fi
+ac_fn_c_check_member "$LINENO" "struct kinfo_proc" "p_vm_ssize" "ac_cv_member_struct_kinfo_proc_p_vm_ssize" "
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#include <kvm.h>
+
+"
+if test "x$ac_cv_member_struct_kinfo_proc_p_vm_ssize" = xyes
+then :
+
+printf "%s\n" "#define HAVE_STRUCT_KINFO_PROC_P_VM_SSIZE 1" >>confdefs.h
+
+
+else $as_nop
+
+          kvm_have_compound_members=false
+
+fi
+ac_fn_c_check_member "$LINENO" "struct kinfo_proc" "p_vm_tsize" "ac_cv_member_struct_kinfo_proc_p_vm_tsize" "
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#include <kvm.h>
+
+"
+if test "x$ac_cv_member_struct_kinfo_proc_p_vm_tsize" = xyes
+then :
+
+printf "%s\n" "#define HAVE_STRUCT_KINFO_PROC_P_VM_TSIZE 1" >>confdefs.h
+
+
+else $as_nop
+
+          kvm_have_compound_members=false
+
+fi
+
+
+        if $kvm_have_compound_members; then
+          kvm_size_in_pages=true
+          kvm_struct_size_members='((k)->p_vm_dsize + (k)->p_vm_ssize + (k)->p_vm_tsize)'
+          kvm_tested=true
+        fi
+      fi
+    fi
+  done
+
+  if $kvm_tested; then
+    printf "%s\n" "#define HAVE_KVM_MEMORY_STATS 1" >>confdefs.h
+
+
+    if test $kvm_openfiles_method = kvm_no_files; then
+      printf "%s\n" "#define KVM_OPEN_COREFILE NULL" >>confdefs.h
+
+      printf "%s\n" "#define KVM_OPEN_FLAGS KVM_NO_FILES" >>confdefs.h
+
+    else
+      printf "%s\n" "#define KVM_OPEN_COREFILE \"/dev/null\"" >>confdefs.h
+
+      printf "%s\n" "#define KVM_OPEN_FLAGS O_RDONLY" >>confdefs.h
+
+    fi
+
+    if test $kvm_getproc = kvm_getproc2; then
+      printf "%s\n" "#define KVM_GETPROC_RTYPE struct kinfo_proc2" >>confdefs.h
+
+      printf "%s\n" "#define KVM_GETPROC_FN kvm_getproc2" >>confdefs.h
+
+      printf "%s\n" "#define KVM_GETPROC_HAS_SIZE_PARAM 1" >>confdefs.h
+
+    else
+      printf "%s\n" "#define KVM_GETPROC_RTYPE struct kinfo_proc" >>confdefs.h
+
+      printf "%s\n" "#define KVM_GETPROC_FN kvm_getprocs" >>confdefs.h
+
+
+      if test $kvm_getprocs_param_amount = 5; then
+        printf "%s\n" "#define KVM_GETPROC_HAS_SIZE_PARAM 1" >>confdefs.h
+
+      fi
+    fi
+
+    printf "%s\n" "#define KVM_GET_PROCESS_SIZE(k) $kvm_struct_size_members" >>confdefs.h
+
+
+    if $kvm_size_in_pages; then
+      printf "%s\n" "#define KVM_SIZE_IN_PAGES 1" >>confdefs.h
+
+    fi
+  else
+    LIBS="$xe_save_LIBS"
+  fi
+
+fi
+
 
 if test "$cross_compiling" = yes
 then :

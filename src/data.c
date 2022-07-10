@@ -1660,7 +1660,7 @@ parse_integer (const Ibyte *buf, Ibyte **buf_end_out, Bytecount len,
     }
 
 #ifndef HAVE_BIGNUM
-  if (EMACS_INT_ABS (XFIXNUM (result)) != num)
+  if ((EMACS_UINT) EMACS_INT_ABS (XFIXNUM (result)) != num)
     {
       goto overflow;
     }
@@ -1827,7 +1827,7 @@ parse_integer (const Ibyte *buf, Ibyte **buf_end_out, Bytecount len,
 	}
 
 #ifndef HAVE_BIGNUM
-      if (EMACS_INT_ABS (XFIXNUM (result)) != num)
+      if ((EMACS_UINT) EMACS_INT_ABS (XFIXNUM (result)) != num)
 	{
 	  goto overflow;
 	}

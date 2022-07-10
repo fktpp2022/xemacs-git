@@ -1531,6 +1531,7 @@ trivial_regexp_p (Lisp_Object regexp)
   return 1;
 }
 
+#ifdef MULE
 /* Return non-zero if two characters -- the first represented in
  * Itext format, and the second given as a character -- differ in the
  * non-final bytes of their respective Itext representations. */
@@ -1552,6 +1553,7 @@ chars_differ_in_non_final_bytes (const Ibyte *astr, Bytecount alen, Ichar b)
      calling memcmp() with zero size. */
   return (alen != blen || (alen > 1 && memcmp (astr, bstr, blen - 1)));
 }
+#endif
 
 /* Search for the n'th occurrence of STRING in BUF,
    starting at position POS and stopping at position BUFLIM,

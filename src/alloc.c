@@ -5291,6 +5291,10 @@ This may be helpful in debugging XEmacs's memory usage.
 NOTE: This may or may not be accurate!  It is hard to determine this
 value in a system-independent fashion.  On Windows, for example, the
 returned number tends to be much greater than reality.
+NOTE 2: In BSD, this returns the whole memory usage, not just the data segment.
+Also in FreeBSD and NetBSD free() doesn't always immediately munmap() an
+allocated area, but instead madvise()s it as MADV_FREE, so the memory usage
+might not drop from its highest point unless the VM system reclaims the pages.
 */
        ())
 {

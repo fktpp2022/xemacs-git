@@ -2441,7 +2441,7 @@ if test "$add_runtime_path" = "yes"; then
     linux* | irix*) dash_r="-rpath " ;;
     *)
       dash_r=""
-      for try_dash_r in "-R" "-R " "-rpath "; do
+      for try_dash_r in "-Wl,-R" "-R" "-R " "-rpath "; do
         xe_check_libs="${try_dash_r}/no/such/file-or-directory"
         XE_PROTECT_LINKER_FLAGS(xe_check_libs)
         AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])], [dash_r="$try_dash_r"])
@@ -2554,6 +2554,7 @@ AC_CHECK_HEADERS(dnl
   sys/timeb.h dnl
   sys/times.h dnl
   sys/un.h dnl
+  sys/user.h dnl
   sys/vlimit.h dnl
   ulimit.h dnl
 )
@@ -5557,6 +5558,169 @@ fi
 if test -n "$with_tls" -a "$with_tls" != "no"; then
   AC_DEFINE(WITH_TLS)
 fi
+
+dnl BSD systems and Solaris all have libkvm, but in Solaris, using it requires
+dnl read access to /dev/kmem, which only root has. We can differentiate by
+dnl the kvm_openfiles(3) API not found in Solaris and its derivatives.
+AC_CHECK_LIB(kvm, kvm_openfiles, [
+  xe_save_LIBS="$LIBS"
+  XE_APPEND(-lkvm, LIBS)
+  kvm_tested=false
+  break_kvm_testing=false
+
+  for i in 1; do
+    AC_CHECK_HEADERS([kvm.h], [], [break_kvm_testing=true])
+    if $break_kvm_testing; then break; fi
+
+    dnl NetBSD and OpenBSD have a KVM_NO_FILES flag for querying the kernel
+    dnl process table instead of reading an executable or a core file. FreeBSD
+    dnl rquires passing "/dev/null" as the corefile parameter.
+    AC_MSG_CHECKING(for KVM_NO_FILES)
+    AC_EGREP_CPP(yes, [
+#include <fcntl.h>
+#include <kvm.h>
+#ifdef KVM_NO_FILES
+yes
+#endif
+    ], [
+      AC_MSG_RESULT(yes)
+      kvm_openfiles_method=kvm_no_files
+    ], [
+      AC_MSG_RESULT(no)
+      AC_MSG_CHECKING(for /dev/null as the kvm_openfiles corefile parameter)
+      AC_RUN_IFELSE([AC_LANG_SOURCE([
+#include <fcntl.h>
+#include <kvm.h>
+int main() {
+    return !kvm_open(0, "/dev/null", 0, O_RDONLY, 0);
+}
+      ])], [
+        AC_MSG_RESULT(yes)
+        kvm_openfiles_method=devnull_corefile
+      ], [
+        AC_MSG_RESULT(no)
+        break_kvm_testing=true
+      ])
+    ])
+    if $break_kvm_testing; then break; fi
+
+    dnl NetBSD has kvm_getproc2(), OpenBSD has 5 parameters in kvm_getprocs(),
+    dnl FreeBSD has 4.
+    AC_CHECK_FUNC(kvm_getproc2, [kvm_getproc=kvm_getproc2], [
+      AC_MSG_CHECKING(for amount of parameters for kvm_getprocs())
+      kvm_getproc=
+
+      for kvm_getprocs_param_type in \
+         'kvm_getprocs_param_amount=4; kvm_getprocs_params="0, 0, 0, 0"' \
+         'kvm_getprocs_param_amount=5; kvm_getprocs_params="0, 0, 0, 0, 0"'; do
+        eval "$kvm_getprocs_param_type"
+
+        dnl Assume and thus also test for sys/param.h and sys/sysctl.h in the
+        dnl supported systems. FreeBSD also requires sys/user.h, but its
+        dnl existence has been tested previously.
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#ifdef HAVE_SYS_USER_H
+#  include <sys/user.h>
+#endif
+#include <kvm.h>
+            ], [
+kvm_getprocs($kvm_getprocs_params);
+            ])], [
+          AC_MSG_RESULT($kvm_getprocs_param_amount)
+          kvm_getproc=kvm_getprocs
+        ])
+
+        if test -n "$kvm_getproc"; then break; fi
+      done
+
+      if test -z "$kvm_getproc"; then
+        AC_MSG_RESULT(not available)
+        break_kvm_testing=true
+      fi
+    ])
+    if $break_kvm_testing; then break; fi
+
+    dnl Stupid autoconf doesn't allow the structure type to be a variable.
+    if test $kvm_getproc = kvm_getproc2; then
+      AC_CHECK_MEMBER([struct kinfo_proc2.p_vm_vsize], [
+        kvm_size_in_pages=true
+        kvm_struct_size_members='(k)->p_vm_vsize'
+        kvm_tested=true
+      ], [], [
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#include <kvm.h>
+      ])
+    else
+      AC_CHECK_MEMBER([struct kinfo_proc.ki_size], [
+        kvm_size_in_pages=false
+        kvm_struct_size_members='(k)->ki_size'
+        kvm_tested=true
+      ], [], [
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#ifdef HAVE_SYS_USER_H
+#  include <sys/user.h>
+#endif
+#include <kvm.h>
+      ])
+
+      if test $kvm_tested = false; then
+        kvm_have_compound_members=true
+        AC_CHECK_MEMBERS([struct kinfo_proc.p_vm_dsize,
+                          struct kinfo_proc.p_vm_ssize,
+                          struct kinfo_proc.p_vm_tsize], [], [
+          kvm_have_compound_members=false
+        ], [
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#include <kvm.h>
+        ])
+
+        if $kvm_have_compound_members; then
+          kvm_size_in_pages=true
+          kvm_struct_size_members='((k)->p_vm_dsize + (k)->p_vm_ssize + (k)->p_vm_tsize)'
+          kvm_tested=true
+        fi
+      fi
+    fi
+  done
+
+  if $kvm_tested; then
+    AC_DEFINE(HAVE_KVM_MEMORY_STATS)
+
+    if test $kvm_openfiles_method = kvm_no_files; then
+      AC_DEFINE(KVM_OPEN_COREFILE, NULL)
+      AC_DEFINE(KVM_OPEN_FLAGS,    KVM_NO_FILES)
+    else
+      AC_DEFINE(KVM_OPEN_COREFILE, "/dev/null")
+      AC_DEFINE(KVM_OPEN_FLAGS,    O_RDONLY)
+    fi
+
+    if test $kvm_getproc = kvm_getproc2; then
+      AC_DEFINE(KVM_GETPROC_RTYPE, struct kinfo_proc2)
+      AC_DEFINE(KVM_GETPROC_FN,    kvm_getproc2)
+      AC_DEFINE(KVM_GETPROC_HAS_SIZE_PARAM)
+    else
+      AC_DEFINE(KVM_GETPROC_RTYPE, struct kinfo_proc)
+      AC_DEFINE(KVM_GETPROC_FN,    kvm_getprocs)
+
+      if test $kvm_getprocs_param_amount = 5; then
+        AC_DEFINE(KVM_GETPROC_HAS_SIZE_PARAM)
+      fi
+    fi
+
+    AC_DEFINE_UNQUOTED([KVM_GET_PROCESS_SIZE(k)], [$kvm_struct_size_members])
+
+    if $kvm_size_in_pages; then
+      AC_DEFINE(KVM_SIZE_IN_PAGES)
+    fi
+  else
+    LIBS="$xe_save_LIBS"
+  fi
+])
 
 dnl Unfortunately, just because we can link doesn't mean we can run.
 dnl One of the above link tests may have succeeded but caused resulting

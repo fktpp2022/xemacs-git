@@ -1,3 +1,29 @@
+2022-07-10  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* sysdep.c (total_data_usage):
+	Implement total_data_usage() in terms of BSD libkvm.
+
+	* sysdep.c (stuff_char):
+	Compiler warning fix: if the system doesn't have the TIOCSTI ioctl,
+	#ifdef directly to the error call instead of first assigning to a
+	variable that is then left unused.
+
+	* config.h.in
+	libkvm related defines.
+
+	* number-mp.c (bignum_set_long):
+	* number-mp.c (bignum_set_ulong):
+	* number-mp.c (bignum_set_llong):
+	* number-mp.c (bignum_set_ullong):
+	Switch from emacs_snprintf() to emacs_snprintf_ascbyte() to ensure that
+	the hex strings to be parsed don't contain localized numbers.
+
+	* data.c (parse_integer):
+	Compiler warning fix: typecast signed int comparisons to EMACS_UINT.
+
+	* search.c (chars_differ_in_non_final_bytes):
+	Compiler warning fix: enclose this function inside #ifdef MULE.
+
 2022-07-09  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* doprnt.c:
