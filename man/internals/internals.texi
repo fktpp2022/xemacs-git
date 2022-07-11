@@ -733,7 +733,6 @@ Future Work
 * Future Work -- Multiple Values::  
 * Future Work -- Macros::       
 * Future Work -- Specifiers::   
-* Future Work -- Display Tables::  
 * Future Work -- Making Elisp Function Calls Faster::  
 * Future Work -- Lisp Engine Replacement::  
 * Future Work -- Better Rendering Support::  
@@ -811,6 +810,7 @@ Old Future Work
 * Old Future Work -- xemacs.org Mailing Address Changes::  
 * Old Future Work -- Lisp callbacks from critical areas of the C code::  
 * Old Future Work -- Everything should obey duplicable extents::  
+* Old Future Work -- Display Tables::
 
 @end detailmenu
 @end menu
@@ -23162,7 +23162,6 @@ The DOC file contents should probably end up in the dump file.
 * Future Work -- Multiple Values::  
 * Future Work -- Macros::       
 * Future Work -- Specifiers::   
-* Future Work -- Display Tables::  
 * Future Work -- Making Elisp Function Calls Faster::  
 * Future Work -- Lisp Engine Replacement::  
 * Future Work -- Better Rendering Support::  
@@ -27467,7 +27466,7 @@ to named fun or to keyboard sequence or give it a number (or give
 it a letter accelerator?)
 @end enumerate
 
-@node Future Work -- Specifiers, Future Work -- Display Tables, Future Work -- Macros, Future Work
+@node Future Work -- Specifiers, Future Work -- Making Elisp Function Calls Faster, Future Work -- Macros, Future Work
 @section Future Work -- Specifiers
 @cindex future work, specifiers
 @cindex specifiers, future work
@@ -27675,56 +27674,7 @@ restart-specifier-instance.  (It's actually an integer with the low
 bits holding the locale and the other bits count int to the list)
 attached to the locale.)
 
-@node Future Work -- Display Tables, Future Work -- Making Elisp Function Calls Faster, Future Work -- Specifiers, Future Work
-@section Future Work -- Display Tables
-@cindex future work, display tables
-@cindex display tables, future work
-
-Author: @uref{mailto:ben@@xemacs.org,Ben Wing}
-
-#### It would also be really nice if you could specify that the
-characters come out in hex instead of in octal.  Mule does that by
-adding a @code{ctl-hexa} variable similar to @code{ctl-arrow}, but
-that's bogus -- we need a more general solution.  I think you need to
-extend the concept of display tables into a more general conversion
-mechanism.  Ideally you could specify a Lisp function that converts
-characters, but this violates the Second Golden Rule and besides would
-make things way way way way slow.
-
-So instead, we extend the display-table concept, which was historically
-limited to 256-byte vectors, to one of the following:
-
-@enumerate
-@item
-A 256-entry vector, for backward compatibility;
-@item
-char-table, mapping characters to values;
-@item
-range-table, mapping ranges of characters to values;
-@item
-a list of the above.
-@end enumerate
-
-The fourth option allows you to specify multiple display tables instead
-of just one.  Each display table can specify conversions for some
-characters and leave others unchanged.  The way the character gets
-displayed is determined by the first display table with a binding for
-that character.  This way, you could call a function
-@code{enable-hex-display} that adds a hex display-table to the list of
-display tables for the current buffer.
-
-#### ...not yet implemented...  Also, we extend the concept of "mapping"
-to include a printf-like spec.  Thus you can make all extended
-characters show up as hex with a display table like this:
-
-@example
-    #s(range-table data ((256 524288) (format "%x")))
-@end example
-
-Since more than one display table is possible, you have
-great flexibility in mapping ranges of characters.
-
-@node Future Work -- Making Elisp Function Calls Faster, Future Work -- Lisp Engine Replacement, Future Work -- Display Tables, Future Work
+@node Future Work -- Making Elisp Function Calls Faster, Future Work -- Lisp Engine Replacement, Future Work -- Specifiers, Future Work
 @section Future Work -- Making Elisp Function Calls Faster
 @cindex future work, making Elisp function calls faster
 @cindex making Elisp function calls faster, future work
@@ -33233,7 +33183,7 @@ reason that I thought of this is that some coding system translations
 might cause Lisp code to be invoked and C code often invokes these
 translations in sensitive places.
 
-@node Old Future Work -- Everything should obey duplicable extents, Old Future Work -- Lisp callbacks from critical areas of the C code, , Old Future Work
+@node Old Future Work -- Everything should obey duplicable extents, Old Future Work -- Lisp callbacks from critical areas of the C code, Old Future Work -- Display Tables, Old Future Work
 @subsection Old Future Work -- Everything should obey duplicable extents
 @cindex old future work, everything should obey duplicable extents
 @cindex everything should obey duplicable extents, old future work
@@ -33269,6 +33219,59 @@ a Lisp string into a @code{lisp_string_struct}.  However, there is
 already a function @code{copy_string_extents()} that does basically this
 exact thing, and it should be easy to create a modified version of this
 function.
+
+@node Old Future Work -- Display Tables, Old Future Work -- Everything should obey duplicable extents, , Old Future Work
+@section Old Future Work -- Display Tables
+@cindex old future work, display tables
+@cindex display tables, old future work
+
+Author: @uref{mailto:ben@@xemacs.org,Ben Wing}
+
+It would also be really nice if you could specify that the characters
+come out in hex instead of in octal.  Mule does that by adding a
+@code{ctl-hexa} variable similar to @code{ctl-arrow}, but that's bogus
+-- we need a more general solution.  I think you need to extend the
+concept of display tables into a more general conversion mechanism.
+Ideally you could specify a Lisp function that converts characters, but
+this violates the Second Golden Rule and besides would make things way
+way way way slow.
+
+So instead, we extend the display-table concept, which was historically
+limited to 256-byte vectors, to one of the following:
+
+@enumerate
+@item
+A 256-entry vector, for backward compatibility;
+@item
+char-table, mapping characters to values;
+@item
+range-table, mapping ranges of characters to values;
+@item
+a list of the above.
+@end enumerate
+
+The fourth option allows you to specify multiple display tables instead
+of just one.  Each display table can specify conversions for some
+characters and leave others unchanged.  The way the character gets
+displayed is determined by the first display table with a binding for
+that character.  This way, you could call a function
+@code{enable-hex-display} that adds a hex display-table to the list of
+display tables for the current buffer.
+
+Also, we extend the concept of "mapping" to include a printf-like spec.
+Thus you can make all extended characters show up as hex with a display
+table like this:
+
+@example
+    #s(range-table data ((256 524288) (format "%x")))
+@end example
+
+Since more than one display table is possible, you have
+great flexibility in mapping ranges of characters.
+
+
+
+WARN
 
 @c Indexing guidelines
 

@@ -46,6 +46,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <config.h>
 #include "lisp.h"
 
+#define EXPOSE_FIXED_BUFFER_INTERNALS 1
+#include "lstream.h"
 #include "buffer.h"
 #include "charset.h"
 #include "commands.h"
@@ -1523,36 +1525,54 @@ add_disp_table_entry_runes_1 (pos_data *data, Lisp_Object entry)
 	  && CONSP (XCDR (entry))
 	  && STRINGP (XCAR (XCDR (entry))))
 	{
-	  Lisp_Object format = XCAR (XCDR (entry));
-	  Bytecount len = XSTRING_LENGTH (format);
-	  Ibyte *src = XSTRING_DATA (format), *end = src + len;
-	  Ibyte *result = alloca_ibytes (len);
-	  Ibyte *dst = result;
+          Elemcount len = XFIXNUM (Flist_length (XCDR (entry))), jj = 0;
+          Lisp_Object *args = alloca_array (Lisp_Object, len);
+          Lisp_Object control_string = XCADR (entry);
+          DECLARE_STACK_FIXED_BUFFER_LSTREAM (format_buf_lispobj);
+          Bytecount format_buf_len = XSTRING_LENGTH (XCADR (entry)) * 4, res;
+          Ibyte *format_buf = alloca_ibytes (format_buf_len);
 
-	  while (src < end)
-	    {
-	      Ichar c = itext_ichar (src);
-	      INC_IBYTEPTR (src);
-	      if (c != '%' || src == end)
-		dst += set_itext_ichar (dst, c);
-	      else
-		{
-		  c = itext_ichar (src);
-		  INC_IBYTEPTR (src);
-		  switch (c)
-		    {
-		      /*case 'x':
-		      dst += fixnum_to_string ((char *)dst, len - dst - result,
-                                               c, 16, Qnil);
-		      break;*/
-		    case '%':
-		      dst += set_itext_ichar (dst, '%');
-		      break;
-		      /* #### unimplemented */
-		    }
-		}
-	    }
-	  prop = add_ibyte_string_runes (data, result, dst - result, 0, 0);
+          /* Note that format_buf_lispobj will not carry over duplicable
+             extent info from CONTROL_STRING.  If we were to replace it with a
+             stream created with make_resizing_buffer_output_stream(), that
+             could be addressed, at the cost of creating more heap garbage
+             with every redisplay. We also wouldn't just be able to
+             add_ibyte_string_runes(). */
+
+          entry = XCDR (entry);
+
+          while (jj < len - 1)
+            {
+              args[jj++] = XCAR (entry);
+              entry = XCDR (entry);
+            }
+
+          args[jj] = make_char (data->ch);
+
+          INIT_STACK_FIXED_BUFFER_OUTPUT_STREAM (format_buf_lispobj,
+                                                 format_buf, format_buf_len);
+
+          res = format_into (format_buf_lispobj, control_string, len, 
+                             args,
+                             /* Don't even warn; were we to do that XEmacs may
+                                well get stuck in a loop of warning and not
+                                allow the user to do anything else. */
+                             ERROR_ME_NOT);
+
+          if (res > format_buf_len)
+            {
+              format_buf_len = res + 1;
+              format_buf = alloca_ibytes (format_buf_len);
+              INIT_STACK_FIXED_BUFFER_OUTPUT_STREAM (format_buf_lispobj,
+                                                     format_buf,
+                                                     format_buf_len);
+              res = format_into (format_buf_lispobj, control_string, len, 
+                                 args, ERROR_ME_NOT);
+
+              display_checking_assert (res < format_buf_len);
+            }
+
+	  prop = add_ibyte_string_runes (data, format_buf, res, 0, 0);
 	}
     }
 
@@ -4701,10 +4721,9 @@ create_string_text_block (struct window *w, Lisp_Object disp_string,
      function `enable-hex-display' that adds a hex display-table to
      the list of display tables for the current buffer.
 
-     #### ...not yet implemented...  Also, we extend the concept of
-     "mapping" to include a printf-like spec.  Thus you can make all
-     extended characters show up as hex with a display table like
-     this:
+     Also, we extend the concept of "mapping" to include a printf-like spec.
+     Thus you can make all extended characters show up as hex with a display
+     table like this:
 
 	 #s(range-table data ((256 524288) (format "%x")))
 

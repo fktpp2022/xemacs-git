@@ -3662,22 +3662,17 @@ emacs_snprintf_ascbyte (Ascbyte *output, Bytecount size,
    into a stream, preserving extents as appropriate.
 
    All Lisp_Object arguments are GCPRO'd, including FORMAT_RELOC; this makes
-   it acceptable to pass newly created objects into this function.
-
-   Special case; if STREAM is the symbol Qstring, do not return STREAM,
-   instead return a newly-constructed string reflecting FORMAT_RELOC and
-   LARGS. */
-Lisp_Object
+   it acceptable to pass newly created objects into this function. */
+Bytecount
 format_into (Lisp_Object stream, Lisp_Object format_reloc,
 	     int nargs, const Lisp_Object *largs,
 	     Error_Behavior errb)
 {
   Elemcount args_needed = 0;
-  Bytecount format_length = XSTRING_LENGTH (format_reloc);
+  Bytecount format_length = XSTRING_LENGTH (format_reloc), result;
   printf_spec_dynarr *specs
     = parse_doprnt_spec (NULL, XSTRING_DATA (format_reloc),
                          format_length, &args_needed, errb);
-  Boolint stringp = EQ (stream, Qstring);
   int count = specpdl_depth ();
   struct gcpro gcpro1, gcpro2, gcpro3;
   struct maybe_free_dynarr_info mfdi = { NULL, 0 };
@@ -3716,28 +3711,16 @@ format_into (Lisp_Object stream, Lisp_Object format_reloc,
                                            0));
     }
 
-  if (stringp)
-    {
-      stream = make_resizing_buffer_output_stream ();
-    }
-
   GCPRO3 (largs[0], format_reloc, stream);
   gcpro1.nvars = nargs;
 
-  emacs_doprnt (stream, NULL, format_length, format_reloc, Vdigit_fixnum_map,
-                specs, largs, NULL, errb);
+  result = emacs_doprnt (stream, NULL, format_length, format_reloc,
+                         Vdigit_fixnum_map, specs, largs, NULL, errb);
 
   UNGCPRO;
   unbind_to (count);
 
-  if (stringp)
-    {
-      Lisp_Object obj = resizing_buffer_to_lisp_string (XLSTREAM (stream));
-      Lstream_delete (XLSTREAM (stream));
-      return obj;
-    }
-
-  return stream;
+  return result;
 }
 
 DEFUN ("format-into", Fformat_into, 2, MANY, 0, /*
@@ -3777,6 +3760,7 @@ arguments: (STREAM &key (ERROR-BEHAVIOR 'error) CONTROL-STRING &rest ARGUMENTS)
   Lisp_Object stream = canonicalize_printcharfun (args[0]);
   Error_Behavior errb = ERROR_ME;
   Lisp_Object control_string = Qnil;
+  Boolint stringp = EQ (stream, Qstring);
 
   if (STRINGP (args[1]))
     {
@@ -3806,8 +3790,23 @@ arguments: (STREAM &key (ERROR-BEHAVIOR 'error) CONTROL-STRING &rest ARGUMENTS)
       errb = decode_error_behavior (error_behavior);
     }
 
+
+  if (stringp)
+    {
+      stream = make_resizing_buffer_output_stream ();
+    }
+
   /* #### Consider implementing the frame kludge of print_prepare (). */
-  return format_into (stream, control_string, nargs, args, errb);
+  format_into (stream, control_string, nargs, args, errb);
+
+  if (stringp)
+    {
+      Lisp_Object obj = resizing_buffer_to_lisp_string (XLSTREAM (stream));
+      Lstream_delete (XLSTREAM (stream));
+      return obj;
+    }
+
+  return stream;
 }
 
 /* If we were to implement GNU's #'format-message, this would be the place to

@@ -1,6 +1,28 @@
 2022-07-11  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* doprnt.c:
+	* doprnt.c (format_into):
+	Revise this to return (more usefully) a Bytecount, not a
+	Lisp_Object. 
+	* doprnt.c (Fformat_into):
+	Use the new calling convention for format_into (), keep the
+	existing Lisp API.
+
+	* callint.c:
+	* callint.c (callint_prompt):
+	Revise this, now format_into () returns a Bytecount, not a Lisp
+	object.
+
+	* lisp.h: Update the declaration of format_into().
+	* redisplay.c (add_disp_table_entry_runes_1):
+	Extend the display table handling to use format_into (), allowing
+	arbitrary format strings.
+	* redisplay.c (create_string_text_block):
+	Update a comment here reflecting that this was done.
+
+2022-07-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* doprnt.c:
 	* doprnt.c (struct maybe_free_dynarr_info):
 	* doprnt.c (maybe_free_dynarr):
 	* doprnt.c (parse_doprnt_spec):

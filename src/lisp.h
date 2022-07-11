@@ -4622,12 +4622,9 @@ Bytecount ratio_to_string (Ibyte **buffer_inout, Bytecount size, ratio number,
                            Lisp_Object table_or_nil);
 #endif
 
-/* Specify the symbol Qstring for STREAM if you would like a string to be
-   returned. */
-MODULE_API Lisp_Object format_into (Lisp_Object stream,
-                                    Lisp_Object format_reloc,
-                                    int nargs, const Lisp_Object *largs,
-                                    Error_Behavior);
+MODULE_API Bytecount format_into (Lisp_Object stream, Lisp_Object format_reloc,
+                                  int nargs, const Lisp_Object *largs,
+                                  Error_Behavior);
 
 MODULE_API Bytecount write_fmt_string (Lisp_Object stream, const CIbyte *fmt,
 				       ...)
