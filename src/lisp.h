@@ -4624,8 +4624,10 @@ Bytecount ratio_to_string (Ibyte **buffer_inout, Bytecount size, ratio number,
 
 /* Specify the symbol Qstring for STREAM if you would like a string to be
    returned. */
-Lisp_Object format_into (Lisp_Object stream, Lisp_Object format_reloc,
-                         int nargs, const Lisp_Object *largs);
+MODULE_API Lisp_Object format_into (Lisp_Object stream,
+                                    Lisp_Object format_reloc,
+                                    int nargs, const Lisp_Object *largs,
+                                    Error_Behavior);
 
 MODULE_API Bytecount write_fmt_string (Lisp_Object stream, const CIbyte *fmt,
 				       ...)
@@ -4790,6 +4792,8 @@ MODULE_API EXFUN (Fcall_with_condition_handler, MANY);
 EXFUN (Ffunction_max_args, 1);
 EXFUN (Ffunction_min_args, 1);
 EXFUN (Fvalues, MANY);
+
+MODULE_API Error_Behavior decode_error_behavior (Lisp_Object);
 
 MODULE_API DECLARE_DOESNT_RETURN (throw_or_bomb_out (Lisp_Object,
                                                      Lisp_Object, int,

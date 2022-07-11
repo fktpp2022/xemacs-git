@@ -365,6 +365,66 @@
   (Check-Error void-function
 	       (format-into 'character "que %#p ne peut apprivoiser" 0)))
 
+(Check-Error wrong-type-argument (format-into 'string pi))
+
+(macrolet
+    ((Assert-good-error-behaviors (&rest rest)
+       (cons
+	'progn
+	(mapcar
+	 #'(lambda (error-behavior)
+	     `(Assert (equal "-1" (format-into 'string :error-behavior
+					       ',error-behavior "%d" -1))))
+	 rest)))
+     (Check-Error-bad-error-behaviors (&rest rest)
+       (cons
+	'progn
+	(mapcar
+	 #'(lambda (error-behavior)
+	     `(Check-Error invalid-argument 
+	       (format-into 'string :error-behavior
+			    ',error-behavior "%d" -1)))
+	 rest))))
+  (Assert-good-error-behaviors nil error no-error warning debug-warning)
+  (Check-Error-bad-error-behaviors t error-me error-me-not error-me-warn
+				   error-me-debug-warn warn
+				   halt-and-catch-fire))
+
+(Assert (equal
+	 (format-into 'string :allow-other-keywords t :start 0 :end nil
+		      "%llux" -3)
+	 "fffffffffffffffd")
+	"checking :allow-other-keywords, format-into")
+
+(Check-Error wrong-type-argument 
+	     (format-into 'string :allow-other-keywords t :hello "%c" ?a))
+
+(macrolet
+    ((Assert-and-check-error (&rest alist)
+       (cons
+	'progn
+	(mapcan 
+	 (function* 
+	  (lambda ((string error &optional result &rest rest))
+	    `((Assert (equal ,(or result string)
+			     (format-into 'string :error-behavior
+					  'no-error ,string ,@rest)))
+	      (Check-Error ,error
+			   (format-into 'string ,string ,@rest)))))
+	 alist))))
+  (Assert-and-check-error 
+   ("hello %" syntax-error)
+   ("hello %\u20ac there" syntax-error)
+   ("%!" syntax-error)
+   ("hello %\x00 hello" syntax-error)
+   ("%c" wrong-type-argument "" -30)
+   ("%c" wrong-type-argument "" 3.141592653589793)
+   ("%.20c" syntax-error "" ?a)
+   ("%1073741823f" args-out-of-range nil 65)
+   ("%.1073741823f" args-out-of-range nil 65)
+   ("%\n" syntax-error "" ?a)
+   ("%d %d" wrong-number-of-arguments nil 65)))
+
 (macrolet
     ((Assert-with-format-extents (&rest list)
        (cons

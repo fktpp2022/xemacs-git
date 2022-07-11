@@ -243,6 +243,8 @@ Lisp_Object Qthrow;
 Lisp_Object Qobsolete_throw;
 Lisp_Object Qmultiple_value_list_internal;
 
+Lisp_Object Qno_error, Qdebug_warning;
+
 static int first_desired_multiple_value;
 /* Used outside this file, somewhat uncleanly, in the IGNORE_MULTIPLE_VALUES
    macro: */
@@ -2721,6 +2723,26 @@ check_specbind_stack_sanity (void)
 }
 
 #endif /* ERROR_CHECK_CATCH */
+
+Error_Behavior
+decode_error_behavior (Lisp_Object sym)
+{
+  if (EQ (sym, Qerror) || NILP (sym))
+    return ERROR_ME;
+
+  if (EQ (sym, Qno_error))
+    return ERROR_ME_NOT;
+
+  if (EQ (sym, Qwarning))
+    return ERROR_ME_WARN;
+
+  if (EQ (sym, Qdebug_warning))
+    return ERROR_ME_DEBUG_WARN;
+
+  invalid_argument ("Must be one of 'error, 'no-error, 'warning, "
+		    "'debug-warning", sym);
+  RETURN_NOT_REACHED (ERROR_ME);
+}
 
 /* Signal a non-continuable error or display a warning or do nothing,
    according to ERRB.  CLASS is the class of warning and should
@@ -7468,6 +7490,9 @@ syms_of_eval (void)
   DEFSYMBOL (Qthrow);
   DEFSYMBOL (Qobsolete_throw);  
   DEFSYMBOL (Qmultiple_value_list_internal);
+
+  DEFSYMBOL (Qno_error);
+  DEFSYMBOL (Qdebug_warning);
 
   DEFSUBR (For);
   DEFSUBR (Fand);

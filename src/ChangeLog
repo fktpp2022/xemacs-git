@@ -1,3 +1,41 @@
+2022-07-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* doprnt.c:
+	* doprnt.c (struct maybe_free_dynarr_info):
+	* doprnt.c (maybe_free_dynarr):
+	* doprnt.c (parse_doprnt_spec):
+	* doprnt.c (get_doprnt_c_args):
+	* doprnt.c (emacs_doprnt):
+	* doprnt.c (write_fmt_string_va):
+	* doprnt.c (write_external_fmt_string_va):
+	* doprnt.c (write_fmt_string_lisp_va):
+	* doprnt.c (write_fmt_string_lisp):
+	* doprnt.c (emacs_vsnprintf):
+	* doprnt.c (emacs_vsnprintf_ascbyte):
+	* doprnt.c (format_into):
+	* doprnt.c (follows): New.
+	* doprnt.c (Fformat_into):
+	* doprnt.c (syms_of_doprnt):
+	Revise the formatting code to take an Error_Behavior argument and
+	respect it appropriately in preparation for calling it within
+	redisplay.
+	Make this available to Lisp by means of a keyword argument to
+	#'format-into.
+
+	* callint.c (callint_prompt):
+	Call format_into () with its new errb argument, ERROR_ME in this
+	case. 
+	* eval.c:
+	* eval.c (decode_error_behavior): New. Given a Lisp symbol, return
+	a corresponding Error_Behavior.
+	* eval.c (syms_of_eval):
+	Make some symbols available, used by decode_error_behavior ().
+
+	* lisp.h:
+	Adjust the declaration of format_into () to take its new
+	Error_Behavior argument.
+	Declare decode_error_behavior (), a new function.
+
 2022-07-10  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* sysdep.c (total_data_usage):

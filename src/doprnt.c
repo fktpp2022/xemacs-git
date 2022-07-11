@@ -50,6 +50,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "extents.h"
 #include "chartab.h"
 
+Lisp_Object Q_error_behavior;
+
 /* Conversion to string, radix handling for rationals. */
 
 /* Print an unsigned NUMBER into BUFFER, which comprises SIZE octets, as a
@@ -1041,19 +1043,70 @@ doprnt_1 (Lisp_Object stream,
   return result_len;
 }
 
+struct maybe_free_dynarr_info
+{
+  printf_spec_dynarr *dynarr;
+  Boolint free_dynarrp;
+};
+
+/* parse_doprnt_spec() allocates SPECS on the heap and returns it if it is
+   passed a NULL SPECS argument. If it errors, avoid leaking the
+   dynamically-allocated SPECS by means of unwind_protect(). */
+static Lisp_Object
+maybe_free_dynarr (Lisp_Object opaque)
+{
+  struct maybe_free_dynarr_info *mfdi
+    = (struct maybe_free_dynarr_info *) GET_VOID_FROM_LISP (opaque);
+
+  if (mfdi->free_dynarrp)
+    {
+      Dynarr_free (mfdi->dynarr);
+    }
+
+  return Qnil;
+}
+
+#define RETURN_SPECS(specs) do						\
+    {									\
+      if (fmt != fmt_end)						\
+	{								\
+	  /* ERRB is something other than ERROR_ME, treat this */	\
+	  /* as a trailing spec that takes no arguments. */		\
+	  spec.converter = 0;						\
+	  spec.text_before_len						\
+	    = (fmt_end - format) - spec.text_before;			\
+	  if (max_argnum == spec.argnum)				\
+	    {								\
+	      /* May not be correct, this is a best-effort. */		\
+	      max_argnum--;						\
+	    }								\
+	  Dynarr_add (specs, spec);					\
+	}								\
+      *args_needed_out = max_argnum;					\
+      mfdi.free_dynarrp = 0;						\
+      unbind_to (count);						\
+      return specs;							\
+    } while (0)
+
 #define NEXT_ASCBYTE(ch)						\
   do {									\
     if (fmt == fmt_end)							\
       {                                                                 \
-        Dynarr_free (specs);                                            \
-        syntax_error ("Premature end of format string", Qunbound);	\
+	maybe_signal_error (Qsyntax_error,				\
+			    "Premature end of format string",		\
+			    make_string (format, format_length),	\
+			    Qerror, errb);				\
+	RETURN_SPECS (specs);						\
       }                                                                 \
     ch = *fmt;								\
     if (!byte_ascii_p (ch))                                             \
       {                                                                 \
-        Dynarr_free (specs);                                            \
-        syntax_error ("Not a valid character, format converter spec",	\
-                      make_char (itext_ichar (fmt)));                   \
+	maybe_signal_error (Qsyntax_error,				\
+			    "Not a valid format converter spec "	\
+			    "character",				\
+			    make_char (itext_ichar (fmt)),		\
+			    Qerror, errb);				\
+	RETURN_SPECS (specs);						\
       }                                                                 \
     fmt++;								\
   } while (0)
@@ -1077,22 +1130,26 @@ doprnt_1 (Lisp_Object stream,
    greatest argument number encountered. Note this function has no access to
    the actual args specified, and in theory could run at compile time.
 
-   Error if FORMAT ends in the middle of a conversion specifier, if its
-   conversion specifiers contain non-ASCII non-pad characters, or if the
-   minimum widths and precisions supplied are nonsensical.
-
    The Dynarr may be preallocated and supplied in SPECS. This is usually not
    convenient, and when SPECS is NULL, parse_doprnt_spec returns a fresh
    heap-allocated Dynarr, which should be freed once callers are finished with
-   it, e.g. with record_unwind_protect_freeing_dynarr(). */
+   it, e.g. with record_unwind_protect_freeing_dynarr().
+
+   If ERRB has the value ERROR_ME, error if FORMAT ends in the middle of a
+   conversion specifier, if its conversion specifiers contain non-ASCII
+   non-pad characters, or if the minimum widths and precisions supplied are
+   nonsensical. Otherwise, return an array of specs valid up to the point in
+   the string which was erroneous. */
 static printf_spec_dynarr *
 parse_doprnt_spec (printf_spec_dynarr *specs,
                    const Ibyte *format, Bytecount format_length,
-                   Elemcount *args_needed_out)
+                   Elemcount *args_needed_out, Error_Behavior errb)
 {
   const Ibyte *fmt = format;
   const Ibyte *fmt_end = format + format_length;
   Elemcount prev_argnum = 0, max_argnum = 0;
+  int count = specpdl_depth ();
+  struct maybe_free_dynarr_info mfdi = { NULL, 0 };
 
   if (specs == NULL)
     {
@@ -1103,6 +1160,10 @@ parse_doprnt_spec (printf_spec_dynarr *specs,
          was 4, 35 when it was 5, and 4 when it was 7. Nothing greater than
          that. */
       Dynarr_resize_to_fit (specs, 8);
+      mfdi.free_dynarrp = 1;
+      mfdi.dynarr = specs;
+      count = record_unwind_protect (maybe_free_dynarr,
+				     STORE_VOID_IN_LISP (&mfdi));
     }
 
   while (1)
@@ -1113,8 +1174,10 @@ parse_doprnt_spec (printf_spec_dynarr *specs,
 
       if (fmt == fmt_end)
         {
-          *args_needed_out = max_argnum;
-          return specs;
+	  *args_needed_out = max_argnum;
+	  mfdi.free_dynarrp = 0;
+	  unbind_to (count);
+	  return specs;
         }
 
       xzero (spec);
@@ -1178,7 +1241,7 @@ parse_doprnt_spec (printf_spec_dynarr *specs,
 	  /* Parse off any flags. */
 	  while (1)
 	    {
-              NEXT_ASCBYTE (ch);
+	      NEXT_ASCBYTE (ch);
 	      switch (ch)
 		{
 		case '-': spec.left_justify  = 1; break;
@@ -1208,9 +1271,12 @@ parse_doprnt_spec (printf_spec_dynarr *specs,
                   {
                     if (fmt == fmt_end)
                       {
-                        Dynarr_free (specs);
-                        syntax_error ("Premature end of format string",
-                                      Qunbound);
+			maybe_signal_error (Qsyntax_error,
+					    "Premature end of format string",
+					    make_string (format,
+							 format_length),
+					    Qerror, errb);			
+			RETURN_SPECS (specs);
                       }
                     fmt += itext_copy_ichar (fmt, spec.pad_char);
                     break;
@@ -1262,14 +1328,26 @@ parse_doprnt_spec (printf_spec_dynarr *specs,
                 }
               else
                 {
-                  check_integer_range (mwidth, Qzero,
-                                       /* This is a charcount used for
-                                          allocation, whence the following
-                                          limitation. See the multiplication
-                                          below just above the call to
-                                          snprintf ().  */
-                                       make_fixnum (MOST_POSITIVE_FIXNUM /
-                                                    MAX_ICHAR_LEN));
+                  Lisp_Object argz[] = {Qzero, mwidth, 
+                                        /* This is a charcount used for
+                                           allocation, whence the following
+                                           limitation. See the multiplication
+                                           below just above the call to
+                                           snprintf ().  */
+                                        make_fixnum (MOST_POSITIVE_FIXNUM /
+                                                     MAX_ICHAR_LEN) };
+
+                  if (NILP (Fleq (countof (argz), argz)))
+                    {
+                      maybe_signal_error_1 (Qargs_out_of_range,
+                                            list3 (mwidth, Qzero,
+                                                   make_fixnum
+                                                   (MOST_POSITIVE_FIXNUM /
+                                                    MAX_ICHAR_LEN)),
+                                            Qtext, errb);
+                      RETURN_SPECS (specs);
+                    }
+
                   /* We have a (somewhat) sensible minwidth. */
                   spec.minwidth = XFIXNUM (mwidth); 
                 }
@@ -1323,12 +1401,33 @@ parse_doprnt_spec (printf_spec_dynarr *specs,
                     }
                   else 
                     {
-                      check_integer_range (precis,
-                                           /* This is a charcount. */
-                                           make_fixnum (MOST_NEGATIVE_FIXNUM
+                      Lisp_Object argz[] = {
+                        /* This is a charcount. */
+                        make_fixnum (MOST_NEGATIVE_FIXNUM
+                                     / MAX_ICHAR_LEN),
+                        precis,
+                        /* This is a charcount used for
+                           allocation, whence the following
+                           limitation. See the multiplication
+                           below just above the call to
+                           snprintf ().  */
+                        make_fixnum (MOST_POSITIVE_FIXNUM /
+                                     MAX_ICHAR_LEN) };
+
+                      if (NILP (Fleq (countof (argz), argz)))
+                        {
+                          maybe_signal_error_1 (Qargs_out_of_range,
+                                                list3 (precis,
+                                                       make_fixnum
+                                                       (MOST_NEGATIVE_FIXNUM
                                                         / MAX_ICHAR_LEN),
-                                           make_fixnum (MOST_POSITIVE_FIXNUM /
-                                                        MAX_ICHAR_LEN));
+                                                       make_fixnum
+                                                       (MOST_POSITIVE_FIXNUM /
+                                                        MAX_ICHAR_LEN)),
+                                                Qtext, errb);
+                          RETURN_SPECS (specs);
+                        }
+
                       /* The C standard says a negative fixnum is to be
                          treated as not specified. */
                       spec.precision = max (XFIXNUM (precis), -1);
@@ -1407,8 +1506,11 @@ parse_doprnt_spec (printf_spec_dynarr *specs,
 
           if (ch == 0)
             {
-              Dynarr_free (specs);
-              syntax_error ("Invalid converter character", make_char (ch));
+	      maybe_signal_error (Qsyntax_error,
+				  "Invalid converter character",
+				  make_char (ch),
+				  Qerror, errb);			
+	      RETURN_SPECS (specs);
             }
 
 	  spec.converter = ch;
@@ -1424,7 +1526,8 @@ parse_doprnt_spec (printf_spec_dynarr *specs,
 
 static void
 get_doprnt_c_args (printf_arg *args, Elemcount args_needed,
-                   printf_spec_dynarr *specs, va_list vargs)
+                   printf_spec_dynarr *specs, va_list vargs,
+                   Error_Behavior errb)
 {
   printf_arg *argp = args;
   union printf_arg arg;
@@ -1446,7 +1549,10 @@ get_doprnt_c_args (printf_arg *args, Elemcount args_needed,
 
       if (j == Dynarr_length (specs))
         {
-          syntax_error ("No conversion spec for argument", make_fixnum (i));
+          maybe_signal_error (Qsyntax_error,
+                              "No conversion spec for argument",
+                              make_fixnum (i), Qerror, errb);
+          continue;
         }
 
       ch = spec->converter;
@@ -1864,7 +1970,8 @@ emacs_doprnt (Lisp_Object stream,
               const Ibyte *format_nonreloc, Bytecount format_length,
               Lisp_Object format_reloc, Lisp_Object radix_table,
               printf_spec_dynarr *specs,
-              const Lisp_Object *largs, const printf_arg *args)
+              const Lisp_Object *largs, const printf_arg *args,
+	      Error_Behavior errb)
 {
   REGISTER int i;
   Bytecount byte_count = 0;
@@ -2018,23 +2125,34 @@ emacs_doprnt (Lisp_Object stream,
                 if (!valid_ichar_p (fa))
                   {
                     UNGCPRO;
-                    dead_wrong_type_argument (Qchar_or_char_int_p, obj);
+		    maybe_signal_error_1 (Qwrong_type_argument,
+					  list2 (Qchar_or_char_int_p, obj),
+					  Qformat, errb);
+		    return byte_count;
                   }
 		a = (Ichar) fa;
               }
             else
               {
                 UNGCPRO;
-                dead_wrong_type_argument (Qchar_or_char_int_p, obj);
+		maybe_signal_error_1 (Qwrong_type_argument,
+				      list2 (Qchar_or_char_int_p, obj),
+				      Qformat, errb);
+		return byte_count;
               }
 
             if (spec->precision != -1)
               {
                 UNGCPRO;
-                syntax_error ("Precision nonsensical for %c",
-                              NILP (format_reloc) ?
-                              make_string (format_nonreloc, format_length) :
-                              format_reloc);
+		maybe_signal_error (Qsyntax_error,
+				    "Precision nonsensical for %c",
+				    NILP (format_reloc) ?
+				    make_string (format_nonreloc,
+						 format_length) :
+				    format_reloc,
+				    make_fixnum (spec->precision),
+				    errb);
+		return byte_count;
               }
 
             /* XEmacs; don't attempt (badly) to handle floats, bignums or
@@ -2204,12 +2322,15 @@ emacs_doprnt (Lisp_Object stream,
                 (alloca_sz += max (0, spec->precision) * MAX_ICHAR_LEN,
                  (Bytecount) alloca_sz < 350))
               {
-                UNGCPRO;
-                signal_error (Qunimplemented,
-                              "can't handle sum of minwidth and precision",
-                              NILP (format_reloc) ?
-                              make_string (format_nonreloc,
-                                           format_length) : format_reloc);
+		UNGCPRO;
+		maybe_signal_error
+		  (Qunimplemented,
+		   "can't handle sum of minwidth and precision",
+		   NILP (format_reloc) ?
+		   make_string (format_nonreloc,
+				format_length) : format_reloc,
+		   Qerror, errb);
+		return byte_count;
               }
 
             /* We won't blow the stack, see ALLOCA() in lisp.h. */
@@ -2241,7 +2362,8 @@ emacs_doprnt (Lisp_Object stream,
                                                constructed_size
                                                - (p - constructed_spec),
                                                spec->minwidth,
-                                               get_radix_table_fixnum_majuscule_map (Vdigit_fixnum_ascii));
+                                               get_radix_table_fixnum_majuscule_map
+					       (Vdigit_fixnum_ascii));
               }
             if (spec->precision >= 0)
               {
@@ -2250,7 +2372,8 @@ emacs_doprnt (Lisp_Object stream,
                                                constructed_size
                                                - (p - constructed_spec),
                                                spec->precision,
-                                               get_radix_table_fixnum_majuscule_map (Vdigit_fixnum_ascii));
+                                               get_radix_table_fixnum_majuscule_map
+					       (Vdigit_fixnum_ascii));
               }
             *p++ = ch;
             *p++ = '\0';
@@ -2904,8 +3027,11 @@ emacs_doprnt (Lisp_Object stream,
         default:
           {
             UNGCPRO;
-	    syntax_error ("Invalid converter character", make_char (ch));
-            break;
+	    maybe_signal_error (Qsyntax_error,
+				"Invalid converter character",
+				make_char (ch),
+				Qerror, errb);			
+	    return byte_count;
           }
         }
     }
@@ -2970,12 +3096,12 @@ write_fmt_string_va (Lisp_Object stream, const CIbyte *fmt, va_list va)
                             least the number of specs. */
                          speccount, sbase);
 
-      parse_doprnt_spec (&specs, (const Ibyte *) fmt, len, &nargs);
+      parse_doprnt_spec (&specs, (const Ibyte *) fmt, len, &nargs, ERROR_ME);
       args = alloca_array (printf_arg, nargs);
 
-      get_doprnt_c_args (args, nargs, &specs, va);
+      get_doprnt_c_args (args, nargs, &specs, va, ERROR_ME);
       return emacs_doprnt (stream, (const Ibyte *) fmt, len, Qnil,
-                           Vdigit_fixnum_map, &specs, NULL, args);
+                           Vdigit_fixnum_map, &specs, NULL, args, ERROR_ME);
     }
 }
 
@@ -3025,7 +3151,7 @@ write_external_fmt_string_va (Lisp_Object stream, Lisp_Object codesys,
                         least the number of specs. */
                      speccount, sbase);
 
-  parse_doprnt_spec (&specs, format, len, &nargs);
+  parse_doprnt_spec (&specs, format, len, &nargs, ERROR_ME);
   /* Check we allocated enough on the stack for the specs. If we haven't,
      we've probably crashed already, though, since the dynarr code will have
      attempted to realloc stack-based data. */
@@ -3033,7 +3159,7 @@ write_external_fmt_string_va (Lisp_Object stream, Lisp_Object codesys,
 
   args = alloca_array (printf_arg, nargs);
 
-  get_doprnt_c_args (args, nargs, &specs, vargs);
+  get_doprnt_c_args (args, nargs, &specs, vargs, ERROR_ME);
 
   for (ii = 0; ii < Dynarr_length (&specs); ii++)
     {
@@ -3047,7 +3173,7 @@ write_external_fmt_string_va (Lisp_Object stream, Lisp_Object codesys,
     }
 
   retval = emacs_doprnt (stream, format, len, Qnil, Vdigit_fixnum_map,
-                         &specs, NULL, args);
+                         &specs, NULL, args, ERROR_ME);
 
   return retval;
 }
@@ -3061,7 +3187,7 @@ write_fmt_string_lisp_va (Lisp_Object stream, const CIbyte *fmt, va_list va)
   Bytecount len = strlen (fmt);
   Elemcount nargs = 0, ii = 0;
   printf_spec_dynarr *specs = parse_doprnt_spec (NULL, (const Ibyte *) fmt,
-                                                 len, &nargs);
+                                                 len, &nargs, ERROR_ME);
   int count = record_unwind_protect_freeing_dynarr (specs);
   Lisp_Object *largs = alloca_array (Lisp_Object, nargs);
   struct gcpro gcpro1, gcpro2;
@@ -3073,7 +3199,7 @@ write_fmt_string_lisp_va (Lisp_Object stream, const CIbyte *fmt, va_list va)
   GCPRO2 (largs[0], stream);
   gcpro1.nvars = nargs;
   result = emacs_doprnt (stream, (const Ibyte *) fmt, len, Qnil,
-                         Vdigit_fixnum_map, specs, largs, NULL);
+                         Vdigit_fixnum_map, specs, largs, NULL, ERROR_ME);
   UNGCPRO;
   unbind_to (count);
 
@@ -3093,7 +3219,7 @@ write_fmt_string_lisp (Lisp_Object stream, const CIbyte *fmt, ...)
   Bytecount len = strlen (fmt);
   Elemcount nargs = 0, ii = 0;
   printf_spec_dynarr *specs = parse_doprnt_spec (NULL, (const Ibyte *) fmt,
-                                                 len, &nargs);
+                                                 len, &nargs, ERROR_ME);
   int count = record_unwind_protect_freeing_dynarr (specs);
   Lisp_Object *largs = alloca_array (Lisp_Object, nargs);
   struct gcpro gcpro1, gcpro2;
@@ -3108,7 +3234,7 @@ write_fmt_string_lisp (Lisp_Object stream, const CIbyte *fmt, ...)
   GCPRO2 (largs[0], stream);
   gcpro1.nvars = nargs;
   result = emacs_doprnt (stream, (const Ibyte *) fmt, len, Qnil,
-                         Vdigit_fixnum_map, specs, largs, NULL);
+                         Vdigit_fixnum_map, specs, largs, NULL, ERROR_ME);
   UNGCPRO;
   unbind_to (count);
 
@@ -3393,7 +3519,8 @@ emacs_vsnprintf (Ibyte *output, Bytecount size, const CIbyte *format,
                             least the number of specs. */
                          speccount, sbase);
 
-      parse_doprnt_spec (&specs, (const Ibyte *) format, len, &nargs);
+      parse_doprnt_spec (&specs, (const Ibyte *) format, len, &nargs,
+			 ERROR_ME);
       /* Check we allocated enough on the stack for the specs. If we haven't,
          we've probably crashed already, though, since the dynarr code will
          have attempted to realloc stack-based data. */
@@ -3401,11 +3528,11 @@ emacs_vsnprintf (Ibyte *output, Bytecount size, const CIbyte *format,
 
       args = alloca_array (printf_arg, nargs);
 
-      get_doprnt_c_args (args, nargs, &specs, vargs);
+      get_doprnt_c_args (args, nargs, &specs, vargs, ERROR_ME);
 
       retval = emacs_doprnt (stream, (const Ibyte *) format, len,
                              Qnil, Vdigit_fixnum_map,
-                             &specs, NULL, args);
+                             &specs, NULL, args, ERROR_ME);
     }
 
   if (retval < size - 1)
@@ -3475,7 +3602,7 @@ emacs_vsnprintf_ascbyte (Ascbyte *output, Bytecount size,
                         least the number of specs. */
                      speccount, sbase);
 
-  parse_doprnt_spec (&specs, (const Ibyte *) format, len, &nargs);
+  parse_doprnt_spec (&specs, (const Ibyte *) format, len, &nargs, ERROR_ME);
   /* Check we allocated enough on the stack for the specs. If we haven't,
      we've probably crashed already, though, since the dynarr code will have
      attempted to realloc stack-based data. */
@@ -3483,7 +3610,7 @@ emacs_vsnprintf_ascbyte (Ascbyte *output, Bytecount size,
 
   args = alloca_array (printf_arg, nargs);
 
-  get_doprnt_c_args (args, nargs, &specs, vargs);
+  get_doprnt_c_args (args, nargs, &specs, vargs, ERROR_ME);
 
   for (ii = 0; ii < Dynarr_length (&specs); ii++)
     {
@@ -3496,7 +3623,7 @@ emacs_vsnprintf_ascbyte (Ascbyte *output, Bytecount size,
     }
 
   retval = emacs_doprnt (stream, (const Ibyte *) format, len, Qnil,
-                         Vdigit_fixnum_ascii, &specs, NULL, args);
+                         Vdigit_fixnum_ascii, &specs, NULL, args, ERROR_ME);
 
   if (retval < size - 1)
     {
@@ -3541,26 +3668,37 @@ emacs_snprintf_ascbyte (Ascbyte *output, Bytecount size,
    instead return a newly-constructed string reflecting FORMAT_RELOC and
    LARGS. */
 Lisp_Object
-format_into (Lisp_Object stream, Lisp_Object format_reloc, int nargs,
-             const Lisp_Object *largs)
+format_into (Lisp_Object stream, Lisp_Object format_reloc,
+	     int nargs, const Lisp_Object *largs,
+	     Error_Behavior errb)
 {
   Elemcount args_needed = 0;
   Bytecount format_length = XSTRING_LENGTH (format_reloc);
   printf_spec_dynarr *specs
     = parse_doprnt_spec (NULL, XSTRING_DATA (format_reloc),
-                         format_length, &args_needed);
-  int count = record_unwind_protect_freeing_dynarr (specs);
+                         format_length, &args_needed, errb);
   Boolint stringp = EQ (stream, Qstring);
+  int count = specpdl_depth ();
   struct gcpro gcpro1, gcpro2, gcpro3;
+  struct maybe_free_dynarr_info mfdi = { NULL, 0 };
+
+  if (specs != NULL)
+    {
+      mfdi.free_dynarrp = 1;
+      mfdi.dynarr = specs;
+      count = record_unwind_protect (maybe_free_dynarr,
+				     STORE_VOID_IN_LISP (&mfdi));
+    }
 
   if (nargs < args_needed)
     {
-      /* Allow too many args for string, but not too few */
-      signal_error_1 (Qwrong_number_of_arguments,
-                      list3 (Qformat, make_fixnum (nargs), format_reloc));
+      maybe_signal_error_1 (Qwrong_number_of_arguments,
+			    list3 (Qformat, make_fixnum (nargs), format_reloc),
+			    Qformat, errb);
+      unbind_to (count);
+      return format_reloc;
     }
-#ifdef DEBUG_XEMACS
-  else if (nargs > args_needed)
+  else if (nargs > args_needed && !ERRB_EQ (errb, ERROR_ME_NOT))
     {
       Lisp_Object argz[] = { build_ascstring ("Format string \""),
                              format_reloc,
@@ -3576,9 +3714,7 @@ format_into (Lisp_Object stream, Lisp_Object format_reloc, int nargs,
       warn_when_safe_lispobj (Qformat, Qinfo,
                               concatenate (countof (argz), argz, Qstring,
                                            0));
-    
     }
-#endif
 
   if (stringp)
     {
@@ -3589,7 +3725,7 @@ format_into (Lisp_Object stream, Lisp_Object format_reloc, int nargs,
   gcpro1.nvars = nargs;
 
   emacs_doprnt (stream, NULL, format_length, format_reloc, Vdigit_fixnum_map,
-                specs, largs, NULL);
+                specs, largs, NULL, errb);
 
   UNGCPRO;
   unbind_to (count);
@@ -3619,16 +3755,59 @@ As a special case, if STREAM is the symbol `string', `format-into' behaves as
 does `format', returning a newly-constructed string reflecting CONTROL-STRING
 and ARGS.
 
-arguments: (STREAM CONTROL-STRING &rest ARGS)
+Keyword ERROR-BEHAVIOR specifies what to do if the combination of
+CONTROL-STRING and ARGS is invalid (CONTROL-STRING too short, uses an invalid
+%-sequence, not enough arguments, too many arguments), and is interpreted as
+follows:
+
+A value of `error' (the default) specifies to error on parsing the string.
+A value of `no-error' means to abandon parsing the control string at the point
+the error was encountered, but to process what was successfully parsed so far
+as intended.
+A value of `warning' means to behave as in the `no-error' case, but to display
+a warning (see `display-warning'.)
+A value of `debug-warning' means to behave as in the `warn' case, but to
+display a warning at the `debug' level, which means that the warning is
+usually discarded.
+
+arguments: (STREAM &key (ERROR-BEHAVIOR 'error) CONTROL-STRING &rest ARGUMENTS)
 */
        (int nargs, Lisp_Object *args))
 {
   Lisp_Object stream = canonicalize_printcharfun (args[0]);
-  Lisp_Object control_string = args[1];
+  Error_Behavior errb = ERROR_ME;
+  Lisp_Object control_string = Qnil;
 
-  CHECK_STRING (control_string);
+  if (STRINGP (args[1]))
+    {
+      control_string = args[1];
+      nargs -= 2;
+      args += 2;
+    }
+  else
+    {
+      PARSE_KEYWORDS_8 (intern ("format-into"), nargs, args,
+			1, (error_behavior), (error_behavior = Qerror),
+			1, 1);
+
+      args += 1;
+      nargs -= 1;
+      while (KEYWORDP (args[0]) && nargs > 2)
+	{
+	  args += 2;
+	  nargs -= 2;
+	}
+
+      control_string = args[0];
+      CHECK_STRING (control_string);
+      args += 1;
+      nargs -= 1;
+
+      errb = decode_error_behavior (error_behavior);
+    }
+
   /* #### Consider implementing the frame kludge of print_prepare (). */
-  return format_into (stream, control_string, nargs - 2, args + 2);
+  return format_into (stream, control_string, nargs, args, errb);
 }
 
 /* If we were to implement GNU's #'format-message, this would be the place to
@@ -3665,4 +3844,6 @@ syms_of_doprnt (void)
 {
   DEFSUBR (Fnumber_to_string);
   DEFSUBR (Fformat_into);
+
+  DEFKEYWORD (Q_error_behavior);
 }

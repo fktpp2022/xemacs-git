@@ -245,7 +245,7 @@ callint_prompt (const Ibyte *prompt_start, Bytecount prompt_length,
   if (!qxestrchr (XSTRING_DATA (s), '%'))
     return s;
   /* format_into() will GCPRO S, no need for us to. */
-  return format_into (Qstring, s, nargs, args);
+  return format_into (Qstring, s, nargs, args, ERROR_ME);
 }
 
 /* `lambda' for RECORD-FLAG is an XEmacs addition. */
