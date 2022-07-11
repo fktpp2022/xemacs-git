@@ -247,8 +247,7 @@ differently depending on the presence of certain features, especially
 		  (kill-emacs))
 	      (update-elc-chop-extension full-arg)))
 	   (full-arg-el (concatenate 'string full-arg-sans-extension ".el"))
-	   (full-arg-elc (concatenate 'string full-arg-sans-extension ".elc"))
-	   (full-arg-dir (file-name-directory full-arg-el)))
+	   (full-arg-elc (concatenate 'string full-arg-sans-extension ".elc")))
 	   
       ; (print full-arg-el)
 
@@ -358,7 +357,8 @@ differently depending on the presence of certain features, especially
 (let ((do-autoload-commands
        (append
 	(if (or need-to-rebuild-autoloads
-		need-to-rebuild-mule-autoloads)
+		need-to-rebuild-mule-autoloads
+                need-to-rebuild-module-autoloads)
 	    (list "-l" "autoload"))
 	(if need-to-rebuild-autoloads
 	    (list "-f" "batch-update-directory-autoloads"

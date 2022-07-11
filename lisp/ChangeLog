@@ -1,3 +1,11 @@
+2022-07-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* update-elc.el (do-autoload-commands):
+	If we just need to rebuild the module autoloads, load autoload.el,
+	something that wasn't done before.
+	* update-elc.el (preloaded-file-list):
+	full-arg-dir was not used, remove it, thank you the byte compiler.
+
 2022-07-09  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* subr.el (format):
