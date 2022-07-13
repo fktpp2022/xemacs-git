@@ -1,3 +1,16 @@
+2022-07-13  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Never return a negative value to Lisp when hashing, avoiding
+	problems in obarray.el.  This will always have been a problem,
+	since casting an unsigned long to an EMACS_INT will have returned
+	a negative value for UINT_MAX on thirty-two bit machines, but was
+	made more evident with dac90a20844f.
+	* elhash.c (Feq_hash):
+	* elhash.c (Feql_hash):
+	* elhash.c (Fequal_hash):
+	* elhash.c (Fequalp_hash):
+	* number.h (make_unsigned_integer):
+
 2022-07-11  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* doprnt.c:

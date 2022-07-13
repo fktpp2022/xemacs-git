@@ -198,7 +198,7 @@ typedef void bignum;
 #endif /* USE_GCC_EXTENDED_EXPRESSION_SYNTAX */
 #else
 #define make_integer(x) make_fixnum (x)
-#define make_unsigned_integer(x) make_fixnum ((EMACS_INT) x)
+#define make_unsigned_integer(x) make_fixnum (x & MOST_POSITIVE_FIXNUM)
 #endif
 
 extern Fixnum Vmost_negative_fixnum, Vmost_positive_fixnum;

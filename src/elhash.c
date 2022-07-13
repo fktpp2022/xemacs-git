@@ -2398,7 +2398,7 @@ implementing the Common Lisp PRINT-OBJECT protocol.
 */
        (object))
 {
-  return make_integer ((EMACS_INT) XPNTRVAL (object));
+  return make_unsigned_integer (XPNTRVAL (object));
 }
 
 DEFUN ("eql-hash", Feql_hash, 1, 1, 0, /*
@@ -2406,8 +2406,8 @@ Return a hash value for OBJECT appropriate for use with `eql.'
 */
        (object))
 {
-  EMACS_INT hashed = lisp_object_eql_hash (NULL, object);
-  return make_integer (hashed);
+  Hashcode hashed = lisp_object_eql_hash (NULL, object);
+  return make_unsigned_integer (hashed);
 }
 
 DEFUN ("equal-hash", Fequal_hash, 1, 1, 0, /*
@@ -2416,8 +2416,8 @@ Return a hash value for OBJECT appropriate for use with `equal.'
 */
        (object))
 {
-  EMACS_INT hashed = internal_hash (object, 0, 0);
-  return make_integer (hashed);
+  Hashcode hashed = internal_hash (object, 0, 0);
+  return make_unsigned_integer (hashed);
 }
 
 DEFUN ("equalp-hash", Fequalp_hash, 1, 1, 0, /*
@@ -2425,8 +2425,8 @@ Return a hash value for OBJECT appropriate for use with `equalp.'
 */
        (object))
 {
-  EMACS_INT hashed = internal_hash (object, 0, 1);
-  return make_integer (hashed);
+  Hashcode hashed = internal_hash (object, 0, 1);
+  return make_unsigned_integer (hashed);
 }
 
 static Lisp_Object
