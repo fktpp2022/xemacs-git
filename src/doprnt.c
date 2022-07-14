@@ -2313,8 +2313,17 @@ emacs_doprnt (Lisp_Object stream,
                     ch = rewrite_floating_spec (spec, obj);
                     goto reconsider;
                   }
-
-                arg.d = extract_float (obj);
+                else if (NUMBERP (obj))
+                  {
+                    arg.d = extract_float (obj);
+                  }
+                else
+                  {
+                    UNGCPRO;
+                    maybe_signal_error_1
+                      (Qwrong_type_argument, obj, Qformat, errb);
+                    return byte_count;
+                  }
               }
 
             if ((alloca_sz += max (0, spec->minwidth) * MAX_ICHAR_LEN,
@@ -2432,12 +2441,36 @@ emacs_doprnt (Lisp_Object stream,
               }
 
             /* No bignums or random Lisp objects, thanks, and restrict range
-               as appropriate for a charcount. */
-            check_integer_range (obj,
-                                 make_fixnum (MOST_NEGATIVE_FIXNUM /
-                                              MAX_ICHAR_LEN),
-                                 make_fixnum (MOST_POSITIVE_FIXNUM /
-                                              MAX_ICHAR_LEN));
+               to avoid things getting too unwieldy. */
+            if (ERRB_EQ (errb, ERROR_ME))
+              {
+                check_integer_range (obj,
+                                     make_fixnum (-65535),
+                                     make_fixnum (65535));
+              }
+            else
+              {
+                Lisp_Object argz[] = { make_fixnum (-65535), obj,
+                                       make_fixnum (65535) };
+                if (!INTEGERP (obj))
+                  {
+                    UNGCPRO;
+                    maybe_signal_error_1 (Qwrong_type_argument,
+                                          list2 (Qintegerp, obj),
+                                          Qformat, errb);
+                    return byte_count;
+                  }
+
+                if (NILP (Fleq (countof (argz), argz)))
+                  {
+                    UNGCPRO;
+                    maybe_signal_error_1 (Qargs_out_of_range,
+                                          list3 (obj, make_fixnum (-65535),
+                                                 make_fixnum (65535)),
+                                          Qformat, errb);
+                    return byte_count;
+                  }
+              }
             if (spec->forwarding_precisionp)
               {
                 nextspec->precision = XREALFIXNUM (obj);
@@ -2553,7 +2586,13 @@ emacs_doprnt (Lisp_Object stream,
                   }
               }
 
-            CHECK_BIGNUM (obj);
+            if (!BIGNUMP (obj))
+              {
+                UNGCPRO;
+                maybe_signal_error_1 (Qwrong_type_argument,
+                                      list2 (Qbignump, obj), Qformat, errb);
+                return byte_count;
+              }
 
             if (spec->precision > -1)
               {
@@ -2564,7 +2603,11 @@ emacs_doprnt (Lisp_Object stream,
             size = bignum_size_decimal (XBIGNUM_DATA (obj));
 	    if (size < 0)
 	      {
-		out_of_memory ("cannot print bignum in decimal", Qunbound);
+                UNGCPRO;
+                maybe_signal_error (Qout_of_memory,
+                                    "cannot print bignum in decimal",
+                                    Qunbound, Qformat, errb);
+                return byte_count;
 	      }
             to_print = alloca_ibytes (size);
             end = to_print + size; 
@@ -2604,7 +2647,13 @@ emacs_doprnt (Lisp_Object stream,
                   }
               }
 
-            CHECK_BIGNUM (obj);
+            if (!BIGNUMP (obj))
+              {
+                UNGCPRO;
+                maybe_signal_error_1 (Qwrong_type_argument,
+                                      list2 (Qbignump, obj), Qformat, errb);
+                return byte_count;
+              }
 
             signum = bignum_sign (XBIGNUM_DATA (obj));
 
@@ -2617,7 +2666,11 @@ emacs_doprnt (Lisp_Object stream,
             size = bignum_size_octal (XBIGNUM_DATA (obj));
 	    if (size < 0)
 	      {
-		out_of_memory ("cannot print bignum", Qunbound);
+                UNGCPRO;
+                maybe_signal_error (Qout_of_memory,
+                                    "cannot print bignum in octal",
+                                    Qunbound, Qformat, errb);
+                return byte_count;
 	      }
 
             to_print = alloca_ibytes (size);
@@ -2677,7 +2730,11 @@ emacs_doprnt (Lisp_Object stream,
             size = bignum_size_binary (XBIGNUM_DATA (obj));
 	    if (size < 0)
 	      {
-		out_of_memory ("cannot print bignum in binary", Qunbound);
+                UNGCPRO;
+                maybe_signal_error (Qout_of_memory,
+                                    "cannot print bignum in binary",
+                                    Qunbound, Qformat, errb);
+                return byte_count;
 	      }
             to_print = alloca_ibytes (size);
             end = to_print + size; 
@@ -2735,7 +2792,11 @@ emacs_doprnt (Lisp_Object stream,
             size = bignum_size_hex (XBIGNUM_DATA (obj));
 	    if (size < 0)
 	      {
-		out_of_memory ("cannot print bignum in hex", Qunbound);
+                UNGCPRO;
+                maybe_signal_error (Qout_of_memory,
+                                    "cannot print bignum in binary",
+                                    Qunbound, Qformat, errb);
+                return byte_count;
 	      }
             to_print = alloca_ibytes (size);
             end = to_print + size; 
@@ -2784,7 +2845,11 @@ emacs_doprnt (Lisp_Object stream,
             size = ratio_size_in_base (XRATIO_DATA (obj), 10);
 	    if (size < 0)
 	      {
-		out_of_memory ("cannot print ratio in decimal", Qunbound);
+                UNGCPRO;
+                maybe_signal_error_1 (Qout_of_memory,
+                                      "cannot print radio in decimal",
+                                      Qunbound, Qformat, errb);
+                return byte_count;
 	      }
             to_print = alloca_ibytes (size);
             end = to_print + size; 
@@ -3691,7 +3756,7 @@ format_into (Lisp_Object stream, Lisp_Object format_reloc,
 			    list3 (Qformat, make_fixnum (nargs), format_reloc),
 			    Qformat, errb);
       unbind_to (count);
-      return format_reloc;
+      return 0;
     }
   else if (nargs > args_needed && !ERRB_EQ (errb, ERROR_ME_NOT))
     {

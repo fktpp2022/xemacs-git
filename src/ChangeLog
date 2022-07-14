@@ -1,9 +1,19 @@
+2022-07-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* doprnt.c (emacs_doprnt):
+	extract_float () can error, only call it if NUMBERP (OBJ),
+	maybe_signal_error_1 () otherwise.
+	* doprnt.c (format_into):
+	Similarly in this function, for check_integer_range (),
+	CHECK_BIGNUM(), out_of_memory (); replace them with corresponding
+	maybe_signal_error_1 (), maybe_signal_error () calls.
+
 2022-07-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Never return a negative value to Lisp when hashing, avoiding
 	problems in obarray.el.  This will always have been a problem,
 	since casting an unsigned long to an EMACS_INT will have returned
-	a negative value for UINT_MAX on thirty-two bit machines, but was
+	a negative value for UINT_MIN on thirty-two bit machines, but was
 	made more evident with dac90a20844f.
 	* elhash.c (Feq_hash):
 	* elhash.c (Feql_hash):

@@ -1,3 +1,9 @@
+2022-07-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/format-tests.el (Assert-and-check-error):
+	Revise the RESULTs given when passing :error-behavior 'no-error to
+	#'format-into.
+
 2022-07-11  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/format-tests.el:

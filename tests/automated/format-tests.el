@@ -413,9 +413,9 @@
 			   (format-into 'string ,string ,@rest)))))
 	 alist))))
   (Assert-and-check-error 
-   ("hello %" syntax-error)
+   ("hello %" syntax-error "")
    ("hello %\u20ac there" syntax-error)
-   ("%!" syntax-error)
+   ("%!" syntax-error "")
    ("hello %\x00 hello" syntax-error)
    ("%c" wrong-type-argument "" -30)
    ("%c" wrong-type-argument "" 3.141592653589793)
@@ -423,7 +423,7 @@
    ("%1073741823f" args-out-of-range nil 65)
    ("%.1073741823f" args-out-of-range nil 65)
    ("%\n" syntax-error "" ?a)
-   ("%d %d" wrong-number-of-arguments nil 65)))
+   ("%d %d" wrong-number-of-arguments "" 65)))
 
 (macrolet
     ((Assert-with-format-extents (&rest list)
