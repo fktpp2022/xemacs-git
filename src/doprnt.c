@@ -1666,7 +1666,7 @@ rewrite_rational_spec (struct printf_spec *spec, printf_arg *arg,
       if (spec->unsigned_flag && bignum_sign (scratch_bignum) < 0)
         {
 	  maybe_signal_error_1 (Qwrong_type_argument,
-				list2 (Qnonnegativep, obj),
+				list2 (Qnonnegativep, *obj),
 				Qformat, errb);
 	  return EXPLICITLY_INVALID_CONVERTER;
         }
@@ -1682,7 +1682,7 @@ rewrite_rational_spec (struct printf_spec *spec, printf_arg *arg,
       if (spec->unsigned_flag && ratio_sign (XRATIO_DATA (*obj)) < 0)
         {
 	  maybe_signal_error_1 (Qwrong_type_argument,
-				list2 (Qnonnegativep, obj),
+				list2 (Qnonnegativep, *obj),
 				Qformat, errb);
 	  return EXPLICITLY_INVALID_CONVERTER;
         }

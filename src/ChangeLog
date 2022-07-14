@@ -1,5 +1,11 @@
 2022-07-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* doprnt.c (rewrite_rational_spec):
+	Fix a compile problem elicited by the buildbot when configured
+	--with-bignum=gmp, thank you Mats Lidell!
+
+2022-07-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* doprnt.c:
 	* doprnt.c (EXPLICITLY_INVALID_CONVERTER):
 	* doprnt.c (parse_doprnt_spec):
@@ -12,7 +18,7 @@
 	Call maybe_signal_error{,_1} appropriately in this function.
 	If we would otherwise have signalled an error, return
 	EXPLICITLY_INVALID_CONVERTER, so emacs_doprnt() knows to UNGCPRO and
-	return. 
+	return.
 	* doprnt.c (FIXNUM_SPEC_PREAMBLE_1):
 	Call rewrite_rational_spec () with its ERRB argument.
 	* doprnt.c (FIXNUM_SPEC_PREAMBLE):
