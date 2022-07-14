@@ -658,6 +658,7 @@ arguments: (NUMBER &optional (RADIX 10) RADIX_TABLE)
 #define BIGNUM_CONVERTERS "nPyYB"
 #define RATIO_CONVERTERS "mQvVW"
 #define BIGFLOAT_CONVERTERS "FhHkK"
+#define EXPLICITLY_INVALID_CONVERTER 0x7f
 
 typedef struct printf_spec printf_spec;
 struct printf_spec
@@ -1334,17 +1335,14 @@ parse_doprnt_spec (printf_spec_dynarr *specs,
                                            limitation. See the multiplication
                                            below just above the call to
                                            snprintf ().  */
-                                        make_fixnum (MOST_POSITIVE_FIXNUM /
-                                                     MAX_ICHAR_LEN) };
+                                        make_fixnum (65535) };
 
                   if (NILP (Fleq (countof (argz), argz)))
                     {
                       maybe_signal_error_1 (Qargs_out_of_range,
                                             list3 (mwidth, Qzero,
-                                                   make_fixnum
-                                                   (MOST_POSITIVE_FIXNUM /
-                                                    MAX_ICHAR_LEN)),
-                                            Qtext, errb);
+                                                   make_fixnum (65535)),
+                                            Qformat, errb);
                       RETURN_SPECS (specs);
                     }
 
@@ -1402,29 +1400,20 @@ parse_doprnt_spec (printf_spec_dynarr *specs,
                   else 
                     {
                       Lisp_Object argz[] = {
-                        /* This is a charcount. */
-                        make_fixnum (MOST_NEGATIVE_FIXNUM
-                                     / MAX_ICHAR_LEN),
-                        precis,
-                        /* This is a charcount used for
-                           allocation, whence the following
-                           limitation. See the multiplication
-                           below just above the call to
-                           snprintf ().  */
-                        make_fixnum (MOST_POSITIVE_FIXNUM /
-                                     MAX_ICHAR_LEN) };
+			      /* This is a charcount. */
+			      make_fixnum (-65535),
+			      precis,
+			      /* This is a charcount used for allocation; don't
+				 let it get unreasonably large. */
+			      make_fixnum (65535) };
 
                       if (NILP (Fleq (countof (argz), argz)))
                         {
                           maybe_signal_error_1 (Qargs_out_of_range,
                                                 list3 (precis,
-                                                       make_fixnum
-                                                       (MOST_NEGATIVE_FIXNUM
-                                                        / MAX_ICHAR_LEN),
-                                                       make_fixnum
-                                                       (MOST_POSITIVE_FIXNUM /
-                                                        MAX_ICHAR_LEN)),
-                                                Qtext, errb);
+						       make_fixnum (-65535),
+						       make_fixnum (65535)),
+                                                Qformat, errb);
                           RETURN_SPECS (specs);
                         }
 
@@ -1656,7 +1645,7 @@ get_doprnt_c_args (printf_arg *args, Elemcount args_needed,
    conversion character within *SPEC. Error if *OBJ is not a number. */
 static Ascbyte
 rewrite_rational_spec (struct printf_spec *spec, printf_arg *arg,
-                       Lisp_Object *obj)
+                       Lisp_Object *obj, Error_Behavior errb)
 {
   Ascbyte ch = spec->converter;
 
@@ -1676,7 +1665,10 @@ rewrite_rational_spec (struct printf_spec *spec, printf_arg *arg,
       bignum_set_bigfloat (scratch_bignum, XBIGFLOAT_DATA (*obj));
       if (spec->unsigned_flag && bignum_sign (scratch_bignum) < 0)
         {
-          dead_wrong_type_argument (Qnonnegativep, *obj);
+	  maybe_signal_error_1 (Qwrong_type_argument,
+				list2 (Qnonnegativep, obj),
+				Qformat, errb);
+	  return EXPLICITLY_INVALID_CONVERTER;
         }
       *obj = Fcanonicalize_number (make_bignum_bg (scratch_bignum));
 #else /* !HAVE_BIGNUM */
@@ -1689,7 +1681,10 @@ rewrite_rational_spec (struct printf_spec *spec, printf_arg *arg,
     {
       if (spec->unsigned_flag && ratio_sign (XRATIO_DATA (*obj)) < 0)
         {
-          dead_wrong_type_argument (Qnonnegativep, *obj);
+	  maybe_signal_error_1 (Qwrong_type_argument,
+				list2 (Qnonnegativep, obj),
+				Qformat, errb);
+	  return EXPLICITLY_INVALID_CONVERTER;
         }
       switch (ch)
         {
@@ -1796,7 +1791,10 @@ rewrite_rational_spec (struct printf_spec *spec, printf_arg *arg,
         {
           if (spec->unsigned_flag && bignum_sign (XBIGNUM_DATA (*obj)) < 0)
             {
-              dead_wrong_type_argument (Qnatnump, *obj);
+	      maybe_signal_error_1 (Qwrong_type_argument,
+				    list2 (Qnatnump, *obj),
+				    Qformat, errb);
+	      return EXPLICITLY_INVALID_CONVERTER;
             }
 
           switch (ch)
@@ -1866,8 +1864,10 @@ rewrite_rational_spec (struct printf_spec *spec, printf_arg *arg,
 
   if (!NUMBERP (*obj))
     {
-      syntax_error_2 ("Format specifier doesn't match arg type",
-                      make_char (ch), *obj);
+      maybe_signal_error (Qsyntax_error,
+			  "Format specifier doesn't match arg type",
+			  *obj, Qerror, errb);
+      return EXPLICITLY_INVALID_CONVERTER;
     }
 
   return ch;
@@ -1922,7 +1922,7 @@ rewrite_floating_spec (struct printf_spec *spec, Lisp_Object obj)
         {                                                               \
           if (!FIXNUMP (obj) || spec->hl_flag != HL_FLAG_NOTHING)       \
             {                                                           \
-              ch = rewrite_rational_spec (spec, &arg, &obj);            \
+              ch = rewrite_rational_spec (spec, &arg, &obj, errb);	\
               goto reconsider;                                          \
             }                                                           \
           arg.l = XREALFIXNUM (obj);                                    \
@@ -1941,12 +1941,50 @@ rewrite_floating_spec (struct printf_spec *spec, Lisp_Object obj)
             }                                                           \
           if (arg.l < 0)                                                \
             {                                                           \
-              dead_wrong_type_argument (Qnatnump,                       \
-                                        make_integer (arg.l));          \
+	      UNGCPRO;							\
+	      maybe_signal_error_1 (Qwrong_type_argument,		\
+				    list2 (Qnatnump, obj),		\
+				    Qformat, errb);			\
+	      return byte_count;					\
             }                                                           \
         }                                                               \
   } while (0)
 
+static int
+error_behavior_to_error_flags (Error_Behavior errb)
+{
+  if (ERRB_EQ (errb, ERROR_ME_NOT))
+    {
+      return INHIBIT_QUIT | INHIBIT_ANY_CHANGE_AFFECTING_REDISPLAY
+	| INHIBIT_WARNING_ISSUE | INHIBIT_ENTERING_DEBUGGER;
+    }
+  else if (ERRB_EQ (errb, ERROR_ME_DEBUG_WARN))
+    {
+      return ISSUE_WARNINGS_AT_DEBUG_LEVEL | INHIBIT_ENTERING_DEBUGGER;
+    }
+  else if (ERRB_EQ (errb, ERROR_ME_WARN))
+    {
+      return INHIBIT_ENTERING_DEBUGGER;
+    }
+  else
+    {
+      assert (ERRB_EQ (errb, ERROR_ME));
+      return 0;
+    }
+}
+
+static Lisp_Object
+tweaked_print_internal (Lisp_Object obj, Lisp_Object stream)
+{
+  print_internal (obj, stream, 1);
+  return Qt;
+}
+
+static Lisp_Object
+tweaked_prin1_to_string (void *v)
+{
+  return prin1_to_string (STORE_VOID_IN_LISP (v), 1);
+}
 
 /* Most basic entry point into string formatting.  Generate output from a
    format-spec (either a Lisp string FORMAT_RELOC, or a C string
@@ -2063,9 +2101,27 @@ emacs_doprnt (Lisp_Object stream,
                       obj = XSYMBOL (obj)->name;
                     else
                       {
-                        /* Convert to string using princ. OBJ is GCPRO'd. */
-                        obj = prin1_to_string (obj, 1);
-                      }
+			/* Convert to string using princ. OBJ is
+			   GCPRO'd. */
+			if (ERRB_EQ (errb, ERROR_ME))
+			  {
+			    obj = prin1_to_string (obj, 1);
+			  }
+			else
+			  {
+			    obj = call_trapping_problems
+			      (Qformat, "Printing problem with %-sequence `s'",
+			       error_behavior_to_error_flags (errb),
+			       NULL, tweaked_prin1_to_string,
+			       STORE_LISP_IN_VOID (obj));
+			    if (UNBOUNDP (obj))
+			      {
+				/* Error. */
+				UNGCPRO;
+				return byte_count;
+			      }
+			  }
+		      }
                   }
                 string = NULL;
                 string_len = XSTRING_LENGTH (obj);
@@ -2179,7 +2235,27 @@ emacs_doprnt (Lisp_Object stream,
                    query for a byte position--no need to create the string
                    which will be immediately garbage, print the object
                    directly to the stream instead. */
-                print_internal (obj, stream, 1);
+		
+		if (ERRB_EQ (errb, ERROR_ME))
+		  {
+		    print_internal (obj, stream, 1);
+		  }
+		else
+		  {
+		    obj = va_call_trapping_problems
+		      (Qformat, "Printing problem with %-sequence `S'",
+		       error_behavior_to_error_flags (errb),
+		       NULL, (lisp_fn_t) tweaked_print_internal,
+		       2, obj, stream);
+		    
+		    if (UNBOUNDP (obj))
+		      {
+			/* Error. */
+			UNGCPRO;
+			return byte_count;
+		      }
+		  }
+
                 delta = stream_extent_position (stream) - begin;
                 if (!NILP (format_reloc)
                     && string_extent_info (format_reloc) != NULL)
@@ -2548,7 +2624,12 @@ emacs_doprnt (Lisp_Object stream,
                   }
                 else
                   {
-                    dead_wrong_type_argument (Qintegerp, obj);
+		    UNGCPRO;
+		    maybe_signal_error_1 (Qwrong_type_argument,
+					  list2 (Qnatnump,
+						 make_integer (arg.l)),
+					  Qformat, errb);
+		    return byte_count;
                   }
               }
 
@@ -2579,7 +2660,7 @@ emacs_doprnt (Lisp_Object stream,
                 obj = arg.obj;
                 if (spec->hl_flag != HL_FLAG_NOTHING)
                   {
-                    ch = rewrite_rational_spec (spec, &arg, &obj);
+                    ch = rewrite_rational_spec (spec, &arg, &obj, errb);
                     /* No need to change spec->converter, it isn't used as
                        part of #o or #x or anything of that sort. */
                     goto reconsider;
@@ -2642,7 +2723,7 @@ emacs_doprnt (Lisp_Object stream,
                 if (spec->hl_flag != HL_FLAG_NOTHING)
                   {
                     spec->converter = 'o'; /* Needed for #o output. */
-                    ch = rewrite_rational_spec (spec, &arg, &obj);
+                    ch = rewrite_rational_spec (spec, &arg, &obj, errb);
                     goto reconsider;
                   }
               }
@@ -2714,12 +2795,18 @@ emacs_doprnt (Lisp_Object stream,
                 if (spec->hl_flag != HL_FLAG_NOTHING)
                   {
                     spec->converter = 'b'; /* Needed for #b output. */
-                    ch = rewrite_rational_spec (spec, &arg, &obj);
+                    ch = rewrite_rational_spec (spec, &arg, &obj, errb);
                     goto reconsider;
                   }
               }
 
-            CHECK_BIGNUM (obj);
+	    if (!BIGNUMP (obj))
+	      {
+                UNGCPRO;
+                maybe_signal_error_1 (Qwrong_type_argument,
+                                      list2 (Qbignump, obj), Qformat, errb);
+                return byte_count;
+	      }
 
             if (spec->precision > -1)
               {
@@ -2774,12 +2861,18 @@ emacs_doprnt (Lisp_Object stream,
                   {
                     /* Needed for #x, 0x output. */
                     spec->converter = ch == 'y' ? 'x' : 'X';
-                    ch = rewrite_rational_spec (spec, &arg, &obj);
+                    ch = rewrite_rational_spec (spec, &arg, &obj, errb);
                     goto reconsider;
                   }
               }
 
-            CHECK_BIGNUM (obj);
+	    if (!BIGNUMP (obj))
+	      {
+                UNGCPRO;
+                maybe_signal_error_1 (Qwrong_type_argument,
+                                      list2 (Qbignump, obj), Qformat, errb);
+                return byte_count;
+	      }
 
             signum = bignum_sign (XBIGNUM_DATA (obj));
 
@@ -2834,7 +2927,13 @@ emacs_doprnt (Lisp_Object stream,
                 obj = arg.obj;
               }
 
-            CHECK_RATIO (obj);
+	    if (!RATIOP (obj))
+	      {
+                UNGCPRO;
+                maybe_signal_error_1 (Qwrong_type_argument,
+                                      list2 (Qratiop, obj), Qformat, errb);
+                return byte_count;
+	      }
 
             if (spec->precision > -1)
               {
@@ -2846,9 +2945,9 @@ emacs_doprnt (Lisp_Object stream,
 	    if (size < 0)
 	      {
                 UNGCPRO;
-                maybe_signal_error_1 (Qout_of_memory,
-                                      "cannot print radio in decimal",
-                                      Qunbound, Qformat, errb);
+                maybe_signal_error (Qout_of_memory,
+				    "Cannot print radio in decimal",
+				    Qunbound, Qerror, errb);
                 return byte_count;
 	      }
             to_print = alloca_ibytes (size);
@@ -2883,7 +2982,13 @@ emacs_doprnt (Lisp_Object stream,
                 obj = arg.obj;
               }
 
-            CHECK_RATIO (obj);
+	    if (!RATIOP (obj))
+	      {
+                UNGCPRO;
+                maybe_signal_error_1 (Qwrong_type_argument,
+                                      list2 (Qratiop, obj), Qformat, errb);
+                return byte_count;
+	      }
 
             signum = ratio_sign (XRATIO_DATA (obj));
 
@@ -2934,7 +3039,13 @@ emacs_doprnt (Lisp_Object stream,
                 obj = arg.obj;
               }
 
-            CHECK_RATIO (obj);
+	    if (!RATIOP (obj))
+	      {
+                UNGCPRO;
+                maybe_signal_error_1 (Qwrong_type_argument,
+                                      list2 (Qratiop, obj), Qformat, errb);
+                return byte_count;
+	      }
 
             if (spec->precision > -1)
               {
@@ -2979,7 +3090,13 @@ emacs_doprnt (Lisp_Object stream,
                 obj = arg.obj;
               }
 
-            CHECK_RATIO (obj);
+	    if (!RATIOP (obj))
+	      {
+                UNGCPRO;
+                maybe_signal_error_1 (Qwrong_type_argument,
+                                      list2 (Qratiop, obj), Qformat, errb);
+                return byte_count;
+	      }
 
             signum = ratio_sign (XRATIO_DATA (obj));
 
@@ -3026,7 +3143,14 @@ emacs_doprnt (Lisp_Object stream,
               obj = arg.obj;
             }
 
-          CHECK_BIGFLOAT (obj);
+	  if (!BIGFLOATP (obj))
+	    {
+	      UNGCPRO;
+	      maybe_signal_error_1 (Qwrong_type_argument,
+				    list2 (Qratiop, obj), Qformat, errb);
+	      return byte_count;
+	    }
+
           {
             /* #### We don't even attempt to do this right. */
             Ibyte *text_to_print =
@@ -3089,6 +3213,11 @@ emacs_doprnt (Lisp_Object stream,
                                     spec, format_reloc);
             continue;
           }
+	case EXPLICITLY_INVALID_CONVERTER:
+	  {
+	    UNGCPRO;
+	    return byte_count;
+	  }
         default:
           {
             UNGCPRO;

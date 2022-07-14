@@ -1,5 +1,31 @@
 2022-07-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* doprnt.c:
+	* doprnt.c (EXPLICITLY_INVALID_CONVERTER):
+	* doprnt.c (parse_doprnt_spec):
+	Restrict the range of the minwidth and precision fields to be a
+	bit more reasonable, there shouldn't be a need for either to be
+	1152921504606846975 on a sixty-four bit machine, 65535 should be
+	good enought.
+	* doprnt.c (rewrite_rational_spec):
+	Take an Error_Behavior argument.
+	Call maybe_signal_error{,_1} appropriately in this function.
+	If we would otherwise have signalled an error, return
+	EXPLICITLY_INVALID_CONVERTER, so emacs_doprnt() knows to UNGCPRO and
+	return. 
+	* doprnt.c (FIXNUM_SPEC_PREAMBLE_1):
+	Call rewrite_rational_spec () with its ERRB argument.
+	* doprnt.c (FIXNUM_SPEC_PREAMBLE):
+	Call maybe_signal_error{,_1} appropriately in this function.	
+	* doprnt.c (error_behavior_to_error_flags): New.
+	* doprnt.c (emacs_doprnt):
+	Adjust some further things to avoid Lisp errors and thus
+	inappropriate code in redisplay.
+	Use call_trapping_problems for prin1_to_string, print_internal if
+	appropriate.
+
+2022-07-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* doprnt.c (emacs_doprnt):
 	extract_float () can error, only call it if NUMBERP (OBJ),
 	maybe_signal_error_1 () otherwise.
@@ -13,7 +39,7 @@
 	Never return a negative value to Lisp when hashing, avoiding
 	problems in obarray.el.  This will always have been a problem,
 	since casting an unsigned long to an EMACS_INT will have returned
-	a negative value for UINT_MIN on thirty-two bit machines, but was
+	a negative value for UINT_MAX on thirty-two bit machines, but was
 	made more evident with dac90a20844f.
 	* elhash.c (Feq_hash):
 	* elhash.c (Feql_hash):
