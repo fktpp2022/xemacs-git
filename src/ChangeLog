@@ -7,6 +7,17 @@
 	This fixes a bug where the displayed window isn't redisplayed when
 	enter is pressed while the cursor is in the beginning of a line.
 
+	* number-mp.c:
+	Complete the shift from emacs_snprintf() to emacs_snprintf_ascbyte()
+	by changing the buffer types from Ibyte to Ascbyte.
+
+	* sysdep.c (total_data_usage):
+	I brain farted in the implementation of this by causing a potential
+	use-after-free by calling kvm_close() before reading the value
+	returned by kvm_getproc[s2](). Since libkvm owns and manages the
+	memory aread of the values its API returns, that is outside its
+	guarantees of availability. That is fixed now.
+
 2022-07-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* doprnt.c (rewrite_rational_spec):

@@ -277,7 +277,7 @@ bignum_set_string (bignum b, const char *s, int base)
 void
 bignum_set_long (bignum b, long l)
 {
-  Ibyte hex[SIZEOF_LONG * 2U + 2U];
+  Ascbyte hex[SIZEOF_LONG * 2U + 2U];
   MINT *temp;
   int neg = l < 0L;
 
@@ -294,7 +294,7 @@ bignum_set_long (bignum b, long l)
 void
 bignum_set_ulong (bignum b, unsigned long l)
 {
-  Ibyte hex[SIZEOF_LONG * 2U + 2U];
+  Ascbyte hex[SIZEOF_LONG * 2U + 2U];
   MINT *temp;
 
   emacs_snprintf_ascbyte (hex, sizeof (hex), "%zux", (EMACS_UINT) l);
@@ -306,7 +306,7 @@ bignum_set_ulong (bignum b, unsigned long l)
 void
 bignum_set_llong (bignum b, long long l)
 {
-  Ibyte hex[SIZEOF_LONG_LONG * 2U + 2U];
+  Ascbyte hex[SIZEOF_LONG_LONG * 2U + 2U];
   MINT *temp;
   int neg = l < 0LL;
 
@@ -324,7 +324,7 @@ bignum_set_llong (bignum b, long long l)
 void
 bignum_set_ullong (bignum b, unsigned long long l)
 {
-  Ibyte hex[SIZEOF_LONG_LONG * 2U + 2U];
+  Ascbyte hex[SIZEOF_LONG_LONG * 2U + 2U];
   MINT *temp;
 
   emacs_snprintf_ascbyte (hex, SIZEOF_LONG_LONG * 2U + 2U, "%llux", l);

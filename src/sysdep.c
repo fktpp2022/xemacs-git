@@ -1771,6 +1771,7 @@ total_data_usage (void)
 {
   kvm_t *kvm;
   KVM_GETPROC_RTYPE *kinfo;
+  Bytecount ret;
   int count;
   char errbuf[_POSIX2_LINE_MAX];
 
@@ -1785,16 +1786,21 @@ total_data_usage (void)
                           sizeof (*kinfo),
 #endif
                           &count);
-  kvm_close (kvm);
 
   if (!kinfo || !count)
-    signal_error (Qio_error, STRINGIFY (KVM_GETPROC_FN) "() failed", Qunbound);
+    {
+      kvm_close (kvm);
+      signal_error (Qio_error, STRINGIFY (KVM_GETPROC_FN) "() failed",
+                    Qunbound);
+    }
 
-  return (Bytecount) KVM_GET_PROCESS_SIZE (kinfo)
+  ret = KVM_GET_PROCESS_SIZE (kinfo)
 #ifdef KVM_SIZE_IN_PAGES
            * getpagesize ()
 #endif
            ;
+  kvm_close (kvm);
+  return ret;
 }
 #undef STRINGIFY
 #undef STRINGIFY_

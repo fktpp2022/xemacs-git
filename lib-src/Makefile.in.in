@@ -69,6 +69,7 @@ sitemoduledir=@sitemoduledir@
 INSTALL = @install_pp@ @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_DATA = @INSTALL_DATA@
+INSTALL_SCRIPT = @INSTALL_SCRIPT@
 
 ## ========================== Lists of Files ===========================
 
@@ -253,7 +254,7 @@ ${archlibdir}: all
 	if test "`(cd ${archlibdir} && $(pwd))`" \
 	     != "`(cd ${srcdir}     && $(pwd))`"; then \
 	  for f in ${PRIVATE_INSTALLABLE_SCRIPTS}; do \
-	    (cd .. && $(INSTALL_PROGRAM) ${srcdir}/$$f $(DESTDIR)${archlibdir}/$$f); \
+	    (cd .. && $(INSTALL_SCRIPT) ${srcdir}/$$f $(DESTDIR)${archlibdir}/$$f); \
 	  done ; \
 	fi
 
@@ -263,7 +264,7 @@ install: ${archlibdir}
 	  (cd .. && $(INSTALL_PROGRAM) lib-src/$${file} $(DESTDIR)${bindir}/$${file}) ; \
 	done
 	for file in ${PUBLIC_INSTALLABLE_SCRIPTS} ; do \
-	  (cd .. && $(INSTALL_PROGRAM) ${srcdir}/$${file} $(DESTDIR)${bindir}/$${file}) ; \
+	  (cd .. && $(INSTALL_SCRIPT) ${srcdir}/$${file} $(DESTDIR)${bindir}/$${file}) ; \
 	done
 
 uninstall:

@@ -1,3 +1,11 @@
+2022-07-15  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* Makefile.in.in:
+	Change the installation of scripts to use the command in the
+	INSTALL_SCRIPT variable. This fixes attempting to install the script
+	files with install(1)'s -s flag and failing because strip(1) doesn't
+	work with shell scripts.
+
 2022-06-19  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* fakemail.c (cuserid): Fix FreeBSD compile.
