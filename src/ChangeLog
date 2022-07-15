@@ -1,3 +1,12 @@
+2022-07-15  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* redisplay.c (regenerate_window_incrementally):
+	Change the calculation of the end of the unchanged region in the
+	modified buffer from using BUF_Z() to BYTE_BUF_Z(), as it is
+	calculated with that in insdel.c:buffer_signal_changed_region().
+	This fixes a bug where the displayed window isn't redisplayed when
+	enter is pressed while the cursor is in the beginning of a line.
+
 2022-07-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* doprnt.c (rewrite_rational_spec):

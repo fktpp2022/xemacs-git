@@ -6015,7 +6015,7 @@ regenerate_window_incrementally (struct window *w, Bytebpos startp,
   beg_unchanged = BUF_BEGIN_UNCHANGED (b);
   end_unchanged = (BUF_END_UNCHANGED (b) == -1
 		   ? -1
-		   : BUF_Z (b) - BUF_END_UNCHANGED (b));
+		   : BYTE_BUF_Z (b) - BUF_END_UNCHANGED (b));
 
   REGEN_INC_FIND_START_END;
 
