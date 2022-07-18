@@ -1,3 +1,13 @@
+2022-07-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* byte-optimize.el (byte-optimize-zerop):
+	#'numberp has a byte code, and so it's fine to transform (zerop
+	OBJECT) into (if (numberp OBJECT) (= OBJECT 0)
+	(signal 'wrong-type-argument 'number OBJECT).
+	This avoids correctness problems introducted by the
+	byte-compile-delete-errors option, revealed in
+	tests/automated/lisp-tests.el.
+
 2022-07-11  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* update-elc.el (do-autoload-commands):

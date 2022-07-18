@@ -958,9 +958,15 @@
 (defun byte-optimize-zerop (form)
   (cond ((numberp (nth 1 form))
 	 (eval form))
-	(byte-compile-delete-errors
-	 (list '= (nth 1 form) 0))
-	(form)))
+	((or (symbolp (nth 1 form))
+             (byte-optimize-side-effect-free-p (nth 1 form)))
+	 `(if (numberp ,(nth 1 form))
+	      (= ,(nth 1 form) 0)
+            ;; Hobble the optimizer so this function doesn't get called
+            ;; recursively. Don't just #'wrong-type-argument ourselves, this
+            ;; approach gives a more accurate backtrace.
+	    (funcall (symbol-function #'zerop) ,(nth 1 form))))
+	(t form)))
 
 (put 'zerop 'byte-optimizer 'byte-optimize-zerop)
 
