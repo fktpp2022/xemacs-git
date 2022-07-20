@@ -107,11 +107,14 @@ was called."
                             function))
                  (setq restp t))
                 (restp
-                 (setq bindings (cons (list (car arglist)
-                                            (and args
-                                                 (quote-maybe args)))
-                                      bindings)
-                       args nil))
+                 (let ((new-arg-name (if (functionp 'gensym) (gensym)
+                                                             '*rest-arg*)))
+                   (setq bindings (cons (list (car arglist)
+                                              `(append ,(quote-maybe args)
+                                                       ,new-arg-name))
+                                        bindings)
+                         args nil
+                         arglist `(nil &rest ,new-arg-name))))
                 (t
                  (setq bindings (cons (list (car arglist)
                                             (quote-maybe (car args)))

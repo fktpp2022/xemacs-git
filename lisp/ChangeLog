@@ -1,12 +1,10 @@
-2022-07-18  Aidan Kehoe  <kehoea@parhasard.net>
+2022-07-20  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
-	* byte-optimize.el (byte-optimize-zerop):
-	#'numberp has a byte code, and so it's fine to transform (zerop
-	OBJECT) into (if (numberp OBJECT) (= OBJECT 0)
-	(signal 'wrong-type-argument 'number OBJECT).
-	This avoids correctness problems introducted by the
-	byte-compile-delete-errors option, revealed in
-	tests/automated/lisp-tests.el.
+	* subr.el (apply-partially):
+	For a &rest argumented lambda, construct one in return in
+	#'apply-partially instead of returning a lambda with an empty argument
+	list and make it append together the pre-applied and provided &rest
+	arg lists.
 
 2022-07-11  Aidan Kehoe  <kehoea@parhasard.net>
 
