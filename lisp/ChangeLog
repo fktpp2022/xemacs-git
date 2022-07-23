@@ -1,5 +1,12 @@
 2022-07-23  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* pcase.el (pcase--u1):
+	Suppress a warning about an unused variable bound by
+	#'destructuring-bind, by not binding it and modifying EXPR
+	appropriately.
+	
+2022-07-23  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* pcase.el: New. Imported from GNU, a version before the
 	introduction of lexical binding there.
 	The reasoning to put it here rather than xemacs-base is that it is

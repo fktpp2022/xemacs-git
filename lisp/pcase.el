@@ -491,7 +491,7 @@ Otherwise, it defers to REST which is a list of branches of the form
                             code vars)
                            rest)))))))
    ((eq 'match (caar matches))
-    (destructuring-bind (op sym &rest upat) (pop matches)
+    (destructuring-bind (sym &rest upat) (cdr (pop matches))
       (cond
        ((memq upat '(t _)) (pcase--u1 matches code vars rest))
        ((eq upat 'dontcare) :pcase--dontcare)
