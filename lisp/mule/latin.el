@@ -308,7 +308,7 @@ Northern Europe.\""
    chars 96
    final ?V ;; 0x56 aka octet 5/6
    graphic 1
-   unicode-map ("unicode/unicode-consortium/ISO8859/8859-10.TXT" #xA0)
+   unicode-map ("unicode/unicode-consortium/ISO8859/ISO-8859-10.TXT" #xA0)
    short-name "Latin-6 (Northern Europe)"
    long-name "RHP of Latin-6 (Northern Europe) (ISO 8859-10): ISO-IR-157"
    tags (iso8859 latin)
@@ -332,7 +332,7 @@ Northern Europe.\""
    chars 96
    final ?Y ;; 0x59 aka octet 5/9
    graphic 1
-   unicode-map ("unicode/unicode-consortium/ISO8859/8859-13.TXT" #xA0)
+   unicode-map ("unicode/unicode-consortium/ISO8859/ISO-8859-13.TXT" #xA0)
    short-name "Latin-7 (Baltic Rim)"
    long-name "RHP of Latin-7 (Baltic Rim) (ISO 8859-13): ISO-IR-179"
    tags (iso8859 latin)
@@ -365,7 +365,7 @@ covered).\""
    chars 96
    final ?_
    graphic 1
-   unicode-map ("unicode/unicode-consortium/ISO8859/8859-14.TXT" #xA0)
+   unicode-map ("unicode/unicode-consortium/ISO8859/ISO-8859-14.TXT" #xA0)
    short-name "Latin-8 (Celtic)"
    long-name "RHP of Latin-8 (Celtic) (ISO 8859-14): ISO-IR-199"
    tags (iso8859 latin)
@@ -541,7 +541,7 @@ Romanian language\""
    chars 96
    final ?f			; octet 06/06; cf ISO-IR 226
    graphic 1
-   unicode-map ("unicode/unicode-consortium/ISO8859/8859-16.TXT" #xA0)
+   unicode-map ("unicode/unicode-consortium/ISO8859/ISO-8859-16.TXT" #xA0)
    short-name "Latin-10 (Romanian)"
    long-name "RHP of Latin-10 (Romanian) (ISO 8859-16): ISO-IR-226"
    tags (iso8859 latin)

@@ -41,13 +41,13 @@
 	   ;; charsets' types, trying to load them results in out-of-range
 	   ;; warnings at unicode.c:1439.  They're no-ops anyway, they're
 	   ;; hardwired in unicode.c (unicode_to_ichar, ichar_to_unicode).
-	   ;; (ascii "unicode/unicode-consortium/ISO8859/8859-1.TXT"
+	   ;; (ascii "unicode/unicode-consortium/ISO8859/ISO-8859-1.TXT"
 	   ;;        #x00 #x7F #x0)
-	   ;; (control-1 "unicode/unicode-consortium/ISO8859/8859-1.TXT"
+	   ;; (control-1 "unicode/unicode-consortium/ISO8859/ISO-8859-1.TXT"
 	   ;;   	 #x80 #x9F #x-80)
 	   ;; The 8859-1.TXT G1 assignments are half no-ops, hardwired in
 	   ;; unicode.c ichar_to_unicode, but not in unicode_to_ichar.
-	   (latin-iso8859-1 "unicode/unicode-consortium/ISO8859/8859-1.TXT"
+	   (latin-iso8859-1 "unicode/unicode-consortium/ISO8859/ISO-8859-1.TXT"
 			    #xA0)
 	   )))
     (mapc #'(lambda (args)

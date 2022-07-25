@@ -1,3 +1,23 @@
+2022-07-24  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* mule/compiled-unicode-tables.el:
+	A new mechanism for packing the used Unicode translation tables from
+	etc/unicode to a compiled .elc.
+
+	At compile time, harvest from the Lisp codebase all files that could
+	possibly be used in etc/unicode, dump them with
+	unicode.c:Fdump_unicode_mapping_table() and create a search table out
+	of them. unicode.c:Fload_unicode_mapping_table() will then call this
+	file's #'set-compiled-unicode-file-search-table to make the compiled
+	data available to it.
+
+	* unicode.el:
+	* mule/latin.el:
+	* mule/mule-charset.el:
+	The mapping files under etc/unicode/unicode-consortium/ISO8859 were
+	renamed to make their filenames unambiguous for the Unicode table
+	compiler. Change these files to reflect that.
+
 2022-07-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* pcase.el (pcase--u1):
