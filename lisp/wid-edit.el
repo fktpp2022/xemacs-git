@@ -166,18 +166,6 @@ Cleans up `cl-prettyprint''s gratuitous surrounding newlines."
   (buffer-disable-undo)
   (buffer-enable-undo))
 
-(defun widget-sublist (list start &optional end)
-  "Return the sublist of LIST from START to END.
-If END is omitted, it defaults to the length of LIST."
-  (if (> start 0) (setq list (nthcdr start list)))
-  (if end
-      (if (<= end start)
-	  nil
-	(setq list (copy-sequence list))
-	(setcdr (nthcdr (- end start 1) list) nil)
-	list)
-    (copy-sequence list)))
-
 ;; Is unimplemented the right superclass?
 (define-error 'missing-package "Package not installed" 'unimplemented)
 
@@ -294,13 +282,20 @@ menu will be used, otherwise the minibuffer is used."
 	     nil)))))
 
 ;; GNU Emacs 21.3.50 uses this in `widget-choose'
-(defun widget-remove-if (predicate list)
-  (let (result (tail list))
-    (while tail
-      (or (funcall predicate (car tail))
-	  (setq result (cons (car tail) result)))
-      (setq tail (cdr tail)))
-    (nreverse result)))
+; (defalias widget-remove-if (predicate list)
+;   (let (result (tail list))
+;     (while tail
+;       (or (funcall predicate (car tail))
+; 	  (setq result (cons (car tail) result)))
+;       (setq tail (cdr tail)))
+;     (nreverse result)))
+;; The following is exactly equivalent:
+;
+; (delete-if predicate (copy-sequence list))
+;
+;; The following is faster, almost always equivalent, and better style:
+;
+; (remove-if predicate list)
 
 (defun widget-move-and-invoke (event)
   "Move to where you click, and if it is an active field, invoke it."
@@ -2022,9 +2017,8 @@ Return nil."
   (let ((value (widget-get widget :value)))
     (and (listp value)
 	 (<= (length value) (length values))
-	 (let ((head (widget-sublist values 0 (length value))))
-	   (and (equal head value)
-		(cons head (widget-sublist values (length value))))))))
+         (not (mismatch values value :test #'equal :end1 (length value)))
+         (cons (copy-list value) (subseq values (length value))))))
 
 (defun widget-item-action (widget &optional event)
   ;; Just notify itself.
