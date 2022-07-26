@@ -2362,7 +2362,7 @@ compiled_unicode_table_decode_init_col(struct
                "vector");
 
   col->length = XVECTOR_LENGTH (*col_vector);
-  CHECK_ERROR (col->length,
+  CHECK_ERROR (!col->length,
                "Element %d in unicode-file-search-table for %s is empty");
 
   col->vector = XVECTOR_DATA (*col_vector);

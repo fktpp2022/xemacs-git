@@ -1,3 +1,9 @@
+2022-07-26  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* unicode.c (compiled_unicode_table_decode_init_col):
+	Invert a broken check for the length of a compiled Unicode table
+	column.
+
 2022-07-24  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* unicode.c:
