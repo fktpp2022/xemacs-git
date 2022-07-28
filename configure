@@ -20280,46 +20280,6 @@ test "$working_alloca_in_function_calls" != "yes" && \
   printf "%s\n" "#define BROKEN_ALLOCA_IN_FUNCTION_CALLS 1" >>confdefs.h
 
 
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for working scanf" >&5
-printf %s "checking for working scanf... " >&6; }
-if test "$cross_compiling" = yes
-then :
-  { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-printf "%s\n" "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "cannot run test program while cross compiling
-See \`config.log' for more details" "$LINENO" 5; }
-else $as_nop
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-int
-main (int argc, char **argv)
-{
-  int ret, cp1, cp2, endcount;
-  char *p = "0x7d   0x000E  ";
-  ret = sscanf (p, "%i %i%n", &cp1, &cp2, &endcount);
-  /* endcount should be 13 but it's 11 in Cygwin newlib after 6/04;
-     this breaks unicode.c */
-  return endcount != 13;
-}
-
-_ACEOF
-if ac_fn_c_try_run "$LINENO"
-then :
-  working_scanf=yes
-else $as_nop
-  working_scanf=no
-fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
-  conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $working_scanf" >&5
-printf "%s\n" "$working_scanf" >&6; }
-test "$working_scanf" != "yes" && \
-  printf "%s\n" "#define CYGWIN_SCANF_BUG 1" >>confdefs.h
-
-
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking host system type" >&5
 printf %s "checking host system type... " >&6; }
 if test ${ac_cv_host+y}

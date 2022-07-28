@@ -453,7 +453,7 @@ install-arch-indep: mkdir info
 	 done
 	-set ${COPYDESTS} ; \
 	 for dir in ${COPYDESTS} ; do \
-	   if test ! -d $${dir} ; then mkdir $(DESTDIR)$${dir} ; fi ; \
+	   if test ! -d $(DESTDIR)$${dir} ; then mkdir $(DESTDIR)$${dir} ; fi ; \
 	 done ; \
 	 for dir in ${COPYDIR} ; do \
 	   dest=$$1 ; shift ; \

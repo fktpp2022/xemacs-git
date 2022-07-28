@@ -1,3 +1,99 @@
+2022-07-24  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* mule/compiled-unicode-tables.el:
+	A new mechanism for packing the used Unicode translation tables from
+	etc/unicode to a compiled .elc.
+
+	At compile time, harvest from the Lisp codebase all files that could
+	possibly be used in etc/unicode, dump them with
+	unicode.c:Fdump_unicode_mapping_table() and create a search table out
+	of them. unicode.c:Fload_unicode_mapping_table() will then call this
+	file's #'set-compiled-unicode-file-search-table to make the compiled
+	data available to it.
+
+	* unicode.el:
+	* mule/latin.el:
+	* mule/mule-charset.el:
+	The mapping files under etc/unicode/unicode-consortium/ISO8859 were
+	renamed to make their filenames unambiguous for the Unicode table
+	compiler. Change these files to reflect that.
+
+2022-07-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* pcase.el (pcase--u1):
+	Suppress a warning about an unused variable bound by
+	#'destructuring-bind, by not binding it and modifying EXPR
+	appropriately.
+
+2022-07-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* pcase.el: New. Imported from GNU, a version before the
+	introduction of lexical binding there.
+	The reasoning to put it here rather than xemacs-base is that it is
+	completely routine for the GNU Emacs core code to use these
+	macros, and as we synch our core files going forward we will need
+	to have it available.
+	The following relevant ChangeLog entries are taken from GNU's
+	ChangeLog.15:
+
+    2011-02-28  Juanma Barranquero  <lekktu@gmail.com>
+
+	* emacs-lisp/pcase.el (pcase, pcase--u1, pcase--q1):
+	Fix typos in docstrings.
+
+    2011-02-27  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* emacs-lisp/pcase.el (pcase--if): Try to invert test to reduce depth.
+	(pcase-mutually-exclusive-predicates): New var.
+	(pcase--split-consp, pcase--split-pred): Use it.
+	(pcase--split-equal, pcase--split-member): When splitting against
+	a pure predicate, run it to know the outcome.
+	(pcase--u1): Mark vars that are actually used.
+	(pcase--q1): Avoid introducing unused vars.
+
+    2011-02-18  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* emacs-lisp/pcase.el (pcase--u1): Understand non-linear patterns.
+
+    2010-11-24  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* emacs-lisp/pcase.el: Improve pcase-let.  Use "pcase--" prefix.
+	(pcase--dontcare-upats): New var.
+	(pcase-let, pcase-let*): Generate better code.
+	Accept the same bodies as `let'.
+	(pcase-dolist): New macro.
+	(pcase--trivial-upat-p): New helper function.
+	(pcase--expand): Strip leading "(let nil" if any.
+
+    2010-11-12  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* emacs-lisp/pcase.el (pcase-let*, pcase-let): Add debug and
+	indentation specs.
+
+    2010-10-29  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* emacs-lisp/pcase.el (pcase): New `string' and `guard' patterns.
+	(pcase-if): Add one minor optimization.
+	(pcase-split-equal): Rename from pcase-split-eq.
+	(pcase-split-member): Rename from pcase-split-memq.
+	(pcase-u1): Add strings to the member optimization.
+	Add `guard' variant of predicates.
+	(pcase-q1): Add string patterns.
+
+    2010-09-26  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* emacs-lisp/pcase.el (pcase-let*, pcase-let): plet -> pcase-let.
+
+    2010-09-01  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* emacs-lisp/pcase.el (pcase-split-memq):
+	Fix overenthusiastic optimization.
+	(pcase-u1): Handle the case of a lambda pred.
+
+    2010-08-10  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* emacs-lisp/pcase.el: New file.
+
 2022-07-20  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* subr.el (apply-partially):
@@ -5,6 +101,16 @@
 	#'apply-partially instead of returning a lambda with an empty argument
 	list and make it append together the pre-applied and provided &rest
 	arg lists.
+
+2022-07-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* byte-optimize.el (byte-optimize-zerop):
+	#'numberp has a byte code, and so it's fine to transform (zerop
+	OBJECT) into (if (numberp OBJECT) (= OBJECT 0)
+	(signal 'wrong-type-argument 'number OBJECT).
+	This avoids correctness problems introducted by the
+	byte-compile-delete-errors option, revealed in
+	tests/automated/lisp-tests.el.
 
 2022-07-11  Aidan Kehoe  <kehoea@parhasard.net>
 

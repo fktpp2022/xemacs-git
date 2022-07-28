@@ -1,3 +1,36 @@
+2022-07-26  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* unicode.c (compiled_unicode_table_decode_init_col):
+	Invert a broken check for the length of a compiled Unicode table
+	column.
+
+2022-07-24  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* unicode.c:
+	Create a mechanism to dump the Unicode tables under etc/unicode to
+	Lisp data structures and to read them back from them.
+
+	Fload_unicode_mapping_table() will now try to call
+	lisp/mule/compiled-unicode-tables.elc's
+	#'set-compiled-unicode-file-search-table from autoloads, which, when
+	existing, will set the variable Qcompiled_unicode_file_search_table
+	to contain a compiled table of all etc/unicode files known to be
+	used by the built-in Lisp code.
+
+	If #'set-compiled-unicode-file-search-table is not defined or
+	Qcompiled_unicode_file_search_table doesn't have an entry for a file,
+	Fload_unicode_mapping_table() will use the old mechanism and look up
+	the parsed data from either an absolute path or etc/unicode.
+
+	A new Fdump_unicode_mapping_table() uses the same file table parsing
+	mechanism, but returns a list of parsed entries. It's used by
+	mule/compiled-unicode-tables.el at compile time to compose
+	#'set-compiled-unicode-file-search-table.
+
+	* config.h.in:
+	Remove the define template of CYGWIN_SCANF_BUG with the test for it
+	being removed from configure.
+
 2022-07-15  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* redisplay.c (regenerate_window_incrementally):

@@ -225,6 +225,8 @@ static Lisp_Object Vprecedence_array_cons_to_array;
 
 static Lisp_Object Qcharset_tag_to_charset_list;
 
+static Lisp_Object Qcompiled_unicode_file_search_table;
+
 /* Used internally in the generation of precedence arrays, to keep
    track of charsets already seen */
 Lisp_Object Vprecedence_array_charsets_seen_hash;
@@ -2247,6 +2249,220 @@ verify_load_unicode_args (Lisp_Object filename, Lisp_Object start,
   }
 }
 
+enum compiled_unicode_table_type
+{
+  COMPILED_UNICODE_TABLE_TYPE_DELTA_ENCODED = 0,
+  COMPILED_UNICODE_TABLE_RANGE_LENGTH_ENCODED = 1
+};
+
+struct compiled_unicode_table_decode
+{
+  Lisp_Object *vector;
+  int idx, length, delta_value, previous_value, values_left;
+  enum compiled_unicode_table_type type;
+};
+
+static Boolint compiled_unicode_table_decode_init_col(struct
+                                               compiled_unicode_table_decode *,
+                                                      Lisp_Object, int,
+                                                      Lisp_Object *);
+
+
+static Boolint attempted_loading_compiled_unicode_tables = 0;
+
+static void
+compiled_unicode_table_load (void)
+{
+  Lisp_Object load_fn_symbol =
+    Fintern (build_ascstring ("set-compiled-unicode-file-search-table"), Qnil);
+
+  if (NILP (Ffboundp (load_fn_symbol))) return;
+
+  call0 (load_fn_symbol);
+}
+
+static Boolint
+compiled_unicode_table_decode_init (struct compiled_unicode_table_decode *col1,
+                                    struct compiled_unicode_table_decode *col2,
+                                    struct compiled_unicode_table_decode *col3,
+                                    Lisp_Object filename)
+{
+  Lisp_Object table_array;
+  EMACS_UINT len;
+
+retry:
+  if (NILP (Qcompiled_unicode_file_search_table))
+    {
+      if (attempted_loading_compiled_unicode_tables) return 0;
+
+      attempted_loading_compiled_unicode_tables = 1;
+      compiled_unicode_table_load ();
+      goto retry;
+    }
+
+  if (!HASH_TABLEP (Qcompiled_unicode_file_search_table))
+    {
+      warn_when_safe (Qunicode, Qwarning,
+                      "unicode-file-search-table is not a hash table");
+      return 0;
+    }
+
+  table_array = Fgethash (filename, Qcompiled_unicode_file_search_table, Qnil);
+
+  if (NILP (table_array)) return 0;
+
+  if (!VECTORP (table_array))
+    {
+      warn_when_safe (Qunicode, Qwarning, "Entry for %s in "
+                      "unicode-file-search-table is not a vector",
+                      XSTRING_DATA (filename));
+      return 0;
+    }
+
+  len = XVECTOR_LENGTH (table_array);
+
+  if (len < 2 || len > 3)
+    {
+      warn_when_safe (Qunicode, Qwarning, "Entry for %s in "
+                      "unicode-file-search-table has an incorrent amount of "
+                      "elements", XSTRING_DATA (filename));
+      return 0;
+    }
+
+  /* If the length is 2, columns 1 and 2 are the same. */
+  return
+    compiled_unicode_table_decode_init_col (col1, filename, 0,
+                                            XVECTOR_DATA (table_array)) &&
+    compiled_unicode_table_decode_init_col (col2, filename, 1,
+                                            XVECTOR_DATA (table_array) +
+                                              (len == 3)) &&
+    compiled_unicode_table_decode_init_col (col3, filename, 2,
+                                            XVECTOR_DATA (table_array) + 1 +
+                                              (len == 3));
+}
+
+static Boolint
+compiled_unicode_table_decode_init_col(struct
+                                         compiled_unicode_table_decode *col,
+                                       Lisp_Object filename, int col_idx,
+                                       Lisp_Object *col_vector)
+{
+#define CHECK_ERROR(test, msg)                                                \
+  if (test)                                                                   \
+    {                                                                         \
+      warn_when_safe (Qunicode, Qwarning, (msg), col_idx,                     \
+                      XSTRING_DATA (filename));                               \
+      return 0;                                                               \
+    }
+
+  CHECK_ERROR (NILP (*col_vector),
+               "Element %d in unicode-file-search-table for %s is nil");
+  CHECK_ERROR (!VECTORP (*col_vector),
+               "Element %d in unicode-file-search-table for %s is not a "
+               "vector");
+
+  col->length = XVECTOR_LENGTH (*col_vector);
+  CHECK_ERROR (!col->length,
+               "Element %d in unicode-file-search-table for %s is empty");
+
+  col->vector = XVECTOR_DATA (*col_vector);
+  CHECK_ERROR (!FIXNUMP (*col->vector),
+               "Element %d in unicode-file-search-table for %s is malformed, "
+               "should have a fixnum in index 0");
+
+  col->type = (enum compiled_unicode_table_type) XFIXNUM (*col->vector);
+  CHECK_ERROR (col->type != COMPILED_UNICODE_TABLE_TYPE_DELTA_ENCODED &&
+               col->type != COMPILED_UNICODE_TABLE_RANGE_LENGTH_ENCODED,
+               "Element %d in unicode-file-search-table for %s is malformed, "
+               "has invalid encoding type");
+
+#undef CHECK_ERROR
+  return 1;
+}
+
+static void
+compiled_unicode_table_reset (struct compiled_unicode_table_decode *col)
+{
+  col->previous_value = col->values_left = 0;
+  col->idx = 1; /* Index 0 is encoding type. */
+}
+
+static Boolint
+compiled_unicode_table_has_next (struct compiled_unicode_table_decode *col)
+{
+  return col->values_left || col->idx < col->length;
+}
+
+static Boolint
+compiled_unicode_table_next (struct compiled_unicode_table_decode *col,
+                             int *val, Lisp_Object filename, int col_idx)
+{
+  if (!col->values_left &&
+      col->idx >= col->length -
+                    (col->type == COMPILED_UNICODE_TABLE_RANGE_LENGTH_ENCODED))
+    {
+      warn_when_safe (Qunicode, Qwarning,
+                      "Element %d in unicode-file-search-table for %s is "
+                      "truncated", col_idx, XSTRING_DATA (filename));
+      return 0;
+    }
+
+  if (col->values_left)
+    {
+      *val = col->previous_value + col->delta_value;
+      col->previous_value = *val;
+      col->values_left--;
+      return 1;
+    }
+
+  if (!FIXNUMP (col->vector[col->idx]))
+    {
+      warn_when_safe (Qunicode, Qwarning,
+                      "Element %d in unicode-file-search-table for %s is "
+                      "malformed, should have a fixnum in index %d",
+                      col_idx, XSTRING_DATA (filename), col->idx);
+      return 0;
+    }
+
+  if (col->type == COMPILED_UNICODE_TABLE_TYPE_DELTA_ENCODED)
+    {
+      *val = col->previous_value + XFIXNUM (col->vector[col->idx]);
+      col->previous_value = *val;
+      col->idx++;
+      return 1;
+    }
+
+  if (!FIXNUMP (col->vector[col->idx + 1]))
+    {
+      warn_when_safe (Qunicode, Qwarning,
+                      "Element %d in unicode-file-search-table for %s is "
+                      "malformed, should have a fixnum in index %d",
+                      col_idx, XSTRING_DATA (filename), col->idx + 1);
+      return 0;
+    }
+
+  col->delta_value = XFIXNUM (col->vector[col->idx]);
+  col->values_left = XFIXNUM (col->vector[col->idx + 1]) - 1;
+
+  /* Sanity check this so a malformed value doesn't cause infinitely large
+     charsets. One could, of course, construct n vectors of small enough
+     array of large values, but this ought to guard against the worst. */
+  if (col->values_left >= 65536)
+    {
+      warn_when_safe (Qunicode, Qwarning,
+                      "Element %d in unicode-file-search-table for %s is "
+                      "malformed, has a too big delta encoding length of %d",
+                      col_idx, XSTRING_DATA (filename), col->values_left);
+      return 0;
+    }
+
+  *val = col->previous_value + col->delta_value;
+  col->previous_value = *val;
+  col->idx += 2;
+
+  return 1;
+}
+
 /* "cerrar el fulano" = close the so-and-so */
 static Lisp_Object
 cerrar_el_fulano (Lisp_Object fulano)
@@ -2254,6 +2470,80 @@ cerrar_el_fulano (Lisp_Object fulano)
   FILE *file = (FILE *) get_opaque_ptr (fulano);
   retry_fclose (file);
   return Qnil;
+}
+
+static Lisp_Object
+resolve_unicode_mapping_table_filename (Lisp_Object filename)
+{
+  if (!NILP (Vdata_directory))
+    return Fexpand_file_name (filename, Vdata_directory);
+
+  return Fexpand_file_name (filename,
+                            Fexpand_file_name (build_ascstring ("../etc"),
+                                               Vlisp_directory));
+}
+
+#define UNICODE_TABLE_LINE_SIZE 1025
+
+static Boolint
+parse_unicode_mapping_table_line(char *line, int flgs, int stage,
+                                 Lisp_Object filename, int *cp1from,
+                                 int *cp1to, int *cp2)
+{
+  int dummy, endcount, scanf_count;
+  char *p = line, *comment_loc;
+
+  /* Erase all comments out of the line */
+  if ((comment_loc = strchr (line, '#'))) *comment_loc = '\0';
+
+  /* See if line is nothing but whitespace and skip if so; count ^Z among this
+     because it appears at the end of some Microsoft translation tables. */
+  p += strspn (p, " \t\n\r\f\032");
+
+  if (!*p) return 0;
+
+  if (flgs & LOAD_UNICODE_IGNORE_FIRST_COLUMN)
+    {
+      if (sscanf (p, "%i %i %i%n", &dummy, cp1from, cp2, &endcount) != 3)
+        goto warn;
+
+      *cp1to = *cp1from;
+    }
+  else /* Check for an unicode range.
+          #### I couldn't find any examples of these in the source data. */
+    if (sscanf (p, "%i-%i %i%n", cp1from, cp1to, cp2, &endcount) != 3)
+    {
+      /* Try a single codepoint translation. */
+      scanf_count = sscanf (p, "%i %i%n", cp1from, cp2, &endcount);
+
+      /* #### Hack. A number of the CP###.TXT files from Microsoft contain
+         lines with a charset codepoint and no corresponding Unicode
+         codepoint, representing undefined values in the code page.
+
+         Skip them so we don't get a raft of warnings. */
+      if (scanf_count == 1) return 0;
+
+      if (scanf_count != 2) goto warn;
+
+      *cp1to = *cp1from;
+    }
+
+  if (*(p + endcount + strspn (p + endcount, " \t\n\r\f\032")))
+    goto warn; /* There was garbage after the line. */
+
+  return 1;
+
+warn:
+  if (stage == 0)
+    {
+      if (comment_loc) *comment_loc = '#';
+
+      warn_when_safe (Qunicode, Qwarning,
+                      "Unrecognized line in translation file %s:\n%s",
+                      XSTRING_DATA (filename), line);
+    }
+
+  return 0;
 }
 
 DEFUN ("load-unicode-mapping-table", Fload_unicode_mapping_table,
@@ -2304,12 +2594,13 @@ Unicode tables or in the charset:
 */
      (filename, charset, start, end, offset, flags))
 {
-  int st = 0, en = INT_MAX, of = 0;
-  FILE *file;
-  char line[1025];
+  struct compiled_unicode_table_decode col1, col2, col3;
+  FILE *file = NULL;
+  char line[UNICODE_TABLE_LINE_SIZE];
   int fondo = specpdl_depth (); /* "fondo" = depth */
-  int flgs;
+  int flgs, decoding_dumped_table;
   int stage;
+  int st = 0, en = INT_MAX, of = 0;
   int to_unicode_min_val[256], to_unicode_max_val[256];
   int big5_other_unicode_min_val[256], big5_other_unicode_max_val[256];
   int i;
@@ -2344,107 +2635,52 @@ Unicode tables or in the charset:
       to_unicode_max_val[i] = 0;
     }
 
-  if (!NILP (Vdata_directory))
-    filename = Fexpand_file_name (filename, Vdata_directory);
-  else
-    filename = Fexpand_file_name (filename,
-				  Fexpand_file_name
-				  (build_ascstring ("../etc"),
-				   Vlisp_directory));
+  decoding_dumped_table =
+    compiled_unicode_table_decode_init(&col1, &col2, &col3, filename);
+
+  if (!decoding_dumped_table)
+    filename = resolve_unicode_mapping_table_filename (filename);
+
   /* We do two passes over the file.  The first pass determines the actual
      limits, for each row, of the charset codepoints with translations in
      that row.  Then, we allocate the to-tables to hold exactly those limits,
      and in the second stage we process the translations. */
   for (stage = 0; stage < 2; stage++)
     {
-      file = qxe_fopen (XSTRING_DATA (filename), READ_TEXT);
-      if (!file)
-	report_file_error ("Cannot open", filename);
-      /* Ensure that files get closed even in the event of an error */
-      record_unwind_protect (cerrar_el_fulano, make_opaque_ptr (file));
-      while (fgets (line, sizeof (line), file))
+      if (decoding_dumped_table)
+        {
+          compiled_unicode_table_reset (&col1);
+          compiled_unicode_table_reset (&col2);
+          compiled_unicode_table_reset (&col3);
+        }
+      else
+        {
+          file = qxe_fopen (XSTRING_DATA (filename), READ_TEXT);
+          if (!file)
+            report_file_error ("Cannot open", filename);
+          /* Ensure that files get closed even in the event of an error */
+          record_unwind_protect (cerrar_el_fulano, make_opaque_ptr (file));
+        }
+
+      while (decoding_dumped_table ?
+               compiled_unicode_table_has_next (&col1) :
+               !!fgets (line, sizeof (line), file))
 	{
-	  char *p = line;
-	  int cp1from, cp1to, cp1, cp2, endcount;
-	  int cp1high, cp1low;
-	  int dummy;
-	  int scanf_count, garbage_after_scanf;
+          int cp1from, cp1to, cp1, cp2;
+          int cp1high, cp1low;
 
-	  /* #### Perhaps we should rewrite this using regular expressions */
-	  while (*p) /* erase all comments out of the line */
-	    {
-	      if (*p == '#')
-		*p = '\0';
-	      else
-		p++;
-	    }
-	  /* see if line is nothing but whitespace and skip if so;
-	     count ^Z among this because it appears at the end of some
-	     Microsoft translation tables. */
-	  p = line + strspn (line, " \t\n\r\f\032");
-	  if (!*p)
-	    continue;
-	  /* NOTE: It appears that MS Windows and Newlib sscanf() have
-	     different interpretations for whitespace (== "skip all whitespace
-	     at processing point"): Newlib requires at least one corresponding
-	     whitespace character in the input, but MS allows none.  The
-	     following would be easier to write if we could count on the MS
-	     interpretation.
+          if (decoding_dumped_table)
+            {
+              if (!compiled_unicode_table_next (&col1, &cp1from, filename,0) ||
+                  !compiled_unicode_table_next (&col2, &cp1to,   filename,1) ||
+                  !compiled_unicode_table_next (&col3, &cp2,     filename,2))
+                break;
+            }
+          else if (!parse_unicode_mapping_table_line(line, flgs, stage,
+                                                     filename, &cp1from,
+                                                     &cp1to, &cp2))
+              continue;
 
-	     Also, the return value does NOT include %n storage. */
-
-	  /* First check for a range. */
-	  scanf_count =
-	    (!(flgs & LOAD_UNICODE_IGNORE_FIRST_COLUMN) ?
-	     sscanf (p, "%i-%i %i%n", &cp1from, &cp1to, &cp2, &endcount) :
-	     sscanf (p, "%i-%i %i %i%n", &dummy, &cp1from, &cp1to, &cp2,
-		     &endcount) - 1);
-	  /* If we didn't find one, try a single codepoint translation. */
-	  if (scanf_count < 3)
-	    {
-	      scanf_count =
-		(!(flgs & LOAD_UNICODE_IGNORE_FIRST_COLUMN) ?
-		 sscanf (p, "%i %i%n", &cp1from, &cp2, &endcount) :
-		 sscanf (p, "%i %i %i%n", &dummy, &cp1from, &cp2, &endcount) - 1);
-	      cp1to = cp1from;
-	    }
-	  else
-	    scanf_count--;
-	  /* #### Temporary code!  Cygwin newlib fucked up scanf() handling
-	     of numbers beginning 0x0... starting in 04/2004, in an attempt
-	     to fix another bug.  A partial fix for this was put in in
-	     06/2004, but as of 10/2004 the value of ENDCOUNT returned in
-	     such case is still wrong.  If this gets fixed soon, remove
-	     this code. --ben */
-	  if (endcount > (int) strlen (p))
-	    /* We know we have a broken sscanf in this case!!! */
-	    garbage_after_scanf = 0;
-	  else
-	    {
-#ifndef CYGWIN_SCANF_BUG
-	      garbage_after_scanf =
-		*(p + endcount + strspn (p + endcount, " \t\n\r\f\032"));
-#else
-	      garbage_after_scanf = 0;
-#endif
-	    }
-
-	  /* #### Hack.  A number of the CP###.TXT files from Microsoft contain
-	     lines with a charset codepoint and no corresponding Unicode
-	     codepoint, representing undefined values in the code page.
-
-	     Skip them so we don't get a raft of warnings. */
-	  if (scanf_count == 1 && !garbage_after_scanf)
-	    continue;
-	  if (scanf_count < 2 || garbage_after_scanf)
-	    {
-	      if (stage == 0)
-		warn_when_safe
-		  (Qunicode, Qwarning,
-		   "Unrecognized line in translation file %s:\n%s",
-		   XSTRING_DATA (filename), line);
-	      continue;
-	    }
 	  for (cp1 = cp1from; cp1 <= cp1to; cp1++, cp2++)
 	    {
 	      if (cp1 >= st && cp1 <= en)
@@ -2515,7 +2751,7 @@ Unicode tables or in the charset:
 	    }
 	}
 
-      if (ferror (file))
+      if (!decoding_dumped_table && ferror (file))
 	report_file_error ("IO error when reading", filename);
 
       if (stage == 0)
@@ -2544,6 +2780,51 @@ Unicode tables or in the charset:
   unbind_to (fondo); /* close files, permit GC */
   return Qnil;
 }
+
+DEFUN ("dump-unicode-mapping-table", Fdump_unicode_mapping_table,
+       2, 2, 0, /*
+Read and parse an unicode mapping table, like #'load-unicode-mapping-table
+does, and return it as a (reversed) list of lists of ([codepoint range start]
+[codepoint range end] [target codepoint]). This is used by
+lisp/mule/compiled-unicode-tables.el.
+*/
+       (filename, ignore_first_column))
+{
+  Lisp_Object dump_data = Qnil;
+  FILE *file;
+  char line[UNICODE_TABLE_LINE_SIZE];
+  int fondo = specpdl_depth (); /* "fondo" = depth */
+  int flgs, cp1from, cp1to, cp2;
+
+  flgs = NILP (ignore_first_column) ? 0 : LOAD_UNICODE_IGNORE_FIRST_COLUMN;
+  filename = resolve_unicode_mapping_table_filename (filename);
+
+  file = qxe_fopen (XSTRING_DATA (filename), READ_TEXT);
+
+  if (!file)
+    report_file_error ("Cannot open", filename);
+
+  /* Ensure that files get closed even in the event of an error */
+  record_unwind_protect (cerrar_el_fulano, make_opaque_ptr (file));
+
+  while (fgets (line, sizeof (line), file))
+    {
+      if (!parse_unicode_mapping_table_line(line, flgs, 0, filename, &cp1from,
+                                            &cp1to, &cp2))
+              continue;
+
+      dump_data = Fcons (list3 (make_fixnum (cp1from), make_fixnum (cp1to),
+                                make_fixnum (cp2)), dump_data);
+    }
+
+  if (ferror (file))
+    report_file_error ("IO error when reading", filename);
+
+  /* Close the file while GC protecting the returned dump data. */
+  return unbind_to_1 (fondo, dump_data);
+}
+
+#undef UNICODE_TABLE_LINE_SIZE
 
 void
 autoload_charset_unicode_tables (Lisp_Object charset)
@@ -3920,6 +4201,7 @@ syms_of_unicode (void)
   DEFSUBR (Fset_unicode_conversion);
 
   DEFSUBR (Fload_unicode_mapping_table);
+  DEFSUBR (Fdump_unicode_mapping_table);
 
   DEFSYMBOL (Qignore_first_column);
   DEFSYMBOL (Qunicode_registries);
@@ -4054,6 +4336,12 @@ when no font matching the charset's registries property has been found
 (that is, they're probably Mule-specific charsets like Ethiopic or IPA).
 */ );
   Qunicode_registries = vector1 (build_ascstring ("iso10646-1"));
+
+  DEFVAR_LISP ("compiled-unicode-file-search-table",
+               &Qcompiled_unicode_file_search_table /*
+A hashtable of vectors of vectors of compiled Unicode file search tables.
+*/ );
+  Qcompiled_unicode_file_search_table = Qnil;
 #endif /* MULE */
 }
 

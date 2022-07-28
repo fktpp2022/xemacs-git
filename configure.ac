@@ -4739,23 +4739,6 @@ AC_MSG_RESULT($working_alloca_in_function_calls)
 test "$working_alloca_in_function_calls" != "yes" && \
   AC_DEFINE(BROKEN_ALLOCA_IN_FUNCTION_CALLS)
 
-AC_MSG_CHECKING([for working scanf])
-AC_RUN_IFELSE([AC_LANG_SOURCE([
-int
-main (int argc, char **argv)
-{
-  int ret, cp1, cp2, endcount;
-  char *p = "0x7d   0x000E  ";
-  ret = sscanf (p, "%i %i%n", &cp1, &cp2, &endcount);
-  /* endcount should be 13 but it's 11 in Cygwin newlib after 6/04;
-     this breaks unicode.c */
-  return endcount != 13;
-}
-])], working_scanf=yes, working_scanf=no)
-AC_MSG_RESULT($working_scanf)
-test "$working_scanf" != "yes" && \
-  AC_DEFINE(CYGWIN_SCANF_BUG)
-
 dnl Check whether strcoll exists and works correctly. (This does more
 dnl than just check for its existence.) If so, it defines HAVE_STRCOLL.
 AC_FUNC_STRCOLL

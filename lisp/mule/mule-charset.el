@@ -1060,7 +1060,7 @@ to `short-name', and :doc-string defaults to :long-name."
        long-name ,(format "RHP of %s (ISO %s): %s"
 			  short-name str8859 iso-ir-name)
        unicode-map
-       (,(format "unicode/unicode-consortium/ISO8859/%s.TXT" str8859) #xA0)
+       (,(format "unicode/unicode-consortium/ISO8859/ISO-%s.TXT" str8859) #xA0)
        registries ,(vector (format "ISO%s" str8859))
        final ,final
        tags ,(cons 'iso8859 tags)

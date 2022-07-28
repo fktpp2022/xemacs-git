@@ -1,3 +1,16 @@
+2022-07-24  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* configure.ac:
+	Remove the check for a Cygwin sscanf() bug. It was encountered by Ben
+	Wing in 2004, and is fixed nowadays.
+
+	* configure: Regenerate.
+
+	* Makefile.in.in:
+	Tiny change unrelated to the Unicode mapping: Fix the checking of
+	test ! -d $${dir} for mkdir $(DESTDIR)$${dir} to
+	test ! -d $(DESTDIR)$${dir}.
+
 2022-07-10  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* configure.ac:
