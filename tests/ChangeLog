@@ -1,3 +1,8 @@
+2022-07-28  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* automated/lisp-tests.el:
+	Add tests for #'apply-partially and lambdas with &rest arguments.
+
 2022-07-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/format-tests.el (Assert-and-check-error):

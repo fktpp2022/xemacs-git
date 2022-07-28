@@ -3145,6 +3145,114 @@ via the hepatic alpha-tocopherol transfer protein")))
   (Check-Error wrong-number-of-arguments
                (funcall list-and-four 7 8 9 10)))
 
+;; We want two versions of these tests, one with only constant expression
+;; arguments, another with computed ones. That gives test coverage for both
+;; branches in the byte compiler macro for #'apply-partially.
+(macrolet
+    ((apply-partially-rest-tests (modify-arg)
+       (setq modify-arg (eval modify-arg))
+       `(let ((opt-rest-with-1-applied
+               (apply-partially #'(lambda (&optional a &rest b)
+                                    (cons a b))
+                                ,(funcall modify-arg 1)))
+              (opt-rest-with-2-applied
+               (apply-partially #'(lambda (&optional a &rest b)
+                                    (cons a b))
+                                ,(funcall modify-arg 1) 2))
+              (opt-rest-with-3-applied
+               (apply-partially #'(lambda (&optional a &rest b)
+                                    (cons a b))
+                                ,(funcall modify-arg 1) 2 3))
+              (two-static-args-opt-rest-with-1-applied
+               (apply-partially #'(lambda (a b &optional c &rest d)
+                                    (list a b c d))
+                                ,(funcall modify-arg 1)))
+              (one-static-arg-opt-rest-with-2-applied
+               (apply-partially #'(lambda (a &optional b &rest c)
+                                    (list a b c))
+                                ,(funcall modify-arg 1) 2))
+              (one-static-arg-opt-rest-with-4-applied
+               (apply-partially #'(lambda (a &optional b &rest c)
+                                    (list a b c))
+                                ,(funcall modify-arg 1) 2 3 4))
+              (rest-with-1-applied
+               (apply-partially #'(lambda (&rest a)
+                                    a)
+                                ,(funcall modify-arg 1)))
+              (two-static-args-rest-with-1-applied
+               (apply-partially #'(lambda (a b &rest c)
+                                    (list a b c))
+                                ,(funcall modify-arg 1)))
+              (two-static-args-rest-with-3-applied
+               (apply-partially #'(lambda (a b &rest c)
+                                    (list a b c))
+                                ,(funcall modify-arg 1) 2 3)))
+         (Assert (equal (funcall opt-rest-with-1-applied)
+                        '(1)))
+         (Assert (equal (funcall opt-rest-with-1-applied 2)
+                        '(1 2)))
+         (Assert (equal (funcall opt-rest-with-1-applied 2 3 4)
+                        '(1 2 3 4)))
+         (Assert (equal (funcall opt-rest-with-2-applied)
+                        '(1 2)))
+         (Assert (equal (funcall opt-rest-with-2-applied 3 4)
+                        '(1 2 3 4)))
+         (Assert (equal (funcall opt-rest-with-3-applied)
+                        '(1 2 3)))
+         (Assert (equal (funcall opt-rest-with-3-applied 4 5)
+                        '(1 2 3 4 5)))
+         (Assert (equal (funcall opt-rest-with-3-applied 4 5 6 7)
+                        '(1 2 3 4 5 6 7)))
+         (Assert (equal (funcall two-static-args-opt-rest-with-1-applied 2)
+                        '(1 2 nil nil)))
+         (Assert (equal (funcall two-static-args-opt-rest-with-1-applied 2 3)
+                        '(1 2 3 nil)))
+         (Assert (equal (funcall two-static-args-opt-rest-with-1-applied 2 3 4)
+                        '(1 2 3 (4))))
+         (Check-Error wrong-number-of-arguments
+                      (funcall two-static-args-opt-rest-with-1-applied))
+         (Assert (equal (funcall one-static-arg-opt-rest-with-2-applied)
+                        '(1 2 nil)))
+         (Assert (equal (funcall one-static-arg-opt-rest-with-2-applied 3)
+                        '(1 2 (3))))
+         (Assert (equal (funcall one-static-arg-opt-rest-with-4-applied)
+                        '(1 2 (3 4))))
+         (Assert (equal (funcall one-static-arg-opt-rest-with-4-applied 5)
+                        '(1 2 (3 4 5))))
+         (Assert (equal (funcall rest-with-1-applied)
+                        '(1)))
+         (Assert (equal (funcall rest-with-1-applied 2 3)
+                        '(1 2 3)))
+         (Assert (equal (funcall two-static-args-rest-with-1-applied 2)
+                        '(1 2 nil)))
+         (Assert (equal (funcall two-static-args-rest-with-1-applied 2 3)
+                        '(1 2 (3))))
+         (Check-Error wrong-number-of-arguments
+                      (funcall two-static-args-rest-with-1-applied))
+         (Assert (equal (funcall two-static-args-rest-with-3-applied)
+                        '(1 2 (3))))
+         (Assert (equal (funcall two-static-args-rest-with-3-applied 4)
+                        '(1 2 (3 4)))))))
+  (apply-partially-rest-tests #'identity)
+  (apply-partially-rest-tests #'(lambda (val) `(eval ,val))))
+
+;; The byte compiler, cool guy that it is, constructs working functions out of
+;; these. We want error checking in #'apply-partially for the interpreted
+;; versions.
+(let ((too-many-rest-args      #'(lambda (&rest a b) (cons a b)))
+      (not-any-rest-args       #'(lambda (&rest) 1))
+      (optional-after-rest-arg #'(lambda (&rest a &optional b) (cons a b)))
+      (no-optional-arg-name    #'(lambda (a &optional) a)))
+  (when (not (compiled-function-p too-many-rest-args))
+    (Check-Error syntax-error (apply-partially too-many-rest-args 1))
+    (Check-Error syntax-error (apply-partially not-any-rest-args 1))
+    (Check-Error syntax-error (apply-partially optional-after-rest-arg 1))
+    ;; The code checks for a &optional argument with no argument name, but the
+    ;; check currently fails.
+    (Known-Bug-Expect-Failure
+     (Check-Error syntax-error
+                  (apply-partially no-optional-arg-name 1 2 3 4 5)))))
+
 ;; Test #'substitute. Paul Dietz has much more comprehensive tests.
 
 (Assert (equal (substitute 'a 'b '(a b c d e f g)) '(a a c d e f g)))
