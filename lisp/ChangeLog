@@ -1,3 +1,11 @@
+2022-07-28  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* cl-macs.el (apply-partially):
+	Fix support for &rest lambdas.
+
+	* subr.el (apply-partially):
+	Use #'list* instead of #'list and #'append.
+
 2022-07-24  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* mule/compiled-unicode-tables.el:

@@ -110,8 +110,9 @@ was called."
                  (let ((new-arg-name (if (functionp 'gensym) (gensym)
                                                              '*rest-arg*)))
                    (setq bindings (cons (list (car arglist)
-                                              `(append ,(quote-maybe args)
-                                                       ,new-arg-name))
+                                              `(list*
+                                                ,@(mapcar #'quote-maybe args)
+                                                ,new-arg-name))
                                         bindings)
                          args nil
                          arglist `(nil &rest ,new-arg-name))))

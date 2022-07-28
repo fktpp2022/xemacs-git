@@ -3555,11 +3555,12 @@ non-standard :if and :if-not keywords at compile time."
                           lambda))
 	       (setq restp t))
 	      (restp
-	       (setq bindings (cons (list (car arglist)
-					  (and placeholders
-                                               (cons 'list placeholders)))
-				    bindings)
-		     placeholders nil))
+               (let ((new-arg-name (gensym)))
+                 (setq bindings (cons `(,(car arglist)
+                                        (list* ,@placeholders ,new-arg-name))
+                                      bindings)
+                       placeholders nil
+                       arglist `(nil &rest ,new-arg-name))))
 	      (t
 	       (setq bindings (cons (list (car arglist) (car placeholders))
 				    bindings)
