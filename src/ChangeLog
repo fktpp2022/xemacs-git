@@ -1,3 +1,36 @@
+2022-07-29  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* charset.h (struct Lisp_Charset):
+	* charset.h (CHARSET_AUTOLOAD_FAILED):
+	* charset.h (XCHARSET_AUTOLOAD_FAILED):
+	Add an autoload_failed field to struct Lisp_Charset and the
+	corresponding macros. If an autoloaded character set fails to load,
+	retries would previously essentially crash XEmacs by rendering it
+	completely unresponsive...
+
+	* unicode.c (hoida_unicode_lataamisvirhe):
+	* unicode.c (autoload_charset_unicode_tables):
+	* unicode.c (get_unicode_conversion_1):
+	...so make the autoload mechanism emit a clear error message once and
+	to mark an autoloaded charset that has a loading error as having
+	failed autoloading, and from then on fail conversions with that
+	charset.
+
+	* unicode.c (compiled_unicode_table_handle_autoload_error):
+	* unicode.c (compiled_unicode_table_load):
+	Wrap the compiled unicode table loading in error handling so errors
+	from it - which, turned out, can be caused by the autoloading message
+	itself - don't terminate the charset loading process.
+
+	* lread.c (Fload_internal):
+	* lread.c (vars_of_lread):
+	A new variable, load_never_display_messages, that suppresses
+	displaying messages from #'load.
+
+	* mule-charset.c (disksave_charset):
+	Reset the autoload_failed flag to 0 when a charset is being saved to
+	the disk, and therefore flagged for reloading.
+
 2022-07-26  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* unicode.c (compiled_unicode_table_decode_init_col):

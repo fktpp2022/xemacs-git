@@ -132,10 +132,9 @@
           (let (unicode-strings)
             (search-for-unicode-path-strings file-elt)
             (when unicode-strings
-              (setq all-unicode-strings
-                    (cons (list (substring filename (1+ (length lisp-path)))
-                                unicode-strings)
-                          all-unicode-strings))))))
+              (push (list (substring filename (1+ (length lisp-path)))
+                          unicode-strings)
+                    all-unicode-strings)))))
       ;; Construct regexps for filename matching out of the unicode strings.
       ;; Keep the filename and original string context for error handling.
       (dolist (str-elt all-unicode-strings)
@@ -155,10 +154,9 @@
         ;; a way we don't currently handle.
         (maphash (lambda (unused error-handling-elt)
                    (unless (car error-handling-elt)
-                     (setq mapping-errors
-                           (cons (list ", \"" (cadr error-handling-elt)
-                                       "\" in " (caddr error-handling-elt))
-                                 mapping-errors))))
+                     (push (list ", \"" (cadr error-handling-elt)
+                                 "\" in " (caddr error-handling-elt))
+                           mapping-errors)))
                  file-mask-map)
         (when mapping-errors
           (unicode-dump-error

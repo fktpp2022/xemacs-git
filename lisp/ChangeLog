@@ -1,3 +1,8 @@
+2022-07-29  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* mule/compiled-unicode-tables.el:
+	Use #'push instead of open coding with #'setq and #'cons.
+
 2022-07-28  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* cl-macs.el (apply-partially):

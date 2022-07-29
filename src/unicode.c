@@ -1224,7 +1224,12 @@ get_unicode_conversion_1 (int code, int u1, int u2, int u3, int u4,
   void *table;
 
   if (XCHARSET_DO_AUTOLOAD (charset))
-    autoload_charset_unicode_tables (charset);
+    {
+      if (XCHARSET_AUTOLOAD_FAILED (charset))
+        return 0;
+
+      autoload_charset_unicode_tables (charset);
+    }
   table = XCHARSET_FROM_UNICODE_TABLE (charset);
 #ifdef ALLOW_ALGORITHMIC_CONVERSION_TABLES
   if (!table)
@@ -2267,18 +2272,46 @@ static Boolint compiled_unicode_table_decode_init_col(struct
                                                       Lisp_Object, int,
                                                       Lisp_Object *);
 
-
 static Boolint attempted_loading_compiled_unicode_tables = 0;
+
+static Lisp_Object
+compiled_unicode_table_handle_autoload_error (Lisp_Object error_data,
+                                              Lisp_Object UNUSED (unused))
+{
+  warn_when_safe (Qunicode, Qwarning,
+                  "Error while loading compiled-unicode-tables.elc: %s",
+                  XSTRING_DATA (CONSP (error_data) &&
+                                CONSP (XCDR (error_data)) &&
+                                STRINGP (XCADR (error_data)) ?
+                                  XCADR (error_data) :
+                                  prin1_to_string (error_data, 0)));
+  return Qnil;
+}
+
+/* These are defined in lread.c. */
+extern int load_always_display_messages;
+extern int load_never_display_messages;
 
 static void
 compiled_unicode_table_load (void)
 {
   Lisp_Object load_fn_symbol =
     Fintern (build_ascstring ("set-compiled-unicode-file-search-table"), Qnil);
+  int prev_load_always_display_messages = load_always_display_messages,
+      prev_load_never_display_messages = load_never_display_messages;
 
   if (NILP (Ffboundp (load_fn_symbol))) return;
 
-  call0 (load_fn_symbol);
+  load_always_display_messages = 0;
+  load_never_display_messages = 1;
+
+  /* If, Asera forbid, something bad happens when loading the compiled
+     Unicode tables, don't screw up the whole charset loading. */
+  condition_case_1 (Qerror, call0, load_fn_symbol,
+                    compiled_unicode_table_handle_autoload_error, Qnil);
+
+  load_always_display_messages = prev_load_always_display_messages;
+  load_never_display_messages = prev_load_never_display_messages;
 }
 
 static Boolint
@@ -2826,6 +2859,16 @@ lisp/mule/compiled-unicode-tables.el.
 
 #undef UNICODE_TABLE_LINE_SIZE
 
+/* "Hoida Unicode-lataamisvirhe" = Handle Unicode loading error. */
+static Lisp_Object
+hoida_unicode_lataamisvirhe (Lisp_Object charset)
+{
+  if (XCHARSET_DO_AUTOLOAD (charset))
+    XCHARSET_AUTOLOAD_FAILED (charset) = 1;
+
+  return Qnil;
+}
+
 void
 autoload_charset_unicode_tables (Lisp_Object charset)
 {
@@ -2837,10 +2880,13 @@ autoload_charset_unicode_tables (Lisp_Object charset)
   Lisp_Object end = X3RD (map);
   Lisp_Object offset = X4TH (map);
   Lisp_Object flags = X5TH (map);
+  int syvyys = specpdl_depth (); /* "syvyys" = depth */
 
   assert (EQ (Flength (map), make_fixnum (5)));
+  record_unwind_protect (hoida_unicode_lataamisvirhe, charset);
   Fload_unicode_mapping_table (filename, charset, start, end, offset, flags);
   XCHARSET_DO_AUTOLOAD (charset) = 0;
+  unbind_to (syvyys);
 }
 
 void
@@ -2917,6 +2963,7 @@ init_charset_unicode_map (Lisp_Object charset, Lisp_Object map)
      no errors */
   XCHARSET_UNICODE_MAP (charset) = map;
   XCHARSET_DO_AUTOLOAD (charset) = autoload;
+  XCHARSET_AUTOLOAD_FAILED (charset) = 0;
 }
 
 #endif /* MULE */

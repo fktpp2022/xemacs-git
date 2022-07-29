@@ -257,6 +257,7 @@ disksave_charset (Lisp_Object charset)
       free_charset_unicode_tables (charset);
       init_charset_unicode_tables (charset);
       XCHARSET_DO_AUTOLOAD (charset) = 1;
+      XCHARSET_AUTOLOAD_FAILED (charset) = 0;
     }
 }
 

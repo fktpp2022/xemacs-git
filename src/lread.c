@@ -97,6 +97,9 @@ int load_ignore_out_of_date_elc_files;
 /* Always display messages showing when a file is loaded, regardless of
    whether the flag to `load' tries to suppress them. */
 int load_always_display_messages;
+/* Never display messages showing when a file is loaded.
+   load_always_display_messages has higher precedence than this. */
+int load_never_display_messages;
 /* Show the full path in loading messages. */
 int load_show_full_path_in_messages;
 
@@ -559,7 +562,8 @@ encoding detection or end-of-line detection.
   struct gcpro gcpro1, gcpro2, gcpro3;
   int reading_elc = 0;
   int from_require = EQ (nomessage, Qrequire);
-  int message_p = NILP (nomessage) || load_always_display_messages;
+  int message_p = (NILP (nomessage) && !load_never_display_messages) ||
+                  load_always_display_messages;
   Ibyte *spaces = alloca_ibytes (load_in_progress * 2 + 10);
   int i;
   PROFILE_DECLARE ();
@@ -3467,6 +3471,14 @@ of the NOMESSAGE parameter, and even when files are loaded indirectly, e.g.
 due to `require'.
 */ );
   load_always_display_messages = 0;
+
+  DEFVAR_BOOL ("load-never-display-messages",
+               &load_never_display_messages /*
+*Whether `load' should never display load messages.
+This has lower precedence than `load-always-display-messages', eg. if both
+variables are true, messages are displayed.
+*/ );
+  load_never_display_messages = 0;
 
   DEFVAR_BOOL ("load-show-full-path-in-messages",
 	       &load_show_full_path_in_messages /*
