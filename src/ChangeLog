@@ -1,3 +1,38 @@
+2022-07-31  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* console-tty-impl.h (struct tty_console):
+	* redisplay-tty.c (set_tty_modes):
+	* redisplay-tty.c (init_tty_for_redisplay):
+	Between XEmacs 21.4 and 21.5, redisplay-tty.c:init_tty_for_redisplay()
+	switched "ve" and "vs" around in these lines (example from 21.4):
+
+	TTY_SD (c).cursor_visible = tgetstr ("vs", &bufptr);
+	TTY_SD (c).cursor_normal = tgetstr ("ve", &bufptr);
+
+	(See
+	https://www.gnu.org/software/termutils/manual/termcap-1.3/html_node/termcap_35.html
+	for reference to what these mean. It's not very clearly stated, but
+	"to enhance the cursor", at least in xterm, makes the cursor blink.)
+
+	So in 21.4, redisplay-tty.c:set_tty_modes() did
+
+	OUTPUT1_IF (c, TTY_SD (c).cursor_visible);
+
+	which made the cursor blink during XEmacs running, and
+	redisplay-tty.c:reset_tty_modes() did
+
+	OUTPUT1_IF (c, TTY_SD (c).cursor_normal);
+
+	that restored it to normal after exiting. However, in 21.5, those
+	having switched around, the while-running cursor became normal, and
+	closing XEmacs left the cursor blinking.
+
+	Neither makes much sense, because nobody likes a blinking TTY cursor,
+	which was probably the reason for the weird switcharoo. Therefore I
+	removed struct tty_console.cursor_visible altogether, restored the
+	assignment to cursor_normal to tgetstr("ve", ...) and made both
+	set_tty_modes() and reset_tty_modes() do OUTPUT1_IF(...cursor_normal).
+
 2022-07-29  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* charset.h (struct Lisp_Charset):

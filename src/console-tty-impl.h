@@ -166,7 +166,6 @@ struct tty_console
     const char *visual_bell;		/* flash, vb */
     const char *audio_bell;		/* bel, bl */
 
-    const char *cursor_visible;		/* cvvis, vs */
     const char *cursor_normal;		/* cnorm, ve */
     const char *init_motion;		/* smcup, ti */
     const char *end_motion;		/* rmcup, te */

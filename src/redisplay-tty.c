@@ -866,7 +866,7 @@ set_tty_modes (struct console *c)
     return;
 
   OUTPUT1_IF (c, TTY_SD (c).init_motion);
-  OUTPUT1_IF (c, TTY_SD (c).cursor_visible);
+  OUTPUT1_IF (c, TTY_SD (c).cursor_normal);
   OUTPUT1_IF (c, TTY_SD (c).keypad_on);
 }
 
@@ -1198,8 +1198,7 @@ init_tty_for_redisplay (struct device *d, char *terminal_type)
       TTY_SD (c).audio_bell = "\07";
     }
 
-  TTY_SD (c).cursor_visible = tgetstr ("ve", &bufptr);
-  TTY_SD (c).cursor_normal = tgetstr ("vs", &bufptr);
+  TTY_SD (c).cursor_normal = tgetstr ("ve", &bufptr);
   TTY_SD (c).init_motion = tgetstr ("ti", &bufptr);
   TTY_SD (c).end_motion = tgetstr ("te", &bufptr);
   TTY_SD (c).keypad_on = tgetstr ("ks", &bufptr);
