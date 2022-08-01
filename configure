@@ -23741,7 +23741,7 @@ done
 infopath=$with_infopath
 
 
-INFOPATH=$with_info_path
+INFOPATH=$with_infopath
 while true; do
   case "$INFOPATH" in
     *\$* ) eval "INFOPATH=$INFOPATH" ;;

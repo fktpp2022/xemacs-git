@@ -1,3 +1,12 @@
+2022-07-31  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* configure.ac:
+	$with_infopath was written as $with_info_path, causing the config
+	flag --with-infopath to generate an empty define for PATH_INFOPATH
+	for src/paths.h. Fix.
+
+	* configure: Renegerate.
+
 2022-07-24  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* configure.ac:

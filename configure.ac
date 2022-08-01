@@ -5872,7 +5872,7 @@ AC_SUBST(INFODIR)
 
 AC_SUBST(infopath,$with_infopath)
 AC_SUBST(INFOPATH_USER_DEFINED)
-XE_EXPAND_VARIABLE(with_info_path,INFOPATH)
+XE_EXPAND_VARIABLE(with_infopath,INFOPATH)
 AC_SUBST(INFOPATH)
 
 test -n "$with_user_packages" && with_early_packages=$with_user_packages
