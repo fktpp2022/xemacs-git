@@ -1489,6 +1489,59 @@ variables referring to the particular types of packages
 			     lisp-directory site-directory
 			     mule-lisp-directory)))
 
+(defmacro startup-setup-paths-debug-vars (&rest args)
+  "A primitive macro that prints the names and values of var-names one per line
+to 'external-debugging-output if the global `debug-paths', and additionally,
+when it is a cons, the first parameter eval'ed, are truthy."
+  (let* ((extra-cond (car args))
+         (have-extra-cond (consp extra-cond))
+         (var-names (if have-extra-cond (cdr args) args)))
+    (cons 'when
+          (cons (if have-extra-cond (list 'and extra-cond 'debug-paths)
+                                    'debug-paths)
+                (mapcar #'(lambda (var-name)
+                            (list 'princ
+                                  (list 'format (format "%S: %%S\n" var-name)
+                                        var-name)
+                                  (list 'quote 'external-debugging-output)))
+                        var-names)))))
+
+(defun startup-setup-paths-debug-dump-info (inhibit-packages called-early)
+  (princ (format
+"startup-setup-paths arguments:
+  inhibit-packages: %S
+  inhibit-site-lisp: %S
+  called-early: %S
+" inhibit-packages inhibit-site-lisp called-early)
+	   'external-debugging-output)
+  (princ (format
+"invocation-directory: %S
+invocation-name: %S
+configure-prefix-directory: %S
+configure-exec-prefix-directory: %S
+emacs-roots:
+%S
+emacs-data-roots:
+%S
+user-init-directory: %S
+configure-package-path: %S
+" invocation-directory invocation-name
+  configure-prefix-directory configure-exec-prefix-directory
+  emacs-roots emacs-data-roots user-init-directory configure-package-path)
+         'external-debugging-output))
+
+(defun startup-setup-paths-missing-emacs-roots-warning ()
+  (save-excursion
+    (set-buffer (get-buffer-create " *warning-tmp*"))
+    (erase-buffer)
+    (buffer-disable-undo (current-buffer))
+
+    (insert "Couldn't find an obvious default for the root of the\n"
+            "XEmacs hierarchy.\n")
+
+    (princ "\nWARNING:\n" 'external-debugging-output)
+    (princ (buffer-string) 'external-debugging-output)))
+
 (defun startup-setup-paths (&optional inhibit-packages called-early)
   "Setup all the various paths.
 INHIBIT-PACKAGES says which types of packages, if any, to omit from the
@@ -1507,102 +1560,48 @@ This function is idempotent, so call this as often as you like!"
   (setq emacs-data-roots (paths-find-emacs-roots invocation-directory invocation-name
 						 #'paths-emacs-data-root-p))
 
-  (if (null emacs-roots)
-      (save-excursion
-	(set-buffer (get-buffer-create " *warning-tmp*"))
-	(erase-buffer)
-	(buffer-disable-undo (current-buffer))
-
-	(insert "Couldn't find an obvious default for the root of the\n"
-		"XEmacs hierarchy.")
-
-	(princ "\nWARNING:\n" 'external-debugging-output)
-	(princ (buffer-string) 'external-debugging-output)))
+  (if (null emacs-roots) (startup-setup-paths-missing-emacs-roots-warning))
 
   (if (eq inhibit-packages t)
       (setq inhibit-packages '(early late last)))
   (if (not (listp inhibit-packages))
       (setq inhibit-packages (list inhibit-packages)))
 
-  (when debug-paths
-    (princ (format
-"startup-setup-paths arguments:
-  inhibit-packages: %S
-  inhibit-site-lisp: %S
-  called-early: %S
-" inhibit-packages inhibit-site-lisp called-early)
-	   'external-debugging-output)
-    (princ (format
-"invocation-directory: %S
-invocation-name: %S
-configure-prefix-directory: %S
-configure-exec-prefix-directory: %S
-emacs-roots:
-%S
-emacs-data-roots:
-%S
-user-init-directory: %S
-configure-package-path: %S
-" invocation-directory invocation-name
-  configure-prefix-directory configure-exec-prefix-directory
-  emacs-roots emacs-data-roots user-init-directory configure-package-path)
-	   'external-debugging-output)
-    )
+  (if debug-paths
+    (startup-setup-paths-debug-dump-info inhibit-packages called-early))
 
   (setq lisp-directory (paths-find-lisp-directory emacs-data-roots))
-
-  (if debug-paths
-      (princ (format "configure-lisp-directory and lisp-directory:\n%S\n%S\n"
-		     configure-lisp-directory lisp-directory)
-	     'external-debugging-output))
+  (startup-setup-paths-debug-vars configure-lisp-directory lisp-directory)
 
   (if (featurep 'mule)
       (progn
 	(setq mule-lisp-directory
 	      (paths-find-mule-lisp-directory emacs-data-roots
 					      lisp-directory))
-	(if debug-paths
-	    (princ (format "configure-mule-lisp-directory and mule-lisp-directory:\n%S\n%S\n"
-			   configure-mule-lisp-directory mule-lisp-directory)
-		   'external-debugging-output)))
+        (startup-setup-paths-debug-vars configure-mule-lisp-directory
+                                        mule-lisp-directory))
     (setq mule-lisp-directory '()))
 
   (setq site-directory (and (null inhibit-site-lisp)
 			    (paths-find-site-lisp-directory emacs-data-roots)))
-
-  (if (and debug-paths (null inhibit-site-lisp))
-      (princ (format "configure-site-directory and site-directory:\n%S\n%S\n"
-		     configure-site-directory site-directory)
-	     'external-debugging-output))
+  (startup-setup-paths-debug-vars
+   (null inhibit-site-lisp) configure-site-directory site-directory)
 
   (setq load-path (startup-find-load-path inhibit-packages t))
+  (startup-setup-paths-debug-vars
+   configure-early-package-directories early-package-hierarchies early-package-load-path
+   configure-late-package-directories late-package-hierarchies late-package-load-path
+   configure-last-package-directories last-package-hierarchies last-package-load-path
+   load-path)
 
-  (when debug-paths
-    (princ (format "configure-early-package-directories, early-package-hierarchies and early-package-load-path:\n%S\n%S\n%S\n"
-		   configure-early-package-directories early-package-hierarchies early-package-load-path)
-	   'external-debugging-output)
-    (princ (format "configure-late-package-directories, late-package-hierarchies and late-package-load-path:\n%S\n%S\n%S\n"
-		   configure-late-package-directories late-package-hierarchies late-package-load-path)
-	   'external-debugging-output)
-    (princ (format "configure-last-package-directories, last-package-hierarchies and last-package-load-path:\n%S\n%S\n%S\n"
-		   configure-last-package-directories last-package-hierarchies last-package-load-path)
-	   'external-debugging-output))
-
-  (if debug-paths
-      (princ (format "load-path:\n%S\n" load-path)
-            'external-debugging-output))
   (setq module-directory (paths-find-module-directory emacs-roots))
-  (if debug-paths
-      (princ (format "configure-module-directory and module-directory:\n%S\n%S\n"
-		     configure-module-directory module-directory)
-	     'external-debugging-output))
+  (startup-setup-paths-debug-vars configure-module-directory module-directory)
+
   (setq site-module-directory (and (null inhibit-site-modules)
 				   (paths-find-site-module-directory
 				    emacs-roots)))
-  (if (and debug-paths (null inhibit-site-modules))
-      (princ (format "configure-site-module-directory and site-module-directory:\n%S\n%S\n"
-		     configure-site-module-directory site-module-directory)
-	     'external-debugging-output))
+  (startup-setup-paths-debug-vars
+   (null inhibit-site-modules) configure-site-module-directory site-module-directory)
 
   (setq module-load-path (paths-construct-module-load-path
 			  emacs-roots
@@ -1614,48 +1613,28 @@ configure-package-path: %S
 	  (paths-construct-info-path
 	   emacs-data-roots
 	   early-package-hierarchies late-package-hierarchies last-package-hierarchies))
-
-    (if debug-paths
-	(princ (format "configure-info-directory, configure-info-path and Info-directory-list:\n%S\n%S\n%S\n"
-		       configure-info-directory configure-info-path Info-directory-list)
-	       'external-debugging-output))
+    (startup-setup-paths-debug-vars configure-info-directory configure-info-path
+                                    Info-directory-list)
 
     (setq exec-directory (paths-find-exec-directory emacs-roots))
-
-    (if debug-paths
-	(princ (format "configure-exec-directory and exec-directory:\n%S\n%S\n"
-		       configure-exec-directory exec-directory)
-	       'external-debugging-output))
+    (startup-setup-paths-debug-vars configure-exec-directory exec-directory)
 
     (setq exec-path
 	  (paths-construct-exec-path emacs-roots exec-directory
 				     early-package-hierarchies late-package-hierarchies
 				     last-package-hierarchies))
-
-    (if debug-paths
-	(princ (format "exec-path:\n%S\n" exec-path)
-	       'external-debugging-output))
+    (startup-setup-paths-debug-vars exec-path)
 
     (setq doc-directory (paths-find-doc-directory emacs-roots))
-
-    (if debug-paths
-	(princ (format "configure-doc-directory and doc-directory:\n%S\n%S\n"
-		       configure-doc-directory doc-directory)
-	       'external-debugging-output))
+    (startup-setup-paths-debug-vars configure-doc-directory doc-directory)
     
     (setq data-directory (paths-find-data-directory emacs-data-roots))
-    
-    (if debug-paths
-	(princ (format "configure-data-directory and data-directory:\n%S\n%S\n"
-		       configure-data-directory data-directory)
-	       'external-debugging-output))
+    (startup-setup-paths-debug-vars configure-data-directory data-directory)
 
     (setq data-directory-list (paths-construct-data-directory-list
 			       data-directory early-package-hierarchies
 			       late-package-hierarchies last-package-hierarchies))
-    (if debug-paths
-	(princ (format "data-directory-list:\n%S\n" data-directory-list)
-	       'external-debugging-output))))
+    (startup-setup-paths-debug-vars data-directory-list)))
 
 (defun startup-find-load-path-for-packages (packages)
   "Return a suitable load-path for PACKAGES.

@@ -1,3 +1,26 @@
+2022-08-03  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* startup.el (startup-setup-paths):
+	Clean up the path debugging code by replacing all clunky
+	([if/when] debug-paths (princ (format "...))) invocations with code
+	from...
+
+	* startup.el (startup-setup-paths-debug-vars):
+	...this new macro that prints variable names and values one per line
+	in "variable name: variable value" format.
+
+	The debugging output changes a little, splitting the "this-var and
+	that-var\nvalue of this-var\nvalue of that-var\n" messages to easier
+	to read multiple lines that all start with the name of the variable.
+
+	* startup.el (startup-setup-paths-debug-dump-info):
+	* startup.el (startup-setup-paths-missing-emacs-roots-warning):
+	...and these functions that move the error and debug messaging wholly
+	out of #'startup-setup-paths.
+
+	Print a newline after the "Couldn't find an obvious default for the
+	root of the XEmacs hierarchy." message.
+
 2022-07-29  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* mule/compiled-unicode-tables.el:
