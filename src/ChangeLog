@@ -1,3 +1,19 @@
+2022-08-04  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* emacs.c (static int inhibit_configured_paths):
+	* emacs.c (main_1):
+	* emacs.c (standard_args):
+	Add a new -no-configured-paths command line flag that makes
+	setup-paths.el ignore all configure's built-in paths.
+
+	* emacs.c (Fconfigured_paths_disabledp):
+	* emacs.c (syms_of_emacs):
+	A simple function that returns whether -no-configured-paths was
+	specified.
+
+	* Makefile.in.in (BATCH):
+	Add -no-configured-paths to batch building invocations.
+
 2022-07-31  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* console-tty-impl.h (struct tty_console):

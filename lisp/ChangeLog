@@ -1,3 +1,23 @@
+2022-08-04  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* setup-paths.el (paths-emacs-root-p):
+	* setup-paths.el (paths-find-emacs-roots):
+	* setup-paths.el (paths-find-site-lisp-directory):
+	* setup-paths.el (paths-find-site-module-directory):
+	* setup-paths.el (paths-find-lisp-directory):
+	* setup-paths.el (paths-find-mule-lisp-directory):
+	* setup-paths.el (paths-find-module-directory):
+	* setup-paths.el (paths-construct-info-path):
+	* setup-paths.el (paths-find-doc-directory):
+	* setup-paths.el (paths-find-exec-directory):
+	* setup-paths.el (paths-find-data-directory):
+	* setup-paths.el (paths-construct-data-directory-list):
+	Make all of these functions respect the -no-configured-paths command
+	line flag and disregard the configured and built in paths.
+
+	* startup.el (command-line-do-help):
+	Document -no-configured-paths in the command line help text.
+
 2022-08-03  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* startup.el (startup-setup-paths):

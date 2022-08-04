@@ -405,8 +405,8 @@ RAW_EXE  = temacs.exe
 DO_TEMACS = $(DUMPENV) ./$(RAW_EXE)
 DO_XEMACS = ./$(PROGNAME)
 
-BATCH = -no-packages -batch
-BATCH_PACKAGES = -vanilla -batch
+BATCH = -no-packages -no-configured-paths -batch
+BATCH_PACKAGES = -vanilla -no-configured-paths -batch
 TEMACS_BATCH = $(DO_TEMACS) -nd $(BATCH)
 XEMACS_BATCH = $(DO_XEMACS) $(BATCH)
 XEMACS_BATCH_PACKAGES = $(DO_XEMACS) $(BATCH_PACKAGES)

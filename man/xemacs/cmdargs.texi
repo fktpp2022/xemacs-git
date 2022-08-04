@@ -167,6 +167,12 @@ Do not load the site-specific init file @file{lisp/site-start.el}.
 Do not load global symbol files (@file{auto-autoloads}) at startup.
 This implies @samp{-vanilla}. 
 
+@item -no-configured-paths
+Do not use the paths compiled in via @samp{configure} for searching for
+paths like Lisp path or packages path. This will force the path search
+mechanism to search for either the default installation path structure
+or the source tree.
+
 @item -no-early-packages
 Do not process early packages.  (For more information on startup issues
 concerning the package system, @xref{Startup Paths}.)

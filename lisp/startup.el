@@ -352,6 +352,11 @@ Package/module options:
   -no-site-modules      Do not search site-modules directories for modules
                         at startup.  Only applies when modules support is
                         compiled into XEmacs.
+  -no-configured-paths  Do not use the paths compiled in via `configure' for
+                        searching for paths like Lisp path or packages path.
+                        This will force the path search mechanism to search
+                        for either the default installation path structure
+                        or the source tree.
 
 Encoding options:
 

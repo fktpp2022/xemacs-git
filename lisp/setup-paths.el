@@ -74,17 +74,29 @@
   "Check if DIRECTORY is a plausible installation root."
   (or
    ;; installed
-   (paths-file-readable-directory-p (paths-construct-path (list directory
-								"lib"
-								(construct-emacs-version-name))))
+   (paths-file-readable-directory-p
+    (paths-construct-path (list directory "lib"
+                                (construct-emacs-version-name))))
+   (paths-file-readable-directory-p
+    (paths-construct-path (list directory "libexec"
+                                (construct-emacs-version-name))))
    ;; in-place or windows-nt.  windows-nt equivalent of --srcdir is
    ;; BUILD_DIR in config.inc, and has no lisp/ or etc/ since symlinks
    ;; don't exist.  instead, xemacs.mak points configure-lisp-directory and
    ;; configure-data-directory at the right places.
    (and
-    (or configure-exec-directory (paths-file-readable-directory-p (paths-construct-path (list directory "lib-src"))) (eq system-type 'windows-nt))
-    (or configure-lisp-directory (paths-file-readable-directory-p (paths-construct-path (list directory "lisp"))))
-    (or configure-data-directory (paths-file-readable-directory-p (paths-construct-path (list directory "etc")))))))
+    (or (and (not (configured-paths-disabledp)) configure-exec-directory)
+        (paths-file-readable-directory-p
+         (paths-construct-path (list directory "lib-src")))
+        (eq system-type 'windows-nt))
+
+    (or (and (not (configured-paths-disabledp)) configure-lisp-directory)
+        (paths-file-readable-directory-p
+         (paths-construct-path (list directory "lisp"))))
+
+    (or (and (not (configured-paths-disabledp)) configure-data-directory)
+        (paths-file-readable-directory-p
+         (paths-construct-path (list directory "etc")))))))
 
 (defun paths-emacs-data-root-p (directory)
   "Check if DIRECTORY is a plausible data installation root.
@@ -142,10 +154,12 @@ ROOT-P is a function that tests whether a root is plausible."
 	 (potential-installation-roots
 	  (delete-duplicates
            (append
-            (and configure-exec-prefix-directory
+            (and (not (configured-paths-disabledp))
+                 configure-exec-prefix-directory
                  (list (file-name-as-directory
                         configure-exec-prefix-directory)))
-            (and configure-prefix-directory
+            (and (not (configured-paths-disabledp))
+                 configure-prefix-directory
                  (list (file-name-as-directory
                         configure-prefix-directory))))
            :test #'equal :from-end t))
@@ -159,21 +173,24 @@ ROOT-P is a function that tests whether a root is plausible."
 ROOTS is a list of installation roots."
   (paths-find-site-directory roots (list "site-lisp")
 			     nil nil
-			     configure-site-directory))
+                             (and (not (configured-paths-disabledp))
+                                  configure-site-directory)))
 
 (defun paths-find-site-module-directory (roots)
   "Find the site modules directory of the XEmacs hierarchy.
 ROOTS is a list of installation roots."
   (paths-find-site-directory roots (list "site-modules")
 			     t nil
-			     configure-site-module-directory))
+                             (and (not (configured-paths-disabledp))
+                                  configure-site-module-directory)))
 
 (defun paths-find-lisp-directory (roots)
   "Find the main Lisp directory of the XEmacs hierarchy.
 ROOTS is a list of installation roots."
   (paths-find-version-directory roots (list "lisp")
 				nil nil
-				configure-lisp-directory))
+                                (and (not (configured-paths-disabledp))
+                                     configure-lisp-directory)))
 
 (defun paths-find-mule-lisp-directory (roots &optional lisp-directory)
   "Find the Mule Lisp directory of the XEmacs hierarchy.
@@ -187,13 +204,16 @@ ROOTS is a list of installation roots."
 	    guess
 	  (paths-find-version-directory roots (list "mule-lisp")
 					nil nil
-					configure-mule-lisp-directory)))))
+                                        (and
+                                         (not (configured-paths-disabledp))
+                                         configure-mule-lisp-directory))))))
 
 (defun paths-find-module-directory (roots)
   "Find the main modules directory of the XEmacs hierarchy.
 ROOTS is a list of installation roots."
-  (paths-find-architecture-directory roots (list "modules")
-				     nil configure-module-directory))
+  (paths-find-architecture-directory roots (list "modules") nil
+                                     (and (not (configured-paths-disabledp))
+                                          configure-module-directory)))
 
 (defun paths-construct-load-path
   (roots early-package-load-path late-package-load-path last-package-load-path
@@ -266,7 +286,9 @@ respectively."
        (let ((info-directory
               (paths-find-version-directory roots (list "info")
                                             nil nil
-                                            configure-info-directory)))
+                                            (and
+                                             (not (configured-paths-disabledp))
+                                             configure-info-directory))))
          (and info-directory
               (list info-directory)))
        (packages-find-package-info-path early-package-hierarchies)
@@ -277,7 +299,8 @@ respectively."
       (and (null info-path-envval)
            (delete-duplicates
             (nconc
-             (paths-directories-which-exist configure-info-path)
+             (and (not (configured-paths-disabledp))
+                  (paths-directories-which-exist configure-info-path))
              (paths-directories-which-exist paths-default-info-directories))
            :test #'equal :from-end t)))
      :test #'equal :from-end t)))
@@ -285,13 +308,16 @@ respectively."
 (defun paths-find-doc-directory (roots)
   "Find the documentation directory.
 ROOTS is the list of installation roots."
-  (paths-find-architecture-directory roots (list "lib-src") nil configure-doc-directory))
+  (paths-find-architecture-directory roots (list "lib-src") nil
+                                     (and (not (configured-paths-disabledp))
+                                          configure-doc-directory)))
 
 (defun paths-find-exec-directory (roots)
   "Find the binary directory.
 ROOTS is the list of installation roots."
-  (paths-find-architecture-directory roots (list "lib-src")
-				     nil configure-exec-directory))
+  (paths-find-architecture-directory roots (list "lib-src") nil
+				     (and (not (configured-paths-disabledp))
+                                          configure-exec-directory)))
 
 (defun paths-construct-exec-path (roots exec-directory
 				  early-package-hierarchies
@@ -322,7 +348,9 @@ package hierarchy roots, respectively."
 (defun paths-find-data-directory (roots)
   "Find the data directory.
 ROOTS is the list of installation roots."
-  (paths-find-version-directory roots (list "etc") nil "EMACSDATA" configure-data-directory))
+  (paths-find-version-directory roots (list "etc") nil "EMACSDATA"
+                                (and (not (configured-paths-disabledp))
+                                     configure-data-directory)))
 
 (defun paths-construct-data-directory-list (data-directory
 					    early-package-hierarchies

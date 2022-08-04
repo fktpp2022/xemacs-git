@@ -624,6 +624,11 @@ int nodumpfile;
 /* Nonzero means print debug information about path searching */
 int debug_paths;
 
+/* Nonzero means that the -compiling command line flag has been specified.
+   This doesn't have a Lisp variable, and therefore isn't affected by the
+   dumper. */
+static int inhibit_configured_paths = 0;
+
 /* Save argv and argc.  */
 static Wexttext **initial_argv;	/* #### currently unused */
 static int initial_argc;	/* #### currently unused */
@@ -1079,6 +1084,10 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       inhibit_early_packages = 1;
       vanilla_inhibiting = 1;
     }
+
+  if (argmatch (argv, argc, "-no-configured-paths", "--no-configured-paths",
+                0, NULL, &skip_args))
+    inhibit_configured_paths = 1;
 
   /* Partially handle the -version and -help switches: they imply -batch,
      but are not removed from the list. */
@@ -2715,6 +2724,7 @@ static const struct standard_args standard_args[] =
   { "-no-site-modules", "--no-site-modules", 78, 0 },
   { "-vanilla", "--vanilla", 76, 0 },
   { "-no-autoloads", "--no-autoloads", 74, 0 },
+  { "-no-configured-paths", "--no-configured-paths", 73, 0 },
   { "-help", "--help", 72, 0 },
   { "-version", "--version", 70, 0 },
   { "-V", 0, 68, 0 },
@@ -3962,6 +3972,16 @@ Non-nil return value means XEmacs is running without interactive terminal.
   return noninteractive ? Qt : Qnil;
 }
 
+DEFUN ("configured-paths-disabledp", Fconfigured_paths_disabledp, 0, 0, 0, /*
+Return t if XEmacs has been invoked with the -no-configured-paths command line
+flag. This value is not reset by reinitializing internally, like when running
+Emacs from temacs.
+*/
+       ())
+{
+  return inhibit_configured_paths ? Qt : Qnil;
+}
+
 #ifdef QUANTIFY
 DEFUN ("quantify-start-recording-data", Fquantify_start_recording_data,
        0, 0, "", /*
@@ -4005,6 +4025,7 @@ syms_of_emacs (void)
   DEFSUBR (Finvocation_directory);
   DEFSUBR (Fkill_emacs);
   DEFSUBR (Fnoninteractive);
+  DEFSUBR (Fconfigured_paths_disabledp);
 
 #ifdef DEBUG_XEMACS
   DEFSUBR (Fforce_debugging_signal);

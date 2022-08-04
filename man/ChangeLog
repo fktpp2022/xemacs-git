@@ -1,3 +1,8 @@
+2022-08-04  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* xemacs/cmdargs.texi (Command Switches):
+	Document the -no-configured-paths command line flag.
+
 2022-07-11  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Old Future Work -- Display Tables):
