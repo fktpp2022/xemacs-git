@@ -6646,7 +6646,7 @@ manage XEmacs code, both core and packages.  The VCS command is
 * Preserving Existing Changes with Mercurial Queues::
 @end menu
 
-@node Mercurial Basics, Preserving Existing Changes with Mercurial Queues, Mercurial Techniques, Mercurial Techniques
+@node Mercurial Basics,  , Mercurial Techniques, Mercurial Techniques
 
 @subheading Installing Mercurial
 
@@ -6764,7 +6764,7 @@ confusing public history if used indiscriminately.  Provides the
 @end table
 
 
-@node Preserving Existing Changes with Mercurial Queues, , Mercurial Basics, Mercurial Techniques
+@node Preserving Existing Changes with Mercurial Queues,  , Mercurial Techniques, Mercurial Techniques
 @section Preserving Existing Changes with Mercurial Queues
 @cindex preserving existing changes with mercurial queues
 @cindex mercurial queues, preserving existing changes with
@@ -24831,7 +24831,7 @@ event).
 @end enumerate
 
 
-@node Future Work -- Version Number and Development Tree Organization, Future Work -- Improvements to the @code{xemacs.org} Website, Future Work -- Mouse Pointer
+@node Future Work -- Version Number and Development Tree Organization, Future Work -- Improvements to the @code{xemacs.org} Website, Future Work -- Mouse Pointer, Future Work
 @section Future Work -- Version Number and Development Tree Organization
 @cindex future work, version number and development tree organization
 @cindex version number and development tree organization, future work
@@ -32656,6 +32656,8 @@ work still to be done.
 * Old Future Work -- xemacs.org Mailing Address Changes::  
 * Old Future Work -- Lisp callbacks from critical areas of the C code::  
 * Old Future Work -- Everything should obey duplicable extents::  
+* Old Future Work -- Display Tables::
+
 @end menu
 
 @node Old Future Work -- A Portable Unexec Replacement, Old Future Work -- Indirect Buffers, Old Future Work, Old Future Work
@@ -33183,8 +33185,8 @@ reason that I thought of this is that some coding system translations
 might cause Lisp code to be invoked and C code often invokes these
 translations in sensitive places.
 
-@node Old Future Work -- Everything should obey duplicable extents, Old Future Work -- Lisp callbacks from critical areas of the C code, Old Future Work -- Display Tables, Old Future Work
-@subsection Old Future Work -- Everything should obey duplicable extents
+@node Old Future Work -- Everything should obey duplicable extents, Old Future Work -- Display Tables, Old Future Work -- Lisp callbacks from critical areas of the C code, Old Future Work
+@section Old Future Work -- Everything should obey duplicable extents
 @cindex old future work, everything should obey duplicable extents
 @cindex everything should obey duplicable extents, old future work
 
@@ -33220,7 +33222,7 @@ already a function @code{copy_string_extents()} that does basically this
 exact thing, and it should be easy to create a modified version of this
 function.
 
-@node Old Future Work -- Display Tables, Old Future Work -- Everything should obey duplicable extents, , Old Future Work
+@node Old Future Work -- Display Tables,  , Old Future Work -- Everything should obey duplicable extents, Old Future Work
 @section Old Future Work -- Display Tables
 @cindex old future work, display tables
 @cindex display tables, old future work
