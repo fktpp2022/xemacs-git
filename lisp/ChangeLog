@@ -74,6 +74,17 @@
 	renamed to make their filenames unambiguous for the Unicode table
 	compiler. Change these files to reflect that.
 
+2022-07-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* wid-edit.el (widget-sublist): Removed. Equivalent to #'subseq,
+	but less general.
+	* wid-edit.el (widget-remove-if): Removed.
+	Usually equivalent to #'remove-if, always equivalent to (delete-if
+	PREDICATE (copy-sequence LIST)), not used in the XEmacs packages,
+	no indication to keep it.
+	* wid-edit.el (widget-item-match-inline): Adjust this not to use
+	widget-sublist, and to cons a little less.	
+
 2022-07-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* pcase.el (pcase--u1):

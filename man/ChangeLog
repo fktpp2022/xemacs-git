@@ -1,3 +1,10 @@
+2022-08-17  Henry S. Thompson  <ht@home.hst.name>
+
+	* internals/internals.texi: Fixes to Old Future Work to avoid
+	build error and navigation problems: Add missing index entry,
+	replace one @subsection with @section, re-run auto-generation of
+	@node
+
 2022-08-04  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* xemacs/cmdargs.texi (Command Switches):

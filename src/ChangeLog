@@ -1,3 +1,9 @@
+2022-08-12  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* callint.c (callint_prompt):
+	Correct a bug in this function, don't make_string() into args0[0]
+	and then immediately overwrite that.
+
 2022-08-04  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* emacs.c (static int inhibit_configured_paths):

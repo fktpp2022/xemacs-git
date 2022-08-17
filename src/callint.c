@@ -244,7 +244,7 @@ callint_prompt (const Ibyte *prompt_start, Bytecount prompt_length,
     {
       Lisp_Object *args0 = alloca_array (Lisp_Object, nargs + 1);
       args0[0] = make_string (prompt_start, prompt_length);
-      memcpy (args0, args, sizeof (Lisp_Object) * nargs);
+      memcpy (args0 + 1, args, sizeof (Lisp_Object) * nargs);
       /* format_into() will GCPRO S, no need for us to. */
       return Fformat_into (nargs + 1, args0);
     }
