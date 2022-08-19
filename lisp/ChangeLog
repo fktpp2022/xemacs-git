@@ -1,3 +1,12 @@
+2022-08-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* isearch-mode.el (isearch-fix-case):
+	* isearch-mode.el (isearch-complete1):
+	Small changes to modernize this code; call #'string-match-p
+	instead of wrapping #'string-match with #'save-match-data, no need
+	to cons up an alist to pass to #'try-completion, the latter now
+	accepts lists of strings without problems.
+
 2022-08-02  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Abstract out the list of things to be saved and restored in

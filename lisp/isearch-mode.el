@@ -1070,9 +1070,8 @@ backwards."
       (setq isearch-case-fold-search
             (if isearch-regexp
                 (no-case-regexp-p isearch-string)
-              (save-match-data
-                (let (case-fold-search)
-                  (not (string-match "[[:upper:]]" isearch-string)))))))
+              (let (case-fold-search)
+                (not (string-match-p "[[:upper:]]" isearch-string))))))
   (setq isearch-mode (if case-fold-search
                          (if isearch-case-fold-search
                              " Isearch"  ;As God Intended Mode
@@ -1317,9 +1316,8 @@ Obsolete."
   ;; Helper for isearch-complete and isearch-complete-edit
   ;; Return t if completion OK, nil if no completion exists.
   (let* ((ring (if isearch-regexp regexp-search-ring search-ring))
-         (alist (mapcar (function (lambda (string) (list string))) ring))
          (completion-ignore-case case-fold-search)
-         (completion (try-completion isearch-string alist)))
+         (completion (try-completion isearch-string ring)))
     (cond
      ((eq completion t)
       ;; isearch-string stays the same
@@ -1331,7 +1329,7 @@ Obsolete."
 	    (if completion-auto-help
 		(with-output-to-temp-buffer "*Isearch completions*"
 		  (display-completion-list
-		   (all-completions isearch-string alist))))
+		   (all-completions isearch-string ring))))
 	    t)
 	(and completion
 	     (setq isearch-string completion))))
