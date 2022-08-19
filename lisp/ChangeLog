@@ -1,3 +1,21 @@
+2022-08-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Abstract out the list of things to be saved and restored in
+	#'isearch-push-state, using #'macrolet and #'setf.
+	* isearch-mode.el:
+	* isearch-mode.el (isearch-state-places): New. Symbol macro
+	expanding to a list of those PLACEs to be manipulated for the
+	isearch state stack.
+	* isearch-mode.el (isearch-setf-state-places): New. Macro using
+	isearch-state-places, for use in isearch-top-state.
+	* isearch-mode.el (isearch-make-state-object): New. Macro using
+	isearch-state-places, for use in isearch-push-state.
+
+	* isearch-mode.el (isearch-top-state): Move within the
+	#'macrolet. Use #'isearch-setf-state-places.
+	* isearch-mode.el (isearch-pop-state): Move within the #'macrolet.
+	* isearch-mode.el (isearch-push-state): Move within the #'macrolet.
+
 2022-08-04  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* setup-paths.el (paths-emacs-root-p):

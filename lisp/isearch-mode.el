@@ -1363,61 +1363,64 @@ If there is no completion possible, say so and continue searching."
 ;;;==============================================================
 ;; The search status stack.
 
-(defun isearch-top-state ()
-  (let ((cmd (car isearch-cmds)))
-    ;; #### Grr, this is so error-prone.  If you add something to
-    ;; isearch-push-state, don't forget to update this.  I thought I'd
-    ;; make a list of variables, and just do (mapcar* #'set vars
-    ;; values), but the (point) thing would spoil it, leaving to more
-    ;; complication.
-    (setq isearch-string (car cmd)
-	  isearch-message (car (cdr cmd))
-	  isearch-success (nth 3 cmd)
-	  isearch-forward (nth 4 cmd)
-	  isearch-other-end (nth 5 cmd)
-	  isearch-word (nth 6 cmd)
-	  isearch-invalid-regexp (nth 7 cmd)
-	  isearch-wrapped (nth 8 cmd)
-	  isearch-barrier (nth 9 cmd)
-	  isearch-within-brackets (nth 10 cmd))
-    (goto-char (car (cdr (cdr cmd))))))
+(symbol-macrolet
+    ((isearch-state-places
+      ;; A list of PLACEs (in the sense of #'setf) that should be saved and
+      ;; stored in the isearch status stack when doing a recursive isearch,
+      ;; and restored when returning to the calling isearch. Note that this
+      ;; goes beyond symbols to include anyting SETFable, whence the inclusion
+      ;; of (point).
+      '(isearch-string
+        isearch-message
+        (point)
+        isearch-success
+        isearch-forward
+        isearch-other-end
+        isearch-word
+        isearch-invalid-regexp
+        isearch-wrapped
+        isearch-barrier
+        isearch-within-brackets)))
+  (macrolet
+      ((isearch-setf-state-places (cmd)
+         (cons 'setf
+               (loop for var being each element in isearch-state-places
+                     using (index index)
+                     nconc (list var `(nth ,index ,cmd)))))
+       (isearch-make-state-object ()
+         (cons 'list isearch-state-places)))
 
-(defun isearch-pop-state ()
-  (pop isearch-cmds)
-  (isearch-top-state)
+    (defun isearch-push-state ()
+      (push (isearch-make-state-object) isearch-cmds))
 
-  ;; Make sure isearch-case-fold-search gets the correct value.  FSF
-  ;; simply stores isearch-case-fold-search to isearch-cmds.  We
-  ;; should probably do the same.
-  (isearch-fix-case)
+    (defun isearch-top-state ()
+      (isearch-setf-state-places (car isearch-cmds)))))
 
-  ;; Here, as well as in isearch-search we must deal with the point
-  ;; landing at an invisible area which may need unhiding.
-  (if (or (not (eq search-invisible 'open))
-	  (not isearch-hide-immediately))
-      ;; If search-invisible is t, invisible text is just like any
-      ;; other text.  If it is nil, it is always skipped and we can't
-      ;; land inside.  In both cases, we don't need to do anything.
-      ;;
-      ;; Similarly, if isearch-hide-immediately is nil, needn't
-      ;; re-hide the area here, and neither can we land back into a
-      ;; hidden one.
-      nil
-    (when isearch-other-end
-      ;; This will unhide the extents.
-      (isearch-range-invisible (point) isearch-other-end))
-    (isearch-restore-invisible-extents (point)
-				       (or isearch-other-end (point)))))
+    (defun isearch-pop-state ()
+      (pop isearch-cmds)
+      (isearch-top-state)
 
-(defun isearch-push-state ()
-  (setq isearch-cmds
-	(cons (list isearch-string isearch-message (point)
-		    isearch-success isearch-forward isearch-other-end
-		    isearch-word
-		    isearch-invalid-regexp isearch-wrapped isearch-barrier
-		    isearch-within-brackets)
-	      isearch-cmds)))
+      ;; Make sure isearch-case-fold-search gets the correct value.  FSF
+      ;; simply stores isearch-case-fold-search to isearch-cmds.  We should
+      ;; probably do the same.
+      (isearch-fix-case)
 
+      ;; Here, as well as in isearch-search we must deal with the point
+      ;; landing at an invisible area which may need unhiding.
+      (if (or (not (eq search-invisible 'open))
+              (not isearch-hide-immediately))
+          ;; If search-invisible is t, invisible text is just like any other
+          ;; text.  If it is nil, it is always skipped and we can't land
+          ;; inside.  In both cases, we don't need to do anything.
+          ;;
+          ;; Similarly, if isearch-hide-immediately is nil, needn't re-hide
+          ;; the area here, and neither can we land back into a hidden one.
+          nil
+        (when isearch-other-end
+          ;; This will unhide the extents.
+          (isearch-range-invisible (point) isearch-other-end))
+        (isearch-restore-invisible-extents (point)
+                                           (or isearch-other-end (point)))))
 
 ;;;==================================================================
 ;; Message string
