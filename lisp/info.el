@@ -704,7 +704,7 @@ node of a file of this name."
   (or (null filename)
       (equal Info-current-file filename)
       (not Info-novice)
-      (string= "dir" (file-name-nondirectory Info-current-file))
+      (equal "dir" (file-name-nondirectory Info-current-file))
       (if (y-or-n-p
 	   (format "Leave Info file `%s'? "
 		   (file-name-nondirectory Info-current-file)))
@@ -731,7 +731,7 @@ node of a file of this name."
 		    buffer-file-name nil
 		    buffer-file-truename nil)
 	      (erase-buffer)
-	      (if (string= "dir" (file-name-nondirectory filename))
+	      (if (equal "dir" (file-name-nondirectory filename))
 		  (Info-insert-dir)
 		(Info-insert-file-contents filename t)
 		(setq default-directory (file-name-directory filename)))
@@ -1972,7 +1972,7 @@ NAME may be an abbreviation of the reference name."
 				      completions nil t nil
 				      'Info-minibuffer-history
 				      default)))
-	   (if (and (string= item "") default)
+	   (if (and (equal item "") default)
 	       (list default)
 	     (list item)))
        (error "No cross-references in this node"))))
@@ -2112,7 +2112,7 @@ Completion is allowed, and the menu item point is on is the default."
 	 ;; we rely on the fact that completing-read accepts an input
 	 ;; of "" even when the require-match argument is true and ""
 	 ;; is not a valid possibility
-	 (if (string= item "")
+	 (if (equal item "")
 	     (if default
 		 (setq item default)
 	         ;; ask again

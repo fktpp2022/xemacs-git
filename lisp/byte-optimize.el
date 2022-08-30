@@ -908,8 +908,6 @@
 (put 'eql 'byte-optimizer 'byte-optimize-binary-predicate)
 (put 'equal   'byte-optimizer 'byte-optimize-binary-predicate)
 (put 'equalp  'byte-optimizer 'byte-optimize-binary-predicate)
-(put 'string= 'byte-optimizer 'byte-optimize-binary-predicate)
-(put 'string-equal 'byte-optimizer 'byte-optimize-binary-predicate)
 
 (put '=   'byte-optimizer 'byte-optimize-predicate)
 (put '<   'byte-optimizer 'byte-optimize-predicate)
@@ -1572,8 +1570,8 @@
      byte-symbol-value byte-get byte-concat2 byte-concat3 byte-sub1 byte-add1
      byte-eqlsign byte-gtr byte-lss byte-leq byte-geq byte-diff byte-negate
      byte-plus byte-max byte-min byte-mult byte-char-after byte-char-syntax
-     byte-buffer-substring byte-string= byte-string< byte-nthcdr byte-elt
-     byte-member byte-assq byte-quo byte-rem)
+     byte-buffer-substring byte-string< byte-nthcdr byte-elt byte-member
+     byte-assq byte-quo byte-rem)
    byte-compile-side-effect-and-error-free-ops))
 
 ;;; This piece of shit is because of the way DEFVAR_BOOL() variables work.

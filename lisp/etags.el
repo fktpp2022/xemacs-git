@@ -268,7 +268,7 @@ A directory name is ok too; it means file TAGS in that directory."
 				     default-directory
 				     (expand-file-name "TAGS" default-directory)
 				     t)))
-  (if (string-equal file "") 
+  (if (equal file "") 
       (setq tags-file-name nil)
     (setq file (expand-file-name file))
     (when (file-directory-p file)
@@ -983,7 +983,7 @@ Variables of note:
     (cond ((eq completion t))
 	  ((null completion)
 	   (error "Can't find completion for \"%s\"" pattern))
-	  ((not (string-equal pattern completion))
+	  ((not (equal pattern completion))
 	   (delete-region beg end)
 	   (insert completion))
 	  (t
@@ -1285,7 +1285,7 @@ If this is a C-defined elisp function, it does something more clever."
 		 (setq info (format "Elisp: %s, C: %s %s, #args: %s"
 				    lname
 				    fname args
-				    (if (string-equal min max)
+				    (if (equal min max)
 					min
 				      (format "from %s to %s" min max)))))
 		(t

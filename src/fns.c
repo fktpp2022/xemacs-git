@@ -141,39 +141,6 @@ Error if LIST is dotted.
 
 /*** string functions. ***/
 
-DEFUN ("string-equal", Fstring_equal, 2, 2, 0, /*
-Return t if two strings have identical contents.
-Case is significant.  Text properties are ignored.
-\(Under XEmacs, `equal' also ignores text properties and extents in
-strings, but this is not the case under FSF Emacs 19.  In FSF Emacs 20
-`equal' is the same as in XEmacs, in that respect.)
-Symbols are also allowed; their print names are used instead.
-*/
-       (string1, string2))
-{
-  Bytecount len;
-  Lisp_Object p1, p2;
-
-  if (SYMBOLP (string1))
-    p1 = XSYMBOL (string1)->name;
-  else
-    {
-      CHECK_STRING (string1);
-      p1 = string1;
-    }
-
-  if (SYMBOLP (string2))
-    p2 = XSYMBOL (string2)->name;
-  else
-    {
-      CHECK_STRING (string2);
-      p2 = string2;
-    }
-
-  return (((len = XSTRING_LENGTH (p1)) == XSTRING_LENGTH (p2)) &&
-	  !memcmp (XSTRING_DATA (p1), XSTRING_DATA (p2), len)) ? Qt : Qnil;
-}
-
 DEFUN ("compare-strings", Fcompare_strings, 6, 7, 0, /*
 Compare the contents of two strings, maybe ignoring case.
 In string STR1, skip the first START1 characters and stop at END1.
@@ -2951,7 +2918,6 @@ syms_of_fns (void)
 
   DEFSUBR (Frandom);
   DEFSUBR (Flist_length);
-  DEFSUBR (Fstring_equal);
   DEFSUBR (Fcompare_strings);
   DEFSUBR (Fstring_lessp);
   DEFSUBR (Fcopy_list);

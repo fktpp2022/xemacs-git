@@ -270,8 +270,7 @@ line, but does not move past any whitespace that was explicitly inserted
   (beginning-of-line n)
   (skip-chars-forward " \t")
   ;; Skip over fill-prefix.
-  (if (and fill-prefix
-	   (not (string-equal fill-prefix "")))
+  (if (> (length fill-prefix) 0)
       (if (equal fill-prefix
 		 (buffer-substring
 		  (point) (min (point-max) (+ (length fill-prefix) (point)))))

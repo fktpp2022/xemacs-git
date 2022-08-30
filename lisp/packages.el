@@ -325,7 +325,7 @@ Returns list of hierarchies."
 The second component is shared with PATH."
   (let ((reverse-tail '())
 	(rest path))
-    (while (and rest (null (string-equal "" (car rest))))
+    (while (and rest (null (equal "" (car rest))))
       (setq reverse-tail (cons (car rest) reverse-tail))
       (setq rest (cdr rest)))
     (if (null rest)

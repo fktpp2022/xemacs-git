@@ -500,10 +500,10 @@ and can edit it until it has been confirmed."
     (let ((p (concat (gettext prompt) (gettext "(yes or no) ")))
           (ans ""))
       (while (stringp ans)
-        (setq ans (downcase (read-string p nil t))) ;no history
-        (cond ((string-equal ans (gettext "yes"))
+        (setq ans (canoncase (read-string p nil t))) ;no history
+        (cond ((equal ans (gettext "yes"))
                (setq ans t))
-              ((string-equal ans (gettext "no"))
+              ((equal ans (gettext "no"))
                (setq ans nil))
               (t
                (ding nil 'yes-or-no-p)

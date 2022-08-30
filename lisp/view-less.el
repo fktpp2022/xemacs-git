@@ -392,9 +392,9 @@ With prefix ARG, search forward that many occurrences."
   (interactive "sView search: \np")
   (unwind-protect
       (re-search-forward
-       (if (string-equal "" s) view-search-string s) nil nil p)
+       (if (equal "" s) view-search-string s) nil nil p)
     (setq view-search-arg p)
-    (or (string-equal "" s)
+    (or (equal "" s)
 	(setq view-search-string s))))
 
 (defun view-search-backward (s p)

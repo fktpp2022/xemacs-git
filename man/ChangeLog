@@ -1,3 +1,8 @@
+2022-08-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/strings.texi (Text Comparison):
+	Deprecate #'string-equal in the Lispref.
+
 2022-08-17  Henry S. Thompson  <ht@home.hst.name>
 
 	* internals/internals.texi: Fixes to Old Future Work to avoid

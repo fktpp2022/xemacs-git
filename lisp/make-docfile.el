@@ -60,14 +60,17 @@
 (let (done)
   (while (and (eq done nil) command-line-args)
     (let ((arg (car command-line-args)))
-      (cond ((or (string-equal arg "-o") ; Specify DOC file name
-		 (string-equal arg "-a") ; Append to DOC file
-		 (string-equal arg "-d")) ; Set working directory
-	     (if (string-equal arg "-o")
-		 (setq docfile (expand-file-name (car (cdr command-line-args)))))
+      (cond ((member arg '("-o" ; Specify DOC file name
+                           "-a" ; Append to DOC file
+                           "-d")) ; Set working directory
+             (if (equal arg "-o")
+		 (setq docfile (expand-file-name
+                                (car (cdr command-line-args)))))
 	     (setq options (cons arg options))
-	     (setq options (cons (expand-file-name (car (cdr command-line-args))) options)))
-	    ((string-equal arg "-i") ; Set site files to scan
+	     (setq options
+                   (cons (expand-file-name (car (cdr command-line-args)))
+                         options)))
+	    ((equal arg "-i") ; Set site files to scan
 	     (setq site-file-list (car (cdr command-line-args))))
 	    (t (setq done t)))
       (if (eq done nil)

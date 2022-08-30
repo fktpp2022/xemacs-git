@@ -228,9 +228,9 @@
       ""
     (let ((slant (downcase xlfd-slant)))
       (cond
-       ((string-equal slant "r") "Normal")
-       ((string-equal slant "i") "Italic")
-       ((string-equal slant "o") "Oblique")
+       ((equal slant "r") "Normal")
+       ((equal slant "i") "Italic")
+       ((equal slant "o") "Oblique")
        (t "")))))
 
 (defun gtk-convert-font-size-from-xlfd (size)

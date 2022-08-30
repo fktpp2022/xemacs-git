@@ -53,7 +53,7 @@ for missing marshallers.")
 	 (case (car err)
 	   (wrong-number-of-arguments nil)
 	   (error
-	    (if (string= "Could not locate marshaller function" (nth 1 err))
+	    (if (equal "Could not locate marshaller function" (nth 1 err))
 		(progn
 		  (set-buffer (get-buffer-create "needed marshallers"))
 		  (display-buffer (current-buffer))

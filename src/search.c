@@ -260,9 +260,8 @@ compile_pattern (Lisp_Object pattern, struct re_registers *regp,
          kept the format but changed its interpretation!  may need to have
          the code that changes the interpretation go through and invalidate
          cache entries for that buffer. */
-      if (!NILP (Fstring_equal (cp->regexp, pattern))
-	  && EQ (cp->buf.translate, translate)
-	  && cp->posix == posix)
+      if (cp->posix == posix && EQ (cp->buf.translate, translate)
+          && internal_equal (cp->regexp, pattern, 0))
 	break;
 
       /* If we're at the end of the cache, compile into the last cell.  */

@@ -390,9 +390,9 @@ This table is built from RFC2252 Section 5 and RFC2256 Section 5")
 
 (defun ldap-decode-boolean (str)
   (cond
-   ((string-equal str "TRUE")
+   ((equal str "TRUE")
     t)
-   ((string-equal str "FALSE")
+   ((equal str "FALSE")
     nil)
    (t
     (error "Wrong LDAP boolean string: %s" str))))

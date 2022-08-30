@@ -176,7 +176,7 @@ Possible values for TYPE are:
 			    user-init-directory))
       
       (while hierarchies
-	(if (string-equal (substring (car hierarchies) (- suffix-length))
+	(if (equal (substring (car hierarchies) (- suffix-length))
 			  hierarchy-suffix)
 	    (setq top-dir (car hierarchies)))
 	(setq hierarchies (cdr hierarchies)))

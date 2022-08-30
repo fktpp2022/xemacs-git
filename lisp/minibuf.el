@@ -496,7 +496,7 @@ See also the variable `completion-highlight-first-word-only' for
 					   default)
 				      default
 				    (buffer-string))))
-		      (histval (if (and default (string= val ""))
+		      (histval (if (and default (equal val ""))
 				   default
 				 val))
                       (err nil))
@@ -636,7 +636,7 @@ See also the variable `completion-highlight-first-word-only' for
          'unique)
         (t
          ;; It did find a match.  Do we match some possibility exactly now?
-         (let ((completedp (not (string-equal completion buffer-string))))
+         (let ((completedp (not (equal completion buffer-string))))
            (if completedp
                (progn
                  ;; Some completion happened
@@ -678,7 +678,7 @@ See also the variable `completion-highlight-first-word-only' for
            )
           (t
            ;; It did find a match.  Do we match some possibility exactly now?
-           (if (not (string-equal completion buffer-string))
+           (if (not (equal completion buffer-string))
                (progn
                  ;; Some completion happened
                  (erase-buffer)
@@ -748,7 +748,7 @@ Completion ignores case if the ambient value of
 				    history
 				    nil
 				    default))
-    (if (and (string= ret "")
+    (if (and (equal ret "")
 	     default)
 	default
       ret)))
@@ -853,7 +853,7 @@ the character in question must be typed again)."
                                           minibuffer-completion-predicate))))
       (if (or (eq completion 't)
               ;; Crockishly allow user to specify null string
-              (string-equal buffer-string ""))
+              (equal buffer-string ""))
           (throw 'exit nil))
       (if completion ;; rewritten for I18N3 snarfing
 	  (temp-minibuffer-message " [incomplete; confirm]")
@@ -1782,7 +1782,7 @@ DIR defaults to current buffer's directory default."
             ((eq action 't)
              ;; all completions
              (mapcar #'un-substitute-in-file-name
-                     (if (string= name "")
+                     (if (equal name "")
                          (delete "./" (file-name-all-completions "" dir))
                        (file-name-all-completions name dir))))
             (t;; nil
@@ -1853,9 +1853,8 @@ environment variable or username expanded and resolved to indicate
 whether it is a file(/result) or a directory (/result/)."
   (let ((file
 	 (cond ((string-match "\\([~$]\\)\\([^~$/]*\\)$" file-string)
-		(cond ((string= (substring file-string
-					   (match-beginning 1)
-					   (match-end 1)) "~")
+		(cond ((and (match-beginning 1)
+                            (eql ?~ (aref file-string (match-beginning 1))))
 		       (concat (substring file-string 0 (match-end 1))
 			       string))
 		      (t (substitute-in-file-name

@@ -735,39 +735,39 @@ Delete the escape even it is not recognised."
     (cond
 
      ;; \~-:
-     ((string= command "-:")
+     ((equal command "-:")
       (setq ethio-use-colon-for-colon t))
 
      ;; \~`:
-     ((string= command "`:")
+     ((equal command "`:")
       (setq ethio-use-colon-for-colon nil))
 
      ;; \~?
-     ((string= command "?")
+     ((equal command "?")
       (setq ethio-use-three-dot-question nil))
 
      ;; \~`|
-     ((string= command "`|")
+     ((equal command "`|")
       (setq ethio-use-three-dot-question t))
 
      ;; \~e
-     ((string= command "e")
+     ((equal command "e")
       (insert "$(3%j(B"))
 
      ;; \~E
-     ((string= command "E")
+     ((equal command "E")
       (insert "$(3%k(B"))
 
      ;; \~a
-     ((string= command "a")
+     ((equal command "a")
       (insert "$(3%l(B"))
 
      ;; \~A
-     ((string= command "A")
+     ((equal command "A")
       (insert "$(3%m(B"))
 
      ;; \~X
-     ((string= command "X")
+     ((equal command "X")
       (insert "$(3%i(B"))
 
      ;; unsupported tilde escape
@@ -776,9 +776,9 @@ Delete the escape even it is not recognised."
 
 (defun ethio-flag-to-language (flag)
   (cond
-   ((or (string= flag "en") (string= flag "eng")) 'english)
-   ((or (string= flag "ti") (string= flag "tir")) 'tigrigna)
-   ((or (string= flag "am") (string= flag "amh")) 'amharic)
+   ((or (equal flag "en") (equal flag "eng")) 'english)
+   ((or (equal flag "ti") (equal flag "tir")) 'tigrigna)
+   ((or (equal flag "am") (equal flag "amh")) 'amharic)
    (t nil)))
   
 (defun ethio-convert-digit nil
@@ -1680,7 +1680,7 @@ The second and third parameters BEGIN and END specify the region."
 (let ((i 0) str)
   (while (< i (length ethio-fidel-to-tex-map))
     (setq str (aref ethio-fidel-to-tex-map i))
-    (if (not (string= str ""))
+    (if (not (equal str ""))
 	(put
 	 (intern (concat "ethio-tex-command-" (aref ethio-fidel-to-tex-map i)))
 	 'ethio-fidel-char

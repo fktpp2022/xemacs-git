@@ -185,7 +185,7 @@ or if you change your font path, you can call this to re-initialize the menus."
 	(setq family (capitalize (match-string 1 name)))
 	(or (string-match x-font-regexp-spacing name)
 	    (error "internal error"))
-	(setq monospaced-p (string= "m" (match-string 1 name)))
+	(setq monospaced-p (equal "m" (match-string 1 name)))
 	(unless (string-match x-fonts-menu-junk-families family)
 	  (setq entry (or (assoc family cache)
                           (car (push `(,family nil nil t) cache))))
@@ -363,29 +363,27 @@ or if you change your font path, you can call this to re-initialize the menus."
 			      (fc-font-slant-translate-from-string slant)))
     (make-font-instance (fc-name-unparse pattern))))
 
-(defun x-font-menu-load-font-core (family weight size slant resolution)
+(defun* x-font-menu-load-font-core (family weight size slant resolution)
   "Try to load a font with the requested properties.
 The weight, slant and resolution are only hints."
   (when (integerp size) (setq size (int-to-string size)))
   (let (font)
-    (catch 'got-font
-      (dolist (weight (list weight "*"))
-	(dolist (slant
-		 (cond ((string-equal slant "O") '("O" "I" "*"))
-		       ((string-equal slant "I") '("I" "O" "*"))
-		       ((string-equal slant "*") '("*"))
-		       (t (list slant "*"))))
-	  (dolist (resolution
-		   (if (string-equal resolution "*-*")
-		       (list resolution)
-		     (list resolution "*-*")))
-	    (when (setq font
-			(make-font-instance
-			 (concat  "-*-" family "-" weight "-" slant "-*-*-*-"
-				  size "-" resolution "-*-*-"
-				  x-font-menu-registry-encoding)
-			 nil t))
-	      (throw 'got-font font))))))))
+    (dolist (weight (list weight "*"))
+      (dolist (slant
+                (cond ((equal slant "O") '("O" "I" "*"))
+                      ((equal slant "I") '("I" "O" "*"))
+                      ((equal slant "*") '("*"))
+                      (t (list slant "*"))))
+        (dolist (resolution
+                  (cons resolution
+                        (unless (equal resolution "*-*") '("*-*"))))
+          (when (setq font
+                      (make-font-instance
+                       (concat  "-*-" family "-" weight "-" slant "-*-*-*-"
+                                size "-" resolution "-*-*-"
+                                x-font-menu-registry-encoding)
+                       nil t))
+            (return-from x-font-menu-load-font-core font)))))))
 
 (provide 'x-font-menu)
 

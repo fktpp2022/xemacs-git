@@ -383,7 +383,7 @@ function definitions, values or properties are considered."
 	  ((null completion)
 	   (message "Can't find completion for \"%s\"" pattern)
 	   (ding))
-	  ((not (string= pattern completion))
+	  ((not (equal pattern completion))
 	   (delete-region beg end)
 	   (insert completion))
 	  (t

@@ -530,8 +530,7 @@ When searching for a match, this function uses
   (or map (setq map query-replace-map))
   (let* ((event (make-event))
 	 (nocasify (not (and case-fold-search case-replace
-			    (string-equal from-string
-					  (downcase from-string)))))
+			    (equal from-string (canoncase from-string)))))
 	 (literal (not regexp-flag))
 	 (search-function (if regexp-flag
 			      replace-re-search-function

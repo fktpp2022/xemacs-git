@@ -280,8 +280,7 @@ Returns nil if object does not contain MIME data."
 	     (if (and (listp data)
 		      (eql (length data) 3)
 		      (listp (car data))
-		      (stringp (caar data))
-		      (string= (caar data) "text/plain")
+		      (equal (caar data) "text/plain")
 		      (event-over-text-area-p event))
 		 (let ((window (event-window event)))
 		   (and window
@@ -333,15 +332,17 @@ Returns nil if object does not contain MIME data."
   "Returns true if method equals the start of url.
 If method does not end into ':' this is appended before the
 compare."
-  (cond ((and (stringp url)
-	      (stringp method)
-	      (> (length url) (length method)))
-	 ;; is this ?: check efficient enough?
-	 (if (not (string= (substring method -1) ":"))
-	     (setq method (concat method ":")))
-	 (string= method (substring url 0 (length method))))
-	(t nil)))
-
+  (and (stringp url) (> (length url)
+                        ;; Error if METHOD is not a sequence:
+                        (length method))
+       ;; Is METHOD a prefix of URL?
+       (eql (mismatch url method) (length method))
+       (or
+        ;; Did METHOD end in a colon?
+        (eql ?: (aref method (1- (length method))))
+        ;; If METHOD did not end in a colon, is the first character after
+        ;; the prefix in URL a colon?
+        (eql ?: (aref url (length method))))))
 ;;
 ;; Drag API
 ;;

@@ -79,7 +79,7 @@
 	    "{\n"
 	    (format "  %s rfunc = (%s) func;\n" func-proto func-proto))
 
-    (if (string= "LIST" rval) (setq rval "POINTER"))
+    (if (equal "LIST" rval) (setq rval "POINTER"))
 
     (when (cdr internal-rval)
       ;; It has a return type to worry about

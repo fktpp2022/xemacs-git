@@ -264,7 +264,7 @@ a Hyper-Apropos buffer."
 		     current-prefix-arg))
   (or (memq major-mode '(hyper-apropos-mode hyper-apropos-help-mode))
       (setq hyper-apropos-prev-wconfig (current-window-configuration)))
-  (if (string= "" regexp)
+  (if (equal "" regexp)
       (if (get-buffer hyper-apropos-apropos-buf)
 	  (progn
 	    (setq regexp hyper-apropos-last-regexp)

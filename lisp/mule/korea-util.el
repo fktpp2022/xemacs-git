@@ -51,7 +51,7 @@
   "Swith to/from Korean symbol package."
   (interactive "i")
   (and current-input-method
-       (if (string-equal current-input-method "korean-symbol")
+       (if (equal current-input-method "korean-symbol")
 	   (activate-input-method (concat "korean-hangul"
 					  default-korean-keyboard))
 	 (activate-input-method "korean-symbol"))))

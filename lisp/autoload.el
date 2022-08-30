@@ -416,7 +416,7 @@ and TRIM-NAME (result of calling `autoload-trim-file-name' on FILE)."
 ; 			  (file-truename default-directory)))
 ; 	   (len (length dir-truename)))
 ;       (if (and (< len (length source-truename))
-; 	       (string= dir-truename (substring source-truename 0 len)))
+; 	       (equal dir-truename (substring source-truename 0 len)))
 ; 	  (setq file (substring source-truename len))))
 
     ;; Check for suppression form (XEmacs)
@@ -902,7 +902,7 @@ equal to `autoload-file-name')."
 	(while (search-forward generate-autoload-section-header nil t)
 	  (setq section-begin (match-beginning 0))
 	  (setq form (autoload-read-section-header))
-	  (when (string= (nth 2 form) load-name)
+	  (when (equal (nth 2 form) load-name)
 	    (search-forward generate-autoload-section-trailer)
 	    (delete-region section-begin (point))))
 
@@ -1018,7 +1018,7 @@ If FORCE is non-nil, always save out the autoload files even if unchanged."
 		     (form (autoload-read-section-header))
 		     (file (nth 3 form)))
 		(when (and (stringp file)
-			   (string= (file-name-directory file) simple-dir)
+                           (equal (file-name-directory file) simple-dir)
 			   (not (file-exists-p
 				 (expand-file-name
 				  (file-name-nondirectory file) arg))))

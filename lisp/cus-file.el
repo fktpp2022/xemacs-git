@@ -45,9 +45,9 @@ If FORCE-NEW is non-nil, force post-migration location."
   (let ((init-file (or init-file user-init-file)))
     (if (or force-new
 	    (not init-file)
-	    (string= (file-name-directory init-file)
-		     (expand-file-name
-		      (file-name-as-directory user-init-directory))))
+	    (equal (file-name-directory init-file)
+                   (expand-file-name
+                    (file-name-as-directory user-init-directory))))
 	(expand-file-name custom-file-base user-init-directory)
       init-file)))
 

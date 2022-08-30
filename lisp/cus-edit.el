@@ -694,7 +694,7 @@ If given a prefix (or a COMMENT argument), also prompt for a comment."
 				       current-prefix-arg))
 
   (set var val)
-  (cond ((string= comment "")
+  (cond ((equal comment "")
 	 (put var 'variable-comment nil))
 	(comment
 	 (put var 'variable-comment comment))))
@@ -721,7 +721,7 @@ If given a prefix (or a COMMENT argument), also prompt for a comment."
 				       current-prefix-arg))
   (funcall (or (get variable 'custom-set) 'set-default) variable value)
   (put variable 'customized-value (list (quote-maybe value)))
-  (cond ((string= comment "")
+  (cond ((equal comment "")
 	 (put variable 'variable-comment nil)
 	 (put variable 'customized-variable-comment nil))
 	(comment
@@ -751,7 +751,7 @@ If given a prefix (or a COMMENT argument), also prompt for a comment."
   (funcall (or (get variable 'custom-set) 'set-default) variable value)
   (put variable 'saved-value (list (quote-maybe value)))
   (custom-push-theme 'theme-value variable 'user 'set (list (quote-maybe value)))
-  (cond ((string= comment "")
+  (cond ((equal comment "")
 	 (put variable 'variable-comment nil)
 	 (put variable 'saved-variable-comment nil))
 	(comment
@@ -767,7 +767,7 @@ The default group is `Emacs'."
   (interactive (custom-group-prompt
 		"Customize group: (default emacs) "))
   (when (stringp group)
-    (if (string-equal "" group)
+    (if (equal "" group)
 	(setq group 'emacs)
       (setq group (intern group))))
   (let ((name (format "*Customize Group: %s*"
@@ -788,7 +788,7 @@ The default group is `Emacs'."
   (interactive (custom-group-prompt
 		"Customize group: (default emacs) "))
   (when (stringp symbol)
-    (if (string-equal "" symbol)
+    (if (equal "" symbol)
 	(setq symbol 'emacs)
       (setq symbol (intern symbol))))
   (custom-buffer-create-other-window
@@ -1322,7 +1322,7 @@ item in another window.\n\n"))
   (if nil ; (string-match "XEmacs" emacs-version)
       (progn
 	(insert "*")
-	(while (not (string-equal prefix ""))
+	(while (not (equal prefix ""))
 	  (let ((entry (substring prefix 0 3)))
 	    (setq prefix (substring prefix 3))
 	    (let ((overlay (make-overlay (1- (point)) (point) nil t nil))

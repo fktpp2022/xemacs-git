@@ -391,29 +391,6 @@ will be signaled.
   return wrap_buffer (b);
 }
 
-#if 0 /* FSFmacs */
-/* bleagh!!! */
-/* Like Fassoc, but use Fstring_equal to compare
-   (which ignores text properties),
-   and don't ever QUIT.  */
-
-static Lisp_Object
-assoc_ignore_text_properties (REGISTER Lisp_Object key, Lisp_Object list)
-{
-  REGISTER Lisp_Object tail;
-  for (tail = list; !NILP (tail); tail = Fcdr (tail))
-    {
-      REGISTER Lisp_Object elt, tem;
-      elt = Fcar (tail);
-      tem = Fstring_equal (Fcar (elt), key);
-      if (!NILP (tem))
-	return elt;
-    }
-  return Qnil;
-}
-
-#endif /* FSFmacs */
-
 DEFUN ("get-buffer", Fget_buffer, 1, 1, 0, /*
 Return the buffer named BUFFER-NAME (a string), or nil if there is none.
 BUFFER-NAME may also be a buffer; if so, the value is that buffer.
@@ -499,10 +476,10 @@ the search will still be done on `buffer-file-name'.
     ALIST_LOOP_3 (name, buf, Vbuffer_alist)
       {
 	if (!STRINGP (XBUFFER (buf)->filename)) continue;
-	if (!NILP (Fstring_equal (filename,
-				  (find_file_compare_truenames
-				   ? XBUFFER (buf)->file_truename
-				   : XBUFFER (buf)->filename))))
+	if (internal_equal (filename,
+                            (find_file_compare_truenames
+                             ? XBUFFER (buf)->file_truename
+                             : XBUFFER (buf)->filename), 0))
 	  return buf;
 
         USED (name); /* Silence warning. */

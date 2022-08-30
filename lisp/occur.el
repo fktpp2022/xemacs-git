@@ -336,7 +336,7 @@ This function acts on multiple buffers; otherwise, it is exactly like
 	   (buf nil)
 ;	   (ido-ignore-item-temp-list bufs)
 	   )
-      (while (not (string-equal
+      (while (not (equal
 		   (setq buf (read-buffer
 			      (if (and-boundp 'read-buffer-function
 				       '(eq read-buffer-function 'ido-read-buffer))

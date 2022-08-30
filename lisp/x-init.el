@@ -177,11 +177,11 @@ that assumes this.  Such code should be fixed as appropriate."
     (cond ((or (search "Sun Microsystems" vendor)
 	       ;; MIT losingly fails to tell us what hardware the X server
 	       ;; is managing, so assume all MIT displays are Suns...  HA HA!
-	       (string-equal "MIT X Consortium" vendor)
-	       (string-equal "X Consortium" vendor))
+	       (equal "MIT X Consortium" vendor)
+	       (equal "X Consortium" vendor))
            ;; Ok, we think this could be a Sun keyboard.  Run the Sun code.
 	   (x-win-init-sun device))
-          ((string-match #r"XFree86\|Cygwin/X\|The X\.Org Foundation" vendor)
+          ((string-match-p #r"XFree86\|Cygwin/X\|The X\.Org Foundation" vendor)
            ;; Those XFree86 people do some weird keysym stuff, too.
 	   (x-win-init-xfree86 device)))))
 

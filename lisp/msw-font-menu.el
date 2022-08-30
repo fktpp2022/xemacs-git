@@ -201,8 +201,8 @@ The weight, slant and resolution are only hints."
       (dolist (weight (list weight ""))
 	(dolist (slant
 		 ;; oblique is not currently implemented
-		 (cond ((string-equal slant "Oblique") '("Italic" ""))
-		       ((string-equal slant "Italic") '("Italic" ""))
+		 (cond ((equalp slant "Oblique") '("Italic" ""))
+		       ((equalp slant "Italic") '("Italic" ""))
 		       (t (list slant ""))))
 	  (when (setq font
 		      (make-font-instance

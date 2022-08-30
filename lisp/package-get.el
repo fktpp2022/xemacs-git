@@ -637,7 +637,7 @@ The return value is suitable for direct passing to `interactive'."
 		    (package-get-info-find-package package-get-base
 						   package-symbol) nil)
 		   'version))
-	    (while (string=
+	    (while (equal
 		    (setq version (read-string "Version: " default-version))
 		    ""))
 	    (if package-symbol
@@ -1100,7 +1100,7 @@ successfully installed but errors occurred during initialization, or
       (message "Validating checksum for `%s'..." package) (sit-for 0)
       (with-temp-buffer
 	(insert-file-contents-literally full-package-filename)
-	(if (not (string= (md5 (current-buffer))
+	(if (not (equal (md5 (current-buffer))
 			  (package-get-info-prop this-package
 						 'md5sum)))
 	    (progn
@@ -1168,7 +1168,7 @@ from a version returned by `package-get-info-version'."
   first (aka most recent) version.  Use `package-get-info-find-prop'
   to retrieve a particular property from the value returned by this."
   (interactive (package-get-interactive-package-query t t))
-  (while (and version package (not (string= (plist-get (car package) 'version) version)))
+  (while (and version package (not (equal (plist-get (car package) 'version) version)))
     (setq package (cdr package)))
   (if package (car package)))
 

@@ -111,7 +111,7 @@ or if you change your font path, you can call this to re-initialize the menus."
 	(setq family (capitalize (match-string 1 name)))
 	(or (string-match gtk-font-regexp-spacing name)
 	    (error "internal error"))
-	(setq monospaced-p (string= "m" (match-string 1 name)))
+	(setq monospaced-p (equal "m" (match-string 1 name)))
 	(unless (string-match gtk-fonts-menu-junk-families family)
 	  (setq entry (or (assoc family cache)
                           (car (push `(,family nil nil t) cache))))
@@ -232,12 +232,12 @@ The weight, slant and resolution are only hints."
     (catch 'got-font
       (dolist (weight (list weight "*"))
 	(dolist (slant
-		 (cond ((string-equal slant "O") '("O" "I" "*"))
-		       ((string-equal slant "I") '("I" "O" "*"))
-		       ((string-equal slant "*") '("*"))
+		 (cond ((equalp slant "O") '("O" "I" "*"))
+		       ((equalp slant "I") '("I" "O" "*"))
+		       ((equalp slant "*") '("*"))
 		       (t (list slant "*"))))
 	  (dolist (resolution
-		   (if (string-equal resolution "*-*")
+		   (if (equal resolution "*-*")
 		       (list resolution)
 		     (list resolution "*-*")))
 	    (when (setq font

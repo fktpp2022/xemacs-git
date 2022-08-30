@@ -87,7 +87,7 @@ See the documentation for `list-load-path-shadows' for further information."
 	  ;; not always redundant).
 	  (or noninteractive
 	      (and path-elt
-		   (not (string= path-elt "."))
+		   (not (equal path-elt "."))
 		   (message "Ignoring redundant directory %s" path-elt)))
 
 	(puthash dir t true-names)
@@ -101,10 +101,7 @@ See the documentation for `list-load-path-shadows' for further information."
 	(clrhash files-seen-this-dir)
 
 	(dolist (file curr-files)
-
-	  (setq file (substring
-		      file 0 (if (string= (substring file -1) "c") -4 -3)))
-
+          (setq file (file-name-sans-extension file))
 	  ;; FILE now contains the current file name, with no suffix.
 	  (unless (or (gethash file files-seen-this-dir)
 		      ;; Ignore these files.

@@ -647,7 +647,7 @@ Otherwise, just return the value."
 ;; #### Note: this should probably be a more general utility -- dvl
 (defsubst widget-prompt-spaceify (prompt)
   ;; Add a space at the end of PROMPT if needed
-  (if (or (string= prompt "") (eq ?  (aref prompt (1- (length prompt)))))
+  (if (or (equal prompt "") (eq ?  (aref prompt (1- (length prompt)))))
       prompt
     (concat prompt " ")))
 
@@ -2696,7 +2696,7 @@ Return an alist of (TYPE MATCH)."
 		      (concat (widget-prompt-spaceify prompt)
 			      "select [ret. when done]: ")
 		      choices nil t))
-      (if (string= continue "")
+      (if (equal continue "")
 	  (setq continue nil)
 	(push (widget-prompt-value (cdr (assoc continue choices))
 				   prompt nil t)
@@ -3522,7 +3522,7 @@ It will read a file name from the minibuffer when invoked."
 	  ((null completion)
 	   (message "Can't find completion for \"%s\"" pattern)
 	   (ding))
-	  ((not (string= name-part completion))
+	  ((not (equal name-part completion))
 	   (delete-region beg end)
 	   (insert (expand-file-name completion directory)))
 	  (t
@@ -3955,7 +3955,7 @@ The parent of several `radio-button' widgets, one for each option."
 	   (message "Exact match."))
 	  ((null completion)
 	   (error "Can't find completion for \"%s\"" prefix))
-	  ((not (string-equal prefix completion))
+	  ((not (equal prefix completion))
 	   (insert (substring completion (length prefix))))
 	  (t
 	   (message "Making completion list...")

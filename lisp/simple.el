@@ -317,11 +317,10 @@ With argument, join this line to following line."
 	(delete-region (point) (1- (point)))
 	;; If the second line started with the fill prefix,
 	;; delete the prefix.
-	(if (and fill-prefix
-		 (<= (+ (point) (length fill-prefix)) (point-max))
-		 (string= fill-prefix
-			  (buffer-substring (point)
-					    (+ (point) (length fill-prefix)))))
+	(if (and (<= (+ (point) (length fill-prefix)) (point-max))
+		 (equal fill-prefix
+                        (buffer-substring (point)
+                                          (+ (point) (length fill-prefix)))))
 	    (delete-region (point) (+ (point) (length fill-prefix))))
 	(fixup-whitespace))))
 
@@ -1359,7 +1358,7 @@ than Emacs has provided a string for pasting; if Emacs provided the
 most recent string, the function should return nil.  If it is
 difficult to tell whether Emacs or some other program provided the
 current string, it is probably good enough to return nil if the string
-is equal (according to `string=') to the last text Emacs provided.
+is equal (according to `equal') to the last text Emacs provided.
 
 Reasonable choices include `get-clipboard-foreign' (the default), and
 functions calling `get-selection-foreign' (q.v.)."
@@ -3078,7 +3077,7 @@ indicating whether soft newlines should be inserted.")
 
 ;      ;; Choose a fill-prefix automatically.
 ;      (if (and adaptive-fill-mode
-;	       (or (null fill-prefix) (string= fill-prefix "")))
+;	       (or (null fill-prefix) (equal fill-prefix "")))
 ;	  (let ((prefix
 ;		 (fill-context-prefix
 ;		  (save-excursion (backward-paragraph 1) (point))

@@ -1261,19 +1261,6 @@ that can be added."
 
 ;;; Basic string functions
 
-;; XEmacs
-(defun string-equal-ignore-case (str1 str2)
-  "Return t if two strings have identical contents, ignoring case differences.
-Case is not significant.  Text properties and extents are ignored.
-Symbols are also allowed; their print names are used instead.
-
-See also `equalp'."
-  (if (symbolp str1)
-      (setq str1 (symbol-name str1)))
-  (if (symbolp str2)
-      (setq str2 (symbol-name str2)))
-  (eq t (compare-strings str1 nil nil str2 nil nil t)))
-
 (defun insert-face (string face)
   "Insert STRING and highlight with FACE.  Return the extent created."
   (let ((p (point)) ext)
@@ -1283,7 +1270,6 @@ See also `equalp'."
     ext))
 
 ;; not obsolete.
-(define-function 'string= 'string-equal)
 (define-function 'string< 'string-lessp)
 (define-function 'int-to-string 'number-to-string)
 (define-function 'string-to-int 'string-to-number)

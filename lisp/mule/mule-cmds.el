@@ -428,7 +428,7 @@ If INPUT-METHOD is nil, deactivate any current input method."
   (if (and input-method (symbolp input-method))
       (setq input-method (symbol-name input-method)))
   (if (and current-input-method
-	   (not (string= current-input-method input-method)))
+	   (not (equal current-input-method input-method)))
       (inactivate-input-method))
   (unless (or current-input-method (null input-method))
     (let ((slot (assoc input-method input-method-alist)))
@@ -452,7 +452,7 @@ If INPUT-METHOD is nil, deactivate any current input method."
   "Turn off the current input method."
   (when current-input-method
     (if input-method-history
-	(unless (string= current-input-method (car input-method-history))
+	(unless (equal current-input-method (car input-method-history))
 	  (setq input-method-history
 		(cons current-input-method
 		      (delete current-input-method input-method-history))))
@@ -860,7 +860,7 @@ the language environment for the major languages of Western Europe."
 	    (setq l (cons input-method (delete input-method l))))
 	  (princ ":\n")
 	  (while l
-	    (if (string= language-name (nth 1 (car l)))
+	    (if (equal language-name (nth 1 (car l)))
 		(princ-list "  " (car (car l))
 			    (format " (`%s' in mode line)" (nth 3 (car l)))))
 	    (setq l (cdr l))))

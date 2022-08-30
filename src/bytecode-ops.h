@@ -144,7 +144,10 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
   OPCODE (upcase,			0226)
   OPCODE (downcase,			0227)
 
+#ifdef NEED_TO_HANDLE_21_4_CODE
   OPCODE (string_equal, 		0230)
+#endif
+
   OPCODE (string_lessp,     		0231)
   OPCODE (old_equal, 	 		0232)
   OPCODE (nthcdr, 	 		0233)

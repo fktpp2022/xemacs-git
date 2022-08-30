@@ -1708,12 +1708,33 @@ execute_rare_opcode (Lisp_Object *stack_ptr,
 	break;
       }
 
+#ifdef NEED_TO_HANDLE_21_4_CODE
     case Bstring_equal:
       {
-	Lisp_Object arg = POP;
-	TOP_LVALUE = Fstring_equal (TOP, arg);
-	break;
+	Lisp_Object p1 = POP;
+        Lisp_Object p2 = TOP;
+
+        if (SYMBOLP (p1))
+          p1 = XSYMBOL (p1)->name;
+        else
+          {
+            CHECK_STRING (p1);
+          }
+
+        if (SYMBOLP (p2))
+          p2 = XSYMBOL (p2)->name;
+        else
+          {
+            CHECK_STRING (p2);
+          }
+
+        TOP_LVALUE = 
+          ((XSTRING_LENGTH (p1) == XSTRING_LENGTH (p2)) &&
+          !memcmp (XSTRING_DATA (p1), XSTRING_DATA (p2),
+                   XSTRING_LENGTH (p1))) ? Qt : Qnil;
+        break;
       }
+#endif
 
     case Bstring_lessp:
       {

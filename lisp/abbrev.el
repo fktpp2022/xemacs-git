@@ -184,10 +184,7 @@ To undefine an abbrev, define it with an expansion of `nil'."
                   (puthash name (make-symbol name) table)))
          (oexp (and (boundp sym) (symbol-value sym)))
          (ohook (and (fboundp sym) (symbol-function sym))))
-    (unless (and (equal ohook hook)
-		 (stringp oexp)
-		 (stringp expansion)
-		 (string-equal oexp expansion))
+    (unless (and expansion (equal oexp expansion) (equal ohook hook))
       (setq abbrevs-changed t)
       ;; If there is a non-word character in the string, set the flag.
       (if (string-match-p "\\W" name)

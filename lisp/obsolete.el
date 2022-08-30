@@ -518,5 +518,68 @@ is an inclusive upper bound on the possible values returned by `char-int'."
 (autoload 'xemacs-unintern-in-vector "obarray")
 (autoload 'xemacs-mapatoms-in-vector "obarray")
 
+(labels ((canonicalize-string-equal-argument (string)
+           (check-type string (or string symbol))
+           (if (symbolp string)
+               (symbol-name string)
+             string)))
+
+  (defun string-equal (string1 string2)
+    "Return t if two strings have identical contents.
+
+Case is significant.  Text properties are ignored.
+\(Under XEmacs, `equal' also ignores text properties and extents in
+strings, but this is not the case under FSF Emacs 19.  In FSF Emacs 20
+`equal' is the same as in XEmacs, in that respect.)
+Symbols are also allowed; their print names are used instead.
+
+This function is usually not appropriate, for the following reasons:
+
+-- STRING1 and STRING2 can be strings or symbols, indifferently; but any other
+   type provokes an error.
+   If you don't want type-based error-checking, you should be using `equal'
+   If you do want type-based error-checking, it's very easy to get the calling
+   convention of this function wrong and let a symbol slip through when you
+   don't intend to.
+
+-- You may be thinking \"ah, a string equal predicate, surely this defaults to
+   case-insensitive comparison, or takes account of `case-fold-search'\".
+   No, neither is true.  For the former, see `equalp'. For the latter, you're
+   stuck with something like:
+     `(string-match-p (concat \"\\\\`\" (regexp-quote NEEDLE) \"\\\\'\")
+                      HAYSTACK)'.
+
+-- It is rare that you want something like `(string-equal buffer-file-name
+   filename)' to give `t' when `filename' is the string \"nil\", if the buffer
+   doesn't have an associated file.
+
+-- `equal' has a bytecode and so most of the time will be fast, even if you
+   do your own type-checking (since `stringp' and `symbolp' both have
+   bytecodes too).
+
+It is included for compatibility with old versions of GNU Emacs, see above."
+    (equal (canonicalize-string-equal-argument string1)
+           (canonicalize-string-equal-argument string2)))
+  (make-compatible 'string-equal
+                   "use `equal' with your own type checking, if needed")
+
+  (define-function 'string= 'string-equal)
+  (make-compatible 'string=
+                   "use `equal' with your own type checking, if needed")
+
+  ;; XEmacs
+  (defun string-equal-ignore-case (string1 string2)
+    "Return t if two strings have identical contents, ignoring case.
+
+Text properties and extents are ignored. Symbols are also allowed; their print
+names are used instead.
+
+This function is usually not appropriate, see the docstring for
+`string-equal'. See also `equalp'."
+    (equalp (canonicalize-string-equal-argument string1)
+            (canonicalize-string-equal-argument string2)))
+  (make-compatible 'string-equal-ignore-case
+                   "use `equalp' with your own type checking, if needed"))
+
 (provide 'obsolete)
 ;;; obsolete.el ends here

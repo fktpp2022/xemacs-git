@@ -619,14 +619,14 @@ Type ^H^H^H (Control-h Control-h Control-h) to get more help options.\n"))
   ;; See if we should import version-control from the environment variable.
   (let ((vc (getenv "VERSION_CONTROL")))
     (cond ((eq vc nil))			;don't do anything if not set
-	  ((or (string= vc "t")
-	       (string= vc "numbered"))
+	  ((or (equal vc "t")
+	       (equal vc "numbered"))
 	   (setq version-control t))
-	  ((or (string= vc "nil")
-	       (string= vc "existing"))
+	  ((or (equal vc "nil")
+	       (equal vc "existing"))
 	   (setq version-control nil))
-	  ((or (string= vc "never")
-	       (string= vc "simple"))
+	  ((or (equal vc "never")
+	       (equal vc "simple"))
 	   (setq version-control 'never))))
 
   ;;#### GNU Emacs
@@ -652,14 +652,14 @@ Type ^H^H^H (Control-h Control-h Control-h) to get more help options.\n"))
   ;; Allow (at least) these arguments anywhere in the command line
   (macrolet ((long-argmatch (match)
 	       ;; use a macro to avoid lots of concatting at runtime
-	       `(or (string= arg ,match)
-		    (string= arg ,(concat "-" match)))))
+	       `(or (equal arg ,match)
+		    (equal arg ,(concat "-" match)))))
     (let ((new-args nil)
 	  (arg      nil))
       (while args
 	(setq arg (pop args))
       (cond
-       ((or (string= arg "-q")
+       ((or (equal arg "-q")
 	    (long-argmatch "-no-init-file"))
 	(setq load-user-init-file-p nil))
        ((long-argmatch "-no-site-file")
@@ -668,7 +668,7 @@ Type ^H^H^H (Control-h Control-h Control-h) to get more help options.\n"))
 	(setq user-init-file (pop args)))
        ((long-argmatch "-user-init-directory")
 	(setq user-init-directory (file-name-as-directory (pop args))))
-       ((or (string= arg "-u")
+       ((or (equal arg "-u")
 	    (long-argmatch "-user"))
 	(let* ((user (pop args))
 	       (home-user (concat "~" user)))
@@ -683,7 +683,7 @@ Type ^H^H^H (Control-h Control-h Control-h) to get more help options.\n"))
 	(setq init-file-debug t))
        ((long-argmatch "-unmapped")
 	(setq initial-frame-unmapped-p t))
-       ((or (string= arg "--") (string= arg "-"))
+       ((or (equal arg "--") (equal arg "-"))
 	(while args
 	  (push (pop args) new-args)))
        (t (push arg new-args))))
@@ -1016,7 +1016,7 @@ and replace it by (setq load-home-init-file t) if `val' is non-nil."
       (load user-init-file t t t))
   (if (and custom-file
 	   (or (not user-init-file)
-	       (not (string= custom-file user-init-file)))
+	       (not (equal custom-file user-init-file)))
 	   (file-readable-p custom-file))
       (load custom-file t t t))
   (unless inhibit-default-init
@@ -1130,7 +1130,7 @@ a new format, when variables have changed, etc."
 
       ;; Don't clobber a non-scratch buffer if init file
       ;; has selected it.
-      (when (and (string= (buffer-name) "*scratch*")
+      (when (and (equal (buffer-name) "*scratch*")
 		 (not (ask-about-user-init-file-migration-p)))
 	(unless (or inhibit-startup-message
 		    (input-pending-p))
@@ -1181,7 +1181,7 @@ a new format, when variables have changed, etc."
 	 ;;  ("+0 file" has the same effect; "-" added
 	 ;;   for unixoidiality).
 	 ;; This is worthless; the `unixoid' way is "./file". -jwz
-	 ((or (string= arg "-") (string= arg "--"))
+	 ((or (equal arg "-") (equal arg "--"))
 	  (setq end-of-options t))
 	 (t
 	  (setq file-p t)))
@@ -1338,8 +1338,9 @@ All other XEmacs packages are provided to you \"AS IS\".\n"
 		  (if (and
 		       (not (featurep 'mule)) ;; Already got mule?
 		       lang ;; Non-English locale?
-		       (not (string= lang "C"))
-		       (not (eql 0 (search "en" lang :test #'equalp)))
+		       (not (equal lang "C"))
+                       (not (eql (length "en")
+                                 (mismatch "en" lang :test #'equalp)))
 		       ;; Comes with Sun WorkShop
 		       (locate-file "xemacs-mule" exec-path))
 		      '( "\

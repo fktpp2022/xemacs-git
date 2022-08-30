@@ -1,3 +1,27 @@
+2022-08-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Move Fstring_equal to lisp/obsolete.el.
+
+	* buffer.c (assoc_ignore_text_properties): Remove.
+	* buffer.c (Fget_file_buffer):
+	Use internal_equal () instead of Fstring_equal (), now the latter
+	functions is removed.
+	* bytecode-ops.h (OPCODE):
+	Only #define the string_equal opcode if NEED_TO_HANDLE_21_4_CODE
+	is defined.
+	* bytecode.c (UNUSED):
+	Only implement Bstring_equal if NEED_TO_HANDLE_21_4_CODE is
+	defined. Move the implementation here.
+	* fns.c:
+	* fns.c (syms_of_fns):
+	Move Fstring_equal to obsolete.el.
+
+	* lisp.h: Remove the declaration of Fstring_equal from here.
+	* menubar.c (Fmenu_find_real_submenu):
+	Call internal_equal rather than Fstring_equal here.
+	* search.c (compile_pattern):
+	Ditto.
+
 2022-08-12  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* callint.c (callint_prompt):

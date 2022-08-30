@@ -251,8 +251,7 @@ first line, insist it must match FIRST-LINE-REGEXP."
 ;; can also be called from do-auto-fill
 ;; #### But it's not used there.  Chuck pulled it out because it broke things.
 (defun maybe-adapt-fill-prefix (&optional from to dont-skip-first)
-  (if (and adaptive-fill-mode
-	   (or (null fill-prefix) (string= fill-prefix "")))
+  (if (and adaptive-fill-mode (eql (length fill-prefix) 0))
       (setq fill-prefix (fill-context-prefix from to nil dont-skip-first))))
 
 (defun fill-region-as-paragraph (from to &optional justify
@@ -500,8 +499,8 @@ space does not end a sentence, so don't break a line there."
 			     (or (< nchars 0)
 				 (and fill-prefix
 				      (< nchars (length fill-prefix))
-				      (string= (buffer-substring (point) fill-point)
-					       (substring fill-prefix 0 nchars)))))))
+				      (equal (buffer-substring (point) fill-point)
+                                             (substring fill-prefix 0 nchars)))))))
 		    ;; Ok, skip at least one word.  But
 		    ;; don't stop at a period followed by just one space.
 		    (let ((first t))
@@ -849,8 +848,7 @@ otherwise it is made canonical."
 	  (beginning-of-line)
 	  (skip-chars-forward " \t")
 	  ;; Skip over fill-prefix.
-	  (if (and fill-prefix
-		   (not (string-equal fill-prefix ""))
+	  (if (and (> (length fill-prefix) 0)
 		   (equal fill-prefix
 			  (buffer-substring
 			   (point) (min (point-max) (+ (length fill-prefix)
@@ -952,8 +950,7 @@ extra spaces between words.  It does nothing in other justification modes."
 	   (save-excursion
 	     (move-to-left-margin nil t)
 	     ;; Position ourselves after any fill-prefix.
-	     (if (and fill-prefix
-		      (not (string-equal fill-prefix ""))
+	     (if (and (> (length fill-prefix) 0)
 		      (equal fill-prefix
 			     (buffer-substring
 			      (point) (min (point-max) (+ (length fill-prefix)

@@ -264,7 +264,7 @@ so we can use character sets rather than grouping parenthesis."
 	       (setq charset (format "%s%c" charset (setq char start)))))))
     ;;
     ;; Make sure a caret is not first and a dash is first or last.
-    (if (and (string-equal charset "") (string-equal bracket ""))
+    (if (and (equal charset "") (equal bracket ""))
 	(concat "[" dash caret "]")
       (concat "[" bracket charset caret dash "]"))))
 

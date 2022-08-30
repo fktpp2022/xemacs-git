@@ -589,7 +589,7 @@ Go to the window from which completion was requested."
 					       (+ (point) len))))
 		   (if completion-ignore-case
 		       (setq tail (downcase tail)))
-		   (not (string= tail (substring string 0 len)))))
+		   (not (equal tail (substring string 0 len)))))
       (setq len (1- len))
       (forward-char 1))
     (delete-char len)))

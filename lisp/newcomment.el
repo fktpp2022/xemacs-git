@@ -202,7 +202,7 @@ This is obsolete because you might as well use \\[newline-and-indent]."
       (set (make-local-variable 'comment-use-syntax)
 	   (let ((st (syntax-table))
 		 (cs comment-start)
-		 (ce (if (string= "" comment-end) "\n" comment-end)))
+		 (ce (if (equal "" comment-end) "\n" comment-end)))
 	     ;; Try to skip over a comment using forward-comment
 	     ;; to see if the syntax tables properly recognize it.
 	     (with-temp-buffer
@@ -218,7 +218,7 @@ This is obsolete because you might as well use \\[newline-and-indent]."
     ;;(setq comment-start (comment-string-strip comment-start t nil))
     ;;(setq comment-end (comment-string-strip comment-end nil t))
     ;; comment-continue
-    (unless (or comment-continue (string= comment-end ""))
+    (unless (or comment-continue (equal comment-end ""))
       (set (make-local-variable 'comment-continue)
 	   (concat (if (string-match "\\S-\\S-" comment-start) " " "|")
 		   (substring comment-start 1)))
@@ -239,7 +239,7 @@ This is obsolete because you might as well use \\[newline-and-indent]."
     (unless (and comment-end-skip
 		 ;; In case comment-end has changed since last time.
 		 (string-match comment-end-skip comment-end))
-      (let ((ce (if (string= "" comment-end) "\n"
+      (let ((ce (if (equal "" comment-end) "\n"
 		  (comment-string-strip comment-end t t))))
 	(set (make-local-variable 'comment-end-skip)
 	     ;; We use [ \t] rather than \s- because we don't want to
@@ -273,10 +273,10 @@ If UNP is non-nil, unquote nested comment markers."
 	  ;; "first" char won't deactivate it, so we turn such a CE
 	  ;; into !CS.  I.e. for pascal, we turn } into !{
 	  (if (not unp)
-	      (when (string= (match-string 0) ce)
+	      (when (equal (match-string 0) ce)
 		(replace-match (concat "!" cs) t t))
 	    (when (and (< (point-min) (match-beginning 0))
-		       (string= (buffer-substring (1- (match-beginning 0))
+		       (equal (buffer-substring (1- (match-beginning 0))
 						  (1- (match-end 0)))
 				(concat "!" cs)))
 	      (backward-char 2)
@@ -557,7 +557,7 @@ N defaults to 0.
 If N is `re', a regexp is returned instead, that would match
 the string for any N."
   (setq n (or n 0))
-  (when (and (stringp str) (not (string= "" str)))
+  (when (and (stringp str) (not (equal "" str)))
     ;; Separate the actual string from any leading/trailing padding
     (string-match "\\`\\s-*\\(.*?\\)\\s-*\\'" str)
     (let ((s (match-string 1 str))	;actual string
@@ -595,7 +595,7 @@ N defaults to 0.
 If N is `re', a regexp is returned instead, that would match
   the string for any N."
   (setq n (or n 0))
-  (when (and (stringp str) (not (string= "" str)))
+  (when (and (stringp str) (not (equal "" str)))
     ;; Only separate the left pad because we assume there is no right pad.
     (string-match "\\`\\s-*" str)
     (let ((s (substring str (match-end 0)))
@@ -790,8 +790,8 @@ rather than at left margin."
   ;;(assert (< beg end))
   (let ((no-empty t))
     ;; Sanitize CE and CCE.
-    (if (and (stringp ce) (string= "" ce)) (setq ce nil))
-    (if (and (stringp cce) (string= "" cce)) (setq cce nil))
+    (if (and (stringp ce) (equal "" ce)) (setq ce nil))
+    (if (and (stringp cce) (equal "" cce)) (setq cce nil))
     ;; If CE is empty, multiline cannot be used.
     (unless ce (setq ccs nil cce nil))
     ;; Should we mark empty lines as well ?
@@ -892,11 +892,11 @@ The strings used as comment starts are built from
 		    (>= (point) beg))
 	     (progn (goto-char end) (end-of-line) (skip-syntax-backward " ")
 		    (<= (point) end))
-	     (or block (not (string= "" comment-end)))
+	     (or block (not (equal "" comment-end)))
 	     (or block (progn (goto-char beg) (search-forward "\n" end t))))))
 
     ;; don't add end-markers just because the user asked for `block'
-    (unless (or lines (string= "" comment-end)) (setq block nil))
+    (unless (or lines (equal "" comment-end)) (setq block nil))
 
     (cond
      ((consp arg) (uncomment-region beg end))
@@ -963,7 +963,7 @@ Else, call `comment-indent'."
 	(indent-according-to-mode)
 	(insert (comment-padright comment-start add))
 	(save-excursion
-	  (unless (string= "" comment-end)
+	  (unless (equal "" comment-end)
 	    (insert (comment-padleft comment-end add)))
 	  (indent-according-to-mode))))))
 

@@ -694,7 +694,7 @@ is treated as a regexp.  See \\[isearch-forward] for more info."
 REGEXP says which ring to use."
   (if regexp
       (if (or (null regexp-search-ring)
-	      (not (string= string (car regexp-search-ring))))
+	      (not (equal string (car regexp-search-ring))))
 	  (progn
 	    (setq regexp-search-ring
 		  (cons string regexp-search-ring))
@@ -702,7 +702,7 @@ REGEXP says which ring to use."
 		(setcdr (nthcdr (1- search-ring-max) regexp-search-ring)
 			nil))))
     (if (or (null search-ring)
-	    (not (string= string (car search-ring))))
+	    (not (equal string (car search-ring))))
 	(progn
 	  (setq search-ring (cons string search-ring))
 	  (if (> (length search-ring) search-ring-max)

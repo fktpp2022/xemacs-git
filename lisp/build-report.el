@@ -260,23 +260,13 @@ under csh, so that you get beta.err when you run `mk beta'."
 (defun build-report-make-output-get ()
   "Return the filename the XEmacs make output is saved in."
   (interactive)
-  (if (or (string-equal build-report-make-output-dir "")
-          (null build-report-make-output-dir))
-      (mapcar
-       (function
-        (lambda (f)
-          (expand-file-name
-           f
-           (file-name-as-directory
-            (gethash 'blddir (config-value-hash-table))))))
-       build-report-make-output-files)
-    (mapcar
-     (function
-      (lambda (f)
-        (expand-file-name
-         f
-         (file-name-as-directory build-report-make-output-dir))))
-     build-report-make-output-files)))
+  (let ((build-report-make-output-dir
+         (file-name-as-directory
+          (if (eql (length build-report-make-output-dir) 0)
+              (gethash 'blddir (config-value-hash-table))
+            build-report-make-output-dir))))
+    (mapcar #'(lambda (f) (expand-file-name f build-report-make-output-dir))
+            build-report-make-output-files)))
 
 ;;;###autoload
 (defun build-report (&rest args)

@@ -1122,7 +1122,7 @@ otherwise a string <2> or <3> or ... is appended to get an unused name."
       (if handler
 	  (funcall handler 'create-file-buffer filename)
 	(let ((lastname (file-name-nondirectory filename)))
-	  (if (string= lastname "")
+	  (if (equal lastname "")
 	      (setq lastname filename))
 	  (generate-new-buffer lastname)))))
 
@@ -1210,7 +1210,7 @@ If there is no such live buffer, return nil."
 	    (save-excursion
 	      (set-buffer (car list))
 	      (if (and buffer-file-name
-		       (string= buffer-file-truename truename))
+		       (equal buffer-file-truename truename))
 		  (setq found (car list))))
 	    (setq list (cdr list)))
 	  found)
@@ -1294,7 +1294,7 @@ If RAWFILE is non-nil, the file is read literally."
 ; 	    (progn
 ; 	      (or nowarn
 ; 		  find-file-suppress-same-file-warnings
-; 		  (string-equal filename (buffer-file-name other))
+; 		  (equal filename (buffer-file-name other))
 ; 		  (message "%s and %s are the same file"
 ; 			   filename (buffer-file-name other)))
 ; 	      ;; Optionally also find that buffer.
@@ -1307,7 +1307,7 @@ If RAWFILE is non-nil, the file is read literally."
 		   (not nowarn))
 	  (save-excursion
 	    (set-buffer buf)
-	    (if (not (string-equal buffer-file-name filename))
+	    (if (not (equal buffer-file-name filename))
 		(message "%s and %s are the same file (%s)"
 			 filename buffer-file-name
 			 buffer-file-truename))))
@@ -1329,7 +1329,7 @@ If RAWFILE is non-nil, the file is read literally."
 			   (revert-buffer t t)
 			   (message "Reverting file %s... done" filename)))
 			((yes-or-no-p
-			  (if (string= (file-name-nondirectory filename)
+			  (if (equal (file-name-nondirectory filename)
 				       (buffer-name buf))
 			      (format
 			       (if (buffer-modified-p buf)
@@ -2180,7 +2180,7 @@ the old visited file has been renamed to the new name FILENAME."
   (let (truename)
     (if filename
 	(setq filename
-	      (if (string-equal filename "")
+	      (if (equal filename "")
 		  nil
 		(expand-file-name filename))))
     (if filename
@@ -2202,10 +2202,10 @@ the old visited file has been renamed to the new name FILENAME."
     (setq buffer-file-name filename)
     (if filename			; make buffer name reflect filename.
 	(let ((new-name (file-name-nondirectory buffer-file-name)))
-	  (if (string= new-name "")
+	  (if (equal new-name "")
 	      (error "Empty file name"))
 	  (setq default-directory (file-name-directory buffer-file-name))
-	  (or (string= new-name (buffer-name))
+	  (or (equal new-name (buffer-name))
 	      (rename-buffer new-name t))))
     (setq buffer-backed-up nil)
     (or along-with-file
@@ -2307,7 +2307,7 @@ the coding system."
 	 (if current-prefix-arg (read-coding-system "Coding system: "))))
   (and (eq (current-buffer) mouse-grabbed-buffer)
        (error "Can't write minibuffer window"))
-  (or (null filename) (string-equal filename "")
+  (or (eql 0 (length filename))
       (progn
 	;; If arg is just a directory,
 	;; use the default file name, but in that directory.
@@ -2695,8 +2695,9 @@ and directory use different drive names) then it returns FILENAME."
       ;; On Microsoft OSes, if FILENAME and DIRECTORY have different
       ;; drive names, they can't be relative, so return the absolute name.
       (if (and (eq system-type 'windows-nt)
-	       (not (string-equal (substring fname  0 2)
-				  (substring directory 0 2))))
+               (mismatch fname directory
+                         :end1 (max (length fname) 2)
+                         :end2 (max (length directory) 2)))
 	  filename
 	(let ((ancestor ".")
 	      (fname-dir (file-name-as-directory fname)))
@@ -2770,7 +2771,7 @@ See the subroutine `basic-save-buffer' for more information."
 Normally delete only if the file was written by this XEmacs since
 the last real save, but optional arg FORCE non-nil means delete anyway."
   (and buffer-auto-save-file-name delete-auto-save-files
-       (not (string= buffer-file-name buffer-auto-save-file-name))
+       (not (equal buffer-file-name buffer-auto-save-file-name))
        (or force (recent-auto-save-p))
        (progn
 	 (ignore-file-errors (delete-file buffer-auto-save-file-name))
@@ -3323,7 +3324,7 @@ the coding system."
     (while comp
       (setq tem (pop comp))
       (cond ((and (backup-file-name-p tem)
-                  (string= (file-name-sans-versions tem) file))
+                  (equal (file-name-sans-versions tem) file))
              (setq tem (concat dir tem))
              (if (or (null newest)
                      (file-newer-than-file-p tem newest))
@@ -3339,7 +3340,7 @@ or multiple mail buffers, etc."
     (let ((base-name (buffer-name)))
       (and (string-match-p "<[0-9]+>\\'" base-name)
 	   (not (and buffer-file-name
-		     (string= base-name
+		     (equal base-name
 			      (file-name-nondirectory buffer-file-name))))
 	   ;; If the existing buffer name has a <NNN>,
 	   ;; which isn't part of the file name (if any),
@@ -3878,21 +3879,16 @@ This command is used in the special Dired buffer created by
   "For each buffer in LIST, ask whether to kill it.
 LIST defaults to all existing live buffers."
   (interactive)
-  (if (null list)
-      (setq list (buffer-list)))
-  (while list
-    (let* ((buffer (car list))
-	   (name (buffer-name buffer)))
-      (and (not (string-equal name ""))
-	   (not (eq (aref name 0) ?\ ))
+  (dolist (buffer (or list (buffer-list)))
+    (let ((name (buffer-name buffer)))
+      (and (> (length name) 0) (not (eq (elt name 0) ?\ ))
 	   (yes-or-no-p
 	    (format
 	     (if (buffer-modified-p buffer)
 		 (gettext "Buffer %s HAS BEEN EDITED.  Kill? ")
 	       (gettext "Buffer %s is unmodified.  Kill? "))
 	     name))
-	   (kill-buffer buffer)))
-    (setq list (cdr list))))
+	   (kill-buffer buffer)))))
 
 (defun auto-save-mode (arg)
   "Toggle auto-saving of contents of current buffer.
@@ -3926,8 +3922,8 @@ Also rename any existing auto save file, if it was made in this session."
     (setq buffer-auto-save-file-name
 	  (make-auto-save-file-name))
     (if (and osave buffer-auto-save-file-name
-	     (not (string= buffer-auto-save-file-name buffer-file-name))
-	     (not (string= buffer-auto-save-file-name osave))
+	     (not (equal buffer-auto-save-file-name buffer-file-name))
+	     (not (equal buffer-auto-save-file-name osave))
 	     (file-exists-p osave)
 	     (recent-auto-save-p))
 	(rename-file osave buffer-auto-save-file-name t))))

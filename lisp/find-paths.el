@@ -356,15 +356,11 @@ DIRECTORIES is a list of strings."
 Non-\"\" components are converted into directory form.
 If DROP-EMPTIES is non-NIL, \"\" components are dropped from the output.
 Otherwise, they are left alone."
-  (let* ((components (split-path string))
-	 (directories
-	  (mapcar #'(lambda (component)
-		      (if (string-equal "" component)
-			  component
-			(file-name-as-directory component)))
-		  components)))
-    (if drop-empties
-        (delete "" directories)
-      directories)))
+  (mapcan #'(lambda (component)
+              (if (equal "" component)
+                  (if (not drop-empties)
+                      (list component))
+                (list (file-name-as-directory component))))
+          (split-path string)))
 
 ;;; find-paths.el ends here

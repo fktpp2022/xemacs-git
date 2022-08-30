@@ -637,7 +637,7 @@ Otherwise, it returns the next larger version of this font that is defined."
 	    ;; Ugh.  If we want to be able to complete the lowercase form
 	    ;; of the color name, we need to add it twice!  Yuck.
 	    (let ((dcase (canoncase color)))
-	      (or (string= dcase color)
+	      (or (equal dcase color)
 		  (push dcase clist)))
 	    (forward-char 1))
 	  (kill-buffer (current-buffer))))

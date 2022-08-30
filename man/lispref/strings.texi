@@ -408,18 +408,10 @@ character, @code{nil} otherwise.  Case is significant.
 @end example
 @end defun
 
-@defun string= string1 string2
-This function returns @code{t} if the characters of the two strings
-match exactly; case is significant.
-
-@example
-(string= "abc" "abc")
-     @result{} t
-(string= "abc" "ABC")
-     @result{} nil
-(string= "ab" "ABC")
-     @result{} nil
-@end example
+@defun string-equal string1 string2
+Don't use this function; it exists chiefly for backward compatibility
+with old versions of GNU Emacs. Usually `equal' with your own type
+checking (if needed) is appropriate.
 
 @ignore @c `equal' in XEmacs does not compare text properties
 The function @code{string=} ignores the text properties of the
@@ -428,8 +420,8 @@ properties also, use @code{equal} (@pxref{Equality Predicates}).
 @end ignore
 @end defun
 
-@defun string-equal string1 string2
-@code{string-equal} is another name for @code{string=}.
+@defun string= string1 string2
+@code{string=} is another name for @code{string-equal}.
 @end defun
 
 @cindex lexical comparison

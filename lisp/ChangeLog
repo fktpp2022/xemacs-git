@@ -1,3 +1,169 @@
+2022-08-29  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Deprecate #'string-equal, #'string-equal-ignore-case, encourage
+	use of #'equal, #'equalp instead, with or without the caller's own
+	type checking. Some small other changes in passing.
+
+	* build-report.el (build-report-make-output-get):
+	Revise this slightly, (eql (length build-report-make-output-dir)
+	0) is equivalent to checking it against "" and nil.	
+
+	* byte-optimize.el:
+	* byte-optimize.el (byte-compile-side-effect-free-ops):
+	Remove the optimizers from #'string=, #'string-equal, now they are
+	marked as GNU Emacs compatible and deprecated for other uses.
+
+	* bytecomp.el:
+	* bytecomp.el (152): Keep the byte-defop of byte-string= for the
+	sake of the disassembler.
+	Comment out the corresponding byte-defop-compiler statements.
+
+	* cmdloop.el (yes-or-no-p-minibuf):
+	Use #'canoncase rather than #'downcase, as is more correct for
+	this use case.
+
+	* dragdrop.el (experimental-dragdrop-drop-mime-default):
+	Switch from string= to equal in this function, as is done
+	elsewhere in this changeset.
+	* dragdrop.el (dragdrop-is-some-url):
+	Revise the checking that we correspond to some METHOD to avoid
+	#'string-equal and to use a CL function that doesn't allocate
+	dynamic memory.
+	* find-paths.el:
+	* find-paths.el (paths-decode-directory-path):
+	Be a bit more sensible in this function, use #'mapcan instead of
+	(delete "" (mapcar ...)), switch to #'equal instead of
+	#'string-equal.
+
+	* files.el (kill-some-buffers):
+	Make this a bit more idiomatic, use #'dolist, avoid #'string-equal.
+
+	* obsolete.el:
+	* obsolete.el (string-equal): New.
+	* obsolete.el (string-equal-ignore-case): New.
+	Move the implementation of these functions here from fns.c.
+	* obsolete.el (canonicalize-string-equal-argument): New. Used by
+	the implementation of the above.
+
+	* replace.el (perform-replace):
+	Switch to #'canoncase from #'downcase in this function, which is
+	more appropriate for this use case.
+
+	* shadow.el (find-emacs-lisp-shadows):
+	Use #'file-name-sans-extension instead of re-implementing it.
+
+	* subr.el (string-equal-ignore-case): Removed.
+	* subr.el ('string=): Removed.
+	Move these to obsolete.el
+
+	* x-font-menu.el:
+	* x-font-menu.el (x-font-menu-load-font-core):
+	Make this a bit more idiomatic, #'return-from the function rather
+	than using #'catch, 
+
+	* x-init.el (x-initialize-keyboard):
+	Use #'string-match-p in this function given the match data are not
+	used.
+	
+	* abbrev.el (define-abbrev):
+	* autoload.el (generate-autoload-type-section):
+	* autoload.el (update-file-autoloads):
+	* autoload.el (update-autoload-files):
+	* cus-edit.el (customize-set-value):
+	* cus-edit.el (customize-set-variable):
+	* cus-edit.el (customize-save-variable):
+	* cus-edit.el (customize):
+	* cus-edit.el (customize-other-window):
+	* cus-edit.el (custom-browse-insert-prefix):
+	* cus-file.el:
+	* cus-file.el (make-custom-file-name):
+	* etags.el (visit-tags-table):
+	* etags.el (complete-symbol):
+	* etags.el (display-tag-info):
+	* files.el (create-file-buffer):
+	* files.el (find-buffer-visiting):
+	* files.el (find-file-noselect):
+	* files.el (set-visited-file-name):
+	* files.el (write-file):
+	* files.el (file-relative-name):
+	* files.el (delete-auto-save-file-if-necessary):
+	* files.el (file-newest-backup):
+	* files.el (rename-uniquely):
+	* files.el (rename-auto-save-file):
+	* fill.el (maybe-adapt-fill-prefix):
+	* fill.el (fill-region-as-paragraph):
+	* fill.el (justify-current-line):
+	* fill.el (unjustify-current-line):
+	* font-menu.el (font-menu-family-constructor):
+	* font-menu.el (font-menu-weight-constructor):
+	* font.el (font-spatial-to-canonical):
+	* font.el (x-font-create-object):
+	* gtk-faces.el (gtk-convert-font-slant-from-xlfd):
+	* gtk-faces.el (gtk-convert-font-size-from-xlfd):
+	* gtk-ffi.el (gtk-ffi-check-function):
+	* gtk-font-menu.el (gtk-reset-device-font-menus):
+	* gtk-font-menu.el (gtk-font-menu-load-font):
+	* gtk-marshal.el (define-marshaller):
+	* hyper-apropos.el (hyper-apropos):
+	* indent.el (beginning-of-line-text):
+	* info.el (Info-find-file-node):
+	* info.el (Info-follow-reference):
+	* info.el (Info-menu):
+	* isearch-mode.el (isearch-update-ring):
+	* ldap.el (ldap-decode-boolean):
+	* lisp.el (lisp-complete-symbol):
+	* list-mode.el (choose-completion-delete-max-match):
+	* make-docfile.el (done):
+	* minibuf.el (defun):
+	* minibuf.el (minibuffer-do-completion-1):
+	* minibuf.el (minibuffer-do-completion):
+	* minibuf.el (completing-read):
+	* minibuf.el (exit-minibuffer):
+	* minibuf.el (read-file-name-internal):
+	* minibuf.el (append-expand-filename):
+	* msw-font-menu.el (mswindows-font-menu-load-font):
+	* mule/ethio-util.el (ethio-tilde-escape):
+	* mule/ethio-util.el (ethio-flag-to-language):
+	* mule/ethio-util.el (i):
+	* mule/korea-util.el (quail-hangul-switch-symbol-ksc):
+	* mule/mule-cmds.el (activate-input-method):
+	* mule/mule-cmds.el (inactivate-input-method):
+	* mule/mule-cmds.el (describe-language-environment):
+	* newcomment.el (comment-normalize-vars):
+	* newcomment.el (comment-quote-nested):
+	* newcomment.el (comment-padright):
+	* newcomment.el (comment-padleft):
+	* newcomment.el (comment-region-internal):
+	* newcomment.el (comment-region):
+	* newcomment.el (comment-dwim):
+	* newcomment.el (comment-auto-fill-only-comments):
+	* occur.el (multi-occur):
+	* package-admin.el (package-admin-find-top-directory):
+	* package-get.el (package-get-interactive-package-query):
+	* package-get.el (package-get):
+	* package-get.el (package-get-info-version):
+	* package-get.el (package-get-info-prop):
+	* packages.el (packages-split-path):
+	* regexp-opt.el (regexp-opt-charset):
+	* regexp-opt.el (regexp-opt):
+	* simple.el:
+	* simple.el (delete-indentation):
+	* simple.el (interprogram-paste-function):
+	* startup.el (command-line-early):
+	* startup.el (load-user-init-file):
+	* startup.el (command-line-1):
+	* startup.el (splash-screen-window-body):
+	* subr.el (insert-face):
+	* view-less.el (view-search-forward):
+	* view-less.el (view-search-backward):
+	* wid-edit.el (widget-prompt-spaceify):
+	* wid-edit.el (widget-checklist-prompt-value):
+	* wid-edit.el (widget-file-complete):
+	* wid-edit.el (widget-color-complete):
+	* x-faces.el (x-color-list-internal):
+	* x-font-menu.el (x-reset-device-font-menus-core):
+	Mechanically change from #'string-equal to #'equal in these files.
+	
 2022-08-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* isearch-mode.el (isearch-fix-case):

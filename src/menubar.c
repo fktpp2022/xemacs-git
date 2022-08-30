@@ -217,7 +217,7 @@ See also 'find-menu-item'.
 	    {
 	      if (CONSP (submenu)
 		  && STRINGP (XCAR (submenu))
-		  && !NILP (Fstring_equal (XCAR (submenu), elt)))
+		  && internal_equal (XCAR (submenu), elt, 0))
 		{
 		  desc = submenu;
 		  goto descend;
