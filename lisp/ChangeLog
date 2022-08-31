@@ -1,5 +1,13 @@
 2022-08-31  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* files.el (set-auto-mode):
+	Use #'file-system-ignore-case-p now it is available. Remove a
+	comment from 2000 basically regretting that it was not available.
+	Switch to #'string-match-p throughout this function in passing,
+	reducing match data conflicts.
+
+2022-08-31  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* files.el (file-relative-name): 
 	Correct a bug introduced into this function by the last commit,
 	the length of the filename examined by #'mismatch should be at

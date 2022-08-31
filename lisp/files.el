@@ -1768,23 +1768,17 @@ and we don't even do that unless it would come from the file name."
           (while keep-going
             (setq keep-going nil)
             (let ((alist auto-mode-alist)
-                  (mode nil))
-
+		  (mode nil) match-beginning)
               ;; Find first matching alist entry.
-
-	      ;; #### This is incorrect. In NT, case sensitivity is a volume
-	      ;; property. For instance, NFS mounts *are* case sensitive.
-	      ;; Need internal function (file-name-case-sensitive f), F
-	      ;; being file or directory name. - kkm
-	      (let ((case-fold-search
-		     (eq system-type 'windows-nt)))
+	      (let ((case-fold-search (file-system-ignore-case-p name)))
 		(while (and (not mode) alist)
-		  (if (string-match (car (car alist)) name)
+		  (if (setq match-beginning
+			    (string-match-p (car (car alist)) name))
 		      (if (and (consp (cdr (car alist)))
 			       (nth 2 (car alist)))
 			  (progn
 			    (setq mode (car (cdr (car alist)))
-				  name (substring name 0 (match-beginning 0))
+				  name (substring name 0 match-beginning)
 				  keep-going t))
 			(setq mode (cdr (car alist))
 			      keep-going nil)))
