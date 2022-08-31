@@ -2696,8 +2696,9 @@ and directory use different drive names) then it returns FILENAME."
       ;; drive names, they can't be relative, so return the absolute name.
       (if (and (eq system-type 'windows-nt)
                (mismatch fname directory
-                         :end1 (max (length fname) 2)
-                         :end2 (max (length directory) 2)))
+                         :end1 (min (length fname) (length "C:"))
+                         :end2 (min (length directory) (length "C:"))
+			 :test #'equalp))
 	  filename
 	(let ((ancestor ".")
 	      (fname-dir (file-name-as-directory fname)))
