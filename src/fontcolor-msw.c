@@ -1942,8 +1942,9 @@ mswindows_print_font_instance (Lisp_Font_Instance *f,
 			       Lisp_Object printcharfun,
 			       int UNUSED (escapeflag))
 {
-  write_fmt_string (printcharfun, " %#p",
-		    FONT_INSTANCE_MSWINDOWS_HFONT_VARIANT (f, 0, 0));
+  write_fmt_string (printcharfun, " %zx",
+		    (EMACS_UINT) FONT_INSTANCE_MSWINDOWS_HFONT_VARIANT (f, 0,
+									0));
 
 }
 

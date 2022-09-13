@@ -1064,6 +1064,12 @@ bmp_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
   bmp_data = (Extbyte *)bytes + bmp_file_header->bfOffBits;
   bmp_bits = bmp_file_header->bfSize - bmp_file_header->bfOffBits;
 
+  if (bmp_file_header->bfSize < len)
+    {
+      signal_image_error ("Bitmap data specified shorter than needed",
+			  instantiator);
+    }
+
   /* Now create the pixmap and set up the image instance */
   init_image_instance_from_dibitmap (ii, bmp_info, dest_mask,
 				     bmp_data, bmp_bits, 1, instantiator,
@@ -1712,11 +1718,11 @@ mswindows_print_image_instance (Lisp_Image_Instance *p,
     case IMAGE_COLOR_PIXMAP:
     case IMAGE_POINTER:
       write_fmt_string (printcharfun, " (0x%zx",
-                        IMAGE_INSTANCE_MSWINDOWS_BITMAP (p));
+                        (EMACS_UINT) IMAGE_INSTANCE_MSWINDOWS_BITMAP (p));
       if (IMAGE_INSTANCE_MSWINDOWS_MASK (p))
 	{
 	  write_fmt_string (printcharfun, "/0x%zx",
-                            IMAGE_INSTANCE_MSWINDOWS_MASK (p));
+                            (EMACS_UINT) IMAGE_INSTANCE_MSWINDOWS_MASK (p));
 	}
       write_ascstring (printcharfun, ")");
       break;

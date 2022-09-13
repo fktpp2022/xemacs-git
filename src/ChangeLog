@@ -1,3 +1,20 @@
+2022-09-13  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Silence a couple of compile-time warnings elicited by gcc 11,
+	Cygwin 2022-09-05.
+
+	* fontcolor-msw.c (mswindows_print_font_instance):
+	Cast a HFONT_VARIANT to an EMACS_UINT to suppress warnings
+	regarding format strings.
+
+	* glyphs-msw.c (bmp_instantiate):
+	Check that the supplied bitmap data is at least enough for the
+	bitmap size specified in the bitmap header, error if not.
+	* glyphs-msw.c (mswindows_print_image_instance):
+	Cast a HBITMAP to EMACS_UINT when printing using %zx.  Cast a
+	HBITMAP (reflecting the pixmap mask) to EMACS_UINT when printing
+	using %z.
+
 2022-08-28  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Move Fstring_equal to lisp/obsolete.el.
