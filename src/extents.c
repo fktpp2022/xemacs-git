@@ -7048,7 +7048,7 @@ next_previous_single_property_change (Bytexpos pos, Lisp_Object prop,
 				      Boolint next, Boolint text_props_only)
 {
   Lisp_Object extent, value;
-  int limit_was_nil;
+  int limit_was_nil, proceededp = 0;
   enum extent_at_flag at_flag = next ? EXTENT_AT_AFTER : EXTENT_AT_BEFORE;
   if (limit < 0)
     {
@@ -7072,10 +7072,14 @@ next_previous_single_property_change (Bytexpos pos, Lisp_Object prop,
 
   while (1)
     {
+      Bytexpos prev_pos = pos;
       pos = (next ? extent_find_end_of_run : extent_find_beginning_of_run)
 	(object, pos, 1);
       if (next ? pos >= limit : pos <= limit)
 	break; /* property is the same all the way to the beginning/end */
+      if (pos == prev_pos)
+	return proceededp ? pos : -1;
+      proceededp = 1;
       extent = extent_at (pos, object, prop, 0, at_flag, 0);
       /* If we only want text-prop extents, ignore all others */
       if (text_props_only && !NILP (extent) && 

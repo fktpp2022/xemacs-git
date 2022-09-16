@@ -1,3 +1,11 @@
+2022-09-16  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* extents.c (next_previous_single_property_change):
+	In extremely rare occasions, next_previous_single_property_change()
+	gets stuck in an infinite loop in which
+	extent_find_(end|beginning)_of_run returns the same byte position
+	value it was called with. Remedy that.
+
 2022-09-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Silence a couple of compile-time warnings elicited by gcc 11,
