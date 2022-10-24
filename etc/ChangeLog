@@ -1,3 +1,10 @@
+2022-10-24  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* Emacs.ad:
+	Specify the resolution_x and resolution_y fields for the default
+	fonts that have 75 and 100 DPI versions in the X.org base distribution
+	to prioritize the 75 DPI versions.
+
 2017-09-30  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* HELLO:
