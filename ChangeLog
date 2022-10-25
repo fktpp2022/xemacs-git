@@ -1,3 +1,19 @@
+2022-10-25  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* configure.ac:
+	Canna detection was attempting to use an environment variable,
+	$ac_header_compiler, to deduce the result of simple header checks. It
+	might have worked in some previous version of autoconf, but not
+	anymore, resulting in the detection being non-functional. Also I'm not
+	sure what the check for -DCANNA_NEW_WCHAR_AWARE tried to do, since I
+	tested the Canna versions previous to where that flag was introduced,
+	and as far as I can tell, the test has never worked. U WOT M8.
+
+	Rewrite the detection. Make configure error out if Canna was requested
+	explicitly with --with-canna and detection didn't pan out.
+
+	* configure: Renegerate.
+
 2022-07-31  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* configure.ac:

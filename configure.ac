@@ -4422,53 +4422,73 @@ if test "$with_mule" = "yes" ; then
 
   dnl Configure canna
   dnl canna_libs variable is initialized at toplevel
-  dnl #### the hard-coding of /usr/local/canna/include is bogus and
-  dnl      my Mac OS X 10.4 system needs /usr/local/canna/lib, too
-  dnl #### this whole mess should be in modules/canna, no? maybe not
-  have_canna=no
+  have_canna=false
   if test "$with_canna" != "no"; then
-    save_c_switch_site="$c_switch_site"
-    for canna_include_path in "" " -I/usr/local/canna/include"; do
-      for canna_wchar_aware in "" " -DCANNA_NEW_WCHAR_AWARE=1"; do
-        c_switch_site="$save_c_switch_site$canna_include_path$canna_wchar_aware"
-        # defeat autoconf's cache mechanism
-        $as_unset ac_cv_header_canna_jrkanji_h
-        $as_unset ac_cv_header_canna_RK_h
-        # using $ac_header_compiler is a hack, but autoconf doesn't let us
-        # get at this information otherwise :-(
-        AC_CHECK_HEADER(canna/jrkanji.h,[AC_CHECK_HEADER(canna/RK.h,have_canna=$ac_header_compiler)])
-        test "$have_canna" = "yes" && break
-        AC_MSG_WARN([You may ignore any *Present but not compiled* message
-        from autoconf.  We detect that condition and recheck, but there
-        is no way to suppress autoconf's message.])
-      done
-      test "$have_canna" = "yes" && break
+    for canna_include_path in : $xe_known_include_dirs /usr/local/canna/include
+    do
+      $as_unset ac_cv_header_canna_jrkanji_h
+      $as_unset ac_cv_header_canna_RK_h
+
+      if test $canna_include_path != :; then
+        AC_MSG_CHECKING(for Canna headers in $canna_include_path)
+        cppflags_saved=$CPPFLAGS
+        XE_APPEND(-I$canna_include_path, CPPFLAGS)
+      fi
+
+      AC_CHECK_HEADER(canna/jrkanji.h, [
+        AC_CHECK_HEADER(canna/RK.h, [
+          have_canna=true
+        ])
+      ])
+
+      if $have_canna; then
+        break
+      elif test $canna_include_path != :; then
+        CPPFLAGS=$cppflags_saved
+      fi
     done
-    if test "$have_canna" = "yes"; then
-      c_switch_site="$save_c_switch_site$canna_include_path"
-    else
-      c_switch_site="$save_c_switch_site"
+
+    if $have_canna; then
+      AC_MSG_CHECKING(for CANNA_NEW_WCHAR_AWARE)
+      AC_EGREP_CPP([xe_test_becomes.*cannawcKanjiString], [
+#define CANNA_NEW_WCHAR_AWARE
+#include <canna/jrkanji.h>
+xe_test_becomes wcKanjiString
+      ], [
+        AC_MSG_RESULT(yes)
+        have_canna_wchar_aware=true
+      ], [
+        AC_MSG_RESULT(no)
+        have_canna_wchar_aware=false
+      ])
+
+      AC_CHECK_LIB(RKC, RkBgnBun, [
+        AC_CHECK_LIB(canna, jrKanjiControl, [:], [
+          have_canna=false
+        ])
+      ], [
+        have_canna=false
+      ])
+    fi
+
+    if $have_canna; then
+      AC_DEFINE(HAVE_CANNA)
+      $have_canna_wchar_aware && AC_DEFINE(CANNA_NEW_WCHAR_AWARE)
+      XE_PREPEND(-lcanna -lRKC, canna_libs)
+
+      if test "$with_modules" = "yes"; then
+        XE_APPEND(modules/canna, MAKE_SUBDIR)
+        XE_APPEND(modules/canna, INSTALL_ARCH_DEP_SUBDIR)
+      else
+        mkdir src
+        ${LN_S} "$srcdir/modules/canna/canna_api.c" "src/canna_api.c"
+      fi
+    elif test "$with_canna" = yes; then
+      XE_DIE("Required Canna support cannot be provided")
     fi
   fi
 
-  test "$have_canna" = "yes" && { AC_CHECK_LIB(RKC, RkBgnBun,       [:],have_canna=no) }
-  test "$have_canna" = "yes" && { AC_CHECK_LIB(canna,jrKanjiControl,[:],have_canna=no) }
-  if test "$have_canna" = "yes"; then
-    AC_DEFINE(HAVE_CANNA)
-    test -n "$canna_wchar_aware" && AC_DEFINE(CANNA_NEW_WCHAR_AWARE)
-    if test "$with_modules" = "yes"; then
-      XE_APPEND(modules/canna, MAKE_SUBDIR)
-      XE_APPEND(modules/canna, INSTALL_ARCH_DEP_SUBDIR)
-    else
-      mkdir src
-      ${LN_S} "$srcdir/modules/canna/canna_api.c" "src/canna_api.c"
-    fi
-    XE_PREPEND(-lcanna -lRKC, canna_libs)
-  elif test "$with_canna" != "no"; then
-    AC_MSG_WARN([Canna configuration failed.  If you expected success,
-maybe you need --with-site-prefixes=/usr/local/canna?])
-  fi
-AC_SUBST(canna_libs)
+  AC_SUBST(canna_libs)
 
 else dnl "$with_mule" = "no"
   for feature in xim canna wnn; do
@@ -5557,7 +5577,7 @@ AC_CHECK_LIB(kvm, kvm_openfiles, [
 
     dnl NetBSD and OpenBSD have a KVM_NO_FILES flag for querying the kernel
     dnl process table instead of reading an executable or a core file. FreeBSD
-    dnl rquires passing "/dev/null" as the corefile parameter.
+    dnl requires passing "/dev/null" as the corefile parameter.
     AC_MSG_CHECKING(for KVM_NO_FILES)
     AC_EGREP_CPP(yes, [
 #include <fcntl.h>
@@ -6302,7 +6322,7 @@ test "$with_xim" != no && echo "  Compiling in support for XIM (X11R5+ I18N inpu
 test "$with_xim" = motif && echo "    - Using Motif to provide XIM support."
 test "$with_xim" = xlib && echo "    - Using raw Xlib to provide XIM support."
 test "$with_xfs" = yes && echo "    - Using XFontSet to provide bilingual menubar."
-test "$have_canna" = yes && echo "  Compiling in support for Canna on Mule."
+test "$have_canna" = true && echo "  Compiling in support for Canna on Mule."
 if test "$with_wnn" = yes; then
   echo "  Compiling in support for the WNN input method on Mule."
   test "$with_wnn6" = yes && echo "    - Using WNN version 6."

@@ -18932,46 +18932,73 @@ fi
     fi
   fi
 
-            have_canna=no
+      have_canna=false
   if test "$with_canna" != "no"; then
-    save_c_switch_site="$c_switch_site"
-    for canna_include_path in "" " -I/usr/local/canna/include"; do
-      for canna_wchar_aware in "" " -DCANNA_NEW_WCHAR_AWARE=1"; do
-        c_switch_site="$save_c_switch_site$canna_include_path$canna_wchar_aware"
-        # defeat autoconf's cache mechanism
-        $as_unset ac_cv_header_canna_jrkanji_h
-        $as_unset ac_cv_header_canna_RK_h
-        # using $ac_header_compiler is a hack, but autoconf doesn't let us
-        # get at this information otherwise :-(
-        ac_fn_c_check_header_compile "$LINENO" "canna/jrkanji.h" "ac_cv_header_canna_jrkanji_h" "$ac_includes_default"
+    for canna_include_path in : $xe_known_include_dirs /usr/local/canna/include
+    do
+      $as_unset ac_cv_header_canna_jrkanji_h
+      $as_unset ac_cv_header_canna_RK_h
+
+      if test $canna_include_path != :; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for Canna headers in $canna_include_path" >&5
+printf %s "checking for Canna headers in $canna_include_path... " >&6; }
+        cppflags_saved=$CPPFLAGS
+        CPPFLAGS="$CPPFLAGS -I$canna_include_path" &&  if test "$verbose" = "yes"; then echo "    Appending \"-I$canna_include_path\" to \$CPPFLAGS"; fi
+      fi
+
+      ac_fn_c_check_header_compile "$LINENO" "canna/jrkanji.h" "ac_cv_header_canna_jrkanji_h" "$ac_includes_default"
 if test "x$ac_cv_header_canna_jrkanji_h" = xyes
 then :
-  ac_fn_c_check_header_compile "$LINENO" "canna/RK.h" "ac_cv_header_canna_RK_h" "$ac_includes_default"
+
+        ac_fn_c_check_header_compile "$LINENO" "canna/RK.h" "ac_cv_header_canna_RK_h" "$ac_includes_default"
 if test "x$ac_cv_header_canna_RK_h" = xyes
 then :
-  have_canna=$ac_header_compiler
-fi
+
+          have_canna=true
 
 fi
 
-        test "$have_canna" = "yes" && break
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: You may ignore any *Present but not compiled* message
-        from autoconf.  We detect that condition and recheck, but there
-        is no way to suppress autoconf's message." >&5
-printf "%s\n" "$as_me: WARNING: You may ignore any *Present but not compiled* message
-        from autoconf.  We detect that condition and recheck, but there
-        is no way to suppress autoconf's message." >&2;}
-      done
-      test "$have_canna" = "yes" && break
+
+fi
+
+
+      if $have_canna; then
+        break
+      elif test $canna_include_path != :; then
+        CPPFLAGS=$cppflags_saved
+      fi
     done
-    if test "$have_canna" = "yes"; then
-      c_switch_site="$save_c_switch_site$canna_include_path"
-    else
-      c_switch_site="$save_c_switch_site"
-    fi
-  fi
 
-  test "$have_canna" = "yes" && { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for RkBgnBun in -lRKC" >&5
+    if $have_canna; then
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for CANNA_NEW_WCHAR_AWARE" >&5
+printf %s "checking for CANNA_NEW_WCHAR_AWARE... " >&6; }
+      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#define CANNA_NEW_WCHAR_AWARE
+#include <canna/jrkanji.h>
+xe_test_becomes wcKanjiString
+
+_ACEOF
+if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
+  $EGREP "xe_test_becomes.*cannawcKanjiString" >/dev/null 2>&1
+then :
+
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+        have_canna_wchar_aware=true
+
+else $as_nop
+
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+        have_canna_wchar_aware=false
+
+fi
+rm -rf conftest*
+
+
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for RkBgnBun in -lRKC" >&5
 printf %s "checking for RkBgnBun in -lRKC... " >&6; }
 if test ${ac_cv_lib_RKC_RkBgnBun+y}
 then :
@@ -19008,12 +19035,8 @@ fi
 printf "%s\n" "$ac_cv_lib_RKC_RkBgnBun" >&6; }
 if test "x$ac_cv_lib_RKC_RkBgnBun" = xyes
 then :
-  :
-else $as_nop
-  have_canna=no
-fi
- }
-  test "$have_canna" = "yes" && { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for jrKanjiControl in -lcanna" >&5
+
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for jrKanjiControl in -lcanna" >&5
 printf %s "checking for jrKanjiControl in -lcanna... " >&6; }
 if test ${ac_cv_lib_canna_jrKanjiControl+y}
 then :
@@ -19052,28 +19075,39 @@ if test "x$ac_cv_lib_canna_jrKanjiControl" = xyes
 then :
   :
 else $as_nop
-  have_canna=no
+
+          have_canna=false
+
 fi
- }
-  if test "$have_canna" = "yes"; then
-    printf "%s\n" "#define HAVE_CANNA 1" >>confdefs.h
 
-    test -n "$canna_wchar_aware" && printf "%s\n" "#define CANNA_NEW_WCHAR_AWARE 1" >>confdefs.h
 
-    if test "$with_modules" = "yes"; then
-      MAKE_SUBDIR="$MAKE_SUBDIR modules/canna" &&  if test "$verbose" = "yes"; then echo "    Appending \"modules/canna\" to \$MAKE_SUBDIR"; fi
-      INSTALL_ARCH_DEP_SUBDIR="$INSTALL_ARCH_DEP_SUBDIR modules/canna" &&  if test "$verbose" = "yes"; then echo "    Appending \"modules/canna\" to \$INSTALL_ARCH_DEP_SUBDIR"; fi
-    else
-      mkdir src
-      ${LN_S} "$srcdir/modules/canna/canna_api.c" "src/canna_api.c"
+else $as_nop
+
+        have_canna=false
+
+fi
+
     fi
-    canna_libs="-lcanna -lRKC $canna_libs" &&  if test "$verbose" = "yes"; then echo "    Prepending \"-lcanna -lRKC\" to \$canna_libs"; fi
-  elif test "$with_canna" != "no"; then
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: Canna configuration failed.  If you expected success,
-maybe you need --with-site-prefixes=/usr/local/canna?" >&5
-printf "%s\n" "$as_me: WARNING: Canna configuration failed.  If you expected success,
-maybe you need --with-site-prefixes=/usr/local/canna?" >&2;}
+
+    if $have_canna; then
+      printf "%s\n" "#define HAVE_CANNA 1" >>confdefs.h
+
+      $have_canna_wchar_aware && printf "%s\n" "#define CANNA_NEW_WCHAR_AWARE 1" >>confdefs.h
+
+      canna_libs="-lcanna -lRKC $canna_libs" &&  if test "$verbose" = "yes"; then echo "    Prepending \"-lcanna -lRKC\" to \$canna_libs"; fi
+
+      if test "$with_modules" = "yes"; then
+        MAKE_SUBDIR="$MAKE_SUBDIR modules/canna" &&  if test "$verbose" = "yes"; then echo "    Appending \"modules/canna\" to \$MAKE_SUBDIR"; fi
+        INSTALL_ARCH_DEP_SUBDIR="$INSTALL_ARCH_DEP_SUBDIR modules/canna" &&  if test "$verbose" = "yes"; then echo "    Appending \"modules/canna\" to \$INSTALL_ARCH_DEP_SUBDIR"; fi
+      else
+        mkdir src
+        ${LN_S} "$srcdir/modules/canna/canna_api.c" "src/canna_api.c"
+      fi
+    elif test "$with_canna" = yes; then
+      { echo "Error:" "Required Canna support cannot be provided" >&2; exit 1; }
+    fi
   fi
+
 
 
 else   for feature in xim canna wnn; do
@@ -24269,7 +24303,7 @@ test "$with_xim" != no && echo "  Compiling in support for XIM (X11R5+ I18N inpu
 test "$with_xim" = motif && echo "    - Using Motif to provide XIM support."
 test "$with_xim" = xlib && echo "    - Using raw Xlib to provide XIM support."
 test "$with_xfs" = yes && echo "    - Using XFontSet to provide bilingual menubar."
-test "$have_canna" = yes && echo "  Compiling in support for Canna on Mule."
+test "$have_canna" = true && echo "  Compiling in support for Canna on Mule."
 if test "$with_wnn" = yes; then
   echo "  Compiling in support for the WNN input method on Mule."
   test "$with_wnn6" = yes && echo "    - Using WNN version 6."
