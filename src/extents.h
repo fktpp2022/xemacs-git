@@ -102,7 +102,7 @@ extern Fixnum mouse_highlight_priority;
 EXFUN (Fextent_at, 5);
 EXFUN (Fextent_property, 3);
 EXFUN (Fput_text_property, 5);
-
+EXFUN (Fextent_live_p, 1);
 EXFUN (Fextent_detached_p, 1);
 EXFUN (Fdelete_extent, 1);
 EXFUN (Fdetach_extent, 1);

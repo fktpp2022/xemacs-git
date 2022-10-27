@@ -2382,7 +2382,8 @@ will automatically call `save-buffers-kill-emacs'.)
     ALIST_LOOP_3 (sws_buf, saved_window_start,
                  XWEAK_LIST_LIST (w->saved_last_window_start_cache))
       {
-        Lisp_Object obj = Fextent_object (saved_window_start);
+        Lisp_Object obj = NILP (Fextent_live_p (saved_window_start)) ? Qt
+          : Fextent_object (saved_window_start);
   
         if (BUFFERP (obj)
             && EQ (saved_window_start, XBUFFER (obj)->last_window_start))
@@ -3793,6 +3794,7 @@ global or per-frame buffer ordering.
     : BYTE_BUF_PT (XBUFFER (buffer));
 
   structure_checking_assert (!EXTENTP (saved_point)
+                             || NILP (Fextent_live_p (saved_point))
                              || EQ (Fextent_object (saved_point), buffer));
    
   /* Previously, we had in here set-window-point, which did one of the
@@ -3818,10 +3820,12 @@ global or per-frame buffer ordering.
     }
 
   structure_checking_assert (!EXTENTP (saved_window_start)
+                             || NILP (Fextent_live_p (saved_point))
                              || EQ (Fextent_object (saved_window_start),
                                     buffer));
 
   if (EXTENTP (saved_window_start)
+      && !NILP (Fextent_live_p (saved_point))
       && NILP (Fextent_detached_p (saved_window_start)))
     {
       bstart = bytebpos_clip_to_bounds (BYTE_BUF_BEGV (XBUFFER (buffer)),

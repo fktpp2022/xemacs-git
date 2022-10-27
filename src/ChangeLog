@@ -1,3 +1,13 @@
+2022-10-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* extents.h: Declare Fextent_live_p() here.
+	* window.c (Fdelete_window):
+	* window.c (Fset_window_buffer):
+	Fextent_object () can error when EXTENT is not live, check this
+	before calling it in these function.
+	Reproducible crash revealing the bug elicited by Henry Thompson,
+	thank you Henry!
+
 2022-09-16  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* extents.c (next_previous_single_property_change):
