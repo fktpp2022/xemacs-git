@@ -18937,7 +18937,6 @@ fi
     for canna_include_path in : $xe_known_include_dirs /usr/local/canna/include
     do
       $as_unset ac_cv_header_canna_jrkanji_h
-      $as_unset ac_cv_header_canna_RK_h
 
       if test $canna_include_path != :; then
         { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for Canna headers in $canna_include_path" >&5
@@ -18949,16 +18948,7 @@ printf %s "checking for Canna headers in $canna_include_path... " >&6; }
       ac_fn_c_check_header_compile "$LINENO" "canna/jrkanji.h" "ac_cv_header_canna_jrkanji_h" "$ac_includes_default"
 if test "x$ac_cv_header_canna_jrkanji_h" = xyes
 then :
-
-        ac_fn_c_check_header_compile "$LINENO" "canna/RK.h" "ac_cv_header_canna_RK_h" "$ac_includes_default"
-if test "x$ac_cv_header_canna_RK_h" = xyes
-then :
-
-          have_canna=true
-
-fi
-
-
+  have_canna=true
 fi
 
 
@@ -18977,11 +18967,14 @@ printf %s "checking for CANNA_NEW_WCHAR_AWARE... " >&6; }
 
 #define CANNA_NEW_WCHAR_AWARE
 #include <canna/jrkanji.h>
-xe_test_becomes wcKanjiString
+#define XE_TEST_CONCAT(a) xe_test_becomes_ ## a
+#define XE_CPP_TEST_ROUND2(a) XE_TEST_CONCAT (a)
+#define XE_CPP_TEST_ROUND1(a) XE_CPP_TEST_ROUND2 (a)
+XE_CPP_TEST_ROUND1 (wcKanjiString)
 
 _ACEOF
 if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
-  $EGREP "xe_test_becomes.*cannawcKanjiString" >/dev/null 2>&1
+  $EGREP "xe_test_becomes_cannawcKanjiString" >/dev/null 2>&1
 then :
 
         { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
@@ -18998,6 +18991,24 @@ fi
 rm -rf conftest*
 
 
+      cppflags_saved=$CPPFLAGS
+
+      if $have_canna_wchar_aware; then
+        CPPFLAGS="$CPPFLAGS -DCANNA_NEW_WCHAR_AWARE" &&  if test "$verbose" = "yes"; then echo "    Appending \"-DCANNA_NEW_WCHAR_AWARE\" to \$CPPFLAGS"; fi
+      fi
+
+      ac_fn_c_check_header_compile "$LINENO" "canna/RK.h" "ac_cv_header_canna_RK_h" "$ac_includes_default"
+if test "x$ac_cv_header_canna_RK_h" = xyes
+then :
+  :
+else $as_nop
+  have_canna=false
+fi
+
+      CPPFLAGS=$cppflags_saved
+    fi
+
+    if $have_canna; then
       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for RkBgnBun in -lRKC" >&5
 printf %s "checking for RkBgnBun in -lRKC... " >&6; }
 if test ${ac_cv_lib_RKC_RkBgnBun+y}

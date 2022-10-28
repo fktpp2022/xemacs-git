@@ -4427,7 +4427,6 @@ if test "$with_mule" = "yes" ; then
     for canna_include_path in : $xe_known_include_dirs /usr/local/canna/include
     do
       $as_unset ac_cv_header_canna_jrkanji_h
-      $as_unset ac_cv_header_canna_RK_h
 
       if test $canna_include_path != :; then
         AC_MSG_CHECKING(for Canna headers in $canna_include_path)
@@ -4435,11 +4434,7 @@ if test "$with_mule" = "yes" ; then
         XE_APPEND(-I$canna_include_path, CPPFLAGS)
       fi
 
-      AC_CHECK_HEADER(canna/jrkanji.h, [
-        AC_CHECK_HEADER(canna/RK.h, [
-          have_canna=true
-        ])
-      ])
+      AC_CHECK_HEADER(canna/jrkanji.h, [have_canna=true])
 
       if $have_canna; then
         break
@@ -4450,10 +4445,13 @@ if test "$with_mule" = "yes" ; then
 
     if $have_canna; then
       AC_MSG_CHECKING(for CANNA_NEW_WCHAR_AWARE)
-      AC_EGREP_CPP([xe_test_becomes.*cannawcKanjiString], [
+      AC_EGREP_CPP([xe_test_becomes_cannawcKanjiString], [
 #define CANNA_NEW_WCHAR_AWARE
 #include <canna/jrkanji.h>
-xe_test_becomes wcKanjiString
+#define XE_TEST_CONCAT(a) xe_test_becomes_ ## a
+#define XE_CPP_TEST_ROUND2(a) XE_TEST_CONCAT (a)
+#define XE_CPP_TEST_ROUND1(a) XE_CPP_TEST_ROUND2 (a)
+XE_CPP_TEST_ROUND1 (wcKanjiString)
       ], [
         AC_MSG_RESULT(yes)
         have_canna_wchar_aware=true
@@ -4462,6 +4460,17 @@ xe_test_becomes wcKanjiString
         have_canna_wchar_aware=false
       ])
 
+      cppflags_saved=$CPPFLAGS
+
+      if $have_canna_wchar_aware; then
+        XE_APPEND(-DCANNA_NEW_WCHAR_AWARE, CPPFLAGS)
+      fi
+
+      AC_CHECK_HEADER(canna/RK.h, [:], [have_canna=false])
+      CPPFLAGS=$cppflags_saved
+    fi
+
+    if $have_canna; then
       AC_CHECK_LIB(RKC, RkBgnBun, [
         AC_CHECK_LIB(canna, jrKanjiControl, [:], [
           have_canna=false
