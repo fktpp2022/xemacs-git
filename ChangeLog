@@ -1,3 +1,17 @@
+2022-10-28  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
+
+	* configure.ac:
+	In my previous change, the preprocessor detection of a Canna version
+	that uses the CANNA_NEW_WCHAR_AWARE preprocessor define was broken with
+	preprocessors that split the result of two tokens in the same line to
+	two lines. Use the standard C preprocessor substitution and
+	concatenation to make the test robust.
+
+	In operating systems where the standard headers define _WCHAR_T,
+	autodetecting Canna's RK.h fails unless CANNA_NEW_WCHAR_AWARE is
+	defined. Split the header detection to check the requirement from
+	jrkanji.h and then use the result to detect RK.h.
+
 2022-10-25  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* configure.ac:
