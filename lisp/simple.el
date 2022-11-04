@@ -2954,7 +2954,7 @@ indicating whether soft newlines should be inserted.")
 ;; It returns t if it really did any work.
 ;; XEmacs:  This function is totally different.
 (defun do-auto-fill ()
-  (let (give-up)
+  (let (give-up current-fill-column)
     (or (and auto-fill-inhibit-regexp
 	     (save-excursion (beginning-of-line)
 			     (looking-at auto-fill-inhibit-regexp)))
@@ -2972,7 +2972,12 @@ indicating whether soft newlines should be inserted.")
 			  "[ \t\n]"))
 		       (first t))
 		   (save-excursion
-		     (move-to-column (1+ fill-column))
+		     (move-to-column (max (setq current-fill-column
+						(current-fill-column))
+					  ;; This can be negative on a build
+					  ;; without bignums if fill-column is
+					  ;; most-positive-fixnum.
+					  (1+ current-fill-column)))
 		     ;; Move back to a word boundary.
 		     (while (or first
 				;; If this is after period and a single space,

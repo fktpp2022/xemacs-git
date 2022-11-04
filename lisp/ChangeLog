@@ -1,3 +1,11 @@
+2022-11-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fill.el (fill-region-as-paragraph):
+	* simple.el (do-auto-fill):
+	If fill-column is most-positive-fixnum, (1+ fill-column) can be
+	negative on non-bignum builds. Avoid passing this negative number
+	to #'move-to-column when filling.
+
 2022-08-31  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* files.el (set-auto-mode):

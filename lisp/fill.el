@@ -425,14 +425,19 @@ space does not end a sentence, so don't break a line there."
 	  (goto-char (point-min))
 
 	  ;; This is the actual filling loop.
-	  (let ((prefixcol 0) linebeg
+	  (let ((prefixcol 0) linebeg current-fill-column
 		(re-break-point (if (featurep 'mule)
 				    (concat "[ \n\t]\\|" word-across-newline
 					    ".\\|." word-across-newline)
 				  "[ \n\t]")))
 	    (while (not (eobp))
 	      (setq linebeg (point))
-	      (move-to-column (1+ (current-fill-column)))
+	      (move-to-column (max (setq current-fill-column
+					 (current-fill-column))
+				   ;; This can be negative on a build without
+				   ;; bignums if fill-column is
+				   ;; most-positive-fixnum.
+				   (1+ current-fill-column)))
 	      (if (eobp)
 		  (or nosqueeze (delete-horizontal-space))
 		;; Move back to start of word.
