@@ -1,3 +1,37 @@
+2022-11-05  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* indent.c:
+	Correct some types for indent_tabs_mode,
+	last_known_column_modified, 
+	* indent.c (last_visible_position):
+	Revise this to return a Bytebpos, and to check whether an
+	invisible extent is start-open; if so, return its start, if not,
+	return the position before its start.
+
+	* indent.c (Findent_to):
+	Call extent_at() with BYTE_BUF_PT() rather than Fextent_at(). Call
+	last_visible_position() with its new calling convention. Avoid the
+	need for byte-char conversion the vast majority of the time.
+	* indent.c (Fcurrent_indentation):
+	Use byte_find_next_newline(), extent_at() in this function,
+	avoiding the cost of char-byte conversion.
+	* indent.c (Fmove_to_column):
+	Use byte_find_next_newline(), BYTE_BUF_FETCH_CHAR() in this
+	function, avoiding char-byte conversion costs.
+	Keep track of the character position and use BOTH_BUF_SET_PT()
+	once the goal column is found, avoiding byte-char conversion
+	costs. 
+	* indent.c (Fcompute_motion): Remove this commented-out function,
+	give some documentation on why this is reasonable.
+	* indent.c (syms_of_indent):
+	Remove the DEFSUBR for Fcompute_motion().
+	* lisp.h:
+	* search.c:
+	Move byte_find_next_newline(), byte_find_next_newline_no_quit(),
+	find_next_newline(), find_next_newline_no_quit() to being inline,
+	give they are just wrappers around byte_scan_buffer() and
+	scan_buffer().
+
 2022-10-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* extents.h: Declare Fextent_live_p() here.

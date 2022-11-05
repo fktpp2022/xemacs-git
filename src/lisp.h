@@ -5904,9 +5904,38 @@ Charbpos scan_buffer (struct buffer *, Ichar, Charbpos, Charbpos, EMACS_INT,
 Bytebpos byte_scan_buffer (struct buffer *, Ichar, Bytebpos, Bytebpos ,
                            EMACS_INT, EMACS_INT *, int);
 
-Charbpos find_next_newline (struct buffer *, Charbpos, int);
-Charbpos find_next_newline_no_quit (struct buffer *, Charbpos, int);
-Bytebpos byte_find_next_newline_no_quit (struct buffer *, Bytebpos, int);
+DECLARE_INLINE_HEADER (
+Bytebpos
+byte_find_next_newline (struct buffer *buf, Bytebpos from, int count)
+)
+{
+  return byte_scan_buffer (buf, '\n', from, 0, count, 0, 1);
+}
+
+DECLARE_INLINE_HEADER (
+Bytebpos
+byte_find_next_newline_no_quit (struct buffer *buf, Bytebpos from, int count)
+)
+{
+  return byte_scan_buffer (buf, '\n', from, 0, count, 0, 0);
+}
+
+DECLARE_INLINE_HEADER (
+Charbpos
+find_next_newline (struct buffer *buf, Charbpos from, int count)
+)
+{
+  return scan_buffer (buf, '\n', from, 0, count, 0, 1);
+}
+
+DECLARE_INLINE_HEADER (
+Charbpos
+find_next_newline_no_quit (struct buffer *buf, Charbpos from, int count)
+)
+{
+  return scan_buffer (buf, '\n', from, 0, count, 0, 0);
+}
+
 Bytecount byte_find_next_ichar_in_string (Lisp_Object, Ichar, Bytecount,
 					 EMACS_INT);
 struct re_pattern_buffer *compile_pattern (Lisp_Object pattern,

@@ -1049,24 +1049,6 @@ scan_buffer (struct buffer *buf, Ichar target, Charbpos start, Charbpos end,
   return bytebpos_to_charbpos (buf, byte_retval);
 }
 
-Bytebpos
-byte_find_next_newline_no_quit (struct buffer *buf, Bytebpos from, int count)
-{
-  return byte_scan_buffer (buf, '\n', from, 0, count, 0, 0);
-}
-
-Charbpos
-find_next_newline_no_quit (struct buffer *buf, Charbpos from, int count)
-{
-  return scan_buffer (buf, '\n', from, 0, count, 0, 0);
-}
-
-Charbpos
-find_next_newline (struct buffer *buf, Charbpos from, int count)
-{
-  return scan_buffer (buf, '\n', from, 0, count, 0, 1);
-}
-
 Bytecount
 byte_find_next_ichar_in_string (Lisp_Object str, Ichar target, Bytecount st,
 			       EMACS_INT count)

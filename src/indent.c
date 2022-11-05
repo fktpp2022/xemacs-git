@@ -30,6 +30,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "buffer.h"
 #include "device.h"
 #include "extents.h"
+#include "extents-impl.h"
 #include "faces.h"
 #include "frame.h"
 #include "glyphs.h"
@@ -41,7 +42,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 /* Indentation can insert tabs if this is non-zero;
    otherwise always uses spaces */
-int indent_tabs_mode;
+Boolint indent_tabs_mode;
 
 /* Avoid recalculation by remembering things in these variables. */
 
@@ -58,27 +59,52 @@ static struct buffer *last_known_column_buffer;
 static Bytebpos last_known_column_point;
 
 /* Value of MODIFF when current_column was called */
-static int last_known_column_modified;
+static EMACS_INT last_known_column_modified;
 
-static Charbpos
-last_visible_position (Charbpos pos, struct buffer *buf)
+static Bytebpos
+last_visible_position (Bytebpos pos, struct buffer *buf)
 {
-  Lisp_Object buffer;
-  Lisp_Object value;
+  Bytebpos value = next_previous_single_property_change (pos, Qinvisible,
+                                                         wrap_buffer (buf),
+                                                         -1, 0, 0);
+  Lisp_Object extent;
 
-  buffer = wrap_buffer (buf);
-  value = Fprevious_single_char_property_change (make_fixnum (pos), Qinvisible,
-						 buffer, Qnil);
-  if (NILP (value))
+  if (value < BYTE_BUF_BEG (buf))
     return 0; /* no visible position found */
-  else
-    /* #### bug bug bug!!! This will return the position of the beginning
-       of an invisible extent; this extent is very likely to be start-closed,
-       and thus the spaces inserted in `indent-to' will go inside the
-       invisible extent.
 
-       Not sure what the correct solution is here.  Rethink indent-to? */
-    return XFIXNUM (value);
+  /* Old comment:
+
+     [ bug bug bug!!! This will return the position of the beginning of an
+       invisible extent; this extent is very likely to be start-closed, and
+       thus the spaces inserted in `indent-to' will go inside the invisible
+       extent.
+
+       Not sure what the correct solution is here.  Rethink indent-to?]
+
+     The correct solution is likely what I have implemented here, which is to
+     return VALUE when the corresponding extent is start-open, to return the
+     position before VALUE when it is not and that position exists within the
+     buffer, and to return zero otherwise.
+
+     The vast, vast majority of the time there are no invisible extents and
+     this function is never called. There is no significant performance impact
+     from this extra extent_at () call.
+
+     Aidan Kehoe, Fr  4 Nov 2022 20:40:45 GMT */
+  extent = extent_at (value, wrap_buffer (buf), Qinvisible, 0,
+                      EXTENT_AT_BEFORE, 0);
+
+  if (extent_start_open_p (XEXTENT (extent)))
+    {
+      return value;
+    }
+
+  if (value > BYTE_BUF_BEG (buf))
+    {
+      return prev_bytebpos (buf, value);
+    }
+
+  return 0;
 }
 
 #ifdef REGION_CACHE_NEEDS_WORK
@@ -272,7 +298,8 @@ If BUFFER is nil, the current buffer is assumed.
   Charcount fromcol;
   struct buffer *buf = decode_buffer (buffer, 0);
   Charcount tab_width = XFIXNUM (buf->tab_width);
-  Charbpos opoint = 0;
+  Bytebpos opoint = 0;
+  Charbpos ocpoint;
 
   CHECK_FIXNUM (column);
   if (NILP (minimum))
@@ -291,16 +318,18 @@ If BUFFER is nil, the current buffer is assumed.
 
   if (tab_width <= 0 || tab_width > 1000) tab_width = 8;
 
-  if (!NILP (Fextent_at (make_fixnum (BUF_PT (buf)), buffer, Qinvisible,
-			 Qnil, Qnil)))
+  if (!NILP (extent_at (BYTE_BUF_PT (buf), buffer, Qinvisible, NULL,
+                        EXTENT_AT_AFTER, 0)))
     {
-      Charbpos last_visible = last_visible_position (BUF_PT (buf), buf);
+      Bytebpos last_visible = last_visible_position (BYTE_BUF_PT (buf), buf);
 
-      opoint = BUF_PT (buf);
-      if (last_visible >= BUF_BEGV (buf))
-	BUF_SET_PT (buf, last_visible);
+      opoint = BYTE_BUF_PT (buf);
+      ocpoint = BUF_PT (buf);
+      if (last_visible >= BYTE_BUF_BEGV (buf))
+	BYTE_BUF_SET_PT (buf, last_visible);
       else
-        invalid_operation ("Visible portion of buffer not modifiable", Qunbound);
+        invalid_operation ("Visible portion of buffer not modifiable",
+                           Qunbound);
     }
 
   if (indent_tabs_mode)
@@ -323,7 +352,7 @@ If BUFFER is nil, the current buffer is assumed.
 
   /* Not in FSF: */
   if (opoint > 0)
-    BUF_SET_PT (buf, opoint);
+    BOTH_BUF_SET_PT (buf, ocpoint, opoint);
 
   return make_fixnum (mincol);
 }
@@ -358,14 +387,14 @@ following any initial whitespace.
        (buffer))
 {
   struct buffer *buf = decode_buffer (buffer, 0);
-  Charbpos pos = find_next_newline (buf, BUF_PT (buf), -1);
+  Bytebpos pos = byte_find_next_newline (buf, BYTE_BUF_PT (buf), -1);
 
   buffer = wrap_buffer (buf);
 
-  if (!NILP (Fextent_at (make_fixnum (pos), buffer, Qinvisible, Qnil, Qnil)))
+  if (!NILP (extent_at (pos, buffer, Qinvisible, NULL, EXTENT_AT_AFTER, 0)))
     return Qzero;
 
-  return make_fixnum (byte_spaces_at_point (buf, charbpos_to_bytebpos (buf, pos)));
+  return make_fixnum (byte_spaces_at_point (buf, pos));
 }
 
 
@@ -390,14 +419,11 @@ Returns the actual column that it moved to.
        (column, force, buffer))
 {
   /* This function can GC */
-  Charbpos pos;
+  Bytebpos pos, end;
+  Charbpos cpos;
   struct buffer *buf = decode_buffer (buffer, 0);
-  Charcount col = current_column (buf);
-  Charcount goal;
-  Charbpos end;
+  Charcount col = current_column (buf), prev_col = 0, goal;
   Charcount tab_width = XFIXNUM (buf->tab_width);
-
-  Charcount prev_col = 0;
   Ichar c = 0;
 
   buffer = wrap_buffer (buf);
@@ -414,20 +440,22 @@ Returns the actual column that it moved to.
     }
 
  retry:
-  pos = BUF_PT (buf);
-  end = BUF_ZV (buf);
+  pos = BYTE_BUF_PT (buf);
+  cpos = BUF_PT (buf);
+  end = BYTE_BUF_ZV (buf);
 
   /* If we're starting past the desired column,
      back up to beginning of line and scan from there.  */
   if (col > goal)
     {
-      pos = find_next_newline (buf, pos, -1);
+      pos = byte_find_next_newline (buf, pos, -1);
+      cpos = bytebpos_to_charbpos (buf, pos);
       col = 0;
     }
 
   while (col < goal && pos < end)
     {
-      c = BUF_FETCH_CHAR (buf, pos);
+      c = BYTE_BUF_FETCH_CHAR (buf, pos);
       if (c == '\n')
 	break;
       if (c == '\r' && EQ (buf->selective_display, Qt))
@@ -456,10 +484,11 @@ Returns the actual column that it moved to.
 #endif /* XEmacs */
 	}
 
-      pos++;
+      INC_BYTEBPOS (buf, pos);
+      cpos++;
     }
 
-  BUF_SET_PT (buf, pos);
+  BOTH_BUF_SET_PT (buf, cpos, pos);
 
   /* If a tab char made us overshoot, change it to spaces
      and scan through it again.  */
@@ -480,99 +509,21 @@ Returns the actual column that it moved to.
 
   last_known_column_buffer = buf;
   last_known_column = col;
-  last_known_column_point = BUF_PT (buf);
+  last_known_column_point = BYTE_BUF_PT (buf);
   last_known_column_modified = BUF_MODIFF (buf);
 
   return make_fixnum (col);
 }
+
+/* GNU has compute_motion() and Fcompute_motion() in this file; this is barely
+   used by their Lisp code and involves, basically, re-implementing redisplay
+   to give much the same information as pixel_to_glyph_translation() does in
+   XEmacs. They use compute_motion() to implement the vertical_motion() and
+   related functions; we just use the redisplay infrastructure.
 
-#if 0 /* #### OK boys, this function needs to be present, I think.
-	 It was there before the 19.12 redisplay rewrite. */
-
-DEFUN ("compute-motion", Fcompute_motion, 7, 7, 0, /*
-  "Scan through the current buffer, calculating screen position.
-Scan the current buffer forward from offset FROM,
-assuming it is at position FROMPOS--a cons of the form (HPOS . VPOS)--
-to position TO or position TOPOS--another cons of the form (HPOS . VPOS)--
-and return the ending buffer position and screen location.
-
-There are three additional arguments:
-
-WIDTH is the number of columns available to display text;
-this affects handling of continuation lines.
-This is usually the value returned by `window-width', less one (to allow
-for the continuation glyph).
-
-OFFSETS is either nil or a cons cell (HSCROLL . TAB-OFFSET).
-HSCROLL is the number of columns not being displayed at the left
-margin; this is usually taken from a window's hscroll member.
-TAB-OFFSET is the number of columns of the first tab that aren't
-being displayed, perhaps because the line was continued within it.
-If OFFSETS is nil, HSCROLL and TAB-OFFSET are assumed to be zero.
-
-WINDOW is the window to operate on.  Currently this is used only to
-find the display table.  It does not matter what buffer WINDOW displays;
-`compute-motion' always operates on the current buffer.
-
-The value is a list of five elements:
-  (POS HPOS VPOS PREVHPOS CONTIN)
-POS is the buffer position where the scan stopped.
-VPOS is the vertical position where the scan stopped.
-HPOS is the horizontal position where the scan stopped.
-
-PREVHPOS is the horizontal position one character back from POS.
-CONTIN is t if a line was continued after (or within) the previous character.
-
-For example, to find the buffer position of column COL of line LINE
-of a certain window, pass the window's starting location as FROM
-and the window's upper-left coordinates as FROMPOS.
-Pass the buffer's (point-max) as TO, to limit the scan to the end of the
-visible section of the buffer, and pass LINE and COL as TOPOS.
-*/
-	 (from, frompos, to, topos, width, offsets, window))
-{
-  Lisp_Object charbpos, hpos, vpos, prevhpos, contin;
-  struct position *pos;
-  Charcount hscroll, tab_offset;
-  struct window *w = decode_window (window);
-
-  CHECK_FIXNUM_COERCE_MARKER (from);
-  CHECK_CONS (frompos);
-  CHECK_FIXNUM (XCAR (frompos));
-  CHECK_FIXNUM (XCDR (frompos));
-  CHECK_FIXNUM_COERCE_MARKER (to);
-  CHECK_CONS (topos);
-  CHECK_FIXNUM (XCAR (topos));
-  CHECK_FIXNUM (XCDR (topos));
-  CHECK_FIXNUM (width);
-  if (!NILP (offsets))
-    {
-      CHECK_CONS (offsets);
-      CHECK_FIXNUM (XCAR (offsets));
-      CHECK_FIXNUM (XCDR (offsets));
-      hscroll = XFIXNUM (XCAR (offsets));
-      tab_offset = XFIXNUM (XCDR (offsets));
-    }
-  else
-    hscroll = tab_offset = 0;
-
-  pos = compute_motion (XFIXNUM (from), XFIXNUM (XCDR (frompos)),
-			XFIXNUM (XCAR (frompos)),
-			XFIXNUM (to), XFIXNUM (XCDR (topos)),
-			XFIXNUM (XCAR (topos)),
-			XFIXNUM (width), hscroll, tab_offset, w);
-
-  charbpos = make_fixnum (pos->charbpos);
-  hpos = make_fixnum (pos->hpos);
-  vpos = make_fixnum (pos->vpos);
-  prevhpos = make_fixnum (pos->prevhpos);
-
-  return list5 (charbpos, hpos, vpos, prevhpos,
-		pos->contin ? Qt : Qnil);
-}
-
-#endif /* 0 */
-
+   Attempting to implement compute_motion() in XEmacs will give loads of
+   difficult-to-shake-out bugs for no particular benefit. */
+
 /* Helper for vmotion_1 - compute vertical pixel motion between
    START and END in the line start cache CACHE.  This just sums
    the line heights, including both the starting and ending lines.
@@ -941,9 +892,6 @@ syms_of_indent (void)
   DEFSUBR (Findent_to);
   DEFSUBR (Fcurrent_column);
   DEFSUBR (Fmove_to_column);
-#if 0 /* #### */
-  DEFSUBR (Fcompute_motion);
-#endif
   DEFSUBR (Fvertical_motion);
   DEFSUBR (Fvertical_motion_pixels);
 }
