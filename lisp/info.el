@@ -753,7 +753,7 @@ node of a file of this name."
 			;; It is indirect.  Copy it to another buffer
 			;; and record that the tag table is in that buffer.
 			  (let ((buf (current-buffer))
-				(m Info-tag-table-marker))
+                                (mpos (match-end 0)))
 			    (or
 			     Info-tag-table-buffer
 			     (setq
@@ -765,7 +765,7 @@ node of a file of this name."
 			      (setq case-fold-search t)
 			      (erase-buffer)
 			      (insert-buffer-substring buf)
-			      (set-marker m (match-end 0))))
+			      (set-marker Info-tag-table-marker mpos)))
 		     (set-marker Info-tag-table-marker pos))))
 	      (setq Info-current-file
 		    (file-name-sans-versions buffer-file-name))))
