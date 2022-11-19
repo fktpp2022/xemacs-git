@@ -2769,7 +2769,8 @@ encode_decode_coding_region (Lisp_Object start, Lisp_Object end,
   int source_char, sink_char;
 
   get_buffer_range_char (buf, start, end, &b, &e, 0);
-  barf_if_buffer_read_only (buf, b, e);
+  Fbarf_if_buffer_read_only (wrap_buffer (buf), make_fixnum (b),
+                             make_fixnum (e));
 
   GCPRO5 (instream, to_outstream, outstream, from_outstream, lb_outstream);
   NGCPRO1 (auto_outstream);

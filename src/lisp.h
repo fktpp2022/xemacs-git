@@ -4329,6 +4329,7 @@ MODULE_API EXFUN (Fkill_buffer, 1);
 EXFUN (Fother_buffer, 3);
 EXFUN (Frecord_buffer, 1);
 MODULE_API EXFUN (Fset_buffer, 1);
+EXFUN (Fbarf_if_buffer_read_only, 3);
 EXFUN (Fset_buffer_modified_p, 2);
 
 extern Lisp_Object QSscratch, Qafter_change_function, Qafter_change_functions;

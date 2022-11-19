@@ -1636,7 +1636,7 @@ discussion.
        (buffer, start, end))
 {
   struct buffer *b = decode_buffer (buffer, 0);
-  Charbpos s, e;
+  Bytebpos s, e;
 
   if (NILP (start))
     s = e = -1;
@@ -1644,7 +1644,7 @@ discussion.
     {
       if (NILP (end))
 	end = start;
-      get_buffer_range_char (b, start, end, &s, &e, 0);
+      get_buffer_range_byte (b, start, end, &s, &e, 0);
     }
   barf_if_buffer_read_only (b, s, e);
 

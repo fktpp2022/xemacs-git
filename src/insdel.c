@@ -975,7 +975,8 @@ prepare_to_modify_buffer (struct buffer *buf, Charbpos start, Charbpos end,
     {
       check_allowed_operation (OPERATION_MODIFY_BUFFER_TEXT,
 			       wrap_buffer (mbuf), Qnil);
-      barf_if_buffer_read_only (mbuf, start, end);
+      Fbarf_if_buffer_read_only (wrap_buffer (mbuf), make_fixnum (start),
+                                 make_fixnum (end));
     }
 
   /* if this is the first modification, see about locking the buffer's
@@ -1743,7 +1744,7 @@ make_string_from_buffer_no_extents (struct buffer *buf, Bytebpos pos,
 }
 
 void
-barf_if_buffer_read_only (struct buffer *buf, Charbpos from, Charbpos to)
+barf_if_buffer_read_only (struct buffer *buf, Bytebpos from, Bytebpos to)
 {
   Lisp_Object buffer;
   Lisp_Object iro;
@@ -1763,10 +1764,7 @@ barf_if_buffer_read_only (struct buffer *buf, Charbpos from, Charbpos to)
     {
       if (to < 0)
 	to = from;
-      verify_extent_modification (buffer,
-				  charbpos_to_bytebpos (buf, from),
-				  charbpos_to_bytebpos (buf, to),
-				  iro);
+      verify_extent_modification (buffer, from, to, iro);
     }
 }
 

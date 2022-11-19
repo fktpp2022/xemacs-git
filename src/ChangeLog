@@ -1,3 +1,27 @@
+2022-11-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Move barf_if_buffer_read_only() to taking Bytebpos arguments, in
+	preparation for moving the multiple_change infrastructure to
+	function in byte positions.
+
+	* buffer.c: (Fbarf_if_buffer_read_only):
+	Call barf_if_buffer_read_only() with byte positions.
+	
+	* file-coding.c (encode_decode_coding_region):
+	Call Fbarf_if_buffer_read_only() here given we use character
+	positions.
+
+	* fns.c (Fbase64_encode_region): Ditto.
+	* fns.c (Fbase64_decode_region): Ditto.
+	* insdel.c:
+	* insdel.c (prepare_to_modify_buffer): Ditto.
+	* insdel.c (barf_if_buffer_read_only): Take FROM and TO as
+	Bytebpos, not Charbpos.
+	* insdel.h:
+	Update declaration for barf_if_buffer_read_only().
+	* lisp.h:
+	Declare Fbarf_if_buffer_read_only() here.
+
 2022-11-05  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* indent.c:

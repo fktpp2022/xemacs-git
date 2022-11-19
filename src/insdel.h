@@ -147,8 +147,8 @@ void font_lock_maybe_update_syntactic_caches (struct buffer *buf,
 					      Charbpos new_end);
 void font_lock_buffer_was_killed (struct buffer *buf);
 
-void barf_if_buffer_read_only (struct buffer *buf, Charbpos from,
-			       Charbpos to);
+void barf_if_buffer_read_only (struct buffer *buf, Bytebpos from,
+                               Bytebpos to);
 
 void init_buffer_text (struct buffer *b);
 void uninit_buffer_text (struct buffer *b);

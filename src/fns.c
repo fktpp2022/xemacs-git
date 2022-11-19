@@ -2771,7 +2771,8 @@ into shorter lines.
   int speccount = specpdl_depth ();
 
   get_buffer_range_char (buf, start, end, &begv, &zv, 0);
-  barf_if_buffer_read_only (buf, begv, zv);
+  Fbarf_if_buffer_read_only (wrap_buffer (buf), make_fixnum (begv),
+                             make_fixnum (zv));
 
   /* We need to allocate enough room for encoding the text.
      We need 33 1/3% more space, plus a newline every 76
@@ -2851,7 +2852,8 @@ Characters out of the base64 alphabet are ignored.
   int speccount = specpdl_depth();
 
   get_buffer_range_char (buf, start, end, &begv, &zv, 0);
-  barf_if_buffer_read_only (buf, begv, zv);
+  Fbarf_if_buffer_read_only (wrap_buffer (buf), make_fixnum (begv),
+                             make_fixnum (zv));
 
   length = zv - begv;
 
