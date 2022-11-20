@@ -6033,6 +6033,8 @@ extern Lisp_Object Vobarray;
 
 /* Defined in syntax.c */
 Charbpos scan_words (struct buffer *, Charbpos, EMACS_INT);
+Bytebpos byte_scan_words (struct buffer *, Bytebpos, EMACS_INT);
+
 EXFUN (Fchar_syntax, 2);
 EXFUN (Fforward_word, 2);
 extern Lisp_Object Vstandard_syntax_table;

@@ -282,9 +282,9 @@ extern const unsigned char syntax_spec_code[0200];
    Indicies should be of type enum syntaxcode. */
 extern const unsigned char syntax_code_spec[];
 
-Lisp_Object scan_lists (struct buffer *buf, Charbpos from, int count,
+Lisp_Object scan_lists (struct buffer *buf, Bytebpos from, int count,
 			int depth, int sexpflag, int no_error);
-int char_quoted (struct buffer *buf, Charbpos pos);
+int char_quoted (struct buffer *buf, Bytebpos pos);
 
 /* TABLE is a syntax table, not the mirror table. */
 Lisp_Object syntax_match (Lisp_Object table, Ichar ch);
@@ -343,8 +343,8 @@ struct syntax_cache
 				   buffer causes serious slowdowns in extent
 				   operations!  Yuck!
 				   #### May not be true any more. */
-  Charxpos next_change;		/* Position of the next extent change. */
-  Charxpos prev_change;		/* Position of the previous extent change. */
+  Bytexpos next_change;		/* Position of the next extent change. */
+  Bytexpos prev_change;		/* Position of the previous extent change. */
 };
 
 
@@ -352,19 +352,19 @@ extern const struct sized_memory_description syntax_cache_description;
 
 /* Note that the external interface to the syntax cache uses charpos's, but
    internally we use bytepos's, for speed. */
-void update_syntax_cache (struct syntax_cache *cache, Charxpos pos, int count);
+void update_syntax_cache (struct syntax_cache *cache, Bytexpos pos, int count);
 struct syntax_cache *setup_syntax_cache (struct syntax_cache *cache,
 					 Lisp_Object object,
 					 struct buffer *buffer,
-					 Charxpos from, int count);
+					 Bytexpos from, int count);
 struct syntax_cache *setup_buffer_syntax_cache (struct buffer *buffer,
-						Charxpos from, int count);
+						Bytexpos from, int count);
 
-/* Make syntax cache state good for CHARPOS, assuming it is
-   currently good for a position before CHARPOS.  */
+/* Make syntax cache state good for POS, assuming it is currently good for a
+   position before POS.  */
 DECLARE_INLINE_HEADER (
 void
-UPDATE_SYNTAX_CACHE_FORWARD (struct syntax_cache *cache, Charxpos pos)
+UPDATE_SYNTAX_CACHE_FORWARD (struct syntax_cache *cache, Bytexpos pos)
 )
 {
   /* #### Formerly this function, and the next one, had
@@ -378,21 +378,21 @@ UPDATE_SYNTAX_CACHE_FORWARD (struct syntax_cache *cache, Charxpos pos)
     update_syntax_cache (cache, pos, 1);
 }
 
-/* Make syntax cache state good for CHARPOS, assuming it is
-   currently good for a position after CHARPOS.  */
+/* Make syntax cache state good for POS, assuming it is currently good for a
+   position after POS.  */
 DECLARE_INLINE_HEADER (
 void
-UPDATE_SYNTAX_CACHE_BACKWARD (struct syntax_cache *cache, Charxpos pos)
+UPDATE_SYNTAX_CACHE_BACKWARD (struct syntax_cache *cache, Bytexpos pos)
 )
 {
   if (pos < cache->prev_change)
     update_syntax_cache (cache, pos, -1);
 }
 
-/* Make syntax cache state good for CHARPOS */
+/* Make syntax cache state good for POS */
 DECLARE_INLINE_HEADER (
 void
-UPDATE_SYNTAX_CACHE (struct syntax_cache *cache, Charxpos pos)
+UPDATE_SYNTAX_CACHE (struct syntax_cache *cache, Bytexpos pos)
 )
 {
   if (pos < cache->prev_change || pos >= cache->next_change)

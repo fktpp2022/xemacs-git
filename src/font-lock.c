@@ -261,11 +261,12 @@ beginning_of_defun (struct buffer *buf, Charbpos pt)
 static Charbpos
 end_of_defun (struct buffer *buf, Charbpos pt)
 {
-  Lisp_Object retval = scan_lists (buf, pt, 1, 0, 0, 1);
+  Lisp_Object retval = scan_lists (buf, charbpos_to_bytebpos (buf, pt), 1, 0,
+                                   0, 1);
   if (NILP (retval))
     return BUF_ZV (buf);
   else
-    return XFIXNUM (retval);
+    return bytebpos_to_charbpos (buf, XFIXNUM (retval));
 }
 
 /* Set up context_cache for attempting to determine the syntactic context

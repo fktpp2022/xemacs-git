@@ -424,19 +424,18 @@ vars_of_regex (void)
 #endif /* MULE */
 
 /* Convert an offset from the start of the logical text string formed by
-   concatenating the two strings together into a character position in the
+   concatenating the two strings together into a byte position in the
    Lisp buffer or string that the text represents.  Knows that
    when handling buffer text, the "string" we're passed in is always
-   BEGV - ZV. */
+   BYTE_BUF_BEGV - BYTE_BUF_ZV. */
 
-static Charxpos
-offset_to_charxpos (Lisp_Object lispobj, int off)
+static Bytexpos
+offset_to_bytexpos (Lisp_Object lispobj, int off)
 {
   if (STRINGP (lispobj))
-    return string_index_byte_to_char (lispobj, off);
+    return (Bytexpos) off;
   else if (BUFFERP (lispobj))
-    return bytebpos_to_charbpos (XBUFFER (lispobj),
-				 off + BYTE_BUF_BEGV (XBUFFER (lispobj)));
+    return off + BYTE_BUF_BEGV (XBUFFER (lispobj));
   else
     return 0;
 }
@@ -5128,7 +5127,7 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
   /* Update the mirror syntax table if it's used and dirty. */
   SYNTAX_CODE (BUFFER_MIRROR_SYNTAX_TABLE (lispbuf), 'a');
   scache = setup_syntax_cache (scache, lispobj, lispbuf,
-			       offset_to_charxpos (lispobj, startpos),
+                               offset_to_bytexpos (lispobj, startpos),
 			       1);
   END_REGEX_MALLOC_OK ();
   RE_SEARCH_RELOCATE_MOVEABLE_DATA_POINTERS ();
@@ -5508,7 +5507,7 @@ re_match_2 (struct re_pattern_buffer *bufp, const char *string1,
      characters' syntax. */
   SYNTAX_CODE (BUFFER_MIRROR_SYNTAX_TABLE (lispbuf), 'a');
   scache = setup_syntax_cache (scache, lispobj, lispbuf,
-			       offset_to_charxpos (lispobj, pos),
+                               offset_to_bytexpos (lispobj, pos),
 			       1);
 #endif
 
@@ -6893,9 +6892,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	matchwordbound:
 	  {
 	    /* XEmacs change */
-	    /* Straightforward and (I hope) correct implementation.
-	       Probably should be optimized by arranging to compute
-	       charpos only once. */
+	    /* Straightforward and (I hope) correct implementation. */
 	    /* emch1 is the character before d, syn1 is the syntax of
 	       emch1, emch2 is the character at d, and syn2 is the
 	       syntax of emch2. */
@@ -6906,9 +6903,6 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    int result,
 		at_beg = AT_STRINGS_BEG (d),
 		at_end = AT_STRINGS_END (d);
-#ifdef emacs
-	    Charxpos charpos;
-#endif
 
 	    if (at_beg && at_end)
 	      {
@@ -6922,10 +6916,10 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 		    DEC_IBYTEPTR_FMT (d_before, fmt);
 		    emch1 = itext_ichar_fmt (d_before, fmt, lispobj);
 #ifdef emacs
-		    charpos = offset_to_charxpos (lispobj,
-						  PTR_TO_OFFSET (d)) - 1;
 		    BEGIN_REGEX_MALLOC_OK ();
-		    UPDATE_SYNTAX_CACHE (scache, charpos);
+		    UPDATE_SYNTAX_CACHE (scache,
+                                         offset_to_bytexpos
+                                         (lispobj, PTR_TO_OFFSET (d_before)));
 #endif
 		    syn1 = SYNTAX_FROM_CACHE (scache, emch1);
 		    END_REGEX_MALLOC_OK ();
@@ -6935,9 +6929,10 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 		    d_after = POS_AFTER_GAP_UNSAFE (d);
 		    emch2 = itext_ichar_fmt (d_after, fmt, lispobj);
 #ifdef emacs
-		    charpos = offset_to_charxpos (lispobj, PTR_TO_OFFSET (d));
 		    BEGIN_REGEX_MALLOC_OK ();
-		    UPDATE_SYNTAX_CACHE_FORWARD (scache, charpos);
+		    UPDATE_SYNTAX_CACHE_FORWARD (scache,
+                                                 offset_to_bytexpos
+                                                 (lispobj, PTR_TO_OFFSET (d)));
 #endif
 		    syn2 = SYNTAX_FROM_CACHE (scache, emch2);
 		    END_REGEX_MALLOC_OK ();
@@ -6976,12 +6971,12 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    re_char *dtmp = POS_AFTER_GAP_UNSAFE (d);
 	    Ichar emch = itext_ichar_fmt (dtmp, fmt, lispobj);
 	    int tempres;
-#ifdef emacs
-	    Charxpos charpos = offset_to_charxpos (lispobj, PTR_TO_OFFSET (d));
-#endif
+
 	    BEGIN_REGEX_MALLOC_OK ();
 #ifdef emacs
-	    UPDATE_SYNTAX_CACHE (scache, charpos);
+	    UPDATE_SYNTAX_CACHE
+              (scache, 
+               offset_to_bytexpos (lispobj, PTR_TO_OFFSET (d)));
 #endif
 	    tempres = (SYNTAX_FROM_CACHE (scache, emch) != Sword);
 	    END_REGEX_MALLOC_OK ();
@@ -6995,7 +6990,9 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    emch = itext_ichar_fmt (dtmp, fmt, lispobj);
 	    BEGIN_REGEX_MALLOC_OK ();
 #ifdef emacs
-	    UPDATE_SYNTAX_CACHE_BACKWARD (scache, charpos - 1);
+	    UPDATE_SYNTAX_CACHE_BACKWARD
+              (scache,
+               offset_to_bytexpos (lispobj, PTR_TO_OFFSET (dtmp)));
 #endif
 	    tempres = (SYNTAX_FROM_CACHE (scache, emch) != Sword);
 	    END_REGEX_MALLOC_OK ();
@@ -7022,9 +7019,10 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    Ichar emch;
 	    int tempres;
 #ifdef emacs
-	    Charxpos charpos = offset_to_charxpos (lispobj, PTR_TO_OFFSET (d));
 	    BEGIN_REGEX_MALLOC_OK ();
-	    UPDATE_SYNTAX_CACHE (scache, charpos);
+	    UPDATE_SYNTAX_CACHE
+              (scache,
+               offset_to_bytexpos (lispobj, PTR_TO_OFFSET (d)));
 	    END_REGEX_MALLOC_OK ();
 	    RE_MATCH_RELOCATE_MOVEABLE_DATA_POINTERS ();
 #endif
@@ -7043,7 +7041,13 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    emch = itext_ichar_fmt (dtmp, fmt, lispobj);
 	    BEGIN_REGEX_MALLOC_OK ();
 #ifdef emacs
-	    UPDATE_SYNTAX_CACHE_FORWARD (scache, charpos + 1);
+            {
+              re_char *next = d;
+              INC_IBYTEPTR_FMT (next, fmt);
+              UPDATE_SYNTAX_CACHE_FORWARD
+                (scache,
+                 offset_to_bytexpos (lispobj, PTR_TO_OFFSET (next)));
+            }
 #endif
 	    tempres = (SYNTAX_FROM_CACHE (scache, emch) != Sword);
 	    END_REGEX_MALLOC_OK ();
@@ -7096,7 +7100,8 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    REGEX_PREFETCH ();
 	    BEGIN_REGEX_MALLOC_OK ();
 	    UPDATE_SYNTAX_CACHE
-	      (scache, offset_to_charxpos (lispobj, PTR_TO_OFFSET (d)));
+              (scache,
+               offset_to_bytexpos (lispobj, PTR_TO_OFFSET (d)));
 	    END_REGEX_MALLOC_OK ();
 	    RE_MATCH_RELOCATE_MOVEABLE_DATA_POINTERS ();
 

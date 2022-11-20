@@ -1103,17 +1103,17 @@ skip_chars (struct buffer *buf, Boolint forwardp, Boolint syntaxp,
      a range table. */
   unsigned char fastmap[256];
   int negate = 0;
-  Charbpos limit;
+  Bytebpos limit;
   struct syntax_cache *scache;
   Bitbyte class_bits = 0;
-  
+
   if (NILP (lim))
-    limit = forwardp ? BUF_ZV (buf) : BUF_BEGV (buf);
+    {
+      limit = forwardp ? BYTE_BUF_ZV (buf) : BYTE_BUF_BEGV (buf);
+    }
   else
     {
-      /* See the commentary on START_POINT, POS below regarding why we haven't
-         moved to functioning in byte positions. */
-      limit = get_buffer_pos_char (buf, lim, GB_COERCE_RANGE);
+      limit = get_buffer_pos_byte (buf, lim, GB_COERCE_RANGE);
     }
 
   CHECK_STRING (string);
@@ -1226,43 +1226,41 @@ skip_chars (struct buffer *buf, Boolint forwardp, Boolint syntaxp,
     fastmap[' '] = 1;
 
   {
-    /* The syntax cache still functions in terms of character positions, so we
-       still need START_POINT and POS. And pleasingly we call BOTH_BUF_SET_PT
-       () at the end, going beyond the standard of care in avoiding byte to
-       char performance issues.  */
     Charbpos start_point = BUF_PT (buf);
     Charbpos pos = start_point;
     Bytebpos pos_byte = BYTE_BUF_PT (buf);
 
     if (syntaxp)
       {
-	scache = setup_buffer_syntax_cache (buf, pos, forwardp ? 1 : -1);
+	scache = setup_buffer_syntax_cache (buf, pos_byte, forwardp ? 1 : -1);
 	/* All syntax designators are normal chars so nothing strange
 	   to worry about */
 	if (forwardp)
 	  {
-	    if (pos < limit)
-	      while (fastmap[(unsigned char)
-			     syntax_code_spec
-			     [(int) SYNTAX_FROM_CACHE
-			      (scache, BYTE_BUF_FETCH_CHAR (buf, pos_byte))]]
-                     != negate)
-		{
-		  pos++;
-		  INC_BYTEBPOS (buf, pos_byte);
-		  if (pos >= limit)
-		    break;
-		  UPDATE_SYNTAX_CACHE_FORWARD (scache, pos);
-		}
+	    if (pos_byte < limit)
+              {
+                while (fastmap[(unsigned char)
+                               syntax_code_spec
+                               [(int) SYNTAX_FROM_CACHE
+                                (scache, BYTE_BUF_FETCH_CHAR (buf, pos_byte))]]
+                       != negate)
+                  {
+                    pos++;
+                    INC_BYTEBPOS (buf, pos_byte);
+                    if (pos_byte >= limit)
+                      break;
+                    UPDATE_SYNTAX_CACHE_FORWARD (scache, pos_byte);
+                  }
+              }
 	  }
 	else
 	  {
-	    while (pos > limit)
+	    while (pos_byte > limit)
 	      {
 		Bytebpos savepos = pos_byte;
 		pos--;
 		DEC_BYTEBPOS (buf, pos_byte);
-		UPDATE_SYNTAX_CACHE_BACKWARD (scache, pos);
+		UPDATE_SYNTAX_CACHE_BACKWARD (scache, pos_byte);
 		if (fastmap[(unsigned char)
                             syntax_code_spec
                             [(int) SYNTAX_FROM_CACHE
@@ -1292,26 +1290,29 @@ skip_chars (struct buffer *buf, Boolint forwardp, Boolint syntaxp,
                                && !NOCASEP (buf, c)))))
 	if (forwardp)
 	  {
-	    while (pos < limit)
-	      {
-		Ichar ch = BYTE_BUF_FETCH_CHAR (buf, pos_byte);
-                if ((ch < countof (fastmap) ? fastmap[ch]
-                     : (CLASS_BIT_CHECK (ch) ||
-                        (EQ (Qt, Fget_range_table (make_fixnum (ch),
-                                                   Vskip_chars_range_table,
-                                                   Qnil)))))
-                    != negate)
-		  {
-		    pos++;
-		    INC_BYTEBPOS (buf, pos_byte);
-		  }
-		else
-		  break;
+            Ichar ch;
+            if (pos_byte < limit)
+              {
+                while ((ch = BYTE_BUF_FETCH_CHAR (buf, pos_byte)),
+                       ((ch < countof (fastmap) ? fastmap[ch]
+                         : (CLASS_BIT_CHECK (ch) ||
+                            (EQ (Qt, Fget_range_table (make_fixnum (ch),
+                                                       Vskip_chars_range_table,
+                                                       Qnil)))))
+                        != negate))
+                  {
+                    pos++;
+                    INC_BYTEBPOS (buf, pos_byte);
+                    if (pos_byte >= limit)
+                      {
+                        break;
+                      }
+                  }
 	      }
 	  }
 	else
 	  {
-	    while (pos > limit)
+	    while (pos_byte > limit)
 	      {
 		Bytebpos prev_pos_byte = pos_byte;
 		Ichar ch;

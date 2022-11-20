@@ -67,12 +67,12 @@ struct lisp_parse_state
   int comstyle;		/* comment style a=0, or b=1, or ST_COMMENT_STYLE */
   int quoted;		/* Nonzero if just after an escape char at end of
 			   parsing */
-  Charbpos thislevelstart;/* Char number of most recent start-of-expression
-                           at current level */
-  Charbpos prevlevelstart;/* Char number of start of containing expression */
-  Charbpos location;	/* Char number at which parsing stopped */
+  Bytebpos thislevelstart; /* Position of most recent start-of-expression at
+			      current level */
+  Bytebpos prevlevelstart; /* Position of start of containing expression */
+  Bytebpos location;	/* Position number at which parsing stopped */
   int mindepth;		/* Minimum depth seen while scanning  */
-  Charbpos comstr_start;/* Position just after last comment/string starter */
+  Bytebpos comstr_start;/* Position just after last comment/string starter */
   Lisp_Object levelstarts;/* Char numbers of starts-of-expression
 			     of levels (starting from outermost).  */
 };
@@ -85,20 +85,20 @@ struct lisp_parse_state
    find_start_begv   is the BEGV value when it was found.
    find_start_modiff is the value of MODIFF when it was found.  */
 
-static Charbpos find_start_pos;
-static Charbpos find_start_value;
+static Bytebpos find_start_pos;
+static Bytebpos find_start_value;
 static struct buffer *find_start_buffer;
-static Charbpos find_start_begv;
-static int find_start_modiff;
+static Bytebpos find_start_begv;
+static EMACS_INT find_start_modiff;
 
 /* Find a defun-start that is the last one before POS (or nearly the last).
    We record what we find, so that another call in the same area
    can return the same value right away.  */
 
-static Charbpos
-find_defun_start (struct buffer *buf, Charbpos pos)
+static Bytebpos
+find_defun_start (struct buffer *buf, Bytebpos pos)
 {
-  Charbpos tem;
+  Bytebpos tem;
   struct syntax_cache *scache;
   
   /* Use previous finding, if it's valid and applies to this inquiry.  */
@@ -108,30 +108,30 @@ find_defun_start (struct buffer *buf, Charbpos pos)
 	 Our value may not be the best possible, but will still be usable.  */
       && pos <= find_start_pos + 1000
       && pos >= find_start_value
-      && BUF_BEGV (buf) == find_start_begv
+      && BYTE_BUF_BEGV (buf) == find_start_begv
       && BUF_MODIFF (buf) == find_start_modiff)
     return find_start_value;
 
   /* Back up to start of line.  */
-  tem = find_next_newline (buf, pos, -1);
+  tem = byte_find_next_newline_no_quit (buf, pos, -1);
 
   scache = setup_buffer_syntax_cache (buf, tem, 1);
-  while (tem > BUF_BEGV (buf))
+  while (tem > BYTE_BUF_BEGV (buf))
     {
       UPDATE_SYNTAX_CACHE_BACKWARD (scache, tem);
 
       /* Open-paren at start of line means we found our defun-start.  */
-      if (SYNTAX_FROM_CACHE (scache, BUF_FETCH_CHAR (buf, tem)) == Sopen)
+      if (SYNTAX_FROM_CACHE (scache, BYTE_BUF_FETCH_CHAR (buf, tem)) == Sopen)
 	break;
       /* Move to beg of previous line.  */
-      tem = find_next_newline (buf, tem, -2);
+      tem = byte_find_next_newline_no_quit (buf, tem, -2);
     }
 
   /* Record what we found, for the next try.  */
   find_start_value  = tem;
   find_start_buffer = buf;
   find_start_modiff = BUF_MODIFF (buf);
-  find_start_begv   = BUF_BEGV (buf);
+  find_start_begv   = BYTE_BUF_BEGV (buf);
   find_start_pos    = pos;
 
   return find_start_value;
@@ -193,8 +193,15 @@ Only useful in debugging internals.
 {
   struct buffer *buf = decode_buffer (buffer, 0);
   struct syntax_cache *cache = buf->syntax_cache;
-  return list4 (cache->start, cache->end, make_fixnum (cache->prev_change),
-		make_fixnum (cache->next_change));
+  Lisp_Object prev_change = cache->prev_change < BYTE_BUF_BEG (buf) ?
+    make_fixnum (cache->prev_change) :
+    make_fixnum (bytebpos_to_charbpos (buf, cache->prev_change));
+  Lisp_Object next_change = (BYTE_BUF_BEG (buf) <= cache->next_change
+                             && BYTE_BUF_Z (buf) >= cache->next_change)
+    ? make_fixnum (bytebpos_to_charbpos (buf, cache->next_change))
+    : make_fixnum (cache->next_change);
+
+  return list4 (cache->start, cache->end, prev_change, next_change);
 }
 
 #endif /* DEBUG_XEMACS */
@@ -292,8 +299,8 @@ reset_syntax_cache_range (struct syntax_cache *cache,  /* initialized cache */
   if (BUFFERP (cache->object))
     {
       /* make known region zero-length and reset insertion behavior */
-      Fset_marker (cache->start, make_fixnum (1), cache->object);
-      Fset_marker (cache->end, make_fixnum (1), cache->object);
+      set_marker_byte_position (cache->start, 1, cache->object);
+      set_marker_byte_position (cache->end, 1, cache->object);
       Fset_marker_insertion_type (cache->start, Qnil);
       Fset_marker_insertion_type (cache->end, Qt);
     }
@@ -383,7 +390,7 @@ setup_syntax_cache (struct syntax_cache *cache,	/* may be NULL only if
 						   is associated with */
 		    struct buffer *buffer,	/* the buffer to use as source
 						   of the syntax table */
-		    Charxpos from,		/* initial position of cache */
+		    Bytebpos from,		/* initial position of cache */
 		    int count)			/* direction? see code */
 {
   /* If OBJECT is a buffer, use its cache; else use CACHE and initialize it.
@@ -405,8 +412,12 @@ setup_syntax_cache (struct syntax_cache *cache,	/* may be NULL only if
      {
        if (count <= 0)
 	 {
-	   --from;
-	   from = buffer_or_string_clip_to_accessible_char (cache->object,
+           if (from > BYTE_BUF_BEG (buffer))
+             {
+               DEC_BYTEBPOS (buffer, from);
+             }
+
+	   from = buffer_or_string_clip_to_accessible_byte (cache->object,
 							    from);
 	 }
        /* If lookup_syntax_properties && BUFFERP (object), this
@@ -422,13 +433,13 @@ setup_syntax_cache (struct syntax_cache *cache,	/* may be NULL only if
 }
 
 struct syntax_cache *
-setup_buffer_syntax_cache (struct buffer *buffer, Charxpos from, int count)
+setup_buffer_syntax_cache (struct buffer *buffer, Bytebpos from, int count)
 {
   return setup_syntax_cache (NULL, wrap_buffer (buffer), buffer, from, count);
 }
 
 /* 
-   Update syntax_cache CACHE to an appropriate setting for position CPOS.
+   Update syntax_cache CACHE to an appropriate setting for position POS.
 
    The sign of COUNT gives the relative position of CPOS wrt the
    previously valid interval.  (not currently used)
@@ -442,11 +453,10 @@ setup_buffer_syntax_cache (struct buffer *buffer, Charxpos from, int count)
    is returned by get-char-property. */
 
 void
-update_syntax_cache (struct syntax_cache *cache, Charxpos cpos,
+update_syntax_cache (struct syntax_cache *cache, Bytexpos pos,
 		     int UNUSED (count))
 {
-  Lisp_Object tmp_table;
-  Bytexpos pos;
+  Lisp_Object tmp_table = Qnil;
   Bytexpos lim;
   Bytexpos next, prev;
   int at_begin = 0, at_end = 0;
@@ -454,13 +464,11 @@ update_syntax_cache (struct syntax_cache *cache, Charxpos cpos,
   if (NILP (cache->object))
     return;
 
-  pos = buffer_or_string_charxpos_to_bytexpos (cache->object, cpos);
-
   if (pos < buffer_or_string_accessible_end_byte (cache->object))
+    {
       tmp_table = get_char_property (pos, Qsyntax_table, cache->object,
                                      EXTENT_AT_AFTER, 0);
-  else
-      tmp_table = Qnil;
+    }
 
   lim = next_previous_single_property_change (pos, Qsyntax_table,
 					      cache->object, -1, 1, 0);
@@ -484,10 +492,8 @@ update_syntax_cache (struct syntax_cache *cache, Charxpos cpos,
   else
     prev = lim;
 
-  cache->prev_change =
-    buffer_or_string_bytexpos_to_charxpos (cache->object, prev);
-  cache->next_change =
-    buffer_or_string_bytexpos_to_charxpos (cache->object, next);
+  cache->prev_change = prev;
+  cache->next_change = next;
 
   if (BUFFERP (cache->object))
     {
@@ -496,13 +502,15 @@ update_syntax_cache (struct syntax_cache *cache, Charxpos cpos,
 	 then we can safely make the end closed, so it will take in newly
 	 inserted text. (If such an extent is inserted, we will be informed
 	 through signal_syntax_cache_extent_changed().) */
-      Fset_marker (cache->start, make_fixnum (cache->prev_change), cache->object);
+      set_marker_byte_position_restricted  (cache->start, cache->prev_change,
+					    cache->object);
       Fset_marker_insertion_type
 	(cache->start,
 	 at_begin && NILP (extent_at (prev, cache->object, Qsyntax_table,
 				      NULL, EXTENT_AT_AT, 0))
 	 ? Qnil : Qt);
-      Fset_marker (cache->end, make_fixnum (cache->next_change), cache->object);
+      set_marker_byte_position_restricted (cache->end, cache->next_change,
+					   cache->object);
       Fset_marker_insertion_type
 	(cache->end,
 	 at_end && NILP (extent_at (next, cache->object, Qsyntax_table,
@@ -616,8 +624,8 @@ signal_syntax_cache_extent_adjust (struct buffer *buf)
      to update the limits of validity when they were actually valid. */
   if (cache->prev_change < 0)
     return;
-  cache->prev_change = marker_position (cache->start);
-  cache->next_change = marker_position (cache->end);
+  cache->prev_change = marker_byte_position (cache->start);
+  cache->next_change = marker_byte_position (cache->end);
 }
 
 
@@ -737,14 +745,27 @@ Optional SYNTAX-TABLE defaults to the current buffer's syntax table.
 #define WORD_BOUNDARY_P(buf, c1, c2) 0
 #endif
 
+Charbpos
+scan_words (struct_buffer *buf, Charbpos from, EMACS_INT count)
+{
+  Bytebpos bresult = byte_scan_words (buf, charbpos_to_bytebpos (buf, from),
+                                      count);
+  if (bresult == 0)
+    {
+      return bresult;
+    }
+
+  return bytebpos_to_charbpos (buf, bresult);
+}
+
 /* Return the position across COUNT words from FROM.
    If that many words cannot be found before the end of the buffer, return 0.
    COUNT negative means scan backward and stop at word beginning.  */
 
-Charbpos
-scan_words (struct buffer *buf, Charbpos from, EMACS_INT count)
+Bytebpos
+byte_scan_words (struct buffer *buf, Bytebpos from, EMACS_INT count)
 {
-  Charbpos limit = count > 0 ? BUF_ZV (buf) : BUF_BEGV (buf);
+  Bytebpos limit = count > 0 ? BYTE_BUF_ZV (buf) : BYTE_BUF_BEGV (buf);
   Ichar ch0, ch1;
   enum syntaxcode code;
   struct syntax_cache *scache = setup_buffer_syntax_cache (buf, from, count);
@@ -760,10 +781,10 @@ scan_words (struct buffer *buf, Charbpos from, EMACS_INT count)
 	    return 0;
 
 	  UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
-	  ch0 = BUF_FETCH_CHAR (buf, from);
+	  ch0 = BYTE_BUF_FETCH_CHAR (buf, from);
 	  code = SYNTAX_FROM_CACHE (scache, ch0);
 
-	  from++;
+	  INC_BYTEBPOS (buf, from);
 	  if (words_include_escapes
 	      && (code == Sescape || code == Scharquote))
 	    break;
@@ -776,14 +797,14 @@ scan_words (struct buffer *buf, Charbpos from, EMACS_INT count)
       while (from != limit)
 	{
 	  UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
-	  ch1 = BUF_FETCH_CHAR (buf, from);
+	  ch1 = BYTE_BUF_FETCH_CHAR (buf, from);
 	  code = SYNTAX_FROM_CACHE (scache, ch1);
 	  if (!(words_include_escapes
 		&& (code == Sescape || code == Scharquote)))
 	    if (code != Sword || WORD_BOUNDARY_P (buf, ch0, ch1))
 	      break;
 	  ch0 = ch1;
-	  from++;
+	  INC_BYTEBPOS (buf, from);
 	}
       count--;
     }
@@ -797,10 +818,10 @@ scan_words (struct buffer *buf, Charbpos from, EMACS_INT count)
 	  if (from == limit)
 	    return 0;
 
-	  UPDATE_SYNTAX_CACHE_BACKWARD (scache, from - 1);
-	  ch1 = BUF_FETCH_CHAR (buf, from - 1);
+	  DEC_BYTEBPOS (buf, from);
+	  UPDATE_SYNTAX_CACHE_BACKWARD (scache, from);
+	  ch1 = BYTE_BUF_FETCH_CHAR (buf, from);
 	  code = SYNTAX_FROM_CACHE (scache, ch1);
-	  from--;
 
 	  if (words_include_escapes
 	      && (code == Sescape || code == Scharquote))
@@ -813,8 +834,8 @@ scan_words (struct buffer *buf, Charbpos from, EMACS_INT count)
 
       while (from != limit)
 	{
-	  UPDATE_SYNTAX_CACHE_BACKWARD (scache, from - 1);
-	  ch0 = BUF_FETCH_CHAR (buf, from - 1);
+	  UPDATE_SYNTAX_CACHE_BACKWARD (scache, prev_bytebpos (buf, from));
+	  ch0 = BYTE_BUF_FETCH_CHAR (buf, prev_bytebpos (buf, from));
 	  code = SYNTAX_FROM_CACHE (scache, ch0);
 
 	  if (!(words_include_escapes
@@ -822,7 +843,7 @@ scan_words (struct buffer *buf, Charbpos from, EMACS_INT count)
 	    if (code != Sword || WORD_BOUNDARY_P (buf, ch0, ch1))
 	      break;
 	  ch1 = ch0;
-	  from--;
+	  DEC_BYTEBPOS (buf, from);
 	}
       count++;
     }
@@ -844,7 +865,7 @@ the documentation for this variable for more details.
 */
        (count, buffer))
 {
-  Charbpos val;
+  Bytebpos val;
   struct buffer *buf = decode_buffer (buffer, 0);
   EMACS_INT n;
 
@@ -856,28 +877,35 @@ the documentation for this variable for more details.
       n = XFIXNUM (count);
     }
 
-  val = scan_words (buf, BUF_PT (buf), n);
+  val = byte_scan_words (buf, BYTE_BUF_PT (buf), n);
   if (val)
     {
-      BUF_SET_PT (buf, val);
+      BYTE_BUF_SET_PT (buf, val);
       return Qt;
     }
   else
     {
-      BUF_SET_PT (buf, n > 0 ? BUF_ZV (buf) : BUF_BEGV (buf));
+      if (n > 0)
+	{
+	  BOTH_BUF_SET_PT (buf, BUF_ZV (buf), BYTE_BUF_ZV (buf));
+	}
+      else
+	{
+	  BOTH_BUF_SET_PT (buf, BUF_BEGV (buf), BYTE_BUF_BEGV (buf));
+	}
       return Qnil;
     }
 }
 
 static void scan_sexps_forward (struct buffer *buf,
 				struct lisp_parse_state *,
-				Charbpos from, Charbpos end,
+				Bytebpos from, Bytebpos end,
 				int targetdepth, int stopbefore,
 				Lisp_Object oldstate,
 				int commentstop);
 
 static int
-find_start_of_comment (struct buffer *buf, Charbpos from, Charbpos stop,
+find_start_of_comment (struct buffer *buf, Bytebpos from, Bytebpos stop,
 		       int comstyle)
 {
   Ichar c;
@@ -895,10 +923,10 @@ find_start_of_comment (struct buffer *buf, Charbpos from, Charbpos stop,
   int parity = 0;
   Ichar my_stringend = 0;
   int string_lossage = 0;
-  Charbpos comment_end = from;
-  Charbpos comstart_pos = 0;
+  Bytebpos comment_end = from;
+  Bytebpos comstart_pos = 0;
   int comstart_parity = 0;
-  int styles_match_p = 0;
+  Boolint styles_match_p = 0;
   /* mask to match comment styles against; for ST_COMMENT_STYLE, this
      will get set to SYNTAX_COMMENT_STYLE_B, but never get checked */
   int mask = comstyle ? SYNTAX_COMMENT_STYLE_B : SYNTAX_COMMENT_STYLE_A;
@@ -911,10 +939,10 @@ find_start_of_comment (struct buffer *buf, Charbpos from, Charbpos stop,
       int syncode;
 
       /* Move back and examine a character.  */
-      from--;
+      DEC_BYTEBPOS (buf, from);
       UPDATE_SYNTAX_CACHE_BACKWARD (scache, from);
 
-      c = BUF_FETCH_CHAR (buf, from);
+      c = BYTE_BUF_FETCH_CHAR (buf, from);
       syncode = SYNTAX_CODE_FROM_CACHE (scache, c);
       code = SYNTAX_FROM_CODE (syncode);
 
@@ -942,10 +970,12 @@ find_start_of_comment (struct buffer *buf, Charbpos from, Charbpos stop,
 	    if (SYNTAX_CODE_END_SECOND_P (syncode))
 	      {
 		int prev_syncode;
-		UPDATE_SYNTAX_CACHE_BACKWARD (scache, from - 1);
+		UPDATE_SYNTAX_CACHE_BACKWARD (scache,
+					      prev_bytebpos (buf, from));
 		prev_syncode =
-		  SYNTAX_CODE_FROM_CACHE (scache,
-					  BUF_FETCH_CHAR (buf, from - 1));
+		  SYNTAX_CODE_FROM_CACHE
+		  (scache, BYTE_BUF_FETCH_CHAR (buf,
+						prev_bytebpos (buf, from)));
 
 		if (SYNTAX_CODES_END_P (prev_syncode, syncode))
 		  {
@@ -953,9 +983,9 @@ find_start_of_comment (struct buffer *buf, Charbpos from, Charbpos stop,
 		    styles_match_p =
 		      SYNTAX_CODES_COMMENT_MASK_END (prev_syncode,
 						     syncode) & mask;
-		    from--;
+		    DEC_BYTEBPOS (buf, from);
 		    UPDATE_SYNTAX_CACHE_BACKWARD (scache, from);
-		    c = BUF_FETCH_CHAR (buf, from);
+		    c = BYTE_BUF_FETCH_CHAR (buf, from);
 
 		    /* Found a comment-end sequence, so skip past the
 		       check for a comment-start */
@@ -967,10 +997,12 @@ find_start_of_comment (struct buffer *buf, Charbpos from, Charbpos stop,
 	    if (SYNTAX_CODE_START_SECOND_P (syncode))
 	      {
 		int prev_syncode;
-		UPDATE_SYNTAX_CACHE_BACKWARD (scache, from - 1);
+		UPDATE_SYNTAX_CACHE_BACKWARD (scache,
+					      prev_bytebpos (buf, from));
 		prev_syncode =
-		  SYNTAX_CODE_FROM_CACHE (scache,
-					  BUF_FETCH_CHAR (buf, from - 1));
+		  SYNTAX_CODE_FROM_CACHE
+		  (scache, BYTE_BUF_FETCH_CHAR (buf,
+						prev_bytebpos (buf, from)));
 
 		if (SYNTAX_CODES_START_P (prev_syncode, syncode))
 		  {
@@ -978,9 +1010,9 @@ find_start_of_comment (struct buffer *buf, Charbpos from, Charbpos stop,
 		    styles_match_p =
 		      SYNTAX_CODES_COMMENT_MASK_START (prev_syncode,
 						       syncode) & mask;
-		    from--;
+		    DEC_BYTEBPOS (buf, from);
 		    UPDATE_SYNTAX_CACHE_BACKWARD (scache, from);
-		    c = BUF_FETCH_CHAR (buf, from);
+		    c = BYTE_BUF_FETCH_CHAR (buf, from);
 		  }
 	      }
 	  } while (0);
@@ -1030,7 +1062,8 @@ find_start_of_comment (struct buffer *buf, Charbpos from, Charbpos stop,
 
       /* Assume a defun-start point is outside of strings.  */
       if (code == Sopen
-	  && (from == stop || BUF_FETCH_CHAR (buf, from - 1) == '\n'))
+	  && (from == stop ||
+	      BYTE_BUF_FETCH_CHAR (buf, prev_bytebpos (buf, from)) == '\n'))
 	break;
     }
 
@@ -1053,19 +1086,20 @@ find_start_of_comment (struct buffer *buf, Charbpos from, Charbpos stop,
 
       struct lisp_parse_state state;
       scan_sexps_forward (buf, &state, find_defun_start (buf, comment_end),
-			  comment_end - 1, -10000, 0, Qnil, 0);
+			  prev_bytebpos (buf, comment_end), -10000, 0, Qnil,
+			  0);
       if (state.incomment)
 	from = state.comstr_start;
       else
 	/* We can't grok this as a comment; scan it normally.  */
 	from = comment_end;
-      UPDATE_SYNTAX_CACHE_FORWARD (scache, from - 1);
+      UPDATE_SYNTAX_CACHE_FORWARD (scache, prev_bytebpos (buf, from));
     }
   return from;
 }
 
-static Charbpos
-find_end_of_comment (struct buffer *buf, Charbpos from, Charbpos stop,
+static Bytebpos
+find_end_of_comment (struct buffer *buf, Bytebpos from, Bytebpos stop,
 		     int comstyle)
 {
   int c;
@@ -1085,18 +1119,18 @@ find_end_of_comment (struct buffer *buf, Charbpos from, Charbpos stop,
 	}
 
       UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
-      c = BUF_FETCH_CHAR (buf, from);
+      c = BYTE_BUF_FETCH_CHAR (buf, from);
 
       /* Test for generic comments */
       if (comstyle == ST_COMMENT_STYLE)
  	{
 	  if (SYNTAX_FROM_CACHE (scache, c) == Scomment_fence)
 	    {
-	      from++;
+	      INC_BYTEBPOS (buf, from);
 	      UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
 	      break;
 	    }
-	  from++;
+	  INC_BYTEBPOS (buf, from);
 	  continue; /* No need to test other comment styles in a
                        generic comment */
 	}
@@ -1109,13 +1143,13 @@ find_end_of_comment (struct buffer *buf, Charbpos from, Charbpos stop,
 	   as the comment sequence which began this comment
 	   section */
 	  {
-	    from++;
+	    INC_BYTEBPOS (buf, from);	    
 	    UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
 	    break;
 	  }
 
       prev_code = SYNTAX_CODE_FROM_CACHE (scache, c);
-      from++;
+      INC_BYTEBPOS (buf, from);
       UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
       if (from < stop
 	  && SYNTAX_CODES_MATCH_END_P
@@ -1128,7 +1162,7 @@ find_end_of_comment (struct buffer *buf, Charbpos from, Charbpos stop,
 	   as the comment sequence which began this comment
 	   section */
 	{
-	  from++;
+	  INC_BYTEBPOS (buf, from);
 	  UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
 	  break;
 	}
@@ -1155,8 +1189,8 @@ the motion would cross the buffer boundary or encounters a noncomment token).
 */
        (count, buffer))
 {
-  Charbpos from;
-  Charbpos stop;
+  Bytebpos from;
+  Bytebpos stop;
   Ichar c;
   enum syntaxcode code;
   int syncode;
@@ -1172,26 +1206,26 @@ the motion would cross the buffer boundary or encounters a noncomment token).
       n = XFIXNUM (count);
     }
 
-  from = BUF_PT (buf);
+  from = BYTE_BUF_PT (buf);
 
   scache = setup_buffer_syntax_cache (buf, from, n);
   while (n > 0)
     {
       QUIT;
 
-      stop = BUF_ZV (buf);
+      stop = BYTE_BUF_ZV (buf);
       while (from < stop)
 	{
 	  int comstyle = 0;     /* mask for finding matching comment style */
 
 	  if (char_quoted (buf, from))
 	    {
-	      from++;
+	      INC_BYTEBPOS (buf, from);
 	      continue;
 	    }
 
 	  UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
-	  c = BUF_FETCH_CHAR (buf, from);
+	  c = BYTE_BUF_FETCH_CHAR (buf, from);
 	  syncode = SYNTAX_CODE_FROM_CACHE (scache, c);
 	  code = SYNTAX_FROM_CODE (syncode);
 
@@ -1208,7 +1242,7 @@ the motion would cross the buffer boundary or encounters a noncomment token).
 
 	  else if (code == Scomment_fence)
 	    {
-	      from++;
+	      INC_BYTEBPOS (buf, from);
 	      code = Scomment;
 	      comstyle = ST_COMMENT_STYLE;
  	    }
@@ -1217,9 +1251,10 @@ the motion would cross the buffer boundary or encounters a noncomment token).
 		   && SYNTAX_CODE_START_FIRST_P (syncode))
 	    {
 	      int next_syncode;
-	      UPDATE_SYNTAX_CACHE_FORWARD (scache, from + 1);
+	      UPDATE_SYNTAX_CACHE_FORWARD (scache, next_bytebpos (buf, from));
 	      next_syncode =
-		SYNTAX_CODE_FROM_CACHE (scache, BUF_FETCH_CHAR (buf, from + 1));
+		SYNTAX_CODE_FROM_CACHE
+		(scache, BYTE_BUF_FETCH_CHAR (buf, next_bytebpos (buf, from)));
 
 	      if (SYNTAX_CODES_START_P (syncode, next_syncode))
 		{
@@ -1232,18 +1267,18 @@ the motion would cross the buffer boundary or encounters a noncomment token).
 		  comstyle =
 		    SYNTAX_CODES_COMMENT_MASK_START (syncode, next_syncode)
 		    == SYNTAX_COMMENT_STYLE_A ? 0 : 1;
-		  from++;
+		  INC_BYTEBPOS (buf, from);
 		}
 	    }
 
 	  if (code == Scomment)
 	    {
-	      Charbpos newfrom = find_end_of_comment (buf, from, stop,
+	      Bytebpos newfrom = find_end_of_comment (buf, from, stop,
 						      comstyle);
 	      if (newfrom < 0)
 		{
 		  /* we stopped because from==stop */
-		  BUF_SET_PT (buf, stop);
+		  BYTE_BUF_SET_PT (buf, stop);
 		  return Qnil;
 		}
 	      from = newfrom;
@@ -1255,10 +1290,10 @@ the motion would cross the buffer boundary or encounters a noncomment token).
 		   && code != Sendcomment
 		   && code != Scomment )
 	    {
-	      BUF_SET_PT (buf, from);
+	      BYTE_BUF_SET_PT (buf, from);
 	      return Qnil;
 	    }
-	  from++;
+	  INC_BYTEBPOS (buf, from);
 	}
 
       /* End of comment reached */
@@ -1269,19 +1304,19 @@ the motion would cross the buffer boundary or encounters a noncomment token).
     {
       QUIT;
 
-      stop = BUF_BEGV (buf);
+      stop = BYTE_BUF_BEGV (buf);
       while (from > stop)
 	{
           int comstyle = 0;     /* mask for finding matching comment style */
 
-	  from--;
+	  DEC_BYTEBPOS (buf, from);
 	  if (char_quoted (buf, from))
 	    {
-	      from--;
+	      DEC_BYTEBPOS (buf, from);
 	      continue;
 	    }
 
-	  c = BUF_FETCH_CHAR (buf, from);
+	  c = BYTE_BUF_FETCH_CHAR (buf, from);
 	  syncode = SYNTAX_CODE_FROM_CACHE (scache, c);
 	  code = SYNTAX_FROM_CODE (syncode);
 
@@ -1304,9 +1339,10 @@ the motion would cross the buffer boundary or encounters a noncomment token).
 		   && SYNTAX_CODE_END_SECOND_P (syncode))
 	    {
 	      int prev_syncode;
-	      UPDATE_SYNTAX_CACHE_BACKWARD (scache, from - 1);
+	      UPDATE_SYNTAX_CACHE_BACKWARD (scache, prev_bytebpos (buf, from));
 	      prev_syncode =
-		SYNTAX_CODE_FROM_CACHE (scache, BUF_FETCH_CHAR (buf, from - 1));
+		SYNTAX_CODE_FROM_CACHE
+		(scache, BYTE_BUF_FETCH_CHAR (buf, prev_bytebpos (buf, from)));
 	      if (SYNTAX_CODES_END_P (prev_syncode, syncode))
 		{
 		  /* We must record the comment style encountered so that
@@ -1315,7 +1351,7 @@ the motion would cross the buffer boundary or encounters a noncomment token).
 		  code = Sendcomment;
 		  comstyle = SYNTAX_CODES_COMMENT_MASK_END
 		    (prev_syncode, syncode) == SYNTAX_COMMENT_STYLE_A ? 0 : 1;
-		  from--;
+		  DEC_BYTEBPOS (buf, from);
 		}
 	    }
 
@@ -1329,7 +1365,8 @@ the motion would cross the buffer boundary or encounters a noncomment token).
 		   && code != Scomment
 		   && code != Sendcomment)
 	    {
-	      BUF_SET_PT (buf, from + 1);
+	      INC_BYTEBPOS (buf, from);
+	      BYTE_BUF_SET_PT (buf, from);
 	      return Qnil;
 	    }
 	}
@@ -1337,16 +1374,16 @@ the motion would cross the buffer boundary or encounters a noncomment token).
       n++;
     }
 
-  BUF_SET_PT (buf, from);
+  BYTE_BUF_SET_PT (buf, from);
   return Qt;
 }
 
 
 Lisp_Object
-scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
-	    int sexpflag, int noerror)
+scan_lists (struct buffer *buf, Bytebpos from, int count, int depth,
+	    Boolint sexpflag, Boolint noerror)
 {
-  Charbpos stop;
+  Bytebpos stop;
   Ichar c;
   int quoted;
   int mathexit = 0;
@@ -1354,7 +1391,7 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
   int syncode;
   int min_depth = depth;    /* Err out if depth gets less than this. */
   struct syntax_cache *scache;
-  Charbpos last_good = from;
+  Bytebpos last_good = from;
   
   if (depth > 0) min_depth = 0;
 
@@ -1363,18 +1400,18 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
     {
       QUIT;
 
-      stop = BUF_ZV (buf);
+      stop = BYTE_BUF_ZV (buf);
       while (from < stop)
 	{
           int comstyle = 0;     /* mask for finding matching comment style */
 
 	  UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
-	  c = BUF_FETCH_CHAR (buf, from);
+	  c = BYTE_BUF_FETCH_CHAR (buf, from);
 	  syncode = SYNTAX_CODE_FROM_CACHE (scache, c);
 	  code = SYNTAX_FROM_CODE (syncode);
 	  if (depth == min_depth)
 	    last_good = from;
-	  from++;
+	  INC_BYTEBPOS (buf, from);
 
 	  /* a 1-char comment start sequence */
 	  if (code == Scomment && parse_sexp_ignore_comments)
@@ -1391,7 +1428,8 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 	      int next_syncode;
 	      UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
 	      next_syncode =
-		SYNTAX_CODE_FROM_CACHE (scache, BUF_FETCH_CHAR (buf, from));
+		SYNTAX_CODE_FROM_CACHE (scache,
+					BYTE_BUF_FETCH_CHAR (buf, from));
 
 	      if (SYNTAX_CODES_START_P (syncode, next_syncode))
 		{
@@ -1403,7 +1441,7 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 		  code = Scomment;
 		  comstyle = SYNTAX_CODES_COMMENT_MASK_START
 		    (syncode, next_syncode) == SYNTAX_COMMENT_STYLE_A ? 0 : 1;
-		  from++;
+		  INC_BYTEBPOS (buf, from);
 		}
 	    }
 	  UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
@@ -1416,7 +1454,7 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 	    case Sescape:
 	    case Scharquote:
 	      if (from == stop) goto lose;
-	      from++;
+	      INC_BYTEBPOS (buf, from);
 	      /* treat following character as a word constituent */
 	    case Sword:
 	    case Ssymbol:
@@ -1425,11 +1463,12 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 	      while (from < stop)
 		{
 		  UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
-		  switch (SYNTAX_FROM_CACHE (scache, BUF_FETCH_CHAR (buf, from)))
+		  switch (SYNTAX_FROM_CACHE (scache,
+					     BYTE_BUF_FETCH_CHAR (buf, from)))
 		    {
 		    case Scharquote:
 		    case Sescape:
-		      from++;
+		      INC_BYTEBPOS (buf, from);
 		      if (from == stop) goto lose;
 		      break;
 		    case Sword:
@@ -1439,7 +1478,7 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 		    default:
 		      goto done;
 		    }
-		  from++;
+		  INC_BYTEBPOS (buf, from);
 		}
 	      goto done;
 
@@ -1450,7 +1489,7 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 		break;
 	      UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
 	      {
-		Charbpos newfrom =
+		Bytebpos newfrom =
 		  find_end_of_comment (buf, from, stop, comstyle);
 		if (newfrom < 0)
 		  {
@@ -1467,8 +1506,8 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 	    case Smath:
 	      if (!sexpflag)
 		break;
-	      if (from != stop && c == BUF_FETCH_CHAR (buf, from))
-		from++;
+	      if (from != stop && c == BYTE_BUF_FETCH_CHAR (buf, from))
+		INC_BYTEBPOS (buf, from);
 	      if (mathexit)
 		{
 		  mathexit = 0;
@@ -1489,7 +1528,10 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 		  return Qnil;
 		signal_error_2 (Qscan_error,
 				"Containing expression ends prematurely",
-				make_fixnum (last_good), make_fixnum (from));
+				make_fixnum (bytebpos_to_charbpos
+                                             (buf, last_good)),
+                                make_fixnum (bytebpos_to_charbpos
+                                             (buf, from)));
 	      }
 	    break;
 
@@ -1501,7 +1543,8 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 		if (code != Sstring_fence)
 		  {
 		    /* XEmacs change: call syntax_match on character */
-		    Ichar ch = BUF_FETCH_CHAR (buf, from - 1);
+		    Ichar ch = BYTE_BUF_FETCH_CHAR (buf,
+						    prev_bytebpos (buf, from));
 		    Lisp_Object stermobj =
 		      syntax_match (scache->syntax_table, ch);
 
@@ -1520,7 +1563,7 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 		    if (from >= stop)
 		      goto lose;
 		    UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
-		    c = BUF_FETCH_CHAR (buf, from);
+		    c = BYTE_BUF_FETCH_CHAR (buf, from);
                     temp_code = SYNTAX_FROM_CACHE (scache, c);
 		    if (code == Sstring
 			? c == stringterm
@@ -1532,14 +1575,14 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 		      {
 		      case Scharquote:
 		      case Sescape:
-			from++;
+			INC_BYTEBPOS (buf, from);
 			break;
 		      default:
 			break;
 		      }
-		    from++;
+		    INC_BYTEBPOS (buf, from);		    
 		  }
-                from++;
+		INC_BYTEBPOS (buf, from);
                 if (!depth && sexpflag) goto done;
                 break;
               }
@@ -1564,21 +1607,21 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
     {
       QUIT;
 
-      stop = BUF_BEGV (buf);
+      stop = BYTE_BUF_BEGV (buf);
       while (from > stop)
 	{
           int comstyle = 0;     /* mask for finding matching comment style */
 
-	  from--;
+	  DEC_BYTEBPOS (buf, from);
 	  UPDATE_SYNTAX_CACHE_BACKWARD (scache, from);
           quoted = char_quoted (buf, from);
 	  if (quoted)
 	    {
-	    from--;
+	      DEC_BYTEBPOS (buf, from);
 	      UPDATE_SYNTAX_CACHE_BACKWARD (scache, from);
 	    }
 
-	  c = BUF_FETCH_CHAR (buf, from);
+	  c = BYTE_BUF_FETCH_CHAR (buf, from);
 	  syncode = SYNTAX_CODE_FROM_CACHE (scache, c);
 	  code = SYNTAX_FROM_CODE (syncode);
 
@@ -1593,24 +1636,26 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 
 	  else if (from > stop
 		   && SYNTAX_CODE_END_SECOND_P (syncode)
-		   && !char_quoted (buf, from - 1)
+		   && !char_quoted (buf, prev_bytebpos (buf, from))
 		   && parse_sexp_ignore_comments)
 	    {
 	      int prev_syncode;
-	      UPDATE_SYNTAX_CACHE_BACKWARD (scache, from - 1);
+	      UPDATE_SYNTAX_CACHE_BACKWARD (scache,
+					    prev_bytebpos (buf, from));
 	      prev_syncode =
-		SYNTAX_CODE_FROM_CACHE (scache, BUF_FETCH_CHAR (buf, from - 1));
+		SYNTAX_CODE_FROM_CACHE
+		(scache, BYTE_BUF_FETCH_CHAR (buf, prev_bytebpos (buf, from)));
 
 	      if (SYNTAX_CODES_END_P (prev_syncode, syncode))
 		{
-	      /* we must record the comment style encountered so that
-		 later, we can match only the proper comment begin
-		 sequence of the same style */
-	      code = Sendcomment;
+		  /* we must record the comment style encountered so that
+		     later, we can match only the proper comment begin
+		     sequence of the same style */
+		  code = Sendcomment;
 		  comstyle = SYNTAX_CODES_COMMENT_MASK_END
 		    (prev_syncode, syncode) == SYNTAX_COMMENT_STYLE_A ? 0 : 1;
-	      from--;
-	    }
+		  DEC_BYTEBPOS (buf, from);		  
+		}
 	    }
 
 	  if (SYNTAX_CODE_PREFIX (syncode))
@@ -1626,27 +1671,32 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 	      while (from > stop)
 		{
 		  UPDATE_SYNTAX_CACHE_BACKWARD (scache, from);
-		  quoted = char_quoted (buf, from - 1);
+		  quoted = char_quoted (buf, prev_bytebpos (buf, from));
 
 		  if (quoted)
-		    from--;
+		    DEC_BYTEBPOS (buf, from);
 		  if (! (quoted
                          || (syncode =
-			     SYNTAX_FROM_CACHE (scache, BUF_FETCH_CHAR (buf,
-								from - 1)))
+			     SYNTAX_FROM_CACHE
+			     (scache,
+			      BYTE_BUF_FETCH_CHAR (buf,
+						   prev_bytebpos (buf,
+								  from))))
 			 == Sword
 			 || syncode == Ssymbol
 			 || syncode == Squote))
             	    goto done2;
-		  from--;
+		  DEC_BYTEBPOS (buf, from);
 		}
 	      goto done2;
 
 	    case Smath:
 	      if (!sexpflag)
 		break;
-	      if (from != stop && c == BUF_FETCH_CHAR (buf, from - 1))
-		from--;
+	      if (from != stop &&
+		  c == BYTE_BUF_FETCH_CHAR (buf,
+					    prev_bytebpos (buf, from)))
+		DEC_BYTEBPOS (buf, from);
 	      if (mathexit)
 		{
 		  mathexit = 0;
@@ -1667,7 +1717,10 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 		  return Qnil;
 		signal_error_2 (Qscan_error,
 				"Containing expression ends prematurely",
-				make_fixnum (last_good), make_fixnum (from));
+				make_fixnum (bytebpos_to_charbpos (buf,
+								   last_good)),
+				make_fixnum (bytebpos_to_charbpos (buf,
+								   from)));
 	      }
 	    break;
 
@@ -1685,15 +1738,15 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 
 		if (code != Sstring_fence)
 		  {
-		/* XEmacs change: call syntax_match() on character */
-                Ichar ch = BUF_FETCH_CHAR (buf, from);
+		    /* XEmacs change: call syntax_match() on character */
+		    Ichar ch = BYTE_BUF_FETCH_CHAR (buf, from);
 		    Lisp_Object stermobj =
 		      syntax_match (scache->syntax_table, ch);
 
-		if (CHARP (stermobj))
-		  stringterm = XCHAR (stermobj);
-		else
-		  stringterm = ch;
+		    if (CHARP (stermobj))
+		      stringterm = XCHAR (stermobj);
+		    else
+		      stringterm = ch;
 		  }
 		else
 		  stringterm = '\0'; /* avoid compiler warnings */
@@ -1704,8 +1757,9 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
 
 		    if (from == stop) goto lose;
 
-		    UPDATE_SYNTAX_CACHE_BACKWARD (scache, from - 1);
-		    c = BUF_FETCH_CHAR (buf, from - 1);
+		    UPDATE_SYNTAX_CACHE_BACKWARD (scache,
+						  prev_bytebpos (buf, from));
+		    c = BYTE_BUF_FETCH_CHAR (buf, prev_bytebpos (buf, from));
                     temp_code2 = SYNTAX_FROM_CACHE (scache, c);
 		    if ((code == Sstring
 			? c == stringterm
@@ -1713,12 +1767,12 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
                         : temp_code2 == Sstring_fence)
 			&& !char_quoted (buf, from - 1))
 		      {
-		      break;
+			break;
 		      }
 
-		    from--;
+                    DEC_BYTEBPOS (buf, from);
 		  }
-                from--;
+		DEC_BYTEBPOS (buf, from);
                 if (!depth && sexpflag) goto done2;
                 break;
               }
@@ -1736,32 +1790,35 @@ scan_lists (struct buffer *buf, Charbpos from, int count, int depth,
     }
 
 
-  return (make_fixnum (from));
+  return make_fixnum (bytebpos_to_charbpos (buf, from));
 
 lose:
   if (!noerror)
     signal_error_2 (Qscan_error, "Unbalanced parentheses",
-		    make_fixnum (last_good), make_fixnum (from));
+		    make_fixnum (bytebpos_to_charbpos (buf, last_good)),
+                    make_fixnum (bytebpos_to_charbpos (buf, from)));
   return Qnil;
 }
 
 int
-char_quoted (struct buffer *buf, Charbpos pos)
+char_quoted (struct buffer *buf, Bytebpos pos)
 {
   enum syntaxcode code;
-  Charbpos beg = BUF_BEGV (buf);
+  Bytebpos beg = BYTE_BUF_BEGV (buf);
   int quoted = 0;
-  Charbpos startpos = pos;
+  Bytebpos startpos = pos;
   struct syntax_cache *scache = buf->syntax_cache;
 
   while (pos > beg)
     {
-      UPDATE_SYNTAX_CACHE_BACKWARD (scache, pos - 1);
-      code = SYNTAX_FROM_CACHE (scache, BUF_FETCH_CHAR (buf, pos - 1));
+      UPDATE_SYNTAX_CACHE_BACKWARD (scache, prev_bytebpos (buf, pos));
+      code = SYNTAX_FROM_CACHE (scache,
+				BYTE_BUF_FETCH_CHAR (buf,
+						     prev_bytebpos (buf, pos)));
 
       if (code != Scharquote && code != Sescape)
 	break;
-      pos--;
+      DEC_BYTEBPOS (buf, pos);
       quoted = !quoted;
     }
 
@@ -1792,13 +1849,12 @@ If the depth is right but the count is not used up, nil is returned.
 {
   struct buffer *buf;
 
-  CHECK_FIXNUM (from);
   CHECK_FIXNUM (count);
   CHECK_FIXNUM (depth);
   buf = decode_buffer (buffer, 0);
 
-  return scan_lists (buf, XFIXNUM (from), XFIXNUM (count), XFIXNUM (depth), 0,
-		     !NILP (noerror));
+  return scan_lists (buf, get_buffer_pos_byte (buf, from, GB_COERCE_RANGE),
+		     XFIXNUM (count), XFIXNUM (depth), 0, !NILP (noerror));
 }
 
 DEFUN ("scan-sexps", Fscan_sexps, 2, 4, 0, /*
@@ -1820,10 +1876,10 @@ but before count is used up, nil is returned.
        (from, count, buffer, noerror))
 {
   struct buffer *buf = decode_buffer (buffer, 0);
-  CHECK_FIXNUM (from);
   CHECK_FIXNUM (count);
 
-  return scan_lists (buf, XFIXNUM (from), XFIXNUM (count), 0, 1, !NILP (noerror));
+  return scan_lists (buf, get_buffer_pos_byte (buf, from, GB_COERCE_RANGE),
+		     XFIXNUM (count), 0, 1, !NILP (noerror));
 }
 
 DEFUN ("backward-prefix-chars", Fbackward_prefix_chars, 0, 1, 0, /*
@@ -1833,20 +1889,23 @@ Optional BUFFER defaults to the current buffer.
        (buffer))
 {
   struct buffer *buf = decode_buffer (buffer, 0);
-  Charbpos beg = BUF_BEGV (buf);
-  Charbpos pos = BUF_PT (buf);
+  Bytebpos beg = BYTE_BUF_BEGV (buf);
+  Bytebpos pos = BYTE_BUF_PT (buf);
   Ichar c = '\0'; /* initialize to avoid compiler warnings */
   struct syntax_cache *scache;
   
   scache = setup_buffer_syntax_cache (buf, pos, -1);
 
-  while (pos > beg && !char_quoted (buf, pos - 1)
+  while (pos > beg && !char_quoted (buf, prev_bytebpos (buf, pos))
 	 /* Previous statement updates syntax table.  */
-	 && (SYNTAX_FROM_CACHE (scache, c = BUF_FETCH_CHAR (buf, pos - 1)) == Squote
-	     || SYNTAX_CODE_PREFIX (SYNTAX_CODE_FROM_CACHE (scache, c))))
-    pos--;
+	 && (SYNTAX_FROM_CACHE
+             (scache, (c = BYTE_BUF_FETCH_CHAR (buf, prev_bytebpos (buf,
+                                                                    pos))))
+             == Squote
+             || SYNTAX_CODE_PREFIX (SYNTAX_CODE_FROM_CACHE (scache, c))))
+    DEC_BYTEBPOS (buf, pos);
 
-  BUF_SET_PT (buf, pos);
+  BYTE_BUF_SET_PT (buf, pos);
 
   return Qnil;
 }
@@ -1859,7 +1918,7 @@ Optional BUFFER defaults to the current buffer.
 
 static void
 scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
-		    Charbpos from, Charbpos end,
+		    Bytebpos from, Bytebpos end,
 		    int targetdepth, int stopbefore,
 		    Lisp_Object oldstate,
 		    int commentstop)
@@ -1867,13 +1926,13 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
   struct lisp_parse_state state;
 
   enum syntaxcode code;
-  struct level { int last, prev; };
+  struct level { Bytebpos last, prev; };
   struct level levelstart[100];
   struct level *curlevel = levelstart;
   struct level *endlevel = levelstart + 100;
   int depth;	/* Paren depth of current scanning location.
-			   level - levelstart equals this except
-			   when the depth becomes negative.  */
+		   level - levelstart equals this except
+		   when the depth becomes negative.  */
   int mindepth;		/* Lowest DEPTH value seen.  */
   int start_quoted = 0;		/* Nonzero means starting after a char quote */
   int boundary_stop = commentstop == -1;
@@ -1893,7 +1952,10 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
     {
       tem = Fcar (oldstate);    /* elt 0, depth */
       if (!NILP (tem))
-	depth = XFIXNUM (tem);
+        {
+          CHECK_FIXNUM (tem);
+          depth = XFIXNUM (tem);
+        }
       else
 	depth = 0;
 
@@ -1924,7 +1986,23 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
 
       oldstate = Fcdr (oldstate); /* elt 8, start of last comment/string */
       tem = Fcar (oldstate);
-      state.comstr_start = NILP (tem) ? -1 : XFIXNUM (tem);
+      if (NILP (tem))
+        {
+          state.comstr_start = -1;
+        }
+      else
+        {
+          CHECK_FIXNUM (tem);
+
+          if (XFIXNUM (tem) == -1)
+            {
+              state.comstr_start = -1;
+            }
+          else
+            {
+              state.comstr_start = charbpos_to_bytebpos (buf, XFIXNUM (tem));
+            }
+        }
 
       /* elt 9, char numbers of starts-of-expression of levels
          (starting from outermost). */
@@ -1934,7 +2012,7 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
 				   to change). */
       while (!NILP (tem))	/* >= second enclosing sexps.  */
 	{
-	  curlevel->last = XFIXNUM (Fcar (tem));
+	  curlevel->last = charbpos_to_bytebpos (buf, XFIXNUM (Fcar (tem)));
 	  if (++curlevel == endlevel)
 	    stack_overflow ("Nesting too deep for parser",
 			    make_fixnum (curlevel - levelstart));
@@ -1967,10 +2045,10 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
       QUIT;
 
       UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
-      c = BUF_FETCH_CHAR (buf, from);
+      c = BYTE_BUF_FETCH_CHAR (buf, from);
       syncode = SYNTAX_CODE_FROM_CACHE (scache, c);
       code = SYNTAX_FROM_CODE (syncode);
-      from++;
+      INC_BYTEBPOS (buf, from);
 
 	  /* record the comment style we have entered so that only the
 	     comment-ender sequence (or single char) of the same style
@@ -1980,14 +2058,14 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
 	  state.comstyle =
 	    SYNTAX_CODE_COMMENT_1CHAR_MASK (syncode)
 	    == SYNTAX_COMMENT_STYLE_A ? 0 : 1;
-	  state.comstr_start = from - 1;
+	  state.comstr_start = prev_bytebpos (buf, from);
 	}
 
       /* a generic comment delimiter? */
       else if (code == Scomment_fence)
 	{
 	  state.comstyle = ST_COMMENT_STYLE;
-	  state.comstr_start = from - 1;
+	  state.comstr_start = prev_bytebpos (buf, from);
 	  code = Scomment;
 	}
 
@@ -1997,15 +2075,15 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
 	  int next_syncode;
 	  UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
 	  next_syncode =
-	    SYNTAX_CODE_FROM_CACHE (scache, BUF_FETCH_CHAR (buf, from));
+	    SYNTAX_CODE_FROM_CACHE (scache, BYTE_BUF_FETCH_CHAR (buf, from));
 
 	  if (SYNTAX_CODES_START_P (syncode, next_syncode))
-	{
-	  code = Scomment;
+	    {
+	      code = Scomment;
 	      state.comstyle = SYNTAX_CODES_COMMENT_MASK_START
 		(syncode, next_syncode) == SYNTAX_COMMENT_STYLE_A ? 0 : 1;
-	      state.comstr_start = from - 1;
-	  from++;
+	      state.comstr_start = prev_bytebpos (buf, from);
+	      INC_BYTEBPOS (buf, from);
 	      UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
 	    }
 	}
@@ -2017,25 +2095,26 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
 	case Sescape:
 	case Scharquote:
 	  if (stopbefore) goto stop;  /* this arg means stop at sexp start */
-	  curlevel->last = from - 1;
+	  curlevel->last = prev_bytebpos (buf, from);
 	startquoted:
 	  if (from == end) goto endquoted;
-	  from++;
+	  INC_BYTEBPOS (buf, from);
 	  goto symstarted;
 	  /* treat following character as a word constituent */
 	case Sword:
 	case Ssymbol:
 	  if (stopbefore) goto stop;  /* this arg means stop at sexp start */
-	  curlevel->last = from - 1;
+	  curlevel->last = prev_bytebpos (buf, from);
 	symstarted:
 	  while (from < end)
 	    {
 	      UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
-	      switch (SYNTAX_FROM_CACHE (scache, BUF_FETCH_CHAR (buf, from)))
+	      switch (SYNTAX_FROM_CACHE (scache,
+					 BYTE_BUF_FETCH_CHAR (buf, from)))
 		{
 		case Scharquote:
 		case Sescape:
-		  from++;
+		  INC_BYTEBPOS (buf, from);
 		  if (from == end) goto endquoted;
 		  break;
 		case Sword:
@@ -2045,7 +2124,7 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
 		default:
 		  goto symdone;
 		}
-	      from++;
+	      INC_BYTEBPOS (buf, from);
 	    }
 	symdone:
 	  curlevel->prev = curlevel->last;
@@ -2059,7 +2138,7 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
 	    goto done;
 	  UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
 	  {
-	    Charbpos newfrom = find_end_of_comment (buf, from, end,
+	    Bytebpos newfrom = find_end_of_comment (buf, from, end,
 						    state.comstyle);
 	    if (newfrom < 0)
 	      {
@@ -2098,9 +2177,9 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
 
 	case Sstring:
 	case Sstring_fence:
-	  state.comstr_start = from - 1;
-            if (stopbefore) goto stop; /* this arg means stop at sexp start */
-            curlevel->last = from - 1;
+	  state.comstr_start = prev_bytebpos (buf, from);
+	  if (stopbefore) goto stop; /* this arg means stop at sexp start */
+	  curlevel->last = prev_bytebpos (buf, from);
 	  if (code == Sstring_fence)
 	    {
 	      state.instring = ST_STRING_STYLE;
@@ -2108,7 +2187,7 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
 	  else
 	    {
 	      /* XEmacs change: call syntax_match() on character */
-	      Ichar ch = BUF_FETCH_CHAR (buf, from - 1);
+	      Ichar ch = BYTE_BUF_FETCH_CHAR (buf, prev_bytebpos (buf, from));
 	      Lisp_Object stermobj =
 		syntax_match (scache->syntax_table, ch);
 
@@ -2126,13 +2205,13 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
 	      if (from >= end) goto done;
 
 	      UPDATE_SYNTAX_CACHE_FORWARD (scache, from);
-	      c = BUF_FETCH_CHAR (buf, from);
+	      c = BYTE_BUF_FETCH_CHAR (buf, from);
 	      temp_code = SYNTAX_FROM_CACHE (scache, c);
 
-	      if (
-		  state.instring != ST_STRING_STYLE &&
+	      if (state.instring != ST_STRING_STYLE &&
 		  temp_code == Sstring &&
-		  c == state.instring) break;
+		  c == state.instring)
+		break;
 
 	      switch (temp_code)
 		{
@@ -2143,7 +2222,7 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
 		case Scharquote:
 		case Sescape:
                   {
-                    from++;
+		    INC_BYTEBPOS (buf, from);
                   startquotedinstring:
                     if (from >= end) goto endquoted;
                     break;
@@ -2151,12 +2230,12 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
                 default:
                   break;
 		}
-	      from++;
+	      INC_BYTEBPOS (buf, from);
 	    }
 	string_end:
 	  state.instring = -1;
 	  curlevel->prev = curlevel->last;
-	  from++;
+	  INC_BYTEBPOS (buf, from);
 	  if (boundary_stop) goto done;
 	  break;
 
@@ -2176,7 +2255,7 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
   goto done;
 
  stop:   /* Here if stopping before start of sexp. */
-  from--;    /* We have just fetched the char that starts it; */
+  DEC_BYTEBPOS (buf, from); /* We have just fetched the char that starts it; */
   goto done; /* but return the position before it. */
 
  endquoted:
@@ -2190,8 +2269,22 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
   state.location = from;
   state.levelstarts = Qnil;
   while (--curlevel >= levelstart)
-    state.levelstarts = Fcons (make_fixnum (curlevel->last),
-			       state.levelstarts);
+    {
+      if (BYTE_BUF_BEG (buf) <= curlevel->last
+          && curlevel->last <= BYTE_BUF_Z (buf))
+        {
+          state.levelstarts = Fcons (make_fixnum
+                                     (bytebpos_to_charbpos (buf,
+                                                            curlevel->last)),
+                                     state.levelstarts);
+        }
+      else
+        {
+          state.levelstarts = Fcons (make_fixnum (curlevel->last),
+                                     state.levelstarts);
+
+        }
+    }
 
   *stateptr = state;
 }
@@ -2233,8 +2326,8 @@ to the current buffer.
        (from, to, targetdepth, stopbefore, oldstate, commentstop, buffer))
 {
   struct lisp_parse_state state;
-  int target;
-  Charbpos start, end;
+  EMACS_INT target;
+  Bytebpos start, end;
   struct buffer *buf = decode_buffer (buffer, 0);
   Lisp_Object val;
 
@@ -2244,20 +2337,21 @@ to the current buffer.
       target = XFIXNUM (targetdepth);
     }
   else
-    target = -100000;		/* We won't reach this depth */
+    target = MOST_NEGATIVE_FIXNUM - 1;		/* We won't reach this depth */
 
-  get_buffer_range_char (buf, from, to, &start, &end, 0);
+  get_buffer_range_byte (buf, from, to, &start, &end, 0);
   scan_sexps_forward (buf, &state, start, end,
 		      target, !NILP (stopbefore), oldstate,
 		      (NILP (commentstop)
 		       ? 0 : (EQ (commentstop, Qsyntax_table) ? -1 : 1)));
-  BUF_SET_PT (buf, state.location);
+  BYTE_BUF_SET_PT (buf, state.location);
 
   /* reverse order */
   val = Qnil;
   val = Fcons (state.levelstarts, val);
   val = Fcons ((state.incomment || (state.instring >= 0))
-	       ? make_fixnum (state.comstr_start) : Qnil, val);
+	       ? make_fixnum (bytebpos_to_charbpos (buf, state.comstr_start))
+	       : Qnil, val);
   val = Fcons (state.comstyle  ? (state.comstyle == ST_COMMENT_STYLE
 				  ? Qsyntax_table : Qt) : Qnil, val);
   val = Fcons (make_fixnum (state.mindepth),   val);
@@ -2268,9 +2362,11 @@ to the current buffer.
 	       : (state.instring == ST_STRING_STYLE
 		  ? Qt : make_fixnum (state.instring)), val);
   val = Fcons (state.thislevelstart < 0 ? Qnil :
-	       make_fixnum (state.thislevelstart), val);
+	       make_fixnum (bytebpos_to_charbpos (buf, state.thislevelstart)),
+	       val);
   val = Fcons (state.prevlevelstart < 0 ? Qnil :
-	       make_fixnum (state.prevlevelstart), val);
+	       make_fixnum (bytebpos_to_charbpos (buf, state.prevlevelstart)),
+	       val);
   val = Fcons (make_fixnum (state.depth), val);
 
   return val;

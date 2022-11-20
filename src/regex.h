@@ -43,6 +43,7 @@
 #define RE_ISWCTYPE_ARG(varname)
 #define Elemcount ssize_t
 #define Bytecount ssize_t
+#define Bytebpos ssize_t
 #endif /* emacs */
 
 #ifndef emacs

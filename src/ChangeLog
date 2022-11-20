@@ -1,3 +1,58 @@
+2022-11-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Move syntax.c to functioning in byte offsets, avoiding the
+	implicit charbpos_to_bytebpos() of its frequent BUF_FETCH_CHAR()
+	calls and bringing us a little close to removing the non-MULE
+	build option.
+
+	* font-lock.c:
+	* font-lock.c (end_of_defun):
+	Call scan_lists() with its new calling convention.
+	* lisp.h:
+	Declare the new byte_scan_words (), provided in addition to
+	scan_words () given the former is used in several places.
+	* regex.c (offset_to_bytexpos): New.
+	Renamed and revised offset_to_charxpos().
+	* regex.c (re_search_2):
+	* regex.c (re_match_2):
+	* regex.c (re_match_2_internal):
+	Avoid potentially expensive bytebpos_to_charbpos() calls in these
+	functions now the syntax cache deals in byte positions.
+
+	* regex.h:
+	* regex.h (Bytebpos):
+	Give this a #define for non-XEmacs code using regex.h.
+	* search.c (skip_chars):
+	Now the syntax code deals in byte positions, use them in this
+	function.
+
+	* syntax.c:
+	* syntax.c (struct lisp_parse_state):
+	* syntax.c (find_defun_start):
+	* syntax.c (Fsyntax_cache_info):
+	* syntax.c (reset_syntax_cache_range):
+	* syntax.c (setup_syntax_cache):
+	* syntax.c (setup_buffer_syntax_cache):
+	* syntax.c (update_syntax_cache):
+	* syntax.c (signal_syntax_cache_extent_adjust):
+	* syntax.c (scan_words):
+	* syntax.c (byte_scan_words):
+	* syntax.c (Fforward_word):
+	* syntax.c (find_start_of_comment):
+	* syntax.c (find_end_of_comment):
+	* syntax.c (Fforward_comment):
+	* syntax.c (scan_lists):
+	* syntax.c (char_quoted):
+	* syntax.c (Fscan_lists):
+	* syntax.c (Fscan_sexps):
+	* syntax.c (Fbackward_prefix_chars):
+	* syntax.c (scan_sexps_forward):
+	* syntax.c (Fparse_partial_sexp):
+	* syntax.h:
+	* syntax.h (struct syntax_cache):
+	Revise all this to deal in byte positions.  Transform to character
+	position when dealing with Lisp in #'parse-partial-sexp.
+
 2022-11-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Move barf_if_buffer_read_only() to taking Bytebpos arguments, in
