@@ -746,7 +746,7 @@ Optional SYNTAX-TABLE defaults to the current buffer's syntax table.
 #endif
 
 Charbpos
-scan_words (struct_buffer *buf, Charbpos from, EMACS_INT count)
+scan_words (struct buffer *buf, Charbpos from, EMACS_INT count)
 {
   Bytebpos bresult = byte_scan_words (buf, charbpos_to_bytebpos (buf, from),
                                       count);

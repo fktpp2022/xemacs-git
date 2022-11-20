@@ -1,5 +1,11 @@
 2022-11-20  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* syntax.c (scan_words):
+	Fix a compilation problem with the definition of this, thank you
+	G++ 11.
+
+2022-11-20  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Move syntax.c to functioning in byte offsets, avoiding the
 	implicit charbpos_to_bytebpos() of its frequent BUF_FETCH_CHAR()
 	calls and bringing us a little close to removing the non-MULE
