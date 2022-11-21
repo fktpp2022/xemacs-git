@@ -430,6 +430,7 @@ find_context (struct buffer *buf, Charbpos pt)
   Ichar prev_c, c;
   int prev_syncode, syncode;
   Charbpos target = pt;
+  Bytebpos byte_pt;
   struct syntax_cache *scache;
   int spec = specpdl_depth ();
 
@@ -444,12 +445,14 @@ find_context (struct buffer *buf, Charbpos pt)
   
   setup_context_cache (buf, pt);
   pt = context_cache.cur_point;
+  byte_pt = charbpos_to_bytebpos (buf, pt);
 
-  scache = setup_buffer_syntax_cache (buf, pt > BUF_BEGV (buf) ? pt - 1 : pt,
-				      1);
-  if (pt > BUF_BEGV (buf))
+  scache = setup_buffer_syntax_cache (buf, byte_pt > BYTE_BUF_BEGV (buf) ?
+                                      prev_bytebpos (buf, byte_pt) :
+                                      BYTE_BUF_BEGV (buf), 1);
+  if (byte_pt > BYTE_BUF_BEGV (buf))
     {
-      c = BUF_FETCH_CHAR (buf, pt - 1);
+      c = BYTE_BUF_FETCH_CHAR (buf, prev_bytebpos (buf, byte_pt));
       syncode = SYNTAX_CODE_FROM_CACHE (scache, c);
     }
   else
@@ -458,7 +461,8 @@ find_context (struct buffer *buf, Charbpos pt)
       syncode = Swhitespace;
     }
 
-  for (; pt < target; pt++, context_cache.cur_point = pt)
+  for (; pt < target; pt++, context_cache.cur_point = pt,
+         byte_pt = next_bytebpos (buf, byte_pt))
     {
       if (context_cache.needs_its_head_reexamined)
 	{
@@ -491,10 +495,10 @@ find_context (struct buffer *buf, Charbpos pt)
 	    }
 	}
 
-      UPDATE_SYNTAX_CACHE_FORWARD (scache, pt);
+      UPDATE_SYNTAX_CACHE_FORWARD (scache, byte_pt);
       prev_c = c;
       prev_syncode = syncode;
-      c = BUF_FETCH_CHAR (buf, pt);
+      c = BYTE_BUF_FETCH_CHAR (buf, byte_pt);
       syncode = SYNTAX_CODE_FROM_CACHE (scache, c);
 
       if (prev_c == '\n')

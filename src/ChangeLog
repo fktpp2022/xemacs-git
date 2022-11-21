@@ -1,3 +1,9 @@
+2022-11-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* font-lock.c (find_context):
+	Pass a byte position to the syntax cache code, fixing a bug. Use
+	BYTE_BUF_FETCH_CHAR() now we have the byte position.
+
 2022-11-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* syntax.c (scan_words):
