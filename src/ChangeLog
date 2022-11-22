@@ -1,3 +1,13 @@
+2022-11-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* syntax.c (find_end_of_comment):
+	Don't call BUF_FETCH_CHAR() here.
+	* syntax.c (scan_lists):
+	Dont subtract 1 from a Bytebpos, use prev_bytebpos() instead.
+	* syntax.c (scan_sexps_forward):
+	Be more careful about range before passing the result of XFIXNUM
+	to charbpos_to_bytebpos().
+
 2022-11-21  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* font-lock.c (find_context):

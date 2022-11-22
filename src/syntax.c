@@ -1154,7 +1154,7 @@ find_end_of_comment (struct buffer *buf, Bytebpos from, Bytebpos stop,
       if (from < stop
 	  && SYNTAX_CODES_MATCH_END_P
 	  (prev_code,
-	   SYNTAX_CODE_FROM_CACHE (scache, BUF_FETCH_CHAR (buf, from)),
+	   SYNTAX_CODE_FROM_CACHE (scache, BYTE_BUF_FETCH_CHAR (buf, from)),
 	   mask)
 
 	  )
@@ -1765,7 +1765,7 @@ scan_lists (struct buffer *buf, Bytebpos from, int count, int depth,
 			? c == stringterm
                           && temp_code2 == Sstring
                         : temp_code2 == Sstring_fence)
-			&& !char_quoted (buf, from - 1))
+			&& !char_quoted (buf, prev_bytebpos (buf, from)))
 		      {
 			break;
 		      }
@@ -1994,13 +1994,16 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
         {
           CHECK_FIXNUM (tem);
 
-          if (XFIXNUM (tem) == -1)
+          if (XFIXNUM (tem) < 0)
             {
               state.comstr_start = -1;
             }
           else
             {
-              state.comstr_start = charbpos_to_bytebpos (buf, XFIXNUM (tem));
+              check_integer_range (tem, make_fixnum (BUF_BEG (buf)),
+                                   make_fixnum (BUF_Z (buf)));
+              state.comstr_start
+		= charbpos_to_bytebpos (buf, XFIXNUM (tem));
             }
         }
 
@@ -2012,7 +2015,21 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
 				   to change). */
       while (!NILP (tem))	/* >= second enclosing sexps.  */
 	{
-	  curlevel->last = charbpos_to_bytebpos (buf, XFIXNUM (Fcar (tem)));
+          Lisp_Object llast = Fcar (tem);
+
+          CHECK_FIXNUM (llast);
+
+          if (XFIXNUM (llast) < 0)
+            {
+              curlevel->last = XFIXNUM (llast);
+            }
+          else
+            {
+              check_integer_range (llast, make_fixnum (BUF_BEG (buf)),
+                                   make_fixnum (BUF_Z (buf)));
+              curlevel->last = charbpos_to_bytebpos (buf, XFIXNUM (llast));
+            }
+
 	  if (++curlevel == endlevel)
 	    stack_overflow ("Nesting too deep for parser",
 			    make_fixnum (curlevel - levelstart));
@@ -2156,7 +2173,7 @@ scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
 	case Sopen:
 	  if (stopbefore) goto stop;  /* this arg means stop at sexp start */
 	  depth++;
-	  curlevel->last = from - 1;
+	  curlevel->last = prev_bytebpos (buf, from);
 	  if (++curlevel == endlevel)
 	    stack_overflow ("Nesting too deep for parser",
 			    make_fixnum (curlevel - levelstart));
