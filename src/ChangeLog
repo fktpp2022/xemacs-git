@@ -1,3 +1,15 @@
+2022-11-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* process.c (Fstart_process_internal):
+	Use set_marker_byte_position() here, avoid a needless
+	charbpos_to_bytebpos().
+	* process.c (process_setup_for_insertion):
+	If writing to the end of the visible portion of the buffer, use
+	BOTH_BUF_SET_PT() when setting point, avoiding a needles
+	charbpos_to_bytebpos().
+	* process.c (read_process_output):
+	Use set_marker_byte_position() here after the insert.
+
 2022-11-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* syntax.c (find_end_of_comment):

@@ -832,11 +832,13 @@ arguments: (NAME BUFFER PROGRAM &rest PROGRAM-ARGS)
 
   /* Make the process marker point into the process buffer (if any).  */
   if (!NILP (buffer))
-    Fset_marker (XPROCESS (process)->mark,
-		 make_fixnum (BUF_ZV (XBUFFER (buffer))), buffer);
+    set_marker_byte_position (XPROCESS (process)->mark,
+                              BYTE_BUF_ZV (XBUFFER (buffer)),
+                              buffer);
   if (!NILP (stderr_buffer))
-    Fset_marker (XPROCESS (process)->stderr_mark,
-		 make_fixnum (BUF_ZV (XBUFFER (stderr_buffer))), stderr_buffer);
+    set_marker_byte_position (XPROCESS (process)->stderr_mark,
+                              BYTE_BUF_ZV (XBUFFER (stderr_buffer)),
+                              stderr_buffer);
 
   /* If an error occurs and we can't start the process, we want to
      remove it from the process list.  This means that each error
@@ -1068,7 +1070,8 @@ process_setup_for_insertion (Lisp_Object process, int read_stderr)
   Lisp_Object buffer = read_stderr ? p->stderr_buffer : p->buffer;
   Lisp_Object mark = read_stderr ? p->stderr_mark : p->mark;
   struct buffer *buf = XBUFFER (buffer);
-  Charbpos output_pt;
+  Bytebpos output_bpt;
+  Charbpos output_cpt = -1;
 
   if (buf != current_buffer)
     {
@@ -1084,20 +1087,31 @@ process_setup_for_insertion (Lisp_Object process, int read_stderr)
      at the current end-of-output marker,
      thus preserving logical ordering of input and output.  */
   if (XMARKER (mark)->buffer)
-    output_pt = marker_position (mark);
+    output_bpt = marker_byte_position (mark);
   else
-    output_pt = BUF_ZV (buf);
+    {
+      output_bpt = BYTE_BUF_ZV (buf);
+      output_cpt = BUF_ZV (buf);
+    }
 
   /* If the output marker is outside of the visible region, save
      the restriction and widen.  */
-  if (! (BUF_BEGV (buf) <= output_pt && output_pt <= BUF_ZV (buf)))
+  if (! (BYTE_BUF_BEGV (buf) <= output_bpt
+         && output_bpt <= BYTE_BUF_ZV (buf)))
     {
       record_unwind_protect (save_restriction_restore,
 			     save_restriction_save (buf));
       Fwiden (wrap_buffer (buf));
     }
 
-  BUF_SET_PT (buf, output_pt);
+  if (output_cpt > 0)
+    {
+      BOTH_BUF_SET_PT (buf, output_cpt, output_bpt);
+    }
+  else
+    {
+      BYTE_BUF_SET_PT (buf, output_bpt);
+    }
   return spec;
 }
 
@@ -1194,8 +1208,7 @@ read_process_output (Lisp_Object process, int read_stderr)
       buffer_insert_raw_string (buf, chars, nbytes);
 #endif
 
-      Fset_marker (mark, make_fixnum (BUF_PT (buf)), buffer);
-
+      set_marker_byte_position (mark, BYTE_BUF_PT (buf), buffer);
       MARK_MODELINE_CHANGED;
       unbind_to (spec);
       UNGCPRO;
