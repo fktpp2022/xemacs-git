@@ -8931,7 +8931,7 @@ roots that are traversed are shown in their processed order:
 @itemize @bullet
 @item
 all constant symbols and static variables that are registered via
-@code{staticpro}@ in the dynarr @code{staticpros}.
+@code{staticpro} in the dynarr @code{staticpros}.
 @xref{Adding Global Lisp Variables}.
 @item
 all Lisp objects that are created in C functions and that must be
@@ -18510,7 +18510,7 @@ Here is an ASCII diagram:
 | #  | +----------------------------------------------------------+ |  # |
 | #  | |                          gutter                          | |  # |
 | #  | |-********************************************************-| |  # |
-|w#  | | *@|        scrollbar        |v*                      |s* | |  #w|
+|w#  | | *@@|        scrollbar        |v*                      |s* | |  #w|
 |i#  | | *-+-------------------------|e*                      |c* | |  #i|
 |n#  | | *s|                         |r*                      |r* | |  #n|
 |d#  | | *c|                         |t*                      |o* | |  #d|
@@ -18520,27 +18520,27 @@ Here is an ASCII diagram:
 |m#  |t| *l|                         |i*                      |a* |t|  #m|
 |a#  |e| *b|                         |v*                      |r* |e|  #a|
 |n# t|r| *a|                         |i*----------------------+-* |r|t #n|
-|a# o|n|g*r|                         |d*      scrollbar       |@*g|n|o #a|
+|a# o|n|g*r|                         |d*      scrollbar       |@@*g|n|o #a|
 |g# o|a|u*-+-------------------------|e*----------------------+-*u|a|o #g|
 |e# l|l|t*        modeline           |r*      modeline          *t|l|l #e|
 |r# b| |t********************************************************t| |b #r|
-| # a|b|e*   =..texttexttex....=   |s|v*                      |s*e|b|a # |
-|d# r|o|r*o m=..texttexttextt..=o m|c|e*                      |c*r|o|r #d|
-|e#  |r| *u a=.exttexttextte...=u a|r|r*                      |r* |r|  #e|
-|c#  |d| *t r=....texttexttex..=t r|o|t*                      |o* |d|  #c|
+| # a|b|e*   =..texttexttext...=   |s|v*                      |s*e|b|a # |
+|d# r|o|r*o m=..texttexttext...=o m|c|e*                      |c*r|o|r #d|
+|e#  |r| *u a=..texttexttext...=u a|r|r*                      |r* |r|  #e|
+|c#  |d| *t r=..texttexttext...=t r|o|t*                      |o* |d|  #c|
 |o#  |e| *s g=        etc.     =s g|l|.*      text area       |l* |e|  #o|
 |r#  |r| *i i=                 =i i|l| *                      |l* |r|  #r|
 |a#  | | *d n=                 =d n|b|d*                      |b* | |  #a|
 |t#  | | *e  = inner text area =e  |a|i*                      |a* | |  #t|
 |i#  | | *   =                 =   |r|v*                      |r* | |  #i|
 |o#  | | *---===================---+-|i*----------------------+-* | |  #o|
-|n#  | | *        scrollbar        |@|d*      scrollbar       |@* | |  #n|
+|n#  | | *        scrollbar        |@@|d*      scrollbar       |@@* | |  #n|
 | #  | | *-------------------------+-|e*----------------------+-* | |  # |
 | #  | | *        modeline           |r*      modeline          * | |  # |
 | #  | |-********************************************************-| |  # |
 | #  | |                           gutter                         | |  # |
 | #  | |-********************************************************-| |  # |
-| #  | |@*                       minibuffer                     *@| |  # |
+| #  | |@@*                       minibuffer                     *@@| |  # |
 | #  | +-********************************************************-+ |  # |
 | #  |                         internal border                      |  # |
 | #--------------------------------------------------------------------# |
@@ -18550,7 +18550,7 @@ Here is an ASCII diagram:
 +------------------------------------------------------------------------+
 
 # = boundary of client area; * = window boundaries, boundary of paned area
-= = boundary of inner text area; . = inside margin area; @ = dead boxes
+= = boundary of inner text area; . = inside margin area; @@ = dead boxes
 @end example
 
 Note in particular what happens at the corners, where a ``corner box''

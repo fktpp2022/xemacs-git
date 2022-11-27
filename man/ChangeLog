@@ -1,3 +1,9 @@
+2022-11-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (Intro to Window and Frame Geometry):
+	Double @-signs in the ASCII-art diagram in this section, thank you
+	Matsl.
+
 2022-08-28  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lispref/strings.texi (Text Comparison):
