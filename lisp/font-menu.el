@@ -455,4 +455,4 @@ Returns non-nil if `font-menu-maybe-change-face' changed FACE's font."
 
 (provide 'font-menu)
 
-;; font-menu ends here
+;;; font-menu.el ends here

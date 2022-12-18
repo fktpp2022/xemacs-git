@@ -315,3 +315,4 @@ Returns the font if it succeeds, nil otherwise."
   "Loads a new version of the given font (or font name) 1 point larger.
 Returns the font if it succeeds, nil otherwise."
   (mswindows-frob-font-size font t device))
+;;; msw-faces.el ends here

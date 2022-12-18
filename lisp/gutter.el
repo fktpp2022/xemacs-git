@@ -179,3 +179,4 @@ corresponding symbol occurs in the gutter-visible instantiator."
 ;;; gutter.el ends here.
 
 
+;;; gutter.el ends here

@@ -1007,3 +1007,4 @@ label."
 		     (GdkImlibImage . watermark))
 
 (provide 'gnome-widgets)
+;;; gnome-widgets.el ends here

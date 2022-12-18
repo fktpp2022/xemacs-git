@@ -59,3 +59,4 @@ A plist is a simple list containing alternating keys and values."
     (maphash #'(lambda (key value) (setq list (list* key value list)))
 	     hash-table)
     list))
+;;; hash-table.el ends here

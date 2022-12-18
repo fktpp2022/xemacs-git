@@ -281,3 +281,4 @@ function, and after being called once, this function does nothing.
   nil)
 
 (provide 'compiled-unicode-tables)
+;;; compiled-unicode-tables.el ends here

@@ -177,3 +177,4 @@ Lisp expressions in those arguments."
 
 ;;; help-macro.el
 
+;;; help-macro.el ends here

@@ -117,3 +117,4 @@
      :properties `(height ,(widget-logical-to-character-height 6)
 			  width ,(widget-logical-to-character-width 39))
      )))
+;;; dialog-items.el ends here

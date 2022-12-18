@@ -85,3 +85,4 @@
 	  (code-page (cdr (car l))))
     (declare-fboundp (mswindows-set-charset-code-page charset code-page))
     (setq l (cdr l)))))
+;;; mule-msw-init-late.el ends here

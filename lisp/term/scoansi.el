@@ -145,3 +145,4 @@
 (define-key function-key-map "\e]h" [(meta center)])
 (define-key function-key-map "\e]i" [(meta kp-subtract)])
 (define-key function-key-map "\e]j" [(meta kp-add)])
+;;; scoansi.el ends here

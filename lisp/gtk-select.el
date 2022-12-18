@@ -61,3 +61,4 @@ be the text between those markers)."
 
 ;(setq gtk-sent-selection-hooks 'gtk-notice-selection-requests)
 ;(setq gtk-sent-selection-hooks 'gtk-notice-selection-failures)
+;;; gtk-select.el ends here

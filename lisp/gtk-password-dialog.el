@@ -128,3 +128,4 @@
     dialog))
 
 (provide 'gtk-password-dialog)
+;;; gtk-password-dialog.el ends here

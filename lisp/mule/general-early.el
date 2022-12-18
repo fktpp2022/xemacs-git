@@ -38,3 +38,4 @@
       with table = (standard-case-table)
       do (put-case-table-pair
 	  (make-char charset uc) (make-char charset lc) table))))
+;;; general-early.el ends here

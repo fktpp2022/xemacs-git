@@ -542,3 +542,4 @@ mapping from the error sequences to the desired characters.  "
 ; For more information, see Appendix A.1 of The Unicode Standard 2.0, or
 ; wherever it is in v3.0."
 ;    unicode-type utf-7))
+;;; unicode.el ends here

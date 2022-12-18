@@ -347,3 +347,4 @@ applicable to adobe-courier fonts"
 
     (gtk-widget-show-all dialog)
     (gtk-main)))
+;;; gtk-faces.el ends here

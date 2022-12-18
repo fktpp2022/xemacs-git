@@ -503,3 +503,4 @@
               (show-stats "freed")
               (plist-get plist 'n-gc-total)))))
     (error 'void-function "gc-stats not available.")))
+;;; diagnose.el ends here

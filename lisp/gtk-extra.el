@@ -116,3 +116,4 @@
 ;;; gtksheet.h
 
 (provide 'gtk-extra)
+;;; gtk-extra.el ends here

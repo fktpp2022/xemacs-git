@@ -287,3 +287,4 @@ Optional keyword arguments allowed:
     dialog))
 
 (provide 'gtk-file-dialog)
+;;; gtk-file-dialog.el ends here

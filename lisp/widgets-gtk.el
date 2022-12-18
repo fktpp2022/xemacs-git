@@ -139,3 +139,4 @@
     widget))
 
 (provide 'widgets-gtk)
+;;; widgets-gtk.el ends here

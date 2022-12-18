@@ -114,3 +114,4 @@ as returned by
    locale user-default
    code-page oem))
 
+;;; mule-win32-init.el ends here

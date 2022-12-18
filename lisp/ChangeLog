@@ -1,3 +1,76 @@
+2022-12-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* compat.el:
+	* diagnose.el:
+	* dialog-gtk.el:
+	* dialog-items.el:
+	* dump-paths.el:
+	* font-menu.el:
+	* font.el:
+	* gdk.el:
+	* generic-widgets.el:
+	* glade.el:
+	* gnome-widgets.el:
+	* gnome.el:
+	* gpm.el:
+	* gtk-compose.el:
+	* gtk-extra.el:
+	* gtk-faces.el:
+	* gtk-ffi.el:
+	* gtk-file-dialog.el:
+	* gtk-init.el:
+	* gtk-mouse.el:
+	* gtk-package.el:
+	* gtk-password-dialog.el:
+	* gtk-select.el:
+	* gtk-widget-accessors.el:
+	* gtk-widgets.el:
+	* gtk.el:
+	* gutter.el:
+	* hash-table.el:
+	* help-macro.el:
+	* itimer.el:
+	* loadup-el.el:
+	* msw-faces.el:
+	* msw-init.el:
+	* msw-select.el:
+	* mule/compiled-unicode-tables.el:
+	* mule/general-early.el:
+	* mule/iso-with-esc.el:
+	* mule/kinsoku.el:
+	* mule/mule-category.el:
+	* mule/mule-coding.el:
+	* mule/mule-composite-stub.el:
+	* mule/mule-msw-init-late.el:
+	* mule/mule-win32-init.el:
+	* mule/windows.el:
+	* next-error.el:
+	* occur.el:
+	* package-net.el:
+	* post-gc.el:
+	* printer.el:
+	* raw-process.el:
+	* resize-minibuffer.el:
+	* term/bobcat.el:
+	* term/cygwin.el:
+	* term/linux.el:
+	* term/scoansi.el:
+	* term/tvi970.el:
+	* term/vt102.el:
+	* term/vt125.el:
+	* term/vt200.el:
+	* term/vt201.el:
+	* term/vt220.el:
+	* term/vt240.el:
+	* term/vt300.el:
+	* term/vt320.el:
+	* term/vt400.el:
+	* term/vt420.el:
+	* unicode.el:
+	* widgets-gtk.el:
+	Add missing ";;; FILE.el ends here" lines at the end of all these
+	Lisp files, a good practice that I want to encourage.
+
 2022-11-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* info.el (Info-find-file-node):

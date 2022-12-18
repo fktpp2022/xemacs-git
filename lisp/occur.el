@@ -559,3 +559,4 @@ See also `multi-occur'."
       globalcount)))
 
 (provide 'occur)
+;;; occur.el ends here

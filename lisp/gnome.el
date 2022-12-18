@@ -42,3 +42,4 @@
 
 (require 'gnome-widgets)
 (provide 'gnome)
+;;; gnome.el ends here

@@ -850,3 +850,4 @@ x      start a new itimer
   (if (fboundp 'add-timeout)
       (itimer-timer-wakeup)
     (itimer-process-wakeup)))
+;;; itimer.el ends here

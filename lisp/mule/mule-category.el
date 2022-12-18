@@ -333,3 +333,4 @@ Each element is a list of a charset, a designator, and maybe a doc string.")
 (defvar kanji-Kanji-2nd-Level  "[弌-瑤]")
 
 (defvar kanji-kanji-char "\\(\\cH\\|\\cK\\|\\cC\\)")
+;;; mule-category.el ends here

@@ -45,3 +45,4 @@
 	     gtk-enumeration-info))
   (goto-char (point-min))
   (display-buffer (current-buffer)))
+;;; gtk.el ends here

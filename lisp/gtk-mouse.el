@@ -68,3 +68,4 @@
 		       'gtk))
 
     (setq gtk-pointers-initialized t)))
+;;; gtk-mouse.el ends here

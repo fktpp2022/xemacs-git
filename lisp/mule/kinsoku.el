@@ -292,3 +292,4 @@ pointが行末禁則に触れる場合は行を縮めて、禁則に触れない点を探す。
 		     (= ?w (char-syntax ch2))
 		     (= ?w (char-syntax ch1)))))
       (backward-char))))
+;;; kinsoku.el ends here

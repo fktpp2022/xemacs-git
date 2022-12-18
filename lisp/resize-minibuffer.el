@@ -235,3 +235,4 @@ respectively."
 (add-hook 'minibuffer-setup-hook 'resize-minibuffer-setup)
 
 ;;; rsz-minibuf.el ends here
+;;; resize-minibuffer.el ends here

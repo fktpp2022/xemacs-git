@@ -1380,3 +1380,4 @@ is returned."
    (t nil)))
 
 (provide 'font)
+;;; font.el ends here

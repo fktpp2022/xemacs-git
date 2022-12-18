@@ -359,3 +359,4 @@ that latter standard is not used in Greece.")
 ;; (make-1d-windows-charset-and-coding-system
 ;;  1026 'latin "EBCDIC" :unicode-dir "EBCDIC" :low 0 :high 255
 ;;  :ansioem "EBCDIC")
+;;; windows.el ends here

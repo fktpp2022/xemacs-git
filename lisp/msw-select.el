@@ -50,6 +50,4 @@ replacing the active selection if there is one."
 	(insert-rectangle clip)
       (insert clip))))
 
-
-
-
+;;; msw-select.el ends here

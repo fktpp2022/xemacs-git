@@ -459,3 +459,4 @@ Recognized properties are the same as those in `make-dialog-box':
 	      (fboundp 'lpr-region))
 	 (declare-fboundp (lpr-region start end)))
 	(t (error "No print support available"))))
+;;; printer.el ends here

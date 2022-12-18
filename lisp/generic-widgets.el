@@ -342,3 +342,4 @@ Properties:
 				   :word-wrap t
 				   :text "Text with a face on it")))))))
 )
+;;; generic-widgets.el ends here

@@ -102,3 +102,4 @@ for missing marshallers.")
        (gtk-import-variable-internal (quote ,type) ,name))))
 
 (provide 'gtk-ffi)
+;;; gtk-ffi.el ends here

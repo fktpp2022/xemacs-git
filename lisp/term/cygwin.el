@@ -27,3 +27,4 @@
 ;;; Code:
 
 (load "term/linux" nil t)
+;;; cygwin.el ends here

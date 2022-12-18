@@ -360,3 +360,4 @@
       (error "Unknown type of dialog: %S" type))))
 
 (provide 'dialog-gtk)
+;;; dialog-gtk.el ends here

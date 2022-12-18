@@ -281,3 +281,4 @@ structure."
    (gboolean  . vscrollbar_visible))
 
  )
+;;; gtk-widget-accessors.el ends here

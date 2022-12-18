@@ -190,3 +190,4 @@ DESTDIR defaults to the value of `data-directory'."
 	      (setq entries (cdr entries))))
 	  (write-region (point-min) (point-max) (concat destdir "mirrors.lst")))
       (kill-buffer buf))))
+;;; package-net.el ends here

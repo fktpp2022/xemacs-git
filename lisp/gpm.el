@@ -81,3 +81,4 @@ TTY, and its terminal type has been set to `linux'."
 (add-hook 'delete-device-hook 'gpm-delete-device-hook)
 
 (provide 'gpm)
+;;; gpm.el ends here

@@ -44,3 +44,4 @@
   (unless make-device-late-mswindows-entry-point-called-p
     (setq make-device-late-mswindows-entry-point-called-p t)))
 
+;;; msw-init.el ends here

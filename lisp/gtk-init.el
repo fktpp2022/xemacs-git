@@ -153,3 +153,4 @@ a GTK device is created; this variable allows for that.")
 
 (push '("-geometry" . gtk-init-handle-geometry) command-switch-alist)
 
+;;; gtk-init.el ends here

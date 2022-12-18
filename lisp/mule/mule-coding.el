@@ -230,3 +230,4 @@ Analogous to `define-translation-table', but updates
    mnemonic "Latin 1"
    documentation "The most used encoding of Western Europe and the Americas."
    aliases (iso-latin-1 latin-1)))
+;;; mule-coding.el ends here

@@ -283,3 +283,4 @@ location."
       (error t))))
 
 (provide 'next-error)
+;;; next-error.el ends here

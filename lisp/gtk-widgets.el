@@ -2082,3 +2082,4 @@
 ;; be called if there are no previews or users's of the preview
 ;; colormap in existence.
 (gtk-import-function void gtk_preview_reset)
+;;; gtk-widgets.el ends here

@@ -94,3 +94,4 @@ Internal use only.
 Return information about composition at or nearest to position POS.
 See `find-composition' for more detail."
   nil)
+;;; mule-composite-stub.el ends here

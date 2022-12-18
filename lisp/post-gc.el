@@ -59,3 +59,4 @@
 	     (delete-if-not #'ephemeron-ref simple-finalizer-ephemerons))))
 
 (add-hook 'post-gc-hook 'cleanup-simple-finalizers)
+;;; post-gc.el ends here

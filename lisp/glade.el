@@ -64,3 +64,4 @@
 (gtk-import-function GtkString glade_get_widget_name (GtkWidget . widget))
 (gtk-import-function GtkString glade_get_widget_long_name (GtkWidget . widget))
 (gtk-import-function GladeXML glade_get_widget_tree (GtkWidget . widget))
+;;; glade.el ends here

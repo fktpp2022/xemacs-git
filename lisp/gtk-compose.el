@@ -20,3 +20,4 @@
 (require 'compose)
 
 (provide 'gtk-compose)
+;;; gtk-compose.el ends here

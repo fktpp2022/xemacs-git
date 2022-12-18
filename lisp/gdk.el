@@ -148,3 +148,4 @@
 ;; Selections are handled natively by XEmacs
 
 (provide 'gdk)
+;;; gdk.el ends here

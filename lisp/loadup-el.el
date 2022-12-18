@@ -21,3 +21,4 @@
 (let ((load-ignore-elc-files t)
       (purify-flag nil))
   (load "loadup.el"))
+;;; loadup-el.el ends here

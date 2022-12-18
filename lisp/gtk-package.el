@@ -31,3 +31,4 @@
 	(box (gtk-hbox-new nil 5)))
     (gtk-container-add window box)
     (gtk-widget-show-all window)))
+;;; gtk-package.el ends here
