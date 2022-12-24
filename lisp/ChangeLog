@@ -1,3 +1,11 @@
+2022-12-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* info.el (Info-find-file-node):
+	Info-tag-table-marker is buffer-local, and we need to
+	#'set-marker on the value in the original buffer, not the tag
+	table buffer. Avoid error with C-u F1 i ../info/lispref.info RET
+	with this change.
+
 2022-12-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* compat.el:

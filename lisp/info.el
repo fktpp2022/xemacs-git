@@ -752,21 +752,26 @@ node of a file of this name."
 			  (looking-at "(Indirect)\n"))
 			;; It is indirect.  Copy it to another buffer
 			;; and record that the tag table is in that buffer.
-			  (let ((buf (current-buffer))
-                                (mpos (match-end 0)))
-			    (or
-			     Info-tag-table-buffer
-			     (setq
-			      Info-tag-table-buffer
-			      (generate-new-buffer " *info tag table*")))
-			    (save-excursion
-			      (set-buffer Info-tag-table-buffer)
-			      (buffer-disable-undo (current-buffer))
-			      (setq case-fold-search t)
-			      (erase-buffer)
-			      (insert-buffer-substring buf)
-			      (set-marker Info-tag-table-marker mpos)))
-		     (set-marker Info-tag-table-marker pos))))
+                        (let ((buf (current-buffer))
+                              ;; Caution, we need to set-marker on the
+                              ;; Info-tag-table-marker of the current buffer
+                              ;; (it is buffer-local) rather than the new
+                              ;; buffer.
+                              (m Info-tag-table-marker)
+                              (mpos (match-end 0)))
+                          (or
+                           Info-tag-table-buffer
+                           (setq
+                            Info-tag-table-buffer
+                            (generate-new-buffer " *info tag table*")))
+                          (save-excursion
+                            (set-buffer Info-tag-table-buffer)
+                            (buffer-disable-undo (current-buffer))
+                            (setq case-fold-search t)
+                            (erase-buffer)
+                            (insert-buffer-substring buf)
+                            (set-marker m mpos)))
+                      (set-marker Info-tag-table-marker pos))))
 	      (setq Info-current-file
 		    (file-name-sans-versions buffer-file-name))))
 	(if (equal nodename "*")
