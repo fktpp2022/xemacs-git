@@ -1,3 +1,13 @@
+2022-12-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* configure.ac: Revise Mats' change of 8dac3e59da3f to avoid
+	extended regular expressions, not guaranteed to work with sed(1),
+	and not necessary.
+	Mats' change allowed for patch numbers in makeinfo(1)'s version
+	output, as does this.
+
+	* configure: Regenerate.
+
 2022-10-28  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* configure.ac:

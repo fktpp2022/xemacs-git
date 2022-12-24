@@ -2520,7 +2520,7 @@ dnl We need a recent version of makeinfo
 AC_MSG_CHECKING([for makeinfo >= 4.12])
 MAKEINFO=
 for prog in `which -a makeinfo`; do
-  mi_verstr=[`$prog --version | sed -n '1s/^.* \([0-9][0-9]*\.[0-9][0-9]*\(\|\.[0-9][0-9]*\)\)$/\1/p'`]
+  mi_verstr=[`$prog --version | sed -n '1s/^.* \([0-9][0-9.]*\)$/\1/p'`]
   mi_major=`echo $mi_verstr | cut -d. -f1`
   mi_minor=`echo $mi_verstr | cut -d. -f2`
   if test "$mi_major" -gt 4 || ( test "$mi_major" -eq 4 && test "$mi_minor" -gt 11 );
