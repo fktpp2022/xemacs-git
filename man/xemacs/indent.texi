@@ -106,7 +106,7 @@ to.  Each line is shifted left or right so that its first non-blank
 character appears in that column.  @kbd{C-x @key{TAB}}
 (@code{indent-rigidly}) moves all the lines in the region right by its
 argument (left, for negative arguments).  The whole group of lines moves
-rigidly sideways, which is how the command gets its name.@refill
+rigidly sideways, which is how the command gets its name.
 
 @findex indent-relative
   @kbd{M-x indent-relative} indents at point based on the previous line

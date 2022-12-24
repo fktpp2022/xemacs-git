@@ -89,7 +89,7 @@ argument shows you that many more lines at the bottom of the window, moving
 the text and point up together as @kbd{C-l} might.  @kbd{C-v} with a
 negative argument shows you more lines at the top of the window.
 @kbd{Meta-v} (@code{scroll-down}) is like @kbd{C-v}, but moves in the
-opposite direction.@refill
+opposite direction.
 
 @vindex next-screen-context-lines
   To read the buffer a windowful at a time, use @kbd{C-v} with no
@@ -230,7 +230,7 @@ numeric argument @var{n}.  (@xref{Arguments}, for information on giving
 the argument.)  Lines with at least @var{n} columns of indentation
 disappear from the screen.  The only indication of their presence are
 three dots (@samp{@dots{}}), which appear at the end of each visible
-line that is followed by one or more invisible ones.@refill
+line that is followed by one or more invisible ones.
 
   The invisible lines are still present in the buffer, and most editing
 commands see them as usual, so it is very easy to put point in the middle

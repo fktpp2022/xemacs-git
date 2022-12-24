@@ -132,28 +132,28 @@ Prompts you for a filename and loads that file into a new buffer in a
 new Emacs frame, that is, a new X window running under the same Emacs
 process.  You can remove the frame using the @b{Delete Frame} menu
 item.  When you remove the last frame, you exit Emacs and are prompted
-for confirmation. @refill
+for confirmation. 
 
 @item Open File...
 Prompts you for a filename and loads that file into a new buffer. 
 @b{Open File...} is equivalent to the Emacs command @code{find-file} (@kbd{C-x
-C-f}).@refill 
+C-f}). 
 
 @item Insert File...
 Prompts you for a filename and inserts the contents of that file into
 the current buffer.  The file associated with the current buffer is
 not changed by this command.  This is equivalent to the Emacs command
-@code{insert-file} (@kbd{C-x i}).@refill 
+@code{insert-file} (@kbd{C-x i}). 
 
 @item Save Buffer 
 Writes and saves the current Emacs buffer as the latest
 version of the current visited file.  @b{Save Buffer} is equivalent to the
-Emacs command @code{save-buffer} (@kbd{C-x C-s}).@refill
+Emacs command @code{save-buffer} (@kbd{C-x C-s}).
 
 @item Save Buffer As... 
 Writes and saves the current Emacs buffer to the filename you specify.
 @b{Save Buffer As...} is equivalent to the Emacs command
-@code{write-file} (@kbd{C-x C-w}).@refill
+@code{write-file} (@kbd{C-x C-w}).
 
 @item Revert Buffer
 Restores the last saved version of the file to the current buffer.  When
@@ -161,51 +161,51 @@ you edit a buffer containing a text file, you must save the buffer
 before your changes become effective.  Use @b{Revert Buffer} if you do
 not want to keep the changes you have made in the buffer.  @b{Revert
 Buffer} is equivalent to the Emacs command @code{revert-file} (@kbd{M-x
-revert-buffer}).@refill
+revert-buffer}).
 
 @item Kill Buffer
 Kills the current buffer, prompting you first if there are unsaved
 changes.  This is roughly equivalent to the Emacs command 
 @code{kill-buffer} (@kbd{C-x k}), except that @code{kill-buffer} 
-prompts for the name of a buffer to kill. @refill
+prompts for the name of a buffer to kill. 
 
 @item Print Buffer
 Prints a hardcopy of the current buffer.  Equivalent
-to the Emacs command @code{print-buffer} (@kbd{M-x print-buffer}).@refill
+to the Emacs command @code{print-buffer} (@kbd{M-x print-buffer}).
 
 @item New Frame
 Creates a new Emacs frame displaying the @code{*scratch*} buffer.  This
 is like the @b{Open in New Frame...} menu item, except that it does
-not prompt for nor load a file.@refill
+not prompt for nor load a file.
 
 @item Delete Frame 
 Allows you to close all but one of the frames created by @b{New Frame}.
 If you created several Emacs frames belonging to the same Emacs
 process, you can close all but one of them.  When you attempt to close the
 last frame, Emacs informs you that you are attempting to delete the
-last frame.  You have to choose @b{Exit Emacs} for that.@refill
+last frame.  You have to choose @b{Exit Emacs} for that.
 
 @item Split Frame
 Divides the current window on the current frame into two equal-sized
 windows, both displaying the same buffer.  Equivalent to the Emacs
-command @code{split-window-vertically} (@kbd{C-x 2}).@refill
+command @code{split-window-vertically} (@kbd{C-x 2}).
 
 @item Un-split (Keep This)
 If the frame is divided into multiple windows, this removes all windows
 other than the selected one.  Equivalent to the Emacs command
-@code{delete-other-windows} (@kbd{C-x 1}).@refill
+@code{delete-other-windows} (@kbd{C-x 1}).
 
 @item Un-split (Keep Others)
 If the frame is divided into multiple windows, this removes the
 selected window from the frame, giving the space back to one of the
 other windows.  Equivalent to the Emacs command @code{delete-window}
-(@kbd{C-x 0}).@refill
+(@kbd{C-x 0}).
 
 @item Exit Emacs
 Shuts down (kills) the Emacs process.  Equivalent to the Emacs command
 @code{save-buffers-kill-emacs} (@kbd{C-x C-c}).  Before killing the
 Emacs process, the system asks which unsaved buffers to save by going through
-the list of all buffers in that Emacs process.@refill
+the list of all buffers in that Emacs process.
 @end table
 
 @node Edit Menu, Apps Menu, File Menu, Pull-down Menus
@@ -218,7 +218,7 @@ executes the equivalent command.  Most commands on the @b{Edit} menu
 work on a block of text, the X selection.  They appear faded until you
 select a block of text (activate a region) with the mouse.  @xref{Using
 X Selections}, @pxref{Killing}, and @pxref{Yanking} for more
-information.@refill
+information.
 
 @c  **** zmacs-regions is on by default these days - jwz
 @c
@@ -238,18 +238,18 @@ information.@refill
 @table @b
 @item Undo 
 Undoes the previous command.  @b{Undo} is equivalent to
-the Emacs command @code{undo} (@kbd{C-x u}).@refill
+the Emacs command @code{undo} (@kbd{C-x u}).
 
 @item Cut
 Removes the selected text block from the current buffer, makes it the X
 clipboard selection, and places it in the kill ring.  Before executing
 this command, you have to select a region using Emacs region selection
-commands or with the mouse.@refill 
+commands or with the mouse. 
 
 @item Copy 
 Makes a selected text block the X clipboard selection, and places it in
 the kill ring.  You can select text using one of the Emacs region
-selection commands or by selecting a text region with the mouse.@refill
+selection commands or by selecting a text region with the mouse.
 
 @item Paste 
 Inserts the current value of the X clipboard selection in the current
@@ -360,7 +360,7 @@ the Fonts and Colors to a fast, minimal set of decorations. Selecting
 example, if @b{Less} is selected (which is the default setting) then you
 might have all comments in green color.  Whereas, if @b{More} is
 selected then a function name in the comments themselves might appear in
-a different Color or Font.@refill
+a different Color or Font.
 
 @item Paren Highlighting
 After selecting @b{Blink} from this item, if you place the cursor 
@@ -368,7 +368,7 @@ on a parenthesis, the matching parenthesis will blink. If you select
 @b{Highlight} and place the cursor on a parenthesis, the whole 
 expression of the parenthesis under the cursor will be highlighted. 
 Selecting @b{None} will turn off the options (regarding @b{Paren 
-Highlighting}) which you had selected earlier.@refill
+Highlighting}) which you had selected earlier.
 
 @item Font
 You can select any Font for your program by choosing from one of the 
@@ -376,10 +376,10 @@ available Fonts.
 
 @item Size
 You can select any size ranging from @b{2} to @b{24} by selecting the 
-appropriate option.@refill
+appropriate option.
 
 @item Weight
-You can choose either @b{Bold} or @b{Medium} for the weight.@refill
+You can choose either @b{Bold} or @b{Medium} for the weight.
 
 @item Buffers Menu Length...
 Prompts you for the number of buffers to display. Then it will display 

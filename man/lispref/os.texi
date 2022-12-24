@@ -223,7 +223,7 @@ by searching the @code{load-path} directories as it does for other
 files, and trying the @samp{.elc} and @samp{.el} suffixes.  Normally,
 terminal-specific Lisp library is located in @file{emacs/lisp/term}, a
 subdirectory of the @file{emacs/lisp} directory in which most XEmacs Lisp
-libraries are kept.@refill
+libraries are kept.
 
   The library's name is constructed by concatenating the value of the
 variable @code{term-file-prefix} and the terminal type.  Normally,
@@ -241,7 +241,7 @@ the name before the first hyphen is significant in choosing the library
 name.  Thus, terminal types @samp{aaa-48} and @samp{aaa-30-rv} both use
 the @file{term/aaa} library.  If necessary, the library can evaluate
 @code{(getenv "TERM")} to find the full name of the terminal
-type.@refill
+type.
 
   Your @file{.emacs} file can prevent the loading of the
 terminal-specific library by setting the variable

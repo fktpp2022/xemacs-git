@@ -47,7 +47,7 @@ the string contents, and cannot be altered.  Strings in Lisp are
 @emph{not} terminated by a distinguished character code.  (By contrast,
 strings in C are terminated by a character with @sc{ascii} code 0.)
 This means that any character, including the null character (@sc{ascii}
-code 0), is a valid element of a string.@refill
+code 0), is a valid element of a string.
 
   Since strings are considered arrays, you can operate on them with the
 general array functions.  (@xref{Sequences Arrays Vectors}.)  For

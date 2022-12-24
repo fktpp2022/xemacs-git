@@ -1670,7 +1670,7 @@ is not applied to the names of directories.
 In the following example, suppose that the current default directory,
 @file{~rms/lewis}, has five files whose names begin with @samp{f}:
 @file{foo}, @file{file~}, @file{file.c}, @file{file.c.~1~}, and
-@file{file.c.~2~}.@refill
+@file{file.c.~2~}.
 
 @example
 @group
@@ -1703,7 +1703,7 @@ is not applied to the names of directories.
 In the following example, suppose that the current default directory
 has five files whose names begin with @samp{f}: @file{foo},
 @file{file~}, @file{file.c}, @file{file.c.~1~}, and
-@file{file.c.~2~}.@refill
+@file{file.c.~2~}.
 
 @example
 @group
@@ -1732,7 +1732,7 @@ has five files whose names begin with @samp{f}: @file{foo},
 @code{file-name-completion} usually ignores file names that end in any
 string in this list.  It does not ignore them when all the possible
 completions end in one of these suffixes or when a buffer showing all
-possible completions is displayed.@refill
+possible completions is displayed.
 
 A typical value might look like this:
 

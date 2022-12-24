@@ -70,7 +70,7 @@ which can either insert spaces or convert tabs as necessary to make sure
 that point stays in exactly the same column.  @kbd{C-e} runs
 @code{picture-end-of-line}, which moves to after the last non-blank
 character on the line.  There was no need to change @kbd{C-a}, as the choice
-of screen model does not affect beginnings of lines.@refill
+of screen model does not affect beginnings of lines.
 
 @findex picture-newline
   Insertion of text is adapted to the quarter-plane screen model through
@@ -88,7 +88,7 @@ line.
 with a space rather than removing it.  @kbd{C-d}
 (@code{picture-clear-column}) does the same in a forward direction.
 @kbd{C-k} (@code{picture-clear-line}) really kills the contents of lines,
-but never removes the newlines from a buffer.@refill
+but never removes the newlines from a buffer.
 
 @findex picture-open-line
   To do actual insertion, you must use special commands.  @kbd{C-o}
@@ -96,7 +96,7 @@ but never removes the newlines from a buffer.@refill
 the current line; it never splits a line.  @kbd{C-M-o}, @code{split-line},
 makes sense in Picture mode, so it remains unchanged.  @key{LFD}
 (@code{picture-duplicate-line}) inserts another line
-with the same contents below the current line.@refill
+with the same contents below the current line.
 
 @kindex C-c C-d (Picture mode)
 @findex delete-char
@@ -179,7 +179,7 @@ interesting character in the current line.  @kbd{M-@key{TAB}} does not
 change the text; it only moves point.  ``Interesting'' characters are
 defined by the variable @code{picture-tab-chars}, which contains a string
 of characters considered interesting.  Its default value is
-@code{"!-~"}.@refill
+@code{"!-~"}.
 
 @findex picture-tab
   @key{TAB} itself runs @code{picture-tab}, which operates based on the
@@ -229,7 +229,7 @@ Similar, but use the rectangle in register @var{r}@*
 (@code{picture-clear-rectangle-to-register}) differ from the standard
 rectangle commands in that they normally clear the rectangle instead of
 deleting it; this is analogous with the way @kbd{C-d} is changed in Picture
-mode.@refill
+mode.
 
   However, deletion of rectangles can be useful in Picture mode, so these
 commands delete the rectangle if given a numeric argument.

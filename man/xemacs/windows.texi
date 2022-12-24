@@ -90,7 +90,7 @@ long to fit.  Continuing all those lines might be confusing.  Set the
 variable @code{truncate-partial-width-windows} to non-@code{nil} to
 force truncation in all windows less than the full width of the frame,
 independent of the buffer and its value for @code{truncate-lines}.
-@xref{Continuation Lines}.@refill
+@xref{Continuation Lines}.
 
   Horizontal scrolling is often used in side-by-side windows.
 @xref{Display}.

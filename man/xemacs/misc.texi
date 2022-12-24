@@ -106,7 +106,7 @@ whether the file has changed on disk since it was last visited or
 
 @noindent
 where the sort keys were @samp{If}, @samp{XEmacs}, @samp{buffer},
-@samp{systems}, and @samp{the}.@refill
+@samp{systems}, and @samp{the}.
 
 @findex sort-columns
   @kbd{M-x sort-columns} requires more explanation.  You specify the
@@ -182,7 +182,7 @@ before the output and the mark is set after the output.
 the contents of the region as input to the shell command, instead of no
 input.  If a numeric argument is used to direct  output to the current
 buffer, then the old region is deleted first and the output replaces it as
-the contents of the region.@refill
+the contents of the region.
 
 @vindex shell-file-name
 @cindex environment
@@ -192,7 +192,7 @@ environment variable when you start XEmacs.  If the file name does not
 specify a directory, the directories in the list @code{exec-path} are
 searched; this list is initialized based on the @code{PATH} environment
 variable when you start XEmacs.  You can override either or both of these
-default initializations in your init file. @xref{Init File}.@refill
+default initializations in your init file. @xref{Init File}.
 
   When you use @kbd{M-!} and @kbd{M-|}, XEmacs has to wait until the
 shell command completes.  You can quit with @kbd{C-g}; that terminates
@@ -228,13 +228,13 @@ one, and so on.  All the subshells run independently and in parallel.
 environment variable @code{ESHELL} is used, or the environment variable
 @code{SHELL} if there is no @code{ESHELL}.  If the file name specified
 is relative, the directories in the list @code{exec-path} are searched
-(@pxref{Single Shell,Single Shell Commands}).@refill
+(@pxref{Single Shell,Single Shell Commands}).
 
   As soon as the subshell is started, it is sent as input the contents of
 the file @file{~/.emacs_@var{shellname}}, if that file exists, where
 @var{shellname} is the name of the file that the shell was loaded from.
 For example, if you use @code{csh}, the file sent to it is
-@file{~/.emacs_csh}.@refill
+@file{~/.emacs_csh}.
 
 @vindex shell-pushd-regexp
 @vindex shell-popd-regexp
@@ -249,7 +249,7 @@ recognize them also.  For example, if the value of the variable
 that line is regarded as a @code{pushd} command.  Change this variable when
 you add aliases for @samp{pushd}.  Likewise, @code{shell-popd-regexp} and
 @code{shell-cd-regexp} are used to recognize commands with the meaning of
-@samp{popd} and @samp{cd}.@refill
+@samp{popd} and @samp{cd}.
 
 @kbd{M-x shell-resync-dirs} queries the shell and resynchronizes XEmacs'
 idea of what the current directory stack is.  @kbd{M-x

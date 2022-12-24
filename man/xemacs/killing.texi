@@ -45,7 +45,7 @@ command to undo it (@pxref{Undo}). The delete commands include @kbd{C-d}
 (@code{delete-char}) and @key{DEL} (@code{delete-backward-char}), which
 delete only one character at a time, and those commands that delete only
 spaces or newlines.  Commands that can destroy significant amounts of
-nontrivial data usually kill.@refill
+nontrivial data usually kill.
 
 @subsection Deletion
 
@@ -184,7 +184,7 @@ backward and kill text before point.
   Other syntactic units can be killed: words, with @kbd{M-@key{DEL}} and
 @kbd{M-d} (@pxref{Words}); sexps, with @kbd{C-M-k} (@pxref{Lists}); and
 sentences, with @kbd{C-x @key{DEL}} and @kbd{M-k}
-(@pxref{Sentences}).@refill
+(@pxref{Sentences}).
 
 @node Yanking, Using X Selections, Killing, Top
 @section Yanking
@@ -297,7 +297,7 @@ ring.  To force a kill command to append, first type the command @kbd{C-M-w}
 if it is a kill command, to append the text it kills to the last killed
 text, instead of starting a new entry.  With @kbd{C-M-w}, you can kill
 several separated pieces of text and accumulate them to be yanked back
-in one place.@refill
+in one place.
 
 @node Earlier Kills,, Appending Kills, Yanking
 @subsection Yanking Earlier Kills
@@ -310,7 +310,7 @@ after a @kbd{C-y} or another @kbd{M-y}.  It takes the text previously
 yanked and replaces it with the text from an earlier kill.  To recover
 the text of the next-to-the-last kill, first use @kbd{C-y} to recover
 the last kill, then @kbd{M-y} to replace it with the previous
-kill.@refill
+kill.
 
   You can think in terms of a ``last yank'' pointer which points at an item
 in the kill ring.  Each time you kill, the ``last yank'' pointer moves to

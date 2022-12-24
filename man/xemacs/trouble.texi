@@ -314,7 +314,7 @@ characters you typed since starting to use Emacs.
 you @i{know} that it makes no difference which visiting command is used.
 Similarly, rather than saying ``if I have three characters on the line,''
 say ``after I type @kbd{@key{RET} A B C @key{RET} C-p},'' if that is
-the way you entered the text.@refill
+the way you entered the text.
 
   If you are not in Fundamental mode when the problem occurs, you should
 say what mode you are in.
@@ -387,7 +387,7 @@ up, put this expression into your init file so that the termscript file
 will be open when Emacs displays the screen for the first time.
 @xref{Init File}. Be warned: it is often difficult, and sometimes
 impossible, to fix a terminal-dependent bug without access to a terminal
-of the type that stimulates the bug.@refill
+of the type that stimulates the bug.
 
 The newsgroup @samp{comp.emacs.xemacs} may be used for bug reports,
 other discussions and requests for assistance.  

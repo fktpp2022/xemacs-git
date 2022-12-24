@@ -124,14 +124,14 @@ defaults to @code{TT_IN}.  If @var{mode} is @code{TT_OUT} then
 @var{value} and @var{type} don't need to be specified.  You can find out
 more about the semantics and uses of ToolTalk message arguments in
 chapter 4 of the @cite{ToolTalk Programmer's Guide}.
-@refill
+
 @end defun
 
 @defun send-tooltalk-message msg
 Send the message on its way.  Once the message has been sent it's almost
 always a good idea to get rid of it with
 @code{destroy-tooltalk-message}.
-@refill
+
 @end defun
 
 @defun return-tooltalk-message msg &optional mode
@@ -140,7 +140,7 @@ Send a reply to this message.  The second argument can be @code{reply},
 sending a reply, all message arguments whose mode is @code{TT_INOUT} or
 @code{TT_OUT} should have been filled in---see
 @code{set-tooltalk-message-attribute}.
-@refill
+
 @end defun
 
 @defun get-tooltalk-message-attribute msg attribute &optional argn
@@ -155,7 +155,7 @@ to a string, and @samp{disposition} is converted to a fixnum.  We
 convert @samp{opnum} (a C int) to a string (e.g. @code{123} @result{}
 @code{"123"}) because there's no guarantee that opnums will fit within
 the range of XEmacs Lisp integers.
-@refill
+
 
 [TBD] Use the @code{plist} attribute instead of C API @code{user}
 attribute for user-defined message data.  To retrieve the value of a
@@ -182,7 +182,7 @@ ToolTalk doesn't define any semantics for the string value of
 @code{int} for 32 bit integers.  Note that XEmacs Lisp stores the lengths
 of strings explicitly (unlike C) so treating the value returned by
 @code{arg_bval} like a string is fine.
-@refill
+
 @end defun
 
 @defun set-tooltalk-message-attribute value msg attribute &optional argn
@@ -192,7 +192,7 @@ Attribute names and values are the same as for
 @code{get-tooltalk-message-attribute}.  A property list is provided for
 user data (instead of the @code{user} message attribute); see
 @code{get-tooltalk-message-attribute}.
-@refill
+
 
 Callbacks are handled slightly differently than in the C ToolTalk API.
 The value of @var{callback} should be the name of a function of one
@@ -200,13 +200,13 @@ argument.  It will be called each time the state of the message changes.
 This is usually used to notice when the message's state has changed to
 @code{TT_HANDLED} (or @code{TT_FAILED}), so that reply argument values
 can be used.
-@refill
+
 
 If one of the argument attributes is specified as @code{arg_val},
 @code{arg_ival}, or @code{arg_bval}, then @var{argn} must be the
 number of an already created argument.  Arguments can be added to a
 message with @code{add-tooltalk-message-arg}.
-@refill
+
 @end defun
 
 @defun add-tooltalk-message-arg msg mode type &optional value
@@ -220,7 +220,7 @@ bit integers.  Arguments can initialized by providing a value or with
 @code{set-tooltalk-message-attribute}; the latter is necessary if you
 want to initialize the argument with a string that can contain embedded
 nulls (use @code{arg_bval}).
-@refill
+
 @end defun
 
 @defun create-tooltalk-message &optional no-callback
@@ -233,7 +233,7 @@ initialize a message.
 Optional arg @var{no-callback} says don't add a C-level callback at all.
 Normally don't do that; just don't specify the Lisp callback when
 calling @code{make-tooltalk-message}.
-@refill
+
 @end defun
 
 @defun destroy-tooltalk-message msg
@@ -317,7 +317,7 @@ defaults to @code{TT_IN}.  If @var{mode} is @code{TT_OUT} then
 @var{value} and @var{type} don't need to be specified.  You can find out
 more about the semantics and uses of ToolTalk pattern arguments in
 chapter 3 of the @cite{ToolTalk Programmer's Guide}.
-@refill
+
 @end defun
 
 @defun register-tooltalk-pattern pattern
@@ -336,7 +336,7 @@ example, the name of the attribute for the
 @samp{tt_pattern_disposition_add} attribute is @code{disposition}.  The
 @code{category} attribute is handled specially, since a pattern can only
 be a member of one category (@code{TT_OBSERVE} or @code{TT_HANDLE}).
-@refill
+
 
 Callbacks are handled slightly differently than in the C ToolTalk API.
 The value of @var{callback} should be the name of a function of one
@@ -351,7 +351,7 @@ must be a string.  @var{value} can be an integer, string or @code{nil}.
 If @var{value} is an integer then an integer argument
 (@samp{tt_pattern_iarg_add}) is added; otherwise a string argument is
 added.  At present there's no way to add a binary data argument.
-@refill
+
 @end defun
 
 @defun create-tooltalk-pattern

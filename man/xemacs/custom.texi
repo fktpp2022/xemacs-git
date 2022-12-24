@@ -91,7 +91,7 @@ inactivated, but the indicator will remain in the modeline.
   Overwrite mode causes ordinary printing characters to replace existing
 text instead of moving it to the right.  For example, if point is in
 front of the @samp{B} in @samp{FOOBAR}, and you type a @kbd{G} in Overwrite
-mode, it changes to @samp{FOOGAR}, instead of @samp{FOOGBAR}.@refill
+mode, it changes to @samp{FOOGAR}, instead of @samp{FOOGBAR}.
 
 @cindex Pending Delete mode
 @findex pending-delete-mode
@@ -731,7 +731,7 @@ include @code{abbrev-mode}, @code{auto-fill-function},
 @code{selective-display-ellipses}, @*@code{selective-display},
 @code{tab-width}, and @code{truncate-lines}.  Some other variables are
 always local in every buffer, but they are used for internal
-purposes.@refill
+purposes.
 
 Note: the variable @code{auto-fill-function} was formerly named
 @code{auto-fill-hook}.
@@ -795,7 +795,7 @@ before it and the suffix after it.  This includes the @samp{End:} line.
 The prefix and suffix are included to disguise the local variables list
 as a comment so the compiler or text formatter  will ignore it.
 If you do not need to disguise the local variables list as a comment in
-this way, there is no need to include a prefix or a suffix.@refill
+this way, there is no need to include a prefix or a suffix.
 
   Two ``variable'' names are special in a local variables list: a value
 for the variable @code{mode} sets the major mode, and a value for the
@@ -1032,7 +1032,7 @@ part of the macro.  When you exit the recursive edit using @kbd{C-M-c},
 you are asked again how to continue with the keyboard macro.  If you
 type a @key{SPC} at this time, the rest of the macro definition is
 executed.  It is up to you to leave point and the text in a state such
-that the rest of the macro will do what you want.@refill
+that the rest of the macro will do what you want.
 
   @kbd{C-u C-x q}, which is @kbd{C-x q} with a numeric argument, performs a
 different function.  It enters a recursive edit reading input from the
@@ -1148,14 +1148,14 @@ effect is the same, but it provides a command name for the prefix key that
 you can use as a description of what the prefix key is for.  Thus the
 binding of @kbd{C-x} is the symbol @code{Ctl-X-Prefix}, whose function
 definition is the keymap for @kbd{C-x} commands, the value of
-@code{ctl-x-map}.@refill
+@code{ctl-x-map}.
 
   Prefix key definitions can appear in either the global
 map or a local map.  The definitions of @kbd{C-c}, @kbd{C-x}, @kbd{C-h},
 and @key{ESC} as prefix keys appear in the global map, so these prefix
 keys are always available.  Major modes can locally redefine a key as a
 prefix by putting a prefix key definition for it in the local
-map.@refill
+map.
 
   A mode can also put a prefix definition of a global prefix character such
 as @kbd{C-x} into its local map.  This is how major modes override the
@@ -1167,7 +1167,7 @@ definition overriding the global one.  The character after the
 @kbd{C-x} is looked up in both the major mode's own keymap for redefined
 @kbd{C-x} commands and in @code{ctl-x-map}.  If the major mode's own keymap
 for @kbd{C-x} commands contains @code{nil}, the definition from the global
-keymap for @kbd{C-x} commands is used.@refill
+keymap for @kbd{C-x} commands is used.
 
 @node Rebinding, Disabling, Keymaps, Key Bindings
 @subsection Changing Key Bindings
@@ -1228,7 +1228,7 @@ one until they amount to a complete key (that is, not a prefix key).
 Thus, if you type @kbd{C-f} for @var{key}, Emacs enters
 the minibuffer immediately to read @var{cmd}.  But if you type
 @kbd{C-x}, another character is read; if that character is @kbd{4},
-another character is read, and so on.  For example,@refill
+another character is read, and so on.  For example,
 
 @example
 M-x global-set-key @key{RET} C-x 4 $ spell-other-window @key{RET}
@@ -1695,7 +1695,7 @@ the only characters for which backslash sequences are mandatory.
 You can use @samp{\C-} as a prefix for a control character, as in
 @samp{\C-s} for ASCII Control-S, and @samp{\M-} as a prefix for
 a Meta character, as in @samp{\M-a} for Meta-A or @samp{\M-\C-a} for
-Control-Meta-A.@refill
+Control-Meta-A.
 
 @item Characters
 Lisp character constant syntax consists of a @samp{?} followed by
@@ -1886,18 +1886,18 @@ it is run on that type of terminal.  For a terminal type named
 found by searching the directories @code{load-path} as usual and trying the
 suffixes @samp{.elc} and @samp{.el}.  Normally it appears in the
 subdirectory @file{term} of the directory where most Emacs libraries are
-kept.@refill
+kept.
 
   The usual purpose of the terminal-specific library is to define the
 escape sequences used by the terminal's function keys using the library
 @file{keypad.el}.  See the file
-@file{term/vt100.el} for an example of how this is done.@refill
+@file{term/vt100.el} for an example of how this is done.
 
   When the terminal type contains a hyphen, only the part of the name
 before the first hyphen is significant in choosing the library name.
 Thus, terminal types @samp{aaa-48} and @samp{aaa-30-rv} both use
 the library @file{term/aaa}.  The code in the library can use
-@code{(getenv "TERM")} to find the full terminal type name.@refill
+@code{(getenv "TERM")} to find the full terminal type name.
 
 @vindex term-file-prefix
   The library's name is constructed by concatenating the value of the
@@ -1911,7 +1911,7 @@ called as a function of no arguments at the end of Emacs initialization,
 after both your init file and any terminal-specific library have been
 read.  @xref{Init File}.  You can set the value in the init file to
 override part of any of the terminal-specific libraries and to define
-initializations for terminals that do not have a library.@refill
+initializations for terminals that do not have a library.
 
 @node Audible Bell, Faces, Init File, Customization
 @section Changing the Bell Sound
@@ -1931,7 +1931,7 @@ standard beep.  This only works if you are logged in on the console of a
 machine with audio hardware. To listen to a sound of the provided type,
 call the function @code{play-sound} with the argument @var{sound}. You
 can also set the volume of the sound with the optional argument
-@var{volume}.@refill
+@var{volume}.
 @cindex ding
 
 Each element of @code{sound-alist} is a list describing a sound.

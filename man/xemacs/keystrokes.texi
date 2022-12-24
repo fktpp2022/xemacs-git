@@ -50,7 +50,7 @@ which defines 128 different character codes.  Some of these codes are
 assigned graphic symbols like @samp{a} and @samp{=}; the rest are
 control characters, such as @kbd{Control-a} (also called @kbd{C-a}).
 @kbd{C-a} means you hold down the @key{CTRL} key and then press
-@kbd{a}.@refill
+@kbd{a}.
 
    Keybindings in XEmacs are not restricted to the set of
 keystrokes that can be represented in ASCII.  XEmacs can tell the
@@ -174,9 +174,9 @@ schematic representation of a complete key sequence is as follows:
 Typing @kbd{C-c} followed by @kbd{C-a}
 @item [(control c) (control 65)]
 Typing @kbd{C-c} followed by @kbd{C-a}. (Using the ASCII code
-for the character `a')@refill
+for the character `a')
 @item [(control c) (break)]
-Typing @kbd{C-c} followed by the @kbd{break} character.@refill
+Typing @kbd{C-c} followed by the @kbd{break} character.
 @end table
 
 @kindex C-c
@@ -205,14 +205,14 @@ x) (\4)]} is itself a prefix that leads to any number of different
 three-character keys, including @kbd{[(control x) (\4) (f)]},
 @kbd{[(control x) (\4) (b)]} and so on.  It would be possible to define
 one of those three-character sequences as a prefix, creating a series of
-four-character keys, but we did not define any of them this way.@refill
+four-character keys, but we did not define any of them this way.
 
   By contrast, the two-character sequence @kbd{[(control f) (control
 k)]} is not a key, because the @kbd{(control f)} is a complete key
 sequence in itself.  You cannot give @kbd{[(control f (control k)]} an
 independent meaning as a command while @kbd{(control f)} is a complete
 sequence, because Emacs would understand @key{C-f C-k} as two
-commands.@refill
+commands.
 
  The predefined prefix key sequences in Emacs are @kbd{(control c)},
 @kbd{(control x)}, @kbd{(control h)}, @kbd{[(control x) (\4)]}, and
@@ -261,17 +261,17 @@ by just holding that key down.  To type @kbd{Meta-a}, hold down
 @key{META} and press @kbd{a}.  On those terminals, the @key{META} key
 works like the @key{SHIFT} key.  Such a key is not always labeled
 @key{META}, however, as this function is often a special option for a
-key with some other primary purpose.@refill
+key with some other primary purpose.
 
   If there is no @key{META} key, you can still type Meta characters
 using two-character sequences starting with @key{ESC}.  To enter
 @kbd{M-a}, you could type @kbd{@key{ESC} a}.  To enter @kbd{C-M-a}, you
 would type @kbd{ESC C-a}.  @key{ESC} is allowed on terminals with
-Meta keys, too, in case you have formed a habit of using it.@refill
+Meta keys, too, in case you have formed a habit of using it.
 
 If you are running under X and do not have a @key{META} key, it 
 is possible to reconfigure some other key to be a @key{META} 
-key.  @xref{Super and Hyper Keys}. @refill
+key.  @xref{Super and Hyper Keys}. 
 
 @vindex meta-flag
   Emacs believes the terminal has a @key{META} key if the variable
@@ -316,7 +316,7 @@ replace the word @code{Super} above with @code{Meta} or @code{Hyper}.
 
 Just after you start up X, execute the command @code{xmodmap /.xmodmap}.
 You can add this command to the appropriate initialization file to have
-the command executed automatically.@refill
+the command executed automatically.
 
 If you have problems, see the documentation for the @code{xmodmap}
 program.  The X keyboard model is quite complicated, and explaining
@@ -498,7 +498,7 @@ vital in understanding how to customize Emacs.  The function
 has this effect @i{because} it is bound to that function.  If you rebind
 @kbd{C-n} to the function @code{forward-word} then @kbd{C-n} will move
 forward by words instead.  Rebinding keys is a common method of
-customization.@refill
+customization.
 
    The rest of this manual usually ignores this subtlety to keep
 things simple.  To give the customizer the information needed, we often

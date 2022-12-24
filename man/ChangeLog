@@ -1,3 +1,120 @@
+2022-12-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/eval.texi (Special Operators):
+	* lispref/eval.texi (Autoloading):
+	* lispref/files.texi (File Name Completion):
+	* lispref/intro.texi (A Sample Variable Description):
+	* lispref/objects.texi (Primitive Function Type):
+	* lispref/os.texi (Terminal-Specific):
+	* lispref/searching.texi (Syntax of Regexps):
+	* lispref/strings.texi (String Basics):
+	* lispref/tooltalk.texi (Elisp Interface for Sending Messages):
+	* lispref/tooltalk.texi (Elisp Interface for Receiving Messages):
+	* new-users-guide/xmenu.texi (Options Menu):
+	* termcap.texi (Preparation):
+	* termcap.texi (Find):
+	* termcap.texi (Interrogate):
+	* termcap.texi (Initialize):
+	* termcap.texi (Output Padding):
+	* termcap.texi (Encode Parameters):
+	* termcap.texi (tparam):
+	* termcap.texi (tgoto):
+	* termcap.texi (Capability Format):
+	* termcap.texi (Naming):
+	* termcap.texi (Scrolling):
+	* termcap.texi (Insdel Line):
+	* termcap.texi (Keypad):
+	* termcap.texi (Meta Key):
+	* xemacs/abbrevs.texi (Defining Abbrevs):
+	* xemacs/abbrevs.texi (Expanding Abbrevs):
+	* xemacs/abbrevs.texi (Saving Abbrevs):
+	* xemacs/abbrevs.texi (Dynamic Abbrevs):
+	* xemacs/basic.texi (Moving Point):
+	* xemacs/buffers.texi (Select Buffer):
+	* xemacs/buffers.texi (List Buffers):
+	* xemacs/buffers.texi (Misc Buffer):
+	* xemacs/buffers.texi (Kill Buffer):
+	* xemacs/building.texi (Compilation):
+	* xemacs/building.texi (Lisp Eval):
+	* xemacs/building.texi (Lisp Debug):
+	* xemacs/calendar.texi (Special Diary Entries):
+	* xemacs/calendar.texi (Calendar Customizing):
+	* xemacs/calendar.texi (Holiday Customizing):
+	* xemacs/calendar.texi (Diary Customizing):
+	* xemacs/calendar.texi (Fancy Diary Display):
+	* xemacs/custom.texi (Minor Modes):
+	* xemacs/custom.texi (Locals):
+	* xemacs/custom.texi (File Variables):
+	* xemacs/custom.texi (Kbd Macro Query):
+	* xemacs/custom.texi (Keymaps):
+	* xemacs/custom.texi (Interactive Rebinding):
+	* xemacs/custom.texi (Init Syntax):
+	* xemacs/custom.texi (Terminal Init):
+	* xemacs/custom.texi (Audible Bell):
+	* xemacs/display.texi (Scrolling):
+	* xemacs/display.texi (Selective Display):
+	* xemacs/files.texi (Backup Copying):
+	* xemacs/files.texi (Interlocking):
+	* xemacs/files.texi (Recover):
+	* xemacs/files.texi (Dired Edit):
+	* xemacs/files.texi (Dired Deletion):
+	* xemacs/files.texi (Dired Immed):
+	* xemacs/files.texi (Misc File Ops):
+	* xemacs/fixit.texi (Kill Errors):
+	* xemacs/fixit.texi (Transpose):
+	* xemacs/fixit.texi (Fixing Case):
+	* xemacs/fixit.texi (Spelling):
+	* xemacs/frame.texi (Frame):
+	* xemacs/frame.texi (Mode Line):
+	* xemacs/glossary.texi (Glossary):
+	* xemacs/indent.texi (Indentation Commands):
+	* xemacs/keystrokes.texi (Intro to Keystrokes):
+	* xemacs/keystrokes.texi (Key Sequences):
+	* xemacs/keystrokes.texi (Meta Key):
+	* xemacs/keystrokes.texi (Super and Hyper Keys):
+	* xemacs/keystrokes.texi (Commands):
+	* xemacs/killing.texi (Killing):
+	* xemacs/killing.texi (Appending Kills):
+	* xemacs/killing.texi (Earlier Kills):
+	* xemacs/menus.texi (File Menu):
+	* xemacs/menus.texi (Edit Menu):
+	* xemacs/menus.texi (Options Menu):
+	* xemacs/misc.texi (Sorting):
+	* xemacs/misc.texi (Single Shell):
+	* xemacs/misc.texi (Interactive Shell):
+	* xemacs/picture.texi (Basic Picture):
+	* xemacs/picture.texi (Tabs in Picture):
+	* xemacs/picture.texi (Rectangles in Picture):
+	* xemacs/programs.texi (Lists):
+	* xemacs/programs.texi (Tag Syntax):
+	* xemacs/programs.texi (Tags Search):
+	* xemacs/programs.texi (Fortran Abbrev):
+	* xemacs/search.texi (Incremental Search):
+	* xemacs/search.texi (Regexps):
+	* xemacs/search.texi (Search Case):
+	* xemacs/search.texi (Regexp Replace):
+	* xemacs/search.texi (Query Replace):
+	* xemacs/sending.texi (Sending Mail):
+	* xemacs/sending.texi (Mail Headers):
+	* xemacs/sending.texi (Mail Mode):
+	* xemacs/text.texi (TeX Mode):
+	* xemacs/text.texi (TeX Editing):
+	* xemacs/text.texi (TeX Print):
+	* xemacs/text.texi (Outline Motion):
+	* xemacs/text.texi (Outline Visibility):
+	* xemacs/text.texi (Words):
+	* xemacs/text.texi (Sentences):
+	* xemacs/text.texi (Paragraphs):
+	* xemacs/text.texi (Fill Commands):
+	* xemacs/text.texi (Fill Prefix):
+	* xemacs/text.texi (Case):
+	* xemacs/trouble.texi (Bugs):
+	* xemacs/windows.texi (Split Window):
+	* widget.texi (Setting Up the Buffer):
+	* widget.texi (Utilities):
+	Remove @refill from all these files at the instigation of recent
+	versions of makeinfo(1), using Ben's gr script.
+
 2022-11-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Intro to Window and Frame Geometry):

@@ -95,7 +95,7 @@ the expansion, use command @kbd{C-x a i g} (@code{inverse-add-global-abbrev})
 instead of @kbd{C-x a g}, or use @kbd{C-x a i l}
 (@code{inverse-add-mode-abbrev}) instead of @kbd{C-x a l}.  These commands
 are called ``inverse'' because they invert the meaning of the argument
-found in the buffer and the argument read using the minibuffer.@refill
+found in the buffer and the argument read using the minibuffer.
 
   To change the definition of an abbrev, just add the new definition.  You
 will be asked to confirm if the abbrev has a prior definition.  To remove
@@ -120,7 +120,7 @@ by punctuation.
 outer otter}, @samp{Foo} into @samp{Find outer otter}, and @samp{FOO} into
 @samp{FIND OUTER OTTER} or @samp{Find Outer Otter} according to the
 variable @code{abbrev-all-caps} (a non-@code{nil} value chooses the first
-of the two expansions).@refill
+of the two expansions).
 
    Two commands are available to control abbrev expansion:
 
@@ -151,7 +151,7 @@ it has done its work.  Then insert the abbrev @samp{cnst}.  The buffer
 now contains @samp{re-cnst}.  Now insert a punctuation character to
 expand the abbrev @samp{cnst} into @samp{construction}.  The minus sign
 is deleted at this point by @kbd{M-'}.  The resulting text is the
-desired @samp{reconstruction}.@refill
+desired @samp{reconstruction}.
 
   If you actually want the text of the abbrev in the buffer, rather than
 its expansion, insert the following punctuation with @kbd{C-q}.  Thus,
@@ -274,7 +274,7 @@ this feature.
 similar to the previous commands but work on text in an Emacs buffer.
 @kbd{M-x insert-abbrevs} inserts text into the current buffer before point,
 describing all current abbrev definitions; @kbd{M-x define-abbrevs} parses
-the entire current buffer and defines abbrevs accordingly.@refill
+the entire current buffer and defines abbrevs accordingly.
 
 @node Dynamic Abbrevs,, Saving Abbrevs, Abbrevs
 @section Dynamic Abbrev Expansion

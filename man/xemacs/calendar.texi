@@ -1345,7 +1345,7 @@ The 11 specifies November (the eleventh month), the 4 specifies Thursday
 month can be a single month or a list of months.  Thus you could change
 the 11 above to @samp{'(1 2 3)} and have the entry apply to the last
 Thursday of January, February, and March.  If the month is @code{t}, the
-entry applies to all months of the year.@refill
+entry applies to all months of the year.
 
   The sexp feature of the diary allows you to specify diary entries
 based on any Emacs Lisp expression.  You can use the library of built-in
@@ -1403,7 +1403,7 @@ diary suit your personal tastes.
 @code{t}, calling up the calendar automatically displays the diary
 entries for the current date as well.  The diary dates appear only if
 the current date is visible.  If you add both of the following lines to
-your init file:@refill
+your init file:
 
 @example
 (setq view-diary-entries-initially t)
@@ -1454,7 +1454,7 @@ the calendar).
   Starting the calendar runs the normal hook
 @code{initial-calendar-window-hook}.  Recomputation of the calendar
 display does not run this hook.  But if you leave the calendar with the
-@kbd{q} command and reenter it, the hook runs again.@refill
+@kbd{q} command and reenter it, the hook runs again.
 
 @vindex today-visible-calendar-hook
   The variable @code{today-visible-calendar-hook} is a normal hook run
@@ -1528,7 +1528,7 @@ all) of the variables @code{all-christian-calendar-holidays},
 @code{all-islamic-calendar-holidays} to @code{t}.  If you want to
 eliminate the religious holidays, set any or all of the corresponding
 variables @code{christian-holidays}, @code{hebrew-holidays}, and
-@code{islamic-holidays} to @code{nil}.@refill
+@code{islamic-holidays} to @code{nil}.
 
 @vindex other-holidays
   You can set the variable @code{other-holidays} to any list of
@@ -1834,7 +1834,7 @@ checking for holidays can take several seconds, so including holiday
 information delays the display of the diary buffer noticeably.  If you'd
 prefer to have a faster display of the diary buffer but without the
 holiday information, set the variable @code{holidays-in-diary-buffer} to
-@code{nil}.@refill
+@code{nil}.
 
 @vindex number-of-diary-entries
   The variable @code{number-of-diary-entries} controls the number of
@@ -1900,7 +1900,7 @@ this:
 Emacs matches of the diary entries with the date forms is done with the
 standard syntax table from Fundamental mode
 (@pxref{Syntax Tables,,,lispref,XEmacs Lisp Reference Manual}),
-but with the @samp{*} changed so that it is a word constituent.@refill
+but with the @samp{*} changed so that it is a word constituent.
 
   The date patterns in the list must be @emph{mutually exclusive} and
 must not match any portion of the diary entry itself, just the date and
@@ -2059,7 +2059,7 @@ things up by setting the variable @code{holidays-in-diary-buffer} to
   Ordinarily, the fancy diary buffer does not show days for which there are
 no diary entries, even if that day is a holiday.  If you want such days to be
 shown in the fancy diary buffer, set the variable
-@code{diary-list-include-blanks} to @code{t}.@refill
+@code{diary-list-include-blanks} to @code{t}.
 
 @cindex sorting diary entries
   If you use the fancy diary display, you can use the normal hook

@@ -171,7 +171,7 @@ library.
 
 On GNU systems, it suffices to include the header file
 @file{termcap.h} in each source file that uses these functions and
-variables.@refill
+variables.
 
 On Unix systems, there is often no such header file.  Then you must
 explicitly declare the variables as external.  You can do likewise for
@@ -187,7 +187,7 @@ from your declarations.
 @item
 The linker needs to search the library.  Usually either
 @samp{-ltermcap} or @samp{-ltermlib} as an argument when linking will
-do this.@refill
+do this.
 @end itemize
 
 @node Find, Interrogate, Preparation, Library
@@ -216,7 +216,7 @@ If you are using the GNU version of termcap, you can alternatively ask
 @var{buffer}, and @code{tgetent} itself allocates the storage using
 @code{malloc}.  In this case the returned value on success is the address
 of the storage, cast to @code{int}.  But normally there is no need for you
-to look at the address.  Do not free the storage yourself.@refill
+to look at the address.  Do not free the storage yourself.
 
 With the Unix version of termcap, you must allocate space for the
 description yourself and pass the address of the space as the argument
@@ -232,7 +232,7 @@ the description with @code{tgetnum}, @code{tgetstr} or @code{tgetflag}.  If
 the buffer was allocated by termcap, it will be freed by termcap too if you
 call @code{tgetent} again.  If the buffer was provided by you, you must
 make sure that its contents remain unchanged for as long as you still plan
-to interrogate the description.@refill
+to interrogate the description.
 
 The return value of @code{tgetent} is @minus{}1 if there is some difficulty
 accessing the data base of terminal types, 0 if the data base is accessible
@@ -275,7 +275,7 @@ instead of @file{/etc/termcap} which is the standard data base.  If the
 value does not start with @samp{/} then it is itself used as the terminal
 description, provided that the terminal type @var{termtype} is among the
 types it claims to apply to.  @xref{Data Base}, for information on the
-format of a terminal description.@refill
+format of a terminal description.
 
 @node Interrogate, Initialize, Find, Library
 @section Interrogating the Terminal Description
@@ -296,7 +296,7 @@ absent) or strings.  Any particular capability always has the same value
 type; for example, @samp{co} always has a numeric value, while @samp{am}
 (automatic wrap at margin) is always a flag, and @samp{cm} (cursor motion
 command) always has a string value.  The documentation of each capability
-says which type of value it has.@refill
+says which type of value it has.
 
 There are three functions to use to get the value of a capability,
 depending on the type of value the capability has.  Here are their
@@ -430,7 +430,7 @@ an application program should do two things:
 Initialize various global variables which termcap library output
 functions refer to.  These include @code{PC} and @code{ospeed} for
 padding (@pxref{Output Padding}) and @code{UP} and @code{BC} for
-cursor motion (@pxref{tgoto}).@refill
+cursor motion (@pxref{tgoto}).
 
 @item
 Tell the kernel to turn off alteration and padding of horizontal-tab
@@ -441,7 +441,7 @@ To turn off output processing in Berkeley Unix you would use @code{ioctl}
 with code @code{TIOCLSET} to set the bit named @code{LLITOUT}, and clear
 the bits @code{ANYDELAY} using @code{TIOCSETN}.  In POSIX or System V, you
 must clear the bit named @code{OPOST}.  Refer to the system documentation
-for details.@refill
+for details.
 
 If you do not set the terminal flags properly, some older terminals will
 not work.  This is because their commands may contain the characters that
@@ -572,7 +572,7 @@ You are responsible for storing suitable values into these variables before
 using @code{tputs}.  The value stored into the @code{PC} variable should be
 taken from the @samp{pc} capability in the terminal description (@pxref{Pad
 Specs}).  Store zero in @code{PC} if there is no @samp{pc}
-capability.@refill
+capability.
 
 The argument @var{nlines} requires some thought.  Normally, it should be
 the number of lines whose contents will be cleared or moved by the command.
@@ -582,7 +582,7 @@ use the value 1.  For most commands that affect multiple lines, such as
 of the screen), @var{nlines} should be the screen height minus the current
 vertical position (origin 0).  For multiple insert and scroll commands such
 as @samp{AL} (insert multiple lines), that same value for @var{nlines} is
-correct; the number of lines being inserted is @i{not} correct.@refill
+correct; the number of lines being inserted is @i{not} correct.
 
 If a ``scroll window'' feature is used to reduce the number of lines
 affected by a command, the value of @var{nlines} should take this into
@@ -705,7 +705,7 @@ The following @samp{%}-sequences specify alteration of the parameters
 They generate no output; they are used only for their side effects
 on the parameters.  Also, they do not advance the ``next parameter'' pointer
 except as explicitly stated.  Only @samp{%i}, @samp{%r} and @samp{%>} are
-defined in standard Unix termcap.  The others are GNU extensions.@refill
+defined in standard Unix termcap.  The others are GNU extensions.
 
 @table @samp
 @item %i
@@ -730,7 +730,7 @@ parameters, and you can refer to each parameter any number of times.
 Conditionally increment the next parameter.  Here @var{c1} and
 @var{c2} are characters which stand for their ASCII codes as numbers.
 If the next parameter is greater than the ASCII code of @var{c1}, the
-ASCII code of @var{c2} is added to it.@refill
+ASCII code of @var{c2} is added to it.
 
 @item %a @var{op} @var{type} @var{pos}
 Perform arithmetic on the next parameter, do not use it up, and do not
@@ -876,7 +876,7 @@ encoding, the result is a null character, which will confuse @code{tputs}.
 This would be a serious problem, but luckily @samp{%.} encoding is used
 only by a few old models of terminal, and only for the @samp{cm}
 capability.  To solve the problem, use @code{tgoto} rather than
-@code{tparam} to encode the @samp{cm} capability.@refill
+@code{tparam} to encode the @samp{cm} capability.
 
 @node tgoto,, tparam, Using Parameters
 @subsubsection @code{tgoto}
@@ -935,7 +935,7 @@ position comes before the vertical position in the arguments to
 @code{tgoto}, even though the vertical position comes before the horizontal
 in the parameters of the @samp{cm} string.  If you use @code{tgoto} with a
 command such as @samp{AL} that takes one parameter, you must pass the
-parameter to @code{tgoto} as the ``vertical position''.@refill
+parameter to @code{tgoto} as the ``vertical position''.
 
 @node Data Base, Capabilities, Library, Top
 @chapter The Format of the Data Base
@@ -1015,14 +1015,14 @@ present, just write its name between two colons.
 A numeric capability has a value which is a nonnegative number.  Write the
 capability name, a @samp{#}, and the number, between two colons.  For
 example, @samp{@dots{}:li#48:@dots{}} is how you specify the @samp{li}
-capability for 48 lines.@refill
+capability for 48 lines.
 
 A string-valued capability has a value which is a sequence of characters.
 Usually these are the characters used to perform some display operation.
 Write the capability name, a @samp{=}, and the characters of the value,
 between two colons.  For example, @samp{@dots{}:cm=\E[%i%d;%dH:@dots{}} is
 how the cursor motion command for a standard ANSI terminal would be
-specified.@refill
+specified.
 
 Special characters in the string value can be expressed using
 @samp{\}-escape sequences as in C; in addition, @samp{\E} stands for
@@ -1030,7 +1030,7 @@ Special characters in the string value can be expressed using
 by @var{char} stands for the control-equivalent of @var{char}.  Thus,
 @samp{^a} stands for the character control-a, just like @samp{\001}.
 @samp{\} and @samp{^} themselves can be represented as @samp{\\} and
-@samp{\^}.@refill
+@samp{\^}.
 
 To include a colon in the string, you must write @samp{\072}.  You might
 ask, ``Why can't @samp{\:} be used to represent a colon?''  The reason is
@@ -1090,7 +1090,7 @@ cursor wraps at the right margin.  If this flag is set to ``wrap'',
 you must use the terminal type @samp{vt100-am}.  Otherwise you must
 use @samp{vt100-nam}.  Plain @samp{vt100} is defined as a synonym for
 either @samp{vt100-am} or @samp{vt100-nam} depending on the
-preferences of the local site.@refill
+preferences of the local site.
 
 The standard suffix @samp{-am} stands for ``automatic margins''.
 
@@ -1136,7 +1136,7 @@ keep its arrow keys in local mode.  This is a user option.
 normal video to appear as reverse, and text output for reverse video
 to come out as normal.  Often this description differs from the usual
 one by interchanging the two strings which turn reverse video on and
-off.@refill
+off.
 
 This is a user option; you can choose either the ``reverse video''
 variant terminal type or the normal terminal type, and termcap will
@@ -1841,13 +1841,13 @@ of lines may depend on the amount of text in each line.)
 Any terminal description that defines @samp{SF} should also define @samp{sf};
 likewise for @samp{SR} and @samp{sr}.  However, many terminals can only
 scroll by one line at a time, so it is common to find @samp{sf} and not
-@samp{SF}, or @samp{sr} without @samp{SR}.@refill
+@samp{SF}, or @samp{sr} without @samp{SR}.
 
 Therefore, all programs that use the scrolling facilities should be
 prepared to work with @samp{sf} in the case that @samp{SF} is absent, and
 likewise with @samp{sr}.  On the other hand, an application program that
 uses only @samp{sf} and not @samp{SF} is acceptable, though slow on some
-terminals.@refill
+terminals.
 
 When outputting a scroll command with @code{tputs}, the @var{nlines}
 argument should be the total number of lines in the portion of the screen
@@ -1994,13 +1994,13 @@ that it is as fast as one @samp{dl}.
 Any terminal description that defines @samp{AL} should also define
 @samp{al}; likewise for @samp{DL} and @samp{dl}.  However, many terminals
 can only insert or delete one line at a time, so it is common to find
-@samp{al} and not @samp{AL}, or @samp{dl} without @samp{DL}.@refill
+@samp{al} and not @samp{AL}, or @samp{dl} without @samp{DL}.
 
 Therefore, all programs that use the insert and delete facilities should be
 prepared to work with @samp{al} in the case that @samp{AL} is absent, and
 likewise with @samp{dl}.  On the other hand, it is acceptable to write
 an application that uses only @samp{al} and @samp{dl} and does not look
-for @samp{AL} or @samp{DL} at all.@refill
+for @samp{AL} or @samp{DL} at all.
 
 If a terminal does not support line insertion and deletion directly,
 but does support a scroll region, the effect of insertion and deletion
@@ -2695,7 +2695,7 @@ Number: the number of numbered function keys, if there are more than
 Strings which are the labels appearing on the keyboard on the keys
 described by the capabilities @samp{k0} @dots{} @samp{l9}.  These
 capabilities should be left undefined if the labels are @samp{f0} or
-@samp{f10} and @samp{f1} @dots{} @samp{f9}.@refill
+@samp{f10} and @samp{f1} @dots{} @samp{f9}.
 
 @item @samp{kH}
 @kindex kA@dots{}kT
@@ -2775,7 +2775,7 @@ meaning is that for each capability name listed, the terminal has a
 key which sends the string which is the value of that capability.  For
 example, the value @samp{:ko=cl,ll,sf,sr:} says that the terminal has
 four function keys which mean ``clear screen'', ``home down'',
-``scroll forward'' and ``scroll reverse''.@refill
+``scroll forward'' and ``scroll reverse''.
 @end table
 
 @node Meta Key, Initialization, Keypad, Capabilities

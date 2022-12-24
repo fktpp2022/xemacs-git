@@ -563,7 +563,7 @@ non-@code{nil}, copying is used.  Otherwise, if the variable
 done for files that have multiple names, but renaming may still be done when
 the file being edited has only one name.  If the variable
 @code{backup-by-copying-when-mismatch} is non-@code{nil}, copying is
-done if renaming would cause the file's owner or group to change.  @refill
+done if renaming would cause the file's owner or group to change.  
 
 @node Interlocking,  , Backup, Saving
 @subsection Protection Against Simultaneous Editing
@@ -631,7 +631,7 @@ has already taken place is to list the directory with @kbd{C-u C-x C-d}
 author.  You should attempt to contact that person and ask him not to
 continue editing.  Often the next step is to save the contents of your
 Emacs buffer under a different name, and use @code{diff} to compare the
-two files.@refill
+two files.
 
   Simultaneous editing checks are also made when you visit a file that
 is already visited with @kbd{C-x C-f} and when you start to modify a
@@ -795,7 +795,7 @@ loss of data, use the command @kbd{M-x recover-file @key{RET} @var{file}
 restores the contents from the auto-save file @file{#@var{file}#}.  You
 can then save the file with @kbd{C-x C-s} to put the recovered text into
 @var{file} itself.  For example, to recover file @file{foo.c} from its
-auto-save file @file{#foo.c#}, do:@refill
+auto-save file @file{#foo.c#}, do:
 
 @example
 M-x recover-file @key{RET} foo.c @key{RET}
@@ -1632,7 +1632,7 @@ at the beginning of the line.
   For extra convenience, @key{SPC} and @kbd{n} in Dired are equivalent to
 @kbd{C-n}.  @kbd{p} is equivalent to @kbd{C-p}.  Moving by lines is done so
 often in Dired that it deserves to be easy to type.  @key{DEL} (move up and
-unflag) is often useful simply for moving up.@refill
+unflag) is often useful simply for moving up.
 
   The @kbd{g} command in Dired runs @code{revert-buffer} to reinitialize
 the buffer from the actual disk directory and show any changes made in the
@@ -1688,7 +1688,7 @@ files actually deleted.
   The @kbd{#}, @kbd{~}, and @kbd{.} commands flag many files for
 deletion, based on their names.  These commands are useful precisely
 because they do not actually delete any files; you can remove the
-deletion flags from any flagged files that you really wish to keep.@refill
+deletion flags from any flagged files that you really wish to keep.
 
   @kbd{#} flags for deletion all files that appear to have been made by
 auto-saving (that is, files whose names begin and end with @samp{#}).
@@ -1707,7 +1707,7 @@ Period with a positive numeric argument, as in @kbd{C-u 3 .}, specifies the
 number of newest versions to keep, overriding @code{dired-kept-versions}.
 A negative numeric argument overrides @code{kept-old-versions}, using minus
 the value of the argument to specify the number of oldest versions of each
-file to keep.@refill
+file to keep.
 
 @node Dired Immed,  , Dired Deletion, Dired
 @subsection Immediate File Operations in Dired
@@ -1736,7 +1736,7 @@ Views the file described on this line using @kbd{M-x view-file}.  Viewing a
 file is like visiting it, but is slanted toward moving around in the file
 conveniently and does not allow changing the file.  @xref{Misc File
 Ops,View File}.  Viewing a file that is a directory runs Dired on that
-directory.@refill
+directory.
 @end table
 
 @node Misc File Ops,  , Dired, Files

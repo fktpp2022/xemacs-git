@@ -76,7 +76,7 @@ line of the @samp{*compilation*} buffer changes to say @samp{signal}
 instead of @samp{run}.  Starting a new compilation also kills any
 running compilation, as only one can occur at any time.  Starting a new
 compilation prompts for confirmation before actually killing a
-compilation that is running.@refill
+compilation that is running.
 
 @kindex C-x `
 @findex next-error
@@ -385,7 +385,7 @@ with autorepeat, where it can result from holding down the @key{ESC} key
 for too long.  Therefore, @code{eval-expression} is normally a disabled
 command.  Attempting to use this command asks for confirmation and gives
 you the option of enabling it; once you enable the command, you are no
-longer required to confirm.  @xref{Disabling}.@refill
+longer required to confirm.  @xref{Disabling}.
 
 @kindex C-M-x
 @findex eval-defun
@@ -435,7 +435,7 @@ non-@code{nil}.  Quitting with @kbd{C-g} is not considered an error, and
 However, if you set @code{debug-on-quit} to be non-@code{nil}, @kbd{C-g} will
 invoke the debugger.  This can be useful for debugging an infinite loop;
 type @kbd{C-g} once the loop has had time to reach its steady state.
-@code{debug-on-quit} has no effect on errors.@refill
+@code{debug-on-quit} has no effect on errors.
 
 @findex debug-on-entry
 @findex cancel-debug-on-entry
@@ -448,7 +448,7 @@ debugger as soon as @var{fun-name} is called. Use
 debugger when called.  (Redefining the function also does this.)  To enter
 the debugger from some other place in Lisp code, you must insert the
 expression @code{(debug)} there and install the changed code with
-@kbd{C-M-x}.  @xref{Lisp Eval}.@refill
+@kbd{C-M-x}.  @xref{Lisp Eval}.
 
   When the debugger is entered, it displays the previously selected buffer
 in one window and a buffer named @samp{*Backtrace*} in another window.  The

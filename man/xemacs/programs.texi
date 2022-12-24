@@ -198,7 +198,7 @@ symbol, string, or number, @kbd{C-M-f} moves over that.  If the character
 after point is a closing delimiter, @kbd{C-M-f} just moves past it.  (This
 last is not really moving across an sexp; it is an exception which is
 included in the definition of @kbd{C-M-f} because it is as useful a
-behavior as anyone can think of for that situation.)@refill
+behavior as anyone can think of for that situation.)
 
   The command @kbd{C-M-b} (@code{backward-sexp}) moves backward over a
 sexp.  The detailed rules are like those above for @kbd{C-M-f}, but with
@@ -224,7 +224,7 @@ opposite direction.
 commands but skip over any number of other kinds of sexps (symbols,
 strings, etc).  In some situations, these commands are useful because
 they usually ignore comments, since the comments usually do not contain
-any lists.@refill
+any lists.
 
 @kindex C-M-u
 @kindex C-M-d
@@ -236,7 +236,7 @@ that is possible.  To move @i{up} one (or @var{n}) levels, use @kbd{C-M-u}
 @kbd{C-M-u} moves backward up past one unmatched opening delimiter.  A
 positive argument serves as a repeat count; a negative argument reverses
 direction of motion and also requests repetition, so it moves forward and
-up one or more levels.@refill
+up one or more levels.
 
   To move @i{down} in list structure, use @kbd{C-M-d}
 (@code{down-list}).  In Lisp mode, where @samp{(} is the only opening
@@ -912,7 +912,7 @@ In La@TeX{} text, the argument of any of the commands @code{\chapter},
 @code{\section}, @code{\subsection}, @code{\subsubsection},
 @code{\eqno}, @code{\label}, @code{\ref}, @code{\cite}, @code{\bibitem},
 @code{\part}, @code{\appendix}, @code{\entry}, or @code{\index}, is a
-tag.@refill
+tag.
 
 Other commands can make tags as well, if you specify them in the
 environment variable @code{TEXTAGS} before invoking @code{etags}.  The
@@ -1468,7 +1468,7 @@ can follow its progress.  As soon as it finds an occurrence,
   Having found one match, you probably want to find all the rest.  To find
 one more match, type @kbd{M-,} (@code{tags-loop-continue}) to resume the
 @code{tags-search}.  This searches the rest of the current buffer, followed
-by the remaining files of the tags table.@refill
+by the remaining files of the tags table.
 
 @findex tags-query-replace
   @kbd{M-x tags-query-replace} performs a single
@@ -2035,7 +2035,7 @@ constituent''.
   For example, one built-in Fortran abbrev is @samp{;c} for
 @samp{continue}.  If you insert @samp{;c} and then insert a punctuation
 character such as a space or a newline, the @samp{;c} changes
-automatically to @samp{continue}, provided Abbrev mode is enabled.@refill
+automatically to @samp{continue}, provided Abbrev mode is enabled.
 
   Type @samp{;?} or @samp{;C-h} to display a list of all built-in
 Fortran abbrevs and what they stand for.

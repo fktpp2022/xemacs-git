@@ -44,7 +44,7 @@ convenient to use @kbd{M-@key{DEL}} or @kbd{C-x @key{DEL}}.
 @key{DEL}} is particularly useful when you are thinking of what to write as
 you type it, in case you change your mind about phrasing.
 @kbd{M-@key{DEL}} and @kbd{C-x @key{DEL}} save the killed text for
-@kbd{C-y} and @kbd{M-y} to retrieve.  @xref{Yanking}.@refill
+@kbd{C-y} and @kbd{M-y} to retrieve.  @xref{Yanking}.
 
   @kbd{M-@key{DEL}} is often useful even when you have typed only a few
 characters wrong, if you know you are confused in your typing and aren't
@@ -106,7 +106,7 @@ For example, @kbd{C-u 3 C-t} moves the character before point forward
 across three other characters.  This is equivalent to repeating @kbd{C-t}
 three times.  @kbd{C-u - 4 M-t} moves the word before point backward across
 four words.  @kbd{C-u - C-M-t} would cancel the effect of plain
-@kbd{C-M-t}.@refill
+@kbd{C-M-t}.
 
   A numeric argument of zero transposes the character (word, sexp, line)
 ending after point with the one ending after the mark (otherwise a
@@ -136,7 +136,7 @@ Convert last word to lower case with capital initial.
 the word case-conversion commands @kbd{M-l}, @kbd{M-u}, and @kbd{M-c} do
 not move the cursor when used with a negative argument.
 As soon as you see you have mistyped the last word, you can simply
-case-convert it and continue typing.  @xref{Case}.@refill
+case-convert it and continue typing.  @xref{Case}.
 
 @node Spelling,, Fixing Case, Fixit
 @section Checking and Correcting Spelling
@@ -171,7 +171,7 @@ means you do not want to do anything to that word.  In that case, the
 @findex spell-buffer
   @kbd{M-x spell-buffer} checks each word in the buffer the same way that
 @code{spell-word} does, doing a @code{query-replace} for
-every incorrect word if appropriate.@refill
+every incorrect word if appropriate.
 
 @findex spell-region
   @kbd{M-x spell-region} is similar to @code{spell-buffer} but operates

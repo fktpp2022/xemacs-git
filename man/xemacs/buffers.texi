@@ -71,7 +71,7 @@ Switch to the previous buffer.
 @var{bufname}.  You can use completion on an abbreviation for the buffer
 name you want (@pxref{Completion}).  An empty argument to @kbd{C-x b}
 specifies the most recently selected buffer that is not displayed in any
-window.@refill
+window.
 
   Most buffers are created when you visit files, or use Emacs commands
 that display text.  You can also create a buffer explicitly by typing
@@ -111,7 +111,7 @@ A @samp{*} at the beginning of a line indicates the buffer has been
 ``modified''.  If several buffers are modified, it may be time to save
 some with @kbd{C-x s} (@pxref{Saving}).  A @samp{%} indicates a read-only
 buffer.  A @samp{.} marks the selected buffer.  Here is an example of a
-buffer list:@refill
+buffer list:
 
 @smallexample
  MR Buffer         Size  Mode           File
@@ -180,7 +180,7 @@ remains in effect.
 
 To copy text from one buffer to another, use the commands @kbd{M-x
 append-to-buffer} and @kbd{M-x insert-buffer}.  @xref{Accumulating
-Text}.@refill
+Text}.
 
 @node Kill Buffer, Several Buffers, Misc Buffer, Buffers
 @section Killing Buffers

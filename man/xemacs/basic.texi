@@ -226,7 +226,7 @@ Transpose two characters, the ones before and after the cursor
 @itemx C-HOME
 Move to the top of the buffer (@code{beginning-of-buffer}).  With
 numeric argument @var{n}, move to @var{n}/10 of the way from the top.
-@xref{Arguments}, for more information on numeric arguments.@refill
+@xref{Arguments}, for more information on numeric arguments.
 @item M->
 @itemx C-END
 Move to the end of the buffer (@code{end-of-buffer}).

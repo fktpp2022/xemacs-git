@@ -640,7 +640,7 @@ XEmacs Lisp and Common Lisp.  @code{setq}, @code{if}, and
 Lisp.  @code{save-excursion} is a special operator in XEmacs Lisp, but
 doesn't exist in Common Lisp.  @code{throw} is a special operator in
 both Common Lisp and XEmacs Lisp (because it must be able to throw
-multiple values).@refill
+multiple values).
 @end quotation
 
 @node Autoloading,  , Special Operators, Forms

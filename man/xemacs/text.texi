@@ -150,7 +150,7 @@ line following point.
 
   @TeX{} is a powerful text formatter written by Donald Knuth; like GNU
 Emacs, it is free.  La@TeX{} is a simplified input format for @TeX{},
-implemented by @TeX{} macros.  It is part of @TeX{}.@refill
+implemented by @TeX{} macros.  It is part of @TeX{}.
 
   Emacs has a special @TeX{} mode for editing @TeX{} input files.
 It provides facilities for checking the balance of delimiters and for
@@ -167,7 +167,7 @@ which mode is used.
 
   The commands @kbd{M-x plain-tex-mode} and @kbd{M-x latex-mode}
 explicitly select one of the variants of @TeX{} mode.  Use these
-commands when @kbd{M-x tex-mode} does not guess right.@refill
+commands when @kbd{M-x tex-mode} does not guess right.
 
 @menu
 * Editing: TeX Editing.   Special commands for editing in TeX mode.
@@ -280,7 +280,7 @@ automatic match display to work with them.
 After you insert a @samp{\begin}, use @kbd{C-c C-f}
 (@code{tex-close-latex-block}) to insert automatically a matching
 @samp{\end} (on a new line following the @samp{\begin}).  A blank line is
-inserted between the two, and point is left there.@refill
+inserted between the two, and point is left there.
 
 @node TeX Print,,TeX Editing,TeX Mode
 @subsubsection @TeX{} Printing Commands
@@ -332,7 +332,7 @@ it so that its last line is visible by typing @kbd{C-c C-l}.
 
   Type @kbd{C-c C-k} (@code{tex-kill-job}) to kill the @TeX{} process if
 you see that its output is no longer useful.  Using @kbd{C-c C-b} or
-@kbd{C-c C-r} also kills any @TeX{} process still running.@refill
+@kbd{C-c C-r} also kills any @TeX{} process still running.
 
 @findex tex-region
 @kindex C-c C-r (TeX mode)
@@ -504,7 +504,7 @@ heading line.  @kbd{C-c C-p} (@code{previous-visible-heading}) moves
 similarly backward.  Both accept numeric arguments as repeat counts.  The
 names emphasize that invisible headings are skipped, but this is not really
 a special feature.  All editing commands that look for lines ignore the
-invisible lines automatically.@refill
+invisible lines automatically.
 
 @findex outline-up-heading
 @findex outline-forward-same-level
@@ -571,7 +571,7 @@ on a heading line, and both apply to all the lines of that heading's
 @dfn{subtree}: its body, all its subheadings, both direct and indirect, and
 all of their bodies.  In other words, the subtree contains everything
 following this heading line, up to and not including the next heading of
-the same or higher rank.@refill
+the same or higher rank.
 
 @findex hide-leaves
 @findex show-branches
@@ -586,7 +586,7 @@ makes the subheadings visible.  They are @kbd{M-x hide-leaves} and
   A little weaker than @code{show-branches} is @kbd{C-c C-i}
 (@code{show-children}).  It makes just the direct subheadings
 visible---those one level down.  Deeper subheadings remain
-invisible.@refill
+invisible.
 
 @findex hide-body
 @findex show-all
@@ -629,7 +629,7 @@ or backward across other words (@code{transpose-words}).
   Notice how these keys form a series that parallels the
 character-based @kbd{C-f}, @kbd{C-b}, @kbd{C-d}, @kbd{C-t} and
 @key{DEL}.  @kbd{M-@@} is related to @kbd{C-@@}, which is an alias for
-@kbd{C-@key{SPC}}.@refill
+@kbd{C-@key{SPC}}.
 
 @kindex M-f
 @kindex M-b
@@ -642,7 +642,7 @@ characters.  Like their @kbd{Control-} analogues, @kbd{Meta-f} and
 @kbd{Meta-b} move several words if given an argument.  @kbd{Meta-f} with a
 negative argument moves backward, and @kbd{Meta-b} with a negative argument
 moves forward.  Forward motion stops after the last letter of the
-word, while backward motion stops before the first letter.@refill
+word, while backward motion stops before the first letter.
 
 @kindex M-d
 @findex kill-word
@@ -718,7 +718,7 @@ the typist's convention is followed, and thus considers a sentence to
 end wherever there is a @samp{.}, @samp{?}, or @samp{!} followed by the
 end of a line or two spaces, with any number of @samp{)}, @samp{]},
 @samp{'}, or @samp{"} characters allowed in between.  A sentence also
-begins or ends wherever a paragraph begins or ends.@refill
+begins or ends wherever a paragraph begins or ends.
 
   Neither @kbd{M-a} nor @kbd{M-e} moves past the newline or spaces beyond
 the sentence edge at which it is stopping.
@@ -731,12 +731,12 @@ the sentence edge at which it is stopping.
 @kbd{C-a} and @kbd{C-e} have @kbd{C-k}.  The command is  @kbd{M-k}
 (@code{kill-sentence}) which kills from point to the end of the
 sentence.  With minus one as an argument it kills back to the beginning
-of the sentence.  Larger arguments serve as repeat counts.@refill
+of the sentence.  Larger arguments serve as repeat counts.
 
   There is a special command, @kbd{C-x @key{DEL}}
 (@code{backward-kill-sentence}), for killing back to the beginning of a
 sentence, which is useful when you change your mind in the middle of
-composing text.@refill
+composing text.
 
 @vindex sentence-end
   The variable @code{sentence-end} controls recognition of the end of a
@@ -804,7 +804,7 @@ either starts or separates paragraphs.  The value of
 that separate paragraphs without being part of any paragraph.  Lines that
 start a new paragraph and are contained in it must match both regexps.  For
 example, normally @code{paragraph-start} is @code{"^[ @t{\}t@t{\}n@t{\}f]"}
-and @code{paragraph-separate} is @code{"^[ @t{\}t@t{\}f]*$"}.@refill
+and @code{paragraph-separate} is @code{"^[ @t{\}t@t{\}f]*$"}.
 
   Normally it is desirable for page boundaries to separate paragraphs.
 The default values of these variables recognize the usual separator for
@@ -971,7 +971,7 @@ Center a line.
 (@code{fill-paragraph}).  It causes the paragraph containing point, or
 the one after point if point is between paragraphs, to be refilled.  All
 line breaks are removed, and new ones are inserted where necessary.
-@kbd{M-q} can be undone with @kbd{C-_}.  @xref{Undo}.@refill
+@kbd{M-q} can be undone with @kbd{C-_}.  @xref{Undo}.
 
 @kindex M-g
 @findex fill-region
@@ -983,13 +983,13 @@ divides the region into paragraphs and fills each of them.
 finding paragraph boundaries (@pxref{Paragraphs}).  For more control, you
 can use @kbd{M-x fill-region-as-paragraph}, which refills everything
 between point and mark.  This command recognizes only blank lines as
-paragraph separators.@refill
+paragraph separators.
 
 @cindex justification
   A numeric argument to @kbd{M-g} or @kbd{M-q} causes it to
 @dfn{justify} the text as well as filling it.  Extra spaces are inserted
 to make the right margin line up exactly at the fill column.  To remove
-the extra spaces, use @kbd{M-q} or @kbd{M-g} with no argument.@refill
+the extra spaces, use @kbd{M-q} or @kbd{M-g} with no argument.
 
 @vindex auto-fill-inhibit-regexp
 The variable @code{auto-fill-inhibit-regexp} takes as a value a regexp to
@@ -1041,7 +1041,7 @@ new paragraph.
 prefix, put point at the end of the prefix, and give the command
 @w{@kbd{C-x .}}@: (@code{set-fill-prefix}).  That's a period after the
 @kbd{C-x}.  To turn off the fill prefix, specify an empty prefix: type
-@w{@kbd{C-x .}}@: with point at the beginning of a line.@refill
+@w{@kbd{C-x .}}@: with point at the beginning of a line.
 
   When a fill prefix is in effect, the fill commands remove the fill
 prefix from each line before filling and insert it on each line after
@@ -1124,4 +1124,4 @@ case conversion applies only to the part of the word before point.
   The other case conversion commands are @kbd{C-x C-u}
 (@code{upcase-region}) and @kbd{C-x C-l} (@code{downcase-region}), which
 convert everything between point and mark to the specified case.  Point and
-mark do not move.@refill
+mark do not move.

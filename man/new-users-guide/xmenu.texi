@@ -408,14 +408,14 @@ on a parenthesis, the matching parenthesis will blink. If you select
 @b{Highlight} and place the cursor on a parenthesis, the whole 
 expression of the parenthesis under the cursor will be highlighted. 
 Selecting @b{None} will turn off the options (regarding @b{Paren 
-Highlighting}) which you had selected earlier.@refill
+Highlighting}) which you had selected earlier.
 
 @item Font
 You can select any Font for your program by choosing from one of the 
 available Fonts. The whole buffer will be converted to the Font you select.
 
 @item Size
-You can select any size for the text in your buffer (ranging from @b{2} to @b{24}) by selecting the appropriate option.@refill
+You can select any size for the text in your buffer (ranging from @b{2} to @b{24}) by selecting the appropriate option.
 
 @item Weight
 You can choose either @b{Bold} or @b{Medium} for the weight of the text

@@ -27,7 +27,7 @@ In Mail mode, send the message and switch to another buffer
   The command @kbd{C-x m} (@code{mail}) selects a buffer named
 @samp{*mail*} and initializes it with the skeleton of an outgoing message.
 @kbd{C-x 4 m} (@code{mail-other-window}) selects the @samp{*mail*} buffer
-in a different window, leaving the previous current buffer visible.@refill
+in a different window, leaving the previous current buffer visible.
 
   Because the buffer for mail composition is an ordinary Emacs buffer, you can
 switch to other buffers while in the middle of composing mail, and switch
@@ -155,7 +155,7 @@ any number of times, to specify many places to send the message.
 The @samp{To}, @samp{CC}, and @samp{BCC}, fields can have continuation
 lines.  All the lines starting with whitespace, following the line on
 which the field starts, are considered part of the field.  For
-example,@refill
+example,
 
 @example
 To: foo@@here, this@@there,
@@ -339,7 +339,7 @@ of just @kbd{C-u} says not to indent at all and not to eliminate
 anything.  @kbd{C-c C-y} always uses the current message from the
 @samp{RMAIL} buffer, so you can insert several old messages by selecting
 one in @samp{RMAIL}, switching to @samp{*mail*} and yanking it, then
-switching back to @samp{RMAIL} to select another.@refill
+switching back to @samp{RMAIL} to select another.
 
 @kindex C-c C-q (Mail mode)
 @findex mail-fill-yanked-message

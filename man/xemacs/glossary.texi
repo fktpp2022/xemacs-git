@@ -117,7 +117,7 @@ entire name, that process is called completion.  Completion is done for
 minibuffer (q.v.@:) arguments when the set of possible valid inputs is
 known; for example, on command names, buffer names, and file names.
 Completion occurs when you type @key{TAB}, @key{SPC}, or @key{RET}.
-@xref{Completion}.@refill
+@xref{Completion}.
 
 @item Continuation Line
 When a line of text is longer than the width of the frame, it
@@ -132,7 +132,7 @@ do not have graphic images assigned to them.  These are the control
 characters.  Any control character can be typed by holding down the
 @key{CTRL} key and typing some other character; some have special keys
 on the keyboard.  @key{RET}, @key{TAB}, @key{ESC}, @key{LFD}, and
-@key{DEL} are all control characters.  @xref{Keystrokes}.@refill
+@key{DEL} are all control characters.  @xref{Keystrokes}.
 
 @item Copyleft
 A copyleft is a notice giving the public legal permission to redistribute

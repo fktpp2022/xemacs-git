@@ -11,7 +11,7 @@ In many environments, such as a tty terminal, an XEmacs frame
 literally takes up the whole screen.  If you are
 running XEmacs in a multi-window system like the X Window System, the
 XEmacs frame takes up one X window.  @xref{XEmacs under X}, for more
-information.@refill
+information.
 
 @item Window
 No matter what environment you are running in, XEmacs allows you to look
@@ -22,7 +22,7 @@ running XEmacs under the X window system, that means you can have several
 @dfn{XEmacs windows} inside the X window that contains the XEmacs frame.
 You can even have multiple frames in different X windows, each with
 their own set of subwindows.
-@refill
+
 @end table
 
 Each XEmacs frame displays a variety of information:
@@ -218,13 +218,13 @@ completely visible on the screen, @var{pos} is @samp{All}.  Otherwise,
 @var{pos} is @samp{Top} if you are looking at the beginning of the file,
 @samp{Bot} if you are looking at the end of the file, or
 @samp{@var{nn}%}, where @var{nn} is the percentage of the file above the
-top of the screen.@refill
+top of the screen.
 
   @var{major} is the name of the @dfn{major mode} in effect in the buffer.  At
 any time, each buffer is in one and only one major mode.
 The available major modes include Fundamental mode (the least specialized),
 Text mode, Lisp mode, and C mode.  @xref{Major Modes}, for details
-on how the modes differ and how you select one.@refill
+on how the modes differ and how you select one.
 
   @var{minor} is a list of some of the @dfn{minor modes} that are turned on
 in the window's chosen buffer.  For example, @samp{Fill} means that Auto
@@ -246,7 +246,7 @@ the modes.  If XEmacs is in one recursive editing level within another,
 double square brackets appear, and so on.  Since information on
 recursive editing applies to XEmacs in general and not to any one buffer,
 the square brackets appear in every mode line on the screen or not in
-any of them.  @xref{Recursive Edit}.@refill
+any of them.  @xref{Recursive Edit}.
 
 @findex display-time
   XEmacs can optionally display the time and system load in all mode lines.
