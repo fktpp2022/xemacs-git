@@ -1,3 +1,11 @@
+2022-12-29  Caj E. Svensson <svenssonc@acm.org>
+
+	* dialog-msw.c (dialog_proc)
+	* event-msw.c (mswindows_wnd_proc, mswindows_find_frame)
+	* frame-msw.c (mswindows_get_mouse_position, mswindows_get_frame_parent)
+	Cast the Windows calls to qxeGetWindowLongPtr() with (const void *) to
+	remove the compiler warnings when compiling under Cygwin.
+
 2022-11-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* process.c (Fstart_process_internal):
@@ -4027,7 +4035,7 @@
 
 	* ExternalShell.c:
 	Now we use emacs_snprintf_ascbyte(), #include lisp.h in this
-	file. Thank you Andrés Ramírez.
+	file. Thank you Andrï¿½s Ramï¿½rez.
 
 2020-03-28  Aidan Kehoe  <kehoea@parhasard.net>
 
@@ -12456,7 +12464,7 @@
 
 	* s/netbsd.h:
 	Remove an extraneous #endif, hopefully fixing the NetBSD and
-	OpenBSD builds; thank you Adam Sjøgren!
+	OpenBSD builds; thank you Adam Sjï¿½gren!
 
 2011-05-07  Aidan Kehoe  <kehoea@parhasard.net>
 
@@ -13248,7 +13256,7 @@
 2010-09-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* symsinit.h: Declare reinit_process_early() here, fixing the C++
-	build; thank you for pointing this out, Adam Sjøgren!
+	build; thank you for pointing this out, Adam Sjï¿½gren!
 	* fontcolor-msw.c (mswindows_string_to_color):
 	Cast the result of bsearch() to a colormap_t pointer, fixing the
 	Visual Studio 2005 build.
@@ -13323,7 +13331,7 @@
 	Remove some needless #ifdef WITH_NUMBER_TYPES, now number.h is
 	always #included.
 
-2010-08-26  Adam Sjøgren <asjo@koldfront.dk>
+2010-08-26  Adam Sjï¿½gren <asjo@koldfront.dk>
 
 	* glyphs-eimage.c (gif_instantiate): Try harder to find an
 	appropriate GIF colormap and then flag an error if one can't be
@@ -24180,7 +24188,7 @@
 
 	* XEmacs 21.5.29 "garbanzo" is released.
 
-2009-03-08  Ville Skyttä  <scop@xemacs.org>
+2009-03-08  Ville Skyttï¿½  <scop@xemacs.org>
 
 	* glyphs-gtk.c (init_image_instance_from_gdk_pixmap): Apply the
 	2008-03-05 change from Dominique Quatravaux here as well even
@@ -25397,7 +25405,7 @@
 	constant on 64-bit platforms when making sure pointers haven't
 	been freed twice.
 
-2007-05-22  Ville Skyttä  <scop@xemacs.org>
+2007-05-22  Ville Skyttï¿½  <scop@xemacs.org>
 
 	* Makefile.in.in ($(LISP)/finder-inf.el): Set lisp-directory
 	to $(LISP) to ensure we're working with the correct finder*.
@@ -30404,7 +30412,7 @@
 
 	* event-gtk.c: Recognise AltGr as a valid modifier.
 
-2005-01-12  Ville Skyttä  <scop@xemacs.org>
+2005-01-12  Ville Skyttï¿½  <scop@xemacs.org>
 
 	* console-x.h: #include X11/keysym.h before xintrinsic.h.
 
@@ -33636,7 +33644,7 @@
 	* lrecord.h (DECLARE_MODULE_API_LRECORD): Also define when not
 	ERROR_CHECK_TYPES.
 
-2003-08-19  René Kyllingstad <listmailxemacs@kyllingstad.com>
+2003-08-19  Renï¿½ Kyllingstad <listmailxemacs@kyllingstad.com>
 
 	* alloc.c (kkcc_gc_stack_init):
 	(kkcc_gc_stack_realloc): Missing casts for the return value of
@@ -33687,7 +33695,7 @@
 	adjust the GCPRO record via GCPRO_STACK just before a GC may
 	occur.
 
-2003-07-31  René Kyllingstad  <listmailxemacs@kyllingstad.com>
+2003-07-31  Renï¿½ Kyllingstad  <listmailxemacs@kyllingstad.com>
 
 	* event-msw.c (mswindows_enqueue_mouse_button_event):
 	* event-msw.c (mswindows_wnd_proc):
@@ -37354,8 +37362,8 @@
 
 	* data.c (prune_weak_boxes): Rewrite for better readability.
 
-2002-06-23  Martin Köbele  <martin@mkoebele.de>
-	    Jens Müller <jmueller@informatik.uni-tuebingen.de>
+2002-06-23  Martin Kï¿½bele  <martin@mkoebele.de>
+	    Jens Mï¿½ller <jmueller@informatik.uni-tuebingen.de>
 	    Mike Sperber <mike@xemacs.org>
 
 	* lrecord.h (lrecord_type): add lrecord_type_ephemeron
@@ -38882,7 +38890,7 @@
 	* process.c (syms_of_process):
 	Add process-has-separate-stderr-p, used by call-process-internal.
 
-2002-05-28  Martin Köbele <mkoebele@mkoebele.de>, Jens Müller <jmueller@informatik.uni-tuebingen.de>
+2002-05-28  Martin Kï¿½bele <mkoebele@mkoebele.de>, Jens Mï¿½ller <jmueller@informatik.uni-tuebingen.de>
 
 	* lrecord.h (lrecord_type): Add lrecord_type_weak_box to
 	lrecord_type enumeration.
