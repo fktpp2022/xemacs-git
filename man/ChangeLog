@@ -1,3 +1,6 @@
+2023-01-10  Caj E. Svensson <svenssonc@acm.org>
+	* xemacs/new.texi (Section General Changes)
+
 2022-12-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lispref/eval.texi (Special Operators):
@@ -1912,7 +1915,7 @@
 	(Q1.0.3): Clarify pronunciation using a serious phonetic
 	alphabet. 
 
-2008-07-26  Ville Skyttä  <scop@xemacs.org>
+2008-07-26  Ville Skyttï¿½  <scop@xemacs.org>
 
 	* xemacs/custom.texi, xemacs/frame.texi, xemacs/mule.texi,
 	xemacs/packages.texi, xemacs/programs.texi, xemacs/trouble.texi:
@@ -1972,11 +1975,11 @@
 	* lispref/strings.texi (Formatting Strings):
 	Document %b for binary output.
 
-2007-12-10  Ville Skyttä  <scop@xemacs.org>
+2007-12-10  Ville Skyttï¿½  <scop@xemacs.org>
 
 	* internals/internals.texi: Spelling fixes.
 
-2007-12-07  Ville Skyttä  <scop@xemacs.org>
+2007-12-07  Ville Skyttï¿½  <scop@xemacs.org>
 
 	* beta.texi, emodules.texi, term.texi, termcap.texi, texinfo.texi,
 	widget.texi, xemacs-faq.texi: Spelling fixes.
@@ -2034,7 +2037,7 @@
 	Mention that lexical scope is available using lexical-let and
 	lexical-let* in cl-macs, instead of ignoring them entirely. 
 
-2007-05-21  Ville Skyttä  <scop@xemacs.org>
+2007-05-21  Ville Skyttï¿½  <scop@xemacs.org>
 
 	* internals/internals.texi: Fix corrupted/oddly encoded chars.
 	* lispref/ldap.texi: Ditto.
@@ -3029,7 +3032,7 @@
 	mostly stubs currently.  Remove some obsolete stuff. Update a bunch
 	of the links.
 
-2004-12-15  Ville Skyttä  <scop@xemacs.org>
+2004-12-15  Ville Skyttï¿½  <scop@xemacs.org>
 
 	* lispref/help.texi: Document 3rd arg to `make-obsolete'.
 
@@ -4284,7 +4287,7 @@
 2004-01-24  Stephen J. Turnbull  <stephen@xemacs.org>
 
 	* lispref/specifiers.texi (Specifier Instancing Functions): Fix
-	typos, thanks to Ilpo Nyyssönen.
+	typos, thanks to Ilpo Nyyssï¿½nen.
 
 2004-01-23  Stephen J. Turnbull  <stephen@xemacs.org>
 
@@ -4480,7 +4483,7 @@
 	Not quite a total rewrite, but a fairly thorough audit
 	nonetheless.
 
-2003-07-31  René Kyllingstad  <listmailxemacs@kyllingstad.com>
+2003-07-31  Renï¿½ Kyllingstad  <listmailxemacs@kyllingstad.com>
 
 	* lispref/display.texi (Invisible Text):
         mention line-move-ignore-invisible.
@@ -4728,7 +4731,7 @@
 	* internals/internals.texi (Regression Testing XEmacs): Hints for
 	test design.
 
-2002-10-29  Ville Skyttä  <scop@xemacs.org>
+2002-10-29  Ville Skyttï¿½  <scop@xemacs.org>
 
 	* xemacs-faq.texi (Top):
 	The canonical location for FAQ on the website is /FAQ/.
@@ -4800,13 +4803,13 @@
 	* xemacs-faq.texi (Q2.0.16): New FAQ on "no cygXpm-noX" fatal error.
 	(Q6.1.4): Document cygXpm-noX.
 
-2002-10-04  Ville Skyttä  <ville.skytta@xemacs.org>
+2002-10-04  Ville Skyttï¿½  <ville.skytta@xemacs.org>
 
 	* xemacs/packages.texi (Available Packages): Add fortran-modes,
 	perl-modes, psgml-dtds, python-modes and ruby-modes.
 	Some consistency tweaks.
 
-2002-09-22  Ville Skyttä  <ville.skytta@xemacs.org>
+2002-09-22  Ville Skyttï¿½  <ville.skytta@xemacs.org>
 
 	* lispref/variables.texi (add-to-list): Document the new
 	(optional) append argument.
@@ -4845,16 +4848,16 @@
 
 	* lispref/building.texi (Pure Storage): purecopy is a no-op.
 
-2002-08-08  Ville Skyttä  <ville.skytta@xemacs.org>
+2002-08-08  Ville Skyttï¿½  <ville.skytta@xemacs.org>
 
 	* xemacs/packages.texi (Available Packages): Bring up to date.
 
-2002-08-02  Ville Skyttä  <ville.skytta@xemacs.org>
+2002-08-02  Ville Skyttï¿½  <ville.skytta@xemacs.org>
 
 	* xemacs/packages.texi (Available Packages):
 	Bring package list up to date, thanks also to Brian Palmer.
 
-2002-07-30  Ville Skyttä  <ville.skytta@xemacs.org>
+2002-07-30  Ville Skyttï¿½  <ville.skytta@xemacs.org>
 
 	* term.texi (Input to the inferior): Fix term line/char mode
 	switch keybindings.  Kudos to Jacob P. Burckhardt.
@@ -7254,7 +7257,7 @@
 
 	* lispref/dragndrop.texi: only small changes
 
-1998-05-15  Christian Nybø <chr@mediascience.no>
+1998-05-15  Christian Nybï¿½ <chr@mediascience.no>
 
 	* xemacs/killing.texi: Properly document `zap-to-char'.
 
