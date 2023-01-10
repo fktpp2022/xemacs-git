@@ -118,6 +118,7 @@ a list of Emacs X resources.  You can set these resources in your X
 environment to set your preferences for color, fonts, location, and the size 
 of XEmacs frames.  Refer to your X documentation for more information 
 about resources.
+@end itemize
 
 @unnumberedsec New Commands and Variables
 
@@ -128,6 +129,7 @@ list.  What follows is a partial list of the new interactive commands:
 
 @findex byte-compile-and-load-file
 @findex byte-compile-buffer
+@itemize @bullet
 @item
 @code{byte-compile-and-load-file} and @code{byte-compile-buffer}
 byte-compile the contents of a file or buffer.
