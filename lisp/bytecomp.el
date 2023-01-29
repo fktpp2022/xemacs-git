@@ -4978,6 +4978,10 @@ The call tree also lists those functions which are not known to be called
 \(that is, to which no calls have been compiled\), and which cannot be
 invoked interactively."
   (interactive)
+  (or byte-compile-call-tree
+      (error 'invalid-operation
+             "No call tree available, is \
+`byte-compile-generate-call-tree' non-nil?"))
   (message "Generating call tree...")
   (with-output-to-temp-buffer "*Call-Tree*"
     (set-buffer "*Call-Tree*")
@@ -5008,8 +5012,12 @@ invoked interactively."
 					 (+ (length (nth 1 y))
 					    (length (nth 2 y))))))
 		     ((eq byte-compile-call-tree-sort 'name)
-		      #'(lambda (x y) (string< (car x)
-					       (car y))))
+		      #'(lambda (x y) (if (and (car-safe x)
+                                               (symbolp (car-safe x))
+                                               (car-safe y)
+                                               (symbolp (car-safe y)))
+                                          (string< (car x) (car y))
+                                        nil)))
 		     (t (error
 		      "`byte-compile-call-tree-sort': `%s' - unknown sort mode"
 			       byte-compile-call-tree-sort))))))
@@ -5018,78 +5026,89 @@ invoked interactively."
 	  (b (current-buffer))
 	  f p
 	  callers calls)
-      (while rest
-	(prin1 (car (car rest)) b)
-	(setq callers (nth 1 (car rest))
-	      calls (nth 2 (car rest)))
-	(insert "\t"
-	  (cond ((not (fboundp (setq f (car (car rest)))))
-		 (if (null f)
-		     " <top level>";; shouldn't insert nil then, actually -sk
-		   " <not defined>"))
-		((subrp (setq f (symbol-function f)))
-		 " <subr>")
-		((symbolp f)
-		 (format " ==> %s" f))
-		((compiled-function-p f)
-		 "<compiled function>")
-		((not (consp f))
-		 "<malformed function>")
-		((eq 'macro (car f))
-		 (if (or (compiled-function-p (cdr f))
-			 (assq 'byte-code (cdr (cdr (cdr f)))))
-		     " <compiled macro>"
-		   " <macro>"))
-		((assq 'byte-code (cdr (cdr f)))
-		 "<compiled lambda>")
-		((eq 'lambda (car f))
-		 "<function>")
-		(t "???"))
-	  (format " (%d callers + %d calls = %d)"
-		  ;; Does the optimizer eliminate common subexpressions?-sk
-		  (length callers)
-		  (length calls)
-		  (+ (length callers) (length calls)))
-	  "\n")
-	(if callers
-	    (progn
-	      (insert "  called by:\n")
-	      (setq p (point))
-	      (insert "    " (if (car callers)
-				 (mapconcat 'symbol-name callers ", ")
-			       "<top level>"))
-	      (let ((fill-prefix "    "))
+      (labels
+          ((symbol-name-or-anonymous (function)
+             (if (symbolp function)
+                 (symbol-name function)
+               (or (and (compiled-function-p function)
+                        (compiled-function-annotation function))
+                   (let (print-readably)
+                     (prin1-to-string function))))))
+        (while rest
+          (prin1 (car (car rest)) b)
+          (setq callers (nth 1 (car rest))
+                calls (nth 2 (car rest)))
+          (insert "\t"
+                  (cond ((and (symbolp (setq f (caar rest)))
+                              (not (fboundp f)))
+                         (if (null f)
+                             ;; shouldn't insert nil then, actually -sk
+                             " <top level>"
+                           " <not defined>"))
+                        ((subrp (and (symbolp f) (setq f (symbol-function f))))
+                         " <subr>")
+                        ((symbolp f)
+                         (format " ==> %s" f))
+                        ((compiled-function-p f)
+                         "<compiled function>")
+                        ((not (consp f))
+                         "<malformed function>")
+                        ((eq 'macro (car f))
+                         (if (or (compiled-function-p (cdr f))
+                                 (assq 'byte-code (cdr (cdr (cdr f)))))
+                             " <compiled macro>"
+                           " <macro>"))
+                        ((assq 'byte-code (cdr (cdr f)))
+                         "<compiled lambda>")
+                        ((eq 'lambda (car f))
+                         "<function>")
+                        (t "???"))
+                  (format " (%d callers + %d calls = %d)"
+                          ;; Does the optimizer eliminate common
+                          ;; subexpressions?-sk
+                          (length callers)
+                          (length calls)
+                          (+ (length callers) (length calls)))
+                  "\n")
+          (if callers
+              (progn
+                (insert "  called by:\n")
+                (setq p (point))
+                (insert "    " (if (car callers)
+                                   (mapconcat #'symbol-name-or-anonymous
+                                              callers ", ")
+                                 "<top level>"))
+                (let ((fill-prefix "    "))
+                  (fill-region-as-paragraph p (point)))))
+          (if calls
+              (progn
+                (insert "  calls:\n")
+                (setq p (point))
+                (insert "    " (mapconcat #'symbol-name-or-anonymous
+                                          calls ", "))
+                (let ((fill-prefix "    "))
 		(fill-region-as-paragraph p (point)))))
-	(if calls
-	    (progn
-	      (insert "  calls:\n")
-	      (setq p (point))
-	      (insert "    " (mapconcat 'symbol-name calls ", "))
-	      (let ((fill-prefix "    "))
-		(fill-region-as-paragraph p (point)))))
-	(insert "\n")
-	(setq rest (cdr rest)))
+          (insert "\n")
+          (setq rest (cdr rest)))
 
-      (message "Generating call tree...(finding uncalled functions...)")
-      (setq rest byte-compile-call-tree)
-      (let ((uncalled nil))
-	(while rest
-	  (or (nth 1 (car rest))
-	      (null (setq f (car (car rest))))
-	      (byte-compile-fdefinition f t)
-	      (commandp (byte-compile-fdefinition f nil))
-	      (setq uncalled (cons f uncalled)))
-	  (setq rest (cdr rest)))
-	(if uncalled
-	    (let ((fill-prefix "  "))
-	      (insert "Noninteractive functions not known to be called:\n  ")
-	      (setq p (point))
-	      (insert (mapconcat 'symbol-name (nreverse uncalled) ", "))
-	      (fill-region-as-paragraph p (point)))))
-      )
-    (message "Generating call tree...done.")
-    ))
-
+        (message "Generating call tree...(finding uncalled functions...)")
+        (setq rest byte-compile-call-tree)
+        (let ((uncalled nil))
+          (while rest
+            (or (nth 1 (car rest))
+                (null (setq f (car (car rest))))
+                (byte-compile-fdefinition f t)
+                (commandp (byte-compile-fdefinition f nil))
+                (setq uncalled (cons f uncalled)))
+            (setq rest (cdr rest)))
+          (if uncalled
+              (let ((fill-prefix "  "))
+                (insert "Noninteractive functions not known to be called:\n  ")
+                (setq p (point))
+                (insert (mapconcat #'symbol-name-or-anonymous
+                                   (nreverse uncalled) ", "))
+                (fill-region-as-paragraph p (point)))))))
+    (message "Generating call tree...done.")))
 
 ;;; by crl@newton.purdue.edu
 ;;;  Only works noninteractively.

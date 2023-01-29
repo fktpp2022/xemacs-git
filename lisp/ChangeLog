@@ -1,3 +1,8 @@
+2023-01-29  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecomp.el (display-call-tree):
+	Don't error within this when dealing with anonymous functions.
+
 2022-12-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* info.el (Info-find-file-node):
