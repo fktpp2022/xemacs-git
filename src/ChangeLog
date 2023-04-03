@@ -1,3 +1,11 @@
+2023-04-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* redisplay.c (generate_formatted_string_db):
+	Avoid miscalculation of the required length of FORMAT_STR in this
+	function, which led to slop at the end of the generated string,
+	provoking crashes with ERROR_CHECK_TEXT when the generated string
+	had non-ASCII.
+
 2022-11-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* process.c (Fstart_process_internal):

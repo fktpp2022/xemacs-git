@@ -3926,28 +3926,28 @@ generate_formatted_string_db (Lisp_Object format_str, Lisp_Object result_str,
     {
       int elt;
       Bytecount len;
-      Ibyte *strdata;
+      Ibyte *staging = alloca_ibytes (Dynarr_length (db->runes)
+				      * MAX_ICHAR_LEN);
       struct buffer *buf = XBUFFER (WINDOW_BUFFER (w));
 
       in_modeline_generation = 1;
 
       sledgehammer_check_ascii_end (result_str);
       detach_all_extents (result_str);
-      resize_string (result_str, -1,
-		     data.bytepos - XSTRING_LENGTH (result_str));
-
-      strdata = XSTRING_DATA (result_str);
 
       for (elt = 0, len = 0; elt < Dynarr_length (db->runes); elt++)
         {
           if (Dynarr_atp (db->runes, elt)->type == RUNE_CHAR)
             {
               len += (set_itext_ichar
-                      (strdata + len, Dynarr_atp (db->runes,
+                      (staging + len, Dynarr_atp (db->runes,
                                                   elt)->object.chr.ch));
             }
         }
 
+      resize_string (result_str, -1, len - XSTRING_LENGTH (result_str));
+
+      memcpy (XSTRING_DATA (result_str), staging, len);
       init_string_ascii_end (result_str);
       bump_string_modiff (result_str);
       sledgehammer_check_ascii_end (result_str);
