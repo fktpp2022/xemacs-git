@@ -77,7 +77,7 @@ nmake -f xemacs.mak unicode-encapsulate
 This does the following:
 
 	cd $(SRC)
-	perl ../lib-src/make-mswin-unicode.pl --c-output intl-auto-encap-win32.c --h-output intl-auto-encap-win32.h intl-encap-win32.c
+	perl ../lib-src/make-mswin-unicode.pl --h-output intl-auto-encap-win32.h intl-encap-win32.c
 
 */
 
@@ -214,7 +214,7 @@ yes CreateFile
 yes SetFileAttributes
 yes GetFileAttributes
 yes GetFileAttributesEx
-yes GetCompressedFileSize
+no GetCompressedFileSize
 yes DeleteFile
 yes FindFirstFileEx
 yes FindFirstFile
@@ -534,7 +534,7 @@ no CreateColorSpace split-sized LPLOGCOLORSPACE; NT 4.0+ only
 yes GetICMProfile NT 4.0+ only, former error in Cygwin prototype but no more (Cygwin 1.7, 1-30-10)
 yes SetICMProfile NT 4.0+ only
 split EnumICMProfiles ICMENUMPROC NT 4.0+ only
-yes UpdateICMRegKey
+no UpdateICMRegKey Deprecated, not used by our codebase
 // non-split EMREXTTEXTOUT (A and W versions identical)
 // non-split EMRPOLYTEXTOUT (A and W versions identical)
 // Unicode-only EMREXTCREATEFONTINDIRECTW
@@ -1064,7 +1064,7 @@ no FillConsoleOutputCharacter split CHAR
 yes ScrollConsoleScreenBuffer
 yes GetConsoleTitle
 yes SetConsoleTitle
-yes ReadConsole
+skip ReadConsole last argument PCONSOLE_READCONSOLE_CONTROL pInputControl in recent VisualStudio, LPVOID in W32API
 yes WriteConsole
 
 file WINREG.H

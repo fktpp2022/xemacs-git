@@ -1,154 +1,1177 @@
 /* Automatically-generated Unicode-encapsulation file,
    using the command
 
-   ../lib-src/make-mswin-unicode.pl --h-output intl-auto-encap-win32.h --includedir /usr/include/w32api intl-encap-win32.c
+   ../lib-src/make-mswin-unicode.pl --h-output intl-auto-encap-win32.h intl-encap-win32.c
 
    Do not edit.  See `make-mswin-unicode.pl'.
 */
 
 
-/* Processing file WINBASE.H */
+/* Processing file WINSPOOL.H */
 
 
 /*----------------------------------------------------------------------*/
-/*                      Processing file WINBASE.H                       */
+/*                      Processing file WINSPOOL.H                      */
+/*----------------------------------------------------------------------*/
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef EnumPrinters
+#define EnumPrinters error_use_qxeEnumPrinters_or_EnumPrintersA_and_EnumPrintersW
+#endif
+/* NOTE: #### problems with DEVMODE pointer in PRINTER_INFO_2 */
+DECLARE_INLINE_HEADER (
+BOOL qxeEnumPrinters (DWORD Flags, Extbyte * Name, DWORD Level, LPBYTE pPrinterEnum, DWORD cbBuf, LPDWORD pcbNeeded, LPDWORD pcReturned)
+)
+{
+  return EnumPrintersW (Flags, (LPWSTR) Name, Level, pPrinterEnum, cbBuf, pcbNeeded, pcReturned);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef OpenPrinter
+#define OpenPrinter error_use_qxeOpenPrinter_or_OpenPrinterA_and_OpenPrinterW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeOpenPrinter (Extbyte * pPrinterName, LPHANDLE phPrinter, LPPRINTER_DEFAULTSW pDefault)
+)
+{
+  return OpenPrinterW ((LPWSTR) pPrinterName, phPrinter, pDefault);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ResetPrinter
+#define ResetPrinter error_use_qxeResetPrinter_or_ResetPrinterA_and_ResetPrinterW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeResetPrinter (HANDLE hPrinter, LPPRINTER_DEFAULTSW pDefault)
+)
+{
+  return ResetPrinterW (hPrinter, pDefault);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef SetJob
+#define SetJob error_split_sized_DEVMODE_pointer_in_split_JOB_INFO_2
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef GetJob
+#define GetJob error_split_sized_DEVMODE_pointer_in_split_JOB_INFO_2
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef EnumJobs
+#define EnumJobs error_split_sized_DEVMODE_pointer_in_split_JOB_INFO_2
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef AddPrinter
+#define AddPrinter error_split_sized_DEVMODE_pointer_in_split_PRINTER_INFO_2
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef SetPrinter
+#define SetPrinter error_split_sized_DEVMODE_pointer_in_split_PRINTER_INFO_2
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef GetPrinter
+#define GetPrinter error_split_sized_DEVMODE_pointer_in_split_PRINTER_INFO_2
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef AddPrinterDriver
+#define AddPrinterDriver error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef AddPrinterDriverEx
+#define AddPrinterDriverEx error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef EnumPrinterDrivers
+#define EnumPrinterDrivers error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef GetPrinterDriver
+#define GetPrinterDriver error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef GetPrinterDriverDirectory
+#define GetPrinterDriverDirectory error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef DeletePrinterDriver
+#define DeletePrinterDriver error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef DeletePrinterDriverEx
+#define DeletePrinterDriverEx error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef AddPrintProcessor
+#define AddPrintProcessor error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef EnumPrintProcessors
+#define EnumPrintProcessors error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef GetPrintProcessorDirectory
+#define GetPrintProcessorDirectory error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef EnumPrintProcessorDatatypes
+#define EnumPrintProcessorDatatypes error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef DeletePrintProcessor
+#define DeletePrintProcessor error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef StartDocPrinter
+#define StartDocPrinter error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef AddJob
+#define AddJob error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef DocumentProperties
+#define DocumentProperties error_use_qxeDocumentProperties_or_DocumentPropertiesA_and_DocumentPropertiesW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeDocumentProperties (HWND hWnd, HANDLE hPrinter, Extbyte * pDeviceName, PDEVMODEW pDevModeOutput, PDEVMODEW pDevModeInput, DWORD fMode)
+)
+{
+  return DocumentPropertiesW (hWnd, hPrinter, (LPWSTR) pDeviceName, pDevModeOutput, pDevModeInput, fMode);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef AdvancedDocumentProperties
+#define AdvancedDocumentProperties error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef GetPrinterData
+#define GetPrinterData error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef GetPrinterDataEx
+#define GetPrinterDataEx error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef EnumPrinterData
+#define EnumPrinterData error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef EnumPrinterDataEx
+#define EnumPrinterDataEx error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef EnumPrinterKey
+#define EnumPrinterKey error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef SetPrinterData
+#define SetPrinterData error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef SetPrinterDataEx
+#define SetPrinterDataEx error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef DeletePrinterData
+#define DeletePrinterData error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef DeletePrinterDataEx
+#define DeletePrinterDataEx error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef DeletePrinterKey
+#define DeletePrinterKey error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef PrinterMessageBox
+#define PrinterMessageBox error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef AddForm
+#define AddForm error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef DeleteForm
+#define DeleteForm error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef GetForm
+#define GetForm error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef SetForm
+#define SetForm error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef EnumForms
+#define EnumForms error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef EnumMonitors
+#define EnumMonitors error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef AddMonitor
+#define AddMonitor error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef DeleteMonitor
+#define DeleteMonitor error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef EnumPorts
+#define EnumPorts error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef AddPort
+#define AddPort error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef ConfigurePort
+#define ConfigurePort error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef DeletePort
+#define DeletePort error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef XcvData
+#define XcvData error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef GetDefaultPrinter
+#define GetDefaultPrinter error_Function_needs_review_to_determine_how_to_handle_it
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef SetPort
+#define SetPort error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef AddPrinterConnection
+#define AddPrinterConnection error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef DeletePrinterConnection
+#define DeletePrinterConnection error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef AddPrintProvidor
+#define AddPrintProvidor error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef DeletePrintProvidor
+#define DeletePrintProvidor error_not_used__complicated_interface_with_split_structures
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+
+/* Processing file WINGDI.H */
+
+
+/*----------------------------------------------------------------------*/
+/*                       Processing file WINGDI.H                       */
+/*----------------------------------------------------------------------*/
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef AddFontResource
+#define AddFontResource error_use_qxeAddFontResource_or_AddFontResourceA_and_AddFontResourceW
+#endif
+DECLARE_INLINE_HEADER (
+int qxeAddFontResource (const Extbyte * arg1)
+)
+{
+  return AddFontResourceW ((LPCWSTR) arg1);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CopyMetaFile
+#define CopyMetaFile error_use_qxeCopyMetaFile_or_CopyMetaFileA_and_CopyMetaFileW
+#endif
+DECLARE_INLINE_HEADER (
+HMETAFILE qxeCopyMetaFile (HMETAFILE arg1, const Extbyte * arg2)
+)
+{
+  return CopyMetaFileW (arg1, (LPCWSTR) arg2);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CreateDC
+#define CreateDC error_use_qxeCreateDC_or_CreateDCA_and_CreateDCW
+#endif
+DECLARE_INLINE_HEADER (
+HDC qxeCreateDC (const Extbyte * pwszDriver, const Extbyte * pwszDevice, const Extbyte * pszPort, const DEVMODEW * pdm)
+)
+{
+  return CreateDCW ((LPCWSTR) pwszDriver, (LPCWSTR) pwszDevice, (LPCWSTR) pszPort, pdm);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CreateFontIndirect
+#define CreateFontIndirect error_use_qxeCreateFontIndirect_or_CreateFontIndirectA_and_CreateFontIndirectW
+#endif
+DECLARE_INLINE_HEADER (
+HFONT qxeCreateFontIndirect (const LOGFONTW * lplf)
+)
+{
+  return CreateFontIndirectW (lplf);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CreateFont
+#define CreateFont error_use_qxeCreateFont_or_CreateFontA_and_CreateFontW
+#endif
+DECLARE_INLINE_HEADER (
+HFONT qxeCreateFont (int cHeight, int cWidth, int cEscapement, int cOrientation, int cWeight, DWORD bItalic, DWORD bUnderline, DWORD bStrikeOut, DWORD iCharSet, DWORD iOutPrecision, DWORD iClipPrecision, DWORD iQuality, DWORD iPitchAndFamily, const Extbyte * pszFaceName)
+)
+{
+  return CreateFontW (cHeight, cWidth, cEscapement, cOrientation, cWeight, bItalic, bUnderline, bStrikeOut, iCharSet, iOutPrecision, iClipPrecision, iQuality, iPitchAndFamily, (LPCWSTR) pszFaceName);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+/* Skipping CreateIC because split-sized DEVMODE */
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CreateMetaFile
+#define CreateMetaFile error_use_qxeCreateMetaFile_or_CreateMetaFileA_and_CreateMetaFileW
+#endif
+DECLARE_INLINE_HEADER (
+HDC qxeCreateMetaFile (const Extbyte * pszFile)
+)
+{
+  return CreateMetaFileW ((LPCWSTR) pszFile);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CreateScalableFontResource
+#define CreateScalableFontResource error_use_qxeCreateScalableFontResource_or_CreateScalableFontResourceA_and_CreateScalableFontResourceW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeCreateScalableFontResource (DWORD fdwHidden, const Extbyte * lpszFont, const Extbyte * lpszFile, const Extbyte * lpszPath)
+)
+{
+  return CreateScalableFontResourceW (fdwHidden, (LPCWSTR) lpszFont, (LPCWSTR) lpszFile, (LPCWSTR) lpszPath);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+/* Skipping DeviceCapabilities because split-sized DEVMODE */
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef EnumFontFamiliesEx
+#define EnumFontFamiliesEx error_use_qxeEnumFontFamiliesEx_or_EnumFontFamiliesExA_and_EnumFontFamiliesExW
+#endif
+DECLARE_INLINE_HEADER (
+int qxeEnumFontFamiliesEx (HDC hdc, LPLOGFONTW lpLogfont, FONTENUMPROCW lpProc, LPARAM lParam, DWORD dwFlags)
+)
+{
+  return EnumFontFamiliesExW (hdc, lpLogfont, lpProc, lParam, dwFlags);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef EnumFontFamilies
+#define EnumFontFamilies error_split_complex_FONTENUMPROC
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef EnumFonts
+#define EnumFonts error_split_complex_FONTENUMPROC
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetCharWidth
+#define GetCharWidth error_use_qxeGetCharWidth_or_GetCharWidthA_and_GetCharWidthW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetCharWidth (HDC hdc, UINT iFirst, UINT iLast, LPINT lpBuffer)
+)
+{
+  return GetCharWidthW (hdc, iFirst, iLast, lpBuffer);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetCharWidth32
+#define GetCharWidth32 error_use_qxeGetCharWidth32_or_GetCharWidth32A_and_GetCharWidth32W
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetCharWidth32 (HDC hdc, UINT iFirst, UINT iLast, LPINT lpBuffer)
+)
+{
+  return GetCharWidth32W (hdc, iFirst, iLast, lpBuffer);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetCharWidthFloat
+#define GetCharWidthFloat error_use_qxeGetCharWidthFloat_or_GetCharWidthFloatA_and_GetCharWidthFloatW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetCharWidthFloat (HDC hdc, UINT iFirst, UINT iLast, PFLOAT lpBuffer)
+)
+{
+  return GetCharWidthFloatW (hdc, iFirst, iLast, lpBuffer);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetCharABCWidths
+#define GetCharABCWidths error_use_qxeGetCharABCWidths_or_GetCharABCWidthsA_and_GetCharABCWidthsW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetCharABCWidths (HDC hdc, UINT wFirst, UINT wLast, LPABC lpABC)
+)
+{
+  return GetCharABCWidthsW (hdc, wFirst, wLast, lpABC);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetCharABCWidthsFloat
+#define GetCharABCWidthsFloat error_use_qxeGetCharABCWidthsFloat_or_GetCharABCWidthsFloatA_and_GetCharABCWidthsFloatW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetCharABCWidthsFloat (HDC hdc, UINT iFirst, UINT iLast, LPABCFLOAT lpABC)
+)
+{
+  return GetCharABCWidthsFloatW (hdc, iFirst, iLast, lpABC);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetGlyphOutline
+#define GetGlyphOutline error_use_qxeGetGlyphOutline_or_GetGlyphOutlineA_and_GetGlyphOutlineW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeGetGlyphOutline (HDC hdc, UINT uChar, UINT fuFormat, LPGLYPHMETRICS lpgm, DWORD cjBuffer, LPVOID pvBuffer, const MAT2 * lpmat2)
+)
+{
+  return GetGlyphOutlineW (hdc, uChar, fuFormat, lpgm, cjBuffer, pvBuffer, lpmat2);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetMetaFile
+#define GetMetaFile error_use_qxeGetMetaFile_or_GetMetaFileA_and_GetMetaFileW
+#endif
+DECLARE_INLINE_HEADER (
+HMETAFILE qxeGetMetaFile (const Extbyte * lpName)
+)
+{
+  return GetMetaFileW ((LPCWSTR) lpName);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef GetOutlineTextMetrics
+#define GetOutlineTextMetrics error_split_sized_LPOUTLINETEXTMETRIC
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetTextExtentPoint
+#define GetTextExtentPoint error_use_qxeGetTextExtentPoint_or_GetTextExtentPointA_and_GetTextExtentPointW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetTextExtentPoint (HDC hdc, const Extbyte * lpString, int c, LPSIZE lpsz)
+)
+{
+  return GetTextExtentPointW (hdc, (LPCWSTR) lpString, c, lpsz);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetTextExtentPoint32
+#define GetTextExtentPoint32 error_use_qxeGetTextExtentPoint32_or_GetTextExtentPoint32A_and_GetTextExtentPoint32W
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetTextExtentPoint32 (HDC hdc, const Extbyte * lpString, int c, LPSIZE psizl)
+)
+{
+  return GetTextExtentPoint32W (hdc, (LPCWSTR) lpString, c, psizl);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetTextExtentExPoint
+#define GetTextExtentExPoint error_use_qxeGetTextExtentExPoint_or_GetTextExtentExPointA_and_GetTextExtentExPointW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetTextExtentExPoint (HDC hdc, const Extbyte * lpszString, int cchString, int nMaxExtent, LPINT lpnFit, LPINT lpnDx, LPSIZE lpSize)
+)
+{
+  return GetTextExtentExPointW (hdc, (LPCWSTR) lpszString, cchString, nMaxExtent, lpnFit, lpnDx, lpSize);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetCharacterPlacement
+#define GetCharacterPlacement error_use_qxeGetCharacterPlacement_or_GetCharacterPlacementA_and_GetCharacterPlacementW
+#endif
+/* NOTE: NT 4.0+ only */
+DECLARE_INLINE_HEADER (
+DWORD qxeGetCharacterPlacement (HDC hdc, const Extbyte * lpString, int nCount, int nMexExtent, LPGCP_RESULTSW lpResults, DWORD dwFlags)
+)
+{
+  return GetCharacterPlacementW (hdc, (LPCWSTR) lpString, nCount, nMexExtent, lpResults, dwFlags);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef GetGlyphIndices
+#define GetGlyphIndices error_NT_5_0__only
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef AddFontResourceEx
+#define AddFontResourceEx error_NT_5_0__only
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef RemoveFontResourceEx
+#define RemoveFontResourceEx error_NT_5_0__only
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+/* Skipping CreateFontIndirectEx because building problems with Visual Studio 8, unclear aetiology, possibly related to ENUMLOGFONTEXDV */
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ResetDC
+#define ResetDC error_use_qxeResetDC_or_ResetDCA_and_ResetDCW
+#endif
+DECLARE_INLINE_HEADER (
+HDC qxeResetDC (HDC hdc, const DEVMODEW * lpdm)
+)
+{
+  return ResetDCW (hdc, lpdm);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RemoveFontResource
+#define RemoveFontResource error_use_qxeRemoveFontResource_or_RemoveFontResourceA_and_RemoveFontResourceW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeRemoveFontResource (const Extbyte * lpFileName)
+)
+{
+  return RemoveFontResourceW ((LPCWSTR) lpFileName);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CopyEnhMetaFile
+#define CopyEnhMetaFile error_use_qxeCopyEnhMetaFile_or_CopyEnhMetaFileA_and_CopyEnhMetaFileW
+#endif
+DECLARE_INLINE_HEADER (
+HENHMETAFILE qxeCopyEnhMetaFile (HENHMETAFILE hEnh, const Extbyte * lpFileName)
+)
+{
+  return CopyEnhMetaFileW (hEnh, (LPCWSTR) lpFileName);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CreateEnhMetaFile
+#define CreateEnhMetaFile error_use_qxeCreateEnhMetaFile_or_CreateEnhMetaFileA_and_CreateEnhMetaFileW
+#endif
+DECLARE_INLINE_HEADER (
+HDC qxeCreateEnhMetaFile (HDC hdc, const Extbyte * lpFilename, const RECT * lprc, const Extbyte * lpDesc)
+)
+{
+  return CreateEnhMetaFileW (hdc, (LPCWSTR) lpFilename, lprc, (LPCWSTR) lpDesc);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetEnhMetaFile
+#define GetEnhMetaFile error_use_qxeGetEnhMetaFile_or_GetEnhMetaFileA_and_GetEnhMetaFileW
+#endif
+DECLARE_INLINE_HEADER (
+HENHMETAFILE qxeGetEnhMetaFile (const Extbyte * lpName)
+)
+{
+  return GetEnhMetaFileW ((LPCWSTR) lpName);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetEnhMetaFileDescription
+#define GetEnhMetaFileDescription error_use_qxeGetEnhMetaFileDescription_or_GetEnhMetaFileDescriptionA_and_GetEnhMetaFileDescriptionW
+#endif
+DECLARE_INLINE_HEADER (
+UINT qxeGetEnhMetaFileDescription (HENHMETAFILE hemf, UINT cchBuffer, Extbyte * lpDescription)
+)
+{
+  return GetEnhMetaFileDescriptionW (hemf, cchBuffer, (LPWSTR) lpDescription);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetTextMetrics
+#define GetTextMetrics error_use_qxeGetTextMetrics_or_GetTextMetricsA_and_GetTextMetricsW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetTextMetrics (HDC hdc, LPTEXTMETRICW lptm)
+)
+{
+  return GetTextMetricsW (hdc, lptm);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef StartDoc
+#define StartDoc error_use_qxeStartDoc_or_StartDocA_and_StartDocW
+#endif
+DECLARE_INLINE_HEADER (
+int qxeStartDoc (HDC hdc, const DOCINFOW * lpdi)
+)
+{
+  return StartDocW (hdc, lpdi);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetObject
+#define GetObject error_use_qxeGetObject_or_GetObjectA_and_GetObjectW
+#endif
+DECLARE_INLINE_HEADER (
+int qxeGetObject (HANDLE h, int c, LPVOID pv)
+)
+{
+  return GetObjectW (h, c, pv);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef TextOut
+#define TextOut error_use_qxeTextOut_or_TextOutA_and_TextOutW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeTextOut (HDC hdc, int x, int y, const Extbyte * lpString, int c)
+)
+{
+  return TextOutW (hdc, x, y, (LPCWSTR) lpString, c);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ExtTextOut
+#define ExtTextOut error_use_qxeExtTextOut_or_ExtTextOutA_and_ExtTextOutW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeExtTextOut (HDC hdc, int x, int y, UINT options, const RECT * lprect, const Extbyte * lpString, UINT c, const INT * lpDx)
+)
+{
+  return ExtTextOutW (hdc, x, y, options, lprect, (LPCWSTR) lpString, c, lpDx);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef PolyTextOut
+#define PolyTextOut error_use_qxePolyTextOut_or_PolyTextOutA_and_PolyTextOutW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxePolyTextOut (HDC hdc, const POLYTEXTW * ppt, int nstrings)
+)
+{
+  return PolyTextOutW (hdc, ppt, nstrings);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetTextFace
+#define GetTextFace error_use_qxeGetTextFace_or_GetTextFaceA_and_GetTextFaceW
+#endif
+DECLARE_INLINE_HEADER (
+int qxeGetTextFace (HDC hdc, int c, Extbyte * lpName)
+)
+{
+  return GetTextFaceW (hdc, c, (LPWSTR) lpName);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetKerningPairs
+#define GetKerningPairs error_use_qxeGetKerningPairs_or_GetKerningPairsA_and_GetKerningPairsW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeGetKerningPairs (HDC hdc, DWORD nPairs, LPKERNINGPAIR lpKernPair)
+)
+{
+  return GetKerningPairsW (hdc, nPairs, lpKernPair);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef GetLogColorSpace
+#define GetLogColorSpace error_split_sized_LPLOGCOLORSPACE__NT_4_0__only
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef CreateColorSpace
+#define CreateColorSpace error_split_sized_LPLOGCOLORSPACE__NT_4_0__only
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetICMProfile
+#define GetICMProfile error_use_qxeGetICMProfile_or_GetICMProfileA_and_GetICMProfileW
+#endif
+/* NOTE: NT 4.0+ only, former error in Cygwin prototype but no more (Cygwin 1.7, 1-30-10) */
+DECLARE_INLINE_HEADER (
+BOOL qxeGetICMProfile (HDC hdc, LPDWORD pBufSize, Extbyte * pszFilename)
+)
+{
+  return GetICMProfileW (hdc, pBufSize, (LPWSTR) pszFilename);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SetICMProfile
+#define SetICMProfile error_use_qxeSetICMProfile_or_SetICMProfileA_and_SetICMProfileW
+#endif
+/* NOTE: NT 4.0+ only */
+DECLARE_INLINE_HEADER (
+BOOL qxeSetICMProfile (HDC hdc, Extbyte * lpFileName)
+)
+{
+  return SetICMProfileW (hdc, (LPWSTR) lpFileName);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef EnumICMProfiles
+#define EnumICMProfiles error_use_qxeEnumICMProfiles_or_EnumICMProfilesA_and_EnumICMProfilesW
+#endif
+/* NOTE: NT 4.0+ only */
+DECLARE_INLINE_HEADER (
+int qxeEnumICMProfiles (HDC hdc, ICMENUMPROCW lpProc, LPARAM lParam)
+)
+{
+  return EnumICMProfilesW (hdc, lpProc, lParam);
+}
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef UpdateICMRegKey
+#define UpdateICMRegKey error_Deprecated__not_used_by_our_codebase
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef wglUseFontBitmaps
+#define wglUseFontBitmaps error_causes_link_error
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+#if defined (HAVE_MS_WINDOWS)
+#undef wglUseFontOutlines
+#define wglUseFontOutlines error_causes_link_error
+#endif /* defined (HAVE_MS_WINDOWS) */
+
+
+/* Processing file MMSYSTEM.H */
+
+
+/*----------------------------------------------------------------------*/
+/*                      Processing file MMSYSTEM.H                      */
 /*----------------------------------------------------------------------*/
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetBinaryType
-#define GetBinaryType error_use_qxeGetBinaryType_or_GetBinaryTypeA_and_GetBinaryTypeW
+#undef sndPlaySound
+#define sndPlaySound error_use_qxesndPlaySound_or_sndPlaySoundA_and_sndPlaySoundW
 #endif
 DECLARE_INLINE_HEADER (
-BOOL qxeGetBinaryType (const Extbyte * lpApplicationName, LPDWORD lpBinaryType)
+BOOL qxesndPlaySound (const Extbyte * pszSound, UINT fuSound)
 )
 {
-  return GetBinaryTypeW ((LPCWSTR) lpApplicationName, lpBinaryType);
-}
-
-#undef SetFileShortName
-#define SetFileShortName error_Function_needs_review_to_determine_how_to_handle_it
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef FormatMessage
-#define FormatMessage error_use_qxeFormatMessage_or_FormatMessageA_and_FormatMessageW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeFormatMessage (DWORD dwFlags, LPCVOID lpSource, DWORD dwMessageId, DWORD dwLanguageId, Extbyte * lpBuffer, DWORD nSize, va_list * Arguments)
-)
-{
-  return FormatMessageW (dwFlags, lpSource, dwMessageId, dwLanguageId, (LPWSTR) lpBuffer, nSize, Arguments);
+  return sndPlaySoundW ((LPCWSTR) pszSound, fuSound);
 }
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CreateMailslot
-#define CreateMailslot error_use_qxeCreateMailslot_or_CreateMailslotA_and_CreateMailslotW
+#undef PlaySound
+#define PlaySound error_use_qxePlaySound_or_PlaySoundA_and_PlaySoundW
 #endif
 DECLARE_INLINE_HEADER (
-HANDLE qxeCreateMailslot (const Extbyte * lpName, DWORD nMaxMessageSize, DWORD lReadTimeout, LPSECURITY_ATTRIBUTES lpSecurityAttributes)
+BOOL qxePlaySound (const Extbyte * pszSound, HMODULE hmod, DWORD fdwSound)
 )
 {
-  return CreateMailslotW ((LPCWSTR) lpName, nMaxMessageSize, lReadTimeout, lpSecurityAttributes);
+  return PlaySoundW ((LPCWSTR) pszSound, hmod, fdwSound);
 }
 
-#if !defined (CYGWIN_HEADERS)
-#undef EncryptFile
-#define EncryptFile error_Win2K__only
-#endif /* !defined (CYGWIN_HEADERS) */
-
-#if !defined (CYGWIN_HEADERS)
-#undef DecryptFile
-#define DecryptFile error_Win2K__only
-#endif /* !defined (CYGWIN_HEADERS) */
-
-#undef FileEncryptionStatus
-#define FileEncryptionStatus error_Function_needs_review_to_determine_how_to_handle_it
+#undef waveOutGetDevCaps
+#define waveOutGetDevCaps error_split_sized_LPWAVEOUTCAPS
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef lstrcmp
-#define lstrcmp error_use_qxelstrcmp_or_lstrcmpA_and_lstrcmpW
+#undef waveOutGetErrorText
+#define waveOutGetErrorText error_use_qxewaveOutGetErrorText_or_waveOutGetErrorTextA_and_waveOutGetErrorTextW
 #endif
 DECLARE_INLINE_HEADER (
-int qxelstrcmp (const Extbyte * lpString1, const Extbyte * lpString2)
+MMRESULT qxewaveOutGetErrorText (MMRESULT mmrError, Extbyte * pszText, UINT cchText)
 )
 {
-  return lstrcmpW ((LPCWSTR) lpString1, (LPCWSTR) lpString2);
+  return waveOutGetErrorTextW (mmrError, (LPWSTR) pszText, cchText);
 }
 
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef lstrcmpi
-#define lstrcmpi error_use_qxelstrcmpi_or_lstrcmpiA_and_lstrcmpiW
-#endif
-DECLARE_INLINE_HEADER (
-int qxelstrcmpi (const Extbyte * lpString1, const Extbyte * lpString2)
-)
-{
-  return lstrcmpiW ((LPCWSTR) lpString1, (LPCWSTR) lpString2);
-}
+#undef waveInGetDevCaps
+#define waveInGetDevCaps error_split_sized_LPWAVEINCAPS
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef lstrcpyn
-#define lstrcpyn error_use_qxelstrcpyn_or_lstrcpynA_and_lstrcpynW
+#undef waveInGetErrorText
+#define waveInGetErrorText error_use_qxewaveInGetErrorText_or_waveInGetErrorTextA_and_waveInGetErrorTextW
 #endif
 DECLARE_INLINE_HEADER (
-Extbyte * qxelstrcpyn (Extbyte * lpString1, const Extbyte * lpString2, int iMaxLength)
+MMRESULT qxewaveInGetErrorText (MMRESULT mmrError, Extbyte * pszText, UINT cchText)
 )
 {
-  return (Extbyte *) lstrcpynW ((LPWSTR) lpString1, (LPCWSTR) lpString2, iMaxLength);
+  return waveInGetErrorTextW (mmrError, (LPWSTR) pszText, cchText);
 }
 
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef lstrcpy
-#define lstrcpy error_use_qxelstrcpy_or_lstrcpyA_and_lstrcpyW
-#endif
-DECLARE_INLINE_HEADER (
-Extbyte * qxelstrcpy (Extbyte * lpString1, const Extbyte * lpString2)
-)
-{
-  return (Extbyte *) lstrcpyW ((LPWSTR) lpString1, (LPCWSTR) lpString2);
-}
+#undef midiOutGetDevCaps
+#define midiOutGetDevCaps error_split_sized_LPMIDIOUTCAPS
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef lstrcat
-#define lstrcat error_use_qxelstrcat_or_lstrcatA_and_lstrcatW
+#undef midiOutGetErrorText
+#define midiOutGetErrorText error_use_qxemidiOutGetErrorText_or_midiOutGetErrorTextA_and_midiOutGetErrorTextW
 #endif
 DECLARE_INLINE_HEADER (
-Extbyte * qxelstrcat (Extbyte * lpString1, const Extbyte * lpString2)
+MMRESULT qxemidiOutGetErrorText (MMRESULT mmrError, Extbyte * pszText, UINT cchText)
 )
 {
-  return (Extbyte *) lstrcatW ((LPWSTR) lpString1, (LPCWSTR) lpString2);
+  return midiOutGetErrorTextW (mmrError, (LPWSTR) pszText, cchText);
 }
 
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef lstrlen
-#define lstrlen error_use_qxelstrlen_or_lstrlenA_and_lstrlenW
-#endif
-DECLARE_INLINE_HEADER (
-int qxelstrlen (const Extbyte * lpString)
-)
-{
-  return lstrlenW ((LPCWSTR) lpString);
-}
+#undef midiInGetDevCaps
+#define midiInGetDevCaps error_split_sized_LPMIDIOUTCAPS
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CreateSemaphore
-#define CreateSemaphore error_use_qxeCreateSemaphore_or_CreateSemaphoreA_and_CreateSemaphoreW
+#undef midiInGetErrorText
+#define midiInGetErrorText error_use_qxemidiInGetErrorText_or_midiInGetErrorTextA_and_midiInGetErrorTextW
 #endif
 DECLARE_INLINE_HEADER (
-HANDLE qxeCreateSemaphore (LPSECURITY_ATTRIBUTES lpSemaphoreAttributes, LONG lInitialCount, LONG lMaximumCount, const Extbyte * lpName)
+MMRESULT qxemidiInGetErrorText (MMRESULT mmrError, Extbyte * pszText, UINT cchText)
 )
 {
-  return CreateSemaphoreW (lpSemaphoreAttributes, lInitialCount, lMaximumCount, (LPCWSTR) lpName);
+  return midiInGetErrorTextW (mmrError, (LPWSTR) pszText, cchText);
+}
+
+#undef auxGetDevCaps
+#define auxGetDevCaps error_split_sized_LPAUXCAPS
+
+#undef mixerGetDevCaps
+#define mixerGetDevCaps error_split_sized_LPMIXERCAPS
+
+#undef mixerGetLineInfo
+#define mixerGetLineInfo error_split_sized_LPMIXERLINE
+
+#undef mixerGetLineControls
+#define mixerGetLineControls error_split_sized_LPMIXERCONTROL
+
+#undef mixerGetControlDetails
+#define mixerGetControlDetails error_split_sized_LPMIXERCONTROL_in_LPMIXERLINECONTROLS_in_LPMIXERCONTROLDETAILS
+
+#undef joyGetDevCaps
+#define joyGetDevCaps error_split_sized_LPJOYCAPS
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef mmioStringToFOURCC
+#define mmioStringToFOURCC error_use_qxemmioStringToFOURCC_or_mmioStringToFOURCCA_and_mmioStringToFOURCCW
+#endif
+DECLARE_INLINE_HEADER (
+FOURCC qxemmioStringToFOURCC (const Extbyte * sz, UINT uFlags)
+)
+{
+  return mmioStringToFOURCCW ((LPCWSTR) sz, uFlags);
 }
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CreateWaitableTimer
-#define CreateWaitableTimer error_use_qxeCreateWaitableTimer_or_CreateWaitableTimerA_and_CreateWaitableTimerW
+#undef mmioInstallIOProc
+#define mmioInstallIOProc error_use_qxemmioInstallIOProc_or_mmioInstallIOProcA_and_mmioInstallIOProcW
 #endif
 DECLARE_INLINE_HEADER (
-HANDLE qxeCreateWaitableTimer (LPSECURITY_ATTRIBUTES lpTimerAttributes, BOOL bManualReset, const Extbyte * lpTimerName)
+LPMMIOPROC qxemmioInstallIOProc (FOURCC fccIOProc, LPMMIOPROC pIOProc, DWORD dwFlags)
 )
 {
-  return CreateWaitableTimerW (lpTimerAttributes, bManualReset, (LPCWSTR) lpTimerName);
+  return mmioInstallIOProcW (fccIOProc, pIOProc, dwFlags);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef mmioOpen
+#define mmioOpen error_use_qxemmioOpen_or_mmioOpenA_and_mmioOpenW
+#endif
+DECLARE_INLINE_HEADER (
+HMMIO qxemmioOpen (Extbyte * pszFileName, LPMMIOINFO pmmioinfo, DWORD fdwOpen)
+)
+{
+  return mmioOpenW ((LPWSTR) pszFileName, pmmioinfo, fdwOpen);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef mmioRename
+#define mmioRename error_use_qxemmioRename_or_mmioRenameA_and_mmioRenameW
+#endif
+DECLARE_INLINE_HEADER (
+MMRESULT qxemmioRename (const Extbyte * pszFileName, const Extbyte * pszNewFileName, LPCMMIOINFO pmmioinfo, DWORD fdwRename)
+)
+{
+  return mmioRenameW ((LPCWSTR) pszFileName, (LPCWSTR) pszNewFileName, pmmioinfo, fdwRename);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef mciSendCommand
+#define mciSendCommand error_use_qxemciSendCommand_or_mciSendCommandA_and_mciSendCommandW
+#endif
+DECLARE_INLINE_HEADER (
+MCIERROR qxemciSendCommand (MCIDEVICEID mciId, UINT uMsg, DWORD_PTR dwParam1, DWORD_PTR dwParam2)
+)
+{
+  return mciSendCommandW (mciId, uMsg, dwParam1, dwParam2);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef mciSendString
+#define mciSendString error_use_qxemciSendString_or_mciSendStringA_and_mciSendStringW
+#endif
+DECLARE_INLINE_HEADER (
+MCIERROR qxemciSendString (const Extbyte * lpstrCommand, Extbyte * lpstrReturnString, UINT uReturnLength, HWND hwndCallback)
+)
+{
+  return mciSendStringW ((LPCWSTR) lpstrCommand, (LPWSTR) lpstrReturnString, uReturnLength, hwndCallback);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef mciGetDeviceID
+#define mciGetDeviceID error_use_qxemciGetDeviceID_or_mciGetDeviceIDA_and_mciGetDeviceIDW
+#endif
+DECLARE_INLINE_HEADER (
+MCIDEVICEID qxemciGetDeviceID (const Extbyte * pszDevice)
+)
+{
+  return mciGetDeviceIDW ((LPCWSTR) pszDevice);
+}
+
+#if !defined (MINGW)
+#undef mciGetDeviceIDFromElementID
+#define mciGetDeviceIDFromElementID error_missing_from_Win98se_version_of_ADVAPI32_dll
+#endif /* !defined (MINGW) */
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef mciGetErrorString
+#define mciGetErrorString error_use_qxemciGetErrorString_or_mciGetErrorStringA_and_mciGetErrorStringW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxemciGetErrorString (MCIERROR mcierr, Extbyte * pszText, UINT cchText)
+)
+{
+  return mciGetErrorStringW (mcierr, (LPWSTR) pszText, cchText);
+}
+
+
+/* Processing file ACLAPI.h */
+
+
+/*----------------------------------------------------------------------*/
+/*                       Processing file ACLAPI.h                       */
+/*----------------------------------------------------------------------*/
+
+#undef GetEffectiveRightsFromAcl
+#define GetEffectiveRightsFromAcl error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef GetAuditedPermissionsFromAcl
+#define GetAuditedPermissionsFromAcl error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef BuildSecurityDescriptor
+#define BuildSecurityDescriptor error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef LookupSecurityDescriptorParts
+#define LookupSecurityDescriptorParts error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef BuildExplicitAccessWithName
+#define BuildExplicitAccessWithName error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef BuildImpersonateExplicitAccessWithName
+#define BuildImpersonateExplicitAccessWithName error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef BuildTrusteeWithName
+#define BuildTrusteeWithName error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef BuildImpersonateTrustee
+#define BuildImpersonateTrustee error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef BuildTrusteeWithSid
+#define BuildTrusteeWithSid error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef BuildTrusteeWithObjectsAndSid
+#define BuildTrusteeWithObjectsAndSid error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef BuildTrusteeWithObjectsAndName
+#define BuildTrusteeWithObjectsAndName error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef GetTrusteeName
+#define GetTrusteeName error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef GetTrusteeType
+#define GetTrusteeType error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef GetTrusteeForm
+#define GetTrusteeForm error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef GetMultipleTrusteeOperation
+#define GetMultipleTrusteeOperation error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef GetMultipleTrustee
+#define GetMultipleTrustee error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef SetEntriesInAcl
+#define SetEntriesInAcl error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef GetExplicitEntriesFromAcl
+#define GetExplicitEntriesFromAcl error_Function_needs_review_to_determine_how_to_handle_it
+
+/* Skipping GetNamedSecurityInfo because Cygwin declaration makes first param const */
+
+#undef SetNamedSecurityInfo
+#define SetNamedSecurityInfo error_Function_needs_review_to_determine_how_to_handle_it
+
+
+/* Processing file LIBLOADERAPI.H */
+
+
+/*----------------------------------------------------------------------*/
+/*                    Processing file LIBLOADERAPI.H                    */
+/*----------------------------------------------------------------------*/
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef FindResourceEx
+#define FindResourceEx error_use_qxeFindResourceEx_or_FindResourceExA_and_FindResourceExW
+#endif
+DECLARE_INLINE_HEADER (
+HRSRC qxeFindResourceEx (HMODULE hModule, const Extbyte * lpType, const Extbyte * lpName, WORD wLanguage)
+)
+{
+  return FindResourceExW (hModule, (LPCWSTR) lpType, (LPCWSTR) lpName, wLanguage);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef LoadLibraryEx
+#define LoadLibraryEx error_use_qxeLoadLibraryEx_or_LoadLibraryExA_and_LoadLibraryExW
+#endif
+DECLARE_INLINE_HEADER (
+HMODULE qxeLoadLibraryEx (const Extbyte * lpLibFileName, HANDLE hFile, DWORD dwFlags)
+)
+{
+  return LoadLibraryExW ((LPCWSTR) lpLibFileName, hFile, dwFlags);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetModuleHandle
+#define GetModuleHandle error_use_qxeGetModuleHandle_or_GetModuleHandleA_and_GetModuleHandleW
+#endif
+DECLARE_INLINE_HEADER (
+HMODULE qxeGetModuleHandle (const Extbyte * lpModuleName)
+)
+{
+  return GetModuleHandleW ((LPCWSTR) lpModuleName);
 }
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
@@ -163,722 +1186,74 @@ HMODULE qxeLoadLibrary (const Extbyte * lpLibFileName)
 }
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef FatalAppExit
-#define FatalAppExit error_use_qxeFatalAppExit_or_FatalAppExitA_and_FatalAppExitW
+#undef GetModuleFileName
+#define GetModuleFileName error_use_qxeGetModuleFileName_or_GetModuleFileNameA_and_GetModuleFileNameW
 #endif
 DECLARE_INLINE_HEADER (
-VOID qxeFatalAppExit (UINT uAction, const Extbyte * lpMessageText)
+DWORD qxeGetModuleFileName (HMODULE hModule, Extbyte * lpFilename, DWORD nSize)
 )
 {
-  FatalAppExitW (uAction, (LPCWSTR) lpMessageText);
+  return GetModuleFileNameW (hModule, (LPWSTR) lpFilename, nSize);
 }
 
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef FindResource
-#define FindResource error_use_qxeFindResource_or_FindResourceA_and_FindResourceW
-#endif
-DECLARE_INLINE_HEADER (
-HRSRC qxeFindResource (HMODULE hModule, const Extbyte * lpName, const Extbyte * lpType)
-)
-{
-  return FindResourceW (hModule, (LPCWSTR) lpName, (LPCWSTR) lpType);
-}
 
-/* Skipping EnumResourceTypes because different prototypes in VC6 and VC7 */
-
-/* Skipping EnumResourceNames because different prototypes in VC6 and VC7 */
-
-/* Skipping EnumResourceLanguages because different prototypes in VC6 and VC7 */
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef BeginUpdateResource
-#define BeginUpdateResource error_use_qxeBeginUpdateResource_or_BeginUpdateResourceA_and_BeginUpdateResourceW
-#endif
-DECLARE_INLINE_HEADER (
-HANDLE qxeBeginUpdateResource (const Extbyte * pFileName, BOOL bDeleteExistingResources)
-)
-{
-  return BeginUpdateResourceW ((LPCWSTR) pFileName, bDeleteExistingResources);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef UpdateResource
-#define UpdateResource error_use_qxeUpdateResource_or_UpdateResourceA_and_UpdateResourceW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeUpdateResource (HANDLE hUpdate, const Extbyte * lpType, const Extbyte * lpName, WORD wLanguage, LPVOID lpData, DWORD cb)
-)
-{
-  return UpdateResourceW (hUpdate, (LPCWSTR) lpType, (LPCWSTR) lpName, wLanguage, lpData, cb);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef EndUpdateResource
-#define EndUpdateResource error_use_qxeEndUpdateResource_or_EndUpdateResourceA_and_EndUpdateResourceW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeEndUpdateResource (HANDLE hUpdate, BOOL fDiscard)
-)
-{
-  return EndUpdateResourceW (hUpdate, fDiscard);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GlobalAddAtom
-#define GlobalAddAtom error_use_qxeGlobalAddAtom_or_GlobalAddAtomA_and_GlobalAddAtomW
-#endif
-DECLARE_INLINE_HEADER (
-ATOM qxeGlobalAddAtom (const Extbyte * lpString)
-)
-{
-  return GlobalAddAtomW ((LPCWSTR) lpString);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GlobalFindAtom
-#define GlobalFindAtom error_use_qxeGlobalFindAtom_or_GlobalFindAtomA_and_GlobalFindAtomW
-#endif
-DECLARE_INLINE_HEADER (
-ATOM qxeGlobalFindAtom (const Extbyte * lpString)
-)
-{
-  return GlobalFindAtomW ((LPCWSTR) lpString);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GlobalGetAtomName
-#define GlobalGetAtomName error_use_qxeGlobalGetAtomName_or_GlobalGetAtomNameA_and_GlobalGetAtomNameW
-#endif
-DECLARE_INLINE_HEADER (
-UINT qxeGlobalGetAtomName (ATOM nAtom, Extbyte * lpBuffer, int nSize)
-)
-{
-  return GlobalGetAtomNameW (nAtom, (LPWSTR) lpBuffer, nSize);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef AddAtom
-#define AddAtom error_use_qxeAddAtom_or_AddAtomA_and_AddAtomW
-#endif
-DECLARE_INLINE_HEADER (
-ATOM qxeAddAtom (const Extbyte * lpString)
-)
-{
-  return AddAtomW ((LPCWSTR) lpString);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef FindAtom
-#define FindAtom error_use_qxeFindAtom_or_FindAtomA_and_FindAtomW
-#endif
-DECLARE_INLINE_HEADER (
-ATOM qxeFindAtom (const Extbyte * lpString)
-)
-{
-  return FindAtomW ((LPCWSTR) lpString);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetAtomName
-#define GetAtomName error_use_qxeGetAtomName_or_GetAtomNameA_and_GetAtomNameW
-#endif
-DECLARE_INLINE_HEADER (
-UINT qxeGetAtomName (ATOM nAtom, Extbyte * lpBuffer, int nSize)
-)
-{
-  return GetAtomNameW (nAtom, (LPWSTR) lpBuffer, nSize);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetProfileInt
-#define GetProfileInt error_use_qxeGetProfileInt_or_GetProfileIntA_and_GetProfileIntW
-#endif
-DECLARE_INLINE_HEADER (
-UINT qxeGetProfileInt (const Extbyte * lpAppName, const Extbyte * lpKeyName, INT nDefault)
-)
-{
-  return GetProfileIntW ((LPCWSTR) lpAppName, (LPCWSTR) lpKeyName, nDefault);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetProfileString
-#define GetProfileString error_use_qxeGetProfileString_or_GetProfileStringA_and_GetProfileStringW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeGetProfileString (const Extbyte * lpAppName, const Extbyte * lpKeyName, const Extbyte * lpDefault, Extbyte * lpReturnedString, DWORD nSize)
-)
-{
-  return GetProfileStringW ((LPCWSTR) lpAppName, (LPCWSTR) lpKeyName, (LPCWSTR) lpDefault, (LPWSTR) lpReturnedString, nSize);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef WriteProfileString
-#define WriteProfileString error_use_qxeWriteProfileString_or_WriteProfileStringA_and_WriteProfileStringW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeWriteProfileString (const Extbyte * lpAppName, const Extbyte * lpKeyName, const Extbyte * lpString)
-)
-{
-  return WriteProfileStringW ((LPCWSTR) lpAppName, (LPCWSTR) lpKeyName, (LPCWSTR) lpString);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetProfileSection
-#define GetProfileSection error_use_qxeGetProfileSection_or_GetProfileSectionA_and_GetProfileSectionW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeGetProfileSection (const Extbyte * lpAppName, Extbyte * lpReturnedString, DWORD nSize)
-)
-{
-  return GetProfileSectionW ((LPCWSTR) lpAppName, (LPWSTR) lpReturnedString, nSize);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef WriteProfileSection
-#define WriteProfileSection error_use_qxeWriteProfileSection_or_WriteProfileSectionA_and_WriteProfileSectionW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeWriteProfileSection (const Extbyte * lpAppName, const Extbyte * lpString)
-)
-{
-  return WriteProfileSectionW ((LPCWSTR) lpAppName, (LPCWSTR) lpString);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetPrivateProfileInt
-#define GetPrivateProfileInt error_use_qxeGetPrivateProfileInt_or_GetPrivateProfileIntA_and_GetPrivateProfileIntW
-#endif
-DECLARE_INLINE_HEADER (
-UINT qxeGetPrivateProfileInt (const Extbyte * lpAppName, const Extbyte * lpKeyName, INT nDefault, const Extbyte * lpFileName)
-)
-{
-  return GetPrivateProfileIntW ((LPCWSTR) lpAppName, (LPCWSTR) lpKeyName, nDefault, (LPCWSTR) lpFileName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetPrivateProfileString
-#define GetPrivateProfileString error_use_qxeGetPrivateProfileString_or_GetPrivateProfileStringA_and_GetPrivateProfileStringW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeGetPrivateProfileString (const Extbyte * lpAppName, const Extbyte * lpKeyName, const Extbyte * lpDefault, Extbyte * lpReturnedString, DWORD nSize, const Extbyte * lpFileName)
-)
-{
-  return GetPrivateProfileStringW ((LPCWSTR) lpAppName, (LPCWSTR) lpKeyName, (LPCWSTR) lpDefault, (LPWSTR) lpReturnedString, nSize, (LPCWSTR) lpFileName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef WritePrivateProfileString
-#define WritePrivateProfileString error_use_qxeWritePrivateProfileString_or_WritePrivateProfileStringA_and_WritePrivateProfileStringW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeWritePrivateProfileString (const Extbyte * lpAppName, const Extbyte * lpKeyName, const Extbyte * lpString, const Extbyte * lpFileName)
-)
-{
-  return WritePrivateProfileStringW ((LPCWSTR) lpAppName, (LPCWSTR) lpKeyName, (LPCWSTR) lpString, (LPCWSTR) lpFileName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetPrivateProfileSection
-#define GetPrivateProfileSection error_use_qxeGetPrivateProfileSection_or_GetPrivateProfileSectionA_and_GetPrivateProfileSectionW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeGetPrivateProfileSection (const Extbyte * lpAppName, Extbyte * lpReturnedString, DWORD nSize, const Extbyte * lpFileName)
-)
-{
-  return GetPrivateProfileSectionW ((LPCWSTR) lpAppName, (LPWSTR) lpReturnedString, nSize, (LPCWSTR) lpFileName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef WritePrivateProfileSection
-#define WritePrivateProfileSection error_use_qxeWritePrivateProfileSection_or_WritePrivateProfileSectionA_and_WritePrivateProfileSectionW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeWritePrivateProfileSection (const Extbyte * lpAppName, const Extbyte * lpString, const Extbyte * lpFileName)
-)
-{
-  return WritePrivateProfileSectionW ((LPCWSTR) lpAppName, (LPCWSTR) lpString, (LPCWSTR) lpFileName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetPrivateProfileSectionNames
-#define GetPrivateProfileSectionNames error_use_qxeGetPrivateProfileSectionNames_or_GetPrivateProfileSectionNamesA_and_GetPrivateProfileSectionNamesW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeGetPrivateProfileSectionNames (Extbyte * lpszReturnBuffer, DWORD nSize, const Extbyte * lpFileName)
-)
-{
-  return GetPrivateProfileSectionNamesW ((LPWSTR) lpszReturnBuffer, nSize, (LPCWSTR) lpFileName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetPrivateProfileStruct
-#define GetPrivateProfileStruct error_use_qxeGetPrivateProfileStruct_or_GetPrivateProfileStructA_and_GetPrivateProfileStructW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetPrivateProfileStruct (const Extbyte * lpszSection, const Extbyte * lpszKey, LPVOID lpStruct, UINT uSizeStruct, const Extbyte * szFile)
-)
-{
-  return GetPrivateProfileStructW ((LPCWSTR) lpszSection, (LPCWSTR) lpszKey, lpStruct, uSizeStruct, (LPCWSTR) szFile);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef WritePrivateProfileStruct
-#define WritePrivateProfileStruct error_use_qxeWritePrivateProfileStruct_or_WritePrivateProfileStructA_and_WritePrivateProfileStructW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeWritePrivateProfileStruct (const Extbyte * lpszSection, const Extbyte * lpszKey, LPVOID lpStruct, UINT uSizeStruct, const Extbyte * szFile)
-)
-{
-  return WritePrivateProfileStructW ((LPCWSTR) lpszSection, (LPCWSTR) lpszKey, lpStruct, uSizeStruct, (LPCWSTR) szFile);
-}
-
-#undef GetSystemWow64Directory
-#define GetSystemWow64Directory error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef SetDllDirectory
-#define SetDllDirectory error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef GetDllDirectory
-#define GetDllDirectory error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef GetFirmwareEnvironmentVariable
-#define GetFirmwareEnvironmentVariable error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef SetFirmwareEnvironmentVariable
-#define SetFirmwareEnvironmentVariable error_Function_needs_review_to_determine_how_to_handle_it
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CreateDirectoryEx
-#define CreateDirectoryEx error_use_qxeCreateDirectoryEx_or_CreateDirectoryExA_and_CreateDirectoryExW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeCreateDirectoryEx (const Extbyte * lpTemplateDirectory, const Extbyte * lpNewDirectory, LPSECURITY_ATTRIBUTES lpSecurityAttributes)
-)
-{
-  return CreateDirectoryExW ((LPCWSTR) lpTemplateDirectory, (LPCWSTR) lpNewDirectory, lpSecurityAttributes);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetCompressedFileSize
-#define GetCompressedFileSize error_use_qxeGetCompressedFileSize_or_GetCompressedFileSizeA_and_GetCompressedFileSizeW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeGetCompressedFileSize (const Extbyte * lpFileName, LPDWORD lpFileSizeHigh)
-)
-{
-  return GetCompressedFileSizeW ((LPCWSTR) lpFileName, lpFileSizeHigh);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CopyFileEx
-#define CopyFileEx error_use_qxeCopyFileEx_or_CopyFileExA_and_CopyFileExW
-#endif
-/* NOTE: NT 4.0+ only */
-DECLARE_INLINE_HEADER (
-BOOL qxeCopyFileEx (const Extbyte * lpExistingFileName, const Extbyte * lpNewFileName, LPPROGRESS_ROUTINE lpProgressRoutine, LPVOID lpData, LPBOOL pbCancel, DWORD dwCopyFlags)
-)
-{
-  return CopyFileExW ((LPCWSTR) lpExistingFileName, (LPCWSTR) lpNewFileName, lpProgressRoutine, lpData, pbCancel, dwCopyFlags);
-}
-
-#undef CheckNameLegalDOS8Dot3
-#define CheckNameLegalDOS8Dot3 error_Function_needs_review_to_determine_how_to_handle_it
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CopyFile
-#define CopyFile error_use_qxeCopyFile_or_CopyFileA_and_CopyFileW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeCopyFile (const Extbyte * lpExistingFileName, const Extbyte * lpNewFileName, BOOL bFailIfExists)
-)
-{
-  return CopyFileW ((LPCWSTR) lpExistingFileName, (LPCWSTR) lpNewFileName, bFailIfExists);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef MoveFile
-#define MoveFile error_use_qxeMoveFile_or_MoveFileA_and_MoveFileW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeMoveFile (const Extbyte * lpExistingFileName, const Extbyte * lpNewFileName)
-)
-{
-  return MoveFileW ((LPCWSTR) lpExistingFileName, (LPCWSTR) lpNewFileName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef MoveFileEx
-#define MoveFileEx error_use_qxeMoveFileEx_or_MoveFileExA_and_MoveFileExW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeMoveFileEx (const Extbyte * lpExistingFileName, const Extbyte * lpNewFileName, DWORD dwFlags)
-)
-{
-  return MoveFileExW ((LPCWSTR) lpExistingFileName, (LPCWSTR) lpNewFileName, dwFlags);
-}
-
-#undef MoveFileWithProgress
-#define MoveFileWithProgress error_NT_5_0__only
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CallNamedPipe
-#define CallNamedPipe error_use_qxeCallNamedPipe_or_CallNamedPipeA_and_CallNamedPipeW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeCallNamedPipe (const Extbyte * lpNamedPipeName, LPVOID lpInBuffer, DWORD nInBufferSize, LPVOID lpOutBuffer, DWORD nOutBufferSize, LPDWORD lpBytesRead, DWORD nTimeOut)
-)
-{
-  return CallNamedPipeW ((LPCWSTR) lpNamedPipeName, lpInBuffer, nInBufferSize, lpOutBuffer, nOutBufferSize, lpBytesRead, nTimeOut);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetNamedPipeHandleState
-#define GetNamedPipeHandleState error_use_qxeGetNamedPipeHandleState_or_GetNamedPipeHandleStateA_and_GetNamedPipeHandleStateW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetNamedPipeHandleState (HANDLE hNamedPipe, LPDWORD lpState, LPDWORD lpCurInstances, LPDWORD lpMaxCollectionCount, LPDWORD lpCollectDataTimeout, Extbyte * lpUserName, DWORD nMaxUserNameSize)
-)
-{
-  return GetNamedPipeHandleStateW (hNamedPipe, lpState, lpCurInstances, lpMaxCollectionCount, lpCollectDataTimeout, (LPWSTR) lpUserName, nMaxUserNameSize);
-}
-
-#undef ReplaceFile
-#define ReplaceFile error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef CreateHardLink
-#define CreateHardLink error_NT_5_0__only
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ClearEventLog
-#define ClearEventLog error_use_qxeClearEventLog_or_ClearEventLogA_and_ClearEventLogW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeClearEventLog (HANDLE hEventLog, const Extbyte * lpBackupFileName)
-)
-{
-  return ClearEventLogW (hEventLog, (LPCWSTR) lpBackupFileName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef BackupEventLog
-#define BackupEventLog error_use_qxeBackupEventLog_or_BackupEventLogA_and_BackupEventLogW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeBackupEventLog (HANDLE hEventLog, const Extbyte * lpBackupFileName)
-)
-{
-  return BackupEventLogW (hEventLog, (LPCWSTR) lpBackupFileName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef OpenEventLog
-#define OpenEventLog error_use_qxeOpenEventLog_or_OpenEventLogA_and_OpenEventLogW
-#endif
-DECLARE_INLINE_HEADER (
-HANDLE qxeOpenEventLog (const Extbyte * lpUNCServerName, const Extbyte * lpSourceName)
-)
-{
-  return OpenEventLogW ((LPCWSTR) lpUNCServerName, (LPCWSTR) lpSourceName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegisterEventSource
-#define RegisterEventSource error_use_qxeRegisterEventSource_or_RegisterEventSourceA_and_RegisterEventSourceW
-#endif
-DECLARE_INLINE_HEADER (
-HANDLE qxeRegisterEventSource (const Extbyte * lpUNCServerName, const Extbyte * lpSourceName)
-)
-{
-  return RegisterEventSourceW ((LPCWSTR) lpUNCServerName, (LPCWSTR) lpSourceName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef OpenBackupEventLog
-#define OpenBackupEventLog error_use_qxeOpenBackupEventLog_or_OpenBackupEventLogA_and_OpenBackupEventLogW
-#endif
-DECLARE_INLINE_HEADER (
-HANDLE qxeOpenBackupEventLog (const Extbyte * lpUNCServerName, const Extbyte * lpFileName)
-)
-{
-  return OpenBackupEventLogW ((LPCWSTR) lpUNCServerName, (LPCWSTR) lpFileName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ReadEventLog
-#define ReadEventLog error_use_qxeReadEventLog_or_ReadEventLogA_and_ReadEventLogW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeReadEventLog (HANDLE hEventLog, DWORD dwReadFlags, DWORD dwRecordOffset, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, DWORD * pnBytesRead, DWORD * pnMinNumberOfBytesNeeded)
-)
-{
-  return ReadEventLogW (hEventLog, dwReadFlags, dwRecordOffset, lpBuffer, nNumberOfBytesToRead, pnBytesRead, pnMinNumberOfBytesNeeded);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ReportEvent
-#define ReportEvent error_use_qxeReportEvent_or_ReportEventA_and_ReportEventW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeReportEvent (HANDLE hEventLog, WORD wType, WORD wCategory, DWORD dwEventID, PSID lpUserSid, WORD wNumStrings, DWORD dwDataSize, const Extbyte * * lpStrings, LPVOID lpRawData)
-)
-{
-  return ReportEventW (hEventLog, wType, wCategory, dwEventID, lpUserSid, wNumStrings, dwDataSize, (LPCWSTR *) lpStrings, lpRawData);
-}
-
-#undef ReadDirectoryChanges
-#define ReadDirectoryChanges error_Unicode_only
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef IsBadStringPtr
-#define IsBadStringPtr error_use_qxeIsBadStringPtr_or_IsBadStringPtrA_and_IsBadStringPtrW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeIsBadStringPtr (const Extbyte * lpsz, UINT_PTR ucchMax)
-)
-{
-  return IsBadStringPtrW ((LPCWSTR) lpsz, ucchMax);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef BuildCommDCB
-#define BuildCommDCB error_use_qxeBuildCommDCB_or_BuildCommDCBA_and_BuildCommDCBW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeBuildCommDCB (const Extbyte * lpDef, LPDCB lpDCB)
-)
-{
-  return BuildCommDCBW ((LPCWSTR) lpDef, lpDCB);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef BuildCommDCBAndTimeouts
-#define BuildCommDCBAndTimeouts error_use_qxeBuildCommDCBAndTimeouts_or_BuildCommDCBAndTimeoutsA_and_BuildCommDCBAndTimeoutsW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeBuildCommDCBAndTimeouts (const Extbyte * lpDef, LPDCB lpDCB, LPCOMMTIMEOUTS lpCommTimeouts)
-)
-{
-  return BuildCommDCBAndTimeoutsW ((LPCWSTR) lpDef, lpDCB, lpCommTimeouts);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CommConfigDialog
-#define CommConfigDialog error_use_qxeCommConfigDialog_or_CommConfigDialogA_and_CommConfigDialogW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeCommConfigDialog (const Extbyte * lpszName, HWND hWnd, LPCOMMCONFIG lpCC)
-)
-{
-  return CommConfigDialogW ((LPCWSTR) lpszName, hWnd, lpCC);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetDefaultCommConfig
-#define GetDefaultCommConfig error_use_qxeGetDefaultCommConfig_or_GetDefaultCommConfigA_and_GetDefaultCommConfigW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetDefaultCommConfig (const Extbyte * lpszName, LPCOMMCONFIG lpCC, LPDWORD lpdwSize)
-)
-{
-  return GetDefaultCommConfigW ((LPCWSTR) lpszName, lpCC, lpdwSize);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SetDefaultCommConfig
-#define SetDefaultCommConfig error_use_qxeSetDefaultCommConfig_or_SetDefaultCommConfigA_and_SetDefaultCommConfigW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeSetDefaultCommConfig (const Extbyte * lpszName, LPCOMMCONFIG lpCC, DWORD dwSize)
-)
-{
-  return SetDefaultCommConfigW ((LPCWSTR) lpszName, lpCC, dwSize);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SetComputerName
-#define SetComputerName error_use_qxeSetComputerName_or_SetComputerNameA_and_SetComputerNameW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeSetComputerName (const Extbyte * lpComputerName)
-)
-{
-  return SetComputerNameW ((LPCWSTR) lpComputerName);
-}
-
-#undef DnsHostnameToComputerName
-#define DnsHostnameToComputerName error_Function_needs_review_to_determine_how_to_handle_it
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef LogonUser
-#define LogonUser error_use_qxeLogonUser_or_LogonUserA_and_LogonUserW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeLogonUser (const Extbyte * lpszUsername, const Extbyte * lpszDomain, const Extbyte * lpszPassword, DWORD dwLogonType, DWORD dwLogonProvider, PHANDLE phToken)
-)
-{
-  return LogonUserW ((LPCWSTR) lpszUsername, (LPCWSTR) lpszDomain, (LPCWSTR) lpszPassword, dwLogonType, dwLogonProvider, phToken);
-}
-
-#undef CreateProcessWithLogon
-#define CreateProcessWithLogon error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef GetCurrentHwProfile
-#define GetCurrentHwProfile error_split_sized_LPHW_PROFILE_INFO__NT_4_0__only
-
-#undef VerifyVersionInfo
-#define VerifyVersionInfo error_Function_needs_review_to_determine_how_to_handle_it
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetUserName
-#define GetUserName error_use_qxeGetUserName_or_GetUserNameA_and_GetUserNameW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetUserName (Extbyte * lpBuffer, LPDWORD pcbBuffer)
-)
-{
-  return GetUserNameW ((LPWSTR) lpBuffer, pcbBuffer);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef LookupAccountName
-#define LookupAccountName error_use_qxeLookupAccountName_or_LookupAccountNameA_and_LookupAccountNameW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeLookupAccountName (const Extbyte * lpSystemName, const Extbyte * lpAccountName, PSID Sid, LPDWORD cbSid, Extbyte * ReferencedDomainName, LPDWORD cchReferencedDomainName, PSID_NAME_USE peUse)
-)
-{
-  return LookupAccountNameW ((LPCWSTR) lpSystemName, (LPCWSTR) lpAccountName, Sid, cbSid, (LPWSTR) ReferencedDomainName, cchReferencedDomainName, peUse);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef LookupAccountSid
-#define LookupAccountSid error_use_qxeLookupAccountSid_or_LookupAccountSidA_and_LookupAccountSidW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeLookupAccountSid (const Extbyte * lpSystemName, PSID Sid, Extbyte * Name, LPDWORD cchName, Extbyte * ReferencedDomainName, LPDWORD cchReferencedDomainName, PSID_NAME_USE peUse)
-)
-{
-  return LookupAccountSidW ((LPCWSTR) lpSystemName, Sid, (LPWSTR) Name, cchName, (LPWSTR) ReferencedDomainName, cchReferencedDomainName, peUse);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef LookupPrivilegeDisplayName
-#define LookupPrivilegeDisplayName error_use_qxeLookupPrivilegeDisplayName_or_LookupPrivilegeDisplayNameA_and_LookupPrivilegeDisplayNameW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeLookupPrivilegeDisplayName (const Extbyte * lpSystemName, const Extbyte * lpName, Extbyte * lpDisplayName, LPDWORD cchDisplayName, LPDWORD lpLanguageId)
-)
-{
-  return LookupPrivilegeDisplayNameW ((LPCWSTR) lpSystemName, (LPCWSTR) lpName, (LPWSTR) lpDisplayName, cchDisplayName, lpLanguageId);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef LookupPrivilegeName
-#define LookupPrivilegeName error_use_qxeLookupPrivilegeName_or_LookupPrivilegeNameA_and_LookupPrivilegeNameW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeLookupPrivilegeName (const Extbyte * lpSystemName, PLUID lpLuid, Extbyte * lpName, LPDWORD cchName)
-)
-{
-  return LookupPrivilegeNameW ((LPCWSTR) lpSystemName, lpLuid, (LPWSTR) lpName, cchName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef LookupPrivilegeValue
-#define LookupPrivilegeValue error_use_qxeLookupPrivilegeValue_or_LookupPrivilegeValueA_and_LookupPrivilegeValueW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeLookupPrivilegeValue (const Extbyte * lpSystemName, const Extbyte * lpName, PLUID lpLuid)
-)
-{
-  return LookupPrivilegeValueW ((LPCWSTR) lpSystemName, (LPCWSTR) lpName, lpLuid);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SetVolumeLabel
-#define SetVolumeLabel error_use_qxeSetVolumeLabel_or_SetVolumeLabelA_and_SetVolumeLabelW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeSetVolumeLabel (const Extbyte * lpRootPathName, const Extbyte * lpVolumeName)
-)
-{
-  return SetVolumeLabelW ((LPCWSTR) lpRootPathName, (LPCWSTR) lpVolumeName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetComputerName
-#define GetComputerName error_use_qxeGetComputerName_or_GetComputerNameA_and_GetComputerNameW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetComputerName (Extbyte * lpBuffer, LPDWORD nSize)
-)
-{
-  return GetComputerNameW ((LPWSTR) lpBuffer, nSize);
-}
-
-#undef CreateJobObject
-#define CreateJobObject error_NT_5_0__only
-
-#undef OpenJobObject
-#define OpenJobObject error_NT_5_0__only
-
-#undef FindFirstVolumeMountPoint
-#define FindFirstVolumeMountPoint error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef FindNextVolumeMountPoint
-#define FindNextVolumeMountPoint error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef SetVolumeMountPoint
-#define SetVolumeMountPoint error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef CreateActCtx
-#define CreateActCtx error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef FindActCtxSectionString
-#define FindActCtxSectionString error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef QueryActCtx
-#define QueryActCtx error_Function_needs_review_to_determine_how_to_handle_it
-
-
-/* Processing file processthreadsapi.h */
+/* Processing file sysinfoapi.h */
 
 
 /*----------------------------------------------------------------------*/
-/*                 Processing file processthreadsapi.h                  */
+/*                     Processing file sysinfoapi.h                     */
 /*----------------------------------------------------------------------*/
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetStartupInfo
-#define GetStartupInfo error_use_qxeGetStartupInfo_or_GetStartupInfoA_and_GetStartupInfoW
+#undef GetWindowsDirectory
+#define GetWindowsDirectory error_use_qxeGetWindowsDirectory_or_GetWindowsDirectoryA_and_GetWindowsDirectoryW
 #endif
 DECLARE_INLINE_HEADER (
-VOID qxeGetStartupInfo (LPSTARTUPINFOW lpStartupInfo)
+UINT qxeGetWindowsDirectory (Extbyte * lpBuffer, UINT uSize)
 )
 {
-  GetStartupInfoW (lpStartupInfo);
+  return GetWindowsDirectoryW ((LPWSTR) lpBuffer, uSize);
 }
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CreateProcessAsUser
-#define CreateProcessAsUser error_use_qxeCreateProcessAsUser_or_CreateProcessAsUserA_and_CreateProcessAsUserW
+#undef GetSystemDirectory
+#define GetSystemDirectory error_use_qxeGetSystemDirectory_or_GetSystemDirectoryA_and_GetSystemDirectoryW
 #endif
 DECLARE_INLINE_HEADER (
-BOOL qxeCreateProcessAsUser (HANDLE hToken, const Extbyte * lpApplicationName, Extbyte * lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags, LPVOID lpEnvironment, const Extbyte * lpCurrentDirectory, LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
+UINT qxeGetSystemDirectory (Extbyte * lpBuffer, UINT uSize)
 )
 {
-  return CreateProcessAsUserW (hToken, (LPCWSTR) lpApplicationName, (LPWSTR) lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, (LPCWSTR) lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
+  return GetSystemDirectoryW ((LPWSTR) lpBuffer, uSize);
+}
+
+
+/* Processing file memoryapi.h */
+
+
+/*----------------------------------------------------------------------*/
+/*                     Processing file memoryapi.h                      */
+/*----------------------------------------------------------------------*/
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CreateFileMapping
+#define CreateFileMapping error_use_qxeCreateFileMapping_or_CreateFileMappingA_and_CreateFileMappingW
+#endif
+DECLARE_INLINE_HEADER (
+HANDLE qxeCreateFileMapping (HANDLE hFile, LPSECURITY_ATTRIBUTES lpFileMappingAttributes, DWORD flProtect, DWORD dwMaximumSizeHigh, DWORD dwMaximumSizeLow, const Extbyte * lpName)
+)
+{
+  return CreateFileMappingW (hFile, lpFileMappingAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, (LPCWSTR) lpName);
 }
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CreateProcess
-#define CreateProcess error_use_qxeCreateProcess_or_CreateProcessA_and_CreateProcessW
+#undef OpenFileMapping
+#define OpenFileMapping error_use_qxeOpenFileMapping_or_OpenFileMappingA_and_OpenFileMappingW
 #endif
 DECLARE_INLINE_HEADER (
-BOOL qxeCreateProcess (const Extbyte * lpApplicationName, Extbyte * lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags, LPVOID lpEnvironment, const Extbyte * lpCurrentDirectory, LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
+HANDLE qxeOpenFileMapping (DWORD dwDesiredAccess, BOOL bInheritHandle, const Extbyte * lpName)
 )
 {
-  return CreateProcessW ((LPCWSTR) lpApplicationName, (LPWSTR) lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, (LPCWSTR) lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
+  return OpenFileMappingW (dwDesiredAccess, bInheritHandle, (LPCWSTR) lpName);
 }
 
 
@@ -1114,1754 +1489,6 @@ UINT qxeImmEnumRegisterWord (HKL arg1, REGISTERWORDENUMPROCW arg2, const Extbyte
 #undef ImmGetImeMenuItems
 #define ImmGetImeMenuItems error_split_sized_IMEMENUITEMINFO
 #endif /* defined (HAVE_MS_WINDOWS) */
-
-
-/* Processing file SHLOBJ.H */
-
-
-/*----------------------------------------------------------------------*/
-/*                       Processing file SHLOBJ.H                       */
-/*----------------------------------------------------------------------*/
-
-#undef SHGetFolderPath
-#define SHGetFolderPath error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef SHGetIconOverlayIndex
-#define SHGetIconOverlayIndex error_Function_needs_review_to_determine_how_to_handle_it
-
-/* Skipping SHGetPathFromIDList because Cygwin qualifiers confuses parser */
-
-#undef SHCreateDirectoryEx
-#define SHCreateDirectoryEx error_Function_needs_review_to_determine_how_to_handle_it
-
-/* Skipping SHGetSpecialFolderPath because error in Cygwin prototype, missing from Cygwin libraries */
-
-#undef SHGetFolderPathAndSubDir
-#define SHGetFolderPathAndSubDir error_Function_needs_review_to_determine_how_to_handle_it
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SHBrowseForFolder
-#define SHBrowseForFolder error_use_qxeSHBrowseForFolder_or_SHBrowseForFolderA_and_SHBrowseForFolderW
-#endif
-DECLARE_INLINE_HEADER (
-LPITEMIDLIST qxeSHBrowseForFolder (LPBROWSEINFOW lpbi)
-)
-{
-  return SHBrowseForFolderW (lpbi);
-}
-
-
-/* Processing file COMMDLG.H */
-
-
-/*----------------------------------------------------------------------*/
-/*                      Processing file COMMDLG.H                       */
-/*----------------------------------------------------------------------*/
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetOpenFileName
-#define GetOpenFileName error_use_qxeGetOpenFileName_or_GetOpenFileNameA_and_GetOpenFileNameW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetOpenFileName (LPOPENFILENAMEW arg1)
-)
-{
-  return GetOpenFileNameW (arg1);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetSaveFileName
-#define GetSaveFileName error_use_qxeGetSaveFileName_or_GetSaveFileNameA_and_GetSaveFileNameW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetSaveFileName (LPOPENFILENAMEW arg1)
-)
-{
-  return GetSaveFileNameW (arg1);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetFileTitle
-#define GetFileTitle error_use_qxeGetFileTitle_or_GetFileTitleA_and_GetFileTitleW
-#endif
-DECLARE_INLINE_HEADER (
-short qxeGetFileTitle (const Extbyte * arg1, Extbyte * arg2, WORD arg3)
-)
-{
-  return GetFileTitleW ((LPCWSTR) arg1, (LPWSTR) arg2, arg3);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ChooseColor
-#define ChooseColor error_use_qxeChooseColor_or_ChooseColorA_and_ChooseColorW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeChooseColor (LPCHOOSECOLORW arg1)
-)
-{
-  return ChooseColorW (arg1);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef FindText
-#define FindText error_use_qxeFindText_or_FindTextA_and_FindTextW
-#endif
-DECLARE_INLINE_HEADER (
-HWND qxeFindText (LPFINDREPLACEW arg1)
-)
-{
-  return FindTextW (arg1);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ReplaceText
-#define ReplaceText error_use_qxeReplaceText_or_ReplaceTextA_and_ReplaceTextW
-#endif
-DECLARE_INLINE_HEADER (
-HWND qxeReplaceText (LPFINDREPLACEW arg1)
-)
-{
-  return ReplaceTextW (arg1);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef ChooseFont
-#define ChooseFont error_split_sized_LPLOGFONT_in_LPCHOOSEFONT
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef PrintDlg
-#define PrintDlg error_use_qxePrintDlg_or_PrintDlgA_and_PrintDlgW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxePrintDlg (LPPRINTDLGW arg1)
-)
-{
-  return PrintDlgW (arg1);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef PrintDlgEx
-#define PrintDlgEx error_Function_needs_review_to_determine_how_to_handle_it
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef PageSetupDlg
-#define PageSetupDlg error_use_qxePageSetupDlg_or_PageSetupDlgA_and_PageSetupDlgW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxePageSetupDlg (LPPAGESETUPDLGW arg1)
-)
-{
-  return PageSetupDlgW (arg1);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-
-/* Processing file DDEML.H */
-
-
-/*----------------------------------------------------------------------*/
-/*                       Processing file DDEML.H                        */
-/*----------------------------------------------------------------------*/
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef DdeInitialize
-#define DdeInitialize error_use_qxeDdeInitialize_or_DdeInitializeA_and_DdeInitializeW
-#endif
-DECLARE_INLINE_HEADER (
-UINT qxeDdeInitialize (LPDWORD pidInst, PFNCALLBACK pfnCallback, DWORD afCmd, DWORD ulRes)
-)
-{
-  return DdeInitializeW (pidInst, pfnCallback, afCmd, ulRes);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef DdeCreateStringHandle
-#define DdeCreateStringHandle error_use_qxeDdeCreateStringHandle_or_DdeCreateStringHandleA_and_DdeCreateStringHandleW
-#endif
-/* NOTE: former error in Cygwin prototype, but no more (Cygwin 1.7, 1-30-10) */
-DECLARE_INLINE_HEADER (
-HSZ qxeDdeCreateStringHandle (DWORD idInst, const Extbyte * psz, int iCodePage)
-)
-{
-  return DdeCreateStringHandleW (idInst, (LPCWSTR) psz, iCodePage);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef DdeQueryString
-#define DdeQueryString error_use_qxeDdeQueryString_or_DdeQueryStringA_and_DdeQueryStringW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeDdeQueryString (DWORD idInst, HSZ hsz, Extbyte * psz, DWORD cchMax, int iCodePage)
-)
-{
-  return DdeQueryStringW (idInst, hsz, (LPWSTR) psz, cchMax, iCodePage);
-}
-
-
-/* Processing file WINREG.H */
-
-
-/*----------------------------------------------------------------------*/
-/*                       Processing file WINREG.H                       */
-/*----------------------------------------------------------------------*/
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegConnectRegistry
-#define RegConnectRegistry error_use_qxeRegConnectRegistry_or_RegConnectRegistryA_and_RegConnectRegistryW
-#endif
-/* NOTE: former error in Cygwin prototype, but no more (Cygwin 1.7, 1-30-10) */
-DECLARE_INLINE_HEADER (
-LONG qxeRegConnectRegistry (const Extbyte * lpMachineName, HKEY hKey, PHKEY phkResult)
-)
-{
-  return RegConnectRegistryW ((LPCWSTR) lpMachineName, hKey, phkResult);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegCreateKey
-#define RegCreateKey error_use_qxeRegCreateKey_or_RegCreateKeyA_and_RegCreateKeyW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegCreateKey (HKEY hKey, const Extbyte * lpSubKey, PHKEY phkResult)
-)
-{
-  return RegCreateKeyW (hKey, (LPCWSTR) lpSubKey, phkResult);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegCreateKeyEx
-#define RegCreateKeyEx error_use_qxeRegCreateKeyEx_or_RegCreateKeyExA_and_RegCreateKeyExW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegCreateKeyEx (HKEY hKey, const Extbyte * lpSubKey, DWORD Reserved, Extbyte * lpClass, DWORD dwOptions, REGSAM samDesired, LPSECURITY_ATTRIBUTES lpSecurityAttributes, PHKEY phkResult, LPDWORD lpdwDisposition)
-)
-{
-  return RegCreateKeyExW (hKey, (LPCWSTR) lpSubKey, Reserved, (LPWSTR) lpClass, dwOptions, samDesired, lpSecurityAttributes, phkResult, lpdwDisposition);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegDeleteKey
-#define RegDeleteKey error_use_qxeRegDeleteKey_or_RegDeleteKeyA_and_RegDeleteKeyW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegDeleteKey (HKEY hKey, const Extbyte * lpSubKey)
-)
-{
-  return RegDeleteKeyW (hKey, (LPCWSTR) lpSubKey);
-}
-
-#undef RegDeleteKeyEx
-#define RegDeleteKeyEx error_Function_needs_review_to_determine_how_to_handle_it
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegDeleteValue
-#define RegDeleteValue error_use_qxeRegDeleteValue_or_RegDeleteValueA_and_RegDeleteValueW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegDeleteValue (HKEY hKey, const Extbyte * lpValueName)
-)
-{
-  return RegDeleteValueW (hKey, (LPCWSTR) lpValueName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegEnumKey
-#define RegEnumKey error_use_qxeRegEnumKey_or_RegEnumKeyA_and_RegEnumKeyW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegEnumKey (HKEY hKey, DWORD dwIndex, Extbyte * lpName, DWORD cchName)
-)
-{
-  return RegEnumKeyW (hKey, dwIndex, (LPWSTR) lpName, cchName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegEnumKeyEx
-#define RegEnumKeyEx error_use_qxeRegEnumKeyEx_or_RegEnumKeyExA_and_RegEnumKeyExW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegEnumKeyEx (HKEY hKey, DWORD dwIndex, Extbyte * lpName, LPDWORD lpcchName, LPDWORD lpReserved, Extbyte * lpClass, LPDWORD lpcchClass, PFILETIME lpftLastWriteTime)
-)
-{
-  return RegEnumKeyExW (hKey, dwIndex, (LPWSTR) lpName, lpcchName, lpReserved, (LPWSTR) lpClass, lpcchClass, lpftLastWriteTime);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegEnumValue
-#define RegEnumValue error_use_qxeRegEnumValue_or_RegEnumValueA_and_RegEnumValueW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegEnumValue (HKEY hKey, DWORD dwIndex, Extbyte * lpValueName, LPDWORD lpcchValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData)
-)
-{
-  return RegEnumValueW (hKey, dwIndex, (LPWSTR) lpValueName, lpcchValueName, lpReserved, lpType, lpData, lpcbData);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegLoadKey
-#define RegLoadKey error_use_qxeRegLoadKey_or_RegLoadKeyA_and_RegLoadKeyW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegLoadKey (HKEY hKey, const Extbyte * lpSubKey, const Extbyte * lpFile)
-)
-{
-  return RegLoadKeyW (hKey, (LPCWSTR) lpSubKey, (LPCWSTR) lpFile);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegOpenKey
-#define RegOpenKey error_use_qxeRegOpenKey_or_RegOpenKeyA_and_RegOpenKeyW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegOpenKey (HKEY hKey, const Extbyte * lpSubKey, PHKEY phkResult)
-)
-{
-  return RegOpenKeyW (hKey, (LPCWSTR) lpSubKey, phkResult);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegOpenKeyEx
-#define RegOpenKeyEx error_use_qxeRegOpenKeyEx_or_RegOpenKeyExA_and_RegOpenKeyExW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegOpenKeyEx (HKEY hKey, const Extbyte * lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult)
-)
-{
-  return RegOpenKeyExW (hKey, (LPCWSTR) lpSubKey, ulOptions, samDesired, phkResult);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegQueryInfoKey
-#define RegQueryInfoKey error_use_qxeRegQueryInfoKey_or_RegQueryInfoKeyA_and_RegQueryInfoKeyW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegQueryInfoKey (HKEY hKey, Extbyte * lpClass, LPDWORD lpcchClass, LPDWORD lpReserved, LPDWORD lpcSubKeys, LPDWORD lpcbMaxSubKeyLen, LPDWORD lpcbMaxClassLen, LPDWORD lpcValues, LPDWORD lpcbMaxValueNameLen, LPDWORD lpcbMaxValueLen, LPDWORD lpcbSecurityDescriptor, PFILETIME lpftLastWriteTime)
-)
-{
-  return RegQueryInfoKeyW (hKey, (LPWSTR) lpClass, lpcchClass, lpReserved, lpcSubKeys, lpcbMaxSubKeyLen, lpcbMaxClassLen, lpcValues, lpcbMaxValueNameLen, lpcbMaxValueLen, lpcbSecurityDescriptor, lpftLastWriteTime);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegQueryValue
-#define RegQueryValue error_use_qxeRegQueryValue_or_RegQueryValueA_and_RegQueryValueW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegQueryValue (HKEY hKey, const Extbyte * lpSubKey, Extbyte * lpData, PLONG lpcbData)
-)
-{
-  return RegQueryValueW (hKey, (LPCWSTR) lpSubKey, (LPWSTR) lpData, lpcbData);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegQueryMultipleValues
-#define RegQueryMultipleValues error_use_qxeRegQueryMultipleValues_or_RegQueryMultipleValuesA_and_RegQueryMultipleValuesW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegQueryMultipleValues (HKEY hKey, PVALENTW val_list, DWORD num_vals, Extbyte * lpValueBuf, LPDWORD ldwTotsize)
-)
-{
-  return RegQueryMultipleValuesW (hKey, val_list, num_vals, (LPWSTR) lpValueBuf, ldwTotsize);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegQueryValueEx
-#define RegQueryValueEx error_use_qxeRegQueryValueEx_or_RegQueryValueExA_and_RegQueryValueExW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegQueryValueEx (HKEY hKey, const Extbyte * lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData)
-)
-{
-  return RegQueryValueExW (hKey, (LPCWSTR) lpValueName, lpReserved, lpType, lpData, lpcbData);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegReplaceKey
-#define RegReplaceKey error_use_qxeRegReplaceKey_or_RegReplaceKeyA_and_RegReplaceKeyW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegReplaceKey (HKEY hKey, const Extbyte * lpSubKey, const Extbyte * lpNewFile, const Extbyte * lpOldFile)
-)
-{
-  return RegReplaceKeyW (hKey, (LPCWSTR) lpSubKey, (LPCWSTR) lpNewFile, (LPCWSTR) lpOldFile);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegRestoreKey
-#define RegRestoreKey error_use_qxeRegRestoreKey_or_RegRestoreKeyA_and_RegRestoreKeyW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegRestoreKey (HKEY hKey, const Extbyte * lpFile, DWORD dwFlags)
-)
-{
-  return RegRestoreKeyW (hKey, (LPCWSTR) lpFile, dwFlags);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegSaveKey
-#define RegSaveKey error_use_qxeRegSaveKey_or_RegSaveKeyA_and_RegSaveKeyW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegSaveKey (HKEY hKey, const Extbyte * lpFile, LPSECURITY_ATTRIBUTES lpSecurityAttributes)
-)
-{
-  return RegSaveKeyW (hKey, (LPCWSTR) lpFile, lpSecurityAttributes);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegSetValue
-#define RegSetValue error_use_qxeRegSetValue_or_RegSetValueA_and_RegSetValueW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegSetValue (HKEY hKey, const Extbyte * lpSubKey, DWORD dwType, const Extbyte * lpData, DWORD cbData)
-)
-{
-  return RegSetValueW (hKey, (LPCWSTR) lpSubKey, dwType, (LPCWSTR) lpData, cbData);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegSetValueEx
-#define RegSetValueEx error_use_qxeRegSetValueEx_or_RegSetValueExA_and_RegSetValueExW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegSetValueEx (HKEY hKey, const Extbyte * lpValueName, DWORD Reserved, DWORD dwType, const BYTE * lpData, DWORD cbData)
-)
-{
-  return RegSetValueExW (hKey, (LPCWSTR) lpValueName, Reserved, dwType, lpData, cbData);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RegUnLoadKey
-#define RegUnLoadKey error_use_qxeRegUnLoadKey_or_RegUnLoadKeyA_and_RegUnLoadKeyW
-#endif
-DECLARE_INLINE_HEADER (
-LONG qxeRegUnLoadKey (HKEY hKey, const Extbyte * lpSubKey)
-)
-{
-  return RegUnLoadKeyW (hKey, (LPCWSTR) lpSubKey);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef InitiateSystemShutdown
-#define InitiateSystemShutdown error_use_qxeInitiateSystemShutdown_or_InitiateSystemShutdownA_and_InitiateSystemShutdownW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeInitiateSystemShutdown (Extbyte * lpMachineName, Extbyte * lpMessage, DWORD dwTimeout, BOOL bForceAppsClosed, BOOL bRebootAfterShutdown)
-)
-{
-  return InitiateSystemShutdownW ((LPWSTR) lpMachineName, (LPWSTR) lpMessage, dwTimeout, bForceAppsClosed, bRebootAfterShutdown);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef AbortSystemShutdown
-#define AbortSystemShutdown error_use_qxeAbortSystemShutdown_or_AbortSystemShutdownA_and_AbortSystemShutdownW
-#endif
-/* NOTE: error arg 1, Cygwin prototype, extra const.
-   NOTE: Prototype manually overridden.
-         Header file claims:
-           WINADVAPI WINBOOL WINAPI AbortSystemShutdown(LPWSTR lpMachineName)
-         Overridden with:
-           BOOL AbortSystemShutdown(LPWSTR)
-         Differences in return-type qualifiers, e.g. WINAPI, are not important.
- */
-DECLARE_INLINE_HEADER (
-BOOL qxeAbortSystemShutdown (Extbyte * arg1)
-)
-{
-  return AbortSystemShutdownW ((LPWSTR) arg1);
-}
-
-
-/* Processing file synchapi.h */
-
-
-/*----------------------------------------------------------------------*/
-/*                      Processing file synchapi.h                      */
-/*----------------------------------------------------------------------*/
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef OpenMutex
-#define OpenMutex error_use_qxeOpenMutex_or_OpenMutexA_and_OpenMutexW
-#endif
-DECLARE_INLINE_HEADER (
-HANDLE qxeOpenMutex (DWORD dwDesiredAccess, BOOL bInheritHandle, const Extbyte * lpName)
-)
-{
-  return OpenMutexW (dwDesiredAccess, bInheritHandle, (LPCWSTR) lpName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef OpenEvent
-#define OpenEvent error_use_qxeOpenEvent_or_OpenEventA_and_OpenEventW
-#endif
-DECLARE_INLINE_HEADER (
-HANDLE qxeOpenEvent (DWORD dwDesiredAccess, BOOL bInheritHandle, const Extbyte * lpName)
-)
-{
-  return OpenEventW (dwDesiredAccess, bInheritHandle, (LPCWSTR) lpName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef OpenSemaphore
-#define OpenSemaphore error_use_qxeOpenSemaphore_or_OpenSemaphoreA_and_OpenSemaphoreW
-#endif
-DECLARE_INLINE_HEADER (
-HANDLE qxeOpenSemaphore (DWORD dwDesiredAccess, BOOL bInheritHandle, const Extbyte * lpName)
-)
-{
-  return OpenSemaphoreW (dwDesiredAccess, bInheritHandle, (LPCWSTR) lpName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CreateMutex
-#define CreateMutex error_use_qxeCreateMutex_or_CreateMutexA_and_CreateMutexW
-#endif
-DECLARE_INLINE_HEADER (
-HANDLE qxeCreateMutex (LPSECURITY_ATTRIBUTES lpMutexAttributes, BOOL bInitialOwner, const Extbyte * lpName)
-)
-{
-  return CreateMutexW (lpMutexAttributes, bInitialOwner, (LPCWSTR) lpName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CreateEvent
-#define CreateEvent error_use_qxeCreateEvent_or_CreateEventA_and_CreateEventW
-#endif
-DECLARE_INLINE_HEADER (
-HANDLE qxeCreateEvent (LPSECURITY_ATTRIBUTES lpEventAttributes, BOOL bManualReset, BOOL bInitialState, const Extbyte * lpName)
-)
-{
-  return CreateEventW (lpEventAttributes, bManualReset, bInitialState, (LPCWSTR) lpName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef OpenWaitableTimer
-#define OpenWaitableTimer error_use_qxeOpenWaitableTimer_or_OpenWaitableTimerA_and_OpenWaitableTimerW
-#endif
-DECLARE_INLINE_HEADER (
-HANDLE qxeOpenWaitableTimer (DWORD dwDesiredAccess, BOOL bInheritHandle, const Extbyte * lpTimerName)
-)
-{
-  return OpenWaitableTimerW (dwDesiredAccess, bInheritHandle, (LPCWSTR) lpTimerName);
-}
-
-
-/* Processing file LIBLOADERAPI.H */
-
-
-/*----------------------------------------------------------------------*/
-/*                    Processing file LIBLOADERAPI.H                    */
-/*----------------------------------------------------------------------*/
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef FindResourceEx
-#define FindResourceEx error_use_qxeFindResourceEx_or_FindResourceExA_and_FindResourceExW
-#endif
-DECLARE_INLINE_HEADER (
-HRSRC qxeFindResourceEx (HMODULE hModule, const Extbyte * lpType, const Extbyte * lpName, WORD wLanguage)
-)
-{
-  return FindResourceExW (hModule, (LPCWSTR) lpType, (LPCWSTR) lpName, wLanguage);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef LoadLibraryEx
-#define LoadLibraryEx error_use_qxeLoadLibraryEx_or_LoadLibraryExA_and_LoadLibraryExW
-#endif
-DECLARE_INLINE_HEADER (
-HMODULE qxeLoadLibraryEx (const Extbyte * lpLibFileName, HANDLE hFile, DWORD dwFlags)
-)
-{
-  return LoadLibraryExW ((LPCWSTR) lpLibFileName, hFile, dwFlags);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetModuleHandle
-#define GetModuleHandle error_use_qxeGetModuleHandle_or_GetModuleHandleA_and_GetModuleHandleW
-#endif
-DECLARE_INLINE_HEADER (
-HMODULE qxeGetModuleHandle (const Extbyte * lpModuleName)
-)
-{
-  return GetModuleHandleW ((LPCWSTR) lpModuleName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetModuleFileName
-#define GetModuleFileName error_use_qxeGetModuleFileName_or_GetModuleFileNameA_and_GetModuleFileNameW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeGetModuleFileName (HMODULE hModule, Extbyte * lpFilename, DWORD nSize)
-)
-{
-  return GetModuleFileNameW (hModule, (LPWSTR) lpFilename, nSize);
-}
-
-
-/* Processing file namedpipeapi.h */
-
-
-/*----------------------------------------------------------------------*/
-/*                    Processing file namedpipeapi.h                    */
-/*----------------------------------------------------------------------*/
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CreateNamedPipe
-#define CreateNamedPipe error_use_qxeCreateNamedPipe_or_CreateNamedPipeA_and_CreateNamedPipeW
-#endif
-DECLARE_INLINE_HEADER (
-HANDLE qxeCreateNamedPipe (const Extbyte * lpName, DWORD dwOpenMode, DWORD dwPipeMode, DWORD nMaxInstances, DWORD nOutBufferSize, DWORD nInBufferSize, DWORD nDefaultTimeOut, LPSECURITY_ATTRIBUTES lpSecurityAttributes)
-)
-{
-  return CreateNamedPipeW ((LPCWSTR) lpName, dwOpenMode, dwPipeMode, nMaxInstances, nOutBufferSize, nInBufferSize, nDefaultTimeOut, lpSecurityAttributes);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef WaitNamedPipe
-#define WaitNamedPipe error_use_qxeWaitNamedPipe_or_WaitNamedPipeA_and_WaitNamedPipeW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeWaitNamedPipe (const Extbyte * lpNamedPipeName, DWORD nTimeOut)
-)
-{
-  return WaitNamedPipeW ((LPCWSTR) lpNamedPipeName, nTimeOut);
-}
-
-
-/* Processing file memoryapi.h */
-
-
-/*----------------------------------------------------------------------*/
-/*                     Processing file memoryapi.h                      */
-/*----------------------------------------------------------------------*/
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CreateFileMapping
-#define CreateFileMapping error_use_qxeCreateFileMapping_or_CreateFileMappingA_and_CreateFileMappingW
-#endif
-DECLARE_INLINE_HEADER (
-HANDLE qxeCreateFileMapping (HANDLE hFile, LPSECURITY_ATTRIBUTES lpFileMappingAttributes, DWORD flProtect, DWORD dwMaximumSizeHigh, DWORD dwMaximumSizeLow, const Extbyte * lpName)
-)
-{
-  return CreateFileMappingW (hFile, lpFileMappingAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, (LPCWSTR) lpName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef OpenFileMapping
-#define OpenFileMapping error_use_qxeOpenFileMapping_or_OpenFileMappingA_and_OpenFileMappingW
-#endif
-DECLARE_INLINE_HEADER (
-HANDLE qxeOpenFileMapping (DWORD dwDesiredAccess, BOOL bInheritHandle, const Extbyte * lpName)
-)
-{
-  return OpenFileMappingW (dwDesiredAccess, bInheritHandle, (LPCWSTR) lpName);
-}
-
-
-/* Processing file MMSYSTEM.H */
-
-
-/*----------------------------------------------------------------------*/
-/*                      Processing file MMSYSTEM.H                      */
-/*----------------------------------------------------------------------*/
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef sndPlaySound
-#define sndPlaySound error_use_qxesndPlaySound_or_sndPlaySoundA_and_sndPlaySoundW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxesndPlaySound (const Extbyte * pszSound, UINT fuSound)
-)
-{
-  return sndPlaySoundW ((LPCWSTR) pszSound, fuSound);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef PlaySound
-#define PlaySound error_use_qxePlaySound_or_PlaySoundA_and_PlaySoundW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxePlaySound (const Extbyte * pszSound, HMODULE hmod, DWORD fdwSound)
-)
-{
-  return PlaySoundW ((LPCWSTR) pszSound, hmod, fdwSound);
-}
-
-#undef waveOutGetDevCaps
-#define waveOutGetDevCaps error_split_sized_LPWAVEOUTCAPS
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef waveOutGetErrorText
-#define waveOutGetErrorText error_use_qxewaveOutGetErrorText_or_waveOutGetErrorTextA_and_waveOutGetErrorTextW
-#endif
-DECLARE_INLINE_HEADER (
-MMRESULT qxewaveOutGetErrorText (MMRESULT mmrError, Extbyte * pszText, UINT cchText)
-)
-{
-  return waveOutGetErrorTextW (mmrError, (LPWSTR) pszText, cchText);
-}
-
-#undef waveInGetDevCaps
-#define waveInGetDevCaps error_split_sized_LPWAVEINCAPS
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef waveInGetErrorText
-#define waveInGetErrorText error_use_qxewaveInGetErrorText_or_waveInGetErrorTextA_and_waveInGetErrorTextW
-#endif
-DECLARE_INLINE_HEADER (
-MMRESULT qxewaveInGetErrorText (MMRESULT mmrError, Extbyte * pszText, UINT cchText)
-)
-{
-  return waveInGetErrorTextW (mmrError, (LPWSTR) pszText, cchText);
-}
-
-#undef midiOutGetDevCaps
-#define midiOutGetDevCaps error_split_sized_LPMIDIOUTCAPS
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef midiOutGetErrorText
-#define midiOutGetErrorText error_use_qxemidiOutGetErrorText_or_midiOutGetErrorTextA_and_midiOutGetErrorTextW
-#endif
-DECLARE_INLINE_HEADER (
-MMRESULT qxemidiOutGetErrorText (MMRESULT mmrError, Extbyte * pszText, UINT cchText)
-)
-{
-  return midiOutGetErrorTextW (mmrError, (LPWSTR) pszText, cchText);
-}
-
-#undef midiInGetDevCaps
-#define midiInGetDevCaps error_split_sized_LPMIDIOUTCAPS
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef midiInGetErrorText
-#define midiInGetErrorText error_use_qxemidiInGetErrorText_or_midiInGetErrorTextA_and_midiInGetErrorTextW
-#endif
-DECLARE_INLINE_HEADER (
-MMRESULT qxemidiInGetErrorText (MMRESULT mmrError, Extbyte * pszText, UINT cchText)
-)
-{
-  return midiInGetErrorTextW (mmrError, (LPWSTR) pszText, cchText);
-}
-
-#undef auxGetDevCaps
-#define auxGetDevCaps error_split_sized_LPAUXCAPS
-
-#undef mixerGetDevCaps
-#define mixerGetDevCaps error_split_sized_LPMIXERCAPS
-
-#undef mixerGetLineInfo
-#define mixerGetLineInfo error_split_sized_LPMIXERLINE
-
-#undef mixerGetLineControls
-#define mixerGetLineControls error_split_sized_LPMIXERCONTROL
-
-#undef mixerGetControlDetails
-#define mixerGetControlDetails error_split_sized_LPMIXERCONTROL_in_LPMIXERLINECONTROLS_in_LPMIXERCONTROLDETAILS
-
-#undef joyGetDevCaps
-#define joyGetDevCaps error_split_sized_LPJOYCAPS
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef mmioStringToFOURCC
-#define mmioStringToFOURCC error_use_qxemmioStringToFOURCC_or_mmioStringToFOURCCA_and_mmioStringToFOURCCW
-#endif
-DECLARE_INLINE_HEADER (
-FOURCC qxemmioStringToFOURCC (const Extbyte * sz, UINT uFlags)
-)
-{
-  return mmioStringToFOURCCW ((LPCWSTR) sz, uFlags);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef mmioInstallIOProc
-#define mmioInstallIOProc error_use_qxemmioInstallIOProc_or_mmioInstallIOProcA_and_mmioInstallIOProcW
-#endif
-DECLARE_INLINE_HEADER (
-LPMMIOPROC qxemmioInstallIOProc (FOURCC fccIOProc, LPMMIOPROC pIOProc, DWORD dwFlags)
-)
-{
-  return mmioInstallIOProcW (fccIOProc, pIOProc, dwFlags);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef mmioOpen
-#define mmioOpen error_use_qxemmioOpen_or_mmioOpenA_and_mmioOpenW
-#endif
-DECLARE_INLINE_HEADER (
-HMMIO qxemmioOpen (Extbyte * pszFileName, LPMMIOINFO pmmioinfo, DWORD fdwOpen)
-)
-{
-  return mmioOpenW ((LPWSTR) pszFileName, pmmioinfo, fdwOpen);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef mmioRename
-#define mmioRename error_use_qxemmioRename_or_mmioRenameA_and_mmioRenameW
-#endif
-DECLARE_INLINE_HEADER (
-MMRESULT qxemmioRename (const Extbyte * pszFileName, const Extbyte * pszNewFileName, LPCMMIOINFO pmmioinfo, DWORD fdwRename)
-)
-{
-  return mmioRenameW ((LPCWSTR) pszFileName, (LPCWSTR) pszNewFileName, pmmioinfo, fdwRename);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef mciSendCommand
-#define mciSendCommand error_use_qxemciSendCommand_or_mciSendCommandA_and_mciSendCommandW
-#endif
-DECLARE_INLINE_HEADER (
-MCIERROR qxemciSendCommand (MCIDEVICEID mciId, UINT uMsg, DWORD_PTR dwParam1, DWORD_PTR dwParam2)
-)
-{
-  return mciSendCommandW (mciId, uMsg, dwParam1, dwParam2);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef mciSendString
-#define mciSendString error_use_qxemciSendString_or_mciSendStringA_and_mciSendStringW
-#endif
-DECLARE_INLINE_HEADER (
-MCIERROR qxemciSendString (const Extbyte * lpstrCommand, Extbyte * lpstrReturnString, UINT uReturnLength, HWND hwndCallback)
-)
-{
-  return mciSendStringW ((LPCWSTR) lpstrCommand, (LPWSTR) lpstrReturnString, uReturnLength, hwndCallback);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef mciGetDeviceID
-#define mciGetDeviceID error_use_qxemciGetDeviceID_or_mciGetDeviceIDA_and_mciGetDeviceIDW
-#endif
-DECLARE_INLINE_HEADER (
-MCIDEVICEID qxemciGetDeviceID (const Extbyte * pszDevice)
-)
-{
-  return mciGetDeviceIDW ((LPCWSTR) pszDevice);
-}
-
-#if !defined (MINGW)
-#undef mciGetDeviceIDFromElementID
-#define mciGetDeviceIDFromElementID error_missing_from_Win98se_version_of_ADVAPI32_dll
-#endif /* !defined (MINGW) */
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef mciGetErrorString
-#define mciGetErrorString error_use_qxemciGetErrorString_or_mciGetErrorStringA_and_mciGetErrorStringW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxemciGetErrorString (MCIERROR mcierr, Extbyte * pszText, UINT cchText)
-)
-{
-  return mciGetErrorStringW (mcierr, (LPWSTR) pszText, cchText);
-}
-
-
-/* Processing file FILEAPI.H */
-
-
-/*----------------------------------------------------------------------*/
-/*                      Processing file FILEAPI.H                       */
-/*----------------------------------------------------------------------*/
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetFileAttributes
-#define GetFileAttributes error_use_qxeGetFileAttributes_or_GetFileAttributesA_and_GetFileAttributesW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeGetFileAttributes (const Extbyte * lpFileName)
-)
-{
-  return GetFileAttributesW ((LPCWSTR) lpFileName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef DefineDosDevice
-#define DefineDosDevice error_use_qxeDefineDosDevice_or_DefineDosDeviceA_and_DefineDosDeviceW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeDefineDosDevice (DWORD dwFlags, const Extbyte * lpDeviceName, const Extbyte * lpTargetPath)
-)
-{
-  return DefineDosDeviceW (dwFlags, (LPCWSTR) lpDeviceName, (LPCWSTR) lpTargetPath);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef FindFirstChangeNotification
-#define FindFirstChangeNotification error_use_qxeFindFirstChangeNotification_or_FindFirstChangeNotificationA_and_FindFirstChangeNotificationW
-#endif
-DECLARE_INLINE_HEADER (
-HANDLE qxeFindFirstChangeNotification (const Extbyte * lpPathName, BOOL bWatchSubtree, DWORD dwNotifyFilter)
-)
-{
-  return FindFirstChangeNotificationW ((LPCWSTR) lpPathName, bWatchSubtree, dwNotifyFilter);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CreateFile
-#define CreateFile error_use_qxeCreateFile_or_CreateFileA_and_CreateFileW
-#endif
-DECLARE_INLINE_HEADER (
-HANDLE qxeCreateFile (const Extbyte * lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
-)
-{
-  return CreateFileW ((LPCWSTR) lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetDiskFreeSpace
-#define GetDiskFreeSpace error_use_qxeGetDiskFreeSpace_or_GetDiskFreeSpaceA_and_GetDiskFreeSpaceW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetDiskFreeSpace (const Extbyte * lpRootPathName, LPDWORD lpSectorsPerCluster, LPDWORD lpBytesPerSector, LPDWORD lpNumberOfFreeClusters, LPDWORD lpTotalNumberOfClusters)
-)
-{
-  return GetDiskFreeSpaceW ((LPCWSTR) lpRootPathName, lpSectorsPerCluster, lpBytesPerSector, lpNumberOfFreeClusters, lpTotalNumberOfClusters);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetDriveType
-#define GetDriveType error_use_qxeGetDriveType_or_GetDriveTypeA_and_GetDriveTypeW
-#endif
-DECLARE_INLINE_HEADER (
-UINT qxeGetDriveType (const Extbyte * lpRootPathName)
-)
-{
-  return GetDriveTypeW ((LPCWSTR) lpRootPathName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetFullPathName
-#define GetFullPathName error_use_qxeGetFullPathName_or_GetFullPathNameA_and_GetFullPathNameW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeGetFullPathName (const Extbyte * lpFileName, DWORD nBufferLength, Extbyte * lpBuffer, Extbyte * * lpFilePart)
-)
-{
-  return GetFullPathNameW ((LPCWSTR) lpFileName, nBufferLength, (LPWSTR) lpBuffer, (LPWSTR *) lpFilePart);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetLogicalDriveStrings
-#define GetLogicalDriveStrings error_use_qxeGetLogicalDriveStrings_or_GetLogicalDriveStringsA_and_GetLogicalDriveStringsW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeGetLogicalDriveStrings (DWORD nBufferLength, Extbyte * lpBuffer)
-)
-{
-  return GetLogicalDriveStringsW (nBufferLength, (LPWSTR) lpBuffer);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetShortPathName
-#define GetShortPathName error_use_qxeGetShortPathName_or_GetShortPathNameA_and_GetShortPathNameW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeGetShortPathName (const Extbyte * lpszLongPath, Extbyte * lpszShortPath, DWORD cchBuffer)
-)
-{
-  return GetShortPathNameW ((LPCWSTR) lpszLongPath, (LPWSTR) lpszShortPath, cchBuffer);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef QueryDosDevice
-#define QueryDosDevice error_use_qxeQueryDosDevice_or_QueryDosDeviceA_and_QueryDosDeviceW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeQueryDosDevice (const Extbyte * lpDeviceName, Extbyte * lpTargetPath, DWORD ucchMax)
-)
-{
-  return QueryDosDeviceW ((LPCWSTR) lpDeviceName, (LPWSTR) lpTargetPath, ucchMax);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetTempFileName
-#define GetTempFileName error_use_qxeGetTempFileName_or_GetTempFileNameA_and_GetTempFileNameW
-#endif
-DECLARE_INLINE_HEADER (
-UINT qxeGetTempFileName (const Extbyte * lpPathName, const Extbyte * lpPrefixString, UINT uUnique, Extbyte * lpTempFileName)
-)
-{
-  return GetTempFileNameW ((LPCWSTR) lpPathName, (LPCWSTR) lpPrefixString, uUnique, (LPWSTR) lpTempFileName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetVolumeInformation
-#define GetVolumeInformation error_use_qxeGetVolumeInformation_or_GetVolumeInformationA_and_GetVolumeInformationW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetVolumeInformation (const Extbyte * lpRootPathName, Extbyte * lpVolumeNameBuffer, DWORD nVolumeNameSize, LPDWORD lpVolumeSerialNumber, LPDWORD lpMaximumComponentLength, LPDWORD lpFileSystemFlags, Extbyte * lpFileSystemNameBuffer, DWORD nFileSystemNameSize)
-)
-{
-  return GetVolumeInformationW ((LPCWSTR) lpRootPathName, (LPWSTR) lpVolumeNameBuffer, nVolumeNameSize, lpVolumeSerialNumber, lpMaximumComponentLength, lpFileSystemFlags, (LPWSTR) lpFileSystemNameBuffer, nFileSystemNameSize);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CreateDirectory
-#define CreateDirectory error_use_qxeCreateDirectory_or_CreateDirectoryA_and_CreateDirectoryW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeCreateDirectory (const Extbyte * lpPathName, LPSECURITY_ATTRIBUTES lpSecurityAttributes)
-)
-{
-  return CreateDirectoryW ((LPCWSTR) lpPathName, lpSecurityAttributes);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef DeleteFile
-#define DeleteFile error_use_qxeDeleteFile_or_DeleteFileA_and_DeleteFileW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeDeleteFile (const Extbyte * lpFileName)
-)
-{
-  return DeleteFileW ((LPCWSTR) lpFileName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetDiskFreeSpaceEx
-#define GetDiskFreeSpaceEx error_use_qxeGetDiskFreeSpaceEx_or_GetDiskFreeSpaceExA_and_GetDiskFreeSpaceExW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetDiskFreeSpaceEx (const Extbyte * lpDirectoryName, PULARGE_INTEGER lpFreeBytesAvailableToCaller, PULARGE_INTEGER lpTotalNumberOfBytes, PULARGE_INTEGER lpTotalNumberOfFreeBytes)
-)
-{
-  return GetDiskFreeSpaceExW ((LPCWSTR) lpDirectoryName, lpFreeBytesAvailableToCaller, lpTotalNumberOfBytes, lpTotalNumberOfFreeBytes);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetFileAttributesEx
-#define GetFileAttributesEx error_use_qxeGetFileAttributesEx_or_GetFileAttributesExA_and_GetFileAttributesExW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetFileAttributesEx (const Extbyte * lpFileName, GET_FILEEX_INFO_LEVELS fInfoLevelId, LPVOID lpFileInformation)
-)
-{
-  return GetFileAttributesExW ((LPCWSTR) lpFileName, fInfoLevelId, lpFileInformation);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RemoveDirectory
-#define RemoveDirectory error_use_qxeRemoveDirectory_or_RemoveDirectoryA_and_RemoveDirectoryW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeRemoveDirectory (const Extbyte * lpPathName)
-)
-{
-  return RemoveDirectoryW ((LPCWSTR) lpPathName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SetFileAttributes
-#define SetFileAttributes error_use_qxeSetFileAttributes_or_SetFileAttributesA_and_SetFileAttributesW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeSetFileAttributes (const Extbyte * lpFileName, DWORD dwFileAttributes)
-)
-{
-  return SetFileAttributesW ((LPCWSTR) lpFileName, dwFileAttributes);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetTempPath
-#define GetTempPath error_use_qxeGetTempPath_or_GetTempPathA_and_GetTempPathW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeGetTempPath (DWORD nBufferLength, Extbyte * lpBuffer)
-)
-{
-  return GetTempPathW (nBufferLength, (LPWSTR) lpBuffer);
-}
-
-
-/* Processing file WINCON.H */
-
-
-/*----------------------------------------------------------------------*/
-/*                       Processing file WINCON.H                       */
-/*----------------------------------------------------------------------*/
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef PeekConsoleInput
-#define PeekConsoleInput error_use_qxePeekConsoleInput_or_PeekConsoleInputA_and_PeekConsoleInputW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxePeekConsoleInput (HANDLE hConsoleInput, PINPUT_RECORD lpBuffer, DWORD nLength, LPDWORD lpNumberOfEventsRead)
-)
-{
-  return PeekConsoleInputW (hConsoleInput, lpBuffer, nLength, lpNumberOfEventsRead);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ReadConsoleInput
-#define ReadConsoleInput error_use_qxeReadConsoleInput_or_ReadConsoleInputA_and_ReadConsoleInputW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeReadConsoleInput (HANDLE hConsoleInput, PINPUT_RECORD lpBuffer, DWORD nLength, LPDWORD lpNumberOfEventsRead)
-)
-{
-  return ReadConsoleInputW (hConsoleInput, lpBuffer, nLength, lpNumberOfEventsRead);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef WriteConsoleInput
-#define WriteConsoleInput error_use_qxeWriteConsoleInput_or_WriteConsoleInputA_and_WriteConsoleInputW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeWriteConsoleInput (HANDLE hConsoleInput, const INPUT_RECORD * lpBuffer, DWORD nLength, LPDWORD lpNumberOfEventsWritten)
-)
-{
-  return WriteConsoleInputW (hConsoleInput, lpBuffer, nLength, lpNumberOfEventsWritten);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ReadConsoleOutput
-#define ReadConsoleOutput error_use_qxeReadConsoleOutput_or_ReadConsoleOutputA_and_ReadConsoleOutputW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeReadConsoleOutput (HANDLE hConsoleOutput, PCHAR_INFO lpBuffer, COORD dwBufferSize, COORD dwBufferCoord, PSMALL_RECT lpReadRegion)
-)
-{
-  return ReadConsoleOutputW (hConsoleOutput, lpBuffer, dwBufferSize, dwBufferCoord, lpReadRegion);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef WriteConsoleOutput
-#define WriteConsoleOutput error_use_qxeWriteConsoleOutput_or_WriteConsoleOutputA_and_WriteConsoleOutputW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeWriteConsoleOutput (HANDLE hConsoleOutput, const CHAR_INFO * lpBuffer, COORD dwBufferSize, COORD dwBufferCoord, PSMALL_RECT lpWriteRegion)
-)
-{
-  return WriteConsoleOutputW (hConsoleOutput, lpBuffer, dwBufferSize, dwBufferCoord, lpWriteRegion);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ReadConsoleOutputCharacter
-#define ReadConsoleOutputCharacter error_use_qxeReadConsoleOutputCharacter_or_ReadConsoleOutputCharacterA_and_ReadConsoleOutputCharacterW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeReadConsoleOutputCharacter (HANDLE hConsoleOutput, Extbyte * lpCharacter, DWORD nLength, COORD dwReadCoord, LPDWORD lpNumberOfCharsRead)
-)
-{
-  return ReadConsoleOutputCharacterW (hConsoleOutput, (LPWSTR) lpCharacter, nLength, dwReadCoord, lpNumberOfCharsRead);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef WriteConsoleOutputCharacter
-#define WriteConsoleOutputCharacter error_use_qxeWriteConsoleOutputCharacter_or_WriteConsoleOutputCharacterA_and_WriteConsoleOutputCharacterW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeWriteConsoleOutputCharacter (HANDLE hConsoleOutput, const Extbyte * lpCharacter, DWORD nLength, COORD dwWriteCoord, LPDWORD lpNumberOfCharsWritten)
-)
-{
-  return WriteConsoleOutputCharacterW (hConsoleOutput, (LPCWSTR) lpCharacter, nLength, dwWriteCoord, lpNumberOfCharsWritten);
-}
-
-#undef FillConsoleOutputCharacter
-#define FillConsoleOutputCharacter error_split_CHAR
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ScrollConsoleScreenBuffer
-#define ScrollConsoleScreenBuffer error_use_qxeScrollConsoleScreenBuffer_or_ScrollConsoleScreenBufferA_and_ScrollConsoleScreenBufferW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeScrollConsoleScreenBuffer (HANDLE hConsoleOutput, const SMALL_RECT * lpScrollRectangle, const SMALL_RECT * lpClipRectangle, COORD dwDestinationOrigin, const CHAR_INFO * lpFill)
-)
-{
-  return ScrollConsoleScreenBufferW (hConsoleOutput, lpScrollRectangle, lpClipRectangle, dwDestinationOrigin, lpFill);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetConsoleTitle
-#define GetConsoleTitle error_use_qxeGetConsoleTitle_or_GetConsoleTitleA_and_GetConsoleTitleW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeGetConsoleTitle (Extbyte * lpConsoleTitle, DWORD nSize)
-)
-{
-  return GetConsoleTitleW ((LPWSTR) lpConsoleTitle, nSize);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SetConsoleTitle
-#define SetConsoleTitle error_use_qxeSetConsoleTitle_or_SetConsoleTitleA_and_SetConsoleTitleW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeSetConsoleTitle (const Extbyte * lpConsoleTitle)
-)
-{
-  return SetConsoleTitleW ((LPCWSTR) lpConsoleTitle);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ReadConsole
-#define ReadConsole error_use_qxeReadConsole_or_ReadConsoleA_and_ReadConsoleW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeReadConsole (HANDLE hConsoleInput, LPVOID lpBuffer, DWORD nNumberOfCharsToRead, LPDWORD lpNumberOfCharsRead, LPVOID lpReserved)
-)
-{
-  return ReadConsoleW (hConsoleInput, lpBuffer, nNumberOfCharsToRead, lpNumberOfCharsRead, lpReserved);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef WriteConsole
-#define WriteConsole error_use_qxeWriteConsole_or_WriteConsoleA_and_WriteConsoleW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeWriteConsole (HANDLE hConsoleOutput, const VOID * lpBuffer, DWORD nNumberOfCharsToWrite, LPDWORD lpNumberOfCharsWritten, LPVOID lpReserved)
-)
-{
-  return WriteConsoleW (hConsoleOutput, lpBuffer, nNumberOfCharsToWrite, lpNumberOfCharsWritten, lpReserved);
-}
-
-
-/* Processing file SHELLAPI.H */
-
-
-/*----------------------------------------------------------------------*/
-/*                      Processing file SHELLAPI.H                      */
-/*----------------------------------------------------------------------*/
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef DragQueryFile
-#define DragQueryFile error_use_qxeDragQueryFile_or_DragQueryFileA_and_DragQueryFileW
-#endif
-DECLARE_INLINE_HEADER (
-UINT qxeDragQueryFile (HDROP hDrop, UINT iFile, Extbyte * lpszFile, UINT cch)
-)
-{
-  return DragQueryFileW (hDrop, iFile, (LPWSTR) lpszFile, cch);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ShellExecute
-#define ShellExecute error_use_qxeShellExecute_or_ShellExecuteA_and_ShellExecuteW
-#endif
-DECLARE_INLINE_HEADER (
-HINSTANCE qxeShellExecute (HWND hwnd, const Extbyte * lpOperation, const Extbyte * lpFile, const Extbyte * lpParameters, const Extbyte * lpDirectory, INT nShowCmd)
-)
-{
-  return ShellExecuteW (hwnd, (LPCWSTR) lpOperation, (LPCWSTR) lpFile, (LPCWSTR) lpParameters, (LPCWSTR) lpDirectory, nShowCmd);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef FindExecutable
-#define FindExecutable error_use_qxeFindExecutable_or_FindExecutableA_and_FindExecutableW
-#endif
-DECLARE_INLINE_HEADER (
-HINSTANCE qxeFindExecutable (const Extbyte * lpFile, const Extbyte * lpDirectory, Extbyte * lpResult)
-)
-{
-  return FindExecutableW ((LPCWSTR) lpFile, (LPCWSTR) lpDirectory, (LPWSTR) lpResult);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ShellAbout
-#define ShellAbout error_use_qxeShellAbout_or_ShellAboutA_and_ShellAboutW
-#endif
-DECLARE_INLINE_HEADER (
-INT qxeShellAbout (HWND hWnd, const Extbyte * szApp, const Extbyte * szOtherStuff, HICON hIcon)
-)
-{
-  return ShellAboutW (hWnd, (LPCWSTR) szApp, (LPCWSTR) szOtherStuff, hIcon);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ExtractAssociatedIcon
-#define ExtractAssociatedIcon error_use_qxeExtractAssociatedIcon_or_ExtractAssociatedIconA_and_ExtractAssociatedIconW
-#endif
-/* NOTE: error arg2, Cygwin prototype, extra const.
-   NOTE: Prototype manually overridden.
-         Header file claims:
-           SHSTDAPI_(HICON) ExtractAssociatedIcon(HINSTANCE hInst, LPWSTR pszIconPath, WORD *piIcon)
-         Overridden with:
-           HICON ExtractAssociatedIcon(HINSTANCE, LPWSTR, LPWORD)
-         Differences in return-type qualifiers, e.g. WINAPI, are not important.
- */
-DECLARE_INLINE_HEADER (
-HICON qxeExtractAssociatedIcon (HINSTANCE arg1, Extbyte * arg2, LPWORD arg3)
-)
-{
-  return ExtractAssociatedIconW (arg1, (LPWSTR) arg2, arg3);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ExtractIcon
-#define ExtractIcon error_use_qxeExtractIcon_or_ExtractIconA_and_ExtractIconW
-#endif
-DECLARE_INLINE_HEADER (
-HICON qxeExtractIcon (HINSTANCE hInst, const Extbyte * pszExeFileName, UINT nIconIndex)
-)
-{
-  return ExtractIconW (hInst, (LPCWSTR) pszExeFileName, nIconIndex);
-}
-
-#if !defined (CYGWIN_HEADERS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef DoEnvironmentSubst
-#define DoEnvironmentSubst error_use_qxeDoEnvironmentSubst_or_DoEnvironmentSubstA_and_DoEnvironmentSubstW
-#endif
-/* NOTE: NT 4.0+ only */
-DECLARE_INLINE_HEADER (
-DWORD qxeDoEnvironmentSubst (Extbyte * pszSrc, UINT cchSrc)
-)
-{
-  return DoEnvironmentSubstW ((LPWSTR) pszSrc, cchSrc);
-}
-#endif /* !defined (CYGWIN_HEADERS) */
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ExtractIconEx
-#define ExtractIconEx error_use_qxeExtractIconEx_or_ExtractIconExA_and_ExtractIconExW
-#endif
-/* NOTE: NT 4.0+ only, former error in Cygwin prototype but no more (Cygwin 1.7, 1-30-10) */
-DECLARE_INLINE_HEADER (
-UINT qxeExtractIconEx (const Extbyte * lpszFile, int nIconIndex, HICON * phiconLarge, HICON * phiconSmall, UINT nIcons)
-)
-{
-  return ExtractIconExW ((LPCWSTR) lpszFile, nIconIndex, phiconLarge, phiconSmall, nIcons);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SHFileOperation
-#define SHFileOperation error_use_qxeSHFileOperation_or_SHFileOperationA_and_SHFileOperationW
-#endif
-/* NOTE: NT 4.0+ only */
-DECLARE_INLINE_HEADER (
-int qxeSHFileOperation (LPSHFILEOPSTRUCTW lpFileOp)
-)
-{
-  return SHFileOperationW (lpFileOp);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ShellExecuteEx
-#define ShellExecuteEx error_use_qxeShellExecuteEx_or_ShellExecuteExA_and_ShellExecuteExW
-#endif
-/* NOTE: NT 4.0+ only */
-DECLARE_INLINE_HEADER (
-BOOL qxeShellExecuteEx (SHELLEXECUTEINFOW * pExecInfo)
-)
-{
-  return ShellExecuteExW (pExecInfo);
-}
-
-#if !defined (CYGWIN_HEADERS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SHQueryRecycleBin
-#define SHQueryRecycleBin error_use_qxeSHQueryRecycleBin_or_SHQueryRecycleBinA_and_SHQueryRecycleBinW
-#endif
-/* NOTE: NT 4.0+ only */
-DECLARE_INLINE_HEADER (
-HRESULT qxeSHQueryRecycleBin (const Extbyte * pszRootPath, LPSHQUERYRBINFO pSHQueryRBInfo)
-)
-{
-  return SHQueryRecycleBinW ((LPCWSTR) pszRootPath, pSHQueryRBInfo);
-}
-#endif /* !defined (CYGWIN_HEADERS) */
-
-#if !defined (CYGWIN_HEADERS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SHEmptyRecycleBin
-#define SHEmptyRecycleBin error_use_qxeSHEmptyRecycleBin_or_SHEmptyRecycleBinA_and_SHEmptyRecycleBinW
-#endif
-/* NOTE: NT 4.0+ only */
-DECLARE_INLINE_HEADER (
-HRESULT qxeSHEmptyRecycleBin (HWND hwnd, const Extbyte * pszRootPath, DWORD dwFlags)
-)
-{
-  return SHEmptyRecycleBinW (hwnd, (LPCWSTR) pszRootPath, dwFlags);
-}
-#endif /* !defined (CYGWIN_HEADERS) */
-
-#undef Shell_NotifyIcon
-#define Shell_NotifyIcon error_split_sized_NOTIFYICONDATA__NT_4_0__only
-
-/* Skipping SHGetFileInfo because split-sized SHFILEINFO, NT 4.0+ only */
-
-#if !defined (CYGWIN_HEADERS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SHGetNewLinkInfo
-#define SHGetNewLinkInfo error_use_qxeSHGetNewLinkInfo_or_SHGetNewLinkInfoA_and_SHGetNewLinkInfoW
-#endif
-/* NOTE: NT 4.0+ only */
-DECLARE_INLINE_HEADER (
-BOOL qxeSHGetNewLinkInfo (const Extbyte * pszLinkTo, const Extbyte * pszDir, Extbyte * pszName, BOOL * pfMustCopy, UINT uFlags)
-)
-{
-  return SHGetNewLinkInfoW ((LPCWSTR) pszLinkTo, (LPCWSTR) pszDir, (LPWSTR) pszName, pfMustCopy, uFlags);
-}
-#endif /* !defined (CYGWIN_HEADERS) */
-
-#if !defined (CYGWIN_HEADERS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SHInvokePrinterCommand
-#define SHInvokePrinterCommand error_use_qxeSHInvokePrinterCommand_or_SHInvokePrinterCommandA_and_SHInvokePrinterCommandW
-#endif
-/* NOTE: NT 4.0+ only */
-DECLARE_INLINE_HEADER (
-BOOL qxeSHInvokePrinterCommand (HWND hwnd, UINT uAction, const Extbyte * lpBuf1, const Extbyte * lpBuf2, BOOL fModal)
-)
-{
-  return SHInvokePrinterCommandW (hwnd, uAction, (LPCWSTR) lpBuf1, (LPCWSTR) lpBuf2, fModal);
-}
-#endif /* !defined (CYGWIN_HEADERS) */
-
-
-/* Processing file ACLAPI.h */
-
-
-/*----------------------------------------------------------------------*/
-/*                       Processing file ACLAPI.h                       */
-/*----------------------------------------------------------------------*/
-
-#undef GetEffectiveRightsFromAcl
-#define GetEffectiveRightsFromAcl error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef GetAuditedPermissionsFromAcl
-#define GetAuditedPermissionsFromAcl error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef BuildSecurityDescriptor
-#define BuildSecurityDescriptor error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef LookupSecurityDescriptorParts
-#define LookupSecurityDescriptorParts error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef BuildExplicitAccessWithName
-#define BuildExplicitAccessWithName error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef BuildImpersonateExplicitAccessWithName
-#define BuildImpersonateExplicitAccessWithName error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef BuildTrusteeWithName
-#define BuildTrusteeWithName error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef BuildImpersonateTrustee
-#define BuildImpersonateTrustee error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef BuildTrusteeWithSid
-#define BuildTrusteeWithSid error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef BuildTrusteeWithObjectsAndSid
-#define BuildTrusteeWithObjectsAndSid error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef BuildTrusteeWithObjectsAndName
-#define BuildTrusteeWithObjectsAndName error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef GetTrusteeName
-#define GetTrusteeName error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef GetTrusteeType
-#define GetTrusteeType error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef GetTrusteeForm
-#define GetTrusteeForm error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef GetMultipleTrusteeOperation
-#define GetMultipleTrusteeOperation error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef GetMultipleTrustee
-#define GetMultipleTrustee error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef SetEntriesInAcl
-#define SetEntriesInAcl error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef GetExplicitEntriesFromAcl
-#define GetExplicitEntriesFromAcl error_Function_needs_review_to_determine_how_to_handle_it
-
-/* Skipping GetNamedSecurityInfo because Cygwin declaration makes first param const */
-
-#undef SetNamedSecurityInfo
-#define SetNamedSecurityInfo error_Function_needs_review_to_determine_how_to_handle_it
-
-
-/* Processing file processenv.h */
-
-
-/*----------------------------------------------------------------------*/
-/*                     Processing file processenv.h                     */
-/*----------------------------------------------------------------------*/
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetCommandLine
-#define GetCommandLine error_use_qxeGetCommandLine_or_GetCommandLineA_and_GetCommandLineW
-#endif
-DECLARE_INLINE_HEADER (
-Extbyte * qxeGetCommandLine (void)
-)
-{
-  return (Extbyte *) GetCommandLineW ();
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SetCurrentDirectory
-#define SetCurrentDirectory error_use_qxeSetCurrentDirectory_or_SetCurrentDirectoryA_and_SetCurrentDirectoryW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeSetCurrentDirectory (const Extbyte * lpPathName)
-)
-{
-  return SetCurrentDirectoryW ((LPCWSTR) lpPathName);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetCurrentDirectory
-#define GetCurrentDirectory error_use_qxeGetCurrentDirectory_or_GetCurrentDirectoryA_and_GetCurrentDirectoryW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeGetCurrentDirectory (DWORD nBufferLength, Extbyte * lpBuffer)
-)
-{
-  return GetCurrentDirectoryW (nBufferLength, (LPWSTR) lpBuffer);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SearchPath
-#define SearchPath error_use_qxeSearchPath_or_SearchPathA_and_SearchPathW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeSearchPath (const Extbyte * lpPath, const Extbyte * lpFileName, const Extbyte * lpExtension, DWORD nBufferLength, Extbyte * lpBuffer, Extbyte * * lpFilePart)
-)
-{
-  return SearchPathW ((LPCWSTR) lpPath, (LPCWSTR) lpFileName, (LPCWSTR) lpExtension, nBufferLength, (LPWSTR) lpBuffer, (LPWSTR *) lpFilePart);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ExpandEnvironmentStrings
-#define ExpandEnvironmentStrings error_use_qxeExpandEnvironmentStrings_or_ExpandEnvironmentStringsA_and_ExpandEnvironmentStringsW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeExpandEnvironmentStrings (const Extbyte * lpSrc, Extbyte * lpDst, DWORD nSize)
-)
-{
-  return ExpandEnvironmentStringsW ((LPCWSTR) lpSrc, (LPWSTR) lpDst, nSize);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef FreeEnvironmentStrings
-#define FreeEnvironmentStrings error_use_qxeFreeEnvironmentStrings_or_FreeEnvironmentStringsA_and_FreeEnvironmentStringsW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeFreeEnvironmentStrings (LPWCH penv)
-)
-{
-  return FreeEnvironmentStringsW (penv);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetEnvironmentVariable
-#define GetEnvironmentVariable error_use_qxeGetEnvironmentVariable_or_GetEnvironmentVariableA_and_GetEnvironmentVariableW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeGetEnvironmentVariable (const Extbyte * lpName, Extbyte * lpBuffer, DWORD nSize)
-)
-{
-  return GetEnvironmentVariableW ((LPCWSTR) lpName, (LPWSTR) lpBuffer, nSize);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SetEnvironmentVariable
-#define SetEnvironmentVariable error_use_qxeSetEnvironmentVariable_or_SetEnvironmentVariableA_and_SetEnvironmentVariableW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeSetEnvironmentVariable (const Extbyte * lpName, const Extbyte * lpValue)
-)
-{
-  return SetEnvironmentVariableW ((LPCWSTR) lpName, (LPCWSTR) lpValue);
-}
-
-
-/* Processing file securitybaseapi.h */
-
-
-/*----------------------------------------------------------------------*/
-/*                  Processing file securitybaseapi.h                   */
-/*----------------------------------------------------------------------*/
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef AccessCheckAndAuditAlarm
-#define AccessCheckAndAuditAlarm error_use_qxeAccessCheckAndAuditAlarm_or_AccessCheckAndAuditAlarmA_and_AccessCheckAndAuditAlarmW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeAccessCheckAndAuditAlarm (const Extbyte * SubsystemName, LPVOID HandleId, Extbyte * ObjectTypeName, Extbyte * ObjectName, PSECURITY_DESCRIPTOR SecurityDescriptor, DWORD DesiredAccess, PGENERIC_MAPPING GenericMapping, BOOL ObjectCreation, LPDWORD GrantedAccess, LPBOOL AccessStatus, LPBOOL pfGenerateOnClose)
-)
-{
-  return AccessCheckAndAuditAlarmW ((LPCWSTR) SubsystemName, HandleId, (LPWSTR) ObjectTypeName, (LPWSTR) ObjectName, SecurityDescriptor, DesiredAccess, GenericMapping, ObjectCreation, GrantedAccess, AccessStatus, pfGenerateOnClose);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetFileSecurity
-#define GetFileSecurity error_use_qxeGetFileSecurity_or_GetFileSecurityA_and_GetFileSecurityW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetFileSecurity (const Extbyte * lpFileName, SECURITY_INFORMATION RequestedInformation, PSECURITY_DESCRIPTOR pSecurityDescriptor, DWORD nLength, LPDWORD lpnLengthNeeded)
-)
-{
-  return GetFileSecurityW ((LPCWSTR) lpFileName, RequestedInformation, pSecurityDescriptor, nLength, lpnLengthNeeded);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ObjectCloseAuditAlarm
-#define ObjectCloseAuditAlarm error_use_qxeObjectCloseAuditAlarm_or_ObjectCloseAuditAlarmA_and_ObjectCloseAuditAlarmW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeObjectCloseAuditAlarm (const Extbyte * SubsystemName, LPVOID HandleId, BOOL GenerateOnClose)
-)
-{
-  return ObjectCloseAuditAlarmW ((LPCWSTR) SubsystemName, HandleId, GenerateOnClose);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ObjectDeleteAuditAlarm
-#define ObjectDeleteAuditAlarm error_use_qxeObjectDeleteAuditAlarm_or_ObjectDeleteAuditAlarmA_and_ObjectDeleteAuditAlarmW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeObjectDeleteAuditAlarm (const Extbyte * SubsystemName, LPVOID HandleId, BOOL GenerateOnClose)
-)
-{
-  return ObjectDeleteAuditAlarmW ((LPCWSTR) SubsystemName, HandleId, GenerateOnClose);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ObjectOpenAuditAlarm
-#define ObjectOpenAuditAlarm error_use_qxeObjectOpenAuditAlarm_or_ObjectOpenAuditAlarmA_and_ObjectOpenAuditAlarmW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeObjectOpenAuditAlarm (const Extbyte * SubsystemName, LPVOID HandleId, Extbyte * ObjectTypeName, Extbyte * ObjectName, PSECURITY_DESCRIPTOR pSecurityDescriptor, HANDLE ClientToken, DWORD DesiredAccess, DWORD GrantedAccess, PPRIVILEGE_SET Privileges, BOOL ObjectCreation, BOOL AccessGranted, LPBOOL GenerateOnClose)
-)
-{
-  return ObjectOpenAuditAlarmW ((LPCWSTR) SubsystemName, HandleId, (LPWSTR) ObjectTypeName, (LPWSTR) ObjectName, pSecurityDescriptor, ClientToken, DesiredAccess, GrantedAccess, Privileges, ObjectCreation, AccessGranted, GenerateOnClose);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ObjectPrivilegeAuditAlarm
-#define ObjectPrivilegeAuditAlarm error_use_qxeObjectPrivilegeAuditAlarm_or_ObjectPrivilegeAuditAlarmA_and_ObjectPrivilegeAuditAlarmW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeObjectPrivilegeAuditAlarm (const Extbyte * SubsystemName, LPVOID HandleId, HANDLE ClientToken, DWORD DesiredAccess, PPRIVILEGE_SET Privileges, BOOL AccessGranted)
-)
-{
-  return ObjectPrivilegeAuditAlarmW ((LPCWSTR) SubsystemName, HandleId, ClientToken, DesiredAccess, Privileges, AccessGranted);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef PrivilegedServiceAuditAlarm
-#define PrivilegedServiceAuditAlarm error_use_qxePrivilegedServiceAuditAlarm_or_PrivilegedServiceAuditAlarmA_and_PrivilegedServiceAuditAlarmW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxePrivilegedServiceAuditAlarm (const Extbyte * SubsystemName, const Extbyte * ServiceName, HANDLE ClientToken, PPRIVILEGE_SET Privileges, BOOL AccessGranted)
-)
-{
-  return PrivilegedServiceAuditAlarmW ((LPCWSTR) SubsystemName, (LPCWSTR) ServiceName, ClientToken, Privileges, AccessGranted);
-}
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SetFileSecurity
-#define SetFileSecurity error_use_qxeSetFileSecurity_or_SetFileSecurityA_and_SetFileSecurityW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeSetFileSecurity (const Extbyte * lpFileName, SECURITY_INFORMATION SecurityInformation, PSECURITY_DESCRIPTOR pSecurityDescriptor)
-)
-{
-  return SetFileSecurityW ((LPCWSTR) lpFileName, SecurityInformation, pSecurityDescriptor);
-}
-
-
-/* Processing file WINNLS.H */
-
-
-/*----------------------------------------------------------------------*/
-/*                       Processing file WINNLS.H                       */
-/*----------------------------------------------------------------------*/
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetLocaleInfo
-#define GetLocaleInfo error_use_qxeGetLocaleInfo_or_GetLocaleInfoA_and_GetLocaleInfoW
-#endif
-DECLARE_INLINE_HEADER (
-int qxeGetLocaleInfo (LCID Locale, LCTYPE LCType, Extbyte * lpLCData, int cchData)
-)
-{
-  return GetLocaleInfoW (Locale, LCType, (LPWSTR) lpLCData, cchData);
-}
-
-#undef LCMapString
-#define LCMapString error_not_used__not_examined_yet
-
-#undef GetNumberFormat
-#define GetNumberFormat error_not_used__not_examined_yet
-
-#undef GetCurrencyFormat
-#define GetCurrencyFormat error_not_used__not_examined_yet
-
-#undef EnumCalendarInfo
-#define EnumCalendarInfo error_not_used__not_examined_yet
-
-#undef EnumCalendarInfoEx
-#define EnumCalendarInfoEx error_not_used__not_examined_yet
-
-#undef EnumTimeFormats
-#define EnumTimeFormats error_not_used__not_examined_yet
-
-#undef EnumDateFormats
-#define EnumDateFormats error_not_used__not_examined_yet
-
-#undef EnumDateFormatsEx
-#define EnumDateFormatsEx error_not_used__not_examined_yet
-
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SetLocaleInfo
-#define SetLocaleInfo error_use_qxeSetLocaleInfo_or_SetLocaleInfoA_and_SetLocaleInfoW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeSetLocaleInfo (LCID Locale, LCTYPE LCType, const Extbyte * lpLCData)
-)
-{
-  return SetLocaleInfoW (Locale, LCType, (LPCWSTR) lpLCData);
-}
-
-#undef GetCalendarInfo
-#define GetCalendarInfo error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef SetCalendarInfo
-#define SetCalendarInfo error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef GetGeoInfo
-#define GetGeoInfo error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef GetCPInfoEx
-#define GetCPInfoEx error_not_used__not_examined_yet
-
-#undef EnumSystemLocales
-#define EnumSystemLocales error_not_used__not_examined_yet
-
-#undef EnumSystemLanguageGroups
-#define EnumSystemLanguageGroups error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef EnumLanguageGroupLocales
-#define EnumLanguageGroupLocales error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef EnumUILanguages
-#define EnumUILanguages error_Function_needs_review_to_determine_how_to_handle_it
-
-#undef EnumSystemCodePages
-#define EnumSystemCodePages error_not_used__not_examined_yet
 
 
 /* Processing file WINUSER.H */
@@ -4101,6 +2728,48 @@ BOOL qxeSystemParametersInfo (UINT uiAction, UINT uiParam, PVOID pvParam, UINT f
 #define GetRawInputDeviceInfo error_Function_needs_review_to_determine_how_to_handle_it
 
 
+/* Processing file DDEML.H */
+
+
+/*----------------------------------------------------------------------*/
+/*                       Processing file DDEML.H                        */
+/*----------------------------------------------------------------------*/
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef DdeInitialize
+#define DdeInitialize error_use_qxeDdeInitialize_or_DdeInitializeA_and_DdeInitializeW
+#endif
+DECLARE_INLINE_HEADER (
+UINT qxeDdeInitialize (LPDWORD pidInst, PFNCALLBACK pfnCallback, DWORD afCmd, DWORD ulRes)
+)
+{
+  return DdeInitializeW (pidInst, pfnCallback, afCmd, ulRes);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef DdeCreateStringHandle
+#define DdeCreateStringHandle error_use_qxeDdeCreateStringHandle_or_DdeCreateStringHandleA_and_DdeCreateStringHandleW
+#endif
+/* NOTE: former error in Cygwin prototype, but no more (Cygwin 1.7, 1-30-10) */
+DECLARE_INLINE_HEADER (
+HSZ qxeDdeCreateStringHandle (DWORD idInst, const Extbyte * psz, int iCodePage)
+)
+{
+  return DdeCreateStringHandleW (idInst, (LPCWSTR) psz, iCodePage);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef DdeQueryString
+#define DdeQueryString error_use_qxeDdeQueryString_or_DdeQueryStringA_and_DdeQueryStringW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeDdeQueryString (DWORD idInst, HSZ hsz, Extbyte * psz, DWORD cchMax, int iCodePage)
+)
+{
+  return DdeQueryStringW (idInst, hsz, (LPWSTR) psz, cchMax, iCodePage);
+}
+
+
 /* Processing file debugapi.h */
 
 
@@ -4118,6 +2787,1029 @@ VOID qxeOutputDebugString (const Extbyte * lpOutputString)
 {
   OutputDebugStringW ((LPCWSTR) lpOutputString);
 }
+
+
+/* Processing file namedpipeapi.h */
+
+
+/*----------------------------------------------------------------------*/
+/*                    Processing file namedpipeapi.h                    */
+/*----------------------------------------------------------------------*/
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CreateNamedPipe
+#define CreateNamedPipe error_use_qxeCreateNamedPipe_or_CreateNamedPipeA_and_CreateNamedPipeW
+#endif
+DECLARE_INLINE_HEADER (
+HANDLE qxeCreateNamedPipe (const Extbyte * lpName, DWORD dwOpenMode, DWORD dwPipeMode, DWORD nMaxInstances, DWORD nOutBufferSize, DWORD nInBufferSize, DWORD nDefaultTimeOut, LPSECURITY_ATTRIBUTES lpSecurityAttributes)
+)
+{
+  return CreateNamedPipeW ((LPCWSTR) lpName, dwOpenMode, dwPipeMode, nMaxInstances, nOutBufferSize, nInBufferSize, nDefaultTimeOut, lpSecurityAttributes);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef WaitNamedPipe
+#define WaitNamedPipe error_use_qxeWaitNamedPipe_or_WaitNamedPipeA_and_WaitNamedPipeW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeWaitNamedPipe (const Extbyte * lpNamedPipeName, DWORD nTimeOut)
+)
+{
+  return WaitNamedPipeW ((LPCWSTR) lpNamedPipeName, nTimeOut);
+}
+
+
+/* Processing file WINBASE.H */
+
+
+/*----------------------------------------------------------------------*/
+/*                      Processing file WINBASE.H                       */
+/*----------------------------------------------------------------------*/
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetBinaryType
+#define GetBinaryType error_use_qxeGetBinaryType_or_GetBinaryTypeA_and_GetBinaryTypeW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetBinaryType (const Extbyte * lpApplicationName, LPDWORD lpBinaryType)
+)
+{
+  return GetBinaryTypeW ((LPCWSTR) lpApplicationName, lpBinaryType);
+}
+
+#undef SetFileShortName
+#define SetFileShortName error_Function_needs_review_to_determine_how_to_handle_it
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef FormatMessage
+#define FormatMessage error_use_qxeFormatMessage_or_FormatMessageA_and_FormatMessageW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeFormatMessage (DWORD dwFlags, LPCVOID lpSource, DWORD dwMessageId, DWORD dwLanguageId, Extbyte * lpBuffer, DWORD nSize, va_list * Arguments)
+)
+{
+  return FormatMessageW (dwFlags, lpSource, dwMessageId, dwLanguageId, (LPWSTR) lpBuffer, nSize, Arguments);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CreateMailslot
+#define CreateMailslot error_use_qxeCreateMailslot_or_CreateMailslotA_and_CreateMailslotW
+#endif
+DECLARE_INLINE_HEADER (
+HANDLE qxeCreateMailslot (const Extbyte * lpName, DWORD nMaxMessageSize, DWORD lReadTimeout, LPSECURITY_ATTRIBUTES lpSecurityAttributes)
+)
+{
+  return CreateMailslotW ((LPCWSTR) lpName, nMaxMessageSize, lReadTimeout, lpSecurityAttributes);
+}
+
+#if !defined (CYGWIN_HEADERS)
+#undef EncryptFile
+#define EncryptFile error_Win2K__only
+#endif /* !defined (CYGWIN_HEADERS) */
+
+#if !defined (CYGWIN_HEADERS)
+#undef DecryptFile
+#define DecryptFile error_Win2K__only
+#endif /* !defined (CYGWIN_HEADERS) */
+
+#undef FileEncryptionStatus
+#define FileEncryptionStatus error_Function_needs_review_to_determine_how_to_handle_it
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef lstrcmp
+#define lstrcmp error_use_qxelstrcmp_or_lstrcmpA_and_lstrcmpW
+#endif
+DECLARE_INLINE_HEADER (
+int qxelstrcmp (const Extbyte * lpString1, const Extbyte * lpString2)
+)
+{
+  return lstrcmpW ((LPCWSTR) lpString1, (LPCWSTR) lpString2);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef lstrcmpi
+#define lstrcmpi error_use_qxelstrcmpi_or_lstrcmpiA_and_lstrcmpiW
+#endif
+DECLARE_INLINE_HEADER (
+int qxelstrcmpi (const Extbyte * lpString1, const Extbyte * lpString2)
+)
+{
+  return lstrcmpiW ((LPCWSTR) lpString1, (LPCWSTR) lpString2);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef lstrcpyn
+#define lstrcpyn error_use_qxelstrcpyn_or_lstrcpynA_and_lstrcpynW
+#endif
+DECLARE_INLINE_HEADER (
+Extbyte * qxelstrcpyn (Extbyte * lpString1, const Extbyte * lpString2, int iMaxLength)
+)
+{
+  return (Extbyte *) lstrcpynW ((LPWSTR) lpString1, (LPCWSTR) lpString2, iMaxLength);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef lstrcpy
+#define lstrcpy error_use_qxelstrcpy_or_lstrcpyA_and_lstrcpyW
+#endif
+DECLARE_INLINE_HEADER (
+Extbyte * qxelstrcpy (Extbyte * lpString1, const Extbyte * lpString2)
+)
+{
+  return (Extbyte *) lstrcpyW ((LPWSTR) lpString1, (LPCWSTR) lpString2);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef lstrcat
+#define lstrcat error_use_qxelstrcat_or_lstrcatA_and_lstrcatW
+#endif
+DECLARE_INLINE_HEADER (
+Extbyte * qxelstrcat (Extbyte * lpString1, const Extbyte * lpString2)
+)
+{
+  return (Extbyte *) lstrcatW ((LPWSTR) lpString1, (LPCWSTR) lpString2);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef lstrlen
+#define lstrlen error_use_qxelstrlen_or_lstrlenA_and_lstrlenW
+#endif
+DECLARE_INLINE_HEADER (
+int qxelstrlen (const Extbyte * lpString)
+)
+{
+  return lstrlenW ((LPCWSTR) lpString);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CreateSemaphore
+#define CreateSemaphore error_use_qxeCreateSemaphore_or_CreateSemaphoreA_and_CreateSemaphoreW
+#endif
+DECLARE_INLINE_HEADER (
+HANDLE qxeCreateSemaphore (LPSECURITY_ATTRIBUTES lpSemaphoreAttributes, LONG lInitialCount, LONG lMaximumCount, const Extbyte * lpName)
+)
+{
+  return CreateSemaphoreW (lpSemaphoreAttributes, lInitialCount, lMaximumCount, (LPCWSTR) lpName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CreateWaitableTimer
+#define CreateWaitableTimer error_use_qxeCreateWaitableTimer_or_CreateWaitableTimerA_and_CreateWaitableTimerW
+#endif
+DECLARE_INLINE_HEADER (
+HANDLE qxeCreateWaitableTimer (LPSECURITY_ATTRIBUTES lpTimerAttributes, BOOL bManualReset, const Extbyte * lpTimerName)
+)
+{
+  return CreateWaitableTimerW (lpTimerAttributes, bManualReset, (LPCWSTR) lpTimerName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef FatalAppExit
+#define FatalAppExit error_use_qxeFatalAppExit_or_FatalAppExitA_and_FatalAppExitW
+#endif
+DECLARE_INLINE_HEADER (
+VOID qxeFatalAppExit (UINT uAction, const Extbyte * lpMessageText)
+)
+{
+  FatalAppExitW (uAction, (LPCWSTR) lpMessageText);
+}
+
+/* Skipping EnumResourceTypes because different prototypes in VC6 and VC7 */
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef BeginUpdateResource
+#define BeginUpdateResource error_use_qxeBeginUpdateResource_or_BeginUpdateResourceA_and_BeginUpdateResourceW
+#endif
+DECLARE_INLINE_HEADER (
+HANDLE qxeBeginUpdateResource (const Extbyte * pFileName, BOOL bDeleteExistingResources)
+)
+{
+  return BeginUpdateResourceW ((LPCWSTR) pFileName, bDeleteExistingResources);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef UpdateResource
+#define UpdateResource error_use_qxeUpdateResource_or_UpdateResourceA_and_UpdateResourceW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeUpdateResource (HANDLE hUpdate, const Extbyte * lpType, const Extbyte * lpName, WORD wLanguage, LPVOID lpData, DWORD cb)
+)
+{
+  return UpdateResourceW (hUpdate, (LPCWSTR) lpType, (LPCWSTR) lpName, wLanguage, lpData, cb);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef EndUpdateResource
+#define EndUpdateResource error_use_qxeEndUpdateResource_or_EndUpdateResourceA_and_EndUpdateResourceW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeEndUpdateResource (HANDLE hUpdate, BOOL fDiscard)
+)
+{
+  return EndUpdateResourceW (hUpdate, fDiscard);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GlobalAddAtom
+#define GlobalAddAtom error_use_qxeGlobalAddAtom_or_GlobalAddAtomA_and_GlobalAddAtomW
+#endif
+DECLARE_INLINE_HEADER (
+ATOM qxeGlobalAddAtom (const Extbyte * lpString)
+)
+{
+  return GlobalAddAtomW ((LPCWSTR) lpString);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GlobalFindAtom
+#define GlobalFindAtom error_use_qxeGlobalFindAtom_or_GlobalFindAtomA_and_GlobalFindAtomW
+#endif
+DECLARE_INLINE_HEADER (
+ATOM qxeGlobalFindAtom (const Extbyte * lpString)
+)
+{
+  return GlobalFindAtomW ((LPCWSTR) lpString);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GlobalGetAtomName
+#define GlobalGetAtomName error_use_qxeGlobalGetAtomName_or_GlobalGetAtomNameA_and_GlobalGetAtomNameW
+#endif
+DECLARE_INLINE_HEADER (
+UINT qxeGlobalGetAtomName (ATOM nAtom, Extbyte * lpBuffer, int nSize)
+)
+{
+  return GlobalGetAtomNameW (nAtom, (LPWSTR) lpBuffer, nSize);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef AddAtom
+#define AddAtom error_use_qxeAddAtom_or_AddAtomA_and_AddAtomW
+#endif
+DECLARE_INLINE_HEADER (
+ATOM qxeAddAtom (const Extbyte * lpString)
+)
+{
+  return AddAtomW ((LPCWSTR) lpString);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef FindAtom
+#define FindAtom error_use_qxeFindAtom_or_FindAtomA_and_FindAtomW
+#endif
+DECLARE_INLINE_HEADER (
+ATOM qxeFindAtom (const Extbyte * lpString)
+)
+{
+  return FindAtomW ((LPCWSTR) lpString);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetAtomName
+#define GetAtomName error_use_qxeGetAtomName_or_GetAtomNameA_and_GetAtomNameW
+#endif
+DECLARE_INLINE_HEADER (
+UINT qxeGetAtomName (ATOM nAtom, Extbyte * lpBuffer, int nSize)
+)
+{
+  return GetAtomNameW (nAtom, (LPWSTR) lpBuffer, nSize);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetProfileInt
+#define GetProfileInt error_use_qxeGetProfileInt_or_GetProfileIntA_and_GetProfileIntW
+#endif
+DECLARE_INLINE_HEADER (
+UINT qxeGetProfileInt (const Extbyte * lpAppName, const Extbyte * lpKeyName, INT nDefault)
+)
+{
+  return GetProfileIntW ((LPCWSTR) lpAppName, (LPCWSTR) lpKeyName, nDefault);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetProfileString
+#define GetProfileString error_use_qxeGetProfileString_or_GetProfileStringA_and_GetProfileStringW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeGetProfileString (const Extbyte * lpAppName, const Extbyte * lpKeyName, const Extbyte * lpDefault, Extbyte * lpReturnedString, DWORD nSize)
+)
+{
+  return GetProfileStringW ((LPCWSTR) lpAppName, (LPCWSTR) lpKeyName, (LPCWSTR) lpDefault, (LPWSTR) lpReturnedString, nSize);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef WriteProfileString
+#define WriteProfileString error_use_qxeWriteProfileString_or_WriteProfileStringA_and_WriteProfileStringW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeWriteProfileString (const Extbyte * lpAppName, const Extbyte * lpKeyName, const Extbyte * lpString)
+)
+{
+  return WriteProfileStringW ((LPCWSTR) lpAppName, (LPCWSTR) lpKeyName, (LPCWSTR) lpString);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetProfileSection
+#define GetProfileSection error_use_qxeGetProfileSection_or_GetProfileSectionA_and_GetProfileSectionW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeGetProfileSection (const Extbyte * lpAppName, Extbyte * lpReturnedString, DWORD nSize)
+)
+{
+  return GetProfileSectionW ((LPCWSTR) lpAppName, (LPWSTR) lpReturnedString, nSize);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef WriteProfileSection
+#define WriteProfileSection error_use_qxeWriteProfileSection_or_WriteProfileSectionA_and_WriteProfileSectionW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeWriteProfileSection (const Extbyte * lpAppName, const Extbyte * lpString)
+)
+{
+  return WriteProfileSectionW ((LPCWSTR) lpAppName, (LPCWSTR) lpString);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetPrivateProfileInt
+#define GetPrivateProfileInt error_use_qxeGetPrivateProfileInt_or_GetPrivateProfileIntA_and_GetPrivateProfileIntW
+#endif
+DECLARE_INLINE_HEADER (
+UINT qxeGetPrivateProfileInt (const Extbyte * lpAppName, const Extbyte * lpKeyName, INT nDefault, const Extbyte * lpFileName)
+)
+{
+  return GetPrivateProfileIntW ((LPCWSTR) lpAppName, (LPCWSTR) lpKeyName, nDefault, (LPCWSTR) lpFileName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetPrivateProfileString
+#define GetPrivateProfileString error_use_qxeGetPrivateProfileString_or_GetPrivateProfileStringA_and_GetPrivateProfileStringW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeGetPrivateProfileString (const Extbyte * lpAppName, const Extbyte * lpKeyName, const Extbyte * lpDefault, Extbyte * lpReturnedString, DWORD nSize, const Extbyte * lpFileName)
+)
+{
+  return GetPrivateProfileStringW ((LPCWSTR) lpAppName, (LPCWSTR) lpKeyName, (LPCWSTR) lpDefault, (LPWSTR) lpReturnedString, nSize, (LPCWSTR) lpFileName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef WritePrivateProfileString
+#define WritePrivateProfileString error_use_qxeWritePrivateProfileString_or_WritePrivateProfileStringA_and_WritePrivateProfileStringW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeWritePrivateProfileString (const Extbyte * lpAppName, const Extbyte * lpKeyName, const Extbyte * lpString, const Extbyte * lpFileName)
+)
+{
+  return WritePrivateProfileStringW ((LPCWSTR) lpAppName, (LPCWSTR) lpKeyName, (LPCWSTR) lpString, (LPCWSTR) lpFileName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetPrivateProfileSection
+#define GetPrivateProfileSection error_use_qxeGetPrivateProfileSection_or_GetPrivateProfileSectionA_and_GetPrivateProfileSectionW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeGetPrivateProfileSection (const Extbyte * lpAppName, Extbyte * lpReturnedString, DWORD nSize, const Extbyte * lpFileName)
+)
+{
+  return GetPrivateProfileSectionW ((LPCWSTR) lpAppName, (LPWSTR) lpReturnedString, nSize, (LPCWSTR) lpFileName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef WritePrivateProfileSection
+#define WritePrivateProfileSection error_use_qxeWritePrivateProfileSection_or_WritePrivateProfileSectionA_and_WritePrivateProfileSectionW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeWritePrivateProfileSection (const Extbyte * lpAppName, const Extbyte * lpString, const Extbyte * lpFileName)
+)
+{
+  return WritePrivateProfileSectionW ((LPCWSTR) lpAppName, (LPCWSTR) lpString, (LPCWSTR) lpFileName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetPrivateProfileSectionNames
+#define GetPrivateProfileSectionNames error_use_qxeGetPrivateProfileSectionNames_or_GetPrivateProfileSectionNamesA_and_GetPrivateProfileSectionNamesW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeGetPrivateProfileSectionNames (Extbyte * lpszReturnBuffer, DWORD nSize, const Extbyte * lpFileName)
+)
+{
+  return GetPrivateProfileSectionNamesW ((LPWSTR) lpszReturnBuffer, nSize, (LPCWSTR) lpFileName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetPrivateProfileStruct
+#define GetPrivateProfileStruct error_use_qxeGetPrivateProfileStruct_or_GetPrivateProfileStructA_and_GetPrivateProfileStructW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetPrivateProfileStruct (const Extbyte * lpszSection, const Extbyte * lpszKey, LPVOID lpStruct, UINT uSizeStruct, const Extbyte * szFile)
+)
+{
+  return GetPrivateProfileStructW ((LPCWSTR) lpszSection, (LPCWSTR) lpszKey, lpStruct, uSizeStruct, (LPCWSTR) szFile);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef WritePrivateProfileStruct
+#define WritePrivateProfileStruct error_use_qxeWritePrivateProfileStruct_or_WritePrivateProfileStructA_and_WritePrivateProfileStructW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeWritePrivateProfileStruct (const Extbyte * lpszSection, const Extbyte * lpszKey, LPVOID lpStruct, UINT uSizeStruct, const Extbyte * szFile)
+)
+{
+  return WritePrivateProfileStructW ((LPCWSTR) lpszSection, (LPCWSTR) lpszKey, lpStruct, uSizeStruct, (LPCWSTR) szFile);
+}
+
+#undef GetSystemWow64Directory
+#define GetSystemWow64Directory error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef SetDllDirectory
+#define SetDllDirectory error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef GetDllDirectory
+#define GetDllDirectory error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef GetFirmwareEnvironmentVariable
+#define GetFirmwareEnvironmentVariable error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef SetFirmwareEnvironmentVariable
+#define SetFirmwareEnvironmentVariable error_Function_needs_review_to_determine_how_to_handle_it
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CreateDirectoryEx
+#define CreateDirectoryEx error_use_qxeCreateDirectoryEx_or_CreateDirectoryExA_and_CreateDirectoryExW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeCreateDirectoryEx (const Extbyte * lpTemplateDirectory, const Extbyte * lpNewDirectory, LPSECURITY_ATTRIBUTES lpSecurityAttributes)
+)
+{
+  return CreateDirectoryExW ((LPCWSTR) lpTemplateDirectory, (LPCWSTR) lpNewDirectory, lpSecurityAttributes);
+}
+
+#undef GetCompressedFileSize
+#define GetCompressedFileSize error_
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CopyFileEx
+#define CopyFileEx error_use_qxeCopyFileEx_or_CopyFileExA_and_CopyFileExW
+#endif
+/* NOTE: NT 4.0+ only */
+DECLARE_INLINE_HEADER (
+BOOL qxeCopyFileEx (const Extbyte * lpExistingFileName, const Extbyte * lpNewFileName, LPPROGRESS_ROUTINE lpProgressRoutine, LPVOID lpData, LPBOOL pbCancel, DWORD dwCopyFlags)
+)
+{
+  return CopyFileExW ((LPCWSTR) lpExistingFileName, (LPCWSTR) lpNewFileName, lpProgressRoutine, lpData, pbCancel, dwCopyFlags);
+}
+
+#undef CheckNameLegalDOS8Dot3
+#define CheckNameLegalDOS8Dot3 error_Function_needs_review_to_determine_how_to_handle_it
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CopyFile
+#define CopyFile error_use_qxeCopyFile_or_CopyFileA_and_CopyFileW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeCopyFile (const Extbyte * lpExistingFileName, const Extbyte * lpNewFileName, BOOL bFailIfExists)
+)
+{
+  return CopyFileW ((LPCWSTR) lpExistingFileName, (LPCWSTR) lpNewFileName, bFailIfExists);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef MoveFile
+#define MoveFile error_use_qxeMoveFile_or_MoveFileA_and_MoveFileW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeMoveFile (const Extbyte * lpExistingFileName, const Extbyte * lpNewFileName)
+)
+{
+  return MoveFileW ((LPCWSTR) lpExistingFileName, (LPCWSTR) lpNewFileName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef MoveFileEx
+#define MoveFileEx error_use_qxeMoveFileEx_or_MoveFileExA_and_MoveFileExW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeMoveFileEx (const Extbyte * lpExistingFileName, const Extbyte * lpNewFileName, DWORD dwFlags)
+)
+{
+  return MoveFileExW ((LPCWSTR) lpExistingFileName, (LPCWSTR) lpNewFileName, dwFlags);
+}
+
+#undef MoveFileWithProgress
+#define MoveFileWithProgress error_NT_5_0__only
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CallNamedPipe
+#define CallNamedPipe error_use_qxeCallNamedPipe_or_CallNamedPipeA_and_CallNamedPipeW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeCallNamedPipe (const Extbyte * lpNamedPipeName, LPVOID lpInBuffer, DWORD nInBufferSize, LPVOID lpOutBuffer, DWORD nOutBufferSize, LPDWORD lpBytesRead, DWORD nTimeOut)
+)
+{
+  return CallNamedPipeW ((LPCWSTR) lpNamedPipeName, lpInBuffer, nInBufferSize, lpOutBuffer, nOutBufferSize, lpBytesRead, nTimeOut);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetNamedPipeHandleState
+#define GetNamedPipeHandleState error_use_qxeGetNamedPipeHandleState_or_GetNamedPipeHandleStateA_and_GetNamedPipeHandleStateW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetNamedPipeHandleState (HANDLE hNamedPipe, LPDWORD lpState, LPDWORD lpCurInstances, LPDWORD lpMaxCollectionCount, LPDWORD lpCollectDataTimeout, Extbyte * lpUserName, DWORD nMaxUserNameSize)
+)
+{
+  return GetNamedPipeHandleStateW (hNamedPipe, lpState, lpCurInstances, lpMaxCollectionCount, lpCollectDataTimeout, (LPWSTR) lpUserName, nMaxUserNameSize);
+}
+
+#undef ReplaceFile
+#define ReplaceFile error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef CreateHardLink
+#define CreateHardLink error_NT_5_0__only
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ClearEventLog
+#define ClearEventLog error_use_qxeClearEventLog_or_ClearEventLogA_and_ClearEventLogW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeClearEventLog (HANDLE hEventLog, const Extbyte * lpBackupFileName)
+)
+{
+  return ClearEventLogW (hEventLog, (LPCWSTR) lpBackupFileName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef BackupEventLog
+#define BackupEventLog error_use_qxeBackupEventLog_or_BackupEventLogA_and_BackupEventLogW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeBackupEventLog (HANDLE hEventLog, const Extbyte * lpBackupFileName)
+)
+{
+  return BackupEventLogW (hEventLog, (LPCWSTR) lpBackupFileName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef OpenEventLog
+#define OpenEventLog error_use_qxeOpenEventLog_or_OpenEventLogA_and_OpenEventLogW
+#endif
+DECLARE_INLINE_HEADER (
+HANDLE qxeOpenEventLog (const Extbyte * lpUNCServerName, const Extbyte * lpSourceName)
+)
+{
+  return OpenEventLogW ((LPCWSTR) lpUNCServerName, (LPCWSTR) lpSourceName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegisterEventSource
+#define RegisterEventSource error_use_qxeRegisterEventSource_or_RegisterEventSourceA_and_RegisterEventSourceW
+#endif
+DECLARE_INLINE_HEADER (
+HANDLE qxeRegisterEventSource (const Extbyte * lpUNCServerName, const Extbyte * lpSourceName)
+)
+{
+  return RegisterEventSourceW ((LPCWSTR) lpUNCServerName, (LPCWSTR) lpSourceName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef OpenBackupEventLog
+#define OpenBackupEventLog error_use_qxeOpenBackupEventLog_or_OpenBackupEventLogA_and_OpenBackupEventLogW
+#endif
+DECLARE_INLINE_HEADER (
+HANDLE qxeOpenBackupEventLog (const Extbyte * lpUNCServerName, const Extbyte * lpFileName)
+)
+{
+  return OpenBackupEventLogW ((LPCWSTR) lpUNCServerName, (LPCWSTR) lpFileName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ReadEventLog
+#define ReadEventLog error_use_qxeReadEventLog_or_ReadEventLogA_and_ReadEventLogW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeReadEventLog (HANDLE hEventLog, DWORD dwReadFlags, DWORD dwRecordOffset, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, DWORD * pnBytesRead, DWORD * pnMinNumberOfBytesNeeded)
+)
+{
+  return ReadEventLogW (hEventLog, dwReadFlags, dwRecordOffset, lpBuffer, nNumberOfBytesToRead, pnBytesRead, pnMinNumberOfBytesNeeded);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ReportEvent
+#define ReportEvent error_use_qxeReportEvent_or_ReportEventA_and_ReportEventW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeReportEvent (HANDLE hEventLog, WORD wType, WORD wCategory, DWORD dwEventID, PSID lpUserSid, WORD wNumStrings, DWORD dwDataSize, const Extbyte * * lpStrings, LPVOID lpRawData)
+)
+{
+  return ReportEventW (hEventLog, wType, wCategory, dwEventID, lpUserSid, wNumStrings, dwDataSize, (LPCWSTR *) lpStrings, lpRawData);
+}
+
+#undef ReadDirectoryChanges
+#define ReadDirectoryChanges error_Unicode_only
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef IsBadStringPtr
+#define IsBadStringPtr error_use_qxeIsBadStringPtr_or_IsBadStringPtrA_and_IsBadStringPtrW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeIsBadStringPtr (const Extbyte * lpsz, UINT_PTR ucchMax)
+)
+{
+  return IsBadStringPtrW ((LPCWSTR) lpsz, ucchMax);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef BuildCommDCB
+#define BuildCommDCB error_use_qxeBuildCommDCB_or_BuildCommDCBA_and_BuildCommDCBW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeBuildCommDCB (const Extbyte * lpDef, LPDCB lpDCB)
+)
+{
+  return BuildCommDCBW ((LPCWSTR) lpDef, lpDCB);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef BuildCommDCBAndTimeouts
+#define BuildCommDCBAndTimeouts error_use_qxeBuildCommDCBAndTimeouts_or_BuildCommDCBAndTimeoutsA_and_BuildCommDCBAndTimeoutsW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeBuildCommDCBAndTimeouts (const Extbyte * lpDef, LPDCB lpDCB, LPCOMMTIMEOUTS lpCommTimeouts)
+)
+{
+  return BuildCommDCBAndTimeoutsW ((LPCWSTR) lpDef, lpDCB, lpCommTimeouts);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CommConfigDialog
+#define CommConfigDialog error_use_qxeCommConfigDialog_or_CommConfigDialogA_and_CommConfigDialogW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeCommConfigDialog (const Extbyte * lpszName, HWND hWnd, LPCOMMCONFIG lpCC)
+)
+{
+  return CommConfigDialogW ((LPCWSTR) lpszName, hWnd, lpCC);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetDefaultCommConfig
+#define GetDefaultCommConfig error_use_qxeGetDefaultCommConfig_or_GetDefaultCommConfigA_and_GetDefaultCommConfigW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetDefaultCommConfig (const Extbyte * lpszName, LPCOMMCONFIG lpCC, LPDWORD lpdwSize)
+)
+{
+  return GetDefaultCommConfigW ((LPCWSTR) lpszName, lpCC, lpdwSize);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SetDefaultCommConfig
+#define SetDefaultCommConfig error_use_qxeSetDefaultCommConfig_or_SetDefaultCommConfigA_and_SetDefaultCommConfigW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeSetDefaultCommConfig (const Extbyte * lpszName, LPCOMMCONFIG lpCC, DWORD dwSize)
+)
+{
+  return SetDefaultCommConfigW ((LPCWSTR) lpszName, lpCC, dwSize);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SetComputerName
+#define SetComputerName error_use_qxeSetComputerName_or_SetComputerNameA_and_SetComputerNameW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeSetComputerName (const Extbyte * lpComputerName)
+)
+{
+  return SetComputerNameW ((LPCWSTR) lpComputerName);
+}
+
+#undef DnsHostnameToComputerName
+#define DnsHostnameToComputerName error_Function_needs_review_to_determine_how_to_handle_it
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef LogonUser
+#define LogonUser error_use_qxeLogonUser_or_LogonUserA_and_LogonUserW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeLogonUser (const Extbyte * lpszUsername, const Extbyte * lpszDomain, const Extbyte * lpszPassword, DWORD dwLogonType, DWORD dwLogonProvider, PHANDLE phToken)
+)
+{
+  return LogonUserW ((LPCWSTR) lpszUsername, (LPCWSTR) lpszDomain, (LPCWSTR) lpszPassword, dwLogonType, dwLogonProvider, phToken);
+}
+
+#undef CreateProcessWithLogon
+#define CreateProcessWithLogon error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef GetCurrentHwProfile
+#define GetCurrentHwProfile error_split_sized_LPHW_PROFILE_INFO__NT_4_0__only
+
+#undef VerifyVersionInfo
+#define VerifyVersionInfo error_Function_needs_review_to_determine_how_to_handle_it
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetUserName
+#define GetUserName error_use_qxeGetUserName_or_GetUserNameA_and_GetUserNameW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetUserName (Extbyte * lpBuffer, LPDWORD pcbBuffer)
+)
+{
+  return GetUserNameW ((LPWSTR) lpBuffer, pcbBuffer);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef LookupAccountName
+#define LookupAccountName error_use_qxeLookupAccountName_or_LookupAccountNameA_and_LookupAccountNameW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeLookupAccountName (const Extbyte * lpSystemName, const Extbyte * lpAccountName, PSID Sid, LPDWORD cbSid, Extbyte * ReferencedDomainName, LPDWORD cchReferencedDomainName, PSID_NAME_USE peUse)
+)
+{
+  return LookupAccountNameW ((LPCWSTR) lpSystemName, (LPCWSTR) lpAccountName, Sid, cbSid, (LPWSTR) ReferencedDomainName, cchReferencedDomainName, peUse);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef LookupAccountSid
+#define LookupAccountSid error_use_qxeLookupAccountSid_or_LookupAccountSidA_and_LookupAccountSidW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeLookupAccountSid (const Extbyte * lpSystemName, PSID Sid, Extbyte * Name, LPDWORD cchName, Extbyte * ReferencedDomainName, LPDWORD cchReferencedDomainName, PSID_NAME_USE peUse)
+)
+{
+  return LookupAccountSidW ((LPCWSTR) lpSystemName, Sid, (LPWSTR) Name, cchName, (LPWSTR) ReferencedDomainName, cchReferencedDomainName, peUse);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef LookupPrivilegeDisplayName
+#define LookupPrivilegeDisplayName error_use_qxeLookupPrivilegeDisplayName_or_LookupPrivilegeDisplayNameA_and_LookupPrivilegeDisplayNameW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeLookupPrivilegeDisplayName (const Extbyte * lpSystemName, const Extbyte * lpName, Extbyte * lpDisplayName, LPDWORD cchDisplayName, LPDWORD lpLanguageId)
+)
+{
+  return LookupPrivilegeDisplayNameW ((LPCWSTR) lpSystemName, (LPCWSTR) lpName, (LPWSTR) lpDisplayName, cchDisplayName, lpLanguageId);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef LookupPrivilegeName
+#define LookupPrivilegeName error_use_qxeLookupPrivilegeName_or_LookupPrivilegeNameA_and_LookupPrivilegeNameW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeLookupPrivilegeName (const Extbyte * lpSystemName, PLUID lpLuid, Extbyte * lpName, LPDWORD cchName)
+)
+{
+  return LookupPrivilegeNameW ((LPCWSTR) lpSystemName, lpLuid, (LPWSTR) lpName, cchName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef LookupPrivilegeValue
+#define LookupPrivilegeValue error_use_qxeLookupPrivilegeValue_or_LookupPrivilegeValueA_and_LookupPrivilegeValueW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeLookupPrivilegeValue (const Extbyte * lpSystemName, const Extbyte * lpName, PLUID lpLuid)
+)
+{
+  return LookupPrivilegeValueW ((LPCWSTR) lpSystemName, (LPCWSTR) lpName, lpLuid);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SetVolumeLabel
+#define SetVolumeLabel error_use_qxeSetVolumeLabel_or_SetVolumeLabelA_and_SetVolumeLabelW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeSetVolumeLabel (const Extbyte * lpRootPathName, const Extbyte * lpVolumeName)
+)
+{
+  return SetVolumeLabelW ((LPCWSTR) lpRootPathName, (LPCWSTR) lpVolumeName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetComputerName
+#define GetComputerName error_use_qxeGetComputerName_or_GetComputerNameA_and_GetComputerNameW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetComputerName (Extbyte * lpBuffer, LPDWORD nSize)
+)
+{
+  return GetComputerNameW ((LPWSTR) lpBuffer, nSize);
+}
+
+#undef CreateJobObject
+#define CreateJobObject error_NT_5_0__only
+
+#undef OpenJobObject
+#define OpenJobObject error_NT_5_0__only
+
+#undef FindFirstVolumeMountPoint
+#define FindFirstVolumeMountPoint error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef FindNextVolumeMountPoint
+#define FindNextVolumeMountPoint error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef SetVolumeMountPoint
+#define SetVolumeMountPoint error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef CreateActCtx
+#define CreateActCtx error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef FindActCtxSectionString
+#define FindActCtxSectionString error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef QueryActCtx
+#define QueryActCtx error_Function_needs_review_to_determine_how_to_handle_it
+
+
+/* Processing file SHELLAPI.H */
+
+
+/*----------------------------------------------------------------------*/
+/*                      Processing file SHELLAPI.H                      */
+/*----------------------------------------------------------------------*/
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef DragQueryFile
+#define DragQueryFile error_use_qxeDragQueryFile_or_DragQueryFileA_and_DragQueryFileW
+#endif
+DECLARE_INLINE_HEADER (
+UINT qxeDragQueryFile (HDROP hDrop, UINT iFile, Extbyte * lpszFile, UINT cch)
+)
+{
+  return DragQueryFileW (hDrop, iFile, (LPWSTR) lpszFile, cch);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ShellExecute
+#define ShellExecute error_use_qxeShellExecute_or_ShellExecuteA_and_ShellExecuteW
+#endif
+DECLARE_INLINE_HEADER (
+HINSTANCE qxeShellExecute (HWND hwnd, const Extbyte * lpOperation, const Extbyte * lpFile, const Extbyte * lpParameters, const Extbyte * lpDirectory, INT nShowCmd)
+)
+{
+  return ShellExecuteW (hwnd, (LPCWSTR) lpOperation, (LPCWSTR) lpFile, (LPCWSTR) lpParameters, (LPCWSTR) lpDirectory, nShowCmd);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef FindExecutable
+#define FindExecutable error_use_qxeFindExecutable_or_FindExecutableA_and_FindExecutableW
+#endif
+DECLARE_INLINE_HEADER (
+HINSTANCE qxeFindExecutable (const Extbyte * lpFile, const Extbyte * lpDirectory, Extbyte * lpResult)
+)
+{
+  return FindExecutableW ((LPCWSTR) lpFile, (LPCWSTR) lpDirectory, (LPWSTR) lpResult);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ShellAbout
+#define ShellAbout error_use_qxeShellAbout_or_ShellAboutA_and_ShellAboutW
+#endif
+DECLARE_INLINE_HEADER (
+INT qxeShellAbout (HWND hWnd, const Extbyte * szApp, const Extbyte * szOtherStuff, HICON hIcon)
+)
+{
+  return ShellAboutW (hWnd, (LPCWSTR) szApp, (LPCWSTR) szOtherStuff, hIcon);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ExtractAssociatedIcon
+#define ExtractAssociatedIcon error_use_qxeExtractAssociatedIcon_or_ExtractAssociatedIconA_and_ExtractAssociatedIconW
+#endif
+/* NOTE: error arg2, Cygwin prototype, extra const.
+   NOTE: Prototype manually overridden.
+         Header file claims:
+           SHSTDAPI_(HICON) ExtractAssociatedIcon(HINSTANCE hInst, LPWSTR pszIconPath, WORD *piIcon)
+         Overridden with:
+           HICON ExtractAssociatedIcon(HINSTANCE, LPWSTR, LPWORD)
+         Differences in return-type qualifiers, e.g. WINAPI, are not important.
+ */
+DECLARE_INLINE_HEADER (
+HICON qxeExtractAssociatedIcon (HINSTANCE arg1, Extbyte * arg2, LPWORD arg3)
+)
+{
+  return ExtractAssociatedIconW (arg1, (LPWSTR) arg2, arg3);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ExtractIcon
+#define ExtractIcon error_use_qxeExtractIcon_or_ExtractIconA_and_ExtractIconW
+#endif
+DECLARE_INLINE_HEADER (
+HICON qxeExtractIcon (HINSTANCE hInst, const Extbyte * pszExeFileName, UINT nIconIndex)
+)
+{
+  return ExtractIconW (hInst, (LPCWSTR) pszExeFileName, nIconIndex);
+}
+
+#if !defined (CYGWIN_HEADERS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef DoEnvironmentSubst
+#define DoEnvironmentSubst error_use_qxeDoEnvironmentSubst_or_DoEnvironmentSubstA_and_DoEnvironmentSubstW
+#endif
+/* NOTE: NT 4.0+ only */
+DECLARE_INLINE_HEADER (
+DWORD qxeDoEnvironmentSubst (Extbyte * pszSrc, UINT cchSrc)
+)
+{
+  return DoEnvironmentSubstW ((LPWSTR) pszSrc, cchSrc);
+}
+#endif /* !defined (CYGWIN_HEADERS) */
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ExtractIconEx
+#define ExtractIconEx error_use_qxeExtractIconEx_or_ExtractIconExA_and_ExtractIconExW
+#endif
+/* NOTE: NT 4.0+ only, former error in Cygwin prototype but no more (Cygwin 1.7, 1-30-10) */
+DECLARE_INLINE_HEADER (
+UINT qxeExtractIconEx (const Extbyte * lpszFile, int nIconIndex, HICON * phiconLarge, HICON * phiconSmall, UINT nIcons)
+)
+{
+  return ExtractIconExW ((LPCWSTR) lpszFile, nIconIndex, phiconLarge, phiconSmall, nIcons);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SHFileOperation
+#define SHFileOperation error_use_qxeSHFileOperation_or_SHFileOperationA_and_SHFileOperationW
+#endif
+/* NOTE: NT 4.0+ only */
+DECLARE_INLINE_HEADER (
+int qxeSHFileOperation (LPSHFILEOPSTRUCTW lpFileOp)
+)
+{
+  return SHFileOperationW (lpFileOp);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ShellExecuteEx
+#define ShellExecuteEx error_use_qxeShellExecuteEx_or_ShellExecuteExA_and_ShellExecuteExW
+#endif
+/* NOTE: NT 4.0+ only */
+DECLARE_INLINE_HEADER (
+BOOL qxeShellExecuteEx (SHELLEXECUTEINFOW * pExecInfo)
+)
+{
+  return ShellExecuteExW (pExecInfo);
+}
+
+#if !defined (CYGWIN_HEADERS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SHQueryRecycleBin
+#define SHQueryRecycleBin error_use_qxeSHQueryRecycleBin_or_SHQueryRecycleBinA_and_SHQueryRecycleBinW
+#endif
+/* NOTE: NT 4.0+ only */
+DECLARE_INLINE_HEADER (
+HRESULT qxeSHQueryRecycleBin (const Extbyte * pszRootPath, LPSHQUERYRBINFO pSHQueryRBInfo)
+)
+{
+  return SHQueryRecycleBinW ((LPCWSTR) pszRootPath, pSHQueryRBInfo);
+}
+#endif /* !defined (CYGWIN_HEADERS) */
+
+#if !defined (CYGWIN_HEADERS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SHEmptyRecycleBin
+#define SHEmptyRecycleBin error_use_qxeSHEmptyRecycleBin_or_SHEmptyRecycleBinA_and_SHEmptyRecycleBinW
+#endif
+/* NOTE: NT 4.0+ only */
+DECLARE_INLINE_HEADER (
+HRESULT qxeSHEmptyRecycleBin (HWND hwnd, const Extbyte * pszRootPath, DWORD dwFlags)
+)
+{
+  return SHEmptyRecycleBinW (hwnd, (LPCWSTR) pszRootPath, dwFlags);
+}
+#endif /* !defined (CYGWIN_HEADERS) */
+
+#undef Shell_NotifyIcon
+#define Shell_NotifyIcon error_split_sized_NOTIFYICONDATA__NT_4_0__only
+
+/* Skipping SHGetFileInfo because split-sized SHFILEINFO, NT 4.0+ only */
+
+#if !defined (CYGWIN_HEADERS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SHGetNewLinkInfo
+#define SHGetNewLinkInfo error_use_qxeSHGetNewLinkInfo_or_SHGetNewLinkInfoA_and_SHGetNewLinkInfoW
+#endif
+/* NOTE: NT 4.0+ only */
+DECLARE_INLINE_HEADER (
+BOOL qxeSHGetNewLinkInfo (const Extbyte * pszLinkTo, const Extbyte * pszDir, Extbyte * pszName, BOOL * pfMustCopy, UINT uFlags)
+)
+{
+  return SHGetNewLinkInfoW ((LPCWSTR) pszLinkTo, (LPCWSTR) pszDir, (LPWSTR) pszName, pfMustCopy, uFlags);
+}
+#endif /* !defined (CYGWIN_HEADERS) */
+
+#if !defined (CYGWIN_HEADERS)
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SHInvokePrinterCommand
+#define SHInvokePrinterCommand error_use_qxeSHInvokePrinterCommand_or_SHInvokePrinterCommandA_and_SHInvokePrinterCommandW
+#endif
+/* NOTE: NT 4.0+ only */
+DECLARE_INLINE_HEADER (
+BOOL qxeSHInvokePrinterCommand (HWND hwnd, UINT uAction, const Extbyte * lpBuf1, const Extbyte * lpBuf2, BOOL fModal)
+)
+{
+  return SHInvokePrinterCommandW (hwnd, uAction, (LPCWSTR) lpBuf1, (LPCWSTR) lpBuf2, fModal);
+}
+#endif /* !defined (CYGWIN_HEADERS) */
 
 
 /* Processing file WINNETWK.H */
@@ -4360,899 +4052,1171 @@ DWORD qxeMultinetGetConnectionPerformance (LPNETRESOURCEW lpNetResource, LPNETCO
 #endif /* defined (HAVE_MS_WINDOWS) */
 
 
-/* Processing file WINGDI.H */
+/* Processing file securitybaseapi.h */
 
 
 /*----------------------------------------------------------------------*/
-/*                       Processing file WINGDI.H                       */
+/*                  Processing file securitybaseapi.h                   */
+/*----------------------------------------------------------------------*/
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef AccessCheckAndAuditAlarm
+#define AccessCheckAndAuditAlarm error_use_qxeAccessCheckAndAuditAlarm_or_AccessCheckAndAuditAlarmA_and_AccessCheckAndAuditAlarmW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeAccessCheckAndAuditAlarm (const Extbyte * SubsystemName, LPVOID HandleId, Extbyte * ObjectTypeName, Extbyte * ObjectName, PSECURITY_DESCRIPTOR SecurityDescriptor, DWORD DesiredAccess, PGENERIC_MAPPING GenericMapping, BOOL ObjectCreation, LPDWORD GrantedAccess, LPBOOL AccessStatus, LPBOOL pfGenerateOnClose)
+)
+{
+  return AccessCheckAndAuditAlarmW ((LPCWSTR) SubsystemName, HandleId, (LPWSTR) ObjectTypeName, (LPWSTR) ObjectName, SecurityDescriptor, DesiredAccess, GenericMapping, ObjectCreation, GrantedAccess, AccessStatus, pfGenerateOnClose);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetFileSecurity
+#define GetFileSecurity error_use_qxeGetFileSecurity_or_GetFileSecurityA_and_GetFileSecurityW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetFileSecurity (const Extbyte * lpFileName, SECURITY_INFORMATION RequestedInformation, PSECURITY_DESCRIPTOR pSecurityDescriptor, DWORD nLength, LPDWORD lpnLengthNeeded)
+)
+{
+  return GetFileSecurityW ((LPCWSTR) lpFileName, RequestedInformation, pSecurityDescriptor, nLength, lpnLengthNeeded);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ObjectCloseAuditAlarm
+#define ObjectCloseAuditAlarm error_use_qxeObjectCloseAuditAlarm_or_ObjectCloseAuditAlarmA_and_ObjectCloseAuditAlarmW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeObjectCloseAuditAlarm (const Extbyte * SubsystemName, LPVOID HandleId, BOOL GenerateOnClose)
+)
+{
+  return ObjectCloseAuditAlarmW ((LPCWSTR) SubsystemName, HandleId, GenerateOnClose);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ObjectDeleteAuditAlarm
+#define ObjectDeleteAuditAlarm error_use_qxeObjectDeleteAuditAlarm_or_ObjectDeleteAuditAlarmA_and_ObjectDeleteAuditAlarmW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeObjectDeleteAuditAlarm (const Extbyte * SubsystemName, LPVOID HandleId, BOOL GenerateOnClose)
+)
+{
+  return ObjectDeleteAuditAlarmW ((LPCWSTR) SubsystemName, HandleId, GenerateOnClose);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ObjectOpenAuditAlarm
+#define ObjectOpenAuditAlarm error_use_qxeObjectOpenAuditAlarm_or_ObjectOpenAuditAlarmA_and_ObjectOpenAuditAlarmW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeObjectOpenAuditAlarm (const Extbyte * SubsystemName, LPVOID HandleId, Extbyte * ObjectTypeName, Extbyte * ObjectName, PSECURITY_DESCRIPTOR pSecurityDescriptor, HANDLE ClientToken, DWORD DesiredAccess, DWORD GrantedAccess, PPRIVILEGE_SET Privileges, BOOL ObjectCreation, BOOL AccessGranted, LPBOOL GenerateOnClose)
+)
+{
+  return ObjectOpenAuditAlarmW ((LPCWSTR) SubsystemName, HandleId, (LPWSTR) ObjectTypeName, (LPWSTR) ObjectName, pSecurityDescriptor, ClientToken, DesiredAccess, GrantedAccess, Privileges, ObjectCreation, AccessGranted, GenerateOnClose);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ObjectPrivilegeAuditAlarm
+#define ObjectPrivilegeAuditAlarm error_use_qxeObjectPrivilegeAuditAlarm_or_ObjectPrivilegeAuditAlarmA_and_ObjectPrivilegeAuditAlarmW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeObjectPrivilegeAuditAlarm (const Extbyte * SubsystemName, LPVOID HandleId, HANDLE ClientToken, DWORD DesiredAccess, PPRIVILEGE_SET Privileges, BOOL AccessGranted)
+)
+{
+  return ObjectPrivilegeAuditAlarmW ((LPCWSTR) SubsystemName, HandleId, ClientToken, DesiredAccess, Privileges, AccessGranted);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef PrivilegedServiceAuditAlarm
+#define PrivilegedServiceAuditAlarm error_use_qxePrivilegedServiceAuditAlarm_or_PrivilegedServiceAuditAlarmA_and_PrivilegedServiceAuditAlarmW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxePrivilegedServiceAuditAlarm (const Extbyte * SubsystemName, const Extbyte * ServiceName, HANDLE ClientToken, PPRIVILEGE_SET Privileges, BOOL AccessGranted)
+)
+{
+  return PrivilegedServiceAuditAlarmW ((LPCWSTR) SubsystemName, (LPCWSTR) ServiceName, ClientToken, Privileges, AccessGranted);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SetFileSecurity
+#define SetFileSecurity error_use_qxeSetFileSecurity_or_SetFileSecurityA_and_SetFileSecurityW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeSetFileSecurity (const Extbyte * lpFileName, SECURITY_INFORMATION SecurityInformation, PSECURITY_DESCRIPTOR pSecurityDescriptor)
+)
+{
+  return SetFileSecurityW ((LPCWSTR) lpFileName, SecurityInformation, pSecurityDescriptor);
+}
+
+
+/* Processing file FILEAPI.H */
+
+
+/*----------------------------------------------------------------------*/
+/*                      Processing file FILEAPI.H                       */
+/*----------------------------------------------------------------------*/
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetFileAttributes
+#define GetFileAttributes error_use_qxeGetFileAttributes_or_GetFileAttributesA_and_GetFileAttributesW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeGetFileAttributes (const Extbyte * lpFileName)
+)
+{
+  return GetFileAttributesW ((LPCWSTR) lpFileName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef DefineDosDevice
+#define DefineDosDevice error_use_qxeDefineDosDevice_or_DefineDosDeviceA_and_DefineDosDeviceW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeDefineDosDevice (DWORD dwFlags, const Extbyte * lpDeviceName, const Extbyte * lpTargetPath)
+)
+{
+  return DefineDosDeviceW (dwFlags, (LPCWSTR) lpDeviceName, (LPCWSTR) lpTargetPath);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef FindFirstChangeNotification
+#define FindFirstChangeNotification error_use_qxeFindFirstChangeNotification_or_FindFirstChangeNotificationA_and_FindFirstChangeNotificationW
+#endif
+DECLARE_INLINE_HEADER (
+HANDLE qxeFindFirstChangeNotification (const Extbyte * lpPathName, BOOL bWatchSubtree, DWORD dwNotifyFilter)
+)
+{
+  return FindFirstChangeNotificationW ((LPCWSTR) lpPathName, bWatchSubtree, dwNotifyFilter);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CreateFile
+#define CreateFile error_use_qxeCreateFile_or_CreateFileA_and_CreateFileW
+#endif
+DECLARE_INLINE_HEADER (
+HANDLE qxeCreateFile (const Extbyte * lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
+)
+{
+  return CreateFileW ((LPCWSTR) lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetDiskFreeSpace
+#define GetDiskFreeSpace error_use_qxeGetDiskFreeSpace_or_GetDiskFreeSpaceA_and_GetDiskFreeSpaceW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetDiskFreeSpace (const Extbyte * lpRootPathName, LPDWORD lpSectorsPerCluster, LPDWORD lpBytesPerSector, LPDWORD lpNumberOfFreeClusters, LPDWORD lpTotalNumberOfClusters)
+)
+{
+  return GetDiskFreeSpaceW ((LPCWSTR) lpRootPathName, lpSectorsPerCluster, lpBytesPerSector, lpNumberOfFreeClusters, lpTotalNumberOfClusters);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetDriveType
+#define GetDriveType error_use_qxeGetDriveType_or_GetDriveTypeA_and_GetDriveTypeW
+#endif
+DECLARE_INLINE_HEADER (
+UINT qxeGetDriveType (const Extbyte * lpRootPathName)
+)
+{
+  return GetDriveTypeW ((LPCWSTR) lpRootPathName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetFullPathName
+#define GetFullPathName error_use_qxeGetFullPathName_or_GetFullPathNameA_and_GetFullPathNameW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeGetFullPathName (const Extbyte * lpFileName, DWORD nBufferLength, Extbyte * lpBuffer, Extbyte * * lpFilePart)
+)
+{
+  return GetFullPathNameW ((LPCWSTR) lpFileName, nBufferLength, (LPWSTR) lpBuffer, (LPWSTR *) lpFilePart);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetLogicalDriveStrings
+#define GetLogicalDriveStrings error_use_qxeGetLogicalDriveStrings_or_GetLogicalDriveStringsA_and_GetLogicalDriveStringsW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeGetLogicalDriveStrings (DWORD nBufferLength, Extbyte * lpBuffer)
+)
+{
+  return GetLogicalDriveStringsW (nBufferLength, (LPWSTR) lpBuffer);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetShortPathName
+#define GetShortPathName error_use_qxeGetShortPathName_or_GetShortPathNameA_and_GetShortPathNameW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeGetShortPathName (const Extbyte * lpszLongPath, Extbyte * lpszShortPath, DWORD cchBuffer)
+)
+{
+  return GetShortPathNameW ((LPCWSTR) lpszLongPath, (LPWSTR) lpszShortPath, cchBuffer);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef QueryDosDevice
+#define QueryDosDevice error_use_qxeQueryDosDevice_or_QueryDosDeviceA_and_QueryDosDeviceW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeQueryDosDevice (const Extbyte * lpDeviceName, Extbyte * lpTargetPath, DWORD ucchMax)
+)
+{
+  return QueryDosDeviceW ((LPCWSTR) lpDeviceName, (LPWSTR) lpTargetPath, ucchMax);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetTempFileName
+#define GetTempFileName error_use_qxeGetTempFileName_or_GetTempFileNameA_and_GetTempFileNameW
+#endif
+DECLARE_INLINE_HEADER (
+UINT qxeGetTempFileName (const Extbyte * lpPathName, const Extbyte * lpPrefixString, UINT uUnique, Extbyte * lpTempFileName)
+)
+{
+  return GetTempFileNameW ((LPCWSTR) lpPathName, (LPCWSTR) lpPrefixString, uUnique, (LPWSTR) lpTempFileName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetVolumeInformation
+#define GetVolumeInformation error_use_qxeGetVolumeInformation_or_GetVolumeInformationA_and_GetVolumeInformationW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetVolumeInformation (const Extbyte * lpRootPathName, Extbyte * lpVolumeNameBuffer, DWORD nVolumeNameSize, LPDWORD lpVolumeSerialNumber, LPDWORD lpMaximumComponentLength, LPDWORD lpFileSystemFlags, Extbyte * lpFileSystemNameBuffer, DWORD nFileSystemNameSize)
+)
+{
+  return GetVolumeInformationW ((LPCWSTR) lpRootPathName, (LPWSTR) lpVolumeNameBuffer, nVolumeNameSize, lpVolumeSerialNumber, lpMaximumComponentLength, lpFileSystemFlags, (LPWSTR) lpFileSystemNameBuffer, nFileSystemNameSize);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CreateDirectory
+#define CreateDirectory error_use_qxeCreateDirectory_or_CreateDirectoryA_and_CreateDirectoryW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeCreateDirectory (const Extbyte * lpPathName, LPSECURITY_ATTRIBUTES lpSecurityAttributes)
+)
+{
+  return CreateDirectoryW ((LPCWSTR) lpPathName, lpSecurityAttributes);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef DeleteFile
+#define DeleteFile error_use_qxeDeleteFile_or_DeleteFileA_and_DeleteFileW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeDeleteFile (const Extbyte * lpFileName)
+)
+{
+  return DeleteFileW ((LPCWSTR) lpFileName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetDiskFreeSpaceEx
+#define GetDiskFreeSpaceEx error_use_qxeGetDiskFreeSpaceEx_or_GetDiskFreeSpaceExA_and_GetDiskFreeSpaceExW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetDiskFreeSpaceEx (const Extbyte * lpDirectoryName, PULARGE_INTEGER lpFreeBytesAvailableToCaller, PULARGE_INTEGER lpTotalNumberOfBytes, PULARGE_INTEGER lpTotalNumberOfFreeBytes)
+)
+{
+  return GetDiskFreeSpaceExW ((LPCWSTR) lpDirectoryName, lpFreeBytesAvailableToCaller, lpTotalNumberOfBytes, lpTotalNumberOfFreeBytes);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetFileAttributesEx
+#define GetFileAttributesEx error_use_qxeGetFileAttributesEx_or_GetFileAttributesExA_and_GetFileAttributesExW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeGetFileAttributesEx (const Extbyte * lpFileName, GET_FILEEX_INFO_LEVELS fInfoLevelId, LPVOID lpFileInformation)
+)
+{
+  return GetFileAttributesExW ((LPCWSTR) lpFileName, fInfoLevelId, lpFileInformation);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RemoveDirectory
+#define RemoveDirectory error_use_qxeRemoveDirectory_or_RemoveDirectoryA_and_RemoveDirectoryW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeRemoveDirectory (const Extbyte * lpPathName)
+)
+{
+  return RemoveDirectoryW ((LPCWSTR) lpPathName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SetFileAttributes
+#define SetFileAttributes error_use_qxeSetFileAttributes_or_SetFileAttributesA_and_SetFileAttributesW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeSetFileAttributes (const Extbyte * lpFileName, DWORD dwFileAttributes)
+)
+{
+  return SetFileAttributesW ((LPCWSTR) lpFileName, dwFileAttributes);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetTempPath
+#define GetTempPath error_use_qxeGetTempPath_or_GetTempPathA_and_GetTempPathW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeGetTempPath (DWORD nBufferLength, Extbyte * lpBuffer)
+)
+{
+  return GetTempPathW (nBufferLength, (LPWSTR) lpBuffer);
+}
+
+
+/* Processing file WINREG.H */
+
+
+/*----------------------------------------------------------------------*/
+/*                       Processing file WINREG.H                       */
+/*----------------------------------------------------------------------*/
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegConnectRegistry
+#define RegConnectRegistry error_use_qxeRegConnectRegistry_or_RegConnectRegistryA_and_RegConnectRegistryW
+#endif
+/* NOTE: former error in Cygwin prototype, but no more (Cygwin 1.7, 1-30-10) */
+DECLARE_INLINE_HEADER (
+LONG qxeRegConnectRegistry (const Extbyte * lpMachineName, HKEY hKey, PHKEY phkResult)
+)
+{
+  return RegConnectRegistryW ((LPCWSTR) lpMachineName, hKey, phkResult);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegCreateKey
+#define RegCreateKey error_use_qxeRegCreateKey_or_RegCreateKeyA_and_RegCreateKeyW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegCreateKey (HKEY hKey, const Extbyte * lpSubKey, PHKEY phkResult)
+)
+{
+  return RegCreateKeyW (hKey, (LPCWSTR) lpSubKey, phkResult);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegCreateKeyEx
+#define RegCreateKeyEx error_use_qxeRegCreateKeyEx_or_RegCreateKeyExA_and_RegCreateKeyExW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegCreateKeyEx (HKEY hKey, const Extbyte * lpSubKey, DWORD Reserved, Extbyte * lpClass, DWORD dwOptions, REGSAM samDesired, LPSECURITY_ATTRIBUTES lpSecurityAttributes, PHKEY phkResult, LPDWORD lpdwDisposition)
+)
+{
+  return RegCreateKeyExW (hKey, (LPCWSTR) lpSubKey, Reserved, (LPWSTR) lpClass, dwOptions, samDesired, lpSecurityAttributes, phkResult, lpdwDisposition);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegDeleteKey
+#define RegDeleteKey error_use_qxeRegDeleteKey_or_RegDeleteKeyA_and_RegDeleteKeyW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegDeleteKey (HKEY hKey, const Extbyte * lpSubKey)
+)
+{
+  return RegDeleteKeyW (hKey, (LPCWSTR) lpSubKey);
+}
+
+#undef RegDeleteKeyEx
+#define RegDeleteKeyEx error_Function_needs_review_to_determine_how_to_handle_it
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegDeleteValue
+#define RegDeleteValue error_use_qxeRegDeleteValue_or_RegDeleteValueA_and_RegDeleteValueW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegDeleteValue (HKEY hKey, const Extbyte * lpValueName)
+)
+{
+  return RegDeleteValueW (hKey, (LPCWSTR) lpValueName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegEnumKey
+#define RegEnumKey error_use_qxeRegEnumKey_or_RegEnumKeyA_and_RegEnumKeyW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegEnumKey (HKEY hKey, DWORD dwIndex, Extbyte * lpName, DWORD cchName)
+)
+{
+  return RegEnumKeyW (hKey, dwIndex, (LPWSTR) lpName, cchName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegEnumKeyEx
+#define RegEnumKeyEx error_use_qxeRegEnumKeyEx_or_RegEnumKeyExA_and_RegEnumKeyExW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegEnumKeyEx (HKEY hKey, DWORD dwIndex, Extbyte * lpName, LPDWORD lpcchName, LPDWORD lpReserved, Extbyte * lpClass, LPDWORD lpcchClass, PFILETIME lpftLastWriteTime)
+)
+{
+  return RegEnumKeyExW (hKey, dwIndex, (LPWSTR) lpName, lpcchName, lpReserved, (LPWSTR) lpClass, lpcchClass, lpftLastWriteTime);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegEnumValue
+#define RegEnumValue error_use_qxeRegEnumValue_or_RegEnumValueA_and_RegEnumValueW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegEnumValue (HKEY hKey, DWORD dwIndex, Extbyte * lpValueName, LPDWORD lpcchValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData)
+)
+{
+  return RegEnumValueW (hKey, dwIndex, (LPWSTR) lpValueName, lpcchValueName, lpReserved, lpType, lpData, lpcbData);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegLoadKey
+#define RegLoadKey error_use_qxeRegLoadKey_or_RegLoadKeyA_and_RegLoadKeyW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegLoadKey (HKEY hKey, const Extbyte * lpSubKey, const Extbyte * lpFile)
+)
+{
+  return RegLoadKeyW (hKey, (LPCWSTR) lpSubKey, (LPCWSTR) lpFile);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegOpenKey
+#define RegOpenKey error_use_qxeRegOpenKey_or_RegOpenKeyA_and_RegOpenKeyW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegOpenKey (HKEY hKey, const Extbyte * lpSubKey, PHKEY phkResult)
+)
+{
+  return RegOpenKeyW (hKey, (LPCWSTR) lpSubKey, phkResult);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegOpenKeyEx
+#define RegOpenKeyEx error_use_qxeRegOpenKeyEx_or_RegOpenKeyExA_and_RegOpenKeyExW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegOpenKeyEx (HKEY hKey, const Extbyte * lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult)
+)
+{
+  return RegOpenKeyExW (hKey, (LPCWSTR) lpSubKey, ulOptions, samDesired, phkResult);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegQueryInfoKey
+#define RegQueryInfoKey error_use_qxeRegQueryInfoKey_or_RegQueryInfoKeyA_and_RegQueryInfoKeyW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegQueryInfoKey (HKEY hKey, Extbyte * lpClass, LPDWORD lpcchClass, LPDWORD lpReserved, LPDWORD lpcSubKeys, LPDWORD lpcbMaxSubKeyLen, LPDWORD lpcbMaxClassLen, LPDWORD lpcValues, LPDWORD lpcbMaxValueNameLen, LPDWORD lpcbMaxValueLen, LPDWORD lpcbSecurityDescriptor, PFILETIME lpftLastWriteTime)
+)
+{
+  return RegQueryInfoKeyW (hKey, (LPWSTR) lpClass, lpcchClass, lpReserved, lpcSubKeys, lpcbMaxSubKeyLen, lpcbMaxClassLen, lpcValues, lpcbMaxValueNameLen, lpcbMaxValueLen, lpcbSecurityDescriptor, lpftLastWriteTime);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegQueryValue
+#define RegQueryValue error_use_qxeRegQueryValue_or_RegQueryValueA_and_RegQueryValueW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegQueryValue (HKEY hKey, const Extbyte * lpSubKey, Extbyte * lpData, PLONG lpcbData)
+)
+{
+  return RegQueryValueW (hKey, (LPCWSTR) lpSubKey, (LPWSTR) lpData, lpcbData);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegQueryMultipleValues
+#define RegQueryMultipleValues error_use_qxeRegQueryMultipleValues_or_RegQueryMultipleValuesA_and_RegQueryMultipleValuesW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegQueryMultipleValues (HKEY hKey, PVALENTW val_list, DWORD num_vals, Extbyte * lpValueBuf, LPDWORD ldwTotsize)
+)
+{
+  return RegQueryMultipleValuesW (hKey, val_list, num_vals, (LPWSTR) lpValueBuf, ldwTotsize);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegQueryValueEx
+#define RegQueryValueEx error_use_qxeRegQueryValueEx_or_RegQueryValueExA_and_RegQueryValueExW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegQueryValueEx (HKEY hKey, const Extbyte * lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData)
+)
+{
+  return RegQueryValueExW (hKey, (LPCWSTR) lpValueName, lpReserved, lpType, lpData, lpcbData);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegReplaceKey
+#define RegReplaceKey error_use_qxeRegReplaceKey_or_RegReplaceKeyA_and_RegReplaceKeyW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegReplaceKey (HKEY hKey, const Extbyte * lpSubKey, const Extbyte * lpNewFile, const Extbyte * lpOldFile)
+)
+{
+  return RegReplaceKeyW (hKey, (LPCWSTR) lpSubKey, (LPCWSTR) lpNewFile, (LPCWSTR) lpOldFile);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegRestoreKey
+#define RegRestoreKey error_use_qxeRegRestoreKey_or_RegRestoreKeyA_and_RegRestoreKeyW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegRestoreKey (HKEY hKey, const Extbyte * lpFile, DWORD dwFlags)
+)
+{
+  return RegRestoreKeyW (hKey, (LPCWSTR) lpFile, dwFlags);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegSaveKey
+#define RegSaveKey error_use_qxeRegSaveKey_or_RegSaveKeyA_and_RegSaveKeyW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegSaveKey (HKEY hKey, const Extbyte * lpFile, LPSECURITY_ATTRIBUTES lpSecurityAttributes)
+)
+{
+  return RegSaveKeyW (hKey, (LPCWSTR) lpFile, lpSecurityAttributes);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegSetValue
+#define RegSetValue error_use_qxeRegSetValue_or_RegSetValueA_and_RegSetValueW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegSetValue (HKEY hKey, const Extbyte * lpSubKey, DWORD dwType, const Extbyte * lpData, DWORD cbData)
+)
+{
+  return RegSetValueW (hKey, (LPCWSTR) lpSubKey, dwType, (LPCWSTR) lpData, cbData);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegSetValueEx
+#define RegSetValueEx error_use_qxeRegSetValueEx_or_RegSetValueExA_and_RegSetValueExW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegSetValueEx (HKEY hKey, const Extbyte * lpValueName, DWORD Reserved, DWORD dwType, const BYTE * lpData, DWORD cbData)
+)
+{
+  return RegSetValueExW (hKey, (LPCWSTR) lpValueName, Reserved, dwType, lpData, cbData);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef RegUnLoadKey
+#define RegUnLoadKey error_use_qxeRegUnLoadKey_or_RegUnLoadKeyA_and_RegUnLoadKeyW
+#endif
+DECLARE_INLINE_HEADER (
+LONG qxeRegUnLoadKey (HKEY hKey, const Extbyte * lpSubKey)
+)
+{
+  return RegUnLoadKeyW (hKey, (LPCWSTR) lpSubKey);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef InitiateSystemShutdown
+#define InitiateSystemShutdown error_use_qxeInitiateSystemShutdown_or_InitiateSystemShutdownA_and_InitiateSystemShutdownW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeInitiateSystemShutdown (Extbyte * lpMachineName, Extbyte * lpMessage, DWORD dwTimeout, BOOL bForceAppsClosed, BOOL bRebootAfterShutdown)
+)
+{
+  return InitiateSystemShutdownW ((LPWSTR) lpMachineName, (LPWSTR) lpMessage, dwTimeout, bForceAppsClosed, bRebootAfterShutdown);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef AbortSystemShutdown
+#define AbortSystemShutdown error_use_qxeAbortSystemShutdown_or_AbortSystemShutdownA_and_AbortSystemShutdownW
+#endif
+/* NOTE: error arg 1, Cygwin prototype, extra const.
+   NOTE: Prototype manually overridden.
+         Header file claims:
+           WINADVAPI WINBOOL WINAPI AbortSystemShutdown(LPWSTR lpMachineName)
+         Overridden with:
+           BOOL AbortSystemShutdown(LPWSTR)
+         Differences in return-type qualifiers, e.g. WINAPI, are not important.
+ */
+DECLARE_INLINE_HEADER (
+BOOL qxeAbortSystemShutdown (Extbyte * arg1)
+)
+{
+  return AbortSystemShutdownW ((LPWSTR) arg1);
+}
+
+
+/* Processing file synchapi.h */
+
+
+/*----------------------------------------------------------------------*/
+/*                      Processing file synchapi.h                      */
+/*----------------------------------------------------------------------*/
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef OpenMutex
+#define OpenMutex error_use_qxeOpenMutex_or_OpenMutexA_and_OpenMutexW
+#endif
+DECLARE_INLINE_HEADER (
+HANDLE qxeOpenMutex (DWORD dwDesiredAccess, BOOL bInheritHandle, const Extbyte * lpName)
+)
+{
+  return OpenMutexW (dwDesiredAccess, bInheritHandle, (LPCWSTR) lpName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef OpenEvent
+#define OpenEvent error_use_qxeOpenEvent_or_OpenEventA_and_OpenEventW
+#endif
+DECLARE_INLINE_HEADER (
+HANDLE qxeOpenEvent (DWORD dwDesiredAccess, BOOL bInheritHandle, const Extbyte * lpName)
+)
+{
+  return OpenEventW (dwDesiredAccess, bInheritHandle, (LPCWSTR) lpName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef OpenSemaphore
+#define OpenSemaphore error_use_qxeOpenSemaphore_or_OpenSemaphoreA_and_OpenSemaphoreW
+#endif
+DECLARE_INLINE_HEADER (
+HANDLE qxeOpenSemaphore (DWORD dwDesiredAccess, BOOL bInheritHandle, const Extbyte * lpName)
+)
+{
+  return OpenSemaphoreW (dwDesiredAccess, bInheritHandle, (LPCWSTR) lpName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CreateMutex
+#define CreateMutex error_use_qxeCreateMutex_or_CreateMutexA_and_CreateMutexW
+#endif
+DECLARE_INLINE_HEADER (
+HANDLE qxeCreateMutex (LPSECURITY_ATTRIBUTES lpMutexAttributes, BOOL bInitialOwner, const Extbyte * lpName)
+)
+{
+  return CreateMutexW (lpMutexAttributes, bInitialOwner, (LPCWSTR) lpName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef CreateEvent
+#define CreateEvent error_use_qxeCreateEvent_or_CreateEventA_and_CreateEventW
+#endif
+DECLARE_INLINE_HEADER (
+HANDLE qxeCreateEvent (LPSECURITY_ATTRIBUTES lpEventAttributes, BOOL bManualReset, BOOL bInitialState, const Extbyte * lpName)
+)
+{
+  return CreateEventW (lpEventAttributes, bManualReset, bInitialState, (LPCWSTR) lpName);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef OpenWaitableTimer
+#define OpenWaitableTimer error_use_qxeOpenWaitableTimer_or_OpenWaitableTimerA_and_OpenWaitableTimerW
+#endif
+DECLARE_INLINE_HEADER (
+HANDLE qxeOpenWaitableTimer (DWORD dwDesiredAccess, BOOL bInheritHandle, const Extbyte * lpTimerName)
+)
+{
+  return OpenWaitableTimerW (dwDesiredAccess, bInheritHandle, (LPCWSTR) lpTimerName);
+}
+
+
+/* Processing file WINNLS.H */
+
+
+/*----------------------------------------------------------------------*/
+/*                       Processing file WINNLS.H                       */
+/*----------------------------------------------------------------------*/
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetLocaleInfo
+#define GetLocaleInfo error_use_qxeGetLocaleInfo_or_GetLocaleInfoA_and_GetLocaleInfoW
+#endif
+DECLARE_INLINE_HEADER (
+int qxeGetLocaleInfo (LCID Locale, LCTYPE LCType, Extbyte * lpLCData, int cchData)
+)
+{
+  return GetLocaleInfoW (Locale, LCType, (LPWSTR) lpLCData, cchData);
+}
+
+#undef LCMapString
+#define LCMapString error_not_used__not_examined_yet
+
+#undef GetNumberFormat
+#define GetNumberFormat error_not_used__not_examined_yet
+
+#undef GetCurrencyFormat
+#define GetCurrencyFormat error_not_used__not_examined_yet
+
+#undef EnumCalendarInfo
+#define EnumCalendarInfo error_not_used__not_examined_yet
+
+#undef EnumCalendarInfoEx
+#define EnumCalendarInfoEx error_not_used__not_examined_yet
+
+#undef EnumTimeFormats
+#define EnumTimeFormats error_not_used__not_examined_yet
+
+#undef EnumDateFormats
+#define EnumDateFormats error_not_used__not_examined_yet
+
+#undef EnumDateFormatsEx
+#define EnumDateFormatsEx error_not_used__not_examined_yet
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SetLocaleInfo
+#define SetLocaleInfo error_use_qxeSetLocaleInfo_or_SetLocaleInfoA_and_SetLocaleInfoW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeSetLocaleInfo (LCID Locale, LCTYPE LCType, const Extbyte * lpLCData)
+)
+{
+  return SetLocaleInfoW (Locale, LCType, (LPCWSTR) lpLCData);
+}
+
+#undef GetCalendarInfo
+#define GetCalendarInfo error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef SetCalendarInfo
+#define SetCalendarInfo error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef GetGeoInfo
+#define GetGeoInfo error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef GetCPInfoEx
+#define GetCPInfoEx error_not_used__not_examined_yet
+
+#undef EnumSystemLocales
+#define EnumSystemLocales error_not_used__not_examined_yet
+
+#undef EnumSystemLanguageGroups
+#define EnumSystemLanguageGroups error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef EnumLanguageGroupLocales
+#define EnumLanguageGroupLocales error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef EnumUILanguages
+#define EnumUILanguages error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef EnumSystemCodePages
+#define EnumSystemCodePages error_not_used__not_examined_yet
+
+
+/* Processing file SHLOBJ.H */
+
+
+/*----------------------------------------------------------------------*/
+/*                       Processing file SHLOBJ.H                       */
+/*----------------------------------------------------------------------*/
+
+#undef SHGetFolderPath
+#define SHGetFolderPath error_Function_needs_review_to_determine_how_to_handle_it
+
+#undef SHGetIconOverlayIndex
+#define SHGetIconOverlayIndex error_Function_needs_review_to_determine_how_to_handle_it
+
+/* Skipping SHGetPathFromIDList because Cygwin qualifiers confuses parser */
+
+#undef SHCreateDirectoryEx
+#define SHCreateDirectoryEx error_Function_needs_review_to_determine_how_to_handle_it
+
+/* Skipping SHGetSpecialFolderPath because error in Cygwin prototype, missing from Cygwin libraries */
+
+#undef SHGetFolderPathAndSubDir
+#define SHGetFolderPathAndSubDir error_Function_needs_review_to_determine_how_to_handle_it
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SHBrowseForFolder
+#define SHBrowseForFolder error_use_qxeSHBrowseForFolder_or_SHBrowseForFolderA_and_SHBrowseForFolderW
+#endif
+DECLARE_INLINE_HEADER (
+LPITEMIDLIST qxeSHBrowseForFolder (LPBROWSEINFOW lpbi)
+)
+{
+  return SHBrowseForFolderW (lpbi);
+}
+
+
+/* Processing file COMMDLG.H */
+
+
+/*----------------------------------------------------------------------*/
+/*                      Processing file COMMDLG.H                       */
 /*----------------------------------------------------------------------*/
 
 #if defined (HAVE_MS_WINDOWS)
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef AddFontResource
-#define AddFontResource error_use_qxeAddFontResource_or_AddFontResourceA_and_AddFontResourceW
+#undef GetOpenFileName
+#define GetOpenFileName error_use_qxeGetOpenFileName_or_GetOpenFileNameA_and_GetOpenFileNameW
 #endif
 DECLARE_INLINE_HEADER (
-int qxeAddFontResource (const Extbyte * arg1)
+BOOL qxeGetOpenFileName (LPOPENFILENAMEW arg1)
 )
 {
-  return AddFontResourceW ((LPCWSTR) arg1);
+  return GetOpenFileNameW (arg1);
 }
 #endif /* defined (HAVE_MS_WINDOWS) */
 
 #if defined (HAVE_MS_WINDOWS)
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CopyMetaFile
-#define CopyMetaFile error_use_qxeCopyMetaFile_or_CopyMetaFileA_and_CopyMetaFileW
+#undef GetSaveFileName
+#define GetSaveFileName error_use_qxeGetSaveFileName_or_GetSaveFileNameA_and_GetSaveFileNameW
 #endif
 DECLARE_INLINE_HEADER (
-HMETAFILE qxeCopyMetaFile (HMETAFILE arg1, const Extbyte * arg2)
+BOOL qxeGetSaveFileName (LPOPENFILENAMEW arg1)
 )
 {
-  return CopyMetaFileW (arg1, (LPCWSTR) arg2);
+  return GetSaveFileNameW (arg1);
 }
 #endif /* defined (HAVE_MS_WINDOWS) */
 
 #if defined (HAVE_MS_WINDOWS)
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CreateDC
-#define CreateDC error_use_qxeCreateDC_or_CreateDCA_and_CreateDCW
+#undef GetFileTitle
+#define GetFileTitle error_use_qxeGetFileTitle_or_GetFileTitleA_and_GetFileTitleW
 #endif
 DECLARE_INLINE_HEADER (
-HDC qxeCreateDC (const Extbyte * pwszDriver, const Extbyte * pwszDevice, const Extbyte * pszPort, const DEVMODEW * pdm)
+short qxeGetFileTitle (const Extbyte * arg1, Extbyte * arg2, WORD arg3)
 )
 {
-  return CreateDCW ((LPCWSTR) pwszDriver, (LPCWSTR) pwszDevice, (LPCWSTR) pszPort, pdm);
+  return GetFileTitleW ((LPCWSTR) arg1, (LPWSTR) arg2, arg3);
 }
 #endif /* defined (HAVE_MS_WINDOWS) */
 
 #if defined (HAVE_MS_WINDOWS)
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CreateFontIndirect
-#define CreateFontIndirect error_use_qxeCreateFontIndirect_or_CreateFontIndirectA_and_CreateFontIndirectW
+#undef ChooseColor
+#define ChooseColor error_use_qxeChooseColor_or_ChooseColorA_and_ChooseColorW
 #endif
 DECLARE_INLINE_HEADER (
-HFONT qxeCreateFontIndirect (const LOGFONTW * lplf)
+BOOL qxeChooseColor (LPCHOOSECOLORW arg1)
 )
 {
-  return CreateFontIndirectW (lplf);
+  return ChooseColorW (arg1);
 }
 #endif /* defined (HAVE_MS_WINDOWS) */
 
 #if defined (HAVE_MS_WINDOWS)
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CreateFont
-#define CreateFont error_use_qxeCreateFont_or_CreateFontA_and_CreateFontW
+#undef FindText
+#define FindText error_use_qxeFindText_or_FindTextA_and_FindTextW
 #endif
 DECLARE_INLINE_HEADER (
-HFONT qxeCreateFont (int cHeight, int cWidth, int cEscapement, int cOrientation, int cWeight, DWORD bItalic, DWORD bUnderline, DWORD bStrikeOut, DWORD iCharSet, DWORD iOutPrecision, DWORD iClipPrecision, DWORD iQuality, DWORD iPitchAndFamily, const Extbyte * pszFaceName)
+HWND qxeFindText (LPFINDREPLACEW arg1)
 )
 {
-  return CreateFontW (cHeight, cWidth, cEscapement, cOrientation, cWeight, bItalic, bUnderline, bStrikeOut, iCharSet, iOutPrecision, iClipPrecision, iQuality, iPitchAndFamily, (LPCWSTR) pszFaceName);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-/* Skipping CreateIC because split-sized DEVMODE */
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CreateMetaFile
-#define CreateMetaFile error_use_qxeCreateMetaFile_or_CreateMetaFileA_and_CreateMetaFileW
-#endif
-DECLARE_INLINE_HEADER (
-HDC qxeCreateMetaFile (const Extbyte * pszFile)
-)
-{
-  return CreateMetaFileW ((LPCWSTR) pszFile);
+  return FindTextW (arg1);
 }
 #endif /* defined (HAVE_MS_WINDOWS) */
 
 #if defined (HAVE_MS_WINDOWS)
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CreateScalableFontResource
-#define CreateScalableFontResource error_use_qxeCreateScalableFontResource_or_CreateScalableFontResourceA_and_CreateScalableFontResourceW
+#undef ReplaceText
+#define ReplaceText error_use_qxeReplaceText_or_ReplaceTextA_and_ReplaceTextW
 #endif
 DECLARE_INLINE_HEADER (
-BOOL qxeCreateScalableFontResource (DWORD fdwHidden, const Extbyte * lpszFont, const Extbyte * lpszFile, const Extbyte * lpszPath)
+HWND qxeReplaceText (LPFINDREPLACEW arg1)
 )
 {
-  return CreateScalableFontResourceW (fdwHidden, (LPCWSTR) lpszFont, (LPCWSTR) lpszFile, (LPCWSTR) lpszPath);
+  return ReplaceTextW (arg1);
 }
 #endif /* defined (HAVE_MS_WINDOWS) */
 
 #if defined (HAVE_MS_WINDOWS)
-/* Skipping DeviceCapabilities because split-sized DEVMODE */
+#undef ChooseFont
+#define ChooseFont error_split_sized_LPLOGFONT_in_LPCHOOSEFONT
 #endif /* defined (HAVE_MS_WINDOWS) */
 
 #if defined (HAVE_MS_WINDOWS)
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef EnumFontFamiliesEx
-#define EnumFontFamiliesEx error_use_qxeEnumFontFamiliesEx_or_EnumFontFamiliesExA_and_EnumFontFamiliesExW
+#undef PrintDlg
+#define PrintDlg error_use_qxePrintDlg_or_PrintDlgA_and_PrintDlgW
 #endif
 DECLARE_INLINE_HEADER (
-int qxeEnumFontFamiliesEx (HDC hdc, LPLOGFONTW lpLogfont, FONTENUMPROCW lpProc, LPARAM lParam, DWORD dwFlags)
+BOOL qxePrintDlg (LPPRINTDLGW arg1)
 )
 {
-  return EnumFontFamiliesExW (hdc, lpLogfont, lpProc, lParam, dwFlags);
+  return PrintDlgW (arg1);
 }
 #endif /* defined (HAVE_MS_WINDOWS) */
 
 #if defined (HAVE_MS_WINDOWS)
-#undef EnumFontFamilies
-#define EnumFontFamilies error_split_complex_FONTENUMPROC
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef EnumFonts
-#define EnumFonts error_split_complex_FONTENUMPROC
+#undef PrintDlgEx
+#define PrintDlgEx error_Function_needs_review_to_determine_how_to_handle_it
 #endif /* defined (HAVE_MS_WINDOWS) */
 
 #if defined (HAVE_MS_WINDOWS)
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetCharWidth
-#define GetCharWidth error_use_qxeGetCharWidth_or_GetCharWidthA_and_GetCharWidthW
+#undef PageSetupDlg
+#define PageSetupDlg error_use_qxePageSetupDlg_or_PageSetupDlgA_and_PageSetupDlgW
 #endif
 DECLARE_INLINE_HEADER (
-BOOL qxeGetCharWidth (HDC hdc, UINT iFirst, UINT iLast, LPINT lpBuffer)
+BOOL qxePageSetupDlg (LPPAGESETUPDLGW arg1)
 )
 {
-  return GetCharWidthW (hdc, iFirst, iLast, lpBuffer);
+  return PageSetupDlgW (arg1);
 }
 #endif /* defined (HAVE_MS_WINDOWS) */
 
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetCharWidth32
-#define GetCharWidth32 error_use_qxeGetCharWidth32_or_GetCharWidth32A_and_GetCharWidth32W
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetCharWidth32 (HDC hdc, UINT iFirst, UINT iLast, LPINT lpBuffer)
-)
-{
-  return GetCharWidth32W (hdc, iFirst, iLast, lpBuffer);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
 
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetCharWidthFloat
-#define GetCharWidthFloat error_use_qxeGetCharWidthFloat_or_GetCharWidthFloatA_and_GetCharWidthFloatW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetCharWidthFloat (HDC hdc, UINT iFirst, UINT iLast, PFLOAT lpBuffer)
-)
-{
-  return GetCharWidthFloatW (hdc, iFirst, iLast, lpBuffer);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetCharABCWidths
-#define GetCharABCWidths error_use_qxeGetCharABCWidths_or_GetCharABCWidthsA_and_GetCharABCWidthsW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetCharABCWidths (HDC hdc, UINT wFirst, UINT wLast, LPABC lpABC)
-)
-{
-  return GetCharABCWidthsW (hdc, wFirst, wLast, lpABC);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetCharABCWidthsFloat
-#define GetCharABCWidthsFloat error_use_qxeGetCharABCWidthsFloat_or_GetCharABCWidthsFloatA_and_GetCharABCWidthsFloatW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetCharABCWidthsFloat (HDC hdc, UINT iFirst, UINT iLast, LPABCFLOAT lpABC)
-)
-{
-  return GetCharABCWidthsFloatW (hdc, iFirst, iLast, lpABC);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetGlyphOutline
-#define GetGlyphOutline error_use_qxeGetGlyphOutline_or_GetGlyphOutlineA_and_GetGlyphOutlineW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeGetGlyphOutline (HDC hdc, UINT uChar, UINT fuFormat, LPGLYPHMETRICS lpgm, DWORD cjBuffer, LPVOID pvBuffer, const MAT2 * lpmat2)
-)
-{
-  return GetGlyphOutlineW (hdc, uChar, fuFormat, lpgm, cjBuffer, pvBuffer, lpmat2);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetMetaFile
-#define GetMetaFile error_use_qxeGetMetaFile_or_GetMetaFileA_and_GetMetaFileW
-#endif
-DECLARE_INLINE_HEADER (
-HMETAFILE qxeGetMetaFile (const Extbyte * lpName)
-)
-{
-  return GetMetaFileW ((LPCWSTR) lpName);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef GetOutlineTextMetrics
-#define GetOutlineTextMetrics error_split_sized_LPOUTLINETEXTMETRIC
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetTextExtentPoint
-#define GetTextExtentPoint error_use_qxeGetTextExtentPoint_or_GetTextExtentPointA_and_GetTextExtentPointW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetTextExtentPoint (HDC hdc, const Extbyte * lpString, int c, LPSIZE lpsz)
-)
-{
-  return GetTextExtentPointW (hdc, (LPCWSTR) lpString, c, lpsz);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetTextExtentPoint32
-#define GetTextExtentPoint32 error_use_qxeGetTextExtentPoint32_or_GetTextExtentPoint32A_and_GetTextExtentPoint32W
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetTextExtentPoint32 (HDC hdc, const Extbyte * lpString, int c, LPSIZE psizl)
-)
-{
-  return GetTextExtentPoint32W (hdc, (LPCWSTR) lpString, c, psizl);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetTextExtentExPoint
-#define GetTextExtentExPoint error_use_qxeGetTextExtentExPoint_or_GetTextExtentExPointA_and_GetTextExtentExPointW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetTextExtentExPoint (HDC hdc, const Extbyte * lpszString, int cchString, int nMaxExtent, LPINT lpnFit, LPINT lpnDx, LPSIZE lpSize)
-)
-{
-  return GetTextExtentExPointW (hdc, (LPCWSTR) lpszString, cchString, nMaxExtent, lpnFit, lpnDx, lpSize);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetCharacterPlacement
-#define GetCharacterPlacement error_use_qxeGetCharacterPlacement_or_GetCharacterPlacementA_and_GetCharacterPlacementW
-#endif
-/* NOTE: NT 4.0+ only */
-DECLARE_INLINE_HEADER (
-DWORD qxeGetCharacterPlacement (HDC hdc, const Extbyte * lpString, int nCount, int nMexExtent, LPGCP_RESULTSW lpResults, DWORD dwFlags)
-)
-{
-  return GetCharacterPlacementW (hdc, (LPCWSTR) lpString, nCount, nMexExtent, lpResults, dwFlags);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef GetGlyphIndices
-#define GetGlyphIndices error_NT_5_0__only
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef AddFontResourceEx
-#define AddFontResourceEx error_NT_5_0__only
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef RemoveFontResourceEx
-#define RemoveFontResourceEx error_NT_5_0__only
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ResetDC
-#define ResetDC error_use_qxeResetDC_or_ResetDCA_and_ResetDCW
-#endif
-DECLARE_INLINE_HEADER (
-HDC qxeResetDC (HDC hdc, const DEVMODEW * lpdm)
-)
-{
-  return ResetDCW (hdc, lpdm);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef RemoveFontResource
-#define RemoveFontResource error_use_qxeRemoveFontResource_or_RemoveFontResourceA_and_RemoveFontResourceW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeRemoveFontResource (const Extbyte * lpFileName)
-)
-{
-  return RemoveFontResourceW ((LPCWSTR) lpFileName);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CopyEnhMetaFile
-#define CopyEnhMetaFile error_use_qxeCopyEnhMetaFile_or_CopyEnhMetaFileA_and_CopyEnhMetaFileW
-#endif
-DECLARE_INLINE_HEADER (
-HENHMETAFILE qxeCopyEnhMetaFile (HENHMETAFILE hEnh, const Extbyte * lpFileName)
-)
-{
-  return CopyEnhMetaFileW (hEnh, (LPCWSTR) lpFileName);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef CreateEnhMetaFile
-#define CreateEnhMetaFile error_use_qxeCreateEnhMetaFile_or_CreateEnhMetaFileA_and_CreateEnhMetaFileW
-#endif
-DECLARE_INLINE_HEADER (
-HDC qxeCreateEnhMetaFile (HDC hdc, const Extbyte * lpFilename, const RECT * lprc, const Extbyte * lpDesc)
-)
-{
-  return CreateEnhMetaFileW (hdc, (LPCWSTR) lpFilename, lprc, (LPCWSTR) lpDesc);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetEnhMetaFile
-#define GetEnhMetaFile error_use_qxeGetEnhMetaFile_or_GetEnhMetaFileA_and_GetEnhMetaFileW
-#endif
-DECLARE_INLINE_HEADER (
-HENHMETAFILE qxeGetEnhMetaFile (const Extbyte * lpName)
-)
-{
-  return GetEnhMetaFileW ((LPCWSTR) lpName);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetEnhMetaFileDescription
-#define GetEnhMetaFileDescription error_use_qxeGetEnhMetaFileDescription_or_GetEnhMetaFileDescriptionA_and_GetEnhMetaFileDescriptionW
-#endif
-DECLARE_INLINE_HEADER (
-UINT qxeGetEnhMetaFileDescription (HENHMETAFILE hemf, UINT cchBuffer, Extbyte * lpDescription)
-)
-{
-  return GetEnhMetaFileDescriptionW (hemf, cchBuffer, (LPWSTR) lpDescription);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetTextMetrics
-#define GetTextMetrics error_use_qxeGetTextMetrics_or_GetTextMetricsA_and_GetTextMetricsW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeGetTextMetrics (HDC hdc, LPTEXTMETRICW lptm)
-)
-{
-  return GetTextMetricsW (hdc, lptm);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef StartDoc
-#define StartDoc error_use_qxeStartDoc_or_StartDocA_and_StartDocW
-#endif
-DECLARE_INLINE_HEADER (
-int qxeStartDoc (HDC hdc, const DOCINFOW * lpdi)
-)
-{
-  return StartDocW (hdc, lpdi);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetObject
-#define GetObject error_use_qxeGetObject_or_GetObjectA_and_GetObjectW
-#endif
-DECLARE_INLINE_HEADER (
-int qxeGetObject (HANDLE h, int c, LPVOID pv)
-)
-{
-  return GetObjectW (h, c, pv);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef TextOut
-#define TextOut error_use_qxeTextOut_or_TextOutA_and_TextOutW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeTextOut (HDC hdc, int x, int y, const Extbyte * lpString, int c)
-)
-{
-  return TextOutW (hdc, x, y, (LPCWSTR) lpString, c);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ExtTextOut
-#define ExtTextOut error_use_qxeExtTextOut_or_ExtTextOutA_and_ExtTextOutW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeExtTextOut (HDC hdc, int x, int y, UINT options, const RECT * lprect, const Extbyte * lpString, UINT c, const INT * lpDx)
-)
-{
-  return ExtTextOutW (hdc, x, y, options, lprect, (LPCWSTR) lpString, c, lpDx);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef PolyTextOut
-#define PolyTextOut error_use_qxePolyTextOut_or_PolyTextOutA_and_PolyTextOutW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxePolyTextOut (HDC hdc, const POLYTEXTW * ppt, int nstrings)
-)
-{
-  return PolyTextOutW (hdc, ppt, nstrings);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetTextFace
-#define GetTextFace error_use_qxeGetTextFace_or_GetTextFaceA_and_GetTextFaceW
-#endif
-DECLARE_INLINE_HEADER (
-int qxeGetTextFace (HDC hdc, int c, Extbyte * lpName)
-)
-{
-  return GetTextFaceW (hdc, c, (LPWSTR) lpName);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetKerningPairs
-#define GetKerningPairs error_use_qxeGetKerningPairs_or_GetKerningPairsA_and_GetKerningPairsW
-#endif
-DECLARE_INLINE_HEADER (
-DWORD qxeGetKerningPairs (HDC hdc, DWORD nPairs, LPKERNINGPAIR lpKernPair)
-)
-{
-  return GetKerningPairsW (hdc, nPairs, lpKernPair);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef GetLogColorSpace
-#define GetLogColorSpace error_split_sized_LPLOGCOLORSPACE__NT_4_0__only
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef CreateColorSpace
-#define CreateColorSpace error_split_sized_LPLOGCOLORSPACE__NT_4_0__only
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetICMProfile
-#define GetICMProfile error_use_qxeGetICMProfile_or_GetICMProfileA_and_GetICMProfileW
-#endif
-/* NOTE: NT 4.0+ only, former error in Cygwin prototype but no more (Cygwin 1.7, 1-30-10) */
-DECLARE_INLINE_HEADER (
-BOOL qxeGetICMProfile (HDC hdc, LPDWORD pBufSize, Extbyte * pszFilename)
-)
-{
-  return GetICMProfileW (hdc, pBufSize, (LPWSTR) pszFilename);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef SetICMProfile
-#define SetICMProfile error_use_qxeSetICMProfile_or_SetICMProfileA_and_SetICMProfileW
-#endif
-/* NOTE: NT 4.0+ only */
-DECLARE_INLINE_HEADER (
-BOOL qxeSetICMProfile (HDC hdc, Extbyte * lpFileName)
-)
-{
-  return SetICMProfileW (hdc, (LPWSTR) lpFileName);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef EnumICMProfiles
-#define EnumICMProfiles error_use_qxeEnumICMProfiles_or_EnumICMProfilesA_and_EnumICMProfilesW
-#endif
-/* NOTE: NT 4.0+ only */
-DECLARE_INLINE_HEADER (
-int qxeEnumICMProfiles (HDC hdc, ICMENUMPROCW lpProc, LPARAM lParam)
-)
-{
-  return EnumICMProfilesW (hdc, lpProc, lParam);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef UpdateICMRegKey
-#define UpdateICMRegKey error_use_qxeUpdateICMRegKey_or_UpdateICMRegKeyA_and_UpdateICMRegKeyW
-#endif
-DECLARE_INLINE_HEADER (
-BOOL qxeUpdateICMRegKey (DWORD reserved, Extbyte * lpszCMID, Extbyte * lpszFileName, UINT command)
-)
-{
-  return UpdateICMRegKeyW (reserved, (LPWSTR) lpszCMID, (LPWSTR) lpszFileName, command);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef wglUseFontBitmaps
-#define wglUseFontBitmaps error_causes_link_error
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef wglUseFontOutlines
-#define wglUseFontOutlines error_causes_link_error
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-
-/* Processing file sysinfoapi.h */
+/* Processing file WINCON.H */
 
 
 /*----------------------------------------------------------------------*/
-/*                     Processing file sysinfoapi.h                     */
+/*                       Processing file WINCON.H                       */
 /*----------------------------------------------------------------------*/
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetWindowsDirectory
-#define GetWindowsDirectory error_use_qxeGetWindowsDirectory_or_GetWindowsDirectoryA_and_GetWindowsDirectoryW
+#undef PeekConsoleInput
+#define PeekConsoleInput error_use_qxePeekConsoleInput_or_PeekConsoleInputA_and_PeekConsoleInputW
 #endif
 DECLARE_INLINE_HEADER (
-UINT qxeGetWindowsDirectory (Extbyte * lpBuffer, UINT uSize)
+BOOL qxePeekConsoleInput (HANDLE hConsoleInput, PINPUT_RECORD lpBuffer, DWORD nLength, LPDWORD lpNumberOfEventsRead)
 )
 {
-  return GetWindowsDirectoryW ((LPWSTR) lpBuffer, uSize);
+  return PeekConsoleInputW (hConsoleInput, lpBuffer, nLength, lpNumberOfEventsRead);
 }
 
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef GetSystemDirectory
-#define GetSystemDirectory error_use_qxeGetSystemDirectory_or_GetSystemDirectoryA_and_GetSystemDirectoryW
+#undef ReadConsoleInput
+#define ReadConsoleInput error_use_qxeReadConsoleInput_or_ReadConsoleInputA_and_ReadConsoleInputW
 #endif
 DECLARE_INLINE_HEADER (
-UINT qxeGetSystemDirectory (Extbyte * lpBuffer, UINT uSize)
+BOOL qxeReadConsoleInput (HANDLE hConsoleInput, PINPUT_RECORD lpBuffer, DWORD nLength, LPDWORD lpNumberOfEventsRead)
 )
 {
-  return GetSystemDirectoryW ((LPWSTR) lpBuffer, uSize);
+  return ReadConsoleInputW (hConsoleInput, lpBuffer, nLength, lpNumberOfEventsRead);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef WriteConsoleInput
+#define WriteConsoleInput error_use_qxeWriteConsoleInput_or_WriteConsoleInputA_and_WriteConsoleInputW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeWriteConsoleInput (HANDLE hConsoleInput, const INPUT_RECORD * lpBuffer, DWORD nLength, LPDWORD lpNumberOfEventsWritten)
+)
+{
+  return WriteConsoleInputW (hConsoleInput, lpBuffer, nLength, lpNumberOfEventsWritten);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ReadConsoleOutput
+#define ReadConsoleOutput error_use_qxeReadConsoleOutput_or_ReadConsoleOutputA_and_ReadConsoleOutputW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeReadConsoleOutput (HANDLE hConsoleOutput, PCHAR_INFO lpBuffer, COORD dwBufferSize, COORD dwBufferCoord, PSMALL_RECT lpReadRegion)
+)
+{
+  return ReadConsoleOutputW (hConsoleOutput, lpBuffer, dwBufferSize, dwBufferCoord, lpReadRegion);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef WriteConsoleOutput
+#define WriteConsoleOutput error_use_qxeWriteConsoleOutput_or_WriteConsoleOutputA_and_WriteConsoleOutputW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeWriteConsoleOutput (HANDLE hConsoleOutput, const CHAR_INFO * lpBuffer, COORD dwBufferSize, COORD dwBufferCoord, PSMALL_RECT lpWriteRegion)
+)
+{
+  return WriteConsoleOutputW (hConsoleOutput, lpBuffer, dwBufferSize, dwBufferCoord, lpWriteRegion);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ReadConsoleOutputCharacter
+#define ReadConsoleOutputCharacter error_use_qxeReadConsoleOutputCharacter_or_ReadConsoleOutputCharacterA_and_ReadConsoleOutputCharacterW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeReadConsoleOutputCharacter (HANDLE hConsoleOutput, Extbyte * lpCharacter, DWORD nLength, COORD dwReadCoord, LPDWORD lpNumberOfCharsRead)
+)
+{
+  return ReadConsoleOutputCharacterW (hConsoleOutput, (LPWSTR) lpCharacter, nLength, dwReadCoord, lpNumberOfCharsRead);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef WriteConsoleOutputCharacter
+#define WriteConsoleOutputCharacter error_use_qxeWriteConsoleOutputCharacter_or_WriteConsoleOutputCharacterA_and_WriteConsoleOutputCharacterW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeWriteConsoleOutputCharacter (HANDLE hConsoleOutput, const Extbyte * lpCharacter, DWORD nLength, COORD dwWriteCoord, LPDWORD lpNumberOfCharsWritten)
+)
+{
+  return WriteConsoleOutputCharacterW (hConsoleOutput, (LPCWSTR) lpCharacter, nLength, dwWriteCoord, lpNumberOfCharsWritten);
+}
+
+#undef FillConsoleOutputCharacter
+#define FillConsoleOutputCharacter error_split_CHAR
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ScrollConsoleScreenBuffer
+#define ScrollConsoleScreenBuffer error_use_qxeScrollConsoleScreenBuffer_or_ScrollConsoleScreenBufferA_and_ScrollConsoleScreenBufferW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeScrollConsoleScreenBuffer (HANDLE hConsoleOutput, const SMALL_RECT * lpScrollRectangle, const SMALL_RECT * lpClipRectangle, COORD dwDestinationOrigin, const CHAR_INFO * lpFill)
+)
+{
+  return ScrollConsoleScreenBufferW (hConsoleOutput, lpScrollRectangle, lpClipRectangle, dwDestinationOrigin, lpFill);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetConsoleTitle
+#define GetConsoleTitle error_use_qxeGetConsoleTitle_or_GetConsoleTitleA_and_GetConsoleTitleW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeGetConsoleTitle (Extbyte * lpConsoleTitle, DWORD nSize)
+)
+{
+  return GetConsoleTitleW ((LPWSTR) lpConsoleTitle, nSize);
+}
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SetConsoleTitle
+#define SetConsoleTitle error_use_qxeSetConsoleTitle_or_SetConsoleTitleA_and_SetConsoleTitleW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeSetConsoleTitle (const Extbyte * lpConsoleTitle)
+)
+{
+  return SetConsoleTitleW ((LPCWSTR) lpConsoleTitle);
+}
+
+/* Skipping ReadConsole because last argument PCONSOLE_READCONSOLE_CONTROL pInputControl in recent VisualStudio, LPVOID in W32API */
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef WriteConsole
+#define WriteConsole error_use_qxeWriteConsole_or_WriteConsoleA_and_WriteConsoleW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeWriteConsole (HANDLE hConsoleOutput, const VOID * lpBuffer, DWORD nNumberOfCharsToWrite, LPDWORD lpNumberOfCharsWritten, LPVOID lpReserved)
+)
+{
+  return WriteConsoleW (hConsoleOutput, lpBuffer, nNumberOfCharsToWrite, lpNumberOfCharsWritten, lpReserved);
 }
 
 
-/* Processing file WINSPOOL.H */
+/* Processing file processthreadsapi.h */
 
 
 /*----------------------------------------------------------------------*/
-/*                      Processing file WINSPOOL.H                      */
+/*                 Processing file processthreadsapi.h                  */
 /*----------------------------------------------------------------------*/
 
-#if defined (HAVE_MS_WINDOWS)
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef EnumPrinters
-#define EnumPrinters error_use_qxeEnumPrinters_or_EnumPrintersA_and_EnumPrintersW
-#endif
-/* NOTE: #### problems with DEVMODE pointer in PRINTER_INFO_2 */
-DECLARE_INLINE_HEADER (
-BOOL qxeEnumPrinters (DWORD Flags, Extbyte * Name, DWORD Level, LPBYTE pPrinterEnum, DWORD cbBuf, LPDWORD pcbNeeded, LPDWORD pcReturned)
-)
-{
-  return EnumPrintersW (Flags, (LPWSTR) Name, Level, pPrinterEnum, cbBuf, pcbNeeded, pcReturned);
-}
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef OpenPrinter
-#define OpenPrinter error_use_qxeOpenPrinter_or_OpenPrinterA_and_OpenPrinterW
+#undef GetStartupInfo
+#define GetStartupInfo error_use_qxeGetStartupInfo_or_GetStartupInfoA_and_GetStartupInfoW
 #endif
 DECLARE_INLINE_HEADER (
-BOOL qxeOpenPrinter (Extbyte * pPrinterName, LPHANDLE phPrinter, LPPRINTER_DEFAULTSW pDefault)
+VOID qxeGetStartupInfo (LPSTARTUPINFOW lpStartupInfo)
 )
 {
-  return OpenPrinterW ((LPWSTR) pPrinterName, phPrinter, pDefault);
+  GetStartupInfoW (lpStartupInfo);
 }
-#endif /* defined (HAVE_MS_WINDOWS) */
 
-#if defined (HAVE_MS_WINDOWS)
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef ResetPrinter
-#define ResetPrinter error_use_qxeResetPrinter_or_ResetPrinterA_and_ResetPrinterW
+#undef CreateProcessAsUser
+#define CreateProcessAsUser error_use_qxeCreateProcessAsUser_or_CreateProcessAsUserA_and_CreateProcessAsUserW
 #endif
 DECLARE_INLINE_HEADER (
-BOOL qxeResetPrinter (HANDLE hPrinter, LPPRINTER_DEFAULTSW pDefault)
+BOOL qxeCreateProcessAsUser (HANDLE hToken, const Extbyte * lpApplicationName, Extbyte * lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags, LPVOID lpEnvironment, const Extbyte * lpCurrentDirectory, LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
 )
 {
-  return ResetPrinterW (hPrinter, pDefault);
+  return CreateProcessAsUserW (hToken, (LPCWSTR) lpApplicationName, (LPWSTR) lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, (LPCWSTR) lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 }
-#endif /* defined (HAVE_MS_WINDOWS) */
 
-#if defined (HAVE_MS_WINDOWS)
-#undef SetJob
-#define SetJob error_split_sized_DEVMODE_pointer_in_split_JOB_INFO_2
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef GetJob
-#define GetJob error_split_sized_DEVMODE_pointer_in_split_JOB_INFO_2
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef EnumJobs
-#define EnumJobs error_split_sized_DEVMODE_pointer_in_split_JOB_INFO_2
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef AddPrinter
-#define AddPrinter error_split_sized_DEVMODE_pointer_in_split_PRINTER_INFO_2
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef SetPrinter
-#define SetPrinter error_split_sized_DEVMODE_pointer_in_split_PRINTER_INFO_2
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef GetPrinter
-#define GetPrinter error_split_sized_DEVMODE_pointer_in_split_PRINTER_INFO_2
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef AddPrinterDriver
-#define AddPrinterDriver error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef AddPrinterDriverEx
-#define AddPrinterDriverEx error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef EnumPrinterDrivers
-#define EnumPrinterDrivers error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef GetPrinterDriver
-#define GetPrinterDriver error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef GetPrinterDriverDirectory
-#define GetPrinterDriverDirectory error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef DeletePrinterDriver
-#define DeletePrinterDriver error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef DeletePrinterDriverEx
-#define DeletePrinterDriverEx error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef AddPrintProcessor
-#define AddPrintProcessor error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef EnumPrintProcessors
-#define EnumPrintProcessors error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef GetPrintProcessorDirectory
-#define GetPrintProcessorDirectory error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef EnumPrintProcessorDatatypes
-#define EnumPrintProcessorDatatypes error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef DeletePrintProcessor
-#define DeletePrintProcessor error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef StartDocPrinter
-#define StartDocPrinter error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef AddJob
-#define AddJob error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
 #ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
-#undef DocumentProperties
-#define DocumentProperties error_use_qxeDocumentProperties_or_DocumentPropertiesA_and_DocumentPropertiesW
+#undef CreateProcess
+#define CreateProcess error_use_qxeCreateProcess_or_CreateProcessA_and_CreateProcessW
 #endif
 DECLARE_INLINE_HEADER (
-LONG qxeDocumentProperties (HWND hWnd, HANDLE hPrinter, Extbyte * pDeviceName, PDEVMODEW pDevModeOutput, PDEVMODEW pDevModeInput, DWORD fMode)
+BOOL qxeCreateProcess (const Extbyte * lpApplicationName, Extbyte * lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags, LPVOID lpEnvironment, const Extbyte * lpCurrentDirectory, LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
 )
 {
-  return DocumentPropertiesW (hWnd, hPrinter, (LPWSTR) pDeviceName, pDevModeOutput, pDevModeInput, fMode);
+  return CreateProcessW ((LPCWSTR) lpApplicationName, (LPWSTR) lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, (LPCWSTR) lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 }
-#endif /* defined (HAVE_MS_WINDOWS) */
 
-#if defined (HAVE_MS_WINDOWS)
-#undef AdvancedDocumentProperties
-#define AdvancedDocumentProperties error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
 
-#if defined (HAVE_MS_WINDOWS)
-#undef GetPrinterData
-#define GetPrinterData error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
+/* Processing file processenv.h */
 
-#if defined (HAVE_MS_WINDOWS)
-#undef GetPrinterDataEx
-#define GetPrinterDataEx error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
 
-#if defined (HAVE_MS_WINDOWS)
-#undef EnumPrinterData
-#define EnumPrinterData error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
+/*----------------------------------------------------------------------*/
+/*                     Processing file processenv.h                     */
+/*----------------------------------------------------------------------*/
 
-#if defined (HAVE_MS_WINDOWS)
-#undef EnumPrinterDataEx
-#define EnumPrinterDataEx error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetCommandLine
+#define GetCommandLine error_use_qxeGetCommandLine_or_GetCommandLineA_and_GetCommandLineW
+#endif
+DECLARE_INLINE_HEADER (
+Extbyte * qxeGetCommandLine (void)
+)
+{
+  return (Extbyte *) GetCommandLineW ();
+}
 
-#if defined (HAVE_MS_WINDOWS)
-#undef EnumPrinterKey
-#define EnumPrinterKey error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SetCurrentDirectory
+#define SetCurrentDirectory error_use_qxeSetCurrentDirectory_or_SetCurrentDirectoryA_and_SetCurrentDirectoryW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeSetCurrentDirectory (const Extbyte * lpPathName)
+)
+{
+  return SetCurrentDirectoryW ((LPCWSTR) lpPathName);
+}
 
-#if defined (HAVE_MS_WINDOWS)
-#undef SetPrinterData
-#define SetPrinterData error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetCurrentDirectory
+#define GetCurrentDirectory error_use_qxeGetCurrentDirectory_or_GetCurrentDirectoryA_and_GetCurrentDirectoryW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeGetCurrentDirectory (DWORD nBufferLength, Extbyte * lpBuffer)
+)
+{
+  return GetCurrentDirectoryW (nBufferLength, (LPWSTR) lpBuffer);
+}
 
-#if defined (HAVE_MS_WINDOWS)
-#undef SetPrinterDataEx
-#define SetPrinterDataEx error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SearchPath
+#define SearchPath error_use_qxeSearchPath_or_SearchPathA_and_SearchPathW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeSearchPath (const Extbyte * lpPath, const Extbyte * lpFileName, const Extbyte * lpExtension, DWORD nBufferLength, Extbyte * lpBuffer, Extbyte * * lpFilePart)
+)
+{
+  return SearchPathW ((LPCWSTR) lpPath, (LPCWSTR) lpFileName, (LPCWSTR) lpExtension, nBufferLength, (LPWSTR) lpBuffer, (LPWSTR *) lpFilePart);
+}
 
-#if defined (HAVE_MS_WINDOWS)
-#undef DeletePrinterData
-#define DeletePrinterData error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ExpandEnvironmentStrings
+#define ExpandEnvironmentStrings error_use_qxeExpandEnvironmentStrings_or_ExpandEnvironmentStringsA_and_ExpandEnvironmentStringsW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeExpandEnvironmentStrings (const Extbyte * lpSrc, Extbyte * lpDst, DWORD nSize)
+)
+{
+  return ExpandEnvironmentStringsW ((LPCWSTR) lpSrc, (LPWSTR) lpDst, nSize);
+}
 
-#if defined (HAVE_MS_WINDOWS)
-#undef DeletePrinterDataEx
-#define DeletePrinterDataEx error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef FreeEnvironmentStrings
+#define FreeEnvironmentStrings error_use_qxeFreeEnvironmentStrings_or_FreeEnvironmentStringsA_and_FreeEnvironmentStringsW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeFreeEnvironmentStrings (LPWCH penv)
+)
+{
+  return FreeEnvironmentStringsW (penv);
+}
 
-#if defined (HAVE_MS_WINDOWS)
-#undef DeletePrinterKey
-#define DeletePrinterKey error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef GetEnvironmentVariable
+#define GetEnvironmentVariable error_use_qxeGetEnvironmentVariable_or_GetEnvironmentVariableA_and_GetEnvironmentVariableW
+#endif
+DECLARE_INLINE_HEADER (
+DWORD qxeGetEnvironmentVariable (const Extbyte * lpName, Extbyte * lpBuffer, DWORD nSize)
+)
+{
+  return GetEnvironmentVariableW ((LPCWSTR) lpName, (LPWSTR) lpBuffer, nSize);
+}
 
-#if defined (HAVE_MS_WINDOWS)
-#undef PrinterMessageBox
-#define PrinterMessageBox error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef AddForm
-#define AddForm error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef DeleteForm
-#define DeleteForm error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef GetForm
-#define GetForm error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef SetForm
-#define SetForm error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef EnumForms
-#define EnumForms error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef EnumMonitors
-#define EnumMonitors error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef AddMonitor
-#define AddMonitor error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef DeleteMonitor
-#define DeleteMonitor error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef EnumPorts
-#define EnumPorts error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef AddPort
-#define AddPort error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef ConfigurePort
-#define ConfigurePort error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef DeletePort
-#define DeletePort error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef XcvData
-#define XcvData error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef GetDefaultPrinter
-#define GetDefaultPrinter error_Function_needs_review_to_determine_how_to_handle_it
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef SetPort
-#define SetPort error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef AddPrinterConnection
-#define AddPrinterConnection error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef DeletePrinterConnection
-#define DeletePrinterConnection error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef AddPrintProvidor
-#define AddPrintProvidor error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
-
-#if defined (HAVE_MS_WINDOWS)
-#undef DeletePrintProvidor
-#define DeletePrintProvidor error_not_used__complicated_interface_with_split_structures
-#endif /* defined (HAVE_MS_WINDOWS) */
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef SetEnvironmentVariable
+#define SetEnvironmentVariable error_use_qxeSetEnvironmentVariable_or_SetEnvironmentVariableA_and_SetEnvironmentVariableW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeSetEnvironmentVariable (const Extbyte * lpName, const Extbyte * lpValue)
+)
+{
+  return SetEnvironmentVariableW ((LPCWSTR) lpName, (LPCWSTR) lpValue);
+}
 

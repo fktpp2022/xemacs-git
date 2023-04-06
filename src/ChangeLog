@@ -1,3 +1,19 @@
+2023-04-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* syswindows.h:
+	Adjust the header includes slightly.
+	Just #include  <WinNls.h>, now needed for certain declarations
+	with the Visual Studio headers.
+	* syswindows.h (qxeReadConsole): New.
+	Moved here from intl-encap-win32.c, recent Window headers require
+	that the last argument be a pointer to a struct
+	_CONSOLE_READCONSOLE_CONTROL rather than to void.
+
+	* intl-encap-win32.c: Adjust this slightly given difficulties with
+	recent Visual Studio headers.
+
+	* intl-auto-encap-win32.h: Regenerate.
+
 2023-04-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* redisplay.c (generate_formatted_string_db):

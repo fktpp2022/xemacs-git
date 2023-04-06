@@ -1,3 +1,9 @@
+2023-04-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* make-mswin-unicode.pl:
+	The W32API headers have some preprocessor directives that end up
+	matched by $rettype_re, remove them before further processing.
+
 2022-07-15  Jaakko Salomaa  <jaakko.salomaa@iki.fi>
 
 	* Makefile.in.in:

@@ -376,6 +376,8 @@ foreach my $file (keys %files)
 		      }
 		    push @args, $argname;
 		}
+		$rettype =~ s/\Aendif[^\n]*\n//;
+		$rettype =~ s/\Aifn?def[^\n]*\n//;
 		$rettype =~ s/\bSHSTDAPI_\((.*)\)/$1/;
 		$rettype =~ s/\s*WIN\w*?API\s*//g;
 		$rettype =~ s/\bAPIENTRY\b\s*//;

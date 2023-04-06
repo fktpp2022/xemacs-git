@@ -204,6 +204,8 @@ END_C_DECLS
 #include <windows.h>
 
 #include <aclapi.h>
+#include <fileapi.h>
+#include <shellapi.h>
 
 #if defined (WIN32_LEAN_AND_MEAN)
 # ifdef HAVE_X_WINDOWS
@@ -217,7 +219,6 @@ END_C_DECLS
 # endif
 # include <mmsystem.h>
 # include <shlobj.h>
-# include <shellapi.h>
 # include <ddeml.h>
 #endif
 
@@ -538,13 +539,7 @@ typedef struct tagNMTTDISPINFOW
 #endif
 #endif
 
-/* winnls.h defines */
-#ifndef MAC_CHARSET
-#define MAC_CHARSET 		77
-#endif
-#ifndef LOCALE_RETURN_NUMBER
-#define LOCALE_RETURN_NUMBER	0x20000000
-#endif
+#include <WinNls.h>
 
 /* OEM resources */
 #ifndef OCR_ICOCUR
@@ -979,6 +974,24 @@ qxeSetClassLongPtr (HWND arg1, int arg2, LPARAM arg3)
 )
 {
   return (LRESULT) SetClassLongPtrW (arg1, arg2, arg3);
+}
+
+struct _CONSOLE_READCONSOLE_CONTROL;
+
+#ifdef ERROR_WHEN_NONINTERCEPTED_FUNS_USED
+#undef ReadConsole
+#define ReadConsole error_use_qxeReadConsole_or_ReadConsoleA_and_ReadConsoleW
+#endif
+DECLARE_INLINE_HEADER (
+BOOL qxeReadConsole (HANDLE hConsoleInput, LPVOID lpBuffer,
+		     DWORD nNumberOfCharsToRead,
+		     LPDWORD lpNumberOfCharsRead,
+		     LPVOID lpReserved)
+)
+{
+  return ReadConsoleW (hConsoleInput, lpBuffer, nNumberOfCharsToRead,
+		       lpNumberOfCharsRead, 
+		       (struct _CONSOLE_READCONSOLE_CONTROL *)lpReserved);
 }
 
 /* ------------------------- Unicode conversion ------------------------- */
