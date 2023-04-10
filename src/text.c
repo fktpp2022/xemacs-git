@@ -4531,13 +4531,113 @@ get_string_pos_char (Lisp_Object string, Lisp_Object pos, unsigned int flags)
 				string_char_length (string));
 }
 
+static Bytecount
+get_string_pos_byte_1 (Lisp_Object string, Lisp_Object pos, unsigned int flags,
+                       Charcount char_length)
+{
+  Charcount ccpos;
+  Boolint need_char_before = !!(flags & GB_NEED_CHAR_BEFORE);
+  Boolint need_char_after = !!(flags & GB_NEED_CHAR_AFTER);
+  Charcount min_cpos_allowed = need_char_before ? 1 : 0;
+  Charcount max_cpos_allowed = char_length < 0 ? MOST_POSITIVE_FIXNUM + 1
+    : char_length - need_char_after;
+  Bytecount bpos = -1;
+
+  CHECK_FIXNUM (pos);
+  ccpos = XFIXNUM (pos);
+
+  if (ccpos < 0 && flags & GB_NEGATIVE_FROM_END)
+    {
+      if (char_length < 0)
+        {
+          if (ccpos > -6 &&
+              /* These are rare, and considerably complicate the below if
+                 non-zero: */
+              !need_char_after && !need_char_before)
+            {
+              Charcount counter = ccpos;
+              bpos = XSTRING_LENGTH (string);
+
+              while (counter && bpos > 0)
+                {
+                  bpos = prev_string_index (string, bpos);
+                  counter++;
+                }
+
+              if (counter == 0)
+                {
+                  return bpos;
+                }
+              /* Fallthrough, do the error checking: */
+            }
+          char_length = string_char_length (string);
+        }
+      max_cpos_allowed = char_length - need_char_after;
+      ccpos += char_length;
+    }
+
+  if (ccpos < min_cpos_allowed)
+    {
+      if (flags & GB_COERCE_RANGE)
+        {
+          /* Zero and the length of the character at XSTRING_DATA (string)
+             (which will be one with zero termination and a zero length
+             string) are always valid return values for this, the difficulty
+             below with GB_NEED_CHAR_AFTER doesn't arise with
+             GB_NEED_CHAR_BEFORE. */
+          bpos =
+            need_char_before ? itext_ichar_len (XSTRING_DATA (string)) : 0;
+          return bpos;
+        }
+      else if (flags & GB_NO_ERROR_IF_BAD)
+        {
+          return -1;
+        }
+      else
+        {
+          args_out_of_range (string, pos);
+        }
+    }
+
+  if (char_length < 0 && 
+      /* XSTRING_LENGTH (string) / MAX_ICHAR_LEN is a lower bound on the
+         character length of the string, if ccpos is greater than this we need
+         to actually check the string's character length. */
+      ccpos > ((XSTRING_LENGTH (string) / MAX_ICHAR_LEN) -
+               (MAX_ICHAR_LEN * need_char_after)))
+    {
+      char_length = string_char_length (string);
+      max_cpos_allowed = char_length - need_char_after;
+    }
+
+  if (ccpos > max_cpos_allowed)
+    {
+      if (flags & GB_COERCE_RANGE
+          /* A negative MAX_CPOS_ALLOWED can happen with a zero-length string
+             and GB_NEED_CHAR_AFTER */
+          && max_cpos_allowed >= 0)
+        {
+          return need_char_after ?
+            prev_string_index (string, XSTRING_LENGTH (string)) :
+            XSTRING_LENGTH (string);
+        }
+      else if (flags & GB_NO_ERROR_IF_BAD)
+        {
+          return -1;
+        }
+      else
+        {
+          args_out_of_range (string, pos);
+        }
+    }
+
+  return string_index_char_to_byte (string, ccpos);
+}
+
 Bytecount
 get_string_pos_byte (Lisp_Object string, Lisp_Object pos, unsigned int flags)
 {
-  Charcount ccpos = get_string_pos_char (string, pos, flags);
-  if (ccpos < 0) /* could happen with GB_NO_ERROR_IF_BAD */
-    return -1;
-  return string_index_char_to_byte (string, ccpos);
+  return get_string_pos_byte_1 (string, pos, flags, -1);
 }
 
 void
@@ -4583,18 +4683,56 @@ get_string_range_byte (Lisp_Object string, Lisp_Object from, Lisp_Object to,
 		       Bytecount *from_out, Bytecount *to_out,
 		       unsigned int flags)
 {
-  Charcount s, e;
+  Charcount char_length = -1;
 
-  get_string_range_char (string, from, to, &s, &e, flags);
-  if (s >= 0)
-    *from_out = string_index_char_to_byte (string, s);
-  else /* could happen with GB_NO_ERROR_IF_BAD */
-    *from_out = -1;
-  if (e >= 0)
-    *to_out = string_index_char_to_byte (string, e);
+  if (NILP (from) && (flags & GB_ALLOW_NIL))
+    *from_out = 0;
   else
-    *to_out = -1;
+    {
+      Charcount cfrom;
+      CHECK_FIXNUM (from);
 
+      cfrom = XFIXNUM (from);
+
+      if ((cfrom < 0 && flags & GB_NEGATIVE_FROM_END)
+          /* XSTRING_LENGTH (string) / MAX_ICHAR_LEN is a lower bound on the
+             character length of the string, if cfrom is greater than this we
+             need to actually check the string's character length. */
+          || cfrom > (XSTRING_LENGTH (string) / MAX_ICHAR_LEN))
+        {
+          char_length = string_char_length (string);
+        }
+
+      *from_out = get_string_pos_byte_1 (string, from,
+                                         flags | GB_NO_ERROR_IF_BAD,
+                                         char_length);
+    }
+
+  if (NILP (to) && (flags & GB_ALLOW_NIL))
+    {
+      *to_out = XSTRING_LENGTH (string);
+    }
+  else
+    {
+      *to_out = get_string_pos_byte_1 (string, to,
+                                       flags | GB_NO_ERROR_IF_BAD,
+                                       char_length);
+    }
+
+  if ((*from_out < 0 || *to_out < 0) && !(flags & GB_NO_ERROR_IF_BAD))
+    args_out_of_range_3 (string, from, to);
+
+  if (*from_out >= 0 && *to_out >= 0 && *from_out > *to_out)
+    {
+      if (flags & GB_CHECK_ORDER)
+	invalid_argument_2 ("start greater than end", from, to);
+      else
+	{
+	  Bytebpos temp = *from_out;
+	  *from_out = *to_out;
+	  *to_out = temp;
+	}
+    }
 }
 
 Charxpos

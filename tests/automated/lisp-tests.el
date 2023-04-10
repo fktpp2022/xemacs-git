@@ -4035,7 +4035,60 @@ via the hepatic alpha-tocopherol transfer protein")))
 	     ;; We allowed zero briefly as a radix, but that no longer works
 	     ;; with code that divides by RADIX.
 	     (Check-Error args-out-of-range
-	      (parse-integer "" :radix 0 :junk-allowed t)))
+	      (parse-integer "" :radix 0 :junk-allowed t))
+             ;; Make sure get_string_pos_byte, get_string_range_byte are sane
+             ;; with non-ASCII.
+             (macrolet
+                 ((frob (digits starts bad-starts)
+                    (cons
+                     'progn
+                     (concatenate
+                      'list
+                      (mapcan
+                       #'(lambda (start)
+                           (if (natnump start)
+                               `((Assert (eql (aref ,digits
+                                                    (string-match-p
+                                                     "." ,digits ,start))
+                                              (aref ,digits ,start)))
+
+                                 (Assert (eql (car (read-from-string
+                                                    ,digits
+                                                    ,start
+                                                    ,(if (< start
+                                                            (length digits))
+                                                         (1+ start))))
+                                              (digit-char-p
+                                               (aref ,digits ,start)))))
+                             `((Assert (eql (aref ,digits
+                                            (string-match-p "." ,digits
+                                                            ,start))
+                                           (aref ,digits 
+                                            (+ ,(length digits) ,start))))
+                               (Assert (eql (car (read-from-string
+                                                  ,digits
+                                                  ,start
+                                                  ,(if (< start -1)
+                                                       (1+ start))))
+                                            (digit-char-p
+                                             (aref ,digits
+                                                   (+ ,(length digits) 
+                                                      ,start))))))))
+                       starts)
+                      ;; Ugly and wrong, but longstanding and compatible with
+                      ;; GNU:
+                      `((Assert (eql (string-match-p "." ,digits
+                                                     ,(length digits))
+                                     nil)))
+                      (mapcar
+                       #'(lambda (start)
+                           `(Check-Error args-out-of-range
+                             (string-match-p "." ,digits ,start)))
+                       (eval bad-starts))))))
+               (frob "01234567890123456789012345678901234567890123456789"
+                     (0 -1 4 9 12 20 -11 -20 -49)
+                     (list -100 most-negative-fixnum most-positive-fixnum
+                           51))))
              :test #'(lambda (new old)
                        ;; This function replaces any ASCII decimal digits in
                        ;; any string encountered in the tree with the

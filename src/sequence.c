@@ -997,16 +997,14 @@ not copy extent data.
 
   if (STRINGP (sequence))
     {
-      Bytecount bstart, blen;
+      Bytecount bstart, bend;
 
-      get_string_range_char (sequence, start, end, &ss, &ee,
+      get_string_range_byte (sequence, start, end, &bstart, &bend,
                              GB_HISTORICAL_STRING_BEHAVIOR);
-      bstart = string_index_char_to_byte (sequence, ss);
-      blen = string_offset_char_to_byte_len (sequence, bstart, ee - ss);
 
-      result = make_string (XSTRING_DATA (sequence) + bstart, blen);
+      result = make_string (XSTRING_DATA (sequence) + bstart, bend - bstart);
       /* Copy any applicable extent information into the new string. */
-      copy_string_extents (result, sequence, 0, bstart, blen);
+      copy_string_extents (result, sequence, 0, bstart, bend - bstart);
     }
   else if (CONSP (sequence))
     {

@@ -160,26 +160,20 @@ If string STR1 is greater, the value is a positive number N;
 */
      (str1, start1, end1, str2, start2, end2, ignore_case))
 {
-  Charcount ccstart1, ccend1, ccstart2, ccend2;
-  Bytecount bstart1, blen1, bstart2, blen2;
+  Bytecount bstart1, bend1, bstart2, bend2;
   Charcount matching;
   int res;
 
   CHECK_STRING (str1);
   CHECK_STRING (str2);
-  get_string_range_char (str1, start1, end1, &ccstart1, &ccend1,
+  get_string_range_byte (str1, start1, end1, &bstart1, &bend1,
 			 GB_HISTORICAL_STRING_BEHAVIOR|GB_COERCE_RANGE);
-  get_string_range_char (str2, start2, end2, &ccstart2, &ccend2,
+  get_string_range_byte (str2, start2, end2, &bstart2, &bend2,
 			 GB_HISTORICAL_STRING_BEHAVIOR|GB_COERCE_RANGE);
-
-  bstart1 = string_index_char_to_byte (str1, ccstart1);
-  blen1 = string_offset_char_to_byte_len (str1, bstart1, ccend1 - ccstart1);
-  bstart2 = string_index_char_to_byte (str2, ccstart2);
-  blen2 = string_offset_char_to_byte_len (str2, bstart2, ccend2 - ccstart2);
 
   res = ((NILP (ignore_case) ? qxetextcmp_matching : qxetextcasecmp_matching)
-	 (XSTRING_DATA (str1) + bstart1, blen1,
-	  XSTRING_DATA (str2) + bstart2, blen2,
+	 (XSTRING_DATA (str1) + bstart1, bend1 - bstart1,
+	  XSTRING_DATA (str2) + bstart2, bend2 - bstart2,
 	  &matching));
 
   if (!res)
@@ -317,18 +311,12 @@ With one argument, copy STRING without its properties.
 */
        (string, start, end))
 {
-  Charcount ccstart, ccend;
-  Bytecount bstart, blen;
-  Lisp_Object val;
+  Bytecount bstart, bend;
 
   CHECK_STRING (string);
-  get_string_range_char (string, start, end, &ccstart, &ccend,
+  get_string_range_byte (string, start, end, &bstart, &bend,
                          GB_HISTORICAL_STRING_BEHAVIOR);
-  bstart = string_index_char_to_byte (string, ccstart);
-  blen = string_offset_char_to_byte_len (string, bstart, ccend - ccstart);
-  val = make_string (XSTRING_DATA (string) + bstart, blen);
-
-  return val;
+  return make_string (XSTRING_DATA (string) + bstart, bend - bstart);
 }
 
 /* Split STRING into a list of substrings.  The substrings are the parts of

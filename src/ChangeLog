@@ -32,6 +32,28 @@
 
 2023-04-10  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Revise get_string_pos_byte () to minimise calls to
+	string_char_length().
+
+	* fns.c:
+	* fns.c (Fcompare_strings):
+	Use get_string_range_byte () in this function.
+	* fns.c (Fsubstring_no_properties):
+	Use get_string_range_byte () in this function.
+	* sequence.c (Fsubseq):
+	Use get_string_range_byte () in this function.
+	* text.c:
+	* text.c (get_string_pos_byte_1): New.
+	Avoid calls to string_char_length () as much as possible when
+	determining a byte offset into a string. Pass in the string char
+	length if it is already known and use it.
+	* text.c (get_string_range_byte):
+	Use get_string_pos_byte_1 () here.
+	* text.c (get_string_range_byte):
+	Use get_string_pos_byte_1 () here.
+
+2023-04-10  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* text.c (get_buffer_range_byte):
 	If FROM or TO are nil it may be appropriate to use
 	get_buffer_pos_byte() in this function, do that.
