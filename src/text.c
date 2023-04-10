@@ -4442,8 +4442,8 @@ get_buffer_range_byte (struct buffer *b, Lisp_Object from, Lisp_Object to,
 		       Bytebpos *from_out, Bytebpos *to_out,
 		       unsigned int flags)
 {
-  if (MARKERP (from) && XMARKER (from)->buffer == b
-      && MARKERP (to) && XMARKER (to)->buffer == b)
+  if (((MARKERP (from) && XMARKER (from)->buffer == b) || NILP (from))
+      && ((MARKERP (to) && XMARKER (to)->buffer == b) || NILP (to)))
     {
       /* Does not GC */
       Bytebpos min_allowed, max_allowed;

@@ -30,6 +30,12 @@
 	Cast the Windows calls to qxeGetWindowLongPtr() with (const void *) to
 	remove the compiler warnings when compiling under Cygwin.
 
+2023-04-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* text.c (get_buffer_range_byte):
+	If FROM or TO are nil it may be appropriate to use
+	get_buffer_pos_byte() in this function, do that.
+
 2022-11-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* process.c (Fstart_process_internal):
