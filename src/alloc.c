@@ -3005,23 +3005,52 @@ arguments: (&rest ARGS)
 */
        (int nargs, Lisp_Object *args))
 {
-  Ibyte *storage, *p;
+  Ibyte *bstaging = NULL, *cursor = NULL;
+  EMACS_UINT bstaging_len = nargs * MAX_ICHAR_LEN;
+  Lisp_Object result;
 
-  /* No need to work too hard at this overflow check, it will be very rare
-     that NARGS will be greater than #x10000. */
-  check_integer_range (make_fixnum (nargs), Qzero,
-                       make_fixnum ((STRING_BYTE_TOTAL_SIZE_LIMIT - 1) /
-                                    MAX_ICHAR_LEN));
+  if (bstaging_len >= STRING_BYTE_TOTAL_SIZE_LIMIT)
+    {
+      invalid_argument ("string: too many arguments", make_fixnum (nargs));
+    }
 
-  storage = p = alloca_ibytes ((size_t) nargs * MAX_ICHAR_LEN);
+  result = make_uninit_string (bstaging_len);  
 
+#if defined (ERROR_CHECK_TEXT)
+  /* Make sure the data of the string is valid internal-format
+     text. Relatively expensive, in that it adds another traversal of the
+     string data to our algorithm, but avoids an assertion failure with
+     ERROR_CHECK_TEXT. */
+  memset (XSTRING_DATA (result), 0, XSTRING_LENGTH (result));
+#endif
+
+  bstaging = cursor = XSTRING_DATA (result);
   for (; nargs; nargs--, args++)
     {
       Lisp_Object lisp_char = *args;
       CHECK_CHAR_COERCE_INT (lisp_char);
-      p += set_itext_ichar (p, XCHAR (lisp_char));
+      cursor += set_itext_ichar (cursor, XCHAR (lisp_char));
     }
-  return make_string (storage, p - storage);
+ 
+  if ((EMACS_UINT) (cursor - bstaging) != bstaging_len)
+    {
+      Bytecount used_len = cursor - bstaging;
+
+      text_checking_assert ((EMACS_UINT) used_len < bstaging_len);
+
+      /* No-one else has a pointer to RESULT, and calling resize_string()
+	 gives crashes in temacs, its implementation isn't thoroughly
+	 debugged and its performance is sub-optimal. Create a new RESULT,
+	 let the first be GCed instead. */
+      result = make_string (bstaging, used_len);
+    }
+  else
+    {
+      init_string_ascii_end (result);
+      sledgehammer_check_ascii_end (result);
+    }
+
+  return result;
 }
 
 DEFUN ("string-modified-tick", Fstring_modified_tick, 1, 1, 0, /*

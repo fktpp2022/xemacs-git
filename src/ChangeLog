@@ -1,3 +1,22 @@
+2023-04-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Avoid problems with xemacs_c_alloca () and sibling recursive
+	calls, Fstring(). 
+
+	* alloc.c (Fstring):
+	Revise this to avoid staging to the stack, something which
+	elicited a use-after-free with our xemacs_c_alloca() with large
+	numbers of arguments. Not seen in the usual course of events, but
+	#'test-chars in mule-tests.el provoked this with an optimised
+	build for me, and this could be suppressed by
+	-fno-optimize-sibling-calls'.
+	The revised implementation (taken from concatenate()) stages into
+	the result of make_uninit_string(), and just uses that string if
+	the byte length ended up appropriate.
+	* lisp.h:
+	Update the documentation of CHECK_CHAR_COERCE_INT(), it does check
+	for char validity.
+
 2023-04-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* syswindows.h:
