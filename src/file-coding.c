@@ -156,7 +156,7 @@ detector_dynarr *all_coding_detectors;
 static const struct memory_description struct_detector_category_description_1[]
 =
 {
-  { XD_LISP_OBJECT, offsetof (struct detector_category, sym) },
+  { XD_LISP_OBJECT, portable_offsetof (struct detector_category, sym) },
   { XD_END }
 };
 
@@ -181,7 +181,7 @@ static const struct sized_memory_description detector_category_dynarr_descriptio
 static const struct memory_description struct_detector_description_1[]
 =
 {
-  { XD_BLOCK_PTR, offsetof (struct detector, cats), 1,
+  { XD_BLOCK_PTR, portable_offsetof (struct detector, cats), 1,
     { &detector_category_dynarr_description } },
   { XD_END }
 };
@@ -344,11 +344,12 @@ static const struct memory_description coding_system_description[] =
 {
   { XD_BLOCK_PTR,  offsetof (Lisp_Coding_System, methods), 1,
     { &coding_system_methods_description } },
-#define MARKED_SLOT(x) { XD_LISP_OBJECT, offsetof (Lisp_Coding_System, x) },
+#define MARKED_SLOT(x) { XD_LISP_OBJECT, \
+			 portable_offsetof (Lisp_Coding_System, x) },
 #define MARKED_SLOT_ARRAY(slot, size) \
-  { XD_LISP_OBJECT_ARRAY, offsetof (Lisp_Coding_System, slot), size },
+  { XD_LISP_OBJECT_ARRAY, portable_offsetof (Lisp_Coding_System, slot), size },
 #include "coding-system-slots.h"
-  { XD_BLOCK_ARRAY, offsetof (Lisp_Coding_System, data), 1,
+  { XD_BLOCK_ARRAY, portable_offsetof (Lisp_Coding_System, data), 1,
     { coding_system_extra_description_map } },
   { XD_END }
 };
@@ -2029,11 +2030,11 @@ static const struct sized_memory_description coding_stream_extra_description_map
 };
 
 static const struct memory_description coding_lstream_description[] = {
-  { XD_INT, offsetof (struct coding_stream, type) },
-  { XD_LISP_OBJECT, offsetof (struct coding_stream, orig_codesys) },
-  { XD_LISP_OBJECT, offsetof (struct coding_stream, codesys) },
-  { XD_LISP_OBJECT, offsetof (struct coding_stream, other_end) },
-  { XD_BLOCK_PTR, offsetof (struct coding_stream, st.data), 1,
+  { XD_INT, portable_offsetof (struct coding_stream, type) },
+  { XD_LISP_OBJECT, portable_offsetof (struct coding_stream, orig_codesys) },
+  { XD_LISP_OBJECT, portable_offsetof (struct coding_stream, codesys) },
+  { XD_LISP_OBJECT, portable_offsetof (struct coding_stream, other_end) },
+  { XD_BLOCK_PTR, portable_offsetof (struct coding_stream, st.data), 1,
     { coding_stream_extra_description_map } },
   { XD_END }
 };
@@ -3288,17 +3289,17 @@ struct chain_coding_stream
 };
 
 static const struct memory_description chain_coding_system_description[] = {
-  { XD_INT, offsetof (struct chain_coding_system, count) },
-  { XD_BLOCK_PTR, offsetof (struct chain_coding_system, chain),
+  { XD_INT, portable_offsetof (struct chain_coding_system, count) },
+  { XD_BLOCK_PTR, portable_offsetof (struct chain_coding_system, chain),
     XD_INDIRECT (0, 0), { &lisp_object_description } },
-  { XD_LISP_OBJECT, offsetof (struct chain_coding_system,
+  { XD_LISP_OBJECT, portable_offsetof (struct chain_coding_system,
 			      canonicalize_after_coding) },
   { XD_END }
 };
 
 static const struct memory_description chain_coding_stream_description [] = {
-  { XD_INT, offsetof (struct chain_coding_stream, lstream_count) },
-  { XD_BLOCK_PTR, offsetof (struct chain_coding_stream, lstreams),
+  { XD_INT, portable_offsetof (struct chain_coding_stream, lstream_count) },
+  { XD_BLOCK_PTR, portable_offsetof (struct chain_coding_stream, lstreams),
     XD_INDIRECT (0, 0), { &lisp_object_description } },
   { XD_END }
 };
@@ -4810,15 +4811,15 @@ struct undecided_coding_stream
 };
 
 static const struct memory_description undecided_coding_system_description[] = {
-  { XD_LISP_OBJECT, offsetof (struct undecided_coding_system, cs) },
+  { XD_LISP_OBJECT, portable_offsetof (struct undecided_coding_system, cs) },
   { XD_END }
 };
 
 static const struct memory_description undecided_coding_stream_description[] = {
-  { XD_LISP_OBJECT, offsetof (struct undecided_coding_stream, actual) },
-  { XD_BLOCK_ARRAY, offsetof (struct undecided_coding_stream, c),
+  { XD_LISP_OBJECT, portable_offsetof (struct undecided_coding_stream, actual) },
+  { XD_BLOCK_ARRAY, portable_offsetof (struct undecided_coding_stream, c),
     1, { &chain_coding_stream_description_0 } },
-  { XD_LISP_OBJECT, offsetof (struct undecided_coding_stream, st) },
+  { XD_LISP_OBJECT, portable_offsetof (struct undecided_coding_stream, st) },
   { XD_END }
 };
 

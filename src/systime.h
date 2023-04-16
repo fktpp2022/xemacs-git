@@ -76,9 +76,15 @@ int mswindows_utime (Lisp_Object path, struct utimbuf *thymes);
 #endif
 #endif
 
-#if defined(HAVE_TZNAME) && !defined(WIN32_NATIVE) && !defined(CYGWIN)
+#ifdef HAVE_TZNAME
+#ifndef CYGWIN
 #ifndef tzname		/* For SGI.  */
+#ifdef WIN32_NATIVE
+#define tzname _tzname
+#else
 extern char *tzname[];	/* RS6000 and others want it this way.  */
+#endif
+#endif
 #endif
 #endif
 

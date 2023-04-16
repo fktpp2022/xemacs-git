@@ -1,3 +1,32 @@
+2023-04-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Make some initial changes to ease building with recent Visual
+	Studio.
+
+	* config.inc.samp:
+	* config.inc.samp (USE_PORTABLE_DUMPER): Removed.
+	* config.inc.samp (USE_KKCC): Removed.
+	* config.inc.samp (NEW_GC): Removed.
+	* xemacs.mak:
+	* xemacs.mak (USE_KKCC): Removed.
+	* xemacs.mak (NEW_GC): Removed.
+	* xemacs.mak (DEPEND):
+	* xemacs.mak (LIBC_LIB):
+	Visual Studio 2015 and later require ucrt.lib and vcruntime.lib,
+	include them.
+
+	* xemacs.mak (USE_PORTABLE_DUMPER): Removed.
+	* xemacs.mak (USE_SYSTEM_MALLOC):
+	* xemacs.mak (CONFIG_ERROR): Removed.
+	* xemacs.mak (EMACS_CONFIGURATION): Recognise AMD 64 here.
+	* xemacs.mak (OPT_OBJS): Removed.
+	* xemacs.mak (OPT_DEFINES): Removed.
+	* xemacs.mak (LIB_SRC_TOOLS):
+	* xemacs.mak (  NOTE):
+	* xemacs.mak ($(DUMP_TARGET)):
+	* xemacs.mak (distclean): Correct the path to CONFIG_VALUES, which
+	already includes BLDLIB_SRC.
+
 2021-10-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* xemacs.mak (TEMACS_COMMON_OBJS):

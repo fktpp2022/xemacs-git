@@ -169,6 +169,8 @@ alloc_process_memory (HANDLE h_process, Bytecount size,
 				     (LPDWORD)context.Esp - 1,
 #elif defined (_ALPHA_)
 				     (LPDWORD)context.IntSp - 1,
+#elif defined (_AMD64_)
+				     (LPDWORD)context.Rsp - 1,
 #else
 #error Unknown processor architecture
 #endif
@@ -419,7 +421,7 @@ enable_child_signals (HANDLE h_process)
 /* ---------------------------- the 95 way ------------------------------- */
 
 static BOOL CALLBACK
-find_child_console (HWND hwnd, long putada)
+find_child_console (HWND hwnd, LPARAM putada)
 {
   DWORD thread_id;
   DWORD process_id;

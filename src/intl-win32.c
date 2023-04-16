@@ -32,6 +32,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include <config.h>
 #include "lisp.h"
+#include "syswindows.h"
 
 #include "charset.h"
 #include "elhash.h"
@@ -2158,9 +2159,9 @@ struct mswindows_multibyte_coding_stream
 static const struct memory_description
   mswindows_multibyte_coding_system_description[] = {
   { XD_LISP_OBJECT,
-    offsetof (struct mswindows_multibyte_coding_system, code_page) },
+    portable_offsetof (struct mswindows_multibyte_coding_system, code_page) },
   { XD_LISP_OBJECT,
-    offsetof (struct mswindows_multibyte_coding_system, locale) },
+    portable_offsetof (struct mswindows_multibyte_coding_system, locale) },
   { XD_END }
 };
 

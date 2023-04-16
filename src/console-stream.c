@@ -47,7 +47,7 @@ Lisp_Object Vterminal_frame;
 Lisp_Object Vstdio_str;
 
 static const struct memory_description stream_console_data_description_1 [] = {
-  { XD_LISP_OBJECT, offsetof (struct stream_console, instream) },
+  { XD_LISP_OBJECT, portable_offsetof (struct stream_console, instream) },
   { XD_END }
 };
 

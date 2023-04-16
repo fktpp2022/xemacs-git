@@ -99,15 +99,20 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define SIZEOF_SHORT 2
 #define SIZEOF_INT 4
 #define SIZEOF_LONG 4
-#define SIZEOF_LONG_LONG 0
-#define SIZEOF_VOID_P 4
+#ifdef  _WIN64
+typedef long long ssize_t;
+# define SIZEOF_VOID_P 8
+# define SIZEOF_LONG_LONG 8
+#else
+# define SIZEOF_VOID_P 4
+# define SIZEOF_LONG_LONG 0
+typedef long ssize_t;
+#endif
 
 typedef int mode_t;
-typedef int pid_t;
 typedef int uid_t;
 typedef int gid_t;
 typedef int pid_t;
-typedef int ssize_t;
 
 /* If your system uses COFF (Common Object File Format) then define the
    preprocessor symbol "COFF". */
@@ -133,10 +138,10 @@ typedef int ssize_t;
 #endif
 
 #ifdef emacs
-/* intl-auto-encap-win32.[ch] assumes _WIN32_WINNT>=0x0400
+/* intl-auto-encap-win32.[ch] assumes _WIN32_WINNT>=0x0500
    We don't want this set when building command-line helpers in lib-src */
 # ifndef _WIN32_WINNT
-#  define _WIN32_WINNT 0x0400
+#  define _WIN32_WINNT 0x0500
 # endif
 #endif
 
@@ -177,8 +182,12 @@ typedef int ssize_t;
 #endif 
 
 /* MSVC version >= 2.x without /Za supports __inline */
-#if (_MSC_VER < 900) || defined (__STDC__)
-# define inline
-#else
-# define inline __inline
+#if (_MSC_VER < 900)
+# define inline /* nothing */
+#else 
+# if !defined (__cplusplus)
+#  define inline __inline
+# endif
 #endif
+
+/* windowsnt.h ends here */

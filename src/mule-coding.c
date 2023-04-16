@@ -103,13 +103,13 @@ struct multibyte_coding_stream
 };
 
 static const struct memory_description multibyte_coding_system_description[] = {
-  { XD_BLOCK_PTR, offsetof (struct multibyte_coding_system, charsets),
+  { XD_BLOCK_PTR, portable_offsetof (struct multibyte_coding_system, charsets),
     1, { &Lisp_Object_dynarr_description} },
   { XD_END }
 };
 
 static const struct memory_description multibyte_coding_stream_description[] = {
-  { XD_LISP_OBJECT, offsetof (struct multibyte_coding_stream,
+  { XD_LISP_OBJECT, portable_offsetof (struct multibyte_coding_stream,
 			      charset_precedence), },
   { XD_END }
 };
@@ -1520,8 +1520,9 @@ struct iso2022_coding_stream
 
 static const struct memory_description ccs_description_1[] =
 {
-  { XD_LISP_OBJECT, offsetof (charset_conversion_spec, from_charset) },
-  { XD_LISP_OBJECT, offsetof (charset_conversion_spec, to_charset) },
+  { XD_LISP_OBJECT,
+    portable_offsetof (charset_conversion_spec, from_charset) },
+  { XD_LISP_OBJECT, portable_offsetof (charset_conversion_spec, to_charset) },
   { XD_END }
 };
 
@@ -1544,20 +1545,22 @@ static const struct sized_memory_description ccsd_description =
 };
 
 static const struct memory_description iso2022_coding_system_description[] = {
-  { XD_LISP_OBJECT_ARRAY, offsetof (struct iso2022_coding_system, 
+  { XD_LISP_OBJECT_ARRAY, portable_offsetof (struct iso2022_coding_system, 
 				    initial_charset), 4 },
-  { XD_BLOCK_PTR, offsetof (struct iso2022_coding_system, input_conv),
+  { XD_BLOCK_PTR, portable_offsetof (struct iso2022_coding_system, input_conv),
     1, { &ccsd_description } },
-  { XD_BLOCK_PTR, offsetof (struct iso2022_coding_system, output_conv),
+  { XD_BLOCK_PTR, portable_offsetof (struct iso2022_coding_system,
+				     output_conv),
     1, { &ccsd_description } },
   { XD_END }
 };
 
 static const struct memory_description iso2022_coding_stream_description[] = {
-  { XD_LISP_OBJECT_ARRAY, offsetof (struct iso2022_coding_stream, 
+  { XD_LISP_OBJECT_ARRAY, portable_offsetof (struct iso2022_coding_stream, 
 				    charset), 4 },
 #ifdef ENABLE_COMPOSITE_CHARS
-  { XD_BLOCK_PTR, offsetof (struct iso2022_coding_stream, composite_chars),
+  { XD_BLOCK_PTR, portable_offsetof (struct iso2022_coding_stream,
+				     composite_chars),
     1, { &unsigned_char_dynarr_description} },
 #endif
   { XD_END }
@@ -3620,7 +3623,7 @@ struct iso2022_detector
 };
 
 static const struct memory_description iso2022_detector_description[] = {
-  { XD_BLOCK_PTR, offsetof (struct iso2022_detector, iso),
+  { XD_BLOCK_PTR, portable_offsetof (struct iso2022_detector, iso),
     1, { &iso2022_coding_stream_description_0 } },
   { XD_END }
 };  
@@ -3915,13 +3918,13 @@ struct ccl_coding_stream
 };
 
 static const struct memory_description ccl_coding_system_description[] = {
-  { XD_LISP_OBJECT, offsetof (struct ccl_coding_system, decode) },
-  { XD_LISP_OBJECT, offsetof (struct ccl_coding_system, encode) },
+  { XD_LISP_OBJECT, portable_offsetof (struct ccl_coding_system, decode) },
+  { XD_LISP_OBJECT, portable_offsetof (struct ccl_coding_system, encode) },
   { XD_END }
 };
 
 static const struct memory_description ccl_coding_stream_description[] = {
-  { XD_BLOCK_ARRAY, offsetof (struct ccl_coding_stream, ccl),
+  { XD_BLOCK_ARRAY, portable_offsetof (struct ccl_coding_stream, ccl),
     1, { &ccl_program_description } },
   { XD_END }
 };

@@ -226,12 +226,6 @@ CPLUSPLUS_COMPILE=0
 !endif
 !endif
 
-!if !defined(USE_KKCC)
-USE_KKCC=0
-!endif
-!if !defined(NEW_GC)
-NEW_GC=0
-!endif
 !if !defined(USE_UNION_TYPE)
 USE_UNION_TYPE=0
 !endif
@@ -243,9 +237,6 @@ VERBOSECC=0
 !endif
 !if !defined(DEPEND)
 DEPEND=0
-!endif
-!if !defined(USE_PORTABLE_DUMPER)
-USE_PORTABLE_DUMPER=1
 !endif
 !if !defined(USE_MINITAR)
 USE_MINITAR=$(HAVE_ZLIB)
@@ -260,10 +251,10 @@ USE_MINITAR=$(HAVE_ZLIB)
 # this is a good thing.
 
 !if !defined(USE_SYSTEM_MALLOC)
-USE_SYSTEM_MALLOC=$(USE_PORTABLE_DUMPER)
+USE_SYSTEM_MALLOC=1
 !endif
 !if !defined(USE_CRTDLL)
-USE_CRTDLL=$(USE_PORTABLE_DUMPER)
+USE_CRTDLL=1
 !endif
 
 ########################### Check for incompatible options.
@@ -271,14 +262,6 @@ USE_CRTDLL=$(USE_PORTABLE_DUMPER)
 CONFIG_ERROR=0
 !if $(INFODOCK) && !exist("..\..\Infodock.rules")
 !message Cannot build InfoDock without InfoDock sources
-CONFIG_ERROR=1
-!endif
-!if !$(USE_PORTABLE_DUMPER) && $(USE_SYSTEM_MALLOC)
-!message Cannot use system allocator when dumping old way, use portable dumper.
-CONFIG_ERROR=1
-!endif
-!if !$(USE_PORTABLE_DUMPER) && $(USE_CRTDLL)
-!message Cannot use C runtime DLL when dumping old way, use portable dumper.
 CONFIG_ERROR=1
 !endif
 !if !$(USE_SYSTEM_MALLOC) && $(USE_CRTDLL)
@@ -486,6 +469,8 @@ EMACS_CONFIGURATION=mips-pc-win32
 EMACS_CONFIGURATION=alpha-pc-win32
 !else if "$(PROCESSOR_ARCHITECTURE)" == "PPC"
 EMACS_CONFIGURATION=ppc-pc-win32
+!else if "$(PROCESSOR_ARCHITECTURE)" == "AMD64"
+EMACS_CONFIGURATION=x86_64-pc-win32
 !else
 ! error Unknown processor architecture type $(PROCESSOR_ARCHITECTURE)
 !endif
@@ -652,23 +637,7 @@ OPT_DEFINES=$(OPT_DEFINES) -DERROR_CHECK_ALL
 OPT_DEFINES=$(OPT_DEFINES) -DUSE_UNION_TYPE
 !endif
 
-!if $(USE_PORTABLE_DUMPER)
-OPT_DEFINES=$(OPT_DEFINES) -DPDUMP
 OPT_OBJS=$(OPT_OBJS) $(OUTDIR)\dumper.obj
-!else
-OPT_OBJS=$(OPT_OBJS) $(OUTDIR)\unexnt.obj
-!endif
-
-!if $(NEW_GC)
-OPT_DEFINES=$(OPT_DEFINES) -DNEW_GC
-OPT_OBJS=$(OPT_OBJS) $(OUTDIR)\vdb.obj $(OUTDIR)\vdb-win32.obj \
-	$(OUTDIR)\mc-alloc.obj
-USE_KKCC=1
-!endif
-
-!if $(USE_KKCC)
-OPT_DEFINES=$(OPT_DEFINES) -DUSE_KKCC
-!endif
 
 !if $(USE_SYSTEM_MALLOC)
 OPT_DEFINES=$(OPT_DEFINES) -DSYSTEM_MALLOC
@@ -749,9 +718,15 @@ BROWSERFLAGS=
 !  if $(DEBUG_XEMACS) && "$(OK_TO_USE_MSVCRTD)" == "1"
 C_LIBFLAG=-MDd
 LIBC_LIB=msvcrtd.lib
+!  if ($(MSC_VER) >= 1900)
+LIBC_LIB=$(LIBC_LIB) ucrtd.lib vcruntimed.lib
+!  endif
 !  else
 C_LIBFLAG=-MD
 LIBC_LIB=msvcrt.lib
+!  if ($(MSC_VER) >= 1900)
+LIBC_LIB=$(LIBC_LIB) ucrt.lib vcruntime.lib
+!  endif
 !  endif
 !else
 C_LIBFLAG=-ML
@@ -1054,7 +1029,7 @@ $(SRC)\paths.h:	$(NT)\paths.h
 
 ###################### lastfile.lib
 
-!if !$(USE_SYSTEM_MALLOC) || !$(USE_PORTABLE_DUMPER)
+!if !$(USE_SYSTEM_MALLOC)
 
 LASTFILE=$(OUTDIR)\lastfile.lib
 LASTFILE_SRC=$(SRC)
@@ -1149,12 +1124,10 @@ LIB_SRC_TOOLS = \
 	$(LIB_SRC_TOOLS) \
 	$(BLDLIB_SRC)/minitar.exe
 !endif
-!if $(USE_PORTABLE_DUMPER)
 LIB_SRC_TOOLS = \
 	$(XEMACS_INCLUDES) \
 	$(BLDLIB_SRC)/make-dump-id.exe \
 	$(LIB_SRC_TOOLS)
-!endif
 
 ########################### Create the Installation file
 
@@ -1281,9 +1254,7 @@ XEmacs $(XEMACS_VERSION_STRING) $(xemacs_codename) $(xemacs_extra_name:"=) confi
   NOTE: MULE, and ERROR_CHECKING.
   NOTE: ---------------------------------------------------------
 !endif
-!if $(USE_PORTABLE_DUMPER)
   Using portable dumper.
-!endif
 !if $(USE_SYSTEM_MALLOC)
   Using system malloc.
 !endif
@@ -1307,12 +1278,6 @@ XEmacs $(XEMACS_VERSION_STRING) $(xemacs_codename) $(xemacs_extra_name:"=) confi
 !if $(QUICK_BUILD)
   Disabling non-essential build actions.  Use with care!
 !endif
-!if $(USE_KKCC)
-  Using new experimental GC mark algorithms.
-!endif
-!if $(NEW_GC)
-  Using new experimental incremental garbage collector and new allocator.
-!endif
 <<NOKEEP
 	@echo --------------------------------------------------------------------
 	@type $(BLDROOT)\Installation
@@ -1324,11 +1289,7 @@ XEmacs $(XEMACS_VERSION_STRING) $(xemacs_codename) $(xemacs_extra_name:"=) confi
 
 ########################### Definitions for linking temacs.exe
 
-!if !$(USE_PORTABLE_DUMPER)
-TEMACS_ENTRYPOINT=-entry:_start
-!else
 TEMACS_ENTRYPOINT=-entry:mainCRTStartup
-!endif
 
 TEMACS_BROWSE=$(BLDSRC)\temacs.bsc
 TEMACS_LIBS=$(LASTFILE) $(OPT_LIBS) \
@@ -1390,11 +1351,7 @@ $(OUTDIR)\temacs.res: $(NT)\xemacs.rc
 
 ## (2) Link the XEmacs executable
 
-!if $(USE_PORTABLE_DUMPER)
 TEMACS_DUMP_DEP = $(OUTDIR)\dump-id.obj
-!else
-TEMACS_DUMP_DEP = $(OUTDIR)\temacs.res
-!endif
 
 $(RAW_EXE): $(TEMACS_OBJS) $(LASTFILE) $(TEMACS_DUMP_DEP)
 # Command line too long for some Windows installation:
@@ -1442,16 +1399,11 @@ $(**)
 
 ## (5) Dump
 
-!if $(USE_PORTABLE_DUMPER)
-$(DUMP_TARGET): $(NT)\xemacs.rc
-!endif
-
 # This rule dumps xemacs and then possibly spawns sub-make if PURESPACE
 # requirements have changed.
 
 $(DUMP_TARGET): $(DOC) $(RAW_EXE) $(BLDSRC)\NEEDTODUMP
 	$(TEMACS_BATCH) -l $(LISP)\loadup.el dump
-!if $(USE_PORTABLE_DUMPER)
 	cd $(BLDSRC)
 	rc -d INCLUDE_DUMP -Fo $(OUTDIR)\xemacs.res $(NT)\xemacs.rc
 # Make the resource section read/write since almost all of it is the dump
@@ -1464,8 +1416,6 @@ $(DUMP_TARGET): $(DOC) $(RAW_EXE) $(BLDSRC)\NEEDTODUMP
 # embed the manifest into the executable.
 !if $(MSC_VER) >= 1400
 	mt -manifest $@.manifest -outputresource:$@;1
-!endif
-
 !endif
 
 ## (6) Update the remaining .elc's, post-dumping
@@ -1807,7 +1757,7 @@ configclean:
 ## This is used in making a distribution.
 ## Do not use it on development directories!
 distclean: nicenclean configclean
-	-$(DEL) $(BLDLIB_SRC)\$(CONFIG_VALUES)
+	-$(DEL) $(CONFIG_VALUES)
 	-$(DEL) $(INFODIR)\*.info*
 	-$(DEL) $(LISP)\*.elc
 	-$(DEL) $(LISP)\mule\*.elc

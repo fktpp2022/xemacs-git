@@ -1168,7 +1168,8 @@ typedef int Boolint;
 /* ------------------------ alignment definitions ------------------- */
 
 #if (!defined (__STDC_VERSION__) || __STDC_VERSION__ < 201112L) && \
-    (!defined (__cplusplus) || __cplusplus < 201103L) &&           \
+    (!defined (__cplusplus)						\
+     || (__cplusplus < 201103L && !defined (_MSC_VER))) &&		\
     (!defined (__CLANG_MAX_ALIGN_T_DEFINED) && !defined (_GCC_MAX_ALIGN_T))
 /* No type has a greater alignment requirement than max_align_t.
    (except perhaps for types we don't use, like long double) */
@@ -1784,8 +1785,7 @@ enum Lisp_Type
 
 #define FIXNUM_VALBITS (BITS_PER_EMACS_INT - FIXNUM_GCBITS)
 #define VALBITS (BITS_PER_EMACS_INT - GCBITS)
-/* #### Does this actually work? EMACS_INT might be "long long"! */
-#define MOST_POSITIVE_FIXNUM_UNSIGNED ((1UL << (FIXNUM_VALBITS - 1)) -1UL)
+#define MOST_POSITIVE_FIXNUM_UNSIGNED (((EMACS_UINT)1 << (FIXNUM_VALBITS - 1)) -1)
 #define MOST_POSITIVE_FIXNUM ((EMACS_INT) MOST_POSITIVE_FIXNUM_UNSIGNED)
 #define MOST_NEGATIVE_FIXNUM (-(MOST_POSITIVE_FIXNUM) - 1)
 /* WARNING: evaluates its arg twice. */

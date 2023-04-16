@@ -32,11 +32,14 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <../mingw/process.h>
 #elif defined (WIN32_NATIVE)
 /* <process.h> should not conflict with "process.h", as per ANSI definition.
-   This is not true with visual c though. The trick below works with
-   VC4.2b, 5.0 and 6.0. It assumes that VC is installed in a kind of
-   standard way, so include path ends with /include.
-*/
+   This is not true with visual c though. The trick with <../include/process.h>
+   works with VC4.2b, 5.0 and 6.0.  Visual Studio 2015 moved process.h to
+   <../ucrt/>, so from that version onwards use that. */
+#if _MSC_VER >= 1900
+#include <../ucrt/process.h>
+#else
 #include <../include/process.h>
+#endif
 #endif
 
 #ifdef HAVE_SOCKETS	/* TCP connection support, if kernel can do it */
@@ -52,43 +55,115 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #ifdef WIN32_NATIVE
 /* Note: winsock.h already included in systime.h above */
 /* map winsock error codes to standard names */
-#define EWOULDBLOCK             WSAEWOULDBLOCK
-#define EINPROGRESS             WSAEINPROGRESS
-#define EALREADY                WSAEALREADY
-#define ENOTSOCK                WSAENOTSOCK
-#define EDESTADDRREQ            WSAEDESTADDRREQ
-#define EMSGSIZE                WSAEMSGSIZE
-#define EPROTOTYPE              WSAEPROTOTYPE
-#define ENOPROTOOPT             WSAENOPROTOOPT
-#define EPROTONOSUPPORT         WSAEPROTONOSUPPORT
-#define ESOCKTNOSUPPORT         WSAESOCKTNOSUPPORT
-#define EOPNOTSUPP              WSAEOPNOTSUPP
-#define EPFNOSUPPORT            WSAEPFNOSUPPORT
-#define EAFNOSUPPORT            WSAEAFNOSUPPORT
-#define EADDRINUSE              WSAEADDRINUSE
-#define EADDRNOTAVAIL           WSAEADDRNOTAVAIL
-#define ENETDOWN                WSAENETDOWN
-#define ENETUNREACH             WSAENETUNREACH
-#define ENETRESET               WSAENETRESET
-#define ECONNABORTED            WSAECONNABORTED
-#define ECONNRESET              WSAECONNRESET
-#define ENOBUFS                 WSAENOBUFS
-#define EISCONN                 WSAEISCONN
-#define ENOTCONN                WSAENOTCONN
-#define ESHUTDOWN               WSAESHUTDOWN
-#define ETOOMANYREFS            WSAETOOMANYREFS
-#define ETIMEDOUT               WSAETIMEDOUT
-#define ECONNREFUSED            WSAECONNREFUSED
-#define ELOOP                   WSAELOOP
+#ifndef EWOULDBLOCK
+#define EWOULDBLOCK WSAEWOULDBLOCK
+#endif
+#ifndef EINPROGRESS
+#define EINPROGRESS WSAEINPROGRESS
+#endif
+#ifndef EALREADY
+#define EALREADY WSAEALREADY
+#endif
+#ifndef ENOTSOCK
+#define ENOTSOCK WSAENOTSOCK
+#endif
+#ifndef EDESTADDRREQ
+#define EDESTADDRREQ WSAEDESTADDRREQ
+#endif
+#ifndef EMSGSIZE
+#define EMSGSIZE WSAEMSGSIZE
+#endif
+#ifndef EPROTOTYPE
+#define EPROTOTYPE WSAEPROTOTYPE
+#endif
+#ifndef ENOPROTOOPT
+#define ENOPROTOOPT WSAENOPROTOOPT
+#endif
+#ifndef EPROTONOSUPPORT
+#define EPROTONOSUPPORT WSAEPROTONOSUPPORT
+#endif
+#ifndef ESOCKTNOSUPPORT
+#define ESOCKTNOSUPPORT WSAESOCKTNOSUPPORT
+#endif
+#ifndef EOPNOTSUPP
+#define EOPNOTSUPP WSAEOPNOTSUPP
+#endif
+#ifndef EPFNOSUPPORT
+#define EPFNOSUPPORT WSAEPFNOSUPPORT
+#endif
+#ifndef EAFNOSUPPORT
+#define EAFNOSUPPORT WSAEAFNOSUPPORT
+#endif
+#ifndef EADDRINUSE
+#define EADDRINUSE WSAEADDRINUSE
+#endif
+#ifndef EADDRNOTAVAIL
+#define EADDRNOTAVAIL WSAEADDRNOTAVAIL
+#endif
+#ifndef ENETDOWN
+#define ENETDOWN WSAENETDOWN
+#endif
+#ifndef ENETUNREACH
+#define ENETUNREACH WSAENETUNREACH
+#endif
+#ifndef ENETRESET
+#define ENETRESET WSAENETRESET
+#endif
+#ifndef ECONNABORTED
+#define ECONNABORTED WSAECONNABORTED
+#endif
+#ifndef ECONNRESET
+#define ECONNRESET WSAECONNRESET
+#endif
+#ifndef ENOBUFS
+#define ENOBUFS WSAENOBUFS
+#endif
+#ifndef EISCONN
+#define EISCONN WSAEISCONN
+#endif
+#ifndef ENOTCONN
+#define ENOTCONN WSAENOTCONN
+#endif
+#ifndef ESHUTDOWN
+#define ESHUTDOWN WSAESHUTDOWN
+#endif
+#ifndef ETOOMANYREFS
+#define ETOOMANYREFS WSAETOOMANYREFS
+#endif
+#ifndef ETIMEDOUT
+#define ETIMEDOUT WSAETIMEDOUT
+#endif
+#ifndef ECONNREFUSED
+#define ECONNREFUSED WSAECONNREFUSED
+#endif
+#ifndef ELOOP
+#define ELOOP WSAELOOP
+#endif
 /* #define ENAMETOOLONG            WSAENAMETOOLONG */
-#define EHOSTDOWN               WSAEHOSTDOWN
-#define EHOSTUNREACH            WSAEHOSTUNREACH
+#ifndef EHOSTDOWN
+#define EHOSTDOWN WSAEHOSTDOWN
+#endif
+#ifndef EHOSTUNREACH
+#define EHOSTUNREACH WSAEHOSTUNREACH
+#endif
 /* #define ENOTEMPTY               WSAENOTEMPTY */
-#define EPROCLIM                WSAEPROCLIM
-#define EUSERS                  WSAEUSERS
-#define EDQUOT                  WSAEDQUOT
-#define ESTALE                  WSAESTALE
-#define EREMOTE                 WSAEREMOTE
+#ifndef EPROCLIM
+#define EPROCLIM WSAEPROCLIM
+#endif
+#ifndef EUSERS
+#define EUSERS WSAEUSERS
+#endif
+#ifndef EDQUOT
+#define EDQUOT WSAEDQUOT
+#endif
+#ifndef ESTALE
+#define ESTALE WSAESTALE
+#endif
+#ifndef EREMOTE
+#define EREMOTE WSAEREMOTE
+#endif
+#undef FROB
+
 #endif /* WIN32_NATIVE */
 
 /* On some systems, e.g. DGUX, inet_addr returns a `struct in_addr'. */

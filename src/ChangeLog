@@ -1,5 +1,47 @@
 2023-04-16  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* console-stream.c:
+	* file-coding.c:
+	* file-coding.c (MARKED_SLOT):
+	* intl-win32.c:
+	* mule-coding.c:
+	* mule-coding.c (ccs_description_1):
+	Visual Studio does not tolerate offsetof() in a struct
+	description, use portable_offsetof() instead.
+
+	* lisp-disunion.h (VALMASK):
+	When left shifting to work this out, left shift 1 cast to an
+	EMACS_UINT, rather than 1UL, which is a smaller type than
+	EMACS_UINT on 64 bit Windows.
+	* lisp.h (MOST_POSITIVE_FIXNUM_UNSIGNED): Similarly here.
+	* lisp.h: Don't provide max_align_t if building under Visual Studio.
+
+	* process-nt.c (alloc_process_memory):
+	Examine the base address of the committed range appropriately on
+	64 bit Windows.
+	* process-nt.c (find_child_console): Declare this function
+	appropriately.
+	* emacs.c:
+
+	* s/windowsnt.h:
+	Provide appropriate SIZEOF_VOID_P, SIZEOF_LONG_LONG, ssize_t for
+	AMD64 systems.
+	Deal better with inline declarations on C++ builds.
+	Require at minimum Windows 2000 when building, we use functions
+	not available on Windows NT 4.0.
+
+	* strftime.c:
+	Just #include "systime.h", don't attempt to provide what it does
+	ourselves.
+	* sysproc.h:
+	Adjust the path to Visual Studio's process.h.
+	Conditionalise #define EWOULDBLOCK WSAEWOULDBLOCK to situations
+	where EWOULDBLOCK (and friends) are not already defined.
+	* systime.h:
+	Recent Visual Studio makes tzname available as _tzname.
+
+2023-04-16  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Quiet some warnings on the Visual Studio Express Edition 2005
 	native build, which will make solving some 64-bit-specific
 	problems easier.

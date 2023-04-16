@@ -3738,7 +3738,9 @@ fatal_error_signal (int sig)
 
 #ifdef _MSC_VER
 
+#ifndef STATUS_ASSERTION_FAILURE
 #define STATUS_ASSERTION_FAILURE 0xE0000001
+#endif
 
 static DWORD
 mswindows_handle_hardware_exceptions_1 (void)

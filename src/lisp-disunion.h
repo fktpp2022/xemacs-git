@@ -78,7 +78,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 typedef EMACS_INT Lisp_Object;
 
 #define Lisp_Type_Fixnum_Bit (Lisp_Type_Fixnum_Even & Lisp_Type_Fixnum_Odd)
-#define VALMASK (((1UL << VALBITS) - 1UL) << GCTYPEBITS)
+#define VALMASK ((((EMACS_UINT)1 << VALBITS) - 1UL) << GCTYPEBITS)
 #define XTYPE(x) ((enum Lisp_Type) (((EMACS_UINT)(x)) & ~VALMASK))
 #define XPNTRVAL(x) (x) /* This depends on Lisp_Type_Record == 0 */
 /* A character is always >= 0, so get 30 bits out of it by treating it as

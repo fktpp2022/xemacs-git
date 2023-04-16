@@ -92,19 +92,8 @@
 
 #include <stdio.h>
 #include <sys/types.h>
-#if defined(TM_IN_SYS_TIME) || (!defined(HAVE_TM_ZONE) && !defined(HAVE_TZNAME))
-#include <sys/time.h>
-#else
-#include <time.h>
-#endif
 
-#if defined(WIN32_NATIVE) || defined(CYGWIN)
-#include <time.h>
-#else
-#if defined(HAVE_TZNAME)
-extern char *tzname[2];
-#endif
-#endif /* WIN32_NATIVE */
+#include "systime.h"
 
 #ifdef emacs
 #define strftime emacs_strftime
