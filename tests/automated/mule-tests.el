@@ -44,7 +44,7 @@
 ;; Test whether all legal chars may be safely inserted to a buffer.
 ;;-----------------------------------------------------------------
 
-(defun test-chars (&optional for-test-harness)
+(defun* test-chars (&optional for-test-harness (limit char-code-limit))
   "Insert all characters in a buffer, to see if XEmacs will crash.
 This is done by creating a string with all the legal characters 
 \(see the documentation for the variable `char-code-limit' and the function
@@ -55,7 +55,7 @@ If FOR-TEST-HARNESS is specified, a temporary buffer is used, and
 the Assert macro checks for correctness."
   (let ((list nil)
 	(i 0))
-    (while (< i char-code-limit)
+    (while (< i limit)
       (and (not for-test-harness)
 	   (zerop (% i 1000))
 	   (message "%d" i))
@@ -64,13 +64,19 @@ the Assert macro checks for correctness."
 	   ;; access is O(n) under Mule.
 	   (setq list (cons (int-char i) list)))
       (setq i (1+ i)))
-    (let ((string (apply #'string (nreverse list))))
+    (let ((string
+	   ;; This tests that xemacs_c_alloca () determines the stack direction
+	   ;; correctly in passing. See the implementations of #'apply and
+	   ;; #'string.
+	   (apply #'string (nreverse list))))
       (if for-test-harness
 	  ;; For use with test-harness, use Assert and a temporary
 	  ;; buffer.
 	  (with-temp-buffer
 	    (insert string)
-	    (Assert (equal (buffer-string) string)))
+	    (Assert (equal (buffer-string) string)
+		    "check that a large number of existing characters can be \
+inserted into a buffer"))
 	;; For use without test harness: use a normal buffer, so that
 	;; you can also test whether redisplay works.
 	(switch-to-buffer (get-buffer-create "test"))
@@ -79,16 +85,15 @@ the Assert macro checks for correctness."
 	(insert string)
 	(assert (equal (buffer-string) string))))))
 
-(Skip-Test-Unless
- ;; unicode-internal has a value of #x40000000, (expt 2 30), for
- ;; char-code-limit and even re-writing the above to avoid allocating the list
- ;; and the string means I run out of memory when I attempt to run this.
- (<= char-code-limit #x200000) 
- "CHAR-CODE-LIMIT is impractically large"
- "check that all existing characters can be inserted into a buffer"
- ;; Run #'test-chars in byte-compiled mode only.
- (and (compiled-function-p (symbol-function 'test-chars)) (test-chars t)))
-
+(when (compiled-function-p (symbol-function 'test-chars))
+  ;; Run #'test-chars in byte-compiled mode only.
+  (test-chars t
+	      ;; unicode-internal has a value of #x40000000, (expt 2 30), for
+	      ;; char-code-limit and even re-writing the above to avoid
+	      ;; allocating the list and the string means I run out of memory
+	      ;; when I attempt to run this.
+	      (min char-code-limit #x200000)))
+ 
 (defun unicode-code-point-to-utf-8-string (code-point)
   "Convert a Unicode code point to the equivalent UTF-8 string. 
 This is a naive implementation in Lisp.  "

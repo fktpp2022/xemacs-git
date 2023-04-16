@@ -1,3 +1,11 @@
+2023-04-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* alloca.c (ADDRESS_FUNCTION): Always return a pointer to char in
+	this macro.
+	* alloca.c (find_stack_direction):
+	Avoid the AMD64 red zone confusing this function by making DUMMY a
+	512 byte buffer, forcing stack allocation.
+
 2023-04-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* syswindows.h:

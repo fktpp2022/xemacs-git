@@ -44,7 +44,7 @@
 long i00afunc ();
 #define ADDRESS_FUNCTION(arg) (char *) i00afunc (&(arg))
 #else
-#define ADDRESS_FUNCTION(arg) &(arg)
+#define ADDRESS_FUNCTION(arg) (char *) (&(arg))
 #endif
 
 typedef void *pointer;
@@ -78,7 +78,12 @@ static void
 find_stack_direction (void)
 {
   static char *addr = NULL;	/* Address of first `dummy', once known.  */
-  char dummy;			/* To get stack address.  */
+  /* On Linux and MacOS AMD64 (and anything else using the "System V
+     Application Binary Interface AMD64 Architecture Processor Supplement")
+     leaf functions can use the red zone for local variables. This used to
+     confuse this function when optimisation was turned on and DUMMY was just a
+     char;; the large buffer forces normal stack allocation. */
+  char dummy[512];		/* To get stack address.  */
 
   if (addr == NULL)
     {				/* Initial entry.  */
