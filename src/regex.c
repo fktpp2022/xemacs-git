@@ -328,13 +328,8 @@ void *alloca ();
 #endif /* not alloca */
 
 #define REGEX_ALLOCATE ALLOCA
-
-  /* !!#### Needs review */
-/* Assumes a `char *destination' variable.  */
 #define REGEX_REALLOCATE(source, osize, nsize)				\
-  (destination = (char *) ALLOCA (nsize),				\
-   memmove (destination, source, osize),				\
-   destination)
+  (char *) (memmove (ALLOCA (nsize), source, osize))
 
 /* No need to do anything to free, after alloca.
    Do nothing!  But inhibit gcc warning.  */
@@ -1467,9 +1462,7 @@ typedef struct
 /* Double the size of FAIL_STACK, up to approximately `re_max_failures' items.
 
    Return 1 if succeeds, and 0 if either ran out of memory
-   allocating space for it or it was already too large.
-
-   REGEX_REALLOCATE_STACK requires `destination' be declared.   */
+   allocating space for it or it was already too large. */
 
 #define DOUBLE_FAIL_STACK(fail_stack)					\
   ((fail_stack).size > re_max_failures * MAX_FAILURE_ITEMS		\
@@ -1718,21 +1711,14 @@ pop_failure_relocatable_1 (fail_stack_type *fail_stack_ptr, re_char *string1,
    it.
 
    Requires variables fail_stack, regstart, regend, reg_info, and num_regs
-   be declared.  DOUBLE_FAIL_STACK requires `destination' be declared.
+   be declared.
 
    Does `return FAILURE_CODE' if runs out of memory. 
 
    In practical terms, only to be called from within re_match_2_internal. */
 
-#if !defined (REGEX_MALLOC) && !defined (REGEX_REL_ALLOC)
-#define DECLARE_DESTINATION char *destination
-#else
-#define DECLARE_DESTINATION DECLARE_NOTHING
-#endif
-
 #define PUSH_FAILURE_POINT(pattern_place, string_place, failure_code)	\
 do {									\
-  DECLARE_DESTINATION;							\
   /* Must be int, so when we don't save any registers, the arithmetic	\
      of 0 + -1 isn't done as unsigned.  */				\
   int this_reg;								\
@@ -4334,7 +4320,6 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 #ifdef MATCH_MAY_ALLOCATE
   fail_stack_type fail_stack;
 #endif
-  DECLARE_DESTINATION;
   /* We don't push any register information onto the failure stack.  */
 
   /* &&#### this should be changed for 8-bit-fixed, for efficiency.  see

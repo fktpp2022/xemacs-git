@@ -1,5 +1,15 @@
 2023-04-16  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* regex.c:
+	* regex.c (REGEX_REALLOCATE):
+	Revise this to avoid the need for a DESTINATION variable.
+	* regex.c (PUSH_FAILURE_POINT):
+	Don't declare DESTINATION now there's no longer any need for it.
+	* regex.c (re_compile_fastmap):
+	Don't declare DESTINATION now there's no longer any need for it.
+
+2023-04-16  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* alloca.c (ADDRESS_FUNCTION): Always return a pointer to char in
 	this macro.
 	* alloca.c (find_stack_direction):
