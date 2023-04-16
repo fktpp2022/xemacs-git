@@ -3127,9 +3127,10 @@ XCHAR_OR_CHAR_INT_1 (Lisp_Object obj, const Ascbyte *file, int line)
   return (Ichar) -1;
 }
 
-/* Signal an error if CH is not a valid character or integer Lisp_Object.  If
-   CH is an integer Lisp_Object that corresponds to a valid Ichar, convert it
-   to a character Lisp_Object. */
+/* Signal an error if CH is not a valid character or integer Lisp_Object.
+   If CH is an integer Lisp_Object, convert it to a character Lisp_Object,
+   but merely by repackaging, without performing tests for char validity.
+   */
 
 #define CHECK_CHAR_COERCE_INT(x) do {		\
   if (CHARP (x))				\
