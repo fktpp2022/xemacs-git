@@ -1064,7 +1064,7 @@ bmp_instantiate (Lisp_Object image_instance, Lisp_Object instantiator,
   bmp_data = (Extbyte *)bytes + bmp_file_header->bfOffBits;
   bmp_bits = bmp_file_header->bfSize - bmp_file_header->bfOffBits;
 
-  if (bmp_file_header->bfSize < len)
+  if (bmp_file_header->bfSize < (EMACS_UINT) len)
     {
       signal_image_error ("Bitmap data specified shorter than needed",
 			  instantiator);

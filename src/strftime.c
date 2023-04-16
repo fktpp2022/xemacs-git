@@ -505,7 +505,7 @@ strftime (char *string, size_t max, const char *format, const struct tm *tm)
                 add_char ((offset < 0 ? '-' : '+'));
                 
                 if ( minutes / 600 != 0 )
-                  add_char (minutes / 600 + '0');
+                  add_char ((char) ((minutes / 600) + '0'));
                 else if ( pad != none )
                   add_char ((pad == zero ? '0' : ' '));
                 

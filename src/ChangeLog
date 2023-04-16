@@ -1,5 +1,31 @@
 2023-04-16  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Quiet some warnings on the Visual Studio Express Edition 2005
+	native build, which will make solving some 64-bit-specific
+	problems easier.
+
+	* fileio.c (Ffile_newer_than_file_p):
+	Use a better type for MTIME1 in this function.
+	* glyphs-msw.c (bmp_instantiate):
+	Cast LEN to an EMACS_UINT before comparing it to the unsigned type
+	in the bmp file header.
+	* minibuf.c (map_completion):
+	Don't return a value from this function that returns void.
+	* mule-ccl.c (CCL_WRITE_CHAR):
+	Cast CH to unsigned char before passing it to Dynarr_add(); we've
+	checked its range appropriately.
+	* number.h (DEFINE_C_INTEGER_TYPE_LISP_CONVERSION):
+	Cast the double result of extract_float () before assigning it.
+	* print.c (debug_print):
+	Don't return a value from this function that returns void.
+	* regex.c (regex_compile):
+	Avoid a duplicate const qualifier when declaring STR (which is a
+	re_char, a const type).
+	* strftime.c (strftime):
+	Cast an argument to add_char () to a char.
+
+2023-04-16  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* regex.c:
 	* regex.c (REGEX_REALLOCATE):
 	Revise this to avoid the need for a DESTINATION variable.

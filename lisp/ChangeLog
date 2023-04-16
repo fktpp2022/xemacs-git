@@ -1,3 +1,12 @@
+2023-04-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* mule/compiled-unicode-tables.el (unicode-ignore-first-column):
+	* mule/compiled-unicode-tables.el (harvest-unicode-files):
+	* mule/compiled-unicode-tables.el (search-for-unicode-path-strings):
+	* mule/compiled-unicode-tables.el (match-all-unicode-files):
+	Revise these functions to respect directory-sep-char,
+	necessary for building for win32-native.
+
 2023-01-29  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* bytecomp.el (display-call-tree):

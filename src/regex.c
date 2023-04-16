@@ -3137,7 +3137,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 
                 else if (syntax & RE_CHAR_CLASSES && c == '[' && *p == ':')
                   {
-                    const re_char *str = p + 1;
+                    re_char *str = p + 1;
 
                     PATFETCH (c);
                     c1 = 0;

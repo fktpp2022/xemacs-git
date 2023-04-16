@@ -297,7 +297,7 @@ map_completion (maphash_function_t function, Lisp_Object collection,
     }
   else if (VECTORP (collection))
     {
-      return map_completion_trad_obarray (function, collection, extra_arg);
+      map_completion_trad_obarray (function, collection, extra_arg);
     }
   else if (NILP (predicate))
     {

@@ -679,7 +679,7 @@ non_fixnum_number_p (Lisp_Object object))
       }                                                                 \
                                                                         \
     dval = extract_float (objeto);                                      \
-    result = dval;                                                      \
+    result = (c_type) dval;                                             \
                                                                         \
     if (result < min_lisp_to_c_type || result > max_lisp_to_c_type)     \
       {                                                                 \

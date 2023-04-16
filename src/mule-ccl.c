@@ -796,7 +796,7 @@ static int stack_idx_of_map_multiple;
 	  }							\
 	else if ((ch) < 0x100)					\
 	  {							\
-	    Dynarr_add (destination, ch);			\
+	    Dynarr_add (destination, (unsigned char) ch);       \
 	  }							\
 	else							\
 	  {							\

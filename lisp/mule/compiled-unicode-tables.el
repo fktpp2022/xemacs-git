@@ -75,7 +75,12 @@
 ;; Some of the files have an extra first column. Currently I know only of this
 ;; one, but if other ones pop up, update this. (It's used as a RE.)
 (defvar unicode-ignore-first-column
-  "unicode/unicode-consortium/EASTASIA/OBSOLETE/JIS0208.TXT$")
+  (concat
+   (regexp-quote
+    (mapconcat #'identity
+               '("unicode" "unicode-consortium" "EASTASIA" "OBSOLETE" 
+                 "JIS0208.TXT") (string directory-sep-char)))
+   "$"))
 
 (defun compile-unicode-file-search-table ()
   (let ((search-table (make-hash-table :test #'equal)))
@@ -95,10 +100,17 @@
   (let ((lisp-path (find-if (lambda (p)
                               (file-exists-p
                                (expand-file-name
-                                "mule/compiled-unicode-tables.el" p)))
+                                (format "mule%ccompiled-unicode-tables.el"
+                                        directory-sep-char)
+                                p)))
                             load-path)))
     (unless lisp-path (unicode-dump-error "Could not deduce base LISP path"))
-    (setq lisp-path (replace-in-string lisp-path "/+$" ""))
+    (setq lisp-path
+          (subseq lisp-path 0
+                  (string-match-p (concat (regexp-quote
+                                           (string directory-sep-char))
+                                          "+$")
+                                  lisp-path)))
     ;; Go through lisp/unicode.el and lisp/mule/* - those are the files known
     ;; to have charset definitions.
     (let ((lisp-files
@@ -112,7 +124,9 @@
           (combined-content nil)
           (all-unicode-strings nil)
           ;; This is a hash table just to uniq the entries easily.
-          (file-mask-map (make-hash-table :test #'equal)))
+          (file-mask-map (make-hash-table :test #'equal))
+          (non-directory-sep-char-class
+           (concat "[^" (regexp-quote (string directory-sep-char)) "]*")))
       (unwind-protect
           (with-current-buffer buffer
             ;; Slap all inspected files into a quoted list of
@@ -141,13 +155,16 @@
         (destructuring-bind (filename unicode-strings) str-elt
           (dolist (unicode-string unicode-strings)
             (puthash (concat
-                      (replace-in-string
-                       (replace-in-string unicode-string "\\." "\\.")
-                       "%[a-z]" "[^/]*") "$")
+                      (replace-in-string (regexp-quote unicode-string)
+                                         "%[a-z]" non-directory-sep-char-class)
+                     "$")
                      (list nil unicode-string filename) file-mask-map))))
       ;; Now, find all matched files...
       (let ((matched (match-all-unicode-files
-                      (expand-file-name "../etc/unicode" lisp-path)))
+                      (expand-file-name
+                       (mapconcat #'identity '(".." "etc" "unicode")
+                                  (string directory-sep-char))
+                       lisp-path)))
             (mapping-errors nil))
         ;; ...but because this isn't a very sophisticated way of searching,
         ;; fail-fast at compile time in case somebody modified the Lisp code in
@@ -164,7 +181,10 @@
                             '("Could not find any matching files for the "
                               "following patterns in the following files: \"")
                             (cdr (apply #'append mapping-errors))))))
-        (let ((etc-path-name-len (1+ (length (expand-file-name "../etc"
+        (let ((etc-path-name-len (1+ (length (expand-file-name 
+                                              (concat ".."
+                                                      (list directory-sep-char)
+                                                      "etc")
                                                                lisp-path)))))
           (mapcar (lambda (s) (substring s etc-path-name-len)) matched))))))
 
@@ -174,7 +194,11 @@
     (search-for-unicode-path-strings-in-possibly-malformed-list elt))
    ((and (stringp elt)
          (string-match-p "^unicode/" elt))
-    (setq unicode-strings (cons elt unicode-strings)))))
+    (setq unicode-strings (cons (replace-in-string elt
+                                                   (regexp-quote "/")
+                                                   (string directory-sep-char)
+                                                   t)
+                                unicode-strings)))))
 
 (defun search-for-unicode-path-strings-in-possibly-malformed-list (list)
   (while list
@@ -190,7 +214,7 @@
   (apply #'append
          (mapcar (lambda (dir-ent)
                    (cond
-                    ((string-match-p "/\\(\\.\\.\\|\\.\\)$" dir-ent) nil)
+                    ((string-match-p "\\(\\.\\.\\|\\.\\)$" dir-ent) nil)
                     ((file-directory-p dir-ent)
                      (match-all-unicode-files (expand-file-name dir-ent
                                                                 basedir)))

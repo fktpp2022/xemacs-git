@@ -2897,7 +2897,7 @@ debug_out (const CIbyte *fmt, ...)
 void
 debug_print (Lisp_Object debug_print_obj)
 {
-  return external_debug_print (debug_print_obj, EXT_PRINT_ALL);
+  external_debug_print (debug_print_obj, EXT_PRINT_ALL);
 }
 
 /* Printf-style output when the objects being printed are Lisp objects.

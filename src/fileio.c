@@ -2828,7 +2828,7 @@ otherwise, if FILE2 does not exist, the answer is t.
   /* This function can GC.  GC checked 1997.04.10. */
   Lisp_Object abspath1, abspath2;
   struct stat st;
-  int mtime1;
+  time_t mtime1;
   Lisp_Object handler;
   struct gcpro gcpro1, gcpro2, gcpro3;
 
