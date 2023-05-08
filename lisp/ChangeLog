@@ -1,3 +1,13 @@
+2023-05-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* byte-optimize.el (byte-optimize-zerop):
+	Don't use #'byte-optimize-zerop incorrectly in this function, use
+	#'cl-safe-expr-p instead, which also checks that subforms do not
+	have side effects.
+	* byte-optimize.el (byte-optimize-side-effect-free-p):
+	Add a docstring to this function, all going well preventing the
+	above bug going forward.
+
 2023-04-16  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* mule/compiled-unicode-tables.el (unicode-ignore-first-column):

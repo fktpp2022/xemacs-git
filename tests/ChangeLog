@@ -1,3 +1,9 @@
+2023-05-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el:
+	Check for a bug in byte-optimize-zerop, just fixed. Thank you
+	Henry Thompson!
+
 2023-04-16  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/mule-tests.el (test-chars):

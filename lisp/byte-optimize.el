@@ -956,16 +956,15 @@
 (defun byte-optimize-zerop (form)
   (cond ((numberp (nth 1 form))
 	 (eval form))
-	((or (symbolp (nth 1 form))
-             (byte-optimize-side-effect-free-p (nth 1 form)))
+	((cl-safe-expr-p (nth 1 form))
 	 `(if (numberp ,(nth 1 form))
 	      (= ,(nth 1 form) 0)
             ;; Hobble the optimizer so this function doesn't get called
             ;; recursively. Don't just #'wrong-type-argument ourselves, this
-            ;; approach gives a more accurate backtrace.
+            ;; approach gives a more accurate backtrace.  It would be practical
+	    ;; to implement this in bytecode if we had an exch bytecode.
 	    (funcall (symbol-function #'zerop) ,(nth 1 form))))
 	(t form)))
-
 (put 'zerop 'byte-optimizer 'byte-optimize-zerop)
 
 (defun byte-optimize-and (form)
@@ -1361,6 +1360,11 @@
   (put function 'side-effect-free-if-keywords-are t))
 
 (defun byte-optimize-side-effect-free-p (form)
+  "Return non-nil if FORM's car is a function documented as side-effect-free.
+
+Caution, this does not currently assess other subforms within FORM regarding
+whether they are free of side-effects. See `cl-safe-expr-p' for an alternative
+function which does assess these subforms."
   (or (get (car-safe form) 'side-effect-free)
       (and (get (car-safe form) 'side-effect-free-if-keywords-are)
 	   (loop

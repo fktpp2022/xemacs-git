@@ -4669,6 +4669,17 @@ run-hook-with-args-until-success")
 (Check-Error 'wrong-type-argument (zerop ?\x00))
 (Check-Error 'wrong-type-argument (zerop (copy-marker 1)))
 
+(let ((ii 0)
+      (nn 10))
+  (while (< ii nn)
+    (if (zerop (% (setq ii (1+ ii)) 3))
+	(format-into 'string "Counting messages... %d" ii)))
+  (Assert (eql ii 10)
+	  "checking optimization of argument to #'zerop correct"))
+
+(Check-Error 'wrong-type-argument (let ((ii [hello])) (zerop ii)))
+(Check-Error 'wrong-type-argument (let ((ii ?\x00)) (zerop ii)))
+
 (Assert (char-int-p #x61))
 (Assert (char-int-p #x41))
 (Assert (char-int-p #xff))
