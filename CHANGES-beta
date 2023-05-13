@@ -1,7 +1,12 @@
-# DO NOT PUT A VERSION MARKER HERE, ADDED AT RELEASE
+to XEmacs 21.5.35 "kohlrabi"
 
 Major Features, Bugfixes, and Backward Incompatible Changes
 
+-- New: Ben Wing's unicode-internal support -- Ben Wing
+-- Improve: Reduce needless byte-char conversion, C code -- Aidan Kehoe
+-- Improve: Add support for OpenSSL bignum implementation -- Aidan Kehoe
+-- Improve: #'format and friends now much more featured -- Aidan Kehoe
+-- Improve: Removed unexec, incremental garbage collector, support for non-system malloc(), support for Win 95/98/ME -- Aidan Kehoe
 -- Fix: Convert assert on menubar syntax errors to log warning and skip the menu -- Jerry James
 
 User-Visible Bug Fixes and Improvements
@@ -13,6 +18,7 @@ User-Visible Bug Fixes and Improvements
 -- Improve: Silence warnings about throws out of #'post-command-hook' -- Mike Sperber
 -- New: Support bignums with MPIR -- Jerry James
 -- Improve: Help buffer behaviour synced with GNU -- Mats Lidell
+-- Improve: Better behaviour with deletion of text and saved window points.
 
 Build Infrastructure and Source Tree
 
@@ -21,11 +27,59 @@ Build Infrastructure and Source Tree
 -- Fix: Reverse sense of #if for insert-data-in-exec build -- Jerry James
 -- Fix: Silence syntax warnings -- Jerry James
 -- Improve: Update autoconf helpers to latest upstream version -- Jerry James
+-- Improve: Use more recent makeinfo(1) if available -- Jerry James
+-- Improve: GTK 3.X support when available -- Jeff Sparkes
+-- New: TLS support -- Jerry James
+-- Improve: Disable ASLR on any system where that is necessary for XEmacs binary -- Aidan Kehoe, Mike Sperber, Marcus Crestani
+-- Improve: Use pkg-info if available to determine linked libraries for ncurses -- Aidan Kehoe, Mats Lidell
+-- Improve: Run autoupdate on configure.ac, heed its advice -- Aidan Kehoe
+-- Improve: Fix broken linker -R flag detection, pkg-config problems, -f* flags inappropriate when linking -- Jaakko Salomaa
+-- Improve: Fix PostgreSQL header detection -- Jaakko Salomaa
+-- Fix: --with-infopath handling, configure.ac -- Jaakko Salomaa
+-- Fix: Canna version detection -- Jaakko Salomaa
 
 Documentation
 
 -- Improve: Bignum documentation -- Jerry James
 -- Improve: Port texi files to Texinfo 5, fix style -- Jerry James
+-- Improve: Document #'digit-char-p, #'digit-char, #'parse-integer -- Aidan Kehoe
+-- Improve: Add notes about pixel_to_glyph_transation and related code -- Mike Kupfer
+-- Improve: Document char-code-limit -- Aidan Kehoe
+-- New: Describe the arbitrary-base syntax for rationals -- Aidan Kehoe
+-- Improve: Details of extent properties vs string properties -- Stephen Turnbull
+-- New: Document extent support in #'format, document #'format-into -- Aidan Kehoe
+-- Improve: Move generalised support for duplicable extents to Old Future work -- Aidan Kehoe
+-- New: Document the new flags and modifiers, #'format -- Aidan Kehoe
+-- New: Document shadowing of lambda list arguments, #'symbol-macrolet. Document the new SHADOW argument for each symbol macro specified. -- Aidan Kehoe
+-- New: Document #'string-match-p, #'looking-at-p. -- Aidan Kehoe
+-- New: Document that (shift a) is supported as keystroke syntax -- Aidan Kehoe
+-- Improve: Remove duplicated info, widget.texi. -- Aidan Kehoe, FKtPp, Steven Mitchell
+-- New: Update documentation of #'generate-new-buffer-name -- Aidan Kehoe
+-- Improve: Face property documentation -- Stephen Turnbull
+-- Improve: Remove mention of non-system malloc() implementations -- Aidan Kehoe
+-- Improve: Document algorithmic complexity consideration with #'marker-position -- Aidan Kehoe
+-- Improve: Re-encode texi as UTF-8 when appropriate -- Aidan Kehoe
+-- New: Document named non-shy groups, limits on interval qualifiers -- Aidan Kehoe
+-- New: Document workarounds to avoid compile-time evaluation of (require ...) forms -- Aidan Kehoe
+-- New: Document MARKERP argument to #'extent-{start,end}-position -- Aidan Kehoe
+-- New: Document underlying implementation of the match data, associated performance and correctness considerations -- Aidan Kehoe
+-- New: Document search-error-on-bad-match-data -- Aidan Kehoe
+-- New: Document redisplay no longer entered recursively -- Aidan Kehoe
+-- New: Document changes to unique stream identifiers -- Aidan Kehoe
+-- New: Document changes to profiling implementation -- Aidan Kehoe
+-- New: Document removal of support for Windows 95/98/ME systems -- Aidan Kehoe
+-- Improve: Remove details of the implementation of the incremental garbage collector; document experience with it and its removal -- Aidan Kehoe
+-- Improve: Update the documentation of the dumping process -- Aidan Kehoe
+-- Improve: Adjust documentation of the garbage collector to put KKCC in the forefront. -- Aidan Kehoe
+-- Improve: Documentation of no need for POSIX-compatible #'looking-at-p, #'string-match-p -- Aidan Kehoe
+-- New: Document the OpenSSL bignum driver -- Jaakko Salomaa
+-- New: Document the ?z integer length modifier -- Aidan Kehoe
+-- Improve: Move display table extensions to Old Future work -- Aidan Kehoe
+-- New: Document the -no-configured-paths command line flag -- Jaakko Salomaa
+-- Fix: Build error, navigation problems, internals.texi -- Henry Thompson
+-- Improve: Deprecate #'string-equal -- Aidan Kehoe
+-- Fix: Buggy ASCII art, internals.texi -- Aidan Kehoe, Mats Lidell
+-- Improve: Remove deprecated @refill from manual -- Aidan Kehoe
 
 Lisp API
 
@@ -33,6 +87,101 @@ Lisp API
 -- Fix: Make #'apply-partially more intelligent about constructing compiled functions when making closures; add tests -- Aidan Kehoe
 -- Improve: Add optional WHEN and DOCSTRING arguments to #'define-obsolete-function-alias, #'define-compatible-function-alias, #'define-obsolete-variable-alias, #'define-compatible-variable-alias (GNU compatibility) -- Stephen Turnbull, Mike Sperber, Jeff Sparkes
 -- New: Add #'font-lock-extend-region-functions' from GNU Emacs, use it -- Mike Sperber
+-- New: Add #'write-sequence, API from Common Lisp. -- Aidan Kehoe
+-- Improve: Allow optional `docstring' argument to #'define-function, as in GNU Emacs. -- Mike Sperber
+-- Fix: #'next-command-event: Only snooze displaying keystrokes if PROMPT is nil -- Aidan Kehoe
+-- Fix: #'message and friends: Preserve extent information in prompts. -- Aidan Kehoe.
+-- Fix: #'x-store-cutbuffer-internal: No longer crash when passed a non-string STRING argument. -- Aidan Kehoe
+-- Fix: #'encode-time: Correct the sign used when calculating the time zone strong. -- Marcus Crestani.
+-- New: #'open-network-stream-internal, #'tls-negotiate: Add support for TLS to streams.
+-- New: Expose #'parse-integer to Lisp -- Aidan Kehoe
+-- Fix: #'event-matches-key-specifier-p: Check keysym and modifiers when on a TTY. -- Aidan Kehoe
+-- New: Add support for GNU's help-event-list. -- Aidan Kehoe
+-- New: no-character-typed error, used in #'self-insert-command -- Aidan Kehoe
+-- New: char-code-limit available -- Aidan Kehoe
+-- Fix: #'accept-process-output: Restore the current buffer even on non-local exit -- Aidan Kehoe
+-- Fix: #'getenv: Escape quotation marks correctly when interactively showing a variable's value -- Aidan Kehoe
+-- New: Add #'clear-string, API From GNU. -- Aidan Kehoe
+-- Fix: #'string-to-number: Canonicalise ratios in this function -- Aidan Kehoe
+-- Fix: #'logand, #'logior, #'rem, #'lsh: Make errors less misleading -- Aidan Kehoe
+-- Improve: #'line-number: Implement using the C implementation of src/line-number.c, improving performance. -- Aidan Kehoe
+-- Fix: #'load-internal: Error correctly with a zero-length file name, rather than giving a bus error. -- Aidan Kehoe
+-- Fix: #'print and friends: Avoid crashes when STREAM can cause string data relocation. -- Aidan Kehoe
+-- Fix: string property lists: Avoid silent corruption of a fixnum stored in a string's property list. -- Aidan Kehoe
+-- Fix: #'reduce: avoid a crash with a cons sequence, :from-end nil, and a zero-length range. -- Aidan Kehoe
+-- Improve: Move #'concatenate to C, improve the implementation and algorthmic complexity of #'concat. -- Aidan Kehoe
+-- New: Provide Common Lisp's #'make-string-output-stream, exposing the existing C resizing_buffer lstream type, and preserving extent information for this. -- Aidan Kehoe
+-- Improve: Do not accept non-fixnum number arguments with %c, #'format. -- Aidan Kehoe
+-- Improve: Use our integer to string conversion code within #'format, #'number-to-string.
+-- Improve: Preserve extent information within #'format.
+-- New: Add digit-fixnum-ascii, a version of digit-fixnum-map supporting only the ASCII digits; use this internally. -- Aidan Kehoe
+-- Improve: Don't echo mouse wheel events. -- Aidan Kehoe.
+-- Improve: Add support for pad characters, h, l, hh, ll modifiers, unsigned modifiers, #'format. -- Aidan Kehoe
+-- New: Provide #'format-into, writing the output into a stream. -- Aidan Kehoe
+-- Fix: #'substitute-command-keys, preserve extent information -- Aidan Kehoe
+-- Fix: Avoid problems in #'mapcon when FUNCTION returns nil. -- Aidan Kehoe
+-- Improve: Implement obarray as a proper Lisp hash table. -- Aidan Kehoe
+-- Fix: #'normalize-menu-text, avoid corruption of result. -- Aidan Kehoe
+-- Improve: Sync the #'run-hook family of functions from GNU. -- Aidan Kehoe
+-- New: #'run-hook-wrapped, API imported from GNU. -- Aidan Kehoe
+-- Improve: Accept (shift a) as equivalent to (A) when parsing keysyms. -- Aidan Kehoe
+-- Fix: Error with (aref STRING (length STRING)) -- Aidan Kehoe
+-- New: Add #'with-hash-table-iterator, API from Common Lisp. -- Aidan Kehoe
+-- Improve: Increase default gc-cons-threshold to 32 megabytes from 2 megabytes. -- Aidan Kehoe
+-- Improve: Sync API for #'generate-new-buffer-name. -- Aidan Kehoe
+-- Improve: Standardise the behaviour of #'% within XEmacs, don't rely on quirks of underlying C implementation. -- Aidan Kehoe
+-- Improve: Standardise on Lisp characters as the keysym objects across all supported platforms. -- Aidan Kehoe
+-- Improve: Return two values in #'user-name-completion, no need for #'user-name-completion-1. -- Aidan Kehoe
+-- New: Support named non-shy ("explicitly numbered") groups in regular expressions. -- Aidan Kehoe
+-- New: Take up to #xFFFF repetitions when using \{N,M\} regexp repetition syntax -- Aidan Kehoe
+-- New: Extend display table handling to take arbitrary format strings. -- Aidan Kehoe
+-- Improve: Restrict MINWIDTH, PRECISION field ranges in format strings to #xFFFF. -- Aidan Kehoe
+-- Improve: Add a -no-configured-paths option, most useful when building -- Jaakko Salomaa
+-- Improve: Deprecate #'string-equal, move it to obsolete.el -- Aidan Kehoe
+-- Improve: Add a Latin-script Azeri language environment -- Aidan Kehoe
+-- Improve: Avoid errors with misc-user events and isearch-pre-command-hook -- Aidan Kehoe
+-- Improve: Warn about non-string, non-integer args to #'gensym -- Aidan Kehoe
+-- Improve: Give better backtraces on error at startup -- Aidan Kehoe
+-- Improve: Deal better with unparseable Fc font names. -- Stephen Turnbull
+-- New: Sync mode-require-final-newline from GNU -- Aidan Kehoe
+-- New: Add #'write-string, #'write-line -- Aidan Kehoe
+-- Improve: Blinking of parentheses when demonstrating matching parentheses -- Aidan Kehoe
+-- New: Respect function-key-map in #'read-char, #'read-char-exclusive, error if no character typed. -- Aidan Kehoe
+-- Improve: Remove metadata marking #'keymapp as side-effect free. -- Aidan Kehoe
+-- New: #'synthesize-unicode-codepoint, bind it to (control shift u) as specified by ISO 14755. -- Aidan Kehoe
+-- Improve: Do not insert timestamps in .elc comments, making builds reproducible. -- Jerry James.
+-- New: Transport layer security (TLS) support -- Jerry James
+-- Improve: `noerror' optional argument to #'line-move -- Michael Sperber.
+-- Improve: Handling of case sensitivity in interactive regular expression search -- Aidan Kehoe
+-- Improve: Remove unused code for Mule TTY support. -- Aidan Kehoe
+-- New: #'max-char function for GNU compatibility. -- Aidan Kehoe
+-- Improve: Avoid using the regexp support for very simple searches. -- Aidan Kehoe
+-- Fix: Avoid over-eager deletion of frams, gnuclient -- Aidan Kehoe
+-- Improve: Less garbage with the message stack. -- Aidan Kehoe
+-- Fix: Give clearer errors with #'check-type and non-setf'able PLACEs -- Aidan Kehoe
+-- New: #'logcount, function from Common Lisp. -- Aidan Kehoe
+-- Improve: Mark #'integer-length, #'logcount as side-effect free. Avoid allocating memory with #'integer-length -- Aidan Kehoe
+-- Improve: Respect load-ignore-out-of-date-elc-files, call #'substitute-in-file-name #'load. -- Aidan Kehoe
+-- Improve: Sync functionality from GNU, mwheel.el -- Aidan Kehoe
+-- Improve: Avoid use of #'vassoc in core code, move it to packages -- Aidan Kehoe
+-- Improve: Warn if interactive spec encountered where arglist expected, bytecomp.el -- Aidan Kehoe
+-- Improve: Abbrev tables are now vectors, not hash tables. -- Aidan Kehoe
+-- Improve: Add compatibility implementation of traditional emacs obarray, now we use hash tables. -- Aidan Kehoe
+-- New: help.el, add support for detecting the current Lisp function if we are in the context of a C file. -- Aidan Kehoe
+-- Fix: Shadow symbol macros when the corresponding symbols are encountered in lambda argument lists -- Aidan Kehoe
+-- Improve: Rename #'font-menu-change-face to #'font-menu-maybe-change-face, fix a bug in it. -- Aidan Kehoe
+-- Improve: FORM does not need to be a cons, #'assert -- Aidan Kehoe
+-- New: Merge GNU's :height custom-face-attribute. -- Aidan Kehoe
+-- Fix: auto-save-unescape-name, correct the hex parsing -- Aidan Kehoe
+-- Improve: Replace calls to #'string-match with calls to #'string-match-p if appropriate. -- Aidan Kehoe
+-- Improve: Remove keyboard-type, never used. -- Aidan Kehoe
+-- Improve: Case tables generated from UnicodeData.txt -- Aidan Kehoe
+-- Improve: Make compose.el available on non-X11 platforms. -- Aidan Kehoe
+-- Improve: Allow a numeric offset as the APPEND argument to #'write-region. -- Aidan Kehoe
+-- Fix: Make #'key-or-mouse-event-p, #'timeout-or-eval-event-p, #'char-or-event-p available. -- Aidan Kehoe
+-- New: Import coding-system-history. Adjust #'read-coding-system to use it and to adjust PROMPT based on default-coding-system. -- Aidan Kehoe
+-- New: Import pcase.el from GNU. -- Aidan Kehoe
+
 
 Internal API and Implementation
 
@@ -45,11 +194,195 @@ Internal API and Implementation
 -- Improve: Reimplement #'process-synchronize-point as a label in #'call-process-internal -- Aidan Kehoe
 -- Improve: Support for statically linked modules -- Jerry James
 -- Improve: Use make_fixnum instead of make_integer where size is known to fit in many places -- Jerry James
+-- Improve: Lazy conversion of markers when comparing values in the same buffer, giving performance improvements e.g. with large VM buffers -- Aidan Kehoe
+-- Improve: Use skip_ascii() in the no-conversion coding system, speeding up writes of large buffers -- Aidan Kehoe
+-- Improve: Pass character count information to the buffer insertion code from the no-conversion and Unicode coding systems, speeding up reads of large files -- Aidan Kehoe
+-- Improve: Increase the C buffer size used in #'copy-file, #'insert-file-contents-internal, speeding up these operations -- Aidan Kehoe
+-- Improve: Add error handling to the coding conversion code -- Jerry James
+-- Improve: Quiet compiler warnings with clang, g++, Visual Studio -- Aidan Kehoe, Vin Shelton, Jerry James.
+-- Improve: Be more careful dealing with C's isupper() when calculating the inverse table for Vdigit_fixnum_map -- Aidan Kehoe, Vin Shelton.
+-- Improve: Work exclusively in byte positions, extent.c -- Aidan Kehoe
+-- Improve: Only provide our max_align_t if the current compiler does not. -- Jerry James
+-- Improve: Speed of get_char_table () on builds without optimization -- Aidan Kehoe
+-- Improve: print_symbol(), read_atom(): Speed these up significantly, add support for non-ASCII digits -- Aidan Kehoe
+-- Fix: Avoid problems with GMP and non-finite C doubles. -- Aidan Kehoe
+-- Fix: #'truncate: Avoid bugs with bignums and double_to_integer() -- Aidan Kehoe
+-- Improve: encode_unicode_char (): Use U+FFFD unconditionally when we have no information on the Unicode mapping of a character. -- Aidan Kehoe
+-- Fix: x_IO_error_handler(): Check for a real error in this, avoiding a crash on OS X. -- Stephen Turnbull
+-- Improve: #'save-current-buffer: Docstring changes. -- Stephen Turnbull
+-- Fix: Regular expression searching within relocating Lisp buffers. -- Aidan Kehoe.
+-- Improve: Create less garbage when reading symbols, lread.c -- Aidan Kehoe
+-- Improve: No need for NARGS argument to write_fmt_string_lisp() -- Aidan Kehoe
+-- Improve: Give the compiler a chance to do strlen at compile time, write_ascstring () -- Aidan Kehoe
+-- Improve: Differentiate between char->byte and byte->char conversion and between external->internal, internal->external conversion when profiling. -- Aidan Kehoe
+-- Change: Rename emacs_v?sprintf_malloc* functions to emacs_v?asprintf, analagous to their usual Unix equivalents. -- Aidan Kehoe
+-- Improve: Make general functions available to convert between C integers of a specific type and Lisp integers, including bignums. Use this. -- Aidan Kehoe
+-- Improve: Move various simple, non-loop hotspot, functions from data.c to subr.el -- Aidan Kehoe
+-- Fix: Our integer to string code was buggy with LONG_MIN, fix that. -- Aidan Kehoe
+-- New: Merge the unicode-internal branch, providing an ISO10646-compatibile internal format to Mule builds -- Ben Wing
+-- Improve: Write to the normal stdio object, stderr_out(), stdout_out(). -- Aidan Kehoe
+-- Improve: Drop extensive needless Ibyte -> Ichar conversion, redisplay. -- Aidan Kehoe.
+-- Improve: Use make_uninit_vector(), make_uninit_string() in Freverse -- Aidan Kehoe
+-- Improve: Implement #'looking-at-p, #'string-match-p in C. -- Aidan Kehoe
+-- Improve: Circularity checking with unread-command-events. -- Aidan Kehoe
+-- Improve: Circularity and well-formedness checking for external lists, Lisp primitives. -- Aidan Kehoe
+-- Fix: Respect SIGNALP in PRIVATE_UNVERIFIED_LIST_LOOP_7(), avoiding problems with circular lists. -- Aidan Kehoe
+-- Fix: Correct regexp interval handling code. -- Aidan Kehoe, Stephen Turnbull
+-- Fix: Error within read1() if a #@INTEGER docstring comment has an unreasonably large integer. -- Aidan Kehoe, Hao Sun.
+-- Fix: Error when passed values that would overflow, Fmake_vector(), Fmake_string(), Fmake_bit_vector(). -- Aidan Kehoe
+-- Fix: Avoid stack overflow with recursive specifiers, print_specifier (). -- Aidan Kehoe, Raymond Toy
+-- Fix: Avoid tying up XEmacs with error messages when specifier instantiator fails. -- Aidan Kehoe
+-- Fix: Take a size_t argument, xemacs_c_alloca, check for overflow. -- Aidan Kehoe
+-- Improve: Remove gmalloc.c, which is unmaintained, always use system malloc. -- Aidan Kehoe
+-- Improve: Remove use of Eistring malloc buffers, write directly to Lisp streams instead. -- Aidan Kehoe
+-- Improve: Use the Lisp hash table infrastructure for the X GC cache, improve algorithm. -- Aidan Kehoe
+-- Improve: Fix some leaks in the GTK code. -- Aidan Kehoe
+-- Improve: Avoid clobbering documentation for compiled function aliases -- Aidan Kehoe
+-- Improve: Use an explicit weak list object for the syntax table, specifier, and weak hash table, avoiding duplicating implementation. -- Aidan Kehoe
+-- Improve: Move the weak box implementation to Lisp. -- Aidan Kehoe
+-- Improve: Only convert markers to integers when needed to compare them. -- Aidan Kehoe
+-- Improve: Reduce unnecessary byte-char conversion costs with markers. -- Aidan Kehoe
+-- Improve: Adjust the line numbering code to track buffer byte positions, which is cheaper. -- Aidan Kehoe
+-- Improve: Reduce needless byte-char conversion in redisplay -- Aidan Kehoe
+-- Improve: Save window points as zero-length extents, not C integers -- Aidan Kehoe
+-- Improve: Pay attention to wraparound in buffer modification ticks. -- Aidan Kehoe
+-- Improve: Rename byte_marker_position to marker_byte_position for GNU compatibility. -- Aidan Kehoe
+-- Fix: Correct type description of dynarr lengths -- Aidan Kehoe
+-- Fix: Don't choke on an ill-formed or circular Vprocess_environment -- Aidan Kehoe
+-- New: Make qxeGetWindowLongPtr and related functions available to the NT code. -- Aidan Kehoe
+-- Improve: Rename DONT_EXTERN_INLINE_HEADER_FUNCTIONS to FORCE_INLINE_FUNCTION_DEFINITION. -- Aidan Kehoe
+-- New: Make write_external_fmt_string_va () availab, allowing a coding system to be specified for string arguments. -- Aidan Kehoe
+-- Improve: Use the existing Lisp list infrastructure with struct expose_ignore. -- Aidan Kehoe
+-- Improve: Use the existing Lisp list infrastructure with timeouts. -- Aidan Kehoe
+-- Fix: Prevent update_syntax_cache(), Fextent_at() from accessing buffer positions outside the accessible region -- Alan Mackenzie
+-- Fix: Make Fscan_sexps() respect syntax table properties, terminating quotes -- Alan Mackenzie
+-- New: Flag GB_ALLOW_NIL to indicate to return point for buffer positions, get_buffer_pos_{char,byte} -- Aidan Kehoe
+-- New: set_marker_byte_position_restricted(), reduce need to convert to character positions. -- Aidan Kehoe
+-- Improve: Use Bytebpos values in the line-start cache -- Aidan Kehoe
+-- Improve: Make vertical scrollbars function in terms of lines, not buffer positions, with small buffers -- Aidan Kehoe
+-- New: Provide a GET_STRSIGNAL() macro, on the model of GET_STRERROR() -- Aidan Kehoe
+-- Improve: Get XEmacs building and runnning on 64 bit Cygwin. -- Aidan Kehoe
+-- New: get_buffer_pos_both (), reduce needless byte->char conversion with (goto-char MARKER) -- Aidan Kehoe
+-- Improve: Mark generated modeline strings as such, respect this when signalling that extents have changed. -- Aidan Kehoe
+-- New: Move match subexpression information to being implemented as extents, giving better warnings and more consistent behaviour with #'replace-match. -- Aidan Kehoe
+-- Improve: Remove needless byte-char conversion from search.c -- Aidan Kehoe
+-- Improve: Rename string ascii_begin field to ascii_end -- Aidan Kehoe
+-- Improve: Move window_end_pos[] to being an array of markers. -- Aidan Kehoe
+-- Fix: Avoid recursive entry to redisplay, Fwindow_end(). -- Aidan Kehoe
+-- Fix: Never return an invalid buffer position, #'event-point, #'event-modeline-position -- Aidan Kehoe
+-- Improve: Remove redisplay_text_width_string(), equivalent to redisplay_window_text_width_string(). -- Aidan Kehoe
+-- Improve: Drop caching of GCs under GTK. -- Aidan Kehoe
+-- Improve: No need for a hash table mapping marshaller types to functions, ui-gtk.c -- Aidan Kehoe
+-- Improve: Use weak lists for the window point and saved_window_start caches -- Aidan Kehoe
+-- Improve: Use a weak list for the USID to process mapping -- Aidan Kehoe
+-- Improve: Move the main profiling hash table to being a Lisp hash table -- Aidan Kehoe
+-- Improve: Implement the mswindows_read_link () cache as a normal Lisp hash table. -- Aidan Kehoe
+-- Improve: Remove hash.c, hash.h, no longer used. -- Aidan Kehoe
+-- Improve: Correct a bug in ALIST_LOOP_4() -- Aidan Kehoe
+-- Improve: Remove support for running as a non-Unicode program under Win32. -- Aidan Kehoe
+-- Improve: Remove support for the incremental garbage collector, improving stability, speed, memory usage, and mantainability. -- Aidan Kehoe
+-- Improve: Remove support for unexec, improving maintainability. -- Aidan Kehoe
+-- Improve: Remove support for the old mark algorithm, KKCC is stable and performant -- Aidan Kehoe
+-- Improve: Remove support for systems without job control, mkdir or rmdir, imprve maintainability. -- Aidan Kehoe
+-- Improve: Don't modify the compiled pattern in re_match_2_internal, avoiding re-entrancy problems. -- Aidan Kehoe
+-- Improve: Represent internal register numbers with two bytes rather than one in compiled regular expressions. -- Aidan Kehoe
+-- Improve: Move implementation of long-deprecated #'following-char, #'preceding-char to Lisp. -- Aidan Kehoe
+-- Improve: Provide access to the OpenSSL bignum implementation, which doesn't have the reliability concerns of GMP -- Jaakko Salomaa
+-- Improve: Better error handling with OpenSSL, TLS -- Jaakko Salomaa
+-- Fix: Use the z integer length modifier in C code when printing EMACS_INT -- Aidan Kehoe
+-- Improve: Implement total_data_usage() in terms of BSD libkvm. -- Aidan Kehoe
+-- Improve: Provide formatted printing that doesn't error to the C code. -- Aidan Kehoe
+-- Improve: Never return a negative value to Lisp when hashing. -- Aidan Kehoe
+-- Improve: Load the Unicode conversion tables as Lisp structures. -- Jaakko Salomaa 
+-- Improve: Avoid a blinking TTY cursor -- Jaakko Salomaa
+-- Fix: Avoid infinite loop in next_previous_single_property_change () -- Jaakko Salomaa.
+-- Fix: Avoid calling Fextent_object () on non-live extents, #'delete-window, #'set-window-buffer -- Aidan Kehoe, Henry Thompson
+-- Improve: Have the syntax cache, indentation code work in byte positions. -- Aidan Kehoe
+-- Improve: Avoid needles byte-char conversion, process.c -- Aidan Kehoe
+-- Fix: Avoid crashes with invalid characters in generated modeline strings and error-checking builds. -- Aidan Kehoe
+-- Fix: Avoid the AMD64 red zone confusing find_stack_direction (), alloca.c -- Aidan Kehoe
+-- Improve: Changes to bring XEmacs closer to building and running on 64-bit Visual Studio. -- Aidan Kehoe
+-- Improve: Reduce memory allocation, use of the regexp engine, gnuserv.el -- Aidan Kehoe
+-- Improve: Print the stderr of make-docfile to the terminal instead of silently discarding it. -- Aidan Kehoe
+-- Improve: Handle vectors better in backquote.el -- Aidan Kehoe
+-- Improve: Use #'string-match-p, #'looking-at-p if match data not used -- Aidan Kehoe
+-- Improve: Implement #'eval-when in the byte compiler. -- Aidan Kehoe
+-- Improve: Remove alist.el from core code. -- Aidan Kehoe
+-- Improve: Minimise calls to #'marker-position in the core Lisp code -- Aidan Kehoe
+-- Improve: Use #'apply-partially to create closures with lambdas and lexical variables. -- Aidan Kehoe
+-- Fix: Save any existing non-default mode-popup-menu correctly, #'easy-menu-remove -- Aidan Kehoe
+-- Improve: Generate digit.el from UnicodeData.txt -- Aidan Kehoe
+-- Fix: Deal with byte offsets generated by makeinfo(1), info.el -- Aidan Kehoe
+-- Improve: Avoid calls to #'following-char, #'preceding-char in core code -- Aidan Kehoe
+-- Improve: Avoid lock files when generating finder-inf.el, make parallel builds more likely to work -- Aidan Kehoe, Mats Lidell
+-- Improve: Clean up startup path debugging code -- Jaakko Salomaa
+-- Improve: Abstract out the list of things to be saved and restored in #'search-push-state -- Aidan Kehoe
+-- Fix: Avoid silent wrapping of fill-column, #'do-auto-fill, #'fill-region-as-paragraph. -- Aidan Kehoe
+-- Fix: Don't error with anonymous functions, #'display-call-tree. -- Aidan Kehoe
 
 Testing and Debugging
 
 -- New: Add tests for #'file-attributes -- Mats Lidell
-
+-- Improve: Use print_circle within debug_print() -- Jerry James.
+-- New: Test fixnum_to_string with LONG_MIN -- Aidan Kehoe
+-- Improve: Process tests -- Stephen Turnbull
+-- New: Test require-final-newline, mode-require-final-newline -- Mats Lidell
+-- Improve: Only test fontconfig if the font-mgr feature is available -- Aidan Kehoe
+-- New: Test #'write-sequence, #'write-string, #'write-line -- Aidan Kehoe
+-- New: Test propagation of extent information -- Aidan Kehoe
+-- New: Test #'parse-integer, #'digit-char, #'digit-char-p -- Aidan Kehoe
+-- New: Test #'substitute -- Aidan Kehoe
+-- Improve: Test read and print handling of symbols that look like numbers. -- Aidan Kehoe
+-- New: Test character with no Unicode mapping represented as REPLACEMENT CHARACTER, UTF-8 -- Aidan Kehoe
+-- New: Test #'integer-length, #'logcount -- Aidan Kehoe
+-- New: Superficial tests #'load, #'load-internal -- Aidan Kehoe
+-- New: Test #'equalp compiler macro -- Aidan Kehoe
+-- New: Check Lisp printer handles relocation of string data OK -- Aidan Kehoe
+-- New: Test for insufficient GCPRO in sublis () -- Aidan Kehoe
+-- New: Check bug with #'reduce fixed -- Aidan Kehoe
+-- New: Test #'make-string-output-stream, #'get-output-stream-string -- Aidan Kehoe
+-- New: Test #'format and friends -- Aidan Kehoe, Uwe Bonnes, Aneurin Price, Mike McCormack
+-- New: Check no crash with #'decode-time if localtime() returns nil -- Aidan Kehoe
+-- New: Check bug in #'mapcon fixed -- Aidan Kehoe
+-- New: Check no crash on large number of symbols in an obarray -- Aidan Kehoe
+-- New: Test #'normalize-menu-text, #'compare-menu-text -- Aidan Kehoe
+-- New: Test #'lexical-let, #'lexical-let* -- Aidan Kehoe
+-- New: Test #'string-match-p, #'looking-at-p -- Aidan Kehoe
+-- New: Check bug in regexps with backreferences fixed. -- Aidan Kehoe
+-- New: Test #'run-hooks and friends -- Aidan Kehoe
+-- New: Test #'safe-length -- Aidan Kehoe
+-- New: Check special operators GCPRO correctly -- Aidan Kehoe
+-- New: Check bugs fixed with intervals in regexps -- Aidan Kehoe
+-- New: Test #'auto-save-escape-name, #'auto-save-unescape-name -- Aidan Kehoe
+-- New: Test restrictions on ZONE argument to #'encode-time -- Aidan Kehoe
+-- New: Test limits on the size of array types -- Aidan Kehoe
+-- New: Test the SHADOW argument to #'symbol-macrolet -- Aidan Kehoe
+-- New: Check (int-char most-negative-fixnum) gives nil -- Aidan Kehoe
+-- New: Check (user-login-name 4294967296) no longer gives "root" -- Aidan Kehoe-- New: Test simple predicates recently moved to subr.el from data.c; test #'ignore -- Aidan Kehoe
+-- Improve: Update checking for search algorithm used to take uppercase Unicode sharp s into account -- Aidan Kehoe
+-- New: Check ?\x00 not accepted as a converter character, #'format -- Aidan Kehoe
+-- New: Test #'max, #'min, #'< and friends with fixnums and markers -- Aidan Kehoe
+-- New: Check #'read doesn't get confused with a marker STREAM and a multibyte buffer.  -- Aidan Kehoe
+-- New: Test #'car, #'cdr -- Aidan Kehoe
+-- New: Test case-insensitive packages (obarrays) -- Aidan Kehoe
+-- New: Test named non-shy groups -- Aidan Kehoe
+-- New: Test limits of regexp ranges -- Aidan Kehoe
+-- New: Check for a bug fixed in #'save-window-start -- Aidan Kehoe
+-- New: Check error appropriately with (format "%c" ...), non char-or-char-int-p arguments -- Aidan Kehoe
+-- Improve: Tests for #'replace-regexp-in-string -- Aidan Kehoe
+-- Improve: Test #'replace-match when stored match data has its start and end positions reversed -- Aidan Kehoe
+-- Improve: Naming of bug-hash-table, reproduce-crashes.el -- Aidan Kehoe
+-- New: Test bug fixed with display of line numbers in modeline -- Aidan Kehoe
+-- New: Check that #'zerop errors with character or marker arguments -- Aidan Kehoe
+-- New: Test #'split-char, #'make-char -- Aidan Kehoe
+-- New: Test overflow detected with integer parsing code, Lisp reader -- Aidan Kehoe
+-- New: Check more than 255 shy groups supported -- Aidan Kehoe
+-- New: Test the OpenSSL bignum driver -- Jaakko Salomaa
+-- New: Test :error-behavior keyword argument to #'format-into -- Aidan Kehoe
+-- New: Test #'apply-partial with lambdas with &rest arguments -- Jaakko Salomaa
+-- New: Test get_string_{pos,range}_byte () -- Aidan Kehoe
+-- Improve: Call #'test-chars even on unicode-internal builds -- Aidan Kehoe
+-- New: Test for a bug in #'byte-optimize-zerop -- Aidan Kehoe
 
 to XEmacs 21.5.33 "horseradish"
 
