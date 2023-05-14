@@ -1,3 +1,9 @@
+2023-05-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* CHANGES-beta:
+	Correct attribution of OpenSSL bignum support.
+	Add new skeleton for 21.5.36.
+
 2023-05-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* XEmacs 21.5.35 "kohlrabi" is released.

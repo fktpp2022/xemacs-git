@@ -1,10 +1,33 @@
+# DO NOT PUT A VERSION MARKER HERE, ADDED AT RELEASE
+
+Major Features, Bugfixes, and Backward Incompatible Changes
+
+
+User-Visible Bug Fixes and Improvements
+
+
+Build Infrastructure and Source Tree
+
+
+Documentation
+
+
+Lisp API
+
+
+Internal API and Implementation
+
+
+Testing and Debugging
+
+
 to XEmacs 21.5.35 "kohlrabi"
 
 Major Features, Bugfixes, and Backward Incompatible Changes
 
 -- New: Ben Wing's unicode-internal support -- Ben Wing
 -- Improve: Reduce needless byte-char conversion, C code -- Aidan Kehoe
--- Improve: Add support for OpenSSL bignum implementation -- Aidan Kehoe
+-- Improve: Add support for OpenSSL bignum implementation -- Jaakko Salomaa
 -- Improve: #'format and friends now much more featured -- Aidan Kehoe
 -- Improve: Removed unexec, incremental garbage collector, support for non-system malloc(), support for Win 95/98/ME -- Aidan Kehoe
 -- Fix: Convert assert on menubar syntax errors to log warning and skip the menu -- Jerry James
