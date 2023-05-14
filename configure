@@ -1917,7 +1917,8 @@ Internationalization options
 
   --with-mule             Compile with Mule (Multi-Lingual Emacs), i.e.
                           internationalization support, needed to support
-                          non-Latin-1 (including Asian) languages.
+                          non-Latin-1 (including Asian) languages. Defaults to
+                          on.
   --with-unicode-internal Use Unicode and UTF-8 internally for text.
                           Automatically selects `--with-mule'. Without this,
                           Mule uses an old internal encoding that explicitly
@@ -18366,7 +18367,7 @@ printf "%s\n" "$as_me: WARNING: \`--with-mule' forced to \`yes': Unicode-interna
 
 fi
 
-test -z "$with_mule" && with_mule=no
+test -z "$with_mule" && with_mule=yes
 
 
 if test "$with_default_eol_detection" = "yes"; then

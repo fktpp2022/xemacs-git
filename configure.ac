@@ -892,7 +892,7 @@ XE_HELP_SUBSECTION([Internationalization options])
 XE_MERGED_ARG([mule],
 	AS_HELP_STRING([--with-mule],[Compile with Mule (Multi-Lingual Emacs), i.e. internationalization support,
                         needed to support non-Latin-1 (including Asian)
-                        languages.]),
+                        languages. Defaults to on.]),
 	[], [])
 XE_MERGED_ARG([unicode-internal],
 	AS_HELP_STRING([--with-unicode-internal],[Use Unicode and UTF-8 internally for text.  Automatically selects `--with-mule'.  Without this,
@@ -4325,7 +4325,7 @@ Unicode-internal requires Mule.")
   AC_DEFINE(UNICODE_INTERNAL)
 fi
 
-test -z "$with_mule" && with_mule=no
+test -z "$with_mule" && with_mule=yes
 
 dnl if test "$with_mule" = "yes" && test ! -d "$srcdir/lisp/mule"; then
 dnl	echo "Attempt to Build with Mule without Mule/Lisp"
