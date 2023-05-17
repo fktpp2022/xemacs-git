@@ -1,3 +1,30 @@
+2023-05-17  Richard Hopkins <xemacs@unbit.co.uk>
+
+	* src/device-msw.c (mswindows_device_system_metrics): Update
+	DM_num_color_cells calculation for non RC_PALETTE devices
+	to use BITSPIXEL and cap it to 24-bits.
+
+	The previous calculation using SIZEPALETTE could return 0 or
+	256 even when many more colors are available.  A consequence
+	of this is that themes with (min-colors NUM) would not be
+	respected.  Under the same scenario this change now makes
+	(device-color-cells) => 16777216, which also matches the
+	result from GNU Emacs on the same setup.  It may make sense
+	to always use this calculation just like GNU does but for now
+	respect the old calculation whilst more exposure is gained.
+
+	The related commit in GNU Emacs was made available in the 24.3
+	release.
+
+	commit 821812e2477f45ac5f2572dd7d469b8408e351aa
+	Author: Daniel Colascione <dancol@dancol.org>
+	Date:   Mon Oct 8 10:44:42 2012 -0800
+
+	* w32fns.c (Fx_display_color_cells): Instead of using NCOLORS,
+	which is broke under remote desktop, calculating the number of
+	colors available for a display based on the display's number of
+	planes and number of bits per pixel per plane.  (bug#10397).
+
 2023-05-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* XEmacs 21.5.35 "kohlrabi" is released.

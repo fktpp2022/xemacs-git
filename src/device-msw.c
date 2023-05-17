@@ -322,10 +322,21 @@ mswindows_device_system_metrics (struct device *d,
       return make_fixnum (GetDeviceCaps (hdc, BITSPIXEL));
       break;
     case DM_num_color_cells:
-      /* #### SIZEPALETTE only valid if RC_PALETTE bit set in RASTERCAPS,
-         what should we return for a non-palette-based device? */
-      return make_fixnum (GetDeviceCaps (hdc, SIZEPALETTE));
-      break;
+      {
+	if (GetDeviceCaps(hdc, RASTERCAPS) & RC_PALETTE)
+	  {
+	    return make_fixnum (GetDeviceCaps (hdc, SIZEPALETTE));
+	  }
+	else
+	  {
+	    /* SIZEPALETTE is only valid if the RC_PALETTE bit set in
+	       RASTERCAPS. Emulate this if it is zero. */
+	    int bits = min (24, GetDeviceCaps (hdc, BITSPIXEL));
+	    int colors = 1 << bits;
+	    return make_fixnum (colors);
+	  }
+	break;
+      }
 
       /*** Colors ***/
 #define FROB(met, fore, back)				\
