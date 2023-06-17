@@ -3863,18 +3863,27 @@ static Bytecount
 no_conversion_decode (struct coding_stream *str, const UExtbyte *src,
 		      Bytecount n, unsigned_char_dynarr *dst)
 {
-  UExtbyte c;
-  Bytecount orign = n;
-
-  while (n--)
+  const UExtbyte *srcend = src + n;
+  while (src < srcend)
     {
-      c = *src++;
+      const UExtbyte c = *src;
+      if (byte_ascii_p (c))
+	{
+          const Ibyte *nonascii = skip_ascii ((const Ibyte *) src,
+                                              (const Ibyte *) srcend);
 
-      DECODE_ADD_BINARY_CHAR (c, (Ibyte_dynarr *) dst);
+          Dynarr_add_many (dst, src, nonascii - src);
+
+	  src = nonascii;
+	}
+      else
+	{
+          DECODE_ADD_BINARY_CHAR (c, (Ibyte_dynarr *) dst);
+          src++;
+	}
     }
 
-  CODING_STREAM_TYPE_DATA (str, no_conversion)->characters_seen
-    += orign;
+  CODING_STREAM_TYPE_DATA (str, no_conversion)->characters_seen += n;
 
   return src - str->src;
 }
@@ -3886,11 +3895,14 @@ no_conversion_encode (struct coding_stream *str, const Ibyte *src,
   const Ibyte *srcend = src + n;
   while (src < srcend)
     {
-      Ibyte c = *src;
+      const Ibyte c = *src;
       if (byte_ascii_p (c))
 	{
-	  Dynarr_add (dst, c);
-	  src++;
+          const Ibyte *nonascii = skip_ascii (src, srcend);
+
+          Dynarr_add_many (dst, src, nonascii - src);
+
+	  src = nonascii;
 	}
 #ifdef MULE
       else

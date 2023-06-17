@@ -1,3 +1,17 @@
+2023-06-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* file-coding.c (no_conversion_decode):
+	* file-coding.c (no_conversion_encode):
+	* unicode.c (unicode_decode):
+	* unicode.c (unicode_encode):
+	Restore the skip_ascii() optimization for the no-conversion and
+	utf-8 coding systems, dropped in the course of the
+	unicode-internal merge. This gives a 25% speedup on loading
+	Unihan.txt as UTF-8, and a 33% speedup on loading it using
+	no-conversion.
+	Further work: add the skip_ascii() optimization to the multibyte
+	code if the relevant charsets make that appropriate.
+
 2023-05-17  Richard Hopkins <xemacs@unbit.co.uk>
 
 	* src/device-msw.c (mswindows_device_system_metrics): Update

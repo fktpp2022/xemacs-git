@@ -3434,10 +3434,24 @@ unicode_decode (struct coding_stream *str, const UExtbyte *src,
   switch (type)
     {
     case UNICODE_UTF_8:
-      while (n--)
+      while (n > 0)
 	{
-	  UExtbyte c = *src++;
-	  decode_utf_8 (data, dst, c, ignore_bom, allow_private);
+	  UExtbyte c = *src;
+          if (byte_ascii_p (c))
+            {
+              const UExtbyte *nonascii
+                = (const UExtbyte *) skip_ascii ((const Ibyte *) src,
+                                                 (const Ibyte *) src + n);
+              Dynarr_add_many (dst, src, nonascii - src);
+              n -= nonascii - src;
+              data->characters_seen += nonascii - src;
+              src = nonascii;
+            }
+          else
+            {
+              decode_utf_8 (data, dst, c, ignore_bom, allow_private);
+              n--, src++;
+            }
 	}
       counter = data->counter;
       ch = data->ch;
@@ -3703,11 +3717,23 @@ unicode_encode (struct coding_stream *str, const Ibyte *src,
       if (byte_ascii_p (c))
 #endif /* MULE */
 	{
-	  text_checking_assert (encode_unicode_to_dynarr (c, str, src, dst,
-                                                          type, little_endian,
-                                                          0, allow_private)
-                                >= 0);
-	  src++;
+          if (type == UNICODE_UTF_8)
+            {
+              const Ibyte *nonascii = skip_ascii ((const Ibyte *) src,
+                                                  (const Ibyte *) srcend);
+
+              Dynarr_add_many (dst, src, nonascii - src);
+
+              src = nonascii;
+            }
+          else
+            {
+              text_checking_assert (encode_unicode_to_dynarr
+                                    (c, str, src, dst, type, little_endian,
+                                     0, allow_private)
+                                    >= 0);
+              src++;
+            }
 	}
 #ifdef MULE
       else
