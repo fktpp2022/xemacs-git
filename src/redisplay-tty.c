@@ -612,8 +612,9 @@ set_foreground_to (struct console *c, Lisp_Object sym)
   Lisp_Object result;
   Ibyte *escseq = 0;
   Bytecount escseqlen = 0;
+  struct tty_console *tty_con = CONSOLE_TTY_DATA (c);
 
-  result = assq_no_quit (sym, Vtty_color_alist);
+  result = assq_no_quit (sym, tty_con->color_alist);
   if (!NILP (result))
     {
       Lisp_Object esc_seq = XCAR (XCDR (result));
@@ -642,8 +643,9 @@ set_background_to (struct console *c, Lisp_Object sym)
   Lisp_Object result;
   Ibyte *escseq = 0;
   Bytecount escseqlen = 0;
+  struct tty_console *tty_con = CONSOLE_TTY_DATA (c);
 
-  result = assq_no_quit (sym, Vtty_color_alist);
+  result = assq_no_quit (sym, tty_con->color_alist);
   if (!NILP (result))
     {
       Lisp_Object esc_seq = XCDR (XCDR (result));

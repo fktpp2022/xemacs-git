@@ -1,3 +1,51 @@
+2023-07-22  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	* redisplay-tty.c (set_foreground_to):
+	(set_background_to): Use console specific color_alist.
+
+	* fontcolor.c (Fcolor_list): Provide device arg to #'color-list.
+
+	* fontcolor-tty.c:
+	(Vtty_color_alist): Remove; it's now an entry in struct
+	tty_console.
+	(Fregister_tty_color): Add new console arg.  Use console specific
+	color_alist.
+	(Funregister_tty_color): Add new console arg.  Use console
+	specific color_alist.
+	(Ffind_tty_color): Add new console arg.  Use console specific
+	color_alist.
+	(tty_color_list): Add device arg.  Use console specific
+	color_alist.
+	(tty_initialize_color_instance): Use existing device arg.  Use
+	console specific color_alist.
+	(tty_valid_color_name_p): Use console specific color_alist.
+	(vars_of_fontcolor_tty): Delete staticpro call for the now deleted
+	Vtty_color_alist.
+
+	* fontcolor-msw.c (mswindows_color_list): Add UNUSED device arg.
+
+	* fontcolor-gtk.c (gtk_color_list): Add UNUSED device arg.
+
+	* device-tty.c:
+	(Qmake_device_late_tty_entry_point): New.
+	(tty_finish_init_device): New. Call
+	#'make-device-late-tty-entry-point.
+	(syms_of_device_tty): DEFSYMBOL Qmake_device_late_tty_entry_point.
+	(console_type_create_device_tty): Provide finish_init_device
+	method.
+
+	* console-tty.c (tty_console_data_description_1): Add entry for
+	color_alist.
+	(allocate_tty_console_struct): Set color_alist entry to Qnil.
+	(tty_init_console): Set color_alist entry to Qnil.
+	(tty_mark_console): Mark color_alist.
+
+	* console-tty-impl.h (struct tty_console): Add color_alist
+	entry.
+
+	* console-impl.h (struct console_methods): Add device arg for
+	color_list_method.
+
 2023-06-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* file-coding.c (no_conversion_decode):

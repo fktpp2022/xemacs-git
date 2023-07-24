@@ -195,7 +195,7 @@ struct console_methods
                                           int depth);
   Lisp_Object (*color_instance_rgb_components_method) (Lisp_Color_Instance *);
   int (*valid_color_name_p_method) (struct device *, Lisp_Object color);
-  Lisp_Object (*color_list_method) (void);
+  Lisp_Object (*color_list_method) (Lisp_Object);
 
   /* font methods */
   int (*initialize_font_instance_method) (Lisp_Font_Instance *,

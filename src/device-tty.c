@@ -40,6 +40,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "syssignal.h" /* for SIGWINCH */
 
 Lisp_Object Qmake_device_early_tty_entry_point;
+Lisp_Object Qmake_device_late_tty_entry_point;
 
 
 
@@ -94,6 +95,12 @@ tty_init_device (struct device *d, Lisp_Object UNUSED (props))
     }
 
   init_one_device (d);
+}
+
+static void
+tty_finish_init_device (struct device *d, Lisp_Object UNUSED (props))
+{
+  call1 (Qmake_device_late_tty_entry_point, wrap_device(d));
 }
 
 static void
@@ -201,6 +208,7 @@ syms_of_device_tty (void)
 {
 
   DEFSYMBOL (Qmake_device_early_tty_entry_point);
+  DEFSYMBOL (Qmake_device_late_tty_entry_point);
 }
 
 void
@@ -208,6 +216,7 @@ console_type_create_device_tty (void)
 {
   /* device methods */
   CONSOLE_HAS_METHOD (tty, init_device);
+  CONSOLE_HAS_METHOD (tty, finish_init_device);
   CONSOLE_HAS_METHOD (tty, delete_device);
 #ifdef SIGWINCH
   CONSOLE_HAS_METHOD (tty, asynch_device_change);

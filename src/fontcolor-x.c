@@ -200,7 +200,7 @@ x_valid_color_name_p (struct device *d, Lisp_Object color)
 }
 
 static Lisp_Object
-x_color_list (void)
+x_color_list (Lisp_Object UNUSED (device))
 {
   return call0 (intern ("x-color-list-internal"));
 }

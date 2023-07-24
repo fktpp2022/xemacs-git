@@ -2254,7 +2254,7 @@ mswindows_find_charset_font (Lisp_Object device, Lisp_Object font,
 /************************************************************************/
 
 static Lisp_Object
-mswindows_color_list (void)
+mswindows_color_list (Lisp_Object UNUSED (device))
 {
   Lisp_Object result = Qnil;
   int i;

@@ -28,8 +28,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "device.h"
 #include "charset.h"
 
-/* An alist mapping from color names to a cons of (FG-STRING, BG-STRING). */
-Lisp_Object Vtty_color_alist;
 #if 0 /* This stuff doesn't quite work yet */
 Lisp_Object Vtty_dynamic_color_fg;
 Lisp_Object Vtty_dynamic_color_bg;
@@ -53,51 +51,74 @@ const struct sized_memory_description tty_font_instance_data_description = {
   sizeof (struct tty_font_instance_data), tty_font_instance_data_description_1
 };
 
-DEFUN ("register-tty-color", Fregister_tty_color, 3, 3, 0, /*
-Register COLOR as a recognized TTY color.
+DEFUN ("register-tty-color", Fregister_tty_color, 3, 4, 0, /*
+Register COLOR as a recognized TTY color on CONSOLE.
+
 COLOR should be a string.
 Strings FG-STRING and BG-STRING should specify the escape sequences to
  set the foreground and background to the given color, respectively.
+CONSOLE defaults to the selected console. Error if it is not a TTY console.
 */
-       (color, fg_string, bg_string))
+       (color, fg_string, bg_string, console))
 {
+  struct tty_console *tty_con;
   CHECK_STRING (color);
   CHECK_STRING (fg_string);
   CHECK_STRING (bg_string);
 
+  console = wrap_console (decode_console (console));
+  CHECK_TTY_CONSOLE (console);
+
+  tty_con = CONSOLE_TTY_DATA (XCONSOLE (console));
   color = Fintern (color, Qnil);
-  Vtty_color_alist = remassq_no_quit (color, Vtty_color_alist);
-  Vtty_color_alist = Fcons (Fcons (color, Fcons (fg_string, bg_string)),
-			    Vtty_color_alist);
+  tty_con->color_alist
+    = remassq_no_quit (color, tty_con->color_alist);
+  tty_con->color_alist
+    = Fcons (Fcons (color, Fcons (fg_string, bg_string)),
+             tty_con->color_alist);
 
   return Qnil;
 }
 
-DEFUN ("unregister-tty-color", Funregister_tty_color, 1, 1, 0, /*
-Unregister COLOR as a recognized TTY color.
+DEFUN ("unregister-tty-color", Funregister_tty_color, 1, 2, 0, /*
+Unregister COLOR as a recognized TTY color on CONSOLE.
+
+CONSOLE defaults to the selected console. Error if it is not a TTY console.
 */
-       (color))
+       (color, console))
 {
-  CHECK_STRING (color);
+  struct tty_console *tty_con;
 
+  CHECK_STRING (color);
+  console = wrap_console (decode_console (console));
+  CHECK_TTY_CONSOLE (console);
+
+  tty_con = CONSOLE_TTY_DATA (XCONSOLE (console));
   color = Fintern (color, Qnil);
-  Vtty_color_alist = remassq_no_quit (color, Vtty_color_alist);
+  tty_con->color_alist = remassq_no_quit (color, tty_con->color_alist);
   return Qnil;
 }
 
-DEFUN ("find-tty-color", Ffind_tty_color, 1, 1, 0, /*
-Look up COLOR in the list of registered TTY colors.
+DEFUN ("find-tty-color", Ffind_tty_color, 1, 2, 0, /*
+Look up COLOR in the list of registered TTY colors for CONSOLE.
+
 If it is found, return a list (FG-STRING BG-STRING) of the escape
 sequences used to set the foreground and background to the color, respectively.
 If it is not found, return nil.
+
+CONSOLE defaults to the selected console. Error if it is not a TTY console.
 */
-       (color))
+       (color, console))
 {
   Lisp_Object result;
+  struct tty_console *tty_con;
 
   CHECK_STRING (color);
+  console = wrap_console (decode_console (console));
+  CHECK_TTY_CONSOLE (console);
 
-  result = assq_no_quit (Fintern (color, Qnil), Vtty_color_alist);
+  tty_con = CONSOLE_TTY_DATA (XCONSOLE (console));
+  result = assq_no_quit (Fintern (color, Qnil), tty_con->color_alist);
   if (!NILP (result))
     return list2 (Fcar (Fcdr (result)), Fcdr (Fcdr (result)));
   else
@@ -105,12 +126,14 @@ If it is not found, return nil.
 }
 
 static Lisp_Object
-tty_color_list (void)
+tty_color_list (Lisp_Object device)
 {
   Lisp_Object result = Qnil;
   Lisp_Object rest;
+  Lisp_Object console = device_console (decode_device (device));
+  struct tty_console *tty_con = CONSOLE_TTY_DATA (decode_console (console));
 
-  LIST_LOOP (rest, Vtty_color_alist)
+  LIST_LOOP (rest, tty_con->color_alist)
     {
       result = Fcons (Fsymbol_name (XCAR (XCAR (rest))), result);
     }
@@ -156,13 +179,15 @@ See `set-tty-dynamic-color-specs'.
 
 static int
 tty_initialize_color_instance (Lisp_Color_Instance *c, Lisp_Object name,
-			       Lisp_Object UNUSED (device),
+			       Lisp_Object device,
 			       Error_Behavior UNUSED (errb))
 {
   Lisp_Object result;
+  Lisp_Object console = device_console (decode_device (device));
+  struct tty_console *tty_con = CONSOLE_TTY_DATA (decode_console (console));
 
   name = Fintern (name, Qnil);
-  result = assq_no_quit (name, Vtty_color_alist);
+  result = assq_no_quit (name, tty_con->color_alist);
 
   if (NILP (result))
     {
@@ -219,9 +244,11 @@ tty_color_instance_hash (Lisp_Color_Instance *c, int UNUSED (depth))
 }
 
 static int
-tty_valid_color_name_p (struct device *UNUSED (d), Lisp_Object color)
+tty_valid_color_name_p (struct device *d, Lisp_Object color)
 {
-  return (!NILP (assoc_no_quit (Fintern (color, Qnil), Vtty_color_alist)));
+  Lisp_Object console = device_console (d);
+  struct tty_console *tty_con = CONSOLE_TTY_DATA (decode_console (console));
+  return (!NILP (assoc_no_quit (Fintern (color, Qnil), tty_con->color_alist)));
 #if 0
 	  || STRINGP (Vtty_dynamic_color_fg)
 	  || STRINGP (Vtty_dynamic_color_bg)
@@ -368,7 +395,6 @@ tty_find_charset_font (Lisp_Object device, Lisp_Object font,
 void
 syms_of_fontcolor_tty (void)
 {
-
   DEFSUBR (Fregister_tty_color);
   DEFSUBR (Funregister_tty_color);
   DEFSUBR (Ffind_tty_color);
@@ -405,9 +431,6 @@ console_type_create_fontcolor_tty (void)
 void
 vars_of_fontcolor_tty (void)
 {
-  staticpro (&Vtty_color_alist);
-  Vtty_color_alist = Qnil;
-
 #if 0
   staticpro (&Vtty_dynamic_color_fg);
   Vtty_dynamic_color_fg = Qnil;

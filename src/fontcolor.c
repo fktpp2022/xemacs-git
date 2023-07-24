@@ -244,7 +244,7 @@ currently selected device.
 {
   device = wrap_device (decode_device (device));
 
-  return MAYBE_LISP_DEVMETH (XDEVICE (device), color_list, ());
+  return MAYBE_LISP_DEVMETH (XDEVICE (device), color_list, (device));
 }
 
 

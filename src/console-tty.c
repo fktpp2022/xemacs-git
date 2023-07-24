@@ -54,6 +54,7 @@ static const struct memory_description tty_console_data_description_1 [] = {
   { XD_LISP_OBJECT, offsetof (struct tty_console, terminal_type) },
   { XD_LISP_OBJECT, offsetof (struct tty_console, instream) },
   { XD_LISP_OBJECT, offsetof (struct tty_console, outstream) },
+  { XD_LISP_OBJECT, offsetof (struct tty_console, color_alist) },
   { XD_END }
 };
 
@@ -70,6 +71,7 @@ allocate_tty_console_struct (struct console *con)
   CONSOLE_TTY_DATA (con)->terminal_type = Qnil;
   CONSOLE_TTY_DATA (con)->instream = Qnil;
   CONSOLE_TTY_DATA (con)->outstream = Qnil;
+  CONSOLE_TTY_DATA (con)->color_alist = Qnil;
 }
 
 static void
@@ -110,6 +112,7 @@ tty_init_console (struct console *con, Lisp_Object props)
 
   allocate_tty_console_struct (con);
   tty_con = CONSOLE_TTY_DATA (con);
+  tty_con->color_alist = Qnil;
 
   if (internal_equal (tty, Vstdio_str, 0))
     {
@@ -187,6 +190,7 @@ tty_mark_console (struct console *con)
   mark_object (tty_con->terminal_type);
   mark_object (tty_con->instream);
   mark_object (tty_con->outstream);
+  mark_object (tty_con->color_alist);
 }
 
 static int

@@ -195,7 +195,7 @@ gtk_valid_color_name_p (struct device *UNUSED (d), Lisp_Object color)
 }
 
 static Lisp_Object
-gtk_color_list (void)
+gtk_color_list (Lisp_Object UNUSED (device))
 {
   /* #### BILL!!!
      Is this correct? */
