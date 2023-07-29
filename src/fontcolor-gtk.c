@@ -172,10 +172,10 @@ gtk_color_instance_rgb_components (struct Lisp_Color_Instance *c)
 		 make_fixnum (color->blue)));
 #else
   GdkRGBA *color = COLOR_INSTANCE_GTK_COLOR (c);
-  return (list4 (make_float (color->red),
-		 make_float (color->green),
-		 make_float (color->blue),
-		 make_float (color->alpha)));
+  return list3 (make_fixnum ((UINT_16_BIT) (color->red * 65535)),
+                make_fixnum ((UINT_16_BIT) (color->green * 65535)),
+                make_fixnum ((UINT_16_BIT) (color->blue * 65535)));
+  /* Don't return the alpha for now, Lisp can't handle it. */
 #endif
 }
 

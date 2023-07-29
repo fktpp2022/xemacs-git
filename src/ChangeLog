@@ -1,3 +1,11 @@
+2023-07-29  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fontcolor-gtk.c (gtk_color_instance_rgb_components):
+	Return something understood by Lisp (that is, three fixnums
+	between 0 and 65535) under GTK3, rather than floats. 
+	This fixes detection that a frame has a light background in
+	#'get-frame-background-mode for me.
+
 2023-07-22  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	* redisplay-tty.c (set_foreground_to):
