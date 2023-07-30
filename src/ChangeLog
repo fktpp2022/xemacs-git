@@ -1,3 +1,34 @@
+2023-07-30  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Make algorithm used in #'find, #'position with :from-end and
+	lists, strings the same as that with arrays; use
+	list_position_cons_before() for the non :from-end list case, which
+	is cheaper for the usual case where the test is #'eq and there is
+	no key argument.
+
+	* sequence.c:
+	* sequence.c (list_position_cons_before):
+	Update documentation for this function. Error if END and START are
+	not valid bounding index designators, which it did not previously.
+
+	* sequence.c (position):
+	Call list_position_cons_before () and adjust the algorithm with
+	:from-end and strings, lists as above.
+
+	* sequence.c (Fdelete_duplicates):
+	Be more careful about the END argument to
+	list_position_cons_before () now that it's checked.
+	* sequence.c (Fremove_duplicates):
+	Be more careful about the END argument to
+	list_position_cons_before () now that it's checked.
+
+	* sequence.c (mismatch_list_string):
+	* sequence.c (mismatch_list_array):
+	* sequence.c (mismatch_string_array):
+	Work around the compiler thinking an argument to make_integer ()
+	with the ternary operator is non-idempotent in these functions, in
+	passing.
+
 2023-07-29  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* fontcolor-gtk.c (gtk_color_instance_rgb_components):

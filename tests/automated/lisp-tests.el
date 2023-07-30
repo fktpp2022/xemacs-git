@@ -133,6 +133,7 @@
    "" #* []
    "a" #*1 [1]
    "abcdefghijklmnop"
+   "äbçdëfghíjklmnöp"
    #*10101010100101010101
    [?a ?b ?c ?d ?e ?f ?g ?h ?i ?j ?k ?l ?m ?n ?o ?p]))
 

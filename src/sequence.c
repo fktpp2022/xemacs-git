@@ -1248,8 +1248,11 @@ memq_no_quit (Lisp_Object elt, Lisp_Object list)
    #'remove*; CHECK_TEST and TEST_NOT_UNBOUNDP should have been initialized
    with get_check_match_function() or get_check_test_function().  A non-zero
    REVERSE_TEST_ORDER means call TEST with the element from LIST as its
-   first argument and ITEM as its second. Error if LIST is ill-formed, or
-   circular. */
+   first argument and ITEM as its second.
+
+   Error if LIST is ill-formed, or if START is not a valid index in LIST. If
+   END is non-nil and the list is determined to be shorter than its fixnum
+   value, error.  If LIST is circular and ITEM is not found in it, error. */
 static Lisp_Object
 list_position_cons_before (Lisp_Object *cons_out,
                            Lisp_Object item, Lisp_Object list,
@@ -1314,6 +1317,11 @@ list_position_cons_before (Lisp_Object *cons_out,
           tail_before = tail;
         }
       END_GC_EXTERNAL_LIST_LOOP (elt);
+    }
+
+  if (ii < starting || (ii < ending && !NILP (end)))
+    {
+      check_sequence_range (list, start, end, make_integer (ii));
     }
 
   RETURN_UNGCPRO (Qnil);
@@ -1652,30 +1660,72 @@ position (Lisp_Object *object_out, Lisp_Object item, Lisp_Object sequence,
 	  return Qnil;
 	}
 
-      {
-	GC_EXTERNAL_LIST_LOOP_2 (elt, sequence)
-          {
-            if (starting <= ii && ii < ending
-                && check_test (test, key, item, elt) == test_not_unboundp)
-              {
-                result = make_integer (ii);
-                *object_out = elt;
+      if (NILP (from_end))
+        {
+          Lisp_Object cons_before = Qnil;
 
-                if (NILP (from_end))
-                  {
-		    XUNGCPRO (elt);
-                    return result;
-                  }
-              }
-            else if (ii == ending)
+          result = list_position_cons_before (&cons_before, item, sequence,
+                                              check_test, test_not_unboundp,
+                                              test, key, 0, start, end);
+          if (ZEROP (result))
+            {
+              *object_out = XCAR (sequence);
+            }
+          else if (CONSP (cons_before))
+            {
+              /* l_p_c_b has errored if SEQUENCE is ill-formed, XCAR (XCDR ())
+                 is fine. */
+              *object_out = XCAR (XCDR (cons_before));
+            }
+
+          return result;
+        }
+      else
+        {
+          Lisp_Object *storage;
+          struct gcpro gcpro1;
+          Elemcount jj = 0;
+
+          if (MOST_POSITIVE_FIXNUM == ending)
+            {
+              /* FROM_END is non-nil, we can't start from the end without
+                 knowing where the end is. This function used to
+                 language-lawyer around the double list traversal (Common Lisp
+                 specifies a traversal order for #'count, #'count-if, but not
+                 for #'position, #'find), but I now prefer to do it this way
+                 for symmetry with the array handling. */
+              ending = XFIXNUM (Flength (sequence));
+            }
+
+          storage = alloca_array (Lisp_Object, ending - starting);
+
+          {
+            EXTERNAL_LIST_LOOP_2 (elt, sequence)
               {
-                break;
+                if (starting <= jj && jj < ending)
+                  {
+                    storage[jj - starting] = elt;
+                  }
+                jj++;
               }
-            
-            ii++;
           }
-	END_GC_EXTERNAL_LIST_LOOP (elt);
-      }
+
+          GCPRO1 (storage[0]);
+          gcpro1.nvars = ending - starting;
+
+          for (ii = ending - 1; ii >= starting; ii--)
+            {
+              if (check_test (test, key, item, storage[ii - starting])
+                  == test_not_unboundp)
+                {
+                  result = make_integer (ii);
+                  *object_out = storage[ii - starting];
+                  RETURN_UNGCPRO (result);
+                }
+            }
+
+          UNGCPRO;
+        }
 
       if (ii < starting || (ii < ending && !NILP (end)))
 	{
@@ -1684,7 +1734,7 @@ position (Lisp_Object *object_out, Lisp_Object item, Lisp_Object sequence,
     }
   else if (STRINGP (sequence))
     {
-      Ibyte *startp = XSTRING_DATA (sequence), *cursor;
+      const Ibyte *startp = XSTRING_DATA (sequence), *cursor;
       Bytecount byte_len = XSTRING_LENGTH (sequence), cursor_offset;
       Lisp_Object character = Qnil;
 
@@ -1692,22 +1742,22 @@ position (Lisp_Object *object_out, Lisp_Object item, Lisp_Object sequence,
                                              (XSTRING_ASCII_END (sequence)),
 					     starting));
       cursor = startp + cursor_offset;
-      /* It's probably worth making this even faster for the
-	 non-variable-width-string case. Not now, though.  */
 
-      while (cursor_offset < byte_len && ii < ending)
-	{
-	  if (ii >= starting)
-	    {
-	      character = make_char (itext_ichar (cursor));
+      if (NILP (from_end))
+        {
+          /* It's probably worth making this even faster for the
+             non-variable-width-string case. Not now, though.  */
+          while (cursor_offset < byte_len && ii < ending)
+            {
+              if (ii >= starting)
+                {
+                  character = make_char (itext_ichar (cursor));
 
-	      if (check_test (test, key, item, character) == test_not_unboundp)
-		{
-		  result = make_integer (ii);
-		  *object_out = character;
-
-		  if (NILP (from_end))
-		    {
+                  if (check_test (test, key, item, character)
+                      == test_not_unboundp)
+                    {
+                      result = make_integer (ii);
+                      *object_out = character;
 		      return result;
 		    }
 		}
@@ -1719,17 +1769,65 @@ position (Lisp_Object *object_out, Lisp_Object item, Lisp_Object sequence,
 		{
 		  mapping_interaction_error (caller, sequence);
 		}
-	    }
 
-	  INC_IBYTEPTR (cursor);
-	  cursor_offset = cursor - startp;
-	  ii++;
-	}
+              INC_IBYTEPTR (cursor);
+              cursor_offset = cursor - startp;
+              ii++;
+            }
 
-      if (ii < starting || (ii < ending && !NILP (end)))
-	{
-	  check_sequence_range (sequence, start, end, Flength (sequence));
-	}
+          if (ii < starting || (ii < ending && !NILP (end)))
+            {
+              check_sequence_range (sequence, start, end, Flength (sequence));
+            }
+        }
+      else
+        {
+          Ichar *storage;
+          Elemcount jj = 0, storage_len = ending - starting;
+          const Ibyte *endp = startp + byte_len;
+
+          if (NILP (end))
+            {
+              /* The byte length of SEQUENCE is an inclusive upper bound on
+                 the character length, just allocate that rather than
+                 traversing the string twice to get the actual character
+                 length. */
+              storage_len = byte_len - cursor_offset;
+            }
+
+          storage = alloca_array (Ichar, storage_len);
+
+          while (cursor < endp && ii < ending)
+            {
+              if (starting <= ii && ii < ending)
+                {
+                  storage [ii - starting] = itext_ichar (cursor);
+                }
+              ii++;
+              INC_IBYTEPTR (cursor);
+            }
+
+          if (ii < starting || (ii < ending && !NILP (end)))
+            {
+              check_sequence_range (sequence, start, end, Flength (sequence));
+            }
+          else if (cursor == endp)
+            {
+              ending = ii;
+            }
+
+          for (jj = ending - 1; jj >= starting; jj--)
+            {
+              if (check_test (test, key, item,
+                              make_char (storage [jj - starting]))
+                  == test_not_unboundp)
+                {
+                  result = make_integer (jj);
+                  *object_out = make_char (storage[jj - starting]);
+                  return result;
+                }
+            }
+        }
     }
   else
     {
@@ -2600,11 +2698,14 @@ arguments: (SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) END FROM-END T
                       = list_position_cons_before (&ignore, keyed,
                                                    XCDR (tail), check_test,
                                                    test_not_unboundp, test, key,
-                                                   0, make_fixnum (max (starting
-                                                                     - (ii + 1),
-                                                                     0)),
+                                                   0,
+                                                   make_fixnum (max
+                                                                (starting
+                                                                 - (ii + 1),
+                                                                 0)),
+                                                   NILP (end) ? Qnil : 
                                                    make_fixnum (ending
-                                                             - (ii + 1)));
+                                                                - (ii + 1)));
                     if (!NILP (positioned))
                       {
                         sequence = XCDR (tail);
@@ -2641,7 +2742,9 @@ arguments: (SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) END FROM-END T
                                                test, key, 0,
                                                make_fixnum (max (starting
                                                               - (ii + 1), 0)),
-                                               make_fixnum (ending - (ii + 1)));
+                                               NILP (end) ? Qnil :
+                                               make_fixnum (ending -
+                                                            (ii + 1)));
                 if (!NILP (positioned))
                   {
                     /* We know this isn't the first iteration of the loop,
@@ -3099,6 +3202,7 @@ arguments: (SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) END FROM-END T
                                                test, key, 0,
                                                make_fixnum (max (starting
                                                               - (ii + 1), 0)),
+                                               NILP (end) ? Qnil :
                                                make_fixnum (ending - (ii + 1)));
                 if (!NILP (positioned))
                   {
@@ -3140,6 +3244,7 @@ arguments: (SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) END FROM-END T
                                            test, key, 0,
                                            make_fixnum (max (starting - (ii + 1),
                                                           0)),
+                                           NILP (end) ? Qnil :
                                            make_fixnum (ending - (ii + 1)));
             if (!NILP (positioned))
               {
@@ -7450,8 +7555,9 @@ mismatch_list_string (Lisp_Object list, Lisp_Object list_start,
        string_offset < string_len : string_starting < string_ending) ||
       (NILP (list_end) ? !NILP (list) : list_starting < list_ending))
     {
-      return make_integer (return_list_index ? XFIXNUM (list_start) + char_count :
-                           char_count);
+      Elemcount result
+        = return_list_index ? XFIXNUM (list_start) + char_count : char_count;
+      return make_integer (result);
     }
   
   return Qnil;
@@ -7541,8 +7647,9 @@ mismatch_list_array (Lisp_Object list, Lisp_Object list_start,
   if (array_starting < array_ending ||
       (NILP (list_end) ? !NILP (list) : list_starting < list_ending))
     {
-      return make_integer (return_list_index ? XFIXNUM (list_start) + ii :
-                           array_starting);
+      Elemcount result = return_list_index ? XFIXNUM (list_start) + ii :
+        array_starting;
+      return make_integer (result);
     }
 
   return Qnil;
@@ -7630,8 +7737,9 @@ mismatch_string_array (Lisp_Object string, Lisp_Object string_start,
        string_offset < string_len : string_starting < string_ending) ||
       (NILP (array_end) ? !NILP (array) : array_starting < array_ending))
     {
-      return make_integer (return_string_index ? char_count :
-                           XFIXNUM (array_start) + char_count);
+      Elemcount result = return_string_index ? char_count :
+        XFIXNUM (array_start) + char_count;
+      return make_integer (result);
     }
   
   return Qnil;

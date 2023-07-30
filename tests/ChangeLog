@@ -1,3 +1,9 @@
+2023-07-30  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el (probe-bounds-of-aref):
+	Add some non-ASCII content when testing bounds with #'position and
+	friends.
+
 2023-05-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* XEmacs 21.5.35 "kohlrabi" is released.
