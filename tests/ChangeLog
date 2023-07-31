@@ -1,3 +1,9 @@
+2023-07-31  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/format-tests.el:
+	Test the %z integer length modifier explicitly, check that it is
+	equivalent to the %l modifier when supplied to Lisp.
+
 2023-07-30  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/lisp-tests.el (probe-bounds-of-aref):

@@ -1825,7 +1825,8 @@ rewrite_rational_spec (struct printf_spec *spec, printf_arg *arg,
               *obj = make_fixnum ((UINT_16_BIT) (XREALFIXNUM (*obj)));
               spec->hl_flag = HL_FLAG_NOTHING;
               break;
-            case HL_FLAG_L:          
+            case HL_FLAG_L:
+            case HL_FLAG_Z:
               arg->ull = ((UINT_32_BIT) XREALFIXNUM (*obj));
               spec->hl_flag = HL_FLAG_NOTHING;
               *obj = Qunbound;
@@ -1850,6 +1851,7 @@ rewrite_rational_spec (struct printf_spec *spec, printf_arg *arg,
               spec->hl_flag = HL_FLAG_NOTHING;
               break;
             case HL_FLAG_L:
+            case HL_FLAG_Z:
               *obj = make_fixnum ((INT_32_BIT) XREALFIXNUM (*obj));
               spec->hl_flag = HL_FLAG_NOTHING;
               break;
