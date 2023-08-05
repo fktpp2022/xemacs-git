@@ -1,3 +1,32 @@
+2023-08-05  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* event-stream.c (enum did_munge_result): New.
+	Enumeration documenting the various munging of events that
+	munge_keymap_translate() and friends may have done.
+
+	* event-stream.c (this_command_keys_shift_translated): New.
+	A boolean variable to allow handle-pre-motion-command and
+	handle-post-motion-command to know whether
+	retry-undefined-key-binding-unshifted has been necessary. Name
+	from GNU, implementation our own.
+
+	* event-stream.c (munge_keymap_translate):
+	Implement the enumeration for DID_MUNGE.
+	* event-stream.c (command_builder_find_leaf_no_jit_binding):
+	Ditto.
+	* event-stream.c (command_builder_find_leaf):
+	Ditto.
+	* event-stream.c
+	(command_builder_find_leaf_and_update_global_state):
+	Check DID_MUNGE for MUNGED_RETRY_UPSHIFTED, set
+	this_command_keys_shift_translated to non-zero if appropriate.
+	* event-stream.c (reset_this_command_keys):
+	Set this_command_keys_shift_translated to zero.
+	* event-stream.c (vars_of_event_stream):
+	Make this-command-keys-shift-translated available to Lisp.
+	* events.c (Fevent_key):
+	Extend the docstring of this some more.
+
 2023-07-31  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* doprnt.c (rewrite_rational_spec):

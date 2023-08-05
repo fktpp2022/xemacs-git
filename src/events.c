@@ -1806,8 +1806,14 @@ See also `event-timestamp' and `current-event-timestamp'.
 } while (0)
 
 DEFUN ("event-key", Fevent_key, 1, 1, 0, /*
-Return the Keysym of the key-press event EVENT.
+Return the key of the key-press event EVENT.
+
 This will be a character if the event is associated with one, else a symbol.
+See also `event-modifiers' and `canonicalize-keysym'.
+
+`event-key' always returns a non-list result without modifiers; for an event
+which does not have modifiers `(eq (canonicalize-keysym (event-key EVENT))
+(event-key EVENT))' will always hold.
 */
        (event))
 {

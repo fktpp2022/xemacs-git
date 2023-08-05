@@ -79,3 +79,79 @@
       (Assert (region-active-p)))
     ;; Second temp buffer no longer exists
     (Assert (null (zmacs-region-buffer)))))
+
+;; Test the shifted-motion handling.
+(with-temp-buffer
+  (let ((zmacs-regions t) (shifted-motion-keys-select-region t)
+	(motion-keys-for-shifted-motion
+	 motion-keys-for-shifted-motion))
+    (insert "(hello\nthere)")
+    (Assert (not (region-active-p))
+	    "checking [(home)] does not activate the region")
+    (dispatch-event (character-to-event '(home)))
+    (Assert (not (region-active-p))
+	    "checking [(home)] does not activate the region")
+    (dispatch-event (character-to-event '(end)))
+    (Assert (not (region-active-p))
+	    "checking [(end)] does not activate the region")
+    (mapc #'dispatch-event
+	  (mapcar #'character-to-event '((home) (shift end))))
+    (Assert (equal (buffer-substring (point) (mark)) "there)")
+	    "checking [(shift end)] motion key selects the region")
+    (dispatch-event (character-to-event '(left)))
+    (Assert (not (region-active-p))
+	    "checking unshifted motion deactivates region")
+    (dispatch-event (character-to-event '(control shift b)))
+    (Assert (not (region-active-p))
+	    "checking shifted alphabetic motion key does not normally
+activate the region")
+    (end-of-line)
+    (setq motion-keys-for-shifted-motion
+	  (cons '(control b) motion-keys-for-shifted-motion))
+    (dispatch-event (character-to-event '(control shift b)))
+    (Assert (region-active-p)
+	    "checking shifted alphabetic motion key activates region
+when in `motion-keys-for-shifted-motion'")
+    (Assert (equal (buffer-substring (point) (mark)) ")")
+	    "checking appropriate region activated, alphabetic motion key")
+    ;; Deactivate the region.
+    (dispatch-event (character-to-event '(control f)))
+
+    (switch-to-buffer
+     (prog1 (current-buffer)
+       (dispatch-event (character-to-event '(meta shift home)))))
+    (Assert (not (region-active-p))
+	    "checking switching to previous buffer{,-in-group} doesn't \
+activate the region")
+    (switch-to-buffer
+     (prog1 (current-buffer)
+       (dispatch-event (character-to-event '(meta shift end)))))
+    (Assert (not (region-active-p))
+	    "checking switching to next buffer{,-in-group} doesn't \
+activate the region")
+    ;; Test the shifted-motion paradigm when these keys are generated using
+    ;; function-key-map, as is unremarkable on TTYs.
+    (let ((home "\eO\000")
+	  (shift-end "\e[1;2F")
+	  (left "\e[D"))
+      (define-key function-key-map home [home])
+      (define-key function-key-map shift-end [(shift end)])
+      (define-key function-key-map left [left])
+      (goto-char (point-max))
+      (mapc #'dispatch-event (mapcar #'character-to-event home))
+      (Assert (not (region-active-p))
+	      "checking [(home)] does not activate the region, \
+function-key-map")
+      (Assert (looking-at-p "there)")
+	      "checking function-key-map handling of `home' moves \
+appropriately")
+      (mapc #'dispatch-event (mapcar #'character-to-event shift-end))
+      (Assert (equal (buffer-substring (point) (mark)) "there)")
+	      "checking [(shift end)] motion key selects the region, \
+function-key-map")
+      (mapc #'dispatch-event (mapcar #'character-to-event left))
+      (Assert (not (region-active-p))
+	      "checking unshifted motion deactivates region, \
+function-key-map"))))
+
+;;; end of region-tests.el

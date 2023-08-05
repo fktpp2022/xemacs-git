@@ -102,6 +102,15 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include <errno.h>
 
+enum did_munge_result
+{
+  DID_NOT_MUNGE = 0,
+  MUNGED_FUNCTION_KEY = 1 << 0,
+  MUNGED_KEY_TRANSLATION = 1 << 1,
+  MUNGED_RETRY_UPSHIFTED = 1 << 2,
+  MUNGED_ALTERNATE_LAYOUT = 1 << 3
+};
+
 /* The number of keystrokes between auto-saves. */
 static Fixnum auto_save_interval;
 
@@ -225,6 +234,10 @@ Lisp_Object Vkeyboard_translate_table;
 /* If control-meta-super-shift-X is undefined, try control-meta-super-x */
 Lisp_Object Vretry_undefined_key_binding_unshifted;
 Lisp_Object Qretry_undefined_key_binding_unshifted;
+
+/* Does this-command-keys reflect that retry-undefined-key-binding-unshifted
+   was needed? */
+Boolint this_command_keys_shift_translated;
 
 /* Console that corresponds to our controlling terminal */
 Lisp_Object Vcontrolling_terminal;
@@ -3351,7 +3364,9 @@ munge_keymap_translate (struct command_builder *builder,
 	  command_builder_replace_suffix (builder, suffix, new_chain);
 	  builder->first_mungeable_event[munge] = Qnil;
 
-	  *did_munge = 1;
+	  *did_munge
+	    = MUNGE_ME_FUNCTION_KEY == munge ? MUNGED_FUNCTION_KEY
+	    : MUNGED_KEY_TRANSLATION;
 
 	  return command_builder_find_leaf_1 (builder);
 	}
@@ -3456,7 +3471,7 @@ command_builder_find_leaf_no_jit_binding (struct command_builder *builder,
           if (!NILP (result))
 	    {
 	      copy_command_builder (neub, builder);
-	      *did_munge = 1;
+	      *did_munge = MUNGED_RETRY_UPSHIFTED;
 	    }
           free_normal_lisp_object (wrap_command_builder (neub));
 	  UNGCPRO;
@@ -3654,7 +3669,7 @@ command_builder_find_leaf (struct command_builder *builder,
 	  if (!NILP (result))
 	    {
 	      copy_command_builder (newb, builder);
-	      *did_munge = 1;
+	      *did_munge = MUNGED_ALTERNATE_LAYOUT;
 	    }
 	  else if (event_upshifted_p 
 		   (XCOMMAND_BUILDER(newbuilder)->most_current_event) &&
@@ -3668,6 +3683,11 @@ command_builder_find_leaf (struct command_builder *builder,
 				    make_char(tolower(this_alternative)));
 	      result = command_builder_find_leaf_no_jit_binding
 		(newb, allow_misc_user_events_p, did_munge);
+	      if (!NILP (result))
+		{
+		  *did_munge
+		    = MUNGED_RETRY_UPSHIFTED | MUNGED_ALTERNATE_LAYOUT;
+		}
 	    }
 
           free_normal_lisp_object (wrap_command_builder (newb));
@@ -3690,13 +3710,13 @@ command_builder_find_leaf_and_update_global_state (struct command_builder *
 						   int
 						   allow_misc_user_events_p)
 {
-  int did_munge = 0;
+  int did_munge = DID_NOT_MUNGE;
   int orig_length = event_chain_count (builder->current_events);
   Lisp_Object result = command_builder_find_leaf (builder,
 						  allow_misc_user_events_p,
 						  &did_munge);
 
-  if (did_munge)
+  if (did_munge != DID_NOT_MUNGE)
     {
       int tck_length = event_chain_count (Vthis_command_keys);
 
@@ -3715,6 +3735,15 @@ command_builder_find_leaf_and_update_global_state (struct command_builder *
 	     new_chain);
 
 	  regenerate_echo_keys_from_this_command_keys (builder);
+	}
+
+      if (did_munge & MUNGED_RETRY_UPSHIFTED)
+	{
+	  this_command_keys_shift_translated = 1;
+	  /* If there is a need to make the other munging state available to
+	     Lisp, this is the place to do it, with a corresponding reset to
+	     zero in reset_this_command_keys(). For now only
+	     handle-{pre,post}-motion-command need it. */
 	}
     }
 
@@ -3943,6 +3972,7 @@ reset_this_command_keys (Lisp_Object console, int clear_echo_area_p)
   deallocate_event_chain (Vthis_command_keys);
   Vthis_command_keys = Qnil;
   Vthis_command_keys_tail = Qnil;
+  this_command_keys_shift_translated = 0;
 }
 
 static void
@@ -5402,6 +5432,13 @@ Qwerty layout, and, of course, C-x C-f is a default emacs binding for that
 command.
 */ );
   try_alternate_layouts_for_commands = 1;
+
+  DEFVAR_CONST_BOOL ("this-command-keys-shift-translated",
+		     &this_command_keys_shift_translated /*
+Non-nil if the key sequence activating this command was shift-translated.
+See `retry-undefined-key-binding-unshifted'.
+*/ );
+  this_command_keys_shift_translated = 0;
 }
 
 void

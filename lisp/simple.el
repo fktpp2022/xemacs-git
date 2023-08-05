@@ -2097,7 +2097,7 @@ nil."
     kp-left kp-right kp-up kp-down (kp-home) (control kp-home)
     (meta control kp-home) (kp-end) (control kp-end) (meta control kp-end)
     kp-prior kp-next)
-  "*List of keys considered motion keys for the purpose of shifted selection.
+  "*List of keys considered motion keys for shifted selection.
 When one of these keys is pressed along with the Shift key, and the
 command invoked moves the cursor and preserves the active region (see
 `zmacs-region-stays'), the intervening text will be added to the active
@@ -2147,11 +2147,20 @@ either a character or a symbol, uppercase or lowercase."
 				 (meta control d) ;; down-list
 				 (meta control u) ;; backward-up-list
 				 ))
+			 (const :tag "cursor-pad and keypad keys (default)"
+				:inline t
+			        (left right up down (home) (control home)
+				 (meta control home) (end) (control end)
+				 (meta control end) prior next kp-left
+				 kp-right kp-up kp-down (kp-home)
+				 (control kp-home) (meta control kp-home)
+				 (kp-end) (control kp-end)
+				 (meta control kp-end) kp-prior kp-next))
 			 symbol))
   :group 'editing-basics)
 
 (defun handle-pre-motion-command-current-command-is-motion ()
-  (and (key-press-event-p last-input-event)
+  (and (key-press-event-p last-command-event)
        (labels
 	   ((keysyms-equal (a b)
               (when (and
@@ -2167,8 +2176,8 @@ either a character or a symbol, uppercase or lowercase."
          (declare (inline keysyms-equal) (special char-list))
          (loop
            for keysym in motion-keys-for-shifted-motion
-           with key = (event-key last-input-event)
-           with mods = (delete* 'shift (event-modifiers last-input-event))
+           with key = (event-key last-command-event)
+           with mods = (delete* 'shift (event-modifiers last-command-event))
            with char-list = '(?a) ;; Some random character; the list will be
 				  ;; modified in the constants vector over
 				  ;; time.
@@ -2193,8 +2202,9 @@ either a character or a symbol, uppercase or lowercase."
        ;; keysyms.  However, in this case, using Shift will invoke a
        ;; separate command from the non-shifted version, so the
        ;; "shifted motion" paradigm makes no sense.)
-       (or (memq 'shift (event-modifiers last-input-event))
-	   (let ((key (event-key last-input-event)))
+       (or this-command-keys-shift-translated
+	   (memq 'shift (event-modifiers last-command-event))
+	   (let ((key (event-key last-command-event)))
 	     (and (characterp key)
 		  (not (eq key (downcase key)))))))
       (let ((in-shifted-motion-command t))
@@ -2208,8 +2218,9 @@ either a character or a symbol, uppercase or lowercase."
        (region-active-p))
       ;; Special-case alphabetic keysyms, because the `shift'
       ;; modifier does not appear on them.  See above.
-      (cond ((or (memq 'shift (event-modifiers last-input-event))
-		 (let ((key (event-key last-input-event)))
+      (cond ((or this-command-keys-shift-translated
+		 (memq 'shift (event-modifiers last-command-event))
+		 (let ((key (event-key last-command-event)))
 		   (and (characterp key)
 			(not (eq key (downcase key))))))
 	     (if shifted-motion-keys-select-region

@@ -1,3 +1,17 @@
+2023-08-05  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* simple.el (motion-keys-for-shifted-motion):
+	Adjust the docstring of this for readability, adjusts its
+	suggested custom values to include the defaults.
+	* simple.el (handle-pre-motion-command-current-command-is-motion):
+	Examine last-command-event, not last-input-event, in this
+	function, avoiding issues with function-key-map and TTY consoles
+	which make end, home, etc available via it.
+	* simple.el (handle-pre-motion-command):
+	* simple.el (handle-post-motion-command):
+	Examine this-command-keys-shift-translated in these functions,
+	newly made available in event-stream.c
+
 2023-07-22  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	* tty-init.el (make-device-early-tty-entry-point): Move color

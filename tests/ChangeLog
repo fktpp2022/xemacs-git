@@ -1,3 +1,10 @@
+2023-08-05  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/region-tests.el:
+	Test the shifted-motion handling, ensure a recently-reported bug
+	associated with function-key-map entries for end, home and friends
+	has not regressed.
+
 2023-07-31  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/format-tests.el:
