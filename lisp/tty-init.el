@@ -40,24 +40,24 @@
   "Entry point to finish set up of TTY device creation."
   (with-fboundp 'register-tty-color
     (let ((console (device-console device)))
-      (register-tty-color "black"   "\e[30m" "\e[40m" console)
-      (register-tty-color "red"     "\e[31m" "\e[41m" console)
-      (register-tty-color "green"   "\e[32m" "\e[42m" console)
-      (register-tty-color "yellow"  "\e[33m" "\e[43m" console)
-      (register-tty-color "blue"    "\e[34m" "\e[44m" console)
-      (register-tty-color "magenta" "\e[35m" "\e[45m" console)
-      (register-tty-color "cyan"    "\e[36m" "\e[46m" console)
-      (register-tty-color "white"   "\e[37m" "\e[47m" console)
+      (register-tty-color "black"   "\e[30m" "\e[40m" console [0 0 0])
+      (register-tty-color "red"     "\e[31m" "\e[41m" console [128 0 0])
+      (register-tty-color "green"   "\e[32m" "\e[42m" console [0 128 0])
+      (register-tty-color "yellow"  "\e[33m" "\e[43m" console [128 128 0])
+      (register-tty-color "blue"    "\e[34m" "\e[44m" console [0 0 128])
+      (register-tty-color "magenta" "\e[35m" "\e[45m" console [128 0 128])
+      (register-tty-color "cyan"    "\e[36m" "\e[46m" console [0 128 128])
+      (register-tty-color "white"   "\e[37m" "\e[47m" console [192 192 192])
 
       ;; Define `highlighted' tty colors
-      (register-tty-color "darkgrey"      "\e[1;30m" "\e[1;40m" console)
-      (register-tty-color "brightred"     "\e[1;31m" "\e[1;41m" console)
-      (register-tty-color "brightgreen"   "\e[1;32m" "\e[1;42m" console)
-      (register-tty-color "brightyellow"  "\e[1;33m" "\e[1;43m" console)
-      (register-tty-color "brightblue"    "\e[1;34m" "\e[1;44m" console)
-      (register-tty-color "brightmagenta" "\e[1;35m" "\e[1;45m" console)
-      (register-tty-color "brightcyan"    "\e[1;36m" "\e[1;46m" console)
-      (register-tty-color "brightwhite"   "\e[1;37m" "\e[1;47m" console))))
+      (register-tty-color "darkgrey"      "\e[1;30m" "\e[1;40m" console [128 128 128])
+      (register-tty-color "brightred"     "\e[1;31m" "\e[1;41m" console [255 0 0])
+      (register-tty-color "brightgreen"   "\e[1;32m" "\e[1;42m" console [0 255 0])
+      (register-tty-color "brightyellow"  "\e[1;33m" "\e[1;43m" console [255 255 0])
+      (register-tty-color "brightblue"    "\e[1;34m" "\e[1;44m" console [0 0 255])
+      (register-tty-color "brightmagenta" "\e[1;35m" "\e[1;45m" console [255 0 255])
+      (register-tty-color "brightcyan"    "\e[1;36m" "\e[1;46m" console [0 255 255])
+      (register-tty-color "brightwhite"   "\e[1;37m" "\e[1;47m" console [255 255 255]))))
 
 ;; We have to do this for every created TTY console, after the first frame
 ;; has been created.

@@ -1,3 +1,23 @@
+2023-08-05  Richard Hopkins  <xemacs@unbit.co.uk>
+ 
+	Allow registering RGB values for TTY colors with the intention
+	these can later be used to support HEX codes translation and
+	fallback, along with 24-bit Trucolor support.
+
+	* console-tty-impl.h (struct tty_console): Clairfy layout of
+	color_alist for new rgb_vector element.
+
+	* fontcolor-tty.c (Fregister_tty_color): Add new rgb_vector arg.
+	This must be a 3-element vector with each element being an integer
+	in the range 0-255; anything else signals an error.  Update
+	color_alist accordingly.
+
+	* fontcolor-tty.c (Ffind_tty_color): Update result to include new
+	rgb_vector.
+
+	* redisplay-tty.c (set_background_to): Update reference to
+	bg_string due to color_alist updates to handle rgb_vector.
+ 
 2023-08-05  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* event-stream.c (enum did_munge_result): New.

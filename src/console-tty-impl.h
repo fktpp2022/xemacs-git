@@ -41,7 +41,8 @@ struct tty_console
   Lisp_Object instream, outstream;
   Lisp_Object terminal_type;
   Lisp_Object controlling_process;
-  /* An alist mapping from color names to a cons of (FG-STRING, BG-STRING). */
+  /* An alist mapping from color names to a list of
+     (FG-STRING, BG-STRING, RGB-VECTOR). */
   Lisp_Object color_alist;
   char *term_entry_buffer;
 

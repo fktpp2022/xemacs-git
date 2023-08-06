@@ -51,15 +51,16 @@ const struct sized_memory_description tty_font_instance_data_description = {
   sizeof (struct tty_font_instance_data), tty_font_instance_data_description_1
 };
 
-DEFUN ("register-tty-color", Fregister_tty_color, 3, 4, 0, /*
+DEFUN ("register-tty-color", Fregister_tty_color, 3, 5, 0, /*
 Register COLOR as a recognized TTY color on CONSOLE.
 
 COLOR should be a string.
 Strings FG-STRING and BG-STRING should specify the escape sequences to
  set the foreground and background to the given color, respectively.
 CONSOLE defaults to the selected console. Error if it is not a TTY console.
+RGB-VECTOR must be nil or a vector of RGB components (0-255).
 */
-       (color, fg_string, bg_string, console))
+       (color, fg_string, bg_string, console, rgb_vector))
 {
   struct tty_console *tty_con;
   CHECK_STRING (color);
@@ -69,12 +70,36 @@ CONSOLE defaults to the selected console. Error if it is not a TTY console.
   console = wrap_console (decode_console (console));
   CHECK_TTY_CONSOLE (console);
 
+  /* Validate rgb_vector. */
+  if (!NILP (rgb_vector))
+    {
+      Elemcount rgb_vector_len;
+      Lisp_Object max_rgb_component;
+
+      CHECK_VECTOR (rgb_vector);
+
+      rgb_vector_len = XVECTOR_LENGTH (rgb_vector);
+      if (rgb_vector_len != 3)
+	{
+	  return Fsignal (Qinvalid_argument,
+			  list3 (build_ascstring ("RGB-VECTOR must have a length of 3."),
+				 rgb_vector_len, rgb_vector));
+	}
+
+      max_rgb_component = make_integer (255);
+      for (int i = 0; i < 3; i++)
+	{
+	  Lisp_Object val = XVECTOR_DATA (rgb_vector)[i];
+	  check_integer_range (val, Qzero, max_rgb_component);
+	}
+    }
+
   tty_con = CONSOLE_TTY_DATA (XCONSOLE (console));
   color = Fintern (color, Qnil);
   tty_con->color_alist
     = remassq_no_quit (color, tty_con->color_alist);
   tty_con->color_alist
-    = Fcons (Fcons (color, Fcons (fg_string, bg_string)),
+    = Fcons (Fcons (color, list3 (fg_string, bg_string, rgb_vector)),
              tty_con->color_alist);
 
   return Qnil;
@@ -102,7 +127,7 @@ CONSOLE defaults to the selected console. Error if it is not a TTY console.
 DEFUN ("find-tty-color", Ffind_tty_color, 1, 2, 0, /*
 Look up COLOR in the list of registered TTY colors for CONSOLE.
 
-If it is found, return a list (FG-STRING BG-STRING) of the escape
+If it is found, return a list (FG-STRING BG-STRING RGB-VECTOR) of the escape
 sequences used to set the foreground and background to the color, respectively.
 If it is not found, return nil.
 
@@ -120,7 +145,9 @@ CONSOLE defaults to the selected console. Error if it is not a TTY console.
   tty_con = CONSOLE_TTY_DATA (XCONSOLE (console));
   result = assq_no_quit (Fintern (color, Qnil), tty_con->color_alist);
   if (!NILP (result))
-    return list2 (Fcar (Fcdr (result)), Fcdr (Fcdr (result)));
+    return list3 (Fcar (Fcdr (result)),
+		  Fcar (Fcdr (Fcdr (result))),
+		  Fcar (Fcdr ((Fcdr (Fcdr (result))))));
   else
     return Qnil;
 }

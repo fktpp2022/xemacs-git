@@ -648,7 +648,7 @@ set_background_to (struct console *c, Lisp_Object sym)
   result = assq_no_quit (sym, tty_con->color_alist);
   if (!NILP (result))
     {
-      Lisp_Object esc_seq = XCDR (XCDR (result));
+      Lisp_Object esc_seq = XCAR (XCDR (XCDR (result)));
       escseq    = XSTRING_DATA   (esc_seq);
       escseqlen = XSTRING_LENGTH (esc_seq);
     }
