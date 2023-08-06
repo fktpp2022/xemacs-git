@@ -55,8 +55,7 @@ Return nil unless both (mouse-event-p EVENT) and
 
 (defalias 'allocate-event 'make-event)
 
-
-(defun key-press-event-p (object)
+(defsubst* key-press-event-p (object)
   "Return t if OBJECT is a key-press event."
   (and (event-live-p object) (eq 'key-press (event-type object))))
 

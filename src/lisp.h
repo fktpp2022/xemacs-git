@@ -5523,6 +5523,8 @@ fixup_internal_substring (const Ibyte *nonreloc, Lisp_Object reloc,
 EXFUN (Fgettext, 1);
 
 /* Defined in keymap.c */
+Lisp_Object control_meta_superify (Lisp_Object frob, int modifiers);
+
 EXFUN (Fdefine_key, 3);
 EXFUN (Fkey_description, 1);
 EXFUN (Flookup_key, 3);

@@ -3,6 +3,31 @@
 	* tty-init.el (make-device-late-tty-entry-point): Provide RGB
 	values to #'register-tty-color for the basic 16 colors.
 
+2023-08-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* events.el (key-press-event-p):
+	Make this into a defsubst*, for the sake of
+	#'handle-pre-motion-command.
+	* simple.el (motion-keys-for-shifted-motion):
+	Update the default value (and the suggested values) of this to put
+	the keys in their canonical form, so #'canonicalize-keysym has no
+	need to cons.
+	* simple.el (current-command-is-motion): New. The following, moved
+	to being a label with a shorter name.
+	* simple.el (current-command-is-motion): New. The following, moved
+	to being a label with a shorter name.
+	* simple.el (handle-pre-motion-command-current-command-is-motion):
+	Removed.
+	* simple.el (command-event-is-shifted): New label, for the use of
+	#'handle-pre-motion-command, #'handle-post-motion-command;
+	reworked to avoid consing for both these very commonly called
+	functions.
+	* simple.el (handle-pre-motion-command): Rework this to delay
+	calling #'current-command-is-motion as late as possible, and to
+	use #'command-event-is-shifted.
+	* simple.el (handle-post-motion-command):
+	Ditto.
+
 2023-08-05  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* simple.el (motion-keys-for-shifted-motion):

@@ -1,3 +1,13 @@
+2023-08-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/region-tests.el:
+	Further tests of shifted-motion handling, checking that varying
+	values for `shifted-motion-keys-select-region' and `zmacs-region'
+	are respected.
+	* automated/keymap-tests.el:
+	Test `canonicalize-keysym', just updated to cons much less and to
+	return modifiers in a canonical order.
+
 2023-08-05  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/region-tests.el:

@@ -441,18 +441,22 @@ bucky_sym_to_bucky_bit (Lisp_Object sym)
   return 0;
 }
 
-static Lisp_Object
+Lisp_Object
 control_meta_superify (Lisp_Object frob, int modifiers)
 {
   if (modifiers == 0)
     return frob;
-  frob = Fcons (frob, Qnil);
+  if (!NILP (frob))
+    {
+      frob = Fcons (frob, Qnil);
+    }
+
   if (modifiers & XEMACS_MOD_SHIFT)   frob = Fcons (Qshift,   frob);
   if (modifiers & XEMACS_MOD_ALT)     frob = Fcons (Qalt,     frob);
   if (modifiers & XEMACS_MOD_HYPER)   frob = Fcons (Qhyper,   frob);
   if (modifiers & XEMACS_MOD_SUPER)   frob = Fcons (Qsuper,   frob);
-  if (modifiers & XEMACS_MOD_CONTROL) frob = Fcons (Qcontrol, frob);
   if (modifiers & XEMACS_MOD_META)    frob = Fcons (Qmeta,    frob);
+  if (modifiers & XEMACS_MOD_CONTROL) frob = Fcons (Qcontrol, frob);
   return frob;
 }
 
@@ -1419,10 +1423,15 @@ present in the list of modifiers, transform KEYSYM to upper case, and remove
 `shift' from the list of modifiers. Return either the canonical internal
 keysym (if the list of modifiers is now empty), or the updated list of
 modifiers followed by the canonical internal keysym.
+
+If KEYSYM is a list that already corresponds to a list of modifiers in
+the canonical order, and the keysym final element is already in its
+canonical form, return the supplied KEYSYM and do not cons.
 */
        (keysym))
 {
-  int modifiers = 0;
+  int modifiers = 0, new_modifiers = 0, last_modifier = INT_MIN;
+  Lisp_Object old_keysym = keysym, initial_keysym = keysym, new_keysym;
 
   if (CONSP (keysym))
     {
@@ -1436,18 +1445,47 @@ modifiers followed by the canonical internal keysym.
 	    {
 	      if (!modifier)
 		invalid_argument ("Unknown modifier", elt);
+
+	      if (modifier <= last_modifier)
+		{
+		  /* This modifier bit is numerically greater than the
+		     last, so we can't just return KEYSYM to give the
+		     canonical form, we have to cons. */
+		  last_modifier = INT_MAX;
+		}
+	      else
+		{
+		  last_modifier = modifier;
+		}
 	    }
 	  else
 	    {
 	      if (modifier)
-		sferror ("Nothing but modifiers here", keysym);
-	      keysym = elt;
+                {
+                  sferror ("Nothing but modifiers here", keysym);
+                }
+              else if (modifiers || EQ (initial_keysym, rest))
+                {
+                  old_keysym = elt;
+                }
 	    }
         }
     }
 
-  keysym = canonicalize_keysym (keysym, &modifiers);
-  return control_meta_superify (keysym, modifiers);
+  new_modifiers = modifiers;
+  new_keysym = canonicalize_keysym (old_keysym, &new_modifiers);
+
+  if (new_modifiers == modifiers && last_modifier < INT_MAX
+      && EQ (new_keysym, old_keysym))
+    {
+      if (modifiers)
+        {
+          return initial_keysym;
+        }
+      return old_keysym;
+    }
+
+  return control_meta_superify (new_keysym, new_modifiers);
 }
 
 

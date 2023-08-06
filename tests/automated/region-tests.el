@@ -84,10 +84,8 @@
 (with-temp-buffer
   (let ((zmacs-regions t) (shifted-motion-keys-select-region t)
 	(motion-keys-for-shifted-motion
-	 motion-keys-for-shifted-motion))
+         motion-keys-for-shifted-motion))
     (insert "(hello\nthere)")
-    (Assert (not (region-active-p))
-	    "checking [(home)] does not activate the region")
     (dispatch-event (character-to-event '(home)))
     (Assert (not (region-active-p))
 	    "checking [(home)] does not activate the region")
@@ -152,6 +150,30 @@ function-key-map")
       (mapc #'dispatch-event (mapcar #'character-to-event left))
       (Assert (not (region-active-p))
 	      "checking unshifted motion deactivates region, \
-function-key-map"))))
+function-key-map"))
+    (setq shifted-motion-keys-select-region nil)
+    (mapc #'dispatch-event
+	  (mapcar #'character-to-event '((home) (shift end))))
+    (Assert (not (region-active-p))
+            "checking shifted motion does not active the region when \
+`shifted-motion-keys-select-region' is nil")
+    (setq shifted-motion-keys-select-region t)
+    (mapc #'dispatch-event
+	  (mapcar #'character-to-event '((home) (shift end))))
+    (Assert (region-active-p)
+            "checking shifted motion activates the region once more after \
+`shifted-motion-keys-select-region' reset to t")
+    (setq zmacs-regions nil)
+    (mapc #'dispatch-event
+	  (mapcar #'character-to-event '((home) (shift end))))
+    (Assert (not (region-active-p))
+            "checking shifted motion does not active the region when \
+`zmacs-regions' is nil")
+    (setq zmacs-regions t)
+    (mapc #'dispatch-event
+	  (mapcar #'character-to-event '((home) (shift end))))
+    (Assert (region-active-p)
+            "checking shifted motion activates the region once more when \
+`zmacs-regions' is reset to t")))
 
 ;;; end of region-tests.el

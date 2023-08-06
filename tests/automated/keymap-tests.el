@@ -1,4 +1,4 @@
-;; Copyright (C) 2012 Free Software Foundation, Inc.
+;; Copyright (C) 2012 Free Software Foundation, Inc. -*- coding: utf-8 -*-
 
 ;; Author: Aidan Kehoe <kehoea@parhasard.net>
 ;; Maintainers: Aidan Kehoe <kehoea@parhasard.net>
@@ -138,5 +138,56 @@
 ;; here:
  
 (Check-Error circular-list (single-key-description '#1=(control shift . #1#)))
+
+;; Test #'canonicalize-keysym, also in keymap.c.
+
+(Assert (eq (canonicalize-keysym 'a) ?a))
+(Assert (eq (canonicalize-keysym ?a) ?a))
+(Assert (eq (canonicalize-keysym (char-int ?a)) ?a))
+(Assert (eq (canonicalize-keysym '(a)) ?a))
+(Assert (eq (canonicalize-keysym '(?a)) ?a))
+(Assert (eq (canonicalize-keysym (list (char-int ?a))) ?a))
+(Check-Error invalid-argument (canonicalize-keysym [?a]))
+
+(Assert (equal (canonicalize-keysym '(control shift ?a)) '(control ?A)))
+(Assert (equal (canonicalize-keysym '(control A)) '(control ?A)))
+(Assert (equal (canonicalize-keysym '(control ?A)) '(control ?A)))
+(Assert (equal (canonicalize-keysym (list 'control (char-int ?A)))
+	       '(control ?A)))
+(Check-Error invalid-argument (canonicalize-keysym [(control a)]))
+
+(Check-Error invalid-argument (canonicalize-keysym '(control ueber b)))
+
+(let ((control-meta-end '(control meta end))
+      (control-meta-meta-end '(control meta meta end))
+      (control-b '(control b))
+      (control-?b '(control ?b))
+      (control-shift-?b '(control shift ?b))
+      (control-?B '(control ?B)))
+  (Assert (eq control-meta-end (canonicalize-keysym control-meta-end)))
+  (Assert (not (eq control-meta-meta-end
+                   (canonicalize-keysym control-meta-meta-end))))
+  (Assert (equal control-meta-end
+                 (canonicalize-keysym control-meta-meta-end)))
+  (Assert (not (eq control-b (canonicalize-keysym control-b))))
+  (Assert (eq control-?b (canonicalize-keysym control-?b)))
+  (Assert (eq control-?B (canonicalize-keysym control-?B)))
+  (Assert (not (eq control-shift-?b (canonicalize-keysym control-shift-?b))))
+  (Assert (equal control-?B (canonicalize-keysym control-shift-?b)))
+
+  (if (featurep 'mule)
+      (let ((control-rho (list 'control
+                               (intern (string (decode-char 'ucs #x03c1)))))
+            (control-?rho (list 'control (decode-char 'ucs #x03c1)))
+            (control-shift-?rho (list 'control 'shift
+                                      (decode-char 'ucs #x03c1)))
+            (control-?RHO (list 'control (decode-char 'ucs #x03a1))))
+        (Assert (not (eq control-rho (canonicalize-keysym control-rho))))
+        (Assert (eq control-?rho (canonicalize-keysym control-?rho)))
+        (Assert (eq control-?RHO (canonicalize-keysym control-?RHO)))
+        (Assert (not (eq control-shift-?rho
+                         (canonicalize-keysym control-shift-?rho))))
+        (Assert (equal control-?RHO
+                       (canonicalize-keysym control-shift-?rho))))))
 
 ;;; end of keymap-tests.el

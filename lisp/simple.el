@@ -2092,10 +2092,16 @@ nil."
 
 (defcustom motion-keys-for-shifted-motion
   ;; meta-shift-home/end are NOT shifted motion commands.
-  '(left right up down (home) (control home) (meta control home)
-    (end) (control end) (meta control end) prior next
+  ;;
+  ;; These key descriptions are in their canonical form (with the necessary
+  ;; exceptions of (home), (end), (kp-home), (kp-end)), so when
+  ;; canonicalize-keysym is called in #'current-command-is-motion, below, it
+  ;; doesn't cons, helpful for something called as often as
+  ;; #'pre-motion-command, #'post-motion-command.
+  '(left right up down (home) (control home) (control meta home)
+    (end) (control end) (control meta end) prior next
     kp-left kp-right kp-up kp-down (kp-home) (control kp-home)
-    (meta control kp-home) (kp-end) (control kp-end) (meta control kp-end)
+    (control meta kp-home) (kp-end) (control kp-end) (control meta kp-end)
     kp-prior kp-next)
   "*List of keys considered motion keys for shifted selection.
 When one of these keys is pressed along with the Shift key, and the
@@ -2118,40 +2124,40 @@ either a character or a symbol, uppercase or lowercase."
   :type '(repeat (choice (const :tag "normal cursor-pad (\"gray\") keys"
 				:inline t
 				(left
-				 right up down
-				 (home) (control home) (meta control home)
-				 (end) (control end) (meta control end)
-				 prior next))
+                                 right up down
+                                 (home) (control home) (control meta home)
+                                 (end) (control end) (control meta end)
+                                 prior next))
 			 (const :tag "keypad motion keys"
 				:inline t
 				(kp-left
 				 kp-right kp-up kp-down
 				 (kp-home) (control kp-home)
-				 (meta control kp-home)
+				 (control meta kp-home)
 				 (kp-end) (control kp-end)
-				 (meta control kp-end)
+				 (control meta kp-end)
 				 kp-prior kp-next))
 			 (const :tag "alphabetic motion keys"
 				:inline t
-				((control b) (control f)
-				 (control p) (control n)
-				 (control a) (control e)
-				 (control v) (meta v)
-				 (meta b) (meta f)
-				 (meta a) (meta e)
-				 (meta m) ; back-to-indentation
-				 (meta r) ; move-to-window-line
-				 (meta control b) (meta control f)
-				 (meta control p) (meta control n)
-				 (meta control a) (meta control e)
-				 (meta control d) ;; down-list
-				 (meta control u) ;; backward-up-list
+				((control ?b) (control ?f)
+				 (control ?p) (control ?n)
+				 (control ?a) (control ?e)
+				 (control ?v) (meta v)
+				 (meta ?b) (meta ?f)
+				 (meta ?a) (meta ?e)
+				 (meta ?m) ; back-to-indentation
+				 (meta ?r) ; move-to-window-line
+				 (control meta ?b) (control meta ?f)
+				 (control meta ?p) (control meta ?n)
+				 (control meta ?a) (control meta ?e)
+				 (control meta ?d) ;; down-list
+				 (control meta ?u) ;; backward-up-list
 				 ))
 			 (const :tag "cursor-pad and keypad keys (default)"
 				:inline t
 			        (left right up down (home) (control home)
-				 (meta control home) (end) (control end)
-				 (meta control end) prior next kp-left
+				 (control meta home) (end) (control end)
+				 (control meta end) prior next kp-left
 				 kp-right kp-up kp-down (kp-home)
 				 (control kp-home) (meta control kp-home)
 				 (kp-end) (control kp-end)
@@ -2159,76 +2165,58 @@ either a character or a symbol, uppercase or lowercase."
 			 symbol))
   :group 'editing-basics)
 
-(defun handle-pre-motion-command-current-command-is-motion ()
-  (and (key-press-event-p last-command-event)
-       (labels
-	   ((keysyms-equal (a b)
-              (when (and
-                     ;; As of now, none of the elements of
-                     ;; motion-keys-for-shifted-motion are non-symbols;
-                     ;; this redundant check saves a few hundred
-                     ;; funcalls on startup.
-                     (not (symbolp b)) 
-                     (characterp b))
-                (setf (car char-list) b
-                      b (intern (concat char-list nil))))
-              (eq a b)))
-         (declare (inline keysyms-equal) (special char-list))
-         (loop
-           for keysym in motion-keys-for-shifted-motion
-           with key = (event-key last-command-event)
-           with mods = (delete* 'shift (event-modifiers last-command-event))
-           with char-list = '(?a) ;; Some random character; the list will be
-				  ;; modified in the constants vector over
-				  ;; time.
-           initially (if (and (not (symbolp key)) (characterp key))
-			 (setf (car char-list) key
-			       key (intern (concat char-list nil))))
-           thereis (if (listp keysym)
-		       (and (equal mods (butlast keysym))
-			    (keysyms-equal
-			     key (car (last keysym))))
-		     (keysyms-equal key keysym))))))
+(labels
+    ((current-command-is-motion ()
+       (loop for keysym in motion-keys-for-shifted-motion
+	 with key = (event-key last-command-event)
+	 with mods = (delete* 'shift (event-modifiers last-command-event))
+         ;; #'event-modifiers gives the modifiers in the canonical order, and
+         ;; #'event-key gives the canonical keysym, no need for
+         ;; canonicalize-keysym on KEY or FULL-KEY.
+	 with full-key = (if mods (nconc mods (list key)) key)
+	 thereis (if (listp keysym)
+		     (equal full-key (canonicalize-keysym keysym))
+		   (eq key (canonicalize-keysym keysym)))))
+     (command-event-is-shifted (event)
+       (symbol-macrolet ((xemacs-mod-shift (eval-when-compile (lsh 1 5))))
+	 (or
+          ;; Cons (allocate heap memory) as little as possible in this
+          ;; function, given it is called so often. This used to be (memq
+          ;; 'shift (event-modifiers EVENT)).
+	  (eql xemacs-mod-shift (logand xemacs-mod-shift
+					(event-modifier-bits event)))
+	  (let ((key (event-key event)))
+	    ;; Special-case alphabetic keysyms, because the `shift' modifier
+	    ;; does not appear on them. (Unfortunately, we have no way of
+	    ;; determining Shift-key status on non-alphabetic ASCII keysyms.
+	    ;; However, in this case, using Shift will invoke a separate
+	    ;; command from the non-shifted version, so the "shifted motion"
+	    ;; paradigm makes no sense.)
+	    (and (not (symbolp key)) (not (eq key (downcase key)))))))))
+  (declare (inline current-command-is-motion command-event-is-shifted))
 
-(defun handle-pre-motion-command ()
-  (if (and
-       (handle-pre-motion-command-current-command-is-motion)
-       zmacs-regions
-       shifted-motion-keys-select-region
-       (not (region-active-p))
-       ;; Special-case alphabetic keysyms, because the `shift'
-       ;; modifier does not appear on them. (Unfortunately, we have no
-       ;; way of determining Shift-key status on non-alphabetic ASCII
-       ;; keysyms.  However, in this case, using Shift will invoke a
-       ;; separate command from the non-shifted version, so the
-       ;; "shifted motion" paradigm makes no sense.)
-       (or this-command-keys-shift-translated
-	   (memq 'shift (event-modifiers last-command-event))
-	   (let ((key (event-key last-command-event)))
-	     (and (characterp key)
-		  (not (eq key (downcase key)))))))
-      (let ((in-shifted-motion-command t))
-	(push-mark nil nil t))))
+  (defun handle-pre-motion-command ()
+    (if (and zmacs-regions shifted-motion-keys-select-region
+	     (not (region-active-p)) (key-press-event-p last-command-event)
+	     (or this-command-keys-shift-translated
+		 (command-event-is-shifted last-command-event))
+             (current-command-is-motion))
+        (let ((in-shifted-motion-command t))
+          (push-mark nil nil t))))
 
-(defun handle-post-motion-command ()
-  (if
-      (and
-       (handle-pre-motion-command-current-command-is-motion)
-       zmacs-regions
-       (region-active-p))
-      ;; Special-case alphabetic keysyms, because the `shift'
-      ;; modifier does not appear on them.  See above.
-      (cond ((or this-command-keys-shift-translated
-		 (memq 'shift (event-modifiers last-command-event))
-		 (let ((key (event-key last-command-event)))
-		   (and (characterp key)
-			(not (eq key (downcase key))))))
-	     (if shifted-motion-keys-select-region
-		 (putf this-command-properties 'shifted-motion-command t))
-	     (setq zmacs-region-stays t))
-	    ((and (getf last-command-properties 'shifted-motion-command)
-		  unshifted-motion-keys-deselect-region)
-	     (setq zmacs-region-stays nil)))))
+  (defun handle-post-motion-command ()
+    (if (and zmacs-regions (region-active-p)
+	     (key-press-event-p last-command-event)
+             (current-command-is-motion))
+        (cond ((or this-command-keys-shift-translated
+		   (command-event-is-shifted last-command-event))
+               (if shifted-motion-keys-select-region
+                   (putf this-command-properties
+                         'shifted-motion-command t))
+               (setq zmacs-region-stays t))
+              ((and (getf last-command-properties 'shifted-motion-command)
+                    unshifted-motion-keys-deselect-region)
+               (setq zmacs-region-stays nil))))))
 
 (defun forward-char-command (&optional arg buffer)
   "Move point right ARG characters (left if ARG negative) in BUFFER.

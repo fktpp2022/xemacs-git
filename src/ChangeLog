@@ -18,6 +18,22 @@
 	* redisplay-tty.c (set_background_to): Update reference to
 	bg_string due to color_alist updates to handle rgb_vector.
  
+2023-08-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* keymap.c (control_meta_superify): Make this available to other
+	files.
+	Add the modifiers in strictly descending numerical order, to allow
+	#'canonicalize-keysym to minimise consing.
+	* events.c (Fevent_modifiers):
+	Use control_meta_superify () in this function, to ensure this
+	function and #'canonicalize-keysym give consistent resutls.
+
+	* keymap.c (Fcanonicalize_keysym):
+	If KEYSYM is already in canonical form (including the order of its
+	modifiers), return it.
+	* lisp.h:
+	Declare control_meta_superify () for files that are not keymap.c.
+
 2023-08-05  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* event-stream.c (enum did_munge_result): New.

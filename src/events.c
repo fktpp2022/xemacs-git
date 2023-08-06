@@ -1911,21 +1911,12 @@ clever things.
 {
   int mod = XFIXNUM (Fevent_modifier_bits (event));
   Lisp_Object result = Qnil;
-  struct gcpro gcpro1;
 
-  GCPRO1 (result);
-  if (mod & XEMACS_MOD_SHIFT)   result = Fcons (Qshift, result);
-  if (mod & XEMACS_MOD_ALT)	result = Fcons (Qalt, result);
-  if (mod & XEMACS_MOD_HYPER)   result = Fcons (Qhyper, result);
-  if (mod & XEMACS_MOD_SUPER)   result = Fcons (Qsuper, result);
-  if (mod & XEMACS_MOD_META)    result = Fcons (Qmeta, result);
-  if (mod & XEMACS_MOD_CONTROL) result = Fcons (Qcontrol, result);
-  if (mod & XEMACS_MOD_BUTTON1) result = Fcons (Qbutton1, result);
-  if (mod & XEMACS_MOD_BUTTON2) result = Fcons (Qbutton2, result);
-  if (mod & XEMACS_MOD_BUTTON3) result = Fcons (Qbutton3, result);
-  if (mod & XEMACS_MOD_BUTTON4) result = Fcons (Qbutton4, result);
-  if (mod & XEMACS_MOD_BUTTON5) result = Fcons (Qbutton5, result);
-  RETURN_UNGCPRO (Fnreverse (result));
+#define FROB(num)                                                       \
+  if (mod & XEMACS_MOD_BUTTON##num) result = Fcons (Qbutton##num, result);
+#include "keymap-buttons.h"
+
+  return control_meta_superify (Fnreverse (result), mod);
 }
 
 static int
