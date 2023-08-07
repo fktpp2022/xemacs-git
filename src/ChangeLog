@@ -1,3 +1,9 @@
+2023-08-06  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	* fontcolor-tty.c (Fregister_tty_color): Ensure rgb_vector_len is
+	wrapped with #'make_integer for the "RGB-VECTOR must have a length
+	of 3." error.
+
 2023-08-05  Richard Hopkins  <xemacs@unbit.co.uk>
  
 	Allow registering RGB values for TTY colors with the intention

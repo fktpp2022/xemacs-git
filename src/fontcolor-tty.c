@@ -83,7 +83,7 @@ RGB-VECTOR must be nil or a vector of RGB components (0-255).
 	{
 	  return Fsignal (Qinvalid_argument,
 			  list3 (build_ascstring ("RGB-VECTOR must have a length of 3."),
-				 rgb_vector_len, rgb_vector));
+				 make_integer (rgb_vector_len), rgb_vector));
 	}
 
       max_rgb_component = make_integer (255);
