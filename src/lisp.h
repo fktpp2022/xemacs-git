@@ -1517,7 +1517,7 @@ xmalloc_and_record_unwind (Bytecount size)
    case, which happens in file-coding.h, we fall back to portable_offsetof().
    Fuck me harder!!!! --ben */
 #define portable_offsetof(st, m) \
-    ((size_t) ( (char *)&((st *)(0))->m - (char *)0 ))
+    ((Bytecount) ( (char *)&((st *)(0))->m - (char *)0 ))
 #define xnew(type) ((type *) xmalloc (sizeof (type)))
 #define xnew_array(type, len) ((type *) xmalloc ((len) * sizeof (type)))
 #define xnew_and_zero(type) ((type *) xmalloc_and_zero (sizeof (type)))

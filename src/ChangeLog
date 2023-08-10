@@ -1,3 +1,10 @@
+2023-08-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lisp.h (portable_offsetof):
+	Cast the result of this to Bytecount, rather than size_t, so its
+	use (almost exclusively for the OFFSET field of struct
+	memory_description) doesn't cause problems with clang++-11.
+
 2023-08-06  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	* fontcolor-tty.c (Fregister_tty_color): Ensure rgb_vector_len is
