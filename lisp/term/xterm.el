@@ -114,4 +114,54 @@
 (define-key function-key-map "\e[5z" [prior])
 (define-key function-key-map "\e[6z" [next])
 
+;; Motion keys
+(define-key function-key-map "\e[1;2A" [(shift up)])
+(define-key function-key-map "\e[1;2B" [(shift down)])
+(define-key function-key-map "\e[1;2C" [(shift right)])
+(define-key function-key-map "\e[1;2D" [(shift left)])
+(define-key function-key-map "\e[1;2F" [(shift end)])
+(define-key function-key-map "\e[1;2H" [(shift home)])
+
+(define-key function-key-map "\e[1;3A" [(meta up)])
+(define-key function-key-map "\e[1;3B" [(meta down)])
+(define-key function-key-map "\e[1;3C" [(meta right)])
+(define-key function-key-map "\e[1;3D" [(meta left)])
+(define-key function-key-map "\e[1;3F" [(meta end)])
+(define-key function-key-map "\e[1;3H" [(meta home)])
+
+(define-key function-key-map "\e[1;4A" [(meta shift up)])
+(define-key function-key-map "\e[1;4B" [(meta shift down)])
+(define-key function-key-map "\e[1;4C" [(meta shift right)])
+(define-key function-key-map "\e[1;4D" [(meta shift left)])
+(define-key function-key-map "\e[1;4F" [(meta shift end)])
+(define-key function-key-map "\e[1;4H" [(meta shift home)])
+
+(define-key function-key-map "\e[1;5A" [(control up)])
+(define-key function-key-map "\e[1;5B" [(control down)])
+(define-key function-key-map "\e[1;5C" [(control right)])
+(define-key function-key-map "\e[1;5D" [(control left)])
+(define-key function-key-map "\e[1;5F" [(control end)])
+(define-key function-key-map "\e[1;5H" [(control home)])
+
+(define-key function-key-map "\e[1;6A" [(control shift up)])
+(define-key function-key-map "\e[1;6B" [(control shift down)])
+(define-key function-key-map "\e[1;6C" [(control shift right)])
+(define-key function-key-map "\e[1;6D" [(control shift left)])
+(define-key function-key-map "\e[1;6F" [(control shift end)])
+(define-key function-key-map "\e[1;6H" [(control shift home)])
+
+(define-key function-key-map "\e[1;7A" [(control meta up)])
+(define-key function-key-map "\e[1;7B" [(control meta down)])
+(define-key function-key-map "\e[1;7C" [(control meta right)])
+(define-key function-key-map "\e[1;7D" [(control meta left)])
+(define-key function-key-map "\e[1;7F" [(control meta end)])
+(define-key function-key-map "\e[1;7H" [(control meta home)])
+
+(define-key function-key-map "\e[1;8A" [(control meta shift up)])
+(define-key function-key-map "\e[1;8B" [(control meta shift down)])
+(define-key function-key-map "\e[1;8C" [(control meta shift right)])
+(define-key function-key-map "\e[1;8D" [(control meta shift left)])
+(define-key function-key-map "\e[1;8F" [(control meta shift end)])
+(define-key function-key-map "\e[1;8H" [(control meta shift home)])
+
 ;;; xterm.el ends here
