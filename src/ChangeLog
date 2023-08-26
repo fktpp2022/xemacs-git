@@ -1,3 +1,29 @@
+2023-08-26  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	Use the escape sequence found during initialization rather than
+	re-lookup during redisplay.  This de-duplication should also help
+	support hex/rgb codes in future as they won't be a key in
+	color_alist.
+
+	* redisplay-tty.c (set_foreground_to): Use provided escape
+	sequence rather than re-lookup in color_alist.
+	(set_background_to): Use provided escape sequence rather than
+	re-lookup in color_alist.
+	(tty_turn_on_face_1): Pass the escape sequence instead of color
+	name to set_foreground_to / set_background_to.
+
+	* fontcolor-tty.c (tty_initialize_color_instance): Populate
+	escape_fore and escape_back with escape strings from color_alist.
+
+	* fontcolor-tty.c (tty_mark_color_instance): Mark new escape_fore
+	and escape_back.
+
+	* fontcolor-tty-impl.h (struct tty_color_instance_data):
+	(escape_fore): Add to hold ANSI escape sequence string.
+	(escape_back): Add to hold ANSI escape sequence string.
+	(COLOR_INSTANCE_TTY_ESCAPE_FORE): Wrapper for escape_fore.
+	(COLOR_INSTANCE_TTY_ESCAPE_BACK): Wrapper for escape_back.
+
 2023-08-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lisp.h (portable_offsetof):

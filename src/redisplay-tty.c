@@ -607,17 +607,13 @@ substitute_in_dynamic_color_string (Lisp_Object spec, Lisp_Object string)
 #endif
 
 static void
-set_foreground_to (struct console *c, Lisp_Object sym)
+set_foreground_to (struct console *c, Lisp_Object esc_seq)
 {
-  Lisp_Object result;
   Ibyte *escseq = 0;
   Bytecount escseqlen = 0;
-  struct tty_console *tty_con = CONSOLE_TTY_DATA (c);
 
-  result = assq_no_quit (sym, tty_con->color_alist);
-  if (!NILP (result))
+  if (!NILP (esc_seq))
     {
-      Lisp_Object esc_seq = XCAR (XCDR (result));
       escseq    = XSTRING_DATA   (esc_seq);
       escseqlen = XSTRING_LENGTH (esc_seq);
     }
@@ -638,17 +634,13 @@ set_foreground_to (struct console *c, Lisp_Object sym)
 }
 
 static void
-set_background_to (struct console *c, Lisp_Object sym)
+set_background_to (struct console *c, Lisp_Object esc_seq)
 {
-  Lisp_Object result;
   Ibyte *escseq = 0;
   Bytecount escseqlen = 0;
-  struct tty_console *tty_con = CONSOLE_TTY_DATA (c);
 
-  result = assq_no_quit (sym, tty_con->color_alist);
-  if (!NILP (result))
+  if (!NILP (esc_seq))
     {
-      Lisp_Object esc_seq = XCAR (XCDR (XCDR (result)));
       escseq    = XSTRING_DATA   (esc_seq);
       escseqlen = XSTRING_LENGTH (esc_seq);
     }
@@ -718,12 +710,12 @@ tty_turn_on_face_1 (struct console *c, int highlight_p,
 
   if (COLOR_INSTANCEP (cinst_fore)
       && !EQ (cinst_fore, Vthe_null_color_instance))
-    set_foreground_to (c, COLOR_INSTANCE_TTY_SYMBOL
+    set_foreground_to (c, COLOR_INSTANCE_TTY_ESCAPE_FORE
 		       (XCOLOR_INSTANCE (cinst_fore)));
 
   if (COLOR_INSTANCEP (cinst_back)
       && !EQ (cinst_back, Vthe_null_color_instance))
-    set_background_to (c, COLOR_INSTANCE_TTY_SYMBOL
+    set_background_to (c, COLOR_INSTANCE_TTY_ESCAPE_BACK
 		       (XCOLOR_INSTANCE (cinst_back)));
 }
 

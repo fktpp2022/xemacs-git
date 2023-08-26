@@ -28,6 +28,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 struct tty_color_instance_data
 {
   Lisp_Object symbol; /* so we don't have to constantly call Fintern() */
+  Lisp_Object escape_fore; /* string: ANSI escape sequence */
+  Lisp_Object escape_back; /* string: ANSI escape sequence */
 };
 
 
@@ -35,6 +37,8 @@ struct tty_color_instance_data
   ((struct tty_color_instance_data *) (c)->data)
 
 #define COLOR_INSTANCE_TTY_SYMBOL(c) (TTY_COLOR_INSTANCE_DATA (c)->symbol)
+#define COLOR_INSTANCE_TTY_ESCAPE_FORE(c) (TTY_COLOR_INSTANCE_DATA (c)->escape_fore)
+#define COLOR_INSTANCE_TTY_ESCAPE_BACK(c) (TTY_COLOR_INSTANCE_DATA (c)->escape_back)
 
 struct tty_font_instance_data
 {

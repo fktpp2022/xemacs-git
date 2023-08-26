@@ -228,6 +228,8 @@ tty_initialize_color_instance (Lisp_Color_Instance *c, Lisp_Object name,
   /* Don't allocate the data until we're sure that we will succeed. */
   c->data = xnew (struct tty_color_instance_data);
   COLOR_INSTANCE_TTY_SYMBOL (c) = name;
+  COLOR_INSTANCE_TTY_ESCAPE_FORE (c) = XCAR (XCDR (result));
+  COLOR_INSTANCE_TTY_ESCAPE_BACK (c) = XCAR (XCDR (XCDR (result)));
 
   return 1;
 }
@@ -236,6 +238,8 @@ static void
 tty_mark_color_instance (Lisp_Color_Instance *c)
 {
   mark_object (COLOR_INSTANCE_TTY_SYMBOL (c));
+  mark_object (COLOR_INSTANCE_TTY_ESCAPE_FORE (c));
+  mark_object (COLOR_INSTANCE_TTY_ESCAPE_BACK (c));
 }
 
 static void
