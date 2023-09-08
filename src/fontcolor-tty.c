@@ -35,6 +35,8 @@ Lisp_Object Vtty_dynamic_color_bg;
 
 static const struct memory_description tty_color_instance_data_description_1 [] = {
   { XD_LISP_OBJECT, offsetof (struct tty_color_instance_data, symbol) },
+  { XD_LISP_OBJECT, offsetof (struct tty_color_instance_data, escape_fore) },
+  { XD_LISP_OBJECT, offsetof (struct tty_color_instance_data, escape_back) },
   { XD_END }
 };
 
