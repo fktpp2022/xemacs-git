@@ -1,3 +1,9 @@
+2023-09-30  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/event-tests.el: New.
+	Test a bug just fixed with #'event-modifiers and motion
+	events. Test misc-user events too in passing.
+
 2023-08-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/region-tests.el:

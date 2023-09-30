@@ -1,3 +1,61 @@
+2023-09-30  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Add modifiers.h, on the model of keymap-buttons.h. Use it in 
+	those places where code iterates through modifiers.
+
+	Print modifiers for motion, misc-user events, which was not done
+	previously.
+	Fix a bug in passing where list structure was not appropriately
+	generated for motion events, thank you Henry S. Thompson. 
+	
+	* modifiers.h:
+	* modifiers.h (XEmacs is free software): New.
+
+	* events.c (print_event):
+	Print modifiers for motion, misc-user events.
+	* events.c (Fmake_event):
+	Iterate through modifiers using modifiers.h when processing them.
+	* events.c (format_event_object):
+	Iterate through modifiers using modifiers.h when printing them.
+	* events.c (Fevent_modifiers):
+	Iterate through modifiers using modifiers.h when constructing a
+	symbolic list of them.
+	* events.h:
+	* events.h (enum event_modifiers):
+	Use FROB_MODIFIER and modifiers.h when constructing this enumeration.
+
+	* keymap.c:
+	* keymap.c (FROB_MODIFIER): Use this #define with modifiers.h when
+	declaring symbols needed to declare modifiers.
+	* keymap.c (bucky_sym_to_bucky_bit):
+	Use modifiers.h within this function.
+	* keymap.c (control_meta_superify):
+	Ditto.
+	* keymap.c (canonicalize_keysym):
+	Ditto, error within this function rather than in callers when
+	supplied with keysyms that are modifiers names and that are not
+	buttons.
+	* keymap.c (parse_list_keystroke): New. Refactored out of
+	Fcanonicalize_keysym(), also used in define_key_parser().
+	* keymap.c (Fcanonicalize_keysym): Use parse_list_keystroke ().
+	* keymap.c (define_key_parser): Ditto.
+	* keymap.c (Fsingle_key_description):
+	Use modifiers.h in this function, avoid printing redundant
+	modifiers multiply.
+	For symmetry with treatment of event arguments, use
+	character_to_event() to extract modifiers for control characters.
+	* keymap.c (describe_map):
+	Use modifiers.h when iterating through modifiers to print them.
+	* keymap.c (syms_of_keymap):
+	Use modifiers.h when iterating through modifier names for
+	DEFSYMBOL().
+	* keymap.h:
+	Use modifiers.h when iterating through modifier names for
+	declarations.
+	* lisp.h:
+	Remove declaration of control_meta_superify(), no longer used in
+	events.c.
+
 2023-08-26  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	Use the escape sequence found during initialization rather than

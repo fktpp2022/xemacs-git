@@ -219,16 +219,20 @@ static void map_keymap (Lisp_Object keymap_table, int sort_first,
                                           void *fn_arg),
                         void *fn_arg);
 
-Lisp_Object Qcontrol, Qctrl, Qmeta, Qsuper, Qhyper, Qalt, Qshift;
+Lisp_Object Qctrl;
+
+#define INCLUDE_BUTTON_ZERO
+#define FROB_MODIFIER(upcasemod, downcasemod, num)       \
+Lisp_Object Q##downcasemod;
+#include "modifiers.h"
 
 #define INCLUDE_BUTTON_ZERO
 #define FROB(num)				\
-Lisp_Object Qbutton##num;			\
-Lisp_Object Qbutton##num##up;
+Lisp_Object  Qbutton##num##up;
 #include "keymap-buttons.h"
 
-/* Emacs compatibility */
-#define FROB(num)				\
+#define FROB(num)                               \
+/* Emacs compatibility */                       \
 Lisp_Object Qmouse_##num;			\
 Lisp_Object Qdown_mouse_##num;
 #include "keymap-buttons.h"
@@ -430,13 +434,14 @@ traverse_keymaps (Lisp_Object start_keymap, Lisp_Object start_parents,
 static int
 bucky_sym_to_bucky_bit (Lisp_Object sym)
 {
-  if (EQ (sym, Qcontrol)) return XEMACS_MOD_CONTROL;
-  if (EQ (sym, Qmeta))    return XEMACS_MOD_META;
-  if (EQ (sym, Qsuper))   return XEMACS_MOD_SUPER;
-  if (EQ (sym, Qhyper))   return XEMACS_MOD_HYPER;
-  if (EQ (sym, Qalt))     return XEMACS_MOD_ALT;
+#define FROB_MODIFIER(upcasemod, downcasemod, num)              \
+    if (EQ (Q##downcasemod, sym))                               \
+      {                                                         \
+        return XEMACS_MOD_##upcasemod;                          \
+      }
+#include "modifiers.h"
+
   if (EQ (sym, Qsymbol))  return XEMACS_MOD_ALT; /* #### - reverse compat */
-  if (EQ (sym, Qshift))   return XEMACS_MOD_SHIFT;
 
   return 0;
 }
@@ -444,20 +449,21 @@ bucky_sym_to_bucky_bit (Lisp_Object sym)
 Lisp_Object
 control_meta_superify (Lisp_Object frob, int modifiers)
 {
+  Lisp_Object mods = Qnil;
+
   if (modifiers == 0)
     return frob;
-  if (!NILP (frob))
+
+#define FROB_MODIFIER(upcasemod, downcasemod, num)			\
+  if (modifiers & XEMACS_MOD_##upcasemod) mods = Fcons (Q##downcasemod, mods);
+#include "modifiers.h"
+
+  if (NILP (frob))
     {
-      frob = Fcons (frob, Qnil);
+      return Fnreverse (mods);
     }
 
-  if (modifiers & XEMACS_MOD_SHIFT)   frob = Fcons (Qshift,   frob);
-  if (modifiers & XEMACS_MOD_ALT)     frob = Fcons (Qalt,     frob);
-  if (modifiers & XEMACS_MOD_HYPER)   frob = Fcons (Qhyper,   frob);
-  if (modifiers & XEMACS_MOD_SUPER)   frob = Fcons (Qsuper,   frob);
-  if (modifiers & XEMACS_MOD_META)    frob = Fcons (Qmeta,    frob);
-  if (modifiers & XEMACS_MOD_CONTROL) frob = Fcons (Qcontrol, frob);
-  return frob;
+  return nconc2 (Fnreverse (mods), list1 (frob));
 }
 
 static Lisp_Object
@@ -1394,6 +1400,14 @@ canonicalize_keysym (Lisp_Object keysym, int *modifiers_inout)
 	keysym = Qbutton##num##up;
 #include "keymap-buttons.h"
 
+#define FROB_MODIFIER(upcasemod, downcasemod, num)		\
+      else if (EQ (keysym, Q##downcasemod) &&			\
+	       XEMACS_MOD_##upcasemod <= XEMACS_MOD_SHIFT)	\
+	{							\
+	  invalid_argument ("Key is a modifier name", keysym);	\
+	}
+#include "modifiers.h"
+
       else if (NILP (keysym))
         {
           warn_when_safe (Qkeymap, Qinfo,
@@ -1403,6 +1417,62 @@ canonicalize_keysym (Lisp_Object keysym, int *modifiers_inout)
     }
 
   return keysym;
+}
+
+static Lisp_Object
+parse_list_keystroke (Lisp_Object keysym, int *modifiers_out,
+		      Boolint *modifiers_in_canonical_order_p)
+{
+  Lisp_Object old_keysym = keysym;
+  int last_modifier = INT_MIN;
+  int modifiers = 0;
+
+  /* First, parse out the modifier symbols. */
+  EXTERNAL_LIST_LOOP_3 (elt, keysym, rest)
+    {
+      int modifier = bucky_sym_to_bucky_bit (elt);
+
+      if (!NILP (XCDR (rest)))
+	{
+	  if (!modifier)
+	    invalid_argument ("Unknown modifier", elt);
+
+	  if (modifier > XEMACS_MOD_SHIFT)
+	    {
+	      invalid_argument ("Modifier not accepted for keystrokes",
+				elt);
+	    }
+
+	  if (modifier <= last_modifier)
+	    {
+	      /* This modifier bit is numerically greater than the last, so we
+		 can't just return KEYSYM to give the canonical form in
+		 Fcanonicalize_keysym, we have to cons. */
+	      last_modifier = INT_MAX;
+	    }
+	  else
+	    {
+	      last_modifier = modifier;
+	    }
+
+	  modifiers |= modifier;
+	}
+      else
+	{
+	  if (modifiers || EQ (old_keysym, rest))
+	    {
+	      old_keysym = elt;
+	    }
+	}
+    }
+
+  *modifiers_out = modifiers;
+  if (modifiers_in_canonical_order_p != NULL)
+    {
+      *modifiers_in_canonical_order_p = last_modifier < INT_MAX;
+    }
+
+  return old_keysym;
 }
 
 DEFUN ("canonicalize-keysym", Fcanonicalize_keysym, 1, 1, 0, /*
@@ -1430,52 +1500,20 @@ canonical form, return the supplied KEYSYM and do not cons.
 */
        (keysym))
 {
-  int modifiers = 0, new_modifiers = 0, last_modifier = INT_MIN;
+  int modifiers = 0, new_modifiers = 0;
   Lisp_Object old_keysym = keysym, initial_keysym = keysym, new_keysym;
+  Boolint modifiers_in_canonical_order_p = 1;
 
   if (CONSP (keysym))
     {
-      /* First, parse out the modifier symbols. */
-      EXTERNAL_LIST_LOOP_3 (elt, keysym, rest)
-        {
-          int modifier = bucky_sym_to_bucky_bit (elt);
-          modifiers |= modifier;
-
-	  if (!NILP (XCDR (rest)))
-	    {
-	      if (!modifier)
-		invalid_argument ("Unknown modifier", elt);
-
-	      if (modifier <= last_modifier)
-		{
-		  /* This modifier bit is numerically greater than the
-		     last, so we can't just return KEYSYM to give the
-		     canonical form, we have to cons. */
-		  last_modifier = INT_MAX;
-		}
-	      else
-		{
-		  last_modifier = modifier;
-		}
-	    }
-	  else
-	    {
-	      if (modifier)
-                {
-                  sferror ("Nothing but modifiers here", keysym);
-                }
-              else if (modifiers || EQ (initial_keysym, rest))
-                {
-                  old_keysym = elt;
-                }
-	    }
-        }
+      old_keysym = parse_list_keystroke (keysym, &modifiers,
+					 &modifiers_in_canonical_order_p);
     }
 
   new_modifiers = modifiers;
   new_keysym = canonicalize_keysym (old_keysym, &new_modifiers);
 
-  if (new_modifiers == modifiers && last_modifier < INT_MAX
+  if (modifiers_in_canonical_order_p && new_modifiers == modifiers
       && EQ (new_keysym, old_keysym))
     {
       if (modifiers)
@@ -1554,9 +1592,7 @@ define_key_parser (Lisp_Object spec, Lisp_Key_Data *returned_value)
   else if (SYMBOLP (spec))
     {
       int modifiers = 0;
-      /* Be nice, allow = to mean (=) */
-      if (bucky_sym_to_bucky_bit (spec) != 0)
-        invalid_argument ("Key is a modifier name", spec);
+
       SET_KEY_DATA_KEYSYM (returned_value,
                            canonicalize_keysym (spec, &modifiers));
       SET_KEY_DATA_MODIFIERS (returned_value, modifiers);
@@ -1564,30 +1600,11 @@ define_key_parser (Lisp_Object spec, Lisp_Key_Data *returned_value)
   else if (CONSP (spec))
     {
       int modifiers = 0;
-      Lisp_Object keysym = Qunbound;
-
-      /* First, parse out the leading modifier symbols. */
-      EXTERNAL_LIST_LOOP_3 (elt, spec, rest)
-	{
-	  int modifier;
-
-	  modifier = bucky_sym_to_bucky_bit (elt);
-	  modifiers |= modifier;
-	  if (!NILP (XCDR (rest)))
-	    {
-	      if (!modifier)
-		invalid_argument ("Unknown modifier", elt);
-	    }
-	  else
-	    {
-	      if (modifier)
-		sferror ("Nothing but modifiers here", spec);
-	      keysym = elt;
-	    }
-	}
 
       SET_KEY_DATA_KEYSYM (returned_value,
-                           canonicalize_keysym (keysym, &modifiers));
+                           canonicalize_keysym (parse_list_keystroke
+						(spec, &modifiers, NULL),
+						&modifiers));
       SET_KEY_DATA_MODIFIERS (returned_value, modifiers);
     }
   else
@@ -3698,32 +3715,88 @@ of a key read from the user rather than a character from a buffer.
 
   if (CONSP (key))
     {
+      int modifiers = 0;
+      Lisp_Object real_keysym = Qunbound;
+
       EXTERNAL_LIST_LOOP_3 (keysym, key, rest)
 	{
-	  if (EQ (keysym, Qcontrol))    write_ascstring (stream, "C-");
-	  else if (EQ (keysym, Qctrl))  write_ascstring (stream, "C-");
-	  else if (EQ (keysym, Qmeta))  write_ascstring (stream, "M-");
-	  else if (EQ (keysym, Qsuper)) write_ascstring (stream, "S-");
-	  else if (EQ (keysym, Qhyper)) write_ascstring (stream, "H-");
-	  else if (EQ (keysym, Qalt))	write_ascstring (stream, "A-");
-	  else if (EQ (keysym, Qshift)) write_ascstring (stream, "Sh-");
+	  if (EQ (keysym, Qctrl)) /* #### This makes no sense (it is the only
+				     place that does it) but is longstanding
+				     and GNU compatible. */
+	    {
+	      modifiers |= XEMACS_MOD_CONTROL;
+	    }
+
+#define FROB_MODIFIER(upcasemod, downcasemod, num)			\
+	  else if (EQ (keysym, Q##downcasemod))				\
+	    {								\
+	      modifiers |= XEMACS_MOD_##upcasemod;			\
+	    }
+#include "modifiers.h"
+
 	  else if (CHAR_OR_CHAR_INTP (keysym))
 	    {
-	      Ibyte str[MAX_ICHAR_LEN];
+	      Lisp_Object event;
+	      struct gcpro gcpro1;
 
-	      write_string_1 (stream, str,
-			      set_itext_ichar (str,
-					       XCHAR_OR_CHAR_INT (keysym)));
+	      if (!NILP (XCDR (rest)))
+		invalid_argument ("Invalid key description", key);
+
+	      event = Fmake_event (Qnil, Qnil);
+	      GCPRO1 (event);
+	      character_to_event (XCHAR_OR_CHAR_INT (keysym), XEVENT (event),
+				  XCONSOLE (Vselected_console),
+				  high_bit_is_meta, 0);
+	      real_keysym = XEVENT_KEY_KEYSYM (event);
+	      modifiers |= XEVENT_KEY_MODIFIERS (event);
+	      Fdeallocate_event (event);
+	      UNGCPRO;
 	    }
 	  else
 	    {
 	      CHECK_SYMBOL (keysym);
-	      write_lisp_string (stream, XSYMBOL (keysym)->name, 0,
-				 XSTRING_LENGTH (XSYMBOL (keysym)->name));
+	      real_keysym = keysym;
 	      if (!NILP (XCDR (rest)))
 		invalid_argument ("Invalid key description", key);
 	    }
 	}
+
+      real_keysym = canonicalize_keysym (real_keysym, &modifiers);
+
+#define FROB_MODIFIER(upcasemod, downcasemod, num)			\
+      if (modifiers & XEMACS_MOD_##upcasemod)				\
+	{								\
+	  if (XEMACS_MOD_##upcasemod > XEMACS_MOD_SHIFT)		\
+	    {								\
+	      write_ascstring (stream, #upcasemod);			\
+	      write_ascstring (stream, "-");				\
+	    }								\
+	  else if (XEMACS_MOD_##upcasemod == XEMACS_MOD_SHIFT)		\
+	    {								\
+	      /* Can't generate the short form for shift		\
+		 programmatically. */					\
+	      write_ascstring (stream, "Sh-");				\
+	    }								\
+	  else								\
+	    {								\
+	      write_fmt_string (stream, "%c-", #upcasemod [0]);		\
+	    }								\
+	}
+#include "modifiers.h"
+
+      if (CHARP (real_keysym))
+	{
+	  Ibyte str[MAX_ICHAR_LEN];
+
+	  write_string_1 (stream, str, set_itext_ichar (str,
+							XCHAR (real_keysym)));
+	}
+      else
+	{
+	  write_lisp_string (stream, XSYMBOL (real_keysym)->name, 0,
+			     XSTRING_LENGTH (XSYMBOL (real_keysym)->name));
+ 	}
+
 
       return resizing_buffer_to_lisp_string (XLSTREAM (stream));
     }
@@ -4655,36 +4728,28 @@ describe_map (Lisp_Object keymap, Lisp_Object elt_prefix,
               columns += string_char_length (elt_prefix);
             }
 
-	  if (modifiers & XEMACS_MOD_META)
-            {
-              write_ascstring (stream, "M-");
-              columns += 2;
-            }
-	  if (modifiers & XEMACS_MOD_CONTROL)
-            {
-              write_ascstring (stream, "C-");
-              columns += 2;
-            }
-	  if (modifiers & XEMACS_MOD_SUPER)
-            {
-              write_ascstring (stream, "S-");
-              columns += 2;
-            }
-	  if (modifiers & XEMACS_MOD_HYPER)
-            {
-              write_ascstring (stream, "H-");
-              columns += 2;
-            }
-	  if (modifiers & XEMACS_MOD_ALT)
-            {
-              write_ascstring (stream, "Alt-");
-              columns += 4;
-            }
-	  if (modifiers & XEMACS_MOD_SHIFT)
-            {
-              write_ascstring (stream, "Sh-");
-              columns += 3;
-            }
+#define FROB_MODIFIER(upcasemod, downcasemod, num)			\
+	  if (modifiers & XEMACS_MOD_##upcasemod)			\
+	    {								\
+	      if (XEMACS_MOD_##upcasemod > XEMACS_MOD_SHIFT)		\
+		{							\
+		  columns += write_ascstring (stream,			\
+					      #upcasemod);		\
+		  columns += write_ascstring (stream, "-");		\
+		}							\
+	      else if (XEMACS_MOD_##upcasemod == XEMACS_MOD_SHIFT)	\
+		{							\
+		  /* Can't generate the short form for shift		\
+		     programmatically. */				\
+		  columns += write_ascstring (stream, "Sh-");		\
+		}							\
+	      else							\
+		{							\
+		  columns += write_fmt_string (stream, "%c-",		\
+					       #upcasemod [0]);		\
+		}							\
+	    }
+#include "modifiers.h"
 
 	  if (SYMBOLP (keysym))
 	    {
@@ -4830,22 +4895,23 @@ syms_of_keymap (void)
 
   DEFSUBR (Ftext_char_description);
 
-  DEFSYMBOL (Qcontrol);
   DEFSYMBOL (Qctrl);
-  DEFSYMBOL (Qmeta);
-  DEFSYMBOL (Qsuper);
-  DEFSYMBOL (Qhyper);
-  DEFSYMBOL (Qalt);
-  DEFSYMBOL (Qshift);
 #define INCLUDE_BUTTON_ZERO
-#define FROB(num)				\
-  DEFSYMBOL (Qbutton##num);			\
+#define FROB_MODIFIER(upcasemod, downcasemod, num) \
+  DEFSYMBOL (Q##downcasemod);
+#include "modifiers.h"
+
+#define INCLUDE_BUTTON_ZERO
+#define FROB(num)                               \
   DEFSYMBOL (Qbutton##num##up);
 #include "keymap-buttons.h"
+
+  /* GNU compatibility. */
 #define FROB(num)				\
   DEFSYMBOL (Qmouse_##num);			\
   DEFSYMBOL (Qdown_mouse_##num);
 #include "keymap-buttons.h"
+
   DEFSYMBOL (QLFD);
   DEFSYMBOL (QTAB);
   DEFSYMBOL (QRET);

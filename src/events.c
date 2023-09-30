@@ -283,6 +283,21 @@ print_event (Lisp_Object obj, Lisp_Object printcharfun,
 	assert (FIXNUMP (Vy));
 	write_fmt_string (printcharfun, "#<motion-event %zd, %zd",
 			  XFIXNUM (Vx), XFIXNUM (Vy));
+        if (XEVENT_MOTION_MODIFIERS (obj) != 0)
+          {
+            int modifiers = XEVENT_MOTION_MODIFIERS (obj);
+            write_ascstring (printcharfun, " (");
+
+#define FROB_MODIFIER(upcase_mod, downcase_mod, num)			\
+	    if (modifiers & XEMACS_MOD_##upcase_mod)			\
+	      {								\
+		modifiers &= ~XEMACS_MOD_##upcase_mod;			\
+		write_ascstring (printcharfun, #downcase_mod);		\
+		if (modifiers) write_ascstring (printcharfun, " ");	\
+	      }
+#include "modifiers.h"
+	    write_ascstring (printcharfun, ")");
+	  }
 	break;
       }
     case process_event:
@@ -300,6 +315,21 @@ print_event (Lisp_Object obj, Lisp_Object printcharfun,
       write_fmt_string_lisp (printcharfun, "#<misc-user-event (%S %S)",
 			     XEVENT_MISC_USER_FUNCTION (obj),
 			     XEVENT_MISC_USER_OBJECT (obj));
+      if (XEVENT_MISC_USER_MODIFIERS (obj) != 0)
+	{
+	  int modifiers = XEVENT_MISC_USER_MODIFIERS (obj);
+	  write_ascstring (printcharfun, " (");
+
+#define FROB_MODIFIER(upcase_mod, downcase_mod, num)			\
+	  if (modifiers & XEMACS_MOD_##upcase_mod)			\
+	    {								\
+	      modifiers &= ~XEMACS_MOD_##upcase_mod;			\
+	      write_ascstring (printcharfun, #downcase_mod);		\
+	      if (modifiers) write_ascstring (printcharfun, " ");	\
+	    }
+#include "modifiers.h"
+	  write_ascstring (printcharfun, ")");
+	}
       break;
     case eval_event:
       write_fmt_string_lisp (printcharfun, "#<eval-event (%S %S)",
@@ -613,18 +643,13 @@ WARNING: the event object returned may be a reused one; see the function
 
 	    EXTERNAL_LIST_LOOP_2 (sym, value)
 	      {
-		if      (EQ (sym, Qcontrol)) modifiers |= XEMACS_MOD_CONTROL;
-		else if (EQ (sym, Qmeta))    modifiers |= XEMACS_MOD_META;
-		else if (EQ (sym, Qsuper))   modifiers |= XEMACS_MOD_SUPER;
-		else if (EQ (sym, Qhyper))   modifiers |= XEMACS_MOD_HYPER;
-		else if (EQ (sym, Qalt))     modifiers |= XEMACS_MOD_ALT;
-		else if (EQ (sym, Qsymbol))  modifiers |= XEMACS_MOD_ALT;
-		else if (EQ (sym, Qshift))   modifiers |= XEMACS_MOD_SHIFT;
-		else if (EQ (sym, Qbutton1))   modifiers |= XEMACS_MOD_BUTTON1;
-		else if (EQ (sym, Qbutton2))   modifiers |= XEMACS_MOD_BUTTON2;
-		else if (EQ (sym, Qbutton3))   modifiers |= XEMACS_MOD_BUTTON3;
-		else if (EQ (sym, Qbutton4))   modifiers |= XEMACS_MOD_BUTTON4;
-		else if (EQ (sym, Qbutton5))   modifiers |= XEMACS_MOD_BUTTON5;
+		if (0) { DO_NOTHING; }
+#define FROB_MODIFIER(upcasemod, downcasemod, num)		\
+		else if (EQ (sym, Q##downcasemod))		\
+		  {						\
+		    modifiers |= XEMACS_MOD_##upcasemod;	\
+		  }
+#include "modifiers.h"		
 		else
 		  invalid_constant ("Invalid key modifier", sym);
 	      }
@@ -1519,27 +1544,52 @@ format_event_object (Lisp_Object printcharfun, Lisp_Object event,
       return 0;
     }
 
-  if (mod && !brief)
+  if (mod)
     {
-      result += write_ascstring (printcharfun, "(");
+      if (brief)
+	{
+#define FROB_MODIFIER(upcasemod, downcasemod, num)			\
+	  if (mod & XEMACS_MOD_##upcasemod)				\
+	    {								\
+	      if (XEMACS_MOD_##upcasemod > XEMACS_MOD_SHIFT)		\
+		{							\
+		  result += write_ascstring (printcharfun, #upcasemod);	\
+		  result += write_ascstring (printcharfun, "-");	\
+		}							\
+	      else if (XEMACS_MOD_##upcasemod == XEMACS_MOD_SHIFT)	\
+		{							\
+		  /* Can't generate the short form for shift		\
+		     programmatically. */				\
+		  result += write_ascstring (printcharfun, "Sh-");	\
+		}							\
+	      else							\
+		{							\
+		  result += write_fmt_string (printcharfun, "%c-",	\
+					      #upcasemod [0]);		\
+		}							\
+	    }
+#include "modifiers.h"
+	}
+      else
+	{
+	  int modifiers = mod;
+	  result += write_ascstring (printcharfun, "(");
+
+#define FROB_MODIFIER(upcasemod, downcasemod, num)			\
+	  if (modifiers & XEMACS_MOD_##upcasemod)			\
+	    {								\
+	      result += write_ascstring (printcharfun, #downcasemod);	\
+	      result += write_ascstring (printcharfun, " ");		\
+	    }
+#include "modifiers.h"
+	}
     }
 
-#define modprint(x,y)							\
-  do { if (brief) result += write_ascstring (printcharfun, (y));	\
-    else result += write_ascstring (printcharfun, (x)); } while (0)
-  if (mod & XEMACS_MOD_CONTROL) modprint ("control ", "C-");
-  if (mod & XEMACS_MOD_META)    modprint ("meta ",    "M-");
-  if (mod & XEMACS_MOD_SUPER)   modprint ("super ",   "S-");
-  if (mod & XEMACS_MOD_HYPER)   modprint ("hyper ",   "H-");
-  if (mod & XEMACS_MOD_ALT)	modprint ("alt ",     "A-");
-  if (mod & XEMACS_MOD_SHIFT)   modprint ("shift ",   "Sh-");
   if (mouse_p)
     {
       result += write_ascstring (printcharfun, "button");
       --mouse_p;
     }
-
-#undef modprint
 
   if (CHARP (key))
     {
@@ -1912,11 +1962,11 @@ clever things.
   int mod = XFIXNUM (Fevent_modifier_bits (event));
   Lisp_Object result = Qnil;
 
-#define FROB(num)                                                       \
-  if (mod & XEMACS_MOD_BUTTON##num) result = Fcons (Qbutton##num, result);
-#include "keymap-buttons.h"
+#define FROB_MODIFIER(upcase_mod, downcase_mod, val)                        \
+  if (mod & XEMACS_MOD_##upcase_mod) result = Fcons (Q##downcase_mod, result);
+#include "modifiers.h"
 
-  return control_meta_superify (Fnreverse (result), mod);
+  return Fnreverse (result);
 }
 
 static int

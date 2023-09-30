@@ -36,11 +36,10 @@ EXFUN (Fkeymapp, 1);
 EXFUN (Fmake_keymap, 1);
 EXFUN (Fwhere_is_internal, 5);
 
-extern Lisp_Object Qalt, Qcontrol, Qhyper, Qmeta, Qshift, Qsuper;
+#define FROB_MODIFIER(upcase_mod, downcase_mod, num)        \
+extern Lisp_Object Q##downcase_mod;
+#include "modifiers.h"
 
-#define FROB(num)				\
-extern Lisp_Object Qbutton##num;
-#include "keymap-buttons.h"
 extern Lisp_Object Vmeta_prefix_char;
 
 Lisp_Object get_keymap (Lisp_Object object, int errorp, int autoload);
