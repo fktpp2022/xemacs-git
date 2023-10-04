@@ -1,3 +1,10 @@
+2023-10-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* search.c (set_lisp_search_registers):
+	Force the correct order of START, END arguments to
+	set_extent_endpoints(), thank you Jody Weissmann, thank you Henry
+	S. Thompson.
+
 2023-09-30  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Add modifiers.h, on the model of keymap-buttons.h. Use it in 

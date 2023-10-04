@@ -409,8 +409,21 @@ set_lisp_search_registers (Lisp_Object search_obj,
 
           set_extent_endpoints (XEXTENT (XVECTOR_DATA (registers_vector)
                                          [num_regs]),
-                                search_regsp->start[num_regs],
-                                search_regsp->end[num_regs], search_obj);
+				/* #### The regexp code can pass these back
+				   in the wrong order, see Jody Weissmann's
+				   comp.emacs.xemacs post
+				   fb528cdd-3fa1-4c10-b607-a1ae75542496n@googlegroups.com
+				   and Henry S. Thompson's recipe in
+				   f5ba5tfa7nb.fsf@ecclerig.inf.ed.ac.uk. I
+				   haven't reproduced this, but have some
+				   regexp code on the go and will investigate
+				   further in the course of it. Aidan Kehoe, Mi
+				   4. Okt 08:06:16 IST 2023 */
+                                min (search_regsp->start[num_regs],
+				     search_regsp->end[num_regs]),
+                                max (search_regsp->start[num_regs],
+				     search_regsp->end[num_regs]), 
+				search_obj);
         }
     }
 
