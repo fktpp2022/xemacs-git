@@ -1,3 +1,9 @@
+2023-10-05  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* window.c (Fwindow_end):
+	window_display_buffer () can sometimes give NULL if the window has
+	yet to be redisplayed, check for that in this function.
+
 2023-10-04  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* search.c (set_lisp_search_registers):

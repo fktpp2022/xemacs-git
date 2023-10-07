@@ -1908,7 +1908,8 @@ e.g. if the window's current buffer has been killed. */
       struct buffer *b = window_display_buffer (w);
 
       if (in_display || 
-          (BUFFER_LIVE_P (b) && EQ (wrap_buffer (b), window_buffer (w))))
+          (b != NULL && BUFFER_LIVE_P (b) &&
+	   EQ (wrap_buffer (b), window_buffer (w))))
         {
           return Fmarker_position (w->end_pos[CURRENT_DISP]);
         }
