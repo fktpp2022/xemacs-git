@@ -3519,17 +3519,17 @@ staticpro (Lisp_Object *varaddress)
 Lisp_Object_ptr_dynarr *staticpros_nodump;
 
 /* Mark the Lisp_Object at heap VARADDRESS as a root object for garbage
-   collection, but not for dumping.  This is used for objects where the
-   only sure pointer is in the heap (rather than in the global data
-   segment, as must be the case for pdump root pointers), but not inside of
-   another Lisp object (where it will be marked as a result of that Lisp
-   object's mark method).  The call to staticpro_nodump() must occur *BOTH*
-   at initialization time and at "reinitialization" time (startup, after
-   pdump load.) (For example, this is the case with the predicate symbols
-   for specifier and coding system types.  The pointer to this symbol is
-   inside of a methods structure, which is allocated on the heap.  The
-   methods structure will be written out to the pdump data file, and may be
-   reloaded at a different address.)
+   collection, but not for dumping.  This is used for objects where the only
+   sure pointer is in the heap (rather than in the global data segment, as must
+   be the case for pdump root pointers), but not inside of another Lisp object
+   (where it will be marked as a result of KKCC examining the object's memory
+   description).  The call to staticpro_nodump() must occur *BOTH* at
+   initialization time and at "reinitialization" time (startup, after pdump
+   load.) (For example, this is the case with the predicate symbols for
+   specifier and coding system types.  The pointer to this symbol is inside of
+   a methods structure, which is allocated on the heap.  The methods structure
+   will be written out to the pdump data file, and may be reloaded at a
+   different address.)
 
    #### The necessity for reinitialization is a bug in pdump.  Pdump should
    automatically regenerate the staticpro()s for these symbols when it

@@ -2556,14 +2556,6 @@ const struct sized_memory_description ccl_program_description =
   ccl_program_description_1
 };
   
-void
-mark_ccl_program (struct ccl_program *ccl)
-{
-  int i;
-  for (i = 0; i < ccl->size; i++)
-    mark_object (ccl->prog[i]);
-}
-
 
 
 void

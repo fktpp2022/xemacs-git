@@ -31,17 +31,13 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
    (Info-goto-node "(internals)Discussion -- Incremental Collector")
    
-   We currently have two mark algorithms:
-
-   - The "recursive mark algorithm" marks live objects by recursively
-     calling mark_* functions on live objects.  It is the default mark 
-     algorithm.
-
-   - The "KKCC mark algorithm" uses an explicit stack that to keep track of
-     the current progress of traversal and uses memory layout descriptions
-     (that are also used by the portable dumper) instead of the mark_*
-     functions.  This is used if you configure `--with-kkcc'.
-*/
+   The mark algorthim uses an explicit stack to keep track of the current
+   progress of traversal and uses memory layout descriptions (that are also
+   used by the portable dumper) instead of the previous mark_* functions.  This
+   work is called the "KKCC" mark algorithm from the initials of its
+   implementors, Marcus Crestani and Markus Kaltenbach. It is significantly
+   faster than the old mark algorithm, since it has much more locality of code
+   reference. */
 
 #include <config.h>
 #include "lisp.h"

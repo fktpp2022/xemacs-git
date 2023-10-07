@@ -69,6 +69,108 @@
 	Remove declaration of control_meta_superify(), no longer used in
 	events.c.
 
+2023-10-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Clean up a few straggling remnants of the old mark algorithm,
+	missed in cca3709a62ad .
+
+	* alloc.c:
+	Remove mention of objects' mark methods.
+	* array.c (mark_Lisp_Object_dynarr): Removed, not necessary since
+	KKCC is the only mark algorithm.
+	* buffer.c (common_init_complex_vars_of_buffer):
+	Remove mention of a mark method.
+	* console-impl.h (struct console_methods): Remove the
+	mark_console(), mark_device(), mark_frame(),
+	mark_color_instance(), mark_font_instance(), and
+	mark_image_instance() methods.
+	* console-msw.c (console_type_create_mswindows):
+	Remove mention of the mark_console() method.
+	* console-tty.c (tty_initially_selected_for_input):
+	Remove tty_mark_console ().
+	* console-tty.c (console_type_create_tty):
+	Remove mention of mark_consol().
+	* console.c (common_init_complex_vars_of_console):
+	* device-gtk.c:
+	* device-gtk.c (console_type_create_device_gtk):
+	Remove gtk_mark_device().
+	* device-msw.c:
+	Remove mswindows_mark_device(), msprinter_mark_device().
+	* device-x.c:
+	Remove x_mark_device().
+	* file-coding.c:
+	Remove chain_mark(), chain_mark_coding_stream_1(),
+	chain_mark_coding_stream(), undecided_mark(), and
+	undecided_mark_coding_stream().
+	* file-coding.h (struct coding_system_methods):
+	* file-coding.h (struct detector):
+	Remove the mark methods from these structures.
+
+	* fontcolor-msw.c:
+	Remove mswindows_mark_color_instance(),
+	mswindows_mark_font_instance(), 
+	
+	* fontcolor-tty.c:
+	Remove tty_mark_color_instance(), tty_mark_font_instance().
+
+	* fontcolor.c:
+	Remove color_mark(), font_mark(), face_boolean_mark(),
+	face_background_placement_mark().
+
+	* frame-gtk.c:
+	Remove gtk_mark_frame().
+
+	* frame-msw.c:
+	Remove mswindows_mark_frame(), msprinter_mark_frame().
+
+	* frame-x.c:
+	Remove x_mark_frame().
+
+	* gc.c:
+	Be clearer in the documentation here that we don't use mark
+	methods at all.
+
+	* gccache-x.h:
+	Clarify how the hash table in the x_gc_cache is reachable for the
+	GC.
+
+	* glyphs.c:
+	Remove image_mark().
+
+	* gutter.c:
+	Remove mark_gutters().
+	* gutter.h:
+	Remove its declaration.
+
+	* intl-win32.c:
+	Remove mswindows_multibyte_mark().
+	* lisp.h:
+	Remove declarations for mark_Lisp_Object_dynarr(),
+	mark_buffer_syntax_cache().
+	* lrecord.h:
+	Update comments here to reflect that KKCC is the only mark
+	algorithm and to update examples.
+
+	* mule-ccl.c:
+	Remove mark_ccl_program() from here.
+	* mule-ccl.h:
+	Remove its declaration.
+
+	* mule-coding.c:
+	Remove multibyte_mark_coding_stream(), multibyte_mark(),
+	iso2022_mark_iso2022_coding_stream(),
+	iso2022_mark_coding_stream(), iso2022_mark(),
+	iso2022_mark_detection_state(), ccl_mark(), and
+	ccl_mark_coding_stream().
+	* redisplay.c:
+	Remove mark_glyph_block_dynarr(), mark_redisplay_structs().
+	* redisplay.h:
+	Remove the declaration of mark_redisplay_structs().
+	* specifier.h (struct specifier_methods):
+	Remove the mark method.
+	* syntax.c:
+	Remove mark_buffer_syntax_cache().
+
 2023-09-08  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* fontcolor-tty.c:

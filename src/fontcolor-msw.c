@@ -1375,13 +1375,6 @@ mswindows_initialize_color_instance (Lisp_Color_Instance *c, Lisp_Object name,
   return(0);
 }
 
-#if 0
-static void
-mswindows_mark_color_instance (Lisp_Color_Instance *c)
-{
-}
-#endif
-
 static void
 mswindows_print_color_instance (Lisp_Color_Instance *c,
 				Lisp_Object printcharfun,
@@ -1930,13 +1923,6 @@ mswindows_finalize_font_instance (Lisp_Font_Instance *f)
    }
 }
 
-#if 0
-static void
-mswindows_mark_font_instance (Lisp_Font_Instance *f)
-{
-}
-#endif
-
 static void
 mswindows_print_font_instance (Lisp_Font_Instance *f,
 			       Lisp_Object printcharfun,
@@ -2280,7 +2266,6 @@ console_type_create_fontcolor_mswindows (void)
 {
   /* object methods */
   CONSOLE_HAS_METHOD (mswindows, initialize_color_instance);
-/*  CONSOLE_HAS_METHOD (mswindows, mark_color_instance); */
   CONSOLE_HAS_METHOD (mswindows, print_color_instance);
   CONSOLE_HAS_METHOD (mswindows, finalize_color_instance);
   CONSOLE_HAS_METHOD (mswindows, color_instance_equal);
@@ -2290,7 +2275,6 @@ console_type_create_fontcolor_mswindows (void)
   CONSOLE_HAS_METHOD (mswindows, color_list);
 
   CONSOLE_HAS_METHOD (mswindows, initialize_font_instance);
-/*  CONSOLE_HAS_METHOD (mswindows, mark_font_instance); */
   CONSOLE_HAS_METHOD (mswindows, print_font_instance);
   CONSOLE_HAS_METHOD (mswindows, finalize_font_instance);
   CONSOLE_HAS_METHOD (mswindows, font_instance_truename);
@@ -2304,7 +2288,6 @@ console_type_create_fontcolor_mswindows (void)
      since graphical objects behave the same way. */
 
   CONSOLE_INHERITS_METHOD (msprinter, mswindows, initialize_color_instance);
-/*  CONSOLE_INHERITS_METHOD (msprinter, mswindows, mark_color_instance); */
   CONSOLE_INHERITS_METHOD (msprinter, mswindows, print_color_instance);
   CONSOLE_INHERITS_METHOD (msprinter, mswindows, finalize_color_instance);
   CONSOLE_INHERITS_METHOD (msprinter, mswindows, color_instance_equal);
@@ -2314,7 +2297,6 @@ console_type_create_fontcolor_mswindows (void)
   CONSOLE_INHERITS_METHOD (msprinter, mswindows, color_list);
 
   CONSOLE_HAS_METHOD (msprinter, initialize_font_instance);
-/*  CONSOLE_INHERITS_METHOD (msprinter, mswindows, mark_font_instance); */
   CONSOLE_INHERITS_METHOD (msprinter, mswindows, print_font_instance);
   CONSOLE_INHERITS_METHOD (msprinter, mswindows, finalize_font_instance);
   CONSOLE_INHERITS_METHOD (msprinter, mswindows, font_instance_truename);

@@ -183,16 +183,6 @@ tty_init_console (struct console *con, Lisp_Object props)
   UNGCPRO;
 }
 
-static void
-tty_mark_console (struct console *con)
-{
-  struct tty_console *tty_con = CONSOLE_TTY_DATA (con);
-  mark_object (tty_con->terminal_type);
-  mark_object (tty_con->instream);
-  mark_object (tty_con->outstream);
-  mark_object (tty_con->color_alist);
-}
-
 static int
 tty_initially_selected_for_input (struct console *UNUSED (con))
 {
@@ -478,7 +468,6 @@ console_type_create_tty (void)
 
   /* console methods */
   CONSOLE_HAS_METHOD (tty, init_console);
-  CONSOLE_HAS_METHOD (tty, mark_console);
   CONSOLE_HAS_METHOD (tty, initially_selected_for_input);
   CONSOLE_HAS_METHOD (tty, delete_console);
   CONSOLE_HAS_METHOD (tty, canonicalize_console_connection);

@@ -7705,63 +7705,6 @@ free_display_structs (struct window_mirror *mir)
 }
 
 
-static void
-mark_glyph_block_dynarr (glyph_block_dynarr *gba)
-{
-  if (gba)
-    {
-      glyph_block *gb = Dynarr_begin (gba);
-      glyph_block *gb_last = Dynarr_past_lastp (gba);
-
-      for (; gb < gb_last; gb++)
-	{
-	  if (!NILP (gb->glyph))
-	    mark_object (gb->glyph);
-	  if (!NILP (gb->extent))
-	    mark_object (gb->extent);
-	}
-    }
-}
-
-/* See the comment in image_instantiate_cache_result as to why marking
-   the glyph will also mark the image_instance. */
-void
-mark_redisplay_structs (display_line_dynarr *dla)
-{
-  display_line *dl = Dynarr_begin (dla);
-  display_line *dl_last = Dynarr_past_lastp (dla);
-
-  for (; dl < dl_last; dl++)
-    {
-      display_block_dynarr *dba = dl->display_blocks;
-      display_block *db = Dynarr_begin (dba);
-      display_block *db_last = Dynarr_past_lastp (dba);
-
-      for (; db < db_last; db++)
-	{
-	  rune_dynarr *ra = db->runes;
-	  rune *r = Dynarr_begin (ra);
-	  rune *r_last = Dynarr_past_lastp (ra);
-
-	  for (; r < r_last; r++)
-	    {
-	      if (r->type == RUNE_DGLYPH)
-		{
-		  if (!NILP (r->object.dglyph.glyph))
-		    mark_object (r->object.dglyph.glyph);
-		  if (!NILP (r->object.dglyph.extent))
-		    mark_object (r->object.dglyph.extent);
-		}
-	    }
-	}
-
-      mark_glyph_block_dynarr (dl->left_glyphs);
-      mark_glyph_block_dynarr (dl->right_glyphs);
-    }
-}
-
-
-
 /*
 
 Info on line-start cache:

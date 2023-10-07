@@ -547,26 +547,8 @@ update_syntax_cache (struct syntax_cache *cache, Bytexpos pos,
     }
 }
 
-/* buffer-specific APIs used in buffer.c
+/* buffer-specific API used in buffer.c
    #### Really unclean; the syntax cache should just be a LISP object. */
-
-void
-mark_buffer_syntax_cache (struct buffer *buf)
-{
-  struct syntax_cache *cache = buf->syntax_cache;
-  if (!cache) /* Vbuffer_defaults and such don't have caches */
-    return;
-  mark_object (cache->object);
-  if (cache->buffer)
-    mark_object (wrap_buffer (cache->buffer));
-  mark_object (cache->syntax_table);
-#ifdef MIRROR_TABLE
-  mark_object (cache->mirror_table);
-#endif /* MIRROR_TABLE */
-  mark_object (cache->start);
-  mark_object (cache->end);
-}
-
 void
 init_buffer_syntax_cache (struct buffer *buf)
 {

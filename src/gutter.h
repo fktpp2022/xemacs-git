@@ -41,7 +41,6 @@ extern Lisp_Object Vgutter_size[4];
 extern Lisp_Object Vgutter_border_width[4];
 void update_frame_gutters (struct frame *f);
 void update_frame_gutter_geometry (struct frame *f);
-void mark_gutters (struct frame* f);
 void init_frame_gutters (struct frame *f);
 void init_device_gutters (struct device *d);
 void init_global_gutters (struct device *d);

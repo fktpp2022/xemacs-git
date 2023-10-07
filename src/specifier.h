@@ -93,10 +93,6 @@ struct specifier_methods
   /* Create method: Initialize specifier data. Optional. */
   void (*create_method) (Lisp_Object specifier);
 
-  /* Mark method: Mark any lisp object within specifier data
-     structure. Not required if no specifier data are Lisp_Objects. */
-  void (*mark_method) (Lisp_Object specifier);
-
   /* Equal method: Compare two specifiers. This is called after
      ensuring that the two specifiers are of the same type, and have
      the same specs.  Quit is inhibited during the call so it is safe

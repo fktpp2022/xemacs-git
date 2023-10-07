@@ -2239,7 +2239,7 @@ static void
 common_init_complex_vars_of_buffer (void)
 {
   /* Make sure all markable slots in buffer_defaults
-     are initialized reasonably, so mark_buffer won't choke. */
+     are initialized reasonably, so KKCC won't choke. */
   Lisp_Object defobj = ALLOC_NORMAL_LISP_OBJECT (buffer);
   struct buffer *defs = XBUFFER (defobj);
   Lisp_Object symobj = ALLOC_NORMAL_LISP_OBJECT (buffer);

@@ -375,13 +375,6 @@ gtk_finish_init_device (struct device *d, Lisp_Object UNUSED (props))
   call1 (Qmake_device_late_gtk_entry_point, wrap_device(d));
 }
 
-static void
-gtk_mark_device (struct device *d)
-{
-  mark_object (DEVICE_GTK_WM_COMMAND_FRAME (d));
-  mark_object (DEVICE_GTK_DATA (d)->x_keysym_map_hashtable);
-}
-
 
 /************************************************************************/
 /*                       closing an X connection	                */
@@ -908,7 +901,6 @@ console_type_create_device_gtk (void)
 {
   CONSOLE_HAS_METHOD (gtk, init_device);
   CONSOLE_HAS_METHOD (gtk, finish_init_device);
-  CONSOLE_HAS_METHOD (gtk, mark_device);
   CONSOLE_HAS_METHOD (gtk, delete_device);
   CONSOLE_HAS_METHOD (gtk, device_system_metrics);
   /* CONSOLE_IMPLEMENTATION_FLAGS (gtk, XDEVIMPF_PIXEL_GEOMETRY); */

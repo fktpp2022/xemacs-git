@@ -60,7 +60,6 @@ struct console_methods
 
   /* console methods */
   void (*init_console_method) (struct console *, Lisp_Object props);
-  void (*mark_console_method) (struct console *);
   int (*initially_selected_for_input_method) (struct console *);
   void (*delete_console_method) (struct console *);
   Lisp_Object (*semi_canonicalize_console_connection_method)
@@ -80,7 +79,6 @@ struct console_methods
   void (*init_device_method) (struct device *, Lisp_Object props);
   void (*finish_init_device_method) (struct device *, Lisp_Object props);
   void (*delete_device_method) (struct device *);
-  void (*mark_device_method) (struct device *);
   void (*asynch_device_change_method) (void);
   Lisp_Object (*device_system_metrics_method) (struct device *,
                                                enum device_metrics);
@@ -107,7 +105,6 @@ struct console_methods
   void (*init_frame_3_method) (struct frame *);
   void (*after_init_frame_method) (struct frame *, int first_on_device,
 				   int first_on_console);
-  void (*mark_frame_method) (struct frame *);
   void (*delete_frame_method) (struct frame *);
   void (*focus_on_frame_method) (struct frame *);
   void (*raise_frame_method) (struct frame *);
@@ -183,7 +180,6 @@ struct console_methods
 					   Lisp_Object name,
 					   Lisp_Object device,
 					   Error_Behavior errb);
-  void (*mark_color_instance_method) (Lisp_Color_Instance *);
   void (*print_color_instance_method) (Lisp_Color_Instance *,
 				       Lisp_Object printcharfun,
 				       int escapeflag);
@@ -202,7 +198,6 @@ struct console_methods
 					  Lisp_Object name,
 					  Lisp_Object device,
 					  Error_Behavior errb);
-  void (*mark_font_instance_method) (Lisp_Font_Instance *);
   void (*print_font_instance_method) (Lisp_Font_Instance *,
 				      Lisp_Object printcharfun,
 				      int escapeflag);
@@ -222,7 +217,6 @@ struct console_methods
      enum font_specifier_matchspec_stages stage);
 
   /* image methods */
-  void (*mark_image_instance_method) (Lisp_Image_Instance *);
   void (*print_image_instance_method) (Lisp_Image_Instance *,
 				       Lisp_Object printcharfun,
 				       int escapeflag);

@@ -40,7 +40,7 @@ struct gc_cache_cell {
 };
 
 struct x_gc_cache {
-  /* This is marked in x_mark_device(). */
+  /* This is marked via x_device_data_description_1 */
   Lisp_Object table;
 
   struct gc_cache_cell *head;

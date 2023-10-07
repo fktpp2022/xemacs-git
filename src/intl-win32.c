@@ -2194,16 +2194,6 @@ mswindows_multibyte_init (Lisp_Object codesys)
   data->locale = Qnil;
 }
 
-static void
-mswindows_multibyte_mark (Lisp_Object codesys)
-{
-  struct mswindows_multibyte_coding_system *data =
-    XCODING_SYSTEM_TYPE_DATA (codesys, mswindows_multibyte);
-
-  mark_object (data->code_page);
-  mark_object (data->locale);
-}
-
 static int
 mswindows_multibyte_putprop (Lisp_Object codesys,
 			     Lisp_Object key,
@@ -2331,7 +2321,6 @@ coding_system_type_create_intl_win32 (void)
      "mswindows-multibyte-coding-system-p");
   CODING_SYSTEM_HAS_METHOD (mswindows_multibyte, convert);
   CODING_SYSTEM_HAS_METHOD (mswindows_multibyte, init);
-  CODING_SYSTEM_HAS_METHOD (mswindows_multibyte, mark);
   CODING_SYSTEM_HAS_METHOD (mswindows_multibyte, getprop);
   CODING_SYSTEM_HAS_METHOD (mswindows_multibyte, putprop);
   CODING_SYSTEM_HAS_METHOD (mswindows_multibyte, canonicalize);

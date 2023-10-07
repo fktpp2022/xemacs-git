@@ -4291,7 +4291,6 @@ extern const struct sized_memory_description lisp_object_description;
 extern const struct sized_memory_description Lisp_Object_dynarr_description;
 extern const struct sized_memory_description Lisp_Object_pair_description;
 extern const struct sized_memory_description Lisp_Object_pair_dynarr_description;
-void mark_Lisp_Object_dynarr (Lisp_Object_dynarr *dyn);
 
 
 /* Defined in buffer.c */
@@ -6042,7 +6041,6 @@ extern Lisp_Object Vstandard_syntax_table;
 void signal_syntax_cache_extent_changed (EXTENT extent);
 void signal_syntax_cache_extent_adjust (struct buffer *buf);
 void init_buffer_syntax_cache (struct buffer *buf);
-void mark_buffer_syntax_cache (struct buffer *buf);
 void uninit_buffer_syntax_cache (struct buffer *buf);
 extern Lisp_Object Qsyntax_table;
 

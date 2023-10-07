@@ -134,14 +134,6 @@ multibyte_init_coding_stream (struct coding_stream *str)
   data->ch = -1;
 }
 
-static void
-multibyte_mark_coding_stream (struct coding_stream *str)
-{
-  struct multibyte_coding_stream *data =
-    CODING_STREAM_TYPE_DATA (str, multibyte);
-  mark_object (data->charset_precedence);
-}
-
 /* See if we can derive a character out of the specified charsets
    that is of the right dimension, is valid according to the bounds, and
    can be made into an Ichar. */
@@ -405,12 +397,6 @@ static void
 multibyte_init (Lisp_Object codesys)
 {
   XCODING_SYSTEM_MBCS_CHARSETS (codesys) = Dynarr_new (Lisp_Object);
-}
-
-static void
-multibyte_mark (Lisp_Object codesys)
-{
-  mark_Lisp_Object_dynarr (XCODING_SYSTEM_MBCS_CHARSETS (codesys));
 }
 
 static void
@@ -2042,20 +2028,6 @@ iso2022_init_coding_stream (struct coding_stream *str)
     reset_iso2022_encode (str->codesys,
 			  CODING_STREAM_TYPE_DATA (str, iso2022));
 }
-static void
-iso2022_mark_iso2022_coding_stream (struct iso2022_coding_stream *data)
-{
-  int i;
-  for (i = 0; i < 4; i++)
-    mark_object (data->charset[i]);
-}
-
-static void
-iso2022_mark_coding_stream (struct coding_stream *str)
-{
-  struct iso2022_coding_stream *data = CODING_STREAM_TYPE_DATA (str, iso2022);
-  iso2022_mark_iso2022_coding_stream (data);
-}
 
 static int
 fit_to_be_escape_quoted (int c)
@@ -3276,39 +3248,6 @@ iso2022_convert (struct coding_stream *str, const unsigned char *src,
 }
 
 static void
-iso2022_mark (Lisp_Object codesys)
-{
-  int i;
-
-  for (i = 0; i < 4; i++)
-    mark_object (XCODING_SYSTEM_ISO2022_INITIAL_CHARSET (codesys, i));
-  if (XCODING_SYSTEM_ISO2022_INPUT_CONV (codesys))
-    {
-      for (i = 0;
-	   i < Dynarr_length (XCODING_SYSTEM_ISO2022_INPUT_CONV (codesys));
-	   i++)
-	{
-	  struct charset_conversion_spec *ccs =
-	    Dynarr_atp (XCODING_SYSTEM_ISO2022_INPUT_CONV (codesys), i);
-	  mark_object (ccs->from_charset);
-	  mark_object (ccs->to_charset);
-	}
-    }
-  if (XCODING_SYSTEM_ISO2022_OUTPUT_CONV (codesys))
-    {
-      for (i = 0;
-	   i < Dynarr_length (XCODING_SYSTEM_ISO2022_OUTPUT_CONV (codesys));
-	   i++)
-	{
-	  struct charset_conversion_spec *ccs =
-	    Dynarr_atp (XCODING_SYSTEM_ISO2022_OUTPUT_CONV (codesys), i);
-	  mark_object (ccs->from_charset);
-	  mark_object (ccs->to_charset);
-	}
-    }
-}
-
-static void
 iso2022_finalize (Lisp_Object cs)
 {
   if (XCODING_SYSTEM_ISO2022_INPUT_CONV (cs))
@@ -3870,13 +3809,6 @@ iso2022_detect (struct detection_state *st, const UExtbyte *src,
 }      
 
 static void
-iso2022_mark_detection_state (struct detection_state *st)
-{
-  struct iso2022_detector *data = DETECTION_STATE_DATA (st, iso2022);
-  iso2022_mark_iso2022_coding_stream (data->iso);
-}
-
-static void
 iso2022_finalize_detection_state (struct detection_state *st)
 {
   struct iso2022_detector *data = DETECTION_STATE_DATA (st, iso2022);
@@ -3931,13 +3863,6 @@ static const struct memory_description ccl_coding_stream_description[] = {
 
 DEFINE_CODING_SYSTEM_TYPE_WITH_DATA (ccl);
 
-static void
-ccl_mark (Lisp_Object codesys)
-{
-  mark_object (XCODING_SYSTEM_CCL_DECODE (codesys));
-  mark_object (XCODING_SYSTEM_CCL_ENCODE (codesys));
-}
-
 static Bytecount
 ccl_convert (struct coding_stream *str, const unsigned char *src,
 	     Bytecount n, unsigned_char_dynarr *dst)
@@ -3970,15 +3895,6 @@ ccl_init_coding_stream (struct coding_stream *str)
 		     str->direction == CODING_DECODE ?
 		     XCODING_SYSTEM_CCL_DECODE (str->codesys) :
 		     XCODING_SYSTEM_CCL_ENCODE (str->codesys));
-}
-
-static void
-ccl_mark_coding_stream (struct coding_stream *str)
-{
-  struct ccl_coding_stream *data =
-    CODING_STREAM_TYPE_DATA (str, ccl);
-
-  mark_ccl_program (&data->ccl);
 }
 
 static void
@@ -4060,19 +3976,15 @@ coding_system_type_create_mule_coding (void)
   INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (multibyte, "multibyte-coding-system-p");
   CODING_SYSTEM_HAS_METHOD (multibyte, convert);
   CODING_SYSTEM_HAS_METHOD (multibyte, init_coding_stream);
-  CODING_SYSTEM_HAS_METHOD (multibyte, mark_coding_stream);
   CODING_SYSTEM_HAS_METHOD (multibyte, init);
-  CODING_SYSTEM_HAS_METHOD (multibyte, mark);
   CODING_SYSTEM_HAS_METHOD (multibyte, finalize);
   CODING_SYSTEM_HAS_METHOD (multibyte, putprop);
   CODING_SYSTEM_HAS_METHOD (multibyte, getprop);
   CODING_SYSTEM_HAS_METHOD (multibyte, print);
 
   INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (iso2022, "iso2022-coding-system-p");
-  CODING_SYSTEM_HAS_METHOD (iso2022, mark);
   CODING_SYSTEM_HAS_METHOD (iso2022, convert);
   CODING_SYSTEM_HAS_METHOD (iso2022, init_coding_stream);
-  CODING_SYSTEM_HAS_METHOD (iso2022, mark_coding_stream);
 #ifdef ENABLE_COMPOSITE_CHARS
   CODING_SYSTEM_HAS_METHOD (iso2022, finalize_coding_stream);
   CODING_SYSTEM_HAS_METHOD (iso2022, copy_coding_stream);
@@ -4086,7 +3998,6 @@ coding_system_type_create_mule_coding (void)
   INITIALIZE_DETECTOR_WITH_DESCRIPTION (iso2022);
   DETECTOR_HAS_METHOD (iso2022, detect);
   DETECTOR_HAS_METHOD (iso2022, finalize_detection_state);
-  DETECTOR_HAS_METHOD (iso2022, mark_detection_state);
   INITIALIZE_DETECTOR_CATEGORY (iso2022, iso_7);
   INITIALIZE_DETECTOR_CATEGORY (iso2022, iso_8_designate);
   INITIALIZE_DETECTOR_CATEGORY (iso2022, iso_8_1);
@@ -4094,11 +4005,9 @@ coding_system_type_create_mule_coding (void)
   INITIALIZE_DETECTOR_CATEGORY (iso2022, iso_lock_shift);
 
   INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (ccl, "ccl-coding-system-p");
-  CODING_SYSTEM_HAS_METHOD (ccl, mark);
   CODING_SYSTEM_HAS_METHOD (ccl, convert);
   CODING_SYSTEM_HAS_METHOD (ccl, init);
   CODING_SYSTEM_HAS_METHOD (ccl, init_coding_stream);
-  CODING_SYSTEM_HAS_METHOD (ccl, mark_coding_stream);
   CODING_SYSTEM_HAS_METHOD (ccl, putprop);
   CODING_SYSTEM_HAS_METHOD (ccl, getprop);
 

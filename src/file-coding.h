@@ -299,10 +299,6 @@ struct coding_system_methods
   /* Init method: Initialize coding-system data.  Optional. */
   void (*init_method) (Lisp_Object coding_system);
 
-  /* Mark method: Mark any Lisp objects in the type-specific data
-     attached to the coding-system object.  Optional. */
-  void (*mark_method) (Lisp_Object coding_system);
-
   /* Print method: Print the type-specific properties of this coding
      system, as part of `print'-ing the object.  If this method is defined
      and prints anything, it should print a space as the first thing it
@@ -368,10 +364,6 @@ struct coding_system_methods
   Bytecount (*convert_method) (struct coding_stream *str,
 			       const unsigned char *src, Bytecount n,
 			       unsigned_char_dynarr *dst);
-
-  /* Coding mark method: Mark any Lisp objects in the type-specific data
-     attached to `struct coding_stream'.  Optional. */
-  void (*mark_coding_stream_method) (struct coding_stream *str);
 
   /* Init coding stream method: Initialize the type-specific data attached
      to the coding stream (i.e. in struct TYPE_coding_stream), when the
@@ -829,10 +821,6 @@ struct detector
   /* Detect method: Required. */
   void (*detect_method) (struct detection_state *st,
 			 const unsigned char *src, Bytecount n);
-
-  /* Mark the detection state, if there are any Lisp objects in it:
-     Optional.  But  */
-  void (*mark_detection_state_method) (struct detection_state *st);
 
   /* Finalize detection state method: Clean up any allocated data in the
      detection state.  Called only once. Optional. */

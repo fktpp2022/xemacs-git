@@ -2156,14 +2156,6 @@ x_init_frame_3 (struct frame *f)
 }
 
 static void
-x_mark_frame (struct frame *f)
-{
-  mark_object (FRAME_X_LAST_MENUBAR_BUFFER (f));
-  mark_object (FRAME_X_ICON_PIXMAP (f));
-  mark_object (FRAME_X_ICON_PIXMAP_MASK (f));
-}
-
-static void
 x_set_frame_icon (struct frame *f)
 {
   Pixmap x_pixmap, x_mask;
@@ -2794,7 +2786,6 @@ console_type_create_frame_x (void)
   CONSOLE_HAS_METHOD (x, init_frame_1);
   CONSOLE_HAS_METHOD (x, init_frame_2);
   CONSOLE_HAS_METHOD (x, init_frame_3);
-  CONSOLE_HAS_METHOD (x, mark_frame);
   CONSOLE_HAS_METHOD (x, focus_on_frame);
   CONSOLE_HAS_METHOD (x, delete_frame);
   CONSOLE_HAS_METHOD (x, get_mouse_position);

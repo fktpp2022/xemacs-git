@@ -237,14 +237,6 @@ tty_initialize_color_instance (Lisp_Color_Instance *c, Lisp_Object name,
 }
 
 static void
-tty_mark_color_instance (Lisp_Color_Instance *c)
-{
-  mark_object (COLOR_INSTANCE_TTY_SYMBOL (c));
-  mark_object (COLOR_INSTANCE_TTY_ESCAPE_FORE (c));
-  mark_object (COLOR_INSTANCE_TTY_ESCAPE_BACK (c));
-}
-
-static void
 tty_print_color_instance (Lisp_Color_Instance *UNUSED (c),
 			  Lisp_Object UNUSED (printcharfun),
 			  int UNUSED (escapeflag))
@@ -329,12 +321,6 @@ tty_initialize_font_instance (Lisp_Font_Instance *f, Lisp_Object name,
   f->descent = 0;
 
   return 1;
-}
-
-static void
-tty_mark_font_instance (Lisp_Font_Instance *f)
-{
-  mark_object (FONT_INSTANCE_TTY_CHARSET (f));
 }
 
 static void
@@ -442,7 +428,6 @@ console_type_create_fontcolor_tty (void)
 {
   /* object methods */
   CONSOLE_HAS_METHOD (tty, initialize_color_instance);
-  CONSOLE_HAS_METHOD (tty, mark_color_instance);
   CONSOLE_HAS_METHOD (tty, print_color_instance);
   CONSOLE_HAS_METHOD (tty, finalize_color_instance);
   CONSOLE_HAS_METHOD (tty, color_instance_equal);
@@ -451,7 +436,6 @@ console_type_create_fontcolor_tty (void)
   CONSOLE_HAS_METHOD (tty, color_list);
 
   CONSOLE_HAS_METHOD (tty, initialize_font_instance);
-  CONSOLE_HAS_METHOD (tty, mark_font_instance);
   CONSOLE_HAS_METHOD (tty, print_font_instance);
   CONSOLE_HAS_METHOD (tty, finalize_font_instance);
   CONSOLE_HAS_METHOD (tty, font_list);

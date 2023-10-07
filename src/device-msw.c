@@ -289,12 +289,6 @@ mswindows_get_workspace_coords (RECT *rc)
   qxeSystemParametersInfo (SPI_GETWORKAREA, 0, rc, 0);
 }
 
-static void
-mswindows_mark_device (struct device *d)
-{
-  mark_object (DEVICE_MSWINDOWS_FONTLIST (d));
-}
-
 static Lisp_Object
 mswindows_device_system_metrics (struct device *d,
 				 enum device_metrics m)
@@ -596,14 +590,6 @@ msprinter_device_system_metrics (struct device *d,
 
   /* Do not know such property */
   return Qunbound;
-}
-
-static void
-msprinter_mark_device (struct device *d)
-{
-  mark_object (DEVICE_MSPRINTER_FONTLIST (d));
-  mark_object (DEVICE_MSPRINTER_DEVMODE (d));
-  mark_object (DEVICE_MSPRINTER_NAME (d));
 }
 
 
@@ -1357,13 +1343,11 @@ console_type_create_device_mswindows (void)
 {
   CONSOLE_HAS_METHOD (mswindows, init_device);
   CONSOLE_HAS_METHOD (mswindows, finish_init_device);
-  CONSOLE_HAS_METHOD (mswindows, mark_device);
   CONSOLE_HAS_METHOD (mswindows, delete_device);
   CONSOLE_HAS_METHOD (mswindows, device_system_metrics);
   CONSOLE_IMPLEMENTATION_FLAGS (mswindows, XDEVIMPF_PIXEL_GEOMETRY);
 
   CONSOLE_HAS_METHOD (msprinter, init_device);
-  CONSOLE_HAS_METHOD (msprinter, mark_device);
   CONSOLE_HAS_METHOD (msprinter, delete_device);
   CONSOLE_HAS_METHOD (msprinter, device_system_metrics);
   CONSOLE_IMPLEMENTATION_FLAGS (msprinter, (XDEVIMPF_PIXEL_GEOMETRY

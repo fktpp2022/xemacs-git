@@ -1343,8 +1343,7 @@ static void
 common_init_complex_vars_of_console (void)
 {
   /* Make sure all markable slots in console_defaults
-     are initialized reasonably, so mark_console won't choke.
-   */
+     are initialized reasonably, so KKCC won't choke. */
   Lisp_Object defobj = ALLOC_NORMAL_LISP_OBJECT (console);
   struct console *defs = XCONSOLE (defobj);
   Lisp_Object symobj = ALLOC_NORMAL_LISP_OBJECT (console);

@@ -478,14 +478,6 @@ Dynarr_memory_usage (void *d, struct usage_stats *stats)
 
 #endif /* MEMORY_USAGE_STATS */
 
-void
-mark_Lisp_Object_dynarr (Lisp_Object_dynarr *dyn)
-{
-  int i;
-  for (i = 0; i < Dynarr_length (dyn); i++)
-    mark_object (Dynarr_at (dyn, i));
-}
-
 
 /*****************************************************************************/
 /*                              static dynarrs                               */

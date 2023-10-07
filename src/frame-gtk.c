@@ -1146,20 +1146,6 @@ gtk_init_frame_3 (struct frame *f)
 }
 
 static void
-gtk_mark_frame (struct frame *f)
-{
-  mark_object (FRAME_GTK_LISP_WIDGETS (f)[0]);
-  mark_object (FRAME_GTK_LISP_WIDGETS (f)[1]);
-  mark_object (FRAME_GTK_LISP_WIDGETS (f)[2]);
-  mark_object (FRAME_GTK_MENUBAR_DATA (f));
-  mark_object (FRAME_GTK_ICON_PIXMAP (f));
-  mark_object (FRAME_GTK_ICON_PIXMAP_MASK (f));
-  mark_object (FRAME_GTK_WIDGET_INSTANCE_HASH_TABLE (f));
-  mark_object (FRAME_GTK_WIDGET_CALLBACK_HASH_TABLE (f));
-  mark_object (FRAME_GTK_WIDGET_CALLBACK_EX_HASH_TABLE (f));
-}
-
-static void
 gtk_set_frame_icon (struct frame *f)
 {
   GdkPixbuf *gtk_pixbuf = NULL;
@@ -1586,7 +1572,6 @@ console_type_create_frame_gtk (void)
   CONSOLE_HAS_METHOD (gtk, init_frame_1);
   CONSOLE_HAS_METHOD (gtk, init_frame_2);
   CONSOLE_HAS_METHOD (gtk, init_frame_3);
-  CONSOLE_HAS_METHOD (gtk, mark_frame);
   CONSOLE_HAS_METHOD (gtk, focus_on_frame);
   CONSOLE_HAS_METHOD (gtk, delete_frame);
   CONSOLE_HAS_METHOD (gtk, get_mouse_position);

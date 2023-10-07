@@ -109,8 +109,6 @@ int ccl_driver (struct ccl_program *, const unsigned char *,
 		struct buffer *, unsigned_char_dynarr *, int, int *,
 		int);
 
-void mark_ccl_program (struct ccl_program *ccl);
-
 extern const struct sized_memory_description ccl_program_description;
 
 EXFUN (Fregister_ccl_program, 2);

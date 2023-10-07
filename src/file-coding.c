@@ -3390,31 +3390,6 @@ chain_init (Lisp_Object codesys)
 }
 
 static void
-chain_mark (Lisp_Object codesys)
-{
-  int i;
-
-  for (i = 0; i < XCODING_SYSTEM_CHAIN_COUNT (codesys); i++)
-    mark_object (XCODING_SYSTEM_CHAIN_CHAIN (codesys)[i]);
-  mark_object (XCODING_SYSTEM_CHAIN_CANONICALIZE_AFTER_CODING (codesys));
-}
-
-static void
-chain_mark_coding_stream_1 (struct chain_coding_stream *data)
-{
-  int i;
-
-  for (i = 0; i < data->lstream_count; i++)
-    mark_object (data->lstreams[i]);
-}
-
-static void
-chain_mark_coding_stream (struct coding_stream *str)
-{
-  chain_mark_coding_stream_1 (CODING_STREAM_TYPE_DATA (str, chain));
-}
-
-static void
 chain_print (Lisp_Object cs, Lisp_Object printcharfun, int escapeflag)
 {
   int i;
@@ -4847,15 +4822,6 @@ undecided_init (Lisp_Object codesys)
 }
 
 static void
-undecided_mark (Lisp_Object codesys)
-{
-  struct undecided_coding_system *data =
-    XCODING_SYSTEM_TYPE_DATA (codesys, undecided);
-
-  mark_object (data->cs);
-}
-
-static void
 undecided_print (Lisp_Object cs, Lisp_Object printcharfun, int escapeflag)
 {
   struct undecided_coding_system *data =
@@ -4883,13 +4849,6 @@ undecided_print (Lisp_Object cs, Lisp_Object printcharfun, int escapeflag)
       print_coding_system_in_print_method (data->cs, printcharfun, escapeflag);
     }
   write_ascstring (printcharfun, ")");
-}
-
-static void
-undecided_mark_coding_stream (struct coding_stream *str)
-{
-  mark_object (CODING_STREAM_TYPE_DATA (str, undecided)->actual);
-  chain_mark_coding_stream_1 (&CODING_STREAM_TYPE_DATA (str, undecided)->c);
 }
 
 static int
@@ -5823,7 +5782,6 @@ coding_system_type_create (void)
   INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (undecided,
 					   "undecided-coding-system-p");
   CODING_SYSTEM_HAS_METHOD (undecided, init);
-  CODING_SYSTEM_HAS_METHOD (undecided, mark);
   CODING_SYSTEM_HAS_METHOD (undecided, print);
   CODING_SYSTEM_HAS_METHOD (undecided, convert);
   CODING_SYSTEM_HAS_METHOD (undecided, putprop);
@@ -5831,7 +5789,6 @@ coding_system_type_create (void)
   CODING_SYSTEM_HAS_METHOD (undecided, init_coding_stream);
   CODING_SYSTEM_HAS_METHOD (undecided, rewind_coding_stream);
   CODING_SYSTEM_HAS_METHOD (undecided, finalize_coding_stream);
-  CODING_SYSTEM_HAS_METHOD (undecided, mark_coding_stream);
   CODING_SYSTEM_HAS_METHOD (undecided, canonicalize);
   CODING_SYSTEM_HAS_METHOD (undecided, canonicalize_after_coding);
 
@@ -5840,8 +5797,6 @@ coding_system_type_create (void)
   CODING_SYSTEM_HAS_METHOD (chain, print);
   CODING_SYSTEM_HAS_METHOD (chain, canonicalize);
   CODING_SYSTEM_HAS_METHOD (chain, init);
-  CODING_SYSTEM_HAS_METHOD (chain, mark);
-  CODING_SYSTEM_HAS_METHOD (chain, mark_coding_stream);
   CODING_SYSTEM_HAS_METHOD (chain, convert);
   CODING_SYSTEM_HAS_METHOD (chain, rewind_coding_stream);
   CODING_SYSTEM_HAS_METHOD (chain, finalize_coding_stream);

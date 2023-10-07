@@ -568,12 +568,12 @@ void tick_lrecord_stats (const struct lrecord_header *h,
    objects and other objects on the heap, and global objects with pointers
    to such heap objects), including their size and a list of the elements
    that need relocating, marking or other special handling.  They are
-   currently used in two places: by pdump [the new, portable dumper] and
-   KKCC [the new garbage collector].  The two subsystems use the
-   descriptions in different ways, and as a result some of the descriptions
-   are appropriate only for one or the other, when it is known that only
-   that subsystem will use the description. (This is particularly the case
-   with objects that can't be dumped, because pdump needs more info than
+   used in two places: by pdump, which dumps Lisp state at build time, and by
+   KKCC, the mark algorithm of the garbage collector. The two subsystems use
+   the descriptions in different ways, and as a result some of the descriptions
+   are appropriate only for one or the other, when it is known that only that
+   subsystem will use the description. (This is particularly the case with
+   objects that can't be dumped, because pdump needs more info than
    KKCC.) However, properly written descriptions are appropriate for both,
    and you should strive to write your descriptions that way, since the
    dumpable status of an object may change and new uses for the
@@ -599,9 +599,9 @@ void tick_lrecord_stats (const struct lrecord_header *h,
    pointers to it do not need to be relocated.  This assumption holds true
    in general for modern operating systems, but would be broken, for
    example, in a system without virtual memory, or when dealing with shared
-   libraries.  Also, unlike unexec, pdump does not usually write out or
-   restore objects in the global data space, and thus they need to be
-   initialized every time XEmacs is loaded.  This is the purpose of the
+   libraries.  Also, unlike unexec, the previous dumper, pdump does not usually
+   write out or restore objects in the global data space, and thus they need to
+   be initialized every time XEmacs is loaded.  This is the purpose of the
    reinit_*() functions throughout XEmacs. [It's possible, however, to make
    pdump restore global data.  This must be done, of course, for heap
    pointers, but is also done for other values that are not easy to
@@ -681,31 +681,37 @@ void tick_lrecord_stats (const struct lrecord_header *h,
 
    Some example descriptions :
 
-   struct Lisp_String
+   struct Lisp_Cons
    {
-     struct lrecord_header lheader;
-     Bytecount size;
-     Ibyte *data;
-     Lisp_Object plist;
+     FROB_BLOCK_LISP_OBJECT_HEADER lheader;
+     Lisp_Object car_, cdr_;
    };
 
    static const struct memory_description cons_description[] = {
-     { XD_LISP_OBJECT, offsetof (Lisp_Cons, car) },
-     { XD_LISP_OBJECT, offsetof (Lisp_Cons, cdr) },
+     { XD_LISP_OBJECT, offsetof (Lisp_Cons, car_) },
+     { XD_LISP_OBJECT, offsetof (Lisp_Cons, cdr_) },
      { XD_END }
    };
 
-   Which means "two lisp objects starting at the 'car' and 'cdr' elements"
+   Which means "two lisp objects starting at the 'car_' and 'cdr_' elements"
 
+   struct Lisp_String
+   {
+     struct lrecord_header lheader;
+     Bytecount size_;
+     Ibyte *data_;
+     Lisp_Object plist;
+   };
+   
    static const struct memory_description string_description[] = {
-     { XD_BYTECOUNT,       offsetof (Lisp_String, size) },
-     { XD_OPAQUE_DATA_PTR, offsetof (Lisp_String, data), XD_INDIRECT (0, 1) },
+     { XD_BYTECOUNT,       offsetof (Lisp_String, size_) },
+     { XD_OPAQUE_DATA_PTR, offsetof (Lisp_String, data_), XD_INDIRECT(0, 1) },
      { XD_LISP_OBJECT,     offsetof (Lisp_String, plist) },
      { XD_END }
    };
 
-   "A pointer to string data at 'data', the size of the pointed array being
-   the value of the size variable plus 1, and one lisp object at 'plist'"
+   "A pointer to string data at 'data_', the size of the pointed array being
+   the value of the size_ variable plus 1, and one lisp object at 'plist'"
 
    If your object has a pointer to an array of Lisp_Objects in it, something
    like this:
@@ -713,7 +719,7 @@ void tick_lrecord_stats (const struct lrecord_header *h,
    struct Lisp_Foo
    {
      ...;
-     int count;
+     Elemcount count;
      Lisp_Object *objects;
      ...;
    }
@@ -722,7 +728,7 @@ void tick_lrecord_stats (const struct lrecord_header *h,
 
    static const struct memory_description foo_description[] = {
      ...
-     { XD_INT,		offsetof (Lisp_Foo, count) },
+     { XD_ELEMCOUNT,	offsetof (Lisp_Foo, count) },
      { XD_BLOCK_PTR,	offsetof (Lisp_Foo, objects),
        XD_INDIRECT (0, 0), { &lisp_object_description } },
      ...
@@ -761,8 +767,6 @@ void tick_lrecord_stats (const struct lrecord_header *h,
      hash_table_test_function_t test_function;
      htentry *hentries;
      enum hash_table_weakness weakness;
-     Lisp_Object next_weak;     // Used to chain together all of the weak
-   			        // hash tables.  Don't mark through this.
    };
 
    static const struct memory_description htentry_description_1[] = {
@@ -780,7 +784,6 @@ void tick_lrecord_stats (const struct lrecord_header *h,
      { XD_ELEMCOUNT,     offsetof (Lisp_Hash_Table, size) },
      { XD_BLOCK_PTR, offsetof (Lisp_Hash_Table, hentries), XD_INDIRECT (0, 1),
 	 { &htentry_description } },
-     { XD_LO_LINK,    offsetof (Lisp_Hash_Table, next_weak) },
      { XD_END }
    };
 
@@ -861,7 +864,11 @@ void tick_lrecord_stats (const struct lrecord_header *h,
   each referenced object to the next referenced object, even if it's
   many links away.  We also need to special handling of a similar
   nature for the root of the chain, which will be a staticpro()ed
-  object.
+  object.  There should not, in general, be a need for an XD_LO_LINK entry
+  outside of the implementation of the Lisp weak list type.  See the
+  htentry_union_description_1 structure in elhash.c for the approach to marking
+  objects that are either weak or not; the relevant XD_BLOCK_PTR has an
+  XD_FLAG_NO_KKCC flag set.
 
     XD_OPAQUE_PTR
 
@@ -1383,8 +1390,9 @@ do							\
 
    3. Add this header file to inline.c.
 
-   4. Create the methods for your object.  Note that technically you don't
-   need any, but you will almost always want at least a mark method.
+   4. Create the methods for your object. You don't need any. The old (almost
+   universal) need for a mark method has been superseded by the memory
+   description used by KKCC.
 
    4. Create the data layout description for your object.  See
    toolbar_button_description below; the comment above in `struct lrecord',
@@ -1499,25 +1507,7 @@ do							\
     return wrap_toolbar_button (tb);
   }
    
-  static Lisp_Object
-  mark_toolbar_button (Lisp_Object obj)
-  {
-    struct toolbar_button *data = XTOOLBAR_BUTTON (obj);
-    mark_object (data->next);
-    mark_object (data->frame);
-    mark_object (data->up_glyph);
-    mark_object (data->down_glyph);
-    mark_object (data->disabled_glyph);
-    mark_object (data->cap_up_glyph);
-    mark_object (data->cap_down_glyph);
-    mark_object (data->cap_disabled_glyph);
-    mark_object (data->callback);
-    mark_object (data->enabled_p);
-    return data->help_string;
-  }
-  
   DEFINE_NODUMP_LISP_OBJECT ("toolbar-button", toolbar_button,
-  			     mark_toolbar_button,
   			     external_object_printer, 0, 0, 0,
   			     toolbar_button_description,
   			     struct toolbar_button);
@@ -1780,8 +1770,6 @@ DECLARE_LISP_OBJECT (lcrecord_list, struct lcrecord_list);
       -- the contents of the freed lcrecord are undefined, and the
          contents of something produced by alloc_managed_lcrecord()
 	 are undefined, just like for ALLOC_SIZED_LISP_OBJECT().
-      -- the mark method for the lcrecord's type will *NEVER* be called
-         on freed lcrecords.
       -- the finalize method for the lcrecord's type will be called
          at the time that free_managed_lcrecord() is called.
  */

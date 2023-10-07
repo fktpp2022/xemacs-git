@@ -325,18 +325,6 @@ mswindows_after_init_frame (struct frame *UNUSED (f),
 }
 
 static void
-mswindows_mark_frame (struct frame *f)
-{
-  mark_object (FRAME_MSWINDOWS_MENU_HASH_TABLE (f));
-#ifdef HAVE_TOOLBARS
-  mark_object (FRAME_MSWINDOWS_TOOLBAR_HASH_TABLE (f));
-#endif
-  mark_object (FRAME_MSWINDOWS_WIDGET_HASH_TABLE1 (f));
-  mark_object (FRAME_MSWINDOWS_WIDGET_HASH_TABLE2 (f));
-  mark_object (FRAME_MSWINDOWS_WIDGET_HASH_TABLE3 (f));
-}
-
-static void
 mswindows_focus_on_frame (struct frame *f)
 {
   SetForegroundWindow (FRAME_MSWINDOWS_HANDLE (f));
@@ -1008,11 +996,6 @@ msprinter_init_frame_3 (struct frame *f)
 }
 
 static void
-msprinter_mark_frame (struct frame *UNUSED (f))
-{
-}
-
-static void
 msprinter_delete_frame (struct frame *f)
 {
   if (f->frame_data)
@@ -1196,7 +1179,6 @@ console_type_create_frame_mswindows (void)
   CONSOLE_HAS_METHOD (mswindows, init_frame_2);
   CONSOLE_HAS_METHOD (mswindows, init_frame_3);
   CONSOLE_HAS_METHOD (mswindows, after_init_frame);
-  CONSOLE_HAS_METHOD (mswindows, mark_frame);
   CONSOLE_HAS_METHOD (mswindows, focus_on_frame);
   CONSOLE_HAS_METHOD (mswindows, delete_frame);
   CONSOLE_HAS_METHOD (mswindows, get_mouse_position);
@@ -1228,7 +1210,6 @@ console_type_create_frame_mswindows (void)
   /* Printer frames, aka print jobs */
   CONSOLE_HAS_METHOD (msprinter, init_frame_1);
   CONSOLE_HAS_METHOD (msprinter, init_frame_3);
-  CONSOLE_HAS_METHOD (msprinter, mark_frame);
   CONSOLE_HAS_METHOD (msprinter, delete_frame);
   CONSOLE_HAS_METHOD (msprinter, frame_property);
   CONSOLE_HAS_METHOD (msprinter, internal_frame_property_p);

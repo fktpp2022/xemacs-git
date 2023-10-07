@@ -549,15 +549,6 @@ color_create (Lisp_Object obj)
   COLOR_SPECIFIER_FACE_PROPERTY (color) = Qnil;
 }
 
-static void
-color_mark (Lisp_Object obj)
-{
-  Lisp_Specifier *color = XCOLOR_SPECIFIER (obj);
-
-  mark_object (COLOR_SPECIFIER_FACE (color));
-  mark_object (COLOR_SPECIFIER_FACE_PROPERTY (color));
-}
-
 /* No equal or hash methods; ignore the face the color is based off
    of for `equal' */
 
@@ -731,15 +722,6 @@ font_create (Lisp_Object obj)
 
   FONT_SPECIFIER_FACE (font) = Qnil;
   FONT_SPECIFIER_FACE_PROPERTY (font) = Qnil;
-}
-
-static void
-font_mark (Lisp_Object obj)
-{
-  Lisp_Specifier *font = XFONT_SPECIFIER (obj);
-
-  mark_object (FONT_SPECIFIER_FACE (font));
-  mark_object (FONT_SPECIFIER_FACE_PROPERTY (font));
 }
 
 /* No equal or hash methods; ignore the face the font is based off
@@ -1054,15 +1036,6 @@ face_boolean_create (Lisp_Object obj)
   FACE_BOOLEAN_SPECIFIER_FACE_PROPERTY (face_boolean) = Qnil;
 }
 
-static void
-face_boolean_mark (Lisp_Object obj)
-{
-  Lisp_Specifier *face_boolean = XFACE_BOOLEAN_SPECIFIER (obj);
-
-  mark_object (FACE_BOOLEAN_SPECIFIER_FACE (face_boolean));
-  mark_object (FACE_BOOLEAN_SPECIFIER_FACE_PROPERTY (face_boolean));
-}
-
 /* No equal or hash methods; ignore the face the face-boolean is based off
    of for `equal' */
 
@@ -1204,16 +1177,6 @@ face_background_placement_create (Lisp_Object obj)
     = XFACE_BACKGROUND_PLACEMENT_SPECIFIER (obj);
 
   FACE_BACKGROUND_PLACEMENT_SPECIFIER_FACE (face_background_placement) = Qnil;
-}
-
-static void
-face_background_placement_mark (Lisp_Object obj)
-{
-  Lisp_Specifier *face_background_placement
-    = XFACE_BACKGROUND_PLACEMENT_SPECIFIER (obj);
-
-  mark_object
-    (FACE_BACKGROUND_PLACEMENT_SPECIFIER_FACE (face_background_placement));
 }
 
 /* No equal or hash methods; ignore the face the background-placement is based
@@ -1376,11 +1339,6 @@ face-background-placement-specifier-p");
   SPECIFIER_HAS_METHOD (font, create);
   SPECIFIER_HAS_METHOD (face_boolean, create);
   SPECIFIER_HAS_METHOD (face_background_placement, create);
-
-  SPECIFIER_HAS_METHOD (color, mark);
-  SPECIFIER_HAS_METHOD (font, mark);
-  SPECIFIER_HAS_METHOD (face_boolean, mark);
-  SPECIFIER_HAS_METHOD (face_background_placement, mark);
 
   SPECIFIER_HAS_METHOD (color, after_change);
   SPECIFIER_HAS_METHOD (font, after_change);

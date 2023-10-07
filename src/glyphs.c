@@ -3118,15 +3118,6 @@ image_create (Lisp_Object obj)
   IMAGE_SPECIFIER_ATTACHEE_PROPERTY (image) = Qnil;
 }
 
-static void
-image_mark (Lisp_Object obj)
-{
-  Lisp_Specifier *image = XIMAGE_SPECIFIER (obj);
-
-  mark_object (IMAGE_SPECIFIER_ATTACHEE (image));
-  mark_object (IMAGE_SPECIFIER_ATTACHEE_PROPERTY (image));
-}
-
 static int
 instantiator_eq_equal (const Hash_Table_Test *UNUSED (http),
                        Lisp_Object obj1, Lisp_Object obj2)
@@ -5238,7 +5229,6 @@ specifier_type_create_image (void)
   INITIALIZE_SPECIFIER_TYPE_WITH_DATA (image, "image", "imagep");
 
   SPECIFIER_HAS_METHOD (image, create);
-  SPECIFIER_HAS_METHOD (image, mark);
   SPECIFIER_HAS_METHOD (image, instantiate);
   SPECIFIER_HAS_METHOD (image, validate);
   SPECIFIER_HAS_METHOD (image, after_change);

@@ -747,7 +747,6 @@ console_type_create_mswindows (void)
 
   /* console methods */
 /*  CONSOLE_HAS_METHOD (mswindows, init_console); */
-/*  CONSOLE_HAS_METHOD (mswindows, mark_console); */
   CONSOLE_HAS_METHOD (mswindows, initially_selected_for_input);
 /*  CONSOLE_HAS_METHOD (mswindows, delete_console); */
   CONSOLE_HAS_METHOD (mswindows, canonicalize_console_connection);

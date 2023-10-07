@@ -955,14 +955,6 @@ x_finish_init_device (struct device *d, Lisp_Object UNUSED (props))
   call1 (Qmake_device_late_x_entry_point, wrap_device (d));
 }
 
-static void
-x_mark_device (struct device *d)
-{
-  mark_object (DEVICE_X_WM_COMMAND_FRAME (d));
-  mark_object (DEVICE_X_DATA (d)->x_keysym_map_hash_table);
-  mark_object (DEVICE_X_GC_CACHE (d)->table);
-}
-
 
 /************************************************************************/
 /*                       closing an X connection	                */
@@ -2149,7 +2141,6 @@ console_type_create_device_x (void)
   reinit_console_type_create_device_x ();
   CONSOLE_HAS_METHOD (x, init_device);
   CONSOLE_HAS_METHOD (x, finish_init_device);
-  CONSOLE_HAS_METHOD (x, mark_device);
   CONSOLE_HAS_METHOD (x, delete_device);
   CONSOLE_HAS_METHOD (x, device_system_metrics);
 }
