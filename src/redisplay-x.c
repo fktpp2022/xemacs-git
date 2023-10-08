@@ -62,7 +62,7 @@ x_get_gc (struct frame *f, Lisp_Object font, Lisp_Object fg, Lisp_Object bg,
   mask |= GCFillStyle;
 
   if (!NILP (font)
-#ifdef USE_XFT
+#ifdef XEMACS_USE_XFT
       /* Only set the font if it's a core font */
       /* the renderfont will be set elsewhere (not part of gc) */
       && !FONT_INSTANCE_X_XFTFONT (XFONT_INSTANCE (font))
@@ -204,7 +204,7 @@ struct textual_run
    the 8-bit versions in computing runs and runes, it would seem.
 */
 
-#if !defined (USE_XFT) && !defined (MULE)
+#if !defined (XEMACS_USE_XFT) && !defined (MULE)
 
 #define ALLOCATE_RUNS_TEXT(storage, storage_len, str, len)      \
     (storage = alloca_extbytes (len))
@@ -230,7 +230,7 @@ separate_textual_runs_nomule (struct buffer * UNUSED (buf),
 }
 #endif
 
-#ifdef USE_XFT
+#ifdef XEMACS_USE_XFT
 #ifdef WORDS_BIGENDIAN
 #define ALLOCATE_RUNS_TEXT(storage, storage_len, str, len)       \
        TO_EXTERNAL_FORMAT (DATA, (str, len),                     \
@@ -243,9 +243,9 @@ extern Lisp_Object Qutf_16_little_endian;
                            ALLOCA, (storage, storage_len),       \
                            Qutf_16_little_endian)
 #endif
-#endif /* USE_XFT */
+#endif /* XEMACS_USE_XFT */
 
-#if defined (USE_XFT) && !defined (MULE)
+#if defined (XEMACS_USE_XFT) && !defined (MULE)
 /*
   Note that in this configuration the "Croatian hack" of using an 8-bit,
   non-Latin-1 font to get localized display without Mule simply isn't
@@ -273,7 +273,7 @@ separate_textual_runs_xft_nomule (struct buffer * UNUSED (buf),
 }
 #endif
 
-#if defined (USE_XFT) && defined (MULE)
+#if defined (XEMACS_USE_XFT) && defined (MULE)
 static int
 separate_textual_runs_xft_mule (struct buffer *buf,
 				Extbyte *text_storage,
@@ -330,7 +330,7 @@ separate_textual_runs_xft_mule (struct buffer *buf,
 }
 #endif
 
-#if !defined(USE_XFT) && defined(MULE)
+#if !defined(XEMACS_USE_XFT) && defined(MULE)
 
 #define ALLOCATE_RUNS_TEXT(storage, storage_len, str, len)      \
   (storage = alloca_extbytes ((storage_len = (2 * len))))
@@ -514,19 +514,19 @@ separate_textual_runs (struct buffer *buf,
 		       const Ibyte *str, Bytecount len,
 		       struct face_cachel *cachel)
 {
-#if defined (USE_XFT) && defined (MULE)
+#if defined (XEMACS_USE_XFT) && defined (MULE)
   return separate_textual_runs_xft_mule (buf, text_storage, run_storage,
 					 str, len, cachel);
 #endif
-#if defined (USE_XFT) && !defined (MULE)
+#if defined (XEMACS_USE_XFT) && !defined (MULE)
   return separate_textual_runs_xft_nomule (buf, text_storage, run_storage,
 					   str, len, cachel);
 #endif
-#if !defined (USE_XFT) && defined (MULE)
+#if !defined (XEMACS_USE_XFT) && defined (MULE)
   return separate_textual_runs_mule (buf, text_storage, run_storage,
 				     str, len, cachel);
 #endif
-#if !defined (USE_XFT) && !defined (MULE)
+#if !defined (XEMACS_USE_XFT) && !defined (MULE)
   return separate_textual_runs_nomule (buf, text_storage, run_storage,
 				       str, len, cachel);
 #endif
@@ -548,7 +548,7 @@ x_text_width_single_run (Display * USED_IF_XFT (dpy),
 
   if (!fi->proportional_p)
     return fi->width * run->len;
-#ifdef USE_XFT
+#ifdef XEMACS_USE_XFT
   else if (FONT_INSTANCE_X_XFTFONT (fi))
     {
       XGlyphInfo glyphinfo;
@@ -1527,7 +1527,7 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
   int use_x_font = 1;		/* #### bogus!!
 				   The logic of this function needs review! */
 #endif
-#ifdef USE_XFT
+#ifdef XEMACS_USE_XFT
   Colormap cmap = DEVICE_X_COLORMAP (d);
   Visual *visual = DEVICE_X_VISUAL (d);
   static XftColor fg, bg;
@@ -1545,7 +1545,7 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
 #define XFT_FROB_LISP_COLOR(color, dim)					\
   xft_convert_color_1 (dpy, cmap, visual,					\
 		     &(XCOLOR_INSTANCE_X_COLOR (color)), (dim))
-#endif /* USE_XFT */
+#endif /* XEMACS_USE_XFT */
 
   if (width < 0)
     width = XLIKE_text_width (f, cachel, buf, len);
@@ -1676,7 +1676,7 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
 
       if (cursor && cursor_cachel && focus && NILP (bar_cursor_value))
 	{
-#ifdef USE_XFT
+#ifdef XEMACS_USE_XFT
 	  fg = XFT_FROB_LISP_COLOR (cursor_cachel->foreground, 0);
 	  bg = XFT_FROB_LISP_COLOR (cursor_cachel->background, 0);
 #endif
@@ -1694,7 +1694,7 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
             }
 
 	  /* Request a GC with the gray stipple pixmap to draw dimmed text */
-#ifdef USE_XFT
+#ifdef XEMACS_USE_XFT
 	  fg = XFT_FROB_LISP_COLOR (cachel->foreground, 1);
 	  bg = XFT_FROB_LISP_COLOR (cachel->background, 0);
 #endif
@@ -1703,14 +1703,14 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
 	}
       else
 	{
-#ifdef USE_XFT
+#ifdef XEMACS_USE_XFT
 	  fg = XFT_FROB_LISP_COLOR (cachel->foreground, 0);
 	  bg = XFT_FROB_LISP_COLOR (cachel->background, 0);
 #endif
 	  gc = x_get_gc (f, font, cachel->foreground, cachel->background,
                          Qnil, Qnil, Qnil);
 	}
-#ifdef USE_XFT
+#ifdef XEMACS_USE_XFT
       {
 	XftFont *rf = FONT_INSTANCE_X_XFTFONT (fi);
 
@@ -1771,7 +1771,7 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
                              (const XftChar16 *) runs[i].ptr, runs[i].len);
 	  }
       }
-#endif /* USE_XFT */
+#endif /* XEMACS_USE_XFT */
 
       if (use_x_font)
 	{
@@ -1880,7 +1880,7 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
       /* Restore the GC */
       if (need_clipping)
 	{
-#ifdef USE_XFT
+#ifdef XEMACS_USE_XFT
 	  if (!use_x_font)
 	    {
 	      XftDrawSetClip (xftDraw, 0);
@@ -1894,7 +1894,7 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
 	 the appropriate section highlighted. */
       if (cursor_clip && !cursor && focus && cursor_cachel)
 	{
-#ifdef USE_XFT
+#ifdef XEMACS_USE_XFT
 	  if (!use_x_font)	/* Xft */
 	    {
 	      XftFont *rf = FONT_INSTANCE_X_XFTFONT (fi);
@@ -1929,7 +1929,7 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
 	      XftDrawSetClip (xftDraw, 0);
 	    }
 	  else			/* core font, not Xft */
-#endif /* USE_XFT */
+#endif /* XEMACS_USE_XFT */
 	    {
 	      XRectangle clip_box;
 	      GC cgc;
@@ -2035,7 +2035,7 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
 	}
     }
 
-#ifdef USE_XFT
+#ifdef XEMACS_USE_XFT
 #undef XFT_FROB_LISP_COLOR
 #endif
 }

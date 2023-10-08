@@ -189,7 +189,7 @@ XLIKE_output_display_block (struct window *w, struct display_line *dl,
 			    int cursor_start, int cursor_width,
 			    int cursor_height)
 {
-#ifndef USE_XFT
+#ifndef XEMACS_USE_XFT
   struct frame *f = XFRAME (w->frame);
 #endif
   Ibyte *buffer, *bufp;
@@ -411,7 +411,7 @@ XLIKE_output_display_block (struct window *w, struct display_line *dl,
 
   if (dl->modeline
       && !EQ (Qzero, w->modeline_shadow_thickness)
-#ifndef USE_XFT
+#ifndef XEMACS_USE_XFT
       /* This optimization doesn't work right with some Xft fonts, which
 	 leave antialiasing turds at the boundary.  I don't know if this
 	 is an Xft bug or not, but I think it is.   See x_output_string. */

@@ -108,10 +108,10 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    it clearer that something else is going on. --ben */
 
 #if defined (THIS_IS_X) && defined (HAVE_XFT)
-#define USE_XFT
-#define USE_XFT_MENUBARS
-#define USE_XFT_TABS
-#define USE_XFT_GAUGES
+#define XEMACS_USE_XFT
+#define XEMACS_USE_XFT_MENUBARS
+#define XEMACS_USE_XFT_TABS
+#define XEMACS_USE_XFT_GAUGES
 #endif
 
 /***************************************************************************/

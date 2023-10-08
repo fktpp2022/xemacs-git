@@ -1,3 +1,23 @@
+2023-10-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Recent Motif Xm.h unilaterally #defines USE_XFT if XFT is
+	available, which makes building without it difficult for
+	XEmacs. Change our #define to XEMACS_USE_XFT.
+	Change some related #defines for symmetry.
+
+	* console-xlike-inc.h (XEMACS_USE_XFT):
+	* fontcolor-xlike-inc.c:
+	* fontcolor-xlike-inc.c (XFUN):
+	* fontcolor-xlike-inc.c (FcResultToString):
+	* redisplay-x.c:
+	* redisplay-x.c (x_get_gc):
+	* redisplay-x.c (separate_textual_runs_xft_nomule):
+	* redisplay-x.c (separate_textual_runs_xft_mule):
+	* redisplay-x.c (separate_textual_runs):
+	* redisplay-x.c (x_text_width_single_run):
+	* redisplay-x.c (x_output_string):
+	* redisplay-xlike-inc.c (XLIKE_output_display_block):
+
 2023-10-05  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* window.c (Fwindow_end):

@@ -140,7 +140,7 @@ XFUN (font_spec_matches_charset) (struct device * USED_IF_XFT (d),
   fixup_internal_substring (nonreloc, reloc, offset, &the_length);
   the_nonreloc += offset;
 
-#ifdef USE_XFT
+#ifdef XEMACS_USE_XFT
   if (stage == STAGE_FINAL)
     {
       Display *dpy = DEVICE_X_DISPLAY (d);
@@ -267,7 +267,7 @@ xlistfonts_checking_charset (Lisp_Object device, const Ibyte *xlfd,
 }
 #endif
 
-#ifdef USE_XFT
+#ifdef XEMACS_USE_XFT
 /* #### debug functions: find a better place for us */
 const char *FcResultToString (FcResult r);
 const char *
@@ -690,7 +690,7 @@ xft_find_charset_font (Lisp_Object font, Lisp_Object charset,
 }
 #undef DECLARE_DEBUG_FONTNAME
 
-#endif /* USE_XFT */
+#endif /* XEMACS_USE_XFT */
 
 #if !defined (HAVE_GTK)
 /* find a font spec that matches font spec FONT and also matches
@@ -708,7 +708,7 @@ XFUN (find_charset_font) (Lisp_Object device, Lisp_Object font,
   DECLARE_EISTRING (ei_xlfd_without_registry);
   DECLARE_EISTRING (ei_xlfd);
 
-#ifdef USE_XFT 
+#ifdef XEMACS_USE_XFT 
   result = xft_find_charset_font (font, charset, stage);
   if (!NILP (result)) 
     {
