@@ -1,3 +1,12 @@
+2023-10-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* etags.c:
+	* etags.c (do_move_file): New.
+	* etags.c (cleanup_tags_file): New.
+	* etags.c (main): Use them.
+	Avoid a command execution vulnerability in this file, thank you Xi
+	Lu on Heptapod; change also in GNU.
+
 2023-05-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* XEmacs 21.5.35 "kohlrabi" is released.

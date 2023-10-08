@@ -410,6 +410,8 @@ static void pfnote __P((char *, bool, char *, int, int, long));
 static void make_tag __P((char *, int, bool, char *, int, int, long));
 static void invalidate_nodes __P((fdesc *, node **));
 static void put_entries __P((node *));
+static void cleanup_tags_file __P((char const * const, char const * const));
+static void do_move_file __P((const char *, const char *));
 
 static char *concat __P((char *, char *, char *));
 static char *skip_spaces __P((char *));
@@ -1488,11 +1490,7 @@ main (argc, argv)
 	    default:
 	      continue;		/* the for loop */
 	    }
-	  sprintf (cmd,
-		   "mv %s OTAGS;fgrep -v '\t%s\t' OTAGS >%s;rm OTAGS",
-		   tagfile, argbuffer[i].what, tagfile);
-	  if (system (cmd) != EXIT_SUCCESS)
-	    fatal ("failed to execute shell command", (char *)NULL);
+          cleanup_tags_file (tagfile, argbuffer[i].what);
 	}
       append_to_tagfile = TRUE;
     }
@@ -1519,6 +1517,92 @@ main (argc, argv)
   return EXIT_SUCCESS;
 }
 
+static void
+do_move_file (const char *src_file, const char *dst_file)
+{
+  if (rename (src_file, dst_file) == 0)
+    return;
+
+  FILE *src_f = fopen (src_file, "rb");
+  FILE *dst_f = fopen (dst_file, "wb");
+
+  if (src_f == NULL)
+    pfatal (src_file);
+
+  if (dst_f == NULL)
+    pfatal (dst_file);
+
+  int c;
+  while ((c = fgetc (src_f)) != EOF)
+    {
+      if (ferror (src_f))
+        pfatal (src_file);
+
+      if (ferror (dst_f))
+        pfatal (dst_file);
+
+      if (fputc (c, dst_f) == EOF)
+        pfatal ("cannot write");
+    }
+
+  if (fclose (src_f) == EOF)
+    pfatal (src_file);
+
+  if (fclose (dst_f) == EOF)
+    pfatal (dst_file);
+
+  if (unlink (src_file) == -1)
+    pfatal ("unlink error");
+
+  return;
+}
+
+
+/*
+ * Equivalent to: mv tags OTAGS;grep -Fv ' filename ' OTAGS >tags;rm OTAGS
+ */
+static void
+cleanup_tags_file (const char* tagfile, const char* match_file_name)
+{
+  FILE *otags_f = fopen ("OTAGS", "wb");
+  FILE *tag_f = fopen (tagfile, "rb");
+
+  if (otags_f == NULL)
+    pfatal ("OTAGS");
+
+  if (tag_f == NULL)
+    pfatal (tagfile);
+
+  int buf_len = strlen (match_file_name) + sizeof ("\t\t ") + 1;
+  char *buf = xmalloc (buf_len);
+  snprintf (buf, buf_len, "\t%s\t", match_file_name);
+
+  linebuffer line;
+  linebuffer_init (&line);
+  while (readline_internal (&line, tag_f) > 0)
+    {
+      if (ferror (tag_f))
+        pfatal (tagfile);
+
+      if (strstr (line.buffer, buf) == NULL)
+        {
+          fprintf (otags_f, "%s\n", line.buffer);
+          if (ferror (tag_f))
+            pfatal (tagfile);
+        }
+    }
+  free (buf);
+  free (line.buffer);
+
+  if (fclose (otags_f) == EOF)
+    pfatal ("OTAGS");
+
+  if (fclose (tag_f) == EOF)
+    pfatal (tagfile);
+
+  do_move_file ("OTAGS", tagfile);
+  return;
+}
 
 /*
  * Return a compressor given the file name.  If EXTPTR is non-zero,
