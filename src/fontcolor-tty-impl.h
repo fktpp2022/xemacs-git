@@ -30,6 +30,10 @@ struct tty_color_instance_data
   Lisp_Object symbol; /* so we don't have to constantly call Fintern() */
   Lisp_Object escape_fore; /* string: ANSI escape sequence */
   Lisp_Object escape_back; /* string: ANSI escape sequence */
+  Boolint is_rgb_known;
+  unsigned char red; /* 0-255 */
+  unsigned char green; /* 0-255 */
+  unsigned char blue; /* 0-255 */
 };
 
 
@@ -39,6 +43,10 @@ struct tty_color_instance_data
 #define COLOR_INSTANCE_TTY_SYMBOL(c) (TTY_COLOR_INSTANCE_DATA (c)->symbol)
 #define COLOR_INSTANCE_TTY_ESCAPE_FORE(c) (TTY_COLOR_INSTANCE_DATA (c)->escape_fore)
 #define COLOR_INSTANCE_TTY_ESCAPE_BACK(c) (TTY_COLOR_INSTANCE_DATA (c)->escape_back)
+#define COLOR_INSTANCE_TTY_IS_RGB_KNOWN(c) (TTY_COLOR_INSTANCE_DATA (c)->is_rgb_known)
+#define COLOR_INSTANCE_TTY_RED(c) (TTY_COLOR_INSTANCE_DATA (c)->red)
+#define COLOR_INSTANCE_TTY_GREEN(c) (TTY_COLOR_INSTANCE_DATA (c)->green)
+#define COLOR_INSTANCE_TTY_BLUE(c) (TTY_COLOR_INSTANCE_DATA (c)->blue)
 
 struct tty_font_instance_data
 {

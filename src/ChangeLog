@@ -1,3 +1,24 @@
+2023-10-09  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	* fontcolor-tty-impl.h (struct tty_color_instance_data): Add
+	fields for is_rgb_known, red, green and blue.
+
+	* fontcolor-tty-impl.h (COLOR_INSTANCE_TTY_IS_RGB_KNOWN):
+	(COLOR_INSTANCE_TTY_RED):
+	(COLOR_INSTANCE_TTY_GREEN):
+	(COLOR_INSTANCE_TTY_BLUE): New wrappers for new fields.
+
+	* fontcolor-tty.c (tty_initialize_color_instance): Populate
+	is_rgb_known, red, green and blue based on data populated in
+	color_alist.
+
+	* fontcolor-tty.c (tty_color_instance_rgb_components): New
+	function implementing generic #'color-instance-rgb-components; the
+	components are converted to 16-bit as required.
+
+	* fontcolor-tty.c (console_type_create_fontcolor_tty): Register
+	#'color-instance-rgb-components.
+
 2023-10-08  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Recent Motif Xm.h unilaterally #defines USE_XFT if XFT is

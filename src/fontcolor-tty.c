@@ -214,6 +214,11 @@ tty_initialize_color_instance (Lisp_Color_Instance *c, Lisp_Object name,
   Lisp_Object result;
   Lisp_Object console = device_console (decode_device (device));
   struct tty_console *tty_con = CONSOLE_TTY_DATA (decode_console (console));
+  Lisp_Object rgb_vector;
+  Boolint is_rgb_known = 0;
+  unsigned char red = 0;
+  unsigned char green = 0;
+  unsigned char blue = 0;
 
   name = Fintern (name, Qnil);
   result = assq_no_quit (name, tty_con->color_alist);
@@ -227,11 +232,24 @@ tty_initialize_color_instance (Lisp_Color_Instance *c, Lisp_Object name,
         return 0;
     }
 
+  rgb_vector = XCAR (XCDR (XCDR (XCDR (result))));
+  if (VECTORP (rgb_vector))
+    {
+      is_rgb_known = 1;
+      red = XFIXNUM (XVECTOR_DATA (rgb_vector)[0]);
+      green = XFIXNUM (XVECTOR_DATA (rgb_vector)[1]);
+      blue = XFIXNUM (XVECTOR_DATA (rgb_vector)[2]);
+    }
+
   /* Don't allocate the data until we're sure that we will succeed. */
   c->data = xnew (struct tty_color_instance_data);
   COLOR_INSTANCE_TTY_SYMBOL (c) = name;
   COLOR_INSTANCE_TTY_ESCAPE_FORE (c) = XCAR (XCDR (result));
   COLOR_INSTANCE_TTY_ESCAPE_BACK (c) = XCAR (XCDR (XCDR (result)));
+  COLOR_INSTANCE_TTY_IS_RGB_KNOWN (c) = is_rgb_known;
+  COLOR_INSTANCE_TTY_RED (c) = red;
+  COLOR_INSTANCE_TTY_GREEN (c) = green;
+  COLOR_INSTANCE_TTY_BLUE (c) = blue;
 
   return 1;
 }
@@ -267,6 +285,24 @@ tty_color_instance_hash (Lisp_Color_Instance *c, int UNUSED (depth))
 {
   return LISP_HASH (COLOR_INSTANCE_TTY_SYMBOL (c));
 }
+
+static Lisp_Object
+tty_color_instance_rgb_components (struct Lisp_Color_Instance *c)
+{
+  Boolint is_rgb_known = COLOR_INSTANCE_TTY_IS_RGB_KNOWN (c);
+  if (is_rgb_known)
+    {
+      int red = COLOR_INSTANCE_TTY_RED (c) * 257;
+      int green = COLOR_INSTANCE_TTY_GREEN (c) * 257;
+      int blue = COLOR_INSTANCE_TTY_BLUE (c) * 257;
+      return list3 (make_fixnum ((UINT_16_BIT) red),
+		    make_fixnum ((UINT_16_BIT) green),
+		    make_fixnum ((UINT_16_BIT) blue));
+    }
+  else
+    return Qnil;
+}
+
 
 static int
 tty_valid_color_name_p (struct device *d, Lisp_Object color)
@@ -432,6 +468,7 @@ console_type_create_fontcolor_tty (void)
   CONSOLE_HAS_METHOD (tty, finalize_color_instance);
   CONSOLE_HAS_METHOD (tty, color_instance_equal);
   CONSOLE_HAS_METHOD (tty, color_instance_hash);
+  CONSOLE_HAS_METHOD (tty, color_instance_rgb_components);
   CONSOLE_HAS_METHOD (tty, valid_color_name_p);
   CONSOLE_HAS_METHOD (tty, color_list);
 
