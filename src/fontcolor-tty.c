@@ -155,6 +155,72 @@ CONSOLE defaults to the selected console. Error if it is not a TTY console.
 }
 
 static Lisp_Object
+find_tty_closest_color_1 (struct tty_console *tty_con,
+			  Lisp_Object red, Lisp_Object green,
+			  Lisp_Object blue)
+{
+  Lisp_Object closest_entry = Qnil;
+  int closest_distance = 0;
+  int r1 = XFIXNUM (red);
+  int g1 = XFIXNUM (green);
+  int b1 = XFIXNUM (blue);
+
+  LIST_LOOP_2 (entry, tty_con->color_alist)
+    {
+      Lisp_Object rgb_vector = XCAR (XCDR ((XCDR (XCDR (entry)))));
+      if (NILP (rgb_vector))
+	continue;
+
+      int r2 = XFIXNUM (XVECTOR_DATA (rgb_vector)[0]);
+      int g2 = XFIXNUM (XVECTOR_DATA (rgb_vector)[1]);
+      int b2 = XFIXNUM (XVECTOR_DATA (rgb_vector)[2]);
+      int r = r1 - r2;
+      int g = g1 - g2;
+      int b = b1 - b2;
+      int distance = (r*r) + (g*g) + (b*b);
+      if (distance < closest_distance || NILP (closest_entry))
+	{
+	  /* Ensure the color name is a string for consistency with
+	     #'register-tty-color and #'find-tty-color. */
+	  closest_entry = Fcons (Fsymbol_name (XCAR (entry)),
+				 XCDR (entry));
+	  closest_distance = distance;
+	}
+    }
+
+  return closest_entry;
+}
+
+DEFUN ("find-tty-closest-color", Ffind_tty_closest_color, 3, 4, 0, /*
+Find closest registered color for components RED, GREEN and BLUE.
+
+RED, GREEN and BLUE must be an integer in the range 0-255.
+
+CONSOLE defaults to the selected console. Error if it is not a TTY console.
+
+Return a list (COLOR-NAME-STRING FG-STRING BG-STRING RGB-VECTOR) of the escape
+sequences used to set the foreground and background to the color,
+respectively.  COLOR-NAME-STRING can also be used with `find-tty-color'.
+*/
+       (red, green, blue, console))
+{
+  struct tty_console *tty_con;
+  Lisp_Object closest_entry;
+  Lisp_Object max_rgb_component = make_integer (255);
+
+  check_integer_range (red, Qzero, max_rgb_component);
+  check_integer_range (green, Qzero, max_rgb_component);
+  check_integer_range (blue, Qzero, max_rgb_component);
+
+  console = wrap_console (decode_console (console));
+  CHECK_TTY_CONSOLE (console);
+  tty_con = CONSOLE_TTY_DATA (XCONSOLE (console));
+
+  closest_entry = find_tty_closest_color_1 (tty_con, red, green, blue);
+  return closest_entry;
+}
+
+static Lisp_Object
 tty_color_list (Lisp_Object device)
 {
   Lisp_Object result = Qnil;
@@ -453,6 +519,7 @@ syms_of_fontcolor_tty (void)
   DEFSUBR (Fregister_tty_color);
   DEFSUBR (Funregister_tty_color);
   DEFSUBR (Ffind_tty_color);
+  DEFSUBR (Ffind_tty_closest_color);
 #if 0
   DEFSUBR (Fset_tty_dynamic_color_specs);
   DEFSUBR (Ftty_dynamic_color_specs);

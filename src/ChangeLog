@@ -1,3 +1,16 @@
+2023-10-10  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	* fontcolor-tty.c (find_tty_closest_color_1): Internal function to
+	find the closest color from the color_alist.
+
+	* fontcolor-tty.c (Ffind_tty_closest_color): New.  From the given
+	RGB components (0-255) it will find the closest registered color
+	for the device.  Expose to lisp in preparation for use from
+	#'font-tty-find-closest-color.
+
+	* fontcolor-tty.c (syms_of_fontcolor_tty): Add
+	Ffind_tty_closest_color.
+
 2023-10-09  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	* fontcolor-tty-impl.h (struct tty_color_instance_data): Add
