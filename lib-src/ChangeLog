@@ -1,3 +1,26 @@
+2023-10-12  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Avoid another command execution vulnerability by calling qsort ()
+	and then making the result unique in C.
+	GNU's approach to this involved functions that are of recent
+	vintage (thus, less portable) and not necessary.
+
+	Fix up some compiler warnings in passing.
+
+	* etags.c:
+	* etags.c (do_move_file):
+	Rearrange declarations, add braces to conform to old C.
+	* etags.c (cmpstringp): New.
+	* etags.c (sort_tags_file): New.
+	Given a tag file name, load it, sort it, and make entries unique
+	without calling an external program. Write the modified data back
+	into the initial file. Preserve line endings. If there is no line
+	ending, preserve that.
+	* etags.c (cleanup_tags_file):
+	Use a globally-unique name for TAGFILE. Rearrange declarations,
+	add braces to conform to old C.
+	* etags.c (pfatal):
+
 2023-10-08  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* etags.c:

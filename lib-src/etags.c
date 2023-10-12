@@ -397,7 +397,7 @@ static void regex_tag_multiline __P((void));
 static void error __P((const char *, const char *));
 static void suggest_asking_for_help __P((void));
 void fatal __P((char *, char *));
-static void pfatal __P((char *));
+static void pfatal __P((const char *));
 static void add_node __P((node *, node **));
 
 static void init __P((void));
@@ -411,6 +411,7 @@ static void make_tag __P((char *, int, bool, char *, int, int, long));
 static void invalidate_nodes __P((fdesc *, node **));
 static void put_entries __P((node *));
 static void cleanup_tags_file __P((char const * const, char const * const));
+static void sort_tags_file __P((const char *));
 static void do_move_file __P((const char *, const char *));
 
 static char *concat __P((char *, char *, char *));
@@ -693,7 +694,7 @@ static char Objc_help [] =
 "In Objective C code, tags include Objective C definitions for classes,\n\
 class categories, methods and protocols.  Tags for variables and\n\
 functions in classes are named `CLASS::VARIABLE' and `CLASS::FUNCTION'.\n\
-(Use --help --lang=c --lang=objc --lang=java for full help.)";
+\(Use --help --lang=c --lang=objc --lang=java for full help.)";
 
 static char *Pascal_suffixes [] =
   { "p", "pas", NULL };
@@ -1479,7 +1480,6 @@ main (argc, argv)
 
   if (update)
     {
-      char cmd[BUFSIZ];
       for (i = 0; i < current_arg; ++i)
 	{
 	  switch (argbuffer[i].arg_type)
@@ -1507,12 +1507,8 @@ main (argc, argv)
   if (CTAGS)
     if (append_to_tagfile || update)
       {
-	char cmd[2*BUFSIZ+20];
-	/* Maybe these should be used:
-	   setenv ("LC_COLLATE", "C", 1);
-	   setenv ("LC_ALL", "C", 1); */
-	sprintf (cmd, "sort -u -o %.*s %.*s", BUFSIZ, tagfile, BUFSIZ, tagfile);
-	exit (system (cmd));
+        sort_tags_file (tagfile);
+        exit (0);
       }
   return EXIT_SUCCESS;
 }
@@ -1523,72 +1519,181 @@ do_move_file (const char *src_file, const char *dst_file)
   if (rename (src_file, dst_file) == 0)
     return;
 
-  FILE *src_f = fopen (src_file, "rb");
-  FILE *dst_f = fopen (dst_file, "wb");
+  {
+    FILE *src_f = fopen (src_file, "rb");
+    FILE *dst_f = fopen (dst_file, "wb");
+    int c;
 
-  if (src_f == NULL)
-    pfatal (src_file);
+    if (src_f == NULL)
+      pfatal (src_file);
 
-  if (dst_f == NULL)
-    pfatal (dst_file);
+    if (dst_f == NULL)
+      pfatal (dst_file);
 
-  int c;
-  while ((c = fgetc (src_f)) != EOF)
-    {
-      if (ferror (src_f))
-        pfatal (src_file);
+    while ((c = fgetc (src_f)) != EOF)
+      {
+	if (ferror (src_f))
+	  pfatal (src_file);
 
-      if (ferror (dst_f))
-        pfatal (dst_file);
+	if (ferror (dst_f))
+	  pfatal (dst_file);
 
-      if (fputc (c, dst_f) == EOF)
-        pfatal ("cannot write");
-    }
+	if (fputc (c, dst_f) == EOF)
+	  pfatal ("cannot write");
+      }
 
-  if (fclose (src_f) == EOF)
-    pfatal (src_file);
+    if (fclose (src_f) == EOF)
+      pfatal (src_file);
 
-  if (fclose (dst_f) == EOF)
-    pfatal (dst_file);
+    if (fclose (dst_f) == EOF)
+      pfatal (dst_file);
 
-  if (unlink (src_file) == -1)
-    pfatal ("unlink error");
+    if (unlink (src_file) == -1)
+      pfatal ("unlink error");
+  }
 
   return;
 }
 
+static int
+cmpstringp(const void *p1, const void *p2)
+{
+  return strcmp(*(const char **) p1, *(const char **) p2);
+}
+
+static void
+sort_tags_file (const char *sort_tagfile)
+{
+  FILE *tag_f = fopen (sort_tagfile, "rb");
+  linebuffer line;
+  size_t line_strings_size = 512;
+  size_t line_strings_index = 0;
+  long line_read;
+  char **line_strings;
+  enum { carriage_return_line_feed = 0, line_feed = 1,
+	 no_newlines = 2 } eol_conversion = line_feed;
+
+  if (tag_f == NULL)
+    pfatal (sort_tagfile);
+
+  line_strings = xmalloc (sizeof (char *) * line_strings_size);
+
+  linebuffer_init (&line);
+  while ((line_read = readline_internal (&line, tag_f)) > 0)
+    {
+      if (ferror (tag_f))
+        pfatal (sort_tagfile);
+
+      if (line_strings_index == 0)
+	{
+	  switch (line_read - line.len)
+	    {
+            case 0:
+              eol_conversion = no_newlines;
+              break;
+            case 2:
+              eol_conversion = carriage_return_line_feed;
+              break;
+            case 1:
+            default:
+              eol_conversion = line_feed;
+              break;
+            }
+        }
+
+      if (line_strings_index >= line_strings_size)
+	{
+          line_strings_size *= 2;
+	  line_strings = xrealloc ((void *) line_strings,
+				   sizeof (char *) * line_strings_size);
+        }
+
+      line_strings[line_strings_index]
+	= xmalloc (line_read + 1);
+      memcpy (line_strings[line_strings_index], line.buffer, line.len);
+      line_strings[line_strings_index][line.len] = '\0';
+      line_strings_index++;
+    }
+
+  free (line.buffer);
+
+  if (fclose (tag_f) == EOF)
+    pfatal (sort_tagfile);
+
+  /* Sort the lines. */
+  qsort ((void *) line_strings, line_strings_index,
+	 sizeof (char *), cmpstringp);
+  {
+    size_t unique_counter = 0, ii;
+
+    /* Unique them. */
+    for (ii = 1; ii < line_strings_index; ii++)
+      {
+	if (strcmp (line_strings[unique_counter],
+		    line_strings[ii]) == 0)
+	  {
+	    free (line_strings [ii]);
+	  }
+	else
+	  {
+	    line_strings[++unique_counter] = line_strings[ii];
+	  }
+      }
+
+    tag_f = fopen (sort_tagfile, "wb");
+
+    if (tag_f == NULL)
+      {
+        pfatal (sort_tagfile);
+      }
+
+   for (ii = 0; ii <= unique_counter; ii++)
+      {
+	fputs (line_strings[ii], tag_f);
+	free (line_strings[ii]);
+	/* Note: this forces a newline at end of file. This doesn't
+	   matter. */
+        fputs ("\r\n" + eol_conversion, tag_f);
+      }
+
+    free (line_strings);
+    fclose (tag_f);
+  }
+}
 
 /*
  * Equivalent to: mv tags OTAGS;grep -Fv ' filename ' OTAGS >tags;rm OTAGS
  */
 static void
-cleanup_tags_file (const char* tagfile, const char* match_file_name)
+cleanup_tags_file (const char* cleanup_tagfile, const char* match_file_name)
 {
   FILE *otags_f = fopen ("OTAGS", "wb");
-  FILE *tag_f = fopen (tagfile, "rb");
+  FILE *tag_f = fopen (cleanup_tagfile, "rb");
+  int buf_len;
+  char *buf;
+  linebuffer line;
 
   if (otags_f == NULL)
     pfatal ("OTAGS");
 
   if (tag_f == NULL)
-    pfatal (tagfile);
+    pfatal (cleanup_tagfile);
 
-  int buf_len = strlen (match_file_name) + sizeof ("\t\t ") + 1;
-  char *buf = xmalloc (buf_len);
+  buf_len = strlen (match_file_name) + sizeof ("\t\t ") + 1;
+  buf = xmalloc (buf_len);
   snprintf (buf, buf_len, "\t%s\t", match_file_name);
 
-  linebuffer line;
   linebuffer_init (&line);
   while (readline_internal (&line, tag_f) > 0)
     {
       if (ferror (tag_f))
-        pfatal (tagfile);
+        pfatal (cleanup_tagfile);
 
       if (strstr (line.buffer, buf) == NULL)
         {
           fprintf (otags_f, "%s\n", line.buffer);
           if (ferror (tag_f))
-            pfatal (tagfile);
+            pfatal (cleanup_tagfile);
         }
     }
   free (buf);
@@ -1598,9 +1703,9 @@ cleanup_tags_file (const char* tagfile, const char* match_file_name)
     pfatal ("OTAGS");
 
   if (fclose (tag_f) == EOF)
-    pfatal (tagfile);
+    pfatal (cleanup_tagfile);
 
-  do_move_file ("OTAGS", tagfile);
+  do_move_file ("OTAGS", cleanup_tagfile);
   return;
 }
 
@@ -6722,8 +6827,7 @@ fatal (s1, s2)
 }
 
 static void
-pfatal (s1)
-     char *s1;
+pfatal (const char *s1)
 {
   perror (s1);
   exit (EXIT_FAILURE);
