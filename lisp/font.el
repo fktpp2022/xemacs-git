@@ -1237,40 +1237,11 @@ The variable x-library-search-path is use to locate the rgb.txt file."
    (* (- (aref col1 2) (aref col2 2))
       (- (aref col1 2) (aref col2 2)))))
 
-(defun font-tty-find-closest-color (r g b)
-  ;; This is basically just a lisp copy of allocate_nearest_color
-  ;; from fontcolor-x.c from Emacs 19
-  ;; We really should just check tty-color-list, but unfortunately
-  ;; that does not include any RGB information at all.
-  ;; So for now we just hardwire in the default list and call it
-  ;; good for now.
-  (setq r (/ r 65535.0)
-	g (/ g 65535.0)
-	b (/ b 65535.0))
-  (let* ((color_def (vector r g b))
-	 (colors [([1.0 1.0 1.0] . "white")
-		  ([0.0 1.0 1.0] . "cyan")
-		  ([1.0 0.0 1.0] . "magenta")
-		  ([0.0 0.0 1.0] . "blue")
-		  ([1.0 1.0 0.0] . "yellow")
-		  ([0.0 1.0 0.0] . "green")
-		  ([1.0 0.0 0.0] . "red")
-		  ([0.0 0.0 0.0] . "black")])
-	 (no_cells (length colors))
-	 (x 1)
-	 (nearest 0)
-	 (nearest_delta 0)
-	 (trial_delta 0))
-    (setq nearest_delta (font-tty-compute-color-delta (car (aref colors 0))
-						      color_def))
-    (while (/= no_cells x)
-      (setq trial_delta (font-tty-compute-color-delta (car (aref colors x))
-						      color_def))
-      (if (< trial_delta nearest_delta)
-	  (setq nearest x
-		nearest_delta trial_delta))
-      (setq x (1+ x)))
-    (cdr-safe (aref colors nearest))))
+(defun font-tty-find-closest-color (r g b &optional device)
+  (setq r (/ r 257)
+	g (/ g 257)
+	b (/ b 257))
+  (car (find-tty-closest-color r g b device)))
 
 (defun font-normalize-color (color &optional device)
   "Return an RGB tuple, given any form of input.  If an error occurs, black
@@ -1284,7 +1255,9 @@ is returned."
       (mswindows-define-rgb-color (nth 0 rgb) (nth 1 rgb) (nth 2 rgb) color)
       color))
    (tty
-    (apply 'font-tty-find-closest-color (font-color-rgb-components color)))
+    (let ((rgb (font-color-rgb-components color)))
+      (font-tty-find-closest-color (nth 0 rgb) (nth 1 rgb) (nth 2 rgb)
+                                   device)))
    (ns
     (let ((vals (mapcar #'(lambda (x) (lsh x -8))
 			(font-color-rgb-components color))))

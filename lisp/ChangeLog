@@ -1,3 +1,12 @@
+2023-10-14  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	* font.el (font-tty-find-closest-color): Use
+	#'find-tty-closest-color instead.  Add optional device arg for use
+	by #'find-tty-closest-color.
+
+	* font.el (font-normalize-color): Pass along device to
+	#'font-tty-find-closest-color.
+
 2023-08-11  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	* term/xterm.el: Define motion keys (left,right,up,down,home,end)
