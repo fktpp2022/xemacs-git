@@ -1123,9 +1123,9 @@ The list (R G B) is returned, or an error is signaled if the lookup fails."
 	    (if (re-search-forward (format "\t%s$" (regexp-quote color)) nil t)
 		(progn
 		  (beginning-of-line)
-		  (setq r (* (read (current-buffer)) 256)
-			g (* (read (current-buffer)) 256)
-			b (* (read (current-buffer)) 256)))
+		  (setq r (* (read (current-buffer)) 257)
+			g (* (read (current-buffer)) 257)
+			b (* (read (current-buffer)) 257)))
 	      (display-warning 'color (format "No such color: %s" color))
 	      (setq r 0
 		    g 0

@@ -1,3 +1,9 @@
+2023-10-15  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	* font.el (font-lookup-rgb-components): Correct scaling of an rgb
+	component read from rgb.txt.  This is easily shown using "white"
+	which should return (65535 65535 65535).
+
 2023-10-14  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	* font.el (font-tty-find-closest-color): Use

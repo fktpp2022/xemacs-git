@@ -1,3 +1,9 @@
+2023-10-15  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	* automated/color-tests.el: New.  Ensure colors read from rgb.txt
+	are scaled correctly by testing "white".  Skip the test when
+	rgb.txt is unavailable.
+
 2023-09-30  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/event-tests.el: New.
