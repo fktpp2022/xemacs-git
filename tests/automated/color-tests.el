@@ -43,4 +43,22 @@
 		(list 65535 65535 65535)))
  nil)
 
+;;; Test parsing of white variants
+;; #fefefe format
+(Assert (equal (font-parse-rgb-components "#ffffff")
+	       (list 65535 65535 65535)))
+
+;;; Test conversion of white variants
+;; Component range [0.0, 1.0]
+(Assert (equal (font-color-rgb-components "1.0 1.0 1.0")
+	       (list 65535 65535 65535)))
+
+;; Component range [0, 255]
+(Assert (equal (font-color-rgb-components "255 255 255")
+	       (list 65535 65535 65535)))
+
+;; #fefefe format
+(Assert (equal (font-color-rgb-components "#ffffff")
+	       (list 65535 65535 65535)))
+
 ;;; end color-tests.el

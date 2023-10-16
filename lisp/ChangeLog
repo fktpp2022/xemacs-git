@@ -1,3 +1,15 @@
+2023-10-16  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	* font.el (font-parse-rgb-components): Correct scaling of colors
+	in #fefefe format.  This also fixes usages of
+	#'font-color-rgb-components with input strings having a component
+	range of
+
+	a) [0.0, 1.0]
+	b) [0, 255]
+
+	as it uses the #fefefe format as an intermediary.
+
 2023-10-15  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	* font.el (font-lookup-rgb-components): Correct scaling of an rgb

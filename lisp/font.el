@@ -1149,9 +1149,9 @@ The list (R G B) is returned, or an error is signaled if the lookup fails."
                       b (* 4096 (parse-integer color :start 3 :end 4
                                                :radix 16))))
                (7
-                (setq r (* 256 (parse-integer color :start 1 :end 3 :radix 16))
-                      g (* 256 (parse-integer color :start 3 :end 5 :radix 16))
-                      b (* 256 (parse-integer color :start 5 :end 7
+                (setq r (* 257 (parse-integer color :start 1 :end 3 :radix 16))
+                      g (* 257 (parse-integer color :start 3 :end 5 :radix 16))
+                      b (* 257 (parse-integer color :start 5 :end 7
                                               :radix 16))))
                (10
                 (setq r (* 16 (parse-integer color :start 1 :end 4 :radix 16))
