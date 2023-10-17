@@ -1142,11 +1142,11 @@ The list (R G B) is returned, or an error is signaled if the lookup fails."
       (cond ((and (> length 0) (eql ?# (aref color 0)))
              (case length
                (4
-                (setq r (* 4096 (parse-integer color :start 1 :end 2
+                (setq r (* 4369 (parse-integer color :start 1 :end 2
                                                :radix 16))
-                      g (* 4096 (parse-integer color :start 2 :end 3
+                      g (* 4369 (parse-integer color :start 2 :end 3
                                                :radix 16))
-                      b (* 4096 (parse-integer color :start 3 :end 4
+                      b (* 4369 (parse-integer color :start 3 :end 4
                                                :radix 16))))
                (7
                 (setq r (* 257 (parse-integer color :start 1 :end 3 :radix 16))

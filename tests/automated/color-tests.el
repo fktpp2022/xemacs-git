@@ -47,6 +47,9 @@
 ;; #fefefe format
 (Assert (equal (font-parse-rgb-components "#ffffff")
 	       (list 65535 65535 65535)))
+;; 1 hex digit per component
+(Assert (equal (font-parse-rgb-components "#fff")
+	       (list 65535 65535 65535)))
 
 ;;; Test conversion of white variants
 ;; Component range [0.0, 1.0]
