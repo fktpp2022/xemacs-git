@@ -1138,7 +1138,15 @@ The list (R G B) is returned, or an error is signaled if the lookup fails."
   (let ((length (length color)) r g b position start)
     (labels ((fail () (error 'invalid-argument
                              "Not a valid RGB color specification"
-                             color)))
+                             color))
+	     (scale-rgb-component (value digits-in-hex)
+	       ;; Scale an RGB component VALUE that came from a hex
+	       ;; string with DIGITS-IN-HEX.  DIGITS-IN-HEX is used to
+	       ;; determine the maximum possible value for the RGB
+	       ;; component.
+	       (round (* 65535
+			 (/ (float value)
+			    (1- (expt 16 digits-in-hex)))))))
       (cond ((and (> length 0) (eql ?# (aref color 0)))
              (case length
                (4
@@ -1154,10 +1162,15 @@ The list (R G B) is returned, or an error is signaled if the lookup fails."
                       b (* 257 (parse-integer color :start 5 :end 7
                                               :radix 16))))
                (10
-                (setq r (* 16 (parse-integer color :start 1 :end 4 :radix 16))
-                      g (* 16 (parse-integer color :start 4 :end 7 :radix 16))
-                      b (* 16 (parse-integer color :start 7 :end 10
-                                             :radix 16))))
+                (setq r (scale-rgb-component
+			 (parse-integer color :start 1 :end 4 :radix 16)
+			 3)
+                      g (scale-rgb-component
+			 (parse-integer color :start 4 :end 7 :radix 16)
+			 3)
+                      b (scale-rgb-component
+			 (parse-integer color :start 7 :end 10 :radix 16)
+			 3)))
                (otherwise (fail))))
             ((eql 0 (search "rgb:" color :test #'equalp :end2 (min length 4)))
              (multiple-value-setq (r position)
@@ -1165,18 +1178,18 @@ The list (R G B) is returned, or an error is signaled if the lookup fails."
                               :junk-allowed t :radix 16))
              (or (and (< -1 r #x10000) position (eql (aref color position) ?/))
                  (fail))
-             (setq r (* r (expt 16 (- 4 (- position (length "rgb:")))))
+             (setq r (scale-rgb-component r (- position (length "rgb:")))
                    start (1+ position))
              (multiple-value-setq (g position)
                (parse-integer color :start start :junk-allowed t :radix 16))
              (or (and (< -1 g #x10000) position (eql (aref color position) ?/))
                  (fail))
-             (setq g (* g (expt 16 (- 4 (- position start))))
+             (setq g (scale-rgb-component g (- position start))
                    start (1+ position))
              (multiple-value-setq (b position)
                (parse-integer color :start start :junk-allowed nil :radix 16))
              (or (< -1 b #x10000) (fail))
-             (setq b (* b (expt 16 (- 4 (- position start))))))
+             (setq b (scale-rgb-component b (- position start))))
             (t (fail)))
       (list r g b))))
 

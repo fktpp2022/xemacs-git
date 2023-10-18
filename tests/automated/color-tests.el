@@ -50,6 +50,17 @@
 ;; 1 hex digit per component
 (Assert (equal (font-parse-rgb-components "#fff")
 	       (list 65535 65535 65535)))
+;; 3 hex digits per component
+(Assert (equal (font-parse-rgb-components "#fffffffff")
+	       (list 65535 65535 65535)))
+
+;; rgb:fe/fe/fe format
+(Assert (equal (font-parse-rgb-components "rgb:ff/ff/ff")
+	       (list 65535 65535 65535)))
+(Assert (equal (font-parse-rgb-components "rgb:f/f/f")
+	       (list 65535 65535 65535)))
+(Assert (equal (font-parse-rgb-components "rgb:fff/fff/fff")
+	       (list 65535 65535 65535)))
 
 ;;; Test conversion of white variants
 ;; Component range [0.0, 1.0]
@@ -63,5 +74,17 @@
 ;; #fefefe format
 (Assert (equal (font-color-rgb-components "#ffffff")
 	       (list 65535 65535 65535)))
+
+;; Test example color from rgb.txt in different forms is converted to the same
+;; value.
+
+;; 100 149 237             CornflowerBlue
+(let ((cornflowerblue (list 25700 38293 60909)))
+  (Assert (equal (font-color-rgb-components "100 149 237")
+		 cornflowerblue))
+  (Assert (equal (font-color-rgb-components "#6495ed")
+		 cornflowerblue))
+  (Assert (equal (font-color-rgb-components "rgb:64/95/ed")
+		 cornflowerblue)))
 
 ;;; end color-tests.el

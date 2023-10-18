@@ -1,3 +1,9 @@
+2023-10-18  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	* font.el (font-parse-rgb-components): Add and use
+	scale-rgb-components to correct scaling of rgb:hex/hex/hex
+	variants and the 3 digit per component #hex string.
+
 2023-10-17  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	* font.el (font-parse-rgb-components): Correct scaling of colors
