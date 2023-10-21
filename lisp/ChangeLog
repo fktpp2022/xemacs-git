@@ -1,3 +1,10 @@
+2023-10-21  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	* tty-init.el (make-device-late-tty-entry-point): Register
+	standard XTerm 256 colors when the device supports 256 colors.
+	The color names are "color-N" which is based on the the XTerm
+	number and is also used on GNU Emacs.
+
 2023-10-18  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	* font.el (font-parse-rgb-components): Add and use
