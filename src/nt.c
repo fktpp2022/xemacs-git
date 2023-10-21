@@ -2079,6 +2079,15 @@ init_nt (void)
 
      #### Do we still need this?  This is left over from the old process
      support. */
+#if 0
+  // KURTGEIS: I propose that this is no longer required. I suspect
+  // that it dependend on an accident of the implementation that opening
+  // the handle that corresponded to STD_*_HANDLE happened to reuse or
+  // re-assign standard file descriptors like stderr. This appears to
+  // be no longer the case. I'm not sure there is any value in
+  // duplicating the standard handles as non-inheritable (which
+  // currently breaks the ucrt internal functions for mapping standard
+  // file descriptors).
   {
     HANDLE parent;
     HANDLE stdin_save =  INVALID_HANDLE_VALUE;
@@ -2135,6 +2144,7 @@ init_nt (void)
       _open ("nul", O_TEXT | O_NOINHERIT | O_WRONLY);
     _fdopen (2, "w");
   }
+#endif
 
   /* determine which drives are fixed, for get_cached_volume_information */
   {

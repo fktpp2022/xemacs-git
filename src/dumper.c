@@ -2002,6 +2002,7 @@ pdump_resource_get (void)
 {
   HRSRC hRes;			/* Handle to dump resource */
   HRSRC hResLoad;		/* Handle to loaded dump resource */
+  DWORD previous_protection;
 
   /* See Q126630 which describes how Windows NT and 95 trap writes to
      resource sections and duplicate the page to allow the write to proceed.
@@ -2031,6 +2032,11 @@ pdump_resource_get (void)
     {
       pdump_start = 0;
       return 0;
+    }
+
+  if (!VirtualProtect(pdump_start, pdump_length, PAGE_READWRITE, &previous_protection))
+    {
+	  return 0;
     }
 
   return 1;

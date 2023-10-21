@@ -1,3 +1,15 @@
+2023-10-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Some changes to get the latest beta building with Visual
+	Studio from Kurt Geisel <kgeisel@outlook.com>. Thank you Kurt!
+
+	* xemacs.mak:
+	Only generate manifest information for the executable if the
+	corresponding FILE.manifest has been generated.
+
+	* xemacs.mak (TEMACS_COMMON_ASLR_LFLAGS): New.
+	Disable ASLR if the compiler would otherwise enable it.
+
 2023-05-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* XEmacs 21.5.35 "kohlrabi" is released.

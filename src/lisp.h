@@ -1169,7 +1169,7 @@ typedef int Boolint;
 
 #if (!defined (__STDC_VERSION__) || __STDC_VERSION__ < 201112L) && \
     (!defined (__cplusplus)						\
-     || (__cplusplus < 201103L && !defined (_MSC_VER))) &&		\
+     || (__cplusplus < 201103L && (_MSC_VER < 1929))) &&		\
     (!defined (__CLANG_MAX_ALIGN_T_DEFINED) && !defined (_GCC_MAX_ALIGN_T))
 /* No type has a greater alignment requirement than max_align_t.
    (except perhaps for types we don't use, like long double) */

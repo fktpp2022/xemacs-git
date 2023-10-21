@@ -1,3 +1,25 @@
+2023-10-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Some changes to get the latest beta building with Visual
+	Studio from Kurt Geisel <kgeisel@outlook.com>. Thank you Kurt!
+
+	* dumper.c (pdump_resource_get):
+	Even though the resource segment is marked read/write, we now need
+	to explicitly change the pages in the mapped resource address
+	space to be writeable in order to allow pdump relocation to not
+	hit write access violations.
+
+	* lisp.h (max_align_t): Our definition of max_align_t is no longer
+	needed from VS 2019 onwards.
+
+	* nt.c (init_nt):
+	Code that duplicates standard handles as non-inheritable breaks
+	ucrt lookup of standard stream identifiers (stdout, stdin,
+	stderr), which are now resolved as function calls (defined by the
+	preprocessor) that assume the file handles in the global table are
+	stable. This breaks non-console I/O and the build-time piping from
+	i.exe.
+
 2023-10-10  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	* fontcolor-tty.c (find_tty_closest_color_1): Internal function to
