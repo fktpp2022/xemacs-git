@@ -1643,8 +1643,7 @@ key_desc_list_to_event (Lisp_Object list, Lisp_Object event)
   XSET_EVENT_KEY_MODIFIERS (event, KEY_DATA_MODIFIERS (&raw_key));
 }
 
-
-int
+Boolint
 event_matches_key_specifier_p (Lisp_Object event, Lisp_Object key_specifier)
 {
   Lisp_Object event2 = Qnil;
@@ -1697,7 +1696,7 @@ event_matches_key_specifier_p (Lisp_Object event, Lisp_Object key_specifier)
   return retval;
 }
 
-static int
+static Boolint
 meta_prefix_char_p (const Lisp_Key_Data *key)
 {
   Lisp_Object event = Fmake_event (Qnil, Qnil);
@@ -3284,21 +3283,27 @@ map_keymap_sort_predicate (Lisp_Object UNUSED (pred), Lisp_Object UNUSED (key),
   if (! bit1 && SYMBOLP (obj1))
     {
       Lisp_Object code = Fget (obj1, Qcharacter_of_keysym, Qnil);
-      if (CHAR_OR_CHAR_INTP (code))
+      if (CHARP (code))
 	{
 	  obj1 = code;
-	  CHECK_CHAR_COERCE_INT (obj1);
 	  sym1_p = 1;
+	}
+      else if (!NILP (code))
+	{
+	  CHECK_CHAR (code);
 	}
     }
   if (! bit2 && SYMBOLP (obj2))
     {
       Lisp_Object code = Fget (obj2, Qcharacter_of_keysym, Qnil);
-      if (CHAR_OR_CHAR_INTP (code))
+      if (CHARP (code))
 	{
 	  obj2 = code;
-	  CHECK_CHAR_COERCE_INT (obj2);
 	  sym2_p = 1;
+	}
+      else if (!NILP (code))
+	{
+	  CHECK_CHAR (code);
 	}
     }
 
@@ -4611,7 +4616,7 @@ describe_map_sort_predicate (Lisp_Object pred, Lisp_Object key_func,
    or 2 or more symbolic keysyms that are bound to the same thing and
    have consecutive character-set-properties.
  */
-static int
+static Boolint
 elide_next_two_p (Lisp_Object list)
 {
   Lisp_Object s1, s2;
@@ -4636,20 +4641,26 @@ elide_next_two_p (Lisp_Object list)
   if (SYMBOLP (s1))
     {
       Lisp_Object code = Fget (s1, Qcharacter_of_keysym, Qnil);
-      if (CHAR_OR_CHAR_INTP (code))
+      if (CHARP (code))
 	{
 	  s1 = code;
-	  CHECK_CHAR_COERCE_INT (s1);
+	}
+      else if (!NILP (code))
+	{
+	  CHECK_CHAR (code);
 	}
       else return 0;
     }
   if (SYMBOLP (s2))
     {
       Lisp_Object code = Fget (s2, Qcharacter_of_keysym, Qnil);
-      if (CHAR_OR_CHAR_INTP (code))
+      if (CHARP (code))
 	{
 	  s2 = code;
-	  CHECK_CHAR_COERCE_INT (s2);
+	}
+      else if (!NILP (code))
+	{
+	  CHECK_CHAR (code);
 	}
       else return 0;
     }
@@ -4657,7 +4668,6 @@ elide_next_two_p (Lisp_Object list)
   return (XCHAR (s1)     == XCHAR (s2) ||
 	  XCHAR (s1) + 1 == XCHAR (s2));
 }
-
 
 static Lisp_Object
 describe_map_parent_mapper (Lisp_Object keymap, void *arg)
@@ -4754,8 +4764,7 @@ describe_map (Lisp_Object keymap, Lisp_Object elt_prefix,
 	  if (SYMBOLP (keysym))
 	    {
 	      Lisp_Object code = Fget (keysym, Qcharacter_of_keysym, Qnil);
-	      Ichar c = (CHAR_OR_CHAR_INTP (code)
-			  ? XCHAR_OR_CHAR_INT (code) : (Ichar) -1);
+ 	      Ichar c = (CHARP (code) ? XCHAR (code) : (Ichar) -1);
 	      /* Calling Fsingle_key_description() would cons more */
 #if 0                           /* This is bogus */
 	      if (EQ (keysym, QKlinefeed))

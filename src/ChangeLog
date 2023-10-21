@@ -1,3 +1,45 @@
+2023-10-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	1. Make upshift_event (), downshift_event (), event_upshifted_p ()
+	also do the right things with non-ASCII keysyms with case.
+
+	2. Only accept characters as the #'character-of-keysym property,
+	an obsolescent way to document that a symbol has an associated
+	character, and something never supported by GNU, so char-int
+	confoundance should never have come up.
+
+	* events.c:
+	* events.c (event_to_character):
+	Fixnums will never appear as event keysyms, don't check for them.
+	Only check for characters as the character-of-keysym property and
+	the related ascii-character property, these are XEmacs approaches
+	to specifying associated characters that should not come up in GNU
+	code.
+
+	* events.c (upshift_event):
+	Don't check for fixnums as event keysyms.  Generalise the case
+	mapping to handle non-ASCII case transformation.
+	* events.c (downshift_event):
+	Ditto.
+	* events.c (event_upshifted_p):
+	Use a more modern return type here.
+	Use a more modern implementation that deals with non-ASCII case
+	transformation. 
+
+	* keymap.c (event_matches_key_specifier_p):
+	* keymap.c (meta_prefix_char_p):
+	Use more modern return types types for these functions.
+	
+	* keymap.c (map_keymap_sort_predicate):
+	* keymap.c (describe_map_mapper):
+	* keymap.c (describe_map_sort_predicate):
+	* keymap.c (describe_map):
+	Only accept characters, not char-ints, for the character-of-keysym
+	property in these functions.
+
+	* keymap.h (event_matches_key_specifier_p):
+	Update a return type here.
+
 2023-10-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Some changes to get the latest beta building with Visual

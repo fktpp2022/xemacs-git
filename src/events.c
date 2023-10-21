@@ -36,6 +36,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "redisplay.h"
 #include "toolbar.h"
 #include "window.h"
+#include "casetab.h"
 
 #include "console-tty-impl.h" /* for stuff in character_to_event */
 
@@ -1298,22 +1299,22 @@ event_to_character (Lisp_Object event,
       XEVENT_KEY_MODIFIERS (event) & 
       (XEMACS_MOD_SUPER|XEMACS_MOD_HYPER|XEMACS_MOD_ALT))
     return -1;
-  if (CHAR_OR_CHAR_INTP (XEVENT_KEY_KEYSYM (event)))
-    c = XCHAR_OR_CHAR_INT (XEVENT_KEY_KEYSYM (event));
+  if (CHARP (XEVENT_KEY_KEYSYM (event)))
+    c = XCHAR (XEVENT_KEY_KEYSYM (event));
   else if (!SYMBOLP (XEVENT_KEY_KEYSYM (event)))
     ABORT ();
-  else if (CHAR_OR_CHAR_INTP (code = Fget (XEVENT_KEY_KEYSYM (event),
-					   Qcharacter_of_keysym, Qnil)))
-    c = XCHAR_OR_CHAR_INT (code);
+  else if (CHARP ((code = Fget (XEVENT_KEY_KEYSYM (event),
+				Qcharacter_of_keysym, Qnil))))
+    c = XCHAR (code);
   else
     {
       Lisp_Object thekeysym = XEVENT_KEY_KEYSYM (event);
 
-      if (CHAR_OR_CHAR_INTP (code = Fget (thekeysym, Qascii_character, Qnil)))
+      if (CHARP ((code = Fget (thekeysym, Qascii_character, Qnil))))
 	{
-	  c = XCHAR_OR_CHAR_INT (code);
-	  warn_when_safe(Qkey_mapping, Qwarning, 
-			 "Obsolete key binding technique.\n"
+	  c = XCHAR (code);
+	  warn_when_safe (Qkey_mapping, Qwarning, 
+			  "Obsolete key binding technique.\n"
 
 "Some code you're using bound %s to `self-insert-command' and messed around\n"
 "with its `ascii-character' property.  Doing this is deprecated, and the code\n"
@@ -1322,7 +1323,7 @@ event_to_character (Lisp_Object event,
 "for it; we support many more X11 keysyms out of the box now than we did\n"
 "in the past. ", XSTRING_DATA(XSYMBOL_NAME(thekeysym)));
 	  /* Only show the warning once for each keysym. */
-	  Fput(thekeysym, Qcharacter_of_keysym, code);
+	  Fput (thekeysym, Qcharacter_of_keysym, code);
 	}
       else
 	{
@@ -1642,46 +1643,51 @@ void
 upshift_event (Lisp_Object event)
 {
   Lisp_Object keysym = XEVENT_KEY_KEYSYM (event);
-  Ichar c = 0;
 
-  if (CHAR_OR_CHAR_INTP (keysym)
-      && ((c = XCHAR_OR_CHAR_INT (keysym)),
-	  c >= 'a' && c <= 'z'))
-    XSET_EVENT_KEY_KEYSYM (event, make_char (c + 'A' - 'a'));
-  else
-    if (!(XEVENT_KEY_MODIFIERS (event) & XEMACS_MOD_SHIFT))
+  if (CHARP (keysym))
+    {
+      Ichar upcase = UPCASE (0, XCHAR (keysym));
+
+      if (upcase != XCHAR (keysym))
+	{
+	  XSET_EVENT_KEY_KEYSYM (event, make_char (upcase));
+	  return;
+	}
+    }
+
+  if (!(XEVENT_KEY_MODIFIERS (event) & XEMACS_MOD_SHIFT))
+    {
       XSET_EVENT_KEY_MODIFIERS
 	(event, XEVENT_KEY_MODIFIERS (event) | XEMACS_MOD_SHIFT);
+    }
 }
 
 void
 downshift_event (Lisp_Object event)
 {
   Lisp_Object keysym = XEVENT_KEY_KEYSYM (event);
-  Ichar c = 0;
 
   if (XEVENT_KEY_MODIFIERS (event) & XEMACS_MOD_SHIFT)
     XSET_EVENT_KEY_MODIFIERS
       (event, XEVENT_KEY_MODIFIERS (event) & ~XEMACS_MOD_SHIFT);
-  else if (CHAR_OR_CHAR_INTP (keysym)
-	   && ((c = XCHAR_OR_CHAR_INT (keysym)),
-	       c >= 'A' && c <= 'Z'))
-    XSET_EVENT_KEY_KEYSYM (event, make_char (c + 'a' - 'A'));
+  else if (CHARP (keysym))
+    {
+      Ichar downcase = DOWNCASE (0, XCHAR (keysym));
+
+      if (downcase != XCHAR (keysym))
+	{
+	  XSET_EVENT_KEY_KEYSYM (event, make_char (downcase));
+	}
+    }
 }
 
-int
+Boolint
 event_upshifted_p (Lisp_Object event)
 {
   Lisp_Object keysym = XEVENT_KEY_KEYSYM (event);
-  Ichar c = 0;
 
-  if ((XEVENT_KEY_MODIFIERS (event) & XEMACS_MOD_SHIFT)
-      || (CHAR_OR_CHAR_INTP (keysym)
-	  && ((c = XCHAR_OR_CHAR_INT (keysym)),
-	      c >= 'A' && c <= 'Z')))
-    return 1;
-  else
-    return 0;
+  return (XEVENT_KEY_MODIFIERS (event) & XEMACS_MOD_SHIFT)
+    || (CHARP (keysym) && UPPERCASEP (0, XCHAR (keysym)));
 }
 
 DEFUN ("eventp", Feventp, 1, 1, 0, /*
