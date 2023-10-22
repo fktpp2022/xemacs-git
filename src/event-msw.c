@@ -3174,7 +3174,7 @@ mswindows_wnd_proc (HWND hwnd, UINT message_, WPARAM wParam, LPARAM lParam)
       {
 	LPNMHDR nmhdr = (LPNMHDR) lParam;
 
-	if (nmhdr->code == TTN_NEEDTEXT)
+	if (nmhdr->code == TTN_NEEDTEXTW)
 	  {
 #ifdef HAVE_TOOLBARS
 	    LPTOOLTIPTEXTW tttextw = (LPTOOLTIPTEXTW) lParam;

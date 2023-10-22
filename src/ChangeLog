@@ -1,3 +1,10 @@
+2023-10-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* event-msw.c (mswindows_wnd_proc):
+	Only respond to TTN_NEEDTEXTW, not TTN_NEEDTEXTA messages, when
+	handling WM_NOTIFY. Change missed in 0f36f2ab4a32 , thank you Kurt
+	Geisel.
+
 2023-10-21  Aidan Kehoe  <kehoea@parhasard.net>
 
 	1. Make upshift_event (), downshift_event (), event_upshifted_p ()
