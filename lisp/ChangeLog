@@ -1,3 +1,9 @@
+2023-10-24  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	* font.el (font-lookup-rgb-components): Inhibit
+	"Note: file is write protected" - we're only doing lookups in a
+	hidden buffer.
+
 2023-10-21  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	* tty-init.el (make-device-late-tty-entry-point): Register

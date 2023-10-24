@@ -1113,7 +1113,9 @@ The list (R G B) is returned, or an error is signaled if the lookup fails."
     (if (null file)
 	(list 0 0 0)
       (save-excursion
-	(set-buffer (find-file-noselect file))
+        ;; Inhibit "Note: file is write protected" - we're only doing lookups
+        ;; in a hidden buffer.
+	(set-buffer (find-file-noselect file t))
 	(if (not (= (aref (buffer-name) 0) ? ))
 	    (rename-buffer (generate-new-buffer-name " *rgb-tmp-buffer*")))
 	(save-excursion
