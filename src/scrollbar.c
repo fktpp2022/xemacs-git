@@ -423,6 +423,69 @@ scrollbar_point (struct window *w, Boolint flag)
     return sb_pos;
 }
 
+extern Bytebpos force_valid_bytebpos_or_zero (struct window *, Bytebpos);
+
+/* Given POSITION, which has come from the scrollbar data of one of the
+   toolkits, return a Lisp object that reflects a valid buffer position,
+   ideally close to where was intended with POSITION.  Since we don't store
+   markers or extents in the toolkit data, we have no guarantee that such
+   positions are actually valid (Lisp may have inserted or deleted text such
+   that the position is outside of the visible area or that it may reflect a
+   partial character). This function also takes into account that the
+   scrollbar is either line-based or buffer-position based, something that
+   update_scrollbar_instance() decides based on buffer size.  */
+Lisp_Object
+scrollbar_slider_position_to_lisp (struct scrollbar_instance *instance,
+                                   int position)
+{
+  Lisp_Object win = real_window (instance->mirror, 1);
+  Lisp_Object buf;
+  struct buffer *b;
+
+  if (NILP (win) || NILP (XWINDOW (win)->buffer))
+    {
+      return Qnil;
+    }
+
+  buf = get_buffer (XWINDOW (win)->buffer, 0);
+  if (NILP (buf))
+    {
+      return Qnil;
+    }
+
+  b = XBUFFER (buf);
+
+  if (instance->line_oriented_scrolling_p)
+    {
+      Bytebpos pos = byte_beginning_of_line (b, position, 1, 1);
+
+      if (pos < 0)
+        {
+          return make_fixnum (position);
+        }
+
+      return make_fixnum (bytebpos_to_charbpos (b, pos));
+    }
+  else
+    {
+      Charbpos cpos;
+      Bytebpos pos = force_valid_bytebpos_or_zero (XWINDOW (win), position);
+
+      if (pos > 0)
+        {
+          cpos = bytebpos_to_charbpos (b, pos);
+          return make_fixnum (cpos);
+        }
+
+      if (position > BYTE_BUF_ZV (b))
+        {
+          return make_fixnum (BUF_ZV (b));
+        }
+
+      return make_fixnum (BUF_BEGV (b));
+    }
+}
+
 /*
  * Update a window's horizontal or vertical scrollbar.
  */
@@ -553,6 +616,7 @@ update_scrollbar_instance (struct window *w, int vertical,
               new_maximum = BYTE_BUF_ZV (b);
               new_slider_position = scrollbar_point (w, 0);
               new_slider_size = window_displayed_height (w) * 512;
+              instance->line_oriented_scrolling_p = 0;
             }
           else
             {
@@ -565,6 +629,7 @@ update_scrollbar_instance (struct window *w, int vertical,
               new_minimum = 0;
               new_slider_position
                 = buffer_line_number (b, scrollbar_point (w, 0), 1, 1);
+              instance->line_oriented_scrolling_p = 1;
             }
 
           /* The end position must be strictly greater than the start

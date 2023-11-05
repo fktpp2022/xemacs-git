@@ -23,11 +23,11 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    line numbering extremely slow for large buffers, because Emacs had
    to rescan the whole buffer at each redisplay.
 
-   To make line numbering efficient, we maintain a buffer-local cache
-   of recently used positions and their line numbers.  The cache is
-   implemented as a small ring of cache positions.  A cache position
-   is either nil or a cons of a buffer position (zero-length extent)
-   and the corresponding line number.
+   To make line numbering efficient, we maintain a buffer-local cache of
+   recently used positions and their line numbers.  The cache is implemented
+   as a small unordered ring of cache positions.  A cache position is either
+   nil or a cons of a buffer position (zero-length extent) and the
+   corresponding line number.
 
    When calculating the line numbers, this cache is consulted if it
    would otherwise take too much time to count the newlines in the
@@ -325,11 +325,10 @@ add_position_to_cache (struct buffer *b, Bytebpos pos, Charcount line)
   ring[0] = Fcons (extent, make_fixnum (line));
 }
 
-/* Calculate the line number in buffer B at position POS.  If CACHEP
-   is non-zero, initialize and facilitate the line-number cache.  The
-   line number of the first line is 0.  If narrowing is in effect,
-   count the lines are counted from the beginning of the visible
-   portion of the buffer.
+/* Calculate the line number in buffer B at position POS.  If CACHEP is
+   non-zero, initialize and facilitate the line-number cache.  The line number
+   of the first line is 0.  If narrowing is in effect, count the lines from
+   the beginning of the visible portion of the buffer.
 
    The cache works as follows: To calculate the line number, we need
    two positions: position of point (POS) and the position from which
@@ -389,3 +388,132 @@ buffer_line_number (struct buffer *b, Bytebpos pos, Boolint cachep,
 
   return line;
 }
+
+/* Calculate and return the Bytebpos of the beginning of LINE_NUMBER, counting
+   from zero. If CACHEP is non-zero, initialize and facilitate the line-number
+   cache.
+
+   If narrowing is in effect and RESPECT_NARROWING is non-zero, count the
+   lines from the beginning of the visible portion of the buffer.
+
+   If the calculation (with or without the cache lookup) required more than
+   LINE_NUMBER_FAR characters of traversal, update the cache.
+
+   If there are not LINE_NUMBER lines in the region of interest, return -1. */
+Bytebpos
+byte_beginning_of_line (struct buffer *b, Charcount line_number,
+                        Boolint cachep, Boolint respect_narrowing)
+{
+  Bytebpos beg = respect_narrowing ? BYTE_BUF_BEGV (b) : BYTE_BUF_BEG (b);
+  Bytebpos result, cached_pos = beg;
+  Charcount cached_line = 0;
+  EMACS_INT shortage = 0;
+
+  if (line_number == 0)
+    {
+      return respect_narrowing ? BYTE_BUF_BEGV (b) : BYTE_BUF_BEG (b);
+    }
+
+  if (cachep && (respect_narrowing || BYTE_BUF_BEG (b) == BYTE_BUF_BEGV (b)))
+    {
+      if (NILP (b->text->line_number_cache))
+	allocate_line_number_cache (b);
+
+      /* If we don't know the line number of BUF_BEGV, calculate it now.  */
+      if (XFIXNUM (LINE_NUMBER_BEGV (b)) == -1)
+	{
+	  LINE_NUMBER_BEGV (b) = Qzero;
+	  /* #### This has a side-effect of changing the cache.  */
+	  LINE_NUMBER_BEGV (b) =
+	    make_fixnum (buffer_line_number (b, BYTE_BUF_BEGV (b), 1, 0));
+	}
+
+      {
+        EMACS_INT ii;
+        Lisp_Object *ring = XVECTOR_DATA (LINE_NUMBER_RING (b));
+        Charcount closest;
+
+        cached_line = XFIXNUM (LINE_NUMBER_BEGV (b));
+        closest = EMACS_INT_ABS (line_number - cached_line);
+
+          /* Find the ring entry closest to LINE_NUMBER. */
+        for (ii = 0; ii < LINE_NUMBER_RING_SIZE && CONSP (ring[ii]); ii++)
+          {
+            if (extent_detached_p (XEXTENT (XCAR (ring[ii]))))
+              {
+                continue;
+              }
+            else
+              {
+                Charcount howfar = XFIXNUM (XCDR (ring[ii])) - line_number;
+
+                if (howfar == 0)
+                  {
+                    return
+                      membpos_to_bytebpos (b,
+                                           extent_start
+                                           (XEXTENT (XCAR (ring[ii]))));
+
+                  }
+                else if (howfar < 0)
+                  {
+                    howfar = -howfar;
+                  }
+
+                if (howfar < closest)
+                  {
+                    closest = howfar;
+                    cached_line = XFIXNUM (XCDR (ring[ii]));
+                    cached_pos = 
+                      membpos_to_bytebpos (b,
+                                           extent_start
+                                           (XEXTENT (XCAR (ring[ii]))));
+                  }
+              }
+          }
+      }
+    }
+
+  if (cached_line < line_number)
+    {
+      result
+        = byte_scan_buffer (b, '\n', cached_pos,
+                            respect_narrowing ?
+                            BYTE_BUF_ZV (b) : BYTE_BUF_Z (b),
+                            line_number - cached_line, &shortage, 0);
+      if (shortage == 0)
+        {
+          if (cachep && (respect_narrowing
+                         || BYTE_BUF_BEG (b) == BYTE_BUF_BEGV (b)))
+            {
+              /* If too far, update the cache. */
+              if (result - cached_pos > LINE_NUMBER_FAR)
+                {
+                  add_position_to_cache (b, result, line_number);
+                }
+            }
+          return result;
+        }
+      return -1;
+    }
+
+  result = byte_scan_buffer (b, '\n', cached_pos,
+                             respect_narrowing ?
+                             BYTE_BUF_BEGV (b) : BYTE_BUF_BEG (b),
+                             line_number - cached_line, &shortage, 0);
+  if (shortage == 0)
+    {
+      if (cachep && (respect_narrowing
+                     || BYTE_BUF_BEG (b) == BYTE_BUF_BEGV (b)))
+        {
+          /* If too far, update the cache. */
+          if (cached_pos - result > LINE_NUMBER_FAR)
+            add_position_to_cache (b, result, line_number);
+        }
+      return result;
+    }
+
+  return -1;
+}
+
+/* line-number.c ends here */

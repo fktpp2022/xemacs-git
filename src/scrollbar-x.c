@@ -34,6 +34,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "console-x-impl.h"
 #include "glyphs-x.h"
 #include "scrollbar-x.h"
+#include "buffer.h"
+#include "line-number.h"
 
 #include "EmacsFrame.h"
 
@@ -174,7 +176,20 @@ x_update_scrollbar_instance_values (struct window *w,
   if (w && !vertical_drag_in_progress)
     {
       int new_vov = SCROLLBAR_X_POS_DATA (inst).slider_position;
-      int new_vows = marker_position (w->start[CURRENT_DISP]);
+      int new_vows;
+
+      if (inst->line_oriented_scrolling_p)
+        {
+          new_vows
+            = buffer_line_number (XBUFFER (Fmarker_buffer
+                                           (w->start[CURRENT_DISP])),
+                                  marker_byte_position
+                                  (w->start[CURRENT_DISP]), 1, 1);
+        }
+      else
+        {
+          new_vows = marker_byte_position (w->start[CURRENT_DISP]);
+        }
 
       if (SCROLLBAR_X_VDRAG_ORIG_VALUE (inst) != new_vov)
 	{
@@ -501,8 +516,22 @@ x_update_vertical_scrollbar_callback (Widget widget, LWLIB_ID id,
 #if defined (LWLIB_SCROLLBARS_MOTIF) || defined (LWLIB_SCROLLBARS_LUCID)
       vertical_drag_in_progress = 0;
       SCROLLBAR_X_VDRAG_ORIG_VALUE (instance) = data->slider_value;
-      SCROLLBAR_X_VDRAG_ORIG_WINDOW_START (instance) =
-	XFIXNUM (Fwindow_start (win));
+
+      if (instance->line_oriented_scrolling_p)
+        {
+          SCROLLBAR_X_VDRAG_ORIG_WINDOW_START (instance)
+            = buffer_line_number (XBUFFER (Fmarker_buffer
+                                           (XWINDOW (win)
+                                            ->start[CURRENT_DISP])),
+                                  marker_byte_position
+                                  (XWINDOW (win)->start[CURRENT_DISP]), 1,
+                                  1);
+        }
+      else
+        {
+          SCROLLBAR_X_VDRAG_ORIG_WINDOW_START (instance) =
+            marker_byte_position (XWINDOW (win)->start[CURRENT_DISP]);
+        }
 #else
       stupid_vertical_scrollbar_drag_hack = 0;
 #endif
@@ -527,8 +556,22 @@ x_update_vertical_scrollbar_callback (Widget widget, LWLIB_ID id,
 	if (SCROLLBAR_X_VDRAG_ORIG_VALUE (instance) < 0)
 	  {
 	    SCROLLBAR_X_VDRAG_ORIG_VALUE (instance) = data->slider_value;
-	    SCROLLBAR_X_VDRAG_ORIG_WINDOW_START (instance) =
-	      XFIXNUM (Fwindow_start (win));
+
+            if (instance->line_oriented_scrolling_p)
+              {
+                SCROLLBAR_X_VDRAG_ORIG_WINDOW_START (instance)
+                  = buffer_line_number (XBUFFER (Fmarker_buffer
+                                                 (XWINDOW (win)
+                                                  ->start[CURRENT_DISP])),
+                                        marker_byte_position
+                                        (XWINDOW (win)->start[CURRENT_DISP]),
+                                        1, 1);
+              }
+            else
+              {
+                SCROLLBAR_X_VDRAG_ORIG_WINDOW_START (instance) =
+                  marker_byte_position (XWINDOW (win)->start[CURRENT_DISP]);
+              }
 	  }
 
 	/* Could replace this piecewise linear scrolling with a
@@ -594,8 +637,10 @@ x_update_vertical_scrollbar_callback (Widget widget, LWLIB_ID id,
 	if (value < SCROLLBAR_X_POS_DATA (instance).minimum)
 	  value = SCROLLBAR_X_POS_DATA (instance).minimum;
 
-	signal_special_Xt_user_event (frame, Qscrollbar_vertical_drag,
-				      Fcons (win, make_fixnum (value)));
+	signal_special_Xt_user_event
+              (frame, Qscrollbar_vertical_drag,
+               Fcons (win, scrollbar_slider_position_to_lisp (instance,
+                                                              value)));
       }
       break;
 

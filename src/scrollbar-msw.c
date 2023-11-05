@@ -306,10 +306,28 @@ mswindows_handle_scrollbar_event (HWND hwnd, int code, int UNUSED (pos))
       else
 #endif
         value = scrollinfo.nTrackPos;
-      mswindows_enqueue_misc_user_event
-	(frame,
-	 vert ? Qscrollbar_vertical_drag : Qscrollbar_horizontal_drag,
-	 Fcons (win, make_fixnum (value)));
+
+      if (vert)
+        {
+          if (sb)
+            {
+              mswindows_enqueue_misc_user_event
+                (frame, Qscrollbar_vertical_drag,
+                 Fcons (win, scrollbar_slider_position_to_lisp (sb, value)));
+            }
+          else
+            {
+              mswindows_enqueue_misc_user_event
+                (frame, Qscrollbar_vertical_drag,
+                 Fcons (win, make_fixnum (value)));
+            }
+        }
+      else
+        {
+          mswindows_enqueue_misc_user_event
+            (frame, Qscrollbar_horizontal_drag,
+             Fcons (win, make_fixnum (value)));
+        }
       break;
 
     case SB_ENDSCROLL:

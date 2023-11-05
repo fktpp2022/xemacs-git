@@ -1,3 +1,47 @@
+2023-11-05  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* line-number.c:
+	* line-number.c (byte_beginning_of_line): New.
+	Given a line number, return the Bytebpos of the beginning of that
+	line. This is the inverse of buffer_line_number ().
+
+	* line-number.h:
+	Declare it.
+
+	* redisplay.c (force_valid_bytebpos_or_zero):
+	Make this un-static given it's now used by
+	scrollbar_slider_position_to_lisp ().
+	* scrollbar-gtk.c:
+	* scrollbar-gtk.c (gtk_update_scrollbar_instance_values):
+	Fix handling of line-oriented scrolling.
+	Use marker_byte_position() instead of marker_position(), given we
+	function in either lines or byte positions.
+
+	* scrollbar-gtk.c (scrollbar_cb):
+	Use scrollbar_slider_position_to_lisp () when creating an argument
+	to #'scrollbar-vertical-drag.
+	* scrollbar-msw.c (mswindows_handle_scrollbar_event):
+	Ditto.
+
+	* scrollbar-x.c:
+	* scrollbar-x.c (x_update_scrollbar_instance_values):
+	Fix handling of line-oriented scrolling.
+	Use marker_byte_position() instead of marker_position(), given we
+	function in either lines or byte positions.
+
+	* scrollbar-x.c (x_update_vertical_scrollbar_callback):
+	Use scrollbar_slider_position_to_lisp () when creating an argument
+	to #'scrollbar-vertical-drag.
+
+	* scrollbar.c:
+	* scrollbar.c (scrollbar_slider_position_to_lisp): New.
+	* scrollbar.c (update_scrollbar_instance):
+	Mark that scrolling is line-oriented or not explicitly when
+	passing values to the toolkit code.
+	* scrollbar.h:
+	* scrollbar.h (struct scrollbar_instance):
+	New field, line_oriented_scrolling_p.
+
 2023-10-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* event-msw.c (mswindows_wnd_proc):

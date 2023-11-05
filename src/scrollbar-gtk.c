@@ -32,6 +32,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "console-gtk-impl.h"
 #include "glyphs-gtk.h"
 #include "scrollbar-gtk.h"
+#include "buffer.h"
+#include "line-number.h"
 
 static gboolean scrollbar_cb (GtkRange *, GtkScrollType scroll,
                               gdouble value, gpointer user_data);
@@ -171,7 +173,20 @@ gtk_update_scrollbar_instance_values (struct window *w,
   if (w && !vertical_drag_in_progress)
     {
       int new_vov = SCROLLBAR_GTK_POS_DATA (inst).slider_position;
-      int new_vows = marker_position (w->start[CURRENT_DISP]);
+      int new_vows;
+
+      if (inst->line_oriented_scrolling_p)
+        {
+          new_vows
+            = buffer_line_number (XBUFFER (Fmarker_buffer
+                                           (w->start[CURRENT_DISP])),
+                                  marker_byte_position
+                                  (w->start[CURRENT_DISP]), 1, 1);
+        }
+      else
+        {
+          new_vows = marker_byte_position (w->start[CURRENT_DISP]);
+        }
 
       if (SCROLLBAR_GTK_VDRAG_ORIG_VALUE (inst) != new_vov)
 	{
@@ -367,6 +382,7 @@ scrollbar_cb (GtkRange *range, GtkScrollType scroll, gdouble UNUSED (value),
   struct window_mirror *mirror;
   Lisp_Object event_type = Qnil;
   Lisp_Object event_data = Qnil;
+  struct scrollbar_instance *instance;
 
   f = (struct frame*) g_object_get_qdata (G_OBJECT (adj),
                                           GTK_DATA_FRAME_IDENTIFIER);
@@ -385,6 +401,8 @@ scrollbar_cb (GtkRange *range, GtkScrollType scroll, gdouble UNUSED (value),
 
   if (NILP (win))
     return(FALSE);
+
+  instance = mirror->scrollbar_vertical_instance;
 
   frame = WINDOW_FRAME (XWINDOW (win));
   inhibit_slider_size_change = 0;
@@ -417,8 +435,20 @@ scrollbar_cb (GtkRange *range, GtkScrollType scroll, gdouble UNUSED (value),
     case GTK_SCROLL_NONE:
     case GTK_SCROLL_JUMP:
       /* inhibit_slider_size_change = 1; */
-      event_type = vertical ? Qscrollbar_vertical_drag : Qscrollbar_horizontal_drag;
-      event_data = Fcons (win, make_fixnum ((int) gtk_adjustment_get_value (adj)));
+      if (vertical)
+        {
+          event_type = Qscrollbar_vertical_drag;
+          event_data = Fcons (win,
+                              scrollbar_slider_position_to_lisp
+                              (instance,
+                               (int) gtk_adjustment_get_value (adj)));
+        }
+      else
+        {
+          event_type = Qscrollbar_horizontal_drag;
+          event_data = Fcons (win, make_fixnum
+                              ((int) gtk_adjustment_get_value (adj)));
+        }
       break;
     default:
       ABORT();

@@ -35,10 +35,16 @@ struct scrollbar_instance
   struct window_mirror *mirror;
 
   /* This flag indicates if the scrollbar is currently in use. */
-  char scrollbar_is_active;
+  Boolint scrollbar_is_active;
 
   /* This flag indicates if a data parameter has changed. */
-  char scrollbar_instance_changed;
+  Boolint scrollbar_instance_changed;
+
+  /* Whether this scrollbar instance does the more intuitive line-oriented
+     scrolling (as opposed to buffer position oriented
+     scrolling). Equivalently the toolbar specific code could check if MINIMUM
+     is zero, something that will never be a buffer position. */
+  Boolint line_oriented_scrolling_p;
 
   /* A structure of auxiliary data specific to the device type.
      struct x_scrollbar_data is used for X window frames; defined in
@@ -67,6 +73,9 @@ void update_window_scrollbars (struct window *w,
 Bytecount compute_all_scrollbar_instance_usage (struct scrollbar_instance *
 						inst);
 #endif
+
+Lisp_Object scrollbar_slider_position_to_lisp (struct scrollbar_instance *,
+                                               int);
 
 extern Lisp_Object Vscrollbar_width, Vscrollbar_height;
 

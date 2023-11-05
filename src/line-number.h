@@ -25,6 +25,9 @@ void insert_adjust_line_number_cache (struct buffer *, Bytebpos,
                                       const Ibyte *, Bytecount);
 void delete_invalidate_line_number_cache (struct buffer *, Bytebpos, Bytebpos);
 
-Charcount buffer_line_number (struct buffer *, Bytebpos, int, Boolint);
+Charcount buffer_line_number (struct buffer *, Bytebpos, Boolint, Boolint);
+
+Bytebpos byte_beginning_of_line (struct buffer *, Charcount line_number,
+                                 Boolint cachep, Boolint respect_narrowing);
 
 #endif /* INCLUDED_line_number_h_ */
