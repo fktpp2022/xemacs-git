@@ -1,3 +1,13 @@
+2023-11-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* scrollbar.c (update_scrollbar_instance):
+	Fix my bug with buffer-position-based scrolling, thank you Richard
+	Hopkins.
+	NEW_SLIDER_SIZE as window_displayed_height() * 512 was never a
+	good decision, far too big, and this misled the toolkits. The
+	previous arithmetic is cheap, works for him, works for me, always
+	worked for the toolkits.
+
 2023-11-05  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* line-number.c:

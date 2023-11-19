@@ -612,10 +612,18 @@ update_scrollbar_instance (struct window *w, int vertical,
           if (WINDOW_HEIGHT (w)
               < ((BYTE_BUF_ZV (b) - BYTE_BUF_BEGV (b)) / 256))
             {
-              new_minimum = BYTE_BUF_BEGV (b);
-              new_maximum = BYTE_BUF_ZV (b);
+              Bytebpos end_pos;
+
               new_slider_position = scrollbar_point (w, 0);
-              new_slider_size = window_displayed_height (w) * 512;
+
+              end_pos = max (marker_byte_position (w->end_pos[CURRENT_DISP]),
+                             new_slider_position + 1);
+
+              new_minimum = BYTE_BUF_BEGV (b);
+              new_maximum = max (BYTE_BUF_ZV (b), new_minimum + 1);
+              new_slider_size = min ((end_pos - new_slider_position),
+                                     (new_maximum - new_minimum));
+
               instance->line_oriented_scrolling_p = 0;
             }
           else
