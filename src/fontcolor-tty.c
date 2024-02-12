@@ -233,7 +233,10 @@ tty_color_list (Lisp_Object device)
       result = Fcons (Fsymbol_name (XCAR (XCAR (rest))), result);
     }
 
-  return Fnreverse (result);
+  {
+    Lisp_Object args[] = { result, shared_X_color_list () };
+    return concatenate (countof (args), args, Qlist, 1);
+  }
 }
 
 #if 0
@@ -285,9 +288,22 @@ tty_initialize_color_instance (Lisp_Color_Instance *c, Lisp_Object name,
   unsigned char red = 0;
   unsigned char green = 0;
   unsigned char blue = 0;
+  Lisp_Object name_string = name;
 
   name = Fintern (name, Qnil);
   result = assq_no_quit (name, tty_con->color_alist);
+
+   if (NILP (result))
+     {
+       Rgbref color = shared_X_string_to_color (XSTRING_DATA (name_string));
+       if (rgb_valid_p (color))
+	 {
+	   result = find_tty_closest_color_1 (tty_con,
+					      make_fixnum (rgb_red (color)),
+					      make_fixnum (rgb_green (color)),
+					      make_fixnum (rgb_blue (color)));
+	 }
+    }
 
   if (NILP (result))
     {
@@ -375,7 +391,8 @@ tty_valid_color_name_p (struct device *d, Lisp_Object color)
 {
   Lisp_Object console = device_console (d);
   struct tty_console *tty_con = CONSOLE_TTY_DATA (decode_console (console));
-  return (!NILP (assoc_no_quit (Fintern (color, Qnil), tty_con->color_alist)));
+  return (!NILP (assoc_no_quit (Fintern (color, Qnil), tty_con->color_alist)))
+    || rgb_valid_p (shared_X_string_to_color (XSTRING_DATA (color)));
 #if 0
 	  || STRINGP (Vtty_dynamic_color_fg)
 	  || STRINGP (Vtty_dynamic_color_bg)

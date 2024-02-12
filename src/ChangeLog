@@ -1,3 +1,50 @@
+2024-02-12  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	Add support on TTY for X color names and hex color strings that
+	will fallback to an available device color.  This extracts the MSW
+	implementation to make it available for use on both TTY and MSW.
+
+	* fontcolor.h (Rgbref): New integral type to represent a color
+	allowing [0-255] for each RGB component.
+	(invalid_rgb): Declare it.
+	(RGB_CONSTANT): New macro for initializing shared_X_color_map.
+	(rgb_valid_p): New. Check if an Rgbref instance is valid and the
+	RGB components can be used.
+	(rgb_pack): New. Pack the given red, green and blue into a single
+	Rgbref.
+	(rgb_red): New. Extract the red component from an Rgbref.
+	(rgb_green): New. Extract the green component from an Rgbref.
+	(rgb_blue): New. Extract the blue component from an Rgbref.
+	(shared_X_string_to_color): Declare it.
+	(shared_X_color_to_string): Declare it.
+	(shared_X_color_list): Declare it.
+
+	* fontcolor.c (invalid_rgb): New. Sentinel value for an invalid
+	RGB.
+	(colormap_t): Moved from fontcolor-msw.c
+	(shared_X_color_map): Extracted from mswindows_X_color_map.
+	(hexval): Moved from fontcolor-msw.c.
+	(colormap_t_compare): Moved from fontcolor-msw.c.
+	(shared_X_string_to_color): New. Extracted from
+	mswindows_X_string_to_color.
+	(shared_X_color_to_string). New. Extracted from
+	mswindows_color_to_string.
+	(shared_X_color_list): New. Extracted from mswindows_color_list.
+
+	* fontcolor-tty.c (tty_color_list): Use shared_X_color_list.
+	(tty_initialize_color_instance): Use shared_X_string_to_color to
+	support color names and hex strings.
+	(tty_valid_color_name_p): Use shared_X_string_to_color to support
+	color names and hex strings.
+
+	* fontcolor-msw.c (colormap_t): Moved to fontcolor.c
+	(mswindows_X_color_map): Moved to fontcolor.c.
+	(hexval): Moved to fontcolor.c.
+	(colormap_t_compare): Moved to fontcolor.c
+	(mswindows_string_to_color): Use shared_X_string_to_color.
+	(mswindows_color_to_string): Use shared_X_color_to_string.
+	(mswindows_color_list): Use shared_X_color_list.
+
 2023-11-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* scrollbar.c (update_scrollbar_instance):

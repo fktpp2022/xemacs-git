@@ -24,6 +24,59 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 DECLARE_DOESNT_RETURN (finalose (void *ptr));
 
+typedef unsigned long Rgbref;
+extern const Rgbref invalid_rgb;
+
+#define __INTERNAL_RGB_PACK(r, g, b) ((((r) << 16) | ((g) << 8) | (b)) & 0xffffff)
+#define RGB_CONSTANT(r, g, b) __INTERNAL_RGB_PACK(r, g, b)
+
+DECLARE_INLINE_HEADER (
+Rgbref
+rgb_pack (unsigned char r, unsigned char g, unsigned char b)
+)
+{
+  return __INTERNAL_RGB_PACK (r, g, b);
+}
+
+DECLARE_INLINE_HEADER (
+Boolint
+rgb_valid_p (Rgbref rgb)
+)
+{
+  return rgb <= RGB_CONSTANT(255, 255, 255);
+}
+
+DECLARE_INLINE_HEADER (
+unsigned char
+rgb_red (Rgbref rgb)
+)
+{
+  assert (rgb_valid_p (rgb));
+  return (rgb >> 16) & 0xff;
+}
+
+DECLARE_INLINE_HEADER (
+unsigned char
+rgb_green (Rgbref rgb)
+)
+{
+  assert (rgb_valid_p (rgb));
+  return (rgb >> 8) & 0xff;
+}
+
+DECLARE_INLINE_HEADER (
+unsigned char
+rgb_blue (Rgbref rgb)
+)
+{
+  assert (rgb_valid_p (rgb));
+  return rgb & 0xff;
+}
+
+Rgbref shared_X_string_to_color (const Ibyte *name);
+Lisp_Object shared_X_color_to_string (Rgbref color);
+Lisp_Object shared_X_color_list (void);
+
 /****************************************************************************
  *                           Color Instance Object                          *
  ****************************************************************************/
