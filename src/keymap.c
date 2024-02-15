@@ -446,7 +446,7 @@ bucky_sym_to_bucky_bit (Lisp_Object sym)
   return 0;
 }
 
-Lisp_Object
+static Lisp_Object
 control_meta_superify (Lisp_Object frob, int modifiers)
 {
   Lisp_Object mods = Qnil;

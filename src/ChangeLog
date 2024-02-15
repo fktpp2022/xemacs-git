@@ -1,5 +1,10 @@
 2024-02-15  Richard Hopkins  <xemacs@unbit.co.uk>
 
+	* keymap.c (control_meta_superify): Restore 'static' as all uses
+	are in keymap.c and resolves [-Wmissing-prototypes].
+
+2024-02-15  Richard Hopkins  <xemacs@unbit.co.uk>
+
 	* fontcolor-tty.c (find_tty_closest_color_1): Resolve
 	[-Wdeclaration-after-statement].
 
