@@ -374,7 +374,7 @@ src/.gdbinit: ${srcdir}/src/.gdbinit.in.in
 	./config.status && touch $@
 
 etc/PROBLEMS: $(srcdir)/PROBLEMS
-	cp $^ $@
+	cp $(srcdir)/PROBLEMS etc/PROBLEMS
 
 ## ==================== Installation ====================
 

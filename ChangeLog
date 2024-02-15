@@ -1,3 +1,15 @@
+2024-02-15  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	* Makefile.in.in (etc/PROBLEMS): Improve portability; $^ is not
+	available on BSD make for example and would error with
+
+	cp  etc/PROBLEMS
+	usage: cp [-R [-H | -L | -P]] [-f | -i] [-alNpv] src target
+	cp [-R [-H | -L | -P]] [-f | -i] [-alNpv] src1 ... srcN directory
+	*** Error code 1
+
+	`make` now succeeds on BSD make.
+
 2023-05-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* CHANGES-beta:
