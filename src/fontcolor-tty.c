@@ -174,16 +174,17 @@ find_tty_closest_color_1 (struct tty_console *tty_con,
     {
       Lisp_Object color_data = TTY_COLOR_ENTRY_DATA (entry);
       Lisp_Object rgb_vector = TTY_COLOR_DATA_RGB_VECTOR (color_data);
+      int r2, g2, b2, r, g, b, distance;
       if (NILP (rgb_vector))
 	continue;
 
-      int r2 = XFIXNUM (XVECTOR_DATA (rgb_vector)[0]);
-      int g2 = XFIXNUM (XVECTOR_DATA (rgb_vector)[1]);
-      int b2 = XFIXNUM (XVECTOR_DATA (rgb_vector)[2]);
-      int r = r1 - r2;
-      int g = g1 - g2;
-      int b = b1 - b2;
-      int distance = (r*r) + (g*g) + (b*b);
+      r2 = XFIXNUM (XVECTOR_DATA (rgb_vector)[0]);
+      g2 = XFIXNUM (XVECTOR_DATA (rgb_vector)[1]);
+      b2 = XFIXNUM (XVECTOR_DATA (rgb_vector)[2]);
+      r = r1 - r2;
+      g = g1 - g2;
+      b = b1 - b2;
+      distance = (r*r) + (g*g) + (b*b);
       if (distance < closest_distance || NILP (closest_entry))
 	{
 	  closest_entry = entry;

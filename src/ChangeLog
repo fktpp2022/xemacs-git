@@ -1,5 +1,10 @@
 2024-02-15  Richard Hopkins  <xemacs@unbit.co.uk>
 
+	* fontcolor-tty.c (find_tty_closest_color_1): Resolve
+	[-Wdeclaration-after-statement].
+
+2024-02-15  Richard Hopkins  <xemacs@unbit.co.uk>
+
 	Internally the color name is a symbol and now TTY_COLOR_ENTRY_NAME
 	always returns a symbol rather than a symbol or a string; the
 	conversion back to string is for consistency at the lisp level.
