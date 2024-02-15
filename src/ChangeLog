@@ -1,3 +1,19 @@
+2024-02-15  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	* fontcolor-tty.c (Ffind_tty_color):
+	(find_tty_closest_color_1):
+	(tty_color_list):
+	(tty_initialize_color_instance): Use new accessors rather than
+	explicit car/cdr calls.
+
+	* console-tty-impl.h (TTY_COLOR_ENTRY_NAME):
+	(TTY_COLOR_ENTRY_DATA): New accessors for entry in color_alist
+	which maps NAME to COLOR_DATA.
+	(TTY_COLOR_DATA_FG_STRING):
+	(TTY_COLOR_DATA_BG_STRING):
+	(TTY_COLOR_DATA_RGB_VECTOR): New. Get appropriate value from the
+	mapped COLOR_DATA.
+
 2024-02-12  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	Add support on TTY for X color names and hex color strings that

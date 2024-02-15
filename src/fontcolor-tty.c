@@ -147,9 +147,12 @@ CONSOLE defaults to the selected console. Error if it is not a TTY console.
   tty_con = CONSOLE_TTY_DATA (XCONSOLE (console));
   result = assq_no_quit (Fintern (color, Qnil), tty_con->color_alist);
   if (!NILP (result))
-    return list3 (Fcar (Fcdr (result)),
-		  Fcar (Fcdr (Fcdr (result))),
-		  Fcar (Fcdr ((Fcdr (Fcdr (result))))));
+    {
+      Lisp_Object color_data = TTY_COLOR_ENTRY_DATA (result);
+      return list3 (TTY_COLOR_DATA_FG_STRING (color_data),
+		    TTY_COLOR_DATA_BG_STRING (color_data),
+		    TTY_COLOR_DATA_RGB_VECTOR (color_data));
+    }
   else
     return Qnil;
 }
@@ -167,7 +170,8 @@ find_tty_closest_color_1 (struct tty_console *tty_con,
 
   LIST_LOOP_2 (entry, tty_con->color_alist)
     {
-      Lisp_Object rgb_vector = XCAR (XCDR ((XCDR (XCDR (entry)))));
+      Lisp_Object color_data = TTY_COLOR_ENTRY_DATA (entry);
+      Lisp_Object rgb_vector = TTY_COLOR_DATA_RGB_VECTOR (color_data);
       if (NILP (rgb_vector))
 	continue;
 
@@ -182,8 +186,8 @@ find_tty_closest_color_1 (struct tty_console *tty_con,
 	{
 	  /* Ensure the color name is a string for consistency with
 	     #'register-tty-color and #'find-tty-color. */
-	  closest_entry = Fcons (Fsymbol_name (XCAR (entry)),
-				 XCDR (entry));
+	  closest_entry = Fcons (Fsymbol_name (TTY_COLOR_ENTRY_NAME (entry)),
+				 color_data);
 	  closest_distance = distance;
 	}
     }
@@ -224,13 +228,12 @@ static Lisp_Object
 tty_color_list (Lisp_Object device)
 {
   Lisp_Object result = Qnil;
-  Lisp_Object rest;
   Lisp_Object console = device_console (decode_device (device));
   struct tty_console *tty_con = CONSOLE_TTY_DATA (decode_console (console));
 
-  LIST_LOOP (rest, tty_con->color_alist)
+  LIST_LOOP_2 (entry, tty_con->color_alist)
     {
-      result = Fcons (Fsymbol_name (XCAR (XCAR (rest))), result);
+      result = Fcons (Fsymbol_name (TTY_COLOR_ENTRY_NAME (entry)), result);
     }
 
   {
@@ -289,6 +292,7 @@ tty_initialize_color_instance (Lisp_Color_Instance *c, Lisp_Object name,
   unsigned char green = 0;
   unsigned char blue = 0;
   Lisp_Object name_string = name;
+  Lisp_Object color_data = Qnil;
 
   name = Fintern (name, Qnil);
   result = assq_no_quit (name, tty_con->color_alist);
@@ -314,7 +318,8 @@ tty_initialize_color_instance (Lisp_Color_Instance *c, Lisp_Object name,
         return 0;
     }
 
-  rgb_vector = XCAR (XCDR (XCDR (XCDR (result))));
+  color_data = TTY_COLOR_ENTRY_DATA (result);
+  rgb_vector = TTY_COLOR_DATA_RGB_VECTOR (color_data);
   if (VECTORP (rgb_vector))
     {
       is_rgb_known = 1;
@@ -326,8 +331,8 @@ tty_initialize_color_instance (Lisp_Color_Instance *c, Lisp_Object name,
   /* Don't allocate the data until we're sure that we will succeed. */
   c->data = xnew (struct tty_color_instance_data);
   COLOR_INSTANCE_TTY_SYMBOL (c) = name;
-  COLOR_INSTANCE_TTY_ESCAPE_FORE (c) = XCAR (XCDR (result));
-  COLOR_INSTANCE_TTY_ESCAPE_BACK (c) = XCAR (XCDR (XCDR (result)));
+  COLOR_INSTANCE_TTY_ESCAPE_FORE (c) = TTY_COLOR_DATA_FG_STRING (color_data);
+  COLOR_INSTANCE_TTY_ESCAPE_BACK (c) = TTY_COLOR_DATA_BG_STRING (color_data);
   COLOR_INSTANCE_TTY_IS_RGB_KNOWN (c) = is_rgb_known;
   COLOR_INSTANCE_TTY_RED (c) = red;
   COLOR_INSTANCE_TTY_GREEN (c) = green;

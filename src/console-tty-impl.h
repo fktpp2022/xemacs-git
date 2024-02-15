@@ -212,6 +212,14 @@ struct tty_console
 #define CONSOLE_TTY_FINAL_CURSOR_X(c) (CONSOLE_TTY_DATA (c)->final_cursor_x)
 #define CONSOLE_TTY_FINAL_CURSOR_Y(c) (CONSOLE_TTY_DATA (c)->final_cursor_y)
 
+/* Each entry in color_alist is (NAME . COLOR_DATA).
+   COLOR_DATA is (FG-STRING BG-STRING RGB-VECTOR). */
+#define TTY_COLOR_ENTRY_NAME(entry) XCAR (entry)
+#define TTY_COLOR_ENTRY_DATA(entry) XCDR (entry)
+#define TTY_COLOR_DATA_FG_STRING(data) XCAR (data)
+#define TTY_COLOR_DATA_BG_STRING(data) XCAR (XCDR (data))
+#define TTY_COLOR_DATA_RGB_VECTOR(data) XCAR (XCDR (XCDR (data)))
+
 /* In a more ideal world where available terminfo files actually included
    information on whether a given TTY supports double-width characters or
    not, oh, and where Mule was not conditional, SUPPORTS_MULTIPLE_WIDTH
