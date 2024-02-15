@@ -157,6 +157,8 @@ CONSOLE defaults to the selected console. Error if it is not a TTY console.
     return Qnil;
 }
 
+/* Return an entry from color_alist that is closest to the given
+   components. */
 static Lisp_Object
 find_tty_closest_color_1 (struct tty_console *tty_con,
 			  Lisp_Object red, Lisp_Object green,
@@ -184,10 +186,7 @@ find_tty_closest_color_1 (struct tty_console *tty_con,
       int distance = (r*r) + (g*g) + (b*b);
       if (distance < closest_distance || NILP (closest_entry))
 	{
-	  /* Ensure the color name is a string for consistency with
-	     #'register-tty-color and #'find-tty-color. */
-	  closest_entry = Fcons (Fsymbol_name (TTY_COLOR_ENTRY_NAME (entry)),
-				 color_data);
+	  closest_entry = entry;
 	  closest_distance = distance;
 	}
     }
@@ -221,6 +220,10 @@ respectively.  COLOR-NAME-STRING can also be used with `find-tty-color'.
   tty_con = CONSOLE_TTY_DATA (XCONSOLE (console));
 
   closest_entry = find_tty_closest_color_1 (tty_con, red, green, blue);
+  /* Ensure the color name is a string for consistency with
+     #'register-tty-color and #'find-tty-color. */
+  closest_entry = Fcons (Fsymbol_name (TTY_COLOR_ENTRY_NAME (closest_entry)),
+			 TTY_COLOR_ENTRY_DATA (closest_entry));
   return closest_entry;
 }
 

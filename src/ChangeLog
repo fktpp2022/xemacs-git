@@ -1,5 +1,16 @@
 2024-02-15  Richard Hopkins  <xemacs@unbit.co.uk>
 
+	Internally the color name is a symbol and now TTY_COLOR_ENTRY_NAME
+	always returns a symbol rather than a symbol or a string; the
+	conversion back to string is for consistency at the lisp level.
+
+	* fontcolor-tty.c (find_tty_closest_color_1): Return entry as-is
+	from color_alist.
+	(Ffind_tty_closest_color): Convert color name to string here
+	instead.
+
+2024-02-15  Richard Hopkins  <xemacs@unbit.co.uk>
+
 	* fontcolor-tty.c (Ffind_tty_color):
 	(find_tty_closest_color_1):
 	(tty_color_list):
