@@ -1,5 +1,38 @@
 2024-02-16  Richard Hopkins  <xemacs@unbit.co.uk>
 
+	Use Boolint instead of bool - the definition is from src/lisp.h.
+	This also allows building on later C versions, such as GCC 13.2
+	with -std=c2x, where previously it would output...
+
+	error: two or more data types in declaration specifiers
+	=> typedef int bool;
+
+	warning: useless type name in empty declaration
+	=> typedef int bool;
+
+	warning: initialization of 'int *' from incompatible pointer type '_Bool *' [-Wincompatible-pointer-types]
+	=> { "globals",                  no_argument,       &globals, TRUE  },
+
+	* ootags.c (bool): Rename to Boolint.
+	(Boolint): New - same definition as src/lisp.h.
+	(node):
+	(pfnote):
+	(new_pfnote):
+	(filename_is_absolute):
+	(pattern):
+	(fn_exp):
+	(gfnames):
+	(main):
+	(token):
+	(consider_token):
+	(make_C_tag):
+	(C_entries):
+	(tail):
+	(Pascal_functions):
+	(scan_separators): Use Boolint instead of bool.
+
+2024-02-16  Richard Hopkins  <xemacs@unbit.co.uk>
+
 	* ootags.c (print_language_names):
 	(print_version):
 	(print_help):

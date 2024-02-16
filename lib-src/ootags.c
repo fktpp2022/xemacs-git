@@ -181,7 +181,7 @@ void oo_browser_check_and_clear_structtype(void);
 # define xrnew(op,n,Type) ((Type *) xrealloc ((op), (n) * sizeof (Type)))
 #endif
 
-typedef int bool;
+typedef int Boolint;
 
 typedef void Lang_function (FILE *);
 
@@ -200,8 +200,8 @@ typedef struct node_st
   short int construct;		/* Construct type for the OO-Browser */
 #endif
   char *file;			/* file name			*/
-  bool is_func;			/* use pattern or line no	*/
-  bool been_warned;		/* set if noticed dup		*/
+  Boolint is_func;			/* use pattern or line no	*/
+  Boolint been_warned;		/* set if noticed dup		*/
   int lno;			/* line number tag is on	*/
   long cno;			/* character number line starts on */
   char *pat;			/* search pattern		*/
@@ -291,8 +291,8 @@ void init PP ((void));
 void initbuffer PP ((linebuffer *lbp));
 void find_entries PP ((char *file, FILE *inf));
 void free_tree PP ((node *np));
-void pfnote PP ((char *name, bool is_func, char *linestart, int linelen, int lno, long cno));
-void new_pfnote PP ((char *name, int namelen, bool is_func, char *linestart, int linelen, int lno, long cno));
+void pfnote PP ((char *name, Boolint is_func, char *linestart, int linelen, int lno, long cno));
+void new_pfnote PP ((char *name, int namelen, Boolint is_func, char *linestart, int linelen, int lno, long cno));
 void process_file PP ((char *file));
 void put_entries PP ((node *np));
 void takeprec PP ((void));
@@ -308,7 +308,7 @@ char *etags_getcwd PP ((void));
 char *relative_filename PP ((char *file, char *dir));
 char *absolute_filename PP ((char *file, char *dir));
 char *absolute_dirname PP ((char *file, char *dir));
-bool filename_is_absolute PP ((char *fn));
+Boolint filename_is_absolute PP ((char *fn));
 void canonicalize_filename PP ((char *fn));
 void grow_linebuffer PP ((linebuffer *lbp, int toksize));
 long *xmalloc PP ((unsigned int size));
@@ -341,7 +341,7 @@ struct
 } lbs[2];
 
 /* boolean "functions" (see init)	*/
-bool _wht[CHARS], _nin[CHARS], _itk[CHARS], _btk[CHARS], _etk[CHARS];
+Boolint _wht[CHARS], _nin[CHARS], _itk[CHARS], _btk[CHARS], _etk[CHARS];
 char
   /* white chars */
   *white = " \f\t\n\r",
@@ -354,25 +354,25 @@ char
   /* valid in-token chars */
   *midtk = "ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz$0123456789";
 
-bool append_to_tagfile;		/* -a: append to tags */
+Boolint append_to_tagfile;		/* -a: append to tags */
 /* The following four default to TRUE for etags, but to FALSE for ctags.  */
-bool typedefs;			/* -t: create tags for C typedefs */
-bool typedefs_and_cplusplus;	/* -T: create tags for C typedefs, level */
+Boolint typedefs;			/* -t: create tags for C typedefs */
+Boolint typedefs_and_cplusplus;	/* -T: create tags for C typedefs, level */
 				/* 0 struct/enum/union decls, and C++ */
 				/* member functions. */
-bool constantypedefs;		/* -d: create tags for C #define, enum */
+Boolint constantypedefs;		/* -d: create tags for C #define, enum */
 				/* constants and variables. */
 				/* -D: opposite of -d.  Default under ctags. */
-bool globals;			/* create tags for global variables */
-bool members;			/* create tags for C member variables */
-bool update;			/* -u: update tags */
-bool vgrind_style;		/* -v: create vgrind style index output */
-bool no_warnings;		/* -w: suppress warnings */
-bool cxref_style;		/* -x: create cxref style output */
-bool cplusplus;			/* .[hc] means C++, not C */
-bool noindentypedefs;		/* -I: ignore indentation in C */
+Boolint globals;			/* create tags for global variables */
+Boolint members;			/* create tags for C member variables */
+Boolint update;			/* -u: update tags */
+Boolint vgrind_style;		/* -v: create vgrind style index output */
+Boolint no_warnings;		/* -w: suppress warnings */
+Boolint cxref_style;		/* -x: create cxref style output */
+Boolint cplusplus;			/* .[hc] means C++, not C */
+Boolint noindentypedefs;		/* -I: ignore indentation in C */
 #ifdef OO_BROWSER
-bool oo_browser_format;		/* -O: OO-Browser tags format */
+Boolint oo_browser_format;		/* -O: OO-Browser tags format */
 #endif
 
 #ifdef LONG_OPTIONS
@@ -422,7 +422,7 @@ typedef struct pattern
   struct re_pattern_buffer *pattern;
   struct re_registers regs;
   char *name_pattern;
-  bool error_signaled;
+  Boolint error_signaled;
 } pattern;
 
 /* Array of all regexps. */
@@ -755,7 +755,7 @@ fn_exp (vspec *out, char *in)
   static long context = 0;
   static struct dsc$descriptor_s o;
   static struct dsc$descriptor_s i;
-  static bool pass1 = TRUE;
+  static Boolint pass1 = TRUE;
   long status;
   short retval;
 
@@ -793,7 +793,7 @@ fn_exp (vspec *out, char *in)
   name of each file specified by the provided arg expanding wildcards.
 */
 char *
-gfnames (char *arg, bool *p_error)
+gfnames (char *arg, Boolint *p_error)
 {
   static vspec filename = {MAX_FILE_SPEC_LEN, "\0"};
 
@@ -849,7 +849,7 @@ main (int argc, char *argv[])
   int current_arg, file_count;
   linebuffer filename_lb;
 #ifdef VMS
-  bool got_err;
+  Boolint got_err;
 #endif
 
 #ifdef WIN32_NATIVE
@@ -1413,7 +1413,7 @@ find_entries (char *file, FILE *inf)
 void
 pfnote (
     char *name,		/* tag name, or NULL if unnamed */
-    bool is_func,		/* tag is a function */
+    Boolint is_func,		/* tag is a function */
     char *linestart,		/* start of the line where tag is */
     int linelen,		/* length of the line where tag is */
     int lno,			/* line number */
@@ -1492,7 +1492,7 @@ void
 new_pfnote (
     char *name,		/* tag name, or NULL if unnamed */
     int namelen,		/* tag length */
-    bool is_func,		/* tag is a function */
+    Boolint is_func,		/* tag is a function */
     char *linestart,		/* start of the line where tag is */
     int linelen,		/* length of the line where tag is */
     int lno,			/* line number */
@@ -1500,7 +1500,7 @@ new_pfnote (
 )
 {
   register char *cp;
-  bool named;
+  Boolint named;
 
   named = TRUE;
   if (!CTAGS)
@@ -2090,9 +2090,9 @@ enum
  */
 typedef struct
 {
-  bool valid;
+  Boolint valid;
   char *str;
-  bool named;
+  Boolint named;
   int linelen;
   int lineno;
   long linepos;
@@ -2105,12 +2105,12 @@ token tok;			/* latest token read */
  * Set this to TRUE, and the next token considered is called a function.
  * Used only for GNU emacs's function-defining macros.
  */
-bool next_token_is_func;
+Boolint next_token_is_func;
 
 /*
  * TRUE in the rules part of a yacc file, FALSE outside (parse as C).
  */
-bool yacc_rules;
+Boolint yacc_rules;
 
 /*
  * methodlen is the length of the method name stored in token_name.
@@ -2159,9 +2159,9 @@ oo_browser_clear_some_globals(void)
  *	objdef			IN OUT
  *	next_token_is_func	IN OUT
  */
-bool consider_token PP ((char *str, int len, int c, int c_ext,
-			 int cblev, int parlev, bool *is_func_or_var));
-bool
+Boolint consider_token PP ((char *str, int len, int c, int c_ext,
+			 int cblev, int parlev, Boolint *is_func_or_var));
+Boolint
 consider_token (
     register char *str,	/* IN: token pointer */
     register int len,		/* IN: token length */
@@ -2169,7 +2169,7 @@ consider_token (
     int c_ext,			/* IN: C extensions mask */
     int cblev,			/* IN: curly brace level */
     int parlev,		/* IN: parenthesis level */
-    bool *is_func_or_var	/* OUT: function or variable found */
+    Boolint *is_func_or_var	/* OUT: function or variable found */
 )
 {
   enum sym_type toktype = C_symtype (str, len, c_ext);
@@ -2578,9 +2578,9 @@ do {									\
 } while (0)
 
 
-void make_C_tag PP ((bool isfun));
+void make_C_tag PP ((Boolint isfun));
 void
-make_C_tag (bool isfun)
+make_C_tag (Boolint isfun)
 {
   /* This function should never be called when tok.valid is FALSE, but
      we must protect against invalid input or internal errors. */
@@ -2622,8 +2622,8 @@ C_entries (
   int qlen;			/* length of qualifier */
   int cblev;			/* current curly brace level */
   int parlev;			/* current parenthesis level */
-  bool incomm, inquote, inchar, quotednl, midtoken;
-  bool cplpl, cjava;
+  Boolint incomm, inquote, inchar, quotednl, midtoken;
+  Boolint cplpl, cjava;
   token savetok = {0};		/* token saved during preprocessor handling */
 
 
@@ -2759,7 +2759,7 @@ C_entries (
 	    if (definedef == dnone)
 	      {
 		char *cp;
-		bool cpptoken = TRUE;
+		Boolint cpptoken = TRUE;
 
 		/* Look back on this line.  If all blanks, or nonblanks
 		   followed by an end of comment, this is a preprocessor
@@ -2810,7 +2810,7 @@ C_entries (
 		    }
 		  else
 		    {
-		      bool funorvar = FALSE;
+		      Boolint funorvar = FALSE;
 
 		      if (yacc_rules
 			  || consider_token (newlb.buffer + tokoff, toklen, c,
@@ -3450,8 +3450,8 @@ just_read_file (FILE *inf)
 
 /* Fortran parsing */
 
-bool tail PP ((char *cp));
-bool
+Boolint tail PP ((char *cp));
+Boolint
 tail (char *cp)
 {
   register int len = 0;
@@ -3767,7 +3767,7 @@ Pascal_functions (FILE *inf)
   int save_lineno, save_len;
   char c, *cp, *namebuf;
 
-  bool				/* each of these flags is TRUE iff: */
+  Boolint			/* each of these flags is TRUE iff: */
     incomment,			/* point is inside a comment */
     inquote,			/* point is inside '..' string */
     get_tagname,		/* point is after PROCEDURE/FUNCTION
@@ -4629,7 +4629,7 @@ scan_separators (char *name)
 {
   char sep = name[0];
   char *copyto = name;
-  bool quoted = FALSE;
+  Boolint quoted = FALSE;
 
   for (++name; *name != '\0'; ++name)
     {
@@ -5266,7 +5266,7 @@ absolute_dirname (char *file, char *dir)
 
 /* Whether the argument string is an absolute file name.  The argument
    string must have been canonicalized with canonicalize_filename. */
-bool
+Boolint
 filename_is_absolute (char *fn)
 {
   return (fn[0] == '/'
