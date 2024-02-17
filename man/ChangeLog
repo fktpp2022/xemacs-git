@@ -1,3 +1,11 @@
+2024-02-17  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	* internals/internals.texi (OpenSSL bignum driver): Use @pxref
+	instead of @xref for 'BSD MP driver' as it's inside parentheses
+	and also resolves older Texinfo outputting...
+
+	warning: `.' or `,' must follow @xref, not `)'.
+
 2023-05-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* XEmacs 21.5.35 "kohlrabi" is released.

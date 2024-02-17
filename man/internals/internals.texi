@@ -7393,7 +7393,7 @@ the OpenSSL API, but some operations, like @code{bignum_set_string} or the
 bit operations require explicit implementations.
 
 The other major BSD derivatives besides FreeBSD have altogether dropped the
-BSD MP library (@xref{BSD MP driver}), to the point that they don't even have
+BSD MP library (@pxref{BSD MP driver}), to the point that they don't even have
 it in their third party software repositories.  In essence, the BSD MP
 interface has been deprecated.  On the other hand, OpenSSL (or LibreSSL) is
 included in virtually all modern operating system distributions, including
