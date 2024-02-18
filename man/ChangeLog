@@ -1,3 +1,10 @@
+2024-02-18  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	* beta.texi (Building XEmacs from a full distribution): Add @item
+	for each command.  This resolves
+
+	warning: @enumerate has text but no @item
+
 2024-02-17  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	* internals/internals.texi (OpenSSL bignum driver): Use @pxref

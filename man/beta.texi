@@ -535,8 +535,8 @@ your favorite mail program and send a build report to
 Preferably this is best done from XEmacs, following these simple steps:
 
 @enumerate
-@kbd{M-x customize-group RET build-report RET}
-@kbd{M-x build-report RET}
+@item @kbd{M-x customize-group RET build-report RET}
+@item @kbd{M-x build-report RET}
 @end enumerate
 
 See also
