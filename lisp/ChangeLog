@@ -1,3 +1,8 @@
+2024-03-01  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	* term/xterm.el: Define Insert + Delete with modifiers in
+	`function-key-map'.
+
 2024-02-29  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	* term/xterm.el: Define Page Up + Page Down keys

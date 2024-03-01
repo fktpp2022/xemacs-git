@@ -178,4 +178,26 @@
 (define-key function-key-map "\e[5;8~" [(control meta shift prior)])
 (define-key function-key-map "\e[6;8~" [(control meta shift next)])
 
+;; Insert + Delete keys with modifiers (unmodified is defined above)
+(define-key function-key-map "\e[2;2~" [(shift insert)])
+(define-key function-key-map "\e[3;2~" [(shift delete)])
+
+(define-key function-key-map "\e[2;3~" [(meta insert)])
+(define-key function-key-map "\e[3;3~" [(meta delete)])
+
+(define-key function-key-map "\e[2;4~" [(meta shift insert)])
+(define-key function-key-map "\e[3;4~" [(meta shift delete)])
+
+(define-key function-key-map "\e[2;5~" [(control insert)])
+(define-key function-key-map "\e[3;5~" [(control delete)])
+
+(define-key function-key-map "\e[2;6~" [(control shift insert)])
+(define-key function-key-map "\e[3;6~" [(control shift delete)])
+
+(define-key function-key-map "\e[2;7~" [(control meta insert)])
+(define-key function-key-map "\e[3;7~" [(control meta delete)])
+
+(define-key function-key-map "\e[2;8~" [(control meta shift insert)])
+(define-key function-key-map "\e[3;8~" [(control meta shift delete)])
+
 ;;; xterm.el ends here
