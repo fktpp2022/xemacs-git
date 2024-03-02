@@ -4557,7 +4557,7 @@ AC_CHECK_FUNC(openpty, have_openpty=yes, [
   AC_CHECK_LIB(util, openpty, have_openpty=yes need_libutil=yes)])
 if test "$have_openpty" = "yes"; then
   AC_DEFINE(HAVE_OPENPTY)
-  AC_CHECK_HEADERS(libutil.h util.h, break)
+  AC_CHECK_HEADERS(libutil.h util.h)
   test "$need_libutil" = "yes" && XE_APPEND(-lutil, libs_system)
 fi
 
