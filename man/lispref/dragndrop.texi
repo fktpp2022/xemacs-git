@@ -3,7 +3,6 @@
 @c Copyright (C) 1998 Oliver Graf <ograf@fga.de>
 @c Original reference is (c) 1990, 1991, 1992, 1993, 1994 Free Software Foundation, Inc.
 @c See the file lispref.texi for copying conditions.
-@setfilename ../../info/dragndrop.texi
 @node Drag and Drop, Modes, Scrollbars, Top
 @chapter Drag and Drop
 @cindex drag and drop

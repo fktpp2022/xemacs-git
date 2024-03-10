@@ -2,7 +2,6 @@
 @c This is part of the XEmacs Lisp Reference Manual.
 @c Copyright (C) 1990, 1991, 1992, 1993, 1994, 1998 Free Software Foundation, Inc.
 @c See the file lispref.texi for copying conditions.
-@setfilename ../../info/display.info
 @node Display, Hash Tables, Annotations, Top
 @chapter Emacs Display
 
@@ -139,7 +138,7 @@ uses display tables to control these images.)
 
   For details, @ref{Redisplay Glyphs}.
 
-@ignore Not yet in XEmacs
+@ignore  @c Not yet in XEmacs
   If your buffer contains @strong{very} long lines, and you use
 continuation to display them, just thinking about them can make Emacs
 redisplay slow.  The column computation and indentation functions also
@@ -980,7 +979,7 @@ on your terminal, using the @dfn{rune table}.
 				  display table.
 @end menu
 
-@ignore Not yet working in XEmacs?
+@ignore  @c Not yet working in XEmacs?
 * ISO Latin 1::			How to use display tables
 				  to support the ISO Latin 1 character set.
 @end ignore
@@ -1134,7 +1133,7 @@ the vector one after another wherever the character is to be displayed.
 Display according to the standard interpretation (@pxref{Usual Display}).
 @end table
 
-@ignore Not yet working in XEmacs?
+@ignore  @c Not yet working in XEmacs?
 @node ISO Latin 1
 @subsection ISO Latin 1
 

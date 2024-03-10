@@ -2,7 +2,6 @@
 @c This is part of the XEmacs Lisp Reference Manual.
 @c Copyright (C) 1990, 1991, 1992, 1993, 1994 Free Software Foundation, Inc.
 @c See the file lispref.texi for copying conditions.
-@setfilename ../../info/os.info
 @node System Interface, X-Windows, Processes, Top
 @chapter Operating System Interface
 
@@ -1219,7 +1218,7 @@ is the character XEmacs currently uses for quitting, usually @kbd{C-g}.
   This section describes features for translating input events into other
 input events before they become part of key sequences.
 
-@ignore Not in XEmacs yet.
+@ignore  @c Not in XEmacs yet.
 @c Emacs 19 feature
 @defvar extra-keyboard-modifiers
 This variable lets Lisp programs ``press'' the modifier keys on the
@@ -1555,7 +1554,7 @@ See also @code{open-dribble-file} in @ref{Terminal Input}.
 @end example
 @end deffn
 
-@ignore Not in XEmacs
+@ignore  @c Not in XEmacs
 @node Special Keysyms, Flow Control, Terminal Output, System Interface
 @section System-Specific X11 Keysyms
 

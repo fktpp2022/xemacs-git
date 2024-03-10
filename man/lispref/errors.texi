@@ -2,7 +2,6 @@
 @c This is part of the XEmacs Lisp Reference Manual.
 @c Copyright (C) 1990, 1991, 1992, 1993 Free Software Foundation, Inc.
 @c See the file lispref.texi for copying conditions.
-@setfilename ../../info/errors.info
 @node Standard Errors, Standard Buffer-Local Variables, Building XEmacs and Object Allocation, Top
 @appendix Standard Errors
 
@@ -144,7 +143,7 @@ This is a @code{file-error}.@*
 @item undefined-keystroke-sequence
 @code{"Undefined keystroke sequence"}@*
 
-@ignore FSF Emacs only
+@ignore  @c FSF Emacs only
 @item undefined-color
 @code{"Undefined color"}@*
 @xref{Color Names}.

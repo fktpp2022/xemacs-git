@@ -2,7 +2,6 @@
 @c This is part of the XEmacs Lisp Reference Manual.
 @c Copyright (C) 1990, 1991, 1992, 1993, 1994 Free Software Foundation, Inc.
 @c See the file lispref.texi for copying conditions.
-@setfilename ../../info/commands.info
 @node Command Loop, Keymaps, Minibuffers, Top
 @chapter Command Loop
 @cindex editor command loop
@@ -696,7 +695,7 @@ modify them.
 @end example
 @end defun
 
-@ignore Not in XEmacs
+@ignore  @c Not in XEmacs
 @defvar last-nonmenu-event
 This variable holds the last input event read as part of a key
 sequence, not counting events resulting from mouse menus.
@@ -1776,7 +1775,7 @@ Likewise, incremental search uses this feature to unread events with no
 special meaning in a search, because these events should exit the search
 and then execute normally.
 
-@ignore FSF Emacs stuff
+@ignore  @c FSF Emacs stuff
 The reliable and easy way to extract events from a key sequence so as to
 put them in @code{unread-command-events} is to use
 @code{listify-key-sequence} (@pxref{Strings of Events}).
@@ -1914,7 +1913,7 @@ returns @code{nil}.
 
 The argument @var{seconds} need not be an integer.  If it is a floating
 point number, @code{sleep-for} waits for a fractional number of seconds.
-@ignore FSF Emacs stuff
+@ignore  @c FSF Emacs stuff
 Some systems support only a whole number of seconds; on these systems,
 @var{seconds} is rounded down.
 

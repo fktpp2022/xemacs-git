@@ -2,7 +2,6 @@
 @c This is part of the XEmacs Lisp Reference Manual.
 @c Copyright (C) 1990, 1991, 1992, 1993, 1994 Free Software Foundation, Inc.
 @c See the file lispref.texi for copying conditions.
-@setfilename ../../info/text.info
 @node Text, Searching and Matching, Markers, Top
 @chapter Text
 @cindex text
@@ -2159,7 +2158,7 @@ the @var{prop} property of that symbol.
 This function is like @code{get-text-property}, except that it checks
 all extents, not just text-property extents.
 
-@ignore Does not apply in XEmacs
+@ignore  @c Does not apply in XEmacs
 The argument @var{object} may be a string, a buffer, or a window.  If it
 is a window, then the buffer displayed in that window is used for text
 properties and overlays, but only the overlays active for that window
@@ -2390,7 +2389,7 @@ for @var{object} is the current buffer.
 The predefined properties are the same as those for extents.
 @xref{Extent Properties}.
 
-@ignore  Changed in XEmacs
+@ignore  @c Changed in XEmacs
 (deleted section describing FSF Emacs special text properties)
 @end ignore
 
@@ -2823,7 +2822,7 @@ all markers unrelocated.
 
   These hook variables let you arrange to take notice of all changes in
 all buffers (or in a particular buffer, if you make them buffer-local).
-@ignore  Not in XEmacs
+@ignore  @c Not in XEmacs
 See also @ref{Special Properties}, for how to detect changes to specific
 parts of the text.
 @end ignore

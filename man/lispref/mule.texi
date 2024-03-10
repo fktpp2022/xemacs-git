@@ -3,7 +3,6 @@
 @c Copyright (C) 1996 Ben Wing, 2001-2002 Free Software Foundation.
 @c See the file lispref.texi for copying conditions.
 @documentencoding UTF-8
-@setfilename ../../info/internationalization.info
 @node MULE, Tips, Internationalization, Top
 @chapter MULE
 

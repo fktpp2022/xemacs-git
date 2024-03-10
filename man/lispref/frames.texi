@@ -3,7 +3,6 @@
 @c Copyright (C) 1990, 1991, 1992, 1993, 1994 Free Software Foundation, Inc.
 @c Copyright (C) 1995, 1996 Ben Wing.
 @c See the file lispref.texi for copying conditions.
-@setfilename ../../info/frames.info
 @node Frames, Consoles and Devices, Windows, Top
 @chapter Frames
 @cindex frame
@@ -277,7 +276,7 @@ considers that buffer.
 @item scroll-bar-width
 The width of the vertical scroll bar, in pixels.
 
-@ignore Not in XEmacs
+@ignore  @c Not in XEmacs
 @item icon-type
 The type of icon to use for this frame when it is iconified.  If the
 value is a string, that specifies a file containing a bitmap to use.
@@ -295,7 +294,7 @@ The color for the cursor that shows point.
 @item border-color
 The color for the border of the frame.
 
-@ignore Not in XEmacs
+@ignore  @c Not in XEmacs
 @item cursor-type
 The way to display the cursor.  The legitimate values are @code{bar},
 @code{box}, and @code{(bar . @var{width})}.  The symbol @code{box}
@@ -515,7 +514,7 @@ The function @code{frame-live-p} returns non-@code{nil} if the frame
 @var{frame} has not been deleted.
 @end defun
 
-@ignore Not in XEmacs currently
+@ignore  @c Not in XEmacs currently
   Some window managers provide a command to delete a window.  These work
 by sending a special message to the program that operates the window.
 When XEmacs gets one of these commands, it generates a
@@ -716,7 +715,7 @@ other frame).  If you don't, then the minibuffer is found in the frame
 which is the value of the variable @code{default-minibuffer-frame}.  Its
 value should be a frame which does have a minibuffer.
 
-@ignore Not yet in XEmacs
+@ignore  @c Not yet in XEmacs
 If you use a minibuffer-only frame, you might want that frame to raise
 when you enter the minibuffer.  If so, set the variable
 @code{minibuffer-auto-raise} to @code{t}.  @xref{Raising and Lowering}.
@@ -798,7 +797,7 @@ the earlier selected frame is restored.  The value returned is the value
 of the last form.
 @end defmac
 
-@ignore (FSF Emacs, continued from defun select-frame)
+@ignore  @c (FSF Emacs, continued from defun select-frame)
 XEmacs cooperates with the X server and the window managers by arranging
 to select frames according to what the server and window manager ask
 for.  It does so by generating a special kind of input event, called a
@@ -951,7 +950,7 @@ This variable's value is @code{t} if frames will be raised to the top
 when selected.
 @end defvar
 
-@ignore Not in XEmacs
+@ignore  @c Not in XEmacs
 @defopt minibuffer-auto-raise
 If this is non-@code{nil}, activation of the minibuffer raises the frame
 that the minibuffer window is in.

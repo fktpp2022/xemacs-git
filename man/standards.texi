@@ -1,6 +1,7 @@
 \input texinfo @c -*-texinfo-*-
-@c %**start of header
 @setfilename ../info/standards.info
+
+@c %**start of header
 @settitle GNU Coding Standards
 @c In GNU Emacs, this date is automagically updated when this file is
 @c saved, but in XEmacs you must set it when synching:

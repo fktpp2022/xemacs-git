@@ -3,7 +3,6 @@
 @c Copyright (C) 1990, 1991, 1992, 1993, 1994 Free Software Foundation, Inc.
 @c Copyright (C) 1996 Ben Wing.
 @c See the file lispref.texi for copying conditions.
-@setfilename ../../info/keymaps.info
 @node Keymaps, Menus, Command Loop, Top
 @chapter Keymaps
 @cindex keymap

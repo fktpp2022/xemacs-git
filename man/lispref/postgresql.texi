@@ -5,7 +5,6 @@
 @c See the file lispref.texi for copying conditions.
 @c Thank you Oscar Figueiredo!  This file was shamelessly cloned from
 @c  ldap.texi.
-@setfilename ../../info/postgresql.info
 @node PostgreSQL Support, Internationalization, LDAP Support, Top
 @chapter PostgreSQL Support
 @cindex PostgreSQL

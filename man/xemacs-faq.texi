@@ -1,6 +1,7 @@
 \input texinfo.tex      @c -*- mode: texinfo; coding: utf-8 -*-
-@c %**start of header
 @setfilename ../info/xemacs-faq.info
+
+@c %**start of header
 @settitle Frequently asked questions about XEmacs
 @setchapternewpage off
 @documentencoding UTF-8

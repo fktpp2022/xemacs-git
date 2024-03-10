@@ -2,7 +2,6 @@
 @c This is part of the XEmacs Lisp Reference Manual.
 @c Copyright (C) 1996 Ben Wing.
 @c See the file lispref.texi for copying conditions.
-@setfilename ../../info/hash-tables.info
 @node Hash Tables, Range Tables, Display, Top
 @chapter Hash Tables
 @cindex hash table

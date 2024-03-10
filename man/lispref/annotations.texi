@@ -3,7 +3,6 @@
 @c Copyright (C) 1990, 1991, 1992, 1993 Free Software Foundation, Inc.
 @c Copyright (C) 1995 Ben Wing.
 @c See the file lispref.texi for copying conditions.
-@setfilename ../../info/annotations.info
 @node Annotations, Display, Glyphs, Top
 @chapter Annotations
 @cindex annotation

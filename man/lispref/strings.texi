@@ -2,7 +2,6 @@
 @c This is part of the XEmacs Lisp Reference Manual.
 @c Copyright (C) 1990, 1991, 1992, 1993, 1994 Free Software Foundation, Inc.
 @c See the file lispref.texi for copying conditions.
-@setfilename ../../info/strings.info
 @node Strings and Characters, Lists, Numbers, Top
 @chapter Strings and Characters
 @cindex strings
@@ -1025,15 +1024,18 @@ own is treated as equivalent to @samp{ud}, and so the argument will be
 printed in decimal.
 
 @smallexample
-@group (format "%hux" -1)
+@group
+    (format "%hux" -1)
     @result{} "ffff"
 @end group
 
-@group (format "%hhu" -1)
+@group
+    (format "%hhu" -1)
     @result{} "255"
 @end group
 
-@group (format "%lux" (- (expt 2 30)))
+@group
+    (format "%lux" (- (expt 2 30)))
     @result{} "c0000000" ;; most-negative-fixnum on a 32 bit machine.
 @end group
 @end smallexample

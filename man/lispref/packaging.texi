@@ -3,7 +3,6 @@
 @c Copyright (C) 2001 Free Software Foundation, Inc.
 @c See the file lispref.texi for copying conditions.
 
-@setfilename ../../info/packaging.info
 
 @c Macro to make formatting of the XEmacs pms name consistent.
 @c Maybe @sc looks OK in HTML?  If so, condition on Info.
