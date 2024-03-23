@@ -1672,8 +1672,7 @@ case "$opsys" in
    fi ;;
   linux)
     AC_DEFINE(_POSIX_C_SOURCE,199506L)
-    dnl #### should this be 600?
-    AC_DEFINE(_XOPEN_SOURCE,500)
+    AC_DEFINE(_XOPEN_SOURCE,600)
     AC_DEFINE(_XOPEN_SOURCE_EXTENDED)
     ;;
   freebsd4*)

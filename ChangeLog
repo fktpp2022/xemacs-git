@@ -1,3 +1,8 @@
+2023-11-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* configure.ac: Define _XOPEN_SOURCE as 600 on Linux.
+	* configure: Regenerate.
+
 2024-02-15  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	* Makefile.in.in (etc/PROBLEMS): Improve portability; $^ is not
