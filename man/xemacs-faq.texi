@@ -1044,6 +1044,7 @@ through HTTP (@uref{http://ftp.xemacs.org/}) or anonymous FTP
 (@uref{ftp://ftp.xemacs.org/pub/xemacs/}).
 
 @node Q1.1.2, Q1.1.3, Q1.1.1, Introduction
+@anchor{Q1_1_2}
 @unnumberedsubsec Q1.1.2: Are binaries available?
 
 MS Windows binaries are available at
@@ -1188,6 +1189,7 @@ use a native-GUI version unless you have a specific need for an X
 version.
 
 @node Q1.2.5, Q1.2.6, Q1.2.4, Introduction
+@anchor{Q1_2_5}
 @unnumberedsubsec Q1.2.5: What are Cygwin and MinGW, and do I need them to run XEmacs?
 
 To answer the second part of the question: No, you, you don't need
@@ -1586,6 +1588,7 @@ address or the Web interface.  Send a message with a subject of
 @samp{unsubscribe} to be removed.
 
 @node Q1.4.2, Q1.4.3, Q1.4.1, Introduction
+@anchor{Q1_4_2}
 @unnumberedsubsec Q1.4.2: Which mailing lists are there?
 
 For complete, up-to-date info on the lists and how to subscribe, see
@@ -1774,6 +1777,7 @@ previous FAQ maintainers.  Answers quoted from Usenet news articles will
 always be attributed, regardless of the author.
 
 @node Q1.5.2, Q1.5.3, Q1.5.1, Introduction
+@anchor{Q1_5_2}
 @unnumberedsubsec Q1.5.2: How do I become a beta tester?
 
 Send an email message to @email{xemacs-beta-request@@xemacs.org} with
@@ -1786,11 +1790,11 @@ identify problems as best they can.
 @unnumberedsubsec Q1.5.3: How do I contribute to XEmacs itself?
 
 It depends on the knowledge and time you possess.  If you are able, by
-all means become a beta tester (@pxref{Q1.5.2}).  If you are a
+all means become a beta tester (@pxref{Q1_5_2, Q1.5.2}).  If you are a
 programmer, try to build XEmacs and see if you can improve it.
 
 Otherwise, you can still help by using XEmacs as your everyday editor
-(for pre-built binary versions, @pxref{Q1.1.2}) and reporting bugs you
+(for pre-built binary versions, @pxref{Q1_1_2, Q1.1.2}) and reporting bugs you
 find to the mailing list.
 
 Another area where we need help is the documentation: We need good
@@ -2170,10 +2174,11 @@ automatically qualify for CVS accounts for their packages.
 @end table
 
 @node Q1.6.3, Q1.6.4, Q1.6.2, Introduction
+@anchor{Q1_6_3}
 @unnumberedsubsec Q1.6.3: How much does XEmacs differ?
 
 RMS has asserted at times that XEmacs is merely a "patch" on top of
-GNU Emacs (@pxref{Q1.6.4}).  In fact, probably not more than 5% of the
+GNU Emacs (@pxref{Q1_6_4, Q1.6.4}).  In fact, probably not more than 5% of the
 code, if that, remains unchanged, and nearly 14 years of work has gone
 into XEmacs at this point. (GNU Emacs itself is only than 20 years
 old, and thus XEmacs has existed as a separate product for over 2/3 of
@@ -2190,6 +2195,7 @@ This stems from self-imposed licensing restrictions on the part of GNU
 Emacs -- and almost certainly out of hostility, as well.)
 
 @node Q1.6.4, Q1.6.5, Q1.6.3, Introduction
+@anchor{Q1_6_4}
 @unnumberedsubsec Q1.6.4: Is XEmacs "GNU"?
 
 RMS insists on the term "GNU XEmacs" and maintains that
@@ -2203,7 +2209,7 @@ is why the term "GNU XEmacs" is legitimate.
 @end quotation
 
 In fact, FSF is @emph{not} the copyright holder for most of the code,
-as very little unmodified FSF code remains (@pxref{Q1.6.3}).
+as very little unmodified FSF code remains (@pxref{Q1_6_3, Q1.6.3}).
 
 Furthermore, RMS's assertion that XEmacs is "GNU" seems rather bizarre
 to the XEmacs developers given RMS's hostility and general lack of
@@ -2226,12 +2232,12 @@ and "GNU/Linux".) We would prefer that the terms "XEmacs" and "GNU
 Emacs" be used, which are neutral and acceptable to most people.  RMS,
 however, is not willing to accept these terms.  He insists that, if
 his product is called "GNU Emacs", then ours must be called "GNU
-XEmacs". (For our opinion of this term, @xref{Q1.6.4}.) On the other
+XEmacs". (For our opinion of this term, @xref{Q1_6_4, Q1.6.4}.) On the other
 hand, if our product is to be called "XEmacs", as we prefer, then his
 product must simply be called "Emacs".  The intent of this seems
 clear: RMS wants to make sure the names reflect his view that his
 version is the "real" Emacs and ours is merely a derivative,
-second-class product (@pxref{Q1.6.3}).
+second-class product (@pxref{Q1_6_3, 1.6.3}).
 
 The XEmacs developers hope that you will use the neutral terms
 "XEmacs" and "GNU Emacs" for these two specific products. "Emacs", on
@@ -2348,9 +2354,10 @@ You select just the ones you need.  Install them by untarring them into
 the right place.  On startup XEmacs will find them, set up the load
 path correctly, install autoloads, etc, etc.
 
-@xref{Q2.1.1}, for more info on how to download and install the packages.
+@xref{Q2_1_1, Q2.1.1}, for more info on how to download and install the packages.
 
 @node Q1.7.2, Q1.7.3, Q1.7.1, Introduction
+@anchor{Q1_7_2}
 @unnumberedsubsec Q1.7.2: Which external packages are there?
 
 @subheading Normal Packages
@@ -2811,20 +2818,20 @@ use XEmacs/MULE regularly, and have some experience with Elisp.
 Translations of the TUTORIAL and man page are welcome, and XEmacs does
 support multilingual menus, but we have few current translations.
 
-@xref{Q1.5.2, How do I become a Beta Tester?}.
+@xref{Q1_5_2, How do I become a Beta Tester?}.
 
 @node Q1.8.3, Q1.8.4, Q1.8.2, Introduction
 @unnumberedsubsec Q1.8.3: How do I type non-ASCII characters?
 
-@xref{Q3.0.6, How can you type in special characters in XEmacs?}, in
+@xref{Q3_0_6, How can you type in special characters in XEmacs?}, in
 part 3 of this FAQ, for some simple methods that also work in non-MULE
 builds of XEmacs (but only for one-octet coded character sets, and
 mostly for ISO 8859/1).  Many of the methods available for Cyrillic
-(@pxref{Q1.8.7, How about Cyrillic modes?}) work without MULE.  MULE
-has more general capabilities.  @xref{Q1.8.5, Please explain the
+(@pxref{Q1_8_7, How about Cyrillic modes?}) work without MULE.  MULE
+has more general capabilities.  @xref{Q1_8_5, Please explain the
 various input methods in MULE/XEmacs}.
 
-@xref{Q4.0.8, How do I display non-ASCII characters?}, which covers
+@xref{Q4_0_8, How do I display non-ASCII characters?}, which covers
 display of non-ASCII characters.
 
 @node Q1.8.4, Q1.8.5, Q1.8.3, Introduction
@@ -2847,6 +2854,7 @@ The name of the resource is derived from the non-localized entry by
 removing punctuation and capitalizing as above.
 
 @node Q1.8.5, Q1.8.6, Q1.8.4, Introduction
+@anchor{Q1_8_5}
 @unnumberedsubsec Q1.8.5: Please explain the various input methods in MULE/XEmacs
 
 Mule supports a wide variety of input methods.  There are three basic
@@ -3005,6 +3013,7 @@ Following is a sample to distinguish mule variants:
 @end quotation
 
 @node Q1.8.7, Q1.8.8, Q1.8.6, Introduction
+@anchor{Q1_8_7}
 @unnumberedsubsec Q1.8.7: How about Cyrillic modes?
 
 @email{ilya@@math.ohio-state.edu, Ilya Zakharevich} writes:
@@ -3051,7 +3060,7 @@ To get Unicode support, you need a Mule-enabled XEmacs.
 don't yet use it as the internal encoding.
 
 21.4 supports Unicode partially -- as an external encoding for files,
-processes, and terminals, but without font support.  @xref{Q1.8.9, How
+processes, and terminals, but without font support.  @xref{Q1_8_9, How
 does XEmacs display Unicode?}.  To get Unicode support in 21.4,
 install Mule-UCS from packages in the usual way, and put
 
@@ -3066,12 +3075,13 @@ view the documentation of @code{set-coding-priority-list} if you find
 that files that are not UTF-8 are being mis-recognized as UTF-8.
 
 Install standard national fonts (not Unicode fonts) for all character
-sets you use.  @xref{Q1.8.9, How does XEmacs display Unicode??}.
+sets you use.  @xref{Q1_8_9, How does XEmacs display Unicode??}.
 
 Mule-UCS also supports 16-bit forms of Unicode (UTF-16).  It does not
 support 31-bit forms of Unicode (UTF-32 or UCS-4).
 
 @node Q1.8.9,  , Q1.8.8, Introduction
+@anchor{Q1_8_9}
 @unnumberedsubsec Q1.8.9: How does XEmacs display Unicode?
 
 Mule doesn't have a Unicode charset internally, so there's nothing to
@@ -3170,7 +3180,7 @@ of this directory.
 See the file @file{nt/README} for instructions on building XEmacs for
 Microsoft Windows.
 
-@xref{Q2.1.1}, for the installation of (essential) add on packages.
+@xref{Q2_1_1, Q2.1.1}, for the installation of (essential) add on packages.
 
 @node Q2.0.2, Q2.0.3, Q2.0.1, Installation
 @unnumberedsubsec Q2.0.2: Where do I find external libraries?
@@ -3257,6 +3267,7 @@ Another method is to do @code{M-x package-get-delete-package}.
 @unnumberedsec 2.1: Package Installation
 
 @node Q2.1.1, Q2.1.2, Q2.0.5, Installation
+@anchor{Q2_1_1}
 @unnumberedsubsec Q2.1.1: How do I install the packages?
 
 There are three ways to install the packages.
@@ -3272,7 +3283,7 @@ Automatically, using the package tools from XEmacs.
 
 If you don't want to mess with the packages, it is easiest to just
 grab them manually, all at once. (For the other two ways,
-@xref{Q2.1.2}, and @xref{Q2.1.3}.) Download the file
+@xref{Q2_1_2, Q2.1.2}, and @xref{Q2_1_3, Q2.1.3}.) Download the file
 
 @file{xemacs-sumo.tar.gz}
 
@@ -3338,12 +3349,13 @@ hierarchies work, @xref{Package Overview,,,lispref, the XEmacs Lisp
 Reference Manual}.
 
 @node Q2.1.2, Q2.1.3, Q2.1.1, Installation
+@anchor{Q2_1_2}
 @unnumberedsubsec Q2.1.2: Can I install the packages individually?
 
-Yes, you can download individual packages from the FTP site (@pxref{Q2.1.1}).  Since packages are automatically noticed at startup, you just have to put them in the right place.
+Yes, you can download individual packages from the FTP site (@pxref{Q2_1_1, Q2.1.1}).  Since packages are automatically noticed at startup, you just have to put them in the right place.
 
 Note: If you are upgrading packages already installed, it's best to
-remove the old package first (@pxref{Q2.1.4}).
+remove the old package first (@pxref{Q2_1_4, Q2.1.4}).
 
 For example if we are installing the @samp{xemacs-base}
 package (version 1.48):
@@ -3376,6 +3388,7 @@ Or if you have GNU tar, the last step can be:
 @end example
 
 @node Q2.1.3, Q2.1.4, Q2.1.2, Installation
+@anchor{Q2_1_3}
 @unnumberedsubsec Q2.1.3: Can I install the packages automatically?
 
 XEmacs comes with some tools to make the periodic updating and
@@ -3467,6 +3480,7 @@ keyb: x
 @end enumerate
 
 @node Q2.1.4, Q2.1.5, Q2.1.3, Installation
+@anchor{Q2_1_4}
 @unnumberedsubsec Q2.1.4: Can I upgrade or remove packages?
 
 As the exact files and their locations contained in a package may
@@ -3502,7 +3516,7 @@ If you are using the XEmacs package tools, don't forget to do:
 To make sure you have everything that the packages you have chosen to
 install need.
 
-@xref{Q1.7.2}, for a description of the various packages.
+@xref{Q1_7_2, Q1.7.2}, for a description of the various packages.
 
 @node Q2.1.6, Q2.1.7, Q2.1.5, Installation
 @unnumberedsubsec Q2.1.6: Can you describe the package location process in more detail?
@@ -3546,7 +3560,7 @@ parameters to @file{configure} (or the equivalent settings in
 @file{config.inc}, under Windows), or setting the
 @samp{EMACSEARLYPACKAGES}, @samp{EMACSLATEPACKAGES}, and
 @samp{EMACSLASTPACKAGES} environment variables (which have the same
-format as the configure options).  @xref{Q2.1.1}.
+format as the configure options).  @xref{Q2_1_1, Q2_1_1}.
 
 See @file{configure.usage} for more info about the format of these
 @file{configure} parameters.
@@ -3697,11 +3711,11 @@ support.  Almost all development is geared towards this version, and
 there is little reason not to use it.
 
 The second way to build is the Cygwin port.  It takes advantage of
-Cygnus emulation library under Win32.  @xref{Q1.2.5, What are Cygwin
+Cygnus emulation library under Win32.  @xref{Q1_2_5, What are Cygwin
 and MinGW, and do I need them to run XEmacs?}, for more information.
 
 A third way is the MinGW port.  It uses the Cygwin environment to
-build but does not require it at runtime.  @xref{Q1.2.5, What are
+build but does not require it at runtime.  @xref{Q1_2_5, What are
 Cygwin and MinGW, and do I need them to run XEmacs?}, for more
 information.
 
@@ -3720,7 +3734,7 @@ You need Visual C++ 4.2, 5.0, or 6.0 for the native version. (We have
 some beta testers currently trying to compile with VC.NET, aka version
 7.0, but we can't yet report complete success.) For the Cygwin and
 MinGW versions, you need the Cygwin environment, which comes with GCC,
-the compiler used for those versions.  @xref{Q1.2.5, What are Cygwin
+the compiler used for those versions.  @xref{Q1_2_5, What are Cygwin
 and MinGW, and do I need them to run XEmacs?}, for more information on
 Cygwin and MinGW.
 
@@ -3876,7 +3890,7 @@ comp.emacs.xemacs (or equivalentlt, send to the mailing list
 @email{xemacs@@xemacs.org}), but it is less likely that the developers
 will see it in a timely fashion.  @xref{Bugs,,, xemacs, the XEmacs
 User's Manual}, for more information on how to report bugs.
-@xref{Q1.4.2}, for more information on mailing lists relating to
+@xref{Q1_4_2, Q1.4.2}, for more information on mailing lists relating to
 XEmacs.
 
 There are three ways to read the Bugs section.
@@ -3968,7 +3982,7 @@ of XEmacs was compiled without debugging information or had the
 debugging information stripped.  A compilation with optimization can
 also result in partly or completely garbaged stack trace.  In such
 cases, you will need to recompile XEmacs with debugging information
-and without optimization; @xref{Q2.4.4, How to debug an XEmacs problem
+and without optimization; @xref{Q2_4_4, How to debug an XEmacs problem
 with a debugger}.  Note also that core files currently don't work at
 all under Cygwin, and the only way to get a backtrace is to run XEmacs
 from gdb.
@@ -3979,7 +3993,7 @@ and Lisp backtraces and submit a bug report including full
 configuration information as described above, as this will greatly
 assist in the process of tracking down the bug.  However, even partial
 information is better than none.  The process of getting backtraces
-from gdb is described in detail in @ref{Q2.4.4, How to debug an XEmacs
+from gdb is described in detail in @ref{Q2_4_4, How to debug an XEmacs
 problem with a debugger}.
 
 If you're under Microsoft Windows, you're out of luck unless you happen
@@ -4029,7 +4043,7 @@ and executing @kbd{M-x build-report}.
 
 There have been a variety of reports of crashes due to compilers with
 buggy optimizers.  If you are compiling with optimization, consider
-turning it off (@pxref{Q2.4.4, How to debug an XEmacs problem with a
+turning it off (@pxref{Q2_4_4, How to debug an XEmacs problem with a
 debugger}) and recompiling.
 
 Please see the @file{PROBLEMS} file that comes with XEmacs (it's in
@@ -4043,6 +4057,7 @@ try recompiling again without it.  The union type has been known to
 trigger compiler errors in a number of cases.
 
 @node Q2.4.4, Q2.4.5, Q2.4.3, Installation
+@anchor{Q2_4_4}
 @unnumberedsubsec Q2.4.4: How to debug an XEmacs problem with a debugger
 
 If XEmacs does crash on you, one of the most productive things you can
@@ -4318,6 +4333,7 @@ For more information on debugging Lisp code, @xref{Debugging,,,
 lispref, XEmacs Lisp Reference Manual}.
 
 @node Q2.4.6, Q2.4.7, Q2.4.5, Installation
+@anchor{Q2_4_6}
 @unnumberedsubsec Q2.4.6: XEmacs hangs when I try to do something.
 
 XEmacs might just be slow; some operations take a long time.  XEmacs
@@ -4329,7 +4345,7 @@ example, Lisp code explicitly disabled this by setting
 @code{inhibit-quit}), you can use the "critical quit" mechanism by
 typing @kbd{Control-Shift-G}.  This should also pop you into the
 debugger and give you a backtrace, which can tell you where the
-problem is (@pxref{Q2.4.4, How to debug an XEmacs problem with a
+problem is (@pxref{Q2_4_4, How to debug an XEmacs problem with a
 debugger}). (Note that setting @code{debug-on-quit} or selecting
 @samp{Options->Troubleshooting->Debug on Quit} will also cause regular
 @kbd{C-g} to enter the debugger and give you a backtrace.)
@@ -4340,7 +4356,7 @@ signal using the @samp{kill} command.
 
 If the Lisp backtrace isn't enlightening, or if XEmacs is so hung that
 you can't interrupt it at all, you could try attaching to the process
-and getting a C stack backtrace.  @xref{Q2.4.4, How to debug an XEmacs
+and getting a C stack backtrace.  @xref{Q2_4_4, How to debug an XEmacs
 problem with a debugger}.
 
 @node Q2.4.7, Q2.4.8, Q2.4.6, Installation
@@ -4361,7 +4377,7 @@ executed at startup time.
 
 If the backtrace is not sufficiently useful in helping you diagnose
 the problem, you should consider using a debugger such as GDB.
-@xref{Q2.4.4, How to debug an XEmacs problem with a debugger}.  You
+@xref{Q2_4_4, How to debug an XEmacs problem with a debugger}.  You
 probably want to set a breakpoint on @code{signal_1}.  Since such
 errors often occur during compiling, which is often triggered by a
 complex command run from a make suite, it may be easier to attach to
@@ -4418,7 +4434,7 @@ can happen when code is wrapped with a binding of @code{inhibit-quit}
 to @code{t}; you should still be able interrupt XEmacs using "critical
 quit".  On the other hand, XEmacs may be seriously wedged. (If you're
 lucky, sending @samp{SIGINT} to the XEmacs process will interrupt it.) 
-@xref{Q2.4.6, XEmacs hangs when I try to do something.}.
+@xref{Q2_4_6, XEmacs hangs when I try to do something.}.
 
 @item
 @kbd{C-g} is indeed broken on your system.  To test, try executing
@@ -4450,7 +4466,7 @@ but it is (and cannot be) a perfect solution.)
 @unnumberedsubsec Q2.4.11: XEmacs is outputting lots of X errors.
 
 If this is happening, we would very much like to know what's causing
-them.  To find this out, see @ref{Q2.4.4, How to debug an XEmacs
+them.  To find this out, see @ref{Q2_4_4, How to debug an XEmacs
 problem with a debugger}.  Try to get both a C and Lisp backtrace, and
 send them along with the full error output to
 @email{xemacs-beta@@xemacs.org}.
@@ -4464,7 +4480,7 @@ error) happens.  The simplest explanation is that you are missing a
 package that is essential to you.  You can either track it down and
 install it (there is a list of packages and brief descriptions of
 their contents in @file{etc/PACKAGES}), or install the `Sumo Tarball'
-(@pxref{Q2.1.2, How do I figure out which packages to install?}).
+(@pxref{Q2_1_2, How do I figure out which packages to install?}).
 
 @c #### should xref to XEmacs manual here
 
@@ -4483,7 +4499,7 @@ the host you are running XEmacs from.
 
 First of all, if XEmacs can't find the packages, check to make sure
 that you put the packages in the right place, or that you told XEmacs
-where to look for the packages when you compiled it.  @xref{Q2.1.1}.
+where to look for the packages when you compiled it.  @xref{Q2_1_1, Q2.1.1}.
 
 If something is still going wrong, or you get a startup warning about
 not being able to deduce some paths, you can get detailed information
@@ -4492,7 +4508,7 @@ variable @samp{EMACSDEBUGPATHS} to a non-null value.  One thing to
 look for if you're having package problems is the value of
 @samp{configure-package-path}.  This corresponds to what was compiled
 into XEmacs using the @samp{--package-prefix} or @samp{--package-path}
-parameter (@pxref{Q2.1.1}).  If this has the value of @samp{nil},
+parameter (@pxref{Q2_1_1}).  If this has the value of @samp{nil},
 this means that no value was compiled into XEmacs using these parameters.
 
 @node Q2.5.3, Q2.5.4, Q2.5.2, Installation
@@ -4727,6 +4743,7 @@ them.
 #### Write me.
 
 @node Q3.0.2, Q3.0.3, Q3.0.1, Editing
+@anchor{Q3_0_2}
 @unnumberedsubsec Q3.0.2: How can I bind complex functions (or macros) to keys?
 
 As an example, say you want the @kbd{paste} key on a Sun keyboard to
@@ -4764,10 +4781,11 @@ For the FAQ example you could use:
 
 This is fine if you only need a few functions within the lambda body.
 If you're doing more it's cleaner to define a separate function.
-@xref{Q3.0.3, How do I bind C-. and C-; to scroll one line up and
+@xref{Q3_0_3, How do I bind C-. and C-; to scroll one line up and
 down?}.
 
 @node Q3.0.3, Q3.0.4, Q3.0.2, Editing
+@anchor{Q3_0_3}
 @unnumberedsubsec Q3.0.3: How do I bind C-. and C-; to scroll one line up and down?
 
 Add the following (Thanks to @email{mly@@adoc.xerox.com, Richard Mlynarik} and
@@ -4788,7 +4806,7 @@ Add the following (Thanks to @email{mly@@adoc.xerox.com, Richard Mlynarik} and
 
 The key point is that you can only bind simple functions to keys; you
 can not bind a key to a function that you're also passing arguments
-to.  (@pxref{Q3.0.2, How can I bind complex functions (or macros) to
+to.  (@pxref{Q3_0_2, How can I bind complex functions (or macros) to
 keys?} for a better answer).
 
 @node Q3.0.4, Q3.0.5, Q3.0.3, Editing
@@ -4840,6 +4858,7 @@ can also cause fix this by telling OLWM to not grab the help key, with
 the null binding @code{OpenWindows.KeyboardCommand.Help:}.
 
 @node Q3.0.6, Q3.0.7, Q3.0.5, Editing
+@anchor{Q3_0_6}
 @unnumberedsubsec Q3.0.6: How can you type in special characters in XEmacs?
 One way is to use the package @code{x-compose}.  Then you can use
 sequences like @kbd{Compose " a} to get ä, etc.
@@ -4888,7 +4907,7 @@ Running @samp{xmodmap -pk} will list all of the defined keysyms.
 @end quotation
 
 For the related problem of @emph{displaying} non-ASCII characters in a
-non-Mule XEmacs, @xref{Q4.0.8, How do I display non-ASCII characters?}.
+non-Mule XEmacs, @xref{Q4_0_8, How do I display non-ASCII characters?}.
 
 @node Q3.0.7, Q3.0.8, Q3.0.6, Editing
 @unnumberedsubsec Q3.0.7: Can I turn on @dfn{sticky} modifier keys?
@@ -5694,6 +5713,7 @@ and so on.  You can also do this interactively via @kbd{M-x edit-faces}.
 @end quotation
 
 @node Q4.0.8, Q4.0.9, Q4.0.7, Display
+@anchor{Q4_0_8}
 @unnumberedsubsec Q4.0.8: How do I display non-ASCII characters?
 @c New
 
@@ -5718,7 +5738,7 @@ their Latin-2 buffers, etc.
 @end quotation
 
 For the related problem of @emph{inputting} non-ASCII characters in a
-non-Mule XEmacs, @xref{Q3.0.6, How can you type in special characters
+non-Mule XEmacs, @xref{Q3_0_6, How can you type in special characters
 in XEmacs?}.
 
 @node Q4.0.9, Q4.1.1, Q4.0.8, Display
@@ -6806,9 +6826,10 @@ left to @code{gnuclient}, though.
 
 Yes.  Use @code{gnuclient -nw}.
 
-Also see @ref{Q5.5.3, How do I disable gnuserv from opening a new frame?}.
+Also see @ref{Q5_5_3, How do I disable gnuserv from opening a new frame?}.
 
 @node Q5.5.3, Q5.5.4, Q5.5.2, External Subsystems
+@anchor{Q5_5_3}
 @unnumberedsubsec Q5.5.3: How do I disable gnuserv from opening a new frame?
 
 If you set the @code{gnuserv-frame} variable to the frame that should be
@@ -7075,6 +7096,7 @@ the time back at IU.
 @end quotation
 
 @node Q6.0.8, Q6.0.9, Q6.0.7, Internet
+@anchor{Q6_0_8}
 @unnumberedsubsec Q6.0.8: An MUA gets an error incorporating new mail.
 
 rmail and VM, and probably other MUA's as well, get new mail from
@@ -7139,7 +7161,7 @@ of the build directory copy is ineffective.
 @node Q6.0.9, Q6.0.10, Q6.0.8, Internet
 @unnumberedsubsec Q6.0.9: Why isn't @file{movemail} working?
 
-@xref{Q6.0.8}.
+@xref{Q6_0_8, Q6.0.8}.
 
 Note also that older versions of Mozilla came with a @file{movemail}
 program that is @strong{not} compatible with XEmacs.  Do not use it.
@@ -7976,7 +7998,7 @@ User-visible changes in behavior include (in probable order of annoyance)
 @itemize
 @item
 Arithmetic can cause a segfault, depending on your MP library
-@ref{Q7.2.2, XEmacs segfaults when I use very big numbers!}.
+@ref{Q7_2_2, XEmacs segfaults when I use very big numbers!}.
 
 @item
 Terminology is not Common-Lisp-conforming.  For example, ``integer'' for
@@ -8002,7 +8024,7 @@ ratios, so there should be few surprises with type conflicts, but they
 can't be ruled out.  ``Arbitrary'' precision means precisely what it
 says.  If you work with extremely large numbers, your machine may
 arbitrarily decide to hand you an unpleasant surprise rather than a
-bignum @ref{Q7.2.2, XEmacs segfaults when I use very big numbers!}.
+bignum @ref{Q7_2_2, XEmacs segfaults when I use very big numbers!}.
 
 To configure with GMP, add @samp{--enable-bignum=gmp} to your invocation
 of @file{configure}.  For MPIR, use @samp{--enable-bignum=mpir}.  For
@@ -8010,6 +8032,7 @@ BSD MP, use @samp{--enable-bignum=mp}.
 
 
 @node Q7.2.2, Q7.2.3, Q7.2.1, Advanced
+@anchor{Q7_2_2}
 @unnumberedsubsec Q7.2.2: XEmacs segfaults when I use very big numbers!
 
 GMP by default allocates temporaries on the stack.  If you run out of
@@ -8086,11 +8109,12 @@ elsewhere in XEmacs.
 
 @quotation
 The standard TeX modes leave much to be desired, and are somewhat
-leniently maintained.  Serious TeX users use AUCTeX (@pxref{Q8.0.2,
+leniently maintained.  Serious TeX users use AUCTeX (@pxref{Q8_0_2,
 What is AUCTeX?  Where do you get it?}).
 @end quotation
 
 @node Q8.0.2, Q8.0.3, Q8.0.1, Other Packages
+@anchor{Q8_0_2}
 @unnumberedsubsec Q8.0.2: What is AUCTeX?  Where do you get it?
 
 AUCTeX is a complex and sophisticated editing package dedicated to TeX
@@ -8433,6 +8457,7 @@ the same directory, or @file{OONEWS} for really old versions.
 #### Write me.
 
 @node Q9.0.2, Q9.0.3, Q9.0.1, Current Events
+@anchor{Q9_0_2}
 @unnumberedsubsec Q9.0.2: What's new in XEmacs 21.4?
 
 21.4 was the "stable" version of the 21.2 series, which was considered
@@ -8558,7 +8583,7 @@ Not yet written.
 @unnumberedsubsec Q9.0.3: What's new in XEmacs 21.1?
 
 21.1 was the "stable" version of "experimental" 21.0 series.
-@xref{Q9.0.2, What's new in XEmacs 21.4?}.
+@xref{Q9_0_2, What's new in XEmacs 21.4?}.
 
 The following lists summarizes the essential changes made in this
 version.  For a fuller list, see the @file{NEWS} in the @file{etc}
@@ -8809,7 +8834,7 @@ about which memory addresses will be free, and this should cure the
 problem for most people.  21.4 implements "portable dumping", which
 eliminates the problem altogether.  We recommend you use the 21.4
 binaries, but you can use the 21.1 binaries if you are very paranoid
-about stability.  @xref{Q1.1.2, Are binaries available?}.
+about stability.  @xref{Q1_1_2, Are binaries available?}.
 
 
 @node Bleeding Edge, , Legacy Versions, Top
@@ -8861,9 +8886,9 @@ ssh://sperber-guest@@hg.debian.org//hg/xemacs/xemacs
 
 Yes, Virginia, that doubled slash is correct.
 
-@xref{Q11.0.5, How do I get commit access?}.
+@xref{Q11_0_5, How do I get commit access?}.
 
-@xref{Q11.2.1, What is Mercurial?}.
+@xref{Q11_2_1, What is Mercurial?}.
 
 @node Q11.0.2, Q11.0.3, Q11.0.1, Bleeding Edge
 @unnumberedsubsec Where is the most recent XEmacs stable code?
@@ -8878,7 +8903,7 @@ http://hg.debian.org/hg/xemacs/xemacs-21.4
 If you're @emph{not} Vin, you don't need commit access.  If you
 @emph{are} Vin, you shouldn't need to refer to this FAQ.
 
-@xref{Q11.2.1, What is Mercurial?}.
+@xref{Q11_2_1, What is Mercurial?}.
 
 
 @node Q11.0.3, Q11.0.4, Q11.0.2, Bleeding Edge
@@ -8908,9 +8933,9 @@ as usual.  For more information, see
 @uref{http://www.xemacs.org/Develop/cvsaccess.html, XEmacs CVS Archive}
 on the website.
 
-@xref{Q11.1.1, How do I stay cool using CVS?}.
+@xref{Q11_1_1, How do I stay cool using CVS?}.
 
-@xref{Q11.0.5, How do I get commit access?}.
+@xref{Q11_0_5, How do I get commit access?}.
 
 
 @node Q11.0.4, Q11.0.5, Q11.0.3, Bleeding Edge
@@ -8932,6 +8957,7 @@ of the package @ref{(xemacs-devguide)XEmacs Package Maintainer}.
 
 
 @node Q11.0.5, Q11.1.1, Q11.0.4, Bleeding Edge
+@anchor{Q11_0_5}
 @unnumberedsubsec How do I get commit access?
 
 To get commit access to XEmacs code, write to
@@ -8955,13 +8981,14 @@ submitted to @email{xemacs-patches@@xemacs.org, XEmacs Patches}, as usual.
 
 @uref{http://www.xemacs.org/Develop/cvsaccess.html, XEmacs CVS Archive}
 
-@xref{Q11.1.1, How do I stay cool using CVS?}.
+@xref{Q11_1_1, How do I stay cool using CVS?}.
 
-@xref{Q11.2.1, What is Mercurial?}.
+@xref{Q11_2_1, What is Mercurial?}.
 
 @unnumberedsec 11.1: Working with CVS
 
 @node Q11.1.1, Q11.2.1, Q11.0.5, Bleeding Edge
+@anchor{Q11_1_1}
 @unnumberedsubsec How do I keep cool using CVS?
 
 You don't.  CVS is just basically and in detail @emph{un}-cool.
@@ -8978,6 +9005,7 @@ Please update this FAQ with one or two of the best references you find.
 @unnumberedsec 11.1: Working with Mercurial
 
 @node Q11.2.1, Q11.2.2, Q11.1.1, Bleeding Edge
+@anchor{Q11_2_1}
 @unnumberedsubsec What is Mercurial?
 
 Mercurial is a @dfn{distributed version control system}, or DVCS.  This
