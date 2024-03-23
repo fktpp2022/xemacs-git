@@ -522,12 +522,6 @@ or nil if current info file is not split into subfiles.")
 (defvar Info-current-node nil
   "Name of node that Info is now looking at, or nil.")
 
-(defvar Info-tag-table-marker nil
-  "Marker pointing at beginning of current Info file's tag table.
-Marker points nowhere if file has no tag table.")
-
-(defvar Info-tag-table-buffer nil)
-
 (defvar Info-current-file-completions nil
   "Cached completion list for current Info file.")
 
@@ -689,6 +683,100 @@ node of a file of this name."
    (t
     (error "Info file %s does not exist" filename))))
 
+(defvar Info-tag-table nil
+  "Ordered list of tags in current Info file.
+
+Each entry, a list, has details of the tag name (first entry), the relevant
+subfile, and the type (`node' vs `anchor'). Further information (character
+position, byte position within the subfile) is calculated and set as needed
+within `Info-find-file-node'.
+
+This table can be passed to `try-completion' and `all-completions' as a
+COLLECTION argument, see those functions for more information.  See also the
+`Info-tag' structure.")
+(make-variable-buffer-local 'Info-tag-table)
+
+(defstruct (Info-tag
+             ;; So we can #'assoc* on the name, and use the tag table as a
+             ;; completion table.
+             (:type list)) 
+  name			;; Name of the node (or the anchor)
+  file-name		;; File name where the text is
+  character-offset	;; Character offset, or nil if not yet determined.
+  type			;; 'node or 'anchor
+  byte-offset		;; Byte offset as read from the tag table
+  byte-offset-sanep)    ;; Whether byte-offset has been adjusted for its file.
+
+(defvar Info-subfiles nil
+  "Ordered list of the subfiles for the current Info file.
+
+Initialized by `Info-load-tag-table', which see.")
+(make-variable-buffer-local 'Info-subfiles)
+
+(defun* Info-load-tag-table (buffer)
+  "Return a list of info tag information reflecting BUFFER.
+
+See `Info-tag-table' for details of the tag information loaded. This also sets
+`Info-subfiles' to an appropriate value.
+
+Return nil and do not update `Info-subfiles' if there is no tag table in the
+current buffer."
+  (let ((last-byte-offset most-positive-fixnum) (ordered t) max list
+        indirect-ranges new-max tag-table-begin tag-table-end byte-offset
+        indirect-offsets)
+    (save-excursion
+      (set-buffer buffer)
+      (goto-char (point-max))
+      (forward-line -8)
+      (if (not (setq tag-table-end (search-forward "\^_\nEnd tag table\n" nil
+                                                   t)))
+          (return-from Info-load-tag-table nil))
+      ;; We have a tag table.  Find its beginning.
+      (setq tag-table-begin (search-backward "\nTag table:\n"))
+      ;; Is this an indirect file?
+      (when (save-excursion (forward-line 2) (looking-at-p "(Indirect)\n"))
+        (goto-char (point-min))
+        (search-forward "\n\^_\nIndirect:")
+        (save-restriction
+          (narrow-to-region (point)
+                            (progn (search-forward "\n\^_")
+                                   (1- (point))))
+          (setf indirect-ranges (make-range-table)
+                max most-positive-fixnum
+                (point) (point-max))
+          (while (re-search-backward "^\\([^:]+\\): \\([0-9]+\\)$" nil t)
+            (push (match-string 1) Info-subfiles)
+            (put-range-table (setq new-max (parse-integer (match-string 2)))
+                             max (car Info-subfiles)
+                             indirect-ranges)
+            (setq max new-max
+                  indirect-offsets (cons new-max indirect-offsets)))))
+      (save-restriction
+        (narrow-to-region tag-table-begin tag-table-end)
+        (goto-char (point-max))
+        (while (re-search-backward
+                "\\(?:Node\\|Ref\\): *\\([^]+\\) *\\([0-9]+\\)"
+                nil t)
+          (setq byte-offset (parse-integer (match-string 2)))
+          (when ordered
+            (setq ordered (<= byte-offset last-byte-offset)
+                  last-byte-offset byte-offset))
+          (push (make-Info-tag
+                 :type (if (eq (char-after (match-beginning 0)) ?N)
+                           'node
+                         'anchor)
+                 :name (match-string 1)
+		 :file-name (if indirect-ranges
+                              (get-range-table byte-offset indirect-ranges)
+                            Info-current-file)
+                 :byte-offset byte-offset)
+                list)))
+      (unless ordered
+        ;; The list will usually be in ascending order of the the byte
+        ;; offset. If it isn't, force it for the anchor handling.
+        (setq list (sort* list #'< :key #'Info-tag-byte-offset)))
+      list)))
+
 (defun Info-find-file-node (filename nodename
 				     &optional no-going-back tryfile line)
   ;; This is the guts of what was Info-find-node. Whoever wrote this
@@ -717,14 +805,164 @@ node of a file of this name."
   (setq Info-current-node nil
 	Info-in-cross-reference nil)
   (unwind-protect
-      (progn
-	;; Switch files if necessary
+       (labels
+           ((Info-find-node-no-tag-table (nodename)
+              ;; Find a node in the info file in the current buffer. Don't
+              ;; attempt to use the tag table. Used when the tag table is not
+              ;; available, and for working around problems with it.
+              (let ((regexp (concat "Node: *" (regexp-quote nodename)
+                                    " *[,\t\n\177]"))
+                    found)
+                (goto-char (point-min))
+                (while (and (search-forward "\n\^_" nil t) (not found))
+                  (forward-line 1)
+                  (let ((beg (point)))
+                    (forward-line 1)
+                    (when (re-search-backward regexp beg t)
+                      (setq found t))))
+                found))
+            (Info-select-node-and-handle-line (forwardp)
+              ;; Select the node that point is in, and if LINE is specified as
+              ;; an argument to #'Info-find-file-node, go forward that many
+              ;; lines.  Not to be used for anchors.
+              (if forwardp (forward-line 1))
+              (Info-select-node)
+              (goto-char (point-min))
+              (if line (forward-line line)))
+            (Info-select-anchor-and-handle-line (Info-tag)
+              ;; Select the node that point is in, then go to the location of
+              ;; the reference described in INFO-TAG.
+              (Info-select-node)
+              (goto-char (Info-tag-character-offset Info-tag))
+              (if line (forward-line line)))
+            (Info-get-previous-and-next-nodes (anchor-tag)
+              ;; Return values PREVIOUS, NEXT reflecting the Info-tag
+              ;; structures of the nodes preceding and following ANCHOR-TAG in
+              ;; the current subfile, or nil if these do not exist.
+              (let (previous next)
+                (loop named previous-and-next
+                      for item in Info-tag-table
+                      with seen = nil
+                      do (if seen
+                             (if (eq 'node (Info-tag-type item))
+                                 (progn
+                                   (if (equal (Info-tag-file-name anchor-tag)
+                                              (Info-tag-file-name item))
+                                       (setq next item))
+                                   (return-from previous-and-next)))
+                           (if (eq item anchor-tag)
+                               (setq seen t)
+                             (if (eq 'node (Info-tag-type item))
+                                 (setq previous item)))))
+                (values previous next)))
+            (Info-goto-node-from-tag-byte-offset (Info-tag)
+              ;; The byte offset is generated in Perl by makeinfo. It reflects
+              ;; the position of the ?\037 that is the node delimiter. If the
+              ;; coding system of the file does not have characters with
+              ;; varying byte lengths, it is one less than the character
+              ;; buffer offset that XEmacs works with.
+              ;;
+              ;; If the coding system does have characters of varying byte
+              ;; lengths, the byte offset will be strictly greater than or
+              ;; equal to the character file offset, and strictly greater than
+              ;; or equal to one less than the character buffer offset, so we
+              ;; can move forward past the likely end of the line with Node:
+              ;; and then search backwards. As of March 2024 this case is far
+              ;; more common than is the single-width case and so it is better
+              ;; to do an #'re-search-backward immediately rather than a
+              ;; #'looking-at-p first.
+              ;;
+              ;; GNU uses their #'filepos-to-bufferpos to do the conversion;
+              ;; but they then do the #'re-search anyway, saving no
+              ;; cycles. Our approach means, however, that as the file gets
+              ;; bigger, and as the difference between the character count and
+              ;; the underlying byte count increases, a larger area needs to
+              ;; be searched, and GNU use the existing the byte-char buffer
+              ;; position conversion code for the very common UTF-8 case of an
+              ;; external file, which eases this.
+              ;;
+              ;; Complicating this further is that the byte offset is strictly
+              ;; ascending and ignores subfiles. On loading a node in a subfile
+              ;; for the first time this code calculates the delta and adjusts
+              ;; the byte offsets for that file appropriately.
+              (goto-char (+ (Info-tag-byte-offset Info-tag)
+                            (length "\n\^_\nFile:  .info.gz,  Node:  ,")
+                            (length Info-current-file)
+                            (length (Info-tag-name Info-tag))))
+              (if (re-search-backward (concat
+                                       "\^_\n.*Node: *"
+                                       (regexp-quote (Info-tag-name Info-tag))
+                                       " *[,\t\n\177]")
+                                      ;; Put a limit to this so that we adjust
+                                      ;; byte offsets once we encounter the
+                                      ;; second file. Unlikely that an
+                                      ;; external encoding will have
+                                      ;; characters universally occupying at
+                                      ;; least six bytes.
+                                      (/ (Info-tag-byte-offset Info-tag) 6)
+                                      t)
+                  (setf (Info-tag-character-offset Info-tag)
+                        (point))
+                ;; Anything after this is rare; either the tag table's entire
+                ;; offset is incorrect, and #'Info-maybe-adjust-byte-offsets
+                ;; can correct that successfully once per subfile, or the tag
+                ;; table is irretrievably corrupt and the only approach that
+                ;; makes sense is to find the node without reference to the
+                ;; tag table. We should still update that for the sake of
+                ;; references, however.
+                (if (Info-maybe-adjust-byte-offsets
+                     (or Info-current-subfile Info-current-file))
+                    (if (Info-tag-character-offset Info-tag)
+                        (goto-char (Info-tag-character-offset Info-tag))
+                      (Info-goto-node-from-tag-byte-offset Info-tag))
+                  ;; Try without using the tag table. If this succeeds the tag
+                  ;; table is completely corrupt.
+                  (when (Info-find-node-no-tag-table
+                         (Info-tag-name Info-tag))
+                    (setf (Info-tag-character-offset Info-tag)
+                          (point))))))
+            (Info-maybe-adjust-byte-offsets (file-name)
+              ;; Given FILE-NAME, either a subfile or the main info file,
+              ;; check the byte offset to the first node in that file, and
+              ;; adjust the byte-offset entries in Info-tag-table that are
+              ;; relevant to that file if necessary to reflect the delta.
+              (let* ((tail (member* file-name Info-tag-table
+                                    :key #'Info-tag-file-name :test #'equal))
+                     first-node delta)
+                (when (and (not (Info-tag-byte-offset-sanep (car tail)))
+                           (setq first-node
+                                 (find 'node tail :key #'Info-tag-type)))
+                  (when (Info-find-node-no-tag-table
+                         (Info-tag-name first-node))
+                    (setf (Info-tag-character-offset first-node) (point)
+                          delta (- (Info-tag-byte-offset first-node)
+                                   (length (encode-coding-string
+                                            (buffer-substring
+                                             (point-min) (point))
+                                            buffer-file-coding-system))))
+                    (if (eql delta 0)
+                        (while (and tail
+                                    (equal file-name
+                                           (Info-tag-file-name (car tail))))
+                          (setf (Info-tag-byte-offset-sanep (car tail)) t
+                                tail (cdr tail)))
+                      (while (and tail
+                                  (equal file-name
+                                         (Info-tag-file-name (car tail))))
+                        (setf (Info-tag-byte-offset (car tail))
+                              (- (Info-tag-byte-offset (car tail)) delta)
+                              (Info-tag-byte-offset-sanep (car tail)) t
+                              tail (cdr tail))))
+                    t)))))
+	;; Switch files if necessary.
 	(or (null filename)
 	    (equal Info-current-file filename)
 	    (let ((buffer-read-only nil))
 	      (setq Info-current-file nil
 		    Info-current-subfile nil
 		    Info-current-file-completions nil
+                    Info-tag-table nil
+                    Info-subfiles nil
 		    ;; Nooooooooooo!  Info-index can extend across more
 		    ;; than one file (e.g. XEmacs, Lispref)
 		    ;; Info-index-alternatives nil
@@ -736,126 +974,179 @@ node of a file of this name."
 		(Info-insert-file-contents filename t)
 		(setq default-directory (file-name-directory filename)))
 	      (set-buffer-modified-p nil)
-	      ;; See whether file has a tag table.  Record the location if yes.
-	      (set-marker Info-tag-table-marker nil)
-	      (goto-char (point-max))
-	      (forward-line -8)
-	      (or (equal nodename "*")
-		  (not (search-forward "\^_\nEnd tag table\n" nil t))
-		  (let (pos)
-		    ;; We have a tag table.  Find its beginning.
-		    ;; Is this an indirect file?
-		    (search-backward "\nTag table:\n")
-		    (setq pos (point))
-		    (if (save-excursion
-			  (forward-line 2)
-			  (looking-at "(Indirect)\n"))
-			;; It is indirect.  Copy it to another buffer
-			;; and record that the tag table is in that buffer.
-                        (let ((buf (current-buffer))
-                              ;; Caution, we need to set-marker on the
-                              ;; Info-tag-table-marker of the current buffer
-                              ;; (it is buffer-local) rather than the new
-                              ;; buffer.
-                              (m Info-tag-table-marker)
-                              (mpos (match-end 0)))
-                          (or
-                           Info-tag-table-buffer
-                           (setq
-                            Info-tag-table-buffer
-                            (generate-new-buffer " *info tag table*")))
-                          (save-excursion
-                            (set-buffer Info-tag-table-buffer)
-                            (buffer-disable-undo (current-buffer))
-                            (setq case-fold-search t)
-                            (erase-buffer)
-                            (insert-buffer-substring buf)
-                            (set-marker m mpos)))
-                      (set-marker Info-tag-table-marker pos))))
 	      (setq Info-current-file
-		    (file-name-sans-versions buffer-file-name))))
+		    (file-name-sans-versions buffer-file-name))
+              (or (equal nodename "*")
+                  ;; Load the tag table, if it exists.
+                  (setq Info-tag-table
+                        (Info-load-tag-table (current-buffer))))))
 	(if (equal nodename "*")
 	    (progn (setq Info-current-node nodename)
 		   (Info-set-mode-line)
 		   (goto-char (point-min)))
-	  ;; Search file for a suitable node.
-	  (let* ((qnode (regexp-quote nodename))
-		 (regexp (concat "Node: *" qnode " *[,\t\n\177]"))
-		 (guesspos (point-min))
-		 (found t))
-	    ;; First get advice from tag table if file has one.
-	    ;; Also, if this is an indirect info file,
-	    ;; read the proper subfile into this buffer.
-	    (if (marker-buffer Info-tag-table-marker)
-		(let (foun found-mode (m Info-tag-table-marker))
-		  (save-excursion
-		    (set-buffer (marker-buffer Info-tag-table-marker))
-		    (goto-char m)
-		    (setq foun (re-search-forward regexp nil t))
-		    (if foun
-			(setq guesspos (read (current-buffer))))
-		    (setq found-mode major-mode))
-		  (if foun
-		      ;; If this is an indirect file,
-		      ;; determine which file really holds this node
-		      ;; and read it in.
-		      (if (not (eq major-mode found-mode))
-			  (setq guesspos
-				(Info-read-subfile guesspos))))))
-	    ;; GUESSPOS is a byte offset into this file, generated in Perl by
-	    ;; makeinfo. In Lisp we work in character offsets.
-	    ;; An inclusive lower bound to the number of characters for a
-	    ;; given byte offset is (/ BYTE-OFFSET MAX_ICHAR_LEN).
-	    ;;
-	    ;; An alternative to the magic constant of 6 is the
-	    ;; following: (/ (integer-length (1- char-code-limit)) 5)
-	    (goto-char (- (/ guesspos 6) 1000))
-	    ;; Now search from our advised position (or from beg of buffer)
-	    ;; to find the actual node.
-	    (catch 'foo
-	      (while (search-forward "\n\^_" nil t)
-		(forward-line 1)
-		(let ((beg (point)))
-		  (forward-line 1)
-		  (if (re-search-backward regexp beg t)
-		      (throw 'foo t))))
-	      (setq found nil)
-	      (let ((bufs (delete* nil (mapcar 'get-file-buffer
-					    Info-annotations-path)))
-		    (pattern (if (string-match "\\`<<.*>>\\'" qnode) qnode
-			       (format "\"%s\"\\|<<%s>>" qnode qnode)))
-		    (pat2 (concat "------ *File: *\\([^ ].*[^ ]\\) *Node: "
-				  "*\\([^ ].*[^ ]\\) *Line: *\\([0-9]+\\)"))
-		    (afile nil) anode aline)
-		(while (and bufs (not anode))
-		  (save-excursion
-		    (set-buffer (car bufs))
-		    (goto-char (point-min))
-		    (if (re-search-forward pattern nil t)
-			(if (re-search-backward pat2 nil t)
-			    (setq afile (buffer-substring (match-beginning 1)
-							  (match-end 1))
-				  anode (buffer-substring (match-beginning 2)
-							  (match-end 2))
-				  aline (string-to-int
-					 (buffer-substring (match-beginning 3)
-							   (match-end 3)))))))
-		  (setq bufs (cdr bufs)))
-		(if anode
-		    (Info-find-node afile anode t nil aline)
-		  (if tryfile
-		      (condition-case nil
-			  (Info-find-node nodename "Top" t)
-			(error nil)))))
-	      (or Info-current-node
-		  (error "No such node: %s" nodename)))
-	    (if found
-		(progn
-		  (Info-select-node)
-		  (goto-char (point-min))
-		  (if line (forward-line line)))))))
-    ;; If we did not finish finding the specified node,
-    ;; go back to the previous one.
+          (let (Info-tag)
+            (if (setq Info-tag (assoc* nodename
+                                       Info-tag-table :test #'equalp))
+                ;; If the tag information is available, use it to find the
+                ;; node or anchor, and to load the appropriate subfile if that
+                ;; is necessary.
+                (let* ((buffer-read-only buffer-read-only))
+                  (unless (equal (or Info-current-subfile Info-current-file)
+                                 (Info-tag-file-name Info-tag))
+                    (Info-load-subfile (Info-tag-file-name Info-tag)))
+                  (cond
+                    ((Info-tag-character-offset Info-tag)
+                     ;; We already have the character offset, go there.
+                     (goto-char (Info-tag-character-offset Info-tag))
+                     (if (eq 'node (Info-tag-type Info-tag))
+                         (Info-select-node-and-handle-line t)
+                       (Info-select-anchor-and-handle-line Info-tag)))
+                    ((eq 'node (Info-tag-type Info-tag))
+                     (if (Info-goto-node-from-tag-byte-offset Info-tag)
+                         (Info-select-node-and-handle-line t)))
+                       ;; If that failed, error below.
+                    (t
+                     ;; We have an anchor, something that is not marked in the
+                     ;; info file. Find the character offset of the previous
+                     ;; and the next node, since they are marked.
+                     (multiple-value-bind (previous next)
+                         (Info-get-previous-and-next-nodes Info-tag)
+                       ;; Load the character offsets for previous and next.
+                       (if (and next (not (Info-tag-character-offset next)))
+                           (Info-goto-node-from-tag-byte-offset next))
+                       (if (and previous
+                                (not (Info-tag-character-offset previous)))
+                           (Info-goto-node-from-tag-byte-offset previous))
+                       (if (and previous next
+                                (eql (- (Info-tag-byte-offset next)
+                                        (Info-tag-byte-offset previous))
+                                     (- (Info-tag-character-offset next)
+                                        (Info-tag-character-offset
+                                         previous))))
+                           (progn
+                             ;; We know the node does not have varying
+                             ;; character widths and so we can determine the
+                             ;; anchor character offset from its byte offset.
+                             (setf (Info-tag-character-offset Info-tag)
+                                   (+ (Info-tag-character-offset previous)
+                                      (- (Info-tag-byte-offset Info-tag)
+                                         (Info-tag-byte-offset previous))))
+                             (goto-char (Info-tag-character-offset Info-tag))
+                             (Info-select-anchor-and-handle-line Info-tag))
+                         ;; The character width varies.
+                         (let (encoded)
+                           (cond
+                             (previous
+                              ;; If there is a previous node, encode the text
+                              ;; following that using buffer-file-coding-system,
+                              ;; then decode that substring corresponding to the
+                              ;; byte difference between the nodes using
+                              ;; buffer-file-coding-system, and use that length
+                              ;; (added to the character offset of the previous
+                              ;; node) for this anchor's character offset.
+                              (setf encoded (encode-coding-string
+                                             (buffer-substring
+                                              (Info-tag-character-offset
+                                               previous)
+                                              (min (point-max)
+                                                   (+ 
+                                                    (Info-tag-character-offset
+                                                     previous)
+                                                    (- (Info-tag-byte-offset
+                                                        Info-tag)
+                                                       (Info-tag-byte-offset
+                                                        previous))
+                                                    16)))
+                                             buffer-file-coding-system)
+                                    (Info-tag-character-offset Info-tag)
+                                    (+ (Info-tag-character-offset previous)
+                                       (length
+                                        (decode-coding-string
+                                         (subseq encoded 0
+                                                 (- (Info-tag-byte-offset
+                                                     Info-tag)
+                                                    (Info-tag-byte-offset
+                                                     previous)))
+                                         buffer-file-coding-system))))
+                              (goto-char (Info-tag-character-offset Info-tag))
+                              (Info-select-anchor-and-handle-line Info-tag))
+                             (next 
+                              ;; If there is a next node, encode the text
+                              ;; preceding that using
+                              ;; buffer-file-coding-system, then decode that
+                              ;; substring corresponding to the byte
+                              ;; difference between the nodes using
+                              ;; buffer-file-coding-system, and subtract the
+                              ;; length of that from the next node's character
+                              ;; offset, to get the character offset of this
+                              ;; anchor.
+                              (setf encoded (encode-coding-string
+                                             (buffer-substring
+                                              (max
+                                               (point-min)
+                                               (-
+                                                (Info-tag-character-offset
+                                                 next)
+                                                (- (Info-tag-byte-offset next)
+                                                   (Info-tag-byte-offset
+                                                    Info-tag))
+                                                16))
+                                              (Info-tag-character-offset
+                                               next))
+                                             buffer-file-coding-system)
+                                    (Info-tag-character-offset Info-tag)
+                                    (- (Info-tag-character-offset next)
+                                       (length
+                                        (decode-coding-string
+                                         (subseq encoded 
+                                                 (- (- (Info-tag-byte-offset
+                                                        next)
+                                                       (Info-tag-byte-offset
+                                                        Info-tag))))
+                                         buffer-file-coding-system))))
+                              (goto-char (Info-tag-character-offset Info-tag))
+                              (Info-select-anchor-and-handle-line Info-tag))
+                             (t
+                              ;; If we don't have a previous or a next node
+                              ;; (which will be very unusual in an info file
+                              ;; with references) do a best-effort with the byte
+                              ;; offset.
+                              (goto-char (1+ (Info-tag-byte-offset Info-tag)))
+                              (setf (Info-tag-character-offset Info-tag)
+                                    (point))
+                              (Info-select-anchor-and-handle-line
+                               Info-tag))))))))))
+            ;; Tag table info not available, just search.
+            (if (Info-find-node-no-tag-table nodename)
+                (Info-select-node-and-handle-line t)
+              (let* ((qnode (regexp-quote nodename))
+                     (bufs (delete* nil (mapcar 'get-file-buffer
+                                                Info-annotations-path)))
+                     (pattern (if (string-match "\\`<<.*>>\\'" qnode) qnode
+                                (format "\"%s\"\\|<<%s>>" qnode qnode)))
+                     (pat2 (concat "------ *File: *\\([^ ].*[^ ]\\) *Node: "
+                                   "*\\([^ ].*[^ ]\\) *Line: *\\([0-9]+\\)"))
+                     (afile nil) anode aline)
+                (while (and bufs (not anode))
+                  (save-excursion
+                    (set-buffer (car bufs))
+                    (goto-char (point-min))
+                    (if (re-search-forward pattern nil t)
+                        (if (re-search-backward pat2 nil t)
+                            (setq afile (match-string 1)
+                                  anode (match-string 2)
+                                  aline (string-to-int (match-string 3))))))
+                  (setq bufs (cdr bufs)))
+                (if anode
+                    (Info-find-node afile anode t nil aline)
+                  (if tryfile
+                      (condition-case nil
+                          (Info-find-node nodename "Top" t)
+                        (error nil))))))))
+        (or Info-current-node
+            (error "No such node: %s" nodename)))
+    ;; If we did not finish finding the specified node, go back to the
+    ;; previous one.
     (or Info-current-node no-going-back
 	(let ((hist (car Info-history)))
 	  ;; The following is no longer safe with new Info-history system
@@ -1421,48 +1712,20 @@ invoke \"xemacs -batch -f Info-batch-rebuild-dir /usr/local/info\"."
       (setq p (cdr p)))
     (if p (file-name-nondirectory file) file)))
 
-(defun Info-read-subfile (nodepos)
-  (let (lastfilepos
-	lastfilename)
-    (save-excursion
-      (set-buffer (marker-buffer Info-tag-table-marker))
-      (goto-char (point-min))
-      (search-forward "\n\^_")
-      (forward-line 2)
-      (catch 'foo
-	(while (not (looking-at "\^_"))
-	  (if (not (eolp))
-	      (let ((start (point))
-		    thisfilepos thisfilename)
-		(search-forward ": ")
-		(setq thisfilename  (buffer-substring start (- (point) 2)))
-		(setq thisfilepos (read (current-buffer)))
-		;; read in version 19 stops at the end of number.
-		;; Advance to the next line.
-		(if (eolp)
-		    (forward-line 1))
-		(if (> thisfilepos nodepos)
-		    (throw 'foo t))
-		(setq lastfilename thisfilename)
-		(setq lastfilepos thisfilepos))
-	    (throw 'foo t)))))
-    (or (equal Info-current-subfile lastfilename)
-	(let ((buffer-read-only nil))
-	  (setq buffer-file-name nil
-		buffer-file-truename nil)
-	  (widen)
-	  (erase-buffer)
-	  (Info-insert-file-contents (Info-suffixed-file
-				      (expand-file-name lastfilename
-							(file-name-directory
-							 Info-current-file))
-				      'exact)
-				     t)
-	  (set-buffer-modified-p nil)
-	  (setq Info-current-subfile lastfilename)))
-    (goto-char (point-min))
-    (search-forward "\n\^_")
-    (+ (- nodepos lastfilepos) (point-min))))
+(defun Info-load-subfile (file-name)
+  "Load FILE-NAME, a subfile of `Info-current-file', into current buffer."
+  (let ((buffer-read-only nil))
+    (setq buffer-file-name nil
+	  buffer-file-truename nil)
+    (widen)
+    (erase-buffer)
+    (Info-insert-file-contents
+     (Info-suffixed-file (expand-file-name file-name
+					   (file-name-directory
+					    Info-current-file))
+			 'exact) t)
+    (setq Info-current-subfile file-name)
+    (set-buffer-modified-p nil)))
 
 (defun Info-all-case-regexp (str)
   (let ((regexp "")
@@ -1740,20 +2003,12 @@ annotation for any node of any file.  (See `a' and `x' commands.)"
 
 (defun Info-build-node-completions ()
   (or Info-current-file-completions
-      (let ((m Info-tag-table-marker)
-	    (compl (Info-build-annotation-completions)))
+      (let ((compl (Info-build-annotation-completions)))
 	(save-excursion
 	  (save-restriction
 	    (widen)
-	    (if (marker-buffer Info-tag-table-marker)
-		(progn
-		  (set-buffer (marker-buffer Info-tag-table-marker))
-		  (goto-char m)
-		  (while (re-search-forward "\nNode: \\(.*\\)\177" nil t)
-		    (setq compl
-			  (cons (list (buffer-substring (match-beginning 1)
-							(match-end 1)))
-				compl))))
+	    (if Info-tag-table
+                (setq compl (nconc compl Info-tag-table))
 	      (goto-char (point-min))
 	      (while (search-forward "\n\^_" nil t)
 		(forward-line 1)
@@ -1787,7 +2042,8 @@ annotation for any node of any file.  (See `a' and `x' commands.)"
           (onode Info-current-node)
           (ofile Info-current-file)
           (opoint (point))
-          (osubfile Info-current-subfile))
+          (osubfile Info-current-subfile)
+          (buffer-read-only buffer-read-only))
       (save-excursion
         (save-restriction
           (widen)
@@ -1799,32 +2055,10 @@ annotation for any node of any file.  (See `a' and `x' commands.)"
       (if (not found)
 	  ;; can only happen in subfile case -- else would have erred
           (unwind-protect
-              (let ((list ()))
-                (save-excursion
-		  (set-buffer (marker-buffer Info-tag-table-marker))
-		  (goto-char (point-min))
-		  (search-forward "\n\^_\nIndirect:")
-		  (save-restriction
-		    (narrow-to-region (point)
-				      (progn (search-forward "\n\^_")
-					     (1- (point))))
-		    (goto-char (point-min))
-		    (search-forward (concat "\n" osubfile ": "))
-		    (beginning-of-line)
-		    (while (not (eobp))
-		      (re-search-forward "\\(^.*\\): [0-9]+$")
-		      (goto-char (+ (match-end 1) 2))
-		      (setq list (cons (cons (read (current-buffer))
-					     (buffer-substring
-					      (match-beginning 1)
-					      (match-end 1)))
-				       list))
-		      (goto-char (1+ (match-end 0))))
-		    (setq list (nreverse list)
-			  list (cdr list))))
+              (let ((list Info-subfiles))
                 (while list
-                  (message "Searching subfile %s..." (cdr (car list)))
-                  (Info-read-subfile (car (car list)))
+                  (message "Searching subfile %s..." (car list))
+                  (Info-load-subfile (car list))
                   (setq list (cdr list))
                   (goto-char (point-min))
                   (if (re-search-forward regexp nil t)
@@ -1833,7 +2067,7 @@ annotation for any node of any file.  (See `a' and `x' commands.)"
                     (message "")
                   (signal 'search-failed (list regexp))))
             (if (not found)
-                (progn (Info-read-subfile opoint)
+                (progn (Info-load-subfile osubfile)
                        (goto-char opoint)
                        (Info-select-node)))))
       (widen)
@@ -3052,10 +3286,6 @@ e	Edit the contents of the current node."
   (make-local-variable 'Info-current-file)
   (make-local-variable 'Info-current-subfile)
   (make-local-variable 'Info-current-node)
-  (make-local-variable 'Info-tag-table-marker)
-  (setq Info-tag-table-marker (make-marker))
-  (make-local-variable 'Info-tag-table-buffer)
-  (setq Info-tag-table-buffer nil)
   (make-local-variable 'Info-current-file-completions)
   (make-local-variable 'Info-current-annotation-completions)
   (make-local-variable 'Info-index-alternatives)
@@ -3131,8 +3361,7 @@ Allowed only if variable `Info-enable-edit' is non-nil."
   (setq buffer-read-only t)
   ;; Make mode line update.
   (set-buffer-modified-p (buffer-modified-p))
-  (and (marker-buffer Info-tag-table-marker)
-       (buffer-modified-p)
+  (and Info-tag-table (buffer-modified-p)
        (message "Tags may have changed.  Use Info-tagify if necessary")))
 
 (defun Info-find-emacs-command-nodes (command)

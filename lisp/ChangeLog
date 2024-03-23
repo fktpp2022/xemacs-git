@@ -1,3 +1,33 @@
+2024-03-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Add support for anchors within #'Info-find-file-node, by means of
+	triangulating back from the previous or next nodes. Thank you for
+	the bug report, Mats Lidell.
+	* info.el:
+	* info.el (Info-tag-table-marker): Removed.
+	* info.el (Info-tag-table-buffer): Removed.
+	* info.el (Info-tag-table): New variable.
+	* info.el (Info-tag): New structure.
+	* info.el (Info-subfiles): New variable.
+	* info.el (Info-load-tag-table): New function. To be called at the
+	time of loading of an info file, parses the textual tag table into
+	a list documenting tag names, subfile names, and byte offsets.
+	* info.el (Info-find-file-node):
+	Revise to use the tag table parsed at the time the file is
+	loaded.
+	* info.el (Info-read-subfile): Removed. This no longer fits our
+	needs.
+	* info.el (Info-load-subfile): New. Similar function to previous,
+	explicitly takes the file name to be loaded. 
+	* info.el (Info-build-node-completions):
+	Use Info-tag-table when constructing the node completions.
+	* info.el (Info-search):
+	Use Info-subfiles when iterating through the subfiles when
+	searching.
+	* info.el (Info-mode):
+	* info.el (Info-cease-edit):
+	Remove use of variables that are no longer in use in these functions.
+
 2024-03-01  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	* term/xterm.el: Define Insert + Delete with modifiers in
