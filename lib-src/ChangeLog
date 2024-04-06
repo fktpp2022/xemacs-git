@@ -1,3 +1,8 @@
+2024-04-06  Richard Hopkins  <xemacs@unbit.co.uk>
+
+	* etags.c (sort_tags_file): Prevent crash when updating ctags file
+	for 0 tags.
+
 2024-02-16  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	Use Boolint instead of bool - the definition is from src/lisp.h.

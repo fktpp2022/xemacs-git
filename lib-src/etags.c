@@ -1640,7 +1640,7 @@ sort_tags_file (const char *sort_tagfile)
         pfatal (sort_tagfile);
       }
 
-   for (ii = 0; ii <= unique_counter; ii++)
+   for (ii = 0; line_strings_index > 0 && ii <= unique_counter; ii++)
       {
 	fputs (line_strings[ii], tag_f);
 	free (line_strings[ii]);
