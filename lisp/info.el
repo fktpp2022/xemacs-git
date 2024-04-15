@@ -969,6 +969,7 @@ current buffer."
 		    buffer-file-name nil
 		    buffer-file-truename nil)
 	      (erase-buffer)
+	      (kill-local-variable 'buffer-file-coding-system)
 	      (if (equal "dir" (file-name-nondirectory filename))
 		  (Info-insert-dir)
 		(Info-insert-file-contents filename t)
@@ -1714,7 +1715,10 @@ invoke \"xemacs -batch -f Info-batch-rebuild-dir /usr/local/info\"."
 
 (defun Info-load-subfile (file-name)
   "Load FILE-NAME, a subfile of `Info-current-file', into current buffer."
-  (let ((buffer-read-only nil))
+  (let ((buffer-read-only nil)
+        ;; Force the coding system determined for the superfile to apply to
+        ;; the subfile:
+        (coding-system-for-read buffer-file-coding-system))
     (setq buffer-file-name nil
 	  buffer-file-truename nil)
     (widen)
