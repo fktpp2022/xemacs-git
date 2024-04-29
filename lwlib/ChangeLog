@@ -1,3 +1,107 @@
+2024-04-29  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Use the newer _CONST_X_STRING X11 #define instead of the
+	xt-wrappers.h approach to suppressing warnings with string
+	constants used for X11 String types. Update various declarations
+	to String rather than char * to work better with this.
+
+	Remove the Xt_RESOURCE macro, which basically hid casts to
+	String.  Remove the Xt_SET_ARG macro for the same reason,
+
+	Keep the Xt_SET_VALUE, Xt_GET_VALUE convenience macros, they
+	remain of use. Put them in lwlib-internal.h.
+
+	Use BEGIN_C_DECLS/END_C_DECLS in lwlib-colors.h, xlwmenu.h,
+	xlwmenuP.h,  for a cleaner C++
+	build.
+
+	Remove xt-wrappers.h.
+
+	* lwlib-Xm.c: Motif does not respect _CONST_X_STRING, its headers
+	explicitly use char * despite that the man pages use String. Mark
+	casts used to work around this with MOTIF_STRING() so they can be
+	more easily corrected in the future if that becomes possible.
+
+	* lwlib-Xaw.c (xaw_update_scrollbar):
+	* lwlib-Xaw.c (xaw_update_one_widget):
+	* lwlib-Xaw.c (make_dialog):
+	* lwlib-Xaw.c (xaw_generic_callback):
+	* lwlib-Xaw.c (xaw_create_scrollbar):
+	* lwlib-Xaw.c (xaw_create_button):
+	* lwlib-Xaw.c (xaw_create_label):
+	* lwlib-Xaw.c (xaw_create_progress):
+	* lwlib-Xaw.c (xaw_create_text_field):
+	* lwlib-Xlw.c (xlw_create_menubar):
+	* lwlib-Xlw.c (xlw_create_popup_menu):
+	* lwlib-Xlw.c (xlw_create_scrollbar):
+	* lwlib-Xlw.c (xlw_update_scrollbar):
+	* lwlib-Xlw.c (xlw_tab_control_callback):
+	* lwlib-Xlw.c (xlw_create_tab_control):
+	* lwlib-Xlw.c (build_tabs_in_widget):
+	* lwlib-Xlw.c (xlw_create_clip_window):
+	* lwlib-Xm.c:
+	* lwlib-Xm.c (safe_strdup):
+	* lwlib-Xm.c (xm_update_label):
+	* lwlib-Xm.c (xm_update_progress):
+	* lwlib-Xm.c (xm_update_toggle):
+	* lwlib-Xm.c (xm_update_radiobox):
+	* lwlib-Xm.c (make_menu_in_widget):
+	* lwlib-Xm.c (update_one_menu_entry):
+	* lwlib-Xm.c (xm_update_text):
+	* lwlib-Xm.c (xm_update_text_field):
+	* lwlib-Xm.c (xm_update_scrollbar):
+	* lwlib-Xm.c (xm_update_one_widget):
+	* lwlib-Xm.c (make_dialog):
+	* lwlib-Xm.c (recenter_widget):
+	* lwlib-Xm.c (recycle_instance):
+	* lwlib-Xm.c (make_menubar):
+	* lwlib-Xm.c (make_scrollbar):
+	* lwlib-Xm.c (xm_create_button):
+	* lwlib-Xm.c (xm_create_progress):
+	* lwlib-Xm.c (xm_create_text_field):
+	* lwlib-Xm.c (xm_create_label):
+	* lwlib-Xm.c (xm_create_combo_box):
+	* lwlib-Xm.c (xm_popup_menu):
+	* lwlib-Xm.c (set_min_dialog_size):
+	* lwlib-colors.h:
+	* lwlib-internal.h:
+	* lwlib.c:
+	* lwlib.c (Widget lw_menubar_widget): No need to initialize to
+	NULL, done automatically.
+	* lwlib.c (lw_get_widget_value_for_widget):
+	* lwlib.c (lw_internal_update_other_instances):
+	* lwlib.h:
+	* xlwcheckbox.c:
+	* xlwcheckbox.c (res):
+	* xlwgauge.c:
+	* xlwgauge.c (res):
+	* xlwgauge.c (GaugeDestroy):
+	* xlwgauge.c (GaugeExpose):
+	* xlwgauge.c (GaugeSelect):
+	* xlwgauge.c (GaugeLoseSel):
+	* xlwgauge.c (MaxLabel):
+	* xlwmenu.c:
+	* xlwmenu.c (_CONST_X_STRING):
+	* xlwmenu.c (xlwMenuResources):
+	* xlwmenu.c (string_width):
+	* xlwmenu.c (string_width_u):
+	* xlwmenu.c (resource_widget_value):
+	* xlwmenu.c (string_draw_range):
+	* xlwmenu.c (string_draw_u):
+	* xlwmenu.h:
+	* xlwmenuP.h:
+	* xlwmenuP.h (MERCHANTABILITY):
+	* xlwradio.c:
+	* xlwscrollbar.c:
+	* xlwscrollbar.c (res):
+	* xlwscrollbar.c (resources):
+	* xlwtabs.c (res):
+	* xlwtabs.c (resources):
+	* xlwtabs.c (TabsSetValues):
+	* xlwtabs.c (TabsChangeManaged):
+	* xlwtabs.c (XawTabsSetTop):
+	* xt-wrappers.h: File removed.
+
 2023-05-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* XEmacs 21.5.35 "kohlrabi" is released.

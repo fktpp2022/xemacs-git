@@ -28,6 +28,7 @@ along with the Lucid Widget Library.  If not, see
 #include <X11/Xft/Xft.h>
 #endif
 
+BEGIN_C_DECLS
 
 /* Elements in the stack arrays. */
 typedef struct _window_state
@@ -148,5 +149,7 @@ typedef struct _XlwMenuClassRec
 
 /* Class pointer. */
 extern XlwMenuClassRec xlwMenuClassRec;
+
+END_C_DECLS
 
 #endif /* INCLUDED_xlwmenuP_h_ */

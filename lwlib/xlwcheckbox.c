@@ -37,7 +37,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include ATHENA_XawInit_h_
-#include "xt-wrappers.h"
 #include "xlwcheckboxP.h"
 
 
@@ -89,7 +88,8 @@ static char defaultTranslations[] =
 
 #define	offset(field)	XtOffsetOf(CheckboxRec, checkbox.field)
 #define res(name,_class,intrepr,type,member,extrepr,value) \
-  Xt_RESOURCE (name, _class, intrepr, type, offset(member), extrepr, value)
+  { name, _class, intrepr, sizeof (type), offset(member), extrepr, \
+      (XtPointer) value }
 static	XtResource	resources[] = {
   res (XtNtristate, XtCTristate, XtRBoolean, Boolean, tristate,
        XtRImmediate, FALSE),

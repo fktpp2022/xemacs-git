@@ -31,6 +31,7 @@ along with the Lucid Widget Library.  If not, see
 #include <unistd.h>
 #endif
 
+#define _CONST_X_STRING
 #include <X11/IntrinsicP.h>
 #include <X11/ShellP.h>
 #include <X11/StringDefs.h>
@@ -67,35 +68,30 @@ xlwMenuTranslations [] =
 <BtnUp>:	select()\n\
 ";
 
-extern Widget lw_menubar_widget;
-
 static XtResource
 xlwMenuResources[] =
 {
-/* The offset macro is a standard trick.  The remaining macros are an
-   experiment to compress redundancies in resource descriptions, and shut
-   up GCC 4.3 (the String casts, which keep G++ from complaining about
-   implicit conversions from const char *). */
+/* The offset macro is a standard trick.  The remaining macros attempt
+   to compress redundancies in resource descriptions. */
 #define offset(field) XtOffset(XlwMenuWidget, menu.field)
 #define fontres(name,_class,repr,type,member,value) \
-  Xt_RESOURCE (name, _class, repr, type, offset(member), XtRString, value)
+  { name, _class, repr, sizeof (type), offset(member), XtRString, (XtPointer) value }
 #define mflres(name,cls,member,repr,value) \
-  Xt_RESOURCE (name, cls, XmRFontList, XmFontList, offset(member), repr, value)
+  { name, cls, XmRFontList, sizeof (XmFontList), offset(member), repr, (XtPointer) value }
 #define dimres(name,cls,repr,member,value) \
-  Xt_RESOURCE (name, cls, repr, Dimension, offset(member), XtRImmediate, value)
+  { name, cls, repr, sizeof (Dimension), offset(member), XtRImmediate, (XtPointer) value }
 #define boolres(nm,cls,member,val) \
-  Xt_RESOURCE (nm, cls, XtRBoolean, Boolean, offset(member), XtRImmediate, val)
+  { nm, cls, XtRBoolean, sizeof (Boolean), offset(member), XtRImmediate, (XtPointer) val }
 #define cbres(name,member,value)					  \
-  Xt_RESOURCE (name, XtCCallback, XtRCallback, XtPointer, offset(member), \
-	       XtRCallback, value)
+  { name, XtCCallback, XtRCallback, sizeof (XtPointer), offset(member), XtRCallback, (XtPointer) value }
 #define pixres(name,_class,member,repr,value) \
-  Xt_RESOURCE (name, _class, XtRPixel, Pixel, offset(member), repr, value)
+  { name, _class, XtRPixel, sizeof (Pixel), offset(member), repr, (XtPointer) value }
 #define fgpixres(name,_class,member) \
   pixres (name, _class, member, XtRString, "XtDefaultForeground")
 #define nullpixres(name,_class,member) \
   pixres (name, _class, member, XtRImmediate, -1)
 #define pmres(name,cls,member) \
-  Xt_RESOURCE (name, cls, XtRPixmap, Pixmap, offset(member), XtRImmediate, None)
+  { name, cls, XtRPixmap, sizeof (Pixmap), offset(member), XtRImmediate, (XtPointer) None }
 
 #if defined(NEED_MOTIF) && !defined(HAVE_XFT_MENUBARS)
   /* There are three font list resources, so that we can accept either of
@@ -154,12 +150,12 @@ xlwMenuResources[] =
 
   cbres (XtNopen, open, NULL),
   cbres (XtNselect, select, NULL),
-  Xt_RESOURCE (XtNmenu, XtCMenu, XtRPointer, XtPointer, offset(contents),
-	       XtRImmediate, NULL),
-  Xt_RESOURCE (XtNcursor, XtCCursor, XtRCursor, Cursor, offset(cursor_shape),
-	       XtRString, "right_ptr"),
-  Xt_RESOURCE (XtNhorizontal, XtCHorizontal, XtRInt, int, offset(horizontal),
-	       XtRImmediate, True),
+  { XtNmenu, XtCMenu, XtRPointer, sizeof (XtPointer), offset(contents), 
+	       XtRImmediate, (XtPointer) NULL },
+  { XtNcursor, XtCCursor, XtRCursor, sizeof (Cursor), offset(cursor_shape), 
+	       XtRString, (XtPointer) "right_ptr" },
+  { XtNhorizontal, XtCHorizontal, XtRInt, sizeof (int), offset(horizontal), 
+	       XtRImmediate, (XtPointer) True },
   boolres (XtNuseBackingStore, XtCUseBackingStore, use_backing_store, False),
   boolres (XtNbounceDown,      XtCBounceDown,      bounce_down,       True),
   boolres (XtNresourceLabels,  XtCResourceLabels,  lookup_labels,     False),
@@ -250,21 +246,6 @@ WidgetClass xlwMenuWidgetClass = (WidgetClass) &xlwMenuClassRec;
 extern int lw_menu_accelerate;
 
 /* Utilities */
-#if 0 /* Apparently not used anywhere */
-
-static char *
-safe_strdup (char *s)
-{
-  char *result;
-  if (! s) return 0;
-  result = (char *) malloc (strlen (s) + 1);
-  if (! result)
-    return 0;
-  strcpy (result, s);
-  return result;
-}
-
-#endif /* 0 */
 
 static void
 push_new_stack (XlwMenuWidget mw, widget_value *val)
@@ -332,7 +313,7 @@ string_width (XlwMenuWidget mw,
 #if defined(NEED_MOTIF) && !defined(HAVE_XFT_MENUBARS)
 	      XmString s
 #else
-	      char *s
+	      String s
 #endif
 	      )
 {
@@ -384,16 +365,19 @@ initialize_massaged_resource_char (void)
 static int
 string_width_u (XlwMenuWidget mw,
 #if defined(NEED_MOTIF) && !defined(HAVE_XFT_MENUBARS)
-	      XmString string
+                XmString string
 #else
-	      char *string
+                String string
 #endif
 	      )
 {
 #if defined(NEED_MOTIF) && !defined(HAVE_XFT_MENUBARS)
   Dimension width, height;
   XmString newstring;
+  char *chars;
+  char zero = '\0';
 #else
+  const char *chars;
 # ifdef USE_XFONTSET
   XRectangle ri, rl;
 # else /* ! USE_XFONTSET */
@@ -407,13 +391,12 @@ string_width_u (XlwMenuWidget mw,
 #endif
   char* newchars;
   int charslength;
-  char *chars;
   int i, j;
 
 #if defined(NEED_MOTIF) && !defined(HAVE_XFT_MENUBARS)
-  chars = "";
+  chars = &zero;
   if (!XmStringGetLtoR (string, XmFONTLIST_DEFAULT_TAG, &chars))
-    chars = "";
+    chars = &zero;
 #else
   chars = string;
 #endif
@@ -634,7 +617,8 @@ resource_widget_value (XlwMenuWidget mw, widget_value *val)
 	     resource. */
 	  if (val->value)
 	    {
-	      char named_name[1024];
+	      char *named_name = (char *) alloca (strlen (massaged_name)
+                                                  + sizeof ("Named"));
 	      sprintf (named_name, "%sNamed", massaged_name);
 	      XtGetSubresources ((Widget) mw,
 				 (XtPointer) &resourced_name,
@@ -723,7 +707,7 @@ xlw_create_localized_xmstring (Widget w,
 
 #else /* !Motif */
 
-static char*
+static String
 resource_widget_value (XlwMenuWidget mw, widget_value *val)
 {
   if (!val->toolkit_data)
@@ -755,7 +739,7 @@ resource_widget_value (XlwMenuWidget mw, widget_value *val)
 	}
       val->free_toolkit_data = True;
     }
-  return (char *) val->toolkit_data;
+  return (String) val->toolkit_data;
 }
 
 #endif /* !Motif */
@@ -842,7 +826,7 @@ string_draw_range (
 #else
 	GC gc,
 #endif
-	char *string,
+	const char *string,
 	int start,
 	int end
 )
@@ -850,13 +834,15 @@ string_draw_range (
 #if defined(NEED_MOTIF) && !defined(HAVE_XFT_MENUBARS)
 	Dimension width, height;
 	XmString newstring;
-	int c;
+        char *staging;
 
 	if (end <= start)
 		return 0;
-	c = string[end];
-	string[end] = '\0';
-	newstring = XmStringLtoRCreate (&string[start], XmFONTLIST_DEFAULT_TAG);
+        staging = (char *) alloca ((end - start) + 1);
+        memcpy (staging, string + start, end - start);
+        staging[end - start] = '\0';
+
+	newstring = XmStringLtoRCreate (staging, XmFONTLIST_DEFAULT_TAG);
 	XmStringDraw (
 		XtDisplay (mw), window,
 		mw->menu.font_list,
@@ -869,7 +855,7 @@ string_draw_range (
 	);
 	XmStringExtent (mw->menu.font_list, newstring, &width, &height);
 	XmStringFree (newstring);
-	string[end] = c;
+
 	return width;
 #else
 # ifdef USE_XFONTSET
@@ -944,19 +930,19 @@ string_draw_u (XlwMenuWidget mw,
 #if defined(NEED_MOTIF) && !defined(HAVE_XFT_MENUBARS)
 	       XmString string
 #else
-	       char *string
+	       String string
 #endif
 )
 {
   int i, s = 0;
-  char *chars;
 
 #if defined(NEED_MOTIF) && !defined(HAVE_XFT_MENUBARS)
-  chars = "";
-  if (!XmStringGetLtoR (string, XmFONTLIST_DEFAULT_TAG, &chars))
-    chars = "";
+  char zero = '\0';
+  char *chars = &zero;
+  if (!XmStringGetLtoR (string, XmFONTLIST_DEFAULT_TAG, (char **) (&chars)))
+    chars = &zero;
 #else
-  chars = string;
+  const char *chars = string;
 #endif
   for (i=0; chars[i]; ++i) {
       if (chars[i] == '%' && chars[i+1] == '_') {

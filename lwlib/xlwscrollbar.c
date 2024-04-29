@@ -78,7 +78,7 @@ along with the Lucid Widget Library.  If not, see
 #include <X11/bitmaps/gray>
 
 #include "lwlib-colors.h"
-#include "xt-wrappers.h"
+#include "lwlib.h"
 
 #include "xlwscrollbarP.h"
 #include "xlwscrollbar.h"
@@ -117,7 +117,7 @@ typedef enum
 static XtResource resources[] = {
 #define offset(field) XtOffset(XlwScrollBarWidget, field)
 #define res(name,_class,intrepr,type,member,extrepr,value) \
-  Xt_RESOURCE (name, _class, intrepr, type, offset(sb.member), extrepr, value)
+  { name, _class, intrepr, sizeof (type), offset(sb.member), extrepr, (XtPointer) value }
 
   res (XmNforeground, XmCForeground, XtRPixel, Pixel, 
        foreground,  XtRImmediate, XtDefaultForeground),
@@ -137,8 +137,8 @@ static XtResource resources[] = {
   res (XmNshadowThickness, XmCShadowThickness, XtRInt, int,
        shadowThickness, XtRImmediate, 2),
 
-  Xt_RESOURCE (XmNborderWidth, XmCBorderWidth, XtRDimension, Dimension,
-	       offset(core.border_width), XtRImmediate, 0),
+  { XmNborderWidth, XmCBorderWidth, XtRDimension, sizeof (Dimension), 
+	       offset(core.border_width), XtRImmediate, (XtPointer) 0 },
 
   res (XmNshowArrows, XmCShowArrows, XtRBoolean, Boolean, showArrows,
        XtRImmediate, True),

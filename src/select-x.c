@@ -329,7 +329,10 @@ hack_motif_clipboard_selection (Atom selection_atom,
       }
 #endif /* MULE */
 
-      fmh = XmStringCreateLtoR ("Clipboard", XmSTRING_DEFAULT_CHARSET);
+      /* XmStringCreateLtoR() (through its implementation,
+         XmStringLtoRCreate()) copies TEXT but does not modify it, this cast
+         is safe. */
+      fmh = XmStringCreateLtoR ((char *) "Clipboard", XmSTRING_DEFAULT_CHARSET);
       while (ClipboardSuccess !=
 	     XmClipboardStartCopy (display, selecting_window, fmh, thyme,
 #ifdef MOTIF_INCREMENTAL_CLIPBOARDS_WORK
@@ -341,7 +344,8 @@ hack_motif_clipboard_selection (Atom selection_atom,
 	;
       XmStringFree (fmh);
       while (ClipboardSuccess !=
-	     XmClipboardCopy (display, selecting_window, itemid, encoding,
+	     XmClipboardCopy (display, selecting_window, itemid,
+                              (char *) encoding,
 #ifdef MOTIF_INCREMENTAL_CLIPBOARDS_WORK
 			      /* O'Reilly examples say size can be 0,
 				 but this clearly is not the case. */

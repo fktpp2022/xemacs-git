@@ -87,7 +87,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <X11/Vendor.h>
 #include <X11/VendorP.h>
 #include "EmacsShellP.h"
-#include "../lwlib/xt-wrappers.h"
 
 #define ABORT abort
 
@@ -256,11 +255,11 @@ update_size_hints_internal (EMACS_SHELL_WIDGET w,
   printf ("  base size set to: %d %d\n", base_width, base_height);
   fflush (stdout);
 #endif
-  Xt_SET_ARG(al [0], XtNbaseWidth, base_width);
-  Xt_SET_ARG(al [1], XtNbaseHeight, base_height);
-  Xt_SET_ARG(al [2], XtNminWidth, base_width +
+  XtSetArg(al [0], XtNbaseWidth, base_width);
+  XtSetArg(al [1], XtNbaseHeight, base_height);
+  XtSetArg(al [2], XtNminWidth, base_width +
 	     cell_width * w->emacs_shell.min_width_cells);
-  Xt_SET_ARG(al [3], XtNminHeight, base_height +
+  XtSetArg(al [3], XtNminHeight, base_height +
 	     cell_height * w->emacs_shell.min_height_cells);
   XtSetValues ((Widget) w, al, 4);
 }

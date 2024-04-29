@@ -30,7 +30,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <Xm/RowColumn.h>
 #endif /* LWLIB_MENUBARS_MOTIF */
 #include "compiler.h"
-#include "../lwlib/xt-wrappers.h"
 
 /* For I, Emacs, am a kind god.  Unlike the goddess Athena and the
    Titan Motif, I require no ritual sacrifices to placate the lesser
@@ -39,7 +38,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 static XtResource resources[] = {
 #define offset(field) XtOffset(EmacsManagerWidget, emacs_manager.field)
 #define res(name,_class,intrepr,size,member,extrepr,value) \
-  Xt_RESOURCE (name, _class, intrepr, size, offset(member), extrepr, value)
+  { name, _class, intrepr, sizeof (size), offset(member), extrepr,      \
+    (XtPointer) value }
   res (XtNresizeCallback, XtCCallback, XtRCallback, XtCallbackList,
        resize_callback, XtRImmediate, 0),
   res (XtNqueryGeometryCallback, XtCCallback, XtRCallback, XtCallbackList,

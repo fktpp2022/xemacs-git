@@ -144,7 +144,7 @@ static	XtAccelerators	defaultAccelerators ; /* #### Never used */
 static XtResource resources[] = {
 #define	offset(field)	XtOffsetOf(TabsRec, tabs.field)
 #define res(name,_class,intrepr,type,member,extrepr,value) \
-  Xt_RESOURCE (name, _class, intrepr, type, offset(member), extrepr, value)
+  { name, _class, intrepr, sizeof (type), offset(member), extrepr, (XtPointer) value }
 
   res (XtNselectInsensitive, XtCSelectInsensitive, XtRBoolean, Boolean, 
        selectInsensitive,  XtRImmediate, True),
@@ -164,8 +164,9 @@ static XtResource resources[] = {
        internalWidth,  XtRImmediate, 4),
   res (XtNinternalHeight, XtCHeight, XtRDimension, Dimension, 
        internalHeight,  XtRImmediate, 4),
-  Xt_RESOURCE (XtNborderWidth, XtCBorderWidth, XtRDimension, Dimension, 
-	       XtOffsetOf(RectObjRec,rectangle.border_width), XtRImmediate, 0),
+  { XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof (Dimension), 
+    XtOffsetOf(RectObjRec,rectangle.border_width), XtRImmediate,
+    (XtPointer) 0 },
   res (XtNtopWidget, XtCTopWidget, XtRWidget, Widget, 
        topWidget,  XtRImmediate, NULL),
   res (XtNcallback, XtCCallback, XtRCallback, XtPointer, 
@@ -180,9 +181,9 @@ static XtResource resources[] = {
        bot_shadow_contrast,  XtRImmediate, 40),
   res (XtNinsensitiveContrast, XtCInsensitiveContrast, XtRInt, int, 
        insensitive_contrast,  XtRImmediate, 33),
-  Xt_RESOURCE (XtNaccelerators, XtCAccelerators, XtRAcceleratorTable,
-	       XtTranslations, XtOffsetOf(TabsRec,core.accelerators),
-	       XtRString, accelTable),
+  { XtNaccelerators, XtCAccelerators, XtRAcceleratorTable,
+    sizeof (XtTranslations), XtOffsetOf(TabsRec, core.accelerators), 
+    XtRString, (XtPointer) accelTable },
 #undef	offset
 #undef  res
 };
@@ -193,7 +194,7 @@ static XtResource resources[] = {
 static XtResource tabsConstraintResources[] = {
 #define	offset(field)	XtOffsetOf(TabsConstraintsRec, tabs.field)
 #define res(name,_class,intrepr,type,member,extrepr,value) \
-  Xt_RESOURCE (name, _class, intrepr, type, offset(member), extrepr, value)
+  { name, _class, intrepr, sizeof (type), offset(member), extrepr, (XtPointer) value }
   res (XtNtabLabel, XtCLabel, XtRString, String, label,  XtRString, NULL),
   res (XtNtabLeftBitmap, XtCLeftBitmap, XtRBitmap, Pixmap, left_bitmap,
        XtRImmediate, None),
@@ -750,8 +751,8 @@ TabsSetValues(Widget current, Widget UNUSED (request), Widget new_,
 
 	    XRaiseWindow(XtDisplay(w), XtWindow(w)) ;
 #ifdef	NEED_MOTIF
-	    XtVaSetValues(curtw->tabs.topWidget, XmNtraversalOn, False, 0) ;
-	    XtVaSetValues(w, XmNtraversalOn, True, 0) ;
+	    XtVaSetValues(curtw->tabs.topWidget, XmNtraversalOn, False, NULL) ;
+	    XtVaSetValues(w, XmNtraversalOn, True, NULL) ;
 #endif
 
 	    if( tab->tabs.row != (int) tw->tabs.numRows-1 )
@@ -1219,11 +1220,11 @@ TabsChangeManaged(Widget w)
         --i >= 0;
 	++childP)
     {
-      XtVaSetValues(*childP, XmNtraversalOn, False, 0) ;
+      XtVaSetValues(*childP, XmNtraversalOn, False, NULL) ;
     }
 
     if( tw->tabs.topWidget != NULL )
-      XtVaSetValues(tw->tabs.topWidget, XmNtraversalOn, True, 0) ;
+      XtVaSetValues(tw->tabs.topWidget, XmNtraversalOn, True, NULL) ;
 #endif
 }
 
@@ -1474,8 +1475,8 @@ XawTabsSetTop(Widget w, Bool callCallbacks)
 
 	XRaiseWindow(XtDisplay(w), XtWindow(w)) ;
 #ifdef	NEED_MOTIF
-	XtVaSetValues(oldtop, XmNtraversalOn, False, 0) ;
-	XtVaSetValues(w, XmNtraversalOn, True, 0) ;
+	XtVaSetValues(oldtop, XmNtraversalOn, False, NULL) ;
+	XtVaSetValues(w, XmNtraversalOn, True, NULL) ;
 #endif
 
 	tab = (TabsConstraints) w->core.constraints ;

@@ -387,6 +387,20 @@ extern struct console_type *x_console_type;
 
 void x_get_frame_text_position (struct frame *);
 
+/* Convenience macros for getting/setting one resource value. */
+
+#define Xt_SET_VALUE(widget, resource, value) do {	\
+  Arg al__;						\
+  XtSetArg (al__, resource, value);			\
+  XtSetValues (widget, &al__, 1);			\
+} while (0)
+
+#define Xt_GET_VALUE(widget, resource, location) do {	\
+  Arg al__;						\
+  XtSetArg (al__, resource, location);		\
+  XtGetValues (widget, &al__, 1);			\
+} while (0)
+
 #endif /* HAVE_X_WINDOWS */
 
 #endif /* INCLUDED_console_x_impl_h_ */

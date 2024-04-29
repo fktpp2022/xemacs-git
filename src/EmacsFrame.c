@@ -41,7 +41,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <X11/Xmu/CharSet.h>
 #include "EmacsFrameP.h"
 #include "EmacsManager.h"	/* for EmacsManagerChangeSize */
-#include "../lwlib/xt-wrappers.h"
 
 static void EmacsFrameClassInitialize (void);
 static void EmacsFrameInitialize (Widget, Widget, ArgList, Cardinal *);
@@ -60,7 +59,8 @@ emacs_Xt_mapping_action (Widget w, XEvent* event);
 	((Cardinal) (((char *) (&(((p_type)0)->field))) - ((char *)0)))
 #define offset(field) XtOffset (EmacsFrame, emacs_frame.field)
 #define res(name,_class,intrepr,type,member,extrepr,value) \
-  Xt_RESOURCE (name, _class, intrepr, type, offset(member), extrepr, value)
+  { name, _class, intrepr, sizeof (type), offset(member), extrepr, \
+      (XtPointer) value }
 static XtResource resources[] = {
   res (XtNgeometry, XtCGeometry, XtRString, String, geometry, XtRString, 0),
   res (XtNiconic, XtCIconic, XtRBoolean, Boolean, iconic, XtRImmediate, False),
@@ -617,8 +617,8 @@ EmacsFrameSetCharSize (Widget widget, int columns, int rows)
 
   {
     Arg al [2];
-    Xt_SET_ARG (al [0], XtNwidth,  pixel_width);
-    Xt_SET_ARG (al [1], XtNheight, pixel_height);
+    XtSetArg (al [0], XtNwidth,  pixel_width);
+    XtSetArg (al [1], XtNheight, pixel_height);
     XtSetValues ((Widget) ew, al, countof (al));
   }
 }

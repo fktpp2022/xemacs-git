@@ -121,7 +121,7 @@ xlw_create_menubar (widget_instance* instance)
   Arg al [1];
   Widget widget;
   
-  Xt_SET_ARG (al [0], XtNmenu, instance->info->val);
+  XtSetArg (al [0], XtNmenu, instance->info->val);
   widget = XtCreateWidget (instance->info->name, xlwMenuWidgetClass,
 			   instance->parent, al, 1);
   XtAddCallback (widget, XtNopen,   pre_hook,  (XtPointer)instance);
@@ -138,8 +138,8 @@ xlw_create_popup_menu (widget_instance* instance)
   popup_shell = XtCreatePopupShell (instance->info->name,
 				    overrideShellWidgetClass,
 				    instance->parent, NULL, 0);
-  Xt_SET_ARG (al [0], XtNmenu, instance->info->val);
-  Xt_SET_ARG (al [1], XtNhorizontal, False);
+  XtSetArg (al [0], XtNmenu, instance->info->val);
+  XtSetArg (al [1], XtNhorizontal, False);
   widget = XtCreateManagedWidget ("popup", xlwMenuWidgetClass,
 				  popup_shell, al, 2);
   XtAddCallback (widget, XtNselect, pick_hook, (XtPointer)instance);
@@ -233,20 +233,20 @@ xlw_create_scrollbar (widget_instance *instance, int vertical)
 
   callbacks[0].closure  = (XtPointer) instance;
 
-  Xt_SET_ARG (al[ac], XmNminimum,       1); ac++;
-  Xt_SET_ARG (al[ac], XmNmaximum, INT_MAX); ac++;
-  Xt_SET_ARG (al[ac], XmNincrement,     1); ac++;
-  Xt_SET_ARG (al[ac], XmNpageIncrement, 1); ac++;
-  Xt_SET_ARG (al[ac], XmNorientation, (vertical ? XmVERTICAL : XmHORIZONTAL)); ac++;
+  XtSetArg (al[ac], XmNminimum,       1); ac++;
+  XtSetArg (al[ac], XmNmaximum, INT_MAX); ac++;
+  XtSetArg (al[ac], XmNincrement,     1); ac++;
+  XtSetArg (al[ac], XmNpageIncrement, 1); ac++;
+  XtSetArg (al[ac], XmNorientation, (vertical ? XmVERTICAL : XmHORIZONTAL)); ac++;
 
-  Xt_SET_ARG (al[ac], XmNdecrementCallback,	callbacks); ac++;
-  Xt_SET_ARG (al[ac], XmNdragCallback,		callbacks); ac++;
-  Xt_SET_ARG (al[ac], XmNincrementCallback,	callbacks); ac++;
-  Xt_SET_ARG (al[ac], XmNpageDecrementCallback,	callbacks); ac++;
-  Xt_SET_ARG (al[ac], XmNpageIncrementCallback,	callbacks); ac++;
-  Xt_SET_ARG (al[ac], XmNtoBottomCallback,	callbacks); ac++;
-  Xt_SET_ARG (al[ac], XmNtoTopCallback,		callbacks); ac++;
-  Xt_SET_ARG (al[ac], XmNvalueChangedCallback,	callbacks); ac++;
+  XtSetArg (al[ac], XmNdecrementCallback,	callbacks); ac++;
+  XtSetArg (al[ac], XmNdragCallback,		callbacks); ac++;
+  XtSetArg (al[ac], XmNincrementCallback,	callbacks); ac++;
+  XtSetArg (al[ac], XmNpageDecrementCallback,	callbacks); ac++;
+  XtSetArg (al[ac], XmNpageIncrementCallback,	callbacks); ac++;
+  XtSetArg (al[ac], XmNtoBottomCallback,	callbacks); ac++;
+  XtSetArg (al[ac], XmNtoTopCallback,		callbacks); ac++;
+  XtSetArg (al[ac], XmNvalueChangedCallback,	callbacks); ac++;
 
   return XtCreateWidget (instance->info->name, xlwScrollBarWidgetClass,
 			 instance->parent, al, ac);
@@ -277,15 +277,15 @@ xlw_update_scrollbar (widget_instance *UNUSED (instance), Widget widget,
       Arg al [4];
 
       /* First size and position the scrollbar widget. */
-      Xt_SET_ARG (al [0], XtNx,      data->scrollbar_x);
-      Xt_SET_ARG (al [1], XtNy,      data->scrollbar_y);
-      Xt_SET_ARG (al [2], XtNwidth,  data->scrollbar_width);
-      Xt_SET_ARG (al [3], XtNheight, data->scrollbar_height);
+      XtSetArg (al [0], XtNx,      data->scrollbar_x);
+      XtSetArg (al [1], XtNy,      data->scrollbar_y);
+      XtSetArg (al [2], XtNwidth,  data->scrollbar_width);
+      XtSetArg (al [3], XtNheight, data->scrollbar_height);
       XtSetValues (widget, al, 4);
 
       /* Now size the scrollbar's slider. */
-      Xt_SET_ARG (al [0], XmNsliderSize, &widget_sliderSize);
-      Xt_SET_ARG (al [1], XmNvalue,      &widget_val);
+      XtSetArg (al [0], XmNsliderSize, &widget_sliderSize);
+      XtSetArg (al [1], XmNvalue,      &widget_val);
       XtGetValues (widget, al, 2);
 
       percent = (double) data->slider_size /
@@ -339,7 +339,7 @@ xlw_tab_control_callback (Widget w, XtPointer client_data, XtPointer call_data)
   /* call data is the topmost widget */
   widget_instance* instance = (widget_instance*)client_data;
   Widget top = (Widget)call_data;
-  char *name = XtName (top);
+  String name = XtName (top);
   widget_value* widget_val;
   XtPointer widget_arg;
   LWLIB_ID id;
@@ -381,9 +381,9 @@ xlw_create_tab_control (widget_instance *instance)
   Widget tab = 0;
   widget_value* val = instance->info->val;
 
-  Xt_SET_ARG (al [ac], XtNsensitive, val->enabled);		ac++;
-  Xt_SET_ARG (al [ac], XtNmappedWhenManaged, False);		ac++;
-  Xt_SET_ARG (al [ac], XtNorientation, XtorientHorizontal);	ac++;
+  XtSetArg (al [ac], XtNsensitive, val->enabled);		ac++;
+  XtSetArg (al [ac], XtNmappedWhenManaged, False);		ac++;
+  XtSetArg (al [ac], XtNorientation, XtorientHorizontal);	ac++;
 
   /* add any args the user supplied for creation time */
   lw_add_value_args_to_args (val, al, &ac);
@@ -405,7 +405,7 @@ static void build_tabs_in_widget (widget_instance* UNUSED (instance),
   Arg al[1];
 
   /* Children are always invisible, don't permit resizing. */
-  Xt_SET_ARG (al[0], XtNresizable, False);
+  XtSetArg (al[0], XtNresizable, False);
 
   for (cur = val; cur; cur = cur->next)
     {
@@ -478,8 +478,8 @@ xlw_create_clip_window (widget_instance *instance)
   Widget clip = 0;
   widget_value* val = instance->info->val;
 
-  Xt_SET_ARG (al [ac], XtNmappedWhenManaged, False);	ac++;
-  Xt_SET_ARG (al [ac], XtNsensitive, True);		ac++;
+  XtSetArg (al [ac], XtNmappedWhenManaged, False);	ac++;
+  XtSetArg (al [ac], XtNsensitive, True);		ac++;
   /* add any args the user supplied for creation time */
   lw_add_value_args_to_args (val, al, &ac);
 

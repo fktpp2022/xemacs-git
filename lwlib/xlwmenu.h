@@ -91,10 +91,14 @@ along with the Lucid Widget Library.  If not, see
 # define XmRVerticalDimension	"VerticalDimension"
 #endif
 
+BEGIN_C_DECLS
+
 typedef struct _XlwMenuRec *XlwMenuWidget;
 typedef struct _XlwMenuClassRec *XlwMenuWidgetClass;
 
 extern WidgetClass xlwMenuWidgetClass;
+
+extern Widget lw_menubar_widget;
 
 void
 xlw_pop_up_menu (XlwMenuWidget mw, XButtonPressedEvent* event);
@@ -110,5 +114,7 @@ void xlw_display_menu (Time t);
 void xlw_kill_menus (widget_value *val);
 widget_value *xlw_get_entries (int allp);
 int xlw_menu_level (void);
+
+END_C_DECLS
 
 #endif /* INCLUDED_xlwmenu_h_ */

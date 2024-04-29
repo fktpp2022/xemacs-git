@@ -834,4 +834,6 @@ void free_gap_array (Gap_Array *ga);
 Bytecount gap_array_memory_usage (Gap_Array *ga, struct usage_stats *stats,
 				  Bytecount *marker_ancillary);
 
+END_C_DECLS
+
 #endif /* INCLUDED_array_h_ */

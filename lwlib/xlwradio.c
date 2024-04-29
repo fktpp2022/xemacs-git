@@ -53,7 +53,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <X11/StringDefs.h>
 #include <X11/Xmu/Misc.h>
 #include ATHENA_XawInit_h_
-#include "xt-wrappers.h"
 #include "xlwradioP.h"
 
 #define	BOX_SIZE	13

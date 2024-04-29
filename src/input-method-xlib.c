@@ -163,7 +163,7 @@ IMInstantiateCallback (Display *dpy, XPointer client_data,
 {
   struct device *d = (struct device *)client_data;
   XIM xim;
-  char *name, *class_;
+  String name, class_;
   XIMCallback ximcallback;
   Lisp_Object tail;
 
@@ -172,7 +172,8 @@ IMInstantiateCallback (Display *dpy, XPointer client_data,
     {
       xim_initted = True;
       XtGetApplicationNameAndClass (dpy, &name, &class_);
-      DEVICE_X_XIM (d) = xim = XOpenIM (dpy, XtDatabase (dpy), name, class_);
+      DEVICE_X_XIM (d) = xim = XOpenIM (dpy, XtDatabase (dpy),
+                                        (char *) name, (char *) class_);
 
       /* destroy callback for im */
       ximcallback.callback = (XIMProc) IMDestroyCallback;
@@ -284,8 +285,8 @@ XIM_init_frame (struct frame *f)
   XIC xic;
 
 #define res(name, class_, representation, field, default_value) 	\
-  Xt_RESOURCE (name, class_, representation, xic_vars.field,		\
-	       XtOffsetOf(xic_vars_t, field), XtRString, default_value)
+  { name, class_, representation, sizeof (xic_vars.field), \
+      XtOffsetOf(xic_vars_t, field), XtRString, (XtPointer) default_value }
 
   static XtResource resources[] =
   {
@@ -683,7 +684,7 @@ EmacsXtCvtStringToXIMStyles (
       XtAppWarningMsg(the_app_con, "wrongParameters", "cvtStringToXIMStyle",
                       "XtToolkitError",
                       buf, (String *)NULL, (Cardinal *)NULL);
-      new_from.addr = DefaultXIMStyles;
+      new_from.addr = (XPointer) DefaultXIMStyles;
       new_from.size = sizeof(DefaultXIMStyles);
       return EmacsXtCvtStringToXIMStyles (dpy, args, num_args,
                                           &new_from, toVal, converter_data);

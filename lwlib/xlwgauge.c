@@ -47,11 +47,11 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
+
 #include <X11/IntrinsicP.h>
 #include <X11/Xatom.h>
 #include <X11/StringDefs.h>
 #include ATHENA_XawInit_h_
-#include "xt-wrappers.h"
 #include "xlwgaugeP.h"
 #include <X11/Xmu/Atoms.h>
 #include <X11/Xmu/Drawing.h>
@@ -76,7 +76,8 @@ static	char	defaultTranslations[] =
 
 #define offset(field) XtOffsetOf(GaugeRec, gauge.field)
 #define res(name,_class,intrepr,type,member,extrepr,value) \
-  Xt_RESOURCE (name, _class, intrepr, type, offset(member), extrepr, value)
+  { name, _class, intrepr, sizeof (type), offset(member), extrepr, \
+      (XtPointer) value }
 static XtResource resources[] = {
     res (XtNvalue, XtCValue, XtRInt, int, value, XtRImmediate, 0),
     res (XtNminValue, XtCMinValue, XtRInt, int, v0, XtRImmediate, 0),
@@ -270,7 +271,7 @@ GaugeDestroy (Widget w)
 	GaugeWidget gw = (GaugeWidget)w;
 
 	if( gw->gauge.selstr != NULL )
-	  XtFree(gw->gauge.selstr) ;
+	  XtFree((char *) gw->gauge.selstr) ;
 
 	if( gw->gauge.selected != None )
 	  XtDisownSelection(w, gw->gauge.selected, CurrentTime) ;
@@ -453,7 +454,8 @@ GaugeExpose (Widget w,
 	/* draw labels */
 	if( gw->gauge.nlabels > 1 )
 	{
-	  char	label[20], *s = label ;
+	  char	label[20];
+          String s = label ;
 	  int	xlen, wd,h =0 ;
 
 	  if( gw->gauge.orientation == XtorientHorizontal )
@@ -610,9 +612,10 @@ GaugeSelect (Widget   w,
 	}
 	else
 	{
+          char *selstr = XtMalloc(4*sizeof(int)) ;
+	  sprintf(selstr, "%d", gw->gauge.value) ;
 	  gw->gauge.selected = TRUE ;
-	  gw->gauge.selstr = (String)XtMalloc(4*sizeof(int)) ;
-	  sprintf(gw->gauge.selstr, "%d", gw->gauge.value) ;
+	  gw->gauge.selstr = (String) selstr;
 	  GaugeExpose(w,0,0) ;
 	}
 }
@@ -708,7 +711,7 @@ GaugeLoseSel (Widget w,
 	Window	win = XtWindow(w) ;
 
 	if( gw->gauge.selstr != NULL ) {
-	  XtFree(gw->gauge.selstr) ;
+	  XtFree((char *) gw->gauge.selstr) ;
 	  gw->gauge.selstr = NULL ;
 	}
 
@@ -910,7 +913,8 @@ MaxLabel (GaugeWidget	gw,
 	  Dimension	*w0,	/* width of first label */
 	  Dimension	*w1)	/* width of last label */
 {
-	char	lstr[80], *lbl ;
+	char	lstr[80];
+        String lbl;
 	int	w ;
 	XFontStruct *font = gw->label.font ;
 	int	i ;
@@ -930,7 +934,10 @@ MaxLabel (GaugeWidget	gw,
 	  for(i=0; i<gw->gauge.nlabels; ++i)
 	  {
 	    if( gw->gauge.labels == NULL )	/* numeric labels */
-	      sprintf(lbl = lstr,"%d", v0 + i*dv/n) ;
+              {
+                sprintf(lstr,"%d", v0 + i*dv/n) ;
+                lbl = lstr;
+              }
 	    else
 	      lbl = gw->gauge.labels[i] ;
 

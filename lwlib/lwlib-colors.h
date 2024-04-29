@@ -25,7 +25,11 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #ifndef INCLUDED_lwlib_colors_h_
 #define INCLUDED_lwlib_colors_h_
 
+#include "lwlib.h"
+
 #include <X11/Xlib.h>
+
+BEGIN_C_DECLS
 
 /* WIDGET is an Xt widget, VISUAL and DEPTH are return values */
 void visual_info_from_widget (Widget widget, Visual **visual, int *depth);
@@ -55,5 +59,7 @@ XftColor xft_convert_color (Display *dpy, Colormap cmap, Visual *visual,
 XftColor xft_convert_color_1 (Display *dpy, Colormap cmap, Visual *visual,
 			    XColor *pcolor, int dim);
 #endif /* HAVE_XFT */
+
+END_C_DECLS
 
 #endif /* INCLUDED_lwlib_colors_h_ */

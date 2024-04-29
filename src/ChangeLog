@@ -1,3 +1,55 @@
+2024-04-29  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Use the newer _CONST_X_STRING X11 #define instead of the
+	xt-wrappers.h approach to suppressing warnings with string
+	constants used for X11 String types. Update various declarations
+	to String rather than char * to work better with this.
+
+	Remove the Xt_RESOURCE macro, which basically hid casts to
+	String.  Remove the Xt_SET_ARG macro for the same reason,
+
+	Keep the Xt_SET_VALUE, Xt_GET_VALUE convenience macros, they
+	remain of use. Put them in console-x-impl.h.
+
+	Use BEGIN_C_DECLS/END_C_DECLS appropriately in  array.h,
+	EmacsManager.h, lisp.h for a cleaner C++ build.
+	
+	* EmacsFrame.c:
+	* EmacsFrame.c (res):
+	* EmacsFrame.c (EmacsFrameSetCharSize):
+	* EmacsManager.c:
+	* EmacsManager.c (res):
+	* EmacsManager.h:
+	* EmacsShell-sub.c:
+	* EmacsShell-sub.c (update_size_hints_internal):
+	* array.h:
+	* config.h.in:
+	* console-x-impl.h:
+	* device-x.c:
+	* device-x.c (emacs_options):
+	* device-x.c (sanity_check_geometry_resource):
+	* device-x.c (x_init_device):
+	* device-x.c (x_get_resource_prefix):
+	* frame-x.c:
+	* frame-x.c (x_wm_set_cell_size):
+	* frame-x.c (x_wm_set_variable_size):
+	* frame-x.c (x_wm_store_class_hints):
+	* frame-x.c (x_set_frame_text_value):
+	* frame-x.c (x_initialize_frame_size):
+	* frame-x.c (x_create_widgets):
+	* frame-x.c (x_set_frame_icon):
+	* frame-x.c (x_set_frame_position):
+	* frame-x.c (x_update_frame_external_traits):
+	* glyphs-x.c (x_redisplay_widget):
+	* glyphs-x.c (x_widget_instantiate):
+	* glyphs-x.c (x_button_instantiate):
+	* input-method-xlib.c (IMInstantiateCallback):
+	* input-method-xlib.c (res):
+	* input-method-xlib.c (EmacsXtCvtStringToXIMStyles):
+	* lisp.h:
+	* menubar-x.c (make_dummy_xbutton_event):
+	* select-x.c (hack_motif_clipboard_selection):
+
 2024-02-15  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	* keymap.c (control_meta_superify): Restore 'static' as all uses

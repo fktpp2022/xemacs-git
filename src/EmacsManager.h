@@ -39,6 +39,10 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define XtCUserData "UserData"
 #endif
 
+#include "compiler.h"
+
+BEGIN_C_DECLS
+
 typedef struct _EmacsManagerClassRec *EmacsManagerWidgetClass;
 typedef struct _EmacsManagerRec *EmacsManagerWidget;
 extern WidgetClass emacsManagerWidgetClass;
@@ -56,5 +60,7 @@ typedef struct
 } EmacsManagerQueryGeometryStruct;
 
 void EmacsManagerChangeSize (Widget w, Dimension width, Dimension height);
+
+END_C_DECLS
 
 #endif /* INCLUDED_EmacsManager_h_ */

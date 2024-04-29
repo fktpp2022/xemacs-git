@@ -100,4 +100,17 @@ lw_get_widget_value_for_widget (widget_instance* instance, Widget w);
 
 widget_info *lw_get_widget_info (LWLIB_ID id);
 
+/* Convenience macros for getting/setting one resource value. */
+#define Xt_SET_VALUE(widget, resource, value) do {	\
+  Arg al__;						\
+  XtSetArg (al__, resource, value);			\
+  XtSetValues (widget, &al__, 1);			\
+} while (0)
+
+#define Xt_GET_VALUE(widget, resource, location) do {	\
+  Arg al__;						\
+  XtSetArg (al__, resource, location);		\
+  XtGetValues (widget, &al__, 1);			\
+} while (0)
+
 #endif /* INCLUDED_lwlib_internal_h_ */

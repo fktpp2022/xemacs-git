@@ -2992,8 +2992,6 @@ XFIXNUM_1 (Lisp_Object obj, const Ascbyte *file, int line)
     x = wrong_type_argument (Qfixnump, x);	\
 } while (0)
 
-END_C_DECLS
-
 /* -------------- properties of internally-formatted text ------------- */
 
 #include "text.h"
@@ -3352,7 +3350,6 @@ Lisp_Object make_weak_list (enum weak_list_type type);
 int finish_marking_weak_lists (void);
 void prune_weak_lists (void);
 
-END_C_DECLS
 
 /************************************************************************/
 /*	   Definitions of primitive Lisp functions and variables	*/
@@ -3464,6 +3461,8 @@ Lisp_Object,Lisp_Object,Lisp_Object
 #define DEFUN_6(a,b,c,d,e,f)	 DEFUN_5(a,b,c,d,e),	Lisp_Object f
 #define DEFUN_7(a,b,c,d,e,f,g)	 DEFUN_6(a,b,c,d,e,f),	Lisp_Object g
 #define DEFUN_8(a,b,c,d,e,f,g,h) DEFUN_7(a,b,c,d,e,f,g),Lisp_Object h
+
+END_C_DECLS
 
 /* WARNING: If you add defines here for higher values of max_args,
    make sure to also fix the clauses in PRIMITIVE_FUNCALL(),

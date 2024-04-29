@@ -75,21 +75,22 @@ Lisp_Object Vx_initial_argv_list; /* #### ugh! */
 
 Lisp_Object Vgc_cache_hash_table_test;
 
-/* Shut up G++ 4.3. */
+/* Shut up G++ 4.3. OPTION and RESOURCE are declared as char *, not
+   const char *, not String, in XrmOptionDescRec. */
 #define Xrm_ODR(option,resource,type,default) \
-  { (String) option, (String) resource, type, default }
+  { (char *) option, (char *) resource, type, (XPointer) default }
 
 static XrmOptionDescRec emacs_options[] =
 {
   Xrm_ODR ("-geometry", ".geometry", XrmoptionSepArg, NULL),
-  Xrm_ODR ("-iconic", ".iconic", XrmoptionNoArg, (String) "yes"),
+  Xrm_ODR ("-iconic", ".iconic", XrmoptionNoArg, "yes"),
 
   Xrm_ODR ("-internal-border-width", "*EmacsFrame.internalBorderWidth", XrmoptionSepArg, NULL),
   Xrm_ODR ("-ib",                    "*EmacsFrame.internalBorderWidth", XrmoptionSepArg, NULL),
   Xrm_ODR ("-scrollbar-width",       "*EmacsFrame.scrollBarWidth",      XrmoptionSepArg, NULL),
   Xrm_ODR ("-scrollbar-height",      "*EmacsFrame.scrollBarHeight",     XrmoptionSepArg, NULL),
 
-  Xrm_ODR ("-privatecolormap", ".privateColormap", XrmoptionNoArg,  (String) "yes"),
+  Xrm_ODR ("-privatecolormap", ".privateColormap", XrmoptionNoArg,  "yes"),
   Xrm_ODR ("-visual",   ".EmacsVisual",	    XrmoptionSepArg, NULL),
 
   /* #### Beware!  If the type of the shell changes, update this. */
@@ -248,16 +249,23 @@ Xatoms_of_device_x (struct device *d)
 static void
 sanity_check_geometry_resource (Display *dpy)
 {
-  Extbyte *app_name, *app_class, *s;
-  Extbyte buf1 [255], buf2 [255];
+  String app_name, app_class;
+  Extbyte *buf1, *buf2, *s;
   Extbyte *type;
   XrmValue value;
   XtGetApplicationNameAndClass (dpy, &app_name, &app_class);
+
+  buf1 = alloca_extbytes (strlen (app_name)
+                          + sizeof ("._no_._such_._resource_.geometry"));
+  buf2 = alloca_extbytes (strlen (app_class)
+                          + sizeof ("._no_._such_._resource_.geometry"));
+
   strcpy (buf1, app_name);
   strcpy (buf2, app_class);
   for (s = buf1; *s; s++) if (*s == '.') *s = '_';
   strcat (buf1, "._no_._such_._resource_.geometry");
   strcat (buf2, "._no_._such_._resource_.Geometry");
+
   if (XrmGetResource (XtDatabase (dpy), buf1, buf2, &type, &value) == True)
     {
       Ibyte *app_name_int, *app_class_int, *value_addr_int;
@@ -525,8 +533,8 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
   Widget app_shell;
   int argc;
   Extbyte **argv;
-  char *app_class;
-  char *app_name;
+  String app_class;
+  String app_name;
   const char *disp_name;
   Visual *visual = NULL;
   int depth = 8;		/* shut up the compiler */
@@ -885,9 +893,9 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
      be the place.  Make sure it doesn't conflict with GNOME. */
   {
     Arg al[3];
-    Xt_SET_ARG (al[0], XtNvisual,   visual);
-    Xt_SET_ARG (al[1], XtNdepth,    depth);
-    Xt_SET_ARG (al[2], XtNcolormap, cmap);
+    XtSetArg (al[0], XtNvisual,   visual);
+    XtSetArg (al[1], XtNdepth,    depth);
+    XtSetArg (al[2], XtNcolormap, cmap);
 
     app_shell = XtAppCreateShell (NULL, app_class,
 				  applicationShellWidgetClass,
@@ -904,12 +912,12 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
      and set it to the size of the root window for child placement purposes */
   {
     Arg al[5];
-    Xt_SET_ARG (al[0], XtNmappedWhenManaged, False);
-    Xt_SET_ARG (al[1], XtNx, 0);
-    Xt_SET_ARG (al[2], XtNy, 0);
-    Xt_SET_ARG (al[3], XtNwidth,
+    XtSetArg (al[0], XtNmappedWhenManaged, False);
+    XtSetArg (al[1], XtNx, 0);
+    XtSetArg (al[2], XtNy, 0);
+    XtSetArg (al[3], XtNwidth,
 		WidthOfScreen  (ScreenOfDisplay (dpy, screen)));
-    Xt_SET_ARG (al[4], XtNheight,
+    XtSetArg (al[4], XtNheight,
 		HeightOfScreen (ScreenOfDisplay (dpy, screen)));
     XtSetValues (app_shell, al, countof (al));
     XtRealizeWidget (app_shell);
@@ -1449,7 +1457,7 @@ x_get_resource_prefix (Lisp_Object locale, Lisp_Object device,
   *display_out = DEVICE_X_DISPLAY (XDEVICE (device));
 
   {
-    Extbyte *appname, *appclass;
+    String appname, appclass;
     int name_len, class_len;
     XtGetApplicationNameAndClass (*display_out, &appname, &appclass);
     name_len  = strlen (appname);

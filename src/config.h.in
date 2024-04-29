@@ -216,6 +216,11 @@ things are arranged in config.h.in.  In particular:
 
 /* Defines for building X applications */
 #ifdef HAVE_X_WINDOWS
+
+/* Force the X11 String type to be const char *, giving fewer problems with
+   C++. */
+#define _CONST_X_STRING
+
 /* The following will be defined if xmkmf thinks they are necessary */
 #undef SVR4
 #undef SYSV

@@ -21,8 +21,13 @@ along with the Lucid Widget Library.  If not, see
 #ifndef INCLUDED_lwlib_h_
 #define INCLUDED_lwlib_h_
 
+#include <compiler.h>
+
+#ifndef _CONST_X_STRING
+#define _CONST_X_STRING
+#endif
+
 #include <X11/Intrinsic.h>
-#include "xt-wrappers.h"
 
 #if defined (LWLIB_MENUBARS_LUCID) || defined (LWLIB_MENUBARS_MOTIF) || defined (LWLIB_MENUBARS_ATHENA)
 #define NEED_MENUBARS
@@ -60,6 +65,8 @@ along with the Lucid Widget Library.  If not, see
 ** should all be rethunk.  I've added a type field, but for now it's only used
 ** by the new xlwmenu code.
 */
+
+BEGIN_C_DECLS
 
 typedef unsigned long LWLIB_ID;
 
@@ -253,5 +260,7 @@ void lw_set_keyboard_focus (Widget parent, Widget w);
 void lw_show_busy (Widget w, Boolean busy);
 
 void lw_remove_accelerator_spec (char *val);
+
+END_C_DECLS
 
 #endif /* INCLUDED_lwlib_h_ */
