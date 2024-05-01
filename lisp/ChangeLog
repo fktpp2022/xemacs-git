@@ -9,6 +9,14 @@
 	the subfile (since the superfile routinely has coding cookies that
 	the subfile lacks.)
 
+2024-05-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cmdloop.el (maybe-display-char): New.
+	If #'read-char, #'read-char-exclusive, #'read-quoted-char are
+	supplied a PROMPT argument, echo the character read for better
+	user feedback and for symmetry with #'read-string and friends.  Do
+	not echo if PROMPT is nil.
+
 2024-03-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Add support for anchors within #'Info-find-file-node, by means of

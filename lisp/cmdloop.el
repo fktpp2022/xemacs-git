@@ -562,6 +562,17 @@ See `digit-char-p' and its RADIX argument for possible values."
 	       (setq binding (funcall binding nil)))
 	   (setq events (map 'vector #'character-to-event binding)))
          events))
+     (maybe-display-char (prompt character)
+       (when (> (length prompt) 0)
+	 (display-message 'command (format "%s%c" prompt character))
+	 ;; I considered checking and using
+	 ;; minibuffer-echo-wait-function, but that works
+	 ;; synchronously, and #'read-char, #'read-char-exclusive,
+	 ;; #'read-quoted-char should return immediately.
+	 (add-timeout 2 #'(lambda (acons)
+			    (when (member* acons message-stack :test #'eq)
+			      (clear-message (car acons))))
+		      (car message-stack))))
      (read-char-1 (errorp prompt inherit-input-method seconds)
        "Return a character from command input or the current macro.
 Look up said input in `function-key-map' as appropriate.
@@ -578,9 +589,21 @@ If SECONDS is non-nil, only wait that number of seconds for input. If no
 input is received in that time, return nil."
        (let ((timeout
               (if seconds
-                  (add-timeout seconds #'(lambda (ignore)
-                                           (return-from read-char-1 nil))
-                               nil)))
+                  (add-timeout seconds (if (> (length prompt) 0)
+					   #'(lambda (prompt)
+					       (if (and
+						    (eq 'command
+							(caar message-stack))
+						    (not
+						     (mismatch
+						      (cadar message-stack)
+						      prompt
+						      :end1 (length prompt))))
+						   (clear-message 'command))
+					       (return-from read-char-1 nil))
+					 #'(lambda (ignore)
+					     (return-from read-char-1 nil)))
+                               prompt)))
              (events []) character)
          (unwind-protect
               (while t
@@ -613,11 +636,14 @@ input is received in that time, return nil."
                               ;; #### Bug, we don't allow users to select from
                               ;; among multiple characters that may be input
                               ;; with the same key sequence.
-                              (if (and (consp binding)
-                                       (characterp
-                                        (aref (cdr binding) (caar binding))))
-                                  (return-from read-char-1
-                                    (aref (cdr binding) (caar binding)))))))
+                              (when (and (consp binding)
+					 (characterp
+					  (aref (cdr binding) (caar binding))))
+				(maybe-display-char
+				 prompt (aref (cdr binding) (caar binding)))
+				(return-from read-char-1
+				  (aref (cdr binding) (caar binding)))))))
+		      (maybe-display-char prompt character)
                       (return-from read-char-1 character)))
                 (if errorp
                     (error 'no-character-typed (aref events 0)))
@@ -747,6 +773,7 @@ terminates the character code and is then used as input."
 	  (setq first (and first (null char)))))
       (and window-configuration
 	   (set-window-configuration window-configuration))
+      (maybe-display-char prompt (if (eql char ?\C-m) ?\x20 char))
       (unicode-to-char code))))
 
 ;; in passwd.el.
