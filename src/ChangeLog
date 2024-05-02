@@ -1,3 +1,10 @@
+2024-05-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* callint.c (Fcall_interactively):
+	When reading a character with the ?c interactive spec, just use
+	the PROMPT argument to #'read-char rather than re-implementing
+	it, giving better user feedback regarding the character typed.
+
 2024-04-29  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Use the newer _CONST_X_STRING X11 #define instead of the

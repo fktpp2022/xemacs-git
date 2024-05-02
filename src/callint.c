@@ -658,23 +658,7 @@ when reading the arguments.
 	    }
 	  case 'c':		/* Character */
 	    {
-              Lisp_Object tem;
-	      int shadowing_speccount = specpdl_depth ();
-
-	      specbind (Qcursor_in_echo_area, Qt);
-	      message ("%s", XSTRING_DATA (PROMPT ()));
-	      tem = (call0 (Qread_char));
-              args[argnum] = tem;
-              /* visargs[argnum] = Fsingle_key_description (tem); */
-	      /* FSF has visargs[argnum] = Fchar_to_string (tem); */
-
-	      unbind_to (shadowing_speccount);
-
-	      /* #### `C-x / a' should not leave the prompt in the minibuffer.
-		 This isn't the right fix, because (message ...) (read-char)
-		 shouldn't leave the message there either... */
-	      clear_message ();
-
+	      args[argnum] = call1 (Qread_char, PROMPT ());
 	      arg_from_tty = 1;
 	      break;
 	    }
