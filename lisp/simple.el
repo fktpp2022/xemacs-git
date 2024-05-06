@@ -2178,7 +2178,11 @@ either a character or a symbol, uppercase or lowercase."
 		     (equal full-key (canonicalize-keysym keysym))
 		   (eq key (canonicalize-keysym keysym)))))
      (command-event-is-shifted (event)
-       (symbol-macrolet ((xemacs-mod-shift (eval-when-compile (lsh 1 5))))
+       (symbol-macrolet ((xemacs-mod-shift
+			  (eval-when-compile
+			   (event-modifier-bits
+			    (make-event 'key-press
+					'(key F1 modifiers (shift)))))))
 	 (or
           ;; Cons (allocate heap memory) as little as possible in this
           ;; function, given it is called so often. This used to be (memq

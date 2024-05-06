@@ -1,3 +1,10 @@
+2024-05-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* simple.el (current-command-is-motion):
+	Make the value for xemacs-mod-shift more robust, work it out by
+	generating an event with the shift modifier at byte-compile time
+	and querying it for its modifier bits.
+
 2024-04-15  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* info.el (Info-find-file-node):
