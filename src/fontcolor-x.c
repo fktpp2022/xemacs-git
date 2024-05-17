@@ -585,19 +585,25 @@ truename_via_random_props (Display *dpy, XFontStruct *font)
   int ok = 0;
   Extbyte *result;
 
-#define get_string(atom,var)				\
-  if (XGetFontProperty (font, (atom), &value))		\
-    {                                                   \
-      var = EXTERNAL_TO_ITEXT (XGetAtomName (dpy, value),       \
-                               Qx_hpc_encoding);        \
-    }                                                   \
-  else	{						\
-    var = 0;						\
-    goto FAIL; }
-#define get_number(atom,var)				\
-  if (!XGetFontProperty (font, (atom), &var) ||		\
-      var > 999)					\
-    goto FAIL;
+#define get_string(atom,var) do {                                       \
+    if (XGetFontProperty (font, (atom), &value))                        \
+      {                                                                 \
+        Extbyte *staging = XGetAtomName (dpy, value);                   \
+        var = EXTERNAL_TO_ITEXT (staging, Qx_hpc_encoding);             \
+        XFree (staging);                                                \
+      }                                                                 \
+    else                                                                \
+      {                                                                 \
+        var = 0;                                                        \
+        goto FAIL;                                                      \
+      }                                                                 \
+    } while (0)
+#define get_number(atom,var) do {                                       \
+    if (!XGetFontProperty (font, (atom), &var) || var > 999)            \
+      {                                                                 \
+        goto FAIL;                                                      \
+      }                                                                 \
+    } while (0)
 
   foundry = family = weight = slant = setwidth = 0;
   add_style = spacing = registry = encoding = 0;
@@ -631,16 +637,6 @@ truename_via_random_props (Display *dpy, XFontStruct *font)
     result = ITEXT_TO_EXTERNAL_MALLOC (composed_name, Qx_hpc_encoding);
   else
     result = 0;
-
-  if (foundry) XFree (foundry);
-  if (family) XFree (family);
-  if (weight) XFree (weight);
-  if (slant) XFree (slant);
-  if (setwidth) XFree (setwidth);
-  if (add_style) XFree (add_style);
-  if (spacing) XFree (spacing);
-  if (registry) XFree (registry);
-  if (encoding) XFree (encoding);
 
   return result;
 }

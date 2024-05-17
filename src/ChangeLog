@@ -1,3 +1,14 @@
+2024-05-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fontcolor-x.c (get_string):
+	Avoid leaking the result of XGetAtomName in this macro.
+	* fontcolor-x.c (get_number):
+	Use more braces in this macro to reduce the chance of bugs.
+	* fontcolor-x.c (truename_via_random_props):
+	Avoid calling XFree on stack memory allocate by
+	EXTERNAL_TO_ITEXT(), now the get_string() macro has been
+	corrected.
+
 2024-05-01  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* callint.c (Fcall_interactively):
