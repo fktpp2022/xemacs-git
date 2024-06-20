@@ -57,8 +57,7 @@ Lisp_Object Vmark_even_if_inactive;
 Lisp_Object Vmouse_leave_buffer_hook, Qmouse_leave_buffer_hook;
 #endif
 
-Lisp_Object QletX, Qsave_excursion;
-
+Lisp_Object Qbyte_compile_annotate_interactive;
 Lisp_Object Qprefix_numeric_value;
 Lisp_Object Qread_from_minibuffer;
 Lisp_Object Qread_file_name;
@@ -210,15 +209,6 @@ to a separate line causes docstring lossage! */
        (UNUSED (args)))
 {
   return Qnil;
-}
-
-/* Modify EXPR by quotifying each element (except the first).  */
-static Lisp_Object
-quotify_args (Lisp_Object expr)
-{
-  EXTERNAL_LIST_LOOP_3 (elt, expr, tail)
-    XSETCAR (tail, Fquote_maybe (elt));
-  return expr;
 }
 
 static Bytebpos
@@ -375,11 +365,34 @@ when reading the arguments.
     {
       struct gcpro gcpro1, gcpro2, gcpro3;
       Charcount i = num_input_chars;
-      Lisp_Object input = specs;
+      Lisp_Object structure = Qnil, values = Qnil;
 
-      GCPRO3 (function, specs, input);
+      GCPRO3 (function, specs, structure);
+
       /* Compute the arg values using the user's expression.  */
-      specs = IGNORE_MULTIPLE_VALUES (Feval (specs));
+      if (COMPILED_FUNCTIONP (specs))
+	{
+	  /* If SPECS is a compiled function object, the byte-compiler has
+	     called #'byte-compile-annotate-interactive at compile time, and
+	     the result of calling the compiled function is a cons of the
+	     annotation and the result of the S-expression supplied to
+	     (interactive).  */
+	  specs = IGNORE_MULTIPLE_VALUES (Ffuncall (1, &specs));
+	  if (CONSP (specs))
+	    {
+	      structure = XCAR (specs);
+	      specs = XCDR (specs);
+	    }
+	}
+      else if (!NILP (specs))
+	{
+	  /* SPECS is not a compiled function, either this is an interpreted
+	     call or we are dealing with compiled code from 21.4. Generate
+	     STRUCTURE at runtime. */
+	  structure = call1 (Qbyte_compile_annotate_interactive, specs);
+	  specs = IGNORE_MULTIPLE_VALUES (Feval (specs));
+	}
+
       if (EQ (record_flag, Qlambda)) /* XEmacs addition */
 	{
 	  UNGCPRO;
@@ -387,54 +400,26 @@ when reading the arguments.
 	}
       if (!NILP (record_flag) || i != num_input_chars)
 	{
-	  /* We should record this command on the command history.  */
-	  /* #### The following is too specific; should have general
-	     mechanism for doing this. */
-	  Lisp_Object values, car;
-	  /* Make a copy of the list of values, for the command history,
-	     and turn them into things we can eval.  */
-	  values = quotify_args (Fcopy_list (specs));
 	  /* If the list of args was produced with an explicit call to `list',
 	     look for elements that were computed with (region-beginning)
 	     or (region-end), and put those expressions into VALUES
 	     instead of the present values.  */
-	  if (CONSP (input))
+	  EXTERNAL_LIST_LOOP_2 (elt, specs)
 	    {
-	      car = XCAR (input);
-	      /* Skip through certain special forms.  */
-	      while (EQ (car, Qlet) || EQ (car, QletX)
-		     || EQ (car, Qsave_excursion))
+	      if (CONSP (structure) && CONSP (XCAR (structure)))
 		{
-		  while (CONSP (XCDR (input)))
-		    input = XCDR (input);
-		  input = XCAR (input);
-		  if (!CONSP (input))
-		    break;
-		  car = XCAR (input);
+		  values = Fcons (XCAR (structure), values);
 		}
-	      if (EQ (car, Qlist))
+	      else
 		{
-		  Lisp_Object intail, valtail;
-		  for (intail = Fcdr (input), valtail = values;
-		       CONSP (valtail);
-		       intail = Fcdr (intail), valtail = Fcdr (valtail))
-		    {
-		      Lisp_Object elt;
-		      elt = Fcar (intail);
-		      if (CONSP (elt))
-			{
-			  Lisp_Object eltcar = Fcar (elt);
-			  if (EQ (eltcar, Qpoint) ||
-			      EQ (eltcar, Qmark)  ||
-			      EQ (eltcar, Qregion_beginning) ||
-			      EQ (eltcar, Qregion_end))
-			    Fsetcar (valtail, Fcar (intail));
-			}
-		    }
+		  values = Fcons (Fquote_maybe (elt), values);
 		}
+
+	      structure = Fcdr (structure);
 	    }
+
 	  Vcommand_history
-	    = Fcons (Fcons (function, values), Vcommand_history);
+	    = Fcons (Fcons (function, Fnreverse (values)), Vcommand_history);
 	}
       single_console_state ();
       RETURN_UNGCPRO (apply1 (fun, specs));
@@ -968,6 +953,7 @@ void
 syms_of_callint (void)
 {
   DEFSYMBOL (Qcall_interactively);
+  DEFSYMBOL (Qbyte_compile_annotate_interactive);
   DEFSYMBOL (Qread_from_minibuffer);
   DEFSYMBOL (Qcompleting_read);
   DEFSYMBOL (Qprefix_numeric_value);
@@ -986,8 +972,6 @@ syms_of_callint (void)
   DEFSYMBOL (Qcommand_debug_status);
   DEFSYMBOL (Qenable_recursive_minibuffers);
 
-  defsymbol (&QletX, "let*");
-  DEFSYMBOL (Qsave_excursion);
 #if 0 /* ill-conceived */
   DEFSYMBOL (Qmouse_leave_buffer_hook);
 #endif

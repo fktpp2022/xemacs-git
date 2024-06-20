@@ -1,3 +1,17 @@
+2024-06-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecomp-runtime.el (byte-compile-annotate-interactive): New.
+	Return a list to aid #'call-interactively in constructing
+	command-history, analysing its argument S-expression and returning
+	a list that documents which arguments in an interactive form
+	should be replaced by explicit calls to (point), (mark) and
+	friends in the command history.
+	Called both at compile time and at runtime.
+	* bytecomp.el (byte-compile-lambda): Use it. Always compile and
+	save the interactive spec, as a compiled function that returns a
+	cons comprising the metadata as its car and the result of
+	calling the S-expression as its cdr.
+
 2024-05-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* simple.el (current-command-is-motion):

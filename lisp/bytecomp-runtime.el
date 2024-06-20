@@ -590,7 +590,36 @@ signalled."
   "Like a regular `when' statement but the TEST will be evalled at compile time.
 See `compiled-if'."
   `(compiled-if ,test (progn ,@when)))
+
+(defun byte-compile-annotate-interactive (form)
+  "Return a list to aid construction of `command-history' for FORM.
 
+FORM is an S-expression as supplied to `interactive'.  If FORM returns a list,
+the arguments to the `list' call are analysed and the returned list comprises
+entries that are either nil (which `call-interactively' interprets to mean
+saved the evaluated entry as-is in `command-history') or a cons, one of
+\(point), (mark), (region-beginning), (region-end), handled specially by
+`call-interactively'.
+
+Return nil if no `list' call can be found.
+
+This function is usually called by the byte-compiler. It is called at runtime
+by `call-interactively' if a given function did not have the annotation
+generated at byte-compile time.  There should not normally be a need for the
+user to call it."
+  (while (member* (car-safe form) '(let let* save-excursion) :test #'eq)
+    (while (consp (cdr form))
+      (setq form (cdr form)))
+    (setq form (car form)))
+  (when (eq (car-safe form) 'list)
+    (quote-maybe
+     (reduce #'(lambda (elt new)
+		 (cond ((member* (car-safe elt)
+				 '(point mark region-beginning region-end)
+				 :test #'eq)
+			(cons elt new))
+		       (new (cons nil new))))
+	     (cdr form) :from-end t :initial-value nil))))
 
 ;;; Interface to file-local byte-compiler parameters.
 ;;; Redefined in bytecomp.el.

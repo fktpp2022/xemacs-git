@@ -2918,7 +2918,7 @@ If FORM is a lambda or a macro, byte-compile it as a function."
 		    ;; only if it is not the only element of the body.
 		    (if (cdr body)
 			(setq body (cdr body))))))
-	 (int (assq 'interactive body)) compiled-int)
+	 (int (assq 'interactive body)))
     (dolist (arg arglist)
       (cond ((not (symbolp arg))
 	     (byte-compile-warn "non-symbol in arglist: %S" arg))
@@ -2939,28 +2939,32 @@ If FORM is a lambda or a macro, byte-compile it as a function."
 	   (if (eq int (car body))
 	       (setq body (cdr body)))
 	   (cond ((consp (cdr int))
-		  (if (cdr (cdr int))
-		      (byte-compile-warn "malformed interactive spec: %s"
-					 (prin1-to-string int)))
-		  ;; If the interactive spec is a call to `list', don't
-		  ;; store the compiled form, because `call-interactively'
-		  ;; looks at the args of `list' and treats certain
-		  ;; functions specially.  Compiling it is nonetheless
-		  ;; useful for warnings.
-		  (let ((form (nth 1 int)))
-		    (while (or (eq (car-safe form) 'let)
-			       (eq (car-safe form) 'let*)
-			       (eq (car-safe form) 'save-excursion))
-		      (while (consp (cdr form))
-			(setq form (cdr form)))
-		      (setq form (car form)))
-		    (setq compiled-int 
-			  (byte-compile-top-level (nth 1 int)))
-		    (or (eq (car-safe form) 'list)
-			(setq int (list 'interactive compiled-int)))))
+		  (when (cddr int)
+		    (byte-compile-warn "malformed interactive spec: %s"
+				       (prin1-to-string int)))
+		  (when (not (stringp (cadr int)))
+		    (setq int
+			  (list 'interactive
+				(byte-compile-lambda
+				 `(lambda ()
+				   ;; Generate a compiled function that returns
+				   ;; a cons of a list describing which of the
+				   ;; interactive arguments should be saved on
+				   ;; the command history as (point), (mark),
+				   ;; (region-beginning), (region-end), and the
+				   ;; actual interactive arguments themselves.
+				   ;;
+				   ;; #'call-interactive knows how to handle
+				   ;; these annotations at runtime, if the
+				   ;; interactive spec is a compiled function.
+				   (cons ,(byte-compile-annotate-interactive
+					   (nth 1 int))
+				         ,(nth 1 int)))
+				 name)))))
 		 ((cdr int)
-		  (byte-compile-warn "malformed interactive spec: %s"
-				     (prin1-to-string int))))))
+		  ;; Error here instead of on the call to #'nth further down,
+		  ;; giving a clearer error message.
+		  (error 'syntax-error "Malformed interactive spec" int)))))
     (let ((compiled (byte-compile-top-level (cons 'progn body) nil 'lambda)))
       (if (memq 'unused-vars byte-compile-warnings)
 	  ;; done compiling in this scope, warn now.

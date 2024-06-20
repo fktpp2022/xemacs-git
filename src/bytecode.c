@@ -2920,6 +2920,11 @@ DEFUN ("compiled-function-interactive", Fcompiled_function_interactive, 1, 1, 0,
 Return the interactive spec of the compiled-function object FUNCTION, or nil.
 If non-nil, the return value will be a list whose first element is
 `interactive' and whose second element is the interactive spec.
+
+See the documentation of `interactive'. As well as a string and an S-expression
+to be evaluated, a compiled function's interactive spec can be itself a
+compiled function, reflecting the compiled form of the S-expression and
+metadata to aid `call-interactively' in constructing the command history.
 */
        (function))
 {
