@@ -27,6 +27,13 @@
 	cons comprising the metadata as its car and the result of
 	calling the S-expression as its cdr.
 
+2024-06-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* apropos.el (apropos-internal):
+	Move this here from symbols.c, add an autoload cookie. There is
+	minimal speed advantage now to having this in Lisp and this file
+	is a better place for it than symbols.c.
+
 2024-05-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* simple.el (current-command-is-motion):

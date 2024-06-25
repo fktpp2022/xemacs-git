@@ -26,10 +26,9 @@
 
 ;;; Commentary:
 
-;; The ideas for this package were derived from the C code in
-;; src/keymap.c and elsewhere.  The functions in this file should
-;; always be byte-compiled for speed.  Someone should rewrite this in
-;; C (as part of src/keymap.c) for speed.
+;; The ideas for this package were derived from C code in src/keymap.c
+;; and elsewhere.  The functions in this file should always be
+;; byte-compiled for speed, as should Lisp code in general.
 
 ;; The idea for super-apropos is based on the original implementation
 ;; by Lynn Slater <lrs@esl.com>.
@@ -327,6 +326,26 @@ Returns list of symbols and documentation found."
       (kill-buffer standard-input))))
 
 
+;;;###autoload
+(defun* apropos-internal (regexp &optional predicate (package obarray))
+  "Return a list of interned symbols whose names match REGEXP.
+If optional second arg PREDICATE is non-nil, only symbols for which
+\(funcall PREDICATE SYMBOL) returns non-nil are returned.
+Optional third argument PACKAGE describes the Lisp package to search, and
+defaults to the value of `obarray'."
+  ;; XEmacs; this is in subr.el in GNU.
+  (let (found)
+    (mapatoms (if predicate
+                  #'(lambda (symbol)
+                      (when (and (string-match-p regexp (symbol-name symbol))
+                                 (funcall predicate symbol))
+                        (push symbol found)))
+                #'(lambda (symbol)
+                    (when (string-match-p regexp (symbol-name symbol))
+                      (push symbol found))))
+                    package)
+    (sort found #'string-lessp)))
+
 (defun apropos-value-internal (predicate symbol function)
   (if (funcall predicate symbol)
       (progn

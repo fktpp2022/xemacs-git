@@ -131,6 +131,10 @@
 	Define Qbyte_compile_annotate_interactive as a symbol, making the
 	Lisp function available to #'call-interactively.
 
+2024-06-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* symbols.c (Fapropos_internal): Removed. Now in lisp/apropos.el.
+
 2024-05-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* fontcolor-x.c (get_string):

@@ -133,64 +133,6 @@ DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("symbol", symbol, print_symbol,
 					0, 0, 0, symbol_description,
 					Lisp_Symbol);
 
-/**********************************************************************/
-/*                              Apropos				      */
-/**********************************************************************/
-
-struct appropos_mapper_closure
-{
-  Lisp_Object regexp;
-  Lisp_Object predicate;
-  Lisp_Object accumulation;
-};
-
-static int
-apropos_mapper (Lisp_Object UNUSED (key), Lisp_Object symbol, void *arg)
-{
-  struct appropos_mapper_closure *closure =
-    (struct appropos_mapper_closure *) arg;
-  Bytecount match = fast_lisp_string_match (closure->regexp,
-					    Fsymbol_name (symbol));
-
-  if (match >= 0 &&
-      (NILP (closure->predicate) ||
-       !NILP (call1 (closure->predicate, symbol))))
-    closure->accumulation = Fcons (symbol, closure->accumulation);
-
-  return 0;
-}
-
-DEFUN ("apropos-internal", Fapropos_internal, 1, 3, 0, /*
-Return a list of all symbols whose names contain match for REGEXP.
-If optional 2nd arg PREDICATE is non-nil, only symbols for which
-\(funcall PREDICATE SYMBOL) returns non-nil are returned.
-Optional third argument PACKAGE describes the Lisp package to search, and
-defaults to the value of `obarray'.
-*/
-       (regexp, predicate, package))
-{
-  struct appropos_mapper_closure closure;
-  struct gcpro gcpro1;
-
-  CHECK_STRING (regexp);
-  if (NILP (package))
-    {
-      package = Vobarray;
-    }
-  CHECK_HASH_TABLE (package);
-
-  closure.regexp = regexp;
-  closure.predicate = predicate;
-  closure.accumulation = Qnil;
-  GCPRO1 (closure.accumulation);
-  elisp_maphash (apropos_mapper, package, &closure);
-  closure.accumulation = list_sort (closure.accumulation,
-				    check_string_lessp_nokey, Qnil, Qnil);
-  UNGCPRO;
-  return closure.accumulation;
-}
-
-
 /* Extract and set components of symbols */
 
 static void set_up_buffer_local_cache (Lisp_Object sym,
@@ -3544,8 +3486,6 @@ syms_of_symbols (void)
   DEFSYMBOL (Qdefault_console);
   DEFSYMBOL (Qselected_console);
   DEFSYMBOL (Qconst_selected_console);
-
-  DEFSUBR (Fapropos_internal);
 
   DEFSUBR (Fsymbol_function);
   DEFSUBR (Fsymbol_plist);
