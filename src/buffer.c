@@ -2157,6 +2157,11 @@ If the value is t, disregard `buffer-read-only' and all `read-only'
 text properties.  If the value is a list, disregard `buffer-read-only'
 and disregard a `read-only' extent property or text property if the
 property value is a member of the list.
+
+This variable is buffer-local in the minibuffer.  Since the minibuffer is so
+often the current buffer, if you plan to bind this value, make sure to switch
+to the buffer of interest before doing so.  `(erase-buffer BUFFER)' after
+binding `inhibit-read-only' to t but without switching to BUFFER may fail.
 */ );
   Vinhibit_read_only = Qnil;
 

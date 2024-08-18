@@ -1385,9 +1385,8 @@ If RAWFILE is non-nil, the file is read literally."
 	     (signal (car data) (cdr data)))))))))
 
 (defun find-file-noselect-1 (buf filename nowarn rawfile truename number)
-  (let ((inhibit-read-only t)
-	error)
-    (with-current-buffer buf
+  (with-current-buffer buf
+    (let ((inhibit-read-only t) error)
       (kill-local-variable 'find-file-literally)
       ;; Needed in case we are re-visiting the file with a different
       ;; text representation.

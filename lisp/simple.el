@@ -4446,8 +4446,8 @@ you should just use (message nil)."
   (or frame (setq frame (selected-frame)))
   (let ((clear-stream (and message-stack (eq 'stream (frame-type frame)))))
     (remove-message label frame)
-    (let ((inhibit-read-only t))
-      (erase-buffer " *Echo Area*"))
+    (with-current-buffer " *Echo Area*"
+      (let ((inhibit-read-only t)) (erase-buffer)))
     (if undisplay-echo-area-function
 	(funcall undisplay-echo-area-function))
     ;; If outputting to the terminal, make sure we clear the left side.
@@ -4493,8 +4493,8 @@ message."
           ((macro . (lambda (function) (subst '#:xEbgpd2 'error function)))
            #'(lambda (error)
                (setq remove-message-hook nil)
-               (let ((inhibit-read-only t))
-                 (erase-buffer " *Echo Area*"))
+               (with-current-buffer " *Echo Area*"
+                 (let ((inhibit-read-only t)) (erase-buffer)))
                (lwarn 'message-log 'warning
                  "Error in `remove-message-hook': %s\n\nBacktrace follows:\n%s"
                  (error-message-string error)
@@ -4543,8 +4543,8 @@ START and END, if supplied, designate a substring of MESSAGE to add. See
 (defun* raw-append-message (message &optional frame stdout-p
                                     &key (start 0) end)
   (unless (equal message "")
-    (let ((inhibit-read-only t))
-      (with-current-buffer " *Echo Area*"
+    (with-current-buffer " *Echo Area*"
+      (let ((inhibit-read-only t))
 	(write-sequence message (current-buffer) :start start :end end)
 	;; #### This needs to be conditional; cf discussion by Stefan Monnier
 	;; et al on emacs-devel in mid-to-late April 2007.  One problem is

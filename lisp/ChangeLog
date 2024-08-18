@@ -1,3 +1,18 @@
+2024-08-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* files.el (find-file-noselect-1):
+	* gutter-items.el (clear-progress-feedback):
+	* gutter-items.el (abort-progress-feedback):
+	* gutter-items.el (raw-append-progress-feedback):
+	* simple.el (clear-message):
+	* simple.el (remove-message):
+	* simple.el (raw-append-message):
+	`inhibit-read-only' is a local variable in the minibuffer (see
+	Kyle Jone's commit of 1997-11-16) and so binding it and then
+	calling #'erase-buffer without making the relevant buffer current
+	can fail. Correct this, avoid wedging the echo area with
+	blink-matching-open and read-only duplicable extents.
+
 2024-06-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* bytecomp-runtime.el (byte-compile-annotate-interactive): New.

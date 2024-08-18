@@ -566,8 +566,8 @@ you should just use (progress nil)."
       (clear-message label frame nil no-restore)
     (or frame (setq frame (selected-frame)))
     (remove-progress-feedback label frame)
-    (let ((inhibit-read-only t))
-      (erase-buffer (get-buffer-create " *Gutter Area*")))
+    (with-current-buffer (get-buffer-create " *Gutter Area*")
+      (let ((inhibit-read-only t)) (erase-buffer)))
     (if no-restore
 	nil			; just preparing to put another msg up
       (if progress-stack
@@ -633,13 +633,13 @@ you should just use (progress nil)."
       (display-message label (concat message "aborted.") frame)
     (or frame (setq frame (selected-frame)))
     ;; Add a new entry to the progress-stack, or modify an existing one
-    (let* ((top (car progress-stack))
-	   (inhibit-read-only t))
+    (let* ((top (car progress-stack)))
       (if (eq label (car top))
 	  (setcdr top message)
 	(push (cons label message) progress-stack))
       (unless (equal message "")
-	(insert-string message (get-buffer-create " *Gutter Area*"))
+        (with-current-buffer (get-buffer-create " *Gutter Area*")
+          (let ((inhibit-read-only t)) (insert-string message)))
 	(let* ((gutter-string (copy-sequence "\n"))
 	       (ext (make-extent 0 1 gutter-string)))
 	  ;; do some funky display here.
@@ -663,11 +663,11 @@ you should just use (progress nil)."
 
 (defun raw-append-progress-feedback (message &optional value frame)
   (unless (equal message "")
-    (let* ((inhibit-read-only t)
-	  (val (or value 0))
+    (let* ((val (or value 0))
 	  (gutter-string (copy-sequence "\n"))
 	  (ext (make-extent 0 1 gutter-string)))
-      (insert-string message (get-buffer-create " *Gutter Area*"))
+      (with-current-buffer (get-buffer-create " *Gutter Area*")
+        (let ((inhibit-read-only t)) (insert-string message)))
       ;; do some funky display here.
       (set-extent-begin-glyph ext progress-layout-glyph)
       ;; fixup the gutter specifiers

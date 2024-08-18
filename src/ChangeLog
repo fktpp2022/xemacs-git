@@ -1,3 +1,10 @@
+2024-08-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* buffer.c (Vinhibit_read_only):
+	Add information regarding the buffer-local status of this variable
+	to its docstring (usually not buffer local, usually buffer-local
+	in the minibuffer).
+
 2024-06-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* bytecode.c: (Fcompiled_function_interactive): Give some more
