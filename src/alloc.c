@@ -3215,9 +3215,24 @@ make_string_nocopy (const Ibyte *contents, Bytecount length)
   Lisp_String *s;
   Lisp_Object val;
 
+#ifdef ERROR_CHECK_TEXT
+  extern Rawbyte *stack_bottom;
+
   /* Make sure we find out about bad make_string_nocopy's when they happen */
-#if defined (ERROR_CHECK_TEXT) && defined (MULE)
   bytecount_to_charcount (contents, length); /* Just for the assertions */
+
+  /* Don't make_string_nocopy() on stack data please.
+
+     This is not a leaf function and so the AMD64 considerations in
+     find_stack_direction() do not arise.*/
+  if ((Rawbyte *) contents < stack_bottom)
+    {
+      assert ((Rawbyte *) contents < (Rawbyte *) (&s));
+    }
+  else
+    {
+      assert ((Rawbyte *) contents > (Rawbyte *) (&s));
+    }
 #endif
 
   /* Allocate the string header */

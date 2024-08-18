@@ -1,3 +1,9 @@
+2024-08-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* alloc.c (make_string_nocopy):
+	With ERROR_CHECK_TEXT, assert that we haven't been called on stack
+	data.
+
 2024-06-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* alloc.c (resize_string):
