@@ -744,20 +744,7 @@ resource_widget_value (XlwMenuWidget mw, widget_value *val)
 
 #endif /* !Motif */
 
-#define MINL(x,y) ((((unsigned long) (x)) < ((unsigned long) (y))) \
-		   ? ((unsigned long) (x)) : ((unsigned long) (y)))
-
 #ifdef HAVE_XFT_MENUBARS
-static int
-x_xft_text_width (Display *dpy, XftFont *xft_font, char *run, int len)
-{
-  static XGlyphInfo glyphinfo;
-
-  XftTextExtents8 (dpy,
-		   xft_font,
-		   (FcChar8 *) run, len, &glyphinfo);
-  return glyphinfo.xOff;
-}
 #endif
 
 /* Code for drawing strings. */
@@ -774,7 +761,7 @@ string_draw (XlwMenuWidget mw,
 #if defined(NEED_MOTIF) && !defined(HAVE_XFT_MENUBARS)
 	     XmString string
 #else
-	     char *string
+	     const char *string
 #endif
 )
 {
@@ -797,7 +784,8 @@ string_draw (XlwMenuWidget mw,
   /* draw background rect */
   XftDrawRect (xftDraw, colorBg,
 	       x, y,
-	       x_xft_text_width (display, renderFont, string, strlen (string)),
+	       x_xft_text_width (display, renderFont, string,
+                                 (int) strlen (string)),
 	       renderFont->ascent + renderFont->descent);  /* XXX */
   /* draw text */
   XftDrawString8 (xftDraw, color, renderFont, x, y + mw->menu.font_ascent,

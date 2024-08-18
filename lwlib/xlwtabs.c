@@ -429,24 +429,6 @@ WidgetClass tabsWidgetClass = (WidgetClass)&tabsClassRec;
 
 static int debug_tabs = 0;	/* increase for more verbosity */
 
-#ifdef HAVE_XFT_TABS
-/* #### duplicated from xlwmenu.c -- CLEAN THIS SHIT UP!
-   Undeclared so define at top. */
-#define MINL(x,y) ((((unsigned long) (x)) < ((unsigned long) (y))) \
-		   ? ((unsigned long) (x)) : ((unsigned long) (y)))
-
-static int
-x_xft_text_width (Display *dpy, XftFont *xft_font, FcChar8 *run, int len)
-{
-  static XGlyphInfo glyphinfo;	/* #### static? */
-
-  XftTextExtents8 (dpy,
-		   xft_font,
-		   run, len, &glyphinfo);
-  return glyphinfo.xOff;
-}
-#endif
-
 /****************************************************************
  *
  * Member Procedures
@@ -2004,8 +1986,7 @@ TabWidth(Widget w)
 	{
 #ifdef HAVE_XFT_TABS
 	  tab->tabs.width += x_xft_text_width (XtDisplay(tw), font,
-					       (FcChar8 *) lbl,
-					       (int)strlen(lbl)) + iw;
+					       lbl, (int) strlen (lbl)) + iw;
 	  tab->tabs.l_y = (tw->tabs.tab_height
 			   + tw->tabs.renderFont->ascent
 			   /* #### how can this subtraction be correct? */

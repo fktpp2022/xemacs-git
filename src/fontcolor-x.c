@@ -414,7 +414,7 @@ x_print_font_instance (Lisp_Font_Instance *f,
 #ifdef HAVE_XFT
   /* #### What should we do here?  For now, print the address. */
   if (FONT_INSTANCE_X_XFTFONT (f))
-    write_fmt_string (printcharfun, " xft font: 0x%zx",
+    write_fmt_string (printcharfun, " xft font: 0x%p",
                       FONT_INSTANCE_X_XFTFONT (f));
 #endif
 }

@@ -1,5 +1,14 @@
 2024-08-18  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* fontcolor-x.c (x_print_font_instance):
+	Use the appropriate format specifier for an address when printing
+	an XFT font's address.
+	* redisplay-x.c (x_output_string):
+	Cast some members of an XRectangle structure, suppressing a
+	warning from the C++ compiler.
+
+2024-08-18  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* buffer.c (Vinhibit_read_only):
 	Add information regarding the buffer-local status of this variable
 	to its docstring (usually not buffer local, usually buffer-local

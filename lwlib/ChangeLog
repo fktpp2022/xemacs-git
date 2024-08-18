@@ -1,3 +1,15 @@
+2024-08-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lwlib-fonts.c:
+	* lwlib-fonts.c (xft_open_font_by_name):
+	* lwlib-fonts.c (x_xft_text_width): Move to this file.
+	* lwlib-fonts.h:
+	Declare NAME for this xft_open_font_by_name as const char *, a
+	better practice anyway and placates the C++ build.
+	Declare x_xft_text_width here.
+	* xlwmenu.c (x_xft_text_width): Remove from this file.
+	* xlwtabs.c (x_xft_text_width): Remove from this file.
+
 2024-04-29  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Use the newer _CONST_X_STRING X11 #define instead of the

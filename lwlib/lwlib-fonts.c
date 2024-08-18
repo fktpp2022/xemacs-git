@@ -65,14 +65,14 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    and willing to do with XLFDs, and probably move the logic to LISP.
 */
 XftFont *
-xft_open_font_by_name (Display *dpy, char *name)
+xft_open_font_by_name (Display *dpy, const char *name)
 {
   XftFont *res = NULL;
 
   /* if (!NILP (Fxft_xlfd_font_name_p (make_string (name, strlen (name))))) */
   /* #### this is bogus but ... */
   int count = 0;
-  char *pos = name;
+  const char *pos = name;
   /* extra parens shut up gcc */
   while ((pos = strchr (pos, '-')))
     {
@@ -108,6 +108,17 @@ xft_open_font_by_name (Display *dpy, char *name)
     }
 
   return res;
+}
+
+/* Not used by the buffer code; used by xlwmenu.c, xlwtabs.c. */
+int
+x_xft_text_width (Display *dpy, XftFont *xft_font, const char *run,
+                  int len)
+{
+  XGlyphInfo glyphinfo;
+
+  XftTextExtents8 (dpy, xft_font, (const FcChar8 *) run, len, &glyphinfo);
+  return glyphinfo.xOff;
 }
 
 #endif /* HAVE_XFT */

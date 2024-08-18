@@ -1720,8 +1720,10 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
 	    if (need_clipping)
 	      {
 		Region clip_reg = XCreateRegion();
-		XRectangle clip_box = { clip_start, ypos,
-					clip_end - clip_start, height };
+		XRectangle clip_box = { (short) clip_start, (short) ypos,
+					(unsigned short)
+                                        (clip_end - clip_start),
+                                        (unsigned short) height };
 
 		XUnionRectWithRegion (&clip_box, clip_reg, clip_reg); 
 		XftDrawSetClip (xftDraw, clip_reg);
@@ -1901,8 +1903,9 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
 	  
 	      { /* set up clipping */
 		Region clip_reg = XCreateRegion();
-		XRectangle clip_box = { cursor_start, ypos,
-					cursor_width, height };
+		XRectangle clip_box = { (short) cursor_start, (short) ypos,
+					(unsigned short) cursor_width,
+                                        (unsigned short) height };
 	    
 		XUnionRectWithRegion (&clip_box, clip_reg, clip_reg); 
 		XftDrawSetClip (xftDraw, clip_reg);

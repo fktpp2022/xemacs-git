@@ -62,7 +62,14 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 /* non-Lisp prototypes */
 /* #### change this back to _open_name */
-XftFont *xft_open_font_by_name (Display *dpy, char *name);
+XftFont *xft_open_font_by_name (Display *dpy, const char *name);
+
+int x_xft_text_width (Display *dpy, XftFont *xft_font, const char *run,
+                      int len);
+
+#define MINL(x,y) ((((unsigned long) (x)) < ((unsigned long) (y))) \
+		   ? ((unsigned long) (x)) : ((unsigned long) (y)))
+
 #endif /* HAVE_XFT */
 
 #endif /* INCLUDED_lwlib_fonts_h_ */
