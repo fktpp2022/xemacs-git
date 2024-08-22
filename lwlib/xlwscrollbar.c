@@ -89,9 +89,6 @@ along with the Lucid Widget Library.  If not, see
 
 #define DBUG(x)
 
-#define MINL(x,y) ((((unsigned long) (x)) < ((unsigned long) (y))) \
-		  ? ((unsigned long) (x)) : ((unsigned long) (y)))
-
 #define VERT(w) ((w)->sb.orientation == XmVERTICAL)
 
 #define SS_MIN 8

@@ -39,9 +39,6 @@ static int debug_colors = 1;
 #define X_CLASSFIELD class
 #endif
 
-#define MINL(x,y) ((((unsigned long) (x)) < ((unsigned long) (y))) \
-		   ? ((unsigned long) (x)) : ((unsigned long) (y)))
-
 /* WIDGET is an Xt widget, VISUAL and DEPTH are return values */
 void
 visual_info_from_widget (Widget widget, Visual **visual, int *depth)

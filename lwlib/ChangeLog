@@ -1,3 +1,11 @@
+2024-08-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lwlib.h (MINL): Move this #define here.
+	* lwlib-colors.c: Remove duplicate #define of MINL.
+	* lwlib-fonts.h: Remove duplicate #define of MINL.
+	* lwlib.h: Remove duplicate #define of MINL.
+	* xlwscrollbar.c (VERT): Remove duplicate #define of MINL.
+
 2024-08-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lwlib-fonts.c:

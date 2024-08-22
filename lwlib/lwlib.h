@@ -261,6 +261,9 @@ void lw_show_busy (Widget w, Boolean busy);
 
 void lw_remove_accelerator_spec (char *val);
 
+#define MINL(x,y) ((((unsigned long) (x)) < ((unsigned long) (y))) \
+		   ? ((unsigned long) (x)) : ((unsigned long) (y)))
+
 END_C_DECLS
 
 #endif /* INCLUDED_lwlib_h_ */
