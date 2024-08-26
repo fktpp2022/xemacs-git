@@ -34,8 +34,6 @@
 #define RE_EXECUTE_CHARSET_MULE_ARGS_DECL , RE_TRANSLATE_TYPE translate, \
 	   struct buffer *lispbuf
 #define RE_EXECUTE_CHARSET_MULE_ARGS(translate, lispbuf) , translate, lispbuf
-#define RE_MUTUALLY_EXCLUSIVE_P_ARGS_DECL RE_EXECUTE_CHARSET_MULE_ARGS_DECL
-#define RE_MUTUALLY_EXCLUSIVE_P_ARGS(translate, lispbuf) , translate, lispbuf
 #else
 #define RE_TRANSLATE_TYPE char *
 #define RE_LISP_SHORT_CONTEXT_ARGS_DECL
@@ -46,8 +44,6 @@
 #define RE_ISWCTYPE_ARG(varname)
 #define RE_EXECUTE_CHARSET_MULE_ARGS_DECL , RE_TRANSLATE_TYPE translate
 #define RE_EXECUTE_CHARSET_MULE_ARGS(translate, lispbuf) , translate
-#define RE_MUTUALLY_EXCLUSIVE_P_ARGS_DECL , RE_TRANSLATE_TYPE translate
-#define RE_MUTUALLY_EXCLUSIVE_P_ARGS(translate, lispbuf) , translate
 
 #define Elemcount ssize_t
 #define Bytecount ssize_t

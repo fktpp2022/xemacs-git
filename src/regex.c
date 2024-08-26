@@ -1755,9 +1755,16 @@ do {									\
       									\
       DEBUG_FAIL_PRINT ("  Push frame index: %zd\n",			\
 			 fail_stack.frame);				\
-      DEBUG_PRINT ("  Push string %p: `", (void *) string_place);	\
-      DEBUG_PRINT_DOUBLE_STRING (string_place, string1, size1, string2, \
-				 size2);				\
+      DEBUG_FAIL_PRINT ("  Push string %p: `", (void *) string_place);	\
+      if (string_place == REG_UNSET_VALUE)				\
+	{								\
+	  DEBUG_FAIL_PRINT ("(unset)");					\
+	}								\
+      else								\
+	{								\
+	  DEBUG_PRINT_DOUBLE_STRING (string_place, string1, size1,	\
+				     string2, size2);			\
+	}								\
       DEBUG_PRINT ("'\n  Push pattern %p: ", pattern_place);		\
       DEBUG_PRINT_COMPILED_PATTERN (bufp, pattern_place, pend);		\
     }									\
@@ -1820,7 +1827,15 @@ do {									\
   str = POP_FAILURE_RELOCATABLE ();					\
 									\
   DEBUG_PRINT ("  Popping string %p: `", str);				\
-  DEBUG_PRINT_DOUBLE_STRING (str, string1, size1, string2, size2);	\
+  if (str == REG_UNSET_VALUE)						\
+    {									\
+      DEBUG_FAIL_PRINT ("(unset)");					\
+    }									\
+  else									\
+    {									\
+      DEBUG_PRINT_DOUBLE_STRING (str, string1, size1,			\
+				 string2, size2);			\
+    }									\
 									\
   fail_stack.frame = POP_FAILURE_INT ();				\
   DEBUG_PRINT ("'\n  Popping  frame index: %zd\n", fail_stack.frame);	\
@@ -2230,6 +2245,8 @@ static reg_errcode_t compile_extended_range (re_char **p_ptr,
 reg_errcode_t compile_char_class (re_wctype_t cc, Lisp_Object rtab,
                                   Bitbyte *flags_out);
 #endif
+static re_bool mutually_exclusive_p (struct re_pattern_buffer *bufp,
+				     re_char *p1, re_char *p2);
 
 static re_bool group_match_null_string_p (re_char **p, re_char *end);
 static re_bool alt_match_null_string_p (re_char *p, re_char *end);
@@ -2283,6 +2300,114 @@ regex_grow_registers (int num_regs)
 }
 
 #endif /* not MATCH_MAY_ALLOCATE */
+
+/* Adjust on_failure_jump_smart to either on_failure_jump_exclusive or
+   on_failure_jump_loop after the entire pattern has been compiled, so that
+   on_failure_jump_smart won't be called when matching.
+
+   Doing this in regex_compile is more important for us than for GNU given that
+   we copy the pattern to the C stack on entering re_match_2_internal() (copy
+   done for the sake of re-entrancy) and so mutually_exclusively_p() would be
+   called more often at match time.
+
+   I considered implementing this by saving pointers (or offsets) to the
+   on_failure_jump_smart instructions as we place them in regex_compile(),
+   which would have fewer issues with new opcodes or changes to opcode arity,
+   but given INSERT_JUMP() can move previous instructions that's difficult,
+   and this approach is inexpensive of memory.  */
+static inline void
+fixup_on_failure_jump_smart (struct re_pattern_buffer *bufp)
+{
+  unsigned char *begalt = bufp->buffer;
+  re_char *buf_end = begalt + bufp->used;
+
+  while (begalt < buf_end)
+    {
+      switch ((re_opcode_t) *begalt++)
+	{
+	case no_op:
+	case anychar:
+	case begline:
+	case endline:
+	case wordbound:
+	case notwordbound:
+	case wordbeg:
+	case wordend:
+#ifdef emacs
+	case before_dot:
+	case at_dot:
+	case after_dot:
+	case begbuf:
+	case endbuf:
+#endif
+	case wordchar:
+	case notwordchar:
+	  break;
+	  
+#ifdef emacs
+	case syntaxspec:
+	case notsyntaxspec:
+	case categoryspec:
+	case notcategoryspec:
+#endif /* emacs */
+	  begalt++;
+	  break;
+
+	case start_memory:
+	case stop_memory:
+	case duplicate:
+	case on_failure_jump:
+	case on_failure_keep_string_jump:
+	case on_failure_jump_exclusive:
+	case on_failure_jump_loop:
+	case jump:
+	case jump_past_alt:
+	  begalt += 2;
+	  break;
+
+	case succeed_n:
+	case jump_n:
+	case set_number_at:
+	  begalt += 4;
+	  break;
+
+	case exactn:
+	case charset:
+	case charset_not:
+	  begalt += 1 + *begalt;
+	  break;
+
+#ifdef emacs
+	case charset_mule:
+	case charset_mule_not:
+	  begalt++;
+	  begalt += unified_range_table_bytes_used ((void *) begalt);
+	  break;
+#endif
+	case on_failure_jump_smart:
+	  {
+	    int mcnt;
+
+	    EXTRACT_NUMBER_AND_INCR (mcnt, begalt);
+
+	    if (mutually_exclusive_p (bufp, begalt, begalt + mcnt))
+	      {
+		/* Use a fast `on_failure_jump_exclusive' loop.  */
+		DEBUG_PRINT ("  smart exclusive => fast loop.\n");
+		*(begalt - 3) = on_failure_jump_exclusive;
+	      }
+	    else
+	      {
+		/* Default to a safe `on_failure_jump_loop'.  */
+		DEBUG_PRINT ("  smart default => slow loop.\n");
+		*(begalt - 3) = on_failure_jump_loop;
+	      }
+	    break;
+	  }
+	}
+    }
+}
+
 
 /* `regex_compile' compiles PATTERN (of length SIZE) according to SYNTAX.
    Returns one of error codes defined in `regex.h', or zero for success.
@@ -3758,6 +3883,8 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 
   /* We have succeeded; set the length of the buffer.  */
   bufp->used = buf_end - bufp->buffer;
+
+  fixup_on_failure_jump_smart (bufp);
 
 #ifdef DEBUG
   if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_COMPILATION)
@@ -5353,12 +5480,13 @@ execute_charset_nonmule (re_char **pp, Ichar c, RE_TRANSLATE_TYPE translate)
 /* Non-zero if "p1 matches something" implies "p2 fails".  */
 static re_bool
 mutually_exclusive_p (struct re_pattern_buffer *bufp, re_char *p1,
-		      re_char *p2, re_char *buf_start
-		      RE_MUTUALLY_EXCLUSIVE_P_ARGS_DECL)
+		      re_char *p2)
 {
-  re_char *pend = buf_start + bufp->used;
+  re_char *pend = bufp->buffer + bufp->used;
+  RE_TRANSLATE_TYPE translate = bufp->translate;
 
-  assert (p1 >= buf_start && p1 <= pend && p2 >= buf_start && p2 <= pend);
+  assert (p1 >= bufp->buffer && p1 <= pend
+	  && p2 >= bufp->buffer && p2 <= pend);
 
   /* Skip over open/close-group commands.
      If what follows this loop is a ...+ construct,
@@ -5428,6 +5556,12 @@ mutually_exclusive_p (struct re_pattern_buffer *bufp, re_char *p1,
 	  re_bool not_p = (re_opcode_t) *p1 == charset_mule_not;
 	  re_char *pp = p1 + 1;
 
+	  if (*pp)
+	    {
+	      /* Class bits used, cannot determine this at compile time. */
+	      return 0;
+	    }
+
 	  /* Test if C is listed in charset_mule (or charset_mule_not) at
 	     `p1'.  */
 	  not_p = execute_charset_mule (&pp, c
@@ -5453,9 +5587,7 @@ mutually_exclusive_p (struct re_pattern_buffer *bufp, re_char *p1,
     {
       if ((re_opcode_t) *p1 == exactn)
 	/* Reuse the code above.  */
-	return mutually_exclusive_p (bufp, p2, p1, buf_start
-				     RE_MUTUALLY_EXCLUSIVE_P_ARGS(translate,
-                                                                  lispbuf));
+	return mutually_exclusive_p (bufp, p2, p1);
       else if (*p1 == *p2)
 	{
 	  /* Now, we are sure that P2 is not charset_mule or charset_mule_not,
@@ -5573,7 +5705,6 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 {
   /* General temporaries.  */
   int mcnt;
-  re_char *p1;
   int should_succeed; /* XEmacs change */
 
   /* Just past the end of the corresponding string.  */
@@ -5686,9 +5817,8 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
   END_REGEX_MALLOC_OK ();
 
   /* re_match_2_internal() modifies the compiled pattern (see the succeed_n,
-     jump_n, set_number_at, on_failure_jump_smart opcodes), make it re-entrant
-     by working on a copy. This should also give better locality of
-     reference. */
+     jump_n, set_number_at opcodes), make it re-entrant by working on a
+     copy. This should also give better locality of reference. */
   memcpy (p, bufp->buffer, bufp->used);
   pstart = (re_char *) p;
   pend = pstart + bufp->used;
@@ -6374,6 +6504,10 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    PUSH_FAILURE_POINT (p - 3, d);
 	  break;
 
+	case on_failure_jump_smart:
+	  assert (0); /* Should have been removed from the pattern by
+			 fixup_on_failure_jump_smart(). */
+	  /* FALLTHROUGH */
 	case on_failure_jump_loop:
 	on_failure:
 	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
@@ -6403,43 +6537,6 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
 	  PUSH_FAILURE_POINT (p -3, d);
  	  break;
-
-	  /* This operation is used for greedy * and +.
-	     Compare the beginning of the repeat with what in the
-	     pattern follows its end. If we can establish that there
-	     is nothing that they would both match, i.e., that we
-	     would have to backtrack because of (as in, e.g., `a*a')
-	     then we can use a non-backtracking loop based on
-	     on_failure_jump_exclusive instead of on_failure_jump_loop.  */
-	case on_failure_jump_smart:
-          EXTRACT_NUMBER_AND_INCR (mcnt, p);
-	  DEBUG_PRINT ("EXECUTING on_failure_jump_smart %d (to %p).\n",
-			mcnt, p + mcnt);
-          {
-	    re_char *p2 = p + mcnt; /* Destination of the jump.  */
-	    p1 = p; /* Next operation.  */
-
-	    p -= 3;		/* Reset so that we will re-execute the
-				   instruction once it's been changed. */
-
-	    /* DEBUG_STATEMENT (debug = 1); */
-	    if (mutually_exclusive_p (bufp, p1, p2, pstart
-				      RE_MUTUALLY_EXCLUSIVE_P_ARGS (translate,
-								    lispbuf)))
- 	      {
-		/* Use a fast `on_failure_keep_string_jump' loop.  */
-		*p = (unsigned char) on_failure_jump_exclusive;
-		/* STORE_NUMBER (p2 - 2, mcnt + 3); */
-	      }
-	    else
-	      {
-		/* Default to a safe `on_failure_jump' loop.  */
-		DEBUG_PRINT ("  smart default => slow loop.\n");
-		*p = (unsigned char) on_failure_jump_loop;
-	      }
-	    /* DEBUG_STATEMENT (debug = 0); */
-	  }
-	  break;		
 
 	/* We need this opcode so we can detect where alternatives end
 	   in `group_match_null_string_p' et al.  */
@@ -7014,7 +7111,7 @@ common_op_match_null_string_p (re_char **p, re_char *end)
 {
   int mcnt;
   re_bool ret;
-  int reg_no;
+  regnum_t reg_no;
   re_char *p1 = *p;
 
   switch ((re_opcode_t) *p1++)
@@ -7040,6 +7137,7 @@ common_op_match_null_string_p (re_char **p, re_char *end)
       assert (reg_no > 0 && reg_no <= MAX_REGNUM);
       ret = group_match_null_string_p (&p1, end);
 
+      USED (reg_no);
 #if 0
       /* #### Fix this once we use this code at regexp compile time. */
       /* Have to set this here in case we're checking a group which

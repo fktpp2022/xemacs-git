@@ -1420,6 +1420,25 @@
 	* data.c (init_errors_once_early):
 	Correct the docstring for the setting-constant error.
 
+2024-08-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Move handling of on_failure_jump_smart to compile time, regex.c.
+
+	* regex.c:
+	* regex.c (PUSH_FAILURE_POINT): Fix a bug in passing when debugging.
+	* regex.c (POP_FAILURE_POINT): Fix a bug in passing when debugging.
+
+	* regex.c (fixup_on_failure_jump_smart): New.
+	* regex.c (regex_compile): Call it.
+	* regex.c (mutually_exclusive_p): Adjust the calling convention of
+	this to reflect that it's only called at compilation of the
+	regexp, not at match time.
+	* regex.c (re_match_2_internal):
+	Remove handling of on_failure_jump_smart from this funnction. 
+	* regex.h:
+	Remove RE_MUTUALLY_EXCLUSIVE_P_ARGS{,DECL} from this header, no
+	longer needed.
+
 2024-08-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Move the regex.c voluminous logging #defines to using variadic
