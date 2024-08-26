@@ -1422,6 +1422,29 @@
 
 2024-08-24  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Move the regex.c voluminous logging #defines to using variadic
+	macros.
+	* regex.c (DEBUG_PRINT): New.
+	* regex.c (DEBUG_PRINT1, DEBUG_PRINT2, DEBUG_PRINT3,
+	DEBUG_PRINT4): Removed.
+	* regex.c (DEBUG_FAIL_PRINT): Revise.
+	* regex.c (DEBUG_MATCH_PRINT): Revise.
+	* regex.c (DEBUG_FAIL_PRINT_DOUBLE_STRING): Revise.
+	* regex.c (DEBUG_MATCH_PRINT_DOUBLE_STRING): Revise.
+
+	* regex.c (ENSURE_FAIL_STACK):
+	* regex.c (PUSH_FAILURE_REG):
+	* regex.c (POP_FAILURE_REG):
+	* regex.c (CHECK_INFINITE_LOOP):
+	* regex.c (PUSH_FAILURE_POINT):
+	* regex.c (POP_FAILURE_POINT):
+	* regex.c (regex_compile):
+	* regex.c (mutually_exclusive_p):
+	* regex.c (re_match_2_internal):
+	Switch to DEBUG_PRINT() in all these functions.
+
+2024-08-24  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Integrate Stefan Monnier's GNU change of March 2000, which removed
 	the code to deal with inner groups with start_memory, stop_memory
 	(making it more economic of pattern space), and allows much more

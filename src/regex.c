@@ -714,6 +714,9 @@ extract_nonnegative_and_incr (re_char **source)
   return num;
 }
 
+/* We use standard I/O for debugging.  */
+#include <stdio.h>
+
 /* If DEBUG is defined, Regex prints many voluminous messages about what
    it is doing (if the variable `debug' is nonzero).  If linked with the
    main program in `iregex.c', you can enter patterns and strings
@@ -721,9 +724,6 @@ extract_nonnegative_and_incr (re_char **source)
    the other test files, you can run the already-written tests.  */
 
 #if defined (DEBUG)
-
-/* We use standard I/O for debugging.  */
-#include <stdio.h>
 
 #ifndef emacs
 /* XEmacs provides its own version of assert() */
@@ -733,48 +733,26 @@ extract_nonnegative_and_incr (re_char **source)
 
 extern int debug_regexps;
 
-#define DEBUG_STATEMENT(e) e
 #define DEBUG_RUNTIME_FLAGS debug_regexps
 
-#define DEBUG_PRINT1(x) if (debug_regexps) printf (x)
-#define DEBUG_PRINT2(x1, x2) if (debug_regexps) printf (x1, x2)
-#define DEBUG_PRINT3(x1, x2, x3) if (debug_regexps) printf (x1, x2, x3)
-#define DEBUG_PRINT4(x1, x2, x3, x4) if (debug_regexps) printf (x1, x2, x3, x4)
-#define DEBUG_PRINT_COMPILED_PATTERN(p, s, e) 				\
-  if (debug_regexps) print_partial_compiled_pattern (s, e)
-#define DEBUG_PRINT_DOUBLE_STRING(w, s1, sz1, s2, sz2)			\
-  if (debug_regexps) print_double_string (w, s1, sz1, s2, sz2)
-
-#define DEBUG_FAIL_PRINT1(x) \
-  if (debug_regexps & RE_DEBUG_FAILURE_POINT) printf (x)
-#define DEBUG_FAIL_PRINT2(x1, x2) \
-  if (debug_regexps & RE_DEBUG_FAILURE_POINT) printf (x1, x2)
-#define DEBUG_FAIL_PRINT3(x1, x2, x3) \
-  if (debug_regexps & RE_DEBUG_FAILURE_POINT) printf (x1, x2, x3)
-#define DEBUG_FAIL_PRINT4(x1, x2, x3, x4) \
-  if (debug_regexps & RE_DEBUG_FAILURE_POINT) printf (x1, x2, x3, x4)
-#define DEBUG_FAIL_PRINT_COMPILED_PATTERN(p, s, e)	\
-  if (debug_regexps & RE_DEBUG_FAILURE_POINT)		\
-    print_partial_compiled_pattern (s, e)
+#define DEBUG_PRINT_COMPILED_PATTERN(p, s, e) do {		\
+    if (DEBUG_RUNTIME_FLAGS)					\
+      print_partial_compiled_pattern (s, e); } while (0)
+#define DEBUG_PRINT_DOUBLE_STRING(w, s1, sz1, s2, sz2) do {	\
+    if (DEBUG_RUNTIME_FLAGS)					\
+      print_double_string (w, s1, sz1, s2, sz2); } while (0)
+#define DEBUG_FAIL_PRINT_COMPILED_PATTERN(p, s, e) do {		\
+    if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_FAILURE_POINT)		\
+      print_partial_compiled_pattern (s, e); } while (0)
 #define DEBUG_FAIL_PRINT_DOUBLE_STRING(w, s1, sz1, s2, sz2)	\
-  if (debug_regexps & RE_DEBUG_FAILURE_POINT)			\
-    print_double_string (w, s1, sz1, s2, sz2)
-
-#define DEBUG_MATCH_PRINT1(x) \
-  if (debug_regexps & RE_DEBUG_MATCHING) printf (x)
-#define DEBUG_MATCH_PRINT2(x1, x2) \
-  if (debug_regexps & RE_DEBUG_MATCHING) printf (x1, x2)
-#define DEBUG_MATCH_PRINT3(x1, x2, x3) \
-  if (debug_regexps & RE_DEBUG_MATCHING) printf (x1, x2, x3)
-#define DEBUG_MATCH_PRINT4(x1, x2, x3, x4) \
-  if (debug_regexps & RE_DEBUG_MATCHING) printf (x1, x2, x3, x4)
-#define DEBUG_MATCH_PRINT_COMPILED_PATTERN(p, s, e)	\
-  if (debug_regexps & RE_DEBUG_MATCHING)		\
-    print_partial_compiled_pattern (s, e)
+  do { if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_FAILURE_POINT)	 \
+      print_double_string (w, s1, sz1, s2, sz2); } while (0)
+#define DEBUG_MATCH_PRINT_COMPILED_PATTERN(p, s, e) do {	\
+    if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_MATCHING)		\
+      print_partial_compiled_pattern (s, e); } while (0)
 #define DEBUG_MATCH_PRINT_DOUBLE_STRING(w, s1, sz1, s2, sz2)	\
-  if (debug_regexps & RE_DEBUG_MATCHING)			\
-    print_double_string (w, s1, sz1, s2, sz2)
-
+  do { if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_MATCHING)		\
+      print_double_string (w, s1, sz1, s2, sz2); } while (0)
 
 /* Print the fastmap in human-readable form.  */
 
@@ -1165,31 +1143,57 @@ print_double_string (re_char *where, re_char *string1, int size1,
 #define malloc_checking_assert assert
 #endif
 
-#define DEBUG_STATEMENT(e)
 #define DEBUG_RUNTIME_FLAGS 0
 
-#define DEBUG_PRINT1(x)
-#define DEBUG_PRINT2(x1, x2)
-#define DEBUG_PRINT3(x1, x2, x3)
-#define DEBUG_PRINT4(x1, x2, x3, x4)
-#define DEBUG_PRINT_COMPILED_PATTERN(p, s, e)
-#define DEBUG_PRINT_DOUBLE_STRING(w, s1, sz1, s2, sz2)
-
-#define DEBUG_FAIL_PRINT1(x)
-#define DEBUG_FAIL_PRINT2(x1, x2)
-#define DEBUG_FAIL_PRINT3(x1, x2, x3)
-#define DEBUG_FAIL_PRINT4(x1, x2, x3, x4)
-#define DEBUG_FAIL_PRINT_COMPILED_PATTERN(p, s, e)
-#define DEBUG_FAIL_PRINT_DOUBLE_STRING(w, s1, sz1, s2, sz2)
-
-#define DEBUG_MATCH_PRINT1(x)
-#define DEBUG_MATCH_PRINT2(x1, x2)
-#define DEBUG_MATCH_PRINT3(x1, x2, x3)
-#define DEBUG_MATCH_PRINT4(x1, x2, x3, x4)
-#define DEBUG_MATCH_PRINT_COMPILED_PATTERN(p, s, e)
-#define DEBUG_MATCH_PRINT_DOUBLE_STRING(w, s1, sz1, s2, sz2)
+#define DEBUG_PRINT_COMPILED_PATTERN(p, s, e) \
+	(USED (p), USED (s), USED (e))
+#define DEBUG_PRINT_DOUBLE_STRING(w, s1, sz1, s2, sz2) \
+	(USED (w), USED (s1), USED (sz1), USED (s2), USED (sz2))
+#define DEBUG_FAIL_PRINT_COMPILED_PATTERN(p, s, e) \
+	(USED (p), USED (s), USED (e))
+#define DEBUG_FAIL_PRINT_DOUBLE_STRING(w, s1, sz1, s2, sz2) \
+	(USED (w), USED (s1), USED (sz1), USED (s2), USED (sz2))
+#define DEBUG_MATCH_PRINT_COMPILED_PATTERN(p, s, e) \
+	(USED (p), USED (s), USED (e))
+#define DEBUG_MATCH_PRINT_DOUBLE_STRING(w, s1, sz1, s2, sz2) \
+	(USED (w), USED (s1), USED (sz1), USED (s2), USED (sz2))
 
 #endif /* DEBUG */
+
+#define DEBUG_STATEMENT(e) do { if (DEBUG_RUNTIME_FLAGS) { e; } } while (0)
+
+#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901)
+
+#define DEBUG_PRINT(...)  \
+  do { if (DEBUG_RUNTIME_FLAGS) printf (__VA_ARGS__); } while (0)
+#define DEBUG_FAIL_PRINT(...)  \
+  do { if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_FAILURE_POINT) \
+      printf (__VA_ARGS__); } while (0)
+#define DEBUG_MATCH_PRINT(...)  \
+  do { if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_MATCHING) \
+      printf (__VA_ARGS__); } while (0)
+
+#elif defined(__GNUC__)
+
+# define DEBUG_PRINT(args...)  \
+  do { if (DEBUG_RUNTIME_FLAGS) printf (args ); } while (0)
+# define DEBUG_FAIL_PRINT(args...)  \
+  do { if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_FAILURE_POINT) \
+      printf (args); } while (0)
+# define DEBUG_MATCH_PRINT(args...)  \
+  do { if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_MATCHING) \
+      printf (args); } while (0)
+
+#else /* defined(__STDC_VERSION__) [...] */
+
+/* Expansion portable to all versions of C, but will provoke warnings regarding
+   the result of a comma argument unused for the arguments.  */
+# define DEBUG_PRINT	(void)
+# define DEBUG_FAIL_PRINT (void)
+# define DEBUG_MATCH_PRINT (void)
+
+#endif
+
 
 /* Set by `re_set_syntax' to the current regexp syntax to recognize.  Can
    also be assigned to arbitrarily: each pattern buffer stores its own
@@ -1678,9 +1682,9 @@ pop_failure_relocatable_1 (fail_stack_type *fail_stack_ptr, re_char *string1,
 	  }								\
 	END_REGEX_MALLOC_OK ();						\
 	RE_MATCH_RELOCATE_MOVEABLE_DATA_POINTERS ();			\
-	DEBUG_PRINT2 ("\n  Doubled stack; size now: %zd\n",		\
+	DEBUG_PRINT ("\n  Doubled stack; size now: %zd\n",		\
 		      (fail_stack).size);				\
-	DEBUG_PRINT2 ("	 slots available: %zd\n",			\
+	DEBUG_PRINT ("	 slots available: %zd\n",			\
 		      REMAINING_AVAIL_SLOTS);				\
       }                                                                 \
   } while (0)
@@ -1689,7 +1693,7 @@ pop_failure_relocatable_1 (fail_stack_type *fail_stack_ptr, re_char *string1,
 #define PUSH_FAILURE_REG(num)						\
 do {									\
   ENSURE_FAIL_STACK (3);						\
-  DEBUG_PRINT4 ("    Push reg %d (spanning %p -> %p)\n",		\
+  DEBUG_PRINT ("    Push reg %d (spanning %p -> %p)\n",		\
 		num, regstart[num], regend[num]);			\
   PUSH_FAILURE_RELOCATABLE (regstart[num]);				\
   PUSH_FAILURE_RELOCATABLE (regend[num]);				\
@@ -1702,8 +1706,8 @@ do {									\
   regnum_t reg = POP_FAILURE_INT ();					\
   regend[reg] = POP_FAILURE_RELOCATABLE ();				\
   regstart[reg] = POP_FAILURE_RELOCATABLE ();				\
-  DEBUG_PRINT4 ("     Pop reg %d (spanning %p -> %p)\n",		\
-		reg, regstart[reg], regend[reg]);			\
+  DEBUG_PRINT ("     Pop reg %d (spanning %p -> %p)\n",			\
+	       reg, regstart[reg], regend[reg]);			\
 } while (0)
 
 /* Check that we are not stuck in an infinite loop.  */
@@ -1719,10 +1723,10 @@ do {									\
 	      && FAILURE_PAT (failure) <= pstart + bufp->used);         \
       if (FAILURE_PAT (failure) == pat_cur)				\
 	goto fail;							\
-      DEBUG_PRINT2 ("  Other pattern: %p\n", FAILURE_PAT (failure));\
+      DEBUG_PRINT ("  Other pattern: %p\n", FAILURE_PAT (failure));	\
       failure = NEXT_FAILURE_HANDLE(failure);				\
     }									\
-  DEBUG_PRINT2 ("  Other string: %p\n", FAILURE_STR (failure));		\
+  DEBUG_PRINT ("  Other string: %p\n", FAILURE_STR (failure));		\
 } while (0)
     
 /* Push the information about the state we will need if we ever fail back to
@@ -1739,22 +1743,22 @@ do {									\
      of 0 + -1 isn't done as unsigned.  */				\
   DEBUG_STATEMENT ((failure_id++, nfailure_points_pushed++));		\
   									\
-  ENSURE_FAIL_STACK (NUM_FAILURE_ITEMS);					\
+  ENSURE_FAIL_STACK (NUM_FAILURE_ITEMS);				\
 									\
   if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_FAILURE_POINT)			\
     {									\
-      DEBUG_FAIL_PRINT2 ("\nPUSH_FAILURE_POINT #%d:\n", failure_id);	\
-      DEBUG_FAIL_PRINT2 ("  Before push, next avail: %zd\n",		\
+      DEBUG_FAIL_PRINT ("\nPUSH_FAILURE_POINT #%d:\n", failure_id);	\
+      DEBUG_FAIL_PRINT ("  Before push, next avail: %zd\n",		\
 			 (Bytecount) (fail_stack).avail);		\
-      DEBUG_FAIL_PRINT2 ("                     size: %zd\n",		\
+      DEBUG_FAIL_PRINT ("                     size: %zd\n",		\
 			 (Bytecount) (fail_stack).size);		\
       									\
-      DEBUG_FAIL_PRINT2 ("  Push frame index: %zd\n",			\
+      DEBUG_FAIL_PRINT ("  Push frame index: %zd\n",			\
 			 fail_stack.frame);				\
-      DEBUG_PRINT2 ("  Push string %p: `", (void *) string_place);	\
+      DEBUG_PRINT ("  Push string %p: `", (void *) string_place);	\
       DEBUG_PRINT_DOUBLE_STRING (string_place, string1, size1, string2, \
 				 size2);				\
-      DEBUG_PRINT2 ("'\n  Push pattern %p: ", pattern_place);		\
+      DEBUG_PRINT ("'\n  Push pattern %p: ", pattern_place);		\
       DEBUG_PRINT_COMPILED_PATTERN (bufp, pattern_place, pend);		\
     }									\
 									\
@@ -1798,10 +1802,10 @@ do {									\
 									\
   if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_FAILURE_POINT)			\
     {									\
-      DEBUG_FAIL_PRINT1 ("POP_FAILURE_POINT:\n");			\
-      DEBUG_FAIL_PRINT2 ("  Before pop, next avail: %zd\n",		\
+      DEBUG_FAIL_PRINT ("POP_FAILURE_POINT:\n");			\
+      DEBUG_FAIL_PRINT ("  Before pop, next avail: %zd\n",		\
 			 (Bytecount) fail_stack.avail);			\
-      DEBUG_FAIL_PRINT2 ("                    size: %zd\n",		\
+      DEBUG_FAIL_PRINT ("                    size: %zd\n",		\
 			 (Bytecount) fail_stack.size);			\
     }									\
 									\
@@ -1810,16 +1814,16 @@ do {									\
     POP_FAILURE_REG ();							\
 									\
   pat = (unsigned char *) POP_FAILURE_POINTER ();			\
-  DEBUG_PRINT2 ("  Popping pattern %p: ", pat);				\
+  DEBUG_PRINT ("  Popping pattern %p: ", pat);				\
   DEBUG_PRINT_COMPILED_PATTERN (bufp, pat, pend);			\
 									\
   str = POP_FAILURE_RELOCATABLE ();					\
 									\
-  DEBUG_PRINT2 ("  Popping string %p: `", str);				\
+  DEBUG_PRINT ("  Popping string %p: `", str);				\
   DEBUG_PRINT_DOUBLE_STRING (str, string1, size1, string2, size2);	\
 									\
   fail_stack.frame = POP_FAILURE_INT ();				\
-  DEBUG_PRINT2 ("'\n  Popping  frame index: %zd\n", fail_stack.frame);	\
+  DEBUG_PRINT ("'\n  Popping  frame index: %zd\n", fail_stack.frame);	\
 									\
   assert (fail_stack.avail >= 0);					\
   assert (fail_stack.frame <= fail_stack.avail);			\
@@ -2373,11 +2377,11 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
   regnum_t regnum = 0;
 
 #ifdef DEBUG
-  if (debug_regexps & RE_DEBUG_COMPILATION)
+  if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_COMPILATION)
     {
       int debug_count;
 
-      DEBUG_PRINT1 ("\nCompiling pattern: ");
+      DEBUG_PRINT ("\nCompiling pattern: ");
       for (debug_count = 0; debug_count < size; debug_count++)
         putchar (pattern[debug_count]);
       putchar ('\n');
@@ -3756,9 +3760,9 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
   bufp->used = buf_end - bufp->buffer;
 
 #ifdef DEBUG
-  if (debug_regexps & RE_DEBUG_COMPILATION)
+  if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_COMPILATION)
     {
-      DEBUG_PRINT1 ("\nCompiled pattern: \n");
+      DEBUG_PRINT ("\nCompiled pattern: \n");
       print_compiled_pattern (bufp);
     }
 #endif /* DEBUG */
@@ -5377,7 +5381,7 @@ mutually_exclusive_p (struct re_pattern_buffer *bufp, re_char *p1,
 	case charset_not:
 	case charset:
 	case exactn:
-	  DEBUG_PRINT1 ("  End of pattern: fast loop.\n");
+	  DEBUG_PRINT ("  End of pattern: fast loop.\n");
 	  return 1;
 	default:
 	  return 0;
@@ -5395,7 +5399,7 @@ mutually_exclusive_p (struct re_pattern_buffer *bufp, re_char *p1,
 	  Ichar c1 = itext_ichar (p1 + 2);
 	  if (RE_TRANSLATE (c) != RE_TRANSLATE (c1))
 	    {
-	      DEBUG_PRINT3 ("  '%c' != '%c' => fast loop.\n", c,
+	      DEBUG_PRINT ("  '%c' != '%c' => fast loop.\n", c,
 			    itext_ichar (p1 + 2));
 	      return 1;
 	    }
@@ -5413,7 +5417,7 @@ mutually_exclusive_p (struct re_pattern_buffer *bufp, re_char *p1,
 	     that we can't change to pop_failure_jump.  */
 	  if (!not_p)
 	    {
-	      DEBUG_PRINT1 ("	 No match => fast loop.\n");
+	      DEBUG_PRINT ("	 No match => fast loop.\n");
 	      return 1;
 	    }
 	}
@@ -5428,12 +5432,12 @@ mutually_exclusive_p (struct re_pattern_buffer *bufp, re_char *p1,
 	     `p1'.  */
 	  not_p = execute_charset_mule (&pp, c
 					RE_EXECUTE_CHARSET_MULE_ARGS
-					(translate, lispbuf));
+					(translate, NULL));
 	  /* `not_p' is equal to 1 if c would match, which means
 	     that we can't change to pop_failure_jump.  */
 	  if (!not_p)
 	    {
-	      DEBUG_PRINT1 ("	 No match => fast loop.\n");
+	      DEBUG_PRINT ("	 No match => fast loop.\n");
 	      return 1;
 	    }
 	}
@@ -5441,7 +5445,7 @@ mutually_exclusive_p (struct re_pattern_buffer *bufp, re_char *p1,
       else if ((re_opcode_t) *p1 == anychar
 	       && c == '\n' && !(bufp->syntax & RE_DOT_NEWLINE))
 	{
-	  DEBUG_PRINT1 ("   . != \\n => fast loop.\n");
+	  DEBUG_PRINT ("   . != \\n => fast loop.\n");
 	  return 1;
 	}
     }
@@ -5457,8 +5461,8 @@ mutually_exclusive_p (struct re_pattern_buffer *bufp, re_char *p1,
 	  /* Now, we are sure that P2 is not charset_mule or charset_mule_not,
 	     for the size of bitmap in P2, `p2[1]' is enough.
 
-	     Since we know that all the characters listed in P2 are ASCII, it is
-	     enough to test only bitmap table of P1.  */
+	     Since we know that all the characters listed in P2 are ASCII, it
+	     is enough to test only bitmap table of P1.  */
 	  int idx;
 	  /* We win if the charset inside the loop has no overlap with the one
 	     after the loop.  */
@@ -5471,7 +5475,7 @@ mutually_exclusive_p (struct re_pattern_buffer *bufp, re_char *p1,
 
 	  if (idx == p2[1] || idx == CHARSET_BITMAP_SIZE (p1))
 	    {
-	      DEBUG_PRINT1 ("	 No match => fast loop.\n");
+	      DEBUG_PRINT ("	 No match => fast loop.\n");
 	      return 1;
 	    }
 	}
@@ -5490,7 +5494,7 @@ mutually_exclusive_p (struct re_pattern_buffer *bufp, re_char *p1,
 
 	      if (idx == p2[1])
 		{
-		  DEBUG_PRINT1 ("	 No match => fast loop.\n");
+		  DEBUG_PRINT ("	 No match => fast loop.\n");
 		  return 1;
 		}
 	    }
@@ -5600,10 +5604,9 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 #ifdef MATCH_MAY_ALLOCATE /* otherwise, this is global.  */
   fail_stack_type fail_stack;
 #endif
-#ifdef DEBUG
+
   static int failure_id;
-  int nfailure_points_pushed = 0, nfailure_points_popped = 0;
-#endif
+  int nfailure_points_pushed, nfailure_points_popped;
 
 #ifdef REGEX_REL_ALLOC
   /* This holds the pointer to the failure stack, when
@@ -5646,10 +5649,8 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
      and need to test it, it's not garbage.  */
   re_char *match_end = NULL;
 
-#ifdef DEBUG
   /* Counts the total number of registers pushed.  */
-  int num_regs_pushed = 0;
-#endif
+  int num_regs_pushed;
 
   /* 1 if this match ends in the same string (string1 or string2)
      as the best previous match.  */
@@ -5673,7 +5674,11 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 #endif
 #endif /* emacs */
 
-  DEBUG_MATCH_PRINT1 ("\n\nEntering re_match_2.\n");
+  DEBUG_STATEMENT ((nfailure_points_pushed = 0,
+		    nfailure_points_popped = 0,
+		    num_regs_pushed = 0));
+
+  DEBUG_MATCH_PRINT ("\n\nEntering re_match_2.\n");
 
   BEGIN_REGEX_MALLOC_OK ();
   INIT_FAIL_STACK ();
@@ -5786,18 +5791,18 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
       dend = end_match_2;
     }
 
-  DEBUG_MATCH_PRINT1 ("The compiled pattern is: \n");
+  DEBUG_MATCH_PRINT ("The compiled pattern is: \n");
   DEBUG_MATCH_PRINT_COMPILED_PATTERN (bufp, p, pend);
-  DEBUG_MATCH_PRINT1 ("The string to match is: `");
+  DEBUG_MATCH_PRINT ("The string to match is: `");
   DEBUG_MATCH_PRINT_DOUBLE_STRING (d, string1, size1, string2, size2);
-  DEBUG_MATCH_PRINT1 ("'\n");
+  DEBUG_MATCH_PRINT ("'\n");
 
   /* This loops over pattern commands.  It exits by returning from the
      function if the match is complete, or it drops through if the match
      fails at this starting point in the input data.  */
   for (;;)
     {
-      DEBUG_MATCH_PRINT2 ("\n0x%zx: ", (Bytecount) p);
+      DEBUG_MATCH_PRINT ("\n0x%zx: ", (Bytecount) p);
 #ifdef emacs /* XEmacs added, w/removal of immediate_quit */
       if (!no_quit_in_re_search)
 	{
@@ -5810,7 +5815,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
       if (p == pend)
 	{ /* End of pattern means we might have succeeded.  */
-          DEBUG_MATCH_PRINT1 ("end of pattern ... ");
+          DEBUG_MATCH_PRINT ("end of pattern ... ");
 
 	  /* If we haven't matched the entire string, and we want the
              longest match, try backtracking.  */
@@ -5826,7 +5831,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	      else
 		best_match_p = !MATCHING_IN_FIRST_STRING;
 
-              DEBUG_MATCH_PRINT1 ("backtracking.\n");
+              DEBUG_MATCH_PRINT ("backtracking.\n");
 
               if (!FAIL_STACK_EMPTY ())
                 { /* More failure points to try.  */
@@ -5837,7 +5842,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
                       best_regs_set = true;
                       match_end = d;
 
-                      DEBUG_MATCH_PRINT1 ("\nSAVING match as best so far.\n");
+                      DEBUG_MATCH_PRINT ("\nSAVING match as best so far.\n");
 
                       for (mcnt = 1; mcnt < num_regs; mcnt++)
                         {
@@ -5859,7 +5864,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
                      For example, the pattern `x.*y.*z' against the
                      strings `x-' and `y-z-', if the two strings are
                      not consecutive in memory.  */
-                  DEBUG_MATCH_PRINT1 ("Restoring best registers.\n");
+                  DEBUG_MATCH_PRINT ("Restoring best registers.\n");
 
                   d = match_end;
                   dend = ((d >= string1 && d <= end1)
@@ -5874,7 +5879,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
             } /* d != end_match_2 */
 
 	succeed_label:
-          DEBUG_MATCH_PRINT1 ("Accepting match.\n");
+          DEBUG_MATCH_PRINT ("Accepting match.\n");
 
           /* If caller wants register contents data back, do it.  */
 	  {
@@ -5977,16 +5982,16 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	      for (mcnt = num_nonshy_regs; mcnt < regs->num_regs; mcnt++)
 		regs->start[mcnt] = regs->end[mcnt] = -1;
 	  }
-          DEBUG_MATCH_PRINT4 ("%u failure points pushed, %u popped (%u remain).\n",
+          DEBUG_MATCH_PRINT ("%u failure points pushed, %u popped (%u remain).\n",
                         nfailure_points_pushed, nfailure_points_popped,
                         nfailure_points_pushed - nfailure_points_popped);
-          DEBUG_MATCH_PRINT2 ("%u registers pushed.\n", num_regs_pushed);
+          DEBUG_MATCH_PRINT ("%u registers pushed.\n", num_regs_pushed);
 
           mcnt = d - pos - (MATCHING_IN_FIRST_STRING
 			    ? string1
 			    : string2 - size1);
 
-          DEBUG_MATCH_PRINT2 ("Returning %d from re_match_2.\n", mcnt);
+          DEBUG_MATCH_PRINT ("Returning %d from re_match_2.\n", mcnt);
 
           FREE_VARIABLES ();
           return mcnt;
@@ -5998,11 +6003,11 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
         /* Ignore these.  Used to ignore the n of succeed_n's which
            currently have n == 0.  */
         case no_op:
-          DEBUG_MATCH_PRINT1 ("EXECUTING no_op.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING no_op.\n");
           break;
 
 	case succeed:
-          DEBUG_MATCH_PRINT1 ("EXECUTING succeed.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING succeed.\n");
 	  goto succeed_label;
 
         /* Match exactly a string of length n in the pattern.  The
@@ -6011,7 +6016,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
            the default internal format.) */
 	case exactn:
 	  mcnt = *p++;
-          DEBUG_MATCH_PRINT2 ("EXECUTING exactn %d.\n", mcnt);
+          DEBUG_MATCH_PRINT ("EXECUTING exactn %d.\n", mcnt);
 
           /* This is written out as an if-else so we don't waste time
              testing `translate' inside the loop.  */
@@ -6083,7 +6088,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
         /* Match any character except possibly a newline or a null.  */
 	case anychar:
-          DEBUG_MATCH_PRINT1 ("EXECUTING anychar.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING anychar.\n");
 
           REGEX_PREFETCH ();
 
@@ -6094,7 +6099,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 		  '\000'))
 	    goto fail;
 
-          DEBUG_MATCH_PRINT2 ("  Matched `%c'.\n", *d);
+          DEBUG_MATCH_PRINT ("  Matched `%c'.\n", *d);
 	  INC_IBYTEPTR_FMT (d, fmt); /* XEmacs change */
 	  break;
 
@@ -6148,14 +6153,14 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
 	    EXTRACT_NONNEGATIVE_AND_INCR (regno, p);
 
-	    DEBUG_MATCH_PRINT2 ("EXECUTING start_memory %d:\n", regno);
+	    DEBUG_MATCH_PRINT ("EXECUTING start_memory %d:\n", regno);
 
 	    /* In case we need to undo this operation (via backtracking).  */
 	    PUSH_FAILURE_REG (regno);
 
 	    regstart[regno] = d;
 	    regend[regno] = REG_UNSET_VALUE; /* probably unnecessary.  -sm  */
-	    DEBUG_MATCH_PRINT2 ("  regstart: %zd\n",
+	    DEBUG_MATCH_PRINT ("  regstart: %zd\n",
 				POINTER_TO_OFFSET (regstart[regno]));
 	    break;
 	  }
@@ -6168,7 +6173,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
 	    EXTRACT_NONNEGATIVE_AND_INCR (regno, p);
 
-	    DEBUG_MATCH_PRINT2 ("EXECUTING stop_memory %d:\n", regno);
+	    DEBUG_MATCH_PRINT ("EXECUTING stop_memory %d:\n", regno);
 
 	    /* Strictly speaking, there should be code such as:
 
@@ -6184,7 +6189,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	       both events can only happen if this stop_memory is *not*
 	       undone.  */
 	    regend[regno] = d;
-	    DEBUG_MATCH_PRINT2 ("      regend: %zd\n",
+	    DEBUG_MATCH_PRINT ("      regend: %zd\n",
 			      POINTER_TO_OFFSET (regend[regno]));
 	    break;
 	  }
@@ -6201,7 +6206,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    regnum_t regno;
 	    
 	    EXTRACT_NONNEGATIVE_AND_INCR (regno, p);
-	    DEBUG_MATCH_PRINT2 ("EXECUTING duplicate %d.\n", regno);
+	    DEBUG_MATCH_PRINT ("EXECUTING duplicate %d.\n", regno);
 
 	    /* Can't back reference a group which we've never matched.  */
             if (REG_UNSET (regstart[regno]) || REG_UNSET (regend[regno]))
@@ -6265,7 +6270,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
            (unless `not_bol' is set in `bufp'), and, if
            `newline_anchor' is set, after newlines.  */
 	case begline:
-          DEBUG_MATCH_PRINT1 ("EXECUTING begline.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING begline.\n");
 
           if (AT_STRINGS_BEG (d))
             {
@@ -6285,7 +6290,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
         /* endline is the dual of begline.  */
 	case endline:
-          DEBUG_MATCH_PRINT1 ("EXECUTING endline.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING endline.\n");
 
           if (AT_STRINGS_END (d))
             {
@@ -6305,7 +6310,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
 	/* Match at the very beginning of the data.  */
         case begbuf:
-          DEBUG_MATCH_PRINT1 ("EXECUTING begbuf.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING begbuf.\n");
           if (AT_STRINGS_BEG (d))
             break;
           goto fail;
@@ -6313,7 +6318,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
 	/* Match at the very end of the data.  */
         case endbuf:
-          DEBUG_MATCH_PRINT1 ("EXECUTING endbuf.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING endbuf.\n");
 	  if (AT_STRINGS_END (d))
 	    break;
           goto fail;
@@ -6337,14 +6342,14 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
            case; that seems worse than this.  */
         case on_failure_keep_string_jump:
           EXTRACT_NUMBER_AND_INCR (mcnt, p);
-	  DEBUG_PRINT3 ("EXECUTING on_failure_keep_string_jump %d (to %p):\n",
+	  DEBUG_PRINT ("EXECUTING on_failure_keep_string_jump %d (to %p):\n",
 			mcnt, p + mcnt);
           PUSH_FAILURE_POINT (p - 3, REG_UNSET_VALUE);
           break;
 
 	case on_failure_jump_exclusive:
 	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
-	  DEBUG_PRINT3 ("EXECUTING on_failure_jump_exclusive %d (to %p):\n",
+	  DEBUG_PRINT ("EXECUTING on_failure_jump_exclusive %d (to %p):\n",
 			mcnt, p + mcnt);
 
 	  if (! FAIL_STACK_EMPTY ()
@@ -6372,7 +6377,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	case on_failure_jump_loop:
 	on_failure:
 	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
-	  DEBUG_PRINT3 ("EXECUTING on_failure_jump_loop %d (to %p):\n",
+	  DEBUG_PRINT ("EXECUTING on_failure_jump_loop %d (to %p):\n",
 			mcnt, p + mcnt);
 
 	  CHECK_INFINITE_LOOP (p - 3, d);
@@ -6393,7 +6398,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
            pop_failure_jump back to this on_failure_jump.  */
 	case on_failure_jump:
           EXTRACT_NUMBER_AND_INCR (mcnt, p);
-	  DEBUG_PRINT3 ("EXECUTING on_failure_jump %d (to %p):\n",
+	  DEBUG_PRINT ("EXECUTING on_failure_jump %d (to %p):\n",
 			mcnt, p + mcnt);
 
 	  PUSH_FAILURE_POINT (p -3, d);
@@ -6408,7 +6413,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	     on_failure_jump_exclusive instead of on_failure_jump_loop.  */
 	case on_failure_jump_smart:
           EXTRACT_NUMBER_AND_INCR (mcnt, p);
-	  DEBUG_PRINT3 ("EXECUTING on_failure_jump_smart %d (to %p).\n",
+	  DEBUG_PRINT ("EXECUTING on_failure_jump_smart %d (to %p).\n",
 			mcnt, p + mcnt);
           {
 	    re_char *p2 = p + mcnt; /* Destination of the jump.  */
@@ -6429,7 +6434,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    else
 	      {
 		/* Default to a safe `on_failure_jump' loop.  */
-		DEBUG_PRINT1 ("  smart default => slow loop.\n");
+		DEBUG_PRINT ("  smart default => slow loop.\n");
 		*p = (unsigned char) on_failure_jump_loop;
 	      }
 	    /* DEBUG_STATEMENT (debug = 0); */
@@ -6439,34 +6444,34 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	/* We need this opcode so we can detect where alternatives end
 	   in `group_match_null_string_p' et al.  */
         case jump_past_alt:
-          DEBUG_MATCH_PRINT1 ("EXECUTING jump_past_alt.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING jump_past_alt.\n");
         /* Unconditionally jump (without popping any failure points).  */
         case jump:
 	unconditional_jump:
 	  EXTRACT_NUMBER_AND_INCR (mcnt, p);	/* Get the amount to jump.  */
-          DEBUG_MATCH_PRINT2 ("EXECUTING jump %d ", mcnt);
+          DEBUG_MATCH_PRINT ("EXECUTING jump %d ", mcnt);
 	  p += mcnt;				/* Do the jump.  */
-          DEBUG_MATCH_PRINT2 ("(to 0x%zx).\n", (Bytecount) p);
+          DEBUG_MATCH_PRINT ("(to 0x%zx).\n", (Bytecount) p);
 	  break;
 
         /* Have to succeed matching what follows at least n times.
            After that, handle like `on_failure_jump'.  */
         case succeed_n:
           EXTRACT_NONNEGATIVE (mcnt, p + 2);
-          DEBUG_MATCH_PRINT2 ("EXECUTING succeed_n %d.\n", mcnt);
+          DEBUG_MATCH_PRINT ("EXECUTING succeed_n %d.\n", mcnt);
 
           /* Originally, this is how many times we HAVE to succeed.  */
           if (mcnt)
             {
                mcnt--;
 	       p += 2;
-               DEBUG_MATCH_PRINT3 ("  Setting 0x%zx to %d.\n", (Bytecount) p,
+               DEBUG_MATCH_PRINT ("  Setting 0x%zx to %d.\n", (Bytecount) p,
                                    mcnt);
                STORE_MATCH_NUMBER_AND_INCR (p, mcnt);
             }
 	  else
             {
-              DEBUG_MATCH_PRINT2 ("  Setting two bytes from 0x%zx to no_op.\n",
+              DEBUG_MATCH_PRINT ("  Setting two bytes from 0x%zx to no_op.\n",
 			    (Bytecount) (p+2));
 	      STORE_MATCH_NUMBER (p + 2, no_op);
               goto on_failure;
@@ -6475,7 +6480,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
         case jump_n:
           EXTRACT_NONNEGATIVE (mcnt, p + 2);
-          DEBUG_MATCH_PRINT2 ("EXECUTING jump_n %d.\n", mcnt);
+          DEBUG_MATCH_PRINT ("EXECUTING jump_n %d.\n", mcnt);
 
           /* Originally, this is how many times we CAN jump.  */
           if (mcnt)
@@ -6492,7 +6497,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	case set_number_at:
 	  {
 	    unsigned char *p2;	/* Location of the counter.  */
-            DEBUG_MATCH_PRINT1 ("EXECUTING set_number_at.\n");
+            DEBUG_MATCH_PRINT ("EXECUTING set_number_at.\n");
 
             EXTRACT_NUMBER_AND_INCR (mcnt, p);
 	    /* Discard 'const', making re_match_2_internal()
@@ -6500,14 +6505,14 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    p2 = (unsigned char *) p + mcnt;
             EXTRACT_NONNEGATIVE_AND_INCR (mcnt, p);
 
-            DEBUG_MATCH_PRINT3 ("  Setting 0x%zx to %d.\n", (Bytecount) p2,
+            DEBUG_MATCH_PRINT ("  Setting 0x%zx to %d.\n", (Bytecount) p2,
                                 mcnt);
 	    STORE_MATCH_NUMBER (p2, mcnt);
             break;
           }
 
         case wordbound:
-          DEBUG_MATCH_PRINT1 ("EXECUTING wordbound.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING wordbound.\n");
 	  should_succeed = 1;
 	matchwordbound:
 	  {
@@ -6573,12 +6578,12 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	  }
 
 	case notwordbound:
-          DEBUG_MATCH_PRINT1 ("EXECUTING notwordbound.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING notwordbound.\n");
 	  should_succeed = 0;
 	  goto matchwordbound;
 
 	case wordbeg:
-          DEBUG_MATCH_PRINT1 ("EXECUTING wordbeg.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING wordbeg.\n");
 	  if (AT_STRINGS_END (d))
 	    goto fail;
 	  {
@@ -6623,7 +6628,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	  }
 
 	case wordend:
-          DEBUG_MATCH_PRINT1 ("EXECUTING wordend.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING wordend.\n");
 	  if (AT_STRINGS_BEG (d))
 	    goto fail;
 	  {
@@ -6679,7 +6684,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
 #ifdef emacs
   	case before_dot:
-          DEBUG_MATCH_PRINT1 ("EXECUTING before_dot.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING before_dot.\n");
  	  if (!BUFFERP (lispobj)
 	      || (BUF_PTR_BYTE_POS (XBUFFER (lispobj), (unsigned char *) d)
 		  >= BUF_PT (XBUFFER (lispobj))))
@@ -6687,7 +6692,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
   	  break;
 
   	case at_dot:
-          DEBUG_MATCH_PRINT1 ("EXECUTING at_dot.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING at_dot.\n");
  	  if (!BUFFERP (lispobj)
 	      || (BUF_PTR_BYTE_POS (XBUFFER (lispobj), (unsigned char *) d)
 		  != BUF_PT (XBUFFER (lispobj))))
@@ -6695,7 +6700,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
   	  break;
 
   	case after_dot:
-          DEBUG_MATCH_PRINT1 ("EXECUTING after_dot.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING after_dot.\n");
  	  if (!BUFFERP (lispobj)
 	      || (BUF_PTR_BYTE_POS (XBUFFER (lispobj), (unsigned char *) d)
 		  <= BUF_PT (XBUFFER (lispobj))))
@@ -6703,12 +6708,12 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
   	  break;
 
 	case syntaxspec:
-          DEBUG_MATCH_PRINT2 ("EXECUTING syntaxspec %d.\n", mcnt);
+          DEBUG_MATCH_PRINT ("EXECUTING syntaxspec %d.\n", mcnt);
 	  mcnt = *p++;
 	  goto matchsyntax;
 
         case wordchar:
-          DEBUG_MATCH_PRINT1 ("EXECUTING Emacs wordchar.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING Emacs wordchar.\n");
 	  mcnt = (int) Sword;
         matchsyntax:
 	  should_succeed = 1;
@@ -6738,12 +6743,12 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	  break;
 
 	case notsyntaxspec:
-          DEBUG_MATCH_PRINT2 ("EXECUTING notsyntaxspec %d.\n", mcnt);
+          DEBUG_MATCH_PRINT ("EXECUTING notsyntaxspec %d.\n", mcnt);
 	  mcnt = *p++;
 	  goto matchnotsyntax;
 
         case notwordchar:
-          DEBUG_MATCH_PRINT1 ("EXECUTING Emacs notwordchar.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING Emacs notwordchar.\n");
 	  mcnt = (int) Sword;
         matchnotsyntax:
 	  should_succeed = 0;
@@ -6772,7 +6777,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 /* end of category patch */
 #else /* not emacs */
 	case wordchar:
-          DEBUG_MATCH_PRINT1 ("EXECUTING non-Emacs wordchar.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING non-Emacs wordchar.\n");
 	  REGEX_PREFETCH ();
           if (!WORDCHAR_P ((int) (*d)))
             goto fail;
@@ -6780,7 +6785,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	  break;
 
 	case notwordchar:
-          DEBUG_MATCH_PRINT1 ("EXECUTING non-Emacs notwordchar.\n");
+          DEBUG_MATCH_PRINT ("EXECUTING non-Emacs notwordchar.\n");
 	  REGEX_PREFETCH ();
           if (!WORDCHAR_P ((int) (*d)))
             goto fail;
@@ -6801,7 +6806,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	  re_char *str;
 	  unsigned char *pat;
 	  /* A restart point is known.  Restore to that state.  */
-	  DEBUG_PRINT1 ("\nFAIL:\n");
+	  DEBUG_PRINT ("\nFAIL:\n");
 	  POP_FAILURE_POINT (str, pat);
 
 	  assert (pat < pend);
