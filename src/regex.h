@@ -68,129 +68,36 @@ BEGIN_C_DECLS
 
 /* The following bits are used to determine the regexp syntax we
    recognize.  The not-set meaning typically corresponds to the syntax
-   used by Emacs (the exception is RE_INTERVAL, made for historical
+   used by Emacs (the exception is RE_INTERVALS, made for historical
    reasons).  The bits are given in alphabetical order, and the
    definitions shifted by one from the previous bit; thus, when we add or
    remove a bit, only one other definition need change.  */
 typedef unsigned reg_syntax_t;
 
-/* If this bit is not set, then \ inside a bracket expression is literal.
-   If set, then such a \ quotes the following character.  */
-#define RE_BACKSLASH_ESCAPE_IN_LISTS (1)
-
-/* If this bit is not set, then + and ? are operators, and \+ and \? are
-     literals.
-   If set, then \+ and \? are operators and + and ? are literals.  */
-#define RE_BK_PLUS_QM (RE_BACKSLASH_ESCAPE_IN_LISTS << 1)
-
 /* If this bit is set, then character classes are supported.  They are:
      [:alpha:], [:upper:], [:lower:],  [:digit:], [:alnum:], [:xdigit:],
      [:space:], [:print:], [:punct:], [:graph:], and [:cntrl:].
    If not set, then character classes are not supported.  */
-#define RE_CHAR_CLASSES (RE_BK_PLUS_QM << 1)
-
-/* If this bit is set, then ^ and $ are always anchors (outside bracket
-     expressions, of course).
-   If this bit is not set, then it depends:
-        ^  is an anchor if it is at the beginning of a regular
-           expression or after an open-group or an alternation operator;
-        $  is an anchor if it is at the end of a regular expression, or
-           before a close-group or an alternation operator.
-
-   This bit could be (re)combined with RE_CONTEXT_INDEP_OPS, because
-   POSIX draft 11.2 says that * etc. in leading positions is undefined.
-   We already implemented a previous draft which made those constructs
-   invalid, though, so we haven't changed the code back.  */
-#define RE_CONTEXT_INDEP_ANCHORS (RE_CHAR_CLASSES << 1)
-
-/* If this bit is set, then special characters are always special
-     regardless of where they are in the pattern.
-   If this bit is not set, then special characters are special only in
-     some contexts; otherwise they are ordinary.  Specifically,
-     * + ? and intervals are only special when not after the beginning,
-     open-group, or alternation operator.  */
-#define RE_CONTEXT_INDEP_OPS (RE_CONTEXT_INDEP_ANCHORS << 1)
-
-/* If this bit is set, then *, +, ?, and { cannot be first in an re or
-     immediately after an alternation or begin-group operator.  */
-#define RE_CONTEXT_INVALID_OPS (RE_CONTEXT_INDEP_OPS << 1)
+#define RE_CHAR_CLASSES (1)
 
 /* If this bit is set, then . matches newline.
    If not set, then it doesn't.  */
-#define RE_DOT_NEWLINE (RE_CONTEXT_INVALID_OPS << 1)
-
-/* If this bit is set, then . doesn't match NUL.
-   If not set, then it does.  */
-#define RE_DOT_NOT_NULL (RE_DOT_NEWLINE << 1)
-
-/* If this bit is set, nonmatching lists [^...] do not match newline.
-   If not set, they do.  */
-#define RE_HAT_LISTS_NOT_NEWLINE (RE_DOT_NOT_NULL << 1)
+#define RE_DOT_NEWLINE (RE_CHAR_CLASSES << 1)
 
 /* If this bit is set, either \{...\} or {...} defines an
      interval, depending on RE_NO_BK_BRACES.
    If not set, \{, \}, {, and } are literals.  */
-#define RE_INTERVALS (RE_HAT_LISTS_NOT_NEWLINE << 1)
-
-/* If this bit is set, +, ? and | aren't recognized as operators.
-   If not set, they are.  */
-#define RE_LIMITED_OPS (RE_INTERVALS << 1)
-
-/* If this bit is set, newline is an alternation operator.
-   If not set, newline is literal.  */
-#define RE_NEWLINE_ALT (RE_LIMITED_OPS << 1)
-
-/* If this bit is set, then `{...}' defines an interval, and \{ and \}
-     are literals.
-  If not set, then `\{...\}' defines an interval.  */
-#define RE_NO_BK_BRACES (RE_NEWLINE_ALT << 1)
-
-/* If this bit is set, (...) defines a group, and \( and \) are literals.
-   If not set, \(...\) defines a group, and ( and ) are literals.  */
-#define RE_NO_BK_PARENS (RE_NO_BK_BRACES << 1)
-
-/* If this bit is set, then \<digit> matches <digit>.
-   If not set, then \<digit> is a back-reference.  */
-#define RE_NO_BK_REFS (RE_NO_BK_PARENS << 1)
-
-/* If this bit is set, then | is an alternation operator, and \| is literal.
-   If not set, then \| is an alternation operator, and | is literal.  */
-#define RE_NO_BK_VBAR (RE_NO_BK_REFS << 1)
-
-/* If this bit is set, then an ending range point collating higher
-     than the starting range point, as in [z-a], is invalid.
-   If not set, then when ending range point collates higher than the
-     starting range point, the range is ignored.  */
-#define RE_NO_EMPTY_RANGES (RE_NO_BK_VBAR << 1)
-
-/* If this bit is not set, allow minimal matching:
-    - a*? and a+? and a?? perform shortest-possible matching (compare with a*
-      and a+ and a?, respectively, which perform longest-possible matching)
-    - other juxtaposing of * + and ? is rejected.
-   If this bit is set, consecutive * + and ?'s are collapsed in a logical
-   manner:
-    - a*? and a+? are the same as a*
-    - a?? is the same as a?
- */
-#define RE_NO_MINIMAL_MATCHING (RE_NO_EMPTY_RANGES << 1)
+#define RE_INTERVALS (RE_DOT_NEWLINE << 1)
 
 /* If this bit is set, succeed as soon as we match the whole pattern,
    without further backtracking.  */
-#define RE_NO_POSIX_BACKTRACKING (RE_NO_MINIMAL_MATCHING << 1)
-
-/* If this bit is not set, (?:re) behaves like (re) (or \(?:re\) behaves like
-   \(re\)) except that the matched string is not registered.  */
-#define RE_NO_SHY_GROUPS (RE_NO_POSIX_BACKTRACKING << 1)
-
-/* If this bit is set, then an unmatched ) is ordinary.
-   If not set, then an unmatched ) is invalid.  */
-#define RE_UNMATCHED_RIGHT_PAREN_ORD (RE_NO_SHY_GROUPS << 1)
+#define RE_NO_POSIX_BACKTRACKING (RE_INTERVALS << 1)
 
 /* If this bit is set, then \22 will read as a back reference,
    provided at least 22 non-shy groups have been seen so far.  In all
    other cases (bit not set, not 22 non-shy groups seen so far), it
    reads as a back reference \2 followed by a digit 2. */
-#define RE_NO_MULTI_DIGIT_BK_REFS (RE_UNMATCHED_RIGHT_PAREN_ORD << 1)
+#define RE_NO_MULTI_DIGIT_BK_REFS (RE_NO_POSIX_BACKTRACKING << 1)
 
 /* This global variable defines the particular regexp syntax to use (for
    some interfaces).  When a regexp is compiled, the syntax used is
@@ -204,66 +111,6 @@ extern reg_syntax_t re_syntax_options;
 /* [[[begin syntaxes]]] */
 #define RE_SYNTAX_EMACS (RE_INTERVALS | RE_CHAR_CLASSES)
 
-#define RE_SYNTAX_AWK							\
-  (RE_BACKSLASH_ESCAPE_IN_LISTS | RE_DOT_NOT_NULL			\
-   | RE_NO_BK_PARENS            | RE_NO_BK_REFS				\
-   | RE_NO_BK_VBAR               | RE_NO_EMPTY_RANGES			\
-   | RE_UNMATCHED_RIGHT_PAREN_ORD | RE_NO_SHY_GROUPS			\
-   | RE_NO_MINIMAL_MATCHING | RE_NO_MULTI_DIGIT_BK_REFS)
-
-#define RE_SYNTAX_POSIX_AWK 						\
-  (RE_SYNTAX_POSIX_EXTENDED | RE_BACKSLASH_ESCAPE_IN_LISTS)
-
-#define RE_SYNTAX_GREP							\
-  (RE_BK_PLUS_QM              | RE_CHAR_CLASSES				\
-   | RE_HAT_LISTS_NOT_NEWLINE | RE_INTERVALS				\
-   | RE_NEWLINE_ALT           | RE_NO_SHY_GROUPS			\
-   | RE_NO_MINIMAL_MATCHING | RE_NO_MULTI_DIGIT_BK_REFS)
-
-#define RE_SYNTAX_EGREP							\
-  (RE_CHAR_CLASSES        | RE_CONTEXT_INDEP_ANCHORS			\
-   | RE_CONTEXT_INDEP_OPS | RE_HAT_LISTS_NOT_NEWLINE			\
-   | RE_NEWLINE_ALT       | RE_NO_BK_PARENS				\
-   | RE_NO_BK_VBAR        | RE_NO_SHY_GROUPS				\
-   | RE_NO_MINIMAL_MATCHING | RE_NO_MULTI_DIGIT_BK_REFS)
-
-#define RE_SYNTAX_POSIX_EGREP						\
-  (RE_SYNTAX_EGREP | RE_INTERVALS | RE_NO_BK_BRACES |			\
-   RE_NO_MULTI_DIGIT_BK_REFS)
-
-/* P1003.2/D11.2, section 4.20.7.1, lines 5078ff.  */
-#define RE_SYNTAX_ED RE_SYNTAX_POSIX_BASIC
-
-#define RE_SYNTAX_SED RE_SYNTAX_POSIX_BASIC
-
-/* Syntax bits common to both basic and extended POSIX regex syntax.  */
-#define _RE_SYNTAX_POSIX_COMMON						\
-  (RE_CHAR_CLASSES | RE_DOT_NEWLINE      | RE_DOT_NOT_NULL		\
-   | RE_INTERVALS  | RE_NO_EMPTY_RANGES | RE_NO_SHY_GROUPS		\
-   | RE_NO_MINIMAL_MATCHING | RE_NO_MULTI_DIGIT_BK_REFS)
-
-#define RE_SYNTAX_POSIX_BASIC						\
-  (_RE_SYNTAX_POSIX_COMMON | RE_BK_PLUS_QM)
-
-/* Differs from ..._POSIX_BASIC only in that RE_BK_PLUS_QM becomes
-   RE_LIMITED_OPS, i.e., \? \+ \| are not recognized.  Actually, this
-   isn't minimal, since other operators, such as \`, aren't disabled.  */
-#define RE_SYNTAX_POSIX_MINIMAL_BASIC					\
-  (_RE_SYNTAX_POSIX_COMMON | RE_LIMITED_OPS)
-
-#define RE_SYNTAX_POSIX_EXTENDED					\
-  (_RE_SYNTAX_POSIX_COMMON | RE_CONTEXT_INDEP_ANCHORS			\
-   | RE_CONTEXT_INDEP_OPS  | RE_NO_BK_BRACES				\
-   | RE_NO_BK_PARENS       | RE_NO_BK_VBAR				\
-   | RE_UNMATCHED_RIGHT_PAREN_ORD)
-
-/* Differs from ..._POSIX_EXTENDED in that RE_CONTEXT_INVALID_OPS
-   replaces RE_CONTEXT_INDEP_OPS and RE_NO_BK_REFS is added.  */
-#define RE_SYNTAX_POSIX_MINIMAL_EXTENDED				\
-  (_RE_SYNTAX_POSIX_COMMON  | RE_CONTEXT_INDEP_ANCHORS			\
-   | RE_CONTEXT_INVALID_OPS | RE_NO_BK_BRACES				\
-   | RE_NO_BK_PARENS        | RE_NO_BK_REFS				\
-   | RE_NO_BK_VBAR	    | RE_UNMATCHED_RIGHT_PAREN_ORD)
 /* [[[end syntaxes]]] */
 
 /* Maximum number of duplicates an interval can allow.  Some systems
@@ -554,20 +401,6 @@ int re_match_2 (struct re_pattern_buffer *buffer, const char *string1,
 void re_set_registers (struct re_pattern_buffer *buffer,
 		       struct re_registers *regs, regnum_t num_regs,
 		       regoff_t *starts, regoff_t *ends);
-
-#ifdef _REGEX_RE_COMP
-/* 4.2 bsd compatibility.  */
-char *re_comp (const char *);
-int re_exec (const char *);
-#endif
-
-/* POSIX compatibility.  */
-int regcomp (regex_t *preg, const char *pattern, int cflags);
-int regexec (const regex_t *preg, const char *string, size_t nmatch,
-	     regmatch_t pmatch[], int eflags);
-size_t regerror (int errcode, const regex_t *preg, char *errbuf,
-		 size_t errbuf_size);
-void regfree (regex_t *preg);
 
 enum regex_debug
   {

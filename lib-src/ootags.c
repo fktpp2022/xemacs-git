@@ -868,7 +868,7 @@ main (int argc, char *argv[])
 
 #ifdef ETAGS_REGEXPS
   /* Set syntax for regular expression routines. */
-  re_set_syntax (RE_SYNTAX_EMACS | RE_INTERVALS);
+  re_set_syntax (RE_SYNTAX_EMACS);
 #endif /* ETAGS_REGEXPS */
 
   /*

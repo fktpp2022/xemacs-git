@@ -2586,12 +2586,10 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
         {
         case '^':
           {
-            if (   /* If at start of pattern, it's an operator.  */
-                   p == pattern + 1
-                   /* If context independent, it's an operator.  */
-                || syntax & RE_CONTEXT_INDEP_ANCHORS
-                   /* Otherwise, depends on what's come before.  */
-                || at_begline_loc_p (pattern, p, syntax))
+            if (/* If at start of pattern, it's an operator.  */
+		p == pattern + 1
+		/* Otherwise, depends on what's come before.  */
+		|| at_begline_loc_p (pattern, p, syntax))
               BUF_PUSH (begline);
             else
               goto normal_char;
@@ -2601,11 +2599,9 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 
         case '$':
           {
-            if (   /* If at end of pattern, it's an operator.  */
-                   p == pend
-                   /* If context independent, it's an operator.  */
-                || syntax & RE_CONTEXT_INDEP_ANCHORS
-                   /* Otherwise, depends on what's next.  */
+            if (/* If at end of pattern, it's an operator.  */
+		p == pend
+		/* Otherwise, depends on what's next.  */
                 || at_endline_loc_p (p, pend, syntax))
                BUF_PUSH (endline);
              else
@@ -2616,18 +2612,11 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 
 	case '+':
         case '?':
-          if ((syntax & RE_BK_PLUS_QM)
-              || (syntax & RE_LIMITED_OPS))
-            goto normal_char;
-        handle_plus:
         case '*':
           /* If there is no previous pattern... */
           if (!laststart)
             {
-              if (syntax & RE_CONTEXT_INVALID_OPS)
-                FREE_STACK_RETURN (REG_BADRPT);
-              else if (!(syntax & RE_CONTEXT_INDEP_OPS))
-                goto normal_char;
+	      goto normal_char;
             }
 
           {
@@ -2662,24 +2651,9 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 
 		PATFETCH (c);
 
-                if (c == '*'
-		    || (!(syntax & RE_BK_PLUS_QM) && (c == '+' || c == '?')))
+                if (c == '*' || c == '+' || c == '?')
 		  {
 		    (void) 0;
-                  }
-		else if (syntax & RE_BK_PLUS_QM && c == '\\')
-                  {
-                    if (p == pend) FREE_STACK_RETURN (REG_EESCAPE);
-
-                    PATFETCH (c1);
-                    if (!(c1 == '+' || c1 == '?'))
-                      {
-                        PATUNFETCH;
-                        PATUNFETCH;
-                        break;
-                      }
-
-                    c = c1;
                   }
 		else
 		  {
@@ -2687,16 +2661,15 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 		    break;
 		  }
 
-                /* If we get here, we found another repeat character.  */
-                if (!(syntax & RE_NO_MINIMAL_MATCHING))
-                  {
-                    /* "*?" and "+?" and "??" are okay (and mean match
-                       minimally), but other sequences (such as "*??" and
-                       "+++") are rejected (reserved for future use). */
-                    if (!greedy || c != '?')
-                      FREE_STACK_RETURN (REG_BADRPT);
-                    greedy = false;
-                  }
+                /* If we get here, we found another repeat character.  
+		   "*?" and "+?" and "??" are okay (and mean match
+		   minimally), but other sequences (such as "*??" and
+		   "+++") are rejected (reserved for future use). */
+	        if (!greedy || c != '?')
+		  {
+		    FREE_STACK_RETURN (REG_BADRPT);
+		  }
+		greedy = false;
 	      }
 
             /* Star, etc. applied to an empty pattern is equivalent
@@ -2844,11 +2817,6 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
             /* Clear the whole map.  */
             memset (buf_end, 0, (1 << BYTEWIDTH) / BYTEWIDTH);
 
-            /* charset_not matches newline according to a syntax bit.  */
-            if ((re_opcode_t) buf_end[-2] == charset_not
-                && (syntax & RE_HAT_LISTS_NOT_NEWLINE))
-              SET_LIST_BIT ('\n');
-
             /* Read in characters and ranges, setting map bits.  */
             for (;;)
               {
@@ -2861,19 +2829,6 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 		   extended-char mechanism, and need to use charset_mule and
 		   charset_mule_not instead of charset and charset_not. */
 		MAYBE_START_OVER_WITH_EXTENDED (c);
-
-                /* \ might escape characters inside [...] and [^...].  */
-                if ((syntax & RE_BACKSLASH_ESCAPE_IN_LISTS) && c == '\\')
-                  {
-                    if (p == pend) FREE_STACK_RETURN (REG_EESCAPE);
-
-                    PATFETCH (c1);
-
-		    MAYBE_START_OVER_WITH_EXTENDED (c1);
-
-                    SET_LIST_BIT (c1);
-                    continue;
-                  }
 
                 /* Could be the end of the bracket expression.  If it's
                    not (i.e., when the bracket expression is `[]' so
@@ -3022,28 +2977,12 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
             rtab = Vthe_lisp_rangetab;
             Fclear_range_table (rtab);
 
-            /* charset_not matches newline according to a syntax bit.  */
-            if ((re_opcode_t) buf_end[-1] == charset_mule_not
-                && (syntax & RE_HAT_LISTS_NOT_NEWLINE))
-              SET_RANGETAB_BIT ('\n');
-
             /* Read in characters and ranges, setting map bits.  */
             for (;;)
               {
                 if (p == pend) FREE_STACK_RETURN (REG_EBRACK);
 
                 PATFETCH (c);
-
-                /* \ might escape characters inside [...] and [^...].  */
-                if ((syntax & RE_BACKSLASH_ESCAPE_IN_LISTS) && c == '\\')
-                  {
-                    if (p == pend) FREE_STACK_RETURN (REG_EESCAPE);
-
-                    PATFETCH (c1);
-
-                    SET_RANGETAB_BIT (c1);
-                    continue;
-                  }
 
                 /* Could be the end of the bracket expression.  If it's
                    not (i.e., when the bracket expression is `[]' so
@@ -3158,41 +3097,6 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
           }
 #endif /* emacs */
 
-	case '(':
-          if (syntax & RE_NO_BK_PARENS)
-            goto handle_open;
-          else
-            goto normal_char;
-
-
-        case ')':
-          if (syntax & RE_NO_BK_PARENS)
-            goto handle_close;
-          else
-            goto normal_char;
-
-
-        case '\n':
-          if (syntax & RE_NEWLINE_ALT)
-            goto handle_alt;
-          else
-            goto normal_char;
-
-
-	case '|':
-          if (syntax & RE_NO_BK_VBAR)
-            goto handle_alt;
-          else
-            goto normal_char;
-
-
-        case '{':
-           if (syntax & RE_INTERVALS && syntax & RE_NO_BK_BRACES)
-             goto handle_interval;
-           else
-             goto normal_char;
-
-
         case '\\':
           if (p == pend) FREE_STACK_RETURN (REG_EESCAPE);
 
@@ -3204,16 +3108,11 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
           switch (c)
             {
             case '(':
-              if (syntax & RE_NO_BK_PARENS)
-                goto normal_backslash;
-
-            handle_open:
               {
                 regnum_t r = 0;
 		re_bool shy = 0, named_nonshy = 0;
 
-                if (!(syntax & RE_NO_SHY_GROUPS)
-                    && p != pend && itext_ichar_eql (p, '?'))
+                if (p != pend && itext_ichar_eql (p, '?'))
                   {
                     INC_IBYTEPTR (p); /* Gobble up the '?'.  */
                     PATFETCH (c); /* Fetch the next character, which may be a
@@ -3348,27 +3247,12 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 
 
             case ')':
-              if (syntax & RE_NO_BK_PARENS) goto normal_backslash;
-
               if (COMPILE_STACK_EMPTY)
 		{
-		  if (syntax & RE_UNMATCHED_RIGHT_PAREN_ORD)
-		    goto normal_backslash;
-		  else
-		    FREE_STACK_RETURN (REG_ERPAREN);
+		  FREE_STACK_RETURN (REG_ERPAREN);
 		}
 
-            handle_close:
 	      FIXUP_ALT_JUMP ();
-
-              /* See similar code for backslashed left paren above.  */
-              if (COMPILE_STACK_EMPTY)
-		{
-		  if (syntax & RE_UNMATCHED_RIGHT_PAREN_ORD)
-		    goto normal_char;
-		  else
-		    FREE_STACK_RETURN (REG_ERPAREN);
-		}
 
               /* Since we just checked for an empty stack above, this
                  ``can't happen''.  */
@@ -3401,12 +3285,6 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 
 
             case '|':					/* `\|'.  */
-              if (syntax & RE_LIMITED_OPS || syntax & RE_NO_BK_VBAR)
-                goto normal_backslash;
-            handle_alt:
-              if (syntax & RE_LIMITED_OPS)
-                goto normal_char;
-
               /* Insert before the previous alternative a jump which
                  jumps to this alternative if the former fails.  */
               GET_BUFFER_SPACE (3);
@@ -3447,26 +3325,11 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
             case '{':
               /* If \{ is a literal.  */
               if (!(syntax & RE_INTERVALS)
-                     /* If we're at `\{' and it's not the open-interval
-                        operator.  */
-                  || ((syntax & RE_INTERVALS) && (syntax & RE_NO_BK_BRACES))
                   || (p - 2 == pattern  &&  p == pend))
                 goto normal_backslash;
 
-#define BAD_INTERVAL(errnum)                            \
-                do                                      \
-                  {                                     \
-                    if (syntax & RE_NO_BK_BRACES)       \
-                      {                                 \
-                        goto unfetch_interval;          \
-                      }                                 \
-                    else                                \
-                      {                                 \
-                        FREE_STACK_RETURN (errnum);     \
-                      }                                 \
-                  } while (0)
+#define BAD_INTERVAL FREE_STACK_RETURN
 
-            handle_interval:
               {
                 /* If got here, then the syntax allows intervals.  */
 
@@ -3512,14 +3375,11 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
                     BAD_INTERVAL (REG_ESIZEBR);
                   }
 
-                if (!(syntax & RE_NO_BK_BRACES))
-                  {
-		    if (c != '\\')
-		      FREE_STACK_RETURN (REG_BADBR);
-		    if (p == pend)
-		      FREE_STACK_RETURN (REG_EESCAPE);
-                    PATFETCH (c);
-                  }
+		if (c != '\\')
+		  FREE_STACK_RETURN (REG_BADBR);
+		if (p == pend)
+		  FREE_STACK_RETURN (REG_EESCAPE);
+		PATFETCH (c);
 
                 if (c != '}')
                   {
@@ -3531,12 +3391,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
                 /* It's invalid to have no preceding RE.  */
                 if (!laststart)
                   {
-                    if (syntax & RE_CONTEXT_INVALID_OPS)
-                      FREE_STACK_RETURN (REG_BADRPT);
-                    else if (syntax & RE_CONTEXT_INDEP_OPS)
-                      laststart = buf_end;
-                    else
-                      goto unfetch_interval;
+		    goto unfetch_interval;
                   }
 
                 /* If the upper bound is zero, don't want to succeed at
@@ -3629,11 +3484,10 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
                /* normal_char and normal_backslash need `c'.  */
                PATFETCH (c);
 
-               if (!(syntax & RE_NO_BK_BRACES))
-                 {
-                   if (p > pattern  &&  p[-1] == '\\')
-                     goto normal_backslash;
-                 }
+	       if (p > pattern  &&  p[-1] == '\\')
+		 {
+		   goto normal_backslash;
+		 }
                goto normal_char;
 
 #ifdef emacs
@@ -3722,9 +3576,6 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 	      {
 		regnum_t reg = -1, regint;
 
-		if (syntax & RE_NO_BK_REFS)
-		  goto normal_char;
-
                 PATUNFETCH;
                 GET_UNSIGNED_NUMBER (reg);
 		  
@@ -3792,11 +3643,6 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 
             case '+':
             case '?':
-              if (syntax & RE_BK_PLUS_QM)
-                goto handle_plus;
-              else
-                goto normal_backslash;
-
             default:
             normal_backslash:
               /* You might think it would be useful for \ to mean
@@ -3826,14 +3672,10 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 		/* If followed by a repetition operator.
 		   If the lookahead fails because of end of pattern, any
 		   trailing backslash will get caught later.  */
-		|| (p != pend && (*p == '*' || *p == '^'))
-		|| ((syntax & RE_BK_PLUS_QM)
-		    ? p + 1 < pend && *p == '\\' && (p[1] == '+' || p[1] == '?')
-		    : p != pend && (*p == '+' || *p == '?'))
+		|| (p != pend && (*p == '*' || *p == '^' || *p == '+' ||
+				  *p == '?'))
 		|| ((syntax & RE_INTERVALS)
-		    && ((syntax & RE_NO_BK_BRACES)
-			? p != pend && *p == '{'
-			: p + 1 < pend && (p[0] == '\\' && p[1] == '{'))))
+		    && (p + 1 < pend && (p[0] == '\\' && p[1] == '{'))))
 	      {
 		/* Start building a new exactn.  */
 
@@ -3993,9 +3835,9 @@ at_begline_loc_p (re_char *pattern, re_char *p, reg_syntax_t syntax)
 
   return
        /* After a subexpression?  */
-       (*prev == '(' && (syntax & RE_NO_BK_PARENS || prev_prev_backslash))
+    (*prev == '(' && prev_prev_backslash)
        /* After an alternative?  */
-    || (*prev == '|' && (syntax & RE_NO_BK_VBAR || prev_prev_backslash));
+    || (*prev == '|' && (prev_prev_backslash));
 }
 
 
@@ -4011,11 +3853,9 @@ at_endline_loc_p (re_char *p, re_char *pend, int syntax)
 
   return
        /* Before a subexpression?  */
-       (syntax & RE_NO_BK_PARENS ? *next == ')'
-        : next_backslash && next_next && *next_next == ')')
+       (next_backslash && next_next && *next_next == ')')
        /* Before an alternative?  */
-    || (syntax & RE_NO_BK_VBAR ? *next == '|'
-        : next_backslash && next_next && *next_next == '|');
+    || (next_backslash && next_next && *next_next == '|');
 }
 
 
@@ -4079,7 +3919,7 @@ compile_range (re_char **p_ptr, re_char *pend, RE_TRANSLATE_TYPE translate,
 
   /* If the start is after the end, the range is empty.  */
   if (range_start > range_end)
-    return syntax & RE_NO_EMPTY_RANGES ? REG_ERANGE : REG_NOERROR;
+    return REG_NOERROR;
 
   /* Here we see why `this_char' has to be larger than an `unsigned
      char' -- the range is inclusive, so if `range_end' == 0xff
@@ -4117,7 +3957,7 @@ compile_extended_range (re_char **p_ptr, re_char *pend,
 
   /* If the start is after the end, the range is empty.  */
   if (range_start > range_end)
-    return syntax & RE_NO_EMPTY_RANGES ? REG_ERANGE : REG_NOERROR;
+    return REG_NOERROR;
 
 #ifndef UNICODE_INTERNAL
   /* Can't have ranges spanning different charsets, except maybe for
@@ -6223,10 +6063,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
           REGEX_PREFETCH ();
 
           if ((!(bufp->syntax & RE_DOT_NEWLINE) &&
-	       RE_TRANSLATE (itext_ichar_fmt (d, fmt, lispobj)) == '\n')
-              || (bufp->syntax & RE_DOT_NOT_NULL &&
-		  RE_TRANSLATE (itext_ichar_fmt (d, fmt, lispobj)) ==
-		  '\000'))
+	       RE_TRANSLATE (itext_ichar_fmt (d, fmt, lispobj)) == '\n'))
 	    goto fail;
 
           DEBUG_MATCH_PRINT ("  Matched `%c'.\n", *d);
@@ -7272,295 +7109,5 @@ re_compile_pattern (const char *pattern, int length,
     return NULL;
   return gettext (re_error_msgid[(int) ret]);
 }
-
-/* Entry points compatible with 4.2 BSD regex library.  We don't define
-   them unless specifically requested.  */
 
-#ifdef _REGEX_RE_COMP
-
-/* BSD has one and only one pattern buffer.  */
-static struct re_pattern_buffer re_comp_buf;
-
-char *
-re_comp (const char *s)
-{
-  reg_errcode_t ret;
-
-  if (!s)
-    {
-      if (!re_comp_buf.buffer)
-	return gettext ("No previous regular expression");
-      return 0;
-    }
-
-  if (!re_comp_buf.buffer)
-    {
-      re_comp_buf.buffer = (unsigned char *) xmalloc (200);
-      if (re_comp_buf.buffer == NULL)
-        return gettext (re_error_msgid[(int) REG_ESPACE]);
-      re_comp_buf.allocated = 200;
-
-      re_comp_buf.fastmap = (char *) xmalloc (1 << BYTEWIDTH);
-      if (re_comp_buf.fastmap == NULL)
-	return gettext (re_error_msgid[(int) REG_ESPACE]);
-    }
-
-  /* Since `re_exec' always passes NULL for the `regs' argument, we
-     don't need to initialize the pattern buffer fields which affect it.  */
-
-  /* Match anchors at newlines.  */
-  re_comp_buf.newline_anchor = 1;
-
-  ret = regex_compile ((unsigned char *)s, strlen (s), re_syntax_options,
-		       &re_comp_buf);
-
-  if (!ret)
-    return NULL;
-
-  /* Yes, we're discarding `const' here if !HAVE_LIBINTL.  */
-  return (char *) gettext (re_error_msgid[(int) ret]);
-}
-
-
-int
-re_exec (const char *s)
-{
-  const int len = strlen (s);
-  return
-    0 <= re_search (&re_comp_buf, s, len, 0, len, (struct re_registers *) 0);
-}
-#endif /* _REGEX_RE_COMP */
-
-/* POSIX.2 functions.  Don't define these for Emacs.  */
-
-#ifndef emacs
-
-/* regcomp takes a regular expression as a string and compiles it.
-
-   PREG is a regex_t *.  We do not expect any fields to be initialized,
-   since POSIX says we shouldn't.  Thus, we set
-
-     `buffer' to the compiled pattern;
-     `used' to the length of the compiled pattern;
-     `syntax' to RE_SYNTAX_POSIX_EXTENDED if the
-       REG_EXTENDED bit in CFLAGS is set; otherwise, to
-       RE_SYNTAX_POSIX_BASIC;
-     `newline_anchor' to REG_NEWLINE being set in CFLAGS;
-     `fastmap' and `fastmap_accurate' to zero;
-     `re_nsub' to the number of subexpressions in PATTERN.
-     (non-shy of course.  POSIX probably doesn't know about
-     shy ones, and in any case they should be invisible.)
-
-   PATTERN is the address of the pattern string.
-
-   CFLAGS is a series of bits which affect compilation.
-
-     If REG_EXTENDED is set, we use POSIX extended syntax; otherwise, we
-     use POSIX basic syntax.
-
-     If REG_NEWLINE is set, then . and [^...] don't match newline.
-     Also, regexec will try a match beginning after every newline.
-
-     If REG_ICASE is set, then we considers upper- and lowercase
-     versions of letters to be equivalent when matching.
-
-     If REG_NOSUB is set, then when PREG is passed to regexec, that
-     routine will report only success or failure, and nothing about the
-     registers.
-
-   It returns 0 if it succeeds, nonzero if it doesn't.  (See regex.h for
-   the return codes and their meanings.)  */
-
-int
-regcomp (regex_t *preg, const char *pattern, int cflags)
-{
-  reg_errcode_t ret;
-  unsigned int syntax
-    = (cflags & REG_EXTENDED) ?
-      RE_SYNTAX_POSIX_EXTENDED : RE_SYNTAX_POSIX_BASIC;
-
-  /* regex_compile will allocate the space for the compiled pattern.  */
-  preg->buffer = 0;
-  preg->allocated = 0;
-  preg->used = 0;
-
-  /* Don't bother to use a fastmap when searching.  This simplifies the
-     REG_NEWLINE case: if we used a fastmap, we'd have to put all the
-     characters after newlines into the fastmap.  This way, we just try
-     every character.  */
-  preg->fastmap = 0;
-
-  if (cflags & REG_ICASE)
-    {
-      int i;
-
-      preg->translate = (char *) xmalloc (CHAR_SET_SIZE);
-      if (preg->translate == NULL)
-        return (int) REG_ESPACE;
-
-      /* Map uppercase characters to corresponding lowercase ones.  */
-      for (i = 0; i < CHAR_SET_SIZE; i++)
-        preg->translate[i] = ISUPPER (i) ? tolower (i) : i;
-    }
-  else
-    preg->translate = NULL;
-
-  /* If REG_NEWLINE is set, newlines are treated differently.  */
-  if (cflags & REG_NEWLINE)
-    { /* REG_NEWLINE implies neither . nor [^...] match newline.  */
-      syntax &= ~RE_DOT_NEWLINE;
-      syntax |= RE_HAT_LISTS_NOT_NEWLINE;
-      /* It also changes the matching behavior.  */
-      preg->newline_anchor = 1;
-    }
-  else
-    preg->newline_anchor = 0;
-
-  preg->no_sub = !!(cflags & REG_NOSUB);
-
-  /* POSIX says a null character in the pattern terminates it, so we
-     can use strlen here in compiling the pattern.  */
-  ret = regex_compile ((unsigned char *) pattern, strlen (pattern), syntax, preg);
-
-  /* POSIX doesn't distinguish between an unmatched open-group and an
-     unmatched close-group: both are REG_EPAREN.  */
-  if (ret == REG_ERPAREN) ret = REG_EPAREN;
-
-  return (int) ret;
-}
-
-
-/* regexec searches for a given pattern, specified by PREG, in the
-   string STRING.
-
-   If NMATCH is zero or REG_NOSUB was set in the cflags argument to
-   `regcomp', we ignore PMATCH.  Otherwise, we assume PMATCH has at
-   least NMATCH elements, and we set them to the offsets of the
-   corresponding matched substrings.
-
-   EFLAGS specifies `execution flags' which affect matching: if
-   REG_NOTBOL is set, then ^ does not match at the beginning of the
-   string; if REG_NOTEOL is set, then $ does not match at the end.
-
-   We return 0 if we find a match and REG_NOMATCH if not.  */
-
-int
-regexec (const regex_t *preg, const char *string, size_t nmatch,
-	 regmatch_t pmatch[], int eflags)
-{
-  int ret;
-  struct re_registers regs;
-  regex_t private_preg;
-  int len = strlen (string);
-  re_bool want_reg_info = !preg->no_sub && nmatch > 0;
-
-  private_preg = *preg;
-
-  private_preg.not_bol = !!(eflags & REG_NOTBOL);
-  private_preg.not_eol = !!(eflags & REG_NOTEOL);
-
-  /* The user has told us exactly how many registers to return
-     information about, via `nmatch'.  We have to pass that on to the
-     matching routines.  */
-  private_preg.regs_allocated = REGS_FIXED;
-
-  if (want_reg_info)
-    {
-      regs.num_regs = (int) nmatch;
-      regs.start = TALLOC ((int) nmatch, regoff_t);
-      regs.end = TALLOC ((int) nmatch, regoff_t);
-      if (regs.start == NULL || regs.end == NULL)
-        return (int) REG_NOMATCH;
-    }
-
-  /* Perform the searching operation.  */
-  ret = re_search (&private_preg, string, len,
-                   /* start: */ 0, /* range: */ len,
-                   want_reg_info ? &regs : (struct re_registers *) 0);
-
-  /* Copy the register information to the POSIX structure.  */
-  if (want_reg_info)
-    {
-      if (ret >= 0)
-        {
-          int r;
-
-          for (r = 0; r < (int) nmatch; r++)
-            {
-              pmatch[r].rm_so = regs.start[r];
-              pmatch[r].rm_eo = regs.end[r];
-            }
-        }
-
-      /* If we needed the temporary register info, free the space now.  */
-      xfree (regs.start);
-      xfree (regs.end);
-    }
-
-  /* We want zero return to mean success, unlike `re_search'.  */
-  return ret >= 0 ? (int) REG_NOERROR : (int) REG_NOMATCH;
-}
-
-
-/* Returns a message corresponding to an error code, ERRCODE, returned
-   from either regcomp or regexec.   We don't use PREG here.  */
-
-size_t
-regerror (int errcode, const regex_t *UNUSED (preg), char *errbuf,
-	  size_t errbuf_size)
-{
-  const char *msg;
-  Bytecount msg_size;
-
-  if (errcode < 0
-      || errcode >= (int) (sizeof (re_error_msgid) /
-			   sizeof (re_error_msgid[0])))
-    /* Only error codes returned by the rest of the code should be passed
-       to this routine.  If we are given anything else, or if other regex
-       code generates an invalid error code, then the program has a bug.
-       Dump core so we can fix it.  */
-    ABORT ();
-
-  msg = gettext (re_error_msgid[errcode]);
-
-  msg_size = strlen (msg) + 1; /* Includes the null.  */
-
-  if (errbuf_size != 0)
-    {
-      if (msg_size > (Bytecount) errbuf_size)
-        {
-          strncpy (errbuf, msg, errbuf_size - 1);
-          errbuf[errbuf_size - 1] = 0;
-        }
-      else
-        strcpy (errbuf, msg);
-    }
-
-  return (size_t) msg_size;
-}
-
-
-/* Free dynamically allocated space used by PREG.  */
-
-void
-regfree (regex_t *preg)
-{
-  if (preg->buffer != NULL)
-    xfree (preg->buffer);
-  preg->buffer = NULL;
-
-  preg->allocated = 0;
-  preg->used = 0;
-
-  if (preg->fastmap != NULL)
-    xfree (preg->fastmap);
-  preg->fastmap = NULL;
-  preg->fastmap_accurate = 0;
-
-  if (preg->translate != NULL)
-    xfree (preg->translate);
-  preg->translate = NULL;
-}
-
-#endif /* not emacs  */
-
+/* regex.c ends here. */

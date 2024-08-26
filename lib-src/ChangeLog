@@ -46,6 +46,12 @@
 	string (currently just no-conversion), now that is accepted by the
 	module code.
 
+2024-08-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* ootags.c (main):
+	RE_INTERVALS has always been included in RE_SYNTAX_EMACS, don't
+	specify this explicitly.
+
 2024-04-06  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	* etags.c (sort_tags_file): Prevent crash when updating ctags file

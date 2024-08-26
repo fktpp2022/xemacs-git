@@ -1422,6 +1422,26 @@
 
 2024-08-26  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* regex.c:
+	* regex.c (regex_compile):
+	* regex.c (BAD_INTERVAL):
+	* regex.c (at_begline_loc_p):
+	* regex.c (at_endline_loc_p):
+	* regex.c (compile_range):
+	* regex.c (compile_extended_range):
+	* regex.c (re_match_2_internal):
+	* regex.h:
+	* regex.h (RE_CHAR_CLASSES):
+	* regex.h (RE_DOT_NEWLINE):
+	* regex.h (RE_INTERVALS):
+	* regex.h (RE_NO_POSIX_BACKTRACKING):
+	* regex.h (RE_NO_MULTI_DIGIT_BK_REFS):
+	Remove those regex syntax options that we don't use, for the sake
+	of maintainability. Remove re_comp(), re_exec (), regcomp (),
+	regexec (), regerror (), regfree (), for the same reason.
+
+2024-08-26  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Move handling of on_failure_jump_smart to compile time, regex.c.
 
 	* regex.c:
