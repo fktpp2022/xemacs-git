@@ -330,11 +330,12 @@ or @samp{$}, @samp{%}, or a period.
 
 To include a @samp{]} in a character set, make it the first character.
 For example, @samp{[]a]} matches @samp{]} or @samp{a}.  To include a
-@samp{-}, write @samp{-} as the first character in the set, or put it
+@samp{-}, write @samp{-} as the first character in the set, the last
+character in the set, or put it
 immediately after a range.  (You can replace one individual character
 @var{c} with the range @samp{@var{c}-@var{c}} to make a place to put the
-@samp{-}.)  There is no way to write a set containing just @samp{-} and
-@samp{]}.
+@samp{-}.)  To write a set containing just @samp{-} and @samp{]}, the
+syntax is @samp{[]-]}.
 
 To include @samp{^} in a set, put it anywhere but at the beginning of
 the set.
@@ -461,12 +462,15 @@ construct.  Then, later on in the regular expression, you can use
 @samp{\} followed by @var{num} to match that same text, whatever it
 may have been.
 
-The strings matching the first nine @samp{\( @dots{} \)} constructs
-appearing in a regular expression are assigned numbers 1 through 9 in
-the order that the open parentheses appear in the regular expression.
-So you can use @samp{\1} through @samp{\9} to refer to the text matched
-by the corresponding @samp{\( @dots{} \)} constructs, and so on past
-@samp{\10} up to the implementation-defined limit, at least @samp{\100}.
+Those strings matching the @samp{\( @dots{} \)} constructs in a regular
+expression are assigned increasing integers, starting at 1, in the order
+that the open parentheses appear in the regular expression.  So you can
+use @samp{\1} through @samp{\9} to refer to the text matched by the
+corresponding first nine @samp{\( @dots{} \)} constructs, and so on past
+@samp{\10}, @samp{\100}, @samp{\1000} if you wish.@footnote{Be aware
+that higher values (say, above @samp{\1000}) risk the matching code
+throwing an error when it runs out of stack space, and that GNU Emacs
+does not currently (2023) support values greater than @samp{\9}.}
 
 For example, @samp{\(.*\)\1} matches any newline-free string that is
 composed of two identical halves.  The @samp{\(.*\)} matches the first
@@ -501,6 +505,11 @@ Using @samp{\(?: @dots{} \)} rather than @samp{\( @dots{} \)} should
 give little performance gain, as the start of each group must be
 recorded for the purpose of back-tracking in any case, and no string
 copying is done until @code{match-string} is called.
+
+Occasionally a zero-length shy group (@samp{\(?:\)})can be syntactically
+useful, for example to refer to group @samp{\1} when group @samp{\10}
+exists and you wish to follow the group reference with a zero to be
+matched explicitly: @samp{\1\(?:\)0}.
 
 The shy grouping operator has been borrowed from Perl, and was not
 available prior to XEmacs 20.3, and has only been available in GNU Emacs

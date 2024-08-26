@@ -23,6 +23,12 @@
 	* internals/internals.texi (Object inventory):
 	Update and correct some documentation of pdump here.
 
+2024-08-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/searching.texi (Syntax of Regexps):
+	Clarify some syntax related to regexp character sets, groups,
+	zero-length shy groups.
+
 2024-02-18  Richard Hopkins  <xemacs@unbit.co.uk>
 
 	* beta.texi (Building XEmacs from a full distribution): Add @item
