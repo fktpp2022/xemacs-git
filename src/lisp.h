@@ -3225,6 +3225,8 @@ DECLARE_LISP_OBJECT (float, Lisp_Float);
 
 #define LISP_READONLY(obj) (LISP_READONLY_RECORD_HEADER_P(XRECORD_LHEADER (obj)))
 
+#define SET_LISP_READONLY(obj) (SET_LISP_READONLY_RECORD_HEADER (XRECORD_LHEADER (obj)))
+
 /*----------------------------- structures ----------------------------*/
 
 typedef struct structure_keyword_entry structure_keyword_entry;

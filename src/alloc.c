@@ -3248,6 +3248,10 @@ make_string_nocopy (const Ibyte *contents, Bytecount length)
   init_string_ascii_end (val);
   sledgehammer_check_ascii_end (val);
 
+  /* This is routinely called with CONTENTS a C constant, and those are not
+     guaranteed writable.  Error when Lisp attempts to modify them. */
+  SET_LISP_READONLY (val);
+
   return val;
 }
 

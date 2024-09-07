@@ -1,3 +1,12 @@
+2024-09-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lisp.h (SET_LISP_READONLY): New macro, for symmetry with the
+	rvalue LISP_READONLY macro.
+	* alloc.c (make_string_nocopy):
+	Mark the created string as readonly for Lisp, since this function
+	is routinely called with CONTENTS as a C string literal, and those
+	are not guaranteed writable. Use SET_LISP_READONLY() for this.
+
 2024-08-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* alloc.c (make_string_nocopy):
