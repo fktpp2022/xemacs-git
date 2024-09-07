@@ -2751,9 +2751,21 @@ resize_string (Lisp_Object s, Bytecount pos, Bytecount delta)
 	  if (delta < 0 && pos >= 0)
 	    memmove (XSTRING_DATA (s) + pos + delta,
 		     XSTRING_DATA (s) + pos, len);
-	  XSET_STRING_DATA
-	    (s, (Ibyte *) xrealloc (XSTRING_DATA (s),
+
+          if (DUMPEDP (XSTRING_DATA (s)))
+            {
+              /* Don't attempt to free dumped data via xrealloc (). */
+              Ibyte *new_data
+                = (Ibyte *) xmalloc (XSTRING_LENGTH (s) + delta + 1);
+              memcpy (new_data, XSTRING_DATA (s), XSTRING_LENGTH (s) + 1);
+              XSET_STRING_DATA (s, new_data);
+            }
+          else
+            {
+              XSET_STRING_DATA
+                (s, (Ibyte *) xrealloc (XSTRING_DATA (s),
 				      XSTRING_LENGTH (s) + delta + 1));
+            }
 	  if (delta > 0 && pos >= 0)
 	    memmove (XSTRING_DATA (s) + pos + delta, XSTRING_DATA (s) + pos,
 		     len);
@@ -2774,18 +2786,24 @@ resize_string (Lisp_Object s, Bytecount pos, Bytecount delta)
 		      XSTRING_LENGTH (s) + 1 - pos);
 	    }
 	  XSET_STRING_DATA (s, new_data);
-	  xfree (old_data);
+          if (!DUMPEDP (old_data))
+            {
+              xfree (old_data);
+            }
 	}
     }
   else /* old string is small */
     {
-      if (oldfullsize == newfullsize)
+      const Ibyte *old_data = XSTRING_DATA (s);
+      if (oldfullsize == newfullsize
+          && (delta < 0 || !DUMPEDP (old_data)))
 	{
 	  /* special case; size change but the necessary
 	     allocation size won't change (up or down; code
 	     somewhere depends on there not being any unused
 	     allocation space, modulo any alignment
-	     constraints). */
+	     constraints).
+             Less true of dumped data. */
 	  if (pos >= 0)
 	    {
 	      Ibyte *addroff = pos + XSTRING_DATA (s);
@@ -2797,7 +2815,6 @@ resize_string (Lisp_Object s, Bytecount pos, Bytecount delta)
 	}
       else
 	{
-	  Ibyte *old_data = XSTRING_DATA (s);
 	  Ibyte *new_data =
 	    BIG_STRING_FULLSIZE_P (newfullsize)
 	    ? allocate_big_string_chars (XSTRING_LENGTH (s) + delta + 1)
@@ -4870,15 +4887,15 @@ verify_string_chars_integrity (void)
   /* Scan each existing string block sequentially, string by string.  */
   for (sb = first_string_chars_block; sb; sb = sb->next)
     {
-      int pos = 0;
+      Bytecount pos = 0;
       /* POS is the index of the next string in the block.  */
       while (pos < sb->pos)
         {
           struct string_chars *s_chars =
             (struct string_chars *) &(sb->string_chars[pos]);
           Lisp_String *string;
-	  int size;
-	  int fullsize;
+	  Bytecount size;
+	  Bytecount fullsize;
 
 	  /* If the string_chars struct is marked as free (i.e. the
 	     STRING pointer is NULL) then this is an unused chunk of
@@ -4893,13 +4910,13 @@ verify_string_chars_integrity (void)
 
           string = s_chars->string;
 	  /* Must be 32-bit aligned. */
-	  assert ((((int) string) & 3) == 0);
+	  assert ((((EMACS_INT) string) & 3) == 0);
 
           size = string->size_;
           fullsize = STRING_FULLSIZE (size);
 
           assert (!BIG_STRING_FULLSIZE_P (fullsize));
-	  assert (XSTRING_DATA (string) == s_chars->chars);
+	  assert (string->data_ == s_chars->chars);
 	  pos += fullsize;
         }
       assert (pos == sb->pos);

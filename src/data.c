@@ -3970,7 +3970,7 @@ init_errors_once_early (void)
 
   DEFERROR_STANDARD (Qinvalid_operation, Qerror);
   DEFERROR_STANDARD (Qinvalid_change, Qinvalid_operation);
-  DEFERROR (Qsetting_constant, "Attempt to set a constant symbol",
+  DEFERROR (Qsetting_constant, "Attempt to modify a constant value",
 	    Qinvalid_change);
   DEFERROR_STANDARD (Qprinting_unreadable_object, Qinvalid_operation);
   DEFERROR (Qunimplemented, "Feature not yet implemented", Qinvalid_operation);

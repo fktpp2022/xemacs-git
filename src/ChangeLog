@@ -1,3 +1,12 @@
+2024-06-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* alloc.c (resize_string):
+	Avoid calling free() on dumped data in this function.
+	* alloc.c (verify_string_chars_integrity):
+	Correct types in this function.
+	* data.c (init_errors_once_early):
+	Correct the docstring for the setting-constant error.
+
 2024-08-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* fontcolor-x.c (x_print_font_instance):
