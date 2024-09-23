@@ -1,3 +1,15 @@
+2024-09-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* file-coding.c:
+	* file-coding.c (aligned_sizeof_coding_system): New.
+	* file-coding.c (allocate_coding_system): Use it.
+	Avoid misaligned coding systems objects in the dump file,
+	previously addressed for lstreams, specifiers, opaque data in
+	Martin Buchholz's change of 2001-01-24. Approach taken the same as
+	that for specifiers.
+	* file-coding.c (struct convert_eol_coding_system):
+	Remove a dummy integer no longer needed.
+
 2024-09-08  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* fontcolor.c (color_instantiate):

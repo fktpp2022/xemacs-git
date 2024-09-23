@@ -312,11 +312,18 @@ finalize_coding_system (Lisp_Object obj)
   MAYBE_XCODESYSMETH (obj, finalize, (obj));
 }
 
+inline static Bytecount
+aligned_sizeof_coding_system (Bytecount type_specific_size)
+{
+  return MAX_ALIGN_SIZE (offsetof (Lisp_Coding_System, data)
+                         + type_specific_size);
+}
+
 static Bytecount
 sizeof_coding_system (Lisp_Object obj)
 {
   const Lisp_Coding_System *p = XCODING_SYSTEM (obj);
-  return offsetof (Lisp_Coding_System, data) + p->methods->extra_data_size;
+  return aligned_sizeof_coding_system (p->methods->extra_data_size);
 }
 
 static const struct memory_description coding_system_methods_description_1[]
@@ -835,7 +842,7 @@ allocate_coding_system (struct coding_system_methods *codesys_meths,
 			Bytecount data_size,
 			Lisp_Object name)
 {
-  Bytecount total_size = offsetof (Lisp_Coding_System, data) + data_size;
+  Bytecount total_size = aligned_sizeof_coding_system (data_size);
   Lisp_Object obj = ALLOC_SIZED_LISP_OBJECT (total_size, coding_system);
   Lisp_Coding_System *codesys = XCODING_SYSTEM (obj);
 
@@ -3951,10 +3958,6 @@ There is one parameter: `subtype', either `cr', `lf', `crlf', or nil.
 struct convert_eol_coding_system
 {
   enum eol_type subtype;
-  int dummy; /* On some architectures (eg ia64) the portable dumper can
-                produce unaligned access errors without this field.  Probably
-                because the combined structure of this structure and
-                Lisp_Coding_System is not properly aligned. */
 };
 
 #define CODING_SYSTEM_CONVERT_EOL_SUBTYPE(codesys) \
