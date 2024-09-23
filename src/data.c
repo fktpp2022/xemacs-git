@@ -3039,12 +3039,19 @@ to be duplicated.  Use `lsh' instead.
 */
        (value, count))
 {
+  EMACS_UINT uvalue;
+
   CHECK_FIXNUM_COERCE_CHAR (value);
   CONCHECK_FIXNUM (count);
 
-  return make_fixnum (XFIXNUM (count) > 0 ?
-		   XFIXNUM (value) <<  XFIXNUM (count) :
-		   XFIXNUM (value) >> -XFIXNUM (count));
+  uvalue = XFIXNUM (value);
+
+  if (NATNUMP (count))
+    {
+      return make_fixnum ((EMACS_INT) (uvalue << XFIXNUM (count)));
+    }
+
+  return make_fixnum ((EMACS_INT) (uvalue >> -XFIXNUM (count)));
 }
 
 DEFUN ("lsh", Flsh, 2, 2, 0, /*

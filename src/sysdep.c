@@ -3268,7 +3268,7 @@ seed_random (EMACS_INT arg)
 EMACS_INT
 get_random (void)
 {
-  EMACS_INT val = random ();
+  EMACS_UINT val = random ();
 #if FIXNUM_VALBITS > RAND_BITS
   val = (val << RAND_BITS) ^ random ();
 #if FIXNUM_VALBITS > 2*RAND_BITS
@@ -3281,7 +3281,7 @@ get_random (void)
 #endif /* need at least 4 */
 #endif /* need at least 3 */
 #endif /* need at least 2 */
-  return val & (EMACS_INT) ((1UL << FIXNUM_VALBITS) - 1);
+  return (EMACS_INT) (val & (EMACS_UINT) ((1UL << FIXNUM_VALBITS) - 1));
 }
 
 

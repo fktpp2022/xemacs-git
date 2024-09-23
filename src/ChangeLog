@@ -1,5 +1,16 @@
 2024-09-23  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* data.c (Fash): 
+	Do bit shifting on EMACS_UINTs for the sake of -fsanitize=undefined.
+	* regex.c:
+	* regex.c (extract_number):
+	Do bit shifting on an unsigned type for the sake of
+	-fsanitize=undefined.
+	* sysdep.c (get_random):
+	Ditto.
+
+2024-09-23  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* file-coding.h (INITIALIZE_DETECTOR_DESCRIPTION):
 	Use offsetof() rather than portable_offsetof() in this macro, for
 	the sake of -fsanitize=undefined.

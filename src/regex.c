@@ -683,7 +683,7 @@ static inline int
 extract_number (re_char *source)
 {
   int leading_byte = SIGN_EXTEND_CHAR (source[1]);
-  return (leading_byte << 8) + (int) ((unsigned char) (source[0]));
+  return ((unsigned) leading_byte << 8) + (int) ((unsigned char) (source[0]));
 }
 
 /* Similar to EXTRACT_NUMBER, but treat the two bytes at SOURCE as an unsigned
