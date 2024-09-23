@@ -1,3 +1,11 @@
+2024-09-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* file-coding.h (INITIALIZE_DETECTOR_DESCRIPTION):
+	Use offsetof() rather than portable_offsetof() in this macro, for
+	the sake of -fsanitize=undefined.
+	* lisp.h:
+	Motivate this change in a comment.
+
 2024-09-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* file-coding.c:

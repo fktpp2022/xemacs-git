@@ -1515,7 +1515,10 @@ xmalloc_and_record_unwind (Bytecount size)
    complains about using offsetof when the `field' argument is not constant,
    e.g. it's an array reference using a variable as the index.  So in that
    case, which happens in file-coding.h, we fall back to portable_offsetof().
-   Fuck me harder!!!! --ben */
+   Fuck me harder!!!! --ben
+       As of Mo 23. Sep 08:31:24 IST 2024 portable_offsetof() causes errors
+       with -fsanitize=undefined and clang++-14 in file-coding.h; I have
+       changed that use to offsetof() without difficulty. -- Aidan Kehoe. */
 #define portable_offsetof(st, m) \
     ((Bytecount) ( (char *)&((st *)(0))->m - (char *)0 ))
 #define xnew(type) ((type *) xmalloc (sizeof (type)))

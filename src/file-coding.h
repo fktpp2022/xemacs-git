@@ -928,8 +928,8 @@ do {									\
   desc =								\
     &detection_state_description[coding_detector_description_lines_count++]; \
   desc->type = XD_BYTECOUNT;						\
-  desc->offset = portable_offsetof (struct detection_state,		\
-			            data_offset[detector_##Detector]);	\
+  desc->offset = offsetof (struct detection_state,                      \
+                           data_offset[detector_##Detector]);           \
   desc =								\
     &detection_state_description[coding_detector_description_lines_count]; \
   desc->type = XD_BLOCK_ARRAY;						\
