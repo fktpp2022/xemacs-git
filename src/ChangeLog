@@ -1320,6 +1320,19 @@
 
 2024-09-23  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* regex.c:
+	* regex.c (enum):
+	* regex.c (print_partial_compiled_pattern):
+	* regex.c (fixup_on_failure_jump_smart):
+	* regex.c (regex_compile):
+	* regex.c (re_compile_fastmap):
+	* regex.c (re_match_2_internal):
+	Remove on_failure_keep_string_jump in favour of
+	on_failure_jump_exclusive, reducing code size and failure stack
+	usage.
+
+2024-09-23  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* file-coding.h (DETECTOR_DESCRIPTION_OFFSET): New macro.
 	* file-coding.h (INITIALIZE_DETECTOR_DESCRIPTION):
 	Use it, placate both g++ and -fsanitize=undefined at the same time.

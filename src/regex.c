@@ -24,7 +24,6 @@
 
 /* TODO:
    - detect nasty infinite loops like "\\(\\)+?ab" when matching "ac".
-   - use `keep_string' more often than just .*\n.
    - structure the opcode space into opcode+flag.
    - merge with glic's regex.[ch]
 
@@ -540,14 +539,13 @@ typedef enum
            in case of failure.  */
   on_failure_jump,
 
-        /* Like on_failure_jump, but pushes a placeholder instead of the
-           current string position when executed.  */
-  on_failure_keep_string_jump,
-
 	/* Like `on_failure_jump', except that it assumes that the pattern
 	   following it is mutually exclusive with the pattern at the
 	   destination of the jump: if one matches something, the other won't
-	   match at all.  Always used via `on_failure_jump_smart'.  */
+	   match at all.  Always used via `on_failure_jump_smart'.
+
+           XEmacs: GNU uses their on_failure_keep_string_jump instead of this,
+           which pushes entries onto the register failure stack needlessly. */
   on_failure_jump_exclusive,
 
 	/* Just like `on_failure_jump', except that it checks that we don't get
@@ -555,9 +553,9 @@ typedef enum
 	   indefinitely).  */
   on_failure_jump_loop,
 
-        /* A smart `on_failure_jump' used for greedy * and + operators.  It
-	   analyses the loop before which it is put and if the loop does not
-	   require backtracking, it changes itself to
+        /* A smart `on_failure_jump' used for greedy * and + operators.
+	   regex_compile() analyses the loop before which it is put and if the
+	   loop does not require backtracking, it changes it to
 	   `on_failure_jump_exclusive', else it just defaults to changing
 	   itself into `on_failure_jump_loop'.  */
   on_failure_jump_smart,
@@ -930,12 +928,6 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
 	case on_failure_jump:
 	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
   	  printf ("/on_failure_jump to %zd", (Bytecount)(p + mcnt - start));
-          break;
-
-	case on_failure_keep_string_jump:
-	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
-  	  printf ("/on_failure_keep_string_jump to %zd", 
-                  (Bytecount)(p + mcnt - start));
           break;
 
 	case on_failure_jump_exclusive:
@@ -2357,7 +2349,6 @@ fixup_on_failure_jump_smart (struct re_pattern_buffer *bufp)
 	case stop_memory:
 	case duplicate:
 	case on_failure_jump:
-	case on_failure_keep_string_jump:
 	case on_failure_jump_exclusive:
 	case on_failure_jump_loop:
 	case jump:
@@ -2620,9 +2611,6 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
             }
 
           {
-	    /* Are we optimizing this jump?  */
-	    re_bool keep_string_p = false;
-
 	    /* true means zero (many) matches are allowed. */
 	    re_bool zero_times_ok = false, many_times_ok = false;
 	    re_bool greedy = true;
@@ -2697,23 +2685,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 
 		    /* Allocate the space for the jump.  */
 		    GET_BUFFER_SPACE (3);
-
-		    /* We know we are not at the first character of the pattern,
-		       because laststart was nonzero.  And we've already
-		       incremented `p', by the way, to be the character after
-		       the `*'.  Do we have to do something analogous here
-		       for null bytes, because of RE_DOT_NOT_NULL?	*/
-		    if (RE_TRANSLATE ((re_char)*(p - 2)) == RE_TRANSLATE ('.')
-			&& zero_times_ok
-			&& p < pend
-			&& RE_TRANSLATE ((re_char)*p) == RE_TRANSLATE ('\n')
-			&& !(syntax & RE_DOT_NEWLINE))
-		      { /* We have .*\n.  */
-			STORE_JUMP (jump, buf_end, laststart);
-			keep_string_p = true;
-		      }
-		    else
-		      STORE_JUMP (jump, buf_end, laststart - 3);
+                    STORE_JUMP (jump, buf_end, laststart - 3);
 		
 		    /* We've added more stuff to the buffer.  */
 		    buf_end += 3;
@@ -2732,10 +2704,8 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 		  }
 		else
 		  {
-		    INSERT_JUMP (keep_string_p ? on_failure_keep_string_jump
-				 : !many_times_ok ?
-				 on_failure_jump : on_failure_jump_smart,
-				 laststart, buf_end + 3);
+		    INSERT_JUMP (many_times_ok ? on_failure_jump_smart
+				 : on_failure_jump, laststart, buf_end + 3);
 		    pending_exact = 0;
 		    buf_end += 3;
 		  }
@@ -4606,7 +4576,6 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 	  switch ((re_opcode_t) *p)
 	    {
 	    case on_failure_jump:
-	    case on_failure_keep_string_jump:
 	    case on_failure_jump_exclusive:
 	    case on_failure_jump_loop:
 	    case on_failure_jump_smart:
@@ -4620,7 +4589,6 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 	  /* Fallthrough */
 
 	case on_failure_jump:
-	case on_failure_keep_string_jump:
 	case on_failure_jump_exclusive:
 	case on_failure_jump_loop:
 	case on_failure_jump_smart:
@@ -6291,29 +6259,6 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
           goto fail;
 
 
-        /* on_failure_keep_string_jump is used to optimize `.*\n'.  It pushes
-           REG_UNSET_VALUE as the value for the string on the stack.  Then the
-           code that handles POP_FAILURE_POINT() will keep the current value
-           for the string, instead of restoring it.  To see why, consider
-           matching `foo\nbar' against `.*\n'.  The .* matches the foo; then
-           the . fails against the \n.  But the next thing we want to do is
-           match the \n against the \n; if we restored the string value, we
-           would be back at the foo.
-
-           Because this is used only in specific cases, we don't need to
-           check all the things that `on_failure_jump' does, to make
-           sure the right things get saved on the stack.  Hence we don't
-           share its code.  The only reason to push anything on the
-           stack at all is that otherwise we would have to change
-           `anychar's code to do something besides goto fail in this
-           case; that seems worse than this.  */
-        case on_failure_keep_string_jump:
-          EXTRACT_NUMBER_AND_INCR (mcnt, p);
-	  DEBUG_PRINT ("EXECUTING on_failure_keep_string_jump %d (to %p):\n",
-			mcnt, p + mcnt);
-          PUSH_FAILURE_POINT (p - 3, REG_UNSET_VALUE);
-          break;
-
 	case on_failure_jump_exclusive:
 	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
 	  DEBUG_PRINT ("EXECUTING on_failure_jump_exclusive %d (to %p):\n",
@@ -6747,23 +6692,11 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
 	  switch ((re_opcode_t) *pat++)
 	    {
-	    case on_failure_keep_string_jump:
-	      assert (str == REG_UNSET_VALUE);
-	      goto continue_failure_jump;
-
 	    case on_failure_jump_exclusive:
-	      /* If something has matched, the alternative will not match,
-		 so we might as well keep popping right away.  */
-	      if (0 /* d != str && d != string2 */) /* Don't bother.  -sm */
-		/* (d == string2 && str == end1) => (d =~ str) */
-		goto fail;
-	      /* Fallthrough */
-
 	    case on_failure_jump_loop:
 	    case on_failure_jump:
 	    case succeed_n:
 	      d = str;
-	    continue_failure_jump:
 	      EXTRACT_NUMBER_AND_INCR (mcnt, pat);
 	      p = pat + mcnt;
 	      break;
