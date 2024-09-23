@@ -1,3 +1,16 @@
+2024-09-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fontcolor.c (color_instantiate):
+	* fontcolor.c (font_instantiate):
+	* fontcolor.c (face_boolean_instantiate):
+	* fontcolor.c (face_background_placement_instantiate):
+	* glyphs.c (image_instantiate):
+	* specifier.c (specifier_instance_from_inst_list):
+	* specifier.h (struct specifier_methods):
+	Avoid passing an int among the Lisp_Object va_args of the
+	specifier instantiate methods, this is not portable behaviour,
+	thank you clang and -fsanitize=undefined.
+
 2024-09-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* alloc.c (Fvector):

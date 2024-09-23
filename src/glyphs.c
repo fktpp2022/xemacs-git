@@ -3179,7 +3179,7 @@ image_instantiate_cache_result (Lisp_Object locative)
 static Lisp_Object
 image_instantiate (Lisp_Object specifier, Lisp_Object UNUSED (matchspec),
 		   Lisp_Object domain, Lisp_Object instantiator,
-		   Lisp_Object depth, int no_fallback)
+		   Lisp_Object depth, Lisp_Object no_fallback)
 {
   Lisp_Object glyph = IMAGE_SPECIFIER_ATTACHEE (XIMAGE_SPECIFIER (specifier));
   int dest_mask = XIMAGE_SPECIFIER_ALLOWED (specifier);
@@ -3218,7 +3218,7 @@ image_instantiate (Lisp_Object specifier, Lisp_Object UNUSED (matchspec),
       assert (XVECTOR_LENGTH (instantiator) == 3);
       return (FACE_PROPERTY_INSTANCE
 	      (Fget_face (XVECTOR_DATA (instantiator)[2]),
-	       Qbackground_pixmap, domain, no_fallback, depth));
+	       Qbackground_pixmap, domain, !NILP (no_fallback), depth));
     }
   else
     {

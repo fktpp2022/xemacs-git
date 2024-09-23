@@ -1380,7 +1380,7 @@ color_create (Lisp_Object obj)
 static Lisp_Object
 color_instantiate (Lisp_Object specifier, Lisp_Object UNUSED (matchspec),
 		   Lisp_Object domain, Lisp_Object instantiator,
-		   Lisp_Object depth, int no_fallback)
+		   Lisp_Object depth, Lisp_Object no_fallback)
 {
   /* When called, we're inside of call_with_suspended_errors(),
      so we can freely error. */
@@ -1436,7 +1436,7 @@ color_instantiate (Lisp_Object specifier, Lisp_Object UNUSED (matchspec),
 		  (Fget_face (XVECTOR_DATA (instantiator)[0]),
 		   COLOR_SPECIFIER_FACE_PROPERTY
 		   (XCOLOR_SPECIFIER (specifier)),
-		   domain, ERROR_ME, no_fallback, depth));
+                     domain, ERROR_ME, !NILP (no_fallback), depth));
 
 	case 2:
 	  return (FACE_PROPERTY_INSTANCE_1
@@ -1653,7 +1653,7 @@ static Lisp_Object
 font_instantiate (Lisp_Object UNUSED (specifier),
 		  Lisp_Object USED_IF_MULE (matchspec),
 		  Lisp_Object domain, Lisp_Object instantiator,
-		  Lisp_Object depth, int no_fallback)
+		  Lisp_Object depth, Lisp_Object no_fallback)
 {
   /* When called, we're inside of call_with_suspended_errors(),
      so we can freely error. */
@@ -1766,13 +1766,15 @@ font_instantiate (Lisp_Object UNUSED (specifier),
 
       match_inst = face_property_matching_instance
 	(Fget_face (XVECTOR_DATA (instantiator)[0]), Qfont,
-	 charset, domain, ERROR_ME, no_fallback, depth, STAGE_INITIAL);
+           charset, domain, ERROR_ME, !NILP (no_fallback),
+           depth, STAGE_INITIAL);
 
       if (UNBOUNDP(match_inst))
 	{
 	  match_inst = face_property_matching_instance
 	    (Fget_face (XVECTOR_DATA (instantiator)[0]), Qfont,
-	     charset, domain, ERROR_ME, no_fallback, depth, STAGE_FINAL);
+               charset, domain, ERROR_ME, !NILP (no_fallback), depth,
+               STAGE_FINAL);
 	}
 
       return match_inst;
@@ -1868,7 +1870,7 @@ static Lisp_Object
 face_boolean_instantiate (Lisp_Object specifier,
 			  Lisp_Object UNUSED (matchspec),
 			  Lisp_Object domain, Lisp_Object instantiator,
-			  Lisp_Object depth, int no_fallback)
+			  Lisp_Object depth, Lisp_Object no_fallback)
 {
   /* When called, we're inside of call_with_suspended_errors(),
      so we can freely error. */
@@ -1895,7 +1897,7 @@ face_boolean_instantiate (Lisp_Object specifier,
 
       retval = (FACE_PROPERTY_INSTANCE_1
 		(Fget_face (XVECTOR_DATA (instantiator)[0]),
-		 prop, domain, ERROR_ME, no_fallback, depth));
+                   prop, domain, ERROR_ME, !NILP (no_fallback), depth));
 
       if (instantiator_len == 3 && !NILP (XVECTOR_DATA (instantiator)[2]))
 	retval = NILP (retval) ? Qt : Qnil;
@@ -2015,7 +2017,7 @@ face_background_placement_instantiate (Lisp_Object UNUSED (specifier),
 				       Lisp_Object domain,
 				       Lisp_Object instantiator,
 				       Lisp_Object depth,
-				       int no_fallback)
+                                       Lisp_Object no_fallback)
 {
   /* When called, we're inside of call_with_suspended_errors(),
      so we can freely error. */
@@ -2027,7 +2029,7 @@ face_background_placement_instantiate (Lisp_Object UNUSED (specifier),
 
       return FACE_PROPERTY_INSTANCE_1
 	(Fget_face (XVECTOR_DATA (instantiator)[0]),
-	 Qbackground_placement, domain, ERROR_ME, no_fallback, depth);
+           Qbackground_placement, domain, ERROR_ME, !NILP (no_fallback), depth);
     }
   else
     ABORT ();	/* Eh? */

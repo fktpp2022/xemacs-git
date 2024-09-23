@@ -147,8 +147,9 @@ struct specifier_methods
      name specifier_instance) to avoid creating "external"
      specification loops.
 
-     NO_FALLBACK indicates that the method should not try the fallbacks
-     (and thus simply return Qunbound) in case of a failure to instantiate.
+     NO_FALLBACK non-nil indicates that the method should not try the
+     fallbacks (and thus simply return Qunbound) in case of a failure to
+     instantiate.
 
      This method must presume that both INSTANTIATOR and MATCHSPEC are
      already validated by the corresponding validate_* methods, and
@@ -165,7 +166,7 @@ struct specifier_methods
 				     Lisp_Object domain,
 				     Lisp_Object instantiator,
 				     Lisp_Object depth,
-				     int no_fallback);
+				     Lisp_Object no_fallback);
 
   /* Going-to-add method: Called when an instantiator is about
      to be added to a specifier.  This function can specify
