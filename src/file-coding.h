@@ -750,6 +750,15 @@ DECLARE_LISP_OBJECT (detection_state, struct detection_state);
   ((struct type##_detector *)					\
    ((char *) (st) + (st)->data_offset[detector_##type]))
 
+/* Used in INITIALIZE_DETECTOR_DESCRIPTION(). portable_offsetof (struct
+   detection_state, data_offset[detector_##type]) doesn't work with
+   -fsanitize=undefined, and offsetof (struct detection_state,
+   data_offset[detector_##type]) complains under (certain) C++ builds given
+   detector_##type is not constant.  */
+#define DETECTOR_DESCRIPTION_OFFSET(type)              \
+  (offsetof (struct detection_state, data_offset) +     \
+   sizeof (Bytecount) * detector_##type)
+
 enum detection_result
  {
   /* Basically means a magic cookie was seen indicating this type, or
@@ -928,8 +937,7 @@ do {									\
   desc =								\
     &detection_state_description[coding_detector_description_lines_count++]; \
   desc->type = XD_BYTECOUNT;						\
-  desc->offset = offsetof (struct detection_state,                      \
-                           data_offset[detector_##Detector]);           \
+  desc->offset = DETECTOR_DESCRIPTION_OFFSET (Detector);                     \
   desc =								\
     &detection_state_description[coding_detector_description_lines_count]; \
   desc->type = XD_BLOCK_ARRAY;						\

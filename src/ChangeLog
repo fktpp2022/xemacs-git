@@ -1,5 +1,11 @@
 2024-09-23  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* file-coding.h (DETECTOR_DESCRIPTION_OFFSET): New macro.
+	* file-coding.h (INITIALIZE_DETECTOR_DESCRIPTION):
+	Use it, placate both g++ and -fsanitize=undefined at the same time.
+
+2024-09-23  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* extents.c (Fset_extent_parent):
 	Never pass a NULL first argument to qsort() in this function, even
 	if the length of the array to be sorted is zero.
