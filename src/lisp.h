@@ -3210,7 +3210,8 @@ DECLARE_LISP_OBJECT (float, Lisp_Float);
 
 # define FIXNUM_OR_FLOATP(x) (FIXNUMP (x) || FLOATP (x))
 
-#define FLOAT_HASHCODE_FROM_DOUBLE(dbl) (Hashcode)(fmod (dbl, 4e9))
+#define FLOAT_HASHCODE_FROM_DOUBLE(dbl) (Hashcode)((EMACS_INT) (fmod (dbl, \
+                                                                      4e9)))
 /* We used to worry about changing FLOAT_HASHCODE_FROM_DOUBLE for 64-bit
    machines. Our hashing algorithm only uses the lower-order bits of the
    Hashcode, and XEmacs hash tables are unlikely to be much bigger than 4 GB,

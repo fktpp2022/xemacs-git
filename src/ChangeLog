@@ -1,5 +1,11 @@
 2024-09-23  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* doprnt.c (fixnum_to_string_base_10):
+	* lisp.h (FLOAT_HASHCODE_FROM_DOUBLE):
+	Further couple of casts for the sake of -fsanitize=undefined.
+
+2024-09-23  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* data.c (Fash): 
 	Do bit shifting on EMACS_UINTs for the sake of -fsanitize=undefined.
 	* regex.c:

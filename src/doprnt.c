@@ -210,7 +210,7 @@ fixnum_to_string_base_10 (Ibyte *buffer, Bytecount size, Fixnum number,
   if (number < 0)
     {
       p += set_itext_ichar (p, '-');
-      n = -number;
+      n = -((EMACS_UINT) number);
     }
   else
     {
