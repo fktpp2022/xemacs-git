@@ -501,10 +501,11 @@ Dynarr_add_many (void *d, const void *base, Elemcount len)
      from that function and to make it inline */
   Dynarr *dy = Dynarr_verify_mod (d);
   Elemcount pos = Dynarr_length (dy);
+  size_t bcount = (size_t) len * (size_t) Dynarr_elsize (dy);
+
   Dynarr_increase_length (dy, Dynarr_length (dy) + len);
-  if (base)
+  if (base && bcount)
     {
-      size_t bcount = (size_t) len * (size_t) Dynarr_elsize (dy);
       memcpy ((Rawbyte *) dy->base + pos*Dynarr_elsize (dy), base, bcount);
     }
 }

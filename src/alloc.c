@@ -1677,7 +1677,11 @@ arguments: (&rest ARGS)
                           check_integer_range() does <=, adjust for this. */
                        make_fixnum (ARRAY_DIMENSION_LIMIT - 1));
   result = make_uninit_vector (nargs);
-  memcpy (XVECTOR_DATA (result), args, sizeof (Lisp_Object) * (size_t) nargs);
+  if (nargs)
+    {
+      memcpy (XVECTOR_DATA (result), args,
+              sizeof (Lisp_Object) * (size_t) nargs);
+    }
   return result;
 }
 
@@ -3100,9 +3104,13 @@ make_string (const Ibyte *contents, Bytecount length)
 #endif
 
   val = make_uninit_string (length);
-  memcpy (XSTRING_DATA (val), contents, (size_t) length);
-  init_string_ascii_end (val);
-  sledgehammer_check_ascii_end (val);  
+  if (length)
+    {
+      memcpy (XSTRING_DATA (val), contents, (size_t) length);
+      init_string_ascii_end (val);
+      sledgehammer_check_ascii_end (val);
+    }
+      
   return val;
 }
 

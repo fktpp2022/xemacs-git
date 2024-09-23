@@ -1,3 +1,16 @@
+2024-09-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* alloc.c (Fvector):
+	* alloc.c (make_string):
+	* alloc.c (make_extstring):
+	* array.c:
+	* array.c (Dynarr_delete_many):
+	* array.h:
+	* file-coding.c (convert_eol_encode):
+	* lstream.c (resizing_buffer_write_with_extents):
+	Avoid calls to memcpy(), memmove() with N zero, thank you clang
+	and -fsanitize=undefined.
+
 2024-09-07  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lisp.h (SET_LISP_READONLY): New macro, for symmetry with the

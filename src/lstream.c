@@ -1762,10 +1762,14 @@ resizing_buffer_write_with_extents (Lstream *stream, Lisp_Object string,
 
   DO_REALLOC (str->buf, str->allocked, str->stored + len, Ibyte);
 
-  memcpy (str->buf + str->stored, XSTRING_DATA (string) + position, len);
+  if (len)
+    {
+      memcpy (str->buf + str->stored, XSTRING_DATA (string) + position, len);
+      str->stored += len;
+    }
+
   copy_string_extents (wrap_lstream (stream), string, start, position, len);
 
-  str->stored += len;
   return len;
 }
 

@@ -4158,7 +4158,14 @@ convert_eol_encode (struct coding_stream *str, const Ibyte *src,
 	{
 	  /* Find the next section with no \n and add it. */
 	  const Ibyte *runstart = src;
-	  src = (Ibyte *) memchr (src, '\n', end - src);
+          if (end - src)
+            {
+              src = (Ibyte *) memchr (src, '\n', end - src);
+            }
+          else
+            {
+              src = NULL;
+            }
 	  if (!src)
 	    src = end;
 	  Dynarr_add_many (dst, runstart, src - runstart);

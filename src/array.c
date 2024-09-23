@@ -412,8 +412,11 @@ Dynarr_delete_many (void *d, Elemcount pos, Elemcount len)
   /* Not checking on overflow for BCOUNT because we're reducing the size
      used, we had to have overflowed already. */
 
-  memmove ((Rawbyte *) dy->base + pos*Dynarr_elsize (dy),
-	   (Rawbyte *) dy->base + (pos + len)*Dynarr_elsize (dy), bcount);
+  if (bcount)
+    {
+      memmove ((Rawbyte *) dy->base + pos*Dynarr_elsize (dy),
+               (Rawbyte *) dy->base + (pos + len)*Dynarr_elsize (dy), bcount);
+    }
 
   Dynarr_set_length_1 (dy, Dynarr_length (dy) - len);
 }
