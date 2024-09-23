@@ -3434,10 +3434,16 @@ See `extent-parent'.
     if (!NILP (parent))
       extent_properties (XEXTENT (parent), newprops);
 
-    qsort (Dynarr_begin (oldprops), Dynarr_length (oldprops),
-	   sizeof (Lisp_Object_pair), compare_key_value_pairs);
-    qsort (Dynarr_begin (newprops), Dynarr_length (newprops),
-	   sizeof (Lisp_Object_pair), compare_key_value_pairs);
+    if (Dynarr_length (oldprops))
+      {
+        qsort (Dynarr_begin (oldprops), Dynarr_length (oldprops),
+               sizeof (Lisp_Object_pair), compare_key_value_pairs);
+      }
+    if (Dynarr_length (newprops))
+      {
+        qsort (Dynarr_begin (newprops), Dynarr_length (newprops),
+               sizeof (Lisp_Object_pair), compare_key_value_pairs);
+      }
     orignewlength = Dynarr_length (newprops);
     for (i = 0; i < Dynarr_length (oldprops); i++)
       {

@@ -2821,7 +2821,10 @@ do {									\
 #define EI_ALLOC_AND_COPY(ei, data, bytelen, charlen)	\
 do {							\
   EI_ALLOC (ei, bytelen, charlen, 1);			\
-  memcpy ((ei)->data_, data, (ei)->bytelen_);		\
+  if ((ei)->bytelen_)                                   \
+    {                                                   \
+      memcpy ((ei)->data_, data, (ei)->bytelen_);       \
+    }                                                   \
 } while (0)
 
 /*   ----- Initialization -----   */

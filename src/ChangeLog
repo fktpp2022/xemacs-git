@@ -1,5 +1,14 @@
 2024-09-23  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* extents.c (Fset_extent_parent):
+	Never pass a NULL first argument to qsort() in this function, even
+	if the length of the array to be sorted is zero.
+	* text.h (EI_ALLOC_AND_COPY):
+	Never pass a NULL first argument to memcpy() in this macro, even
+	if the length to be copied is zero.
+
+2024-09-23  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* doprnt.c (fixnum_to_string_base_10):
 	* lisp.h (FLOAT_HASHCODE_FROM_DOUBLE):
 	Further couple of casts for the sake of -fsanitize=undefined.
