@@ -2518,7 +2518,7 @@ AC_PROG_YACC
 dnl We need a recent version of makeinfo
 AC_MSG_CHECKING([for makeinfo >= 4.12])
 MAKEINFO=
-for prog in `which -a makeinfo`; do
+for prog in `type -P makeinfo`; do
   mi_verstr=[`$prog --version | sed -n '1s/^.* \([0-9][0-9.]*\)$/\1/p'`]
   mi_major=`echo $mi_verstr | cut -d. -f1`
   mi_minor=`echo $mi_verstr | cut -d. -f2`
