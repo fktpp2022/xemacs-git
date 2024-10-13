@@ -514,25 +514,9 @@ static Lisp_Object
 bytecode_arithop (Lisp_Object obj1, Lisp_Object obj2, Opcode opcode)
 {
 #ifdef WITH_NUMBER_TYPES
-  switch (promote_args_lazy (&obj1, &obj2))
+  switch (promote_args (&obj1, &obj2))
     {
-    case LAZY_MARKER_T:
-      {
-	switch (opcode)
-	  {
-	  case Bmax:
-	    return marker_byte_position (obj1) < marker_byte_position (obj2)
-	      ? obj2 : obj1;
-	  case Bmin:
-	    return marker_byte_position (obj1) > marker_byte_position (obj2)
-	      ? obj2 : obj1;
-	  default:
-	    obj1 = make_fixnum (marker_position (obj1));
-	    obj2 = make_fixnum (marker_position (obj2));
-	    /* FALLTHROUGH */
-	  }
-      }
-    case LAZY_FIXNUM_T:
+    case FIXNUM_T:
       {
 	EMACS_INT ival1 = XREALFIXNUM (obj1), ival2 = XREALFIXNUM (obj2);
 	switch (opcode)
@@ -554,13 +538,11 @@ bytecode_arithop (Lisp_Object obj1, Lisp_Object obj2, Opcode opcode)
 	      signal_error_2 (Qarith_error, "division by zero", obj1, obj2);
 	    ival1 /= ival2;
 	    break;
-	  case Bmax:  if (ival1 < ival2) ival1 = ival2; break;
-	  case Bmin:  if (ival1 > ival2) ival1 = ival2; break;
 	  }
 	return make_integer (ival1);
       }
 #ifdef HAVE_BIGNUM
-    case LAZY_BIGNUM_T:
+    case BIGNUM_T:
       switch (opcode)
 	{
 	case Bplus:
@@ -581,17 +563,11 @@ bytecode_arithop (Lisp_Object obj1, Lisp_Object obj2, Opcode opcode)
 	  bignum_div (scratch_bignum, XBIGNUM_DATA (obj1),
 		      XBIGNUM_DATA (obj2));
 	  break;
-	case Bmax:
-	  return bignum_gt (XBIGNUM_DATA (obj1), XBIGNUM_DATA (obj2))
-	    ? obj1 : obj2;
-	case Bmin:
-	  return bignum_lt (XBIGNUM_DATA (obj1), XBIGNUM_DATA (obj2))
-	    ? obj1 : obj2;
 	}
       return Fcanonicalize_number (make_bignum_bg (scratch_bignum));
 #endif
 #ifdef HAVE_RATIO
-    case LAZY_RATIO_T:
+    case RATIO_T:
       switch (opcode)
 	{
 	case Bplus:
@@ -608,17 +584,11 @@ bytecode_arithop (Lisp_Object obj1, Lisp_Object obj2, Opcode opcode)
 	    signal_error_2 (Qarith_error, "division by zero", obj1, obj2);
 	  ratio_div (scratch_ratio, XRATIO_DATA (obj1), XRATIO_DATA (obj2));
 	  break;
-	case Bmax:
-	  return ratio_gt (XRATIO_DATA (obj1), XRATIO_DATA (obj2))
-	    ? obj1 : obj2;
-	case Bmin:
-	  return ratio_lt (XRATIO_DATA (obj1), XRATIO_DATA (obj2))
-	    ? obj1 : obj2;
 	}
       return make_ratio_rt (scratch_ratio);
 #endif
 #ifdef HAVE_BIGFLOAT
-    case LAZY_BIGFLOAT_T:
+    case BIGFLOAT_T:
       bigfloat_set_prec (scratch_bigfloat, max (XBIGFLOAT_GET_PREC (obj1),
 						XBIGFLOAT_GET_PREC (obj2)));
       switch (opcode)
@@ -641,12 +611,6 @@ bytecode_arithop (Lisp_Object obj1, Lisp_Object obj2, Opcode opcode)
 	  bigfloat_div (scratch_bigfloat, XBIGFLOAT_DATA (obj1),
 			XBIGFLOAT_DATA (obj2));
 	  break;
-	case Bmax:
-	  return bigfloat_gt (XBIGFLOAT_DATA (obj1), XBIGFLOAT_DATA (obj2))
-	    ? obj1 : obj2;
-	case Bmin:
-	  return bigfloat_lt (XBIGFLOAT_DATA (obj1), XBIGFLOAT_DATA (obj2))
-	    ? obj1 : obj2;
 	}
       return make_bigfloat_bf (scratch_bigfloat);
 #endif
@@ -663,8 +627,6 @@ bytecode_arithop (Lisp_Object obj1, Lisp_Object obj2, Opcode opcode)
 	      signal_error_2 (Qarith_error, "division by zero", obj1, obj2);
 	    dval1 /= dval2;
 	    break;
-	  case Bmax:  if (dval1 < dval2) dval1 = dval2; break;
-	  case Bmin:  if (dval1 > dval2) dval1 = dval2; break;
 	  }
 	return make_float (dval1);
       }
@@ -681,21 +643,6 @@ bytecode_arithop (Lisp_Object obj1, Lisp_Object obj2, Opcode opcode)
   else if (CHARP   (obj1)) ival1 = XCHAR (obj1);
   else if (MARKERP (obj1))
     {
-      if (MARKERP (obj2)
-	  && (XMARKER (obj1)->buffer == XMARKER (obj2)->buffer))
-	{
-	  if (opcode == Bmax)
-	    {
-	      return marker_byte_position (obj1) < marker_byte_position (obj2)
-		? obj2 : obj1;
-	    }
-	  else if (opcode == Bmin)
-	    {
-	      return marker_byte_position (obj1) > marker_byte_position (obj2)
-		? obj2 : obj1;
-	    }
-	  /* Otherwise, convert to a fixnum in the normal way. */
-	}
       ival1 = marker_position (obj1);
     }
 
@@ -728,8 +675,6 @@ bytecode_arithop (Lisp_Object obj1, Lisp_Object obj2, Opcode opcode)
 	    signal_error_2 (Qarith_error, "division by zero", obj1, obj2);
 	  ival1 /= ival2;
 	  break;
-	case Bmax:  if (ival1 < ival2) ival1 = ival2; break;
-	case Bmin:  if (ival1 > ival2) ival1 = ival2; break;
 	}
       return make_fixnum (ival1);
     }
@@ -747,8 +692,6 @@ bytecode_arithop (Lisp_Object obj1, Lisp_Object obj2, Opcode opcode)
 	    signal_error_2 (Qarith_error, "division by zero", obj1, obj2);
 	  dval1 /= dval2;
 	  break;
-	case Bmax:  if (dval1 < dval2) dval1 = dval2; break;
-	case Bmin:  if (dval1 > dval2) dval1 = dval2; break;
 	}
       return make_float (dval1);
     }
@@ -1396,12 +1339,26 @@ execute_optimized_program (const Opbyte *program,
 	    break;
 	  }
 
+	case Bmin:
+	  {
+	    Lisp_Object arg = POP;
+            TOP_LVALUE = bytecode_gtr (TOP, arg) ? arg : TOP;
+	    break;
+	  }
+
 	case Blss:
 	  {
 	    Lisp_Object arg = POP;
             TOP_LVALUE = bytecode_lss (TOP, arg) ? Qt : Qnil;
 	    break;
 	  }
+
+	case Bmax:
+          {
+	    Lisp_Object arg = POP;
+            TOP_LVALUE = bytecode_lss (TOP, arg) ? arg : TOP;
+            break;
+          }
 
 	case Bleq:
 	  {
@@ -1458,8 +1415,6 @@ execute_optimized_program (const Opbyte *program,
 
 	case Bmult:
 	case Bquo:
-	case Bmax:
-	case Bmin:
 	  {
 	    Lisp_Object arg = POP;
 	    TOP_LVALUE = bytecode_arithop (TOP, arg, opcode);

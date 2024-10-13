@@ -4409,8 +4409,6 @@ EXFUN (Fgtr, MANY);
 EXFUN (Findirect_function, 1);
 EXFUN (Fleq, MANY);
 EXFUN (Flss, MANY);
-EXFUN (Fmax, MANY);
-EXFUN (Fmin, MANY);
 EXFUN (Fminus, MANY);
 EXFUN (Fnumber_to_string, 3);
 EXFUN (Fplus, MANY);

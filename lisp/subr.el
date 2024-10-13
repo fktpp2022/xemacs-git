@@ -489,6 +489,34 @@ confoundedness in older versions of E-Lisp."
   (check-type number number)
   (= number 0))
 
+(defun max (first &rest rest)
+  "Return largest of all the arguments.
+All arguments must be real numbers, characters or markers.
+
+This function does no implicit type conversion; that is, markers and
+characters supplied in the arguments will be returned as such.  This
+differs from GNU Emacs and from older XEmacs, where markers and
+characters were converted to fixnums. Floats and extended numeric
+types have never been converted to fixnums by this function."
+  (let ((max first))
+    (dolist (number rest max)
+      (when (< max number)
+	(setq max number)))))
+
+(defun min (first &rest rest)
+  "Return smallest of all the arguments.
+All arguments must be numbers, characters or markers.
+
+This function does no implicit type conversion; that is, markers and
+characters supplied in the arguments will be returned as such.  This
+differs from GNU Emacs and from older XEmacs, where markers and
+characters were converted to fixnums. Floats and extended numeric
+types have never been converted to fixnums by this function."
+  (let ((min first))
+    (dolist (number rest min)
+      (when (> min number)
+	(setq min number)))))
+
 (defun true-list-p (object)
   "Return t if OBJECT is an acyclic, nil-terminated list."
   (let ((hare object) (tortoise object) (length 0))

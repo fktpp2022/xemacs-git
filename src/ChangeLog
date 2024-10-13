@@ -1,3 +1,17 @@
+2024-10-13  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecode.c:
+	* bytecode.c (bytecode_arithop):
+	Simplify the implementation of Bmax, Bmin in this file.
+	* data.c (Fmax, Fmin):
+	Move to Lisp, for the sake of maintainability (no need for #ifdef
+	WITH_NUMBER_TYPES). There is no loss of speed for the usual case
+	of byte-compiled code, since both functions have bytecodes.
+	* data.c (syms_of_data):
+	Remove the DEFSUBRs for these.
+	* lisp.h:
+	Remove their declarations.
+
 2024-09-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* file-coding.h (DETECTOR_DESCRIPTION_OFFSET): New macro.

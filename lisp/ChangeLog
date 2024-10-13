@@ -1,3 +1,12 @@
+2024-10-13  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* subr.el (max, min):
+	Move these here from data.c, for the sake of mantainability and no
+	loss of speed.
+	We have been returning markers from these functions since 2018
+	without problems; change things slightly to never convert the
+	arguments.
+
 2024-08-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* files.el (find-file-noselect-1):
