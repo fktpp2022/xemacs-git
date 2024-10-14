@@ -1101,6 +1101,10 @@ extern MODULE_API void init_memory_usage_stats (enum lrecord_type type,
                                                 Lisp_Object
                                                 memusage_stats_list);
 
+/* If MEMORY_USAGE_STATS is defined, clear stats for TYPE. If it is not
+   defined, do nothing. */
+extern MODULE_API void uninit_memory_usage_stats (enum lrecord_type type);
+
 #define XD_INDIRECT(val, delta) (-1 - (Bytecount) ((val) | ((delta) << 8)))
 
 #define XD_IS_INDIRECT(code) ((code) < 0)
@@ -1262,6 +1266,7 @@ extern MODULE_API const struct memory_description *lrecord_memory_descriptions[]
 #define UNDEF_LISP_OBJECT(type) do {				\
   lrecord_implementations_table[lrecord_type_##type] = NULL;	\
   lrecord_memory_descriptions[lrecord_type_##type] = NULL;	\
+  uninit_memory_usage_stats (lrecord_type_##type);              \
 } while (0)
 
 #define UNDEF_MODULE_LISP_OBJECT(type) do {				\

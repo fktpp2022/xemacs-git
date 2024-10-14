@@ -31,6 +31,10 @@ static Lisp_Object Vmodule_load_path;
 /* Module lFile extensions */
 static Lisp_Object Vmodule_extensions;
 
+/* Weak list of known file names, so we don't have to duplicate them when
+   dealing with multiple symbols with the same file name. */
+static Lisp_Object Vknown_file_names;
+
 #ifdef HAVE_SHLIB
 
 /* CE-Emacs version number */
@@ -523,56 +527,90 @@ emodules_load (const Ibyte *module, const Ibyte *modname,
     }
 }
 
-void
-emodules_doc_subr (const Ascbyte *symname, const Ascbyte *doc)
+static void
+emodules_doc (const Extbyte *symname,
+              const Extbyte *doc,
+              const Extbyte *file_name,
+              const Ascbyte *coding_system_name,
+              Boolint subrp)
 {
+  Lisp_Object sym, coding_system;
+  Ibyte *symname_internal;
   Bytecount len;
-  Lisp_Object sym;
-  Lisp_Subr *subr;
 
-  ASSERT_ASCTEXT_ASCII (symname);
-  len = strlen (symname);
-  sym = oblookup (Vobarray, (const Ibyte *) symname, len);
+  ASSERT_ASCTEXT_ASCII (coding_system_name);
+  coding_system
+    = Fget_coding_system (intern ((const CIbyte *) coding_system_name));
 
-  /* We do this assert to avoid the possibility of externally formatted
-     text ending up in the doc string, where it could cause crashes.
-     It you need to have a non-ASCII doc string, create another version
-     emodules_doc_subr_istring() that accepts an Ibyte * and doesn't
-     assert, or create an emodules_doc_subr_extstring() that takes
-     an externally_formatted string and a coding system name. */
-  ASSERT_ASCTEXT_ASCII (doc);
-  /* Skip autoload cookies */
-  if (SYMBOLP (sym) && SUBRP (XSYMBOL (sym)->function))
-    {
-      subr = XSUBR (XSYMBOL (sym)->function);
-      subr->doc = build_ascstring (doc);
-    }
-}
+  TO_INTERNAL_FORMAT (C_STRING, symname, ALLOCA, (symname_internal, len),
+                      coding_system);
+  
+  sym = oblookup (Vobarray, symname_internal, len);
 
-void
-emodules_doc_sym (const Ascbyte *symname, const Ascbyte *doc)
-{
-  Bytecount len;
-  Lisp_Object sym;
-  Lisp_Object docstr;
-  struct gcpro gcpro1;
-
-  ASSERT_ASCTEXT_ASCII (symname);
-  len = strlen (symname);
-  sym = oblookup (Vobarray, (const Ibyte *) symname, len);
-
-  /* See comments above in emodules_doc_subr() about why we assert like
-     this. */
-  ASSERT_ASCTEXT_ASCII (doc);
   if (SYMBOLP (sym))
     {
-      docstr = build_ascstring (doc);
-      GCPRO1 (docstr);
-      Fput (sym, Qvariable_documentation, docstr);
-      UNGCPRO;
+      Ibyte *file_name_internal;
+      Lisp_Object lisp_file_name = Qnil;
+
+      TO_INTERNAL_FORMAT (C_STRING, file_name, ALLOCA, (file_name_internal,
+                                                        len),
+                          coding_system);
+
+      {
+        LIST_LOOP_2 (elt, XWEAK_LIST_LIST (Vknown_file_names))
+          {
+            if (qxememcmp (XSTRING_DATA (elt), file_name_internal, len)
+                == 0)
+              {
+                lisp_file_name = elt;
+                break;
+              }
+          }
+
+        if (NILP (lisp_file_name))
+          {
+            lisp_file_name = make_string (file_name_internal, len);
+            XWEAK_LIST_LIST (Vknown_file_names)
+              = Fcons (lisp_file_name, XWEAK_LIST_LIST (Vknown_file_names));
+          }
+      }
+
+      if (subrp) 
+        {
+          if (SUBRP (XSYMBOL (sym)->function))
+            {
+              Lisp_Subr *subr = XSUBR (XSYMBOL (sym)->function);
+              subr->doc = build_extstring (doc, coding_system);
+              Fput (subr->doc, Qsymbol_file, lisp_file_name);
+            }
+        }
+      else
+        {
+	  Lisp_Object lispdoc = build_extstring (doc, coding_system);
+	  Fput (sym, Qvariable_documentation, lispdoc);
+	  Fput (lispdoc, Qsymbol_file, lisp_file_name);
+        }
     }
 }
 
+
+void
+emodules_doc_subr (const Extbyte *symname,
+                   const Extbyte *doc,
+                   const Extbyte *file_name,
+                   const Ascbyte *coding_system_name)
+{
+  emodules_doc (symname, doc, file_name, coding_system_name, 1);
+}
+
+void
+emodules_doc_sym (const Extbyte *symname,
+                   const Extbyte *doc,
+                   const Extbyte *file_name,
+                   const Ascbyte *coding_system_name)
+{
+  emodules_doc (symname, doc, file_name, coding_system_name, 0);
+}
 
 void
 syms_of_module (void)
@@ -671,4 +709,7 @@ when a dynamic module is loaded.
 			      build_ascstring (".dll"),
 			      build_ascstring (".dylib"),
 			      build_ascstring (""));
+
+  Vknown_file_names = make_weak_list (WEAK_LIST_SIMPLE);
+  staticpro (&Vknown_file_names);
 }

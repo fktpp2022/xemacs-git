@@ -1,5 +1,11 @@
 2024-10-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* loadhist.el (symbol-file):
+	Return the C source file for symbols loaded from modules, now that
+	is available.
+
+2024-10-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* loadhist.el (unload-feature):
 	Do a better job within this function, check for defun as the first
 	element of a cons entry in load-history and #'fmakunbound

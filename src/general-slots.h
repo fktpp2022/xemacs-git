@@ -301,6 +301,7 @@ SYMBOL (Qsucceed);
 SYMBOL (Qsucceeded);
 SYMBOL_KEYWORD (Q_suffix);
 SYMBOL (Qsymbol);
+SYMBOL (Qsymbol_file);
 SYMBOL (Qsyntax);
 SYMBOL (Qsystem_default);
 SYMBOL (Qtags);

@@ -4485,6 +4485,16 @@ init_memory_usage_stats (enum lrecord_type type,
 #endif
 }
 
+void
+uninit_memory_usage_stats (enum lrecord_type type)
+{
+#ifdef MEMORY_USAGE_STATS
+  XVECTOR_DATA (Vmemusage_stats_lists)[type] = Qnil;
+#else
+  USED (type);
+#endif
+}
+
 
 /************************************************************************/
 /*                 Garbage Collection -- Sweep/Compact                  */

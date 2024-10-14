@@ -37,7 +37,11 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
  Added 19.15/20.1:  `-i site-packages' allow installer to dump extra packages
  without modifying Makefiles, etc.
- */
+
+ This file is stupid. The entire point of XEmacs is handling text, this is far
+ easier in Lisp than in C. And C evolves, meaning this file needs revision as
+ the years go on. As an old comment in make-docfile.el says, this should just
+ be moved completely to Lisp. */
 
 #include <config.h>
 #include <sysfile.h>
@@ -296,6 +300,21 @@ put_filename (const char *filename)
   putc (037, outfile);
   putc ('S', outfile);
   fprintf (outfile, "%s\n", filename);
+}
+
+/* Add a source file name in the output file, escaping as a C string.  */
+static void
+put_filename_as_c_string (const char *filename)
+{
+  while (*filename)
+    {
+      if (*filename == '\\')
+        {
+          fputc ('\\', outfile);
+        }
+      fputc (*filename, outfile);
+      filename++;
+    }
 }
 
 /* Read file FILENAME and output its doc strings to outfile.  */
@@ -917,11 +936,11 @@ scan_c_file (const char *filename, const char *mode)
       if (defunflag || defvarflag || c == '"')
 	{
 	  /* XEmacs change: the original code is in the "else" clause */
-	  /* XXX Must modify the documentation file name code to handle
-	     ELLCCs */
 	  if (ellcc)
-	    fprintf (outfile, "  CDOC%s(\"%s\", \"\\\n",
-		     defvarflag ? "SYM" : "SUBR", globalbuf);
+            {
+              fprintf (outfile, "  CDOC%s (\"%s\", \"\\\n",
+                       defvarflag ? "SYM" : "SUBR", globalbuf);
+            }
 	  else
 	    {
 	      put_filename (filename);	/* XEmacs addition */
@@ -977,7 +996,11 @@ scan_c_file (const char *filename, const char *mode)
 	      write_c_args (outfile, globalbuf, argbuf, minargs, maxargs);
 	    }
 	  if (ellcc)
-	    fprintf (outfile, "\\n\");\n\n");
+            {
+              fprintf (outfile, "\\n\", \"");
+              put_filename_as_c_string (filename);
+              fprintf (outfile, "\",\n           \"no-conversion\");\n\n");
+            }
 	}
     }
  eof:

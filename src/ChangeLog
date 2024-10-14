@@ -1,5 +1,41 @@
 2024-10-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Supply file-name, coding system information for symbols loaded
+	from modules.
+
+	* alloc.c:
+	* alloc.c (uninit_memory_usage_stats): New.
+	* doc.c:
+	* doc.c (Fbuilt_in_symbol_file):
+	Check the plist of the variable-documentation property for file
+	name information, as is supplied for variables in modules.
+	* doc.c (syms_of_doc): Move Qsymbol_file to general-slots.h, now
+	it is used by emodules.c.
+	* emodules.c (Vknown_file_names): New. Weak list of file names
+	known by emodules_doc_subr() and emodules_doc_sym().
+	* emodules.c (emodules_doc): New. Implementation of the next two
+	functions.
+	* emodules.c (emodules_doc_subr):
+	Revise this, accept FILE_NAME and CODING_SYSTEM_NAME, documenting
+	the file a given subr was loaded from, and the coding system used
+	for the file name and for the docstring.
+	* emodules.c (emodules_doc_sym):
+	Ditto.
+	* emodules.c (vars_of_module):
+	staticpro() Vknown_file_names.
+	* emodules.h:
+	* emodules.h (EMODULES_VERSION):
+	Bump this, now emodules_doc_sym() and emodules_doc_sbur() take
+	extra args.
+	#define CDOCSUBR and CDOCSYM appropriately.
+	* general-slots.h:
+	Include Qsymbol_file here.
+	* lrecord.h:
+	* lrecord.h (UNDEF_LISP_OBJECT):
+	Call uninit_memory_usage_stats() here.
+
+2024-10-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Move the memory usage stats out of struct lrecord_implementation,
 	given that does not work with module support.
 

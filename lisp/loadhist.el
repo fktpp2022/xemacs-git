@@ -54,12 +54,22 @@ with `defface' and `custom-declare-face'."
   (interactive "SFind source file for symbol: ") ; XEmacs
   (let (built-in-file autoload-cons symbol-details)
     (labels
-        ((handle-module-file (entry)
+        ((handle-built-in ()
+           (when (setq built-in-file (built-in-symbol-file sym type))
+             (if (equal built-in-file (file-truename built-in-file))
+                 ;; Probably a full path name:
+                 built-in-file
+               ;; This is a bit heuristic, but shouldn't realistically be a
+               ;; problem:
+               (if (string-match-p #r"\.elc?$" built-in-file)
+                   (concat (if (file-readable-p source-lisp)
+                               source-lisp
+                             lisp-directory)
+                           built-in-file)
+                 (concat source-directory "/src/" built-in-file)))))
+         (handle-module-file (entry)
            (when (equal (cadr entry) '(module))
-             (let* ((modules (list-modules))
-                    (elt (find (car entry) modules :test #'equal
-                               :key #'second)))
-               (if elt (return-from symbol-file (car elt)))))))
+             (return-from symbol-file (handle-built-in)))))
       (cond ((and (eq 'autoload
                       (car-safe
                        (setq autoload-cons
@@ -92,19 +102,8 @@ with `defface' and `custom-declare-face'."
                          (rassq sym (cdr entry)))
                  (if (equal (cadr entry) '(module))
                      (handle-module-file entry))
-                 (return-from symbol-file (car entry)))))))
-    (when (setq built-in-file (built-in-symbol-file sym type))
-      (if (equal built-in-file (file-truename built-in-file))
-          ;; Probably a full path name:
-          built-in-file
-        ;; This is a bit heuristic, but shouldn't realistically be a
-        ;; problem:
-        (if (string-match #r"\.elc?$" built-in-file)
-            (concat (if (file-readable-p source-lisp)
-			source-lisp
-		      lisp-directory)
-		    built-in-file)
-          (concat source-directory "/src/" built-in-file))))))
+                 (return-from symbol-file (car entry))))))
+      (handle-built-in))))
 
 (defun feature-symbols (feature)
   "Return the file and list of symbols associated with a given FEATURE."

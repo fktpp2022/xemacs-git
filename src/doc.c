@@ -36,7 +36,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "elhash.h"
 
 Lisp_Object Vinternal_doc_file_name;
-Lisp_Object Qdefvar, Qfunction_documentation, Qsymbol_file;
+Lisp_Object Qdefvar, Qfunction_documentation;
 
 /* Work out what source file a function or variable came from, taking the
    information from the documentation file. */
@@ -574,6 +574,10 @@ If TYPE is `defvar', then variable definitions are acceptable.
 		(XFIXNUM (doc_offset) > 0 ? doc_offset
 		 : make_fixnum (- XFIXNUM (doc_offset)));
 	    }
+          else if (STRINGP (doc_offset))
+            {
+              filename = Fget (doc_offset, Qsymbol_file, Qnil);
+            }
 	  return filename;
 	}
     }
@@ -1400,7 +1404,6 @@ syms_of_doc (void)
 
   DEFSYMBOL (Qdefvar);
   DEFSYMBOL (Qfunction_documentation);
-  DEFSYMBOL (Qsymbol_file);
 }
 
 void
