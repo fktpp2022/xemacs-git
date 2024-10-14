@@ -2887,8 +2887,7 @@ vars_of_elhash (void)
   staticpro (&Vall_weak_hash_tables);
 
 #ifdef MEMORY_USAGE_STATS
-  OBJECT_HAS_PROPERTY
-    (hash_table, memusage_stats_list, list1 (intern ("hash-entries")));
+  INIT_MEMORY_USAGE_STATS (hash_table, list1 (intern ("hash-entries")));
 #endif /* MEMORY_USAGE_STATS */
 
   DEFVAR_LISP ("obarray", &Vobarray /*

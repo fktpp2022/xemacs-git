@@ -125,6 +125,27 @@ Error_Behavior ERROR_ME, ERROR_ME_NOT, ERROR_ME_WARN, ERROR_ME_DEBUG_WARN;
 Lisp_Object Qobject_actually_requested, Qobject_malloc_overhead;
 Lisp_Object Qother_memory_actually_requested, Qother_memory_malloc_overhead;
 Lisp_Object Qother_memory_dynarr_overhead, Qother_memory_gap_overhead;
+
+/* Vector of lists of tags to be given to the extra statistics, one per
+   statistic.  Qnil or Qt can be present to separate off different slices.
+   Qnil separates different slices within the same group of statistics.  These
+   represent different ways of partitioning the same memory space.  Qt
+   separates different groups; these represent different spaces of memory.
+
+   If Qt is not present, all slices describe extra non-Lisp-Object memory
+   associated with a Lisp object.  If Qt is present, slices before Qt
+   describe non-Lisp-Object memory, as before, and slices after Qt
+   describe ancillary Lisp-Object memory logically associated with the
+   object.  For example, if the object is a table, then ancillary
+   Lisp-Object memory might be the entries in the table.  This info is
+   only advisory since it will duplicate memory described elsewhere and
+   since it may not be possible to be completely accurate, e.g. it may
+   not be clear what to count in "ancillary objects", and the value may
+   be too high if the same object occurs multiple times in the table.
+
+   This used to be in struct lrecord_implementation, but that interacts badly
+   with modules.*/
+Lisp_Object Vmemusage_stats_lists;
 #endif /* MEMORY_USAGE_STATS */
 
 static int gc_count_num_short_string_in_use;
@@ -155,6 +176,39 @@ static struct
 #endif
 } lrecord_stats [countof (lrecord_implementations_table)];
 
+
+#ifdef MEMORY_USAGE_STATS
+/* Metadata on memory usage, calculated by compute_memusage_stats_length. */
+static struct
+{
+  /* --------------------------------------------------------------------- */
+
+  /* The following are automatically computed based on the value in
+     `memusage_stats_list' (see compute_memusage_stats_length()). They had
+     been stored in struct lrecord_implementation, but that interacts badly
+     with modules. They can't be stored in lrecord_stats because that is
+     zeroed with gc_sweep_1(). */
+
+  /* Total number of additional type-specific statistics related to memory
+     usage. */
+  Elemcount num_extra_memusage_stats;
+
+  /* Number of additional type-specific statistics belonging to the first
+     slice of the group describing non-Lisp-Object memory usage for this
+     object.  These stats occur starting at offset 0. */
+  Elemcount num_extra_nonlisp_memusage_stats;
+
+  /* The offset into the extra statistics at which the Lisp-Object
+     memory-usage statistics begin. */
+  Elemcount offset_lisp_ancillary_memusage_stats;
+
+  /* Number of additional type-specific statistics belonging to the first
+     slice of the group describing Lisp-Object memory usage for this
+     object.  These stats occur starting at offset
+     `offset_lisp_ancillary_memusage_stats'. */
+  Elemcount num_extra_lisp_ancillary_memusage_stats;
+} lrecord_stats_metadata [countof (lrecord_implementations_table)];
+#endif
 
 /* Very cheesy ways of figuring out how much memory is being used for
    data. #### Need better (system-dependent) ways. */
@@ -3837,7 +3891,9 @@ tick_lrecord_stats (const struct lrecord_header *h,
 	if (HAS_OBJECT_METH_P (obj, memory_usage))
 	  {
 	    int i;
-	    int total_stats = OBJECT_PROPERTY (obj, num_extra_memusage_stats);
+	    int total_stats
+              = lrecord_stats_metadata[XRECORD_LHEADER (obj)->type].
+              num_extra_memusage_stats;
 	    xzero (stats);
 	    OBJECT_METH (obj, memory_usage, (obj, &stats));
 	    for (i = 0; i < total_stats; i++)
@@ -3886,20 +3942,27 @@ finish_object_memory_usage_stats (void)
   for (i = 0; i < countof (lrecord_implementations_table); i++)
     {
       struct lrecord_implementation *imp = lrecord_implementations_table[i];
-      if (imp && imp->num_extra_nonlisp_memusage_stats)
+      if (imp && lrecord_stats_metadata[i].num_extra_nonlisp_memusage_stats)
 	{
 	  int j;
-	  for (j = 0; j < imp->num_extra_nonlisp_memusage_stats; j++)
+	  for (j = 0; j < lrecord_stats_metadata[i].
+                 num_extra_nonlisp_memusage_stats;
+               j++)
 	    lrecord_stats[i].nonlisp_bytes_in_use +=
 	      lrecord_stats[i].stats.othervals[j];
 	}
-      if (imp && imp->num_extra_lisp_ancillary_memusage_stats)
+      if (imp && lrecord_stats_metadata[i].
+          num_extra_lisp_ancillary_memusage_stats)
 	{
 	  int j;
-	  for (j = 0; j < imp->num_extra_lisp_ancillary_memusage_stats; j++)
+	  for (j = 0;
+               j < lrecord_stats_metadata[i].
+                 num_extra_lisp_ancillary_memusage_stats;
+               j++)
 	    lrecord_stats[i].lisp_ancillary_bytes_in_use +=
 	      lrecord_stats[i].stats.othervals
-	      [j + imp->offset_lisp_ancillary_memusage_stats];
+	      [j + lrecord_stats_metadata[i].
+               num_extra_lisp_ancillary_memusage_stats];
 	}
     }
 #endif /* defined (MEMORY_USAGE_STATS) */
@@ -4156,7 +4219,8 @@ itself.
     invalid_argument
       ("No memory associated with immediate objects (int or char)", object);
 
-  stats_list = OBJECT_PROPERTY (object, memusage_stats_list);
+  stats_list
+    = XVECTOR_DATA (Vmemusage_stats_lists)[XRECORD_LHEADER (object)->type];
 
   xzero (object_stats);
   lisp_object_storage_size (object, &object_stats);
@@ -4237,8 +4301,6 @@ lisp_object_memory_usage_full (Lisp_Object object, Bytecount *storage_size,
       int i;
       struct generic_usage_stats gustats;
       Bytecount sum;
-      struct lrecord_implementation *imp =
-	XRECORD_LHEADER_IMPLEMENTATION (object);
 
       xzero (gustats);
       OBJECT_METH (object, memory_usage, (object, &gustats));
@@ -4247,16 +4309,22 @@ lisp_object_memory_usage_full (Lisp_Object object, Bytecount *storage_size,
 	*stats = gustats;
 
       sum = 0;
-      for (i = 0; i < imp->num_extra_nonlisp_memusage_stats; i++)
+      for (i = 0;
+           i < lrecord_stats_metadata[XRECORD_LHEADER (object)->type].
+             num_extra_nonlisp_memusage_stats;
+           i++)
 	sum += gustats.othervals[i];
       total += sum;
       if (extra_nonlisp_storage)
 	*extra_nonlisp_storage = sum;
 
       sum = 0;
-      for (i = 0; i < imp->num_extra_lisp_ancillary_memusage_stats; i++)
-	sum += gustats.othervals[imp->offset_lisp_ancillary_memusage_stats +
-				 i];
+      for (i = 0; i < lrecord_stats_metadata[XRECORD_LHEADER (object)->type].
+             num_extra_lisp_ancillary_memusage_stats; i++)
+	sum
+          +=
+          gustats.othervals[lrecord_stats_metadata[XRECORD_LHEADER (object)->type].
+                            offset_lisp_ancillary_memusage_stats + i];
       total += sum;
       if (extra_lisp_ancillary_storage)
 	*extra_lisp_ancillary_storage = sum;
@@ -4357,11 +4425,7 @@ compute_memusage_stats_length (void)
 
       if (!imp)
 	continue;
-      /* For some of the early objects, Qnil was not yet initialized at
-	 the time of object initialization, so it came up as Qnull_pointer.
-	 Fix that now. */
-      if (EQ (imp->memusage_stats_list, Qnull_pointer))
-	imp->memusage_stats_list = Qnil;
+
       {
 	Elemcount len = 0;
 	Elemcount nonlisp_len = 0;
@@ -4370,7 +4434,7 @@ compute_memusage_stats_length (void)
 	int group_num = 0;
 	int slice_num = 0;
 
-	LIST_LOOP_2 (item, imp->memusage_stats_list)
+	LIST_LOOP_2 (item, XVECTOR_DATA (Vmemusage_stats_lists)[i])
 	  {
 	    if (EQ (item, Qt))
 	      {
@@ -4396,15 +4460,30 @@ compute_memusage_stats_length (void)
 	      }
 	  }
 
-	imp->num_extra_memusage_stats = len;
-	imp->num_extra_nonlisp_memusage_stats = nonlisp_len;
-	imp->num_extra_lisp_ancillary_memusage_stats = lisp_len;
-	imp->offset_lisp_ancillary_memusage_stats = lisp_offset;
+	lrecord_stats_metadata[i].num_extra_memusage_stats = len;
+        lrecord_stats_metadata[i].num_extra_nonlisp_memusage_stats
+          = nonlisp_len;
+        lrecord_stats_metadata[i].num_extra_lisp_ancillary_memusage_stats
+          = lisp_len;
+        lrecord_stats_metadata[i].offset_lisp_ancillary_memusage_stats
+          = lisp_offset;
       }
     }
 }
 
 #endif /* MEMORY_USAGE_STATS */
+
+void
+init_memory_usage_stats (enum lrecord_type type,
+                         Lisp_Object memusage_stats_list)
+{
+#ifdef MEMORY_USAGE_STATS
+  XVECTOR_DATA (Vmemusage_stats_lists)[type] = memusage_stats_list;
+#else
+  USED (type);
+  USED (memusage_stats_list);
+#endif
+}
 
 
 /************************************************************************/
@@ -5573,6 +5652,12 @@ init_alloc_once_early (void)
 
   init_lcrecord_lists ();
 
+#ifdef MEMORY_USAGE_STATS
+  Vmemusage_stats_lists
+    = make_vector (countof (lrecord_implementations_table), Qnull_pointer);
+  staticpro (&Vmemusage_stats_lists);
+#endif
+
   INIT_LISP_OBJECT (cons);
   INIT_LISP_OBJECT (vector);
   INIT_LISP_OBJECT (bit_vector);
@@ -5596,6 +5681,18 @@ syms_of_alloc (void)
   DEFSYMBOL (Qother_memory_malloc_overhead);
   DEFSYMBOL (Qother_memory_dynarr_overhead);
   DEFSYMBOL (Qother_memory_gap_overhead);
+
+  {
+    int ii;
+    for (ii = 0; ii < countof (lrecord_implementations_table); ii++)
+      {
+        if (EQ (XVECTOR_DATA (Vmemusage_stats_lists)[ii], Qnull_pointer))
+          {
+            XVECTOR_DATA (Vmemusage_stats_lists)[ii] = Qnil;
+          }
+      }
+  }
+
 #endif /* MEMORY_USAGE_STATS */
 
   DEFSUBR (Fcons);

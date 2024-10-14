@@ -5764,14 +5764,14 @@ vars_of_window (void)
 	     intern ("window-mirror"),
 	     Qunbound);
 
-  OBJECT_HAS_PROPERTY (window, memusage_stats_list, l);
+  INIT_MEMORY_USAGE_STATS (window, l);
 
   l = listu (Qredisplay_structs,
 #ifdef HAVE_SCROLLBARS
 	     Qt, Qscrollbar_instances,
 #endif
 	     Qunbound);
-  OBJECT_HAS_PROPERTY (window_mirror, memusage_stats_list, l);
+  INIT_MEMORY_USAGE_STATS (window_mirror, l);
 #endif /* MEMORY_USAGE_STATS */
 
   DEFVAR_BOOL ("scroll-on-clipped-lines", &scroll_on_clipped_lines /*

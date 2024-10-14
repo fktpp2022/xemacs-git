@@ -559,12 +559,9 @@ void
 vars_of_casetab (void)
 {
 #ifdef MEMORY_USAGE_STATS
-  OBJECT_HAS_PROPERTY (case_table, memusage_stats_list,
-		       list5 (Qt,
-			      intern ("downcase"),
-			      intern ("upcase"),
-			      intern ("case-canon"),
-			      intern ("case-eqv")));
+  INIT_MEMORY_USAGE_STATS (case_table,
+                           list5 (Qt, intern ("downcase"), intern ("upcase"),
+                                  intern ("case-canon"), intern ("case-eqv")));
 #endif /* MEMORY_USAGE_STATS */
 }
 

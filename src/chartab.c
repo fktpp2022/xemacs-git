@@ -2456,8 +2456,7 @@ void
 vars_of_chartab (void)
 {
 #ifdef MEMORY_USAGE_STATS
-  OBJECT_HAS_PROPERTY
-    (char_table, memusage_stats_list, list2 (Qt, Qpage_tables));
+  INIT_MEMORY_USAGE_STATS (char_table, list2 (Qt, Qpage_tables));
 #endif /* MEMORY_USAGE_STATS */
 
   staticpro (&Vall_syntax_tables);

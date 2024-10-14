@@ -4205,9 +4205,9 @@ void
 vars_of_frame (void)
 {
 #ifdef MEMORY_USAGE_STATS
-  OBJECT_HAS_PROPERTY
-    (frame, memusage_stats_list, list3 (Qgutter, intern ("expose-ignore"),
-					Qother));
+  INIT_MEMORY_USAGE_STATS (frame, 
+                           list3 (Qgutter, intern ("expose-ignore"),
+                                  Qother));
 #endif /* MEMORY_USAGE_STATS */
 
   /* */

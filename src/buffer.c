@@ -2028,8 +2028,7 @@ vars_of_buffer (void)
 {
   /* This function can GC */
 #ifdef MEMORY_USAGE_STATS
-  OBJECT_HAS_PROPERTY
-    (buffer, memusage_stats_list, list4 (Qtext, Qt, Qmarkers, Qextents));
+  INIT_MEMORY_USAGE_STATS (buffer, list4 (Qtext, Qt, Qmarkers, Qextents));
 #endif /* MEMORY_USAGE_STATS */
 
   staticpro (&QSFundamental);

@@ -1123,9 +1123,8 @@ void
 vars_of_scrollbar (void)
 {
 #ifdef MEMORY_USAGE_STATS
-  OBJECT_HAS_PROPERTY
-    (scrollbar_instance, memusage_stats_list,
-     list1 (intern ("device-data")));
+  INIT_MEMORY_USAGE_STATS (scrollbar_instance,
+                           list1 (intern ("device-data")));
 #endif /* MEMORY_USAGE_STATS */
 
   DEFVAR_LISP ("scrollbar-pointer-glyph", &Vscrollbar_pointer_glyph /*

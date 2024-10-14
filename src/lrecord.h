@@ -459,51 +459,10 @@ struct lrecord_implementation
      -- Objects linked by a weak reference should *NOT* be included
   */
   void (*memory_usage) (Lisp_Object obj, struct generic_usage_stats *stats);
-
-  /* List of tags to be given to the extra statistics, one per statistic.
-     Qnil or Qt can be present to separate off different slices.  Qnil
-     separates different slices within the same group of statistics.
-     These represent different ways of partitioning the same memory space.
-     Qt separates different groups; these represent different spaces of
-     memory.
-
-     If Qt is not present, all slices describe extra non-Lisp-Object memory
-     associated with a Lisp object.  If Qt is present, slices before Qt
-     describe non-Lisp-Object memory, as before, and slices after Qt
-     describe ancillary Lisp-Object memory logically associated with the
-     object.  For example, if the object is a table, then ancillary
-     Lisp-Object memory might be the entries in the table.  This info is
-     only advisory since it will duplicate memory described elsewhere and
-     since it may not be possible to be completely accurate, e.g. it may
-     not be clear what to count in "ancillary objects", and the value may
-     be too high if the same object occurs multiple times in the table. */
-  Lisp_Object memusage_stats_list;
-
-  /* --------------------------------------------------------------------- */
-
-  /* The following are automatically computed based on the value in
-     `memusage_stats_list' (see compute_memusage_stats_length()). */
-
-  /* Total number of additional type-specific statistics related to memory
-     usage. */
-  Elemcount num_extra_memusage_stats;
-
-  /* Number of additional type-specific statistics belonging to the first
-     slice of the group describing non-Lisp-Object memory usage for this
-     object.  These stats occur starting at offset 0. */
-  Elemcount num_extra_nonlisp_memusage_stats;
-
-  /* The offset into the extra statistics at which the Lisp-Object
-     memory-usage statistics begin. */
-  Elemcount offset_lisp_ancillary_memusage_stats;
-
-  /* Number of additional type-specific statistics belonging to the first
-     slice of the group describing Lisp-Object memory usage for this
-     object.  These stats occur starting at offset
-     `offset_lisp_ancillary_memusage_stats'. */
-  Elemcount num_extra_lisp_ancillary_memusage_stats;
-
-#endif /* MEMORY_USAGE_STATS */
+#else
+  /* Keep this structure the same size, for the sake of modules. */
+  void (*memory_usage) (Lisp_Object obj, void *stats);
+#endif
 };
 
 /* All the built-in lisp object types are enumerated in `enum lrecord_type'.
@@ -1136,6 +1095,12 @@ struct opaque_convert_functions
 
 };
 
+/* If MEMORY_USAGE_STATS is defined, initialize stats for TYPE. If it is not
+   defined, do nothing. */
+extern MODULE_API void init_memory_usage_stats (enum lrecord_type type,
+                                                Lisp_Object
+                                                memusage_stats_list);
+
 #define XD_INDIRECT(val, delta) (-1 - (Bytecount) ((val) | ((delta) << 8)))
 
 #define XD_IS_INDIRECT(code) ((code) < 0)
@@ -1267,28 +1232,14 @@ struct lrecord_implementation lrecord_##c_name =			\
   { name, dumpable,  printer, nuker, equal, hash, desc,			\
     size, sizer, lrecord_type_last_built_in_type, frob_block_p }
 
-#ifdef MEMORY_USAGE_STATS
-#define INIT_MEMORY_USAGE_STATS(type)					\
-do									\
-{									\
-  lrecord_implementations_table[lrecord_type_##type]->			\
-    memusage_stats_list = Qnil;						\
-  lrecord_implementations_table[lrecord_type_##type]->			\
-    num_extra_memusage_stats = -1;					\
-  lrecord_implementations_table[lrecord_type_##type]->			\
-    num_extra_nonlisp_memusage_stats = -1;				\
-  staticpro (&lrecord_implementations_table[lrecord_type_##type]->	\
-	     memusage_stats_list);					\
-} while (0)
-#else
-#define INIT_MEMORY_USAGE_STATS(type) DO_NOTHING
-#endif /* (not) MEMORY_USAGE_STATS */
+#define INIT_MEMORY_USAGE_STATS(type, memusage_stats_list)      \
+  init_memory_usage_stats (lrecord_type_##type, memusage_stats_list)
 
 #define INIT_LISP_OBJECT_BEGINNING(type)				\
 do									\
 {									\
   lrecord_implementations_table[lrecord_type_##type] = &lrecord_##type;	\
-  INIT_MEMORY_USAGE_STATS (type);					\
+  INIT_MEMORY_USAGE_STATS (type, Qnil);                                 \
 } while (0)
 
 extern MODULE_API const struct memory_description *lrecord_memory_descriptions[];

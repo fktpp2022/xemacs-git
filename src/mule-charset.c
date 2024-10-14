@@ -1870,8 +1870,7 @@ vars_of_mule_charset (void)
   int i, j, k;
 
 #ifdef MEMORY_USAGE_STATS
-  OBJECT_HAS_PROPERTY
-    (charset, memusage_stats_list, list2 (Qfrom_unicode, Qto_unicode));
+  INIT_MEMORY_USAGE_STATS (charset, list2 (Qfrom_unicode, Qto_unicode));
 #endif /* MEMORY_USAGE_STATS */
 
   chlook = xnew_and_zero (struct charset_lookup); /* zero for Purify. */

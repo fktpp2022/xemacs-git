@@ -1,5 +1,57 @@
 2024-10-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Move the memory usage stats out of struct lrecord_implementation,
+	given that does not work with module support.
+
+	* lrecord.h:
+	* lrecord.h (struct lrecord_implementation):
+	Remove most of the memory usage infrastructure from this
+	structure.
+	* lrecord.h (INIT_MEMORY_USAGE_STATS):
+	Call the new init_memory_usage_stats() within this #define,
+	whether or not MEMORY_USAGE_STATS is defined.
+	* lrecord.h (INIT_LISP_OBJECT_BEGINNING):
+	Ditto.
+	
+	* alloc.c:
+	* alloc.c (Vmemusage_stats_lists): New.
+	Lisp vector storing what used to be stored in the
+	memusage_stats_list field of lrecord_implementation; this is just
+	staticpro()ed, making GC protection and dumping easier.
+
+	* alloc.c (lrecord_stats_metadata): New C array, for other data
+	related to memory usage and previously in struct
+	lrecord_implementation.
+	
+	* alloc.c (init_memory_usage_stats): New. Called from
+	INIT_LISP_OBJECT() whether or not MEMORY_USAGE_STATS support is
+	included. 
+	* alloc.c (tick_lrecord_stats):
+	* alloc.c (finish_object_memory_usage_stats):
+	* alloc.c (Fobject_memory_usage):
+	* alloc.c (lisp_object_memory_usage_full):
+	* alloc.c (compute_memusage_stats_length):
+	* alloc.c (init_alloc_once_early):
+	Create Vmemusage_stats_lists very early.
+	* alloc.c (syms_of_alloc):
+	Initialise those elements of Vmemusage_stats_lists that are
+	Qnull_pointer to Qnil, now that is available.
+	* buffer.c (vars_of_buffer):
+	* casetab.c (vars_of_casetab):
+	* casetab.c (complex_vars_of_casetab):
+	* chartab.c (vars_of_chartab):
+	* elhash.c (vars_of_elhash):
+	* mule-charset.c (vars_of_mule_charset):
+	* scrollbar.c (vars_of_scrollbar):
+	* specifier.c (vars_of_specifier):
+	* window.c (vars_of_window):
+	* frame.c (vars_of_frame):
+	Use INIT_MEMORY_USAGE_STATS instead of OBJECT_HAS_PROPERTY(...
+	memusage_stats_list) within these files, now the memory usage
+	stats are no longer in lrecord_implementation.
+
+2024-10-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* emodules.c (find_make_module):
 	Given we now unload modules, modules[i].soname can be NULL, check
 	for this before calling qxestrcmp().

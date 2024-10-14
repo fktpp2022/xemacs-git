@@ -3932,10 +3932,10 @@ void
 vars_of_specifier (void)
 {
 #ifdef MEMORY_USAGE_STATS
-  OBJECT_HAS_PROPERTY (specifier, memusage_stats_list,
-		       listu (Qt, Qglobal, Qdevice, Qframe, Qwindow, Qbuffer,
-			      Qfallback, intern ("magic-parent"),
-			      Qunbound));
+  INIT_MEMORY_USAGE_STATS (specifier,
+                           listu (Qt, Qglobal, Qdevice, Qframe, Qwindow,
+                                  Qbuffer, Qfallback, intern ("magic-parent"),
+                                  Qunbound));
 #endif /* MEMORY_USAGE_STATS */
 
   Vcached_specifiers = Qnil;
