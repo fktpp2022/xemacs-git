@@ -1,5 +1,18 @@
 2024-10-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Get unloading of modules working again, when MEMORY_USAGE_STATS is
+	not defined
+
+	* alloc.c:
+	* alloc.c (unstaticpro_nodump_1):
+	Operate on staticpros_nodump, as was intended.
+	* alloc.c (unstaticpro_nodump): Ditto.
+	* symeval.h (DEFVAR_SYMVAL_FWD_OBJECT):
+	Call staticpro (), not staticpro_1 () in this macro, so the
+	redefinition in emodules.h has a chance to do its thing.
+
+2024-10-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* lisp.h (struct Lisp_Subr):
 	Make the DOC field of this structure a Lisp_Object, simplifying
 	dump and GC and avoiding memory leaks with docstrings for subrs in

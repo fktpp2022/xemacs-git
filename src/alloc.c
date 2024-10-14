@@ -3541,8 +3541,8 @@ staticpro_nodump_name (int count)
 void
 unstaticpro_nodump_1 (Lisp_Object *varaddress, const Ascbyte *varname)
 {
-  Dynarr_delete_object (staticpros, varaddress);
-  Dynarr_delete_object (staticpro_names, varname);
+  Dynarr_delete_object (staticpros_nodump, varaddress);
+  Dynarr_delete_object (staticpro_nodump_names, varname);
 }
 #endif
 
@@ -3591,7 +3591,7 @@ staticpro_nodump (Lisp_Object *varaddress)
 void
 unstaticpro_nodump (Lisp_Object *varaddress)
 {
-  Dynarr_delete_object (staticpros, varaddress);
+  Dynarr_delete_object (staticpros_nodump, varaddress);
 }
 #endif
 
