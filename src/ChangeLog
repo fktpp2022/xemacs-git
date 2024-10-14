@@ -1,5 +1,16 @@
 2024-10-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* alloc.c:
+	* alloc.c (make_subr): New.
+	* alloc.c (sweep_subrs): New.
+	* alloc.c (init_alloc_early): Call init_subr_alloc().
+	* lisp.h: Declare make_subr.
+	* symbols.c (check_module_subr):
+	Call make_subr() in this macro, ALLOC_NORMAL_LISP_OBJECT() does
+	not work.
+
+2024-10-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Get unloading of modules working again, when MEMORY_USAGE_STATS is
 	not defined
 

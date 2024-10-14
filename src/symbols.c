@@ -3335,8 +3335,8 @@ do {									      \
         signal_ferror (Qdll_error, "Attempt to redefine %s",                  \
                        subr_name (subr));                                     \
 									      \
-      newsubr = (Lisp_Subr *) ALLOC_NORMAL_LISP_OBJECT (subr);                \
-      memcpy (newsubr, subr, sizeof (Lisp_Subr));                             \
+      newsubr = XSUBR (make_subr ());                                         \
+      copy_lisp_object (wrap_subr (newsubr), wrap_subr (subr));               \
       subr = newsubr;                                                         \
     }                                                                         \
 } while (0)

@@ -2134,7 +2134,27 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
 
   return fun;
 }
+
+/************************************************************************/
+/*		     Subr allocation                                    */
+/************************************************************************/
 
+DECLARE_FIXED_TYPE_ALLOC (subr, Lisp_Subr);
+#define MINIMUM_ALLOWED_FIXED_TYPE_CELLS_subr 0
+Lisp_Object
+make_subr (void)
+{
+  /* Subr is a very unusual type in that in the normal course of events it is
+     never allocated by the Lisp allocator; the structures for built-in subrs
+     live in the C data segment and are copied to the dump file by pdump. The
+     need to allocate a subr only arises with modules.*/
+  Lisp_Subr *ss;
+
+  ALLOC_FROB_BLOCK_LISP_OBJECT (subr, Lisp_Subr, ss, &lrecord_subr);
+  zero_nonsized_lisp_object (wrap_subr (ss));
+
+  return wrap_subr (ss);
+}
 
 /************************************************************************/
 /*			    Symbol allocation				*/
@@ -4667,6 +4687,15 @@ sweep_compiled_functions (void)
 }
 
 static void
+sweep_subrs (void)
+{
+#define UNMARK_subr(ptr) UNMARK_RECORD_HEADER (&((ptr)->lheader))
+#define ADDITIONAL_FREE_subr(ptr)
+
+  SWEEP_FIXED_TYPE_BLOCK (subr, Lisp_Subr);
+}
+
+static void
 sweep_floats (void)
 {
 #define UNMARK_float(ptr) UNMARK_RECORD_HEADER (&((ptr)->lheader))
@@ -5135,6 +5164,9 @@ gc_sweep_1 (void)
   /* Free all unmarked compiled-function objects */
   sweep_compiled_functions ();
 
+  /* Free all unmarked subrs, not that there are likely to be many. */
+  sweep_subrs ();
+
   /* Put all unmarked floats on free list */
   sweep_floats ();
 
@@ -5405,6 +5437,7 @@ common_init_alloc_early (void)
   init_cons_alloc ();
   init_symbol_alloc ();
   init_compiled_function_alloc ();
+  init_subr_alloc ();
   init_float_alloc ();
 #ifdef HAVE_BIGNUM
   init_bignum_alloc ();
