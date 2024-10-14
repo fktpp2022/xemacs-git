@@ -1,5 +1,12 @@
 2024-10-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* loadhist.el (unload-feature):
+	Do a better job within this function, check for defun as the first
+	element of a cons entry in load-history and #'fmakunbound
+	appropriately.
+
+2024-10-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* help.el (describe-function-1):
 	Simplify this function a little.
 	* loadhist.el (symbol-file):

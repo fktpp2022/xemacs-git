@@ -3489,11 +3489,16 @@ variables are true, messages are displayed.
 #ifdef LOADHIST
   DEFVAR_LISP ("load-history", &Vload_history /*
 Alist mapping source file names to symbols and features.
+
 Each alist element is a list that starts with a file name,
 except for one element (optional) that starts with nil and describes
 definitions evaluated from buffers not visiting files.
-The remaining elements of each list are symbols defined as functions
-or variables, and cons cells `(provide . FEATURE)' and `(require . FEATURE)'.
+
+The remaining elements of each list are symbols (documenting that the
+associated variable was loaded from the source file), and cons cells of the
+form `(provide . FEATURE)', `(require . FEATURE) and `(defun . SYMBOL)'.  This
+last documents that SYMBOL's function definition (whether that be a macro or a
+normal function) was loaded from the source file.
 */ );
   Vload_history = Qnil;
 

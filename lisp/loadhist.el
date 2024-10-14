@@ -195,21 +195,18 @@ is nil, raise an error."
        #'(lambda (x)
            (cond ((stringp x) nil)
                  ((consp x)
-                  ;; Remove any feature names that this file provided.
-                  (if (eq (car x) 'provide)
-                      (setq features (delete* (cdr x) features))
-                    (if (eq (car x) 'module)
-                        (setq unloading-module t))))
-                 ((and (boundp x)
-                       (fboundp x))
-                  (makunbound x)
-                  (fmakunbound x)
-                  (reset-aload x))
+                  (case (car x)
+                    (provide
+                     ;; Remove any feature names that this file provided.
+                     (setq features (delete* (cdr x) features)))
+                    (module
+                     (setq unloading-module t))
+                    (defun
+                     (when (fboundp (cdr x))
+                       (fmakunbound (cdr x))
+                       (reset-aload (cdr x))))))
                  ((boundp x)
-                  (makunbound x))
-                 ((fboundp x)
-                  (fmakunbound x)
-                  (reset-aload x))))
+                  (makunbound x))))
        (cdr flist)))
     ;; Delete the load-history element for this file.
     (let ((elt (assoc file load-history)))

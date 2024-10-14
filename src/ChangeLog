@@ -1,5 +1,16 @@
 2024-10-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* emodules.c (find_make_module):
+	Given we now unload modules, modules[i].soname can be NULL, check
+	for this before calling qxestrcmp().
+	* emodules.c (attempt_module_delete):
+	After successful unload, set the pointer to the unload function to
+	NULL.
+	* lread.c (vars_of_lread): Update the docstring for load-history
+	to document the (defun . SYMBOL) syntax.
+
+2024-10-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* alloc.c:
 	* alloc.c (make_subr): New.
 	* alloc.c (sweep_subrs): New.

@@ -219,7 +219,8 @@ find_make_module (Lisp_Object mod, const Ibyte *name, const Ibyte *ver,
     {
       if (fs == -1 && modules[i].used == 0)
         fs = i;
-      if (qxestrcmp (modules[i].soname, modstr) == 0)
+      if (modules[i].soname != NULL
+          && (qxestrcmp (modules[i].soname, modstr) == 0))
         {
           if (name && name[0] && qxestrcmp (modules[i].modname, name))
             continue;
@@ -264,6 +265,7 @@ attempt_module_delete (int mod)
       modules[mod].modtitle = 0;
       modules[mod].dlhandle = 0;
       modules[mod].used = 0;
+      modules[mod].unload = 0;
     }
   else if (modules[mod].used > 1)
     modules[mod].used = 1; /* We couldn't delete it - it stays */
