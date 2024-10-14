@@ -3292,64 +3292,53 @@ check_sane_subr (Lisp_Subr *subr, Lisp_Object sym)
 #endif
 
 #ifdef HAVE_SHLIB
-/*
- * If we are not in a pure undumped Emacs, we need to make a duplicate of
- * the subr. This is because the only time this function will be called
- * in a running Emacs is when a dynamically loaded module is adding a
- * subr, and we need to make sure that the subr is in allocated, Lisp-
- * accessible memory.  The address assigned to the static subr struct
- * in the shared object will be a trampoline address, so we need to create
- * a copy here to ensure that a real address is used.
- *
- * Once we have copied everything across, we re-use the original static
- * structure to store a pointer to the newly allocated one. This will be
- * used in emodules.c by emodules_doc_subr() to find a pointer to the
- * allocated object so that we can set its doc string properly.
- *
- * NOTE: We don't actually use the DOC pointer here any more, but we did
- * in an earlier implementation of module support. There is no harm in
- * setting it here in case we ever need it in future implementations.
- * subr->doc will point to the new subr structure that was allocated.
- * Code can then get this value from the static subr structure and use
- * it if required.
- *
- * FIXME: Should newsubr be staticpro()'ed? I don't think so but I need
- * a guru to check.
- */
+/* If we are not in a pure undumped Emacs, we need to make a duplicate of the
+   subr. This is because the only time this function will be called in a
+   running Emacs is when a dynamically loaded module is adding a subr, and we
+   need to make sure that the subr is in Lisp-allocated memory, so that it can
+   be garbage-collected in the normal way if the module is unloaded.
+
+   The newly-allocated subr will be reachable from the symbol-function slot of
+   its symbol name, so there is no need to staticpro() it. */
 #define check_module_subr(subr)						      \
 do {									      \
-  if (initialized) {							      \
-    Lisp_Subr *newsubr;							      \
-    Lisp_Object f;							      \
+  if (initialized)                                                            \
+    {                                                                         \
+      Lisp_Subr *newsubr;                                                     \
+      Lisp_Object f;                                                          \
+                                                                              \
+      if (subr->min_args < 0)                                                 \
+        {                                                                     \
+          signal_ferror (Qdll_error, "%s min_args (%hd) too small",           \
+                         subr_name (subr), subr->min_args);                   \
+        }                                                                     \
+      if (subr->min_args > SUBR_MAX_ARGS)                                     \
+        {                                                                     \
+          signal_ferror (Qdll_error, "%s min_args (%hd) too big (max = %d)",  \
+                         subr_name (subr), subr->min_args, SUBR_MAX_ARGS );   \
+        }                                                                     \
+      if (subr->max_args != MANY &&                                           \
+          subr->max_args != UNEVALLED)                                        \
+        {                                                                     \
+          /* Need to fix lisp.h and eval.c if SUBR_MAX_ARGS too small */      \
+          if (subr->max_args > SUBR_MAX_ARGS)                                 \
+            signal_ferror (Qdll_error,                                        \
+                           "%s max_args (%hd) too big (max = %d)",            \
+                           subr_name (subr), subr->max_args, SUBR_MAX_ARGS);  \
+          if (subr->min_args > subr->max_args)                                \
+            signal_ferror (Qdll_error, "%s min_args (%hd) > max_args (%hd)",  \
+			   subr_name (subr), subr->min_args, subr->max_args); \
+        }                                                                     \
+                                                                              \
+      f = XSYMBOL (sym)->function;                                            \
+      if (!UNBOUNDP (f) && (!CONSP (f) || !EQ (XCAR (f), Qautoload)))         \
+        signal_ferror (Qdll_error, "Attempt to redefine %s",                  \
+                       subr_name (subr));                                     \
 									      \
-    if (subr->min_args < 0)						      \
-      signal_ferror (Qdll_error, "%s min_args (%hd) too small",		      \
-		     subr_name (subr), subr->min_args);			      \
-    if (subr->min_args > SUBR_MAX_ARGS)					      \
-      signal_ferror (Qdll_error, "%s min_args (%hd) too big (max = %d)",      \
-		     subr_name (subr), subr->min_args, SUBR_MAX_ARGS);	      \
-									      \
-    if (subr->max_args != MANY &&					      \
-	subr->max_args != UNEVALLED)					      \
-      {									      \
-	/* Need to fix lisp.h and eval.c if SUBR_MAX_ARGS too small */	      \
-	if (subr->max_args > SUBR_MAX_ARGS)				      \
-	  signal_ferror (Qdll_error, "%s max_args (%hd) too big (max = %d)",  \
-			 subr_name (subr), subr->max_args, SUBR_MAX_ARGS);    \
-	if (subr->min_args > subr->max_args)				      \
-	  signal_ferror (Qdll_error, "%s min_args (%hd) > max_args (%hd)",    \
-			 subr_name (subr), subr->min_args, subr->max_args);   \
-      }									      \
-									      \
-    f = XSYMBOL (sym)->function;					      \
-    if (!UNBOUNDP (f) && (!CONSP (f) || !EQ (XCAR (f), Qautoload)))	      \
-      signal_ferror (Qdll_error, "Attempt to redefine %s", subr_name (subr)); \
-									      \
-    newsubr = xnew (Lisp_Subr);						      \
-    memcpy (newsubr, subr, sizeof (Lisp_Subr));				      \
-    subr->doc = (const CIbyte *)newsubr;				      \
-    subr = newsubr;							      \
-  }									      \
+      newsubr = (Lisp_Subr *) ALLOC_NORMAL_LISP_OBJECT (subr);                \
+      memcpy (newsubr, subr, sizeof (Lisp_Subr));                             \
+      subr = newsubr;                                                         \
+    }                                                                         \
 } while (0)
 #else /* ! HAVE_SHLIB */
 #define check_module_subr(subr)
@@ -3370,7 +3359,7 @@ defsubr (Lisp_Subr *subr)
 #ifdef HAVE_SHLIB
   /* If it is declared in a module, update the load history */
   if (initialized)
-    LOADHIST_ATTACH (sym);
+    LOADHIST_ATTACH (Fcons (Qdefun, sym));
 #endif
 }
 
@@ -3390,7 +3379,7 @@ defsubr_macro (Lisp_Subr *subr)
 #ifdef HAVE_SHLIB
   /* If it is declared in a module, update the load history */
   if (initialized)
-    LOADHIST_ATTACH (sym);
+    LOADHIST_ATTACH (Fcons (Qdefun, sym));
 #endif
 }
 

@@ -2913,11 +2913,11 @@ struct Lisp_Subr
   FROB_BLOCK_LISP_OBJECT_HEADER lheader;
   short min_args;
   short max_args;
-  /* #### We should make these const Ascbyte * or const Ibyte *, not const
-     char *. */
-  const char *prompt;
-  const char *doc;
-  const char *name;
+  const CIbyte *prompt;
+  /* Either a fixnum (an offset into DOC) or a Lisp string (for functions in
+     modules). */
+  Lisp_Object doc;
+  const CIbyte *name;
   lisp_fn_t subr_fn;
 };
 typedef struct Lisp_Subr Lisp_Subr;
@@ -3425,7 +3425,7 @@ Lisp_Object,Lisp_Object,Lisp_Object
     min_args,								\
     max_args,								\
     prompt,								\
-    0,	/* doc string */						\
+    Qnull_pointer,     	/* doc string */                                \
     lname,								\
     (lisp_fn_t) Fname							\
   };									\
@@ -3444,7 +3444,7 @@ Lisp_Object,Lisp_Object,Lisp_Object
     min_args,								\
     max_args,								\
     prompt,								\
-    0,	/* doc string */						\
+    Qnull_pointer,      /* doc string */                                \
     lname,								\
     (lisp_fn_t) Fname							\
   };									\

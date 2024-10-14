@@ -1,3 +1,49 @@
+2024-10-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lisp.h (struct Lisp_Subr):
+	Make the DOC field of this structure a Lisp_Object, simplifying
+	dump and GC and avoiding memory leaks with docstrings for subrs in
+	modules.
+	Declare PROMPT and NAME as const CIbyte *, not const char *.
+	* lisp.h (DEFUN):
+	* lisp.h (DEFUN_NORETURN):
+	Initialise DOC using Qnull_pointer, not 0.
+	* doc.c:
+	* doc.c (Fbuilt_in_symbol_file):
+	No need for quite as many casts within this file.
+	If XSUBR (fun)->doc is a Lisp string, retrieve its file name from
+	its plist, in anticipation of work in this direction for modules.
+	* doc.c (Fdocumentation):
+	* doc.c (Fsnarf_documentation):
+	* doc.c (verify_doc_mapper):
+	* doc.c (syms_of_doc):
+	Do a DEFSYMBOL for Qsymbol_file here.
+
+	* lrecord.h:
+	* lrecord.h (enum memory_description_type):
+	* dumper.c:
+	* dumper.c (pdump_register_sub):
+	* dumper.c (pdump_store_new_pointer_offsets):
+	* dumper.c (pdump_reloc_one):
+	* gc.c (lispdesc_one_description_line_size):
+	* gc.c (kkcc_marking):
+	Remove the XD_DOC_STRING annotation from the dumper and the
+	garbage collector, no longer needed.
+
+	* emodules.c (emodules_doc_subr):
+	Just build_ascstring () on DOC and set subr->doc to its result,
+	avoid leaking the docstring on unload of the module.
+	* eval.c:
+	Annotate the DOC field of Lisp_Subr as a Lisp object.
+	* symbols.c: (check_module_subr):
+	Copy the subr structure to Lisp-allocated memory. Don't put a
+	pointer to the new subr in the DOC field of the old subr, not
+	needed.
+	* symbols.c (defsubr):
+	* symbols.c (defsubr_macro):
+	Correct the load history entries for subrs loaded from modules in
+	passing.
+
 2024-10-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* bytecode.c:

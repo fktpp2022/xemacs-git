@@ -1444,7 +1444,8 @@ part of the documentation of internal subroutines, CL lambda forms, etc."
   (princ function)
   (princ "' is ")
   (let* ((def function)
-	 aliases file-name kbd-macro-p fndef macrop)
+         (file-name (symbol-file function 'defun))
+         aliases kbd-macro-p fndef macrop)
     (while (and (symbolp def) (fboundp def))
       (when (not (eq def function))
 	(setq aliases
@@ -1497,8 +1498,6 @@ part of the documentation of internal subroutines, CL lambda forms, etc."
             (t
              nil)))
     (princ "\n")
-    (or file-name
-	(setq file-name (symbol-file function 'defun)))
     (when file-name
 	(princ "  -- loaded from \"")
 	(if (not (bufferp standard-output))

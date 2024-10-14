@@ -36,7 +36,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "elhash.h"
 
 Lisp_Object Vinternal_doc_file_name;
-Lisp_Object Qdefvar, Qfunction_documentation;
+Lisp_Object Qdefvar, Qfunction_documentation, Qsymbol_file;
 
 /* Work out what source file a function or variable came from, taking the
    information from the documentation file. */
@@ -528,21 +528,23 @@ If TYPE is `defvar', then variable definitions are acceptable.
 
       if (SUBRP (fun))
 	{
-	  if (XSUBR (fun)->doc == 0)
-	    return Qnil;
-
-	  if ((EMACS_INT) XSUBR (fun)->doc >= 0)
-	    {
-	      weird_doc (symbol, "No file info available for function",
-			 GETTEXT("function"), 0);
-	      return Qnil;
-	    }
-	  else
-	    {
-	      filename = get_object_file_name 
-		(make_fixnum (- (EMACS_INT) XSUBR (fun)->doc));
-	      return filename;
-	    }
+          if (NILP (XSUBR (fun)->doc) || EQ (XSUBR (fun)->doc, Qnull_pointer))
+            {
+              return Qnil;
+            }
+          else if (FIXNUMP (XSUBR (fun)->doc))
+            {
+	      return get_object_file_name (XSUBR (fun)->doc);
+            }
+          else if (STRINGP (XSUBR (fun)->doc))
+            {
+              return Fget (XSUBR (fun)->doc, Qsymbol_file, Qnil);
+            }
+          else
+            {
+              structure_checking_assert (0);
+              return Qnil;
+            }
 	}
 
       if (COMPILED_FUNCTIONP (fun))
@@ -553,7 +555,7 @@ If TYPE is `defvar', then variable definitions are acceptable.
 	  if (! (f->flags.documentationp))
 	    return Qnil;
 	  tem = compiled_function_documentation (f);
-	  if (NATNUMP (tem))
+	  if (FIXNUMP (tem))
 	    {
               return get_object_file_name (tem);
             }
@@ -641,12 +643,13 @@ string is passed through `substitute-command-keys'.
 
   if (SUBRP (fun))
     {
-      if (XSUBR (fun)->doc == 0)
+      if (EQ (XSUBR (fun)->doc, Qnull_pointer) || NILP (XSUBR (fun)->doc))
 	return Qnil;
-      if ((EMACS_INT) XSUBR (fun)->doc >= 0)
-	doc = build_cistring (XSUBR (fun)->doc);
+      
+      if (FIXNUMP (XSUBR (fun)->doc))
+        doc = get_doc_string (XSUBR (fun)->doc);
       else
-        doc = get_doc_string (make_fixnum (- (EMACS_INT) XSUBR (fun)->doc));
+	doc = XSUBR (fun)->doc;
     }
   else if (COMPILED_FUNCTIONP (fun))
     {
@@ -853,13 +856,13 @@ when doc strings are referred to in the dumped Emacs.
 		  else if (SUBRP (fun))
 		    {
 		      /* Lisp_Subrs have a slot for it.  */
-		      if (XSUBR (fun)->doc)
+		      if (!EQ (XSUBR (fun)->doc, Qnull_pointer) &&
+                          !NILP (XSUBR (fun)->doc))
 			{
-			  weird_doc (sym, "duplicate",
-				     "subr", pos);
+			  weird_doc (sym, "duplicate", "subr", pos);
 			  goto weird;
 			}
-		      XSUBR (fun)->doc = (char *) (- XFIXNUM (offset));
+		      XSUBR (fun)->doc = offset;
 		    }
 		  else if (CONSP (fun))
 		    {
@@ -1003,7 +1006,7 @@ verify_doc_mapper (Lisp_Object UNUSED (key), Lisp_Object sym, void *arg)
 	fun = XCDR (fun);
 
       if (SUBRP (fun))
-	doc = (EMACS_INT) XSUBR (fun)->doc;
+	doc = XFIXNUM (XSUBR (fun)->doc);
       else if (SYMBOLP (fun))
 	doc = -1;
       else if (KEYMAPP (fun))
@@ -1397,6 +1400,7 @@ syms_of_doc (void)
 
   DEFSYMBOL (Qdefvar);
   DEFSYMBOL (Qfunction_documentation);
+  DEFSYMBOL (Qsymbol_file);
 }
 
 void

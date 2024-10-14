@@ -349,7 +349,7 @@ pdump_size_to_align (Bytecount size)
    and in a hash table.  There is a single hash table covering all
    registered blocks, but different lists for different kinds of blocks.
    There is one list for "opaque data" (stuff identified as
-   XD_OPAQUE_DATA_PTR, XD_ASCII_STRING, XD_DOC_STRING), one list for each
+   XD_OPAQUE_DATA_PTR, XD_ASCII_STRING), one list for each
    type of Lisp object, and one list for each different memory descriptor.
    This lets similar-sized and aligned objects be grouped together when
    they are written out, to save space.
@@ -655,14 +655,6 @@ pdump_register_sub (const void *data, const struct memory_description *desc)
 	  {
 	    const Ascbyte *str = * (const Ascbyte **) rdata;
 	    if (str)
-	      pdump_add_block (&pdump_opaque_data_list, str, strlen (str) + 1,
-			       1);
-	    break;
-	  }
-	case XD_DOC_STRING:
-	  {
-	    const Ascbyte *str = * (const Ascbyte **) rdata;
-	    if ((EMACS_INT) str > 0)
 	      pdump_add_block (&pdump_opaque_data_list, str, strlen (str) + 1,
 			       1);
 	    break;
@@ -984,14 +976,6 @@ pdump_store_new_pointer_offsets (int count, void *data, const void *orig_data,
 		  }
 		break;
 	      }
-	    case XD_DOC_STRING:
-	      {
-		EMACS_INT str = *(EMACS_INT *)rdata;
-		if (str > 0)
-		  * (EMACS_INT *) rdata =
-		    pdump_get_block ((void *)str)->save_offset;
-		break;
-	      }
 	    case XD_BLOCK_ARRAY:
 	      {
 		EMACS_INT num = lispdesc_indirect_count (desc1->data1, desc,
@@ -1131,13 +1115,6 @@ pdump_reloc_one (void *data, EMACS_INT delta,
 	      }
 	    break;
 	  }
-	case XD_DOC_STRING:
-	  {
-	    EMACS_INT str = *(EMACS_INT *)rdata;
-	    if (str > 0)
-	      *(EMACS_INT *)rdata = str + delta;
-	    break;
-	  }
 	case XD_BLOCK_ARRAY:
 	  {
 	    EMACS_INT num = lispdesc_indirect_count (desc1->data1, desc,
@@ -1247,8 +1224,8 @@ pdump_allocate_offset_cv_ptr (pdump_cv_ptr_info *elt)
       description -- i.e. all blocks with the same description will be
       placed together
 
-   -- then the "opaque" data objects declared as XD_OPAQUE_DATA_PTR,
-      XD_ASCII_STRING and XD_DOC_STRING.
+   -- then the "opaque" data objects declared as XD_OPAQUE_DATA_PTR and
+      XD_ASCII_STRING.
 
    The idea is to have as little blank space as possible in the laid-out
    data.

@@ -53,34 +53,46 @@ return faces created with `make-face' or `copy-face', just those created
 with `defface' and `custom-declare-face'."
   (interactive "SFind source file for symbol: ") ; XEmacs
   (let (built-in-file autoload-cons symbol-details)
-    (cond ((and (eq 'autoload
-                    (car-safe
-                     (setq autoload-cons
-                           (and (fboundp sym) (symbol-function sym)))))
-                (or (and (or (null type) (eq 'defvar type))
-                         (eq (fifth autoload-cons) 'keymap))
-                    (and (or (null type) (eq 'defun type))
-                         (memq (fifth autoload-cons) '(nil macro)))))
-           (return-from symbol-file (locate-library (second autoload-cons))))
-          ((eq 'defvar type)
-           ;; Load history entries corresponding to variables are just
-           ;; symbols.
-           (dolist (entry load-history)
-             (when (memq sym (cdr entry))
-               (return-from symbol-file (car entry)))))
-           ((not (null type))
-            ;; Non-variables have the type stored as the car of the entry. 
-            (dolist (entry load-history)
-              (when (and (setq symbol-details (rassq sym (cdr entry)))
-                         (eq type (car symbol-details)))
-                (return-from symbol-file (car entry)))))
-          (t
-           ;; If TYPE hasn't been specified, we need to check both for
-           ;; variables and other symbols.
-           (dolist (entry load-history)
-             (when (or (memq sym (cdr entry))
-                       (rassq sym (cdr entry)))
-               (return-from symbol-file (car entry))))))
+    (labels
+        ((handle-module-file (entry)
+           (when (equal (cadr entry) '(module))
+             (let* ((modules (list-modules))
+                    (elt (find (car entry) modules :test #'equal
+                               :key #'second)))
+               (if elt (return-from symbol-file (car elt)))))))
+      (cond ((and (eq 'autoload
+                      (car-safe
+                       (setq autoload-cons
+                             (and (fboundp sym) (symbol-function sym)))))
+                  (or (and (or (null type) (eq 'defvar type))
+                           (eq (fifth autoload-cons) 'keymap))
+                      (and (or (null type) (eq 'defun type))
+                           (memq (fifth autoload-cons) '(nil macro)))))
+             (return-from symbol-file (locate-library (second autoload-cons))))
+            ((eq 'defvar type)
+             ;; Load history entries corresponding to variables are just
+             ;; symbols.
+             (dolist (entry load-history)
+               (when (memq sym (cdr entry))
+                 (handle-module-file entry)
+                 (return-from symbol-file (car entry)))))
+            ((not (null type))
+             ;; Non-variables have the type stored as the car of the entry. 
+             (dolist (entry load-history)
+               (when (and (setq symbol-details (rassq sym (cdr entry)))
+                          (eq type (car symbol-details)))
+                 (if (equal (cadr entry) '(module))
+                     (handle-module-file entry))
+                 (return-from symbol-file (car entry)))))
+            (t
+             ;; If TYPE hasn't been specified, we need to check both for
+             ;; variables and other symbols.
+             (dolist (entry load-history)
+               (when (or (memq sym (cdr entry))
+                         (rassq sym (cdr entry)))
+                 (if (equal (cadr entry) '(module))
+                     (handle-module-file entry))
+                 (return-from symbol-file (car entry)))))))
     (when (setq built-in-file (built-in-symbol-file sym type))
       (if (equal built-in-file (file-truename built-in-file))
           ;; Probably a full path name:

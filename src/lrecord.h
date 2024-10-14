@@ -971,11 +971,6 @@ void tick_lrecord_stats (const struct lrecord_header *h,
 
   Pointer to a C string, purely ASCII.
 
-    XD_DOC_STRING
-
-  Pointer to a doc string (C string in pure ASCII if positive,
-  opaque value if negative)
-
     XD_INT_RESET
 
   An integer which will be reset to a given value in the dump file.
@@ -1032,7 +1027,6 @@ enum memory_description_type
   XD_UNION,
   XD_UNION_DYNAMIC_SIZE,
   XD_ASCII_STRING,
-  XD_DOC_STRING,
   XD_INT_RESET,
   XD_BYTECOUNT,
   XD_ELEMCOUNT,

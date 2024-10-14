@@ -543,14 +543,8 @@ emodules_doc_subr (const Ascbyte *symname, const Ascbyte *doc)
   if (SYMBOLP (sym) && SUBRP (XSYMBOL (sym)->function))
     {
       subr = XSUBR (XSYMBOL (sym)->function);
-      subr->doc = xstrdup (doc);
+      subr->doc = build_ascstring (doc);
     }
-  /*
-   * #### FIXME: I wish there was some way to avoid the xstrdup(). Is it
-   * possible to just set a pointer to the string, or somehow create a
-   * symbol whose value we can point to the constant string? Can someone
-   * look into this?
-   */
 }
 
 void
