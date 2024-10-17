@@ -2155,8 +2155,12 @@ dnl Inform compiler that certain flags are meant for the linker
 XE_PROTECT_LINKER_FLAGS(ld_switch_system)
 XE_PROTECT_LINKER_FLAGS(ld_switch_machine)
 XE_PROTECT_LINKER_FLAGS(ld_switch_site)
-XE_PROTECT_LINKER_FLAGS(LDFLAGS)
 XE_PROTECT_LINKER_FLAGS(ld_call_shared)
+dnl No longer do this for LDFLAGS, since that interacts poorly with link time
+dnl optimization. Unclear if XE_PROTECT_LINKER_FLAGS() is still needed in
+dnl general, it was introduced for GCC versions in the 90s and things have
+dnl changed, but unlikely to be an issue with the other flags. See
+dnl https://bugs.gentoo.org/940327 for a relevant bug report.
 
 dnl Add s&m-determined objects to link line
 test -n "$objects_machine" && XE_ADD_OBJS($objects_machine)
