@@ -1,3 +1,9 @@
+2024-10-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fontcolor.c (color_instantiate):
+	Don't attempt to pass a Lisp_Object as an int to
+	FACE_PROPERTY_INSTANCE_1, thank you Mats Lidell and the buildbot.
+
 2024-10-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Supply file-name, coding system information for symbols loaded

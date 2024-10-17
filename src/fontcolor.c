@@ -1442,7 +1442,7 @@ color_instantiate (Lisp_Object specifier, Lisp_Object UNUSED (matchspec),
 	  return (FACE_PROPERTY_INSTANCE_1
 		  (Fget_face (XVECTOR_DATA (instantiator)[0]),
 		   XVECTOR_DATA (instantiator)[1], domain, ERROR_ME,
-		   no_fallback, depth));
+		   !NILP (no_fallback), depth));
 
 	default:
 	  ABORT ();
