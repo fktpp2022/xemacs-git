@@ -1296,16 +1296,9 @@ TEMACS_LIBS=$(LASTFILE) $(OPT_LIBS) \
  oldnames.lib kernel32.lib user32.lib gdi32.lib comdlg32.lib advapi32.lib \
  shell32.lib wsock32.lib netapi32.lib winmm.lib winspool.lib ole32.lib \
  mpr.lib uuid.lib imm32.lib $(INTEL_LIBS) $(LIBC_LIB)
-# It is important to disable ASLR for pdump (supported in VS 2015 and
-# later).
-! if ($(MSC_VER) >= 1900)
-TEMACS_COMMON_ASLR_LFLAGS=-dynamicbase:no
-! else
-TEMACS_COMMON_ASLR_LFLAGS=
-! endif
 TEMACS_COMMON_LFLAGS=-nologo $(LIBRARIES) $(DEBUG_FLAGS_LINK) \
- -base:0x1000000 -stack:0x800000 $(TEMACS_ENTRYPOINT) -subsystem:windows \
- -heap:0x00100000 -nodefaultlib $(TEMACS_COMMON_ASLR_LFLAGS) $(PROFILE_FLAGS) setargv.obj
+ -stack:0x800000 $(TEMACS_ENTRYPOINT) -subsystem:windows  -nodefaultlib \
+ $(PROFILE_FLAGS) setargv.obj
 TEMACS_LFLAGS=$(TEMACS_COMMON_LFLAGS) \
  -pdb:$(BLDSRC)\temacs.pdb -map:$(BLDSRC)\temacs.map
 XEMACS_LFLAGS=$(TEMACS_COMMON_LFLAGS) \

@@ -1,3 +1,15 @@
+2024-11-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* xemacs.mak (TEMACS_COMMON_ASLR_LFLAGS): Removed.
+	* xemacs.mak (TEMACS_COMMON_LFLAGS):
+	Remove the flags to disable ASLR from this, now that pdump
+	supports it without problems. Tested on Windows 11 with Visual
+	Studio 2022 today.
+	Remove also flags dating from Windows 95 days that explicitly
+	specify the heap and base (the text segment) addresses, leave that
+	to the system. Keep the flag specifying an 8 megabyte stack, we're
+	quite heavy on alloca() in Windows terms.
+
 2023-10-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Some changes to get the latest beta building with Visual
