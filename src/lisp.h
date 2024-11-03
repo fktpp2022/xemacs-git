@@ -4293,9 +4293,7 @@ void free_misc_user_data (Lisp_Object);
 extern const struct sized_memory_description int_dynarr_description;
 extern const struct sized_memory_description unsigned_char_description;
 extern const struct sized_memory_description unsigned_char_dynarr_description;
-extern const struct sized_memory_description lisp_object_description;
 extern const struct sized_memory_description Lisp_Object_dynarr_description;
-extern const struct sized_memory_description Lisp_Object_pair_description;
 extern const struct sized_memory_description Lisp_Object_pair_dynarr_description;
 
 

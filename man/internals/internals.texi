@@ -22902,10 +22902,9 @@ We do not use the mark bit (which does not exist for generic memory blocks
 anyway); we use a big hash table instead.
 
 @item
-We do not use the mark function of lrecords but instead rely on the
-external descriptions.  This happens essentially because we need to
-follow pointers to generic memory blocks and opaque data in addition to
-Lisp_Object members.
+We use the external descriptions to follow pointers to generic memory
+blocks and opaque data in addition to Lisp_Object members, above and
+beyond what the garbage collector needs to do.
 @end enumerate
 
 This is done by @code{pdump_register_object()}, which handles

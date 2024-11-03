@@ -140,7 +140,7 @@ typedef enum lstream_buffering
 
 typedef struct lstream_implementation
 {
-  const char *name;
+  const Ascbyte *name;
   Bytecount size; /* Number of additional bytes to be
 		     allocated with this stream.  Access this
 		     data using Lstream_data(). */

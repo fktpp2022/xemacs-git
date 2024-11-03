@@ -157,6 +157,61 @@ static int load_byte_code_version;
 /* An array describing all known built-in structure types */
 static structure_type_dynarr *the_structure_type_dynarr;
 
+static const struct memory_description structure_keyword_entry_description_1[]
+=
+{
+  { XD_LISP_OBJECT, offsetof (struct structure_keyword_entry, keyword) },
+  { XD_FUNCTION_POINTER, offsetof (struct structure_keyword_entry,
+                                   validate) },
+  { XD_END }
+};
+
+static const struct sized_memory_description structure_keyword_entry_description =
+{
+  sizeof (struct structure_keyword_entry),
+  structure_keyword_entry_description_1
+};
+
+static const struct memory_description structure_keyword_entry_dynarr_description_1[] =
+{
+  XD_DYNARR_DESC (structure_keyword_entry_dynarr,
+		  &structure_keyword_entry_description),
+  { XD_END }
+};
+
+static const struct sized_memory_description structure_keyword_entry_dynarr_description = {
+  sizeof (structure_keyword_entry_dynarr),
+  structure_keyword_entry_dynarr_description_1
+};
+
+static const struct memory_description structure_type_description_1[]
+=
+{
+  { XD_LISP_OBJECT, offsetof (struct structure_type, type) },
+  { XD_BLOCK_PTR, portable_offsetof (struct structure_type, keywords), 1,
+    { &structure_keyword_entry_dynarr_description } },
+  { XD_FUNCTION_POINTER, offsetof (struct structure_type, validate) },
+  { XD_FUNCTION_POINTER, offsetof (struct structure_type, instantiate) },
+  { XD_END }
+};
+
+static const struct sized_memory_description structure_type_description =
+{
+  sizeof (struct structure_type),
+  structure_type_description_1
+};
+
+static const struct memory_description structure_type_dynarr_description_1[] =
+{
+  XD_DYNARR_DESC (structure_type_dynarr, &structure_type_description),
+  { XD_END }
+};
+
+static const struct sized_memory_description structure_type_dynarr_description = {
+  sizeof (structure_type_dynarr),
+  structure_type_dynarr_description_1
+};
+
 #if 0 /* FSF stuff */
 /* For use within read-from-string (this reader is non-reentrant!!)  */
 static int read_from_string_index;
@@ -3364,6 +3419,8 @@ void
 structure_type_create (void)
 {
   the_structure_type_dynarr = Dynarr_new (structure_type);
+  dump_add_root_block_ptr (&the_structure_type_dynarr,
+			   &structure_type_dynarr_description);
 }
 
 void

@@ -107,6 +107,35 @@ sizeof_lstream (Lisp_Object obj)
 
 static const struct memory_description lstream_implementation_description_1[]
 = {
+  { XD_ASCII_STRING, offsetof (struct lstream_implementation, name) },
+  { XD_DATA_POINTER, offsetof (struct lstream_implementation,
+                               extra_description) },
+  { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
+				   reader) },
+  { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
+				   writer) },
+  { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
+				   write_with_extents) },
+  { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
+				   was_blocked_p) },
+  { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
+				   rewinder) },
+  { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
+				   seekable_p) },
+  { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
+				   character_tell) },
+  { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
+				   flusher) },
+  { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
+				   closer) },
+  { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
+				   finalizer) },
+  { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
+				   tls_p) },
+  { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
+				   tls_negotiater) },
+  { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
+                                   extent_info) },
   { XD_END }
 };
 

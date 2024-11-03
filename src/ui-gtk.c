@@ -507,6 +507,8 @@ allocate_ffi_data (void)
 
 static const struct memory_description ffi_data_description [] = {
   { XD_LISP_OBJECT, offsetof (emacs_ffi_data, function_name) }, 
+  { XD_FUNCTION_POINTER, offsetof (emacs_ffi_data, function_ptr) },
+  { XD_FUNCTION_POINTER, offsetof (emacs_ffi_data, marshal) },
   { XD_END }
 };
 

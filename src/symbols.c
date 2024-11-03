@@ -661,7 +661,19 @@ Set SYMBOL's property list to NEWPLIST, and return NEWPLIST.
    to call follow_varalias_pointers to get the actual
    symbol to operate on.  */
 
+static const struct memory_description symbol_value_magic_description_1[] = {
+  { XD_DATA_POINTER, offsetof (struct symbol_value_magic, value) },
+  { XD_END }
+};
+
+static const struct sized_memory_description symbol_value_magic_description = {
+  sizeof (struct symbol_value_magic),
+  symbol_value_magic_description_1
+};
+
 static const struct memory_description symbol_value_buffer_local_description[] = {
+  { XD_BLOCK_ARRAY, offsetof (struct symbol_value_buffer_local, magic), 1,
+    { &symbol_value_magic_description } },
   { XD_LISP_OBJECT, offsetof (struct symbol_value_buffer_local, default_value) },
   { XD_LISP_OBJECT, offsetof (struct symbol_value_buffer_local, current_value) },
   { XD_LISP_OBJECT, offsetof (struct symbol_value_buffer_local, current_buffer) },
@@ -670,6 +682,8 @@ static const struct memory_description symbol_value_buffer_local_description[] =
 };
 
 static const struct memory_description symbol_value_lisp_magic_description[] = {
+  { XD_BLOCK_ARRAY, offsetof (struct symbol_value_lisp_magic, magic), 1,
+    { &symbol_value_magic_description } },
   { XD_LISP_OBJECT_ARRAY, offsetof (struct symbol_value_lisp_magic, handler), MAGIC_HANDLER_MAX },
   { XD_LISP_OBJECT_ARRAY, offsetof (struct symbol_value_lisp_magic, harg), MAGIC_HANDLER_MAX },
   { XD_LISP_OBJECT, offsetof (struct symbol_value_lisp_magic, shadowed) },
@@ -677,6 +691,8 @@ static const struct memory_description symbol_value_lisp_magic_description[] = {
 };
 
 static const struct memory_description symbol_value_varalias_description[] = {
+  { XD_BLOCK_ARRAY, offsetof (struct symbol_value_varalias, magic), 1,
+    { &symbol_value_magic_description } },
   { XD_LISP_OBJECT, offsetof (struct symbol_value_varalias, aliasee) },
   { XD_LISP_OBJECT, offsetof (struct symbol_value_varalias, shadowed) },
   { XD_END }
@@ -695,6 +711,9 @@ print_symbol_value_magic (Lisp_Object obj, Lisp_Object printcharfun,
 }
 
 static const struct memory_description symbol_value_forward_description[] = {
+  { XD_BLOCK_ARRAY, offsetof (struct symbol_value_forward, magic), 1,
+    { &symbol_value_magic_description } },
+  { XD_FUNCTION_POINTER, offsetof (struct symbol_value_forward, magicfun) },
   { XD_END }
 };
 
@@ -3539,3 +3558,4 @@ defvar_magic (const Ascbyte *symbol_name,
   XSYMBOL (sym)->value = wrap_pointer_1 (magic);
 }
 
+/* symbols.c ends here. */

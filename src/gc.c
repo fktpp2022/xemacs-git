@@ -258,7 +258,10 @@ lispdesc_one_description_line_size (void *rdata,
     case XD_LO_LINK:
       return sizeof (Lisp_Object);
     case XD_OPAQUE_PTR:
+    case XD_DATA_POINTER:
       return sizeof (void *);
+    case XD_FUNCTION_POINTER:
+      return sizeof (lisp_fn_t);
     case XD_BLOCK_PTR:
       {
 	EMACS_INT val = lispdesc_indirect_count (desc1->data1, desc, obj);
@@ -607,10 +610,6 @@ kkcc_bt_push (void *obj, const struct memory_description *desc,
 #define kkcc_bt_push(obj, desc)
 #endif /* not DEBUG_XEMACS */
 
-/* Object memory descriptions are in the lrecord_implementation structure.
-   But copying them to a parallel array is much more cache-friendly. */
-const struct memory_description *lrecord_memory_descriptions[countof (lrecord_implementations_table)];
-
 /* the initial stack size in kkcc_gc_stack_entries */
 #define KKCC_INIT_GC_STACK_SIZE 16384
 
@@ -885,6 +884,8 @@ kkcc_marking (void)
 	    case XD_LO_LINK:
 	    case XD_OPAQUE_PTR:
 	    case XD_OPAQUE_DATA_PTR:
+	    case XD_FUNCTION_POINTER:
+	    case XD_DATA_POINTER:
 	    case XD_ASCII_STRING:
 	      break;
 	    case XD_LISP_OBJECT: 

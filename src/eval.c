@@ -465,7 +465,10 @@ print_subr (Lisp_Object obj, Lisp_Object printcharfun, int UNUSED (escapeflag))
 }
 
 static const struct memory_description subr_description[] = {
+  { XD_ASCII_STRING, offsetof (Lisp_Subr, prompt) },
   { XD_LISP_OBJECT, offsetof (Lisp_Subr, doc) },
+  { XD_FUNCTION_POINTER, offsetof (Lisp_Subr, subr_fn) },
+  { XD_ASCII_STRING, offsetof (Lisp_Subr, name) },
   { XD_END }
 };
 

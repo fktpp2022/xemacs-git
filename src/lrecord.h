@@ -524,53 +524,73 @@ void tick_lrecord_stats (const struct lrecord_header *h,
 /* Data description stuff
 
    Data layout descriptions describe blocks of memory (in particular, Lisp
-   objects and other objects on the heap, and global objects with pointers
-   to such heap objects), including their size and a list of the elements
-   that need relocating, marking or other special handling.  They are
-   used in two places: by pdump, which dumps Lisp state at build time, and by
-   KKCC, the mark algorithm of the garbage collector. The two subsystems use
-   the descriptions in different ways, and as a result some of the descriptions
-   are appropriate only for one or the other, when it is known that only that
-   subsystem will use the description. (This is particularly the case with
-   objects that can't be dumped, because pdump needs more info than
-   KKCC.) However, properly written descriptions are appropriate for both,
-   and you should strive to write your descriptions that way, since the
-   dumpable status of an object may change and new uses for the
-   descriptions may be created. (An example that comes to mind is a
-   facility for determining the memory usage of XEmacs data structures --
-   like `buffer-memory-usage', `window-memory-usage', etc. but more
-   general.)
+   objects and C data segment or C heap objects generated at dump time with or
+   without pointers to Lisp objects), including their size and a list of the
+   elements that need relocating, marking or other special handling. They are
+   used in two places: by pdump, which dumps Lisp state (and a certain amount
+   of C state) at build time, and by KKCC, the mark algorithm of the garbage
+   collector.
+
+   The two subsystems use the descriptions in different ways, and as a result
+   some of the descriptions are appropriate only for one or the other, when it
+   is known that only that subsystem will use the description. (This is
+   particularly the case with objects that can't be dumped, because pdump
+   needs more info than KKCC.) However, properly written descriptions are
+   appropriate for both, and you should strive to write your descriptions that
+   way, since the dumpable status of an object may change and new uses for the
+   descriptions may be created.
 
    More specifically:
 
-   Pdump (the portable dumper) needs to write out all objects in heap
-   space, and later on (in another invocation of XEmacs) load them back
-   into the heap, relocating all pointers to the heap objects in the global
-   data space. ("Heap" means anything malloc()ed, including all Lisp
-   objects, and "global data" means anything declared globally or
-   `static'.) Pdump, then, needs to be told about the location of all
-   global pointers to heap objects, all the description of all such
-   objects, including their size and any pointers to other heap (aka
-   "relocatable") objects. (Pdump assumes that the heap may occur in
-   different places in different invocations -- therefore, it is not enough
-   simply to write out the entire heap and later reload it at the same
-   location -- but that global data is always in the same place, and hence
-   pointers to it do not need to be relocated.  This assumption holds true
-   in general for modern operating systems, but would be broken, for
-   example, in a system without virtual memory, or when dealing with shared
-   libraries.  Also, unlike unexec, the previous dumper, pdump does not usually
-   write out or restore objects in the global data space, and thus they need to
-   be initialized every time XEmacs is loaded.  This is the purpose of the
-   reinit_*() functions throughout XEmacs. [It's possible, however, to make
-   pdump restore global data.  This must be done, of course, for heap
-   pointers, but is also done for other values that are not easy to
-   recompute -- in particular, values established by the Lisp code loaded
-   at dump time.]) Note that the data type `Lisp_Object' is basically just
-   a relocatable pointer disguised as a long, and in general pdump treats
-   the Lisp_Object values and pointers to Lisp objects (e.g. Lisp_Object
-   vs. `struct frame *') identically. (NOTE: This equivalence depends
-   crucially on the current "minimal tagbits" implementation of Lisp_Object
-   pointers.)
+   Pdump (the portable dumper) needs to write out all reachable Lisp objects,
+   and a certain amount of non-Lisp data generated at runtime (called "root
+   blocks" and "root block pointers"), and later on (in another invocation of
+   XEmacs) load them back into memory, relocating all pointers to the Lisp
+   objects and to the root blocks to reflect their new memory addresses.
+
+   The initial allocation of the Lisp objects at dump time is on the C heap
+   (where memory allocated with malloc() comes from), and the reloaded Lisp
+   objects can live in an mmap()ed area (when the dump file is external to
+   XEmacs) or in the C data segment (when DUMP_IN_EXEC is defined). The
+   reloaded data-segment blocks are copied from the dump file back into the
+   data segment and relocated, and the reloaded Lisp objects remain where they
+   are but are relocated in-place.
+
+   Pdump, then, needs to be told about the location of all global pointers to
+   Lisp objects, all the descriptions of all such objects, including their
+   size and any pointers to other relocatable data (usually Lisp objects). The
+   heap usually occurs in different places in different invocations --
+   therefore, it is not enough simply to write out the entire heap and later
+   reload it at the same location.
+
+   A more recent wrinkle is that the C data segment and the C "text" segment
+   (executable machine code) are now usually intentionally loaded at different
+   addresses from invocation to invocation, and so pdump needs to be aware
+   explicitly of what data (often within the root blocks) reflects a pointer
+   into the C data segment, and what data (e.g. the SUBR_FN field of
+   Lisp_Subr) reflects a pointer to a C function.
+
+   (This relocation of the C data segment and the C text segment was
+   introduced to reduce the severity of buffer-overflow attacks. C convention
+   is that the address to return to when the current function has finished is
+   stored adjacent to user data in the stack, and C has no shortage of
+   functions that operate on stack data (usually buffers, C arrays) without
+   bounds-checking, so it was and remains possible to overwrite that address;
+   the relocation described, termed address space layout randomization, ASLR,
+   means it is more difficult for attackers to predict an address that would
+   be useful to them and write that to the stack as the return address.)
+
+   As mentioned above, it is possible and indeed necessary for pdump to
+   restore non-Lisp data, the "root blocks".  Many files through XEmacs ignore
+   this possiblity, and have reinit_vars_of*() functions that usually push
+   to post-dump what could have been done at dump time. Some of this is
+   because of bugs in pdump (if a pointer to a Lisp object is to be found
+   within a root block, that Lisp_Object should be protected from garbage
+   collection, but that is not currently automatically done), some of it
+   really isn't possible because of problems with external libraries, and some
+   it may reflect confusion from the situation before unexec (the pre-pdump
+   solution to this problem) was removed and this code was very heavily
+   #ifdef'd and difficult to maintain.
 
    Descriptions are used by pdump in three places: (a) descriptions of Lisp
    objects, referenced in the DEFINE_*LRECORD_*IMPLEMENTATION*() call; (b)
@@ -747,8 +767,9 @@ void tick_lrecord_stats (const struct lrecord_header *h,
    };
 
    Note that we don't need to declare all the elements in the structure, just
-   the ones that need to be relocated (Lisp_Objects and structures) or that
-   need to be referenced as counts for relocated objects.
+   the ones that need to be relocated (Lisp_Objects and structures), those
+   that need to be referenced as counts for relocated objects, or those that
+   point to the C data segment.
 
    A description map looks like this:
 
@@ -847,9 +868,8 @@ void tick_lrecord_stats (const struct lrecord_header *h,
 
     XD_BLOCK_PTR
 
-  Pointer to block of described memory. (This is misnamed: It is NOT
-  necessarily a pointer to a struct foo.) Parameters are number of
-  contiguous blocks and sized_memory_description.
+  Pointer to block of described memory. Parameters are number of contiguous
+  blocks and sized_memory_description.
 
     XD_BLOCK_ARRAY
 
@@ -926,6 +946,16 @@ void tick_lrecord_stats (const struct lrecord_header *h,
   associated with the currently specified (and unchangeable) union
   constant.
 
+    XD_FUNCTION_POINTER
+
+  Pointer to a C function, that will need to be relocated on systems with
+  address space layout randomization (ASLR).
+
+    XD_DATA_POINTER
+
+  Pointer into the C data segment, that will need to be relocated on systems
+  with address space layout randomization (ASLR).
+
     XD_ASCII_STRING
 
   Pointer to a C string, purely ASCII.
@@ -985,6 +1015,8 @@ enum memory_description_type
   XD_BLOCK_ARRAY,
   XD_UNION,
   XD_UNION_DYNAMIC_SIZE,
+  XD_FUNCTION_POINTER,
+  XD_DATA_POINTER,
   XD_ASCII_STRING,
   XD_INT_RESET,
   XD_BYTECOUNT,
@@ -1093,6 +1125,10 @@ struct opaque_convert_functions
      case. */
   void *(*deconvert) (void *object, void *data, Bytecount size);
 
+  /* There is no current (2024) need for memory_description or
+     sized_memory_descriptions for struct opaque_convert_functions, the one
+     use in number.c is constructed statically at compile time. This may
+     change. */
 };
 
 /* If MEMORY_USAGE_STATS is defined, initialize stats for TYPE. If it is not

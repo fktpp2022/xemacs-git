@@ -123,6 +123,8 @@ struct Hash_Table_Test
 static const struct memory_description hash_table_test_description[] =
   {
     { XD_LISP_OBJECT, offsetof (struct Hash_Table_Test, name) },
+    { XD_FUNCTION_POINTER, offsetof (struct Hash_Table_Test, equal_function) },
+    { XD_FUNCTION_POINTER, offsetof (struct Hash_Table_Test, hash_function) },
     { XD_LISP_OBJECT, offsetof (struct Hash_Table_Test, lisp_equal_function) },
     { XD_LISP_OBJECT, offsetof (struct Hash_Table_Test, lisp_hash_function) },
     { XD_END }

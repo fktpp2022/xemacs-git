@@ -3736,6 +3736,7 @@ static const struct memory_description glyph_description[] = {
   { XD_LISP_OBJECT, offsetof (Lisp_Glyph, baseline) },
   { XD_LISP_OBJECT, offsetof (Lisp_Glyph, face) },
   { XD_LISP_OBJECT, offsetof (Lisp_Glyph, plist) },
+  { XD_FUNCTION_POINTER, offsetof (Lisp_Glyph, after_change) },
   { XD_END }
 };
 
@@ -5245,6 +5246,7 @@ reinit_specifier_type_create_image (void)
 
 static const struct memory_description iike_description_1[] = {
   { XD_LISP_OBJECT, offsetof (ii_keyword_entry, keyword) },
+  { XD_FUNCTION_POINTER, offsetof (ii_keyword_entry, validate) },
   { XD_END }
 };
 
@@ -5293,6 +5295,30 @@ static const struct memory_description iim_description_1[] = {
     { &iiked_description } },
   { XD_BLOCK_PTR,  offsetof (struct image_instantiator_methods, consoles), 1,
     { &cted_description } },
+  { XD_FUNCTION_POINTER, offsetof (struct image_instantiator_methods,
+				   validate_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct image_instantiator_methods,
+				   normalize_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct image_instantiator_methods,
+				   governing_domain_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct image_instantiator_methods,
+				   possible_dest_types_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct image_instantiator_methods,
+				   instantiate_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct image_instantiator_methods,
+				   post_instantiate_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct image_instantiator_methods,
+				   property_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct image_instantiator_methods,
+				   set_property_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct image_instantiator_methods,
+				   update_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct image_instantiator_methods,
+				   redisplay_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct image_instantiator_methods,
+				   query_geometry_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct image_instantiator_methods,
+				   layout_method) },
   { XD_END }
 };
 

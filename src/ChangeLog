@@ -1,3 +1,142 @@
+2024-11-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Add thorough support for address space layout randomization, ASLR,
+	now needed for macOS with Apple Silicon. This gives a 1% slowdown
+	on my testing with ASLR turned off, which is acceptable.
+	Configure change to turn this on by default not yet done, for the
+	sake of better hg bisect behaviour.
+
+	* alloc.c:
+	* alloc.c (lrecord_implementation_description): New.
+	* alloc.c (lrecord_implementation_pointer_description): New.
+	We can no longer just dump the lrecord_implementation table as an
+	opaque block, given data segment pointers are relocated.
+	Ditto for the staticpros.
+	* alloc.c (c_data_pointer_description): New. Describe a pointer to
+	something in the C data segment.
+
+	* alloc.c (init_alloc_once_early):
+	Call dump_add_root_block() on lrecord_implementations_table,
+	lrecord_memory_descriptions in this file rather than in dumper.c.
+
+	* console.c:
+	Be much more thorough in console_methods_description_1, now
+	function pointers need to be relocated at pdump_load().
+	* console.c (console_type_create):
+	Remove the dead console type from the list in a way that is more
+	friendly to pdump.
+	* dumper.c:
+	* dumper.c (struct pdump_static_pointer):
+	Make the types of the fields of this struct more correct.
+
+	* dumper.c (struct pdump_header):
+	Add entries for the address of known C function and C data
+	segment values at dump-time, to allow proper calculation of
+	offsets at run time.
+
+	* dumper.c (pdump_register_sub):
+	Handle XD_FUNCTION_POINTER, XD_DATA_POINTER within this.
+	* dumper.c (pdump_store_new_pointer_offsets):
+	Update the opening comment to this fairly thoroughly.
+	Handle XD_FUNCTION_POINTER, XD_DATA_POINTER within this function.
+
+	* dumper.c (pdump_reloc_c_func): New. Given a pointer to a C
+	function stored at dump time, return a value reflecting the
+	run-time environment.
+	* dumper.c (pdump_reloc_c_data): New. Given a pointer to somewhere
+	in the C data segment stored at dump time, return a value
+	reflecting the run-time environment.
+	* dumper.c (pdump_reloc_lisp_object): New. Given a Lisp_Object
+	stored at dump time, if it is non-NULL pointer type, return a
+	value reflecting the run time environment.
+
+	* dumper.c (pdump_reloc_lisp_data): New. Given a non-Lisp_Object
+	heap value stored at dump time, if it is non-NULL pointer, return
+	a value reflecting the run time environment.
+
+	* dumper.c (pdump_load_lispdesc_indirect_description): New. Like
+	lispdesc_indirect_description, but handles pdump_load()-time
+	relocation of C data pointers.
+	* dumper.c (pdump_reloc_one): Update not to take DELTA explicitly,
+	now there are three that need to be observed.
+	* dumper.c (pdump_dump_root_block_ptrs): Update to reflect
+	corrected types of struct pdump_static_pointer.
+	* dumper.c (pdump):
+	Update some comments. Move dumping of
+	lrecord_implementations_table, lrecord_memory_descriptions to
+	alloc. Save the address of Fcons, lisp_object_description to the
+	header.
+	* dumper.c (pdump_load_finish):
+	Handle relocation of data segment pointers as well as heap
+	pointers in this function.
+	* elhash.c:
+	Document there are two C function pointers stored in
+	hash_table_test_description.
+	* eval.c:
+	Document there is a C function pointer and two ASCII strings
+	stored in Lisp_Subr.
+	* events.c:
+	Document there is a C function pointer stored in
+	struct Lisp_Magic_Eval_Data.
+	* file-coding.c:
+	Document there are two C function pointers stored in
+	struct detector.
+	Document there are many C function pointers stored in
+	struct coding_system_methods.
+	* gc.c:
+	* gc.c (lispdesc_one_description_line_size):
+	Handle XD_DATA_POINTER, XD_FUNCTION_POINTER here.
+	Move lrecord_memory_descriptions to alloc.c
+	* gc.c (kkcc_marking):
+	Handle XD_DATA_POINTER, XD_FUNCTION_POINTER here.
+	* glyphs.c:
+	Document there is a C function pointer stored in Lisp_Glyph.
+	Document there is a C function pointer stored in ii_keyword_entry.
+	Document there are many C function pointers stored in
+	struct image_instantiator_methods.
+	* lisp.h:
+	* lisp.h (struct Lisp_Subr):
+	Change the types of NAME, PROMPT to const Ascbyte *.
+	* lread.c:
+	* lread.c (structure_keyword_entry_description): New.
+	* lread.c (structure_keyword_entry_dynarr_description): New.
+	* lread.c (structure_type_description): New.
+	* lread.c (structure_type_dynarr_description): New.
+	Document the structure type infrastructure more thoroughly for the
+	dumper.
+	* lread.c (structure_type_create):
+	Dump the structure type properly.
+
+	* lrecord.h:
+	Extensive updates to a long comment in this header.
+	* lrecord.h (enum memory_description_type):
+	New entries, XD_FUNCTION_POINTER, XD_DATA_POINTER in this enum.
+	* lrecord.h (struct opaque_convert_functions):
+	Comment documenting lack of a need for memory descriptions for
+	this as of today.
+	* lstream.c (lstream_implementation_description_1):
+	Document there are many C function pointers, an ASCII string, and
+	a data segment pointer stored in struct lstream_implementation.
+
+	* lstream.h (lstream_implementation):
+	Update the type of NAME to be, explicitly, Ascbyte *.
+	* specifier.c (specifier_methods_description_1):
+	Document there are many C function pointers, an ASCII string, and
+	a data segment pointer stored in struct specifier_methods.
+	* specifier.c (specifier_caching_description_1):
+	Document that there are two C function pointers stored in struct
+	specifier_caching.
+	* symbols.c:
+	* symbols.c (symbol_value_magic_description): New. Document that a
+	symbol_value_magic stores a pointer to the data segment. 
+	* symbols.c (symbol_value_buffer_local_description_1): Use it.
+	* symbols.c (symbol_value_lisp_magic_description): Use it.
+	* symbols.c (symbol_value_varalias_description): Use it.
+	* symbols.c (symbol_value_forward_description): Use it.
+	* ui-gtk.c:
+	Document that there are two C function pointers in
+	emacs_ffi_data.
+
 2024-10-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* fontcolor.c (color_instantiate):

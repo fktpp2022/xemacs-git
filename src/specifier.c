@@ -392,7 +392,24 @@ sizeof_specifier (Lisp_Object obj)
 }
 
 static const struct memory_description specifier_methods_description_1[] = {
+  { XD_ASCII_STRING, offsetof (struct specifier_methods, name) },
   { XD_LISP_OBJECT, offsetof (struct specifier_methods, predicate_symbol) },
+  { XD_FUNCTION_POINTER, offsetof (struct specifier_methods, create_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct specifier_methods, equal_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct specifier_methods, hash_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct specifier_methods,
+				   validate_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct specifier_methods,
+				   copy_instantiator_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct specifier_methods,
+				   validate_matchspec_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct specifier_methods,
+				   instantiate_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct specifier_methods,
+				   going_to_add_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct specifier_methods,
+				   after_change_method) },
+  { XD_DATA_POINTER, offsetof (struct specifier_methods, extra_description) },
   { XD_END }
 };
 
@@ -402,6 +419,10 @@ const struct sized_memory_description specifier_methods_description = {
 };
 
 static const struct memory_description specifier_caching_description_1[] = {
+  { XD_FUNCTION_POINTER, offsetof (struct specifier_caching,
+                                   value_changed_in_window) },
+  { XD_FUNCTION_POINTER, offsetof (struct specifier_caching,
+                                   value_changed_in_frame) },
   { XD_END }
 };
 

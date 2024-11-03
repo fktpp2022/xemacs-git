@@ -157,6 +157,8 @@ static const struct sized_memory_description misc_user_data_description = {
 };
 
 static const struct memory_description magic_eval_data_description_1 [] = {
+  { XD_FUNCTION_POINTER, offsetof (struct Lisp_Magic_Eval_Data,
+				 internal_function) },
   { XD_LISP_OBJECT, offsetof (struct Lisp_Magic_Eval_Data, object) },
   { XD_END }
 };

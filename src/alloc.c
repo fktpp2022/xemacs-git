@@ -106,6 +106,75 @@ int lrecord_type_count = lrecord_type_last_built_in_type;
    UID is only 20 bits.) */
 int lrecord_uid_counter[countof (lrecord_implementations_table)];
 
+static const struct memory_description lrecord_implementation_description_1[] = {
+  { XD_ASCII_STRING, offsetof (struct lrecord_implementation, name) },
+
+  { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, printer) },
+  { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, finalizer) },
+  { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, equal) },
+  { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, hash) },
+
+  { XD_DATA_POINTER, offsetof (struct lrecord_implementation, description) },
+
+  { XD_BYTECOUNT, offsetof (struct lrecord_implementation, static_size) },
+
+  { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation,
+				 size_in_bytes_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation,
+				 print_preprocess) },
+  { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation,
+				 nsubst_structures_descend) },
+  { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, getprop) },
+  { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, putprop) },
+  { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, remprop) },
+  { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, plist) },
+  { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, setplist) },
+  { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, disksave) },
+  { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation,
+                                 memory_usage) },
+  { XD_END }
+};
+
+static const struct sized_memory_description lrecord_implementation_description = {
+  sizeof (struct lrecord_implementation),
+  lrecord_implementation_description_1
+};
+
+static const struct memory_description lrecord_implementation_pointer_description_1[] = {
+  { XD_BLOCK_PTR, 0, 1, { &lrecord_implementation_description } },
+  { XD_END }
+};
+
+static const struct sized_memory_description lrecord_implementation_pointer_description = {
+  sizeof (struct lrecord_implementation *),
+  lrecord_implementation_pointer_description_1
+};
+
+static const struct memory_description lrecord_implementations_table_description_1[] = {
+  { XD_BLOCK_ARRAY, 0, countof (lrecord_implementations_table),
+    { &lrecord_implementation_pointer_description } },
+  { XD_END }
+};
+
+/* Object memory descriptions are in the lrecord_implementation structure.
+   But copying them to a parallel array is much more cache-friendly. */
+const struct memory_description *lrecord_memory_descriptions[countof (lrecord_implementations_table)];
+
+static const struct memory_description c_data_pointer_description_1[] = {
+  { XD_DATA_POINTER, 0 },
+  { XD_END }
+};
+
+static const struct sized_memory_description c_data_pointer_description = {
+  sizeof (void *),
+  c_data_pointer_description_1
+};
+
+static const struct memory_description lrecord_memory_descriptions_description_1[] = {
+  { XD_BLOCK_ARRAY, 0, countof (lrecord_implementations_table),
+    { &c_data_pointer_description } },
+  { XD_END }
+};
 
 struct gcpro *gcprolist;
 
@@ -3534,14 +3603,16 @@ old_free_lcrecord (Lisp_Object rec)
 /*                           Staticpro, MCpro                           */
 /************************************************************************/
 
-/* We want the staticpro list relocated, but not the pointers found
-   therein, because they refer to locations in the global data segment, not
-   in the heap; we only dump heap objects.  Hence we use a trivial
-   description, as for pointerless objects. (Note that the data segment
-   objects, which are global variables like Qfoo or Vbar, themselves are
-   pointers to heap objects.  Each needs to be described to pdump as a
-   "root pointer"; this happens in the call to staticpro(). */
+/* We want those Lisp objects protected by staticpro() to be relocated on load
+   from the dump file. Data segment objects passed to staticpro(), which are
+   global variables like Qfoo or Vbar, are themselves pointers to heap objects,
+   and need to be annotated as such within the dump file, otherwise ASLR
+   interacts poorly with them.
+
+   Each needs to be described to pdump as a "root pointer"; this happens in the
+   call to staticpro(). */
 static const struct memory_description staticpro_description_1[] = {
+  { XD_DATA_POINTER, 0 },
   { XD_END }
 };
 
@@ -5649,6 +5720,13 @@ init_alloc_once_early (void)
   }
 
   dump_add_opaque (lrecord_uid_counter, sizeof (lrecord_uid_counter));
+
+  dump_add_root_block (lrecord_implementations_table,
+                       sizeof (lrecord_implementations_table),
+                       lrecord_implementations_table_description_1);
+  dump_add_root_block (lrecord_memory_descriptions,
+                       sizeof (lrecord_memory_descriptions),
+                       lrecord_memory_descriptions_description_1);
 
   staticpros = Dynarr_new2 (Lisp_Object_ptr_dynarr, Lisp_Object *);
   Dynarr_resize (staticpros, 1410); /* merely a small optimization */

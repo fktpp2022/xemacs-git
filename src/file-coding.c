@@ -183,6 +183,9 @@ static const struct memory_description struct_detector_description_1[]
 {
   { XD_BLOCK_PTR, portable_offsetof (struct detector, cats), 1,
     { &detector_category_dynarr_description } },
+  { XD_FUNCTION_POINTER, offsetof (struct detector, detect_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct detector,
+                                   finalize_detection_state_method) },
   { XD_END }
 };
 
@@ -332,6 +335,38 @@ static const struct memory_description coding_system_methods_description_1[]
     offsetof (struct coding_system_methods, type) },
   { XD_LISP_OBJECT,
     offsetof (struct coding_system_methods, predicate_symbol) },
+  { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
+				   init_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
+				   print_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
+				   canonicalize_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
+				   canonicalize_after_coding_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
+				   convert_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
+				   init_coding_stream_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
+				   rewind_coding_stream_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
+				   character_tell_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
+				   copy_coding_stream_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
+				   finalize_coding_stream_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
+				   finalize_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
+				   conversion_end_type_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
+				   putprop_method) },
+  { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
+				   getprop_method) },
+  { XD_DATA_POINTER, offsetof (struct coding_system_methods,
+                               extra_description) },
+  { XD_DATA_POINTER, offsetof (struct coding_system_methods,
+                               stream_description) },
   { XD_END }
 };
 
