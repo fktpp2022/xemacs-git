@@ -1,5 +1,10 @@
 2024-11-03  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* dumper.c (pdump_load_finish):
+	Correct a cast here, thank you Mats Lidell and the buildbot.
+
+2024-11-03  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Add thorough support for address space layout randomization, ASLR,
 	now needed for macOS with Apple Silicon. This gives a 1% slowdown
 	on my testing with ASLR turned off, which is acceptable.

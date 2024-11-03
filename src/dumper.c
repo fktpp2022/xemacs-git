@@ -1971,7 +1971,7 @@ pdump_load_finish (void)
 	{
 	  Rawbyte **reloc = (Rawbyte **) p;
           rt.desc
-            = (const memory_description *) pdump_reloc_c_data (rt.desc);
+            = (const struct memory_description *) pdump_reloc_c_data (rt.desc);
 	  for (i = 0; i < rt.count; i++)
 	    {
 	      reloc[i]
