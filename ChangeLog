@@ -1,3 +1,10 @@
+2024-11-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* configure.ac: Only attempt to turn off ASLR if the data and text
+	(C code) relative offsets are unpredictable from one invocation
+	to the next.
+	* configure: Regenerate.
+
 2024-10-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* configure.ac : No longer use XE_PROTECT_LINKER_FLAGS on LDFLAGS,

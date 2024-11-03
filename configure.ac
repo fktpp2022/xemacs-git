@@ -2738,26 +2738,51 @@ if test "$opsys" = "sol2"; then
   fi
 fi
 
-dnl Disable ASLR on systems where it breaks pdump. Use start_flags for this
-dnl rather than LDFLAGS, so it's only done for the XEmacs binary, and
-dnl gnuclient, movemail and so on get ASLR if the system defaults to it.
-AC_MSG_CHECKING([whether ASLR needs to be disabled])
+xemacs_unpredictable=no
+AC_MSG_CHECKING([predictable run-time C data segment relative offsets])
 AC_RUN_IFELSE([AC_LANG_SOURCE([#include <stdio.h>
-static int test_func(void) { return 42; }
-int main (int c, char **v) { if (--c) { printf ("%p", &test_func); } return 0; }])],
-[test_func_address=`./conftest t`
-if test "$test_func_address" = `./conftest t`    \
-        -a "$test_func_address" = `./conftest t` \
-        -a "$test_func_address" = `./conftest t` \
-        -a "$test_func_address" = `./conftest t`; then
-   dnl If your implementation of ASLR gives the same address for the same
-   dnl function five times in a row within the lifetime of the universe, 
-   dnl your implementation of ASLR needs significant revision.
-   dnl (Yes, yes, if someone sat down and ran ./configure a huge number of
-   dnl times on XEmacs code with the intention of making this give the wrong
-   dnl answer, they might manage it, but there is no payoff for doing this.)
-   AC_MSG_RESULT(no)
- else
+static struct { int foo; double bar; char baz; } quux = { 42, 3.13, 'z' };
+static struct { int foo; double bar; char baz; } hello = { 43, 4.13, 'Z' };
+int main (int c, char **v) {
+	 if (--c) { printf ("%zud", ((char *) (&quux) - (char *) (&hello))); }
+	 return 0;
+}])],
+[test_data_delta=`./conftest t`
+if test "$test_data_delta" = `./conftest t`    \
+        -a "$test_data_delta" = `./conftest t` \
+        -a "$test_data_delta" = `./conftest t` \
+        -a "$test_data_delta" = `./conftest t`; then
+    	AC_MSG_RESULT(yes)
+ else		
+	AC_MSG_RESULT(no)
+	xemacs_unpredictable=yes
+ fi],[:])
+
+if test "$xemacs_unpredictable" = no; then
+	AC_MSG_CHECKING([predictable run-time C text segment relative offsets])
+        AC_RUN_IFELSE([AC_LANG_SOURCE([#include <stdio.h>
+static double foo (int bar) { return (double) bar; };
+static int baz (double quux);
+int main (int c, char **v) {
+  if (--c) { printf ("%zud", ((char *) (&foo) - (char *) (&baz))); }
+  return 0;
+}
+static int baz (double quux) { return (int) quux; }
+])],
+	[test_func_delta=`./conftest t`
+if test "$test_func_delta" = `./conftest t`    \
+       	-a "$test_func_delta" = `./conftest t` \
+        -a "$test_func_delta" = `./conftest t` \
+        -a "$test_func_delta" = `./conftest t`; then
+    	AC_MSG_RESULT(yes)
+else
+	xemacs_unpredictable=yes
+    	AC_MSG_RESULT(no)
+fi], [:])
+fi
+
+if test "$xemacs_unpredictable" = yes; then
+   AC_MSG_CHECKING([how to disable ASLR given unpredictable run-time relative addresses])
    for try_no_pie in "-no-pie" "-Wl,-no_pie" "-nopie"; do
      xe_check_libs="${try_no_pie}"
      AC_RUN_IFELSE([AC_LANG_SOURCE([#include <stdio.h>
@@ -2783,7 +2808,7 @@ int main (int c, char **v) { if (--c) { printf ("%p", &test_func); } return 0; }
      AC_MSG_ERROR([don't know how to disable ASLR on $ac_cv_build])
    fi
    AC_MSG_RESULT([yes, disabling address space layout randomization with $no_pie, xemacs binary])
- fi])
+fi
 
 dnl ----------------------
 dnl Choose a window system
