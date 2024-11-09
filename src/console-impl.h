@@ -78,7 +78,7 @@ struct console_methods
   /* device methods */
   void (*init_device_method) (struct device *, Lisp_Object props);
   void (*finish_init_device_method) (struct device *, Lisp_Object props);
-  void (*delete_device_method) (struct device *);
+  void (*delete_device_method) (struct device *, Boolint from_io_error);
   void (*asynch_device_change_method) (void);
   Lisp_Object (*device_system_metrics_method) (struct device *,
                                                enum device_metrics);

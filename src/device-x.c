@@ -975,7 +975,7 @@ free_x_device_struct (struct device *d)
 }
 
 static void
-x_delete_device (struct device *d)
+x_delete_device (struct device *d, Boolint from_io_error)
 {
   Display *display;
 #ifdef FREE_CHECKING
@@ -985,8 +985,10 @@ x_delete_device (struct device *d)
 
   display = DEVICE_X_DISPLAY (d);
 
-  if (display)
+  if (display && !from_io_error)
     {
+      /* This leaks if we are called from an IO error, which is better than
+	 crashing. */
 #ifdef FREE_CHECKING
       checking_free = (__free_hook != 0);
 

@@ -389,7 +389,7 @@ free_gtk_device_struct (struct device *d)
 }
 
 static void
-gtk_delete_device (struct device *d)
+gtk_delete_device (struct device *d, Boolint UNUSED (from_io_error))
 {
 #ifdef FREE_CHECKING
   extern void (*__free_hook)();

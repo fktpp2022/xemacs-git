@@ -263,7 +263,7 @@ mswindows_finish_init_device (struct device *d,
 }
 
 static void
-mswindows_delete_device (struct device *d)
+mswindows_delete_device (struct device *d, Boolint UNUSED (from_io_error))
 {
 #ifdef HAVE_DRAGNDROP
   DdeNameService (mswindows_dde_mlid, 0L, 0L, DNS_UNREGISTER);
@@ -449,7 +449,8 @@ msprinter_init_device_internal (struct device *d, Lisp_Object printer_name)
 }
 
 static void
-msprinter_delete_device_internal (struct device *d)
+msprinter_delete_device_internal (struct device *d,
+				  Boolint UNUSED (from_io_error))
 {
   if (DEVICE_MSPRINTER_HPRINTER (d))
     ClosePrinter (DEVICE_MSPRINTER_HPRINTER (d));

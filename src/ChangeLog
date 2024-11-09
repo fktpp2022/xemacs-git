@@ -1,3 +1,25 @@
+2024-11-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Attempt to avoid XEmacs crashing if the X11 server has crashed and
+	we have other devices and consoles to fall back to. Thank you,
+	Henry S. Thompson.
+
+	* console-impl.h (struct console_methods):
+	New flag to delete_device_method, FROM_IO_ERROR.
+	* device-gtk.c (gtk_delete_device):
+	Update declaration, flag not used on GTK.
+	* device-msw.c (mswindows_delete_device):
+	Update declaration, flag not used on mswindows.
+	* device-msw.c (msprinter_delete_device_internal):
+	Update declaration, flag not used on msprinter.
+	* device-tty.c (tty_delete_device):
+	Update declaration, flag not used on tty.
+	* device-x.c (x_delete_device):
+	Use it, avoid crashing XEmacs within XFreeGC when the X11 device
+	has crashed
+	* device.c (delete_device_internal):
+	Pass FROM_IO_ERROR to the delete device methods.
+
 2024-11-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* dumper.c (pdump_load_finish):

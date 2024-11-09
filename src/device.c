@@ -875,7 +875,7 @@ delete_device_internal (struct device *d, Boolint force,
   if (EQ (device, Vdefault_device))
     Vdefault_device = find_other_device (device, 0);
 
-  MAYBE_DEVMETH (d, delete_device, (d));
+  MAYBE_DEVMETH (d, delete_device, (d, from_io_error));
 
   /* Now see if we're the default device, and thus need to be changed. */
   {

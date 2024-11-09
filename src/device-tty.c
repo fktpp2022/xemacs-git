@@ -114,7 +114,7 @@ free_tty_device_struct (struct device *d)
 }
 
 static void
-tty_delete_device (struct device *d)
+tty_delete_device (struct device *d, Boolint UNUSED (from_io_error))
 {
   free_tty_device_struct (d);
 }
