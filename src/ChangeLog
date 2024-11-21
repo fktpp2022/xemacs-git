@@ -97,6 +97,7 @@
 
 	* incbin.h: New. Import this header file, from Dave
 	Weiler. Public domain, no licence issues.
+	Include Dave's UNLICENSE.txt inline into the file.
 
 2024-11-09  Aidan Kehoe  <kehoea@parhasard.net>
 
