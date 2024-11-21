@@ -95,6 +95,12 @@
 
 2024-11-21  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* incbin.h:
+	Allow INCBIN_ALIGNMENT_INDEX to be specified explicitly and not
+	auto-detected in this header.
+
+2024-11-21  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* incbin.h: New. Import this header file, from Dave
 	Weiler. Public domain, no licence issues.
 	Include Dave's UNLICENSE.txt inline into the file.

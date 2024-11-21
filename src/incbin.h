@@ -35,6 +35,8 @@ For more information, please refer to <http://unlicense.org/>
 #ifndef INCBIN_HDR
 #define INCBIN_HDR
 #include <limits.h>
+
+#ifndef INCBIN_ALIGNMENT_INDEX
 #if   defined(__AVX512BW__) || \
       defined(__AVX512CD__) || \
       defined(__AVX512DQ__) || \
@@ -60,6 +62,7 @@ For more information, please refer to <http://unlicense.org/>
 # define INCBIN_ALIGNMENT_INDEX 3
 # else
 # define INCBIN_ALIGNMENT_INDEX 2
+#endif
 #endif
 
 /* Lookup table of (1 << n) where `n' is `INCBIN_ALIGNMENT_INDEX' */
