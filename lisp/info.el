@@ -1460,8 +1460,9 @@ The dir entry is delimited by the markers `START-INFO-DIR-ENTRY'
 and `END-INFO-DIR-ENTRY'."
   (save-excursion
     (set-buffer (get-buffer-create " *Info-tmp*"))
-    (when (file-readable-p file)
-      (insert-file-contents file nil nil nil t)
+    (when (file-readable-p (setq file (Info-suffixed-file file)))
+      (erase-buffer)
+      (Info-insert-file-contents file)
       (goto-char (point-min))
       (let (beg)
 	(unless (null (re-search-forward "^START-INFO-DIR-ENTRY" nil t))
