@@ -465,7 +465,7 @@ msprinter_delete_device_internal (struct device *d,
 static int
 msprinter_reinit_device (struct device *d, Lisp_Object devname)
 {
-  msprinter_delete_device_internal (d);
+  msprinter_delete_device_internal (d, 0);
   return msprinter_init_device_internal (d, devname);
 }
 
@@ -540,11 +540,11 @@ msprinter_init_device (struct device *d, Lisp_Object UNUSED (props))
 }
 
 static void
-msprinter_delete_device (struct device *d)
+msprinter_delete_device (struct device *d, Boolint from_io_error)
 {
   if (d->device_data)
     {
-      msprinter_delete_device_internal (d);
+      msprinter_delete_device_internal (d, from_io_error);
 
       /* Disassociate the selected devmode with the device */
       if (!NILP (DEVICE_MSPRINTER_DEVMODE (d)))

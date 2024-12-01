@@ -1,3 +1,12 @@
+2024-12-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Get the native mswindows and Cygwin builds working once more.
+	* device-msw.c (msprinter_reinit_device):
+	Pass the FROM_IO_ERROR argument to
+	msprinter_delete_device_internal().
+	* device-msw.c (msprinter_delete_device):
+	Take a FROM_IO_ERROR argument.
+
 2024-11-09  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Attempt to avoid XEmacs crashing if the X11 server has crashed and
