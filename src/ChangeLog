@@ -1,3 +1,10 @@
+2024-12-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* number.c (internal_coerce_number):
+	When converting a bignum to a fixnum, use bignum_to_emacs_int(),
+	rather than bignum_to_long(), which will lose (more) data on
+	certain platforms.
+
 2024-12-01  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Get the native mswindows and Cygwin builds working once more.

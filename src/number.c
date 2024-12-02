@@ -458,7 +458,7 @@ internal_coerce_number (Lisp_Object number, enum number_type type,
       switch (type)
 	{
 	case FIXNUM_T:
-	  return make_fixnum (bignum_to_long (XBIGNUM_DATA (number)));
+	  return make_fixnum (bignum_to_emacs_int (XBIGNUM_DATA (number)));
 	case BIGNUM_T:
 	  return number;
 	case RATIO_T:
@@ -492,7 +492,7 @@ internal_coerce_number (Lisp_Object number, enum number_type type,
 	case FIXNUM_T:
 	  bignum_div (scratch_bignum, XRATIO_NUMERATOR (number),
 		      XRATIO_DENOMINATOR (number));
-	  return make_fixnum (bignum_to_long (scratch_bignum));
+	  return make_fixnum (bignum_to_emacs_int (scratch_bignum));
 	case BIGNUM_T:
 	  bignum_div (scratch_bignum, XRATIO_NUMERATOR (number),
 		      XRATIO_DENOMINATOR (number));
