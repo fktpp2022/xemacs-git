@@ -2022,53 +2022,6 @@ pdump_load_finish (void)
 }
 
 #ifdef WIN32_NATIVE
-/* Free the mapped file if we decide we don't want it after all */
-static void
-pdump_file_unmap (void)
-{
-  UnmapViewOfFile (pdump_start);
-  CloseHandle (pdump_hFile);
-  CloseHandle (pdump_hMap);
-}
-
-static int
-pdump_file_get (const Wexttext *wpath)
-{
-  Extbyte *path = (Extbyte *) wpath;
-
-  pdump_hFile =
-    qxeCreateFile (path,
-		   GENERIC_READ + GENERIC_WRITE,  /* Required for copy on
-						     write */
-		   0,		            /* Not shared */
-		   NULL,		    /* Not inheritable */
-		   OPEN_EXISTING,
-		   FILE_ATTRIBUTE_NORMAL,
-		   NULL);		    /* No template file */
-  if (pdump_hFile == INVALID_HANDLE_VALUE)
-    return 0;
-
-  pdump_length = GetFileSize (pdump_hFile, NULL);
-  pdump_hMap =
-    qxeCreateFileMapping (pdump_hFile,
-			  NULL,           /* No security attributes */
-			  PAGE_WRITECOPY, /* Copy on write */
-			  0,              /* Max size, high half */
-			  0,              /* Max size, low half */
-			  NULL);          /* Unnamed */
-  if (pdump_hMap == INVALID_HANDLE_VALUE)
-    return 0;
-
-  pdump_start =
-    (Rawbyte *) MapViewOfFile (pdump_hMap,
-				   FILE_MAP_COPY, /* Copy on write */
-				   0,	      /* Start at zero */
-				   0,
-				   0);	      /* Map all of it */
-  pdump_free = pdump_file_unmap;
-  return 1;
-}
-
 /* pdump_resource_free is called (via the pdump_free pointer) to release
    any resources allocated by pdump_resource_get.  Since the Windows API
    specs specifically state that you don't need to (and shouldn't) free the
@@ -2196,8 +2149,6 @@ pdump_ram_try (void)
 }
 #endif
 
-#endif /* !WIN32_NATIVE */
-
 /* This used to be static, but there seems to be a bug in the GCC 4.1.2
    optimizer that clobbers exe_path. */
 int pdump_file_try (Wexttext*);
@@ -2247,30 +2198,26 @@ pdump_file_try (Wexttext *exe_path)
   return 0;
 }
 
+#endif /* !WIN32_NATIVE */
+
 #define DUMP_SLACK 100 /* Enough to include dump ID, version name, .DMP */
 
 int
 pdump_load (const Wexttext *argv0)
 {
 #ifdef WIN32_NATIVE
-  Wexttext *exe_path = NULL;
-  int bufsize = 4096;
-  int cchpathsize;
-
-  /* Copied from mswindows_get_module_file_name ().  Not clear if it's
-     kosher to malloc() yet. */
-  while (1)
+  if (pdump_resource_get ())
     {
-      exe_path = alloca_array (Wexttext, bufsize);
-      cchpathsize = qxeGetModuleFileName (NULL, (Extbyte *) exe_path,
-					  bufsize);
-      if (!cchpathsize)
-	goto fail;
-      if (cchpathsize + DUMP_SLACK <= bufsize)
-	break;
-      bufsize *= 2;
+      if (pdump_load_check ())
+	{
+	  pdump_load_finish ();
+	  in_pdump = 0;
+	  return 1;
+	}
+      pdump_free ();
     }
-
+  in_pdump = 0;
+  return 0;
 #else /* !WIN32_NATIVE */
   Wexttext *exe_path;
   Wexttext *w;
@@ -2354,7 +2301,6 @@ pdump_load (const Wexttext *argv0)
 	  path = p + 1;
 	}
     }
-#endif /* WIN32_NATIVE */
 
   if (pdump_file_try (exe_path))
     {
@@ -2363,23 +2309,10 @@ pdump_load (const Wexttext *argv0)
       return 1;
     }
 
-#ifdef WIN32_NATIVE
-  if (pdump_resource_get ())
-    {
-      if (pdump_load_check ())
-	{
-	  pdump_load_finish ();
-	  in_pdump = 0;
-	  return 1;
-	}
-      pdump_free ();
-    }
-
-fail:
-#endif
 
   in_pdump = 0;
   return 0;
+#endif /* WIN32_NATIVE */
 }
 
 /* dumper.c ends here */

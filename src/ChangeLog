@@ -1,3 +1,20 @@
+2024-12-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	On WIN32_NATIVE, given there is good native support for
+	including the dump file in the executable, remove the support for
+	loading it from an external file, avoid potential security issues
+	stemming from loading this file which stores function pointers and
+	thus should be regarded as having executable code.
+
+	* dumper.c: (pdump_file_unmap): Remove the WIN32_NATIVE
+	implementation of this.
+	* dumper.c: (pdump_file_get): Remove the WIN32_NATIVE
+	* dumper.c (pdump_resource_free):
+	* dumper.c (pdump_file_try): Move this inside the non WIN32_NATIVE
+	#ifdefs.
+	* dumper.c (pdump_load):
+	Adjust this function appropriately.
+
 2024-12-02  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* number.c (internal_coerce_number):
