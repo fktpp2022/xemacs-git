@@ -1,3 +1,11 @@
+2024-12-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* dired.c (file_name_completion):
+	* fileio.c (Ffile_name_directory):
+	* fileio.c (Fexpand_file_name):
+	Remove long-unused code that checked the FILE_SYSTEM_CASE
+	#define, superseded by #'file-system-ignore-case-p.
+
 2024-12-07  Aidan Kehoe  <kehoea@parhasard.net>
 
 	On WIN32_NATIVE, given there is good native support for

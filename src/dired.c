@@ -314,9 +314,6 @@ file_name_completion (Lisp_Object file, Lisp_Object directory, int all_flag,
   specbind (Qcompletion_ignore_case, Qt);
 #endif /* WIN32_NATIVE */
 
-#ifdef FILE_SYSTEM_CASE
-  file = FILE_SYSTEM_CASE (file);
-#endif
   directory = Fexpand_file_name (directory, Qnil);
   file_name_length = string_char_length (file);
 

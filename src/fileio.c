@@ -349,9 +349,6 @@ Given a Unix syntax file name, returns a string ending in slash.
   if (!NILP (handler))
     return call2_check_string_or_nil (handler, Qfile_name_directory, filename);
 
-#ifdef FILE_SYSTEM_CASE
-  filename = FILE_SYSTEM_CASE (filename);
-#endif
   beg = XSTRING_DATA (filename);
   /* XEmacs: no need to alloca-copy here */
   p = find_end_of_directory_component (beg, XSTRING_LENGTH (filename));
@@ -805,10 +802,6 @@ See also the function `substitute-in-file-name'.
       )
 
     default_directory = Fexpand_file_name (default_directory, Qnil);
-
-#ifdef FILE_SYSTEM_CASE
-  name = FILE_SYSTEM_CASE (name);
-#endif
 
  /* #### dmoore - this is ugly, clean this up.  Looks like nm pointing
     into name should be safe during all of this, though. */
