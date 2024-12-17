@@ -157,10 +157,6 @@ with the exception of `loadup.el'.")
 	      (external-debugging-output "Fatal error during load, aborting")
 	      (kill-emacs 1))
 	    (setq files (cdr files)))
-	  (unless (featurep 'toolbar)
-	    ;; else still define a few functions.
-	    (defun toolbar-button-p    (obj) "No toolbar support." nil)
-	    (defun toolbar-specifier-p (obj) "No toolbar support." nil))
 	  (fmakunbound 'pureload))
 
 	(packages-load-package-dumped-lisps late-package-load-path)

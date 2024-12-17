@@ -6,6 +6,13 @@
 	Remove long-unused code that checked the FILE_SYSTEM_CASE
 	#define, superseded by #'file-system-ignore-case-p.
 
+2024-12-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* toolbar.c: (Ftoolbar_button_p, Ftoolbar_specifier_p): Move these
+	to Lisp.
+	* toolbar.c (syms_of_toolbar):
+	Remove the DEFSUBR()s from here.
+
 2024-12-07  Aidan Kehoe  <kehoea@parhasard.net>
 
 	On WIN32_NATIVE, given there is good native support for

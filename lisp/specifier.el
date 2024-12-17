@@ -991,7 +991,17 @@ proceed as if LOCALE were a domain."
 			(instance-to-instantiator
 			 (specifier-instance specifier domain))))
 		   (list (cons nil inst))))))))))
+
+;; Move this function here from toolbar.c, given it is useful on non-toolbar
+;; builds.
+(defun toolbar-specifier-p (object)
+  "Return non-nil if OBJECT is a toolbar specifier.
 
+See `make-toolbar-specifier' for a description of possible toolbar
+instantiators."
+  (and (specifierp object) (eq 'toolbar (specifier-type object))))
+;;
+
 ;; Character 160 (octal 0240) displays incorrectly under some X
 ;; installations apparently due to a universally crocked font width
 ;; specification.  Display it as a space since that's what's expected. 

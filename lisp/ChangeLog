@@ -1,3 +1,12 @@
+2024-12-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* glyphs.el (toolbar-button-p): New. Moved here from toolbar.c,
+	keep it available on non-toolbar builds.
+	* specifier.el (toolbar-specifier-p): New. Moved here from
+	toolbar.c, keep it available on non-toolbar builds.
+	* loadup.el:
+	Remove stub implementations of these functions from loadup.el.
+
 2024-11-30  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* info.el (Info-extract-dir-entry-from):

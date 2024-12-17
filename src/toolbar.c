@@ -99,14 +99,6 @@ DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("toolbar-button", toolbar_button,
 				    toolbar_button_description,
 				    struct toolbar_button);
 
-DEFUN ("toolbar-button-p", Ftoolbar_button_p, 1, 1, 0, /*
-Return non-nil if OBJECT is a toolbar button.
-*/
-       (object))
-{
-  return TOOLBAR_BUTTONP (object) ? Qt : Qnil;
-}
-
 /* Only query functions are provided for toolbar buttons.  They are
    generated and updated from a toolbar description list.  Any
    directly made changes would be wiped out the first time the toolbar
@@ -1192,17 +1184,6 @@ toolbar_after_change (Lisp_Object UNUSED (specifier),
   MARK_TOOLBAR_CHANGED;
 }
 
-DEFUN ("toolbar-specifier-p", Ftoolbar_specifier_p, 1, 1, 0, /*
-Return non-nil if OBJECT is a toolbar specifier.
-
-See `make-toolbar-specifier' for a description of possible toolbar
-instantiators.
-*/
-       (object))
-{
-  return TOOLBAR_SPECIFIERP (object) ? Qt : Qnil;
-}
-
 
 /*
   Helper for invalidating the real specifier when default
@@ -1335,7 +1316,6 @@ syms_of_toolbar (void)
   DEFKEYWORD (Q_size);
 
   DEFSYMBOL (Qinit_toolbar_from_resources);
-  DEFSUBR (Ftoolbar_button_p);
   DEFSUBR (Ftoolbar_button_callback);
   DEFSUBR (Ftoolbar_button_help_string);
   DEFSUBR (Ftoolbar_button_enabled_p);
@@ -1343,7 +1323,6 @@ syms_of_toolbar (void)
   DEFSUBR (Fcheck_toolbar_button_syntax);
   DEFSUBR (Fset_default_toolbar_position);
   DEFSUBR (Fdefault_toolbar_position);
-  DEFSUBR (Ftoolbar_specifier_p);
 }
 
 void

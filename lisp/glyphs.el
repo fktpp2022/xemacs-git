@@ -1236,4 +1236,12 @@ If unspecified in a particular domain, `nontext-pointer-glyph' is used.")
                             'global 'tty))))
   (init-glyphs))
 
+
+;; This isn't a great place for this function. It used to be in toolbar.c with
+;; a dummy in loadup.el if no toolbars, and that's a worse place for it.
+
+(defun toolbar-button-p (object)
+  "Return non-nil if OBJECT is a toolbar button."
+  (eq (type-of object) 'toolbar-button))
+
 ;;; glyphs.el ends here.
