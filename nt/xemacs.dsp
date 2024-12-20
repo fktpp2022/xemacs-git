@@ -725,10 +725,6 @@ SOURCE=..\src\keymap.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\src\lastfile.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\src\libsst.c
 # End Source File
 # Begin Source File

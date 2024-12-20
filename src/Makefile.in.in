@@ -257,9 +257,6 @@ win32_objs=win32.o intl-win32.o intl-encap-win32.o \
  xemacs_res.o
 #endif
 
-## lastfile must follow all files whose initialized data areas should
-## be dumped as pure by dump-emacs.
-
 ## NOTE: The last line cannot be all macros, because make will barf
 ## if they all come out null.
 
@@ -338,7 +335,7 @@ X11_objs =  EmacsFrame.o EmacsShell.o TopLevelEmacsShell.o TransientEmacsShell.o
 
 ## define otherobjs as list of object files that make-docfile
 ## should not be told about.
-otherobjs = lastfile.o $(mallocobjs) $(rallocobjs) $(X11_objs) $(export_lib)
+otherobjs = $(mallocobjs) $(rallocobjs) $(X11_objs) $(export_lib)
 otherrtls = $(otherobjs:.o=.c.rtl)
 othersrcs = $(otherobjs:.o=.c)
 

@@ -1,5 +1,17 @@
 2024-12-20  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove lastfile.c, one more remnant of unexec, which makes revised
+	handling of DUMP_IN_EXEC more difficult.
+	* lastfile.c: Removed.
+	* Makefile.in.in: Remove mention of lastfile.o from this.
+	* depend (lastfile.o): Remove mention of lastfile.o from this.
+	* emacs.c:
+	Remove extern declaration of my_edata, no longer used.
+	* emacs.c (Fdump_emacs):
+	Ditto.
+
+2024-12-20  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* dumper.c:
 	#include "paths.h" here to allow a better-defined search for
 	installed dump files.

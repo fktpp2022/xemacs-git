@@ -3184,10 +3184,6 @@ main (int argc, Extbyte **argv, Extbyte **UNUSED (envp))
 /*                 dumping XEmacs (to a new EXE file)                   */
 /************************************************************************/
 
-#if defined (HAVE_MALLOC_WARNING)
-extern Rawbyte my_edata[];
-#endif
-
 extern void disable_free_hook (void);
 
 DEFUN ("dump-emacs", Fdump_emacs, 2, 2, 0, /*
@@ -3239,7 +3235,7 @@ and announce itself normally when it is run.
   /* Tell malloc where start of impure now is */
   /* Also arrange for warnings when nearly out of space.  */
 #ifdef HAVE_MALLOC_WARNING
-  memory_warnings (my_edata, malloc_warning);
+  memory_warnings (NULL, malloc_warning);
 #endif
 
   garbage_collect_1 ();

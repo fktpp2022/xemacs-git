@@ -178,7 +178,6 @@ intl-encap-win32.o: $(CONFIG_H) $(LISP_H) console-msw.h console.h intl-auto-enca
 intl-win32.o: $(CONFIG_H) $(LISP_H) charset.h coding-system-slots.h conslots.h console-impl.h console-msw-impl.h console-msw.h console.h elhash.h faces.h file-coding.h fontcolor-impl.h fontcolor-msw-impl.h fontcolor-msw.h fontcolor.h frame-impl.h frame.h frameslots.h intl-auto-encap-win32.h redisplay.h scrollbar.h specifier.h syswindows.h unicode.h window-impl.h window.h winslots.h
 intl.o: $(CONFIG_H) $(LISP_H)
 keymap.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h bytecode.h casetab.h charset.h chartab.h conslots.h console-impl.h console.h elhash.h events.h extents.h frame.h insdel.h keymap-buttons.h keymap-slots.h keymap.h lstream.h redisplay.h regex.h scrollbar.h specifier.h systime.h tls.h unicode.h window.h
-lastfile.o: $(CONFIG_H)
 libinterface.o: $(CONFIG_H) $(LISP_H) libinterface.h
 libsst.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h intl-auto-encap-win32.h libsst.h sound.h sysfile.h syswindows.h unicode.h
 line-number.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h extents-impl.h extents.h line-number.h lstream.h tls.h unicode.h

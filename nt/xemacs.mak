@@ -1026,25 +1026,6 @@ $(SRC)\paths.h:	$(NT)\paths.h
 	set COPYCMD=$(COPYCMD)
 	@$(COPY) $(NT)\paths.h $(SRC)
 
-
-###################### lastfile.lib
-
-!if !$(USE_SYSTEM_MALLOC)
-
-LASTFILE=$(OUTDIR)\lastfile.lib
-LASTFILE_SRC=$(SRC)
-LASTFILE_FLAGS=$(CFLAGS) $(CPLUSPLUS_COMPILE_FLAGS) $(INCLUDES) -Fo$@ -Fd$* -c
-LASTFILE_OBJS= \
-	$(OUTDIR)\lastfile.obj
-
-$(LASTFILE): $(XEMACS_INCLUDES) $(LASTFILE_OBJS)
-	link.exe -lib -nologo -out:$@ $(LASTFILE_OBJS)
-
-$(OUTDIR)\lastfile.obj:	$(LASTFILE_SRC)\lastfile.c
-	 $(CCV) $(LASTFILE_FLAGS) $(LASTFILE_SRC)\$(@B).c
-
-!endif
-
 ###################### lib-src programs
 
 LIB_SRC_DEFINES = -DHAVE_CONFIG_H -DWIN32_NATIVE $(PROGRAM_DEFINES)
@@ -1292,7 +1273,7 @@ XEmacs $(XEMACS_VERSION_STRING) $(xemacs_codename) $(xemacs_extra_name:"=) confi
 TEMACS_ENTRYPOINT=-entry:mainCRTStartup
 
 TEMACS_BROWSE=$(BLDSRC)\temacs.bsc
-TEMACS_LIBS=$(LASTFILE) $(OPT_LIBS) \
+TEMACS_LIBS=$(OPT_LIBS) \
  oldnames.lib kernel32.lib user32.lib gdi32.lib comdlg32.lib advapi32.lib \
  shell32.lib wsock32.lib netapi32.lib winmm.lib winspool.lib ole32.lib \
  mpr.lib uuid.lib imm32.lib $(INTEL_LIBS) $(LIBC_LIB)
@@ -1354,7 +1335,7 @@ $(OUTDIR)\temacs.res: $(NT)\xemacs.rc
 
 TEMACS_DUMP_DEP = $(OUTDIR)\dump-id.obj
 
-$(RAW_EXE): $(TEMACS_OBJS) $(LASTFILE) $(TEMACS_DUMP_DEP)
+$(RAW_EXE): $(TEMACS_OBJS) $(TEMACS_DUMP_DEP)
 # Command line too long for some Windows installation:
 #	@echo link $(TEMACS_LFLAGS) -out:$@ $(TEMACS_OBJS) $(TEMACS_DUMP_DEP) $(TEMACS_LIBS)
 	link.exe @<<

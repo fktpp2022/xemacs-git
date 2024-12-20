@@ -1,5 +1,18 @@
 2024-12-20  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* xemacs.dsp: Remove mention of lastfile.c from this file.
+	* xemacs.mak:
+	* xemacs.mak (LASTFILE): Removed.
+	* xemacs.mak (LASTFILE_SRC): Removed.
+	* xemacs.mak (LASTFILE_FLAGS): Removed.
+	* xemacs.mak (LASTFILE_OBJS): Removed.
+	* xemacs.mak (TEMACS_LIBS):
+	* xemacs.mak ($(RAW_EXE)):
+	Remove mention of lastfile.c from this file, not needed with
+	PDUMP.
+
+2024-12-20  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* config.inc.samp:
 	* config.inc.samp (USE_PORTABLE_DUMPER):
 	* config.inc.samp (USE_KKCC):
