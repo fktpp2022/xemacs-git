@@ -1,3 +1,11 @@
+2024-12-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (Authorship of XEmacs):
+	Correct some typos in this.
+	* internals/internals.texi (Reloading phase):
+	Update documentation of reloading to reflect things as they are
+	now.
+
 2024-11-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Object inventory):

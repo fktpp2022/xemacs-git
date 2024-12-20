@@ -420,7 +420,7 @@ install-arch-dep: mkdir
 	     do (cd $${subdir} && $(RM) -r RCS CVS SCCS \#* *~) ; done ; \
 	else true; fi
 #if !defined (DUMP_IN_EXEC) && !defined(WIN32_NATIVE)
-	${INSTALL_DATA} src/${PROGNAME}.dmp $(DESTDIR)${bindir}/${PROGNAME}-${version}-`src/${PROGNAME} -sd`.dmp
+	${INSTALL_DATA} src/${PROGNAME}.dmp ${archlibdir}/${PROGNAME}-`src/${PROGNAME} -sd`.dmp
 #endif
 #ifdef WIN32_NATIVE
 	${INSTALL_PROGRAM} src/${PROGNAME} $(DESTDIR)${bindir}/${PROGNAME}

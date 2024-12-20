@@ -1,3 +1,10 @@
+2024-12-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* setup-paths.el (paths-emacs-root-p):
+	Remove autodetection of exec-directory including /libexec/, since
+	we are tightening up allowed paths with the dump file
+	--without-dump-in-exec.
+
 2024-12-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* glyphs.el (toolbar-button-p): New. Moved here from toolbar.c,

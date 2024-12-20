@@ -4738,6 +4738,7 @@ Lisp_Object split_env_path (const CIbyte *evarname, const Ibyte *default_);
 
 /* Nonzero means don't do interactive redisplay and don't change tty modes */
 extern int noninteractive, noninteractive1;
+extern Boolint inhibit_configured_paths;
 extern int inhibit_non_essential_conversion_operations;
 extern int preparing_for_armageddon;
 extern Fixnum emacs_priority;

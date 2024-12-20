@@ -50,6 +50,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #endif
 #ifdef DUMP_IN_EXEC
 #include "dump-data.h"
+#else
+#include "paths.h"
 #endif
 #endif
 
@@ -328,8 +330,6 @@ static HANDLE pdump_hFile = INVALID_HANDLE_VALUE;
 /* Handle for the file mapping object for the dump file */
 static HANDLE pdump_hMap = INVALID_HANDLE_VALUE;
 #endif
-
-static void (*pdump_free) (void);
 
 static unsigned char pdump_align_table[] =
 {
@@ -2021,17 +2021,10 @@ pdump_load_finish (void)
   return 1;
 }
 
-#ifdef WIN32_NATIVE
-/* pdump_resource_free is called (via the pdump_free pointer) to release
-   any resources allocated by pdump_resource_get.  Since the Windows API
-   specs specifically state that you don't need to (and shouldn't) free the
-   resources allocated by FindResource, LoadResource, and LockResource this
-   routine does nothing.  */
-static void
-pdump_resource_free (void)
-{
-}
+
 
+#ifdef WIN32_NATIVE
+#define DUMP_IN_EXEC 1
 static int
 pdump_resource_get (void)
 {
@@ -2061,7 +2054,6 @@ pdump_resource_get (void)
   if (pdump_start == NULL)
     return 0;
 
-  pdump_free = pdump_resource_free;
   pdump_length = SizeofResource (NULL, hRes);
   if (pdump_length <= (Bytecount) sizeof (pdump_header))
     {
@@ -2069,15 +2061,55 @@ pdump_resource_get (void)
       return 0;
     }
 
-  if (!VirtualProtect(pdump_start, pdump_length, PAGE_READWRITE, &previous_protection))
+  if (!VirtualProtect(pdump_start, pdump_length, PAGE_READWRITE,
+		      &previous_protection))
     {
-	  return 0;
+      return 0;
     }
 
   return 1;
 }
 
-#else /* !WIN32_NATIVE */
+#elif defined (DUMP_IN_EXEC)
+
+static int
+pdump_resource_get (void)
+{
+  pdump_start = dumped_data_get ();
+  pdump_length = dumped_data_size ();
+
+  return 1;
+}
+
+#else
+
+#ifndef HAVE_SNPRINTF
+
+static int
+snprintf (char *output, size_t size, const char *format, ...)
+{
+  va_list vargs;
+  int retval;
+
+  va_start (vargs, format);
+  retval = vsprintf (output, format, vargs);
+  va_end (vargs);
+
+  /* Systems where this is needed are getting fewer and fewer in number. The
+     big one was mswindows, where this code is not relevant. */
+  if (retval >= (int) size)
+    {
+      fprintf (stderr, "%s",
+	       EMACS_PROGNAME ": buffer overflow finding dumpfile.\n");
+      exit (3);
+    }
+
+  return retval;
+}
+
+#endif
+
+static void (*pdump_free) (void);
 
 static void
 pdump_file_free (void)
@@ -2138,181 +2170,333 @@ pdump_file_get (const Wexttext *path)
   return 1;
 }
 
-#ifdef DUMP_IN_EXEC
+/* Longest relative path we will encounter. */
+#define DUMP_SLACK sizeof ("../lib/" EMACS_PROGNAME "-" EMACS_VERSION	\
+                           "/" EMACS_CONFIGURATION "/" EMACS_PROGNAME   \
+			   "-12345678.dmp")
 static int
-pdump_ram_try (void)
+pdump_file_try (const Extbyte *dirname, const Extbyte *basename)
 {
-  pdump_start = dumped_data_get ();
-  pdump_length = dumped_data_size ();
+  Bytecount dirlen = strlen (dirname);
+  Bytecount file_try_size = dirlen + strlen (basename) + DUMP_SLACK;
+  Extbyte *file_try_path = alloca_extbytes (file_try_size);
+  Bytecount res;
 
-  return pdump_load_check ();
-}
+#if defined (PATH_EXEC) || defined (PATH_PREFIX)
+  const Extbyte sepstring[] = { DEFAULT_DIRECTORY_SEP, '\0' };
 #endif
 
-/* This used to be static, but there seems to be a bug in the GCC 4.1.2
-   optimizer that clobbers exe_path. */
-int pdump_file_try (Wexttext*);
-int
-pdump_file_try (Wexttext *exe_path)
-{
-  Wexttext *w = exe_path + wext_strlen (exe_path);
+  /* We look for the dump file in a strictly limited number of places (one if
+     -no-configured-paths was supplied, two otherwise), with a view to avoiding
+     security holes (see LD_LIBRARY_PATH and the associated setuid restrictions
+     for motivation; ld.so(8) on Linux). The dump file contains function
+     pointers and executable Lisp code and should be regarded as equivalent to
+     executable code. We don't look for it at all if DUMP_IN_EXEC is defined.
 
-  /* We look for various names, including those with the version and dump ID,
-     those with just the dump ID, and those without either.  We first try
-     adding directly to the executable name, then lopping off any extension
-     (e.g. .exe) or version name in the executable (xemacs-21.5.18). */
-  do
+     If it is in the directory XEmacs was invocated from, we can be reasonably
+     sure that anyone who can write to it can write to XEmacs anyway.
+
+     If it is in the expected PATH_EXEC directory, that is a sign it was
+     intentionally installed there. Similar reasoning, if it is in the expected
+     subdirectory under PATH_PREFIX, or if it is an expected relative directory
+     to the XEmacs binary; but only check one of these options depending on
+     what was set at compile time. */
+
+  res = snprintf (file_try_path, file_try_size, "%s%s.dmp", dirname,
+		  basename);
+  if (res < file_try_size && pdump_file_get (file_try_path))
     {
-      wext_sprintf (w, WEXTSTRING ("-%s-%08x.dmp"), WEXTSTRING (EMACS_VERSION),
-		    dump_id);
-      if (pdump_file_get (exe_path))
-	{
-	  if (pdump_load_check ())
-	    return 1;
-	  pdump_free ();
-	}
-
-      wext_sprintf (w, WEXTSTRING ("-%08x.dmp"), dump_id);
-      if (pdump_file_get (exe_path))
-	{
-	  if (pdump_load_check ())
-	    return 1;
-	  pdump_free ();
-	}
-
-      wext_sprintf (w, WEXTSTRING (".dmp"));
-      if (pdump_file_get (exe_path))
-	{
-	  if (pdump_load_check ())
-	    return 1;
-	  pdump_free ();
-	}
-
-      do
-	w--;
-      /* !!#### See comment below about how this is unsafe. */
-      while (w > exe_path && !IS_DIRECTORY_SEP (*w) && (*w != '-') &&
-	     (*w != '.'));
+      if (pdump_load_check ())
+	return 1;
+      pdump_free ();
     }
-  while (w > exe_path && !IS_DIRECTORY_SEP (*w));
+
+  if (inhibit_configured_paths)
+    {
+      return 0;
+    }
+
+  /* This reflects --with-archlibdir on the configure line. */
+#ifdef PATH_EXEC
+  res = snprintf (file_try_path, file_try_size,
+		  "%s%s%s-%08x.dmp", 
+		  PATH_EXEC,
+		  IS_DIRECTORY_SEP (PATH_EXEC[sizeof (PATH_EXEC) - 2])
+		  ? "" : sepstring, basename, dump_id);
+
+  if (res < file_try_size && pdump_file_get (file_try_path))
+    {
+      if (pdump_load_check ())
+	return 1;
+      pdump_free ();
+    }
+  return 0;
+#elif defined (PATH_PREFIX)
+  res = snprintf (file_try_path, file_try_size,
+		  "%s%slib%c%s-%s%c%s%c%s-%08x.dmp",
+		  PATH_PREFIX, 
+		  IS_DIRECTORY_SEP (PATH_PREFIX[sizeof (PATH_PREFIX) - 2])
+		  ? "" : sepstring,
+		  DEFAULT_DIRECTORY_SEP,
+		  EMACS_PROGNAME, EMACS_VERSION, 
+		  DEFAULT_DIRECTORY_SEP,
+		  EMACS_CONFIGURATION,
+		  DEFAULT_DIRECTORY_SEP,
+		  EMACS_PROGNAME,
+		  dump_id);
+  if (res < file_try_size && pdump_file_get (file_try_path))
+    {
+      if (pdump_load_check ())
+	return 1;
+      pdump_free ();
+    }
+  return 0;
+#else
+  {
+    const Extbyte *p = dirname + strlen (dirname);
+    Extbyte *superdirname = alloca_extbytes (p - dirname + 1);
+    struct stat statbuf;
+
+    /* pdump_load() should have supplied us a filename with a trailing
+       directory separator. */
+    assert (IS_DIRECTORY_SEP (p[-1]));
+    p--;
+
+    do
+      {
+	while (p != dirname && !IS_DIRECTORY_SEP (p[-1]))
+	  p--;
+
+	if (p != dirname)
+	  {
+	    /* See pdump_load() for the reasoning with this. */
+	    memcpy (superdirname, dirname, p - dirname);
+	    superdirname[p - dirname] = '\0';
+	    if (stat (superdirname, &statbuf) == 0 && S_ISDIR (statbuf.st_mode))
+	      {
+		break;
+	      }
+	    else
+	      {
+		/* Not a directory; theoretically a shift_jis or GBK
+		   basename. Move back past the directory separator, try
+		   again. If we fail on repeat, give up. */
+		p--;
+	      }
+	  }
+      }
+    while (p != dirname);
+
+    if (p == dirname)
+      {
+	/* Cannot determine containing directory from path. May be something
+	   like ./; ./xemacs is a very reasonable way to invoke XEmacs.
+	   Attempt with ../, which is strictly non-portable, but the systems
+	   that don't support it are very thin on the ground as of 2024. */
+	res = snprintf (file_try_path, file_try_size,
+			"%s..%clib%c%s-%s%c%s%c%s-%08x.dmp",
+			dirname, DEFAULT_DIRECTORY_SEP, DEFAULT_DIRECTORY_SEP,
+			EMACS_PROGNAME, EMACS_VERSION, DEFAULT_DIRECTORY_SEP,
+			EMACS_CONFIGURATION, DEFAULT_DIRECTORY_SEP,
+			EMACS_PROGNAME, dump_id);
+      }
+    else
+      {
+	/* Use a full path name. */
+	res = snprintf (file_try_path, file_try_size,
+			"%slib%c%s-%s%c%s%c%s-%08x.dmp",
+			superdirname, DEFAULT_DIRECTORY_SEP,
+			EMACS_PROGNAME, EMACS_VERSION, DEFAULT_DIRECTORY_SEP,
+			EMACS_CONFIGURATION, DEFAULT_DIRECTORY_SEP,
+			EMACS_PROGNAME, dump_id);
+      }
+
+    if (res < file_try_size && pdump_file_get (file_try_path))
+      {
+	if (pdump_load_check ())
+	  return 1;
+	pdump_free ();
+      }
+  }
+#endif /* !PATH_PREFIX */
+
   return 0;
 }
 
-#endif /* !WIN32_NATIVE */
-
-#define DUMP_SLACK 100 /* Enough to include dump ID, version name, .DMP */
-
-int
-pdump_load (const Wexttext *argv0)
-{
-#ifdef WIN32_NATIVE
-  if (pdump_resource_get ())
-    {
-      if (pdump_load_check ())
-	{
-	  pdump_load_finish ();
-	  in_pdump = 0;
-	  return 1;
-	}
-      pdump_free ();
-    }
-  in_pdump = 0;
-  return 0;
-#else /* !WIN32_NATIVE */
-  Wexttext *exe_path;
-  Wexttext *w;
-  const Wexttext *dir, *p;
+#endif /* !DUMP_IN_EXEC */
 
 #ifdef DUMP_IN_EXEC
-  if (pdump_ram_try ())
+
+Boolint
+pdump_load (const Extbyte * UNUSED (argv0))
+{
+  if (pdump_resource_get () && pdump_load_check ())
     {
       pdump_load_finish ();
       in_pdump = 0;
       return 1;
     }
-#endif
 
+  in_pdump = 0;
+  return 0;
+}
+
+#else
+
+Boolint
+pdump_load (const Extbyte *argv0)
+{
+  const Extbyte *dir, *p, *path;
+  Extbyte *dirname;
+  Bytecount pathlen, baselen;
+  struct stat statbuf;
+
+  /* This function and pdump_file_try() deal with Extbytes; this is
+     appropriate, since we do not yet have any significant language processing
+     available. */
   in_pdump = 1;
   dir = argv0;
   if (dir[0] == '-')
     {
-      /* XEmacs as a login shell, oh goody! */
-      dir = wext_getenv ("SHELL"); /* not egetenv -- not yet initialized and we
-				      want external-format data */
-    }
-
-  p = dir + wext_strlen (dir);
-  /* !!#### This is bad as it may fail with certain non-ASCII-compatible
-     external formats such as JIS.  Maybe we should be using the mb*()
-     routines in libc?  But can we reliably trust them on all Unix
-     platforms?  (We can't convert to internal since those conversion
-     routines aren't yet initialized) */
-  while (p != dir && !IS_ANY_SEP (p[-1]))
-    p--;
-
-  if (p != dir)
-    {
-      /* invocation-name includes a directory component -- presumably it
-	 is relative to cwd, not $PATH. */
-      exe_path = alloca_array (Wexttext, 1 + wext_strlen (dir) + DUMP_SLACK);
-      wext_strcpy (exe_path, dir);
-    }
-  else
-    {
-      const Wexttext *path = wext_getenv ("PATH"); /* not egetenv --
-                                                      not yet init. */
-      const Wexttext *name = p;
-      exe_path = alloca_array (Wexttext,
-			       1 + DUMP_SLACK + max (wext_strlen (name),
-                                                     wext_strlen (path)));
-      for (;;)
+      /* XEmacs as a login shell. */
+      dir = getenv ("SHELL"); /* not egetenv -- not yet initialized and we
+				 want external-format data */
+      if (!dir)
 	{
-	  p = path;
-	  while (*p && *p != SEPCHAR)
-	    p++;
-	  if (p == path)
-	    {
-	      exe_path[0] = '.';
-	      w = exe_path + 1;
-	    }
-	  else
-	    {
-	      memcpy (exe_path, path, (p - path) * sizeof (Wexttext));
-	      w = exe_path + (p - path);
-	    }
-	  if (!IS_DIRECTORY_SEP (w[-1]))
-	    *w++ = '/';
-	  wext_strcpy (w, name);
-
-	  {
-	    struct stat statbuf;
-	    if (wext_access (exe_path, X_OK) == 0
-		&& wext_stat (exe_path, &statbuf) == 0
-		&& ! S_ISDIR (statbuf.st_mode))
-	      break;
-	  }
-
-	  if (!*p)
-	    {
-	      /* Oh well, let's have some kind of default */
-	      wext_sprintf (exe_path, "./%s", name);
-	      break;
-	    }
-	  path = p + 1;
+	  /* No, not actually a login shell, or possibly not a POSIX-oriented
+	     system. Use argv[0]. */
+	  dir = argv0;
 	}
     }
 
-  if (pdump_file_try (exe_path))
+  p = dir + strlen (dir);
+  do
     {
-      pdump_load_finish ();
+      while (p != dir && !IS_DIRECTORY_SEP (p[-1]))
+	p--;
+
+      if (p != dir)
+	{
+	  /* The POSIX rule is that if a directory separator is anywhere in
+	     ARGV0, then $PATH should not be examined, the file is either an
+	     absolute path or relative to the current directory.
+
+	     However, if LC_CTYPE reflects either shift_jis or GBK, a directory
+	     separator may be the second byte of a multibyte sequence and thus
+	     it is not to be interpreted as a directory separator. This is
+	     going to be rare on normal Unix-ish systems (the usual file system
+	     encoding for Japanese is EUC-JP, which does not have this issue),
+	     but theoretically might happen with other systems.
+
+	     Windows native, the main platform likely to use shift_jis, does
+	     not use this code, since it has good support for inline dump
+	     files; DUMP_IN_EXEC is preferred in general, given less likelihood
+	     of security holes, but on non-Windows platforms it is only
+	     reliable with binary patching of the built executable (our old
+	     approach, deprecated with codesigning) or with reproducible builds
+	     (common but not universal).
+
+	     We shouldn't setlocale() and use mbsrtowcs() and friends instead,
+	     this is too early and will throw off the locale handling later in
+	     startup.
+
+	     Instead, check if the presumptive directory exists and is a
+	     directory; if it doesn't, look for it in $PATH. */
+	  dirname = alloca_extbytes (p - dir + 1);
+
+	  memcpy (dirname, dir, p - dir);
+	  dirname[p - dir] = '\0';
+	  if (stat (dirname, &statbuf) == 0 && S_ISDIR (statbuf.st_mode))
+	    {
+	      if (pdump_file_try (dirname, p))
+		{
+		  pdump_load_finish ();
+		  in_pdump = 0;
+		  return 1;
+		}
+	      else
+		{
+		  in_pdump = 0;
+		  return 0;
+		}
+	    }
+	  else
+	    {
+	      /* Not a directory; theoretically a shift_jis or GBK
+		 basename. Move back past the directory separator, try
+		 again. If we fail on repeat, examine PATH. */
+	      p--;
+	    }
+	}
+    }
+  while (p != dir);
+      
+  path = getenv ("PATH"); /* not egetenv, not yet initialised. */
+
+  if (!path)
+    {
+      /* PATH not set, argv[0] does not include a slash, fail. */
       in_pdump = 0;
-      return 1;
+      return 0;
     }
 
+  pathlen = strlen (path);
+  baselen = strlen (p);
+  dirname = alloca_extbytes (pathlen + baselen + 2);
+
+  for (;;)
+    {
+      Bytecount dirlen;
+      const Extbyte *dirend = strchr (path, SEPCHAR);
+
+      if (dirend)
+	{
+	  if (dirend == path)
+	    {
+	      dirname[0] = '.';
+	      dirlen = 1;
+	    }
+	  else
+	    {
+	      dirlen = dirend - path;
+	      memcpy (dirname, path, dirlen);
+	    }
+	}
+      else
+	{
+	  dirlen = strlen (path);
+	  memcpy (dirname, path, dirlen);
+	}
+
+      if (!IS_DIRECTORY_SEP (dirname[dirlen - 1]))
+	{
+	  dirname[dirlen] = DEFAULT_DIRECTORY_SEP;
+	  dirlen++;
+	}
+
+      memcpy (dirname + dirlen, p, baselen);
+      dirname[dirlen + baselen] = '\0';
+
+      /* Check the *filename* for exec access here. */
+      if (access (dirname, X_OK) == 0 && stat (dirname, &statbuf) == 0
+	  && !S_ISDIR (statbuf.st_mode))
+	{
+	  dirname[dirlen] = '\0';
+	  if (pdump_file_try (dirname, p))
+	    {
+	      pdump_load_finish ();
+	      in_pdump = 0;
+	      return 1;
+	    }
+
+	  /* Failed with this candidate, keep trying the other directories. */
+	}
+    }
 
   in_pdump = 0;
   return 0;
-#endif /* WIN32_NATIVE */
 }
+
+#endif /* !DUMP_IN_EXEC */
 
 /* dumper.c ends here */

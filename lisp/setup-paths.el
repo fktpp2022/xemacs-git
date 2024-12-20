@@ -77,9 +77,6 @@
    (paths-file-readable-directory-p
     (paths-construct-path (list directory "lib"
                                 (construct-emacs-version-name))))
-   (paths-file-readable-directory-p
-    (paths-construct-path (list directory "libexec"
-                                (construct-emacs-version-name))))
    ;; in-place or windows-nt.  windows-nt equivalent of --srcdir is
    ;; BUILD_DIR in config.inc, and has no lisp/ or etc/ since symlinks
    ;; don't exist.  instead, xemacs.mak points configure-lisp-directory and

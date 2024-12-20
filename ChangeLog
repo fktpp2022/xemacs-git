@@ -1,6 +1,13 @@
 2024-12-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* Makefile.in.in:
+	Install the dump file in ${archilibdir}, not in the same directory
+	as the XEmacs executable, for better conformance with usual Unix
+	practice.
+
+2024-12-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* Makefile.in.in:
 	Install the dump file properly if non-DUMP_IN_EXEC. No longer
 	check the PDUMP define. This is no longer available since it is
 	impossible to turn it off, unexec has been removed.

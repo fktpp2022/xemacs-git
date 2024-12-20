@@ -624,14 +624,10 @@ int nodumpfile;
 /* Nonzero means print debug information about path searching */
 int debug_paths;
 
-/* Nonzero means that the -compiling command line flag has been specified.
-   This doesn't have a Lisp variable, and therefore isn't affected by the
-   dumper. */
-static int inhibit_configured_paths = 0;
-
-/* Save argv and argc.  */
-static Wexttext **initial_argv;	/* #### currently unused */
-static int initial_argc;	/* #### currently unused */
+/* Nonzero means that the -no-configured-paths command line flag has been
+   specified. This doesn't have a Lisp variable, and therefore isn't affected
+   by the dumper. */
+Boolint inhibit_configured_paths = 0;
 
 static void sort_args (int argc, Wexttext **argv);
 
@@ -753,9 +749,6 @@ free_argc_argv (Wexttext **argv)
 static void
 init_cmdargs (int argc, Wexttext **argv, int skip_args)
 {
-  initial_argv = argv;
-  initial_argc = argc;
-
   Vcommand_line_args = make_arg_list_1 (argc, argv, skip_args);
 }
 
@@ -1342,7 +1335,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       int inhibit_site_lisp_save      = inhibit_site_lisp;
       int inhibit_site_modules_save   = inhibit_site_modules;
 
-      initialized = pdump_load (argv[0]);
+      initialized = pdump_load ((const Extbyte *) argv[0]);
 
       /* Now unstomp everything */
       noninteractive1        = noninteractive;

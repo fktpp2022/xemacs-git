@@ -27,7 +27,7 @@ BEGIN_C_DECLS
 
 void pdump_objects_unmark (void);
 void pdump (void);
-int pdump_load (const Wexttext *argv0);
+Boolint pdump_load (const Extbyte *argv0);
 void pdump_backtrace (void);
 extern unsigned int dump_id;
 extern Rawbyte *pdump_start, *pdump_end;

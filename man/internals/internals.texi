@@ -1211,9 +1211,9 @@ be the most primitive types.  Martin Buchholz has recently (February
 
 Olivier Galibert, mid-1999 to 2000, implemented the portable
 dumper.  This writes out the state of the Lisp object heap to
-disk file in a real locatable fashion so that it can later be
+disk file in a relocatable fashion so that it can later be
 read in at any memory location.  This work entails a number of
-changes in Alec.C.  For example, pure space was removed and
+changes in alloc.c.  For example, pure space was removed and
 structures were created to define the types of all the elements
 contained in the various lisp object structures and associated
 structures.
@@ -23072,15 +23072,39 @@ This is the end of the dumping part.
 @subsection File loading
 @cindex dumping, file loading
 
-The file is mmap'ed in memory (which ensures a PAGESIZE alignment, at
-least 4096), or if mmap is unavailable or fails, a 256-bytes aligned
-malloc is done and the file is loaded.
+The dump file contains C function pointers and Lisp code and should be
+regarded as executable C code. As a result, the preferred place for the
+dump file is within the XEmacs executable, since this avoids security
+worries at startup (see LD_LIBRARY_PATH and its setuid restrictions for
+motivation; ld.so(8) on Linux); this also has the benefit that no path
+searching is needed very early before we have any significant natural
+language processing available.
+
+This easily achieved on MS Windows by storing it in a ``resource'' at
+compile time and loading that at runtime.
+
+On other platforms this is more difficult. Currently if the DUMP_IN_EXEC
+configure option is set, the default, we binary-patch the compiled
+XEmacs executable, see ``lib-src/insert-data-in-exec.c''. This interacts
+poorly with signed executables, as is standard with macOS and the ARM
+architecture.
+
+If DUMP_IN_EXEC is turned off, the file is found either in the same
+directory in which the XEmacs executable was found (for in-place
+execution) or in ``exec-directory'', usually under ../lib under the same
+prefix. It is then mmap'ed in memory (which ensures a PAGESIZE
+alignment, at least 4096), or if mmap is unavailable or fails, a
+256-bytes aligned malloc is done and the file is loaded.
 
 Some variables are reinitialized from the values found in the header.
 
 The difference between the actual loading address and the reloc_address
-is computed and will be used for all the relocations.
-
+is computed and will be used for relocating the Lisp data. The
+difference between the address of Fcons at dump time and at load time is
+computed and is used for relocating C function pointers, and the
+difference between the address of lisp_object_description at dump time
+and at load time is computed and used for relocating C data pointers,
+necessary for ASLR support.
 
 @subsection Putting back the pdump_opaques
 @cindex dumping, putting back the pdump_opaques

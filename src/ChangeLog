@@ -1,5 +1,47 @@
 2024-12-20  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* dumper.c:
+	#include "paths.h" here to allow a better-defined search for
+	installed dump files.
+	* dumper.c (pdump_align_table):
+	Move the pdump_free function pointer inside the non-DUMP_IN_EXEC
+	code.
+	* dumper.c (DUMP_IN_EXEC): #define this to 1 on WIN32_NATIVE.
+	* dumper.c (pdump_resource_get): New. Rename pdump_ram_try() to
+	this on non-WIN32 builds for symmetry.
+	* dumper.c (snprintf): Provide a very limited snprintf in this
+	file for systems where it is not available.
+	* dumper.c (pdump_file_try): Revise this to take a directory name
+	and a file name, avoiding issues with shift_jis and multibyte
+	characters that may have ASCII slash in them.
+	Check in only two places for the dump file, either the directory
+	the XEmacs executable was loaded from, or that configured at
+	compile time (depending on PATH_EXEC, or PATH_PREFIX, or
+	neither (just relative to where the XEmacs binary was found).
+	* dumper.c (pdump_load):
+	Make separate implementations of this for DUMP_IN_EXEC
+	vs. non-DUMP_IN_EXEC.
+	Have this take its argument as an Extbyte *, appropriate given no
+	localisation available at this point of startup.
+	Return a Boolint, a better type.
+	For the non-DUMP_IN_EXEC implementation, handle the ambiguity of
+	multibyte file names better by checking whether directories exist
+	when there is a slash in argv[0].
+	* dumper.h:
+	Update the return type and argument type of pdump_load().
+	* emacs.c:
+	* emacs.c (Boolint inhibit_configured_paths): Make this available
+	to other files, for the sake of pdump_load().
+	* emacs.c (init_cmdargs):
+	Remove the code to save initial_argc, initial_argv in passing, not
+	used.
+	* emacs.c (main_1):
+	Cast the argument to pdump_load() as appropriate.
+	* lisp.h:
+	Declare inhibit_configured_paths here.
+
+2024-12-20  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* s/windowsnt.h:
 	Remove further unexec-specific code from this file.
 
