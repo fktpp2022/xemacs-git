@@ -128,15 +128,6 @@ typedef int pid_t;
 #define HAVE_LOCKING
 #define MAIL_USE_LOCKING
 
-/* See unexnt.c */
-#if (_MSC_VER >= 1100) && !defined(PDUMP)
-#define DUMP_SEPARATE_SECTION
-#endif
-#ifdef DUMP_SEPARATE_SECTION
-#pragma data_seg("xdata")
-#pragma bss_seg("xdata")
-#endif
-
 #ifdef emacs
 /* intl-auto-encap-win32.[ch] assumes _WIN32_WINNT>=0x0500
    We don't want this set when building command-line helpers in lib-src */

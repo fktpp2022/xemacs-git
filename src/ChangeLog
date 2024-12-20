@@ -1,3 +1,8 @@
+2024-12-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* s/windowsnt.h:
+	Remove further unexec-specific code from this file.
+
 2024-12-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* dired.c (file_name_completion):

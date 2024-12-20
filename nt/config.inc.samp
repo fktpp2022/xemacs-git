@@ -245,18 +245,6 @@ VERBOSECC=0
 # Requires cygwin or ActiveState versions of Perl to be installed.
 DEPEND=0
 
-# Set this to use the portable dumper for dumping the preloaded Lisp
-# routines, instead of the older "unexec" routines in unexnt.c.
-USE_PORTABLE_DUMPER=1
-
-# Set this to use the new experimental garbage-collection routines instead
-# of the traditional XEmacs garbage-collection routines.
-USE_KKCC=1
-
-# Set this to use the new experimental incremental garbage collector
-# and the new allocator routines
-NEW_GC=0
-
 # Set this to turn on the use of the union type, which gets you improved
 # type checking of Lisp_Objects -- they're declared as unions instead of
 # ints, and so places where a Lisp_Object is mistakenly passed to a routine

@@ -1,3 +1,10 @@
+2024-12-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* Makefile.in.in:
+	Install the dump file properly if non-DUMP_IN_EXEC. No longer
+	check the PDUMP define. This is no longer available since it is
+	impossible to turn it off, unexec has been removed.
+
 2024-11-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* configure.ac: Only attempt to turn off ASLR if the data and text

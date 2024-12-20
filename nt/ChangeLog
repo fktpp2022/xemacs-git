@@ -1,3 +1,12 @@
+2024-12-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* config.inc.samp:
+	* config.inc.samp (USE_PORTABLE_DUMPER):
+	* config.inc.samp (USE_KKCC):
+	* config.inc.samp (NEW_GC):
+	Remove mention of these options. The first two are the default and
+	cannot be turned off, the last has been removed.
+
 2024-11-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* xemacs.mak (TEMACS_COMMON_ASLR_LFLAGS): Removed.
