@@ -18,65 +18,29 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 /* Synched up with: Not in FSF. */
 
-/* Mule-ized? Mwahahahahahaha */
-
-/* Magic values by Larry McVoy to prevent every known compiler, including
-   an especially perverse HP-UX one, from putting the array in BSS.
-*/
-
+/* Mule-ized? Not relevant. */
 
 #include <config.h>
 #include "lisp.h"
 #include "dump-data.h"
+#define INCBIN_PREFIX /* Nothing. */
+#define INCBIN_STYLE INCBIN_STYLE_SNAKE
+#define INCBIN_OUTPUT_SECTION ".data"
+#define INCBIN_ALIGNMENT_INDEX 4 /* 16-byte alignment. */
+#define INCBIN_SILENCE_BITCODE_WARNING /* Unlikely to be building XEmacs for an iPhone. */
+#include "incbin.h"
 
-/* 4 bytes for the data size, 4096 for alignment */
-
-static Rawbyte dumped_data[MAX_SIZE+4096+4] = {
-  255,
-  6,
-  1,
-  2,
-  3,
-  4,
-  255,
-  3,
-  9,
-  62,
-  255,
-  10,
-  4,
-  61,
-  255
-};
+INCBIN (dumped, EMACS_PROGNAME ".dmp");
 
 size_t
 dumped_data_size (void)
 {
-  return dumped_data[0] | (dumped_data[1] << 8) | (dumped_data[2] << 16) |
-    (dumped_data[3] << 24);
-}
-
-size_t
-dumped_data_max_size (void)
-{
-  return MAX_SIZE;
-}
-
-size_t
-dumped_data_align_offset (void)
-{
-  EMACS_INT iptr = (EMACS_INT) dumped_data;
-  EMACS_INT iptr2;
-  iptr2 = (iptr + 4 + 4095) & ~(EMACS_INT) 4095;
-  
-  return iptr2 - iptr;
+  return dumped_size;
 }
 
 Rawbyte *
 dumped_data_get (void)
 {
-  EMACS_INT iptr = (EMACS_INT) dumped_data;
-  iptr = (iptr + 4 + 4095) & ~(EMACS_INT) 4095;
-  return (Rawbyte *) iptr;
+  return (Rawbyte *) dumped_data;
 }
 

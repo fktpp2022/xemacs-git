@@ -24,12 +24,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 /* inline dumped data size */
 size_t dumped_data_size (void);
 
-/* maximum space available for inline data */
-size_t dumped_data_max_size (void);
-
-/* alignment offset for data inclusion */
-size_t dumped_data_align_offset (void);
-
 /* inline data */
 Rawbyte *dumped_data_get (void);
 

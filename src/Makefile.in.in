@@ -511,11 +511,18 @@ dump-id.c: $(LIB_SRC)/make-dump-id $(link_deps)
 $(RAW_EXE): $(link_deps) $(DUMP_ID)
 	$(LD) $(ldflags) $(start_flags) -o $@ $(start_files) $(objs) $(otherobjs) $(DUMP_ID) $(LIBES)
 #else
+## The dd below was written initially as dd if=/dev/zero, but while dd(1) is
+## specified by POSIX, /dev/zero is not. The specific file doesn't matter,
+## since no non-zero bytes are actually written.
 $(RAW_EXE): $(link_deps) $(DUMP_ID)
 	if test -f dump-size ; then \
-		$(CC) -c $(cflags) -DMAX_SIZE=`cat dump-size` $(SRC)/dump-data.c ;\
+		echo "Known dump size, using it for temacs"; \
+		dd if=dump-size of=$(DUMP_TARGET).dmp bs=1 count=0 seek=`cat dump-size`;  \
+		$(CC) -c $(cflags) $(SRC)/dump-data.c ; \
 	else \
-		$(CC) -c $(cflags) -DMAX_SIZE=0 $(SRC)/dump-data.c ;\
+		echo "Dump size not known, starting from zero"; \
+		touch $(DUMP_TARGET).dmp; \
+		$(CC) -c $(cflags) $(SRC)/dump-data.c ;\
 	fi
 	$(LD) $(ldflags) $(start_flags) -o $@ $(start_files) $(objs) $(otherobjs) $(DUMP_ID) dump-data.o $(LIBES)
 #endif
@@ -551,6 +558,9 @@ $(LIB_SRC)/DOC: $(LIB_SRC)/make-docfile $(BLDSRC)/NEEDTODUMP $(temacs_deps)
 
 ## (5) Dump
 
+## The echo `wc -c ...` below looks redundant at initial review, but Apple's wc
+## is needlessly generous with leading spaces.
+
 $(DUMP_TARGET): $(RAW_EXE) $(BLDSRC)/NEEDTODUMP $(LIB_SRC)/DOC
 #ifdef HEAP_IN_DATA
 	@$(RM) $@ && touch SATISFIED
@@ -562,21 +572,13 @@ $(DUMP_TARGET): $(RAW_EXE) $(BLDSRC)/NEEDTODUMP $(LIB_SRC)/DOC
 	$(dump_temacs)
 #endif
 #if defined(DUMP_IN_EXEC) && !defined(WIN32_NATIVE)
-	if test -f dump-size; then \
-		$(LIB_SRC)/insert-data-in-exec $(RAW_EXE) $(DUMP_TARGET).dmp $(DUMP_TARGET) `$(DO_TEMACS) -si`; \
-		ret=$$? ; \
-		if test $${ret} -eq 2; then \
-			$(RM) dump-size ; \
-		else \
-			if test $${ret} -eq 1; then \
-				exit 1; \
-			else \
-				chmod +x $(DUMP_TARGET) ; \
-			fi ; \
-		fi ; \
-	fi
-	if test ! -f dump-size; then \
-		$(LIB_SRC)/insert-data-in-exec -s $(DUMP_TARGET).dmp > dump-size ; \
+	if test -f dump-size && test `cat dump-size` -eq `wc -c < $(DUMP_TARGET).dmp`; then \
+		echo "Dumped data in temacs identical in size to dumpfile, relinking"; \
+		$(CC) -c $(cflags) $(SRC)/dump-data.c ; \
+		$(LD) $(ldflags) $(start_flags) -o $@ $(start_files) $(objs) $(otherobjs) $(DUMP_ID) dump-data.o $(LIBES); \
+	else \
+		echo "Dumped data in temacs differs from dumpfile, rebuilding temacs."; \
+		echo `wc -c < $(DUMP_TARGET).dmp` > dump-size ; \
 		$(RM) dump-data.o $(DUMP_TARGET) $(DUMP_TARGET).dmp $(RAW_EXE);\
 		$(MAKE) $(RECURSIVE_MAKE_ARGS) $@; \
 	fi

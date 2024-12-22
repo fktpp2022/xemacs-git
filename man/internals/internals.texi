@@ -23083,11 +23083,14 @@ language processing available.
 This easily achieved on MS Windows by storing it in a ``resource'' at
 compile time and loading that at runtime.
 
-On other platforms this is more difficult. Currently if the DUMP_IN_EXEC
-configure option is set, the default, we binary-patch the compiled
-XEmacs executable, see ``lib-src/insert-data-in-exec.c''. This interacts
-poorly with signed executables, as is standard with macOS and the ARM
-architecture.
+On other platforms this is more difficult. It is currently done using
+``INCBIN'', a reasonably portable assembler macro from Dale Weiler that
+includes an external binary in the executable with a given alignment;
+this requires re-linking the executable after the dump file is
+generated. In these days of reproducible builds this works well. The
+previous approach, from Olivier Galibert, binary-patched the generated
+executable, which interacts poorly with signed executables, as is
+standard with macOS and the ARM architecture.
 
 If DUMP_IN_EXEC is turned off, the file is found either in the same
 directory in which the XEmacs executable was found (for in-place

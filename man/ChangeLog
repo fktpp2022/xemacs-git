@@ -1,3 +1,9 @@
+2024-12-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (Reloading phase):
+	Give information on INCBIN and the current approach to
+	DUMP_IN_EXEC.
+
 2024-12-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Authorship of XEmacs):

@@ -968,21 +968,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       exit (0);
     }
 
-  /* Handle the -si/--show-inline-info switch, which means show the
-     alignment and max size of the inline data and quit */
-  if (argmatch (argv, argc, "-si", "--show-inline-info", 0, NULL, &skip_args))
-    {
-#if defined (DUMP_IN_EXEC) && !defined (WIN32_NATIVE)
-      /* #### We really should check for sizeof (size_t) > sizeof (long) */
-      printf ("%zu %zu\n", dumped_data_max_size (),
-              dumped_data_align_offset ());
-
-#else
-      printf ("Portable dumper not configured for dumping into executable or windows native; -si just forces exit.\n");
-#endif
-      exit (0);
-    }
-
   /* Handle the --no-dump-file/-nd switch, which means don't load the dump
      file (ignored when not using pdump) */
   if (argmatch (argv, argc, "-nd", "--no-dump-file", 0, NULL, &skip_args))
