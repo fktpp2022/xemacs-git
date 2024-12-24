@@ -391,26 +391,6 @@ free_gtk_device_struct (struct device *d)
 static void
 gtk_delete_device (struct device *d, Boolint UNUSED (from_io_error))
 {
-#ifdef FREE_CHECKING
-  extern void (*__free_hook)();
-  int checking_free;
-#endif
-
-  if (1)
-    {
-#ifdef FREE_CHECKING
-      checking_free = (__free_hook != 0);
-
-      /* Disable strict free checking, to avoid bug in X library */
-      if (checking_free)
-	disable_strict_free_check ();
-#endif
-
-#ifdef FREE_CHECKING
-      if (checking_free)
-	enable_strict_free_check ();
-#endif
-    }
   /* g_free(DEVICE_GTK_CONTEXT (d)); */
   free_gtk_device_struct (d);
 }

@@ -3169,8 +3169,6 @@ main (int argc, Extbyte **argv, Extbyte **UNUSED (envp))
 /*                 dumping XEmacs (to a new EXE file)                   */
 /************************************************************************/
 
-extern void disable_free_hook (void);
-
 DEFUN ("dump-emacs", Fdump_emacs, 2, 2, 0, /*
 Dump current state of XEmacs into executable file FILENAME.
 Take symbols from SYMFILE (presumably the file you executed to run XEmacs).
@@ -3187,13 +3185,6 @@ and announce itself normally when it is run.
   int opurify;
 
   GCPRO2 (filename, symfile);
-
-#ifdef FREE_CHECKING
-  Freally_free (Qnil);
-
-  /* When we're dumping, we can't use the debugging free() */
-  disable_free_hook ();
-#endif
 
   CHECK_STRING (filename);
   filename = Fexpand_file_name (filename, Qnil);

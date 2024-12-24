@@ -1,3 +1,16 @@
+2024-12-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* device-gtk.c (gtk_delete_device):
+	* device-x.c (x_delete_device):
+	* emacs.c:
+	* emacs.c (Fdump_emacs):
+	FREE_CHECKING is no longer available. It depended on a glibc
+	feature that was removed, and is no longer even
+	auto-detected. Remove all mention of it.
+	
+	* lisp.h: Remove declaration of Freally_free(), previously in
+	free-hook.c.
+
 2024-12-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* Makefile.in.in:

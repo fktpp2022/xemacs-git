@@ -261,8 +261,6 @@ with the exception of `loadup.el'.")
   (message "Dumping under the name xemacs")
   ;; This is handled earlier in the build process.
   ;; (condition-case () (delete-file "xemacs") (file-error nil))
-  (when (fboundp 'really-free)
-    (really-free))
   ;; Make sure we don't dump with debugging messages turned on.
   (setq stack-trace-on-error nil
 	load-always-display-messages nil

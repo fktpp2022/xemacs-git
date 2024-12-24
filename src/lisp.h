@@ -5416,9 +5416,6 @@ extern Lisp_Object Vfeatures;
 /* Defined in frame.c */
 extern Lisp_Object Qframe_live_p;
 
-/* Defined in free-hook.c */
-EXFUN (Freally_free, 1);
-
 /* Defined in gc.c */
 extern const struct sized_memory_description int_description;
 extern const struct sized_memory_description unsigned_char_description;

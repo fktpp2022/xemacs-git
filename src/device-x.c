@@ -977,25 +977,12 @@ free_x_device_struct (struct device *d)
 static void
 x_delete_device (struct device *d, Boolint from_io_error)
 {
-  Display *display;
-#ifdef FREE_CHECKING
-  extern void (*__free_hook) (void *);
-  int checking_free;
-#endif
-
-  display = DEVICE_X_DISPLAY (d);
+  Display *display = DEVICE_X_DISPLAY (d);
 
   if (display && !from_io_error)
     {
       /* This leaks if we are called from an IO error, which is better than
 	 crashing. */
-#ifdef FREE_CHECKING
-      checking_free = (__free_hook != 0);
-
-      /* Disable strict free checking, to avoid bug in X library */
-      if (checking_free)
-	disable_strict_free_check ();
-#endif
 
       free_x_gc_cache_entries (d);
       if (DEVICE_X_DATA (d)->x_modifier_keymap)
@@ -1011,10 +998,6 @@ x_delete_device (struct device *d, Boolint from_io_error)
 
       XtCloseDisplay (display);
       DEVICE_X_DISPLAY (d) = 0;
-#ifdef FREE_CHECKING
-      if (checking_free)
-	enable_strict_free_check ();
-#endif
     }
 
   free_x_device_struct (d);

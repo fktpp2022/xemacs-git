@@ -1,3 +1,8 @@
+2024-12-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* loadup.el (member):
+	#'really-free is never bound these days, remove mention of it.
+
 2024-12-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* setup-paths.el (paths-emacs-root-p):
