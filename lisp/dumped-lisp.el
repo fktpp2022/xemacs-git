@@ -70,7 +70,7 @@ in dumped-lisp.el and is not itself listed.")
        (when (featurep 'gtk) "gtk-faces")
        (when (valid-console-type-p 'mswindows) "msw-faces")
        "faces"			; must be loaded before any make-face call
-       ;;(pureload "facemenu") #### not yet ported
+       ;;"facemenu" #### not yet ported
        "glyphs"
        "fontcolor"
        "extents"
@@ -98,15 +98,15 @@ in dumped-lisp.el and is not itself listed.")
 ;; autoloads file with the dumped packages removed.
 ;; After fixing, eos/loaddefs-eos and loaddefs appear identical?!!
 ;; So just make loaddefs-eos go away...
-;;(pureload (if (featurep 'sparcworks) "eos/loaddefs-eos" "loaddefs"))
+;; (if (featurep 'sparcworks) "eos/loaddefs-eos" "loaddefs")
        "cus-file"
        "startup"		; For initialization of
 				;  `emacs-user-extension-dir'
        "misc"
-       ;; (pureload "profile")
+       ;; "profile"
        "loadhist"		; Must be dumped before loaddefs is loaded
 				; Used by help. 
-       ;; (pureload "hyper-apropos")  Soon...
+       ;; "hyper-apropos"  Soon...
        "files"
        "lib-complete"
        "format"
@@ -201,12 +201,12 @@ in dumped-lisp.el and is not itself listed.")
 ;; or user switching of input systems???
 ;(if (featurep 'wnn)
 ;    (progn
-;      (pureload "egg")
-;      (pureload "egg-wnn")
+;      "egg"
+;      "egg-wnn"
 ;      (setq egg-default-startup-file "eggrc-wnn")))
 
 ;; (if (and (boundp 'CANNA) CANNA)
-;;     (pureload "canna")
+;;     "canna"
 ;;   )
 
 ;; Now load files to set up all the different languages/environments that

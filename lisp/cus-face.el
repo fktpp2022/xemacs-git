@@ -46,7 +46,7 @@
 ;;;###autoload
 (defun custom-declare-face (face spec doc &rest args)
   "Like `defface', but FACE is evaluated as a normal argument."
-  ;; (when (fboundp 'pureload)
+  ;; (when (memq 'dumping (emacs-run-status))
     ;; (error "Attempt to declare a face during dump"))
   ;; #### should we possibly reset force-face here?
   (unless (get face 'face-defface-spec)

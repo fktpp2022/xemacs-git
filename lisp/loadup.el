@@ -81,97 +81,44 @@ with the exception of `loadup.el'.")
 
 ;(start-profiling)
 
-(let ((gc-cons-threshold
-       ;; setting it low makes loadup incredibly fucking slow.
-       ;; no need to do it when not dumping.
-       (if (and purify-flag
-		(eq (memq 'quick-build internal-error-checking) nil))
-	   30000 3000000)))
-
 ;; really-early-error-handler outputs a stack trace so let's not do it
 ;; twice.
 (let ((stack-trace-on-error nil))
-  
-;; This is awfully damn early to be getting an error, right?
-(call-with-condition-handler 'really-early-error-handler
-    #'(lambda ()
-	(setq load-path (list source-lisp))
-	(setq module-load-path (list 
-				(expand-file-name "modules" build-directory)))
+  ;; This is awfully damn early to be getting an error, right?
+  (call-with-condition-handler #'really-early-error-handler
+      #'(lambda ()
+	  (setq load-path (nconc
+			   (mapcar
+			    #'file-name-as-directory
+			    (directory-files source-lisp t "^[^-.]"
+					     nil 'dirs-only))
+			   (list
+			    (file-name-as-directory
+			     (expand-file-name "." source-lisp))))
 
-	;; message not defined yet ...
-	(format-into 'external-debugging-output "\nUsing load-path %s"
-                     load-path)
-	(format-into 'external-debugging-output "\nUsing module-load-path %s"
-					   module-load-path)
+		module-load-path (list (expand-file-name "modules"
+							 build-directory))
+		load-warn-when-source-only t) ; Set to nil at the end
 
-	;; We don't want to have any undo records in the dumped XEmacs.
-	(buffer-disable-undo (get-buffer "*scratch*"))
+	  ;; message not defined yet ...
+	  (format-into 'external-debugging-output "\nUsing load-path %s"
+		       load-path)
+	  (format-into 'external-debugging-output "\nUsing module-load-path %s"
+		       module-load-path)
 
-	;; lread.c (or src/Makefile.in.in) has prepended
-	;; "${srcdir}/../lisp/" to load-path, which is how this file
-	;; has been found.  At this point, enough of XEmacs has been
-	;; initialized that we can start dumping "standard" lisp.
-	;; Dumped lisp from external packages is added when we search
-	;; the package path.
-	;; #### This code is duplicated in two other places.
-	(let ((temp-path (expand-file-name "." (car load-path))))
-	  (setq load-path (nconc (mapcar
-				  #'(lambda (i) (concatenate 'string i "/"))
-				  (directory-files temp-path t "^[^-.]"
-						   nil 'dirs-only))
-				 (cons (file-name-as-directory temp-path)
-				       load-path))))
+	  (load (expand-file-name "dumped-lisp.el" source-lisp))
 
-	(setq load-warn-when-source-only  t) ; Set to nil at the end
+	  ;; No point attempting to detect a non-nil return value, that just
+	  ;; errors in any event and #'really-early-error-handler is invoked.
+	  (mapc #'load preloaded-file-list)
 
-	;; garbage collect after loading every file in an attempt to
-	;; minimize the size of the dumped image (if we don't do this,
-	;; there will be lots of extra space in the data segment filled
-	;; with garbage-collected junk)
-	(defun pureload (file)
-	  (let ((full-path
-		 (locate-file file load-path
-			      (if load-ignore-elc-files
-				  '(".el" "") '(".elc" ".el" "")))))
-	    (if full-path
-		(prog1
-		  (load full-path)
-		  ;; but garbage collection really slows down loading.
-		  (unless (memq 'quick-build internal-error-checking)
-		    (garbage-collect)))
-	      (format-into 'external-debugging-output
-                           "\nLoad file %s: not found\n" file)
-	      ;; Uncomment in case of trouble
-	      ;;(format-into 'external-debugging-output "late-package-hierarchies: %S" late-package-hierarchies)
-	      ;;(format-into 'external-debugging-output "guessed-roots: %S" (paths-find-emacs-roots invocation-directory invocation-name #'paths-emacs-root-p))
-	      ;;(format-into 'external-debugging-output "guessed-data-roots: %S" (paths-find-emacs-roots invocation-directory invocation-name #'paths-emacs-data-root-p))
-	      nil)))
-
-	(load (expand-file-name "dumped-lisp.el" source-lisp))
-
-	(let ((files preloaded-file-list)
-	      file)
-	  (while (setq file (car files))
-	    (unless (pureload file)
-	      (external-debugging-output "Fatal error during load, aborting")
-	      (kill-emacs 1))
-	    (setq files (cdr files)))
-	  (fmakunbound 'pureload))
-
-	(packages-load-package-dumped-lisps late-package-load-path)
-
-	)) ;; end of call-with-condition-handler
-
-) ; (let ((stack-trace-on-error nil)))
+	  (packages-load-package-dumped-lisps late-package-load-path))))
 
 ;; Fix up the preloaded file list
 (setq preloaded-file-list (mapcar #'file-name-sans-extension
-				  preloaded-file-list))
-
-(setq load-warn-when-source-only nil)
-
-(setq debugger 'debug)
+				  preloaded-file-list)
+      load-warn-when-source-only nil
+      debugger 'debug)
 
 (when (member "no-site-file" command-line-args)
   (setq site-start-file nil))
@@ -182,9 +129,7 @@ with the exception of `loadup.el'.")
 ;; But you must also cause them to be scanned when the DOC file
 ;; is generated.  For MS Windows, you must edit ../nt/xemacs.mak.
 ;; For other systems, you must edit ../src/Makefile.in.in.
-(when (load "site-load" t)
-  (garbage-collect)
-)
+(load "site-load" t)
 
 ;;FSFmacs randomness
 ;;(if (fboundp 'x-popup-menu)
@@ -247,20 +192,18 @@ with the exception of `loadup.el'.")
 	 (set-extent-property extent 'search 'discard)
 	 extent)))
 
+;; We don't want to have any undo records in the dumped XEmacs.
+(buffer-disable-undo (get-buffer "*scratch*"))
+
+;; But we do want undo to work in *scratch* on restart:
+(buffer-enable-undo (get-buffer "*scratch*"))
+
 (garbage-collect)
-
-;;; At this point, we're ready to resume undo recording for scratch.
-(buffer-enable-undo "*scratch*")
-
-) ;; (let ((gc-cons-threshold [frequent garbage collection when dumping])))
 
 ;(stop-profiling)
 
-;; Dump into the name `xemacs' (only)
 (when (member "dump" command-line-args)
   (message "Dumping under the name xemacs")
-  ;; This is handled earlier in the build process.
-  ;; (condition-case () (delete-file "xemacs") (file-error nil))
   ;; Make sure we don't dump with debugging messages turned on.
   (setq stack-trace-on-error nil
 	load-always-display-messages nil

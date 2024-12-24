@@ -177,7 +177,7 @@ See also the command `auto-show-mode'."
 ;;(add-hook 'post-command-hook 'auto-show-make-point-visible)
 
 ;; If being dumped, turn it on right away.
-(when (boundp 'pureload)
+(when (memq 'dumping (emacs-run-status))
   (auto-show-mode 1))
 
 ;; Do auto-scrolling in comint buffers after process output also.

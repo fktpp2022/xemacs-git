@@ -1,5 +1,14 @@
 2024-12-24  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* configure.ac (XE_COMPLEX_ARG):
+	Revise --with-quick-build to turn off --with-dump-in-exec (unless
+	otherwise explicitly specified), document this. Remove mention of
+	garbage-collection after loading each file during dumping, no
+	longer relevant.
+	* configure: Regenerate.
+
+2024-12-24  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* configure.ac (libc_version): Remove detection of libc version
 	from configure.ac, it is not remotely as necessary as it was a
 	couple of decades ago, and Mats advises me it is buggy on Gentoo.

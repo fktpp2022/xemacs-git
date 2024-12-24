@@ -1074,13 +1074,13 @@ XE_MERGED_ARG([quick-build],
 	AS_HELP_STRING([--with-quick-build],[Speed up the build cycle by leaving out steps where
                         XEmacs will still work (more or less) without them.
                         Potentially dangerous if you don't know what you're
-                        doing. This (1) Doesn't garbage-collect after loading
-                        each file during dumping, (2) Doesn't
-                        automatically rebuild the DOC file (remove it by hand
-                        to get it rebuilt), (3) Removes config.h, lisp.h and
-                        associated files from the dependency lists, so changes
-                        to these files don't automatically cause all .c files
-                        to be rebuilt, (4) Doesn't check for Lisp shadows.]),
+                        doing. This (1) Defaults to --without-dump-in-exec if
+                        not otherwise specified, (2) Doesn't automatically
+                        rebuild the DOC file (remove it by hand to get it
+                        rebuilt), (3) Removes config.h, lisp.h and associated
+                        files from the dependency lists, so changes to these
+                        files don't automatically cause all .c files to be
+                        rebuilt, (4) Doesn't check for Lisp shadows.]),
 	[], [])
 XE_MERGED_ARG([union-type],
 	AS_HELP_STRING([--with-union-type],[Use union definition of Lisp_Object type.  Known to trigger bugs in some compilers.]),
@@ -1816,7 +1816,11 @@ lib_gcc=
 
 dnl Dump into executable
 if test -z "$with_dump_in_exec"; then
-  with_dump_in_exec=yes
+  if test "$with_quick_build" = "yes"; then
+    with_dump_in_exec=no;
+  else
+    with_dump_in_exec=yes;
+  fi
 fi
 
 dnl For debugging...

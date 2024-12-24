@@ -237,13 +237,17 @@ differently depending on the presence of certain features, especially
 	   (full-arg-sans-extension
 	    (if (eq full-arg nil)
 		(progn
-		  (print (format "Error: Library file %s not found" arg))
-		  (backtrace)
+		  (format-into 'external-debugging-output
+			       "\nError: Library file %s not found\n" arg)
 		  ;; Uncomment in case of trouble
-		  ;;(print (format "late-package-hierarchies: %S" late-package-hierarchies))
-                  ;;(print (format "guessed-roots: %S"
-                  ;;               (paths-find-emacs-roots
-                  ;;                invocation-directory invocation-name)))
+		  ;;(format-into 'external-debugging-output
+		  ;;             "\nlate-package-hierarchies: %S"
+		  ;;             late-package-hierarchies)
+		  ;;(format-into 'external-debugging-output
+                  ;;             "\nguessed-roots: %S"
+                  ;;             (paths-find-emacs-roots
+                  ;;               invocation-directory invocation-name)))
+		  (backtrace)
 		  (kill-emacs))
 	      (update-elc-chop-extension full-arg)))
 	   (full-arg-el (concatenate 'string full-arg-sans-extension ".el"))

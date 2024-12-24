@@ -1,5 +1,37 @@
 2024-12-24  Aidan Kehoe  <kehoea@parhasard.net>
 
+	No longer GC after loading every file when dumping, there is no
+	benefit to this with pdump.
+	Rationalise things with this, no longer make a #'pureload function
+	available at any point, examine the output of (emacs-run-status)
+	instead.
+	* auto-show.el:
+	Fix a bug with this, turn on auto-show-mode if we are currently
+	dumping, rather than if the symbol pureload is bound as a
+	variable.
+
+	* cus-face.el (custom-declare-face):
+	* dumped-lisp.el (preloaded-file-list):
+	Remove mention of #'pureload from comments in these files.
+
+	* loadup.el:
+	Don't bind gc-cons-threshold within code to load those files in
+	preloaded-file-list.
+	Rationalise things a bit, print the load path as it is actually
+	determined, not before it is set.
+	Remove some debugging code that will now never be called, since
+	#'load errors rather than returning nil.
+
+	* site-load.el:
+	* site-load.el (file-exists-p):
+	Just (mapc #'load site-load-packages), no need for a pureload
+	macro.
+	* update-elc.el (preloaded-file-list):
+	Modernise some error-handling code here, now #'format is not
+	built-in.
+
+2024-12-24  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* loadup.el (member):
 	#'really-free is never bound these days, remove mention of it.
 
