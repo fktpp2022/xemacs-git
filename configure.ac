@@ -2195,7 +2195,6 @@ dnl ---------------------------------------------------------------
 
 compiler_version=""
 gcc_compiler_specs=""
-libc_version=""
 
 AC_MSG_CHECKING([for compiler version information])
 
@@ -2257,53 +2256,6 @@ if test -z "$compiler_version"; then
   compiler_version="detection failed (please report this)"
 fi
 AC_MSG_RESULT([$compiler_version])
-
-AC_MSG_CHECKING(for standard C library version information)
-
-case "$ac_cv_build" in
-	*-*-linux*)
-	  dnl #### who would ever _not_ be running the distro's libc?
-	  dnl Maybe it would be better to get/augment this info with ldd?
-	  if test -f /etc/redhat-release ; then
-	    libc_version=`rpm -q glibc`
-	  elif test -f /etc/debian_version ; then
-	    libc_version=`dpkg-query --showformat='${version}' --show libc6`
-	    libc_version="GNU libc $libc_version (Debian)"
-	  dnl need SuSE et al checks here...
-	  fi
-	  dnl #### Tested on Debian, does this actually work elsewhere?  ;-)
-          if test -z "$libc_version"; then
-	    libc_version=`ls /lib/libc-*.so | sed -e 's,/lib/libc-\(.*\)\.so,\1,'`
-          fi
-	;;
-
-	*-*-aix*)
-	  libc_version="bos.rte.libc `lslpp -Lqc bos.rte.libc | cut -f3 -d:`" 
-	;;
-
-	*-*-solaris*)
-	  libc=`pkginfo -l SUNWcsl | grep VERSION: | awk '{print $2}'`
-	  libc_version="SUNWcsl $libc"
-
-	;;
-
-	mips-sgi-irix*)
-	  libc_version="IRIX libc `uname -sRm`"
-	;;
-	  
-	alpha*-dec-osf*)
-	dnl Another ugly case
-	  (cd /usr/.smdb.;
-		libc_version=` grep -h libc.so *.inv | awk '$9 == "f" {print $12}' | tr '\n' ','`
-	  )
-	;;
-esac
-
-dnl Awww, shucks.
-if test -z "libc_version"; then
-  libc_version="detection failed (please report this)"
-fi
-AC_MSG_RESULT([$libc_version])
 
 dnl ---------------------------------------------------------
 dnl These directories are used to search for include subdirs.
@@ -6150,7 +6102,6 @@ if test "$CC" != "$XEMACS_CC"; then
     echo "  WARNING: CC and XEMACS_CC mismatched; check CFLAGS carefully."
   fi
 fi
-echo "  libc version:                      $libc_version"
 echo "  Relocating allocator for buffers:  $with_rel_alloc"
 echo "
 Package Search (a 'root' contains '{xemacs,mule,site}-packages'):"

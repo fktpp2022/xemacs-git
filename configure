@@ -10706,7 +10706,6 @@ test "$GCC" != "yes" && lib_gcc=
 
 compiler_version=""
 gcc_compiler_specs=""
-libc_version=""
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for compiler version information" >&5
 printf %s "checking for compiler version information... " >&6; }
@@ -10760,49 +10759,6 @@ if test -z "$compiler_version"; then
 fi
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $compiler_version" >&5
 printf "%s\n" "$compiler_version" >&6; }
-
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for standard C library version information" >&5
-printf %s "checking for standard C library version information... " >&6; }
-
-case "$ac_cv_build" in
-	*-*-linux*)
-	  	  	  if test -f /etc/redhat-release ; then
-	    libc_version=`rpm -q glibc`
-	  elif test -f /etc/debian_version ; then
-	    libc_version=`dpkg-query --showformat='${version}' --show libc6`
-	    libc_version="GNU libc $libc_version (Debian)"
-	  	  fi
-	            if test -z "$libc_version"; then
-	    libc_version=`ls /lib/libc-*.so | sed -e 's,/lib/libc-\(.*\)\.so,\1,'`
-          fi
-	;;
-
-	*-*-aix*)
-	  libc_version="bos.rte.libc `lslpp -Lqc bos.rte.libc | cut -f3 -d:`"
-	;;
-
-	*-*-solaris*)
-	  libc=`pkginfo -l SUNWcsl | grep VERSION: | awk '{print $2}'`
-	  libc_version="SUNWcsl $libc"
-
-	;;
-
-	mips-sgi-irix*)
-	  libc_version="IRIX libc `uname -sRm`"
-	;;
-
-	alpha*-dec-osf*)
-		  (cd /usr/.smdb.;
-		libc_version=` grep -h libc.so *.inv | awk '$9 == "f" {print $12}' | tr '\n' ','`
-	  )
-	;;
-esac
-
-if test -z "libc_version"; then
-  libc_version="detection failed (please report this)"
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $libc_version" >&5
-printf "%s\n" "$libc_version" >&6; }
 
 
 xe_known_include_dirs=
@@ -22025,11 +21981,11 @@ if test x$ac_prog_cxx_stdcxx = xno
 then :
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $CXX option to enable C++11 features" >&5
 printf %s "checking for $CXX option to enable C++11 features... " >&6; }
-if test ${ac_cv_prog_cxx_11+y}
+if test ${ac_cv_prog_cxx_cxx11+y}
 then :
   printf %s "(cached) " >&6
 else $as_nop
-  ac_cv_prog_cxx_11=no
+  ac_cv_prog_cxx_cxx11=no
 ac_save_CXX=$CXX
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -22071,11 +22027,11 @@ if test x$ac_prog_cxx_stdcxx = xno
 then :
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $CXX option to enable C++98 features" >&5
 printf %s "checking for $CXX option to enable C++98 features... " >&6; }
-if test ${ac_cv_prog_cxx_98+y}
+if test ${ac_cv_prog_cxx_cxx98+y}
 then :
   printf %s "(cached) " >&6
 else $as_nop
-  ac_cv_prog_cxx_98=no
+  ac_cv_prog_cxx_cxx98=no
 ac_save_CXX=$CXX
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -24139,7 +24095,6 @@ if test "$CC" != "$XEMACS_CC"; then
     echo "  WARNING: CC and XEMACS_CC mismatched; check CFLAGS carefully."
   fi
 fi
-echo "  libc version:                      $libc_version"
 echo "  Relocating allocator for buffers:  $with_rel_alloc"
 echo "
 Package Search (a 'root' contains '{xemacs,mule,site}-packages'):"

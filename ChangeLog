@@ -1,3 +1,10 @@
+2024-12-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* configure.ac (libc_version): Remove detection of libc version
+	from configure.ac, it is not remotely as necessary as it was a
+	couple of decades ago, and Mats advises me it is buggy on Gentoo.
+	* configure: Regenerate.
+
 2024-12-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* Makefile.in.in:
