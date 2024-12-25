@@ -1,3 +1,9 @@
+2024-12-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* dumper.c (pdump_load):
+	Avoid infinite loop when examining $PATH to find the XEmacs
+	binary, --without-dump-in-exec.
+
 2024-12-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* device-gtk.c (gtk_delete_device):

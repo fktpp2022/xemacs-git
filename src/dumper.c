@@ -2444,7 +2444,7 @@ pdump_load (const Extbyte *argv0)
   baselen = strlen (p);
   dirname = alloca_extbytes (pathlen + baselen + 2);
 
-  for (;;)
+  while (path)
     {
       Bytecount dirlen;
       const Extbyte *dirend = strchr (path, SEPCHAR);
@@ -2461,11 +2461,13 @@ pdump_load (const Extbyte *argv0)
 	      dirlen = dirend - path;
 	      memcpy (dirname, path, dirlen);
 	    }
+          path = dirend + 1; /* Advance past SEPCHAR. */
 	}
       else
 	{
 	  dirlen = strlen (path);
 	  memcpy (dirname, path, dirlen);
+          path = NULL;
 	}
 
       if (!IS_DIRECTORY_SEP (dirname[dirlen - 1]))
