@@ -157,6 +157,7 @@ abbrev_match (struct buffer *buf, Lisp_Object table)
 {
   struct abbrev_match_mapper_closure closure;
 
+  CHECK_HASH_TABLE (table);
   /* Precalculate some stuff, so mapper function needn't to it in each
      iteration.  */
   closure.buf = buf;
@@ -250,9 +251,10 @@ abbrev_oblookup (struct buffer *buf, Lisp_Object obarray)
 }
 
 /* Return non-zero if OBARRAY contains an interned symbol ` '. */
-static int
-obarray_has_blank_p (Lisp_Object obarray)
+static Boolint
+abbrev_obarray_has_blank_p (Lisp_Object obarray)
 {
+  CHECK_HASH_TABLE (obarray);
   return SYMBOLP (oblookup (obarray, (Ibyte *)" ", 1));
 }
 
@@ -308,8 +310,8 @@ If no abbrev matched, but `pre-abbrev-expand-hook' changed the buffer,
   /* We use the more general abbrev_match() if the obarray blank flag
      is not set, and Vabbrev_start_location is nil.  Otherwise, use
      abbrev_oblookup(). */
-#define MATCHFUN(tbl) ((obarray_has_blank_p (tbl)		 \
-			&& NILP (Vabbrev_start_location))	 \
+#define MATCHFUN(tbl) ((NILP (Vabbrev_start_location)			\
+			&& abbrev_obarray_has_blank_p (tbl))		\
 		       ? abbrev_match : abbrev_oblookup)
   if (!NILP (buf->abbrev_table))
     {

@@ -1,3 +1,21 @@
+2024-12-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* abbrev.c (abbrev_obarray_has_blank_p):
+	Modernise return type. Check OBARRAY is a hash table before
+	calling oblookup() on it, avoid a (rare) crash. Thank you Henry
+	S. Thompson.
+	* abbrev.c (abbrev_match):
+	Check TABLE is a hash table before calling elisp_maphash() on it.
+	* abbrev.c (MATCHFUN):
+	Check abbrev-start-location non-nil before calling
+	abbrev_obarray_has_blank_p() in this macro.
+
+2024-12-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+
+	* abbrev.c (abbrev_obarray_has_blank_p):
+	* abbrev.c (MATCHFUN):
+
 2024-12-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* dumper.c (pdump_load):
