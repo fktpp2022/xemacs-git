@@ -1,3 +1,10 @@
+2024-12-30  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* incbin.h:
+	Specifying the type of the dumped data doesn't work with COFF
+	output currently. This was already implemented for mingw,
+	implement it for Cygwin too.
+
 2024-12-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* abbrev.c (abbrev_obarray_has_blank_p):
