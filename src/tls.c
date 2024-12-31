@@ -31,7 +31,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 static Lisp_Object prompt;
 static Lisp_Object Qread_passwd;
 #endif
-Lisp_Object Qtls_error;
 
 #ifdef HAVE_NSS
 #include <prinit.h>
@@ -1246,7 +1245,6 @@ syms_of_tls (void)
 #ifdef WITH_TLS
   DEFSYMBOL (Qread_passwd);
 #endif
-  DEFERROR (Qtls_error, "TLS error", Qerror);
 }
 
 void

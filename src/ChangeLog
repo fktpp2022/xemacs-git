@@ -1,3 +1,14 @@
+2024-12-31  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lisp.h:
+	* process.c:
+	* process.c (syms_of_process):
+	* tls.c:
+	* tls.c (syms_of_tls):
+	Make Qtls_error available and non-zero on non-TLS builds, given
+	that we use this symbol in signalling an error when TLS support is
+	unavailable.
+
 2024-12-30  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* incbin.h:

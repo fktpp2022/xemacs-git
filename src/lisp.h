@@ -5862,6 +5862,7 @@ extern Lisp_Object Vprint_table_nonreadably_length;
 
 /* Defined in process.c */
 extern Lisp_Object Qnetwork_error;
+extern Lisp_Object Qtls_error;
 extern MODULE_API Lisp_Object Qprocess_error;
 extern Lisp_Object Vprocess_environment;
 extern Lisp_Object Vshell_file_name;

@@ -116,6 +116,7 @@ Lisp_Object Vdefault_process_coding_system;
 Lisp_Object Vdefault_network_coding_system;
 Lisp_Object Qprocess_error;
 Lisp_Object Qnetwork_error;
+Lisp_Object Qtls_error;
 Fixnum debug_process_io;
 Lisp_Object Vshell_file_name;
 Lisp_Object Vprocess_environment;
@@ -2636,6 +2637,7 @@ syms_of_process (void)
 
   DEFERROR_STANDARD (Qprocess_error, Qio_error);
   DEFERROR_STANDARD (Qnetwork_error, Qio_error);
+  DEFERROR (Qtls_error, "TLS error", Qerror);
 
   DEFSUBR (Fprocessp);
   DEFSUBR (Fprocess_live_p);
