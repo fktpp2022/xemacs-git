@@ -415,7 +415,7 @@ install-arch-dep: mkdir
 		${INSTALL_DATA} ../Installation $(DESTDIR)${archlibdir}/Installation; \
 	   fi; \
 	   ${INSTALL_DATA} lib-src/config.values $(DESTDIR)${docdir}/config.values; \
-	   ${INSTALL_DATA} lib-src/DOC $(DESTDIR)${docdir}/DOC; \
+	   ${INSTALL_DATA} lib-src/DOC $(DESTDIR)${docdir}/DOC-`src/${PROGNAME} -sd`; \
 	   for subdir in `find ${archlibdir} -type d ! -name RCS ! -name SCCS ! -name CVS -print` ; \
 	     do (cd $${subdir} && $(RM) -r RCS CVS SCCS \#* *~) ; done ; \
 	else true; fi

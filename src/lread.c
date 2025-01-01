@@ -496,14 +496,16 @@ static Lisp_Object
 pas_de_holgazan_ici (int fd, Lisp_Object victim)
 {
   Lisp_Object tem;
-  EMACS_INT pos;
+  OFF_T pos;
 
-  if (!FIXNUMP (XCDR (victim)))
+  if (!STRINGP (XCAR (victim)))
     invalid_byte_code ("Bogus doc string reference", victim);
-  pos = XFIXNUM (XCDR (victim));
+
+  pos = lisp_to_OFF_T (XCDR (victim));
   if (pos < 0)
     pos = -pos; /* kludge to mark a user variable */
-  tem = unparesseuxify_doc_string (fd, pos, 0, Vload_file_name_internal, 0);
+
+  tem = unparesseuxify_doc_string (fd, pos, NULL, Vload_file_name_internal, 0);
   if (!STRINGP (tem))
     signal_error_1 (Qinvalid_byte_code, tem);
   return tem;

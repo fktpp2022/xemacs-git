@@ -42,6 +42,30 @@
 
 2025-01-01  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* doc.c (extract_object_file_name):
+	Revise this, no need for NAME_NONRELOC, NAME_RELOC as arguments,
+	take DOC_POS as an OFF_T.
+	* doc.c (unparesseuxify_doc_string):
+	Revise this, POSITION needs to be an OFF_T.
+	* doc.c (open_doc_file): New. Open a documentation file (either
+	Vinternal_doc_file_name or one specified in FILEPOS), and return
+	the associated file descriptor. Refactored from get_doc_string(),
+	get_object_file_name(), adjusted to prefer DOC-DUMP-ID over pure
+	DOC if looking in doc-directory.
+	If we added DUMP_ID to the file name successfully, update
+	Vinternal_doc_file_name to reflect this.
+	* doc.c (get_doc_string): Use open_doc_file ().
+	* doc.c (get_object_file_name): Use open_doc_file ().
+	* doc.c (Fbuilt_in_symbol_file):
+	No need to fret about the sign of DOC_OFFSET,
+	get_object_file_name() now does that for us.
+	* lisp.h:
+	Update the declaration of unparesseuxify_doc_string() here. 
+	* lread.c (pas_de_holgazan_ici):
+	Adjust types, call to unparesseuxify_doc_string() here.
+
+2025-01-01  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* number.h (DEFINE_C_INTEGER_TYPE_LISP_CONVERSION):
 	Correct a misspelling in this macro.
 

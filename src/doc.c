@@ -40,11 +40,8 @@ Lisp_Object Qdefvar, Qfunction_documentation;
 
 /* Work out what source file a function or variable came from, taking the
    information from the documentation file. */
-
 static Lisp_Object
-extract_object_file_name (int fd, EMACS_INT doc_pos,
-			  Ibyte *name_nonreloc, Lisp_Object name_reloc,
-			  int standard_doc_file)
+extract_object_file_name (int fd, OFF_T doc_pos, Boolint standard_doc_file)
 {
   Ibyte buf[DOC_MAX_FILENAME_LENGTH+1];
   Ibyte *buffer = buf;
@@ -63,11 +60,9 @@ extract_object_file_name (int fd, EMACS_INT doc_pos,
 
   if (0 > lseek (fd, position, 0))
     {
-      if (name_nonreloc)
-	name_reloc = build_istring (name_nonreloc);
-      return_me = list3 (build_msg_string
+      return_me = list2 (build_msg_string
 			 ("Position out of range in doc string file"),
-			  name_reloc, make_fixnum (position));
+                         make_fixnum (position));
       goto done;
     }
 
@@ -161,9 +156,8 @@ extract_object_file_name (int fd, EMACS_INT doc_pos,
 }
 
 Lisp_Object
-unparesseuxify_doc_string (int fd, EMACS_INT position,
-                           Ibyte *name_nonreloc, Lisp_Object name_reloc,
-			   int standard_doc_file)
+unparesseuxify_doc_string (int fd, OFF_T position, Ibyte *name_nonreloc,
+                           Lisp_Object name_reloc, Boolint standard_doc_file)
 {
   Ibyte buf[512 * 32 + 1];
   Ibyte *buffer = buf;
@@ -292,11 +286,146 @@ unparesseuxify_doc_string (int fd, EMACS_INT position,
   return return_me;
 }
 
-#define string_join(dest, s1, s2)					\
-  memcpy (dest, XSTRING_DATA (s1), XSTRING_LENGTH (s1));		\
-  memcpy (dest + XSTRING_LENGTH (s1), XSTRING_DATA (s2),		\
-          XSTRING_LENGTH (s2));						\
-          dest[XSTRING_LENGTH (s1) + XSTRING_LENGTH (s2)] = '\0'
+/* Given FILEPOS, either a cons of (FILENAME . POSITION) or just a POSITION,
+   return a file descriptor reflecting either FILENAME (if specified) or
+   Vinternal_doc_file_name. Error if the doc file name cannot be determined,
+   or if it cannot be opened. In *POSITION_OUT, return the decoded POSITION as
+   a positive OFF_T. In *standard_doc_filep_out, return whether
+   Vinternal_doc_file_name was opened.  */
+static int
+open_doc_file (Lisp_Object filepos, OFF_T *position_out,
+               Boolint *standard_doc_filep_out)
+{
+  Lisp_Object file, absolute_p, file_id = Qnil;
+  Ibyte *file_nonreloc = NULL;
+  Bytecount file_nonreloc_len;
+  int fd;
+
+  if (CONSP (filepos) && STRINGP (XCAR (filepos)))
+    {
+      file = XCAR (filepos);
+      *standard_doc_filep_out = 0;
+      *position_out = lisp_to_OFF_T (XCDR (filepos));
+    }
+  else
+    {
+      file = Vinternal_doc_file_name;
+      *standard_doc_filep_out = 1;
+      *position_out = lisp_to_OFF_T (filepos);
+    }
+
+  if (*position_out < 0)
+    *position_out = -*position_out;
+
+  if (!STRINGP (file))
+    {
+      signal_error (Qinternal_error, "No known doc file for position",
+                    filepos);
+      return -1;
+    }
+
+  file_nonreloc_len = sizeof ("../lib-src/-abcdef12") + XSTRING_LENGTH (file);
+
+  if (STRINGP (Vdoc_directory))
+    {
+      file_nonreloc_len += XSTRING_LENGTH (Vdoc_directory);
+    }
+
+  file_nonreloc = alloca_ibytes (file_nonreloc_len);
+
+  /* Put the file name in FILE_NONRELOC as a C string.  If it is relative,
+     combine it with Vdoc_directory.  */
+  absolute_p = Ffile_name_absolute_p (file);
+  if (NILP (absolute_p))
+    {
+      /* XEmacs: Move this check here.  OK if called during loadup to load
+	 byte code instructions. */
+      if (!STRINGP (Vdoc_directory))
+        {
+          signal_error (Qinternal_error, "`doc-directory' not known",
+                        filepos);
+          return -1;
+        }
+
+      if (XSTRING_LENGTH (file) > (Bytecount) (sizeof ("abcdef12")))
+        {
+          Ibyte *minusp = qxestrrchr (XSTRING_DATA (file), '-');
+          if (minusp)
+            {
+              Ibyte *minus_end;
+              INC_IBYTEPTR (minusp);
+
+              file_id = parse_integer (minusp, &minus_end,
+                                       XSTRING_LENGTH (file) -
+                                       (minusp - XSTRING_DATA (file)),
+                                       16, JUNK_ALLOWED, Vdigit_fixnum_ascii);
+              /* Check if there is already a dump ID in the doc file name. */
+              if (FIXNUMP (file_id) && XFIXNUM (file_id) == dump_id)
+                {
+                  emacs_snprintf (file_nonreloc, file_nonreloc_len, "%s%s",
+                                  XSTRING_DATA (Vdoc_directory),
+                                  XSTRING_DATA (file));
+                }
+              else
+                {
+                  file_id = Qnil;
+                }
+            }
+        }
+
+      if (NILP (file_id))
+        {
+          /* If we're looking in Vdoc_directory, prefer a DOC file with our
+             dump ID at the end to one without. */
+          emacs_snprintf (file_nonreloc, file_nonreloc_len,
+                          "%s%s-%08x",
+                          XSTRING_DATA (Vdoc_directory),
+                          XSTRING_DATA (file), dump_id);
+        }
+    }
+  else
+    {
+      memcpy (file_nonreloc, XSTRING_DATA (file), XSTRING_LENGTH (file) + 1);
+    }
+
+  fd = qxe_open (file_nonreloc, O_RDONLY | OPEN_BINARY, 0);
+  if (fd < 0)
+    {
+      if (purify_flag)
+	{
+	  /* Preparing to dump; DOC file is probably not installed.  So check
+	     in ../lib-src. */
+          emacs_snprintf (file_nonreloc, file_nonreloc_len,
+                          "../lib-src/%s", XSTRING_DATA (file));
+
+	  fd = qxe_open (file_nonreloc, O_RDONLY | OPEN_BINARY, 0);
+	}
+      else if (NILP (file_id))
+        {
+          /* Dumped and possibly installed; check DOC without the dump ID on
+             the end. Will never happen with an installed XEmacs with current
+             code, but will happen with in-place. */
+          emacs_snprintf (file_nonreloc, file_nonreloc_len, "%s%s",
+                          XSTRING_DATA (Vdoc_directory), XSTRING_DATA (file));
+
+	  fd = qxe_open (file_nonreloc, O_RDONLY | OPEN_BINARY, 0);
+        }
+
+      if (fd < 0)
+	report_file_error ("Cannot open doc string file",
+			   build_istring (file_nonreloc));
+    }
+  else if (*standard_doc_filep_out && NILP (absolute_p) && NILP (file_id))
+    {
+      /* Successfully opened the file by adding the dump ID at the end. Update
+         Vinternal_doc_file_name, which was initially set at dump time and
+         doesn't reflect the installed DOC file name. */
+      Vinternal_doc_file_name
+        = Ffile_name_nondirectory (build_istring (file_nonreloc));
+    }
+
+  return fd;
+}
 
 /* Extract a doc string from a file.  FILEPOS says where to get it.
    (This could actually be byte code instructions/constants instead
@@ -312,77 +441,15 @@ static Lisp_Object
 get_doc_string (Lisp_Object filepos)
 {
   REGISTER int fd;
-  REGISTER Ibyte *name_nonreloc = 0;
-  EMACS_INT position;
-  Lisp_Object file, tem;
-  Lisp_Object name_reloc = Qnil;
-  int standard_doc_file = 0;
+  OFF_T position;
+  Boolint standard_doc_file = 0;
+  Lisp_Object tem;
 
-  if (FIXNUMP (filepos))
-    {
-      file = Vinternal_doc_file_name;
-      standard_doc_file = 1;
-      position = XFIXNUM (filepos);
-    }
-  else if (CONSP (filepos) && FIXNUMP (XCDR (filepos)))
-    {
-      file = XCAR (filepos);
-      position = XFIXNUM (XCDR (filepos));
-      if (position < 0)
-	position = - position;
-    }
-  else
-    return Qnil;
+  fd = open_doc_file (filepos, &position, &standard_doc_file);
 
-  if (!STRINGP (file))
-    return Qnil;
-
-  /* Put the file name in NAME as a C string.
-     If it is relative, combine it with Vdoc_directory.  */
-
-  tem = Ffile_name_absolute_p (file);
-  if (NILP (tem))
-    {
-      Bytecount minsize;
-      /* XEmacs: Move this check here.  OK if called during loadup to
-	 load byte code instructions. */
-      if (!STRINGP (Vdoc_directory))
-	return Qnil;
-
-      minsize = XSTRING_LENGTH (Vdoc_directory);
-      /* sizeof ("../lib-src/") == 12 */
-      if (minsize < 12)
-	minsize = 12;
-      name_nonreloc = alloca_ibytes (minsize + XSTRING_LENGTH (file) + 8);
-      string_join (name_nonreloc, Vdoc_directory, file);
-    }
-  else
-    name_reloc = file;
-
-  fd = qxe_open (name_nonreloc ? name_nonreloc :
-		 XSTRING_DATA (name_reloc), O_RDONLY | OPEN_BINARY, 0);
-  if (fd < 0)
-    {
-      if (purify_flag)
-	{
-	    /* sizeof ("../lib-src/") == 12 */
-	  name_nonreloc = alloca_ibytes (12 + XSTRING_LENGTH (file) + 8);
-	  /* Preparing to dump; DOC file is probably not installed.
-	     So check in ../lib-src. */
-	  qxestrcpy_ascii (name_nonreloc, "../lib-src/");
-	  qxestrcat (name_nonreloc, XSTRING_DATA (file));
-
-	  fd = qxe_open (name_nonreloc, O_RDONLY | OPEN_BINARY, 0);
-	}
-
-      if (fd < 0)
-	report_file_error ("Cannot open doc string file",
-			   name_nonreloc ? build_istring (name_nonreloc) :
-			   name_reloc);
-    }
-
-  tem = unparesseuxify_doc_string (fd, position, name_nonreloc, name_reloc,
-				   standard_doc_file);
+  tem = unparesseuxify_doc_string (fd, position, NULL,
+                                   standard_doc_file ? Vinternal_doc_file_name
+                                   : Fcar (filepos), standard_doc_file);
   retry_close (fd);
 
   if (!STRINGP (tem))
@@ -409,77 +476,13 @@ static Lisp_Object
 get_object_file_name (Lisp_Object filepos)
 {
   REGISTER int fd;
-  REGISTER Ibyte *name_nonreloc = 0;
-  EMACS_INT position;
-  Lisp_Object file, tem;
-  Lisp_Object name_reloc = Qnil;
-  int standard_doc_file = 0;
+  OFF_T position;
+  Boolint standard_doc_file = 0;
+  Lisp_Object tem;
 
-  if (FIXNUMP (filepos))
-    {
-      file = Vinternal_doc_file_name;
-      standard_doc_file = 1;
-      position = XFIXNUM (filepos);
-    }
-  else if (CONSP (filepos) && FIXNUMP (XCDR (filepos)))
-    {
-      file = XCAR (filepos);
-      position = XFIXNUM (XCDR (filepos));
-      if (position < 0)
-	position = - position;
-    }
-  else
-    return Qnil;
+  fd = open_doc_file (filepos, &position, &standard_doc_file);
 
-  if (!STRINGP (file))
-    return Qnil;
-
-  /* Put the file name in NAME as a C string.
-     If it is relative, combine it with Vdoc_directory.  */
-
-  tem = Ffile_name_absolute_p (file);
-  if (NILP (tem))
-    {
-      Bytecount minsize;
-      /* XEmacs: Move this check here.  OK if called during loadup to
-	 load byte code instructions. */
-      if (!STRINGP (Vdoc_directory))
-	return Qnil;
-
-      minsize = XSTRING_LENGTH (Vdoc_directory);
-      /* sizeof ("../lib-src/") == 12 */
-      if (minsize < 12)
-	minsize = 12;
-      name_nonreloc = alloca_ibytes (minsize + XSTRING_LENGTH (file) + 8);
-      string_join (name_nonreloc, Vdoc_directory, file);
-    }
-  else
-    name_reloc = file;
-
-  fd = qxe_open (name_nonreloc ? name_nonreloc :
-		 XSTRING_DATA (name_reloc), O_RDONLY | OPEN_BINARY, 0);
-  if (fd < 0)
-    {
-      if (purify_flag)
-	{
-	    /* sizeof ("../lib-src/") == 12 */
-	  name_nonreloc = alloca_ibytes (12 + XSTRING_LENGTH (file) + 8);
-	  /* Preparing to dump; DOC file is probably not installed.
-	     So check in ../lib-src. */
-	  qxestrcpy_ascii (name_nonreloc, "../lib-src/");
-	  qxestrcat (name_nonreloc, XSTRING_DATA (file));
-
-	  fd = qxe_open (name_nonreloc, O_RDONLY | OPEN_BINARY, 0);
-	}
-
-      if (fd < 0)
-	report_file_error ("Cannot open doc string file",
-			   name_nonreloc ? build_istring (name_nonreloc) :
-			   name_reloc);
-    }
-
-  tem = extract_object_file_name (fd, position, name_nonreloc, name_reloc,
-			      standard_doc_file);
+  tem = extract_object_file_name (fd, position, standard_doc_file);
   retry_close (fd);
 
   if (!STRINGP (tem))
@@ -570,9 +573,7 @@ If TYPE is `defvar', then variable definitions are acceptable.
 	{
 	  if (FIXNUMP (doc_offset))
 	    {
-	      filename = get_object_file_name
-		(XFIXNUM (doc_offset) > 0 ? doc_offset
-		 : make_fixnum (- XFIXNUM (doc_offset)));
+	      filename = get_object_file_name (doc_offset);
 	    }
           else if (STRINGP (doc_offset))
             {

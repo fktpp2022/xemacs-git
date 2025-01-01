@@ -4591,10 +4591,10 @@ EXFUN (Fsubstitute_command_keys, 1);
 
 extern Lisp_Object Qfunction_documentation;
 
-Lisp_Object unparesseuxify_doc_string (int fd, EMACS_INT position,
+Lisp_Object unparesseuxify_doc_string (int fd, OFF_T position,
 				       Ibyte *name_nonreloc,
 				       Lisp_Object name_reloc,
-				       int standard_doc_file);
+				       Boolint standard_doc_file);
 Lisp_Object read_doc_string (Lisp_Object);
 extern Lisp_Object Vinternal_doc_file_name;
 

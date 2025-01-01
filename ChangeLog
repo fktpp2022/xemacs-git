@@ -1,3 +1,10 @@
+2025-01-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* Makefile.in.in (install-arch-dep):
+	Install DOC as DOC-DUMP-ID, to avoid the longstanding irritation
+	of installing another XEmacs corrupting the docfile of a running,
+	installed, XEmacs.
+
 2024-12-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* configure.ac (XE_COMPLEX_ARG):
