@@ -27,16 +27,14 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    the argument to record_unwind_protect()).  Once created in C,
    opaque objects cannot be resized.
 
-   OPAQUE OBJECTS SHOULD NEVER ESCAPE TO THE LISP LEVEL.  Some code
-   depends on this.  As such, opaque objects are a generalization
-   of the Qunbound marker.
- */
+   OPAQUE OBJECTS SHOULD NEVER ESCAPE TO THE LISP LEVEL.  Much code depends on
+   this, particularly since Qunbound is implemented as a Lisp_Opaque.  */
 
 #include <config.h>
 #include "lisp.h"
 #include "opaque.h"
 
-Lisp_Object Vopaque_ptr_free_list;
+Lisp_Object Qunbound, Vopaque_ptr_free_list;
 
 /* Should never, ever be called. (except by an external debugger) */
 static void
@@ -183,5 +181,10 @@ init_opaque_once_early (void)
   INIT_LISP_OBJECT (opaque);
   INIT_LISP_OBJECT (opaque_ptr);
 
+  Qunbound = make_opaque (OPAQUE_CLEAR, 0);
+  staticpro (&Qunbound);
+
   reinit_opaque_early ();
 }
+
+/* opaque.c ends here. */

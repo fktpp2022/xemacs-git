@@ -51,7 +51,6 @@ enum symbol_value_type
   SYMVAL_CONST_SELECTED_CONSOLE_FORWARD, /* Forward Lisp_Object into
 					    Vselected_console,
 					    can't be set */
-  SYMVAL_UNBOUND_MARKER,	/* Only Qunbound actually has this tag */
 
   /* The following tags use the 'symbol_value_buffer_local' structure */
   SYMVAL_BUFFER_LOCAL,		/* make-variable-buffer-local */

@@ -200,6 +200,52 @@
 	Weiler. Public domain, no licence issues.
 	Include Dave's UNLICENSE.txt inline into the file.
 
+2025-01-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* data.c:
+	Move definition of Qunbound to opaque.c.
+	* emacs.c (main_1):
+	Call init_opaque_once_early () before init_symbols_once_early (),
+	now the former creates Qunbound.
+	* opaque.c:
+	* opaque.c (init_opaque_once_early):
+	Qunbound is now a zero-length Lisp_Opaque object, no longer a
+	symbol-value-magic.
+	* symbols.c:
+	Update documentation, remove mention of SYMVAL_UNBOUND_MARKER.
+	* symbols.c (do_symval_forwarding):
+	Since Qunbound is no longer symbol-value-magic, this function just
+	returns valcontents when Qunbound is encountered. This was also
+	the behaviour previously, so the change is correct by inspection.
+	* symbols.c (Fset):
+	Qunbound is no longer symbol-value-magic, so 
+	if (!SYMBOL_VALUE_MAGIC_P (valcontents) || UNBOUNDP (valcontents))
+	just becomes
+	if (!SYMBOL_VALUE_MAGIC_P (valcontents))
+	behaviour is exactly the same by inspection.
+	* symbols.c (default_value):
+	Since Qunbound is no longer symbol-value-magic, this function just
+	returns valcontents when Qunbound is encountered. This was also
+	the behaviour previously, so the change is correct by inspection.
+	* symbols.c (Fmake_variable_buffer_local)
+	Since Qunbound is no longer symbol-value-magic, the condition of
+	the if statement is 0, and the code after the if statement is
+	executed. This was also the behaviour previously, since the case
+	within the switch just break;ed out of the switch statement,
+	change is correct by inspection.
+	* symbols.c (Fmake_local_variable)
+	Exactly the same reasoning applies as for
+	Fmake_variable_buffer_local (), twice in this function.
+	* symbols.c (Fbuilt_in_variable_type):
+	This returns Qnil since Qunbound is no longer symbol-value-magic;
+	this was also the behaviour previously, correct by inspection.
+	* symbols.c (static const struct symbol_value_magic
+	guts_of_unbound_marker): Removed. No longer needed.
+	* symbols.c (init_symbols_once_early):
+	Remove initialisation of Qunbound from here.
+	* symeval.h (enum symbol_value_type):
+	Remove SYMVAL_UNBOUND_MARKER from this, no longer needed.
+
 2024-11-09  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Attempt to avoid XEmacs crashing if the X11 server has crashed and

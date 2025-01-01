@@ -10342,16 +10342,13 @@ a symbol can be @dfn{unbound}, meaning that it logically has no value.
 This is internally indicated by storing a special Lisp object, called
 @dfn{the unbound marker} and stored in the global variable
 @code{Qunbound}.  The unbound marker is of a special Lisp object type
-called @dfn{symbol-value-magic}.  It is impossible for the Lisp
-programmer to directly create or access any object of this type.
-
-  @strong{You must not let any ``symbol-value-magic'' object escape to
-the Lisp level.}  Printing any of these objects will cause the message
-@samp{INTERNAL EMACS BUG} to appear as part of the print representation.
-(You may see this normally when you call @code{debug_print()} from the
-debugger on a Lisp object.) If you let one of these objects escape to
-the Lisp level, you will violate a number of assumptions contained in
-the C code and make the unbound marker not function right.
+called @dfn{opaque}.  Despite its name, it is not a symbol.  It is
+impossible for the Lisp programmer to directly create or access any
+object of this type.  Printing it will cause the message @samp{INTERNAL
+EMACS BUG} to appear as part of the print representation.@footnote{It is
+chiefly for the sake of this print representation that Qunbound is
+implemented as ``opaque''; things would work fine were it to be
+implemented as an uninterned symbol.}
 
   When a symbol is created, its value field (and function field) are set
 to @code{Qunbound}.  The Lisp programmer can restore these conditions
@@ -10361,17 +10358,25 @@ value other than @code{Qunbound}) using @code{boundp} and
 @code{fboundp}.  The fields are set to a normal Lisp object using
 @code{set} (or @code{setq}) and @code{fset}.
 
-  Other symbol-value-magic objects are used as special markers to
-indicate variables that have non-normal properties.  This includes any
-variables that are tied into C variables (setting the variable magically
-sets some global variable in the C code, and likewise for retrieving the
-variable's value), variables that magically tie into slots in the
-current buffer, variables that are buffer-local, etc.  The
-symbol-value-magic object is stored in the value cell in place of
-a normal object, and the code to retrieve a symbol's value
-(i.e. @code{symbol-value}) knows how to do special things with them.
-This means that you should not just fetch the value cell directly if you
-want a symbol's value.
+  Other special markers are used to indicate variables that have
+non-normal properties.  These markers are of type
+``symbol-value-magic'', and are used for any variables that are tied
+into C variables (setting the variable magically sets some global
+variable in the C code, and likewise for retrieving the variable's
+value), variables that magically tie into slots in the current buffer,
+variables that are buffer-local, etc.  The symbol-value-magic object is
+stored in the value cell in place of a normal object, and the code to
+retrieve a symbol's value (i.e. @code{symbol-value}) knows how to do
+special things with them.  This means that you should not just fetch the
+value cell directly if you want a symbol's value.
+
+  @strong{You must not let any ``symbol-value-magic'' object escape to
+the Lisp level.}  Printing any of these objects will cause the message
+@samp{INTERNAL EMACS BUG} to appear as part of the print representation.
+(You may see this normally when you call @code{debug_print()} from the
+debugger on a Lisp object.) If you let one of these objects escape to
+the Lisp level, you will violate a number of assumptions contained in
+the C code.
 
   The exact workings of this are rather complex and involved and are
 well-documented in comments in @file{buffer.c}, @file{symbols.c}, and

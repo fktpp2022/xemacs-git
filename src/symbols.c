@@ -1,5 +1,6 @@
-/* "intern" and friends -- moved here from lread.c and data.c
-   Copyright (C) 1985-1989, 1992-1994 Free Software Foundation, Inc.
+/* "boundp", "make-variable-buffer-local" and friends -- moved here from
+   lread.c and data.c
+   Copyright (C) 1985-1989, 1992-1994, 2025 Free Software Foundation, Inc.
    Copyright (C) 1995, 2000, 2001, 2002, 2010 Ben Wing.
 
 This file is part of XEmacs.
@@ -28,11 +29,10 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    chain into other kinds of objects.  Here is a table of possibilities:
 
    1a) simple value
-   1b) Qunbound
-   1c) symbol-value-forward, excluding Qunbound
-   2) symbol-value-buffer-local -> 1a or 1b or 1c
-   3) symbol-value-lisp-magic -> 1a or 1b or 1c
-   4) symbol-value-lisp-magic -> symbol-value-buffer-local -> 1a or 1b or 1c
+   1b) symbol-value-forward
+   2) symbol-value-buffer-local -> 1a or 1b
+   3) symbol-value-lisp-magic -> 1a or 1b
+   4) symbol-value-lisp-magic -> symbol-value-buffer-local -> 1a or 1b
    5) symbol-value-varalias
    6) symbol-value-lisp-magic -> symbol-value-varalias
 
@@ -42,9 +42,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    applies for handler types without associated handlers.
 
    All other fields in all the structures (including the "shadowed" slot
-   in a symbol-value-varalias) can *only* contain a simple value or Qunbound.
-
-*/
+   in a symbol-value-varalias) can *only* contain a simple value (including
+   Qunbound). */
 
 /* #### Ugh, though, this file does awful things with symbol-value-magic
    objects.  This ought to be cleaned up. */
@@ -474,10 +473,10 @@ Set SYMBOL's property list to NEWPLIST, and return NEWPLIST.
    contents of the value cell.  None of these objects can escape to
    the user level, so there is no loss of generality.
 
-   If a symbol is "unbound", then the contents of its value cell is
-   Qunbound.  Despite appearances, this is *not* a symbol, but is a
-   symbol-value-forward object.  This is so that printing it results
-   in "INTERNAL OBJECT (XEmacs bug?)", in case it leaks to Lisp, somehow.
+   If a symbol is "unbound", then the contents of its value cell is Qunbound.
+   Despite appearances, this is *not* a symbol, but is an opaque object.  This
+   is so that printing it results in "INTERNAL OBJECT (XEmacs bug?)", in case
+   it leaks to Lisp, somehow.
 
    Logically all of the following objects are "symbol-value-magic"
    objects, and there are some games played w.r.t. this (#### this
@@ -490,13 +489,12 @@ Set SYMBOL's property list to NEWPLIST, and return NEWPLIST.
 
    1. symbol-value-forward
 
-   symbol-value-forward is used for variables whose actual contents
-   are stored in a C variable of some sort, and for Qunbound.  The
-   lcheader.next field (which is only used to chain together free
-   lcrecords) holds a pointer to the actual C variable.  Included
-   in this type are "buffer-local" variables that are actually
-   stored in the buffer object itself; in this case, the "pointer"
-   is an offset into the struct buffer structure.
+   symbol-value-forward is used for variables whose actual contents are stored
+   in a C variable of some sort.  The lcheader.next field (which is only used
+   to chain together free lcrecords) holds a pointer to the actual C variable.
+   Included in this type are "buffer-local" variables that are actually stored
+   in the buffer object itself; in this case, the "pointer" is an offset into
+   the struct buffer structure.
 
    The subtypes are as follows:
 
@@ -578,9 +576,6 @@ Set SYMBOL's property list to NEWPLIST, and return NEWPLIST.
       or referencing one of these variables forwards into a slot
       in the special struct buffer Vbuffer_defaults.
 
-   SYMVAL_UNBOUND_MARKER:
-      This is used for only one object, Qunbound.
-
    SYMVAL_SELECTED_CONSOLE_FORWARD:
       (declare with DEFVAR_CONSOLE_LOCAL)
       This is used for built-in console-local variables -- i.e.
@@ -641,8 +636,8 @@ Set SYMBOL's property list to NEWPLIST, and return NEWPLIST.
    can find their way into the "current value" cell of a
    `symbol-value-buffer-local' object: SYMVAL_OBJECT_FORWARD,
    SYMVAL_FIXNUM_FORWARD, SYMVAL_BOOLEAN_FORWARD, and
-   SYMVAL_UNBOUND_MARKER.  The SYMVAL_CONST_*_FORWARD cannot
-   be buffer-local because they are unsettable;
+   The SYMVAL_CONST_*_FORWARD cannot be buffer-local because they are
+   unsettable;
    SYMVAL_DEFAULT_*_FORWARD cannot be buffer-local because that
    makes no sense; making SYMVAL_CURRENT_BUFFER_FORWARD buffer-local
    does not have much of an effect (it's already buffer-local); and
@@ -808,10 +803,6 @@ do_symval_forwarding (Lisp_Object valcontents, struct buffer *buffer,
       return (*((Lisp_Object *)((Rawbyte *)console
 				+ ((Rawbyte *)symbol_value_forward_forward (fwd)
 				   - (Rawbyte *)&console_local_flags))));
-
-    case SYMVAL_UNBOUND_MARKER:
-      return valcontents;
-
     default:
       ABORT ();
     }
@@ -912,7 +903,7 @@ set_default_console_slot_variable (Lisp_Object sym,
    symbol-value-buffer-local and symbol-value-lisp-magic objects.
    (i.e. if SYM is a symbol-value-buffer-local, OVALUE should be
    the contents of its current-value cell.) NEWVAL may only be
-   a simple value or Qunbound.  If SYM is a symbol-value-buffer-local,
+   a simple value.  If SYM is a symbol-value-buffer-local,
    this function will only modify its current-value cell, which should
    already be set up to point to the current buffer.
   */
@@ -1435,7 +1426,7 @@ Set SYMBOL's value to NEWVAL, and return NEWVAL.
     reject_constant_symbols (symbol, newval, 0,
 			     UNBOUNDP (newval) ? Qmakunbound : Qset);
 
-  if (!SYMBOL_VALUE_MAGIC_P (valcontents) || UNBOUNDP (valcontents))
+  if (!SYMBOL_VALUE_MAGIC_P (valcontents))
     {
       sym->value = newval;
       return newval;
@@ -1505,8 +1496,6 @@ Set SYMBOL's value to NEWVAL, and return NEWVAL.
 	    invalid_change ("Cannot makunbound", symbol);
 	}
       break;
-
-      /* case SYMVAL_UNBOUND_MARKER: break; */
 
     case SYMVAL_CURRENT_BUFFER_FORWARD:
       {
@@ -1654,9 +1643,6 @@ default_value (Lisp_Object sym)
       sym = follow_varalias_pointers (sym, Qt /* #### kludge */);
       /* presto change-o! */
       goto retry;
-
-    case SYMVAL_UNBOUND_MARKER:
-      return valcontents;
 
     case SYMVAL_CURRENT_BUFFER_FORWARD:
       {
@@ -1867,7 +1853,6 @@ sets it.
 	case SYMVAL_FIXNUM_FORWARD:
 	case SYMVAL_BOOLEAN_FORWARD:
 	case SYMVAL_OBJECT_FORWARD:
-	case SYMVAL_UNBOUND_MARKER:
 	  break;
 
 	case SYMVAL_CURRENT_BUFFER_FORWARD:
@@ -1973,7 +1958,6 @@ Use `make-local-hook' instead.
 	case SYMVAL_FIXNUM_FORWARD:
 	case SYMVAL_BOOLEAN_FORWARD:
 	case SYMVAL_OBJECT_FORWARD:
-	case SYMVAL_UNBOUND_MARKER:
 	  break;
 
 	case SYMVAL_BUFFER_LOCAL:
@@ -2066,7 +2050,6 @@ Use `make-local-hook' instead.
 	  set_up_buffer_local_cache (variable, bfwd, current_buffer, Qnil, 1);
 	  break;
 
-	case SYMVAL_UNBOUND_MARKER:
 	case SYMVAL_CURRENT_BUFFER_FORWARD:
 	  break;
 
@@ -2387,7 +2370,6 @@ The returned info will be a symbol, one of
     case SYMVAL_DEFAULT_CONSOLE_FORWARD:	return Qdefault_console;
     case SYMVAL_SELECTED_CONSOLE_FORWARD:	return Qselected_console;
     case SYMVAL_CONST_SELECTED_CONSOLE_FORWARD: return Qconst_selected_console;
-    case SYMVAL_UNBOUND_MARKER:			return Qnil;
 
     default:
       ABORT (); return Qnil;
@@ -3118,22 +3100,6 @@ Lisp_Object Qone;
 Lisp_Object Qnull_pointer;
 #endif
 
-/* some losing systems can't have static vars at function scope... */
-static const struct symbol_value_magic guts_of_unbound_marker =
-{ /* struct symbol_value_magic */
-  { /* struct old_lcrecord_header */
-    { /* struct lrecord_header */
-      lrecord_type_symbol_value_forward, /* lrecord_type_index */
-      1, /* mark bit */
-      1, /* c_readonly bit */
-      1, /* lisp_readonly bit */
-    },
-    0, /* next */
-  },
-  0, /* value */
-  SYMVAL_UNBOUND_MARKER
-};
-
 static void
 reinit_symbol_objects_early (void)
 {
@@ -3169,14 +3135,6 @@ init_symbols_once_early (void)
      #'intern, no copying of the string needed. */
   Fputhash (XSYMBOL_NAME (Qnil), Qnil, Vobarray);
 
-  {
-    /* Required to get around a GCC syntax error on certain
-       architectures */
-    const struct symbol_value_magic *tem = &guts_of_unbound_marker;
-
-    Qunbound = wrap_symbol_value_magic (tem);
-  }
-
   XSYMBOL (Qnil)->function = Qunbound;
 
   DEFSYMBOL (Qt);
@@ -3184,7 +3142,6 @@ init_symbols_once_early (void)
   Vquit_flag = Qnil;
 
   dump_add_root_lisp_object (&Qnil);
-  dump_add_root_lisp_object (&Qunbound);
   dump_add_root_lisp_object (&Vquit_flag);
 }
 

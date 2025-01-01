@@ -12,6 +12,12 @@
 	Update documentation of reloading to reflect things as they are
 	now.
 
+2025-01-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (Symbol Values):
+	Update documentation of Qunbound, now it is of type opaque rather
+	than symbol-value-magic.
+
 2024-11-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Object inventory):

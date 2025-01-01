@@ -34,7 +34,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "syntax.h"
 #include "casetab.h"
 
-Lisp_Object Qnil, Qt, Qlambda, Qunbound;
+Lisp_Object Qnil, Qt, Qlambda;
 Lisp_Object Qerror_conditions, Qerror_message;
 Lisp_Object Qerror, Qquit, Qsyntax_error, Qinvalid_read_syntax;
 Lisp_Object Qlist_formation_error, Qstructure_formation_error;

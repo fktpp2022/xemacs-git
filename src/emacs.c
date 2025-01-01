@@ -1356,17 +1356,17 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
          obarray. */
       init_elhash_once_early ();
 
-      /* Initialize Qnil, Qt, and Qunbound.  After this, symbols can be
-	 interned.  This depends on init_alloc_once_early() and
-	 init_elhash_once_early(). */
+      /* Make sure that opaque pointers can be created. Create Qunbound. */
+      init_opaque_once_early ();
+
+      /* Initialize Qnil and Qt.  After this, symbols can be interned.  This
+	 depends on init_alloc_once_early(), init_elhash_once_early(), and
+	 initi_opaque_once_early(). */
       init_symbols_once_early ();
 
       /* Declare the basic symbols pertaining to errors,
 	 So that DEFERROR*() can be called. */
       init_errors_once_early ();
-
-      /* Make sure that opaque pointers can be created. */
-      init_opaque_once_early ();
 
       /* Make sure that eistrings can be created. */
       init_eistring_once_early ();
