@@ -689,7 +689,7 @@ non_fixnum_number_p (Lisp_Object object))
                                                                         \
     if (dval != result)                                                 \
       {                                                                 \
-        invalid_argument ("Fractional or two wide " #c_type,            \
+        invalid_argument ("Fractional or too wide " #c_type,            \
                           objeto);                                      \
       }                                                                 \
                                                                         \

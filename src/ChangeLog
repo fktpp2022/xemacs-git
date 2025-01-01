@@ -40,6 +40,11 @@
 	Avoid infinite loop when examining $PATH to find the XEmacs
 	binary, --without-dump-in-exec.
 
+2025-01-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* number.h (DEFINE_C_INTEGER_TYPE_LISP_CONVERSION):
+	Correct a misspelling in this macro.
+
 2024-12-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* device-gtk.c (gtk_delete_device):
