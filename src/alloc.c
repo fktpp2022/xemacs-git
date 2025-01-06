@@ -2847,13 +2847,11 @@ static void verify_string_chars_integrity (void);
 /* Resize the string S so that DELTA bytes can be inserted starting
    at POS.  If DELTA < 0, it means deletion starting at POS.  If
    POS < 0, resize the string but don't copy any characters.  Use
-   this if you're planning on completely overwriting the string.
-*/
-
+   this if you're planning on completely overwriting the string. */
 void
 resize_string (Lisp_Object s, Bytecount pos, Bytecount delta)
 {
-  Bytecount oldfullsize, newfullsize;
+  Bytecount oldfullsize, newfullsize, len, to_copy;
 #ifdef VERIFY_STRING_CHARS_INTEGRITY
   verify_string_chars_integrity ();
 #endif
@@ -2884,6 +2882,31 @@ resize_string (Lisp_Object s, Bytecount pos, Bytecount delta)
   oldfullsize = STRING_FULLSIZE (XSTRING_LENGTH (s));
   newfullsize = STRING_FULLSIZE (XSTRING_LENGTH (s) + delta);
 
+  len = XSTRING_LENGTH (s) + 1 - pos;  
+  to_copy
+    = delta > 0 ? XSTRING_LENGTH (s) + 1 : XSTRING_LENGTH (s) + delta + 1;
+
+  /* Martin Buchholz had fixed a bug in the BIG_STRING_FULLSIZE_P +
+     BIG_STRING_FULLSIZE_P case, but the bug persisted with the other possible
+     string data size combinations. Explicitly make the behaviour for all four
+     possible combinations identical. */
+#define MEMMOVE_BEFORE_ALLOC(s, pos, delta) do          \
+    if (delta < 0 && pos >= 0)                          \
+      {                                                 \
+        memmove (XSTRING_DATA (s) + pos + delta,        \
+                 XSTRING_DATA (s) + pos,                \
+                 len);                                  \
+      } while (0)
+  
+
+#define MEMMOVE_AFTER_ALLOC(s, pos, delta) do           \
+    if (delta > 0 && pos >= 0)                          \
+      {                                                 \
+        memmove (XSTRING_DATA (s) + pos + delta,        \
+                 XSTRING_DATA (s) + pos,                \
+                 len);                                  \
+      } while (0)
+
   if (BIG_STRING_FULLSIZE_P (oldfullsize))
     {
       if (BIG_STRING_FULLSIZE_P (newfullsize))
@@ -2893,46 +2916,43 @@ resize_string (Lisp_Object s, Bytecount pos, Bytecount delta)
 	     memmove() _before_ realloc(), and if growing, we have to
 	     memmove() _after_ realloc() - otherwise the access is
 	     illegal, and we might crash. */
-	  Bytecount len = XSTRING_LENGTH (s) + 1 - pos;
-
-	  if (delta < 0 && pos >= 0)
-	    memmove (XSTRING_DATA (s) + pos + delta,
-		     XSTRING_DATA (s) + pos, len);
+	  MEMMOVE_BEFORE_ALLOC (s, pos, delta);
 
           if (DUMPEDP (XSTRING_DATA (s)))
             {
               /* Don't attempt to free dumped data via xrealloc (). */
               Ibyte *new_data
                 = (Ibyte *) xmalloc (XSTRING_LENGTH (s) + delta + 1);
-              memcpy (new_data, XSTRING_DATA (s), XSTRING_LENGTH (s) + 1);
+              memcpy (new_data, XSTRING_DATA (s), to_copy);
               XSET_STRING_DATA (s, new_data);
             }
           else
             {
               XSET_STRING_DATA
                 (s, (Ibyte *) xrealloc (XSTRING_DATA (s),
-				      XSTRING_LENGTH (s) + delta + 1));
+                                        XSTRING_LENGTH (s) + delta + 1));
             }
-	  if (delta > 0 && pos >= 0)
-	    memmove (XSTRING_DATA (s) + pos + delta, XSTRING_DATA (s) + pos,
-		     len);
+
+          MEMMOVE_AFTER_ALLOC (s, pos, delta);
+
 	  /* Bump the cons counter.
 	     Conservative; Martin let the increment be delta. */
 	  INCREMENT_CONS_COUNTER (newfullsize, "string chars");
 	}
       else /* String has been demoted from BIG_STRING. */
 	{
-	  Ibyte *new_data =
-	    allocate_string_chars_struct (s, newfullsize)->chars;
+	  Ibyte *new_data;
 	  Ibyte *old_data = XSTRING_DATA (s);
 
-	  if (pos >= 0)
-	    {
-	      memcpy (new_data, old_data, pos);
-	      memcpy (new_data + pos + delta, old_data + pos,
-		      XSTRING_LENGTH (s) + 1 - pos);
-	    }
+          MEMMOVE_BEFORE_ALLOC (s, pos, delta);
+
+          new_data = allocate_string_chars_struct (s, newfullsize)->chars;
+          memcpy (new_data, XSTRING_DATA (s), to_copy);
+
 	  XSET_STRING_DATA (s, new_data);
+
+          MEMMOVE_AFTER_ALLOC (s, pos, delta);
+
           if (!DUMPEDP (old_data))
             {
               xfree (old_data);
@@ -2951,29 +2971,23 @@ resize_string (Lisp_Object s, Bytecount pos, Bytecount delta)
 	     allocation space, modulo any alignment
 	     constraints).
              Less true of dumped data. */
-	  if (pos >= 0)
-	    {
-	      Ibyte *addroff = pos + XSTRING_DATA (s);
-
-	      memmove (addroff + delta, addroff,
-		       /* +1 due to zero-termination. */
-		       XSTRING_LENGTH (s) + 1 - pos);
-	    }
+          MEMMOVE_BEFORE_ALLOC (s, pos, delta);
+          MEMMOVE_AFTER_ALLOC (s, pos, delta);
 	}
       else
 	{
-	  Ibyte *new_data =
-	    BIG_STRING_FULLSIZE_P (newfullsize)
+	  Ibyte *new_data;
+
+          MEMMOVE_BEFORE_ALLOC (s, pos, delta);
+
+          new_data = BIG_STRING_FULLSIZE_P (newfullsize)
 	    ? allocate_big_string_chars (XSTRING_LENGTH (s) + delta + 1)
 	    : allocate_string_chars_struct (s, newfullsize)->chars;
+          memcpy (new_data, XSTRING_DATA (s), to_copy);
 
-	  if (pos >= 0)
-	    {
-	      memcpy (new_data, old_data, pos);
-	      memcpy (new_data + pos + delta, old_data + pos,
-		      XSTRING_LENGTH (s) + 1 - pos);
-	    }
 	  XSET_STRING_DATA (s, new_data);
+
+          MEMMOVE_AFTER_ALLOC (s, pos, delta);
 
 	  if (!DUMPEDP (old_data)) /* Can't free dumped data. */
 	    {
@@ -3008,6 +3022,9 @@ resize_string (Lisp_Object s, Bytecount pos, Bytecount delta)
   verify_string_chars_integrity ();
 #endif
 }
+
+#undef MEMMOVE_BEFORE_ALLOC
+#undef MEMMOVE_AFTER_ALLOC
 
 /* WARNING: If you modify an existing string, you must call
    CHECK_LISP_WRITEABLE() before and bump_string_modiff() afterwards. */

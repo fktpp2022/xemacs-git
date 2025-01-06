@@ -4316,7 +4316,7 @@ character length of STRING is not changed.
       Ibyte *p, *pend;
       Bytecount delta = (zerolen * scount) - XSTRING_LENGTH (string);
 
-      resize_string (string, 0, delta);
+      resize_string (string, -1, delta);
       p = XSTRING_DATA (string);
       pend = p + XSTRING_LENGTH (string);
 
@@ -5072,10 +5072,8 @@ concatenate (int nsequences, Lisp_Object *sequences,
 
           text_checking_assert ((EMACS_UINT) used_len < bstaging_len);
 
-          /* No-one else has a pointer to RESULT, and calling resize_string()
-             gives crashes in temacs, its implementation isn't thoroughly
-             debugged and its performance is sub-optimal. Create a new RESULT,
-             let the first be GCed instead. */
+          /* No-one else has a pointer to RESULT. Create a new RESULT, let the
+             first be GCed instead. */
           result = make_string (bstaging, used_len);
         }
       else

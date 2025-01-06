@@ -335,6 +335,43 @@ with control-1"
                      (getf (string-char-byte-conversion-info latin1)
                            'ascii-begin))))))
 
+  (let ((big-string (make-string 8200 ?a))
+        (medium-string
+         (make-string 8192 (make-char 'japanese-jisx0213-2 126 126)))
+        (small-string (make-string 1 ?a)))
+    ;; Test resize_string ().
+    ;; 1. Big string resized to big string, growing.
+    (fill big-string (make-char 'japanese-jisx0213-2 126 126))
+    (garbage-collect)
+    (Assert (eq (aref big-string 0) (make-char 'japanese-jisx0213-2 126 126)))
+    ;; 2. Big string resized to big string, shrinking.
+    (fill big-string ?z)
+    (garbage-collect)
+    (Assert (eq (aref big-string 0) ?z))
+    ;; 3. Big string resized to small string (has to be shrinking).
+    (fill medium-string ?a)
+    (garbage-collect)
+    (Assert (eq (aref medium-string 0) ?a))
+    ;; 4. Small string changes size but allocation size does not (given
+    ;; alignment constraints).
+    (aset small-string 0 (make-char 'latin-iso8859-1 127))
+    (garbage-collect)
+    (Assert (eq (aref small-string 0) (make-char 'latin-iso8859-1 127)))
+
+    ;; 5. Small string resized to big string (medium string is now a small
+    ;; string).
+    (fill medium-string (make-char 'japanese-jisx0213-2 126 126))
+    (garbage-collect)
+    (Assert (eq (aref medium-string 0)
+                (make-char 'japanese-jisx0213-2 126 126)))
+
+    ;; 6. Small string remaining small.
+    (fill small-string (make-char 'japanese-jisx0213-2 126 126))
+    (garbage-collect)
+    (Assert (eq (aref small-string 0)
+                (make-char 'japanese-jisx0213-2 126 126))))
+
+
   ;;---------------------------------------------------------------
   ;; Test coding system functions
   ;;---------------------------------------------------------------

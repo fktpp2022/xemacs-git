@@ -1,3 +1,17 @@
+2025-01-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Debug resize_string (), make its behaviour more uniform.
+	* alloc.c:
+	* alloc.c (resize_string):
+	Define a couple of macros to make sure the string copying
+	behaviour is the same for the various sizes encountered. Avoid
+	corrupting the heap if shrinking a non-big string.
+	* sequence.c (Fclear_string):
+	Pass POS as -1 to resize_string here, since we are overwriting the
+	whole thing.
+	* sequence.c (concatenate): Adjust a comment here regarding
+	resize_string().
+
 2024-12-31  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lisp.h:
