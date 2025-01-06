@@ -1,3 +1,11 @@
+2025-01-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* obsolete.el:
+	* obsolete.el (before-change-function):
+	* obsolete.el (after-change-function):
+	Move the implementation of these obsolete variables to Lisp, using
+	symbol-value handlers.
+
 2024-12-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	No longer GC after loading every file when dumping, there is no

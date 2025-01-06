@@ -814,18 +814,11 @@ signal_before_change (struct buffer *buf, Charbpos start, Charbpos end)
       MAP_INDIRECT_BUFFERS (buf, mbuf, bufcons)
 	{
 	  buffer = wrap_buffer (mbuf);
-	  if (!NILP (symbol_value_in_buffer (Qbefore_change_functions, buffer))
-	      /* Obsolete, for compatibility */
-	      || !NILP (symbol_value_in_buffer (Qbefore_change_function, buffer)))
+	  if (!NILP (symbol_value_in_buffer (Qbefore_change_functions, buffer)))
 	    {
 	      set_buffer_internal (buf);
 	      va_run_hook_with_args_trapping_problems
 		(Qchange, Qbefore_change_functions, 2,
-		 make_fixnum (start), make_fixnum (end),
-		 INHIBIT_EXISTING_PERMANENT_DISPLAY_OBJECT_DELETION);
-	      /* Obsolete, for compatibility */
-	      va_run_hook_with_args_trapping_problems
-		(Qchange, Qbefore_change_function, 2,
 		 make_fixnum (start), make_fixnum (end),
 		 INHIBIT_EXISTING_PERMANENT_DISPLAY_OBJECT_DELETION);
 	    }
@@ -910,21 +903,13 @@ signal_after_change (struct buffer *buf, Charbpos start, Charbpos orig_end,
 	{
 	  buffer = wrap_buffer (mbuf);
 
-	  if (!NILP (symbol_value_in_buffer (Qafter_change_functions, buffer))
-	      /* Obsolete, for compatibility */
-	      || !NILP (symbol_value_in_buffer (Qafter_change_function, buffer)))
+	  if (!NILP (symbol_value_in_buffer (Qafter_change_functions, buffer)))
 	    {
 	      set_buffer_internal (buf);
 	      /* The actual after-change functions take slightly
 		 different arguments than what we were passed. */
 	      va_run_hook_with_args_trapping_problems
 		(Qchange, Qafter_change_functions, 3,
-		 make_fixnum (start), make_fixnum (new_end),
-		 make_fixnum (orig_end - start),
-		 INHIBIT_EXISTING_PERMANENT_DISPLAY_OBJECT_DELETION);
-	      /* Obsolete, for compatibility */
-	      va_run_hook_with_args_trapping_problems
-		(Qchange, Qafter_change_function, 3,
 		 make_fixnum (start), make_fixnum (new_end),
 		 make_fixnum (orig_end - start),
 		 INHIBIT_EXISTING_PERMANENT_DISPLAY_OBJECT_DELETION);

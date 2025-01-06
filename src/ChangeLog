@@ -1,5 +1,14 @@
 2025-01-06  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* insdel.c (signal_before_change):
+	* insdel.c (signal_after_change):
+	Remove examination of before-change-function,
+	after-change-function from these functions, only respect
+	before-change-functions, after-change-functions, now we have
+	symbol-value handlers in obsolete.el to make this possible.
+
+2025-01-06  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Debug resize_string (), make its behaviour more uniform.
 	* alloc.c:
 	* alloc.c (resize_string):
