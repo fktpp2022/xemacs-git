@@ -1,3 +1,10 @@
+2025-01-12  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* eval.c: (trace_out_and_die): Removed.
+	* eval.c (signal_call_debugger):
+	No longer call trace_out_and_die() on noninteractive debug builds,
+	allow Lisp to override the debugger for the sake of testing.
+
 2025-01-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* insdel.c (signal_before_change):
