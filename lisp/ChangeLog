@@ -1,3 +1,9 @@
+2025-01-13  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* minibuf.el (read-number):
+	Call (ding nil ...) for symmetry with the completing-read code,
+	don't abort keyboard macros as does (beep) without arguments.
+
 2025-01-12  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* startup.el (early-error-handler):

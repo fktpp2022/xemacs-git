@@ -1435,7 +1435,9 @@ If DEFAULT-VALUE is non-nil, return that if user enters an empty
 		  (input-error nil)
 		  (invalid-read-syntax nil)
 		  (end-of-file nil)))
-      (or (funcall pred num) (beep)))
+      ;; undefined-key is not theoretically ideal as the sound, but close
+      ;; enough.
+      (or (funcall pred num) (ding nil 'undefined-key)))
     num))
 
 (defun read-shell-command (prompt &optional initial-input history default-value)
