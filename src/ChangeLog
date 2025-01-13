@@ -1,3 +1,16 @@
+2025-01-13  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* callint.c:
+	* callint.c (Finteractive): Document limitations with string
+	(interactive) specifications when writing code compatible with GNU
+	Emacs.
+	* callint.c (callint_prompt):
+	Fix my bug in this, supply Qstring to the Fformat_into()
+	call. Transform markers to integers as was previously done.
+	* callint.c (Fcall_interactively):
+	Clean up some cases within this, removed unneeded local variables
+	for clarity.
+
 2025-01-12  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* eval.c: (trace_out_and_die): Removed.

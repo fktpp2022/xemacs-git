@@ -34,6 +34,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "events.h"
 #include "insdel.h"
 #include "window-impl.h" /* WINDOW_MINI_P */
+#include "extents.h"
 
 extern Charcount num_input_chars;
 
@@ -94,7 +95,11 @@ The argument of `interactive' is usually a string containing a code letter
  the argument and do not need prompts.)  To prompt for multiple arguments,
  give a code letter, its prompt, a newline, and another code letter, etc.
  Prompts are passed to format, and may use % escapes to print the
- arguments that have already been read.
+ arguments that have already been read. Note that if you wish to be compatible
+ with GNU Emacs only %s is accepted for these escapes, and any buffer position
+ arguments will not have useful values in the prompt passed to the user in that
+ program. Consider use of a list argument to `interactive' in that context.
+
 If the argument is not a string, it is evaluated to get a list of
  arguments to pass to the function.
 Just `(interactive)' means pass no args when calling interactively.
@@ -227,19 +232,50 @@ check_mark (void)
 }
 
 static Lisp_Object
-callint_prompt (const Ibyte *prompt_start, Bytecount prompt_length,
+callint_prompt (Lisp_Object reloc,
+		const Ibyte *prompt_start, Bytecount prompt_length,
                 const Lisp_Object *args, int nargs)
 {
-  if (memchr (prompt_start, '%', prompt_length))
+  Lisp_Object control_string = make_string (prompt_start, prompt_length);
+
+  if (STRINGP (reloc) && prompt_length > 0)
     {
-      Lisp_Object *args0 = alloca_array (Lisp_Object, nargs + 1);
-      args0[0] = make_string (prompt_start, prompt_length);
-      memcpy (args0 + 1, args, sizeof (Lisp_Object) * nargs);
-      /* format_into() will GCPRO S, no need for us to. */
-      return Fformat_into (nargs + 1, args0);
+      text_checking_assert (prompt_start >= XSTRING_DATA (reloc));
+      text_checking_assert (prompt_start + prompt_length
+			    <= (XSTRING_DATA (reloc)
+                                + XSTRING_LENGTH (reloc)));
+      copy_string_extents (control_string, reloc, 0,
+			   prompt_start - XSTRING_DATA (reloc),
+			   prompt_length);
+    }
+
+  if (memchr (prompt_start, '%', prompt_length) && nargs)
+    {
+      Lisp_Object *argz = alloca_array (Lisp_Object, nargs + 2);
+      int ii;
+
+      argz[0] = Qstring;
+      argz[1] = control_string;
+
+      for (ii = 0; ii < nargs; ii++)
+	{
+	  if (MARKERP (args[ii]))
+	    {
+	      /* This facility is used very rarely, the byte-char conversion
+		 hit is not an issue. */
+	      argz[ii + 2] = Fmarker_position (args[ii]);
+	    }
+	  else
+	    {
+	      argz[ii + 2] = args[ii];
+	    }
+	}
+
+      /* format_into() will GCPRO argz, no need for us to. */
+      return Fformat_into (nargs + 2, argz);
     }
   
-  return make_string (prompt_start, prompt_length);
+  return control_string;
 }
 
 /* `lambda' for RECORD-FLAG is an XEmacs addition. */
@@ -607,17 +643,15 @@ when reading the arguments.
 	    prompt_limit = 0;	/* "sfoo:\n" -- strip tailing return */
 	    prompt_length -= 1;
 	  }
-	/* This uses `visargs' instead of `args' so that global-set-key
-	   prompts with "Set key C-x C-f to command: "instead of printing
-	   event objects in there.
-	 */
-#define PROMPT() callint_prompt ((const Ibyte *) prompt_start, prompt_length, visargs, argnum)
+	/* This uses `visargs' instead of `args' so that global-set-key prompts
+	   with "Set key C-x C-f to command: " instead of printing event
+	   objects in there. */
+#define PROMPT() callint_prompt (specs, prompt_start, prompt_length, visargs, argnum)
 	switch (prompt_data[prompt_index])
 	  {
 	  case 'a':		/* Symbol defined as a function */
 	    {
-	      Lisp_Object tem = call1 (Qread_function, PROMPT ());
-	      args[argnum] = tem;
+	      args[argnum] = call1 (Qread_function, PROMPT ());
 	      arg_from_tty = 1;
 	      break;
 	    }
@@ -649,8 +683,7 @@ when reading the arguments.
 	    }
 	  case 'C':		/* Command: symbol with interactive function */
 	    {
-	      Lisp_Object tem = call1 (Qread_command, PROMPT ());
-	      args[argnum] = tem;
+	      args[argnum] = call1 (Qread_command, PROMPT ());
 	      arg_from_tty = 1;
 	      break;
 	    }
@@ -700,22 +733,19 @@ when reading the arguments.
 	    }
 	  case 'f':		/* Existing file name. */
 	    {
-	      Lisp_Object tem = call4 (Qread_file_name, PROMPT (),
-				       Qnil, /* dir */
-				       Qnil, /* default */
-				       Qzero /* must-match */
-				       );
-              args[argnum] = tem;
+              args[argnum] = call4 (Qread_file_name, PROMPT (),
+                                    Qnil,   /* dir */
+                                    Qnil,   /* default */
+                                    Qzero); /* must-match */
 	      arg_from_tty = 1;
 	      break;
 	    }
 	  case 'F':		/* Possibly nonexistent file name. */
 	    {
 	      args[argnum] = call4 (Qread_file_name, PROMPT (),
-				    Qnil, /* dir */
-				    Qnil, /* default */
-				    Qnil /* must-match */
-				    );
+				    Qnil,  /* dir */
+				    Qnil,  /* default */
+				    Qnil); /* must-match */
 	      arg_from_tty = 1;
 	      break;
 	    }
@@ -848,8 +878,7 @@ when reading the arguments.
 	    }
 	  case 'v':		/* Variable name: user-variable-p symbol */
 	    {
-	      Lisp_Object tem = call1 (Qread_variable, PROMPT ());
-	      args[argnum] = tem;
+	      args[argnum] = call1 (Qread_variable, PROMPT ());
 	      arg_from_tty = 1;
 	      break;
 	    }
