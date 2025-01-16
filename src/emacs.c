@@ -567,25 +567,6 @@ Rawbyte *stack_bottom;
 /* Number of bytes of writable memory we can expect to be able to get. */
 EMACS_UINT lim_data;
 
-/* WARNING!
-
-   Some LISP-visible command-line options are set by XEmacs _before_ the
-   data is dumped in building a --pdump XEmacs, but used _after_ it is
-   restored in normal operation.  Thus the dump-time values overwrite the
-   values XEmacs is getting at runtime.  Such variables must be saved
-   before loading the dumpfile, and restored afterward.
-
-   Therefore these variables may not be initialized in vars_of_emacs().
-
-   The save/restore is done immediately before and after pdump_load() in
-   main_1().  See that function for the current list of protected variables.
-
-   Note that saving/restoring is only necessary for a few variables that are
-     o command line arguments effective at runtime (as opposed to dump-time),
-     o parsed before pdump_load, and
-     o exported to Lisp via a DEFVAR.
-*/
-
 /* Nonzero means running XEmacs without interactive terminal.  */
 
 int noninteractive;
@@ -876,7 +857,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
   display_use = NULL;
   inhibit_non_essential_conversion_operations = 1;
 
-
 #if defined (LOSING_GCC_DESTRUCTOR_FREE_BUG)
   /* Prior to XEmacs 21, this was `#if 0'ed out.  */
   /* I'm enabling this because it is the only reliable way I've found to */
@@ -923,12 +903,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 
   sort_args (argc, argv);
 
-#if 0 /* defined (_SCO_DS)
-	 #### Turn this off, we already have another SCO_DS hack in main().
-      */
-  environ = envp;
-#endif
-
   /* Record (approximately) where the stack begins.  */
   stack_bottom = &stack_bottom_variable;
 
@@ -960,42 +934,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
      and with the list of non-clobbered variables near where pdump_load()
      is called! */
 
-  /* Handle the -sd/--show-dump-id switch, which means show the hex dump_id
-     and quit */
-  if (argmatch (argv, argc, "-sd", "--show-dump-id", 0, NULL, &skip_args))
-    {
-      printf ("%08x\n", dump_id);
-      exit (0);
-    }
-
-  /* Handle the --no-dump-file/-nd switch, which means don't load the dump
-     file (ignored when not using pdump) */
-  if (argmatch (argv, argc, "-nd", "--no-dump-file", 0, NULL, &skip_args))
-    nodumpfile = 1;
-
-  /* Handle the -batch switch, which means don't do interactive display.  */
-  if (argmatch (argv, argc, "-batch", "--batch", 0, NULL, &skip_args))
-    {
-#if 0 /* I don't think this is correct. */
-      inhibit_autoloads = 1;
-#endif
-      noninteractive = 1;
-    }
-
-  {
-    int count_before = skip_args;
-    /* Handle the -script switch, which implies batch and vanilla. The -l
-       part of its functionality is implemented in Lisp. */
-    if (argmatch (argv, argc, "-script", "--script", 0, NULL,
-		  &skip_args))
-      {
-	noninteractive = 1;
-	vanilla_inhibiting = 1;
-      }
-
-    /* Don't actually discard this argument. */
-    skip_args = count_before;
-  }
 #ifdef WIN32_NATIVE
   {
     /* Since we aren't a console application, we can't easily be terminated
@@ -1020,8 +958,119 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 	CloseHandle (h_thread);
       }
   }
-
 #endif /* WIN32_NATIVE */
+
+  /* Handle the -sd/--show-dump-id switch, which means show the hex dump_id
+     and quit */
+  if (argmatch (argv, argc, "-sd", "--show-dump-id", 0, NULL, &skip_args))
+    {
+      printf ("%08x\n", dump_id);
+      exit (0);
+    }
+
+  /* Handle the --no-dump-file/-nd switch, which means don't load the dump
+     file. */
+  if (argmatch (argv, argc, "-nd", "--no-dump-file", 0, NULL, &skip_args))
+    nodumpfile = 1;
+
+  /* DO NOT handle Lisp-visible command line arguments before the dump file is
+     loaded (if it is to be loaded, see -nd). They will be overwritten by the
+     values stored in the dump file. Instead, load the dump file, then process
+     the arguments, overwriting the values restored from the dump file in the
+     natural way. It is more likely than not that a command-line argument will
+     be Lisp-visible, don't overthink it. */
+
+  /* NOTE NOTE NOTE:
+
+     In the code below, there are three different states we are concerned
+     about:
+
+     "raw-temacs" == No dumped Lisp data present.  `temacs', or (with pdump)
+                     `xemacs -nd'.
+
+     "run-temacs" == We are restarting.  run-emacs-from-temacs is called,
+                     aka `run-temacs' on the command line.
+
+     "post-dump"  == We have loaded dump data using pdump_load().
+
+     initialized==0 => raw-temacs
+     initialized!=0 && restart!=0 => run-temacs
+     initialized!=0 && restart==0 => post-dump
+
+     When post-pdump_load(), we need to reinitialize various structures.
+     This case is noted in the code below by
+
+       initialized +
+       !restart
+
+     In the comments below, "dump time" or "dumping" == raw-temacs.
+     "run time" == run-temacs or post-dump. */
+
+  /* First, do really basic environment initialization -- catching signals
+     and the like.  These functions have no dependence on any part of
+     the Lisp engine and need to be done both at dump time and at run time. */
+
+  init_signals_very_early ();
+  init_data_very_early (); /* Catch math errors. */
+  init_floatfns_very_early (); /* Catch floating-point math errors. */
+  init_process_times_very_early (); /* Initialize our process timers.
+				       As early as possible, of course,
+				       so we can be fairly accurate. */
+
+#ifdef HAVE_MS_WINDOWS
+  init_mswindows_dde_very_early (); /* DDE needs to be initialized early so
+				       that the client doesn't give up
+				       waiting.  */
+#endif
+
+  /* purify_flag is set to indicate we are dumping (its name refers to
+     purespace, which no longer exists and was a way of marking some
+     areas read-only so they could be shared among many processes).
+
+     loadup.el will set to nil at end. */
+  purify_flag = 0;
+  in_pdump = 0;
+  if (restart)
+    initialized = 1;
+  else if (nodumpfile)
+    {
+      initialized = 0;
+      purify_flag = 1;
+    }
+  else
+    {
+      initialized = pdump_load ((const Extbyte *) argv[0]);
+
+      if (initialized)
+	run_temacs_argc = -1;
+      else
+	purify_flag = 1;
+    }
+
+  init_alloc_early ();
+
+  init_gc_early ();
+
+  /* Handle the -batch switch, which means don't do interactive display.  */
+  if (argmatch (argv, argc, "-batch", "--batch", 0, NULL, &skip_args))
+    {
+      noninteractive = 1;
+    }
+
+  {
+    int count_before = skip_args;
+    /* Handle the -script switch, which implies batch and vanilla. The -l
+       part of its functionality is implemented in Lisp. */
+    if (argmatch (argv, argc, "-script", "--script", 0, NULL,
+		  &skip_args))
+      {
+	noninteractive = 1;
+	vanilla_inhibiting = 1;
+      }
+
+    /* Don't actually discard this argument. */
+    skip_args = count_before;
+  }
 
   if (argmatch (argv, argc, "-debug-paths", "--debug-paths",
 		0, NULL, &skip_args))
@@ -1225,122 +1274,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 	   "-batch");
 
   noninteractive1 = noninteractive;
-
-  /****** Now initialize everything *******/
-
-  /* NOTE NOTE NOTE:
-
-     In the code below, there are three different states we are concerned
-     about:
-
-     "raw-temacs" == No dumped Lisp data present.  `temacs', or (with pdump)
-                     `xemacs -nd'.
-
-     "run-temacs" == We are restarting.  run-emacs-from-temacs is called,
-                     aka `run-temacs' on the command line.
-
-     "post-dump"  == We are running an unexec()ed XEmacs, or we have loaded
-                     dump data using pdump_load().
-
-     initialized==0 => raw-temacs
-     initialized!=0 && restart!=0 => run-temacs
-     initialized!=0 && restart==0 => post-dump
-
-     When post-pdump_load(), we need to reinitialize various structures.
-     This case is noted in the code below by
-
-       initialized +
-       !restart
-
-     In the comments below, "dump time" or "dumping" == raw-temacs.
-     "run time" == run-temacs or post-dump.
-*/
-
-  /* First, do really basic environment initialization -- catching signals
-     and the like.  These functions have no dependence on any part of
-     the Lisp engine and need to be done both at dump time and at run time. */
-
-  init_signals_very_early ();
-  init_data_very_early (); /* Catch math errors. */
-  init_floatfns_very_early (); /* Catch floating-point math errors. */
-  init_process_times_very_early (); /* Initialize our process timers.
-				       As early as possible, of course,
-				       so we can be fairly accurate. */
-
-#ifdef HAVE_MS_WINDOWS
-  init_mswindows_dde_very_early (); /* DDE needs to be initialized early so
-				       that the client doesn't give up
-				       waiting.  */
-#endif
-
-  /* Now initialize the Lisp engine and the like.  Done only during
-     dumping.  No dependence on anything that may be in the user's
-     environment when the dumped XEmacs is run.
-
-     We try to do things in an order that minimizes the non-obvious
-     dependencies between functions. */
-
-  /* purify_flag is set to indicate we are dumping (its name refers to
-     purespace, which no longer exists and was a way of marking some
-     areas read-only so they could be shared among many processes).
-
-     loadup.el will set to nil at end. */
-
-  purify_flag = 0;
-  in_pdump = 0;
-  if (restart)
-    initialized = 1;
-  else if (nodumpfile)
-    {
-      initialized = 0;
-      purify_flag = 1;
-    }
-  else
-    {
-
-      /* Keep command options from getting stomped.
-
-      Some LISP-visible options are changed by XEmacs _after_ the data is
-      dumped in building a --pdump XEmacs, but _before_ it is restored in
-      normal operation.  Thus the restored values overwrite the values
-      XEmacs is getting at run-time.  Such variables must be saved here,
-      and restored after loading the dumped data.
-
-      (Remember: Only LISP-visible options that are set up to this point
-      need to be listed here.)
-      */
-
-      /* noninteractive1 is saved in noninteractive, which isn't
-	 LISP-visible */
-      int inhibit_early_packages_save = inhibit_early_packages;
-      int inhibit_autoloads_save      = inhibit_autoloads;
-      int inhibit_all_packages_save   = inhibit_all_packages;
-      int vanilla_inhibiting_save     = vanilla_inhibiting;
-      int debug_paths_save            = debug_paths;
-      int inhibit_site_lisp_save      = inhibit_site_lisp;
-      int inhibit_site_modules_save   = inhibit_site_modules;
-
-      initialized = pdump_load ((const Extbyte *) argv[0]);
-
-      /* Now unstomp everything */
-      noninteractive1        = noninteractive;
-      inhibit_early_packages = inhibit_early_packages_save;
-      inhibit_autoloads      = inhibit_autoloads_save;
-      inhibit_all_packages   = inhibit_all_packages_save;
-      vanilla_inhibiting     = vanilla_inhibiting_save;
-      debug_paths            = debug_paths_save;
-      inhibit_site_lisp      = inhibit_site_lisp_save;
-      inhibit_site_modules   = inhibit_site_modules_save;
-
-      if (initialized)
-	run_temacs_argc = -1;
-      else
-	purify_flag = 1;
-    }
-
-  init_alloc_early ();
-
-  init_gc_early ();
 
   if (!initialized)
     {
@@ -2688,14 +2621,13 @@ static const struct standard_args standard_args[] =
 {
   /* Handled by main_1 above: Each must have its own priority and must be
      in the order mentioned in main_1. */
+#ifdef WIN32_NATIVE
+  { "-mswindows-termination-handle", 0, 109, 1 },
+#endif /* WIN32_NATIVE */
   { "-sd", "--show-dump-id", 105, 0 },
   { "-nd", "--no-dump-file", 95, 0 },
   { "-batch", "--batch", 88, 0 },
-  { "-script", "--script", 89, 1 },
-#ifdef WIN32_NATIVE
-  { "-mswindows-termination-handle", 0, 84, 1 },
-  { "-nuni", "--no-unicode-lib-calls", 83, 0 },
-#endif /* WIN32_NATIVE */
+  { "-script", "--script", 87, 1 },
   { "-debug-paths", "--debug-paths", 82, 0 },
   { "-no-packages", "--no-packages", 81, 0 },
   { "-no-early-packages", "--no-early-packages", 80, 0 },
@@ -3043,7 +2975,7 @@ main (int argc, Extbyte **argv, Extbyte **UNUSED (envp))
       argc/argv are hosed the second time through.
 
      xemacs -- Only the second main_1 is executed.  The invocation path must
-      computed but this only matters when running in place or when running
+      be computed but this only matters when running in place or when running
       as a login shell.
 
      As a bonus for straightening this out, XEmacs can now be run in place

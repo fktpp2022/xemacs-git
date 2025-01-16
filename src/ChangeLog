@@ -1,3 +1,27 @@
+2025-01-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Rearrange main_1() to avoid the need to save and restore values
+	before and after loading the dump file.
+	* emacs.c:
+	Remove a comment cautioning about this issue.
+	* emacs.c (main_1):
+	Remove some SCO-specific code that has long been #ifdefed out.
+	Handle the -mswindows-termination-handle command line argument
+	first, since it's needed for debugging and it's not visible to
+	Lisp.
+	Next handle -nd (needed to decide on whether to load the dump
+	file) and -sd (which immediately exits).
+	Then load the dump file. Only after that, process the remaining
+	command line arguments, overriding the restored Lisp-visible
+	variables as appropriate.
+	* emacs.c (standard_args):
+	Remove -nuni from this, which option has been obsolete since Win95
+	support was removed.
+	Re-order the structure to reflect changed order of processing in
+	main_1().
+	* emacs.c (main):
+	Correct a comment here.
+
 2025-01-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* callint.c:
