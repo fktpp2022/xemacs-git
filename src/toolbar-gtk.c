@@ -263,7 +263,8 @@ static void
 init_gtk_toolbar_stock_icons()
 {
   Lisp_Object tbl;
-  Vgtk_toolbar_stock_icons = call0 (intern ("make-hash-table"));
+  Vgtk_toolbar_stock_icons = make_lisp_hash_table (16, HASH_TABLE_NON_WEAK,
+                                                   Qeq);
   tbl = Vgtk_toolbar_stock_icons;
 
 #if GTK_CHECK_VERSION(3, 10, 0)

@@ -1,3 +1,26 @@
+2025-01-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* device-gtk.c (gtk_init_device):
+	Add a comment regarding a deprecated function which should stay.
+	* device-gtk.c (Fgtk_keysym_on_keyboard_p):
+	Use decode_gtk_device() rather than re-implementing it.
+	* device-gtk.c (Fgtk_style_info):
+	Ditto.
+	* menubar-gtk.c:
+	* menubar-gtk.c (menu_name_to_accelerator):
+	Revise this to take a Lisp string, to respect our internal
+	encoding, and to use our case infrastructure.
+	* menubar-gtk.c (menu_convert):
+	Move a statement after the declarations.
+	* menubar-gtk.c (menu_descriptor_to_widget_1):
+	Call menu_name_to_accelerator with its new calling convention.
+	* menubar-gtk.c (menu_create_menubar):
+	Don't call gtk_widget_set_name() on ITEM before checking ITEM is
+	non-NULL
+	* toolbar-gtk.c (init_gtk_toolbar_stock_icons):
+	Call make_lisp_hash_table() explicitly rather than call0 (intern
+	("make-hash-table")).
+
 2025-01-16  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Rearrange main_1() to avoid the need to save and restore values

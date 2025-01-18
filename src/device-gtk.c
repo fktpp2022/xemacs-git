@@ -253,6 +253,8 @@ gtk_init_device (struct device *d, Lisp_Object UNUSED (props))
 
   if (NULL == visual)
     {
+      /* This is deprecated, the alternative is gdk_screen_get_rgba_visual(),
+         which we have already attempted to call.. */
       visual = gdk_visual_get_best();
     }
 
@@ -574,10 +576,7 @@ The two names differ in capitalization and underscoring.
 */
        (keysym, device))
 {
-  struct device *d = decode_device (device);
-
-  if (!DEVICE_GTK_P (d))
-    gui_error ("Not a GTK device", device);
+  struct device *d = decode_gtk_device (device);
 
   return (NILP (Fgethash (keysym, DEVICE_GTK_DATA (d)->x_keysym_map_hashtable, Qnil)) ?
 	  Qnil : Qt);
@@ -760,9 +759,9 @@ Get the style information for a Gtk device.
 */
        (device))
 {
-  struct device *d = decode_device (device);
   Lisp_Object result = Qnil;
 #ifdef HAVE_GTK2
+  struct device *d = decode_gtk_device (device);
   GtkStyle *style = NULL;
   GtkWidget *app_shell = GTK_WIDGET (DEVICE_GTK_APP_SHELL (d));
   GdkWindow *w = gtk_widget_get_window (app_shell);

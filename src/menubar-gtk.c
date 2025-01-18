@@ -35,6 +35,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "window.h"
 #include "window-impl.h"
 #include "text.h"
+#include "casetab.h"
 
 #include "console-gtk-impl.h"
 #include "ui-gtk.h"
@@ -69,21 +70,38 @@ gtk_xemacs_menubar_new (struct frame *f)
 
 /* Converting from XEmacs to GTK representation */
 static Lisp_Object
-menu_name_to_accelerator (Ibyte *name)
+menu_name_to_accelerator (Lisp_Object string)
 {
-  while (*name) {
-    if (*name=='%') {
-      ++name;
-      if (!(*name))
-	return Qnil;
-      if (*name=='_' && *(name+1))
-	{
-	  int accelerator = (int) (*(name+1));
-	  return make_char (tolower (accelerator));
-	}
+  const Ibyte *name = XSTRING_DATA (string);
+  const Ibyte *end = name + XSTRING_LENGTH (string);
+
+  while (name < end)
+    {
+      if (itext_ichar_eql (name, '%'))
+        {
+          INC_IBYTEPTR (name);
+          if (name == end)
+            {
+              return Qnil;
+            }
+
+          if (itext_ichar_eql (name, '_'))
+            {
+              Ichar accelerator;
+
+              INC_IBYTEPTR (name);
+              if (name == end)
+                {
+                  return Qnil;
+                }
+
+              accelerator = DOWNCASE (0, itext_ichar (name));
+
+              return make_char (accelerator);
+            }
+        }
+      INC_IBYTEPTR (name);
     }
-    ++name;
-  }
   return Qnil;
 }
 
@@ -339,8 +357,6 @@ menu_convert (Lisp_Object desc, GtkWidget *reuse,
 
   if (STRINGP (XCAR (desc)))
     {
-      /* accel = menu_name_to_accelerator (XSTRING_DATA (XCAR (desc))); */
-
       if (!reuse)
 	{
           Extbyte *desc_in_utf_8 = LISP_STRING_TO_EXTERNAL (XCAR (desc),
@@ -348,12 +364,13 @@ menu_convert (Lisp_Object desc, GtkWidget *reuse,
           Bytecount desc_len = strlen (desc_in_utf_8);
           Extbyte *converted = alloca_extbytes (1 + (desc_len * 2));
 	  GtkWidget* accel_label = gtk_label_new (NULL);
-	  gtk_widget_set_name (accel_label, "label");
 	  guint accel_key = 0x01000000; /* is there a constant?
 					   See gdk_unicode_to_keyval doc. */
 #ifdef HAVE_GTK3
 	  Extbyte accel_char = 0;
 #endif
+	  gtk_widget_set_name (accel_label, "label");
+
           convert_underscores (desc_in_utf_8, desc_len,
                                &converted, 1 + (desc_len * 2));
 
@@ -612,9 +629,8 @@ menu_descriptor_to_widget_1 (Lisp_Object descr, GtkAccelGroup* accel_group)
 	  /* the new way */
 	  int i;
 	  if (length & 1)
-	    sferror (
-				 "button descriptor has an odd number of keywords and values",
-				 descr);
+	    sferror ("button descriptor has an odd number of keywords and values",
+                     descr);
 
 	  name = contents [0];
 	  callback = contents [1];
@@ -661,7 +677,7 @@ menu_descriptor_to_widget_1 (Lisp_Object descr, GtkAccelGroup* accel_group)
       CHECK_STRING (name);
 
       if (NILP (accel))
-	accel = menu_name_to_accelerator (XSTRING_DATA (name));
+	accel = menu_name_to_accelerator (name);
 
       if (!NILP (suffix))
         suffix = IGNORE_MULTIPLE_VALUES (Feval (suffix));
@@ -956,19 +972,20 @@ menu_create_menubar (struct frame *f, Lisp_Object descr)
 	    GtkWidget *item;
 
 	    item = menu_descriptor_to_widget (item_descr, menubar_accel_group);
-	    gtk_widget_set_name (item, "button");
-
 	    if (!item)
 	      {
 		item = gtk_menu_item_new_with_label ("ITEM CREATION ERROR");
 	      }
 
+	    gtk_widget_set_name (item, "button");
 	    gtk_widget_show_all (item);
+#if 0
 	    /* The need to check for the parent is an indicator of a
 	       possible bug.  Need to ensure we're only deleting the child
 	       at only one point in the code. */
 	    if (current_child && gtk_widget_get_parent (current_child) != 0)
 	      gtk_widget_destroy (current_child);
+#endif
 	    gtk_menu_shell_insert (GTK_MENU_SHELL (menubar),
                                    item, menu_position);
 	  }
@@ -989,7 +1006,8 @@ menu_create_menubar (struct frame *f, Lisp_Object descr)
 		widget = menu_convert (item_descr, NULL, menubar_accel_group);
 		if (current_child && gtk_widget_get_parent (current_child) != 0)
 		  {
-		    gtk_widget_destroy (current_child);
+                    gtk_container_remove (GTK_CONTAINER (menubar),
+                                          current_child);
 		  }
 		gtk_menu_shell_insert (GTK_MENU_SHELL (menubar),
                                        widget, menu_position);
