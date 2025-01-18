@@ -1024,6 +1024,20 @@
 
 2025-01-18  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* alloc.c:
+	Move the declarations for Qzero, Qone, Qnull_pointer to this file
+	(on union builds).
+	* alloc.c (common_init_alloc_early):
+	Move there initialization from here to init_alloc_once_early().
+	* alloc.c (init_alloc_once_early):
+	Initialize Qzero, Qone here, make them known to the portable dumper.
+	* symbols.c:
+	Move the declarations for Qzero, Qone, Qnull_pointer from this
+	file, they're used far earlier in alloc.c, and they're not symbols
+	in any event.
+
+2025-01-18  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Move the event_stream and process_methods structures to the dump
 	file, no need to explicitly initialize them post pdump-load.
 	Similarly for filedesc_with_input, event-Xt.c.

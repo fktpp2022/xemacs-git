@@ -185,6 +185,18 @@ Boolint purify_flag;
 /* Non-zero means we're pdumping out or in */
 int in_pdump;
 
+#ifndef Qzero
+Lisp_Object Qzero;
+#endif
+
+#ifndef Qone
+Lisp_Object Qone;
+#endif
+
+#ifndef Qnull_pointer
+Lisp_Object Qnull_pointer;
+#endif
+
 #ifdef ERROR_CHECK_TYPES
 
 Error_Behavior ERROR_ME, ERROR_ME_NOT, ERROR_ME_WARN, ERROR_ME_DEBUG_WARN;
@@ -5327,19 +5339,6 @@ The results of the leak check are sent to stderr.
 static void
 common_init_alloc_early (void)
 {
-#ifndef Qzero
-  Qzero = make_fixnum (0);	/* Only used if Lisp_Object is a union type */
-#endif
-#ifndef Qone
-  Qone = make_fixnum (1);	/* Only used if Lisp_Object is a union type */
-#endif
-
-#ifndef Qnull_pointer
-  /* C guarantees that Qnull_pointer will be initialized to all 0 bits,
-     so the following is actually a no-op.  */
-  Qnull_pointer = wrap_pointer_1 (0);
-#endif
-
   breathing_space = 0;
   all_lcrecords = 0;
   ignore_malloc_warnings = 1;
@@ -5458,6 +5457,24 @@ reinit_alloc_early (void)
 void
 init_alloc_once_early (void)
 {
+#ifndef Qzero
+  Qzero = make_fixnum (0);	/* Only used if Lisp_Object is a union type */
+  /* No need to make GC aware, this is immediate and constant. */
+  dump_add_root_lisp_object (&Qzero); 
+#endif
+
+#ifndef Qone
+  Qone = make_fixnum (1);	/* As above. */
+  /* As above*/
+  dump_add_root_lisp_object (&Qone);
+#endif
+
+#ifndef Qnull_pointer
+  /* C guarantees that Qnull_pointer will be initialized to all 0 bits,
+     check this fits with our understanding. */
+  structure_checking_assert (EQ (Qnull_pointer, wrap_pointer_1 (0)));
+#endif
+
   common_init_alloc_early ();
 
   {
@@ -5566,6 +5583,11 @@ syms_of_alloc (void)
 void
 reinit_vars_of_alloc (void)
 {
+#ifndef Qnull_pointer
+  /* C guarantees that Qnull_pointer will be initialized to all 0 bits.  Don't
+     bother with initialization, don't do a dump_add_root_lisp_object (). */
+  structure_checking_assert (EQ (Qnull_pointer, wrap_pointer_1 (0)));
+#endif
 #ifdef MEMORY_USAGE_STATS
   compute_memusage_stats_length ();
 #endif /* MEMORY_USAGE_STATS */

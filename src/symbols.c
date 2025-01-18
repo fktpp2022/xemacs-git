@@ -3188,16 +3188,6 @@ If the current binding is global (the default), the value is nil.
 /*                            initialization                            */
 /************************************************************************/
 
-#ifndef Qzero
-Lisp_Object Qzero;
-#endif
-#ifndef Qone
-Lisp_Object Qone;
-#endif
-#ifndef Qnull_pointer
-Lisp_Object Qnull_pointer;
-#endif
-
 static void
 reinit_symbol_objects_early (void)
 {
