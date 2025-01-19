@@ -824,9 +824,46 @@ argmatch (Wexttext **argv, int argc, const Ascbyte *sstr, const Ascbyte *lstr,
 static void
 check_compatible_window_system (const Ascbyte *must)
 {
+  const Ascbyte *supported_window_systems[] = {
+#ifdef HAVE_TTY
+    "tty",
+#endif
+#ifdef HAVE_X_WINDOWS
+    "x",
+#endif
+#ifdef HAVE_GTK
+    "gtk",
+#endif
+#ifdef HAVE_MS_WINDOWS
+    "mswindows",
+#endif
+    "no-such-window-system"
+  };
+  Elemcount ii;
+  Boolint compatiblep = 0;
+
   if (display_use && strcmp (display_use, must))
     fatal ("Incompatible window system type `%s': `%s' already specified",
 	   must, display_use);
+
+  for (ii = 0; ii < countof (supported_window_systems); ii++)
+    {
+      if (!strcmp (must, supported_window_systems[ii]))
+        {
+          compatiblep = 1;
+        }
+    }
+
+  if (!compatiblep)
+    {
+      size_t len = strlen (must) + 1;
+      Ascbyte *must_upr = alloca_ascbytes (len);
+      memcpy (must_upr, must, len);
+
+      fatal ("Sorry, this XEmacs was not compiled with %s support",
+             strupr (must_upr));
+    }
+
   display_use = must;
 }
 
@@ -1139,34 +1176,22 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       argmatch (argv, argc, "-tty", "--use-tty", 0, NULL, &skip_args))
     {
       check_compatible_window_system ("tty");
-#ifndef HAVE_TTY
-      fatal ("Sorry, this XEmacs was not compiled with TTY support");
-#endif
     }
 
   if (argmatch (argv, argc, "-x", "--use-x", 0, NULL, &skip_args))
     {
       check_compatible_window_system ("x");
-#ifndef HAVE_X_WINDOWS
-      fatal ("Sorry, this XEmacs was not compiled with X support");
-#endif
     }
 
   if (argmatch (argv, argc, "-gtk", "--use-gtk", 0, NULL, &skip_args) ||
       argmatch (argv, argc, "-gnome", "--use-gnome", 0, NULL, &skip_args))
     {
       check_compatible_window_system ("gtk");
-#ifndef HAVE_GTK
-      fatal ("Sorry, this XEmacs was not compiled with GTK support");
-#endif
     }
 
   if (argmatch (argv, argc, "-msw", "--use-ms-windows", 0, NULL, &skip_args))
     {
       check_compatible_window_system ("mswindows");
-#ifndef HAVE_MS_WINDOWS
-      fatal ("Sorry, this XEmacs was not compiled with MS Windows support");
-#endif
     }
 
   /* Handle other switches implying particular window systems: */
@@ -1179,9 +1204,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 	int fd;
 
 	check_compatible_window_system ("tty");
-#ifndef HAVE_TTY
-	fatal ("Sorry, this XEmacs was not compiled with TTY support");
-#endif
 
 	retry_close (0);
 	retry_close (1);

@@ -880,6 +880,16 @@
 
 2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Move the call to fatal() when a window system was specified that
+	we don't support, to check_compatibile_window_system().
+	* emacs.c (check_compatible_window_system):
+	Check MUST against an array of supported window systems, die if it
+	is not encountered.
+	* emacs.c (main_1):
+	Remove separate explicit calls to fatal() from main_1().
+
+2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Remove a couple of guards around catching signals that are irrelevant
 	with PDUMP and are likely to cause problems with
 	#'run-emacs-from-temacs.
