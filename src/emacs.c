@@ -1332,7 +1332,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
   else if (!restart)	      /* after successful pdump_load() */
     {
       reinit_alloc_early ();
-      reinit_opaque_early ();
       reinit_eistring_early ();
 #ifdef WITH_NUMBER_TYPES
       reinit_vars_of_number ();

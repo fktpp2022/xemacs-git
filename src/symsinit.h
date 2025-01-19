@@ -48,7 +48,6 @@ void reinit_eistring_early (void);
 void init_eistring_once_early (void);
 void init_elhash_once_early (void);
 void init_errors_once_early (void);
-void reinit_opaque_early (void);
 void init_opaque_once_early (void);
 void init_symbols_once_early (void);
 

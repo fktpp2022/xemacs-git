@@ -880,6 +880,25 @@
 
 2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove reinit_opaque_early(); all it does is creates a free list
+	of Lisp_Opaque_Ptrs, something alloc.c will do automatically
+	anyway.
+
+	* emacs.c (main_1):
+	Remove call to reinit_opaque_early() from here.
+	* opaque.c:
+	* opaque.c (make_opaque_ptr):
+	Allocate the opaque_ptr using ALLOC_NORMAL_LISP_OBJECT(), which
+	ultimately calls alloc_managed_lcrecord on a free list created on
+	the fly anyway.
+	* opaque.c (free_opaque_ptr):
+	Call free_normal_lisp_object() here, which ultimately calls
+	free_managed_lcrecord() anyway.
+	* symsinit.h:
+	Remove the declaration for reinit_opaque_early().
+
+2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Move the call to fatal() when a window system was specified that
 	we don't support, to check_compatibile_window_system().
 	* emacs.c (check_compatible_window_system):

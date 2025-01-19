@@ -153,7 +153,7 @@ DEFINE_NODUMP_LISP_OBJECT ("opaque-ptr", opaque_ptr, print_opaque_ptr, 0,
 Lisp_Object
 make_opaque_ptr (void *val)
 {
-  Lisp_Object res = alloc_managed_lcrecord (Vopaque_ptr_free_list);
+  Lisp_Object res = ALLOC_NORMAL_LISP_OBJECT (opaque_ptr);
   set_opaque_ptr (res, val);
   return res;
 }
@@ -162,17 +162,9 @@ make_opaque_ptr (void *val)
    free_cons() apply. */
 
 void
-free_opaque_ptr (Lisp_Object ptr)
+free_opaque_ptr (Lisp_Object obj)
 {
-  free_managed_lcrecord (Vopaque_ptr_free_list, ptr);
-}
-
-void
-reinit_opaque_early (void)
-{
-  Vopaque_ptr_free_list = make_lcrecord_list (sizeof (Lisp_Opaque_Ptr),
-					      &lrecord_opaque_ptr);
-  staticpro_nodump (&Vopaque_ptr_free_list);
+  free_normal_lisp_object (obj);
 }
 
 void
@@ -183,8 +175,6 @@ init_opaque_once_early (void)
 
   Qunbound = make_opaque (OPAQUE_CLEAR, 0);
   staticpro (&Qunbound);
-
-  reinit_opaque_early ();
 }
 
 /* opaque.c ends here. */
