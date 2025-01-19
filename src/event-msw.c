@@ -251,7 +251,7 @@ struct ntpipe_slurp_stream
   struct ntpipe_slurp_stream_shared_data *thread_data;
 };
 
-DEFINE_LSTREAM_IMPLEMENTATION ("ntpipe-input", ntpipe_slurp);
+DECLARE_LSTREAM_IMPLEMENTATION (ntpipe_slurp);
 
 /* This function is thread-safe, and is called from either thread
    context. It serializes freeing shared data structure */
@@ -502,13 +502,6 @@ ntpipe_slurp_closer (Lstream *stream)
   return 0;
 }
 
-static void
-init_slurp_stream (void)
-{
-  LSTREAM_HAS_METHOD (ntpipe_slurp, reader);
-  LSTREAM_HAS_METHOD (ntpipe_slurp, closer);
-}
-
 
 /************************************************************************/
 /*                Pipe outstream - writes process input                 */
@@ -534,7 +527,7 @@ struct ntpipe_shove_stream
   BOOL   blocking_p : 1;/* Last write attempt would cause blocking	 */
 };
 
-DEFINE_LSTREAM_IMPLEMENTATION ("ntpipe-output", ntpipe_shove);
+DECLARE_LSTREAM_IMPLEMENTATION (ntpipe_shove);
 
 static DWORD WINAPI
 shove_thread (LPVOID vparam)
@@ -688,14 +681,6 @@ ntpipe_shove_closer (Lstream *stream)
 
   return 0;
 }
-
-static void
-init_shove_stream (void)
-{
-  LSTREAM_HAS_METHOD (ntpipe_shove, writer);
-  LSTREAM_HAS_METHOD (ntpipe_shove, was_blocked_p);
-  LSTREAM_HAS_METHOD (ntpipe_shove, closer);
-}
 
 /************************************************************************/
 /*                         Winsock I/O stream                           */
@@ -719,7 +704,7 @@ struct winsock_stream
 
 #define WINSOCK_STREAM_DATA(stream) LSTREAM_TYPE_DATA (stream, winsock)
 
-DEFINE_LSTREAM_IMPLEMENTATION ("winsock", winsock);
+DECLARE_LSTREAM_IMPLEMENTATION (winsock);
 
 static void
 winsock_initiate_read (struct winsock_stream *str)
@@ -932,15 +917,6 @@ get_winsock_stream_param (Lstream *lstr)
 {
   struct winsock_stream *str = WINSOCK_STREAM_DATA (lstr);
   return str->user_data;
-}
-
-static void
-init_winsock_stream (void)
-{
-  LSTREAM_HAS_METHOD (winsock, reader);
-  LSTREAM_HAS_METHOD (winsock, writer);
-  LSTREAM_HAS_METHOD (winsock, closer);
-  LSTREAM_HAS_METHOD (winsock, was_blocked_p);
 }
 #endif /* ! CYGWIN */
 
@@ -5123,6 +5099,23 @@ If negative or zero, currently set system default is used instead.
   EVENT_STREAM_HAS_METHOD (mswindows, create_io_streams);
   EVENT_STREAM_HAS_METHOD (mswindows, delete_io_streams);
   EVENT_STREAM_HAS_METHOD (mswindows, current_event_timestamp);
+
+#ifndef CYGWIN
+  DEFINE_LSTREAM_IMPLEMENTATION ("ntpipe-input", ntpipe_slurp);
+  LSTREAM_HAS_METHOD (ntpipe_slurp, reader);
+  LSTREAM_HAS_METHOD (ntpipe_slurp, closer);
+
+  DEFINE_LSTREAM_IMPLEMENTATION ("ntpipe-output", ntpipe_shove);
+  LSTREAM_HAS_METHOD (ntpipe_shove, writer);
+  LSTREAM_HAS_METHOD (ntpipe_shove, was_blocked_p);
+  LSTREAM_HAS_METHOD (ntpipe_shove, closer);
+
+  DEFINE_LSTREAM_IMPLEMENTATION ("winsock", winsock);
+  LSTREAM_HAS_METHOD (winsock, reader);
+  LSTREAM_HAS_METHOD (winsock, writer);
+  LSTREAM_HAS_METHOD (winsock, closer);
+  LSTREAM_HAS_METHOD (winsock, was_blocked_p);
+#endif
 }
 
 void
@@ -5133,16 +5126,6 @@ syms_of_event_mswindows (void)
   DEFSUBR(Fdde_alloc_advise_item);
   DEFSUBR(Fdde_free_advise_item);
   DEFSUBR(Fdde_advise);
-#endif
-}
-
-void
-lstream_type_create_mswindows_selectable (void)
-{
-#ifndef CYGWIN
-  init_slurp_stream ();
-  init_shove_stream ();
-  init_winsock_stream ();
 #endif
 }
 

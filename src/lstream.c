@@ -1104,7 +1104,7 @@ struct stdio_stream
 
 #define STDIO_STREAM_DATA(stream) LSTREAM_TYPE_DATA (stream, stdio)
 
-DEFINE_LSTREAM_IMPLEMENTATION ("stdio", stdio);
+DECLARE_LSTREAM_IMPLEMENTATION (stdio);
 
 static Lisp_Object
 make_stdio_stream_1 (FILE *stream, int flags)
@@ -1234,7 +1234,7 @@ struct filedesc_stream
 
 #define FILEDESC_STREAM_DATA(stream) LSTREAM_TYPE_DATA (stream, filedesc)
 
-DEFINE_LSTREAM_IMPLEMENTATION ("filedesc", filedesc);
+DECLARE_LSTREAM_IMPLEMENTATION (filedesc);
 
 /* Make a stream that reads from or writes to a file descriptor FILEDESC.
    OFFSET is the offset from the *current* file pointer that the reading
@@ -1592,7 +1592,7 @@ static const struct memory_description lisp_string_lstream_description[] = {
   { XD_END }
 };
 
-DEFINE_LSTREAM_IMPLEMENTATION_WITH_DATA ("lisp-string", lisp_string);
+DECLARE_LSTREAM_IMPLEMENTATION (lisp_string);
 
 Lisp_Object
 make_lisp_string_input_stream (Lisp_Object string, Bytecount offset,
@@ -1666,7 +1666,7 @@ lisp_string_rewinder (Lstream *stream)
 /* Much of the implementation of this is in lstream.h, since we need to
    stack-allocate a fixed_buffer_lstream. */
 
-DEFINE_LSTREAM_IMPLEMENTATION ("fixed-buffer", fixed_buffer);
+DECLARE_LSTREAM_IMPLEMENTATION (fixed_buffer);
 
 Lisp_Object
 make_fixed_buffer_input_stream (const void *buf, Bytecount size)
@@ -1756,7 +1756,7 @@ static const struct memory_description resizing_buffer_lstream_description[] = {
   { XD_END }
 };
 
-DEFINE_LSTREAM_IMPLEMENTATION_WITH_DATA ("resizing-buffer", resizing_buffer);
+DECLARE_LSTREAM_IMPLEMENTATION (resizing_buffer);
 
 Lisp_Object
 make_resizing_buffer_output_stream (void)
@@ -1911,7 +1911,7 @@ struct dynarr_stream
   unsigned_char_dynarr *dyn;
 };
 
-DEFINE_LSTREAM_IMPLEMENTATION ("dynarr", dynarr);
+DECLARE_LSTREAM_IMPLEMENTATION (dynarr);
 
 Lisp_Object
 make_dynarr_output_stream (unsigned_char_dynarr *dyn)
@@ -1969,7 +1969,7 @@ static const struct memory_description lisp_buffer_lstream_description[] = {
   { XD_END }
 };
 
-DEFINE_LSTREAM_IMPLEMENTATION_WITH_DATA ("lisp-buffer", lisp_buffer);
+DECLARE_LSTREAM_IMPLEMENTATION (lisp_buffer);
 
 static Lisp_Object
 make_lisp_buffer_stream_1 (struct buffer *buf, Charbpos start, Charbpos end,
@@ -2197,8 +2197,9 @@ syms_of_lstream (void)
 }
 
 void
-lstream_type_create (void)
+vars_of_lstream (void)
 {
+  DEFINE_LSTREAM_IMPLEMENTATION ("stdio", stdio);
   LSTREAM_HAS_METHOD (stdio, reader);
   LSTREAM_HAS_METHOD (stdio, writer);
   LSTREAM_HAS_METHOD (stdio, rewinder);
@@ -2206,6 +2207,7 @@ lstream_type_create (void)
   LSTREAM_HAS_METHOD (stdio, flusher);
   LSTREAM_HAS_METHOD (stdio, closer);
 
+  DEFINE_LSTREAM_IMPLEMENTATION ("filedesc", filedesc);
   LSTREAM_HAS_METHOD (filedesc, reader);
   LSTREAM_HAS_METHOD (filedesc, writer);
   LSTREAM_HAS_METHOD (filedesc, was_blocked_p);
@@ -2215,30 +2217,30 @@ lstream_type_create (void)
   LSTREAM_HAS_METHOD (filedesc, tls_p);
   LSTREAM_HAS_METHOD (filedesc, tls_negotiater);
 
+  DEFINE_LSTREAM_IMPLEMENTATION_WITH_DATA ("lisp-string", lisp_string);
   LSTREAM_HAS_METHOD (lisp_string, reader);
   LSTREAM_HAS_METHOD (lisp_string, rewinder);
 
+  DEFINE_LSTREAM_IMPLEMENTATION ("fixed-buffer", fixed_buffer);
   LSTREAM_HAS_METHOD (fixed_buffer, reader);
   LSTREAM_HAS_METHOD (fixed_buffer, writer);
   LSTREAM_HAS_METHOD (fixed_buffer, rewinder);
 
+  DEFINE_LSTREAM_IMPLEMENTATION_WITH_DATA ("resizing-buffer", resizing_buffer);
   LSTREAM_HAS_METHOD (resizing_buffer, writer);
   LSTREAM_HAS_METHOD (resizing_buffer, write_with_extents);
   LSTREAM_HAS_METHOD (resizing_buffer, extent_info);
   LSTREAM_HAS_METHOD (resizing_buffer, rewinder);
   LSTREAM_HAS_METHOD (resizing_buffer, closer);
 
+  DEFINE_LSTREAM_IMPLEMENTATION ("dynarr", dynarr);
   LSTREAM_HAS_METHOD (dynarr, writer);
   LSTREAM_HAS_METHOD (dynarr, rewinder);
   LSTREAM_HAS_METHOD (dynarr, closer);
 
+  DEFINE_LSTREAM_IMPLEMENTATION_WITH_DATA ("lisp-buffer", lisp_buffer);
   LSTREAM_HAS_METHOD (lisp_buffer, reader);
   LSTREAM_HAS_METHOD (lisp_buffer, writer);
   LSTREAM_HAS_METHOD (lisp_buffer, write_with_extents);
   LSTREAM_HAS_METHOD (lisp_buffer, rewinder);
-}
-
-void
-vars_of_lstream (void)
-{
 }

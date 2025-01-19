@@ -229,23 +229,38 @@ typedef struct lstream_implementation
   struct extent_info *(*extent_info)(Lstream *stream);
 } Lstream_implementation;
 
-#define DEFINE_LSTREAM_IMPLEMENTATION(name, c_name)	\
-  Lstream_implementation lstream_##c_name[1] =		\
-    { { (name), sizeof (struct c_name##_stream),	\
-      &lstream_empty_extra_description } }
+#define DECLARE_LSTREAM_IMPLEMENTATION(c_name)	\
+  Lstream_implementation *lstream_##c_name
 
-#define DEFINE_LSTREAM_IMPLEMENTATION_WITH_DATA(name, c_name)		      \
+#define DEFINE_LSTREAM_IMPLEMENTATION_WITH_DATA(string_name, c_name)          \
   static const struct sized_memory_description c_name##_lstream_description_0 \
   = {									      \
     sizeof (struct c_name##_stream),					      \
     c_name##_lstream_description					      \
   };									      \
-  Lstream_implementation lstream_##c_name[1] =				      \
-    { { (name), sizeof (struct c_name##_stream),			      \
-      &c_name##_lstream_description_0 } }
+  do                                                                          \
+    {                                                                         \
+      lstream_##c_name = xnew_and_zero (Lstream_implementation);              \
+      lstream_##c_name->name = string_name;                                   \
+      lstream_##c_name->size = sizeof (struct c_name##_stream);               \
+      lstream_##c_name->extra_description = &(c_name##_lstream_description_0);\
+      dump_add_root_block_ptr (&lstream_##c_name,                             \
+                               &lstream_implementation_description);          \
+    } while (0)
+
+#define DEFINE_LSTREAM_IMPLEMENTATION(string_name, c_name)                    \
+  do                                                                          \
+    {                                                                         \
+      lstream_##c_name = xnew_and_zero (Lstream_implementation);              \
+      lstream_##c_name->name = string_name;                                   \
+      lstream_##c_name->size = sizeof (struct c_name##_stream);               \
+      lstream_##c_name->extra_description = &lstream_empty_extra_description; \
+      dump_add_root_block_ptr (&lstream_##c_name,                             \
+                               &lstream_implementation_description);          \
+    } while (0)
 
 #define DECLARE_LSTREAM(c_name) \
-  extern Lstream_implementation lstream_##c_name[]
+  extern Lstream_implementation *lstream_##c_name
 
 /* Flags that can be passed to Lstream_new(). */
 #define LSTR_READ		(1 << 0)
@@ -297,6 +312,7 @@ struct lstream
 };
 
 extern const struct sized_memory_description lstream_empty_extra_description;
+extern const struct sized_memory_description lstream_implementation_description;
 
 #define LSTREAM_TYPE_P(lstr, type) \
   ((lstr)->imp == lstream_##type)
@@ -540,7 +556,7 @@ Charbpos lisp_buffer_stream_startpos (Lstream *stream);
    are no longer working. As such, it creates its lstream on the stack. No
    other code should be doing this. */
 
-DECLARE_LSTREAM (fixed_buffer);
+extern Lstream_implementation *lstream_fixed_buffer;
 
 struct fixed_buffer_stream
 {

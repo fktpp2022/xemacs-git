@@ -1793,25 +1793,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       reinit_coding_system_type_create_mule_coding ();
     }
 
-  if (!initialized
-      || !restart
-      )
-    {
-      /* Now initialize the lstream types and associated symbols.
-	 Other than the first function below, the functions may
-	 make exactly the following function/macro calls:
-
-	 LSTREAM_HAS_METHOD()
-
-	 */
-
-      lstream_type_create ();
-      lstream_type_create_file_coding ();
-#if defined (HAVE_MS_WINDOWS) && !defined (HAVE_MSG_SELECT)
-      lstream_type_create_mswindows_selectable ();
-#endif
-    }
-
   if (!initialized)
     {
       /* Now initialize most variables.

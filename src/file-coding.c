@@ -2077,7 +2077,7 @@ static const struct memory_description coding_lstream_description[] = {
   { XD_END }
 };
 
-DEFINE_LSTREAM_IMPLEMENTATION_WITH_DATA ("coding", coding);
+DECLARE_LSTREAM_IMPLEMENTATION (coding);
 
 static void coding_finalizer (Lstream *stream);
 
@@ -5751,19 +5751,6 @@ syms_of_file_coding (void)
 }
 
 void
-lstream_type_create_file_coding (void)
-{
-  LSTREAM_HAS_METHOD (coding, reader);
-  LSTREAM_HAS_METHOD (coding, writer);
-  LSTREAM_HAS_METHOD (coding, rewinder);
-  LSTREAM_HAS_METHOD (coding, seekable_p);
-  LSTREAM_HAS_METHOD (coding, character_tell);
-  LSTREAM_HAS_METHOD (coding, flusher);
-  LSTREAM_HAS_METHOD (coding, closer);
-  LSTREAM_HAS_METHOD (coding, finalizer);
-}
-
-void
 coding_system_type_create (void)
 {
   int i;
@@ -5960,6 +5947,17 @@ Information is displayed on stderr.
 */ );
   Vdebug_coding_detection = Qnil;
 #endif
+
+  DEFINE_LSTREAM_IMPLEMENTATION_WITH_DATA ("coding", coding);
+
+  LSTREAM_HAS_METHOD (coding, reader);
+  LSTREAM_HAS_METHOD (coding, writer);
+  LSTREAM_HAS_METHOD (coding, rewinder);
+  LSTREAM_HAS_METHOD (coding, seekable_p);
+  LSTREAM_HAS_METHOD (coding, character_tell);
+  LSTREAM_HAS_METHOD (coding, flusher);
+  LSTREAM_HAS_METHOD (coding, closer);
+  LSTREAM_HAS_METHOD (coding, finalizer);
 }
 
 /* #### reformat this for consistent appearance? */

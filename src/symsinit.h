@@ -294,13 +294,6 @@ void image_instantiator_format_create_glyphs_tty (void);
 void image_instantiator_format_create_glyphs_widget (void);
 void image_instantiator_format_create_glyphs_x (void);
 
-/* Initialize the lstream types (dump-time only). */
-
-void lstream_type_create (void);
-void lstream_type_create_file_coding (void);
-void lstream_type_create_mswindows_selectable (void);
-void lstream_type_create_print (void);
-
 /* Initialize process types */
 
 void process_type_create_nt (void);

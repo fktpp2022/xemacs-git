@@ -880,6 +880,52 @@
 
 2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Move the Lstream_implementation object to the dump file, avoiding
+	the need to explicitly re-initialize their methods post
+	pdump_load ().
+
+	* emacs.c (main_1):
+	Remove creation of the lstream types from this block that dealt
+	with post-pdump_load() call. Now the block is empty, remove it
+	entirely.
+
+	* event-msw.c (init_slurp_stream): Removed.
+	* event-msw.c (init_shove_stream): Removed.
+	* event-msw.c (init_winsock_stream): Removed.	
+	* event-msw.c (vars_of_event_mswindows):
+	Move DEFINE_LSTREAM_IMPLEMENTATION() for the various
+	mswindows-specific lstream types to this function. Move the
+	LSTREAM_HAS_METHOD() calls here too.
+
+	* file-coding.c (lstream_type_create_file_coding): Removed.
+	* file-coding.c (vars_of_file_coding):
+	Move DEFINE_LSTREAM_IMPLEMENTATION() for the coding lstream to
+	this function. Move the LSTREAM_HAS_METHOD() calls here too.
+
+	* lstream.c:
+	* lstream.c (lstream_type_create): Removed.
+	* lstream.c (vars_of_lstream):
+	Move DEFINE_LSTREAM_IMPLEMENTATION() for the various other lstream
+	types to this function. Move the LSTREAM_HAS_METHOD() calls here
+	too.
+
+	* lstream.h:
+	* lstream.h (DEFINE_LSTREAM_IMPLEMENTATION):
+	* lstream.h (DEFINE_LSTREAM_IMPLEMENTATION_WITH_DATA):
+	Revise this to xnew_and_zero() the Lstream implementation (rather
+	than having it in the C data segment), and to make it known to the
+	dump file.
+
+	* lstream.h (DECLARE_LSTREAM): Declare an Lstream as a pointer
+	rather than an array.
+	Make lstream_implementation_description available to
+	file-coding.c, event-msw.c.
+	* symsinit.h:
+	Remove declarations for functions to initialize the lstreams post
+	pdump_load(), no longer needed.
+
+2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* emacs.c (main_1):
 	the_structure_type_dynarr in lread.c is dumped, there is no value
 	to reiniting the structure types after pdump_load(), avoid this.
