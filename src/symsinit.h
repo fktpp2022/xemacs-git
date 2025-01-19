@@ -320,7 +320,6 @@ void init_provide_once (void);
 
 void vars_of_abbrev (void);
 void vars_of_alloc (void);
-void reinit_vars_of_alloc (void);
 void vars_of_balloon_x (void);
 void vars_of_buffer (void);
 void reinit_vars_of_buffer (void);

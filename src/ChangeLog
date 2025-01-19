@@ -880,6 +880,23 @@
 
 2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Move compute_memusage_stats_length() to
+	disksave_object_finalization() from reinit_vars_of_alloc(), since
+	it can be done at dump time once all the object types have been
+	initialized.
+	This means that reinit_vars_of_alloc() is now empty, remove it.
+	Allocate lrecord_stats_metadata on the heap, dump it using
+	dump_add_root_block_ptr(), so at pdump_load() it's just a pointer
+	being set rather than copying the block to BSS.
+
+	* alloc.c (disksave_object_finalization):
+	Call compute_memusage_stats_length() here.
+	* alloc.c (reinit_vars_of_alloc): Removed.
+	* alloc.c (init_alloc_once_early): Add lrecord_stats_metadata to
+	the dump file #ifdef MEMORY_USAGE_STATS.
+
+2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Move the Lstream_implementation object to the dump file, avoiding
 	the need to explicitly re-initialize their methods post
 	pdump_load ().

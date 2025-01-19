@@ -261,7 +261,7 @@ static struct
 
 #ifdef MEMORY_USAGE_STATS
 /* Metadata on memory usage, calculated by compute_memusage_stats_length. */
-static struct
+static struct lrecord_stats_metadata
 {
   /* --------------------------------------------------------------------- */
 
@@ -289,7 +289,16 @@ static struct
      object.  These stats occur starting at offset
      `offset_lisp_ancillary_memusage_stats'. */
   Elemcount num_extra_lisp_ancillary_memusage_stats;
-} lrecord_stats_metadata [countof (lrecord_implementations_table)];
+} *lrecord_stats_metadata;
+
+static const struct memory_description lrecord_stats_metadata_description_1[] = {
+  { XD_END }
+};
+
+static const struct sized_memory_description lrecord_stats_metadata_description = {
+  sizeof (*lrecord_stats_metadata) * countof (lrecord_implementations_table),
+  lrecord_stats_metadata_description_1
+};
 #endif
 
 /* Very cheesy ways of figuring out how much memory is being used for
@@ -5235,8 +5244,11 @@ disksave_object_finalization (void)
       }
   }
 
-  /* There, that ought to be enough... */
+#ifdef MEMORY_USAGE_STATS
+  compute_memusage_stats_length ();
+#endif /* MEMORY_USAGE_STATS */
 
+  /* There, that ought to be enough... */
 }
 
 
@@ -5493,6 +5505,11 @@ init_alloc_once_early (void)
   Vmemusage_stats_lists
     = make_vector (countof (lrecord_implementations_table), Qnull_pointer);
   staticpro (&Vmemusage_stats_lists);
+  lrecord_stats_metadata
+    = xnew_array_and_zero (struct lrecord_stats_metadata,
+                           countof (lrecord_implementations_table));
+  dump_add_root_block_ptr (&lrecord_stats_metadata,
+                           &lrecord_stats_metadata_description);
 #endif
 
   INIT_LISP_OBJECT (cons);
@@ -5580,19 +5597,6 @@ syms_of_alloc (void)
   DEFSUBR (Fvalgrind_leak_check);
   DEFSUBR (Fvalgrind_quick_leak_check);
 #endif
-}
-
-void
-reinit_vars_of_alloc (void)
-{
-#ifndef Qnull_pointer
-  /* C guarantees that Qnull_pointer will be initialized to all 0 bits.  Don't
-     bother with initialization, don't do a dump_add_root_lisp_object (). */
-  structure_checking_assert (EQ (Qnull_pointer, wrap_pointer_1 (0)));
-#endif
-#ifdef MEMORY_USAGE_STATS
-  compute_memusage_stats_length ();
-#endif /* MEMORY_USAGE_STATS */
 }
 
 void
