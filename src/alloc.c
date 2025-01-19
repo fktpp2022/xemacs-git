@@ -3452,7 +3452,12 @@ free_managed_lcrecord (Lisp_Object lcrecord_list, Lisp_Object lcrecord)
   list->free = lcrecord;
 }
 
-static Lisp_Object all_lcrecord_lists[countof (lrecord_implementations_table)];
+/* An array of size countof (lrecord_implementations_table). */
+static Lisp_Object *all_lcrecord_lists;
+
+/* This is a Lisp vector, not used during loadup, but initialized and dumped.
+   Its vector data is used post pdump_load() as all_lcrecord_lists. */
+static Lisp_Object Vall_lcrecord_lists;
 
 static Lisp_Object
 alloc_automanaged_sized_lcrecord_1 (Bytecount size,
@@ -5405,18 +5410,6 @@ common_init_alloc_early (void)
 #endif /* ERROR_CHECK_TYPES */
 }
 
-static void
-init_lcrecord_lists (void)
-{
-  int i;
-
-  for (i = 0; i < countof (lrecord_implementations_table); i++)
-    {
-      all_lcrecord_lists[i] = Qzero; /* Qnil not yet set */
-      staticpro_nodump (&all_lcrecord_lists[i]);
-    }
-}
-
 void
 init_alloc_early (void)
 {
@@ -5435,8 +5428,8 @@ init_alloc_early (void)
 void
 reinit_alloc_early (void)
 {
+  all_lcrecord_lists = XVECTOR_DATA (Vall_lcrecord_lists);
   common_init_alloc_early ();
-  init_lcrecord_lists ();
 }
 
 void
@@ -5462,11 +5455,8 @@ init_alloc_once_early (void)
 
   common_init_alloc_early ();
 
-  {
-    int i;
-    for (i = 0; i < countof (lrecord_implementations_table); i++)
-      lrecord_implementations_table[i] = 0;
-  }
+  /* lrecord_implementations_table is in BSS and is already initialized to all
+     zeroes by the C implementation. */
 
   dump_add_opaque (lrecord_uid_counter, sizeof (lrecord_uid_counter));
 
@@ -5487,7 +5477,17 @@ init_alloc_once_early (void)
 			   &const_Ascbyte_ptr_dynarr_description);
 #endif
 
-  init_lcrecord_lists ();
+  {
+    int i;
+
+    all_lcrecord_lists = xnew_array (Lisp_Object,
+                                     countof (lrecord_implementations_table));
+    for (i = 0; i < countof (lrecord_implementations_table); i++)
+      {
+        all_lcrecord_lists[i] = Qzero; /* Qnil not yet set */
+        staticpro_nodump (&all_lcrecord_lists[i]);
+      }
+  }
 
 #ifdef MEMORY_USAGE_STATS
   Vmemusage_stats_lists
@@ -5502,6 +5502,14 @@ init_alloc_once_early (void)
   INIT_LISP_OBJECT (vector);
   OBJECT_HAS_METHOD (vector, print_preprocess);
   OBJECT_HAS_METHOD (vector, nsubst_structures_descend);
+
+  /* This is not used during loadup (since we don't want the lcrecord lists of
+     loadup to persist post restart), but reinit_alloc_early() sets
+     all_lcrecord_lists to its vector data, after pdump_load(). It needs to be
+     both garbage-protected and dumped. */
+  Vall_lcrecord_lists
+    = make_vector (countof (lrecord_implementations_table), Qzero);
+  staticpro (&Vall_lcrecord_lists);
 
   INIT_LISP_OBJECT (bit_vector);
 

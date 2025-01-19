@@ -880,6 +880,27 @@
 
 2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove the need to call init_lcrecord_lists after pdump_load(),
+	just set a pointer into the dumped data instead, simplifying
+	startup a little. Remove the initialization of
+	lrecord_implementations_tablet to all zeroes, trust the C
+	implementation to do that.
+
+	* alloc.c (Vall_lcrecord_lists): New variable, a Lisp vector whose
+	storage is to be used post pdump_load() for all_lcrecord_lists.
+	* alloc.c (init_lcrecord_lists): Removed.
+	* alloc.c (reinit_alloc_early):
+	Just set all_lcrecord_lists to the vector data of
+	Vall_lcrecord_lists, which is already garbage protected. Don't
+	call init_lcrecord_lists().
+	* alloc.c (init_alloc_once_early):
+	During loadup initialize all_lcrecord_lists using xnew_array, move
+	the former body of init_lcrecord_lists into this function.
+	Initialize and staticpro() Vall_lcrecord_lists once vector objects
+	are available.
+
+2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* lstream.h (DECLARE_STACK_FIXED_BUFFER_LSTREAM):
 	When declaring the Lisp_Object, initialize it to Qunbound,
 	suppressing a compiler warning about a pointer to uninitialized
