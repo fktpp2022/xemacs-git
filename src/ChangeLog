@@ -880,6 +880,12 @@
 
 2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* emacs.c (main_1):
+	the_structure_type_dynarr in lread.c is dumped, there is no value
+	to reiniting the structure types after pdump_load(), avoid this.
+
+2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	There's no actual need for the various init_gc_* functions, remove
 	them.
 

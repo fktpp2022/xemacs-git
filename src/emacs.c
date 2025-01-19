@@ -1746,6 +1746,19 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #ifdef HAVE_GTK
       image_instantiator_format_create_glyphs_gtk ();
 #endif
+
+      /* Now initialize the structure types and associated symbols.
+	 Other than the first function below, the functions may
+	 make exactly the following function/macro calls:
+
+	 define_structure_type()
+	 define_structure_type_keyword() */
+      structure_type_create ();
+
+      structure_type_create_chartab ();
+      structure_type_create_faces ();
+      structure_type_create_rangetab ();
+      structure_type_create_hash_table ();
     }
   else if (!restart)	      /* after successful pdump_load() */
     {
@@ -1784,22 +1797,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       || !restart
       )
     {
-      /* Now initialize the structure types and associated symbols.
-	 Other than the first function below, the functions may
-	 make exactly the following function/macro calls:
-
-	 define_structure_type()
-	 define_structure_type_keyword()
-
-	 */
-
-      structure_type_create ();
-
-      structure_type_create_chartab ();
-      structure_type_create_faces ();
-      structure_type_create_rangetab ();
-      structure_type_create_hash_table ();
-
       /* Now initialize the lstream types and associated symbols.
 	 Other than the first function below, the functions may
 	 make exactly the following function/macro calls:
