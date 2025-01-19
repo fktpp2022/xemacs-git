@@ -806,19 +806,11 @@ handle_signal_if_fatal (int signo)
 void
 init_signals_very_early (void)
 {
-  /* Catch all signals that would kill us.
-     Don't catch these signals in batch mode if not initialized.
-     On some machines, this sets static data that would make
-     signal fail to work right when the dumped Emacs is run.  */
-  if (noninteractive && !initialized)
-    return;
-
   handle_signal_if_fatal (SIGILL);  /* ANSI */
   handle_signal_if_fatal (SIGABRT); /* ANSI */
   handle_signal_if_fatal (SIGFPE);  /* ANSI */
   handle_signal_if_fatal (SIGSEGV); /* ANSI */
   handle_signal_if_fatal (SIGTERM); /* ANSI */
-
 
 #ifdef SIGHUP
   handle_signal_if_fatal (SIGHUP);  /* POSIX */
@@ -844,7 +836,6 @@ init_signals_very_early (void)
   handle_signal_if_fatal (SIGALRM); /* POSIX */
 #endif
 
-
 #ifdef SIGBUS
   handle_signal_if_fatal (SIGBUS);  /* XPG5 */
 #endif
@@ -864,7 +855,6 @@ init_signals_very_early (void)
   /* Messes up the REAL profiler */
   /* handle_signal_if_fatal (SIGPROF); */ /* XPG5 */
 #endif
-
 
 #ifdef SIGHWE
   handle_signal_if_fatal (SIGHWE);

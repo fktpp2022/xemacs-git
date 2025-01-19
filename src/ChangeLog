@@ -880,6 +880,14 @@
 
 2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove a couple of guards around catching signals that are irrelevant
+	with PDUMP and are likely to cause problems with
+	#'run-emacs-from-temacs.
+	* data.c (init_data_very_early):
+	* signal.c (init_signals_very_early):
+
+2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Move compute_memusage_stats_length() to
 	disksave_object_finalization() from reinit_vars_of_alloc(), since
 	it can be done at dump time once all the object types have been

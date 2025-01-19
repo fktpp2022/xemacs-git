@@ -3649,12 +3649,6 @@ arith_error (int signo)
 void
 init_data_very_early (void)
 {
-  /* Don't do this if just dumping out.
-     We don't want to call `signal' in this case
-     so that we don't have trouble with dumping
-     signal-delivering routines in an inconsistent state.  */
-  if (!initialized)
-    return;
   EMACS_SIGNAL (SIGFPE, arith_error);
 #ifdef uts
   EMACS_SIGNAL (SIGEMT, arith_error);
