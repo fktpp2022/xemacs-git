@@ -49,12 +49,6 @@ void init_errors_once_early (void);
 void init_opaque_once_early (void);
 void init_symbols_once_early (void);
 
-/* Reset the Lisp engine.  Called both at dump-time, run-time and
-   run-temacs-time; at dump-time, it's called early, before any of the
-   vars() or complex_vars() routines.  Currently does almost nothing. */
-
-void init_alloc_early (void);
-
 /* Called somewhat randomly -- at dump-time, in the middle of the vars()
    calls, and at run-time, just before the late initializations. */
 

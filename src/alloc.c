@@ -199,7 +199,8 @@ Lisp_Object Qnull_pointer;
 
 #ifdef ERROR_CHECK_TYPES
 
-Error_Behavior ERROR_ME, ERROR_ME_NOT, ERROR_ME_WARN, ERROR_ME_DEBUG_WARN;
+Error_Behavior ERROR_ME = { 666 }, ERROR_ME_NOT = { 42 };
+Error_Behavior ERROR_ME_WARN = { 3333632 }, ERROR_ME_DEBUG_WARN = { 8675309 };
 
 #endif
 
@@ -5356,15 +5357,21 @@ The results of the leak check are sent to stderr.
 static void
 common_init_alloc_early (void)
 {
-  breathing_space = 0;
-  all_lcrecords = 0;
+#if defined (__cplusplus) && defined (ERROR_CHECK_GC)
+  static struct gcpro initial_gcpro;
+
+  initial_gcpro.next = 0;
+  initial_gcpro.var = &Qnil;
+  initial_gcpro.nvars = 1;
+  gcprolist = &initial_gcpro;
+  /* If non-ERROR_CHECK_GC, gcprolist is initialized to all zero, which is
+     what we want in any event. */
+#endif /* defined (__cplusplus) && defined (ERROR_CHECK_GC) */
+
   ignore_malloc_warnings = 1;
 #ifdef HAVE_GLIBC
   mallopt (M_TRIM_THRESHOLD, 128*1024); /* trim threshold */
   mallopt (M_MMAP_THRESHOLD, 64*1024); /* mmap threshold */
-#if 0 /* Moved to emacs.c */
-  mallopt (M_MMAP_MAX, 64); /* max. number of mmap'ed areas */
-#endif
 #endif
   init_string_alloc ();
   init_string_chars_alloc ();
@@ -5388,53 +5395,13 @@ common_init_alloc_early (void)
 
   ignore_malloc_warnings = 0;
 
-  if (staticpros_nodump)
-    Dynarr_free (staticpros_nodump);
   staticpros_nodump = Dynarr_new2 (Lisp_Object_ptr_dynarr, Lisp_Object *);
   Dynarr_resize (staticpros_nodump, 100); /* merely a small optimization */
 #ifdef DEBUG_XEMACS
-  if (staticpro_nodump_names)
-    Dynarr_free (staticpro_nodump_names);
   staticpro_nodump_names = Dynarr_new2 (const_Ascbyte_ptr_dynarr,
 					const Ascbyte *);
   Dynarr_resize (staticpro_nodump_names, 100); /* ditto */
 #endif
-
-
-  consing_since_gc = 0;
-  need_to_check_c_alloca = 0;
-  funcall_allocation_flag = 0;
-  funcall_alloca_count = 0;
-
-  debug_string_purity = 0;
-
-#ifdef ERROR_CHECK_TYPES
-  ERROR_ME.really_unlikely_name_to_have_accidentally_in_a_non_errb_structure =
-    666;
-  ERROR_ME_NOT.
-    really_unlikely_name_to_have_accidentally_in_a_non_errb_structure = 42;
-  ERROR_ME_WARN.
-    really_unlikely_name_to_have_accidentally_in_a_non_errb_structure =
-      3333632;
-  ERROR_ME_DEBUG_WARN.
-    really_unlikely_name_to_have_accidentally_in_a_non_errb_structure =
-      8675309;
-#endif /* ERROR_CHECK_TYPES */
-}
-
-void
-init_alloc_early (void)
-{
-#if defined (__cplusplus) && defined (ERROR_CHECK_GC)
-  static struct gcpro initial_gcpro;
-
-  initial_gcpro.next = 0;
-  initial_gcpro.var = &Qnil;
-  initial_gcpro.nvars = 1;
-  gcprolist = &initial_gcpro;
-#else
-  gcprolist = 0;
-#endif /* defined (__cplusplus) && defined (ERROR_CHECK_GC) */
 }
 
 void

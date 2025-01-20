@@ -1091,8 +1091,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 	purify_flag = 1;
     }
 
-  init_alloc_early ();
-
   /* Handle the -batch switch, which means don't do interactive display.  */
   if (argmatch (argv, argc, "-batch", "--batch", 0, NULL, &skip_args))
     {

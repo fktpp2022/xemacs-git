@@ -880,6 +880,27 @@
 
 2025-01-20  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove init_alloc_early(), which was basically empty.
+	Move the error-checking code that was in it to
+	common_init_alloc_early().
+	Delegate much of what was in common_init_alloc_early() to the C
+	implementation.
+	* alloc.c:
+	* alloc.c (Error_Behavior ERROR_ME, ERROR_ME_NOT, ERROR_ME_WARN,
+	ERROR_ME_DEBUG_WARN): Initialize these statically.
+	* alloc.c (init_alloc_early): Removed.
+	* alloc.c (common_init_alloc_early):
+	Remove initialization of various integers to zero, done by the C
+	implementation anyway.
+	staticpros_nodump is going to be zero at the point this is called,
+	no need to check.
+	* emacs.c (main_1):
+	No longer call init_alloc_early().
+	* symsinit.h:
+	Remove its declaration.
+
+2025-01-20  Aidan Kehoe  <kehoea@parhasard.net>
+
 	init_eistring_once_early(), reinit_eistring_once_early() can be
 	delegated to the C implementation, do that.
 	* emacs.c (main_1):
