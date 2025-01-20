@@ -880,6 +880,12 @@
 
 2025-01-20  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* emacs.c (main_1):
+	Consolidate a couple of blocks to be called after successful
+	pdump_load() for clarity.
+
+2025-01-20  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Remove init_alloc_early(), which was basically empty.
 	Move the error-checking code that was in it to
 	common_init_alloc_early().

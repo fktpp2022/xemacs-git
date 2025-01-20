@@ -1323,17 +1323,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       /* Declare the basic symbols pertaining to errors,
 	 So that DEFERROR*() can be called. */
       init_errors_once_early ();
-    }
-  else if (!restart)	      /* after successful pdump_load() */
-    {
-      reinit_alloc_early ();
-#ifdef WITH_NUMBER_TYPES
-      reinit_vars_of_number ();
-#endif
-    }
 
-  if (!initialized)
-    {
       /* Now declare all the symbols and define all the Lisp primitives.
 
 	 The *only* thing that the syms_of_*() functions are allowed to do
@@ -1774,6 +1764,10 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
     }
   else if (!restart)	      /* after successful pdump_load() */
     {
+      reinit_alloc_early ();
+#ifdef WITH_NUMBER_TYPES
+      reinit_vars_of_number ();
+#endif
       reinit_console_type_create_stream ();
 #ifdef HAVE_TTY
       reinit_console_type_create_tty ();
