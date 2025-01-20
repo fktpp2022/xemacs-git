@@ -1325,14 +1325,10 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       /* Declare the basic symbols pertaining to errors,
 	 So that DEFERROR*() can be called. */
       init_errors_once_early ();
-
-      /* Make sure that eistrings can be created. */
-      init_eistring_once_early ();
     }
   else if (!restart)	      /* after successful pdump_load() */
     {
       reinit_alloc_early ();
-      reinit_eistring_early ();
 #ifdef WITH_NUMBER_TYPES
       reinit_vars_of_number ();
 #endif
@@ -1607,10 +1603,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #if defined (HAVE_POSTGRESQL) && !defined (HAVE_SHLIB)
       syms_of_postgresql ();
 #endif
-    }
 
-  if (!initialized)
-    {
       /* Now create the subtypes for the types that have them.
 	 We do this before the vars_*() because more symbols
 	 may get initialized here. */

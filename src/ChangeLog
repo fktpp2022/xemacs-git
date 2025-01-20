@@ -878,6 +878,25 @@
 	* window.c:
 	Update declarations as above.
 
+2025-01-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	init_eistring_once_early(), reinit_eistring_once_early() can be
+	delegated to the C implementation, do that.
+	* emacs.c (main_1):
+	Don't call init_eistring_once_early() or reinit_eistring_early()
+	in this function.
+	Merge two blocks that are guarded by if (!initialized) for
+	clarity.
+	* symsinit.h:
+	Remove the declarations of init_eistring_once_early(),
+	reinit_eistring_once_early().
+	* text.c (Eistring the_eistring_malloc_zero_init): Give this a
+	static initialization with mallocp_ equal to one.
+	Trust the C implementation to initialize the_eistring_zero_init to
+	all zeroes.
+	* text.c (reinit_eistring_early): Removed.
+	* text.c (init_eistring_once_early): Removed.
+
 2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove reinit_opaque_early(); all it does is creates a free list

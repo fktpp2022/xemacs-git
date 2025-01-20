@@ -1260,7 +1260,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 /*                              declarations                            */
 /************************************************************************/
 
-Eistring the_eistring_zero_init, the_eistring_malloc_zero_init;
+Eistring the_eistring_zero_init;
+Eistring the_eistring_malloc_zero_init = { 0, 0, 0, 0, 1, 0, 0 };
 
 
 #define MAX_CHARBPOS_GAP_SIZE_3 (65535/3)
@@ -6371,19 +6372,6 @@ Return a string of the characters comprising a composite character.
 /************************************************************************/
 /*                            initialization                            */
 /************************************************************************/
-
-void
-reinit_eistring_early (void)
-{
-  the_eistring_malloc_zero_init = the_eistring_zero_init;
-  the_eistring_malloc_zero_init.mallocp_ = 1;
-}
-
-void
-init_eistring_once_early (void)
-{
-  reinit_eistring_early ();
-}
 
 void
 syms_of_text (void)
