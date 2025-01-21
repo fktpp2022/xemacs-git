@@ -642,6 +642,15 @@ Bytebpos
 vmotion (struct window *w, Bytebpos orig, Charcount vtarget,
          Charcount *ret_vpos)
 {
+  if (!redisplayable_window_p (w))
+    {
+      if (ret_vpos)
+	{
+	  *ret_vpos = 0;
+	}
+      return orig;
+    }
+
   return vmotion_1 (w, orig, vtarget, ret_vpos, NULL);
 }
 
@@ -670,6 +679,11 @@ vertical_motion_1 (Lisp_Object lines, Lisp_Object window,
   selected = selected || EQ (window, Fselected_window (Qnil));
 
   w = XWINDOW (window);
+
+  if (!redisplayable_window_p (w))
+    {
+      return Qzero;
+    }
 
   orig = selected ? BYTE_BUF_PT (XBUFFER (w->buffer))
                   : marker_byte_position (w->pointm[CURRENT_DISP]);

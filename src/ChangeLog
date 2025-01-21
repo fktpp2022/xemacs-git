@@ -1,3 +1,32 @@
+2025-01-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Avoid calling various functions that require a working redisplay
+	when the current window is on a stream device. Thank you for the
+	bug report, Ulrich Müller.
+
+	* window.h: Declare redisplayable_window_p() here.
+	* indent.c (vmotion): Use it, don't attempt to scroll if redisplay
+	infrastructure not available.
+	* indent.c (vertical_motion_1): Use it, ditto.
+
+	* window.c:
+	* window.c (redisplayable_window_p): New. 
+	* window.c (Fpos_visible_in_window_p):
+	Return Qnil early if this is a window on a stream device.
+	* window.c (Fwindow_end):
+	Just return w->end_pos if WINDOW is on a stream device.
+	* window.c (Fdelete_other_windows):
+	Don't attempt to scroll if WINDOW is on a stream device.
+	* window.c (window_scroll): Ditto.
+	* window.c (Fcenter_to_window_line):
+	Ditto.
+	* window.c (get_current_pixel_pos):
+	Return 0 if this window does not have an associated display
+	buffer, rather than crashing.
+	* window.c (Fcurrent_pixel_column): Call decode_window()
+	appropriately in here.
+	* window.c (Fcurrent_pixel_row): Ditto.
+
 2025-01-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* device-gtk.c (gtk_init_device):

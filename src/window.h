@@ -152,6 +152,7 @@ int buffer_window_mru (struct window *w);
 void check_frame_size (struct frame *frame, int *cols, int *rows);
 int frame_pixsize_valid_p (struct frame *frame, int width, int height);
 struct window *decode_window (Lisp_Object window);
+Boolint redisplayable_window_p (struct window *w);
 struct window *find_window_by_pixel_pos (int pix_x, int pix_y, Lisp_Object win);
 
 void free_window_mirror (struct window_mirror *mir);

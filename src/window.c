@@ -402,6 +402,12 @@ allocate_window (void)
   return obj;
 }
 #undef INIT_DISP_VARIABLE
+
+Boolint
+redisplayable_window_p (struct window *w)
+{
+  return !FRAME_STREAM_P (XFRAME (WINDOW_FRAME (w)));
+}
 
 /************************************************************************/
 /*                        Window mirror structure                       */
@@ -1491,11 +1497,19 @@ POS defaults to point in WINDOW's buffer; WINDOW, to the selected window.
        (pos, window, partially))
 {
   struct window *w = decode_window (window);
-  Bytebpos top = marker_byte_position (w->start[CURRENT_DISP]);
-  struct buffer *buf = XBUFFER (w->buffer);
-  Bytebpos posint = get_buffer_pos_byte (buf, pos,
-                                         GB_ALLOW_PAST_ACCESSIBLE |
-                                         GB_ALLOW_NIL | GB_NO_ERROR_IF_BAD);
+  Bytebpos top, posint;
+  struct buffer *buf;
+
+  if (!redisplayable_window_p (w))
+    {
+      return Qnil;
+    }
+
+  top = marker_byte_position (w->start[CURRENT_DISP]);
+  buf = XBUFFER (w->buffer);
+  posint = get_buffer_pos_byte (buf, pos,
+				GB_ALLOW_PAST_ACCESSIBLE | GB_ALLOW_NIL
+				| GB_NO_ERROR_IF_BAD);
 
   if (posint < top || posint > BYTE_BUF_ZV (buf))
     return Qnil;
@@ -1659,6 +1673,12 @@ is non-nil, do not include space occupied by clipped lines.
   line_start_cache_dynarr *cache;
 
   window = wrap_window (w);
+
+  if (!redisplayable_window_p (w))
+    {
+      return Qzero;
+    }
+
   start  = marker_byte_position (w->start[CURRENT_DISP]);
   hlimit = WINDOW_TEXT_HEIGHT (w);
   eobuf  = BYTE_BUF_ZV (XBUFFER (w->buffer));
@@ -1903,11 +1923,11 @@ e.g. if the window's current buffer has been killed. */
   struct window *w = decode_window (window);
   Bytebpos eoll;
 
-  if (NILP (guarantee) || in_display)
+  if (NILP (guarantee) || !redisplayable_window_p (w) || in_display)
     {
       struct buffer *b = window_display_buffer (w);
 
-      if (in_display || 
+      if (in_display || !redisplayable_window_p (w) ||
           (b != NULL && BUFFER_LIVE_P (b) &&
 	   EQ (wrap_buffer (b), window_buffer (w))))
         {
@@ -3342,7 +3362,7 @@ value is reasonable when this function is called.
      window start is outside the visible portion (as might happen when
      the display is not current, due to typeahead). */
   if (start_pos >= BYTE_BUF_BEGV (b) && start_pos <= BYTE_BUF_ZV (b)
-      && !MINI_WINDOW_P (w))
+      && !MINI_WINDOW_P (w) && redisplayable_window_p (w))
     {
       Bytebpos new_start
         = start_with_line_at_pixpos
@@ -4629,6 +4649,11 @@ window_scroll (Lisp_Object window, Lisp_Object count, int direction,
   struct display_line* dl;
   Boolint unchain_point = 0;
   struct gcpro gcpro1;
+
+  if (!redisplayable_window_p (w))
+    {
+      return;
+    }
   
   if (selected)
     point = b->point_marker;
@@ -5128,6 +5153,11 @@ If WINDOW is nil, the selected window is used.
   Bytebpos opoint = BYTE_BUF_PT (b);
   Bytebpos startp;
 
+  if (!redisplayable_window_p (w))
+    {
+      return Qnil; 
+    }
+
   if (NILP (n))
     startp = start_with_line_at_pixpos (w, opoint, window_half_pixpos (w));
   else
@@ -5492,14 +5522,20 @@ get_current_pixel_pos (Lisp_Object window, Lisp_Object pos,
     {
       int first_line, i;
       Bytebpos point;
+      struct buffer *buf;
 
       if (NILP (pos))
         {
           pos = Fwindow_point (wrap_window (*w));
         }
 
-      point = get_buffer_pos_byte (window_display_buffer (*w), pos,
-                                   GB_NO_ERROR_IF_BAD);
+      buf = window_display_buffer (*w);
+      if (buf == NULL)
+	{
+	  return 0;
+	}
+
+      point = get_buffer_pos_byte (buf, pos, GB_NO_ERROR_IF_BAD);
 
       /* If the window has a modeline, ignore it for our purposes, POS can't
          be over it. Start examining the display lines from 1. */
@@ -5553,7 +5589,7 @@ a new frame, use the following instead:
 */
        (window, pos))
 {
-  struct window* w;
+  struct window *w = decode_window (window);
   struct display_line *dl;
   struct rune* rb;
 
@@ -5576,7 +5612,7 @@ use the following instead:
 */
        (window, pos))
 {
-  struct window* w;
+  struct window *w = decode_window (window);
   struct display_line *dl;
   struct rune* rb;
 
