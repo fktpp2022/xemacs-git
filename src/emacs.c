@@ -3831,8 +3831,14 @@ assert_equal_failed (const Ascbyte *file, int line, EMACS_INT x, EMACS_INT y,
 {
   Ascbyte bigstr[1000]; /* #### Could overflow, but avoids any need to do any
 			   allocation, even alloca(), hence safer */
+#ifdef HAVE_SNPRINTF
+  snprintf (bigstr, sizeof (bigstr),
+	    "%s (%zd) should == %s (%zd) but doesn't",
+	    exprx, x, expry, y);
+#else
   sprintf (bigstr, "%s (%zd) should == %s (%zd) but doesn't",
 	   exprx, x, expry, y);
+#endif
   assert_failed (file, line, bigstr);
 }
 

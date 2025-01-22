@@ -71,6 +71,28 @@ char gnuserv_version[] = "gnuserv version" GNUSERV_VERSION;
 
 #include "compiler.h"
 
+#ifndef HAVE_SNPRINTF
+static int
+snprintf(char * str, size_t size, const char * format, ...)
+{
+  va_list vargs;
+  int retval;
+
+  va_start (vargs, format);
+  retval = vsprintf (output, format, vargs);
+  va_end (vargs);
+
+  if (retval >= size)
+    {
+      fprintf (stderr, "%s: overflow in sprintf\n", progname);
+      exit (3);
+    }
+
+  return retval;
+
+}
+#endif
+
 #if !defined(SYSV_IPC) && !defined(UNIX_DOMAIN_SOCKETS) && \
     !defined(INTERNET_DOMAIN_SOCKETS)
 int main ()
@@ -150,7 +172,7 @@ ipc_init (struct msgbuf **msgpp)
   key_t key;			/* messge key */
   char buf[GSERV_BUFSZ];	/* pathname for key */
 
-  sprintf (buf,"%s/gsrv%d",tmpdir,(int)geteuid ());
+  snprintf (buf, sizeof (buf), "%s/gsrv%d",tmpdir,(int)geteuid ());
   creat (buf,0600);
   key = ftok (buf,1);
 
@@ -779,7 +801,8 @@ unix_init (void)
 
   /* Set up address structure for the listen socket. */
 #ifdef HIDE_UNIX_SOCKET
-  sprintf(server.sun_path,"%s/gsrvdir%d",tmpdir,(int)geteuid());
+  snprintf (server.sun_path, sizeof (server.sun_path),
+	    "%s/gsrvdir%d",tmpdir,(int)geteuid());
   if (mkdir(server.sun_path, 0700) < 0)
     {
       /* assume it already exists, and try to set perms */
@@ -794,7 +817,8 @@ unix_init (void)
   strcat(server.sun_path,"/gsrv");
   unlink(server.sun_path);	/* remove old file if it exists */
 #else /* HIDE_UNIX_SOCKET */
-  sprintf(server.sun_path,"%s/gsrv%d",tmpdir,(int)geteuid());
+  snprintf (server.sun_path, sizeof (server.sun_path),
+	    "%s/gsrv%d",tmpdir, (int)geteuid());
   unlink(server.sun_path);	/* remove old file if it exists */
 #endif /* HIDE_UNIX_SOCKET */
 

@@ -88,6 +88,28 @@ char *tmpdir = NULL;
 
 char *progname = NULL;
 
+#ifndef HAVE_SNPRINTF
+static int
+snprintf(char * str, size_t size, const char * format, ...)
+{
+  va_list vargs;
+  int retval;
+
+  va_start (vargs, format);
+  retval = vsprintf (output, format, vargs);
+  va_end (vargs);
+
+  if (retval >= size)
+    {
+      fprintf (stderr, "%s: overflow in sprintf\n", progname);
+      exit (3);
+    }
+
+  return retval;
+
+}
+#endif
+
 int
 make_connection (char *hostarg, int portarg, int *s)
 {
@@ -236,7 +258,7 @@ send_string (int s, const char *msg)
   read_line -- read a \n terminated line from a socket
 */
 int
-read_line (int s, char *dest)
+read_line (int s, char *dest, size_t destsize)
 {
   int length;
   int offset=0;
@@ -249,7 +271,11 @@ read_line (int s, char *dest)
       break;
   }
   buffer[offset] = '\0';
-  strcpy(dest,buffer);
+  snprintf (dest, destsize, "%s", buffer);
+  if ((size_t) offset > destsize)
+    {
+      dest[destsize] = '\0';
+    }
   return 1;
 } /* read_line */
 #endif /* INTERNET_DOMAIN_SOCKETS || UNIX_DOMAIN_SOCKETS */

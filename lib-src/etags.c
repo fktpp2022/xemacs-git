@@ -255,6 +255,28 @@ If you want regular expression support, you should delete this notice and
 					(char *) (op), (n) * sizeof (Type)))
 #endif
 
+#ifndef HAVE_SNPRINTF
+static int
+snprintf(char * str, size_t size, const char * format, ...)
+{
+  va_list vargs;
+  int retval;
+
+  va_start (vargs, format);
+  retval = vsprintf (output, format, vargs);
+  va_end (vargs);
+
+  if (retval >= size)
+    {
+      fprintf (stderr, "%s: overflow in sprintf\n", progname);
+      exit (3);
+    }
+
+  return retval;
+
+}
+#endif
+
 #define bool int
 
 typedef void Lang_function __P((FILE *));
@@ -1122,7 +1144,7 @@ fn_exp (vspec *out, char *in)
     retval = 0;
   else
     {
-      strcpy(out->body, in);
+      snprintf (out->body, sizeof (out->body), "%s", in);
       retval = -1;
     }
   lib$find_file_end(&context);
@@ -1563,8 +1585,7 @@ sort_tags_file (const char *sort_tagfile)
   size_t line_strings_index = 0;
   long line_read;
   char **line_strings;
-  enum { carriage_return_line_feed = 0, line_feed = 1,
-	 no_newlines = 2 } eol_conversion = line_feed;
+  const char *eol_conversion = "\n";
 
   if (tag_f == NULL)
     pfatal (sort_tagfile);
@@ -1582,14 +1603,14 @@ sort_tags_file (const char *sort_tagfile)
 	  switch (line_read - line.len)
 	    {
             case 0:
-              eol_conversion = no_newlines;
+              eol_conversion = "";
               break;
             case 2:
-              eol_conversion = carriage_return_line_feed;
+              eol_conversion = "\r\n";
               break;
             case 1:
             default:
-              eol_conversion = line_feed;
+              eol_conversion = "\n";
               break;
             }
         }
@@ -1646,7 +1667,7 @@ sort_tags_file (const char *sort_tagfile)
 	free (line_strings[ii]);
 	/* Note: this forces a newline at end of file. This doesn't
 	   matter. */
-        fputs ("\r\n" + eol_conversion, tag_f);
+        fputs (eol_conversion, tag_f);
       }
 
     free (line_strings);
@@ -2983,7 +3004,7 @@ write_classname (linebuffer *cn, char *qualifier)
     {
       len = strlen (cstack.cname[0]);
       linebuffer_setlen (cn, len);
-      strcpy (cn->buffer, cstack.cname[0]);
+      snprintf (cn->buffer, cn->size, "%s", cstack.cname[0]);
     }
   for (i = 1; i < cstack.nl; i++)
     {
@@ -3664,9 +3685,9 @@ C_entries (
                               write_classname (&token_name, qualifier);
 			      linebuffer_setlen (&token_name,
 						 token_name.len+qlen+toklen);
-			      strcat (token_name.buffer, qualifier);
-			      strncat (token_name.buffer,
-				       newlb.buffer + tokoff, toklen);
+			      snprintf (token_name.buffer, token_name.size,
+					"%s%.*s", qualifier, toklen,
+					newlb.buffer + tokoff);
 			      token.named = TRUE;
 			    }
 			  else if (objdef == ocatseen)
@@ -3674,11 +3695,9 @@ C_entries (
 			    {
 			      int len = strlen (objtag) + 2 + toklen;
 			      linebuffer_setlen (&token_name, len);
-			      strcpy (token_name.buffer, objtag);
-			      strcat (token_name.buffer, "(");
-			      strncat (token_name.buffer,
-				       newlb.buffer + tokoff, toklen);
-			      strcat (token_name.buffer, ")");
+			      snprintf (token_name.buffer, token_name.size,
+					"%s(%.*s)", objtag,
+					toklen, newlb.buffer + tokoff);
 			      token.named = TRUE;
 			    }
 			  else if (objdef == omethodtag

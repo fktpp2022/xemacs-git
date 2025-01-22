@@ -58,6 +58,27 @@ char gnuserv_version[] = "gnuclient version " GNUSERV_VERSION;
 #include <sys/cygwin.h> /* For cygwin_conv_path() */
 #endif
 
+#ifndef HAVE_SNPRINTF
+static int
+snprintf(char * str, size_t size, const char * format, ...)
+{
+  va_list vargs;
+  int retval;
+
+  va_start (vargs, format);
+  retval = vsprintf (output, format, vargs);
+  va_end (vargs);
+
+  if (retval >= size)
+    {
+      fprintf (stderr, "%s: overflow in sprintf\n", progname);
+      exit (3);
+    }
+
+  return retval;
+}
+#endif
+
 #if !defined(SYSV_IPC) && !defined(UNIX_DOMAIN_SOCKETS) && \
     !defined(INTERNET_DOMAIN_SOCKETS)
 int
@@ -94,7 +115,8 @@ tell_emacs_to_resume (int UNUSED (sig))
 
   connect_type = make_connection (NULL, 0, &s);
 
-  sprintf(buffer,"(gnuserv-eval '(resume-pid-console %d))", (int)getpid());
+  snprintf (buffer, sizeof (buffer),
+	    "(gnuserv-eval '(resume-pid-console %d))", (int)getpid());
   send_string(s, buffer);
 
 #ifdef SYSV_IPC
@@ -311,9 +333,12 @@ clean_string (const char *s)
 static char *
 my_strdup (const char *s)
 {
-  char *new_s = (char *) malloc (strlen (s) + 1);
+  size_t len = strlen (s) + 1;
+  char *new_s = (char *) malloc (len);
   if (new_s)
-    strcpy (new_s, s);
+    {
+      memcpy (new_s, s, len);
+    }
   return new_s;
 }
 
@@ -506,7 +531,8 @@ main (int argc, char *argv[])
 #else
       connect_type = make_connection (NULL, 0, &s);
 #endif
-      sprintf (command, "(gnuserv-eval%s '(progn ", quick ? "-quickly" : "");
+      snprintf (command, sizeof (command),
+		"(gnuserv-eval%s '(progn ", quick ? "-quickly" : "");
       send_string (s, command);
       if (load_library)
 	{
@@ -544,7 +570,8 @@ main (int argc, char *argv[])
 #else
       connect_type = make_connection (NULL, 0, &s);
 #endif
-      sprintf (command, "(gnuserv-eval%s '(progn ", quick ? "-quickly" : "");
+      snprintf (command, sizeof (command),
+		"(gnuserv-eval%s '(progn ", quick ? "-quickly" : "");
       send_string (s, command);
 
       while ((nb = read(fileno(stdin), buffer, GSERV_BUFSZ-1)) > 0)
@@ -581,7 +608,7 @@ main (int argc, char *argv[])
 	  send_string (s, "(gnuserv-eval '(emacs-pid))");
 	  send_string (s, EOT_STR);
 
-	  if (read_line (s, buffer) == 0)
+	  if (read_line (s, buffer, sizeof (buffer)) == 0)
 	    {
 	      fprintf (stderr, "%s: Could not establish Emacs process id\n",
 		       progname);
@@ -652,8 +679,9 @@ main (int argc, char *argv[])
 	      fprintf (stderr, "%s: unknown terminal type\n", progname);
 	      exit (1);
 	    }
-	  sprintf (command, "(gnuserv-edit-files '(tty %s %s %d) '(",
-		   clean_string (tty), clean_string (term), (int)getpid ());
+	  snprintf (command, sizeof (command),
+		    "(gnuserv-edit-files '(tty %s %s %d) '(",
+		    clean_string (tty), clean_string (term), (int)getpid ());
 	}
       else /* !suppress_windows_system */
 	{
@@ -661,20 +689,23 @@ main (int argc, char *argv[])
 	    ;
 #ifdef HAVE_X_WINDOWS
 	  else if (display)
-	    sprintf (command, "(gnuserv-edit-files '(x %s) '(",
-		     clean_string (display));
+	    snprintf (command, sizeof (command),
+		      "(gnuserv-edit-files '(x %s) '(",
+		      clean_string (display));
 #endif
 #ifdef HAVE_GTK
 	  else if (display)
-	    sprintf (command, 
-                     /* #### We should probably do this sort of thing for
-                        other window systems. */
-                     "(gnuserv-edit-files (assoc* t '((gtk nil) (x %s)) "
-                     ":key #'valid-device-type-p) '(", clean_string (display));
+	    snprintf (command, sizeof (command),
+		      /* #### We should probably do this sort of thing for
+			 other window systems. */
+		      "(gnuserv-edit-files (assoc* t '((gtk nil) (x %s)) "
+		      ":key #'valid-device-type-p) '(",
+		      clean_string (display));
 #endif
 #ifdef HAVE_MS_WINDOWS
 	  else
-	    sprintf (command, "(gnuserv-edit-files '(mswindows nil) '(");
+	    snprintf (command, sizeof (command),
+		      "(gnuserv-edit-files '(mswindows nil) '(");
 #endif
 	} /* !suppress_windows_system */
       send_string (s, command);
@@ -692,24 +723,31 @@ main (int argc, char *argv[])
 
 	  filename_expand (fullpath, argv[i]);
 #ifdef INTERNET_DOMAIN_SOCKETS
-	  path = (char *) malloc (strlen (remotepath) + strlen (fullpath) + 1);
-	  sprintf (path, "%s%s", remotepath, fullpath);
+	  {
+	    size_t pathlen = strlen (remotepath) + strlen (fullpath) + 1;
+	    path = (char *) malloc (pathlen);
+	    snprintf (path, pathlen, "%s%s", remotepath, fullpath);
+	  }
 #else
 	  path = my_strdup (fullpath);
 #endif
 	  if ( starting_line ) {
-	    sprintf (command, "(%d . %s)", starting_line, clean_string (path));
+	    snprintf (command, sizeof (command),
+		      "(%d . %s)", starting_line, clean_string (path));
 	  } else {
-	    sprintf (command, "(nil . %s)", clean_string (path));
+	    snprintf (command, sizeof (command),
+		      "(nil . %s)", clean_string (path));
 	  }
 
 	  send_string (s, command);
 	  free (path);
 	} /* for */
 
-      sprintf (command, ")%s%s",
-	       (quick || (nofiles && !suppress_windows_system)) ? " 'quick" : "",
-	       view ? " 'view" : "");
+      snprintf (command, sizeof (command),
+		")%s%s",
+		(quick || (nofiles && !suppress_windows_system)) ?
+		" 'quick" : "",
+		view ? " 'view" : "");
       send_string (s, command);
       send_string (s, ")");
 

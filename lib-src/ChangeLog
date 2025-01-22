@@ -1,3 +1,35 @@
+2025-01-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* etags.c:
+	* etags.c (snprintf): Add a kludgy implementation of this #ifndef
+	HAVE_SNPRINTF, that just exits if the buffer overflows.
+	* etags.c (fn_exp):
+	Use it in preference to strcpy().
+	* etags.c (sort_tags_file):
+	Slightly different approach to printing line endings, silencing
+	warnings on OpenBSD.
+	* etags.c (write_classname):
+	Use snprintf() in preference to calls to strcat, strncat.
+
+	* gnuclient.c:
+	* gnuclient.c (snprintf): Add a kludgy implementation of this #ifndef
+	HAVE_SNPRINTF, that just exits if the buffer overflows.
+
+	* gnuclient.c (tell_emacs_to_resume): Use it.
+	* gnuclient.c (my_strdup):
+	Revise this to silence warnings.
+	* gnuclient.c (main):
+	Use snprintf(). Pass read_line() its new DESTSIZE argument.
+
+	* gnuserv.c:
+	* gnuserv.c (snprintf): Add a kludgy implementation of this #ifndef
+	HAVE_SNPRINTF, that just exits if the buffer overflows.
+	* gnuserv.c (ipc_init): Use it.
+	* gnuserv.c (unix_init): Use it.
+	* gnuserv.h (read_line): Update declaration.
+	* gnuslib.c (read_line): Take a new DESTSIZE argument. Use
+	snprintf for its bounds checking. Always zero-terminate.
+
 2024-12-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* insert-data-in-exec.c: Removed.

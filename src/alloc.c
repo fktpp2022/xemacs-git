@@ -4090,13 +4090,14 @@ gc_plist_hack (const Ascbyte *name, EMACS_INT value, Lisp_Object tail)
   return cons3 (intern (name), make_fixnum (value), tail);
 }
 
-/* Pluralize a lowercase English word stored in BUF, assuming BUF has
-   enough space to hold the extra letters (at most 2). */
-static void
-pluralize_word (Ascbyte *buf)
+/* Destructively pluralize a lowercase English word stored in BUF of
+   size BUFSIZE.  Return the new length of the string. BUFSIZE should
+   be sufficient to hold another two bytes. */
+static Bytecount
+pluralize_word (Ascbyte *buf, Bytecount bufsize)
 {
-  size_t len = strlen (buf);
-  int upper = 0;
+  Bytecount len = (Bytecount) strlen (buf);
+  Boolint upper = 0;
   Ascbyte d, e;
 
   if (len == 0 || len == 1)
@@ -4124,24 +4125,46 @@ pluralize_word (Ascbyte *buf)
   else if (e == 's' || e == 'x' || (e == 'h' && (d == 's' || d == 'c')))
     {
       pluralize_es:
+      if (len >= bufsize)
+	{
+	  buf[bufsize - 1] = '\0';
+	  return bufsize - 1;
+	}
       buf[len++] = (upper ? 'E' : 'e');
     }
-  pluralize_s:
+ pluralize_s:
+  if (len >= bufsize)
+    {
+      buf[bufsize - 1] = '\0';
+      return bufsize - 1;
+    }
   buf[len++] = (upper ? 'S' : 's');
   buf[len] = '\0';
-  return;
+  return len;
 
   pluralize_apostrophe_s:
+  if (len >= bufsize)
+    {
+      buf[bufsize - 1] = '\0';
+      return bufsize - 1;
+    }
   buf[len++] = '\'';
   goto pluralize_s;
 }
 
 static void
-pluralize_and_append (Ascbyte *buf, const Ascbyte *name, const Ascbyte *suffix)
+pluralize_and_append (Ascbyte *buf, Bytecount bufsize,
+		      const Ascbyte *name, const Ascbyte *suffix)
 {
-  strcpy (buf, name);
-  pluralize_word (buf);
-  strcat (buf, suffix);
+  Bytecount plural_len, singular_len;
+  singular_len = emacs_snprintf_ascbyte (buf, bufsize, "%s", name);
+  if (singular_len > bufsize)
+    {
+      return;
+    }
+  plural_len = pluralize_word (buf, bufsize);
+  emacs_snprintf_ascbyte (buf + plural_len, bufsize - plural_len,
+			  "%s", suffix);
 }
 
 static Lisp_Object
@@ -4188,14 +4211,14 @@ object_memory_usage_stats (int set_total_gc_usage)
 	      tgu_val += lrecord_stats[i].lisp_ancillary_bytes_in_use;
 	    }
 #endif /* MEMORY_USAGE_STATS */
-	  pluralize_and_append (buf, name, "-freed");
+	  pluralize_and_append (buf, sizeof (buf), name, "-freed");
           if (lrecord_stats[i].instances_freed != 0)
             pl = gc_plist_hack (buf, lrecord_stats[i].instances_freed, pl);
-	  pluralize_and_append (buf, name, "-on-free-list");
+	  pluralize_and_append (buf, sizeof (buf), name, "-on-free-list");
           if (lrecord_stats[i].instances_on_free_list != 0)
             pl = gc_plist_hack (buf, lrecord_stats[i].instances_on_free_list,
 				pl);
-	  pluralize_and_append (buf, name, "-used");
+	  pluralize_and_append (buf, sizeof (buf), name, "-used");
           pl = gc_plist_hack (buf, lrecord_stats[i].instances_in_use, pl);
         }
     }

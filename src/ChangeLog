@@ -1,3 +1,25 @@
+2025-01-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Quiet various warnings when compiling on OpenBSD. Use snprintf()
+	instead of sprintf() if available.
+	Avoid strcpy(), strcat() since they don't do bounds checking, use
+	emacs_printf_ascbyte instead.
+
+	* alloc.c (pluralize_word):
+	Be more careful about bounds checking in this function. Return the
+	new length of the pluralized word.
+	* alloc.c (pluralize_and_append):
+	Use emacs_snprintf_ascbyte() instead of strcpy(), strcat(). Take
+	BUFSIZE as an argument.
+	* alloc.c (object_memory_usage_stats):
+	Pass the buffer size to pluralize_and_append().
+	* emacs.c:
+	* emacs.c (assert_equal_failed):
+	Use snprintf() if available. Inappropriate to use emacs_snprintf()
+	when things are in an inconsistent state with XEmacs crashing.
+	* event-Xt.c (x_reset_modifier_mapping):
+	Document why I don't plan to remove a call to XKeycodeToKeysym().
+
 2025-01-21  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Avoid calling various functions that require a working redisplay

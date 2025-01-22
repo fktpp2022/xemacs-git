@@ -221,7 +221,7 @@ void disconnect_from_ipc_server();
 #if defined(INTERNET_DOMAIN_SOCKETS) || defined(UNIX_DOMAIN_SOCKETS)
 void send_string (int s, const char *msg);
 void disconnect_from_server (int s, int echo);
-int read_line (int s, char *dest);
+int read_line (int s, char *dest, size_t destsize);
 #endif
 #ifdef INTERNET_DOMAIN_SOCKETS
 int internet_addr (char *host);
