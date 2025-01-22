@@ -1,3 +1,14 @@
+2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lstream.h (DECLARE_STACK_FIXED_BUFFER_LSTREAM):
+	When declaring the Lisp_Object, initialize it to Qunbound,
+	suppressing a compiler warning about a pointer to uninitialized
+	data and provoking a more predictable error if we attempt to write
+	to the stream before it's initialized.
+
+	* lstream.h (INIT_STACK_FIXED_BUFFER_OUTPUT_STREAM):
+	Do the initialization of the Lisp_Object to the stack lstream here.
+
 2025-01-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Quiet various warnings when compiling on OpenBSD. Use snprintf()

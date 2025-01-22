@@ -570,7 +570,8 @@ struct fixed_buffer_stream
     Rawbyte s[offsetof (struct lstream, data) +                         \
               sizeof (struct fixed_buffer_stream) ];                    \
   } lname##u;                                                           \
-  Lisp_Object lname = wrap_pointer_1 (&(lname##u.l))                    \
+  /* Error early on attempt to write to this before initialization: */  \
+  Lisp_Object lname = Qunbound                                          \
 
 #define INIT_STACK_FIXED_BUFFER_OUTPUT_STREAM(lname, buf, bsize) do     \
     {                                                                   \
@@ -584,6 +585,7 @@ struct fixed_buffer_stream
       lname##u.l.flags |= LSTR_WRITE;                                   \
       FIXED_BUFFER_STREAM_DATA (&(lname##u.l))->outbuf = buf;           \
       FIXED_BUFFER_STREAM_DATA (&(lname##u.l))->size = bsize;           \
+      lname = wrap_pointer_1 (&(lname##u.l));                           \
     } while (0)
 
 #endif
