@@ -77,7 +77,7 @@ extern int mswindows_is_blocking;
 
 /* For Russian C-x processing. */
 Lisp_Object Vx_us_keymap_description;
-Fixnum Vx_us_keymap_first_keycode;
+Fixnum x_us_keymap_first_keycode;
 
 /* used in glyphs-x.c */
 void enqueue_focus_event (Widget wants_it, Lisp_Object frame, int in_p);
@@ -2239,13 +2239,13 @@ x_event_to_emacs_event (XEvent *x_event, Lisp_Event *emacs_event)
 	       easier or more maintainable than storing a correspondence in
 	       Lisp. */
 
-	    if ((Elemcount) ev->keycode >= Vx_us_keymap_first_keycode
+	    if ((Elemcount) ev->keycode >= x_us_keymap_first_keycode
                 && VECTORP (Vx_us_keymap_description)
                 && (Elemcount) ev->keycode 
 		< XVECTOR_LENGTH (Vx_us_keymap_description))
 	      {
 		Lisp_Object entr = XVECTOR_DATA(Vx_us_keymap_description)
-		  [ev->keycode - Vx_us_keymap_first_keycode];
+		  [ev->keycode - x_us_keymap_first_keycode];
 		Ichar alternate = '\0';
 
 		if (!NILP (entr))
@@ -4155,14 +4155,14 @@ this vector.
 */ );
   Vx_us_keymap_description = Qnil;
 
-  DEFVAR_INT ("x-us-keymap-first-keycode", &Vx_us_keymap_first_keycode /*
+  DEFVAR_INT ("x-us-keymap-first-keycode", &x_us_keymap_first_keycode /*
 The X11 keycode that the first entry in `x-us-keymap-description'
 corresponds to.  See the documentation for that variable. 
 
 The X11 documentation for XDisplayKeycodes says this can never be less than
 8, but XEmacs doesn't enforce any limitation on what you set it to. 
 */ );
-  Vx_us_keymap_first_keycode = 0;
+  x_us_keymap_first_keycode = 0;
 
   VXt_pending_timeouts = Qnil;
   staticpro (&VXt_pending_timeouts);

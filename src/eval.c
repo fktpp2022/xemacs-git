@@ -250,7 +250,7 @@ static int first_desired_multiple_value;
    macro: */
 int multiple_value_current_limit;
 
-Fixnum Vmultiple_values_limit;
+Fixnum multiple_values_limit;
 
 /* Flags specifying which operations are currently inhibited. */
 int inhibit_flags;
@@ -4791,9 +4791,9 @@ bind_multiple_value_limits (int first, int upper)
                         " FIRST-DESIRED-MULTIPLE-VALUE", Qunbound);
     }
 
-  if (upper > Vmultiple_values_limit)
+  if (upper > multiple_values_limit)
     {
-      args_out_of_range (make_fixnum (upper), make_fixnum (Vmultiple_values_limit));
+      args_out_of_range (make_fixnum (upper), make_fixnum (multiple_values_limit));
     }
 
   /* In the event that something back up the stack wants more multiple
@@ -4903,10 +4903,10 @@ arguments: (FUNCTION &rest FORMS)
   /* The argument order is horrible here. */
   constructed_args[i] = make_fixnum (0);
   gcpro1.nvars = ++i;
-  constructed_args[i] = make_fixnum (Vmultiple_values_limit);
+  constructed_args[i] = make_fixnum (multiple_values_limit);
   gcpro1.nvars = ++i;
 
-  speccount = bind_multiple_value_limits (0, Vmultiple_values_limit);
+  speccount = bind_multiple_value_limits (0, multiple_values_limit);
   constructed_args[i] = make_fixnum (speccount);
   gcpro1.nvars = ++i;
 
@@ -7714,13 +7714,13 @@ If due to `eval' entry, one arg, t.
 */ );
   Vdebugger = Qnil;
 
-  DEFVAR_CONST_INT ("multiple-values-limit", &Vmultiple_values_limit /*
+  DEFVAR_CONST_INT ("multiple-values-limit", &multiple_values_limit /*
 The exclusive upper bound on the number of multiple values. 
 
 This applies to `values', `values-list', `multiple-value-bind' and related
 macros and special operators.
 */);
-  Vmultiple_values_limit = MOST_POSITIVE_FIXNUM > INT_MAX ? INT_MAX : MOST_POSITIVE_FIXNUM;
+  multiple_values_limit = MOST_POSITIVE_FIXNUM > INT_MAX ? INT_MAX : MOST_POSITIVE_FIXNUM;
 
   DEFVAR_LISP ("macro-declaration-function", &Vmacro_declaration_function /*
 Function to process declarations in a macro definition.

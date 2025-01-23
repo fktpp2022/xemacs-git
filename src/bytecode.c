@@ -1874,7 +1874,7 @@ execute_rare_opcode (Lisp_Object *stack_ptr,
         Lisp_Object upper = POP, first = TOP, speccount;
 
         check_integer_range (upper, Qzero,
-                             make_integer (Vmultiple_values_limit));
+                             make_integer (multiple_values_limit));
         check_integer_range (first, Qzero, upper);
 
         speccount = make_fixnum (bind_multiple_value_limits (XFIXNUM (first),

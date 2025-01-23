@@ -83,13 +83,13 @@ EMACS_INT total_gc_usage;
 int total_gc_usage_set;
 
 /* Number of bytes of consing since gc before another gc should be done. */
-EMACS_INT gc_cons_threshold;
+Fixnum gc_cons_threshold;
 
 /* Nonzero during gc */
 int gc_in_progress;
 
 /* Percentage of consing of total data size before another GC. */
-EMACS_INT gc_cons_percentage;
+Fixnum gc_cons_percentage;
 
 
 /************************************************************************/

@@ -72,7 +72,7 @@ Lisp_Object Q_junk_allowed,  Q_radix, Q_radix_table;
 Lisp_Object Vdigit_fixnum_map, Vdigit_fixnum_ascii;
 Lisp_Object Vdigit_fixnum_calculated_data;
 
-Fixnum Vmost_negative_fixnum, Vmost_positive_fixnum;
+Fixnum most_negative_fixnum, most_positive_fixnum;
 
 #ifdef DEBUG_XEMACS
 
@@ -3862,15 +3862,15 @@ vars_of_data (void)
   Vfinalize_list = Qnil;
   staticpro (&Vfinalize_list);
 
-  DEFVAR_CONST_INT ("most-negative-fixnum", &Vmost_negative_fixnum /*
+  DEFVAR_CONST_INT ("most-negative-fixnum", &most_negative_fixnum /*
 The fixnum closest in value to negative infinity.
 */);
-  Vmost_negative_fixnum = MOST_NEGATIVE_FIXNUM;
+  most_negative_fixnum = MOST_NEGATIVE_FIXNUM;
 
-  DEFVAR_CONST_INT ("most-positive-fixnum", &Vmost_positive_fixnum /*
+  DEFVAR_CONST_INT ("most-positive-fixnum", &most_positive_fixnum /*
 The fixnum closest in value to positive infinity.
 */);
-  Vmost_positive_fixnum = MOST_POSITIVE_FIXNUM;
+  most_positive_fixnum = MOST_POSITIVE_FIXNUM;
 
   staticpro (&Vdigit_fixnum_calculated_data);
   Vdigit_fixnum_calculated_data = make_weak_list (WEAK_LIST_KEY_ASSOC);

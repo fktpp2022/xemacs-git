@@ -551,6 +551,28 @@
 
 2025-01-23  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Rename various C variables that reflect Fixnums from Vfoo_bar_baz
+	to foo_bar_baz. I had introduced them all and it was misleading,
+	suggesting that they were Lisp objects.
+
+	* alloc.c:
+	* alloc.c (vars_of_alloc):
+	* bytecode.c (UNUSED):
+	* data.c:
+	* data.c (vars_of_data):
+	* eval.c:
+	* eval.c (bind_multiple_value_limits):
+	* eval.c (Fmultiple_value_call):
+	* event-Xt.c:
+	* event-Xt.c (x_event_to_emacs_event):
+	* event-Xt.c (vars_of_event_Xt):
+	* gc.c:
+	* lisp.h:
+	* text.c:
+	* text.c (vars_of_text):
+
+2025-01-23  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Declare all those C variables for which DEFVAR_BOOL() or
 	DEFVAR_CONST_BOOL() are used, as type Boolint. Generally a good
 	idea, and done in preparation for further changes.

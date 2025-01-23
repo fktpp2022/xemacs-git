@@ -5102,7 +5102,7 @@ void warn_when_safe_lispobj (Lisp_Object, Lisp_Object, Lisp_Object);
 MODULE_API void warn_when_safe (Lisp_Object, Lisp_Object, const Ascbyte *,
 				...) PRINTF_ARGS (3, 4);
 extern int backtrace_with_internal_sections;
-extern Fixnum Vmultiple_values_limit;
+extern Fixnum multiple_values_limit;
 
 extern Lisp_Object Qand_optional;
 extern Lisp_Object Qand_rest;

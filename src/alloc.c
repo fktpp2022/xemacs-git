@@ -86,7 +86,7 @@ static Fixnum debug_allocation;
 static Fixnum debug_allocation_backtrace_length;
 #endif
 
-Fixnum Varray_dimension_limit, Varray_total_size_limit, Varray_rank_limit;
+Fixnum array_dimension_limit, array_total_size_limit, array_rank_limit;
 Fixnum Vstring_total_size_limit, Vbit_vector_total_size_limit;
 
 int need_to_check_c_alloca;
@@ -5851,22 +5851,22 @@ reinit_vars_of_alloc (void)
 void
 vars_of_alloc (void)
 {
-  DEFVAR_CONST_INT ("array-rank-limit", &Varray_rank_limit /*
+  DEFVAR_CONST_INT ("array-rank-limit", &array_rank_limit /*
 The exclusive upper bound on the number of dimensions an array may have.
 
 XEmacs does not support multidimensional arrays, meaning this constant is,
 for the moment, 2.
 */);
-  Varray_rank_limit = 2;
+  array_rank_limit = 2;
 
-  DEFVAR_CONST_INT ("array-dimension-limit", &Varray_dimension_limit /*
+  DEFVAR_CONST_INT ("array-dimension-limit", &array_dimension_limit /*
 The exclusive upper bound of an array's dimension.
 Note that XEmacs may not have enough memory available to create an array
 with this dimension.
 */);
-  Varray_dimension_limit = ARRAY_DIMENSION_LIMIT;
+  array_dimension_limit = ARRAY_DIMENSION_LIMIT;
 
-  DEFVAR_CONST_INT ("array-total-size-limit", &Varray_total_size_limit /*
+  DEFVAR_CONST_INT ("array-total-size-limit", &array_total_size_limit /*
 The exclusive upper bound on the number of elements an array may contain.
 
 In Common Lisp, this is distinct from `array-dimension-limit', because
@@ -5878,7 +5878,7 @@ This limit is a result of the bit widths used in the implementation of the
 `vector' type. Note that XEmacs may not have enough memory available to create
 an array with this number of elements.
 */);
-  Varray_total_size_limit = ARRAY_DIMENSION_LIMIT;
+  array_total_size_limit = ARRAY_DIMENSION_LIMIT;
 
   DEFVAR_CONST_INT ("string-total-size-limit", &Vstring_total_size_limit /*
 The exclusive upper bound on a string's length.
