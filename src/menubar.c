@@ -43,7 +43,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "lstream.h"
 #include "text.h"
 
-int menubar_show_keybindings;
+Boolint menubar_show_keybindings;
 Lisp_Object Vmenubar_configuration;
 
 Lisp_Object Qcurrent_menubar;
@@ -58,7 +58,7 @@ static Lisp_Object Vcurrent_menubar; /* DO NOT ever reference this.
 
 Lisp_Object Vblank_menubar;
 
-int popup_menu_titles;
+Boolint popup_menu_titles;
 int in_menu_callback;
 
 Lisp_Object Vmenubar_pointer_glyph;

@@ -261,7 +261,7 @@ Lisp_Object Qgzip;
    (for aliases) other names. */
 static Lisp_Object Vcoding_system_hash_table;
 
-int enable_multibyte_characters;
+Boolint enable_multibyte_characters;
 
 EXFUN (Fcopy_coding_system, 2);
 

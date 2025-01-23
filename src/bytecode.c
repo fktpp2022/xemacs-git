@@ -181,7 +181,7 @@ assert_failed_with_remembered_ops (const Ascbyte *file, int line,
 #ifdef BYTE_CODE_METER
 
 Lisp_Object Vbyte_code_meter, Qbyte_code_meter;
-int byte_metering_on;
+Boolint byte_metering_on;
 
 static void
 meter_code (Opcode prev_opcode, Opcode this_opcode)

@@ -377,11 +377,11 @@ Fixnum horizontal_clip;
 
 /* Nonzero means reading single-character input with prompt
    so put cursor on minibuffer after the prompt.  */
-int cursor_in_echo_area;
+Boolint cursor_in_echo_area;
 Lisp_Object Qcursor_in_echo_area;
 
 /* Nonzero means truncate lines in all windows less wide than the frame */
-int truncate_partial_width_windows;
+Boolint truncate_partial_width_windows;
 
 /* non-nil if a buffer has changed since the last time redisplay completed */
 int buffers_changed;
@@ -473,7 +473,7 @@ Lisp_Object Vvisible_bell;	/* If true and the terminal will support it
 /* Nonzero means no need to redraw the entire frame on resuming
    a suspended Emacs.  This is useful on terminals with multiple pages,
    where one page is used for Emacs and another for all else. */
-int no_redraw_on_reenter;
+Boolint no_redraw_on_reenter;
 
 Lisp_Object Vwindow_system;	/* #### this variable is deprecated
 				   nil or a symbol naming the window system
@@ -502,7 +502,7 @@ Lisp_Object Qbuffer_list_changed_hook, Vbuffer_list_changed_hook;
 static Fixnum last_display_warning_tick;
 static Fixnum display_warning_tick;
 Lisp_Object Qdisplay_warning_buffer;
-int inhibit_warning_display;
+Boolint inhibit_warning_display;
 
 Lisp_Object Vleft_margin_width, Vright_margin_width;
 Lisp_Object Vminimum_line_ascent, Vminimum_line_descent;
@@ -513,7 +513,7 @@ static Lisp_Object QSin_redisplay;
 
 static Lisp_Object Vpost_redisplay_actions;
 
-int column_number_start_at_one;
+Boolint column_number_start_at_one;
 
 Lisp_Object Qtop_bottom;
 

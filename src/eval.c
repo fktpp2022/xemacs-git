@@ -299,9 +299,9 @@ int lisp_eval_depth;
 Fixnum max_lisp_eval_depth;
 
 /* Nonzero means enter debugger before next function call */
-static int debug_on_next_call;
+static Boolint debug_on_next_call;
 
-int backtrace_with_internal_sections;
+Boolint backtrace_with_internal_sections;
 
 /* List of conditions (non-nil atom means all) which cause a backtrace
    if an error is handled by the command loop's error handler.  */
@@ -330,7 +330,7 @@ Lisp_Object Vdebug_on_signal;
    But, eval.c temporarily uses the second bit of this variable to indicate
    that a critical_quit is in progress.  The second bit is reset immediately
    after it is processed in signal_call_debugger().  */
-int debug_on_quit;
+Boolint debug_on_quit;
 
 #if 0 /* FSFmacs */
 /* entering_debugger is basically equivalent */

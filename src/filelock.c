@@ -32,7 +32,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 Lisp_Object Qask_user_about_supersession_threat;
 Lisp_Object Qask_user_about_lock;
-int inhibit_clash_detection;
+Boolint inhibit_clash_detection;
 
 #ifdef CLASH_DETECTION
 

@@ -99,7 +99,7 @@ static struct event_stream *Xt_event_stream;
 XtAppContext Xt_app_con;
 
 /* Do we accept events sent by other clients? */
-int x_allow_sendevents;
+Boolint x_allow_sendevents;
 
 #ifdef DEBUG_XEMACS
 Fixnum debug_x_events;

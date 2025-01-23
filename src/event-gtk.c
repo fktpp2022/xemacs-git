@@ -70,7 +70,7 @@ extern int mswindows_is_blocking;
 #endif
 
 /* Do we accept events sent by other clients? */
-int gtk_allow_sendevents;
+Boolint gtk_allow_sendevents;
 
 static int process_events_occurred;
 static int tty_events_occurred;

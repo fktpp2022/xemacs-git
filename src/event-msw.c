@@ -157,8 +157,8 @@ static HBRUSH widget_brush = 0;
 static LONG	last_widget_brushed = 0;
 
 /* These are Lisp integers; see DEFVARS in this file for description. */
-int mswindows_dynamic_frame_resize;
-int mswindows_alt_by_itself_activates_menu;
+Boolint mswindows_dynamic_frame_resize;
+Boolint mswindows_alt_by_itself_activates_menu;
 Fixnum mswindows_num_mouse_buttons;
 Fixnum mswindows_mouse_button_max_skew_x;
 Fixnum mswindows_mouse_button_max_skew_y;

@@ -185,8 +185,8 @@ Lisp_Object Vinhibit_read_only;
    If any of these functions returns nil, we don't kill it.  */
 Lisp_Object Vkill_buffer_query_functions;
 
-/* Non-nil means delete a buffer's auto-save file when the buffer is saved. */
-int delete_auto_save_files;
+/* Non-zero means delete a buffer's auto-save file when the buffer is saved. */
+Boolint delete_auto_save_files;
 
 Lisp_Object Qbuffer_live_p;
 Lisp_Object Qbuffer_or_string_p;
@@ -220,8 +220,8 @@ Lisp_Object Qswitch_to_buffer, Qgenerated_modeline_string;
 Fixnum undo_threshold;
 Fixnum undo_high_threshold;
 
-int find_file_compare_truenames;
-int find_file_use_truenames;
+Boolint find_file_compare_truenames;
+Boolint find_file_use_truenames;
 
 
 static void reset_buffer_local_variables (struct buffer *, int first_time);

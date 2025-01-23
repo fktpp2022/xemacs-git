@@ -97,17 +97,17 @@ Lisp_Object Vauto_save_list_file_name;
 Lisp_Object Vauto_save_list_file_prefix;
 
 /* When non-nil, it prevents auto-save list file creation. */
-int inhibit_auto_save_session;
+Boolint inhibit_auto_save_session;
 
-int disable_auto_save_when_buffer_shrinks;
+Boolint disable_auto_save_when_buffer_shrinks;
 
 Lisp_Object Vdirectory_sep_char;
 
-int default_file_system_ignore_case;
+Boolint default_file_system_ignore_case;
 
 #ifdef HAVE_FSYNC
 /* Nonzero means skip the call to fsync in Fwrite-region.  */
-int write_region_inhibit_fsync;
+Boolint write_region_inhibit_fsync;
 #endif
 
 /* These variables describe handlers that have "already" had a chance

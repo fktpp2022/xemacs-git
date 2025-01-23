@@ -1085,7 +1085,7 @@ run_post_gc_actions (void)
 static Lisp_Object QSin_garbage_collection;
 
 /* Nonzero means display messages at beginning and end of GC.  */
-int garbage_collection_messages;
+Boolint garbage_collection_messages;
 
 /* "Garbage collecting" */
 Lisp_Object Vgc_message;
@@ -1536,12 +1536,6 @@ set very low.  Set this to 0 to have garbage collection always happen after
 usage.
 
 See also `consing-since-gc' and `gc-cons-threshold'.
-*/ );
-
-
-  DEFVAR_BOOL ("purify-flag", &purify_flag /*
-Non-nil means loading Lisp code in order to dump an executable.
-This means that certain objects should be allocated in readonly space.
 */ );
 
   DEFVAR_BOOL ("garbage-collection-messages", &garbage_collection_messages /*

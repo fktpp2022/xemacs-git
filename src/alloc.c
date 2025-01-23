@@ -179,7 +179,7 @@ static const struct memory_description lrecord_memory_descriptions_description_1
 struct gcpro *gcprolist;
 
 /* Non-zero means we're in the process of doing the dump */
-int purify_flag;
+Boolint purify_flag;
 
 /* Non-zero means we're pdumping out or in */
 int in_pdump;
@@ -5936,6 +5936,5 @@ Length (in stack frames) of short backtrace printed out by `debug-allocation'.
 
   DEFVAR_BOOL ("purify-flag", &purify_flag /*
 Non-nil means loading Lisp code in order to dump an executable.
-This means that certain objects should be allocated in readonly space.
 */ );
 }

@@ -52,7 +52,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    in any buffer in which abbrev mode is turned on. */
 Lisp_Object Vglobal_abbrev_table;
 
-int abbrev_all_caps;
+Boolint abbrev_all_caps;
 
 /* Non-nil => use this location as the start of abbrev to expand
  (rather than taking the word before point as the abbrev) */

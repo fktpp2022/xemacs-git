@@ -41,11 +41,11 @@ static Lisp_Object Vknown_file_names;
 Lisp_Object Vmodule_version;
 
 /* Do we do our work quietly? */
-int load_modules_quietly;
+Boolint load_modules_quietly;
 
 /* Set this while unloading a module.  This should NOT be made set by users,
    as it allows the unbinding of symbol-value-forward variables. */
-int unloading_module;
+Boolint unloading_module;
 
 Lisp_Object Qdll_error;
 Lisp_Object Qmodule, Qunload_module, module_tag;

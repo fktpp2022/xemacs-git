@@ -102,7 +102,7 @@ Lisp_Object Vwindow_pixel_scroll_increment;
 
 /* Scroll if point lands on the bottom line and that line is partially
    clipped. */
-int scroll_on_clipped_lines;
+Boolint scroll_on_clipped_lines;
 
 /* The minibuffer window of the selected frame.
    Note that you cannot test for minibufferness of an arbitrary window

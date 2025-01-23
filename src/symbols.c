@@ -517,7 +517,7 @@ Set SYMBOL's property list to NEWPLIST, and return NEWPLIST.
    SYMVAL_BOOLEAN_FORWARD:
       (declare with DEFVAR_BOOL)
       Similar to SYMVAL_OBJECT_FORWARD except that the C variable
-      is of type "int" and is a boolean.
+      is of type "Boolint" and is a boolean.
 
    SYMVAL_CONST_OBJECT_FORWARD:
    SYMVAL_CONST_FIXNUM_FORWARD:

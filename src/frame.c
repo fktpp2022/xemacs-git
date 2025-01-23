@@ -389,7 +389,7 @@ Lisp_Object Vmouse_enter_frame_hook, Qmouse_enter_frame_hook;
 Lisp_Object Vmouse_leave_frame_hook, Qmouse_leave_frame_hook;
 Lisp_Object Vmap_frame_hook, Qmap_frame_hook;
 Lisp_Object Vunmap_frame_hook, Qunmap_frame_hook;
-int  allow_deletion_of_last_visible_frame;
+Boolint  allow_deletion_of_last_visible_frame;
 Lisp_Object Vadjust_frame_function;
 Lisp_Object Vmouse_motion_handler;
 Lisp_Object Vsynchronize_minibuffers;

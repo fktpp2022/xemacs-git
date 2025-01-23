@@ -86,7 +86,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "systime.h"
 
 
-static int mswindows_ls_sort_case_insensitive;
+static Boolint mswindows_ls_sort_case_insensitive;
 static Fixnum mswindows_ls_round_file_size;
 
 Lisp_Object Qmswindows_insert_directory;

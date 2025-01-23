@@ -130,15 +130,15 @@ Lisp_Object Qhandle_pre_motion_command, Qhandle_post_motion_command;
 Lisp_Object Qpre_idle_hook, Vpre_idle_hook;
 
 /* Control gratuitous keyboard focus throwing. */
-int focus_follows_mouse;
+Boolint focus_follows_mouse;
 
 /* When true, modifier keys are sticky. */
-int modifier_keys_are_sticky;
+Boolint modifier_keys_are_sticky;
 /* Modifier keys are sticky for this many milliseconds. */
 Lisp_Object Vmodifier_keys_sticky_time;
 
 /* If true, "Russian C-x processing" is enabled. */
-int try_alternate_layouts_for_commands;
+Boolint try_alternate_layouts_for_commands;
 
 /* Here FSF Emacs 20.7 defines Vpost_command_idle_hook,
    post_command_idle_delay, Vdeferred_action_list, and
@@ -260,7 +260,7 @@ int recent_keys_ring_index;
 
 /* Boolean specifying whether keystrokes should be added to
    recent-keys. */
-int inhibit_input_event_recording;
+Boolint inhibit_input_event_recording;
 
 Lisp_Object Qself_insert_defer_undo;
 

@@ -91,7 +91,7 @@ Lisp_Object Vimage_instantiator_format_list;
 Lisp_Object Vimage_instance_type_list;
 Lisp_Object Vglyph_type_list;
 
-int disable_animated_pixmaps;
+Boolint disable_animated_pixmaps;
 static Lisp_Object Vimage_instance_hash_table_test;
 
 DEFINE_IMAGE_INSTANTIATOR_FORMAT (nothing);

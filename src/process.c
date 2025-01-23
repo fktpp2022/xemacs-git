@@ -86,7 +86,7 @@ Lisp_Object Qmulticast; /* Will be used for occasional warnings */
 Lisp_Object Vprocess_connection_type;
 
 /* Read comments to DEFVAR of this */
-int windowed_process_io;
+Boolint windowed_process_io;
 
 #ifdef PROCESS_IO_BLOCKING
 /* List of port numbers or port names to set a blocking I/O mode.
@@ -101,7 +101,7 @@ volatile int process_tick;
 static int update_tick;
 
 /* Nonzero means delete a process right away if it exits.  */
-int delete_exited_processes;
+Boolint delete_exited_processes;
 
 /* Weak list mapping Lisp_Object USIDs as returned by create_io_streams_cb to
    process objects. Processes are not GC-protected through this! */

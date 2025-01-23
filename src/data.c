@@ -76,7 +76,7 @@ Fixnum Vmost_negative_fixnum, Vmost_positive_fixnum;
 
 #ifdef DEBUG_XEMACS
 
-int debug_issue_ebola_notices;
+Boolint debug_issue_ebola_notices;
 
 Fixnum debug_ebola_backtrace_length;
 

@@ -1,3 +1,54 @@
+2025-01-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Declare all those C variables for which DEFVAR_BOOL() or
+	DEFVAR_CONST_BOOL() are used, as type Boolint. Generally a good
+	idea, and done in preparation for further changes.
+
+	* gc.c:
+	* gc.c (vars_of_gc):
+	Remove a duplicate DEFVAR_BOOL() for purify_flag, already done in
+	alloc.c. 
+
+	* alloc.c:
+	* alloc.c (vars_of_alloc):
+	Remove some incorrect information regarding purify_flag.
+	
+	* abbrev.c:
+	* buffer.c:
+	* bytecode.c:
+	* bytecode.c (meter_code):
+	* console-x.c:
+	* console-x.c (x_initially_selected_for_input):
+	* data.c:
+	* data.c (eq_with_ebola_notice):
+	* dired-msw.c:
+	* editfns.c:
+	* emacs.c:
+	* emodules.c:
+	* eval.c:
+	* event-Xt.c:
+	* event-gtk.c:
+	* event-msw.c:
+	* event-stream.c:
+	* extents.c:
+	* file-coding.c:
+	* fileio.c:
+	* filelock.c:
+	* fontcolor-x.c:
+	* frame.c:
+	* glyphs.c:
+	* lread.c:
+	* menubar.c:
+	* minibuf.c:
+	* process.c:
+	* redisplay.c:
+	* redisplay.c (WINDOW_SCROLLED):
+	* select-x.c:
+	* symbols.c:
+	* syntax.c:
+	* window.c:
+	Update declarations as above.
+
 2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lstream.h (DECLARE_STACK_FIXED_BUFFER_LSTREAM):

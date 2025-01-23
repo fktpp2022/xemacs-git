@@ -71,7 +71,7 @@ Lisp_Object Qexists, Qreadable, Qwritable, Qexecutable;
 
 /* See read_escape() for an explanation of this.  */
 #if 0
-int fail_on_bucky_bit_character_escapes;
+Boolint fail_on_bucky_bit_character_escapes;
 #endif
 
 /* This symbol is also used in fns.c */
@@ -82,26 +82,26 @@ Lisp_Object Qfeaturep;
 #endif
 
 /* non-zero if inside `load' */
-int load_in_progress;
+Boolint load_in_progress;
 
 /* Whether Fload_internal() should check whether the .el is newer
    when loading .elc */
-int load_warn_when_source_newer;
+Boolint load_warn_when_source_newer;
 /* Whether Fload_internal() should check whether the .elc doesn't exist */
-int load_warn_when_source_only;
+Boolint load_warn_when_source_only;
 /* Whether Fload_internal() should ignore .elc files when no suffix is given */
-int load_ignore_elc_files;
+Boolint load_ignore_elc_files;
 /* Whether Fload_internal() should ignore out-of-date .elc files when no
    suffix is given */
-int load_ignore_out_of_date_elc_files;
+Boolint load_ignore_out_of_date_elc_files;
 /* Always display messages showing when a file is loaded, regardless of
    whether the flag to `load' tries to suppress them. */
-int load_always_display_messages;
+Boolint load_always_display_messages;
 /* Never display messages showing when a file is loaded.
    load_always_display_messages has higher precedence than this. */
-int load_never_display_messages;
+Boolint load_never_display_messages;
 /* Show the full path in loading messages. */
-int load_show_full_path_in_messages;
+Boolint load_show_full_path_in_messages;
 
 /* Search path for files to be loaded. */
 Lisp_Object Vload_path;
@@ -135,7 +135,7 @@ Lisp_Object Vread_objects;
 /* Nonzero means load should forcibly load all dynamic doc strings.  */
 /* Note that this always happens (with some special behavior) when
    purify_flag is set. */
-static int load_force_doc_strings;
+static Boolint load_force_doc_strings;
 
 /* List of descriptors now open for Fload_internal.  */
 static Lisp_Object Vload_descriptor_list;

@@ -39,7 +39,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 DEFINE_CONSOLE_TYPE (x);
 
-int wedge_metacity;	/* nonzero means update WM_HINTS always */
+Boolint wedge_metacity;	/* nonzero means update WM_HINTS always */
 
 static int
 x_initially_selected_for_input (struct console *UNUSED (con))

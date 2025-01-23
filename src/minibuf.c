@@ -45,7 +45,7 @@ int minibuf_level;
 Lisp_Object Qcompletion_ignore_case;
 
 /* Nonzero means completion ignores case.  */
-int completion_ignore_case;
+Boolint completion_ignore_case;
 
 /* List of regexps that should restrict possible completions.  */
 Lisp_Object Vcompletion_regexp_list;

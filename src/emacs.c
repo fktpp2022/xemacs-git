@@ -558,7 +558,7 @@ const Ascbyte *display_use;
 
 /* If non-zero, then the early error handler will only print the error
    message and exit. */
-int suppress_early_error_handler_backtrace;
+Boolint suppress_early_error_handler_backtrace;
 
 /* An address near the bottom of the stack.
    Tells GC how to save a copy of the stack.  */
@@ -569,7 +569,7 @@ EMACS_UINT lim_data;
 
 /* Nonzero means running XEmacs without interactive terminal.  */
 
-int noninteractive;
+Boolint noninteractive;
 
 /* Value of Lisp variable `noninteractive'.
    Normally same as C variable `noninteractive'
@@ -577,33 +577,33 @@ int noninteractive;
 
    Shadowed from the pdumper by `noninteractive'. */
 
-int noninteractive1;
+Boolint noninteractive1;
 
 /* Nonzero means don't perform site-lisp searches at startup */
-int inhibit_site_lisp;
+Boolint inhibit_site_lisp;
 
 /* Nonzero means don't perform site-modules searches at startup */
-int inhibit_site_modules;
+Boolint inhibit_site_modules;
 
 /* Nonzero means don't load user-init or site-start file */
-int vanilla_inhibiting;
+Boolint vanilla_inhibiting;
 
 /* Nonzero means don't respect early packages at startup */
-int inhibit_early_packages;
+Boolint inhibit_early_packages;
 
 /* Nonzero means don't respect any packages at startup -- act as if they
    don't exist. */
-int inhibit_all_packages;
+Boolint inhibit_all_packages;
 
 /* Nonzero means don't load package autoloads at startup */
-int inhibit_autoloads;
+Boolint inhibit_autoloads;
 
-/* Nonzero means don't load the dump file (ignored if not PDUMP)  */
+/* Nonzero means don't load the dump file. */
 
-int nodumpfile;
+Boolint nodumpfile;
 
 /* Nonzero means print debug information about path searching */
-int debug_paths;
+Boolint debug_paths;
 
 /* Nonzero means that the -no-configured-paths command line flag has been
    specified. This doesn't have a Lisp variable, and therefore isn't affected

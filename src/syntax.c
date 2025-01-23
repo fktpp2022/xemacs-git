@@ -33,13 +33,13 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define ST_STRING_STYLE  0x102
 
 Lisp_Object Qsyntax_table;
-int lookup_syntax_properties;
+Boolint lookup_syntax_properties;
 
 Lisp_Object Qsyntax_table_p;
 
-int words_include_escapes;
+Boolint words_include_escapes;
 
-int parse_sexp_ignore_comments;
+Boolint parse_sexp_ignore_comments;
 
 /* Tell the regex routines not to QUIT.  Normally there is a QUIT each
    iteration in re_search_2().  We do it this way rather than change

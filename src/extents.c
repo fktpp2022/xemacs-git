@@ -403,7 +403,7 @@ Lisp_Object Vextent_info_needing_flushed;
    changes */
 int in_modeline_generation;
 
-int debug_soe;
+Boolint debug_soe;
 
 
 /************************************************************************/

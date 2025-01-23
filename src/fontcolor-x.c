@@ -43,7 +43,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "font-mgr.h"
 #endif
 
-int x_handle_non_fully_specified_fonts;
+Boolint x_handle_non_fully_specified_fonts;
 
 #ifdef DEBUG_XEMACS 
 Fixnum debug_x_fonts;

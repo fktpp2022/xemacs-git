@@ -135,7 +135,7 @@ If BUFFER is nil, the current buffer is assumed.
  *
  * Jamie thinks he's wrong, but we'll leave this in for now.
  */
-int atomic_extent_goto_char_p;
+Boolint atomic_extent_goto_char_p;
 
 DEFUN ("goto-char", Fgoto_char, 1, 2, "NGoto char: ", /*
 Set point to POSITION, a number or marker.
@@ -192,15 +192,15 @@ If BUFFER is nil, the current buffer is assumed.
 }
 
 /* Whether to use lispm-style active-regions */
-int zmacs_regions;
+Boolint zmacs_regions;
 
 /* Whether the zmacs region is active.  This is not per-buffer because
    there can be only one active region at a time.  #### Now that the
    zmacs region are not directly tied to the X selections this may not
    necessarily have to be true.  */
-int zmacs_region_active_p;
+Boolint zmacs_region_active_p;
 
-int zmacs_region_stays;
+Boolint zmacs_region_stays;
 
 Lisp_Object Qzmacs_update_region, Qzmacs_deactivate_region;
 Lisp_Object Qzmacs_region_buffer;

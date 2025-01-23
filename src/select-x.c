@@ -80,7 +80,7 @@ Lisp_Object Qx_sent_selection_hooks;
 Fixnum x_selection_timeout;
 
 /* Enable motif selection optimizations. */
-int x_selection_strict_motif_ownership;
+Boolint x_selection_strict_motif_ownership;
 
 
 /* Utility functions */
