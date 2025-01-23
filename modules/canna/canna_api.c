@@ -173,9 +173,9 @@ extern int (*jrBeepFunc) (void);
 #define KEYTOSTRSIZE 2048
 static Extbyte key_buffer[KEYTOSTRSIZE];
 
-static int canna_empty_info, canna_through_info;
-static int canna_underline;
-static int canna_inhibit_hankakukana;
+static Boolint canna_empty_info, canna_through_info;
+static Boolint canna_underline;
+static Boolint canna_inhibit_hankakukana;
 
 static Lisp_Object Vcanna_kakutei_string;
 static Lisp_Object Vcanna_kakutei_yomi;
