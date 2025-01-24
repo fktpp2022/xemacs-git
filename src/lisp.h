@@ -2914,11 +2914,14 @@ struct Lisp_Subr
   short min_args;
   short max_args;
   const CIbyte *prompt;
-  /* Either a fixnum (an offset into DOC) or a Lisp string (for functions in
-     modules). */
-  Lisp_Object doc;
   const CIbyte *name;
   lisp_fn_t subr_fn;
+  /* Either a fixnum (an offset into DOC) or a Lisp string (for functions in
+     modules). Intentionally at the end so we don't have to fight with C
+     implementations and --with-union-type, some of which assert that
+     Qnull_pointer is not a compile-time constant; omitting it in initializers
+     is defined by the standards to set it to bitwise zero. */
+  Lisp_Object doc;
 };
 typedef struct Lisp_Subr Lisp_Subr;
 
@@ -3425,9 +3428,9 @@ Lisp_Object,Lisp_Object,Lisp_Object
     min_args,								\
     max_args,								\
     prompt,								\
-    Qnull_pointer,     	/* doc string */                                \
     lname,								\
     (lisp_fn_t) Fname							\
+    /* DOC not specififed, initialized to Qnull_pointer by C. */	\
   };									\
   Lisp_Object Fname (DEFUN_##max_args arglist)
 
@@ -3444,9 +3447,9 @@ Lisp_Object,Lisp_Object,Lisp_Object
     min_args,								\
     max_args,								\
     prompt,								\
-    Qnull_pointer,      /* doc string */                                \
     lname,								\
     (lisp_fn_t) Fname							\
+    /* , Qnull_pointer */						\
   };									\
   DOESNT_RETURN_TYPE (Lisp_Object) Fname (DEFUN_##max_args arglist)
 #define GET_DEFUN_LISP_OBJECT(Fname) \

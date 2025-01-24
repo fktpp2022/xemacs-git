@@ -158,6 +158,25 @@
 	* emacs.c (main):
 	Correct a comment here.
 
+2025-01-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Qnull_pointer breaks in the initialization of struct Lisp_Subr on
+	Cygwin union builds, "initializer element is not constant." This
+	is not rectified by declaring Qnull_pointer as const.
+	Move DOC to the end of struct Lisp_Subr, just omit it in the DEFUN
+	macro, which gives the same result (defined to be bitwise zero).
+
+	This breaks binary compatibility with modules; however
+	fb35ba719d24 of October did this recently anyway, and I plan
+	further module bug fixes which should require bumping the module
+	version number shortly. * lisp.h (struct Lisp_Subr): Rearrange
+	this.
+
+	Thank you for the bug report, Caj Svensson.
+
+	* lisp.h DEFUN): Omit explicit initialization of Qnull_pointer.
+	* lisp.h (DEFUN_NORETURN): Ditto.
+
 2025-01-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* callint.c:
