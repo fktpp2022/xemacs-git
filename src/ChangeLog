@@ -160,6 +160,14 @@
 
 2025-01-24  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* redisplay.c:
+	Declare force_valid_bytebpos_or_zero() before defining it in this
+	file, suppress a warning.
+	This should be used minimally (only other use is in scrollbar.c),
+	intentionally not declared in a header.
+
+2025-01-24  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Qnull_pointer breaks in the initialization of struct Lisp_Subr on
 	Cygwin union builds, "initializer element is not constant." This
 	is not rectified by declaring Qnull_pointer as const.

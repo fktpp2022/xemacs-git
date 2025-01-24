@@ -8814,6 +8814,8 @@ get_position_object (struct display_line *dl, Lisp_Object *obj1,
    and friends, and the underlying buffer text may have changed between last
    redisplay and when `event-point' is called, whence the check for invalid
    offsets. */
+Bytebpos force_valid_bytebpos_or_zero (struct window *, Bytebpos);
+
 Bytebpos
 force_valid_bytebpos_or_zero (struct window *w, Bytebpos bpos)
 {
