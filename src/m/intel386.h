@@ -91,11 +91,6 @@ NOTE-END */
 #endif
 #endif /* not SOLARIS2 */
 
-#ifdef USG
-#define NO_REMAP 
-#define TEXT_START 0
-#endif /* USG */
-
 #ifdef linux
 /* libc-linux/sysdeps/linux/i386/ulimit.c says that due to shared library, */
 /* we cannot get the maximum address for brk */

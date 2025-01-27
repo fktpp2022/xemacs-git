@@ -62,10 +62,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define INTERRUPTIBLE_OPEN
 #define INTERRUPTIBLE_IO
 
-/* Compiler bug bites on many systems when default ADDR_CORRECT is used.  */
-
-#define ADDR_CORRECT(x) (x)
-
 /* Prevent -lg from being used for debugging.  Not implemented?  */
 
 #define LIBS_DEBUG
@@ -89,8 +85,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 /* No <sioctl.h> */
 
 #define NO_SIOCTL_H
-
-#define UNEXEC "unexelf.o"
 
 /* Get <sys/ttold.h> to get struct
  * tchars. But get <termio.h> first to make sure ttold.h doesn't

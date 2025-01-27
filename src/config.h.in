@@ -157,8 +157,8 @@ things are arranged in config.h.in.  In particular:
 /* Define if you are using libmcheck.a from the GNU C Library. */
 #undef HAVE_LIBMCHECK
 
-/* Define if your malloc has an __after_morecore_hook(), as is
-   usual on Linux. */
+/* Define if your malloc has an __after_morecore_hook(), as was usual on Linux
+   with glibc <= 2.33. Removed given thread-safety, security issues. */
 #undef HAVE_MALLOC_WARNING
 
 /* Use the relocating allocator for buffer space? */
@@ -946,10 +946,6 @@ extern "C" {
    appropriate default value. */
 #ifndef SYSTEM_TYPE
 #undef SYSTEM_TYPE
-#endif
-
-#if defined (USE_SYSTEM_MALLOC) && !defined (SYSTEM_MALLOC)
-#define SYSTEM_MALLOC
 #endif
 
 /* This enables type based information (updated during gc). The output

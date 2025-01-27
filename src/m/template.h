@@ -40,13 +40,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #endif /* ENABLE_SM_FILE_DECLS_OF_LOADAVG_STUFF */
 
-/* Define NO_REMAP if memory segmentation makes it not work well
-   to change the boundary between the text section and data section
-   when Emacs is dumped.  If you define this, the preloaded Lisp
-   code will not be sharable; but that's better than failing completely.  */
-
-#define NO_REMAP
-
 /* After adding support for a new system, modify the large case
    statement in the `configure' script to recognize reasonable
    configuration names, and add a description of the system to

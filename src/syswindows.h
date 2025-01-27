@@ -1334,52 +1334,6 @@ int open_output_file (file_data *p_file, const Ibyte *name,
 		      SIZE_T size);
 void close_file_data (file_data *p_file);
 
-/* ------------------------- Heap related stuff ------------------------- */
-
-#ifdef WIN32_NATIVE
-
-#define get_reserved_heap_size()	reserved_heap_size
-#define get_committed_heap_size()	(get_data_end () - get_data_start ())
-#define get_heap_start()		get_data_start ()
-#define get_heap_end()			get_data_end ()
-#define get_page_size()			sysinfo_cache.dwPageSize
-#define get_allocation_unit()		sysinfo_cache.dwAllocationGranularity
-#define get_processor_type()		sysinfo_cache.dwProcessorType
-#define get_nt_major_version()  	nt_major_version
-#define get_nt_minor_version()  	nt_minor_version
-
-unsigned char *get_data_start (void);
-unsigned char *get_data_end (void);
-extern EMACS_UINT  data_region_size;
-extern EMACS_UINT  reserved_heap_size;
-extern SYSTEM_INFO    sysinfo_cache;
-extern int    	      nt_major_version;
-extern int    	      nt_minor_version;
-
-/* To prevent zero-initialized variables from being placed into the bss
-   section, use non-zero values to represent an uninitialized state.  */
-#define UNINIT_PTR ((unsigned char*) 0xF0A0F0A0)
-#define UNINIT_EMACS_UINT ((EMACS_UINT) (UNINIT_PTR))
-
-/* Recreate the heap created during dumping.  */
-void recreate_heap (Extbyte *executable_path);
-
-/* Round the heap to this size.  */
-void round_heap (SIZE_T size);
-
-/* Load in the dumped .bss section.  */
-void read_in_bss (Extbyte *name);
-
-/* Map in the dumped heap.  */
-void map_in_heap (Extbyte *name);
-
-/* Cache system info, e.g., the NT page size.  */
-void cache_system_info (void);
-
-/* Round ADDRESS up to be aligned with ALIGN.  */
-unsigned char *round_to_next (unsigned char *address, SIZE_T align);
-#endif /* WIN32_NATIVE */
-
 /* ------------------------- Misc prototypes ------------------------- */
 
 #ifdef WIN32_NATIVE

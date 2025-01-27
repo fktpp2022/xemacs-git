@@ -26,4 +26,3 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 /* Do not define LOAD_AVE_TYPE or LOAD_AVE_CVT
    since there is no load average available. */
 
-#define DATA_START 	get_data_start ()

@@ -25,10 +25,4 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define m68k
 #endif
 
-#ifdef linux
-
-#define NO_REMAP
-#define TEXT_START 0
-#endif
-
 #define ASSERT_VALID_POINTER(pnt) (assert ((((int) pnt) & 1) == 0))

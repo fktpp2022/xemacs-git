@@ -562,15 +562,8 @@ $(LIB_SRC)/DOC: $(LIB_SRC)/make-docfile $(BLDSRC)/NEEDTODUMP $(temacs_deps)
 ## is needlessly generous with leading spaces.
 
 $(DUMP_TARGET): $(RAW_EXE) $(BLDSRC)/NEEDTODUMP $(LIB_SRC)/DOC
-#ifdef HEAP_IN_DATA
-	@$(RM) $@ && touch SATISFIED
-	$(dump_temacs)
-	@if test -f SATISFIED; then $(RM) SATISFIED; else $(RM) $@; \
-	$(MAKE) $(RECURSIVE_MAKE_ARGS) $@; fi
-#else
 	@$(RM) $@
 	$(dump_temacs)
-#endif
 #if defined(DUMP_IN_EXEC) && !defined(WIN32_NATIVE)
 	if test -f dump-size && test `cat dump-size` -eq `wc -c < $(DUMP_TARGET).dmp`; then \
 		echo "Dumped data in temacs identical in size to dumpfile, relinking"; \

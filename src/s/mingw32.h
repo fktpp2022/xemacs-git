@@ -37,10 +37,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define LIBS_SYSTEM "-mno-cygwin -mwindows -lwinmm -lwsock32"
 #define WIN32_LEAN_AND_MEAN
 
-#define TEXT_START -1
-#define HEAP_IN_DATA
-#define UNEXEC "unexcw.o"
-
 #define TIME_ONESHOT 0
 #define TIME_PERIODIC 1
 #define LOCALE_USE_CP_ACP 0x40000000
@@ -55,7 +51,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 /* #ifndef HAVE_SOCKETS */
 #define HAVE_SOCKETS
 /* #endif */
-#define OBJECTS_SYSTEM nt.o ntheap.o ntproc.o dired-msw.o
+#define OBJECTS_SYSTEM nt.o ntproc.o dired-msw.o
 
 #undef MAIL_USE_SYSTEM_LOCK
 #define HAVE_MSW_C_DIRED

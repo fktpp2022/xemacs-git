@@ -59,29 +59,6 @@ NOTE-END  */
 
 #endif /* ! linux */
 
-/* Define NO_REMAP if memory segmentation makes it not work well
-   to change the boundary between the text section and data section
-   when Emacs is dumped.  If you define this, the preloaded Lisp
-   code will not be sharable; but that's better than failing completely.  */
-
-#define NO_REMAP
-
-/* This machine requires completely different unexec code
-   which lives in a separate file.  Specify the file name.  */
-
-#ifndef linux
-#define UNEXEC "unexmips.o"
-#endif /* !linux */
-/* Describe layout of the address space in an executing process.  */
-
-#ifdef linux
-#define TEXT_START      0x00400000
-#define DATA_START      0x10000000
-#else /* !linux */
-#define TEXT_START 0x400000
-#define DATA_START 0x800000
-#endif /* linux */
-
 /* Alter some of the options used when linking.  */
 
 #if !defined(linux)

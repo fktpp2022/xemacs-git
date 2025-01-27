@@ -48,10 +48,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 /* BSD_PGRPS deleted */
 
-#if !defined (NO_SHARED_LIBS) && defined (__ELF__)
-#define UNEXEC "unexelf.o"
-#endif
-
 #if 0 /* Following mrb, this stuff is probably unneeded for XEmacs */
 #if !defined (NO_SHARED_LIBS) && defined (__ELF__)
 #define START_FILES pre-crt0.o /usr/lib/crt0.o START_FILES_1 /usr/lib/crtbegin.o
@@ -68,8 +64,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define END_FILES_1
 #endif
 #else /* not 0 */
-/* XEmacs: */
-#define HAVE_TEXT_START		/* No need to define `start_of_text'.  */
 #define ORDINARY_LINK
 #endif /* 0 */
 
@@ -129,8 +123,5 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <sys/param.h>
 #include <sys/exec.h>
 #endif /* C_CODE */
-
-#define A_TEXT_OFFSET(x) (sizeof (struct exec))
-#define A_TEXT_SEEK(hdr) (N_TXTOFF(hdr) + A_TEXT_OFFSET(hdr))
 
 #define NO_MATHERR

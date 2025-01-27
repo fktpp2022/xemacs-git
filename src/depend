@@ -192,7 +192,6 @@ minibuf.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h casetab.h charset.h chartab
 miscplay.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h intl-auto-encap-win32.h miscplay.h sound.h sysfile.h syswindows.h unicode.h
 nas.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h sound.h sysdep.h unicode.h
 nt.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h intl-auto-encap-win32.h ndir.h process.h sysdir.h sysfile.h sysproc.h syspwd.h systime.h syswindows.h unicode.h
-ntheap.o: $(CONFIG_H) $(LISP_H) intl-auto-encap-win32.h sysdep.h syswindows.h
 ntplay.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h intl-auto-encap-win32.h sound.h sysfile.h syswindows.h unicode.h
 number-gmp.o: $(CONFIG_H) $(LISP_H) sysproc.h systime.h
 number-mp.o: $(CONFIG_H) $(LISP_H)

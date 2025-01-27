@@ -44,20 +44,10 @@ Boston, MA 02111-1307, USA.  */
 
 /* Deleted TERM stuff -- probably hugely obsolete */
 
-#define UNEXEC "unexelf.o"
-#define UNEXEC_USE_MAP_PRIVATE
-
 /* mrb - Ordinary link is simple and effective */
 /* slb - Not any more ... :-( */
 /* jwj - slb's comment does not seem relevant to current Linuxes */
 #define ORDINARY_LINK
-
-#define A_TEXT_OFFSET(hdr) (N_MAGIC(hdr) == QMAGIC ? sizeof (struct exec) : 0)
-#define A_TEXT_SEEK(hdr) (N_TXTOFF(hdr) + A_TEXT_OFFSET(hdr))
-#define ADJUST_EXEC_HEADER \
-  unexec_text_start = N_TXTADDR(ohdr) + A_TEXT_OFFSET(ohdr)
-
-/* HAVE_XRMSETDATABASE deleted */
 
 /* The regex.o routines are a part of the GNU C-library used with Linux.  */
 /* However, sometimes they disagree with the src/regex.h that comes with Emacs,
@@ -84,9 +74,3 @@ Boston, MA 02111-1307, USA.  */
 #define regerror sys_regerror
 #define regfree sys_regfree
 #endif /* 0 */
-
-/* The in-built malloc does not work on PPC64 or Alpha, so use the system
-   malloc for now. */
-#if defined(__powerpc64__) || defined(__alpha__) || defined(__ia64__)
-#define SYSTEM_MALLOC
-#endif

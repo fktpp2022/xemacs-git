@@ -65,17 +65,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #endif /* USG5_4 */
 
-
-/* this brings in alloca() if we're using cc */
-#ifdef USG
-#define NO_REMAP 
-#define TEXT_START 0
-#endif /* USG */
-
-#ifdef WIN32_NATIVE
-#define DATA_START 	get_data_start ()
-#endif
-
 #ifdef linux
 /* libc-linux/sysdeps/linux/i386/ulimit.c says that due to shared library, */
 /* we cannot get the maximum address for brk */

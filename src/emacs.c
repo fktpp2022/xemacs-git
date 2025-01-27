@@ -383,7 +383,6 @@ Epoch 4.0 released August 27, 1990.
      mule-ccl.c
      mule-coding.c (scattered in the file)
      mule-wnn.c (in japanese)
-     ntheap.c (near the top)
      redisplay.c (various scattered)
      regex.c (various scattered)
      sysdep.c (maybe; wait_for_termination)

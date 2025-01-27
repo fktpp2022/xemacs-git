@@ -250,9 +250,6 @@ USE_MINITAR=$(HAVE_ZLIB)
 # MSVCRT.DLL (the same that we use in USE_CRTDLL, more or less), so using
 # this is a good thing.
 
-!if !defined(USE_SYSTEM_MALLOC)
-USE_SYSTEM_MALLOC=1
-!endif
 !if !defined(USE_CRTDLL)
 USE_CRTDLL=1
 !endif
@@ -262,11 +259,6 @@ USE_CRTDLL=1
 CONFIG_ERROR=0
 !if $(INFODOCK) && !exist("..\..\Infodock.rules")
 !message Cannot build InfoDock without InfoDock sources
-CONFIG_ERROR=1
-!endif
-!if !$(USE_SYSTEM_MALLOC) && $(USE_CRTDLL)
-!message GNU malloc currently cannot be used with CRT DLL.
-!message [[[Developer note: If you want to fix it, read Q112297 first]]]  ####
 CONFIG_ERROR=1
 !endif
 !if !$(HAVE_MS_WINDOWS) && !$(HAVE_GTK)
@@ -638,13 +630,6 @@ OPT_DEFINES=$(OPT_DEFINES) -DUSE_UNION_TYPE
 !endif
 
 OPT_OBJS=$(OPT_OBJS) $(OUTDIR)\dumper.obj
-
-!if $(USE_SYSTEM_MALLOC)
-OPT_DEFINES=$(OPT_DEFINES) -DSYSTEM_MALLOC
-!else
-OPT_OBJS=$(OPT_OBJS) $(OUTDIR)\free-hook.obj $(OUTDIR)\gmalloc.obj \
-	$(OUTDIR)\ntheap.obj $(OUTDIR)\vm-limit.obj
-!endif
 
 !if $(USE_INTEL_COMPILER)
 CC=icl
@@ -1236,9 +1221,6 @@ XEmacs $(XEMACS_VERSION_STRING) $(xemacs_codename) $(xemacs_extra_name:"=) confi
   NOTE: ---------------------------------------------------------
 !endif
   Using portable dumper.
-!if $(USE_SYSTEM_MALLOC)
-  Using system malloc.
-!endif
 !if $(USE_CRTDLL)
   Using DLL version of C runtime library.
 !endif

@@ -889,14 +889,6 @@ SOURCE=..\src\nt.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\src\ntheap.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\src\ntheap.h
-# End Source File
-# Begin Source File
-
 SOURCE=..\src\ntplay.c
 # End Source File
 # Begin Source File

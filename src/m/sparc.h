@@ -59,14 +59,4 @@ NOTE-END  */
 
 #endif /* ENABLE_SM_FILE_DECLS_OF_LOADAVG_STUFF */
 
-/* Say that the text segment of a.out includes the header;
-   the header actually occupies the first few bytes of the text segment
-   and is counted in hdr.a_text.  */
-
-#define A_TEXT_OFFSET(HDR) sizeof (HDR)
-
-/* This is the offset of the executable's text, from the start of the file.  */
-
-#define A_TEXT_SEEK(HDR) (N_TXTOFF (hdr) + sizeof (hdr))
-
 #endif /* not Linux or NetBSD or OpenBSD */

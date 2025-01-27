@@ -46,30 +46,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #endif /* ENABLE_SM_FILE_DECLS_OF_LOADAVG_STUFF */
 
-/* the data segment on this machine always starts at address 0x40000000. */
-
-#ifdef DATA_START
-#undef DATA_START
-#endif
-#ifdef TEXT_START
-#undef TEXT_START
-#endif
-
-#define DATA_START    0x40000000
-#define TEXT_START    0x00000000
-
-/* Define NO_REMAP if memory segmentation makes it not work well
-   to change the boundary between the text section and data section
-   when Emacs is dumped.  If you define this, the preloaded Lisp
-   code will not be sharable; but that's better than failing completely.  */
-
-#define NO_REMAP
-
-/* This machine requires completely different unexec code
-   which lives in a separate file.  Specify the file name.  */
-
-#define UNEXEC "unexhp9k800.o"
-
 
 /* Deleted LDAV_SYMBOL, handled in getloadavg.c */
 

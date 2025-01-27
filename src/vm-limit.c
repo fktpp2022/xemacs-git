@@ -27,7 +27,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #ifndef emacs
 typedef size_t SIZE;
 typedef void *POINTER;
-#define EXCEEDS_LISP_PTR(x) 0
 #endif
 
 #include "mem-limits.h"
@@ -118,20 +117,6 @@ check_memory_limits (void)
      when we go up again.  */
   else if (warnlevel > 2 && data_size < five_percent * 18)
     warnlevel = 2;
-
-  if (EXCEEDS_LISP_PTR (cp))
-    {
-      if (warn_function)
-	{
-	  /* temporarily reset the warn_function to 0 or we will get infinite
-	     looping. */
-	  save_warn_fun = warn_function;
-	  warn_function = 0;
-	  (*save_warn_fun)
-	    ("Warning: memory in use exceeds lisp pointer size");
-	  warn_function = save_warn_fun;
-	}
-    }
 }
 
 extern char **environ;

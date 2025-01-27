@@ -68,8 +68,6 @@ int killpg (int pgrp, int sig);
 #define LIBS_SYSTEM -lwinmm
 #define WIN32_LEAN_AND_MEAN
 
-#define TEXT_START -1
-#define HEAP_IN_DATA
 #define NO_LIM_DATA
 
 #define BROKEN_SIGIO

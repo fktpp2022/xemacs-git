@@ -33,9 +33,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define ORDINARY_LINK
 #define DATA_START ({ extern int data_start; (char *) &data_start; })
 
-/* GNU now always uses the ELF format.  */
-#define UNEXEC "unexelf.o"
-
 /* Some losing code fails to include this and then assumes
    that because it is braindead that O_RDONLY==0.  */
 #ifndef NOT_C_CODE

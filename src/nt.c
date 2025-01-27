@@ -446,9 +446,6 @@ init_mswindows_environment (void)
       "EMACSLOCKMETHOD",
       "INFOPATH"
     };
-#if defined (HEAP_IN_DATA) && !defined (PDUMP)
-    cache_system_info ();
-#endif
 
 #if 0 /* FSF 21.1 */
     /* !!#### i think i already do the equivalent elsewhere.

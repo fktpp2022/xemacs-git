@@ -158,6 +158,90 @@
 	* emacs.c (main):
 	Correct a comment here.
 
+2025-01-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* syswindows.h:
+	Remove declarations for functions provided in ntheap.c, which had
+	been used for unexec on that platform.
+	* vm-limit.c:
+	Don't attempt to provide malloc warnings if on win32_native, given
+	we no longer provide gmalloc.o so this won't work, and we have
+	removed the functions that give information on the data limits.
+	* vm-limit.c (check_memory_limits):
+	Remove long obsolete code that checks if pointers exceed the size
+	available to Lisp for pointers, which never happens with the
+	current implementation.
+
+	* s/cygwin-common.h:
+	Remove #defines for TEXT_START and HEAP_IN_DATA.
+
+	* s/gnu.h:
+	Remove #define for UNEXEC, no longer needed.
+	* s/linux.h:
+	Ditto. Remove #define for UNEXEC_USE_MAP_PRIVATE, no longer
+	needed.
+	Remove #defines for A_TEXT_OFFSET, A_TEXT_SEEK,
+	ADJUST_EXEC_HEADER. Remove #define for SYSTEM_MALLOC, now
+	obligatory.
+	* s/mingw32.h:
+	Remove #defines for TEXT_START, HEAP_IN_DATA, UNEXEC, no longer
+	needed.
+	* s/mingw32.h (OBJECTS_SYSTEM): Remove ntheap.o from this.
+	* s/netbsd.h:
+	Remove #defines for UNEXEC, HAVE_TEXT_START, A_TEXT_OFFSET,
+	A_TEXT_SEEK from this file, no longer needed.
+	* s/sol2.h: Remove #define for UNEXEC from this file, no longer
+	needed.
+	* s/usg5-4.h:
+	Remove #define for ADDR_CORRECT from this file, no longer needed.
+
+	* mem-limits.h:
+	* mem-limits.h (get_lim_data): Remove the implementation of this
+	for WIN32_NATIVE, no longer relevant.
+	* nt.c (init_mswindows_environment):
+	Remove a call to cache_system_info(), no longer needed now unexec
+	is gone.
+	* ntheap.c: Remove this file, which implemented unexec on
+	WIN32_NATIVE. 
+
+	* m/alpha.h (DATA_START):
+	Remove #defines for TEXT_START, HEAP_IN_DATA, no longer needed.
+	* m/arm.h:
+	Remove #defines for TEXT_START, DATA_START, NO_REMAP, no longer
+	needed.
+	* m/hp800.h:
+	Remove #defines for TEXT_START, DATA_START, NO_REMAP, UNEXEC, no
+	longer needed.
+
+	* m/ibmrs6000.h:
+	Remove #defines for A_TEXT_OFFSET, ADDR_CORRECT, TEXT_START,
+	DATA_START, UNEXEC, no longer needed.
+
+	* m/intel386.h:
+	Remove #defines for TEXT_START, NO_REMAP, no longer needed.
+	
+	* m/m68k.h:
+	Remove #defines for TEXT_START, NO_REMAP, no longer needed.
+
+	* m/mips.h:
+	Remove #defines for TEXT_START, DATA_START, NO_REMAP, no longer needed.
+	* m/powerpc.h:
+	Remove #defines for NO_REMAP, ADDR_CORRECT and a couple more, no
+	longer needed in absence of unexec.
+	* m/sparc.h:
+	Remove #defines for A_TEXT_OFFSET, A_TEXT_SEEK, no longer needed.
+	* m/template.h (LOAD_AVE_CVT):
+	* m/windowsnt.h:
+	Remove #define for DATA_START, no longer needed.
+	* Makefile.in.in ($(DUMP_TARGET)): Remove some code bracketed in
+	#ifdef HEAP_IN_DATA, no longer needed with removal of unexec.
+	* config.h.in:
+	Remove the #define for SYSTEM_MALLOC, always on so not needed.
+	Update comment regarding HAVE_MALLOC_WARNING, the glibc feature
+	this relied on has been removed.
+	* depend (ntheap.o): Remove entry for this.
+	* emacs.c: Remove mention of ntheap.c
+
 2025-01-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* redisplay.c:

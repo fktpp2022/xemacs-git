@@ -32,34 +32,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define CANNOT_DUMP
 #endif
 
-#ifndef UNEXEC
-#define UNEXEC "unexaix.o"
-#endif
-
-/* Define addresses, macros, change some setup for dump */
-
-#define NO_REMAP
-
-#ifndef USG5_4
-#define TEXT_START 0x10000000
-#ifdef __64BIT__
-#define DATA_START 0x110000000 /* empirically determined */
-#else
-#define DATA_START 0x20000000
-#endif
-#endif
-
-#define N_BADMAG(x) BADMAG(x)
-#define N_TXTOFF(x) A_TEXTPOS(x)
-#define N_SYMOFF(x) A_SYMPOS(x)
-#define A_TEXT_OFFSET(HDR) sizeof(HDR)
-/* #define ADJUST_EXEC_HEADER \
-    unexec_text_start += sizeof(hdr); \
-    unexec_data_start = ohdr.a_dbase
-*/
-#undef ADDR_CORRECT
-#define ADDR_CORRECT(x) ((int)(x))
-
 /* Specify the font for X to use.
    This used to be Rom14.500; that's nice on the X server shipped with
    the RS/6000, but it's not available on other servers.  */

@@ -57,14 +57,6 @@ extern int     __xnet_getsockopt (int, int, int, void *, size_t *);
 #undef LIBS_SYSTEM
 #define LIBS_SYSTEM "-lsocket -lnsl -lelf -lgen -ldl"
 
-/* SYSTEM_MALLOC must be defined if dbx/RTC is going to be used.  dbx/RTC does
-   not work with a static definition of malloc(). */
-/* We want to be able to test out ralloc.c. */
-/* #define SYSTEM_MALLOC */
-
-#undef UNEXEC
-#define UNEXEC "unexsol2-6.o"
-
 #else /* C_CODE */
 
 /* 2.5 now has `random' back in libc but we don't want to use it. */

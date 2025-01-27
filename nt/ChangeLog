@@ -1,3 +1,11 @@
+2025-01-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* xemacs.dsp: Remove mention of ntheap.c, ntheap.h from this file,
+	no longer needed in absence of unexec.
+	* xemacs.mak:
+	* xemacs.mak (USE_SYSTEM_MALLOC): Removed. Always on, #define
+	removed.
+
 2024-12-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* xemacs.dsp: Remove mention of lastfile.c from this file.

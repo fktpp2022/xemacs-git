@@ -57,8 +57,6 @@ typedef void *POINTER;
 typedef unsigned long SIZE;
 #endif
 
-#define EXCEEDS_LISP_PTR(ptr) 0
-
 #ifdef BSD
 extern int etext;
 #define start_of_data() &etext
@@ -123,15 +121,6 @@ get_lim_data (void)
 #endif
 
   lim_data -= (EMACS_UINT) data_space_start;
-}
-
-#elif defined(WIN32_NATIVE)
-
-static void
-get_lim_data (void)
-{
-  extern EMACS_UINT data_region_size;
-  lim_data = data_region_size;
 }
 
 #elif defined(HAVE_VLIMIT)
