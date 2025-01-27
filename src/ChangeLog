@@ -1,3 +1,9 @@
+2025-01-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* s/windowsnt.h:
+	If we have Visual Studio 2015 or newer, #define HAVE_SNPRINTF and
+	HAVE_VSNPRINTF as is appropriate.
+
 2025-01-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Declare all those C variables for which DEFVAR_BOOL() or
