@@ -22,6 +22,36 @@
 
 2025-02-01  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Suppress some warnings provoked in emacs.c, 64-bit native
+	Windows.
+
+	* emacs.c:
+	* emacs.c (make_argc_argv):
+	Correct the type of ARGV in this, Extbyte *** rather than Wexttext
+	***, it is not used in Windows so the T string ambiguity never
+	arose.
+	Check the length of the list fits in a C int before
+	casting. Adjust types in the body of the function.
+	* emacs.c (free_argc_argv):
+	Correct the type of ARGV in this.
+	* emacs.c (argmatch):
+	Modernise the declaration of this. Take MINLEN as a Charcount as
+	works best with the body of the function.
+	* emacs.c (SHEBANG_PROGNAME_LENGTH):
+	No longer cast this to int, since we are comparing it to the
+	result of wext_strlen(), a size_t.
+	* emacs.c (main_1):
+	When converting the windows termination handle to a HANDLE, use
+	strotoll if we're running on 64-bit Windows.
+	* emacs.c (Fkill_emacs):
+	Cast XFIXNUM (arg) to int for standards compliance with C.
+	* lisp.h:
+	Update declaration of make_argc_argv(), free_argc_argv().
+	* text.h (wext_strtoll):
+	New #define.
+
+2025-02-01  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* lisp.h:
 	* number.h (DEFINE_C_INTEGER_TYPE_LISP_CONVERSION):
 	Suppress a couple of warnings provoked in headers, 64-bit native

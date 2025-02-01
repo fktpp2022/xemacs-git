@@ -693,27 +693,31 @@ make_arg_list (int argc, Wexttext **argv)
 /* Calling functions are also responsible for calling free_argc_argv
    when they are done with the generated list. */
 void
-make_argc_argv (Lisp_Object argv_list, int *argc, Wexttext ***argv)
+make_argc_argv (Lisp_Object argv_list, int *argc, Extbyte ***argv)
 {
-  Lisp_Object next;
-  int n = XFIXNUM (Flength (argv_list));
-  REGISTER int i;
-  *argv = xnew_array (Wexttext *, n + 1);
+  Lisp_Object next, len = Flength (argv_list);
+  int n, i;
+
+  check_integer_range (len, Qzero, make_integer (INT_MAX));
+
+  n = (int) XFIXNUM (len);
+
+  *argv = xnew_array (Extbyte *, n + 1);
 
   for (i = 0, next = argv_list; i < n; i++, next = XCDR (next))
     {
       CHECK_STRING (XCAR (next));
 
-      (*argv)[i] =
-	(Wexttext *) LISP_STRING_TO_EXTERNAL_MALLOC
-	(XCAR (next), Qcommand_argument_encoding);
+      (*argv)[i]
+	= LISP_STRING_TO_EXTERNAL_MALLOC (XCAR (next),
+					  Qcommand_argument_encoding);
     }
   (*argv) [n] = 0;
   *argc = i;
 }
 
 void
-free_argc_argv (Wexttext **argv)
+free_argc_argv (Extbyte **argv)
 {
   int elt = 0;
 
@@ -761,9 +765,9 @@ Return the directory name in which the Emacs executable was located.
    Too bad we can't just use getopt for all of this, but we don't have
    enough information to do it right.  */
 
-static int
+static Boolint
 argmatch (Wexttext **argv, int argc, const Ascbyte *sstr, const Ascbyte *lstr,
-	  int minlen, Wexttext **valptr, int *skipptr)
+	  Charcount minlen, Wexttext **valptr, int *skipptr)
 {
   Wexttext *p = NULL;
   Charcount arglen;
@@ -790,7 +794,7 @@ argmatch (Wexttext **argv, int argc, const Ascbyte *sstr, const Ascbyte *lstr,
   arglen = (valptr != NULL && (p = wext_strchr (arg, '=')) != NULL
 	    ? p - arg : (Charcount) wext_strlen (arg));
   if (lstr && !minlen)
-    minlen = strlen (lstr);
+    minlen = (Charcount) strlen (lstr);
   if (lstr == 0 || arglen < minlen ||
       wext_strncmp_ascii (arg, lstr, arglen) != 0)
     return 0;
@@ -865,13 +869,13 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #endif
 
 #define SHEBANG_PROGNAME_LENGTH                                         \
-  (int)((sizeof (WEXTSTRING (SHEBANG_PROGNAME)) - sizeof (WEXTSTRING (""))))
-#define SHEBANG_EXE_PROGNAME_LENGTH			\
-  (int)(sizeof (WEXTSTRING (SHEBANG_PROGNAME) WEXTSTRING (".exe"))	\
-        - sizeof (WEXTSTRING ("")))
+  (sizeof (WEXTSTRING (SHEBANG_PROGNAME)) - sizeof (WEXTSTRING ("")))
+#define SHEBANG_EXE_PROGNAME_LENGTH					\
+  (sizeof (WEXTSTRING (SHEBANG_PROGNAME) WEXTSTRING (".exe"))		\
+   - sizeof (WEXTSTRING ("")))
 
   {
-    int progname_len = wext_strlen (argv[0]);
+    size_t progname_len = wext_strlen (argv[0]);
     if (progname_len >= SHEBANG_PROGNAME_LENGTH)
       {
 	if (!wext_strcmp_ascii (argv[0] +
@@ -950,7 +954,11 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
     if (argmatch (argv, argc, "-mswindows-termination-handle", 0, 0,
 		  &heventstr, &skip_args))
       {
+#ifdef  _WIN64
+	HANDLE hevent = (HANDLE) wext_strtoll (heventstr, 0, 10);
+#else
 	HANDLE hevent = (HANDLE) wext_atol (heventstr);
+#endif
 	DWORD unused;
 	HANDLE h_thread = CreateThread (NULL, 0, wait_for_termination_signal,
 					(void *) hevent, 0, &unused);
@@ -3541,7 +3549,7 @@ all of which are called before XEmacs is actually killed.
 
   shut_down_emacs (0, STRINGP (arg) ? arg : Qnil, 0);
 
-  exit (FIXNUMP (arg) ? XFIXNUM (arg) : 0);
+  exit (FIXNUMP (arg) ? (int) XFIXNUM (arg) : 0);
   RETURN_NOT_REACHED (Qnil);
 }
 

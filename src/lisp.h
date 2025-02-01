@@ -4734,8 +4734,8 @@ EXFUN (Fforce_debugging_signal, 1);
 
 SIGTYPE fatal_error_signal (int);
 Lisp_Object make_arg_list (int, Wexttext **);
-void make_argc_argv (Lisp_Object, int *, Wexttext ***);
-void free_argc_argv (Wexttext **);
+void make_argc_argv (Lisp_Object, int *, Extbyte ***);
+void free_argc_argv (Extbyte **);
 Lisp_Object split_external_path (const Extbyte *path);
 Lisp_Object split_env_path (const CIbyte *evarname, const Ibyte *default_);
 

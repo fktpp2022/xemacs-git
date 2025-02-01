@@ -3893,6 +3893,7 @@ int wcsncmp_ascii (const wchar_t *s1, const Ascbyte *s2, Charcount len);
 #define wext_strrchr wcsrchr
 #define wext_strdup wcsdup
 #define wext_atol(str) wcstol (str, 0, 10)
+#define wext_strtoll wcstoll
 #define wext_sprintf wsprintfW /* Huh?  both wsprintfA and wsprintfW? */
 #define wext_getenv _wgetenv
 #define build_wext_string(str, cs) build_extstring ((Extbyte *) str, cs)
@@ -3918,6 +3919,7 @@ int XCDECL wext_retry_open (const Wexttext *path, int oflag, ...);
 #define wext_strrchr strrchr
 #define wext_strdup xstrdup
 #define wext_atol(str) atol (str)
+#define wext_strtoll  strtoll
 #define wext_sprintf sprintf
 #define wext_getenv getenv
 #define build_wext_string build_extstring
