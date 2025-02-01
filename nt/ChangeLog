@@ -1,5 +1,11 @@
 2025-02-01  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* xemacs.mak:
+	Remove optimization flags specifying that the target is Pentium,
+	no longer supported by Visual Studio.
+
+2025-02-01  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Supply reasonable defaults for Perl, Mercurial and makeinfo for
 	the native Windows build.
 	* config.inc.samp:

@@ -722,19 +722,16 @@ LIBC_LIB=libc.lib
 !if $(SUPPORT_EDIT_AND_CONTINUE)
 !error Edit-and-continue is not compatible with optimization.
 !endif
-# -G5 means optimize for Pentium. (According to the code-optimization
-# article, -GB is the same as -G5, and -G6, i.e. optimze for Pentium Pro,
-# gains you little over -G5 for PPro's but causes big slowdowns for
-# Pentiums.) -GF means put strings in read-only memory; -Gr means use
-# fastcall convention.  Another possible addition: -Ob2 -- allows inlining
-# of any function, not just those declared inline.  Potential code size
-# increase, though.
+# -GF means put strings in read-only memory; -Gr means use fastcall convention.
+# Another possible addition: -Ob2 -- allows inlining of any function, not just
+# those declared inline.  Potential code size increase, though.
 #
 # #### Note: fastcall doesn't actually seem to make any difference, at least
 # not using the (admittedly unscientific) test of (hanoi 6).  The
 # optimization article claims 1-2% improvement in both speed and size.
-OPTFLAGS_FASTCALL =-O2 -G5 -Gr -Ob2
-OPTFLAGS_CDECL    =-O2 -G5 -Ob2
+# -GL should be strongly considered for link time optimization.
+OPTFLAGS_FASTCALL =-O2 -Gr -Ob2
+OPTFLAGS_CDECL    =-O2 -Ob2
 !else
 OPTFLAGS_FASTCALL =-Od
 OPTFLAGS_CDECL    =-Od
