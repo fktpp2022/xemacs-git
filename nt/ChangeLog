@@ -1,5 +1,24 @@
 2025-02-01  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Supply reasonable defaults for Perl, Mercurial and makeinfo for
+	the native Windows build.
+	* config.inc.samp:
+	* config.inc.samp (CYGWIN_ROOT): New. Root of Cygwin on this
+	machine, used to find perl, python.
+	* config.inc.samp (PERL): New. Default place to find a Perl
+	install.
+	* config.inc.samp (PYTHON): New. Default place to find a Python
+	executable. 
+	* config.inc.samp (HG): New. How to get a Mercural command.
+	* config.inc.samp (MAKEINFO): Set this to a value that currently
+	works, now makeinfo(1) is a Perl script on Cygwin.
+	* xemacs.mak:
+	* xemacs.mak (depend): Use $(PERL).
+	* xemacs.mak (unicode-encapsulate): Use $(PERL).
+	* xemacs.mak (makeinfo-test): Correct syntax for this.
+
+2025-02-01  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* config.inc.samp (MULE):
 	Turn this on by default.
 

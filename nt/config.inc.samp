@@ -172,13 +172,26 @@ LDAP_DIR=$(OPTIONAL_LIBRARY_DIR)\openldap-2.3.4
 
 # BUILD_DIR=c:\src\xemacs\msbuilds\working
 
+# Used by default to find Perl, Mercurial.
+CYGWIN_ROOT=C:\Cygwin64
+
+# Perl, used to generate dependency information and unicode encapsulation.
+PERL=$(CYGWIN_ROOT)\bin\perl.exe
+
+# Python, used to run hg(1).
+PYTHON=$(CYGWIN_ROOT)\bin\python3.9.exe
+
 # Set this to specify the location of makeinfo. (If not set, XEmacs will
-# attempt to use its built-in, much slower texinfo support when building
-# info files.) If you are building XEmacs yourself, you probably have
-# Cygwin sitting around already.  If not, you should.  Cygwin provides a
-# `makeinfo.exe' in /usr/bin/makeinfo (/usr/bin is virtual, it's /bin in
-# the actual file system).
-MAKEINFO=c:\cygwin\bin\makeinfo.exe
+# attempt to use its built-in, much slower texinfo support when building info
+# files.) If you are building XEmacs yourself, you probably have Cygwin sitting
+# around already.  If not, you should.  Cygwin provides a `makeinfo' in
+# /usr/bin/makeinfo (/usr/bin is virtual, it's /bin in the actual file
+# system). This used to be a C executable but is now a Perl script.
+MAKEINFO=$(PERL) /usr/bin/makeinfo
+
+# Set this to specify the location of hg(1), used to generate a
+# version string for non-release binaries.
+HG=$(PYTHON) /usr/bin/hg
 
 # Set this to enable debug code in XEmacs that doesn't slow things down,
 # and to add debugging information to the executable. (The code that's

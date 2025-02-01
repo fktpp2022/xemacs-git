@@ -75,7 +75,7 @@ BLDROOT=$(MAKEROOT)
 !if [copy $(SRCROOT)\version.sh.in $(SRCROOT)\version.sh]
 !endif
 !if exist($(SRCROOT)\.hg)
-!if [hg identify >> $(SRCROOT)\version.sh]
+!if [$(HG) identify >> $(SRCROOT)\version.sh]
 !endif
 !endif
 
@@ -935,7 +935,7 @@ TEMACS_DOC_SOURCES= \
 ! if [if not exist $(OUTDIR) mkdir "$(OUTDIR)"]
 ! endif
 # This perl script used to be inline but that caused too many quoting problems
-! if [perl $(NT)\make-nt-depend -s=$(SRC) -c=$(NT) -o=$(OUTDIR) < $(SRC)\depend > $(OUTDIR)\depend.tmp]
+! if [$(PERL) $(NT)\make-nt-depend -s=$(SRC) -c=$(NT) -o=$(OUTDIR) < $(SRC)\depend > $(OUTDIR)\depend.tmp]
 ! endif
 ! include "$(OUTDIR)\depend.tmp"
 !else
@@ -1745,19 +1745,19 @@ extraclean: realclean
 
 depend:
 	cd $(SRC)
-	perl ./make-src-depend > depend.tmp
-	perl -MFile::Compare -e "compare('depend.tmp', 'depend') && rename('depend.tmp', 'depend') or unlink('depend.tmp')"
+	$(PERL) ./make-src-depend > depend.tmp
+	$(PERL) -MFile::Compare -e "compare('depend.tmp', 'depend') && rename('depend.tmp', 'depend') or unlink('depend.tmp')"
 
 ########################### Redo Unicode-Encapsulation
 
 unicode-encapsulate:
 	cd $(SRC)
-	perl ../lib-src/make-mswin-unicode.pl --h-output intl-auto-encap-win32.h intl-encap-win32.c
+	$(PERL) ../lib-src/make-mswin-unicode.pl --h-output intl-auto-encap-win32.h intl-encap-win32.c
 
 makeinfo-test: $(DUMP_TARGET)
 	@<<makeinfo_test.bat
 @echo off
-@"$(MAKEINFO)" --version
+@$(MAKEINFO) --version
 @if not errorlevel 1 goto test_done
 @$(XEMACS_BATCH_PACKAGES) -eval "(condition-case nil (require (quote texinfo)) (t (kill-emacs 1)))"
 @if not errorlevel 1 goto suggest_makeinfo
