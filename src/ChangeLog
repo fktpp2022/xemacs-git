@@ -1,3 +1,10 @@
+2025-02-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lisp.h:
+	* number.h (DEFINE_C_INTEGER_TYPE_LISP_CONVERSION):
+	Suppress a couple of warnings provoked in headers, 64-bit native
+	Windows.
+
 2025-01-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* s/windowsnt.h:

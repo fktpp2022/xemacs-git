@@ -656,7 +656,7 @@ non_fixnum_number_p (Lisp_Object object))
                                  make_fixnum (65535));                  \
           }                                                             \
                                                                         \
-        result = XFIXNUM (XCAR (objeto));                               \
+        result = (c_type) XFIXNUM (XCAR (objeto));			\
         objeto = XCDR (objeto);                                         \
                                                                         \
         while (CONSP (objeto))                                          \
@@ -671,7 +671,8 @@ non_fixnum_number_p (Lisp_Object object))
                                   orig);                                \
               }                                                         \
             result                                                      \
-              = (result << 16) | (XFIXNUM (XCAR (objeto)) & 0xFFFF);    \
+	      = (result << 16) |					\
+	      (c_type) ((XFIXNUM (XCAR (objeto)) & 0xFFFF));		\
             objeto = XCDR (objeto);                                     \
           }                                                             \
                                                                         \

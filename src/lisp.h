@@ -3117,7 +3117,7 @@ XCHAR_OR_CHAR_INT_1 (Lisp_Object obj, const Ascbyte *file, int line)
 {
   if (CHARP (obj))
     {
-      return XCHARVAL (obj);
+      return (Ichar) XCHARVAL (obj);
     }
   if (FIXNUMP (obj))
     {
