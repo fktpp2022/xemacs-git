@@ -1,5 +1,13 @@
 2025-02-02  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* symbols.c (value_slot_past_magic):
+	Fix a very old bug in this function, don't check whether
+	*store_pointer is SYMBOL_VALUE_LISP_MAGIC_P() and then access the
+	SHADOWED field of SYM, which cannot be SYMBOL_VALUE_LISP_MAGIC_P,
+	since we know it is a symbol, a distinct type.
+
+2025-02-02  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* cmds.c (Fself_insert_internal): Removed. Moved to cmdloop.el.
 	* cmds.c (syms_of_cmds):
 	Remove its DEFSUBR().

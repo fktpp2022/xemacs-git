@@ -2716,7 +2716,7 @@ value_slot_past_magic (Lisp_Object sym)
   Lisp_Object *store_pointer = &XSYMBOL (sym)->value;
 
   if (SYMBOL_VALUE_LISP_MAGIC_P (*store_pointer))
-    store_pointer = &XSYMBOL_VALUE_LISP_MAGIC (sym)->shadowed;
+    store_pointer = &XSYMBOL_VALUE_LISP_MAGIC (*store_pointer)->shadowed;
   return store_pointer;
 }
 

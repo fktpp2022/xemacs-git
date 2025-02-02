@@ -234,54 +234,72 @@ If FRAME is omitted or nil, use the selected frame."
 (make-obsolete-variable 'before-change-function
   "Use before-change-functions; which is a list of functions rather than a \
 single function.")
-(dontusethis-set-symbol-value-handler
- 'before-change-function
- 'set-value
- #'(lambda (sym args fun harg handler)
-     (if (car args)
-         (unless (function-allows-args (car args) 2)
-           (error 'invalid-argument "Not a valid before-change-function"
-                  (car args))))
-     (setq before-change-functions
-           (delete*
-            '#22222=#:before-change-function-secret
-            before-change-functions :test #'member*
-            :key #'(lambda (object)
-                     (and (compiled-function-p object)
-                          (compiled-function-arglist object))))
-           before-change-functions (append before-change-functions
-                                           (if (car args)
-                                               (list
-                                                (apply-partially
-                                                 #'(lambda (f &rest #22222#)
-                                                     (apply f #22222#))
-                                                 (car args))))))))
 
-(make-obsolete-variable 'after-change-function
-  "Use after-change-functions; which is a list of functions rather than a \
+(labels
+    ((make-local-handler (sym args fun harg handler)
+       (error 'protected-field
+              (format "Minimal compatibility provided for `%s'; \
+use `%ss'" sym sym)
+              fun)))
+
+  (dontusethis-set-symbol-value-handler
+   'before-change-function
+   'set-value
+   #'(lambda (sym args fun harg handler)
+       (if (car args)
+           (unless (function-allows-args (car args) 2)
+             (error 'invalid-argument "Not a valid before-change-function"
+                    (car args))))
+       (setq before-change-functions
+             (delete*
+              '#22222=#:before-change-function-secret
+              before-change-functions :test #'member*
+              :key #'(lambda (object)
+                       (and (compiled-function-p object)
+                            (compiled-function-arglist object))))
+             before-change-functions (append before-change-functions
+                                             (if (car args)
+                                                 (list
+                                                  (apply-partially
+                                                   #'(lambda (f &rest #22222#)
+                                                       (apply f #22222#))
+                                                   (car args))))))))
+
+  (dontusethis-set-symbol-value-handler
+   'before-change-function
+   'make-local #'make-local-handler)
+
+  (make-obsolete-variable 'after-change-function
+   "Use after-change-functions; which is a list of functions rather than a \
 single function.")
-(dontusethis-set-symbol-value-handler
- 'after-change-function
- 'set-value
- #'(lambda (sym args fun harg handler)
-     (if (car args)
-         (unless (function-allows-args (car args) 3)
-           (error 'invalid-argument "Not a valid after-change-function"
-                  (car args))))
-     (setq after-change-functions
-           (delete*
-            '#44444=#:after-change-function-secret
-            after-change-functions :test #'member*
-            :key #'(lambda (object)
-                     (and (compiled-function-p object)
-                          (compiled-function-arglist object))))
-           after-change-functions (append after-change-functions
-                                          (if (car args)
-                                              (list
-                                               (apply-partially
-                                                #'(lambda (f &rest #44444#)
-                                                    (apply f #44444#))
-                                                (car args))))))))
+
+  (dontusethis-set-symbol-value-handler
+   'after-change-function
+   'set-value
+   #'(lambda (sym args fun harg handler)
+       (if (car args)
+           (unless (function-allows-args (car args) 3)
+             (error 'invalid-argument "Not a valid after-change-function"
+                    (car args))))
+       (setq after-change-functions
+             (delete*
+              '#44444=#:after-change-function-secret
+              after-change-functions :test #'member*
+              :key #'(lambda (object)
+                       (and (compiled-function-p object)
+                            (compiled-function-arglist object))))
+             after-change-functions (append after-change-functions
+                                            (if (car args)
+                                                (list
+                                                 (apply-partially
+                                                  #'(lambda (f &rest #44444#)
+                                                      (apply f #44444#))
+                                                  (car args))))))))
+
+  (dontusethis-set-symbol-value-handler
+   'after-change-function
+   'make-local
+   #'make-local-handler))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; insertion, deletion, movement
 
