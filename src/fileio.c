@@ -3527,24 +3527,25 @@ here because write-region handler writers need to be aware of it.
 
     failure = 0;
 
-    /* Note: I tried increasing the buffering size, along with
-       various other tricks, but nothing seemed to make much of
-       a difference in the time it took to save a large file.
-       (Actually that's not true.  With a local disk, changing
-       the buffer size doesn't seem to make much difference.
-       With an NFS-mounted disk, it could make a lot of difference
-       because you're affecting the number of network requests
-       that need to be made, and there could be a large latency
-       for each request.  So I've increased the buffer size
-       to 64K.) */
+    /* The write buffer size here is very important for interactive use,
+       because it is often the limiting factor for autosaves. A poor choice of
+       buffer size makes XEmacs unresponsive at unwanted times if the file
+       being edited is at all large (my usual culprit is a large VM
+       folder). The read buffer size is less important given it is irrelevant
+       for autosaves, and indeed for saves.
+
+       Jim Meyering of the coreutils maintainers monitors what buffer sizes
+       are currently optimal. The coreutils ioblksize.h documents that 256
+       kilobytes is the best block size to minimise system call overhead
+       across most systems as of February 2024. */
     outstream = make_filedesc_output_stream (desc, 0, -1, 0, NULL);
     Lstream_set_buffering (XLSTREAM (outstream),
-			   LSTREAM_BLOCKN_BUFFERED, 65536);
+			   LSTREAM_BLOCKN_BUFFERED, 256 * 1024);
     outstream =
       make_coding_output_stream (XLSTREAM (outstream), codesys,
 				 CODING_ENCODE, 0);
     Lstream_set_buffering (XLSTREAM (outstream),
-			   LSTREAM_BLOCKN_BUFFERED, 65536);
+			   LSTREAM_BLOCKN_BUFFERED, 256 * 1024);
     if (STRINGP (start))
       {
 	instream = make_lisp_string_input_stream (start, 0, -1);
@@ -4109,7 +4110,6 @@ Non-nil second argument means save only current buffer.
 {
   /* This function can call lisp */
   struct buffer *b;
-  Lisp_Object tail, buf;
   int auto_saved = 0;
   int do_handled_files;
   Lisp_Object oquit = Qnil;
@@ -4150,11 +4150,12 @@ Non-nil second argument means save only current buffer.
      ange-ftp'd file.  */
   for (do_handled_files = 0; do_handled_files < 2; do_handled_files++)
     {
-      for (tail = Vbuffer_alist;
-	   CONSP (tail);
-	   tail = XCDR (tail))
+      /* Vbuffer_alist is not actually external format, but that doesn't
+         matter for our purposes. The big thing is GC protection for BUF and
+         for TAIL, the handlers may make them unreachable. */
+      GC_EXTERNAL_LIST_LOOP_3 (buf, Vbuffer_alist, tail)
 	{
-	  buf = XCDR (XCAR (tail));
+	  buf = XCDR (buf); /* Preserve GCPRO of BUF. */
 	  b = XBUFFER (buf);
 
 	  if (!NILP (current_only)
@@ -4274,23 +4275,13 @@ Non-nil second argument means save only current buffer.
 		  retry_write (listdesc, "\n", 1);
 		}
 
-	      /* dmoore - In a bad scenario we've set b=XBUFFER(buf)
-		 based on values in Vbuffer_alist.  auto_save_1 may
-		 cause lisp handlers to run.  Those handlers may kill
-		 the buffer and then GC.  Since the buffer is killed,
-		 it's no longer in Vbuffer_alist so it might get reaped
-		 by the GC.  We also need to protect tail. */
-	      /* #### There is probably a lot of other code which has
-		 pointers into buffers which may get blown away by
-		 handlers. */
-	      {
-		struct gcpro ngcpro1, ngcpro2;
-		NGCPRO2 (buf, tail);
-		condition_case_1 (Qt,
-				  auto_save_1, Qnil,
-				  auto_save_error, Qnil);
-		NUNGCPRO;
-	      }
+	      /* #### There is probably a lot of code which has pointers into
+                 buffers which may get blown away by handlers. Our
+                 GC_EXTERNAL_LIST_LOOP_3() above means it is not an issue
+                 here. */
+	      condition_case_1 (Qt, auto_save_1, Qnil,
+				auto_save_error, Qnil);
+
 	      /* Handler killed our saved current-buffer!  Pick any. */
 	      if (!BUFFER_LIVE_P (XBUFFER (old)))
 		old = wrap_buffer (current_buffer);
@@ -4311,6 +4302,7 @@ Non-nil second argument means save only current buffer.
 		b->auto_save_failure_time = EMACS_SECS (after_time);
 	    }
 	}
+      END_GC_EXTERNAL_LIST_LOOP (buf);
     }
 
   /* Prevent another auto save till enough input events come in.  */

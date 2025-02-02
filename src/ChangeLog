@@ -1,5 +1,14 @@
 2025-02-02  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* fileio.c (Fwrite_region_internal):
+	Increase the buffer size within this function, speeding up
+	autosave of large files significantly in my testing.
+	* fileio.c (Fdo_auto_save):
+	GCPRO around calling auto save handlers in a more idiomatic way,
+	that also avoids issues with Lisp code from echo_area_message().
+
+2025-02-02  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* elhash.c:
 	Make obarray larger by default given that its htentries will leak
 	on resizing after pdump_load().
