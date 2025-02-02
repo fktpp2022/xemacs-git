@@ -1773,11 +1773,17 @@ oblookup (Lisp_Object package, const Ibyte *ptr, Bytecount size)
 /*                              Intern				      */
 /**********************************************************************/
 
-/* As of So 20 Nov 2016 13:16:04 GMT obarray has about 16000 entries after
-   starting up with -vanilla with all packages in the load path, but none
-   installed. OBARRAY_INITIAL_SIZE reflects the :size argument to
-   #'make-hash-table, and not the number of buckets, as previously. */
-#define OBARRAY_INITIAL_SIZE 16000
+/* Since obarray is dumped, and our hash table type does not use buckets, if
+   it is resized post pdump_load() its htentries are just leaked. 40000 will
+   make this less likely in normal use, and should have the side benefit of
+   fewer collisions in loadup and non-intense use.
+
+   This is the :size argument to #'make-hash-table, so the table ends up being
+   71429 entries in size, taking up 1.1 megabytes on a 64-bit machine. In
+   comparison, if this were not explicitly specified, it would be 500 k,
+   reaching the 1.1 megabytes threshold (including the leaked data) when
+   19,000 symbols are interned. */
+#define OBARRAY_INITIAL_SIZE 40000
 
 Lisp_Object Vobarray;
 static Lisp_Object initial_obarray;

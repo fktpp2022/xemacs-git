@@ -3085,11 +3085,6 @@ If the current binding is global (the default), the value is nil.
 /*                            initialization                            */
 /************************************************************************/
 
-/* A dumped XEmacs image has a lot more than 1511 symbols.  Last
-   estimate was that there were actually around 6300.  So let's try
-   making this bigger and see if we get better hashing behavior. */
-#define OBARRAY_SIZE 16411
-
 #ifndef Qzero
 Lisp_Object Qzero;
 #endif

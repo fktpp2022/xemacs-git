@@ -1,5 +1,13 @@
 2025-02-02  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* elhash.c:
+	Make obarray larger by default given that its htentries will leak
+	on resizing after pdump_load().
+	* symbols.c:
+	OBARRAY_SIZE hasn't be used in this file since 2016, remove it.
+
+2025-02-02  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* symbols.c (value_slot_past_magic):
 	Fix a very old bug in this function, don't check whether
 	*store_pointer is SYMBOL_VALUE_LISP_MAGIC_P() and then access the
