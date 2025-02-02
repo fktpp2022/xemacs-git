@@ -1,3 +1,9 @@
+2025-02-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cmdloop.el (self-insert-internal): New.
+	Move this here from cmds.c, never called frequently enough to
+	merit being in C.
+
 2025-01-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* minibuf.el (read-number):

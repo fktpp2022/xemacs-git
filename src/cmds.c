@@ -443,19 +443,6 @@ internal_self_insert (Ichar c1, int noautofill)
 
   /* return hairy; */
 }
-
-/* (this comes from Mule but is a generally good idea) */
-
-DEFUN ("self-insert-internal", Fself_insert_internal, 1, 1, 0, /*
-Invoke `self-insert-command' as if CHARACTER is entered from keyboard.
-*/
-       (character))
-{
-  /* This function can GC */
-  CHECK_CHAR_COERCE_INT (character);
-  internal_self_insert (XCHAR (character), 0);
-  return Qnil;
-}
 
 /* module initialization */
 
@@ -476,7 +463,6 @@ syms_of_cmds (void)
   DEFSUBR (Fdelete_char);
 
   DEFSUBR (Fself_insert_command);
-  DEFSUBR (Fself_insert_internal);
 }
 
 void

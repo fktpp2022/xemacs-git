@@ -775,7 +775,16 @@ terminates the character code and is then used as input."
 	   (set-window-configuration window-configuration))
       (maybe-display-char prompt (if (eql char ?\C-m) ?\x20 char))
       (unicode-to-char code))))
+
+;; "(this comes from Mule but is a generally good idea)". Still only used in
+;; the Mule packages a couple of decades later. Previously in cmds.c.
 
+(defun self-insert-internal (character)
+  "Invoke `self-insert-command' as if CHARACTER is entered from keyboard."
+  (check-type character char-or-char-int)
+  (let ((last-command-char character) last-command-event)
+    (self-insert-command 1)))
+
 ;; in passwd.el.
 ; (defun read-passwd (prompt &optional confirm default)
 ;   "Read a password, prompting with PROMPT.  Echo `.' for each character typed.

@@ -1,3 +1,9 @@
+2025-02-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cmds.c (Fself_insert_internal): Removed. Moved to cmdloop.el.
+	* cmds.c (syms_of_cmds):
+	Remove its DEFSUBR().
+
 2025-02-01  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lisp.h:
