@@ -1615,27 +1615,11 @@ print_precedence_array (Lisp_Object obj, Lisp_Object printcharfun,
 }
 
 
-/* NOTE: This is non-dumpable currently, even though it would be more
-   convenient if it were dumpable, due to annoying limitations in New GC.
-   Basically, dumpable objects cannot have finalizers -- any objects that
-   would be freed by finalizers, such as Dynarrs, have to be converted to
-   Lisp objects.  There's a special mechanism in New-GC for making
-   Lisp-object Dynarrs, and I tried to use it, but (a) it's painful, and
-   (b) it requires that the object contained in the Dynarr be a particular
-   Lisp object -- not a pointer to Lisp object.  So I tried creating a
-   nasty internal "lisp-object-wrapper" object but I realized it would just
-   get too gooey.  That extra object would have an lrecord header and mark
-   method and you'd have to dereference it to fetch the Lisp object inside
-   and it would make the code even messier.  It seemed less of a hassle
-   just to ensure that precedence-array objects don't get dumped, by
-   clearing out any places where they otherwise would occur and recreating
-   them when starting up again. */
-
-DEFINE_NODUMP_LISP_OBJECT ("precedence-array", precedence_array,
-			   print_precedence_array,
-			   finalize_precedence_array, 0, 0, 
-			   precedence_array_description,
-			   struct precedence_array);
+DEFINE_DUMPABLE_LISP_OBJECT ("precedence-array", precedence_array,
+                             print_precedence_array,
+                             finalize_precedence_array, 0, 0, 
+                             precedence_array_description,
+                             struct precedence_array);
 
 /******************** Basic precedence-array functions *******************/
 
@@ -2045,7 +2029,7 @@ See `set-buffer-unicode-precedence-list' for more information.
   return buf->unicode_precedence_list;
 }
 
-static Lisp_Object
+Lisp_Object
 precedence_array_to_list (Lisp_Object precarray)
 {
   Lisp_Object list = Qnil;

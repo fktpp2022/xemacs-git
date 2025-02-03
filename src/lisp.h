@@ -6455,6 +6455,8 @@ void add_charsets_to_precedence_array (Lisp_Object list,
 void charset_created_recalculate_unicode_precedence (void);
 void disksave_clear_unicode_precedence (void);
 Lisp_Object simple_convert_predence_list_to_array (Lisp_Object charsets);
+Lisp_Object precedence_array_to_list (Lisp_Object precarray);
+
 Lisp_Object decode_buffer_or_precedence_list (Lisp_Object preclist);
 int unicode_precedence_list_changed (Lisp_Object sym, Lisp_Object *val,
 				     Lisp_Object in_object, int flags);

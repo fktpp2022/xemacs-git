@@ -57,9 +57,6 @@ Lisp_Object Qshort, Qno_ascii_eol, Qno_ascii_cntl, Qlock_shift;
 Lisp_Object Qiso_7, Qiso_8_designate, Qiso_8_1, Qiso_8_2, Qiso_lock_shift;
 
 Lisp_Object Qcharsets;
-
-static Lisp_Object Vshift_jis_precedence, Vbig5_precedence;
-
 
 /************************************************************************/
 /*                          MBCS coding system                          */
@@ -71,18 +68,17 @@ static Lisp_Object Vshift_jis_precedence, Vbig5_precedence;
 
 struct multibyte_coding_system
 {
-  /* A dynarr containing the charsets given in the `charsets' property when
-     creating the coding system */
-  Lisp_Object_dynarr *charsets;
+  /* List of charsets as a precedence-array object. */
+  Lisp_Object charset_precedence;
 #ifdef ALLOW_MULTIBYTE_CHARSET_OVERLAP
-  int overlap; /* true if the ranges of the charsets overlap */
+  Boolint overlap; /* true if the ranges of the charsets overlap */
 #endif /* ALLOW_MULTIBYTE_CHARSET_OVERLAP */
 };
 
-#define CODING_SYSTEM_MBCS_CHARSETS(codesys) \
-  (CODING_SYSTEM_TYPE_DATA (codesys, multibyte)->charsets)
-#define XCODING_SYSTEM_MBCS_CHARSETS(codesys) \
-  CODING_SYSTEM_MBCS_CHARSETS (XCODING_SYSTEM (codesys))
+#define CODING_SYSTEM_MBCS_CHARSET_PRECEDENCE(codesys) \
+  (CODING_SYSTEM_TYPE_DATA (codesys, multibyte)->charset_precedence)
+#define XCODING_SYSTEM_MBCS_CHARSET_PRECEDENCE(codesys) \
+  CODING_SYSTEM_MBCS_CHARSET_PRECEDENCE (XCODING_SYSTEM (codesys))
 
 #ifdef ALLOW_MULTIBYTE_CHARSET_OVERLAP
 #define CODING_SYSTEM_MBCS_OVERLAP(codesys) \
@@ -93,24 +89,18 @@ struct multibyte_coding_system
 
 struct multibyte_coding_stream
 {
-  /* Equivalent of dynarr in struct multibyte_coding_system as a
-     precedence-array object.  We can't store the object in struct
-     multibyte_coding_system because it can't currently be dumped. */
-  Lisp_Object charset_precedence;
   /* CH holds a partially built-up character, or -1 for none.
      Used during decoding. */
   int ch;
 };
 
 static const struct memory_description multibyte_coding_system_description[] = {
-  { XD_BLOCK_PTR, portable_offsetof (struct multibyte_coding_system, charsets),
-    1, { &Lisp_Object_dynarr_description} },
+  { XD_LISP_OBJECT, portable_offsetof (struct multibyte_coding_system,
+                                       charset_precedence), },
   { XD_END }
 };
 
 static const struct memory_description multibyte_coding_stream_description[] = {
-  { XD_LISP_OBJECT, portable_offsetof (struct multibyte_coding_stream,
-			      charset_precedence), },
   { XD_END }
 };
 
@@ -119,18 +109,8 @@ DEFINE_CODING_SYSTEM_TYPE_WITH_DATA (multibyte);
 static void
 multibyte_init_coding_stream (struct coding_stream *str)
 {
-  struct multibyte_coding_stream *data =
-    CODING_STREAM_TYPE_DATA (str, multibyte);
-  int i;
-  Lisp_Object_dynarr *charsets = XCODING_SYSTEM_MBCS_CHARSETS (str->codesys);
-
-  begin_precedence_array_generation ();
-  data->charset_precedence = allocate_precedence_array ();
-  for (i = 0; i < Dynarr_length (charsets); i++)
-    {
-      add_charset_to_precedence_array (Dynarr_at (charsets, i),
-                                       data->charset_precedence);
-    }
+  struct multibyte_coding_stream *data
+    = CODING_STREAM_TYPE_DATA (str, multibyte);
   data->ch = -1;
 }
 
@@ -212,7 +192,7 @@ multibyte_decode (struct coding_stream *str, const UExtbyte *src,
 {
   struct multibyte_coding_stream *data =
     CODING_STREAM_TYPE_DATA (str, multibyte);
-  Lisp_Object precarr = data->charset_precedence;
+  Lisp_Object precarr = XCODING_SYSTEM_MBCS_CHARSET_PRECEDENCE (str->codesys);
 
   while (n--)
     {
@@ -273,11 +253,7 @@ static Bytecount
 multibyte_encode (struct coding_stream *str, const Ibyte *src,
 		  Bytecount n, unsigned_char_dynarr *dst)
 {
-#ifdef UNICODE_INTERNAL
-  struct multibyte_coding_stream *data =
-    CODING_STREAM_TYPE_DATA (str, multibyte);
-  Lisp_Object precarr = data->charset_precedence;
-#endif
+  Lisp_Object precarr = XCODING_SYSTEM_MBCS_CHARSET_PRECEDENCE (str->codesys);
   const Ibyte *srcend = src + n;
   while (src < srcend)
     {
@@ -306,8 +282,7 @@ multibyte_encode (struct coding_stream *str, const Ibyte *src,
 #else
       {
 	int i;
-	Lisp_Object_dynarr *precdyn =
-	  XCODING_SYSTEM_MBCS_CHARSETS (str->codesys);
+        Lisp_Object_dynarr *precdyn = XPRECEDENCE_ARRAY_DYNARR (precarr);
 	for (i = 0; i < Dynarr_length (precdyn); i++)
 	  {
 	    Lisp_Object charset2 = Dynarr_at (precdyn, i);
@@ -396,17 +371,8 @@ multibyte_convert (struct coding_stream *str, const unsigned char *src,
 static void
 multibyte_init (Lisp_Object codesys)
 {
-  XCODING_SYSTEM_MBCS_CHARSETS (codesys) = Dynarr_new (Lisp_Object);
-}
-
-static void
-multibyte_finalize (Lisp_Object cs)
-{
-  if (XCODING_SYSTEM_MBCS_CHARSETS (cs))
-    {
-      Dynarr_free (XCODING_SYSTEM_MBCS_CHARSETS (cs));
-      XCODING_SYSTEM_MBCS_CHARSETS (cs) = 0;
-    }
+  XCODING_SYSTEM_MBCS_CHARSET_PRECEDENCE (codesys)
+    = allocate_precedence_array ();
 }
 
 /* Return true if range [FROM1,TO1] overlaps range [FROM2,TO2], where all
@@ -463,9 +429,10 @@ multibyte_putprop (Lisp_Object codesys, Lisp_Object key, Lisp_Object value)
   if (EQ (key, Qcharsets))
     {
       Lisp_Object_dynarr *charsets = Dynarr_new (Lisp_Object);
+      Elemcount ii;
       
-      /* Now add set the new values to a new dynarr, so we don't overwrite
-	 the old one before we're sure things are OK. */
+      /* Examine the charsets before adding them to the precedence dynarr, to
+         ensure they're OK first. */
       Dynarr_reset (charsets);
       {
 	EXTERNAL_LIST_LOOP_2 (elt, value)
@@ -497,8 +464,16 @@ multibyte_putprop (Lisp_Object codesys, Lisp_Object key, Lisp_Object value)
 	  }
       }
 
-      Dynarr_free (XCODING_SYSTEM_MBCS_CHARSETS (codesys));
-      XCODING_SYSTEM_MBCS_CHARSETS (codesys) = charsets;
+      begin_precedence_array_generation ();
+      reset_precedence_array
+        (XCODING_SYSTEM_MBCS_CHARSET_PRECEDENCE (codesys));
+      for (ii = 0; ii < Dynarr_length (charsets); ii++)
+        {
+          add_charset_to_precedence_array
+            (Dynarr_at (charsets, ii),
+             XCODING_SYSTEM_MBCS_CHARSET_PRECEDENCE (codesys));
+        }
+      Dynarr_free (charsets);
     }
   else
     return 0;
@@ -510,13 +485,8 @@ multibyte_getprop (Lisp_Object codesys, Lisp_Object prop)
 {
   if (EQ (prop, Qcharsets))
     {
-      Lisp_Object_dynarr *charsets = XCODING_SYSTEM_MBCS_CHARSETS (codesys);
-      Lisp_Object list = Qnil;
-      int i;
-
-      for (i = 0; i < Dynarr_length (charsets); i++)
-        list = Fcons (Dynarr_at (charsets, i), list);
-      return Fnreverse (list);
+      return precedence_array_to_list
+        (XCODING_SYSTEM_MBCS_CHARSET_PRECEDENCE (codesys));
     }
   return Qunbound;
 }
@@ -525,12 +495,21 @@ static void
 multibyte_print (Lisp_Object codesys, Lisp_Object printcharfun,
 		 int UNUSED (escapeflag))
 {
-  Lisp_Object_dynarr *charsets = XCODING_SYSTEM_MBCS_CHARSETS (codesys);
-  int i;
+  struct precedence_array *data
+    = XPRECEDENCE_ARRAY (XCODING_SYSTEM_MBCS_CHARSET_PRECEDENCE (codesys));
+  Elemcount ii;
 
-  for (i = 0; i < Dynarr_length (charsets); i++)
-    write_fmt_string_lisp (printcharfun, i == 0 ? "(%s" : " %s",
-                           XCHARSET_NAME (Dynarr_at (charsets, i)));
+  write_ascstring (printcharfun, "(");
+  for (ii = 0; ii < Dynarr_length (data->precdyn); ii++)
+    {
+      if (ii)
+        {
+          write_ascstring (printcharfun, " ");
+        }
+      print_internal (XCHARSET_NAME (Dynarr_at (data->precdyn, ii)),
+                      printcharfun, 0);
+    }
+                             
   write_ascstring (printcharfun, ")");
 }
 
@@ -544,8 +523,13 @@ multibyte_print (Lisp_Object codesys, Lisp_Object printcharfun,
 
 struct shift_jis_coding_system
 {
-  int dummy;
+  Lisp_Object charset_precedence;  
 };
+
+#define CODING_SYSTEM_SHIFT_JIS_CHARSET_PRECEDENCE(codesys) \
+  (CODING_SYSTEM_TYPE_DATA (codesys, shift_jis)->charset_precedence)
+#define XCODING_SYSTEM_SHIFT_JIS_CHARSET_PRECEDENCE(codesys) \
+  CODING_SYSTEM_SHIFT_JIS_CHARSET_PRECEDENCE (XCODING_SYSTEM (codesys))
 
 struct shift_jis_coding_stream
 {
@@ -554,6 +538,8 @@ struct shift_jis_coding_stream
 };
 
 static const struct memory_description shift_jis_coding_system_description[] = {
+  { XD_LISP_OBJECT, portable_offsetof (struct shift_jis_coding_system,
+                                       charset_precedence), },
   { XD_END }
 };
 
@@ -661,6 +647,8 @@ static Bytecount
 shift_jis_encode (struct coding_stream *str, const Ibyte *src,
 		  Bytecount n, unsigned_char_dynarr *dst)
 {
+  Lisp_Object precedence
+    = XCODING_SYSTEM_SHIFT_JIS_CHARSET_PRECEDENCE (str->codesys);
   const Ibyte *srcend = src + n;
   while (src < srcend)
     {
@@ -681,7 +669,7 @@ shift_jis_encode (struct coding_stream *str, const Ibyte *src,
 	      ENCODING_ERROR_RETURN_OR_CONTINUE (str, src);
 	    }
 	  ichar_to_charset_codepoint
-	    (ich, Vshift_jis_precedence, &charset, &c1, &c2,
+	    (ich, precedence, &charset, &c1, &c2,
 	     CONVERR_FAIL);
 	  if (EQ (charset, Vcharset_katakana_jisx0201))
 	    Dynarr_add (dst, c2);
@@ -712,6 +700,16 @@ shift_jis_convert (struct coding_stream *str, const unsigned char *src,
     return shift_jis_decode (str, (UExtbyte *) src, n, dst);
   else
     return shift_jis_encode (str, (Ibyte *) src, n, dst);
+}
+
+static void
+shift_jis_init (Lisp_Object codesys)
+{
+  XCODING_SYSTEM_SHIFT_JIS_CHARSET_PRECEDENCE (codesys)
+    = simple_convert_predence_list_to_array
+    (list3 (Fget_charset (Qjapanese_jisx0208),
+            Fget_charset (Qjapanese_jisx0208_1978),
+	    Fget_charset (Qkatakana_jisx0201)));
 }
 
 static void
@@ -760,10 +758,13 @@ Return the corresponding character code in SHIFT-JIS as a cons of two bytes.
 {
   Lisp_Object charset;
   int c1, c2, s1, s2;
+  Lisp_Object precedence
+    = XCODING_SYSTEM_SHIFT_JIS_CHARSET_PRECEDENCE
+    (Fget_coding_system (Qshift_jis));
 
   CHECK_CHAR_COERCE_INT (character);
-  ichar_to_charset_codepoint (XCHAR (character), Vshift_jis_precedence,
-			      &charset, &c1, &c2, CONVERR_FAIL);
+  ichar_to_charset_codepoint (XCHAR (character), precedence, &charset, &c1,
+                              &c2, CONVERR_FAIL);
   if (EQ (charset, Vcharset_japanese_jisx0208) ||
       EQ (charset, Vcharset_japanese_jisx0208_1978))
     {
@@ -867,8 +868,13 @@ shift_jis_detect (struct detection_state *st, const UExtbyte *src,
 
 struct big5_coding_system
 {
-  int dummy;
+  Lisp_Object charset_precedence;
 };
+
+#define CODING_SYSTEM_BIG5_CHARSET_PRECEDENCE(codesys) \
+  (CODING_SYSTEM_TYPE_DATA (codesys, big5)->charset_precedence)
+#define XCODING_SYSTEM_BIG5_CHARSET_PRECEDENCE(codesys) \
+  CODING_SYSTEM_BIG5_CHARSET_PRECEDENCE (XCODING_SYSTEM (codesys))
 
 struct big5_coding_stream
 {
@@ -877,6 +883,8 @@ struct big5_coding_stream
 };
 
 static const struct memory_description big5_coding_system_description[] = {
+  { XD_LISP_OBJECT, portable_offsetof (struct big5_coding_system,
+                                       charset_precedence), },
   { XD_END }
 };
 
@@ -1042,6 +1050,8 @@ static Bytecount
 big5_encode (struct coding_stream *str, const Ibyte *src,
 	     Bytecount n, unsigned_char_dynarr *dst)
 {
+  Lisp_Object precedence
+    = XCODING_SYSTEM_BIG5_CHARSET_PRECEDENCE (str->codesys);
   const Ibyte *srcend = src + n;
   while (src < srcend)
     {
@@ -1062,7 +1072,7 @@ big5_encode (struct coding_stream *str, const Ibyte *src,
 	      ENCODING_ERROR_RETURN_OR_CONTINUE (str, src);
 	    }
 	  ichar_to_charset_codepoint
-	    (ich, Vbig5_precedence, &charset, &c1, &c2, CONVERR_FAIL);
+	    (ich, precedence, &charset, &c1, &c2, CONVERR_FAIL);
 	  if (EQ (charset, Vcharset_chinese_big5_1) ||
 	      EQ (charset, Vcharset_chinese_big5_2))
 	    {
@@ -1090,6 +1100,14 @@ big5_convert (struct coding_stream *str, const unsigned char *src,
     return big5_decode (str, (UExtbyte *) src, n, dst);
   else
     return big5_encode (str, (Ibyte *) src, n, dst);
+}
+
+static void
+big5_init (Lisp_Object codesys)
+{
+  XCODING_SYSTEM_BIG5_CHARSET_PRECEDENCE (codesys)
+    = simple_convert_predence_list_to_array
+    (list2 (Fget_charset (Qchinese_big5_1), Fget_charset (Qchinese_big5_2)));
 }
 
 static void
@@ -1166,9 +1184,11 @@ term `encode' is used for this operation.
 {
   Lisp_Object charset;
   int c1, c2;
+  Lisp_Object precedence
+    = XCODING_SYSTEM_BIG5_CHARSET_PRECEDENCE (Fget_coding_system (Qbig5));
 
   CHECK_CHAR_COERCE_INT (character);
-  ichar_to_charset_codepoint (XCHAR (character), Vbig5_precedence,
+  ichar_to_charset_codepoint (XCHAR (character), precedence,
 			      &charset, &c1, &c2, CONVERR_FAIL);
   if (EQ (charset, Vcharset_chinese_big5_1) ||
       EQ (charset, Vcharset_chinese_big5_2))
@@ -3977,7 +3997,6 @@ coding_system_type_create_mule_coding (void)
   CODING_SYSTEM_HAS_METHOD (multibyte, convert);
   CODING_SYSTEM_HAS_METHOD (multibyte, init_coding_stream);
   CODING_SYSTEM_HAS_METHOD (multibyte, init);
-  CODING_SYSTEM_HAS_METHOD (multibyte, finalize);
   CODING_SYSTEM_HAS_METHOD (multibyte, putprop);
   CODING_SYSTEM_HAS_METHOD (multibyte, getprop);
   CODING_SYSTEM_HAS_METHOD (multibyte, print);
@@ -4014,6 +4033,7 @@ coding_system_type_create_mule_coding (void)
   INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (shift_jis,
 					   "shift-jis-coding-system-p");
   CODING_SYSTEM_HAS_METHOD (shift_jis, convert);
+  CODING_SYSTEM_HAS_METHOD (shift_jis, init);
   CODING_SYSTEM_HAS_METHOD (shift_jis, init_coding_stream);
 
   INITIALIZE_DETECTOR (shift_jis);
@@ -4022,6 +4042,7 @@ coding_system_type_create_mule_coding (void)
 
   INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (big5, "big5-coding-system-p");
   CODING_SYSTEM_HAS_METHOD (big5, convert);
+  CODING_SYSTEM_HAS_METHOD (big5, init);
   CODING_SYSTEM_HAS_METHOD (big5, init_coding_stream);
 
   INITIALIZE_DETECTOR (big5);
@@ -4047,11 +4068,6 @@ reinit_vars_of_mule_coding (void)
 void
 vars_of_mule_coding (void)
 {
-  Vshift_jis_precedence = Qnil;
-  staticpro (&Vshift_jis_precedence);
-
-  Vbig5_precedence = Qnil;
-  staticpro (&Vbig5_precedence);
 }
 
 void
@@ -4062,14 +4078,4 @@ complex_vars_of_mule_coding (void)
 void
 init_mule_coding (void)
 {
-  /* #### Hack!  There should be a general multibyte codec to handle both
-     of these, and similar variants. */
-  assert (initialized);
-  Vshift_jis_precedence =
-    simple_convert_predence_list_to_array
-    (list3 (Vcharset_japanese_jisx0208, Vcharset_japanese_jisx0208_1978,
-	    Vcharset_katakana_jisx0201));
-  Vbig5_precedence =
-    simple_convert_predence_list_to_array
-    (list2 (Vcharset_chinese_big5_1, Vcharset_chinese_big5_2));
 }

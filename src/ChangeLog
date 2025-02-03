@@ -10,6 +10,97 @@
 	* cmds.c (syms_of_cmds):
 	Supply a DEFSYMBOL for Qkill_region
 
+2025-01-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Now NEWGC is gone, make the precedence_array objects dumpable.
+	Use this in mule-coding.c for the multibyte coding systems and
+	Big4, shift_jis.
+
+	* lisp.h:
+	Declare precedence_array_to_list(), for the sake of
+	multibyte_getprop().
+
+	* mule-coding.c (Vshift_jis_precedence, Vbig5_precedence):
+	Removed. Store them in the corresponding coding system objects
+	instead.
+
+	* mule-coding.c (struct multibyte_coding_system):
+	Put the predence array object into the multibyte_coding_stream as
+	had always been the intention.
+	* mule-coding.c (CODING_SYSTEM_MBCS_CHARSET_PRECEDENCE): New macro.
+	* mule-coding.c (XCODING_SYSTEM_MBCS_CHARSET_PRECEDENCE): New macro.
+
+	* mule-coding.c (struct multibyte_coding_stream):
+	Remove the precedence array object from the coding stream, as was
+	always the intention.
+	* mule-coding.c (multibyte_coding_system_description): Update this.
+	* mule-coding.c (multibyte_coding_stream_description): Update this.
+
+	* mule-coding.c (multibyte_init_coding_stream):
+	Remove generating the precedence_array from this function, done
+	once at dump time for the coding system object itself instead.
+
+	* mule-coding.c (multibyte_decode): Fetch the precedence array
+	from the right place.
+	* mule-coding.c (multibyte_encode): Ditto.
+	* mule-coding.c (multibyte_init):
+	Allocate the precedence array when initializing the coding
+	system.
+
+	* mule-coding.c (multibyte_putprop):
+	Use add_charset_to_precedence_array() when Qcharsets was
+	specified.
+
+	* mule-coding.c (multibyte_getprop):
+	Call precedence_array_to_list() when Qcharsets was specified.
+
+	* mule-coding.c (multibyte_print):
+	Print the charset names of the precedence array in this.
+
+	* mule-coding.c (struct shift_jis_coding_system):
+	Store the charset precedence in the shift_jis coding system
+	object.
+	* mule-coding.c (CODING_SYSTEM_SHIFT_JIS_CHARSET_PRECEDENCE): New
+	macro.
+	* mule-coding.c (XCODING_SYSTEM_SHIFT_JIS_CHARSET_PRECEDENCE): New
+	macro.
+	* mule-coding.c (shift_jis_encode): Fetch the precedence array
+	from the right place.
+	* mule-coding.c (shift_jis_init):
+	Allocate the precedence array when initializing the coding
+	system.
+
+	* mule-coding.c (Fencode_shift_jis_char):
+	Fetch the precedence array from the coding system object.
+
+	* mule-coding.c (struct big5_coding_system):
+	Store the charset precedence in the big5 coding system
+	object.
+
+	* mule-coding.c (CODING_SYSTEM_BIG5_CHARSET_PRECEDENCE): New macro.
+	* mule-coding.c (XCODING_SYSTEM_BIG5_CHARSET_PRECEDENCE): New macro.
+	* mule-coding.c (big5_encode): Fetch the precedence array
+	from the right place.
+	* mule-coding.c (big5_init):
+	Allocate the precedence array when initializing the coding
+	system.
+
+	* mule-coding.c (Fencode_big5_char): Fetch the precedence array
+	from the right place.
+	* mule-coding.c (coding_system_type_create_mule_coding):
+	No need for the finalize method for the multibyte coding systems,
+	the precedence array's finalize method will be invoked if needed,
+	and it usually won't be needed.
+	Declare init methods for shift_jis, big5.
+	* mule-coding.c (vars_of_mule_coding):
+	Remove declaration for Vshift_jis_precedence, Vbig5_precedence.
+	* mule-coding.c (init_mule_coding):
+	This is now empty.
+	* unicode.c:
+	Define the precedence_array as a dumpable lisp object.
+	* unicode.c (precedence_array_to_list):
+	Make this function non-static.
+
 2025-02-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove --without-mule as an option given maturity of the Mule
