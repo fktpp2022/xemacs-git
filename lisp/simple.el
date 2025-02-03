@@ -479,12 +479,6 @@ column specified by the function `current-left-margin'."
   (newline)
   (indent-according-to-mode))
 
-;; Internal subroutine of delete-char
-(defun kill-forward-chars (arg)
-  (if (listp arg) (setq arg (car arg)))
-  (if (eq arg '-) (setq arg -1))
-  (kill-region (point) (+ (point) arg)))
-
 (defun delete-backward-char (&optional count killp)
   "Delete the previous COUNT characters (following, with negative COUNT).
 Optional second arg KILLP non-nil means kill instead (save in kill ring).

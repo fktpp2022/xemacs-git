@@ -27,7 +27,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "syntax.h"
 #include "insdel.h"
 
-Lisp_Object Qkill_forward_chars;
+Lisp_Object Qkill_region;
 Lisp_Object Qself_insert_command;
 Lisp_Object Qno_self_insert;
 
@@ -266,7 +266,7 @@ COUNT was explicitly specified.
     }
   else
     {
-      call1 (Qkill_forward_chars, count);
+      call2 (Qkill_region, make_fixnum (BUF_PT (buf)), make_fixnum (pos));
     }
   return Qnil;
 }
@@ -449,7 +449,7 @@ internal_self_insert (Ichar c1, int noautofill)
 void
 syms_of_cmds (void)
 {
-  DEFSYMBOL (Qkill_forward_chars);
+  DEFSYMBOL (Qkill_region);
   DEFSYMBOL (Qself_insert_command);
   DEFSYMBOL (Qoverwrite_mode_binary);
   DEFSYMBOL (Qno_self_insert);

@@ -1,5 +1,17 @@
 2025-02-03  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* cmds.c:
+	Make Qkill_region available here.
+	* cmds.c (Fdelete_char):
+	Don't call Qkill_forward_chars from this function if KILLP, it has
+	never added any value compared to calling Qkill_region directly as
+	far back as our version control goes, since it is always supplied
+	a fixnum argument.
+	* cmds.c (syms_of_cmds):
+	Supply a DEFSYMBOL for Qkill_region
+
+2025-02-03  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Remove --without-mule as an option given maturity of the Mule
 	code and limited development resources to devote to non-Mule bugs
 	and features.
