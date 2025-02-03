@@ -289,7 +289,7 @@ print_coding_system (Lisp_Object obj, Lisp_Object printcharfun,
 
   write_fmt_string_lisp (printcharfun, "#<coding-system %s ", c->name);
   print_coding_system_properties (obj, printcharfun);
-  write_ascstring (printcharfun, ">");
+  write_fmt_string (printcharfun, " 0x%x>", LISP_OBJECT_UID (obj));
 }
 
 /* Print an abbreviated version of a coding system (but still containing

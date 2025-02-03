@@ -10,6 +10,31 @@
 	* cmds.c (syms_of_cmds):
 	Supply a DEFSYMBOL for Qkill_region
 
+2025-02-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Add the skip_ascii() optimization to the multibyte coding systems
+	if the relevant charsets make that appropriate.
+	Also provide a character_tell() method to allow the buffer
+	insertion code to work out how many characters were inserted
+	without counting them itself.
+
+	* mule-coding.c:
+	* mule-coding.c (struct multibyte_coding_stream):
+	Store the count of characters seen in the coding stream.
+	* mule-coding.c (multibyte_decode):
+	Check the precedence array flags for whether we can call
+	skip_ascii().
+	Call it when appropriate, on the model of the same code in the
+	UTF-8 decoder.
+	* mule-coding.c (multibyte_character_tell):
+	New method.
+	* mule-coding.c (coding_system_type_create_mule_coding):
+	Declare that multibyte has this method.
+
+	* file-coding.c (print_coding_system):
+	In passing, print the coding system's UID as we do for every other
+	Lisp object.
+
 2025-01-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Now NEWGC is gone, make the precedence_array objects dumpable.

@@ -89,6 +89,8 @@ struct multibyte_coding_system
 
 struct multibyte_coding_stream
 {
+  /* Number of characters seen when decoding. */
+  Charcount characters_seen;
   /* CH holds a partially built-up character, or -1 for none.
      Used during decoding. */
   int ch;
@@ -193,10 +195,12 @@ multibyte_decode (struct coding_stream *str, const UExtbyte *src,
   struct multibyte_coding_stream *data =
     CODING_STREAM_TYPE_DATA (str, multibyte);
   Lisp_Object precarr = XCODING_SYSTEM_MBCS_CHARSET_PRECEDENCE (str->codesys);
+  Boolint skip_ascii_p = XPRECEDENCE_ARRAY (precarr)->seen_ascii
+    && !XPRECEDENCE_ARRAY (precarr)->has_overriding_ascii;
 
-  while (n--)
+  while (n > 0)
     {
-      UExtbyte c = *src++;
+      UExtbyte c = *src;
       Ichar ich = -1;
 
       if (data->ch >= 0)
@@ -208,6 +212,7 @@ multibyte_decode (struct coding_stream *str, const UExtbyte *src,
 	    {
 	      Dynarr_add_ichar (dst, ich);
 	      data->ch = -1;
+              n--, src++;
 	    }
 	  else
 	    {
@@ -215,6 +220,8 @@ multibyte_decode (struct coding_stream *str, const UExtbyte *src,
 		 but we might still be able to derive a character
 		 starting with the second byte. */
 	      DECODE_ERROR_OCTET (data->ch, dst);
+              /* This is a character in the buffer. */
+              data->characters_seen++;
 	      data->ch = -1;
 	      goto retry_one_byte;
 	    }
@@ -222,17 +229,31 @@ multibyte_decode (struct coding_stream *str, const UExtbyte *src,
       else
 	{
 	retry_one_byte:
-	  /* See if we can one-byte character out of the specified
-	     charsets */
-	  ich = try_to_derive_character (0, c, 1, precarr);
-	  /* If not, retry as a two-byte character. */
-	  if (ich < 0)
-	    {
-	      data->ch = c;
-	      continue;
-	    }
-
-	  Dynarr_add_ichar (dst, ich);
+          if (skip_ascii_p && byte_ascii_p (c))
+            {
+              const UExtbyte *nonascii
+                = (const UExtbyte *) skip_ascii ((const Ibyte *) src,
+                                                 (const Ibyte *) src + n);
+              Dynarr_add_many (dst, src, nonascii - src);
+              n -= nonascii - src;
+              data->characters_seen += nonascii - src;
+              src = nonascii;
+            }
+          else
+            {
+              n--, src++;
+              /* See if we can derive a one-byte character out of the
+                 specified charsets */
+              ich = try_to_derive_character (0, c, 1, precarr);
+              /* If not, retry as a two-byte character. */
+              if (ich < 0)
+                {
+                  data->ch = c;
+                  continue;
+                }
+              Dynarr_add_ichar (dst, ich);
+              data->characters_seen++;
+            }
 	}
     }
 
@@ -242,6 +263,7 @@ multibyte_decode (struct coding_stream *str, const UExtbyte *src,
 	{
 	  /* We have a straggler. */
 	  DECODE_ERROR_OCTET (data->ch, dst);
+          data->characters_seen++;
 	  data->ch = -1;
 	}
     }
@@ -366,6 +388,12 @@ multibyte_convert (struct coding_stream *str, const unsigned char *src,
     return multibyte_decode (str, (UExtbyte *) src, n, dst);
   else
     return multibyte_encode (str, (Ibyte *) src, n, dst);
+}
+
+static Charcount
+multibyte_character_tell (struct coding_stream *str)
+{
+  return CODING_STREAM_TYPE_DATA (str, multibyte)->characters_seen;
 }
 
 static void
@@ -4000,6 +4028,7 @@ coding_system_type_create_mule_coding (void)
   CODING_SYSTEM_HAS_METHOD (multibyte, putprop);
   CODING_SYSTEM_HAS_METHOD (multibyte, getprop);
   CODING_SYSTEM_HAS_METHOD (multibyte, print);
+  CODING_SYSTEM_HAS_METHOD (multibyte, character_tell);
 
   INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (iso2022, "iso2022-coding-system-p");
   CODING_SYSTEM_HAS_METHOD (iso2022, convert);
