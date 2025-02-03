@@ -3863,7 +3863,6 @@ of a character from a buffer rather than a key read from the user.
   else if (c >= 128 || c < 32)
     {
       *p++ = '\\';
-#ifdef MULE
 #ifdef UNICODE_INTERNAL
       /* Output Unicode codes directly */
       if (c >= 65536)
@@ -3889,7 +3888,6 @@ of a character from a buffer rather than a key read from the user.
 	}
 #endif /* not UNICODE_INTERNAL */
       else
-#endif /* MULE */
 	{
           p += emacs_snprintf (p, sizeof (buf) - (p - buf),
                                "%o", c);

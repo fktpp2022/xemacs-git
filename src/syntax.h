@@ -109,7 +109,6 @@ BUFFER_MIRROR_SYNTAX_TABLE (struct buffer *buf)
 }
 
 
-#ifdef MULE
 
 /* Retrieve the category table from a buffer. */
 DECLARE_INLINE_HEADER (
@@ -120,7 +119,6 @@ BUFFER_CATEGORY_TABLE (struct buffer *buf)
   return buf ? buf->category_table : Vstandard_category_table;
 }
 
-#endif /* MULE */
 
 void update_syntax_table (Lisp_Object table);
 

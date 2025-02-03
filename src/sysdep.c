@@ -2469,9 +2469,6 @@ qxe_readdir (DIR *dirp)
   while (!(errno = 0, rtnval = readdir (dirp))
 	 && (errno == EINTR))
     ;
-#ifndef MULE
-  return rtnval;
-#else /* MULE */
   if (rtnval == NULL)           /* End of directory */
     return NULL;
   {
@@ -2505,7 +2502,6 @@ qxe_readdir (DIR *dirp)
       return (DIRENTRY *) Dynarr_begin (internal_DIRENTRY);
     }
   }
-#endif /* MULE */
 #endif /* WIN32_NATIVE */
 }
 

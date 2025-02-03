@@ -70,7 +70,6 @@ Lisp_Object Qansi, Qoem, Qmac, Qebcdic;
 /* Qcode_page, Qlocale, Qcurrent, Quser_default, Qsystem_default in
    general-slots.h */
 
-#ifdef MULE
 
 static Lisp_Object Vmswindows_charset_code_page_table;
 static Lisp_Object Vmswindows_charset_registry_table;
@@ -1542,22 +1541,6 @@ mswindows_start_ime_composition (struct frame *f)
 
 #endif /* HAVE_MS_WINDOWS */
 
-#else /* not MULE */
-
-int
-mswindows_locale_to_code_page (LCID UNUSED (lcid))
-{
-  return CP_ACP;
-}
-
-LCID
-mswindows_current_locale (void)
-{
-  /* In non-MULE version just return the default locale */
-  return GetUserDefaultLCID ();
-}
-
-#endif /* MULE */
 
 
 #ifdef CYGWIN
@@ -1709,19 +1692,14 @@ mswindows_multibyte_to_unicode_init (Lisp_Object codesys)
 }
 
 static Lisp_Object
-lcid_to_locale_mule_or_no (LCID USED_IF_MULE (lcid))
+lcid_to_locale_mule_or_no (LCID lcid)
 {
-#ifdef MULE
   return lcid_to_locale (lcid);
-#else
-  return Fcons (build_ascstring ("NEUTRAL"), build_ascstring ("DEFAULT"));
-#endif
 }
 
 static int
-determine_code_page (Lisp_Object USED_IF_MULE (codesys))
+determine_code_page (Lisp_Object codesys)
 {
-#ifdef MULE
   LCID locale;
   struct mswindows_multibyte_to_unicode_coding_system *data =
     XCODING_SYSTEM_TYPE_DATA (codesys, mswindows_multibyte_to_unicode);
@@ -1777,9 +1755,6 @@ determine_code_page (Lisp_Object USED_IF_MULE (codesys))
     default:
       ABORT (); return 0;
     }
-#else /* not MULE */
-  return CP_ACP;
-#endif
 }
 
 static int
@@ -1823,11 +1798,7 @@ mswindows_multibyte_to_unicode_putprop (Lisp_Object codesys,
       else
 	{
 	  data->locale_type = MULTIBYTE_SPECIFIED_LOCALE;
-#ifdef MULE
 	  data->locale = locale_to_lcid (value);
-#else
-	  data->locale = 0;
-#endif
 	}
     }
   else
@@ -2257,7 +2228,6 @@ mswindows_multibyte_canonicalize (Lisp_Object codesys)
 void
 syms_of_intl_win32 (void)
 {
-#ifdef MULE
   DEFSUBR (Fmswindows_set_current_locale);
   DEFSUBR (Fmswindows_current_locale);
   DEFSUBR (Fmswindows_user_default_locale);
@@ -2288,7 +2258,6 @@ syms_of_intl_win32 (void)
   DEFSUBR (Fmswindows_get_keyboard_layout);
   DEFSUBR (Fmswindows_set_keyboard_layout);
 #endif
-#endif /* MULE */
 
   DEFSYMBOL (Qmswindows_tstr);
   DEFSYMBOL (Qmswindows_multibyte);
@@ -2336,14 +2305,12 @@ reinit_coding_system_type_create_intl_win32 (void)
 void
 vars_of_intl_win32 (void)
 {
-#ifdef MULE
   Vmswindows_charset_code_page_table =
     make_lisp_hash_table (50, HASH_TABLE_NON_WEAK, Qeq);
   staticpro (&Vmswindows_charset_code_page_table);
   Vmswindows_charset_registry_table =
     make_lisp_hash_table (50, HASH_TABLE_NON_WEAK, Qeq);
   staticpro (&Vmswindows_charset_registry_table);
-#endif /* MULE */
 }
 
 void
@@ -2362,27 +2329,9 @@ complex_vars_of_intl_win32 (void)
             Qlittle_endian, Qt,
             Qunbound));
 
-#ifdef MULE
   /* Just temporarily.  This will get fixed in mule-msw-init.el. */
   Fdefine_coding_system_alias (Qmswindows_multibyte_system_default,
 			       Qraw_text);
-#else
-  /* Not temporarily.  These may be referenced by Lisp code so we need to
-     define them. */
-  Fdefine_coding_system_alias (Qmswindows_multibyte,
-			       Qraw_text);
-  Fdefine_coding_system_alias (Qmswindows_multibyte_system_default,
-			       Qraw_text);
-  Fdefine_coding_system_alias (intern ("mswindows-multibyte-user-default"),
-			       Qraw_text);
-  Fdefine_coding_system_alias (intern ("mswindows-multibyte-oem"),
-			       Qraw_text);
-  Fdefine_coding_system_alias (intern
-			       ("mswindows-multibyte-oem-system-default"),
-			       Qraw_text);
-  Fdefine_coding_system_alias (intern ("mswindows-multibyte-oem-user-default"),
-			       Qraw_text);
-#endif /* MULE */
 
   Fdefine_coding_system_alias (Qmswindows_tstr, Qmswindows_unicode);
 }
@@ -2390,9 +2339,7 @@ complex_vars_of_intl_win32 (void)
 void
 init_intl_win32 (void)
 {
-#ifdef MULE
   set_current_lcid (GetUserDefaultLCID ());
-#endif /* MULE */
 
 #ifdef HAVE_CYGWIN_CONV_PATH
   Fprovide (intern ("cygwin-use-utf-8"));

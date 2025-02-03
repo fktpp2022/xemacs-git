@@ -654,16 +654,6 @@ things are arranged in config.h.in.  In particular:
 /* Compile in support for proper handling of WM_COMMAND. */
 #undef HAVE_WMCOMMAND
 
-/* Define this if you want Mule support (multi-byte character support).
-   There may be some performance penalty, although it should be small
-   if you're working with ASCII files. */
-#undef MULE
-
-/* Define this if you want EOL detection of files to be on by default
-   in a non-Mule Unix; otherwise, defaults will be set so that all
-   files are read in as binary.  Doesn't apply to Cygwin or MinGW. */
-#undef HAVE_DEFAULT_EOL_DETECTION
-
 /* Use Unicode-compatible character representation internally.  Otherwise,
    the old Mule representation is used, which explicitly encodes the
    character set of the char (with the result that multiple characters map
@@ -1023,7 +1013,7 @@ extern "C" {
 /* Algorithmic conversion tables are currently used only for the
    Unicode-slop charsets for characters having no other representation in a
    charset. */
-#if defined (MULE) && !defined (UNICODE_INTERNAL)
+#ifndef UNICODE_INTERNAL
 #define ALLOW_ALGORITHMIC_CONVERSION_TABLES
 #endif
 

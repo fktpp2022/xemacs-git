@@ -1,3 +1,11 @@
+2025-02-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* configure.ac:
+	Remove --with-mule as an option, always on.
+	Remove --with-default-eol-detection as an option, only relevant
+	with non-MULE.
+	* configure: Regenerate.
+
 2025-01-01  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* Makefile.in.in (install-arch-dep):

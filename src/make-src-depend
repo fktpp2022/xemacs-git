@@ -147,7 +147,6 @@ PrintPatternDeps ('-tty\\.',   "HAVE_TTY");
 # GTK-specific files: *-gtk.[ch] *-gtk-*.[ch] gtk-*.[ch] emacs-marshals.c emacs-widget-accessors.c glade.c ui-byhand.c
 PrintPatternDeps ('gtk|emacs-marshals|emacs-widget-accessors|glade|ui-byhand',   "HAVE_GTK");
 PrintPatternDeps ('^database', "HAVE_DATABASE");
-PrintPatternDeps ('^mule',     "MULE");
 PrintPatternDeps ('^(?:External|extw-)', "EXTERNAL_WIDGET");
 
 for my $file (sort grep (/\.c$/, keys %uses)) { PrintDeps($file); }

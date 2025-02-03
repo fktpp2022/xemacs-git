@@ -998,10 +998,8 @@ static UINT_16_BIT const CYRILLIC[] =
 static Lisp_Object
 x_keysym_to_character (KeySym keysym)
 {
-#ifdef MULE
   Lisp_Object charset = Qzero;
   int code = 0;
-#endif /* MULE */
 
   if (keysym < 0x100)
     {
@@ -1019,10 +1017,6 @@ x_keysym_to_character (KeySym keysym)
      code points do the same thing with keysyms
      #x01000000-#x01000100. */
 
-#ifndef MULE
-  if (keysym >= 0x01000000 && keysym <= 0x010000FF)
-    return make_char (keysym & 0xFFFFFF);
-#else
   if (keysym >= 0x01000000 && keysym <= 0x0110FFFF)
     /* Use the language-environment precedence list, not that of
        the current buffer. */
@@ -1030,12 +1024,10 @@ x_keysym_to_character (KeySym keysym)
                       ((int)(keysym & 0xFFFFFF),
                        Vdefault_unicode_precedence_array, NULL,
                        CONVERR_SUCCEED));
-#endif /* not MULE */
 
   if ((keysym & 0xff) < 0xa0)
     return Qnil;
 
-#ifdef MULE
   switch (keysym >> 8)
     {
     case 0: /* ASCII + Latin1 */
@@ -1243,11 +1235,6 @@ if necessary). DOCUMENT the existing system that does this.
 	}
     }
   return Qnil;
-#else /* not MULE */
-  if (keysym >= 0x100)
-    return Qnil;
-  return make_char (keysym);
-#endif /* (not) MULE */
 }
 
 /************************************************************************/

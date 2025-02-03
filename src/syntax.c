@@ -715,7 +715,6 @@ Optional SYNTAX-TABLE defaults to the current buffer's syntax table.
 
 
 
-#ifdef MULE
 /* Return 1 if there is a word boundary between two word-constituent
    characters C1 and C2 if they appear in this order, else return 0.
    There is no word boundary between two word-constituent ASCII
@@ -723,9 +722,6 @@ Optional SYNTAX-TABLE defaults to the current buffer's syntax table.
 #define WORD_BOUNDARY_P(buf, c1, c2)		\
   (!(ichar_ascii_p (c1) && ichar_ascii_p (c2))	\
    && word_boundary_p (buf, c1, c2))
-#else
-#define WORD_BOUNDARY_P(buf, c1, c2) 0
-#endif
 
 Charbpos
 scan_words (struct buffer *buf, Charbpos from, EMACS_INT count)

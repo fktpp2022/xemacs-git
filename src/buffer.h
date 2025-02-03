@@ -90,7 +90,6 @@ struct buffer_text
   EMACS_INT save_modiff; /* Previous value of modiff, as of last
 			    time buffer visited or saved a file.  */
 
-#ifdef MULE
 
 #ifdef OLD_BYTE_CHAR
   /* We keep track of a "known" region for very fast access.  This
@@ -125,7 +124,6 @@ struct buffer_text
   
   /* Currently we only handle 8 bit fixed and default */
   Internal_Format format;
-#endif /* MULE */
 
   /* Similar to the above, we keep track of positions for which line
      number has last been calculated.  See line-number.c. */
@@ -327,11 +325,7 @@ for (mps_bufcons = Qunbound,					\
 #define BUF_PT(buf) ((buf)->bufpt + 0)
 
 /* Internal format of buffer. Always FORMAT_DEFAULT currently. */
-#ifdef MULE
 #define BUF_FORMAT(buf) FORMAT_DEFAULT /* ((buf)->text->format) */
-#else
-#define BUF_FORMAT(buf) FORMAT_DEFAULT
-#endif
 
 /*----------------------------------------------------------------------*/
 /*		         Validating byte positions         		*/
@@ -350,7 +344,6 @@ BYTE_BUF_BYTE_ADDRESS_NO_VERIFY (struct buffer *buf, Bytebpos pos)
 
 /* Given a byte position, does it point to the beginning of a character?
 */
-#ifdef MULE
 DECLARE_INLINE_HEADER (
 int
 VALID_BYTEBPOS_P (struct buffer *buf, Bytebpos x)
@@ -368,9 +361,6 @@ VALID_BYTEBPOS_P (struct buffer *buf, Bytebpos x)
       return 1;
     }
 }
-#else
-# define VALID_BYTEBPOS_P(buf, x) 1
-#endif
 
 /* If error-checking is enabled, assert that the given char position is
    within range.  Otherwise, do nothing.
@@ -412,7 +402,6 @@ VALID_BYTEBPOS_P (struct buffer *buf, Bytebpos x)
   text_checking_assert (VALID_BYTEBPOS_P (buf, x));			    \
 } while (0)
 
-#ifdef MULE
 /* Make sure that the given byte position is pointing to the beginning of a
    character.  If not, back up until this is the case.  Note that there are
    not too many places where it is legitimate to do this sort of thing.
@@ -440,11 +429,7 @@ VALID_BYTEBPOS_P (struct buffer *buf, Bytebpos x)
       break;								\
     }									\
 } while (0)
-#else
-# define VALIDATE_BYTEBPOS_BACKWARD(buf, x)
-#endif
 
-#ifdef MULE
 /* Make sure that the given byte position is pointing to the beginning of a
    character.  If not, move forward until this is the case.  Note that
    there are not too many places where it is legitimate to do this sort of
@@ -472,9 +457,6 @@ VALID_BYTEBPOS_P (struct buffer *buf, Bytebpos x)
       break;								\
     }									\
 } while (0)
-#else
-# define VALIDATE_BYTEBPOS_FORWARD(buf, x)
-#endif
 
 /*----------------------------------------------------------------------*/
 /*			 Working with byte positions			*/
@@ -483,10 +465,7 @@ VALID_BYTEBPOS_P (struct buffer *buf, Bytebpos x)
 
 /*  Given a byte position (assumed to point at the beginning of a
     character), modify that value so it points to the beginning of the next
-    character.
-    
-    Note that in the simplest case (no MULE, no ERROR_CHECK_TEXT),
-    this crap reduces down to simply (x)++. */
+    character. */
 
 #define INC_BYTEBPOS(buf, x) do				\
 {							\
@@ -503,10 +482,7 @@ VALID_BYTEBPOS_P (struct buffer *buf, Bytebpos x)
     character), modify that value so it points to the beginning of the
     previous character.  Unlike for DEC_IBYTEPTR(), we can do all the
     assert()s because there are sentinels at the beginning of the gap and
-    the end of the buffer.
-
-    Note that in the simplest case (no MULE, no ERROR_CHECK_TEXT), this
-    crap reduces down to simply (x)--. */
+    the end of the buffer. */
 
 #define DEC_BYTEBPOS(buf, x) do				\
 {							\
@@ -553,13 +529,11 @@ Info on Byte-Char conversion:
   (Info-goto-node "(internals)Byte-Char Position Conversion")
 */
 
-#ifdef MULE
 
 Bytebpos charbpos_to_bytebpos_func (struct buffer *buf, Charbpos x);
 Charbpos bytebpos_to_charbpos_func (struct buffer *buf, Bytebpos x);
 extern short three_to_one_table[];
 
-#endif /* MULE */
 
 /* Given a Charbpos, return the equivalent Bytebpos. */
 
@@ -570,7 +544,6 @@ charbpos_to_bytebpos (struct buffer *buf, Charbpos x)
 {
   Bytebpos retval;
   ASSERT_VALID_CHARBPOS_UNSAFE (buf, x);
-#ifdef MULE
   if (buf->text->entirely_one_byte_p)
     retval = (Bytebpos) x;
   else if (BUF_FORMAT (buf) == FORMAT_16_BIT_FIXED)
@@ -586,9 +559,6 @@ charbpos_to_bytebpos (struct buffer *buf, Charbpos x)
 #endif /* OLD_BYTE_CHAR */
   else
     retval = charbpos_to_bytebpos_func (buf, x);
-#else
-  retval = (Bytebpos) x;
-#endif
   ASSERT_VALID_BYTEBPOS_UNSAFE (buf, retval);
   return retval;
 }
@@ -602,7 +572,6 @@ bytebpos_to_charbpos (struct buffer *buf, Bytebpos x)
 {
   Charbpos retval;
   ASSERT_VALID_BYTEBPOS_UNSAFE (buf, x);
-#ifdef MULE
   if (buf->text->entirely_one_byte_p)
     retval = (Charbpos) x;
   else if (BUF_FORMAT (buf) == FORMAT_16_BIT_FIXED)
@@ -618,9 +587,6 @@ bytebpos_to_charbpos (struct buffer *buf, Bytebpos x)
 #endif /* OLD_BYTE_CHAR */
   else
     retval = bytebpos_to_charbpos_func (buf, x);
-#else
-  retval = (Charbpos) x;
-#endif
   ASSERT_VALID_CHARBPOS_UNSAFE (buf, retval);
   return retval;
 }
@@ -880,7 +846,7 @@ buffer_filtered_unicode_to_ichar (int code, struct buffer *buf,
   ASSERT_VALID_UNICODE_CODEPOINT (code);
   text_checking_assert (buf);
 
-#if defined (MULE) && !defined (UNICODE_INTERNAL)
+#ifndef UNICODE_INTERNAL
   {
     Ichar ch;
     ch = filtered_unicode_to_ichar (code, buf->unicode_precedence_array,
@@ -892,7 +858,7 @@ buffer_filtered_unicode_to_ichar (int code, struct buffer *buf,
   }
 #else
   return filtered_unicode_to_ichar (code, Qnil, predicate, fail);
-#endif /* (not) defined (MULE) && !defined (UNICODE_INTERNAL) */
+#endif /* !defined (UNICODE_INTERNAL) */
 }
 
 DECLARE_INLINE_HEADER (
@@ -913,7 +879,6 @@ buffer_filtered_unicode_to_charset_codepoint (int code, struct buffer *buf,
 )
 {
   text_checking_assert (buf);
-#ifdef MULE
   filtered_unicode_to_charset_codepoint (code, buf->unicode_precedence_array,
 					 predicate, charset, c1, c2,
 					 CONVERR_FAIL);
@@ -921,10 +886,6 @@ buffer_filtered_unicode_to_charset_codepoint (int code, struct buffer *buf,
     filtered_unicode_to_charset_codepoint (code,
 					   Vdefault_unicode_precedence_array,
 					   predicate, charset, c1, c2, fail);
-#else
-  filtered_unicode_to_charset_codepoint (code, Qnil, predicate,
-					 charset, c1, c2, fail);
-#endif /* (not) MULE */
 }
 
 DECLARE_INLINE_HEADER (
@@ -1030,7 +991,7 @@ DECLARE_INLINE_HEADER (
 Lisp_Object
 buffer_ichar_charset_obsolete_me_baby (struct buffer *
 				       USED_IF_UNICODE_INTERNAL (buf),
-				       Ichar USED_IF_MULE (ch))
+				       Ichar ch)
 )
 {
 #ifdef UNICODE_INTERNAL
@@ -1039,11 +1000,9 @@ buffer_ichar_charset_obsolete_me_baby (struct buffer *
   buffer_ichar_to_charset_codepoint (ch, buf, &charset, &byte1, &byte2,
 				     CONVERR_FAIL);
   return charset;
-#elif defined (MULE)
-  return old_mule_ichar_charset (ch);
 #else
-  return Vcharset_ascii;
-#endif /* (not) defined (MULE) */
+  return old_mule_ichar_charset (ch);
+#endif
 
 }
 

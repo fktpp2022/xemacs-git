@@ -99,7 +99,6 @@ static const fontmap_t charset_map[] =
   {"OEM/DOS"		, OEM_CHARSET}
 };
 
-#ifdef MULE
 
 typedef struct unicode_subrange_raw_t
 {
@@ -230,7 +229,6 @@ unicode_subrange_t *unicode_subrange_table;
    charsets needing stage 2 processing. */
 Lisp_Object Vfont_signature_data;
 
-#endif /* MULE */
 
 
 /************************************************************************/
@@ -1179,7 +1177,6 @@ mswindows_font_instance_truename (Lisp_Font_Instance *f,
   return f->truename;
 }
 
-#ifdef MULE
 
 static int
 mswindows_font_spec_matches_charset_stage_1 (struct device *UNUSED (d),
@@ -1443,7 +1440,6 @@ mswindows_find_charset_font (Lisp_Object device, Lisp_Object font,
   return Qnil;
 }
 
-#endif /* MULE */
 
 
 /************************************************************************/
@@ -1484,10 +1480,8 @@ console_type_create_fontcolor_mswindows (void)
   CONSOLE_HAS_METHOD (mswindows, finalize_font_instance);
   CONSOLE_HAS_METHOD (mswindows, font_instance_truename);
   CONSOLE_HAS_METHOD (mswindows, font_list);
-#ifdef MULE
   CONSOLE_HAS_METHOD (mswindows, font_spec_matches_charset);
   CONSOLE_HAS_METHOD (mswindows, find_charset_font);
-#endif
 
   /* Printer methods - delegate most to windows methods,
      since graphical objects behave the same way. */
@@ -1506,16 +1500,13 @@ console_type_create_fontcolor_mswindows (void)
   CONSOLE_INHERITS_METHOD (msprinter, mswindows, finalize_font_instance);
   CONSOLE_INHERITS_METHOD (msprinter, mswindows, font_instance_truename);
   CONSOLE_INHERITS_METHOD (msprinter, mswindows, font_list);
-#ifdef MULE
   CONSOLE_INHERITS_METHOD (msprinter, mswindows, font_spec_matches_charset);
   CONSOLE_INHERITS_METHOD (msprinter, mswindows, find_charset_font);
-#endif
 }
 
 void
 reinit_vars_of_fontcolor_mswindows (void)
 {
-#ifdef MULE
   int i;
 
   unicode_subrange_table = xnew_array_and_zero (unicode_subrange_t, 128);
@@ -1528,15 +1519,12 @@ reinit_vars_of_fontcolor_mswindows (void)
     }
 
   Fclrhash (Vfont_signature_data);
-#endif /* MULE */
 }
 
 void
 vars_of_fontcolor_mswindows (void)
 {
-#ifdef MULE
   Vfont_signature_data =
     make_lisp_hash_table (100, HASH_TABLE_NON_WEAK, Qequal);
   staticpro (&Vfont_signature_data);
-#endif /* MULE */
 }

@@ -396,7 +396,6 @@ mswindows_output_cursor (struct window *w, struct display_line *dl, int xpos,
 		   &rect, ptr, nwchars, NULL);
     }
 
-#ifdef MULE
   if (DEVICE_MSWINDOWS_P (d) &&
       (FRAME_MSWINDOWS_CURSOR_X (f) != xpos
        || FRAME_MSWINDOWS_CURSOR_Y (f) != DISPLAY_LINE_YPOS (dl)
@@ -416,7 +415,6 @@ mswindows_output_cursor (struct window *w, struct display_line *dl, int xpos,
 
       ImmReleaseContext (hwnd, himc);
     }
-#endif /* MULE */
 }
 
 
@@ -971,8 +969,7 @@ mswindows_output_display_block (struct window *w, struct display_line *dl,
   int elt = start;
   face_index findex;
   int xpos, width;
-  Lisp_Object charset = Qunbound; /* Qnil is a valid charset when
-				     MULE is not defined */
+  Lisp_Object charset = Qunbound; /* Gives a better error message than Qnil. */
   window = wrap_window (w);
   rb = Dynarr_atp (rba, start);
 

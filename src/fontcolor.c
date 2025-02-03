@@ -1552,7 +1552,6 @@ font_create (Lisp_Object obj)
 /* No equal or hash methods; ignore the face the font is based off
    of for `equal' */
 
-#ifdef MULE
 
 /* Given a truename font spec (i.e. the font spec should have its registry
    field filled in), does it support displaying characters from CHARSET? */
@@ -1620,7 +1619,6 @@ invalidate_charset_font_caches (Lisp_Object charset)
     }
 }
 
-#endif /* MULE */
 
 /* It's a little non-obvious what's going on here.  Specifically:
 
@@ -1651,7 +1649,7 @@ invalidate_charset_font_caches (Lisp_Object charset)
 
 static Lisp_Object
 font_instantiate (Lisp_Object UNUSED (specifier),
-		  Lisp_Object USED_IF_MULE (matchspec),
+		  Lisp_Object matchspec,
 		  Lisp_Object domain, Lisp_Object instantiator,
 		  Lisp_Object depth, Lisp_Object no_fallback)
 {
@@ -1661,7 +1659,6 @@ font_instantiate (Lisp_Object UNUSED (specifier),
   struct device *d = XDEVICE (device);
   Lisp_Object instance;
   Lisp_Object charset = Qnil;
-#ifdef MULE
   enum font_specifier_matchspec_stages stage = STAGE_INITIAL;
 
   if (!UNBOUNDP (matchspec))
@@ -1681,19 +1678,16 @@ font_instantiate (Lisp_Object UNUSED (specifier),
 #undef FROB
 
     }
-#endif
 
   if (FONT_INSTANCEP (instantiator))
     {
       if (NILP (device)
 	  || EQ (device, XFONT_INSTANCE (instantiator)->device))
 	{
-#ifdef MULE
 	  if (font_spec_matches_charset (d, charset, 0,
 					 Ffont_instance_truename
 					 (instantiator),
 					 0, -1, stage))
-#endif
 	    return instantiator;
 	}
       instantiator = Ffont_instance_name (instantiator);
@@ -1701,16 +1695,11 @@ font_instantiate (Lisp_Object UNUSED (specifier),
 
   if (STRINGP (instantiator))
     {
-#ifdef MULE
       /* #### rename these caches. */
       Lisp_Object cache = stage == STAGE_FINAL ?
 	d->charset_font_cache_stage_2 :
 	d->charset_font_cache_stage_1;
-#else
-      Lisp_Object cache = d->font_instance_cache;
-#endif
 
-#ifdef MULE
       if (!NILP (charset))
 	{
 	  /* The instantiator is a font spec that could match many
@@ -1745,7 +1734,6 @@ font_instantiate (Lisp_Object UNUSED (specifier),
 	    return Qunbound;
 	  instantiator = matching_font;
 	}
-#endif /* MULE */
 
       /* First, look to see if we can retrieve a cached value. */
       instance = Fgethash (instantiator, cache, Qunbound);
@@ -2172,9 +2160,7 @@ face-background-placement-specifier-p");
   SPECIFIER_HAS_METHOD (face_boolean, after_change);
   SPECIFIER_HAS_METHOD (face_background_placement, after_change);
 
-#ifdef MULE
   SPECIFIER_HAS_METHOD (font, validate_matchspec);
-#endif
 }
 
 void

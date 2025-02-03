@@ -243,19 +243,12 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 /* Various macros for params/variables used or unused depending on
    config flags. */
 
-#ifdef MULE
-# define USED_IF_MULE(decl) decl
-# ifdef UNICODE_INTERNAL
-#  define USED_IF_UNICODE_INTERNAL(decl) decl
-#  define USED_IF_OLD_MULE(decl) UNUSED (decl)
-# else
-#  define USED_IF_UNICODE_INTERNAL(decl) UNUSED (decl)
-#  define USED_IF_OLD_MULE(decl) decl
-# endif
-#else
-# define USED_IF_MULE(decl) UNUSED (decl)
-# define USED_IF_UNICODE_INTERNAL(decl) UNUSED (decl)
+#ifdef UNICODE_INTERNAL
+# define USED_IF_UNICODE_INTERNAL(decl) decl
 # define USED_IF_OLD_MULE(decl) UNUSED (decl)
+#else
+# define USED_IF_UNICODE_INTERNAL(decl) UNUSED (decl)
+# define USED_IF_OLD_MULE(decl) decl
 #endif
 #ifdef HAVE_XFT
 # define USED_IF_XFT(decl) decl

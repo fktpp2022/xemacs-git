@@ -3773,7 +3773,6 @@ a_write (Lisp_Object outstream, Lisp_Object instream, int pos,
 	nextpos = XFIXNUM (tem);
       else
 	nextpos = INT_MAX;
-#ifdef MULE
       /* If there are annotations left and we have Mule, then we
 	 have to do the I/O one ichar at a time so we can
 	 determine when to insert the annotation. */
@@ -3788,7 +3787,6 @@ a_write (Lisp_Object outstream, Lisp_Object instream, int pos,
 	    }
 	}
       else
-#endif /* MULE */
 	{
 	  while (pos != nextpos)
 	    {

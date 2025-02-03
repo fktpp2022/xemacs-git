@@ -1547,7 +1547,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 
       syms_of_file_coding ();
       syms_of_unicode ();
-#ifdef MULE
       syms_of_mule_ccl ();
       syms_of_mule_charset ();
       syms_of_mule_coding ();
@@ -1557,7 +1556,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #if defined(HAVE_CANNA) && !defined (HAVE_SHLIB)
       syms_of_canna_api ();
 #endif /* HAVE_CANNA */
-#endif /* MULE */
 
 #ifdef WIN32_ANY
       syms_of_intl_win32 ();
@@ -1611,9 +1609,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       glyph_objects_create ();
       hash_table_objects_create ();
       lstream_objects_create ();
-#ifdef MULE
       mule_charset_objects_create ();
-#endif
       rangetab_objects_create ();
 #ifdef HAVE_SCROLLBARS
       scrollbar_objects_create ();
@@ -1753,9 +1749,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #ifdef WIN32_ANY
       coding_system_type_create_intl_win32 ();
 #endif
-#ifdef MULE
       coding_system_type_create_mule_coding ();
-#endif
 
       /* Now initialize the image instantiator formats and associated symbols.
          Other than the first function below, the functions may
@@ -1816,9 +1810,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #ifdef WIN32_ANY
       reinit_coding_system_type_create_intl_win32 ();
 #endif
-#ifdef MULE
       reinit_coding_system_type_create_mule_coding ();
-#endif
     }
 
   if (!initialized
@@ -2144,13 +2136,10 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #endif
 #endif	/* HAVE_MS_WINDOWS */
 
-#ifdef MULE
       vars_of_mule_ccl ();
       vars_of_mule_charset ();
-#endif
       vars_of_file_coding ();
       vars_of_unicode ();
-#ifdef MULE
       vars_of_mule_coding ();
 #ifdef HAVE_WNN
       vars_of_mule_wnn ();
@@ -2158,7 +2147,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #if defined(HAVE_CANNA) && !defined (HAVE_SHLIB)
       vars_of_canna_api ();
 #endif /* HAVE_CANNA */
-#endif /* MULE */
 
 #ifdef TOOLTALK
       vars_of_tooltalk ();
@@ -2252,10 +2240,8 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #endif
 #endif /* HAVE_X_WINDOWS */
 
-#ifdef MULE
       reinit_vars_of_mule_coding ();
-#endif
-#if defined (MULE) && defined (HAVE_WNN)
+#ifdef HAVE_WNN
       reinit_vars_of_mule_wnn ();
 #endif
     }
@@ -2296,13 +2282,11 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 	 initialized above, and dependencies between one complex_vars_()
 	 function and another. */
 
-#ifdef MULE
       /* This creates charsets, which depends on vars initialized in
 	 vars_of_unicode(). */
       complex_vars_of_mule_charset ();
       /* This depends on charsets created in complex_vars_of_mule_charset(). */
       complex_vars_of_mule_coding ();
-#endif
       /* This one doesn't depend on anything really, and could go into
 	 vars_of_(), but lots of lots of code gets called and it's easily
 	 possible that it could get changed to require being a
@@ -2444,14 +2428,12 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 
   if (initialized)
     {
-#ifdef MULE
       init_mule_charset (); /* Retrieve the charset objects corresponding to
 			       certain charsets that we want to use internally,
 			       e.g. the ISO 8859 charsets.  We used to create
 			       them ourselves in the C code but it's cleaner
 			       and easier to create them in the Lisp code. */
       init_mule_coding (); /* depends on those charsets */
-#endif /* MULE */
     }
 #ifdef WIN32_ANY
   init_intl_win32 (); /* Under Windows, determine whether we use Unicode
@@ -2462,7 +2444,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
   init_buffer_1 ();	/* Create *scratch* buffer; the code just below is
 			   going to call Lisp code (the very first code we
 			   call), and needs a current buffer */
-#ifdef MULE
   /* The following two both call Lisp, and are the first Lisp code we call
      after dumping. */
   init_unicode (); /* recreate Unicode precedence arrays, necessary for
@@ -2477,7 +2458,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 		   file-name coding systems, initialize the Unicode tables
 		   so that we will be able to process non-ASCII from here
 		   on out! */
-#endif
 
   init_xemacs_process (); /* Set up the process environment (so that
 			     egetenv works), the basic directory variables
@@ -3082,8 +3062,7 @@ main (int argc, Extbyte **argv, Extbyte **UNUSED (envp))
     {
       /* mmap works in glibc-2.1, glibc-2.0 (Non-Mule only) and Linux libc5 */
 #if (defined (__GLIBC__) && __GLIBC_MINOR__ >= 1) || \
-    defined (HAVE_MALLOC_WARNING) || \
-    (defined (__GLIBC__) && __GLIBC_MINOR__ < 1 && !defined (MULE))
+  defined (HAVE_MALLOC_WARNING)
       mallopt (M_MMAP_MAX, 64);
 #endif
     }

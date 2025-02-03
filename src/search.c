@@ -921,7 +921,6 @@ byte_scan_buffer (struct buffer *buf, Ichar target, Bytebpos st, Bytebpos en,
 
   if (count > 0)
     {
-#ifdef MULE
       Internal_Format fmt = buf->text->format;
       /* Check for char that's unrepresentable in the buffer -- it
          certainly can't be there. */
@@ -947,7 +946,6 @@ byte_scan_buffer (struct buffer *buf, Ichar target, Bytebpos st, Bytebpos en,
 	    }
 	}
       else
-#endif
 	{
 	  Raw_Ichar raw = ichar_to_raw (target, fmt, wrap_buffer (buf));
 	  while (st < lim && count > 0)
@@ -977,7 +975,6 @@ byte_scan_buffer (struct buffer *buf, Ichar target, Bytebpos st, Bytebpos en,
     }
   else
     {
-#ifdef MULE
       Internal_Format fmt = buf->text->format;
       /* Check for char that's unrepresentable in the buffer -- it
          certainly can't be there. */
@@ -998,7 +995,6 @@ byte_scan_buffer (struct buffer *buf, Ichar target, Bytebpos st, Bytebpos en,
 	    }
 	}
       else
-#endif
 	{
 	  Raw_Ichar raw = ichar_to_raw (target, fmt, wrap_buffer (buf));
 	  while (st > lim && count < 0)
@@ -1071,7 +1067,6 @@ byte_find_next_ichar_in_string (Lisp_Object str, Ichar target, Bytecount st,
 
   assert (count >= 0);
 
-#ifdef MULE
   /* Due to the Mule representation of characters in a buffer,
      we can simply search for characters in the range 0 - 127
      directly.  For other characters, we do it the "hard" way.
@@ -1087,7 +1082,6 @@ byte_find_next_ichar_in_string (Lisp_Object str, Ichar target, Bytecount st,
 	}
     }
   else
-#endif
     {
       while (st < lim && count > 0)
 	{
@@ -1513,10 +1507,8 @@ trivial_regexp_p (Lisp_Object regexp)
 	    case '|': case '(': case ')': case '`': case '\'': case 'b':
 	    case 'B': case '<': case '>': case 'w': case 'W': case 's':
 	    case 'S': case '=': case '{': case '}':
-#ifdef MULE
 	    /* 97/2/25 jhod Added for category matches */
 	    case 'c': case 'C':
-#endif /* MULE */
 	    case '1': case '2': case '3': case '4': case '5':
 	    case '6': case '7': case '8': case '9':
 	      return 0;
@@ -1526,7 +1518,6 @@ trivial_regexp_p (Lisp_Object regexp)
   return 1;
 }
 
-#ifdef MULE
 /* Return non-zero if two characters -- the first represented in
  * Itext format, and the second given as a character -- differ in the
  * non-final bytes of their respective Itext representations. */
@@ -1548,7 +1539,6 @@ chars_differ_in_non_final_bytes (const Ibyte *astr, Bytecount alen, Ichar b)
      calling memcmp() with zero size. */
   return (alen != blen || (alen > 1 && memcmp (astr, bstr, blen - 1)));
 }
-#endif
 
 /* Search for the n'th occurrence of STRING in BUF,
    starting at position POS and stopping at position BUFLIM,
@@ -1664,7 +1654,6 @@ search_buffer (struct buffer *buf, Lisp_Object string, Bytebpos pos,
       Ibyte *patbuf = alloca_ibytes (len * MAX_ICHAR_LEN);
       Ibyte *pat = patbuf;
 
-#ifdef MULE
       int entirely_one_byte_p = buf->text->entirely_one_byte_p;
       int nothing_greater_than_0xff =
         buf->text->num_8_bit_fixed_chars == BUF_Z(buf) - BUF_BEG (buf);
@@ -1816,20 +1805,6 @@ search_buffer (struct buffer *buf, Lisp_Object string, Bytebpos pos,
           char_base_len = 1; /* Default to ASCII. */
         }
 
-#else /* not MULE */
-      while (--len >= 0)
-	{
-	  /* If we got here and the RE flag is set, it's because
-	     we're dealing with a regexp known to be trivial, so the
-	     backslash just quotes the next character.  */
-	  if (RE && *base_pat == '\\')
-	    {
-	      len--;
-	      base_pat++;
-	    }
-	  *pat++ = TRANSLATE (trt, *base_pat++);
-	}
-#endif /* MULE */
       len = pat - patbuf;
       pat = base_pat = patbuf;
 
@@ -1996,8 +1971,8 @@ simple_search (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 static Bytebpos
 boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 	     Bytebpos pos, Bytebpos lim, EMACS_INT n, Lisp_Object trt,
-	     Lisp_Object inverse_trt, Ibyte *USED_IF_MULE (char_base),
-	     int USED_IF_MULE (char_base_len))
+	     Lisp_Object inverse_trt, Ibyte *char_base,
+	     int char_base_len)
 {
   /* #### Someone really really really needs to comment the workings
      of this junk somewhat better.
@@ -2039,7 +2014,6 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
   REGISTER Ibyte *cursor, *p_limit, *ptr2;
   Ibyte simple_translate[256];
   REGISTER int direction = ((n > 0) ? 1 : -1);
-#ifdef MULE
   Ibyte translate_prev[MAX_ICHAR_LEN];
   Bytecount translate_prev_len;
   /* These need to be rethought in the event that the internal format
@@ -2049,7 +2023,6 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
   int buffer_entirely_one_byte_p = buf->text->entirely_one_byte_p;
   int buffer_nothing_greater_than_0xff =
     buf->text->num_8_bit_fixed_chars == BUF_Z(buf) - BUF_BEG (buf);
-#endif
 #ifdef C_ALLOCA
   EMACS_INT BM_tab_space[256];
   BM_tab = &BM_tab_space[0];
@@ -2120,7 +2093,6 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 	i = infinity;
       if (!NILP (trt))
 	{
-#ifdef MULE
 	  Ichar ch = -1;
 	  Ibyte byte;
 	  int this_translated = 1;
@@ -2240,21 +2212,6 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 		}
 	      while (ch != starting_ch);
 	    }
-#else /* not MULE */
-	  EMACS_INT k;
-	  j = *ptr;
-	  k = (j = TRANSLATE (trt, j));
-	  if (i == infinity)
-	    stride_for_teases = BM_tab[j];
-	  BM_tab[j] = dirlen - i;
-	  /* A translation table is accompanied by its inverse --
-	     see comment in casetab.c. */
-	  while ((j = TRANSLATE (inverse_trt, j)) != k)
-	    {
-	      simple_translate[j] = (Ibyte) k;
-	      BM_tab[j] = dirlen - i;
-	    }
-#endif /* (not) MULE */
 	}
       else
 	{
@@ -2301,9 +2258,6 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
       tail_end = BYTE_BUF_CEILING_OF (buf, pos);
       tail_end_ptr = BYTE_BUF_BYTE_ADDRESS (buf, tail_end);
 
-#ifndef MULE
-      USED (tail_end_ptr);
-#endif
 
       if ((limit - pos) * direction > 20)
 	{
@@ -2363,7 +2317,6 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 		{
 		  while ((i -= direction) + direction != 0)
 		    {
-#ifdef MULE
 		      int dotrans;
 		      Ichar ch;
 		      cursor -= direction;
@@ -2392,10 +2345,6 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 			ch = *cursor;
 		      if (pat[i] != ch)
 			break;
-#else
-		      if (pat[i] != TRANSLATE (trt, *(cursor -= direction)))
-			break;
-#endif
 		    }
 		}
 	      else
@@ -2471,7 +2420,6 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 	      i = dirlen - direction;
 	      while ((i -= direction) + direction != 0)
 		{
-#ifdef MULE
 		  Ichar ch;
 		  Ibyte *ptr;
 		  int dotrans;
@@ -2502,13 +2450,6 @@ boyer_moore (struct buffer *buf, Ibyte *base_pat, Bytecount len,
 		  if (pat[i] != ch)
 		    break;
 		      
-#else
-		  pos -= direction;
-		  if (pat[i] !=
-		      TRANSLATE (trt,
-				 *BYTE_BUF_BYTE_ADDRESS_NO_VERIFY (buf, pos)))
-		    break;
-#endif
 		}
 	      /* Above loop has moved POS part or all the way back
 		 to the first char pos (last char pos if reverse).

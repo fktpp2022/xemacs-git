@@ -422,26 +422,20 @@ tty_initialize_font_instance (Lisp_Font_Instance *f, Lisp_Object name,
   str += 6;
   if (*str)
     {
-#ifdef MULE
       if (*str != '/')
 	return 0;
       str++;
       charset = Ffind_charset (intern ((const CIbyte *) str));
       if (NILP (charset))
 	return 0;
-#else
-      return 0;
-#endif
     }
 
   /* Don't allocate the data until we're sure that we will succeed. */
   f->data = xnew (struct tty_font_instance_data);
   FONT_INSTANCE_TTY_CHARSET (f) = charset;
-#ifdef MULE
   if (CHARSETP (charset))
     f->width = XCHARSET_COLUMNS (charset);
   else
-#endif
     f->width = 1;
 
   f->proportional_p = 0;
@@ -475,7 +469,6 @@ tty_font_list (Lisp_Object UNUSED (pattern), Lisp_Object UNUSED (device),
   return list1 (build_ascstring ("normal"));
 }
 
-#ifdef MULE
 
 static int
 tty_font_spec_matches_charset (struct device *UNUSED (d), Lisp_Object charset,
@@ -532,7 +525,6 @@ tty_find_charset_font (Lisp_Object device, Lisp_Object font,
 		  Fsymbol_name (XCHARSET_NAME (charset)));
 }
 
-#endif /* MULE */
 
 
 /************************************************************************/
@@ -569,10 +561,8 @@ console_type_create_fontcolor_tty (void)
   CONSOLE_HAS_METHOD (tty, print_font_instance);
   CONSOLE_HAS_METHOD (tty, finalize_font_instance);
   CONSOLE_HAS_METHOD (tty, font_list);
-#ifdef MULE
   CONSOLE_HAS_METHOD (tty, font_spec_matches_charset);
   CONSOLE_HAS_METHOD (tty, find_charset_font);
-#endif
 }
 
 void

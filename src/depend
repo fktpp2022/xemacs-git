@@ -93,12 +93,10 @@ ui-gtk.o: $(CONFIG_H) $(LISP_H) $(LWLIB_SRCDIR)/lwlib.h buffer.h bufslots.h byte
 #if defined(HAVE_DATABASE)
 database.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h coding-system-slots.h database.h file-coding.h intl-auto-encap-win32.h sysfile.h syswindows.h unicode.h
 #endif
-#if defined(MULE)
 mule-ccl.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h coding-system-slots.h elhash.h file-coding.h mule-ccl.h unicode.h
 mule-charset.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h chartab.h console.h device.h elhash.h faces.h fontcolor.h lstream.h mule-ccl.h specifier.h tls.h unicode.h
 mule-coding.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h coding-system-slots.h elhash.h extents.h file-coding.h lstream.h mule-ccl.h rangetab.h tls.h unicode.h
 mule-wnnfns.o: $(CONFIG_H) $(LISP_H) buffer.h bufslots.h charset.h redisplay.h scrollbar.h sysdep.h unicode.h window.h
-#endif
 #if defined(EXTERNAL_WIDGET)
 ExternalClient-Xlib.o: extw-Xlib.h
 ExternalClient.o: $(CONFIG_H) ExternalClient.h ExternalClientP.h compiler.h extw-Xlib.h extw-Xt.h xintrinsicp.h

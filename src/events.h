@@ -165,12 +165,7 @@ struct Lisp_Key_Data
          every other app too, and they normally remap the keyboard in
          software as soon as they can, or learn to live with Azerty. That
          applies for all the Roman-alphabet keyboard layouts. Aidan Kehoe,
-         2005-05-15
-
-         I've taken out the dependency on MULE for this feature because it's
-         also useful in a non-Mule XEmacs where the user has set their font
-         to something ending in iso8859-5. How many of those users there
-         are, is another question. */
+         2005-05-15 */
   Ichar alt_keychars[KEYCHAR_LAST];
 };
 

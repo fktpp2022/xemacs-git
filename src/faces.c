@@ -2042,7 +2042,6 @@ LOCALE, TAG-SET, EXACT-P, and HOW-TO-ADD are as in `copy-specifier'.
   return new_name;
 }
 
-#ifdef MULE
 
 Lisp_Object Qone_dimensional, Qtwo_dimensional, Qx_coverage_instantiator;
 
@@ -2123,7 +2122,6 @@ shouldn't ever need to call this.
 
 #endif /* not UNICODE_INTERNAL */
 
-#endif /* MULE */
 
 
 void
@@ -2155,7 +2153,6 @@ syms_of_faces (void)
   DEFSUBR (Fmake_face);
   DEFSUBR (Fcopy_face);
 
-#ifdef MULE
   DEFSYMBOL (Qone_dimensional);
   DEFSYMBOL (Qtwo_dimensional);
   DEFSYMBOL (Qx_coverage_instantiator);
@@ -2169,7 +2166,6 @@ syms_of_faces (void)
   DEFSYMBOL (Qjit_charset);
   DEFSUBR (Fspecifier_tag_jit_charset_p);
 #endif /* not UNICODE_INTERNAL */
-#endif /* MULE */
 
   DEFSYMBOL (Qfacep);
   DEFSYMBOL (Qforeground);
@@ -2311,7 +2307,6 @@ complex_vars_of_faces (void)
     Lisp_Object device_symbol = Qx;
 #endif
 
-#if defined (HAVE_XFT) || defined (HAVE_GTK) || defined (MULE)
     const Ascbyte **fontptr;
 
     const Ascbyte *fonts[] =
@@ -2346,9 +2341,7 @@ complex_vars_of_faces (void)
       "-*-*-medium-r-*-*-*-170-*-*-c-*-*-*",
 #endif
     };
-#endif /* defined (HAVE_XFT) || defined (HAVE_GTK) || defined (MULE) */
 
-#ifdef MULE
 
     /* Define some specifier tags for classes of character sets. Combining
        these allows for distinct fallback fonts for distinct dimensions of
@@ -2377,7 +2370,6 @@ complex_vars_of_faces (void)
        when the default face is determined from X resources at startup.  */
     define_specifier_tag (Qx_coverage_instantiator, Qnil, Qnil);
 
-#endif /* MULE */
 
 #if defined (HAVE_XFT) || defined (HAVE_GTK)
     for (fontptr = fonts + countof(fonts) - 1; fontptr >= fonts; fontptr--)
@@ -2394,7 +2386,6 @@ complex_vars_of_faces (void)
 	   An unspecified XLFD won't pick up stuff like 10x20. */
 	build_ascstring ("*")),
        inst_list);
-#if defined (MULE)
 
 #if !defined (HAVE_GTK)
     /* For Han characters and Ethiopic, we want the misc-fixed font used to
@@ -2449,7 +2440,6 @@ complex_vars_of_faces (void)
 #endif /* not HAVE_GTK */
 #endif /* not UNICODE_INTERNAL */
 
-#endif /* MULE */
 
 #if !defined (HAVE_GTK)
     /* Needed to make sure that charsets with non-specified fonts don't

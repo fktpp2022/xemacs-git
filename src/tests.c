@@ -67,7 +67,6 @@ REASON is nil or a string describing the failure (not required).
   Ibyte int_latin1[] = "f\201\372b\201\343\201\340";
   Ibyte int_latin2[] = "f\202\372b\202\343\202\340";
 #endif /* (not) UNICODE_INTERNAL */
-#ifdef MULE
 #ifdef UNICODE_INTERNAL
   /* We also have differences when rendering Latin-1 text in Latin-2 or
      vice-versa.  Unicode-internal unifies Latin-1 \372 (#xFA) and Latin-2
@@ -80,7 +79,6 @@ REASON is nil or a string describing the failure (not required).
   Extbyte ext_untranslatable[]  = "f?b??";
 #endif
   Lisp_Object string_latin2 = make_string (int_latin2, sizeof (int_latin2) - 1);
-#endif
   Lisp_Object opaque_latin  = make_opaque (ext_latin,  sizeof (ext_latin) - 1);
   Lisp_Object opaque0_latin = make_opaque (ext_latin,  sizeof (ext_latin));
   Lisp_Object string_latin1 = make_string (int_latin1, sizeof (int_latin1) - 1);
@@ -88,31 +86,23 @@ REASON is nil or a string describing the failure (not required).
     !NILP (Fsymbol_value (intern ("eol-detection-enabled-p")));
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
   struct gcpro ngcpro1, ngcpro2, ngcpro3;
-#ifdef MULE
   struct gcpro ngcpro4;
-#endif
 
   /* DFC conversion inhibits GC, but we have a call2() below which calls
      Lisp, which can trigger GC, so we need to GC-protect everything here. */
   GCPRO5 (string, opaque, conversion_result, opaque_dos, string_foo);
-#ifdef MULE
   NGCPRO4 (string_latin2, opaque_latin, opaque0_latin, string_latin1);
-#else
-  NGCPRO3 (opaque_latin, opaque0_latin, string_latin1);
-#endif
 
-#if defined (MULE) && !defined (UNICODE_INTERNAL)
+#ifndef UNICODE_INTERNAL
   /* Check to make sure no one changed the internal charset ID's on us */
   assert (XFIXNUM (Fcharset_id (Vcharset_latin_iso8859_1)) == int_latin1[1]);
   assert (XFIXNUM (Fcharset_id (Vcharset_latin_iso8859_2)) == int_latin2[1]);
 #endif
 
-  /* Check for expected strings before and after conversion.
-     Conversions depend on whether MULE is defined. */
+  /* Check for expected strings before and after conversion. */
 
   /* #### Any code below that uses iso-latin-2-with-esc is ill-conceived. */
 
-#ifdef MULE
 #define DFC_CHECK_DATA_COND_MULE(ptr,len,			\
 				 constant_string_mule,		\
 				 constant_string_non_mule,	\
@@ -123,18 +113,6 @@ REASON is nil or a string describing the failure (not required).
 				     constant_string_non_mule,	\
 				     description)		\
     DFC_CHECK_DATA_NUL (ptr, len, constant_string_mule, description)
-#else
-#define DFC_CHECK_DATA_COND_MULE(ptr,len,			\
-				 constant_string_mule,		\
-				 constant_string_non_mule,	\
-				 description)			\
-    DFC_CHECK_DATA (ptr, len, constant_string_non_mule, description)
-#define DFC_CHECK_DATA_COND_MULE_NUL(ptr,len,			\
-				     constant_string_mule,	\
-				     constant_string_non_mule,	\
-				     description)		\
-    DFC_CHECK_DATA_NUL (ptr, len, constant_string_non_mule, description)
-#endif
 
   /* These now only apply to base coding systems, and
      need to test `eol-detection-enabled-p' at runtime. */
@@ -204,7 +182,6 @@ REASON is nil or a string describing the failure (not required).
 	Fcons (list3 (build_cistring(str1), Qt, Qnil),	\
 	       conversion_result)
 
-#ifdef MULE
   ptr = NULL, len = rand();
   TO_EXTERNAL_FORMAT (DATA, (int_latin2, sizeof (int_latin2)),
 		      ALLOCA, (ptr, len),
@@ -291,7 +268,6 @@ REASON is nil or a string describing the failure (not required).
 		      intern ("iso-latin-2-with-esc"));
   DFC_CHECK_DATA (ptr, len, int_latin1, "DATA, ALLOCA, Latin-1");
 
-#endif /* MULE */
 
   ptr = NULL, len = rand();
   TO_EXTERNAL_FORMAT (DATA, (int_latin1, sizeof (int_latin1) - 1),

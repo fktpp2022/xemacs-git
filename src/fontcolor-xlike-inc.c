@@ -91,7 +91,6 @@ do {								\
 # define DEBUG_FONTS_LISP4(format, arg1, arg2, arg3, arg4)
 #endif
 
-#ifdef MULE
 
 /* For some code it's reasonable to have only one copy and conditionalize
    at run-time.  For other code it isn't. */
@@ -904,4 +903,3 @@ XFUN (find_charset_font) (Lisp_Object device, Lisp_Object font,
 }
 #endif /* HAVE_GTK */
 
-#endif /* MULE */

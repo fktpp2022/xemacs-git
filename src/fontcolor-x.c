@@ -934,10 +934,8 @@ console_type_create_fontcolor_x (void)
   CONSOLE_HAS_METHOD (x, font_instance_truename);
   CONSOLE_HAS_METHOD (x, font_instance_properties);
   CONSOLE_HAS_METHOD (x, font_list);
-#ifdef MULE
   CONSOLE_HAS_METHOD (x, find_charset_font);
   CONSOLE_HAS_METHOD (x, font_spec_matches_charset);
-#endif
 }
 
 void

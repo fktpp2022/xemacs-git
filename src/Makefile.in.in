@@ -199,9 +199,7 @@ gpm_objs=gpmevent.o
 ldap_objs=eldap.o
 #endif
 
-#ifdef MULE
 mule_objs=mule-ccl.o mule-charset.o mule-coding.o
-#endif
 
 #if defined(HAVE_CANNA) && !defined(HAVE_SHLIB)
 mule_canna_objs=canna_api.o

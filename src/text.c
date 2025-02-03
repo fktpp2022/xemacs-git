@@ -1262,7 +1262,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 Eistring the_eistring_zero_init, the_eistring_malloc_zero_init;
 
-#ifdef MULE
 
 #define MAX_CHARBPOS_GAP_SIZE_3 (65535/3)
 #define MAX_BYTEBPOS_GAP_SIZE_3 (3 * MAX_CHARBPOS_GAP_SIZE_3)
@@ -1379,7 +1378,6 @@ static int composite_char_row_next;
 static int composite_char_col_next;
 
 #endif /* ENABLE_COMPOSITE_CHARS */
-#endif /* MULE */
 
 /* For UTF-8 conversion */
 
@@ -1396,7 +1394,6 @@ Fixnum Vchar_code_limit;
 /*                       Basic Ichar functions                          */
 /************************************************************************/
 
-#ifdef MULE
 
 /* Convert a non-ASCII Mule character C into a one-character Mule-encoded
    string in STR.  Returns the number of bytes stored.
@@ -1912,7 +1909,6 @@ unicode_internal_handle_bad_ichar_to_unicode (Ichar chr, enum converr fail)
 
 #endif /* defined (UNICODE_INTERNAL) */
 
-#endif /* MULE */
 
 /* Take a possibly invalid Ichar value (must be >= 0) and move upwards as
    necessary until we find the first valid Ichar.  Return -1 if we're above
@@ -1929,10 +1925,8 @@ round_up_to_valid_ichar (int charpos)
     return (Ichar) (LAST_UTF_16_SURROGATE + 1);
   text_checking_assert (charpos >= CHAR_CODE_LIMIT);
   return -1;
-#elif defined (MULE)
-  return old_mule_round_up_to_valid_ichar (charpos);
 #else
-  return -1;
+  return old_mule_round_up_to_valid_ichar (charpos);
 #endif
 }
 
@@ -1950,10 +1944,8 @@ round_down_to_valid_ichar (int charpos)
     return CHAR_CODE_LIMIT - 1;
   text_checking_assert (valid_unicode_surrogate (charpos));
   return (Ichar) (FIRST_UTF_16_SURROGATE - 1);
-#elif defined (MULE)
-  return old_mule_round_down_to_valid_ichar (charpos);
 #else
-  return 255;
+  return old_mule_round_down_to_valid_ichar (charpos);
 #endif
 }
 
@@ -2417,10 +2409,10 @@ while (0)
 Bytecount
 copy_text_between_formats (const Ibyte *src, Bytecount srclen,
 			   Internal_Format srcfmt,
-			   Lisp_Object USED_IF_MULE (srcobj),
+			   Lisp_Object srcobj,
 			   Ibyte *dst, Bytecount dstlen,
 			   Internal_Format dstfmt,
-			   Lisp_Object USED_IF_MULE (dstobj),
+			   Lisp_Object dstobj,
 			   Bytecount *src_used)
 {
   if (srcfmt == dstfmt &&
@@ -2763,7 +2755,6 @@ eicpyout_malloc_fmt (Eistring *eistr, Bytecount *len_out, Internal_Format fmt,
 /*                    Charcount/Bytecount conversion                    */
 /************************************************************************/
 
-#ifdef MULE
 
 /* Function equivalents of bytecount_to_charcount/charcount_to_bytecount.
    These work on strings of all sizes but are more efficient than a simple
@@ -4123,7 +4114,6 @@ buffer_mule_signal_deleted_region (struct buffer *buf, Charbpos start,
 #endif /* OLD_BYTE_CHAR */
 }
 
-#endif /* MULE */
 
 
 /************************************************************************/
@@ -4980,7 +4970,6 @@ dfc_convert_to_external_format (dfc_conversion_type source_type,
 	  len = source->data.len;
 	}
 
-#ifdef MULE
       {
 	const Ibyte *end;
 	for (end = ptr + len; ptr < end;)
@@ -5004,9 +4993,6 @@ dfc_convert_to_external_format (dfc_conversion_type source_type,
 	  }
 	text_checking_assert (ptr == end);
       }
-#else
-      Dynarr_add_many (conversion_out_dynarr, ptr, len);
-#endif
 
     }
 #ifdef WIN32_ANY
@@ -5180,7 +5166,6 @@ dfc_convert_to_internal_format (dfc_conversion_type source_type,
       sink_type   != DFC_TYPE_LISP_LSTREAM &&
       coding_system_is_binary (underlying_cs))
     {
-#ifdef MULE
       const Ibyte *ptr;
       Bytecount len = source->data.len;
       const Ibyte *end;
@@ -5205,9 +5190,6 @@ dfc_convert_to_internal_format (dfc_conversion_type source_type,
 
 	  DECODE_ADD_BINARY_CHAR (c, conversion_in_dynarr);
         }
-#else
-      Dynarr_add_many (conversion_in_dynarr, source->data.ptr, source->data.len);
-#endif
     }
 #ifdef WIN32_ANY
   /* Optimize the common case involving Unicode where only ASCII/Latin-1 is
@@ -5260,9 +5242,7 @@ dfc_convert_to_internal_format (dfc_conversion_type source_type,
       Lisp_Object instream, outstream;
       Lstream *reader, *writer;
 
-#if defined (WIN32_ANY) || defined (MULE)
     the_hard_way:
-#endif
       delete_count = 0;
       if (source_type == DFC_TYPE_LISP_LSTREAM)
 	instream = source->lisp_object;
@@ -5509,7 +5489,6 @@ new_dfc_convert_malloc (const void *src, Bytecount src_size,
 /*                        streams of Ichars                             */
 /************************************************************************/
 
-#ifdef MULE
 
 /* Treat a stream as a stream of Ichar's rather than a stream of bytes.
    The functions below are not meant to be called directly; use
@@ -5549,7 +5528,6 @@ Lstream_funget_ichar (Lstream *stream, Ichar ch)
   Lstream_unread (stream, str, len);
 }
 
-#endif /* MULE */
 
 
 /************************************************************************/
@@ -5588,17 +5566,14 @@ internal_to_external_charset_codepoint (Lisp_Object charset,
 	  text_checking_assert (*ext_c1 >= 128 && *ext_c1 <= 159);
 	  *ext_c1 -= 128;
 	}
-#ifdef MULE
       else if (get_charset_iso2022_type (charset) >= 0)
 	{
 	  *ext_c1 &= 127;
 	  *ext_c2 &= 127;
 	}
-#endif /* MULE */
     }
 }
 
-#ifdef MULE
 
 static int
 check_coerce_octet (Lisp_Object charset, Lisp_Object arg, int low, int high,
@@ -5637,7 +5612,6 @@ check_coerce_octet (Lisp_Object charset, Lisp_Object arg, int low, int high,
   return (int) retval;
 }
 
-#endif /* MULE */
 
 /******************** Helper functions for basic conversions ***************/
 
@@ -5651,7 +5625,6 @@ get_external_charset_codepoint (Lisp_Object charset,
 				Lisp_Object arg1, Lisp_Object arg2,
 				int *a1, int *a2, int munge_codepoints)
 {
-#ifdef MULE
   int low1, low2, high1, high2;
 
   charset = Fget_charset (charset);
@@ -5673,43 +5646,6 @@ get_external_charset_codepoint (Lisp_Object charset,
       *a2 = check_coerce_octet (charset, arg2, low2, high2, munge_codepoints);
     }
   return charset;
-#else /* not MULE */
-  CHECK_SYMBOL (charset);
-  CHECK_NIL (arg2);
-  *a1 = 0;
-  if (EQ (charset, Vcharset_ascii))
-    {
-      check_integer_range (arg1, Qzero, make_fixnum (255));
-    }
-  else if (munge_codepoints)
-    {
-      EMACS_INT a1val;
-
-      /* If munge checkpoints, we are very free with what we allow, just
-	 to make sure we're backward-compatible with various versions of
-	 XEmacs and GNU Emacs, and coerce to the proper range. */
-      check_integer_range (arg1, Qzero, make_fixnum (255));
-
-      a1val = XFIXNUM (arg1);
-
-      if (EQ (charset, Vcharset_control_1))
-	a1val = (a1val & 0x1F) + 128;
-      else
-	a1val = (a1val & 0x7F) + 128;
-
-      arg1 = make_fixnum (a1val);
-    }
-  else
-    {
-      if (EQ (charset, Vcharset_control_1))
-        check_integer_range (arg1, make_fixnum (128), make_fixnum (159));
-      else
-        check_integer_range (arg1, make_fixnum (160), make_fixnum (255));
-    }
-
-  *a2 = XFIXNUM (arg1);
-  return Vcharset_ascii;
-#endif /* (not) MULE */
 }
 
 /* Like ichar_to_charset_codepoint(..., CONVERR_FAIL) but takes a
@@ -6480,14 +6416,12 @@ reinit_vars_of_text (void)
   conversion_out_dynarr_list = Dynarr_new2 (Extbyte_dynarr_dynarr,
 					    Extbyte_dynarr *);
 
-#ifdef MULE
   {
     int i;
 
     for (i = 0; i <= MAX_BYTEBPOS_GAP_SIZE_3; i++)
       three_to_one_table[i] = i / 3;
   }
-#endif /* MULE */
 }
 
 void

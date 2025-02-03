@@ -60,9 +60,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #endif /* HAVE_SHLIB and LWLIB_USES_ATHENA and not HAVE_ATHENA_3D */
 
 Lisp_Object Vx_app_defaults_directory;
-#ifdef MULE
 Lisp_Object Qget_coding_system_from_locale;
-#endif
 
 /* Qdisplay in general.c */
 Lisp_Object Qx_error;
@@ -192,9 +190,8 @@ get_x_display (Lisp_Object device)
 }
 
 static Lisp_Object
-coding_system_of_xrm_database (XrmDatabase USED_IF_MULE (db))
+coding_system_of_xrm_database (XrmDatabase db)
 {
-#ifdef MULE
   const Extbyte *locale;
   static XrmDatabase last_xrm_db; 
 
@@ -216,9 +213,6 @@ coding_system_of_xrm_database (XrmDatabase USED_IF_MULE (db))
 			      build_extstring (locale, Qx_hpc_encoding));
 
   return last_coding_system;
-#else
-  return Qbinary;
-#endif
 }
 
 
@@ -678,7 +672,6 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
 
   screen = DefaultScreen (dpy);
 
-#ifdef MULE
   {
     /* Read in locale-specific resources from
        data-directory/app-defaults/$LANG/Emacs.
@@ -755,7 +748,6 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
  }
 
  no_data_directory:
-#endif /* MULE */
 
   if (NILP (DEVICE_NAME (d)))
     DEVICE_NAME (d) = display;
@@ -2107,9 +2099,7 @@ syms_of_device_x (void)
   DEFSYMBOL (Qmake_device_early_x_entry_point);
   DEFSYMBOL (Qmake_device_late_x_entry_point);
 
-#ifdef MULE
   DEFSYMBOL (Qget_coding_system_from_locale);
-#endif
 
   Vgc_cache_hash_table_test = define_gc_cache_hash_table_test ();
   staticpro (&Vgc_cache_hash_table_test);

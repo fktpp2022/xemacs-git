@@ -715,10 +715,8 @@ console_type_create_fontcolor_gtk (void)
   CONSOLE_HAS_METHOD (gtk, font_instance_truename);
   CONSOLE_HAS_METHOD (gtk, font_instance_properties);
   CONSOLE_HAS_METHOD (gtk, font_list);
-#ifdef MULE
   CONSOLE_HAS_METHOD (gtk, find_charset_font);
   CONSOLE_HAS_METHOD (gtk, font_spec_matches_charset);
-#endif
 }
 
 void

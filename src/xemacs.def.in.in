@@ -45,9 +45,7 @@ build_ascstring
 build_msg_istring
 build_msg_cistring
 build_msg_ascstring
-#ifdef MULE
 bytecount_to_charcount_fun	/* bytecount_to_charcount */
-#endif
 call0
 call1
 call2
@@ -57,9 +55,7 @@ call5
 call6
 call7
 call8
-#ifdef MULE
 charcount_to_bytecount_fun	/* charcount_to_bytecount */
-#endif
 check_quit			/* QUITP */
 check_what_happened		/* QUIT */
 concat2
@@ -139,12 +135,10 @@ nconc2
 new_dfc_convert_copy_data	/* C_STRING_TO_EXTERNAL, ... */
 new_dfc_convert_malloc		/* C_STRING_TO_EXTERNAL_MALLOC, ... */
 new_dfc_convert_size		/* C_STRING_TO_EXTERNAL, ... */
-#ifdef MULE
 non_ascii_itext_ichar		/* itext_ichar */
 non_ascii_set_itext_ichar	/* set_itext_ichar */
 #ifndef UNICODE_INTERNAL
 old_mule_non_ascii_valid_ichar_p /* valid_ichar_p */
-#endif
 #endif
 out_of_memory			/* The postgresql module uses this */
 printing_unreadable_lisp_object
@@ -285,9 +279,7 @@ quit_check_signal_happened	/* QUITP */
 #ifdef ERROR_CHECK_MALLOC
 regex_malloc_disallowed		/* REGEX_MALLOC_CHECK */
 #endif
-#ifdef MULE
 rep_bytes_by_first_byte		/* itext_ichar_len, INC_IBYTEPTR, ... */
-#endif
 something_happened		/* QUIT */
 specpdl_depth_counter		/* specpdl_depth */
 Qconsp				/* CHECK_CONS */

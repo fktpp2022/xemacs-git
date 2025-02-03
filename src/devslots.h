@@ -95,7 +95,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
      instances. */
   MARKED_SLOT (font_instance_cache)
 
-#ifdef MULE
   /* This is a bi-level cache, where the hash table in this slot here
      indexes charset objects to key-weak hash tables, which in turn
      index font names to more specific font names that match the
@@ -106,7 +105,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
   /* Similar cache for stage 2, if it exists.  See fontcolor.c. */
   MARKED_SLOT (charset_font_cache_stage_2)
-#endif
 
   /* This is a bi-level cache, where the hash table in this slot here
      indexes image-instance-type masks (there are currently 6

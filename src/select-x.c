@@ -293,7 +293,6 @@ hack_motif_clipboard_selection (Atom selection_atom,
       const Ibyte *data  = XSTRING_DATA (selection_value);
       Bytecount bytes = XSTRING_LENGTH (selection_value);
 
-#ifdef MULE
       {
 	enum { ASCII, LATIN_1, WORLD } chartypes = ASCII;
 	const Ibyte *ptr = data, *end = ptr + bytes;
@@ -327,7 +326,6 @@ hack_motif_clipboard_selection (Atom selection_atom,
 	    encoding = "COMPOUND_TEXT";
 	  }
       }
-#endif /* MULE */
 
       /* XmStringCreateLtoR() (through its implementation,
          XmStringLtoRCreate()) copies TEXT but does not modify it, this cast
@@ -1356,10 +1354,8 @@ Set the value of the named CUTBUFFER (typically CUT_BUFFER0) to STRING.
   const Ibyte *data;
   Bytecount bytes, bytes_remaining;
   Bytecount max_bytes = SELECTION_QUANTUM (display);
-#ifdef MULE
   const Ibyte *ptr, *end;
   enum { ASCII, LATIN_1, WORLD } chartypes = ASCII;
-#endif
 
   if (max_bytes > MAX_SELECTION_QUANTUM)
     max_bytes = MAX_SELECTION_QUANTUM;
@@ -1379,7 +1375,6 @@ Set the value of the named CUTBUFFER (typically CUT_BUFFER0) to STRING.
      The ICCCM requires that this be so, and other clients assume it,
      as we do ourselves in initialize_cut_buffers.  */
 
-#ifdef MULE
   /* Optimize for the common ASCII case */
   for (ptr = data, end = ptr + bytes; ptr <= end; )
     {
@@ -1404,7 +1399,6 @@ Set the value of the named CUTBUFFER (typically CUT_BUFFER0) to STRING.
     LISP_STRING_TO_SIZED_EXTERNAL (string, data, bytes, Qbinary);
   else if (chartypes == WORLD)
     LISP_STRING_TO_SIZED_EXTERNAL (string, data, bytes, Qctext);
-#endif /* MULE */
 
   bytes_remaining = bytes;
 

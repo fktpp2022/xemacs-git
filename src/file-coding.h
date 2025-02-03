@@ -1194,7 +1194,6 @@ if ((str)->st.handle == CODING_CONTINUE ||				\
   }									\
 else return ((src) - (str->src))
 
-#ifdef MULE
 /* Convert shift-JIS code (sj1, sj2) into JISX0208 position codes (c1, c2). */
 #define DECODE_SHIFT_JIS(sj1, sj2, c1, c2)		\
 do {							\
@@ -1221,7 +1220,6 @@ do {							\
     sj1 = (I1 >> 1) + ((I1 < 0xdf) ? 0x30 : 0x70),	\
     sj2 = I2 - 2;					\
 } while (0)
-#endif /* MULE */
 
 /* Macros to define code of control characters for ISO2022's functions.  */
 /* Used by the detection routines of other coding system types as well. */
@@ -1248,13 +1246,11 @@ DECLARE_CODING_SYSTEM_TYPE (chain);
 DECLARE_CODING_SYSTEM_TYPE (internal);
 #endif
 
-#ifdef MULE
 DECLARE_CODING_SYSTEM_TYPE (multibyte);
 DECLARE_CODING_SYSTEM_TYPE (iso2022);
 DECLARE_CODING_SYSTEM_TYPE (ccl);
 DECLARE_CODING_SYSTEM_TYPE (shift_jis);
 DECLARE_CODING_SYSTEM_TYPE (big5);
-#endif
 
 #ifdef HAVE_ZLIB
 DECLARE_CODING_SYSTEM_TYPE (gzip);

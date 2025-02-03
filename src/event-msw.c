@@ -3737,7 +3737,6 @@ mswindows_wnd_proc (HWND hwnd, UINT message_, WPARAM wParam, LPARAM lParam)
       break;
 #endif /* HAVE_DRAGNDROP */
 
-#ifdef MULE
     case WM_IME_CHAR:
 
     case WM_IME_STARTCOMPOSITION:
@@ -3787,7 +3786,6 @@ mswindows_wnd_proc (HWND hwnd, UINT message_, WPARAM wParam, LPARAM lParam)
 	 unbind_to (speccount);
        }
       goto defproc;
-#endif /* MULE */
 
     defproc:
     default:

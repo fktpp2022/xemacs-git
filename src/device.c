@@ -191,9 +191,7 @@ allocate_device (Lisp_Object console)
     make_lisp_hash_table (20, HASH_TABLE_KEY_WEAK, Qequal);
   d->font_instance_cache =
     make_lisp_hash_table (20, HASH_TABLE_KEY_WEAK, Qequal);
-#ifdef MULE
   initialize_charset_font_caches (d);
-#endif
   /*
      Note that the image instance cache is actually bi-level.
      See device.h.  We use a low number here because most of the

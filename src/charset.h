@@ -25,9 +25,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #ifndef INCLUDED_charset_h_
 #define INCLUDED_charset_h_
 
-#ifdef MULE
 #include "unicode.h"
-#endif
 
 /* If defined, we always use the maximum depth for the translation tables.
    This will increase their size to a certain extent but speed up lookup,
@@ -87,54 +85,6 @@ EXFUN (Fcharset_encodable_p, 1);
 extern Lisp_Object Vcharset_hash_table;
 
 
-#ifndef MULE
-
-/************************************************************************/
-/*                            fake charset defs                         */
-/************************************************************************/
-
-/* used when MULE is not defined, so that Charset-type stuff can still
-   be done */
-
-#define Vcharset_ascii Qnil
-#define Vcharset_control_1 Qunbound /* A character's charset will never be
-                                       this. */
-
-#define ichar_charset(ch) Vcharset_ascii
-#define ichar_leading_byte(ch) LEADING_BYTE_ASCII
-#define LEADING_BYTE_ASCII 0x80
-#define NUM_LEADING_BYTES 1
-#define MIN_LEADING_BYTE 0x80
-#define CHARSETP(cs) 1
-#define charset_by_leading_byte(lb) Vcharset_ascii
-#define XCHARSET_LEADING_BYTE(cs) LEADING_BYTE_ASCII
-#define XCHARSET_GRAPHIC(cs) -1
-#define XCHARSET_COLUMNS(cs) 1
-#define XCHARSET_DIMENSION(cs) 1
-#define XCHARSET_NAME(cs) (cs)
-DECLARE_INLINE_HEADER (
-int
-XCHARSET_MIN_CODE (Lisp_Object UNUSED (cs), int UNUSED (dim))
-)
-{
-  return 0;
-}
-
-DECLARE_INLINE_HEADER (
-int
-XCHARSET_MAX_CODE (Lisp_Object UNUSED (cs), int dim)
-)
-{
-  if (dim == 0)
-    return 0;
-  assert (dim == 1);
-  return 255;
-}
-
-#define Fget_charset(cs) (cs)
-#define Fcharset_list() list1 (Vcharset_ascii)
-
-#else /* MULE */
 
 
 /************************************************************************/
@@ -369,14 +319,12 @@ charset_by_attributes (int type, int final, int dir)
   return chlook->charset_by_attributes[type][final][dir];
 }
 
-#endif /* MULE */
 
 
 /************************************************************************/
 /*                     General character manipulation                   */
 /************************************************************************/
 
-#ifdef MULE
 
 /* Structure at the lowest level; offset and length, plus a variable-sized
    array of LENGTH values. */
@@ -407,26 +355,6 @@ do {									\
   inline_text_checking_assert (valid_charset_codepoint_p (charset, c1, c2)); \
 } while (0)
 
-#else /* not MULE */
-
-#define ASSERT_VALID_CHARSET_CODEPOINT(charset, a1, a2)		\
-do								\
-  {								\
-    text_checking_assert (EQ (charset, Vcharset_ascii));	\
-    text_checking_assert (a1 == 0);				\
-    text_checking_assert (a2 >= 0 && a2 <= 255);		\
-  }								\
-while (0)
-#define INLINE_ASSERT_VALID_CHARSET_CODEPOINT(charset, a1, a2)	\
-do								\
-  {								\
-    inline_text_checking_assert (EQ (charset, Vcharset_ascii));	\
-    inline_text_checking_assert (a1 == 0);			\
-    inline_text_checking_assert (a2 >= 0 && a2 <= 255);		\
-  }								\
-while (0)
-
-#endif /* MULE */
 
 #define ASSERT_VALID_CHARSET_CODEPOINT_OR_ERROR(charset, c1, c2)	\
 do									\
@@ -525,7 +453,6 @@ switch (fail)						\
 }							\
 while (0)
 
-#ifdef MULE
 
 /* Convert a charset codepoint (CHARSET, one or two octets) to Unicode.
    Return -1 if can't convert. */
@@ -580,7 +507,6 @@ charset_codepoint_to_unicode_raw_1 (Lisp_Object charset, int c1, int c2
 #define charset_codepoint_to_unicode_raw(charset, c1, c2) \
   charset_codepoint_to_unicode_raw_1 (charset, c1, c2 INLINE_TEXT_CHECK_CALL)
 
-#endif /* MULE */
 
 /* Convert a charset codepoint to Unicode, with error behavior specifiable.
    FAIL controls what happens when the charset codepoint cannot be
@@ -595,10 +521,9 @@ charset_codepoint_to_unicode_raw_1 (Lisp_Object charset, int c1, int c2
 DECLARE_INLINE_HEADER (
 int
 charset_codepoint_to_unicode (Lisp_Object charset, int c1, int c2,
-			      enum converr USED_IF_MULE (fail))
+			      enum converr fail)
 )
 {
-#ifdef MULE
   int code;
 
   code = charset_codepoint_to_unicode_raw (charset, c1, c2);
@@ -609,10 +534,6 @@ charset_codepoint_to_unicode (Lisp_Object charset, int c1, int c2,
 			code, charset, c1, c2, fail);
   ASSERT_VALID_UNICODE_CODEPOINT_OR_ERROR (code);
   return code;
-#else /* not MULE */
-  ASSERT_VALID_CHARSET_CODEPOINT (charset, c1, c2);
-  return (int) c2;
-#endif /* (not) MULE */
 }
 
 /* Convert Unicode codepoint to charset codepoint.  FAIL determines what to
@@ -627,14 +548,13 @@ charset_codepoint_to_unicode (Lisp_Object charset, int c1, int c2,
 DECLARE_INLINE_HEADER (
 void
 filtered_unicode_to_charset_codepoint (int code,
-				       Lisp_Object USED_IF_MULE (precarray),
-				       charset_pred USED_IF_MULE (predicate),
+				       Lisp_Object precarray,
+				       charset_pred predicate,
 				       Lisp_Object *charset, int *c1, int *c2,
 				       enum converr fail)
 )
 {
   ASSERT_VALID_UNICODE_CODEPOINT (code);
-#ifdef MULE
   if (code <= 0x7F && !XPRECEDENCE_ARRAY (precarray)->has_overriding_ascii
       && (!predicate || (*predicate) (Vcharset_ascii)))
     {
@@ -645,16 +565,6 @@ filtered_unicode_to_charset_codepoint (int code,
   else
     unicode_to_charset_codepoint_raw (code, precarray, predicate,
 				      charset, c1, c2);
-#else /* not MULE */
-  if (code > 255)
-    *charset = Qnil, *c1 = -1, *c2 = -1;
-  else
-    {
-      *charset = Vcharset_ascii;
-      *c1 = 0;
-      *c2 = code;
-    }
-#endif /* (not) MULE */
   HANDLE_CHARSET_CODEPOINT_ERROR
     ("Can't convert Unicode codepoint to charset codepoint", make_fixnum (code),
      charset, c1, c2, fail);
@@ -721,15 +631,11 @@ charset_codepoint_to_ichar_raw (Lisp_Object charset, int c1, int c2)
 #else /* not UNICODE_INTERNAL */
   Ichar retval;
   ASSERT_VALID_CHARSET_CODEPOINT (charset, c1, c2);
-# ifdef MULE
   if (EQ (charset, Vcharset_ascii))
     retval = c2;
   else
     retval = old_mule_non_ascii_charset_codepoint_to_ichar_raw (charset, c1,
 								c2);
-# else /* not MULE */
-  retval = c2;
-# endif /* (not) MULE */
   ASSERT_VALID_ICHAR_OR_ERROR (retval);
   return retval;
 #endif /* (not) UNICODE_INTERNAL */
@@ -783,7 +689,6 @@ filtered_ichar_to_charset_codepoint (Ichar ch, Lisp_Object
      charset, c1, c2, fail);
   ASSERT_VALID_CHARSET_CODEPOINT_OR_ERROR (*charset, *c1, *c2);
 #else
-# ifdef MULE
   if (ch <= 0x7F)
     {
       *charset = Vcharset_ascii;
@@ -792,11 +697,6 @@ filtered_ichar_to_charset_codepoint (Ichar ch, Lisp_Object
     }
   else
     old_mule_non_ascii_ichar_to_charset_codepoint_raw (ch, charset, c1, c2);
-# else /* not MULE */
-  *charset = Vcharset_ascii;
-  *c1 = 0;
-  *c2 = (int) ch;
-# endif /* (not) MULE */
   /* This should not fail */
   ASSERT_VALID_CHARSET_CODEPOINT (*charset, *c1, *c2);
 #endif /* (not) UNICODE_INTERNAL */
@@ -834,9 +734,7 @@ ichar_to_one_charset_codepoint (Ichar ch, Lisp_Object charset,
   {
     Lisp_Object charset2;
     ichar_to_charset_codepoint (ch, Qnil, &charset2, c1, c2, CONVERR_FAIL);
-#ifdef MULE
     text_checking_assert (EQ (old_mule_ichar_charset (ch), charset2));
-#endif /* MULE */
     return EQ (charset, charset2);
   }
 #endif /* (not) UNICODE_INTERNAL */
@@ -848,24 +746,18 @@ ichar_to_one_charset_codepoint (Ichar ch, Lisp_Object charset,
 DECLARE_INLINE_HEADER (
 Bytecount
 charset_codepoint_to_itext (Lisp_Object charset, int c1, int c2, Ibyte *ptr,
-			    enum converr USED_IF_MULE (fail))
+			    enum converr fail)
 )
 {
   ASSERT_VALID_CHARSET_CODEPOINT (charset, c1, c2);
-#ifdef MULE
   if (EQ (charset, Vcharset_ascii))
     {
       ptr[0] = (Ibyte) c2;
       return 1;
     }
   return non_ascii_charset_codepoint_to_itext (charset, c1, c2, ptr, fail);
-#else
-  ptr[0] = (Ibyte) c2;
-  return 1;
-#endif /* (not) MULE */
 }
 
-#ifdef MULE
 
 /* Convert a character in the internal string representation (guaranteed
    not to be ASCII under old-Mule) into a charset codepoint.  CHARSET will
@@ -889,7 +781,6 @@ itext_to_charset_codepoint_raw (const Ibyte *ptr,
 #endif /* (not) UNICODE_INTERNAL */
 }
 
-#endif /* MULE */
 
 /* Convert a character in the internal string representation into a charset
    codepoint.  CHARSET will be nil if no conversion possible.
@@ -909,14 +800,13 @@ itext_to_charset_codepoint_raw (const Ibyte *ptr,
 DECLARE_INLINE_HEADER (
 void
 filtered_itext_to_charset_codepoint_1 (const Ibyte *ptr,
-				       Lisp_Object USED_IF_MULE (precarray),
-				       charset_pred USED_IF_MULE (predicate),
+				       Lisp_Object precarray,
+				       charset_pred predicate,
 				       Lisp_Object *charset,
 				       int *c1, int *c2)
 )
 {
   ASSERT_VALID_ITEXT (ptr);
-#ifdef MULE
   if (byte_ascii_p (*ptr)
 # ifdef UNICODE_INTERNAL
       &&
@@ -932,11 +822,6 @@ filtered_itext_to_charset_codepoint_1 (const Ibyte *ptr,
   else
     itext_to_charset_codepoint_raw (ptr, precarray, predicate,
 				    charset, c1, c2);
-#else /* not MULE */
-  *charset = Vcharset_ascii;
-  *c1 = 0;
-  *c2 = *ptr;
-#endif /* (not) MULE */
   ASSERT_VALID_CHARSET_CODEPOINT_OR_ERROR (*charset, *c1, *c2);
 }
 
@@ -967,7 +852,6 @@ itext_to_charset_codepoint (const Ibyte *ptr, Lisp_Object precarray,
 				       c1, c2, fail);
 }
 
-#ifdef MULE
 
 /* Convert a charset codepoint (guaranteed not to be ASCII) into a
    character in the internal string representation and write to dynarr DST.
@@ -993,7 +877,6 @@ non_ascii_charset_codepoint_to_dynarr (Lisp_Object charset, int c1, int c2,
   return len;
 }
 
-#endif /* MULE */
 
 /* Convert a charset codepoint into a character in the internal string
    representation and write to dynarr DST.  Returns length of chars added
@@ -1003,11 +886,10 @@ DECLARE_INLINE_HEADER (
 Bytecount
 charset_codepoint_to_dynarr (Lisp_Object charset, int c1, int c2,
 			     unsigned_char_dynarr *dst,
-			     enum converr USED_IF_MULE (fail))
+			     enum converr fail)
 )
 {
   ASSERT_VALID_CHARSET_CODEPOINT (charset, c1, c2);
-#ifdef MULE
   if (EQ (charset, Vcharset_ascii))
     {
       Dynarr_add (dst, (Ibyte) c2);
@@ -1015,10 +897,6 @@ charset_codepoint_to_dynarr (Lisp_Object charset, int c1, int c2,
     }
 
   return non_ascii_charset_codepoint_to_dynarr (charset, c1, c2, dst, fail);
-#else /* not MULE */
-  Dynarr_add (dst, (Ibyte) c2);
-  return 1;
-#endif /* (not) MULE */
 }
 
 void set_charset_registries (Lisp_Object charset, Lisp_Object registries);

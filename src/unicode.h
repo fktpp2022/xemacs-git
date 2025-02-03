@@ -22,7 +22,6 @@ Boston, MA 02111-1307, USA.  */
 #ifndef INCLUDED_unicode_h_
 #define INCLUDED_unicode_h_
 
-#ifdef MULE
 
 /************************************************************************/
 /*                          Precedence arrays                           */
@@ -53,7 +52,6 @@ DECLARE_LISP_OBJECT (precedence_array, struct precedence_array);
 
 #define XPRECEDENCE_ARRAY_DYNARR(x) (XPRECEDENCE_ARRAY (x)->precdyn)
 
-#endif /* MULE */
 
 /************************************************************************/
 /*                          Encoding/decoding                           */

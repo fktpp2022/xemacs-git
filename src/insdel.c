@@ -97,18 +97,11 @@ do						\
  */
 
 
-#ifdef MULE
 # define GAP_CAN_HOLD_SIZE_P(buf, len) (BUF_GAP_SIZE (buf) >= (len) + 1)
 # define SET_GAP_SENTINEL(buf) (*BUF_GPT_ADDR (buf) = 0)
 # define BUF_END_SENTINEL_SIZE 1
 # define SET_END_SENTINEL(buf) \
   (*(BUF_BEG_ADDR (buf) + BUF_GAP_SIZE (buf) + BYTE_BUF_Z (buf) - 1) = 0)
-#else
-# define GAP_CAN_HOLD_SIZE_P(buf, len) (BUF_GAP_SIZE (buf) >= (len))
-# define SET_GAP_SENTINEL(buf)
-# define BUF_END_SENTINEL_SIZE 0
-# define SET_END_SENTINEL(buf)
-#endif
 
 
 /************************************************************************/
@@ -1184,7 +1177,6 @@ buffer_insert_string_1 (struct buffer *buf, Charbpos pos,
   SET_GAP_SENTINEL (buf);
   
   
-#ifdef MULE
   buffer_mule_signal_inserted_region (buf, pos, length_in_buffer, cclen);
   /* Update our count of ASCII, 8-bit and 16-bit chars and the
      entirely-one-byte flag */
@@ -1208,7 +1200,6 @@ buffer_insert_string_1 (struct buffer *buf, Charbpos pos,
       (BUF_FORMAT (buf) == FORMAT_8_BIT_FIXED ||
        (BUF_FORMAT (buf) == FORMAT_DEFAULT && BUF_Z (buf) == BYTE_BUF_Z (buf)));
   }
-#endif
 
   MAP_INDIRECT_BUFFERS (buf, mbuf, bufcons)
     {
@@ -1439,7 +1430,6 @@ buffer_delete_range (struct buffer *buf, Charbpos from, Charbpos to, int flags)
 
   delete_invalidate_line_number_cache (buf, byte_from, byte_to);
 
-#ifdef MULE
   /* Update our count of ASCII, 8-bit and 16-bit chars and the
      entirely-one-byte flag */
   {
@@ -1456,7 +1446,6 @@ buffer_delete_range (struct buffer *buf, Charbpos from, Charbpos to, int flags)
 	  buf->text->num_16_bit_fixed_chars--;
       }
   }
-#endif /* MULE */
 
   /* #### Point used to be modified here, but this causes problems
      with MULE, as point is used to calculate bytebpos's, and if the
@@ -1524,12 +1513,10 @@ buffer_delete_range (struct buffer *buf, Charbpos from, Charbpos to, int flags)
     SET_BOTH_BUF_GPT (buf, from, byte_from);
   SET_GAP_SENTINEL (buf);
 
-#ifdef MULE
   buffer_mule_signal_deleted_region (buf, from, to, byte_from, byte_to);
   buf->text->entirely_one_byte_p =
     (BUF_FORMAT (buf) == FORMAT_8_BIT_FIXED ||
      (BUF_FORMAT (buf) == FORMAT_DEFAULT && BUF_Z (buf) == BYTE_BUF_Z (buf)));
-#endif
 
 #ifdef ERROR_CHECK_EXTENTS
   MAP_INDIRECT_BUFFERS (buf, mbuf, bufcons)
@@ -1564,9 +1551,7 @@ buffer_replace_char (struct buffer *buf, Charbpos pos, Ichar ch,
   /* This function can GC */
   Ibyte newstr[MAX_ICHAR_LEN];
   Bytecount newlen;
-#ifdef MULE
   Ichar oldch;
-#endif
 
   /* Defensive steps just in case a buffer gets deleted and a calling
      function doesn't notice it. */
@@ -1575,14 +1560,9 @@ buffer_replace_char (struct buffer *buf, Charbpos pos, Ichar ch,
 
   newlen = set_itext_ichar_fmt (newstr, ch, BUF_FORMAT (buf),
 				   wrap_buffer (buf));
-#ifdef MULE
-  /* If MULE is undefined, ichar_fits_in_format() and ichar_len_fmt() are
-     defined as constant 1. */
-
   oldch = BUF_FETCH_CHAR (buf, pos);
   if (ichar_fits_in_format (ch, BUF_FORMAT (buf), wrap_buffer (buf)) &&
       newlen == ichar_len_fmt (oldch, BUF_FORMAT (buf)))
-#endif
     {
       struct buffer *mbuf;
       Lisp_Object bufcons;
@@ -1622,7 +1602,6 @@ buffer_replace_char (struct buffer *buf, Charbpos pos, Ichar ch,
 	  BUF_MODIFF (buf)++;
 	}
 
-#ifdef MULE
       if (ichar_ascii_p (oldch))
 	buf->text->num_ascii_chars--;
       if (ichar_8_bit_fixed_p (oldch, wrap_buffer (buf)))
@@ -1635,7 +1614,6 @@ buffer_replace_char (struct buffer *buf, Charbpos pos, Ichar ch,
 	buf->text->num_8_bit_fixed_chars++;
       if (ichar_16_bit_fixed_p (ch, wrap_buffer (buf)))
 	buf->text->num_16_bit_fixed_chars++;
-#endif /* MULE */
 
       memcpy (BUF_BYTE_ADDRESS (buf, pos), newstr, newlen);
 
@@ -1644,7 +1622,6 @@ buffer_replace_char (struct buffer *buf, Charbpos pos, Ichar ch,
       /* We do not have to adjust the Mule data; we just replaced a
 	 character with another of the same number of bytes. */
     }
-#ifdef MULE
   else
     {
       /*
@@ -1680,7 +1657,6 @@ buffer_replace_char (struct buffer *buf, Charbpos pos, Ichar ch,
       buffer_insert_string_1 (buf, (movepoint ? -1 : pos),
 			      newstr, Qnil, 0, newlen, -1, 0);
     }
-#endif
 }
 
 
@@ -1786,7 +1762,6 @@ init_buffer_text (struct buffer *b)
       SET_GAP_SENTINEL (b);
       SET_END_SENTINEL (b);
 
-#ifdef MULE
       b->text->entirely_one_byte_p = 1;
 
 #ifdef OLD_BYTE_CHAR
@@ -1799,7 +1774,6 @@ init_buffer_text (struct buffer *b)
 
       /* &&#### Set to FORMAT_8_BIT_FIXED when that code is working */
       /* BUF_FORMAT (b) = FORMAT_DEFAULT; */
-#endif /* MULE */
       b->text->line_number_cache = Qnil;
 
       BUF_MODIFF (b) = 1;

@@ -1,3 +1,18 @@
+2025-02-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Remove --without-mule as an option given maturity of the Mule
+	code and limited development resources to devote to non-Mule bugs
+	and features.
+
+	* config.inc.samp:
+	* config.inc.samp (MULE): Removed, can no longer be set to zero.
+	* xemacs.mak:
+	* xemacs.mak (MULE): Remove conditional code dealing with this.
+	* xemacs.mak (OPT_DEFINES): Remove -DMULE.
+	* xemacs.mak (OPT_OBJS): Move the Mule object files to
+	TEMACS_COMMON_OBJS. 
+	* xemacs.mak (TEMACS_COMMON_OBJS):
+
 2025-02-01  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* xemacs.mak:

@@ -175,11 +175,9 @@ struct mswindows_frame
   /* Frame title hash value. See frame-msw.c */
   unsigned int title_checksum;
 
-#ifdef MULE
   int cursor_x;
   int cursor_y;
   face_index cursor_findex;
-#endif
 
   /* Misc flags */
   int button2_need_lbutton : 1;
@@ -218,11 +216,9 @@ struct mswindows_frame
 
 #define FRAME_MSWINDOWS_POPUP(f)	  (FRAME_MSWINDOWS_DATA (f)->popup)
 
-#ifdef MULE
 # define FRAME_MSWINDOWS_CURSOR_X(f) (FRAME_MSWINDOWS_DATA (f)->cursor_x)
 # define FRAME_MSWINDOWS_CURSOR_Y(f) (FRAME_MSWINDOWS_DATA (f)->cursor_y)
 # define FRAME_MSWINDOWS_CURSOR_FINDEX(f) (FRAME_MSWINDOWS_DATA (f)->cursor_findex)
-#endif
 
 /* Frame check and validation macros */
 #define FRAME_MSWINDOWS_P(frm) CONSOLE_TYPESYM_MSWINDOWS_P (FRAME_TYPE (frm))

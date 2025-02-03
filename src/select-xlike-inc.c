@@ -249,11 +249,7 @@ lisp_data_to_selection_data (struct device *d,
       *size_ret = extvallen;
       *data_ret = xnew_rawbytes (*size_ret);
       memcpy (*data_ret, extval, *size_ret);
-#ifdef MULE
       if (NILP (type)) type = QCOMPOUND_TEXT;
-#else
-      if (NILP (type)) type = QSTRING;
-#endif
     }
   else if (CHARP (obj))
     {
@@ -270,11 +266,7 @@ lisp_data_to_selection_data (struct device *d,
       *size_ret = extvallen;
       *data_ret = xnew_rawbytes (*size_ret);
       memcpy (*data_ret, extval, *size_ret);
-#ifdef MULE
       if (NILP (type)) type = QCOMPOUND_TEXT;
-#else
-      if (NILP (type)) type = QSTRING;
-#endif
     }
   else if (SYMBOLP (obj))
     {

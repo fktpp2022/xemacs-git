@@ -194,9 +194,7 @@ vars_of_intl (void)
   Fprovide (intern ("i18n3"));
 #endif
 
-#ifdef MULE
   Fprovide (intern ("mule"));
-#endif /* MULE */
 
 #ifdef UNICODE_INTERNAL
   Fprovide (intern ("unicode-internal"));

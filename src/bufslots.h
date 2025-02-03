@@ -105,7 +105,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
     MARKED_SLOT (mirror_syntax_table)
 #endif /* MIRROR_TABLE */
 
-#ifdef MULE
     /* This buffer's category table. */
     MARKED_SLOT (category_table)
 
@@ -118,7 +117,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
        multiple charsets, which need to be expanded into those charsets,
        and duplicates removed. */
     MARKED_SLOT (unicode_precedence_array)
-#endif /* MULE */
 
     /* This buffer's coding system. */
     MARKED_SLOT (buffer_file_coding_system)

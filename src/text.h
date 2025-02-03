@@ -169,14 +169,12 @@ enum converr
    GETA MARK. */
 #ifdef UNICODE_INTERNAL
 #define CANT_CONVERT_CHAR_WHEN_DECODING UNICODE_REPLACEMENT_CHAR
-#elif defined (MULE)
+#else
 #define CANT_CONVERT_CHAR_WHEN_DECODING					\
   charset_codepoint_to_ichar (Vcharset_japanese_jisx0208, 34, 46,	\
 			      /* Shouldn't matter, we're old-Mule */	\
 			      CONVERR_SUCCEED)
-#else
-#define CANT_CONVERT_CHAR_WHEN_DECODING '?'
-#endif /* UNICODE_INTERNAL */
+#endif
 /* When unable to display a character in a buffer, substitute the following
    character instead.  #### Possibly we should use some sort of box, e.g.
    the full-height open rectangular box often used for this. */
@@ -376,21 +374,6 @@ unicode_error_octet_code_p (int code)
 /* NOTE: Some basic character functions are defined in lisp.h, because
    they are used earlier than this file is included. */
 
-#ifndef MULE
-
-#define rep_bytes_by_first_byte(fb) ((void) (fb), 1)
-#define ibyte_first_byte_p(ptr) ((void) (ptr), 1)
-#define byte_ascii_p(byte) ((void) (byte), 1)
-#define MAX_ICHAR_LEN 1
-#define MAX_ICHAR_LEN_FORMAT(fmt) ((void) (fmt), 1)
-/* Exclusive upper bound on character codes. */
-#define CHAR_CODE_LIMIT 0x100 
-#define ichar_ascii_p(c) ((void) (c), 1)
-
-/* This appears to work both for values > 255 and < 0. */
-#define valid_ichar_p(ch) (! ((ch) & ~0xFF))
-
-#else /* MULE */
 
 /* These are carefully designed to work if BYTE is signed or unsigned. */
 /* Note that SPC and DEL are considered ASCII, not control. */
@@ -529,7 +512,7 @@ rep_bytes_by_first_byte_1 (int fb, const char *file, int line)
 MODULE_API INT_32_BIT unicode_internal_handle_bad_ichar_to_unicode (Ichar,
                                                                     enum
                                                                     converr);
-#elif defined (MULE)
+#else
 MODULE_API Boolint old_mule_non_ascii_valid_ichar_p (EMACS_INT ch);
 #endif
 
@@ -547,7 +530,6 @@ valid_ichar_p (EMACS_INT ch)
 #endif /* UNICODE_INTERNAL */
 }
 
-#endif /* MULE */
 
 #define ASSERT_VALID_ICHAR(ich)			\
   text_checking_assert (valid_ichar_p (ich))
@@ -567,7 +549,7 @@ do							\
 } while (0)
 
 
-#if defined (MULE) && !defined (UNICODE_INTERNAL)
+#ifndef UNICODE_INTERNAL
 
 /************************************************************************/
 /*              Definition of charset ID's and lead bytes               */
@@ -703,7 +685,7 @@ old_mule_ichar_charset_id (Ichar c)
     }
 }
 
-#endif /* defined (MULE) && !defined (UNICODE_INTERNAL) */
+#endif /* !defined (UNICODE_INTERNAL) */
 
 /************************************************************************/
 /*                         Other char functions                         */
@@ -717,9 +699,6 @@ ichar_len (Ichar c)
 )
 {
   ASSERT_VALID_ICHAR (c);
-#ifndef MULE
-  return 1;
-#else /* MULE */
   if (ichar_ascii_p (c))
     return 1;
 #ifdef UNICODE_INTERNAL
@@ -744,7 +723,6 @@ ichar_len (Ichar c)
       return 4;
     }
 #endif /* UNICODE_INTERNAL */
-#endif /* MULE */
 }
 
 int unicode_char_columns (int code);
@@ -757,9 +735,7 @@ ichar_columns (Ichar c)
 )
 {
   ASSERT_VALID_ICHAR (c);
-#ifndef MULE
-  return 1;
-#elif defined (UNICODE_INTERNAL)
+#if   defined (UNICODE_INTERNAL)
   return unicode_char_columns ((int) c);
 #else
   return old_mule_ichar_columns (c);
@@ -782,9 +758,7 @@ void
 DECODE_ADD_BINARY_CHAR (Ibyte c, Ibyte_dynarr *dst)
 )
 {
-#ifndef MULE
-  Dynarr_add (dst, c);
-#elif defined (UNICODE_INTERNAL)
+#if   defined (UNICODE_INTERNAL)
   if (byte_ascii_p (c))
     Dynarr_add (dst, c);
   else if (c <= 0xBF)
@@ -831,7 +805,7 @@ int old_mule_charset_encodable (Lisp_Object charset);
    Return value will be -1 if cannot convert. */
 DECLARE_INLINE_HEADER (
 int
-ichar_to_unicode (Ichar chr, enum converr USED_IF_MULE (fail))
+ichar_to_unicode (Ichar chr, enum converr fail)
 )
 {
   ASSERT_VALID_ICHAR (chr);
@@ -854,12 +828,9 @@ ichar_to_unicode (Ichar chr, enum converr USED_IF_MULE (fail))
     }
 
   return unicode_internal_handle_bad_ichar_to_unicode (chr, fail);
-#elif defined (MULE)
-  return old_mule_ichar_to_unicode (chr, fail);
 #else
-  /* Unicode-internal or non-Mule */
-  return (int) chr;
-#endif /* (not) defined (MULE) && !defined (UNICODE_INTERNAL) */
+  return old_mule_ichar_to_unicode (chr, fail);
+#endif
 }
 
 /* Convert a Unicode codepoint to an Ichar.  Return value will be (Ichar) -1
@@ -877,14 +848,9 @@ filtered_unicode_to_ichar (int code,
 
 #ifdef UNICODE_INTERNAL
   return (Ichar) code;
-#elif defined (MULE)
-  return old_mule_unicode_to_ichar (code, precedence_array, predicate, fail);
 #else
-  if (code > 255)
-    return (Ichar) -1;
-  else
-    return (Ichar) code;
-#endif /* (not) defined (MULE) */
+  return old_mule_unicode_to_ichar (code, precedence_array, predicate, fail);
+#endif
 }
 
 DECLARE_INLINE_HEADER (
@@ -919,7 +885,6 @@ typedef enum internal_format
   FORMAT_32_BIT_FIXED  /* not implemented */
 } Internal_Format;
 
-#ifdef MULE
 /* "OBJECT" below will usually be a buffer, string, or nil.  This needs to
    be passed in because the interpretation of 8-bit-fixed and 16-bit-fixed
    values may depend on the buffer, e.g. depending on what language the
@@ -1059,14 +1024,6 @@ objects_have_same_internal_representation (Lisp_Object UNUSED (srcobj),
   return 1;
 }
 
-#else /* not MULE */
-
-#define ichar_len_fmt(ch, fmt) 1
-#define ichar_to_raw(ch, fmt, object) ((Raw_Ichar) (ch))
-#define ichar_fits_in_format(ch, fmt, object) 1
-#define objects_have_same_internal_representation(srcobj, dstobj) 1
-
-#endif /* (not) MULE */
 
 MODULE_API int dfc_coding_system_is_unicode (Lisp_Object codesys);
 
@@ -1273,7 +1230,6 @@ do {									   \
     }									   \
 } while (0)
 
-#ifdef MULE
 
 /* Make sure that PTR is pointing to the beginning of a character.  If not,
    back up until this is the case.  Note that there are not too many places
@@ -1309,12 +1265,7 @@ do {									   \
     }						\
 } while (0)
 
-#else /* not MULE */
-#define VALIDATE_IBYTEPTR_BACKWARD(ptr) DO_NOTHING
-#define VALIDATE_IBYTEPTR_FORWARD(ptr) DO_NOTHING
-#endif /* not MULE */
 
-#ifdef MULE
 
 /* Given a Ibyte string at PTR of size N, possibly with a partial
    character at the end, return the size of the longest substring of
@@ -1339,11 +1290,6 @@ validate_ibyte_string_backward (const Ibyte *ptr, Bytecount n)
   return n;
 }
 
-#else /* not MULE */
-
-#define validate_ibyte_string_backward(ptr, n) (n)
-
-#endif /* (not) MULE */
 
 /* ASSERT_ASCTEXT_ASCII(ptr): Check that an Ascbyte * pointer points to
    purely ASCII text.  Useful for checking that putatively ASCII strings
@@ -1380,7 +1326,6 @@ do {							\
 /*               section of internally-formatted text 	          */
 /* -------------------------------------------------------------- */
 
-#ifdef MULE
 
 MODULE_API Charcount
 bytecount_to_charcount_fun (const Ibyte *ptr, Bytecount len);
@@ -1645,17 +1590,6 @@ skip_ascii_down (const Ibyte *ptr, const Ibyte *end)
    the buffer. */
 Charcount buffered_bytecount_to_charcount (const Ibyte *, Bytecount len);
 
-#else
-
-#define bytecount_to_charcount(ptr, len) ((Charcount) (len))
-#define bytecount_to_charcount_fmt(ptr, len, fmt) ((Charcount) (len))
-#define charcount_to_bytecount(ptr, len) ((Bytecount) (len))
-#define charcount_to_bytecount_fmt(ptr, len, fmt) ((Bytecount) (len))
-#define skip_ascii(ptr, end) end
-#define skip_ascii_down(ptr, end) end
-#define buffered_bytecount_to_charcount(ptr, len) (len)
-
-#endif /* MULE */
 
 /* Return the length of the first character at PTR.  Equivalent to
    charcount_to_bytecount (ptr, 1).
@@ -1747,7 +1681,6 @@ simple_set_itext_ichar (Ibyte *ptr, Ichar x)
         ((ptr)[0] = (Ibyte) (x), (Bytecount) 1)
 #endif /* ERROR_CHECK_TEXT */
 
-#ifdef MULE
 
 MODULE_API Ichar non_ascii_itext_ichar (const Ibyte *ptr);
 MODULE_API Bytecount non_ascii_set_itext_ichar (Ibyte *ptr, Ichar c);
@@ -1908,17 +1841,6 @@ Dynarr_add_ichar (unsigned_char_dynarr *dyn, Ichar ich)
   Dynarr_add_many (dyn, work, len);
 }
 
-#else /* not MULE */
-
-# define itext_ichar(ptr) simple_itext_ichar (ptr)
-# define itext_ichar_fmt(ptr, fmt, object) itext_ichar (ptr)
-# define itext_ichar_ascii_fmt(ptr, fmt, object) itext_ichar (ptr)
-# define itext_ichar_raw_fmt(ptr, fmt) itext_ichar (ptr)
-# define set_itext_ichar(ptr, x) simple_set_itext_ichar (ptr, x)
-# define set_itext_ichar_fmt(ptr, x, fmt, obj) set_itext_ichar (ptr, x)
-# define Dynarr_add_ichar(dyn, ich) Dynarr_add (dyn, (unsigned char) (ich))
-
-#endif /* not MULE */
 
 /* Retrieve the character pointed to by SRC and store it as
    internally-formatted text in DST. */
@@ -1961,9 +1883,7 @@ itext_ichar_eql (const Ibyte *str, Ichar ch)
     /* This is fine, since ASCII characters are not part of the subsequent
        octets of non-ASCII characters. */
     return *str == (Ibyte) ch; 
-#ifdef MULE
   return non_ascii_itext_ichar (str) == ch;
-#endif
 }
 
 /* Retrieve the character at offset N (in characters) from PTR, as an
@@ -2045,7 +1965,6 @@ string_index_byte_to_char (Lisp_Object s, Bytecount idx)
 {
   Charcount retval;
   ASSERT_VALID_BYTE_STRING_INDEX_UNSAFE (s, idx);
-#ifdef MULE
   if (idx <= (Bytecount) XSTRING_ASCII_END (s))
     retval = (Charcount) idx;
   else
@@ -2056,9 +1975,6 @@ string_index_byte_to_char (Lisp_Object s, Bytecount idx)
 # ifdef SLEDGEHAMMER_CHECK_ASCII_END
   assert (retval == bytecount_to_charcount (XSTRING_DATA (s), idx));
 # endif
-#else
-  retval = (Charcount) idx;
-#endif
   /* Don't call ASSERT_VALID_CHAR_STRING_INDEX_UNSAFE() here because it will
      call string_index_byte_to_char(). */
   return retval;
@@ -2072,7 +1988,6 @@ string_index_char_to_byte (Lisp_Object s, Charcount idx)
 {
   Bytecount retval;
   ASSERT_VALID_CHAR_STRING_INDEX_UNSAFE (s, idx);
-#ifdef MULE
   if (idx <= (Charcount) XSTRING_ASCII_END (s))
     retval = (Bytecount) idx;
   else
@@ -2083,9 +1998,6 @@ string_index_char_to_byte (Lisp_Object s, Charcount idx)
 # ifdef SLEDGEHAMMER_CHECK_ASCII_END
   assert (retval == charcount_to_bytecount (XSTRING_DATA (s), idx));
 # endif
-#else
-  retval = (Bytecount) idx;
-#endif
   ASSERT_VALID_BYTE_STRING_INDEX_UNSAFE (s, retval);
   return retval;
 }
@@ -2100,7 +2012,6 @@ string_offset_byte_to_char_len (Lisp_Object s, Bytecount off, Bytecount len)
   Charcount retval;
   ASSERT_VALID_BYTE_STRING_INDEX_UNSAFE (s, off);
   ASSERT_VALID_BYTE_STRING_INDEX_UNSAFE (s, off + len);
-#ifdef MULE
   if (off + len <= (Bytecount) XSTRING_ASCII_END (s))
     retval = (Charcount) len;
   else if (off < (Bytecount) XSTRING_ASCII_END (s))
@@ -2113,9 +2024,6 @@ string_offset_byte_to_char_len (Lisp_Object s, Bytecount off, Bytecount len)
 # ifdef SLEDGEHAMMER_CHECK_ASCII_END
   assert (retval == bytecount_to_charcount (XSTRING_DATA (s) + off, len));
 # endif
-#else
-  retval = (Charcount) len;
-#endif
   return retval;
 }
 
@@ -2128,7 +2036,6 @@ string_offset_char_to_byte_len (Lisp_Object s, Bytecount off, Charcount len)
 {
   Bytecount retval;
   ASSERT_VALID_BYTE_STRING_INDEX_UNSAFE (s, off);
-#ifdef MULE
   /* casts to avoid errors from combining Bytecount/Charcount and warnings
      from signed/unsigned comparisons */
   if (off + (Bytecount) len <= (Bytecount) XSTRING_ASCII_END (s))
@@ -2144,9 +2051,6 @@ string_offset_char_to_byte_len (Lisp_Object s, Bytecount off, Charcount len)
 # ifdef SLEDGEHAMMER_CHECK_ASCII_END
   assert (retval == charcount_to_bytecount (XSTRING_DATA (s) + off, len));
 # endif
-#else
-  retval = (Bytecount) len;
-#endif
   ASSERT_VALID_BYTE_STRING_INDEX_UNSAFE (s, off + retval);
   return retval;
 }

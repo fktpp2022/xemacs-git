@@ -889,29 +889,26 @@ XE_MERGED_ARG([native-sound-lib],
 	[], [])
 dnl
 XE_HELP_SUBSECTION([Internationalization options])
-XE_MERGED_ARG([mule],
-	AS_HELP_STRING([--with-mule],[Compile with Mule (Multi-Lingual Emacs), i.e. internationalization support,
-                        needed to support non-Latin-1 (including Asian)
-                        languages. Defaults to on.]),
-	[], [])
 XE_MERGED_ARG([unicode-internal],
-	AS_HELP_STRING([--with-unicode-internal],[Use Unicode and UTF-8 internally for text.  Automatically selects `--with-mule'.  Without this,
-Mule uses an old internal encoding that explicitly encodes the national
-character set associated with a char and cannot represent all of Unicode.]),
+	AS_HELP_STRING([--with-unicode-internal],[Use Unicode and UTF-8
+	internally for text.  Without this, XEmacs uses an ISO-2022-oriented
+	encoding that explicitly encodes the national character set associated
+	with a char and cannot represent all of Unicode at once. It does,
+	however, work better with native X11 (non-XFT) fonts.]),
 	[], [])
 XE_KEYWORD_ARG([xim],
 	AS_HELP_STRING([--with-xim==TYPE],[Enable XIM support.  TYPE is `yes', `no', `xlib', or `motif']),
 	[],[],[yes,no,xlib,motif])dnl
 XE_MERGED_ARG([canna],
-	AS_HELP_STRING([--with-canna],[Support the Canna Japanese input method. Requires Mule.]),
+	AS_HELP_STRING([--with-canna],[Support the Canna Japanese input method.]),
 	[], [])
 XE_MERGED_ARG([wnn],
 	AS_HELP_STRING([--with-wnn],[Support the Wnn Asian language input
-                        method. Requires Mule.]),
+                        method.]),
 	[], [])
 XE_MERGED_ARG([wnn6],
 	AS_HELP_STRING([--with-wnn6],[Support the Wnn6 Asian language input
-                        method (proprietary). Requires Mule.]),
+                        method (proprietary).]),
 	[], [])
 XE_MERGED_ARG([xfs],
 	AS_HELP_STRING([--with-xfs],[Enable XFontSet support for internationalized
@@ -920,12 +917,6 @@ XE_MERGED_ARG([xfs],
 	[], [])
 dnl
 XE_HELP_SUBSECTION([File-related options])
-XE_MERGED_ARG([default-eol-detection],
-	AS_HELP_STRING([--with-default-eol-detection],[Turns on by default auto-detection of end-of-line type
-			when reading a file.  Applies to those platforms where
-			auto-detection is off by default (non-Mule Unix).  Has
-			no effect otherwise.]),
-	[], [])
 XE_MERGED_ARG([clash-detection],
 	AS_HELP_STRING([--with-clash-detection],[Disable use of lock files to detect multiple edits
 			of the same file.]),
@@ -4294,28 +4285,11 @@ test "$with_xft_menubars" = "yes"  && AC_DEFINE(HAVE_XFT_MENUBARS)
 test "$with_xft_tabs" = "yes"  && AC_DEFINE(HAVE_XFT_TABS)
 test "$with_xft_gauges" = "yes"  && AC_DEFINE(HAVE_XFT_GAUGES)
 
-dnl ----------------------
-dnl Mule-dependent options
-dnl ----------------------
 
 if test "$with_unicode_internal" = "yes"; then
-  test "$with_mule" = "no" && \
-	USAGE_ERROR("Cannot give \`--with-mule=no' and \`--with-unicode-internal=yes'.
-Unicode-internal requires Mule.")
-  test "$with_mule" != "yes" && \
-	AC_MSG_WARN([`--with-mule' forced to `yes': Unicode-internal requires Mule.])
-  with_mule=yes
   AC_DEFINE(UNICODE_INTERNAL)
 fi
 
-test -z "$with_mule" && with_mule=yes
-
-dnl if test "$with_mule" = "yes" && test ! -d "$srcdir/lisp/mule"; then
-dnl	echo "Attempt to Build with Mule without Mule/Lisp"
-dnl	echo "Please install the XEmacs/Mule tarball or"
-dnl	echo "rerun configure with --with-mule=no"
-dnl	exit 1
-dnl fi
 
 if test "$with_default_eol_detection" = "yes"; then
   AC_DEFINE(HAVE_DEFAULT_EOL_DETECTION)
@@ -4325,110 +4299,106 @@ dnl initialize _libs variables for possible modules at top level
 canna_libs=
 wnn_libs=
 
-if test "$with_mule" = "yes" ; then
-  AC_MSG_CHECKING([for Mule-related features])
-  AC_DEFINE(MULE)
+dnl Use -lintl to get internationalized strerror for Mule
+AC_CHECK_HEADERS(libintl.h)
+AC_CHECK_LIB(intl, strerror)
 
-  dnl Use -lintl to get internationalized strerror for Mule
-  AC_CHECK_HEADERS(libintl.h)
-  AC_CHECK_LIB(intl, strerror)
+AC_MSG_CHECKING([for input methods])
+dnl Do we have the XmIm* routines?  And if so, do we want to use them?
+case "$with_xim" in "" | "yes" )
+  AC_MSG_CHECKING([for XIM])
+  AC_CHECK_LIB(X11, XOpenIM, with_xim=xlib, with_xim=no)
+  dnl XIM + Lesstif is not (yet?) usable
+  dnl Only use Motif if linking Motif anyway, or don't have xlib XIM
+  if test "$need_motif $have_lesstif" = "yes no"; then
+    AC_CHECK_LIB(Xm, XmImMbLookupString, with_xim=motif)
+  dnl #### This is always false.
+  dnl Not clear what we want, although "yes no yes" is insufficient.
+  elif test "$have_motif $have_lesstif $with_xim" = "yes no no"; then
+    AC_CHECK_LIB(Xm, XmImMbLookupString, with_xim=motif)
+  fi ;;
+esac
+if test "$with_xim" != "no"; then
+  AC_DEFINE(HAVE_XIM)
+  if test "$with_xim" = "xlib"; then
+    AC_DEFINE(XIM_XLIB)
+    XE_ADD_OBJS(input-method-xlib.o)
+  fi
+  if test "$with_xim" = "motif"; then
+    AC_DEFINE(XIM_MOTIF)
+    need_motif=yes
+    XE_ADD_OBJS(input-method-motif.o)
+  fi
+  if test "$with_xim" = "motif"; then
+    with_xfs=no
+  fi
+fi
 
-  AC_MSG_CHECKING([for Mule input methods])
-  dnl Do we have the XmIm* routines?  And if so, do we want to use them?
-  case "$with_xim" in "" | "yes" )
-    AC_MSG_CHECKING([for XIM])
-    AC_CHECK_LIB(X11, XOpenIM, with_xim=xlib, with_xim=no)
-    dnl XIM + Lesstif is not (yet?) usable
-    dnl Only use Motif if linking Motif anyway, or don't have xlib XIM
-    if test "$need_motif $have_lesstif" = "yes no"; then
-      AC_CHECK_LIB(Xm, XmImMbLookupString, with_xim=motif)
-    dnl #### This is always false.
-    dnl Not clear what we want, although "yes no yes" is insufficient.
-    elif test "$have_motif $have_lesstif $with_xim" = "yes no no"; then
-      AC_CHECK_LIB(Xm, XmImMbLookupString, with_xim=motif)
-    fi ;;
-  esac
-  if test "$with_xim" != "no"; then
-    AC_DEFINE(HAVE_XIM)
-    if test "$with_xim" = "xlib"; then
-      AC_DEFINE(XIM_XLIB)
+dnl "with_xfs" = "yes"
+if test "$with_xfs" = "yes" ; then
+  AC_MSG_CHECKING([for XFontSet])
+  AC_CHECK_LIB(X11, XmbDrawString, [:], with_xfs=no)
+  if test "$with_xfs" = "yes" && test "$with_menubars" = "lucid"; then
+    AC_DEFINE(USE_XFONTSET)
+    if test "$with_xim" = "no" ; then
       XE_ADD_OBJS(input-method-xlib.o)
     fi
-    if test "$with_xim" = "motif"; then
-      AC_DEFINE(XIM_MOTIF)
-      need_motif=yes
-      XE_ADD_OBJS(input-method-motif.o)
-    fi
-    if test "$with_xim" = "motif"; then
-      with_xfs=no
-    fi
   fi
+fi dnl with_xfs
 
-  dnl "with_xfs" = "yes"
-  if test "$with_xfs" = "yes" ; then
-    AC_MSG_CHECKING([for XFontSet])
-    AC_CHECK_LIB(X11, XmbDrawString, [:], with_xfs=no)
-    if test "$with_xfs" = "yes" && test "$with_menubars" = "lucid"; then
-      AC_DEFINE(USE_XFONTSET)
-      if test "$with_xim" = "no" ; then
-        XE_ADD_OBJS(input-method-xlib.o)
-      fi
+dnl Autodetect WNN
+test "$with_wnn6" = "yes" && with_wnn=yes # wnn6 implies wnn support
+test -z "$with_wnn" && { AC_CHECK_HEADER(wnn/jllib.h, ,with_wnn=no) }
+dnl gcc 2.97 fixincludes breaks inclusion of wnn/commonhd.h
+test -z "$with_wnn" && { AC_CHECK_HEADER(wnn/commonhd.h, ,with_wnn=no) }
+dnl Detour to find crypt
+if test "$with_wnn" != "no"; then
+  AC_CHECK_FUNCS(crypt)
+  test "$ac_cv_func_crypt" != "yes" && { AC_CHECK_LIB(crypt, crypt) }
+fi
+dnl Back to our regularly scheduled wnn hunting
+if test -z "$with_wnn" -o "$with_wnn" = "yes"; then
+  AC_CHECK_LIB(wnn,jl_dic_list_e,libwnn=wnn,
+    AC_CHECK_LIB(wnn4,jl_dic_list_e,libwnn=wnn4,
+      AC_CHECK_LIB(wnn6,jl_dic_list_e,libwnn=wnn6,
+        AC_CHECK_LIB(wnn6_fromsrc,dic_list_e,libwnn=wnn6_fromsrc,with_wnn=no))))
+fi
+test -z "$with_wnn" && with_wnn=yes
+if test "$with_wnn" = "yes"; then
+  AC_DEFINE(HAVE_WNN)
+  XE_PREPEND(-l$libwnn, libs_x)
+  if test "$with_wnn6" != "no"; then
+    AC_CHECK_LIB($libwnn, jl_fi_dic_list, with_wnn6=yes)
+    test "$with_wnn6" = "yes" && AC_DEFINE(WNN6)
+  fi
+fi
+
+dnl Configure canna
+dnl canna_libs variable is initialized at toplevel
+have_canna=false
+if test "$with_canna" != "no"; then
+  for canna_include_path in : $xe_known_include_dirs /usr/local/canna/include
+  do
+    $as_unset ac_cv_header_canna_jrkanji_h
+
+    if test $canna_include_path != :; then
+      AC_MSG_CHECKING(for Canna headers in $canna_include_path)
+      cppflags_saved=$CPPFLAGS
+      XE_APPEND(-I$canna_include_path, CPPFLAGS)
     fi
-  fi dnl with_xfs
 
-  dnl Autodetect WNN
-  test "$with_wnn6" = "yes" && with_wnn=yes # wnn6 implies wnn support
-  test -z "$with_wnn" && { AC_CHECK_HEADER(wnn/jllib.h, ,with_wnn=no) }
-  dnl gcc 2.97 fixincludes breaks inclusion of wnn/commonhd.h
-  test -z "$with_wnn" && { AC_CHECK_HEADER(wnn/commonhd.h, ,with_wnn=no) }
-  dnl Detour to find crypt
-  if test "$with_wnn" != "no"; then
-    AC_CHECK_FUNCS(crypt)
-    test "$ac_cv_func_crypt" != "yes" && { AC_CHECK_LIB(crypt, crypt) }
-  fi
-  dnl Back to our regularly scheduled wnn hunting
-  if test -z "$with_wnn" -o "$with_wnn" = "yes"; then
-    AC_CHECK_LIB(wnn,jl_dic_list_e,libwnn=wnn,
-      AC_CHECK_LIB(wnn4,jl_dic_list_e,libwnn=wnn4,
-	AC_CHECK_LIB(wnn6,jl_dic_list_e,libwnn=wnn6,
-	  AC_CHECK_LIB(wnn6_fromsrc,dic_list_e,libwnn=wnn6_fromsrc,with_wnn=no))))
-  fi
-  test -z "$with_wnn" && with_wnn=yes
-  if test "$with_wnn" = "yes"; then
-    AC_DEFINE(HAVE_WNN)
-    XE_PREPEND(-l$libwnn, libs_x)
-    if test "$with_wnn6" != "no"; then
-      AC_CHECK_LIB($libwnn, jl_fi_dic_list, with_wnn6=yes)
-      test "$with_wnn6" = "yes" && AC_DEFINE(WNN6)
-    fi
-  fi
-
-  dnl Configure canna
-  dnl canna_libs variable is initialized at toplevel
-  have_canna=false
-  if test "$with_canna" != "no"; then
-    for canna_include_path in : $xe_known_include_dirs /usr/local/canna/include
-    do
-      $as_unset ac_cv_header_canna_jrkanji_h
-
-      if test $canna_include_path != :; then
-        AC_MSG_CHECKING(for Canna headers in $canna_include_path)
-        cppflags_saved=$CPPFLAGS
-        XE_APPEND(-I$canna_include_path, CPPFLAGS)
-      fi
-
-      AC_CHECK_HEADER(canna/jrkanji.h, [have_canna=true])
-
-      if $have_canna; then
-        break
-      elif test $canna_include_path != :; then
-        CPPFLAGS=$cppflags_saved
-      fi
-    done
+    AC_CHECK_HEADER(canna/jrkanji.h, [have_canna=true])
 
     if $have_canna; then
-      AC_MSG_CHECKING(for CANNA_NEW_WCHAR_AWARE)
-      AC_EGREP_CPP([xe_test_becomes_cannawcKanjiString], [
+      break
+    elif test $canna_include_path != :; then
+      CPPFLAGS=$cppflags_saved
+    fi
+  done
+
+  if $have_canna; then
+    AC_MSG_CHECKING(for CANNA_NEW_WCHAR_AWARE)
+    AC_EGREP_CPP([xe_test_becomes_cannawcKanjiString], [
 #define CANNA_NEW_WCHAR_AWARE
 #include <canna/jrkanji.h>
 #define XE_TEST_CONCAT(a) xe_test_becomes_ ## a
@@ -4481,16 +4451,6 @@ XE_CPP_TEST_ROUND1 (wcKanjiString)
   fi
 
   AC_SUBST(canna_libs)
-
-else dnl "$with_mule" = "no"
-  for feature in xim canna wnn; do
-    if eval "test -n \"\$with_${feature}\" -a \"\$with_${feature}\" != no" ; then
-      AC_MSG_WARN([--with-${feature} ignored:  Not valid without Mule support])
-    fi
-    eval "with_${feature}=no"
-  done
-fi dnl with_mule
-
 
 dnl At this point, we know whether we need the motif lib or not.
 if test "$need_motif" = "yes" ; then
@@ -6304,18 +6264,15 @@ fi
 
 echo "
 Internationalization:"
-if test "$with_mule" = yes; then
-  echo "  Compiling in support for Mule (multi-lingual Emacs)."
-  test "$with_unicode_internal" = yes && echo "    -  Unicode and UTF-8 will be used internally for text."
-  test "$with_unicode_internal" != yes && echo "    -  The old-Mule format will be used internally for text."
-fi
+test "$with_unicode_internal" = yes && echo "    -  Unicode and UTF-8 will be used internally for text."
+test "$with_unicode_internal" != yes && echo "    -  The old-Mule format will be used internally for text."
 test "$with_xim" != no && echo "  Compiling in support for XIM (X11R5+ I18N input method)."
 test "$with_xim" = motif && echo "    - Using Motif to provide XIM support."
 test "$with_xim" = xlib && echo "    - Using raw Xlib to provide XIM support."
 test "$with_xfs" = yes && echo "    - Using XFontSet to provide bilingual menubar."
-test "$have_canna" = true && echo "  Compiling in support for Canna on Mule."
+test "$have_canna" = true && echo "  Compiling in support for Canna."
 if test "$with_wnn" = yes; then
-  echo "  Compiling in support for the WNN input method on Mule."
+  echo "  Compiling in support for the WNN input method."
   test "$with_wnn6" = yes && echo "    - Using WNN version 6."
 fi
 
@@ -6348,8 +6305,8 @@ if test "$with_union_type" = yes ; then
   echo "  Using the union type for Lisp_Objects."
   echo "  WARNING: ---------------------------------------------------------"
   echo "  WARNING: This tends to trigger compiler bugs, especially when"
-  echo "  WARNING: combined with MULE and ERROR_CHECKING.  Crashes have"
-  echo "  WARNING: been seen with various versions of GCC (up to about 2.95),"
+  echo "  WARNING: combined with ERROR_CHECKING.  Crashes have been seen"
+  echo "  WARNING: with various versions of GCC (up to about 2.95),"
   echo "  WARNING: and recently with Visual C++ as well (mid-2003)."
   echo "  WARNING: More recent versions may be safer, or not."
   echo "  WARNING: ---------------------------------------------------------"

@@ -97,10 +97,8 @@ Lisp_Object Qaliases;
 Lisp_Object Vdebug_coding_detection;
 #endif
 
-#ifdef MULE
 extern Lisp_Object Vcharset_ascii, Vcharset_control_1,
   Vcharset_latin_iso8859_1;
-#endif
 
 typedef struct coding_system_type_entry
 {
@@ -1181,10 +1179,8 @@ make_coding_system_1 (Lisp_Object name_or_existing, const Ascbyte *prefix,
                    mule-coding.el  */
                 && 0)
               {
-#ifdef MULE
                 EXTERNAL_LIST_LOOP_2 (safe_charset, value)
                   CHECK_CHARSET (Ffind_charset (safe_charset));
-#endif
               }
 
             CODING_SYSTEM_SAFE_CHARSETS (cs) = value;
@@ -3921,7 +3917,6 @@ no_conversion_encode (struct coding_stream *str, const Ibyte *src,
 
 	  src = nonascii;
 	}
-#ifdef MULE
       else
 	{
 	  Ichar ch = non_ascii_itext_ichar (src);
@@ -3935,7 +3930,6 @@ no_conversion_encode (struct coding_stream *str, const Ibyte *src,
 	      ENCODING_ERROR_RETURN_OR_CONTINUE (str, src);
 	    }
 	}
-#endif /* MULE */
     }
 
   return src - str->src;
@@ -5900,15 +5894,11 @@ vars_of_file_coding (void)
   QScoding_system_cookie = build_ascstring (";;;###coding system: ");
   staticpro (&QScoding_system_cookie);
 
-#ifdef HAVE_DEFAULT_EOL_DETECTION
   /* #### Find a more appropriate place for this comment.
      WARNING: The existing categories are intimately tied to the function
      `coding-system-category' in coding.el.  If you change a category, or
      change the layout of any coding system associated with a category, you
      need to check that function and make sure it's written properly. */
-
-  Fprovide (intern ("unix-default-eol-detection"));
-#endif
 
   DEFVAR_LISP ("keyboard-coding-system", &Vkeyboard_coding_system /*
 Default coding system used for TTY and X11 keyboard input.
@@ -6091,11 +6081,9 @@ complex_vars_of_file_coding (void)
                                 "codes, and acts otherwise like "
                                 "`binary'."),
             Qmnemonic, build_ascstring ("Raw"),
-#ifdef MULE
             Qsafe_charsets, list3 (Vcharset_ascii, Vcharset_control_1,
                                    Vcharset_latin_iso8859_1),
 
-#endif
             Qunbound));
 
 
@@ -6112,10 +6100,8 @@ complex_vars_of_file_coding (void)
 "are converted to the default character, i.e. `~'."),
             Qeol_type, Qlf,
             Qmnemonic, build_ascstring ("Binary"),
-#ifdef MULE
             Qsafe_charsets, list3 (Vcharset_ascii, Vcharset_control_1,
                                    Vcharset_latin_iso8859_1),
-#endif
             Qunbound));
 
   /* Formerly aliased to raw-text!  Completely bogus and not even the same

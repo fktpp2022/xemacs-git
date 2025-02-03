@@ -61,7 +61,6 @@ Lisp_Object Qchar_tablep, Qchar_table;
 
 Lisp_Object Vall_syntax_tables;
 
-#ifdef MULE
 Lisp_Object Qcategory_tablep;
 Lisp_Object Qcategory_designator_p;
 
@@ -69,7 +68,6 @@ Lisp_Object Vstandard_category_table;
 
 /* Variables to determine word boundary.  */
 Lisp_Object Vword_combining_categories, Vword_separating_categories;
-#endif /* MULE */
 
 #ifdef MEMORY_USAGE_STATS
 Lisp_Object Qpage_tables;
@@ -935,7 +933,7 @@ char_table_hash (Lisp_Object obj, int depth, Boolint equalp)
       for (ch = 0xAC00; ch <= 0xD7AF; ch += 791)
 	hashval = HASH2 (hashval, hash_raw_chartab_val (ch, obj, depth,
 							equalp));
-#elif defined (MULE)
+#else
 /* 0xA1 is usually the first alphabetic character and differs across
    charsets, whereas 0xA0 is no-break-space across many of them.
    charset_codepoint_to_ichar_raw() can't fail because we are in non-
@@ -1009,9 +1007,7 @@ char_table_type_to_symbol (enum char_table_type type)
   case CHAR_TABLE_TYPE_SYNTAX:   return Qsyntax;
   case CHAR_TABLE_TYPE_DISPLAY:  return Qdisplay;
   case CHAR_TABLE_TYPE_CHAR:     return Qchar;
-#ifdef MULE
   case CHAR_TABLE_TYPE_CATEGORY: return Qcategory;
-#endif
   }
 }
 
@@ -1024,9 +1020,7 @@ symbol_to_char_table_type (Lisp_Object symbol)
   if (EQ (symbol, Qsyntax))   return CHAR_TABLE_TYPE_SYNTAX;
   if (EQ (symbol, Qdisplay))  return CHAR_TABLE_TYPE_DISPLAY;
   if (EQ (symbol, Qchar))     return CHAR_TABLE_TYPE_CHAR;
-#ifdef MULE
   if (EQ (symbol, Qcategory)) return CHAR_TABLE_TYPE_CATEGORY;
-#endif
 
   invalid_constant ("Unrecognized char table type", symbol);
   RETURN_NOT_REACHED (CHAR_TABLE_TYPE_GENERIC);
@@ -1042,9 +1036,7 @@ char_table_default_for_type (enum char_table_type type)
       break;
     case CHAR_TABLE_TYPE_DISPLAY:
     case CHAR_TABLE_TYPE_GENERIC:
-#ifdef MULE
     case CHAR_TABLE_TYPE_CATEGORY:
-#endif /* MULE */
       return Qnil;
       break;
 
@@ -1153,10 +1145,6 @@ decode_char_table_range (Lisp_Object range, struct chartab_range *outrange)
       outrange->ch = XCHAR_OR_CHAR_INT (XCAR (range));
       outrange->chtop = XCHAR_OR_CHAR_INT (XCDR (range));
     }
-#ifndef MULE
-  else
-    sferror ("Range must be t, character or cons of char range", range);
-#else /* MULE */
   else if (VECTORP (range))
     {
       Lisp_Vector *vec = XVECTOR (range);
@@ -1186,7 +1174,6 @@ decode_char_table_range (Lisp_Object range, struct chartab_range *outrange)
       outrange->type = CHARTAB_RANGE_CHARSET;
       outrange->charset = Fget_charset (range);
     }
-#endif /* MULE */
 }
 
 static void
@@ -1212,11 +1199,7 @@ See `make-char-table'.
 */
        ())
 {
-#ifdef MULE
   return list5 (Qchar, Qcategory, Qdisplay, Qgeneric, Qsyntax);
-#else
-  return list4 (Qchar, Qdisplay, Qgeneric, Qsyntax);
-#endif
 }
 
 DEFUN ("valid-char-table-type-p", Fvalid_char_table_type_p, 1, 1, 0, /*
@@ -1226,9 +1209,7 @@ See `make-char-table'.
        (type))
 {
   return (EQ (type, Qchar)     ||
-#ifdef MULE
 	  EQ (type, Qcategory) ||
-#endif
 	  EQ (type, Qdisplay)  ||
 	  EQ (type, Qgeneric)  ||
 	  EQ (type, Qsyntax)) ? Qt : Qnil;
@@ -1499,13 +1480,11 @@ check_valid_char_table_value (Lisp_Object value, enum char_table_type type,
         CHECK_FIXNUM (value);
       break;
 
-#ifdef MULE
     case CHAR_TABLE_TYPE_CATEGORY:
       maybe_signal_error (Qinvalid_operation,
 			  "Can't set category char tables in this fashion",
 			  value, Qchar_table, errb);
       return 0;
-#endif /* MULE */
 
     case CHAR_TABLE_TYPE_GENERIC:
       return 1;
@@ -1581,9 +1560,7 @@ put_char_table_range (Lisp_Object table, struct chartab_range *range,
 		      Lisp_Object val)
 {
   Lisp_Char_Table *ct = XCHAR_TABLE (table);
-#ifdef MULE
   int l1, l2, h1, h2;
-#endif
 
   switch (range->type)
     {
@@ -1600,7 +1577,6 @@ put_char_table_range (Lisp_Object table, struct chartab_range *range,
       break;
 
 
-#ifdef MULE
     case CHARTAB_RANGE_ROW:
       {
 	get_charset_limits (range->charset, &l1, &l2, &h1, &h2);
@@ -1638,7 +1614,6 @@ put_char_table_range (Lisp_Object table, struct chartab_range *range,
 	put_char_table (table, from, to, val);
       }
 #endif /* (not) UNICODE_INTERNAL */
-#endif /* MULE */
     }
 
   if (ct->type == CHAR_TABLE_TYPE_SYNTAX)
@@ -1721,9 +1696,7 @@ map_char_table (Lisp_Object table,
 			   Lisp_Object val, void *arg),
 		void *arg)
 {
-#ifdef MULE
   int l1, h1, l2, h2;
-#endif
   int levels = XCHAR_TABLE_LEVELS (table);
   /* Compute maximum allowed value for this table, which may be less than
      the range we have been requested to map over. */
@@ -1759,7 +1732,6 @@ map_char_table (Lisp_Object table,
 	else
 	  return 0;
       }
-#ifdef MULE
     case CHARTAB_RANGE_ROW:
       {
 	get_charset_limits (range->charset, &l1, &l2, &h1, &h2);
@@ -1810,7 +1782,6 @@ map_char_table (Lisp_Object table,
 				    table, fn, arg, &rainj);
       }
 #endif /* (not) UNICODE_INTERNAL */
-#endif /* MULE */
 
     default:
       ABORT ();
@@ -2021,7 +1992,6 @@ chartab_instantiate (Lisp_Object plist)
   return chartab;
 }
 
-#ifdef MULE
 
 
 /************************************************************************/
@@ -2388,7 +2358,6 @@ word_boundary_p (struct buffer *buf, Ichar c1, Ichar c2)
   return default_result;
 }
 
-#endif /* MULE */
 
 
 void
@@ -2407,11 +2376,9 @@ syms_of_chartab (void)
   INIT_LISP_OBJECT (char_table);
   INIT_LISP_OBJECT (char_subtable);
 
-#ifdef MULE
   INIT_LISP_OBJECT (category_table);
   DEFSYMBOL_MULTIWORD_PREDICATE (Qcategory_tablep);
   DEFSYMBOL (Qcategory_designator_p);
-#endif /* MULE */
 
   DEFSYMBOL (Qchar_table);
   DEFSYMBOL_MULTIWORD_PREDICATE (Qchar_tablep);
@@ -2436,7 +2403,6 @@ syms_of_chartab (void)
   DEFSUBR (Fremove_char_table);
   DEFSUBR (Fmap_char_table);
 
-#ifdef MULE
   DEFSUBR (Fmake_category_table);
   DEFSUBR (Fcategory_table_p);
   DEFSUBR (Fcategory_table);
@@ -2448,7 +2414,6 @@ syms_of_chartab (void)
   DEFSUBR (Fcategory_designator_p);
   DEFSUBR (Fmodify_category_entry_internal);
   DEFSUBR (Fmap_category_table);
-#endif /* MULE */
 
 }
 
@@ -2492,7 +2457,6 @@ structure_type_create_chartab (void)
 void
 complex_vars_of_chartab (void)
 {
-#ifdef MULE
   /* Set this now, so first buffer creation can refer to it. */
   Vstandard_category_table = Fmake_category_table ();
   staticpro (&Vstandard_category_table);
@@ -2541,5 +2505,4 @@ See the documentation of the variable `word-combining-categories'.
 */ );
 
   Vword_separating_categories = Qnil;
-#endif /* MULE */
 }

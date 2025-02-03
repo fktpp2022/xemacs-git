@@ -1000,8 +1000,6 @@ enable_sound
 with_sound
 enable_native_sound_lib
 with_native_sound_lib
-enable_mule
-with_mule
 enable_unicode_internal
 with_unicode_internal
 enable_xim
@@ -1014,8 +1012,6 @@ enable_wnn6
 with_wnn6
 enable_xfs
 with_xfs
-enable_default_eol_detection
-with_default_eol_detection
 enable_clash_detection
 with_clash_detection
 enable_zlib
@@ -1915,23 +1911,18 @@ Sound options
 Internationalization options
 ----------------------------
 
-  --with-mule             Compile with Mule (Multi-Lingual Emacs), i.e.
-                          internationalization support, needed to support
-                          non-Latin-1 (including Asian) languages. Defaults to
-                          on.
-  --with-unicode-internal Use Unicode and UTF-8 internally for text.
-                          Automatically selects `--with-mule'. Without this,
-                          Mule uses an old internal encoding that explicitly
-                          encodes the national character set associated with a
-                          char and cannot represent all of Unicode.
+  --with-unicode-internal Use Unicode and UTF-8 internally for text. Without
+                          this, XEmacs uses an ISO-2022-oriented encoding that
+                          explicitly encodes the national character set
+                          associated with a char and cannot represent all of
+                          Unicode at once. It does, however, work better with
+                          native X11 (non-XFT) fonts.
   --with-xim==TYPE        Enable XIM support. TYPE is `yes', `no', `xlib', or
                           `motif'
-  --with-canna            Support the Canna Japanese input method. Requires
-                          Mule.
+  --with-canna            Support the Canna Japanese input method.
   --with-wnn              Support the Wnn Asian language input method.
-                          Requires Mule.
   --with-wnn6             Support the Wnn6 Asian language input method
-                          (proprietary). Requires Mule.
+                          (proprietary).
   --with-xfs              Enable XFontSet support for internationalized
                           menubar. Incompatible with `--with-xim=motif' and
                           `--with-xft'. `--with-menubars=lucid' (the default)
@@ -1940,11 +1931,6 @@ Internationalization options
 File-related options
 --------------------
 
-  --with-default-eol-detection
-                          Turns on by default auto-detection of end-of-line
-                          type when reading a file. Applies to those platforms
-                          where auto-detection is off by default (non-Mule
-                          Unix). Has no effect otherwise.
   --with-clash-detection  Disable use of lock files to detect multiple edits
                           of the same file.
   --with-zlib             Support inflate (de)compression internally.
@@ -5115,22 +5101,6 @@ if test "${with_native_sound_lib+set}" = set; then
 
 fi;
 
-# If --with-mule or --without-mule were given then copy the value to the
-# equivalent enable_mule variable.
-if test "${with_mule+set}" = set; then
-  enable_mule="$with_mule"
-fi;
-# If -enable-mule or --disable-mule were given then copy the value to the
-# equivalent with_mule variable.
-if test "${enable_mule+set}" = set; then
-  with_mule="$enable_mule"
-fi;
-# Check whether --with-mule or --without-mule was given.
-if test "${with_mule+set}" = set; then
-  enableval="$with_mule"
-  withval="$with_mule"
-
-fi;
 # If --with-unicode-internal or --without-unicode-internal were given then copy the value to the
 # equivalent enable_unicode-internal variable.
 if test "${with_unicode_internal+set}" = set; then
@@ -5242,22 +5212,6 @@ if test "${with_xfs+set}" = set; then
 
 fi;
 
-# If --with-default-eol-detection or --without-default-eol-detection were given then copy the value to the
-# equivalent enable_default-eol-detection variable.
-if test "${with_default_eol_detection+set}" = set; then
-  enable_default_eol_detection="$with_default_eol_detection"
-fi;
-# If -enable-default-eol-detection or --disable-default-eol-detection were given then copy the value to the
-# equivalent with_default-eol-detection variable.
-if test "${enable_default_eol_detection+set}" = set; then
-  with_default_eol_detection="$enable_default_eol_detection"
-fi;
-# Check whether --with-default-eol-detection or --without-default-eol-detection was given.
-if test "${with_default_eol_detection+set}" = set; then
-  enableval="$with_default_eol_detection"
-  withval="$with_default_eol_detection"
-
-fi;
 # If --with-clash-detection or --without-clash-detection were given then copy the value to the
 # equivalent enable_clash-detection variable.
 if test "${with_clash_detection+set}" = set; then
@@ -18359,20 +18313,9 @@ test "$with_xft_gauges" = "yes"  && printf "%s\n" "#define HAVE_XFT_GAUGES 1" >>
 
 
 if test "$with_unicode_internal" = "yes"; then
-  test "$with_mule" = "no" && \
-	(echo "$progname: Usage error:"
-echo " " "Cannot give \`--with-mule=no' and \`--with-unicode-internal=yes'.
-Unicode-internal requires Mule."
-echo "  Use \`$progname --help' to show usage.") >&2 && exit 1
-  test "$with_mule" != "yes" && \
-	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: \`--with-mule' forced to \`yes': Unicode-internal requires Mule." >&5
-printf "%s\n" "$as_me: WARNING: \`--with-mule' forced to \`yes': Unicode-internal requires Mule." >&2;}
-  with_mule=yes
   printf "%s\n" "#define UNICODE_INTERNAL 1" >>confdefs.h
 
 fi
-
-test -z "$with_mule" && with_mule=yes
 
 
 if test "$with_default_eol_detection" = "yes"; then
@@ -18383,20 +18326,14 @@ fi
 canna_libs=
 wnn_libs=
 
-if test "$with_mule" = "yes" ; then
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for Mule-related features" >&5
-printf %s "checking for Mule-related features... " >&6; }
-  printf "%s\n" "#define MULE 1" >>confdefs.h
-
-
-    ac_fn_c_check_header_compile "$LINENO" "libintl.h" "ac_cv_header_libintl_h" "$ac_includes_default"
+ac_fn_c_check_header_compile "$LINENO" "libintl.h" "ac_cv_header_libintl_h" "$ac_includes_default"
 if test "x$ac_cv_header_libintl_h" = xyes
 then :
   printf "%s\n" "#define HAVE_LIBINTL_H 1" >>confdefs.h
 
 fi
 
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for strerror in -lintl" >&5
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for strerror in -lintl" >&5
 printf %s "checking for strerror in -lintl... " >&6; }
 if test ${ac_cv_lib_intl_strerror+y}
 then :
@@ -18440,12 +18377,12 @@ then :
 fi
 
 
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for Mule input methods" >&5
-printf %s "checking for Mule input methods... " >&6; }
-    case "$with_xim" in "" | "yes" )
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XIM" >&5
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for input methods" >&5
+printf %s "checking for input methods... " >&6; }
+case "$with_xim" in "" | "yes" )
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XIM" >&5
 printf %s "checking for XIM... " >&6; }
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XOpenIM in -lX11" >&5
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XOpenIM in -lX11" >&5
 printf %s "checking for XOpenIM in -lX11... " >&6; }
 if test ${ac_cv_lib_X11_XOpenIM+y}
 then :
@@ -18487,8 +18424,8 @@ else $as_nop
   with_xim=no
 fi
 
-            if test "$need_motif $have_lesstif" = "yes no"; then
-      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XmImMbLookupString in -lXm" >&5
+      if test "$need_motif $have_lesstif" = "yes no"; then
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XmImMbLookupString in -lXm" >&5
 printf %s "checking for XmImMbLookupString in -lXm... " >&6; }
 if test ${ac_cv_lib_Xm_XmImMbLookupString+y}
 then :
@@ -18528,8 +18465,8 @@ then :
   with_xim=motif
 fi
 
-            elif test "$have_motif $have_lesstif $with_xim" = "yes no no"; then
-      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XmImMbLookupString in -lXm" >&5
+      elif test "$have_motif $have_lesstif $with_xim" = "yes no no"; then
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XmImMbLookupString in -lXm" >&5
 printf %s "checking for XmImMbLookupString in -lXm... " >&6; }
 if test ${ac_cv_lib_Xm_XmImMbLookupString+y}
 then :
@@ -18569,35 +18506,35 @@ then :
   with_xim=motif
 fi
 
-    fi ;;
-  esac
-  if test "$with_xim" != "no"; then
-    printf "%s\n" "#define HAVE_XIM 1" >>confdefs.h
+  fi ;;
+esac
+if test "$with_xim" != "no"; then
+  printf "%s\n" "#define HAVE_XIM 1" >>confdefs.h
 
-    if test "$with_xim" = "xlib"; then
-      printf "%s\n" "#define XIM_XLIB 1" >>confdefs.h
+  if test "$with_xim" = "xlib"; then
+    printf "%s\n" "#define XIM_XLIB 1" >>confdefs.h
 
-      extra_objs="$extra_objs input-method-xlib.o" &&  if test "$verbose" = "yes"; then
+    extra_objs="$extra_objs input-method-xlib.o" &&  if test "$verbose" = "yes"; then
    echo "    xemacs will be linked with \"input-method-xlib.o\""
  fi
-    fi
-    if test "$with_xim" = "motif"; then
-      printf "%s\n" "#define XIM_MOTIF 1" >>confdefs.h
+  fi
+  if test "$with_xim" = "motif"; then
+    printf "%s\n" "#define XIM_MOTIF 1" >>confdefs.h
 
-      need_motif=yes
-      extra_objs="$extra_objs input-method-motif.o" &&  if test "$verbose" = "yes"; then
+    need_motif=yes
+    extra_objs="$extra_objs input-method-motif.o" &&  if test "$verbose" = "yes"; then
    echo "    xemacs will be linked with \"input-method-motif.o\""
  fi
-    fi
-    if test "$with_xim" = "motif"; then
-      with_xfs=no
-    fi
   fi
+  if test "$with_xim" = "motif"; then
+    with_xfs=no
+  fi
+fi
 
-    if test "$with_xfs" = "yes" ; then
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XFontSet" >&5
+if test "$with_xfs" = "yes" ; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XFontSet" >&5
 printf %s "checking for XFontSet... " >&6; }
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XmbDrawString in -lX11" >&5
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for XmbDrawString in -lX11" >&5
 printf %s "checking for XmbDrawString in -lX11... " >&6; }
 if test ${ac_cv_lib_X11_XmbDrawString+y}
 then :
@@ -18639,18 +18576,18 @@ else $as_nop
   with_xfs=no
 fi
 
-    if test "$with_xfs" = "yes" && test "$with_menubars" = "lucid"; then
-      printf "%s\n" "#define USE_XFONTSET 1" >>confdefs.h
+  if test "$with_xfs" = "yes" && test "$with_menubars" = "lucid"; then
+    printf "%s\n" "#define USE_XFONTSET 1" >>confdefs.h
 
-      if test "$with_xim" = "no" ; then
-        extra_objs="$extra_objs input-method-xlib.o" &&  if test "$verbose" = "yes"; then
+    if test "$with_xim" = "no" ; then
+      extra_objs="$extra_objs input-method-xlib.o" &&  if test "$verbose" = "yes"; then
    echo "    xemacs will be linked with \"input-method-xlib.o\""
  fi
-      fi
     fi
   fi
-    test "$with_wnn6" = "yes" && with_wnn=yes # wnn6 implies wnn support
-  test -z "$with_wnn" && { ac_fn_c_check_header_compile "$LINENO" "wnn/jllib.h" "ac_cv_header_wnn_jllib_h" "$ac_includes_default"
+fi
+test "$with_wnn6" = "yes" && with_wnn=yes # wnn6 implies wnn support
+test -z "$with_wnn" && { ac_fn_c_check_header_compile "$LINENO" "wnn/jllib.h" "ac_cv_header_wnn_jllib_h" "$ac_includes_default"
 if test "x$ac_cv_header_wnn_jllib_h" = xyes
 then :
 
@@ -18658,7 +18595,7 @@ else $as_nop
   with_wnn=no
 fi
  }
-    test -z "$with_wnn" && { ac_fn_c_check_header_compile "$LINENO" "wnn/commonhd.h" "ac_cv_header_wnn_commonhd_h" "$ac_includes_default"
+test -z "$with_wnn" && { ac_fn_c_check_header_compile "$LINENO" "wnn/commonhd.h" "ac_cv_header_wnn_commonhd_h" "$ac_includes_default"
 if test "x$ac_cv_header_wnn_commonhd_h" = xyes
 then :
 
@@ -18666,15 +18603,15 @@ else $as_nop
   with_wnn=no
 fi
  }
-    if test "$with_wnn" != "no"; then
-    ac_fn_c_check_func "$LINENO" "crypt" "ac_cv_func_crypt"
+if test "$with_wnn" != "no"; then
+  ac_fn_c_check_func "$LINENO" "crypt" "ac_cv_func_crypt"
 if test "x$ac_cv_func_crypt" = xyes
 then :
   printf "%s\n" "#define HAVE_CRYPT 1" >>confdefs.h
 
 fi
 
-    test "$ac_cv_func_crypt" != "yes" && { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for crypt in -lcrypt" >&5
+  test "$ac_cv_func_crypt" != "yes" && { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for crypt in -lcrypt" >&5
 printf %s "checking for crypt in -lcrypt... " >&6; }
 if test ${ac_cv_lib_crypt_crypt+y}
 then :
@@ -18717,9 +18654,9 @@ then :
 
 fi
  }
-  fi
-    if test -z "$with_wnn" -o "$with_wnn" = "yes"; then
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for jl_dic_list_e in -lwnn" >&5
+fi
+if test -z "$with_wnn" -o "$with_wnn" = "yes"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for jl_dic_list_e in -lwnn" >&5
 printf %s "checking for jl_dic_list_e in -lwnn... " >&6; }
 if test ${ac_cv_lib_wnn_jl_dic_list_e+y}
 then :
@@ -18884,14 +18821,14 @@ fi
 
 fi
 
-  fi
-  test -z "$with_wnn" && with_wnn=yes
-  if test "$with_wnn" = "yes"; then
-    printf "%s\n" "#define HAVE_WNN 1" >>confdefs.h
+fi
+test -z "$with_wnn" && with_wnn=yes
+if test "$with_wnn" = "yes"; then
+  printf "%s\n" "#define HAVE_WNN 1" >>confdefs.h
 
-    libs_x="-l$libwnn $libs_x" &&  if test "$verbose" = "yes"; then echo "    Prepending \"-l$libwnn\" to \$libs_x"; fi
-    if test "$with_wnn6" != "no"; then
-      as_ac_Lib=`printf "%s\n" "ac_cv_lib_$libwnn""_jl_fi_dic_list" | $as_tr_sh`
+  libs_x="-l$libwnn $libs_x" &&  if test "$verbose" = "yes"; then echo "    Prepending \"-l$libwnn\" to \$libs_x"; fi
+  if test "$with_wnn6" != "no"; then
+    as_ac_Lib=`printf "%s\n" "ac_cv_lib_$libwnn""_jl_fi_dic_list" | $as_tr_sh`
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for jl_fi_dic_list in -l$libwnn" >&5
 printf %s "checking for jl_fi_dic_list in -l$libwnn... " >&6; }
 if eval test \${$as_ac_Lib+y}
@@ -18933,42 +18870,42 @@ then :
   with_wnn6=yes
 fi
 
-      test "$with_wnn6" = "yes" && printf "%s\n" "#define WNN6 1" >>confdefs.h
+    test "$with_wnn6" = "yes" && printf "%s\n" "#define WNN6 1" >>confdefs.h
 
-    fi
   fi
+fi
 
-      have_canna=false
-  if test "$with_canna" != "no"; then
-    for canna_include_path in : $xe_known_include_dirs /usr/local/canna/include
-    do
-      $as_unset ac_cv_header_canna_jrkanji_h
+have_canna=false
+if test "$with_canna" != "no"; then
+  for canna_include_path in : $xe_known_include_dirs /usr/local/canna/include
+  do
+    $as_unset ac_cv_header_canna_jrkanji_h
 
-      if test $canna_include_path != :; then
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for Canna headers in $canna_include_path" >&5
+    if test $canna_include_path != :; then
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for Canna headers in $canna_include_path" >&5
 printf %s "checking for Canna headers in $canna_include_path... " >&6; }
-        cppflags_saved=$CPPFLAGS
-        CPPFLAGS="$CPPFLAGS -I$canna_include_path" &&  if test "$verbose" = "yes"; then echo "    Appending \"-I$canna_include_path\" to \$CPPFLAGS"; fi
-      fi
+      cppflags_saved=$CPPFLAGS
+      CPPFLAGS="$CPPFLAGS -I$canna_include_path" &&  if test "$verbose" = "yes"; then echo "    Appending \"-I$canna_include_path\" to \$CPPFLAGS"; fi
+    fi
 
-      ac_fn_c_check_header_compile "$LINENO" "canna/jrkanji.h" "ac_cv_header_canna_jrkanji_h" "$ac_includes_default"
+    ac_fn_c_check_header_compile "$LINENO" "canna/jrkanji.h" "ac_cv_header_canna_jrkanji_h" "$ac_includes_default"
 if test "x$ac_cv_header_canna_jrkanji_h" = xyes
 then :
   have_canna=true
 fi
 
 
-      if $have_canna; then
-        break
-      elif test $canna_include_path != :; then
-        CPPFLAGS=$cppflags_saved
-      fi
-    done
-
     if $have_canna; then
-      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for CANNA_NEW_WCHAR_AWARE" >&5
+      break
+    elif test $canna_include_path != :; then
+      CPPFLAGS=$cppflags_saved
+    fi
+  done
+
+  if $have_canna; then
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for CANNA_NEW_WCHAR_AWARE" >&5
 printf %s "checking for CANNA_NEW_WCHAR_AWARE... " >&6; }
-      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
 #define CANNA_NEW_WCHAR_AWARE
@@ -19126,15 +19063,6 @@ fi
   fi
 
 
-
-else   for feature in xim canna wnn; do
-    if eval "test -n \"\$with_${feature}\" -a \"\$with_${feature}\" != no" ; then
-      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: --with-${feature} ignored:  Not valid without Mule support" >&5
-printf "%s\n" "$as_me: WARNING: --with-${feature} ignored:  Not valid without Mule support" >&2;}
-    fi
-    eval "with_${feature}=no"
-  done
-fi
 
 if test "$need_motif" = "yes" ; then
   libs_x="-lXm $libs_x" &&  if test "$verbose" = "yes"; then echo "    Prepending \"-lXm\" to \$libs_x"; fi
@@ -24310,18 +24238,15 @@ fi
 
 echo "
 Internationalization:"
-if test "$with_mule" = yes; then
-  echo "  Compiling in support for Mule (multi-lingual Emacs)."
-  test "$with_unicode_internal" = yes && echo "    -  Unicode and UTF-8 will be used internally for text."
-  test "$with_unicode_internal" != yes && echo "    -  The old-Mule format will be used internally for text."
-fi
+test "$with_unicode_internal" = yes && echo "    -  Unicode and UTF-8 will be used internally for text."
+test "$with_unicode_internal" != yes && echo "    -  The old-Mule format will be used internally for text."
 test "$with_xim" != no && echo "  Compiling in support for XIM (X11R5+ I18N input method)."
 test "$with_xim" = motif && echo "    - Using Motif to provide XIM support."
 test "$with_xim" = xlib && echo "    - Using raw Xlib to provide XIM support."
 test "$with_xfs" = yes && echo "    - Using XFontSet to provide bilingual menubar."
-test "$have_canna" = true && echo "  Compiling in support for Canna on Mule."
+test "$have_canna" = true && echo "  Compiling in support for Canna."
 if test "$with_wnn" = yes; then
-  echo "  Compiling in support for the WNN input method on Mule."
+  echo "  Compiling in support for the WNN input method."
   test "$with_wnn6" = yes && echo "    - Using WNN version 6."
 fi
 
@@ -24354,8 +24279,8 @@ if test "$with_union_type" = yes ; then
   echo "  Using the union type for Lisp_Objects."
   echo "  WARNING: ---------------------------------------------------------"
   echo "  WARNING: This tends to trigger compiler bugs, especially when"
-  echo "  WARNING: combined with MULE and ERROR_CHECKING.  Crashes have"
-  echo "  WARNING: been seen with various versions of GCC (up to about 2.95),"
+  echo "  WARNING: combined with ERROR_CHECKING.  Crashes have been seen"
+  echo "  WARNING: with various versions of GCC (up to about 2.95),"
   echo "  WARNING: and recently with Visual C++ as well (mid-2003)."
   echo "  WARNING: More recent versions may be safer, or not."
   echo "  WARNING: ---------------------------------------------------------"

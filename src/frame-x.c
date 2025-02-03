@@ -651,7 +651,6 @@ x_set_frame_text_value (struct frame *f, Ibyte *value,
   String new_XtValue = (String) value;
   String old_XtValue = NULL;
 
-#ifdef MULE
   Ibyte *ptr;
   /* Optimize for common ASCII case */
   for (ptr = value; *ptr; ptr++)
@@ -661,7 +660,6 @@ x_set_frame_text_value (struct frame *f, Ibyte *value,
         new_XtValue = (String) ITEXT_TO_EXTERNAL (value, Qctext);
         break;
       }
-#endif /* MULE */
 
   /* #### Caching is device-independent - belongs in update_frame_title. */
   Xt_GET_VALUE (FRAME_X_SHELL_WIDGET (f), Xt_resource_name, &old_XtValue);

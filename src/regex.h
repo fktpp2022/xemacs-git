@@ -28,7 +28,6 @@
 #define RE_LISP_SHORT_CONTEXT_ARGS_DECL , Lisp_Object UNUSED (lispobj), struct buffer *UNUSED (lispbuf)
 #define RE_LISP_SHORT_CONTEXT_ARGS , lispobj, lispbuf
 #define RE_LISP_CONTEXT_ARGS_DECL , Lisp_Object lispobj, struct buffer *lispbuf, struct syntax_cache *scache
-#define RE_LISP_CONTEXT_ARGS_MULE_DECL , Lisp_Object lispobj, struct buffer *USED_IF_MULE (lispbuf), struct syntax_cache *scache
 #define RE_LISP_CONTEXT_ARGS , lispobj, lispbuf, scache
 #define RE_ISWCTYPE_ARG_DECL , struct buffer *lispbuf
 #define RE_ISWCTYPE_ARG(varname) , varname
@@ -37,7 +36,6 @@
 #define RE_LISP_SHORT_CONTEXT_ARGS_DECL
 #define RE_LISP_SHORT_CONTEXT_ARGS
 #define RE_LISP_CONTEXT_ARGS_DECL
-#define RE_LISP_CONTEXT_ARGS_MULE_DECL
 #define RE_LISP_CONTEXT_ARGS
 #define RE_ISWCTYPE_ARG_DECL 
 #define RE_ISWCTYPE_ARG(varname)
@@ -335,11 +333,9 @@ typedef enum
   REG_ERPAREN,		/* Unmatched ) or \); not returned from regcomp.  */
   REG_ESIZEBR           /* n or m too big in \{n,m\} */
 #ifdef emacs
-  ,REG_ESYNTAX		/* Invalid syntax designator. */
-#endif
-#ifdef MULE
-  ,REG_ERANGESPAN	/* Ranges may not span charsets. */
-  ,REG_ECATEGORY	/* Invalid category designator */
+  ,REG_ESYNTAX,		/* Invalid syntax designator. */
+  REG_ERANGESPAN,	/* Ranges may not span charsets. */
+  REG_ECATEGORY         /* Invalid category designator */
 #endif
 } reg_errcode_t;
 

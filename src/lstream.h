@@ -436,7 +436,6 @@ struct extent_info *Lstream_extent_info (Lstream *stream);
 /*             working with an Lstream as a stream of Ichars           */
 /************************************************************************/
 
-#ifdef MULE
 
 DECLARE_INLINE_HEADER (
 Ichar
@@ -472,13 +471,6 @@ Lstream_unget_ichar (Lstream *stream, Ichar ch)
   else
     Lstream_funget_ichar (stream, ch);
 }
-#else /* not MULE */
-
-# define Lstream_get_ichar(stream) Lstream_getc (stream)
-# define Lstream_put_ichar(stream, ch) Lstream_putc (stream, ch)
-# define Lstream_unget_ichar(stream, ch) Lstream_ungetc (stream, ch)
-
-#endif /* not MULE */
 
 /************************************************************************/
 /*                        Lstream implementations                       */

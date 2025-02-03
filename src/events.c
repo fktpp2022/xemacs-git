@@ -1223,9 +1223,6 @@ character_to_event (Ichar c, Lisp_Event *event, struct console *con,
   if (EVENT_TYPE (event) == dead_event)
     invalid_argument ("character-to-event called with a deallocated event!", Qunbound);
 
-#ifndef MULE
-  c &= 255;
-#endif
   if (meta_behavior != latin_1_maps_to_itself && c > 127 && c <= 255)
     {
       int meta_flag = 1;

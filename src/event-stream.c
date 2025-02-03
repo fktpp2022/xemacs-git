@@ -4968,12 +4968,10 @@ If FILENAME is nil, close any open dribble file.
 	report_file_error ("Unable to create dribble file", filename);
       Vdribble_file = make_filedesc_output_stream (fd, 0, 0, LSTR_CLOSING,
 						   NULL);
-#ifdef MULE
       Vdribble_file =
 	make_coding_output_stream
 	  (XLSTREAM (Vdribble_file),
 	   Qescape_quoted, CODING_ENCODE, 0);
-#endif
     }
   return Qnil;
 }

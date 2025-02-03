@@ -46,9 +46,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "window.h"
 #include "text.h"
 
-#ifdef MULE
 #include "mule-ccl.h"
-#endif
 #include "charset.h"
 
 #define NEED_GCCACHE_H
@@ -202,8 +200,7 @@ XLIKE_output_display_block (struct window *w, struct display_line *dl,
   int elt = start;
   face_index findex;
   int xpos, width = 0;
-  Lisp_Object charset = Qunbound; /* Qnil is a valid charset when
-				     MULE is not defined */
+  Lisp_Object charset = Qunbound; /* Gives a better error message than Qnil. */
 
   window = wrap_window (w);
   rb = Dynarr_atp (rba, start);

@@ -167,13 +167,8 @@ It defaults to the selected device.
     invalid_constant ("`how-to-add' must be nil, append, replace_all, "
 		      "replace_existing or t", how_to_add);
 
-#ifdef MULE
   if (NILP (data_type))
     data_type = QCOMPOUND_TEXT;
-#else
-  if (NILP (data_type))
-    data_type = QSTRING;
-#endif
 
   /* Examine the how-to-add argument */
   if (EQ (how_to_add, Qreplace_all) || NILP (how_to_add))
@@ -506,13 +501,8 @@ TEXT or COMPOUND_TEXT, it will be decoded as Compound Text.
   if (NILP (device))
     device = Fselected_device (Qnil);
 
-#ifdef MULE
   if (NILP (target_type))
     target_type = QCOMPOUND_TEXT;
-#else
-  if (NILP (target_type))
-    target_type = QSTRING;
-#endif
 
 #if 0 /* #### MULTIPLE doesn't work yet and probably never will */
   if (CONSP (target_type) &&

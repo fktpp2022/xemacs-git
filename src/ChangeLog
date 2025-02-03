@@ -1,3 +1,175 @@
+2025-02-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Remove --without-mule as an option given maturity of the Mule
+	code and limited development resources to devote to non-Mule bugs
+	and features.
+
+	Use unifdef -DMULE for this, which applies fairly cleanly apart
+	from in regex.c, where most of the #ifdef MULE code had to be
+	changed to #ifdef emacs.
+	This changes also removes HAVE_DEFAULT_EOL_DETECTION, only
+	relevant for non-MULE.
+
+	* Makefile.in.in:
+	* Makefile.in.in (mule_objs):
+	* alloc.c:
+	* alloc.c (init_string_ascii_end):
+	* alloc.c (make_string):
+	* alloc.c (disksave_object_finalization):
+	* buffer.c:
+	* buffer.c (finish_init_buffer):
+	* buffer.c (syms_of_buffer):
+	* buffer.c (common_init_complex_vars_of_buffer):
+	* buffer.h:
+	* buffer.h (struct buffer_text):
+	* buffer.h (BUF_FORMAT):
+	* bufslots.h:
+	* charset.h:
+	* chartab.c:
+	* chartab.c (char_table_hash):
+	* chartab.c (char_table_type_to_symbol):
+	* chartab.c (symbol_to_char_table_type):
+	* chartab.c (char_table_default_for_type):
+	* chartab.c (decode_char_table_range):
+	* chartab.c (Fchar_table_type_list):
+	* chartab.c (Fvalid_char_table_type_p):
+	* chartab.c (check_valid_char_table_value):
+	* chartab.c (put_char_table_range):
+	* chartab.c (map_char_table):
+	* chartab.c (syms_of_chartab):
+	* chartab.c (complex_vars_of_chartab):
+	* chartab.h:
+	* chartab.h (CHARTAB_LEVELS):
+	* chartab.h (enum char_table_type):
+	* chartab.h (CHAR_TABLE_CATEGORY_P):
+	* chartab.h (enum chartab_range_type):
+	* compiler.h:
+	* config.h.in:
+	* console-msw-impl.h (struct mswindows_frame):
+	* console-msw-impl.h (FRAME_MSWINDOWS_CURSOR_X):
+	* console-msw-impl.h (CHECK_MSWINDOWS_FRAME):
+	* console-msw.h:
+	* console-stream.c (stream_text_width):
+	* depend (mule-ccl.o):
+	* device-x.c:
+	* device-x.c (coding_system_of_xrm_database):
+	* device-x.c (x_init_device):
+	* device-x.c (syms_of_device_x):
+	* device.c (allocate_device):
+	* devslots.h (MARKED_SLOT):
+	* editfns.c (Ftranslate_region):
+	* emacs.c (main_1):
+	* emacs.c (main):
+	* event-Xt.c (x_keysym_to_character):
+	* event-msw.c (mswindows_wnd_proc):
+	* events.c (character_to_event):
+	* events.h:
+	* events.h (struct Lisp_Key_Data):
+	* faces.c:
+	* faces.c (syms_of_faces):
+	* faces.c (complex_vars_of_faces):
+	* file-coding.c:
+	* file-coding.c (make_coding_system_1):
+	* file-coding.c (no_conversion_encode):
+	* file-coding.c (complex_vars_of_file_coding):
+	* file-coding.h:
+	* fileio.c (a_write):
+	* fontcolor-gtk.c (console_type_create_fontcolor_gtk):
+	* fontcolor-gtk.c (vars_of_fontcolor_gtk):
+	* fontcolor-msw.c:
+	* fontcolor-msw.c (console_type_create_fontcolor_mswindows):
+	* fontcolor-msw.c (reinit_vars_of_fontcolor_mswindows):
+	* fontcolor-msw.c (vars_of_fontcolor_mswindows):
+	* fontcolor-tty.c:
+	* fontcolor-tty.c (tty_initialize_font_instance):
+	* fontcolor-tty.c (console_type_create_fontcolor_tty):
+	* fontcolor-tty.c (vars_of_fontcolor_tty):
+	* fontcolor-x.c (console_type_create_fontcolor_x):
+	* fontcolor-x.c (vars_of_fontcolor_x):
+	* fontcolor-xlike-inc.c:
+	* fontcolor.c:
+	* fontcolor.c (font_instantiate):
+	* fontcolor.c (specifier_type_create_fontcolor):
+	* fontcolor.c (reinit_specifier_type_create_fontcolor):
+	* frame-x.c (x_set_frame_text_value):
+	* insdel.c (GAP_CAN_HOLD_SIZE_P):
+	* insdel.c (buffer_insert_string_1):
+	* insdel.c (buffer_delete_range):
+	* insdel.c (buffer_replace_char):
+	* insdel.c (init_buffer_text):
+	* intl-win32.c:
+	* intl-win32.c (lcid_to_locale_mule_or_no):
+	* intl-win32.c (determine_code_page):
+	* intl-win32.c (mswindows_multibyte_to_unicode_putprop):
+	* intl-win32.c (syms_of_intl_win32):
+	* intl-win32.c (vars_of_intl_win32):
+	* intl-win32.c (complex_vars_of_intl_win32):
+	* intl-win32.c (init_intl_win32):
+	* intl-x.c:
+	* intl-x.c (init_x_locale):
+	* intl.c (vars_of_intl):
+	* keymap.c (Ftext_char_description):
+	* lisp.h:
+	* lstream.h:
+	* make-src-depend (PrintPatternDeps):
+	* redisplay-msw.c (mswindows_output_cursor):
+	* redisplay-msw.c (mswindows_output_display_block):
+	* redisplay-x.c:
+	* redisplay-x.c (separate_textual_runs_xft_mule):
+	* redisplay-x.c (separate_textual_runs):
+	* redisplay-xlike-inc.c:
+	* redisplay-xlike-inc.c (XLIKE_output_display_block):
+	* regex.c:
+	* regex.c (enum):
+	* regex.c (print_partial_compiled_pattern):
+	* regex.c (re_error_msgid):
+	* regex.c (re_wctype_to_bit):
+	* regex.c (regex_compile):
+	* regex.c (compile_char_class):
+	* regex.c (re_compile_fastmap):
+	* regex.c (re_search_2):
+	* regex.c (re_match_2_internal):
+	* regex.h (RE_LISP_CONTEXT_ARGS):
+	* regex.h (enum):
+	* search.c:
+	* search.c (byte_scan_buffer):
+	* search.c (byte_find_next_ichar_in_string):
+	* search.c (trivial_regexp_p):
+	* search.c (search_buffer):
+	* search.c (boyer_moore):
+	* select-x.c (hack_motif_clipboard_selection):
+	* select-x.c (Fx_store_cutbuffer_internal):
+	* select-xlike-inc.c (lisp_data_to_selection_data):
+	* select.c (Fown_selection_internal):
+	* select.c (Fget_selection_internal):
+	* specifier.c (specifier_instance_from_inst_list):
+	* syntax.c:
+	* syntax.c (scan_words):
+	* syntax.h:
+	* sysdep.c (qxe_readdir):
+	* sysdep.c (qxe_closedir):
+	* tests.c (Ftest_data_format_conversion):
+	* tests.c (DFC_CHECK_DATA_COND_MULE):
+	* text.c:
+	* text.c (round_up_to_valid_ichar):
+	* text.c (round_down_to_valid_ichar):
+	* text.c (copy_text_between_formats):
+	* text.c (dfc_convert_to_external_format):
+	* text.c (dfc_convert_to_internal_format):
+	* text.c (internal_to_external_charset_codepoint):
+	* text.c (get_external_charset_codepoint):
+	* text.c (reinit_vars_of_text):
+	* text.c (vars_of_text):
+	* text.h:
+	* unicode.c:
+	* unicode.c (unicode_encode):
+	* unicode.c (syms_of_unicode):
+	* unicode.c (complex_vars_of_unicode):
+	* unicode.c (init_unicode):
+	* unicode.h:
+	* win32.c (mswindows_lisp_error_1):
+	* xemacs.def.in.in:
+
 2025-02-02  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* fileio.c (Fwrite_region_internal):

@@ -204,31 +204,6 @@ struct textual_run
    the 8-bit versions in computing runs and runes, it would seem.
 */
 
-#if !defined (XEMACS_USE_XFT) && !defined (MULE)
-
-#define ALLOCATE_RUNS_TEXT(storage, storage_len, str, len)      \
-    (storage = alloca_extbytes (len))
-
-static int
-separate_textual_runs_nomule (struct buffer * UNUSED (buf),
-			      Extbyte *text_storage,
-			      struct textual_run *run_storage,
-                              const Ibyte *str, Bytecount len,
-			      struct face_cachel *UNUSED(cachel))
-{
-  if (!len)
-    return 0;
-
-  run_storage[0].ptr = text_storage;
-  run_storage[0].len = len;
-  run_storage[0].dimension = 1;
-  run_storage[0].charset = Qnil;
-
-  memcpy (text_storage, str, len);
-
-  return 1;
-}
-#endif
 
 #ifdef XEMACS_USE_XFT
 #ifdef WORDS_BIGENDIAN
@@ -245,35 +220,8 @@ extern Lisp_Object Qutf_16_little_endian;
 #endif
 #endif /* XEMACS_USE_XFT */
 
-#if defined (XEMACS_USE_XFT) && !defined (MULE)
-/*
-  Note that in this configuration the "Croatian hack" of using an 8-bit,
-  non-Latin-1 font to get localized display without Mule simply isn't
-  available.  That's by design -- Unicode does not aid or abet that kind
-  of punning.
-  This means that the cast to XftChar16 gives the correct "conversion" to
-  UCS-2. */
-static int
-separate_textual_runs_xft_nomule (struct buffer * UNUSED (buf),
-				  Extbyte *text_storage,
-				  struct textual_run *run_storage,
-				  const Ibyte *str, Bytecount len,
-				  struct face_cachel *UNUSED (cachel))
-{
-  int i;
-  if (!len)
-    return 0;
 
-  run_storage[0].ptr = text_storage;
-  run_storage[0].len = len;
-  run_storage[0].dimension = 2;
-  run_storage[0].charset = Qnil;
-
-  return 1;
-}
-#endif
-
-#if defined (XEMACS_USE_XFT) && defined (MULE)
+#ifdef XEMACS_USE_XFT
 static int
 separate_textual_runs_xft_mule (struct buffer *buf,
 				Extbyte *text_storage,
@@ -330,7 +278,7 @@ separate_textual_runs_xft_mule (struct buffer *buf,
 }
 #endif
 
-#if !defined(XEMACS_USE_XFT) && defined(MULE)
+#ifndef XEMACS_USE_XFT
 
 #define ALLOCATE_RUNS_TEXT(storage, storage_len, str, len)      \
   (storage = alloca_extbytes ((storage_len = (2 * len))))
@@ -514,21 +462,12 @@ separate_textual_runs (struct buffer *buf,
 		       const Ibyte *str, Bytecount len,
 		       struct face_cachel *cachel)
 {
-#if defined (XEMACS_USE_XFT) && defined (MULE)
+#ifdef XEMACS_USE_XFT
   return separate_textual_runs_xft_mule (buf, text_storage, run_storage,
 					 str, len, cachel);
-#endif
-#if defined (XEMACS_USE_XFT) && !defined (MULE)
-  return separate_textual_runs_xft_nomule (buf, text_storage, run_storage,
-					   str, len, cachel);
-#endif
-#if !defined (XEMACS_USE_XFT) && defined (MULE)
+#else
   return separate_textual_runs_mule (buf, text_storage, run_storage,
 				     str, len, cachel);
-#endif
-#if !defined (XEMACS_USE_XFT) && !defined (MULE)
-  return separate_textual_runs_nomule (buf, text_storage, run_storage,
-				       str, len, cachel);
 #endif
 }
 

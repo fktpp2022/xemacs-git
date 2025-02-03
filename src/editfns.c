@@ -1851,7 +1851,6 @@ Returns the number of substitutions performed.
   if (STRINGP (table))
     {
       Charcount size = string_char_length (table);
-#ifdef MULE
       /* Under Mule, string_ichar(n) is O(n), so for large tables or
          large regions it makes sense to create an array of Ichars.  */
       if (size * (stop - pos) > 65536)
@@ -1873,7 +1872,6 @@ Returns the number of substitutions performed.
 	    }
 	}
       else
-#endif /* MULE */
 	{
 	  for (; pos < stop && (oc = BUF_FETCH_CHAR (buf, pos), 1); pos++)
 	    {

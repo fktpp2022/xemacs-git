@@ -28,9 +28,8 @@ Lisp_Object Qxintl;
 int init_x_locale (Lisp_Object locale);
 
 int
-init_x_locale (Lisp_Object USED_IF_MULE (locale))
+init_x_locale (Lisp_Object locale)
 {
-#ifdef MULE
   /* dverna - Nov. 98: #### DON'T DO THIS !!! The default XtLanguageProc
      routine calls setlocale(LC_ALL, lang) which fucks up our lower-level
      locale management, and especially the value of LC_NUMERIC. Anyway, since
@@ -53,7 +52,6 @@ init_x_locale (Lisp_Object USED_IF_MULE (locale))
 		      "of the XMODIFIERS environment variable.");
       return 0;
     }
-#endif /* MULE */
 
   return 1;
 }

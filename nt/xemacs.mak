@@ -115,9 +115,6 @@ LWLIB_SRCDIR=$(SRCROOT)\lwlib
 !if !defined(INFODOCK)
 INFODOCK=0
 !endif
-!if !defined(MULE)
-MULE=0
-!endif
 !if !defined(HAVE_MS_WINDOWS)
 HAVE_MS_WINDOWS=1
 !endif
@@ -596,21 +593,10 @@ OPT_DEFINES=$(OPT_DEFINES) -DHAVE_NATIVE_SOUND
 !endif
 
 !if $(UNICODE_INTERNAL)
-!if !$(MULE)
-!message Unicode-internal requires Mule.  Mule forced on.
-MULE=1
-!endif
 !endif
 
-!if $(MULE)
-OPT_DEFINES=$(OPT_DEFINES) -DMULE
-OPT_OBJS=$(OPT_OBJS) \
-	$(OUTDIR)\mule-ccl.obj \
-	$(OUTDIR)\mule-charset.obj \
-	$(OUTDIR)\mule-coding.obj
 !if $(UNICODE_INTERNAL)
 OPT_DEFINES=$(OPT_DEFINES) -DUNICODE_INTERNAL
-!endif
 !endif
 
 !if $(DEBUG_XEMACS)
@@ -863,6 +849,9 @@ TEMACS_COMMON_OBJS= \
 	$(OUTDIR)\marker.obj \
 	$(OUTDIR)\md5.obj \
 	$(OUTDIR)\minibuf.obj \
+	$(OUTDIR)\mule-ccl.obj \
+	$(OUTDIR)\mule-charset.obj \
+	$(OUTDIR)\mule-coding.obj \
 #	#### Leave the next one out when integrating my working ws
 	$(OUTDIR)\nt.obj \
 	$(OUTDIR)\ntplay.obj \
@@ -1129,13 +1118,10 @@ XEmacs $(XEMACS_VERSION_STRING) $(xemacs_codename) $(xemacs_extra_name:"=) confi
 !if $(HAVE_MS_WINDOWS)
   Compiling in support for Microsoft Windows native GUI.
 !endif
-!if $(MULE)
-  Compiling in international (MULE) support.
 !if $(UNICODE_INTERNAL)
   Unicode is used internally.
 !else
   The old-Mule format is used internally.
-!endif
 !endif
 !if $(HAVE_GTK)
   --------------------------------------------------------------------
@@ -1212,9 +1198,9 @@ XEmacs $(XEMACS_VERSION_STRING) $(xemacs_codename) $(xemacs_extra_name:"=) confi
   Using union type for Lisp object storage.
   NOTE: ---------------------------------------------------------
   NOTE: This tends to trigger compiler bugs, especially when combined
-  NOTE: with MULE and ERROR_CHECKING.  Crashes in pdump have recently
+  NOTE: with ERROR_CHECKING.  Crashes in pdump have recently
   NOTE: been observed using Visual C++ in combination with union type,
-  NOTE: MULE, and ERROR_CHECKING.
+  NOTE: and ERROR_CHECKING.
   NOTE: ---------------------------------------------------------
 !endif
   Using portable dumper.

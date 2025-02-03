@@ -191,15 +191,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 /* #define SLEDGEHAMMER_CHECK_UNICODE */
 
-/* When MULE is not defined, we may still need some Unicode support --
-   in particular, some Windows API's always want Unicode, and the way
-   we've set up the Unicode encapsulation, we may as well go ahead and
-   always use the Unicode versions of split API's. (It would be
-   trickier to not use them, and pointless -- under NT, the ANSI API's
-   call the Unicode ones anyway, so in the case of structures, we'd be
-   converting from Unicode to ANSI structures, only to have the OS
-   convert them back.) */
-
 Lisp_Object Qunicode;
 Lisp_Object Qutf_16, Qutf_8, Qucs_4, Qutf_7, Qutf_32;
 Lisp_Object Qneed_bom, Qallow_private;
@@ -211,7 +202,6 @@ Lisp_Object Qutf_8_bom;
 
 extern int firstbyte_mask[];
 
-#ifdef MULE
 /* Default Unicode precedence list, set by
    set-default-unicode-precedence-list */
 static Lisp_Object Vdefault_unicode_precedence_list;
@@ -240,9 +230,7 @@ int last_allocated_jit_c1, last_allocated_jit_c2;
 int number_of_jit_charsets;
 Lisp_Object Vcharset_descr;
 #endif
-#endif /* MULE */
 
-#ifdef MULE 
 
 /* There is no single badval that will work for all cases with the from tables,
    because we allow arbitrary 256x256 charsets. #### This is a real problem;
@@ -407,7 +395,6 @@ do {								\
 } while (0)
 #endif /* (not) MAXIMIZE_UNICODE_TABLE_DEPTH */
 
-#endif /* MULE */
 
 #define UNICODE_DECODE_ERROR_OCTET(octet, dst, data, ignore_bom)	\
   decode_unicode_to_dynarr_0 ((octet) + UNICODE_ERROR_OCTET_RANGE_START, \
@@ -436,7 +423,6 @@ decode_unicode (Lisp_Object unicode, enum unicode_allow allow)
   return (int) val;
 }
 
-#ifdef MULE
 
 static Bytecount
 needed_sizeof_to_unicode_base (int len)
@@ -1565,7 +1551,6 @@ private_unicode_to_charset_codepoint (int priv, Lisp_Object *charset,
     }
 }
 
-#endif /* MULE */
 
 
 /***************************************************************************/
@@ -1573,28 +1558,6 @@ private_unicode_to_charset_codepoint (int priv, Lisp_Object *charset,
 /***************************************************************************/
 
 
-#ifndef MULE
-
-Lisp_Object
-decode_buffer_or_precedence_list (Lisp_Object preclist)
-{
-  if (NILP (preclist))
-    return wrap_buffer (current_buffer);
-  else if (BUFFERP (preclist))
-    return preclist;
-  else
-    {
-      EXTERNAL_LIST_LOOP_2 (elt, preclist)
-	{
-	  if (!EQ (elt, Vcharset_ascii))
-	    invalid_argument ("In non-Mule, charset must be `ascii'", elt);
-	}
-      return wrap_buffer (current_buffer);
-    }
-}
-
-
-#else /* MULE */
 
 /******************** Precedence-array object *******************/
 
@@ -2966,14 +2929,12 @@ init_charset_unicode_map (Lisp_Object charset, Lisp_Object map)
   XCHARSET_AUTOLOAD_FAILED (charset) = 0;
 }
 
-#endif /* MULE */
 
 
 /************************************************************************/
 /*                      Properties of Unicode chars                     */
 /************************************************************************/
 
-#ifdef MULE
 
 int
 unicode_char_columns (int code)
@@ -3006,7 +2967,6 @@ unicode_char_columns (int code)
   return 1;
 }
 
-#endif /* MULE */
 
 
 /************************************************************************/
@@ -3713,9 +3673,7 @@ unicode_encode (struct coding_stream *str, const Ibyte *src,
     {
       Ibyte c = *src;
 
-#ifdef MULE
       if (byte_ascii_p (c))
-#endif /* MULE */
 	{
           if (type == UNICODE_UTF_8)
             {
@@ -3735,7 +3693,6 @@ unicode_encode (struct coding_stream *str, const Ibyte *src,
               src++;
             }
 	}
-#ifdef MULE
       else
 	{
 	  /* Processing a non-ASCII character */
@@ -3797,7 +3754,6 @@ unicode_encode (struct coding_stream *str, const Ibyte *src,
 	    }
 #endif /* UNICODE_INTERNAL */
 	}
-#endif /* MULE */
     }
 
 #ifdef ENABLE_COMPOSITE_CHARS
@@ -4243,7 +4199,6 @@ dfc_coding_system_is_unicode (
 /*                             Initialization                           */
 /************************************************************************/
 
-#ifdef MULE
 
 void
 initialize_ascii_control_1_latin_1_unicode_translation (void)
@@ -4258,12 +4213,10 @@ initialize_ascii_control_1_latin_1_unicode_translation (void)
     set_unicode_conversion (i, Vcharset_latin_iso8859_1, 0, i);
 }
 
-#endif
 
 void
 syms_of_unicode (void)
 {
-#ifdef MULE
   INIT_LISP_OBJECT (precedence_array);
 
   DEFSUBR (Fset_default_unicode_precedence_list);
@@ -4280,7 +4233,6 @@ syms_of_unicode (void)
   DEFSYMBOL (Qunicode_registries);
 
   DEFSYMBOL (Qcharset_tag_to_charset_list);
-#endif /* MULE */
 
   DEFSYMBOL (Qunicode);
   DEFSYMBOL (Qucs_4);
@@ -4340,7 +4292,6 @@ vars_of_unicode (void)
 {
   Fprovide (intern ("unicode"));
 
-#ifdef MULE
 #ifndef UNICODE_INTERNAL
   dump_add_opaque_int (&number_of_jit_charsets);
   dump_add_opaque_int (&last_allocated_jit_c1);
@@ -4415,7 +4366,6 @@ when no font matching the charset's registries property has been found
 A hashtable of vectors of vectors of compiled Unicode file search tables.
 */ );
   Qcompiled_unicode_file_search_table = Qnil;
-#endif /* MULE */
 }
 
 void
@@ -4453,7 +4403,6 @@ complex_vars_of_unicode (void)
             Qunicode_type, Qutf_8,
             Qunbound));
 
-#ifdef MULE
 #ifndef UNICODE_INTERNAL
   /* Allocate the first JIT charset so that it appears in Unicode
      precedence lists.  This is important because JIT characters will only
@@ -4477,13 +4426,11 @@ complex_vars_of_unicode (void)
     ;
   Vdefault_unicode_precedence_array =
     simple_convert_predence_list_to_array (Vdefault_unicode_precedence_list);
-#endif /* MULE */
 }
 
 void
 init_unicode (void)
 {
-#ifdef MULE
   /* We had to clear all references to precedence arrays before dumping,
      because precedence arrays aren't dumpable.  So put them back now.
      WARNING: This calls Lisp, very early in the init process!
@@ -4492,5 +4439,4 @@ init_unicode (void)
   if (initialized)
     recalculate_unicode_precedence (RUP_CLEAR_HASH_TABLE |
 				    RUP_EARLY_ERROR_HANDLING);
-#endif /* MULE */
 }

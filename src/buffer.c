@@ -589,12 +589,10 @@ finish_init_buffer (struct buffer *b, Lisp_Object name)
   b->modeline_extent_table = make_lisp_hash_table (20, HASH_TABLE_KEY_WEAK,
                                                    Qeq);
 
-#ifdef MULE
   /* Fill in a blank array for now, to go with the value of `nil' for
      b->unicode_precedence_list.  This will change if
      `set-buffer-unicode-precedence-list' is called. */
   b->unicode_precedence_array = allocate_precedence_array ();
-#endif
 
   return buf;
 }
@@ -1855,7 +1853,7 @@ buffer_memory_usage (Lisp_Object buffer, struct generic_usage_stats *gustats)
 
 #endif /* MEMORY_USAGE_STATS */
 
-#if defined (DEBUG_XEMACS) && defined (MULE)
+#ifdef DEBUG_XEMACS
 
 DEFUN ("buffer-char-byte-conversion-info", Fbuffer_char_byte_converion_info,
        1, 1, 0, /*
@@ -1929,7 +1927,7 @@ The values returned are in the form of a plist of properties and values.
   return Fnreverse (plist);
 }
 
-#endif /* defined (DEBUG_XEMACS) && defined (MULE) */
+#endif /* defined (DEBUG_XEMACS) */
 
 
 
@@ -2005,7 +2003,7 @@ syms_of_buffer (void)
   DEFSUBR (Fbury_buffer);
   DEFSUBR (Fkill_all_local_variables);
   DEFSUBR (Fline_number);
-#if defined (DEBUG_XEMACS) && defined (MULE)
+#ifdef DEBUG_XEMACS
   DEFSUBR (Fbuffer_char_byte_converion_info);
   DEFSUBR (Fstring_char_byte_converion_info);
 #endif
@@ -2266,9 +2264,7 @@ common_init_complex_vars_of_buffer (void)
   defs->abbrev_table = Qnil;    /* real default setup by Lisp code */
 
   defs->case_table = Vstandard_case_table;
-#ifdef MULE
   defs->category_table = Vstandard_category_table;
-#endif /* MULE */
   defs->syntax_table = Vstandard_syntax_table;
 #ifdef MIRROR_TABLE
   defs->mirror_syntax_table =
@@ -2338,9 +2334,7 @@ common_init_complex_vars_of_buffer (void)
     buffer_local_flags.keymap		= resettable;
     buffer_local_flags.case_table	= resettable;
     buffer_local_flags.syntax_table	= resettable;
-#ifdef MULE
     buffer_local_flags.category_table	= resettable;
-#endif
     buffer_local_flags.display_time     = always_local_no_default;
     buffer_local_flags.display_count    = make_fixnum (0);
 

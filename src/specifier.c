@@ -2826,7 +2826,6 @@ specifier_instance_from_inst_list (Lisp_Object specifier,
        Fsignal will abort. */
     specbind (Qinhibit_quit, Qt);
 
-#ifdef MULE
   /* #### FIXME Does this font-specific stuff need to be here and not in
      the font-specifier-specific code? --ben */
   if (CONSP (matchspec) && (CHARSETP (Ffind_charset (XCAR (matchspec)))))
@@ -2857,7 +2856,6 @@ specifier_instance_from_inst_list (Lisp_Object specifier,
 
 	}
     }
-#endif /* MULE */
 
   LIST_LOOP (rest, inst_list)
     {

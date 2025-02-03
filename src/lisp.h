@@ -5675,7 +5675,6 @@ EXFUN (Fcharset_list, 0);
 EXFUN (Fcharset_name, 1);
 EXFUN (Fcharset_id, 1);
 
-#ifdef MULE
 extern Lisp_Object Vcharset_ascii;
 extern Lisp_Object Vcharset_control_1;
 extern Lisp_Object Vcharset_latin_iso8859_1;
@@ -5705,7 +5704,6 @@ extern Lisp_Object Vcharset_chinese_big5_2;
 extern Lisp_Object Vcharset_japanese_shift_jis;
 #endif /* UNICODE_INTERNAL */
 extern Lisp_Object Vcharset_composite;
-#endif /* MULE */
 
 extern Lisp_Object
   Qlatin_iso8859_1,

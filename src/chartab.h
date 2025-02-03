@@ -99,9 +99,6 @@ DECLARE_LISP_OBJECT (char_subtable, Lisp_Char_Subtable);
 /*                               Char Tables                            */
 /************************************************************************/
 
-#ifndef MULE
-#define MAXIMIZE_CHAR_TABLE_DEPTH
-#endif
 
 /* Return number of table levels required to store a character. */
 
@@ -134,11 +131,7 @@ do {								\
 /* Define the current chartab levels given an expr indicating the level value.
    This is an optimization designed to cause compiler simplfication of code
    due to constant expression in if, switch, etc. statements. */
-# ifdef MULE
 #  define CHARTAB_LEVELS(expr) 4
-# else
-#  define CHARTAB_LEVELS(expr) 1
-# endif
 
 #else /* not MAXIMIZE_CHAR_TABLE_DEPTH */
 
@@ -155,9 +148,7 @@ do {								\
 enum char_table_type
 {
   CHAR_TABLE_TYPE_GENERIC,
-#ifdef MULE
   CHAR_TABLE_TYPE_CATEGORY,
-#endif
   CHAR_TABLE_TYPE_SYNTAX,
   CHAR_TABLE_TYPE_DISPLAY,
   CHAR_TABLE_TYPE_CHAR
@@ -215,12 +206,8 @@ DECLARE_LISP_OBJECT (char_table, Lisp_Char_Table);
 #define CHAR_TABLE_TYPE(ct) ((ct)->type)
 #define XCHAR_TABLE_TYPE(ct) (XCHAR_TABLE (ct)->type)
 
-#ifdef MULE
 #define CHAR_TABLE_CATEGORY_P(ct) \
   (CHAR_TABLE_TYPE (ct) == CHAR_TABLE_TYPE_CATEGORY)
-#else
-#define CHAR_TABLE_CATEGORY_P(ct) ((void) ct, 0)
-#endif /* (not) MULE */
 #define XCHAR_TABLE_CATEGORY_P(ct) CHAR_TABLE_CATEGORY_P (XCHAR_TABLE (ct))
 
 #ifdef MIRROR_TABLE
@@ -234,10 +221,8 @@ enum chartab_range_type
   CHARTAB_RANGE_ALL,
   CHARTAB_RANGE_RANGE,
   CHARTAB_RANGE_CHAR,
-#ifdef MULE
   CHARTAB_RANGE_CHARSET,
   CHARTAB_RANGE_ROW,
-#endif
 };
 
 struct chartab_range
@@ -267,7 +252,6 @@ EXFUN (Fget_char_table, 2);
 extern Lisp_Object Vall_syntax_tables;
 
 
-#ifdef MULE
 /************************************************************************/
 /*                           Category Tables                            */
 /************************************************************************/
@@ -356,7 +340,6 @@ extern Lisp_Object Vstandard_category_table;
 #define DESIGNATOR_TO_CHAR_TABLE(desig) ((desig) - 0x20)
 #define CHAR_TABLE_TO_DESIGNATOR(tabnum) ((tabnum) + 0x20)
 
-#endif /* MULE */
 
 
 /************************************************************************/
@@ -384,12 +367,6 @@ get_char_table_raw (Ichar ch, Lisp_Object chartab)
   levels = CHARTAB_LEVELS (XCHAR_TABLE_LEVELS (chartab));
   text_checking_assert (levels >= 1 && levels <= 4);
 
-#if !defined (MULE) && defined (MAXIMIZE_CHAR_TABLE_DEPTH)
-  /* This better be the case or something has gone majorly wrong --
-     the "maximum" depth can't actually account for the highest possible
-     character. */
-  text_checking_assert (ch <= 255);
-#endif
 
 #ifndef MAXIMIZE_CHAR_TABLE_DEPTH
   /* If not that many levels even in the table, then value definitely not

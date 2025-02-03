@@ -31,11 +31,6 @@
 #define _GNU_SOURCE 1
 #endif
 
-/* We assume non-Mule if emacs isn't defined. */
-#ifndef emacs
-#undef MULE
-#endif
-
 /* XEmacs addition */
 #ifdef REL_ALLOC
 #define REGEX_REL_ALLOC /* may be undefined below */
@@ -398,8 +393,6 @@ typedef char re_bool;
 
 #ifdef emacs
 
-#ifdef MULE
-
 Lisp_Object Vthe_lisp_rangetab;
 
 void
@@ -408,15 +401,6 @@ vars_of_regex (void)
   Vthe_lisp_rangetab = Fmake_range_table (Qstart_closed_end_closed);
   staticpro (&Vthe_lisp_rangetab);
 }
-
-#else /* not MULE */
-
-void
-vars_of_regex (void)
-{
-}
-
-#endif /* MULE */
 
 /* Convert an offset from the start of the logical text string formed by
    concatenating the two strings together into a byte position in the
@@ -614,29 +598,26 @@ typedef enum
   syntaxspec,
 
 	/* Matches any character whose syntax is not that specified.  */
-  notsyntaxspec
+  notsyntaxspec,
 
-#endif /* emacs */
-
-#ifdef MULE
     /* need extra stuff to be able to properly work with XEmacs/Mule
        characters (which may take up more than one byte) */
 
-  ,charset_mule, /* Matches any character belonging to specified set.
+  charset_mule, /* Matches any character belonging to specified set.
 		    The set is stored in "unified range-table
 		    format"; see rangetab.c.  Unlike the `charset'
 		    opcode, this can handle arbitrary characters.
 		    NOTE: This has nothing to do with the `charset' object,
 		    despite its name. */
 
-  charset_mule_not   /* Same parameters as charset_mule, but match any
+  charset_mule_not,  /* Same parameters as charset_mule, but match any
 			character that is not one of those specified.  */
 
   /* 97/2/17 jhod: The following two were merged back in from the Mule
      2.3 code to enable some language specific processing */
-  ,categoryspec,     /* Matches entries in the character category tables */
+  categoryspec,     /* Matches entries in the character category tables */
   notcategoryspec    /* The opposite of the above */
-#endif /* MULE */
+#endif /* emacs */
 
 } re_opcode_t;
 
@@ -930,7 +911,7 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
 	  }
 	  break;
 
-#ifdef MULE
+#ifdef emacs
 	case charset_mule:
         case charset_mule_not:
           {
@@ -1076,7 +1057,6 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
 	  printf ("/%d", mcnt);
 	  break;
 
-#ifdef MULE
 /* 97/2/17 jhod Mule category patch */
 	case categoryspec:
 	  printf ("/categoryspec");
@@ -1090,7 +1070,6 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
 	  printf ("/%d", mcnt);
 	  break;
 /* end of category patch */
-#endif /* MULE */
 #endif /* emacs */
 
 	case wordchar:
@@ -1271,8 +1250,6 @@ static const char *re_error_msgid[] =
   "Invalid content of \\{\\}, repetitions too big", /* REG_ESIZEBR  */
 #ifdef emacs
   "Invalid syntax designator",			/* REG_ESYNTAX */
-#endif
-#ifdef MULE
   "Ranges may not span charsets",		/* REG_ERANGESPAN */
   "Invalid category designator",		/* REG_ECATEGORY */
 #endif
@@ -2137,14 +2114,11 @@ typedef struct
   (buf_end[((unsigned char) (c)) / BYTEWIDTH]	\
    |= 1 << (((unsigned char) c) % BYTEWIDTH))
 
-#ifdef MULE
+#ifdef emacs
 
 /* Set the "bit" for character C in a range table. */
 #define SET_RANGETAB_BIT(c) put_range_table (rtab, c, c, Qt)
 
-#endif
-
-#ifdef emacs
 /* Parse the longest number we can, but don't produce a bignum, that can't
    correspond to anything we're interested in and would needlessly complicate
    code. Also avoid the silent overflow issues of the non-emacs code below.
@@ -2317,7 +2291,7 @@ re_iswctype (int ch, re_wctype_t cc
   return -1;
 }
 
-#ifdef MULE
+#ifdef emacs
 
 static re_bool
 re_wctype_can_match_non_ascii (re_wctype_t cc)
@@ -2335,10 +2309,6 @@ re_wctype_can_match_non_ascii (re_wctype_t cc)
       return true;
     }
 }
-
-#endif /* MULE */
-
-#ifdef emacs
 
 /* Return a bit-pattern to use in the range-table bits to match multibyte
    chars of class CC.  */
@@ -2380,14 +2350,12 @@ static reg_errcode_t compile_range (re_char **p_ptr, re_char *pend,
 				    RE_TRANSLATE_TYPE translate,
 				    reg_syntax_t syntax,
 				    unsigned char *b);
-#ifdef MULE
+#ifdef emacs
 static reg_errcode_t compile_extended_range (re_char **p_ptr,
 					     re_char *pend,
 					     RE_TRANSLATE_TYPE translate,
 					     reg_syntax_t syntax,
 					     Lisp_Object rtab);
-#endif /* MULE */
-#ifdef emacs
 reg_errcode_t compile_char_class (re_wctype_t cc, Lisp_Object rtab,
                                   Bitbyte *flags_out);
 #endif
@@ -2853,7 +2821,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
           BUF_PUSH (anychar);
           break;
 
-#ifdef MULE
+#ifdef emacs
 #define MAYBE_START_OVER_WITH_EXTENDED(ch)	\
 	  if (ch >= 0x80) do			\
 	    {					\
@@ -3007,12 +2975,12 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 
                         if (p == pend) FREE_STACK_RETURN (REG_EBRACK);
 
-#ifdef MULE
+#ifdef emacs
 			if (re_wctype_can_match_non_ascii (cc))
 			  {
 			    goto start_over_with_extended;
 			  }
-#endif /* MULE */
+#endif
 			for (ch = 0; ch < (1 << BYTEWIDTH); ++ch)
 			  {
 			    if (re_iswctype (ch, cc
@@ -3049,7 +3017,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 	  }
 	  break;
 
-#ifdef MULE
+#ifdef emacs
         start_over_with_extended:
           {
             REGISTER Lisp_Object rtab = Qnil;
@@ -3203,7 +3171,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
             buf_end += unified_range_table_bytes_used (buf_end);
             break;
           }
-#endif /* MULE */
+#endif /* emacs */
 
 	case '(':
           if (syntax & RE_NO_BK_PARENS)
@@ -3723,7 +3691,6 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
               BUF_PUSH_2 (notsyntaxspec, syntax_spec_code[c]);
               break;
 
-#ifdef MULE
 /* 97.2.17 jhod merged in to XEmacs from mule-2.3 */
 	    case 'c':
 	      laststart = buf_end;
@@ -3741,7 +3708,6 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 	      BUF_PUSH_2 (notcategoryspec, c);
 	      break;
 /* end of category patch */
-#endif /* MULE */
 #endif /* emacs */
 
 
@@ -3907,7 +3873,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 		pending_exact = buf_end - 1;
 	      }
 
-#ifndef MULE
+#ifndef emacs
 	    BUF_PUSH (c);
 	    (*pending_exact)++;
 #else
@@ -4157,7 +4123,7 @@ compile_range (re_char **p_ptr, re_char *pend, RE_TRANSLATE_TYPE translate,
   return REG_NOERROR;
 }
 
-#ifdef MULE
+#ifdef emacs
 
 static reg_errcode_t
 compile_extended_range (re_char **p_ptr, re_char *pend,
@@ -4230,10 +4196,6 @@ compile_extended_range (re_char **p_ptr, re_char *pend,
   return REG_NOERROR;
 }
 
-#endif /* MULE */
-
-#ifdef emacs
-
 reg_errcode_t
 compile_char_class (re_wctype_t cc, Lisp_Object rtab, Bitbyte *flags_out)
 {
@@ -4297,7 +4259,7 @@ compile_char_class (re_wctype_t cc, Lisp_Object rtab, Bitbyte *flags_out)
   return REG_NOERROR;
 }
 
-#endif /* MULE */
+#endif /* emacs */
 
 /* re_compile_fastmap computes a ``fastmap'' for the compiled pattern in
    BUFP.  A fastmap records which of the (1 << BYTEWIDTH) possible
@@ -4415,24 +4377,24 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 
 	case charset_not:
 	  /* Chars beyond end of map must be allowed.  */
-#ifdef MULE
+#ifdef emacs
 	  for (j = *p * BYTEWIDTH; j < 0x80; j++)
             fastmap[j] = 1;
 	  /* And all extended characters must be allowed, too. */
 	  for (j = 0x80; j < 0x100; j++)
 	    if (ibyte_first_byte_p (j))
 	      fastmap[j] = 1;
-#else /* not MULE */
+#else /* not emacs */
 	  for (j = *p * BYTEWIDTH; j < (1 << BYTEWIDTH); j++)
             fastmap[j] = 1;
-#endif /* MULE */
+#endif /* emacs */
 
 	  for (j = *p++ * BYTEWIDTH - 1; j >= 0; j--)
 	    if (!(p[j / BYTEWIDTH] & (1 << (j % BYTEWIDTH))))
               fastmap[j] = 1;
           break;
 
-#ifdef MULE
+#ifdef emacs
 	case charset_mule:
 	  {
 	    int nentries;
@@ -4653,7 +4615,7 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 #endif /* UNICODE_INTERNAL */
 	  }
 	  break;
-#endif /* MULE */
+#endif /* emacs */
 
 
         case anychar:
@@ -4661,7 +4623,7 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 	    int fastmap_newline = fastmap['\n'];
 
 	    /* `.' matches anything ...  */
-#ifdef MULE
+#ifdef emacs
 	    /* "anything" only includes bytes that can be the
 	       first byte of a character. */
 	    for (j = 0; j < 0x100; j++)
@@ -4725,7 +4687,7 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
         case syntaxspec:
 	  k = *p++;
 	matchsyntax:
-#ifdef MULE
+#ifdef emacs
 	  for (j = 0; j < 0x80; j++)
 	    if (SYNTAX
 		(XCHAR_TABLE (BUFFER_MIRROR_SYNTAX_TABLE (lispbuf)), j) ==
@@ -4737,20 +4699,20 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 	  for (j = 0x80; j < 0x100; j++)
 	    if (ibyte_first_byte_p (j))
 	      fastmap[j] = 1;
-#else /* not MULE */
+#else /* not emacs */
 	  for (j = 0; j < (1 << BYTEWIDTH); j++)
 	    if (SYNTAX
 		(XCHAR_TABLE (BUFFER_MIRROR_SYNTAX_TABLE (lispbuf)), j) ==
 		(enum syntaxcode) k)
 	      fastmap[j] = 1;
-#endif /* MULE */
+#endif /* emacs */
 	  break;
 
 
 	case notsyntaxspec:
 	  k = *p++;
 	matchnotsyntax:
-#ifdef MULE
+#ifdef emacs
 	  for (j = 0; j < 0x80; j++)
 	    if (SYNTAX
 		(XCHAR_TABLE
@@ -4763,26 +4725,24 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 	  for (j = 0x80; j < 0x100; j++)
 	    if (ibyte_first_byte_p (j))
 	      fastmap[j] = 1;
-#else /* not MULE */
+#else /* not emacs */
 	  for (j = 0; j < (1 << BYTEWIDTH); j++)
 	    if (SYNTAX
 		(XCHAR_TABLE
 		 (BUFFER_MIRROR_SYNTAX_TABLE (lispbuf)), j) !=
 		(enum syntaxcode) k)
 	      fastmap[j] = 1;
-#endif /* MULE */
+#endif /* emacs */
 	  break;
 #endif /* 0 */
 
-#ifdef MULE
 /* 97/2/17 jhod category patch */
 	case categoryspec:
 	case notcategoryspec:
 	  bufp->can_be_null = 1;
 	  UNBIND_REGEX_MALLOC_CHECK ();
 	  return 0;
-/* end if category patch */
-#endif /* MULE */
+/* end of category patch */
 
       /* All cases after this match the empty string.  These end with
          `continue'.  */
@@ -5229,7 +5189,7 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
 		  while (range > lim)
 		    {
 		      re_char *old_d = d;
-#ifdef MULE
+#ifdef emacs
 		      Ibyte tempch[MAX_ICHAR_LEN];
 		      Ichar buf_ch =
 			RE_TRANSLATE_1 (itext_ichar_fmt (d, fmt, lispobj));
@@ -5239,13 +5199,13 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
 #else
 		      if (fastmap[(unsigned char) RE_TRANSLATE_1 (*d)])
 			break;
-#endif /* MULE */
+#endif /* emacs */
 		      INC_IBYTEPTR_FMT (d, fmt);
 		      range -= (d - old_d);
 		      assert (!forward_search_p || range >= 0);
 		    }
 		}
-#ifdef MULE
+#ifdef emacs
 	      else if (fmt != FORMAT_DEFAULT)
 		{
 		  while (range > lim)
@@ -5261,7 +5221,7 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
 		      assert (!forward_search_p || range >= 0);
 		    }
 		}
-#endif /* MULE */
+#endif /* emacs */
 	      else
 		{
 		  while (range > lim && !fastmap[*d])
@@ -5282,7 +5242,7 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
 		 since backward searches aren't so common. */
 	      d = ((const unsigned char *)
 		   (startpos >= size1 ? string2 - size1 : string1) + startpos);
-#ifdef MULE
+#ifdef emacs
 	      {
 		Ibyte tempch[MAX_ICHAR_LEN];
 		Ichar buf_ch =
@@ -5294,7 +5254,7 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
 #else
 	      if (!fastmap[(unsigned char) RE_TRANSLATE (*d)])
 		goto advance;
-#endif /* MULE */
+#endif /* emacs */
 	    }
 	}
 
@@ -5511,7 +5471,7 @@ static int
 re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 		     int size1, re_char *string2, int size2, int pos,
 		     struct re_registers *regs, int stop
-		     RE_LISP_CONTEXT_ARGS_MULE_DECL)
+		     RE_LISP_CONTEXT_ARGS_DECL)
 {
   /* General temporaries.  */
   int mcnt;
@@ -6015,7 +5975,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    {
 	      do
 		{
-#ifdef MULE
+#ifdef emacs
 		  Bytecount pat_len;
 
 		  REGEX_PREFETCH ();
@@ -6028,7 +5988,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 		  INC_IBYTEPTR_FMT (d, fmt);
 		  
 		  mcnt -= pat_len;
-#else /* not MULE */
+#else /* not emacs */
 		  REGEX_PREFETCH ();
 		  if ((unsigned char) RE_TRANSLATE_1 (*d++) != *p++)
                     goto fail;
@@ -6039,7 +5999,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    }
 	  else
 	    {
-#ifdef MULE
+#ifdef emacs
 	      /* If buffer format is default, then we can shortcut and just
 		 compare the text directly, byte by byte.  Otherwise, we
 		 need to go character by character. */
@@ -6124,7 +6084,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    break;
 	  }
 
-#ifdef MULE
+#ifdef emacs
 	case charset_mule:
 	case charset_mule_not:
 	  {
@@ -6161,7 +6121,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    INC_IBYTEPTR_FMT (d, fmt);
 	    break;
 	  }
-#endif /* MULE */
+#endif /* emacs */
 
 
         /* The beginning of a group is represented by start_memory.  The
@@ -7115,7 +7075,6 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	  should_succeed = 0;
 	  goto matchornotsyntax;
 
-#ifdef MULE
 /* 97/2/17 jhod Mule category code patch */
 	case categoryspec:
 	  should_succeed = 1;
@@ -7138,7 +7097,6 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	  should_succeed = 0;
 	  goto matchornotcategory;
 /* end of category patch */
-#endif /* MULE */
 #else /* not emacs */
 	case wordchar:
           DEBUG_MATCH_PRINT1 ("EXECUTING non-Emacs wordchar.\n");
@@ -7470,13 +7428,12 @@ static int
 bcmp_translate (re_char *s1, re_char *s2,
 		REGISTER int len, RE_TRANSLATE_TYPE translate
 #ifdef emacs
-		, Internal_Format USED_IF_MULE (fmt),
-		Lisp_Object USED_IF_MULE (lispobj)
+		, Internal_Format fmt, Lisp_Object lispobj
 #endif
 		)
 {
   REGISTER re_char *p1 = s1, *p2 = s2;
-#ifdef MULE
+#ifdef emacs
   re_char *p1_end = s1 + len;
   re_char *p2_end = s2 + len;
 
@@ -7493,13 +7450,13 @@ bcmp_translate (re_char *s1, re_char *s2,
       INC_IBYTEPTR_FMT (p1, fmt);
       INC_IBYTEPTR_FMT (p2, fmt);
     }
-#else /* not MULE */
+#else /* not emacs */
   while (len)
     {
       if (RE_TRANSLATE_1 (*p1++) != RE_TRANSLATE_1 (*p2++)) return 1;
       len--;
     }
-#endif /* MULE */
+#endif /* emacs */
   return 0;
 }
 

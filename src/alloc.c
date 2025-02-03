@@ -76,7 +76,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 EXFUN (Fgarbage_collect, 0);
 
 #if 0 /* this is _way_ too slow to be part of the standard debug options */
-#if defined(DEBUG_XEMACS) && defined(MULE)
+#ifdef DEBUG_XEMACS
 #define VERIFY_STRING_CHARS_INTEGRITY
 #endif
 #endif
@@ -3234,7 +3234,6 @@ of the string are changed (e.g. with `aset').  It wraps around occasionally.
 void
 init_string_ascii_end (Lisp_Object string)
 {
-#ifdef MULE
   int i;
   Bytecount length = XSTRING_LENGTH (string);
   Ibyte *contents = XSTRING_DATA (string);
@@ -3245,9 +3244,6 @@ init_string_ascii_end (Lisp_Object string)
 	break;
     }
   XSET_STRING_ASCII_END (string, i);
-#else
-  XSET_STRING_ASCII_END (string, XSTRING_LENGTH (string));
-#endif
   sledgehammer_check_ascii_end (string);
 }
 
@@ -3259,7 +3255,7 @@ make_string (const Ibyte *contents, Bytecount length)
   Lisp_Object val;
 
   /* Make sure we find out about bad make_string's when they happen */
-#if defined (ERROR_CHECK_TEXT) && defined (MULE)
+#ifdef ERROR_CHECK_TEXT
   bytecount_to_charcount (contents, length); /* Just for the assertions */
 #endif
 
@@ -5133,7 +5129,7 @@ free_marker (Lisp_Object ptr)
 }
 
 
-#if defined (MULE) && defined (VERIFY_STRING_CHARS_INTEGRITY)
+#ifdef VERIFY_STRING_CHARS_INTEGRITY
 
 static void
 verify_string_chars_integrity (void)
@@ -5179,7 +5175,7 @@ verify_string_chars_integrity (void)
     }
 }
 
-#endif /* defined (MULE) && defined (VERIFY_STRING_CHARS_INTEGRITY) */
+#endif /* defined (VERIFY_STRING_CHARS_INTEGRITY) */
 
 /* Compactify string chars, relocating the reference to each --
    free any empty string_chars_block we see. */
@@ -5468,9 +5464,7 @@ disksave_object_finalization (void)
   uncache_home_directory ();
   zero_out_command_line_status_vars ();
   clear_default_devices ();
-#ifdef MULE
   disksave_clear_unicode_precedence ();
-#endif /* MULE */
 
 #if defined(LOADHIST) && !(defined(LOADHIST_DUMPED) || \
 			   defined(LOADHIST_BUILTIN))

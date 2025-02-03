@@ -190,10 +190,8 @@ Bytecount write_string_to_mswindows_debugging_output (const Ibyte *str,
                                                       Bytecount len);
 
 
-#ifdef MULE
 Lisp_Object mswindows_get_code_page_charset (int code_page);
 void mswindows_start_ime_composition (struct frame *f);
-#endif /* MULE */
 
 /* Defined in intl-win32.c */
 EXFUN (Fmswindows_set_current_locale, 1);

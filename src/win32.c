@@ -229,14 +229,10 @@ mswindows_lisp_error_1 (int errnum, int no_recurse)
 
       switch (i)
 	{
-#ifdef MULE
 	  /* Urk!  Windows 95 doesn't let you set the thread locale!
 	     so we have to maintain our own. */
 	case 0: lang = LANGIDFROMLCID (mswindows_current_locale ()); break;
 	case 1: lang = 0; break;
-#else
-	case 0: lang = 0; break;
-#endif
 	default: ABORT ();
 	}
 
