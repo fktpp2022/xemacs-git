@@ -652,19 +652,55 @@ appropriately, ASCII digits" limit)))))
  work, %s" limit script))))))))
   (probe-backref-limits 1 9 10 50 100 150 200 255 500))
 
-(Assert (eql (string-match-p (apply #'concat (make-list 260 "\\(?:\\)")) "hello")
-	     0)
+(Assert (eql (string-match-p (apply #'concat (make-list 260 "\\(?:\\)"))
+                             "hello")
+             0)
 	"checking more than 266 shy groups supported")
 
-(Known-Bug-Expect-Error
- invalid-regexp
- (Assert (eql 
-	  ;; Shy groups shouldn't need to take up an internal register
-	  ;; number. They currently do in our implementation but not with
-	  ;; GNU's.
-	  (string-match-p (apply #'concat (make-list (/ 65536 9) "\\(?:\\)"))
-			  "hello")
-	  0)))
+(Assert (eql (string-match-p (apply #'concat (make-list 65536 "\\(?:\\)"))
+                             "hello")
+             0)
+        "checking #x10000 shy groups supported")
+
+(Assert (eql (string-match 
+              (get-output-stream-string
+               (let ((stream (make-string-output-stream)))
+                 (dotimes (i #x20000)
+                   (write-sequence "\\(?:\\)" stream))
+                 (write-sequence "\\(hello\\)" stream)
+                 stream))
+              "hello")
+             0)
+        "checking #x20000 shy groups supported with one non-shy group")
+
+(Assert (equal (match-string 1 "hello") "hello")
+        "checking match data correct, #x20000 shy groups with one non-shy \
+group")
+
+(macrolet
+    ((check-charset-not (&rest alist)
+       (cons
+	'progn
+	(mapcar (function*
+		 (lambda ((pattern . name))
+		    `(Assert (equal (string-match-p ,pattern ,name)
+			            ,(search (subseq pattern 0
+						     (position ?/ pattern))
+					     name)))))
+		alist))))
+  (check-charset-not
+   ("unicode/mule-ucs/chinese-cns11643-[^/]*\\.txt$"
+    . "21.5-loads-of-shy-groups/etc/unicode/mule-ucs/chinese-cns11643-1.txt")
+   ("unicode/unicode-consortium/ISO8859/ISO-[^/]*\\.TXT$"
+    . "21.5-loads-of-shy-groups/etc/unicode/unicode-consortium/ISO8859/ISO-8859-1.TXT")
+   ("unicode/unicode-consortium/VENDORS/MICSFT/[^/]*/CP[^/]*\\.TXT$"
+    . "21.5-loads-of-shy-groups/etc/unicode/unicode-consortium/VENDORS/MICSFT/EBCDIC/CP037.TXT")
+   ("unicode/mule-ucs/chinese-cns11643-[^\u00A1/]*\\.txt$"
+    . "21.5-loads-of-shy-groups/etc/unicode/mule-ucs/chinese-cns11643-1.txt")
+   ("unicode/unicode-consortium/ISO8859/ISO-[^\u00A1/]*\\.TXT$"
+    . "21.5-loads-of-shy-groups/etc/unicode/unicode-consortium/ISO8859/ISO-8859-1.TXT")
+   ("unicode/unicode-consortium/VENDORS/MICSFT/[^\u00A1/]*/CP[^/]*\\.TXT$"
+    . "21.5-loads-of-shy-groups/etc/unicode/unicode-consortium/VENDORS/MICSFT/EBCDIC/CP037.TXT")))
 
 (let ((log-warning-suppressed-classes (cons 'regex log-warning-suppressed-classes)))
   (Assert

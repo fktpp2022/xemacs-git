@@ -31,6 +31,11 @@
 #define RE_LISP_CONTEXT_ARGS , lispobj, lispbuf, scache
 #define RE_ISWCTYPE_ARG_DECL , struct buffer *lispbuf
 #define RE_ISWCTYPE_ARG(varname) , varname
+#define RE_EXECUTE_CHARSET_MULE_ARGS_DECL , RE_TRANSLATE_TYPE translate, \
+	   struct buffer *lispbuf
+#define RE_EXECUTE_CHARSET_MULE_ARGS(translate, lispbuf) , translate, lispbuf
+#define RE_MUTUALLY_EXCLUSIVE_P_ARGS_DECL RE_EXECUTE_CHARSET_MULE_ARGS_DECL
+#define RE_MUTUALLY_EXCLUSIVE_P_ARGS(translate, lispbuf) , translate, lispbuf
 #else
 #define RE_TRANSLATE_TYPE char *
 #define RE_LISP_SHORT_CONTEXT_ARGS_DECL
@@ -39,6 +44,11 @@
 #define RE_LISP_CONTEXT_ARGS
 #define RE_ISWCTYPE_ARG_DECL 
 #define RE_ISWCTYPE_ARG(varname)
+#define RE_EXECUTE_CHARSET_MULE_ARGS_DECL , RE_TRANSLATE_TYPE translate
+#define RE_EXECUTE_CHARSET_MULE_ARGS(translate, lispbuf) , translate
+#define RE_MUTUALLY_EXCLUSIVE_P_ARGS_DECL , RE_TRANSLATE_TYPE translate
+#define RE_MUTUALLY_EXCLUSIVE_P_ARGS(translate, lispbuf) , translate
+
 #define Elemcount ssize_t
 #define Bytecount ssize_t
 #define Bytebpos ssize_t
@@ -347,15 +357,13 @@ typedef enum
 
 /* Internal register numbers are stored in opcodes as 2 byte
    integers. Previously they were just one byte, and this was limited to 255,
-   but even shy groups need internal register numbers (something not true in
-   GNU Emacs; this should be looked at further, thank you ooglyhLL in Heptapod
-   issue 1; relevant GNU change is from Stefan Monnier of 2000-03-08, git ID
-   505bde11b0f) and so 255 is unreasonably small.
+   which was unreasonably small (since in the past shy groups also needed
+   internal register numbers).
 
-   Each register in the pattern needs at least a start_memory (five bytes in
-   the buffer) and a stop_memory (five bytes in the buffer), so RE_MAX_BUF_SIZE
-   / 10 is a reasonable limit. */
-#define MAX_REGNUM ((RE_MAX_BUF_SIZE) / 10)
+   Each register in the pattern needs at least a start_memory (three bytes in
+   the buffer) and a stop_memory (three bytes in the buffer), so RE_MAX_BUF_SIZE
+   / 6 is a reasonable limit. */
+#define MAX_REGNUM ((RE_MAX_BUF_SIZE) / 6)
 
 typedef int regnum_t;
 
@@ -400,7 +408,7 @@ struct re_pattern_buffer
            named non-shy groups were used. */
   regnum_t re_nsub;
 
-        /* Total number of groups found by the compiler, including shy
+        /* Total number of groups found by the compiler, not including shy
            ones. The range 0 to re_ngroups should have no discontinuities. */
   regnum_t re_ngroups;
 
