@@ -251,8 +251,9 @@ struct re_pattern_buffer
            named non-shy groups were used. */
   regnum_t re_nsub;
 
-        /* Total number of groups found by the compiler, not including shy
-           ones. The range 0 to re_ngroups should have no discontinuities. */
+        /* Inclusive upper bound on the number of groups found by the compiler,
+           not including shy ones. The range 0 to re_ngroups should have no
+           discontinuities. */
   regnum_t re_ngroups;
 
         /* Zero if this pattern cannot match the empty string, one else.

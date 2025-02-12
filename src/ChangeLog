@@ -1,3 +1,32 @@
+2025-02-12  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* regex.c:
+	* regex.c (print_partial_compiled_pattern):
+	Print /succeed for the succeed opcode.  Print accurate
+	destinations for succeed_n, jump_n, set_number_at.
+	* regex.c (DEBUG_COMPILE_PRINT): New. Analogous to
+	DEBUG_MATCH_PRINT(), DEBUG_FAIL_PRINT().
+	* regex.c (ENSURE_FAIL_STACK): Call DEBUG_MATCH_PRINT(), not
+	DEBUG_PRINT(). 
+	* regex.c (PUSH_FAILURE_REG): Ditto.
+	* regex.c (POP_FAILURE_REG): Ditto.
+	* regex.c (CHECK_INFINITE_LOOP): Ditto.
+	* regex.c (PUSH_FAILURE_POINT): Ditto.
+	* regex.c (POP_FAILURE_POINT): Ditto.
+	* regex.c (fixup_on_failure_jump_smart):
+	Call DEBUG_COMPILE_PRINT(), not DEBUG_PRINT().
+	* regex.c (regex_compile):
+	Clarify the documentation of re_ngroups.
+	Use DEBUG_COMPILE_PRINT(), not DEBUG_PRINT().
+	Correct some documentation now on_failure_jump_exclusive is used
+	for ".*\n".
+	* regex.c (mutually_exclusive_p):
+	Use DEBUG_COMPILE_PRINT(), not DEBUG_PRINT() here.
+	* regex.c (re_match_2_internal):
+	Use DEBUG_MATCH_PRINT(), not DEBUG_PRINT() here.
+	* regex.h (struct re_pattern_buffer):
+	Clarify documentation of the re_ngroups field.
+
 2025-02-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* cmds.c:
