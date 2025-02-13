@@ -108,8 +108,8 @@ sizeof_lstream (Lisp_Object obj)
 static const struct memory_description lstream_implementation_description_1[]
 = {
   { XD_ASCII_STRING, offsetof (struct lstream_implementation, name) },
-  { XD_DATA_POINTER, offsetof (struct lstream_implementation,
-                               extra_description) },
+  { XD_SIZED_MEMORY_DESCRIPTION, offsetof (struct lstream_implementation,
+					   extra_description) },
   { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
 				   reader) },
   { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,

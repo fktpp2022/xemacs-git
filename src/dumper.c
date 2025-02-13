@@ -649,6 +649,8 @@ pdump_register_sub (const void *data, const struct memory_description *desc)
 	case XD_LO_LINK:
 	case XD_FUNCTION_POINTER:
 	case XD_DATA_POINTER:
+	case XD_MEMORY_DESCRIPTION:
+	case XD_SIZED_MEMORY_DESCRIPTION:
 	  break;
 	case XD_OPAQUE_DATA_PTR:
 	  {
@@ -695,6 +697,33 @@ pdump_register_sub (const void *data, const struct memory_description *desc)
 	      }
 	    break;
 	  }
+
+	case XD_BLOCK_DATA_PTR:
+	  {
+	    EMACS_INT count = lispdesc_indirect_count (desc1->data1, desc,
+						       data);
+	    const struct sized_memory_description *sdesc =
+	      lispdesc_indirect_description (data, desc1->data2.descr);
+	    const Rawbyte *dobj = *(const Rawbyte **)rdata;
+
+	    if (dobj)
+	      {
+		pdump_root_block info;
+
+		pdump_register_block (dobj, sdesc->size, sdesc->description,
+				      count);
+		info.blockaddr = dobj;
+		info.size = sdesc->size;
+		info.desc = sdesc->description;
+		/* This is OK and appropriate; normal entries in
+		   pdump_root_blocks do not specify COUNT, and
+		   pdump_register_block / pdump_register_block_contents are
+		   idempotent. */
+		Dynarr_add (pdump_root_blocks, info);
+	      }
+	    break;
+	  }
+
 	case XD_BLOCK_PTR:
 	  {
 	    EMACS_INT count = lispdesc_indirect_count (desc1->data1, desc,
@@ -914,6 +943,9 @@ pdump_store_new_pointer_offsets (int count, void *data, const void *orig_data,
 	    case XD_HASHCODE:
 	    case XD_FUNCTION_POINTER:
 	    case XD_DATA_POINTER:
+	    case XD_MEMORY_DESCRIPTION:
+	    case XD_SIZED_MEMORY_DESCRIPTION:
+	    case XD_BLOCK_DATA_PTR:
 	    case XD_INT:
 	    case XD_LONG:
 	      break;
@@ -1234,7 +1266,10 @@ pdump_reloc_one (void *data, const struct memory_description *desc)
 	    break;
 	  }
 
+	case XD_BLOCK_DATA_PTR:
 	case XD_DATA_POINTER:
+	case XD_MEMORY_DESCRIPTION:
+	case XD_SIZED_MEMORY_DESCRIPTION:
 	  {
 	    void **pptr = (void **) rdata;
 
@@ -1629,7 +1664,9 @@ pdump_dump_root_lisp_objects (void)
       a predictable location.  The "static heap" method by its nature needed
       the data segment to stay in the same place from invocation to
       invocation, since it simply dumped out memory and reloaded it, without
-      any pointer relocation.
+      any pointer relocation. This is a major issue from about 2015 onwards,
+      since most operating systems now use address space layout randomization,
+      ASLR.
 
 
   DISCUSSION OF PDUMP WORKINGS:
@@ -1643,14 +1680,9 @@ pdump_dump_root_lisp_objects (void)
   (i.e. reloaded and any necessary relocations performed).  Data-segment
   memory that is not statically initialized (i.e. through declarations in
   the C code) needs either to be written out and reloaded, or
-  reinitialized.  In addition, any pointers in data-segment memory to heap
-  memory must be written out, reloaded and relocated.
-
-  NOTE that we currently don't handle relocation of pointers into data-
-  segment memory. (See overview discussion above.) These are treated in
-  the descriptions as opaque data not needing relocation.  If this becomes a
-  problem, it can be fixed through new kinds of types in
-  enum memory_description_type.
+  reinitialized.  The former leaks the memory in the dump file that was used to
+  store the pre-pdump values. In addition, any pointers in data-segment memory
+  to heap memory must be written out, reloaded and relocated.
 
   Three basic steps to dumping out:
 

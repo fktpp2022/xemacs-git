@@ -361,10 +361,10 @@ static const struct memory_description coding_system_methods_description_1[]
 				   putprop_method) },
   { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
 				   getprop_method) },
-  { XD_DATA_POINTER, offsetof (struct coding_system_methods,
-                               extra_description) },
-  { XD_DATA_POINTER, offsetof (struct coding_system_methods,
-                               stream_description) },
+  { XD_SIZED_MEMORY_DESCRIPTION, offsetof (struct coding_system_methods,
+					   extra_description) },
+  { XD_SIZED_MEMORY_DESCRIPTION, offsetof (struct coding_system_methods,
+					   stream_description) },
   { XD_END }
 };
 

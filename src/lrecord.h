@@ -871,6 +871,12 @@ void tick_lrecord_stats (const struct lrecord_header *h,
   Pointer to block of described memory. Parameters are number of contiguous
   blocks and sized_memory_description.
 
+    XD_BLOCK_DATA_PTR
+
+  Pointer to block of described memory in the C data segment (which will need
+  to be relocated differently than XD_BLOCK_PTR, but is identical to previous
+  with regard to garbage collection).
+
     XD_BLOCK_ARRAY
 
   Array of blocks of described memory.  Parameters are number of
@@ -956,6 +962,18 @@ void tick_lrecord_stats (const struct lrecord_header *h,
   Pointer into the C data segment, that will need to be relocated on systems
   with address space layout randomization (ASLR).
 
+    XD_MEMORY_DESCRIPTION
+
+  Pointer to a struct memory_description. These are all in the C data segment
+  and need to be relocated on systems with address space layout randomization
+  (ASLR).
+
+    XD_SIZED_MEMORY_DESCRIPTION
+
+  Pointer to a struct sized_memory_description. These are handled in the same
+  way as XD_MEMORY_DESCRIPTION, but any error checking on dump and load (none
+  so far) will need to be handled differently.
+
     XD_ASCII_STRING
 
   Pointer to a C string, purely ASCII.
@@ -1012,11 +1030,14 @@ enum memory_description_type
   XD_OPAQUE_DATA_CONVERTIBLE,
   XD_OPAQUE_DATA_PTR,
   XD_BLOCK_PTR,
+  XD_BLOCK_DATA_PTR,
   XD_BLOCK_ARRAY,
   XD_UNION,
   XD_UNION_DYNAMIC_SIZE,
   XD_FUNCTION_POINTER,
   XD_DATA_POINTER,
+  XD_MEMORY_DESCRIPTION,
+  XD_SIZED_MEMORY_DESCRIPTION,
   XD_ASCII_STRING,
   XD_INT_RESET,
   XD_BYTECOUNT,

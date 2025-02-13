@@ -409,7 +409,8 @@ static const struct memory_description specifier_methods_description_1[] = {
 				   going_to_add_method) },
   { XD_FUNCTION_POINTER, offsetof (struct specifier_methods,
 				   after_change_method) },
-  { XD_DATA_POINTER, offsetof (struct specifier_methods, extra_description) },
+  { XD_SIZED_MEMORY_DESCRIPTION, offsetof (struct specifier_methods,
+					   extra_description) },
   { XD_END }
 };
 

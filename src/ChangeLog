@@ -1,3 +1,49 @@
+2025-02-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	New data description enumeration values:
+	1. XD_BLOCK_DATA_PTR, like XD_BLOCK_PTR but describing pointers
+	into the C data segment. Added in preparation for further work.
+	2. XD_MEMORY_DESCRIPTION, used for pointers to struct
+	memory_description, will be useful if error checking added to
+	pdump.
+	2. XD_SIZED_MEMORY_DESCRIPTION, used for pointers to struct
+	sized_memory_description, same motivation as previous.
+
+	* alloc.c:
+	* alloc.c (static const struct sized_memory_description
+	c_data_pointer_description): Removed.
+	* alloc.c (static const struct sized_memory_description
+	memory_description_description): New.
+	Use this to describe lrecord_memory_descriptions.
+	
+	* dumper.c (pdump_register_sub):
+	Handle XD_BLOCK_DATA_PTR like XD_BLOCK_PTR, but add a
+	corresponding entry to pdump_root_blocks in order that the address
+	in the C data segment be updated correctly during
+	pdump_load_finish().
+	Handle XD_MEMORY_DESCRIPTION, XD_SIZED_MEMORY_DESCRIPTION like
+	XD_DATA_POINTER.
+	* dumper.c (pdump_store_new_pointer_offsets):
+	Handle XD_BLOCK_DATA_PTR like XD_BLOCK_PTR here.
+	* dumper.c (pdump_reloc_one): Ditto.
+	Update some aspects of an outdated comment from Ben.
+	* file-coding.c: Use XD_SIZED_MEMORY_DESCRIPTION in describing
+	extra_description, stream_description within struct
+	coding_system_methods.
+	* gc.c (lispdesc_one_description_line_size):
+	Add entries for XD_MEMORY_DESCRIPTION, XD_SIZED_MEMORY_DESCRIPTION.
+	Handle XD_BLOCK_DATA_PTR like XD_BLOCK_PTR here.
+	* gc.c (kkcc_marking): Ditto.
+	* lrecord.h:
+	Document XD_BLOCK_DATA_PTR, XD_MEMORY_DESCRIPTION,
+	XD_SIZED_MEMORY_DESCRIPTION.
+	* lrecord.h (enum memory_description_type):
+	Add the enumeration values.
+	* lstream.c: Use XD_SIZED_MEMORY_DESCRIPTION to describe
+	extra_description within struct lstream_implementation.
+	* specifier.c: Use XD_SIZED_MEMORY_DESCRIPTION to describe
+	extra_description within struct specifier_methods.
+
 2025-02-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Incorporate Stefan Monnier's change of 0683b6fa90db, 2000-03-26,

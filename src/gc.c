@@ -262,6 +262,11 @@ lispdesc_one_description_line_size (void *rdata,
       return sizeof (void *);
     case XD_FUNCTION_POINTER:
       return sizeof (lisp_fn_t);
+    case XD_MEMORY_DESCRIPTION:
+      return sizeof (struct memory_description *);
+    case XD_SIZED_MEMORY_DESCRIPTION:
+      return sizeof (struct sized_memory_description *);
+    case XD_BLOCK_DATA_PTR:
     case XD_BLOCK_PTR:
       {
 	EMACS_INT val = lispdesc_indirect_count (desc1->data1, desc, obj);
@@ -886,6 +891,8 @@ kkcc_marking (void)
 	    case XD_OPAQUE_DATA_PTR:
 	    case XD_FUNCTION_POINTER:
 	    case XD_DATA_POINTER:
+	    case XD_MEMORY_DESCRIPTION:
+	    case XD_SIZED_MEMORY_DESCRIPTION:
 	    case XD_ASCII_STRING:
 	      break;
 	    case XD_LISP_OBJECT: 
@@ -922,6 +929,7 @@ kkcc_marking (void)
 		  }
 		break;
 	      }
+	    case XD_BLOCK_DATA_PTR:
 	    case XD_BLOCK_PTR:
 	      {
 		EMACS_INT count = lispdesc_indirect_count (desc1->data1, desc,

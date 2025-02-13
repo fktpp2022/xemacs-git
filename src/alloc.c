@@ -114,7 +114,8 @@ static const struct memory_description lrecord_implementation_description_1[] = 
   { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, equal) },
   { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, hash) },
 
-  { XD_DATA_POINTER, offsetof (struct lrecord_implementation, description) },
+  { XD_MEMORY_DESCRIPTION, offsetof (struct lrecord_implementation,
+				     description) },
 
   { XD_BYTECOUNT, offsetof (struct lrecord_implementation, static_size) },
 
@@ -160,19 +161,19 @@ static const struct memory_description lrecord_implementations_table_description
    But copying them to a parallel array is much more cache-friendly. */
 const struct memory_description *lrecord_memory_descriptions[countof (lrecord_implementations_table)];
 
-static const struct memory_description c_data_pointer_description_1[] = {
-  { XD_DATA_POINTER, 0 },
+static const struct memory_description memory_description_description_1[] = {
+  { XD_MEMORY_DESCRIPTION, 0 },
   { XD_END }
 };
 
-static const struct sized_memory_description c_data_pointer_description = {
+static const struct sized_memory_description memory_description_description = {
   sizeof (void *),
-  c_data_pointer_description_1
+  memory_description_description_1
 };
 
 static const struct memory_description lrecord_memory_descriptions_description_1[] = {
   { XD_BLOCK_ARRAY, 0, countof (lrecord_implementations_table),
-    { &c_data_pointer_description } },
+    { &memory_description_description } },
   { XD_END }
 };
 
