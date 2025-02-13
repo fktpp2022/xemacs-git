@@ -1,9 +1,8 @@
-/* Extended regular expression matching and search library,
-   version 0.12, extended for XEmacs.
-   (Implements POSIX draft P10003.2/D11.2, except for
-   internationalization features.)
+/* Extended regular expression matching and search library, used for providing
+   search and match functionality to XEmacs itself and to some supporting
+   executable code in ../lib-src/.
 
-   Copyright (C) 1993, 1994, 1995, 2000, 2023 Free Software Foundation, Inc.
+   Copyright (C) 1993-2025 Free Software Foundation, Inc.
    Copyright (C) 1995 Sun Microsystems, Inc.
    Copyright (C) 1995, 2001, 2002, 2003, 2005, 2010 Ben Wing.
 
@@ -23,13 +22,14 @@
    along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 /* TODO:
-   - detect nasty infinite loops like "\\(\\)+?ab" when matching "ac".
    - structure the opcode space into opcode+flag.
-   - merge with glic's regex.[ch]
+   - XEmacs: We copy the compiled pattern to the C stack within
+   re_match_2_internal() and so we are re-entrant, there is no need to change
+   the succeed_n, jump_n, set_number_at opcodes for this reason. */
 
-   That's it for now    -sm */
-
-/* Synched up with: FSF 19.29. */
+/* Synched up with: FSF 31.0.50 (very complete; main goal was removing need for
+   shy groups to take a register number, and expanding the number of areas
+   where strings can match without needing to push failure points). */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -548,6 +548,12 @@ typedef enum
            which pushes entries onto the register failure stack needlessly. */
   on_failure_jump_exclusive,
 
+	/* Just like 'on_failure_jump_loop', except that it checks for
+	   a different kind of loop (the kind that shows up with non-greedy
+	   operators).  This operation has to be immediately preceded
+	   by a 'no_op'.  */
+  on_failure_jump_nastyloop,
+
 	/* Just like `on_failure_jump', except that it checks that we don't get
 	   stuck in an infinite loop (matching an empty string
 	   indefinitely).  */
@@ -939,6 +945,12 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
   	  printf ("/on_failure_jump_exclusive to %zd",
 		  (Bytecount)(p + mcnt - start));
  	  break;
+
+	case on_failure_jump_nastyloop:
+	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
+	  printf ("/on_failure_jump_nastyloop to %td",
+                  (Bytecount) (p + mcnt - start));
+	  break;
 
 	case on_failure_jump_loop:
  	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
@@ -1726,7 +1738,10 @@ do {									\
       assert (FAILURE_PAT (failure) >= pstart                           \
 	      && FAILURE_PAT (failure) <= pstart + bufp->used);         \
       if (FAILURE_PAT (failure) == pat_cur)				\
-	goto fail;							\
+        {                                                               \
+          cycle = 1;                                                    \
+          break;                                                        \
+        }                                                               \
       DEBUG_MATCH_PRINT ("  Other pattern: %p\n",			\
 			 FAILURE_PAT (failure));			\
       failure = NEXT_FAILURE_HANDLE(failure);				\
@@ -2251,12 +2266,40 @@ static reg_errcode_t compile_extended_range (re_char **p_ptr,
 reg_errcode_t compile_char_class (re_wctype_t cc, Lisp_Object rtab,
                                   Bitbyte *flags_out);
 #endif
+
+/* Subroutines for optimize_on_failure_jump(). */
+
 static re_bool mutually_exclusive_p (struct re_pattern_buffer *bufp,
 				     re_char *p1, re_char *p2);
+enum reg_match_null_info
+{
+  MATCH_NON_NULL = 0,
+  MATCH_NULL,
+  MATCH_NULL_UNSET
+};
 
-static re_bool group_match_null_string_p (re_char **p, re_char *end);
-static re_bool alt_match_null_string_p (re_char *p, re_char *end);
-static re_bool common_op_match_null_string_p (re_char **p, re_char *end);
+struct reg_match_info_data {
+  unsigned int reg_offset:24; /* Greater than 16 bits so we can have an UNSET
+				 value that is not a valid buffer offset. */
+  unsigned int reg_match_null_info:3;
+} data[1];
+
+typedef struct {
+  regnum_t ngroups;
+  struct reg_match_info_data data[1]; /* Actually ngroups + 1 in length. */
+} reg_info_t;
+
+static re_bool expression_match_null_string_p (struct re_pattern_buffer *,
+					       re_char *, re_char *,
+					       reg_info_t *);
+static re_bool group_match_null_string_p (re_char **p, re_char *end,
+					  reg_info_t *);
+static re_bool alt_match_null_string_p (re_char *p, re_char *end,
+					reg_info_t *);
+static re_bool common_op_match_null_string_p (re_char **p, re_char *end,
+					      reg_info_t *);
+
+
 static int bcmp_translate (re_char *s1, re_char *s2,
 			   REGISTER int len, RE_TRANSLATE_TYPE translate
 #ifdef emacs
@@ -2307,25 +2350,128 @@ regex_grow_registers (int num_regs)
 
 #endif /* not MATCH_MAY_ALLOCATE */
 
-/* Adjust on_failure_jump_smart to either on_failure_jump_exclusive or
+/* Code to bounds-check the table documenting whether groups can match
+   zero-length strings. */
+
+#define REGEX_ALLOCATE_GROUP_INFO(ngroups)			\
+  ((reg_info_t *) memmove						\
+   (REGEX_ALLOCATE (sizeof (reg_info_t)					\
+		    /* NGROUPS is an inclusive bound, so no need to */	\
+		    /* subtract 1 for the length of data[]. */		\
+		    + (sizeof (struct reg_match_info_data) *		\
+		       (ngroups))),					\
+    &(ngroups), sizeof (ngroups)))
+
+#define REG_OFFSET_UNKNOWN (regoff_t) (1L << 23)
+
+#if defined (emacs) && defined (ERROR_CHECK_STRUCTURES)
+
+static enum reg_match_null_info
+get_reg_match_nulls (reg_info_t *group_info,
+		     regnum_t index, const Ascbyte *file,
+		     int line)
+{
+  assert_at_line (index >= 0, file, line);
+  assert_at_line (index <= group_info->ngroups, file, line);
+  return
+    (enum reg_match_null_info) group_info->data[index].reg_match_null_info;
+}
+
+#define GET_REG_MATCH_NULLS(m_n, index) \
+  get_reg_match_nulls (m_n, index, __FILE__, __LINE__)
+
+static void
+set_reg_match_nulls (reg_info_t *group_info, regnum_t index,
+		     enum reg_match_null_info newval, const Ascbyte *file,
+		     int line)
+{
+  assert_at_line (index >= 0, file, line);
+  assert_at_line (index <= group_info->ngroups, file, line);
+  group_info->data[index].reg_match_null_info = (unsigned int) newval;
+}
+
+#define SET_REG_MATCH_NULLS(m_n, index, newval) \
+  set_reg_match_nulls (m_n, index, newval, __FILE__, __LINE__)
+
+static regoff_t
+get_reg_offset (reg_info_t *group_info, regnum_t index,
+		const Ascbyte *file, int line)
+{
+  assert_at_line (index >= 0, file, line);
+  assert_at_line (index <= group_info->ngroups, file, line);
+  assert_at_line (group_info->data[index].reg_offset >= 0, file, line);
+  assert_at_line (group_info->data[index].reg_offset < RE_MAX_BUF_SIZE || 
+		  group_info->data[index].reg_offset == REG_OFFSET_UNKNOWN,
+		  file, line);
+  return (regoff_t) group_info->data[index].reg_offset;
+}
+
+#define GET_REG_OFFSET(m_n, index) \
+  get_reg_offset (m_n, index, __FILE__, __LINE__)
+
+static void
+set_reg_offset (reg_info_t *group_info, regnum_t index,
+		Bytecount newval, const Ascbyte *file, int line)
+{
+  assert_at_line (index >= 0, file, line);
+  assert_at_line (index <= group_info->ngroups, file, line);
+  assert_at_line (newval >= 0, file, line);
+  assert_at_line (newval < RE_MAX_BUF_SIZE || newval == REG_OFFSET_UNKNOWN,
+		  file, line);
+  group_info->data[index].reg_offset = (unsigned int) newval;
+}
+
+#define SET_REG_OFFSET(m_n, index, newval) \
+  set_reg_offset (m_n, index, newval, __FILE__, __LINE__)
+
+#else 
+
+#define GET_REG_MATCH_NULLS(m_n, index) \
+  ((enum reg_match_null_info) (m_n->data[index].reg_match_null_info))
+#define SET_REG_MATCH_NULLS(m_n, index, newval) \
+  m_n->data[index].reg_match_null_info = (unsigned int )newval
+
+#define GET_REG_OFFSET(m_n, index) \
+  (regoff_t) m_n->data[index].reg_offset
+#define SET_REG_OFFSET(m_n, index, newval) \
+  m_n->data[index].reg_offset = (unsigned int) newval
+
+#endif
+
+/* 1. Adjust on_failure_jump_smart to either on_failure_jump_exclusive or
    on_failure_jump_loop after the entire pattern has been compiled, so that
    on_failure_jump_smart won't be called when matching.
 
-   Doing this in regex_compile is more important for us than for GNU given that
-   we copy the pattern to the C stack on entering re_match_2_internal() (copy
-   done for the sake of re-entrancy) and so mutually_exclusively_p() would be
-   called more often at match time.
+   2. Rewrite `on_failure_jump_nastyloop' to the cheaper `on_failure_jump' if
+   the expression cannot match the null string. GNU does this within
+   regex_compile() directly; doing it within this function allows us to take
+   advantage of the on_failure_jump_smart adjustment, since if
+   on_failure_jump_loop is present that indicates that an expression can match
+   the null string.
+
+   Doing the first of these in regex_compile is more important for us than for
+   GNU given that we copy the pattern to the C stack on entering
+   re_match_2_internal() (copy done for the sake of re-entrancy) and so
+   mutually_exclusively_p() would be called more often at match time.
 
    I considered implementing this by saving pointers (or offsets) to the
    on_failure_jump_smart instructions as we place them in regex_compile(),
    which would have fewer issues with new opcodes or changes to opcode arity,
    but given INSERT_JUMP() can move previous instructions that's difficult,
-   and this approach is inexpensive of memory.  */
+   and this approach is inexpensive of memory. */
 static inline void
-fixup_on_failure_jump_smart (struct re_pattern_buffer *bufp)
+optimize_on_failure_jump (struct re_pattern_buffer *bufp)
 {
   unsigned char *begalt = bufp->buffer;
   re_char *buf_end = begalt + bufp->used;
+  reg_info_t *group_info = REGEX_ALLOCATE_GROUP_INFO (bufp->re_ngroups);
+  regnum_t ii;
+
+  for (ii = 0; ii <= bufp->re_ngroups; ii++)
+    {
+      SET_REG_MATCH_NULLS (group_info, ii, MATCH_NULL_UNSET);
+      SET_REG_OFFSET (group_info, ii, REG_OFFSET_UNKNOWN);
+    }
 
   while (begalt < buf_end)
     {
@@ -2360,6 +2506,12 @@ fixup_on_failure_jump_smart (struct re_pattern_buffer *bufp)
 	  break;
 
 	case start_memory:
+	  {
+	    regnum_t regno;
+	    EXTRACT_NONNEGATIVE (regno, begalt);
+	    SET_REG_OFFSET (group_info, regno, (int) (begalt - bufp->buffer));
+	    /* FALLTHROUGH */
+	  }
 	case stop_memory:
 	case duplicate:
 	case on_failure_jump:
@@ -2389,6 +2541,39 @@ fixup_on_failure_jump_smart (struct re_pattern_buffer *bufp)
 	  begalt += unified_range_table_bytes_used ((void *) begalt);
 	  break;
 #endif
+	case on_failure_jump_nastyloop:
+          {
+	    int mcnt;
+	    regoff_t here = begalt - bufp->buffer;
+
+	    /* Initialize the information regarding whether groups up to this
+	       point can match null strings for the sake of the duplicate
+	       processing. */
+	    for (ii = 1; ii <= bufp->re_ngroups
+		   && GET_REG_OFFSET (group_info, ii) < here; ii++)
+	      {
+		re_char *p2 = bufp->buffer + GET_REG_OFFSET (group_info, ii);
+		group_match_null_string_p (&p2, buf_end, group_info);
+	      }
+
+	    EXTRACT_NUMBER_AND_INCR (mcnt, begalt);
+
+	    if (expression_match_null_string_p (bufp, begalt + mcnt,
+						begalt - 3, group_info))
+	      {
+		/* Default to a safe `on_failure_jump_nastyloop'.  */
+		DEBUG_PRINT ("  possible null match => keep nastyloop.\n");
+	      }
+	    else
+	      {
+		/* Use a normal loop.  */
+		DEBUG_PRINT ("  non-null element, nastyloop  => normal "
+                             "loop.\n");
+		*(begalt - 3) = on_failure_jump;
+	      }
+	    break;
+          }
+
 	case on_failure_jump_smart:
 	  {
 	    int mcnt;
@@ -2411,6 +2596,8 @@ fixup_on_failure_jump_smart (struct re_pattern_buffer *bufp)
 	  }
 	}
     }
+
+  REGEX_FREE (group_info, reg_info_t *);
 }
 
 
@@ -2726,8 +2913,11 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 		    /* The non-greedy multiple match looks like a
 		       repeat..until: we only need a conditional jump at the
 		       end of the loop */
-		    GET_BUFFER_SPACE (3);
-		    STORE_JUMP (on_failure_jump, buf_end, laststart);
+		    GET_BUFFER_SPACE (4);
+                    BUF_PUSH (no_op);
+                    /* XEmacs; decide if on_failure_jump_nastyloop
+                       inappropriate in optimize_on_failure_jump(). */
+		    STORE_JUMP (on_failure_jump_nastyloop, buf_end, laststart);
 		    buf_end += 3;
 		    if (zero_times_ok)
 		      {
@@ -3412,7 +3602,8 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
                         before the `succeed_n'.  The `5' is the last two
                         bytes of this `set_number_at', plus 3 bytes of
                         the following `succeed_n'.  */
-                     insert_op2 (set_number_at, laststart, 5, lower_bound, buf_end);
+                     insert_op2 (set_number_at, laststart, 5, lower_bound,
+                                 buf_end);
                      buf_end += 5;
 
                      if (upper_bound > 1)
@@ -3704,12 +3895,12 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
   /* We have succeeded; set the length of the buffer.  */
   bufp->used = buf_end - bufp->buffer;
 
-  fixup_on_failure_jump_smart (bufp);
+  optimize_on_failure_jump (bufp);
 
 #ifdef DEBUG
   if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_COMPILATION)
     {
-      DEBUG_PRINT ("\nCompiled pattern: \n");
+      DEBUG_COMPILE_PRINT ("\nCompiled pattern: \n");
       print_compiled_pattern (bufp);
     }
 #endif /* DEBUG */
@@ -4584,6 +4775,7 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 	  switch ((re_opcode_t) *p)
 	    {
 	    case on_failure_jump:
+            case on_failure_jump_nastyloop:
 	    case on_failure_jump_exclusive:
 	    case on_failure_jump_loop:
 	    case on_failure_jump_smart:
@@ -4597,6 +4789,7 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 	  /* Fallthrough */
 
 	case on_failure_jump:
+        case on_failure_jump_nastyloop:
 	case on_failure_jump_exclusive:
 	case on_failure_jump_loop:
 	case on_failure_jump_smart:
@@ -4856,7 +5049,7 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
 
 #ifdef REGEX_BEGLINE_CHECK
   {
-    long i = 0;
+    Bytecount i = 0;
 
     while (i < bufp->used)
       {
@@ -6266,7 +6459,6 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    break;
           goto fail;
 
-
 	case on_failure_jump_exclusive:
 	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
 	  DEBUG_MATCH_PRINT ("EXECUTING on_failure_jump_exclusive %d "
@@ -6294,18 +6486,66 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    PUSH_FAILURE_POINT (p - 3, d);
 	  break;
 
+	  /* A nasty loop is introduced by the non-greedy *? and +?.
+	     With such loops, the stack only ever contains one failure point
+	     at a time, so that a plain on_failure_jump_loop kind of
+	     cycle detection cannot work.  Worse yet, such a detection
+	     can not only fail to detect a cycle, but it can also wrongly
+	     detect a cycle (between different instantiations of the same
+	     loop).
+	     So the method used for those nasty loops is a little different:
+	     We use a special cycle-detection-stack-frame which is pushed
+	     when the on_failure_jump_nastyloop failure-point is *popped*.
+	     This special frame thus marks the beginning of one iteration
+	     through the loop and we can hence easily check right here
+	     whether something matched between the beginning and the end of
+	     the loop.  */
+	case on_failure_jump_nastyloop:
+	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
+	  DEBUG_MATCH_PRINT ("EXECUTING on_failure_jump_nastyloop %d "
+			     "(to %p):\n", mcnt, p + mcnt);
+
+	  assert ((re_opcode_t)p[-4] == no_op);
+	  {
+	    re_bool cycle = false;
+	    CHECK_INFINITE_LOOP (p - 4, d);
+	    if (!cycle)
+              {
+                /* If there's a cycle, just continue without pushing
+                   this failure point.  The failure point is the "try again"
+                   option, which shouldn't be tried.
+                   We want (x?)*?y\1z to match both xxyz and xxyxz.  */
+                PUSH_FAILURE_POINT (p - 3, d);
+              }
+	  }
+	  break;
+
 	case on_failure_jump_smart:
 	  assert (0); /* Should have been removed from the pattern by
-			 fixup_on_failure_jump_smart(). */
+			 optimize_on_failure_jump(). */
 	  /* FALLTHROUGH */
 	case on_failure_jump_loop:
 	on_failure:
 	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
 	  DEBUG_MATCH_PRINT ("EXECUTING on_failure_jump_loop %d (to %p):\n",
 			     mcnt, p + mcnt);
-
-	  CHECK_INFINITE_LOOP (p - 3, d);
-	  PUSH_FAILURE_POINT (p - 3, d);
+          {
+            re_bool cycle = 0;
+            CHECK_INFINITE_LOOP (p - 3, d);
+	    if (cycle)
+              {
+                /* If there's a cycle, get out of the loop, as if the matching
+                   had failed.  We used to just 'goto fail' here, but that was
+                   aborting the search a bit too early: we want to keep the
+                   empty-loop-match and keep matching after the loop.
+                   We want (x?)*y\1z to match both xxyz and xxyxz.  */
+                p += mcnt;
+              }
+            else
+              {
+                PUSH_FAILURE_POINT (p - 3, d);
+              }
+          }
 	  break;
 
 	/* Uses of on_failure_jump:
@@ -6693,13 +6933,17 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	  re_char *str;
 	  unsigned char *pat;
 	  /* A restart point is known.  Restore to that state.  */
-	  DEBUG_MATCH_PRINT ("\nFAIL:\n");
+	  DEBUG_FAIL_PRINT ("\nFAIL:\n");
 	  POP_FAILURE_POINT (str, pat);
 
 	  assert (pat < pend);
 
 	  switch ((re_opcode_t) *pat++)
 	    {
+	    case on_failure_jump_nastyloop:
+	      assert ((re_opcode_t)pat[-2] == no_op);
+	      PUSH_FAILURE_POINT (pat - 2, str);
+	      /* FALLTHROUGH */
 	    case on_failure_jump_exclusive:
 	    case on_failure_jump_loop:
 	    case on_failure_jump:
@@ -6708,6 +6952,10 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	      EXTRACT_NUMBER_AND_INCR (mcnt, pat);
 	      p = pat + mcnt;
 	      break;
+
+	    case no_op:
+	      /* A special frame used for nastyloops. */
+	      goto fail;
 
 	    default:
 	      abort();
@@ -6730,25 +6978,50 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
   return -1;         			/* Failure to match.  */
 } /* re_match_2_internal */
 
-/* Subroutine definitions for re_match_2.  */
+/* Subroutine definitions for optimize_on_failure_jump().  */
 
+/* Given P1, the beginning of an expression quantified by some sequence of
+   repetition chars (reflecting LASTSTART at the point the repetition chars
+   are examined), and END, its end, return non-zero if the expression can
+   match the null string. */
+static re_bool
+expression_match_null_string_p (struct re_pattern_buffer *bufp, re_char *p1,
+                                re_char *end, reg_info_t *group_info)
+{
+  switch ((re_opcode_t) *p1)
+    {
+    case start_memory:
+      p1++;
+      return group_match_null_string_p (&p1, end, group_info);
+      break;
+    case stop_memory:
+      assert (0); 
+    default:
+      return common_op_match_null_string_p (&p1, end, group_info);
+      break;
+    }
+}
 
 /* We are passed P pointing to a register number after a start_memory.
 
    Return true if the pattern up to the corresponding stop_memory can
    match the empty string, and false otherwise.
 
-   If we find the matching stop_memory, sets P to point to one past its number.
-   Otherwise, sets P to an undefined byte less than or equal to END.
-
-   We don't handle duplicates properly (yet).  */
-
+   If we find the matching stop_memory, set P to point to one past its number.
+   Otherwise, set P to an undefined byte less than or equal to END. */
 static re_bool
-group_match_null_string_p (re_char **p, re_char *end)
+group_match_null_string_p (re_char **p, re_char *end, reg_info_t *group_info)
 {
+  regnum_t thisregno;
   int mcnt;
-  /* Point to after the args to the start_memory.  */
-  re_char *p1 = *p + 2;
+  re_char *p1 = *p;
+
+  EXTRACT_NONNEGATIVE_AND_INCR (thisregno, p1);
+  
+  if (GET_REG_MATCH_NULLS (group_info, thisregno) != MATCH_NULL_UNSET)
+    {
+      return (re_bool) GET_REG_MATCH_NULLS (group_info, thisregno);
+    }
 
   while (p1 < end)
     {
@@ -6758,8 +7031,18 @@ group_match_null_string_p (re_char **p, re_char *end)
 
       switch ((re_opcode_t) *p1)
         {
+        case on_failure_jump_loop:
+        case on_failure_jump_nastyloop:
+	  /* We have circularity checking in place on the understanding that we
+	     can match the null string. Return true. */
+	  *p = p1 + 3;
+	  SET_REG_MATCH_NULLS (group_info, thisregno, MATCH_NULL);
+	  return true;
+	  break;
+	  
         /* Could be either a loop or a series of alternatives.  */
         case on_failure_jump:
+        case on_failure_jump_exclusive:
           p1++;
           EXTRACT_NUMBER_AND_INCR (mcnt, p1);
 
@@ -6779,8 +7062,7 @@ group_match_null_string_p (re_char **p, re_char *end)
                  /exactn/1/c
 
                  So, we have to first go through the first (n-1)
-                 alternatives and then deal with the last one separately.  */
-
+                 alternatives and then deal with the last one separately. */
 
               /* Deal with the first (n-1) alternatives, which start
                  with an on_failure_jump (see above) that jumps to right
@@ -6792,8 +7074,13 @@ group_match_null_string_p (re_char **p, re_char *end)
                      is, including the ending `jump_past_alt' and
                      its number.  */
 
-		  if (!alt_match_null_string_p (p1, p1 + mcnt - 3))
-                    return false;
+		  if (!alt_match_null_string_p (p1, p1 + mcnt - 3,
+						group_info))
+		    {
+		      SET_REG_MATCH_NULLS (group_info, thisregno,
+					   MATCH_NON_NULL);
+		      return false;
+		    }
 
                   /* Move to right after this alternative, including the
 		     jump_past_alt.  */
@@ -6821,26 +7108,34 @@ group_match_null_string_p (re_char **p, re_char *end)
                  the length of the alternative.  */
               EXTRACT_NUMBER (mcnt, p1 - 2);
 
-              if (!alt_match_null_string_p (p1, p1 + mcnt))
-                return false;
+              if (!alt_match_null_string_p (p1, p1 + mcnt,
+					    group_info))
+		{
+		  SET_REG_MATCH_NULLS (group_info, thisregno, MATCH_NON_NULL);
+		  return false;
+		}
 
               p1 += mcnt;	/* Get past the n-th alternative.  */
             } /* if mcnt > 0 */
           break;
 
-
         case stop_memory:
 	  assert (extract_nonnegative (p1 + 1) == extract_nonnegative (*p));
           *p = p1 + 2;
+	  SET_REG_MATCH_NULLS (group_info, thisregno, MATCH_NULL);
           return true;
 
-
         default:
-          if (!common_op_match_null_string_p (&p1, end))
-            return false;
+          if (!common_op_match_null_string_p (&p1, end, group_info))
+	    {
+	      *p = p1;
+	      SET_REG_MATCH_NULLS (group_info, thisregno, MATCH_NON_NULL);
+	      return false;
+	    }
         }
     } /* while p1 < end */
 
+  SET_REG_MATCH_NULLS (group_info, thisregno, MATCH_NON_NULL);
   return false;
 } /* group_match_null_string_p */
 
@@ -6850,7 +7145,7 @@ group_match_null_string_p (re_char **p, re_char *end)
    byte past the last. The alternative can contain groups.  */
 
 static re_bool
-alt_match_null_string_p (re_char *p, re_char *end)
+alt_match_null_string_p (re_char *p, re_char *end, reg_info_t *group_info)
 {
   int mcnt;
   re_char *p1 = p;
@@ -6862,6 +7157,12 @@ alt_match_null_string_p (re_char *p, re_char *end)
 
       switch ((re_opcode_t) *p1)
         {
+        case on_failure_jump_loop:
+        case on_failure_jump_nastyloop:
+	  /* We have circularity checking in place on the understanding that we
+	     can match the null string. Return true. */
+	  return true;
+	  break;
 	/* It's a loop.  */
         case on_failure_jump:
           p1++;
@@ -6870,7 +7171,7 @@ alt_match_null_string_p (re_char *p, re_char *end)
           break;
 
 	default:
-          if (!common_op_match_null_string_p (&p1, end))
+          if (!common_op_match_null_string_p (&p1, end, group_info))
             return false;
         }
     }  /* while p1 < end */
@@ -6883,13 +7184,12 @@ alt_match_null_string_p (re_char *p, re_char *end)
    alt_match_null_string_p.
 
    Sets P to one after the op and its arguments, if any.  */
-
 static re_bool
-common_op_match_null_string_p (re_char **p, re_char *end)
+common_op_match_null_string_p (re_char **p, re_char *end,
+			       reg_info_t *group_info)
 {
   int mcnt;
   re_bool ret;
-  regnum_t reg_no;
   re_char *p1 = *p;
 
   switch ((re_opcode_t) *p1++)
@@ -6911,21 +7211,7 @@ common_op_match_null_string_p (re_char **p, re_char *end)
       break;
 
     case start_memory:
-      EXTRACT_NONNEGATIVE_AND_INCR (reg_no, p1);
-      assert (reg_no > 0 && reg_no <= MAX_REGNUM);
-      ret = group_match_null_string_p (&p1, end);
-
-      USED (reg_no);
-#if 0
-      /* #### Fix this once we use this code at regexp compile time. */
-      /* Have to set this here in case we're checking a group which
-         contains a group and a back reference to it. */
-
-      if (REG_MATCH_NULL_STRING_P (reg_info[reg_no]) == MATCH_NULL_UNSET_VALUE)
-        REG_MATCH_NULL_STRING_P (reg_info[reg_no]) = ret;
-
-#endif
-
+      ret = group_match_null_string_p (&p1, end, group_info);
       if (!ret)
         return false;
       break;
@@ -6955,15 +7241,56 @@ common_op_match_null_string_p (re_char **p, re_char *end)
       break;
 
     case duplicate:
-#if 0
-      /* #### Fix this once we use this code at regexp compile time. */
-      if (!REG_MATCH_NULL_STRING_P (reg_info[*p1]))
-        return false;
-#endif
+      EXTRACT_NUMBER_AND_INCR (mcnt, p1);
+      switch (GET_REG_MATCH_NULLS (group_info, mcnt))
+	{
+	case MATCH_NON_NULL:
+	  return false;
+	case MATCH_NULL:
+	  return true;
+	case MATCH_NULL_UNSET:
+	  DEBUG_PRINT ("checking internal group %d matches null before "
+		       "it was examined", mcnt);
+	  assert (0); /* Should not happen */
+	  return true;
+	}
       break;
 
     case set_number_at:
       p1 += 4;
+      break;
+
+    case wordchar:
+    case notwordchar:
+      *p += 1;
+      return false;
+      break;
+
+#ifdef emacs
+    case syntaxspec:
+    case notsyntaxspec:
+    case categoryspec:
+    case notcategoryspec:
+      *p += 2;
+      return false;
+      break;
+#endif /* emacs */
+
+    case exactn:
+    case charset:
+    case charset_not:
+      *p += 1 + *p1;
+      return false;
+      break;
+
+#ifdef emacs
+    case charset_mule:
+    case charset_mule_not:
+      *p += 1;
+      *p += unified_range_table_bytes_used ((void *) *p);
+      return false;
+      break;
+#endif
 
     default:
       /* All other opcodes mean we cannot match the empty string.  */
@@ -6974,7 +7301,7 @@ common_op_match_null_string_p (re_char **p, re_char *end)
   return true;
 } /* common_op_match_null_string_p */
 
-
+
 /* Return zero if TRANSLATE[S1] and TRANSLATE[S2] are identical for LEN
    bytes; nonzero otherwise.  */
 

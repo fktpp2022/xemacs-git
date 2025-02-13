@@ -1,3 +1,48 @@
+2025-02-13  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Incorporate Stefan Monnier's change of 0683b6fa90db, 2000-03-26,
+	which adds a distinct type of circularity checking for non-greedy
+	operators.
+	This can be optimized away if we know an expression cannot match
+	the null string. Use our existing infrastructure for this (which
+	had been used at runtime previous to 0b8b6fc94d06). Extend this to
+	so we can determine if a duplicate instruction can match the null
+	string.
+
+	* regex.c: Update some comments at the opening of this file.
+	* regex.c (enum): Add `on_failure_jump_nastyloop'.
+	* regex.c (print_partial_compiled_pattern): Print it.
+	* regex.c (CHECK_INFINITE_LOOP): Set a local variable indicating th
+	* regex.c (enum reg_match_null_info): New. Enumeration documenting
+	whether a group can match the null string, or if that is not yet
+	known.
+	* regex.c (reg_info_t): New. Type used by optimize_on_failure_jump
+	for metadata about groups (offset within the pattern, whether they
+	can match the null string).
+	
+	* regex.c (optimize_on_failure_jump): Rename from
+	fixup_on_failure_jump_smart. When we encounter start_memory, save
+	the offset within the string (don't call group_match_null_string_p
+	yet, since that depends on the on_failure_jump_smart handling
+	having done its work).
+	When on_failure_jump_nastyloop is encountered, call
+	group_match_null_string_p() on the groups seen so far, and rewrite
+	the expression to on_failure_jump if the expression cannot match
+	the null string.
+	* regex.c (regex_compile):
+	Use on_failure_jump_nastyloop here.
+	* regex.c (re_compile_fastmap): Fix some indentation.
+	* regex.c (re_search_2):
+	* regex.c (re_match_2_internal):
+	Implement on_failure_jump_nastyloop, thank you Stefan Monnier.
+	* regex.c (expression_match_null_string_p): New.
+	* regex.c (group_match_null_string_p): Update to take a reginfo_t
+	argument. 
+	* regex.c (alt_match_null_string_p): Ditto.
+	* regex.c (common_op_match_null_string_p): Ditto. If
+	on_failure_jump_loop or on_failure_jump_nastyloop is encountered,
+	return true.
+
 2025-02-12  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* regex.c:
