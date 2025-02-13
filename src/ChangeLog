@@ -790,12 +790,6 @@
 	Check abbrev-start-location non-nil before calling
 	abbrev_obarray_has_blank_p() in this macro.
 
-2024-12-27  Aidan Kehoe  <kehoea@parhasard.net>
-
-
-	* abbrev.c (abbrev_obarray_has_blank_p):
-	* abbrev.c (MATCHFUN):
-
 2024-12-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* dumper.c (pdump_load):
