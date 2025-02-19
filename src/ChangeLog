@@ -1,3 +1,11 @@
+2025-02-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* regex.c (re_match_2_internal):
+	Correct an assertion here that was incompletely merged from GNU's code,
+	picked up by Stephen Turnbull on an M1 mac, of course P isn't
+	guaranteed to be >= BUFP->BUFFER, since P points into the stack
+	copy of BUFP->BUFFER on XEmacs. Thank you Steve!
+
 2025-02-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	New data description enumeration values:

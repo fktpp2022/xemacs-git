@@ -6961,7 +6961,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	      abort();
 	    }
 
-	  assert (p >= bufp->buffer && p <= pend);
+	  assert (p >= pstart && p <= pend);
 
           if (d >= string1 && d <= end1)
 	    dend = end_match_1;
