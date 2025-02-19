@@ -419,7 +419,6 @@ void vars_of_fns (void);
 void vars_of_font_lock (void);
 void reinit_vars_of_font_lock (void);
 void vars_of_font_mgr (void);
-void reinit_vars_of_font_mgr (void);
 void vars_of_frame (void);
 void vars_of_frame_gtk (void);
 void vars_of_frame_mswindows (void);

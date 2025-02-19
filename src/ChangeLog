@@ -1,5 +1,20 @@
 2025-02-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Delay calls to FcInit() until
+	lwlib-fonts.c:xft_open_font_by_name() or
+	fontcolor-xlike-inc.c:xft_find_charset_font(), avoiding updating
+	out-of-tree cache files at build time, something Gentoo does not
+	like. Thank you for the bug report, Mats Lidell.
+	* emacs.c (main_1):
+	Remove the call to reinit_vars_of_font_mgr() here.
+	* font-mgr.c (reinit_vars_of_font_mgr): Removed. All it did was
+	call FcInit() basically directly after pdump_load(), for which
+	there is no need, reasonable to delay until we open an X11 device.
+	* symsinit.h:
+	Remove its declaration.
+
+2025-02-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* regex.c (re_match_2_internal):
 	Correct an assertion here that was incompletely merged from GNU's code,
 	picked up by Stephen Turnbull on an M1 mac, of course P isn't

@@ -2235,9 +2235,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #if defined (HAVE_MENUBARS) || defined (HAVE_SCROLLBARS) || defined (HAVE_X_DIALOGS) || defined (HAVE_TOOLBARS)
       reinit_vars_of_gui_x ();
 #endif
-#ifdef HAVE_XFT
-      reinit_vars_of_font_mgr ();
-#endif
 #endif /* HAVE_X_WINDOWS */
 
       reinit_vars_of_mule_coding ();

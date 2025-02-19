@@ -1439,9 +1439,4 @@ The regular expression used to match XLFD font names.
   Vxlfd_font_name_regexp = make_xlfd_font_regexp();
 }
 
-void
-reinit_vars_of_font_mgr (void)
-{
-  FcInit ();
-}
-
+/* font-mgr.c ends here */
