@@ -304,33 +304,7 @@ compatibility.")
 Emacs will throw an error if any of them fail; checks will be made in
 reverse order.")
 
-;; FSF enables byte-compile-dynamic-docstrings but not byte-compile-dynamic
-;; by default.  This would be a reasonable conservative approach except
-;; for the fact that if you enable either of these, you get incompatible
-;; byte code that can't be read by XEmacs 19.13 or before or FSF 19.28 or
-;; before.
-;;
-;; Therefore, neither is enabled for 19.14.  Both are enabled for 20.0
-;; because we have no reason to be conservative about changing the
-;; way things work. (Ben)
-
-;; However, I don't think that defaulting byte-compile-dynamic to nil
-;; is a compatibility issue - rather it is a performance issue.
-;; Therefore I am setting byte-compile-dynamic back to nil. (mrb)
-
-(defvar byte-compile-dynamic nil
-  "*If non-nil, compile function bodies so they load lazily.
-They are hidden comments in the compiled file, and brought into core when the
-function is called.
-
-To enable this option, make it a file-local variable
-in the source file you want it to apply to.
-For example, add  -*-byte-compile-dynamic: t;-*- on the first line.
-
-When this option is true, if you load the compiled file and then move it,
-the functions you loaded will not be able to run.")
-
-(defvar byte-compile-dynamic-docstrings (emacs-version>= 20)
+(defvar byte-compile-dynamic-docstrings t
   "*If non-nil, compile doc strings for lazy access.
 We bury the doc strings of functions and variables
 inside comments in the file, and bring them into core only when they
@@ -344,7 +318,13 @@ in the source file.  For example, add this to the first line:
   -*-byte-compile-dynamic-docstrings:nil;-*-
 You can also set the variable globally.
 
-This option is enabled by default because it reduces Emacs memory usage.")
+This option is enabled by default because it reduces Emacs memory usage.  It
+is not currently implemented when the output compiled file has character or
+string literals with numeric value above ?\\xFF.")
+
+;; This was a similar feature but for the compiled function instructions; it
+;; was slower and given current memory sizes it is no longer worth it.
+(make-obsolete 'byte-compile-dynamic "Feature removed.")
 
 (defvar byte-optimize-log nil
   "*If true, the byte-compiler will log its optimizations into *Compile-Log*.
@@ -1750,7 +1730,6 @@ otherwise pop it")
 	(byte-optimize byte-optimize)
 	(byte-compile-checks-on-load
 	 byte-compile-checks-on-load)
-	(byte-compile-dynamic byte-compile-dynamic)
 	(byte-compile-dynamic-docstrings
 	 byte-compile-dynamic-docstrings)
 	(byte-compile-warnings (if (eq byte-compile-warnings t)
@@ -2102,10 +2081,8 @@ With argument, insert value in current buffer after the form."
 	    (byte-compile-maybe-reset-coding byte-compile-inbuffer
 					     byte-compile-outbuffer))
        (setq byte-compile-using-dynamic
-             (or (symbol-value-in-buffer 'byte-compile-dynamic
-                                         byte-compile-inbuffer)
-                 (symbol-value-in-buffer 'byte-compile-dynamic-docstrings
-                                         byte-compile-inbuffer)))
+             (symbol-value-in-buffer 'byte-compile-dynamic-docstrings
+                                         byte-compile-inbuffer))
        ;; This is a kludge.  Some operating systems (OS/2, DOS) need to
        ;; write files containing binary information specially.
        ;; Under most circumstances, such files will be in binary
@@ -2152,8 +2129,6 @@ With argument, insert value in current buffer after the form."
 	   (message
 	    "%s: includes char above ?\\xFF, recompiling sans dynamic features."
 	    filename))
-         (set-symbol-value-in-buffer 'byte-compile-dynamic nil
-                                     byte-compile-inbuffer)
          (set-symbol-value-in-buffer 'byte-compile-dynamic-docstrings nil
                                      byte-compile-inbuffer)
          (setq byte-compile-force-escape-quoted t
@@ -2286,8 +2261,7 @@ docstrings code.")
     (pushnew '(featurep 'mule) byte-compile-checks-on-load)
     (save-excursion
       (set-buffer byte-compile-inbuffer)
-      (setq byte-compile-dynamic nil
-	    byte-compile-dynamic-docstrings nil))))
+      (setq byte-compile-dynamic-docstrings nil))))
 
 (defun byte-compile-output-file-form (form)
   ;; writes the given form to the output buffer, being careful of docstrings
@@ -2317,14 +2291,12 @@ docstrings code.")
       (when byte-compile-output-preface (princ ")" byte-compile-outbuffer))
       nil)))
 
-(defun byte-compile-output-docform (preface name info form specindex quoted)
+(defun byte-compile-output-docform (preface name info form ignore quoted)
   "Print a form with a doc string.  INFO is (prefix doc-index postfix).
 If PREFACE and NAME are non-nil, print them too,
 before INFO and the FORM but after the doc string itself.
-If SPECINDEX is non-nil, it is the index in FORM
-of the function bytecode string.  In that case,
-we output that argument and the following argument (the constants vector)
-together, for lazy loading.
+IGNORE was used for dynamic loading of compiled function instructions, a
+feature which has been removed.
 QUOTED says that we have to put a quote before the
 list that represents a doc string reference.
 `autoload' needs that."
@@ -2371,16 +2343,7 @@ list that represents a doc string reference.
 	   (while (setq form (cdr form))
 	     (setq index (1+ index))
 	     (insert " ")
-	     (cond ((and (numberp specindex) (= index specindex))
-		    (let ((position
-			   (byte-compile-output-as-comment
-			    (cons (car form) (nth 1 form))
-			    t)))
-		      (princ (format "(#$ . %d) nil" position)
-			     byte-compile-outbuffer)
-		      (setq form (cdr form))
-		      (setq index (1+ index))))
-		   ((= index (nth 1 info))
+	     (cond ((= index (nth 1 info))
 		    (if position
 			(princ (format (if quoted "'(#$ . %d)"  "(#$ . %d)")
 				       position)
@@ -2714,9 +2677,8 @@ not supported by XEmacs."))
                   (compiled-function-doc-string code)
                   (if (commandp code)
                       (list (nth 1 (compiled-function-interactive code))))))
-         (and (atom code) byte-compile-dynamic
-              1)
-	   nil))
+         nil
+         nil))
 	nil)))
 
 ;; Print Lisp object EXP in the output file, inside a comment,

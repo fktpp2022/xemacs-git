@@ -1,3 +1,22 @@
+2025-02-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Remove byte-compile-dynamic from the byte compiler, no longer
+	worth the decrease in speed and difficulties with files being
+	recompiled and offsets getting incorrect with with RAM sizes as
+	they are.
+	* bytecomp.el:
+	* bytecomp.el (byte-compile-dynamic-docstrings): Default this to
+	t. Document that it is not currently implemented for files with
+	character or string literals with numeric value above ?\xFF.
+	* bytecomp.el (byte-compile-dynamic): Removed.
+	* bytecomp.el (byte-compile-close-variables):
+	Remove byte-compile-dynamic from here.
+	* bytecomp.el (byte-compile-from-buffer): Ditto.
+	* bytecomp.el (byte-compile-maybe-reset-coding): Ditto.
+	* bytecomp.el (byte-compile-output-docform): Ditto.
+	* bytecomp.el (byte-compile-file-form-defmumble): Ditto.
+	* obsolete.el (fetch-bytecode): New. Moved here from bytecode.c.
+
 2025-02-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* simple.el (kill-forward-chars): Removed.

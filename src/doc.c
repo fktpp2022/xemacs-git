@@ -429,7 +429,7 @@ open_doc_file (Lisp_Object filepos, OFF_T *position_out,
 
 /* Extract a doc string from a file.  FILEPOS says where to get it.
    (This could actually be byte code instructions/constants instead
-   of a doc string.)
+   of a doc string, though this functionality will be removed.)
    If it is an integer, use that position in the standard DOC file.
    If it is (FILE . INTEGER), use FILE as the file name
    and INTEGER as the position in that file.
@@ -456,20 +456,6 @@ get_doc_string (Lisp_Object filepos)
     signal_error_1 (Qinvalid_byte_code, tem);
 
   return tem;
-}
-
-/* Get a string from position FILEPOS and pass it through the Lisp reader.
-   We use this for fetching the bytecode string and constants vector
-   of a compiled function from the .elc file.  */
-
-Lisp_Object
-read_doc_string (Lisp_Object filepos)
-{
-  Lisp_Object string = get_doc_string (filepos);
-
-  if (!STRINGP (string))
-    invalid_state ("loading bytecode failed to return string", string);
-  return Fread (string);
 }
 
 static Lisp_Object

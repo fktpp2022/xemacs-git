@@ -646,5 +646,9 @@ This function is usually not appropriate, see the docstring for
   (make-compatible 'string-equal-ignore-case
                    "use `equalp' with your own type checking, if needed"))
 
+(defun fetch-bytecode (object) (check-type object compiled-function) object)
+(make-obsolete 'fetch-bytecode "Lazy loading of function instructions removed"
+               "21.5-b35")
+
 (provide 'obsolete)
 ;;; obsolete.el ends here

@@ -2210,21 +2210,10 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
   }
   f->arglist = arglist;
 
-  /* `instructions' is a string or a cons (string . int) for a
-     lazy-loaded function. */
-  if (CONSP (instructions))
-    {
-      CHECK_STRING (XCAR (instructions));
-      CHECK_FIXNUM (XCDR (instructions));
-    }
-  else
-    {
-      CHECK_STRING (instructions);
-    }
+  CHECK_STRING (instructions);
   f->instructions = instructions;
 
-  if (!NILP (constants))
-    CHECK_VECTOR (constants);
+  CHECK_VECTOR (constants);
   f->constants = constants;
 
   check_integer_range (stack_depth, Qzero, make_fixnum (USHRT_MAX));

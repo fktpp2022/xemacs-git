@@ -3319,40 +3319,30 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
     LIST_LOOP_3 (elt, stuff, tail)
       {
         make_byte_code_args[iii] = elt;
+        USED (tail);
 
+#ifdef NEED_TO_HANDLE_21_4_CODE
         if (iii == COMPILED_INSTRUCTIONS && CONSP (make_byte_code_args[iii]))
           {
-            Lisp_Object args[] = { make_char ('#'),
-                                   get_doc_string (make_byte_code_args[iii]),
-                                   Q_test, Qeq };
+            Lisp_Object string = get_doc_string (make_byte_code_args[iii]);
             Lisp_Object lispstream = Qnil, tem;
 
-            /* Dynamic docstrings interact poorly with print-gensym and
-               print-circle. Just load the instructions and the contstants now
-               if there might be a gensym or an already-referenced object in
-               the text. 
+            GCPRO1 (lispstream);
+            lispstream =
+              make_lisp_string_input_stream (string, 0, XSTRING_LENGTH (string));
+            /* Can't use Fread_from_string() because it resets
+               Vread_objects. */
+            tem = read0 (lispstream);
+            Lstream_delete (XLSTREAM (lispstream));
+            UNGCPRO;
 
-               This could be done in a way that is more GC-friendly but I plan
-               to remove byte-compile-dynamic entirely shortly, not worth the
-               effort. */
-            if (!NILP (Fposition (countof (args), args)))
-              {
-                GCPRO1 (lispstream);
-                lispstream =
-                  make_lisp_string_input_stream (args[1], 0,
-                                                 XSTRING_LENGTH (args[1]));
-                /* Can't use Fread_from_string() because it resets
-                   Vread_objects. */
-                tem = read0 (lispstream);
-                Lstream_delete (XLSTREAM (lispstream));
-                UNGCPRO;
-
-                make_byte_code_args[iii++] = Fcar (tem);
-                make_byte_code_args[iii] = Fcdr (tem);
-                tail = Fcdr (tail);
-              }
+            make_byte_code_args[iii++] = Fcar (tem);
+            make_byte_code_args[iii] = Fcdr (tem);
+            tail = Fcdr (tail);
           }
-        else if ((purify_flag || load_force_doc_strings)
+        else
+#endif /* NEED_TO_HANDLE_21_4_CODE */
+        if ((purify_flag || load_force_doc_strings)
             && CONSP (make_byte_code_args[iii])
             && EQ (XCAR (make_byte_code_args[iii]),
                    Vload_file_name_internal))

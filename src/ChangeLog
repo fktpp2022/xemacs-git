@@ -1,5 +1,27 @@
 2025-02-22  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove support for byte-compile-dynamic at runtime, no longer
+	worth the decrease in speed and difficulties with files being
+	recompiled and offsets getting incorrect with with RAM sizes as
+	they are. I note GNU has already done this.
+	
+	* alloc.c (Fmake_byte_code):
+	No longer accept INSTRUCTIIONS as a (FILE . POS) lazy offset.
+	* bytecode.c:
+	* bytecode.c (optimize_compiled_function):
+	No longer call Ffetch_bytecode() from within this.
+	* bytecode.c (Ffetch_bytecode): Removed.
+	* bytecode.c (syms_of_bytecode): Remove its DEFSUBR.
+	* doc.c (get_doc_string): Clarify that the functionality to load
+	bytee code instructions and constants will be removed.
+	* doc.c (read_doc_string): Remove this, no longer used.
+	* lisp.h: Remove its declaration.
+	* lread.c (read_compiled_function):
+	Always immediately load lazy byte code instructions. Bracket this
+	with #ifdef NEED_TO_HANDLE_21_4_CODE.
+
+2025-02-22  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Avoid difficulties with byte-compile-dynamic and print-gensym,
 	print-circle, just load the instructions and the compiled
 	function constants if there might be a gensym or a recursive

@@ -4598,7 +4598,6 @@ Lisp_Object unparesseuxify_doc_string (int fd, OFF_T position,
 				       Ibyte *name_nonreloc,
 				       Lisp_Object name_reloc,
 				       Boolint standard_doc_file);
-Lisp_Object read_doc_string (Lisp_Object);
 Lisp_Object get_doc_string (Lisp_Object);
 extern Lisp_Object Vinternal_doc_file_name;
 

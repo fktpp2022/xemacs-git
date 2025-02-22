@@ -66,8 +66,6 @@ static void set_compiled_function_constants (Lisp_Compiled_Function *,
 static void set_compiled_function_interactive (Lisp_Compiled_Function *,
                                                Lisp_Object);
 
-EXFUN (Ffetch_bytecode, 1);
-
 Lisp_Object Qbyte_code, Qcompiled_functionp, Qinvalid_byte_code;
 
 
@@ -2355,11 +2353,6 @@ optimize_compiled_function (Lisp_Object compiled_function)
     f->args_in_array = totalargs;
   }
   
-  /* If we have not actually read the bytecode string
-     and constants vector yet, fetch them from the file.  */
-  if (CONSP (f->instructions))
-    Ffetch_bytecode (compiled_function);
-
   if (STRINGP (f->instructions))
     {
       /* XSTRING_LENGTH() is more efficient than string_char_length(),
@@ -2922,36 +2915,6 @@ This is only meaningful if I18N3 was enabled when emacs was compiled.
 }
 
 
-
-DEFUN ("fetch-bytecode", Ffetch_bytecode, 1, 1, 0, /*
-If the byte code for compiled function FUNCTION is lazy-loaded, fetch it now.
-*/
-       (function))
-{
-  Lisp_Compiled_Function *f;
-  CHECK_COMPILED_FUNCTION (function);
-  f = XCOMPILED_FUNCTION (function);
-
-  if (OPAQUEP (f->instructions) || STRINGP (f->instructions))
-    return function;
-
-  if (CONSP (f->instructions))
-    {
-      Lisp_Object tem = read_doc_string (f->instructions);
-      if (!CONSP (tem))
-	signal_error (Qinvalid_byte_code,
-			   "Invalid lazy-loaded byte code", tem);
-      /* v18 or v19 bytecode file.  Need to Ebolify. */
-      if (f->flags.ebolified && VECTORP (XCDR (tem)))
-	ebolify_bytecode_constants (XCDR (tem));
-      f->instructions = XCAR (tem);
-      f->constants    = XCDR (tem);
-      return function;
-    }
-  ABORT ();
-  return Qnil; /* not (usually) reached */
-}
-
 DEFUN ("optimize-compiled-function", Foptimize_compiled_function, 1, 1, 0, /*
 Convert compiled function FUNCTION into an optimized internal form.
 */
@@ -3019,7 +2982,6 @@ syms_of_bytecode (void)
   DEFSYMBOL_MULTIWORD_PREDICATE (Qcompiled_functionp);
 
   DEFSUBR (Fbyte_code);
-  DEFSUBR (Ffetch_bytecode);
   DEFSUBR (Foptimize_compiled_function);
 
   DEFSUBR (Fcompiled_function_p);
