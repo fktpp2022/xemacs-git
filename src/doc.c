@@ -437,7 +437,7 @@ open_doc_file (Lisp_Object filepos, OFF_T *position_out,
    (A negative integer is used for user variables, so we can distinguish
    them without actually fetching the doc string.)  */
 
-static Lisp_Object
+Lisp_Object
 get_doc_string (Lisp_Object filepos)
 {
   REGISTER int fd;

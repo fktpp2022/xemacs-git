@@ -1,3 +1,15 @@
+2025-02-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Avoid difficulties with byte-compile-dynamic and print-gensym,
+	print-circle, just load the instructions and the compiled
+	function constants if there might be a gensym or a recursive
+	object in them, allowing them to reference gensyms in the argument
+	list.
+	* doc.c (get_doc_string): Make this non-static.
+	* lisp.h: Declare it.
+	* lread.c (read_compiled_function):
+	Use it here.
+
 2025-02-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Delay calls to FcInit() until

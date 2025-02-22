@@ -3301,9 +3301,8 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
   Lisp_Object stuff;
   Lisp_Object make_byte_code_args[COMPILED_DOMAIN + 1];
   struct gcpro gcpro1;
-  int len;
-  int iii;
-  int saw_a_doc_ref = 0;
+  Elemcount iii = 0, len;
+  Boolint saw_a_doc_ref = 0;
 
   /* Note: we tell read_list not to search for doc references
      because we need to handle the "doc reference" for the
@@ -3311,36 +3310,76 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
   stuff = read_list (readcharfun, terminator, 0, 0);
   len = XFIXNUM (Flength (stuff));
   if (len < COMPILED_STACK_DEPTH + 1 || len > COMPILED_DOMAIN + 1)
-    return
-      continuable_read_syntax_error ("#[...] used with wrong number of elements");
-
-  for (iii = 0; CONSP (stuff); iii++)
     {
-      Lisp_Object victim = stuff;
-      make_byte_code_args[iii] = Fcar (stuff);
-      if ((purify_flag || load_force_doc_strings)
-	   && CONSP (make_byte_code_args[iii])
-	  && EQ (XCAR (make_byte_code_args[iii]), Vload_file_name_internal))
-	{
-	  if (purify_flag && iii == COMPILED_DOC_STRING)
-	    {
-	      /* same as in read_list(). */
-	      if (NILP (Vinternal_doc_file_name))
-		make_byte_code_args[iii] = Qzero;
-	      else
-		XCAR (make_byte_code_args[iii]) =
-		  concat2 (build_ascstring ("../lisp/"),
-			   Ffile_name_nondirectory
-			   (Vload_file_name_internal));
-	    }
-	  else
-	    saw_a_doc_ref = 1;
-	}
-      stuff = Fcdr (stuff);
-      free_cons (victim);
+      return
+        continuable_read_syntax_error ("#[...] used with wrong number of elements");
     }
+
+  {
+    LIST_LOOP_3 (elt, stuff, tail)
+      {
+        make_byte_code_args[iii] = elt;
+
+        if (iii == COMPILED_INSTRUCTIONS && CONSP (make_byte_code_args[iii]))
+          {
+            Lisp_Object args[] = { make_char ('#'),
+                                   get_doc_string (make_byte_code_args[iii]),
+                                   Q_test, Qeq };
+            Lisp_Object lispstream = Qnil, tem;
+
+            /* Dynamic docstrings interact poorly with print-gensym and
+               print-circle. Just load the instructions and the contstants now
+               if there might be a gensym or an already-referenced object in
+               the text. 
+
+               This could be done in a way that is more GC-friendly but I plan
+               to remove byte-compile-dynamic entirely shortly, not worth the
+               effort. */
+            if (!NILP (Fposition (countof (args), args)))
+              {
+                GCPRO1 (lispstream);
+                lispstream =
+                  make_lisp_string_input_stream (args[1], 0,
+                                                 XSTRING_LENGTH (args[1]));
+                /* Can't use Fread_from_string() because it resets
+                   Vread_objects. */
+                tem = read0 (lispstream);
+                Lstream_delete (XLSTREAM (lispstream));
+                UNGCPRO;
+
+                make_byte_code_args[iii++] = Fcar (tem);
+                make_byte_code_args[iii] = Fcdr (tem);
+                tail = Fcdr (tail);
+              }
+          }
+        else if ((purify_flag || load_force_doc_strings)
+            && CONSP (make_byte_code_args[iii])
+            && EQ (XCAR (make_byte_code_args[iii]),
+                   Vload_file_name_internal))
+          {
+            if (purify_flag && iii == COMPILED_DOC_STRING)
+              {
+                /* same as in read_list(). */
+                if (NILP (Vinternal_doc_file_name))
+                  make_byte_code_args[iii] = Qzero;
+                else
+                  XCAR (make_byte_code_args[iii]) =
+                    concat2 (build_ascstring ("../lisp/"),
+                             Ffile_name_nondirectory
+                             (Vload_file_name_internal));
+              }
+            else
+              saw_a_doc_ref = 1;
+          }
+        
+        iii++;
+      }
+  }
+
+  free_list (stuff);
+
   GCPRO1 (make_byte_code_args[0]);
-  gcpro1.nvars = len;
+  gcpro1.nvars = iii;
 
   /* v18 or v19 bytecode file.  Need to Ebolify. */
   if (load_byte_code_version < 20 && VECTORP (make_byte_code_args[2]))
@@ -3348,7 +3387,7 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
 
   /* make-byte-code looks at purify_flag, which should have the same
    *  value as our "read-pure" argument */
-  stuff = Fmake_byte_code (len, make_byte_code_args);
+  stuff = Fmake_byte_code (iii, make_byte_code_args);
   XCOMPILED_FUNCTION (stuff)->flags.ebolified = (load_byte_code_version < 20);
   if (saw_a_doc_ref)
     Vload_force_doc_string_list = Fcons (stuff, Vload_force_doc_string_list);
