@@ -69,13 +69,16 @@ enum symbol_value_type
 #endif
 };
 
-/* Underlying C type used to implement DEFVAR_INT */
-typedef EMACS_INT Fixnum;
-
 struct symbol_value_magic
 {
-  NORMAL_LISP_OBJECT_HEADER header;
-  void *value;
+  NORMAL_LISP_OBJECT_HEADER header; /* This is a struct old_lcrecord_header,
+				       with a NEXT pointer after the struct
+				       lrecord_header. This is abused in the
+				       implementation of
+				       symbol_value_forward_boolint and
+				       symbol_value_forward_fixnum, which are
+				       c_readonly and never GCed, so there is
+				       no need for a next pointer. */
   enum symbol_value_type type;
 };
 #define SYMBOL_VALUE_MAGIC_P(x)						\
@@ -88,20 +91,19 @@ void print_symbol_value_magic (Lisp_Object, Lisp_Object, int);
 
 /********** The various different symbol-value-magic types ***********/
 
-/* 1. symbol-value-forward */
+/* 1a. symbol-value-forward-object */
 
 /* This type of symbol-value-magic is used for variables declared
-   DEFVAR_LISP, DEFVAR_INT, DEFVAR_BOOL, DEFVAR_BUFFER_LOCAL,
-   DEFVAR_BUFFER_DEFAULTS, DEFVAR_SPECIFIER, and for Qunbound.
+   DEFVAR_LISP, DEFVAR_CONST_LISP, DEFVAR_SPECIFIER.
 
    Note that some of these types of variables can be made buffer-local.
    Then, the symbol's value field contains a symbol-value-buffer-local,
-   whose CURRENT-VALUE field then contains a symbol-value-forward.
- */
+   whose CURRENT-VALUE field then contains a symbol-value-forward. */
 
-struct symbol_value_forward
+struct symbol_value_forward_object
 {
   struct symbol_value_magic magic;
+  Lisp_Object *value;
 
   /* `magicfun' is a function controlling the magic behavior of this
       forward variable.
@@ -138,17 +140,101 @@ struct symbol_value_forward
   int (*magicfun) (Lisp_Object sym, Lisp_Object *val, Lisp_Object in_object,
 		   int flags);
 };
-DECLARE_LISP_OBJECT (symbol_value_forward, struct symbol_value_forward);
-#define XSYMBOL_VALUE_FORWARD(x) \
-	XRECORD (x, symbol_value_forward, struct symbol_value_forward)
-#define symbol_value_forward_forward(m) ((void *)((m)->magic.value))
-#define symbol_value_forward_magicfun(m) ((m)->magicfun)
+DECLARE_LISP_OBJECT (symbol_value_forward_object,
+		     struct symbol_value_forward_object);
+#define SYMBOL_VALUE_FORWARD_OBJECTP(x) RECORDP (x, symbol_value_forward_object)
+#define XSYMBOL_VALUE_FORWARD_OBJECT(x) \
+	XRECORD (x, symbol_value_forward_object,\
+		 struct symbol_value_forward_object)
+#define symbol_value_forward_object_forward(m) ((m)->value)
+#define symbol_value_forward_object_magicfun(m) ((m)->magicfun)
+#define XSYMBOL_VALUE_FORWARD_OBJECT_FORWARD(x) \
+  symbol_value_forward_object_forward (XSYMBOL_VALUE_FORWARD_OBJECT (x))
+#define XSYMBOL_VALUE_FORWARD_OBJECT_MAGICFUN(m) \
+  symbol_value_forward_object_magicfun (XSYMBOL_VALUE_FORWARD_OBJECT (x))
+
+/* 1b. symbol-value-forward-fixnum.
+
+   This type of symbol-value-magic is used for variables declared DEFVAR_INT,
+   DEFVAR_CONST_INT and DEFVAR_INT_MAGIC. Commentary above as for
+   symbol_value_forward_object also applies.
+
+   In contrast to symbol_value_forward_object, GC does not have to mark through
+   symbol_value_forward_fixnum. This means we can mark these objects as
+   c_readonly and lisp_readonly, and use what would otherwise be the NEXT
+   pointer of the NORMAL_LISP_OBJECT_HEADER as the pointer to the C variable of
+   interest. */
+
+/* Underlying C type used to implement DEFVAR_INT */
+typedef EMACS_INT Fixnum;
+
+struct symbol_value_forward_fixnum_magic
+{
+  FROB_BLOCK_LISP_OBJECT_HEADER header;
+  Fixnum *value;
+  enum symbol_value_type type;
+};
+
+struct symbol_value_forward_fixnum
+{
+  struct symbol_value_forward_fixnum_magic magic;
+  int (*magicfun) (Lisp_Object sym, Lisp_Object *val, Lisp_Object in_object,
+		   int flags);
+};
+DECLARE_LISP_OBJECT (symbol_value_forward_fixnum,
+		     struct symbol_value_forward_fixnum);
+#define SYMBOL_VALUE_FORWARD_FIXNUMP(x) RECORDP (x, symbol_value_forward_fixnum)
+#define XSYMBOL_VALUE_FORWARD_FIXNUM(x) \
+	XRECORD (x, symbol_value_forward_fixnum,\
+		 struct symbol_value_forward_fixnum)
+#define symbol_value_forward_fixnum_forward(m) ((m)->magic.value)
+#define symbol_value_forward_fixnum_magicfun(m) ((m)->magicfun)
+#define XSYMBOL_VALUE_FORWARD_FIXNUM_FORWARD(x) \
+  symbol_value_forward_fixnum_forward (XSYMBOL_VALUE_FORWARD_FIXNUM (x))
+#define XSYMBOL_VALUE_FORWARD_FIXNUM_MAGICFUN(x) \
+  symbol_value_forward_fixnum_magicfun (XSYMBOL_VALUE_FORWARD_FIXNUM (x))
+
+/* 1c. symbol-value-forward-boolint.
+
+   This type of symbol-value-magic is used for variables declared DEFVAR_BOOL,
+   DEFVAR_CONST_BOOL and DEFVAR_BOOL_MAGIC. Commentary above as for
+   symbol_value_forward_fixnum also applies. */
+
+struct symbol_value_forward_boolint_magic
+{
+  FROB_BLOCK_LISP_OBJECT_HEADER header;
+  Boolint *value;
+  enum symbol_value_type type;
+};
+
+struct symbol_value_forward_boolint
+{
+  struct symbol_value_forward_boolint_magic magic;
+  /* `magicfun' is a function controlling the magic behavior of this
+     forward variable. Details as for symbol_value_forward_object. */
+  int (*magicfun) (Lisp_Object sym, Lisp_Object *val, Lisp_Object in_object,
+		   int flags);
+};
+DECLARE_LISP_OBJECT (symbol_value_forward_boolint,
+		     struct symbol_value_forward_boolint);
+#define SYMBOL_VALUE_FORWARD_BOOLINTP(x) RECORDP (x, symbol_value_forward_boolint)
+#define XSYMBOL_VALUE_FORWARD_BOOLINT(x) \
+	XRECORD (x, symbol_value_forward_boolint,\
+		 struct symbol_value_forward_boolint)
+#define symbol_value_forward_boolint_forward(m) ((m)->magic.value)
+#define symbol_value_forward_boolint_magicfun(m) ((m)->magicfun)
+#define XSYMBOL_VALUE_FORWARD_BOOLINT_FORWARD(x) \
+  symbol_value_forward_boolint_forward (XSYMBOL_VALUE_FORWARD_BOOLINT (x))
+#define XSYMBOL_VALUE_FORWARD_BOOLINT_MAGICFUN(x) \
+  symbol_value_forward_boolint_magicfun(XSYMBOL_VALUE_FORWARD_BOOLINT (x))
 
 /* 2. symbol-value-buffer-local */
 
 struct symbol_value_buffer_local
 {
-  struct symbol_value_magic magic;
+  struct symbol_value_magic magic; /* The NEXT pointer of the
+				      old_lcrecord_header is used here, by
+				      ALLOC_NORMAL_LISP_OBJECT(). */
   /* Used in a symbol value cell when the symbol's value is per-buffer.
 
      The type of the symbol-value-magic will be either
@@ -353,57 +439,45 @@ MODULE_API void deferror_massage_name_and_message (Lisp_Object *symbol,
 #define DEFERROR_STANDARD(name, inherits_from) \
   deferror_massage_name_and_message (&name, #name, inherits_from)
 
-/* Macros we use to define forwarded Lisp variables.
-   These are used in the syms_of_FILENAME functions.  */
-
 MODULE_API void defvar_magic (const Ascbyte *symbol_name,
-			      const struct symbol_value_forward *magic);
+			      const struct symbol_value_magic *magic);
 
-#define DEFVAR_SYMVAL_FWD(lname, c_location, forward_type, magicfun)	\
+#define DEFVAR_SYMVAL_FWD_NON_LISP(lname, c_location, forward_type, magic_fun, subtype) \
 do									\
 {									\
-  static const struct symbol_value_forward I_hate_C =			\
-  { /* struct symbol_value_forward */					\
-    { /* struct symbol_value_magic */					\
-      { /* struct old_lcrecord_header */				\
-	{ /* struct lrecord_header */					\
-	  lrecord_type_symbol_value_forward, /* lrecord_type_index */	\
-	  1, /* mark bit */						\
-	  1, /* c_readonly bit */					\
-	  1, /* lisp_readonly bit */					\
-	},								\
-	0, /* next */							\
-      },								\
-      c_location,							\
-      forward_type							\
-    },									\
-    magicfun								\
-  };									\
-  defvar_magic ((lname), &I_hate_C);					\
-} while (0)
-#define DEFVAR_SYMVAL_FWD_INT(lname, c_location, forward_type, magicfun) \
-do									 \
-{									 \
-  DEFVAR_SYMVAL_FWD (lname, c_location, forward_type, magicfun);	 \
-  dump_add_opaque_int (c_location);					 \
+  struct symbol_value_forward_##subtype *symbol_value_forward =		\
+    XRECORD (ALLOC_C_READONLY_LISP_OBJECT				\
+	     (symbol_value_forward_##subtype),				\
+	     symbol_value_forward_##subtype,				\
+	     struct symbol_value_forward_##subtype);			\
+									\
+  symbol_value_forward->magic.type = forward_type;			\
+  symbol_value_forward->magic.value = c_location;			\
+  symbol_value_forward->magicfun = magic_fun;				\
+									\
+  defvar_magic ((lname),						\
+		(struct symbol_value_magic *) symbol_value_forward);    \
 } while (0)
 
 #define DEFVAR_SYMVAL_FWD_FIXNUM(lname, c_location, forward_type, magicfun) \
-do									    \
-{									    \
-  DEFVAR_SYMVAL_FWD (lname, c_location, forward_type, magicfun);	    \
-  dump_add_opaque_fixnum (c_location);					    \
-} while (0)
+DEFVAR_SYMVAL_FWD_NON_LISP(lname, c_location, forward_type, magicfun, fixnum)
 
-#define DEFVAR_SYMVAL_FWD_OBJECT(lname, c_location, forward_type, magicfun) \
-do									    \
-{									    \
-  DEFVAR_SYMVAL_FWD (lname, c_location, forward_type, magicfun);	    \
-  {									    \
-    Lisp_Object *DSF_location = c_location; /* Type check */		    \
-    staticpro (DSF_location);					    \
-    if (EQ (*DSF_location, Qnull_pointer)) *DSF_location = Qnil;	    \
-  }									    \
+#define DEFVAR_SYMVAL_FWD_BOOL(lname, c_location, forward_type, magicfun) \
+DEFVAR_SYMVAL_FWD_NON_LISP(lname, c_location, forward_type, magicfun, boolint)
+
+#define DEFVAR_SYMVAL_FWD_OBJECT(lname, c_location, forward_type, magic_fun) \
+do									\
+{									\
+  struct symbol_value_forward_object *symbol_value_forward =		\
+    XSYMBOL_VALUE_FORWARD_OBJECT (ALLOC_NORMAL_LISP_OBJECT		\
+				  (symbol_value_forward_object));	\
+  /* Don't set this as readonly, otherwise GC of *VALUE */		\
+  /* doesn't happen. */							\
+  symbol_value_forward->magic.type = forward_type;			\
+  symbol_value_forward->value = c_location;				\
+  symbol_value_forward->magicfun = magic_fun;				\
+									\
+  defvar_magic ((lname), &(symbol_value_forward->magic));		\
 } while (0)
 
 #define DEFVAR_LISP(lname, c_location) \
@@ -412,20 +486,22 @@ do									    \
 	DEFVAR_SYMVAL_FWD_OBJECT (lname, c_location, SYMVAL_CONST_OBJECT_FORWARD, 0)
 #define DEFVAR_SPECIFIER(lname, c_location) \
 	DEFVAR_SYMVAL_FWD_OBJECT (lname, c_location, SYMVAL_CONST_SPECIFIER_FORWARD, 0)
+#define DEFVAR_LISP_MAGIC(lname, c_location, magicfun) \
+	DEFVAR_SYMVAL_FWD_OBJECT (lname, c_location, SYMVAL_OBJECT_FORWARD, magicfun)
+
 #define DEFVAR_INT(lname, c_location) \
 	DEFVAR_SYMVAL_FWD_FIXNUM (lname, c_location, SYMVAL_FIXNUM_FORWARD, 0)
 #define DEFVAR_CONST_INT(lname, c_location) \
 	DEFVAR_SYMVAL_FWD_FIXNUM (lname, c_location, SYMVAL_CONST_FIXNUM_FORWARD, 0)
-#define DEFVAR_BOOL(lname, c_location) \
-	DEFVAR_SYMVAL_FWD_INT (lname, c_location, SYMVAL_BOOLEAN_FORWARD, 0)
-#define DEFVAR_CONST_BOOL(lname, c_location) \
-	DEFVAR_SYMVAL_FWD_INT (lname, c_location, SYMVAL_CONST_BOOLEAN_FORWARD, 0)
-#define DEFVAR_LISP_MAGIC(lname, c_location, magicfun) \
-	DEFVAR_SYMVAL_FWD_OBJECT (lname, c_location, SYMVAL_OBJECT_FORWARD, magicfun)
 #define DEFVAR_INT_MAGIC(lname, c_location, magicfun) \
 	DEFVAR_SYMVAL_FWD_FIXNUM (lname, c_location, SYMVAL_FIXNUM_FORWARD, magicfun)
+
+#define DEFVAR_BOOL(lname, c_location) \
+	DEFVAR_SYMVAL_FWD_BOOL (lname, c_location, SYMVAL_BOOLEAN_FORWARD, 0)
+#define DEFVAR_CONST_BOOL(lname, c_location) \
+	DEFVAR_SYMVAL_FWD_BOOL (lname, c_location, SYMVAL_CONST_BOOLEAN_FORWARD, 0)
 #define DEFVAR_BOOL_MAGIC(lname, c_location, magicfun) \
-	DEFVAR_SYMVAL_FWD_INT (lname, c_location, SYMVAL_BOOLEAN_FORWARD, magicfun)
+	DEFVAR_SYMVAL_FWD_BOOL (lname, c_location, SYMVAL_BOOLEAN_FORWARD, magicfun)
 
 void flush_all_buffer_local_cache (void);
 

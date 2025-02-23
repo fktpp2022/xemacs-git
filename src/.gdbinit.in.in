@@ -309,8 +309,14 @@ define pobj
     pptype Lisp_Vector
     printf "Vector of length %d\n", $type_ptr->size
     ##print *($type_ptr->data) @ $type_ptr->size
-  if $lrecord_type == lrecord_type_symbol_value_forward
-    pstructtype symbol_value_forward
+  if $lrecord_type == lrecord_type_symbol_value_forward_object
+    pstructtype symbol_value_forward_object
+  else
+  if $lrecord_type == lrecord_type_symbol_value_forward_fixnum
+    pstructtype symbol_value_forward_fixnum
+  else
+  if $lrecord_type == lrecord_type_symbol_value_forward_boolint
+    pstructtype symbol_value_forward_boolint
   else
   if $lrecord_type == lrecord_type_symbol_value_varalias
     pstructtype symbol_value_varalias
@@ -565,6 +571,8 @@ define pobj
   end
   end
   ## Are we having fun yet??
+  end
+  end
   end
   end
   end

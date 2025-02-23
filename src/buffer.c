@@ -2179,31 +2179,15 @@ List of functions called with no args to query before killing a buffer.
    a bogus extra arg, which confuses an otherwise identical make-docfile.c */
 #define DEFVAR_BUFFER_LOCAL_1(lname, field_name, forward_type, magicfun) \
 do {									 \
-  static const struct symbol_value_forward I_hate_C =			 \
-  { /* struct symbol_value_forward */					 \
-    { /* struct symbol_value_magic */					 \
-      { /* struct old_lcrecord_header */				 \
-	{ /* struct lrecord_header */					 \
-	  lrecord_type_symbol_value_forward, /* lrecord_type_index */	 \
-	  1, /* mark bit */						 \
-	  1, /* c_readonly bit */					 \
-	  1  /* lisp_readonly bit */					 \
-	},								 \
-	0, /* next */							 \
-      },								 \
-      &(buffer_local_flags.field_name),					 \
-      forward_type							 \
-    },									 \
-    magicfun								 \
-  };									 \
-									 \
+  DEFVAR_SYMVAL_FWD_OBJECT (lname, &(buffer_local_flags.field_name),	 \
+			    forward_type, magicfun);			 \
   {									 \
-    int offset = ((char *)symbol_value_forward_forward (&I_hate_C) -	 \
-		  (char *)&buffer_local_flags);				 \
-    defvar_magic (lname, &I_hate_C);					 \
-									 \
-    *((Lisp_Object *)(offset + (char *)XBUFFER (Vbuffer_local_symbols))) \
-      = intern (lname);							 \
+    Bytecount offset = ((Rawbyte *) XSYMBOL_VALUE_FORWARD_OBJECT_FORWARD \
+			(XSYMBOL_VALUE (intern (lname)))		 \
+			- (Rawbyte *) &buffer_local_flags);		 \
+    *((Lisp_Object *)(offset +						 \
+		      (Rawbyte *) XBUFFER (Vbuffer_local_symbols)))	 \
+	= intern (lname);						 \
   }									 \
 } while (0)
 
@@ -2219,7 +2203,7 @@ do {									 \
 	DEFVAR_CONST_BUFFER_LOCAL_MAGIC (lname, field_name, 0)
 
 #define DEFVAR_BUFFER_DEFAULTS_MAGIC(lname, field_name, magicfun)	\
-	DEFVAR_SYMVAL_FWD (lname, &(buffer_local_flags.field_name),	\
+	DEFVAR_SYMVAL_FWD_OBJECT (lname, &(buffer_local_flags.field_name),	\
 			   SYMVAL_DEFAULT_BUFFER_FORWARD, magicfun)
 #define DEFVAR_BUFFER_DEFAULTS(lname, field_name)			\
 	DEFVAR_BUFFER_DEFAULTS_MAGIC (lname, field_name, 0)

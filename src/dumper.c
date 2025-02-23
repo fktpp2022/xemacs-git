@@ -648,7 +648,6 @@ pdump_register_sub (const void *data, const struct memory_description *desc)
 	case XD_INT_RESET:
 	case XD_LO_LINK:
 	case XD_FUNCTION_POINTER:
-	case XD_DATA_POINTER:
 	case XD_MEMORY_DESCRIPTION:
 	case XD_SIZED_MEMORY_DESCRIPTION:
 	  break;
@@ -942,7 +941,6 @@ pdump_store_new_pointer_offsets (int count, void *data, const void *orig_data,
 	    case XD_ELEMCOUNT:
 	    case XD_HASHCODE:
 	    case XD_FUNCTION_POINTER:
-	    case XD_DATA_POINTER:
 	    case XD_MEMORY_DESCRIPTION:
 	    case XD_SIZED_MEMORY_DESCRIPTION:
 	    case XD_BLOCK_DATA_PTR:
@@ -1267,7 +1265,6 @@ pdump_reloc_one (void *data, const struct memory_description *desc)
 	  }
 
 	case XD_BLOCK_DATA_PTR:
-	case XD_DATA_POINTER:
 	case XD_MEMORY_DESCRIPTION:
 	case XD_SIZED_MEMORY_DESCRIPTION:
 	  {

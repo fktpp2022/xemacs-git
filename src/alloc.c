@@ -640,14 +640,10 @@ allocate_lisp_storage (Bytecount size)
    and free any lcrecord which hasn't been marked. */
 static struct old_lcrecord_header *all_lcrecords;
 
-
-/* The most basic of the lcrecord allocation functions.  Not usually called
-   directly.  Allocates an lrecord not managed by any lcrecord-list, of a
-   specified size.  See lrecord.h. */
-
-Lisp_Object
-old_alloc_sized_lcrecord (Bytecount size,
-			  const struct lrecord_implementation *implementation)
+static Lisp_Object
+old_alloc_sized_lcrecord_1 (Bytecount size,
+			    const struct lrecord_implementation *implementation,
+			    Boolint c_readonly_p)
 {
   struct old_lcrecord_header *lcheader;
 
@@ -659,18 +655,48 @@ old_alloc_sized_lcrecord (Bytecount size,
 
   lcheader = (struct old_lcrecord_header *) allocate_lisp_storage (size);
   set_lheader_implementation (&lcheader->lheader, implementation);
-  lcheader->next = all_lcrecords;
-  all_lcrecords = lcheader;
+  if (c_readonly_p)
+    {
+      SET_C_READONLY_RECORD_HEADER (&lcheader->lheader);
+    }
+  else
+    {
+      lcheader->next = all_lcrecords;
+      all_lcrecords = lcheader;
+    }
   INCREMENT_CONS_COUNTER (size, implementation->name);
   return wrap_pointer_1 (lcheader);
 }
 
 Lisp_Object
+old_alloc_sized_lcrecord (Bytecount size,
+			  const struct lrecord_implementation *implementation)
+{
+  return old_alloc_sized_lcrecord_1 (size, implementation, 0);
+}
+
+/* The most basic of the lcrecord allocation functions.  Not usually called
+   directly.  Allocates an lrecord not managed by any lcrecord-list, of a
+   specified size.  See lrecord.h. */
+Lisp_Object
 old_alloc_lcrecord (const struct lrecord_implementation *implementation)
 {
   type_checking_assert (implementation->static_size > 0);
-  return old_alloc_sized_lcrecord (implementation->static_size,
-				   implementation);
+  return old_alloc_sized_lcrecord_1 (implementation->static_size,
+				     implementation, 0);
+}
+
+/* This differs from the above in that it marks the record as C-readonly, which
+   also means that its MARKED flag (and its LISP_READONLY flag) is (are) always
+   1. It does not add the object to all_lcrecords since it is not necessary to
+   mark it. */
+Lisp_Object
+old_alloc_sized_c_readonly_lcrecord (Bytecount size,
+				     const struct lrecord_implementation
+				     *implementation)
+{
+  return old_alloc_sized_lcrecord_1 (implementation->static_size,
+				     implementation, 1);
 }
 
 #if 0 /* Presently unused */
@@ -3442,7 +3468,7 @@ DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("lcrecord-list", lcrecord_list,
 				    struct lcrecord_list);
 
 Lisp_Object
-make_lcrecord_list (Elemcount size,
+make_lcrecord_list (Bytecount size,
 		    const struct lrecord_implementation *implementation)
 {
   /* Don't use alloc_automanaged_lcrecord() avoid infinite recursion
@@ -3456,8 +3482,8 @@ make_lcrecord_list (Elemcount size,
   return wrap_lcrecord_list (p);
 }
 
-Lisp_Object
-alloc_managed_lcrecord (Lisp_Object lcrecord_list)
+static Lisp_Object
+alloc_managed_lcrecord_1 (Lisp_Object lcrecord_list, Boolint c_readonly_p)
 {
   struct lcrecord_list *list = XLCRECORD_LIST (lcrecord_list);
   if (!NILP (list->free))
@@ -3486,12 +3512,7 @@ alloc_managed_lcrecord (Lisp_Object lcrecord_list)
       assert (lheader->type == lrecord_type_free);
       /* Only lcrecords should be here. */
       assert (! (list->implementation->frob_block_p));
-#if 0 /* Not used anymore, now that we set the type of the header to
-	 lrecord_type_free. */
-      /* The type of the lcrecord must be right. */
-      assert (LHEADER_IMPLEMENTATION (lheader) == list->implementation);
-#endif /* 0 */
-      /* So must the size. */
+      /* The size of the lcrecord must be right. */
       assert (list->implementation->static_size == 0 ||
 	      list->implementation->static_size == list->size);
 #endif /* ERROR_CHECK_GC */
@@ -3505,7 +3526,14 @@ alloc_managed_lcrecord (Lisp_Object lcrecord_list)
     }
 
  normal_alloc:
-  return old_alloc_sized_lcrecord (list->size, list->implementation);
+  return old_alloc_sized_lcrecord_1 (list->size, list->implementation,
+				     c_readonly_p);
+}
+
+Lisp_Object
+alloc_managed_lcrecord (Lisp_Object lcrecord_list)
+{
+  return alloc_managed_lcrecord_1 (lcrecord_list, 0);
 }
 
 /* "Free" a Lisp object LCRECORD by placing it on its associated free list
@@ -3564,6 +3592,7 @@ free_managed_lcrecord (Lisp_Object lcrecord_list, Lisp_Object lcrecord)
      safer in any case, as we will lose quicker this way than keeping
      around an lrecord of apparently correct type but bogus junk in it. */
   MARK_LRECORD_AS_FREE (lheader);
+  CLEAR_C_READONLY_RECORD_HEADER (lheader);
   free_header->chain = list->free;
   lheader->free = 1;
   list->free = lcrecord;
@@ -3571,22 +3600,43 @@ free_managed_lcrecord (Lisp_Object lcrecord_list, Lisp_Object lcrecord)
 
 static Lisp_Object all_lcrecord_lists[countof (lrecord_implementations_table)];
 
-Lisp_Object
-alloc_automanaged_sized_lcrecord (Bytecount size,
-				  const struct lrecord_implementation *imp)
+static Lisp_Object
+alloc_automanaged_sized_lcrecord_1 (Bytecount size,
+				    const struct lrecord_implementation *imp,
+				    Boolint c_readonly_p)
 {
   if (EQ (all_lcrecord_lists[imp->lrecord_type_index], Qzero))
     all_lcrecord_lists[imp->lrecord_type_index] =
       make_lcrecord_list (size, imp);
 
-  return alloc_managed_lcrecord (all_lcrecord_lists[imp->lrecord_type_index]);
+  return alloc_managed_lcrecord_1 (all_lcrecord_lists[imp->lrecord_type_index],
+				   c_readonly_p);
+}
+
+Lisp_Object
+alloc_automanaged_sized_lcrecord (Bytecount size,
+				  const struct lrecord_implementation *imp)
+{
+  return alloc_automanaged_sized_lcrecord_1 (size, imp, 0);
 }
 
 Lisp_Object
 alloc_automanaged_lcrecord (const struct lrecord_implementation *imp)
 {
   type_checking_assert (imp->static_size > 0);
-  return alloc_automanaged_sized_lcrecord (imp->static_size, imp);
+  return alloc_automanaged_sized_lcrecord_1 (imp->static_size, imp, 0);
+}
+
+/* This differs from the above in that it marks the record as C-readonly, which
+   also means that its MARKED flag (and its LISP_READONLY flag) is (are) always
+   1. It does not add the object to all_lcrecords since it is not necessary to
+   mark it. */
+Lisp_Object
+alloc_automanaged_c_readonly_lcrecord (Bytecount size,
+				       const struct lrecord_implementation
+				       *imp)
+{
+  return alloc_automanaged_sized_lcrecord_1 (size, imp, 1);
 }
 
 void
@@ -3610,12 +3660,15 @@ old_free_lcrecord (Lisp_Object rec)
    from the dump file. Data segment objects passed to staticpro(), which are
    global variables like Qfoo or Vbar, are themselves pointers to heap objects,
    and need to be annotated as such within the dump file, otherwise ASLR
-   interacts poorly with them.
+   interacts poorly with them. This is achieved with dump_add_root_block_ptr
+   (&staticpros, &staticpros_description) within init_alloc_once_early().
 
-   Each needs to be described to pdump as a "root pointer"; this happens in the
-   call to staticpro(). */
+   The annotation as XD_BLOCK_DATA_PTR means that the dumper will save and
+   restore the pointer within the data segment (correcting for ASLR), as well
+   as the Lisp_Object pointed to, and those Lisp_Objects pointed to within it,
+   appropriately for the dump file relocation. */
 static const struct memory_description staticpro_description_1[] = {
-  { XD_DATA_POINTER, 0 },
+  { XD_BLOCK_DATA_PTR, 0, 1, { &lisp_object_description } },
   { XD_END }
 };
 
@@ -3648,7 +3701,6 @@ staticpro_1 (Lisp_Object *varaddress, const Ascbyte *varname)
 {
   Dynarr_add (staticpros, varaddress);
   Dynarr_add (staticpro_names, varname);
-  dump_add_root_lisp_object (varaddress);
 }
 
 const Ascbyte *staticpro_name (int count);
@@ -3704,9 +3756,7 @@ void
 staticpro (Lisp_Object *varaddress)
 {
   Dynarr_add (staticpros, varaddress);
-  dump_add_root_lisp_object (varaddress);
 }
-
 
 Lisp_Object_ptr_dynarr *staticpros_nodump;
 

@@ -1,3 +1,129 @@
+2025-02-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Mark and dump through the VALUE field of the symbol-value-forward
+	objects when appropriate, removing the need for staticpro() for
+	those objects.
+	Use XD_BLOCK_DATA_PTR to describe staticpros, struct
+	console_methods.device_specific_frame_props.
+	Remove the XD_DATA_POINTER description type, no longer needed now
+	more fine-grained descriptions appropriate.
+
+	* .gdbinit.in.in (Lisp): Add a couple of new symbol-value-magic
+	types for this.
+	* alloc.c:
+	* alloc.c (old_alloc_sized_lcrecord_1): New. Equivalent to the
+	following but with a C_READONLY_P flag; if this is non-zero, mark
+	the returned object as C_READONLY (and LISP_READONLY, MARKed), and
+	do not add it to all_lcrecords.
+
+	* alloc.c (old_alloc_sized_lcrecord): Implement it in terms of
+	old_alloc_sized_lcrecord_1().
+	* alloc.c (old_alloc_sized_c_readonly_lcrecord). New. Call
+	old_alloc_sized_lcrecord_1() with C_READONLY_P 1.
+	* alloc.c (make_lcrecord_list): Correct the type of the SIZE
+	argument to this.
+	* alloc.c (alloc_managed_lcrecord_1): New. Refactored out to take
+	a C_READONLY_P flag. Remove an #if 0'd block.
+	* alloc.c (alloc_managed_lcrecord). Implement using
+	alloc_managed_lcrecord_1().
+	* alloc.c (free_managed_lcrecord): Unmark the record as C_READONLY.
+	* alloc.c (alloc_automanaged_sized_lcrecord_1): New. Refactored
+	out from the following, to take a C_READONLY_P flag.
+	* alloc.c (alloc_automanaged_lcrecord): Implement in terms of
+	previous.
+	* alloc.c (alloc_automanaged_c_readonly_lcrecord) New. Used for
+	symbol_value_forward_fixnum, symbol_value_forward_boolint.
+	* alloc.c (staticpro_description_1): Use XD_BLOCK_DATA_PTR in
+	this.
+	* alloc.c (staticpro): No need for dump_add_root_lisp_object() in
+	this now XD_BLOCK_DATA_PTR is used in the description.
+
+	* buffer.c (DEFVAR_BUFFER_LOCAL_1):
+	Implement this using DEFVAR_SYMVAL_FWD_OBJECT().
+	* buffer.c (DEFVAR_BUFFER_DEFAULTS_MAGIC):
+	Use DEFVAR_SYMVAL_FWD_OBJECT() to implement this.
+	* console.c:
+	Use XD_BLOCK_DATA_PTR to describe struct
+	console_methods.device_specific_frame_props.
+	* console.c (DEFVAR_CONSOLE_LOCAL_1):
+	Implement this using DEFVAR_SYMVAL_FWD_OBJECT().
+	* console.c (DEFVAR_CONSOLE_DEFAULTS_MAGIC):
+	Ditto.
+	* lrecord.h (enum lrecord_type):
+	Add new entries, lrecord_type_symbol_value_forward_object (for
+	when VALUE needs to be GCed) and
+	lrecord_type_symbol_value_forward_fixnum,
+	lrecord_type_symbol_value_forward_boolint, to allow pdump to dump
+	the values without an explicit dump_add_opaque_int.
+	* symbols.c:
+	* symbols.c (static const struct memory_description
+	symbol_value_magic_description_1): Revise this, the data pointer
+	is no longer needed for the general symbol_value_magic
+	description.
+	* symbols.c (static const struct memory_description
+	symbol_value_forward_object_description): New. Describe
+	symbol_value_forward_object using XD_BLOCK_DATA_PTR.
+	* symbols.c (static const struct memory_description
+	symbol_value_forward_fixnum_description): New. Describe
+	symbol_value_forward_fixnum using XD_BLOCK_DATA_PTR.
+	* symbols.c (static const struct memory_description
+	symbol_value_forward_boolint_description): New. Describe
+	symbol_value_forward_boolint using XD_BLOCK_DATA_PTR.
+
+	* symbols.c (do_symval_forwarding):
+	Rearrange this to handle fixnums and boolint forwarding better,
+	less need for casts.
+
+	* symbols.c (set_default_buffer_slot_variable):
+	Use symbol_value_forward_object() within this, rather than
+	symbol_value_forward, now removed.
+	* symbols.c (set_default_console_slot_variable):
+	Ditto.
+	* symbols.c (store_symval_forwarding):
+	No need to check whether OVALUE is EQ to Qunbound, if we have
+	already established that OVALUE is not SYMBOL_VALUE_MAGIC_P.
+	Use the new symbol value magic types within this.
+	* symbols.c (Fset):
+	When making a SYMVAL_OBJECT_FORWARD unbound during unloading of a
+	module, make its FORWARD pointer NULL and avoid GC choking.
+	No longer unstaticpro_nodump().
+	* symbols.c (default_value):
+	Use XSYMBOL_VALUE_FORWARD_OBJECT() here.
+	* symbols.c (symbol_value_buffer_local_info):
+	Ditto.
+	* symbols.c (init_symbols_once_early):
+	Initialize the new symbol_value_forward objects.
+	* symbols.c (defvar_magic):
+	Change the type of the second arg here, to const struct
+	symbol_value_magic *.
+	* symeval.h:
+	* symeval.h (struct symbol_value_magic):
+	Revise this, don't include the VALUE * field, only used by a
+	subset of those types that are SYMBOL_VALUE_MAGIC_P().
+	* symeval.h (struct symbol_value_forward_object): New. A
+	symbol_value_forward that points to a Lisp_Object and that should
+	be dumped and GCed as such.
+	* symeval.h (struct symbol_value_forward_fixnum): New. A
+	symbol_value_forward that points to a Fixnum and that should
+	be dumped as such; this fixnum can be ignored for GC.
+	* symeval.h (struct symbol_value_forward_boolint): New. A
+	symbol_value_forward that points to a Boolint and that should
+	be dumped as such; this boolint can be ignored for GC.
+	* symeval.h (struct symbol_value_buffer_local):
+	Add a comment to the MAGIC field of this structure.
+	* symeval.h (DEFVAR_SYMVAL_FWD_NON_LISP): New. Common
+	implementation of DEFVAR_SYMVAL_FWD_FIXNUM(),
+	DEFVAR_SYMVAL_FWD_BOOL().
+	Allocate the structure on the heap rather than in the C data
+	segment, avoiding leaking the original structure
+	post-pdump_load().
+	* symeval.h (DEFVAR_SYMVAL_FWD_OBJECT): Heavily revised. Allocate
+	the struct symbol_value_forward_object as a Lisp object, don't
+	mark it c_readonly (which means it will now be traversed for GC).
+	* symeval.h (DEFVAR_LISP_MAGIC):
+	Move this #define together with the others that use
+	DEFVAR_SYMVAL_FWD_OBJECT().
+
 2025-02-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove support for byte-compile-dynamic at runtime, no longer

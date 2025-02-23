@@ -657,7 +657,6 @@ Set SYMBOL's property list to NEWPLIST, and return NEWPLIST.
    symbol to operate on.  */
 
 static const struct memory_description symbol_value_magic_description_1[] = {
-  { XD_DATA_POINTER, offsetof (struct symbol_value_magic, value) },
   { XD_END }
 };
 
@@ -705,18 +704,64 @@ print_symbol_value_magic (Lisp_Object obj, Lisp_Object printcharfun,
 		    LISP_OBJECT_UID (obj));
 }
 
-static const struct memory_description symbol_value_forward_description[] = {
-  { XD_BLOCK_ARRAY, offsetof (struct symbol_value_forward, magic), 1,
-    { &symbol_value_magic_description } },
-  { XD_FUNCTION_POINTER, offsetof (struct symbol_value_forward, magicfun) },
+static const struct memory_description symbol_value_forward_object_description[] = {
+  { XD_BLOCK_DATA_PTR, offsetof (struct symbol_value_forward_object, value), 1,
+    { &lisp_object_description } },
+  { XD_FUNCTION_POINTER, offsetof (struct symbol_value_forward_object, magicfun) },
   { XD_END }
 };
 
-DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-forward",
-			     symbol_value_forward,
+DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-forward-object",
+			     symbol_value_forward_object,
 			     print_symbol_value_magic, 0, 0, 0,
-			     symbol_value_forward_description,
-			     struct symbol_value_forward);
+			     symbol_value_forward_object_description,
+			     struct symbol_value_forward_object);
+
+static const struct memory_description fixnum_description_1[] = {
+  { XD_END }
+};
+
+static const struct sized_memory_description fixnum_description = {
+  sizeof (Fixnum),
+  fixnum_description_1
+};
+
+static const struct memory_description symbol_value_forward_fixnum_description[] = {
+  { XD_BLOCK_DATA_PTR, offsetof (struct symbol_value_forward_fixnum, magic)
+    + offsetof (struct symbol_value_forward_fixnum_magic, value), 1,
+    { &fixnum_description } },
+  { XD_FUNCTION_POINTER, offsetof (struct symbol_value_forward_fixnum, magicfun) },
+  { XD_END }
+};
+
+DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-forward-fixnum",
+			     symbol_value_forward_fixnum,
+			     print_symbol_value_magic, 0, 0, 0,
+			     symbol_value_forward_fixnum_description,
+			     struct symbol_value_forward_fixnum);
+
+static const struct memory_description boolint_description_1[] = {
+  { XD_END }
+};
+
+static const struct sized_memory_description boolint_description = {
+  sizeof (Boolint),
+  boolint_description_1
+};
+
+static const struct memory_description symbol_value_forward_boolint_description[] = {
+  { XD_BLOCK_DATA_PTR, offsetof (struct symbol_value_forward_boolint, magic)
+    + offsetof (struct symbol_value_forward_boolint_magic, value), 1,
+    { &boolint_description } },
+  { XD_FUNCTION_POINTER, offsetof (struct symbol_value_forward_boolint, magicfun) },
+  { XD_END }
+};
+
+DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-forward-boolint",
+			     symbol_value_forward_boolint,
+			     print_symbol_value_magic, 0, 0, 0,
+			     symbol_value_forward_boolint_description,
+			     struct symbol_value_forward_boolint);
 
 DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-buffer-local",
 			     symbol_value_buffer_local,
@@ -758,51 +803,52 @@ static Lisp_Object
 do_symval_forwarding (Lisp_Object valcontents, struct buffer *buffer,
 		      struct console *console)
 {
-  const struct symbol_value_forward *fwd;
-
   if (!SYMBOL_VALUE_MAGIC_P (valcontents))
     return valcontents;
 
-  fwd = XSYMBOL_VALUE_FORWARD (valcontents);
-  switch (fwd->magic.type)
+  switch (XSYMBOL_VALUE_MAGIC_TYPE (valcontents))
     {
     case SYMVAL_FIXNUM_FORWARD:
     case SYMVAL_CONST_FIXNUM_FORWARD:
-      return make_integer (*((Fixnum *)symbol_value_forward_forward (fwd)));
+      return make_integer (*(XSYMBOL_VALUE_FORWARD_FIXNUM_FORWARD (valcontents)));
 
     case SYMVAL_BOOLEAN_FORWARD:
     case SYMVAL_CONST_BOOLEAN_FORWARD:
-      return *((int *)symbol_value_forward_forward (fwd)) ? Qt : Qnil;
+      return *(XSYMBOL_VALUE_FORWARD_BOOLINT_FORWARD (valcontents)) ? Qt : Qnil;
 
     case SYMVAL_OBJECT_FORWARD:
     case SYMVAL_CONST_OBJECT_FORWARD:
     case SYMVAL_CONST_SPECIFIER_FORWARD:
-      return *((Lisp_Object *)symbol_value_forward_forward (fwd));
+      return *(XSYMBOL_VALUE_FORWARD_OBJECT_FORWARD (valcontents));
 
     case SYMVAL_DEFAULT_BUFFER_FORWARD:
-      return (*((Lisp_Object *)((Rawbyte *) XBUFFER (Vbuffer_defaults)
-				+ ((Rawbyte *)symbol_value_forward_forward (fwd)
-				   - (Rawbyte *)&buffer_local_flags))));
+      return (*((Lisp_Object *)
+		((Rawbyte *) XBUFFER (Vbuffer_defaults)
+		 + ((Rawbyte *) XSYMBOL_VALUE_FORWARD_OBJECT_FORWARD (valcontents)
+		    - (Rawbyte *)&buffer_local_flags))));
 
 
     case SYMVAL_CURRENT_BUFFER_FORWARD:
     case SYMVAL_CONST_CURRENT_BUFFER_FORWARD:
       assert (buffer);
-      return (*((Lisp_Object *)((Rawbyte *)buffer
-				+ ((Rawbyte *)symbol_value_forward_forward (fwd)
-				   - (Rawbyte *)&buffer_local_flags))));
+      return (*((Lisp_Object *)
+		((Rawbyte *)buffer
+		 + ((Rawbyte *) XSYMBOL_VALUE_FORWARD_OBJECT_FORWARD (valcontents)
+		    - (Rawbyte *)&buffer_local_flags))));
 
     case SYMVAL_DEFAULT_CONSOLE_FORWARD:
-      return (*((Lisp_Object *)((Rawbyte *) XCONSOLE (Vconsole_defaults)
-				+ ((Rawbyte *)symbol_value_forward_forward (fwd)
-				   - (Rawbyte *)&console_local_flags))));
+      return (*((Lisp_Object *)
+		((Rawbyte *) XCONSOLE (Vconsole_defaults)
+		 + ((Rawbyte *) XSYMBOL_VALUE_FORWARD_OBJECT_FORWARD (valcontents)
+		    - (Rawbyte *)&console_local_flags))));
 
     case SYMVAL_SELECTED_CONSOLE_FORWARD:
     case SYMVAL_CONST_SELECTED_CONSOLE_FORWARD:
       assert (console);
-      return (*((Lisp_Object *)((Rawbyte *)console
-				+ ((Rawbyte *)symbol_value_forward_forward (fwd)
-				   - (Rawbyte *)&console_local_flags))));
+      return (*((Lisp_Object *)
+		((Rawbyte *)console
+		 + ((Rawbyte *) XSYMBOL_VALUE_FORWARD_OBJECT_FORWARD (valcontents)
+		    - (Rawbyte *)&console_local_flags))));
     default:
       ABORT ();
     }
@@ -822,13 +868,14 @@ set_default_buffer_slot_variable (Lisp_Object sym,
      or symbol-value-buffer-local, and if there's a handler, we should
      have already called it. */
   Lisp_Object valcontents = fetch_value_maybe_past_magic (sym, Qt);
-  const struct symbol_value_forward *fwd
-    = XSYMBOL_VALUE_FORWARD (valcontents);
-  int offset = ((Rawbyte *) symbol_value_forward_forward (fwd)
-		- (Rawbyte *) &buffer_local_flags);
-  int mask = XFIXNUM (*((Lisp_Object *) symbol_value_forward_forward (fwd)));
+  const struct symbol_value_forward_object *fwd
+    = XSYMBOL_VALUE_FORWARD_OBJECT (valcontents);
+  Bytecount offset = ((Rawbyte *) symbol_value_forward_object_forward (fwd)
+		      - (Rawbyte *) &buffer_local_flags);
+  EMACS_INT mask
+    = XFIXNUM (*((Lisp_Object *) symbol_value_forward_object_forward (fwd)));
   int (*magicfun) (Lisp_Object simm, Lisp_Object *val, Lisp_Object in_object,
-		   int flags) = symbol_value_forward_magicfun (fwd);
+		   int flags) = symbol_value_forward_object_magicfun (fwd);
 
   *((Lisp_Object *) (offset + (Rawbyte *) XBUFFER (Vbuffer_defaults)))
     = value;
@@ -862,13 +909,13 @@ set_default_console_slot_variable (Lisp_Object sym,
      or symbol-value-buffer-local, and if there's a handler, we should
      have already called it. */
   Lisp_Object valcontents = fetch_value_maybe_past_magic (sym, Qt);
-  const struct symbol_value_forward *fwd
-    = XSYMBOL_VALUE_FORWARD (valcontents);
-  int offset = ((Rawbyte *) symbol_value_forward_forward (fwd)
-		- (Rawbyte *) &console_local_flags);
-  int mask = XFIXNUM (*((Lisp_Object *) symbol_value_forward_forward (fwd)));
+  const struct symbol_value_forward_object *fwd
+    = XSYMBOL_VALUE_FORWARD_OBJECT (valcontents);
+  Bytecount offset = ((Rawbyte *) symbol_value_forward_object_forward (fwd)
+		      - (Rawbyte *) &console_local_flags);
+  EMACS_INT mask = XFIXNUM (*symbol_value_forward_object_forward (fwd));
   int (*magicfun) (Lisp_Object simm, Lisp_Object *val, Lisp_Object in_object,
-		   int flags) = symbol_value_forward_magicfun (fwd);
+		   int flags) = symbol_value_forward_object_magicfun (fwd);
 
   *((Lisp_Object *) (offset + (Rawbyte *) XCONSOLE (Vconsole_defaults)))
     = value;
@@ -912,7 +959,7 @@ static void
 store_symval_forwarding (Lisp_Object sym, Lisp_Object ovalue,
 			 Lisp_Object newval)
 {
-  if (!SYMBOL_VALUE_MAGIC_P (ovalue) || UNBOUNDP (ovalue))
+  if (!SYMBOL_VALUE_MAGIC_P (ovalue))
     {
       Lisp_Object *store_pointer = value_slot_past_magic (sym);
 
@@ -926,77 +973,111 @@ store_symval_forwarding (Lisp_Object sym, Lisp_Object ovalue,
     }
   else
     {
-      const struct symbol_value_forward *fwd = XSYMBOL_VALUE_FORWARD (ovalue);
-      int (*magicfun) (Lisp_Object simm, Lisp_Object *val,
-		       Lisp_Object in_object, int flags)
-	= symbol_value_forward_magicfun (fwd);
-
       switch (XSYMBOL_VALUE_MAGIC_TYPE (ovalue))
 	{
 	case SYMVAL_FIXNUM_FORWARD:
-	  CHECK_INTEGER (newval);
-	  if (magicfun)
-	    magicfun (sym, &newval, Qnil, 0);
+	  {
+	    const struct symbol_value_forward_fixnum *fwd
+	      = XSYMBOL_VALUE_FORWARD_FIXNUM (ovalue);
+	    int (*magicfun) (Lisp_Object simm, Lisp_Object *val,
+			     Lisp_Object in_object, int flags)
+	      = symbol_value_forward_fixnum_magicfun (fwd);
+
+	    CHECK_INTEGER (newval);
+	    if (magicfun)
+	      magicfun (sym, &newval, Qnil, 0);
 #ifdef HAVE_BIGNUM
-          if (BIGNUMP (newval))
-            {
-              if (bignum_fits_emacs_int_p (XBIGNUM_DATA (newval)))
-                {
-                  *((Fixnum *) symbol_value_forward_forward (fwd))
-                    = bignum_to_emacs_int (XBIGNUM_DATA (newval));
-                }
-              else
-                {
-                  args_out_of_range (sym, newval);
-                }
-            }
-          else 
+	    if (BIGNUMP (newval))
+	      {
+		if (bignum_fits_emacs_int_p (XBIGNUM_DATA (newval)))
+		  {
+		    *(symbol_value_forward_fixnum_forward (fwd))
+		      = bignum_to_emacs_int (XBIGNUM_DATA (newval));
+		  }
+		else
+		  {
+		    args_out_of_range (sym, newval);
+		  }
+	      }
+	    else
 #endif
-            {
-              *((Fixnum *) symbol_value_forward_forward (fwd))
-                = XFIXNUM (newval);
-            }
-  
+	      {
+		*(symbol_value_forward_fixnum_forward (fwd))
+		  = XFIXNUM (newval);
+	      }
+	  }
 	  return;
 
 	case SYMVAL_BOOLEAN_FORWARD:
-	  if (magicfun)
-	    magicfun (sym, &newval, Qnil, 0);
-	  *((int *) symbol_value_forward_forward (fwd))
-	    = !NILP (newval);
-	  return;
+	  {
+	    const struct symbol_value_forward_boolint *fwd
+	      = XSYMBOL_VALUE_FORWARD_BOOLINT (ovalue);
+	    int (*magicfun) (Lisp_Object simm, Lisp_Object *val,
+			     Lisp_Object in_object, int flags)
+	      = symbol_value_forward_boolint_magicfun (fwd);
+
+	    if (magicfun)
+	      magicfun (sym, &newval, Qnil, 0);
+	    *(symbol_value_forward_boolint_forward (fwd)) = !NILP (newval);
+	    return;
+	  }
 
 	case SYMVAL_OBJECT_FORWARD:
-	  if (magicfun)
-	    magicfun (sym, &newval, Qnil, 0);
-	  *((Lisp_Object *) symbol_value_forward_forward (fwd)) = newval;
-	  return;
+	  {
+	    const struct symbol_value_forward_object *fwd
+	      = XSYMBOL_VALUE_FORWARD_OBJECT (ovalue);
+	    int (*magicfun) (Lisp_Object simm, Lisp_Object *val,
+			     Lisp_Object in_object, int flags)
+	      = symbol_value_forward_object_magicfun (fwd);
+	    if (magicfun)
+	      magicfun (sym, &newval, Qnil, 0);
+	    *(symbol_value_forward_object_forward (fwd)) = newval;
+	    return;
+	  }
 
 	case SYMVAL_DEFAULT_BUFFER_FORWARD:
 	  set_default_buffer_slot_variable (sym, newval);
 	  return;
 
 	case SYMVAL_CURRENT_BUFFER_FORWARD:
-	  if (magicfun)
-	    magicfun (sym, &newval, wrap_buffer (current_buffer), 0);
-	  *((Lisp_Object *) ((Rawbyte *) current_buffer
-			     + ((Rawbyte *) symbol_value_forward_forward (fwd)
-				- (Rawbyte *) &buffer_local_flags)))
-	    = newval;
-	  return;
+	  {
+	    const struct symbol_value_forward_object *fwd
+	      = XSYMBOL_VALUE_FORWARD_OBJECT (ovalue);
+	    int (*magicfun) (Lisp_Object simm, Lisp_Object *val,
+			     Lisp_Object in_object, int flags)
+	      = symbol_value_forward_object_magicfun (fwd);
+
+	    if (magicfun)
+	      magicfun (sym, &newval, wrap_buffer (current_buffer), 0);
+	    *((Lisp_Object *)
+	      ((Rawbyte *) current_buffer
+	       + ((Rawbyte *) symbol_value_forward_object_forward (fwd)
+		  - (Rawbyte *) &buffer_local_flags)))
+	      = newval;
+	    return;
+	  }
 
 	case SYMVAL_DEFAULT_CONSOLE_FORWARD:
 	  set_default_console_slot_variable (sym, newval);
 	  return;
 
 	case SYMVAL_SELECTED_CONSOLE_FORWARD:
-	  if (magicfun)
-	    magicfun (sym, &newval, Vselected_console, 0);
-	  *((Lisp_Object *) ((Rawbyte *) XCONSOLE (Vselected_console)
-			     + ((Rawbyte *) symbol_value_forward_forward (fwd)
-				- (Rawbyte *) &console_local_flags)))
-	    = newval;
-	  return;
+	  {
+	    const struct symbol_value_forward_object *fwd
+	      = XSYMBOL_VALUE_FORWARD_OBJECT (ovalue);
+	    int (*magicfun) (Lisp_Object simm, Lisp_Object *val,
+			     Lisp_Object in_object, int flags)
+	      = symbol_value_forward_object_magicfun (fwd);
+
+	    if (magicfun)
+	      magicfun (sym, &newval, Vselected_console, 0);
+	    *((Lisp_Object *)
+	      ((Rawbyte *) XCONSOLE (Vselected_console)
+	       + ((Rawbyte *) symbol_value_forward_object_forward (fwd)
+		  - (Rawbyte *) &console_local_flags)))
+	      = newval;
+	    return;
+	  }
 
 	default:
 	  ABORT ();
@@ -1466,14 +1547,18 @@ Set SYMBOL's value to NEWVAL, and return NEWVAL.
     case SYMVAL_DEFAULT_CONSOLE_FORWARD:
       if (UNBOUNDP (newval))
 	{
-#ifdef HAVE_SHLIB
-	  if (unloading_module)
+	  gc_checking_assert (C_READONLY (valcontents));
+	  if (!DUMPEDP (valcontents))
 	    {
+	      /* This is a symbol-value-forward created by a module. Once
+		 SYMBOL is made unbound it is no longer reachable. Since it was
+		 marked c_readonly it will not be automatically freed; we need
+		 to do that explicitly. */
+	      old_free_lcrecord (valcontents);
 	      sym->value = newval;
 	      return newval;
 	    }
 	  else
-#endif
 	    invalid_change ("Cannot makunbound", symbol);
 	}
       break;
@@ -1482,27 +1567,33 @@ Set SYMBOL's value to NEWVAL, and return NEWVAL.
     case SYMVAL_CONST_OBJECT_FORWARD:
       if (UNBOUNDP (newval))
 	{
-#ifdef HAVE_SHLIB
-	  if (unloading_module)
+	  gc_checking_assert (!C_READONLY (valcontents));
+	  if (!DUMPEDP (valcontents))
 	    {
-	      unstaticpro_nodump ((Lisp_Object *)
-				  symbol_value_forward_forward
-				  (XSYMBOL_VALUE_FORWARD (valcontents)));
+	      /* This is a symbol-value-forward-object created by a module. Set
+		 its forwarding pointer to NULL to have the GC ignore it. It is
+		 not C-readonly and so will be garbage collected in the normal
+		 way. */
+	      XSYMBOL_VALUE_FORWARD_OBJECT_FORWARD (valcontents) = NULL;
+	      /* VALCONTENTS will be GCed in the normal way. */
 	      sym->value = newval;
 	      return newval;
 	    }
 	  else
-#endif
-	    invalid_change ("Cannot makunbound", symbol);
+	    {
+	      /* Error on attempting to make built-in symbols created
+		 with DEFVAR() and friends unbound. */
+	      invalid_change ("Cannot makunbound", symbol);
+	    }
 	}
       break;
 
     case SYMVAL_CURRENT_BUFFER_FORWARD:
       {
-	const struct symbol_value_forward *fwd
-	  = XSYMBOL_VALUE_FORWARD (valcontents);
-	int mask = XFIXNUM (*((Lisp_Object *)
-			   symbol_value_forward_forward (fwd)));
+	const struct symbol_value_forward_object *fwd
+	  = XSYMBOL_VALUE_FORWARD_OBJECT (valcontents);
+	EMACS_INT mask
+	  = XFIXNUM (*symbol_value_forward_object_forward (fwd));
 	if (mask > 0)
 	  /* Setting this variable makes it buffer-local */
 	  current_buffer->local_var_flags |= mask;
@@ -1511,10 +1602,10 @@ Set SYMBOL's value to NEWVAL, and return NEWVAL.
 
     case SYMVAL_SELECTED_CONSOLE_FORWARD:
       {
-	const struct symbol_value_forward *fwd
-	  = XSYMBOL_VALUE_FORWARD (valcontents);
-	int mask = XFIXNUM (*((Lisp_Object *)
-			   symbol_value_forward_forward (fwd)));
+	const struct symbol_value_forward_object *fwd
+	  = XSYMBOL_VALUE_FORWARD_OBJECT (valcontents);
+	EMACS_INT mask
+	  = XFIXNUM (*symbol_value_forward_object_forward (fwd));
 	if (mask > 0)
 	  /* Setting this variable makes it console-local */
 	  XCONSOLE (Vselected_console)->local_var_flags |= mask;
@@ -1646,20 +1737,22 @@ default_value (Lisp_Object sym)
 
     case SYMVAL_CURRENT_BUFFER_FORWARD:
       {
-	const struct symbol_value_forward *fwd
-	  = XSYMBOL_VALUE_FORWARD (valcontents);
-	return (*((Lisp_Object *)((Rawbyte *) XBUFFER (Vbuffer_defaults)
-				  + ((Rawbyte *)symbol_value_forward_forward (fwd)
-				     - (Rawbyte *)&buffer_local_flags))));
+	const struct symbol_value_forward_object *fwd
+	  = XSYMBOL_VALUE_FORWARD_OBJECT (valcontents);
+	return (*((Lisp_Object *)
+		  ((Rawbyte *) XBUFFER (Vbuffer_defaults)
+		   + ((Rawbyte *)symbol_value_forward_object_forward (fwd)
+		      - (Rawbyte *)&buffer_local_flags))));
       }
 
     case SYMVAL_SELECTED_CONSOLE_FORWARD:
       {
-	const struct symbol_value_forward *fwd
-	  = XSYMBOL_VALUE_FORWARD (valcontents);
-	return (*((Lisp_Object *)((Rawbyte *) XCONSOLE (Vconsole_defaults)
-				  + ((Rawbyte *)symbol_value_forward_forward (fwd)
-				     - (Rawbyte *)&console_local_flags))));
+	const struct symbol_value_forward_object *fwd
+	  = XSYMBOL_VALUE_FORWARD_OBJECT (valcontents);
+	return (*((Lisp_Object *)
+		  ((Rawbyte *) XCONSOLE (Vconsole_defaults)
+		   + ((Rawbyte *)symbol_value_forward_object_forward (fwd)
+		      - (Rawbyte *)&console_local_flags))));
       }
 
     case SYMVAL_BUFFER_LOCAL:
@@ -2096,18 +2189,18 @@ From now on the default value will apply in this buffer.
 
     case SYMVAL_CURRENT_BUFFER_FORWARD:
       {
-	const struct symbol_value_forward *fwd
-	  = XSYMBOL_VALUE_FORWARD (valcontents);
-	int offset = ((Rawbyte *) symbol_value_forward_forward (fwd)
-			       - (Rawbyte *) &buffer_local_flags);
-	int mask =
-	  XFIXNUM (*((Lisp_Object *) symbol_value_forward_forward (fwd)));
+	const struct symbol_value_forward_object *fwd
+	  = XSYMBOL_VALUE_FORWARD_OBJECT (valcontents);
+	Bytecount offset
+	  = ((Rawbyte *) symbol_value_forward_object_forward (fwd)
+	     - (Rawbyte *) &buffer_local_flags);
+	EMACS_INT mask = XFIXNUM (*symbol_value_forward_object_forward (fwd));
 
 	if (mask > 0)
 	  {
 	    int (*magicfun) (Lisp_Object sym, Lisp_Object *val,
 			     Lisp_Object in_object, int flags) =
-			       symbol_value_forward_magicfun (fwd);
+			       symbol_value_forward_object_magicfun (fwd);
 	    Lisp_Object oldval = * (Lisp_Object *)
 	      (offset + (Rawbyte *) XBUFFER (Vbuffer_defaults));
 	    if (magicfun)
@@ -2191,18 +2284,18 @@ From now on the default value will apply in this console.
 
     case SYMVAL_SELECTED_CONSOLE_FORWARD:
       {
-	const struct symbol_value_forward *fwd
-	  = XSYMBOL_VALUE_FORWARD (valcontents);
-	int offset = ((Rawbyte *) symbol_value_forward_forward (fwd)
-			       - (Rawbyte *) &console_local_flags);
-	int mask =
-	  XFIXNUM (*((Lisp_Object *) symbol_value_forward_forward (fwd)));
+	const struct symbol_value_forward_object *fwd
+	  = XSYMBOL_VALUE_FORWARD_OBJECT (valcontents);
+	Bytecount offset
+	  = ((Rawbyte *) symbol_value_forward_object_forward (fwd)
+	     - (Rawbyte *) &console_local_flags);
+	EMACS_INT mask = XFIXNUM (*symbol_value_forward_object_forward (fwd));
 
 	if (mask > 0)
 	  {
 	    int (*magicfun) (Lisp_Object sym, Lisp_Object *val,
 			     Lisp_Object in_object, int flags) =
-			       symbol_value_forward_magicfun (fwd);
+			       symbol_value_forward_object_magicfun (fwd);
 	    Lisp_Object oldval = * (Lisp_Object *)
 	      (offset + (Rawbyte *) XCONSOLE (Vconsole_defaults));
 	    if (magicfun)
@@ -2250,10 +2343,10 @@ symbol_value_buffer_local_info (Lisp_Object symbol, struct buffer *buffer)
 
 	case SYMVAL_CURRENT_BUFFER_FORWARD:
 	  {
-	    const struct symbol_value_forward *fwd
-	      = XSYMBOL_VALUE_FORWARD (valcontents);
-	    int mask = XFIXNUM (*((Lisp_Object *)
-			       symbol_value_forward_forward (fwd)));
+	    const struct symbol_value_forward_object *fwd
+	      = XSYMBOL_VALUE_FORWARD_OBJECT (valcontents);
+	    EMACS_INT mask
+	      = XFIXNUM (*symbol_value_forward_object_forward (fwd));
 	    if ((mask <= 0) || (buffer && (buffer->local_var_flags & mask)))
 	      /* Already buffer-local */
 	      return 1;
@@ -3110,7 +3203,9 @@ void
 init_symbols_once_early (void)
 {
   INIT_LISP_OBJECT (symbol);
-  INIT_LISP_OBJECT (symbol_value_forward);
+  INIT_LISP_OBJECT (symbol_value_forward_object);
+  INIT_LISP_OBJECT (symbol_value_forward_fixnum);
+  INIT_LISP_OBJECT (symbol_value_forward_boolint);
   INIT_LISP_OBJECT (symbol_value_buffer_local);
   INIT_LISP_OBJECT (symbol_value_lisp_magic);
   INIT_LISP_OBJECT (symbol_value_varalias);
@@ -3487,7 +3582,7 @@ syms_of_symbols (void)
 /* Create and initialize a Lisp variable whose value is forwarded to C data */
 void
 defvar_magic (const Ascbyte *symbol_name,
-	      const struct symbol_value_forward *magic)
+	      const struct symbol_value_magic *magic)
 {
   Lisp_Object sym;
 

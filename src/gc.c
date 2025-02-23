@@ -258,7 +258,6 @@ lispdesc_one_description_line_size (void *rdata,
     case XD_LO_LINK:
       return sizeof (Lisp_Object);
     case XD_OPAQUE_PTR:
-    case XD_DATA_POINTER:
       return sizeof (void *);
     case XD_FUNCTION_POINTER:
       return sizeof (lisp_fn_t);
@@ -890,7 +889,6 @@ kkcc_marking (void)
 	    case XD_OPAQUE_PTR:
 	    case XD_OPAQUE_DATA_PTR:
 	    case XD_FUNCTION_POINTER:
-	    case XD_DATA_POINTER:
 	    case XD_MEMORY_DESCRIPTION:
 	    case XD_SIZED_MEMORY_DESCRIPTION:
 	    case XD_ASCII_STRING:

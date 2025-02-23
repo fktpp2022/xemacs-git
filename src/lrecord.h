@@ -148,6 +148,10 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define LISP_OBJECT_FROB_BLOCK_P(obj) (XRECORD_LHEADER_IMPLEMENTATION(obj)->frob_block_p)
 #define IF_OLD_GC(x) x
 
+#define ALLOC_C_READONLY_LISP_OBJECT(type) \
+  alloc_automanaged_c_readonly_lcrecord (lrecord_##type.static_size, \
+					 &lrecord_##type)
+
 #define LISP_OBJECT_UID(obj) (XRECORD_LHEADER (obj)->uid)
 
 BEGIN_C_DECLS
@@ -213,11 +217,7 @@ struct old_lcrecord_header
      `old_alloc_sized_lcrecord' threads lcrecords together.
 
      The `next' field may be used for other purposes as long as some
-     other mechanism is provided for letting the GC do its work.
-
-     For example, the event and marker object types allocate members
-     out of memory chunks, and are able to find all unmarked members
-     by sweeping through the elements of the list of chunks.  */
+     other mechanism is provided for letting the GC do its work. */
   struct old_lcrecord_header *next;
 };
 
@@ -234,12 +234,12 @@ enum lrecord_type
   /* Symbol value magic types come first so that SYMBOL_VALUE_MAGIC_P
      can be written as a single '<= lrecord_type_max_symbol_value_magic'.
      In practice, if we moved them somewhere else but kept them together,
-     the single extra comparison would hardly make a difference.
-     #### This should be replaced by a symbol_value_magic_p flag
-     in the Lisp_Symbol lrecord_header. */
+     the single extra comparison would hardly make a difference. */
   /* Don't assign any type to 0, so in case we come across zeroed memory
      it will be more obvious when printed */
-  lrecord_type_symbol_value_forward = 1, /* struct symbol_value_forward */
+  lrecord_type_symbol_value_forward_object = 1, /* struct symbol_value_forward_object */
+  lrecord_type_symbol_value_forward_fixnum, /* struct symbol_value_forward_fixnum */
+  lrecord_type_symbol_value_forward_boolint, /* struct symbol_value_forward_boolint */
   lrecord_type_symbol_value_varalias,    /* struct symbol_value_varalias */
   lrecord_type_symbol_value_lisp_magic,  /* struct symbol_value_lisp_magic */
   lrecord_type_symbol_value_buffer_local,/* struct symbol_value_buffer_local */
@@ -516,6 +516,12 @@ void tick_lrecord_stats (const struct lrecord_header *h,
 } while (0)
 #define SET_LISP_READONLY_RECORD_HEADER(lheader) \
   ((void) ((lheader)->lisp_readonly = 1))
+#define CLEAR_C_READONLY_RECORD_HEADER(lheader) do {	\
+  struct lrecord_header *CCRRH_lheader = (lheader);	\
+  CCRRH_lheader->c_readonly = 0;			\
+  CCRRH_lheader->lisp_readonly = 0;			\
+  CCRRH_lheader->mark = 0;				\
+} while (0)
 
 #define RECORD_DESCRIPTION(lheader) lrecord_memory_descriptions[(lheader)->type]
 
@@ -875,7 +881,7 @@ void tick_lrecord_stats (const struct lrecord_header *h,
 
   Pointer to block of described memory in the C data segment (which will need
   to be relocated differently than XD_BLOCK_PTR, but is identical to previous
-  with regard to garbage collection).
+  with regard to garbage collection). Same parameters as XD_BLOCK_PTR.
 
     XD_BLOCK_ARRAY
 
@@ -957,11 +963,6 @@ void tick_lrecord_stats (const struct lrecord_header *h,
   Pointer to a C function, that will need to be relocated on systems with
   address space layout randomization (ASLR).
 
-    XD_DATA_POINTER
-
-  Pointer into the C data segment, that will need to be relocated on systems
-  with address space layout randomization (ASLR).
-
     XD_MEMORY_DESCRIPTION
 
   Pointer to a struct memory_description. These are all in the C data segment
@@ -1035,7 +1036,6 @@ enum memory_description_type
   XD_UNION,
   XD_UNION_DYNAMIC_SIZE,
   XD_FUNCTION_POINTER,
-  XD_DATA_POINTER,
   XD_MEMORY_DESCRIPTION,
   XD_SIZED_MEMORY_DESCRIPTION,
   XD_ASCII_STRING,
@@ -1694,7 +1694,7 @@ struct lcrecord_list
 {
   NORMAL_LISP_OBJECT_HEADER header;
   Lisp_Object free;
-  Elemcount size;
+  Bytecount size;
   const struct lrecord_implementation *implementation;
 };
 
@@ -1787,7 +1787,7 @@ Lisp_Object old_alloc_sized_lcrecord (Bytecount size,
 				      const struct lrecord_implementation *);
 
 /* HAND-MANAGED MODEL: */
-Lisp_Object make_lcrecord_list (Elemcount size,
+Lisp_Object make_lcrecord_list (Bytecount size,
 				const struct lrecord_implementation
 				*implementation);
 Lisp_Object alloc_managed_lcrecord (Lisp_Object lcrecord_list);
@@ -1800,11 +1800,14 @@ alloc_automanaged_sized_lcrecord (Bytecount size,
 MODULE_API Lisp_Object
 alloc_automanaged_lcrecord (const struct lrecord_implementation *imp);
 
+MODULE_API Lisp_Object
+alloc_automanaged_c_readonly_lcrecord (Bytecount,
+				       const struct lrecord_implementation *);
+
 #define old_alloc_lcrecord_type(type, imp) \
   ((type *) XPNTR (alloc_automanaged_lcrecord (sizeof (type), imp)))
 
 void old_free_lcrecord (Lisp_Object rec);
-
 
 DECLARE_INLINE_HEADER (
 Bytecount

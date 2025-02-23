@@ -1268,9 +1268,10 @@ static const struct memory_description console_methods_description_1[] = {
 				   register_selection_data_type_method) },
   { XD_FUNCTION_POINTER, offsetof (struct console_methods,
 				   selection_data_type_name_method) },
+  { XD_BLOCK_DATA_PTR, offsetof (struct console_methods,
+				 device_specific_frame_props), 1,
+    { &lisp_object_description } },
 
-  { XD_DATA_POINTER, offsetof (struct console_methods,
-                               device_specific_frame_props) },
   /* frame methods */
   { XD_FUNCTION_POINTER, offsetof (struct console_methods,
 				   init_frame_1_method) },
@@ -1584,32 +1585,15 @@ for bindings in `function-key-map'.
 /* The docstrings for DEFVAR_* are recorded externally by make-docfile.  */
 #define DEFVAR_CONSOLE_LOCAL_1(lname, field_name, forward_type, magicfun)   \
 do {									    \
-  static const struct symbol_value_forward I_hate_C =			    \
-  { /* struct symbol_value_forward */					    \
-    { /* struct symbol_value_magic */					    \
-      { /* struct old_lcrecord_header */				    \
-	{ /* struct lrecord_header */					    \
-	  lrecord_type_symbol_value_forward, /* lrecord_type_index */	    \
-	  1, /* mark bit */						    \
-	  1, /* c_readonly bit */					    \
-	  1  /* lisp_readonly bit */					    \
-	},								    \
-	0, /* next */							    \
-      },								    \
-      &(console_local_flags.field_name),				    \
-      forward_type							    \
-    },									    \
-    magicfun								    \
-  };									    \
-									    \
+  DEFVAR_SYMVAL_FWD_OBJECT (lname, &(console_local_flags.field_name),	    \
+			   forward_type, magicfun);			    \
   {									    \
-    int offset = ((char *)symbol_value_forward_forward (&I_hate_C)	    \
-		  - (char *)&console_local_flags);			    \
-									    \
-    defvar_magic (lname, &I_hate_C);					    \
-									    \
-    *((Lisp_Object *)(offset + (char *)XCONSOLE (Vconsole_local_symbols)))  \
-      = intern (lname);							    \
+    Bytecount offset = ((Rawbyte *) XSYMBOL_VALUE_FORWARD_OBJECT_FORWARD    \
+			(XSYMBOL_VALUE (intern (lname)))		    \
+			- (Rawbyte *) &console_local_flags);		    \
+    *((Lisp_Object *)(offset +						    \
+		      (Rawbyte *) XCONSOLE (Vconsole_local_symbols)))       \
+	    = intern (lname);						    \
   }									    \
 } while (0)
 
@@ -1624,9 +1608,10 @@ do {									    \
 #define DEFVAR_CONST_CONSOLE_LOCAL(lname, field_name)			\
 	DEFVAR_CONST_CONSOLE_LOCAL_MAGIC (lname, field_name, 0)
 
-#define DEFVAR_CONSOLE_DEFAULTS_MAGIC(lname, field_name, magicfun)	\
-	DEFVAR_SYMVAL_FWD(lname, &(console_local_flags.field_name),	\
-			  SYMVAL_DEFAULT_CONSOLE_FORWARD, magicfun)
+#define DEFVAR_CONSOLE_DEFAULTS_MAGIC(lname, field_name, magicfun)	    \
+	DEFVAR_SYMVAL_FWD_OBJECT(lname, &(console_local_flags.field_name),  \
+				 SYMVAL_DEFAULT_CONSOLE_FORWARD,	    \
+				 magicfun)
 #define DEFVAR_CONSOLE_DEFAULTS(lname, field_name)			\
 	DEFVAR_CONSOLE_DEFAULTS_MAGIC (lname, field_name, 0)
 
