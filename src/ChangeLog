@@ -1,5 +1,11 @@
 2025-02-23  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* symbols.c (Fset):
+	Call DUMPEDP on XPNTRVAL (valcontents) here, placating the union
+	build. Thank you Mats Lidell and the buildbot.
+
+2025-02-23  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Mark and dump through the VALUE field of the symbol-value-forward
 	objects when appropriate, removing the need for staticpro() for
 	those objects.

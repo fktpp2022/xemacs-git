@@ -1548,7 +1548,7 @@ Set SYMBOL's value to NEWVAL, and return NEWVAL.
       if (UNBOUNDP (newval))
 	{
 	  gc_checking_assert (C_READONLY (valcontents));
-	  if (!DUMPEDP (valcontents))
+	  if (!DUMPEDP (XPNTRVAL (valcontents)))
 	    {
 	      /* This is a symbol-value-forward created by a module. Once
 		 SYMBOL is made unbound it is no longer reachable. Since it was
@@ -1568,7 +1568,7 @@ Set SYMBOL's value to NEWVAL, and return NEWVAL.
       if (UNBOUNDP (newval))
 	{
 	  gc_checking_assert (!C_READONLY (valcontents));
-	  if (!DUMPEDP (valcontents))
+	  if (!DUMPEDP (XPNTRVAL (valcontents)))
 	    {
 	      /* This is a symbol-value-forward-object created by a module. Set
 		 its forwarding pointer to NULL to have the GC ignore it. It is
