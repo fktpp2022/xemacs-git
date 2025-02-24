@@ -2316,8 +2316,7 @@ range, a charset or a vector giving a charset and a row in that charset.
    characters C1 and C2 if they appear in this order, else return 0.
    Use the macro WORD_BOUNDARY_P instead of calling this function
    directly.  */
-
-int
+Boolint
 word_boundary_p (struct buffer *buf, Ichar c1, Ichar c2)
 {
   Lisp_Object tail;
@@ -2344,17 +2343,18 @@ word_boundary_p (struct buffer *buf, Ichar c1, Ichar c2)
       default_result = 1;
     }
 
-  for (; CONSP (tail); tail = XCDR (tail))
-    {
-      Lisp_Object elt = XCAR (tail);
+  {
+    EXTERNAL_LIST_LOOP_2 (elt, tail)
+      {
+        if (CONSP (elt)
+            && CATEGORY_DESIGNATORP (XCAR (elt))
+            && CATEGORY_DESIGNATORP (XCDR (elt))
+            && check_char_in_category (c1, table, XCHAR (XCAR (elt)), 0)
+            && check_char_in_category (c2, table, XCHAR (XCDR (elt)), 0))
+          return !default_result;
+      }
+  }
 
-      if (CONSP (elt)
-	  && CATEGORY_DESIGNATORP (XCAR (elt))
-	  && CATEGORY_DESIGNATORP (XCDR (elt))
-	  && check_char_in_category (c1, table, XCHAR (XCAR (elt)), 0)
-	  && check_char_in_category (c2, table, XCHAR (XCDR (elt)), 0))
-	return !default_result;
-    }
   return default_result;
 }
 

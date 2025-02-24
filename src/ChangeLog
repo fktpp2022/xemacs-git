@@ -5,6 +5,17 @@
 	* number.c (Fcoerce_number):
 	Ditto. Give a better error message if TYPE is not supported.
 
+2025-02-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* chartab.c:
+	* chartab.c (word_boundary_p):
+	Modernise the return type for this. Use EXTERNAL_LISP_LOOP_2()
+	when examining Vword_separating_categories,
+	Vword_combining_categories, so we error instead of provoking an
+	infinite loop.
+	* chartab.h:
+	Update the return type for word_boundary_p().
+
 2025-02-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* symbols.c (Fset):

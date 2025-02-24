@@ -242,7 +242,7 @@ int map_char_table (Lisp_Object table,
 			       Lisp_Object val, void *arg),
 		    void *arg);
 void prune_syntax_tables (void);
-int word_boundary_p (struct buffer *buf, Ichar c1, Ichar c2);
+Boolint word_boundary_p (struct buffer *buf, Ichar c1, Ichar c2);
 
 EXFUN (Fcopy_char_table, 1);
 EXFUN (Fmake_char_table, 1);
