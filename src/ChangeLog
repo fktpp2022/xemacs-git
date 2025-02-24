@@ -1,3 +1,10 @@
+2025-02-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* number.c (Fcanonicalize_number):
+	Error if NUMBER is not a number.
+	* number.c (Fcoerce_number):
+	Ditto. Give a better error message if TYPE is not supported.
+
 2025-02-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* symbols.c (Fset):

@@ -356,6 +356,7 @@ Return the canonical form of NUMBER.
 */
        (number))
 {
+  CHECK_NUMBER (number);
   /* The tests should go in order from larger, more expressive, or more
      complex types to smaller, less expressive, or simpler types so that a
      number can cascade all the way down to the simplest type if
@@ -655,6 +656,7 @@ cases; the information is silently lost.
        (number, type, USED_IF_BIGFLOAT (precision)))
 {
   CHECK_SYMBOL (type);
+  CHECK_NUMBER (number);
   if (EQ (type, Qfixnum))
     return internal_coerce_number (number, FIXNUM_T, 0UL);
   else if (EQ (type, Qinteger))
@@ -701,7 +703,7 @@ cases; the information is silently lost.
     }
 #endif /* HAVE_BIGFLOAT */
 
-  Fsignal (Qunsupported_type, type);
+  Fsignal (Qunsupported_type, list2 (type, number));
   /* NOTREACHED */
   return Qnil;
 }
