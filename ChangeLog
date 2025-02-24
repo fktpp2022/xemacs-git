@@ -1,3 +1,8 @@
+2025-02-24  Stephen Turnbull  <turnbull@sk.tsukuba.ac.jp>
+
+	* Makefile.in.in:
+	Find module auto-autoloads in module build tree, not source tree.
+
 2025-02-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* configure.ac:

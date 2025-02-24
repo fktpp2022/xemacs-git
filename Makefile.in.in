@@ -439,7 +439,7 @@ install-arch-dep: mkdir
 # endif /* CYGWIN */
 #endif /* WIN32_NATIVE */
 #ifdef HAVE_SHLIB
-	$(INSTALL_DATA) $(srcdir)/modules/auto-autoloads.* $(DESTDIR)$(moduledir)
+	$(INSTALL_DATA) modules/auto-autoloads.* $(DESTDIR)$(moduledir)
 #endif
 
 install-arch-indep: mkdir info
