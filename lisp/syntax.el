@@ -280,54 +280,33 @@ VALUE and STREAM, and should output a description of VALUE."
 	last-char
 	prev-val
 	(describe-one
-	 (if (featurep 'mule)
-	     #'(lambda (first last value stream)
-		 (if (equal first last)
-		     (cond ((vectorp first)
-			    (princ (format "%s, row %d\t"
-					   (declare-fboundp (charset-name
-							     (aref first 0)))
-					   (aref first 1))
-				   stream))
-			   ((symbolp first)
-			    (princ first stream)
-			    (princ "\t" stream))
-			   (t
-			    (princ (text-char-description first) stream)
-			    (princ "\t" stream)))
-		   (cond ((vectorp first)
-			  (princ (format "%s, rows %d .. %d\t"
-					 (declare-fboundp (charset-name
-							   (aref first 0)))
-					 (aref first 1)
-					 (aref last 1))
-				 stream))
-			 ((symbolp first)
-			  (princ (format "%s .. %s\t" first last) stream))
-			 (t
-			  (princ (format "%s .. %s\t"
-					 (text-char-description first)
-					 (text-char-description last))
-				 stream))))
-		 (funcall describe-value value stream))
-	   #'(lambda (first last value stream)
-	       (let* ((tem (text-char-description first))
-		      (pos (length tem))
-		      ;;(limit (cond ((numberp ctl-arrow) ctl-arrow)
-		      ;;             ((memq ctl-arrow '(t nil)) 256)
-		      ;;             (t 160)))
-		      )
-		 (princ tem stream)
-		 (if (> last first)
-		     (progn
-		       (princ " .. " stream)
-		       (setq tem (text-char-description last))
-		       (princ tem stream)
-		       (setq pos (+ pos (length tem) 4))))
-		 (while (progn (write-char ?\  stream)
-			       (setq pos (1+ pos))
-			       (< pos 16))))
-	       (funcall describe-value value stream)))))
+	 #'(lambda (first last value stream)
+	     (if (equal first last)
+		 (cond ((vectorp first)
+			(princ (format "%s, row %d\t"
+				       (charset-name (aref first 0))
+				       (aref first 1))
+			       stream))
+		       ((symbolp first)
+			(princ first stream)
+			(princ "\t" stream))
+		       (t
+			(princ (text-char-description first) stream)
+			(princ "\t" stream)))
+	       (cond ((vectorp first)
+		      (princ (format "%s, rows %d .. %d\t"
+				     (charset-name (aref first 0))
+				     (aref first 1)
+				     (aref last 1))
+			     stream))
+		     ((symbolp first)
+		      (princ (format "%s .. %s\t" first last) stream))
+		     (t
+		      (princ (format "%s .. %s\t"
+				     (text-char-description first)
+				     (text-char-description last))
+			     stream))))
+	     (funcall describe-value value stream))))
     (funcall mapper
      #'(lambda (range value)
 	 (cond
@@ -337,16 +316,12 @@ VALUE and STREAM, and should output a description of VALUE."
 		 prev-val value))
 	  ((and (equal value prev-val)
 		(or
-		 (and (characterp range)
-		      (characterp first-char)
-		      (or (not (featurep 'mule))
-			  (eq (declare-fboundp (char-charset range))
-			      (declare-fboundp (char-charset first-char))))
-		      (= (char-int last-char) (1- (char-int range))))
-		 (and (vectorp range)
-		      (vectorp first-char)
-		      (eq (aref range 0) (aref first-char 0))
-		      (= (aref last-char 1) (1- (aref range 1))))))
+		 (and (characterp range) (characterp first-char)
+		      (eq (char-charset range) (char-charset first-char))
+		      (eql (char-int last-char) (1- (char-int range))))
+		 (and (vectorp range) (vectorp first-char)
+		      (eql (aref range 0) (aref first-char 0))
+		      (eql (aref last-char 1) (1- (aref range 1))))))
 	   (setq last-char range))
 	  (t
 	   (funcall describe-one first-char last-char prev-val stream)

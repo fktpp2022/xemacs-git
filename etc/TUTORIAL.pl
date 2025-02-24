@@ -1,5 +1,5 @@
 Copyright (c) 1985, 1994 Free Software Foundation, Inc.  Szczegó³y na
-koñcu pliku.
+koñcu pliku. -*- coding: iso-8859-2 -*-
 
 Czytasz w³a¶nie krótki podrêcznik Emacsa.
 

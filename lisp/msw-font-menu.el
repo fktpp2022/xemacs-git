@@ -165,8 +165,7 @@ or if you change your font path, you can call this to re-initialize the menus."
 				(selected-device)))
 	 (name (font-instance-name (face-font-instance face domain)))
 	 (truename (font-instance-truename
-		    (face-font-instance face domain
-					(if (featurep 'mule) 'ascii))))
+		    (face-font-instance face domain 'ascii)))
 	 family size weight entry slant)
     (when (string-match mswindows-font-regexp name)
       (setq family (match-string 1 name))

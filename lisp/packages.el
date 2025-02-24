@@ -88,8 +88,7 @@
   "Returns a list of package hierarchy directory names.
 These are the valid immediate directory names of package
 directories, directories with higher priority first"
-  `("site-packages" ,@(when (featurep 'mule) '("mule-packages"))
-    "xemacs-packages"))
+  (list "site-packages" "mule-packages" "xemacs-packages"))
 
 (defun package-get-key (name key)
   "Get info `key' from package `name'."

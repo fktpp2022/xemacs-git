@@ -1,5 +1,5 @@
 Copyright (c) 1997, Stig Bjørlykke <stigb@tihlde.hist.no>
-Se i slutten av dokumentet for vilkår og betingelser.
+Se i slutten av dokumentet for vilkår og betingelser. -*- coding: iso-8859-1 -*-
 
 Dette dokumentet er basert på den engelske veiledningen, som er 
 Copyright (c) 1985, 1996 Free Software Foundation, Inc.

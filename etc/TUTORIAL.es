@@ -1,5 +1,5 @@
 Copyright (c) 1985 Free Software Foundation, Inc;  Vea al final las 
-condiciones. Usted está viendo el tutorial de Emacs.
+condiciones. Usted está viendo el tutorial de Emacs. -*- coding: iso-8859-1 -*-
 
 Los comandos de Emacs generalmente ivolucran a la tecla CONTROL (algunas
 veces llamada CTRL O CTL) o la tecla meta algunas veces llamada (EDIT o 

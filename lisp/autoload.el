@@ -1081,12 +1081,14 @@ Works just like `update-file-autoloads'."
 	   ;; characters are output properly and distinguished properly.
 	   ;; Otherwise, use `raw-text' for maximum portability with non-Mule
 	   ;; Emacsen.
-	   (if (or (featurep '(not mule)) ;; Don't scan if no Mule support
-		   (progn
-		     (goto-char (point-min))
-		     ;; mrb- There must be a better way than skip-chars-forward
-		     (skip-chars-forward "\x00-\xff")
-		     (eq (point) (point-max))))
+	   (if (progn (goto-char (point-min))
+		      ;; #'skip-chars-forward is the best option for this, the
+		      ;; equivalent #'re-search-forward call is slower in my
+		      ;; testing. We intentionally don't expose
+		      ;; #'buffer-char-byte-conversion-info on non-DEBUG
+		      ;; builds.
+		      (skip-chars-forward "\x00-\xff")
+		      (eql (point) (point-max)))
 	       (setq buffer-file-coding-system 'raw-text-unix)
 	     (setq buffer-file-coding-system 'escape-quoted))
 	   (goto-char (point-min))

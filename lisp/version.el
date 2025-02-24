@@ -90,12 +90,7 @@ to the system configuration; look at `system-configuration' instead."
 	   (format
 	    "XEmacs %s %s(%s%s) of %s %s on %s"
 	    (subseq emacs-version 0 (search " XEmacs" emacs-version))
-            "[Lucid] "
-	    system-configuration
-	    (cond ((or (and (fboundp 'featurep)
-			    (featurep 'mule))
-		       (memq 'mule features)) ", Mule")
-		  (t ""))
+            "[Lucid] " system-configuration ", Mule"
 	    (substring emacs-build-time 0
 		       (string-match-p " *[0-9]*:" emacs-build-time))
 	    (substring emacs-build-time

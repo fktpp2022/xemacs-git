@@ -400,11 +400,4 @@ The optional third argument CHARSET is, for the moment, ignored."
   (and (query-coding-string (string char) coding-system)
        (encode-coding-string (string char) coding-system)))
 
-(unless (featurep 'mule)
-  (define-coding-system-alias 'escape-quoted 'binary)
-
-  ;; These are so that gnus and friends work when not mule:
-  (define-coding-system-alias 'iso-8859-1 'raw-text)
-  (define-coding-system-alias 'ctext 'raw-text))
-
 ;;; coding.el ends here

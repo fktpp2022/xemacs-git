@@ -48,8 +48,7 @@
 (setq stack-trace-on-error t
       load-always-display-messages t)
 
-(defvar update-elc-ignored-dirs
-  `("." ".." "CVS" "SCCS" "RCS" ,@(unless (featurep 'mule) '("mule"))))
+(defvar update-elc-ignored-dirs '("." ".." "CVS" "SCCS" "RCS"))
 
 (defvar update-elc-ignored-files
   ;; note: entries here are regexps
@@ -142,8 +141,7 @@
     ;; now load the autoloads; we were called with -no-autoloads so they're not
     ;; already loaded.
     (load (expand-file-name "auto-autoloads" lisp-directory))
-    (when (featurep 'mule)
-      (load (expand-file-name "mule/auto-autoloads" lisp-directory)))
+    (load (expand-file-name "mule/auto-autoloads" lisp-directory))
     (when (featurep 'modules)
       (load (expand-file-name "auto-autoloads" module-directory)))
     ;; We remove all the bad .elcs before any byte-compilation, because
@@ -161,14 +159,13 @@
     (load "cus-dep")
     (Custom-make-dependencies dir)
     (byte-recompile-file (expand-file-name "custom-load.el" dir) 0)
-    (when (featurep 'mule)
-      (Custom-make-dependencies (expand-file-name "mule" dir))
-      (byte-recompile-file (expand-file-name "mule/custom-load.el" dir) 0)
-      ;; See the eval-when-compile in the definition of
-      ;; Installation-file-coding-system; if the file name sniffing or the
-      ;; available coding systems have changed, version.elc should be
-      ;; rebuilt.
-      (byte-recompile-file (expand-file-name "version.el" dir) 0)))
+    (Custom-make-dependencies (expand-file-name "mule" dir))
+    (byte-recompile-file (expand-file-name "mule/custom-load.el" dir) 0)
+    ;; See the eval-when-compile in the definition of
+    ;; Installation-file-coding-system; if the file name sniffing or the
+    ;; available coding systems have changed, version.elc should be
+    ;; rebuilt.
+    (byte-recompile-file (expand-file-name "version.el" dir) 0))
   (setq command-line-args-left nil))
 
 ;;; update-elc-2.el ends here

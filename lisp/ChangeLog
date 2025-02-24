@@ -1,3 +1,104 @@
+2025-02-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Remove checks for (featurep 'mule) from core Lisp, making our code
+	a little more maintainable. The Lisp side of eed34ee08c9b . 
+
+	* autoload.el (autoload-featurep-protect-autoloads):
+
+	* bytecomp.el (byte-recompile-ignore-uncompilable-mule-files):
+	Removed. No longer needed with removal of support for non-Mule.
+
+	* bytecomp.el (byte-recompile-directory):
+	Always execute the Mule-specific code.
+	* bytecomp.el (byte-recompile-file): Ditto.
+	* bytecomp.el (byte-compile-file): Ditto.
+	* bytecomp.el (byte-compile-maybe-reset-coding): Ditto.
+	* code-init.el:
+	* code-init.el (eol-detection-enabled-p): Default this to
+	t. Remove docstring commentary that is no longer true.
+	* code-init.el (set-eol-detection):
+	Remove docstring commentary that is no longer true.
+	* code-init.el (coding-system-current-system-configuration):
+	Remove the non-Mule options for this.
+	* code-init.el (define-coding-system-default-configuration):
+	Remove the no-mule-no-eol-detection, no-mule-eol-detection,
+	windows-no-mule calls for this.
+	* code-init.el (reset-coding-categories-to-default):
+	Correct indentation here. Always execute the Mule code.
+
+	* coding.el: Remove some non-Mule code, no longer needed.
+	* compose.el:
+	Use Unicode character literals instead of load time #'decode-char
+	calls. No need to construct a big if statement at load time
+	depending on whether characters can be decoded.
+
+	* dumped-lisp.el (preloaded-file-list):
+	Always load the Mule-relevant files.
+
+	* fill.el (fill-move-forward-to-break-point):
+	* fill.el (fill-region-as-paragraph):
+	Always call the kinsoku processing in this file.
+
+	* finder.el (finder-known-keywords):
+	Always include Mule in the keywords.
+	* gtk-font-menu.el (gtk-reset-device-font-menus):
+	* gtk-font-menu.el (gtk-font-menu-font-data):
+	Don't check (featurep 'mule) here.
+	* help.el:
+	* help.el (tutorial-supported-languages): Removed.
+	This has actually been basically unused for decades, information
+	taken from the language environment.
+	* help.el (help-with-tutorial):
+	Use #'read-language-name unconditionally when reading args.
+	Trust the coding cookies in the tutorial files, just added, don't
+	bind coding-system-for-read.
+	* iso8859-1.el:
+	Remove some non-Mule code.
+	* menubar-items.el (default-menubar):
+	Unconditionally include entries relevant to Mule.
+	* menubar-items.el (tutorials-menu-filter):
+	Ditto.
+
+	* msw-font-menu.el (mswindows-font-menu-font-data):
+	Don't check (featurep 'mule) here.
+	* newcomment.el (comment-indent-new-line):
+	Always call kinsoku processing here.
+	* package-get.el (package-get):
+	Never error because of no Mule support.
+	* packages.el (packages-package-hierarchy-directory-names):
+	Unconditionally include the Mule packages.
+
+	* paragraphs.el (sentence-end-without-space):
+	Update this to assume Mule is always available.
+	* paragraphs.el (sentence-end-base): Ditto.
+	* select.el (selection-preferred-types):
+	Always include COMPOUND_TEXT here.
+
+	* simple.el (do-auto-fill):
+	Always call kinsoku processing here.
+	* startup.el (command-line):
+	* startup.el (splash-screen-window-body):
+	* startup.el (startup-setup-paths):
+	* startup.el (startup-setup-paths-warning):
+	* startup.el (startup-load-autoloads):
+	Always call the Mule code in this file. Remove non-Mule code.
+	* syntax.el (describe-char-table): Ditto.
+	* unicode.el: Ditto.
+	* update-elc-2.el:
+	* update-elc-2.el (update-elc-ignored-dirs):
+	Never include "mule/" in this .
+	* update-elc-2.el (batch-update-elc-2):
+	Always call the Mule code within this.
+	* update-elc.el:
+	* update-elc.el (update-elc-files-to-compile):
+	Ditto.
+	* version.el (emacs-version):
+	Always include ", Mule" in the version string.
+	* x-font-menu.el (x-reset-device-font-menus-core):
+	Remove non-Mule code.
+	* x-font-menu.el (x-font-menu-font-data-xft): Ditto.
+	* x-font-menu.el (x-font-menu-font-data-core): Ditto.
+
 2025-02-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove byte-compile-dynamic from the byte compiler, no longer

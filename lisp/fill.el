@@ -130,7 +130,7 @@ This function is used when `adaptive-fill-regexp' does not match."
       (forward-char -1)
       (if (< (point) opoint)
 	  (forward-char))))
-  (if (featurep 'mule) (declare-fboundp (kinsoku-process-extend))))
+  (kinsoku-process-extend))
 
 (defun fill-end-of-sentence-p ()
   (save-excursion
@@ -384,8 +384,7 @@ space does not end a sentence, so don't break a line there."
 	  ;; Spacing is not necessary for characters of no word-separator.
 	  ;; The regexp word-across-newline is used for this check.
 	  (defvar word-across-newline)
-	  (if (not (and (featurep 'mule)
-			(stringp word-across-newline)))
+	  (if (not (stringp word-across-newline))
 	      (subst-char-in-region from (point-max) ?\n ?\ )
 	    ;;
 	    ;; WAN     +NL+WAN       --> WAN            + WAN
@@ -426,10 +425,8 @@ space does not end a sentence, so don't break a line there."
 
 	  ;; This is the actual filling loop.
 	  (let ((prefixcol 0) linebeg current-fill-column
-		(re-break-point (if (featurep 'mule)
-				    (concat "[ \n\t]\\|" word-across-newline
-					    ".\\|." word-across-newline)
-				  "[ \n\t]")))
+		(re-break-point (concat "[ \n\t]\\|" word-across-newline
+					".\\|." word-across-newline)))
 	    (while (not (eobp))
 	      (setq linebeg (point))
 	      (move-to-column (max (setq current-fill-column
@@ -460,7 +457,7 @@ space does not end a sentence, so don't break a line there."
 		      ;; 97/3/14 jhod: Kinsoku
 		      ;(skip-chars-backward "^ \n" linebeg)))
 		      (fill-move-backward-to-break-point re-break-point linebeg)))
-		(if (featurep 'mule) (declare-fboundp (kinsoku-process)))
+		(kinsoku-process)
 		;end patch
 
 		;; If the left margin and fill prefix by themselves
@@ -529,41 +526,41 @@ space does not end a sentence, so don't break a line there."
 		  ;; margin.
 		  (skip-chars-backward " \t")
 		  ;; 97/3/14 jhod: More kinsoku stuff
-		  (if (featurep 'mule)
-		      ;; WAN means chars which match word-across-newline.
-		      ;; (0)     | SPC + SPC* <EOB>	--> NL
-		      ;; (1) WAN | SPC + SPC*		--> WAN + SPC + NL
-		      ;; (2)     | SPC + SPC* + WAN	--> SPC + NL  + WAN
-		      ;; (3) '.' | SPC + nonSPC		--> '.' + SPC + NL + nonSPC
-		      ;; (4) '.' | SPC + SPC		--> '.' + NL
-		      ;; (5)     | SPC*			--> NL
-		      (let ((start (point))	; 92.6.30 by K.Handa
-			    (ch (char-after (point))))
-			(if (and (= ch ? )
-				 (progn		; not case (0) -- 92.6.30 by K.Handa
-				   (skip-chars-forward " \t")
-				   (not (eobp)))
-				 (or
-				  (progn	; case (1)
-				    (goto-char start)
-				    (forward-char -1)
-				    (looking-at word-across-newline))
-				  (progn	; case (2)
-				    (goto-char start)
-				    (skip-chars-forward " \t")
-				    (and (not (eobp))
-					 (looking-at word-across-newline)
-					 ;; never leave space after the end of sentence
-					 (not (fill-end-of-sentence-p))))
-				  (progn	; case (3)
-				    (goto-char (1+ start))
-				    (and (not (eobp))
-					 (not (eq (char-after (point)) ? ))
-					 (fill-end-of-sentence-p)))))
-			    ;; We should keep one SPACE before NEWLINE. (1),(2),(3)
-			    (goto-char (1+ start))
-			  ;; We should delete all SPACES around break point. (4),(5)
-			  (goto-char start))))
+		  ;; WAN means chars which match word-across-newline.
+		  ;; (0)     | SPC + SPC* <EOB>	--> NL
+		  ;; (1) WAN | SPC + SPC*	--> WAN + SPC + NL
+		  ;; (2)     | SPC + SPC* + WAN	--> SPC + NL  + WAN
+		  ;; (3) '.' | SPC + nonSPC	--> '.' + SPC + NL + nonSPC
+		  ;; (4) '.' | SPC + SPC	--> '.' + NL
+		  ;; (5)     | SPC*		--> NL
+		  (let ((start (point))	; 92.6.30 by K.Handa
+			(ch (char-after (point))))
+		    (if (and (= ch ? )
+			     (progn	; not case (0) -- 92.6.30 by K.Handa
+			       (skip-chars-forward " \t")
+			       (not (eobp)))
+			     (or
+			      (progn	; case (1)
+				(goto-char start)
+				(forward-char -1)
+				(looking-at word-across-newline))
+			      (progn	; case (2)
+				(goto-char start)
+				(skip-chars-forward " \t")
+				(and (not (eobp))
+				     (looking-at word-across-newline)
+				     ;; never leave space after the end of
+				     ;; sentence
+				     (not (fill-end-of-sentence-p))))
+			      (progn	; case (3)
+				(goto-char (1+ start))
+				(and (not (eobp))
+				     (not (eq (char-after (point)) ? ))
+				     (fill-end-of-sentence-p)))))
+			;; We should keep one SPACE before NEWLINE. (1),(2),(3)
+			(goto-char (1+ start))
+		      ;; We should delete all SPACES around break point. (4),(5)
+		      (goto-char start)))
 		  ;; end of patch
 		  (insert ?\n)
 		  ;; Give newline the properties of the space(s) it replaces

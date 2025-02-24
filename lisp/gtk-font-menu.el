@@ -93,8 +93,7 @@ or if you change your font path, you can call this to re-initialize the menus."
     (setq gtk-font-regexp-ascii (if-fboundp 'charset-registries
                                     (aref (charset-registries 'ascii) 0)
                                   "iso8859-1")))
-  (setq gtk-font-menu-registry-encoding
-	(if (featurep 'mule) "*-*" "iso8859-1"))
+  (setq gtk-font-menu-registry-encoding "*-*")
   (let ((case-fold-search t)
 	family size weight entry monospaced-p
 	dev-cache cache families sizes weights)
@@ -198,8 +197,7 @@ or if you change your font path, you can call this to re-initialize the menus."
 				(selected-device)))
 	 (name (font-instance-name (face-font-instance face domain)))
 	 (truename (font-instance-truename
-		    (face-font-instance face domain
-					(if (featurep 'mule) 'ascii))))
+		    (face-font-instance face domain 'ascii)))
 	 family size weight entry slant)
     (when (string-match gtk-font-regexp-foundry-and-family name)
       (setq family (capitalize (match-string 1 name)))

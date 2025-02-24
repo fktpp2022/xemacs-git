@@ -29,19 +29,13 @@
 ;; 1.  "Big" characters are unrepresentable.  Should give error, warning,
 ;;     not just substitute "~".
 ;; 2.  21.4 compatibility?
-;; 3.  make-char: non-mule barfs on non-iso8859-1.
 
 ;;; Code:
 
-(defcustom eol-detection-enabled-p (or (featurep 'mule)
-				       (memq system-type '(windows-nt
-							   cygwin32))
-				       (featurep 'unix-default-eol-detection))
-"True if XEmacs automatically detects the EOL type when reading files.
-Normally, this is always the case on Windows or when international (Mule)
-support is compiled into this XEmacs.  Otherwise, it is currently off by
-default, but this may change.  Don't set this; nothing will happen.  Instead,
-use the Options menu or `set-eol-detection'."
+(defcustom eol-detection-enabled-p t
+  "True if XEmacs automatically detects the EOL type when reading files.
+Don't set this; nothing will happen.  Instead, use the Options menu or
+`set-eol-detection'."
   :group 'encoding
   :type 'boolean
   ;; upon initialization, we don't want the whole business of
@@ -55,11 +49,9 @@ use the Options menu or `set-eol-detection'."
 
 (defun set-eol-detection (flag)
   "Enable (if FLAG is non-nil) or disable automatic EOL detection of files.
-EOL detection is enabled by default on Windows or when international (Mule)
-support is compiled into this XEmacs.  Otherwise, it is currently off by
-default, but this may change.  NOTE: You *REALLY* should not turn off EOL
-detection on Windows!  Your files will have lots of annoying ^M's in them
-if you do this."
+EOL detection is enabled by default. NOTE: You *REALLY* should not turn off
+EOL detection on Windows!  Your files will have lots of annoying ^M's in
+them if you do this."
   (dolist (x '(bfcs-for-read
 	       keyboard
 	       process-read
@@ -71,11 +63,8 @@ if you do this."
 (defun coding-system-current-system-configuration ()
   "Function to decide which default coding system configuration applies."
   (cond ((featurep 'cygwin-use-utf-8) 'cygwin-utf-8)
-	((memq system-type '(windows-nt cygwin32))
-	 (if (featurep 'mule) 'windows-mule 'windows-no-mule))
-	((featurep 'mule) 'mule)
-	(eol-detection-enabled-p 'no-mule-eol-detection)
-	(t 'no-mule-no-eol-detection)))
+	((memq system-type '(windows-nt cygwin32)) 'windows-mule)
+	(t 'mule)))
 
 (defvar coding-system-default-configuration-table (make-hash-table))
 
@@ -86,30 +75,6 @@ if you do this."
 ;; NOTE NOTE NOTE: These values may get overridden when the language
 ;; environment is initialized (set-language-environment-coding-systems).
 (define-coding-system-default-configuration
-  'no-mule-no-eol-detection
-  "No Mule support, EOL detection not enabled."
-  '(bfcs-for-read	binary
-    default-bfcs	binary
-    process-read	binary
-    process-write	binary
-    keyboard		binary
-    native		binary
-    no-conv-cs		binary
-    terminal		binary))
-
-(define-coding-system-default-configuration
-  'no-mule-eol-detection
-  "No Mule support, EOL detection enabled."
-  '(bfcs-for-read	raw-text
-    default-bfcs	binary
-    process-read	raw-text
-    process-write	binary
-    keyboard		raw-text
-    native		binary
-    no-conv-cs		raw-text
-    terminal		binary))
-
-(define-coding-system-default-configuration
   'mule
   "Mule support enabled."
   '(bfcs-for-read	undecided
@@ -118,18 +83,6 @@ if you do this."
     process-write	binary
     keyboard		undecided-unix
     native		binary
-    no-conv-cs		raw-text
-    terminal		binary))
-
-(define-coding-system-default-configuration
-  'windows-no-mule
-  "Microsoft Windows, no Mule support."
-  '(bfcs-for-read	raw-text
-    default-bfcs	raw-text-dos
-    process-read	raw-text
-    process-write	raw-text
-    keyboard		raw-text
-    native		raw-text-dos
     no-conv-cs		raw-text
     terminal		binary))
 
@@ -331,7 +284,7 @@ See `coding-system-variable-default-value'."
 	  coding-system-default-variable-list))
 
 (defun reset-coding-categories-to-default ()
-"Reset all coding categories (used for automatic detection) to their defaults.
+  "Reset all coding categories (used for automatic detection) to their defaults.
 
 The order of priorities of coding categories and the coding system
 bound to each category are as follows:
@@ -373,17 +326,15 @@ bound to each category are as follows:
   ;;	big5			big5
   ;;	ucs-4			----
   ;;	utf-8			----
-  (when (featurep 'mule)
-    (set-coding-category-system 'iso-7	'iso-2022-7)
-    (set-coding-category-system 'iso-8-1 'iso-8859-1)
-    (set-coding-category-system 'iso-8-2 'ctext)
-    (set-coding-category-system 'iso-lock-shift	'iso-2022-lock)
-    (set-coding-category-system 'iso-8-designate 'ctext)
-    (if (find-coding-system 'shift-jis)
-	(set-coding-category-system 'shift-jis 'shift-jis))
-    (if (find-coding-system 'big5)
-	(set-coding-category-system 'big5 'big5))
-    )
+  (set-coding-category-system 'iso-7 'iso-2022-7)
+  (set-coding-category-system 'iso-8-1 'iso-8859-1)
+  (set-coding-category-system 'iso-8-2 'ctext)
+  (set-coding-category-system 'iso-lock-shift 'iso-2022-lock)
+  (set-coding-category-system 'iso-8-designate 'ctext)
+  (if (find-coding-system 'shift-jis)
+      (set-coding-category-system 'shift-jis 'shift-jis))
+  (if (find-coding-system 'big5)
+      (set-coding-category-system 'big5 'big5))
   (set-coding-category-system
    'no-conversion
    (coding-system-variable-default-value 'no-conv-cs))
@@ -416,30 +367,21 @@ bound to each category are as follows:
   ;; be very rare as an external encoding.
 
   (set-coding-priority-list
-   (if (featurep 'mule)
-       '(utf-16-little-endian-bom
-	 utf-16-bom
-	 utf-8-bom
-	 iso-7
-	 no-conversion
-	 utf-8
-	 iso-8-1
-	 iso-8-2
-	 iso-8-designate
-	 iso-lock-shift
-	 shift-jis
-	 big5
-	 utf-16-little-endian
-	 utf-16
-	 ucs-4)
-     '(utf-16-little-endian-bom
-       utf-16-bom
-       utf-8-bom
-       no-conversion
-       utf-8
-       utf-16-little-endian
-       utf-16
-       ucs-4))))
+   '(utf-16-little-endian-bom
+     utf-16-bom
+     utf-8-bom
+     iso-7
+     no-conversion
+     utf-8
+     iso-8-1
+     iso-8-2
+     iso-8-designate
+     iso-lock-shift
+     shift-jis
+     big5
+     utf-16-little-endian
+     utf-16
+     ucs-4)))
 
 (defun reset-language-environment ()
   "Reset coding system environment of XEmacs to the default status.

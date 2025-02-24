@@ -41,7 +41,7 @@
 ;; Mozilla will happily give us broken COMPOUND_TEXT where a non-broken
 ;; UTF8_STRING is available. 
 (defvar selection-preferred-types
-  `(UTF8_STRING ,@(and (featurep 'mule) '(COMPOUND_TEXT)) STRING
+  `(UTF8_STRING COMPOUND_TEXT STRING
     ,@(mapcan #'(lambda (format)
                   (and (featurep format)
                        (list (intern (format "image/%s" format)))))

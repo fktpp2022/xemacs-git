@@ -1,13 +1,11 @@
 ;;; compose.el --- Compose-key processing in XEmacs
 
-;; Copyright (C) 1992, 1993, 1997, 2005 Free Software Foundation, Inc.
+;; Copyright (C) 1992, 1993, 1997, 2005, 2025 Free Software Foundation, Inc.
 
 ;; Author: Jamie Zawinski <jwz@jwz.org>
 ;; Maintainer: XEmacs Development Team
 ;; Rewritten by Martin Buchholz far too many times.
-;;
-;; Changed: 11 Jun 1997 by Heiko Muenkel <muenkel@tnt.uni-hannover.de>
-;;	The degree sign couldn't be inserted with the old version.
+
 ;; Keywords: i18n
 
 ;; This file is part of XEmacs.
@@ -136,7 +134,7 @@
 ;; there. This may be a bug in our use of XIM, or it may a bug in XIM
 ;; itself.
 
-;; @@#### This should probably be integrated into general Usenet handling
+;; @@#### This should probably be integrated into general Unicode handling
 ;; of composition sequences.
 
 ;;; Code:
@@ -176,13 +174,6 @@
 
 ;;(define-key function-key-map [multi-key] compose-map)
 
-;; The following is necessary, because one can't rebind [degree]
-;; and use it to insert the degree sign!
-;;(defun compose-insert-degree ()
-;;  "Inserts a degree sign."
-;;  (interactive)
-;;  (insert ?\260))
-
 (define-key compose-map [acute]		compose-acute-map)
 (define-key compose-map [?']		compose-acute-map)
 (define-key compose-map [grave]		compose-grave-map)
@@ -200,18 +191,17 @@
 (define-key compose-map [stroke]		compose-stroke-map)
 
 (loop
-  for (keysym character-code map)
-  in '((caron #x02C7 compose-caron-map)
-       (macron #x00AF compose-macron-map)
-       (doubleacute #x02DD compose-doubleacute-map)
-       (ogonek #x02db compose-ogonek-map)
-       (breve #x0306 compose-breve-map)
-       (abovedot #x0307 compose-dot-map)
-       (U031b #x031b compose-horn-map))
+  for (keysym character map)
+  in '((caron ?\u02C7 compose-caron-map)
+       (macron ?\u00AF compose-macron-map)
+       (doubleacute ?\u02DD compose-doubleacute-map)
+       (ogonek ?\u02db compose-ogonek-map)
+       (breve ?\u0306 compose-breve-map)
+       (abovedot ?\u0307 compose-dot-map)
+       (U031b ?\u031b compose-horn-map))
   do
   (define-key compose-map (vector keysym) map)
-  (when (setq character-code (decode-char 'ucs character-code))
-    (define-key compose-map (vector character-code) map))) 
+  (define-key compose-map (vector (list character)) map))
 
 
 ;;; The contents of the "dead key" maps.  These are shared by the
@@ -224,386 +214,371 @@
 ;;; support any decomposed characters here. (Not least because in general we
 ;;; don't have worthwhile support for precomposed characters.)
 
-(assert
- (or (featurep 'mule) (null (decode-char 'ucs #x100)))
- nil
- "This code assumes no non-Mule characters have a UCS value \
-greater than #xFF, and needs to be rewritten if that is not true.")
+(define-key compose-acute-map [space] [(?\u0027)]) ;; APOSTROPHE
+(define-key compose-acute-map [?\'] [(?\u00B4)]) ;; ACUTE ACCENT
+(define-key compose-acute-map [?A] [(?\u00C1)]) ;; CAPITAL A WITH ACUTE
+(define-key compose-acute-map [?C] [(?\u0106)]) ;; CAPITAL C WITH ACUTE
+(define-key compose-acute-map [?E] [(?\u00C9)]) ;; CAPITAL E WITH ACUTE
+(define-key compose-acute-map [?G] [(?\u01F4)]) ;; CAPITAL G WITH ACUTE
+(define-key compose-acute-map [?I] [(?\u00CD)]) ;; CAPITAL I WITH ACUTE
+(define-key compose-acute-map [?K] [(?\u1E30)]) ;; CAPITAL K WITH ACUTE
+(define-key compose-acute-map [?L] [(?\u0139)]) ;; CAPITAL L WITH ACUTE
+(define-key compose-acute-map [?M] [(?\u1E3E)]) ;; CAPITAL M WITH ACUTE
+(define-key compose-acute-map [?N] [(?\u0143)]) ;; CAPITAL N WITH ACUTE
+(define-key compose-acute-map [?O] [(?\u00D3)]) ;; CAPITAL O WITH ACUTE
+(define-key compose-acute-map [?P] [(?\u1E54)]) ;; CAPITAL P WITH ACUTE
+(define-key compose-acute-map [?R] [(?\u0154)]) ;; CAPITAL R WITH ACUTE
+(define-key compose-acute-map [?S] [(?\u015A)]) ;; CAPITAL S WITH ACUTE
+(define-key compose-acute-map [?U] [(?\u00DA)]) ;; CAPITAL U WITH ACUTE
+(define-key compose-acute-map [?W] [(?\u1E82)]) ;; CAPITAL W WITH ACUTE
+(define-key compose-acute-map [?Y] [(?\u00DD)]) ;; CAPITAL Y WITH ACUTE
+(define-key compose-acute-map [?Z] [(?\u0179)]) ;; CAPITAL Z WITH ACUTE
+(define-key compose-acute-map [?a] [(?\u00E1)]) ;; SMALL A WITH ACUTE
+(define-key compose-acute-map [?c] [(?\u0107)]) ;; SMALL C WITH ACUTE
+(define-key compose-acute-map [?e] [(?\u00E9)]) ;; SMALL E WITH ACUTE
+(define-key compose-acute-map [?g] [(?\u01F5)]) ;; SMALL G WITH ACUTE
+(define-key compose-acute-map [?i] [(?\u00ED)]) ;; SMALL I WITH ACUTE
+(define-key compose-acute-map [?k] [(?\u1E31)]) ;; SMALL K WITH ACUTE
+(define-key compose-acute-map [?l] [(?\u013A)]) ;; SMALL L WITH ACUTE
+(define-key compose-acute-map [?m] [(?\u1E3F)]) ;; SMALL M WITH ACUTE
+(define-key compose-acute-map [?n] [(?\u0144)]) ;; SMALL N WITH ACUTE
+(define-key compose-acute-map [?o] [(?\u00F3)]) ;; SMALL O WITH ACUTE
+(define-key compose-acute-map [?p] [(?\u1E55)]) ;; SMALL P WITH ACUTE
+(define-key compose-acute-map [?r] [(?\u0155)]) ;; SMALL R WITH ACUTE
+(define-key compose-acute-map [?s] [(?\u015B)]) ;; SMALL S WITH ACUTE
+(define-key compose-acute-map [?u] [(?\u00FA)]) ;; SMALL U WITH ACUTE
+(define-key compose-acute-map [?w] [(?\u1E83)]) ;; SMALL W WITH ACUTE
+(define-key compose-acute-map [?y] [(?\u00FD)]) ;; SMALL Y WITH ACUTE
+(define-key compose-acute-map [?z] [(?\u017A)]) ;; SMALL Z WITH ACUTE
 
-(macrolet
-    ((decide-on-bindings (&rest details)
-       "Look through DETAILS, working out which bindings work on non-Mule.
+(define-key compose-grave-map [space] [(?\u0060)]) ;; GRAVE ACCENT
+(define-key compose-grave-map [?\`] [(?\u0060)]) ;; GRAVE ACCENT
+(define-key compose-grave-map [?A] [(?\u00C0)]) ;; CAPITAL A WITH GRAVE
+(define-key compose-grave-map [?E] [(?\u00C8)]) ;; CAPITAL E WITH GRAVE
+(define-key compose-grave-map [?I] [(?\u00CC)]) ;; CAPITAL I WITH GRAVE
+(define-key compose-grave-map [?N] [(?\u01F8)]) ;; CAPITAL N WITH GRAVE
+(define-key compose-grave-map [?O] [(?\u00D2)]) ;; CAPITAL O WITH GRAVE
+(define-key compose-grave-map [?U] [(?\u00D9)]) ;; CAPITAL U WITH GRAVE
+(define-key compose-grave-map [?W] [(?\u1E80)]) ;; CAPITAL W WITH GRAVE
+(define-key compose-grave-map [?Y] [(?\u1EF2)]) ;; CAPITAL Y WITH GRAVE
+(define-key compose-grave-map [?a] [(?\u00E0)]) ;; SMALL A WITH GRAVE
+(define-key compose-grave-map [?e] [(?\u00E8)]) ;; SMALL E WITH GRAVE
+(define-key compose-grave-map [?i] [(?\u00EC)]) ;; SMALL I WITH GRAVE
+(define-key compose-grave-map [?n] [(?\u01F9)]) ;; SMALL N WITH GRAVE
+(define-key compose-grave-map [?o] [(?\u00F2)]) ;; SMALL O WITH GRAVE
+(define-key compose-grave-map [?u] [(?\u00F9)]) ;; SMALL U WITH GRAVE
+(define-key compose-grave-map [?w] [(?\u1E81)]) ;; SMALL W WITH GRAVE
+(define-key compose-grave-map [?y] [(?\u1EF3)]) ;; SMALL Y WITH GRAVE
 
-This returns a long `if' statement that should be executed when this file is
-loaded; it assumes that #xFF is the inclusive upper bound for the Unicode
-value of characters under non-Mule. "
-       (loop for (map key binding) in details
-         with if-mule = nil
-         with without-mule = nil
-         do
-         (push `(define-key ,map ,key
-                 (vector (list (decode-char 'ucs ,binding)))) if-mule)
-         (when (<= binding #xFF)
-           (push `(define-key ,map ,key
-                   (vector (list (decode-char 'ucs ,binding))))
-                 without-mule))
-         finally return `(if (featurep 'mule)
-                              (progn ,@if-mule)
-                          ,@without-mule))))
-  (decide-on-bindings
-   (compose-acute-map [space] #x0027) ;; APOSTROPHE
-   (compose-acute-map [?\'] #x00B4) ;; ACUTE ACCENT
-   (compose-acute-map [?A] #x00C1) ;; CAPITAL A WITH ACUTE
-   (compose-acute-map [?C] #x0106) ;; CAPITAL C WITH ACUTE
-   (compose-acute-map [?E] #x00C9) ;; CAPITAL E WITH ACUTE
-   (compose-acute-map [?G] #x01F4) ;; CAPITAL G WITH ACUTE
-   (compose-acute-map [?I] #x00CD) ;; CAPITAL I WITH ACUTE
-   (compose-acute-map [?K] #x1E30) ;; CAPITAL K WITH ACUTE
-   (compose-acute-map [?L] #x0139) ;; CAPITAL L WITH ACUTE
-   (compose-acute-map [?M] #x1E3E) ;; CAPITAL M WITH ACUTE
-   (compose-acute-map [?N] #x0143) ;; CAPITAL N WITH ACUTE
-   (compose-acute-map [?O] #x00D3) ;; CAPITAL O WITH ACUTE
-   (compose-acute-map [?P] #x1E54) ;; CAPITAL P WITH ACUTE
-   (compose-acute-map [?R] #x0154) ;; CAPITAL R WITH ACUTE
-   (compose-acute-map [?S] #x015A) ;; CAPITAL S WITH ACUTE
-   (compose-acute-map [?U] #x00DA) ;; CAPITAL U WITH ACUTE
-   (compose-acute-map [?W] #x1E82) ;; CAPITAL W WITH ACUTE
-   (compose-acute-map [?Y] #x00DD) ;; CAPITAL Y WITH ACUTE
-   (compose-acute-map [?Z] #x0179) ;; CAPITAL Z WITH ACUTE
-   (compose-acute-map [?a] #x00E1) ;; SMALL A WITH ACUTE
-   (compose-acute-map [?c] #x0107) ;; SMALL C WITH ACUTE
-   (compose-acute-map [?e] #x00E9) ;; SMALL E WITH ACUTE
-   (compose-acute-map [?g] #x01F5) ;; SMALL G WITH ACUTE
-   (compose-acute-map [?i] #x00ED) ;; SMALL I WITH ACUTE
-   (compose-acute-map [?k] #x1E31) ;; SMALL K WITH ACUTE
-   (compose-acute-map [?l] #x013A) ;; SMALL L WITH ACUTE
-   (compose-acute-map [?m] #x1E3F) ;; SMALL M WITH ACUTE
-   (compose-acute-map [?n] #x0144) ;; SMALL N WITH ACUTE
-   (compose-acute-map [?o] #x00F3) ;; SMALL O WITH ACUTE
-   (compose-acute-map [?p] #x1E55) ;; SMALL P WITH ACUTE
-   (compose-acute-map [?r] #x0155) ;; SMALL R WITH ACUTE
-   (compose-acute-map [?s] #x015B) ;; SMALL S WITH ACUTE
-   (compose-acute-map [?u] #x00FA) ;; SMALL U WITH ACUTE
-   (compose-acute-map [?w] #x1E83) ;; SMALL W WITH ACUTE
-   (compose-acute-map [?y] #x00FD) ;; SMALL Y WITH ACUTE
-   (compose-acute-map [?z] #x017A) ;; SMALL Z WITH ACUTE
-   (compose-grave-map [space] #x0060) ;; GRAVE ACCENT
-   (compose-grave-map [?\`] #x0060) ;; GRAVE ACCENT
-   (compose-grave-map [?A] #x00C0) ;; CAPITAL A WITH GRAVE
-   (compose-grave-map [?E] #x00C8) ;; CAPITAL E WITH GRAVE
-   (compose-grave-map [?I] #x00CC) ;; CAPITAL I WITH GRAVE
-   (compose-grave-map [?N] #x01F8) ;; CAPITAL N WITH GRAVE
-   (compose-grave-map [?O] #x00D2) ;; CAPITAL O WITH GRAVE
-   (compose-grave-map [?U] #x00D9) ;; CAPITAL U WITH GRAVE
-   (compose-grave-map [?W] #x1E80) ;; CAPITAL W WITH GRAVE
-   (compose-grave-map [?Y] #x1EF2) ;; CAPITAL Y WITH GRAVE
-   (compose-grave-map [?a] #x00E0) ;; SMALL A WITH GRAVE
-   (compose-grave-map [?e] #x00E8) ;; SMALL E WITH GRAVE
-   (compose-grave-map [?i] #x00EC) ;; SMALL I WITH GRAVE
-   (compose-grave-map [?n] #x01F9) ;; SMALL N WITH GRAVE
-   (compose-grave-map [?o] #x00F2) ;; SMALL O WITH GRAVE
-   (compose-grave-map [?u] #x00F9) ;; SMALL U WITH GRAVE
-   (compose-grave-map [?w] #x1E81) ;; SMALL W WITH GRAVE
-   (compose-grave-map [?y] #x1EF3) ;; SMALL Y WITH GRAVE
-   (compose-cedilla-map [space] #x002C) ;; COMMA
-   (compose-cedilla-map [?\,] #x00B8) ;; CEDILLA
-   (compose-cedilla-map [C] #x00C7) ;; CAPITAL C WITH CEDILLA
-   (compose-cedilla-map [D] #x1E10) ;; CAPITAL D WITH CEDILLA
-   (compose-cedilla-map [E] #x0228) ;; CAPITAL E WITH CEDILLA
-   (compose-cedilla-map [G] #x0122) ;; CAPITAL G WITH CEDILLA
-   (compose-cedilla-map [H] #x1E28) ;; CAPITAL H WITH CEDILLA
-   (compose-cedilla-map [K] #x0136) ;; CAPITAL K WITH CEDILLA
-   (compose-cedilla-map [L] #x013B) ;; CAPITAL L WITH CEDILLA
-   (compose-cedilla-map [N] #x0145) ;; CAPITAL N WITH CEDILLA
-   (compose-cedilla-map [R] #x0156) ;; CAPITAL R WITH CEDILLA
-   (compose-cedilla-map [S] #x015E) ;; CAPITAL S WITH CEDILLA
-   (compose-cedilla-map [T] #x0162) ;; CAPITAL T WITH CEDILLA
-   (compose-cedilla-map [c] #x00E7) ;; SMALL C WITH CEDILLA
-   (compose-cedilla-map [d] #x1E11) ;; SMALL D WITH CEDILLA
-   (compose-cedilla-map [e] #x0229) ;; SMALL E WITH CEDILLA
-   (compose-cedilla-map [g] #x0123) ;; SMALL G WITH CEDILLA
-   (compose-cedilla-map [h] #x1E29) ;; SMALL H WITH CEDILLA
-   (compose-cedilla-map [k] #x0137) ;; SMALL K WITH CEDILLA
-   (compose-cedilla-map [l] #x013C) ;; SMALL L WITH CEDILLA
-   (compose-cedilla-map [n] #x0146) ;; SMALL N WITH CEDILLA
-   (compose-cedilla-map [r] #x0157) ;; SMALL R WITH CEDILLA
-   (compose-cedilla-map [s] #x015F) ;; SMALL S WITH CEDILLA
-   (compose-cedilla-map [t] #x0163) ;; SMALL T WITH CEDILLA
-   (compose-diaeresis-map [space] #x00A8) ;; DIAERESIS
-   (compose-diaeresis-map [?\"] #x00A8) ;; DIAERESIS
-   (compose-diaeresis-map [?s] #x00DF) ;; SMALL SHARP S
-   (compose-diaeresis-map [?A] #x00C4) ;; CAPITAL A WITH DIAERESIS
-   (compose-diaeresis-map [?E] #x00CB) ;; CAPITAL E WITH DIAERESIS
-   (compose-diaeresis-map [?H] #x1E26) ;; CAPITAL H WITH DIAERESIS
-   (compose-diaeresis-map [?I] #x00CF) ;; CAPITAL I WITH DIAERESIS
-   (compose-diaeresis-map [?O] #x00D6) ;; CAPITAL O WITH DIAERESIS
-   (compose-diaeresis-map [?U] #x00DC) ;; CAPITAL U WITH DIAERESIS
-   (compose-diaeresis-map [?W] #x1E84) ;; CAPITAL W WITH DIAERESIS
-   (compose-diaeresis-map [?X] #x1E8C) ;; CAPITAL X WITH DIAERESIS
-   (compose-diaeresis-map [?Y] #x0178) ;; CAPITAL Y WITH DIAERESIS
-   (compose-diaeresis-map [?a] #x00E4) ;; SMALL A WITH DIAERESIS
-   (compose-diaeresis-map [?e] #x00EB) ;; SMALL E WITH DIAERESIS
-   (compose-diaeresis-map [?h] #x1E27) ;; SMALL H WITH DIAERESIS
-   (compose-diaeresis-map [?i] #x00EF) ;; SMALL I WITH DIAERESIS
-   (compose-diaeresis-map [?o] #x00F6) ;; SMALL O WITH DIAERESIS
-   (compose-diaeresis-map [?t] #x1E97) ;; SMALL T WITH DIAERESIS
-   (compose-diaeresis-map [?u] #x00FC) ;; SMALL U WITH DIAERESIS
-   (compose-diaeresis-map [?w] #x1E85) ;; SMALL W WITH DIAERESIS
-   (compose-diaeresis-map [?x] #x1E8D) ;; SMALL X WITH DIAERESIS
-   (compose-diaeresis-map [?y] #x00FF) ;; SMALL Y WITH DIAERESIS
-   (compose-circumflex-map [space] #x005e) ;; CIRCUMFLEX ACCENT
-   (compose-circumflex-map [?A] #x00C2) ;; CAPITAL A WITH CIRCUMFLEX
-   (compose-circumflex-map [?C] #x0108) ;; CAPITAL C WITH CIRCUMFLEX
-   (compose-circumflex-map [?E] #x00CA) ;; CAPITAL E WITH CIRCUMFLEX
-   (compose-circumflex-map [?G] #x011C) ;; CAPITAL G WITH CIRCUMFLEX
-   (compose-circumflex-map [?H] #x0124) ;; CAPITAL H WITH CIRCUMFLEX
-   (compose-circumflex-map [?I] #x00CE) ;; CAPITAL I WITH CIRCUMFLEX
-   (compose-circumflex-map [?J] #x0134) ;; CAPITAL J WITH CIRCUMFLEX
-   (compose-circumflex-map [?O] #x00D4) ;; CAPITAL O WITH CIRCUMFLEX
-   (compose-circumflex-map [?S] #x015C) ;; CAPITAL S WITH CIRCUMFLEX
-   (compose-circumflex-map [?U] #x00DB) ;; CAPITAL U WITH CIRCUMFLEX
-   (compose-circumflex-map [?W] #x0174) ;; CAPITAL W WITH CIRCUMFLEX
-   (compose-circumflex-map [?Y] #x0176) ;; CAPITAL Y WITH CIRCUMFLEX
-   (compose-circumflex-map [?Z] #x1E90) ;; CAPITAL Z WITH CIRCUMFLEX
-   (compose-circumflex-map [?a] #x00e2) ;; SMALL A WITH CIRCUMFLEX
-   (compose-circumflex-map [?c] #x0109) ;; SMALL C WITH CIRCUMFLEX
-   (compose-circumflex-map [?e] #x00ea) ;; SMALL E WITH CIRCUMFLEX
-   (compose-circumflex-map [?g] #x011d) ;; SMALL G WITH CIRCUMFLEX
-   (compose-circumflex-map [?h] #x0125) ;; SMALL H WITH CIRCUMFLEX
-   (compose-circumflex-map [?i] #x00ee) ;; SMALL I WITH CIRCUMFLEX
-   (compose-circumflex-map [?j] #x0135) ;; SMALL J WITH CIRCUMFLEX
-   (compose-circumflex-map [?o] #x00f4) ;; SMALL O WITH CIRCUMFLEX
-   (compose-circumflex-map [?s] #x015d) ;; SMALL S WITH CIRCUMFLEX
-   (compose-circumflex-map [?u] #x00fb) ;; SMALL U WITH CIRCUMFLEX
-   (compose-circumflex-map [?w] #x0175) ;; SMALL W WITH CIRCUMFLEX
-   (compose-circumflex-map [?y] #x0177) ;; SMALL Y WITH CIRCUMFLEX
-   (compose-circumflex-map [?z] #x1e91) ;; SMALL Z WITH CIRCUMFLEX
-   (compose-tilde-map [space] #x007E) ;; TILDE
-   (compose-tilde-map [?A] #x00C3) ;; CAPITAL A WITH TILDE
-   (compose-tilde-map [?E] #x1EBC) ;; CAPITAL E WITH TILDE
-   (compose-tilde-map [?I] #x0128) ;; CAPITAL I WITH TILDE
-   (compose-tilde-map [?N] #x00D1) ;; CAPITAL N WITH TILDE
-   (compose-tilde-map [?O] #x00D5) ;; CAPITAL O WITH TILDE
-   (compose-tilde-map [?U] #x0168) ;; CAPITAL U WITH TILDE
-   (compose-tilde-map [?V] #x1E7C) ;; CAPITAL V WITH TILDE
-   (compose-tilde-map [?Y] #x1EF8) ;; CAPITAL Y WITH TILDE
-   (compose-tilde-map [?a] #x00E3) ;; SMALL A WITH TILDE
-   (compose-tilde-map [?e] #x1EBD) ;; SMALL E WITH TILDE
-   (compose-tilde-map [?i] #x0129) ;; SMALL I WITH TILDE
-   (compose-tilde-map [?n] #x00F1) ;; SMALL N WITH TILDE
-   (compose-tilde-map [?o] #x00F5) ;; SMALL O WITH TILDE
-   (compose-tilde-map [?u] #x0169) ;; SMALL U WITH TILDE
-   (compose-tilde-map [?v] #x1E7D) ;; SMALL V WITH TILDE
-   (compose-tilde-map [?y] #x1EF9) ;; SMALL Y WITH TILDE
-   (compose-ring-map [space] #x00B0) ;; DEGREE SIGN
-   (compose-ring-map [?A] #x00C5) ;; CAPITAL A WITH RING ABOVE
-   (compose-ring-map [?U] #x016E) ;; CAPITAL U WITH RING ABOVE
-   (compose-ring-map [?a] #x00E5) ;; SMALL A WITH RING ABOVE
-   (compose-ring-map [?u] #x016F) ;; SMALL U WITH RING ABOVE
-   (compose-ring-map [?w] #x1E98) ;; SMALL W WITH RING ABOVE
-   (compose-ring-map [?y] #x1E99) ;; SMALL Y WITH RING ABOVE
-   (compose-caron-map [space] #x02C7) ;; CARON
-   (compose-caron-map [?A] #x01CD) ;; CAPITAL A WITH CARON
-   (compose-caron-map [?C] #x010C) ;; CAPITAL C WITH CARON
-   (compose-caron-map [?D] #x010E) ;; CAPITAL D WITH CARON
-   (compose-caron-map (decode-char 'ucs #x01f1) #x01C4) ;; CAPITAL DZ WITH CARON
-   (compose-caron-map [?E] #x011A) ;; CAPITAL E WITH CARON
-   (compose-caron-map (decode-char 'ucs #x01b7) #x01EE) ;; CAPITAL EZH WITH CARON
-   (compose-caron-map [?G] #x01E6) ;; CAPITAL G WITH CARON
-   (compose-caron-map [?H] #x021E) ;; CAPITAL H WITH CARON
-   (compose-caron-map [?I] #x01CF) ;; CAPITAL I WITH CARON
-   (compose-caron-map [?K] #x01E8) ;; CAPITAL K WITH CARON
-   (compose-caron-map [?L] #x013D) ;; CAPITAL L WITH CARON
-   (compose-caron-map [?N] #x0147) ;; CAPITAL N WITH CARON
-   (compose-caron-map [?O] #x01D1) ;; CAPITAL O WITH CARON
-   (compose-caron-map [?R] #x0158) ;; CAPITAL R WITH CARON
-   (compose-caron-map [?S] #x0160) ;; CAPITAL S WITH CARON
-   (compose-caron-map [?T] #x0164) ;; CAPITAL T WITH CARON
-   (compose-caron-map [?U] #x01D3) ;; CAPITAL U WITH CARON
-   (compose-caron-map [?Z] #x017D) ;; CAPITAL Z WITH CARON
-   (compose-caron-map [?a] #x01CE) ;; SMALL A WITH CARON
-   (compose-caron-map [?c] #x010D) ;; SMALL C WITH CARON
-   (compose-caron-map [?d] #x010F) ;; SMALL D WITH CARON
-   (compose-caron-map (decode-char 'ucs #x01F3) #x01C6) ;; SMALL DZ WITH CARON
-   (compose-caron-map [?e] #x011B) ;; SMALL E WITH CARON
-   (compose-caron-map (decode-char 'ucs #x0292) #x01EF) ;; SMALL EZH WITH CARON
-   (compose-caron-map [?g] #x01E7) ;; SMALL G WITH CARON
-   (compose-caron-map [?h] #x021F) ;; SMALL H WITH CARON
-   (compose-caron-map [?i] #x01D0) ;; SMALL I WITH CARON
-   (compose-caron-map [?j] #x01F0) ;; SMALL J WITH CARON
-   (compose-caron-map [?k] #x01E9) ;; SMALL K WITH CARON
-   (compose-caron-map [?l] #x013E) ;; SMALL L WITH CARON
-   (compose-caron-map [?n] #x0148) ;; SMALL N WITH CARON
-   (compose-caron-map [?o] #x01D2) ;; SMALL O WITH CARON
-   (compose-caron-map [?r] #x0159) ;; SMALL R WITH CARON
-   (compose-caron-map [?s] #x0161) ;; SMALL S WITH CARON
-   (compose-caron-map [?t] #x0165) ;; SMALL T WITH CARON
-   (compose-caron-map [?u] #x01D4) ;; SMALL U WITH CARON
-   (compose-caron-map [?z] #x017E) ;; SMALL Z WITH CARON
-   (compose-macron-map [space] #x00AF) ;; MACRON
-   (compose-macron-map [?A] #x0100) ;; CAPITAL A WITH MACRON  
-   (compose-macron-map [AE] #x01E2) ;; CAPITAL AE WITH MACRON 
-   (compose-macron-map [?E] #x0112) ;; CAPITAL E WITH MACRON  
-   (compose-macron-map [?G] #x1E20) ;; CAPITAL G WITH MACRON  
-   (compose-macron-map [?I] #x012A) ;; CAPITAL I WITH MACRON  
-   (compose-macron-map [?O] #x014C) ;; CAPITAL O WITH MACRON  
-   (compose-macron-map [?U] #x016A) ;; CAPITAL U WITH MACRON  
-   (compose-macron-map [?Y] #x0232) ;; CAPITAL Y WITH MACRON  
-   (compose-macron-map [?a] #x0101) ;; SMALL A WITH MACRON    
-   (compose-macron-map [ae] #x01E3) ;; SMALL AE WITH MACRON   
-   (compose-macron-map [?e] #x0113) ;; SMALL E WITH MACRON    
-   (compose-macron-map [?g] #x1E21) ;; SMALL G WITH MACRON    
-   (compose-macron-map [?i] #x012B) ;; SMALL I WITH MACRON    
-   (compose-macron-map [?o] #x014D) ;; SMALL O WITH MACRON    
-   (compose-macron-map [?u] #x016B) ;; SMALL U WITH MACRON    
-   (compose-macron-map [?y] #x0233) ;; SMALL Y WITH MACRON    
-   (compose-doubleacute-map [space] #x02DD) ;; DOUBLE ACUTE ACCENT
-   (compose-doubleacute-map [?O] #x0150) ;; CAPITAL O WITH DOUBLE ACUTE
-   (compose-doubleacute-map [?U] #x0170) ;; CAPITAL U WITH DOUBLE ACUTE
-   (compose-doubleacute-map [?o] #x0151) ;; SMALL O WITH DOUBLE ACUTE
-   (compose-doubleacute-map [?u] #x0171) ;; SMALL U WITH DOUBLE ACUTE
-   (compose-ogonek-map [space] #x02DB) ;; OGONEK
-   (compose-ogonek-map [?A] #x0104) ;; CAPITAL A WITH OGONEK
-   (compose-ogonek-map [?E] #x0118) ;; CAPITAL E WITH OGONEK
-   (compose-ogonek-map [?I] #x012E) ;; CAPITAL I WITH OGONEK
-   (compose-ogonek-map [?O] #x01EA) ;; CAPITAL O WITH OGONEK
-   (compose-ogonek-map [?U] #x0172) ;; CAPITAL U WITH OGONEK
-   (compose-ogonek-map [?a] #x0105) ;; SMALL A WITH OGONEK
-   (compose-ogonek-map [?e] #x0119) ;; SMALL E WITH OGONEK
-   (compose-ogonek-map [?i] #x012F) ;; SMALL I WITH OGONEK
-   (compose-ogonek-map [?o] #x01EB) ;; SMALL O WITH OGONEK
-   (compose-ogonek-map [?u] #x0173) ;; SMALL U WITH OGONEK
-   (compose-breve-map [space] #x02D8) ;; BREVE
-   (compose-breve-map [?A] #x0102) ;; CAPITAL A WITH BREVE
-   (compose-breve-map [?E] #x0114) ;; CAPITAL E WITH BREVE
-   (compose-breve-map [?G] #x011E) ;; CAPITAL G WITH BREVE
-   (compose-breve-map [?I] #x012C) ;; CAPITAL I WITH BREVE
-   (compose-breve-map [?O] #x014E) ;; CAPITAL O WITH BREVE
-   (compose-breve-map [?U] #x016C) ;; CAPITAL U WITH BREVE
-   (compose-breve-map [?a] #x0103) ;; SMALL A WITH BREVE
-   (compose-breve-map [?e] #x0115) ;; SMALL E WITH BREVE
-   (compose-breve-map [?g] #x011F) ;; SMALL G WITH BREVE
-   (compose-breve-map [?i] #x012D) ;; SMALL I WITH BREVE
-   (compose-breve-map [?o] #x014F) ;; SMALL O WITH BREVE
-   (compose-breve-map [?u] #x016D) ;; SMALL U WITH BREVE
-   (compose-dot-map [space] #x02D9) ;; DOT ABOVE
-   (compose-dot-map [?A] #x0226) ;; CAPITAL A WITH DOT ABOVE
-   (compose-dot-map [?B] #x1E02) ;; CAPITAL B WITH DOT ABOVE
-   (compose-dot-map [?C] #x010A) ;; CAPITAL C WITH DOT ABOVE
-   (compose-dot-map [?D] #x1E0A) ;; CAPITAL D WITH DOT ABOVE
-   (compose-dot-map [?E] #x0116) ;; CAPITAL E WITH DOT ABOVE
-   (compose-dot-map [?F] #x1E1E) ;; CAPITAL F WITH DOT ABOVE
-   (compose-dot-map [?G] #x0120) ;; CAPITAL G WITH DOT ABOVE
-   (compose-dot-map [?H] #x1E22) ;; CAPITAL H WITH DOT ABOVE
-   (compose-dot-map [?I] #x0130) ;; CAPITAL I WITH DOT ABOVE
-   (compose-dot-map [?M] #x1E40) ;; CAPITAL M WITH DOT ABOVE
-   (compose-dot-map [?N] #x1E44) ;; CAPITAL N WITH DOT ABOVE
-   (compose-dot-map [?O] #x022E) ;; CAPITAL O WITH DOT ABOVE
-   (compose-dot-map [?P] #x1E56) ;; CAPITAL P WITH DOT ABOVE
-   (compose-dot-map [?R] #x1E58) ;; CAPITAL R WITH DOT ABOVE
-   (compose-dot-map [?S] #x1E60) ;; CAPITAL S WITH DOT ABOVE
-   (compose-dot-map [?T] #x1E6A) ;; CAPITAL T WITH DOT ABOVE
-   (compose-dot-map [?W] #x1E86) ;; CAPITAL W WITH DOT ABOVE
-   (compose-dot-map [?X] #x1E8A) ;; CAPITAL X WITH DOT ABOVE
-   (compose-dot-map [?Y] #x1E8E) ;; CAPITAL Y WITH DOT ABOVE
-   (compose-dot-map [?Z] #x017B) ;; CAPITAL Z WITH DOT ABOVE
-   (compose-dot-map [?a] #x0227) ;; SMALL A WITH DOT ABOVE
-   (compose-dot-map [?b] #x1E03) ;; SMALL B WITH DOT ABOVE
-   (compose-dot-map [?c] #x010B) ;; SMALL C WITH DOT ABOVE
-   (compose-dot-map [?d] #x1E0B) ;; SMALL D WITH DOT ABOVE
-   (compose-dot-map [?e] #x0117) ;; SMALL E WITH DOT ABOVE
-   (compose-dot-map [?f] #x1E1F) ;; SMALL F WITH DOT ABOVE
-   (compose-dot-map [?g] #x0121) ;; SMALL G WITH DOT ABOVE
-   (compose-dot-map [?h] #x1E23) ;; SMALL H WITH DOT ABOVE
-   (compose-dot-map (decode-char 'ucs #x017F) #x1E9B) ;; SMALL LONG S WITH DOT ABOVE
-   (compose-dot-map [?m] #x1E41) ;; SMALL M WITH DOT ABOVE
-   (compose-dot-map [?n] #x1E45) ;; SMALL N WITH DOT ABOVE
-   (compose-dot-map [?o] #x022F) ;; SMALL O WITH DOT ABOVE
-   (compose-dot-map [?p] #x1E57) ;; SMALL P WITH DOT ABOVE
-   (compose-dot-map [?r] #x1E59) ;; SMALL R WITH DOT ABOVE
-   (compose-dot-map [?s] #x1E61) ;; SMALL S WITH DOT ABOVE
-   (compose-dot-map [?t] #x1E6B) ;; SMALL T WITH DOT ABOVE
-   (compose-dot-map [?w] #x1E87) ;; SMALL W WITH DOT ABOVE
-   (compose-dot-map [?x] #x1E8B) ;; SMALL X WITH DOT ABOVE
-   (compose-dot-map [?y] #x1E8F) ;; SMALL Y WITH DOT ABOVE
-   (compose-dot-map [?z] #x017C) ;; SMALL Z WITH DOT ABOVE
-   (compose-dot-map [?i] #x0131) ;; SMALL DOTLESS I
-   (compose-dot-map [?j] #x0237) ;; SMALL DOTLESS J
-   ;; There is nothing obvious we can bind space to on compose-hook-map,
-   ;; these are IPA characters that are in Unicode theory not
-   ;; precomposed.
-   (compose-hook-map [?B] #x0181) ;; CAPITAL B WITH HOOK
-   (compose-hook-map [?C] #x0187) ;; CAPITAL C WITH HOOK
-   (compose-hook-map [?D] #x018A) ;; CAPITAL D WITH HOOK
-   (compose-hook-map [?F] #x0191) ;; CAPITAL F WITH HOOK
-   (compose-hook-map [?G] #x0193) ;; CAPITAL G WITH HOOK
-   (compose-hook-map [?K] #x0198) ;; CAPITAL K WITH HOOK
-   (compose-hook-map [?P] #x01A4) ;; CAPITAL P WITH HOOK
-   (compose-hook-map [?T] #x01AC) ;; CAPITAL T WITH HOOK
-   (compose-hook-map [?V] #x01B2) ;; CAPITAL V WITH HOOK
-   (compose-hook-map [?Y] #x01B3) ;; CAPITAL Y WITH HOOK
-   (compose-hook-map [?Z] #x0224) ;; CAPITAL Z WITH HOOK
-   (compose-hook-map (decode-char 'ucs #x0262) #x029B) ;; SMALL CAPITAL G WITH HOOK
-   (compose-hook-map [?b] #x0253) ;; SMALL B WITH HOOK
-   (compose-hook-map [?c] #x0188) ;; SMALL C WITH HOOK
-   (compose-hook-map [?d] #x0257) ;; SMALL D WITH HOOK
-   (compose-hook-map [?f] #x0192) ;; SMALL F WITH HOOK
-   (compose-hook-map [?g] #x0260) ;; SMALL G WITH HOOK
-   (compose-hook-map [?h] #x0266) ;; SMALL H WITH HOOK
-   (compose-hook-map (decode-char 'ucs #x0266) #x0267) ;; SMALL HENG WITH HOOK
-   (compose-hook-map [?k] #x0199) ;; SMALL K WITH HOOK
-   (compose-hook-map [?m] #x0271) ;; SMALL M WITH HOOK
-   (compose-hook-map [?p] #x01A5) ;; SMALL P WITH HOOK
-   (compose-hook-map [?q] #x02A0) ;; SMALL Q WITH HOOK
-   (compose-hook-map (decode-char 'ucs #x025C) #x025D) ;; SMALL REVERSED OPEN E WITH HOOK
-   (compose-hook-map [?s] #x0282) ;; SMALL S WITH HOOK
-   (compose-hook-map (decode-char 'ucs #x0259) #x025A) ;; SMALL SCHWA WITH HOOK
-   (compose-hook-map [?t] #x01AD) ;; SMALL T WITH HOOK
-   (compose-hook-map (decode-char 'ucs #x0279) #x027B) ;; SMALL TURNED R WITH HOOK
-   (compose-hook-map [?v] #x028B) ;; SMALL V WITH HOOK
-   (compose-hook-map [?y] #x01B4) ;; SMALL Y WITH HOOK
-   (compose-hook-map [?z] #x0225) ;; SMALL Z WITH HOOK
-   (compose-horn-map [space] #x031b)
-   (compose-horn-map [?O] #x01A0) ;; CAPITAL O WITH HORN
-   (compose-horn-map [?U] #x01AF) ;; CAPITAL U WITH HORN
-   (compose-horn-map [?o] #x01A1) ;; SMALL O WITH HORN
-   (compose-horn-map [?u] #x01B0) ;; SMALL U WITH HORN
-   (compose-stroke-map [?A] #x023a) ;; CAPITAL A WITH STROKE
-   (compose-stroke-map [?a] #x2c65) ;; SMALL A WITH STROKE
-   (compose-stroke-map [?B] #x0243) ;; CAPITAL B WITH STROKE
-   (compose-stroke-map [?b] #x0180) ;; SMALL B WITH STROKE
-   (compose-stroke-map [?C] #x023b) ;; CAPITAL C WITH STROKE
-   (compose-stroke-map [?c] #x023c) ;; SMALL C WITH STROKE
-   (compose-stroke-map [?D] #x0110) ;; CAPITAL D WITH STROKE
-   (compose-stroke-map [?d] #x0111) ;; SMALL D WITH STROKE
-   (compose-stroke-map [?E] #x0246) ;; CAPITAL E WITH STROKE
-   (compose-stroke-map [?e] #x0247) ;; SMALL E WITH STROKE
-   (compose-stroke-map [?G] #x01e4) ;; CAPITAL G WITH STROKE
-   (compose-stroke-map [?g] #x01e5) ;; SMALL G WITH STROKE
-   (compose-stroke-map [?H] #x0126) ;; CAPITAL H WITH STROKE
-   (compose-stroke-map [?h] #x0127) ;; SMALL H WITH STROKE
-   (compose-stroke-map [?I] #x0197) ;; CAPITAL I WITH STROKE
-   (compose-stroke-map [?i] #x0268) ;; SMALL I WITH STROKE
-   (compose-stroke-map [?J] #x0248) ;; CAPITAL J WITH STROKE
-   (compose-stroke-map [?j] #x0249) ;; SMALL J WITH STROKE
-   (compose-stroke-map [?K] #xa740) ;; CAPITAL K WITH STROKE
-   (compose-stroke-map [?k] #xa741) ;; SMALL K WITH STROKE
-   (compose-stroke-map [?L] #x0141) ;; CAPITAL L WITH STROKE
-   (compose-stroke-map [?l] #x0142) ;; SMALL L WITH STROKE
-   (compose-stroke-map [?O] #x00d8) ;; CAPITAL O WITH STROKE
-   (compose-stroke-map [?o] #x00f8) ;; SMALL O WITH STROKE
-   (compose-stroke-map [?P] #x2c63) ;; CAPITAL P WITH STROKE
-   (compose-stroke-map [?p] #x1d7d) ;; SMALL P WITH STROKE
-   (compose-stroke-map [?R] #x024c) ;; CAPITAL R WITH STROKE
-   (compose-stroke-map [?r] #x024d) ;; SMALL R WITH STROKE
-   (compose-stroke-map [?T] #x0166) ;; CAPITAL T WITH STROKE
-   (compose-stroke-map [?t] #x0167) ;; SMALL T WITH STROKE
-   (compose-stroke-map [?Y] #x024e) ;; CAPITAL Y WITH STROKE
-   (compose-stroke-map [?y] #x024f) ;; SMALL Y WITH STROKE
-   (compose-stroke-map [?Z] #x01b5) ;; CAPITAL Z WITH STROKE
-   (compose-stroke-map [?z] #x01b6) ;; SMALL Z WITH STROKE
-))
+(define-key compose-cedilla-map [space] [(?\u002C)]) ;; COMMA
+(define-key compose-cedilla-map [?\,] [(?\u00B8)]) ;; CEDILLA
+(define-key compose-cedilla-map [C] [(?\u00C7)]) ;; CAPITAL C WITH CEDILLA
+(define-key compose-cedilla-map [D] [(?\u1E10)]) ;; CAPITAL D WITH CEDILLA
+(define-key compose-cedilla-map [E] [(?\u0228)]) ;; CAPITAL E WITH CEDILLA
+(define-key compose-cedilla-map [G] [(?\u0122)]) ;; CAPITAL G WITH CEDILLA
+(define-key compose-cedilla-map [H] [(?\u1E28)]) ;; CAPITAL H WITH CEDILLA
+(define-key compose-cedilla-map [K] [(?\u0136)]) ;; CAPITAL K WITH CEDILLA
+(define-key compose-cedilla-map [L] [(?\u013B)]) ;; CAPITAL L WITH CEDILLA
+(define-key compose-cedilla-map [N] [(?\u0145)]) ;; CAPITAL N WITH CEDILLA
+(define-key compose-cedilla-map [R] [(?\u0156)]) ;; CAPITAL R WITH CEDILLA
+(define-key compose-cedilla-map [S] [(?\u015E)]) ;; CAPITAL S WITH CEDILLA
+(define-key compose-cedilla-map [T] [(?\u0162)]) ;; CAPITAL T WITH CEDILLA
+(define-key compose-cedilla-map [c] [(?\u00E7)]) ;; SMALL C WITH CEDILLA
+(define-key compose-cedilla-map [d] [(?\u1E11)]) ;; SMALL D WITH CEDILLA
+(define-key compose-cedilla-map [e] [(?\u0229)]) ;; SMALL E WITH CEDILLA
+(define-key compose-cedilla-map [g] [(?\u0123)]) ;; SMALL G WITH CEDILLA
+(define-key compose-cedilla-map [h] [(?\u1E29)]) ;; SMALL H WITH CEDILLA
+(define-key compose-cedilla-map [k] [(?\u0137)]) ;; SMALL K WITH CEDILLA
+(define-key compose-cedilla-map [l] [(?\u013C)]) ;; SMALL L WITH CEDILLA
+(define-key compose-cedilla-map [n] [(?\u0146)]) ;; SMALL N WITH CEDILLA
+(define-key compose-cedilla-map [r] [(?\u0157)]) ;; SMALL R WITH CEDILLA
+(define-key compose-cedilla-map [s] [(?\u015F)]) ;; SMALL S WITH CEDILLA
+(define-key compose-cedilla-map [t] [(?\u0163)]) ;; SMALL T WITH CEDILLA
 
+(define-key compose-diaeresis-map [space] [(?\u00A8)]) ;; DIAERESIS
+(define-key compose-diaeresis-map [?\"] [(?\u00A8)]) ;; DIAERESIS
+(define-key compose-diaeresis-map [?s] [(?\u00DF)]) ;; SMALL SHARP S
+(define-key compose-diaeresis-map [?A] [(?\u00C4)]) ;; CAPITAL A WITH DIAERESIS
+(define-key compose-diaeresis-map [?E] [(?\u00CB)]) ;; CAPITAL E WITH DIAERESIS
+(define-key compose-diaeresis-map [?H] [(?\u1E26)]) ;; CAPITAL H WITH DIAERESIS
+(define-key compose-diaeresis-map [?I] [(?\u00CF)]) ;; CAPITAL I WITH DIAERESIS
+(define-key compose-diaeresis-map [?O] [(?\u00D6)]) ;; CAPITAL O WITH DIAERESIS
+(define-key compose-diaeresis-map [?U] [(?\u00DC)]) ;; CAPITAL U WITH DIAERESIS
+(define-key compose-diaeresis-map [?W] [(?\u1E84)]) ;; CAPITAL W WITH DIAERESIS
+(define-key compose-diaeresis-map [?X] [(?\u1E8C)]) ;; CAPITAL X WITH DIAERESIS
+(define-key compose-diaeresis-map [?Y] [(?\u0178)]) ;; CAPITAL Y WITH DIAERESIS
+(define-key compose-diaeresis-map [?a] [(?\u00E4)]) ;; SMALL A WITH DIAERESIS
+(define-key compose-diaeresis-map [?e] [(?\u00EB)]) ;; SMALL E WITH DIAERESIS
+(define-key compose-diaeresis-map [?h] [(?\u1E27)]) ;; SMALL H WITH DIAERESIS
+(define-key compose-diaeresis-map [?i] [(?\u00EF)]) ;; SMALL I WITH DIAERESIS
+(define-key compose-diaeresis-map [?o] [(?\u00F6)]) ;; SMALL O WITH DIAERESIS
+(define-key compose-diaeresis-map [?t] [(?\u1E97)]) ;; SMALL T WITH DIAERESIS
+(define-key compose-diaeresis-map [?u] [(?\u00FC)]) ;; SMALL U WITH DIAERESIS
+(define-key compose-diaeresis-map [?w] [(?\u1E85)]) ;; SMALL W WITH DIAERESIS
+(define-key compose-diaeresis-map [?x] [(?\u1E8D)]) ;; SMALL X WITH DIAERESIS
+(define-key compose-diaeresis-map [?y] [(?\u00FF)]) ;; SMALL Y WITH DIAERESIS
+
+(define-key compose-circumflex-map [space] [(?\u005e)]) ;; CIRCUMFLEX ACCENT
+(define-key compose-circumflex-map [?A] [(?\u00C2)]) ;; CAPITAL A WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?C] [(?\u0108)]) ;; CAPITAL C WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?E] [(?\u00CA)]) ;; CAPITAL E WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?G] [(?\u011C)]) ;; CAPITAL G WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?H] [(?\u0124)]) ;; CAPITAL H WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?I] [(?\u00CE)]) ;; CAPITAL I WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?J] [(?\u0134)]) ;; CAPITAL J WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?O] [(?\u00D4)]) ;; CAPITAL O WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?S] [(?\u015C)]) ;; CAPITAL S WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?U] [(?\u00DB)]) ;; CAPITAL U WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?W] [(?\u0174)]) ;; CAPITAL W WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?Y] [(?\u0176)]) ;; CAPITAL Y WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?Z] [(?\u1E90)]) ;; CAPITAL Z WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?a] [(?\u00e2)]) ;; SMALL A WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?c] [(?\u0109)]) ;; SMALL C WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?e] [(?\u00ea)]) ;; SMALL E WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?g] [(?\u011d)]) ;; SMALL G WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?h] [(?\u0125)]) ;; SMALL H WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?i] [(?\u00ee)]) ;; SMALL I WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?j] [(?\u0135)]) ;; SMALL J WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?o] [(?\u00f4)]) ;; SMALL O WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?s] [(?\u015d)]) ;; SMALL S WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?u] [(?\u00fb)]) ;; SMALL U WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?w] [(?\u0175)]) ;; SMALL W WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?y] [(?\u0177)]) ;; SMALL Y WITH CIRCUMFLEX
+(define-key compose-circumflex-map [?z] [(?\u1e91)]) ;; SMALL Z WITH CIRCUMFLEX
+
+(define-key compose-tilde-map [space] [(?\u007E)]) ;; TILDE
+(define-key compose-tilde-map [?A] [(?\u00C3)]) ;; CAPITAL A WITH TILDE
+(define-key compose-tilde-map [?E] [(?\u1EBC)]) ;; CAPITAL E WITH TILDE
+(define-key compose-tilde-map [?I] [(?\u0128)]) ;; CAPITAL I WITH TILDE
+(define-key compose-tilde-map [?N] [(?\u00D1)]) ;; CAPITAL N WITH TILDE
+(define-key compose-tilde-map [?O] [(?\u00D5)]) ;; CAPITAL O WITH TILDE
+(define-key compose-tilde-map [?U] [(?\u0168)]) ;; CAPITAL U WITH TILDE
+(define-key compose-tilde-map [?V] [(?\u1E7C)]) ;; CAPITAL V WITH TILDE
+(define-key compose-tilde-map [?Y] [(?\u1EF8)]) ;; CAPITAL Y WITH TILDE
+(define-key compose-tilde-map [?a] [(?\u00E3)]) ;; SMALL A WITH TILDE
+(define-key compose-tilde-map [?e] [(?\u1EBD)]) ;; SMALL E WITH TILDE
+(define-key compose-tilde-map [?i] [(?\u0129)]) ;; SMALL I WITH TILDE
+(define-key compose-tilde-map [?n] [(?\u00F1)]) ;; SMALL N WITH TILDE
+(define-key compose-tilde-map [?o] [(?\u00F5)]) ;; SMALL O WITH TILDE
+(define-key compose-tilde-map [?u] [(?\u0169)]) ;; SMALL U WITH TILDE
+(define-key compose-tilde-map [?v] [(?\u1E7D)]) ;; SMALL V WITH TILDE
+(define-key compose-tilde-map [?y] [(?\u1EF9)]) ;; SMALL Y WITH TILDE
+
+(define-key compose-ring-map [space] [(?\u00B0)]) ;; DEGREE SIGN
+(define-key compose-ring-map [?A] [(?\u00C5)]) ;; CAPITAL A WITH RING ABOVE
+(define-key compose-ring-map [?U] [(?\u016E)]) ;; CAPITAL U WITH RING ABOVE
+(define-key compose-ring-map [?a] [(?\u00E5)]) ;; SMALL A WITH RING ABOVE
+(define-key compose-ring-map [?u] [(?\u016F)]) ;; SMALL U WITH RING ABOVE
+(define-key compose-ring-map [?w] [(?\u1E98)]) ;; SMALL W WITH RING ABOVE
+(define-key compose-ring-map [?y] [(?\u1E99)]) ;; SMALL Y WITH RING ABOVE
+
+(define-key compose-caron-map [space] [(?\u02C7)]) ;; CARON
+(define-key compose-caron-map [?A] [(?\u01CD)]) ;; CAPITAL A WITH CARON
+(define-key compose-caron-map [?C] [(?\u010C)]) ;; CAPITAL C WITH CARON
+(define-key compose-caron-map [?D] [(?\u010E)]) ;; CAPITAL D WITH CARON
+(define-key compose-caron-map [?\u01f1] [(?\u01C4)]) ;; CAPITAL DZ WITH CARON
+(define-key compose-caron-map [?E] [(?\u011A)]) ;; CAPITAL E WITH CARON
+(define-key compose-caron-map [?\u01b7] [(?\u01EE)]) ;; CAPITAL EZH WITH CARON
+(define-key compose-caron-map [?G] [(?\u01E6)]) ;; CAPITAL G WITH CARON
+(define-key compose-caron-map [?H] [(?\u021E)]) ;; CAPITAL H WITH CARON
+(define-key compose-caron-map [?I] [(?\u01CF)]) ;; CAPITAL I WITH CARON
+(define-key compose-caron-map [?K] [(?\u01E8)]) ;; CAPITAL K WITH CARON
+(define-key compose-caron-map [?L] [(?\u013D)]) ;; CAPITAL L WITH CARON
+(define-key compose-caron-map [?N] [(?\u0147)]) ;; CAPITAL N WITH CARON
+(define-key compose-caron-map [?O] [(?\u01D1)]) ;; CAPITAL O WITH CARON
+(define-key compose-caron-map [?R] [(?\u0158)]) ;; CAPITAL R WITH CARON
+(define-key compose-caron-map [?S] [(?\u0160)]) ;; CAPITAL S WITH CARON
+(define-key compose-caron-map [?T] [(?\u0164)]) ;; CAPITAL T WITH CARON
+(define-key compose-caron-map [?U] [(?\u01D3)]) ;; CAPITAL U WITH CARON
+(define-key compose-caron-map [?Z] [(?\u017D)]) ;; CAPITAL Z WITH CARON
+(define-key compose-caron-map [?a] [(?\u01CE)]) ;; SMALL A WITH CARON
+(define-key compose-caron-map [?c] [(?\u010D)]) ;; SMALL C WITH CARON
+(define-key compose-caron-map [?d] [(?\u010F)]) ;; SMALL D WITH CARON
+(define-key compose-caron-map [?\u01F3] [(?\u01C6)]) ;; SMALL DZ WITH CARON
+(define-key compose-caron-map [?e] [(?\u011B)]) ;; SMALL E WITH CARON
+(define-key compose-caron-map [?\u0292] [(?\u01EF)]) ;; SMALL EZH WITH CARON
+(define-key compose-caron-map [?g] [(?\u01E7)]) ;; SMALL G WITH CARON
+(define-key compose-caron-map [?h] [(?\u021F)]) ;; SMALL H WITH CARON
+(define-key compose-caron-map [?i] [(?\u01D0)]) ;; SMALL I WITH CARON
+(define-key compose-caron-map [?j] [(?\u01F0)]) ;; SMALL J WITH CARON
+(define-key compose-caron-map [?k] [(?\u01E9)]) ;; SMALL K WITH CARON
+(define-key compose-caron-map [?l] [(?\u013E)]) ;; SMALL L WITH CARON
+(define-key compose-caron-map [?n] [(?\u0148)]) ;; SMALL N WITH CARON
+(define-key compose-caron-map [?o] [(?\u01D2)]) ;; SMALL O WITH CARON
+(define-key compose-caron-map [?r] [(?\u0159)]) ;; SMALL R WITH CARON
+(define-key compose-caron-map [?s] [(?\u0161)]) ;; SMALL S WITH CARON
+(define-key compose-caron-map [?t] [(?\u0165)]) ;; SMALL T WITH CARON
+(define-key compose-caron-map [?u] [(?\u01D4)]) ;; SMALL U WITH CARON
+(define-key compose-caron-map [?z] [(?\u017E)]) ;; SMALL Z WITH CARON
+
+(define-key compose-macron-map [space] [(?\u00AF)]) ;; MACRON
+(define-key compose-macron-map [?A] [(?\u0100)]) ;; CAPITAL A WITH MACRON  
+(define-key compose-macron-map [AE] [(?\u01E2)]) ;; CAPITAL AE WITH MACRON 
+(define-key compose-macron-map [?E] [(?\u0112)]) ;; CAPITAL E WITH MACRON  
+(define-key compose-macron-map [?G] [(?\u1E20)]) ;; CAPITAL G WITH MACRON  
+(define-key compose-macron-map [?I] [(?\u012A)]) ;; CAPITAL I WITH MACRON  
+(define-key compose-macron-map [?O] [(?\u014C)]) ;; CAPITAL O WITH MACRON  
+(define-key compose-macron-map [?U] [(?\u016A)]) ;; CAPITAL U WITH MACRON  
+(define-key compose-macron-map [?Y] [(?\u0232)]) ;; CAPITAL Y WITH MACRON  
+(define-key compose-macron-map [?a] [(?\u0101)]) ;; SMALL A WITH MACRON    
+(define-key compose-macron-map [ae] [(?\u01E3)]) ;; SMALL AE WITH MACRON   
+(define-key compose-macron-map [?e] [(?\u0113)]) ;; SMALL E WITH MACRON    
+(define-key compose-macron-map [?g] [(?\u1E21)]) ;; SMALL G WITH MACRON    
+(define-key compose-macron-map [?i] [(?\u012B)]) ;; SMALL I WITH MACRON    
+(define-key compose-macron-map [?o] [(?\u014D)]) ;; SMALL O WITH MACRON    
+(define-key compose-macron-map [?u] [(?\u016B)]) ;; SMALL U WITH MACRON    
+(define-key compose-macron-map [?y] [(?\u0233)]) ;; SMALL Y WITH MACRON    
+
+(define-key compose-doubleacute-map [space] [(?\u02DD)]) ;; DOUBLE ACUTE ACCENT
+(define-key compose-doubleacute-map [?O] [(?\u0150)]) ;; CAPITAL O WITH DOUBLE ACUTE
+(define-key compose-doubleacute-map [?U] [(?\u0170)]) ;; CAPITAL U WITH DOUBLE ACUTE
+(define-key compose-doubleacute-map [?o] [(?\u0151)]) ;; SMALL O WITH DOUBLE ACUTE
+(define-key compose-doubleacute-map [?u] [(?\u0171)]) ;; SMALL U WITH DOUBLE ACUTE
+
+(define-key compose-ogonek-map [space] [(?\u02DB)]) ;; OGONEK
+(define-key compose-ogonek-map [?A] [(?\u0104)]) ;; CAPITAL A WITH OGONEK
+(define-key compose-ogonek-map [?E] [(?\u0118)]) ;; CAPITAL E WITH OGONEK
+(define-key compose-ogonek-map [?I] [(?\u012E)]) ;; CAPITAL I WITH OGONEK
+(define-key compose-ogonek-map [?O] [(?\u01EA)]) ;; CAPITAL O WITH OGONEK
+(define-key compose-ogonek-map [?U] [(?\u0172)]) ;; CAPITAL U WITH OGONEK
+(define-key compose-ogonek-map [?a] [(?\u0105)]) ;; SMALL A WITH OGONEK
+(define-key compose-ogonek-map [?e] [(?\u0119)]) ;; SMALL E WITH OGONEK
+(define-key compose-ogonek-map [?i] [(?\u012F)]) ;; SMALL I WITH OGONEK
+(define-key compose-ogonek-map [?o] [(?\u01EB)]) ;; SMALL O WITH OGONEK
+(define-key compose-ogonek-map [?u] [(?\u0173)]) ;; SMALL U WITH OGONEK
+
+(define-key compose-breve-map [space] [(?\u02D8)]) ;; BREVE
+(define-key compose-breve-map [?A] [(?\u0102)]) ;; CAPITAL A WITH BREVE
+(define-key compose-breve-map [?E] [(?\u0114)]) ;; CAPITAL E WITH BREVE
+(define-key compose-breve-map [?G] [(?\u011E)]) ;; CAPITAL G WITH BREVE
+(define-key compose-breve-map [?I] [(?\u012C)]) ;; CAPITAL I WITH BREVE
+(define-key compose-breve-map [?O] [(?\u014E)]) ;; CAPITAL O WITH BREVE
+(define-key compose-breve-map [?U] [(?\u016C)]) ;; CAPITAL U WITH BREVE
+(define-key compose-breve-map [?a] [(?\u0103)]) ;; SMALL A WITH BREVE
+(define-key compose-breve-map [?e] [(?\u0115)]) ;; SMALL E WITH BREVE
+(define-key compose-breve-map [?g] [(?\u011F)]) ;; SMALL G WITH BREVE
+(define-key compose-breve-map [?i] [(?\u012D)]) ;; SMALL I WITH BREVE
+(define-key compose-breve-map [?o] [(?\u014F)]) ;; SMALL O WITH BREVE
+(define-key compose-breve-map [?u] [(?\u016D)]) ;; SMALL U WITH BREVE
+
+(define-key compose-dot-map [space] [(?\u02D9)]) ;; DOT ABOVE
+(define-key compose-dot-map [?A] [(?\u0226)]) ;; CAPITAL A WITH DOT ABOVE
+(define-key compose-dot-map [?B] [(?\u1E02)]) ;; CAPITAL B WITH DOT ABOVE
+(define-key compose-dot-map [?C] [(?\u010A)]) ;; CAPITAL C WITH DOT ABOVE
+(define-key compose-dot-map [?D] [(?\u1E0A)]) ;; CAPITAL D WITH DOT ABOVE
+(define-key compose-dot-map [?E] [(?\u0116)]) ;; CAPITAL E WITH DOT ABOVE
+(define-key compose-dot-map [?F] [(?\u1E1E)]) ;; CAPITAL F WITH DOT ABOVE
+(define-key compose-dot-map [?G] [(?\u0120)]) ;; CAPITAL G WITH DOT ABOVE
+(define-key compose-dot-map [?H] [(?\u1E22)]) ;; CAPITAL H WITH DOT ABOVE
+(define-key compose-dot-map [?I] [(?\u0130)]) ;; CAPITAL I WITH DOT ABOVE
+(define-key compose-dot-map [?M] [(?\u1E40)]) ;; CAPITAL M WITH DOT ABOVE
+(define-key compose-dot-map [?N] [(?\u1E44)]) ;; CAPITAL N WITH DOT ABOVE
+(define-key compose-dot-map [?O] [(?\u022E)]) ;; CAPITAL O WITH DOT ABOVE
+(define-key compose-dot-map [?P] [(?\u1E56)]) ;; CAPITAL P WITH DOT ABOVE
+(define-key compose-dot-map [?R] [(?\u1E58)]) ;; CAPITAL R WITH DOT ABOVE
+(define-key compose-dot-map [?S] [(?\u1E60)]) ;; CAPITAL S WITH DOT ABOVE
+(define-key compose-dot-map [?T] [(?\u1E6A)]) ;; CAPITAL T WITH DOT ABOVE
+(define-key compose-dot-map [?W] [(?\u1E86)]) ;; CAPITAL W WITH DOT ABOVE
+(define-key compose-dot-map [?X] [(?\u1E8A)]) ;; CAPITAL X WITH DOT ABOVE
+(define-key compose-dot-map [?Y] [(?\u1E8E)]) ;; CAPITAL Y WITH DOT ABOVE
+(define-key compose-dot-map [?Z] [(?\u017B)]) ;; CAPITAL Z WITH DOT ABOVE
+(define-key compose-dot-map [?a] [(?\u0227)]) ;; SMALL A WITH DOT ABOVE
+(define-key compose-dot-map [?b] [(?\u1E03)]) ;; SMALL B WITH DOT ABOVE
+(define-key compose-dot-map [?c] [(?\u010B)]) ;; SMALL C WITH DOT ABOVE
+(define-key compose-dot-map [?d] [(?\u1E0B)]) ;; SMALL D WITH DOT ABOVE
+(define-key compose-dot-map [?e] [(?\u0117)]) ;; SMALL E WITH DOT ABOVE
+(define-key compose-dot-map [?f] [(?\u1E1F)]) ;; SMALL F WITH DOT ABOVE
+(define-key compose-dot-map [?g] [(?\u0121)]) ;; SMALL G WITH DOT ABOVE
+(define-key compose-dot-map [?h] [(?\u1E23)]) ;; SMALL H WITH DOT ABOVE
+(define-key compose-dot-map [?\u017F] [(?\u1E9B)]) ;; SMALL LONG S WITH DOT ABOVE
+(define-key compose-dot-map [?m] [(?\u1E41)]) ;; SMALL M WITH DOT ABOVE
+(define-key compose-dot-map [?n] [(?\u1E45)]) ;; SMALL N WITH DOT ABOVE
+(define-key compose-dot-map [?o] [(?\u022F)]) ;; SMALL O WITH DOT ABOVE
+(define-key compose-dot-map [?p] [(?\u1E57)]) ;; SMALL P WITH DOT ABOVE
+(define-key compose-dot-map [?r] [(?\u1E59)]) ;; SMALL R WITH DOT ABOVE
+(define-key compose-dot-map [?s] [(?\u1E61)]) ;; SMALL S WITH DOT ABOVE
+(define-key compose-dot-map [?t] [(?\u1E6B)]) ;; SMALL T WITH DOT ABOVE
+(define-key compose-dot-map [?w] [(?\u1E87)]) ;; SMALL W WITH DOT ABOVE
+(define-key compose-dot-map [?x] [(?\u1E8B)]) ;; SMALL X WITH DOT ABOVE
+(define-key compose-dot-map [?y] [(?\u1E8F)]) ;; SMALL Y WITH DOT ABOVE
+(define-key compose-dot-map [?z] [(?\u017C)]) ;; SMALL Z WITH DOT ABOVE
+(define-key compose-dot-map [?i] [(?\u0131)]) ;; SMALL DOTLESS I
+(define-key compose-dot-map [?j] [(?\u0237)]) ;; SMALL DOTLESS J
+
+;; There is nothing obvious we can bind space to on compose-hook-map, these are
+;; IPA characters that are in Unicode theory not precomposed.
+(define-key compose-hook-map [?B] [(?\u0181)]) ;; CAPITAL B WITH HOOK
+(define-key compose-hook-map [?C] [(?\u0187)]) ;; CAPITAL C WITH HOOK
+(define-key compose-hook-map [?D] [(?\u018A)]) ;; CAPITAL D WITH HOOK
+(define-key compose-hook-map [?F] [(?\u0191)]) ;; CAPITAL F WITH HOOK
+(define-key compose-hook-map [?G] [(?\u0193)]) ;; CAPITAL G WITH HOOK
+(define-key compose-hook-map [?K] [(?\u0198)]) ;; CAPITAL K WITH HOOK
+(define-key compose-hook-map [?P] [(?\u01A4)]) ;; CAPITAL P WITH HOOK
+(define-key compose-hook-map [?T] [(?\u01AC)]) ;; CAPITAL T WITH HOOK
+(define-key compose-hook-map [?V] [(?\u01B2)]) ;; CAPITAL V WITH HOOK
+(define-key compose-hook-map [?Y] [(?\u01B3)]) ;; CAPITAL Y WITH HOOK
+(define-key compose-hook-map [?Z] [(?\u0224)]) ;; CAPITAL Z WITH HOOK
+(define-key compose-hook-map [?\u0262] [(?\u029B)]) ;; SMALL CAPITAL G WITH HOOK
+(define-key compose-hook-map [?b] [(?\u0253)]) ;; SMALL B WITH HOOK
+(define-key compose-hook-map [?c] [(?\u0188)]) ;; SMALL C WITH HOOK
+(define-key compose-hook-map [?d] [(?\u0257)]) ;; SMALL D WITH HOOK
+(define-key compose-hook-map [?f] [(?\u0192)]) ;; SMALL F WITH HOOK
+(define-key compose-hook-map [?g] [(?\u0260)]) ;; SMALL G WITH HOOK
+(define-key compose-hook-map [?h] [(?\u0266)]) ;; SMALL H WITH HOOK
+(define-key compose-hook-map [?\u0266] [(?\u0267)]) ;; SMALL HENG WITH HOOK
+(define-key compose-hook-map [?k] [(?\u0199)]) ;; SMALL K WITH HOOK
+(define-key compose-hook-map [?m] [(?\u0271)]) ;; SMALL M WITH HOOK
+(define-key compose-hook-map [?p] [(?\u01A5)]) ;; SMALL P WITH HOOK
+(define-key compose-hook-map [?q] [(?\u02A0)]) ;; SMALL Q WITH HOOK
+(define-key compose-hook-map [?\u025C] [(?\u025D)]) ;; SMALL REVERSED OPEN E WITH HOOK
+(define-key compose-hook-map [?s] [(?\u0282)]) ;; SMALL S WITH HOOK
+(define-key compose-hook-map [?\u0259] [(?\u025A)]) ;; SMALL SCHWA WITH HOOK
+(define-key compose-hook-map [?t] [(?\u01AD)]) ;; SMALL T WITH HOOK
+(define-key compose-hook-map [?\u0279] [(?\u027B)]) ;; SMALL TURNED R WITH HOOK
+(define-key compose-hook-map [?v] [(?\u028B)]) ;; SMALL V WITH HOOK
+(define-key compose-hook-map [?y] [(?\u01B4)]) ;; SMALL Y WITH HOOK
+(define-key compose-hook-map [?z] [(?\u0225)]) ;; SMALL Z WITH HOOK
+
+(define-key compose-horn-map [space] [(?\u031b)])
+(define-key compose-horn-map [?O] [(?\u01A0)]) ;; CAPITAL O WITH HORN
+(define-key compose-horn-map [?U] [(?\u01AF)]) ;; CAPITAL U WITH HORN
+(define-key compose-horn-map [?o] [(?\u01A1)]) ;; SMALL O WITH HORN
+(define-key compose-horn-map [?u] [(?\u01B0)]) ;; SMALL U WITH HORN
+
+(define-key compose-stroke-map [?A] [(?\u023a)]) ;; CAPITAL A WITH STROKE
+(define-key compose-stroke-map [?a] [(?\u2c65)]) ;; SMALL A WITH STROKE
+(define-key compose-stroke-map [?B] [(?\u0243)]) ;; CAPITAL B WITH STROKE
+(define-key compose-stroke-map [?b] [(?\u0180)]) ;; SMALL B WITH STROKE
+(define-key compose-stroke-map [?C] [(?\u023b)]) ;; CAPITAL C WITH STROKE
+(define-key compose-stroke-map [?c] [(?\u023c)]) ;; SMALL C WITH STROKE
+(define-key compose-stroke-map [?D] [(?\u0110)]) ;; CAPITAL D WITH STROKE
+(define-key compose-stroke-map [?d] [(?\u0111)]) ;; SMALL D WITH STROKE
+(define-key compose-stroke-map [?E] [(?\u0246)]) ;; CAPITAL E WITH STROKE
+(define-key compose-stroke-map [?e] [(?\u0247)]) ;; SMALL E WITH STROKE
+(define-key compose-stroke-map [?G] [(?\u01e4)]) ;; CAPITAL G WITH STROKE
+(define-key compose-stroke-map [?g] [(?\u01e5)]) ;; SMALL G WITH STROKE
+(define-key compose-stroke-map [?H] [(?\u0126)]) ;; CAPITAL H WITH STROKE
+(define-key compose-stroke-map [?h] [(?\u0127)]) ;; SMALL H WITH STROKE
+(define-key compose-stroke-map [?I] [(?\u0197)]) ;; CAPITAL I WITH STROKE
+(define-key compose-stroke-map [?i] [(?\u0268)]) ;; SMALL I WITH STROKE
+(define-key compose-stroke-map [?J] [(?\u0248)]) ;; CAPITAL J WITH STROKE
+(define-key compose-stroke-map [?j] [(?\u0249)]) ;; SMALL J WITH STROKE
+(define-key compose-stroke-map [?K] [(?\ua740)]) ;; CAPITAL K WITH STROKE
+(define-key compose-stroke-map [?k] [(?\ua741)]) ;; SMALL K WITH STROKE
+(define-key compose-stroke-map [?L] [(?\u0141)]) ;; CAPITAL L WITH STROKE
+(define-key compose-stroke-map [?l] [(?\u0142)]) ;; SMALL L WITH STROKE
+(define-key compose-stroke-map [?O] [(?\u00d8)]) ;; CAPITAL O WITH STROKE
+(define-key compose-stroke-map [?o] [(?\u00f8)]) ;; SMALL O WITH STROKE
+(define-key compose-stroke-map [?P] [(?\u2c63)]) ;; CAPITAL P WITH STROKE
+(define-key compose-stroke-map [?p] [(?\u1d7d)]) ;; SMALL P WITH STROKE
+(define-key compose-stroke-map [?R] [(?\u024c)]) ;; CAPITAL R WITH STROKE
+(define-key compose-stroke-map [?r] [(?\u024d)]) ;; SMALL R WITH STROKE
+(define-key compose-stroke-map [?T] [(?\u0166)]) ;; CAPITAL T WITH STROKE
+(define-key compose-stroke-map [?t] [(?\u0167)]) ;; SMALL T WITH STROKE
+(define-key compose-stroke-map [?Y] [(?\u024e)]) ;; CAPITAL Y WITH STROKE
+(define-key compose-stroke-map [?y] [(?\u024f)]) ;; SMALL Y WITH STROKE
+(define-key compose-stroke-map [?Z] [(?\u01b5)]) ;; CAPITAL Z WITH STROKE
+(define-key compose-stroke-map [?z] [(?\u01b6)]) ;; SMALL Z WITH STROKE
 
 ;;; The rest of the compose-map.  These are the composed characters
 ;;; that are not accessible via "dead" keys.

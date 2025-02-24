@@ -166,8 +166,7 @@ or if you change your font path, you can call this to re-initialize the menus."
           (if (fboundp 'charset-registries) 
               (elt (charset-registries 'ascii) 0)
             "iso8859-1")))
-  (setq x-font-menu-registry-encoding
-	(if (featurep 'mule) "*-*" "iso8859-1"))
+  (setq x-font-menu-registry-encoding "*-*")
   (let ((case-fold-search t)
 	family size weight entry monospaced-p
 	dev-cache cache families sizes weights)
@@ -281,8 +280,7 @@ or if you change your font path, you can call this to re-initialize the menus."
 (defun x-font-menu-font-data-xft (face dcache name domain)
   ;; DOMAIN is expected to be a device.
   (let* ((truename (font-instance-truename
-		    (face-font-instance face domain
-					(if (featurep 'mule) 'ascii))))
+		    (face-font-instance face domain 'ascii)))
 	 entry)
     (if (xlfd-font-name-p truename)
 	(progn
@@ -318,8 +316,7 @@ or if you change your font path, you can call this to re-initialize the menus."
 				(selected-device)))
 	 (name (font-instance-name (face-font-instance face domain)))
 	 (truename (font-instance-truename
-		    (face-font-instance face domain
-					(if (featurep 'mule) 'ascii))))
+		    (face-font-instance face domain 'ascii)))
 	 family size weight entry slant)
     (when (string-match x-font-regexp-foundry-and-family name)
       (setq family (capitalize (match-string 1 name)))

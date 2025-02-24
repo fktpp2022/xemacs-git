@@ -995,10 +995,6 @@ successfully installed but errors occurred during initialization, or
 	 (base-filename (package-get-info-prop this-package 'filename))
 	 (package-status t)
 	 filenames full-package-filename)
-    (if (and (equal (package-get-info package 'category) "mule")
-	     (not (featurep 'mule)))
-	(error 'invalid-state 
-	       "Mule packages can't be installed with a non-Mule XEmacs"))
     (if (null this-package)
 	(if package-get-remote
 	    (error 'search-failed

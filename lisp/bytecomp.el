@@ -407,12 +407,6 @@ which the link points to being overwritten.")
 when an error occurs in a file.  This is bound to t by
 `batch-byte-recompile-directory'.")
 
-(defvar byte-recompile-ignore-uncompilable-mule-files t
-  "If non-nil, `byte-recompile-*' ignores non-ASCII .el files in a non-Mule
-XEmacs.  This assumes that such files have a -*- coding: ??? -*- magic
-cookie in their first line or a ;;;###coding system: magic cookie
-early in the file.")
-
 (defvar byte-recompile-directory-recursively t
   "*If true, then `byte-recompile-directory' will recurse on subdirectories.")
 
@@ -1843,11 +1837,6 @@ recompile every `.el' file that already has a `.elc' file."
 	     ;; It is an ordinary file.  Decide whether to compile it.
 	     (if (and (string-match-p emacs-lisp-file-regexp source)
 		      (not (auto-save-file-name-p source))
-		      ;; make sure not a mule file we can't handle.
-		      (or (not byte-recompile-ignore-uncompilable-mule-files)
-			  (featurep 'mule)
-			  (not (find-coding-system-magic-cookie-in-file
-				source)))
 		      (setq dest (byte-compile-dest-file source))
 		      (if (file-exists-p dest)
 			  ;; File was already compiled.
@@ -1892,10 +1881,7 @@ whether to compile it.  Prefix argument 0 don't ask and recompile anyway."
 		 (file-newer-than-file-p filename dest)
 	       (and force
 		    (or (eq 0 force)
-			(y-or-n-p (concat "Compile " filename "? ")))))
-	     (or (not byte-recompile-ignore-uncompilable-mule-files)
-		 (featurep 'mule)
-		 (not (find-coding-system-magic-cookie-in-file filename))))
+			(y-or-n-p (concat "Compile " filename "? "))))))
 	(byte-compile-file filename))))
 
 ;;;###autoload
@@ -1941,9 +1927,7 @@ With prefix arg (noninteractively: 2nd arg), load the file after compiling."
       (setq input-buffer (get-buffer-create " *Compiler Input*"))
       (set-buffer input-buffer)
       (erase-buffer)
-      (let ((codesys
-	     (and (featurep 'mule)
-		  (find-coding-system-magic-cookie-in-file filename))))
+      (let ((codesys (find-coding-system-magic-cookie-in-file filename)))
 	(when codesys
 	  (setq codesys (find-coding-system (intern codesys))))
 	(if (and codesys (eq 'iso2022 (coding-system-type codesys)))
@@ -2235,9 +2219,7 @@ docstrings code.")
   ;; We also reserve some space for the feature checks:
   (goto-char 1)
   (insert-char ?\  byte-compile-checks-and-comments-space)
-  (if (or (featurep '(not mule)) ;; Don't scan buffer if we are not muleized
-          (and
-	   (not byte-compile-force-escape-quoted)
+  (if (and (not byte-compile-force-escape-quoted)
 	   (save-excursion
 	     (set-buffer byte-compile-inbuffer)
 	     (goto-char (point-min))
@@ -2255,7 +2237,7 @@ docstrings code.")
 		   (skip-chars-backward "^;" (point-at-bol))
 		   (if (bolp) (throw 'need-to-escape-quote nil))
 		   (forward-line 1))
-		 t)))))
+		 t))))
       (setq buffer-file-coding-system 'raw-text-unix)
     (setq buffer-file-coding-system 'escape-quoted)
     (pushnew '(featurep 'mule) byte-compile-checks-on-load)

@@ -2961,12 +2961,10 @@ indicating whether soft newlines should be inserted.")
 		(fill-point
 		 (let ((opoint (point))
 		       bounce
-		       (re-break-point ;; Kinsoku processing
-			(if (featurep 'mule)
-			    (with-boundp 'word-across-newline
-			      (concat "[ \t\n]\\|" word-across-newline
-				      ".\\|." word-across-newline))
-			  "[ \t\n]"))
+		       ;; Kinsoku processing
+		       (re-break-point
+			(concat "[ \t\n]\\|" word-across-newline ".\\|."
+				word-across-newline))
 		       (first t))
 		   (save-excursion
 		     (move-to-column (max (setq current-fill-column
@@ -3000,9 +2998,8 @@ indicating whether soft newlines should be inserted.")
 							       opoint)
 			     (setq bounce t)))
 		       (skip-chars-backward " \t"))
-		     (if (and (featurep 'mule)
-			      (or bounce (bolp)))
-			 (declare-fboundp (kinsoku-process)))
+		     (if (or bounce (bolp))
+			 (kinsoku-process))
 		     ;; Let fill-point be set to the place where we end up.
 		     (point)))))
 

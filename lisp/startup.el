@@ -731,8 +731,7 @@ If this is nil, no message will be displayed.")
 
       ;; Setup coding systems and Unicode support--needs to be before X11
       ;; initialisation in case of keysyms of the form UABCD.
-      (when (featurep 'mule)
-	(declare-fboundp (init-mule-at-startup)))
+      (init-mule-at-startup)
 
       (if (featurep 'toolbar)
           (init-toolbar))
@@ -1335,23 +1334,7 @@ a new format, when variables have changed, etc."
      ,@(if (featurep 'sparcworks)
 	   `( "\
 Sun provides support for the WorkShop/XEmacs integration package only.
-All other XEmacs packages are provided to you \"AS IS\".\n"
-	      ,@(let ((lang (or (getenv "LC_ALL") (getenv "LC_MESSAGES")
-				(getenv "LANG"))))
-		  (if (and
-		       (not (featurep 'mule)) ;; Already got mule?
-		       lang ;; Non-English locale?
-		       (not (equal lang "C"))
-                       (not (eql (length "en")
-                                 (mismatch "en" lang :test #'equalp)))
-		       ;; Comes with Sun WorkShop
-		       (locate-file "xemacs-mule" exec-path))
-		      '( "\
-This version of XEmacs has been built with support for Latin-1 languages only.
-To handle other languages you need to run a Multi-lingual (`Mule') version of
-XEmacs, by either running the command `xemacs-mule', or by using the X resource
-`ESERVE*defaultXEmacsPath: xemacs-mule' when starting XEmacs from Sun WorkShop.
-\n")))))
+All other XEmacs packages are provided to you \"AS IS\".\n"))
      (face italic "\
 Copyright (C) 1985-1999 Free Software Foundation, Inc.
 Copyright (C) 1990-1994 Lucid, Inc.
@@ -1581,16 +1564,10 @@ This function is idempotent, so call this as often as you like!"
 
   (setq lisp-directory (paths-find-lisp-directory emacs-data-roots))
   (startup-setup-paths-debug-vars configure-lisp-directory lisp-directory)
-
-  (if (featurep 'mule)
-      (progn
-	(setq mule-lisp-directory
-	      (paths-find-mule-lisp-directory emacs-data-roots
-					      lisp-directory))
-        (startup-setup-paths-debug-vars configure-mule-lisp-directory
-                                        mule-lisp-directory))
-    (setq mule-lisp-directory '()))
-
+  (setq mule-lisp-directory (paths-find-mule-lisp-directory emacs-data-roots
+							    lisp-directory))
+  (startup-setup-paths-debug-vars configure-mule-lisp-directory
+				  mule-lisp-directory)
   (setq site-directory (and (null inhibit-site-lisp)
 			    (paths-find-site-lisp-directory emacs-data-roots)))
   (startup-setup-paths-debug-vars
@@ -1675,9 +1652,7 @@ PACKAGES."
 	(erase-buffer)
 	(buffer-disable-undo (current-buffer))
 	(if (null lisp-directory) (push "lisp-directory" warnings))
-	(if (and (featurep 'mule)
-		 (null mule-lisp-directory))
-	    (push "mule-lisp-directory" warnings))
+	(if (null mule-lisp-directory) (push "mule-lisp-directory" warnings))
 	(if (null exec-directory) (push "exec-directory" warnings))
 	(if (null data-directory) (push "data-directory" warnings))
 	(if (null doc-directory)  (push "doc-directory"  warnings))
@@ -1710,11 +1685,10 @@ PACKAGES."
     (load (expand-file-name (file-name-sans-extension autoload-file-name)
 			    lisp-directory)
 	  nil t)
-    (when (featurep 'mule)
-      (load (expand-file-name (file-name-sans-extension autoload-file-name)
-			      (file-name-as-directory
-			       (expand-file-name "mule" lisp-directory)))
-	    nil t)))
+    (load (expand-file-name (file-name-sans-extension autoload-file-name)
+			    (file-name-as-directory
+			     (expand-file-name "mule" lisp-directory)))
+	  nil t))
 
   ;; Hey!  Let's use a packages-* function for a non-package purpose!
   (when (and (not inhibit-autoloads) (featurep 'modules))

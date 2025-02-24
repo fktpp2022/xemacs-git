@@ -1,5 +1,5 @@
 Copyright (c) 1985,96,97 Free Software Foundation, Inc;  See end for conditions.
-Emacs. Prvo berilo.
+Emacs. Prvo berilo. -*- coding: iso-8859-2 -*-
 
 Ukazi v Emacsu v splo¹nem vkljuèujejo tipki CONTROL (vèasih oznaèeni
 CTRL ali CTL) in META (vèasih oznaèena EDIT ali ALT). Namesto, da bi ju

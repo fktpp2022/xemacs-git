@@ -1,4 +1,5 @@
 Du betrachtest das XEmacs Tutorial.  Copyrights siehe Ende des Dokuments.
+-*- coding: iso-8859-1 -*-
 
 Emacs-Befehle verwenden generell entweder die CONTROL- (manchmal mit
 CTRL oder CTL beschriftet, auf deutschen Tastaturen auch oft mit STRG)

@@ -263,25 +263,6 @@ otherwise it is killed."
 
 ;;(define-key global-map 'backspace 'deprecated-help-command)
 
-(defconst tutorial-supported-languages
-  '(
-    ("Croatian" hr iso-8859-2)
-    ("Czech" cs iso-8859-2)
-    ("Dutch" nl iso-8859-1)
-    ("English" nil raw-text)
-    ("French" fr iso-8859-1)
-    ("German" de iso-8859-1)
-    ("Norwegian" no iso-8859-1)
-    ("Polish" pl iso-8859-2)
-    ("Romanian" ro iso-8859-2)
-    ("Slovak" sk iso-8859-2)
-    ("Slovenian" sl iso-8859-2)
-    ("Spanish" es iso-8859-1)
-    ("Swedish" se iso-8859-1)
-    )
-  "Alist of supported languages in TUTORIAL files.
-Add languages here, as more are translated.")
-
 ;; TUTORIAL arg is XEmacs addition
 (defun help-with-tutorial (&optional tutorial language)
   "Select the XEmacs learn-by-doing tutorial.
@@ -294,25 +275,13 @@ With a prefix argument, you are asked to select which language."
   (interactive "i\nP")
   (when (and language (consp language))
     (setq language
-	  (if (featurep 'mule)
-	      (or (declare-fboundp (read-language-name 'tutorial "Language: "))
-		  (error "No tutorial file of the specified language"))
-	    (let ((completion-ignore-case t))
-	      (completing-read "Language: "
-	       tutorial-supported-languages nil t)))))
+	  (or (read-language-name 'tutorial "Language: ")
+	      (error "No tutorial file of the specified language"))))
   (or language
-      (setq language
-	    (if (featurep 'mule) (declare-boundp current-language-environment)
-	      "English")))
+      (setq language current-language-environment))
   (or tutorial
       (setq tutorial
-	    (cond ((featurep 'mule)
-		   (or (declare-fboundp (get-language-info language 'tutorial))
-		       "TUTORIAL"))
-		  ((equal language "English") "TUTORIAL")
-		  (t (format "TUTORIAL.%s"
-			     (cadr (assoc language
-					  tutorial-supported-languages)))))))
+	    (or (get-language-info language 'tutorial) "TUTORIAL")))
   (let ((file (expand-file-name tutorial "~")))
     (delete-other-windows)
     (let ((buffer (or (get-file-buffer file)
@@ -324,18 +293,7 @@ With a prefix argument, you are asked to select which language."
 	    (setq buffer-file-name file)
 	    (setq default-directory (expand-file-name "~/"))
 	    (setq buffer-auto-save-file-name nil)
-	    ;; Because of non-Mule users, TUTORIALs are not coded
-	    ;; independently, so we must guess the coding according to
-	    ;; the language.
-	    (let ((coding-system-for-read
-		   (if (featurep 'mule)
-		       (with-fboundp 'get-language-info
-			 (or (get-language-info language
-						'tutorial-coding-system)
-			     (car (get-language-info language
-						     'coding-system))))
-		     (nth 2 (assoc language tutorial-supported-languages)))))
-	      (insert-file-contents (locate-data-file tutorial)))
+	    (insert-file-contents (locate-data-file tutorial))
 	    (goto-char (point-min))
 	    ;; [The 'didactic' blank lines: possibly insert blank lines
 	    ;; around <<nya nya nya>> and replace << >> with [ ].] No more

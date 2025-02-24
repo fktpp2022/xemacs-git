@@ -1,5 +1,5 @@
 Copyright (c) 1985 Free Software Foundation, Inc;  podmínky viz na konci.
-Do èe¹tiny pøelo¾il Milan Zamazal <pdm@zamazal.org>.
+Do èe¹tiny pøelo¾il Milan Zamazal <pdm@zamazal.org>. -*- coding: iso-8859-2 -*-
 
 Máte pøed sebou tutoriál k Emacsu.
 

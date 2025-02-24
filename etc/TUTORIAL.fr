@@ -1,4 +1,4 @@
-Copyright (c) 1997-2000, Didier Verna <didier@xemacs.org>.
+Copyright (c) 1997-2000, Didier Verna <didier@xemacs.org>. -*- coding: iso-8859-1 -*-
 Se reporter à la fin du document pour les conditions.
 
 Vous lisez actuellement la version française du tutoriel d'Emacs.

@@ -1,4 +1,5 @@
 Copyright (c) 1985, 1996 Free Software Foundation, Inc. See end for conditions.
+-*- coding: koi8-r -*-
 
 Вы читаете учебник Emacs.
 

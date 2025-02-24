@@ -994,24 +994,22 @@ Write your filter like this:
 	     (lambda (entry)
 	       (set-buffer-process-coding-system entry entry))
 	     (lambda (entry) (get-buffer-process (current-buffer)))))))
-     ,@(when (featurep 'mule)
-	 `(("Internationa%_l"
-	    ("Set %_Language Environment"
-	     :filter
-	     ,#'(lambda (menu)
-		  (menu-split-long-menu-and-sort
-		   (mapcar #'(lambda (entry)
-			       `[ ,(car entry)
-				  (set-language-environment ',(car entry))
-				  :style radio
-				  :selected
-				  ,(equal (car entry)
-					  current-language-environment)])
-			   language-info-alist)
-		   )))
-	    ["%_Toggle Input Method" toggle-input-method]
-	    ["Select %_Input Method" set-input-method]
-	    )))
+      ("Internationa%_l"
+       ("Set %_Language Environment"
+	:filter
+	,#'(lambda (menu)
+	     (menu-split-long-menu-and-sort
+	      (mapcar #'(lambda (entry)
+			  `[ ,(car entry)
+			    (set-language-environment ',(car entry))
+			    :style radio
+			    :selected
+			    ,(equal (car entry)
+				    current-language-environment)])
+		      language-info-alist)
+	      )))
+       ["%_Toggle Input Method" toggle-input-method]
+       ["Select %_Input Method" set-input-method])
      "-----"
      ("%_Display"
       ,@(if (featurep 'scrollbar)
@@ -1546,30 +1544,29 @@ Write your filter like this:
       ["Describe %_Function..." describe-function]
       ["Describe %_Variable..." describe-variable]
       ["%_Locate Command in Keymap..." where-is])
-     ,@(when (featurep 'mule)
-	 `(("Internationa%_l"
-	    ("Describe %_Language Support"
-	     :filter
-	     ,#'(lambda (menu)
-		  (menu-split-long-menu-and-sort
-		   (mapcar #'(lambda (entry)
-			       `[ ,(car entry)
-				  (describe-language-environment
-				   ',(car entry))
-				  :style radio
-				  :selected
-				  ,(equal (car entry)
-					  current-language-environment)])
-			   language-info-alist)
-		   )))
-	    ["Describe %_Input Method" describe-input-method]
-	    ["Describe Current %_Coding Systems"
-	     describe-current-coding-system]
-	    ["Show Character %_Table" view-charset-by-menu]
-	    ;; not implemented yet
-	    ["Show %_Diagnosis for MULE" mule-diag :active nil]
-	    ["Show \"%_hello\" in Many Languages" view-hello-file]
-	    )))
+      ("Internationa%_l"
+       ("Describe %_Language Support"
+	:filter
+	,#'(lambda (menu)
+	     (menu-split-long-menu-and-sort
+	      (mapcar #'(lambda (entry)
+			  `[ ,(car entry)
+			    (describe-language-environment
+			     ',(car entry))
+			    :style radio
+			    :selected
+			    ,(equal (car entry)
+				    current-language-environment)])
+		      language-info-alist)
+	      )))
+       ["Describe %_Input Method" describe-input-method]
+       ["Describe Current %_Coding Systems"
+	describe-current-coding-system]
+       ["Show Character %_Table" view-charset-by-menu]
+       ;; not implemented yet
+       ["Show %_Diagnosis for MULE" mule-diag :active nil]
+       ["Show \"%_hello\" in Many Languages" view-hello-file]
+       )
      ["%_Unix Manual" manual-entry]
      "-----"
      ["%_Current Installation Info" describe-installation
@@ -1930,40 +1927,27 @@ items by redefining the function `format-buffers-menu-line'."
 ;;; The Help menu
 
 (defun tutorials-menu-filter (menu-items)
-  (declare (special language-info-alist
-		    current-language-environment
-		    tutorial-supported-languages))
   (append
-   (if (featurep 'mule)
-       (if (assq 'tutorial
-		 (assoc current-language-environment language-info-alist))
-	   `([,(concat "%_Default (" current-language-environment ")")
-	      help-with-tutorial]))
-     '(["%_English" help-with-tutorial]))
+   (if (assq 'tutorial
+	     (assoc current-language-environment language-info-alist))
+       `([,(concat "%_Default (" current-language-environment ")")
+	  help-with-tutorial]))
    (submenu-generate-accelerator-spec
-    (if (featurep 'mule)
-	;; Mule tutorials.
-	(mapcan #'(lambda (lang)
-		    (let ((tut (assq 'tutorial lang)))
-		      (and tut
-			   (not (equal (car lang) "ASCII"))
-			   ;; skip current language, since we already
-			   ;; included it first
-			   (not (equal (car lang)
-					 current-language-environment))
-                           ;; Hackish approach; if a language environment
-                           ;; doesn't have associated locale information,
-                           ;; it's not the preferred implementation for that
-                           ;; language. Don't use it.
-                           (assq 'locale lang)
-			   `([,(car lang)
-			      (help-with-tutorial nil ,(car lang))]))))
-		language-info-alist)
-      ;; Non mule tutorials.
-      (mapcar #'(lambda (lang)
-		  `[,(car lang)
-		    (help-with-tutorial nil ,(car lang))])
-	      tutorial-supported-languages)))))
+    (mapcan #'(lambda (lang)
+		(let ((tut (assq 'tutorial lang)))
+		  (and tut
+		       (not (equal (car lang) "ASCII"))
+		       ;; skip current language, since we already
+		       ;; included it first
+		       (not (equal (car lang) current-language-environment))
+		       ;; Hackish approach; if a language environment
+		       ;; doesn't have associated locale information,
+		       ;; it's not the preferred implementation for that
+		       ;; language. Don't use it.
+		       (assq 'locale lang)
+		       `([,(car lang)
+			  (help-with-tutorial nil ,(car lang))]))))
+	    language-info-alist))))
 
 (set-menubar default-menubar)
 

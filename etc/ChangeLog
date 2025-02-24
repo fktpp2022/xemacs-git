@@ -1,3 +1,24 @@
+2025-02-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* TUTORIAL.cs:
+	* TUTORIAL.de:
+	* TUTORIAL.es:
+	* TUTORIAL.fr:
+	* TUTORIAL.hr:
+	* TUTORIAL.ja:
+	* TUTORIAL.ko:
+	* TUTORIAL.ko:
+	* TUTORIAL.no:
+	* TUTORIAL.pl:
+	* TUTORIAL.ro:
+	* TUTORIAL.ru:
+	* TUTORIAL.se:
+	* TUTORIAL.sk:
+	* TUTORIAL.sl:
+	* TUTORIAL.th:
+	* TUTORIAL.th:
+	Add coding cookies to all the TUTORIAL files now non-MULE is gone.
+
 2023-05-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* XEmacs 21.5.35 "kohlrabi" is released.

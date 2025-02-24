@@ -1008,8 +1008,7 @@ unless optional argument SOFT is non-nil."
 
       ;; XEmacs: next 3 lines from old version.
       (skip-chars-backward " \t")
-      (if (featurep 'mule)
-	  (declare-fboundp (kinsoku-process)))
+      (kinsoku-process)
 
       ;; Now we know we should auto-fill.
       ;; Insert the newline before removing empty space so that markers

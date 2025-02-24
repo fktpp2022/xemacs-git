@@ -174,16 +174,14 @@ in dumped-lisp.el and is not itself listed.")
        ;; the built-in charsets.
        "unicode"
 	;;;;;;;;;;;;;;;;;; MULE support
-       (when (featurep 'mule)
-	 '("mule/mule-charset" ;; needs to load after unicode in old-Mule
-	   "mule/mule-cmds" ; to sync with Emacs 20.1
-	   "mule/mule-coding"
-	   "mule/mule-composite-stub"
-	   "mule/mule-composite"
-	   "mule/windows" ; for creating Windows charsets/coding systems
-	   ))
+       "mule/mule-charset" ;; needs to load after unicode in old-Mule
+       "mule/mule-cmds" ; to sync with Emacs 20.1
+       "mule/mule-coding"
+       "mule/mule-composite-stub"
+       "mule/mule-composite"
+       "mule/windows" ; for creating Windows charsets/coding systems
        ;; may initialize coding systems
-       (when (and (featurep 'mule) (memq system-type '(windows-nt cygwin32)))
+       (when (memq system-type '(windows-nt cygwin32))
 	 "mule/mule-win32-init")
        "code-init" ; set up defaults
 
@@ -191,10 +189,8 @@ in dumped-lisp.el and is not itself listed.")
 ;;;           All files after this can have extended characters in them.
 ;;; ***************************************************************************
 
-       (when (featurep 'mule)
-	 '("mule/mule-category"
-	   "mule/kinsoku"
-	   ))
+       "mule/mule-category"
+       "mule/kinsoku"
 
 ;; after this goes the specific lisp routines for a particular input system
 ;; 97.2.5 JHod Shouldn't these go into a site-load file to allow site
@@ -214,40 +210,37 @@ in dumped-lisp.el and is not itself listed.")
 ;; those of the same name in leim/quail.el, but no longer, since we now
 ;; compile with -no-packages.
 
-       (when (featurep 'mule)
-	 '("mule/general-early"
-	   "mule/arabic"
-	   "mule/chinese"
-	   "mule/cyrillic"
-	   "mule/english"
-	   "mule/ethiopic"
-	   "mule/greek"
-	   "mule/hebrew"
-	   "mule/indian"
-	   "mule/devanagari" ; must be loaded after indian.el
-	   "mule/japanese"
-	   "mule/korean"
-	   "mule/lao" ; sucks. 
-	   "mule/latin"
-	   "mule/misc-lang"
-	   "mule/thai"
-	   "mule/tibetan"
-	   "mule/vietnamese"
-	   ))
+       "mule/general-early"
+       "mule/arabic"
+       "mule/chinese"
+       "mule/cyrillic"
+       "mule/english"
+       "mule/ethiopic"
+       "mule/greek"
+       "mule/hebrew"
+       "mule/indian"
+       "mule/devanagari" ; must be loaded after indian.el
+       "mule/japanese"
+       "mule/korean"
+       "mule/lao" ; sucks. 
+       "mule/latin"
+       "mule/misc-lang"
+       "mule/thai"
+       "mule/tibetan"
+       "mule/vietnamese"
 	    
 	;; Specialized language support
-       (when (featurep 'mule) "mule/canna-leim")
+       "mule/canna-leim"
 	;; needs access to the charsets created by the above
 	;; language-specific files.
-       (when (and (featurep 'mule) (valid-console-type-p 'mswindows))
+       (when (valid-console-type-p 'mswindows)
 	 "mule/mule-msw-init-late")
 
        ;; in old-Mule, must be loaded after all charsets created
-       (when (and (featurep 'mule) (featurep 'use-unidata-case-tables))
+       (when (and (featurep 'use-unidata-case-tables))
 	 "mule/uni-case-conv")
-       (when (featurep 'mule) 
-	 '("mule/digit"
-	   "mule/general-late"))
+       "mule/digit"
+       "mule/general-late"
 
 ;;; mule-load.el ends here
 

@@ -154,11 +154,9 @@ regexp describing the end of a sentence, when the value of the variable
 (put 'sentence-end-without-period 'safe-local-variable 'booleanp)
 
 (defcustom sentence-end-without-space
-  (cond ((featurep 'unicode-internal)
-	 (decode-coding-string "\343\200\202\357\274\216\357\274\237\357\274\201" 'utf-8))
-	((featurep 'mule)
-	 (decode-coding-string "\033$B!#!%!)!*\033$A!##.#?#!\033$(0!$!%!)!*\033$(G!$!%!)!*\033(B" 'iso-2022-7bit))
-	(t ""))
+    (if (featurep 'unicode-internal)
+	(decode-coding-string "\343\200\202\357\274\216\357\274\237\357\274\201" 'utf-8)
+      (decode-coding-string "\033$B!#!%!)!*\033$A!##.#?#!\033$(0!$!%!)!*\033$(G!$!%!)!*\033(B" 'iso-2022-7bit))
   "String of characters that end sentence without following spaces.
 
 This value is used by the function `sentence-end' to construct the
@@ -180,10 +178,7 @@ to obtain the value of this variable."
   :type '(choice regexp (const :tag "Use default value" nil)))
 (put 'sentence-end 'safe-local-variable 'string-or-null-p)
 
-(defcustom sentence-end-base
-  (concat "[.?!][]\"'"
-	  (if (featurep 'mule) (string (unicode-to-char #x201D)) "")
-	  ")}]*")
+(defcustom sentence-end-base "[.?!][]\"'\u201D)}]*"
   "Regexp matching the basic end of a sentence, not including following space."
   :group 'paragraphs
   :type 'string

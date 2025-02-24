@@ -348,11 +348,6 @@ differently depending on the presence of certain features, especially
 	  (file-newer-than-file-p aa-modules aac-modules))
   (setq need-to-recompile-module-autoloads t))
 
-(unless (featurep 'mule)
-  ;; sorry charlie.
-  (setq need-to-rebuild-mule-autoloads nil
-	need-to-recompile-mule-autoloads nil))
-
 (setq update-elc-files-to-compile (append update-elc-files-to-compile
 					  (nreverse processed)))
 
