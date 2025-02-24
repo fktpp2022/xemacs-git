@@ -114,7 +114,6 @@ This function is the process handler for the GPM connection.
   Lisp_Object fake_event = Qnil;
   Lisp_Event *event = NULL;
   struct gcpro gcpro1;
-  static int num_events;
 
   CHECK_PROCESS (process);
 
@@ -128,8 +127,6 @@ This function is the process handler for the GPM connection.
     }
 
   GCPRO1 (fake_event);
-
-  num_events++;
 
   fake_event = Fmake_event (Qnil, Qnil);
   event = XEVENT (fake_event);

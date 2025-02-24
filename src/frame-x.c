@@ -2376,9 +2376,10 @@ x_get_mouse_position (struct device *d, Lisp_Object *frame, int *x, int *y)
 static DECLARE_DOESNT_RETURN (x_cant_notify_wm_error (void));
 
 static DOESNT_RETURN
-x_cant_notify_wm_error ()
+x_cant_notify_wm_error (void)
 {
-  signal_error (Qgui_error, "Can't notify window manager of iconification", Qunbound);
+  signal_error (Qgui_error, "Can't notify window manager of iconification",
+                Qunbound);
 }
 
 /* Raise frame F.  */

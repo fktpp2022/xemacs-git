@@ -686,19 +686,6 @@ old_alloc_lcrecord (const struct lrecord_implementation *implementation)
 				     implementation, 0);
 }
 
-/* This differs from the above in that it marks the record as C-readonly, which
-   also means that its MARKED flag (and its LISP_READONLY flag) is (are) always
-   1. It does not add the object to all_lcrecords since it is not necessary to
-   mark it. */
-Lisp_Object
-old_alloc_sized_c_readonly_lcrecord (Bytecount size,
-				     const struct lrecord_implementation
-				     *implementation)
-{
-  return old_alloc_sized_lcrecord_1 (implementation->static_size,
-				     implementation, 1);
-}
-
 #if 0 /* Presently unused */
 /* Very, very poor man's EGC?
  * This may be slow and thrash pages all over the place.

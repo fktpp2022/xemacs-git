@@ -2248,20 +2248,17 @@ static void insert_op1 (re_opcode_t op, unsigned char *loc, int arg,
 			unsigned char *end);
 static void insert_op2 (re_opcode_t op, unsigned char *loc, int arg1, int arg2,
 			unsigned char *end);
-static re_bool at_begline_loc_p (re_char *pattern, re_char *p,
-				 reg_syntax_t syntax);
-static re_bool at_endline_loc_p (re_char *p, re_char *pend, int syntax);
+static re_bool at_begline_loc_p (re_char *pattern, re_char *p);
+static re_bool at_endline_loc_p (re_char *p, re_char *pend);
 static re_bool group_in_compile_stack (compile_stack_type compile_stack,
 				       regnum_t regnum);
 static reg_errcode_t compile_range (re_char **p_ptr, re_char *pend,
 				    RE_TRANSLATE_TYPE translate,
-				    reg_syntax_t syntax,
 				    unsigned char *b);
 #ifdef emacs
 static reg_errcode_t compile_extended_range (re_char **p_ptr,
 					     re_char *pend,
 					     RE_TRANSLATE_TYPE translate,
-					     reg_syntax_t syntax,
 					     Lisp_Object rtab);
 reg_errcode_t compile_char_class (re_wctype_t cc, Lisp_Object rtab,
                                   Bitbyte *flags_out);
@@ -2289,8 +2286,7 @@ typedef struct {
   struct reg_match_info_data data[1]; /* Actually ngroups + 1 in length. */
 } reg_info_t;
 
-static re_bool expression_match_null_string_p (struct re_pattern_buffer *,
-					       re_char *, re_char *,
+static re_bool expression_match_null_string_p (re_char *, re_char *,
 					       reg_info_t *);
 static re_bool group_match_null_string_p (re_char **p, re_char *end,
 					  reg_info_t *);
@@ -2558,8 +2554,8 @@ optimize_on_failure_jump (struct re_pattern_buffer *bufp)
 
 	    EXTRACT_NUMBER_AND_INCR (mcnt, begalt);
 
-	    if (expression_match_null_string_p (bufp, begalt + mcnt,
-						begalt - 3, group_info))
+	    if (expression_match_null_string_p (begalt + mcnt, begalt - 3,
+                                                group_info))
 	      {
 		/* Default to a safe `on_failure_jump_nastyloop'.  */
 		DEBUG_PRINT ("  possible null match => keep nastyloop.\n");
@@ -2688,11 +2684,6 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
      last -- ends with a forward jump of this sort.  */
   unsigned char *fixup_alt_jump = 0;
 
-  /* Counts open-groups as they are encountered.  Remembered for the
-     matching close-group on the compile stack, so the same register
-     number is put in the stop_memory as the start_memory.  */
-  regnum_t regnum = 0;
-
 #ifdef DEBUG
   if (DEBUG_RUNTIME_FLAGS & RE_DEBUG_COMPILATION)
     {
@@ -2781,7 +2772,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
             if (/* If at start of pattern, it's an operator.  */
 		p == pattern + 1
 		/* Otherwise, depends on what's come before.  */
-		|| at_begline_loc_p (pattern, p, syntax))
+		|| at_begline_loc_p (pattern, p))
               BUF_PUSH (begline);
             else
               goto normal_char;
@@ -2794,7 +2785,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
             if (/* If at end of pattern, it's an operator.  */
 		p == pend
 		/* Otherwise, depends on what's next.  */
-                || at_endline_loc_p (p, pend, syntax))
+                || at_endline_loc_p (p, pend))
                BUF_PUSH (endline);
              else
                goto normal_char;
@@ -3022,8 +3013,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 
 		    MAYBE_START_OVER_WITH_EXTENDED (*(unsigned char *)p);
 
-		    ret = compile_range (&p, pend, translate, syntax,
-					 buf_end);
+		    ret = compile_range (&p, pend, translate, buf_end);
 
                     if (ret != REG_NOERROR) FREE_STACK_RETURN (ret);
                   }
@@ -3037,7 +3027,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 
 		    MAYBE_START_OVER_WITH_EXTENDED (*(unsigned char *)p);
 
-		    ret = compile_range (&p, pend, translate, syntax, buf_end);
+		    ret = compile_range (&p, pend, translate, buf_end);
 
                     if (ret != REG_NOERROR) FREE_STACK_RETURN (ret);
                   }
@@ -3174,8 +3164,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
                   {
                     reg_errcode_t ret;
 
-                    ret = compile_extended_range (&p, pend, translate, syntax,
-                                                  rtab);
+                    ret = compile_extended_range (&p, pend, translate, rtab);
 
                     if (ret != REG_NOERROR) FREE_STACK_RETURN (ret);
                   }
@@ -3187,8 +3176,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
                     /* Move past the `-'.  */
                     PATFETCH (c1);
                     
-                    ret = compile_extended_range (&p, pend, translate,
-                                                  syntax, rtab);
+                    ret = compile_extended_range (&p, pend, translate, rtab);
                     if (ret != REG_NOERROR) FREE_STACK_RETURN (ret);
                   }
 
@@ -3313,7 +3301,6 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 
                 if (!shy)
                   {
-                    ++regnum;
                     bufp->re_ngroups++;
 
                     if (bufp->re_ngroups > MAX_REGNUM)
@@ -3426,9 +3413,6 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
                  ``can't happen''.  */
               assert (compile_stack.avail != 0);
               {
-                /* We don't just want to restore into `regnum', because later
-                   groups should continue to be numbered higher, as in
-                   `(ab)c(de)' -- the second group is #2.  */
                 regnum_t this_group_regnum;
 
                 compile_stack.avail--;
@@ -3997,7 +3981,7 @@ insert_op2 (re_opcode_t op, unsigned char *loc, int arg1, int arg2,
    least one character before the ^.  */
 
 static re_bool
-at_begline_loc_p (re_char *pattern, re_char *p, reg_syntax_t syntax)
+at_begline_loc_p (re_char *pattern, re_char *p)
 {
   re_char *prev = p - 2;
   re_bool prev_prev_backslash = prev > pattern && prev[-1] == '\\';
@@ -4014,7 +3998,7 @@ at_begline_loc_p (re_char *pattern, re_char *p, reg_syntax_t syntax)
    at least one character after the $, i.e., `P < PEND'.  */
 
 static re_bool
-at_endline_loc_p (re_char *p, re_char *pend, int syntax)
+at_endline_loc_p (re_char *p, re_char *pend)
 {
   re_char *next = p;
   re_bool next_backslash = *next == '\\';
@@ -4061,7 +4045,7 @@ group_in_compile_stack (compile_stack_type compile_stack, regnum_t regnum)
 
 static reg_errcode_t
 compile_range (re_char **p_ptr, re_char *pend, RE_TRANSLATE_TYPE translate,
-	       reg_syntax_t syntax, unsigned char *buf_end)
+	       unsigned char *buf_end)
 {
   Ichar this_char;
 
@@ -4106,8 +4090,8 @@ compile_range (re_char **p_ptr, re_char *pend, RE_TRANSLATE_TYPE translate,
 
 static reg_errcode_t
 compile_extended_range (re_char **p_ptr, re_char *pend,
-			RE_TRANSLATE_TYPE translate,
-			reg_syntax_t syntax, Lisp_Object rtab)
+			RE_TRANSLATE_TYPE translate, Lisp_Object rtab)
+			
 {
   Ichar this_char, range_start, range_end;
   const Ibyte *p;
@@ -6985,8 +6969,8 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
    are examined), and END, its end, return non-zero if the expression can
    match the null string. */
 static re_bool
-expression_match_null_string_p (struct re_pattern_buffer *bufp, re_char *p1,
-                                re_char *end, reg_info_t *group_info)
+expression_match_null_string_p (re_char *p1, re_char *end,
+                                reg_info_t *group_info)
 {
   switch ((re_opcode_t) *p1)
     {

@@ -165,7 +165,7 @@ static Bytebpos search_buffer (struct buffer *buf, Lisp_Object str,
 static DECLARE_DOESNT_RETURN (matcher_overflow (void));
 
 static DOESNT_RETURN
-matcher_overflow ()
+matcher_overflow (void)
 {
   stack_overflow ("Stack overflow in regexp matcher", Qunbound);
 }

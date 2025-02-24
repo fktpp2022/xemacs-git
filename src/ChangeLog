@@ -1,5 +1,39 @@
 2025-02-24  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Quiet compiler warnings, clang-19.
+	* alloc.c (old_alloc_sized_c_readonly_lcrecord): Removed. Added as
+	part of the support for allocating symbol_value_forward_fixnum and
+	symbol_value_forward_boolint on the heap, but not actually used by
+	that.
+
+	* frame-x.c (x_cant_notify_wm_error):
+	Use (void) for the arglist in the definition of this function.
+	* gccache-x.c (define_gc_cache_hash_table_test):
+	Ditto.
+
+	* gpmevent.c (Freceive_gpm_event): Remove NUM_EVENTS, a debugging
+	variable set but not used.
+	* miscplay.c (reset_parsestate):
+	Use (void) for the arglist in the definition of this function.
+	* miscplay.c (parse_wave_complete): Ditto.
+
+	* regex.c:
+	* regex.c (optimize_on_failure_jump):
+	* regex.c (regex_compile):
+	* regex.c (at_begline_loc_p): Remove SYNTAX from the arglist for
+	this, now unused.
+	* regex.c (at_endline_loc_p): Ditto.
+	* regex.c (compile_range): Ditto. Also remove REGNUM, set but not
+	used.
+	* regex.c (expression_match_null_string_p): Remove BUFP from the
+	arglist for this, now unused.
+	* search.c (matcher_overflow):
+	Use (void) for the arglist in the definition of this function.
+	* sysdll.c (dll_error):
+	Ditto.
+
+2025-02-24  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* number.c (Fcanonicalize_number):
 	Error if NUMBER is not a number.
 	* number.c (Fcoerce_number):

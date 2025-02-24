@@ -105,7 +105,7 @@ dll_variable (dll_handle h, const Ibyte *n)
 }
 
 Lisp_Object
-dll_error ()
+dll_error (void)
 {
   const Extbyte *msg;
 #if defined(HAVE_DLERROR) || defined(dlerror)

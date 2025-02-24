@@ -65,14 +65,16 @@ static union {
 Binbyte miscplay_sndbuf[SNDBUFSZ];
 
 /* Initialize global parser state information to zero */
-void reset_parsestate()
+void
+reset_parsestate (void)
 {
   memset(&parsestate,0,sizeof(parsestate));
 }
 
 /* Verify that we could fully parse the entire soundfile; this is needed
    only for files in WAVE format */
-int parse_wave_complete()
+int
+parse_wave_complete (void)
 {
   if (parsestate.wave.state != wvOutOfBlock &&
       parsestate.wave.state != wvFatal) {
