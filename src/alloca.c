@@ -74,33 +74,6 @@ typedef void *pointer;
 static int stack_dir;		/* 1 or -1 once known.  */
 #define	STACK_DIR	stack_dir
 
-static void
-find_stack_direction (void)
-{
-  static char *addr = NULL;	/* Address of first `dummy', once known.  */
-  /* On Linux and MacOS AMD64 (and anything else using the "System V
-     Application Binary Interface AMD64 Architecture Processor Supplement")
-     leaf functions can use the red zone for local variables. This used to
-     confuse this function when optimisation was turned on and DUMMY was just a
-     char;; the large buffer forces normal stack allocation. */
-  char dummy[512];		/* To get stack address.  */
-
-  if (addr == NULL)
-    {				/* Initial entry.  */
-      addr = ADDRESS_FUNCTION (dummy);
-
-      find_stack_direction ();	/* Recurse once.  */
-    }
-  else
-    {
-      /* Second entry.  */
-      if (ADDRESS_FUNCTION (dummy) > addr)
-	stack_dir = 1;		/* Stack grew upward.  */
-      else
-	stack_dir = -1;		/* Stack grew downward.  */
-    }
-}
-
 #endif /* STACK_DIRECTION == 0 */
 
 /* An "alloca header" is used to:
@@ -126,6 +99,8 @@ typedef union hdr
 
 static header *last_alloca_header = NULL;	/* -> last alloca header.  */
 
+extern Rawbyte *stack_bottom;
+
 /* Return a pointer to at least SIZE bytes of storage,
    which will be automatically reclaimed upon exit from
    the procedure that called alloca.  Originally, this space
@@ -136,12 +111,17 @@ static header *last_alloca_header = NULL;	/* -> last alloca header.  */
 pointer
 xemacs_c_alloca (size_t size)
 {
-  char probe;			/* Probes stack depth: */
+  char probe;			/* Probes stack depth and direction. This is
+				   not a leaf function and so probing the
+				   stack direction will be effective even with
+				   AMD64's red zone. */
   REGISTER char *depth = ADDRESS_FUNCTION (probe);
 
 #if STACK_DIRECTION == 0
-  if (STACK_DIR == 0)		/* Unknown growth direction.  */
-    find_stack_direction ();
+  if (!stack_dir)
+    {
+      stack_dir = ((Rawbyte *) depth - stack_bottom) > 0 ? 1 : -1;
+    }
 #endif
 
   /* Reclaim garbage, defined as all alloca'd storage that
@@ -472,3 +452,5 @@ i00afunc (long address)
 
 #endif /* not CRAY2 */
 #endif /* CRAY */
+
+/* alloca.c ends here. */

@@ -1,5 +1,18 @@
 2025-02-28  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Fix further crash linked to the AMD64 red zone, this time with
+	--with-optimize and GCC, which chooses to ignore the size of an
+	array not written to. Change strategy to, within xemacs_c_alloca
+	(), a non-leaf function, compare the address of a local variable
+	to STACK_BOTTOM, already provided for gc.c, and work out the stack
+	direction from that. Thank you Mats Lidell and the buildbot.
+
+	* alloca.c (find_stack_direction): Remove this, it is currently
+	too prone to failure with optimizing compilers.
+	* alloca.c (xemacs_c_alloca): Implement it in a simpler way.
+
+2025-02-28  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Add type checking for symbol_value_magic objects in the same way
 	as for more conventional objects.
 
