@@ -415,17 +415,27 @@ Set SYMBOL's property list to NEWPLIST, and return NEWPLIST.
    There are various different uses of "magic" with regard to symbols,
    and they need to be distinguished:
 
-   1. `symbol-value-magic' class of objects (struct symbol_value_magic):
+   1. `symbol-value-magic' class of objects:
       A set of Lisp object types used as the value of a variable with any
       behavior other than just a plain repository of a value.  This
       includes buffer-local variables, console-local variables, read-only
       variables, variable aliases, variables that are linked to a C
       variable, etc.  The more specific types are:
 
-      -- `symbol-value-forward': Variables that forward to a C variable.
-         NOTE:This includes built-in buffer-local and console-local
-         variables, since they forward to an element in a buffer or
-         console structure.
+      -- `symbol-value-forward-object': Variables that forward to a Lisp_Object
+         stored in a C variable.
+         NOTE:This includes built-in buffer-local and console-local variables,
+         since they forward to an element in a buffer or console structure.
+         These C variables are automatically dumped and traversed by the
+         garbage collector.
+
+      -- `symbol-value-forward-fixnum': Variables that forward to an EMACS_INT
+         stored in a C variable, typedefed to be Fixnum. These are
+         automatically dumped. They are not traversed by the garbage collector.
+
+      -- `symbol-value-forward-boolint': Variables that forward to an int
+         stored in a C variable, typedefed to be Boolint. These are
+         automatically dumped and are not traversed by the garbage collector.
 
       -- `symbol-value-buffer-local': Variables on which
          `make-local-variable' or `make-variable-buffer-local' have
@@ -3581,10 +3591,11 @@ syms_of_symbols (void)
 
 /* Create and initialize a Lisp variable whose value is forwarded to C data */
 void
-defvar_magic (const Ascbyte *symbol_name,
-	      const struct symbol_value_magic *magic)
+defvar_magic (const Ascbyte *symbol_name, Lisp_Object magic)
 {
   Lisp_Object sym;
+
+  structure_checking_assert (SYMBOL_VALUE_MAGIC_P (magic));
 
 #ifdef HAVE_SHLIB
   /*
@@ -3602,7 +3613,7 @@ defvar_magic (const Ascbyte *symbol_name,
     sym = Fintern (make_string_nocopy ((const Ibyte *) symbol_name,
 				       strlen (symbol_name)), Qnil);
 
-  XSYMBOL (sym)->value = wrap_pointer_1 (magic);
+  XSYMBOL (sym)->value = magic;
 }
 
 /* symbols.c ends here. */

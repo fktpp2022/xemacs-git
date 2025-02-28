@@ -29,12 +29,18 @@ BEGIN_C_DECLS
 
 enum symbol_value_type
 {
-  /* The following tags use the 'symbol_value_forward' structure
+  /* The following tags use the 'symbol_value_forward_fixnum' structure
      and are strictly for variables DEFVARed on the C level. */
   SYMVAL_FIXNUM_FORWARD,	/* Forward C "Fixnum", really "EMACS_INT" */
   SYMVAL_CONST_FIXNUM_FORWARD,	/* Same, but can't be set */
-  SYMVAL_BOOLEAN_FORWARD,	/* Forward C boolean ("int") */
+
+  /* The following tags use the 'symbol_value_forward_boolint' structure, also
+     only for variables DEFVARed in C. */
+  SYMVAL_BOOLEAN_FORWARD,	/* Forward C boolean ("Boolint") */
   SYMVAL_CONST_BOOLEAN_FORWARD,	/* Same, but can't be set */
+
+  /* The following tags use the 'symbol_value_forward_object' structure, also
+     for variables DEFVARed in C. */
   SYMVAL_OBJECT_FORWARD,	/* Forward C Lisp_Object */
   SYMVAL_CONST_OBJECT_FORWARD,	/* Same, but can't be set */
   SYMVAL_CONST_SPECIFIER_FORWARD, /* Same, can't be set, but gives a
@@ -52,21 +58,16 @@ enum symbol_value_type
 					    Vselected_console,
 					    can't be set */
 
-  /* The following tags use the 'symbol_value_buffer_local' structure */
+  /* The following tags use the 'symbol_value_buffer_local' structure and can
+     be created from Lisp.  */
   SYMVAL_BUFFER_LOCAL,		/* make-variable-buffer-local */
   SYMVAL_SOME_BUFFER_LOCAL,	/* make-local-variable */
 
-  /* The following tag uses the 'symbol_value_lisp_magic' structure */
+  /* The following tag uses the 'symbol_value_lisp_magic' structure, ditto. */
   SYMVAL_LISP_MAGIC,		/* Forward to lisp callbacks */
 
-  /* The following tag uses the 'symbol_value_varalias' structure */
+  /* The following tag uses the 'symbol_value_varalias' structure, ditto. */
   SYMVAL_VARALIAS		/* defvaralias */
-
-#if 0
-  /* NYI */
-  SYMVAL_CONSTANT_SYMBOL,	/* Self-evaluating symbol */
-  /* NYI */
-#endif
 };
 
 struct symbol_value_magic
@@ -84,9 +85,41 @@ struct symbol_value_magic
 #define SYMBOL_VALUE_MAGIC_P(x)						\
 (LRECORDP (x) &&							\
  XRECORD_LHEADER (x)->type <= lrecord_type_max_symbol_value_magic)
-#define XSYMBOL_VALUE_MAGIC_TYPE(v) \
-	(((struct symbol_value_magic *) XPNTR (v))->type)
+
+#ifdef ERROR_CHECK_TYPES
+DECLARE_INLINE_HEADER (
+struct symbol_value_magic *
+error_check_symbol_value_magic (Lisp_Object obj, const Ascbyte *file,
+				int line)
+)
+{
+  assert_at_line (SYMBOL_VALUE_MAGIC_P (obj), file, line);
+  return (struct symbol_value_magic *) XPNTR (obj);
+}
+
+#define XSYMBOL_VALUE_MAGIC(x) \
+  error_check_symbol_value_magic (x, __FILE__, __LINE__)
+
+DECLARE_INLINE_HEADER (
+Lisp_Object
+wrap_symbol_value_magic_1 (const void *ptr, const Ascbyte *file, int line)
+)
+{
+  Lisp_Object obj = wrap_pointer_1 (ptr);
+
+  assert_at_line (SYMBOL_VALUE_MAGIC_P (obj), file, line);
+  return obj;
+}
+
+#define wrap_symbol_value_magic(x) \
+  wrap_symbol_value_magic_1(x, __FILE__, __LINE__)
+#else
+#define XSYMBOL_VALUE_MAGIC(x) ((struct symbol_value_magic *) XPNTR (obj))
 #define wrap_symbol_value_magic(p) wrap_pointer_1 (p)
+#endif /* ERROR_CHECK_TYPES */
+
+#define XSYMBOL_VALUE_MAGIC_TYPE(v) (XSYMBOL_VALUE_MAGIC (v)->type)
+
 void print_symbol_value_magic (Lisp_Object, Lisp_Object, int);
 
 /********** The various different symbol-value-magic types ***********/
@@ -439,8 +472,19 @@ MODULE_API void deferror_massage_name_and_message (Lisp_Object *symbol,
 #define DEFERROR_STANDARD(name, inherits_from) \
   deferror_massage_name_and_message (&name, #name, inherits_from)
 
-MODULE_API void defvar_magic (const Ascbyte *symbol_name,
-			      const struct symbol_value_magic *magic);
+MODULE_API void defvar_magic (const Ascbyte *symbol_name, Lisp_Object magic);
+
+#define ASSERT_OK_FOR_MAGIC(forward_type) do {                          \
+    enum symbol_value_type aofmft = (forward_type);                     \
+    structure_checking_assert                                           \
+      (aofmft == SYMVAL_FIXNUM_FORWARD           ||                     \
+       aofmft == SYMVAL_BOOLEAN_FORWARD          ||                     \
+       aofmft == SYMVAL_OBJECT_FORWARD           ||                     \
+       aofmft == SYMVAL_CURRENT_BUFFER_FORWARD   ||                     \
+       aofmft == SYMVAL_SELECTED_CONSOLE_FORWARD ||                     \
+       aofmft == SYMVAL_BUFFER_LOCAL             ||                     \
+       aofmft == SYMVAL_SOME_BUFFER_LOCAL);                             \
+  } while (0)
 
 #define DEFVAR_SYMVAL_FWD_NON_LISP(lname, c_location, forward_type, magic_fun, subtype) \
 do									\
@@ -454,9 +498,12 @@ do									\
   symbol_value_forward->magic.type = forward_type;			\
   symbol_value_forward->magic.value = c_location;			\
   symbol_value_forward->magicfun = magic_fun;				\
-									\
-  defvar_magic ((lname),						\
-		(struct symbol_value_magic *) symbol_value_forward);    \
+  if (symbol_value_forward->magicfun)					\
+    {									\
+      ASSERT_OK_FOR_MAGIC (symbol_value_forward->magic.type);		\
+    }									\
+      									\
+  defvar_magic (lname, wrap_symbol_value_magic (symbol_value_forward));	\
 } while (0)
 
 #define DEFVAR_SYMVAL_FWD_FIXNUM(lname, c_location, forward_type, magicfun) \
@@ -476,8 +523,12 @@ do									\
   symbol_value_forward->magic.type = forward_type;			\
   symbol_value_forward->value = c_location;				\
   symbol_value_forward->magicfun = magic_fun;				\
+  if (symbol_value_forward->magicfun)					\
+    {									\
+      ASSERT_OK_FOR_MAGIC (symbol_value_forward->magic.type);		\
+    }									\
 									\
-  defvar_magic ((lname), &(symbol_value_forward->magic));		\
+  defvar_magic (lname, wrap_symbol_value_magic (symbol_value_forward)); \
 } while (0)
 
 #define DEFVAR_LISP(lname, c_location) \

@@ -1,3 +1,28 @@
+2025-02-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Add type checking for symbol_value_magic objects in the same way
+	as for more conventional objects.
+
+	* symbols.c:
+	Update comments.
+
+	* symbols.c (defvar_magic): 
+	Update defvar_magic() to take a Lisp_Object as its second arg,
+	reducing the need to cast. Add a type checking assertion to this
+	function.
+
+	* symeval.h:
+	* symeval.h (enum symbol_value_type):
+	Remove #if 0'd SYMVAL_CONSTANT_SYMBOL, which I don't plan to
+	implement.
+	* symeval.h (ASSERT_OK_FOR_MAGIC): New macro, checks that an enum
+	symbol_value_type is for a type that has a MAGICFUN
+	implementation.
+
+	* symeval.h (DEFVAR_SYMVAL_FWD_NON_LISP): Use it. Call
+	defvar_magic() with its new types.
+	* symeval.h (DEFVAR_SYMVAL_FWD_OBJECT): Ditto.
+
 2025-02-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Quiet compiler warnings, clang-19.
