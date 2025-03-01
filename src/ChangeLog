@@ -1,3 +1,9 @@
+2025-03-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* symeval.h (XSYMBOL_VALUE_MAGIC):
+	Correct a compile time failure with --with-optimization, thank you
+	the buildbot.
+
 2025-02-28  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Fix further crash linked to the AMD64 red zone, this time with

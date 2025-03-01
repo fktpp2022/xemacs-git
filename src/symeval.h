@@ -114,7 +114,7 @@ wrap_symbol_value_magic_1 (const void *ptr, const Ascbyte *file, int line)
 #define wrap_symbol_value_magic(x) \
   wrap_symbol_value_magic_1(x, __FILE__, __LINE__)
 #else
-#define XSYMBOL_VALUE_MAGIC(x) ((struct symbol_value_magic *) XPNTR (obj))
+#define XSYMBOL_VALUE_MAGIC(obj) ((struct symbol_value_magic *) XPNTR (obj))
 #define wrap_symbol_value_magic(p) wrap_pointer_1 (p)
 #endif /* ERROR_CHECK_TYPES */
 
