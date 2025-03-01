@@ -963,6 +963,82 @@
 	Call make_lisp_hash_table() explicitly rather than call0 (intern
 	("make-hash-table")).
 
+2025-01-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Move the event_stream and process_methods structures to the dump
+	file, no need to explicitly initialize them post pdump-load.
+	Similarly for filedesc_with_input, event-Xt.c.
+	Declare filedesc_to_what_closure as an array in BSS, trust that
+	C will initialize it to all zeroes.
+
+	* event-Xt.c:
+	* event-Xt.c (init_what_input_once) Removed. Leave this to the
+	portable dumper and to the C implementation.
+	* event-Xt.c (mark_what_as_being_ready):
+	Access Vfiledesc_with_input as a Lisp vector.
+	* event-Xt.c (unselect_filedesc): Ditto. 
+	* event-Xt.c (Xt_process_to_emacs_event): Ditto.
+	* event-Xt.c (Xt_tty_to_emacs_event): Ditto.
+	* event-Xt.c (reinit_vars_of_event_Xt):
+	Move creation of the struct event_stream to vars_of_event_Xt(),
+	trust pdump_load() to restore it.
+
+	* event-Xt.c (vars_of_event_Xt):
+	Initialize Vfiledesc_with_input as a Lisp vector. Make it
+	reachable for GC pre-dump, but unreachable for GC after
+	pdump_load(), since it is usually 1024 in length and full of
+	either Qnil or process objects that are reachable from
+	Vprocess_list.
+	Trust the C runtime to initialize filedesc_to_what_closure[] to all
+	zeroes.
+
+	* event-gtk.c:
+	* event-gtk.c (mark_what_as_being_ready):
+	* event-gtk.c (unselect_filedesc):
+	* event-gtk.c (gtk_process_to_emacs_event):
+	* event-gtk.c (gtk_tty_to_emacs_event):
+	* event-gtk.c (reinit_vars_of_event_gtk):
+	* event-gtk.c (vars_of_event_gtk):
+	Exactly the same changes as for event-Xt.c, basically identical code.
+
+	* event-msw.c (reinit_vars_of_event_mswindows):
+	Move initializing the event stream object to
+	vars_of_event_mswindows. Trust the C runtime to initialize
+	mswindows_pending_timers_count, dde_eval_pending to 0, since
+	they're in BSS.
+
+	* event-msw.c (vars_of_event_mswindows):
+	Initialize the event stream object here. Dump it, let pdump_load()
+	restore it in the normal way.
+
+	* event-stream.c:
+	* event-stream.c (const struct sized_memory_description
+	event_stream_description): New. Describe a struct event_stream for
+	the sake of the portable dumper. Used by event-Xt.c, event-msw.c,
+	event-tty.c.
+
+	* event-tty.c:
+	* event-tty.c (reinit_vars_of_event_tty): Make this empty.
+	* event-tty.c (vars_of_event_tty):
+	Initialize the event stream object here. Dump it, let pdump_load()
+	restore it in the normal way.
+
+	* events.h: Declare event_stream_description.
+
+	* process-nt.c (process_type_create_nt): Remove this, move it into
+	vars_of_process_nt().
+	* process-nt.c (vars_of_process_nt): Initialize the process
+	methods in this function.
+	* process-unix.c:
+	* process-nt.c (process_type_create_unix): Remove this, move it into
+	vars_of_process_unix().
+	* process-unix.c (vars_of_process_unix):
+	Initialize the process methods in this function.
+	* process.c (static const struct memory_description
+	process_methods_description): New.
+	* process.c (vars_of_process): Tell the portable dumper about the
+	process methods, don't restore them explicitly.
+
 2025-01-16  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Rearrange main_1() to avoid the need to save and restore values

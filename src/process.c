@@ -67,6 +67,50 @@ Lisp_Object Qprocessp, Qprocess_live_p, Qprocess_readable_p;
 /* Process methods */
 struct process_methods the_process_methods;
 
+static const struct memory_description process_methods_description_1[] = {
+  { XD_FUNCTION_POINTER, offsetof (struct process_methods,
+                                   print_process_data) },
+  { XD_FUNCTION_POINTER, offsetof (struct process_methods,
+                                   finalize_process_data) },
+  { XD_FUNCTION_POINTER, offsetof (struct process_methods,
+                                   alloc_process_data) },
+  { XD_FUNCTION_POINTER, offsetof (struct process_methods,
+                                   init_process_io_handles) },
+  { XD_FUNCTION_POINTER, offsetof (struct process_methods,
+                                   create_process) },
+  { XD_FUNCTION_POINTER, offsetof (struct process_methods,
+                                   tooltalk_connection_p) },
+#ifdef HAVE_SOCKETS
+  { XD_FUNCTION_POINTER, offsetof (struct process_methods,
+                                   open_network_stream) },
+#ifdef HAVE_MULTICAST
+  { XD_FUNCTION_POINTER, offsetof (struct process_methods,
+                                   open_multicast_group) },
+#endif /* HAVE_MULTICAST */
+#endif /* HAVE_SOCKETS */
+  { XD_FUNCTION_POINTER, offsetof (struct process_methods,
+                                   canonicalize_host_name) },
+  { XD_FUNCTION_POINTER, offsetof (struct process_methods,
+                                   set_window_size) },
+  { XD_FUNCTION_POINTER, offsetof (struct process_methods,
+                                   send_process) },
+  { XD_FUNCTION_POINTER, offsetof (struct process_methods,
+                                   reap_exited_processes) },
+  { XD_FUNCTION_POINTER, offsetof (struct process_methods,
+                                   update_status_if_terminated) },
+  { XD_FUNCTION_POINTER, offsetof (struct process_methods,
+                                   kill_child_process) },
+  { XD_FUNCTION_POINTER, offsetof (struct process_methods,
+                                   kill_process_by_pid) },
+  { XD_FUNCTION_POINTER, offsetof (struct process_methods,
+                                   process_send_eof) },
+  { XD_FUNCTION_POINTER, offsetof (struct process_methods,
+                                   deactivate_process) },
+  { XD_FUNCTION_POINTER, offsetof (struct process_methods,
+                                   init_process) },
+  { XD_END }
+};
+
 /* a process object is a network connection when its pid field a cons
    (name of name of port we are connected to . foreign host name) */
 
@@ -2817,4 +2861,7 @@ when Emacs starts.
 
   Vusid_to_process = make_weak_list (WEAK_LIST_VALUE_ASSOC);
   staticpro (&Vusid_to_process);
+
+  dump_add_root_block (&the_process_methods, sizeof (the_process_methods),
+                       process_methods_description_1);
 }

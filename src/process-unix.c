@@ -2295,36 +2295,38 @@ unix_open_multicast_group (Lisp_Object name, Lisp_Object dest,
 /**********************************************************************/
 
 void
-process_type_create_unix (void)
+vars_of_process_unix (void)
 {
+  Fprovide (intern ("unix-processes"));
+
   PROCESS_HAS_METHOD (unix, alloc_process_data);
+
 #ifdef SIGCHLD
   PROCESS_HAS_METHOD (unix, init_process);
   PROCESS_HAS_METHOD (unix, reap_exited_processes);
 #endif
+
   PROCESS_HAS_METHOD (unix, init_process_io_handles);
   PROCESS_HAS_METHOD (unix, create_process);
   PROCESS_HAS_METHOD (unix, tooltalk_connection_p);
   PROCESS_HAS_METHOD (unix, set_window_size);
+
 #ifdef HAVE_WAITPID
   PROCESS_HAS_METHOD (unix, update_status_if_terminated);
 #endif
+
   PROCESS_HAS_METHOD (unix, send_process);
   PROCESS_HAS_METHOD (unix, process_send_eof);
   PROCESS_HAS_METHOD (unix, deactivate_process);
   PROCESS_HAS_METHOD (unix, kill_child_process);
   PROCESS_HAS_METHOD (unix, kill_process_by_pid);
+
 #ifdef HAVE_SOCKETS
   PROCESS_HAS_METHOD (unix, canonicalize_host_name);
   PROCESS_HAS_METHOD (unix, open_network_stream);
+
 #ifdef HAVE_MULTICAST
   PROCESS_HAS_METHOD (unix, open_multicast_group);
 #endif
 #endif
-}
-
-void
-vars_of_process_unix (void)
-{
-  Fprovide (intern ("unix-processes"));
 }

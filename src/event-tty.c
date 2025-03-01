@@ -343,6 +343,11 @@ emacs_tty_delete_io_streams (Lisp_Object instream,
 void
 reinit_vars_of_event_tty (void)
 {
+}
+
+void
+vars_of_event_tty (void)
+{
   tty_event_stream = xnew_and_zero (struct event_stream);
 
   tty_event_stream->event_pending_p 	= emacs_tty_event_pending_p;
@@ -361,12 +366,7 @@ reinit_vars_of_event_tty (void)
   tty_event_stream->create_io_streams_cb = emacs_tty_create_io_streams;
   tty_event_stream->delete_io_streams_cb = emacs_tty_delete_io_streams;
 
-  last_quit_check_signal_tick_count = 0;
-}
-
-void
-vars_of_event_tty (void)
-{
+  dump_add_root_block_ptr (&tty_event_stream, &event_stream_description);
 }
 
 void

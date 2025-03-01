@@ -1846,18 +1846,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #if defined (HAVE_MS_WINDOWS) && !defined (HAVE_MSG_SELECT)
       lstream_type_create_mswindows_selectable ();
 #endif
-
-      /* Initialize processes implementation.
-	 The functions may make exactly the following function/macro calls:
-
-	 PROCESS_HAS_METHOD()
-      */
-#ifdef HAVE_UNIX_PROCESSES
-      process_type_create_unix ();
-#endif
-#ifdef HAVE_WIN32_PROCESSES
-      process_type_create_nt ();
-#endif
     }
 
   if (!initialized)

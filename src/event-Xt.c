@@ -3120,32 +3120,14 @@ struct what_is_ready_closure
   XtInputId id;
 };
 
-static Lisp_Object *filedesc_with_input;
-static struct what_is_ready_closure **filedesc_to_what_closure;
+static Lisp_Object Vfiledesc_with_input;
 
-static void
-init_what_input_once (void)
-{
-  int i;
-
-  filedesc_with_input = xnew_array (Lisp_Object, MAXDESC);
-  filedesc_to_what_closure =
-    xnew_array (struct what_is_ready_closure *, MAXDESC);
-
-  for (i = 0; i < MAXDESC; i++)
-    {
-      filedesc_to_what_closure[i] = 0;
-      filedesc_with_input[i] = Qnil;
-    }
-
-  process_events_occurred = 0;
-  tty_events_occurred = 0;
-}
+static struct what_is_ready_closure *filedesc_to_what_closure[MAXDESC];
 
 static void
 mark_what_as_being_ready (struct what_is_ready_closure *closure)
 {
-  if (NILP (filedesc_with_input[closure->fd]))
+  if (NILP (XVECTOR_DATA (Vfiledesc_with_input) [closure->fd]))
     {
       SELECT_TYPE temp_mask;
       FD_ZERO (&temp_mask);
@@ -3168,7 +3150,7 @@ mark_what_as_being_ready (struct what_is_ready_closure *closure)
 #endif
 	  return;
 	}
-      filedesc_with_input[closure->fd] = closure->what;
+      XVECTOR_DATA (Vfiledesc_with_input)[closure->fd] = closure->what;
       if (PROCESSP (closure->what))
       /* Don't increment this if the current process is already marked
        *  as having input. */
@@ -3219,7 +3201,7 @@ unselect_filedesc (int fd)
   struct what_is_ready_closure *closure = filedesc_to_what_closure[fd];
 
   assert (closure);
-  if (!NILP (filedesc_with_input[fd]))
+  if (!NILP (XVECTOR_DATA (Vfiledesc_with_input)[fd]))
     {
       /* We are unselecting this process before we have drained the rest of
 	 the input from it, probably from status_notify() in the command loop.
@@ -3243,7 +3225,7 @@ unselect_filedesc (int fd)
 	 throwing away the last block of output - status_notify() has already
 	 taken care of running the proc filter or whatever.
        */
-      filedesc_with_input[fd] = Qnil;
+      XVECTOR_DATA (Vfiledesc_with_input)[fd] = Qnil;
       if (PROCESSP (closure->what))
 	{
 	  assert (process_events_occurred > 0);
@@ -3352,10 +3334,10 @@ Xt_process_to_emacs_event (Lisp_Event *emacs_event)
 
   for (i = 0; i < MAXDESC; i++)
     {
-      Lisp_Object process = filedesc_with_input[i];
+      Lisp_Object process = XVECTOR_DATA (Vfiledesc_with_input)[i];
       if (PROCESSP (process))
 	{
-	  filedesc_with_input[i] = Qnil;
+	  XVECTOR_DATA (Vfiledesc_with_input)[i] = Qnil;
 	  process_events_occurred--;
 	  /* process events have nil as channel */
 	  set_event_type (emacs_event, process_event);
@@ -3409,12 +3391,12 @@ Xt_tty_to_emacs_event (Lisp_Event *emacs_event)
   assert (tty_events_occurred > 0);
   for (i = 0; i < MAXDESC; i++)
     {
-      Lisp_Object console = filedesc_with_input[i];
+      Lisp_Object console = XVECTOR_DATA (Vfiledesc_with_input)[i];
       if (CONSOLEP (console))
 	{
 	  assert (tty_events_occurred > 0);
 	  tty_events_occurred--;
-	  filedesc_with_input[i] = Qnil;
+	  XVECTOR_DATA (Vfiledesc_with_input)[i] = Qnil;
 	  if (read_event_from_tty_or_stream_desc (emacs_event,
 						  XCONSOLE (console)))
 	    return 1;
@@ -4089,30 +4071,6 @@ syms_of_event_Xt (void)
 void
 reinit_vars_of_event_Xt (void)
 {
-  Xt_event_stream = xnew_and_zero (struct event_stream);
-  Xt_event_stream->event_pending_p 	 = emacs_Xt_event_pending_p;
-  Xt_event_stream->force_event_pending_cb= emacs_Xt_force_event_pending;
-  Xt_event_stream->next_event_cb	 = emacs_Xt_next_event;
-  Xt_event_stream->handle_magic_event_cb = emacs_Xt_handle_magic_event;
-  Xt_event_stream->format_magic_event_cb = emacs_Xt_format_magic_event;
-  Xt_event_stream->compare_magic_event_cb= emacs_Xt_compare_magic_event;
-  Xt_event_stream->hash_magic_event_cb   = emacs_Xt_hash_magic_event;
-  Xt_event_stream->add_timeout_cb 	 = emacs_Xt_add_timeout;
-  Xt_event_stream->remove_timeout_cb 	 = emacs_Xt_remove_timeout;
-  Xt_event_stream->select_console_cb 	 = emacs_Xt_select_console;
-  Xt_event_stream->unselect_console_cb 	 = emacs_Xt_unselect_console;
-  Xt_event_stream->select_process_cb 	 = emacs_Xt_select_process;
-  Xt_event_stream->unselect_process_cb 	 = emacs_Xt_unselect_process;
-  Xt_event_stream->drain_queue_cb	 = emacs_Xt_drain_queue;
-  Xt_event_stream->create_io_streams_cb  = emacs_Xt_create_io_streams;
-  Xt_event_stream->delete_io_streams_cb  = emacs_Xt_delete_io_streams;
-  Xt_event_stream->current_event_timestamp_cb =
-    emacs_Xt_current_event_timestamp;
-
-  last_quit_check_signal_tick_count = 0;
-
-  /* this function only makes safe calls */
-  init_what_input_once ();
 }
 
 void
@@ -4169,6 +4127,39 @@ The X11 documentation for XDisplayKeycodes says this can never be less than
 
   VXt_completed_timeouts = Qnil;
   staticpro (&VXt_completed_timeouts);
+
+  Vfiledesc_with_input = make_vector (MAXDESC, Qnil);
+  /* Dump this vector. */
+  dump_add_root_lisp_object (&Vfiledesc_with_input);
+  /* Make it reachable while we're dumping. Don't make it reachable for GC
+     after pdump_load(), it's usually 1024 entries long, full of Qnil, and the
+     process objects are reachable anyway. */
+  staticpro_nodump (&Vfiledesc_with_input);
+
+  /* filedesc_to_what_closure[] is in BSS and set to all zeroes already,
+     which is what we want. */
+
+  Xt_event_stream = xnew_and_zero (struct event_stream);
+  Xt_event_stream->event_pending_p 	 = emacs_Xt_event_pending_p;
+  Xt_event_stream->force_event_pending_cb= emacs_Xt_force_event_pending;
+  Xt_event_stream->next_event_cb	 = emacs_Xt_next_event;
+  Xt_event_stream->handle_magic_event_cb = emacs_Xt_handle_magic_event;
+  Xt_event_stream->format_magic_event_cb = emacs_Xt_format_magic_event;
+  Xt_event_stream->compare_magic_event_cb= emacs_Xt_compare_magic_event;
+  Xt_event_stream->hash_magic_event_cb   = emacs_Xt_hash_magic_event;
+  Xt_event_stream->add_timeout_cb 	 = emacs_Xt_add_timeout;
+  Xt_event_stream->remove_timeout_cb 	 = emacs_Xt_remove_timeout;
+  Xt_event_stream->select_console_cb 	 = emacs_Xt_select_console;
+  Xt_event_stream->unselect_console_cb 	 = emacs_Xt_unselect_console;
+  Xt_event_stream->select_process_cb 	 = emacs_Xt_select_process;
+  Xt_event_stream->unselect_process_cb 	 = emacs_Xt_unselect_process;
+  Xt_event_stream->drain_queue_cb	 = emacs_Xt_drain_queue;
+  Xt_event_stream->create_io_streams_cb  = emacs_Xt_create_io_streams;
+  Xt_event_stream->delete_io_streams_cb  = emacs_Xt_delete_io_streams;
+  Xt_event_stream->current_event_timestamp_cb =
+    emacs_Xt_current_event_timestamp;
+
+  dump_add_root_block_ptr (&Xt_event_stream, &event_stream_description);
 }
 
 /* This mess is a hack that patches the shell widget to treat visual inheritance

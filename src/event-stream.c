@@ -299,6 +299,48 @@ external_debugging_print_event (const Ascbyte *event_description,
 /* The callback routines for the window system or terminal driver */
 struct event_stream *event_stream;
 
+static const struct memory_description event_stream_description_1[] = {
+  { XD_FUNCTION_POINTER, offsetof (struct event_stream,
+                                   event_pending_p) },
+  { XD_FUNCTION_POINTER, offsetof (struct event_stream,
+                                   next_event_cb) },
+  { XD_FUNCTION_POINTER, offsetof (struct event_stream,
+                                   handle_magic_event_cb) },
+  { XD_FUNCTION_POINTER, offsetof (struct event_stream,
+                                   format_magic_event_cb) },
+  { XD_FUNCTION_POINTER, offsetof (struct event_stream,
+                                   compare_magic_event_cb) },
+  { XD_FUNCTION_POINTER, offsetof (struct event_stream,
+                                   hash_magic_event_cb) },
+  { XD_FUNCTION_POINTER, offsetof (struct event_stream,
+                                   add_timeout_cb) },
+  { XD_FUNCTION_POINTER, offsetof (struct event_stream,
+                                   remove_timeout_cb) },
+  { XD_FUNCTION_POINTER, offsetof (struct event_stream,
+                                   select_console_cb) },
+  { XD_FUNCTION_POINTER, offsetof (struct event_stream,
+                                   unselect_console_cb) },
+  { XD_FUNCTION_POINTER, offsetof (struct event_stream,
+                                   select_process_cb) },
+  { XD_FUNCTION_POINTER, offsetof (struct event_stream,
+                                   unselect_process_cb) },
+  { XD_FUNCTION_POINTER, offsetof (struct event_stream,
+                                   drain_queue_cb) },
+  { XD_FUNCTION_POINTER, offsetof (struct event_stream,
+                                   force_event_pending_cb) },
+  { XD_FUNCTION_POINTER, offsetof (struct event_stream,
+                                   create_io_streams_cb) },
+  { XD_FUNCTION_POINTER, offsetof (struct event_stream,
+                                   delete_io_streams_cb) },
+  { XD_FUNCTION_POINTER, offsetof (struct event_stream,
+                                   current_event_timestamp_cb) },
+  { XD_END }
+};
+
+const struct sized_memory_description event_stream_description = {
+  sizeof (struct event_stream),
+  event_stream_description_1
+};
 
 /*
 

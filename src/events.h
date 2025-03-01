@@ -73,6 +73,8 @@ struct event_stream
 
 extern struct event_stream *event_stream;
 
+extern const struct sized_memory_description event_stream_description;
+
 #define EVENT_FOO_BAR(e, uptype, downtype, field) ((e)->event.downtype.field)
 #define SET_EVENT_FOO_BAR(e, uptype, downtype, field, val) \
 do { (e)->event.downtype.field = (val); } while (0)

@@ -1506,28 +1506,6 @@ If successful, the return value is t, otherwise nil.
 /*-----------------------------------------------------------------------*/
 
 void
-process_type_create_nt (void)
-{
-  PROCESS_HAS_METHOD (nt, alloc_process_data);
-  PROCESS_HAS_METHOD (nt, finalize_process_data);
-  PROCESS_HAS_METHOD (nt, init_process);
-  PROCESS_HAS_METHOD (nt, create_process);
-  PROCESS_HAS_METHOD (nt, update_status_if_terminated);
-  PROCESS_HAS_METHOD (nt, send_process);
-  PROCESS_HAS_METHOD (nt, deactivate_process);
-  PROCESS_HAS_METHOD (nt, kill_child_process);
-  PROCESS_HAS_METHOD (nt, kill_process_by_pid);
-#ifdef HAVE_SOCKETS
-  PROCESS_HAS_METHOD (nt, canonicalize_host_name);
-  PROCESS_HAS_METHOD (nt, open_network_stream);
-#ifdef HAVE_MULTICAST
-#error I won't do this until '95 has winsock2
-  PROCESS_HAS_METHOD (nt, open_multicast_group);
-#endif
-#endif
-}
-
-void
 syms_of_process_nt (void)
 {
   DEFSUBR (Fmswindows_set_process_priority);
@@ -1555,4 +1533,22 @@ When non-nil, they inherit their error mode setting from Emacs, which stops
 them blocking when trying to access unmounted drives etc.
 */ );
   Vmswindows_start_process_inherit_error_mode = Qt;
+
+  PROCESS_HAS_METHOD (nt, alloc_process_data);
+  PROCESS_HAS_METHOD (nt, finalize_process_data);
+  PROCESS_HAS_METHOD (nt, init_process);
+  PROCESS_HAS_METHOD (nt, create_process);
+  PROCESS_HAS_METHOD (nt, update_status_if_terminated);
+  PROCESS_HAS_METHOD (nt, send_process);
+  PROCESS_HAS_METHOD (nt, deactivate_process);
+  PROCESS_HAS_METHOD (nt, kill_child_process);
+  PROCESS_HAS_METHOD (nt, kill_process_by_pid);
+#ifdef HAVE_SOCKETS
+  PROCESS_HAS_METHOD (nt, canonicalize_host_name);
+  PROCESS_HAS_METHOD (nt, open_network_stream);
+#ifdef HAVE_MULTICAST
+#error I won't do this until '95 has winsock2
+  PROCESS_HAS_METHOD (nt, open_multicast_group);
+#endif
+#endif
 }
