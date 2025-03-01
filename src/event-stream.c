@@ -301,7 +301,7 @@ struct event_stream *event_stream;
 
 static const struct memory_description event_stream_description_1[] = {
   { XD_FUNCTION_POINTER, offsetof (struct event_stream,
-                                   event_pending_p) },
+                                   event_pending_p_cb) },
   { XD_FUNCTION_POINTER, offsetof (struct event_stream,
                                    next_event_cb) },
   { XD_FUNCTION_POINTER, offsetof (struct event_stream,
@@ -1813,13 +1813,13 @@ event_stream_event_pending_p (int how_many)
      "event pending".  Couldn't we just drain the queue and see what's in
      it, and not maybe need a separate event method for this?  Would this
      work when HOW_MANY is 0?  Maybe this would be slow? */
-  return event_stream && event_stream->event_pending_p (how_many);
+  return event_stream && event_stream->event_pending_p_cb (how_many);
 }
 
 static void
 event_stream_force_event_pending (struct frame *f)
 {
-  if (event_stream->force_event_pending_cb)
+  if (HAS_EVENT_STREAM_METHOD_P (event_stream, force_event_pending))
     event_stream->force_event_pending_cb (f);
 }
 
@@ -1827,7 +1827,7 @@ void
 event_stream_drain_queue (void)
 {
   /* This can call Lisp */
-  if (event_stream && event_stream->drain_queue_cb)
+  if (event_stream && HAS_EVENT_STREAM_METHOD_P (event_stream, drain_queue))
     event_stream->drain_queue_cb ();
 }
 
@@ -2778,14 +2778,14 @@ Return non-nil iff we received any output before the timeout expired.
 	    only interested in process events, which don't go on that.  In
 	    fact, we can't read from it anyway, because we put stuff on it.
 
-	    Note that event_stream->event_pending_p must be called in such
-	    a way that it says whether any events *of any kind* are ready,
-	    not just user events, or (accept-process-output nil) will fail
-	    to dispatch any process events that may be on the queue.  It is
-	    not clear to me that this is important, because the top-level
-	    loop will process it, and I don't think that there is ever a
-	    time when one calls accept-process-output with a nil argument
-	    and really need the processes to be handled. */
+	    Note that event_stream->event_pending_p_cb must be called in such
+	    a way that it says whether any events *of any kind* are ready, not
+	    just user events, or (accept-process-output nil) will fail to
+	    dispatch any process events that may be on the queue.  It is not
+	    clear to me that this is important, because the top-level loop
+	    will process it, and I don't think that there is ever a time when
+	    one calls accept-process-output with a nil argument and really
+	    need the processes to be handled. */
     {
       /* If our timeout has arrived, we move along. */
       if (timeout_enabled && !event_stream_wakeup_pending_p (timeout_id, 0))

@@ -5106,27 +5106,23 @@ If negative or zero, currently set system default is used instead.
   mswindows_mouse_button_tolerance = 0;
   mswindows_alt_by_itself_activates_menu = 1;
 
-  mswindows_event_stream = xnew_and_zero (struct event_stream);
-
-  mswindows_event_stream->event_pending_p 	= emacs_mswindows_event_pending_p;
-  mswindows_event_stream->next_event_cb		= emacs_mswindows_next_event;
-  mswindows_event_stream->handle_magic_event_cb = emacs_mswindows_handle_magic_event;
-  mswindows_event_stream->format_magic_event_cb = emacs_mswindows_format_magic_event;
-  mswindows_event_stream->compare_magic_event_cb= emacs_mswindows_compare_magic_event;
-  mswindows_event_stream->hash_magic_event_cb   = emacs_mswindows_hash_magic_event;
-  mswindows_event_stream->add_timeout_cb 	= emacs_mswindows_add_timeout;
-  mswindows_event_stream->remove_timeout_cb 	= emacs_mswindows_remove_timeout;
-  mswindows_event_stream->drain_queue_cb	= emacs_mswindows_drain_queue;
-  mswindows_event_stream->select_console_cb 	= emacs_mswindows_select_console;
-  mswindows_event_stream->unselect_console_cb	= emacs_mswindows_unselect_console;
-  mswindows_event_stream->select_process_cb 	= emacs_mswindows_select_process;
-  mswindows_event_stream->unselect_process_cb	= emacs_mswindows_unselect_process;
-  mswindows_event_stream->create_io_streams_cb = emacs_mswindows_create_io_streams;
-  mswindows_event_stream->delete_io_streams_cb = emacs_mswindows_delete_io_streams;
-  mswindows_event_stream->current_event_timestamp_cb =
-    emacs_mswindows_current_event_timestamp;
-
-  dump_add_root_block_ptr (&mswindows_event_stream, &event_stream_description);
+  DEFINE_EVENT_STREAM (mswindows);
+  EVENT_STREAM_HAS_METHOD (mswindows, event_pending_p);
+  EVENT_STREAM_HAS_METHOD (mswindows, next_event);
+  EVENT_STREAM_HAS_METHOD (mswindows, handle_magic_event);
+  EVENT_STREAM_HAS_METHOD (mswindows, format_magic_event);
+  EVENT_STREAM_HAS_METHOD (mswindows, compare_magic_event);
+  EVENT_STREAM_HAS_METHOD (mswindows, hash_magic_event);
+  EVENT_STREAM_HAS_METHOD (mswindows, add_timeout);
+  EVENT_STREAM_HAS_METHOD (mswindows, remove_timeout);
+  EVENT_STREAM_HAS_METHOD (mswindows, drain_queue);
+  EVENT_STREAM_HAS_METHOD (mswindows, select_console);
+  EVENT_STREAM_HAS_METHOD (mswindows, unselect_console);
+  EVENT_STREAM_HAS_METHOD (mswindows, select_process);
+  EVENT_STREAM_HAS_METHOD (mswindows, unselect_process);
+  EVENT_STREAM_HAS_METHOD (mswindows, create_io_streams);
+  EVENT_STREAM_HAS_METHOD (mswindows, delete_io_streams);
+  EVENT_STREAM_HAS_METHOD (mswindows, current_event_timestamp);
 }
 
 void

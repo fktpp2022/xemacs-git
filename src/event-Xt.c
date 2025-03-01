@@ -2796,9 +2796,9 @@ handle_client_message (struct frame *f, XEvent *event)
 
      emacs_Xt_drain_queue () - this happens when SIGIO gets tripped,
      processing the event queue allows C-g to be checked for.  It gets
-     called from emacs_Xt_event_pending_p (). #### Update this comment.
+     called from emacs_Xt_event_pending_p_cb (). #### Update this comment.
 
-   In order to solve this I have tried introducing a list primitive -
+   In order to solve this I have tried introducing a Lisp primitive -
    dispatch-non-command-events - which forces processing of X events
    related to display. Unfortunately this has a number of problems,
    one is that it is possible for event_stream_event_pending_p to
@@ -4139,27 +4139,24 @@ The X11 documentation for XDisplayKeycodes says this can never be less than
   /* filedesc_to_what_closure[] is in BSS and set to all zeroes already,
      which is what we want. */
 
-  Xt_event_stream = xnew_and_zero (struct event_stream);
-  Xt_event_stream->event_pending_p 	 = emacs_Xt_event_pending_p;
-  Xt_event_stream->force_event_pending_cb= emacs_Xt_force_event_pending;
-  Xt_event_stream->next_event_cb	 = emacs_Xt_next_event;
-  Xt_event_stream->handle_magic_event_cb = emacs_Xt_handle_magic_event;
-  Xt_event_stream->format_magic_event_cb = emacs_Xt_format_magic_event;
-  Xt_event_stream->compare_magic_event_cb= emacs_Xt_compare_magic_event;
-  Xt_event_stream->hash_magic_event_cb   = emacs_Xt_hash_magic_event;
-  Xt_event_stream->add_timeout_cb 	 = emacs_Xt_add_timeout;
-  Xt_event_stream->remove_timeout_cb 	 = emacs_Xt_remove_timeout;
-  Xt_event_stream->select_console_cb 	 = emacs_Xt_select_console;
-  Xt_event_stream->unselect_console_cb 	 = emacs_Xt_unselect_console;
-  Xt_event_stream->select_process_cb 	 = emacs_Xt_select_process;
-  Xt_event_stream->unselect_process_cb 	 = emacs_Xt_unselect_process;
-  Xt_event_stream->drain_queue_cb	 = emacs_Xt_drain_queue;
-  Xt_event_stream->create_io_streams_cb  = emacs_Xt_create_io_streams;
-  Xt_event_stream->delete_io_streams_cb  = emacs_Xt_delete_io_streams;
-  Xt_event_stream->current_event_timestamp_cb =
-    emacs_Xt_current_event_timestamp;
-
-  dump_add_root_block_ptr (&Xt_event_stream, &event_stream_description);
+  DEFINE_EVENT_STREAM (Xt);
+  EVENT_STREAM_HAS_METHOD (Xt, event_pending_p);
+  EVENT_STREAM_HAS_METHOD (Xt, force_event_pending);
+  EVENT_STREAM_HAS_METHOD (Xt, next_event);
+  EVENT_STREAM_HAS_METHOD (Xt, handle_magic_event);
+  EVENT_STREAM_HAS_METHOD (Xt, format_magic_event);
+  EVENT_STREAM_HAS_METHOD (Xt, compare_magic_event);
+  EVENT_STREAM_HAS_METHOD (Xt, hash_magic_event);
+  EVENT_STREAM_HAS_METHOD (Xt, add_timeout);
+  EVENT_STREAM_HAS_METHOD (Xt, remove_timeout);
+  EVENT_STREAM_HAS_METHOD (Xt, select_console);
+  EVENT_STREAM_HAS_METHOD (Xt, unselect_console);
+  EVENT_STREAM_HAS_METHOD (Xt, select_process);
+  EVENT_STREAM_HAS_METHOD (Xt, unselect_process);
+  EVENT_STREAM_HAS_METHOD (Xt, drain_queue);
+  EVENT_STREAM_HAS_METHOD (Xt, create_io_streams);
+  EVENT_STREAM_HAS_METHOD (Xt, delete_io_streams);
+  EVENT_STREAM_HAS_METHOD (Xt, current_event_timestamp);
 }
 
 /* This mess is a hack that patches the shell widget to treat visual inheritance

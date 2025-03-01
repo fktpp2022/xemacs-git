@@ -2114,24 +2114,22 @@ Do NOT modify.
   /* filedesc_to_what_closure[] is in BSS and set to all zeroes already,
      which is what we want. */
 
-  gtk_event_stream = xnew_and_zero (struct event_stream);
-  gtk_event_stream->event_pending_p 	= emacs_gtk_event_pending_p;
-  gtk_event_stream->next_event_cb	= emacs_gtk_next_event;
-  gtk_event_stream->handle_magic_event_cb= emacs_gtk_handle_magic_event;
-  gtk_event_stream->format_magic_event_cb= emacs_gtk_format_magic_event;
-  gtk_event_stream->compare_magic_event_cb= emacs_gtk_compare_magic_event;
-  gtk_event_stream->hash_magic_event_cb  = emacs_gtk_hash_magic_event;
-  gtk_event_stream->add_timeout_cb 	= emacs_gtk_add_timeout;
-  gtk_event_stream->remove_timeout_cb 	= emacs_gtk_remove_timeout;
-  gtk_event_stream->select_console_cb 	= emacs_gtk_select_console;
-  gtk_event_stream->unselect_console_cb = emacs_gtk_unselect_console;
-  gtk_event_stream->select_process_cb 	= emacs_gtk_select_process;
-  gtk_event_stream->unselect_process_cb = emacs_gtk_unselect_process;
-  gtk_event_stream->drain_queue_cb	= emacs_gtk_drain_queue;
-  gtk_event_stream->create_io_streams_cb= emacs_gtk_create_io_streams;
-  gtk_event_stream->delete_io_streams_cb= emacs_gtk_delete_io_streams;
-  gtk_event_stream->force_event_pending_cb= emacs_gtk_force_event_pending;
-
-  dump_add_root_block_ptr (&gtk_event_stream, &event_stream_description);
+  DEFINE_EVENT_STREAM (gtk);
+  EVENT_STREAM_HAS_METHOD (gtk, event_pending_p);
+  EVENT_STREAM_HAS_METHOD (gtk, next_event);
+  EVENT_STREAM_HAS_METHOD (gtk, handle_magic_event);
+  EVENT_STREAM_HAS_METHOD (gtk, format_magic_event);
+  EVENT_STREAM_HAS_METHOD (gtk, compare_magic_event);
+  EVENT_STREAM_HAS_METHOD (gtk, hash_magic_event);
+  EVENT_STREAM_HAS_METHOD (gtk, add_timeout);
+  EVENT_STREAM_HAS_METHOD (gtk, remove_timeout);
+  EVENT_STREAM_HAS_METHOD (gtk, select_console);
+  EVENT_STREAM_HAS_METHOD (gtk, unselect_console);
+  EVENT_STREAM_HAS_METHOD (gtk, select_process);
+  EVENT_STREAM_HAS_METHOD (gtk, unselect_process);
+  EVENT_STREAM_HAS_METHOD (gtk, drain_queue);
+  EVENT_STREAM_HAS_METHOD (gtk, create_io_streams);
+  EVENT_STREAM_HAS_METHOD (gtk, delete_io_streams);
+  EVENT_STREAM_HAS_METHOD (gtk, force_event_pending);
 }
 

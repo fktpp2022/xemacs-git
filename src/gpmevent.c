@@ -448,9 +448,9 @@ static void hook_event_callbacks_once (void)
 
   if (!hooker)
     {
-      orig_event_pending_p = event_stream->event_pending_p;
+      orig_event_pending_p = event_stream->event_pending_p_cb;
       orig_next_event_cb = event_stream->next_event_cb;
-      event_stream->event_pending_p = gpm_event_pending_p;
+      event_stream->event_pending_p_cb = gpm_event_pending_p;
       event_stream->next_event_cb = gpm_next_event_cb;
       hooker = 1;
     }
@@ -615,17 +615,18 @@ Toggle accepting of GPM mouse events.
   return (rval ? Qnil : Qt);
 }
 
-void vars_of_gpmevent (void)
+void
+vars_of_gpmevent (void)
 {
   gpm_event_queue = Qnil;
   staticpro (&gpm_event_queue);
 
   gpm_event_queue_tail = Qnil;
-  staticpro (&gpm_event_queue_tail);
   dump_add_root_lisp_object (&gpm_event_queue_tail);
 }
 
-void syms_of_gpmevent (void)
+void
+syms_of_gpmevent (void)
 {
   DEFSUBR (Freceive_gpm_event);
   DEFSUBR (Fgpm_enable);

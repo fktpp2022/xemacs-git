@@ -940,6 +940,65 @@
 	appropriately in here.
 	* window.c (Fcurrent_pixel_row): Ditto.
 
+2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Initialize the event stream objects using C macros, for symmetry,
+	consistency with the specifier objects.
+
+	* events.h:
+	* events.h (struct event_stream):
+	Rename the event_pending_p field of this to event_pending_p_cb,
+	for symmetry with all the other fields.
+
+	* events.h (DEFINE_EVENT_STREAM): New macro.
+	Allocate an event stream object with xnew_and_zero(), and make the
+	portable dumper aware of it.
+	
+	* events.h (EVENT_STREAM_HAS_METHOD): New macro, initialize a
+	given method for an event stream.
+
+	* events.h (HAS_EVENT_STREAM_METHOD_P): New macro, return non-zero
+	if an event stream has a given method.
+
+	* gpmevent.c (hook_event_callbacks_once):
+	Adjust this given the new name for event_pending_p().
+
+	* gpmevent.c (vars_of_gpmevent):
+	Fix this in passing, staticpro() already does
+	dump_add_root_lisp_object(), no need to do that explicitly.
+
+	* event-Xt.c:
+	* event-Xt.c (vars_of_event_Xt):
+	Use the macros to initialize the event stream.
+
+	* event-gtk.c:
+	* event-gtk.c (vars_of_event_gtk):
+	Use the macros to initialize the event stream.
+
+	* event-msw.c:
+	* event-msw.c (vars_of_event_mswindows):
+	Use the macros to initialize the event stream.
+
+	* event-stream.c:
+	Adjust event_stream_description_1 to reflect the new name for the
+	event_pending_p method.
+
+	* event-stream.c (event_stream_event_pending_p):
+	Adjust this function to reflect the new name for the
+	event_pending_p method.
+
+	* event-stream.c (event_stream_force_event_pending):
+	Use HAVE_EVENT_STREAM_METHOD_P in this.
+
+	* event-stream.c (event_stream_drain_queue):
+	Ditto.
+	* event-stream.c (Faccept_process_output):
+	Update a comment here.
+
+	* event-tty.c:
+	* event-tty.c (vars_of_event_tty):
+	Use the macros to initialize the event stream.
+
 2025-01-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* device-gtk.c (gtk_init_device):

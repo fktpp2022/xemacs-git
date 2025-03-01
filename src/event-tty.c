@@ -87,7 +87,7 @@ emacs_tty_event_pending_p (int how_many)
   Lisp_Object event;
   int tick_count_val;
 
-  /* Cf. the comments on emacs_Xt_event_pending_p in event-xlike-inc.c . */
+  /* Cf. the comments on emacs_Xt_event_pending_p_cb in event-xlike-inc.c . */
 
   if (!how_many)
     {
@@ -348,25 +348,23 @@ reinit_vars_of_event_tty (void)
 void
 vars_of_event_tty (void)
 {
-  tty_event_stream = xnew_and_zero (struct event_stream);
+  DEFINE_EVENT_STREAM (tty);
 
-  tty_event_stream->event_pending_p 	= emacs_tty_event_pending_p;
-  tty_event_stream->next_event_cb	= emacs_tty_next_event;
-  tty_event_stream->handle_magic_event_cb = emacs_tty_handle_magic_event;
-  tty_event_stream->format_magic_event_cb = emacs_tty_format_magic_event;
-  tty_event_stream->compare_magic_event_cb= emacs_tty_compare_magic_event;
-  tty_event_stream->hash_magic_event_cb   = emacs_tty_hash_magic_event;
-  tty_event_stream->add_timeout_cb 	= emacs_tty_add_timeout;
-  tty_event_stream->remove_timeout_cb 	= emacs_tty_remove_timeout;
-  tty_event_stream->select_console_cb 	= emacs_tty_select_console;
-  tty_event_stream->unselect_console_cb = emacs_tty_unselect_console;
-  tty_event_stream->select_process_cb 	= emacs_tty_select_process;
-  tty_event_stream->unselect_process_cb = emacs_tty_unselect_process;
-  tty_event_stream->drain_queue_cb	= emacs_tty_drain_queue;
-  tty_event_stream->create_io_streams_cb = emacs_tty_create_io_streams;
-  tty_event_stream->delete_io_streams_cb = emacs_tty_delete_io_streams;
-
-  dump_add_root_block_ptr (&tty_event_stream, &event_stream_description);
+  EVENT_STREAM_HAS_METHOD (tty, event_pending_p);
+  EVENT_STREAM_HAS_METHOD (tty, next_event);
+  EVENT_STREAM_HAS_METHOD (tty, handle_magic_event);
+  EVENT_STREAM_HAS_METHOD (tty, format_magic_event);
+  EVENT_STREAM_HAS_METHOD (tty, compare_magic_event);
+  EVENT_STREAM_HAS_METHOD (tty, hash_magic_event);
+  EVENT_STREAM_HAS_METHOD (tty, add_timeout);
+  EVENT_STREAM_HAS_METHOD (tty, remove_timeout);
+  EVENT_STREAM_HAS_METHOD (tty, select_console);
+  EVENT_STREAM_HAS_METHOD (tty, unselect_console);
+  EVENT_STREAM_HAS_METHOD (tty, select_process);
+  EVENT_STREAM_HAS_METHOD (tty, unselect_process);
+  EVENT_STREAM_HAS_METHOD (tty, drain_queue);
+  EVENT_STREAM_HAS_METHOD (tty, create_io_streams);
+  EVENT_STREAM_HAS_METHOD (tty, delete_io_streams);
 }
 
 void

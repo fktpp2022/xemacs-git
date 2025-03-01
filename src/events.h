@@ -36,7 +36,7 @@ See also
 
 struct event_stream
 {
-  int  (*event_pending_p)	(int);
+  int  (*event_pending_p_cb)	(int);
   void (*next_event_cb)		(Lisp_Event *);
   void (*handle_magic_event_cb)	(Lisp_Event *);
   Bytecount (*format_magic_event_cb)	(Lisp_Event *, Lisp_Object pstream);
@@ -74,6 +74,24 @@ struct event_stream
 extern struct event_stream *event_stream;
 
 extern const struct sized_memory_description event_stream_description;
+
+/* Allocate an event stream object for TYPE, and make the portable dumper
+   aware of it. */
+#define DEFINE_EVENT_STREAM(type)                                       \
+  do                                                                    \
+    {                                                                   \
+      type##_event_stream = xnew_and_zero (struct event_stream);        \
+      dump_add_root_block_ptr (&type##_event_stream,                    \
+                               &event_stream_description);              \
+    } while (0)
+
+/* Declare that event_stream TYPE has method METH; used in
+   initialization routines */
+#define EVENT_STREAM_HAS_METHOD(type, meth) \
+  (type##_event_stream->meth##_cb = emacs_##type##_##meth)
+
+#define RAW_EVENT_STREAM_METHOD(event_stream, method) (event_stream->method##_cb)
+#define HAS_EVENT_STREAM_METHOD_P(sp, m) (!!RAW_EVENT_STREAM_METHOD (sp, m))
 
 #define EVENT_FOO_BAR(e, uptype, downtype, field) ((e)->event.downtype.field)
 #define SET_EVENT_FOO_BAR(e, uptype, downtype, field, val) \
