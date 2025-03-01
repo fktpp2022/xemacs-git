@@ -106,10 +106,6 @@ void kkcc_detailed_backtrace_full (void);
 
 
 /* Initializers */
-void init_gc_early (void);
-void reinit_gc_early (void);
-void init_gc_once_early (void);
-
 void syms_of_gc (void);
 void vars_of_gc (void);
 void complex_vars_of_gc (void);

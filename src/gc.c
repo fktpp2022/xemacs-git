@@ -83,13 +83,15 @@ EMACS_INT total_gc_usage;
 int total_gc_usage_set;
 
 /* Number of bytes of consing since gc before another gc should be done. */
-Fixnum gc_cons_threshold;
+Fixnum gc_cons_threshold = GC_CONS_THRESHOLD;
 
 /* Nonzero during gc */
 int gc_in_progress;
 
+#define GC_CONS_PERCENTAGE              40 /* #### what is optimal? */
+
 /* Percentage of consing of total data size before another GC. */
-Fixnum gc_cons_percentage;
+Fixnum gc_cons_percentage = GC_CONS_PERCENTAGE;
 
 
 /************************************************************************/
@@ -98,32 +100,22 @@ Fixnum gc_cons_percentage;
 
 int need_to_garbage_collect;
 
-#ifdef ERROR_CHECK_GC
-int always_gc = 0;    		/* Debugging hack; equivalent to
-				   (setq gc-cons-thresold -1) */
-#else
-#define always_gc 0
-#endif
-
 /* True if it's time to garbage collect now. */
 void
 recompute_need_to_garbage_collect (void)
 {
-  if (always_gc)
-    need_to_garbage_collect = 1;
-  else
-    need_to_garbage_collect = 
-      (consing_since_gc > gc_cons_threshold
-       &&
+  need_to_garbage_collect = 
+    (consing_since_gc > gc_cons_threshold
+     &&
 #if 0 /* #### implement this better */
-       ((double)consing_since_gc) / total_data_usage()) >=
-      ((double)gc_cons_percentage / 100)
+     ((double)consing_since_gc) / total_data_usage()) >=
+    ((double)gc_cons_percentage / 100)
 #else
-       (!total_gc_usage_set ||
-	((double)consing_since_gc / total_gc_usage) >=
-	((double)gc_cons_percentage / 100))
+    (!total_gc_usage_set ||
+     ((double)consing_since_gc / total_gc_usage) >=
+     ((double)gc_cons_percentage / 100))
 #endif
-       );
+    );
   recompute_funcall_allocation_flag ();
 }
 
@@ -1128,7 +1120,8 @@ show_gc_cursor_and_message (void)
   {
     Lisp_Object frame;
     Lisp_Object device = Fselected_device (Qnil);
-    if (NILP (device)) /* Could happen during startup, eg. if always_gc */
+    if (NILP (device)) /* Could happen during startup, eg. if
+                          gc-cons-threshold negative. */
       return;
     frame = Fselected_frame (device);
     if (NILP (frame))
@@ -1457,38 +1450,6 @@ void garbage_collect_1 (void)
 /************************************************************************/
 
 /* Initialization */
-static void
-common_init_gc_early (void)
-{
-  Vgc_message = Qzero;
-
-  gc_currently_forbidden = 0;
-  gc_hooks_inhibited = 0;
-
-  need_to_garbage_collect = always_gc;
-
-  gc_cons_threshold = GC_CONS_THRESHOLD;
-  gc_cons_percentage = 40; /* #### what is optimal? */
-  total_gc_usage_set = 0;
-}
-
-void
-init_gc_early (void)
-{
-}
-
-void
-reinit_gc_early (void)
-{
-  common_init_gc_early ();
-}
-
-void
-init_gc_once_early (void)
-{
-  common_init_gc_early ();
-}
-
 void
 syms_of_gc (void)
 {
@@ -1528,6 +1489,7 @@ long enough to be able to set it back.
  
 See also `consing-since-gc' and `gc-cons-percentage'.
 */ );
+  gc_cons_threshold = GC_CONS_THRESHOLD;
 
   DEFVAR_INT ("gc-cons-percentage", &gc_cons_percentage /*
 *Percentage of memory allocated between garbage collections.
@@ -1572,7 +1534,7 @@ window system and `gc-pointer-glyph' specifies a value (i.e. a pointer
 image instance) in the domain of the selected frame, the mouse pointer
 will change instead of this message being printed.
 */ );
-  Vgc_message = build_defer_string (gc_default_message);
+  Vgc_message = Qzero;
 
   DEFVAR_LISP ("gc-pointer-glyph", &Vgc_pointer_glyph /*
 Pointer glyph used to indicate that a garbage collection is in progress.

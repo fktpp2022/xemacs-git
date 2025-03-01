@@ -1056,8 +1056,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 
   init_alloc_early ();
 
-  init_gc_early ();
-
   /* Handle the -batch switch, which means don't do interactive display.  */
   if (argmatch (argv, argc, "-batch", "--batch", 0, NULL, &skip_args))
     {
@@ -1290,8 +1288,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 	 new objects. */
       init_alloc_once_early ();
 
-      init_gc_once_early ();
-
       /* Make sure that hash tables (and packages) can be created.  Create
          obarray. */
       init_elhash_once_early ();
@@ -1314,7 +1310,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
   else if (!restart)	      /* after successful pdump_load() */
     {
       reinit_alloc_early ();
-      reinit_gc_early ();
       reinit_opaque_early ();
       reinit_eistring_early ();
 #ifdef WITH_NUMBER_TYPES
@@ -2345,8 +2340,8 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 
 #ifdef ERROR_CHECK_GC
       {
-	extern int always_gc;
-	if (always_gc)                /* purification debugging hack */
+	extern EMACS_INT gc_cons_threshold;
+	if (gc_cons_threshold < 0)       /* purification debugging hack */
 	  garbage_collect_1 ();
       }
 #endif

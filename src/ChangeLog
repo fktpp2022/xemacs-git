@@ -880,6 +880,33 @@
 
 2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	There's no actual need for the various init_gc_* functions, remove
+	them.
+
+	* emacs.c (main_1):
+	Remove calls to init_gc_early (), init_gc_once_early(),
+	reinit_gc_early(), not needed.
+	Examine GC_CONS_THRESHOLD rather than ALWAYS_GC if ERROR_CHECK_GC
+	and deciding whether to GC after calling the complex_vars_of()
+	functions.
+
+	* gc.c (int always_gc): Removed.
+	Remove ALWAYS_GC, equivalent to setting gc-cons-threshold to -1,
+	not visible to Lisp.
+	* gc.c (recompute_need_to_garbage_collect):
+	No longer check it in this function.
+	* gc.c (show_gc_cursor_and_message): Update a comment now
+	always_gc is gone.
+	* gc.c (common_init_gc_early): Removed.
+	This did various things that are better done by the portable
+	dumper and by the C implementation.
+	* gc.c (vars_of_gc): Trust the portable dumper to preserve
+	gc_cons_percentage, gc_cons_threshold, Vgc_message.
+	* gc.h:
+	Remove the declarations for the various init_gc functions.
+
+2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Remove the need to call init_lcrecord_lists after pdump_load(),
 	just set a pointer into the dumped data instead, simplifying
 	startup a little. Remove the initialization of
