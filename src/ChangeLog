@@ -1,5 +1,33 @@
 2025-03-01  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove the EVENT_DATA_AS_OBJECTS code, not used in over twenty
+	years and not adding any value. Commit generated with unifdef
+	-UEVENT_DATA_AS_OBJECTS. 
+
+	* alloc.c:
+	* alloc.c (gc_sweep_1):
+	* alloc.c (common_init_alloc_early):
+	* events.c:
+	* events.c (Fcopy_event):
+	* events.c (syms_of_events):
+	* events.h:
+	* events.h (EVENT_FOO_BAR):
+	* events.h (struct Lisp_Key_Data):
+	* events.h (struct Lisp_Button_Data):
+	* events.h (struct Lisp_Motion_Data):
+	* events.h (struct Lisp_Process_Data):
+	* events.h (struct Lisp_Timeout_Data):
+	* events.h (struct Lisp_Eval_Data):
+	* events.h (struct Lisp_Misc_User_Data):
+	* events.h (struct Lisp_Magic_Eval_Data):
+	* events.h (struct Lisp_Magic_Data):
+	* events.h (struct Lisp_Event):
+	* events.h (XSET_EVENT_NEXT):
+	* lisp.h:
+	* lrecord.h (enum lrecord_type):
+
+2025-03-01  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* symeval.h (XSYMBOL_VALUE_MAGIC):
 	Correct a compile time failure with --with-optimization, thank you
 	the buildbot.

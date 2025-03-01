@@ -202,54 +202,6 @@ static const struct memory_description event_description [] = {
   { XD_END }
 };
 
-#ifdef EVENT_DATA_AS_OBJECTS
-
-DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("key-data", key_data,
-				      internal_object_printer, 0, 0, 0,
-				      key_data_description, 
-				      Lisp_Key_Data);
-
-DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("button-data", button_data,
-				      internal_object_printer, 0, 0, 0,
-				      button_data_description, 
-				      Lisp_Button_Data);
-
-DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("motion-data", motion_data,
-				      internal_object_printer, 0, 0, 0,
-				      motion_data_description,
-				      Lisp_Motion_Data);
-
-DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("process-data", process_data,
-				      internal_object_printer, 0, 0, 0,
-				      process_data_description,
-				      Lisp_Process_Data);
-
-DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("timeout-data", timeout_data,
-				      internal_object_printer, 0, 0, 0,
-				      timeout_data_description,
-				      Lisp_Timeout_Data);
-
-DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("eval-data", eval_data,
-				      internal_object_printer, 0, 0, 0,
-				      eval_data_description,
-				      Lisp_Eval_Data);
-
-DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("misc-user-data", misc_user_data,
-				      internal_object_printer, 0, 0, 0,
-				      misc_user_data_description, 
-				      Lisp_Misc_User_Data);
-
-DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("magic-eval-data", magic_eval_data,
-				      internal_object_printer, 0, 0, 0,
-				      magic_eval_data_description, 
-				      Lisp_Magic_Eval_Data);
-
-DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("magic-data", magic_data,
-				      internal_object_printer, 0, 0, 0,
-				      magic_data_description,
-				      Lisp_Magic_Data);
-
-#endif /* EVENT_DATA_AS_OBJECTS */
 
 static void
 print_event (Lisp_Object obj, Lisp_Object printcharfun,
@@ -909,11 +861,7 @@ function `deallocate-event'.
   XSET_EVENT_CHANNEL (event2, XEVENT_CHANNEL (event1));
   XSET_EVENT_TIMESTAMP (event2, XEVENT_TIMESTAMP (event1));
   
-#ifdef EVENT_DATA_AS_OBJECTS
-  copy_lisp_object (XEVENT_DATA (event2), XEVENT_DATA (event1));
-#else
   XEVENT (event2)->event = XEVENT (event1)->event;
-#endif
   return event2;
 }
 
@@ -2622,17 +2570,6 @@ void
 syms_of_events (void)
 {
   INIT_LISP_OBJECT (event);
-#ifdef EVENT_DATA_AS_OBJECTS
-  INIT_LISP_OBJECT (key_data);
-  INIT_LISP_OBJECT (button_data);
-  INIT_LISP_OBJECT (motion_data);
-  INIT_LISP_OBJECT (process_data);
-  INIT_LISP_OBJECT (timeout_data);
-  INIT_LISP_OBJECT (eval_data);
-  INIT_LISP_OBJECT (misc_user_data);
-  INIT_LISP_OBJECT (magic_eval_data);
-  INIT_LISP_OBJECT (magic_data);
-#endif /* EVENT_DATA_AS_OBJECTS */  
 
   DEFSUBR (Fcharacter_to_event);
   DEFSUBR (Fevent_to_character);

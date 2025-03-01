@@ -4270,27 +4270,6 @@ void recompute_funcall_allocation_flag (void);
 
 Bytecount malloced_storage_size (void *, Bytecount, struct usage_stats *);
 
-#ifdef EVENT_DATA_AS_OBJECTS
-Lisp_Object make_key_data (void);
-Lisp_Object make_button_data (void);
-Lisp_Object make_motion_data (void);
-Lisp_Object make_process_data (void);
-Lisp_Object make_timeout_data (void);
-Lisp_Object make_magic_data (void);
-Lisp_Object make_magic_eval_data (void);
-Lisp_Object make_eval_data (void);
-Lisp_Object make_misc_user_data (void);
-void free_key_data (Lisp_Object);
-void free_button_data (Lisp_Object);
-void free_motion_data (Lisp_Object);
-void free_process_data (Lisp_Object);
-void free_timeout_data (Lisp_Object);
-void free_magic_data (Lisp_Object);
-void free_magic_eval_data (Lisp_Object);
-void free_eval_data (Lisp_Object);
-void free_misc_user_data (Lisp_Object);
-#endif /* EVENT_DATA_AS_OBJECTS */
-
 
 /* Defined in array.c */
 extern const struct sized_memory_description int_dynarr_description;

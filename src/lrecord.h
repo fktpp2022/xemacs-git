@@ -318,18 +318,6 @@ enum lrecord_type
   lrecord_type_window_mirror,		/* struct window_mirror */
   lrecord_type_expose_ignore,		/* struct expose_ignore */
 
-#ifdef EVENT_DATA_AS_OBJECTS /* not defined */
-  lrecord_type_button_data,		/* Lisp_Button_Data */
-  lrecord_type_eval_data,		/* Lisp_Eval_Data */
-  lrecord_type_key_data,		/* Lisp_Key_Data */
-  lrecord_type_magic_data,		/* Lisp_Magic_Data */
-  lrecord_type_magic_eval_data,		/* Lisp_Magic_Eval_Data */
-  lrecord_type_misc_user_data,		/* Lisp_Misc_User_Data */
-  lrecord_type_motion_data,		/* Lisp_Motion_Data */
-  lrecord_type_process_data,		/* Lisp_Process_Data */
-  lrecord_type_timeout_data,		/* Lisp_Timeout_Data */
-#endif /* EVENT_DATA_AS_OBJECTS */
-
   lrecord_type_free,			/* only used for "free" lrecords */
   lrecord_type_undefined,		/* only used for debugging */
   lrecord_type_last_built_in_type,	/* must be last */
