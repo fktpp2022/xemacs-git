@@ -1,5 +1,11 @@
 2025-03-01  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* lstream.h (DEFINE_LSTREAM_IMPLEMENTATION_WITH_DATA):
+	Suppress warnings about interleaving declarations and code when
+	compiling as C99.
+
+2025-03-01  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Remove the EVENT_DATA_AS_OBJECTS code, not used in over twenty
 	years and not adding any value. Commit generated with unifdef
 	-UEVENT_DATA_AS_OBJECTS. 

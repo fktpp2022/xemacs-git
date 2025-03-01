@@ -233,13 +233,14 @@ typedef struct lstream_implementation
   Lstream_implementation *lstream_##c_name
 
 #define DEFINE_LSTREAM_IMPLEMENTATION_WITH_DATA(string_name, c_name)          \
-  static const struct sized_memory_description c_name##_lstream_description_0 \
-  = {									      \
-    sizeof (struct c_name##_stream),					      \
-    c_name##_lstream_description					      \
-  };									      \
   do                                                                          \
     {                                                                         \
+      static const struct sized_memory_description                            \
+        c_name##_lstream_description_0                                        \
+        = {                                                                   \
+        sizeof (struct c_name##_stream),                                      \
+        c_name##_lstream_description                                          \
+      };                                                                      \
       lstream_##c_name = xnew_and_zero (Lstream_implementation);              \
       lstream_##c_name->name = string_name;                                   \
       lstream_##c_name->size = sizeof (struct c_name##_stream);               \
