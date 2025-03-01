@@ -1693,18 +1693,15 @@ Return an alist of properties for OBJECT.
 
 
 void
-ui_gtk_objects_create (void)
-{
-  OBJECT_HAS_METHOD (emacs_gtk_object, getprop);
-  OBJECT_HAS_METHOD (emacs_gtk_object, putprop);
-  /* #### No remprop or plist methods */
-}
-
-void
 syms_of_ui_gtk (void)
 {
   INIT_LISP_OBJECT (emacs_ffi);
+
   INIT_LISP_OBJECT (emacs_gtk_object);
+  OBJECT_HAS_METHOD (emacs_gtk_object, getprop);
+  OBJECT_HAS_METHOD (emacs_gtk_object, putprop);
+  /* #### No remprop or plist methods */
+
   INIT_LISP_OBJECT (emacs_gtk_boxed);
   DEFSYMBOL_MULTIWORD_PREDICATE (Qemacs_ffip);
   DEFSYMBOL_MULTIWORD_PREDICATE (Qemacs_gtk_objectp);

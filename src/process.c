@@ -2573,16 +2573,6 @@ eputenv (const CIbyte *var, const CIbyte *value)
 }
 
 
-void
-reinit_process_early (void)
-{
-  OBJECT_HAS_METHOD (process, getprop);
-  OBJECT_HAS_METHOD (process, putprop);
-  OBJECT_HAS_METHOD (process, remprop);
-  OBJECT_HAS_METHOD (process, plist);
-  OBJECT_HAS_METHOD (process, setplist);
-}
-
 /* This is not named init_process in order to avoid a conflict with NS 3.3 */
 void
 init_xemacs_process (void)
@@ -2653,14 +2643,17 @@ init_xemacs_process (void)
 
     Vshell_file_name = build_istring (shell);
   }
-
-  reinit_process_early ();
 }
 
 void
 syms_of_process (void)
 {
   INIT_LISP_OBJECT (process);
+  OBJECT_HAS_METHOD (process, getprop);
+  OBJECT_HAS_METHOD (process, putprop);
+  OBJECT_HAS_METHOD (process, remprop);
+  OBJECT_HAS_METHOD (process, plist);
+  OBJECT_HAS_METHOD (process, setplist);
 
   DEFSYMBOL (Qprocessp);
   DEFSYMBOL (Qprocess_live_p);

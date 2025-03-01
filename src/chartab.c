@@ -2361,19 +2361,15 @@ word_boundary_p (struct buffer *buf, Ichar c1, Ichar c2)
 
 
 void
-chartab_objects_create (void)
+syms_of_chartab (void)
 {
+  INIT_LISP_OBJECT (char_table);
   OBJECT_HAS_METHOD (char_table, print_preprocess);
   OBJECT_HAS_METHOD (char_table, nsubst_structures_descend);
 #ifdef MEMORY_USAGE_STATS
   OBJECT_HAS_METHOD (char_table, memory_usage);
 #endif
-}
 
-void
-syms_of_chartab (void)
-{
-  INIT_LISP_OBJECT (char_table);
   INIT_LISP_OBJECT (char_subtable);
 
   INIT_LISP_OBJECT (category_table);

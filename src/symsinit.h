@@ -50,8 +50,6 @@ void init_elhash_once_early (void);
 void init_errors_once_early (void);
 void reinit_opaque_early (void);
 void init_opaque_once_early (void);
-void reinit_process_early (void);
-void reinit_symbols_early (void);
 void init_symbols_once_early (void);
 
 /* Reset the Lisp engine.  Called both at dump-time, run-time and
@@ -201,27 +199,6 @@ void syms_of_unicode (void);
 void syms_of_widget (void);
 void syms_of_win32 (void);
 void syms_of_window (void);
-
-/* Initialize dynamic properties of objects (i.e. those properties not
-   initialized statically through a DEFINE_*_LISP_OBJECT declaration).
-   Dump time and post-pdump-load-time. */
-
-void buffer_objects_create (void);
-void bytecode_objects_create (void);
-void casetab_objects_create (void);
-void chartab_objects_create (void);
-void extent_objects_create (void);
-void face_objects_create (void);
-void frame_objects_create (void);
-void glyph_objects_create (void);
-void hash_table_objects_create (void);
-void lstream_objects_create (void);
-void mule_charset_objects_create (void);
-void rangetab_objects_create (void);
-void scrollbar_objects_create (void);
-void specifier_objects_create (void);
-void ui_gtk_objects_create (void);
-void window_objects_create (void);
 
 /* Initialize the console types (dump-time only for console_type_(),
    post-pdump-load-time only for reinit_). */

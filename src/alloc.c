@@ -5432,26 +5432,11 @@ init_alloc_early (void)
 #endif /* defined (__cplusplus) && defined (ERROR_CHECK_GC) */
 }
 
-static void
-reinit_alloc_objects_early (void)
-{
-  OBJECT_HAS_METHOD (string, getprop);
-  OBJECT_HAS_METHOD (string, putprop);
-  OBJECT_HAS_METHOD (string, remprop);
-  OBJECT_HAS_METHOD (string, plist);
-
-  OBJECT_HAS_METHOD (cons, print_preprocess);
-  OBJECT_HAS_METHOD (cons, nsubst_structures_descend);
-  OBJECT_HAS_METHOD (vector, print_preprocess);
-  OBJECT_HAS_METHOD (vector, nsubst_structures_descend);
-}
-
 void
 reinit_alloc_early (void)
 {
   common_init_alloc_early ();
   init_lcrecord_lists ();
-  reinit_alloc_objects_early ();
 }
 
 void
@@ -5465,7 +5450,7 @@ init_alloc_once_early (void)
 
 #ifndef Qone
   Qone = make_fixnum (1);	/* As above. */
-  /* As above*/
+  /* As above. */
   dump_add_root_lisp_object (&Qone);
 #endif
 
@@ -5511,14 +5496,23 @@ init_alloc_once_early (void)
 #endif
 
   INIT_LISP_OBJECT (cons);
+  OBJECT_HAS_METHOD (cons, print_preprocess);
+  OBJECT_HAS_METHOD (cons, nsubst_structures_descend);
+
   INIT_LISP_OBJECT (vector);
+  OBJECT_HAS_METHOD (vector, print_preprocess);
+  OBJECT_HAS_METHOD (vector, nsubst_structures_descend);
+
   INIT_LISP_OBJECT (bit_vector);
+
   INIT_LISP_OBJECT (string);
+  OBJECT_HAS_METHOD (string, getprop);
+  OBJECT_HAS_METHOD (string, putprop);
+  OBJECT_HAS_METHOD (string, remprop);
+  OBJECT_HAS_METHOD (string, plist);
 
   INIT_LISP_OBJECT (lcrecord_list);
   INIT_LISP_OBJECT (free);
-
-  reinit_alloc_objects_early ();
 }
 
 void

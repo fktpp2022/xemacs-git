@@ -1315,8 +1315,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
     {
       reinit_alloc_early ();
       reinit_gc_early ();
-      reinit_symbols_early ();
-      reinit_process_early ();
       reinit_opaque_early ();
       reinit_eistring_early ();
 #ifdef WITH_NUMBER_TYPES
@@ -1593,32 +1591,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #if defined (HAVE_POSTGRESQL) && !defined (HAVE_SHLIB)
       syms_of_postgresql ();
 #endif
-    }
-
-  if (!initialized
-      || !restart
-      )
-    {
-      buffer_objects_create ();
-      bytecode_objects_create ();
-      casetab_objects_create ();
-      chartab_objects_create ();
-      extent_objects_create ();
-      face_objects_create ();
-      frame_objects_create ();
-      glyph_objects_create ();
-      hash_table_objects_create ();
-      lstream_objects_create ();
-      mule_charset_objects_create ();
-      rangetab_objects_create ();
-#ifdef HAVE_SCROLLBARS
-      scrollbar_objects_create ();
-#endif
-      specifier_objects_create ();
-#ifdef HAVE_GTK
-      ui_gtk_objects_create ();
-#endif
-      window_objects_create ();
     }
 
   if (!initialized)

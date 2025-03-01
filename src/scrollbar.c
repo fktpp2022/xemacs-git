@@ -1077,16 +1077,12 @@ This ensures that VALUE is in the proper range for the horizontal scrollbar.
 /************************************************************************/
 
 void
-scrollbar_objects_create (void)
-{
-#ifdef MEMORY_USAGE_STATS
-  OBJECT_HAS_METHOD (scrollbar_instance, memory_usage);
-#endif
-}
-void
 syms_of_scrollbar (void)
 {
   INIT_LISP_OBJECT (scrollbar_instance);
+#ifdef MEMORY_USAGE_STATS
+  OBJECT_HAS_METHOD (scrollbar_instance, memory_usage);
+#endif
 
   DEFSYMBOL (Qscrollbar_line_up);
   DEFSYMBOL (Qscrollbar_line_down);

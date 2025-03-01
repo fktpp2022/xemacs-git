@@ -5669,19 +5669,17 @@ debug_print_windows (struct frame *f)
 /************************************************************************/
 
 void
-window_objects_create (void)
-{
-#ifdef MEMORY_USAGE_STATS
-  OBJECT_HAS_METHOD (window, memory_usage);
-  OBJECT_HAS_METHOD (window_mirror, memory_usage);
-#endif
-}
-
-void
 syms_of_window (void)
 {
   INIT_LISP_OBJECT (window);
+#ifdef MEMORY_USAGE_STATS
+  OBJECT_HAS_METHOD (window, memory_usage);
+#endif
+
   INIT_LISP_OBJECT (window_mirror);
+#ifdef MEMORY_USAGE_STATS
+  OBJECT_HAS_METHOD (window_mirror, memory_usage);
+#endif
 
   DEFSYMBOL (Qwindowp);
   DEFSYMBOL (Qwindow_live_p);

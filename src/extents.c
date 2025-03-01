@@ -7249,18 +7249,14 @@ compute_buffer_extent_usage (struct buffer *UNUSED (b))
 /************************************************************************/
 
 void
-extent_objects_create (void)
+syms_of_extents (void)
 {
+  INIT_LISP_OBJECT (extent);
   OBJECT_HAS_METHOD (extent, getprop);
   OBJECT_HAS_METHOD (extent, putprop);
   OBJECT_HAS_METHOD (extent, remprop);
   OBJECT_HAS_METHOD (extent, plist);
-}
 
-void
-syms_of_extents (void)
-{
-  INIT_LISP_OBJECT (extent);
   INIT_LISP_OBJECT (extent_info);
   INIT_LISP_OBJECT (extent_auxiliary);
 

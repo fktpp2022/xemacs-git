@@ -2125,18 +2125,13 @@ shouldn't ever need to call this.
 
 
 void
-face_objects_create (void)
+syms_of_faces (void)
 {
+  INIT_LISP_OBJECT (face);
   OBJECT_HAS_METHOD (face, getprop);
   OBJECT_HAS_METHOD (face, putprop);
   OBJECT_HAS_METHOD (face, remprop);
   OBJECT_HAS_METHOD (face, plist);
-}
-
-void
-syms_of_faces (void)
-{
-  INIT_LISP_OBJECT (face);
 
   /* Qdefault, Qwidget, Qleft_margin, Qright_margin defined in general.c */
   DEFSYMBOL (Qmodeline);

@@ -1080,17 +1080,13 @@ unified_range_table_get_range (void *unrangetab, int offset,
 /************************************************************************/
 /*                            Initialization                            */
 /************************************************************************/
-void
-rangetab_objects_create (void)
-{
-  OBJECT_HAS_METHOD (range_table, print_preprocess);
-  OBJECT_HAS_METHOD (range_table, nsubst_structures_descend);
-}
 
 void
 syms_of_rangetab (void)
 {
   INIT_LISP_OBJECT (range_table);
+  OBJECT_HAS_METHOD (range_table, print_preprocess);
+  OBJECT_HAS_METHOD (range_table, nsubst_structures_descend);
 
   DEFSYMBOL_MULTIWORD_PREDICATE (Qrange_tablep);
   DEFSYMBOL (Qrange_table);

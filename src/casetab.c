@@ -527,17 +527,12 @@ case_table_memory_usage (Lisp_Object casetab,
 
 
 void
-casetab_objects_create (void)
-{
-#ifdef MEMORY_USAGE_STATS
-  OBJECT_HAS_METHOD (case_table, memory_usage);
-#endif
-}
-
-void
 syms_of_casetab (void)
 {
   INIT_LISP_OBJECT (case_table);
+#ifdef MEMORY_USAGE_STATS
+  OBJECT_HAS_METHOD (case_table, memory_usage);
+#endif
 
   DEFSYMBOL_MULTIWORD_PREDICATE (Qcase_tablep);
   DEFSYMBOL (Qdowncase);

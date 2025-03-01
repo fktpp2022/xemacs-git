@@ -4055,27 +4055,20 @@ frame_memory_usage (Lisp_Object frame, struct generic_usage_stats *gustats)
 /*                              initialization                             */
 /*									   */
 /***************************************************************************/
-
-void
-frame_objects_create (void)
-{
-#ifdef MEMORY_USAGE_STATS
-  OBJECT_HAS_METHOD (frame, memory_usage);
-#endif
-}
-
 void
 init_frame (void)
 {
-    {
-      DISPLAY_LINE_INIT (title_string_display_line);
-    }
+  DISPLAY_LINE_INIT (title_string_display_line);
 }
 
 void
 syms_of_frame (void)
 {
   INIT_LISP_OBJECT (frame);
+#ifdef MEMORY_USAGE_STATS
+  OBJECT_HAS_METHOD (frame, memory_usage);
+#endif
+
   INIT_LISP_OBJECT (expose_ignore);
 
   DEFSYMBOL (Qdelete_frame_hook);

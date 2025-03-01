@@ -3188,29 +3188,23 @@ If the current binding is global (the default), the value is nil.
 /*                            initialization                            */
 /************************************************************************/
 
-static void
-reinit_symbol_objects_early (void)
+void
+init_symbols_once_early (void)
 {
+  INIT_LISP_OBJECT (symbol);
   OBJECT_HAS_METHOD (symbol, getprop);
   OBJECT_HAS_METHOD (symbol, putprop);
   OBJECT_HAS_METHOD (symbol, remprop);
   OBJECT_HAS_METHOD (symbol, print_preprocess);
   OBJECT_HAS_NAMED_METHOD (symbol, plist, Fsymbol_plist);
   OBJECT_HAS_NAMED_METHOD (symbol, setplist, Fsetplist);
-}
 
-void
-init_symbols_once_early (void)
-{
-  INIT_LISP_OBJECT (symbol);
   INIT_LISP_OBJECT (symbol_value_forward_object);
   INIT_LISP_OBJECT (symbol_value_forward_fixnum);
   INIT_LISP_OBJECT (symbol_value_forward_boolint);
   INIT_LISP_OBJECT (symbol_value_buffer_local);
   INIT_LISP_OBJECT (symbol_value_lisp_magic);
   INIT_LISP_OBJECT (symbol_value_varalias);
-
-  reinit_symbol_objects_early ();
 
   /* Bootstrapping problem: Qnil isn't set when make_string_nocopy is
      called the first time. */
@@ -3233,12 +3227,6 @@ init_symbols_once_early (void)
 
   dump_add_root_lisp_object (&Qnil);
   dump_add_root_lisp_object (&Vquit_flag);
-}
-
-void
-reinit_symbols_early (void)
-{
-  reinit_symbol_objects_early ();
 }
 
 static void

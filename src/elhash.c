@@ -2748,16 +2748,6 @@ See `with-hash-table-iterator'.  This function is not to be called directly.
 /*                            initialization                            */
 /************************************************************************/
 
-void
-hash_table_objects_create (void)
-{
-#ifdef MEMORY_USAGE_STATS
-  OBJECT_HAS_METHOD (hash_table, memory_usage);
-#endif
-  OBJECT_HAS_METHOD (hash_table, print_preprocess);
-  OBJECT_HAS_METHOD (hash_table, nsubst_structures_descend);
-}
-
 extern Lisp_Object Vall_weak_lists;
 
 void
@@ -2911,8 +2901,13 @@ void
 init_elhash_once_early (void)
 {
   INIT_LISP_OBJECT (hash_table);
-  INIT_LISP_OBJECT (hash_table_test);
+#ifdef MEMORY_USAGE_STATS
+  OBJECT_HAS_METHOD (hash_table, memory_usage);
+#endif
+  OBJECT_HAS_METHOD (hash_table, print_preprocess);
+  OBJECT_HAS_METHOD (hash_table, nsubst_structures_descend);
 
+  INIT_LISP_OBJECT (hash_table_test);
 
   /* Create Vequal_hash_table_test so we can create Vobarray. */
   staticpro (&Vequal_hash_table_test);

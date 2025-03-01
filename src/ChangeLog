@@ -942,6 +942,99 @@
 
 2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Move OBJECT_HAS_METHOD() calls to immediately follow
+	INIT_LISP_OBJECT(), for clarity and to improve simplicity of
+	startup (since many of the reinit_*_early() and *_objects_create()
+	functions are no longer needed).
+
+	* alloc.c (reinit_alloc_objects_early): Removed. Calls moved to
+	init_alloc_once_early().
+	* alloc.c (init_alloc_once_early):
+	Call OBJECT_HAS_METHOD in this function
+	* buffer.c (buffer_objects_create): Removed.
+	* buffer.c (syms_of_buffer): Move its contents to this function,
+	beside INIT_LISP_OBJECT().
+
+	* bytecode.c (bytecode_objects_create): Removed.
+	* bytecode.c (syms_of_bytecode): Move its contents to this
+	function, beside INIT_LISP_OBJECT().
+
+	* casetab.c (casetab_objects_create): Removed.
+	* casetab.c (syms_of_casetab): Move its contents to this
+	function, beside INIT_LISP_OBJECT().
+
+	* chartab.c (chartab_objects_create): Removed.
+	* chartab.c (syms_of_chartab): Move its contents to this
+	function, beside INIT_LISP_OBJECT().
+
+	* elhash.c:
+	* elhash.c (hash_table_objects_create): Removed.
+	* elhash.c (init_elhash_once_early): Move its contents to this
+	function, beside INIT_LISP_OBJECT().
+
+	* emacs.c (main_1):
+	Remove calls to functions that are now no longer needed.
+
+	* extents.c (extents_objects_create): Removed.
+	* extents.c (syms_of_extents): Move its contents to this
+	function, beside INIT_LISP_OBJECT().
+
+	* faces.c (faces_objects_create): Removed.
+	* faces.c (syms_of_faces): Move its contents to this
+	function, beside INIT_LISP_OBJECT().
+
+	* frame.c (frame_objects_create): Removed.
+	* frame.c (init_frame): Correct some style here in passing.
+	* frame.c (syms_of_frame): Move the contents of
+	frame_object_create() to this function, beside INIT_LISP_OBJECT().
+
+	* glyphs.c (glyphs_objects_create): Removed.
+	* glyphs.c (syms_of_glyphs): Move its contents to this
+	function, beside INIT_LISP_OBJECT().
+
+	* lstream.c (lstream_objects_create): Removed.
+	* lstream.c (syms_of_lstream): Move its contents to this
+	function, beside INIT_LISP_OBJECT().
+
+	* mule-charset.c (mule_charset_objects_create): Removed.
+	* mule-charset.c (syms_of_mule_charset): Move its contents to this
+	function, beside INIT_LISP_OBJECT().
+
+	* process.c (reinit_process_early): Removed.
+	* process.c (syms_of_process): Move its contents to this
+	function, beside INIT_LISP_OBJECT().
+
+	* rangetab.c:
+	* rangetab.c (rangetab_objects_create): Removed.
+	* rangetab.c (syms_of_rangetab): Move its contents to this
+	function, beside INIT_LISP_OBJECT().
+
+	* scrollbar.c (scrollbar_objects_create): Removed.
+	* scrollbar.c (syms_of_scrollbar): Move its contents to this
+	function, beside INIT_LISP_OBJECT().
+
+	* specifier.c (specifier_objects_create): Removed.
+	* specifier.c (syms_of_specifier): Move its contents to this
+	function, beside INIT_LISP_OBJECT().
+
+	* symbols.c: Remove the OBARRAY_SIZE #define in passing, no longer
+	used in this file.
+	* symbols.c (reinit_symbol_objects_early): Removed.
+	* symbols.c (init_symbols_once_early): Move its contents to this
+	function, beside INIT_LISP_OBJECT().
+	* symsinit.h:
+	Remove declarations for all the *_object_create() functions, no
+	longer needed.
+
+	* ui-gtk.c (ui_gtk_objects_create): Removed.
+	* ui-gtk.c (syms_of_ui_gtk): Move its contents to this
+	function, beside INIT_LISP_OBJECT().
+	* window.c (window_objects_create): Removed.
+	* window.c (syms_of_window): Move its contents to this
+	function, beside INIT_LISP_OBJECT().
+
+2025-01-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Initialize the event stream objects using C macros, for symmetry,
 	consistency with the specifier objects.
 

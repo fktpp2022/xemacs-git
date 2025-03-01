@@ -3823,18 +3823,14 @@ specifier_memory_usage (Lisp_Object UNUSED (specifier),
 /*                           Initialization                             */
 /************************************************************************/
 
-void
-specifier_objects_create (void)
-{
-#ifdef MEMORY_USAGE_STATS
-  OBJECT_HAS_METHOD (specifier, memory_usage);
-#endif
-}
 
 void
 syms_of_specifier (void)
 {
   INIT_LISP_OBJECT (specifier);
+#ifdef MEMORY_USAGE_STATS
+  OBJECT_HAS_METHOD (specifier, memory_usage);
+#endif
 
   DEFSYMBOL (Qspecifierp);
 

@@ -2185,6 +2185,7 @@ void
 syms_of_lstream (void)
 {
   INIT_LISP_OBJECT (lstream);
+  OBJECT_HAS_PREMETHOD (lstream, disksave);
 
   DEFKEYWORD (Q_element_type);
   DEFSYMBOL (Qstreamp);
@@ -2193,12 +2194,6 @@ syms_of_lstream (void)
   DEFSUBR (Fget_output_stream_string);
 
   DEFSUBR (Fclear_output);
-}
-
-void
-lstream_objects_create (void)
-{
-  OBJECT_HAS_PREMETHOD (lstream, disksave);
 }
 
 void

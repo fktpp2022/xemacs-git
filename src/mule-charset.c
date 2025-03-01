@@ -1741,18 +1741,13 @@ charset_memory_usage (Lisp_Object charset, struct generic_usage_stats *gustats)
 /************************************************************************/
 
 void
-mule_charset_objects_create (void)
+syms_of_mule_charset (void)
 {
+  INIT_LISP_OBJECT (charset);
 #ifdef MEMORY_USAGE_STATS
   OBJECT_HAS_METHOD (charset, memory_usage);
 #endif
   OBJECT_HAS_PREMETHOD (charset, disksave);
-}
-
-void
-syms_of_mule_charset (void)
-{
-  INIT_LISP_OBJECT (charset);
 
   DEFSUBR (Fcharsetp);
   DEFSUBR (Ffind_charset);

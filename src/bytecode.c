@@ -2966,16 +2966,11 @@ If STACK-DEPTH is incorrect, Emacs may crash.
 
 
 void
-bytecode_objects_create (void)
-{
-  OBJECT_HAS_METHOD (compiled_function, print_preprocess);
-  OBJECT_HAS_METHOD (compiled_function, nsubst_structures_descend);
-}
-
-void
 syms_of_bytecode (void)
 {
   INIT_LISP_OBJECT (compiled_function);
+  OBJECT_HAS_METHOD (compiled_function, print_preprocess);
+  OBJECT_HAS_METHOD (compiled_function, nsubst_structures_descend);
 
   DEFERROR_STANDARD (Qinvalid_byte_code, Qinvalid_state);
   DEFSYMBOL (Qbyte_code);

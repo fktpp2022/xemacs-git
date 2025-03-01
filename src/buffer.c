@@ -1932,17 +1932,12 @@ The values returned are in the form of a plist of properties and values.
 
 
 void
-buffer_objects_create (void)
-{
-#ifdef MEMORY_USAGE_STATS
-  OBJECT_HAS_METHOD (buffer, memory_usage);
-#endif
-}
-
-void
 syms_of_buffer (void)
 {
   INIT_LISP_OBJECT (buffer);
+#ifdef MEMORY_USAGE_STATS
+  OBJECT_HAS_METHOD (buffer, memory_usage);
+#endif
 
   DEFSYMBOL (Qbuffer_live_p);
   DEFSYMBOL (Qbuffer_or_string_p);

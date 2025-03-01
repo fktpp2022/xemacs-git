@@ -5100,18 +5100,14 @@ disable_glyph_animated_timeout (int i)
  *****************************************************************************/
 
 void
-glyph_objects_create (void)
+syms_of_glyphs (void)
 {
+  INIT_LISP_OBJECT (glyph);
   OBJECT_HAS_METHOD (glyph, getprop);
   OBJECT_HAS_METHOD (glyph, putprop);
   OBJECT_HAS_METHOD (glyph, remprop);
   OBJECT_HAS_METHOD (glyph, plist);
-}
 
-void
-syms_of_glyphs (void)
-{
-  INIT_LISP_OBJECT (glyph);
   INIT_LISP_OBJECT (image_instance);
 
   /* image instantiators */
