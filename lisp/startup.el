@@ -518,12 +518,12 @@ Type ^H^H^H (Control-h Control-h Control-h) to get more help options.\n"))
 	(princ (format "\nload-path is %S" load-path) stream)
 	(princ "\n\n" stream)))
     (when (not suppress-early-error-handler-backtrace)
-      (backtrace stream t)))
-  (if-fboundp 'mswindows-message-box
-      (mswindows-message-box "Initialization error"))
-  (when (featurep 'debug-xemacs)
-    (write-sequence "XEmacs exiting to debugger.\n" stream)
-    (force-debugging-signal t))
+      (backtrace stream t))
+    (if-fboundp 'mswindows-message-box
+        (mswindows-message-box "Initialization error"))
+    (when (featurep 'debug-xemacs)
+      (write-sequence "XEmacs exiting to debugger.\n" stream)
+      (force-debugging-signal t)))
   (kill-emacs -1))
 
 (defun normal-top-level ()

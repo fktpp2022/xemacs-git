@@ -10,6 +10,12 @@
 	and unicode-invalid-sequence-regexp-range to
 	../tests/automated/regexp-tests.el.
 
+2025-03-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* startup.el (early-error-handler):
+	Move #'force-debugging-signal inside the binding of STREAM, fix a
+	bug and avoid a compile-time warning.
+
 2025-02-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove checks for (featurep 'mule) from core Lisp, making our code
