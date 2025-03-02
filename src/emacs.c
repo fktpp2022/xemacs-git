@@ -2855,6 +2855,10 @@ arguments: (&rest ARGS)
   unbind_to (0); /* this closes loadup.el */
   purify_flag = 0;
 
+  /* We're about to swap out the C stack from under us, and that will make
+     GCPROLIST invalid. Reset it.  */
+  RESET_GCPROLIST();
+
   /* run-temacs usually only occurs as a result of building, and in all such
      cases we want a backtrace, even if it occurs very early. */
   if (NILP (Vstack_trace_on_error))

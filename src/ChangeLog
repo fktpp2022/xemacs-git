@@ -1,3 +1,10 @@
+2025-03-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lisp.h (RESET_GCPROLIST): New macro, set GCPROLIST to NULL,
+	avoiding tripping error checking.
+	* emacs.c (Frun_emacs_from_temacs):
+	Use it, since our stack is about to become invalid.
+
 2025-03-01  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lstream.h (DEFINE_LSTREAM_IMPLEMENTATION_WITH_DATA):

@@ -4004,8 +4004,22 @@ do									   \
       assert (gcprolist);						   \
     }									   \
 } while (0)
+
+/* Set GCPROLIST to NULL, avoiding assertion failure when error checking. Used
+   within run-emacs-from-temacs before longjmp invalidates the stack. */
+#define RESET_GCPROLIST()                       \
+  do                                            \
+    {                                           \
+      struct gcpro *tail = gcprolist;           \
+      while (tail && tail->next != NULL)        \
+        {                                       \
+          tail = tail->next;                    \
+        }                                       \
+      UNWIND_GCPRO_TO (tail);                   \
+    } while (0)
 #else
 #define UNWIND_GCPRO_TO(val) (gcprolist = (val))
+#define RESET_GCPROLIST() (gcprolist = NULL)
 #endif /* defined (__cplusplus) && defined (ERROR_CHECK_GC) */
 
 #define XUNGCPRO(x) UNWIND_GCPRO_TO (x##cpro1.next)
