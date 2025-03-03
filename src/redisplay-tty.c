@@ -294,7 +294,8 @@ tty_output_display_block (struct window *w, struct display_line *dl, int block,
 	  else if (rb->type == RUNE_BLANK)
 	    {
 	      int size = rb->width;
-              Ibyte linebuf[size * ichar_len (' ')], *lbufp = linebuf;
+              Ibyte *linebuf = alloca_ibytes (size * ichar_len (' '));
+              Ibyte *lbufp = linebuf;
 
 	      while (size--)
                 {
@@ -322,7 +323,8 @@ tty_output_display_block (struct window *w, struct display_line *dl, int block,
           else if (rb->type == RUNE_HLINE)
             {
 	      int size = rb->width;
-              Ibyte linebuf[size * ichar_len ('-')], *lbufp = linebuf;
+              Ibyte *linebuf = alloca_ibytes (size * ichar_len ('-'));
+              Ibyte *lbufp = linebuf;
 
 	      while (size--)
                 {

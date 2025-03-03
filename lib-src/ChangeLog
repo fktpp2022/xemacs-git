@@ -1,3 +1,9 @@
+2025-03-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cvtmail.c (main):
+	NAME is not large enough to hold fourteen characters and a
+	terminating zero, correct this. Thank you clang-19.
+
 2025-01-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* etags.c:

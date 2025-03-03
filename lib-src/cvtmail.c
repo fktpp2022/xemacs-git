@@ -58,7 +58,7 @@ main (int argc, char *argv[])
   FILE *mfilef;
   FILE *cff;
   char pre[10];
-  char name[14];
+  char name[15];
   int c;
 
   hd = getenv ("HOME");

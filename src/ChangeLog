@@ -1,5 +1,11 @@
 2025-03-03  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* redisplay-tty.c (tty_output_display_block):
+	Placate warnings on recent Clang, variable length arrays are a C99
+	extension not guaranteed to be available in C++.
+
+2025-03-03  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* syswindows.h:
 	Widen the front of the fight between the X11 headers and the Win32
 	headers for the sake of the Cygwin compilation.
