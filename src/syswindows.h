@@ -201,6 +201,16 @@ END_C_DECLS
 #endif		
 
 #define OEMRESOURCE /* Define OCR_ and friend constants */
+
+#ifdef HAVE_X_WINDOWS
+/* Christ almighty.  The problems you get when combining two large code bases,
+   neither with any respect for namespace purity. */
+# define XEMACS_Status int
+# undef Status
+# define XEMACS_ControlMask ControlMask
+# undef ControlMask
+#endif
+
 #include <windows.h>
 
 #include <aclapi.h>
@@ -208,15 +218,7 @@ END_C_DECLS
 #include <shellapi.h>
 
 #if defined (WIN32_LEAN_AND_MEAN)
-# ifdef HAVE_X_WINDOWS
-/* Christ almighty.  The problems you get when combining two large code bases,
-   neither with any respect for namespace purity. */
-#  undef Status
-# endif
 # include <winspool.h>
-# ifdef HAVE_X_WINDOWS
-#  define Status int
-# endif
 # include <mmsystem.h>
 # include <shlobj.h>
 # include <ddeml.h>
@@ -571,6 +573,11 @@ typedef struct tagNMTTDISPINFOW
 #endif
 
 #include <imm.h>
+
+#ifdef HAVE_X_WINDOWS
+# define Status XEMACS_Status
+# define ControlMask XEMACS_ControlMask
+#endif
 
 #if W32API_INSTALLED_VER < W32API_VER(2,4)
 typedef struct _SHQUERYRBINFO

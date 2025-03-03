@@ -1,3 +1,12 @@
+2025-03-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* syswindows.h:
+	Widen the front of the fight between the X11 headers and the Win32
+	headers for the sake of the Cygwin compilation.
+	* xemacs.def.in.in:
+	Update this with newly-added functions that need to be visible to
+	the modules.
+
 2025-03-02  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lisp.h (RESET_GCPROLIST): New macro, set GCPROLIST to NULL,
