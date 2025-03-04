@@ -1853,9 +1853,9 @@ pdump (void)
            place of pointers whenever we write out memory blocks */
 
   pdump_buf = xmalloc (max_size);
-  /* EMACS_PROGNAME is entirely ASCII so this should be Mule-safe */
-  pdump_fd = open (EMACS_PROGNAME ".dmp",
-		   O_WRONLY | O_CREAT | O_TRUNC | OPEN_BINARY, 0666);
+
+  pdump_fd = qxe_open ((const Ibyte *) EMACS_DUMP_FILE_NAME,
+                       O_WRONLY | O_CREAT | O_TRUNC | OPEN_BINARY, 0666);
   if (pdump_fd < 0)
     report_file_error ("Unable to open dump file",
 		       build_ascstring (EMACS_PROGNAME ".dmp"));

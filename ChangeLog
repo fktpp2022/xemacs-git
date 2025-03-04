@@ -1,3 +1,11 @@
+2025-03-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* configure.ac (DUMP_FILE_NAME): New, just xemacs.dmp. Use
+	AC_SUBST() to make it available to Makefile.in.in.
+	In passing make AC_DEFINE_UNQUOTED(SHEBANG_PROGNAME ...) a bit
+	more sensible.
+	* configure: Regenerate.
+
 2025-02-24  Stephen Turnbull  <turnbull@sk.tsukuba.ac.jp>
 
 	* Makefile.in.in:

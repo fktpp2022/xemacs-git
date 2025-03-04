@@ -89,6 +89,9 @@ things are arranged in config.h.in.  In particular:
 /* Program name */
 #undef EMACS_PROGNAME
 
+/* Name of the dump file during build. */
+#undef EMACS_DUMP_FILE_NAME
+
 /* Name of the link to the program to be used with #! scripts */
 #undef SHEBANG_PROGNAME
 

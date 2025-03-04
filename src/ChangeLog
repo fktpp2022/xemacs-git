@@ -1,3 +1,28 @@
+2025-03-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Use C23's #embed, if available, for the dump file with
+	DUMP_IN_EXEC. Fall back to Dale Weiler's INCBIN() as previously
+	used if #embed is not available.
+	clang-19 doesn't accept concatenation of EMACS_PROGNAME with
+	".dmp" as a valid filename for #embed, add EMACS_DUMP_FILE_NAME to
+	config.h and use that. Use DUMP_FILE_NAME as the corresponding
+	autoconf variable.
+
+	* Makefile.in.in:
+	* Makefile.in.in ($(RAW_EXE)): Now we have the C compiler involved
+	in embedding the dump file again, it attempts once more to put an
+	all-zero dump file into BSS. Use Larry McVoy's magic values to
+	prevent this as the insert-data-in-exec code used to.
+	Use @DUMP_FILE_NAME@ instead of $(DUMP_TARGET).dmp throughout this
+	file.
+	* config.h.in (EMACS_DUMP_FILE_NAME):
+	* dump-data.c: Use #embed for dumped_data if available. If #embed
+	is available, we have a recent enough C implementation that
+	<stdalign.h> is going to be available, use alignas() to force
+	16-byte alignment.
+	* dumper.c (pdump):
+	Use EMACS_DUMP_FILE_NAME explicitly for the dump file name.
+
 2025-03-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* redisplay-tty.c (tty_output_display_block):

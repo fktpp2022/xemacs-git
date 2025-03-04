@@ -829,6 +829,7 @@ LDFLAGS
 CFLAGS
 CC
 configuration
+DUMP_FILE_NAME
 SHEBANG_PROGNAME
 build_os
 build_vendor
@@ -6122,13 +6123,18 @@ printf "%s\n" "#define EMACS_VERSION \"$version\"" >>confdefs.h
 
 PROGNAME=xemacs
 SHEBANG_PROGNAME=xemacs-script
+DUMP_FILE_NAME=xemacs.dmp
+
 
 
 
 printf "%s\n" "#define EMACS_PROGNAME \"$PROGNAME\"" >>confdefs.h
 
 
-printf "%s\n" "#define SHEBANG_PROGNAME \"${PROGNAME}-script\"" >>confdefs.h
+printf "%s\n" "#define EMACS_DUMP_FILE_NAME \"$DUMP_FILE_NAME\"" >>confdefs.h
+
+
+printf "%s\n" "#define SHEBANG_PROGNAME \"$SHEBANG_PROGNAME\"" >>confdefs.h
 
 
 if test -n "$emacs_is_beta"; then beta=yes; else beta=no; fi

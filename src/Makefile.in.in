@@ -385,7 +385,7 @@ ldflags  = $(LDFLAGS) $(ld_switch_all) $(ld_dynamic_link_flags)
 ##                     Primary rebuilding process                      ##
 #########################################################################
 
-DUMP_TARGET = $(PROGNAME).dmp
+DUMP_TARGET = @DUMP_FILE_NAME@
 RAW_EXE  = $(PROGNAME)
 DUMP_ID     = dump-id.o
 #if !defined(WIN32_NATIVE) && defined(DUMP_IN_EXEC)
@@ -511,15 +511,20 @@ $(RAW_EXE): $(link_deps) $(DUMP_ID)
 #else
 ## The dd below was written initially as dd if=/dev/zero, but while dd(1) is
 ## specified by POSIX, /dev/zero is not. The specific file doesn't matter,
-## since no non-zero bytes are actually written.
+## since no non-zero bytes are actually written from it.
+
+## The non-zero bytes that are written to xemacs.dmp by the echo statement
+## prevent the compiler placing the array in BSS, and are the work of Larry
+## McVoy.  See http://lkml.org/lkml/2003/7/11/141 for more information. */
 $(RAW_EXE): $(link_deps) $(DUMP_ID)
 	if test -f dump-size ; then \
 		echo "Known dump size, using it for temacs"; \
-		dd if=dump-size of=$(DUMP_TARGET).dmp bs=1 count=0 seek=`cat dump-size`;  \
+		echo "\xff\x06\x01\x02\x03\x04\xff\x03\x09\x3e\xff\x0a\x04\x3d\xff" > @DUMP_FILE_NAME@; \
+		dd if=dump-size of=@DUMP_FILE_NAME@ bs=1 count=0 seek=`cat dump-size`;  \
 		$(CC) -c $(cflags) $(SRC)/dump-data.c ; \
 	else \
 		echo "Dump size not known, starting from zero"; \
-		touch $(DUMP_TARGET).dmp; \
+		touch @DUMP_FILE_NAME@; \
 		$(CC) -c $(cflags) $(SRC)/dump-data.c ;\
 	fi
 	$(LD) $(ldflags) $(start_flags) -o $@ $(start_files) $(objs) $(otherobjs) $(DUMP_ID) dump-data.o $(LIBES)
@@ -563,14 +568,14 @@ $(DUMP_TARGET): $(RAW_EXE) $(BLDSRC)/NEEDTODUMP $(LIB_SRC)/DOC
 	@$(RM) $@
 	$(dump_temacs)
 #if defined(DUMP_IN_EXEC) && !defined(WIN32_NATIVE)
-	if test -f dump-size && test `cat dump-size` -eq `wc -c < $(DUMP_TARGET).dmp`; then \
+	if test -f dump-size && test `cat dump-size` -eq `wc -c < @DUMP_FILE_NAME@`; then \
 		echo "Dumped data in temacs identical in size to dumpfile, relinking"; \
 		$(CC) -c $(cflags) $(SRC)/dump-data.c ; \
 		$(LD) $(ldflags) $(start_flags) -o $@ $(start_files) $(objs) $(otherobjs) $(DUMP_ID) dump-data.o $(LIBES); \
 	else \
 		echo "Dumped data in temacs differs from dumpfile, rebuilding temacs."; \
-		echo `wc -c < $(DUMP_TARGET).dmp` > dump-size ; \
-		$(RM) dump-data.o $(DUMP_TARGET) $(DUMP_TARGET).dmp $(RAW_EXE);\
+		echo `wc -c < @DUMP_FILE_NAME@` > dump-size ; \
+		$(RM) dump-data.o $(DUMP_TARGET) @DUMP_FILE_NAME@ $(RAW_EXE);\
 		$(MAKE) $(RECURSIVE_MAKE_ARGS) $@; \
 	fi
 #endif
@@ -936,7 +941,7 @@ mostlyclean:
 	dump-id.c dump-size $(BLDSRC)/NEEDTODUMP SATISFIED \
 	$(LIB_SRC)/*.po $(LIB_SRC)/*.mo
 versionclean:
-	-$(RM) $(RAW_EXE) $(DUMP_TARGET) $(DUMP_TARGET).dmp $(LIB_SRC)/DOC
+	-$(RM) $(RAW_EXE) $(DUMP_TARGET) @DUMP_FILE_NAME@ $(LIB_SRC)/DOC
 ##      Remove the generated load files here; they cause lots of problems
 ##      when they don't work right.
 ##      Some older versions tried to put module load files in the SRC tree,

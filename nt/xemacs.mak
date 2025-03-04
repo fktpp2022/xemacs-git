@@ -415,7 +415,8 @@ PROGRAM_DEFINES=						\
 	-DPATH_VERSION=\"$(XEMACS_VERSION_STRING)\"		\
 	-DPATH_PROGNAME=\"xemacs\"				\
 	-DEMACS_VERSION=\"$(XEMACS_VERSION_STRING)\"		\
-	-DEMACS_PROGNAME=\"xemacs\" -DSHEBANG_PROGNAME=\"xemacs-script\"
+	-DEMACS_PROGNAME=\"xemacs\" -DSHEBANG_PROGNAME=\"xemacs-script\"\
+	-DEMACS_DUMP_FILE_NAME=\"xemacs.dmp\"
 !endif
 
 ########################### Set up installation and package directories.

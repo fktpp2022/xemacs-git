@@ -1,5 +1,5 @@
 /* Static array to put the dumped data in and its management
-   Copyright (C) 2003 Olivier Galibert
+   Copyright (C) 2003 Olivier Galibert, 2025 Free Software Foundation
 
 This file is part of XEmacs.
 
@@ -23,6 +23,21 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <config.h>
 #include "lisp.h"
 #include "dump-data.h"
+
+#ifdef __has_embed
+#include <stdalign.h>
+
+alignas (16) static Rawbyte dumped_data[] = {
+#embed EMACS_DUMP_FILE_NAME
+};
+
+size_t
+dumped_data_size (void)
+{
+  return sizeof (dumped_data);
+}
+#else /* !__has_embed */
+
 #define INCBIN_PREFIX /* Nothing. */
 #define INCBIN_STYLE INCBIN_STYLE_SNAKE
 #define INCBIN_OUTPUT_SECTION ".data"
@@ -30,13 +45,14 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define INCBIN_SILENCE_BITCODE_WARNING /* Unlikely to be building XEmacs for an iPhone. */
 #include "incbin.h"
 
-INCBIN (dumped, EMACS_PROGNAME ".dmp");
+INCBIN (dumped, EMACS_DUMP_FILE_NAME);
 
 size_t
 dumped_data_size (void)
 {
   return dumped_size;
 }
+#endif /* __has_embed */
 
 Rawbyte *
 dumped_data_get (void)
@@ -44,3 +60,4 @@ dumped_data_get (void)
   return (Rawbyte *) dumped_data;
 }
 
+/* dump-data.c ends here. */

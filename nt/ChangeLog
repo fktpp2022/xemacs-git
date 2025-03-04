@@ -1,3 +1,8 @@
+2025-03-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* xemacs.mak (PROGRAM_DEFINES): Add EMACS_DUMP_FILE_NAME to these,
+	just added to configure.ac.
+
 2025-02-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove --without-mule as an option given maturity of the Mule
