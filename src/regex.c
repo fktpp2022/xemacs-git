@@ -4147,7 +4147,37 @@ compile_extended_range (re_char **p_ptr, re_char *pend,
    */
       for (this_char = range_start; this_char <= range_end; this_char++)
 	{
-	  SET_RANGETAB_BIT (RE_TRANSLATE (this_char));
+	  Ichar tc = this_char;
+
+	  /* You would think intuitively the valid_ichar_p() shouldn't be
+	     necessary, but e.g:
+
+	     (char-int (make-char 'japanese-jisx0208-1978 125 126))
+	     => 261886
+	     (int-char 261887)
+	     => nil
+	     (int-char 261920)
+	     nil
+	     (char-int (make-char 'japanese-jisx0208-1978 126 33))
+	     => 261921
+
+	     This means if you have a range within this charset that crosses
+	     multiple rows and columns, some of those values will be invalid
+	     Ichars and RE_TRANSLATE() appropriately chokes.
+
+	     Similar for spans that cross the surrogate range in
+	     UNICODE_INTERNAL.
+
+	     These values do not have case and setting them in the range table
+	     can mean stretches are coalesced that would otherwise not be,
+	     leading to smaller compiled patterns, so set them even if they are
+	     not valid Ichars.  */
+	  if (valid_ichar_p (tc))
+	    {
+	      tc = RE_TRANSLATE (this_char);
+	    }
+
+	  SET_RANGETAB_BIT (tc);
 	}
     }
   else

@@ -326,6 +326,52 @@ baaaa
 
 ; (test-regex-charset-mule-paranoid)
 
+;; Check that the regexp implementation does not choke when a range
+;; includes integer values that are not valid Ichars. Both ends of the
+;; range must, however, be valid characters. First test is most
+;; relevant for non-unicode-internal builds:
+(Assert
+ (eql (string-match-p (format "[%c-%c]"
+			      (make-char 'japanese-jisx0208-1978 125 126)
+			      (make-char 'japanese-jisx0208-1978 126 33))
+		      (string
+		       (make-char 'japanese-jisx0208-1978 126 33)))
+      0))
+
+;; And the following tests the same feature for unicode-internal builds:
+(if (featurep 'unicode-internal)
+    (Assert (eql (string-match-p "[\uD7ff-\uE000]" "\uD7FF") 0))
+  (if (eq (char-charset ?\uD7ff) (char-charset ?\uE000))
+      (Assert (eql (string-match-p "[\uD7ff-\uE000]" "\uD7FF") 0))
+    ;; It is possible on non-unicode-internal that these codepoints
+    ;; will be assigned to differing just in time character sets.
+    (Check-Error invalid-regexp
+		 (Assert (eql (string-match-p "[\uD7ff-\uE000]" "\uD7FF")
+			      0)))))
+
+;; Check that the unicode-error-default-translation-table table is
+;; correct, and that all the actual error sequences are caught by
+;; unicode-invalid-sequence-regexp-range:
+(with-temp-buffer
+  (loop
+    for i from ?\x00 to ?\xFF
+    with to-check = (make-string 20 ?\x20) 
+    with regexp = (concat "[" unicode-invalid-sequence-regexp-range "]")
+    do 
+    (delete-region (point-min) (point-max))
+    (insert to-check)
+    (goto-char 10)
+    (insert (decode-coding-string (format "\xd8\x00\x00%c" i)
+                                  'utf-16-be))
+    (backward-char)
+    (Assert (eql i (get-char-table (char-after (point)) 
+				   unicode-error-default-translation-table))
+            (format "Char ?\\x%x not the expected error sequence!"
+		    (char-after (point))))
+    (goto-char (point-min))
+    (Assert (re-search-forward regexp)
+            (format "Could not find char ?\\x%x in buffer" i))))
+
 ;; Test that replace-match does not clobber registers after a failed match
 (with-temp-buffer
   (insert "This is a test buffer.")

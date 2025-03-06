@@ -403,33 +403,6 @@ invalid octet.  You can use this variable (with `re-search-forward' or
 `skip-chars-forward') to search for such characters; see also
 `unicode-error-translate-region'.  ")
 
-;; Check that the lookup table is correct, and that all the actual error
-;; sequences are caught by the regexp.
-(with-temp-buffer
-  (loop
-    for i from ?\x00 to ?\xFF
-    with to-check = (make-string 20 ?\x20) 
-    do 
-    (delete-region (point-min) (point-max))
-    (insert to-check)
-    (goto-char 10)
-    (insert (decode-coding-string (format "\xd8\x00\x00%c" i)
-                                  'utf-16-be))
-    (backward-char)
-    (assert (= i (get-char-table (char-after (point)) 
-                                 unicode-error-default-translation-table))
-            (format "Char ?\\x%x not the expected error sequence!"
-                    i))
-
-    (goto-char (point-min))
-    ;; Comment out until the issue in
-    ;; 18179.49815.622843.336527@parhasard.net is fixed.
-    (assert t ; (re-search-forward (concat "[" 
-              ;                        unicode-invalid-sequence-regexp-range
-              ;                        "]"))
-            nil
-            (format "Could not find char ?\\x%x in buffer" i))))
-
 (defun frob-unicode-errors-region (frob-function begin end &optional buffer)
   "Call FROB-FUNCTION on the Unicode error sequences between BEGIN and END.
 

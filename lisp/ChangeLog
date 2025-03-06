@@ -1,3 +1,10 @@
+2025-03-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* unicode.el:
+	Move some code that tested unicode-error-default-translation-table
+	and unicode-invalid-sequence-regexp-range to
+	../tests/automated/regexp-tests.el.
+
 2025-02-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove checks for (featurep 'mule) from core Lisp, making our code

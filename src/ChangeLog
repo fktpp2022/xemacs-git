@@ -1,5 +1,14 @@
 2025-03-06  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* regex.c (compile_extended_range):
+	If THIS_CHAR is not a valid Ichar, don't look it up in the
+	translation table, avoiding crashes with error checking when
+	invalid characters are within the range specified. Do include them
+	in the range table, which will allow coalescing ranges that would
+	otherwise not be.
+
+2025-03-06  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* regex.c (re_wctype): Change type of LIMIT to Bytecount, as had
 	always been the intention.
 	* regex.h: Update its declaration.
