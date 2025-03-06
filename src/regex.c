@@ -2092,12 +2092,9 @@ typedef struct
    approach means the function doesn't need to be called with every character
    class encountered.
 
-   LENGTH would be a Bytecount if this function didn't need to be compiled
-   also for executables that don't include lisp.h
-
    Return RECC_ERROR if STRP doesn't match a known character class. */
 re_wctype_t
-re_wctype (const unsigned char *beg, int limit)
+re_wctype (const unsigned char *beg, Bytecount limit)
 {
   /* Sort tests in the length=five case by frequency the classes to minimize
      number of times we fail the comparison.  The frequencies of character class

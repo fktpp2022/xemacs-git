@@ -426,7 +426,7 @@ typedef enum
 } re_wctype_t;
 
 /* Map a string to the char class it names (if any).  */
-re_wctype_t re_wctype (const unsigned char *, int length);
+re_wctype_t re_wctype (const unsigned char *, Bytecount length);
 
 /* Is character CH a member of the character class CC? */
 int re_iswctype (int ch, re_wctype_t cc RE_ISWCTYPE_ARG_DECL);

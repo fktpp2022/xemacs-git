@@ -1,3 +1,9 @@
+2025-03-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* regex.c (re_wctype): Change type of LIMIT to Bytecount, as had
+	always been the intention.
+	* regex.h: Update its declaration.
+
 2025-03-04  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Use C23's #embed, if available, for the dump file with
