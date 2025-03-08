@@ -1,3 +1,12 @@
+2025-03-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* alloc.c (Fmake_byte_code):
+	Eagerly call optimize_compiled_function if PURIFY_FLAG, since
+	otherwise those compiled functions not called at dump time have
+	their string instructions stored in the dump file, and those
+	string instructions are leaked on first call since nothing in the
+	dump file is swept.
+
 2025-03-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* regex.c (compile_extended_range):

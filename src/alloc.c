@@ -2280,6 +2280,13 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
   if (UNBOUNDP (f->doc_and_interactive))
     f->doc_and_interactive = Qnil;
 
+  if (purify_flag)
+    {
+      /* Avoid leaking the instructions strings for compiled functions created
+         with loadup.el. */
+      optimize_compiled_function (fun);
+    }
+
   return fun;
 }
 
