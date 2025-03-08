@@ -1,3 +1,8 @@
+2025-03-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* subr.el (replace-list): New. Moved here from fns.c.
+	* subr.el ('substring): Removed. Alias now created in sequence.c.
+
 2025-03-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* unicode.el:

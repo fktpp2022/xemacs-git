@@ -2217,47 +2217,6 @@ arguments: (FUNCTION LIST &rest LISTS)
 {
   return maplist (args[0], nargs - 1, args + 1, Qmapcon);
 }
-
-DEFUN ("replace-list", Freplace_list, 2, 2, 0, /*
-Destructively replace the list OLD with NEW.
-This is like (copy-sequence NEW) except that it reuses the
-conses in OLD as much as possible.  If OLD and NEW are the same
-length, no consing will take place.
-*/
-       (old, new_))
-{
-  Lisp_Object oldtail = old, prevoldtail = Qnil;
-
-  EXTERNAL_LIST_LOOP_2 (elt, new_)
-    {
-      if (!NILP (oldtail))
-	{
-	  CHECK_CONS (oldtail);
-	  XCAR (oldtail) = elt;
-	}
-      else if (!NILP (prevoldtail))
-	{
-	  XCDR (prevoldtail) = Fcons (elt, Qnil);
-	  prevoldtail = XCDR (prevoldtail);
-	}
-      else
-	old = oldtail = Fcons (elt, Qnil);
-
-      if (!NILP (oldtail))
-	{
-	  prevoldtail = oldtail;
-	  oldtail = XCDR (oldtail);
-	}
-    }
-
-  if (!NILP (prevoldtail))
-    XCDR (prevoldtail) = Qnil;
-  else
-    old = Qnil;
-
-  return old;
-}
-
 
 Lisp_Object
 add_suffix_to_symbol (Lisp_Object symbol, const Ascbyte *ascii_string)
@@ -2958,8 +2917,6 @@ syms_of_fns (void)
   DEFSUBR (Fmaplist);
   DEFSUBR (Fmapl);
   DEFSUBR (Fmapcon);
-
-  DEFSUBR (Freplace_list);
 
   DEFSUBR (Fload_average);
   DEFSUBR (Ffeaturep);

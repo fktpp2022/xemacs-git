@@ -1,5 +1,19 @@
 2025-03-08  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* fns.c (Freplace_list): Removed. Inappropriate to have it in C,
+	now Freplace() is built-in.
+	* fns.c (syms_of_fns):
+	Remove its DEFSUBR.
+	* redisplay.c (redisplay_frame):
+	Replace  the only call to Freplace_list() from C with its
+	implementation. 
+	* sequence.c (syms_of_sequence):
+	Define substring as an alias for subseq here rather than in
+	subr.el, avoiding issues with feature checks when loading
+	subr.elc.
+
+2025-03-08  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* alloc.c (Fmake_byte_code):
 	Eagerly call optimize_compiled_function if PURIFY_FLAG, since
 	otherwise those compiled functions not called at dump time have

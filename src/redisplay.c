@@ -6986,12 +6986,18 @@ redisplay_frame (struct frame *f, int preemption_check)
 
   if (!internal_equal (f->old_buffer_alist, f->buffer_alist, 0))
     {
-      Lisp_Object frame;
+      Lisp_Object argz[] = { f->old_buffer_alist,
+                             f->buffer_alist };
+      Lisp_Object old_len = Flength (f->old_buffer_alist);
 
-      f->old_buffer_alist = Freplace_list (f->old_buffer_alist,
-					   f->buffer_alist);
-      frame = wrap_frame (f);
-      va_run_hook_with_args (Qbuffer_list_changed_hook, 1, frame);
+      f->old_buffer_alist
+       /* No need for GCPRO, the result of Freplace() will be reachable via
+          f->old_buffer_alist, and nconc2() will GCPRO the result of
+          Fsubseq(). */
+        = nconc2 (Freplace (countof (argz), argz), Fsubseq (f->buffer_alist,
+                                                            old_len, Qnil));
+
+      va_run_hook_with_args (Qbuffer_list_changed_hook, 1, wrap_frame (f));
     }
 
   /* Before we put a hold on frame size changes, attempt to process

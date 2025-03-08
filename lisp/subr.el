@@ -566,6 +566,17 @@ See also `copy-tree'."
         ((consp sequence) (copy-list sequence))
         ((not sequence) nil)
         (t (concatenate (type-of sequence) sequence))))
+
+(defun replace-list (old new)
+  "Destructively replace the list OLD with NEW.
+This is like (copy-sequence NEW) except that it reuses the conses in OLD as
+much as possible.  If OLD and NEW are the same length, no consing will take
+place.
+
+See also `replace', which handles sequences generally, but does not copy the
+tail of the source sequence to the end of the destination sequence in the same
+way that `replace-list' does."
+  (nconc (replace old new) (subseq new (length old))))
 
 ;;;; Keymap support.
 ;; XEmacs: removed to keymap.el
@@ -596,9 +607,6 @@ See also `copy-tree'."
 (define-function 'set-match-data 'store-match-data)
 (define-function 'send-string-to-terminal 'external-debugging-output)
 (define-function 'special-form-p 'special-operator-p)
-
-;; XEmacs; this is in Lisp, its bytecode now taken by subseq.
-(define-function 'substring 'subseq)
 
 (define-function 'sort 'sort*)
 (define-function 'fillarray 'fill)

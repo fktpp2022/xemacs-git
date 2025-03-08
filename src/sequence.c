@@ -8864,6 +8864,8 @@ syms_of_sequence (void)
   DEFSUBR (Flength);
   DEFSUBR (Fcount);
   DEFSUBR (Fsubseq);
+  Ffset (intern ("substring"), intern ("subseq"));
+
   DEFSUBR (Felt);
   DEFSUBR (Fcopy_tree);
   DEFSUBR (Fmember);
