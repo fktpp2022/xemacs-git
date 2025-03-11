@@ -1,3 +1,11 @@
+2025-03-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* redisplay.c (redisplay_frame):
+	Correct a bug in my last change elicited when f->old_buffer_alist
+	is equal in length to f->buffer_alist, thank you Stephen
+	Turnbull.
+	* lisp.h (Freplace_list): Remove declaration for this in passing.
+
 2025-03-08  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* fns.c (Freplace_list): Removed. Inappropriate to have it in C,

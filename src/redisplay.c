@@ -6994,8 +6994,8 @@ redisplay_frame (struct frame *f, int preemption_check)
        /* No need for GCPRO, the result of Freplace() will be reachable via
           f->old_buffer_alist, and nconc2() will GCPRO the result of
           Fsubseq(). */
-        = nconc2 (Freplace (countof (argz), argz), Fsubseq (f->buffer_alist,
-                                                            old_len, Qnil));
+        = nconc2 (Freplace (countof (argz), argz),
+		  Fcopy_list (Fnthcdr (old_len, f->buffer_alist)));
 
       va_run_hook_with_args (Qbuffer_list_changed_hook, 1, wrap_frame (f));
     }

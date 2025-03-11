@@ -576,7 +576,7 @@ place.
 See also `replace', which handles sequences generally, but does not copy the
 tail of the source sequence to the end of the destination sequence in the same
 way that `replace-list' does."
-  (nconc (replace old new) (subseq new (length old))))
+  (nconc (replace old new) (copy-list (nthcdr (length old) new))))
 
 ;;;; Keymap support.
 ;; XEmacs: removed to keymap.el

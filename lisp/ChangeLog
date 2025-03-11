@@ -1,3 +1,9 @@
+2025-03-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* subr.el (replace-list):
+	Correct a bug in this implementation just elicited in frame.c,
+	thank you Stephen Turnbull.
+
 2025-03-08  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* subr.el (replace-list): New. Moved here from fns.c.
