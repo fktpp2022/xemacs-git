@@ -34,6 +34,180 @@
 	BUF_FETCH_CHAR() calls. I note GNU has already done this. Extend the
 	docstring (some inspiration taken from GNU's current docstring).
 
+2025-03-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Remove all the lrecord_implementation structures from the C data
+	segment, just use those copies in the dump file (or the heap),
+	making things simpler for modules and reducing memory usage for
+	core XEmacs.
+
+	* lrecord.h:
+	* lrecord.h (LRECORD_IMPLEMENTATION): New. Give a built-in C type
+	name (cons, bignum, etc) return a pointer to the
+	lrecord_implementation of the corresponding Lisp object using
+	lrecord_implementations_table.
+	* lrecord.h (ALLOC_NORMAL_LISP_OBJECT):
+	Use it.
+	* lrecord.h (NORMAL_LISP_OBJECT_HEADER):
+	Use it.
+	* lrecord.h (ALLOC_C_READONLY_LISP_OBJECT):
+	Use it.
+	* lrecord.h (INIT_MEMORY_USAGE_STATS): Move this further up in the
+	file.
+	* lrecord.h (DEFINE_DUMPABLE_LISP_OBJECT):
+	Revise this to use the new calling convention for
+	MAKE_LISP_OBJECT().
+	* lrecord.h (DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT):
+	Ditto.
+	* lrecord.h (DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT):
+	Ditto.
+	* lrecord.h (DEFINE_DUMPABLE_FROB_BLOCK_SIZABLE_LISP_OBJECT):
+	Ditto.
+	* lrecord.h (DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT):
+	Ditto.
+	* lrecord.h (DEFINE_DUMPABLE_SIZABLE_INTERNAL_LISP_OBJECT):
+	Ditto.
+	* lrecord.h (DEFINE_NODUMP_LISP_OBJECT):
+	Ditto.
+	* lrecord.h (DEFINE_NODUMP_SIZABLE_LISP_OBJECT):
+	Ditto.
+	* lrecord.h (DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT):
+	Ditto.
+	* lrecord.h (DEFINE_NODUMP_FROB_BLOCK_SIZABLE_LISP_OBJECT):
+	Ditto.
+	* lrecord.h (DEFINE_NODUMP_INTERNAL_LISP_OBJECT):
+	Ditto.
+	* lrecord.h (MAKE_LISP_OBJECT):
+	Call init_lrecord_type_##c_name() here, initialize the enumeration
+	for module objects if that is appropriate.
+	* lrecord.h (UNDEF_LISP_OBJECT): Removed.
+	* lrecord.h (UNDEF_MODULE_LISP_OBJECT):
+	Revise this to subsume UNDEF_LISP_OBJECT().
+	* lrecord.h (OBJECT_HAS_METHOD):
+	Use LRECORD_IMPLEMENTATION() here.
+	* lrecord.h (OBJECT_HAS_PREMETHOD):
+	Ditto.
+	* lrecord.h (OBJECT_HAS_NAMED_METHOD):
+	Ditto.
+	* lrecord.h (OBJECT_HAS_PROPERTY):
+	Ditto.
+	* lrecord.h (DECLARE_LISP_OBJECT_1): New.
+	DECLARE_LISP_OBJECT without its init_lrecord_##c_name().
+	* lrecord.h (DECLARE_MODULE_API_LISP_OBJECT): Use it.
+	* lrecord.h (DECLARE_MODULE_LISP_OBJECT): Use it.
+	* lrecord.h (DECLARE_LISP_OBJECT): Use it.
+
+	* alloc.c:
+	Call DECLARE_LISP_OBJECT() for Lisp_Free here, now that is
+	needed.
+	* alloc.c (Fcons):
+	Move the DEFINE.*LISP_OBJECT() to init_alloc_once_early().
+	Use LRECORD_IMPLEMENTATION (cons) rather than &lrecord_cons.
+	* alloc.c (noseeum_cons):
+	Ditto.	
+	* alloc.c (make_float):
+	Use LRECORD_IMPLEMENTATION (c_type) rather than &lrecord_c_type.
+	* alloc.c (make_bignum): Ditto.
+	* alloc.c (make_bignum_un): Ditto.
+	* alloc.c (make_bignum_ll): Ditto. 
+	* alloc.c (make_bignum_ull): Ditto.
+	* alloc.c (make_bignum_bg): Ditto. 
+	* alloc.c (make_ratio): Ditto.
+	* alloc.c (make_ratio_bg): Ditto.
+	* alloc.c (make_ratio_rt): Ditto.
+	* alloc.c (make_bigfloat): Ditto.
+	* alloc.c (make_bigfloat_bf): Ditto. 
+	* alloc.c (make_bit_vector_internal): Ditto.
+	* alloc.c (make_compiled_function): Ditto.
+	* alloc.c (make_subr): Ditto.
+	* alloc.c (Fmake_symbol): Ditto.
+	* alloc.c (allocate_extent): Ditto.
+	* alloc.c (allocate_event): Ditto. 
+	* alloc.c (Fmake_marker): Ditto.
+	* alloc.c (noseeum_make_marker): Ditto.
+	* alloc.c (make_uninit_string): Ditto.
+	* alloc.c (make_string_nocopy): Ditto.
+	* alloc.c (make_lcrecord_list): Ditto.
+	* alloc.c (init_memory_usage_stats): Create Vmemusage_stats_lists
+	if it is Qnull_pointer, which means this function has been called
+	from within DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT().
+	* alloc.c (disksave_object_finalization_1):
+	If ERROR_CHECK_TYPES, call error_check_free() once to suppress
+	warnings.
+	* alloc.c (init_alloc_once_early):
+	Call DEFINE.*LISP_OBJECT() rather than the removed
+	INIT_LISP_OBJECT() here. Reorder the calls to create the vector
+	object first given it is needed for Vmemusage_stats_list.
+
+	* buffer.c:
+	* buffer.c (syms_of_buffer): Call DEFINE_NODUMP_LISP_OBJECT()
+	here.
+	* buffer.c (common_init_complex_vars_of_buffer):
+	Use LRECORD_IMPLEMENTATION (c_type) rather than &lrecord_c_type.
+	* bytecode.c:
+	* bytecode.c (syms_of_bytecode):
+	Call DEFINE.*LISP_OBJECT() rather than the removed INIT_LISP_OBJECT()
+	here.
+
+	* casetab.c (syms_of_casetab):
+	Ditto.
+	* chartab.c (syms_of_chartab):
+	Ditto.
+	* console.c (syms_of_console):
+	Ditto.
+	* console.c (common_init_complex_vars_of_console):
+	Use LRECORD_IMPLEMENTATION (c_type) rather than &lrecord_c_type.
+
+	* data.c (syms_of_data):
+	Call DEFINE.*LISP_OBJECT() rather than the removed INIT_LISP_OBJECT()
+	here.
+	* database.c (syms_of_database): Ditto.
+	* device-msw.c (syms_of_device_mswindows): Ditto.
+	* device.c (syms_of_device): Ditto.
+	* dialog-msw.c (syms_of_dialog_mswindows): Ditto.
+	* elhash.c (init_elhash_once_early): Ditto.
+	* emacs.c (main_1): Remove mention of INIT_LISP_OBJECT() from here.
+	* eval.c (syms_of_eval):
+	Call DEFINE.*LISP_OBJECT() rather than the removed INIT_LISP_OBJECT()
+	here.
+	* event-stream.c (syms_of_event_stream): Ditto.
+	* events.c (syms_of_events): Ditto.
+	* extents.c (syms_of_extents): Ditto.
+	* faces.c (syms_of_faces): Ditto.
+	* file-coding.c (syms_of_file_coding): Ditto.
+	* floatfns.c (syms_of_floatfns): Ditto.
+	* font-mgr.c (syms_of_font_mgr): Ditto.
+	* fontcolor.c (syms_of_fontcolor): Ditto.
+	* frame.c (syms_of_frame): Ditto.
+	* glyphs.c (syms_of_glyphs): Ditto.
+	* gui.c (syms_of_gui): Ditto.
+	* keymap.c (syms_of_keymap): Ditto.
+	* lstream.c:
+	* lstream.c (Lstream_new):
+	Use LRECORD_IMPLEMENTATION (c_type) rather than &lrecord_c_type.
+	* lstream.c (syms_of_lstream):
+	Call DEFINE.*LISP_OBJECT() rather than the removed INIT_LISP_OBJECT()
+	here.
+	* lstream.h (INIT_STACK_FIXED_BUFFER_OUTPUT_STREAM):
+	Use LRECORD_IMPLEMENTATION (c_type) rather than &lrecord_c_type.
+	* marker.c (syms_of_marker):
+	Call DEFINE.*LISP_OBJECT() rather than the removed INIT_LISP_OBJECT()
+	here.
+	* mule-charset.c (syms_of_mule_charset):
+	Ditto.
+	* number.c (syms_of_number): Ditto.
+	* opaque.c (init_opaque_once_early): Ditto.
+	* process.c (syms_of_process): Ditto.
+	* rangetab.c (syms_of_rangetab): Ditto.
+	* scrollbar.c (syms_of_scrollbar): Ditto.
+	* specifier.c (syms_of_specifier): Ditto.
+	* symbols.c (init_symbols_once_early): Ditto.
+	* toolbar.c (syms_of_toolbar): Ditto.
+	* tooltalk.c (syms_of_tooltalk): Ditto.
+	* ui-gtk.c (syms_of_ui_gtk): Ditto.
+	* unicode.c (syms_of_unicode): Ditto.
+	* window.c (syms_of_window): Ditto.
+
 2025-03-11  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* redisplay.c (redisplay_frame):

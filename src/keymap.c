@@ -314,10 +314,6 @@ static const struct memory_description keymap_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_LISP_OBJECT ("keymap", keymap, print_keymap, 0,
-			     keymap_equal, keymap_hash,
-			     keymap_description,
-			     Lisp_Keymap);
 
 /************************************************************************/
 /*                Traversing keymaps and their parents                  */
@@ -4853,7 +4849,9 @@ describe_map (Lisp_Object keymap, Lisp_Object elt_prefix,
 void
 syms_of_keymap (void)
 {
-  INIT_LISP_OBJECT (keymap);
+  DEFINE_DUMPABLE_LISP_OBJECT ("keymap", keymap, print_keymap, 0,
+                               keymap_equal, keymap_hash, keymap_description,
+                               Lisp_Keymap);
 
   DEFSYMBOL (Qminor_mode_map_alist);
 

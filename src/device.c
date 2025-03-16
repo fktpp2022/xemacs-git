@@ -135,10 +135,6 @@ print_device (Lisp_Object obj, Lisp_Object printcharfun,
     write_fmt_string_lisp (printcharfun, " on %S", DEVICE_CONNECTION (d));
   write_fmt_string (printcharfun, " 0x%x>", LISP_OBJECT_UID (obj));
 }
-
-DEFINE_NODUMP_LISP_OBJECT ("device", device, print_device, 0, 0, 0, 
-			   device_description,
-			   struct device);
 
 int
 valid_device_class_p (Lisp_Object class_)
@@ -1373,7 +1369,8 @@ call_critical_lisp_code (struct device *d, Lisp_Object function,
 void
 syms_of_device (void)
 {
-  INIT_LISP_OBJECT (device);
+  DEFINE_NODUMP_LISP_OBJECT ("device", device, print_device, 0, 0, 0, 
+                             device_description, struct device);
 
   DEFSUBR (Fvalid_device_class_p);
   DEFSUBR (Fdevice_class_list);

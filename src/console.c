@@ -145,10 +145,6 @@ print_console (Lisp_Object obj, Lisp_Object printcharfun,
     write_fmt_string_lisp (printcharfun, " on %S", CONSOLE_CONNECTION (con));
   write_fmt_string (printcharfun, " 0x%x>", LISP_OBJECT_UID (obj));
 }
-
-DEFINE_NODUMP_LISP_OBJECT ("console", console, print_console, 0, 0, 0, 
-			   console_description,
-			   struct console);
 
 
 static void
@@ -1159,7 +1155,9 @@ The elements of this list correspond to the arguments of
 void
 syms_of_console (void)
 {
-  INIT_LISP_OBJECT (console);
+  DEFINE_NODUMP_LISP_OBJECT ("console", console, print_console, 0, 0, 0, 
+                             console_description,
+                             struct console);
 
   DEFSUBR (Fvalid_console_type_p);
   DEFSUBR (Fconsole_type_list);
@@ -1667,7 +1665,8 @@ common_init_complex_vars_of_console (void)
        console.  */
 
     set_lheader_implementation ((struct lrecord_header *)
-				&console_local_flags, &lrecord_console);
+				&console_local_flags,
+                                LRECORD_IMPLEMENTATION (console));
     nuke_all_console_slots (&console_local_flags, make_fixnum (-2));
     console_local_flags.defining_kbd_macro = always_local_resettable;
     console_local_flags.last_kbd_macro = always_local_resettable;

@@ -1248,13 +1248,6 @@ image_instance_hash (Lisp_Object obj, int depth, Boolint UNUSED (equalp))
 		 0));
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("image-instance", image_instance,
-			   print_image_instance,
-			   finalize_image_instance, image_instance_equal,
-			   image_instance_hash,
-			   image_instance_description,
-			   Lisp_Image_Instance);
-
 static Lisp_Object
 allocate_image_instance (Lisp_Object governing_domain, Lisp_Object parent,
 			 Lisp_Object instantiator)
@@ -3740,9 +3733,6 @@ static const struct memory_description glyph_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_LISP_OBJECT ("glyph", glyph, print_glyph, 0, glyph_equal,
-			     glyph_hash, glyph_description, Lisp_Glyph);
-
 Lisp_Object
 allocate_glyph (enum glyph_type type,
 		void (*after_change) (Lisp_Object glyph, Lisp_Object property,
@@ -5102,16 +5092,19 @@ disable_glyph_animated_timeout (int i)
 void
 syms_of_glyphs (void)
 {
-  INIT_LISP_OBJECT (glyph);
+  DEFINE_DUMPABLE_LISP_OBJECT ("glyph", glyph, print_glyph, 0, glyph_equal,
+                               glyph_hash, glyph_description, Lisp_Glyph);
   OBJECT_HAS_METHOD (glyph, getprop);
   OBJECT_HAS_METHOD (glyph, putprop);
   OBJECT_HAS_METHOD (glyph, remprop);
   OBJECT_HAS_METHOD (glyph, plist);
 
-  INIT_LISP_OBJECT (image_instance);
+  DEFINE_NODUMP_LISP_OBJECT ("image-instance", image_instance,
+                             print_image_instance, finalize_image_instance,
+                             image_instance_equal, image_instance_hash,
+                             image_instance_description, Lisp_Image_Instance);
 
   /* image instantiators */
-
   DEFSUBR (Fimage_instantiator_format_list);
   DEFSUBR (Fvalid_image_instantiator_format_p);
   DEFSUBR (Fset_console_type_image_conversion_list);

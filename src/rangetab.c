@@ -283,11 +283,6 @@ static const struct memory_description range_table_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_LISP_OBJECT ("range-table", range_table, print_range_table,
-			     finalize_range_table,
-			     range_table_equal, range_table_hash,
-			     range_table_description,
-			     Lisp_Range_Table);
 
 /************************************************************************/
 /*                        Range table operations                        */
@@ -1084,7 +1079,10 @@ unified_range_table_get_range (void *unrangetab, int offset,
 void
 syms_of_rangetab (void)
 {
-  INIT_LISP_OBJECT (range_table);
+  DEFINE_DUMPABLE_LISP_OBJECT ("range-table", range_table, print_range_table,
+                               finalize_range_table, range_table_equal,
+                               range_table_hash, range_table_description,
+                               Lisp_Range_Table);
   OBJECT_HAS_METHOD (range_table, print_preprocess);
   OBJECT_HAS_METHOD (range_table, nsubst_structures_descend);
 

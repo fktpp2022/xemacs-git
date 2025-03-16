@@ -471,11 +471,6 @@ static const struct memory_description subr_description[] = {
   { XD_ASCII_STRING, offsetof (Lisp_Subr, name) },
   { XD_END }
 };
-
-DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("subr", subr,
-					print_subr, 0, 0, 0,
-					subr_description,
-					Lisp_Subr);
 
 /************************************************************************/
 /*			 Entering the debugger				*/
@@ -4768,14 +4763,6 @@ static const struct memory_description multiple_value_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("multiple-value", multiple_value,
-				     print_multiple_value, 0,
-				     0, /* No equal method. */
-				     0, /* No hash method. */
-				     multiple_value_description,
-				     size_multiple_value,
-				     struct multiple_value);
-
 /* Given that FIRST and UPPER are the inclusive lower and exclusive upper
    bounds for the multiple values we're interested in, modify (or don't) the
    special variables used to indicate this to #'values and #'values-list.
@@ -7443,8 +7430,16 @@ warn_when_safe (Lisp_Object class_, Lisp_Object level, const Ascbyte *fmt, ...)
 void
 syms_of_eval (void)
 {
-  INIT_LISP_OBJECT (subr);
-  INIT_LISP_OBJECT (multiple_value);
+  DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("subr", subr, print_subr, 0, 0, 0,
+                                          subr_description, Lisp_Subr);
+
+  DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("multiple-value", multiple_value,
+                                       print_multiple_value, 0,
+                                       0, /* No equal method. */
+                                       0, /* No hash method. */
+                                       multiple_value_description,
+                                       size_multiple_value,
+                                       struct multiple_value);
 
   DEFSYMBOL (Qinhibit_quit);
   DEFSYMBOL (Qautoload);

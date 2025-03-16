@@ -1159,12 +1159,6 @@ hash_devmode (Lisp_Object obj, int depth, Boolint UNUSED (equalp))
 		internal_hash (dm->printer_name, depth + 1, 0));
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("msprinter-settings", devmode, print_devmode,
-			   finalize_devmode,
-			   equal_devmode, hash_devmode, 
-			   devmode_description,
-			   Lisp_Devmode);
-
 static Lisp_Object
 allocate_devmode (DEVMODEW* src_devmode, int do_copy,
 		  Lisp_Object src_name, struct device *d)
@@ -1319,8 +1313,9 @@ values.  Return value is nil if there are no printers installed.
 void
 syms_of_device_mswindows (void)
 {
-  INIT_LISP_OBJECT (devmode);
-
+  DEFINE_NODUMP_LISP_OBJECT ("msprinter-settings", devmode, print_devmode,
+                             finalize_devmode, equal_devmode, hash_devmode, 
+                             devmode_description, Lisp_Devmode);
 
   DEFSUBR (Fmsprinter_get_settings);
   DEFSUBR (Fmsprinter_select_settings);

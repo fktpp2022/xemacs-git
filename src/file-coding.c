@@ -403,12 +403,6 @@ const struct sized_memory_description coding_system_empty_extra_description = {
   0, coding_system_empty_extra_description_1
 };
 
-DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("coding-system", coding_system,
-				     print_coding_system,
-				     IF_OLD_GC (finalize_coding_system),
-				     0, 0, coding_system_description,
-				     sizeof_coding_system,
-				     Lisp_Coding_System);
 
 /************************************************************************/
 /*                       Creating coding systems                        */
@@ -4296,12 +4290,6 @@ free_detection_state (struct detection_state *st)
 	  (st);
     }
 }
-
-DEFINE_NODUMP_SIZABLE_INTERNAL_LISP_OBJECT ("detection-state", detection_state,
-					    detection_state_description,
-					    sizeof_detection_state,
-					    struct detection_state);
-
 
 /************************************************************************/
 /*                       Coding-system detection                        */
@@ -5656,8 +5644,18 @@ gzip_convert (struct coding_stream *str, const unsigned char *src,
 void
 syms_of_file_coding (void)
 {
-  INIT_LISP_OBJECT (coding_system);
-  INIT_LISP_OBJECT (detection_state);
+  DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("coding-system", coding_system,
+                                       print_coding_system,
+                                       IF_OLD_GC (finalize_coding_system),
+                                       0, 0, coding_system_description,
+                                       sizeof_coding_system,
+                                       Lisp_Coding_System);
+
+  DEFINE_NODUMP_SIZABLE_INTERNAL_LISP_OBJECT ("detection-state",
+                                              detection_state,
+                                              detection_state_description,
+                                              sizeof_detection_state,
+                                              struct detection_state);
 
   DEFSUBR (Fvalid_coding_system_type_p);
   DEFSUBR (Fcoding_system_type_list);

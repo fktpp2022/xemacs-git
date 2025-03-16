@@ -290,12 +290,6 @@ cleanup_buffer_undo_lists (void)
     }
 }
 
-/* We do not need a finalize method to handle a buffer's children list
-   because all buffers have `kill-buffer' applied to them before
-   they disappear, and the children removal happens then. */
-DEFINE_NODUMP_LISP_OBJECT ("buffer", buffer, print_buffer, 0, 0, 0,
-			   buffer_description,
-			   struct buffer);
 
 DEFUN ("bufferp", Fbufferp, 1, 1, 0, /*
 Return t if OBJECT is an editor buffer.
@@ -1934,7 +1928,11 @@ The values returned are in the form of a plist of properties and values.
 void
 syms_of_buffer (void)
 {
-  INIT_LISP_OBJECT (buffer);
+  /* We do not need a finalize method to handle a buffer's children list
+     because all buffers have `kill-buffer' applied to them before
+     they disappear, and the children removal happens then. */
+  DEFINE_NODUMP_LISP_OBJECT ("buffer", buffer, print_buffer, 0, 0, 0,
+                             buffer_description, struct buffer);
 #ifdef MEMORY_USAGE_STATS
   OBJECT_HAS_METHOD (buffer, memory_usage);
 #endif
@@ -2289,7 +2287,8 @@ common_init_complex_vars_of_buffer (void)
        buffer.  */
 
     set_lheader_implementation ((struct lrecord_header *)
-				&buffer_local_flags, &lrecord_buffer);
+				&buffer_local_flags,
+                                LRECORD_IMPLEMENTATION (buffer));
     nuke_all_buffer_slots (&buffer_local_flags, make_fixnum (-2));
     buffer_local_flags.filename		   = always_local_no_default;
     buffer_local_flags.directory	   = always_local_no_default;

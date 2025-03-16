@@ -776,10 +776,6 @@ parse_gui_item_tree_list (Lisp_Object list)
   RETURN_UNGCPRO (ret);
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("gui-item", gui_item, external_object_printer,
-			   0, gui_item_equal, gui_item_hash,
-			   gui_item_description, Lisp_Gui_Item);
-
 DOESNT_RETURN
 gui_error (const Ascbyte *reason, Lisp_Object frob)
 {
@@ -795,7 +791,9 @@ gui_error_2 (const Ascbyte *reason, Lisp_Object frob0, Lisp_Object frob1)
 void
 syms_of_gui (void)
 {
-  INIT_LISP_OBJECT (gui_item);
+  DEFINE_NODUMP_LISP_OBJECT ("gui-item", gui_item, external_object_printer,
+                             0, gui_item_equal, gui_item_hash,
+                             gui_item_description, Lisp_Gui_Item);
 
   DEFSYMBOL (Qmenu_no_selection_hook);
 

@@ -299,10 +299,6 @@ static const struct memory_description face_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_LISP_OBJECT ("face", face, print_face, 0, face_equal,
-			     face_hash, face_description,
-			     Lisp_Face);
-
 /************************************************************************/
 /*                             face read syntax                         */
 /************************************************************************/
@@ -2127,7 +2123,9 @@ shouldn't ever need to call this.
 void
 syms_of_faces (void)
 {
-  INIT_LISP_OBJECT (face);
+  DEFINE_DUMPABLE_LISP_OBJECT ("face", face, print_face, 0, face_equal,
+                               face_hash, face_description,
+                               Lisp_Face);
   OBJECT_HAS_METHOD (face, getprop);
   OBJECT_HAS_METHOD (face, putprop);
   OBJECT_HAS_METHOD (face, remprop);

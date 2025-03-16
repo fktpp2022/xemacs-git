@@ -209,10 +209,6 @@ float_hash (Lisp_Object obj, int UNUSED (depth), Boolint UNUSED (equalp))
 static const struct memory_description float_description[] = {
   { XD_END }
 };
-
-DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("float", float, print_float, 0,
-					float_equal, float_hash,
-					float_description, Lisp_Float);
 
 /* Extract a Lisp number as a `double', or signal an error.  */
 
@@ -2491,10 +2487,11 @@ init_floatfns_very_early (void)
 void
 syms_of_floatfns (void)
 {
-  INIT_LISP_OBJECT (float);
+  DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("float", float, print_float, 0,
+                                          float_equal, float_hash,
+                                          float_description, Lisp_Float);
 
   /* Trig functions.  */
-
   DEFSUBR (Facos);
   DEFSUBR (Fasin);
   DEFSUBR (Fatan);

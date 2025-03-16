@@ -465,13 +465,6 @@ const struct sized_memory_description specifier_empty_extra_description = {
   0, specifier_empty_extra_description_1
 };
 
-DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("specifier", specifier, print_specifier,
-				     finalize_specifier,
-				     specifier_equal, specifier_hash,
-				     specifier_description,
-				     sizeof_specifier,
-				     Lisp_Specifier);
-
 /************************************************************************/
 /*                       Creating specifiers                            */
 /************************************************************************/
@@ -3827,7 +3820,10 @@ specifier_memory_usage (Lisp_Object UNUSED (specifier),
 void
 syms_of_specifier (void)
 {
-  INIT_LISP_OBJECT (specifier);
+  DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("specifier", specifier, print_specifier,
+                                       finalize_specifier, specifier_equal,
+                                       specifier_hash, specifier_description,
+                                       sizeof_specifier, Lisp_Specifier);
 #ifdef MEMORY_USAGE_STATS
   OBJECT_HAS_METHOD (specifier, memory_usage);
 #endif

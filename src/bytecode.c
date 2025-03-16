@@ -2558,13 +2558,6 @@ static const struct memory_description compiled_function_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("compiled-function", compiled_function,
-					print_compiled_function, 0,
-					compiled_function_equal,
-					compiled_function_hash,
-					compiled_function_description,
-					Lisp_Compiled_Function);
-
 
 DEFUN ("compiled-function-p", Fcompiled_function_p, 1, 1, 0, /*
 Return t if OBJECT is a byte-compiled function object.
@@ -2968,7 +2961,13 @@ If STACK-DEPTH is incorrect, Emacs may crash.
 void
 syms_of_bytecode (void)
 {
-  INIT_LISP_OBJECT (compiled_function);
+  DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("compiled-function",
+                                          compiled_function,
+                                          print_compiled_function, 0,
+                                          compiled_function_equal,
+                                          compiled_function_hash,
+                                          compiled_function_description,
+                                          Lisp_Compiled_Function);
   OBJECT_HAS_METHOD (compiled_function, print_preprocess);
   OBJECT_HAS_METHOD (compiled_function, nsubst_structures_descend);
 

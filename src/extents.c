@@ -627,12 +627,6 @@ static const struct memory_description extent_auxiliary_description[] ={
   { XD_END }
 };
 
-DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("extent-auxiliary",
-				      extent_auxiliary,
-				      extent_auxiliary_description,
-				      struct extent_auxiliary);
-
-
 static Lisp_Object
 allocate_extent_auxiliary (void)
 {
@@ -751,13 +745,6 @@ finalize_extent_info (Lisp_Object obj)
     }
 }
 
-
-DEFINE_NODUMP_LISP_OBJECT ("extent-info", extent_info,
-			   internal_object_printer,
-			   IF_OLD_GC (finalize_extent_info), 0, 0, 
-			   extent_info_description,
-			   struct extent_info);
-
 Lisp_Object
 allocate_extent_info (void)
 {
@@ -2991,17 +2978,6 @@ extent_plist (Lisp_Object obj)
   return Fextent_properties (obj);
 }
 
-DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("extent", extent,
-					print_extent,
-					/* NOTE: If you declare a
-					   finalization method here,
-					   it will NOT be called.
-					   Shaft city. */
-					0,
-					extent_equal, extent_hash,
-					extent_description,
-					struct extent);
-
 /************************************************************************/
 /*			basic extent accessors				*/
 /************************************************************************/
@@ -7251,15 +7227,26 @@ compute_buffer_extent_usage (struct buffer *UNUSED (b))
 void
 syms_of_extents (void)
 {
-  INIT_LISP_OBJECT (extent);
+  DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("extent", extent, print_extent,
+                                          /* NOTE: If you declare a
+                                             finalization method here,
+                                             it will NOT be called.
+                                             Shaft city. */
+                                          0, extent_equal, extent_hash,
+                                          extent_description, struct extent);
   OBJECT_HAS_METHOD (extent, getprop);
   OBJECT_HAS_METHOD (extent, putprop);
   OBJECT_HAS_METHOD (extent, remprop);
   OBJECT_HAS_METHOD (extent, plist);
 
-  INIT_LISP_OBJECT (extent_info);
-  INIT_LISP_OBJECT (extent_auxiliary);
+  DEFINE_NODUMP_LISP_OBJECT ("extent-info", extent_info,
+                             internal_object_printer, finalize_extent_info, 0,
+                             0, extent_info_description, struct extent_info);
 
+  DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("extent-auxiliary",
+                                        extent_auxiliary,
+                                        extent_auxiliary_description,
+                                        struct extent_auxiliary);
   DEFSYMBOL (Qextentp);
   DEFSYMBOL (Qextent_live_p);
 

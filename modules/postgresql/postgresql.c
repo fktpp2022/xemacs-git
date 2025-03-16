@@ -1917,8 +1917,8 @@ unload_postgresql (void)
 {
 #ifndef RUNNING_XEMACS_21_1
   /* Remove defined types */
-  UNDEF_LISP_OBJECT (pgconn);
-  UNDEF_LISP_OBJECT (pgresult);
+  UNDEF_MODULE_LISP_OBJECT (pgconn);
+  UNDEF_MODULE_LISP_OBJECT (pgresult);
 #endif
 
   /* Remove staticpro'ing of symbols */

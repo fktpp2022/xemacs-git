@@ -285,9 +285,6 @@ static const struct memory_description charset_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_LISP_OBJECT ("charset", charset, print_charset, 0,
-			     0, 0, charset_description, Lisp_Charset);
-
 #ifndef UNICODE_INTERNAL
 
 static int
@@ -1743,7 +1740,8 @@ charset_memory_usage (Lisp_Object charset, struct generic_usage_stats *gustats)
 void
 syms_of_mule_charset (void)
 {
-  INIT_LISP_OBJECT (charset);
+  DEFINE_DUMPABLE_LISP_OBJECT ("charset", charset, print_charset, 0,
+                               0, 0, charset_description, Lisp_Charset);
 #ifdef MEMORY_USAGE_STATS
   OBJECT_HAS_METHOD (charset, memory_usage);
 #endif

@@ -1,3 +1,14 @@
+2025-03-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* ldap/eldap.c:
+	* ldap/eldap.c (syms_of_eldap):
+	Move the DEFINE_NODUMP_LISP_OBJECT call to syms_of_eldap().
+	* ldap/eldap.c (unload_eldap):
+	Call UNDEF_MOMDULE_LISP_OBJECT() rather than UNDEF_LISP_OBJECT()
+	here, now the latter has been removed.
+	* postgresql/postgresql.c (unload_postgresql):
+	Ditto.
+
 2025-01-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* canna/canna_api.c:

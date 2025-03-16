@@ -425,11 +425,6 @@ event_hash (Lisp_Object obj, int depth, Boolint UNUSED (equalp))
   return 0; /* unreached */
 }
 
-DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("event", event, print_event, 0,
-				      event_equal, event_hash,
-				      event_description,
-				      Lisp_Event);
-
 DEFUN ("make-event", Fmake_event, 0, 2, 0, /*
 Return a new event of type TYPE, with properties described by PLIST.
 
@@ -2569,7 +2564,10 @@ This is in the form of a property list (alternating keyword/value pairs).
 void
 syms_of_events (void)
 {
-  INIT_LISP_OBJECT (event);
+  DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("event", event, print_event, 0,
+                                        event_equal, event_hash,
+                                        event_description,
+                                        Lisp_Event);
 
   DEFSUBR (Fcharacter_to_event);
   DEFSUBR (Fevent_to_character);

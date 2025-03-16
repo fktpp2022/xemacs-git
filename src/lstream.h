@@ -587,7 +587,7 @@ struct fixed_buffer_stream
       memset (lname##u.s, 0, max (sizeof (lname##u.s),                  \
                                   sizeof (lname##u.l)));                \
       set_lheader_implementation ((struct lrecord_header *)&(lname##u.l), \
-                                  &lrecord_lstream);                    \
+                                  LRECORD_IMPLEMENTATION (lstream));    \
       lname##u.l.imp = lstream_fixed_buffer;                            \
       Lstream_set_buffering (&(lname##u.l), LSTREAM_UNBUFFERED, 0);     \
       lname##u.l.flags = LSTR_IS_OPEN;                                  \

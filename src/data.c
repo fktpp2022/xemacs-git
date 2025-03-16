@@ -3013,10 +3013,6 @@ static const struct memory_description weak_list_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_LISP_OBJECT ("weak-list", weak_list, print_weak_list,
-			     0, weak_list_equal, weak_list_hash,
-			     weak_list_description,
-			     struct weak_list);
 /*
    -- we do not mark the list elements (either the elements themselves
       or the cons cells that hold them) in the normal marking phase.
@@ -3580,11 +3576,6 @@ static const struct memory_description ephemeron_description[] = {
   { XD_END }
 };
 
-DEFINE_NODUMP_LISP_OBJECT ("ephemeron", ephemeron, print_ephemeron,
-			   0, ephemeron_equal, ephemeron_hash,
-			   ephemeron_description,
-			   struct ephemeron);
-
 DEFUN ("make-ephemeron", Fmake_ephemeron, 2, 3, 0, /*
 Return a new ephemeron with key KEY, value VALUE, and finalizer FINALIZER.
 The ephemeron is a reference to VALUE which may be extracted with
@@ -3740,8 +3731,15 @@ init_errors_once_early (void)
 void
 syms_of_data (void)
 {
-  INIT_LISP_OBJECT (weak_list);
-  INIT_LISP_OBJECT (ephemeron);
+  DEFINE_DUMPABLE_LISP_OBJECT ("weak-list", weak_list, print_weak_list,
+                               0, weak_list_equal, weak_list_hash,
+                               weak_list_description,
+                               struct weak_list);
+
+  DEFINE_NODUMP_LISP_OBJECT ("ephemeron", ephemeron, print_ephemeron,
+                             0, ephemeron_equal, ephemeron_hash,
+                             ephemeron_description,
+                             struct ephemeron);
 
   DEFSYMBOL (Qlambda);
   DEFSYMBOL (Qlistp);

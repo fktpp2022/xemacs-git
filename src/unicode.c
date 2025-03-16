@@ -1614,13 +1614,6 @@ print_precedence_array (Lisp_Object obj, Lisp_Object printcharfun,
   write_fmt_string (printcharfun, " %p>", XPNTR (obj));
 }
 
-
-DEFINE_DUMPABLE_LISP_OBJECT ("precedence-array", precedence_array,
-                             print_precedence_array,
-                             finalize_precedence_array, 0, 0, 
-                             precedence_array_description,
-                             struct precedence_array);
-
 /******************** Basic precedence-array functions *******************/
 
 Lisp_Object
@@ -4201,7 +4194,11 @@ initialize_ascii_control_1_latin_1_unicode_translation (void)
 void
 syms_of_unicode (void)
 {
-  INIT_LISP_OBJECT (precedence_array);
+  DEFINE_DUMPABLE_LISP_OBJECT ("precedence-array", precedence_array,
+                               print_precedence_array,
+                               finalize_precedence_array, 0, 0, 
+                               precedence_array_description,
+                               struct precedence_array);
 
   DEFSUBR (Fset_default_unicode_precedence_list);
   DEFSUBR (Fdefault_unicode_precedence_list);

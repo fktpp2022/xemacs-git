@@ -524,10 +524,6 @@ static const struct memory_description expose_ignore_description_1 [] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("expose-ignore", expose_ignore,
-				      expose_ignore_description_1,
-				      struct expose_ignore);
-
 static const struct memory_description display_line_dynarr_pointer_description_1 []= {
   { XD_BLOCK_PTR, 0, 1, { &display_line_dynarr_description} },
   { XD_END }
@@ -578,10 +574,6 @@ print_frame (Lisp_Object obj, Lisp_Object printcharfun,
   write_fmt_string (printcharfun, " 0x%x>", LISP_OBJECT_UID (obj));
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("frame", frame, print_frame, 0, 0, 0,
-			   frame_description,
-			   struct frame);
-
 /**************************************************************************/
 /*                                                                        */
 /*                             frame creation                             */
@@ -4064,12 +4056,15 @@ init_frame (void)
 void
 syms_of_frame (void)
 {
-  INIT_LISP_OBJECT (frame);
+  DEFINE_NODUMP_LISP_OBJECT ("frame", frame, print_frame, 0, 0, 0,
+                             frame_description, struct frame);
 #ifdef MEMORY_USAGE_STATS
   OBJECT_HAS_METHOD (frame, memory_usage);
 #endif
 
-  INIT_LISP_OBJECT (expose_ignore);
+  DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("expose-ignore", expose_ignore,
+                                        expose_ignore_description_1,
+                                        struct expose_ignore);
 
   DEFSYMBOL (Qdelete_frame_hook);
   DEFSYMBOL (Qselect_frame_hook);

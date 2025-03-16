@@ -213,11 +213,6 @@ static const struct memory_description char_subtable_description[] = {
   { XD_LISP_OBJECT_ARRAY, offsetof (Lisp_Char_Subtable, ptr), 256 }, 
   { XD_END }
 };
-
-DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("char-subtable", char_subtable,
-				      char_subtable_description,
-				      Lisp_Char_Subtable);
-
 
 /************************************************************************/
 /*                      Char table implementation                       */
@@ -1119,12 +1114,6 @@ static const struct memory_description char_table_description[] = {
 #endif /* MIRROR_TABLE */
   { XD_END }
 };
-
-DEFINE_DUMPABLE_LISP_OBJECT ("char-table", char_table,
-			     print_char_table, 0,
-			     char_table_equal, char_table_hash,
-			     char_table_description,
-			     Lisp_Char_Table);
 
 static void
 decode_char_table_range (Lisp_Object range, struct chartab_range *outrange)
@@ -2046,12 +2035,6 @@ static const struct memory_description category_table_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_LISP_OBJECT ("category-table", category_table,
-			     print_category_table, 0,
-			     category_table_equal, category_table_hash,
-			     category_table_description,
-			     Lisp_Category_Table);
-
 DEFUN ("make-category-table", Fmake_category_table, 0, 0, 0, /*
 Construct a new and empty category table and return it.
 A category table is a table used for keeping track of categories.
@@ -2363,16 +2346,24 @@ word_boundary_p (struct buffer *buf, Ichar c1, Ichar c2)
 void
 syms_of_chartab (void)
 {
-  INIT_LISP_OBJECT (char_table);
+  DEFINE_DUMPABLE_LISP_OBJECT ("char-table", char_table, print_char_table, 0,
+                               char_table_equal, char_table_hash,
+                               char_table_description, Lisp_Char_Table);
   OBJECT_HAS_METHOD (char_table, print_preprocess);
   OBJECT_HAS_METHOD (char_table, nsubst_structures_descend);
 #ifdef MEMORY_USAGE_STATS
   OBJECT_HAS_METHOD (char_table, memory_usage);
 #endif
 
-  INIT_LISP_OBJECT (char_subtable);
+  DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("char-subtable", char_subtable,
+                                        char_subtable_description,
+                                        Lisp_Char_Subtable);
 
-  INIT_LISP_OBJECT (category_table);
+  DEFINE_DUMPABLE_LISP_OBJECT ("category-table", category_table,
+                               print_category_table, 0, category_table_equal,
+                               category_table_hash,
+                               category_table_description,
+                               Lisp_Category_Table);
   DEFSYMBOL_MULTIWORD_PREDICATE (Qcategory_tablep);
   DEFSYMBOL (Qcategory_designator_p);
 

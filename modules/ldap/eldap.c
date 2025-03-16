@@ -150,9 +150,6 @@ finalize_ldap (Lisp_Object obj)
   ldap->ld = NULL;
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("ldap", ldap, print_ldap, finalize_ldap,
-			   NULL, NULL, ldap_description,
-			   Lisp_LDAP);
 
 /************************************************************************/
 /*                        Basic ldap accessors                          */
@@ -801,7 +798,9 @@ DN is the distinguished name of the entry to delete.
 void
 syms_of_eldap (void)
 {
-  INIT_LISP_OBJECT (ldap);
+  DEFINE_NODUMP_LISP_OBJECT ("ldap", ldap, print_ldap, finalize_ldap,
+                             NULL, NULL, ldap_description,
+                             Lisp_LDAP);
 
   DEFSYMBOL (Qeldap);
   DEFSYMBOL (Qldapp);
@@ -863,7 +862,7 @@ void
 unload_eldap (void)
 {
   /* Remove defined types */
-  UNDEF_LISP_OBJECT (ldap);
+  UNDEF_MODULE_LISP_OBJECT (ldap);
 
   /* Remove staticpro'ing of symbols */
   unstaticpro_nodump (&Qeldap);

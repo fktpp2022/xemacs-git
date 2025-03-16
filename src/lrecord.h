@@ -28,8 +28,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    passed by reference.  Such objects are called "record objects" ("record"
    is another term for "structure").  The "wrapped" value of such an object
    (i.e. when stored in a variable of type Lisp_Object) is simply the raw
-   pointer coerced to an integral type the same size as the pointer
-   (usually `long').
+   pointer coerced to an integral type the same size as the pointer.
    
    There are two kinds of record objects: normal objects (those allocated on
    their own with xmalloc()) and frob-block objects (those allocated as pieces
@@ -135,22 +134,23 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
      requires that the object is properly initialized.
 
    - lisp_object_storage_size (obj, stats): Return the storage size of a
-     Lisp objcet, including malloc or frob-block overhead; also, if STATS
+     Lisp object, including malloc or frob-block overhead; also, if STATS
      is non-NULL, accumulate info about the size and overhead into STATS.
  */
 
-
-#define ALLOC_NORMAL_LISP_OBJECT(type) alloc_automanaged_lcrecord (&lrecord_##type)
+#define ALLOC_NORMAL_LISP_OBJECT(type) \
+  alloc_automanaged_lcrecord (LRECORD_IMPLEMENTATION (type))
 #define ALLOC_SIZED_LISP_OBJECT(size, type) \
-  old_alloc_sized_lcrecord (size, &lrecord_##type)
+  old_alloc_sized_lcrecord (size, LRECORD_IMPLEMENTATION (type))
+
 #define NORMAL_LISP_OBJECT_HEADER struct old_lcrecord_header
 #define FROB_BLOCK_LISP_OBJECT_HEADER struct lrecord_header
 #define LISP_OBJECT_FROB_BLOCK_P(obj) (XRECORD_LHEADER_IMPLEMENTATION(obj)->frob_block_p)
 #define IF_OLD_GC(x) x
 
 #define ALLOC_C_READONLY_LISP_OBJECT(type) \
-  alloc_automanaged_c_readonly_lcrecord (lrecord_##type.static_size, \
-					 &lrecord_##type)
+  alloc_automanaged_c_readonly_lcrecord\
+  (LRECORD_IMPLEMENTATION (type)->static_size, LRECORD_IMPLEMENTATION (type))
 
 #define LISP_OBJECT_UID(obj) (XRECORD_LHEADER (obj)->uid)
 
@@ -460,6 +460,12 @@ struct lrecord_implementation
 
 extern MODULE_API struct lrecord_implementation *
 lrecord_implementations_table[lrecord_type_last_built_in_type + MODULE_DEFINABLE_TYPE_COUNT];
+
+/* Given a built-in C type name (cons, bignum and so on; usually the entry in
+   enum lrecord_type without the preceding lrecord_type_), return a pointer to
+   the lrecord_implementation of the corresponding Lisp object. */
+#define LRECORD_IMPLEMENTATION(type) \
+  lrecord_implementations_table[lrecord_type_##type]
 
 /* Given a Lisp object, return its implementation
    (struct lrecord_implementation) */
@@ -1146,6 +1152,9 @@ extern MODULE_API void init_memory_usage_stats (enum lrecord_type type,
                                                 Lisp_Object
                                                 memusage_stats_list);
 
+#define INIT_MEMORY_USAGE_STATS(type, memusage_stats_list)      \
+  init_memory_usage_stats (lrecord_type_##type, memusage_stats_list)
+
 /* If MEMORY_USAGE_STATS is defined, clear stats for TYPE. If it is not
    defined, do nothing. */
 extern MODULE_API void uninit_memory_usage_stats (enum lrecord_type type);
@@ -1178,149 +1187,131 @@ extern MODULE_API void uninit_memory_usage_stats (enum lrecord_type type);
    customize the print method, use the normal DEFINE_*_LISP_OBJECT
    mechanism for defining these objects.
 
-   DEFINE_MODULE_* is for objects defined in an external module.
-
-   MAKE_LISP_OBJECT and MAKE_MODULE_LISP_OBJECT are what underlies all of
-   these; they define a structure containing pointers to object methods
-   and other info such as the size of the structure containing the object.
- */
-
-/* #### FIXME What's going on here? */
-#if defined (ERROR_CHECK_TYPES)
-# define DECLARE_ERROR_CHECK_TYPES(c_name, structtype)
-#else
-# define DECLARE_ERROR_CHECK_TYPES(c_name, structtype)
-#endif
+   MAKE_LISP_OBJECT is what underlies all of these; it allocates a structure
+   containing pointers to object methods and other info such as the size of
+   the structure containing the object, and puts a pointer to that structure
+   into lrecord_implementations_table. */
 
 /********* The dumpable versions *********** */
 
-#define DEFINE_DUMPABLE_LISP_OBJECT(name,c_name,printer,nuker,equal,hash,desc,structtype) \
-MAKE_LISP_OBJECT(name,c_name,1 /*dumpable*/,printer,nuker,equal,hash,desc,sizeof (structtype),0,0,structtype)
+#define DEFINE_DUMPABLE_LISP_OBJECT(name, c_name, printer, nuker, equal, \
+                                    hash, desc, structtype)              \
+  MAKE_LISP_OBJECT (name, c_name, 1 /*dumpable*/, printer, nuker, equal, \
+                    hash, desc, sizeof (structtype), 0, 0)
 
-#define DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT(name,c_name,printer,nuker,equal,hash,desc,sizer,structtype) \
-MAKE_LISP_OBJECT(name,c_name,1 /*dumpable*/,printer,nuker,equal,hash,desc,0,sizer,0,structtype)
+#define DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT(name, c_name, printer, nuker,\
+                                            equal, hash, desc, sizer,    \
+                                            structtype)                  \
+  MAKE_LISP_OBJECT (name, c_name, 1 /*dumpable*/, printer, nuker, equal, \
+                    hash, desc, 0, sizer, 0)
 
-#define DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT(name,c_name,printer,nuker,equal,hash,desc,structtype) \
-MAKE_LISP_OBJECT(name,c_name,1 /*dumpable*/,printer,nuker,equal,hash,desc,sizeof(structtype),0,1,structtype)
+#define DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT(name, c_name, printer, \
+                                               nuker, equal, hash,    \
+                                               desc, structtype)      \
+  MAKE_LISP_OBJECT (name, c_name, 1 /*dumpable*/, printer, nuker,     \
+                    equal, hash, desc, sizeof(structtype), 0, 1)
 
-#define DEFINE_DUMPABLE_FROB_BLOCK_SIZABLE_LISP_OBJECT(name,c_name,printer,nuker,equal,hash,desc,sizer,structtype) \
-MAKE_LISP_OBJECT(name,c_name,1 /*dumpable*/,printer,nuker,equal,hash,desc,0,sizer,1,structtype)
+#define DEFINE_DUMPABLE_FROB_BLOCK_SIZABLE_LISP_OBJECT(name, c_name,    \
+                                                       printer, nuker,  \
+                                                       equal, hash,     \
+                                                       desc, sizer,     \
+                                                       structtype)      \
+  MAKE_LISP_OBJECT (name, c_name, 1 /*dumpable*/, printer, nuker,       \
+                    equal, hash, desc, 0, sizer, 1)
 
-#define DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT(name,c_name,desc,structtype) \
-DEFINE_DUMPABLE_LISP_OBJECT(name,c_name,internal_object_printer,0,0,0,desc,structtype)
+#define DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT(name, c_name, desc,        \
+                                             structtype)                \
+  DEFINE_DUMPABLE_LISP_OBJECT (name, c_name, internal_object_printer, 0,\
+                               0, 0, desc, structtype)
 
-#define DEFINE_DUMPABLE_SIZABLE_INTERNAL_LISP_OBJECT(name,c_name,desc,sizer,structtype) \
-DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT(name,c_name,internal_object_printer,0,0,0,desc,sizer,structtype)
+#define DEFINE_DUMPABLE_SIZABLE_INTERNAL_LISP_OBJECT(name, c_name, desc, \
+                                                     sizer, structtype)  \
+  DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT(name, c_name,                      \
+                                      internal_object_printer, 0, 0, 0,  \
+                                      desc, sizer)
 
 /********* The non-dumpable versions *********** */
 
-#define DEFINE_NODUMP_LISP_OBJECT(name,c_name,printer,nuker,equal,hash,desc,structtype) \
-MAKE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,printer,nuker,equal,hash,desc,sizeof (structtype),0,0,structtype)
+#define DEFINE_NODUMP_LISP_OBJECT(name, c_name, printer, nuker, equal,  \
+                                  hash, desc, structtype)               \
+  MAKE_LISP_OBJECT (name, c_name, 0 /*non-dumpable*/, printer, nuker,   \
+                    equal, hash, desc, sizeof (structtype), 0, 0)
 
-#define DEFINE_NODUMP_SIZABLE_LISP_OBJECT(name,c_name,printer,nuker,equal,hash,desc,sizer,structtype) \
-MAKE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,printer,nuker,equal,hash,desc,0,sizer,0,structtype)
+#define DEFINE_NODUMP_SIZABLE_LISP_OBJECT(name, c_name, printer, nuker, \
+                                          equal, hash, desc, sizer,     \
+                                          structtype)                   \
+  MAKE_LISP_OBJECT (name, c_name, 0 /*non-dumpable*/, printer, nuker,   \
+                    equal, hash, desc, 0, sizer, 0)
 
-#define DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT(name,c_name,printer,nuker,equal,hash,desc,structtype) \
-MAKE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,printer,nuker,equal,hash,desc,sizeof(structtype),0,1,structtype)
+#define DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT(name, c_name, printer,     \
+                                             nuker, equal, hash, desc,  \
+                                             structtype)                \
+  MAKE_LISP_OBJECT (name, c_name, 0 /*non-dumpable*/, printer, nuker,   \
+                    equal, hash, desc, sizeof (structtype), 0, 1)
 
-#define DEFINE_NODUMP_FROB_BLOCK_SIZABLE_LISP_OBJECT(name,c_name,printer,nuker,equal,hash,desc,sizer,structtype) \
-MAKE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,printer,nuker,equal,hash,desc,0,sizer,1,structtype)
+#define DEFINE_NODUMP_FROB_BLOCK_SIZABLE_LISP_OBJECT(name, c_name, printer,   \
+                                                     nuker, equal, hash,      \
+                                                     desc, sizer, structtype) \
+  MAKE_LISP_OBJECT (name, c_name, 0 /*non-dumpable*/, printer, nuker,   \
+                    equal, hash, desc, 0, sizer, 1)
 
-#define DEFINE_NODUMP_INTERNAL_LISP_OBJECT(name,c_name,desc,structtype) \
-DEFINE_NODUMP_LISP_OBJECT(name,c_name,internal_object_printer,0,0,0,desc,structtype)
+#define DEFINE_NODUMP_INTERNAL_LISP_OBJECT(name, c_name, desc, structtype) \
+  DEFINE_NODUMP_LISP_OBJECT (name, c_name, internal_object_printer, 0,     \
+                                  0, 0, desc, structtype)
 
-#define DEFINE_NODUMP_SIZABLE_INTERNAL_LISP_OBJECT(name,c_name,desc,sizer,structtype) \
-DEFINE_NODUMP_SIZABLE_LISP_OBJECT(name,c_name,internal_object_printer,0,0,0,desc,sizer,structtype)
+#define DEFINE_NODUMP_SIZABLE_INTERNAL_LISP_OBJECT(name, c_name, desc,  \
+                                                   sizer, structtype)   \
+  DEFINE_NODUMP_SIZABLE_LISP_OBJECT (name, c_name,                      \
+                                     internal_object_printer, 0, 0, 0,  \
+                                     desc, sizer, structtype)
 
 /********* MAKE_LISP_OBJECT, the underlying macro *********** */
 
-#define MAKE_LISP_OBJECT(name,c_name,dumpable,printer,nuker,equal,hash,desc,size,sizer,frob_block_p,structtype) \
-DECLARE_ERROR_CHECK_TYPES(c_name, structtype)				\
-struct lrecord_implementation lrecord_##c_name =			\
-  { name, dumpable, printer, nuker, equal, hash, desc,			\
-    size, sizer, lrecord_type_##c_name, frob_block_p }
-
-#define MAKE_RECURSIVE_LISP_OBJECT(name,c_name,dumpable,printer,	\
-                                   nuker,equal,hash,desc,size,sizer,    \
-                                   frob_block_p,structtype,             \
-                                   print_preprocess,                    \
-                                   nsubst_structures_descend)           \
-DECLARE_ERROR_CHECK_TYPES(c_name, structtype)				\
-struct lrecord_implementation lrecord_##c_name =			\
-  { name, dumpable, printer, nuker, equal, hash, desc,			\
-    size, sizer, lrecord_type_##c_name, frob_block_p, print_preprocess, \
-    nsubst_structures_descend }
-
-/********* The module dumpable versions *********** */
-
-#define DEFINE_DUMPABLE_MODULE_LISP_OBJECT(name,c_name,dumpable,printer,nuker,equal,hash,desc,structtype) \
-MAKE_MODULE_LISP_OBJECT(name,c_name,1 /*dumpable*/,printer,nuker,equal,hash,desc,sizeof (structtype),0,0,structtype)
-
-#define DEFINE_DUMPABLE_MODULE_SIZABLE_LISP_OBJECT(name,c_name,dumpable,printer,nuker,equal,hash,desc,sizer,structtype) \
-MAKE_MODULE_LISP_OBJECT(name,c_name,1 /*dumpable*/,printer,nuker,equal,hash,desc,0,sizer,0,structtype)
-
-/********* The module non-dumpable versions *********** */
-
-#define DEFINE_NODUMP_MODULE_LISP_OBJECT(name,c_name,dumpable,		\
-printer,nuker,equal,hash,desc,structtype)				\
-MAKE_MODULE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,printer,		\
-nuker,equal,hash,desc,sizeof (structtype),0,0,structtype)
-
-#define DEFINE_NODUMP_MODULE_SIZABLE_LISP_OBJECT(name,c_name,dumpable,	\
-printer,nuker,equal,hash,desc,sizer,structtype)				\
-MAKE_MODULE_LISP_OBJECT(name,c_name,0 /*non-dumpable*/,printer,		\
-nuker,equal,hash,desc,0,sizer,0,structtype)
-
-/********* MAKE_MODULE_LISP_OBJECT, the underlying macro *********** */
-
-#define MAKE_MODULE_LISP_OBJECT(name,c_name,dumpable,printer,		\
-nuker,equal,hash,desc,size,sizer,frob_block_p,structtype)		\
-DECLARE_ERROR_CHECK_TYPES(c_name, structtype)				\
-int lrecord_type_##c_name;						\
-struct lrecord_implementation lrecord_##c_name =			\
-  { name, dumpable,  printer, nuker, equal, hash, desc,			\
-    size, sizer, lrecord_type_last_built_in_type, frob_block_p }
-
-#define INIT_MEMORY_USAGE_STATS(type, memusage_stats_list)      \
-  init_memory_usage_stats (lrecord_type_##type, memusage_stats_list)
-
-#define INIT_LISP_OBJECT_BEGINNING(type)				\
-do									\
-{									\
-  lrecord_implementations_table[lrecord_type_##type] = &lrecord_##type;	\
-  INIT_MEMORY_USAGE_STATS (type, Qnil);                                 \
-} while (0)
+#define MAKE_LISP_OBJECT(lisp_name, c_name, m_l_o_dumpable, m_l_o_printer, \
+                         nuker, m_l_o_equal, m_l_o_hash, desc, size, sizer,\
+                         m_l_o_frob_block_p)                               \
+  do {                                                                     \
+    init_lrecord_type_##c_name ();                                         \
+    LRECORD_IMPLEMENTATION (c_name)                                        \
+      = xnew_and_zero (struct lrecord_implementation);                     \
+    LRECORD_IMPLEMENTATION (c_name)->name = lisp_name;                     \
+    LRECORD_IMPLEMENTATION (c_name)->lrecord_type_index                    \
+      = lrecord_type_##c_name;                                             \
+    LRECORD_IMPLEMENTATION (c_name)->static_size = size;                   \
+    LRECORD_IMPLEMENTATION (c_name)->description = desc;                   \
+    LRECORD_IMPLEMENTATION (c_name)->dumpable = m_l_o_dumpable;            \
+    LRECORD_IMPLEMENTATION (c_name)->frob_block_p                          \
+      = m_l_o_frob_block_p;                                                \
+                                                                           \
+    OBJECT_HAS_NAMED_METHOD (c_name, printer, m_l_o_printer);              \
+    OBJECT_HAS_NAMED_METHOD (c_name, finalizer, nuker);                    \
+    OBJECT_HAS_NAMED_METHOD (c_name, equal, m_l_o_equal);                  \
+    OBJECT_HAS_NAMED_METHOD (c_name, hash, m_l_o_hash);                    \
+    OBJECT_HAS_NAMED_METHOD (c_name, size_in_bytes_method,                 \
+                             sizer);                                       \
+                                                                           \
+    lrecord_memory_descriptions[lrecord_type_##c_name] =                   \
+      LRECORD_IMPLEMENTATION (c_name)->description;                        \
+    init_memory_usage_stats (lrecord_type_##c_name, Qnil);                 \
+  } while (0)
 
 extern MODULE_API const struct memory_description *lrecord_memory_descriptions[];
-
-#define INIT_LISP_OBJECT(type) do {					\
-  INIT_LISP_OBJECT_BEGINNING (type);					\
-  lrecord_memory_descriptions[lrecord_type_##type] =			\
-    lrecord_implementations_table[lrecord_type_##type]->description;	\
-} while (0)
-
-#define INIT_MODULE_LISP_OBJECT(type) do {			\
-  lrecord_type_##type = lrecord_type_count++;			\
-  lrecord_##type.lrecord_type_index = lrecord_type_##type;	\
-  INIT_LISP_OBJECT (type);					\
-} while (0)
 
 #ifdef HAVE_SHLIB
 /* Allow undefining types in order to support module unloading. */
 
-#define UNDEF_LISP_OBJECT(type) do {				\
-  lrecord_implementations_table[lrecord_type_##type] = NULL;	\
-  lrecord_memory_descriptions[lrecord_type_##type] = NULL;	\
-  uninit_memory_usage_stats (lrecord_type_##type);              \
-} while (0)
-
-#define UNDEF_MODULE_LISP_OBJECT(type) do {				\
-  if (lrecord_##type.lrecord_type_index == lrecord_type_count - 1) {	\
-    /* This is the most recently defined type.  Clean up nicely. */	\
-    lrecord_type_##type = lrecord_type_count--;				\
-  } /* Else we can't help leaving a hole with this implementation. */	\
-  UNDEF_LISP_OBJECT(type);						\
-} while (0)
+#define UNDEF_MODULE_LISP_OBJECT(c_name) do {				\
+    if (LRECORD_IMPLEMENTATION (c_name)->lrecord_type_index             \
+        == lrecord_type_count - 1)                                      \
+      {                                                                 \
+        /* This is the most recently defined type.  Clean up nicely. */	\
+        lrecord_type_count--;                                           \
+      } /* Else we can't help leaving a hole */                         \
+        /* with this implementation. */                                 \
+    lrecord_implementations_table[lrecord_type_##c_name] = NULL;        \
+    lrecord_memory_descriptions[lrecord_type_##c_name] = NULL;          \
+    uninit_memory_usage_stats (lrecord_type_##c_name);                  \
+  } while (0)
 
 #endif /* HAVE_SHLIB */
 
@@ -1330,16 +1321,16 @@ extern MODULE_API const struct memory_description *lrecord_memory_descriptions[]
 /* Declare that object-type TYPE has method M; used in
    initialization routines */
 #define OBJECT_HAS_METHOD(type, m) \
-  (lrecord_##type.m = type##_##m)
+  (LRECORD_IMPLEMENTATION (type)->m = type##_##m)
 /* Same but the method name come before the type */
 #define OBJECT_HAS_PREMETHOD(type, m) \
-  (lrecord_##type.m = m##_##type)
+  (LRECORD_IMPLEMENTATION (type)->m = m##_##type)
 /* Same but the name of the method is explicitly given */
 #define OBJECT_HAS_NAMED_METHOD(type, m, func) \
-  (lrecord_##type.m = (func))
+  (LRECORD_IMPLEMENTATION (type)->m = (func))
 /* Object type has a property with the given value. */
 #define OBJECT_HAS_PROPERTY(type, prop, val) \
-  (lrecord_##type.prop = (val))
+  (LRECORD_IMPLEMENTATION (type)->prop = (val))
 
 /* Does the given object method exist? */
 #define HAS_OBJECT_METH_P(obj, m) \
@@ -1395,19 +1386,16 @@ do							\
    this file describing the exact syntax of the description structures.
 
    6. Define your object with DEFINE_*_LISP_OBJECT() or some
-   variant.  At the minimum, you need to decide whether your object can
-   be dumped.  Objects that are created as part of the loadup process and
-   need to be persistent across dumping should be created dumpable.
-   Nondumpable objects are generally those associated with display,
-   particularly those containing a pointer to an external library object
-   (e.g. a window-system window).
+   variant.  This needs to be in the C file's syms_of_foo() function.  At the
+   minimum, you need to decide whether your object can be dumped.  Objects
+   that are created as part of the loadup process and need to be persistent
+   across dumping should be created dumpable.  Nondumpable objects are
+   generally those associated with display, particularly those containing a
+   pointer to an external library object (e.g. a window-system window).
 
    7. Include the header file in the .c file where you defined the object.
 
-   8. Put a call to INIT_LISP_OBJECT() for the object in the
-   .c file's syms_of_foo() function.
-
-   9. Add a type enum for the object to enum lrecord_type, earlier in this
+   8. Add a type enum for the object to enum lrecord_type, earlier in this
    file.
 
    --ben
@@ -1502,17 +1490,16 @@ do							\
     return wrap_toolbar_button (tb);
   }
    
-  DEFINE_NODUMP_LISP_OBJECT ("toolbar-button", toolbar_button,
-  			     external_object_printer, 0, 0, 0,
-  			     toolbar_button_description,
-  			     struct toolbar_button);
-  
   ...
   
   void
   syms_of_toolbar (void)
   {
-    INIT_LISP_OBJECT (toolbar_button);
+    DEFINE_NODUMP_LISP_OBJECT ("toolbar-button", toolbar_button,
+                               external_object_printer, 0, 0, 0,
+    			       toolbar_button_description,
+    			       struct toolbar_button);
+  
   
     ...;
   }
@@ -1547,21 +1534,50 @@ do							\
 
 */
 
-/*
+/* Note: Object types defined in external dynamically-loaded modules (not part
+   of the XEmacs main source code) should use DECLARE_MODULE_LISP_OBJECT() in
+   their header files (or early in the C file if no header file), to allow
+   declaration of an enumerator for the type being defined. The
+   DEFINE_*_LISP_OBJECT() macros can be used in the normal way in the
+   syms_of_foo() function of the module C file. (Previously there were
+   separate DEFINE_*_LISP_OBJECT() macros to be used in modules.) */
+#define DECLARE_LISP_OBJECT(c_name, structtype)                         \
+DECLARE_INLINE_HEADER (                                                 \
+void                                                                    \
+init_lrecord_type_##c_name (void)                                       \
+)									\
+{									\
+  structure_checking_assert (lrecord_type_##c_name != 0);               \
+  structure_checking_assert (lrecord_type_##c_name <                    \
+                             lrecord_type_last_built_in_type != 0);     \
+}									\
+DECLARE_LISP_OBJECT_1 (c_name, structtype, extern)
 
-Note: Object types defined in external dynamically-loaded modules (not
-part of the XEmacs main source code) should use DECLARE_*_MODULE_LISP_OBJECT
-and DEFINE_*_MODULE_LISP_OBJECT rather than DECLARE_*_LISP_OBJECT
-and DEFINE_*_LISP_OBJECT.  The MODULE versions declare and
-allocate an enumerator for the type being defined.
+#define DECLARE_MODULE_API_LISP_OBJECT(c_name, structtype)		\
+DECLARE_INLINE_HEADER (                                                 \
+void                                                                    \
+init_lrecord_type_##c_name (void)                                       \
+)									\
+{									\
+  structure_checking_assert (lrecord_type_##c_name != 0);                \
+}									\
+DECLARE_LISP_OBJECT_1 (c_name, structtype, extern MODULE_API)
 
-*/
+#define DECLARE_MODULE_LISP_OBJECT(c_name, structtype)                  \
+extern int lrecord_type_##c_name;                                       \
+DECLARE_INLINE_HEADER (                                                 \
+void                                                                    \
+init_lrecord_type_##c_name (void)                                       \
+)									\
+{									\
+  lrecord_type_##c_name = lrecord_type_count++;                         \
+}									\
+DECLARE_LISP_OBJECT_1 (c_name, structtype, extern)
 
 
 #ifdef ERROR_CHECK_TYPES
 
-# define DECLARE_LISP_OBJECT(c_name, structtype)			\
-extern struct lrecord_implementation lrecord_##c_name;			\
+# define DECLARE_LISP_OBJECT_1(c_name, structtype, visibility)		\
 DECLARE_INLINE_HEADER (							\
 structtype *								\
 error_check_##c_name (Lisp_Object obj, const Ascbyte *file, int line)	\
@@ -1570,32 +1586,7 @@ error_check_##c_name (Lisp_Object obj, const Ascbyte *file, int line)	\
   assert_at_line (RECORD_TYPEP (obj, lrecord_type_##c_name), file, line); \
   return (structtype *) XPNTR (obj);					\
 }									\
-extern Lisp_Object Q##c_name##p
-
-# define DECLARE_MODULE_API_LISP_OBJECT(c_name, structtype)		\
-extern MODULE_API struct lrecord_implementation lrecord_##c_name;	\
-DECLARE_INLINE_HEADER (							\
-structtype *								\
-error_check_##c_name (Lisp_Object obj, const Ascbyte *file, int line)	\
-)									\
-{									\
-  assert_at_line (RECORD_TYPEP (obj, lrecord_type_##c_name), file, line); \
-  return (structtype *) XPNTR (obj);					\
-}									\
-extern MODULE_API Lisp_Object Q##c_name##p
-
-# define DECLARE_MODULE_LISP_OBJECT(c_name, structtype)			\
-extern int lrecord_type_##c_name;					\
-extern struct lrecord_implementation lrecord_##c_name;			\
-DECLARE_INLINE_HEADER (							\
-structtype *								\
-error_check_##c_name (Lisp_Object obj, const Ascbyte *file, int line)	\
-)									\
-{									\
-  assert_at_line (RECORD_TYPEP (obj, lrecord_type_##c_name), file, line); \
-  return (structtype *) XPNTR (obj);					\
-}									\
-extern Lisp_Object Q##c_name##p
+visibility Lisp_Object Q##c_name##p
 
 # define XRECORD(x, c_name, structtype) \
   error_check_##c_name (x, __FILE__, __LINE__)
@@ -1617,16 +1608,9 @@ wrap_record_1 (const void *ptr, enum lrecord_type ty, const Ascbyte *file,
 
 #else /* not ERROR_CHECK_TYPES */
 
-# define DECLARE_LISP_OBJECT(c_name, structtype)		\
-extern Lisp_Object Q##c_name##p;				\
-extern struct lrecord_implementation lrecord_##c_name
-# define DECLARE_MODULE_API_LISP_OBJECT(c_name, structtype)	\
-extern MODULE_API Lisp_Object Q##c_name##p;			\
-extern MODULE_API struct lrecord_implementation lrecord_##c_name
-# define DECLARE_MODULE_LISP_OBJECT(c_name, structtype)		\
-extern Lisp_Object Q##c_name##p;				\
-extern int lrecord_type_##c_name;				\
-extern struct lrecord_implementation lrecord_##c_name
+# define DECLARE_LISP_OBJECT_1(c_name, structtype, visibility)     \
+visibility Lisp_Object Q##c_name##p
+
 # define XRECORD(x, c_name, structtype) ((structtype *) XPNTR (x))
 /* wrap_pointer_1 is so named as a suggestion not to use it unless you
    know what you're doing. */

@@ -86,11 +86,6 @@ static const struct memory_description marker_description[] = {
   { XD_END }
 };
 
-
-DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("marker", marker, print_marker,
-					0, marker_equal, marker_hash,
-					marker_description, Lisp_Marker);
-
 /* Operations on markers. */
 
 DEFUN ("marker-buffer", Fmarker_buffer, 1, 1, 0, /*
@@ -610,8 +605,9 @@ compute_buffer_marker_usage (struct buffer *b)
 void
 syms_of_marker (void)
 {
-  INIT_LISP_OBJECT (marker);
-
+  DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("marker", marker, print_marker,
+                                          0, marker_equal, marker_hash,
+                                          marker_description, Lisp_Marker);
   DEFSUBR (Fmarker_position);
   DEFSUBR (Fmarker_buffer);
   DEFSUBR (Fset_marker);

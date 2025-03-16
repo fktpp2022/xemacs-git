@@ -95,10 +95,6 @@ allocate_toolbar_button (struct frame *f, int pushright)
   return wrap_toolbar_button (tb);
 }
 
-DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("toolbar-button", toolbar_button,
-				    toolbar_button_description,
-				    struct toolbar_button);
-
 /* Only query functions are provided for toolbar buttons.  They are
    generated and updated from a toolbar description list.  Any
    directly made changes would be wiped out the first time the toolbar
@@ -1306,7 +1302,9 @@ toolbar_shadows_changed (Lisp_Object UNUSED (specifier),
 void
 syms_of_toolbar (void)
 {
-  INIT_LISP_OBJECT (toolbar_button);
+  DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("toolbar-button", toolbar_button,
+                                      toolbar_button_description,
+                                      struct toolbar_button);
 
   DEFSYMBOL_MULTIWORD_PREDICATE (Qtoolbar_buttonp);
   DEFSYMBOL (Q2D);

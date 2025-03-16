@@ -362,9 +362,6 @@ put_point_cache (Lisp_Object key, Lisp_Object val,
   XWEAK_LIST_LIST (cache) = Facons (key, val, XWEAK_LIST_LIST (cache));
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("window", window, print_window, finalize_window,
-			   0, 0, window_description, struct window);
-
 /* We have an implicit assertion that the first two elements (default
    and modeline faces) are always present in the face_element_cache.
    Normally redisplay ensures this.  However, it is possible for a
@@ -471,10 +468,6 @@ static const struct memory_description window_mirror_description [] = {
 
   { XD_END }
 };
-
-DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("window-mirror", window_mirror,
-				    window_mirror_description,
-				    struct window_mirror);
 
 /* Create a new window mirror structure and associated redisplay
    structs. */
@@ -5671,12 +5664,15 @@ debug_print_windows (struct frame *f)
 void
 syms_of_window (void)
 {
-  INIT_LISP_OBJECT (window);
+  DEFINE_NODUMP_LISP_OBJECT ("window", window, print_window, finalize_window,
+                             0, 0, window_description, struct window);
 #ifdef MEMORY_USAGE_STATS
   OBJECT_HAS_METHOD (window, memory_usage);
 #endif
 
-  INIT_LISP_OBJECT (window_mirror);
+  DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("window-mirror", window_mirror,
+                                      window_mirror_description,
+                                      struct window_mirror);
 #ifdef MEMORY_USAGE_STATS
   OBJECT_HAS_METHOD (window_mirror, memory_usage);
 #endif

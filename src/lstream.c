@@ -169,13 +169,6 @@ const struct sized_memory_description lstream_empty_extra_description = {
   0, lstream_empty_extra_description_1
 };
 
-DEFINE_NODUMP_SIZABLE_LISP_OBJECT ("stream", lstream, print_lstream,
-				   finalize_lstream,
-				   0, 0, /* no equal or hash */
-				   lstream_description,
-				   sizeof_lstream, Lstream);
-
-
 /* Change the buffering of a stream.  See lstream.h.  By default the
    buffering is STREAM_BLOCK_BUFFERED. */
 
@@ -226,7 +219,7 @@ Lstream_new (const Lstream_implementation *imp, int flags)
       lstream_types[lstream_type_count] = imp;
       Vlstream_free_list[lstream_type_count] =
 	make_lcrecord_list (aligned_sizeof_lstream (imp->size),
-			    &lrecord_lstream);
+                            LRECORD_IMPLEMENTATION (lstream));
       staticpro_nodump (&Vlstream_free_list[i]);
       lstream_type_count++;
     }
@@ -2184,7 +2177,11 @@ OUTPUT-STREAM defaults to standard-output.
 void
 syms_of_lstream (void)
 {
-  INIT_LISP_OBJECT (lstream);
+  DEFINE_NODUMP_SIZABLE_LISP_OBJECT ("stream", lstream, print_lstream,
+                                     finalize_lstream,
+                                     0, 0, /* no equal or hash */
+                                     lstream_description, sizeof_lstream,
+                                     Lstream);
   OBJECT_HAS_PREMETHOD (lstream, disksave);
 
   DEFKEYWORD (Q_element_type);

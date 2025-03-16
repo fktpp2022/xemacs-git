@@ -956,13 +956,6 @@ color_instance_hash (Lisp_Object obj, int depth, Boolint UNUSED (equalp))
 				    LISP_HASH (obj)));
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("color-instance", color_instance,
-			   print_color_instance,
-			   finalize_color_instance, color_instance_equal,
-			   color_instance_hash,
-			   color_instance_description,
-			   Lisp_Color_Instance);
-
 DEFUN ("make-color-instance", Fmake_color_instance, 1, 3, 0, /*
 Return a new `color-instance' object named NAME (a string).
 
@@ -1156,13 +1149,6 @@ font_instance_hash (Lisp_Object obj, int depth, Boolint UNUSED (equalp))
 			depth + 1, 0);
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("font-instance", font_instance,
-			   print_font_instance,
-			   finalize_font_instance, font_instance_equal,
-			   font_instance_hash, font_instance_description,
-			   Lisp_Font_Instance);
-
-
 /* #### Why is this exposed to Lisp?  Used in:
 x-frob-font-size, gtk-font-menu-load-font, x-font-menu-load-font-xft,
 x-font-menu-load-font-core, mswindows-font-menu-load-font,
@@ -2091,8 +2077,15 @@ face-background-placement instantiators.
 void
 syms_of_fontcolor (void)
 {
-  INIT_LISP_OBJECT (color_instance);
-  INIT_LISP_OBJECT (font_instance);
+  DEFINE_NODUMP_LISP_OBJECT ("color-instance", color_instance,
+                             print_color_instance, finalize_color_instance,
+                             color_instance_equal, color_instance_hash,
+                             color_instance_description, Lisp_Color_Instance);
+
+  DEFINE_NODUMP_LISP_OBJECT ("font-instance", font_instance,
+                             print_font_instance, finalize_font_instance,
+                             font_instance_equal, font_instance_hash,
+                             font_instance_description, Lisp_Font_Instance);
 
   DEFSUBR (Fcolor_specifier_p);
   DEFSUBR (Ffont_specifier_p);

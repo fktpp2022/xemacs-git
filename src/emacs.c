@@ -1329,7 +1329,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 	 The *only* thing that the syms_of_*() functions are allowed to do
 	 is call one of the following:
 
-	 INIT_LISP_OBJECT()
 	 defsymbol(), DEFSYMBOL(), or DEFSYMBOL_MULTIWORD_PREDICATE()
 	 defsubr() (i.e. DEFSUBR)
 	 deferror(), DEFERROR(), or DEFERROR_STANDARD()

@@ -128,10 +128,6 @@ symbol_print_preprocess (Lisp_Object UNUSED (symbol),
      for them, rather than a given. */
 }
 
-DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("symbol", symbol, print_symbol,
-					0, 0, 0, symbol_description,
-					Lisp_Symbol);
-
 /* Extract and set components of symbols */
 
 static void set_up_buffer_local_cache (Lisp_Object sym,
@@ -721,12 +717,6 @@ static const struct memory_description symbol_value_forward_object_description[]
   { XD_END }
 };
 
-DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-forward-object",
-			     symbol_value_forward_object,
-			     print_symbol_value_magic, 0, 0, 0,
-			     symbol_value_forward_object_description,
-			     struct symbol_value_forward_object);
-
 static const struct memory_description fixnum_description_1[] = {
   { XD_END }
 };
@@ -744,12 +734,6 @@ static const struct memory_description symbol_value_forward_fixnum_description[]
   { XD_END }
 };
 
-DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-forward-fixnum",
-			     symbol_value_forward_fixnum,
-			     print_symbol_value_magic, 0, 0, 0,
-			     symbol_value_forward_fixnum_description,
-			     struct symbol_value_forward_fixnum);
-
 static const struct memory_description boolint_description_1[] = {
   { XD_END }
 };
@@ -766,31 +750,6 @@ static const struct memory_description symbol_value_forward_boolint_description[
   { XD_FUNCTION_POINTER, offsetof (struct symbol_value_forward_boolint, magicfun) },
   { XD_END }
 };
-
-DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-forward-boolint",
-			     symbol_value_forward_boolint,
-			     print_symbol_value_magic, 0, 0, 0,
-			     symbol_value_forward_boolint_description,
-			     struct symbol_value_forward_boolint);
-
-DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-buffer-local",
-			     symbol_value_buffer_local,
-			     print_symbol_value_magic, 0, 0, 0,
-			     symbol_value_buffer_local_description,
-			     struct symbol_value_buffer_local);
-
-DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-lisp-magic",
-			     symbol_value_lisp_magic,
-			     print_symbol_value_magic, 0, 0, 0,
-			     symbol_value_lisp_magic_description,
-			     struct symbol_value_lisp_magic);
-
-DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-varalias",
-			     symbol_value_varalias,
-			     print_symbol_value_magic, 0, 0, 0,
-			     symbol_value_varalias_description,
-			     struct symbol_value_varalias);
-
 
 /* Getting and setting values of symbols */
 
@@ -3191,7 +3150,9 @@ If the current binding is global (the default), the value is nil.
 void
 init_symbols_once_early (void)
 {
-  INIT_LISP_OBJECT (symbol);
+  DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("symbol", symbol, print_symbol,
+                                          0, 0, 0, symbol_description,
+                                          Lisp_Symbol);
   OBJECT_HAS_METHOD (symbol, getprop);
   OBJECT_HAS_METHOD (symbol, putprop);
   OBJECT_HAS_METHOD (symbol, remprop);
@@ -3199,12 +3160,40 @@ init_symbols_once_early (void)
   OBJECT_HAS_NAMED_METHOD (symbol, plist, Fsymbol_plist);
   OBJECT_HAS_NAMED_METHOD (symbol, setplist, Fsetplist);
 
-  INIT_LISP_OBJECT (symbol_value_forward_object);
-  INIT_LISP_OBJECT (symbol_value_forward_fixnum);
-  INIT_LISP_OBJECT (symbol_value_forward_boolint);
-  INIT_LISP_OBJECT (symbol_value_buffer_local);
-  INIT_LISP_OBJECT (symbol_value_lisp_magic);
-  INIT_LISP_OBJECT (symbol_value_varalias);
+  DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-forward-object",
+                               symbol_value_forward_object,
+                               print_symbol_value_magic, 0, 0, 0,
+                               symbol_value_forward_object_description,
+                               struct symbol_value_forward_object);
+
+  DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-forward-fixnum",
+                               symbol_value_forward_fixnum,
+                               print_symbol_value_magic, 0, 0, 0,
+                               symbol_value_forward_fixnum_description,
+                               struct symbol_value_forward_fixnum);
+
+  DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-forward-boolint",
+                               symbol_value_forward_boolint,
+                               print_symbol_value_magic, 0, 0, 0,
+                               symbol_value_forward_boolint_description,
+                               struct symbol_value_forward_boolint);
+
+  DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-buffer-local",
+                               symbol_value_buffer_local,
+                               print_symbol_value_magic, 0, 0, 0,
+                               symbol_value_buffer_local_description,
+                               struct symbol_value_buffer_local);
+
+  DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-lisp-magic",
+                               symbol_value_lisp_magic,
+                               print_symbol_value_magic, 0, 0, 0,
+                               symbol_value_lisp_magic_description,
+                               struct symbol_value_lisp_magic);
+
+  DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-varalias", symbol_value_varalias,
+                               print_symbol_value_magic, 0, 0, 0,
+                               symbol_value_varalias_description,
+                               struct symbol_value_varalias);
 
   /* Bootstrapping problem: Qnil isn't set when make_string_nocopy is
      called the first time. */

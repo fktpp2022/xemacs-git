@@ -169,10 +169,6 @@ print_tooltalk_message (Lisp_Object obj, Lisp_Object printcharfun,
 		    (EMACS_INT) (p->m), LISP_OBJECT_UID (obj));
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("tooltalk-message", tooltalk_message,
-			   print_tooltalk_message, 0, 0, 0, 
-			   tooltalk_message_description,
-			   Lisp_Tooltalk_Message);
 
 static Lisp_Object
 make_tooltalk_message (Tt_message m)
@@ -236,11 +232,6 @@ print_tooltalk_pattern (Lisp_Object obj, Lisp_Object printcharfun,
 		    (EMACS_INT) (p->p), LISP_OBJECT_UID (obj));
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("tooltalk-pattern", tooltalk_pattern,
-			   print_tooltalk_pattern, 0, 0, 0, 
-			   tooltalk_pattern_description,
-			   Lisp_Tooltalk_Pattern);
-
 static Lisp_Object
 make_tooltalk_pattern (Tt_pattern p)
 {
@@ -1286,8 +1277,15 @@ Returns t if successful, nil otherwise.
 void
 syms_of_tooltalk (void)
 {
-  INIT_LISP_OBJECT (tooltalk_message);
-  INIT_LISP_OBJECT (tooltalk_pattern);
+  DEFINE_NODUMP_LISP_OBJECT ("tooltalk-message", tooltalk_message,
+                             print_tooltalk_message, 0, 0, 0, 
+                             tooltalk_message_description,
+                             Lisp_Tooltalk_Message);
+
+  DEFINE_NODUMP_LISP_OBJECT ("tooltalk-pattern", tooltalk_pattern,
+                             print_tooltalk_pattern, 0, 0, 0, 
+                             tooltalk_pattern_description,
+                             Lisp_Tooltalk_Pattern);
 
   DEFSYMBOL_MULTIWORD_PREDICATE (Qtooltalk_messagep);
   DEFSUBR (Ftooltalk_message_p);

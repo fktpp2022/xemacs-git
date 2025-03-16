@@ -84,11 +84,6 @@ static const struct memory_description scrollbar_instance_description [] = {
   { XD_END }
 };
 
-
-DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("scrollbar-instance", scrollbar_instance,
-				    scrollbar_instance_description,
-				    struct scrollbar_instance);
-
 static void
 free_scrollbar_instance (struct scrollbar_instance *instance,
 			 struct frame *frame)
@@ -1079,7 +1074,9 @@ This ensures that VALUE is in the proper range for the horizontal scrollbar.
 void
 syms_of_scrollbar (void)
 {
-  INIT_LISP_OBJECT (scrollbar_instance);
+  DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("scrollbar-instance", scrollbar_instance,
+                                      scrollbar_instance_description,
+                                      struct scrollbar_instance);
 #ifdef MEMORY_USAGE_STATS
   OBJECT_HAS_METHOD (scrollbar_instance, memory_usage);
 #endif

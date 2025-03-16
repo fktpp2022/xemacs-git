@@ -173,11 +173,6 @@ static const struct memory_description mswindows_dialog_id_description [] = {
   { XD_END }
 };
 
-DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("mswindows-dialog-id",
-				    mswindows_dialog_id,
-				    mswindows_dialog_id_description,
-				    struct mswindows_dialog_id);
-
 /* Dialog procedure */
 /* The return type is either BOOL (with the older, pre-64-bit Windows SDKs) or
    INT_PTR. WPARAM resolves to UINT_PTR on the 64-bit SDKs, and a reasonable
@@ -807,7 +802,10 @@ console_type_create_dialog_mswindows (void)
 void
 syms_of_dialog_mswindows (void)
 {
-  INIT_LISP_OBJECT (mswindows_dialog_id);
+  DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("mswindows-dialog-id",
+                                      mswindows_dialog_id,
+                                      mswindows_dialog_id_description,
+                                      struct mswindows_dialog_id);
   
   DEFKEYWORD (Q_initial_directory);
   DEFKEYWORD (Q_initial_filename);
@@ -843,3 +841,5 @@ vars_of_dialog_mswindows (void)
 	   Fcons (build_defer_string ("HTML Files"), build_ascstring ("*.html;*.html")),
 	   Fcons (build_defer_string ("All Files"), build_ascstring ("*.*")));
 }
+
+/* dialog-msw.c ends here. */

@@ -107,10 +107,6 @@ static const struct memory_description case_table_description [] = {
   { XD_END }
 };
 
-
-DEFINE_DUMPABLE_LISP_OBJECT ("case-table", case_table, print_case_table, 0,
-			     0, 0, case_table_description, Lisp_Case_Table);
-
 static Lisp_Object
 allocate_case_table (int init_tables)
 {
@@ -529,7 +525,8 @@ case_table_memory_usage (Lisp_Object casetab,
 void
 syms_of_casetab (void)
 {
-  INIT_LISP_OBJECT (case_table);
+  DEFINE_DUMPABLE_LISP_OBJECT ("case-table", case_table, print_case_table, 0,
+                               0, 0, case_table_description, Lisp_Case_Table);
 #ifdef MEMORY_USAGE_STATS
   OBJECT_HAS_METHOD (case_table, memory_usage);
 #endif

@@ -133,11 +133,6 @@ static const struct memory_description fcpattern_description [] = {
   { XD_END }
 };
 
-DEFINE_NODUMP_LISP_OBJECT ("fc-pattern", fc_pattern,
-			   external_object_printer, finalize_fc_pattern,
-			   0, 0, fcpattern_description,
-			   struct fc_pattern);
-
 /*
  * Helper Functions
  */
@@ -1153,11 +1148,6 @@ static const struct memory_description fcconfig_description [] = {
   { XD_END }
 };
 
-DEFINE_NODUMP_LISP_OBJECT ("fc-config", fc_config,
-			   external_object_printer, finalize_fc_config,
-			   0, 0, fcconfig_description,
-			   struct fc_config);
-
 DEFUN ("fc-init", Ffc_init, 0, 0, 0, /*
  -- Function: FcBool FcInit (void)
      Loads the default configuration file and the fonts referenced
@@ -1329,7 +1319,9 @@ string_list_to_fcobjectset (Lisp_Object list, FcObjectSet *os)
 void
 syms_of_font_mgr (void)
 {
-  INIT_LISP_OBJECT (fc_pattern);
+  DEFINE_NODUMP_LISP_OBJECT ("fc-pattern", fc_pattern, external_object_printer,
+                             finalize_fc_pattern, 0, 0, fcpattern_description,
+                             struct fc_pattern);
 
   DEFSYMBOL_MULTIWORD_PREDICATE (Qfc_patternp);
 
@@ -1358,7 +1350,9 @@ syms_of_font_mgr (void)
   DEFSUBR (Fxlfd_font_name_p);
 
 #ifdef FONTCONFIG_EXPOSE_CONFIG
-  INIT_LISP_OBJECT (fc_config);
+  DEFINE_NODUMP_LISP_OBJECT ("fc-config", fc_config, external_object_printer,
+                             finalize_fc_config, 0, 0, fcconfig_description,
+                             struct fc_config);
 
   DEFSYMBOL_MULTIWORD_PREDICATE (Qfc_configp);
 

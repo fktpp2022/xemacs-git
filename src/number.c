@@ -156,9 +156,6 @@ static const struct memory_description bignum_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("bignum", bignum, bignum_print,
-					0, bignum_equal, bignum_hash,
-					bignum_description, Lisp_Bignum); 
 #endif /* HAVE_BIGNUM */
 
 /********************************** Ratios **********************************/
@@ -199,11 +196,6 @@ static const struct memory_description ratio_description[] = {
   { XD_OPAQUE_PTR, offsetof (Lisp_Ratio, data) },
   { XD_END }
 };
-
-DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("ratio", ratio, ratio_print, 0,
-				      ratio_equal, ratio_hash,
-				      ratio_description, Lisp_Ratio);
-
 #endif /* HAVE_RATIO */
 
 
@@ -244,10 +236,6 @@ static const struct memory_description bigfloat_description[] = {
   { XD_OPAQUE_PTR, offsetof (Lisp_Bigfloat, bf) },
   { XD_END }
 };
-
-DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("bigfloat", bigfloat, bigfloat_print,
-					0, bigfloat_equal, bigfloat_hash,
-					bigfloat_description, Lisp_Bigfloat);
 
 extern Lisp_Object float_to_bigfloat (const Ascbyte *, Lisp_Object,
                                       unsigned long);
@@ -713,13 +701,19 @@ void
 syms_of_number (void)
 {
 #ifdef HAVE_BIGNUM
-  INIT_LISP_OBJECT (bignum);
+  DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("bignum", bignum, bignum_print,
+                                          0, bignum_equal, bignum_hash,
+                                          bignum_description, Lisp_Bignum); 
 #endif
 #ifdef HAVE_RATIO
-  INIT_LISP_OBJECT (ratio);
+  DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("ratio", ratio, ratio_print, 0,
+                                        ratio_equal, ratio_hash,
+                                        ratio_description, Lisp_Ratio);
 #endif
 #ifdef HAVE_BIGFLOAT
-  INIT_LISP_OBJECT (bigfloat);
+  DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("bigfloat", bigfloat, bigfloat_print,
+                                          0, bigfloat_equal, bigfloat_hash,
+                                          bigfloat_description, Lisp_Bigfloat);
 #endif
 
   /* Functions */

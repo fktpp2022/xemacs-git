@@ -525,10 +525,6 @@ ffi_object_printer (Lisp_Object obj, Lisp_Object printcharfun,
   write_fmt_string (printcharfun, " %p>", (void *)XFFI (obj)->function_ptr);
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("ffi", emacs_ffi, ffi_object_printer,
-			   0, 0, 0, 
-			   ffi_data_description, emacs_ffi_data);
-
 #if defined (__cplusplus)
 #define MANY_ARGS ...
 #else
@@ -1098,14 +1094,6 @@ emacs_gtk_object_finalizer (Lisp_Object obj)
     g_object_unref (data->object);
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("GtkObject", emacs_gtk_object,
-			   emacs_gtk_object_printer,
-			   emacs_gtk_object_finalizer,
-			   0, /* equality */
-			   0, /* hash */
-			   gtk_object_data_description,
-			   emacs_gtk_object_data);
-
 static emacs_gtk_object_data *
 allocate_emacs_gtk_object_data (void)
 {
@@ -1301,16 +1289,6 @@ emacs_gtk_boxed_hash (Lisp_Object obj, int UNUSED (depth), int UNUSED (equalp))
   return (HASH2 ((Hashcode) data->object, data->object_type));
 }
 
-/*
- * The allocation is controlled by Gtk, so no need for marker function.
- */
-DEFINE_NODUMP_LISP_OBJECT ("GtkBoxed", emacs_gtk_boxed,
-			   emacs_gtk_boxed_printer,
-			   0, /* nuker */
-			   emacs_gtk_boxed_equality,
-			   emacs_gtk_boxed_hash,
-			   emacs_gtk_boxed_description,
-			   emacs_gtk_boxed_data);
 /* Currently defined G_TYPE_BOXED structures are:
 
    GtkAccelGroup -
@@ -1695,14 +1673,27 @@ Return an alist of properties for OBJECT.
 void
 syms_of_ui_gtk (void)
 {
-  INIT_LISP_OBJECT (emacs_ffi);
+  DEFINE_NODUMP_LISP_OBJECT ("ffi", emacs_ffi, ffi_object_printer,
+                             0, 0, 0, ffi_data_description, emacs_ffi_data);
 
-  INIT_LISP_OBJECT (emacs_gtk_object);
+  DEFINE_NODUMP_LISP_OBJECT ("GtkObject", emacs_gtk_object,
+                             emacs_gtk_object_printer,
+                             emacs_gtk_object_finalizer,
+                             0, /* equality */ 0, /* hash */
+                             gtk_object_data_description,
+                             emacs_gtk_object_data);
   OBJECT_HAS_METHOD (emacs_gtk_object, getprop);
   OBJECT_HAS_METHOD (emacs_gtk_object, putprop);
   /* #### No remprop or plist methods */
 
-  INIT_LISP_OBJECT (emacs_gtk_boxed);
+  DEFINE_NODUMP_LISP_OBJECT ("GtkBoxed", emacs_gtk_boxed,
+                             emacs_gtk_boxed_printer,
+                             0, /* nuker */
+                             emacs_gtk_boxed_equality,
+                             emacs_gtk_boxed_hash,
+                             emacs_gtk_boxed_description,
+                             emacs_gtk_boxed_data);
+
   DEFSYMBOL_MULTIWORD_PREDICATE (Qemacs_ffip);
   DEFSYMBOL_MULTIWORD_PREDICATE (Qemacs_gtk_objectp);
   DEFSYMBOL_MULTIWORD_PREDICATE (Qemacs_gtk_boxedp);

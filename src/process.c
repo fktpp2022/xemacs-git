@@ -274,10 +274,6 @@ finalize_process (Lisp_Object obj)
       p->process_data = 0;
     }
 }
-
-DEFINE_NODUMP_LISP_OBJECT ("process", process, print_process,
-			   finalize_process, 0, 0, process_description,
-			   Lisp_Process);
 
 /************************************************************************/
 /*                       basic process accessors                        */
@@ -2648,7 +2644,9 @@ init_xemacs_process (void)
 void
 syms_of_process (void)
 {
-  INIT_LISP_OBJECT (process);
+  DEFINE_NODUMP_LISP_OBJECT ("process", process, print_process, 
+                             finalize_process, 0, 0, process_description,
+                             Lisp_Process);
   OBJECT_HAS_METHOD (process, getprop);
   OBJECT_HAS_METHOD (process, putprop);
   OBJECT_HAS_METHOD (process, remprop);

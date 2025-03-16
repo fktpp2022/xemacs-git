@@ -405,11 +405,6 @@ static const struct memory_description command_builder_description [] = {
   { XD_END }
 };
 
-DEFINE_NODUMP_LISP_OBJECT ("command-builder", command_builder,
-			   internal_object_printer, 0, 0, 0,
-			   command_builder_description,
-			   struct command_builder);
-
 static void
 reset_command_builder_event_chain (struct command_builder *builder)
 {
@@ -1075,11 +1070,7 @@ static const struct memory_description timeout_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("timeout", timeout, timeout_description,
-				      Lisp_Timeout);
-
 /* Generate a timeout and return its ID. */
-
 int
 event_stream_generate_wakeup (unsigned int milliseconds,
 			      unsigned int vanilliseconds,
@@ -5043,8 +5034,13 @@ CONSOLE defaults to the selected console if omitted.
 void
 syms_of_event_stream (void)
 {
-  INIT_LISP_OBJECT (command_builder);
-  INIT_LISP_OBJECT (timeout);
+  DEFINE_NODUMP_LISP_OBJECT ("command-builder", command_builder,
+                             internal_object_printer, 0, 0, 0,
+                             command_builder_description,
+                             struct command_builder);
+
+  DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("timeout", timeout, timeout_description,
+                                        Lisp_Timeout);
 
   DEFSYMBOL (Qdisabled);
   DEFSYMBOL (Qcommand_event_p);

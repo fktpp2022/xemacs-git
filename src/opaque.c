@@ -109,11 +109,6 @@ static const struct memory_description opaque_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("opaque", opaque, print_opaque, 0,
-				     equal_opaque, hash_opaque,
-				     opaque_description,
-				     sizeof_opaque, Lisp_Opaque);
-
 /* stuff to handle opaque pointers */
 
 /* Should never, ever be called. (except by an external debugger) */
@@ -146,10 +141,6 @@ static const struct memory_description opaque_ptr_description[] = {
   { XD_END }
 };
 
-DEFINE_NODUMP_LISP_OBJECT ("opaque-ptr", opaque_ptr, print_opaque_ptr, 0,
-			   equal_opaque_ptr, hash_opaque_ptr,
-			   opaque_ptr_description, Lisp_Opaque_Ptr);
-
 Lisp_Object
 make_opaque_ptr (void *val)
 {
@@ -170,8 +161,14 @@ free_opaque_ptr (Lisp_Object obj)
 void
 init_opaque_once_early (void)
 {
-  INIT_LISP_OBJECT (opaque);
-  INIT_LISP_OBJECT (opaque_ptr);
+  DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("opaque", opaque, print_opaque, 0,
+                                       equal_opaque, hash_opaque,
+                                       opaque_description,
+                                       sizeof_opaque, Lisp_Opaque);
+
+  DEFINE_NODUMP_LISP_OBJECT ("opaque-ptr", opaque_ptr, print_opaque_ptr, 0,
+                             equal_opaque_ptr, hash_opaque_ptr,
+                             opaque_ptr_description, Lisp_Opaque_Ptr);
 
   Qunbound = make_opaque (OPAQUE_CLEAR, 0);
   staticpro (&Qunbound);

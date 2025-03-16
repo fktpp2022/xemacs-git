@@ -1132,6 +1132,8 @@ typedef struct Lisp_Free
   struct Lisp_Free *chain;
 } Lisp_Free;
 
+DECLARE_LISP_OBJECT (free, struct Lisp_Free);
+
 #define LRECORD_FREE_P(ptr) \
 (((struct lrecord_header *) ptr)->type == lrecord_type_free)
 
@@ -1320,15 +1322,6 @@ static const struct memory_description cons_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("cons", cons, print_cons, 0,
-					cons_equal,
-					/*
-					 * No `hash' method needed.
-					 * internal_hash knows how to
-					 * handle conses.
-					 */
-					0, cons_description, Lisp_Cons);
-
 DEFUN ("cons", Fcons, 2, 2, 0, /*
 Create a new cons cell, give it CAR and CDR as components, and return it.
 
@@ -1347,7 +1340,8 @@ The pointers are accessed from Lisp with `car' and `cdr', and mutated with
   Lisp_Object val;
   Lisp_Cons *c;
 
-  ALLOC_FROB_BLOCK_LISP_OBJECT (cons, Lisp_Cons, c, &lrecord_cons);
+  ALLOC_FROB_BLOCK_LISP_OBJECT (cons, Lisp_Cons, c,
+                                LRECORD_IMPLEMENTATION (cons));
   val = wrap_cons (c);
   XSETCAR (val, car);
   XSETCDR (val, cdr);
@@ -1363,7 +1357,8 @@ noseeum_cons (Lisp_Object car, Lisp_Object cdr)
   Lisp_Object val;
   Lisp_Cons *c;
 
-  NOSEEUM_ALLOC_FROB_BLOCK_LISP_OBJECT (cons, Lisp_Cons, c, &lrecord_cons);
+  NOSEEUM_ALLOC_FROB_BLOCK_LISP_OBJECT (cons, Lisp_Cons, c,
+                                        LRECORD_IMPLEMENTATION (cons));
   val = wrap_cons (c);
   XCAR (val) = car;
   XCDR (val) = cdr;
@@ -1529,7 +1524,8 @@ make_float (double float_value)
 {
   Lisp_Float *f;
 
-  ALLOC_FROB_BLOCK_LISP_OBJECT (float, Lisp_Float, f, &lrecord_float);
+  ALLOC_FROB_BLOCK_LISP_OBJECT (float, Lisp_Float, f,
+                                LRECORD_IMPLEMENTATION (float));
 
   /* Avoid dump-time `uninitialized memory read' purify warnings. */
   if (sizeof (struct lrecord_header) + sizeof (double) != sizeof (*f))
@@ -1556,7 +1552,8 @@ make_bignum (long bignum_value)
 {
   Lisp_Bignum *b;
 
-  ALLOC_FROB_BLOCK_LISP_OBJECT (bignum, Lisp_Bignum, b, &lrecord_bignum);
+  ALLOC_FROB_BLOCK_LISP_OBJECT (bignum, Lisp_Bignum, b,
+                                LRECORD_IMPLEMENTATION (bignum));
   bignum_init (bignum_data (b));
   bignum_set_long (bignum_data (b), bignum_value);
   return wrap_bignum (b);
@@ -1569,7 +1566,8 @@ make_bignum_un (unsigned long bignum_value)
 {
   Lisp_Bignum *b;
 
-  ALLOC_FROB_BLOCK_LISP_OBJECT (bignum, Lisp_Bignum, b, &lrecord_bignum);
+  ALLOC_FROB_BLOCK_LISP_OBJECT (bignum, Lisp_Bignum, b,
+                                LRECORD_IMPLEMENTATION (bignum));
   bignum_init (bignum_data (b));
   bignum_set_ulong (bignum_data (b), bignum_value);
   return wrap_bignum (b);
@@ -1582,7 +1580,8 @@ make_bignum_ll (long long bignum_value)
 {
   Lisp_Bignum *b;
 
-  ALLOC_FROB_BLOCK_LISP_OBJECT (bignum, Lisp_Bignum, b, &lrecord_bignum);
+  ALLOC_FROB_BLOCK_LISP_OBJECT (bignum, Lisp_Bignum, b,
+                                LRECORD_IMPLEMENTATION (bignum));
   bignum_init (bignum_data (b));
   bignum_set_llong (bignum_data (b), bignum_value);
   return wrap_bignum (b);
@@ -1595,7 +1594,8 @@ make_bignum_ull (unsigned long long bignum_value)
 {
   Lisp_Bignum *b;
 
-  ALLOC_FROB_BLOCK_LISP_OBJECT (bignum, Lisp_Bignum, b, &lrecord_bignum);
+  ALLOC_FROB_BLOCK_LISP_OBJECT (bignum, Lisp_Bignum, b,
+                                LRECORD_IMPLEMENTATION (bignum));
   bignum_init (bignum_data (b));
   bignum_set_ullong (bignum_data (b), bignum_value);
   return wrap_bignum (b);
@@ -1608,7 +1608,8 @@ make_bignum_bg (bignum bg)
 {
   Lisp_Bignum *b;
 
-  ALLOC_FROB_BLOCK_LISP_OBJECT (bignum, Lisp_Bignum, b, &lrecord_bignum);
+  ALLOC_FROB_BLOCK_LISP_OBJECT (bignum, Lisp_Bignum, b,
+                                LRECORD_IMPLEMENTATION (bignum));
   bignum_init (bignum_data (b));
   bignum_set (bignum_data (b), bg);
   return wrap_bignum (b);
@@ -1625,7 +1626,8 @@ make_ratio (long numerator, unsigned long denominator)
 {
   Lisp_Ratio *r;
 
-  ALLOC_FROB_BLOCK_LISP_OBJECT (ratio, Lisp_Ratio, r, &lrecord_ratio);
+  ALLOC_FROB_BLOCK_LISP_OBJECT (ratio, Lisp_Ratio, r,
+                                LRECORD_IMPLEMENTATION (ratio));
   ratio_init (ratio_data (r));
   ratio_set_long_ulong (ratio_data (r), numerator, denominator);
   ratio_canonicalize (ratio_data (r));
@@ -1637,7 +1639,8 @@ make_ratio_bg (bignum numerator, bignum denominator)
 {
   Lisp_Ratio *r;
 
-  ALLOC_FROB_BLOCK_LISP_OBJECT (ratio, Lisp_Ratio, r, &lrecord_ratio);
+  ALLOC_FROB_BLOCK_LISP_OBJECT (ratio, Lisp_Ratio, r,
+                                LRECORD_IMPLEMENTATION (ratio));
   ratio_init (ratio_data (r));
   ratio_set_bignum_bignum (ratio_data (r), numerator, denominator);
   ratio_canonicalize (ratio_data (r));
@@ -1649,7 +1652,8 @@ make_ratio_rt (ratio rat)
 {
   Lisp_Ratio *r;
 
-  ALLOC_FROB_BLOCK_LISP_OBJECT (ratio, Lisp_Ratio, r, &lrecord_ratio);
+  ALLOC_FROB_BLOCK_LISP_OBJECT (ratio, Lisp_Ratio, r,
+                                LRECORD_IMPLEMENTATION (ratio));
   ratio_init (ratio_data (r));
   ratio_set (ratio_data (r), rat);
   return wrap_ratio (r);
@@ -1668,7 +1672,8 @@ make_bigfloat (double float_value, unsigned long precision)
 {
   Lisp_Bigfloat *f;
 
-  ALLOC_FROB_BLOCK_LISP_OBJECT (bigfloat, Lisp_Bigfloat, f, &lrecord_bigfloat);
+  ALLOC_FROB_BLOCK_LISP_OBJECT (bigfloat, Lisp_Bigfloat, f,
+                                LRECORD_IMPLEMENTATION (bigfloat));
   if (precision == 0UL)
     bigfloat_init (bigfloat_data (f));
   else
@@ -1683,7 +1688,8 @@ make_bigfloat_bf (bigfloat float_value)
 {
   Lisp_Bigfloat *f;
 
-  ALLOC_FROB_BLOCK_LISP_OBJECT (bigfloat, Lisp_Bigfloat, f, &lrecord_bigfloat);
+  ALLOC_FROB_BLOCK_LISP_OBJECT (bigfloat, Lisp_Bigfloat, f, 
+                                LRECORD_IMPLEMENTATION (bigfloat));
   bigfloat_init_prec (bigfloat_data (f), bigfloat_get_prec (float_value));
   bigfloat_set (bigfloat_data (f), float_value);
   return wrap_bigfloat (f);
@@ -1772,11 +1778,6 @@ static const struct memory_description vector_description[] = {
   { XD_END }
 };
 
-DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("vector", vector, print_vector, 0,
-				     vector_equal,
-				     vector_hash,
-				     vector_description,
-				     size_vector, Lisp_Vector);
 /* #### should allocate `small' vectors from a frob-block */
 
 Lisp_Object
@@ -2046,15 +2047,6 @@ static const struct memory_description bit_vector_description[] = {
   { XD_END }
 };
 
-
-DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("bit-vector", bit_vector,
-				     print_bit_vector, 0,
-				     bit_vector_equal,
-				     bit_vector_hash,
-				     bit_vector_description,
-				     size_bit_vector,
-				     Lisp_Bit_Vector);
-
 /* #### should allocate `small' bit vectors from a frob-block */
 static Lisp_Bit_Vector *
 make_bit_vector_internal (Elemcount sizei)
@@ -2178,8 +2170,8 @@ make_compiled_function (void)
 {
   Lisp_Compiled_Function *f;
 
-  ALLOC_FROB_BLOCK_LISP_OBJECT (compiled_function, Lisp_Compiled_Function,
-				f, &lrecord_compiled_function);
+  ALLOC_FROB_BLOCK_LISP_OBJECT (compiled_function, Lisp_Compiled_Function, f,
+                                LRECORD_IMPLEMENTATION (compiled_function));
 
   f->stack_depth = 0;
   f->specpdl_depth = 0;
@@ -2305,7 +2297,8 @@ make_subr (void)
      need to allocate a subr only arises with modules.*/
   Lisp_Subr *ss;
 
-  ALLOC_FROB_BLOCK_LISP_OBJECT (subr, Lisp_Subr, ss, &lrecord_subr);
+  ALLOC_FROB_BLOCK_LISP_OBJECT (subr, Lisp_Subr, ss,
+                                LRECORD_IMPLEMENTATION (subr));
   zero_nonsized_lisp_object (wrap_subr (ss));
 
   return wrap_subr (ss);
@@ -2328,7 +2321,8 @@ Its value and function definition are void, and its property list is nil.
 
   CHECK_STRING (name);
 
-  ALLOC_FROB_BLOCK_LISP_OBJECT_1 (symbol, Lisp_Symbol, p, &lrecord_symbol,
+  ALLOC_FROB_BLOCK_LISP_OBJECT_1 (symbol, Lisp_Symbol, p,
+                                  LRECORD_IMPLEMENTATION (symbol),
                                   u.lheader);
   p->u.v.package_count = 0;
   p->u.v.first_package_id = 0;
@@ -2353,7 +2347,8 @@ allocate_extent (void)
 {
   struct extent *e;
 
-  ALLOC_FROB_BLOCK_LISP_OBJECT (extent, struct extent, e, &lrecord_extent);
+  ALLOC_FROB_BLOCK_LISP_OBJECT (extent, struct extent, e,
+                                LRECORD_IMPLEMENTATION (extent));
   extent_object (e) = Qnil;
   set_extent_start (e, -1);
   set_extent_end (e, -1);
@@ -2381,7 +2376,8 @@ allocate_event (void)
 {
   Lisp_Event *e;
 
-  ALLOC_FROB_BLOCK_LISP_OBJECT (event, Lisp_Event, e, &lrecord_event);
+  ALLOC_FROB_BLOCK_LISP_OBJECT (event, Lisp_Event, e,
+                                LRECORD_IMPLEMENTATION (event));
 
   return wrap_event (e);
 }
@@ -2401,7 +2397,8 @@ Return a new marker which does not point at any place.
 {
   Lisp_Marker *p;
 
-  ALLOC_FROB_BLOCK_LISP_OBJECT (marker, Lisp_Marker, p, &lrecord_marker);
+  ALLOC_FROB_BLOCK_LISP_OBJECT (marker, Lisp_Marker, p,
+                                LRECORD_IMPLEMENTATION (marker));
   p->buffer = 0;
   p->membpos = 0;
   marker_next (p) = 0;
@@ -2416,7 +2413,7 @@ noseeum_make_marker (void)
   Lisp_Marker *p;
 
   NOSEEUM_ALLOC_FROB_BLOCK_LISP_OBJECT (marker, Lisp_Marker, p,
-					&lrecord_marker);
+					LRECORD_IMPLEMENTATION (marker));
   p->buffer = 0;
   p->membpos = 0;
   marker_next (p) = 0;
@@ -2560,17 +2557,6 @@ bump_string_modiff (Lisp_Object str)
     }
 }
 
-/* No `finalize', or `hash' methods.
-   internal_hash() already knows how to hash strings and finalization
-   is done with the ADDITIONAL_FREE_string macro, which is the
-   standard way to do finalization when using
-   SWEEP_FIXED_TYPE_BLOCK(). */
-
-DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("string", string, print_string,
-					0, string_equal, 0,
-					string_description,
-					Lisp_String);
-
 /* String blocks contain this many useful bytes. */
 #define STRING_CHARS_BLOCK_SIZE					\
   ((Bytecount) (8192 - MALLOC_OVERHEAD -			\
@@ -2706,7 +2692,8 @@ make_uninit_string (Bytecount length)
   /* Allocate the string header */
   ALLOCATE_FIXED_TYPE (string, Lisp_String, s);
   xzero (*s);
-  set_lheader_implementation (&s->u.lheader, &lrecord_string);
+  set_lheader_implementation (&s->u.lheader, 
+                              LRECORD_IMPLEMENTATION (string));
 
   /* The above allocations set the UID field, which overlaps with the
      ascii-length field, to some non-zero value.  We need to zero it. */
@@ -3288,7 +3275,8 @@ make_string_nocopy (const Ibyte *contents, Bytecount length)
 
   /* Allocate the string header */
   ALLOCATE_FIXED_TYPE (string, Lisp_String, s);
-  set_lheader_implementation (&s->u.lheader, &lrecord_string);
+  set_lheader_implementation (&s->u.lheader,
+                              LRECORD_IMPLEMENTATION (string));
   SET_C_READONLY_RECORD_HEADER (&s->u.lheader);
   /* Don't need to XSET_STRING_ASCII_END() here because it happens in
      init_string_ascii_end(). */
@@ -3325,18 +3313,11 @@ const struct memory_description free_description[] = {
   { XD_END }
 };
 
-DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("free", free, free_description,
-				    struct free_lcrecord_header);
-
 const struct memory_description lcrecord_list_description[] = {
   { XD_LISP_OBJECT, offsetof (struct lcrecord_list, free), 0, { 0 },
     XD_FLAG_FREE_LISP_OBJECT },
   { XD_END }
 };
-
-DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("lcrecord-list", lcrecord_list,
-				    lcrecord_list_description,
-				    struct lcrecord_list);
 
 Lisp_Object
 make_lcrecord_list (Bytecount size,
@@ -3345,7 +3326,8 @@ make_lcrecord_list (Bytecount size,
   /* Don't use alloc_automanaged_lcrecord() avoid infinite recursion
      allocating this. */
   struct lcrecord_list *p =
-    XLCRECORD_LIST (old_alloc_lcrecord (&lrecord_lcrecord_list));
+    XLCRECORD_LIST (old_alloc_lcrecord
+                    (LRECORD_IMPLEMENTATION (lcrecord_list)));
 
   p->implementation = implementation;
   p->size = size;
@@ -4501,6 +4483,14 @@ init_memory_usage_stats (enum lrecord_type type,
                          Lisp_Object memusage_stats_list)
 {
 #ifdef MEMORY_USAGE_STATS
+  if (EQ (Vmemusage_stats_lists, Qnull_pointer)) /* Very, very early. */
+    {
+      Vmemusage_stats_lists
+        = make_vector (countof (lrecord_implementations_table),
+                       Qnull_pointer);
+      /* Leave staticpro() to init_alloc_once_early(). */
+    }
+
   XVECTOR_DATA (Vmemusage_stats_lists)[type] = memusage_stats_list;
 #else
   USED (type);
@@ -5190,6 +5180,19 @@ disksave_object_finalization_1 (void)
       if (imp->disksave && !objh->free)
 	(imp->disksave) (wrap_pointer_1 (header));
     }
+#ifdef ERROR_CHECK_TYPES
+  {
+    if (cons_free_list)
+      {
+        /* Avoid an unused function warning for this. */
+        Lisp_Object lispfree = wrap_record (cons_free_list, free);
+        Lisp_Free *use_error_check = error_check_free (lispfree,
+                                                       __FILE__, __LINE__);
+        type_checking_assert (use_error_check
+                              == XRECORD (lispfree, free, struct Lisp_Free));
+      }
+  }
+#endif
 }
 
 void
@@ -5475,9 +5478,16 @@ init_alloc_once_early (void)
       }
   }
 
+  DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("vector", vector, print_vector, 0,
+                                       vector_equal, vector_hash,
+                                       vector_description, size_vector,
+                                       Lisp_Vector);
+  OBJECT_HAS_METHOD (vector, print_preprocess);
+  OBJECT_HAS_METHOD (vector, nsubst_structures_descend);
+
 #ifdef MEMORY_USAGE_STATS
-  Vmemusage_stats_lists
-    = make_vector (countof (lrecord_implementations_table), Qnull_pointer);
+  /* Should have been initialized by init_memory_usage_stats(). */
+  structure_checking_assert (VECTORP (Vmemusage_stats_lists));
   staticpro (&Vmemusage_stats_lists);
   lrecord_stats_metadata
     = xnew_array_and_zero (struct lrecord_stats_metadata,
@@ -5485,14 +5495,6 @@ init_alloc_once_early (void)
   dump_add_root_block_ptr (&lrecord_stats_metadata,
                            &lrecord_stats_metadata_description);
 #endif
-
-  INIT_LISP_OBJECT (cons);
-  OBJECT_HAS_METHOD (cons, print_preprocess);
-  OBJECT_HAS_METHOD (cons, nsubst_structures_descend);
-
-  INIT_LISP_OBJECT (vector);
-  OBJECT_HAS_METHOD (vector, print_preprocess);
-  OBJECT_HAS_METHOD (vector, nsubst_structures_descend);
 
   /* This is not used during loadup (since we don't want the lcrecord lists of
      loadup to persist post restart), but reinit_alloc_early() sets
@@ -5502,16 +5504,41 @@ init_alloc_once_early (void)
     = make_vector (countof (lrecord_implementations_table), Qzero);
   staticpro (&Vall_lcrecord_lists);
 
-  INIT_LISP_OBJECT (bit_vector);
+  DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("cons", cons, print_cons, 0,
+                                          cons_equal,
+                                          /*
+                                           * No `hash' method needed.
+                                           * internal_hash knows how to
+                                           * handle conses. */
+                                          0, cons_description, Lisp_Cons);
+  OBJECT_HAS_METHOD (cons, print_preprocess);
+  OBJECT_HAS_METHOD (cons, nsubst_structures_descend);
 
-  INIT_LISP_OBJECT (string);
+  DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("bit-vector", bit_vector,
+                                       print_bit_vector, 0, bit_vector_equal,
+                                       bit_vector_hash,
+                                       bit_vector_description,
+                                       size_bit_vector, Lisp_Bit_Vector);
+
+  /* No `finalize', or `hash' methods.
+     internal_hash() already knows how to hash strings and finalization
+     is done with the ADDITIONAL_FREE_string macro, which is the
+     standard way to do finalization when using
+     SWEEP_FIXED_TYPE_BLOCK(). */
+  DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("string", string, print_string,
+                                          0, string_equal, 0,
+                                          string_description, Lisp_String);
   OBJECT_HAS_METHOD (string, getprop);
   OBJECT_HAS_METHOD (string, putprop);
   OBJECT_HAS_METHOD (string, remprop);
   OBJECT_HAS_METHOD (string, plist);
 
-  INIT_LISP_OBJECT (lcrecord_list);
-  INIT_LISP_OBJECT (free);
+  DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("free", free, free_description,
+                                      struct free_lcrecord_header);
+
+  DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("lcrecord-list", lcrecord_list,
+                                      lcrecord_list_description,
+                                      struct lcrecord_list);
 }
 
 void

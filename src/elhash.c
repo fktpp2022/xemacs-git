@@ -130,9 +130,6 @@ static const struct memory_description hash_table_test_description[] =
     { XD_END }
   };
 
-DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("hash-table-test", hash_table_test,
-                                      hash_table_test_description,
-                                      Hash_Table_Test);
 /* A hash table. */
 
 struct Lisp_Hash_Table
@@ -646,12 +643,6 @@ const struct memory_description hash_table_description[] = {
   { XD_LISP_OBJECT,offsetof (Lisp_Hash_Table, test) },
   { XD_END }
 };
-
-DEFINE_DUMPABLE_LISP_OBJECT ("hash-table", hash_table, print_hash_table,
-			     finalize_hash_table,
-			     hash_table_equal, hash_table_hash,
-			     hash_table_description,
-			     Lisp_Hash_Table);
 
 static Lisp_Hash_Table *
 xhash_table (Lisp_Object hash_table)
@@ -2900,14 +2891,19 @@ use `mapatoms'.
 void
 init_elhash_once_early (void)
 {
-  INIT_LISP_OBJECT (hash_table);
+  DEFINE_DUMPABLE_LISP_OBJECT ("hash-table", hash_table, print_hash_table,
+                               finalize_hash_table, hash_table_equal,
+                               hash_table_hash, hash_table_description,
+                               Lisp_Hash_Table);
 #ifdef MEMORY_USAGE_STATS
   OBJECT_HAS_METHOD (hash_table, memory_usage);
 #endif
   OBJECT_HAS_METHOD (hash_table, print_preprocess);
   OBJECT_HAS_METHOD (hash_table, nsubst_structures_descend);
 
-  INIT_LISP_OBJECT (hash_table_test);
+  DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("hash-table-test", hash_table_test,
+                                        hash_table_test_description,
+                                        Hash_Table_Test);
 
   /* Create Vequal_hash_table_test so we can create Vobarray. */
   staticpro (&Vequal_hash_table_test);

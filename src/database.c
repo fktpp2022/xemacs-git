@@ -235,11 +235,6 @@ finalize_database (Lisp_Object obj)
   db->funcs->close (db);
 }
 
-DEFINE_NODUMP_LISP_OBJECT ("database", database, print_database,
-			   finalize_database, 0, 0, 
-			   database_description,
-			   Lisp_Database);
-
 DEFUN ("close-database", Fclose_database, 1, 1, 0, /*
 Close database DATABASE.
 */
@@ -847,7 +842,10 @@ each key and value in the database.
 void
 syms_of_database (void)
 {
-  INIT_LISP_OBJECT (database);
+  DEFINE_NODUMP_LISP_OBJECT ("database", database, print_database,
+                             finalize_database, 0, 0, 
+                             database_description,
+                             Lisp_Database);
 
   DEFSYMBOL (Qdatabasep);
 #ifdef HAVE_DBM
