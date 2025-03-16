@@ -329,10 +329,6 @@ struct lrecord_implementation
 {
   const Ascbyte *name;
 
-  /* information for the dumper: is the object dumpable and should it 
-     be dumped. */
-  unsigned int dumpable :1;
-
   /* `printer' converts the object to a printed representation.  `printer'
      should never be NULL (if so, you will get an assertion failure when
      trying to print such an object).  Either supply a specific printing
@@ -372,13 +368,10 @@ struct lrecord_implementation
   Bytecount static_size;
   Bytecount (*size_in_bytes_method) (Lisp_Object);
 
-  /* The (constant) index into lrecord_implementations_table */
-  enum lrecord_type lrecord_type_index;
-
-  /* A "frob-block" lrecord is any lrecord that's not an lcrecord, i.e.
-     one that does not have an old_lcrecord_header at the front and which
-     is (usually) allocated in frob blocks. */
-  unsigned int frob_block_p :1;
+  /**********************************************************************/
+  /* Remaining methods are not assignable statically using
+     DEFINE_*_LISP_OBJECT, but must be assigned with OBJECT_HAS_METHOD,
+     OBJECT_HAS_PROPERTY or the like. */
 
   /* The next two methods are for objects that may be recursive;
      print_preprocess descends OBJ, adding any encountered subobjects to
@@ -387,16 +380,15 @@ struct lrecord_implementation
   void (*print_preprocess) (Lisp_Object obj, Lisp_Object number_table,
 			    Elemcount *seen_object_count);
 
-  /* */
+  /* nsubst_structures_descend descends OBJECT, modifying it by replacing any
+     sub-object that is EQ to OLD with NEW_. Used by #'nsubst when the
+     :descend-structures keyword is supplied, and by the Lisp reader when
+     reading objects that may be circular or that may use uninterned
+     symbols. */
   void (*nsubst_structures_descend) (Lisp_Object new_, Lisp_Object old,
                                      Lisp_Object object,
                                      Lisp_Object number_table,
                                      Boolint test_not_unboundp);
-
-  /**********************************************************************/
-  /* Remaining stuff is not assignable statically using
-     DEFINE_*_LISP_OBJECT, but must be assigned with OBJECT_HAS_METHOD,
-     OBJECT_HAS_PROPERTY or the like. */
 
   /* These functions allow any object type to have builtin property
      lists that can be manipulated from the lisp level with
@@ -451,6 +443,18 @@ struct lrecord_implementation
   /* Keep this structure the same size, for the sake of modules. */
   void (*memory_usage) (Lisp_Object obj, void *stats);
 #endif
+
+  /* The (constant) index into lrecord_implementations_table */
+  enum lrecord_type lrecord_type_index;
+
+  /* A "frob-block" lrecord is any lrecord that's not an lcrecord, i.e.
+     one that does not have an old_lcrecord_header at the front and which
+     is (usually) allocated in frob blocks. */
+  unsigned int frob_block_p :1;
+
+  /* information for the dumper: is the object dumpable and should it 
+     be dumped. */
+  unsigned int dumpable :1;
 };
 
 /* All the built-in lisp object types are enumerated in `enum lrecord_type'.

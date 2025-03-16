@@ -34,6 +34,12 @@
 	BUF_FETCH_CHAR() calls. I note GNU has already done this. Extend the
 	docstring (some inspiration taken from GNU's current docstring).
 
+2025-03-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lrecord.h (struct lrecord_implementation):
+	Reorder this to reduce wasted space given alignment
+	requirements. Document the nsubst_structures_descend method.
+
 2025-03-15  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove all the lrecord_implementation structures from the C data
