@@ -36,6 +36,39 @@
 
 2025-03-18  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Move struct lrecord_implementation.name to being an interned
+	symbol, which will things simpler for unloading modules and speed
+	up Ftype_of() a little.
+
+	* alloc.c:
+	Update lrecord_implementation_description_1[] to reflect
+	this. Correct some indentation in passing.
+	* alloc.c (gc_plist_hack):
+	Update argument types in this now the type of
+	lrecord_implementation.name has changed.
+	* alloc.c (pluralize_word): Ditto.
+	* alloc.c (pluralize_and_append): Ditto.
+	* alloc.c (object_memory_usage_stats): Ditto.
+	* alloc.c (struct saved_object_name): New.
+	* alloc.c (init_lrecord_implementation_name): New.
+	Usually equivalent to lrecord_implementation_table[TIPO] = intern
+	(NAME), but with some special handline for early bootstrap before
+	it is possible intern symbols.
+	* data.c (Ftype_of):
+	No need to intern() any more, just return the symbol naming the
+	type for pointer types.
+	* lrecord.h:
+	* lrecord.h (struct lrecord_implementation): Update this.
+	* lrecord.h (LRECORD_IMPLEMENTATION_IBYTE_NAME): Update this.
+	* lrecord.h (MAKE_LISP_OBJECT): Update this to call
+	init_lrecord_implementation_name().
+	Declare init_lrecord_implementation_name().
+	* symbols.c (init_symbols_once_early):
+	Create Qnil as soon as we can intern strings, allowing the early
+	bootstrapping code to clean up.
+
+2025-03-18  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Wrap access to struct lrecord_implementation.name in preparation
 	for further changes.
 

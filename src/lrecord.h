@@ -327,7 +327,8 @@ extern MODULE_API int lrecord_type_count;
 
 struct lrecord_implementation
 {
-  const CIbyte *name;
+  /* Name of the type, as an interned symbol. */
+  Lisp_Object name;
 
   /* `printer' converts the object to a printed representation.  `printer'
      should never be NULL (if so, you will get an assertion failure when
@@ -472,7 +473,7 @@ lrecord_implementations_table[lrecord_type_last_built_in_type + MODULE_DEFINABLE
   lrecord_implementations_table[lrecord_type_##type]
 
 #define LRECORD_IMPLEMENTATION_IBYTE_NAME(implementation)       \
-  (implementation->name)
+  (XSTRING_DATA (XSYMBOL_NAME ((implementation)->name)))
 
 /* Given a Lisp object, return its implementation
    (struct lrecord_implementation) */
@@ -1281,7 +1282,7 @@ extern MODULE_API void uninit_memory_usage_stats (enum lrecord_type type);
     init_lrecord_type_##c_name ();                                         \
     LRECORD_IMPLEMENTATION (c_name)                                        \
       = xnew_and_zero (struct lrecord_implementation);                     \
-    LRECORD_IMPLEMENTATION (c_name)->name = lisp_name;                     \
+    init_lrecord_implementation_name (lrecord_type_##c_name, lisp_name);   \
     LRECORD_IMPLEMENTATION (c_name)->lrecord_type_index                    \
       = lrecord_type_##c_name;                                             \
     LRECORD_IMPLEMENTATION (c_name)->static_size = size;                   \
@@ -1303,6 +1304,9 @@ extern MODULE_API void uninit_memory_usage_stats (enum lrecord_type type);
   } while (0)
 
 extern MODULE_API const struct memory_description *lrecord_memory_descriptions[];
+
+extern MODULE_API void init_lrecord_implementation_name (int lrecord_type,
+                                                         const CIbyte *name);
 
 #ifdef HAVE_SHLIB
 /* Allow undefining types in order to support module unloading. */

@@ -107,7 +107,7 @@ int lrecord_type_count = lrecord_type_last_built_in_type;
 int lrecord_uid_counter[countof (lrecord_implementations_table)];
 
 static const struct memory_description lrecord_implementation_description_1[] = {
-  { XD_ASCII_STRING, offsetof (struct lrecord_implementation, name) },
+  { XD_LISP_OBJECT, offsetof (struct lrecord_implementation, name) },
 
   { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, printer) },
   { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, finalizer) },
@@ -120,11 +120,11 @@ static const struct memory_description lrecord_implementation_description_1[] = 
   { XD_BYTECOUNT, offsetof (struct lrecord_implementation, static_size) },
 
   { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation,
-				 size_in_bytes_method) },
+                                   size_in_bytes_method) },
   { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation,
-				 print_preprocess) },
+                                   print_preprocess) },
   { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation,
-				 nsubst_structures_descend) },
+                                   nsubst_structures_descend) },
   { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, getprop) },
   { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, putprop) },
   { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, remprop) },
@@ -132,7 +132,7 @@ static const struct memory_description lrecord_implementation_description_1[] = 
   { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, setplist) },
   { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, disksave) },
   { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation,
-                                 memory_usage) },
+                                   memory_usage) },
   { XD_END }
 };
 
@@ -3988,7 +3988,7 @@ do {								\
 /************************************************************************/
 
 static Lisp_Object
-gc_plist_hack (const Ascbyte *name, EMACS_INT value, Lisp_Object tail)
+gc_plist_hack (const CIbyte *name, EMACS_INT value, Lisp_Object tail)
 {
   /* C doesn't have local functions (or closures, or GC, or readable syntax,
      or portable numeric datatypes, or bit-vectors, or characters, or
@@ -4000,11 +4000,11 @@ gc_plist_hack (const Ascbyte *name, EMACS_INT value, Lisp_Object tail)
    size BUFSIZE.  Return the new length of the string. BUFSIZE should
    be sufficient to hold another two bytes. */
 static Bytecount
-pluralize_word (Ascbyte *buf, Bytecount bufsize)
+pluralize_word (Ibyte *buf, Bytecount bufsize)
 {
-  Bytecount len = (Bytecount) strlen (buf);
+  Bytecount len = qxestrlen (buf);
   Boolint upper = 0;
-  Ascbyte d, e;
+  Ibyte d, e;
 
   if (len == 0 || len == 1)
     goto pluralize_apostrophe_s;
@@ -4059,17 +4059,17 @@ pluralize_word (Ascbyte *buf, Bytecount bufsize)
 }
 
 static void
-pluralize_and_append (Ascbyte *buf, Bytecount bufsize,
-		      const Ascbyte *name, const Ascbyte *suffix)
+pluralize_and_append (Ibyte *buf, Bytecount bufsize,
+		      const Ibyte *name, const Ascbyte *suffix)
 {
   Bytecount plural_len, singular_len;
-  singular_len = emacs_snprintf_ascbyte (buf, bufsize, "%s", name);
+  singular_len = emacs_snprintf (buf, bufsize, "%s", name);
   if (singular_len > bufsize)
     {
       return;
     }
   plural_len = pluralize_word (buf, bufsize);
-  emacs_snprintf_ascbyte (buf + plural_len, bufsize - plural_len,
+  emacs_snprintf (buf + plural_len, bufsize - plural_len,
 			  "%s", suffix);
 }
 
@@ -4087,31 +4087,33 @@ object_memory_usage_stats (int set_total_gc_usage)
           || lrecord_stats[i].bytes_freed != 0
 	  || lrecord_stats[i].instances_on_free_list != 0)
         {
-          Ascbyte buf[255];
-          const Ascbyte *name = lrecord_implementations_table[i]->name;
+          Ibyte buf[255];
+          const Ibyte *name
+            = LRECORD_IMPLEMENTATION_IBYTE_NAME (lrecord_implementations_table
+                                                 [i]);
 
-          emacs_snprintf_ascbyte (buf, sizeof (buf), "%s-storage-overhead",
-                                  name);
-          pl = gc_plist_hack (buf, lrecord_stats[i].bytes_in_use_overhead, pl);
+          emacs_snprintf (buf, sizeof (buf), "%s-storage-overhead", name);
+          pl = gc_plist_hack ((const CIbyte *) buf, 
+                              lrecord_stats[i].bytes_in_use_overhead, pl);
 	  tgu_val += lrecord_stats[i].bytes_in_use_overhead;
-          emacs_snprintf_ascbyte (buf, sizeof (buf), "%s-storage", name);
-          pl = gc_plist_hack (buf, lrecord_stats[i].bytes_in_use, pl);
+          emacs_snprintf (buf, sizeof (buf), "%s-storage", name);
+          pl = gc_plist_hack ((const CIbyte *) buf,
+                              lrecord_stats[i].bytes_in_use, pl);
 	  tgu_val += lrecord_stats[i].bytes_in_use;
 #ifdef MEMORY_USAGE_STATS
 	  if (lrecord_stats[i].nonlisp_bytes_in_use)
 	    {
-	      emacs_snprintf_ascbyte (buf, sizeof (buf),
-                                      "%s-non-lisp-storage", name);
-	      pl = gc_plist_hack (buf, lrecord_stats[i].nonlisp_bytes_in_use,
+	      emacs_snprintf (buf, sizeof (buf), "%s-non-lisp-storage", name);
+	      pl = gc_plist_hack ((const CIbyte *) buf,
+                                  lrecord_stats[i].nonlisp_bytes_in_use,
 				  pl);
 	      tgu_val += lrecord_stats[i].nonlisp_bytes_in_use;
 	    }
 	  if (lrecord_stats[i].lisp_ancillary_bytes_in_use)
 	    {
-	      emacs_snprintf_ascbyte (buf, sizeof (buf),
-                                      "%s-lisp-ancillary-storage",
-                                      name);
-	      pl = gc_plist_hack (buf, lrecord_stats[i].
+	      emacs_snprintf (buf, sizeof (buf), "%s-lisp-ancillary-storage",
+                              name);
+	      pl = gc_plist_hack ((const CIbyte *) buf, lrecord_stats[i].
 				  lisp_ancillary_bytes_in_use,
 				  pl);
 	      tgu_val += lrecord_stats[i].lisp_ancillary_bytes_in_use;
@@ -4119,13 +4121,17 @@ object_memory_usage_stats (int set_total_gc_usage)
 #endif /* MEMORY_USAGE_STATS */
 	  pluralize_and_append (buf, sizeof (buf), name, "-freed");
           if (lrecord_stats[i].instances_freed != 0)
-            pl = gc_plist_hack (buf, lrecord_stats[i].instances_freed, pl);
-	  pluralize_and_append (buf, sizeof (buf), name, "-on-free-list");
+            pl = gc_plist_hack ((const CIbyte *) buf,
+                                lrecord_stats[i].instances_freed, pl);
+	  pluralize_and_append (buf, sizeof (buf), name,
+                                "-on-free-list");
           if (lrecord_stats[i].instances_on_free_list != 0)
-            pl = gc_plist_hack (buf, lrecord_stats[i].instances_on_free_list,
+            pl = gc_plist_hack ((const CIbyte *) buf,
+                                lrecord_stats[i].instances_on_free_list,
 				pl);
 	  pluralize_and_append (buf, sizeof (buf), name, "-used");
-          pl = gc_plist_hack (buf, lrecord_stats[i].instances_in_use, pl);
+          pl = gc_plist_hack ((const CIbyte *) buf,
+                              lrecord_stats[i].instances_in_use, pl);
         }
     }
 
@@ -4140,7 +4146,8 @@ object_memory_usage_stats (int set_total_gc_usage)
     {
       COUNT_FROB_BLOCK_USAGE (string_chars);
       tgu_val += s + s_overhead;
-      pl = gc_plist_hack ("short-string-chars-storage-overhead", s_overhead, pl);
+      pl = gc_plist_hack ("short-string-chars-storage-overhead", s_overhead,
+                          pl);
       pl = gc_plist_hack ("short-string-chars-storage", s, pl);
     }
   while (0);
@@ -4518,6 +4525,59 @@ uninit_memory_usage_stats (enum lrecord_type type)
 #else
   USED (type);
 #endif
+}
+
+struct saved_object_name
+{
+  enum lrecord_type tipo;
+  const CIbyte *name;
+};
+
+/* Usually equivalent to lrecord_implementations_table[TIPO]->name = intern
+   (NAME), but has some special handling for bootstrapping. */
+void
+init_lrecord_implementation_name (int tipo, const CIbyte *name)
+{
+  static struct saved_object_name *saved_object_names;
+  static struct saved_object_name *saved_object_name_ptr;
+
+  if (EQ (Qnil, Qnull_pointer))
+    {
+      /* We're very early, intern() is not yet available. Stash the name to
+         for when it is available. */
+      if (saved_object_names == NULL)
+        {
+          saved_object_names = saved_object_name_ptr
+            = xnew_array_and_zero (struct saved_object_name, 32);
+        }
+
+      structure_checking_assert ((saved_object_name_ptr - saved_object_names)
+                                 < 32);
+      structure_checking_assert (tipo > 0 &&
+                                 tipo < lrecord_type_last_built_in_type);
+      saved_object_name_ptr->name = name;
+      saved_object_name_ptr->tipo = (enum lrecord_type) tipo;
+      saved_object_name_ptr++;
+      return;
+    }
+
+  if (saved_object_names != NULL)
+    {
+      /* Create type name symbols for objects previously defined, before it was
+         possible to intern() symbols. */
+      while (--saved_object_name_ptr >= saved_object_names)
+        {
+          lrecord_implementations_table[saved_object_name_ptr->tipo]->name
+            = intern (saved_object_name_ptr->name);
+        }
+
+      xfree (saved_object_names);
+      saved_object_names = saved_object_name_ptr = NULL;
+      /* We still need to create the name for this lrecord_type, fall
+         through. */
+    }
+
+  lrecord_implementations_table[tipo]->name = intern (name);
 }
 
 

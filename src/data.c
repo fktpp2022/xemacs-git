@@ -419,9 +419,7 @@ Return a symbol representing the type of OBJECT.
   switch (XTYPE (object))
     {
     case Lisp_Type_Record:
-      return intern
-        (LRECORD_IMPLEMENTATION_IBYTE_NAME
-         (XRECORD_LHEADER_IMPLEMENTATION (object)));
+      return XRECORD_LHEADER_IMPLEMENTATION (object)->name;
 
     case Lisp_Type_Char: return Qcharacter;
 

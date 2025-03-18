@@ -3161,6 +3161,28 @@ init_symbols_once_early (void)
   OBJECT_HAS_NAMED_METHOD (symbol, plist, Fsymbol_plist);
   OBJECT_HAS_NAMED_METHOD (symbol, setplist, Fsetplist);
 
+  /* Create Qnil now, allow the bootstrapping code regarding object
+     implementation names to behave normally from here on in. */
+  Qnil = Fmake_symbol (make_string_nocopy ((const Ibyte *) "nil", 3));
+  /* Qnil isn't set when make_string_nocopy is called for the first time,
+     correct its plist. */
+  XSTRING_PLIST (XSYMBOL (Qnil)->name) = Qnil;
+
+  XSYMBOL (Qnil)->value = Qnil; /* Nihil ex nihilo */
+  XSYMBOL (Qnil)->plist = Qnil;
+  XSYMBOL (Qnil)->u.v.package_count = 1;
+  XSYMBOL (Qnil)->u.v.first_package_id = 1;
+  XSYMBOL (Qnil)->function = Qunbound;
+  /* Intern nil in obarray. Don't do this with a normal DEFSYMBOL() call, that
+     will create a new, distinct symbol. */
+  Fputhash (XSYMBOL_NAME (Qnil), Qnil, Vobarray);
+  /* Make it reachable from C post-pdump_load(). */
+  dump_add_root_lisp_object (&Qnil);
+
+  /* Go ahead and create Qt now for symmetry. */
+  DEFSYMBOL (Qt);
+  XSYMBOL (Qt)->value = Qt;	/* Veritas aeterna */
+
   DEFINE_DUMPABLE_LISP_OBJECT ("symbol-value-forward-object",
                                symbol_value_forward_object,
                                print_symbol_value_magic, 0, 0, 0,
@@ -3196,26 +3218,7 @@ init_symbols_once_early (void)
                                symbol_value_varalias_description,
                                struct symbol_value_varalias);
 
-  /* Bootstrapping problem: Qnil isn't set when make_string_nocopy is
-     called the first time. */
-  Qnil = Fmake_symbol (make_string_nocopy ((const Ibyte *) "nil", 3));
-  XSTRING_PLIST (XSYMBOL (Qnil)->name) = Qnil;
-  XSYMBOL (Qnil)->value = Qnil; /* Nihil ex nihilo */
-  XSYMBOL (Qnil)->plist = Qnil;
-  XSYMBOL (Qnil)->u.v.package_count = 1;
-  XSYMBOL (Qnil)->u.v.first_package_id = 1;
-
-  /* Intern nil in obarray. In this context #'puthash is a better option than
-     #'intern, no copying of the string needed. */
-  Fputhash (XSYMBOL_NAME (Qnil), Qnil, Vobarray);
-
-  XSYMBOL (Qnil)->function = Qunbound;
-
-  DEFSYMBOL (Qt);
-  XSYMBOL (Qt)->value = Qt;	/* Veritas aeterna */
   Vquit_flag = Qnil;
-
-  dump_add_root_lisp_object (&Qnil);
   dump_add_root_lisp_object (&Vquit_flag);
 }
 
