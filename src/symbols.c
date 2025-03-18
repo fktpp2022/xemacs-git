@@ -705,7 +705,8 @@ print_symbol_value_magic (Lisp_Object obj, Lisp_Object printcharfun,
 {
   write_fmt_string (printcharfun,
 		    "#<INTERNAL OBJECT (XEmacs bug?) (%s type %d) 0x%x>",
-		    XRECORD_LHEADER_IMPLEMENTATION (obj)->name,
+                    LRECORD_IMPLEMENTATION_IBYTE_NAME
+		    (XRECORD_LHEADER_IMPLEMENTATION (obj)),
 		    XSYMBOL_VALUE_MAGIC_TYPE (obj),
 		    LISP_OBJECT_UID (obj));
 }

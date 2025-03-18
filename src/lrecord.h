@@ -327,7 +327,7 @@ extern MODULE_API int lrecord_type_count;
 
 struct lrecord_implementation
 {
-  const Ascbyte *name;
+  const CIbyte *name;
 
   /* `printer' converts the object to a printed representation.  `printer'
      should never be NULL (if so, you will get an assertion failure when
@@ -470,6 +470,9 @@ lrecord_implementations_table[lrecord_type_last_built_in_type + MODULE_DEFINABLE
    the lrecord_implementation of the corresponding Lisp object. */
 #define LRECORD_IMPLEMENTATION(type) \
   lrecord_implementations_table[lrecord_type_##type]
+
+#define LRECORD_IMPLEMENTATION_IBYTE_NAME(implementation)       \
+  (implementation->name)
 
 /* Given a Lisp object, return its implementation
    (struct lrecord_implementation) */

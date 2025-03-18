@@ -589,29 +589,36 @@ do {								\
 } while (0)
 
 #ifdef DEBUG_XEMACS
-#define INCREMENT_CONS_COUNTER(foosize, type)		\
+#define INCREMENT_CONS_COUNTER(foosize, implementation) \
   do {							\
     if (debug_allocation)				\
       {							\
-	stderr_out ("allocating %s (size %zd)\n", type,	\
+	stderr_out ("allocating %s (size %zd)\n",       \
+                    LRECORD_IMPLEMENTATION_IBYTE_NAME   \
+                    (implementation),                   \
 		    foosize);                           \
 	debug_allocation_backtrace ();			\
       }							\
     INCREMENT_CONS_COUNTER_1 (foosize);			\
   } while (0)
-#define NOSEEUM_INCREMENT_CONS_COUNTER(foosize, type)		\
-  do {								\
-    if (debug_allocation > 1)					\
-      {								\
-	stderr_out ("allocating noseeum %s (size %zd)\n", type,	\
-		    foosize);                                   \
-	debug_allocation_backtrace ();				\
-      }								\
-    INCREMENT_CONS_COUNTER_1 (foosize);				\
+#define NOSEEUM_INCREMENT_CONS_COUNTER(foosize,         \
+                                       implementation)  \
+  do {							\
+    if (debug_allocation > 1)				\
+      {							\
+	stderr_out ("allocating %s (size %zd)\n",       \
+                    LRECORD_IMPLEMENTATION_IBYTE_NAME   \
+                    (implementation),                   \
+		    foosize);                           \
+	debug_allocation_backtrace ();			\
+      }							\
+    INCREMENT_CONS_COUNTER_1 (foosize);			\
   } while (0)
 #else
-#define INCREMENT_CONS_COUNTER(size, type) INCREMENT_CONS_COUNTER_1 (size)
-#define NOSEEUM_INCREMENT_CONS_COUNTER(size, type) \
+#define INCREMENT_CONS_COUNTER(size, implementation) \
+  INCREMENT_CONS_COUNTER_1 (size)
+#define NOSEEUM_INCREMENT_CONS_COUNTER(size,           \
+                                       implementation) \
   INCREMENT_CONS_COUNTER_1 (size)
 #endif
 
@@ -686,7 +693,7 @@ old_alloc_sized_lcrecord_1 (Bytecount size,
       lcheader->next = all_lcrecords;
       all_lcrecords = lcheader;
     }
-  INCREMENT_CONS_COUNTER (size, implementation->name);
+  INCREMENT_CONS_COUNTER (size, implementation);
   return wrap_pointer_1 (lcheader);
 }
 
@@ -1114,14 +1121,18 @@ static int gc_count_num_##type##_freelist
 do							\
 {							\
   ALLOCATE_FIXED_TYPE_1 (type, structtype, result);	\
-  INCREMENT_CONS_COUNTER (sizeof (structtype), #type);	\
+  INCREMENT_CONS_COUNTER (sizeof (structtype),          \
+                          LRECORD_IMPLEMENTATION        \
+                          (type));                      \
 } while (0)
 
 #define NOSEEUM_ALLOCATE_FIXED_TYPE(type, structtype, result)	\
 do								\
 {								\
   ALLOCATE_FIXED_TYPE_1 (type, structtype, result);		\
-  NOSEEUM_INCREMENT_CONS_COUNTER (sizeof (structtype), #type);	\
+  NOSEEUM_INCREMENT_CONS_COUNTER (sizeof (structtype),          \
+                                  LRECORD_IMPLEMENTATION        \
+                                  (type));                      \
 } while (0)
 
 /* Lisp_Free is the type to represent a free list member inside a frob
@@ -2616,7 +2627,7 @@ static Ibyte *
 allocate_big_string_chars (Bytecount length)
 {
   Ibyte *p = xnew_array (Ibyte, length);
-  INCREMENT_CONS_COUNTER (length, "string chars");
+  INCREMENT_CONS_COUNTER (length, LRECORD_IMPLEMENTATION (string));
   return p;
 }
 
@@ -2652,7 +2663,7 @@ allocate_string_chars_struct (Lisp_Object string_it_goes_with,
 
   s_chars->string = XSTRING (string_it_goes_with);
 
-  INCREMENT_CONS_COUNTER (fullsize, "string chars");
+  INCREMENT_CONS_COUNTER (fullsize, LRECORD_IMPLEMENTATION (string));
 
   return s_chars;
 }
@@ -2811,7 +2822,8 @@ resize_string (Lisp_Object s, Bytecount pos, Bytecount delta)
 
 	  /* Bump the cons counter.
 	     Conservative; Martin let the increment be delta. */
-	  INCREMENT_CONS_COUNTER (newfullsize, "string chars");
+	  INCREMENT_CONS_COUNTER (newfullsize,
+                                  LRECORD_IMPLEMENTATION (string));
 	}
       else /* String has been demoted from BIG_STRING. */
 	{

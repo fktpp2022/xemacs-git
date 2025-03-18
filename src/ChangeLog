@@ -34,6 +34,38 @@
 	BUF_FETCH_CHAR() calls. I note GNU has already done this. Extend the
 	docstring (some inspiration taken from GNU's current docstring).
 
+2025-03-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Wrap access to struct lrecord_implementation.name in preparation
+	for further changes.
+
+	* alloc.c (INCREMENT_CONS_COUNTER): Move the second argument here
+	to being a pointer to the struct lrecord_implementation, which
+	works better with e.g. the ALLOCATE_FIXED_TYPE() macros.
+	* alloc.c (old_alloc_sized_lcrecord_1): Call
+	INCREMENT_CONS_COUNTER() with its new convention.
+	* alloc.c (ALLOCATE_FIXED_TYPE): Ditto.
+	* alloc.c (NOSEEUM_ALLOCATE_FIXED_TYPE): Ditto.
+	* alloc.c (allocate_big_string_chars): Ditto.
+	* alloc.c (allocate_string_chars_struct): Ditto.
+	* alloc.c (resize_string): Ditto.
+	* data.c (Ftype_of):
+	Use the wrapper just introduced.
+	* dumper.c (pdump_backtrace): Ditto.
+	* dumper.c (pdump_register_object): Ditto.
+	* dumper.c (pdump): Ditto.
+	* gc.c (kkcc_backtrace_1): Ditto.
+	* lrecord.h (struct lrecord_implementation):
+	Change the type of NAME to const CIbyte, in preparation for
+	further changes.
+	* lrecord.h (LRECORD_IMPLEMENTATION_IBYTE_NAME):
+	Provide the accessor macro.
+	* print.c (printing_unreadable_lisp_object): Use it.
+	* print.c (external_object_printer): Use it.
+	* print.c (internal_object_printer): Use it.
+	* print.c (debug_p4): Use it.
+	* symbols.c (print_symbol_value_magic): Use it.
+
 2025-03-16  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lrecord.h (struct lrecord_implementation):

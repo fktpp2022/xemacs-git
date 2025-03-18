@@ -1586,9 +1586,13 @@ printing_unreadable_lisp_object (Lisp_Object obj, const Ibyte *name)
     XRECORD_LHEADER_IMPLEMENTATION (obj);
 
   if (name)
-    printing_unreadable_object_fmt ("#<%s %s 0x%x>", imp->name, name, header->uid);
+    printing_unreadable_object_fmt ("#<%s %s 0x%x>",
+                                    LRECORD_IMPLEMENTATION_IBYTE_NAME (imp),
+                                    name, header->uid);
   else
-    printing_unreadable_object_fmt ("#<%s 0x%x>", imp->name, header->uid);
+    printing_unreadable_object_fmt ("#<%s 0x%x>",
+                                    LRECORD_IMPLEMENTATION_IBYTE_NAME (imp),
+                                    header->uid);
 }
 
 void
@@ -1602,7 +1606,9 @@ external_object_printer (Lisp_Object obj, Lisp_Object printcharfun,
   if (print_readably)
     printing_unreadable_lisp_object (obj, 0);
 
-  write_fmt_string (printcharfun, "#<%s 0x%x>", imp->name, header->uid);
+  write_fmt_string (printcharfun, "#<%s 0x%x>",
+                    LRECORD_IMPLEMENTATION_IBYTE_NAME (imp),
+                    header->uid);
 }
 
 void
@@ -1612,14 +1618,16 @@ internal_object_printer (Lisp_Object obj, Lisp_Object printcharfun,
   if (print_readably)
     printing_unreadable_object_fmt
       ("#<INTERNAL OBJECT (XEmacs bug?) (%s) 0x%x>",
-       XRECORD_LHEADER_IMPLEMENTATION (obj)->name, LISP_OBJECT_UID (obj));
+       LRECORD_IMPLEMENTATION_IBYTE_NAME
+       (XRECORD_LHEADER_IMPLEMENTATION (obj)), LISP_OBJECT_UID (obj));
 
   /* Internal objects shouldn't normally escape to the Lisp level;
      that's why we say "XEmacs bug?".  This can happen, however, when
      printing backtraces. */
   write_fmt_string (printcharfun,
 		    "#<INTERNAL OBJECT (XEmacs bug?) (%s) 0x%x>",
-		    XRECORD_LHEADER_IMPLEMENTATION (obj)->name,
+                    LRECORD_IMPLEMENTATION_IBYTE_NAME
+		    (XRECORD_LHEADER_IMPLEMENTATION (obj)),
 		    LISP_OBJECT_UID (obj));
 }
 
@@ -2825,7 +2833,8 @@ debug_p4 (Lisp_Object obj)
 	debug_out ("<< bad object type=%d %p>>", header->type, header);
       else
 	debug_out ("#<%s addr=0x%zx uid=0x%zx>",
-		   LHEADER_IMPLEMENTATION (header)->name,
+                   LRECORD_IMPLEMENTATION_IBYTE_NAME
+                   (LHEADER_IMPLEMENTATION (header)),
 		   (EMACS_INT) header,
 		   (EMACS_INT) ((struct lrecord_header *) header)->uid);
     }

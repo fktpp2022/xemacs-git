@@ -570,7 +570,8 @@ pdump_backtrace (void)
       else
 	{
 	  stderr_out ("  - %s (%d, %d)\n",
-		      LHEADER_IMPLEMENTATION (backtrace[i].obj)->name,
+                      LRECORD_IMPLEMENTATION_IBYTE_NAME
+                      (LHEADER_IMPLEMENTATION (backtrace[i].obj)),
 		      backtrace[i].position,
 		      backtrace[i].offset);
 	}
@@ -817,7 +818,8 @@ pdump_register_object (Lisp_Object obj)
   else
     {
       pdump_alert_undump_object[objh->type]++;
-      stderr_out ("Undumpable object type : %s\n", imp->name);
+      stderr_out ("Undumpable object type : %s\n",
+                  LRECORD_IMPLEMENTATION_IBYTE_NAME (imp));
       pdump_backtrace ();
     }
 }
@@ -1778,7 +1780,9 @@ pdump (void)
 	if (none)
 	  stderr_out ("Undumpable types list :\n");
 	none = 0;
-	stderr_out ("  - %s (%d)\n", lrecord_implementations_table[i]->name,
+	stderr_out ("  - %s (%d)\n",
+                    LRECORD_IMPLEMENTATION_IBYTE_NAME
+                    (lrecord_implementations_table[i]),
 		    pdump_alert_undump_object[i]);
       }
   if (!none)

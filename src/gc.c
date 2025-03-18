@@ -471,7 +471,9 @@ kkcc_backtrace_1 (int size, int detailed)
 	stderr_out ("WARNING! Bad Lisp Object type %d",
 		    XRECORD_LHEADER (obj)->type);
       else
-	stderr_out ("%s", XRECORD_LHEADER_IMPLEMENTATION (obj)->name);
+	stderr_out ("%s",
+                    LRECORD_IMPLEMENTATION_IBYTE_NAME
+                    (XRECORD_LHEADER_IMPLEMENTATION (obj)));
       if (detailed && kkcc_bt[i].is_lisp)
 	{
 	  stderr_out (" ");
