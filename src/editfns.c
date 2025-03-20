@@ -1676,19 +1676,26 @@ They default to the beginning and the end of BUFFER.
 }
 
 DEFUN ("compare-buffer-substrings", Fcompare_buffer_substrings, 6, 6, 0, /*
-Compare two substrings of two buffers; return result as number.
-the value is -N if first string is less after N-1 chars,
-+N if first string is greater after N-1 chars, or 0 if strings match.
-Each substring is represented as three arguments: BUFFER, START and END.
-That makes six args in all, three for each substring.
+Compare two buffer substrings; return result as an integer.
 
-The value of `case-fold-search' in the current buffer
-determines whether case is significant or ignored.
+Return -N if first string is less after N-1 chars, +N if first string is
+greater after N-1 chars, or 0 if strings match.
+
+The first substring is in BUFFER1 from START1 to END1 and the second is in
+BUFFER2 from START2 to END2.
+
+All arguments may be nil.  If BUFFER1 or BUFFER2 is nil, the current buffer is
+used.  If START1 or START2 is nil, the value of `point-min' in the respective
+buffers is used.  If END1 or END2 is nil, the value of `point-max' in the
+respective buffers is used.  BUFFER1 and BUFFER2 may be the same buffer.
+
+The value of `case-fold-search' in the current buffer determines whether case
+is significant or ignored.
 */
        (buffer1, start1, end1, buffer2, start2, end2))
 {
-  Charbpos begp1, endp1, begp2, endp2;
-  REGISTER Charcount len1, len2, length, i;
+  Bytebpos begp1, endp1, begp2, endp2;
+  Charcount length = 0;
   struct buffer *bp1, *bp2;
   Lisp_Object trt = ((!NILP (current_buffer->case_fold_search)) ?
 		     XCASE_TABLE_CANON (current_buffer->case_table) : Qnil);
@@ -1696,39 +1703,37 @@ determines whether case is significant or ignored.
   /* Find the first buffer and its substring.  */
 
   bp1 = decode_buffer (buffer1, 1);
-  get_buffer_range_char (bp1, start1, end1, &begp1, &endp1, GB_ALLOW_NIL);
+  get_buffer_range_byte (bp1, start1, end1, &begp1, &endp1, GB_ALLOW_NIL);
 
   /* Likewise for second substring.  */
 
   bp2 = decode_buffer (buffer2, 1);
-  get_buffer_range_char (bp2, start2, end2, &begp2, &endp2, GB_ALLOW_NIL);
+  get_buffer_range_byte (bp2, start2, end2, &begp2, &endp2, GB_ALLOW_NIL);
 
-  len1 = endp1 - begp1;
-  len2 = endp2 - begp2;
-  length = len1;
-  if (len2 < length)
-    length = len2;
-
-  for (i = 0; i < length; i++)
+  while (begp1 < endp1 && begp2 < endp2)
     {
-      Ichar c1 = BUF_FETCH_CHAR (bp1, begp1 + i);
-      Ichar c2 = BUF_FETCH_CHAR (bp2, begp2 + i);
+      Ichar c1 = BYTE_BUF_FETCH_CHAR (bp1, begp1);
+      Ichar c2 = BYTE_BUF_FETCH_CHAR (bp2, begp2);
       if (!NILP (trt))
 	{
 	  c1 = TRT_TABLE_OF (trt, c1);
 	  c2 = TRT_TABLE_OF (trt, c2);
 	}
       if (c1 < c2)
-	return make_fixnum (- 1 - i);
+	return make_fixnum (- 1 - length);
       if (c1 > c2)
-	return make_fixnum (i + 1);
+	return make_fixnum (length + 1);
+
+      INC_BYTEBPOS (bp1, begp1);
+      INC_BYTEBPOS (bp2, begp2);
+      length++;
     }
 
   /* The strings match as far as they go.
      If one is shorter, that one is less.  */
-  if (length < len1)
+  if (begp1 < endp1)
     return make_fixnum (length + 1);
-  else if (length < len2)
+  else if (begp2 < endp2)
     return make_fixnum (- length - 1);
 
   /* Same length too => they are equal.  */

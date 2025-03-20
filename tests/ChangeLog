@@ -1,3 +1,12 @@
+2025-03-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el (Assert-compare-buffer-substrings): New.
+	Test #'compare-buffer-substrings, which just had its
+	implementation revised to avoid O(N) calls to BUF_FETCH_CHAR(). 
+	* automated/lisp-tests.el: Re-encode this file in UTF-8 now the
+	non-mule build is gone and it is helpful to have Greek character
+	literals. 
+
 2025-03-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/regexp-tests.el:

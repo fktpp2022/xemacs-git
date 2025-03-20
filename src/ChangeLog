@@ -1,3 +1,10 @@
+2025-03-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* editfns.c (Fcompare_buffer_substrings):
+	Revise Fcompare_buffer_substrings() to avoid potentially O(N)
+	BUF_FETCH_CHAR() calls. I note GNU has already done this. Extend the
+	docstring (some inspiration taken from GNU's current docstring).
+
 2025-03-11  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* redisplay.c (redisplay_frame):

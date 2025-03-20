@@ -1,4 +1,4 @@
-;; Copyright (C) 1998 Free Software Foundation, Inc. -*- coding: iso-8859-1 -*-
+;; Copyright (C) 1998 Free Software Foundation, Inc. -*- coding: utf-8 -*-
 ;; Copyright (C) 2010 Ben Wing.
 
 ;; Author: Martin Buchholz <martin@xemacs.org>
@@ -133,7 +133,7 @@
    "" #* []
    "a" #*1 [1]
    "abcdefghijklmnop"
-   "�b�d�fgh�jklmn�p"
+   "äbçdëfghíjklmnöp"
    #*10101010100101010101
    [?a ?b ?c ?d ?e ?f ?g ?h ?i ?j ?k ?l ?m ?n ?o ?p]))
 
@@ -1352,9 +1352,9 @@ will be used to make debugging easier."
   (split-string-by-char
    #r"re\:ee:this\\is\\text\\\\:oo\ps:
 Eine Sprache, die stagnirt, ist zu vergleichen mit einem See, dem der
-bisherige Quellenzuflu� versiegt oder abgeleitet wird. Aus dem Wasser,
-wor�ber der Geist Gottes schwebte, wird Sumpf und Moder, wor�ber die
-unreinen\: Geister br�ten.\\
+bisherige Quellenzufluß versiegt oder abgeleitet wird. Aus dem Wasser,
+worüber der Geist Gottes schwebte, wird Sumpf und Moder, worüber die
+unreinen\: Geister brüten.\\
 Serum concentrations of vitamin E: (alpha-tocopherol) depend on the liver,
 which takes up the nutrient after the various forms are absorbed from the
 small intestine. The liver preferentially resecretes only alpha-tocopherol
@@ -1362,9 +1362,9 @@ via the hepatic alpha-tocopherol transfer protein"
   ?: ?\\)
   '("re:ee" "this\\is\\text\\\\" "oops" "
 Eine Sprache, die stagnirt, ist zu vergleichen mit einem See, dem der
-bisherige Quellenzuflu� versiegt oder abgeleitet wird. Aus dem Wasser,
-wor�ber der Geist Gottes schwebte, wird Sumpf und Moder, wor�ber die
-unreinen: Geister br�ten.\\
+bisherige Quellenzufluß versiegt oder abgeleitet wird. Aus dem Wasser,
+worüber der Geist Gottes schwebte, wird Sumpf und Moder, worüber die
+unreinen: Geister brüten.\\
 Serum concentrations of vitamin E" " (alpha-tocopherol) depend on the liver,
 which takes up the nutrient after the various forms are absorbed from the
 small intestine. The liver preferentially resecretes only alpha-tocopherol
@@ -1374,9 +1374,9 @@ via the hepatic alpha-tocopherol transfer protein")))
   (split-string-by-char
    #r"re\:ee:this\\is\\text\\\\:oo\ps:
 Eine Sprache, die stagnirt, ist zu vergleichen mit einem See, dem der
-bisherige Quellenzuflu� versiegt oder abgeleitet wird. Aus dem Wasser,
-wor�ber der Geist Gottes schwebte, wird Sumpf und Moder, wor�ber die
-unreinen\: Geister br�ten.\\
+bisherige Quellenzufluß versiegt oder abgeleitet wird. Aus dem Wasser,
+worüber der Geist Gottes schwebte, wird Sumpf und Moder, worüber die
+unreinen\: Geister brüten.\\
 Serum concentrations of vitamin E: (alpha-tocopherol) depend on the liver,
 which takes up the nutrient after the various forms are absorbed from the
 small intestine. The liver preferentially resecretes only alpha-tocopherol
@@ -1384,9 +1384,9 @@ via the hepatic alpha-tocopherol transfer protein"
    ?: ?\x00)
   '("re\\" "ee" "this\\\\is\\\\text\\\\\\\\" "oo\\ps" "
 Eine Sprache, die stagnirt, ist zu vergleichen mit einem See, dem der
-bisherige Quellenzuflu� versiegt oder abgeleitet wird. Aus dem Wasser,
-wor�ber der Geist Gottes schwebte, wird Sumpf und Moder, wor�ber die
-unreinen\\" " Geister br�ten.\\\\
+bisherige Quellenzufluß versiegt oder abgeleitet wird. Aus dem Wasser,
+worüber der Geist Gottes schwebte, wird Sumpf und Moder, worüber die
+unreinen\\" " Geister brüten.\\\\
 Serum concentrations of vitamin E" " (alpha-tocopherol) depend on the liver,
 which takes up the nutrient after the various forms are absorbed from the
 small intestine. The liver preferentially resecretes only alpha-tocopherol
@@ -1396,18 +1396,18 @@ via the hepatic alpha-tocopherol transfer protein")))
   (split-string-by-char
    #r"re\:ee:this\\is\\text\\\\:oo\ps:
 Eine Sprache, die stagnirt, ist zu vergleichen mit einem See, dem der
-bisherige Quellenzuflu� versiegt oder abgeleitet wird. Aus dem Wasser,
-wor�ber der Geist Gottes schwebte, wird Sumpf und Moder, wor�ber die
-unreinen\: Geister br�ten.\\
+bisherige Quellenzufluß versiegt oder abgeleitet wird. Aus dem Wasser,
+worüber der Geist Gottes schwebte, wird Sumpf und Moder, worüber die
+unreinen\: Geister brüten.\\
 Serum concentrations of vitamin E: (alpha-tocopherol) depend on the liver,
 which takes up the nutrient after the various forms are absorbed from the
 small intestine. The liver preferentially resecretes only alpha-tocopherol
 via the hepatic alpha-tocopherol transfer protein" ?\\)
   '("re" ":ee:this" "" "is" "" "text" "" "" "" ":oo" "ps:
 Eine Sprache, die stagnirt, ist zu vergleichen mit einem See, dem der
-bisherige Quellenzuflu� versiegt oder abgeleitet wird. Aus dem Wasser,
-wor�ber der Geist Gottes schwebte, wird Sumpf und Moder, wor�ber die
-unreinen" ": Geister br�ten." "" "
+bisherige Quellenzufluß versiegt oder abgeleitet wird. Aus dem Wasser,
+worüber der Geist Gottes schwebte, wird Sumpf und Moder, worüber die
+unreinen" ": Geister brüten." "" "
 Serum concentrations of vitamin E: (alpha-tocopherol) depend on the liver,
 which takes up the nutrient after the various forms are absorbed from the
 small intestine. The liver preferentially resecretes only alpha-tocopherol
@@ -4234,7 +4234,7 @@ via the hepatic alpha-tocopherol transfer protein")))
                (parse-integer "+20" :radix-table binary-table :radix #x100))
            '(2830896 3))
           "checking ?+ not dropped initially if it has integer weight")
-  (Assert (eql #xff (digit-char-p ?� #x100 binary-table))
+  (Assert (eql #xff (digit-char-p ?ÿ #x100 binary-table))
           "checking `digit-char-p' behaves correctly with base 256")
   (Assert (eql ?\xff (digit-char #xff #x100 binary-table))
           "checking `digit-char' behaves correctly with base 256")
@@ -4247,7 +4247,7 @@ via the hepatic alpha-tocopherol transfer protein")))
           "checking `digit-char-p' reflects RADIX-TABLE, ?9")
   (Assert (null (digit-char-p ?a 16 binary-table))
           "checking `digit-char-p' reflects RADIX-TABLE, ?a")
-  (Assert (eql ?� (digit-char #xff #x100 binary-table))
+  (Assert (eql ?ÿ (digit-char #xff #x100 binary-table))
           "checking `digit-char' reflects RADIX-TABLE, #xff")
   (Assert (eql ?a (digit-char #x61 #x100 binary-table))
           "checking `digit-char' reflects RADIX-TABLE, #x61")
@@ -4352,12 +4352,12 @@ via the hepatic alpha-tocopherol transfer protein")))
 ;;-----------------------------------------------------
 
 (macrolet
-    ((general-preamble (fun��o)
+    ((general-preamble (função)
        `(progn
-         (Check-Error wrong-type-argument (,fun��o []))
-         (Check-Error wrong-type-argument (,fun��o (lambda (z) z) 1)) 
-         (Check-Error wrong-number-of-arguments (,fun��o))
-         (Assert (eq 120 (,fun��o (let ((gensym (gensym)))
+         (Check-Error wrong-type-argument (,função []))
+         (Check-Error wrong-type-argument (,função (lambda (z) z) 1)) 
+         (Check-Error wrong-number-of-arguments (,função))
+         (Assert (eq 120 (,função (let ((gensym (gensym)))
                                     (set gensym (symbol-function '*))
                                     gensym)
                                   1 2 3 4 5))))))
@@ -4578,7 +4578,7 @@ run-hook-with-args-until-success")
 
 (Assert (equal (auto-save-escape-name "") ""))
 
-(Assert (equal (auto-save-escape-name "���") "���"))
+(Assert (equal (auto-save-escape-name "äüö") "äüö"))
 
 (Assert (equal (auto-save-escape-name "abcdefghijk") "abcdefghijk"))
 
@@ -4741,5 +4741,86 @@ run-hook-with-args-until-success")
   (Assert (eql ?\x20 (char-after (point-at-bol)))
 	  "checking C support for indent-tabs-mode-, \
 a magic buffer-local variable, still working"))
+
+;;-----------------------------------------------------
+;; Testing compare-buffer-substrings
+;;-----------------------------------------------------
+
+(macrolet
+    ((Assert-compare-buffer-substrings (result string1 beg1 end1
+					       string2 beg2 end2
+					       &optional fold-case)
+       `(progn
+	 (delete-region (point-min buffer1) (point-max buffer1) buffer1)
+	 (write-sequence ,string1 buffer1)
+	 (delete-region (point-min buffer2) (point-max buffer2) buffer2)
+	 (write-sequence ,string2 buffer2)
+	 ,@(if fold-case `((setq case-fold-search ,fold-case)))
+	 (Assert (eql ,result (compare-buffer-substrings
+			       buffer1 ,beg1 ,end1
+			       buffer2 ,beg2 ,end2))
+	  nil ,(format "checking with %S %S %S %S %S %S, case %S"
+		       string1 beg1 end1 string2 beg2 end2 fold-case))))
+     (Map-Assert (&rest rest)
+       (cons 'progn
+	     (mapcar #'(lambda (elt)
+			 `(Assert-compare-buffer-substrings ,@elt))
+		     rest))))
+  (Check-Error invalid-argument
+	       (compare-buffer-substrings "a b c" nil nil "a b c" nil nil))
+  (Check-Error invalid-argument
+	       (compare-buffer-substrings (current-buffer) (current-buffer)
+					  nil (current-buffer) nil nil))
+  (Check-Error wrong-number-of-arguments
+	       (compare-buffer-substrings (current-buffer) nil
+					  nil (current-buffer)))
+  (Check-Error wrong-number-of-arguments
+	       (compare-buffer-substrings (current-buffer) nil
+					  nil (current-buffer) nil nil nil))
+
+  (let ((buffer1 (get-buffer-create (generate-new-buffer-name " buffer1")))
+	(buffer2 (get-buffer-create (generate-new-buffer-name " buffer2")))
+	(case-fold-search case-fold-search))
+    (unwind-protect
+	 (Map-Assert
+	  ;; Identical buffer contents, endpoints not specified
+	  (0 "abc" nil nil "abc" nil nil)
+	  ;; Buffer contents identical apart from case.
+	  (0 "abc" nil nil "ABC" nil nil t)
+	  ;; Identical buffer contents, endpoints specified. Set
+	  ;; case-fold-search to nil.
+	  (0 "abc" 1 4 "abc" 1 4 nil)
+	  ;; Identical buffer contents, endpoints restricted
+	  (0 "abc" 1 3 "abc" 1 3)
+	  ;; First string less after one char
+	  (-1 "a" nil nil "b" nil nil)
+	  ;; First string greater after one char
+	  (1 "b" nil nil "a" nil nil)
+	  (-1 "a" 1 2 "b" 1 2)
+	  ;; Distinct strings but restriction means the should compare equal.
+	  (0 "abd" 1 2 "abc" 1 2)
+
+	  ;; Repeat the last few tests forcing case-insensitive testing.
+	  (-1 "a" nil nil "B" nil nil t)
+	  (1 "b" nil nil "A" nil nil t)
+	  (-1 "A" 1 2 "b" 1 2)
+	  (0 "Abd" 1 2 "aBc" 1 2)
+
+	  ;; Repeat tests with Greek characters with a view to testing Mule
+	  ;; handling.
+	  (0 "αβγ" nil nil "αβγ" nil nil)
+	  (0 "αβγ" nil nil "ΑΒΓ" nil nil t)
+	  (0 "αβγ" 1 4 "αβγ" 1 4 nil)
+	  (0 "αβγ" 1 3 "αβγ" 1 3)
+	  (-1 "α" nil nil "β" nil nil)
+	  (1 "β" nil nil "α" nil nil)
+	  (-1 "α" 1 2 "β" 1 2)
+	  (0 "αβδ" 1 2 "αβγ" 1 2)
+	  (-1 "α" nil nil "Β" nil nil t)
+	  (1 "β" nil nil "Α" nil nil t)
+	  (-1 "Α" 1 2 "β" 1 2)
+	  (0 "Αβδ" 1 2 "αΒς" 1 2))
+      (kill-buffer buffer1)
+      (kill-buffer buffer2))))
 
 ;;; end of lisp-tests.el
