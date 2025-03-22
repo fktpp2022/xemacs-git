@@ -30,5 +30,5 @@ Exec=xemacs %f
 Icon=xemacs
 Type=Application
 Terminal=false
-Categories=Application;Utility;TextEditor;
+Categories=Development;TextEditor;
 StartupWMClass=XEmacs
