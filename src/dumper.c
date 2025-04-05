@@ -213,7 +213,7 @@ pdump_align_stream (FILE *stream, Bytecount alignment)
       if (FSEEK (stream, adjustment, SEEK_CUR) == -1)
 	{
 	  report_file_error ("Unable to fseek dump file",
-			     build_ascstring (EMACS_PROGNAME ".dmp"));
+			     build_ascstring (EMACS_DUMP_FILE_NAME));
 	}
     }
 }
@@ -1854,15 +1854,20 @@ pdump (void)
 
   pdump_buf = xmalloc (max_size);
 
-  pdump_fd = qxe_open ((const Ibyte *) EMACS_DUMP_FILE_NAME,
-                       O_WRONLY | O_CREAT | O_TRUNC | OPEN_BINARY, 0666);
+  /* EMACS_DUMP_FILE_NAME must be entirely ASCII to make this Mule-safe.
+     We can't use qxe_open() because on Windows that creates a new Lisp string
+     (see Vmswindows_read_link_hash) which pdump doesn't know about, and it
+     chokes. */
+  ASSERT_ASCTEXT_ASCII (EMACS_DUMP_FILE_NAME);
+  pdump_fd = open (EMACS_DUMP_FILE_NAME,
+		   O_WRONLY | O_CREAT | O_TRUNC | OPEN_BINARY, 0666);
   if (pdump_fd < 0)
     report_file_error ("Unable to open dump file",
-		       build_ascstring (EMACS_PROGNAME ".dmp"));
+		       build_ascstring (EMACS_DUMP_FILE_NAME));
   pdump_out = fdopen (pdump_fd, "w");
   if (pdump_out == NULL)
     report_file_error ("Unable to open dump file for writing",
-		       build_ascstring (EMACS_PROGNAME ".dmp"));
+		       build_ascstring (EMACS_DUMP_FILE_NAME));
 
   retry_fwrite (&header, sizeof (header), 1, pdump_out);
   PDUMP_ALIGN_OUTPUT (max_align_t);
@@ -1896,7 +1901,7 @@ pdump (void)
   if (FSEEK (pdump_out, header.stab_offset, SEEK_SET) == -1)
     {
       report_file_error ("Unable to fseek dump file",
-			 build_ascstring (EMACS_PROGNAME ".dmp"));
+			 build_ascstring (EMACS_DUMP_FILE_NAME));
     }
 
   pdump_dump_cv_data_info ();

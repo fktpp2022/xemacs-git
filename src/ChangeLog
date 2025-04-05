@@ -1,3 +1,12 @@
+2025-04-05  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* dumper.c (pdump_align_stream):
+	Use EMACS_DUMP_FILE_NAME appropriately when erroring.
+	* dumper.c (pdump):
+	Ditto.
+	Avoid qxe_open() since that leads to pdump choking on
+	Windows. Assert that EMACS_DUMP_FILE_NAME is entirely ASCII.
+
 2025-03-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* editfns.c (Fcompare_buffer_substrings):
