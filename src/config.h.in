@@ -1204,9 +1204,16 @@ extern "C" {
 # define FSEEK(stream, offset, whence) fseeko (stream, offset, whence)
 # define FTELL(stream) ftello (stream)
 #else
-# define OFF_T long
-# define FSEEK(stream, offset, whence) fseek (stream, offset, whence)
-# define FTELL(stream) ftell (stream)
+# if defined (_MSC_VER) && (_MSC_VER > 1200)
+#  define OFF_T INT_64_BIT
+#  define SIZEOF_OFF_T 8
+#  define FSEEK(stream, offset, whence) _fseeki64 (stream, offset, whence)
+#  define FTELL(stream) _ftelli64 (stream)
+# else 
+#  define OFF_T long
+#  define FSEEK(stream, offset, whence) fseek (stream, offset, whence)
+#  define FTELL(stream) ftell (stream)
+# endif
 #endif
 
 #endif /* _SRC_CONFIG_H_ */

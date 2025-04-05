@@ -239,7 +239,7 @@ retry_fwrite (&object, sizeof (object), 1, pdump_out);
 typedef struct
 {
   const struct memory_description *desc;
-  int count;
+  Elemcount count;
 } pdump_reloc_table;
 
 static Rawbyte *pdump_rt_list = 0;
@@ -311,10 +311,10 @@ typedef struct
   EMACS_UINT Fcons_address;			
   /* Known address in the data segment, for ASLR. */
   EMACS_UINT lisp_object_description_address;	
-  int nb_root_block_ptrs;
-  int nb_root_blocks;
-  int nb_cv_data;
-  int nb_cv_ptr;
+  Elemcount nb_root_block_ptrs;
+  Elemcount nb_root_blocks;
+  Elemcount nb_cv_data;
+  Elemcount nb_cv_ptr;
 } pdump_header;
 
 Rawbyte *pdump_start;
@@ -399,7 +399,7 @@ typedef struct pdump_block_list_elt
   struct pdump_block_list_elt *next;
   const void *obj;
   Bytecount size;
-  int count;
+  Elemcount count;
   EMACS_INT save_offset;
 } pdump_block_list_elt;
 
@@ -407,7 +407,7 @@ typedef struct
 {
   pdump_block_list_elt *first;
   int align;
-  int count;
+  Elemcount count;
 } pdump_block_list;
 
 typedef struct pdump_desc_list_elt
@@ -419,7 +419,7 @@ typedef struct pdump_desc_list_elt
 typedef struct
 {
   pdump_desc_list_elt *list;
-  int count;
+  Elemcount count;
   int size;
 } pdump_desc_list;
 
@@ -429,7 +429,7 @@ static pdump_desc_list pdump_desc_table;
 
 static int *pdump_alert_undump_object;
 
-static unsigned long cur_offset;
+static EMACS_UINT cur_offset;
 static Bytecount max_size;
 static int pdump_fd;
 static void *pdump_buf;
@@ -443,7 +443,7 @@ static pdump_block_list_elt **pdump_hash;
 static int
 pdump_make_hash (const void *obj)
 {
-  return ((unsigned long)(obj)>>3) % PDUMP_HASHSIZE;
+  return ((EMACS_UINT)(obj)>>3) % PDUMP_HASHSIZE;
 }
 
 /* Return the entry for an already-registered memory block at OBJ,
@@ -474,7 +474,7 @@ pdump_get_block (const void *obj)
 
 static void
 pdump_add_block (pdump_block_list *list, const void *obj, Bytecount size,
-		 int count)
+		 Elemcount count)
 {
   pdump_block_list_elt *e;
   int pos = pdump_make_hash (obj);
@@ -551,7 +551,7 @@ static struct
 {
   struct lrecord_header *obj;
   int position;
-  int offset;
+  EMACS_INT offset;
 } backtrace[BACKTRACE_MAX];
 
 static int pdump_depth;
@@ -610,11 +610,11 @@ static void pdump_register_block_contents (const void *data,
 					   Bytecount size,
 					   const struct memory_description *
 					   desc,
-					   int count);
+					   Elemcount count);
 static void pdump_register_block (const void *data,
 				  Bytecount size,
 				  const struct memory_description *desc,
-				  int count);
+				  Elemcount count);
 
 static void
 pdump_register_sub (const void *data, const struct memory_description *desc)
@@ -836,9 +836,9 @@ static void
 pdump_register_block_contents (const void *data,
 			       Bytecount size,
 			       const struct memory_description *desc,
-			       int count)
+			       Elemcount count)
 {
-  int i;
+  Elemcount i;
   Bytecount elsize;
 
   pdump_bump_depth ();
@@ -863,7 +863,7 @@ static void
 pdump_register_block (const void *data,
 		      Bytecount size,
 		      const struct memory_description *desc,
-		      int count)
+		      Elemcount count)
 {
   if (data && !pdump_get_block (data))
     {
@@ -911,11 +911,13 @@ pdump_register_block (const void *data,
    not having the heap infrastructure (the malloc() headers and so on) kept
    around in the dumped data outweighs this occasional loss of garbage. */
 static void
-pdump_store_new_pointer_offsets (int count, void *data, const void *orig_data,
+pdump_store_new_pointer_offsets (Elemcount count, void *data,
+				 const void *orig_data,
 				 const struct memory_description *desc,
-				 int size)
+				 Bytecount size)
 {
-  int pos, i;
+  Elemcount i;
+  int pos;
   /* Process each block one by one */
   for (i = 0; i < count; i++)
     {
@@ -951,7 +953,7 @@ pdump_store_new_pointer_offsets (int count, void *data, const void *orig_data,
 	      {
 		EMACS_INT val = lispdesc_indirect_count (desc1->data1, desc,
 							 orig_data);
-		* (int *) rdata = val;
+		* (int *) rdata = (int) val;
 		break;
 	      }
 	    case XD_OPAQUE_DATA_PTR:
@@ -1075,7 +1077,7 @@ pdump_dump_data (pdump_block_list_elt *elt,
 		 const struct memory_description *desc)
 {
   Bytecount size = elt->size;
-  int count = elt->count;
+  Elemcount count = elt->count;
   if (desc)
     {
       /* Copy to temporary buffer */

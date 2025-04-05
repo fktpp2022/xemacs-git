@@ -1,5 +1,25 @@
 2025-04-05  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Add support for _fseeki64(), _ftelli64() on Windows.
+	Quiet Visual Studio warnings on 64-bit platforms regarding type
+	narrowing in dumper.c.
+
+	* config.h.in:
+	#define FSEEK, FTELL, OFF_T appropriately if we have a recent
+	MSVC.
+	* dumper.c:
+	* dumper.c (struct):
+	* dumper.c (pdump_block_list_elt):
+	* dumper.c (pdump_make_hash):
+	* dumper.c (pdump_add_block):
+	* dumper.c (pdump_register_block_contents):
+	* dumper.c (pdump_register_block):
+	* dumper.c (pdump_store_new_pointer_offsets):
+	* dumper.c (pdump_dump_data):
+	Update types to better reflect 64-bit platforms in this file.
+
+2025-04-05  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* dumper.c (pdump_align_stream):
 	Use EMACS_DUMP_FILE_NAME appropriately when erroring.
 	* dumper.c (pdump):
