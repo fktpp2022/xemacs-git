@@ -1,3 +1,15 @@
+2025-04-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Generate definitions for lrecord_type_##c_name, making
+	DECLARE_MODULE_LISP_OBJECT() work.
+	* make-docfile.c:
+	* make-docfile.c (xmalloc): Change this to return void * as is
+	better practice generally.
+	* make-docfile.c (main):
+	Print int lrecord_type_##c_name for any objects encountered.
+	* make-docfile.c (scan_c_file):
+	Save c_name for any object definitions encountered.
+
 2025-03-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* cvtmail.c (main):

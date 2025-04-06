@@ -34,6 +34,28 @@
 	BUF_FETCH_CHAR() calls. I note GNU has already done this. Extend the
 	docstring (some inspiration taken from GNU's current docstring).
 
+2025-04-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* .gdbinit.in.in: Remove entries for lrecord_type_ldap,
+	lrecord_type_pgconn, lrecord_type_pgresult from this, now they are
+	generated at module load time.
+
+	* alloc.c (init_memory_usage_stats): Take TYPE as an int, now that
+	is appropriate for DECLARE_MODULE_LISP_OBJECT().
+	Add an assertion regarding its value.
+	* alloc.c (uninit_memory_usage_stats): Ditto.
+	* alloc.c (init_lrecord_implementation_name): Correct a comment. 
+	* lrecord.h:
+	* lrecord.h (enum lrecord_type):
+	Remove lrecord_type_ldap, lrecord_type_pgconn,
+	lrecord_type_pgresult from here.
+	* lrecord.h (struct lrecord_implementation):
+	Change the type of LRECORD_TYPE_INDEX to int, get
+	DECLARE_MODULE_LISP_OBJECT() working.
+	* lrecord.h (DECLARE_LISP_OBJECT): Be stricter about assertions
+	here.
+	* lrecord.h (DECLARE_MODULE_API_LISP_OBJECT): Ditto.
+
 2025-03-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Move struct lrecord_implementation.name to being an interned
@@ -52,8 +74,8 @@
 	* alloc.c (struct saved_object_name): New.
 	* alloc.c (init_lrecord_implementation_name): New.
 	Usually equivalent to lrecord_implementation_table[TIPO] = intern
-	(NAME), but with some special handline for early bootstrap before
-	it is possible intern symbols.
+	(NAME), but with some special handling for early bootstrap before
+	it is possible to intern symbols.
 	* data.c (Ftype_of):
 	No need to intern() any more, just return the symbol naming the
 	type for pointer types.

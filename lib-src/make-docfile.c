@@ -88,6 +88,12 @@ char *progname;
 /* XEmacs addition: set to 1 if this was invoked by ellcc */
 int ellcc = 0;
 
+/* For Lisp objects created in modules, as well as the declaration provided by
+   DECLARE_MODULE_LISP_OBJECT(), lrecord_type_##c_name needs a
+   definition. This table saves c_name for that definition. */
+static char *definedlispobjects[32];
+static char **definedlispobjects_ptr = definedlispobjects;
+
 /* Print error message.  `s1' is printf control string, `s2' is arg for it. */
 
 static void
@@ -109,10 +115,10 @@ fatal (const char *s1, const char *s2)
 
 /* Like malloc but get fatal error if memory is exhausted.  */
 
-static long *
-xmalloc (unsigned int size)
+static void *
+xmalloc (size_t size)
 {
-  long *result = (long *) malloc (size);
+  void *result = malloc (size);
   if (result == NULL)
     fatal ("virtual memory exhausted", 0);
   return result;
@@ -267,7 +273,17 @@ main (int argc, char **argv)
 
   putc ('\n', outfile);
   if (ellcc)
-    fprintf (outfile, "}\n\n");
+    {
+      fprintf (outfile, "}\n\n");
+
+      definedlispobjects_ptr = definedlispobjects;
+      while (*definedlispobjects_ptr)
+        {
+          fprintf (outfile, "int lrecord_type_%s;\n",
+                   *definedlispobjects_ptr);
+          definedlispobjects_ptr++;
+        }
+    }
   /* End XEmacs addition */
 
 #ifndef VMS
@@ -756,6 +772,7 @@ scan_c_file (const char *filename, const char *mode)
   register int defunflag;
   register int defvarperbufferflag = 0;
   register int defvarflag;
+  int definelispobjectflag = 0;
   int minargs, maxargs;
   int l = strlen (filename);
   char f[QXE_PATH_MAX];
@@ -798,6 +815,8 @@ scan_c_file (const char *filename, const char *mode)
 	  c = getc (infile);
 	  continue;
 	}
+      defunflag = defvarperbufferflag = defvarflag = definelispobjectflag
+        = 0;
       c = getc (infile);
       if (c == ' ')
 	{
@@ -812,27 +831,106 @@ scan_c_file (const char *filename, const char *mode)
 	  if (c != 'F')
 	    continue;
 	  c = getc (infile);
-	  if (c != 'V')
-	    continue;
-	  c = getc (infile);
-	  if (c != 'A')
-	    continue;
-	  c = getc (infile);
-	  if (c != 'R')
-	    continue;
-	  c = getc (infile);
-	  if (c != '_')
-	    continue;
+	  if (c == 'V')
+	    {
+              /* XEmacs; handle both DEFVAR*, DEFINE.*LISP_OBJECT. */
+	      c = getc (infile);
+	      if (c != 'A')
+		continue;
+	      c = getc (infile);
+	      if (c != 'R')
+		continue;
+	      c = getc (infile);
+	      if (c != '_')
+		continue;
 
-	  defvarflag = 1;
-	  defunflag = 0;
+	      defvarflag = 1;
+	      defunflag = 0;
 
-	  c = getc (infile);
-	  /* Note that this business doesn't apply under XEmacs.
-	     DEFVAR_BUFFER_LOCAL in XEmacs behaves normally. */
-	  defvarperbufferflag = (c == 'P');
+	      c = getc (infile);
+	      /* Note that this business doesn't apply under XEmacs.
+		 DEFVAR_BUFFER_LOCAL in XEmacs behaves normally. */
+	      defvarperbufferflag = (c == 'P');
+	    }
+	  else if (c == 'I' && ellcc)
+	    {
+	      /* XEmacs change; parse DEFINE_[A-Z_]+_LISP_OBJECT() to allow
+		 definition of the lrecord_type for that Lisp object in the
+		 generated code. */
+	      int last_underscore = 0;
 
-	  c = getc (infile);
+	      c = getc (infile);
+	      if (c != 'N')
+		continue;
+	      c = getc (infile);
+	      if (c != 'E')
+		continue;
+	      c = getc (infile);
+	      if (c != '_')
+		{
+		break_from_match:
+		  continue;
+#define REALLY_CONTINUE goto break_from_match
+		}
+	      last_underscore = 1;
+	      while (!feof (infile))
+		{
+		  c = getc (infile);
+		  if (c == 'L' && last_underscore)
+		    {
+		      last_underscore = 0;
+		      c = getc (infile);
+		      if (c != 'I')
+			REALLY_CONTINUE;
+		      c = getc (infile);
+		      if (c != 'S')
+			REALLY_CONTINUE;
+		      c = getc (infile);
+		      if (c != 'P')
+			REALLY_CONTINUE;
+		      c = getc (infile);
+		      if (c != '_')
+			REALLY_CONTINUE;
+		      c = getc (infile);
+		      if (c != 'O')
+			REALLY_CONTINUE;
+		      c = getc (infile);
+		      if (c != 'B')
+			REALLY_CONTINUE;
+		      c = getc (infile);
+		      if (c != 'J')
+			REALLY_CONTINUE;
+		      c = getc (infile);
+		      if (c != 'E')
+			REALLY_CONTINUE;
+		      c = getc (infile);
+		      if (c != 'C')
+			REALLY_CONTINUE;
+		      c = getc (infile);
+		      if (c != 'T')
+			REALLY_CONTINUE;
+
+		      definelispobjectflag = 1;
+                      break;
+		    }
+		  else if (c >= 'A' && c <= 'Z')
+		    {
+		      last_underscore = 0;
+		    }
+		  else if (c == '_')
+		    {
+		      last_underscore = 1;
+		    }
+		  else
+		    {
+		      REALLY_CONTINUE;
+		    }
+		}
+	    }
+	  else
+	    {
+	      continue;
+	    }
 	}
       else if (c == 'D')
 	{
@@ -865,7 +963,7 @@ scan_c_file (const char *filename, const char *mode)
 	commas = 4;
       else if (defvarperbufferflag)
 	commas = 2;
-      else if (defvarflag)
+      else if (defvarflag || definelispobjectflag)
 	commas = 1;
       else  /* For DEFSIMPLE and DEFPRED ... which now don't exist! */
 	commas = 2;
@@ -914,6 +1012,31 @@ scan_c_file (const char *filename, const char *mode)
 	  c = getc (infile);
 	  while (c == '*')
 	    c = getc (infile);
+	}
+      else if (definelispobjectflag)
+	{
+          if (ellcc)
+            {
+              char *p = globalbuf;
+
+              while (C_IDENTIFIER_CHAR_P (c))
+                {
+                  *p++ = c;
+                  c = getc (infile);
+                  assert (p - globalbuf < (ssize_t) (sizeof (globalbuf)));
+                }
+              *p++ = '\0';
+              ungetc (c, infile);
+              *definedlispobjects_ptr = (char *) xmalloc (p - globalbuf);
+              memcpy (*definedlispobjects_ptr, globalbuf, p - globalbuf);
+              ++definedlispobjects_ptr;
+              assert (definedlispobjects_ptr - definedlispobjects
+                      < (ssize_t) (sizeof (definedlispobjects) /
+                                   sizeof (definedlispobjects[0])));
+              *definedlispobjects_ptr = NULL;
+            }
+
+          continue;
 	}
       else
 	{

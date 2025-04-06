@@ -435,9 +435,6 @@ define pobj
   if $lrecord_type == lrecord_type_keymap
     pptype Lisp_Keymap
   else
-  if $lrecord_type == lrecord_type_ldap
-    pptype Lisp_LDAP
-  else
   if $lrecord_type == lrecord_type_lstream
     pstructtype lstream
   else
@@ -455,12 +452,6 @@ define pobj
   else
   if $lrecord_type == lrecord_type_opaque_ptr
     pptype Lisp_Opaque_Ptr
-  else
-  if $lrecord_type == lrecord_type_pgconn
-    pptype Lisp_PGconn
-  else
-  if $lrecord_type == lrecord_type_pgresult
-    pptype Lisp_PGresult
   else
   if $lrecord_type == lrecord_type_precedence_array
     pstructtype precedence_array
@@ -571,9 +562,6 @@ define pobj
   end
   end
   ## Are we having fun yet??
-  end
-  end
-  end
   end
   end
   end

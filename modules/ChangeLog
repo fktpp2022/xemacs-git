@@ -1,3 +1,10 @@
+2025-04-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* postgresql/postgresql.h:
+	* ldap/eldap.h:
+	Declare Lisp_LDAP, Lisp_PGconn, Lisp_PGresult using
+	DECLARE_MODULE_LISP_OBJECT().
+
 2025-03-15  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* ldap/eldap.c:

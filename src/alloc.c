@@ -4498,10 +4498,12 @@ compute_memusage_stats_length (void)
 #endif /* MEMORY_USAGE_STATS */
 
 void
-init_memory_usage_stats (enum lrecord_type type,
+init_memory_usage_stats (int type,
                          Lisp_Object memusage_stats_list)
 {
 #ifdef MEMORY_USAGE_STATS
+  structure_checking_assert (type > 0 && type <
+                             countof (lrecord_implementations_table));
   if (EQ (Vmemusage_stats_lists, Qnull_pointer)) /* Very, very early. */
     {
       Vmemusage_stats_lists
@@ -4518,8 +4520,10 @@ init_memory_usage_stats (enum lrecord_type type,
 }
 
 void
-uninit_memory_usage_stats (enum lrecord_type type)
+uninit_memory_usage_stats (int type)
 {
+  structure_checking_assert (type > 0 && type <
+                             countof (lrecord_implementations_table));
 #ifdef MEMORY_USAGE_STATS
   XVECTOR_DATA (Vmemusage_stats_lists)[type] = Qnil;
 #else
@@ -4543,8 +4547,8 @@ init_lrecord_implementation_name (int tipo, const CIbyte *name)
 
   if (EQ (Qnil, Qnull_pointer))
     {
-      /* We're very early, intern() is not yet available. Stash the name to
-         for when it is available. */
+      /* We're very early, intern() is not yet available. Stash the name so we
+         can call it when it is available. */
       if (saved_object_names == NULL)
         {
           saved_object_names = saved_object_name_ptr

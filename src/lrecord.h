@@ -288,17 +288,12 @@ enum lrecord_type
   lrecord_type_image_instance,		/* Lisp_Image_Instance */
   lrecord_type_keymap,			/* Lisp_Keymap */
   lrecord_type_lcrecord_list,		/* struct lcrecord_list */
-  /* #### Do we need the following module entry? */
-  lrecord_type_ldap,			/* Lisp_LDAP */
   lrecord_type_lstream,			/* struct lstream */
   lrecord_type_marker,			/* Lisp_Marker */
   lrecord_type_mswindows_dialog_id,	/* struct mswindows_dialog_id */
   lrecord_type_multiple_value,		/* multiple_value */
   lrecord_type_opaque,			/* Lisp_Opaque */
   lrecord_type_opaque_ptr,		/* Lisp_Opaque_Ptr */
-  /* #### Do we need the following two module entries? */
-  lrecord_type_pgconn,			/* Lisp_PGconn */
-  lrecord_type_pgresult,		/* Lisp_PGresult */
   lrecord_type_precedence_array,	/* struct precedence_array */
   lrecord_type_process,			/* Lisp_Process */
   lrecord_type_range_table,		/* Lisp_Range_Table */
@@ -445,8 +440,10 @@ struct lrecord_implementation
   void (*memory_usage) (Lisp_Object obj, void *stats);
 #endif
 
-  /* The (constant) index into lrecord_implementations_table */
-  enum lrecord_type lrecord_type_index;
+  /* The index into lrecord_implementations_table. Usually reflects an enum
+     lrecord_type value but for a type created by modules can be a value
+     outwith those. */
+  int lrecord_type_index;
 
   /* A "frob-block" lrecord is any lrecord that's not an lcrecord, i.e.
      one that does not have an old_lcrecord_header at the front and which
@@ -1156,7 +1153,7 @@ struct opaque_convert_functions
 
 /* If MEMORY_USAGE_STATS is defined, initialize stats for TYPE. If it is not
    defined, do nothing. */
-extern MODULE_API void init_memory_usage_stats (enum lrecord_type type,
+extern MODULE_API void init_memory_usage_stats (int type,
                                                 Lisp_Object
                                                 memusage_stats_list);
 
@@ -1165,7 +1162,7 @@ extern MODULE_API void init_memory_usage_stats (enum lrecord_type type,
 
 /* If MEMORY_USAGE_STATS is defined, clear stats for TYPE. If it is not
    defined, do nothing. */
-extern MODULE_API void uninit_memory_usage_stats (enum lrecord_type type);
+extern MODULE_API void uninit_memory_usage_stats (int type);
 
 #define XD_INDIRECT(val, delta) (-1 - (Bytecount) ((val) | ((delta) << 8)))
 
@@ -1560,7 +1557,7 @@ init_lrecord_type_##c_name (void)                                       \
 {									\
   structure_checking_assert (lrecord_type_##c_name != 0);               \
   structure_checking_assert (lrecord_type_##c_name <                    \
-                             lrecord_type_last_built_in_type != 0);     \
+                             lrecord_type_last_built_in_type);          \
 }									\
 DECLARE_LISP_OBJECT_1 (c_name, structtype, extern)
 
@@ -1570,7 +1567,9 @@ void                                                                    \
 init_lrecord_type_##c_name (void)                                       \
 )									\
 {									\
-  structure_checking_assert (lrecord_type_##c_name != 0);                \
+  structure_checking_assert (lrecord_type_##c_name != 0);               \
+  structure_checking_assert (lrecord_type_##c_name <                    \
+                             lrecord_type_last_built_in_type);          \
 }									\
 DECLARE_LISP_OBJECT_1 (c_name, structtype, extern MODULE_API)
 
@@ -1604,7 +1603,7 @@ visibility Lisp_Object Q##c_name##p
 
 DECLARE_INLINE_HEADER (
 Lisp_Object
-wrap_record_1 (const void *ptr, enum lrecord_type ty, const Ascbyte *file,
+wrap_record_1 (const void *ptr, int ty, const Ascbyte *file,
 	       int line)
 )
 {
