@@ -57,6 +57,8 @@ static void (*orig_next_event_cb) (Lisp_Event *);
 static Lisp_Object gpm_event_queue;
 static Lisp_Object gpm_event_queue_tail;
 
+static Lisp_Object Qreceive_gpm_event;
+
 struct __gpm_state
 {
   int gpm_tried;
@@ -502,7 +504,6 @@ Toggle accepting of GPM mouse events.
   Gpm_Connect conn;
   int rval;
   Lisp_Object gpm_process;
-  Lisp_Object gpm_filter;
   Lisp_Object console_count;
   struct device *d = decode_device (device);
   int fd = DEVICE_INFD (d);
@@ -599,8 +600,7 @@ Toggle accepting of GPM mouse events.
 	{
 	  rval = 0;
 	  Fprocess_kill_without_query (gpm_process, Qnil);
-	  gpm_filter = GET_DEFUN_LISP_OBJECT (Freceive_gpm_event);
-	  set_process_filter (gpm_process, gpm_filter, 1, 0);
+	  set_process_filter (gpm_process, Qreceive_gpm_event, 1, 0);
 
 	  /* Keep track of the device for later */
 	  /* Fput (gpm_process, intern ("gpm-device"), device); */
@@ -628,6 +628,7 @@ vars_of_gpmevent (void)
 void
 syms_of_gpmevent (void)
 {
+  DEFSYMBOL (Qreceive_gpm_event);
   DEFSUBR (Freceive_gpm_event);
   DEFSUBR (Fgpm_enable);
   DEFSUBR (Fgpm_enabled_p);

@@ -1082,7 +1082,7 @@ Return t if OBJECT is a hash table, else nil.
   return HASH_TABLEP (object) ? Qt : Qnil;
 }
 
-DEFUN ("make-hash-table", Fmake_hash_table, 0, MANY, 0, /*
+DEFUN ("make-hash-table", Fmake_hash_table, 0, KEYWORDS, 0, /*
 Return a new empty hash table object.
 Use Common Lisp style keywords to specify hash table properties.
 
@@ -1137,11 +1137,11 @@ arguments: (&key TEST SIZE REHASH-SIZE REHASH-THRESHOLD WEAKNESS)
        (int nargs, Lisp_Object *args))
 {
 #ifndef NEED_TO_HANDLE_21_4_CODE
-  PARSE_KEYWORDS (Fmake_hash_table, nargs, args,
+  PARSE_KEYWORDS (Fmake_hash_table,
                   (test, size, rehash_size, rehash_threshold, weakness),
                   NULL);
 #else
-  PARSE_KEYWORDS (Fmake_hash_table, nargs, args,
+  PARSE_KEYWORDS (Fmake_hash_table,
                   (test, size, rehash_size, rehash_threshold, weakness,
 		   type), (type = Qunbound, weakness = Qunbound));
 

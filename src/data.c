@@ -1841,7 +1841,7 @@ parse_integer (const Ibyte *buf, Ibyte **buf_end_out, Bytecount len,
                          make_string (buf, len), make_fixnum (base)));
 }
 
-DEFUN ("parse-integer", Fparse_integer, 1, MANY, 0, /*
+DEFUN ("parse-integer", Fparse_integer, 1, KEYWORDS, 0, /*
 Parse and return the integer represented by STRING using RADIX.
 
 START and END are bounding index designators, as used in `remove*'.  START
@@ -1876,7 +1876,7 @@ arguments: (STRING &key (START 0) end (RADIX 10) junk-allowed radix-table)
   Ibyte *startp, *cursor, *end_read, *limit, *saved_start;
   EMACS_INT radixing;
 
-  PARSE_KEYWORDS (Fparse_integer, nargs, args,
+  PARSE_KEYWORDS (Fparse_integer,
                   (start, end, radix, junk_allowed, radix_table),
                   (start = Qzero, radix = make_fixnum (10)));
 

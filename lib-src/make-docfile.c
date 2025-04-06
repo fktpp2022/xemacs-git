@@ -984,7 +984,8 @@ scan_c_file (const char *filename, const char *mode)
 		  if (commas == 2) /* pick up minargs */
 		    fscanf (infile, "%d", &minargs);
 		  else /* pick up maxargs */
-		    if (c == 'M' || c == 'U') /* MANY || UNEVALLED */
+                    /* MANY || UNEVALLED || KEYWORDS */
+		    if (c == 'M' || c == 'U' || c == 'K') 
 		      maxargs = -1;
 		    else
 		      fscanf (infile, "%d", &maxargs);

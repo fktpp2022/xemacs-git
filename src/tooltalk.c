@@ -1196,8 +1196,6 @@ init_tooltalk (void)
   /* This function can GC */
   char *retval;
   Lisp_Object lp;
-  Lisp_Object fil;
-
 
   /* tt_open() messes with our signal handler flags (at least when no
      ttsessions is running on the machine), therefore we save the
@@ -1233,8 +1231,7 @@ init_tooltalk (void)
     {
       /* Don't ask the user for confirmation when exiting Emacs */
       Fprocess_kill_without_query (lp, Qnil);
-      fil = GET_DEFUN_LISP_OBJECT (Freceive_tooltalk_message);
-      set_process_filter (lp, fil, 1, 0);
+      set_process_filter (lp, Qreceive_tooltalk_message, 1, 0);
     }
   else
     {

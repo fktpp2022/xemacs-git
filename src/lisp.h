@@ -3374,11 +3374,17 @@ void prune_weak_lists (void);
     on this function for internal use is "S" concatenated with Fname.
  `min_args' should be a number, the minimum number of arguments allowed.
  `max_args' should be a number, the maximum number of arguments allowed,
-    or else MANY or UNEVALLED.
+    or else MANY, KEYWORDS or UNEVALLED.
     MANY means pass a vector of evaluated arguments,
 	 in the form of an integer number-of-arguments
 	 followed by the address of a vector of Lisp_Objects
 	 which contains the argument values.
+    KEYWORDS is numerically the same as MANY but tells the C preprocessor to
+         make LNAME and MIN_ARGS available to PARSE_KEYWORDS(), and forces the
+         name of the number of arguments to be NARGS, and the argument itself
+         ARGS. If the subr does not use PARSE_KEYWORDS() (e.g. if it needs to
+         do more complicated pprocessing that requires PARSE_KEYWORDS_7()), use
+         MANY to suppress warnings.
     UNEVALLED means pass the list of unevaluated arguments.
  `prompt' says how to read arguments for an interactive call.
     See the doc string for `interactive'.
@@ -3403,6 +3409,7 @@ Lisp_Object,Lisp_Object
 #define EXFUN_8 Lisp_Object,Lisp_Object,Lisp_Object,Lisp_Object,Lisp_Object, \
 Lisp_Object,Lisp_Object,Lisp_Object
 #define EXFUN_MANY int, Lisp_Object*
+#define EXFUN_KEYWORDS EXFUN_MANY
 #define EXFUN_UNEVALLED Lisp_Object
 #define EXFUN(sym, max_args) Lisp_Object sym (EXFUN_##max_args)
 #define EXFUN_NORETURN(sym, max_args) \
@@ -3410,7 +3417,34 @@ Lisp_Object,Lisp_Object,Lisp_Object
 
 #define SUBR_MAX_ARGS 8
 #define MANY -2
+#define KEYWORDS -2
 #define UNEVALLED -1
+
+#define DECLARE_LISP_NAME_0(Fname, val) /* Nothing */
+#define DECLARE_LISP_NAME_1(Fname, val) /* Nothing */
+#define DECLARE_LISP_NAME_2(Fname, val) /* Nothing */
+#define DECLARE_LISP_NAME_3(Fname, val) /* Nothing */
+#define DECLARE_LISP_NAME_4(Fname, val) /* Nothing */
+#define DECLARE_LISP_NAME_5(Fname, val) /* Nothing */
+#define DECLARE_LISP_NAME_6(Fname, val) /* Nothing */
+#define DECLARE_LISP_NAME_7(Fname, val) /* Nothing */
+#define DECLARE_LISP_NAME_8(Fname, val) /* Nothing */
+#define DECLARE_LISP_NAME_MANY(Fname, val) /* Nothing */
+#define DECLARE_LISP_NAME_KEYWORDS(Fname, val) static const CIbyte *Fname##_lisp_name = val;
+#define DECLARE_LISP_NAME_UNEVALLED(Fname, val) /* Nothing */
+
+#define DECLARE_MIN_ARGS_0(Fname, val) /* Nothing */
+#define DECLARE_MIN_ARGS_1(Fname, val) /* Nothing */
+#define DECLARE_MIN_ARGS_2(Fname, val) /* Nothing */
+#define DECLARE_MIN_ARGS_3(Fname, val) /* Nothing */
+#define DECLARE_MIN_ARGS_4(Fname, val) /* Nothing */
+#define DECLARE_MIN_ARGS_5(Fname, val) /* Nothing */
+#define DECLARE_MIN_ARGS_6(Fname, val) /* Nothing */
+#define DECLARE_MIN_ARGS_7(Fname, val) /* Nothing */
+#define DECLARE_MIN_ARGS_8(Fname, val) /* Nothing */
+#define DECLARE_MIN_ARGS_MANY(Fname, val) /* Nothing */
+#define DECLARE_MIN_ARGS_KEYWORDS(Fname, val) static const short Fname##_min_args = val;
+#define DECLARE_MIN_ARGS_UNEVALLED(Fname, val) /* Nothing */
 
 /* Can't be const, because then subr->doc is read-only and
    Snarf_documentation chokes */
@@ -3432,6 +3466,8 @@ Lisp_Object,Lisp_Object,Lisp_Object
     (lisp_fn_t) Fname							\
     /* DOC not specififed, initialized to Qnull_pointer by C. */	\
   };									\
+  DECLARE_MIN_ARGS_##max_args (Fname, min_args)                         \
+  DECLARE_LISP_NAME_##max_args (Fname, lname)                           \
   Lisp_Object Fname (DEFUN_##max_args arglist)
 
 #define DEFUN_NORETURN(lname, Fname, min_args, max_args, prompt, arglist) \
@@ -3451,15 +3487,16 @@ Lisp_Object,Lisp_Object,Lisp_Object
     (lisp_fn_t) Fname							\
     /* , Qnull_pointer */						\
   };									\
+  DECLARE_MIN_ARGS_##max_args (Fname, min_args)                         \
+  DECLARE_LISP_NAME_##max_args (Fname, lname)                           \
   DOESNT_RETURN_TYPE (Lisp_Object) Fname (DEFUN_##max_args arglist)
-#define GET_DEFUN_LISP_OBJECT(Fname) \
-  wrap_subr (&S##Fname)
 
 /* Heavy ANSI C preprocessor hackery to get DEFUN to declare a
    prototype that matches max_args, and add the obligatory
    `Lisp_Object' type declaration to the formal C arguments.  */
 
 #define DEFUN_MANY(named_int, named_Lisp_Object) named_int, named_Lisp_Object
+#define DEFUN_KEYWORDS(named_int, named_Lisp_Object) int nargs, Lisp_Object *args
 #define DEFUN_UNEVALLED(args) Lisp_Object args
 #define DEFUN_0() void
 #define DEFUN_1(a)					Lisp_Object a
@@ -3471,11 +3508,11 @@ Lisp_Object,Lisp_Object,Lisp_Object
 #define DEFUN_7(a,b,c,d,e,f,g)	 DEFUN_6(a,b,c,d,e,f),	Lisp_Object g
 #define DEFUN_8(a,b,c,d,e,f,g,h) DEFUN_7(a,b,c,d,e,f,g),Lisp_Object h
 
-END_C_DECLS
-
 /* WARNING: If you add defines here for higher values of max_args,
    make sure to also fix the clauses in PRIMITIVE_FUNCALL(),
    and change the define of SUBR_MAX_ARGS above.  */
+
+END_C_DECLS
 
 #include "symeval.h"
 
@@ -3510,19 +3547,17 @@ extern MODULE_API int specpdl_depth_counter;
 /*                      Parsing keyword arguments                       */
 /************************************************************************/
 
-/* The C subr must have been declared with MANY as its max args, and this
+/* The C subr must have been declared with KEYWORDS as its max args, and this
    PARSE_KEYWORDS call must come before any statements. Equivalently, it
    can appear within braces.
+
+   The count of arguments must be declared as nargs, and the argument vector
+   must be declared as args; compilation will fail if this is not the case.
 
    FUNCTION is the C name of the current DEFUN.  If there is no current DEFUN,
    if the current DEFUN has optional arguments that are not keywords, or if
    there are optional arguments that come before the keywords (as Common Lisp
    specifies for #'read-from-string), use PARSE_KEYWORDS_7().
-
-   NARGS is the count of arguments supplied to FUNCTION.
-
-   ARGS is a pointer to the argument vector (not a Lisp vector) supplied to
-   FUNCTION.
 
    KEYWORDS is a parenthesised list of the keywords FUNCTION is normally
    prepared to handle, without the initial Q_.
@@ -3553,14 +3588,13 @@ extern MODULE_API int specpdl_depth_counter;
 #else
 #define PARSE_KEYWORDS_ASSERT_CORRECT_FUNCTION(func) DO_NOTHING
 #endif
+#define PARSE_KEYWORDS_DEFUN_NAME(function) function##_lisp_name
+#define PARSE_KEYWORDS_MIN_ARGS(function) function##_min_args
 
-#define PARSE_KEYWORDS(function, nargs, args, keywords, keyword_defaults)				\
-  PARSE_KEYWORDS_7 (intern (subr_name (XSUBR                            \
-                                       (GET_DEFUN_LISP_OBJECT (function)))), \
-                    nargs, args, keywords,                              \
-                    keyword_defaults,                                   \
-                    XSUBR (GET_DEFUN_LISP_OBJECT (function))->min_args, \
-                    0);                                                 \
+#define PARSE_KEYWORDS(function, keywords, keyword_defaults)            \
+  PARSE_KEYWORDS_7 (intern (PARSE_KEYWORDS_DEFUN_NAME (function)),      \
+                    nargs, args, keywords, keyword_defaults,            \
+                    PARSE_KEYWORDS_MIN_ARGS (function), 0);             \
   PARSE_KEYWORDS_ASSERT_CORRECT_FUNCTION (function)
 
 /* Count the number of keywords, thank you Dale Weiler. */
@@ -5944,10 +5978,10 @@ Bytecount fast_lisp_string_match (Lisp_Object, Lisp_Object);
 extern Fixnum warn_about_possibly_incompatible_back_references;
 
 /* Defined in sequence.c */
-EXFUN (Ffill, MANY);
+EXFUN (Ffill, KEYWORDS);
 EXFUN (Fclear_string, 1);
-EXFUN (Freplace, MANY);
-EXFUN (Fposition, MANY);
+EXFUN (Freplace, KEYWORDS);
+EXFUN (Fposition, KEYWORDS);
 EXFUN (Fmapconcat, MANY);
 
 Lisp_Object concatenate (int nsequences, Lisp_Object *sequences,

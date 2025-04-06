@@ -945,7 +945,7 @@ string_count_from_end (Lisp_Object item, Lisp_Object sequence,
   return make_integer (encountered);
 }
 
-DEFUN ("count", Fcount, 2, MANY, 0, /*
+DEFUN ("count", Fcount, 2, KEYWORDS, 0, /*
 Count the number of occurrences of ITEM in SEQUENCE.
 
 See `remove*' for the meaning of the keywords.
@@ -958,7 +958,7 @@ arguments: (ITEM SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) END FROM-
 
   /* count_with_tail() accepts more keywords than we do, check those we've
      been given. */
-  PARSE_KEYWORDS (Fcount, nargs, args,
+  PARSE_KEYWORDS (Fcount,
 		  (test, test_not, if_, if_not, key, start, end, from_end),
 		  /* Silence some compiler warnings: */
                   (USED (test), USED (test_not), USED (if_), USED (if_not),
@@ -1327,7 +1327,7 @@ list_position_cons_before (Lisp_Object *cons_out,
   RETURN_UNGCPRO (Qnil);
 }
 
-DEFUN ("member*", FmemberX, 2, MANY, 0, /*
+DEFUN ("member*", FmemberX, 2, KEYWORDS, 0, /*
 Return the first sublist of LIST with car ITEM, or nil if no such sublist.
 
 The keyword :test specifies a two-argument function that is used to compare
@@ -1353,8 +1353,7 @@ arguments: (ITEM LIST &key (TEST #'eql) TEST-NOT (KEY #'identity))
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (FmemberX, nargs, args, (test, if_not, if_, test_not, key),
-		  NULL);
+  PARSE_KEYWORDS (FmemberX, (test, if_not, if_, test_not, key), NULL);
   check_test = get_check_test_function (item, &test, test_not, if_, if_not,
 					key, &test_not_unboundp);
   position0
@@ -1386,7 +1385,7 @@ arguments: (ITEM LIST &key (TEST #'eql) TEST-NOT (KEY #'identity))
 #define KEY(key, item) (EQ (Qidentity, key) ? item : \
                         IGNORE_MULTIPLE_VALUES (call1 (key, item)))
 
-DEFUN ("adjoin", Fadjoin, 2, MANY, 0, /*
+DEFUN ("adjoin", Fadjoin, 2, KEYWORDS, 0, /*
 Return ITEM consed onto the front of LIST, if not already in LIST.
 
 Otherwise, return LIST unmodified.
@@ -1402,8 +1401,7 @@ arguments: (ITEM LIST &key (TEST #'eql) (KEY #'identity) TEST-NOT)
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (Fadjoin, nargs, args, (test, key, test_not),
-		  NULL);
+  PARSE_KEYWORDS (Fadjoin, (test, key, test_not), NULL);
 
   CHECK_KEY_ARGUMENT (key);
 
@@ -1484,7 +1482,7 @@ assq_no_quit (Lisp_Object key, Lisp_Object alist)
   return Qnil;
 }
 
-DEFUN ("assoc*", FassocX, 2, MANY, 0, /*
+DEFUN ("assoc*", FassocX, 2, KEYWORDS, 0, /*
 Find the first item whose car matches ITEM in ALIST.
 
 See `member*' for the meaning of :test, :test-not and :key.
@@ -1497,8 +1495,7 @@ arguments: (ITEM ALIST &key (TEST #'eql) (KEY #'identity) TEST-NOT)
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (FassocX, nargs, args, (test, if_, if_not, test_not, key),
-		  NULL);
+  PARSE_KEYWORDS (FassocX, (test, if_, if_not, test_not, key), NULL);
 
   check_test = get_check_test_function (item, &test, test_not, if_, if_not,
 					key, &test_not_unboundp);
@@ -1579,7 +1576,7 @@ rassq_no_quit (Lisp_Object value, Lisp_Object alist)
   return Qnil;
 }
 
-DEFUN ("rassoc*", FrassocX, 2, MANY, 0, /*
+DEFUN ("rassoc*", FrassocX, 2, KEYWORDS, 0, /*
 Find the first item whose cdr matches ITEM in ALIST.
 
 See `member*' for the meaning of :test, :test-not and :key.
@@ -1592,8 +1589,7 @@ arguments: (ITEM ALIST &key (TEST #'eql) (KEY #'identity) TEST-NOT)
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (FrassocX, nargs, args, (test, if_, if_not, test_not, key),
-		  NULL);
+  PARSE_KEYWORDS (FrassocX, (test, if_, if_not, test_not, key), NULL);
 
   check_test = get_check_test_function (item, &test, test_not, if_, if_not,
 					key, &test_not_unboundp);
@@ -1873,7 +1869,7 @@ position (Lisp_Object *object_out, Lisp_Object item, Lisp_Object sequence,
   return result;
 }
 
-DEFUN ("position", Fposition, 2, MANY, 0, /*
+DEFUN ("position", Fposition, 2, KEYWORDS, 0, /*
 Return the index of the first occurrence of ITEM in SEQUENCE.
 
 Return nil if not found. See `remove*' for the meaning of the keywords.
@@ -1886,7 +1882,7 @@ arguments: (ITEM SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (len
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (Fposition, nargs, args,
+  PARSE_KEYWORDS (Fposition,
 		  (test, if_, test_not, if_not, key, start, end, from_end),
 		  (start = Qzero));
 
@@ -1897,7 +1893,7 @@ arguments: (ITEM SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (len
                    test, key, start, end, from_end, Qnil, Qposition);
 }
 
-DEFUN ("find", Ffind, 2, MANY, 0, /*
+DEFUN ("find", Ffind, 2, KEYWORDS, 0, /*
 Find the first occurrence of ITEM in SEQUENCE.
 
 Return the matching ITEM, or nil if not found.  See `remove*' for the
@@ -1914,7 +1910,7 @@ arguments: (ITEM SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (len
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (Ffind, nargs, args,
+  PARSE_KEYWORDS (Ffind,
 		  (test, if_, test_not, if_not, key, start, end, from_end,
                    default_),
 		  (start = Qzero));
@@ -1974,7 +1970,7 @@ delq_no_quit_and_free_cons (Lisp_Object elt, Lisp_Object list)
   return list;
 }
 
-DEFUN ("delete*", FdeleteX, 2, MANY, 0, /*
+DEFUN ("delete*", FdeleteX, 2, KEYWORDS, 0, /*
 Remove all occurrences of ITEM in SEQUENCE, destructively.
 
 If SEQUENCE is a non-nil list, this modifies the list directly.  A non-list
@@ -1994,7 +1990,7 @@ arguments: (ITEM SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (len
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (FdeleteX, nargs, args,
+  PARSE_KEYWORDS (FdeleteX,
 		  (test, if_not, if_, test_not, key, start, end, from_end,
 		   count), (start = Qzero));
 
@@ -2033,8 +2029,7 @@ arguments: (ITEM SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (len
              the count keyword, so we get the actual number of matching
              elements, and can start removing from the beginning for the
              from-end case.  */
-          for (ii = XSUBR (GET_DEFUN_LISP_OBJECT (FdeleteX))->min_args;
-               ii < nargs; ii += 2)
+          for (ii = PARSE_KEYWORDS_MIN_ARGS (FdeleteX); ii < nargs; ii += 2)
             {
               if (EQ (args[ii], Q_count))
                 {
@@ -2321,7 +2316,7 @@ arguments: (ITEM SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (len
     }
 }
 
-DEFUN ("remove*", FremoveX, 2, MANY, 0, /*
+DEFUN ("remove*", FremoveX, 2, KEYWORDS, 0, /*
 Remove all occurrences of ITEM in SEQUENCE, non-destructively.
 
 If SEQUENCE is a list, `remove*' makes a copy if that is necessary to avoid
@@ -2354,7 +2349,7 @@ arguments: (ITEM SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (len
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (FremoveX, nargs, args,
+  PARSE_KEYWORDS (FremoveX,
 		  (test, if_not, if_, test_not, key, start, end, from_end,
 		   count), (start = Qzero));
 
@@ -2398,8 +2393,7 @@ arguments: (ITEM SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (len
 	     count keyword, so we get the actual number of matching
 	     elements, and can start removing from the beginning for the
 	     from-end case.  */
-          for (ii = XSUBR (GET_DEFUN_LISP_OBJECT (FremoveX))->min_args;
-               ii < nargs; ii += 2)
+          for (ii = PARSE_KEYWORDS_MIN_ARGS (FremoveX); ii < nargs; ii += 2)
             {
               if (EQ (args[ii], Q_count))
                 {
@@ -2633,7 +2627,7 @@ list_delete_duplicates_from_end (Lisp_Object list,
   return result;
 }
 
-DEFUN ("delete-duplicates", Fdelete_duplicates, 1, MANY, 0, /*
+DEFUN ("delete-duplicates", Fdelete_duplicates, 1, KEYWORDS, 0, /*
 Remove all duplicate elements from SEQUENCE, destructively.
 
 If SEQUENCE is a list and has duplicates, modify and return it.  Note that
@@ -2660,7 +2654,7 @@ arguments: (SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) END FROM-END T
   check_test_func_t check_test = NULL;
   struct gcpro gcpro1, gcpro2;
 
-  PARSE_KEYWORDS (Fdelete_duplicates, nargs, args,
+  PARSE_KEYWORDS (Fdelete_duplicates, 
 		  (test, key, test_not, start, end, from_end),
 		  (start = Qzero));
 
@@ -3135,7 +3129,7 @@ arguments: (SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) END FROM-END T
   return sequence;
 }
 
-DEFUN ("remove-duplicates", Fremove_duplicates, 1, MANY, 0, /*
+DEFUN ("remove-duplicates", Fremove_duplicates, 1, KEYWORDS, 0, /*
 Remove duplicate elements from SEQUENCE, non-destructively.
 
 If there are no duplicate elements in SEQUENCE, return it unmodified;
@@ -3156,7 +3150,7 @@ arguments: (SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) END FROM-END T
   check_test_func_t check_test = NULL;
   struct gcpro gcpro1, gcpro2;
 
-  PARSE_KEYWORDS (Fremove_duplicates, nargs, args,
+  PARSE_KEYWORDS (Fremove_duplicates,
 		  (test, key, test_not, start, end, from_end),
 		  (start = Qzero));
 
@@ -3848,7 +3842,7 @@ list_array_merge_into_array (Lisp_Object *output, Elemcount output_len,
       }                                                                 \
   } while (0)
 
-DEFUN ("merge", Fmerge, 4, MANY, 0, /*
+DEFUN ("merge", Fmerge, 4, KEYWORDS, 0, /*
 Destructively merge SEQUENCE1 and SEQUENCE2, producing a new sequence.
 
 TYPE is the type of sequence to return.  PREDICATE is a `less-than'
@@ -3865,7 +3859,7 @@ arguments: (TYPE SEQUENCE1 SEQUENCE2 PREDICATE &key (KEY #'IDENTITY))
     predicate = args[3], result = Qnil;
   check_test_func_t check_merge = NULL;
 
-  PARSE_KEYWORDS (Fmerge, nargs, args, (key), NULL);
+  PARSE_KEYWORDS (Fmerge, (key), NULL);
 
   CHECK_SEQUENCE (sequence_one);
   CHECK_SEQUENCE (sequence_two);
@@ -4077,7 +4071,7 @@ array_sort (Lisp_Object *array, Elemcount array_len,
 	       array_len - split, check_merge, predicate, key);
 }            
 
-DEFUN ("sort*", FsortX, 2, MANY, 0, /*
+DEFUN ("sort*", FsortX, 2, KEYWORDS, 0, /*
 Sort SEQUENCE, comparing elements using PREDICATE.
 Returns the sorted sequence.  SEQUENCE is modified by side effect.
 
@@ -4100,7 +4094,7 @@ arguments: (SEQUENCE PREDICATE &key (KEY #'IDENTITY))
   check_test_func_t check_merge = NULL;
   Elemcount sequence_len, i;
 
-  PARSE_KEYWORDS (FsortX, nargs, args, (key), NULL);
+  PARSE_KEYWORDS (FsortX, (key), NULL);
 
   CHECK_SEQUENCE (sequence);
 
@@ -4183,7 +4177,7 @@ fill_string_range (Lisp_Object dest, Lisp_Object item, Lisp_Object start,
   return replace_string_range_1 (dest, start, end, NULL, NULL, item);
 }
 
-DEFUN ("fill", Ffill, 2, MANY, 0, /*
+DEFUN ("fill", Ffill, 2, KEYWORDS, 0, /*
 Destructively modify SEQUENCE by replacing each element with ITEM.
 SEQUENCE is a list, vector, bit vector, or string.
 
@@ -4200,7 +4194,7 @@ arguments: (SEQUENCE ITEM &key (START 0) (END (length SEQUENCE)))
   Lisp_Object item = args[1];
   Elemcount starting, ending = MOST_POSITIVE_FIXNUM + 1, ii, len;
 
-  PARSE_KEYWORDS (Ffill, nargs, args, (start, end), (start = Qzero));
+  PARSE_KEYWORDS (Ffill, (start, end), (start = Qzero));
 
   CHECK_NATNUM (start);
   starting = BIGNUMP (start) ? MOST_POSITIVE_FIXNUM + 1 : XFIXNUM (start);
@@ -5323,7 +5317,7 @@ arguments: (&rest ARGS)
   return concatenate (nargs, args, Qlist, 1);
 }
 
-DEFUN ("reduce", Freduce, 2, MANY, 0, /*
+DEFUN ("reduce", Freduce, 2, KEYWORDS, 0, /*
 Combine the elements of SEQUENCE using FUNCTION, a binary operation.
 
 For example, `(reduce #'+ SEQUENCE)' returns the sum of all elements in
@@ -5348,7 +5342,7 @@ arguments: (FUNCTION SEQUENCE &key (START 0) (END (length SEQUENCE)) FROM-END IN
   Lisp_Object function = args[0], sequence = args[1], accum = Qunbound;
   Elemcount starting, ending = MOST_POSITIVE_FIXNUM + 1, ii = 0;
 
-  PARSE_KEYWORDS (Freduce, nargs, args,
+  PARSE_KEYWORDS (Freduce,
                   (start, end, from_end, initial_value, key),
                   (start = Qzero, initial_value = Qunbound));
 
@@ -5825,7 +5819,7 @@ replace_string_range_1 (Lisp_Object dest, Lisp_Object start, Lisp_Object end,
   return dest;
 }
 
-DEFUN ("replace", Freplace, 2, MANY, 0, /*
+DEFUN ("replace", Freplace, 2, KEYWORDS, 0, /*
 Replace the elements of SEQUENCE1 with the elements of SEQUENCE2.
 
 SEQUENCE1 is destructively modified, and returned.  Its length is not
@@ -5846,7 +5840,7 @@ arguments: (SEQUENCE1 SEQUENCE2 &key (START1 0) (END1 (length SEQUENCE1)) (START
   Boolint sequence1_listp, sequence2_listp,
     overwriting = EQ (sequence1, sequence2);
 
-  PARSE_KEYWORDS (Freplace, nargs, args, (start1, end1, start2, end2),
+  PARSE_KEYWORDS (Freplace, (start1, end1, start2, end2),
                   (start1 = start2 = Qzero));
 
   CHECK_SEQUENCE (sequence1);
@@ -6303,7 +6297,7 @@ arguments: (SEQUENCE1 SEQUENCE2 &key (START1 0) (END1 (length SEQUENCE1)) (START
   return result;
 }
 
-DEFUN ("nsubstitute", Fnsubstitute, 3, MANY, 0, /*
+DEFUN ("nsubstitute", Fnsubstitute, 3, KEYWORDS, 0, /*
 Substitute NEW for OLD in SEQUENCE.
 
 This is a destructive function; it reuses the storage of SEQUENCE whenever
@@ -6320,7 +6314,7 @@ arguments: (NEW OLD SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (Fnsubstitute, nargs, args,
+  PARSE_KEYWORDS (Fnsubstitute,
 		  (test, if_, if_not, test_not, key, start, end, count,
 		   from_end), (start = Qzero));
 
@@ -6356,7 +6350,7 @@ arguments: (NEW OLD SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (
 
       if (!NILP (from_end))
         {
-          for (ii = XSUBR (GET_DEFUN_LISP_OBJECT (Fnsubstitute))->min_args;
+          for (ii = PARSE_KEYWORDS_MIN_ARGS (Fnsubstitute);
                ii < nargs; ii += 2)
             {
               if (EQ (args[ii], Q_count))
@@ -6571,7 +6565,7 @@ arguments: (NEW OLD SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (
   return sequence;
 }
 
-DEFUN ("substitute", Fsubstitute, 3, MANY, 0, /*
+DEFUN ("substitute", Fsubstitute, 3, KEYWORDS, 0, /*
 Substitute NEW for OLD in SEQUENCE.
 
 This is a non-destructive function; it makes a copy of SEQUENCE if necessary
@@ -6592,7 +6586,7 @@ arguments: (NEW OLD SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (
   check_test_func_t check_test = NULL;
   struct gcpro gcpro1;
 
-  PARSE_KEYWORDS (Fsubstitute, nargs, args,
+  PARSE_KEYWORDS (Fsubstitute,
 		  (test, if_, if_not, test_not, key, start, end, count,
 		   from_end), (start = Qzero));
 
@@ -6652,7 +6646,7 @@ arguments: (NEW OLD SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (
          start removing from the beginning for the from-end case.  */
       if (!NILP (from_end))
         {
-          for (ii = XSUBR (GET_DEFUN_LISP_OBJECT (Fsubstitute))->min_args;
+          for (ii = PARSE_KEYWORDS_MIN_ARGS (Fsubstitute);
                ii < nargs; ii += 2)
             {
               if (EQ (args[ii], Q_count))
@@ -6840,7 +6834,7 @@ sublis (Lisp_Object alist, Lisp_Object tree,
   return Fcons (aa, dd);
 }
 
-DEFUN ("sublis", Fsublis, 2, MANY, 0, /*
+DEFUN ("sublis", Fsublis, 2, KEYWORDS, 0, /*
 Perform substitutions indicated by ALIST in TREE (non-destructively).
 Return a copy of TREE with all matching elements replaced.
 
@@ -6857,7 +6851,7 @@ arguments: (ALIST TREE &key (TEST #'eql) (KEY #'identity) TEST-NOT)
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (Fsublis, nargs, args, (test, if_, test_not, if_not, key),
+  PARSE_KEYWORDS (Fsublis, (test, if_, test_not, if_not, key),
 		  (key = Qidentity));
 
   if (NILP (key))
@@ -6971,7 +6965,7 @@ nsublis (Lisp_Object alist, Lisp_Object tree,
   RETURN_UNGCPRO (tree_saved);
 }
 
-DEFUN ("nsublis", Fnsublis, 2, MANY, 0, /*
+DEFUN ("nsublis", Fnsublis, 2, KEYWORDS, 0, /*
 Perform substitutions indicated by ALIST in TREE (destructively).
 Any matching element of TREE is changed via a call to `setcar'.
 
@@ -6989,7 +6983,7 @@ arguments: (ALIST TREE &key (TEST #'eql) (KEY #'identity) TEST-NOT)
   check_test_func_t check_test = NULL;
   struct gcpro gcpro1, gcpro2;
 
-  PARSE_KEYWORDS (Fnsublis, nargs, args, (test, if_, test_not, if_not, key),
+  PARSE_KEYWORDS (Fnsublis, (test, if_, test_not, if_not, key),
 		  (key = Qidentity));
 
   if (NILP (key))
@@ -7048,7 +7042,7 @@ arguments: (NEW OLD TREE &key (TEST #'eql) (KEY #'identity) TEST-NOT)
   return result;
 }
 
-DEFUN ("nsubst", Fnsubst, 3, MANY, 0, /*
+DEFUN ("nsubst", Fnsubst, 3, KEYWORDS, 0, /*
 Substitute NEW for OLD everywhere in TREE (destructively).
 
 Any element of TREE which is `eql' to OLD is changed to NEW (via a call to
@@ -7067,8 +7061,8 @@ arguments: (NEW OLD TREE &key (TEST #'eql) (KEY #'identity) TEST-NOT DESCEND-STR
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (Fnsubst, nargs, args, (test, if_, test_not, if_not, key,
-                                         descend_structures), NULL);
+  PARSE_KEYWORDS (Fnsubst, (test, if_, test_not, if_not, key,
+                            descend_structures), NULL);
   if (!NILP (descend_structures))
     {
       check_test = get_check_test_function (old, &test, test_not, if_, if_not,
@@ -7144,7 +7138,7 @@ tree_equal (Lisp_Object tree1, Lisp_Object tree2,
   return result;
 }
 
-DEFUN ("tree-equal", Ftree_equal, 2, MANY, 0, /*
+DEFUN ("tree-equal", Ftree_equal, 2, KEYWORDS, 0, /*
 Return t if TREE1 and TREE2 have `eql' leaves.
 
 Atoms are compared by `eql', unless another test is specified using
@@ -7160,8 +7154,7 @@ arguments: (TREE1 TREE2 &key (TEST #'eql) (KEY #'identity) TEST-NOT)
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (Ftree_equal, nargs, args, (test, key, test_not),
-		  (key = Qidentity));
+  PARSE_KEYWORDS (Ftree_equal, (test, key, test_not), (key = Qidentity));
 
   get_check_match_function (&test, test_not, Qnil, Qnil, key,
 			    &test_not_unboundp, &check_test);
@@ -7978,7 +7971,7 @@ get_mismatch_func (Lisp_Object sequence1, Lisp_Object sequence2,
   return NULL;
 }
 
-DEFUN ("mismatch", Fmismatch, 2, MANY, 0, /*
+DEFUN ("mismatch", Fmismatch, 2, KEYWORDS, 0, /*
 Compare SEQUENCE1 with SEQUENCE2, return index of first mismatching element.
 
 Return nil if the sequences match.  If one sequence is a prefix of the
@@ -7996,7 +7989,7 @@ arguments: (SEQUENCE1 SEQUENCE2 &key (TEST #'eql) (KEY #'identity) (START1 0) EN
   check_test_func_t check_match = NULL;
   mismatch_func_t mismatch = NULL;
 
-  PARSE_KEYWORDS (Fmismatch, nargs, args,
+  PARSE_KEYWORDS (Fmismatch,
                   (test, key, from_end, start1, end1, start2, end2, test_not),
                   (start1 = start2 = Qzero));
 
@@ -8031,7 +8024,7 @@ arguments: (SEQUENCE1 SEQUENCE2 &key (TEST #'eql) (KEY #'identity) (START1 0) EN
                    check_match, test_not_unboundp, test, key, 0);
 }
 
-DEFUN ("search", Fsearch, 2, MANY, 0, /*
+DEFUN ("search", Fsearch, 2, KEYWORDS, 0, /*
 Search for SEQUENCE1 as a subsequence of SEQUENCE2.
 
 Return the index of the leftmost element of the first match found; return
@@ -8055,7 +8048,7 @@ arguments: (SEQUENCE1 SEQUENCE2 &key (TEST #'eql) (KEY #'identity) (START1 0) EN
   Lisp_Object object = Qnil;
   struct gcpro gcpro1, gcpro2;
 
-  PARSE_KEYWORDS (Fsearch, nargs, args,
+  PARSE_KEYWORDS (Fsearch,
                   (test, key, from_end, start1, end1, start2, end2, test_not),
                   (start1 = start2 = Qzero));
 
@@ -8471,7 +8464,7 @@ arguments: (LIST1 LIST2 &key (TEST #'eql) (KEY #'identity) TEST-NOT)
   return bytecode_nconc2 (args);
 }
 
-DEFUN ("union", Funion, 2, MANY, 0, /*
+DEFUN ("union", Funion, 2, KEYWORDS, 0, /*
 Combine LIST1 and LIST2 using a set-union operation.
 The result list contains all items that appear in either LIST1 or LIST2.
 This is a non-destructive function; it makes a copy of the data if necessary
@@ -8502,7 +8495,7 @@ arguments: (LIST1 LIST2 &key (TEST #'eql) (KEY #'identity) TEST-NOT STABLE)
   check_test_func_t check_test = NULL, check_match = NULL;
   struct gcpro gcpro1, gcpro2;
 
-  PARSE_KEYWORDS (Funion, nargs, args, (test, key, test_not, stable), NULL);
+  PARSE_KEYWORDS (Funion, (test, key, test_not, stable), NULL);
 
   CHECK_LIST (liszt1);
   CHECK_LIST (liszt2);
@@ -8588,7 +8581,7 @@ arguments: (LIST1 LIST2 &key (TEST #'eql) (KEY #'identity) TEST-NOT STABLE)
   return result;
 }
 
-DEFUN ("set-exclusive-or", Fset_exclusive_or, 2, MANY, 0, /*
+DEFUN ("set-exclusive-or", Fset_exclusive_or, 2, KEYWORDS, 0, /*
 Combine LIST1 and LIST2 using a set-exclusive-or operation.
 
 The result list contains all items that appear in exactly one of LIST1, LIST2.
@@ -8611,8 +8604,7 @@ arguments: (LIST1 LIST2 &key (TEST #'eql) (KEY #'identity) TEST-NOT STABLE)
   check_test_func_t check_match = NULL, check_test = NULL;
   struct gcpro gcpro1, gcpro2;
 
-  PARSE_KEYWORDS (Fset_exclusive_or, nargs, args,
-                  (test, key, test_not, stable), NULL);
+  PARSE_KEYWORDS (Fset_exclusive_or, (test, key, test_not, stable), NULL);
 
   CHECK_LIST (liszt1);
   CHECK_LIST (liszt2);
@@ -8684,7 +8676,7 @@ arguments: (LIST1 LIST2 &key (TEST #'eql) (KEY #'identity) TEST-NOT STABLE)
   return result;
 }
 
-DEFUN ("nset-exclusive-or", Fnset_exclusive_or, 2, MANY, 0, /*
+DEFUN ("nset-exclusive-or", Fnset_exclusive_or, 2, KEYWORDS, 0, /*
 Combine LIST1 and LIST2 using a set-exclusive-or operation.
 
 The result list contains all items that appear in exactly one of LIST1 and
@@ -8705,7 +8697,7 @@ arguments: (LIST1 LIST2 &key (TEST #'eql) (KEY #'identity) TEST-NOT)
   check_test_func_t check_match = NULL, check_test = NULL;
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
 
-  PARSE_KEYWORDS (Fnset_exclusive_or, nargs, args,
+  PARSE_KEYWORDS (Fnset_exclusive_or,
                   (test, key, test_not, stable), (USED (stable)));
 
   CHECK_LIST (liszt1);

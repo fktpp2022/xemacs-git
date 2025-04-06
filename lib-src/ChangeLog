@@ -1,5 +1,11 @@
 2025-04-06  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* make-docfile.c (scan_c_file):
+	Handle DEFUN() forms with KEYWORDS as MAX_ARGS, a feature just
+	added to core.
+
+2025-04-06  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Generate definitions for lrecord_type_##c_name, making
 	DECLARE_MODULE_LISP_OBJECT() work.
 	* make-docfile.c:

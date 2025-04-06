@@ -1840,7 +1840,7 @@ resizing_buffer_to_lisp_string (Lstream *stream)
   return result;
 }
 
-DEFUN ("make-string-output-stream", Fmake_string_output_stream, 0, MANY, 0, /*
+DEFUN ("make-string-output-stream", Fmake_string_output_stream, 0, KEYWORDS, 0, /*
 Return an output stream for use with `print', and `write-sequence'.
 
 This output stream stores the characters written to it, for later access using
@@ -1852,7 +1852,7 @@ arguments: (&key (ELEMENT-TYPE character))
 */
         (int nargs, Lisp_Object *args))
 {
-  PARSE_KEYWORDS (Fmake_string_output_stream, nargs, args, (element_type),
+  PARSE_KEYWORDS (Fmake_string_output_stream, (element_type),
                   (element_type = Qcharacter));
 
   if (!EQ (element_type, Qcharacter))
