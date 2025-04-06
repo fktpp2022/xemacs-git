@@ -1876,7 +1876,7 @@ arguments: (STRING &key (START 0) end (RADIX 10) junk-allowed radix-table)
   Ibyte *startp, *cursor, *end_read, *limit, *saved_start;
   EMACS_INT radixing;
 
-  PARSE_KEYWORDS (Fparse_integer, nargs, args, 5,
+  PARSE_KEYWORDS (Fparse_integer, nargs, args,
                   (start, end, radix, junk_allowed, radix_table),
                   (start = Qzero, radix = make_fixnum (10)));
 

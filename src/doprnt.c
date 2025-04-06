@@ -3966,10 +3966,9 @@ arguments: (STREAM &key (ERROR-BEHAVIOR 'error) CONTROL-STRING &rest ARGUMENTS)
     }
   else
     {
-      PARSE_KEYWORDS_8 (intern ("format-into"), nargs, args,
-			1, (error_behavior), (error_behavior = Qerror),
+      PARSE_KEYWORDS_7 (intern ("format-into"), nargs, args,
+			(error_behavior), (error_behavior = Qerror),
 			1, 1);
-
       args += 1;
       nargs -= 1;
       while (KEYWORDP (args[0]) && nargs > 2)

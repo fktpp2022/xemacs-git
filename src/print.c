@@ -781,7 +781,7 @@ arguments: (SEQUENCE &optional STREAM &key (START 0) END)
   Bytecount bstart = 0, blen = 0;
   Elemcount ii = 0;
 
-  PARSE_KEYWORDS_8 (Qwrite_sequence, nargs, args, 2, (start, end), 
+  PARSE_KEYWORDS_7 (Qwrite_sequence, nargs, args, (start, end), 
                     (start = Qzero), 2, 0);
 
   CHECK_SEQUENCE (sequence);

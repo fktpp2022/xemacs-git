@@ -689,7 +689,7 @@ count_with_tail (Lisp_Object *tail_out, int nargs, Lisp_Object *args,
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS_8 (caller, nargs, args, 9,
+  PARSE_KEYWORDS_7 (caller, nargs, args,
 		    (test, key, start, end, from_end, test_not, count,
 		     if_, if_not), (start = Qzero), 2, 0);
 
@@ -958,7 +958,7 @@ arguments: (ITEM SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) END FROM-
 
   /* count_with_tail() accepts more keywords than we do, check those we've
      been given. */
-  PARSE_KEYWORDS (Fcount, nargs, args, 8,
+  PARSE_KEYWORDS (Fcount, nargs, args,
 		  (test, test_not, if_, if_not, key, start, end, from_end),
 		  /* Silence some compiler warnings: */
                   (USED (test), USED (test_not), USED (if_), USED (if_not),
@@ -1353,7 +1353,7 @@ arguments: (ITEM LIST &key (TEST #'eql) TEST-NOT (KEY #'identity))
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (FmemberX, nargs, args, 5, (test, if_not, if_, test_not, key),
+  PARSE_KEYWORDS (FmemberX, nargs, args, (test, if_not, if_, test_not, key),
 		  NULL);
   check_test = get_check_test_function (item, &test, test_not, if_, if_not,
 					key, &test_not_unboundp);
@@ -1402,7 +1402,7 @@ arguments: (ITEM LIST &key (TEST #'eql) (KEY #'identity) TEST-NOT)
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (Fadjoin, nargs, args, 3, (test, key, test_not),
+  PARSE_KEYWORDS (Fadjoin, nargs, args, (test, key, test_not),
 		  NULL);
 
   CHECK_KEY_ARGUMENT (key);
@@ -1497,7 +1497,7 @@ arguments: (ITEM ALIST &key (TEST #'eql) (KEY #'identity) TEST-NOT)
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (FassocX, nargs, args, 5, (test, if_, if_not, test_not, key),
+  PARSE_KEYWORDS (FassocX, nargs, args, (test, if_, if_not, test_not, key),
 		  NULL);
 
   check_test = get_check_test_function (item, &test, test_not, if_, if_not,
@@ -1592,7 +1592,7 @@ arguments: (ITEM ALIST &key (TEST #'eql) (KEY #'identity) TEST-NOT)
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (FrassocX, nargs, args, 5, (test, if_, if_not, test_not, key),
+  PARSE_KEYWORDS (FrassocX, nargs, args, (test, if_, if_not, test_not, key),
 		  NULL);
 
   check_test = get_check_test_function (item, &test, test_not, if_, if_not,
@@ -1886,7 +1886,7 @@ arguments: (ITEM SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (len
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (Fposition, nargs, args, 8,
+  PARSE_KEYWORDS (Fposition, nargs, args,
 		  (test, if_, test_not, if_not, key, start, end, from_end),
 		  (start = Qzero));
 
@@ -1914,7 +1914,7 @@ arguments: (ITEM SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (len
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (Ffind, nargs, args, 9,
+  PARSE_KEYWORDS (Ffind, nargs, args,
 		  (test, if_, test_not, if_not, key, start, end, from_end,
                    default_),
 		  (start = Qzero));
@@ -1994,7 +1994,7 @@ arguments: (ITEM SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (len
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (FdeleteX, nargs, args, 9,
+  PARSE_KEYWORDS (FdeleteX, nargs, args,
 		  (test, if_not, if_, test_not, key, start, end, from_end,
 		   count), (start = Qzero));
 
@@ -2354,7 +2354,7 @@ arguments: (ITEM SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (len
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (FremoveX, nargs, args, 9,
+  PARSE_KEYWORDS (FremoveX, nargs, args,
 		  (test, if_not, if_, test_not, key, start, end, from_end,
 		   count), (start = Qzero));
 
@@ -2660,7 +2660,7 @@ arguments: (SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) END FROM-END T
   check_test_func_t check_test = NULL;
   struct gcpro gcpro1, gcpro2;
 
-  PARSE_KEYWORDS (Fdelete_duplicates, nargs, args, 6,
+  PARSE_KEYWORDS (Fdelete_duplicates, nargs, args,
 		  (test, key, test_not, start, end, from_end),
 		  (start = Qzero));
 
@@ -3156,7 +3156,7 @@ arguments: (SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) END FROM-END T
   check_test_func_t check_test = NULL;
   struct gcpro gcpro1, gcpro2;
 
-  PARSE_KEYWORDS (Fremove_duplicates, nargs, args, 6,
+  PARSE_KEYWORDS (Fremove_duplicates, nargs, args,
 		  (test, key, test_not, start, end, from_end),
 		  (start = Qzero));
 
@@ -3865,7 +3865,7 @@ arguments: (TYPE SEQUENCE1 SEQUENCE2 PREDICATE &key (KEY #'IDENTITY))
     predicate = args[3], result = Qnil;
   check_test_func_t check_merge = NULL;
 
-  PARSE_KEYWORDS (Fmerge, nargs, args, 1, (key), NULL);
+  PARSE_KEYWORDS (Fmerge, nargs, args, (key), NULL);
 
   CHECK_SEQUENCE (sequence_one);
   CHECK_SEQUENCE (sequence_two);
@@ -4100,7 +4100,7 @@ arguments: (SEQUENCE PREDICATE &key (KEY #'IDENTITY))
   check_test_func_t check_merge = NULL;
   Elemcount sequence_len, i;
 
-  PARSE_KEYWORDS (FsortX, nargs, args, 1, (key), NULL);
+  PARSE_KEYWORDS (FsortX, nargs, args, (key), NULL);
 
   CHECK_SEQUENCE (sequence);
 
@@ -4200,7 +4200,7 @@ arguments: (SEQUENCE ITEM &key (START 0) (END (length SEQUENCE)))
   Lisp_Object item = args[1];
   Elemcount starting, ending = MOST_POSITIVE_FIXNUM + 1, ii, len;
 
-  PARSE_KEYWORDS (Ffill, nargs, args, 2, (start, end), (start = Qzero));
+  PARSE_KEYWORDS (Ffill, nargs, args, (start, end), (start = Qzero));
 
   CHECK_NATNUM (start);
   starting = BIGNUMP (start) ? MOST_POSITIVE_FIXNUM + 1 : XFIXNUM (start);
@@ -5348,7 +5348,7 @@ arguments: (FUNCTION SEQUENCE &key (START 0) (END (length SEQUENCE)) FROM-END IN
   Lisp_Object function = args[0], sequence = args[1], accum = Qunbound;
   Elemcount starting, ending = MOST_POSITIVE_FIXNUM + 1, ii = 0;
 
-  PARSE_KEYWORDS (Freduce, nargs, args, 5,
+  PARSE_KEYWORDS (Freduce, nargs, args,
                   (start, end, from_end, initial_value, key),
                   (start = Qzero, initial_value = Qunbound));
 
@@ -5846,7 +5846,7 @@ arguments: (SEQUENCE1 SEQUENCE2 &key (START1 0) (END1 (length SEQUENCE1)) (START
   Boolint sequence1_listp, sequence2_listp,
     overwriting = EQ (sequence1, sequence2);
 
-  PARSE_KEYWORDS (Freplace, nargs, args, 4, (start1, end1, start2, end2),
+  PARSE_KEYWORDS (Freplace, nargs, args, (start1, end1, start2, end2),
                   (start1 = start2 = Qzero));
 
   CHECK_SEQUENCE (sequence1);
@@ -6320,7 +6320,7 @@ arguments: (NEW OLD SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (Fnsubstitute, nargs, args, 9,
+  PARSE_KEYWORDS (Fnsubstitute, nargs, args,
 		  (test, if_, if_not, test_not, key, start, end, count,
 		   from_end), (start = Qzero));
 
@@ -6592,7 +6592,7 @@ arguments: (NEW OLD SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (
   check_test_func_t check_test = NULL;
   struct gcpro gcpro1;
 
-  PARSE_KEYWORDS (Fsubstitute, nargs, args, 9,
+  PARSE_KEYWORDS (Fsubstitute, nargs, args,
 		  (test, if_, if_not, test_not, key, start, end, count,
 		   from_end), (start = Qzero));
 
@@ -6857,7 +6857,7 @@ arguments: (ALIST TREE &key (TEST #'eql) (KEY #'identity) TEST-NOT)
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (Fsublis, nargs, args, 5, (test, if_, test_not, if_not, key),
+  PARSE_KEYWORDS (Fsublis, nargs, args, (test, if_, test_not, if_not, key),
 		  (key = Qidentity));
 
   if (NILP (key))
@@ -6989,7 +6989,7 @@ arguments: (ALIST TREE &key (TEST #'eql) (KEY #'identity) TEST-NOT)
   check_test_func_t check_test = NULL;
   struct gcpro gcpro1, gcpro2;
 
-  PARSE_KEYWORDS (Fnsublis, nargs, args, 5, (test, if_, test_not, if_not, key),
+  PARSE_KEYWORDS (Fnsublis, nargs, args, (test, if_, test_not, if_not, key),
 		  (key = Qidentity));
 
   if (NILP (key))
@@ -7067,8 +7067,8 @@ arguments: (NEW OLD TREE &key (TEST #'eql) (KEY #'identity) TEST-NOT DESCEND-STR
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (Fnsubst, nargs, args, 6, (test, if_, test_not, if_not, key,
-                                            descend_structures), NULL);
+  PARSE_KEYWORDS (Fnsubst, nargs, args, (test, if_, test_not, if_not, key,
+                                         descend_structures), NULL);
   if (!NILP (descend_structures))
     {
       check_test = get_check_test_function (old, &test, test_not, if_, if_not,
@@ -7160,7 +7160,7 @@ arguments: (TREE1 TREE2 &key (TEST #'eql) (KEY #'identity) TEST-NOT)
   Boolint test_not_unboundp = 1;
   check_test_func_t check_test = NULL;
 
-  PARSE_KEYWORDS (Ftree_equal, nargs, args, 3, (test, key, test_not),
+  PARSE_KEYWORDS (Ftree_equal, nargs, args, (test, key, test_not),
 		  (key = Qidentity));
 
   get_check_match_function (&test, test_not, Qnil, Qnil, key,
@@ -7996,7 +7996,7 @@ arguments: (SEQUENCE1 SEQUENCE2 &key (TEST #'eql) (KEY #'identity) (START1 0) EN
   check_test_func_t check_match = NULL;
   mismatch_func_t mismatch = NULL;
 
-  PARSE_KEYWORDS (Fmismatch, nargs, args, 8,
+  PARSE_KEYWORDS (Fmismatch, nargs, args,
                   (test, key, from_end, start1, end1, start2, end2, test_not),
                   (start1 = start2 = Qzero));
 
@@ -8055,7 +8055,7 @@ arguments: (SEQUENCE1 SEQUENCE2 &key (TEST #'eql) (KEY #'identity) (START1 0) EN
   Lisp_Object object = Qnil;
   struct gcpro gcpro1, gcpro2;
 
-  PARSE_KEYWORDS (Fsearch, nargs, args, 8,
+  PARSE_KEYWORDS (Fsearch, nargs, args,
                   (test, key, from_end, start1, end1, start2, end2, test_not),
                   (start1 = start2 = Qzero));
 
@@ -8218,7 +8218,7 @@ venn (Lisp_Object caller, int nargs, Lisp_Object *args, Boolint intersectionp)
   check_test_func_t check_test = NULL;
   struct gcpro gcpro1, gcpro2;
 
-  PARSE_KEYWORDS_8 (caller, nargs, args, 4, (test, key, test_not, stable),
+  PARSE_KEYWORDS_7 (caller, nargs, args, (test, key, test_not, stable),
                     NULL, 2, 0);
 
   CHECK_LIST (liszt1);
@@ -8302,7 +8302,7 @@ nvenn (Lisp_Object caller, int nargs, Lisp_Object *args, Boolint intersectionp)
   check_test_func_t check_test = NULL;
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
 
-  PARSE_KEYWORDS_8 (caller, nargs, args, 3, (test, key, test_not),
+  PARSE_KEYWORDS_7 (caller, nargs, args, (test, key, test_not),
                     NULL, 2, 0);
 
   CHECK_LIST (liszt1);
@@ -8502,7 +8502,7 @@ arguments: (LIST1 LIST2 &key (TEST #'eql) (KEY #'identity) TEST-NOT STABLE)
   check_test_func_t check_test = NULL, check_match = NULL;
   struct gcpro gcpro1, gcpro2;
 
-  PARSE_KEYWORDS (Funion, nargs, args, 4, (test, key, test_not, stable), NULL);
+  PARSE_KEYWORDS (Funion, nargs, args, (test, key, test_not, stable), NULL);
 
   CHECK_LIST (liszt1);
   CHECK_LIST (liszt2);
@@ -8611,7 +8611,7 @@ arguments: (LIST1 LIST2 &key (TEST #'eql) (KEY #'identity) TEST-NOT STABLE)
   check_test_func_t check_match = NULL, check_test = NULL;
   struct gcpro gcpro1, gcpro2;
 
-  PARSE_KEYWORDS (Fset_exclusive_or, nargs, args, 4,
+  PARSE_KEYWORDS (Fset_exclusive_or, nargs, args,
                   (test, key, test_not, stable), NULL);
 
   CHECK_LIST (liszt1);
@@ -8705,7 +8705,7 @@ arguments: (LIST1 LIST2 &key (TEST #'eql) (KEY #'identity) TEST-NOT)
   check_test_func_t check_match = NULL, check_test = NULL;
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
 
-  PARSE_KEYWORDS (Fnset_exclusive_or, nargs, args, 4,
+  PARSE_KEYWORDS (Fnset_exclusive_or, nargs, args,
                   (test, key, test_not, stable), (USED (stable)));
 
   CHECK_LIST (liszt1);

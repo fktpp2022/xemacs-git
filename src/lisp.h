@@ -3514,23 +3514,18 @@ extern MODULE_API int specpdl_depth_counter;
    PARSE_KEYWORDS call must come before any statements. Equivalently, it
    can appear within braces.
 
-   FUNCTION is the C name of the current DEFUN.  If there is no current
-   DEFUN, use the PARSE_KEYWORDS_8 macro, not PARSE_KEYWORDS.  If the
-   current DEFUN has optional arguments that are not keywords, you also need
-   to use the PARSE_KEYWORDS_8 macro.  This is also the case if there are
-   optional arguments that come before the keywords, as Common Lisp
-   specifies for #'parse-integer.
+   FUNCTION is the C name of the current DEFUN.  If there is no current DEFUN,
+   if the current DEFUN has optional arguments that are not keywords, or if
+   there are optional arguments that come before the keywords (as Common Lisp
+   specifies for #'read-from-string), use PARSE_KEYWORDS_7().
 
    NARGS is the count of arguments supplied to FUNCTION.
 
    ARGS is a pointer to the argument vector (not a Lisp vector) supplied to
    FUNCTION.
 
-   KEYWORD_COUNT is the number of keywords FUNCTION is normally prepared to
-   handle.
-
-   KEYWORDS is a parenthesised list of those keywords, without the initial
-   Q_.
+   KEYWORDS is a parenthesised list of the keywords FUNCTION is normally
+   prepared to handle, without the initial Q_.
 
    KEYWORD_DEFAULTS allows you to set non-nil defaults. Put (keywordname =
    initial_value) in this parameter, a collection of C statements surrounded
@@ -3550,37 +3545,37 @@ extern MODULE_API int specpdl_depth_counter;
    and an unrelated name for the local variable, as is possible with the
    ((:keyword unrelated-var)) syntax in defun* and in Common Lisp. That
    shouldn't matter in practice. */
-#if defined (DEBUG_XEMACS) && defined (__STDC_VERSION__) &&	\
+#if defined(ERROR_CHECK_ANY) && defined (__STDC_VERSION__) && \
   __STDC_VERSION__ >= 199901L
+/* */
+#define PARSE_KEYWORDS_ASSERT_CORRECT_FUNCTION(func)    \
+  assert (!strcmp (__func__, #func))
+#else
+#define PARSE_KEYWORDS_ASSERT_CORRECT_FUNCTION(func) DO_NOTHING
+#endif
 
-/* This version has the advantage that DEFUN without DEFSUBR still provokes
-   a defined but not used warning, and it provokes an assertion failure at
-   runtime if someone has copied and pasted the PARSE_KEYWORDS macro from
-   another function without changing FUNCTION; that would lead to an
-   incorrect determination of KEYWORDS_OFFSET. */
-
-#define PARSE_KEYWORDS(function, nargs, args, keyword_count, keywords,    \
-                       keyword_defaults)                                  \
-  PARSE_KEYWORDS_8 (intern_massaging_name (&(#function)[1]), nargs, args, \
-                    keyword_count, keywords, keyword_defaults,            \
-                    /* Can't XSUBR (Fsymbol_function (...))->min_args,    \
-                       the function may be advised. */                    \
-                    XFIXNUM (Ffunction_min_args                           \
-                          (intern_massaging_name (&(#function)[1]))),     \
-                    0);                                                   \
-  assert (0 == strcmp (__func__, #function))
-#else /* defined (DEBUG_XEMACS) && ... */
-#define PARSE_KEYWORDS(function, nargs, args, keyword_count, keywords,	\
-		       keyword_defaults)				\
-  PARSE_KEYWORDS_8 (intern (subr_name (XSUBR                            \
+#define PARSE_KEYWORDS(function, nargs, args, keywords, keyword_defaults)				\
+  PARSE_KEYWORDS_7 (intern (subr_name (XSUBR                            \
                                        (GET_DEFUN_LISP_OBJECT (function)))), \
-                    nargs, args, keyword_count, keywords,               \
+                    nargs, args, keywords,                              \
                     keyword_defaults,                                   \
                     XSUBR (GET_DEFUN_LISP_OBJECT (function))->min_args, \
-                    0)
-#endif /* defined (DEBUG_XEMACS) && defined (__STDC_VERSION__) ... */
+                    0);                                                 \
+  PARSE_KEYWORDS_ASSERT_CORRECT_FUNCTION (function)
 
-/* PARSE_KEYWORDS_8 is a more fine-grained version of PARSE_KEYWORDS. The
+/* Count the number of keywords, thank you Dale Weiler. */
+#define PARSE_KEYWORDS_ARGC_COUNTER(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, \
+                                    N, ...) N
+#define PARSE_KEYWORDS_ARGC(...) \
+  PARSE_KEYWORDS_ARGC_COUNTER(__VA_ARGS__, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+
+/* Concatenate */
+#define PARSE_KEYWORDS_CAT(X, Y) \
+    X ## Y
+#define PARSE_KEYWORDS_CONCATENATE(X, Y) \
+    PARSE_KEYWORDS_CAT(X, Y)
+
+/* PARSE_KEYWORDS_7 is a more fine-grained version of PARSE_KEYWORDS. The
    differences are as follows:
 
    FUNC_SYM is a symbol reflecting the name of the function for which
@@ -3596,10 +3591,11 @@ extern MODULE_API int specpdl_depth_counter;
    may be overridden in the caller by specifying :allow-other-keys t in the
    argument list. In PARSE_KEYWORDS, ALLOW_OTHER_KEYS is always 0. */
 
-#define PARSE_KEYWORDS_8(func_sym, nargs, args,				\
-			 keyword_count, keywords, keyword_defaults,	\
-			 keywords_offset, allow_other_keys)		\
-  DECLARE_N_KEYWORDS_##keyword_count keywords;                          \
+#define PARSE_KEYWORDS_7(func_sym, nargs, args, keywords,               \
+                         keyword_defaults, keywords_offset,             \
+                         allow_other_keys)                              \
+  PARSE_KEYWORDS_CONCATENATE (DECLARE_N_KEYWORDS_,                      \
+                              PARSE_KEYWORDS_ARGC keywords) keywords;   \
                                                                         \
   do                                                                    \
     {                                                                   \
@@ -3633,7 +3629,9 @@ extern MODULE_API int specpdl_depth_counter;
           pk_key = args[pk_i--];                                        \
                                                                         \
           if (0) {}                                                     \
-          CHECK_N_KEYWORDS_##keyword_count keywords                     \
+	  PARSE_KEYWORDS_CONCATENATE (CHECK_N_KEYWORDS_,                \
+                                      PARSE_KEYWORDS_ARGC               \
+                                      keywords) keywords                \
           else if (allow_other_keys || pk_allow_other_keys)             \
             {                                                           \
               continue;                                                 \

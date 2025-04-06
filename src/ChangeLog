@@ -1,3 +1,58 @@
+2025-04-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Simplify the PARSE_KEYWORDS() macro, no need to specify the number
+	of keywords explicitly. Thank you for the technique, Dale Weiler.
+
+	* lisp.h:
+	* lisp.h (PARSE_KEYWORDS):
+	Correct and update some documentation for this. Remove a couple of
+	function calls that attempted to avoid using
+	GET_DEFUN_LISP_OBJECT(), something I plan to remove entirely
+	shortly anyway.
+	* lisp.h (PARSE_KEYWORDS_ARGC_COUNTER): New.
+	* lisp.h (PARSE_KEYWORDS_ARGC): New.
+	* lisp.h (PARSE_KEYWORDS_CAT): New.
+	* lisp.h (PARSE_KEYWORDS_CONCATENATE): New.
+	* lisp.h (PARSE_KEYWORDS_7): Rename PARSE_KEYWORDS_8 to this.
+
+	* data.c (Fparse_integer):
+	* doprnt.c (Fformat_into):
+	* elhash.c (Fmake_hash_table):
+	* lstream.c (Fmake_string_output_stream):
+	* print.c (Fwrite_sequence):
+	* sequence.c (count_with_tail):
+	* sequence.c (Fcount):
+	* sequence.c (FmemberX):
+	* sequence.c (Fadjoin):
+	* sequence.c (FassocX):
+	* sequence.c (FrassocX):
+	* sequence.c (Fposition):
+	* sequence.c (Ffind):
+	* sequence.c (FdeleteX):
+	* sequence.c (FremoveX):
+	* sequence.c (Fdelete_duplicates):
+	* sequence.c (Fremove_duplicates):
+	* sequence.c (Fmerge):
+	* sequence.c (FsortX):
+	* sequence.c (Ffill):
+	* sequence.c (Freduce):
+	* sequence.c (Freplace):
+	* sequence.c (Fnsubstitute):
+	* sequence.c (Fsubstitute):
+	* sequence.c (Fsublis):
+	* sequence.c (Fnsublis):
+	* sequence.c (Fnsubst):
+	* sequence.c (Ftree_equal):
+	* sequence.c (Fmismatch):
+	* sequence.c (Fsearch):
+	* sequence.c (venn):
+	* sequence.c (nvenn):
+	* sequence.c (Funion):
+	* sequence.c (Fset_exclusive_or):
+	* sequence.c (Fnset_exclusive_or):
+	Call PARSE_KEYWORD(), PARSE_KEYWORDS_7() with their new calling
+	conventions.
+
 2025-04-05  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Add support for _fseeki64(), _ftelli64() on Windows.

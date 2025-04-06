@@ -1137,11 +1137,11 @@ arguments: (&key TEST SIZE REHASH-SIZE REHASH-THRESHOLD WEAKNESS)
        (int nargs, Lisp_Object *args))
 {
 #ifndef NEED_TO_HANDLE_21_4_CODE
-  PARSE_KEYWORDS (Fmake_hash_table, nargs, args, 5,
+  PARSE_KEYWORDS (Fmake_hash_table, nargs, args,
                   (test, size, rehash_size, rehash_threshold, weakness),
                   NULL);
 #else
-  PARSE_KEYWORDS (Fmake_hash_table, nargs, args, 6,
+  PARSE_KEYWORDS (Fmake_hash_table, nargs, args,
                   (test, size, rehash_size, rehash_threshold, weakness,
 		   type), (type = Qunbound, weakness = Qunbound));
 

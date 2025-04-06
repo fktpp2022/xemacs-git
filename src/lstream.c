@@ -1852,7 +1852,7 @@ arguments: (&key (ELEMENT-TYPE character))
 */
         (int nargs, Lisp_Object *args))
 {
-  PARSE_KEYWORDS (Fmake_string_output_stream, nargs, args, 1, (element_type),
+  PARSE_KEYWORDS (Fmake_string_output_stream, nargs, args, (element_type),
                   (element_type = Qcharacter));
 
   if (!EQ (element_type, Qcharacter))
