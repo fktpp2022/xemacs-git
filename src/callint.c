@@ -343,22 +343,17 @@ when reading the arguments.
 
   /* Decode the kind of function.  Either handle it and return,
      or go to `lose' if not interactive, or go to `retry'
-     to specify a different function, or set either PROMPT_DATA or SPECS. */
+     to specify a different function, or set SPECS. */
 
   if (SUBRP (fun))
     {
-      prompt_data = (const Ibyte *) XSUBR (fun)->prompt;
-      if (!prompt_data)
+      specs = XSUBR (fun)->prompt;
+      if (!STRINGP (specs))
 	{
 	lose:
 	  function = wrong_type_argument (Qcommandp, function);
 	  goto retry;
 	}
-#if 0 /* FSFmacs */ /* Huh? Where is this used? */
-      if ((EMACS_INT) prompt_data == 1)
-	/* Let SPECS (which is nil) be used as the args.  */
-	prompt_data = 0;
-#endif
     }
   else if (COMPILED_FUNCTIONP (fun))
     {
@@ -396,8 +391,8 @@ when reading the arguments.
   /* FSFmacs makes an ALLOCA() copy of prompt_data here.
      We're more intelligent about this and just reset prompt_data
      as necessary. */
-  /* If either specs or prompt_data is set to a string, use it.  */
-  if (!STRINGP (specs) && prompt_data == 0)
+  /* If specs is set to a string, use it.  */
+  if (!STRINGP (specs))
     {
       struct gcpro gcpro1, gcpro2, gcpro3;
       Charcount i = num_input_chars;
@@ -475,11 +470,6 @@ when reading the arguments.
       else
 	specs = Fdgettext (domain, specs);
     }
-  else if (prompt_data)
-    /* We do not have to worry about domains in this case because
-       prompt_data is non-nil only for built-in functions, which
-       always use the default domain. */
-    prompt_data = gettext (prompt_data);
 #endif
 
   /* Handle special starting chars `*' and `@' and `_'.  */

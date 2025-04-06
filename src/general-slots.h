@@ -155,6 +155,8 @@ SYMBOL (Qfrom_unicode);
 SYMBOL (Qfull_assoc);
 SYMBOL (Qfuncall);
 SYMBOL (Qfunction);
+SYMBOL (Qfunction_min_args);
+SYMBOL (Qfunction_max_args);
 SYMBOL (Qgarbage_collection);
 SYMBOL (Qgeneric);
 SYMBOL (Qgeometry);

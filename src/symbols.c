@@ -361,11 +361,8 @@ SUBR must be a built-in function.
 */
        (subr))
 {
-  const Ascbyte *name;
   CHECK_SUBR (subr);
-
-  name = XSUBR (subr)->name;
-  return make_string ((const Ibyte *)name, strlen (name));
+  return XSYMBOL_NAME (XSUBR (subr)->name);
 }
 
 DEFUN ("special-operator-p", Fspecial_operator_p, 1, 1, 0, /*
@@ -3315,119 +3312,74 @@ defkeyword_massage_name (Lisp_Object *location, const Ascbyte *name)
   Fset (*location, *location);
 }
 
-#ifdef DEBUG_XEMACS
-/* Check that nobody spazzed writing a builtin (non-module) DEFUN. */
-static void
-check_sane_subr (Lisp_Subr *subr, Lisp_Object sym)
+static Lisp_Object
+defsubr_1 (const CIbyte *lname, lisp_fn_t subr_fn, short min_args,
+           short max_args, const CIbyte *prompt)
 {
-  if (!initialized) {
-    assert (subr->min_args >= 0);
-    assert (subr->min_args <= SUBR_MAX_ARGS);
+  Lisp_Object sym = intern (lname), fun;
+  Lisp_Subr *subr;
+  
+  if (min_args < 0 || min_args > SUBR_MAX_ARGS)
+    {
+      signal_error_1 (Qargs_out_of_range, list5 (make_fixnum (min_args),
+                                                 Qzero,
+                                                 make_fixnum (SUBR_MAX_ARGS),
+                                                 Qfunction_min_args,
+                                                 sym));
+    }
 
-    if (subr->max_args != MANY &&
-	subr->max_args != UNEVALLED)
-      {
-	/* Need to fix lisp.h and eval.c if SUBR_MAX_ARGS too small */
-	assert (subr->max_args <= SUBR_MAX_ARGS);
-	assert (subr->min_args <= subr->max_args);
-      }
-    assert (UNBOUNDP (XSYMBOL (sym)->function));
-  }
+  if (max_args != MANY && max_args != UNEVALLED)
+    {
+      if (max_args < min_args || max_args > SUBR_MAX_ARGS)
+        {
+          signal_error_1 (Qargs_out_of_range,
+                          list5 (make_fixnum (max_args),
+                                 make_fixnum (min_args),
+                                 make_fixnum (SUBR_MAX_ARGS),
+                                 Qfunction_max_args, sym));
+        }
+    }
+  
+  fun = make_subr ();
+  subr = XSUBR (fun);
+
+  subr->name = sym;
+  subr->subr_fn = subr_fn;
+  subr->doc = Qnil;
+  subr->prompt = prompt ? build_ascstring (prompt) : Qnil;
+  subr->min_args = min_args;
+  subr->max_args = max_args;
+
+  LOADHIST_ATTACH (Fcons (Qdefun, sym));
+
+  return fun;
 }
-#else
-#define check_sane_subr(subr, sym) /* nothing */
-#endif
 
-#ifdef HAVE_SHLIB
-/* If we are not in a pure undumped Emacs, we need to make a duplicate of the
-   subr. This is because the only time this function will be called in a
-   running Emacs is when a dynamically loaded module is adding a subr, and we
-   need to make sure that the subr is in Lisp-allocated memory, so that it can
-   be garbage-collected in the normal way if the module is unloaded.
-
-   The newly-allocated subr will be reachable from the symbol-function slot of
-   its symbol name, so there is no need to staticpro() it. */
-#define check_module_subr(subr)						      \
-do {									      \
-  if (initialized)                                                            \
-    {                                                                         \
-      Lisp_Subr *newsubr;                                                     \
-      Lisp_Object f;                                                          \
-                                                                              \
-      if (subr->min_args < 0)                                                 \
-        {                                                                     \
-          signal_ferror (Qdll_error, "%s min_args (%hd) too small",           \
-                         subr_name (subr), subr->min_args);                   \
-        }                                                                     \
-      if (subr->min_args > SUBR_MAX_ARGS)                                     \
-        {                                                                     \
-          signal_ferror (Qdll_error, "%s min_args (%hd) too big (max = %d)",  \
-                         subr_name (subr), subr->min_args, SUBR_MAX_ARGS );   \
-        }                                                                     \
-      if (subr->max_args != MANY &&                                           \
-          subr->max_args != UNEVALLED)                                        \
-        {                                                                     \
-          /* Need to fix lisp.h and eval.c if SUBR_MAX_ARGS too small */      \
-          if (subr->max_args > SUBR_MAX_ARGS)                                 \
-            signal_ferror (Qdll_error,                                        \
-                           "%s max_args (%hd) too big (max = %d)",            \
-                           subr_name (subr), subr->max_args, SUBR_MAX_ARGS);  \
-          if (subr->min_args > subr->max_args)                                \
-            signal_ferror (Qdll_error, "%s min_args (%hd) > max_args (%hd)",  \
-			   subr_name (subr), subr->min_args, subr->max_args); \
-        }                                                                     \
-                                                                              \
-      f = XSYMBOL (sym)->function;                                            \
-      if (!UNBOUNDP (f) && (!CONSP (f) || !EQ (XCAR (f), Qautoload)))         \
-        signal_ferror (Qdll_error, "Attempt to redefine %s",                  \
-                       subr_name (subr));                                     \
-									      \
-      newsubr = XSUBR (make_subr ());                                         \
-      copy_lisp_object (wrap_subr (newsubr), wrap_subr (subr));               \
-      subr = newsubr;                                                         \
-    }                                                                         \
-} while (0)
-#else /* ! HAVE_SHLIB */
-#define check_module_subr(subr)
-#endif
-
-void
-defsubr (Lisp_Subr *subr)
+Lisp_Object
+defsubr (const CIbyte *lname, lisp_fn_t subr_fn,
+         short min_args, short max_args,
+         const CIbyte *prompt)
 {
-  Lisp_Object sym = intern (subr_name (subr));
-  Lisp_Object fun;
+  Lisp_Object fun = defsubr_1 (lname, subr_fn, min_args, max_args, prompt);
+  Lisp_Object sym = XSUBR (fun)->name;
 
-  check_sane_subr (subr, sym);
-  check_module_subr (subr);
-
-  fun = wrap_subr (subr);
   XSYMBOL (sym)->function = fun;
 
-#ifdef HAVE_SHLIB
-  /* If it is declared in a module, update the load history */
-  if (initialized)
-    LOADHIST_ATTACH (Fcons (Qdefun, sym));
-#endif
+  return sym;
 }
 
-/* Define a lisp macro using a Lisp_Subr. */
-void
-defsubr_macro (Lisp_Subr *subr)
+/* Define a lisp macro implemented using a Lisp_Subr. */
+Lisp_Object
+defsubr_macro (const CIbyte *lname, lisp_fn_t subr_fn,
+               short min_args, short max_args,
+               const CIbyte *prompt)
 {
-  Lisp_Object sym = intern (subr_name (subr));
-  Lisp_Object fun;
+  Lisp_Object fun = defsubr_1 (lname, subr_fn, min_args, max_args, prompt);
+  Lisp_Object sym = XSUBR (fun)->name;
 
-  check_sane_subr (subr, sym);
-  check_module_subr (subr);
-
-  fun = wrap_subr (subr);
   XSYMBOL (sym)->function = Fcons (Qmacro, fun);
 
-#ifdef HAVE_SHLIB
-  /* If it is declared in a module, update the load history */
-  if (initialized)
-    LOADHIST_ATTACH (Fcons (Qdefun, sym));
-#endif
+  return sym;
 }
 
 static void
@@ -3479,6 +3431,20 @@ deferror_massage_name_and_message (Lisp_Object *symbol, const Ascbyte *name,
       temp[i] = ' ';
 
   deferror_1 (symbol, name, temp, inherits_from, 1);
+}
+
+/* Create and initialize a Lisp variable whose value is forwarded to C data */
+void
+defvar_magic (const Ascbyte *symbol_name, Lisp_Object magic)
+{
+  Lisp_Object sym;
+
+  structure_checking_assert (SYMBOL_VALUE_MAGIC_P (magic));
+
+  sym = Fintern (build_ascstring (symbol_name), Qnil);
+  XSYMBOL (sym)->value = magic;
+
+  LOADHIST_ATTACH (sym);
 }
 
 void
@@ -3558,33 +3524,6 @@ syms_of_symbols (void)
   DEFSUBR (Findirect_variable);
   DEFSUBR (Fvariable_binding_locus);
   DEFSUBR (Fdontusethis_set_symbol_value_handler);
-}
-
-/* Create and initialize a Lisp variable whose value is forwarded to C data */
-void
-defvar_magic (const Ascbyte *symbol_name, Lisp_Object magic)
-{
-  Lisp_Object sym;
-
-  structure_checking_assert (SYMBOL_VALUE_MAGIC_P (magic));
-
-#ifdef HAVE_SHLIB
-  /*
-   * As with defsubr(), this will only be called in a dumped Emacs when
-   * we are adding variables from a dynamically loaded module. That means
-   * we can't use purespace. Take that into account.
-   */
-  if (initialized)
-    {
-      sym = Fintern (build_ascstring (symbol_name), Qnil);
-      LOADHIST_ATTACH (sym);
-    }
-  else
-#endif
-    sym = Fintern (make_string_nocopy ((const Ibyte *) symbol_name,
-				       strlen (symbol_name)), Qnil);
-
-  XSYMBOL (sym)->value = magic;
 }
 
 /* symbols.c ends here. */

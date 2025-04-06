@@ -276,10 +276,17 @@ If non-nil, the return value will be a list whose first element is
 */
        (subr))
 {
-  const CIbyte *prompt;
+  Lisp_Object prompt;
+
   CHECK_SUBR (subr);
   prompt = XSUBR (subr)->prompt;
-  return prompt ? list2 (Qinteractive, build_msg_cistring (prompt)) : Qnil;
+
+  if (NILP (prompt))
+    {
+      return Qnil;
+    }
+
+  return list2 (Qinteractive, LISP_GETTEXT (prompt));
 }
 
 

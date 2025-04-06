@@ -453,22 +453,25 @@ print_subr (Lisp_Object obj, Lisp_Object printcharfun, int UNUSED (escapeflag))
   Lisp_Subr *subr = XSUBR (obj);
   const Ascbyte *header =
     (subr->max_args == UNEVALLED) ? "#<special-operator " : "#<subr ";
-  const Ascbyte *name = subr_name (subr);
-  const Ascbyte *trailer = subr->prompt ? " (interactive)>" : ">";
+  const Ascbyte *trailer = NILP (subr->prompt) ? ">" : " (interactive)>";
 
   if (print_readably)
-    printing_unreadable_object_fmt ("%s%s%s", header, name, trailer);
+    {
+      printing_unreadable_object_fmt
+        ("%s%s%s", header, XSTRING_DATA (XSYMBOL_NAME (subr->name)), trailer);
+    }
 
   write_ascstring (printcharfun, header);
-  write_ascstring (printcharfun, name);
+  write_lisp_string (printcharfun, XSYMBOL_NAME (subr->name), 0,
+                     XSTRING_LENGTH (XSYMBOL_NAME (subr->name)));
   write_ascstring (printcharfun, trailer);
 }
 
 static const struct memory_description subr_description[] = {
-  { XD_ASCII_STRING, offsetof (Lisp_Subr, prompt) },
+  { XD_LISP_OBJECT, offsetof (Lisp_Subr, name) },
   { XD_LISP_OBJECT, offsetof (Lisp_Subr, doc) },
   { XD_FUNCTION_POINTER, offsetof (Lisp_Subr, subr_fn) },
-  { XD_ASCII_STRING, offsetof (Lisp_Subr, name) },
+  { XD_LISP_OBJECT, offsetof (Lisp_Subr, prompt) },
   { XD_END }
 };
 
@@ -3346,7 +3349,7 @@ Also, a symbol satisfies `commandp' if its function definition does so.
   /* Emacs primitives are interactive if their DEFUN specifies an
      interactive spec.  */
   if (SUBRP (fun))
-    return XSUBR (fun)->prompt ? Qt : Qnil;
+    return NILP (XSUBR (fun)->prompt) ? Qnil : Qt;
 
   /* Strings and vectors are keyboard macros.  */
   if (VECTORP (fun) || STRINGP (fun))

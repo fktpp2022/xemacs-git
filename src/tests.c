@@ -1043,11 +1043,9 @@ Make sure `fixnum_to_string' can print LONG_MIN as a decimal correctly.
 }
 
 
-#define TESTS_DEFSUBR(Fname) do {		\
-  DEFSUBR (Fname);				\
-  Vtest_function_list =				\
-    Fcons (intern (subr_name (&S##Fname)),	\
-	   Vtest_function_list);		\
+#define TESTS_DEFSUBR(Fname) do {                       \
+  Vtest_function_list =                                 \
+    Fcons (DEFSUBR (Fname), Vtest_function_list);       \
 } while (0)
 
 void

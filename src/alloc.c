@@ -2302,10 +2302,6 @@ DECLARE_FIXED_TYPE_ALLOC (subr, Lisp_Subr);
 Lisp_Object
 make_subr (void)
 {
-  /* Subr is a very unusual type in that in the normal course of events it is
-     never allocated by the Lisp allocator; the structures for built-in subrs
-     live in the C data segment and are copied to the dump file by pdump. The
-     need to allocate a subr only arises with modules.*/
   Lisp_Subr *ss;
 
   ALLOC_FROB_BLOCK_LISP_OBJECT (subr, Lisp_Subr, ss,
@@ -5271,6 +5267,30 @@ disksave_object_finalization_1 (void)
 #endif
 }
 
+static int
+mark_subrs_readonly (Lisp_Object UNUSED (key), Lisp_Object value,
+                     void* UNUSED (extra_arg))
+{
+  if (SUBRP (XSYMBOL_FUNCTION (value)))
+    {
+      Lisp_Subr *subr = XSUBR (XSYMBOL_FUNCTION (value));
+
+      if (EQ (subr->name, value) && FIXNUMP (subr->doc))
+        {
+          /* Don't waste GC cycles traversing dumped subrs after loadup.
+             Disksave methods are not called for frob-block objects, which is
+             a bug, otherwise this would be a disksave method. */
+          SET_C_READONLY_RECORD_HEADER (&(subr->lheader));
+          if (STRINGP (subr->prompt))
+	    {
+	      Lisp_String *str = XSTRING (subr->prompt);
+	      SET_C_READONLY_RECORD_HEADER (&(str->u.lheader));
+	    }
+        }
+    }
+  return 0;
+}
+
 void
 disksave_object_finalization (void)
 {
@@ -5308,6 +5328,9 @@ disksave_object_finalization (void)
   Vload_history = Qnil;
 #endif
   Vshell_file_name = Qnil;
+
+  /* Mark subrs that are bound to interned symbols as C-readonly. */
+  elisp_maphash_unsafe (mark_subrs_readonly, Vobarray, NULL);
 
   garbage_collect_1 ();
 

@@ -1,5 +1,89 @@
 2025-04-06  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove the Lisp_Subr structures from the data segment; they are
+	copied to the dump file by pdump() anyway, so the data segment
+	copies are leaked, and with modules Lisp code access to the data
+	segment of unloaded modules ends badly.
+
+	In passing, store the interned symbol as the NAME field, also
+	ensuring that it does not point into the data segment of an
+	unloaded module. Store PROMPT as a Lisp_Object, either Qnil or a
+	string.
+
+	Return the string name of the symbol from #'subr-name, preserving
+	what our callers expect.  Similar for #'subr-interactive.
+	
+	* alloc.c:
+	* alloc.c (make_subr):
+	Remove a comment that is no longer true.
+	* alloc.c (mark_subrs_readonly): New. Mark those subrs that
+	are bound to interned symbols as C-readonly as was the case
+	previous to this change.  Mark their interactive specs as
+	C-readonly if they are strings.
+
+	* alloc.c (disksave_object_finalization):
+	Call it.
+	* callint.c (Fcall_interactively):
+	Now subr prompt data is stored as a string, treat it the same as
+	compiled function prompt data.
+	* data.c:
+	* data.c (Fsubr_interactive):
+	Handle the new data type for Lisp_Subr->prompt.
+	* emacs.c (main_1):
+	Re-order this, syms_of_eval() now needs to be called before
+	anything that calls DEFSUBR().
+
+	* eval.c:
+	* eval.c (print_subr):
+	Revise this to reflect the new members of Lisp_Subr.
+	* eval.c (Fcommandp):
+	Ditto.
+	* general-slots.h:
+	Add Qfunction_min_args, Qfunction_max_args here, used by
+	sanity-checking within defsubr().
+
+	* lisp.h:
+	* lisp.h (struct Lisp_Subr):
+	Revise this to make NAME, PROMPT Lisp_Objects. Re-order it
+	following best practice.
+
+	* lisp.h (subr_name):
+	Revise this to return the string data of the symbol subr name.
+
+	* lisp.h (DEFUN):
+	* lisp.h (DEFUN_NORETURN):
+	Communicate the arguments of these macros to defsubr() by means of
+	an inline function.
+	Declare defsubr(), defsubr_macro() in lisp.h so the compiler knows
+	about their calling convention.
+
+	* symbols.c:
+	* symbols.c (Fsubr_name):
+	Return the string name of the symbol subr name.
+
+	* symbols.c (defsubr_1): New. Bulk of defsubr(),
+	defsubr_macro(). Sanity-check the supplied arguments in the same
+	way for built-ins as for subrs created by modules. No further need
+	to copy a supplied Lisp_Subr to the C heap.
+	* symbols.c (defsubr): Revise this to take LNAME, SUBR_FN,
+	MIN_ARGS, MAX_ARGS, PROMPT as its arguments, and to return the
+	interned symbol name of the subr, this latter used by tests.c.
+	* symbols.c (defsubr_macro):
+	Ditto.
+	* symbols.c (defvar_magic): Move this before syms_of_symbols(),
+	same structure as every other file.
+	
+	* symeval.h:
+	* symeval.h (DEFSUBR_MACRO):
+	Revise these to use the inline function created by DEFUN() to
+	communicate arguments to us.
+
+	* tests.c (TESTS_DEFSUBR):
+	Use the fact that DEFSUBR() now returns the symbol bound in this
+	macro.
+
+2025-04-06  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Add a new #define for Lisp_Subr->max_args, KEYWORDS, numerically
 	identical to MANY but explicitly making LNAME and MIN_ARGS
 	available to PARSE_KEYWORDS() as static constants.

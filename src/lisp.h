@@ -2911,17 +2911,16 @@ typedef Lisp_Object (*lisp_fn_t) (void);
 struct Lisp_Subr
 {
   FROB_BLOCK_LISP_OBJECT_HEADER lheader;
+  /* The symbol name of the subr. */
+  Lisp_Object name;
+  /* Either a fixnum (an offset into DOC) or a Lisp string (for functions in
+     modules). */
+  Lisp_Object doc;
+  lisp_fn_t subr_fn;
+  /* A Lisp string if this is interactive, Qnil otherwise. */
+  Lisp_Object prompt;
   short min_args;
   short max_args;
-  const CIbyte *prompt;
-  const CIbyte *name;
-  lisp_fn_t subr_fn;
-  /* Either a fixnum (an offset into DOC) or a Lisp string (for functions in
-     modules). Intentionally at the end so we don't have to fight with C
-     implementations and --with-union-type, some of which assert that
-     Qnull_pointer is not a compile-time constant; omitting it in initializers
-     is defined by the standards to set it to bitwise zero. */
-  Lisp_Object doc;
 };
 typedef struct Lisp_Subr Lisp_Subr;
 
@@ -2935,7 +2934,7 @@ DECLARE_LISP_OBJECT (subr, Lisp_Subr);
 #define subr_function(subr) ((subr)->subr_fn)
 #define SUBR_FUNCTION(subr,max_args) \
   ((Lisp_Object (*) (EXFUN_##max_args)) (subr)->subr_fn)
-#define subr_name(subr) ((subr)->name)
+#define subr_name(subr) (XSTRING_DATA (XSYMBOL_NAME (subr)->name))
 
 /*------------------------------ marker --------------------------------*/
 
@@ -3446,47 +3445,41 @@ Lisp_Object,Lisp_Object,Lisp_Object
 #define DECLARE_MIN_ARGS_KEYWORDS(Fname, val) static const short Fname##_min_args = val;
 #define DECLARE_MIN_ARGS_UNEVALLED(Fname, val) /* Nothing */
 
-/* Can't be const, because then subr->doc is read-only and
-   Snarf_documentation chokes */
-
 #define DEFUN(lname, Fname, min_args, max_args, prompt, arglist)	\
   Lisp_Object Fname (EXFUN_##max_args);					\
-  static struct Lisp_Subr S##Fname =					\
+  DECLARE_INLINE_HEADER (                                               \
+  /* Communicate the args to defsubr() and defsubr_macro()  */          \
+  /* by means of an inline function, since recursive macros */          \
+  /* don't work in C. This function is local to the file of */          \
+  /* DEFUN() and DEFSUBR(), despite the use of */                       \
+  /* DECLARE_INLINE_HEADER(). */                                        \
+  Lisp_Object                                                           \
+  defsubr_##Fname (Boolint macrop))                                     \
   {									\
-    { /* struct lrecord_header */					\
-      lrecord_type_subr, /* lrecord_type_index */			\
-      1, /* mark bit */							\
-      1, /* c_readonly bit */						\
-      1, /* lisp_readonly bit */					\
-    },									\
-    min_args,								\
-    max_args,								\
-    prompt,								\
-    lname,								\
-    (lisp_fn_t) Fname							\
-    /* DOC not specififed, initialized to Qnull_pointer by C. */	\
-  };									\
+    if (macrop)                                                         \
+      return defsubr_macro (lname, (lisp_fn_t) Fname, min_args,         \
+                            max_args,                                   \
+                            prompt);                                    \
+    return defsubr (lname, (lisp_fn_t) Fname, min_args, max_args,       \
+                    prompt);                                            \
+  }									\
   DECLARE_MIN_ARGS_##max_args (Fname, min_args)                         \
   DECLARE_LISP_NAME_##max_args (Fname, lname)                           \
   Lisp_Object Fname (DEFUN_##max_args arglist)
 
 #define DEFUN_NORETURN(lname, Fname, min_args, max_args, prompt, arglist) \
   DECLARE_DOESNT_RETURN_TYPE (Lisp_Object, Fname (EXFUN_##max_args));	\
-  static struct Lisp_Subr S##Fname =					\
+  DECLARE_INLINE_HEADER (                                               \
+  Lisp_Object                                                           \
+  defsubr_##Fname (Boolint macrop))                                     \
   {									\
-    { /* struct lrecord_header */					\
-      lrecord_type_subr, /* lrecord_type_index */			\
-      1, /* mark bit */							\
-      1, /* c_readonly bit */						\
-      1, /* lisp_readonly bit */					\
-    },									\
-    min_args,								\
-    max_args,								\
-    prompt,								\
-    lname,								\
-    (lisp_fn_t) Fname							\
-    /* , Qnull_pointer */						\
-  };									\
+    if (macrop)                                                         \
+      return defsubr_macro (lname, (lisp_fn_t) Fname, min_args,         \
+                            max_args,                                   \
+                            prompt);                                    \
+    return defsubr (lname, (lisp_fn_t) Fname, min_args, max_args,       \
+                    prompt);                                            \
+  }									\
   DECLARE_MIN_ARGS_##max_args (Fname, min_args)                         \
   DECLARE_LISP_NAME_##max_args (Fname, lname)                           \
   DOESNT_RETURN_TYPE (Lisp_Object) Fname (DEFUN_##max_args arglist)
@@ -4798,7 +4791,7 @@ extern Lisp_Object Vlisp_directory;
 #ifdef HAVE_SHLIB
 EXFUN (Flist_modules, 0);
 EXFUN (Fload_module, 3);
-extern int unloading_module;
+extern Boolint unloading_module;
 #endif
 extern Lisp_Object Qdll_error;
 extern Lisp_Object Qmodule;
@@ -6048,6 +6041,12 @@ Lisp_Object top_level_value (Lisp_Object);
 void reject_constant_symbols (Lisp_Object sym, Lisp_Object newval,
 			      int function_p,
 			      Lisp_Object follow_past_lisp_magic);
+MODULE_API Lisp_Object defsubr (const CIbyte *lname, lisp_fn_t Fname, 
+                                short min_args, short max_args,
+                                const CIbyte *prompt);
+MODULE_API Lisp_Object defsubr_macro (const CIbyte *lname, lisp_fn_t Fname,
+                                      short min_args, short max_args,
+                                      const CIbyte *prompt);
 
 extern Lisp_Object Qconst_specifier;
 extern Lisp_Object Qmakunbound;

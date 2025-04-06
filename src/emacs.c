@@ -1335,9 +1335,10 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 	 defkeyword() or DEFKEYWORD()
 	 Fput()
 
-	 Order does not matter in these functions.
-	 */
-
+	 syms_of_eval() needs to come first to make the Lisp_Subr object
+	 available to DEFSUBR(). Otherwise order does not matter in these
+	 functions. */
+      syms_of_eval ();
       syms_of_abbrev ();
       syms_of_alloc ();
       syms_of_gc ();
@@ -1366,7 +1367,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       syms_of_editfns ();
       syms_of_elhash ();
       syms_of_emacs ();
-      syms_of_eval ();
 #ifdef HAVE_X_WINDOWS
       syms_of_event_Xt ();
 #endif
