@@ -1071,7 +1071,10 @@ find_start_of_comment (struct buffer *buf, Bytebpos from, Bytebpos stop,
       else
 	/* We can't grok this as a comment; scan it normally.  */
 	from = comment_end;
-      UPDATE_SYNTAX_CACHE_FORWARD (scache, prev_bytebpos (buf, from));
+      if (from > 1)
+        {
+          UPDATE_SYNTAX_CACHE_FORWARD (scache, prev_bytebpos (buf, from));
+        }
     }
   return from;
 }

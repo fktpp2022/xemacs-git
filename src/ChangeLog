@@ -1,5 +1,11 @@
 2025-04-06  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* syntax.c (find_start_of_comment):
+	Check that FROM is > 1 before calling prev_bytebpos() on it, avoid
+	a crash I've recently elicited.
+
+2025-04-06  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Remove the Lisp_Subr structures from the data segment; they are
 	copied to the dump file by pdump() anyway, so the data segment
 	copies are leaked, and with modules Lisp code access to the data
