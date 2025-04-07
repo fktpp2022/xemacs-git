@@ -1160,10 +1160,6 @@ extern MODULE_API void init_memory_usage_stats (int type,
 #define INIT_MEMORY_USAGE_STATS(type, memusage_stats_list)      \
   init_memory_usage_stats (lrecord_type_##type, memusage_stats_list)
 
-/* If MEMORY_USAGE_STATS is defined, clear stats for TYPE. If it is not
-   defined, do nothing. */
-extern MODULE_API void uninit_memory_usage_stats (int type);
-
 #define XD_INDIRECT(val, delta) (-1 - (Bytecount) ((val) | ((delta) << 8)))
 
 #define XD_IS_INDIRECT(code) ((code) < 0)
@@ -1272,54 +1268,36 @@ extern MODULE_API void uninit_memory_usage_stats (int type);
 
 /********* MAKE_LISP_OBJECT, the underlying macro *********** */
 
-#define MAKE_LISP_OBJECT(lisp_name, c_name, m_l_o_dumpable, m_l_o_printer, \
+#define MAKE_LISP_OBJECT(lisp_name, c_name, dumpable, m_l_o_printer,       \
                          nuker, m_l_o_equal, m_l_o_hash, desc, size, sizer,\
-                         m_l_o_frob_block_p)                               \
+                         frob_block_p)                                     \
   do {                                                                     \
-    init_lrecord_type_##c_name ();                                         \
-    LRECORD_IMPLEMENTATION (c_name)                                        \
-      = xnew_and_zero (struct lrecord_implementation);                     \
-    init_lrecord_implementation_name (lrecord_type_##c_name, lisp_name);   \
-    LRECORD_IMPLEMENTATION (c_name)->lrecord_type_index                    \
-      = lrecord_type_##c_name;                                             \
-    LRECORD_IMPLEMENTATION (c_name)->static_size = size;                   \
-    LRECORD_IMPLEMENTATION (c_name)->description = desc;                   \
-    LRECORD_IMPLEMENTATION (c_name)->dumpable = m_l_o_dumpable;            \
-    LRECORD_IMPLEMENTATION (c_name)->frob_block_p                          \
-      = m_l_o_frob_block_p;                                                \
-                                                                           \
+    define_lisp_object (init_lrecord_type_##c_name (), lisp_name, size,    \
+                        desc, dumpable, frob_block_p);                     \
     OBJECT_HAS_NAMED_METHOD (c_name, printer, m_l_o_printer);              \
     OBJECT_HAS_NAMED_METHOD (c_name, finalizer, nuker);                    \
     OBJECT_HAS_NAMED_METHOD (c_name, equal, m_l_o_equal);                  \
     OBJECT_HAS_NAMED_METHOD (c_name, hash, m_l_o_hash);                    \
     OBJECT_HAS_NAMED_METHOD (c_name, size_in_bytes_method,                 \
                              sizer);                                       \
-                                                                           \
-    lrecord_memory_descriptions[lrecord_type_##c_name] =                   \
-      LRECORD_IMPLEMENTATION (c_name)->description;                        \
-    init_memory_usage_stats (lrecord_type_##c_name, Qnil);                 \
   } while (0)
 
 extern MODULE_API const struct memory_description *lrecord_memory_descriptions[];
 
-extern MODULE_API void init_lrecord_implementation_name (int lrecord_type,
-                                                         const CIbyte *name);
+extern MODULE_API void define_lisp_object (int lrecord_type,
+                                           const CIbyte *name,
+                                           Bytecount size,
+                                           const struct memory_description *,
+                                           Boolint dumpable,
+                                           Boolint frob_block_p);
 
 #ifdef HAVE_SHLIB
-/* Allow undefining types in order to support module unloading. */
 
-#define UNDEF_MODULE_LISP_OBJECT(c_name) do {				\
-    if (LRECORD_IMPLEMENTATION (c_name)->lrecord_type_index             \
-        == lrecord_type_count - 1)                                      \
-      {                                                                 \
-        /* This is the most recently defined type.  Clean up nicely. */	\
-        lrecord_type_count--;                                           \
-      } /* Else we can't help leaving a hole */                         \
-        /* with this implementation. */                                 \
-    lrecord_implementations_table[lrecord_type_##c_name] = NULL;        \
-    lrecord_memory_descriptions[lrecord_type_##c_name] = NULL;          \
-    uninit_memory_usage_stats (lrecord_type_##c_name);                  \
-  } while (0)
+/* Allow undefining types in order to support module unloading. */
+extern MODULE_API void undef_lisp_object (int lrecord_type);
+
+#define UNDEF_MODULE_LISP_OBJECT(c_name) \
+  undef_lisp_object (lrecord_type_##c_name)
 
 #endif /* HAVE_SHLIB */
 
@@ -1551,36 +1529,38 @@ do							\
    separate DEFINE_*_LISP_OBJECT() macros to be used in modules.) */
 #define DECLARE_LISP_OBJECT(c_name, structtype)                         \
 DECLARE_INLINE_HEADER (                                                 \
-void                                                                    \
+int                                                                    \
 init_lrecord_type_##c_name (void)                                       \
 )									\
 {									\
   structure_checking_assert (lrecord_type_##c_name != 0);               \
   structure_checking_assert (lrecord_type_##c_name <                    \
                              lrecord_type_last_built_in_type);          \
+  return lrecord_type_##c_name;                                         \
 }									\
 DECLARE_LISP_OBJECT_1 (c_name, structtype, extern)
 
 #define DECLARE_MODULE_API_LISP_OBJECT(c_name, structtype)		\
 DECLARE_INLINE_HEADER (                                                 \
-void                                                                    \
+int                                                                    \
 init_lrecord_type_##c_name (void)                                       \
 )									\
 {									\
   structure_checking_assert (lrecord_type_##c_name != 0);               \
   structure_checking_assert (lrecord_type_##c_name <                    \
                              lrecord_type_last_built_in_type);          \
+  return lrecord_type_##c_name;                                         \
 }									\
 DECLARE_LISP_OBJECT_1 (c_name, structtype, extern MODULE_API)
 
 #define DECLARE_MODULE_LISP_OBJECT(c_name, structtype)                  \
 extern int lrecord_type_##c_name;                                       \
 DECLARE_INLINE_HEADER (                                                 \
-void                                                                    \
+int                                                                     \
 init_lrecord_type_##c_name (void)                                       \
 )									\
 {									\
-  lrecord_type_##c_name = lrecord_type_count++;                         \
+  return lrecord_type_##c_name = lrecord_type_count++;                  \
 }									\
 DECLARE_LISP_OBJECT_1 (c_name, structtype, extern)
 

@@ -4375,7 +4375,7 @@ See also `consing-since-gc' and `object-memory-usage-stats'.
 #ifdef MEMORY_USAGE_STATS
 
 /* Compute the number of extra memory-usage statistics associated with an
-   object.  We can't compute this at the time INIT_LISP_OBJECT() is called
+   object.  We can't compute this at the time DEFINE_*_LISP_OBJECT() is called
    because the value of the `memusage_stats_list' property is generally
    set afterwards.  So we compute the values for all types of objects
    after all objects have been initialized. */
@@ -4446,14 +4446,6 @@ init_memory_usage_stats (int type,
 #ifdef MEMORY_USAGE_STATS
   structure_checking_assert (type > 0 && type <
                              countof (lrecord_implementations_table));
-  if (EQ (Vmemusage_stats_lists, Qnull_pointer)) /* Very, very early. */
-    {
-      Vmemusage_stats_lists
-        = make_vector (countof (lrecord_implementations_table),
-                       Qnull_pointer);
-      /* Leave staticpro() to init_alloc_once_early(). */
-    }
-
   XVECTOR_DATA (Vmemusage_stats_lists)[type] = memusage_stats_list;
 #else
   USED (type);
@@ -4461,7 +4453,9 @@ init_memory_usage_stats (int type,
 #endif
 }
 
-void
+/* If MEMORY_USAGE_STATS is defined, clear stats for TYPE. If it is not
+   defined, do nothing. */
+static void
 uninit_memory_usage_stats (int type)
 {
   structure_checking_assert (type > 0 && type <
@@ -4479,13 +4473,27 @@ struct saved_object_name
   const CIbyte *name;
 };
 
-/* Usually equivalent to lrecord_implementations_table[TIPO]->name = intern
-   (NAME), but has some special handling for bootstrapping. */
+/* Define a new lrecord type, with its lrecord_type TIPO, its Lisp-visible
+   name NAME, and the other specified fields within according to the other
+   args. Called from MAKE_LISP_OBJECT() and ultimately from the various
+   DEFINE.*LISP_OBJECT() macros. */
 void
-init_lrecord_implementation_name (int tipo, const CIbyte *name)
+define_lisp_object (int tipo, const CIbyte *name, Bytecount static_size,
+                    const struct memory_description *description,
+                    Boolint dumpable, Boolint frob_block_p)
 {
   static struct saved_object_name *saved_object_names;
   static struct saved_object_name *saved_object_name_ptr;
+
+  lrecord_implementations_table[tipo]
+    = xnew_and_zero (struct lrecord_implementation);
+  lrecord_implementations_table[tipo]->lrecord_type_index = tipo;
+  lrecord_implementations_table[tipo]->static_size = static_size;
+  lrecord_implementations_table[tipo]->description = description;
+  lrecord_implementations_table[tipo]->dumpable = dumpable;
+  lrecord_implementations_table[tipo]->frob_block_p = frob_block_p;
+
+  lrecord_memory_descriptions[tipo] = description;
 
   if (EQ (Qnil, Qnull_pointer))
     {
@@ -4515,6 +4523,7 @@ init_lrecord_implementation_name (int tipo, const CIbyte *name)
         {
           lrecord_implementations_table[saved_object_name_ptr->tipo]->name
             = intern (saved_object_name_ptr->name);
+          init_memory_usage_stats (saved_object_name_ptr->tipo, Qnil);
         }
 
       xfree (saved_object_names);
@@ -4524,7 +4533,57 @@ init_lrecord_implementation_name (int tipo, const CIbyte *name)
     }
 
   lrecord_implementations_table[tipo]->name = intern (name);
+  init_memory_usage_stats (tipo, Qnil);
+
+  /* Make the load history aware of this to better support unloading
+     modules. */
+  LOADHIST_ATTACH (Fcons (Qobject,
+                          lrecord_implementations_table[tipo]->name));
 }
+
+#ifdef HAVE_SHLIB
+
+static const struct memory_description empty_memory_description_1[] = {
+  { XD_END }
+};
+
+void
+undef_lisp_object (int lrecord_type_index)
+{
+  structure_checking_assert (lrecord_type_index < lrecord_type_count);
+  structure_checking_assert (lrecord_implementations_table[lrecord_type_index]
+                             != NULL);
+  if (lrecord_stats[lrecord_type_index].instances_in_use == 0)
+    {
+      /* None of these objects are currently allocated, we can uninit this
+         lisp object (relatively) cleanly. */
+      if (lrecord_type_index == lrecord_type_count - 1)
+        {
+          lrecord_type_count--;
+          /* Otherwise we just leave an empty entry in
+             lrecord_implementations_table. */
+        }
+      xfree (lrecord_implementations_table[lrecord_type_index]);
+      lrecord_implementations_table[lrecord_type_index] = NULL;
+      lrecord_memory_descriptions[lrecord_type_index] = NULL;
+      uninit_memory_usage_stats (lrecord_type_index);
+    }
+  else
+    {
+      struct lrecord_implementation *impl =
+        lrecord_implementations_table[lrecord_type_index];
+      Lisp_Object name = impl->name;
+      Bytecount static_size = impl->static_size;
+
+      xzero (*impl);
+      impl->name = name;
+      impl->static_size = static_size;
+      impl->description = empty_memory_description_1;
+      impl->lrecord_type_index = lrecord_type_index;
+      impl->printer = external_object_printer;
+    }
+}
+#endif
 
 
 /************************************************************************/
@@ -5504,8 +5563,8 @@ init_alloc_once_early (void)
   OBJECT_HAS_METHOD (vector, nsubst_structures_descend);
 
 #ifdef MEMORY_USAGE_STATS
-  /* Should have been initialized by init_memory_usage_stats(). */
-  structure_checking_assert (VECTORP (Vmemusage_stats_lists));
+  Vmemusage_stats_lists
+    = make_vector (countof (lrecord_implementations_table), Qzero);
   staticpro (&Vmemusage_stats_lists);
   lrecord_stats_metadata
     = xnew_array_and_zero (struct lrecord_stats_metadata,
@@ -5576,7 +5635,7 @@ syms_of_alloc (void)
     int ii;
     for (ii = 0; ii < countof (lrecord_implementations_table); ii++)
       {
-        if (EQ (XVECTOR_DATA (Vmemusage_stats_lists)[ii], Qnull_pointer))
+        if (EQ (XVECTOR_DATA (Vmemusage_stats_lists)[ii], Qzero))
           {
             XVECTOR_DATA (Vmemusage_stats_lists)[ii] = Qnil;
           }

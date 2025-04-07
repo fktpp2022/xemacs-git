@@ -204,6 +204,52 @@
 	recent GDB which resolves data segment pointers to their symbol
 	name automatically.
 
+2025-04-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Add define_lisp_object(), undef_lisp_object() for better
+	encapsulation of creating new lrecord types.
+	* alloc.c:
+	* alloc.c (init_memory_usage_stats):
+	Update a comment here.
+	No longer initialize Vmemusage_stats_list from this function, we
+	have some bootstrap-handling within the new define_lisp_object()
+	that means it's more appropriate to leave it to
+	init_alloc_once_early().
+	* alloc.c (uninit_memory_usage_stats): Make this static, now it is
+	called from undef_lisp_object().
+	* alloc.c (define_lisp_object): New. Do the allocation and
+	bare-bones initialization of an entry in
+	lrecord_implementations_table, and bootstrap handling of NAME as
+	did init_lrecord_implementation_name() previously.
+	Call init_memory_usage_stats() from within this function, with the
+	same bootstrap handling.
+	Add an entry to the load history which will allow better
+	integration with the module infrastructure going forward.
+	* alloc.c (undef_lisp_object): New. Now a function called from
+	UNDEF_MODULE_LISP_OBJECT(), which previously did the bulk of
+	this. Be smarter if objects of the type being undefined still
+	exist, preserve their names and, if possible, static sizes. Use an
+	empty memory description (since the memory description is in
+	static data which is unloaded with a module).
+	* alloc.c (init_alloc_once_early):
+	Initialize Vmemusage_stats_list here, to all zeroes.
+	* alloc.c (syms_of_alloc):
+	Check for zero values in Vmemusage_stats_list rather than
+	Qnull_pointer entries, don't startle the garbage collector.
+	* lrecord.h:
+	Remove the declaration of uninit_memory_usage_stats() from here,
+	now to be called only from undef_lisp_object.
+	* lrecord.h (XD_INDIRECT):
+	* lrecord.h (MAKE_LISP_OBJECT):
+	Revist this to call define_lisp_object().
+	* lrecord.h (DECLARE_LISP_OBJECT):
+	Revise init_lrecord_type_##c_name() to return the numeric value of
+	the lrecord_type, used in the call to define_lisp_object().
+	* lrecord.h (DECLARE_MODULE_API_LISP_OBJECT):
+	Ditto.
+	* lrecord.h (DECLARE_MODULE_LISP_OBJECT):
+	Ditto.
+
 2025-04-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* syntax.c (find_start_of_comment):
