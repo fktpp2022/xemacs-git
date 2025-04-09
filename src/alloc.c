@@ -3553,67 +3553,6 @@ static const struct sized_memory_description staticpros_description = {
   staticpros_description_1
 };
 
-#ifdef DEBUG_XEMACS
-
-/* Help debug crashes gc-marking a staticpro'ed object. */
-
-Lisp_Object_ptr_dynarr *staticpros;
-const_Ascbyte_ptr_dynarr *staticpro_names;
-
-/* Mark the Lisp_Object at non-heap VARADDRESS as a root object for
-   garbage collection, and for dumping. */
-void
-staticpro_1 (Lisp_Object *varaddress, const Ascbyte *varname)
-{
-  Dynarr_add (staticpros, varaddress);
-  Dynarr_add (staticpro_names, varname);
-}
-
-const Ascbyte *staticpro_name (int count);
-
-/* External debugging function: Return the name of the variable at offset
-   COUNT. */
-const Ascbyte *
-staticpro_name (int count)
-{
-  return Dynarr_at (staticpro_names, count);
-}
-
-Lisp_Object_ptr_dynarr *staticpros_nodump;
-const_Ascbyte_ptr_dynarr *staticpro_nodump_names;
-
-/* Mark the Lisp_Object at heap VARADDRESS as a root object for
-   garbage collection, but not for dumping. (See below.) */
-void
-staticpro_nodump_1 (Lisp_Object *varaddress, const Ascbyte *varname)
-{
-  Dynarr_add (staticpros_nodump, varaddress);
-  Dynarr_add (staticpro_nodump_names, varname);
-}
-
-const Ascbyte *staticpro_nodump_name (int count);
-
-/* External debugging function: Return the name of the variable at offset
-   COUNT. */
-const Ascbyte *
-staticpro_nodump_name (int count)
-{
-  return Dynarr_at (staticpro_nodump_names, count);
-}
-
-#ifdef HAVE_SHLIB
-/* Stop treating the Lisp_Object at non-heap VARADDRESS as a root object
-   for garbage collection, but not for dumping. */
-void
-unstaticpro_nodump_1 (Lisp_Object *varaddress, const Ascbyte *varname)
-{
-  Dynarr_delete_object (staticpros_nodump, varaddress);
-  Dynarr_delete_object (staticpro_nodump_names, varname);
-}
-#endif
-
-#else /* not DEBUG_XEMACS */
-
 Lisp_Object_ptr_dynarr *staticpros;
 
 /* Mark the Lisp_Object at non-heap VARADDRESS as a root object for
@@ -3658,9 +3597,6 @@ unstaticpro_nodump (Lisp_Object *varaddress)
   Dynarr_delete_object (staticpros_nodump, varaddress);
 }
 #endif
-
-#endif /* not DEBUG_XEMACS */
-
 
 #ifdef ALLOC_TYPE_STATS
 
@@ -5506,11 +5442,6 @@ common_init_alloc_early (void)
 
   staticpros_nodump = Dynarr_new2 (Lisp_Object_ptr_dynarr, Lisp_Object *);
   Dynarr_resize (staticpros_nodump, 100); /* merely a small optimization */
-#ifdef DEBUG_XEMACS
-  staticpro_nodump_names = Dynarr_new2 (const_Ascbyte_ptr_dynarr,
-					const Ascbyte *);
-  Dynarr_resize (staticpro_nodump_names, 100); /* ditto */
-#endif
 }
 
 void
@@ -5558,12 +5489,6 @@ init_alloc_once_early (void)
   staticpros = Dynarr_new2 (Lisp_Object_ptr_dynarr, Lisp_Object *);
   Dynarr_resize (staticpros, 1410); /* merely a small optimization */
   dump_add_root_block_ptr (&staticpros, &staticpros_description);
-#ifdef DEBUG_XEMACS
-  staticpro_names = Dynarr_new2 (const_Ascbyte_ptr_dynarr, const Ascbyte *);
-  Dynarr_resize (staticpro_names, 1410); /* merely a small optimization */
-  dump_add_root_block_ptr (&staticpro_names,
-			   &const_Ascbyte_ptr_dynarr_description);
-#endif
 
   {
     int i;

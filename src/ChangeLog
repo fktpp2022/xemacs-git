@@ -1,3 +1,18 @@
+2025-04-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* alloc.c:
+	* alloc.c (common_init_alloc_early):
+	* alloc.c (init_alloc_once_early):
+	* lisp.h:
+	* symbols.c (defsymbol_massage_name_1):
+	* symbols.c (defsymbol_nodump):
+	* symbols.c (defsymbol):
+	Remove staticpro_names, staticpro_nodump_names. These interact
+	poorly with modules if the value of DEBUG_XEMACS differs between
+	the XEmacs binary and the module, and they are less necessary with
+	recent GDB which resolves data segment pointers to their symbol
+	name automatically.
+
 2025-04-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* syntax.c (find_start_of_comment):
