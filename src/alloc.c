@@ -3598,6 +3598,16 @@ unstaticpro_nodump (Lisp_Object *varaddress)
 }
 #endif
 
+/* Mark the Lisp_Object at heap VARADDRESS as a root object for garbage
+   collection before dumping. Post pdump_load(), ensure that it is reachable
+   via STATICPROS but that its initial value is Qnil. */
+void
+staticpro_dump_nil (Lisp_Object *varaddress)
+{
+  Dynarr_add (staticpros, varaddress);
+  dump_add_nil_lisp_object (varaddress);
+}
+
 #ifdef ALLOC_TYPE_STATS
 
 
@@ -5239,16 +5249,6 @@ disksave_object_finalization (void)
      to turn those strings into garbage.
   */
 
-  /* Yeah, this list is pretty ad-hoc... */
-  Vprocess_environment = Qnil;
-  env_initted = 0;
-  Vexec_directory = Qnil;
-  Vdata_directory = Qnil;
-  Vsite_directory = Qnil;
-  Vdoc_directory = Qnil;
-  Vexec_path = Qnil;
-  Vload_path = Qnil;
-  /* Vdump_load_path = Qnil; */
   /* Release hash tables for locate_file */
   Flocate_file_clear_hashing (Qt);
 #ifdef WIN32_NATIVE
@@ -5258,12 +5258,6 @@ disksave_object_finalization (void)
   zero_out_command_line_status_vars ();
   clear_default_devices ();
   disksave_clear_unicode_precedence ();
-
-#if defined(LOADHIST) && !(defined(LOADHIST_DUMPED) || \
-			   defined(LOADHIST_BUILTIN))
-  Vload_history = Qnil;
-#endif
-  Vshell_file_name = Qnil;
 
   /* Mark subrs that are bound to interned symbols as C-readonly. */
   elisp_maphash_unsafe (mark_subrs_readonly, Vobarray, NULL);

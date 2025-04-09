@@ -1,5 +1,61 @@
 2025-04-09  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Add dump_add_nil_lisp_object(), staticpro_dump_nil(), telling the
+	dumper that a given Lisp_Object in the data segment should be
+	initialized to Qnil after pdump_load() irrespective of its value
+	at dump time.
+	* alloc.c:
+	* alloc.c (staticpro_dump_nil): New.
+	Add VARADDRESS to staticpros and call dump_add_nil_lisp_object()
+	on it.
+	* alloc.c (disksave_object_finalization): Remove variables from
+	this now handled with dump_add_nil_lisp_object().
+	* console-stream.c (vars_of_console_stream):
+	Call dump_add_nil_lisp_object() on Vterminal_console,
+	Vterminal_device, Vterminal_frame.
+	* device.c (clear_default_devices):
+	Remove Vdefault_device_plist = Qnil from this.
+	* device.c (vars_of_device):
+	Call dump_add_nil_lisp_object (&Vdefault_device_plist) here.
+	* dumper.c (pdump_nil_lisp_objects): New Lisp_Object_ptr_dynarr.
+	* dumper.c (dump_add_nil_lisp_object): New.
+	Add an entry to pdump_nil_lisp_objects.
+	* dumper.c (save_pdump_nil_lisp_objects): New. Return a Lisp vector
+	reflecting the current values of those entries in
+	pdump_nil_lisp_objects, and set them to Qnil.
+	* dumper.c (restore_pdump_nil_lisp_objects): New. Given a Lisp
+	vector created by save_pdump_nil_lisp_objects(), restore the saved
+	values.
+	* dumper.c (pdump):
+	Call save_pdump_nil_lisp_objects(), then call
+	restore_pdump_nil_lisp_objects() by means of an unwind-protect.
+	Remove special-casing of Vterminal_console, Vterminal_frame,
+	Vterminal_device.
+	* emacs.c:
+	Call dump_add_nil_lisp_object() on variables previously reset by
+	disksave_object_finalization().
+	* lread.c (vars_of_lread): Ditto.
+	* process.c (vars_of_process): Ditto.
+	* lisp.h:
+	Declare staticpro_dump_nil().
+	* lrecord.h:
+	Declare dump_add_nil_lisp_object().
+
+2025-04-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* alloc.c:
+	* alloc.c (staticpro_dump_nil):
+
+	* console-stream.c (vars_of_console_stream):
+	* dumper.c:
+	* dumper.c (dump_add_nil_lisp_object):
+	* dumper.c (save_pdump_nil_lisp_objects):
+	* dumper.c (restore_pdump_nil_lisp_objects):
+	* dumper.c (pdump):
+	* dumper.c (pdump_load_check):
+
+2025-04-09  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* alloc.c:
 	* alloc.c (common_init_alloc_early):
 	* alloc.c (init_alloc_once_early):

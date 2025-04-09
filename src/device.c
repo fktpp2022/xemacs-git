@@ -446,7 +446,6 @@ clear_all_console_local_caches (void)
 void
 clear_default_devices (void)
 {
-  Vdefault_device_plist = Qnil;
   clear_all_console_local_caches ();
 }
 
@@ -1480,6 +1479,7 @@ One argument, the to-be-deleted device.
   /* Plist of device types and their default devices. */
   Vdefault_device_plist = Qnil;
   staticpro (&Vdefault_device_plist);
+  dump_add_nil_lisp_object (&Vdefault_device_plist);
 
   Vdevice_class_list = list3 (Qcolor, Qgrayscale, Qmono);
   staticpro (&Vdevice_class_list);

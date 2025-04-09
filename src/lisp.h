@@ -4148,6 +4148,13 @@ MODULE_API void staticpro_nodump (Lisp_Object *);
 MODULE_API void unstaticpro_nodump (Lisp_Object *);
 #endif
 
+/* Call staticpro_nodump_nil (&var) to protect static variable VAR pre-dump.
+   Post pdump_load(), ensure that it is protected via STATICPROS but that its
+   initial value is Qnil. Useful for variables like Vbuffer_alist where the
+   value is guaranteed to be distinct at dump time and at run time. Do not call
+   it after pdump_load(), you will crash.  */
+void staticpro_dump_nil (Lisp_Object *);
+
 void register_post_gc_action (void (*fun) (void *), void *arg);
 int begin_gc_forbidden (void);
 void end_gc_forbidden (int count);

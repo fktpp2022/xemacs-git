@@ -4217,12 +4217,14 @@ This is mainly meant for use in path searching.
 Each element is a string (directory name) or nil (try default directory).
 */ );
   Vexec_path = Qnil;
+  dump_add_nil_lisp_object (&Vexec_path);
 
   DEFVAR_LISP ("exec-directory", &Vexec_directory /*
 *Directory of architecture-dependent files that come with XEmacs,
 especially executable programs intended for XEmacs to invoke.
 */ );
   Vexec_directory = Qnil;
+  dump_add_nil_lisp_object (&Vexec_directory);
 
   DEFVAR_LISP ("configure-exec-directory", &Vconfigure_exec_directory /*
 For internal use by the build procedure only.
@@ -4331,6 +4333,7 @@ functions `locate-data-file' and `locate-data-directory' and the variable
 `data-directory-list'.
 */ );
   Vdata_directory = Qnil;
+  dump_add_nil_lisp_object (&Vdata_directory);
 
   DEFVAR_LISP ("configure-data-directory", &Vconfigure_data_directory /*
 For internal use by the build procedure only.
@@ -4353,6 +4356,7 @@ or were installed as packages, and are intended for XEmacs to use.
 *Directory of site-specific Lisp files that come with XEmacs.
 */ );
   Vsite_directory = Qnil;
+  dump_add_nil_lisp_object (&Vsite_directory);
 
   DEFVAR_LISP ("configure-site-directory", &Vconfigure_site_directory /*
 For internal use by the build procedure only.
@@ -4386,6 +4390,7 @@ configure's idea of what `site-directory' will be.
 This is usually the same as `exec-directory'.
 */ );
   Vdoc_directory = Qnil;
+  dump_add_nil_lisp_object (&Vdoc_directory);
 
   DEFVAR_LISP ("configure-doc-directory", &Vconfigure_doc_directory /*
 For internal use by the build procedure only.

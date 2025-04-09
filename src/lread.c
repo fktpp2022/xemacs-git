@@ -3489,6 +3489,7 @@ value for this variable by looking around in the file-system near the
 directory in which the XEmacs executable resides.
 */ );
   Vload_path = Qnil;
+  dump_add_nil_lisp_object (&Vload_path);
 
 /*  xxxDEFVAR_LISP ("dump-load-path", &Vdump_load_path,
     "*Location of lisp files to be used when dumping ONLY."); */
@@ -3589,11 +3590,13 @@ last documents that SYMBOL's function definition (whether that be a macro or a
 normal function) was loaded from the source file.
 */ );
   Vload_history = Qnil;
+  dump_add_nil_lisp_object (&Vload_history);
 
   DEFVAR_LISP ("current-load-list", &Vcurrent_load_list /*
 Used for internal purposes by `load'.
 */ );
   Vcurrent_load_list = Qnil;
+  dump_add_nil_lisp_object (&Vcurrent_load_list);
 #endif
 
   DEFVAR_LISP ("load-file-name", &Vload_file_name /*

@@ -144,6 +144,7 @@ typedef struct
 static pdump_root_block_dynarr *pdump_root_blocks;
 static pdump_root_block_ptr_dynarr *pdump_root_block_ptrs;
 static Lisp_Object_ptr_dynarr *pdump_root_lisp_objects;
+static Lisp_Object_ptr_dynarr *pdump_nil_lisp_objects;
 static Lisp_Object_ptr_dynarr *pdump_weak_object_chains;
 static pdump_cv_data_info_dynarr *pdump_cv_data;
 static pdump_cv_ptr_info_dynarr *pdump_cv_ptr;
@@ -190,6 +191,17 @@ dump_add_root_lisp_object (Lisp_Object *varaddress)
   if (pdump_root_lisp_objects == NULL)
     pdump_root_lisp_objects = Dynarr_new2 (Lisp_Object_ptr_dynarr, Lisp_Object *);
   Dynarr_add (pdump_root_lisp_objects, varaddress);
+}
+
+/* Like dump_add_root_lisp_object(), but tell the dumper that VAR should be
+   initialized to Qnil on pdump_load(), irrespective of its value at dump
+   time.  */
+void
+dump_add_nil_lisp_object (Lisp_Object *varaddress)
+{
+  if (pdump_nil_lisp_objects == NULL)
+    pdump_nil_lisp_objects = Dynarr_new2 (Lisp_Object_ptr_dynarr, Lisp_Object *);
+  Dynarr_add (pdump_nil_lisp_objects, varaddress);
 }
 
 /* Mark the list pointed to by the Lisp_Object at VARADDRESS for dumping.
@@ -1607,6 +1619,35 @@ pdump_dump_root_lisp_objects (void)
     }
 }
 
+static Lisp_Object
+save_pdump_nil_lisp_objects (void)
+{
+  Elemcount len = Dynarr_length (pdump_nil_lisp_objects);
+  Lisp_Object result = make_vector (len, Qnil);
+  Elemcount count;
+
+  for (count = 0; count < len; count++)
+    {
+      XVECTOR_DATA (result)[count] = *Dynarr_at (pdump_nil_lisp_objects, count);
+      *Dynarr_at (pdump_nil_lisp_objects, count) = Qnil;
+    }
+
+  return result;
+}
+
+static Lisp_Object
+restore_pdump_nil_lisp_objects (Lisp_Object saved)
+{
+  Elemcount len = XVECTOR_LENGTH (saved), count;
+
+  for (count = 0; count < len; count++)
+    {
+      *Dynarr_at (pdump_nil_lisp_objects, count)
+	= XVECTOR_DATA (saved)[count];
+    }
+
+  return Qnil;
+}
 
 /*########################################################################
   #                             Pdump                                    #
@@ -1721,9 +1762,9 @@ void
 pdump (void)
 {
   int i;
-  Lisp_Object t_console, t_device, t_frame;
   int none;
   pdump_header header;
+  int speccount = specpdl_depth ();
 
   in_pdump = 1;
 
@@ -1738,10 +1779,8 @@ pdump (void)
 
   flush_all_buffer_local_cache ();
 
-  /* These appear in a DEFVAR_LISP, which does a staticpro() */
-  t_console = Vterminal_console; Vterminal_console = Qnil;
-  t_frame   = Vterminal_frame;   Vterminal_frame   = Qnil;
-  t_device  = Vterminal_device;  Vterminal_device  = Qnil;
+  record_unwind_protect (restore_pdump_nil_lisp_objects,
+			 save_pdump_nil_lisp_objects ());
 
   pdump_hash = xnew_array_and_zero (pdump_block_list_elt *, PDUMP_HASHSIZE);
 
@@ -1925,9 +1964,8 @@ pdump (void)
 
   free (pdump_hash);
 
-  Vterminal_console = t_console;
-  Vterminal_frame   = t_frame;
-  Vterminal_device  = t_device;
+  unbind_to (speccount);
+
   in_pdump = 0;
 }
 
