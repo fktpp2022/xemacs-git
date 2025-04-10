@@ -531,14 +531,14 @@ static void
 emodules_doc (const Extbyte *symname,
               const Extbyte *doc,
               const Extbyte *file_name,
-              const Ascbyte *coding_system_name,
+              const Extbyte *coding_system_name,
               Boolint subrp)
 {
   Lisp_Object sym, coding_system;
   Ibyte *symname_internal;
   Bytecount len;
 
-  ASSERT_ASCTEXT_ASCII (coding_system_name);
+  CHECK_ASCTEXT (coding_system_name);
   coding_system
     = Fget_coding_system (intern ((const CIbyte *) coding_system_name));
 

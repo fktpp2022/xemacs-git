@@ -1388,6 +1388,7 @@ Lisp_Object QSin_char_byte_conversion, QSin_byte_char_conversion;
 Lisp_Object QSin_internal_external_conversion, QSin_external_internal_conversion;
 
 Lisp_Object /* Qfail, Qsubstitute, */ Quse_private;
+Lisp_Object Qascii_textp;
 
 Fixnum char_code_limit;
 
@@ -6389,6 +6390,7 @@ syms_of_text (void)
 
   /* Qfail, Qsubstitute, Qsucceed in general.c */
   DEFSYMBOL (Quse_private);
+  DEFSYMBOL_MULTIWORD_PREDICATE (Qascii_textp);
 
 #ifdef ENABLE_COMPOSITE_CHARS
   DEFSUBR (Fmake_composite_char);

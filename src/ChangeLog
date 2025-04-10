@@ -22,6 +22,19 @@
 
 2025-04-10  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* text.h (extbyte_ascii_p): New inline function.
+	* text.h (CHECK_ASCTEXT): New macro.
+	* text.h (CHECK_ASCTEXT_LEN): New macro.
+	* text.h (ASSERT_ASCTEXT_ASCII_LEN): Use extbyte_ascii_p() within
+	this macro.
+	* text.c (syms_of_text): New symbol, Qascii_textp;
+	* emodules.c (emodules_doc):
+	Use CHECK_ASCTEXT() on the supplied coding system name, so we
+	error on both debug builds and normal builds rather than crashing
+	on debug builds and corrupting internal text on non-debug builds.
+
+2025-04-10  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Fix a bug in dump_add_nil_lisp_object(), I'm uncertain how this
 	compiled for me before my last push.
 	* dumper.c (dump_add_nil_lisp_object_1): New.

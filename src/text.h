@@ -1290,6 +1290,40 @@ validate_ibyte_string_backward (const Ibyte *ptr, Bytecount n)
   return n;
 }
 
+
+DECLARE_INLINE_HEADER (
+Boolint
+extbyte_ascii_p (const Extbyte *ptr, Bytecount len)
+)
+{
+  Bytecount counter;
+
+  for (counter = 0; counter < len; counter++)
+    if (!(ptr[counter] >= 0x00 && ptr[counter] < 0x7F))
+      {
+        return 0;
+      }
+  return 1;
+}
+
+#define CHECK_ASCTEXT(ptr) do {                                           \
+    if (!extbyte_ascii_p (ptr, (Bytecount) strlen (ptr)))                 \
+      {                                                                   \
+        dead_wrong_type_argument (Qascii_textp,                           \
+                                  build_extstring ((const Extbyte *) ptr, \
+                                                   Qbinary));             \
+      }                                                                   \
+  } while (0)
+
+#define CHECK_ASCTEXT_LEN(ptr, len) do {                                \
+    if (!extbyte_ascii_p (ptr, len))                                    \
+      {                                                                 \
+        dead_wrong_type_argument (Qascii_textp,                         \
+                                  make_extstring ((const Extbyte *) ptr,\
+                                                  len,                  \
+                                                  Qbinary));            \
+      }                                                                 \
+  } while (0)
 
 /* ASSERT_ASCTEXT_ASCII(ptr): Check that an Ascbyte * pointer points to
    purely ASCII text.  Useful for checking that putatively ASCII strings
@@ -1303,24 +1337,15 @@ validate_ibyte_string_backward (const Ibyte *ptr, Bytecount n)
 */
 
 #ifdef ERROR_CHECK_TEXT
-#define ASSERT_ASCTEXT_ASCII_LEN(ptr, len)			\
-do {								\
-  size_t aia2, aia2len = (len);					\
-  const Ascbyte *aia2ptr = (ptr);				\
-								\
-  for (aia2 = 0; aia2 < aia2len; aia2++)			\
-    assert (aia2ptr[aia2] >= 0x00 && aia2ptr[aia2] < 0x7F);	\
-} while (0)
-#define ASSERT_ASCTEXT_ASCII(ptr)			\
-do {							\
-  const Ascbyte *aiaz2 = (ptr);				\
-  ASSERT_ASCTEXT_ASCII_LEN (aiaz2, strlen (aiaz2));	\
-} while (0)
+#define ASSERT_ASCTEXT_ASCII_LEN(ptr, len)                      \
+  assert (extbyte_ascii_p ((const Extbyte *) ptr, len))
+#define ASSERT_ASCTEXT_ASCII(ptr)                               \
+  ASSERT_ASCTEXT_ASCII_LEN (ptr, (Bytecount) strlen (ptr))
 #else
 #define ASSERT_ASCTEXT_ASCII_LEN(ptr, len)
 #define ASSERT_ASCTEXT_ASCII(ptr)
 #endif
-
+
 /* -------------------------------------------------------------- */
 /*      Working with the length (in bytes and characters) of a    */
 /*               section of internally-formatted text 	          */
@@ -3983,5 +4008,6 @@ do {								\
     var = EXTERNAL_TO_ITEXT (__gsserr__, Qstrsignal_encoding);  \
 } while (0)
 
+extern Lisp_Object Qascii_textp;
 
 #endif /* INCLUDED_text_h_ */

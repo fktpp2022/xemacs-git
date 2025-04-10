@@ -29,6 +29,16 @@
 
 ;;; Code
 
+;; Used by C code when erroring in situations where non-ASCII text is
+;; not appropriate.
+(defun ascii-text-p (object)
+  "Return non-nil if OBJECT is a US-ASCII string.
+
+This means it does not contain any characters with an integer value (see
+`char-int') greater than #x7f.  It does not check for plausibility as
+alphanumeric English text so it will also return non-nil for EBCDIC."
+  (and (stringp object) (not (string-match-p "[[:nonascii:]]" object))))
+
 (set-language-info-alist
  "English" '((tutorial . "TUTORIAL")
 	     (locale "en" "C")
