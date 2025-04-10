@@ -1,3 +1,19 @@
+2025-04-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* postgresql/postgresql.c:
+	* postgresql/postgresql.c (PG_OS_CODING):
+	* postgresql/postgresql.c (allocate_pgconn):
+	* postgresql/postgresql.c (allocate_pgresult):
+	* postgresql/postgresql.c (finalize_pgresult):
+	* postgresql/postgresql.c (Fpq_client_encoding):
+	* postgresql/postgresql.c (syms_of_postgresql):
+	* postgresql/postgresql.c (vars_of_postgresql):
+	* postgresql/postgresql.c (init_postgresql_from_environment):
+	Remove compatibility code that attempted to work with XEmacs 21.1,
+	21.4.
+	Move DEFINE_NODUMP_LISP_OBJECT() to syms_of_postgresql(). Remove
+	#ifdef MULE.
+
 2025-04-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* postgresql/postgresql.h:

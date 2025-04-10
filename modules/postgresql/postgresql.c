@@ -100,16 +100,6 @@ TODO (in rough order of priority):
 
 #include <config.h>
 
-/* This must be portable with XEmacs 21.1 so long as it is the official
-   released version of XEmacs and provides the basis of InfoDock.  The
-   interface to lcrecord handling has changed with 21.2, so unfortunately
-   we will need a few snippets of backwards compatibility code.
-*/
-#if (EMACS_MAJOR_VERSION == 21) && (EMACS_MINOR_VERSION <= 1)
-#define RUNNING_XEMACS_21_1 1
-#elif (EMACS_MAJOR_VERSION == 21) && (EMACS_MINOR_VERSION <= 4)
-#define RUNNING_XEMACS_21_4 1
-#endif
 
 /* #define POSTGRES_LO_IMPORT_IS_VOID 1 */
 
@@ -124,17 +114,9 @@ TODO (in rough order of priority):
 #include "sysdep.h"
 #include "sysfile.h"
 
-#ifdef RUNNING_XEMACS_21_1 /* handle interface changes */
-#define PG_OS_CODING FORMAT_FILENAME
-#define TO_EXTERNAL_FORMAT(a,from,b,to,c) GET_C_STRING_EXT_DATA_ALLOCA(from,FORMAT_FILENAME,to)
-#else
-#ifdef MULE
 #define PG_OS_CODING get_coding_system_for_text_file (Vpg_coding_system, 1)
-#else
-#define PG_OS_CODING Qnative
-#endif
+
 Lisp_Object Vpg_coding_system;
-#endif
 
 #define CHECK_LIVE_CONNECTION(P)					\
 do									\
@@ -174,9 +156,7 @@ static Lisp_Object VXPGPORT;
 static Lisp_Object VXPGTTY; /* This needs to be blanked! */
 static Lisp_Object VXPGDATABASE;
 static Lisp_Object VXPGREALM;
-#ifdef MULE
 static Lisp_Object VXPGCLIENTENCODING;
-#endif /* MULE */
 
 /* Other variables:
    PGAUTHTYPE -- not used after PostgreSQL 6.5
@@ -265,38 +245,11 @@ print_pgconn (Lisp_Object obj, Lisp_Object printcharfun,
 static Lisp_PGconn *
 allocate_pgconn (void)
 {
-#ifdef RUNNING_XEMACS_21_1
-  Lisp_PGconn *pgconn = ALLOC_LCRECORD_TYPE (Lisp_PGconn,
-					     lrecord_pgconn);
-#elif defined (RUNNING_XEMACS_21_4)
-  Lisp_PGconn *pgconn = ALLOC_LCRECORD_TYPE (Lisp_PGconn,
-					     &lrecord_pgconn);
-#else
   Lisp_PGconn *pgconn = XPGCONN (ALLOC_NORMAL_LISP_OBJECT (pgconn));
-#endif
   pgconn->pgconn = (PGconn *)NULL;
   return pgconn;
 }
 
-#ifdef RUNNING_XEMACS_21_4
-
-static void
-finalize_pgconn (void *header, int for_disksave)
-{
-  Lisp_PGconn *pgconn = (Lisp_PGconn *)header;
-
-  if (for_disksave)
-    invalid_operation ("Can't dump an emacs containing PGconn objects",
-		       make_pgconn (pgconn));
-
-  if (pgconn->pgconn)
-    {
-      PQfinish (pgconn->pgconn);
-      pgconn->pgconn = (PGconn *)NULL;
-    }
-}
-
-#else /* not RUNNING_XEMACS_21_4 */
 
 static void
 finalize_pgconn (Lisp_Object obj)
@@ -310,28 +263,6 @@ finalize_pgconn (Lisp_Object obj)
     }
 }
 
-#endif /* (not) RUNNING_XEMACS_21_4 */
-
-#ifdef RUNNING_XEMACS_21_1
-DEFINE_LRECORD_IMPLEMENTATION ("pgconn", pgconn,
-			       print_pgconn, finalize_pgconn,
-			       NULL, NULL,
-			       Lisp_PGconn);
-#elif defined (RUNNING_XEMACS_21_4)
-DEFINE_LRECORD_IMPLEMENTATION ("pgconn", pgconn,
-			       0, /*dumpable-flag*/
-			       print_pgconn, finalize_pgconn,
-			       NULL, NULL,
-			       pgconn_description,
-			       Lisp_PGconn);
-#else
-DEFINE_NODUMP_LISP_OBJECT ("pgconn", pgconn,
-			   print_pgconn,
-			   finalize_pgconn,
-			   NULL, NULL,
-			   pgconn_description,
-			   Lisp_PGconn);
-#endif
 /****/
 
 /* PGresult is an opaque object and we need to be able to store them in
@@ -405,38 +336,10 @@ print_pgresult (Lisp_Object obj, Lisp_Object printcharfun,
 static Lisp_PGresult *
 allocate_pgresult (void)
 {
-#ifdef RUNNING_XEMACS_21_1
-  Lisp_PGresult *pgresult = ALLOC_LCRECORD_TYPE (Lisp_PGresult,
-						 lrecord_pgresult);
-#elif defined (RUNNING_XEMACS_21_4)
-  Lisp_PGresult *pgresult = ALLOC_LCRECORD_TYPE (Lisp_PGresult,
-						 &lrecord_pgresult);
-#else
   Lisp_PGresult *pgresult = XPGRESULT (ALLOC_NORMAL_LISP_OBJECT (pgresult));
-#endif
   pgresult->pgresult = (PGresult *)NULL;
   return pgresult;
 }
-
-#ifdef RUNNING_XEMACS_21_4
-
-static void
-finalize_pgresult (void *header, int for_disksave)
-{
-  Lisp_PGresult *pgresult = (Lisp_PGresult *)header;
-
-  if (for_disksave)
-    invalid_operation ("Can't dump an emacs containing PGresult objects",
-		       make_pgresult (pgresult));
-
-  if (pgresult->pgresult)
-    {
-      PQclear (pgresult->pgresult);
-      pgresult->pgresult = (PGresult *)NULL;
-    }
-}
-
-#else /* not RUNNING_XEMACS_21_4 */
 
 static void
 finalize_pgresult (Lisp_Object obj)
@@ -449,28 +352,6 @@ finalize_pgresult (Lisp_Object obj)
       pgresult->pgresult = (PGresult *)NULL;
     }
 }
-
-#endif /* (not) RUNNING_XEMACS_21_4 */
-
-#ifdef RUNNING_XEMACS_21_1
-DEFINE_LRECORD_IMPLEMENTATION ("pgresult", pgresult,
-			       print_pgresult, finalize_pgresult,
-			       NULL, NULL,
-			       Lisp_PGresult);
-#elif defined (RUNNING_XEMACS_21_4)
-DEFINE_LRECORD_IMPLEMENTATION ("pgresult", pgresult,
-			       0, /*dumpable-flag*/
-			       print_pgresult, finalize_pgresult,
-			       NULL, NULL,
-			       pgresult_description,
-			       Lisp_PGresult);
-#else
-DEFINE_NODUMP_LISP_OBJECT ("pgresult", pgresult,
-			   print_pgresult, finalize_pgresult,
-			   NULL, NULL,
-			   pgresult_description,
-			   Lisp_PGresult);
-#endif
 
 /***********************/
 
@@ -635,7 +516,6 @@ Poll an asynchronous connection for completion
     }
 }
 
-#ifdef MULE
 DEFUN ("pq-client-encoding", Fpq_client_encoding, 1, 1, 0, /*
 Return client coding system.
 */
@@ -674,7 +554,6 @@ Set client coding system.
     return make_fixnum (rc);
 }
 
-#endif
 #endif /* HAVE_POSTGRESQLV7 */
 
 /* PQfinish Close the connection to the backend. Also frees memory
@@ -1429,7 +1308,7 @@ aren't any notifications to process.
   }
 }
 
-#if defined (HAVE_POSTGRESQLV7) && defined(MULE)
+#if defined (HAVE_POSTGRESQLV7)
 /* ###autoload */
 DEFUN ("pq-env-2-encoding", Fpq_env_2_encoding, 0, 0, 0, /*
 Get encoding id from environment variable PGCLIENTENCODING.
@@ -1438,7 +1317,7 @@ Get encoding id from environment variable PGCLIENTENCODING.
 {
   return make_fixnum (PQenv2encoding ());
 }
-#endif /* MULE */
+#endif
 
 DEFUN ("pq-lo-import", Fpq_lo_import, 2, 2, 0, /*
 */
@@ -1643,10 +1522,13 @@ End a copying operation.
 void
 syms_of_postgresql(void)
 {
-#ifndef RUNNING_XEMACS_21_1
-  INIT_LISP_OBJECT (pgconn);
-  INIT_LISP_OBJECT (pgresult);
-#endif
+  DEFINE_NODUMP_LISP_OBJECT ("pgconn", pgconn, print_pgconn,
+                             finalize_pgconn, NULL, NULL,
+                             pgconn_description, Lisp_PGconn);
+  DEFINE_NODUMP_LISP_OBJECT ("pgresult", pgresult,
+                             print_pgresult, finalize_pgresult,
+                             NULL, NULL, pgresult_description,
+                             Lisp_PGresult);
   DEFSYMBOL (Qpostgresql);
 
   /* opaque exported types */
@@ -1694,11 +1576,10 @@ syms_of_postgresql(void)
 #ifdef HAVE_POSTGRESQLV7
   DEFSUBR (Fpq_connect_start);
   DEFSUBR (Fpq_connect_poll);
-#ifdef MULE
   DEFSUBR (Fpq_client_encoding);
   DEFSUBR (Fpq_set_client_encoding);
-#endif /* MULE */
 #endif /* HAVE_POSTGRESQLV7 */
+
   DEFSUBR (Fpq_conn_defaults);
   DEFSUBR (Fpq_connectdb);
   DEFSUBR (Fpq_finish);
@@ -1743,7 +1624,7 @@ syms_of_postgresql(void)
 #endif
   DEFSUBR (Fpq_notifies);
 
-#if defined (HAVE_POSTGRESQLV7) && defined(MULE)
+#if defined (HAVE_POSTGRESQLV7)
   DEFSUBR (Fpq_env_2_encoding);
 #endif
 
@@ -1767,12 +1648,10 @@ vars_of_postgresql(void)
 #ifdef HAVE_POSTGRESQLV7
   Fprovide (intern ("postgresqlv7"));
 #endif
-#ifndef RUNNING_XEMACS_21_1
   Vpg_coding_system = Qnative;
   DEFVAR_LISP ("pg-coding-system", &Vpg_coding_system /*
 Default Postgres client coding system.
 */ );
-#endif
 
   DEFVAR_LISP ("pg:host", &VXPGHOST /*
 Default PostgreSQL server name.
@@ -1814,14 +1693,12 @@ Default kerberos realm to use for authentication.
 The initial value is set from the PGREALM environment variable.
 */ );
 
-#ifdef MULE
   /* It's not clear whether this is any use.  My intent is to
      autodetect the coding system from the database. */
   DEFVAR_LISP ("pg:client-encoding", &VXPGCLIENTENCODING /*
 Default client encoding to use.
 The initial value is set from the PGCLIENTENCODING environment variable.
 */ );
-#endif
 
 #if !defined(HAVE_POSTGRESQLV7)
   DEFVAR_LISP ("pg:authtype", &VXPGAUTHTYPE /*
@@ -1891,11 +1768,10 @@ init_postgresql_from_environment (void)
       FROB ("PGTTY", VXPGTTY);
       FROB ("PGDATABASE", VXPGDATABASE);
       FROB ("PGREALM", VXPGREALM);
-#ifdef MULE
+
       /* It's not clear whether this is any use.  My intent is to
 	 autodetect the coding system from the database. */
       FROB ("PGCLIENTENCODING", VXPGCLIENTENCODING);
-#endif
 
 #if !defined(HAVE_POSTGRESQLV7)
       FROB ("PGAUTHTYPE", VXPGAUTHTYPE);
