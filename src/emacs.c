@@ -2113,68 +2113,21 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
     {
       /* Now do additional vars_of_*() initialization that happens both
 	 at dump time and after pdump load. */
-      reinit_vars_of_buffer ();
       reinit_vars_of_bytecode ();
-      reinit_vars_of_console ();
 #ifdef DEBUG_XEMACS
       reinit_vars_of_debug ();
 #endif
-      reinit_vars_of_device ();
       reinit_vars_of_eval ();
-#if defined (HAVE_TTY) && (defined (DEBUG_TTY_EVENT_STREAM) || !defined (HAVE_X_WINDOWS))
-      reinit_vars_of_event_tty ();
-#endif
       reinit_vars_of_event_stream ();
-      reinit_vars_of_events ();
-      reinit_vars_of_file_coding ();
       reinit_vars_of_fileio ();
-#ifdef USE_C_FONT_LOCK
-      reinit_vars_of_font_lock ();
-#endif /* USE_C_FONT_LOCK */
-      reinit_vars_of_glyphs ();
-      reinit_vars_of_glyphs_widget ();
-      reinit_vars_of_insdel ();
-      reinit_vars_of_lread ();
-      reinit_vars_of_minibuf ();
-#ifdef HAVE_SHLIB
-      reinit_vars_of_module ();
-#endif
       reinit_vars_of_fontcolor ();
-      reinit_vars_of_print ();
       reinit_vars_of_search ();
       reinit_vars_of_text ();
-      reinit_vars_of_undo ();
-      reinit_vars_of_window ();
 
 #ifdef HAVE_MS_WINDOWS
-      reinit_vars_of_event_mswindows ();
-      reinit_vars_of_frame_mswindows ();
       reinit_vars_of_fontcolor_mswindows ();
 #endif
 
-#ifdef HAVE_GTK
-      reinit_vars_of_event_gtk ();
-#ifdef HAVE_MENUBARS
-      reinit_vars_of_menubar_gtk ();
-#endif
-#endif
-
-#ifdef HAVE_X_WINDOWS
-      reinit_vars_of_device_x ();
-      reinit_vars_of_event_Xt ();
-#ifdef HAVE_SCROLLBARS
-      reinit_vars_of_scrollbar_x ();
-#endif
-#ifdef HAVE_MENUBARS
-      reinit_vars_of_menubar_x ();
-#endif
-      reinit_vars_of_select_x ();
-#if defined (HAVE_MENUBARS) || defined (HAVE_SCROLLBARS) || defined (HAVE_X_DIALOGS) || defined (HAVE_TOOLBARS)
-      reinit_vars_of_gui_x ();
-#endif
-#endif /* HAVE_X_WINDOWS */
-
-      reinit_vars_of_mule_coding ();
 #ifdef HAVE_WNN
       reinit_vars_of_mule_wnn ();
 #endif

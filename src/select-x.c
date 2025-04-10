@@ -1491,16 +1491,6 @@ console_type_create_select_x (void)
 }
 
 void
-reinit_vars_of_select_x (void)
-{
-  reading_selection_reply = 0;
-  reading_which_selection = 0;
-  selection_reply_timed_out = 0;
-  for_whom_the_bell_tolls = 0;
-  prop_location_tick = 0;
-}
-
-void
 vars_of_select_x (void)
 {
 #ifdef CUT_BUFFER_SUPPORT

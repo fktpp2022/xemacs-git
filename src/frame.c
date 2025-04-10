@@ -1277,7 +1277,7 @@ Return the currently active minibuffer window, or nil if none.
 */
        ())
 {
-  return minibuf_level ? minibuf_window : Qnil;
+  return minibuf_level ? Vminibuf_window : Qnil;
 }
 
 DEFUN ("last-nonminibuf-frame", Flast_nonminibuf_frame, 0, 1, 0, /*
@@ -1855,7 +1855,7 @@ delete_frame_internal (struct frame *f, int force,
 	}
     }
 
-  minibuffer_selected = EQ (minibuf_window, Fselected_window (Qnil));
+  minibuffer_selected = EQ (Vminibuf_window, Fselected_window (Qnil));
 
   /* If we were focused on this frame, then we're not any more.
      Assume that we lost the focus; that way, the call to
@@ -1940,18 +1940,18 @@ delete_frame_internal (struct frame *f, int force,
 	}
     }
 
-  /* Don't allow minibuf_window to remain on a deleted frame.  */
-  if (EQ (f->minibuffer_window, minibuf_window))
+  /* Don't allow Vminibuf_window to remain on a deleted frame.  */
+  if (EQ (f->minibuffer_window, Vminibuf_window))
     {
       struct frame *sel_frame = selected_frame ();
       Fset_window_buffer (sel_frame->minibuffer_window,
-			  XWINDOW (minibuf_window)->buffer, Qt);
-      minibuf_window = sel_frame->minibuffer_window;
+			  XWINDOW (Vminibuf_window)->buffer, Qt);
+      Vminibuf_window = sel_frame->minibuffer_window;
 
       /* If the dying minibuffer window was selected,
 	 select the new one.  */
       if (minibuffer_selected)
-	Fselect_window (minibuf_window, Qnil);
+	Fselect_window (Vminibuf_window, Qnil);
     }
 
   /* After this point, no errors must be allowed to occur. */
@@ -2373,12 +2373,12 @@ you may do so.
   if (NILP (force) && !other_visible_frames (f))
     invalid_operation ("Attempt to make invisible the sole visible or iconified frame", Qunbound);
 
-  /* Don't allow minibuf_window to remain on a deleted frame.  */
-  if (EQ (f->minibuffer_window, minibuf_window))
+  /* Don't allow Vminibuf_window to remain on a deleted frame.  */
+  if (EQ (f->minibuffer_window, Vminibuf_window))
     {
       Fset_window_buffer (sel_frame->minibuffer_window,
-			  XWINDOW (minibuf_window)->buffer, Qt);
-      minibuf_window = sel_frame->minibuffer_window;
+			  XWINDOW (Vminibuf_window)->buffer, Qt);
+      Vminibuf_window = sel_frame->minibuffer_window;
     }
 
   MAYBE_FRAMEMETH (f, make_frame_invisible, (f));
@@ -2399,12 +2399,12 @@ If omitted, FRAME defaults to the currently selected frame.
   d = XDEVICE (FRAME_DEVICE (f));
   sel_frame = XFRAME (DEVICE_SELECTED_FRAME (d));
 
-  /* Don't allow minibuf_window to remain on a deleted frame.  */
-  if (EQ (f->minibuffer_window, minibuf_window))
+  /* Don't allow Vminibuf_window to remain on a deleted frame.  */
+  if (EQ (f->minibuffer_window, Vminibuf_window))
     {
       Fset_window_buffer (sel_frame->minibuffer_window,
-			  XWINDOW (minibuf_window)->buffer, Qt);
-      minibuf_window = sel_frame->minibuffer_window;
+			  XWINDOW (Vminibuf_window)->buffer, Qt);
+      Vminibuf_window = sel_frame->minibuffer_window;
     }
 
   MAYBE_FRAMEMETH (f, iconify_frame, (f));

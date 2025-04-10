@@ -108,7 +108,7 @@ Boolint scroll_on_clipped_lines;
    Note that you cannot test for minibufferness of an arbitrary window
    by comparing against this; but you can test for minibufferness of
    the selected window.  */
-Lisp_Object minibuf_window;
+Lisp_Object Vminibuf_window;
 
 /* Non-nil means it is the window for C-M-v to scroll
    when the minibuffer is selected.  */
@@ -2525,7 +2525,7 @@ acceptable windows, eventually ending up back at the window you started with.
   /* minibuf == nil may or may not include minibuffers.
      Decide if it does.  */
   if (NILP (minibuf))
-    minibuf = (minibuf_level ? minibuf_window : Qlambda);
+    minibuf = (minibuf_level ? Vminibuf_window : Qlambda);
   else if (! EQ (minibuf, Qt))
     minibuf = Qlambda;
   /* Now `minibuf' is one of:
@@ -2666,7 +2666,7 @@ acceptable windows, eventually ending up back at the window you started with.
   /* minibuf == nil may or may not include minibuffers.
      Decide if it does.  */
   if (NILP (minibuf))
-    minibuf = (minibuf_level ? minibuf_window : Qlambda);
+    minibuf = (minibuf_level ? Vminibuf_window : Qlambda);
   else if (! EQ (minibuf, Qt))
     minibuf = Qlambda;
   /* Now `minibuf' is one of:
@@ -5771,14 +5771,6 @@ syms_of_window (void)
 }
 
 void
-reinit_vars_of_window (void)
-{
-  /* Make sure all windows get marked */
-  minibuf_window = Qnil;
-  staticpro_nodump (&minibuf_window);
-}
-
-void
 vars_of_window (void)
 {
 #ifdef MEMORY_USAGE_STATS
@@ -5850,6 +5842,10 @@ If t then scrolling is done in increments equal to the height of the default fac
 *Delete any window less than this wide.
 */ );
   window_min_width = 10;
+
+  /* Make sure all windows get marked */
+  Vminibuf_window = Qnil;
+  staticpro_dump_nil (&Vminibuf_window);
 }
 
 void

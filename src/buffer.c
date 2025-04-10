@@ -1268,7 +1268,7 @@ with `delete-process'.
     return Qnil;
 
   /* Don't kill the minibuffer now current.  */
-  if (EQ (buf, XWINDOW_BUFFER (minibuf_window)))
+  if (EQ (buf, XWINDOW_BUFFER (Vminibuf_window)))
     return Qnil;
 
   /* When we kill a base buffer, kill all its indirect buffers.
@@ -2005,14 +2005,6 @@ syms_of_buffer (void)
 	    Qinvalid_change);
 }
 
-void
-reinit_vars_of_buffer (void)
-{
-  staticpro_nodump (&Vbuffer_alist);
-  Vbuffer_alist = Qnil;
-  current_buffer = 0;
-}
-
 /* initialize the buffer routines */
 void
 vars_of_buffer (void)
@@ -2164,6 +2156,15 @@ List of functions called with no args to query before killing a buffer.
 *Non-nil means delete auto-save file when a buffer is saved or killed.
 */ );
   delete_auto_save_files = 1;
+
+  Vbuffer_alist = Qnil;
+  staticpro_dump_nil (&Vbuffer_alist);
+
+  Vbuffer_defaults = Qnil;
+  staticpro_dump_nil (&Vbuffer_defaults);
+
+  Vbuffer_local_symbols = Qnil;
+  staticpro_dump_nil (&Vbuffer_local_symbols);
 }
 
 /* The docstrings for DEFVAR_* are recorded externally by make-docfile.  */
@@ -2217,17 +2218,15 @@ nuke_all_buffer_slots (struct buffer *b, Lisp_Object zap)
 static void
 common_init_complex_vars_of_buffer (void)
 {
+  struct buffer *defs, *syms;
+
   /* Make sure all markable slots in buffer_defaults
      are initialized reasonably, so KKCC won't choke. */
-  Lisp_Object defobj = ALLOC_NORMAL_LISP_OBJECT (buffer);
-  struct buffer *defs = XBUFFER (defobj);
-  Lisp_Object symobj = ALLOC_NORMAL_LISP_OBJECT (buffer);
-  struct buffer *syms = XBUFFER (symobj);
+  Vbuffer_defaults = ALLOC_NORMAL_LISP_OBJECT (buffer);
+  defs = XBUFFER (Vbuffer_defaults);
 
-  staticpro_nodump (&Vbuffer_defaults);
-  staticpro_nodump (&Vbuffer_local_symbols);
-  Vbuffer_defaults = defobj;
-  Vbuffer_local_symbols = symobj;
+  Vbuffer_local_symbols = ALLOC_NORMAL_LISP_OBJECT (buffer);
+  syms = XBUFFER (Vbuffer_local_symbols);
 
   nuke_all_buffer_slots (syms, Qnil);
   nuke_all_buffer_slots (defs, Qnil);

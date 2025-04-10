@@ -849,13 +849,6 @@ syms_of_font_lock (void)
 }
 
 void
-reinit_vars_of_font_lock (void)
-{
-  xzero (context_cache);
-  xzero (bol_context_cache);
-}
-
-void
 vars_of_font_lock (void)
 {
 }

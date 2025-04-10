@@ -4069,11 +4069,6 @@ syms_of_event_Xt (void)
 }
 
 void
-reinit_vars_of_event_Xt (void)
-{
-}
-
-void
 vars_of_event_Xt (void)
 {
   DEFVAR_BOOL ("x-allow-sendevents", &x_allow_sendevents /*

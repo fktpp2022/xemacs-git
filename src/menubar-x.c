@@ -645,7 +645,7 @@ x_initialize_frame_menubar (struct frame *f)
 }
 
 
-static LWLIB_ID last_popup_menu_selection_callback_id;
+static LWLIB_ID last_popup_menu_selection_callback_id = (LWLIB_ID) -1;
 
 static void
 popup_menu_selection_callback (Widget widget, LWLIB_ID id,
@@ -1373,12 +1373,6 @@ console_type_create_menubar_x (void)
   CONSOLE_HAS_METHOD (x, update_frame_menubars);
   CONSOLE_HAS_METHOD (x, free_frame_menubars);
   CONSOLE_HAS_METHOD (x, popup_menu);
-}
-
-void
-reinit_vars_of_menubar_x (void)
-{
-  last_popup_menu_selection_callback_id = (LWLIB_ID) -1;
 }
 
 void

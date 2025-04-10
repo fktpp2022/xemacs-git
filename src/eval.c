@@ -7608,6 +7608,7 @@ if one of its condition symbols appears in the list.
 See also variable `stack-trace-on-signal'.
 */ );
   Vstack_trace_on_error = Qnil;
+  dump_add_nil_lisp_object (&Vstack_trace_on_error);
 
   DEFVAR_LISP ("stack-trace-on-signal", &Vstack_trace_on_signal /*
 *Non-nil means automatically display a backtrace buffer
@@ -7662,6 +7663,7 @@ variable XEMACSDEBUG, like this:
 \(using bash)     export XEMACSDEBUG='(setq debug-on-error t)'
 */ );
   Vdebug_on_error = Qnil;
+  dump_add_nil_lisp_object (&Vdebug_on_error);
 
   DEFVAR_LISP ("debug-on-signal", &Vdebug_on_signal /*
 *Non-nil means enter debugger if an error is signalled.
@@ -7675,6 +7677,7 @@ This will attempt to enter a C debugger when XEmacs is run noninteractively
 and under the same conditions as described in `debug-on-error'.
 */ );
   Vdebug_on_signal = Qnil;
+  dump_add_nil_lisp_object (&Vdebug_on_signal);
 
   DEFVAR_BOOL ("debug-on-quit", &debug_on_quit /*
 *Non-nil means enter debugger if quit is signalled (C-G, for example).

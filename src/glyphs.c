@@ -5428,13 +5428,6 @@ image_instantiator_format_create (void)
 }
 
 void
-reinit_vars_of_glyphs (void)
-{
-  hold_ignored_expose_registration = 0;
-}
-
-
-void
 vars_of_glyphs (void)
 {
   Vthe_nothing_vector = vector1 (Qnothing);

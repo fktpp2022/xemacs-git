@@ -2129,15 +2129,6 @@ console_type_create_device_x (void)
 }
 
 void
-reinit_vars_of_device_x (void)
-{
-  error_expected = 0;
-  error_occurred = 0;
-
-  in_resource_setting = 0;
-}
-
-void
 vars_of_device_x (void)
 {
   DEFVAR_LISP ("x-emacs-application-class", &Vx_emacs_application_class /*

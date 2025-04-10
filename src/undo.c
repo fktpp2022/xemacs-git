@@ -535,12 +535,6 @@ syms_of_undo (void)
 }
 
 void
-reinit_vars_of_undo (void)
-{
-  inside_undo = 0;
-}
-
-void
 vars_of_undo (void)
 {
   pending_boundary = Qnil;

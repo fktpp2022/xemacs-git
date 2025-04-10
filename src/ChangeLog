@@ -1,3 +1,138 @@
+2025-04-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Use staticpro_dump_nil() in much more places, allowing removal of
+	27 reinit_vars_of_FILE() functions, simplifying startup.
+
+	In passing rename minibuf_window to Vminibuf_window, pre_gc_cursor
+	to Vpre_gc_cursor.
+
+	* buffer.c:
+	* buffer.c (Fkill_buffer):
+	Use Vminibuf_window's new name here.
+	* buffer.c (reinit_vars_of_buffer): Removed.
+	Vbuffer_alist is now initialized in vars_of_buffer() and GC
+	protected with staticpro_dump_nil(). current_buffer initialized to
+	zero by the C implementation.
+	* buffer.c (init_vars_of_buffer):
+	Initialize and staticpro_dump_nil Vbuffer_alist, Vbuffer_defaults,
+	Vbuffer_local_symbols here.
+	* buffer.c (common_init_complex_vars_of_buffer):
+	Remove staticpro_nodump() for Vbuffer_defaults,
+	Vbuffer_local_symbols here.
+	* callint.c (Fcall_interactively):
+	Use Vminibuf_window's new name here.
+	* console-stream.c (init_console_stream):
+	Ditto.
+	* console.c (reinit_vars_of_console): Removed.
+	* console.c (vars_of_console): Vconsole_list, Vselected_console,
+	Vconsole_defaults, Vconsole_local_symbols initialized to Qnil and
+	GC protected with staticpro_dump_nil() here.
+	* console.c (common_init_complex_vars_of_console):
+	Rearrange initialization of Vconsole_defaults,
+	Vconsole_local_symbols here.
+	* device-x.c (reinit_vars_of_device_x): Removed, contents
+	delegated to the C implementation.
+	* device.c (reinit_vars_of_device): Removed, use
+	staticpro_dump_nil on Vdefault device in vars_of_device(),
+	asynch_device_change_pending will be initialized to 0 by the C
+	implementation.
+	* emacs.c (main_1):
+	Remove 27 calls to reinit_vars_of_FILE(), simplify startup.
+	* emodules.c:
+	* emodules.c (reinit_vars_of_module): Removed, contents delegated
+	to the C implementation.
+	* eval.c (vars_of_eval):
+	Use dump_add_nil_lisp_object() on Vdebug_on_error and friends.
+	* event-Xt.c (reinit_vars_of_event_Xt): Empty, removed.
+	* event-gtk.c (reinit_vars_of_event_gtk): Empty, removed.
+	* event-msw.c (reinit_vars_of_event_mswindows): Empty, removed.
+	* event-stream.c (Fdispatch_event):
+	Use Vminibuf_window's new name.
+	* event-tty.c (vars_of_event_tty): Empty, removed.
+	* events.c (reinit_vars_of_events): Move initialization of
+	Vevent_resource to vars_of_events(), use
+	dump_add_nil_lisp_object() on it.
+	* file-coding.c (reinit_vars_of_file_coding): Empty, removed.
+	* font-lock.c (reinit_vars_of_font_lock): Removed, contents
+	delegated to the C implementation.
+	* fontcolor.c (reinit_vars_of_fontcolor): Remove staticpro_nodump
+	on Vthe_null_color_instance, Vthe_null_font_instance from
+	here. Retain other code which cannot be done at dump time.
+	* fontcolor.c (vars_of_fontcolor): Use staticpro_dump_nil() on the
+	same variables.
+	* frame-msw.c (reinit_vars_of_frame_mswindows): Removed.
+	* frame-msw.c (vars_of_frame_mswindows):
+	Use dump_add_nil_lisp_Object() on Vmswindows_frame_being_created.
+	* frame.c (Factive_minibuffer_window):
+	Use Vminibuf_window's new name here.
+	* frame.c (delete_frame_internal): Ditto.
+	* frame.c (Fmake_frame_invisible): Ditto.
+	* frame.c (Ficonify_frame): Ditto.
+	* gc.c:
+	Use Vpre_gc_cursor's new name here.
+	* gc.c (show_gc_cursor_and_message): Ditto.
+	* gc.c (remove_gc_cursor_and_message): Ditto.
+	* gc.c (vars_of_gc): Call staticpro_dump_nil() on Vpre_gc_cursor.
+	* glyphs-widget.c (reinit_vars_of_glyphs_widget): Remove, delegate
+	its contents to the C implementation.
+	* glyphs.c (reinit_vars_of_glyphs): Ditto.
+	* gui-x.c:
+	* gui-x.c (static LWLIB_ID lwlib_id_tick): Static initialization
+	to #x10000.
+	* gui-x.c (reinit_vars_of_gui_x): Remove, delegate to the C
+	implementation.
+	* insdel.c (reinit_vars_of_insdel): Remove, delegate to the C
+	implementation.
+	* lread.c (init_lread): Remove re-initialization of Vvalues,
+	Vload_descriptor_list, Vload_force_doc_string_list,
+	Vload_file_name_internal, Vload_file_name from here.
+	* lread.c (reinit_vars_of_lread): Removed, use staticpro_dump_nil
+	on Vread_buffer_stream in vars_of_lread() instead.
+	* lread.c (vars_of_lread):
+	Use dump_add_nil_lisp_object(), staticpro_dump_nil() appropriately
+	here.
+	* menubar-gtk.c (reinit_vars_of_menubar_gtk): Empty, removed.
+	* menubar-x.c:
+	* menubar-x.c (static LWLIB_ID
+	last_popup_menu_selection_callback_id): Initialize statically. 
+	* menubar-x.c (reinit_vars_of_menubar_x): Removed, delegate to the
+	C implementation. 
+	* minibuf.c (read_minibuffer_internal_unwind):
+	Use Vminibuf_window's new name.
+	* minibuf.c (reinit_vars_of_minibuf): Removed, delegate to the C
+	implementation.
+	* minibuf.c (vars_of_minibuf): Use staticpro_dump_nil() on
+	Vminibuffer_zero, Vecho_area_buffer.
+	* minibuf.c (reinit_complex_vars_of_minibuf):
+	Remove staticpro_nodump() for those variables.
+	* mule-coding.c (reinit_vars_of_mule_coding): Empty, removed.
+	* mule-wnnfns.c (reinit_vars_of_mule_wnn):
+	Delegate initialization of some static variables to zero to the C
+	implementation.
+	* print.c (reinit_vars_of_print): Removed, delegate to the C
+	implementation.
+	* scrollbar-x.c:
+	* scrollbar-x.c (int stupid_vertical_scrollbar_drag_hack): Static
+	initialization to 1.
+	* scrollbar-x.c (reinit_vars_of_scrollbar_x): Delegate to the C
+	implementation.
+	* select-x.c (reinit_vars_of_select_x): Removed, delegate to the C
+	implementation.
+	* symsinit.h:
+	Remove declarations for various reinit_vars_of_FILE() functions.
+	* undo.c (reinit_vars_of_undo): Removed, delegate to the C
+	implementation.
+	* window-impl.h:
+	Use Vminibuf_window's new name.
+	* window.c:
+	Ditto.
+	* window.c (Fnext_window): Ditto.
+	* window.c (Fprevious_window): Ditto.
+	* window.c (reinit_vars_of_window): Removed.
+	* window.c (vars_of_window):
+	staticpro_dump_nil (&Vminibuf_window) here.
+	* window.h: Use Vwinibuf_window's new name here.
+
 2025-04-09  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Add dump_add_nil_lisp_object(), staticpro_dump_nil(), telling the

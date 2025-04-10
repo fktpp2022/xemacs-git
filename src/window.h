@@ -113,7 +113,7 @@ Lisp_Object display_buffer (Lisp_Object, Lisp_Object, Lisp_Object);
    Note that you cannot test for minibufferness of an arbitrary window
    by comparing against this; but you can test for minibufferness of
    the selected window or of any window that is displayed.  */
-extern Lisp_Object minibuf_window;
+extern Lisp_Object Vminibuf_window;
 
 /* Prompt to display in front of the minibuffer contents, or nil */
 extern Lisp_Object Vminibuf_prompt;

@@ -5866,11 +5866,6 @@ reinit_coding_system_type_create (void)
 }
 
 void
-reinit_vars_of_file_coding (void)
-{
-}
-
-void
 vars_of_file_coding (void)
 {
   /* We always have file-coding support */

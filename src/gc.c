@@ -1097,7 +1097,7 @@ Lisp_Object Qgarbage_collecting;
 struct frame *f;
 int speccount;
 int cursor_changed;
-Lisp_Object pre_gc_cursor;
+Lisp_Object Vpre_gc_cursor;
 
 /* PROFILE_DECLARE */
 int do_backtrace;
@@ -1112,7 +1112,7 @@ static void
 show_gc_cursor_and_message (void) 
 {
   /* Now show the GC cursor/message. */
-  pre_gc_cursor = Qnil;
+  Vpre_gc_cursor = Qnil;
   cursor_changed = 0;
 
   /* We used to call selected_frame() here.
@@ -1139,10 +1139,10 @@ show_gc_cursor_and_message (void)
 	  Lisp_Object cursor = glyph_image_instance (Vgc_pointer_glyph,
 						     FRAME_SELECTED_WINDOW (f),
 						     ERROR_ME_NOT, 1);
-	  pre_gc_cursor = f->pointer;
+	  Vpre_gc_cursor = f->pointer;
 	  if (POINTER_IMAGE_INSTANCEP (cursor)
 	      /* don't change if we don't know how to change back. */
-	      && POINTER_IMAGE_INSTANCEP (pre_gc_cursor))
+	      && POINTER_IMAGE_INSTANCEP (Vpre_gc_cursor))
 	    {
 	      cursor_changed = 1;
 	      Fset_frame_pointer (frame, cursor);
@@ -1173,7 +1173,7 @@ remove_gc_cursor_and_message (void)
   if (!noninteractive)
     {
       if (cursor_changed)
-	Fset_frame_pointer (wrap_frame (f), pre_gc_cursor);
+	Fset_frame_pointer (wrap_frame (f), Vpre_gc_cursor);
       else if (!FRAME_STREAM_P (f))
 	{
 	  /* Show "...done" only if the echo area would otherwise be empty. */
@@ -1462,7 +1462,8 @@ syms_of_gc (void)
 void
 vars_of_gc (void)
 {
-  staticpro_nodump (&pre_gc_cursor);
+  Vpre_gc_cursor = Qnil;
+  staticpro_dump_nil (&Vpre_gc_cursor);
 
   QSin_garbage_collection = build_defer_string ("(in garbage collection)");
   staticpro (&QSin_garbage_collection);

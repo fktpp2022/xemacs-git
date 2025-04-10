@@ -49,7 +49,7 @@ static void x_update_horizontal_scrollbar_callback (Widget widget, LWLIB_ID id,
    scrollbar is incredibly stupid about updating the slider and causes
    lots of flicker if it is done too often.  */
 static int inhibit_slider_size_change;
-int stupid_vertical_scrollbar_drag_hack;
+int stupid_vertical_scrollbar_drag_hack = 1;
 
 /* Doesn't work with athena */
 #if defined (LWLIB_SCROLLBARS_MOTIF) || defined (LWLIB_SCROLLBARS_LUCID)
@@ -778,12 +778,6 @@ console_type_create_scrollbar_x (void)
 #ifdef MEMORY_USAGE_STATS
   CONSOLE_HAS_METHOD (x, compute_scrollbar_instance_usage);
 #endif /* MEMORY_USAGE_STATS */
-}
-
-void
-reinit_vars_of_scrollbar_x (void)
-{
-  stupid_vertical_scrollbar_drag_hack = 1;
 }
 
 void

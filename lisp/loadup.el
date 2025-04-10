@@ -204,10 +204,11 @@ with the exception of `loadup.el'.")
 
 (when (member "dump" command-line-args)
   (message "Dumping under the name xemacs")
-  ;; Make sure we don't dump with debugging messages turned on.
-  (setq stack-trace-on-error nil
-	load-always-display-messages nil
-	debug-on-error nil)
+  ;; Make sure we don't dump with this turned on. stack-trace-on-error,
+  ;; debug-on-error have been marked by dump_add_nil_lisp_object() so that's
+  ;; not necessary for them. load-always-display-messages is defined with
+  ;; DEFVAR_BOOL(), and there's no analogous dump_add_zero_boolint().
+  (setq load-always-display-messages nil)
   (dump-emacs
    "xemacs"
    "temacs")

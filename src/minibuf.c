@@ -88,12 +88,12 @@ static Lisp_Object
 read_minibuffer_internal_unwind (Lisp_Object unwind_data)
 {
   Lisp_Object frame;
-  XWINDOW (minibuf_window)->last_modified[CURRENT_DISP] = Qzero;
-  XWINDOW (minibuf_window)->last_modified[DESIRED_DISP] = Qzero;
-  XWINDOW (minibuf_window)->last_modified[CMOTION_DISP] = Qzero;
-  XWINDOW (minibuf_window)->last_facechange[CURRENT_DISP] = Qzero;
-  XWINDOW (minibuf_window)->last_facechange[DESIRED_DISP] = Qzero;
-  XWINDOW (minibuf_window)->last_facechange[CMOTION_DISP] = Qzero;
+  XWINDOW (Vminibuf_window)->last_modified[CURRENT_DISP] = Qzero;
+  XWINDOW (Vminibuf_window)->last_modified[DESIRED_DISP] = Qzero;
+  XWINDOW (Vminibuf_window)->last_modified[CMOTION_DISP] = Qzero;
+  XWINDOW (Vminibuf_window)->last_facechange[CURRENT_DISP] = Qzero;
+  XWINDOW (Vminibuf_window)->last_facechange[DESIRED_DISP] = Qzero;
+  XWINDOW (Vminibuf_window)->last_facechange[CMOTION_DISP] = Qzero;
   Vminibuf_prompt = Felt (unwind_data, Qzero);
   minibuf_level = XFIXNUM (Felt (unwind_data, Qone));
   while (CONSP (unwind_data))
@@ -167,17 +167,17 @@ Lowest-level interface to minibuffers.  Don't call this.
 
      choose_minibuf_frame() does the following:
 
-  if (!EQ (minibuf_window, selected_frame()->minibuffer_window))
+  if (!EQ (Vminibuf_window, selected_frame()->minibuffer_window))
     {
       Fset_window_buffer (selected_frame()->minibuffer_window,
-			  XWINDOW (minibuf_window)->buffer);
-      minibuf_window = selected_frame()->minibuffer_window;
+			  XWINDOW (Vminibuf_window)->buffer);
+      Vminibuf_window = selected_frame()->minibuffer_window;
     }
 
   #### Note that we don't do the set-window-buffer.  This call is
   similar, but not identical, to a set-window-buffer call made
   in `read-from-minibuffer' in minibuf.el.  I hope it's close
-  enough, because minibuf_window isn't really exported to Lisp.
+  enough, because Vminibuf_window isn't really exported to Lisp.
 
   The comment above choose_minibuf_frame() reads:
 
@@ -185,7 +185,7 @@ Lowest-level interface to minibuffers.  Don't call this.
   We do this whenever the user starts a new minibuffer
   or when a minibuffer exits.  */
 
-  minibuf_window = FRAME_MINIBUF_WINDOW (selected_frame ());
+  Vminibuf_window = FRAME_MINIBUF_WINDOW (selected_frame ());
 
   run_hook (Qminibuffer_setup_hook);
 
@@ -1101,12 +1101,6 @@ syms_of_minibuf (void)
 }
 
 void
-reinit_vars_of_minibuf (void)
-{
-  minibuf_level = 0;
-}
-
-void
 vars_of_minibuf (void)
 {
   staticpro (&Vminibuf_prompt);
@@ -1131,6 +1125,12 @@ List of regexps that should restrict possible completions.
 Each completion has to match all regexps in this list.
 */ );
   Vcompletion_regexp_list = Qnil;
+
+  Vminibuffer_zero = Qnil;
+  staticpro_dump_nil (&Vminibuffer_zero);
+
+  Vecho_area_buffer = Qnil;
+  staticpro_dump_nil (&Vecho_area_buffer);
 }
 
 void
@@ -1143,10 +1143,9 @@ reinit_complex_vars_of_minibuf (void)
 #endif
   Vminibuffer_zero
     = Fget_buffer_create (build_ascstring (" *Minibuf-0*"));
-  staticpro_nodump (&Vminibuffer_zero);
+
   Vecho_area_buffer
     = Fget_buffer_create (build_ascstring (" *Echo Area*"));
-  staticpro_nodump (&Vecho_area_buffer);
 }
 
 void

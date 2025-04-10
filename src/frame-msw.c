@@ -1225,13 +1225,6 @@ syms_of_frame_mswindows (void)
 }
 
 void
-reinit_vars_of_frame_mswindows (void)
-{
-  /* Needn't staticpro -- see comment above.  */
-  Vmswindows_frame_being_created = Qnil;
-}
-
-void
 vars_of_frame_mswindows (void)
 {
   DEFVAR_LISP ("mswindows-use-system-frame-size-defaults", &Vmswindows_use_system_frame_size_defaults /*
@@ -1324,4 +1317,8 @@ to all frames, not just mswindows frames.
 
   msprinter_console_methods->device_specific_frame_props =
     &Vdefault_msprinter_frame_plist;
+
+  /* Needn't staticpro -- see comment above.  */
+  Vmswindows_frame_being_created = Qnil;
+  dump_add_nil_lisp_object (&Vmswindows_frame_being_created);
 }

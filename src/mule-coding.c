@@ -4090,11 +4090,6 @@ reinit_coding_system_type_create_mule_coding (void)
 }
 
 void
-reinit_vars_of_mule_coding (void)
-{
-}
-
-void
 vars_of_mule_coding (void)
 {
 }

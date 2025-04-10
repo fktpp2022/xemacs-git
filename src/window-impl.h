@@ -61,7 +61,7 @@ or horizontal combination windows.  The children of a horizontal
 combination window may be leaf windows or vertical combination windows.
 
 At the top of the tree are two windows which have nil as parent.
-The second of these is minibuf_window.  The first one manages all
+The second of these is Vminibuf_window.  The first one manages all
 the frame area that is not minibuffer, and is called the root window.
 Different windows can be the root at different times;
 initially the root window is a leaf window, but if more windows

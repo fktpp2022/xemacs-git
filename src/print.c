@@ -3055,12 +3055,6 @@ syms_of_print (void)
 }
 
 void
-reinit_vars_of_print (void)
-{
-  alternate_do_pointer = 0;
-}
-
-void
 vars_of_print (void)
 {
   DEFVAR_LISP ("standard-output", &Vstandard_output /*

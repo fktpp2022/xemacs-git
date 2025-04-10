@@ -4798,7 +4798,7 @@ Magic events are handled as necessary.
 	command_builder->self_insert_countdown = 0;
 	if (NILP (XCONSOLE (console)->prefix_arg)
 	    && NILP (Vexecuting_macro)
-	    && !EQ (minibuf_window, Fselected_window (Qnil)))
+	    && !EQ (Vminibuf_window, Fselected_window (Qnil)))
 	  Fundo_boundary ();
 	execute_command_event (command_builder, event);
 	break;

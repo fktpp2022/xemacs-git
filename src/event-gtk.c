@@ -1673,11 +1673,6 @@ syms_of_event_gtk (void)
 }
 
 void
-reinit_vars_of_event_gtk (void)
-{
-}
-
-void
 init_event_gtk_late (void) /* called when already initialized */
 {
   event_stream = gtk_event_stream;

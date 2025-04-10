@@ -1735,13 +1735,6 @@ barf_if_buffer_read_only (struct buffer *buf, Bytebpos from, Bytebpos to)
 /************************************************************************/
 
 void
-reinit_vars_of_insdel (void)
-{
-  inside_change_hook = 0;
-  in_first_change = 0;
-}
-
-void
 vars_of_insdel (void)
 {
 }

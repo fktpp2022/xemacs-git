@@ -513,7 +513,7 @@ when reading the arguments.
 		  {
 		    if (MINI_WINDOW_P (XWINDOW (window))
 			&& ! (minibuf_level > 0 && EQ (window,
-						       minibuf_window)))
+						       Vminibuf_window)))
 		      invalid_operation ("Attempt to select inactive minibuffer window", Qunbound);
 
 #if 0 /* unclean! see event-stream.c */
@@ -648,7 +648,7 @@ when reading the arguments.
 	  case 'b':   		/* Name of existing buffer */
 	    {
 	      Lisp_Object def = Fcurrent_buffer ();
-	      if (EQ (Fselected_window (Qnil), minibuf_window))
+	      if (EQ (Fselected_window (Qnil), Vminibuf_window))
 		def = Fother_buffer (def, Qnil, Qnil);
               /* read-buffer returns a buffer name, not a buffer! */
 	      args[argnum] = call3 (Qread_buffer, PROMPT (), def,

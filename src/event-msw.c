@@ -4978,11 +4978,6 @@ debug_output_mswin_message (HWND hwnd, UINT message_, WPARAM wParam,
 /************************************************************************/
 
 void
-reinit_vars_of_event_mswindows (void)
-{
-}
-
-void
 vars_of_event_mswindows (void)
 {
   mswindows_s_dispatch_event_queue = Qnil;

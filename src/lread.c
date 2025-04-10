@@ -3390,31 +3390,14 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
 void
 init_lread (void)
 {
-  Vvalues = Qnil;
-
   load_in_progress = 0;
-
-  Vload_descriptor_list = Qnil;
 
   /* kludge: locate-file does not work for a null load-path, even if
      the file name is absolute. */
-
   Vload_path = Fcons (build_ascstring (""), Qnil);
 
-  /* This used to get initialized in init_lread because all streams
-     got closed when dumping occurs.  This is no longer true --
-     Vread_buffer_stream is a resizing output stream, and there is no
-     reason to close it at dump-time.
-
-     Vread_buffer_stream is set to Qnil in vars_of_lread, and this
-     will initialize it only once, at dump-time.  */
-  if (NILP (Vread_buffer_stream))
-    Vread_buffer_stream = make_resizing_buffer_output_stream ();
-
-  Vload_force_doc_string_list = Qnil;
-
-  Vload_file_name_internal = Qnil;
-  Vload_file_name = Qnil;
+  /* Streams are not currently dumpable. */
+  Vread_buffer_stream = make_resizing_buffer_output_stream ();
 }
 
 void
@@ -3455,19 +3438,13 @@ structure_type_create (void)
 }
 
 void
-reinit_vars_of_lread (void)
-{
-  Vread_buffer_stream = Qnil;
-  staticpro_nodump (&Vread_buffer_stream);
-}
-
-void
 vars_of_lread (void)
 {
   DEFVAR_LISP ("values", &Vvalues /*
 List of values of all expressions which were read, evaluated and printed.
 Order is reverse chronological.
 */ );
+  dump_add_nil_lisp_object (&Vvalues);
 
   DEFVAR_LISP ("standard-input", &Vstandard_input /*
 Stream for read to get input from.
@@ -3603,6 +3580,7 @@ Used for internal purposes by `load'.
 Full name of file being loaded by `load'.
 */ );
   Vload_file_name = Qnil;
+  dump_add_nil_lisp_object (&Vload_file_name);
 
   DEFVAR_LISP ("load-read-function", &Vload_read_function /*
 Function used by `load' and `eval-region' for reading expressions.
@@ -3627,15 +3605,18 @@ character escape syntaxes or just read them incorrectly.
   fail_on_bucky_bit_character_escapes = 0;
 #endif
 
-  /* This must be initialized in init_lread otherwise it may start out
-     with values saved when the image is dumped. */
-  staticpro (&Vload_descriptor_list);
+  /* This must be initialized as nil otherwise it may start out with values
+     saved when the image is dumped. */
+  Vload_descriptor_list = Qnil;
+  staticpro_dump_nil (&Vload_descriptor_list);
 
-  /* Initialized in init_lread. */
-  staticpro (&Vload_force_doc_string_list);
+  /* Ditto. */
+  Vload_force_doc_string_list = Qnil;
+  staticpro_dump_nil (&Vload_force_doc_string_list);
 
+  /* Ditto. */
   Vload_file_name_internal = Qnil;
-  staticpro (&Vload_file_name_internal);
+  staticpro_dump_nil (&Vload_file_name_internal);
 
   /* So that early-early stuff will work */
   Ffset (Qload,	Qload_internal);
@@ -3656,7 +3637,10 @@ character escape syntaxes or just read them incorrectly.
 #endif
 
   Vread_objects = Qnil;
-  staticpro (&Vread_objects);
+  staticpro_dump_nil (&Vread_objects);
+
+  Vread_buffer_stream = Qnil;
+  staticpro_dump_nil (&Vread_buffer_stream);
 
   Vlocate_file_hash_table = make_lisp_hash_table (200,
 						  HASH_TABLE_NON_WEAK,
@@ -3671,4 +3655,5 @@ character escape syntaxes or just read them incorrectly.
   symbol_value (XSYMBOL (intern ("Vlocate-file-hash-table")))
     = Vlocate_file_hash_table;
 #endif
+
 }

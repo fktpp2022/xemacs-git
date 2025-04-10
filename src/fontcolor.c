@@ -2174,9 +2174,7 @@ reinit_vars_of_fontcolor (void)
     c->name = Qnil;
     c->device = Qnil;
     c->data = 0;
-
     Vthe_null_color_instance = obj;
-    staticpro_nodump (&Vthe_null_color_instance);
   }
 
   {
@@ -2193,11 +2191,15 @@ reinit_vars_of_fontcolor (void)
     f->proportional_p = 0;
 
     Vthe_null_font_instance = obj;
-    staticpro_nodump (&Vthe_null_font_instance);
   }
 }
 
 void
 vars_of_fontcolor (void)
 {
+  Vthe_null_color_instance = Qnil;
+  staticpro_dump_nil (&Vthe_null_color_instance);
+
+  Vthe_null_font_instance = Qnil;
+  staticpro_dump_nil (&Vthe_null_font_instance);
 }

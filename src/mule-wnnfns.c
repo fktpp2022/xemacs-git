@@ -1900,15 +1900,6 @@ syms_of_mule_wnn (void)
 void
 reinit_vars_of_mule_wnn (void)
 {
-  int i;
-
-  for (i = 0; i < NSERVER; i++)
-    {
-      wnnfns_buf[i] = (struct wnn_buf *) 0;
-      wnnfns_env_norm[i] = (struct wnn_env *) 0;
-      wnnfns_env_rev[i] = (struct wnn_env *) 0;
-    }
-
   charset_wnn_server_type[0] = Vcharset_japanese_jisx0208;
   charset_wnn_server_type[1] = Vcharset_chinese_gb2312;
   charset_wnn_server_type[2] = Vcharset_thai_tis620;

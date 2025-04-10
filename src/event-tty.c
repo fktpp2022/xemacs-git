@@ -341,11 +341,6 @@ emacs_tty_delete_io_streams (Lisp_Object instream,
 /************************************************************************/
 
 void
-reinit_vars_of_event_tty (void)
-{
-}
-
-void
 vars_of_event_tty (void)
 {
   DEFINE_EVENT_STREAM (tty);

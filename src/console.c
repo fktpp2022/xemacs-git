@@ -1540,15 +1540,6 @@ console_type_create (void)
 }
 
 void
-reinit_vars_of_console (void)
-{
-  staticpro_nodump (&Vconsole_list);
-  Vconsole_list = Qnil;
-  staticpro_nodump (&Vselected_console);
-  Vselected_console = Qnil;
-}
-
-void
 vars_of_console (void)
 {
   DEFVAR_LISP ("create-console-hook", &Vcreate_console_hook /*
@@ -1578,6 +1569,18 @@ for bindings in `function-key-map'.
 #ifdef HAVE_WINDOW_SYSTEM
   Fprovide (intern ("window-system"));
 #endif
+
+  Vconsole_list = Qnil;
+  staticpro_dump_nil (&Vconsole_list);
+
+  Vselected_console = Qnil;
+  staticpro_dump_nil (&Vselected_console);
+
+  Vconsole_defaults = Qnil;
+  staticpro_dump_nil (&Vconsole_defaults);
+
+  Vconsole_local_symbols = Qnil;
+  staticpro_dump_nil (&Vconsole_local_symbols);
 }
 
 /* The docstrings for DEFVAR_* are recorded externally by make-docfile.  */
@@ -1618,18 +1621,11 @@ common_init_complex_vars_of_console (void)
 {
   /* Make sure all markable slots in console_defaults
      are initialized reasonably, so KKCC won't choke. */
-  Lisp_Object defobj = ALLOC_NORMAL_LISP_OBJECT (console);
-  struct console *defs = XCONSOLE (defobj);
-  Lisp_Object symobj = ALLOC_NORMAL_LISP_OBJECT (console);
-  struct console *syms = XCONSOLE (symobj);
+  Vconsole_defaults = ALLOC_NORMAL_LISP_OBJECT (console);
+  Vconsole_local_symbols = ALLOC_NORMAL_LISP_OBJECT (console);
 
-  staticpro_nodump (&Vconsole_defaults);
-  staticpro_nodump (&Vconsole_local_symbols);
-  Vconsole_defaults = defobj;
-  Vconsole_local_symbols = symobj;
-
-  nuke_all_console_slots (syms, Qnil);
-  nuke_all_console_slots (defs, Qnil);
+  nuke_all_console_slots (XCONSOLE (Vconsole_local_symbols), Qnil);
+  nuke_all_console_slots (XCONSOLE (Vconsole_defaults), Qnil);
 
   /* Set up the non-nil default values of various console slots.
      Must do these before making the first console.

@@ -626,14 +626,6 @@ syms_of_module (void)
   Fput (Qunload_module, Qdisabled, Qt);
 }
 
-void
-reinit_vars_of_module (void)
-{
-  emodules_depth = 0;
-  modules = NULL;
-  modnum = 0;
-}
-
 #endif /* HAVE_SHLIB */
 
 void

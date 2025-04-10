@@ -1451,14 +1451,6 @@ syms_of_device (void)
 }
 
 void
-reinit_vars_of_device (void)
-{
-  staticpro_nodump (&Vdefault_device);
-  Vdefault_device = Qnil;
-  asynch_device_change_pending = 0;
-}
-
-void
 vars_of_device (void)
 {
   DEFVAR_LISP ("create-device-hook", &Vcreate_device_hook /*
@@ -1483,6 +1475,9 @@ One argument, the to-be-deleted device.
 
   Vdevice_class_list = list3 (Qcolor, Qgrayscale, Qmono);
   staticpro (&Vdevice_class_list);
+
+  Vdefault_device = Qnil;
+  staticpro_dump_nil (&Vdefault_device);
 
   /* Death to devices.el !!! */
   Fprovide (intern ("devices"));

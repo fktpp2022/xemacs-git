@@ -43,7 +43,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #endif
 
 /* we need a unique id for each popup menu, dialog box, and scrollbar */
-static LWLIB_ID lwlib_id_tick;
+static LWLIB_ID lwlib_id_tick = (1<<16); /* start big, to not conflict with Energize */
 
 LWLIB_ID
 new_lwlib_id (void)
@@ -679,15 +679,6 @@ gui_items_to_widget_values (Lisp_Object gui_object_instance, Lisp_Object items,
 void
 syms_of_gui_x (void)
 {
-}
-
-void
-reinit_vars_of_gui_x (void)
-{
-  lwlib_id_tick = (1<<16);	/* start big, to not conflict with Energize */
-#ifdef HAVE_POPUPS
-  popup_up_p = 0;
-#endif
 }
 
 void

@@ -2633,14 +2633,9 @@ syms_of_events (void)
   defsymbol (&QKdelete, "delete");
 }
 
-
-void
-reinit_vars_of_events (void)
-{
-  Vevent_resource = Qnil;
-}
-
 void
 vars_of_events (void)
 {
+  Vevent_resource = Qnil;
+  dump_add_nil_lisp_object (&Vevent_resource);
 }

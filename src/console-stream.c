@@ -375,7 +375,7 @@ init_console_stream (int reinit)
       Vterminal_device = Fmake_device (Qstream, Qnil, Qnil);
       Vterminal_console = Fdevice_console (Vterminal_device);
       Vterminal_frame = Fmake_frame (Qnil, Vterminal_device);
-      minibuf_window = XFRAME (Vterminal_frame)->minibuffer_window;
+      Vminibuf_window = XFRAME (Vterminal_frame)->minibuffer_window;
     }
   if (initialized)
     {

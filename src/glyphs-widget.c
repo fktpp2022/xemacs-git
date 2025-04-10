@@ -1933,14 +1933,6 @@ image_instantiator_format_create_glyphs_widget (void)
 }
 
 void
-reinit_vars_of_glyphs_widget (void)
-{
-#ifdef DEBUG_WIDGETS
-  debug_widget_instances = 0;
-#endif
-}
-
-void
 vars_of_glyphs_widget (void)
 {
 }

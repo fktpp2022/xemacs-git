@@ -1347,11 +1347,6 @@ console_type_create_menubar_gtk (void)
 }
 
 void
-reinit_vars_of_menubar_gtk (void)
-{
-}
-
-void
 vars_of_menubar_gtk (void)
 {
   Fprovide (intern ("gtk-menubars"));
