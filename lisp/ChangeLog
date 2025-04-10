@@ -1,5 +1,16 @@
 2025-04-10  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* loadhist.el (feature-file):
+	* loadhist.el (file-symbols):
+	* loadhist.el (unload-feature):
+	Modernize loadhist.el; return structured errors, use
+	#'file-system-ignore-p to determine the comparison function when
+	testing, use #'remove* instead of #'delete + #'copy-sequence.
+	No need to wrap #'unload-module in #'declare-fboundp given
+	HAVE_SHLIB is the default.
+
+2025-04-10  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* loadup.el (member):
 	No need to explicitly set stack-trace-on-error, debug-on-error to
 	nil before dump.

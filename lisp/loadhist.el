@@ -118,17 +118,18 @@ Actually, return the load argument, if any; this is sometimes the name of a
 Lisp file without an extension.  If the feature came from an eval-buffer on
 a buffer with no associated file, or an eval-region, return nil."
   (unless (featurep feature)
-    (error "%s is not a currently loaded feature" (symbol-name feature)))
+    (error 'invalid-argument "Not a currently loaded feature" feature))
   (car (feature-symbols feature)))
 
 (defun file-symbols (file)
   "Return the file and list of symbols associated with FILE.
 The file name in the returned list is the string used to load the file,
 and may not be the same string as FILE, but it will be equivalent."
-  (or (assoc file load-history)
-      (assoc (file-name-sans-extension file) load-history)
-      (assoc (concat file ".el") load-history)
-      (assoc (concat file ".elc") load-history)))
+  (let ((test (if (file-system-ignore-case-p file) #'equalp #'equal)))
+    (or (assoc* file load-history :test test)
+        (assoc* (file-name-sans-extension file) load-history :test test)
+        (assoc* (concat file ".el") load-history :test test)
+        (assoc* (concat file ".elc") load-history :test test))))
 
 (defun file-provides (file)
   "Return the list of features provided by FILE."
@@ -176,20 +177,22 @@ If the feature is required by any other loaded code, and optional FORCE
 is nil, raise an error."
   (interactive "SFeature: ")
   (unless (featurep feature)
-    (error "%s is not a currently loaded feature" (symbol-name feature)))
+    (error 'invalid-argument "Not a currently loaded feature" feature))
   (when (not force)
     (let* ((file (feature-file feature))
-	   (dependents (delete file (copy-sequence (file-dependents file)))))
+	   (dependents (remove* file (file-dependents file)
+				:test (if default-file-system-ignore-case
+					  #'equalp
+					#'equal))))
       (when dependents
-	(error "Loaded libraries %s depend on %s"
-	       (prin1-to-string dependents) file))))
+	(error 'invalid-state "Loaded libraries depend on feature"
+	       dependents feature))))
   (let* ((flist (feature-symbols feature))
 	 (file (car flist))
 	 (unloading-module nil))
     (labels ((reset-aload (x)
                (let ((aload (get x 'autoload)))
                  (if aload (fset x (cons 'autoload aload))))))
-      (declare (inline reset-aload)) 
       (mapc
        #'(lambda (x)
            (cond ((stringp x) nil)
@@ -208,11 +211,12 @@ is nil, raise an error."
                   (makunbound x))))
        (cdr flist)))
     ;; Delete the load-history element for this file.
-    (let ((elt (assoc file load-history)))
-      (setq load-history (delete* elt load-history)))
-    ;; If it is a module, really unload it.
-    (if unloading-module
-	(declare-fboundp (unload-module (symbol-name feature))))))
+    (setq load-history (delete* file load-history :key #'car :test 
+                                (if (file-system-ignore-case-p file)
+                                    #'equalp
+                                  #'equal)))
+    ;; If it is a module, really (attempt to) unload it.
+    (if unloading-module (unload-module file))))
 
 (provide 'loadhist)
 
