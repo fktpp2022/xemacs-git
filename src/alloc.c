@@ -3598,6 +3598,8 @@ unstaticpro_nodump (Lisp_Object *varaddress)
 }
 #endif
 
+extern void dump_add_nil_lisp_object_1 (Lisp_Object *);
+
 /* Mark the Lisp_Object at heap VARADDRESS as a root object for garbage
    collection before dumping. Post pdump_load(), ensure that it is reachable
    via STATICPROS but that its initial value is Qnil. */
@@ -3605,7 +3607,7 @@ void
 staticpro_dump_nil (Lisp_Object *varaddress)
 {
   Dynarr_add (staticpros, varaddress);
-  dump_add_nil_lisp_object (varaddress);
+  dump_add_nil_lisp_object_1 (varaddress);
 }
 
 #ifdef ALLOC_TYPE_STATS

@@ -1,5 +1,17 @@
 2025-04-10  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Fix a bug in dump_add_nil_lisp_object(), I'm uncertain how this
+	compiled for me before my last push.
+	* dumper.c (dump_add_nil_lisp_object_1): New.
+	Previous implementation of dump_add_nil_lisp_object.
+	* dumper.c (dump_add_nil_lisp_object): Update this to also call
+	dump_add_root_lisp_object() so the object is restored after load.
+	* alloc.c:
+	* alloc.c (staticpro_dump_nil):
+	Use dump_add_nil_lisp_object_1() as is more appropriate for this.	
+
+2025-04-10  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Use staticpro_dump_nil() in much more places, allowing removal of
 	27 reinit_vars_of_FILE() functions, simplifying startup.
 
