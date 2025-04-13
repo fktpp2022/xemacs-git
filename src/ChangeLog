@@ -1,5 +1,17 @@
 2025-04-13  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* inline.c:
+	Only #include "../modules/ldap/eldap.h" if !defined (HAVE_SHLIB),
+	fixing the C-only build for me. Similarly for the postgresql
+	header.
+	* lrecord.h:
+	* lrecord.h (enum lrecord_type):
+	If !defined (HAVE_SHLIB) restore entries for lrecord_type_pgconn,
+	lrecord_type_pgresult, lrecord_type_ldap, and make
+	DECLARE_MODULE_LISP_OBJECT identical to DECLARE_LISP_OBJECT.
+
+2025-04-13  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Fix further bugs in calls to dump_add_nil_lisp_object(). Assert
 	that any addresses pointed to by VARADDRESS are
 	non-Qnull_pointer.

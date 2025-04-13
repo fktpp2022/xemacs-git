@@ -315,6 +315,15 @@ enum lrecord_type
 
   lrecord_type_free,			/* only used for "free" lrecords */
   lrecord_type_undefined,		/* only used for debugging */
+#if !defined (HAVE_SHLIB)
+# ifdef HAVE_POSTGRESQL
+  lrecord_type_pgconn,
+  lrecord_type_pgresult,
+# endif
+# ifdef HAVE_LDAP
+  lrecord_type_ldap,
+# endif
+#endif /* !defined (HAVE_SHLIB) */
   lrecord_type_last_built_in_type,	/* must be last */
 };
 
@@ -1553,6 +1562,7 @@ init_lrecord_type_##c_name (void)                                       \
 }									\
 DECLARE_LISP_OBJECT_1 (c_name, structtype, extern MODULE_API)
 
+#ifdef HAVE_SHLIB
 #define DECLARE_MODULE_LISP_OBJECT(c_name, structtype)                  \
 extern int lrecord_type_##c_name;                                       \
 DECLARE_INLINE_HEADER (                                                 \
@@ -1563,7 +1573,9 @@ init_lrecord_type_##c_name (void)                                       \
   return lrecord_type_##c_name = lrecord_type_count++;                  \
 }									\
 DECLARE_LISP_OBJECT_1 (c_name, structtype, extern)
-
+#else
+#define DECLARE_MODULE_LISP_OBJECT DECLARE_LISP_OBJECT
+#endif
 
 #ifdef ERROR_CHECK_TYPES
 

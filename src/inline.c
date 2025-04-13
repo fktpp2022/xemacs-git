@@ -69,7 +69,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "unicode.h"
 #include "window.h"
 
-/* If we demand !defined (HAVE_SHLIB) the INLINE_HEADERS aren't instantiated.
+/* [[ If we demand !defined (HAVE_SHLIB) the INLINE_HEADERS aren't instantiated.
    This only shows up in --with-error-checking=types builds AFAIK.
    On Mac OS X 10.3.9 with the Apple toolchain (GCC 3.3) gives a buildtime
    link error (the lrecord error_check functions are undefined).
@@ -78,13 +78,20 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    It is possible that this can be fixed trickily by appropriately defining
    INLINE, or that it should be done in the module itself somehow.  If you
    can do it better or more elegantly, please feel free to consult me.
-   --stephen 2005-11-07 */
-#if defined (HAVE_LDAP)
+   --stephen 2005-11-07 ]] 
+
+      I can no longer elicit this as a problem as of 2024-04-13, possibly
+      because I pushed f421440b0ada which fixes DECLARE_MODULE_LISP_OBJECT(),
+      and I need the !defined (HAVE_SHLIB) to the the non-C++ build
+      working. Restored. The maintainable things is likely to remove the
+      non-SHLIB support for postgresql and eldap. Aidan Kehoe, So 13. Apr
+      16:15:44 IST 2025 */
+#if defined (HAVE_LDAP) && !defined (HAVE_SHLIB)
 #include "../modules/ldap/eldap.h"
 #endif
 
 /* We can't ask for !defined (HAVE_SHLIB).  See HAVE_LDAP, above. */
-#if defined (HAVE_POSTGRESQL)
+#if defined (HAVE_POSTGRESQL) && !defined (HAVE_SHLIB)
 #include "../modules/postgresql/postgresql.h"
 #endif
 
