@@ -3891,10 +3891,10 @@ was found.
 */ );
 #endif
 
+  Vsystem_type = intern (SYSTEM_TYPE);
   DEFVAR_LISP ("system-type", &Vsystem_type /*
 Symbol indicating type of operating system you are using.
 */ );
-  Vsystem_type = intern (SYSTEM_TYPE);
   Fprovide (Vsystem_type);
 
 #ifndef EMACS_CONFIGURATION

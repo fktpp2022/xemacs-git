@@ -199,7 +199,9 @@ void
 dump_add_nil_lisp_object_1 (Lisp_Object *varaddress)
 {
   if (pdump_nil_lisp_objects == NULL)
-    pdump_nil_lisp_objects = Dynarr_new2 (Lisp_Object_ptr_dynarr, Lisp_Object *);
+    pdump_nil_lisp_objects
+	    = Dynarr_new2 (Lisp_Object_ptr_dynarr, Lisp_Object *);
+  gc_checking_assert (!EQ (*varaddress, Qnull_pointer));
   Dynarr_add (pdump_nil_lisp_objects, varaddress);
 }
 

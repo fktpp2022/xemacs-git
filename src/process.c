@@ -2836,6 +2836,7 @@ The value takes effect when `open-network-stream-internal' is called.
 *File name to load inferior shells from.
 Initialized from the SHELL environment variable.
 */ );
+  Vshell_file_name = Qnil;
   dump_add_nil_lisp_object (&Vshell_file_name);
 
   /* ben? thinks the format of this variable is "semi-bogus".
@@ -2847,6 +2848,7 @@ Each element should be a string of the form ENVVARNAME=VALUE.
 The environment which Emacs inherits is placed in this variable
 when Emacs starts.
 */ );
+  Vprocess_environment = Qnil;
   dump_add_nil_lisp_object (&Vprocess_environment);
 
   Vlisp_EXEC_SUFFIXES = build_ascstring (EXEC_SUFFIXES);

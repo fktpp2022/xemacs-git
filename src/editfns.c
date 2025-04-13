@@ -46,12 +46,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "syspwd.h"
 #include "systime.h"
 
-/* Some static data, and a function to initialize it for each run */
-
-Lisp_Object Vsystem_name;	/* #### - I don't see why this should be */
-				/* static, either...  --Stig */
-#if 0				/* XEmacs - this is now dynamic */
-				/* if at some point it's deemed desirable to
+Lisp_Object Vsystem_name;
+#if 0				/* if at some point it's deemed desirable to
 				   use lisp variables here, then they can be
 				   initialized to nil and then set to their
 				   real values upon the first call to the
@@ -2351,11 +2347,15 @@ syms_of_editfns (void)
 void
 vars_of_editfns (void)
 {
-  staticpro (&Vsystem_name);
+  Vsystem_name = Qnil;
+  /* This is reinitialized by init_editfns() after pdump_load, don't keep it
+     around in the dump file. */
+  staticpro_dump_nil (&Vsystem_name);
 #if 0
   staticpro (&Vuser_name);
   staticpro (&Vuser_real_name);
 #endif
+
   DEFVAR_BOOL ("zmacs-regions", &zmacs_regions /*
 *Whether LISPM-style active regions should be used.
 This means that commands which operate on the region (the area between the

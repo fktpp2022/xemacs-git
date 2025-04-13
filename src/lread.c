@@ -3444,6 +3444,7 @@ vars_of_lread (void)
 List of values of all expressions which were read, evaluated and printed.
 Order is reverse chronological.
 */ );
+  Vvalues = Qnil;
   dump_add_nil_lisp_object (&Vvalues);
 
   DEFVAR_LISP ("standard-input", &Vstandard_input /*

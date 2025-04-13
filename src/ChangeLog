@@ -1,3 +1,25 @@
+2025-04-13  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Fix further bugs in calls to dump_add_nil_lisp_object(). Assert
+	that any addresses pointed to by VARADDRESS are
+	non-Qnull_pointer.
+	* device.c (vars_of_device):
+	Use staticpro_dump_nil on Vdefault_device_plist.
+	* dumper.c (dump_add_nil_lisp_object_1):
+	Assert that *VARADDRESS is non-Qnull_pointer. Should also be done
+	by staticpro(), but that will be a lot more work.
+	* editfns.c:
+	* editfns.c (vars_of_editfns):
+	Call staticpro_dump_nil() on Vsystem_name.
+	* emacs.c (vars_of_emacs):
+	Initialize Vsystem_type before calling DEFVAR_LISP() on it, avoid
+	a crash in early GC.
+	* lread.c (vars_of_lread):
+	Initialize Vvalues in this function, avoid a crash in early GC.
+	* process.c (vars_of_process):
+	Initialize Vshell_file_name and Vprocess_environment on the same
+	principle.
+
 2025-04-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Fix a bug in dump_add_nil_lisp_object(), I'm uncertain how this
