@@ -1,3 +1,22 @@
+2025-04-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Call init_mule_charsets() at dump time after loadup, not after
+	restart.
+	Also call it from within #'run-emacs-from-temacs.
+	Remove init_mule_coding(), which is empty.
+	* alloc.c:
+	* alloc.c (disksave_object_finalization):
+	Update a comment here.
+	Call init_mule_charset().
+	* emacs.c (main_1):
+	Remove calls to init_mule_charset(), init_mule_coding() from here.
+	Add a call to init_mule_charset() to Frun_emacs_from_temacs.
+	* mule-charset.c (init_mule_charset):
+	Update a comment here.
+	* mule-coding.c (init_mule_coding): Empty, removed.
+	* symsinit.h:
+	Remove declaration for init_mule_coding().
+
 2025-04-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* inline.c:

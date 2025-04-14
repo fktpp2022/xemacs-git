@@ -4099,7 +4099,4 @@ complex_vars_of_mule_coding (void)
 {
 }
 
-void
-init_mule_coding (void)
-{
-}
+/* mule-coding.c ends here. */

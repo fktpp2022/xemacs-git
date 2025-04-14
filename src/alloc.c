@@ -5302,13 +5302,10 @@ void
 disksave_object_finalization (void)
 {
   /* It's important that certain information from the environment not get
-     dumped with the executable (pathnames, environment variables, etc.).
-     To make it easier to tell when this has happened with strings(1) we
-     clear some known-to-be-garbage blocks of memory, so that leftover
-     results of old evaluation don't look like potential problems.
-     But first we set some notable variables to nil and do one more GC,
-     to turn those strings into garbage.
-  */
+     dumped with the executable (pathnames, environment variables, etc.).  A
+     lot of this used to be done here but is now done by
+     dump_add_nil_lisp_object() at the point of DEFVAR() of the relevant
+     variables. However, there is plenty left that needs to be done. */
 
   /* Release hash tables for locate_file */
   Flocate_file_clear_hashing (Qt);
@@ -5348,6 +5345,10 @@ disksave_object_finalization (void)
 #ifdef MEMORY_USAGE_STATS
   compute_memusage_stats_length ();
 #endif /* MEMORY_USAGE_STATS */
+
+  /* Initialize Vcharset_latin_iso8859_2 and friends, which needs to be done
+     after loadup given the bulk of them are created in Lisp. */
+  init_mule_charset ();
 
   /* There, that ought to be enough... */
 }

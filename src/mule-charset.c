@@ -2090,7 +2090,7 @@ void
 init_mule_charset (void)
 {
   /* Retrieve all the charsets by name.  Do this after loadup, when they
-     were created. */
+     were created. See disksave_object_finalization(). */
   Vcharset_latin_iso8859_2 = Fget_charset (Qlatin_iso8859_2);
   Vcharset_latin_iso8859_3 = Fget_charset (Qlatin_iso8859_3);
   Vcharset_latin_iso8859_4 = Fget_charset (Qlatin_iso8859_4);
