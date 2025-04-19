@@ -703,7 +703,6 @@ Dumping
 * Data descriptions::           
 * Dumping phase::               
 * Reloading phase::             
-* Remaining issues::            
 
 Dumping phase
 
@@ -5735,13 +5734,13 @@ Lisp, but some don't.  Those that do are declared this way by a call to
 module.  What this does is create a special @dfn{symbol-value-forward}
 Lisp object that contains a pointer to the C variable, intern a symbol
 whose name is as specified in the call to @code{DEFVAR_LISP()}, and set
-its value to the symbol-value-forward Lisp object; it also calls
-@code{staticpro()} on the C variable to tell the garbage-collection
-mechanism about the variable.  When @code{eval} (or actually
-@code{symbol-value}) encounters this special object in the process of
-retrieving a variable's value, it follows the indirection to the C
-variable and gets its value.  @code{setq} does similar things so that
-the C variable gets changed.
+its value to the symbol-value-forward Lisp object.  When @code{eval} (or
+actually @code{symbol-value}) encounters this special object in the
+process of retrieving a variable's value, it follows the indirection to
+the C variable and gets its value.  @code{setq} does similar things so
+that the C variable gets changed.  The garbage collector follows the
+pointer to the C variable and marks the associated Lisp object as
+reachable, and the dumper does the same thing at dump time.
 
   Whether or not you @code{DEFVAR_LISP()} a variable, you need to
 initialize it in the @code{vars_of_*()} function; otherwise it will end
@@ -8647,16 +8646,17 @@ of accessibility are:
 @enumerate
 @item
 All objects that have been @code{staticpro()}d or
-@code{staticpro_nodump()}ed.  This is used for any global C variables
+@code{staticpro_nodump()}ed. This is used for global C variables
 that hold Lisp objects.  A call to @code{staticpro()} happens implicitly
-as a result of any symbols declared with @code{defsymbol()} and any
-variables declared with @code{DEFVAR_FOO()}.  You need to explicitly
-call @code{staticpro()} (in the @code{vars_of_foo()} method of a module)
-for other global C variables holding Lisp objects. (This typically
-includes internal lists and such things.).  Use
-@code{staticpro_nodump()} only in the rare cases when you do not want
-the pointed variable to be saved at dump time but rather recompute it at
-startup.
+as a result of any symbols declared with @code{defsymbol()}.  Variables
+declared with @code{DEFVAR_FOO()} are reachable via @code{obarray}, and
+their associated symbols cannot be made unbound, so they will remain
+reachable for the lifetime of the program. You need to explicitly call
+@code{staticpro()} (in the @code{vars_of_foo()} method of a module) for
+other global C variables holding Lisp objects. (This typically includes
+internal lists and such things.).  Use @code{staticpro_nodump()} only in
+the rare cases when you do not want the pointed variable to be saved at
+dump time.
 
 Note that @code{obarray} is one of the @code{staticpro()}d things.
 Therefore, all functions and variables get marked through this.
@@ -15752,10 +15752,6 @@ display a backtrace on @code{debug-on-error}.  use
 and received from a process.
 
 @item
-(@file{alloc.c}) staticpros have name stored with them for easier
-debugging.
-
-@item
 (@file{emacs.c}) code that handles fatal errors consolidated and
 rewritten.  much more robust and correctly handles all fatal exits on
 mswin (e.g. aborts, not previously handled right).
@@ -22745,7 +22741,6 @@ Don't touch this code; something is liable to break if you do.
 * Data descriptions::           
 * Dumping phase::               
 * Reloading phase::             
-* Remaining issues::            
 @end menu
 
 @node Dumping Justification, Overview, Dumping, Dumping
@@ -22915,7 +22910,12 @@ beyond what the garbage collector needs to do.
 This is done by @code{pdump_register_object()}, which handles
 Lisp_Object variables, and @code{pdump_register_block()} which handles
 generic memory blocks (C structures, arrays, etc.), which both delegate
-the description management to @code{pdump_register_sub()}.
+the description management to @code{pdump_register_sub()}. This latter
+function also checks if the address of a Lisp_Object encountered is in
+@code{staticpros}, and if so, it moves the corresponding entry from
+@code{staticpros} to @code{staticpros_nodump}, since @code{staticpros}
+is relocated as an array of pointers in the data segment and needs to be
+handled differently to heap pointers.
 
 The hash table doubles as a map object to pdump_block_list_elmt (i.e.
 allows us to look up a pdump_block_list_elmt with the object it points
@@ -23063,13 +23063,13 @@ object of the list, or Qnil if none is available.  This is also the
 reason why they are not used as roots for the purpose of object
 enumeration.
 
-Some very important information like the @code{staticpros} and
-@code{lrecord_implementations_table} are handled indirectly using
+Some very important information like
+@code{lrecord_implementations_table} is handled indirectly using
 @code{dump_add_opaque} or @code{dump_add_root_block_ptr}.
 
 This is the end of the dumping part.
 
-@node Reloading phase, Remaining issues, Dumping phase, Dumping
+@node Reloading phase,  , Dumping phase, Dumping
 @section Reloading phase
 @cindex reloading phase
 @cindex dumping, reloading phase
@@ -23092,8 +23092,11 @@ On other platforms this is more difficult. It is currently done using
 ``INCBIN'', a reasonably portable assembler macro from Dale Weiler that
 includes an external binary in the executable with a given alignment;
 this requires re-linking the executable after the dump file is
-generated. In these days of reproducible builds this works well. The
-previous approach, from Olivier Galibert, binary-patched the generated
+generated. If the current compiler supports C23's @code{#embed}
+directive that is used in preference to @code{INCBIN}.
+
+In these days of reproducible builds this works well. The previous
+approach, from Olivier Galibert, binary-patched the generated
 executable, which interacts poorly with signed executables, as is
 standard with macOS and the ARM architecture.
 
@@ -23147,28 +23150,6 @@ Same as Putting back the pdump_root_block_ptrs.
 Since some of the hash values in the lisp hash tables are
 address-dependent, their layout is now wrong.  So we go through each of
 them and have them resorted by calling @code{pdump_reorganize_hash_table}.
-
-@node Remaining issues,  , Reloading phase, Dumping
-@section Remaining issues
-@cindex dumping, remaining issues
-
-The build process will have to start a post-dump xemacs, ask it the
-loading address (which will, hopefully, be always the same between
-different xemacs invocations) [[unfortunately, not true on Linux with
-the ExecShield feature]] and relocate the file to the new address.
-This way the object relocation phase will not have to be done, which
-means no writes in the objects and that, because of the use of mmap, the
-dumped data will be shared between all the xemacs running on the
-computer.
-
-Some executable signature will be necessary to ensure that a given dump
-file is really associated with a given executable, or random crashes
-will occur.  Maybe a random number set at compile or configure time thru
-a define.  This will also allow for having differently-compiled xemacsen
-on the same system (mule and no-mule comes to mind).
-
-The DOC file contents should probably end up in the dump file.
-
 
 @node Future Work, Future Work Discussion, Dumping, Top
 @chapter Future Work

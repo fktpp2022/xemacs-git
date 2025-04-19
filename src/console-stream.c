@@ -334,12 +334,6 @@ console_type_create_stream (void)
 }
 
 void
-reinit_console_type_create_stream (void)
-{
-  REINITIALIZE_CONSOLE_TYPE (stream);
-}
-
-void
 vars_of_console_stream (void)
 {
   DEFVAR_LISP ("terminal-console", &Vterminal_console /*

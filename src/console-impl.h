@@ -375,18 +375,12 @@ struct console_methods * type##_console_methods
     type##_console_methods = xnew_and_zero (struct console_methods);	\
     type##_console_methods->name = obj_name;				\
     type##_console_methods->symbol = Q##type;				\
-    defsymbol_nodump (&type##_console_methods->predicate_symbol, pred_sym);	\
+    defsymbol (&type##_console_methods->predicate_symbol, pred_sym);	\
     add_entry_to_console_type_list (Q##type, type##_console_methods);	\
     type##_console_methods->image_conversion_list = Qnil;		\
-    staticpro_nodump (&type##_console_methods->image_conversion_list);	\
+    staticpro (&type##_console_methods->image_conversion_list);		\
     dump_add_root_block_ptr (&type##_console_methods, &console_methods_description);	\
 } while (0)
-
-#define REINITIALIZE_CONSOLE_TYPE(type) do {	\
-    staticpro_nodump (&type##_console_methods->predicate_symbol);	\
-    staticpro_nodump (&type##_console_methods->image_conversion_list);	\
-} while (0)
-
 
 /* Declare that console-type TYPE has method M; used in
    initialization routines */

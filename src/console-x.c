@@ -414,8 +414,4 @@ This variable is deprecated and will be removed.
 */ );
 }
 
-void
-reinit_console_type_create_x (void)
-{
-  REINITIALIZE_CONSOLE_TYPE (x);
-}
+/* console-x.c ends here. */

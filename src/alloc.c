@@ -3519,44 +3519,21 @@ old_free_lcrecord (Lisp_Object rec)
 
 
 /************************************************************************/
-/*                           Staticpro, MCpro                           */
+/*                      staticpro, staticpro_nodump                     */
 /************************************************************************/
-
-/* We want those Lisp objects protected by staticpro() to be relocated on load
-   from the dump file. Data segment objects passed to staticpro(), which are
-   global variables like Qfoo or Vbar, are themselves pointers to heap objects,
-   and need to be annotated as such within the dump file, otherwise ASLR
-   interacts poorly with them. This is achieved with dump_add_root_block_ptr
-   (&staticpros, &staticpros_description) within init_alloc_once_early().
-
-   The annotation as XD_BLOCK_DATA_PTR means that the dumper will save and
-   restore the pointer within the data segment (correcting for ASLR), as well
-   as the Lisp_Object pointed to, and those Lisp_Objects pointed to within it,
-   appropriately for the dump file relocation. */
-static const struct memory_description staticpro_description_1[] = {
-  { XD_BLOCK_DATA_PTR, 0, 1, { &lisp_object_description } },
-  { XD_END }
-};
-
-static const struct sized_memory_description staticpro_description = {
-  sizeof (Lisp_Object *),
-  staticpro_description_1
-};
-
-static const struct memory_description staticpros_description_1[] = {
-  XD_DYNARR_DESC (Lisp_Object_ptr_dynarr, &staticpro_description),
-  { XD_END }
-};
-
-static const struct sized_memory_description staticpros_description = {
-  sizeof (Lisp_Object_ptr_dynarr),
-  staticpros_description_1
-};
 
 Lisp_Object_ptr_dynarr *staticpros;
 
-/* Mark the Lisp_Object at non-heap VARADDRESS as a root object for
-   garbage collection, and for dumping. */
+/* Mark the Lisp_Object at VARADDRESS as a root object for garbage collection,
+   and for dumping.
+
+   VARADDRESS is usually a data segment (beziehungsweise BSS) address, but may
+   be a heap address. If it is a heap address the containing block must be
+   made known to the dumper in some fashion, usually with
+   dump_add_root_block_ptr().
+
+   It is not useful to call staticpro() on the address of a Lisp_Object that is
+   not in the data segment and not in the heap. */
 void
 staticpro (Lisp_Object *varaddress)
 {
@@ -3565,23 +3542,29 @@ staticpro (Lisp_Object *varaddress)
 
 Lisp_Object_ptr_dynarr *staticpros_nodump;
 
-/* Mark the Lisp_Object at heap VARADDRESS as a root object for garbage
-   collection, but not for dumping.  This is used for objects where the only
-   sure pointer is in the heap (rather than in the global data segment, as must
-   be the case for pdump root pointers), but not inside of another Lisp object
-   (where it will be marked as a result of KKCC examining the object's memory
-   description).  The call to staticpro_nodump() must occur *BOTH* at
-   initialization time and at "reinitialization" time (startup, after pdump
-   load.) (For example, this is the case with the predicate symbols for
-   specifier and coding system types.  The pointer to this symbol is inside of
-   a methods structure, which is allocated on the heap.  The methods structure
-   will be written out to the pdump data file, and may be reloaded at a
-   different address.)
+/* Mark the Lisp_Object at VARADDRESS as a root object for garbage collection,
+   but not for dumping.
 
-   #### The necessity for reinitialization is a bug in pdump.  Pdump should
-   automatically regenerate the staticpro()s for these symbols when it
-   loads the data in. */
+   Calling this is appropriate in a very limited number of contexts where it is
+   undesirable for state to be shared between dump time and run time, e.g. the
+   dump-time entries in all_lcrecord_lists[], which reflect free objects which
+   should not be dumped.
 
+   Given this address is discarded in the course of pdump(), it does not matter
+   whether VARADDRESS is on the heap or in the data segment. Calling it on an
+   address in the stack would be unwise.
+
+   Both STATICPROS_NODUMP and STATICPROS need to be handled specially by the
+   dumper--STATICPROS_NODUMP is restored to a value unrelated to its
+   dump-time value, reflecting that subset of STATICPROS that points to heap
+   data, and STATICPROS points only to data segment and BSS addresses--and so
+   their memory descriptions and much of the functions handling them are in
+   dumper.c.
+
+   STATICPROS_NODUMP() is also available after pdump_load(); it is most used
+   by modules, since emodules.h #defines staticpro to staticpro_nodump. This
+   is appropriate, there's no need for metadata for the dumper after
+   pdump_load(). */
 void
 staticpro_nodump (Lisp_Object *varaddress)
 {
@@ -5495,9 +5478,6 @@ common_init_alloc_early (void)
   init_event_alloc ();
 
   ignore_malloc_warnings = 0;
-
-  staticpros_nodump = Dynarr_new2 (Lisp_Object_ptr_dynarr, Lisp_Object *);
-  Dynarr_resize (staticpros_nodump, 100); /* merely a small optimization */
 }
 
 void
@@ -5543,8 +5523,7 @@ init_alloc_once_early (void)
                        lrecord_memory_descriptions_description_1);
 
   staticpros = Dynarr_new2 (Lisp_Object_ptr_dynarr, Lisp_Object *);
-  Dynarr_resize (staticpros, 1410); /* merely a small optimization */
-  dump_add_root_block_ptr (&staticpros, &staticpros_description);
+  staticpros_nodump = Dynarr_new2 (Lisp_Object_ptr_dynarr, Lisp_Object *);
 
   {
     int i;

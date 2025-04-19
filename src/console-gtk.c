@@ -193,14 +193,10 @@ console_type_create_gtk (void)
 }
 
 void
-reinit_console_type_create_gtk (void)
-{
-  REINITIALIZE_CONSOLE_TYPE (gtk);
-}
-
-void
 vars_of_console_gtk (void)
 {
   staticpro (&Vgtk_seen_characters);
   Vgtk_seen_characters = Qnil;
 }
+
+/* console-gtk.c ends here. */

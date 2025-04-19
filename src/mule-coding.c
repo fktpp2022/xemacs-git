@@ -4080,16 +4080,6 @@ coding_system_type_create_mule_coding (void)
 }
 
 void
-reinit_coding_system_type_create_mule_coding (void)
-{
-  REINITIALIZE_CODING_SYSTEM_TYPE (iso2022);
-  REINITIALIZE_CODING_SYSTEM_TYPE (ccl);
-  REINITIALIZE_CODING_SYSTEM_TYPE (shift_jis);
-  REINITIALIZE_CODING_SYSTEM_TYPE (big5);
-  REINITIALIZE_DETECTOR_WITH_DESCRIPTION (iso2022);
-}
-
-void
 vars_of_mule_coding (void)
 {
 }

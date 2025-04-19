@@ -1167,14 +1167,6 @@ specifier_type_create_gutter (void)
 }
 
 void
-reinit_specifier_type_create_gutter (void)
-{
-  REINITIALIZE_SPECIFIER_TYPE (gutter);
-  REINITIALIZE_SPECIFIER_TYPE (gutter_size);
-  REINITIALIZE_SPECIFIER_TYPE (gutter_visible);
-}
-
-void
 specifier_vars_of_gutter (void)
 {
   Lisp_Object fb;

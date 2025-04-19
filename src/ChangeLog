@@ -1,3 +1,132 @@
+2025-04-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Handle heap addresses known to the dumper when these are passed to
+	staticpro().
+	Remove several functions and macros that only existed to work
+	around the fact that staticpro() couldn't deal with heap
+	addresses.
+
+	* alloc.c (static const struct sized_memory_description
+	staticpro_description): Moved to dumper.c.
+	* alloc.c (static const struct sized_memory_description
+	staticpros_description): Moved to dumper.c.
+	* alloc.c (staticpro): Update a comment describing this.
+	* alloc.c (staticpro_nodump): Update a comment describing this.	
+	* alloc.c (common_init_alloc_early): Move initialization of
+	staticpros_nodump from here to init_alloc_once_early().
+	* alloc.c (init_alloc_once_early):
+
+	* console-gtk.c:
+	* console-gtk.c (reinit_console_type_create_gtk): Removed, no
+	longer needed. Add a comment to mark end of file.
+
+	* console-impl.h:
+	* console-impl.h (INITIALIZE_CONSOLE_TYPE): Use defsymbol() rather
+	than defsymbol_nodump() here.
+	* console-impl.h (REINITIALIZE_CONSOLE_TYPE): Removed, no longer
+	needed.
+
+	* console-msw.c (reinit_console_type_create_mswindows): Removed,
+	no longer needed.
+
+	* console-tty.c (reinit_console_type_create_stream): Removed, no
+	longer needed.
+	* console-x.c (reinit_console_type_create_tty): Ditto.
+
+	* dumper.c: Update copyright.
+	* dumper.c (static const struct sized_memory_description
+	staticpro_description):
+	* dumper.c (static const struct sized_memory_description
+	staticpros_description): Move these here from alloc.c.
+	* dumper.c (static const struct sized_memory_description
+	staticpro_nodump_description): New. 
+	* dumper.c (static const struct sized_memory_description
+	staticpros_nodump_description): New. Used for dumping
+	STATICPROS_NODUMP, which reflects those heap entries in
+	STATICPROS.
+	Lengthy comments on both.
+	* dumper.c (pdump_backtrace):
+	Fix a format string in passing.
+	* dumper.c (Vstaticpros_hash): New. A Lisp hash table used at dump
+	time to check whether the addresses of heap Lisp_Objects are in
+	STATICPROS.
+	* dumper.c (compare_staticpros): New. Used to sort STATICPROS at
+	dump time, which will make partitioning easier.
+	* dumper.c (shuffle_staticpros_if_needed): New. If POBJ, the
+	address of a Lisp_Object in the heap, is in Vstaticpros_hash, add
+	it to STATICPROS_NODUMP, and remove it from STATICPROS,
+	Vstaticpros_hash.
+	* dumper.c (pdump_register_sub): Use it.
+	* dumper.c (save_staticpros): New. Return an alist reflecting the
+	address of STATICPROS and STATICPROS_NODUMP, and the existing
+	objects pointed to in those arrays,
+	* dumper.c (restore_staticpros): New. An unwind_protect that
+	restores STATICPROS and STATICPROS_NODUMP following the dumper's
+	modification of them.
+	* dumper.c (pdump):
+	Use them. Sort STATICPROS before registering objects for
+	dump. Initialize Vstaticpros_hash to reflect all those addresses
+	in STATICPROS.
+	Handle STATICPROS and STATICPROS_NODUMP specially, after
+	everything else has been registered. Clear Vstaticpros_hash before
+	registering them so no shuffling takes place.
+	
+	* emacs.c (main_1):
+	Call reinit_vars_of_lstream(), just re-introducted.
+	Remove calls to other reinit_.*_type_create() functions, no longer
+	needed.
+
+	* file-coding.c (reinit_coding_system_type_create): Removed, no
+	longer needed.
+	* file-coding.h:
+	* file-coding.h (INITIALIZE_CODING_SYSTEM_TYPE): Call defsymbol(),
+	not defsymbol_nodump() on the predicate symbol.
+	* file-coding.h (REINITIALIZE_CODING_SYSTEM_TYPE): Removed, no
+	longer needed.
+	* fontcolor.c (reinit_specifier_type_create_fontcolor): Removed,
+	no longer needed.
+	* glyphs.c (reinit_specifier_type_create_image): Removed, no
+	longer needed.
+	* gutter.c (reinit_specifier_type_create_gutter): Removed, no
+	longer needed.
+	* intl-win32.c (reinit_coding_system_type_create_intl_win32):
+	Removed, no longer needed.
+	* lstream.c:
+	Make Vlstream_free_list into a Lisp_Object allocated in
+	vars_of_lstream.
+	New Lisp_Object * variable, lstream_free_list, pointing into
+	Vlstream_free_list after reinit and pointing into a
+	dump-time-specific at dump
+
+	* lstream.c (Lstream_new):
+	Use lstream_free_list here rather than Vlstream_free_list. No more
+	need to staticpro_nodump().
+	* lstream.c (Lstream_delete): Use lstream_free_list_here.
+	* lstream.c (vars_of_lstream):
+	Create Vdump_time_lstream_free_list here, a static Lisp
+	vector. staticpro_nodump() it, make lstream_free_list point into
+	it at dump time.
+	Initialize Vlstream_free_list here, and staticpro() it.
+	* lstream.c (reinit_vars_of_lstream): Restored, all it needs to do
+	is set lstream_free_list to the vector data of
+	Vlstream_free_list.
+	* mule-coding.c (reinit_coding_system_type_create_mule_coding):
+	Removed, no longer needed.
+	* rangetab.c: Update a comment here in passing (relevant to the
+	changes made today).
+	* specifier.c (reinit_specifier_type_create): Removed, no longer
+	needed.
+	* specifier.h (INITIALIZE_SPECIFIER_TYPE): Use defsymbol(), not
+	defsymbol_nodump() in this.
+	* specifier.h (REINITIALIZE_SPECIFIER_TYPE): Removed, no longer
+	needed.
+	* symsinit.h: Remove declarations for various functions that have
+	been removed.
+	* toolbar.c (reinit_specifier_type_create_toolbar): Removed, no
+	longer needed.
+	* unicode.c (reinit_coding_system_type_create_unicode): Removed,
+	no longer needed.
+
 2025-04-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Call init_mule_charsets() at dump time after loadup, not after

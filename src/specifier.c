@@ -3931,16 +3931,6 @@ specifier_type_create (void)
 }
 
 void
-reinit_specifier_type_create (void)
-{
-  REINITIALIZE_SPECIFIER_TYPE (generic);
-  REINITIALIZE_SPECIFIER_TYPE (integer);
-  REINITIALIZE_SPECIFIER_TYPE (natnum);
-  REINITIALIZE_SPECIFIER_TYPE (boolean);
-  REINITIALIZE_SPECIFIER_TYPE (display_table);
-}
-
-void
 vars_of_specifier (void)
 {
 #ifdef MEMORY_USAGE_STATS

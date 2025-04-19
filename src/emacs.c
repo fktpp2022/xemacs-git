@@ -1764,38 +1764,13 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
   else if (!restart)	      /* after successful pdump_load() */
     {
       reinit_alloc_early ();
+      reinit_vars_of_lstream ();
 #ifdef WITH_NUMBER_TYPES
       reinit_vars_of_number ();
 #endif
-      reinit_console_type_create_stream ();
-#ifdef HAVE_TTY
-      reinit_console_type_create_tty ();
-#endif
 #ifdef HAVE_X_WINDOWS
-      reinit_console_type_create_x ();
       reinit_console_type_create_device_x ();
 #endif
-#ifdef HAVE_MS_WINDOWS
-      reinit_console_type_create_mswindows ();
-#endif
-#ifdef HAVE_GTK
-      reinit_console_type_create_gtk ();
-#endif
-
-      reinit_specifier_type_create ();
-      reinit_specifier_type_create_image ();
-      reinit_specifier_type_create_gutter ();
-      reinit_specifier_type_create_fontcolor ();
-#ifdef HAVE_TOOLBARS
-      reinit_specifier_type_create_toolbar ();
-#endif
-
-      reinit_coding_system_type_create ();
-      reinit_coding_system_type_create_unicode ();
-#ifdef WIN32_ANY
-      reinit_coding_system_type_create_intl_win32 ();
-#endif
-      reinit_coding_system_type_create_mule_coding ();
     }
 
   if (!initialized)

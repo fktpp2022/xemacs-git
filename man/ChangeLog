@@ -1,3 +1,28 @@
+2025-04-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (Top):
+	Remove entry for the Remaining issues:: node, obsolete.
+	* internals/internals.texi (Adding Global Lisp Variables):
+	Update the documentation of the symbol-value-forward object.
+	* internals/internals.texi (GCPROing):
+	Ditto. No longer state that an implicit staticpro() happens with
+	DEFVAR_FOO().
+	* internals/internals.texi (General internal changes):
+	Remove mention of the annotation of staticpro names.
+	* internals/internals.texi (Dumping):
+	Document the shuffling of heap addresses to STATICPROS_NODUMP.
+	* internals/internals.texi (Object inventory): Remove mention of
+	implicit handling of STATICPROS, since that is now done
+	explicitly.
+	* internals/internals.texi (Pointers dumping):
+	Mention that we use C23's #embed directive if available for
+	DUMP_IN_EXEC.
+	* internals/internals.texi (Remaining issues): Removed, all these
+	are obsolete (none of the commmon platforms will tolerate
+	relocation as suggested; we have the executable signature already
+	implemented; and there is no need for DOC to end up in the dump
+	file).
+
 2024-12-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Reloading phase):

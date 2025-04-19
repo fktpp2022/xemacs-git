@@ -1344,12 +1344,6 @@ specifier_type_create_toolbar (void)
 }
 
 void
-reinit_specifier_type_create_toolbar (void)
-{
-  REINITIALIZE_SPECIFIER_TYPE (toolbar);
-}
-
-void
 specifier_vars_of_toolbar (void)
 {
   Lisp_Object fb;

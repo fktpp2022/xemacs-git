@@ -899,7 +899,7 @@ rangetab_instantiate (Lisp_Object plist)
    range table that need to be marked for garbage collection.
    Good candidates for objects that can go into a range table are
 
-   -- numbers and characters (do not need to be marked)
+   -- fixnums and characters (do not need to be marked)
    -- nil, t (marked elsewhere)
    -- charsets and coding systems (automatically marked because
 				   they are in a marked list,

@@ -192,7 +192,8 @@ Lstream_set_buffering (Lstream *lstr, Lstream_buffering buffering,
 }
 
 static const Lstream_implementation *lstream_types[32];
-static Lisp_Object Vlstream_free_list[32];
+static Lisp_Object *lstream_free_list;
+static Lisp_Object Vlstream_free_list;
 static int lstream_type_count;
 
 /* Allocate and return a new Lstream.  This function is not really
@@ -217,14 +218,13 @@ Lstream_new (const Lstream_implementation *imp, int flags)
     {
       assert (lstream_type_count < countof (lstream_types));
       lstream_types[lstream_type_count] = imp;
-      Vlstream_free_list[lstream_type_count] =
+      lstream_free_list[lstream_type_count] =
 	make_lcrecord_list (aligned_sizeof_lstream (imp->size),
                             LRECORD_IMPLEMENTATION (lstream));
-      staticpro_nodump (&Vlstream_free_list[i]);
       lstream_type_count++;
     }
 
-  p = XLSTREAM (alloc_managed_lcrecord (Vlstream_free_list[i]));
+  p = XLSTREAM (alloc_managed_lcrecord (lstream_free_list[i]));
   /* Formerly, we zeroed out the object minus its header, but it's now
      handled automatically.  ALLOC_SIZED_LISP_OBJECT() always zeroes out
      the whole object other than its header, and alloc_managed_lcrecord()
@@ -302,7 +302,7 @@ Lstream_delete (Lstream *lstr)
     {
       if (lstream_types[i] == lstr->imp)
 	{
-	  free_managed_lcrecord (Vlstream_free_list[i], val);
+	  free_managed_lcrecord (lstream_free_list[i], val);
 	  return;
 	}
     }
@@ -2196,6 +2196,14 @@ syms_of_lstream (void)
 void
 vars_of_lstream (void)
 {
+  static Lisp_Object Vdump_time_lstream_free_list
+    = make_vector (countof (lstream_types), Qnil);
+  staticpro_nodump (&Vdump_time_lstream_free_list);
+  lstream_free_list = XVECTOR_DATA (Vdump_time_lstream_free_list);
+
+  Vlstream_free_list = make_vector (countof (lstream_types), Qnil);
+  staticpro (&Vlstream_free_list);
+
   DEFINE_LSTREAM_IMPLEMENTATION ("stdio", stdio);
   LSTREAM_HAS_METHOD (stdio, reader);
   LSTREAM_HAS_METHOD (stdio, writer);
@@ -2240,4 +2248,10 @@ vars_of_lstream (void)
   LSTREAM_HAS_METHOD (lisp_buffer, writer);
   LSTREAM_HAS_METHOD (lisp_buffer, write_with_extents);
   LSTREAM_HAS_METHOD (lisp_buffer, rewinder);
+}
+
+void
+reinit_vars_of_lstream (void)
+{
+  lstream_free_list = XVECTOR_DATA (Vlstream_free_list);
 }

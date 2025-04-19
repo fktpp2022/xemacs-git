@@ -5848,24 +5848,6 @@ coding_system_type_create (void)
 }
 
 void
-reinit_coding_system_type_create (void)
-{
-  REINITIALIZE_CODING_SYSTEM_TYPE (no_conversion);
-  REINITIALIZE_CODING_SYSTEM_TYPE (convert_eol);
-  REINITIALIZE_CODING_SYSTEM_TYPE (undecided);
-  REINITIALIZE_CODING_SYSTEM_TYPE (chain);
-#if 0
-  REINITIALIZE_CODING_SYSTEM_TYPE (text_file_wrapper);
-#endif /* 0 */
-#ifdef DEBUG_XEMACS
-  REINITIALIZE_CODING_SYSTEM_TYPE (internal);
-#endif
-#ifdef HAVE_ZLIB
-  REINITIALIZE_CODING_SYSTEM_TYPE (gzip);
-#endif
-}
-
-void
 vars_of_file_coding (void)
 {
   /* We always have file-coding support */

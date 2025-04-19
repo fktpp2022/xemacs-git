@@ -478,12 +478,6 @@ console_type_create_tty (void)
 }
 
 void
-reinit_console_type_create_tty (void)
-{
-  REINITIALIZE_CONSOLE_TYPE (tty);
-}
-
-void
 image_instantiator_format_create_glyphs_tty (void)
 {
   IIFORMAT_VALID_CONSOLE (tty, nothing);

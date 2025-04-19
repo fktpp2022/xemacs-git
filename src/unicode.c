@@ -4263,12 +4263,6 @@ coding_system_type_create_unicode (void)
 }
 
 void
-reinit_coding_system_type_create_unicode (void)
-{
-  REINITIALIZE_CODING_SYSTEM_TYPE (unicode);
-}
-
-void
 vars_of_unicode (void)
 {
   Fprovide (intern ("unicode"));

@@ -5226,13 +5226,6 @@ specifier_type_create_image (void)
   SPECIFIER_HAS_METHOD (image, copy_instantiator);
 }
 
-void
-reinit_specifier_type_create_image (void)
-{
-  REINITIALIZE_SPECIFIER_TYPE (image);
-}
-
-
 static const struct memory_description iike_description_1[] = {
   { XD_LISP_OBJECT, offsetof (ii_keyword_entry, keyword) },
   { XD_FUNCTION_POINTER, offsetof (ii_keyword_entry, validate) },

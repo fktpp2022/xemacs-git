@@ -761,13 +761,6 @@ console_type_create_mswindows (void)
 }
 
 void
-reinit_console_type_create_mswindows (void)
-{
-  REINITIALIZE_CONSOLE_TYPE (mswindows);
-  REINITIALIZE_CONSOLE_TYPE (msprinter);
-}
-
-void
 vars_of_console_mswindows (void)
 {
   DEFVAR_LISP ("mswindows-seen-characters", &Vmswindows_seen_characters /*

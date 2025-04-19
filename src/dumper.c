@@ -1,7 +1,8 @@
-/* Portable data dumper for XEmacs.
+/* Portable data dumper for XEmacs. -*- coding: utf-8 -*-
    Copyright (C) 1999-2000,2004 Olivier Galibert
    Copyright (C) 2001 Martin Buchholz
    Copyright (C) 2001, 2002, 2003, 2004, 2005, 2010 Ben Wing.
+   Copyright (C) 2025 Free Software Foundation.
 
 This file is part of XEmacs.
 
@@ -225,7 +226,80 @@ dump_add_weak_object_chain (Lisp_Object *varaddress)
   Dynarr_add (pdump_weak_object_chains, varaddress);
 }
 
+/* The bulk of the entries in STATICPROS are pointers in the data
+   segment. However, it is legitimate to pass heap pointers to staticpro(),
+   when those addresses are known to the dumper. The dumper separates these
+   out and when the dump file is written staticpros contains only pointers in
+   the data segment.
 
+   We want those Lisp objects protected by staticpro() to be relocated on load
+   from the dump file. Data segment objects passed to staticpro(), which are
+   global variables like Qfoo or Vbar, are themselves pointers to heap objects,
+   and need to be annotated as such within the dump file, otherwise ASLR
+   interacts poorly with them. This is achieved with dump_add_root_block_ptr
+   (&staticpros, &staticpros_description) within pdump().
+
+   The annotation as XD_BLOCK_DATA_PTR means that we will save and restore the
+   pointer within the data segment (correcting for ASLR), as well as the
+   Lisp_Object pointed to, and those Lisp_Objects pointed to within it,
+   appropriately for the dump file relocation. */
+static const struct memory_description staticpro_description_1[] = {
+  { XD_BLOCK_DATA_PTR, 0, 1, { &lisp_object_description } },
+  { XD_END }
+};
+
+static const struct sized_memory_description staticpro_description = {
+  sizeof (Lisp_Object *),
+  staticpro_description_1
+};
+
+static const struct memory_description staticpros_description_1[] = {
+  XD_DYNARR_DESC (Lisp_Object_ptr_dynarr, &staticpro_description),
+  { XD_END }
+};
+
+static const struct sized_memory_description staticpros_description = {
+  sizeof (Lisp_Object_ptr_dynarr),
+  staticpros_description_1
+};
+
+/* While temacs is running, STATICPROS_NODUMP describes pointers to
+   Lisp_Objects that we wish to have reachable by GC while running temacs, but
+   that should be discarded at generation of the dump file.  For this use-case
+   it should be empty immediately after pdump_load() and it does not matter
+   whether a pointer is in the heap or in the data segment.
+
+   Traditionally the related STATICPROS only contained pointers to the data
+   segment (or to BSS). This led to abuse of staticpro_nodump() for heap
+   segment pointers and reinit_vars_of_*() functions that solely existed to
+   call staticpro_nodump() on an address in the dump file.
+
+   staticpro() now accepts pointers to the data segment, the BSS and the heap,
+   indifferently. The dumper constructs a hash table of all reachable heap
+   Lisp_Object addresses, and before STATICPROS is dumped the heap addresses
+   for Lisp_Objects are separated out into STATICPROS_NODUMP, which has its
+   elements relocated as appropriate for addresses in the dump file. This does
+   not conflict with its occasional use by modules after pdump_load(). */
+static const struct memory_description staticpro_nodump_description_1[] = {
+  { XD_BLOCK_PTR, 0, 1, { &lisp_object_description } },
+  { XD_END }
+};
+
+static const struct sized_memory_description staticpro_nodump_description = {
+  sizeof (Lisp_Object *),
+  staticpro_nodump_description_1
+};
+
+static const struct memory_description staticpros_nodump_description_1[] = {
+  XD_DYNARR_DESC (Lisp_Object_ptr_dynarr, &staticpro_nodump_description),
+  { XD_END }
+};
+
+static const struct sized_memory_description staticpros_nodump_description = {
+  sizeof (Lisp_Object_ptr_dynarr),
+  staticpros_nodump_description_1
+};
+
 inline static void
 pdump_align_stream (FILE *stream, Bytecount alignment)
 {
@@ -587,12 +661,12 @@ pdump_backtrace (void)
   for (i = 0; i < pdump_depth; i++)
     {
       if (!backtrace[i].obj)
-	stderr_out ("  - ind. (%d, %d)\n",
+	stderr_out ("  - ind. (%d, %zd)\n",
 		    backtrace[i].position,
 		    backtrace[i].offset);
       else
 	{
-	  stderr_out ("  - %s (%d, %d)\n",
+	  stderr_out ("  - %s (%d, %zd)\n",
                       LRECORD_IMPLEMENTATION_IBYTE_NAME
                       (LHEADER_IMPLEMENTATION (backtrace[i].obj)),
 		      backtrace[i].position,
@@ -627,6 +701,80 @@ pdump_bump_depth (void)
   backtrace[me].obj = 0;
   backtrace[me].position = 0;
   backtrace[me].offset = 0;
+}
+
+/* GC-reachability for those heap Lisp_Objects within the dump file, but not
+   reachable from obarray or from a call to staticpro() on a data segment
+   address, is a conceptual mess.
+
+   The Right Thing is, at the point dump_add_root_block_ptr() is called,
+   descend the block described using its description, add the address of any
+   Lisp_Objects encountered to a Dynarr within this file and to
+   STATICPROS_NODUMP. Discard the dump-time STATICPROS_NODUMP, then construct a
+   STATICPROS_NODUMP to be used post-pdump_load() from that first Dynarr. This
+   would be relocated as heap data rather than data-segment or BSS data.
+
+   I implemented something close to this and it led to an extra three thousand
+   GC roots post-pdump_load(). This many is clearly not necessary as we have
+   been running for decades without this level of GC protection, and adding it
+   would have an ongoing noticeable impact on GC performance for normal (post
+   pdump_load()) use.
+
+   The old thing was for certain Lisp_Objects to have staticpro_nodump() done
+   on them both during loadup and after pdump_load(), in reinit_vars_of_FILE()
+   functions. This was done inconsistently, for some symbols and not for
+   others; it matters very little for interned symbols, as they will be
+   reachable through obarray throughout the dump process and they will not be
+   swept post pdump_load()†; it was most important for lists, which would be
+   amputated (or rather, their conses would become free) during GC at dump
+   time. This was also an abuse of staticpro_nodump() since its other, and
+   principal planned use, is for data that we don't wish to have around post
+   pdump_load().
+
+   Adding pointers to only those Lisp_Objects described in descriptions passed
+   to dump_add_root_block_ptr() or dump_add_root_block() doesn't work, since
+   some of the specifier types legitimately reference specifier types that are
+   encountered later, and it's impossible to work out that the later types
+   need processing from this perspective without adding an extra step to
+   pdump().
+
+   The current thing is for those same Lisp_Object addresses to now just have
+   staticpro() called on them and for the dumper to figure out which should be
+   dumped as heap objects and which as data segment objects. The following
+   hash table contains fixnums generated by STORE_VOID_IN_LISP() reflecting
+   the entries in STATICPROS before dumping, and the register step moves
+   entries to STATICPROS_NODUMP as it encounters heap addresses known to it.
+
+   † Though if they are uninterned and then a new symbol interned their values
+   available to the low-level code will differ from that available to
+   Lisp. The Right Thing to avoid this is to no longer expose Vobarray as a
+   hash table directly to Lisp, and implement the Common Lisp specification
+   for packages. This will be practical, the dependencies on the specific type
+   of Vobarray were addressed with work in 2016 to move it from being a vector
+   to a Lisp hash table. I note Gerd Moellman maintains a fork of GNU Emacs
+   with this feature. This would also remove the need for staticpro() within
+   defsymbol() and ease unloading of modules. */
+static Lisp_Object Vstaticpros_hash;
+
+static int
+compare_staticpros (const void *ptr1p, const void *ptr2p)
+{
+  const Lisp_Object *ptr1 = *(const Lisp_Object **) ptr1p;
+  const Lisp_Object *ptr2 = *(const Lisp_Object **) ptr2p;
+  return (int) (ptr1 - ptr2);
+}
+
+inline static void
+shuffle_staticpros_if_needed (const Lisp_Object *pobj)
+{
+  if (!NILP (Fgethash (STORE_VOID_IN_LISP ((void *) pobj),
+                       Vstaticpros_hash, Qnil)))
+    {
+      Dynarr_add (staticpros_nodump, (Lisp_Object *) pobj);
+      Dynarr_delete_object (staticpros, (Lisp_Object *) pobj);
+      Fremhash (STORE_VOID_IN_LISP ((void *) pobj),
+                Vstaticpros_hash);
+    }
 }
 
 static void pdump_register_object (Lisp_Object obj);
@@ -701,6 +849,7 @@ pdump_register_sub (const void *data, const struct memory_description *desc)
 	    backtrace[me].offset =
 	      (const Rawbyte *) pobj - (const Rawbyte *) data;
 	    pdump_register_object (*pobj);
+            shuffle_staticpros_if_needed (pobj);
 	    break;
 	  }
 	case XD_LISP_OBJECT_ARRAY:
@@ -717,6 +866,7 @@ pdump_register_sub (const void *data, const struct memory_description *desc)
 		backtrace[me].offset =
 		  (const Rawbyte *) pobj - (const Rawbyte *) data;
 		pdump_register_object (dobj);
+                shuffle_staticpros_if_needed (pobj);
 	      }
 	    break;
 	  }
@@ -1660,6 +1810,54 @@ restore_pdump_nil_lisp_objects (Lisp_Object saved)
   return Qnil;
 }
 
+static Lisp_Object
+save_staticpros (void)
+{
+  Elemcount staticpros_len =  Dynarr_length (staticpros);
+  Elemcount staticpros_nodump_len = Dynarr_length (staticpros_nodump);
+  Lisp_Object saved_staticpros = make_vector (staticpros_len, Qnil);
+  Lisp_Object saved_staticpros_nodump
+    = make_vector (staticpros_nodump_len, Qnil);
+  Lisp_Object result = Facons (STORE_VOID_IN_LISP ((void *) staticpros),
+			       saved_staticpros,
+			       Facons (STORE_VOID_IN_LISP
+				       ((void *) staticpros_nodump),
+				       saved_staticpros_nodump, Qnil));
+  Elemcount count;
+  Lisp_Object_ptr_dynarr *original_staticpros = staticpros;
+
+  for (count = 0; count < staticpros_len; count++)
+    {
+      XVECTOR_DATA (saved_staticpros)[count] = *Dynarr_at (staticpros, count);
+    }
+
+  for (count = 0; count < staticpros_nodump_len; count++)
+    {
+      XVECTOR_DATA (saved_staticpros_nodump)[count]
+	= *Dynarr_at (staticpros_nodump, count);
+    }
+
+
+  staticpros_nodump = Dynarr_new2 (Lisp_Object_ptr_dynarr, Lisp_Object *);
+  staticpros = Dynarr_new2 (Lisp_Object_ptr_dynarr, Lisp_Object *);
+  Dynarr_add_many (staticpros, Dynarr_begin (original_staticpros),
+		   staticpros_len);
+
+  return result;
+}
+
+static Lisp_Object
+restore_staticpros (Lisp_Object saved)
+{
+  staticpros
+    = (Lisp_Object_ptr_dynarr *) GET_VOID_FROM_LISP (XCAR (XCAR (saved)));
+  saved = XCDR (saved);
+  staticpros_nodump
+    = (Lisp_Object_ptr_dynarr *) GET_VOID_FROM_LISP (XCAR (XCAR (saved)));
+  /* Let the saved vectors be garbage-collected. */
+  return Qnil;
+}
+
 /*########################################################################
   #                             Pdump                                    #
   ########################################################################
@@ -1699,14 +1897,14 @@ restore_pdump_nil_lisp_objects (Lisp_Object saved)
   "static heap" method, and was used by the non-pdump version of the dumper
   under Cygwin, under VMS, and in Win-Emacs.
 
-  The "static heap" method worked well in practice.  Nonetheless, a more
-  complex method of dumping was written by Olivier Galibert, which requires
-  that structural descriptions of all data allocated in the heap be provided
-  and the roots of all pointers into the heap be noted through function calls
-  to the pdump API.  This way, all the heap data can be traversed and written
-  out to a file, and then reloaded at run-time and the pointers relocated to
-  point at the new location of the loaded data.  This is the "pdump" method
-  used in this file.
+  The "static heap" method worked well in practice for some years.
+  Nonetheless, a more complex method of dumping was written by Olivier
+  Galibert, which required that structural descriptions of all data allocated
+  in the heap be provided and the roots of all pointers into the heap be noted
+  through function calls to the pdump API.  This way, all the heap data can be
+  traversed and written out to a file, and then reloaded at run-time and the
+  pointers relocated to point at the new location of the loaded data.  This is
+  the "pdump" method used in this file.
 
   There are two advantages of "pdump" over the "static heap":
 
@@ -1776,6 +1974,7 @@ pdump (void)
   int none;
   pdump_header header;
   int speccount = specpdl_depth ();
+  struct gcpro gcpro1;
 
   in_pdump = 1;
 
@@ -1790,8 +1989,34 @@ pdump (void)
 
   flush_all_buffer_local_cache ();
 
+  /* It is unwise for actual development, but often very helpful from the
+     debugger, to call Lisp during the dump process. Do the book-keeping for
+     Lisp state properly for the following. */
   record_unwind_protect (restore_pdump_nil_lisp_objects,
 			 save_pdump_nil_lisp_objects ());
+
+  record_unwind_protect (restore_staticpros, save_staticpros ());
+
+  /* Entries here are just fixnums pointing to Qt, appropriate for the hash
+     table to be weak. Can't do that, however, since it adds an entry to 
+     Vall_weak_hash_tables that shouldn't be dumped. */
+  Vstaticpros_hash = make_lisp_hash_table (Dynarr_length (staticpros),
+				           HASH_TABLE_NON_WEAK, Qeq);
+  GCPRO1 (Vstaticpros_hash);
+
+  /* Sort STATICPROS to make for cheaper partitioning between heap and data
+     segment addresses. This may also make for better locality of reference
+     of GC post pdump_load(). */
+  qsort (Dynarr_begin (staticpros), Dynarr_length (staticpros),
+         sizeof (Lisp_Object *), compare_staticpros);
+  {
+    Elemcount ii;
+    for (ii = 0; ii < Dynarr_length (staticpros); ii++)
+      {
+        Fputhash (STORE_VOID_IN_LISP ((void *) Dynarr_at (staticpros, ii)),
+                  Qt, Vstaticpros_hash);
+      }
+  }
 
   pdump_hash = xnew_array_and_zero (pdump_block_list_elt *, PDUMP_HASHSIZE);
 
@@ -1838,6 +2063,7 @@ pdump (void)
   if (!none)
     {
       in_pdump = 0;
+      UNGCPRO;
       return;
     }
 
@@ -1865,6 +2091,26 @@ pdump (void)
 					 info->desc, 1);
 	}
     }
+
+  /* Handle STATICPROS and STATICPROS_NODUMP specially, they need to be
+     processed after everything else has been examined, and the shuffling from
+     STATICPROS to STATICPROS_NODUMP should not take place. Clear
+     Vstaticpros_hash to this end. */
+  Fclrhash (Vstaticpros_hash);
+
+  pdump_register_block (staticpros, staticpros_description.size,
+			staticpros_description.description, 1);
+  pdump_register_block (staticpros_nodump,
+			staticpros_nodump_description.size,
+			staticpros_nodump_description.description, 1);
+
+  /* The following smells fishy but isn't. It's needed needed to have
+     staticpros and staticpros_nodump (the pointers themselves) restored
+     correctly, and since the calls are after pdump_root_block_ptrs have been
+     processed, pdump_register_block() won't be called on them twice.  */
+
+  dump_add_root_block_ptr (&staticpros, &staticpros_description);
+  dump_add_root_block_ptr (&staticpros_nodump, &staticpros_nodump_description);
 
   /* (II) The "layout" stage: Compute the offsets and max-size */
 
@@ -1975,6 +2221,7 @@ pdump (void)
 
   free (pdump_hash);
 
+  UNGCPRO;
   unbind_to (speccount);
 
   in_pdump = 0;

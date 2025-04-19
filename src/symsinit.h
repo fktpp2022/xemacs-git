@@ -232,40 +232,26 @@ void console_type_create_select_gtk (void);
 void console_type_create_select_mswindows (void);
 void console_type_create_select_x (void);
 void console_type_create_stream (void);
-void reinit_console_type_create_stream (void);
 void console_type_create_toolbar_gtk (void);
 void console_type_create_toolbar_mswindows (void);
 void console_type_create_toolbar_x (void);
 void console_type_create_tty (void);
-void reinit_console_type_create_tty (void);
 void console_type_create_x (void);
-void reinit_console_type_create_x (void);
 
-/* Initialize the specifier types (dump-time only for specifier_type_(),
-   post-pdump-load-time only for reinit_). */
+/* Initialize the specifier types (dump-time only) */
 
 void specifier_type_create (void);
-void reinit_specifier_type_create (void);
 void specifier_type_create_gutter (void);
-void reinit_specifier_type_create_gutter (void);
 void specifier_type_create_image (void);
-void reinit_specifier_type_create_image (void);
 void specifier_type_create_fontcolor (void);
-void reinit_specifier_type_create_fontcolor (void);
 void specifier_type_create_toolbar (void);
-void reinit_specifier_type_create_toolbar (void);
 
-/* Initialize the coding system types (dump-time only for
-   coding_system_type_(), post-pdump-load-time only for reinit_). */
+/* Initialize the coding system types (dump-time only) */
 
 void coding_system_type_create (void);
-void reinit_coding_system_type_create (void);
 void coding_system_type_create_intl_win32 (void);
-void reinit_coding_system_type_create_intl_win32 (void);
 void coding_system_type_create_mule_coding (void);
-void reinit_coding_system_type_create_mule_coding (void);
 void coding_system_type_create_unicode (void);
-void reinit_coding_system_type_create_unicode (void);
 
 /* Initialize the structure types (dump-time only). */
 
@@ -394,6 +380,7 @@ void vars_of_intl_win32 (void);
 void vars_of_keymap (void);
 void vars_of_lread (void);
 void vars_of_lstream (void);
+void reinit_vars_of_lstream (void);
 void vars_of_macros (void);
 void vars_of_md5 (void);
 void vars_of_menubar (void);

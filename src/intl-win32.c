@@ -2296,13 +2296,6 @@ coding_system_type_create_intl_win32 (void)
 }
 
 void
-reinit_coding_system_type_create_intl_win32 (void)
-{
-  REINITIALIZE_CODING_SYSTEM_TYPE (mswindows_multibyte_to_unicode);
-  REINITIALIZE_CODING_SYSTEM_TYPE (mswindows_multibyte);
-}
-
-void
 vars_of_intl_win32 (void)
 {
   Vmswindows_charset_code_page_table =

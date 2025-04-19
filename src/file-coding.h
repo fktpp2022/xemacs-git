@@ -555,15 +555,10 @@ static const struct sized_memory_description			\
   ty##_coding_system_methods->extra_description =			\
     &coding_system_empty_extra_description;				\
   ty##_coding_system_methods->enumtype = ty##_coding_system;		\
-  defsymbol_nodump (&ty##_coding_system_methods->predicate_symbol,	\
-                    pred_sym);						\
+  defsymbol (&ty##_coding_system_methods->predicate_symbol, pred_sym);	\
   add_entry_to_coding_system_type_list (ty##_coding_system_methods);	\
   dump_add_root_block_ptr (&ty##_coding_system_methods,		\
                             &coding_system_methods_description);	\
-} while (0)
-
-#define REINITIALIZE_CODING_SYSTEM_TYPE(type) do {			\
-  staticpro_nodump (&type##_coding_system_methods->predicate_symbol);	\
 } while (0)
 
 /* This assumes the existence of two structures:

@@ -2157,15 +2157,6 @@ face-background-placement-specifier-p");
 }
 
 void
-reinit_specifier_type_create_fontcolor (void)
-{
-  REINITIALIZE_SPECIFIER_TYPE (color);
-  REINITIALIZE_SPECIFIER_TYPE (font);
-  REINITIALIZE_SPECIFIER_TYPE (face_boolean);
-  REINITIALIZE_SPECIFIER_TYPE (face_background_placement);
-}
-
-void
 reinit_vars_of_fontcolor (void)
 {
   {
