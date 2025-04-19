@@ -3529,8 +3529,19 @@ Lisp_Object_ptr_dynarr *staticpros;
 
    VARADDRESS is usually a data segment (beziehungsweise BSS) address, but may
    be a heap address. If it is a heap address the containing block must be
-   made known to the dumper in some fashion, usually with
-   dump_add_root_block_ptr().
+   made known to the dumper by means of dump_add_root_block_ptr().
+
+   You will confuse the dumper and cause a crash after pdump_load() if you do
+   a staticpro() on something immediately within a block passed to
+   dump_add_root_block() with a non-NULL DESC. I plan to remove the option to
+   pass a non-NULL DESC to that function in any event, since
+   dump_add_root_block_ptr() is usually a better option, it avoids leaking the
+   data in the dump file.
+
+   The implementation within the dumper of the code to differentiate between
+   heap and non-heap roots has the limitation that staticpro() on a field
+   within a dumped Lisp_Object that itself is only reachable via STATICPROS,
+   will cause a crash.  There should never be a need to do this.
 
    It is not useful to call staticpro() on the address of a Lisp_Object that is
    not in the data segment and not in the heap. */

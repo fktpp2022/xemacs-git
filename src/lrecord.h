@@ -613,7 +613,7 @@ void tick_lrecord_stats (const struct lrecord_header *h,
    non-Lisp_Object heap objects, registered by dump_add_root_block_ptr().
    The descriptions need to tell pdump which elements of your structure are
    Lisp_Objects or structure pointers, plus the descriptions in turn of the
-   non-Lisp_Object structures pointed to.  If these structures are you own
+   non-Lisp_Object structures pointed to.  If these structures are your own
    private ones, you will have to write these recursive descriptions
    yourself; otherwise, you are reusing a structure already in existence
    elsewhere and there is probably already a description for it.

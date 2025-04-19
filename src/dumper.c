@@ -274,10 +274,10 @@ static const struct sized_memory_description staticpros_description = {
    segment pointers and reinit_vars_of_*() functions that solely existed to
    call staticpro_nodump() on an address in the dump file.
 
-   staticpro() now accepts pointers to the data segment, the BSS and the heap,
-   indifferently. The dumper constructs a hash table of all reachable heap
-   Lisp_Object addresses, and before STATICPROS is dumped the heap addresses
-   for Lisp_Objects are separated out into STATICPROS_NODUMP, which has its
+   staticpro() now accepts pointers to the data segment, the BSS and the heap.
+   The dumper constructs a hash table of all reachable heap Lisp_Object
+   addresses, and before STATICPROS is dumped the heap addresses for
+   Lisp_Objects are separated out into STATICPROS_NODUMP, which has its
    elements relocated as appropriate for addresses in the dump file. This does
    not conflict with its occasional use by modules after pdump_load(). */
 static const struct memory_description staticpro_nodump_description_1[] = {
@@ -755,14 +755,6 @@ pdump_bump_depth (void)
    with this feature. This would also remove the need for staticpro() within
    defsymbol() and ease unloading of modules. */
 static Lisp_Object Vstaticpros_hash;
-
-static int
-compare_staticpros (const void *ptr1p, const void *ptr2p)
-{
-  const Lisp_Object *ptr1 = *(const Lisp_Object **) ptr1p;
-  const Lisp_Object *ptr2 = *(const Lisp_Object **) ptr2p;
-  return (int) (ptr1 - ptr2);
-}
 
 inline static void
 shuffle_staticpros_if_needed (const Lisp_Object *pobj)
@@ -1319,10 +1311,12 @@ pdump_reloc_lisp_data (const void *ptr)
 
    I had thought it would be necessary to have a separate annotation for
    pointers to struct sized_memory_description *, to handle this, since it
-   wasn't certain that objects would not refer to memory descriptions inside of
-   previously-loaded objects (which would already have been relocated), but it
-   works fine without that currently. Should this stop working the SIGSEGV will
-   happen fairly close to this function. */
+   wasn't certain that objects would not refer to memory descriptions inside
+   of previously-loaded objects (which would already have been relocated), but
+   it works fine without that currently. Should this stop working the SIGSEGV
+   will happen fairly close to this function, and XD_SIZED_MEMORY_DESCRIPTION
+   has been added for clarity and potenitial future error-checking in any
+   event. */
 static const struct sized_memory_description *
 pdump_load_lispdesc_indirect_description (const void *obj,
 					  const struct sized_memory_description
@@ -2004,11 +1998,6 @@ pdump (void)
 				           HASH_TABLE_NON_WEAK, Qeq);
   GCPRO1 (Vstaticpros_hash);
 
-  /* Sort STATICPROS to make for cheaper partitioning between heap and data
-     segment addresses. This may also make for better locality of reference
-     of GC post pdump_load(). */
-  qsort (Dynarr_begin (staticpros), Dynarr_length (staticpros),
-         sizeof (Lisp_Object *), compare_staticpros);
   {
     Elemcount ii;
     for (ii = 0; ii < Dynarr_length (staticpros); ii++)
@@ -2043,8 +2032,7 @@ pdump (void)
 
   /* Try various roots of accessibility: */
 
-  /* (1) Lisp objects, both those declared using DEFVAR_LISP*() and  those
-         staticpro()d. */
+  /* (1) Lisp objects passed to dump_add_root_lisp_object(). */
   for (i = 0; i < Dynarr_length (pdump_root_lisp_objects); i++)
     pdump_register_object (* Dynarr_at (pdump_root_lisp_objects, i));
 
@@ -2092,10 +2080,10 @@ pdump (void)
 	}
     }
 
-  /* Handle STATICPROS and STATICPROS_NODUMP specially, they need to be
+  /* (4) Register STATICPROS and STATICPROS_NODUMP specially, they need to be
      processed after everything else has been examined, and the shuffling from
      STATICPROS to STATICPROS_NODUMP should not take place. Clear
-     Vstaticpros_hash to this end. */
+     Vstaticpros_hash to this end before processing them. */
   Fclrhash (Vstaticpros_hash);
 
   pdump_register_block (staticpros, staticpros_description.size,
@@ -2108,7 +2096,6 @@ pdump (void)
      staticpros and staticpros_nodump (the pointers themselves) restored
      correctly, and since the calls are after pdump_root_block_ptrs have been
      processed, pdump_register_block() won't be called on them twice.  */
-
   dump_add_root_block_ptr (&staticpros, &staticpros_description);
   dump_add_root_block_ptr (&staticpros_nodump, &staticpros_nodump_description);
 

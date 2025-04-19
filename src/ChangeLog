@@ -1,5 +1,22 @@
 2025-04-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove the qsort() of STATICPROS of the last commit, it slows down
+	the GC slightly, the loss of speed at pdump() time doesn't matter,
+	and less code is more maintainable than more code.
+	Update some comments related to that.
+
+	Update a comment here.
+	* alloc.c (compare_staticpros): Removed, no longer needed.
+	* dumper.c:
+	* dumper.c (pdump_load_lispdesc_indirect_description):
+	Update a comment for this.
+	* dumper.c (pdump):
+	Remove the qsort(). Update some comments.
+	* lrecord.h:
+	Correct a comment here in passing.
+
+2025-04-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Handle heap addresses known to the dumper when these are passed to
 	staticpro().
 	Remove several functions and macros that only existed to work
