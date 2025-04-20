@@ -891,6 +891,14 @@ void tick_lrecord_stats (const struct lrecord_header *h,
   to be relocated differently than XD_BLOCK_PTR, but is identical to previous
   with regard to garbage collection). Same parameters as XD_BLOCK_PTR.
 
+    XD_BLOCK_OFFSET_PTR
+
+  Pointer to an offset within a non-data-segment block encountered elsewhere,
+  which means that the pointed-to offset does not need to be dumped. Currently
+  only used in implementing heap support for staticpro(), and only for
+  sub-objects that are XD_LISP_OBJECT, but for completeness handled in the
+  same way as XD_BLOCK_PTR in the GC, and takes the same args.
+
     XD_BLOCK_ARRAY
 
   Array of blocks of described memory.  Parameters are number of
@@ -1040,6 +1048,7 @@ enum memory_description_type
   XD_OPAQUE_DATA_PTR,
   XD_BLOCK_PTR,
   XD_BLOCK_DATA_PTR,
+  XD_BLOCK_OFFSET_PTR,
   XD_BLOCK_ARRAY,
   XD_UNION,
   XD_UNION_DYNAMIC_SIZE,

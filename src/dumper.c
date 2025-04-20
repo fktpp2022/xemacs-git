@@ -275,13 +275,14 @@ static const struct sized_memory_description staticpros_description = {
    call staticpro_nodump() on an address in the dump file.
 
    staticpro() now accepts pointers to the data segment, the BSS and the heap.
-   The dumper constructs a hash table of all reachable heap Lisp_Object
-   addresses, and before STATICPROS is dumped the heap addresses for
-   Lisp_Objects are separated out into STATICPROS_NODUMP, which has its
-   elements relocated as appropriate for addresses in the dump file. This does
-   not conflict with its occasional use by modules after pdump_load(). */
+
+   As the dump registration step encounters the addresses of heap
+   Lisp_Objects, it checks if those addresses are in STATICPROS, and if so it
+   moves them to STATICPROS_NODUMP, which has its elements relocated as
+   appropriate for addresses in the dump file. This does not conflict with its
+   occasional use by modules after pdump_load(). */
 static const struct memory_description staticpro_nodump_description_1[] = {
-  { XD_BLOCK_PTR, 0, 1, { &lisp_object_description } },
+  { XD_BLOCK_OFFSET_PTR, 0, 1, { &lisp_object_description } },
   { XD_END }
 };
 
@@ -754,18 +755,25 @@ pdump_bump_depth (void)
    to a Lisp hash table. I note Gerd Moellman maintains a fork of GNU Emacs
    with this feature. This would also remove the need for staticpro() within
    defsymbol() and ease unloading of modules. */
-static Lisp_Object Vstaticpros_hash;
+static Lisp_Object Vstaticpros_hash, Vstaticpros_nodump_block_offsets;
+
+static int pdump_min_shuffle_depth = 0;
 
 inline static void
-shuffle_staticpros_if_needed (const Lisp_Object *pobj)
+shuffle_staticpros_if_needed (const Lisp_Object *pobj, Bytecount offset)
 {
-  if (!NILP (Fgethash (STORE_VOID_IN_LISP ((void *) pobj),
-                       Vstaticpros_hash, Qnil)))
+  htentry *e;
+  if (pdump_depth >= pdump_min_shuffle_depth &&
+      (e = find_htentry (STORE_VOID_IN_LISP ((void *) pobj),
+                         XHASH_TABLE (Vstaticpros_hash)),
+       !HTENTRY_CLEAR_P (e)))
     {
       Dynarr_add (staticpros_nodump, (Lisp_Object *) pobj);
       Dynarr_delete_object (staticpros, (Lisp_Object *) pobj);
       Fremhash (STORE_VOID_IN_LISP ((void *) pobj),
                 Vstaticpros_hash);
+      Fputhash (STORE_VOID_IN_LISP ((void *) pobj), make_fixnum (offset),
+                Vstaticpros_nodump_block_offsets);
     }
 }
 
@@ -814,6 +822,7 @@ pdump_register_sub (const void *data, const struct memory_description *desc)
 	case XD_FUNCTION_POINTER:
 	case XD_MEMORY_DESCRIPTION:
 	case XD_SIZED_MEMORY_DESCRIPTION:
+        case XD_BLOCK_OFFSET_PTR:
 	  break;
 	case XD_OPAQUE_DATA_PTR:
 	  {
@@ -841,7 +850,7 @@ pdump_register_sub (const void *data, const struct memory_description *desc)
 	    backtrace[me].offset =
 	      (const Rawbyte *) pobj - (const Rawbyte *) data;
 	    pdump_register_object (*pobj);
-            shuffle_staticpros_if_needed (pobj);
+            shuffle_staticpros_if_needed (pobj, offset);
 	    break;
 	  }
 	case XD_LISP_OBJECT_ARRAY:
@@ -858,7 +867,7 @@ pdump_register_sub (const void *data, const struct memory_description *desc)
 		backtrace[me].offset =
 		  (const Rawbyte *) pobj - (const Rawbyte *) data;
 		pdump_register_object (dobj);
-                shuffle_staticpros_if_needed (pobj);
+                shuffle_staticpros_if_needed (pobj, backtrace[me].offset);
 	      }
 	    break;
 	  }
@@ -1132,6 +1141,22 @@ pdump_store_new_pointer_offsets (Elemcount count, void *data,
 		  * (EMACS_INT *) rdata = pdump_get_block (ptr)->save_offset;
 		break;
 	      }
+	    case XD_BLOCK_OFFSET_PTR:
+	      {
+		void *ptr = * (void **) rdata;
+		if (ptr)
+                  {
+                    Lisp_Object offset
+                      = Fgethash (STORE_VOID_IN_LISP ((void *) ptr),
+                                  Vstaticpros_nodump_block_offsets,
+                                  Qnil);
+                    pdump_block_list_elt *block = 
+                      pdump_get_block ((Rawbyte *) ptr - XFIXNUM (offset));
+                    * (EMACS_INT *) rdata
+                      = block->save_offset + XFIXNUM (offset);
+                  }
+		break;
+	      }
 	    case XD_LO_LINK:
 	      {
 		/* As described in lrecord.h, this is a weak link.
@@ -1376,6 +1401,7 @@ pdump_reloc_one (void *data, const struct memory_description *desc)
 	case XD_OPAQUE_DATA_PTR:
 	case XD_ASCII_STRING:
 	case XD_BLOCK_PTR:
+        case XD_BLOCK_OFFSET_PTR:
 	case XD_LO_LINK:
 	  {
 	    void *ptr = *(void **)rdata;
@@ -1996,6 +2022,10 @@ pdump (void)
      Vall_weak_hash_tables that shouldn't be dumped. */
   Vstaticpros_hash = make_lisp_hash_table (Dynarr_length (staticpros),
 				           HASH_TABLE_NON_WEAK, Qeq);
+  Vstaticpros_nodump_block_offsets
+    = make_lisp_hash_table (Dynarr_length (staticpros) / 5,
+                            HASH_TABLE_NON_WEAK, Qeq);
+
   GCPRO1 (Vstaticpros_hash);
 
   {
@@ -2065,6 +2095,11 @@ pdump (void)
 
   /* (3) Register out the data-segment blocks, maybe with pointers to heap
      blocks */
+  pdump_min_shuffle_depth = 2; /* Pointers to Lisp_Objects within the
+                                  data-segment blocks themselves are not in
+                                  the heap and need to stay in STATICPROS,
+                                  don't process them in
+                                  shuffle_staticpros_if_needed(). */
   for (i = 0; i < Dynarr_length (pdump_root_blocks); i++)
     {
       pdump_root_block *info = Dynarr_atp (pdump_root_blocks, i);
@@ -2081,13 +2116,14 @@ pdump (void)
     }
 
   /* (4) Register STATICPROS and STATICPROS_NODUMP specially, they need to be
-     processed after everything else has been examined, and the shuffling from
-     STATICPROS to STATICPROS_NODUMP should not take place. Clear
-     Vstaticpros_hash to this end before processing them. */
-  Fclrhash (Vstaticpros_hash);
-
+     processed after everything else has been examined. */
+  pdump_min_shuffle_depth = 5; /* Avoid shuffling the entries in STATICPROS,
+                                  STATICPROS_NODUMP themselves, a depth of 5
+                                  takes us beyond the processing of
+                                  XD_BLOCK_DATA_PTR and XD_BLOCK_PTR. */
   pdump_register_block (staticpros, staticpros_description.size,
 			staticpros_description.description, 1);
+
   pdump_register_block (staticpros_nodump,
 			staticpros_nodump_description.size,
 			staticpros_nodump_description.description, 1);

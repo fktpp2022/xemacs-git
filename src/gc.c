@@ -257,8 +257,9 @@ lispdesc_one_description_line_size (void *rdata,
       return sizeof (struct memory_description *);
     case XD_SIZED_MEMORY_DESCRIPTION:
       return sizeof (struct sized_memory_description *);
-    case XD_BLOCK_DATA_PTR:
     case XD_BLOCK_PTR:
+    case XD_BLOCK_DATA_PTR:
+    case XD_BLOCK_OFFSET_PTR:
       {
 	EMACS_INT val = lispdesc_indirect_count (desc1->data1, desc, obj);
 	return val * sizeof (void *);
@@ -921,8 +922,9 @@ kkcc_marking (void)
 		  }
 		break;
 	      }
-	    case XD_BLOCK_DATA_PTR:
 	    case XD_BLOCK_PTR:
+	    case XD_BLOCK_DATA_PTR:
+            case XD_BLOCK_OFFSET_PTR:
 	      {
 		EMACS_INT count = lispdesc_indirect_count (desc1->data1, desc,
 							   data);

@@ -1,3 +1,47 @@
+2025-04-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	My first commit of the support for heap staticpros was buggy, fix
+	that.
+	* lrecord.h:
+	* lrecord.h (enum memory_description_type):
+	New entry, XD_BLOCK_OFFSET_PTR, needed to properly support
+	staticpro() on the heap. Describes a pointer to an offset into a
+	block, which block has been encountered elsewhere and so does not
+	need to be dumped.
+	* alloc.c (staticpro): Update and correct comments regarding
+	staticpro() and heap objects.
+	* dumper.c:
+	Correct documentation of the process for working out if addresses
+	in STATICPROS are in the heap.
+	* dumper.c (static int pdump_min_shuffle_depth): New. Depth
+	threshold checked at the registration stage to allow decisions to
+	be made about whether pointers encountered should be moved from
+	STATICPROS to STATICPROS_NODUMP.
+	* dumper.c (shuffle_staticpros_if_needed):
+	Respect it. Use find_htentry() rather than Fgethash() for reasons
+	of speed.
+	Take the offset within the current block as an argument, to allow
+	the block to be found and to avoid dumping another block.
+	* dumper.c (pdump_register_sub):
+	Pass the offset of the current Lisp_Object to
+	shuffle_staticpros_if_needed(). Handle XD_BLOCK_OFFSET_PTR.
+	* dumper.c (pdump_store_new_pointer_offsets):
+	Handle XD_BLOCK_OFFSET_PTR here, pull the offset saved from
+	Vstaticpros_nodump_block_offsets, find the corresponding block,
+	and store the save_offset of the block plus the offset from the
+	hash table as *RDATA.
+	* dumper.c (pdump_reloc_one):
+	Handle XD_BLOCK_OFFSET_PTR in the same way as XD_BLOCK_PTR here.
+	* dumper.c (pdump):
+	Initialize Vstaticpros_nodump_block_offsets as a hash table.  Set
+	pdump_min_shuffle_depth appropriately to limit shuffling from
+	STATICPROS to STATICPROS_NODUMP, for root blocks and for
+	STATICPRO, STATICPRO_NODUMP.
+	* gc.c (lispdesc_one_description_line_size):
+	* gc.c (kkcc_marking): 
+	Handle XD_BLOCK_OFFSET_PTR in the same way as XD_BLOCK_PTR, not
+	that it will come up.
+
 2025-04-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove the qsort() of STATICPROS of the last commit, it slows down
