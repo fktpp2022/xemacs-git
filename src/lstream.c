@@ -2196,8 +2196,9 @@ syms_of_lstream (void)
 void
 vars_of_lstream (void)
 {
-  static Lisp_Object Vdump_time_lstream_free_list
-    = make_vector (countof (lstream_types), Qnil);
+  static Lisp_Object Vdump_time_lstream_free_list;
+
+  Vdump_time_lstream_free_list = make_vector (countof (lstream_types), Qnil);
   staticpro_nodump (&Vdump_time_lstream_free_list);
   lstream_free_list = XVECTOR_DATA (Vdump_time_lstream_free_list);
 

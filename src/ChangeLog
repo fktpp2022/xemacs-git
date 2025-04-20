@@ -1,5 +1,13 @@
 2025-04-20  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* lstream.c (vars_of_lstream):
+	Certain C implementations are anal about the restrictions on the
+	complexity of initialization of static variables, even when those
+	static variables have function scope. Work around that in this
+	function, thank you Mats Lidell and the buildbot.
+
+2025-04-20  Aidan Kehoe  <kehoea@parhasard.net>
+
 	My first commit of the support for heap staticpros was buggy, fix
 	that.
 	* lrecord.h:
