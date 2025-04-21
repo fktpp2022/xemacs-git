@@ -246,11 +246,13 @@ void specifier_type_create_image (void);
 void specifier_type_create_fontcolor (void);
 void specifier_type_create_toolbar (void);
 
-/* Initialize the coding system types (dump-time only) */
+/* Initialize the coding system types (dump-time only for
+   coding_system_type_(), post-pdump-load-time only for reinit_). */
 
 void coding_system_type_create (void);
 void coding_system_type_create_intl_win32 (void);
 void coding_system_type_create_mule_coding (void);
+void reinit_coding_system_type_create_mule_coding (void);
 void coding_system_type_create_unicode (void);
 
 /* Initialize the structure types (dump-time only). */

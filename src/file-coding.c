@@ -5783,6 +5783,11 @@ coding_system_type_create (void)
   dump_add_opaque_int (&coding_detector_count);
   dump_add_opaque_int (&coding_detector_category_count);
 
+  /* Would be nice to do the following, but needs a memory_description for
+     struct memory_description.  */
+  /* dump_add_root_block (detection_state_description, ...) */
+  /* dump_add_opaque_int (&coding_detector_description_lines_count); */
+
   INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (no_conversion,
                                            "no-conversion-coding-system-p");
 

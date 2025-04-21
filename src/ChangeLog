@@ -1,3 +1,18 @@
+2025-04-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	REINITIALIZE_DETECTOR_WITH_DESCRIPTION() needs to be done post
+	pdump_load(), restore that.
+	* emacs.c (main_1):
+	Call reinit_coding_system_type_create_mule_coding() once more.
+	* file-coding.c (coding_system_type_create):
+	Document that I would like to dump_add_root_block
+	(detection_state_description ...).
+	* mule-coding.c:
+	* mule-coding.c (reinit_coding_system_type_create_mule_coding):
+	Restore this.
+	* symsinit.h:
+	Restore its declaration.
+
 2025-04-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lstream.c (vars_of_lstream):

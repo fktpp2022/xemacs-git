@@ -4080,6 +4080,12 @@ coding_system_type_create_mule_coding (void)
 }
 
 void
+reinit_coding_system_type_create_mule_coding (void)
+{
+  REINITIALIZE_DETECTOR_WITH_DESCRIPTION (iso2022);
+}
+
+void
 vars_of_mule_coding (void)
 {
 }
