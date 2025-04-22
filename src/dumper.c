@@ -1994,7 +1994,7 @@ pdump (void)
   int none;
   pdump_header header;
   int speccount = specpdl_depth ();
-  struct gcpro gcpro1;
+  struct gcpro gcpro1, gcpro2;
 
   in_pdump = 1;
 
@@ -2026,7 +2026,7 @@ pdump (void)
     = make_lisp_hash_table (Dynarr_length (staticpros) / 5,
                             HASH_TABLE_NON_WEAK, Qeq);
 
-  GCPRO1 (Vstaticpros_hash);
+  GCPRO2 (Vstaticpros_hash, Vstaticpros_nodump_block_offsets);
 
   {
     Elemcount ii;
@@ -2065,25 +2065,6 @@ pdump (void)
   /* (1) Lisp objects passed to dump_add_root_lisp_object(). */
   for (i = 0; i < Dynarr_length (pdump_root_lisp_objects); i++)
     pdump_register_object (* Dynarr_at (pdump_root_lisp_objects, i));
-
-  none = 1;
-  for (i = 0; i < lrecord_type_count; i++)
-    if (pdump_alert_undump_object[i])
-      {
-	if (none)
-	  stderr_out ("Undumpable types list :\n");
-	none = 0;
-	stderr_out ("  - %s (%d)\n",
-                    LRECORD_IMPLEMENTATION_IBYTE_NAME
-                    (lrecord_implementations_table[i]),
-		    pdump_alert_undump_object[i]);
-      }
-  if (!none)
-    {
-      in_pdump = 0;
-      UNGCPRO;
-      return;
-    }
 
   /* (2) Register out the data-segment pointer variables to heap blocks. */
   for (i = 0; i < Dynarr_length (pdump_root_block_ptrs); i++)
@@ -2134,6 +2115,25 @@ pdump (void)
      processed, pdump_register_block() won't be called on them twice.  */
   dump_add_root_block_ptr (&staticpros, &staticpros_description);
   dump_add_root_block_ptr (&staticpros_nodump, &staticpros_nodump_description);
+
+  none = 1;
+  for (i = 0; i < lrecord_type_count; i++)
+    if (pdump_alert_undump_object[i])
+      {
+	if (none)
+	  stderr_out ("Undumpable types list :\n");
+	none = 0;
+	stderr_out ("  - %s (%d)\n",
+                    LRECORD_IMPLEMENTATION_IBYTE_NAME
+                    (lrecord_implementations_table[i]),
+		    pdump_alert_undump_object[i]);
+      }
+  if (!none)
+    {
+      in_pdump = 0;
+      UNGCPRO;
+      return;
+    }
 
   /* (II) The "layout" stage: Compute the offsets and max-size */
 

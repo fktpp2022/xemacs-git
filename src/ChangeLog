@@ -1,3 +1,12 @@
+2025-04-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* dumper.c (pdump):
+	1. GCPRO Vstaticpros_nodump_block_offsets, motivation is the same
+	as that for Vstaticpros_hash.
+	2. Move the alert giving the undumpable types list after
+	STATICPROS has been processed, given the bulk of Lisp_Objects are
+	now reached from there.
+
 2025-04-21  Aidan Kehoe  <kehoea@parhasard.net>
 
 	REINITIALIZE_DETECTOR_WITH_DESCRIPTION() needs to be done post
