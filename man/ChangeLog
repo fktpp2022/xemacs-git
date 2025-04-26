@@ -1,3 +1,9 @@
+2025-04-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (Symbol Values):
+	Mention that GNU Emacs still implements Qunbound as a symbol in
+	documentation of that.
+
 2025-04-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Top):

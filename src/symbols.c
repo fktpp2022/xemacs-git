@@ -638,15 +638,14 @@ Set SYMBOL's property list to NEWPLIST, and return NEWPLIST.
    Note that only certain types of `symbol-value-forward' objects
    can find their way into the "current value" cell of a
    `symbol-value-buffer-local' object: SYMVAL_OBJECT_FORWARD,
-   SYMVAL_FIXNUM_FORWARD, SYMVAL_BOOLEAN_FORWARD, and
-   The SYMVAL_CONST_*_FORWARD cannot be buffer-local because they are
-   unsettable;
-   SYMVAL_DEFAULT_*_FORWARD cannot be buffer-local because that
-   makes no sense; making SYMVAL_CURRENT_BUFFER_FORWARD buffer-local
-   does not have much of an effect (it's already buffer-local); and
-   SYMVAL_SELECTED_CONSOLE_FORWARD cannot be buffer-local because
-   that's not currently implemented.
+   SYMVAL_FIXNUM_FORWARD, SYMVAL_BOOLEAN_FORWARD.
 
+   The SYMVAL_CONST_*_FORWARD cannot be buffer-local because they are
+   unsettable; SYMVAL_DEFAULT_*_FORWARD cannot be buffer-local because
+   that makes no sense; making SYMVAL_CURRENT_BUFFER_FORWARD 
+   buffer-local does not have much of an effect (it's already 
+   buffer-local); and SYMVAL_SELECTED_CONSOLE_FORWARD cannot be
+   buffer-local because that's not currently implemented.
 
    3. symbol-value-varalias
 

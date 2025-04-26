@@ -2009,11 +2009,14 @@ typedef struct
 
 /*------------------------------ unbound -------------------------------*/
 
-/* Qunbound is a special Lisp_Object (actually of type
-   symbol-value-forward), that can never be visible to
-   the Lisp caller and thus can be used in the C code
-   to mean "no such value". */
+/* Qunbound is a special Lisp_Object (of type Lisp_Opaque), that can never be
+   visible to the Lisp caller and thus can be used in the C code to mean "no
+   such value".
 
+   It is named as a symbol (the initial Q) because it traditionally was a
+   symbol (and still is a symbol in GNU Emacs); the advantage of making it
+   Lisp_Opaque is that type is not printable and does not have a read syntax,
+   so errors that lead to Qunbound escaping to Lisp are more evident. */
 #define UNBOUNDP(val) EQ (val, Qunbound)
 
 /* Evaluate expr, return it if it's not Qunbound. */

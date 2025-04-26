@@ -1,5 +1,28 @@
 2025-04-26  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* backtrace.h (SPECBIND):
+	* backtrace.h (SPECBIND_FAST_UNSAFE):
+	* backtrace.h (FSET_FAST_UNSAFE):
+	(!SYMBOL_VALUE_MAGIC_P (X) || UNBOUNDP (X)) is now equivalent to
+	!SYMBOL_VALUE_MAGIC_P(X), make this change in these macros, missed
+	in 71db57be985b.
+	* lisp.h (UNBOUNDP): Update documentation of this and Qunbound.
+	* opaque.c:
+	Remove declaration of Vopaque_ptr_free_list, no longer needed.
+	* opaque.c (init_opaque_once_early):
+
+	Set Qunbound as C-readonly, so it is not traced for GC, important
+	for the many symbols that are #'fboundp and not #'boundp or
+	vice-versa.
+	Make the dumper aware of it but do not add it to STATICPROS.
+	Both these things were the case pre-71db57be985b.
+	Since it is now heap data it does now need a staticpro_nodump(),
+	do this.
+	* symbols.c:
+	Correct comments here.
+
+2025-04-26  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* alloc.c:
 	Update the documentation regarding the (ongoing) need to GCPRO all
 	strings, and the need to re-fetch the string data after every call

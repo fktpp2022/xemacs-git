@@ -238,7 +238,7 @@ extern int specpdl_size;
   SB_sym = XSYMBOL (SB_symbol);						\
   SB_oldval = SB_sym->value;						\
 									\
-  if (!SYMBOL_VALUE_MAGIC_P (SB_oldval) || UNBOUNDP (SB_oldval))	\
+  if (!SYMBOL_VALUE_MAGIC_P (SB_oldval))                                \
     {									\
       /* #### the following test will go away when we have a constant	\
          symbol magic object */						\
@@ -272,9 +272,7 @@ extern int specpdl_size;
   Lisp_Object SFU_newval = (value_object);				\
   Lisp_Symbol *SFU_sym   = XSYMBOL (SFU_symbol);			\
   Lisp_Object SFU_oldval = SFU_sym->value;				\
-  /* Most of the time, will be previously unbound.  #### With a bit of	\
-   rearranging, this could be reduced to only one check. */		\
-  if (UNBOUNDP (SFU_oldval) || !SYMBOL_VALUE_MAGIC_P (SFU_oldval))	\
+  if (!SYMBOL_VALUE_MAGIC_P (SFU_oldval))                               \
     {									\
       specpdl_ptr->symbol    = SFU_symbol;				\
       specpdl_ptr->old_value = SFU_oldval;				\
@@ -388,7 +386,7 @@ extern int specpdl_size;
   Lisp_Object FFU_newval = (newval);					\
   Lisp_Symbol *FFU_symbol = XSYMBOL (FFU_sym);				\
   Lisp_Object FFU_oldval = FFU_symbol->value;				\
-  if (!SYMBOL_VALUE_MAGIC_P (FFU_oldval) || UNBOUNDP (FFU_oldval))	\
+  if (!SYMBOL_VALUE_MAGIC_P (FFU_oldval))                               \
     FFU_symbol->value = FFU_newval;					\
   else									\
     Fset (FFU_sym, FFU_newval);						\

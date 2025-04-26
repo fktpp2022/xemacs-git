@@ -34,7 +34,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "lisp.h"
 #include "opaque.h"
 
-Lisp_Object Qunbound, Vopaque_ptr_free_list;
+Lisp_Object Qunbound;
 
 /* Should never, ever be called. (except by an external debugger) */
 static void
@@ -171,7 +171,11 @@ init_opaque_once_early (void)
                              opaque_ptr_description, Lisp_Opaque_Ptr);
 
   Qunbound = make_opaque (OPAQUE_CLEAR, 0);
-  staticpro (&Qunbound);
+  SET_C_READONLY_RECORD_HEADER (&(XOPAQUE (Qunbound)->header.lheader));
+  dump_add_root_lisp_object (&Qunbound);
+  /* No need to have this around as a GC root after pdump_load(), it's
+     C-readonly and won't be traversed in any event. */
+  staticpro_nodump (&Qunbound);
 }
 
 /* opaque.c ends here. */

@@ -10348,7 +10348,7 @@ object of this type.  Printing it will cause the message @samp{INTERNAL
 EMACS BUG} to appear as part of the print representation.@footnote{It is
 chiefly for the sake of this print representation that Qunbound is
 implemented as ``opaque''; things would work fine were it to be
-implemented as an uninterned symbol.}
+implemented as an uninterned symbol, and indeed GNU Emacs does this.}
 
   When a symbol is created, its value field (and function field) are set
 to @code{Qunbound}.  The Lisp programmer can restore these conditions
