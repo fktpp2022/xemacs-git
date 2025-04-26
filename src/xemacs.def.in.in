@@ -190,19 +190,10 @@ signal_malformed_property_list_error	/* EXTERNAL_PROPERTY_LIST_LOOP* */
 signal_quit			/* QUIT */
 slow_down_interrupts
 speed_up_interrupts
-#ifndef DEBUG_XEMACS
 staticpro
 staticpro_nodump
-#else
-staticpro_1
-staticpro_nodump_1
-#endif
 unbind_to_1			/* unbind_to */
-#ifndef DEBUG_XEMACS
 unstaticpro_nodump
-#else
-unstaticpro_nodump_1
-#endif
 vconcat2
 vconcat3
 vector1
@@ -269,13 +260,9 @@ debug_issue_ebola_notices	/* EQ_WITH_EBOLA_NOTICE */
 dont_check_for_quit		/* QUITP, QUIT */
 gcprolist			/* GCPRO1, GCPRO2, ... */
 initialized			/* LOADHIST_ATTACH */
-lrecord_cons			/* CONSP */
 lrecord_implementations_table	/* RECORD_DUMPABLE */
-lrecord_marker			/* MARKERP */
 lrecord_memory_descriptions	/* INIT_LRECORD_IMPLEMENTATION */
-lrecord_string			/* STRINGP */
-lrecord_symbol	 		/* SYMBOLP */
-lrecord_type_count		/* INIT_EXTERNAL_LRECORD_IMPLEMENTATION */
+lrecord_type_count		/* MAKE_LISP_OBJECT */
 lrecord_uid_counter
 need_to_check_c_alloca		/* ALLOCA */
 print_readably

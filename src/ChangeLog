@@ -54,6 +54,13 @@
 	Update the documentation of the Lisp expression equivalent to the
 	?c code letter in the documentation of this.
 
+2025-04-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* xemacs.def.in.in:
+	Update this file to reflect recent changes, get the C-only build
+	working on Cygwin (the C++ build still fails regarding symbols in
+	terminfo, still working on working around this).
+
 2025-04-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* dumper.c (pdump):
