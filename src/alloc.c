@@ -2440,13 +2440,20 @@ noseeum_make_marker (void)
    collected. The data for short strings get compacted, but the data for
    large strings do not.
 
-   Previously Lisp_String structures were relocated, but this caused a lot
-   of bus-errors because the C code didn't include enough GCPRO's for
+   Previously Lisp_String structures were routinely relocated, but this caused
+   a lot of bus-errors because the C code didn't include enough GCPROs for
    strings (since EVERY REFERENCE to a short string needed to be GCPRO'd so
    that the reference would get relocated).
 
-   This new method makes things somewhat bigger, but it is MUCH safer.  */
+   This new method makes things somewhat bigger, but it is MUCH less likely to
+   cause a bus error.
 
+   There is still a need to GCPRO every reference to a string, and to fetch the
+   string data anew after Lisp has been called. Lisp code can replace shorter
+   characters with longer characters, preserving the character length but
+   meaning the byte length allocated needs to be increased; without care to
+   fetch the string data every time, C can access freed memory and XEmacs will
+   crash. */
 DECLARE_FIXED_TYPE_ALLOC (string, Lisp_String);
 /* strings are used and freed quite often */
 /* #define MINIMUM_ALLOWED_FIXED_TYPE_CELLS_string 10000 */
