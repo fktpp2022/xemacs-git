@@ -675,6 +675,7 @@ old_alloc_sized_lcrecord_1 (Bytecount size,
 			    Boolint c_readonly_p)
 {
   struct old_lcrecord_header *lcheader;
+  Lisp_Object result;
 
   assert_proper_sizing (size);
   type_checking_assert
@@ -684,9 +685,10 @@ old_alloc_sized_lcrecord_1 (Bytecount size,
 
   lcheader = (struct old_lcrecord_header *) allocate_lisp_storage (size);
   set_lheader_implementation (&lcheader->lheader, implementation);
+  result = wrap_pointer_1 (lcheader);
   if (c_readonly_p)
     {
-      SET_C_READONLY_RECORD_HEADER (&lcheader->lheader);
+      SET_C_READONLY (result);
     }
   else
     {
@@ -694,7 +696,7 @@ old_alloc_sized_lcrecord_1 (Bytecount size,
       all_lcrecords = lcheader;
     }
   INCREMENT_CONS_COUNTER (size, implementation);
-  return wrap_pointer_1 (lcheader);
+  return result;
 }
 
 Lisp_Object
@@ -3292,19 +3294,15 @@ make_string_nocopy (const Ibyte *contents, Bytecount length)
   ALLOCATE_FIXED_TYPE (string, Lisp_String, s);
   set_lheader_implementation (&s->u.lheader,
                               LRECORD_IMPLEMENTATION (string));
-  SET_C_READONLY_RECORD_HEADER (&s->u.lheader);
   /* Don't need to XSET_STRING_ASCII_END() here because it happens in
      init_string_ascii_end(). */
   s->plist = Qnil;
   set_lispstringp_data (s, (Ibyte *) contents);
   set_lispstringp_length (s, length);
   val = wrap_string (s);
+  SET_C_READONLY (val);
   init_string_ascii_end (val);
   sledgehammer_check_ascii_end (val);
-
-  /* This is routinely called with CONTENTS a C constant, and those are not
-     guaranteed writable.  Error when Lisp attempts to modify them. */
-  SET_LISP_READONLY (val);
 
   return val;
 }
@@ -5279,11 +5277,10 @@ mark_subrs_readonly (Lisp_Object UNUSED (key), Lisp_Object value,
           /* Don't waste GC cycles traversing dumped subrs after loadup.
              Disksave methods are not called for frob-block objects, which is
              a bug, otherwise this would be a disksave method. */
-          SET_C_READONLY_RECORD_HEADER (&(subr->lheader));
+          SET_C_READONLY (XSYMBOL_FUNCTION (value));
           if (STRINGP (subr->prompt))
 	    {
-	      Lisp_String *str = XSTRING (subr->prompt);
-	      SET_C_READONLY_RECORD_HEADER (&(str->u.lheader));
+              SET_C_READONLY (subr->prompt);
 	    }
         }
     }

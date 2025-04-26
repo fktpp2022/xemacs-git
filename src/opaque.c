@@ -171,7 +171,7 @@ init_opaque_once_early (void)
                              opaque_ptr_description, Lisp_Opaque_Ptr);
 
   Qunbound = make_opaque (OPAQUE_CLEAR, 0);
-  SET_C_READONLY_RECORD_HEADER (&(XOPAQUE (Qunbound)->header.lheader));
+  SET_C_READONLY (Qunbound);
   dump_add_root_lisp_object (&Qunbound);
   /* No need to have this around as a GC root after pdump_load(), it's
      C-readonly and won't be traversed in any event. */

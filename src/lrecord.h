@@ -522,14 +522,20 @@ void tick_lrecord_stats (const struct lrecord_header *h,
   SCRRH_lheader->lisp_readonly = 1;			\
   SCRRH_lheader->mark = 1;				\
 } while (0)
-#define SET_LISP_READONLY_RECORD_HEADER(lheader) \
-  ((void) ((lheader)->lisp_readonly = 1))
+#define SET_C_READONLY(obj) \
+  SET_C_READONLY_RECORD_HEADER (XRECORD_LHEADER (obj))
+
 #define CLEAR_C_READONLY_RECORD_HEADER(lheader) do {	\
   struct lrecord_header *CCRRH_lheader = (lheader);	\
   CCRRH_lheader->c_readonly = 0;			\
   CCRRH_lheader->lisp_readonly = 0;			\
   CCRRH_lheader->mark = 0;				\
 } while (0)
+#define CLEAR_C_READONLY(obj) \
+  CLEAR_C_READONLY_RECORD_HEADER (XRECORD_LHEADER (obj))
+
+#define SET_LISP_READONLY_RECORD_HEADER(lheader) \
+  ((void) ((lheader)->lisp_readonly = 1))
 
 #define RECORD_DESCRIPTION(lheader) lrecord_memory_descriptions[(lheader)->type]
 

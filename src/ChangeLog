@@ -1,5 +1,25 @@
 2025-04-26  Aidan Kehoe  <kehoea@parhasard.net>
 
+	New macros, SET_C_READONLY(), CLEAR_C_READONLY(), encapsulate
+	access to an object's lrecord_header.
+	* lrecord.h (SET_C_READONLY): New. Call
+	SET_C_READONLY_RECORD_HEADER() on the header of a Lisp_Object.
+	* lrecord.h (CLEAR_C_READONLY): New, for symmetry. Call
+	CLEAR_C_READONLY_RECORD_HEADER on the header of a Lisp_Object.
+	* lrecord.h (SET_LISP_READONLY_RECORD_HEADER) Move this a little
+	later for clarity.
+	* alloc.c (old_alloc_sized_lcrecord_1):
+	Use SET_C_READONLY().
+	* alloc.c (make_string_nocopy): Ditto.
+	No need for SET_LISP_READONLY(), that is implicit in
+	SET_C_READONLY().
+	* alloc.c (mark_subrs_readonly):
+	Use SET_C_READONLY().
+	* opaque.c (init_opaque_once_early):
+	Ditto.
+
+2025-04-26  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* backtrace.h (SPECBIND):
 	* backtrace.h (SPECBIND_FAST_UNSAFE):
 	* backtrace.h (FSET_FAST_UNSAFE):
