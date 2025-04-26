@@ -519,11 +519,12 @@ types have never been converted to fixnums by this function."
 
 (defun true-list-p (object)
   "Return t if OBJECT is an acyclic, nil-terminated list."
-  (let ((hare object) (tortoise object) (length 0))
+  (let ((hare object) (tortoise object) (length 0) flag)
     (while (and (consp hare) (or (not (eq hare tortoise)) (eql length 0)))
-      (if (eql (logand length 1) 1) (setq tortoise (cdr tortoise)))
+      (if flag (setq tortoise (cdr tortoise)))
       (setq hare (cdr hare)
-            length (1+ length)))
+            length (1+ length)
+	    flag (not flag)))
     (eq hare nil)))
 
 (defun safe-length (list)
@@ -531,12 +532,12 @@ types have never been converted to fixnums by this function."
 This function never gets an error.  If LIST is not really a list,
 it returns 0.  If LIST is circular, it returns a finite value
 which is at least the number of distinct elements."
-  (let ((hare list) (tortoise list) (length 0))
+  (let ((hare list) (tortoise list) (length 0) flag)
     (while (and (consp hare) (or (not (eq hare tortoise)) (eql length 0)))
-      (if (eql (logand length 1) 1)
-          (setq tortoise (cdr tortoise)))
+      (if flag (setq tortoise (cdr tortoise)))
       (setq hare (cdr hare)
-            length (1+ length)))
+            length (1+ length)
+	    flag (not flag)))
     length))
 
 (defun identity (argument)

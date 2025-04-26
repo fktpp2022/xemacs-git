@@ -1,3 +1,12 @@
+2025-04-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* subr.el (true-list-p):
+	* subr.el (safe-length):
+	Make both of these 15% faster, use Lisp boolean negation and the
+	associated bytecodes for advancing the tortoise rather than
+	calling #'logand on the counter
+	(#'logand has no byte code).
+
 2025-04-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* loadhist.el (feature-file):
