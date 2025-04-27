@@ -1,3 +1,11 @@
+2025-04-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lisp.h (PARSE_KEYWORDS_EXPAND): New. Just expand to its
+	argument, used in working around an MSVC bug in processing
+	__VA_ARGS__.
+	* lisp.h (PARSE_KEYWORDS_ARGC): Use it, get recent changes working
+	under MSVC.
+
 2025-04-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	New macros, SET_C_READONLY(), CLEAR_C_READONLY(), encapsulate
