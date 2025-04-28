@@ -6,6 +6,12 @@
 	* lisp.h (PARSE_KEYWORDS_ARGC): Use it, get recent changes working
 	under MSVC.
 
+2025-04-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* redisplay.c (decode_mode_spec):
+	Handle the %t spec properly once more, despite that it is now
+	usually irrelevant.
+
 2025-04-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	New macros, SET_C_READONLY(), CLEAR_C_READONLY(), encapsulate

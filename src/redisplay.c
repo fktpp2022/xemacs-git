@@ -7483,10 +7483,35 @@ decode_mode_spec (struct window *w, Ichar spec, int type)
       obj = XFRAME (w->frame)->name;
       break;
 
-      /* indicate TEXT or BINARY */
+      /* Indicate TEXT or BINARY. Usually irrelevant given this is indicated
+	 with the coding system mnemonic. */
     case 't':
-      /* #### NT does not use this any more. Now what? */
-      str = "T";
+      {
+	Lisp_Object codesys = b->buffer_file_coding_system;
+
+	str = "";
+	if (SYMBOLP (codesys) || CODING_SYSTEMP (codesys))
+	  {
+	    codesys = find_coding_system_for_text_file (codesys, 0);
+	    if (CODING_SYSTEMP (codesys))
+	      {
+		switch (CODING_SYSTEM_EOL_TYPE (XCODING_SYSTEM (codesys)))
+		  {
+		  case EOL_LF:
+		    str = "B";
+		    break;
+		  case EOL_CRLF:
+		    str = "T";
+		    break;
+		  case EOL_CR:
+		    str = "t";
+		    break;
+		  case EOL_AUTODETECT:
+		    break;
+		  }
+	      }
+	  }
+      }
       break;
 
       /* print percent of buffer above top of window, or Top, Bot or All */
