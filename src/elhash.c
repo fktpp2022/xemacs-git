@@ -1,7 +1,7 @@
 /* Implementation of the hash table lisp object type.
    Copyright (C) 1992, 1993, 1994 Free Software Foundation, Inc.
    Copyright (C) 1995, 1996, 2002, 2004, 2010 Ben Wing.
-   Copyright (C) 1997 Free Software Foundation, Inc.
+   Copyright (C) 1997, 2025 Free Software Foundation, Inc.
 
 This file is part of XEmacs.
 
@@ -157,13 +157,9 @@ struct Lisp_Hash_Table
   (((size) > 4096 && EQ (Veq_hash_table_test, test)) ? 0.7 : 0.6)
 
 #define HASHCODE(key, ht, http)						\
-  ((((!EQ (Veq_hash_table_test, ht->test)) ?                            \
+  ((((!EQ (Veq_hash_table_test, wrap_hash_table_test (http))) ?		\
      (http)->hash_function (http, key) :                                \
      LISP_HASH (key)) * (ht)->golden_ratio) % (ht)->size)
-
-#define KEYS_EQUAL_P(key1, key2, test, http)                      \
-  (EQ (key1, key2) || ((!EQ (Veq_hash_table_test, test) &&        \
-                        (http->equal_function) (http, key1, key2))))
 
 #define LINEAR_PROBING_LOOP(probe, entries, size)		\
   for (;							\
@@ -1262,18 +1258,63 @@ enlarge_hash_table (Lisp_Hash_Table *ht)
   resize_hash_table (ht, new_size);
 }
 
+static inline Lisp_Object
+choose_hash_table_test_for_lookup (const Lisp_Hash_Table *ht, Lisp_Object key)
+{
+  Lisp_Object test = ht->test;
+
+  if (EQ (test, Veq_hash_table_test))
+    {
+      return test;
+    }
+
+  if (EQ (test, Veql_hash_table_test))
+    {
+      if (!NON_FIXNUM_NUMBER_P (key))
+	{
+	  return Veq_hash_table_test;
+	}
+      return test;
+    }
+  
+  if (EQ (test, Vequal_hash_table_test))
+    {
+      if (FIXNUMP (key) || CHARP (key) || SYMBOLP (key))
+	{
+	  return Veq_hash_table_test;
+	}
+      return test;
+    }
+
+  if (EQ (test, Vequalp_hash_table_test) && SYMBOLP (key))
+    {
+      return Veq_hash_table_test;
+    }
+
+  return test;
+}
+
 htentry *
 find_htentry (Lisp_Object key, const Lisp_Hash_Table *ht)
 {
-  Lisp_Object test = ht->test;
+  Lisp_Object test = choose_hash_table_test_for_lookup (ht, key);
   Hash_Table_Test *http = XHASH_TABLE_TEST (test);
 
   htentry *entries = ht->hentries;
   htentry *probe = entries + HASHCODE (key, ht, http);
 
-  LINEAR_PROBING_LOOP (probe, entries, ht->size)
-    if (KEYS_EQUAL_P (probe->key, key, test, http))
-      break;
+  if (EQ (test, Veq_hash_table_test))
+    {
+      LINEAR_PROBING_LOOP (probe, entries, ht->size)
+	if (EQ (probe->key, key))
+	  break;
+    }
+  else
+    {
+      LINEAR_PROBING_LOOP (probe, entries, ht->size)
+	if ((http->equal_function) (http, probe->key, key))
+	  break;
+    }
 
   return probe;
 }

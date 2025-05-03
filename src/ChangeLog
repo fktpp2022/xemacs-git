@@ -1,3 +1,19 @@
+2025-05-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* elhash.c:
+	* elhash.c (HASHCODE): Modify this to compare HTTP against
+	Veq_hash_table_test, rather than HT->test, needed for other
+	changes today.
+	* elhash.c (LINEAR_PROBING_LOOP):
+	* elhash.c (KEYS_EQUAL_P): Removed. More appropriate to do the
+	constant comparison to Veq_hash_table_test outside of the loops
+	this is called from.
+	* elhash.c (choose_hash_table_test_for_lookup): New.
+	Do the type-based optimization of comparisons that sequence.c has
+	done for years now, attempting to use Veq_hash_table_test for
+	lookup depending on the type of KEY.
+	* elhash.c (find_htentry): Use it.
+
 2025-04-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lisp.h (PARSE_KEYWORDS_EXPAND): New. Just expand to its
