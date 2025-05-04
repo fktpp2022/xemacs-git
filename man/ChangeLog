@@ -1,5 +1,10 @@
 2025-05-04  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* internals/internals.texi (Obarrays):
+	@end a defun clause here for #'intern, fix the build.
+
+2025-05-04  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* internals/internals.texi (Basic Lisp Modules):
 	* internals/internals.texi (Modules for Other Aspects of the Lisp
 	Interpreter and Object System):

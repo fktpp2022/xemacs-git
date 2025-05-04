@@ -10303,6 +10303,7 @@ that it is reading.
 
   If @code{package} is not specified, the value of the variable
 @code{obarray} is used.
+@end defun
 
   Note that, once a symbol is in a hash table, it stays there until
 something is done about it, and the standard obarray @code{obarray} always
