@@ -1,5 +1,6 @@
 /* Lisp interface to hash tables -- include file.
    Copyright (C) 1995, 1996 Ben Wing.
+   Copyright (C) 2025 Free Software Foundation, Inc.
 
 This file is part of XEmacs.
 
@@ -52,14 +53,6 @@ enum hash_table_weakness
   HASH_TABLE_WEAK
 };
 
-enum hash_table_test
-{
-  HASH_TABLE_EQ,
-  HASH_TABLE_EQL,
-  HASH_TABLE_EQUAL,
-  HASH_TABLE_EQUALP
-};
-
 extern const struct memory_description hash_table_description[];
 
 EXFUN (Fcopy_hash_table, 1);
@@ -78,14 +71,14 @@ DECLARE_LISP_OBJECT (hash_table_test, struct Hash_Table_Test);
 #define CHECK_HASH_TABLE_TEST(x) CHECK_RECORD (x, hash_table_test)
 #define CONCHECK_HASH_TABLE_TEST(x) CONCHECK_RECORD (x, hash_table_test)
 
-typedef int (*hash_table_equal_function_t) (const Hash_Table_Test *http,
-                                           Lisp_Object obj1, Lisp_Object obj2);
+typedef Boolint (*hash_table_equal_function_t) (const Hash_Table_Test *http,
+						Lisp_Object obj1, Lisp_Object obj2);
 typedef Hashcode (*hash_table_hash_function_t) (const Hash_Table_Test *http,
                                                 Lisp_Object obj);
 typedef int (*maphash_function_t) (Lisp_Object key, Lisp_Object value,
 				   void* extra_arg);
 
-/* test here is a Lisp_Object of type hash-table-test. You probably don't
+/* TEST here is a Lisp_Object of type hash-table-test. You probably don't
    want to call this, unless you have registered your own test. */
 Lisp_Object make_general_lisp_hash_table (Lisp_Object test,
 					  Elemcount size,
@@ -93,7 +86,7 @@ Lisp_Object make_general_lisp_hash_table (Lisp_Object test,
 					  double rehash_threshold,
 					  enum hash_table_weakness weakness);
 
-/* test here is a symbol, e.g. Qeq, Qequal. */
+/* TEST here is a symbol, e.g. Qeq, Qequal. */
 Lisp_Object make_lisp_hash_table (Elemcount size,
 				  enum hash_table_weakness weakness,
                                   Lisp_Object test);
@@ -117,10 +110,10 @@ htentry *inchash_eq (Lisp_Object key, Lisp_Object table, EMACS_INT offset);
 htentry *find_htentry (Lisp_Object key, const Lisp_Hash_Table *ht);
 
 Lisp_Object define_hash_table_test (Lisp_Object name,
-                               hash_table_equal_function_t equal_function,
-                               hash_table_hash_function_t hash_function,
-                               Lisp_Object lisp_equal_function,
-                               Lisp_Object lisp_hash_function);
+				    hash_table_equal_function_t equal_function,
+				    hash_table_hash_function_t hash_function,
+				    Lisp_Object lisp_equal_function,
+				    Lisp_Object lisp_hash_function);
 
 void mark_hash_table_tests (void);
 

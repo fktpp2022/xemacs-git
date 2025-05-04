@@ -1,3 +1,19 @@
+2025-05-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (Basic Lisp Modules):
+	* internals/internals.texi (Modules for Other Aspects of the Lisp
+	Interpreter and Object System):
+	* internals/internals.texi (The XEmacs Object System (Abstractly
+	Speaking)):
+	* internals/internals.texi (Symbol):
+	* internals/internals.texi (Obarrays):
+	* internals/internals.texi (Symbol Values):
+	* lispref/symbols.texi (Symbol Components):
+	* lispref/symbols.texi (Creating Symbols):
+	Update both these files to reflect current reality, where OBARRAY
+	is a Lisp hash table and not a traditional Emacs obarray. Document
+	that Common Lisp packages should be implemented for XEmacs.
+
 2025-04-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Symbol Values):

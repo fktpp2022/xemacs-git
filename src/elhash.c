@@ -168,7 +168,7 @@ struct Lisp_Hash_Table
 	  (probe = entries, !HTENTRY_CLEAR_P (probe)) : 0);	\
        probe++)
 
-#ifdef ERROR_CHECK_STRUCTURES
+#ifdef SLEDGEHAMMER_CHECK_HASH_TABLES /* Not usually defined. */
 static void
 check_hash_table_invariants (Lisp_Hash_Table *ht)
 {
@@ -216,8 +216,7 @@ hash_table_size (Elemcount requested_size)
 }
 
 
-
-static int
+static Boolint
 lisp_object_eql_equal (const Hash_Table_Test *UNUSED (http), Lisp_Object obj1,
                        Lisp_Object obj2)
 {
@@ -232,7 +231,7 @@ lisp_object_eql_hash (const Hash_Table_Test *UNUSED (http), Lisp_Object obj)
     internal_hash (obj, 0, 0) : LISP_HASH (obj);
 }
 
-static int
+static Boolint
 lisp_object_equal_equal (const Hash_Table_Test *UNUSED (http),
                          Lisp_Object obj1, Lisp_Object obj2)
 {
@@ -251,7 +250,7 @@ lisp_object_equalp_hash (const Hash_Table_Test *UNUSED (http), Lisp_Object obj)
   return internal_hash (obj, 0, 1);
 }
 
-static int
+static Boolint
 lisp_object_equalp_equal (const Hash_Table_Test *UNUSED (http),
                           Lisp_Object obj1, Lisp_Object obj2)
 {
@@ -291,7 +290,7 @@ lisp_object_general_hash (const Hash_Table_Test *http, Lisp_Object obj)
   dead_wrong_type_argument (Qintegerp, res);
 }
 
-static int
+static Boolint
 lisp_object_general_equal (const Hash_Table_Test *http, Lisp_Object obj1,
                            Lisp_Object obj2)
 {
@@ -640,15 +639,18 @@ const struct memory_description hash_table_description[] = {
   { XD_END }
 };
 
+#ifdef SLEDGEHAMMER_CHECK_HASH_TABLES
 static Lisp_Hash_Table *
-xhash_table (Lisp_Object hash_table)
+xhash_table (Lisp_Object obj)
 {
-  /* #### What's going on here?  Why the gc_in_progress check? */
-  if (!gc_in_progress)
-    CHECK_HASH_TABLE (hash_table);
-  check_hash_table_invariants (XHASH_TABLE (hash_table));
-  return XHASH_TABLE (hash_table);
+  CHECK_HASH_TABLE (obj);
+  check_hash_table_invariants (XRECORD (obj, hash_table,
+					Lisp_Hash_Table));
+  return XRECORD (obj, hash_table, Lisp_Hash_Table);
 }
+#undef XHASH_TABLE
+#define XHASH_TABLE xhash_table
+#endif
 
 
 /************************************************************************/
@@ -1177,11 +1179,15 @@ The keys and values will not themselves be copied.
 */
        (hash_table))
 {
-  const Lisp_Hash_Table *ht_old = xhash_table (hash_table);
   Lisp_Object obj = ALLOC_NORMAL_LISP_OBJECT (hash_table);
   Lisp_Hash_Table *ht = XHASH_TABLE (obj);
-  copy_lisp_object (obj, hash_table);
+  const Lisp_Hash_Table *ht_old;
 
+  CHECK_HASH_TABLE (hash_table);
+  ht_old = XHASH_TABLE (hash_table);
+
+  copy_lisp_object (obj, hash_table);
+  
   /* We leave room for one never-occupied sentinel htentry at the end.  */
   ht->hentries = allocate_hash_table_entries (ht_old->size + 1);
   memcpy (ht->hentries, ht_old->hentries, (ht_old->size + 1) * sizeof (htentry));
@@ -1230,7 +1236,7 @@ resize_hash_table (Lisp_Hash_Table *ht, Elemcount new_size)
 void
 pdump_reorganize_hash_table (Lisp_Object hash_table)
 {
-  const Lisp_Hash_Table *ht = xhash_table (hash_table);
+  const Lisp_Hash_Table *ht = XHASH_TABLE (hash_table);
   /* We leave room for one never-occupied sentinel htentry at the end.  */
   htentry *new_entries = allocate_hash_table_entries (ht->size + 1);
   htentry *e, *sentinel;
@@ -1359,8 +1365,10 @@ If there is no corresponding value, return DEFAULT (which defaults to nil).
 */
        (key, hash_table, default_))
 {
-  const Lisp_Hash_Table *ht = xhash_table (hash_table);
-  htentry *e = find_htentry (key, ht);
+  htentry *e;
+
+  CHECK_HASH_TABLE (hash_table);
+  e = find_htentry (key, XHASH_TABLE (hash_table));
 
   return HTENTRY_CLEAR_P (e) ? default_ : e->value;
 }
@@ -1370,8 +1378,12 @@ Hash KEY to VALUE in HASH-TABLE, and return VALUE.
 */
        (key, value, hash_table))
 {
-  Lisp_Hash_Table *ht = xhash_table (hash_table);
-  htentry *e = find_htentry (key, ht);
+  htentry *e;
+  Lisp_Hash_Table *ht;
+
+  CHECK_HASH_TABLE (hash_table);
+  ht = XHASH_TABLE (hash_table);
+  e = find_htentry (key, ht);
 
   if (!HTENTRY_CLEAR_P (e))
     return e->value = value;
@@ -1419,8 +1431,12 @@ Return non-nil if an entry was removed.
 */
        (key, hash_table))
 {
-  Lisp_Hash_Table *ht = xhash_table (hash_table);
-  htentry *e = find_htentry (key, ht);
+  Lisp_Hash_Table *ht;
+  htentry *e;
+
+  CHECK_HASH_TABLE (hash_table);
+  ht = XHASH_TABLE (hash_table);
+  e = find_htentry (key, ht);
 
   if (HTENTRY_CLEAR_P (e))
     return Qnil;
@@ -1435,8 +1451,11 @@ Return HASH-TABLE.
 */
        (hash_table))
 {
-  Lisp_Hash_Table *ht = xhash_table (hash_table);
+  Lisp_Hash_Table *ht;
   htentry *e, *sentinel;
+
+  CHECK_HASH_TABLE (hash_table);
+  ht = XHASH_TABLE (hash_table);
 
   for (e = ht->hentries, sentinel = e + ht->size; e < sentinel; e++)
     CLEAR_HTENTRY (e);
@@ -1454,7 +1473,8 @@ Return the number of entries in HASH-TABLE.
 */
        (hash_table))
 {
-  return make_fixnum (xhash_table (hash_table)->count);
+  CHECK_HASH_TABLE (hash_table);
+  return make_fixnum (XHASH_TABLE (hash_table)->count);
 }
 
 DEFUN ("hash-table-test", Fhash_table_test, 1, 1, 0, /*
@@ -1475,7 +1495,8 @@ This is the current number of slots in HASH-TABLE, whether occupied or not.
 */
        (hash_table))
 {
-  return make_fixnum (xhash_table (hash_table)->size);
+  CHECK_HASH_TABLE (hash_table);
+  return make_fixnum (XHASH_TABLE (hash_table)->size);
 }
 
 DEFUN ("hash-table-rehash-size", Fhash_table_rehash_size, 1, 1, 0, /*
@@ -1485,7 +1506,8 @@ is enlarged when the rehash threshold is exceeded.
 */
        (hash_table))
 {
-  return make_float (xhash_table (hash_table)->rehash_size);
+  CHECK_HASH_TABLE (hash_table);
+  return make_float (XHASH_TABLE (hash_table)->rehash_size);
 }
 
 DEFUN ("hash-table-rehash-threshold", Fhash_table_rehash_threshold, 1, 1, 0, /*
@@ -1495,7 +1517,8 @@ beyond which the HASH-TABLE is enlarged by rehashing.
 */
        (hash_table))
 {
-  return make_float (xhash_table (hash_table)->rehash_threshold);
+  CHECK_HASH_TABLE (hash_table);
+  return make_float (XHASH_TABLE (hash_table)->rehash_threshold);
 }
 
 DEFUN ("hash-table-weakness", Fhash_table_weakness, 1, 1, 0, /*
@@ -1504,7 +1527,8 @@ This can be one of `nil', `key-and-value', `key-or-value', `key' or `value'.
 */
        (hash_table))
 {
-  switch (xhash_table (hash_table)->weakness)
+  CHECK_HASH_TABLE (hash_table);
+  switch (XHASH_TABLE (hash_table)->weakness)
     {
     case HASH_TABLE_WEAK:		return Qkey_and_value;
     case HASH_TABLE_KEY_WEAK:		return Qkey;
@@ -1521,7 +1545,8 @@ This can be one of `non-weak', `weak', `key-weak' or `value-weak'.
 */
        (hash_table))
 {
-  switch (xhash_table (hash_table)->weakness)
+  CHECK_HASH_TABLE (hash_table);
+  switch (XHASH_TABLE (hash_table)->weakness)
     {
     case HASH_TABLE_WEAK:		return Qweak;
     case HASH_TABLE_KEY_WEAK:		return Qkey_weak;
@@ -1624,12 +1649,17 @@ may remhash or puthash the entry currently being processed by FUNCTION.
 */
        (function, hash_table))
 {
-  const Lisp_Hash_Table * const ht = xhash_table (hash_table);
-  Lisp_Object * const objs = copy_compress_hentries (ht);
+  const Lisp_Hash_Table *ht;
+  Lisp_Object *objs;
   Lisp_Object args[3];
   const Lisp_Object *pobj, *end;
   int speccount = specpdl_depth ();
   struct gcpro gcpro1;
+
+  CHECK_HASH_TABLE (hash_table);
+  ht = XHASH_TABLE (hash_table);
+
+  objs = copy_compress_hentries (ht);
 
   record_unwind_protect (maphash_unwind, make_opaque_ptr ((void *)objs));
   GCPRO1 (objs[0]);
@@ -1656,7 +1686,7 @@ may remhash or puthash the entry currently being processed by FUNCTION.
    Mapping terminates if FUNCTION returns something other than 0. */
 void
 elisp_maphash_unsafe (maphash_function_t function,
-	       Lisp_Object hash_table, void *extra_arg)
+	              Lisp_Object hash_table, void *extra_arg)
 {
   const Lisp_Hash_Table *ht = XHASH_TABLE (hash_table);
   const htentry *e, *sentinel;
@@ -1674,11 +1704,15 @@ void
 elisp_maphash (maphash_function_t function,
 	       Lisp_Object hash_table, void *extra_arg)
 {
-  const Lisp_Hash_Table * const ht = xhash_table (hash_table);
-  Lisp_Object * const objs = copy_compress_hentries (ht);
+  const Lisp_Hash_Table *ht;
+  Lisp_Object *objs;
   const Lisp_Object *pobj, *end;
   int speccount = specpdl_depth ();
   struct gcpro gcpro1;
+  
+  CHECK_HASH_TABLE (hash_table);
+  ht = XHASH_TABLE (hash_table);
+  objs = copy_compress_hentries (ht);
 
   record_unwind_protect (maphash_unwind, make_opaque_ptr ((void *)objs));
   GCPRO1 (objs[0]);
@@ -1698,11 +1732,15 @@ void
 elisp_map_remhash (maphash_function_t predicate,
 		   Lisp_Object hash_table, void *extra_arg)
 {
-  const Lisp_Hash_Table * const ht = xhash_table (hash_table);
-  Lisp_Object * const objs = copy_compress_hentries (ht);
+  const Lisp_Hash_Table *ht;
+  Lisp_Object *objs;
   const Lisp_Object *pobj, *end;
   int speccount = specpdl_depth ();
   struct gcpro gcpro1;
+
+  CHECK_HASH_TABLE (hash_table);
+  ht = XHASH_TABLE (hash_table);
+  objs = copy_compress_hentries (ht);
 
   record_unwind_protect (maphash_unwind, make_opaque_ptr ((void *)objs));
   GCPRO1 (objs[0]);

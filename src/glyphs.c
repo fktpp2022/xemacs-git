@@ -3111,7 +3111,7 @@ image_create (Lisp_Object obj)
   IMAGE_SPECIFIER_ATTACHEE_PROPERTY (image) = Qnil;
 }
 
-static int
+static Boolint
 instantiator_eq_equal (const Hash_Table_Test *UNUSED (http),
                        Lisp_Object obj1, Lisp_Object obj2)
 {

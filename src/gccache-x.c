@@ -58,7 +58,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "console-x-impl.h"
 #include "elhash.h"
 
-static int
+static Boolint
 gc_cache_eql (const Hash_Table_Test * UNUSED (http),
               Lisp_Object arg1, Lisp_Object arg2)
 {

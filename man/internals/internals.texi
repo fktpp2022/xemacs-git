@@ -3620,14 +3620,14 @@ an equivalent object.)
 @file{symeval.h}
 @end example
 
-@file{symbols.c} implements the handling of symbols, obarrays, and
-retrieving the values of symbols.  Much of the code is devoted to
-handling the special @dfn{symbol-value-magic} objects that define
-special types of variables---this includes buffer-local variables,
-variable aliases, variables that forward into C variables, etc.  This
-module is initialized extremely early (right after @file{alloc.c}),
-because it is here that the basic symbols @code{t} and @code{nil} are
-created, and those symbols are used everywhere throughout XEmacs.
+@file{symbols.c} implements the handling of symbols; setting them,
+retrieving their values, accessing their function slots. Much of the
+code is devoted to handling the special @dfn{symbol-value-magic} objects
+that define special types of variables---this includes buffer-local
+variables, variable aliases, variables that forward into C variables,
+etc.  This module is initialized extremely early, because it is here
+that the basic symbols @code{t} and @code{nil} are created, and those
+symbols are used everywhere throughout XEmacs.
 
 @file{symeval.h} contains the definitions of symbol structures and the
 @code{DEFVAR_LISP()} and related macros for declaring variables.
@@ -3953,18 +3953,21 @@ a broken implementation.
 @example
 @file{elhash.c}
 @file{elhash.h}
-@file{hash.c}
-@file{hash.h}
 @end example
 
-These files provide two implementations of hash tables.  Files
-@file{hash.c} and @file{hash.h} provide a generic C implementation of
-hash tables which can stand independently of XEmacs.  Files
-@file{elhash.c} and @file{elhash.h} provide a separate implementation of
-hash tables that can store only Lisp objects, and knows about Lispy
-things like garbage collection, and implement the @dfn{hash-table} Lisp
-object type.
+These files provide a hash table implementation to XEmacs, with the Lisp
+API essentially that of Common Lisp. An extension to the Common Lisp API
+is @code{define-hash-table-test}, allowing use of hash table tests
+beyond the standard four; the C code uses this within @file{glyphs.c}
+and @file{gc-cache-x.c} to create hash tables for its own
+purposes.  The GNU Emacs hash table implementation was developed
+independently but is, happily, compatible with that of XEmacs.
 
+The XEmacs obarray (@pxref{Obarrays}) is a normal Lisp hash table, and so
+@code{init_elhash_once_early} creates @code{obarray} very early in the
+bootstrapping process, essentially as soon as the hash table type is
+available. For coherency, @code{intern}, @code{intern-soft} and
+@code{unintern} are also in this file.
 
 @example
 @file{specifier.c}
@@ -8198,12 +8201,29 @@ An object that describes a connection to an externally-running process.
 @table @code
 @item hash-table
 An object that maps from an arbitrary Lisp object to another arbitrary
-Lisp object, using hashing for fast lookup.
-@item obarray
-A limited form of hash-table that maps from strings to symbols; obarrays
-are used to look up a symbol given its name and are not actually their
-own object type but are kludgily represented using vectors with hidden
-fields (this representation derives from GNU Emacs).
+Lisp object, using hashing for fast lookup. Currently @code{obarray} is
+implemented as a hash table mapping from strings to symbols, and this
+works quite well.  There are good reasons (related to assumptions that
+C-level code can make about the reachability of symbols), however, to
+forbid Lisp access to the hash table details of obarray, and so Common
+Lisp specifies ``packages'' instead, and these should be implemented
+for XEmacs. 
+
+@item traditional obarray
+This is an implementation of a hash table mapping from strings to
+symbols. This hash table implementation is slower, has less locality
+of memory reference, and has less encapsulation than the previous
+item. A Lisp vector is used, with each vector element corresponding to
+the start of a bucket and the elements within the bucket stored as a
+linked list.
+
+@code{obarray} was implemented using this approach for decades and
+still is in GNU Emacs, and much Lisp code, written before the
+@code{hash-table} type was available, used this hash table
+implementation for its own purposes. As a result much of the C code
+that deals with @code{obarray} checks for the type of that variable,
+and if it is a Lisp vector, it calls out to code in @file{obarray.el}.
+
 @item specifier
 A complex object used to specify the value of a display property; a
 default value is given and different values can be specified for
@@ -9691,8 +9711,7 @@ tag field in bit vector Lisp words is ``lrecord'' rather than
 @section Symbol
 @cindex symbol
 
-  Symbols are also allocated in frob blocks.  Symbols in the awful
-horrible obarray structure are chained through their @code{next} field.
+  Symbols are also allocated in frob blocks.
 
 Remember that @code{intern} looks up a symbol in an obarray, creating
 one if necessary.
@@ -10268,69 +10287,59 @@ independent of the function and variable namespaces.
 @section Obarrays
 @cindex obarrays
 
-  The identity of symbols with their names is accomplished through a
-structure called an obarray, which is just a poorly-implemented hash
-table mapping from strings to symbols whose name is that string. (I say
-``poorly implemented'' because an obarray appears in Lisp as a vector
-with some hidden fields rather than as its own opaque type.  This is an
-Emacs Lisp artifact that should be fixed.)
+@defvar obarray
+  The identity of symbols with their names is accomplished through
+@code{obarray}, which is a hash table mapping from strings to symbols
+(where the symbol names reflect those strings).
+@end defvar
 
-  Obarrays are implemented as a vector of some fixed size (which should
-be a prime for best results), where each ``bucket'' of the vector
-contains one or more symbols, threaded through a hidden @code{next}
-field in the symbol.  Lookup of a symbol in an obarray, and adding a
-symbol to an obarray, is accomplished through standard hash-table
-techniques.
+@defun intern string &optional (package obarray)
+This function looks for a string in @code{package}, a hash table with
+test @code{equal} or @code{equalp}; if it's not found, a new symbol is
+automatically created with the specified name, added to the hash table,
+and returned.  This is what happens when the Lisp reader encounters a
+symbol (or more precisely, encounters the name of a symbol) in some text
+that it is reading.
 
-  The standard Lisp function for working with symbols and obarrays is
-@code{intern}.  This looks up a symbol in an obarray given its name; if
-it's not found, a new symbol is automatically created with the specified
-name, added to the obarray, and returned.  This is what happens when the
-Lisp reader encounters a symbol (or more precisely, encounters the name
-of a symbol) in some text that it is reading.  There is a standard
-obarray called @code{obarray} that is used for this purpose, although
-the Lisp programmer is free to create his own obarrays and @code{intern}
-symbols in them.
+  If @code{package} is not specified, the value of the variable
+@code{obarray} is used.
 
-  Note that, once a symbol is in an obarray, it stays there until
-something is done about it, and the standard obarray @code{obarray}
-always stays around, so once you use any particular variable name, a
-corresponding symbol will stay around in @code{obarray} until you exit
-XEmacs.
+  Note that, once a symbol is in a hash table, it stays there until
+something is done about it, and the standard obarray @code{obarray} always
+stays around. Once you use any particular variable name, a corresponding
+symbol will stay around in @code{obarray} until someone calls @code{unintern}
+on it, or until XEmacs exits.
 
-  Note that @code{obarray} itself is a variable, and as such there is a
+  Observe that @code{obarray} itself is a variable, and as such there is a
 symbol in @code{obarray} whose name is @code{"obarray"} and which
 contains @code{obarray} as its value.
 
-  Note also that this call to @code{intern} occurs only when in the Lisp
-reader, not when the code is executed (at which point the symbol is
-already around, stored as such in the definition of the function).
+  Observe also that this call to @code{intern} normally occurs when in the Lisp
+reader, not when the code is executed (at which point the symbol is already
+around, stored as such in the definition of the function).
 
-  You can create your own obarray using @code{make-vector} (this is
-horrible but is an artifact) and intern symbols into that obarray.
-Doing that will result in two or more symbols with the same name.
-However, at most one of these symbols is in the standard @code{obarray}:
-You cannot have two symbols of the same name in any particular obarray.
-Note that you cannot add a symbol to an obarray in any fashion other
-than using @code{intern}: i.e. you can't take an existing symbol and put
-it in an existing obarray.  Nor can you change the name of an existing
-symbol. (Since obarrays are vectors, you can violate the consistency of
-things by storing directly into the vector, but let's ignore that
-possibility.)
+  Usually symbols are created by @code{intern}, but if you wish,
+you can explicitly create a symbol using @code{make-symbol}, giving it some
+name.  The resulting symbol is not in any obarray (i.e. it is
+@dfn{uninterned}).  Therefore its primary purpose is as a symbol to use in
+macros to avoid namespace pollution.  It can also be used as a carrier of
+information, but cons cells could probably be used just as well.
 
-  Usually symbols are created by @code{intern}, but if you really want,
-you can explicitly create a symbol using @code{make-symbol}, giving it
-some name.  The resulting symbol is not in any obarray (i.e. it is
-@dfn{uninterned}), and you can't add it to any obarray.  Therefore its
-primary purpose is as a symbol to use in macros to avoid namespace
-pollution.  It can also be used as a carrier of information, but cons
-cells could probably be used just as well.
+@defun intern-soft name &optional (package obarray) default
+This is like @code{intern}, but the supplied @code{name} can be either a
+string or a symbol.  @code{package} defaults to @code{obarray}, and
+@code{default} defaults to nil; it is useful to set this to a non-symbol value
+to handle those cases where @code{nil} may be symbol of interest.
+@end defun
 
-  You can also use @code{intern-soft} to look up a symbol but not create
-a new one, and @code{unintern} to remove a symbol from an obarray.  This
-returns the removed symbol. (Remember: You can't put the symbol back
-into any obarray.) Finally, @code{mapatoms} maps over all of the symbols
-in an obarray.
+@defun unintern name &optional (package obarray)
+This removes the symbol named @code{name} from the hash table
+@code{package}. If @code{name} is a symbol, that symbol and only that symbol
+is removed from @code{package}, if present. If it is a string any symbol with
+that name in @code{package} is removed.
+@end defun
+
+Finally, @code{mapatoms} maps over all of the symbols in an obarray.
 
 @node Symbol Values,  , Obarrays, Symbols and Variables
 @section Symbol Values

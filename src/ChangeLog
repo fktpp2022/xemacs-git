@@ -1,3 +1,51 @@
+2025-05-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Maintenance on elhash.c.
+	1. Calling check_hash_table_invariants() on every XHASH_TABLE()
+	with ERROR_CHECK_STRUCTURES defined is unreasonably expensive for
+	use of the hash tables from C. Turn this off unless a new
+	SLEDGEHAMMER_CHECK_HASH_TABLES constant is defined.
+	2. Update the hash_table_equal_function_t typedef to describe a
+	function returning a Boolint.
+	3. Fix some indentation, remove an enum that is no longer used,
+	elhash.h.
+	* elhash.c (check_hash_table_invariants):
+	Wrap in a new #define.
+	* elhash.c (lisp_object_eql_equal): Update type for this.
+	* elhash.c (lisp_object_equal_equal): Ditto.
+	* elhash.c (lisp_object_equalp_equal): Ditto.
+	* elhash.c (lisp_object_general_equal): Ditto.
+	* elhash.c (xhash_table): Wrap with
+	SLEDGEHAMMER_CHECK_HASH_TABLES. No longer check for gc_in_progress
+	which never made any sense. #define XHASH_TABLE to xhash_table if
+	SLEDGEHAMMER_CHECK_HASH_TABLES is #defined.
+	* elhash.c (Fcopy_hash_table):
+	Use CHECK_HASH_TABLE() + XHASH_TABLE() rather than xhash_table()
+	here.
+	* elhash.c (pdump_reorganize_hash_table):
+	Use XHASH_TABLE() rather than xhash_table() here.
+	* elhash.c (Fgethash):
+	Use CHECK_HASH_TABLE() + XHASH_TABLE() rather than xhash_table()
+	here.
+	* elhash.c (Fputhash):
+	* elhash.c (Fremhash):
+	* elhash.c (Fclrhash):
+	* elhash.c (Fhash_table_count):
+	* elhash.c (Fhash_table_size):
+	* elhash.c (Fhash_table_rehash_size):
+	* elhash.c (Fhash_table_rehash_threshold):
+	* elhash.c (Fhash_table_weakness):
+	* elhash.c (Fhash_table_type):
+	* elhash.c (Fmaphash):
+	* elhash.c (elisp_maphash_unsafe):
+	* elhash.c (elisp_maphash):
+	* elhash.c (elisp_map_remhash):
+	Ditto for all the above functions.
+	* elhash.h:
+	Minor changes here.
+	* gccache-x.c (gc_cache_eql): Update type here. 
+	* glyphs.c (instantiator_eq_equal): Update type here.
+
 2025-05-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* elhash.c:
