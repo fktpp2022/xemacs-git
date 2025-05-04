@@ -1,3 +1,10 @@
+2025-05-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* obsolete.el:
+	* obsolete.el (cl-delete-duplicates): Removed.
+	No longer needed, and conflicts with GNU's cl-lib function name
+	(calling convention is distinct), better gone.
+
 2025-04-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* subr.el (true-list-p):

@@ -335,15 +335,6 @@ we no longer encounter bytecode from 21.4."
 (make-obsolete 'cl-float-limits "this is called at dump time in 21.5 and \
 later, no need to call it in user code.")
 
-;; XEmacs; old compiler macros meant that this was called directly
-;; from compiled code, and we need to provide a version of it for a
-;; couple of years at least because of that. Aidan Kehoe, Mon Oct 4
-;; 12:06:41 IST 2010
-(defun cl-delete-duplicates (cl-seq cl-keys cl-copy)
-  (apply (if cl-copy #'remove-duplicates #'delete-duplicates) cl-seq cl-keys))
-
-(make-obsolete 'cl-delete-duplicates 'delete-duplicates)
-
 ;; This occurs because of setf expansion by 21.4, changing the affected
 ;; packages won't fix that.
 (define-obsolete-function-alias 'cl-puthash 'puthash)
