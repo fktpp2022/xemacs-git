@@ -1,3 +1,11 @@
+2025-05-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/regexp-tests.el:
+	Test symbol boundary anchors, just added to regex.c, heavily
+	inspired by the testing of the word boundaries. Use #'eql rather
+	than #'= since if the test fails it will give a non-number
+	result.
+
 2025-03-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/lisp-tests.el (Assert-compare-buffer-substrings): New.

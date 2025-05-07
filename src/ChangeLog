@@ -1,3 +1,31 @@
+2025-05-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Add support for \_<, \_> to regex.c, anchoring at a symbol begin
+	and a symbol end. Thank you Alan Mackenzie.
+
+	* regex.c (Ssymbol): New syntax code for the non-emacs
+	compilation. 
+	* regex.c (init_syntax_once):
+	Initialize re_syntax_table using it in the same way as for Sword.
+
+	* regex.c (enum):
+	New values, symbeg, symend.
+	* regex.c (print_partial_compiled_pattern):
+	Print them.
+	* regex.c (optimize_on_failure_jump):
+	Basic handling for them in this function; support for them still
+	to be added to mutually_exclusive_p().
+	* regex.c (regex_compile):
+	Interpret \_<, \_> them in the pattern to be compiled.
+	* regex.c (re_compile_fastmap):
+	Handle them in the same way as wordbeg, wordend here (although
+	this is unsatisfactory).
+	* regex.c (re_match_2_internal):
+	Implement them when matching, logic the same as that of GNU.
+	* regex.c (common_op_match_null_string_p):
+	Handle them the same as wordbeg, wordend here; they are
+	zero-length assertions so they can match the null string.
+
 2025-05-04  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Maintenance on elhash.c.

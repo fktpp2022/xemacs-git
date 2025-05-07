@@ -126,6 +126,7 @@ typedef int Ichar;
    commands in re_match_2.  */
 #ifndef Sword
 #define Sword 1
+#define Ssymbol 2
 #endif
 
 #ifdef SYNTAX_TABLE
@@ -148,11 +149,15 @@ init_syntax_once (void)
     {
       const char *word_syntax_chars =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_";
+      const char *symbol_syntax_chars = "_-+*/&|<>=";
 
       memset (re_syntax_table, 0, sizeof (re_syntax_table));
 
       while (*word_syntax_chars)
 	re_syntax_table[(unsigned int) (*word_syntax_chars++)] = Sword;
+
+      while (*symbol_syntax_chars)
+	re_syntax_table[(unsigned int) (*symbol_syntax_chars++)] = Ssymbol;
 
       done = 1;
     }
@@ -586,7 +591,10 @@ typedef enum
   wordend,	/* Succeeds if at word end.  */
 
   wordbound,	/* Succeeds if at a word boundary.  */
-  notwordbound	/* Succeeds if not at a word boundary.  */
+  notwordbound,	/* Succeeds if not at a word boundary.  */
+
+  symbeg,       /* Succeeds if at symbol beginning.  */
+  symend        /* Succeeds if at symbol end.  */
 
 #ifdef emacs
   ,before_dot,	/* Succeeds if before point.  */
@@ -1010,6 +1018,14 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
 
 	case wordend:
 	  printf ("/wordend");
+
+	case symbeg:
+	  printf ("/symbeg");
+	  break;
+
+	case symend:
+	  printf ("/symend");
+	  break;
 
 #ifdef emacs
 	case before_dot:
@@ -2478,6 +2494,8 @@ optimize_on_failure_jump (struct re_pattern_buffer *bufp)
 	case notwordbound:
 	case wordbeg:
 	case wordend:
+	case symbeg:
+	case symend:
 #ifdef emacs
 	case before_dot:
 	case at_dot:
@@ -3705,6 +3723,17 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
               BUF_PUSH (wordend);
               break;
 
+	    case '_':
+              laststart = buf_end;
+              PATFETCH (c);
+              if (c == '<')
+                BUF_PUSH (symbeg);
+              else if (c == '>')
+                BUF_PUSH (symend);
+              else
+                FREE_STACK_RETURN (REG_BADPAT);
+              break;
+
             case 'b':
               BUF_PUSH (wordbound);
               break;
@@ -4659,6 +4688,17 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 	      fastmap[j] = 1;
 	  break;
 
+        case symbeg:
+	  for (j = 0; j < (1 << BYTEWIDTH); j++)
+            {
+              int synj = SYNTAX (ignored, j);
+              if (synj == Sword || synj == Ssymbol)
+                {
+                  fastmap[j] = 1;
+                }
+            }
+	  break;
+
 	case notwordchar:
 	  for (j = 0; j < (1 << BYTEWIDTH); j++)
 	    if (SYNTAX (ignored, j) != Sword)
@@ -4671,6 +4711,8 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 	case notwordbound:
 	case wordbeg:
 	case wordend:
+        case symbeg:
+        case symend:
 	case notsyntaxspec:
 	case syntaxspec:
 	  /* This match depends on text properties.  These end with
@@ -4768,6 +4810,7 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 	case notwordbound:
 	case wordbeg:
 	case wordend:
+	case symend:
 #endif
           continue;
 
@@ -6820,6 +6863,118 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    goto fail;
 	  }
 
+	case symbeg:
+          DEBUG_MATCH_PRINT ("EXECUTING symbeg.\n");
+
+	  /* We FAIL in one of the following cases: */
+
+	  /* Case 1: D is at the end of string.  */
+	  if (AT_STRINGS_END (d))
+	    goto fail;
+          else
+            {
+              /* CH1 is the character before D, SYN1 is the syntax of the
+                 character before D. CH2 is the character at D, and SYN2 is
+                 the syntax of CH2. */
+              re_char *dtmp = POS_AFTER_GAP_UNSAFE (d);
+              Ichar ch2 = itext_ichar_fmt (dtmp, fmt, lispobj), ch1;
+              int syn1, syn2;
+
+              BEGIN_REGEX_MALLOC_OK ();
+#ifdef emacs
+              UPDATE_SYNTAX_CACHE
+                (scache, 
+                 offset_to_bytexpos (lispobj, PTR_TO_OFFSET (d)));
+#endif
+              syn2 = SYNTAX_FROM_CACHE (scache, ch2);
+              END_REGEX_MALLOC_OK ();
+              RE_MATCH_RELOCATE_MOVEABLE_DATA_POINTERS ();
+
+              /* Case 2: SYN2 is neither Sword nor Ssymbol. */
+              if (syn2 != Sword && syn2 != Ssymbol)
+                goto fail;
+
+	      /* Case 3: D is not at the beginning of string ... */
+              if (!AT_STRINGS_BEG (d))
+                {
+                  dtmp = POS_BEFORE_GAP_UNSAFE (d);
+                  DEC_IBYTEPTR_FMT (dtmp, fmt);
+                  ch1 = itext_ichar_fmt (dtmp, fmt, lispobj);
+                  BEGIN_REGEX_MALLOC_OK ();
+#ifdef emacs
+                  UPDATE_SYNTAX_CACHE_BACKWARD
+                    (scache,
+                     offset_to_bytexpos (lispobj, PTR_TO_OFFSET (dtmp)));
+#endif
+                  syn1 = SYNTAX_FROM_CACHE (scache, ch1);
+                  END_REGEX_MALLOC_OK ();
+                  RE_MATCH_RELOCATE_MOVEABLE_DATA_POINTERS ();
+
+		  /* ... and SYN1 is Sword or Ssymbol.  */
+                  if (syn1 == Sword || syn1 == Ssymbol)
+                    goto fail;
+                }
+            }
+          break;
+
+	case symend:
+          DEBUG_MATCH_PRINT ("EXECUTING symend.\n");
+
+	  /* We FAIL in one of the following cases: */
+
+	  /* Case 1: D is at the beginning of string.  */
+	  if (AT_STRINGS_BEG (d))
+	    goto fail;
+	  {
+            /* CH1 is the character before D, SYN1 is the syntax of the
+               character before D. CH2 is the character at D, and SYN2 is
+               the syntax of CH2. */
+            re_char *dtmp;
+            Ichar ch2, ch1;
+            int syn1, syn2;
+
+	    dtmp = POS_BEFORE_GAP_UNSAFE (d);
+	    DEC_IBYTEPTR_FMT (dtmp, fmt);
+	    ch1 = itext_ichar_fmt (dtmp, fmt, lispobj);
+
+            BEGIN_REGEX_MALLOC_OK ();
+#ifdef emacs
+            UPDATE_SYNTAX_CACHE_BACKWARD
+              (scache,
+               offset_to_bytexpos (lispobj, PTR_TO_OFFSET (dtmp)));
+#endif
+            syn1 = SYNTAX_FROM_CACHE (scache, ch1);
+            END_REGEX_MALLOC_OK ();
+
+            /* Case 2: SYN1 is neither Ssymbol nor Sword.  */
+            if (syn1 != Sword && syn1 != Ssymbol)
+              goto fail;
+
+	    if (!AT_STRINGS_END (d))
+              {
+                dtmp = POS_AFTER_GAP_UNSAFE (d);
+                ch2 = itext_ichar_fmt (dtmp, fmt, lispobj);
+
+                BEGIN_REGEX_MALLOC_OK ();
+#ifdef emacs
+                {
+                  re_char *next = d;
+                  INC_IBYTEPTR_FMT (next, fmt);
+                  UPDATE_SYNTAX_CACHE_FORWARD
+                    (scache,
+                     offset_to_bytexpos (lispobj, PTR_TO_OFFSET (next)));
+                }
+#endif
+                syn2 = SYNTAX_FROM_CACHE (scache, ch2);
+                END_REGEX_MALLOC_OK ();
+                RE_MATCH_RELOCATE_MOVEABLE_DATA_POINTERS ();
+
+                if (syn2 == Sword || syn2 == Ssymbol)
+                  goto fail;
+              }
+          }
+          break;
+
 #ifdef emacs
   	case before_dot:
           DEBUG_MATCH_PRINT ("EXECUTING before_dot.\n");
@@ -7212,6 +7367,8 @@ common_op_match_null_string_p (re_char **p, re_char *end,
     case endbuf:
     case wordbeg:
     case wordend:
+    case symbeg:
+    case symend:
     case wordbound:
     case notwordbound:
 #ifdef emacs

@@ -416,6 +416,33 @@ baaaa
 (Assert (not (string-match "\\> " " ")))
 (Assert (not (string-match "a\\<" "a")))
 (Assert (not (string-match "\\>a" "a")))
+
+;; Test symbol boundaries
+(Assert (eql (string-match "\\_<a" " a") 1))
+(Assert (eql (string-match "\\_<=" " =") 1))
+(Assert (eql (string-match "\\_<a" " a") 1))
+(Assert (eql (string-match "\\_<=" " =") 1))
+(Assert (eql (string-match "a\\_>" "a ") 0))
+(Assert (eql (string-match "=\\_>" "= ") 0))
+;; should work at target boundaries
+(Assert (eql (string-match "\\_<a" "a") 0))
+(Assert (eql (string-match "\\_<=" "=") 0))
+(Assert (eql (string-match "a\\_>" "a") 0))
+(Assert (eql (string-match "=\\_>" "=") 0))
+;; Check for weirdness
+(Assert (not (string-match " \\_> " "  ")))
+(Assert (not (string-match " \\_< " "  ")))
+
+;; but not if the "symbol" would be on the null side of the boundary!
+(Assert (not (string-match "\\_<" "")))
+(Assert (not (string-match "\\_>" "")))
+(Assert (not (string-match " \\_<" " ")))
+(Assert (not (string-match "\\_> " " ")))
+(Assert (not (string-match "a\\_<" "a")))
+(Assert (not (string-match "=\\_<" "=")))
+(Assert (not (string-match "\\_>a" "a")))
+(Assert (not (string-match "\\_>=" "=")))
+
 ;; Added Known-Bug 2002-09-09 sjt
 ;; Fixed bug 2003-03-21 sjt
 (Assert (not (string-match "\\b" "")))

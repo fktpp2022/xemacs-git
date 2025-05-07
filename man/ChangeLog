@@ -1,3 +1,9 @@
+2025-05-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/searching.texi (Syntax of Regexps):
+	Document \_<, \_> here, text from GNU. Flesh out the documentation
+	for \<, \> in passing.
+
 2025-05-04  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Obarrays):
