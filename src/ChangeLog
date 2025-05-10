@@ -1,5 +1,28 @@
 2025-05-10  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* file-coding.c:
+	* file-coding.c (LENGTH):
+	Cast the result of this macro to Bytecount, which works better
+	with new uses in this file and is reasonable in the general
+	sense.
+	* file-coding.c (look_for_coding_cookie_first_page): New, more
+	accurate, name for look_for_coding_system_magic_cookie().
+	* file-coding.c (look_for_coding_cookie_last_page): New. Examine
+	any Local variables: blocks at the end of the file for a coding
+	cookie.
+	* file-coding.c (Ffind_coding_system_magic_cookie_in_file):
+	Revise docstring extensively.
+	Revise to use look_for_coding_cookie_last_page() in addition to
+	examining the beginning of a file for a coding cookie.
+	* file-coding.c (determine_real_coding_system):
+	Use look_for_coding_cookie_last_page here.
+	* file-coding.c (undecided_decode):
+	Use look_for_coding_cookie_first_page()'s new name here. Don't
+	call look_for_coding_cookie_last_page(), this is not a seekable
+	stream.
+
+2025-05-10  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Clean-ups of file-coding.c and fileio.c in anticipation of
 	supporting coding cookies on the last page.
 	1. Make Vdebug_coding_detection into a Boolint called

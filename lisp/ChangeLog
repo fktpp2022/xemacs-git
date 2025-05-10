@@ -1,3 +1,11 @@
+2025-05-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* files.el (coding-system-for-read)): defvar removed.
+	* files.el (buffer-file-coding-system)): defvar removed.
+	No need for these declarations now the non-mule option is gone.
+	* files.el (hack-one-local-variable):
+	Update a comment here.
+
 2025-05-04  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* obsolete.el:

@@ -1,3 +1,9 @@
+2025-05-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* xemacs/custom.texi (File Variables):
+	Document coding: here as another of the special variables in a
+	local variables list.
+
 2025-05-07  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lispref/searching.texi (Syntax of Regexps):

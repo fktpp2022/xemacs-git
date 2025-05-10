@@ -797,12 +797,14 @@ as a comment so the compiler or text formatter  will ignore it.
 If you do not need to disguise the local variables list as a comment in
 this way, there is no need to include a prefix or a suffix.
 
-  Two ``variable'' names are special in a local variables list: a value
-for the variable @code{mode} sets the major mode, and a value for the
-variable @code{eval} is simply evaluated as an expression and the value
-is ignored.  These are not real variables; setting them in any other
-context does not have the same effect.  If @code{mode} is used in a
-local variables list, it should be the first entry in the list.
+  Three ``variable'' names are special in a local variables list: a value
+for the variable @code{mode} sets the major mode, a value for the
+variable @code{eval} is simply evaluated as an expression with its value
+is ignored, and a value for the variable @code{coding} advises XEmacs
+about the encoding of the file @pxref{Recognize Coding}.  These are not
+real variables; setting them in any other context does not have the same
+effect.  If @code{mode} is used in a local variables list, it should be
+the first entry in the list.
 
 Here is an example of a local variables list:
 @example

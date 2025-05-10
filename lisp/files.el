@@ -48,10 +48,6 @@
 
 ;;; Code:
 
-;; XEmacs: Avoid compilation warnings.
-(defvar coding-system-for-read)
-(defvar buffer-file-coding-system)
-
 (defgroup files nil
   "Support editing files."
   :group 'emacs)
@@ -2097,7 +2093,8 @@ A few variable names are treated specially."
 						 "-mode"))))
 	      (funcall val)))
 	((eq var 'coding)
-	 ;; We have already handled coding: tag in set-auto-coding.
+	 ;; We have already handled the coding local variable in the coding
+	 ;; detection in file-coding.c.
 	 nil)
 	((memq var ignored-local-variables)
 	 nil)

@@ -1224,4 +1224,72 @@ with control-1"
         "xex\346\227\245\346\234\254\350\252\236")))
   ) ; end of tests that require MULE built in.
 
+;; Test detection of coding cookies.
+(save-excursion
+  (let ((test-file-name
+         (make-temp-file (expand-file-name "nn724rW" (temp-directory))))
+        revert-buffer-function
+        kill-buffer-hook		; paranoia
+        (current-no-conversion-category
+         (coding-category-system 'no-conversion)))
+    (unwind-protect
+         (progn
+           (find-file test-file-name 'no-conversion-unix)
+           (erase-buffer)
+           (insert "-*- coding: koi8-r -*-\n")
+           (Silence-Message (save-buffer 0))
+           (kill-buffer (current-buffer))
+           (Assert (equal (find-coding-system-magic-cookie-in-file
+                           test-file-name)
+                          "koi8-r"))
+           (find-file test-file-name)
+           (Assert (eq buffer-file-coding-system 'koi8-r-unix))
+           (erase-buffer)
+           (setq buffer-file-coding-system 'utf-8-unix)
+           (insert "Der Vogelfänger bin ich ja Local variables: stets lustig
+Der Vogelfänger bin ich ja coding: iso-8859-2 stets lustig
+Der Vogelfänger bin ich ja end: stets lustig\n")
+           (Silence-Message (save-buffer 0))
+           (kill-buffer (current-buffer))
+           (Assert (equal (find-coding-system-magic-cookie-in-file
+                           test-file-name) "iso-8859-2"))
+           (find-file test-file-name)
+           (Assert (eq buffer-file-coding-system 'iso-8859-2-unix))
+           (erase-buffer)
+           (setq buffer-file-coding-system 'utf-8-unix)
+
+           ;; Invalid syntax, coding detection should give nil.
+           (insert "Der Vogelfänger bin ich ja Local variables: stets lustig
+Der Vogelfänger bin ich ja coding: iso-8859-2
+Der Vogelfänger bin ich ja end: stets lustig\n")
+           (Silence-Message (save-buffer 0))
+           (kill-buffer (current-buffer))
+           (set-coding-category-system 'no-conversion 'iso-8859-7)
+           (Assert (eq (find-coding-system-magic-cookie-in-file
+                        test-file-name) nil))
+           (flet ((hack-local-variables-last-page (&optional force)))
+             (find-file test-file-name))
+           (Assert (not (eq buffer-file-coding-system 'iso-8859-2-unix)))
+           (erase-buffer)
+           (setq buffer-file-coding-system 'utf-8-unix)
+
+           ;; Last page after the local variables specificiation, coding
+           ;; detection should give nil.
+           (insert "Der Vogelfänger bin ich ja Local variables: stets lustig
+Der Vogelfänger bin ich ja coding: iso-8859-2
+Der Vogelfänger bin ich ja end: stets lustig
+Ich Vogelfänger bin bekannt, bei alt und jung in ganzem Land\n")
+           (Silence-Message (save-buffer 0))
+           (kill-buffer (current-buffer))
+           (Assert (eq (find-coding-system-magic-cookie-in-file
+                        test-file-name) nil))
+           (flet ((hack-local-variables-last-page (&optional force)))
+             (find-file test-file-name))
+           (Assert (not (eq buffer-file-coding-system 'iso-8859-2-unix)))
+           (Silence-Message (save-buffer 0))
+           (kill-buffer (current-buffer)))
+      (progn
+        (delete-file test-file-name)
+        (set-coding-category-system 'no-conversion
+                                    current-no-conversion-category)))))
 ;;; end of mule-tests.el

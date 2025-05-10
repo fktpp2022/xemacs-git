@@ -4682,7 +4682,7 @@ snarf_coding_system (const UExtbyte *p, Bytecount len,
    This function does not automatically fetch subsidiary coding systems;
    that should be unnecessary with the explicit eol-type argument. */
 
-#define LENGTH(string_constant) (sizeof (string_constant) - 1)
+#define LENGTH(string_constant) ((Bytecount) (sizeof (string_constant) - 1))
 
 static Lisp_Object
 unwind_free_detection_state (Lisp_Object opaque)
@@ -4695,8 +4695,8 @@ unwind_free_detection_state (Lisp_Object opaque)
 }
 
 static Lisp_Object
-look_for_coding_system_magic_cookie (const UExtbyte *data, Bytecount len,
-                                     Boolint find_coding_system_p)
+look_for_coding_cookie_first_page (const UExtbyte *data, Bytecount len,
+                                   Boolint find_coding_system_p)
 {
   const UExtbyte *p;
   const UExtbyte *scan_end;
@@ -4768,6 +4768,272 @@ look_for_coding_system_magic_cookie (const UExtbyte *data, Bytecount len,
 }
 
 static Lisp_Object
+look_for_coding_cookie_last_page (const UExtbyte *buf, Bytecount nread,
+                                  Boolint find_coding_system_p)
+{
+  UExtbyte *prefix = NULL, *suffix = NULL;
+  const UExtbyte *lastpage, *end = buf + nread, *cursor, *this_var, *this_val;
+  const UExtbyte *begline, *endline, *colonp;
+  Bytecount this_var_len, this_val_len, prefix_len, suffix_len;
+  Lisp_Object result = Qnil;
+  const int newline = memchr (buf, '\r', nread) ? '\r' : '\n';
+
+  lastpage = buf;
+
+  /* Find the last page, delineated by "\n\f" (or "\r\n\f", or "\r\f"). If
+     these strings do not exist, all of BUF is regarded as the last page. */
+  do
+    {
+      lastpage = (const UExtbyte *) memchr (lastpage, 0x0c, nread); /* ^L */
+
+      if (lastpage && lastpage > buf &&
+	  (lastpage[-1] == '\n' || lastpage[-1] == '\r'))
+        {
+          if ((lastpage + sizeof ("\nLocal Variables:\ncoding:"))
+              >= (buf + nread))
+            {
+              DEBUG_DETECTION ("Last page too small for coding "
+                               "cookie.\n");
+              return result;
+            }
+          lastpage++;
+          nread -= lastpage - buf;
+          buf = lastpage;
+        }
+      else if (lastpage)
+	{
+	  lastpage++;
+	}
+    }
+  while (lastpage);
+
+  /* Search line-by-line for "Local variables:". Use memchr() for ':' since
+     that does not need any case folding, then check if the string preceding
+     it is case-insensitive-equal using ascii_strncasecmp(). This won't fold
+     non-ASCII correctly, but that is appropriate at this point of text
+     recognition.
+
+     Once found, store the text before "Local variables:" in PREFIX, and the
+     text after it in SUFFIX. */
+  begline = buf;
+  do
+    {
+      endline = (const UExtbyte *) memchr (begline, newline, nread);
+
+      if (endline == NULL)
+	{
+	  DEBUG_DETECTION ("No more newlines to find.\n");
+	  return result;
+	}
+
+      colonp = begline;
+      do
+	{
+	  colonp = (const UExtbyte *) memchr (colonp, ':', endline - colonp);
+
+	  if (colonp && (colonp - begline) >= LENGTH ("Local variables")
+	      && ascii_strncasecmp ((const Ascbyte *)
+				    (colonp - LENGTH ("Local variables")),
+				    "Local variables:",
+				    LENGTH ("Local variables:")) == 0)
+	    {
+	      prefix_len = colonp - LENGTH ("Local variables") - begline;
+	      prefix = alloca_array (UExtbyte, prefix_len + 1);
+	      memcpy (prefix, begline, prefix_len);
+	      prefix[prefix_len] = '\0';
+
+	      suffix_len = endline - colonp - 1;
+	      suffix = alloca_array (UExtbyte, suffix_len + 1);
+	      memcpy (suffix, colonp + 1, suffix_len);
+	      suffix[suffix_len] = '\0';
+
+	      DEBUG_DETECTION ("Found Local variables:, prefix %s, "
+			       "suffix %s\n", prefix, suffix);
+	    }
+	  else if (colonp)
+	    {
+	      colonp++;
+	    }
+	}
+      while (colonp && prefix == NULL);
+
+      if (endline + 1 >= end)
+	{
+	  DEBUG_DETECTION ("Ran out of space to parse local variables.\n");
+	  return result;
+	}
+
+      begline = endline + 1;
+    }
+  while (prefix == NULL);
+
+  cursor = begline;
+
+  /* Examine the local variables specifically for coding: and end:.
+
+     Do not error, a) there's no actual guarantee that the encoding is
+     ASCII-compatible and so this is all intrinsically speculative, b) this
+     function should not prevent XEmacs opening a file, and c)
+     #'hack-local-variables-last-page will error itself when it attemptes to
+     parse the local variables page; that should prompt the user to fix any
+     problems. */
+  do
+    {
+      const UExtbyte *next_line;
+
+      if (prefix_len > 0)
+        {
+          if (cursor + prefix_len > end)
+            {
+              DEBUG_DETECTION ("Not enough left in the buffer "
+                               "to match prefix.\n");
+              return result;
+            }
+
+          if (ascii_strncasecmp ((const Ascbyte *) prefix,
+				 (const Ascbyte *) cursor, prefix_len))
+            {
+              DEBUG_DETECTION ("Prefix `%.*s' didn't match `%s'.\n",
+			       (int) prefix_len, cursor, prefix);
+              return result;
+            }
+
+          cursor += prefix_len;
+        }
+
+      while (cursor < end && ((*cursor == ' ') || (*cursor == '\t')))
+        {
+          cursor++;
+        }
+
+      if (cursor >= end)
+        {
+          DEBUG_DETECTION ("Just whitespace in the variable name.\n");
+          return result;
+        }
+
+      this_var = cursor;
+
+      while (cursor < end && !(*cursor == ':' || *cursor == newline))
+        {
+          cursor++;
+        }
+
+      if (cursor >= end || *cursor == newline)
+        {
+          DEBUG_DETECTION ("Couldn't find a : to terminate variable"
+                           " name.\n");
+          return result;
+        }
+
+      this_val = cursor;
+      this_val++; /* Advance past the ':'. */
+
+      /* Decrement CURSOR past the ':', and trim the name of the var. */
+      do
+        {
+          --cursor;
+        }
+      while (cursor > this_var && (*cursor == ' ' || *cursor == '\t'));
+
+      if (cursor == this_var)
+        {
+          DEBUG_DETECTION ("Variable name is just whitespace.\n");
+          /* Only whitespace here, corrupt. */
+          return result;
+        }
+
+      /* Advance the cursor to point either to whitespace or to the
+         ':'. */
+      cursor++;
+      this_var_len = cursor - this_var;
+
+      if (this_var_len == LENGTH ("end")
+	  && ascii_strncasecmp ((const Ascbyte *) this_var, "end",
+				this_var_len) == 0)
+        {
+          DEBUG_DETECTION ("Found an \"end\" variable.\n");
+          /* No need to validate the suffix for this line, since we just
+             return result; if that fails anyway. */
+          return result;
+        }
+
+      cursor = (const UExtbyte *) memchr ((const void *) this_val,
+					  newline,
+					  end - this_val);
+      if (cursor == NULL)
+        {
+          cursor = end;
+        }
+
+      next_line = cursor + 1;
+      if (newline == '\r' && next_line < end && *next_line == '\n')
+        {
+          next_line++;
+        }
+
+      if (cursor - suffix_len <= this_val)
+        {
+          DEBUG_DETECTION ("Remaining space for suffix `%s' too short.",
+                           suffix);
+          return result;
+        }
+
+      cursor -= suffix_len;
+      if (ascii_strncasecmp ((const Ascbyte *) suffix,
+			     (const Ascbyte *) cursor, suffix_len))
+        {
+          DEBUG_DETECTION ("Suffix `%s' didn't match `%.*s'.",
+			   suffix, (int) suffix_len, cursor);
+          return result;
+        }
+
+      /* Trim the beginning of the value. */
+      while (this_val < cursor && (*this_val == ' ' || *this_val == '\t'))
+        {
+	  this_val++;
+        }
+
+      if (this_val >= cursor)
+        {
+          DEBUG_DETECTION ("Value is just whitespace.");
+          /* Only whitespace, not accepted. */
+          return result;
+        }
+
+      /* Decrement CURSOR back from the suffix, and trim the end of the
+         value. */
+      do
+        {
+          --cursor;
+        }
+      while (cursor > this_val && (*cursor == ' ' || *cursor == '\t'));
+      assert (cursor >= this_val);
+
+      /* Advance the cursor to point to whitespace. */
+      cursor++;
+      this_val_len = cursor - this_val;
+
+      DEBUG_DETECTION ("Dealing with local variable `%.*s', value `%.*s'\n",
+                       (int) this_var_len, this_var,
+                       (int) this_val_len, this_val);
+
+      if (this_var_len == LENGTH ("coding")
+	  && ascii_strncasecmp ((const Ascbyte *) this_var, "coding",
+				this_var_len) == 0)
+        {
+          result = snarf_coding_system (this_val, this_val_len,
+                                        find_coding_system_p);
+          return result;
+        }
+
+      cursor = next_line;
+    } while (1);
+
+  return result;
+}
+
+static Lisp_Object
 determine_real_coding_system (Lstream *stream)
 {
   struct detection_state *st = allocate_detection_state ();
@@ -4776,7 +5042,20 @@ determine_real_coding_system (Lstream *stream)
   UExtbyte buf[4096];
   Bytecount nread = Lstream_read (stream, buf, sizeof (buf));
   Lisp_Object coding_system
-    = look_for_coding_system_magic_cookie (buf, nread, 1);
+    = look_for_coding_cookie_first_page (buf, nread, 1);
+
+  if (NILP (coding_system))
+    {
+      if (Lstream_seek_from_end (stream, -3000))
+        {
+          nread = Lstream_read (stream, buf, sizeof (buf));
+          coding_system
+            = look_for_coding_cookie_last_page (buf, nread, 1);
+
+          Lstream_rewind (stream);
+          nread = Lstream_read (stream, buf, sizeof (buf));
+        }
+    }
 
   if (NILP (coding_system))
     {
@@ -5061,7 +5340,7 @@ undecided_decode (struct coding_stream *str, const UExtbyte *src,
 	    /* #### This is cheesy.  What we really ought to do is buffer
 	       up a certain minimum amount of data to get a better result.
 	    */
-	    data->actual = look_for_coding_system_magic_cookie (src, n, 1);
+	    data->actual = look_for_coding_cookie_first_page (src, n, 1);
 	  if (NILP (data->actual))
 	    {
 	      /* #### This is cheesy.  What we really ought to do is buffer
@@ -5323,24 +5602,32 @@ type.  Optional arg BUFFER defaults to the current buffer.
 
 DEFUN ("find-coding-system-magic-cookie-in-file",
        Ffind_coding_system_magic_cookie_in_file, 1, 1, 0, /*
-Look for the coding-system magic cookie in FILENAME.
-The coding-system magic cookie is either the local variable specification
--*- ... coding: ... -*- on the first line, or the exact string
-\";;;###coding system: \" somewhere within the first 3000 characters
-of the file.  If found, the coding system name (as a string) is returned;
-otherwise nil is returned.  Note that it is extremely unlikely that
-either such string would occur coincidentally as the result of encoding
-some characters in a non-ASCII charset, and that the spaces make it
-even less likely since the space character is not a valid octet in any
-ISO 2022 encoding of most non-ASCII charsets.
+Look for any coding-system magic cookie in file FILENAME.
+
+The coding-system magic cookie is either the local variable specification -*-
+... coding: ... -*- on the first line, the exact string \";;;###coding system:
+\" somewhere within the first 3000 characters of the file, or a value found
+within a \"Local Variables:\" block either within the last page of the file
+(with pages delineated by \\n\^L), or within the last 3000 bytes of the file if
+there is no last page.
+
+If found, return the coding system name (as a string); otherwise return nil.
+
+Note that it is extremely unlikely that either such string would occur
+coincidentally as the result of encoding some characters in a non-ASCII
+charset, even EBCDIC, and that the spaces make it even less likely since the
+space character is not a valid octet in any ISO 2022 encoding of most
+non-ASCII charsets.
 */
        (filename))
 {
-  Lisp_Object lstream;
+  Lisp_Object lstream, result;
   UExtbyte buf[4096];
   Bytecount nread;
   int fd = -1;
   struct stat st;
+  Boolint regular = 1;
+  OFF_T total = -1;
 
   filename = Fexpand_file_name (filename, Qnil);
 
@@ -5357,13 +5644,35 @@ ISO 2022 encoding of most non-ASCII charsets.
 	goto badopen;
     }
 
-  lstream = make_filedesc_input_stream (fd, 0, -1, 0, NULL);
+#ifdef S_IFREG
+  if (!S_ISREG (st.st_mode))
+    {
+      regular = 0;
+    }
+#endif /* S_IFREG */
+
+  if (regular)
+    {
+      total = st.st_size;
+    }
+
+  lstream = make_filedesc_input_stream (fd, 0, total, 0, NULL);
   Lstream_set_buffering (XLSTREAM (lstream), LSTREAM_UNBUFFERED, 0);
   nread = Lstream_read (XLSTREAM (lstream), buf, sizeof (buf));
+
+  result = look_for_coding_cookie_first_page (buf, nread, 0);
+
+  if (NILP (result) && Lstream_seekable_p (XLSTREAM (lstream))
+      && Lstream_seek_from_end (XLSTREAM (lstream), -3000))
+    {
+      nread = Lstream_read (XLSTREAM (lstream), buf, sizeof (buf));
+      result = look_for_coding_cookie_last_page (buf, nread, 0);
+    }
+
   Lstream_delete (XLSTREAM (lstream));
   retry_close (fd);
 
-  return look_for_coding_system_magic_cookie (buf, nread, 0);
+  return result;
 }
 
 
