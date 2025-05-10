@@ -136,7 +136,13 @@ typedef enum lstream_buffering
 
    Rewind semantics are generally easy to implement, so we do provide
    a rewind method.  Even rewind() may not be available on a stream,
-   however -- e.g. on process output. */
+   however -- e.g. on process output.
+
+     I have just added a seek_from_end() method, needed in the bowels of
+     coding detection for examining any coding cookies in the last page, and
+     only implemented for filedesc and stdio streams. I have not attempted to
+     add general support for seek()/tell(). Aidan Kehoe, Sa 10. Mai 18:12:59
+     IST 2025. */
 
 typedef struct lstream_implementation
 {
@@ -198,6 +204,11 @@ typedef struct lstream_implementation
      method.  If this method is not present, the result is determined
      by whether a rewind method is present. */
   int (*seekable_p) (Lstream *stream);
+
+  /* Seek to OFFSET from the end of the underlying stream. Return 1 if
+     successful, 0 if this stream is not seekable or if unsuccessful for other
+     reasons. */
+  Boolint (*seek_from_end) (Lstream *stream, OFF_T offset);
 
   /* Return the number of complete characters read so far. Respects
      buffering and unget. Returns -1 if unknown or not implemented. */
@@ -360,6 +371,7 @@ int Lstream_errno (Lstream *lstr);
 int Lstream_was_blocked_p (Lstream *lstr);
 void Lstream_unread (Lstream *lstr, const void *data, Bytecount size);
 int Lstream_rewind (Lstream *lstr);
+Boolint Lstream_seek_from_end (Lstream *lstr, OFF_T offset);
 int Lstream_seekable_p (Lstream *lstr);
 int Lstream_close (Lstream *lstr);
 int Lstream_close_noflush (Lstream *lstr);

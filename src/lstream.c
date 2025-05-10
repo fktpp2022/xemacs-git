@@ -123,6 +123,8 @@ static const struct memory_description lstream_implementation_description_1[]
   { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
 				   seekable_p) },
   { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
+                                   seek_from_end) },
+  { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
 				   character_tell) },
   { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
 				   flusher) },
@@ -895,6 +897,37 @@ Lstream_rewind (Lstream *lstr)
   return (lstr->imp->rewinder) (lstr);
 }
 
+/* Seek to OFFSET bytes (which must be negative) from the end of the
+   underlying stream. */
+Boolint
+Lstream_seek_from_end (Lstream *lstr, OFF_T offset)
+{
+  Boolint result;
+  if (!lstr->imp->seek_from_end)
+    {
+      return 0;
+    }
+
+  if (offset >= 0)
+    {
+      return 0;
+    }
+
+  if (Lstream_flush (lstr) < 0)
+    {
+      return 0;
+    }
+
+  result = (lstr->imp->seek_from_end) (lstr, offset);
+  if (result)
+    {
+      lstr->byte_count = 0;
+      lstr->unget_character_count = 0;
+    }
+
+  return result;
+}
+
 int
 Lstream_seekable_p (Lstream *lstr)
 {
@@ -1187,6 +1220,24 @@ stdio_seekable_p (Lstream *stream)
   return S_ISREG (lestat.st_mode);
 }
 
+static Boolint
+stdio_seek_from_end (Lstream *stream, OFF_T offset)
+{
+  FILE *file = STDIO_STREAM_DATA (stream)->file;
+  int fsought;
+
+  assert (offset < 0);
+
+  fsought = FSEEK (file, offset, SEEK_END);
+
+  if (fsought == 0)
+    {
+      return 1;
+    }
+
+  return 0;
+}
+
 static int
 stdio_flusher (Lstream *stream)
 {
@@ -1214,14 +1265,14 @@ stdio_closer (Lstream *stream)
 
 struct filedesc_stream
 {
+  OFF_T starting_pos;
+  OFF_T current_pos;
+  OFF_T end_pos;
   tls_state_t *tls_state;
   int fd;
   int pty_max_bytes;
-  Ibyte eof_char;
-  int starting_pos;
-  int current_pos;
-  int end_pos;
   int chars_sans_newline;
+  Ibyte eof_char;
   unsigned int blocking_error_p :1;
 };
 
@@ -1507,6 +1558,57 @@ filedesc_seekable_p (Lstream *stream)
         return 0;
       return S_ISREG (lestat.st_mode);
     }
+}
+
+static Boolint
+filedesc_seek_from_end (Lstream *stream, OFF_T offset)
+{
+  struct filedesc_stream *str = FILEDESC_STREAM_DATA (stream);
+  OFF_T lsought;
+
+  assert (offset < 0);
+
+  if (str->end_pos != -1)
+    {
+      if (str->end_pos + offset < str->starting_pos)
+        {
+          lsought = lseek (FILEDESC_STREAM_DATA (stream)->fd,
+			   str->starting_pos, SEEK_SET);
+        }
+      else
+	{
+	  offset += str->end_pos;
+          lsought = lseek (FILEDESC_STREAM_DATA (stream)->fd, offset,
+						 SEEK_SET);
+	}
+
+      if (lsought == -1)
+        {
+          return 0;
+        }
+
+      str->current_pos = lsought;
+      return 1;
+    }
+
+  lsought = lseek (FILEDESC_STREAM_DATA (stream)->fd, offset, SEEK_END);
+
+  if (str->starting_pos > 0)
+    {
+      if (lsought < str->starting_pos)
+        {
+          lsought = lseek (FILEDESC_STREAM_DATA (stream)->fd,
+                           str->starting_pos, SEEK_SET);
+        }
+    }
+
+  if (lsought == -1)
+    {
+      return 0;
+    }
+
+  str->current_pos = lsought;
+  return 1;
 }
 
 static int
@@ -2210,6 +2312,7 @@ vars_of_lstream (void)
   LSTREAM_HAS_METHOD (stdio, writer);
   LSTREAM_HAS_METHOD (stdio, rewinder);
   LSTREAM_HAS_METHOD (stdio, seekable_p);
+  LSTREAM_HAS_METHOD (stdio, seek_from_end);
   LSTREAM_HAS_METHOD (stdio, flusher);
   LSTREAM_HAS_METHOD (stdio, closer);
 
@@ -2219,6 +2322,7 @@ vars_of_lstream (void)
   LSTREAM_HAS_METHOD (filedesc, was_blocked_p);
   LSTREAM_HAS_METHOD (filedesc, rewinder);
   LSTREAM_HAS_METHOD (filedesc, seekable_p);
+  LSTREAM_HAS_METHOD (filedesc, seek_from_end);
   LSTREAM_HAS_METHOD (filedesc, closer);
   LSTREAM_HAS_METHOD (filedesc, tls_p);
   LSTREAM_HAS_METHOD (filedesc, tls_negotiater);

@@ -1,3 +1,33 @@
+2025-05-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Add a seek_from_end() Lstream method, needed in the bowels of
+	coding detection to allow examination of coding cookies on the
+	last page.
+
+	* lstream.c:
+	Add an entry for the method to the lstream implementation memory
+	description.
+	* lstream.c (Lstream_seek_from_end): New. Call the seek_from_end()
+	method on an Lstream, returning 1 if successful, 0 otherwise.
+	* lstream.c (stdio_seek_from_end): New. Implement this method for
+	stdio streams.
+
+	* lstream.c (struct filedesc_stream): Change the types of
+	STARTING_POS, CURRENT_POS, END_POS to OFF_T in passing. Previous
+	type was int, also signed, and they do not escape from outside
+	this file, so unlikely to have any effect beyond supporting large
+	values for the OFFSET arg to make_filedesc_stream_1().
+
+	* lstream.c (filedesc_seek_from_end): New. Implement this method
+	for filedesc streams.
+	* lstream.c (vars_of_lstream): Document that the implementations
+	have these methods.
+	* lstream.h:
+	Update comment.
+	* lstream.h (lstream_implementation):
+	Add a slot for the seek_from_end() method.
+	Declare Lstream_seek_from_end().
+
 2025-05-07  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Add support for \_<, \_> to regex.c, anchoring at a symbol begin
