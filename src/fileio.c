@@ -2908,10 +2908,10 @@ under Mule, is very difficult.)
   GCPRO4 (filename, val, visit, curbuf);
 
 #ifdef DEBUG_XEMACS
-  if (!NILP (Vdebug_coding_detection))
+  if (debug_coding_detection)
     debug_out_lisp
       ("Called: (insert-file-contents-internal %s %s %s %s %s %s %s)\n",
-       7, filename, visit, start, end, replace, codesys, used_codesys);
+       filename, visit, start, end, replace, codesys, used_codesys);
 #endif /* DEBUG_XEMACS */
 
   mc_count = (NILP (replace)) ?
@@ -3383,11 +3383,10 @@ here because write-region handler writers need to be aware of it.
   NGCPRO2 (curbuf, fn);
 
 #ifdef DEBUG_XEMACS
-  if (!NILP (Vdebug_coding_detection))
+  if (debug_coding_detection)
     debug_out_lisp
       ("Called: (write-region-internal %s %s %s %s %s %s %s %s)\n",
-       8, start, end, filename, append, visit, lockname, codesys,
-       mustbenew);
+       start, end, filename, append, visit, lockname, codesys, mustbenew);
 #endif /* DEBUG_XEMACS */
 
   /* [[ dmoore - if Fexpand_file_name or handlers kill the buffer,

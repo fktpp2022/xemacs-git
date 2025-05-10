@@ -94,7 +94,25 @@ Lisp_Object Vfile_name_coding_system;
 Lisp_Object Qaliases;
 
 #ifdef DEBUG_XEMACS
-Lisp_Object Vdebug_coding_detection;
+Boolint debug_coding_detection;
+
+static void
+debug_out_no_conversion (const Extbyte *fmt, ...)
+{
+  va_list vargs;
+
+  va_start (vargs, fmt);
+  write_external_fmt_string_va (Qexternal_debugging_output, Qno_conversion,
+                                fmt, vargs);
+  va_end (vargs);
+}
+
+#define DEBUG_DETECTION(...) do { \
+    if (debug_coding_detection) debug_out_no_conversion (__VA_ARGS__);\
+  } while (0)
+
+#else /* !DEBUG_XEMACS */
+#define DEBUG_DETECTION(...)  DO_NOTHING
 #endif
 
 extern Lisp_Object Vcharset_ascii, Vcharset_control_1,
@@ -238,8 +256,6 @@ Lisp_Object Qdo_eol, Qdo_coding;
 
 Lisp_Object Qcanonicalize_after_coding;
 
-Lisp_Object QScoding_system_cookie;
-
 Lisp_Object Qposix_charset_to_coding_system_hash;
 
 /* This is used to convert autodetected coding systems into existing
@@ -329,10 +345,9 @@ sizeof_coding_system (Lisp_Object obj)
 
 static const struct memory_description coding_system_methods_description_1[]
 = {
-  { XD_LISP_OBJECT,
-    offsetof (struct coding_system_methods, type) },
-  { XD_LISP_OBJECT,
-    offsetof (struct coding_system_methods, predicate_symbol) },
+  { XD_LISP_OBJECT, offsetof (struct coding_system_methods, type) },
+  { XD_LISP_OBJECT, offsetof (struct coding_system_methods,
+                              predicate_symbol) },
   { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
 				   init_method) },
   { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
@@ -4472,7 +4487,7 @@ detect_coding_type (struct detection_state *st, const UExtbyte *src,
   int i;
 
 #ifdef DEBUG_XEMACS
-  if (!NILP (Vdebug_coding_detection))
+  if (debug_coding_detection)
     {
       int bytes = min (16, n);
       debug_out ("detect_coding_type: processing %zd bytes\n", n);
@@ -4502,7 +4517,7 @@ detect_coding_type (struct detection_state *st, const UExtbyte *src,
   st->bytes_seen += n;
 
 #ifdef DEBUG_XEMACS
-  if (!NILP (Vdebug_coding_detection))
+  if (debug_coding_detection)
     {
       debug_out ("seen_non_ascii: %d\n", st->seen_non_ascii);
       if (coding_detector_category_count <= 0)
@@ -4531,12 +4546,8 @@ detect_coding_type (struct detection_state *st, const UExtbyte *src,
 #endif
 	      );
 
-#ifdef DEBUG_XEMACS
-  if (!NILP (Vdebug_coding_detection))
-    debug_out ("detect_coding_type: returning %d (%s)\n",
-		retval, retval ? "stop" : "keep going");
-#endif /* DEBUG_XEMACS */
-
+    DEBUG_DETECTION ("detect_coding_type: returning %d (%s)\n",
+                     retval, retval ? "stop" : "keep going");
     return retval;
   }
 }
@@ -4932,7 +4943,7 @@ undecided_init_coding_stream (struct coding_stream *str)
     }
 
 #ifdef DEBUG_XEMACS
-  if (!NILP (Vdebug_coding_detection))
+  if (debug_coding_detection)
     debug_out_lisp ("detected coding system: %s\n", 1, data->actual);
 #endif /* DEBUG_XEMACS */
 }
@@ -5858,9 +5869,6 @@ vars_of_file_coding (void)
   /* We always have file-coding support */
   Fprovide (intern ("file-coding"));
 
-  QScoding_system_cookie = build_ascstring (";;;###coding system: ");
-  staticpro (&QScoding_system_cookie);
-
   /* #### Find a more appropriate place for this comment.
      WARNING: The existing categories are intimately tied to the function
      `coding-system-category' in coding.el.  If you change a category, or
@@ -5921,11 +5929,11 @@ Setting this has no effect.  It is purely for FSF compatibility.
   staticpro (&Vchain_canonicalize_hash_table);
 
 #ifdef DEBUG_XEMACS
-  DEFVAR_LISP ("debug-coding-detection", &Vdebug_coding_detection /*
+  DEFVAR_BOOL ("debug-coding-detection", &debug_coding_detection /*
 If non-nil, display debug information about detection operations in progress.
 Information is displayed on stderr.
 */ );
-  Vdebug_coding_detection = Qnil;
+  debug_coding_detection = 0;
 #endif
 
   DEFINE_LSTREAM_IMPLEMENTATION_WITH_DATA ("coding", coding);
@@ -5979,7 +5987,7 @@ complex_vars_of_file_coding (void)
      build_defer_string ("Convert CRLF to LF"),
      listu (Qdocumentation,
             build_defer_string (
-"Converts CR+LF (used to mark the end of a line on Macintosh systems) to LF\n"
+"Converts CR+LF (used to mark end of line on MS Windows systems) to LF\n"
 "(used internally and under Unix to mark the end of a line)."),
             Qmnemonic, build_ascstring ("CRLF->LF"),
             Qsubtype, Qcrlf,

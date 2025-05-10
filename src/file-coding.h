@@ -1272,7 +1272,7 @@ Lisp_Object make_internal_coding_system (Lisp_Object existing,
 					 Lisp_Object description,
 					 Lisp_Object props);
 #ifdef DEBUG_XEMACS
-extern Lisp_Object Vdebug_coding_detection;
+extern Boolint debug_coding_detection;
 #endif /* DEBUG_XEMACS */
 
 /* Additional flags to make_coding_input_stream() and

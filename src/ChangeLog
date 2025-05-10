@@ -1,5 +1,34 @@
 2025-05-10  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Clean-ups of file-coding.c and fileio.c in anticipation of
+	supporting coding cookies on the last page.
+	1. Make Vdebug_coding_detection into a Boolint called
+	debug_coding_detection, and declare the related Lisp-visible
+	variable with DEFVAR_BOOL.
+	2. Add debug_out_no_conversion, which uses
+	write_external_fmt_string_va() with Qno_conversion to deal with
+	non-internal format text.
+	3. Remove QScoding_system_cookie, no longer used.
+	4. Fix some indentation in coding_system_methods_description_1.
+	5. Correct a docstring for the Qconvert_eol_crlf coding system.
+	6. Fix a couple of calls to debug_out_lisp() that used the old
+	(pre e0c08299251d8ce9 ) convention of supplying NARGS, only used
+	when Vdebug_coding_detection was non-nil. 
+	* file-coding.c: Change the type, name of
+	Vdebug_coding_detection.
+	* file-coding.c (debug_out_no_conversion): New function.
+	* file-coding.c (DEBUG_DETECTION): New macro.
+	* file-coding.c (detect_coding_type): Use it.
+	* file-coding.c (Fset_coding_priority_list): Use the new name for
+	debug_coding_detection.
+	* fileio.c (Fwrite_region_internal): Correct calls to
+	debug_out_lisp(). Use the new name for debug_coding_detection.
+	* fileio.c (Finsert_file_contents_internal): Ditto.
+	* file-coding.h:
+	Update declaration of debug_coding_detection.
+
+2025-05-10  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Add a seek_from_end() Lstream method, needed in the bowels of
 	coding detection to allow examination of coding cookies on the
 	last page.
