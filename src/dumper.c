@@ -2383,7 +2383,6 @@ pdump_load_finish (void)
 
 
 #ifdef WIN32_NATIVE
-#define DUMP_IN_EXEC 1
 static int
 pdump_resource_get (void)
 {

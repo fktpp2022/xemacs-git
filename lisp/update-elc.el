@@ -1,6 +1,6 @@
 ;;; update-elc.el --- Bytecompile out-of-date dumped files, pre-dumping
 
-;; Copyright (C) 1997 Free Software Foundation, Inc.
+;; Copyright (C) 1997, 2025 Free Software Foundation, Inc.
 ;; Copyright (C) 1996 Sun Microsystems, Inc.
 ;; Copyright (C) 2001, 2003, 2010 Ben Wing.
 
@@ -153,29 +153,25 @@ differently depending on the presence of certain features, especially
 ;; we need to handle each autoload file differently and there are only
 ;; two of them.
 
-(let (preloaded-file-list site-load-packages files-to-process)
+(let ((target-extension (and (eq system-type 'windows-nt) ".exe"))
+      preloaded-file-list site-load-packages files-to-process)
   
   (load (expand-file-name "dumped-lisp.el" source-lisp))
 
-  ;; two setups here:
-  ;; (1) temacs.exe is undumped, dumped into xemacs.exe.  Happens with
-  ;;     unexec, but also with pdump under MS Windows native, since
-  ;;     the dumped data is stored as a resource in the xemacs.exe
-  ;;     executable.
-  ;; (2) xemacs.exe is dumped or undumped.  Running `xemacs -nd' gets
-  ;;     you the equivalent of `temacs'.  Dumping creates a file
-  ;;     `xemacs.dmp'.
+  ;; Two situations here:
+  ;; (1) temacs is dumped into xemacs, which is the case with pdump when
+  ;;     --with-dump-in-exec, the default, and always the case with MS Windows
+  ;;     native.
+  ;; (3) xemacs is dumped or undumped, and it loads the dump from an external
+  ;;     file.  Running `xemacs -nd' gets you the equivalent of `temacs'.
+  ;;     Dumping creates a file `xemacs.dmp'.
 
-  (cond ((eq system-type 'windows-nt)
-	 (setq exe-target "src/temacs.exe"
-	       dump-target "src/xemacs.exe"))
-	;; #### need better ways of getting config params
-	((eq (memq 'pdump (emacs-run-status)) nil)
-	 (setq exe-target "src/temacs"
-	       dump-target "src/xemacs"))
-	(t
-	 (setq exe-target "src/xemacs"
-	       dump-target "src/xemacs.dmp")))
+  ;; #### need better ways of getting config params
+  (if (member 'dump-in-exec (emacs-run-status))
+      (setq exe-target (concatenate 'string "src/temacs" target-extension)
+            dump-target (concatenate 'string "src/xemacs" target-extension))
+    (setq exe-target "src/xemacs"
+          dump-target "src/xemacs.dmp"))
 
   (setq exe-target (expand-file-name exe-target build-directory))
   (setq dump-target (expand-file-name dump-target build-directory))
@@ -258,6 +254,7 @@ differently depending on the presence of certain features, especially
       ;; now check if .el or .elc is newer than the dumped exe.
       ;; if so, need to redump.
       (when (and dump-target arg-is-dump-dependency
+                 (eq dump-target-out-of-date-wrt-dump-files nil)
 		 ;; no need to check for existence of either of the files
 		 ;; because of the definition of file-newer-than-file-p.
 		 (or (file-newer-than-file-p full-arg-el dump-target)

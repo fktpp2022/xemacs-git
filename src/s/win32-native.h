@@ -46,3 +46,9 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 /* These two are used in etags.c. */
 #define popen _popen
 #define pclose _pclose
+
+/* We always dump into the exec file. */
+#define DUMP_IN_EXEC
+
+/* win32-native.h ends here. */
+

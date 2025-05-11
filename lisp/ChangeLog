@@ -1,3 +1,11 @@
+2025-05-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* update-elc.el:
+	Correct the dependency checks when --with-dump-in-exec here.
+	In passing, short circuit the checks for .el and .elc files being
+	out of date with regard to the dump files, once it has been t once
+	there's no need to do a stat(2) for any further files.
+
 2025-05-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* files.el (coding-system-for-read)): defvar removed.

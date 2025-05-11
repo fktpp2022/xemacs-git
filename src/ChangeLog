@@ -1,3 +1,39 @@
+2025-05-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Correct dependency checks --with-dump-in-exec, avoid make(1)
+	rebuilding temacs and xemacs all the time for no reason.
+
+	* Makefile.in.in:
+	* Makefile.in.in ($(LIB_SRC)/make-dump-id): Make this dependent on
+	$(LIB_SRC)/make-dump-id.c so the recursive make is not called all
+	the time.
+	* Makefile.in.in (dump-data.o): New. Explicit rule for this,
+	rather than subsuming it into that for $(RAW_EXE).
+	* Makefile.in.in (@DUMP_FILE_NAME@): Explicit rule for this when
+	DUMP_IN_EXEC, dependent on $(RAW_EXE), $(BLDSRC)/NEEDTODUMP,
+	$(LIB_SRC)/DOC.
+	* Makefile.in.in (dump-size): New. Explicit rule for this, with a
+	dependency on @DUMP_FILE_NAME@.
+	* Makefile.in.in (dump-size-correct): New. Rule that succeeds if
+	the size of the dump file known at the time temacs was built is
+	the same as the current dump file.
+	* Makefile.in.in ($(PROGNAME)): New. Dependent on
+	dump-size-correct, rebuilds dump-data.o and links the object files
+	in the same way as for temacs, then mungs modification times with
+	touch(1) to avoid needless rebuilding.
+	* Makefile.in.in (mostlyclean):
+	Add temacs-dump-size, dump-size-correct to the files removed here.
+	* emacs.c:
+	* emacs.c (Femacs_run_status):
+	New entry to the plist returned, Qdump_in_exec, allowing
+	update-elc.el to work out which file to check for dependency
+	correctly.
+	* emacs.c (syms_of_emacs):
+	Call DEFSYMBOL() on Qdump_in_exec.
+	* s/win32-native.h (DUMP_IN_EXEC):
+	Document that we always dump into the exec file on windows native,
+	for the sake of Femacs_run_status().
+
 2025-05-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* file-coding.c:

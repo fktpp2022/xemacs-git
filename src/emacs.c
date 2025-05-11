@@ -614,7 +614,7 @@ static void sort_args (int argc, Wexttext **argv);
 Lisp_Object Qkill_emacs_hook;
 Lisp_Object Qsave_buffers_kill_emacs;
 
-Lisp_Object Qtemacs, Qdumping, Qrestarted, Qpdump, Qbatch;
+Lisp_Object Qtemacs, Qdumping, Qrestarted, Qpdump, Qbatch, Qdump_in_exec;
 
 /* Nonzero if handling a fatal error already. */
 int fatal_error_in_progress;
@@ -2705,6 +2705,10 @@ Currently defined values:
   If non-nil, we were compiled with pdump (portable dumping) support. This is
   always non-nil.
 
+`dump-in-exec'
+  If non-nil, the dump data is stored in the executable rather than in a
+  separate file opened after restart.
+
 `batch'
   If non-nil, we are running non-interactively. (same as `noninteractive')
 */
@@ -2723,8 +2727,12 @@ Currently defined values:
   if (noninteractive)
     ADD_PLIST (Qbatch, Qt);
 
+#ifdef DUMP_IN_EXEC
+  ADD_PLIST (Qdump_in_exec, Qt);
+#endif
+
 #undef ADD_PLIST
-    return Fnreverse (plist);
+  return Fnreverse (plist);
 }
 
 DEFUN_NORETURN ("run-emacs-from-temacs", Frun_emacs_from_temacs, 0, MANY, 0, /*
@@ -3797,6 +3805,7 @@ syms_of_emacs (void)
   DEFSYMBOL (Qrestarted);
   DEFSYMBOL (Qpdump);
   DEFSYMBOL (Qbatch);
+  DEFSYMBOL (Qdump_in_exec);
 }
 
 /* Yuck!  These variables may get set from command-line options when
