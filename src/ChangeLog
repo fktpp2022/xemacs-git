@@ -1,3 +1,19 @@
+2025-05-12  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Sigh, I had known but did not document that making a separate rule
+	for dump-data.o in Makefile.in.in failed with -flto, and so my
+	last change provokes that failure. Revert the separate rule,
+	incorporate it into the rule for temacs, document it this time
+	around. 
+
+	* Makefile.in.in (dump-data.o): Removed.
+	* Makefile.in.in: Remove its entry in otherobjs.
+	* Makefile.in.in ($(RAW_EXE)): Build it without an explicit rule
+	when building temacs.
+
+	* Makefile.in.in ($(PROGNAME)): Build dump-data.o without an
+	explicit rule when building xemacs.
+
 2025-05-11  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Correct dependency checks --with-dump-in-exec, avoid make(1)

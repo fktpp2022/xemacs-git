@@ -337,10 +337,6 @@ otherobjs = $(mallocobjs) $(rallocobjs) $(X11_objs) $(export_lib)
 otherrtls = $(otherobjs:.o=.c.rtl)
 othersrcs = $(otherobjs:.o=.c)
 
-#if !defined(WIN32_NATIVE) && defined(DUMP_IN_EXEC)
-otherobjs += dump-data.o
-#endif
-
 LIBES = $(lwlib_lib) $(malloclib) $(ld_libs_all) $(lib_gcc)
 
 #########################################################################
@@ -508,7 +504,17 @@ $(LIB_SRC)/make-dump-id: $(LIB_SRC)/make-dump-id.c
 dump-id.c: $(LIB_SRC)/make-dump-id $(link_deps)
 	$(LIB_SRC)/make-dump-id
 
+## (2) Link the XEmacs executable
+
 #if !defined(WIN32_NATIVE) && defined(DUMP_IN_EXEC)
+
+## For DUMP_IN_EXEC it is tempting to have a separate rule for dump-data.o
+## that creates the all-zeroes dump file, compiles dump-data.c, then removes
+## that zero dump file. This falls apart with link time optimization, -flto,
+## since the zero dump file is only read at link time. For me it is preferable
+## and clearer to have both the creation and destruction of the zero dump file
+## within the one rule, even with a rule as ugly as this one.
+
 ## The dd below was written initially as dd if=/dev/zero, but while dd(1) is
 ## specified by POSIX, /dev/zero is not. The specific file doesn't matter,
 ## since no non-zero bytes are actually written from it.
@@ -516,7 +522,7 @@ dump-id.c: $(LIB_SRC)/make-dump-id $(link_deps)
 ## The non-zero bytes that are written to xemacs.dmp by the echo statement
 ## prevent the compiler placing the array in BSS, and are the work of Larry
 ## McVoy.  See http://lkml.org/lkml/2003/7/11/141 for more information. */
-dump-data.o: dump-data.c
+$(RAW_EXE): $(link_deps) $(DUMP_ID) dump-data.c
 	@if test -f dump-size ; then \
 		echo "Known dump size, using it for temacs"; \
 		echo "\xff\x06\x01\x02\x03\x04\xff\x03\x09\x3e\xff\x0a\x04\x3d\xff" > @DUMP_FILE_NAME@; \
@@ -529,13 +535,13 @@ dump-data.o: dump-data.c
 	fi; \
 	echo $(CC) -c $(cflags) $(SRC)/dump-data.c ; \
 	$(CC) -c $(cflags) $(SRC)/dump-data.c ; \
-	rm @DUMP_FILE_NAME@
-#endif
-
-## (2) Link the XEmacs executable
-
+	echo $(LD) $(ldflags) $(start_flags) -o $@ $(start_files) $(objs) $(otherobjs) dump-data.o $(DUMP_ID) $(LIBES); \
+	$(LD) $(ldflags) $(start_flags) -o $@ $(start_files) $(objs) $(otherobjs) dump-data.o $(DUMP_ID) $(LIBES)
+	$(RM) dump-data.o
+#else
 $(RAW_EXE): $(link_deps) $(DUMP_ID)
 	$(LD) $(ldflags) $(start_flags) -o $@ $(start_files) $(objs) $(otherobjs) $(DUMP_ID) $(LIBES)
+#endif
 
 ## (3) Update the .elc's needed for dumping
 
@@ -598,7 +604,7 @@ dump-size-correct: dump-size
 ## inappropriately if it is invoked once more (e.g. for make install).
 $(PROGNAME): dump-size-correct
 	$(CC) -c $(cflags) $(SRC)/dump-data.c ; \
-	$(LD) $(ldflags) $(start_flags) -o $@ $(start_files) $(objs) $(otherobjs) $(DUMP_ID) $(LIBES); \
+	$(LD) $(ldflags) $(start_flags) -o $@ $(start_files) $(objs) $(otherobjs) dump-data.o $(DUMP_ID) $(LIBES); \
 	touch -r $(RAW_EXE) $(DUMP_ID); touch -r $(RAW_EXE) dump-id.c; \
 	touch -r $(RAW_EXE) dump-data.o; touch -r $(RAW_EXE) $(LIB_SRC)/DOC \
 	touch -r $(RAW_EXE) $(BLDSRC)/NEEDTODUMP
