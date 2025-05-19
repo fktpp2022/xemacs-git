@@ -516,21 +516,22 @@ dump-id.c: $(LIB_SRC)/make-dump-id $(link_deps)
 ## within the one rule, even with a rule as ugly as this one.
 
 ## The dd below was written initially as dd if=/dev/zero, but while dd(1) is
-## specified by POSIX, /dev/zero is not. The specific file doesn't matter,
-## since no non-zero bytes are actually written from it.
+## specified by POSIX, /dev/zero is not. One byte needs to be written
+## (Linux and OpenBSD dd(1) are content with zero), and dump-size should
+## be non-zero in length if it exists.
 
 ## The non-zero bytes that are written to xemacs.dmp by the echo statement
 ## prevent the compiler placing the array in BSS, and are the work of Larry
 ## McVoy.  See http://lkml.org/lkml/2003/7/11/141 for more information. */
 $(RAW_EXE): $(link_deps) $(DUMP_ID) dump-data.c
-	@if test -f dump-size ; then \
+	@echo "\xff\x06\x01\x02\x03\x04\xff\x03\x09\x3e\xff\x0a\x04\x3d\xff" > @DUMP_FILE_NAME@; \
+	if test -f dump-size ; then \
 		echo "Known dump size, using it for temacs"; \
-		echo "\xff\x06\x01\x02\x03\x04\xff\x03\x09\x3e\xff\x0a\x04\x3d\xff" > @DUMP_FILE_NAME@; \
-		dd if=dump-size of=@DUMP_FILE_NAME@ bs=1 count=0 seek=`cat dump-size`;  \
+		dd if=dump-size of=$(DUMP_TARGET).dmp bs=1 count=1 \
+			seek=$$(expr $$(cat dump-size) - 1);  \
 		mv dump-size temacs-dump-size; \
 	else \
 		echo "Dump size not known, starting from zero"; \
-		touch @DUMP_FILE_NAME@; \
 		echo 0 > temacs-dump-size; \
 	fi; \
 	echo $(CC) -c $(cflags) $(SRC)/dump-data.c ; \
