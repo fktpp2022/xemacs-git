@@ -878,7 +878,7 @@ the documentation for this variable for more details.
 static void scan_sexps_forward (struct buffer *buf,
 				struct lisp_parse_state *,
 				Bytebpos from, Bytebpos end,
-				int targetdepth, int stopbefore,
+				EMACS_INT targetdepth, int stopbefore,
 				Lisp_Object oldstate,
 				int commentstop);
 
@@ -1900,7 +1900,7 @@ Optional BUFFER defaults to the current buffer.
 static void
 scan_sexps_forward (struct buffer *buf, struct lisp_parse_state *stateptr,
 		    Bytebpos from, Bytebpos end,
-		    int targetdepth, int stopbefore,
+		    EMACS_INT targetdepth, int stopbefore,
 		    Lisp_Object oldstate,
 		    int commentstop)
 {

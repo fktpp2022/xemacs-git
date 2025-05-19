@@ -1,3 +1,12 @@
+2025-05-19  Alan Mackenzie  <acm@muc.de>
+
+	Prevent scan_sexps_forward interpreting very large argument as -1.
+
+	* src/syntax.c (scan_sexps_forward):
+	Change the type of parameter TARGETDEPTH from int to EMACS_INT
+	so that the default argument from Fparse_partial_sexp,
+	MOST_NEGATIVE_FIXNUM - 1, won't be wrongly converted to -1.
+
 2025-05-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* Makefile.in.in:
