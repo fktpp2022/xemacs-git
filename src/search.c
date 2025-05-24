@@ -1506,7 +1506,7 @@ trivial_regexp_p (Lisp_Object regexp)
 	    /* #### are there other constructs to check? */
 	    case '|': case '(': case ')': case '`': case '\'': case 'b':
 	    case 'B': case '<': case '>': case 'w': case 'W': case 's':
-	    case 'S': case '=': case '{': case '}':
+	    case 'S': case '=': case '{': case '}': case '_':
 	    /* 97/2/25 jhod Added for category matches */
 	    case 'c': case 'C':
 	    case '1': case '2': case '3': case '4': case '5':

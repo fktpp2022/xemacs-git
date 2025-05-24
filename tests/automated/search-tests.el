@@ -103,6 +103,34 @@
   (goto-char (point-max))
   (Assert (not (search-backward "הה" nil t 6))))
 
+(with-temp-buffer
+  (insert "one two-three four")
+  (let ((old-syntax-table (syntax-table)))
+    (set-syntax-table emacs-lisp-mode-syntax-table)
+    (unwind-protect
+	(progn
+	  (goto-char (point-min))
+	  (Assert (eq 1 (re-search-forward "\\_<" nil t)))
+	  (Assert (eq 4 (re-search-forward "\\_>" nil t)))
+	  (Assert (eq 6 (re-search-forward "\\_<t" nil t)))
+	  (Assert (null (re-search-forward "\\_<t" nil t))) ; Compare "\\<".
+	  (Assert (eq 19 (re-search-forward "\\_<four\\_>" nil t)))
+	  (goto-char (point-min))
+	  (Check-Error-Message error "Premature end of regular expression"
+			       (re-search-forward "\\_" nil t))
+	  (Check-Error-Message error "Invalid regular expression"
+			       (re-search-forward "\\_a" nil t))
+	  (Assert (null (re-search-forward "\\_<ne two" nil t)))
+	  (Assert (null (re-search-forward "three \\_>" nil t)))
+
+	  (goto-char (point-max))
+	  (Assert (eq 19 (re-search-backward "\\_>" nil t)))
+	  (Assert (eq 15 (re-search-backward "\\_<f" nil t)))
+	  (Assert (null (re-search-backward "\\_<-t" nil t)))
+	  (Assert (eq 5 (re-search-backward "\\_<t" nil t)))
+	  (Assert (eq 1 (re-search-backward "\\_<one\\>" nil t))))
+      (set-syntax-table old-syntax-table))))
+
 (when (featurep 'mule)
   (let* ((hiragana-a (make-char 'japanese-jisx0208 36 34))
 	 (a-diaeresis ?ה)

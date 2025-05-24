@@ -1761,10 +1761,11 @@ If there is no completion possible, say so and continue searching."
      (setq isearch-invalid-regexp (car (cdr lossage)))
      (setq isearch-within-brackets (string-match "\\`Unmatched \\["
 						 isearch-invalid-regexp))
-     (if (string-match
-	  "\\`Premature \\|\\`Unmatched \\|\\`Invalid "
-	  isearch-invalid-regexp)
-	 (setq isearch-invalid-regexp (gettext "incomplete input"))))
+     (cond ((string-match
+	     "\\`Premature \\|\\`Unmatched " isearch-invalid-regexp)
+	    (setq isearch-invalid-regexp (gettext "incomplete input")))
+	   ((string-match "\\`Invalid " isearch-invalid-regexp)
+	    (setq isearch-invalid-regexp (gettext "invalid input")))))
     (error
      ;; stack overflow in regexp search.
      (setq isearch-invalid-regexp (car (cdr lossage)))))

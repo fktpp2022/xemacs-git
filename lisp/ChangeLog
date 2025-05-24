@@ -1,3 +1,11 @@
+2025-05-24  Alan Mackenzie  <acm@muc.de>
+
+	Make "\\_<" and "\\_>" work in regexp buffer searches.
+
+	* isearch-mode.el (isearch-search):
+	Translate an error message from regex.c beginning with "Invalid "
+	into "invalid input" rather than "incomplete input".
+
 2025-05-11  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* update-elc.el:
