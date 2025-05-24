@@ -6,6 +6,12 @@
 	Translate an error message from regex.c beginning with "Invalid "
 	into "invalid input" rather than "incomplete input".
 
+2025-05-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecomp.el (byte-compile-lambda):
+	Don't double-compile a compiled function supplied as the argument
+	to (interactive ...), thank you Alan Mackenzie.
+
 2025-05-11  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* update-elc.el:

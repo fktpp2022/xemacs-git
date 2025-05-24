@@ -6,6 +6,13 @@
 	Recognize "\\_" as a non-trivial sequence, so that C-M-s won't
 	move to the next literal "_" with it.
 
+2025-05-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* callint.c (Finteractive):
+	Document the result of byte-compiling a list form here, too,
+	already done in the docstring for
+	#'compiled-function-interactive.
+
 2025-05-19  Alan Mackenzie  <acm@muc.de>
 
 	Prevent scan_sexps_forward interpreting very large argument as -1.

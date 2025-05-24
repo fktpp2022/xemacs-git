@@ -100,8 +100,12 @@ The argument of `interactive' is usually a string containing a code letter
  arguments will not have useful values in the prompt passed to the user in that
  program. Consider use of a list argument to `interactive' in that context.
 
-If the argument is not a string, it is evaluated to get a list of
- arguments to pass to the function.
+If the argument is not a string, it is a Lisp form which is evaluated to get a
+ list of arguments to pass to the function.  When the function is byte compiled,
+ this Lisp form becomes a function with no parameters; the list of arguments
+ is the `cdr' of the result of calling it, and the `car' is used by
+ `call-interactively' to aid construction of `command-history'.
+
 Just `(interactive)' means pass no args when calling interactively.
 
 Code letters available are:

@@ -2886,7 +2886,23 @@ If FORM is a lambda or a macro, byte-compile it as a function."
 		  (when (cddr int)
 		    (byte-compile-warn "malformed interactive spec: %s"
 				       (prin1-to-string int)))
-		  (when (not (stringp (cadr int)))
+		  (when (and (not (stringp (cadr int)))
+                             ;; advice.el fishes the interactive forms out of
+                             ;; already-compiled functions, and uses these as
+                             ;; the value of the interactive form for its
+                             ;; lambda wrappers, which are byte-compiled if
+                             ;; the byte compiler is loaded. Avoid double
+                             ;; compilation this, thank you Alan Mackenzie.
+                             ;;
+                             ;; This assumes advice.el knows what it's doing
+                             ;; and that the new lambda should be called
+                             ;; interactively in the same way as the original
+                             ;; function, which is a fair assumption for
+                             ;; advice.el.
+                             (not (compiled-function-p (cadr int))))
+                             ;; #### Consider a compile time error if (cadr
+                             ;; INT) is non-list, non-string,
+                             ;; non-compiled-function.
 		    (setq int
 			  (list 'interactive
 				(byte-compile-lambda

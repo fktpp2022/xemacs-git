@@ -3,6 +3,12 @@
 	* automated/search-tests.el: Add tests for regexp buffer searches
 	which use "\\_<" and "\\_>".
 
+2025-05-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/lisp-tests.el (test-interactive):
+	Check that compiled functions supplied as arguments to
+	(interactive ...) in lambdas are not doubly-compiled.
+
 2025-05-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/mule-tests.el: Test detection of coding cookies in

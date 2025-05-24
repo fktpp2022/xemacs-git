@@ -1124,6 +1124,19 @@ will be used to make debugging easier."
       (check-function-argcounts '(lambda ,arglist nil) ,min ,max)
       (check-function-argcounts (byte-compile '(lambda ,arglist nil)) ,min ,max))))
 
+(let* ((test-interactive
+       `(lambda (filename &optional codesys wildcards)
+	  "Edit file FILENAME."
+          (interactive ,(second (compiled-function-interactive
+				 (symbol-function 'find-file))))
+          (list filename codesys wildcards)))
+       (compiled-function (byte-compile test-interactive)))
+  (Assert (eq (second
+	       (compiled-function-interactive (symbol-function 'find-file)))
+              (second
+	       (compiled-function-interactive compiled-function)))
+          "checking byte compiler doesn't doubly-compile interactive specs"))
+
 ;; Test subr-arity. 
 (loop for (function-name arity) in
   '((let (1 . unevalled))
