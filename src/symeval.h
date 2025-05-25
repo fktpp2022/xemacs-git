@@ -183,7 +183,7 @@ DECLARE_LISP_OBJECT (symbol_value_forward_object,
 #define symbol_value_forward_object_magicfun(m) ((m)->magicfun)
 #define XSYMBOL_VALUE_FORWARD_OBJECT_FORWARD(x) \
   symbol_value_forward_object_forward (XSYMBOL_VALUE_FORWARD_OBJECT (x))
-#define XSYMBOL_VALUE_FORWARD_OBJECT_MAGICFUN(m) \
+#define XSYMBOL_VALUE_FORWARD_OBJECT_MAGICFUN(x) \
   symbol_value_forward_object_magicfun (XSYMBOL_VALUE_FORWARD_OBJECT (x))
 
 /* 1b. symbol-value-forward-fixnum.

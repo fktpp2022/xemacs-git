@@ -1,5 +1,10 @@
 2025-05-25  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* symeval.h (XSYMBOL_VALUE_FORWARD_OBJECT_MAGICFUN):
+	Correct a typo in this macro.
+
+2025-05-25  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* elhash.c (hash_table_test_validate):
 	* elhash.c (decode_hash_table_test):
 	* elhash.c (Fdefine_hash_table_test):
