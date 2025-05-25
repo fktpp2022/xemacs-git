@@ -6,6 +6,11 @@
 
 2025-05-25  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* byte-optimize.el (byte-compile-unfold-lambda):
+	No longer call #'fetch-bytecode in this, quiet a warning.
+
+2025-05-25  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Take an optional TEST argument, #'assoc, as does GNU. Revise
 	related compiler macros to reflect this.
 

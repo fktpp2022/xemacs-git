@@ -296,8 +296,7 @@
   (let ((lambda (car form))
 	(values (cdr form)))
     (if (compiled-function-p lambda)
-	(setq lambda (fetch-bytecode lambda)
-              lambda (list 'lambda (compiled-function-arglist lambda)
+	(setq lambda (list 'lambda (compiled-function-arglist lambda)
                            (list 'byte-code
                                  (compiled-function-instructions lambda)
                                  (compiled-function-constants lambda)
