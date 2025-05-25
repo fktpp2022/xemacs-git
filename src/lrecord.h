@@ -290,6 +290,7 @@ enum lrecord_type
   lrecord_type_lcrecord_list,		/* struct lcrecord_list */
   lrecord_type_lstream,			/* struct lstream */
   lrecord_type_marker,			/* Lisp_Marker */
+  lrecord_type_module,                  /* struct Lisp_Module */
   lrecord_type_mswindows_dialog_id,	/* struct mswindows_dialog_id */
   lrecord_type_multiple_value,		/* multiple_value */
   lrecord_type_opaque,			/* Lisp_Opaque */

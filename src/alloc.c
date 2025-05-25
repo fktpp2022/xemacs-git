@@ -4529,8 +4529,7 @@ define_lisp_object (int tipo, const CIbyte *name, Bytecount static_size,
 
   /* Make the load history aware of this to better support unloading
      modules. */
-  LOADHIST_ATTACH (Fcons (Qobject,
-                          lrecord_implementations_table[tipo]->name));
+  LOADHIST_ATTACH (Fcons (Qobject, make_fixnum (tipo)));
 }
 
 #ifdef HAVE_SHLIB

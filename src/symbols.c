@@ -167,7 +167,7 @@ Return t if SYMBOL's function definition is not void.
 /* Return non-zero if SYM's value or function (the current contents of
    which should be passed in as VAL) is constant, i.e. unsettable. */
 
-static int
+static Boolint
 symbol_is_constant (Lisp_Object sym, Lisp_Object val)
 {
   /* #### - I wonder if it would be better to just have a new magic value
@@ -209,20 +209,26 @@ reject_constant_symbols (Lisp_Object sym, Lisp_Object newval, int function_p,
     (function_p ? XSYMBOL (sym)->function
      : fetch_value_maybe_past_magic (sym, follow_past_lisp_magic));
 
-  if (SYMBOL_VALUE_MAGIC_P (val) &&
-      XSYMBOL_VALUE_MAGIC_TYPE (val) == SYMVAL_CONST_SPECIFIER_FORWARD)
-    invalid_change ("Use `set-specifier' to change a specifier's value",
-		    sym);
+  if (SYMBOL_VALUE_MAGIC_P (val))
+    {
+      if (EQ (Qmakunbound, follow_past_lisp_magic) &&
+          !DUMPEDP (XSYMBOL_VALUE_MAGIC (val)))
+        {
+          return;
+        }
 
-  if (
-#ifdef HAVE_SHLIB
-!(unloading_module && UNBOUNDP(newval)) &&
-#endif
-      (symbol_is_constant (sym, val)
+      if (XSYMBOL_VALUE_MAGIC_TYPE (val) == SYMVAL_CONST_SPECIFIER_FORWARD)
+        {
+          invalid_change ("Use `set-specifier' to change a specifier's value",
+                          sym);
+        }
+    }
+
+  if (symbol_is_constant (sym, val)
 #ifdef NEED_TO_HANDLE_21_4_CODE
        || (SYMBOL_IS_KEYWORD (sym) && !EQ (newval, sym))
 #endif
-      ))
+      )
     signal_error_1 (Qsetting_constant,
 		    UNBOUNDP (newval) ? list1 (sym) : list2 (sym, newval));
 }
@@ -1511,46 +1517,24 @@ Set SYMBOL's value to NEWVAL, and return NEWVAL.
     case SYMVAL_CONST_BOOLEAN_FORWARD:
     case SYMVAL_DEFAULT_BUFFER_FORWARD:
     case SYMVAL_DEFAULT_CONSOLE_FORWARD:
-      if (UNBOUNDP (newval))
-	{
-	  gc_checking_assert (C_READONLY (valcontents));
-	  if (!DUMPEDP (XPNTRVAL (valcontents)))
-	    {
-	      /* This is a symbol-value-forward created by a module. Once
-		 SYMBOL is made unbound it is no longer reachable. Since it was
-		 marked c_readonly it will not be automatically freed; we need
-		 to do that explicitly. */
-	      old_free_lcrecord (valcontents);
-	      sym->value = newval;
-	      return newval;
-	    }
-	  else
-	    invalid_change ("Cannot makunbound", symbol);
-	}
-      break;
-
     case SYMVAL_OBJECT_FORWARD:
     case SYMVAL_CONST_OBJECT_FORWARD:
       if (UNBOUNDP (newval))
 	{
-	  gc_checking_assert (!C_READONLY (valcontents));
-	  if (!DUMPEDP (XPNTRVAL (valcontents)))
+	  if (!DUMPEDP (XSYMBOL_VALUE_MAGIC (valcontents)))
 	    {
-	      /* This is a symbol-value-forward-object created by a module. Set
-		 its forwarding pointer to NULL to have the GC ignore it. It is
-		 not C-readonly and so will be garbage collected in the normal
-		 way. */
-	      XSYMBOL_VALUE_FORWARD_OBJECT_FORWARD (valcontents) = NULL;
-	      /* VALCONTENTS will be GCed in the normal way. */
+	      /* A symbol_value_magic created by a module. It is legitimate to
+		 make this unbound at runtime, and the module infrastructure
+		 does the bookkeeping to make sure any pointed to Lisp_Object
+		 is reachable as long as the module is loaded, no danger of
+		 crashing. */
 	      sym->value = newval;
 	      return newval;
 	    }
 	  else
-	    {
-	      /* Error on attempting to make built-in symbols created
-		 with DEFVAR() and friends unbound. */
-	      invalid_change ("Cannot makunbound", symbol);
-	    }
+            {
+              invalid_change ("Cannot makunbound", symbol);
+            }
 	}
       break;
 
@@ -3243,7 +3227,11 @@ defsymbol_massage_name_1 (Lisp_Object *location, const Ascbyte *name,
   if (dump_p)
     staticpro (location);
   else
-    staticpro_nodump (location);
+    {
+      staticpro_nodump (location);
+      LOADHIST_ATTACH (Fcons (Qsymbol,
+                              STORE_VOID_IN_LISP ((void *) location)));
+    }
 }
 
 void
@@ -3279,13 +3267,15 @@ defsymbol_nodump (Lisp_Object *location, const Ascbyte *name)
 					   strlen (name)),
 		       Qnil);
   staticpro_nodump (location);
+  LOADHIST_ATTACH (Fcons (Qsymbol,
+                          STORE_VOID_IN_LISP ((void *) location)));
 }
 
 void
 defsymbol (Lisp_Object *location, const Ascbyte *name)
 {
-  *location = Fintern (make_string_nocopy ((const Ibyte *) name,
-					   strlen (name)),
+  *location = Fintern (make_string ((const Ibyte *) name,
+                                    strlen (name)),
 		       Qnil);
   staticpro (location);
 }
@@ -3373,8 +3363,6 @@ defsubr_1 (const CIbyte *lname, lisp_fn_t subr_fn, short min_args,
   subr->min_args = min_args;
   subr->max_args = max_args;
 
-  LOADHIST_ATTACH (Fcons (Qdefun, sym));
-
   return fun;
 }
 
@@ -3388,6 +3376,9 @@ defsubr (const CIbyte *lname, lisp_fn_t subr_fn,
 
   XSYMBOL (sym)->function = fun;
 
+  /* Can't have this in defsubr_1, since add_module_loadhist_elt() checks
+     whether XSYMBOL_FUNCTION (sym) is a subr.  */
+  LOADHIST_ATTACH (Fcons (Qdefun, sym));
   return sym;
 }
 
@@ -3402,6 +3393,7 @@ defsubr_macro (const CIbyte *lname, lisp_fn_t subr_fn,
 
   XSYMBOL (sym)->function = Fcons (Qmacro, fun);
 
+  LOADHIST_ATTACH (Fcons (Qdefun, sym));
   return sym;
 }
 

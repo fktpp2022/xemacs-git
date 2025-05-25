@@ -3216,7 +3216,6 @@ The following table contains cross-references from each module in XEmacs
 @item @file{select.h} @tab @ref{Modules for Interfacing with X Windows}.
 @item @file{sequence.c} @tab @ref{Basic Lisp Modules}.
 @item @file{sgiplay.c} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{sheap.c} @tab
 @item @file{signal.c} @tab @ref{Low-Level Modules}.
 @item @file{sound.c} @tab @ref{Modules for Interfacing with the Operating System}.
 @item @file{sound.h} @tab
@@ -5052,60 +5051,22 @@ directory using @samp{../work/configure}.  There will be two different
 
 Almost every module contains a @code{syms_of_*()} function and a
 @code{vars_of_*()} function.  The former declares any Lisp primitives
-you have defined and defines any symbols you will be using.  The latter
-declares any global Lisp variables you have added and initializes global
-C variables in the module.  @strong{Important}: There are stringent
-requirements on exactly what can go into these functions.  See the
-comment in @file{emacs.c}.  The reason for this is to avoid obscure
-unwanted interactions during initialization.  If you don't follow these
-rules, you'll be sorry!  If you want to do anything that isn't allowed,
-create a @code{complex_vars_of_*()} function for it.  Doing this is
-tricky, though: you have to make sure your function is called at the
-right time so that all the initialization dependencies work out.
+you have defined and defines any symbols and Lisp object types you will
+be using.  The latter declares any global Lisp variables you have added
+and initializes global C variables in the module.  
+
+The specifics of the separation between these functions was previously
+very important and easy to get wrong, leading to failure of the dump
+process on other systems that would be difficult to predict for the
+programmer at the time of programming on his or her system. The current
+portable dumper @pxref{Dumping} normally means that if you compile,
+dump, and run on your system, you can broadly expect to compile, dump
+and run on other systems without problems.
 
 Declare each function of these kinds in @file{symsinit.h}.  Make sure
 it's called in the appropriate place in @file{emacs.c}.  You never need
 to include @file{symsinit.h} directly, because it is included by
 @file{lisp.h}.
-
-@strong{All global and static variables that are to be modifiable must
-be declared uninitialized.}  This means that you may not use the
-``declare with initializer'' form for these variables, such as @code{int
-some_variable = 0;}.  The reason for this has to do with some kludges
-done during the dumping process: If possible, the initialized data
-segment is re-mapped so that it becomes part of the (unmodifiable) code
-segment in the dumped executable.  This allows this memory to be shared
-among multiple running XEmacs processes.  XEmacs is careful to place as
-much constant data as possible into initialized variables during the
-@file{temacs} phase.
-
-@cindex copy-on-write
-@strong{Please note:} This kludge only works on a few systems nowadays,
-and is rapidly becoming irrelevant because most modern operating systems
-provide @dfn{copy-on-write} semantics.  All data is initially shared
-between processes, and a private copy is automatically made (on a
-page-by-page basis) when a process first attempts to write to a page of
-memory.
-
-Formerly, there was a requirement that static variables not be declared
-inside of functions.  This had to do with another hack along the same
-vein as what was just described: old USG systems put statically-declared
-variables in the initialized data space, so those header files had a
-@code{#define static} declaration. (That way, the data-segment remapping
-described above could still work.) This fails badly on static variables
-inside of functions, which suddenly become automatic variables;
-therefore, you weren't supposed to have any of them.  This awful kludge
-has been removed in XEmacs because
-
-@enumerate
-@item
-almost all of the systems that used this kludge ended up having
-to disable the data-segment remapping anyway;
-@item
-the only systems that didn't were extremely outdated ones;
-@item
-this hack completely messed up inline functions.
-@end enumerate
 
 Here are things to know when you create a new source file:
 
@@ -5118,7 +5079,7 @@ All @file{.c} files should @code{#include <config.h>} first.  Almost all
 Generated header files should be included using the @samp{#include <...>}
 syntax, not the @samp{#include "..."} syntax.  The generated headers are:
 
-@file{config.h sheap-adjust.h paths.h Emacs.ad.h}
+@file{config.h paths.h Emacs.ad.h}
 
 The basic rule is that you should assume builds using @samp{--srcdir}
 and the @samp{#include <...>} syntax needs to be used when the

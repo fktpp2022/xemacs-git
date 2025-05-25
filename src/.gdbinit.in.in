@@ -387,6 +387,9 @@ define pobj
   if $lrecord_type == lrecord_type_emacs_gtk_object
     pptype emacs_gtk_object_data
   else
+  if $lrecord_type == lrecord_type_module
+    pstructtype Lisp_Module
+  else
   if $lrecord_type == lrecord_type_ephemeron
     pstructtype ephemeron
   else
@@ -562,6 +565,7 @@ define pobj
   end
   end
   ## Are we having fun yet??
+  end
   end
   end
   end

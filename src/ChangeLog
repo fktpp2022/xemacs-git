@@ -1,5 +1,73 @@
 2025-05-25  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Fix crashes after unloading modules, by keeping note of those
+	subrs and DEFVAR_() created by each module in a weak list, and
+	setting what had been pointers into the data segment of the
+	unloaded module to values that will not crash XEmacs after
+	unload.
+	To this end, struct Lisp_Module becomes a full, new Lisp_Object;
+	the list of loaded modules becomes just a Lisp list.
+	Revise emodules_load() to use emacs_snprintf() rather than the
+	prone-to-buffer-overruns strcpy(), strcat().
+
+	* .gdbinit.in.in (lrecord_type_module): Add an entry for this.
+	* alloc.c:
+	* alloc.c (define_lisp_object):
+	Change the LOADHIST_ATTACH() here to store the lrecord_type as an
+	integer, avoiding (theoretical) issues with duplicate names.
+
+	* emodules.c:
+	* emodules.c (struct Lisp_Module):
+	* emodules.c (make_module):
+	* emodules.c (find_module):
+	* emodules.c (add_module_loadhist_elt): New.
+	* emodules.c (static Fixnum deadbeef_constant): New.
+	* emodules.c (static Boolint deadbeef_boolint): New.
+	* emodules.c (attempt_module_delete):
+	* emodules.c (module_load_unwind):
+	* emodules.c (emodules_load):
+	* emodules.c (emodules_doc):
+	* emodules.c (Fload_module):
+	* emodules.c (Funload_module):
+	* emodules.c (Flist_modules):
+	* emodules.c (syms_of_module):
+	* emodules.c (vars_of_module):
+	Extensive changes as above. Reformat comments to fit with the rest
+	of the C code.
+
+	* lisp.h:
+	Make Qfile_system_ignore_case_p available here, now it is used in
+	emodules.c.
+	Remove unloading_module, no longer used.
+	Declare emodules_depth, add_module_loadhist_elt() here, now used
+	in LOADHIST_ATTACH().
+	* lisp.h (LOADHIST_ATTACH):
+	Call add_module_loadhist_elt() if currently loading a module.
+	* lrecord.h (enum lrecord_type):
+	Add an entry for lrecord_type_module.
+	* symbols.c (symbol_is_constant):
+	Change the return type of this to be Boolint.
+	* symbols.c (reject_constant_symbols):
+	Revise this to avoid rejection of non-dumped SYMBOL_VALUE_MAGIC
+	objects, a simpler way of allowing making variables from modules
+	unbound while rejecting dumped SYMBOL_VALUE_MAGIC objects.
+	* symbols.c (Fset):
+	Delegate freeing the lcrecords to emodules.c.
+	* symbols.c (defsymbol_massage_name_1):
+	Do a LOADHIST_ATTACH if calling this function after dumping, which
+	indicates we are being called from a module.
+	* symbols.c (defsymbol_nodump):
+	Ditto.
+	* symbols.c (defsymbol):
+	No longer call make_string_nocopy() here, that added no value.
+	* symbols.c (defsubr_1):
+	* symbols.c (defsubr):
+	Move LOADHIST_ATTACH to this and to the following from
+	defsubr_1().
+	* symbols.c (defsubr_macro):
+
+2025-05-25  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* emodules.c (Qmodule_string_coding_system): New variable, a
 	coding system reflecting the encoding of symbol names and
 	docstrings in the module currently being loaded.

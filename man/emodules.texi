@@ -38,6 +38,7 @@
 This file documents the module loading technology of @value{emacs}.
 
 Copyright @copyright{} 1998 J. Kean Johnston.
+Copyright @copyright{} 2025 Free Software Foundation.
 
 Permission is granted to make and distribute verbatim copies of this
 manual provided the copyright notice and this permission notice are
@@ -45,10 +46,10 @@ preserved on all copies.
 
 This file is part of XEmacs.
 
-XEmacs is free software; you can redistribute it and/or modify it
+XEmacs is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
-later version.
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
 
 XEmacs is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -56,9 +57,7 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with XEmacs; see the file COPYING.  If not, write to
-the Free Software Foundation, Inc., 51 Franklin Street - Fifth Floor,
-Boston, MA 02110-1301, USA.
+along with XEmacs.  If not, see <http://www.gnu.org/licenses/>.
 @end ifinfo
 
 @c Combine indices.
@@ -83,15 +82,15 @@ Boston, MA 02110-1301, USA.
 Copyright @copyright{} 1998 J. Kean Johnston. @*
 
 @sp 2
-Version 1.0 @*
-September, 1998.@*
+Version 2.0 @*
+April, 2025.@*
 
 This file is part of XEmacs.
 
-XEmacs is free software; you can redistribute it and/or modify it
+XEmacs is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
-later version.
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
 
 XEmacs is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -99,15 +98,13 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with XEmacs; see the file COPYING.  If not, write to
-the Free Software Foundation, Inc., 51 Franklin Street - Fifth Floor,
-Boston, MA 02110-1301, USA.
+along with XEmacs.  If not, see <http://www.gnu.org/licenses/>.
 @end titlepage
 @page
 
 @ifinfo
 @node Top, Introduction, (dir), (dir)
-This Info file contains v1.0 of the @value{emacs} dynamically loadable
+This Info file contains v2.0 of the @value{emacs} dynamically loadable
 module support documentation.
 @menu
 * Introduction::                Introducing Emacs Modules
@@ -148,40 +145,48 @@ Defining Functions
 
   @value{emacs} is a powerful, extensible editor.  The traditional way of
 extending the functionality of @value{emacs} is to use its built-in Lisp
-language (called Emacs Lisp, or Elisp for short).  However, while Elisp
-is a full programming language and capable of extending @value{emacs} in more
-ways than you can imagine, it does have its short-comings.
+language (called Emacs Lisp).  However, while Emacs Lisp is a full
+programming language and capable of extending @value{emacs} in more ways
+than you can imagine, it does have its disadvantages.
 
-  Firstly, Elisp is an interpreted language, and this has serious speed
-implications.  Like all other interpreted languages (like Java), Elisp
-is often suitable only for certain types of application or extension.
-So although Elisp is a general purpose language, and very high level,
-there are times when it is desirable to descend to a lower level compiled
-language for speed purposes.
+  Firstly, Emacs Lisp has run-time type information, bounds checking on array
+accesses, circularity checking on processing of Lisp lists, garbage collection
+of allocated memory, and a well-defined and relatively user-friendly implicit
+conversion between external text encodings and its internal encoding. None of
+these features exist in C, and all of them have a necessary run-time cost.
 
-  Secondly, Elisp (or Lisp in general) is not a very common language any
-more, except for certain circles in the computer industry.  C is a far
-more commonly known language, and because it is compiled, more suited to
-a wider range of applications, especially those that require low level
-access to a system or need to be as quick as possible.
+  The XEmacs implementation of Emacs Lisp uses a bytecode interpreter, which 
+is necessarily slower than native code, given it is stack-oriented and has
+limited use of registers. However, Andrea Corallo demonstrated in 2021 when he
+implemented native compilation of Emacs Lisp on GNU Emacs that the speed
+advantage of compilation of Emacs Lisp to native code over bytecode is not
+that pronounced, almost certainly for the reasons listed above.  C (or in
+theory Rust) will always have a speed advantage over Emacs Lisp.
+
+  Secondly, Emacs Lisp (or Lisp in general) is not a very common
+programming language, except for limited circles in the computer industry.  C,
+while it is not a popular as it once was, is a more commonly known language,
+and there are many other languages that explicitly chose to stay close to C in
+their syntax and even library functions, which means the barrier to entry for
+C programming is a little lower than for Lisp programming.
 
 @cindex Emacs Modules
 @cindex DLL
 @cindex DSO
 @cindex shared object
-  This manual describes a new way of extending @value{emacs}, by using
-dynamically loadable modules (also known as dynamically loadable
-libraries (DLLs), dynamic shared objects (DSOs) or just simply shared
-objects), which can be written in C or C++ and loaded into @value{emacs}
-at any time.  I sometimes refer to this technology as @dfn{CEmacs},
-which is short for @dfn{C Extensible Emacs}.
+  This manual describes a way of extending @value{emacs}, by using
+dynamically loadable modules (also known as dynamically loadable libraries
+(DLLs), dynamic shared objects (DSOs) or just simply shared objects), which
+can be written in C or C++ and loaded into @value{emacs} at any time.  I
+sometimes refer to this technology as @dfn{CEmacs}, which is short for @dfn{C
+Extensible Emacs}.
 
   @value{emacs} modules are configured into and installed with @value{emacs} by
 default on all systems that support loading of shared objects.  From a
-users perspective, the internals of @value{emacs} modules are irrelevant.
+user's perspective, the internals of @value{emacs} modules are irrelevant.
 All a user will ever need to know about shared objects is the name of
 the shared object when they want to load a given module.  From a
-developers perspective though, a lot more is provided.
+developer's perspective though, a lot more is provided.
 
 @itemize @bullet
 @item
@@ -214,12 +219,12 @@ the rules for C modules are discussed there.
 @item
 @cindex samples
   Part of the @value{emacs} distribution is a set of sample modules.  These are
-not installed when @value{emacs} is, but remain in the @value{emacs} source tree.
-These modules live in the directory @file{modules}, which is a
+not installed when @value{emacs} is, but remain in the @value{emacs} source
+tree.  These modules live in the directory @file{modules}, which is a
 sub-directory of the main @value{emacs} source code directory.  Please look at
-the samples carefully, and maybe even use them as a basis for making
-your own modules.  Most of the concepts required for writing extension
-modules are covered in the samples.
+the samples carefully, and maybe even use them as a basis for making your own
+modules.  Most of the concepts required for writing extension modules are
+covered in the samples.
 
 @item
 @cindex documentation
@@ -232,13 +237,12 @@ contact the author(s).
 @end itemize
 
   The rest of this document will discuss the actual mechanics of
-@value{emacs} modules and work through several of the samples.  Please be
-sure that you have read the @value{emacs} Internals Manual and understand
-everything in it.  The concepts there apply to all modules.  This
-document may have some overlap, but it is the internals manual which
-should be considered the final authority.  It will also help a great
-deal to look at the actual @value{emacs} source code to see how things are
-done.
+@value{emacs} modules and work through several of the samples.  Please have
+the @value{emacs} Internals Manual close to hand and check it regularly.  The
+concepts there apply to all modules.  This document may have some overlap, but
+it is the Internals Manual which should be considered the final authority.  It
+will also help a great deal to look at the actual @value{emacs} source code to
+see how things are done.
 
 @node Anatomy of a Module, Using ellcc, Introduction, Top
 @chapter Anatomy of a Module
@@ -320,39 +324,35 @@ manipulating @value{emacs} frames.
 
 Every module requires several initialization functions.  It is the
 responsibility of these functions to load in any dependent modules, and to
-declare all variables and functions which are to be made visible to the
-@value{emacs} Lisp reader.  Each of these functions performs a very specific
-task, and they are executed in the correct order by @value{emacs}.  All of
-these functions are @code{void} functions which take no arguments.
+declare all variables, functions and object types which are to be made visible
+to the @value{emacs} Lisp reader.  Each of these functions performs a very
+specific task, and they are executed in the correct order by @value{emacs}.
+All of these functions are @code{void} functions which take no arguments.
+
 Here, briefly, are the required module functions.  Note that the actual
-function names do not end with the string @code{_module}, but rather
-they end with the abbreviated module name by which the module is known.
-More on the module name and its importance later.  Just bear in mind
-that the text @code{_module} in the functions below is simply a
-place-holder, not an actual function name.
+function names do not end with the string @code{_module}, but rather they end
+with the abbreviated module name by which the module is known.  More on the
+module name and its importance later.  Just bear in mind that the text
+@code{_module} in the functions below is simply a place-holder, not an actual
+function name.
 
 @table @code
 @item syms_of_module
 @findex syms_of_module
-This required function is responsible for introducing to the Lisp reader
-all functions that you have defined in your module using
-@code{DEFUN()}.  Note that @emph{only} functions are declared here, using
-the @code{DEFSUBR()} macro.  No variables are declared.
+This required function is responsible for introducing to @value{emacs} all
+Lisp-visible functions that you have defined in your module using
+@code{DEFUN()}, any symbols you will be using using @code{DEFSYM}, and any
+object implementations you provide using some variant of
+@code{DEFINE_NODUMP_.*_LISP_OBJECT}.
 
 @item vars_of_module
 @findex vars_of_module
 This required function contains calls to macros such as
 @code{DEFVAR_LISP()}, @code{DEFVAR_BOOL()} etc, and its purpose is to
 declare and initialize all and any variables that your module defines.
-They syntax for declaring variables is identical to the syntax used for
-all internal @value{emacs} source code.  If the module is intended to be
-usable statically linked into XEmacs, the actions of this function are
-severely restricted.  @xref{General Coding Rules,,,internals,
-@value{emacs} Internals Manual}.  Also see the comments in
-@file{src/emacs.c} (@code{main_1}).  Modules which perform
-initializations not permitted by these rules will probably work, but
-dual-use (dynamic loading and static linking) modules will require very
-careful, and possibly fragile, coding.
+
+The syntax for declaring variables is identical to that used for
+all internal @value{emacs} variables.
 
 @item modules_of_module
 @findex modules_of_module
@@ -361,6 +361,21 @@ module depends on.  The @value{emacs} module loading code makes sure that the
 same module is not loaded twice, so several modules can safely call the
 module load function for the same module.  Only one copy of each module
 (at a given version) will ever be loaded.
+
+@item unload_module
+@findex unload_module
+This optional function is called before @value{emacs} attempts to unload
+the module, generally by means of the Lisp function @code{unload-module}
+and ultimately from @code{unload-feature}. This is not as useful as you
+one would think, since it is not guaranteed that module unloading will
+succeed (@code{dlclose()} may fail, in which case the module remains
+around).
+
+Much of the work that previously was done in @code{unload_module} is now
+done automatically. In particular there is no longer any need to
+explicitly call @code{unstaticpro_nodump()} on symbols made available to
+C with @code{DEFSYM} or to call @code{UNDEF_MODULE_LISP_OBJECT()} on
+object type created, and this is only done if @code{dlclose()} succeeds.
 
 @item docs_of_module
 @findex docs_of_module
@@ -423,6 +438,14 @@ This is a string which describes the module, and can contain spaces or
 other special characters.  It is used solely for descriptive purposes,
 and does not affect the loading of the module.  The value is set by the
 @code{--mod-title} argument to @code{ellcc}.
+
+@item emodule_coding
+This is a string describing the name of a coding system. @xref{Coding
+Systems,,,lispref,XEmacs Lisp Reference Manual}. This coding system is
+used to decode symbol names (including the names of functions and variables),
+and docstrings.  It should automatically by set by @code{ellcc} based on the
+encoding of the module source file, but is currently explicitly
+``no-conversion''. This will change.
 @end table
 
 @node Loading other Modules,  , Required Variables, Anatomy of a Module

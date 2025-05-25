@@ -1,6 +1,7 @@
 /* emodules.c - Support routines for dynamic module loading
-(C) Copyright 1998, 1999 J. Kean Johnston. All rights reserved.
-(C) Copyright 2010 Ben Wing.
+   (C) Copyright 1998, 1999 J. Kean Johnston. All rights reserved.
+   (C) Copyright 2010 Ben Wing.
+   (C) Copyright 2025 Free Software Foundation.
 
 This file is part of XEmacs.
 
@@ -20,108 +21,719 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 /* This file has been Mule-ized, Ben Wing, 1-26-10. */
 
 #include "emodules.h"
+#include "backtrace.h"
 #include "sysdll.h"
 #ifdef HAVE_LTDL
 #include <ltdl.h>
 #endif
 
-/* Load path */
-static Lisp_Object Vmodule_load_path;
-
-/* Module lFile extensions */
-static Lisp_Object Vmodule_extensions;
-
-/* Weak list of known file names, so we don't have to duplicate them when
-   dealing with multiple symbols with the same file name. */
-static Lisp_Object Vknown_file_names;
+static Lisp_Object Vmodule_load_path, Vmodule_extensions;
 
 #ifdef HAVE_SHLIB
 
-/* CE-Emacs version number */
+/* Weak list of known file names, so we don't have to duplicate them when
+   dealing with multiple symbols with the same file name. */
+static Lisp_Object Vknown_module_file_names;
+
+/* Module infrastructure version number */
 Lisp_Object Vmodule_version;
 
 /* Do we do our work quietly? */
 Boolint load_modules_quietly;
 
-/* Set this while unloading a module.  This should NOT be made set by users,
-   as it allows the unbinding of symbol-value-forward variables. */
-Boolint unloading_module;
+Lisp_Object Qdll_error, Qmodule, Qmodule_string_coding_system;
+static Lisp_Object Vloaded_modules, Vmodule_tag;
 
-Lisp_Object Qdll_error;
-Lisp_Object Qmodule, Qunload_module, module_tag;
-Lisp_Object Qmodule_string_coding_system;
+int emodules_depth;
 
-typedef struct _emodules_list
-{
-  int used;             /* Is this slot used?                              */
-  Ibyte *soname;        /* Name of the shared object loaded (full path)    */
-  Ibyte *modname;       /* The name of the module                          */
-  Ibyte *modver;        /* The module version string                       */
-  Ibyte *modtitle;      /* How the module announces itself                 */
-  void (*unload) (void);/* Module cleanup function to run before unloading */
-  dll_handle dlhandle;  /* Dynamic lib handle                              */
-} emodules_list;
-
-static int emodules_depth;
+/* Handle to the module currently being loaded, before a module object is
+   created for it. */
 static dll_handle dlhandle;
-static emodules_list *modules;
-static int modnum;
 
-static int find_make_module (Lisp_Object mod, const Ibyte *name,
-			     const Ibyte *ver, int make_or_find);
-static Lisp_Object module_load_unwind (Lisp_Object);
-static void attempt_module_delete (int mod);
+struct Lisp_Module
+{
+  NORMAL_LISP_OBJECT_HEADER header;
+  /* Full path to the the shared object loaded. */
+  Lisp_Object soname;
+  /* The name of the module */
+  Lisp_Object modname;
+  /* The module version string */
+  Lisp_Object modver;
+  /* How the module announces itself */
+  Lisp_Object modtitle;
+  /* Module cleanup function to run before unloading. */
+  void (*unload) (void);
+  /* Details of Lisp objects that need adjustment after unload.
 
+     In particular subrs where the SUBR_FN needs to be redirected to give an
+     error rather than crash on attempting to call it;
+     symbol_value_forward_objects where VALUE needs to be set NULL so that GC
+     doesn't attempt to dereference a pointer into the data segment of
+     unloaded modules; and fixnums reflecting new lisp objects types created
+     (new entries in lrecord_implementations_table). This is a key-assoc weak
+     list. */
+  Lisp_Object lisp_cleanup_info;
+  /* Dynamic lib handle for this module. */
+  dll_handle dlhandle;
+  /* Either 1, indicating the module was successfully loaded, or a number
+     greater than 1 (indicating the module was loaded as part of a chain, and
+     may yet be unloaded if loading that chain fails). */
+  int used;
+};
+
+DECLARE_LISP_OBJECT (module, struct Lisp_Module);
+#define XMODULE(x) XRECORD (x, module, struct Lisp_Module)
+#define wrap_module(p) wrap_record (p, module)
+#define MODULEP(x) RECORDP (x, module)
+#define CHECK_MODULE(x) CHECK_RECORD (x, module)
+#define CONCHECK_MODULE(x) CONCHECK_RECORD (x, module)
+
+static const struct memory_description module_description[] = {
+  { XD_LISP_OBJECT, offsetof (struct Lisp_Module, soname) },
+  { XD_LISP_OBJECT, offsetof (struct Lisp_Module, modname) },
+  { XD_LISP_OBJECT, offsetof (struct Lisp_Module, modver) },
+  { XD_LISP_OBJECT, offsetof (struct Lisp_Module, modtitle) },
+  { XD_FUNCTION_POINTER, offsetof (struct Lisp_Module, unload) },
+  { XD_LISP_OBJECT, offsetof (struct Lisp_Module, lisp_cleanup_info) },
+  { XD_END }
+};
+
+static Lisp_Object
+make_module (Lisp_Object soname, Lisp_Object modname,
+              Lisp_Object modver, Lisp_Object modtitle,
+              void (*unload) (void), int used, dll_handle dlhandle)
+{
+  Lisp_Object result = ALLOC_NORMAL_LISP_OBJECT (module);
+  struct Lisp_Module *eresult = XMODULE (result);
+
+  eresult->soname = soname;
+  eresult->modname = modname;
+  eresult->modver = modver;
+  eresult->modtitle = modtitle;
+  eresult->lisp_cleanup_info = make_weak_list (WEAK_LIST_KEY_ASSOC);
+  eresult->unload = unload;
+  eresult->used = used;
+  eresult->dlhandle = dlhandle;
+
+  return result;
+}
+
+static Lisp_Object
+find_module (Lisp_Object soname, Lisp_Object name, Lisp_Object ver)
+{
+  Boolint ignore_case_p = !NILP (call1 (Qfile_system_ignore_case_p, soname));
+
+  LIST_LOOP_2 (elt, Vloaded_modules)
+    {
+      if (internal_equal (XMODULE (elt)->soname, soname, ignore_case_p))
+        {
+          if (!NILP (name) && !internal_equal (XMODULE (elt)->modname,
+                                               name, 0))
+            {
+              continue;
+            }
+          if (!NILP (ver) && !internal_equal (XMODULE (elt)->modver,
+                                              ver, 0))
+            {
+              continue;
+            }
+
+          return elt; /* Found a match */
+        }
+    }
+  return Qnil;
+}
+
+/* Store details about Lisp-visible entities that will need to be unitialized
+   on #'unload-module. This is called from within LOADHIST_ATTACH() at the
+   point the entry is added to Vcurrent_load_list, which pre-empts Lisp
+   corrupting it before we get a chance to save this info. */
+void
+add_module_loadhist_elt (Lisp_Object elt)
+{
+  Lisp_Object emodule = XCAR (Vloaded_modules);
+  Lisp_Object weak_list = XMODULE (emodule)->lisp_cleanup_info;
+
+  if (CONSP (elt) && EQ (XCAR (elt), Qdefun))
+    {
+      if (SYMBOLP (XCDR (elt)) && SUBRP (XSYMBOL_FUNCTION (XCDR (elt))))
+	{
+	  /* Appropriate for subrs to be completely weak elements (the car and
+	     the cdr of the entries are identical), if the associated symbol
+	     has a #'fmakunbound done there's nothing that needs to be kept
+	     around to prevent XEmacs crashing.  */
+	  XWEAK_LIST_LIST (weak_list)
+	    = Fcons (Fcons (XSYMBOL_FUNCTION (XCDR (elt)),
+			    XSYMBOL_FUNCTION (XCDR (elt))),
+		     XWEAK_LIST_LIST (weak_list));
+	}
+      else if (SYMBOLP (XCDR (elt)) && CONSP (XSYMBOL_FUNCTION (XCDR (elt)))
+               && EQ (Qmacro, XCAR (XSYMBOL_FUNCTION (XCDR (elt))))
+               && SUBRP (XCDR (XSYMBOL_FUNCTION (XCDR (elt)))))
+        {
+	  XWEAK_LIST_LIST (weak_list)
+	    = Fcons (Fcons (XCDR (XSYMBOL_FUNCTION (XCDR (elt))),
+			    XCDR (XSYMBOL_FUNCTION (XCDR (elt)))),
+		     XWEAK_LIST_LIST (weak_list));
+        }
+    }
+  else if (CONSP (elt) && EQ (XCAR (elt), Qobject))
+    {
+      structure_checking_assert (FIXNUMP (XCDR (elt)));
+
+      /* For object types created (new entries in
+	 lrecord_implementations_table), the weak list entry should not be
+	 deleted until the module is unloaded. Ensure it is reachable by using
+	 Qobject as the car. */
+      XWEAK_LIST_LIST (weak_list) = Fcons (elt, XWEAK_LIST_LIST (weak_list));
+
+      /* And remove this entry from Vcurrent_load_list, avoid confusing
+	 loadhist.el. */
+      structure_checking_assert (EQ (elt, Fcar (Vcurrent_load_list)));
+      Vcurrent_load_list = XCDR (Vcurrent_load_list);
+    }
+  else if (CONSP (elt) && EQ (XCAR (elt), Qsymbol))
+    {
+      structure_checking_assert (FIXNUMP (XCDR (elt)));
+
+      /* Similar reasoning for defsymbol_no_dump(). */
+      XWEAK_LIST_LIST (weak_list) = Fcons (elt, XWEAK_LIST_LIST (weak_list));
+      structure_checking_assert (EQ (elt, Fcar (Vcurrent_load_list)));
+      Vcurrent_load_list = XCDR (Vcurrent_load_list);
+    }
+  else if (SYMBOLP (elt))
+    {
+      /* This is an entry corresponding to DEFVAR_LISP(), DEFVAR_BOOL(). */
+      Lisp_Object val = XSYMBOL_VALUE (elt);
+      if (SYMBOL_VALUE_FORWARD_OBJECTP (val))
+	{
+	  /* The weak list element needs to be reachable for as long as this
+	     module is reachable, set EMODULE as the car of the element.
+	     Leave the entry in Vcurrent_load_list. */
+	  XWEAK_LIST_LIST (weak_list)
+	    = Fcons (Fcons (emodule, XSYMBOL_VALUE (elt)),
+		     XWEAK_LIST_LIST (weak_list));
+	}
+      else if (SYMBOL_VALUE_FORWARD_FIXNUMP (val) ||
+	       SYMBOL_VALUE_FORWARD_BOOLINTP (val))
+	{
+	  /* Entry can be fully weak; our post-unload processing is to ensure
+	     that a reachable SYMBOL_VALUE_FORWARD_{FIXNUM,BOOLINT} doesn't
+	     attempt to read or write unloaded data segment entries. */
+	  XWEAK_LIST_LIST (weak_list)
+	    = Fcons (Fcons (emodule, XSYMBOL_VALUE (elt)),
+		     XWEAK_LIST_LIST (weak_list));
+	}
+    }
+}
+
+static Fixnum deadbeef_constant = 0xDEADBEEF;
+static Boolint deadbeef_boolint = 0;
+
+static Lisp_Object
+unloaded_subr_error (void)
+{
+  signal_error (Qinvalid_function,
+                "Attempt to call function from an unloaded module",
+                *(backtrace_list->function));
+  RETURN_NOT_REACHED (Qnil);
+}
+
+static void
+attempt_module_delete (Lisp_Object mod)
+{
+  if (XMODULE (mod)->unload != NULL)
+    {
+      XMODULE (mod)->unload();
+    }
+
+  if (dll_close (XMODULE (mod)->dlhandle) == 0)
+    {
+      ALIST_LOOP_3 (elt_car, elt_cdr,
+                    XWEAK_LIST_LIST (XMODULE (mod)->lisp_cleanup_info))
+        {
+          if (SUBRP (elt_cdr))
+            {
+              XSUBR (elt_cdr)->subr_fn = &unloaded_subr_error;
+              assert (EQ (elt_car, elt_cdr));
+            }
+          else if (SYMBOL_VALUE_FORWARD_OBJECTP (elt_cdr))
+            {
+              XSYMBOL_VALUE_FORWARD_OBJECT_FORWARD (elt_cdr) = &Qnil;
+              XSYMBOL_VALUE_FORWARD_OBJECT_MAGICFUN (elt_cdr) = NULL;
+              XSYMBOL_VALUE_MAGIC_TYPE (elt_cdr)
+                = SYMVAL_CONST_OBJECT_FORWARD;
+              assert (EQ (elt_car, mod));
+            }
+          else if (SYMBOL_VALUE_FORWARD_FIXNUMP (elt_cdr))
+            {
+              XSYMBOL_VALUE_FORWARD_FIXNUM_FORWARD (elt_cdr)
+                = &deadbeef_constant;
+              XSYMBOL_VALUE_FORWARD_FIXNUM_MAGICFUN (elt_cdr) = NULL;
+              XSYMBOL_VALUE_MAGIC_TYPE (elt_cdr)
+                = SYMVAL_CONST_FIXNUM_FORWARD;
+              CLEAR_C_READONLY_RECORD_HEADER
+                (&(XSYMBOL_VALUE_FORWARD_FIXNUM (elt_cdr)->magic.header));
+              assert (EQ (elt_car, elt_cdr));
+            }
+          else if (SYMBOL_VALUE_FORWARD_BOOLINTP (elt_cdr))
+            {
+              XSYMBOL_VALUE_FORWARD_BOOLINT_FORWARD (elt_cdr)
+                = &deadbeef_boolint;
+              XSYMBOL_VALUE_FORWARD_BOOLINT_MAGICFUN (elt_cdr) = NULL;
+              XSYMBOL_VALUE_MAGIC_TYPE (elt_cdr)
+                = SYMVAL_CONST_BOOLEAN_FORWARD;
+              CLEAR_C_READONLY_RECORD_HEADER
+                (&(XSYMBOL_VALUE_FORWARD_BOOLINT (elt_cdr)->magic.header));
+              assert (EQ (elt_car, elt_cdr));
+            }
+          else if (EQ (Qobject, elt_car))
+            {
+              undef_lisp_object (XFIXNUM (elt_cdr));
+            }
+          else if (EQ (Qsymbol, elt_car))
+            {
+              unstaticpro_nodump ((Lisp_Object *)
+                                  GET_VOID_FROM_LISP (elt_cdr));
+            }
+          else
+            {
+              assert (0);
+            }
+        }
+      Vloaded_modules = delq_no_quit (mod, Vloaded_modules);
+    }
+  else
+    {
+      XMODULE (mod)->used = 1; /* We couldn't delete it - it stays */
+    }
+}
+
+static Lisp_Object
+module_load_unwind (Lisp_Object upto)
+{
+  Lisp_Object tail, nexttail;
+
+  /* Close off the current handle if it is open. */
+  if (dlhandle != 0)
+    {
+      dll_close (dlhandle);
+      dlhandle = 0;
+    }
+
+  /* Here we need to go through and dlclose() those modules that were loaded
+     as part of this load chain, in order of most recently to least recently
+     loaded. The elements of Vloaded_modules are removed from Vloaded_modules
+     if dll_close () succeeds, within attempt_module_delete(); otherwise they
+     stay. */
+  LIST_LOOP_DELETING (tail, nexttail, Vloaded_modules)
+    {
+      if (EQ (tail, upto))
+        {
+          break;
+        }
+
+      if (XMODULE (XCAR (tail))->used > 1)
+        {
+          attempt_module_delete (XCAR (tail));
+        }
+    }
+
+  emodules_depth = 0;
+
+  return Qnil;
+}
+
+static Lisp_Object
+module_load_unwind_coding (Lisp_Object old_alias)
+{
+  Fdefine_coding_system_alias (Qmodule_string_coding_system, old_alias);
+  return Qnil;
+}
+
+/* Do the actual grunt-work of loading in a module. We first try and dlopen()
+   the module. If that fails, we have an error and we bail out immediately. If
+   the dlopen() succeeds, we need to check for the existence of certain
+   special symbols.
+
+   All modules will have complete access to the variables and functions
+   defined within XEmacs itself.  It is up to the module to declare any
+   variables or functions it uses, however.  Modules will also have access to
+   other functions and variables in other loaded modules, unless they are
+   defined as STATIC.
+
+   We need to be very careful with how we load modules. If we encounter an
+   error along the way, we need to back out completely to the point at which
+   the user started. Since we can be called recursively, we need to take care
+   with marking modules as loaded. When we first start loading modules, we set
+   the counter to zero. As we enter the function each time, we increment the
+   counter, and before we leave we decrement it. When we get back down to 0,
+   we know we are at the end of the chain and we can mark all the modules in
+   the list as loaded.
+
+   When we signal an error, we need to be sure to unwind all modules loaded
+   thus far (but only for this module chain). It is assumed that if any
+   modules in a chain fail, then they all do. This is logical, considering
+   that the only time we recurse is when we have dependent modules. So in the
+   error handler we take great care to close off the module chain before we
+   call "error" and let the Fmodule_load unwind_protect() function handle the
+   cleaning up. */
+void
+emodules_load (const Ibyte *module, const Ibyte *modname,
+	       const Ibyte *modver)
+{
+  Lisp_Object old_load_list = Qnil, mname = Qnil, mver = Qnil, mtitle;
+  Lisp_Object foundname, filename, emodule, coding;
+  const Extbyte **f;
+  const long *ellcc_rev;
+  Ibyte *symname;
+  Bytecount symname_len;
+  void (*modload)(void) = 0;
+  void (*modsyms)(void) = 0;
+  void (*modvars)(void) = 0;
+  void (*moddocs)(void) = 0;
+  void (*modunld)(void) = 0;
+  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
+  int speccount = specpdl_depth();
+
+  foundname = Qnil;
+
+  emodules_depth++;
+  dlhandle = 0;
+
+  if (module == NULL || module[0] == '\0')
+    invalid_argument ("Empty module name", Qunbound);
+
+  filename = build_istring (module);
+  GCPRO5 (filename, foundname, old_load_list, mname, mver);
+  if (locate_file (Vmodule_load_path, filename, Vmodule_extensions,
+		   &foundname, 0) < 0)
+    {
+      signal_error (Qfile_error, "Cannot open dynamic module", filename);
+    }
+
+  dlhandle = dll_open (foundname);
+  if (dlhandle == NULL)
+    {
+      signal_error_2 (Qdll_error, "Opening dynamic module", foundname,
+                      dll_error ());
+    }
+
+  symname_len = XSTRING_LENGTH (foundname) + sizeof ("modules_of_")
+    + sizeof ("emodule_version");
+  symname = alloca_ibytes (symname_len);
+  emacs_snprintf (symname, symname_len, "emodule_coding");
+
+  f = (const Extbyte **) dll_variable (dlhandle, symname);
+  if (f == NULL || *f == NULL || **f == '\0')
+    {
+    missing_symbol:
+      signal_error (Qdll_error, "Invalid dynamic module: Missing symbol",
+                    build_istring (symname));
+#define MISSING_SYMBOL() goto missing_symbol
+    }
+
+  CHECK_ASCTEXT (*f);
+  coding
+    = find_coding_system_for_text_file (intern ((const CIbyte *) *f), 0);
+  record_unwind_protect (module_load_unwind_coding,
+                         Ffind_coding_system (Qmodule_string_coding_system));
+  Fdefine_coding_system_alias (Qmodule_string_coding_system,
+                               Fget_coding_system (coding));
+
+  emacs_snprintf (symname, symname_len, "emodule_name");
+  f = (const Extbyte **) dll_variable (dlhandle, symname);
+  if (f == NULL || *f == NULL || **f == '\0')
+    {
+      MISSING_SYMBOL();
+    }
+
+  mname = build_extstring (*f, Qmodule_string_coding_system);
+  if (modname && modname[0]
+      && qxestrcmp (modname, XSTRING_DATA (mname)))
+    {
+      signal_error (Qdll_error, "Module name mismatch", mname);
+    }
+
+  if (XSTRING_LENGTH (mname) > XSTRING_LENGTH (foundname))
+    {
+      symname_len += XSTRING_LENGTH (mname) - XSTRING_LENGTH (foundname);
+      symname = alloca_ibytes (symname_len);
+    }
+
+  emacs_snprintf (symname, symname_len, "emodule_compiler");
+  ellcc_rev = (const long *) dll_variable (dlhandle, symname);
+  if (ellcc_rev == NULL || *ellcc_rev <= 0L)
+    {
+      MISSING_SYMBOL();
+    }
+
+  if (*ellcc_rev > EMODULES_REVISION)
+    {
+      signal_ferror (Qdll_error,
+                     "Invalid dynamic module: Unsupported version `%ld(%ld)'",
+                     *ellcc_rev, EMODULES_REVISION);
+    }
+
+  emacs_snprintf (symname, symname_len, "emodule_version");
+  f = (const Extbyte **) dll_variable (dlhandle, symname);
+  if (f == NULL || *f == NULL)
+    {
+      MISSING_SYMBOL();
+    }
+
+  mver = build_extstring (*f, Qmodule_string_coding_system);
+  if (modver && modver[0] && qxestrcmp (modver, XSTRING_DATA (mver)))
+    {
+      signal_error (Qdll_error, "Module version mismatch", mver);
+    }
+
+  emacs_snprintf (symname, symname_len, "emodule_title");
+  f = (const Extbyte **) dll_variable (dlhandle, symname);
+  if (f == NULL || *f == NULL)
+    {
+      MISSING_SYMBOL();
+    }
+
+  mtitle = build_extstring (*f, Qmodule_string_coding_system);
+
+  emacs_snprintf (symname, symname_len, "modules_of_%s",
+                  XSTRING_DATA (mname));
+  modload = (void (*)(void)) dll_function (dlhandle, symname);
+  /* modload is optional. If the module doesn't require other modules it can
+     be left out. */
+
+  emacs_snprintf (symname, symname_len, "syms_of_%s",
+                  XSTRING_DATA (mname));
+  modsyms = (void (*)(void)) dll_function (dlhandle, symname);
+  if (modsyms == NULL)
+    {
+      MISSING_SYMBOL();
+    }
+
+  emacs_snprintf (symname, symname_len, "vars_of_%s", XSTRING_DATA (mname));
+  modvars = (void (*)(void)) dll_function (dlhandle, symname);
+  if (modvars == NULL)
+    {
+      MISSING_SYMBOL();
+    }
+
+  emacs_snprintf (symname, symname_len, "docs_of_%s", XSTRING_DATA (mname));
+  moddocs = (void (*)(void)) dll_function (dlhandle, symname);
+  if (moddocs == NULL)
+    {
+      MISSING_SYMBOL();
+    }
+
+  /* Now look for the optional unload function. */
+  emacs_snprintf (symname, symname_len, "unload_%s", XSTRING_DATA (mname));
+  modunld = (void (*)(void)) dll_function (dlhandle, symname);
+
+  /* Check if this module (with the specified file name, module name and
+     module version) is already loaded. If so, there is nothing further to
+     do. */
+  emodule = find_module (foundname, mname, mver);
+  if (!NILP (emodule))
+  {
+    emodules_depth--;
+    dll_close (dlhandle);
+    dlhandle = 0;  /* Zero this out before module_load_unwind runs */
+    return;
+  }
+
+  if (!load_modules_quietly)
+    message ("Loading %s v%s (%s)", XSTRING_DATA (mname),
+             XSTRING_DATA (mver), XSTRING_DATA (mtitle));
+
+  /* We have passed the basic initialization, and can now add this
+     module to the list of modules. */
+  emodule = make_module (foundname, mname, mver, mtitle, modunld,
+                         emodules_depth + 1, dlhandle);
+  Vloaded_modules = Fcons (emodule, Vloaded_modules);
+  dlhandle = 0;
+
+  old_load_list = Vcurrent_load_list;
+  Vcurrent_load_list = Qnil;
+  LOADHIST_ATTACH (call1 (Qfile_name_sans_extension,
+                          Ffile_name_nondirectory (foundname)));
+  LOADHIST_ATTACH (Vmodule_tag);
+
+  /* Now we need to call the module init function and perform the various
+     startup tasks. */
+  if (modload != 0)
+    (*modload) ();
+
+  /* Now we can get the module to initialize its symbols, and then its
+     variables, and lastly the documentation strings. */
+  (*modsyms) ();
+  (*modvars) ();
+  (*moddocs) ();
+
+  if (!load_modules_quietly)
+    message ("Loaded module %s v%s (%s)", XSTRING_DATA (mname),
+             XSTRING_DATA (mver), XSTRING_DATA (mtitle));
+
+  Vload_history = Fcons (Fnreverse (Vcurrent_load_list), Vload_history);
+  Vcurrent_load_list = old_load_list;
+  UNGCPRO;
+
+  emodules_depth--;
+  if (emodules_depth == 0)
+    {
+      /* We have reached the end of the load chain. We now go through the
+         list of loaded modules and mark all the valid modules as just
+         that. */
+      LIST_LOOP_2 (elt, Vloaded_modules)
+        {
+          if (XMODULE (elt)->used > 1)
+            {
+              XMODULE (elt)->used = 1;
+            }
+        }
+    }
+
+  unbind_to (speccount);
+  return;
+}
+
+static void
+emodules_doc (const Extbyte *symname,
+              const Extbyte *doc,
+              const Extbyte *file_name,
+              Boolint subrp)
+{
+  Lisp_Object sym;
+  Ibyte *symname_internal;
+  Bytecount len;
+
+  TO_INTERNAL_FORMAT (C_STRING, symname, ALLOCA, (symname_internal, len),
+                      Qmodule_string_coding_system);
+  
+  sym = oblookup (Vobarray, symname_internal, len);
+
+  if (SYMBOLP (sym))
+    {
+      Ibyte *file_name_internal;
+      Lisp_Object lisp_file_name = Qnil;
+
+      TO_INTERNAL_FORMAT (C_STRING, file_name, ALLOCA, (file_name_internal,
+                                                        len),
+                          Qmodule_string_coding_system);
+
+      {
+        LIST_LOOP_2 (elt, XWEAK_LIST_LIST (Vknown_module_file_names))
+          {
+            if (qxememcmp (XSTRING_DATA (elt), file_name_internal, len)
+                == 0)
+              {
+                lisp_file_name = elt;
+                break;
+              }
+          }
+
+        if (NILP (lisp_file_name))
+          {
+            lisp_file_name = make_string (file_name_internal, len);
+            XWEAK_LIST_LIST (Vknown_module_file_names)
+              = Fcons (lisp_file_name,
+                       XWEAK_LIST_LIST (Vknown_module_file_names));
+          }
+      }
+
+      if (subrp) 
+        {
+          if (SUBRP (XSYMBOL (sym)->function))
+            {
+              Lisp_Subr *subr = XSUBR (XSYMBOL (sym)->function);
+              subr->doc = build_extstring (doc, Qmodule_string_coding_system);
+              Fput (subr->doc, Qsymbol_file, lisp_file_name);
+            }
+        }
+      else
+        {
+	  Lisp_Object lispdoc = build_extstring (doc,
+                                                 Qmodule_string_coding_system);
+	  Fput (sym, Qvariable_documentation, lispdoc);
+	  Fput (lispdoc, Qsymbol_file, lisp_file_name);
+        }
+    }
+}
+
+void
+emodules_doc_subr (const Extbyte *symname,
+                   const Extbyte *doc,
+                   const Extbyte *file_name)
+{
+  emodules_doc (symname, doc, file_name, 1);
+}
+
+void
+emodules_doc_sym (const Extbyte *symname,
+                  const Extbyte *doc,
+                  const Extbyte *file_name)
+{
+  emodules_doc (symname, doc, file_name, 0);
+}
+
 DEFUN ("load-module", Fload_module, 1, 3, "FLoad dynamic module: ", /*
-Load in a C Emacs Extension module named FILE.
+Load a C Emacs extension module from FILE.
+
 The optional NAME and VERSION are used to identify specific modules.
 
-DO NOT USE THIS FUNCTION in your programs.  Use `require' instead.
+Do not use this function in your programs.  Use `require' instead.
 
 This function is similar in intent to `load' except that it loads in
 pre-compiled C or C++ code, using dynamic shared objects.  If NAME is
-specified, then the module is only loaded if its internal name matches
-the NAME specified.  If VERSION is specified, then the module is only
-loaded if it matches that VERSION.  This function will check to make
-sure that the same module is not loaded twice.  Modules are searched
-for in the same way as Lisp files, except that the valid file
-extensions are `.so', `.dll', `.ell', or `.dylib'.
+specified, then the module is only loaded if its internal name matches the
+NAME specified.  If VERSION is specified, then the module is only loaded if it
+matches that VERSION.  This function will check to make sure that the same
+module is not loaded twice.  Modules are searched for in the same way as Lisp
+files, except that the valid file extensions are `.so', `.dll', `.ell', or
+`.dylib', and the path examined is specified by the `module-load-path'
+variable rather than `load-path'.
 
-All symbols in the shared module must be completely resolved in order
-for this function to be successful.  Any modules which the specified
-FILE depends on will be automatically loaded.  You can determine which
-modules have been loaded as dynamic shared objects by examining the
-return value of the function `list-modules'.
+Certain functions in the shared module must be completely resolved in order for
+this function to be successful.  These are, currently `syms_of_NAME',
+`vars_of_NAME', and `docs_of_NAME'.  Other functions are supplied when the
+module is built by `ellcc' and they are also sanity-checked.
 
-It is possible, although unwise, to unload modules using `unload-feature'.
-The preferred mechanism for unloading or reloading modules is to quit
-XEmacs, and then reload those new or changed modules that are required.
+Any modules which the specified FILE depends on will be automatically loaded.
+You can determine which modules have been loaded as dynamic shared objects by
+examining the return value of the function `list-modules'.
+
+It is possible to unload modules using `unload-feature'.  There is also a
+lower-level `unload-module' used by `unload-feature'; calling this directly on
+a module without calling `unload-feature' will lead to Lisp errors on
+attempting to call functions no longer available or to set variables no longer
+available.  Any Lisp objects of a type made available by the module will
+remain in existence but it will not be possible to do anything useful with
+them.
 
 Messages informing you of the progress of the load are displayed unless
 the variable `load-modules-quietly' is non-NIL.
 */
        (file, name, version))
 {
-  const Ibyte *mod, *mname, *mver;
   int speccount = specpdl_depth();
+  const Ibyte *mname = (const Ibyte *) "", *mver = mname;
 
   CHECK_STRING (file);
 
-  mod = XSTRING_DATA (file);
+  if (!NILP (name))
+    {
+      CHECK_STRING (name);
+      mname = XSTRING_DATA (name);
+    }
 
-  if (NILP (name))
-    mname = (const Ibyte *) "";
-  else
-    mname = XSTRING_DATA (name);
-
-  if (NILP (version))
-    mver = (const Ibyte *) "";
-  else
-    mver = XSTRING_DATA (version);
+  if (!NILP (version))
+    {
+      CHECK_STRING (version);
+      mver = XSTRING_DATA (version);
+    }
 
   dlhandle = 0;
-  record_unwind_protect (module_load_unwind, make_fixnum(modnum));
-  emodules_load (mod, mname, mver);
+  record_unwind_protect (module_load_unwind, Vloaded_modules);
+  emodules_load (XSTRING_DATA (file), mname, mver);
   unbind_to (speccount);
 
   return Qt;
@@ -130,48 +742,44 @@ the variable `load-modules-quietly' is non-NIL.
 DEFUN ("unload-module", Funload_module, 1, 3, 0, /*
 Unload a module previously loaded with load-module.
 
-DO NOT USE THIS FUNCTION in your programs.  Use `unload-feature' instead.
+Do not use this function in your programs.  Use `unload-feature' instead.
 
 As with load-module, this function requires at least the module FILE, and
-optionally the module NAME and VERSION to unload.  It may not be possible
-for the module to be unloaded from memory, as there may be Lisp objects
-referring to variables inside the module code.  However, once you have
-requested a module to be unloaded, it will be unloaded from memory as
-soon as the last reference to symbols within the module is destroyed.
+optionally the module NAME and VERSION to unload.  It may not be possible for
+the module to be unloaded from memory, as other loaded modules may have
+dependencies on it.
 */
        (file, name, version))
 {
-  int x;
-  const Ibyte *mname, *mver;
-  Lisp_Object foundname = Qnil;
+  Lisp_Object foundname = Qnil, module = Qnil;
   struct gcpro gcpro1;
 
-  CHECK_STRING(file);
+  CHECK_STRING (file);
+
+  if (!NILP (name))
+    {
+      CHECK_STRING (name);
+    }
+
+  if (!NILP (version))
+    {
+      CHECK_STRING (version);
+    }
 
   GCPRO1 (foundname);
   if (locate_file (Vmodule_load_path, file, Vmodule_extensions, &foundname, 0)
       < 0)
-    return Qt;
-  UNGCPRO;
-
-  if (NILP (name))
-    mname = (const Ibyte *) "";
-  else
-    mname = XSTRING_DATA (name);
-
-  if (NILP (version))
-    mver = (const Ibyte *) "";
-  else
-    mver = XSTRING_DATA (version);
-
-  x = find_make_module (foundname, mname, mver, 1);
-  if (x != -1)
     {
-      if (modules[x].unload != NULL)
-	modules[x].unload ();
-      attempt_module_delete (x);
+      RETURN_UNGCPRO (Qt);
     }
-  return Qt;
+
+  module = find_module (foundname, name, version);
+  if (!NILP (module))
+    {
+      attempt_module_delete (module);
+    }
+  
+  RETURN_UNGCPRO (Qt);
 }
 
 DEFUN ("list-modules", Flist_modules, 0, 0, "", /*
@@ -199,450 +807,35 @@ is a bug, and you are encouraged to report it.
        ())
 {
   Lisp_Object mlist = Qnil;
-  int i;
 
-  for (i = 0; i < modnum; i++)
+  LIST_LOOP_2 (elt, Vloaded_modules)
     {
-      if (modules[i].used == 1)
-        mlist = Fcons (list4 (build_istring (modules[i].soname),
-                              build_istring (modules[i].modname),
-                              build_istring (modules[i].modver),
-                              build_istring (modules[i].modtitle)), mlist);
+      mlist = Fcons (list4 (XMODULE (elt)->soname,
+                            XMODULE (elt)->modname,
+                            XMODULE (elt)->modver,
+                            XMODULE (elt)->modtitle),
+                     mlist);
     }
 
   return mlist;
-}
-
-static int
-find_make_module (Lisp_Object mod, const Ibyte *name, const Ibyte *ver,
-		  int mof)
-{
-  int i, fs = -1;
-  Ibyte *modstr = XSTRING_DATA (mod);
-
-  for (i = 0; i < modnum; i++)
-    {
-      if (fs == -1 && modules[i].used == 0)
-        fs = i;
-      if (modules[i].soname != NULL
-          && (qxestrcmp (modules[i].soname, modstr) == 0))
-        {
-          if (name && name[0] && qxestrcmp (modules[i].modname, name))
-            continue;
-          if (ver && ver[0] && qxestrcmp (modules[i].modver, ver))
-            continue;
-          return i; /* Found a match */
-        }
-    }
-
-  if (mof)
-    return fs;
-
-  if (fs != -1)
-    return fs; /* First free slot */
-
-  /*
-   * We only get here if we haven't found a free slot and the module was
-   * not previously loaded.
-   */
-  if (modules == NULL)
-    modules = xnew (emodules_list);
-  modnum++;
-  XREALLOC_ARRAY (modules, emodules_list, modnum);
-
-  fs = modnum - 1;
-  memset (&modules[fs], 0, sizeof (emodules_list));
-  return fs;
-}
-
-static void
-attempt_module_delete (int mod)
-{
-  if (dll_close (modules[mod].dlhandle) == 0)
-    {
-      xfree (modules[mod].soname);
-      modules[mod].soname = 0;
-      xfree (modules[mod].modname);
-      modules[mod].modname = 0;
-      xfree (modules[mod].modver);
-      modules[mod].modver = 0;
-      xfree (modules[mod].modtitle);
-      modules[mod].modtitle = 0;
-      modules[mod].dlhandle = 0;
-      modules[mod].used = 0;
-      modules[mod].unload = 0;
-    }
-  else if (modules[mod].used > 1)
-    modules[mod].used = 1; /* We couldn't delete it - it stays */
-}
-
-static Lisp_Object
-module_load_unwind (Lisp_Object upto)
-{
-  int x,l=0;
-
-  /*
-   * First close off the current handle if it is open.
-   */
-  if (dlhandle != 0)
-    dll_close (dlhandle);
-  dlhandle = 0;
-
-  if (CONSP (upto))
-    {
-      if (FIXNUMP (XCAR (upto)))
-        l = XFIXNUM (XCAR (upto));
-      free_cons (upto);
-    }
-  else
-    l = XFIXNUM (upto);
-
-  /*
-   * Here we need to go through and dlclose() (IN REVERSE ORDER!) any
-   * modules that were loaded as part of this load chain. We only mark
-   * the slots as closed if the dlclose() succeeds.
-   */
-  for (x = modnum-1; x >= l; x--)
-    {
-      if (modules[x].used > 1)
-        attempt_module_delete (x);
-    }
-  emodules_depth = 0;
-
-  return Qnil;
-}
-
-static Lisp_Object
-module_load_unwind_coding (Lisp_Object old_alias)
-{
-  Fdefine_coding_system_alias (Qmodule_string_coding_system, old_alias);
-  return Qnil;
-}
-
-/*
- * Do the actual grunt-work of loading in a module. We first try and
- * dlopen() the module. If that fails, we have an error and we bail
- * out immediately. If the dlopen() succeeds, we need to check for the
- * existence of certain special symbols.
- *
- * All modules will have complete access to the variables and functions
- * defined within XEmacs itself.  It is up to the module to declare any
- * variables or functions it uses, however.  Modules will also have access
- * to other functions and variables in other loaded modules, unless they
- * are defined as STATIC.
- *
- * We need to be very careful with how we load modules. If we encounter an
- * error along the way, we need to back out completely to the point at
- * which the user started. Since we can be called recursively, we need to
- * take care with marking modules as loaded. When we first start loading
- * modules, we set the counter to zero. As we enter the function each time,
- * we increment the counter, and before we leave we decrement it. When
- * we get back down to 0, we know we are at the end of the chain and we
- * can mark all the modules in the list as loaded.
- *
- * When we signal an error, we need to be sure to unwind all modules loaded
- * thus far (but only for this module chain). It is assumed that if any
- * modules in a chain fail, then they all do. This is logical, considering
- * that the only time we recurse is when we have dependent modules. So in
- * the error handler we take great care to close off the module chain before
- * we call "error" and let the Fmodule_load unwind_protect() function handle
- * the cleaning up.
- */
-void
-emodules_load (const Ibyte *module, const Ibyte *modname,
-	       const Ibyte *modver)
-{
-  Lisp_Object old_load_list;
-  Lisp_Object filename;
-  Lisp_Object foundname, lisp_modname, coding;
-  int x, mpx;
-  const Extbyte **f;
-  const long *ellcc_rev;
-  Ibyte *mver, *mname, *mtitle, *symname;
-  void (*modload)(void) = 0;
-  void (*modsyms)(void) = 0;
-  void (*modvars)(void) = 0;
-  void (*moddocs)(void) = 0;
-  void (*modunld)(void) = 0;
-  emodules_list *mp;
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
-  int speccount = specpdl_depth();
-
-  filename = Qnil;
-  foundname = Qnil;
-
-  emodules_depth++;
-  dlhandle = 0;
-
-  if (module == NULL || module[0] == '\0')
-    invalid_argument ("Empty module name", Qunbound);
-
-  GCPRO4 (filename, foundname, old_load_list, lisp_modname);
-  filename = build_istring (module);
-  if (locate_file (Vmodule_load_path, filename, Vmodule_extensions,
-		   &foundname, 0) < 0)
-    signal_error (Qdll_error, "Cannot open dynamic module", filename);
-
-  lisp_modname = call1 (Qfile_name_sans_extension,
-			Ffile_name_nondirectory (foundname));
-
-  dlhandle = dll_open (foundname);
-  if (dlhandle == NULL)
-    {
-      signal_error (Qdll_error, "Opening dynamic module", dll_error ());
-    }
-
-  ellcc_rev = (const long *) dll_variable (dlhandle,
-					   (const Ibyte *) "emodule_compiler");
-  if (ellcc_rev == NULL || *ellcc_rev <= 0L)
-    signal_error (Qdll_error, "Invalid dynamic module: Missing symbol `emodule_compiler'", Qunbound);
-  if (*ellcc_rev > EMODULES_REVISION)
-    signal_ferror (Qdll_error, "Invalid dynamic module: Unsupported version `%zd(%zd)'", *ellcc_rev, EMODULES_REVISION);
-
-  f = (const Extbyte **) dll_variable (dlhandle,
-				       (const Ibyte *) "emodule_coding");
-  if (f == NULL || *f == NULL)
-    signal_error (Qdll_error,
-                  "Invalid dynamic module: Missing symbol `emodule_coding'",
-                  Qunbound);
-  CHECK_ASCTEXT (*f);
-  coding
-    = find_coding_system_for_text_file (intern ((const CIbyte *) *f), 0);
-  record_unwind_protect (module_load_unwind_coding,
-                         Ffind_coding_system (Qmodule_string_coding_system));
-  Fdefine_coding_system_alias (Qmodule_string_coding_system,
-                               Fget_coding_system (coding));
-
-  f = (const Extbyte **) dll_variable (dlhandle,
-				       (const Ibyte *) "emodule_name");
-  if (f == NULL || *f == NULL)
-    signal_error (Qdll_error, "Invalid dynamic module: Missing symbol `emodule_name'", Qunbound);
-  mname = EXTERNAL_TO_ITEXT (*f, Qmodule_string_coding_system);
-
-  if (mname[0] == '\0')
-    signal_error (Qdll_error, "Invalid dynamic module: Empty value for `emodule_name'", Qunbound);
-
-  f = (const Extbyte **) dll_variable (dlhandle,
-				       (const Ibyte *) "emodule_version");
-  if (f == NULL || *f == NULL)
-    signal_error (Qdll_error, "Missing symbol `emodule_version': Invalid dynamic module", Qunbound);
-  mver = EXTERNAL_TO_ITEXT (*f, Qmodule_string_coding_system);
-
-  f = (const Extbyte **) dll_variable (dlhandle,
-				       (const Ibyte *) "emodule_title");
-  if (f == NULL || *f == NULL)
-    signal_error (Qdll_error, "Invalid dynamic module: Missing symbol `emodule_title'", Qunbound);
-  mtitle = EXTERNAL_TO_ITEXT (*f, Qmodule_string_coding_system);
-
-  symname = alloca_ibytes (qxestrlen (mname) + 15);
-
-  qxestrcpy_ascii (symname, "modules_of_");
-  qxestrcat (symname, mname);
-  modload = (void (*)(void)) dll_function (dlhandle, symname);
-  /*
-   * modload is optional. If the module doesn't require other modules it can
-   * be left out.
-   */
-
-  qxestrcpy_ascii (symname, "syms_of_");
-  qxestrcat (symname, mname);
-  modsyms = (void (*)(void)) dll_function (dlhandle, symname);
-  if (modsyms == NULL)
-    {
-    missing_symbol:
-      signal_error (Qdll_error, "Invalid dynamic module: Missing symbol",
-		    build_istring (symname));
-    }
-
-  qxestrcpy_ascii (symname, "vars_of_");
-  qxestrcat (symname, mname);
-  modvars = (void (*)(void)) dll_function (dlhandle, symname);
-  if (modvars == NULL)
-    goto missing_symbol;
-
-  qxestrcpy_ascii (symname, "docs_of_");
-  qxestrcat (symname, mname);
-  moddocs = (void (*)(void)) dll_function (dlhandle, symname);
-  if (moddocs == NULL)
-    goto missing_symbol;
-
-  /* Now look for the optional unload function. */
-  qxestrcpy_ascii (symname, "unload_");
-  qxestrcat (symname, mname);
-  modunld = (void (*)(void)) dll_function (dlhandle, symname);
-
-  if (modname && modname[0] && qxestrcmp (modname, mname))
-    signal_error (Qdll_error, "Module name mismatch", Qunbound);
-
-  if (modver && modver[0] && qxestrcmp (modver, mver))
-    signal_error (Qdll_error, "Module version mismatch", Qunbound);
-
-  /*
-   * Attempt to make a new slot for this module. If this really is the
-   * first time we are loading this module, the used member will be 0.
-   * If that is non-zero, we know that we have a previously loaded module
-   * of the same name and version, and we don't need to go any further.
-   */
-  mpx = find_make_module (foundname, mname, mver, 0);
-  mp = &modules[mpx];
-  if (mp->used > 0)
-    {
-      emodules_depth--;
-      dll_close (dlhandle);
-      dlhandle = 0;  /* Zero this out before module_load_unwind runs */
-      return;
-    }
-
-  if (!load_modules_quietly)
-    message ("Loading %s v%s (%s)", mname, mver, mtitle);
-
-  /*
-   * We have passed the basic initialization, and can now add this
-   * module to the list of modules.
-   */
-  mp->used = emodules_depth + 1;
-  mp->soname = qxestrdup (XSTRING_DATA (foundname));
-  mp->modname = qxestrdup (mname);
-  mp->modver = qxestrdup (mver);
-  mp->modtitle = qxestrdup (mtitle);
-  mp->dlhandle = dlhandle;
-  mp->unload = modunld;
-  dlhandle = 0;
-
-  old_load_list = Vcurrent_load_list;
-  Vcurrent_load_list = Qnil;
-  LOADHIST_ATTACH (lisp_modname);
-  LOADHIST_ATTACH (module_tag);
-
-  /*
-   * Now we need to call the module init function and perform the various
-   * startup tasks.
-   */
-  if (modload != 0)
-    (*modload) ();
-
-  /*
-   * Now we can get the module to initialize its symbols, and then its
-   * variables, and lastly the documentation strings.
-   */
-  (*modsyms) ();
-  (*modvars) ();
-  (*moddocs) ();
-
-  if (!load_modules_quietly)
-    message ("Loaded module %s v%s (%s)", mname, mver, mtitle);
-
-  Vload_history = Fcons (Fnreverse (Vcurrent_load_list), Vload_history);
-  Vcurrent_load_list = old_load_list;
-  UNGCPRO;
-
-  emodules_depth--;
-  if (emodules_depth == 0)
-    {
-      /*
-       * We have reached the end of the load chain. We now go through the
-       * list of loaded modules and mark all the valid modules as just
-       * that.
-       */
-      for (x = 0; x < modnum; x++)
-        if (modules[x].used > 1)
-          modules[x].used = 1;
-    }
-  unbind_to (speccount);
-}
-
-static void
-emodules_doc (const Extbyte *symname,
-              const Extbyte *doc,
-              const Extbyte *file_name,
-              Boolint subrp)
-{
-  Lisp_Object sym;
-  Ibyte *symname_internal;
-  Bytecount len;
-
-  TO_INTERNAL_FORMAT (C_STRING, symname, ALLOCA, (symname_internal, len),
-                      Qmodule_string_coding_system);
-  
-  sym = oblookup (Vobarray, symname_internal, len);
-
-  if (SYMBOLP (sym))
-    {
-      Ibyte *file_name_internal;
-      Lisp_Object lisp_file_name = Qnil;
-
-      TO_INTERNAL_FORMAT (C_STRING, file_name, ALLOCA, (file_name_internal,
-                                                        len),
-                          Qmodule_string_coding_system);
-
-      {
-        LIST_LOOP_2 (elt, XWEAK_LIST_LIST (Vknown_file_names))
-          {
-            if (qxememcmp (XSTRING_DATA (elt), file_name_internal, len)
-                == 0)
-              {
-                lisp_file_name = elt;
-                break;
-              }
-          }
-
-        if (NILP (lisp_file_name))
-          {
-            lisp_file_name = make_string (file_name_internal, len);
-            XWEAK_LIST_LIST (Vknown_file_names)
-              = Fcons (lisp_file_name, XWEAK_LIST_LIST (Vknown_file_names));
-          }
-      }
-
-      if (subrp) 
-        {
-          if (SUBRP (XSYMBOL (sym)->function))
-            {
-              Lisp_Subr *subr = XSUBR (XSYMBOL (sym)->function);
-              subr->doc = build_extstring (doc, Qmodule_string_coding_system);
-              Fput (subr->doc, Qsymbol_file, lisp_file_name);
-            }
-        }
-      else
-        {
-	  Lisp_Object lispdoc = build_extstring (doc, Qmodule_string_coding_system);
-	  Fput (sym, Qvariable_documentation, lispdoc);
-	  Fput (lispdoc, Qsymbol_file, lisp_file_name);
-        }
-    }
-}
-
-
-void
-emodules_doc_subr (const Extbyte *symname,
-                   const Extbyte *doc,
-                   const Extbyte *file_name)
-{
-  emodules_doc (symname, doc, file_name, 1);
-}
-
-void
-emodules_doc_sym (const Extbyte *symname,
-                  const Extbyte *doc,
-                  const Extbyte *file_name)
-{
-  emodules_doc (symname, doc, file_name, 0);
 }
 
 void
 syms_of_module (void)
 {
+  DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("module", module, module_description,
+                                      struct Lisp_Module);
+
   DEFERROR_STANDARD (Qdll_error, Qerror);
   DEFSYMBOL (Qmodule);
   DEFSYMBOL (Qmodule_string_coding_system);
-  DEFSYMBOL (Qunload_module);
 
   DEFSUBR (Fload_module);
   DEFSUBR (Flist_modules);
   DEFSUBR (Funload_module);
-  module_tag = Fcons (Qmodule, Qnil);
-  staticpro (&module_tag);
-  Fput (Qunload_module, Qdisabled, Qt);
+
+  Vmodule_tag = Fcons (Qmodule, Qnil);
+  staticpro (&Vmodule_tag);
 }
 
 #endif /* HAVE_SHLIB */
@@ -682,12 +875,6 @@ called by a Lisp function.
 */);
   load_modules_quietly = 0;
 
-  DEFVAR_BOOL ("unloading-module", &unloading_module /*
-Used internally by `unload-feature'.  Do not set this variable.
-Danger, danger, Will Robinson!
-*/);
-  unloading_module = 0;
-
 #endif /* HAVE_SHLIB */
 
   DEFVAR_LISP ("module-load-path", &Vmodule_load_path /*
@@ -721,6 +908,12 @@ when a dynamic module is loaded.
 			      build_ascstring (".dylib"),
 			      build_ascstring (""));
 
-  Vknown_file_names = make_weak_list (WEAK_LIST_SIMPLE);
-  staticpro (&Vknown_file_names);
+  Vknown_module_file_names = make_weak_list (WEAK_LIST_SIMPLE);
+  staticpro (&Vknown_module_file_names);
+
+  Vloaded_modules = Qnil;
+  staticpro (&Vloaded_modules);
 }
+
+/* emodules.c ends here */
+

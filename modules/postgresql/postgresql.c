@@ -1791,45 +1791,5 @@ EXTERN_C void unload_postgresql (void);
 void
 unload_postgresql (void)
 {
-#ifndef RUNNING_XEMACS_21_1
-  /* Remove defined types */
-  UNDEF_MODULE_LISP_OBJECT (pgconn);
-  UNDEF_MODULE_LISP_OBJECT (pgresult);
-#endif
-
-  /* Remove staticpro'ing of symbols */
-  unstaticpro_nodump (&Qpostgresql);
-  unstaticpro_nodump (&Qpgconnp);
-  unstaticpro_nodump (&Qpgresultp);
-  unstaticpro_nodump (&Qpg_connection_ok);
-  unstaticpro_nodump (&Qpg_connection_bad);
-  unstaticpro_nodump (&Qpg_connection_started);
-  unstaticpro_nodump (&Qpg_connection_made);
-  unstaticpro_nodump (&Qpg_connection_awaiting_response);
-  unstaticpro_nodump (&Qpg_connection_auth_ok);
-  unstaticpro_nodump (&Qpg_connection_setenv);
-  unstaticpro_nodump (&Qpqdb);
-  unstaticpro_nodump (&Qpquser);
-  unstaticpro_nodump (&Qpqpass);
-  unstaticpro_nodump (&Qpqhost);
-  unstaticpro_nodump (&Qpqport);
-  unstaticpro_nodump (&Qpqtty);
-  unstaticpro_nodump (&Qpqoptions);
-  unstaticpro_nodump (&Qpqstatus);
-  unstaticpro_nodump (&Qpqerrormessage);
-  unstaticpro_nodump (&Qpqbackendpid);
-  unstaticpro_nodump (&Qpgres_empty_query);
-  unstaticpro_nodump (&Qpgres_command_ok);
-  unstaticpro_nodump (&Qpgres_tuples_ok);
-  unstaticpro_nodump (&Qpgres_copy_out);
-  unstaticpro_nodump (&Qpgres_copy_in);
-  unstaticpro_nodump (&Qpgres_bad_response);
-  unstaticpro_nodump (&Qpgres_nonfatal_error);
-  unstaticpro_nodump (&Qpgres_fatal_error);
-  unstaticpro_nodump (&Qpgres_polling_failed);
-  unstaticpro_nodump (&Qpgres_polling_reading);
-  unstaticpro_nodump (&Qpgres_polling_writing);
-  unstaticpro_nodump (&Qpgres_polling_ok);
-  unstaticpro_nodump (&Qpgres_polling_active);
 }
 #endif /* HAVE_SHLIB */

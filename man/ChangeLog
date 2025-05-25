@@ -1,5 +1,14 @@
 2025-05-25  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* internals/internals.texi (Writing New Modules):
+	Update to reflect reduced restrictions on C code now unexec is
+	gone. Remove mention of sheap.c in passing.
+
+	* emodules.texi: Revise and update this given recent changes to
+	emodules.c.
+
+2025-05-25  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* lispref/lists.texi (Association Lists):
 	Update documentation of #'assoc here, now it has an optional TEST
 	argument.

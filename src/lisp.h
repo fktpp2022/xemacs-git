@@ -4591,6 +4591,7 @@ EXFUN (Fdevice_system_metric, 3);
 extern Lisp_Object Vx_initial_argv_list;
 
 /* Defined in dired.c */
+extern Lisp_Object Qfile_system_ignore_case_p;
 Lisp_Object make_directory_hash_table (Lisp_Object);
 
 /* Defined in doc.c */
@@ -4777,9 +4778,13 @@ extern Lisp_Object Vlisp_directory;
 #ifdef HAVE_SHLIB
 EXFUN (Flist_modules, 0);
 EXFUN (Fload_module, 3);
-extern Boolint unloading_module;
+
 extern Lisp_Object Qmodule_string_coding_system;
+extern int emodules_depth;
+void add_module_loadhist_elt (Lisp_Object);
 #else
+#define emodules_depth 0
+#define add_module_loadhist_elt(X) DO_NOTHING
 #define Qmodule_string_coding_system Qnative
 #endif
 extern Lisp_Object Qdll_error;
@@ -5558,13 +5563,16 @@ int isratio_string (const char *);
 #define LOADHIST
 /* Define the following symbol to enable load history of dumped files */
 #define LOADHIST_DUMPED
-/* Define the following symbol to enable load history of C source */
-#define LOADHIST_BUILTIN
 
 #ifdef LOADHIST /* this is just a stupid idea */
-#define LOADHIST_ATTACH(x) \
- do { if (initialized) Vcurrent_load_list = Fcons (x, Vcurrent_load_list); } \
- while (0)
+#define LOADHIST_ATTACH(x) do if (initialized)				\
+    {									\
+      Vcurrent_load_list = Fcons (x, Vcurrent_load_list);		\
+      if (emodules_depth)						\
+	{								\
+	  add_module_loadhist_elt (XCAR (Vcurrent_load_list));		\
+	}								\
+    } while (0)
 #else /*! LOADHIST */
 # define LOADHIST_ATTACH(x)
 #endif /*! LOADHIST */
