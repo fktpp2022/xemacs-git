@@ -100,17 +100,18 @@ The returned regexp is typically more efficient than the equivalent regexp:
  (let ((open (if PAREN \"\\\\(\" \"\")) (close (if PAREN \"\\\\)\" \"\")))
    (concat open (mapconcat 'regexp-quote STRINGS \"\\\\|\") close))
 
-If PAREN is `words', then the resulting regexp is additionally surrounded
-by \\=\\< and \\>."
+If PAREN is `words', then the resulting regexp is enclosed by \\=\\<\\( and \\)\\>.
+If it is `symbols', the resulting regexp is enclosed by \\_<\\( and \\)\\_>."
   (save-match-data
     ;; Recurse on the sorted list.
     (let* ((max-lisp-eval-depth (* 1024 1024))
 	   (completion-ignore-case nil)
-	   (words (eq paren 'words))
 	   (open (cond ((stringp paren) paren) (paren "\\(")))
 	   (sorted-strings (sort (copy-sequence strings) 'string-lessp))
 	   (re (regexp-opt-group sorted-strings open)))
-      (if words (concat "\\<" re "\\>") re))))
+      (cond ((eq paren 'words) (concat "\\<" re "\\>"))
+	    ((eq paren 'symbols) (concat "\\_<" re "\\_>"))
+	    (t re)))))
 
 (defconst regexp-opt-not-groupie*-re
   (let* ((harmless-ch "[^\\\\[]")

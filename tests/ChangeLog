@@ -1,3 +1,8 @@
+2025-05-25  Alan Mackenzie  <acm@muc.de>
+
+	* automated/regexp-tests.el: Add some tests for the PAREN argument
+	of regexp-opt.
+
 2025-05-24  Alan Mackenzie  <acm@muc.de>
 
 	* automated/search-tests.el: Add tests for regexp buffer searches
