@@ -696,7 +696,7 @@ do_init_mode (void)
   fprintf (mout, "extern \"C\" {\n");
   fprintf (mout, "#endif\n");
   fprintf (mout, "extern const long emodule_compiler;\n");
-  fprintf (mout, "extern const char *emodule_name, *emodule_version, *emodule_title;\n");
+  fprintf (mout, "extern const char *emodule_name, *emodule_version, *emodule_title, *emodule_coding;\n");
   fprintf (mout, "extern void docs_of_%s (void);\n", SSTR(mod_name));
   fprintf (mout, "#ifdef __cplusplus\n");
   fprintf (mout, "}\n");

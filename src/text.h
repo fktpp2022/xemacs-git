@@ -3937,7 +3937,6 @@ int XCDECL wext_retry_open (const Wexttext *path, int oflag, ...);
 #define Qdll_function_name_encoding Qdll_symbol_encoding
 #define Qdll_variable_name_encoding Qdll_symbol_encoding
 #define Qdll_filename_encoding Qfile_name
-#define Qemodule_string_encoding Qnative
 
 /* !!#### Need to verify the encoding used in lwlib -- Qnative or Qctext?
    Almost certainly the former.  Use a standin for now. */

@@ -3315,8 +3315,21 @@ static Lisp_Object
 defsubr_1 (const CIbyte *lname, lisp_fn_t subr_fn, short min_args,
            short max_args, const CIbyte *prompt)
 {
-  Lisp_Object sym = intern (lname), fun;
+  Lisp_Object sym, fun;
   Lisp_Subr *subr;
+
+  if (initialized)
+    {
+      Lisp_Object string = build_extstring ((const Extbyte *) lname,
+                                            Qmodule_string_coding_system);
+      sym = intern_istring (XSTRING_DATA (string),
+                            XSTRING_LENGTH (string),
+                            string, Vobarray);
+    }
+  else
+    {
+      sym = intern (lname);
+    }
   
   if (min_args < 0 || min_args > SUBR_MAX_ARGS)
     {
@@ -3345,7 +3358,18 @@ defsubr_1 (const CIbyte *lname, lisp_fn_t subr_fn, short min_args,
   subr->name = sym;
   subr->subr_fn = subr_fn;
   subr->doc = Qnil;
-  subr->prompt = prompt ? build_ascstring (prompt) : Qnil;
+  if (prompt)
+    {
+      if (initialized)
+        {
+          subr->prompt = build_extstring (prompt, Qmodule_string_coding_system);
+        }
+      else
+        {
+          subr->prompt = build_ascstring (prompt);
+        }
+    }
+  else subr->prompt = Qnil;
   subr->min_args = min_args;
   subr->max_args = max_args;
 
@@ -3436,11 +3460,16 @@ deferror_massage_name_and_message (Lisp_Object *symbol, const Ascbyte *name,
 void
 defvar_magic (const Ascbyte *symbol_name, Lisp_Object magic)
 {
-  Lisp_Object sym;
+  Lisp_Object sym, string;
 
   structure_checking_assert (SYMBOL_VALUE_MAGIC_P (magic));
 
-  sym = Fintern (build_ascstring (symbol_name), Qnil);
+  string = initialized ? build_extstring ((const Extbyte *) symbol_name,
+                                          Qmodule_string_coding_system)
+    : build_ascstring (symbol_name);
+
+  sym = intern_istring (XSTRING_DATA (string), XSTRING_LENGTH (string),
+                        string, Vobarray);
   XSYMBOL (sym)->value = magic;
 
   LOADHIST_ATTACH (sym);

@@ -4778,9 +4778,13 @@ extern Lisp_Object Vlisp_directory;
 EXFUN (Flist_modules, 0);
 EXFUN (Fload_module, 3);
 extern Boolint unloading_module;
+extern Lisp_Object Qmodule_string_coding_system;
+#else
+#define Qmodule_string_coding_system Qnative
 #endif
 extern Lisp_Object Qdll_error;
 extern Lisp_Object Qmodule;
+
 
 /* Defined in eval.c */
 MODULE_API EXFUN (Fapply, MANY);

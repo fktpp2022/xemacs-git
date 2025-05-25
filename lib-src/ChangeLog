@@ -1,3 +1,17 @@
+2025-05-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* ellcc.c (do_init_mode):
+	* make-docfile.c (main):
+	* make-docfile.c (scan_c_file):
+	Revise the approach to module encoding, make a variable
+	emodule_coding available that reflects the coding system of the
+	symbols and docstrings in the module, don't specify it separately
+	for each docstring.
+	Just use no-conversion for now, working plan is to move
+	make-docfile, ellcc to Lisp, which will make it practical to use
+	the coding detection infrastructure at the time of generation of
+	the mod-output file.
+
 2025-04-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* make-docfile.c (scan_c_file):

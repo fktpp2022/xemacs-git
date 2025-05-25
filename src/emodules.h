@@ -71,13 +71,11 @@ extern void emodules_load (const Ibyte *module, const Ibyte *modname,
  */
 EXTERN_C MODULE_API void emodules_doc_subr (const Extbyte *objname,
 					    const Extbyte *docstr,
-                                            const Extbyte *file_name,
-                                            const Ascbyte *coding_system_name);
+                                            const Extbyte *file_name);
 
 EXTERN_C MODULE_API void emodules_doc_sym (const Extbyte *objname,
                                            const Extbyte *docstr,
-                                           const Extbyte *file_name,
-                                           const Ascbyte *coding_system_name);
+                                           const Extbyte *file_name);
 
 #define CDOCSUBR emodules_doc_subr
 #define CDOCSYM emodules_doc_sym

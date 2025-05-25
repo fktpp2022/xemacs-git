@@ -283,6 +283,9 @@ main (int argc, char **argv)
                    *definedlispobjects_ptr);
           definedlispobjects_ptr++;
         }
+
+      fprintf (outfile, "const char *emodule_coding = \"%s\";\n",
+               "no-conversion");
     }
   /* End XEmacs addition */
 
@@ -1123,7 +1126,7 @@ scan_c_file (const char *filename, const char *mode)
             {
               fprintf (outfile, "\\n\", \"");
               put_filename_as_c_string (filename);
-              fprintf (outfile, "\",\n           \"no-conversion\");\n\n");
+              fprintf (outfile, "\");\n\n");
             }
 	}
     }

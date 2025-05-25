@@ -49,6 +49,7 @@ Boolint unloading_module;
 
 Lisp_Object Qdll_error;
 Lisp_Object Qmodule, Qunload_module, module_tag;
+Lisp_Object Qmodule_string_coding_system;
 
 typedef struct _emodules_list
 {
@@ -311,6 +312,13 @@ module_load_unwind (Lisp_Object upto)
   return Qnil;
 }
 
+static Lisp_Object
+module_load_unwind_coding (Lisp_Object old_alias)
+{
+  Fdefine_coding_system_alias (Qmodule_string_coding_system, old_alias);
+  return Qnil;
+}
+
 /*
  * Do the actual grunt-work of loading in a module. We first try and
  * dlopen() the module. If that fails, we have an error and we bail
@@ -346,7 +354,7 @@ emodules_load (const Ibyte *module, const Ibyte *modname,
 {
   Lisp_Object old_load_list;
   Lisp_Object filename;
-  Lisp_Object foundname, lisp_modname;
+  Lisp_Object foundname, lisp_modname, coding;
   int x, mpx;
   const Extbyte **f;
   const long *ellcc_rev;
@@ -358,6 +366,7 @@ emodules_load (const Ibyte *module, const Ibyte *modname,
   void (*modunld)(void) = 0;
   emodules_list *mp;
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
+  int speccount = specpdl_depth();
 
   filename = Qnil;
   foundname = Qnil;
@@ -391,10 +400,24 @@ emodules_load (const Ibyte *module, const Ibyte *modname,
     signal_ferror (Qdll_error, "Invalid dynamic module: Unsupported version `%zd(%zd)'", *ellcc_rev, EMODULES_REVISION);
 
   f = (const Extbyte **) dll_variable (dlhandle,
+				       (const Ibyte *) "emodule_coding");
+  if (f == NULL || *f == NULL)
+    signal_error (Qdll_error,
+                  "Invalid dynamic module: Missing symbol `emodule_coding'",
+                  Qunbound);
+  CHECK_ASCTEXT (*f);
+  coding
+    = find_coding_system_for_text_file (intern ((const CIbyte *) *f), 0);
+  record_unwind_protect (module_load_unwind_coding,
+                         Ffind_coding_system (Qmodule_string_coding_system));
+  Fdefine_coding_system_alias (Qmodule_string_coding_system,
+                               Fget_coding_system (coding));
+
+  f = (const Extbyte **) dll_variable (dlhandle,
 				       (const Ibyte *) "emodule_name");
   if (f == NULL || *f == NULL)
     signal_error (Qdll_error, "Invalid dynamic module: Missing symbol `emodule_name'", Qunbound);
-  mname = EXTERNAL_TO_ITEXT (*f, Qemodule_string_encoding);
+  mname = EXTERNAL_TO_ITEXT (*f, Qmodule_string_coding_system);
 
   if (mname[0] == '\0')
     signal_error (Qdll_error, "Invalid dynamic module: Empty value for `emodule_name'", Qunbound);
@@ -403,13 +426,13 @@ emodules_load (const Ibyte *module, const Ibyte *modname,
 				       (const Ibyte *) "emodule_version");
   if (f == NULL || *f == NULL)
     signal_error (Qdll_error, "Missing symbol `emodule_version': Invalid dynamic module", Qunbound);
-  mver = EXTERNAL_TO_ITEXT (*f, Qemodule_string_encoding);
+  mver = EXTERNAL_TO_ITEXT (*f, Qmodule_string_coding_system);
 
   f = (const Extbyte **) dll_variable (dlhandle,
 				       (const Ibyte *) "emodule_title");
   if (f == NULL || *f == NULL)
     signal_error (Qdll_error, "Invalid dynamic module: Missing symbol `emodule_title'", Qunbound);
-  mtitle = EXTERNAL_TO_ITEXT (*f, Qemodule_string_encoding);
+  mtitle = EXTERNAL_TO_ITEXT (*f, Qmodule_string_coding_system);
 
   symname = alloca_ibytes (qxestrlen (mname) + 15);
 
@@ -525,25 +548,21 @@ emodules_load (const Ibyte *module, const Ibyte *modname,
         if (modules[x].used > 1)
           modules[x].used = 1;
     }
+  unbind_to (speccount);
 }
 
 static void
 emodules_doc (const Extbyte *symname,
               const Extbyte *doc,
               const Extbyte *file_name,
-              const Extbyte *coding_system_name,
               Boolint subrp)
 {
-  Lisp_Object sym, coding_system;
+  Lisp_Object sym;
   Ibyte *symname_internal;
   Bytecount len;
 
-  CHECK_ASCTEXT (coding_system_name);
-  coding_system
-    = Fget_coding_system (intern ((const CIbyte *) coding_system_name));
-
   TO_INTERNAL_FORMAT (C_STRING, symname, ALLOCA, (symname_internal, len),
-                      coding_system);
+                      Qmodule_string_coding_system);
   
   sym = oblookup (Vobarray, symname_internal, len);
 
@@ -554,7 +573,7 @@ emodules_doc (const Extbyte *symname,
 
       TO_INTERNAL_FORMAT (C_STRING, file_name, ALLOCA, (file_name_internal,
                                                         len),
-                          coding_system);
+                          Qmodule_string_coding_system);
 
       {
         LIST_LOOP_2 (elt, XWEAK_LIST_LIST (Vknown_file_names))
@@ -580,13 +599,13 @@ emodules_doc (const Extbyte *symname,
           if (SUBRP (XSYMBOL (sym)->function))
             {
               Lisp_Subr *subr = XSUBR (XSYMBOL (sym)->function);
-              subr->doc = build_extstring (doc, coding_system);
+              subr->doc = build_extstring (doc, Qmodule_string_coding_system);
               Fput (subr->doc, Qsymbol_file, lisp_file_name);
             }
         }
       else
         {
-	  Lisp_Object lispdoc = build_extstring (doc, coding_system);
+	  Lisp_Object lispdoc = build_extstring (doc, Qmodule_string_coding_system);
 	  Fput (sym, Qvariable_documentation, lispdoc);
 	  Fput (lispdoc, Qsymbol_file, lisp_file_name);
         }
@@ -597,19 +616,17 @@ emodules_doc (const Extbyte *symname,
 void
 emodules_doc_subr (const Extbyte *symname,
                    const Extbyte *doc,
-                   const Extbyte *file_name,
-                   const Ascbyte *coding_system_name)
+                   const Extbyte *file_name)
 {
-  emodules_doc (symname, doc, file_name, coding_system_name, 1);
+  emodules_doc (symname, doc, file_name, 1);
 }
 
 void
 emodules_doc_sym (const Extbyte *symname,
-                   const Extbyte *doc,
-                   const Extbyte *file_name,
-                   const Ascbyte *coding_system_name)
+                  const Extbyte *doc,
+                  const Extbyte *file_name)
 {
-  emodules_doc (symname, doc, file_name, coding_system_name, 0);
+  emodules_doc (symname, doc, file_name, 0);
 }
 
 void
@@ -617,7 +634,9 @@ syms_of_module (void)
 {
   DEFERROR_STANDARD (Qdll_error, Qerror);
   DEFSYMBOL (Qmodule);
+  DEFSYMBOL (Qmodule_string_coding_system);
   DEFSYMBOL (Qunload_module);
+
   DEFSUBR (Fload_module);
   DEFSUBR (Flist_modules);
   DEFSUBR (Funload_module);
