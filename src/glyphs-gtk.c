@@ -1933,22 +1933,25 @@ cursor_font_possible_dest_types (void)
 static GdkCursorType
 cursor_name_to_index (const char *name)
 {
-  Lisp_Object sym;
   Lisp_Object val;
   
   if (name == 0 || name[0] == 0)
     /* wtaerror? */
     return (GdkCursorType) -1;
 
-  sym = intern (name);
-
   if (NILP (Vgtk_cursor_names))
     invalid_state ("Gtk cursor names not registered", build_ascstring (name));
 
-  val = Fassoc (Vgtk_cursor_names, sym);
+  /* No GCPRO, but that's OK, the symbol is in obarray and Vgtk_cursor_names
+     is reachable. */
+  val = Fassq (intern (name), Vgtk_cursor_names);
 
   if (!NILP (val))
-    return (GdkCursorType) XFIXNUM (Fcdr (val));
+    {
+      CHECK_CONS (val);
+      CHECK_FIXNUM (XCDR (val));
+      return (GdkCursorType) XFIXNUM (XCDR (val));
+    }
 
   return (GdkCursorType) -1;
 }

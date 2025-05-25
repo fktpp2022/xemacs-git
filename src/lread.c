@@ -816,7 +816,6 @@ do {								\
   }
 
   {
-    Lisp_Object tem;
     /* #### Disgusting kludge */
     /* Run any load-hooks for this file.  */
     /* #### An even more disgusting kludge.  There is horrible code */
@@ -824,20 +823,27 @@ do {								\
     /* via `load-path' search. */
     Lisp_Object name = file;
 
+    /* #### Consider using #'file-system-ignore-case-p on NAME, before it is
+       #### made non-absolute, and then passing that to internal_equal()
+       #### below. */
     if (!NILP (Ffile_name_absolute_p (file)))
-	name = Ffile_name_nondirectory (file);
+      name = Ffile_name_nondirectory (file);
 
-    tem = Fassoc (name, Vafter_load_alist);
-    if (!NILP (tem))
-      {
-	struct gcpro ngcpro1;
-
-	NGCPRO1 (tem);
-	/* Use eval so that errors give a semi-meaningful backtrace.  --Stig */
-	tem = Fcons (Qprogn, Fcdr (tem));
-	Feval (tem);
-	NUNGCPRO;
-      }
+    {
+      EXTERNAL_ALIST_LOOP_4 (elt, elt_car, elt_cdr, Vafter_load_alist)
+        {
+          if (internal_equal (name, elt_car, 0))
+            {
+              elt = Fcons (Qprogn, elt_cdr);
+              GCPRO1 (elt);
+              /* Use eval so that errors give a semi-meaningful backtrace.
+                 --Stig */
+              Feval (elt);
+              UNGCPRO;
+              break;
+            }
+        }
+    }
   }
 
   if (!noninteractive)

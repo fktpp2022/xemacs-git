@@ -1574,19 +1574,13 @@ definitions to shadow the loaded ones for use in file byte-compilation.
       if (SYMBOLP (form))
         {
           Lisp_Object hashed = make_unsigned_integer (LISP_HASH (form));
-          Lisp_Object assocked;
+          Lisp_Object assocked, argz[] = { hashed, environment };
+          struct gcpro gcpro1;
 
-          if (BIGNUMP (hashed))
-            {
-              struct gcpro gcpro1;
-              GCPRO1 (hashed);
-              assocked = Fassoc (hashed, environment);
-              UNGCPRO;
-            }
-          else
-            {
-              assocked = Fassq (hashed, environment);
-            }
+          GCPRO1 (*argz);
+          gcpro1.nvars = countof (argz);
+          assocked = FassocX (countof (argz), argz);
+          UNGCPRO;
 
           if (CONSP (assocked) && !NILP (XCDR (assocked)))
             {

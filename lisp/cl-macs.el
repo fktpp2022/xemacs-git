@@ -3267,14 +3267,43 @@ expansion only."
 
 (define-compiler-macro assoc (&whole form &rest args)
   (cond
-   ((not (eql (length form) 3))
-    form)
-   ((or (cl-equal-equivalent-to-eq-p (cl-const-expr-val (pop args) pi))
-        (not (find-if-not #'cl-equal-equivalent-to-eq-p
-                          (cl-const-expr-val (pop args) '((1.0 . nil)))
-                          :key #'cl-car-or-pi)))
-    (cons 'assq (cdr form)))
-   (t form)))
+    ((eql (length form) 4)
+     (list 'assoc* (nth 1 form) (nth 2 form) :test (nth 3 form)))
+    ((eql (length form) 3)
+     (if (or (cl-equal-equivalent-to-eq-p (cl-const-expr-val (pop args) pi))
+             (not (find-if-not #'cl-equal-equivalent-to-eq-p
+                               (cl-const-expr-val (pop args) '((1.0 . nil)))
+                               :key #'cl-car-or-pi)))
+         (cons 'assq (cdr form))
+       `(assoc* ,(nth 1 form) ,(nth 2 form) :test #'equal)))
+    (t form)))
+
+(define-compiler-macro assoc* (&whole form &rest keys)
+  (if (< (length form) 3)
+      form
+    (condition-case nil
+        (symbol-macrolet ((not-constant '#:not-constant))
+          (let* ((item (pop keys))
+                 (list (pop keys))
+                 (test-expr (plist-get keys :test ''eql))
+                 (test (cl-const-expr-val test-expr not-constant))
+                 (item-val (cl-const-expr-val item not-constant))
+                 (list-val (cl-const-expr-val list not-constant)))
+            (if (and keys (not (and (eq :test (car keys))
+                                    (eql 2 (length keys)))))
+                form
+              (cond ((eq test 'eq) `(assq ,item ,list))
+                    ((and (eq test 'eql) (not (eq not-constant item-val))
+			  (not (cl-non-immediate-number-p item-val)))
+		     `(assq ,item ,list))
+                    ((and (eq test 'eql)
+			  (not (eq not-constant list-val))
+			  (notany 'cl-non-immediate-number-p list-val))
+		     `(assq ,item ,list))
+                    (t form)))))
+      ;; No need to warn about a malformed property list,
+      ;; #'byte-compile-normal-call will do that for us.
+      (malformed-property-list form))))
 
 (define-compiler-macro rassoc (&whole form &rest args)
   (cond
@@ -3289,7 +3318,7 @@ expansion only."
 
 (macrolet
     ((define-star-compiler-macros (&rest macros)
-       "For `member*', `assoc*' and `rassoc*' with constant ITEM or
+       "For `member*' and `rassoc*' with constant ITEM or
 :test arguments, use the versions with explicit tests if that makes sense."
        (list*
 	'progn
@@ -3346,7 +3375,6 @@ expansion only."
 	 macros))))
   (define-star-compiler-macros
     (member* memq member)
-    (assoc* assq assoc)
     (rassoc* rassq rassoc)))
 
 (define-compiler-macro adjoin (&whole form a list &rest keys)

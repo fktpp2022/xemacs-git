@@ -1,3 +1,23 @@
+2025-05-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Take an optional TEST argument, #'assoc, as does GNU. Revise
+	related compiler macros to reflect this.
+
+	* cl-macs.el:
+	* cl-macs.el (assoc):
+	Handle the optional TEST argument in this compiler macro. Still
+	transform to an #'assq call if we can tell at compile time that
+	#'eq is the appropriate test.
+	* cl-macs.el (assoc*): New explicit compiler macro for this
+	function, can't handle #'assoc* in the define-star-compiler-macros
+	macro any more.
+	* cl-macs.el (define-star-compiler-macros): Remove handling of
+	#'assoc* from here.
+	* custom.el (custom-current-group): This is called very early when
+	#'assoc is not available, use #'assoc* instead.
+	* custom.el (custom-declare-group): Ditto.
+	* subr.el (assoc): New. Moved here from sequence.c.
+
 2025-05-24  Alan Mackenzie  <acm@muc.de>
 
 	Make "\\_<" and "\\_>" work in regexp buffer searches.

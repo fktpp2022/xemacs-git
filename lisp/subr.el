@@ -319,6 +319,14 @@ This is a non-destructive function; it makes a copy of SEQUENCE to avoid
 corrupting the original SEQUENCE.  See also the more general `remove*'."
   (remove* item sequence :test #'eq))
 
+(defun assoc (key alist &optional test)
+  "Return non-nil if KEY is `equal' to the car of an element of ALIST.
+The value is actually the element of ALIST whose car equals KEY.
+
+Optional third argument TEST specifies the test to use for comparison instead
+of #'equal. See also the more full-featured `assoc*'."
+  (assoc* key alist :test (or test #'equal)))
+
 (defun assoc-default (key alist &optional test default)
   "Find object KEY in a pseudo-alist ALIST.
 ALIST is a list of conses or objects.  Each element (or the element's car,

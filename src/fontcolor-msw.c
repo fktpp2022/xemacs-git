@@ -374,7 +374,7 @@ font_enum_callback_2 (ENUMLOGFONTEXW *lpelfe, NEWTEXTMETRICEXW *lpntme,
 
   /* Add the font name to the list if not already there */
   fontname_lispstr = build_istring (fontname);
-  if (NILP (Fassoc (fontname_lispstr, font_enum->list)))
+  if (NILP (assoc_no_quit (fontname_lispstr, font_enum->list)))
     font_enum->list =
       Fcons (Fcons (fontname_lispstr,
 		    /* TMPF_FIXED_PITCH is backwards from what you expect!

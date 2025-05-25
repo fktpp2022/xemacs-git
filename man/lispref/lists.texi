@@ -1499,16 +1499,14 @@ reversed. The @code{:key} keyword allows you to examine a component of
 each @sc{car} in @var{alist}, rather than the @sc{car} itself.
 @end defun
 
-@defun rassoc* value alist @t{&key :test :test-not :key}
-This function returns the first association with value @var{value} in
-@var{alist}.  It returns @code{nil} if no association in @var{alist} has
-a @sc{cdr} @code{eql} to @var{value}.
+@defun assoc key alist &optional test
+This is equivalent to calling @code{(assoc* key alist :test (or test
+'equal)}.
 
-@code{rassoc*} is like @code{assoc*} except that it compares the @sc{cdr} of
-each @var{alist} association instead of the @sc{car}.  You can think of
-this as ``reverse @code{assoc*}'', finding the key for a given value.
-
-The keywords work similarly to @code{assoc*}.
+Calling @code{assoc} without a @var{test} argument is portable to
+basically any version of Emacs; however the @var{test} argument is a
+relatively recent GNU addition, it is more portable to call
+@code{(require 'cl)} and to use @code{assoc*}.
 @end defun
 
 @defun assq key alist
@@ -1535,6 +1533,18 @@ symbols:
 (assoc "simple leaves" leaves)
      @result{} ("simple leaves" . oak)
 @end smallexample
+@end defun
+
+@defun rassoc* value alist @t{&key :test :test-not :key}
+This function returns the first association with value @var{value} in
+@var{alist}.  It returns @code{nil} if no association in @var{alist} has
+a @sc{cdr} @code{eql} to @var{value}.
+
+@code{rassoc*} is like @code{assoc*} except that it compares the @sc{cdr} of
+each @var{alist} association instead of the @sc{car}.  You can think of
+this as ``reverse @code{assoc*}'', finding the key for a given value.
+
+The keywords work similarly to @code{assoc*}.
 @end defun
 
 @defun rassq value alist

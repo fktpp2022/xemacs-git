@@ -1,3 +1,32 @@
+2025-05-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* elhash.c (hash_table_test_validate):
+	* elhash.c (decode_hash_table_test):
+	* elhash.c (Fdefine_hash_table_test):
+	* elhash.c (Fvalid_hash_table_test_p):
+	* elhash.c (vars_of_elhash):
+	Use assq_no_quit() here when dealing with elements of
+	Vhash_table_test_weak_list in passing, since we know that is a
+	valid internal-format list.
+	* eval.c (Fmacroexpand):
+	Call FassocX here, now Fassoc no longer available.
+	* fontcolor-msw.c (font_enum_callback_2):
+	Call assoc_no_quit() here, since we know font_enum->list is a
+	valid internal-format list.
+	* glyphs-gtk.c:
+	* glyphs-gtk.c (cursor_name_to_index):
+	Call Fassq() here, since we're looking for a symbol. Check the
+	type of the result before calling Fcdr(), XFIXNUM().
+	* lisp.h:
+	Remove declaration for Fassoc() here. Add declaration for FassocX().
+	* lread.c (Fload_internal):
+	Use the implementation of Fassoc() when examining Vafter_load_alist.
+	* select.c (Fselection_owner_p):
+	We know Vselection_alist is a valid internal-format list, use
+	assq_no_quit() when examining it.
+	* sequence.c (Fassoc): Move to subr.el.
+	* sequence.c (syms_of_sequence): Remove its DEFSUBR().
+
 2025-05-24  Alan Mackenzie  <acm@muc.de>
 
 	Make "\\_<" and "\\_>" work in regexp buffer searches.

@@ -348,7 +348,7 @@ information."
 ;;; The `defgroup' Macro.
 
 (defun custom-current-group ()
-  (cdr (assoc load-file-name custom-current-group-alist)))
+  (cdr (assoc* load-file-name custom-current-group-alist :test #'equal)))
 
 (defun custom-declare-group (symbol members doc &rest args)
   "Like `defgroup', but SYMBOL is evaluated as a normal argument."
@@ -372,7 +372,7 @@ information."
 	       (custom-handle-keyword symbol keyword value
 				      'custom-group))))))
   ;; Record the group on the `current' list.
-  (let ((elt (assoc load-file-name custom-current-group-alist)))
+  (let ((elt (assoc* load-file-name custom-current-group-alist :test #'equal)))
     (if elt (setcdr elt symbol)
       (push (cons load-file-name symbol) custom-current-group-alist)))
   (run-hooks 'custom-define-hook)

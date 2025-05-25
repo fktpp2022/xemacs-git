@@ -1420,23 +1420,6 @@ arguments: (ITEM LIST &key (TEST #'eql) (KEY #'identity) TEST-NOT)
   RETURN_UNGCPRO (list);
 }
 
-DEFUN ("assoc", Fassoc, 2, 2, 0, /*
-Return non-nil if KEY is `equal' to the car of an element of ALIST.
-The value is actually the element of ALIST whose car equals KEY.
-*/
-       (key, alist))
-{
-  /* This function can GC. */
-  EXTERNAL_ALIST_LOOP_4 (elt, elt_car, elt_cdr, alist)
-    {
-      USED (elt_cdr); /* Silence the warning. */
-
-      if (internal_equal (key, elt_car, 0))
-	return elt;
-    }
-  return Qnil;
-}
-
 Lisp_Object
 assoc_no_quit (Lisp_Object key, Lisp_Object alist)
 {
@@ -8864,7 +8847,6 @@ syms_of_sequence (void)
   DEFSUBR (Fmemq);
   DEFSUBR (FmemberX);
   DEFSUBR (Fadjoin);
-  DEFSUBR (Fassoc);
   DEFSUBR (Fassq);
   DEFSUBR (FassocX);
   DEFSUBR (Frassoc);

@@ -5296,7 +5296,6 @@ double extract_float (Lisp_Object);
 
 /* Defined in fns.c */
 MODULE_API EXFUN (Fappend, MANY);
-EXFUN (Fassoc, 2);
 EXFUN (Fassq, 2);
 EXFUN (Fcanonicalize_lax_plist, 2);
 EXFUN (Fcanonicalize_plist, 2);
@@ -5962,6 +5961,7 @@ EXFUN (Fclear_string, 1);
 EXFUN (Freplace, KEYWORDS);
 EXFUN (Fposition, KEYWORDS);
 EXFUN (Fmapconcat, MANY);
+EXFUN (FassocX, KEYWORDS);
 
 Lisp_Object concatenate (int nsequences, Lisp_Object *sequences,
                          Lisp_Object result_type, Boolint reuse_last_listp);

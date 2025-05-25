@@ -830,7 +830,8 @@ hash_table_test_validate (Lisp_Object UNUSED (keyword), Lisp_Object value,
       return 1;
     }
 
-  lookup = Fassq (value, XWEAK_LIST_LIST (Vhash_table_test_weak_list));
+  lookup
+    = assq_no_quit (value, XWEAK_LIST_LIST (Vhash_table_test_weak_list));
   if (NILP (lookup))
     {
       maybe_invalid_constant ("Invalid hash table test",
@@ -850,7 +851,8 @@ decode_hash_table_test (Lisp_Object obj)
       obj = Qeql;
     }
 
-  result = Fassq (obj, XWEAK_LIST_LIST (Vhash_table_test_weak_list));
+  result
+    = assq_no_quit (obj, XWEAK_LIST_LIST (Vhash_table_test_weak_list));
   if (NILP (result))
     {
       invalid_constant ("Invalid hash table test", obj);
@@ -2570,7 +2572,7 @@ a hash table test.
 
   CHECK_SYMBOL (name);
 
-  lookup = Fassq (name, XWEAK_LIST_LIST (Vhash_table_test_weak_list));
+  lookup = assq_no_quit (name, XWEAK_LIST_LIST (Vhash_table_test_weak_list));
 
   if (!NILP (lookup))
     {
@@ -2616,7 +2618,8 @@ equivalent to `eql'.
       return Qt;
     }
 
-  lookup = Fassq (object, XWEAK_LIST_LIST (Vhash_table_test_weak_list));
+  lookup
+    = assq_no_quit (object, XWEAK_LIST_LIST (Vhash_table_test_weak_list));
 
   if (!NILP (lookup))
     {
@@ -2661,7 +2664,8 @@ See `define-hash-table-test' and `make-hash-table'.
       test = Qeql;
     }
 
-  lookup = Fassq (test, XWEAK_LIST_LIST (Vhash_table_test_weak_list));
+  lookup
+    = assq_no_quit (test, XWEAK_LIST_LIST (Vhash_table_test_weak_list));
   if (NILP (lookup))
     {
       invalid_argument ("Not a defined hash table test", test);
@@ -2684,7 +2688,8 @@ See `define-hash-table-test' and `make-hash-table'.
       test = Qeql;
     }
 
-  lookup = Fassq (test, XWEAK_LIST_LIST (Vhash_table_test_weak_list));
+  lookup
+    = assq_no_quit (test, XWEAK_LIST_LIST (Vhash_table_test_weak_list));
   if (NILP (lookup))
     {
       invalid_argument ("Not a defined hash table test", test);
@@ -2942,10 +2947,10 @@ vars_of_elhash (void)
      that was done before vars_of_data() was called. Create a sane
      weak list object now, set its list appropriately, assert that our
      data haven't been garbage collected. */
-  assert (!NILP (Fassq (Qeq, weak_list_list)));
-  assert (!NILP (Fassq (Qeql, weak_list_list)));
-  assert (!NILP (Fassq (Qequal, weak_list_list)));
-  assert (!NILP (Fassq (Qequalp, weak_list_list)));
+  assert (!NILP (assq_no_quit (Qeq, weak_list_list)));
+  assert (!NILP (assq_no_quit (Qeql, weak_list_list)));
+  assert (!NILP (assq_no_quit (Qequal, weak_list_list)));
+  assert (!NILP (assq_no_quit (Qequalp, weak_list_list)));
 
   Vhash_table_test_weak_list = make_weak_list (WEAK_LIST_KEY_ASSOC);
   XWEAK_LIST_LIST (Vhash_table_test_weak_list) = weak_list_list;

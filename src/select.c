@@ -428,7 +428,7 @@ nil is the same as PRIMARY, and t is the same as SECONDARY.)
   if      (EQ (selection, Qnil)) selection = QPRIMARY;
   else if (EQ (selection, Qt))   selection = QSECONDARY;
 
-  return NILP (Fassq (selection, Vselection_alist)) ? Qnil : Qt;
+  return NILP (assq_no_quit (selection, Vselection_alist)) ? Qnil : Qt;
 }
 
 DEFUN ("selection-exists-p", Fselection_exists_p, 0, 3, 0, /*
