@@ -3622,7 +3622,7 @@ if test "$with_ldap" != "no"; then
   dnl #### understands LDAP needs to fix this properly.
   test "$with_ldap_lber" != "yes" && { AC_CHECK_LIB(lber, ber_pvt_opt_on, with_ldap_lber=yes) }
 fi
-if test "$with_ldap" = "yes"; then
+if test "$with_ldap" = "yes" -a "$with_modules" = "yes"; then
   AC_DEFINE(HAVE_LDAP)
   if test "$with_ldap_des" = "yes" ; then
     XE_PREPEND(-ldes, ldap_libs)
@@ -3637,15 +3637,8 @@ if test "$with_ldap" = "yes"; then
   save_LIBS="$LIBS" LIBS="$LIBS $ldap_libs"
   AC_CHECK_FUNCS(ldap_set_option ldap_get_lderrno ldap_result2error ldap_parse_result)
   LIBS="$save_LIBS"
-  if test "$with_modules" = "yes"; then
-    XE_APPEND(modules/ldap, MAKE_SUBDIR)
-    XE_APPEND(modules/ldap, INSTALL_ARCH_DEP_SUBDIR)
-  else
-    mkdir src
-    for fil in eldap.c eldap.h; do
-      ${LN_S} "$srcdir/modules/ldap/$fil" "src/$fil"
-    done
-  fi
+  XE_APPEND(modules/ldap, MAKE_SUBDIR)
+  XE_APPEND(modules/ldap, INSTALL_ARCH_DEP_SUBDIR)
 fi
 AC_SUBST(ldap_libs)
 
@@ -3704,7 +3697,8 @@ if test "$with_postgresql" != "no"; then
     fi
   fi
 
-  if test -n "$libpq_fe_h_file" -a "$have_libpq" = "yes"; then
+  if test -n "$libpq_fe_h_file" -a "$have_libpq" = "yes"
+        -a "$with_modules" = "yes"; then
     with_postgresql=yes
     AC_DEFINE(HAVE_POSTGRESQL)
     AC_CHECK_LIB(pq,PQconnectStart, [
@@ -3712,15 +3706,8 @@ if test "$with_postgresql" != "no"; then
                  AC_DEFINE(HAVE_POSTGRESQLV7)], [:], $extra_libs)
     AC_DEFINE_UNQUOTED(LIBPQ_FE_H_FILE, "$libpq_fe_h_file")
     XE_PREPEND([$pq_libs], postgresql_libs)
-    if test "$with_modules" = "yes"; then
-      XE_APPEND(modules/postgresql, MAKE_SUBDIR)
-      XE_APPEND(modules/postgresql, INSTALL_ARCH_DEP_SUBDIR)
-    else
-      mkdir src
-      for fil in postgresql.c postgresql.h; do
-        ${LN_S} "$srcdir/modules/postgresql/$fil" "src/$fil"
-      done
-    fi
+    XE_APPEND(modules/postgresql, MAKE_SUBDIR)
+    XE_APPEND(modules/postgresql, INSTALL_ARCH_DEP_SUBDIR)
   elif test "$with_postgresql" = "yes"; then
     XE_DIE("Required PostgreSQL support cannot be provided.  Check --with-site-prefixes.")
   fi
@@ -4437,18 +4424,12 @@ XE_CPP_TEST_ROUND1 (wcKanjiString)
       ])
     fi
 
-    if $have_canna; then
+    if $have_canna -a "$with_modules" = "yes"; then
       AC_DEFINE(HAVE_CANNA)
       $have_canna_wchar_aware && AC_DEFINE(CANNA_NEW_WCHAR_AWARE)
       XE_PREPEND(-lcanna -lRKC, canna_libs)
-
-      if test "$with_modules" = "yes"; then
-        XE_APPEND(modules/canna, MAKE_SUBDIR)
-        XE_APPEND(modules/canna, INSTALL_ARCH_DEP_SUBDIR)
-      else
-        mkdir src
-        ${LN_S} "$srcdir/modules/canna/canna_api.c" "src/canna_api.c"
-      fi
+      XE_APPEND(modules/canna, MAKE_SUBDIR)
+      XE_APPEND(modules/canna, INSTALL_ARCH_DEP_SUBDIR)
     elif test "$with_canna" = yes; then
       XE_DIE("Required Canna support cannot be provided")
     fi

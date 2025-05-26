@@ -1,3 +1,9 @@
+2025-05-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* emodules.texi (Distribution with XEmacs):
+	Document that support for building modules into temacs has been
+	removed.
+
 2025-05-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Writing New Modules):

@@ -16668,7 +16668,7 @@ then :
 fi
  }
 fi
-if test "$with_ldap" = "yes"; then
+if test "$with_ldap" = "yes" -a "$with_modules" = "yes"; then
   printf "%s\n" "#define HAVE_LDAP 1" >>confdefs.h
 
   if test "$with_ldap_des" = "yes" ; then
@@ -16708,15 +16708,8 @@ then :
 fi
 
   LIBS="$save_LIBS"
-  if test "$with_modules" = "yes"; then
-    MAKE_SUBDIR="$MAKE_SUBDIR modules/ldap" &&  if test "$verbose" = "yes"; then echo "    Appending \"modules/ldap\" to \$MAKE_SUBDIR"; fi
-    INSTALL_ARCH_DEP_SUBDIR="$INSTALL_ARCH_DEP_SUBDIR modules/ldap" &&  if test "$verbose" = "yes"; then echo "    Appending \"modules/ldap\" to \$INSTALL_ARCH_DEP_SUBDIR"; fi
-  else
-    mkdir src
-    for fil in eldap.c eldap.h; do
-      ${LN_S} "$srcdir/modules/ldap/$fil" "src/$fil"
-    done
-  fi
+  MAKE_SUBDIR="$MAKE_SUBDIR modules/ldap" &&  if test "$verbose" = "yes"; then echo "    Appending \"modules/ldap\" to \$MAKE_SUBDIR"; fi
+  INSTALL_ARCH_DEP_SUBDIR="$INSTALL_ARCH_DEP_SUBDIR modules/ldap" &&  if test "$verbose" = "yes"; then echo "    Appending \"modules/ldap\" to \$INSTALL_ARCH_DEP_SUBDIR"; fi
 fi
 
 
@@ -16848,7 +16841,8 @@ fi
     fi
   fi
 
-  if test -n "$libpq_fe_h_file" -a "$have_libpq" = "yes"; then
+  if test -n "$libpq_fe_h_file" -a "$have_libpq" = "yes"
+        -a "$with_modules" = "yes"; then
     with_postgresql=yes
     printf "%s\n" "#define HAVE_POSTGRESQL 1" >>confdefs.h
 
@@ -16900,15 +16894,8 @@ fi
     printf "%s\n" "#define LIBPQ_FE_H_FILE \"$libpq_fe_h_file\"" >>confdefs.h
 
     postgresql_libs="$pq_libs $postgresql_libs" &&  if test "$verbose" = "yes"; then echo "    Prepending \"$pq_libs\" to \$postgresql_libs"; fi
-    if test "$with_modules" = "yes"; then
-      MAKE_SUBDIR="$MAKE_SUBDIR modules/postgresql" &&  if test "$verbose" = "yes"; then echo "    Appending \"modules/postgresql\" to \$MAKE_SUBDIR"; fi
-      INSTALL_ARCH_DEP_SUBDIR="$INSTALL_ARCH_DEP_SUBDIR modules/postgresql" &&  if test "$verbose" = "yes"; then echo "    Appending \"modules/postgresql\" to \$INSTALL_ARCH_DEP_SUBDIR"; fi
-    else
-      mkdir src
-      for fil in postgresql.c postgresql.h; do
-        ${LN_S} "$srcdir/modules/postgresql/$fil" "src/$fil"
-      done
-    fi
+    MAKE_SUBDIR="$MAKE_SUBDIR modules/postgresql" &&  if test "$verbose" = "yes"; then echo "    Appending \"modules/postgresql\" to \$MAKE_SUBDIR"; fi
+    INSTALL_ARCH_DEP_SUBDIR="$INSTALL_ARCH_DEP_SUBDIR modules/postgresql" &&  if test "$verbose" = "yes"; then echo "    Appending \"modules/postgresql\" to \$INSTALL_ARCH_DEP_SUBDIR"; fi
   elif test "$with_postgresql" = "yes"; then
     { echo "Error:" "Required PostgreSQL support cannot be provided.  Check --with-site-prefixes." >&2; exit 1; }
   fi
@@ -19049,20 +19036,14 @@ fi
 
     fi
 
-    if $have_canna; then
+    if $have_canna -a "$with_modules" = "yes"; then
       printf "%s\n" "#define HAVE_CANNA 1" >>confdefs.h
 
       $have_canna_wchar_aware && printf "%s\n" "#define CANNA_NEW_WCHAR_AWARE 1" >>confdefs.h
 
       canna_libs="-lcanna -lRKC $canna_libs" &&  if test "$verbose" = "yes"; then echo "    Prepending \"-lcanna -lRKC\" to \$canna_libs"; fi
-
-      if test "$with_modules" = "yes"; then
-        MAKE_SUBDIR="$MAKE_SUBDIR modules/canna" &&  if test "$verbose" = "yes"; then echo "    Appending \"modules/canna\" to \$MAKE_SUBDIR"; fi
-        INSTALL_ARCH_DEP_SUBDIR="$INSTALL_ARCH_DEP_SUBDIR modules/canna" &&  if test "$verbose" = "yes"; then echo "    Appending \"modules/canna\" to \$INSTALL_ARCH_DEP_SUBDIR"; fi
-      else
-        mkdir src
-        ${LN_S} "$srcdir/modules/canna/canna_api.c" "src/canna_api.c"
-      fi
+      MAKE_SUBDIR="$MAKE_SUBDIR modules/canna" &&  if test "$verbose" = "yes"; then echo "    Appending \"modules/canna\" to \$MAKE_SUBDIR"; fi
+      INSTALL_ARCH_DEP_SUBDIR="$INSTALL_ARCH_DEP_SUBDIR modules/canna" &&  if test "$verbose" = "yes"; then echo "    Appending \"modules/canna\" to \$INSTALL_ARCH_DEP_SUBDIR"; fi
     elif test "$with_canna" = yes; then
       { echo "Error:" "Required Canna support cannot be provided" >&2; exit 1; }
     fi

@@ -1,3 +1,9 @@
+2025-05-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* configure.ac: Remove support for building ldap, canna,
+	postgresql into the temacs binary.
+	* configure: Regenerate.
+
 2025-03-04  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* configure.ac (DUMP_FILE_NAME): New, just xemacs.dmp. Use

@@ -1,3 +1,34 @@
+2025-05-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Remove support for static linking of postgresql, canna and ldap
+	into the XEmacs binary if !HAVE_SHLIB, since that is very rare
+	these days, the relevant code is not regularly tested, and it
+	complicates development of the code generally.
+
+	* Makefile.in.in:
+	* Makefile.in.in (ldap_objs): Removed.
+	* Makefile.in.in (mule_canna_objs): Removed.
+	* Makefile.in.in (postgresql_objs): Removed.
+	* Makefile.in.in (shlib_objs): Add emodules.o to this for
+	consistency, avoid linking it into temacs if !HAVE_SHLIB.
+	* Makefile.in.in (objs): Update this to no longer reference
+	$ldap_objs and friends.
+	* emacs.c (main_1):
+	No longer call syms_of_canna_api(), syms_of_eldap(),
+	syms_of_postgresql(), vars_of_canna_api(), vars_of_eldap(),
+	vars_of_postgresql(), init_postgresql_from_environment().
+	* emodules.c:
+	Remove an #ifdef HAVE_SHLIB ... #endif from this file, now
+	addressed in Makefile.in.in.
+	* emodules.c (make_module):
+	Change the name of an argument that shadows a global in this in
+	passing, suppress a compiler warning.
+	* inline.c:
+	Remove code that checked whether ldap, postgresql were being
+	linked into temacs, no longer supported.
+	* lrecord.h (enum lrecord_type):
+	Ditto.
+
 2025-05-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Fix crashes after unloading modules, by keeping note of those

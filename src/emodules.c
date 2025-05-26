@@ -29,8 +29,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 static Lisp_Object Vmodule_load_path, Vmodule_extensions;
 
-#ifdef HAVE_SHLIB
-
 /* Weak list of known file names, so we don't have to duplicate them when
    dealing with multiple symbols with the same file name. */
 static Lisp_Object Vknown_module_file_names;
@@ -101,7 +99,7 @@ static const struct memory_description module_description[] = {
 static Lisp_Object
 make_module (Lisp_Object soname, Lisp_Object modname,
               Lisp_Object modver, Lisp_Object modtitle,
-              void (*unload) (void), int used, dll_handle dlhandle)
+              void (*unload) (void), int used, dll_handle dlhandel)
 {
   Lisp_Object result = ALLOC_NORMAL_LISP_OBJECT (module);
   struct Lisp_Module *eresult = XMODULE (result);
@@ -113,7 +111,7 @@ make_module (Lisp_Object soname, Lisp_Object modname,
   eresult->lisp_cleanup_info = make_weak_list (WEAK_LIST_KEY_ASSOC);
   eresult->unload = unload;
   eresult->used = used;
-  eresult->dlhandle = dlhandle;
+  eresult->dlhandle = dlhandel;
 
   return result;
 }
@@ -837,8 +835,6 @@ syms_of_module (void)
   Vmodule_tag = Fcons (Qmodule, Qnil);
   staticpro (&Vmodule_tag);
 }
-
-#endif /* HAVE_SHLIB */
 
 void
 vars_of_module (void)

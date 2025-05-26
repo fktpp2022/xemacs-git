@@ -1550,9 +1550,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #ifdef HAVE_WNN
       syms_of_mule_wnn ();
 #endif
-#if defined(HAVE_CANNA) && !defined (HAVE_SHLIB)
-      syms_of_canna_api ();
-#endif /* HAVE_CANNA */
 
 #ifdef WIN32_ANY
       syms_of_intl_win32 ();
@@ -1579,16 +1576,8 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       syms_of_sunpro ();
 #endif
 
-#if defined (HAVE_LDAP) && !defined (HAVE_SHLIB)
-      syms_of_eldap ();
-#endif
-
 #ifdef HAVE_GPM
       syms_of_gpmevent ();
-#endif
-
-#if defined (HAVE_POSTGRESQL) && !defined (HAVE_SHLIB)
-      syms_of_postgresql ();
 #endif
 
       /* Now create the subtypes for the types that have them.
@@ -2058,9 +2047,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #ifdef HAVE_WNN
       vars_of_mule_wnn ();
 #endif
-#if defined(HAVE_CANNA) && !defined (HAVE_SHLIB)
-      vars_of_canna_api ();
-#endif /* HAVE_CANNA */
 
 #ifdef TOOLTALK
       vars_of_tooltalk ();
@@ -2068,14 +2054,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 
 #ifdef SUNPRO
       vars_of_sunpro ();
-#endif
-
-#if defined (HAVE_LDAP) && !defined (HAVE_SHLIB)
-      vars_of_eldap ();
-#endif
-
-#if defined (HAVE_POSTGRESQL) && !defined (HAVE_SHLIB)
-      vars_of_postgresql ();
 #endif
 
 #ifdef HAVE_GPM
@@ -2360,10 +2338,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #endif
 #if defined (HAVE_NATIVE_SOUND) && defined (hp9000s800)
   init_hpplay ();
-#endif
-#if defined (HAVE_POSTGRESQL) && !defined (HAVE_SHLIB)
-  /* Set some values taken from environment variables */
-  init_postgresql_from_environment ();
 #endif
 #ifdef HAVE_TTY
   init_device_tty ();

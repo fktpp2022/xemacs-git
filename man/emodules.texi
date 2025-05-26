@@ -867,21 +867,10 @@ itself or other modules needs to be present, it is easier to write and
 maintain than if it were contained in the XEmacs distribution's
 @file{configure.ac}.
 
-Modules can usually be trivially built in to the XEmacs binary.  To make
-this work, you need to duplicate the detection logic for any resources
-the module requires in the top-level @file{configure.ac}.  Since module
-objects may be linked into modules or into @file{xemacs}, instead of
-adding library path and library information directly to some
-@file{@var{subsystem}_libs} variable, you should add them to a
-@file{@var{module}_libs} variable, which in turn must be added to
-@code{ld_libs_module} in the section ``Compute SUBST-itutable variables.''
-
-Furthermore, in @file{src/Makefile.in.in} you add rules to build the
-object without the module wrapper, and conditionalize these and the
-addition of the object to @code{objs} on @code{HAVE_SHLIB}.  The right
-way to do this is somewhat indirect.  Study the integration of LDAP and
-PostgreSQL for the details.
-
+Modules were previously occasionally built in to the XEmacs binary, on
+systems where @code{HAVE_SHLIB} was determined to be zero by the
+configure script. Such systems are currently rare. In the interest of
+maintainability support for this has been removed.
 
 @node Defining Functions, Defining Variables, Distribution with XEmacs, Top
 @chapter Defining Functions

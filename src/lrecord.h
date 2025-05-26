@@ -316,15 +316,6 @@ enum lrecord_type
 
   lrecord_type_free,			/* only used for "free" lrecords */
   lrecord_type_undefined,		/* only used for debugging */
-#if !defined (HAVE_SHLIB)
-# ifdef HAVE_POSTGRESQL
-  lrecord_type_pgconn,
-  lrecord_type_pgresult,
-# endif
-# ifdef HAVE_LDAP
-  lrecord_type_ldap,
-# endif
-#endif /* !defined (HAVE_SHLIB) */
   lrecord_type_last_built_in_type,	/* must be last */
 };
 
