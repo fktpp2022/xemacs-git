@@ -39,23 +39,16 @@
 ;; We prefer UTF8_STRING to COMPOUND_TEXT because, even though the latter
 ;; gives us more information when taking data from other XEmacs invocations,
 ;; Mozilla will happily give us broken COMPOUND_TEXT where a non-broken
-;; UTF8_STRING is available. 
+;; UTF8_STRING is available.
 (defvar selection-preferred-types
-  `(UTF8_STRING COMPOUND_TEXT STRING
+  `(UTF8_STRING text/plain\;charset=utf-8 COMPOUND_TEXT STRING text/plain
     ,@(mapcan #'(lambda (format)
                   (and (featurep format)
                        (list (intern (format "image/%s" format)))))
               '(png gif jpeg tiff xpm xbm)))
   "An ordered list of X11 type atoms for selections we want to receive.
-We prefer UTF8_STRING over COMPOUND_TEXT, for compatibility with a certain
-widely-used browser suite, and COMPOUND_TEXT over STRING. (COMPOUND_TEXT
-isn't available on non-Mule.) We also accept several image types.
-
-For compatibility, this can be a single atom. ")
-
-;; Renamed because it was just ridiculous for it to be mostly image formats
-;; and named selected-text-type. 
-(define-obsolete-variable-alias 'selected-text-type 'selection-preferred-types)
+We prefer UTF8_STRING over COMPOUND_TEXT, and COMPOUND_TEXT over STRING.  We
+also accept several image types.")
 
 (defvar selection-sets-clipboard nil
   "Controls the selection's relationship to the clipboard.
@@ -226,7 +219,7 @@ Interactively, the text of the region is used as the selection value."
   ;; when behaving as the latter, we better not set it, or we will
   ;; cause unwanted sticky-region behavior in kill-region and friends.
   (if (interactive-p)
-  (setq zmacs-region-stays t))
+      (setq zmacs-region-stays t))
   data)
 
 (defun dehilight-selection (selection)
@@ -756,6 +749,9 @@ nil if this is impossible, or a suitable representation otherwise."
 (defun select-convert-from-utf-16-le-text (selection type value)
   (decode-coding-string value 'utf-16-le))
 
+(defun select-convert-from-undecided-text (selection type value)
+  (decode-coding-string value 'undecided))
+
 ;; Image conversion. 
 (defun select-convert-from-image-data (image-type value)
   "Take an image type specification--one of the image types this XEmacs
@@ -898,7 +894,8 @@ corresponding to that data as an end-glyph extent property of that space. "
 ;; Types listed in here can be selections of XEmacs
 (setq selection-converter-out-alist
       `((TIMESTAMP . select-convert-to-timestamp)
-	(UTF8_STRING . select-convert-to-utf-8-text)	
+	(UTF8_STRING . select-convert-to-utf-8-text)
+	(text/plain\;charset=utf-8 . select-convert-to-utf-8-text)
 	(TEXT . select-convert-to-text)
 	(STRING . select-convert-to-string)
 	(COMPOUND_TEXT . select-convert-to-compound-text)
@@ -935,12 +932,14 @@ corresponding to that data as an end-glyph extent property of that space. "
 	;; at least, does bad things with non-Latin-1 Unicode characters in
 	;; STRING.
  	(UTF8_STRING . select-convert-from-utf-8-text)
+        (text/plain\;charset=utf-8 . select-convert-from-utf-8-text)
 	,@(when (find-coding-system 'mswindows-multibyte)
                 '((CF_TEXT . select-convert-from-cf-text)))
 	(CF_UNICODETEXT . select-convert-from-cf-unicodetext)
  	(text/html . select-convert-from-utf-16-le-text)  ; Mozilla
  	(text/_moz_htmlcontext . select-convert-from-utf-16-le-text)
  	(text/_moz_htmlinfo . select-convert-from-utf-16-le-text)
+        (text/plain . select-convert-from-undecided-text)
         ,@(loop
             for format in '(gif jpeg png tiff xpm xbm)
             nconc (if (featurep format)
@@ -988,6 +987,7 @@ corresponding to that data as an end-glyph extent property of that space. "
 	(CF_UNICODETEXT . select-buffer-killed-text)))
 
 ;; Lists of types that are coercible (can be converted to other types)
-(setq selection-coercible-types '(TEXT STRING COMPOUND_TEXT CF_TEXT CF_UNICODETEXT))
+(setq selection-coercible-types
+      '(TEXT STRING COMPOUND_TEXT CF_TEXT CF_UNICODETEXT))
 
 ;;; select.el ends here

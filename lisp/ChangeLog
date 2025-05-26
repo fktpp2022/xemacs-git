@@ -1,3 +1,23 @@
+2025-05-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Support text/plain, text/plain;charset=utf-8 when cutting and
+	pasting under X11, needed for more recent clients that are not
+	interested in longstanding standards (Libreoffice and the terminal
+	emulatory Terminology in my use.
+	* select.el:
+	* select.el (selection-preferred-types): Add them to this.
+	* select.el ('selected-text-type): Remove this obsolete name in
+	passing.
+	* select.el (own-selection): Fix some indentation in passing.
+	* select.el (select-convert-from-undecided-text): New. Now used when
+	supplied text/plain, use our coding detection to work out what
+	encoding is in use.
+	* select.el (selection-converter-out-alist): Add the new entries
+	here. 
+	* select.el (selection-converter-in-alist): And here.
+	* select.el (selection-coercible-types): Fix some indentation
+	here.
+
 2025-05-25  Alan Mackenzie  <acm@muc.de>
 
 	* regexp-opt.el (regexp-opt):
