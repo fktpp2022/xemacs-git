@@ -1,4 +1,10 @@
-2025-03-04  Aidan Kehoe  <kehoea@parhasard.net>
+2025-05-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* xemacs.mak (LIB_SRC_TOOLS):
+	Remove sorted-doc.exe from here, Other obsoleted targets not
+	needed.
+
+o2025-03-04  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* xemacs.mak (PROGRAM_DEFINES): Add EMACS_DUMP_FILE_NAME to these,
 	just added to configure.ac.

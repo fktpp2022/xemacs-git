@@ -1,3 +1,45 @@
+2025-05-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Remove some obsolete or minimally useful C files from lib-src/,
+	reduce maintenance burden, risk of security holes.
+
+	* Makefile.in.in:
+	* Makefile.in.in (profile): Remove this target.
+	* Makefile.in.in (digest-doc): Remove this target.
+	* Makefile.in.in (sorted-doc): Remove this target.
+	* Makefile.in.in (b2m): Remove this target.
+	* Makefile.in.in (cvtmail): Remove this target.
+	* Makefile.in.in (fakemail): Remove this target.
+	* b2m.c: File removed. This converted Babyl format mail to mbox
+	files. If someone who is not a MacArthur genius is still using
+	rmail with a Babyl format inbox, that person should stop using it
+	immediately, and use the pre-deletion code to convert to an mbox
+	file and use VM (or theoretically Thunderbird), that person should
+	not expect any support going forward.
+	If any MacArthur genius wishes to use rmail, I encourage that
+	individual to (continue to) use GNU Emacs, and avail of the
+	development resources provided to GNU Emacs in his or her use of
+	rmail.
+
+	* cvtmail.c: File removed. This converted Gosling Emacs mail
+	directories to Babyl format, so a very very obsolete format to a
+	very obsolete format. I encourage anyone using Gosling Emacs mail
+	directories to use older Mercurial revisions to convert their
+	data.
+
+	* digest-doc.c: File removed.  This converted the output of
+	make-docfile to groff(1) format. This is very easily achievable in
+	Lisp and I volunteer to do this if anyone cares that the C version
+	of this file was removed.
+	* fakemail.c: File removed. System V is long gone, no need to
+	persist with this.
+	* profile.c: File removed. Not actually used by our profiling
+	code, source of potential security problems, better gone.
+	* sorted-doc.c: File removed.
+	This converted the output of make-docfile to texinfo. This is very
+	easily achievable in Lisp and I volunteer to do this if anyone
+	cares that the C version of this file was removed.
+
 2025-05-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* ellcc.c (do_init_mode):

@@ -95,7 +95,7 @@ PUBLIC_INSTALLABLE_EXES=\
 #ifdef HAVE_MS_WINDOWS
  winclient\
 #endif
- etags ctags b2m ootags
+ etags ctags ootags
 
 #ifdef INSTALL_GNUSERV
 PUBLIC_INSTALLABLE_SCRIPTS=gnudoit gnuattach
@@ -115,11 +115,8 @@ PRIVATE_INSTALLABLE_EXES=\
 #endif
 #ifdef WIN32_NATIVE
  i minitar\
-#else
- fakemail\
 #endif
- profile make-docfile digest-doc\
- sorted-doc movemail cvtmail hexl mmencode
+ make-docfile movemail hexl mmencode
 
 GEN_SCRIPTS = rcs2log vcdiff gzip-el.sh
 PKG_SCRIPTS = add-big-package.sh
@@ -332,31 +329,13 @@ ootags: ${ootags_deps}
 ctags: ${etags_deps} etags
 	$(CC) -DCTAGS ${etags_args} -o $@
 
-profile: ${srcdir}/profile.c
-	$(CC) $(cflags) ${srcdir}/profile.c $(ldflags) -o $@
-
 make-docfile: ${srcdir}/make-docfile.c
 	$(CC) $(cflags) ${srcdir}/make-docfile.c $(ldflags) -o $@
-
-digest-doc: ${srcdir}/digest-doc.c
-	$(CC) -Demacs $(cflags) ${srcdir}/digest-doc.c $(ldflags) -o $@
-
-sorted-doc: ${srcdir}/sorted-doc.c
-	$(CC) $(cflags) ${srcdir}/sorted-doc.c $(ldflags) -o $@
-
-b2m: ${srcdir}/b2m.c ../src/config.h
-	$(CC) $(cflags) ${srcdir}/b2m.c $(ldflags) -o $@
 
 movemail: ${srcdir}/movemail.c ${srcdir}/pop.c ${srcdir}/pop.h $(GETOPTDEPS) regex.o \
 	../src/config.h
 	$(CC) $(cflags) ${MOVE_FLAGS} ${srcdir}/movemail.c ${srcdir}/pop.c \
 	$(GETOPTOBJS) regex.o $(ldflags) ${MOVE_LIBS} -o $@
-
-cvtmail: ${srcdir}/cvtmail.c
-	$(CC) $(cflags) ${srcdir}/cvtmail.c $(ldflags) -o $@
-
-fakemail: ${srcdir}/fakemail.c ../src/config.h
-	$(CC) $(cflags) ${srcdir}/fakemail.c $(ldflags) -o $@
 
 i: ${srcdir}/i.c
 	$(CC) $(cflags) ${srcdir}/i.c $(ldflags) -o $@

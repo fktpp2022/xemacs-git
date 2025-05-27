@@ -1070,8 +1070,7 @@ LIB_SRC_TOOLS = \
 	$(BLDLIB_SRC)/winclient.exe	\
 	$(BLDLIB_SRC)/make-docfile.exe	\
 	$(BLDLIB_SRC)/mmencode.exe	\
-	$(BLDLIB_SRC)/movemail.exe	\
-	$(BLDLIB_SRC)/sorted-doc.exe
+	$(BLDLIB_SRC)/movemail.exe
 !if $(USE_MINITAR)
 LIB_SRC_TOOLS = \
 	$(LIB_SRC_TOOLS) \
