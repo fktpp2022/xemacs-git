@@ -1760,7 +1760,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #ifdef HAVE_X_WINDOWS
       reinit_console_type_create_device_x ();
 #endif
-      reinit_coding_system_type_create_mule_coding ();
     }
 
   if (!initialized)

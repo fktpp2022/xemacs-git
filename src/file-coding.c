@@ -165,7 +165,6 @@ int coding_system_tick;
 
 int coding_detector_count;
 int coding_detector_category_count;
-int coding_detector_description_lines_count;
 
 detector_dynarr *all_coding_detectors;
 
@@ -4258,9 +4257,159 @@ convert_eol_canonicalize_after_coding (struct coding_stream *str)
 /*                        Detection state object                        */
 /************************************************************************/
 
+/* The detection state object is unusual in that its associated memory
+   description is generated in the process of loadup, not at compile time, as
+   files loaded after this one add information regarding GC-reachability of
+   their detector state by calling initialize_detector_description().
+
+   We use XD_BLOCK_ARRAY, and take advantage of the fact that we can specify
+   the offset using an XD_INDIRECT pointer, pointing to the value of
+   data_offset[detector_foo] -- but to do this we have to declare
+   data_offset[detector_foo] as an XD_BYTECOUNT.
+
+   We can't just dump the description as an opaque block, since the
+   sub-description in the XD_BLOCK_ARRAY entry is a data segment pointer that
+   needs to be relocated with ASLR. This leads to a certain amount of
+   hoop-jumping as follows. */
+typedef struct memory_description memory_description;
+
+typedef struct
+{
+  Dynarr_declare (memory_description);
+} memory_description_dynarr;
+
+#define DETECTION_STATE_DESCRIPTION_NUM_STATIC 3
+
+typedef struct
+{
+  /* Each detector entry takes two entries in this array, and there is an
+     XD_END entry after all detectors; only one detector entry is currently
+     created and dumped. We die at loadup if the static array member of
+     DETECTION_STATE_DESCRIPTION is insufficient for the dump-time value. */
+  Stynarr_declare (memory_description,
+                   DETECTION_STATE_DESCRIPTION_NUM_STATIC);
+} detection_state_description_stynarr;
+
+static detection_state_description_stynarr detection_state_description = {
+  NULL, 1, DETECTION_STATE_DESCRIPTION_NUM_STATIC, { { XD_END } }
+};
+
+/* Note that this treats the DATA2 elements for the XD_BYTECOUNT, XD_END
+   entries in DETECTION_STATE_DESCRIPTION as having pointers to
+   memory_descriptions. That is acceptable for this use case, since we know
+   they are NULL, and pdump() will leave null XD_MEMORY_DESCRIPTION elements
+   alone.  See the xzero() in initialize_detector_description(). */
+static const struct memory_description detection_state_description_elt_description_1[] = {
+  { XD_MEMORY_DESCRIPTION, offsetof (struct memory_description, data2.descr) },
+  { XD_END }
+};
+
+static const struct sized_memory_description detection_state_description_elt_description = {
+  sizeof (struct memory_description),
+  detection_state_description_elt_description_1
+};
+
+static const struct memory_description memory_description_dynarr_description_1[] = {
+  XD_DYNARR_DESC (memory_description_dynarr,
+                  &detection_state_description_elt_description),
+  { XD_END }
+};
+
+static const struct sized_memory_description memory_description_dynarr_description = {
+  sizeof (memory_description_dynarr),
+  memory_description_dynarr_description_1
+};
+
+static const struct memory_description detection_state_description_stynarr_description_1[] = {
+  XD_STYNARR_DESC (detection_state_description_stynarr,
+                   &detection_state_description_elt_description,
+                   &memory_description_dynarr_description),
+  { XD_END }
+};
+
+void
+initialize_detector_description (int detector_id,
+                                 const struct sized_memory_description *descr)
+{
+  struct memory_description desc;
+
+  structure_checking_assert (detector_id != 0);
+
+  /* This must be an odd number. */
+  structure_checking_assert
+    (Stynarr_length (detection_state_description) & 1);
+  /* And this must be an odd number greater than 2: */
+  structure_checking_assert
+    (Stynarr_num_static (detection_state_description) > 2
+     && (Stynarr_num_static (detection_state_description) & 1));
+
+  xzero (desc);
+  desc.type = XD_BYTECOUNT;
+  desc.offset = offsetof (struct detection_state, data_offset) +
+    (sizeof (Bytecount) * detector_id);
+
+  if (Stynarr_length (detection_state_description)
+      == Stynarr_num_static (detection_state_description))
+    {
+      Elemcount ii;
+
+      if (!initialized)
+        {
+          fatal ("dump-time detection state description too short, "
+                 "adjust DETECTION_STATE_DESCRIPTION_NUM_STATIC, "
+                 "currently %d", DETECTION_STATE_DESCRIPTION_NUM_STATIC);
+        }
+
+      /* For the sake of (currently theoretical) detectors created by
+         modules, make this work post loadup. This also needs the block
+         below where we set the memory description to the base of the
+         Dynarr. */
+      for (ii = 0;
+           ii < Stynarr_num_static (detection_state_description);
+           ii++)
+        {
+          /* Add duplicate entries that end up in the Dynarr. */
+          Stynarr_add (detection_state_description, 
+                       Stynarr_at (detection_state_description, ii));
+        }
+    }
+
+  /* Replace the existing XD_END entry: */
+  Stynarr_at (detection_state_description,
+              Stynarr_length (detection_state_description) - 1)
+    = desc;
+
+  xzero (desc);
+  desc.type = XD_BLOCK_ARRAY;
+  desc.offset =
+    XD_INDIRECT (Stynarr_length (detection_state_description) - 2, 0);
+  desc.data1 = 1;
+  desc.data2.descr = descr;
+  Stynarr_add (detection_state_description, desc);
+
+  xzero (desc);
+  desc.type = XD_END;
+  Stynarr_add (detection_state_description, desc);
+
+  if (Stynarr_length (detection_state_description) >
+      Stynarr_num_static (detection_state_description))
+    {
+      /* Set the object's description to the Dynarr base. We're post
+         pdump_load() (we did not fatal() above), we no longer care about the
+         differing relocations of dump file vs. data segment pointers. */
+      LRECORD_IMPLEMENTATION (detection_state)->description
+        = Dynarr_begin (detection_state_description.els);
+      lrecord_memory_descriptions[lrecord_type_detection_state]
+        = Dynarr_begin (detection_state_description.els);
+    }
+}
+
 /* All `struct detection_state's are the same size, but we can't easily
-   compute the size at compile time (anyone said C++ template magic?)
-   because it depends on all of the different defined detectors. */
+   compute the size at compile time (anyone said C++ template magic?)  because
+   it depends on all of the different defined detectors; this also means we
+   can't pass the result of sizeof_detection_state() to
+   DEFINE_NODUMP.*LISP_OBJECT() since the detectors are defined after
+   syms_of_file_coding() is called. */
 
 static Bytecount
 sizeof_detection_state (Lisp_Object UNUSED (obj))
@@ -4290,8 +4439,6 @@ allocate_detection_state (void)
 
   return block;
 }
-
-struct memory_description detection_state_description[MAX_DETECTORS + 1];
 
 static void
 free_detection_state (struct detection_state *st)
@@ -5971,11 +6118,10 @@ syms_of_file_coding (void)
                                        sizeof_coding_system,
                                        Lisp_Coding_System);
 
-  DEFINE_NODUMP_SIZABLE_INTERNAL_LISP_OBJECT ("detection-state",
-                                              detection_state,
-                                              detection_state_description,
-                                              sizeof_detection_state,
-                                              struct detection_state);
+  DEFINE_NODUMP_SIZABLE_INTERNAL_LISP_OBJECT
+    ("detection-state", detection_state,
+     detection_state_description.els_static, sizeof_detection_state,
+     struct detection_state);
 
   DEFSUBR (Fvalid_coding_system_type_p);
   DEFSUBR (Fcoding_system_type_list);
@@ -6097,16 +6243,19 @@ coding_system_type_create (void)
 
   all_coding_detectors = Dynarr_new2 (detector_dynarr, struct detector);
   dump_add_root_block_ptr (&all_coding_detectors,
-			    &detector_dynarr_description);
+                           &detector_dynarr_description);
 
   dump_add_opaque_int (&coding_system_tick);
   dump_add_opaque_int (&coding_detector_count);
   dump_add_opaque_int (&coding_detector_category_count);
 
-  /* Would be nice to do the following, but needs a memory_description for
-     struct memory_description.  */
-  /* dump_add_root_block (detection_state_description, ...) */
-  /* dump_add_opaque_int (&coding_detector_description_lines_count); */
+  /* This is the only point in our code where a memory_description itself is
+     dumped. There's no reason this should be a problem, once it is dumped in
+     a root block rather than in a heap block passed to
+     dump_add_root_block_ptr(). */
+  dump_add_root_block (&detection_state_description,
+                       sizeof (detection_state_description),
+                       detection_state_description_stynarr_description_1);
 
   INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (no_conversion,
                                            "no-conversion-coding-system-p");

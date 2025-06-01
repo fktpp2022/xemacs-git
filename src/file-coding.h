@@ -745,15 +745,6 @@ DECLARE_LISP_OBJECT (detection_state, struct detection_state);
   ((struct type##_detector *)					\
    ((char *) (st) + (st)->data_offset[detector_##type]))
 
-/* Used in INITIALIZE_DETECTOR_DESCRIPTION(). portable_offsetof (struct
-   detection_state, data_offset[detector_##type]) doesn't work with
-   -fsanitize=undefined, and offsetof (struct detection_state,
-   data_offset[detector_##type]) complains under (certain) C++ builds given
-   detector_##type is not constant.  */
-#define DETECTOR_DESCRIPTION_OFFSET(type)              \
-  (offsetof (struct detection_state, data_offset) +     \
-   sizeof (Bytecount) * detector_##type)
-
 enum detection_result
  {
   /* Basically means a magic cookie was seen indicating this type, or
@@ -855,9 +846,7 @@ typedef struct
 extern detector_dynarr *all_coding_detectors;
 
 extern int coding_detector_count;
-extern int coding_detector_description_lines_count;
 extern int coding_detector_category_count;
-extern struct memory_description detection_state_description[];
 
 #define DEFINE_DETECTOR_CATEGORY(detector, cat) \
 int detector_category_##cat
@@ -920,41 +909,17 @@ do {							\
    detector-specific structure within the whole structure -- we can't simply
    declare a static object description, since there isn't any means of
    handling this weird type of object.  Instead, we must build up the
-   description bit-by-bit based on individual descriptions of the
-   detector-specific structures.  We use XD_BLOCK_ARRAY, and take advantage
-   of the fact that we can specify the offset using an XD_INDIRECT pointer,
-   pointing to the value of data_offset[detector_foo] -- but to do this we
-   have to declare data_offset[detector_foo] as an XD_BYTECOUNT. */
-
-#define INITIALIZE_DETECTOR_DESCRIPTION(Detector)			\
-do {									\
-  struct memory_description *desc;					\
-  desc =								\
-    &detection_state_description[coding_detector_description_lines_count++]; \
-  desc->type = XD_BYTECOUNT;						\
-  desc->offset = DETECTOR_DESCRIPTION_OFFSET (Detector);                     \
-  desc =								\
-    &detection_state_description[coding_detector_description_lines_count]; \
-  desc->type = XD_BLOCK_ARRAY;						\
-  desc->offset =							\
-    XD_INDIRECT (coding_detector_description_lines_count - 1, 0);	\
-  desc->data1 = 1;							\
-  desc->data2.descr = &Detector##_detector_description_0;		\
-  coding_detector_description_lines_count++;				\
-  desc =								\
-    &detection_state_description[coding_detector_description_lines_count]; \
-  desc->type = XD_END;							\
-} while (0)
+   description bit-by-bit based at loadup time on individual descriptions of
+   the detector-specific structures. */
+extern void
+initialize_detector_description (int detector_id,
+                                 const struct sized_memory_description *);
 
 #define INITIALIZE_DETECTOR_WITH_DESCRIPTION(Detector)			\
 do {									\
   INITIALIZE_DETECTOR (Detector);					\
-  INITIALIZE_DETECTOR_DESCRIPTION (Detector);				\
-} while (0)
-
-#define REINITIALIZE_DETECTOR_WITH_DESCRIPTION(Detector)		\
-do {									\
-  INITIALIZE_DETECTOR_DESCRIPTION (Detector);				\
+  initialize_detector_description (detector_##Detector,                 \
+                                   &Detector##_detector_description_0); \
 } while (0)
 
 #define DETECTOR_HAS_METHOD(Detector, Meth)				\

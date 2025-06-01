@@ -1,3 +1,44 @@
+2025-06-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* emacs.c (main_1):
+	Remove call to reinit_coding_system_type_create_mule_coding(), no
+	longer needed.
+	* file-coding.c (coding_detector_description_lines_count):
+	Removed, no longer needed.
+
+	* file-coding.c (static detection_state_description_stynarr
+			 detection_state_description): New.
+	* file-coding.c (static const struct sized_memory_description
+			 detection_state_description_elt_description): New.
+	* file-coding.c (static const struct sized_memory_description
+			 memory_description_dynarr_description): New.
+	* file-coding.c (initialize_detector_description): New, now a C
+	function rather than a macro in file-coding.h, with (currently
+	theoretical) handling for detectors from modules.
+
+	* file-coding.c (detection_state_description): This is now a
+	Stynarr that is dumped and doesn't need any post pdump_load()
+	initialization.
+	* file-coding.c (syms_of_file_coding):
+	Use detection_state_description.els_static for the memory
+	description of struct detection_state.
+	* file-coding.c (coding_system_type_create):
+	Dump detection_state_description using its new memory
+	description.
+
+	* file-coding.h (DETECTOR_DESCRIPTION_OFFSET): Removed, now
+	incorporated into initialize_detector_description().
+	* file-coding.h: Remove declarations for
+	coding_detector_description_lines_count,
+	detection_state_description, no longer needed.
+	* file-coding.h (INITIALIZE_DETECTOR_WITH_DESCRIPTION):
+	Call initialize_detector_description() here rather than using a
+	macro.
+	* mule-coding.c (reinit_coding_system_type_create_mule_coding):
+	Removed, no longer needed.
+	* symsinit.h:
+	Remove its declaration.
+
 2025-05-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove support for static linking of postgresql, canna and ldap
