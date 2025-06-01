@@ -1,5 +1,10 @@
 2025-06-01  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* Makefile.in.in: Suppress the touch(1) calls in the make output
+	when XEmacs is built.
+
+2025-06-01  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* emacs.c (main_1):
 	Remove call to reinit_coding_system_type_create_mule_coding(), no
 	longer needed.

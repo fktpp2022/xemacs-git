@@ -592,7 +592,9 @@ dump-size-correct: dump-size
 ## make(1) doesn't think that both temacs and xemacs need to be rebuilt again
 ## inappropriately if it is invoked once more (e.g. for make install).
 $(PROGNAME): dump-size-correct
+	@echo $(CC) -c $(cflags) $(SRC)/dump-data.c ; \
 	$(CC) -c $(cflags) $(SRC)/dump-data.c ; \
+	echo $(LD) $(ldflags) $(start_flags) -o $@ $(start_files) $(objs) $(otherobjs) dump-data.o $(DUMP_ID) $(LIBES); \
 	$(LD) $(ldflags) $(start_flags) -o $@ $(start_files) $(objs) $(otherobjs) dump-data.o $(DUMP_ID) $(LIBES); \
 	touch -r $(RAW_EXE) $(DUMP_ID); touch -r $(RAW_EXE) dump-id.c; \
 	touch -r $(RAW_EXE) dump-data.o; touch -r $(RAW_EXE) $(LIB_SRC)/DOC \
