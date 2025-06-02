@@ -1,3 +1,14 @@
+2025-06-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* file-coding.c (look_for_coding_cookie_last_page):
+	This function appears to cause intermittent crashes (with
+	corruption of the stack) on GCC-15 with
+	optimization. #ifdef 0 it for the moment.
+	* file-coding.c (Ffind_coding_system_magic_cookie_in_file):
+	#ifdef 0 a call to it here.
+	* file-coding.c (determine_real_coding_system):
+	Ditto.	
+
 2025-06-01  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* Makefile.in.in: Suppress the touch(1) calls in the make output

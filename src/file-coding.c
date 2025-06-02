@@ -4914,6 +4914,9 @@ look_for_coding_cookie_first_page (const UExtbyte *data, Bytecount len,
   return Qnil;
 }
 
+#if 0
+/* #### This causes crashes with GCC 15 and optimization; the stack appears
+   to be intermittently corrupted. Disable for now. */
 static Lisp_Object
 look_for_coding_cookie_last_page (const UExtbyte *buf, Bytecount nread,
                                   Boolint find_coding_system_p)
@@ -5179,6 +5182,7 @@ look_for_coding_cookie_last_page (const UExtbyte *buf, Bytecount nread,
 
   return result;
 }
+#endif
 
 static Lisp_Object
 determine_real_coding_system (Lstream *stream)
@@ -5191,6 +5195,7 @@ determine_real_coding_system (Lstream *stream)
   Lisp_Object coding_system
     = look_for_coding_cookie_first_page (buf, nread, 1);
 
+#if 0
   if (NILP (coding_system))
     {
       if (Lstream_seek_from_end (stream, -3000))
@@ -5203,6 +5208,7 @@ determine_real_coding_system (Lstream *stream)
           nread = Lstream_read (stream, buf, sizeof (buf));
         }
     }
+#endif
 
   if (NILP (coding_system))
     {
@@ -5809,12 +5815,14 @@ non-ASCII charsets.
 
   result = look_for_coding_cookie_first_page (buf, nread, 0);
 
+#if 0
   if (NILP (result) && Lstream_seekable_p (XLSTREAM (lstream))
       && Lstream_seek_from_end (XLSTREAM (lstream), -3000))
     {
       nread = Lstream_read (XLSTREAM (lstream), buf, sizeof (buf));
       result = look_for_coding_cookie_last_page (buf, nread, 0);
     }
+#endif
 
   Lstream_delete (XLSTREAM (lstream));
   retry_close (fd);
