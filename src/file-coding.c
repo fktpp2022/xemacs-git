@@ -4382,7 +4382,7 @@ initialize_detector_description (int detector_id,
   xzero (desc);
   desc.type = XD_BLOCK_ARRAY;
   desc.offset =
-    XD_INDIRECT (Stynarr_length (detection_state_description) - 2, 0);
+    XD_INDIRECT (Stynarr_length (detection_state_description) - 1, 0);
   desc.data1 = 1;
   desc.data2.descr = descr;
   Stynarr_add (detection_state_description, desc);

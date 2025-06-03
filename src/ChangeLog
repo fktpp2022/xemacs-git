@@ -1,3 +1,10 @@
+2025-06-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* file-coding.c (initialize_detector_description):
+	Correct an offset in the created description, make the generated
+	description identical to that previous to 466eb98833cc .
+	I am not managing to create a test case for this, frustratingly.
+
 2025-06-02  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* file-coding.c (look_for_coding_cookie_last_page):
