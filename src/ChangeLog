@@ -1,3 +1,10 @@
+2025-06-03  Alan Mackenzie  <acm@muc.de>
+
+	* regex.c (re_match_2_internal): Correct the updating of the
+	syntax cache so that it is current for the characters actually
+	being read and compared.  Done in case wordbound:, case wordend:,
+	case symend:.
+
 2025-06-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* file-coding.c (initialize_detector_description):

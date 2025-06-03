@@ -6736,9 +6736,9 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 		    emch2 = itext_ichar_fmt (d_after, fmt, lispobj);
 #ifdef emacs
 		    BEGIN_REGEX_MALLOC_OK ();
-		    UPDATE_SYNTAX_CACHE_FORWARD (scache,
-                                                 offset_to_bytexpos
-                                                 (lispobj, PTR_TO_OFFSET (d)));
+		    UPDATE_SYNTAX_CACHE (scache,
+                                         offset_to_bytexpos
+                                         (lispobj, PTR_TO_OFFSET (d)));
 #endif
 		    syn2 = SYNTAX_FROM_CACHE (scache, emch2);
 		    END_REGEX_MALLOC_OK ();
@@ -6824,16 +6824,17 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    re_char *dtmp;
 	    Ichar emch;
 	    int tempres;
+
+	    dtmp = POS_BEFORE_GAP_UNSAFE (d);
+	    DEC_IBYTEPTR_FMT (dtmp, fmt);
 #ifdef emacs
 	    BEGIN_REGEX_MALLOC_OK ();
 	    UPDATE_SYNTAX_CACHE
               (scache,
-               offset_to_bytexpos (lispobj, PTR_TO_OFFSET (d)));
+               offset_to_bytexpos (lispobj, PTR_TO_OFFSET (dtmp)));
 	    END_REGEX_MALLOC_OK ();
 	    RE_MATCH_RELOCATE_MOVEABLE_DATA_POINTERS ();
 #endif
-	    dtmp = POS_BEFORE_GAP_UNSAFE (d);
-	    DEC_IBYTEPTR_FMT (dtmp, fmt);
 	    emch = itext_ichar_fmt (dtmp, fmt, lispobj);
 	    BEGIN_REGEX_MALLOC_OK ();
 	    tempres = (SYNTAX_FROM_CACHE (scache, emch) != Sword);
@@ -6847,13 +6848,9 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	    emch = itext_ichar_fmt (dtmp, fmt, lispobj);
 	    BEGIN_REGEX_MALLOC_OK ();
 #ifdef emacs
-            {
-              re_char *next = d;
-              INC_IBYTEPTR_FMT (next, fmt);
-              UPDATE_SYNTAX_CACHE_FORWARD
-                (scache,
-                 offset_to_bytexpos (lispobj, PTR_TO_OFFSET (next)));
-            }
+            UPDATE_SYNTAX_CACHE_FORWARD
+              (scache,
+               offset_to_bytexpos (lispobj, PTR_TO_OFFSET (d)));
 #endif
 	    tempres = (SYNTAX_FROM_CACHE (scache, emch) != Sword);
 	    END_REGEX_MALLOC_OK ();
@@ -6939,12 +6936,13 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
             BEGIN_REGEX_MALLOC_OK ();
 #ifdef emacs
-            UPDATE_SYNTAX_CACHE_BACKWARD
+            UPDATE_SYNTAX_CACHE
               (scache,
                offset_to_bytexpos (lispobj, PTR_TO_OFFSET (dtmp)));
 #endif
             syn1 = SYNTAX_FROM_CACHE (scache, ch1);
             END_REGEX_MALLOC_OK ();
+            RE_MATCH_RELOCATE_MOVEABLE_DATA_POINTERS ();
 
             /* Case 2: SYN1 is neither Ssymbol nor Sword.  */
             if (syn1 != Sword && syn1 != Ssymbol)
@@ -6957,13 +6955,9 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 
                 BEGIN_REGEX_MALLOC_OK ();
 #ifdef emacs
-                {
-                  re_char *next = d;
-                  INC_IBYTEPTR_FMT (next, fmt);
-                  UPDATE_SYNTAX_CACHE_FORWARD
-                    (scache,
-                     offset_to_bytexpos (lispobj, PTR_TO_OFFSET (next)));
-                }
+                UPDATE_SYNTAX_CACHE_FORWARD
+                  (scache,
+                   offset_to_bytexpos (lispobj, PTR_TO_OFFSET (d)));
 #endif
                 syn2 = SYNTAX_FROM_CACHE (scache, ch2);
                 END_REGEX_MALLOC_OK ();

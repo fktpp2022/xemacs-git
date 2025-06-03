@@ -131,6 +131,39 @@
 	  (Assert (eq 1 (re-search-backward "\\_<one\\>" nil t))))
       (set-syntax-table old-syntax-table))))
 
+(with-temp-buffer
+  (insert "template<class T>")
+  (let ((lookup-syntax-properties t))
+    (goto-char (point-min))
+    (search-forward "<")
+    (set-extent-properties
+     (make-extent (1- (point)) (point))
+     (list 'syntax-table '(4. ?>)))	; Open-paren, matching with >
+    (Assert (looking-at "\\_<class\\_>"))))
+
+(with-temp-buffer
+  (insert "foo<bar")
+  (let ((lookup-syntax-properties t))
+    (goto-char (point-min))
+    (search-forward "<")
+    (backward-char)
+    (set-extent-properties
+     (make-extent (point) (1+ (point)))
+     (list 'syntax-table '(4 . ?>))) ; Open-paren, matching with >
+    (Assert (looking-at "\\>"))))
+
+(with-temp-buffer
+  (insert "foo_<bar")
+  (let ((lookup-syntax-properties t))
+    (goto-char (point-min))
+    (search-forward "<")
+    (backward-char)
+    (set-extent-properties
+     (make-extent (point) (1+ (point)))
+     (list 'syntax-table '(4 . ?>))) ; Open-paren, matching with >
+    (backward-char)		     ; to the _
+    (Assert (not (looking-at "\\_>")))))
+
 (when (featurep 'mule)
   (let* ((hiragana-a (make-char 'japanese-jisx0208 36 34))
 	 (a-diaeresis ?ä)
