@@ -1,3 +1,12 @@
+2025-06-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* file-coding.c (static detection_state_description_stynarr
+	detection_state_description): Remove the static initialization of
+	this, which was buggy, let C put it in BSS as all zeroes.
+	* file-coding.c (coding_system_type_create):
+	Call Stynarr_init on detection_state_description, avoiding this
+	bug. Add the XD_END entry here.
+
 2025-06-03  Alan Mackenzie  <acm@muc.de>
 
 	* regex.c (re_match_2_internal): Correct the updating of the

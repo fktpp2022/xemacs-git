@@ -4290,9 +4290,7 @@ typedef struct
                    DETECTION_STATE_DESCRIPTION_NUM_STATIC);
 } detection_state_description_stynarr;
 
-static detection_state_description_stynarr detection_state_description = {
-  NULL, 1, DETECTION_STATE_DESCRIPTION_NUM_STATIC, { { XD_END } }
-};
+static detection_state_description_stynarr detection_state_description;
 
 /* Note that this treats the DATA2 elements for the XD_BYTECOUNT, XD_END
    entries in DETECTION_STATE_DESCRIPTION as having pointers to
@@ -6256,6 +6254,17 @@ coding_system_type_create (void)
   dump_add_opaque_int (&coding_system_tick);
   dump_add_opaque_int (&coding_detector_count);
   dump_add_opaque_int (&coding_detector_category_count);
+
+
+  {
+    struct memory_description desc;
+
+    Stynarr_init (detection_state_description);
+
+    xzero (desc);
+    desc.type = XD_END;
+    Stynarr_add (detection_state_description, desc);
+  }
 
   /* This is the only point in our code where a memory_description itself is
      dumped. There's no reason this should be a problem, once it is dumped in
