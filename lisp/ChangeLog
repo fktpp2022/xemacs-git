@@ -1,9 +1,41 @@
+2025-06-05  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Remove support for emacs implementations without #'add-timeout,
+	itimer.el, significantly simplifying the file.
+
+	* itimer.el:
+	* itimer.el (itimer-version): Bump this.
+	* itimer.el (itimer-timer): Update the docstring here.
+	* itimer.el (itimer-process): Removed.
+	* itimer.el (set-itimer-value): Just use #'itimer-timer-wakeup
+	here, not #'itimer-driver-wakeup.
+	* itimer.el (activate-itimer): Ditto.
+	* itimer.el (list-itimers): In passing revise this to make
+	#'itimer-truncate-string a label and to traverse the list of
+	itimers in a more post-1990 way.
+	* itimer.el (edit-itimers): Call #'itimer-timer-wakeup here.
+	* itimer.el (itimer-truncate-string): Moved to being a label
+	within #'list-itimers.
+	* itimer.el (itimer-run-expired-timers):
+	last-command-event-time, last-input-time will both always be
+	bound, don't check for that.
+	* itimer.el (itimer-process-filter): Removed.
+	* itimer.el (itimer-disable-timeout): Removed, now equivalent to
+	#'disable timeout.
+	* itimer.el (itimer-process-sentinel): Removed.
+	* itimer.el (itimer-timer-driver): Just call #'disable-timeout
+	within this.
+	* itimer.el (itimer-process-start): Removed.
+	* itimer.el (itimer-driver-start): Removed.
+	* itimer.el (itimer-driver-wakeup): Removed.
+	* itimer.el (itimer-process-wakeup): Removed.
+
 2025-05-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Support text/plain, text/plain;charset=utf-8 when cutting and
 	pasting under X11, needed for more recent clients that are not
 	interested in longstanding standards (Libreoffice and the terminal
-	emulatory Terminology in my use.
+	emulator Terminology in my use).
 	* select.el:
 	* select.el (selection-preferred-types): Add them to this.
 	* select.el ('selected-text-type): Remove this obsolete name in

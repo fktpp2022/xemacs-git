@@ -48,18 +48,14 @@
 ;;
 ;; See the doc strings of these functions for more information.
 
-(defvar itimer-version "1.09"
+(defvar itimer-version "1.10"
   "Version number of the itimer package.")
 
 (defvar itimer-list nil
   "List of all active itimers.")
 
-(defvar itimer-process nil
-  "Process that drives all itimers, if a subprocess is being used.")
-
 (defvar itimer-timer nil
-  "Emacs internal timer that drives the itimer system, if a subprocess
-is not being used to drive the system.")
+  "Emacs internal timer that drives the itimer system.")
 
 (defvar itimer-timer-last-wakeup nil
   "The time the timer driver function last ran.")
@@ -188,9 +184,9 @@ Returns VALUE."
     ;; wakeup, wakeup now and recompute a new wakeup time.
     (or (and (< value itimer-next-wakeup)
 	     (and (itimer-name itimer) (get-itimer (itimer-name itimer)))
-	     (progn (itimer-driver-wakeup)
+	     (progn (itimer-timer-wakeup)
 		    (setcar (cdr itimer) value)
-		    (itimer-driver-wakeup)
+		    (itimer-timer-wakeup)
 		    t ))
 	(setcar (cdr itimer) value))
     value))
@@ -349,9 +345,9 @@ its FUNCTION will be called when it expires, and so on."
   ;; If there's no itimer driver/process, start one now.
   ;; Otherwise wake up the itimer driver so that seconds slept before
   ;; the new itimer is created won't be counted against it.
-  (if (or itimer-process itimer-timer)
-      (itimer-driver-wakeup)
-    (itimer-driver-start))
+  (if itimer-timer
+      (itimer-timer-wakeup)
+    (itimer-timer-start))
   ;; Roll a unique name for the timer if it doesn't have a name
   ;; already.
   (if (not (stringp (car itimer)))
@@ -378,11 +374,11 @@ its FUNCTION will be called when it expires, and so on."
 				    itimer-timer-last-wakeup))))
     ;; add the itimer to the global list
     (setq itimer-list (cons itimer itimer-list))
-    ;; If the itimer process is scheduled to wake up too late for
-    ;; the itimer we wake it up to calculate a correct wakeup
-    ;; value giving consideration to the newly added itimer.
+    ;; If the next wake-up is scheduled too late for this itimer we wake up
+    ;; now to calculate a correct wakeup value giving consideration to the
+    ;; newly added itimer.
     (if (< (itimer-value itimer) itimer-next-wakeup)
-	(itimer-driver-wakeup))))
+	(itimer-timer-wakeup))))
 
 ;; User level functions to list and modify existing itimers.
 ;; Itimer Edit major mode, and the editing commands thereof.
@@ -395,8 +391,7 @@ commands to manipulate itimers; see the documentation for
   (interactive)
   (let* ((buf (get-buffer-create "*Itimer List*"))
 	 (opoint (point))
-	 (standard-output buf)
-	 (itimers (reverse itimer-list)))
+	 (standard-output buf))
     (set-buffer buf)
     (itimer-edit-mode)
     (setq buffer-read-only nil)
@@ -407,27 +402,28 @@ commands to manipulate itimers; see the documentation for
 "----                  -----   -------   --------            ----   --------")
     (if (null itimer-edit-start-marker)
 	(setq itimer-edit-start-marker (point)))
-    (while itimers
-      (newline 1)
-      (prin1 (itimer-name (car itimers)))
-      (tab-to-tab-stop)
-      (insert (itimer-truncate-string
-	       (format "%5.5s" (itimer-value (car itimers))) 5))
-      (tab-to-tab-stop)
-      (insert (itimer-truncate-string
-	       (format "%5.5s" (itimer-restart (car itimers))) 5))
-      (tab-to-tab-stop)
-      (insert (itimer-truncate-string
-	       (format "%.19s" (itimer-function (car itimers))) 19))
-      (tab-to-tab-stop)
-      (if (itimer-is-idle (car itimers))
-	  (insert "yes")
-	(insert "no"))
-      (tab-to-tab-stop)
-      (if (itimer-uses-arguments (car itimers))
-	  (prin1 (itimer-function-arguments (car itimers)))
-	(prin1 'NONE))
-      (setq itimers (cdr itimers)))
+    (labels ((itimer-truncate-string (str len)
+               (if (<= (length str) len) str (substring str 0 len))))
+      (dolist (itimer (reverse itimer-list))
+        (newline 1)
+        (prin1 (itimer-name itimer))
+        (tab-to-tab-stop)
+        (insert (itimer-truncate-string
+                 (format "%5.5s" (itimer-value itimer)) 5))
+        (tab-to-tab-stop)
+        (insert (itimer-truncate-string
+                 (format "%5.5s" (itimer-restart itimer)) 5))
+        (tab-to-tab-stop)
+        (insert (itimer-truncate-string
+                 (format "%.19s" (itimer-function itimer)) 19))
+        (tab-to-tab-stop)
+        (if (itimer-is-idle itimer)
+            (insert "yes")
+          (insert "no"))
+        (tab-to-tab-stop)
+        (if (itimer-uses-arguments itimer)
+            (prin1 (itimer-function-arguments itimer))
+          (prin1 'NONE))))
     ;; restore point
     (goto-char opoint)
     (if (< (point) itimer-edit-start-marker)
@@ -442,8 +438,7 @@ This major mode provides commands to manipulate itimers; see the documentation
 for `itimer-edit-mode' for more information."
   (interactive)
   ;; since user is editing, make sure displayed data is reasonably up-to-date
-  (if (or itimer-process itimer-timer)
-      (itimer-driver-wakeup))
+  (if itimer-timer (itimer-timer-wakeup))
   (list-itimers)
   (select-window (get-buffer-window "*Itimer List*"))
   (goto-char itimer-edit-start-marker)
@@ -621,11 +616,6 @@ x      start a new itimer
     (cond ((eq forw-back back) (backward-sexp))
 	  ((eq forw-back (point)) t)
 	  (t (backward-sexp)))))
-
-(defun itimer-truncate-string (str len)
-  (if (<= (length str) len)
-      str
-    (substring str 0 len)))
 
 ;; internals of the itimer implementation.
 
@@ -642,12 +632,11 @@ x      start a new itimer
 	;; catch them and print a message.
 	(inhibit-quit t))
     (setq next-wakeup 600)
-    (cond ((and (boundp 'last-command-event-time)
-		(consp last-command-event-time))
+    (cond ((consp last-command-event-time)
 	   (setq last-event-time last-command-event-time
 		 idle-time (itimer-time-difference (current-time)
 						   last-event-time)))
-	  ((and (boundp 'last-input-time) (consp last-input-time))
+	  ((consp last-input-time)
 	   (setq last-event-time (list (car last-input-time)
 				       (cdr last-input-time)
 				       0)
@@ -726,65 +715,6 @@ x      start a new itimer
 	    (list-itimers))))
     next-wakeup ))
 
-(defun itimer-process-filter (process string)
-  ;; If the itimer process dies and generates output while doing
-  ;; so, we may be called before the process-sentinel.  Sanity
-  ;; check the output just in case...
-  (if (not (string-match "^[0-9]" string))
-      (progn (message "itimer process gave odd output: %s" string)
-	     ;; it may be still alive and waiting for input
-	     (process-send-string itimer-process "3\n"))
-    ;; if there are no active itimers, return quickly.
-    (if itimer-list
-	(let ((wakeup nil))
-	  (unwind-protect
-	      (setq wakeup (itimer-run-expired-timers (string-to-int string)))
-	    (and (null wakeup) (process-send-string process "1\n")))
-	  (setq itimer-next-wakeup wakeup))
-      (setq itimer-next-wakeup 600))
-    ;; tell itimer-process when to wakeup again
-    (process-send-string itimer-process
-			 (concat (int-to-string itimer-next-wakeup)
-				 "\n"))))
-
-(defun itimer-process-sentinel (process message)
-  (let ((inhibit-quit t))
-    (if (eq (process-status process) 'stop)
-	(continue-process process)
-      ;; not stopped, so it must have died.
-      ;; cleanup first...
-      (delete-process process)
-      (setq itimer-process nil)
-      ;; now, if there are any active itimers then we need to immediately
-      ;; start another itimer process, otherwise we can wait until the next
-      ;; start-itimer call, which will start one automatically.
-      (if (null itimer-list)
-	  ()
-	;; there may have been an error message in the echo area;
-	;; give the user at least a little time to read it.
-	(sit-for 2)
-	(message "itimer process %s... respawning." (substring message 0 -1))
-	(itimer-process-start)))))
-
-(defun itimer-process-start ()
-  (let ((inhibit-quit t)
-	(process-connection-type nil))
-    (setq itimer-process (start-process "itimer" nil "itimer"))
-    (process-kill-without-query itimer-process)
-    (set-process-filter itimer-process 'itimer-process-filter)
-    (set-process-sentinel itimer-process 'itimer-process-sentinel)
-    ;; Tell itimer process to wake up quickly, so that a correct
-    ;; wakeup time can be computed.  Zero loses because of
-    ;; underlying itimer implementations that use 0 to mean
-    ;; `disable the itimer'.
-    (setq itimer-next-wakeup itimer-short-interval)
-    (process-send-string itimer-process
-			 (format "%s\n" itimer-next-wakeup))))
-
-(defun itimer-process-wakeup ()
-  (interrupt-process itimer-process)
-  (accept-process-output))
-
 (defun itimer-timer-start ()
   (let ((inhibit-quit t))
     (setq itimer-next-wakeup itimer-short-interval
@@ -792,17 +722,9 @@ x      start a new itimer
 	  itimer-timer (add-timeout itimer-short-interval
 				    'itimer-timer-driver nil nil))))
 
-(defun itimer-disable-timeout (timeout)
-  ;; Disgusting hack, but necessary because there is no other way
-  ;; to remove a timer that has a restart value from while that
-  ;; timer's function is being run.  (FSF Emacs only.)
-  (if (vectorp timeout)
-      (aset timeout 4 nil))
-  (disable-timeout timeout))
-
 (defun itimer-timer-wakeup ()
   (let ((inhibit-quit t))
-    (itimer-disable-timeout itimer-timer)
+    (disable-timeout itimer-timer)
     (setq itimer-timer (add-timeout itimer-short-interval
 				    'itimer-timer-driver nil 5))))
 
@@ -824,11 +746,10 @@ x      start a new itimer
        (/ usecs 1000000.0))))
 
 (defun itimer-timer-driver (&rest ignored)
-  ;; inhibit quit because if the user quits at an inopportune
-  ;; time, the timer process won't be launched again and the
-  ;; system stops working.  itimer-run-expired-timers allows
-  ;; individual timer function to be aborted, so the user can
-  ;; escape a feral timer function.
+  ;; inhibit quit because if the user quits at an inopportune time, the new
+  ;; timeout won't be added and the system stops working.
+  ;; itimer-run-expired-timers allows individual timer function to be aborted,
+  ;; so the user can escape a feral timer function.
   (if (not itimer-inside-driver)
       (let* ((inhibit-quit t)
 	     (itimer-inside-driver t)
@@ -837,17 +758,8 @@ x      start a new itimer
 	     (sleep nil))
 	(setq itimer-timer-last-wakeup now
 	      sleep (itimer-run-expired-timers elapsed))
-	(itimer-disable-timeout itimer-timer)
+	(disable-timeout itimer-timer)
 	(setq itimer-next-wakeup sleep
 	      itimer-timer (add-timeout sleep 'itimer-timer-driver nil 5)))))
 
-(defun itimer-driver-start ()
-  (if (fboundp 'add-timeout)
-      (itimer-timer-start)
-    (itimer-process-start)))
-
-(defun itimer-driver-wakeup ()
-  (if (fboundp 'add-timeout)
-      (itimer-timer-wakeup)
-    (itimer-process-wakeup)))
 ;;; itimer.el ends here
