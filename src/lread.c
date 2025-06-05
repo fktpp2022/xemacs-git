@@ -61,7 +61,6 @@ static int old_backquote_flag;
 
 Lisp_Object Qvariable_domain;	/* I18N3 */
 Lisp_Object Vvalues, Vstandard_input, Vafter_load_alist;
-Lisp_Object Vload_suppress_alist;
 Lisp_Object Qload, Qload_internal, Qfset;
 
 /* Hash-table that maps directory names to hashes of their contents.  */
@@ -409,52 +408,6 @@ load_unwind (Lisp_Object stream)  /* used as unwind-protect function in load */
 {
   Lstream_close (XLSTREAM (stream));
   return Qnil;
-}
-
-/* Check if NONRELOC/RELOC (an absolute filename) is suppressed according
-   to load-suppress-alist. */
-static int
-check_if_suppressed (Ibyte *nonreloc, Lisp_Object reloc)
-{
-  Bytecount len;
-
-  if (!NILP (reloc))
-    {
-      nonreloc = XSTRING_DATA (reloc);
-      len = XSTRING_LENGTH (reloc);
-    }
-  else
-    len = qxestrlen (nonreloc);
-
-  if (len >= 4 && !qxestrcmp_ascii (nonreloc + len - 4, ".elc"))
-    len -= 4;
-  else if (len >= 3 && !qxestrcmp_ascii (nonreloc + len - 3, ".el"))
-    len -= 3;
-
-  {
-    EXTERNAL_LIST_LOOP_2 (cons, Vload_suppress_alist)
-      {
-	if (CONSP (cons) && STRINGP (XCAR (cons)))
-	  {
-	    Lisp_Object name = XCAR (cons);
-	    if (XSTRING_LENGTH (name) == len &&
-		!memcmp (XSTRING_DATA (name), nonreloc, len))
-	      {
-		struct gcpro gcpro1;
-		Lisp_Object val;
-
-		GCPRO1 (reloc);
-		val = IGNORE_MULTIPLE_VALUES (Feval (XCDR (cons)));
-		UNGCPRO;
-
-		if (!NILP (val))
-		  return 1;
-	      }
-	  }
-      }
-  }
-
-  return 0;
 }
 
 /* The plague is coming.
@@ -908,9 +861,6 @@ If MODE is non-nil, it should be a symbol or a list of symbol representing
 requirements.  Allowed symbols are `exists', `executable', `writable', and
 `readable'.  If MODE is nil, it defaults to `readable'.
 
-Filenames are checked against `load-suppress-alist' to determine if they
-should be ignored.
-
 `locate-file' keeps hash tables of the directories it searches through,
 in order to speed things up.  It tries valiantly to not get confused in
 the face of a changing and unpredictable environment, but can occasionally
@@ -1116,14 +1066,11 @@ locate_file_in_directory_mapper (Ibyte *fn, void *arg)
 
       if (closure->fd >= 0)
 	{
-	  if (!check_if_suppressed (fn, Qnil))
-	    {
-	      /* We succeeded; return this descriptor and filename.  */
-	      if (closure->storeptr)
-		*closure->storeptr = build_istring (fn);
+          /* We succeeded; return this descriptor and filename.  */
+          if (closure->storeptr)
+            *closure->storeptr = build_istring (fn);
 
-	      return 1;
-	    }
+          return 1;
 	}
     }
   /* Keep mapping. */
@@ -3481,16 +3428,6 @@ directory in which the XEmacs executable resides.
   DEFVAR_BOOL ("load-in-progress", &load_in_progress /*
 Non-nil iff inside of `load'.
 */ );
-
-  DEFVAR_LISP ("load-suppress-alist", &Vload_suppress_alist /*
-An alist of expressions controlling whether particular files can be loaded.
-Each element looks like (FILENAME EXPR).
-FILENAME should be a full pathname, but without the .el suffix.
-When `load' is run and is about to load the specified file, it evaluates
-the form to determine if the file can be loaded.
-This variable is normally initialized automatically.
-*/ );
-  Vload_suppress_alist = Qnil;
 
   DEFVAR_LISP ("after-load-alist", &Vafter_load_alist /*
 An alist of expressions to be evalled when particular files are loaded.

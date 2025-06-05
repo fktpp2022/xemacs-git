@@ -145,9 +145,9 @@ If provided LIGHTER will be used to help choose capitalization."
       (replace-regexp-in-string lighter lighter name t t))))
 
 ;; XEmacs change: add -on-hook, -off-hook, and macro parameter documentation.
-;;;###no-autoload
+;;;###autoload
 (defalias 'easy-mmode-define-minor-mode 'define-minor-mode)
-;;;###no-autoload
+;;;###autoload
 (defmacro define-minor-mode (mode doc &optional init-value lighter keymap &rest body)
   "Define a new minor mode MODE.
 This function defines the associated control variable MODE, keymap MODE-map,
@@ -370,7 +370,7 @@ With zero or negative ARG turn mode off.
 ;;; make global minor mode
 ;;;
 
-;;;###no-autoload
+;;;###autoload
 (defmacro easy-mmode-define-global-mode (global-mode mode turn-on
 						     &rest keys)
   "Make GLOBAL-MODE out of the buffer-local minor MODE.
@@ -463,7 +463,7 @@ in which `%s' turns it on."
 	   (easy-mmode-set-keymap-parents m parents)
 	   m))))))
 
-;;;###no-autoload
+;;;###autoload
 (defun easy-mmode-define-keymap (bs &optional name m args)
   "Return a keymap built from bindings BS.
 BS must be a list of (KEY . BINDING) where
@@ -503,7 +503,7 @@ ARGS is a list of additional keyword arguments."
      ((consp inherit) (easy-mmode-set-keymap-parents m inherit)))
     m))
 
-;;;###no-autoload
+;;;###autoload
 (defmacro easy-mmode-defmap (m bs doc &rest args)
   `(defconst ,m
      (easy-mmode-define-keymap ,bs nil (if (boundp ',m) ,m) ,(cons 'list args))
@@ -528,7 +528,7 @@ ARGS is a list of additional keyword arguments."
 		(if (symbolp parent) (symbol-value parent) parent) st))
     st))
 
-;;;###no-autoload
+;;;###autoload
 (defmacro easy-mmode-defsyntax (st css doc &rest args)
   "Define variable ST as a syntax-table.
 CSS contains a list of syntax specifications of the form (CHAR . SYNTAX)."
@@ -543,7 +543,7 @@ CSS contains a list of syntax specifications of the form (CHAR . SYNTAX)."
 ;;;
 
 ;; XEmacs change: autoload
-;;;###no-autoload
+;;;###autoload
 (defmacro easy-mmode-define-navigation (base re &optional name endfun)
   "Define BASE-next and BASE-prev to navigate in the buffer.
 RE determines the places the commands should move point to.

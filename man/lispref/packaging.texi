@@ -1179,20 +1179,8 @@ files are in the package's toplevel directory.  @code{AUTOLOAD_PATH}
 defaults to @samp{.}.
 
 @item PACKAGE_SUPPRESS
-Place calls to @code{package-suppress} here to indicate Lisp libraries
-that should only be available to particular versions of XEmacs.  For
-example: 
-
-@example
-PACKAGE_SUPPRESS = \
- (package-suppress 'xemacs-base \"regexp-opt\" '(emacs-version>= 21 5 11)) \
- (package-suppress 'xemacs-base \"easy-mmode\" '(emacs-version>= 21 5 11))
-@end example
-
-@c Change this when Ben has committed the WS that implements
-@c `package-suppress' --SY.
-@strong{N.B.} This feature has not yet been implemented in XEmacs yet.
-It will appear in an upcoming version of XEmacs 21.5.
+This feature has been removed from the XEmacs build system, since it
+was never fully implemented and is now (2025-06) no longer needed.
 
 @item STANDARD_DOCS
 Set this to @samp{t} if your package's Texinfo source file is located in

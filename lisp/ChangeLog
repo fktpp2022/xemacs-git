@@ -1,3 +1,16 @@
+2025-06-05  Alan Mackenzie  <acm@muc.de>
+
+	Purge the package-suppress mechanism from XEmacs.
+
+	Make the versions of easy-mmode.el and regexp-opt.el in
+	.../xemacs/lisp the active ones.
+
+	* easy-mmode.el:
+	Restore the commented out ;;;###autoload cookies.
+
+	* packages.el:
+	* packages.el (package-suppress): Removed.
+
 2025-06-05  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove support for emacs implementations without #'add-timeout,
