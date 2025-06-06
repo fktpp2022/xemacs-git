@@ -1,3 +1,10 @@
+2025-06-06  Alan Mackenzie  <acm@muc.de>
+
+	Correct the value of regexp-opt on being given an empty list.
+
+	* regexp-opt.el (regexp-opt): Return a regexp which doesn't match
+	anything when the STRINGS argument is the empty list.
+
 2025-06-05  Alan Mackenzie  <acm@muc.de>
 
 	Purge the package-suppress mechanism from XEmacs.

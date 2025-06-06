@@ -93,7 +93,10 @@
 (defun regexp-opt (strings &optional paren)
   "Return a regexp to match a string in STRINGS.
 Each string should be unique in STRINGS and should not contain any regexps,
-quoted or not.  If optional PAREN is non-nil, ensure that the returned regexp
+quoted or not.  If STRINGS is the empty list, the returned regexp won't match
+anything.
+
+If optional PAREN is non-nil, ensure that the returned regexp
 is enclosed by at least one regexp grouping construct.
 The returned regexp is typically more efficient than the equivalent regexp:
 
@@ -108,7 +111,9 @@ If it is `symbols', the resulting regexp is enclosed by \\_<\\( and \\)\\_>."
 	   (completion-ignore-case nil)
 	   (open (cond ((stringp paren) paren) (paren "\\(")))
 	   (sorted-strings (sort (copy-sequence strings) 'string-lessp))
-	   (re (regexp-opt-group sorted-strings open)))
+	   (re (if strings
+		   (regexp-opt-group sorted-strings open)
+		 (concat (or open "\\(?:") "\\`a\\`\\)"))))
       (cond ((eq paren 'words) (concat "\\<" re "\\>"))
 	    ((eq paren 'symbols) (concat "\\_<" re "\\_>"))
 	    (t re)))))
