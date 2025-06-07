@@ -83,6 +83,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define HAVE_RENAME
 #define HAVE_RMDIR
 #define HAVE_SELECT
+#define HAVE_SHLIB
 #if (_MSC_VER >= 1900)
 # define HAVE_SNPRINTF
 # define HAVE_VSNPRINTF

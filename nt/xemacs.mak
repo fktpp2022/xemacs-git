@@ -877,6 +877,7 @@ TEMACS_COMMON_OBJS= \
 	$(OUTDIR)\symbols.obj \
 	$(OUTDIR)\syntax.obj \
 	$(OUTDIR)\sysdep.obj \
+	$(OUTDIR)\sysdll.obj \
 	$(OUTDIR)\text.obj \
 	$(OUTDIR)\tparam.obj \
 	$(OUTDIR)\undo.obj \

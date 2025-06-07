@@ -1,3 +1,10 @@
+2025-06-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* xemacs.mak:
+	Add sysdll.obj to TEMACS_COMMON_OBJS, unbreaking the Windows build
+	(though, sigh, not actually adding support for modules on Windows,
+	which has yet to be done.)
+
 2025-05-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* xemacs.mak (LIB_SRC_TOOLS):

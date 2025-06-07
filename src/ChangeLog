@@ -1,3 +1,9 @@
+2025-06-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* s/windowsnt.h (HAVE_SHLIB):
+	Windows supports dynamic loading of shared libraries, always
+	#define this.
+
 2025-06-05  Alan Mackenzie  <acm@muc.de>
 
 	Purge the PACKAGE_SUPPRESS mechanism from XEmacs.
