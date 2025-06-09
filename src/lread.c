@@ -960,9 +960,8 @@ locate_file_map_suffixes (Lisp_Object filename, Lisp_Object suffixes,
     /* Just take the easy way out */
     max = XSTRING_LENGTH (suffixes);
 
-  fn_len = XSTRING_LENGTH (filename);
-  fn = alloca_ibytes (max + fn_len + 1);
-  memcpy (fn, XSTRING_DATA (filename), fn_len);
+  fn_len = XSTRING_LENGTH (filename) + max + 1;
+  fn = alloca_ibytes (fn_len);
 
   /* Loop over suffixes.  */
   if (!STRINGP (suffixes))
@@ -970,7 +969,8 @@ locate_file_map_suffixes (Lisp_Object filename, Lisp_Object suffixes,
       if (NILP (suffixes))
 	{
 	  /* Case a) discussed in the comment above. */
-	  fn[fn_len] = 0;
+          memcpy (fn, XSTRING_DATA (filename), XSTRING_LENGTH (filename));
+          fn [XSTRING_LENGTH (filename)] = '\0';
 	  if ((*fun) (fn, arg))
 	    return;
 	}
@@ -980,9 +980,8 @@ locate_file_map_suffixes (Lisp_Object filename, Lisp_Object suffixes,
 	  Lisp_Object tail;
 	  LIST_LOOP (tail, suffixes)
 	    {
-	      memcpy (fn + fn_len, XSTRING_DATA (XCAR (tail)),
-		      XSTRING_LENGTH (XCAR (tail)));
-	      fn[fn_len + XSTRING_LENGTH (XCAR (tail))] = 0;
+              emacs_snprintf (fn, fn_len, "%s%s", XSTRING_DATA (filename),
+                              XSTRING_DATA (XCAR (tail)));
 	      if ((*fun) (fn, arg))
 		return;
 	    }
@@ -995,13 +994,13 @@ locate_file_map_suffixes (Lisp_Object filename, Lisp_Object suffixes,
 
       while (1)
 	{
-	  Ibyte *esuffix = qxestrchr (nsuffix, ':');
-	  Bytecount lsuffix = esuffix ? esuffix - nsuffix :
-	    qxestrlen (nsuffix);
+	  const Ibyte *esuffix = qxestrchr (nsuffix, ':');
+	  int lsuffix = esuffix ? (int) (esuffix - nsuffix):
+	    (int) qxestrlen (nsuffix);
 
 	  /* Concatenate path element/specified name with the suffix.  */
-	  qxestrncpy (fn + fn_len, nsuffix, lsuffix);
-	  fn[fn_len + lsuffix] = 0;
+          emacs_snprintf (fn, fn_len, "%s%.*s", XSTRING_DATA (filename),
+                          lsuffix, nsuffix);
 
 	  if ((*fun) (fn, arg))
 	    return;

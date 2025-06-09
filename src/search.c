@@ -540,8 +540,6 @@ looking_at_1 (Lisp_Object string, struct buffer *buf, Boolint posix,
   Bytecount s1, s2;
   REGISTER int i;
   struct re_pattern_buffer *bufp;
-  struct syntax_cache scache_struct;
-  struct syntax_cache *scache = &scache_struct;
   
   CHECK_STRING (string);
   bufp = compile_pattern (string, &search_regs,
@@ -568,7 +566,7 @@ looking_at_1 (Lisp_Object string, struct buffer *buf, Boolint posix,
 		  BYTE_BUF_PT (buf) - BYTE_BUF_BEGV (buf),
 		  nodata ? NULL : &search_regs,
 		  BYTE_BUF_ZV (buf) - BYTE_BUF_BEGV (buf), wrap_buffer (buf),
-		  buf, scache);
+		  buf, buf->syntax_cache);
 
   if (i == -2)
     matcher_overflow ();
@@ -1604,8 +1602,6 @@ search_buffer (struct buffer *buf, Lisp_Object string, Bytebpos pos,
       while (n != 0)
 	{
 	  Bytecount val;
-	  struct syntax_cache scache_struct;
-	  struct syntax_cache *scache = &scache_struct;
   
 	  QUIT;
 	  /* By making the regex object, regex buffer, and syntax cache
@@ -1619,7 +1615,7 @@ search_buffer (struct buffer *buf, Lisp_Object string, Bytebpos pos,
                              pos - BYTE_BUF_BEGV (buf), lim - pos, &search_regs,
 			     n > 0 ? lim - BYTE_BUF_BEGV (buf) :
 			     pos - BYTE_BUF_BEGV (buf), wrap_buffer (buf),
-			     buf, scache);
+			     buf, buf->syntax_cache);
 
 	  if (val == -2)
 	    {

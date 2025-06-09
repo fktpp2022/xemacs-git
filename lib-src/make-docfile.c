@@ -1270,6 +1270,11 @@ scan_lisp_file (const char *filename, const char *mode)
                     }
 		}
 
+              if (length == 0)
+                {
+                  fatal ("dynamic docstring length %s", "not supplied");
+                }
+
 	      /* The next character is a space that is counted in the length
 		 but not part of the doc string.
 		 We already read it, so just ignore it.  */
@@ -1291,8 +1296,14 @@ scan_lisp_file (const char *filename, const char *mode)
                 }
 	      /* The last character is a ^_.
 		 That is needed in the .elc file
-		 but it is redundant in DOC.  So get rid of it here.  */
-	      saved_string[length - 1] = 0;
+		 but it is redundant in DOC.  So get rid of it here.
+                 The length > 0 check is redundant, but quiets a GCC 15
+                 warning.  */
+              if (length > 0)
+                {
+                  saved_string[length - 1] = 0;
+                }
+
 	      /* Skip the line break.  */
 	      while (c == '\n')
 		c = getc_skipping_iso2022 (infile);

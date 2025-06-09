@@ -1,3 +1,9 @@
+2025-06-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* xlwtabs.c (DrawTab):
+	Remove colorDBG here, use colorBG instead, avoid a
+	set-but-not-used warning with GCC-15.
+
 2024-08-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lwlib.h (MINL): Move this #define here.

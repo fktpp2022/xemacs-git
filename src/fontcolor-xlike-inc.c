@@ -142,15 +142,8 @@ XFUN (font_spec_matches_charset) (struct device * USED_IF_XFT (d),
 #ifdef XEMACS_USE_XFT
   if (stage == STAGE_FINAL)
     {
-      Display *dpy = DEVICE_X_DISPLAY (d);
-      Extbyte *extname;
-      XftFont *rf;
-
       if (!NILP (reloc))
 	{
-	  the_nonreloc = XSTRING_DATA (reloc);
-	  extname = LISP_STRING_TO_EXTERNAL (reloc, Qx_font_name_encoding);
-	  rf = xft_open_font_by_name (dpy, extname);
 	  return 0;	 /* #### maybe this will compile and run ;) */
 			 /* Jesus, Stephen, what the fuck? */
 	}

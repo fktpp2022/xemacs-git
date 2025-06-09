@@ -4,6 +4,79 @@
 	Windows supports dynamic loading of shared libraries, always
 	#define this.
 
+2025-06-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* array.h (Stynarr_verify_pos):
+	Work around buggy warnings with the GCC-15 optimizer in this
+	function. See comment.
+
+	* backtrace.h (PUSH_BACKTRACE):
+	Silence a dangling pointer warning with GCC-15 in this macro. The
+	entire point of the macro is storing a stack address in a global
+	variable, there is no other way to address this.
+
+	* compiler.h (PRAGMA_PUSH_DIAGNOSTICS): New.
+	* compiler.h (PRAGMA_POP_DIAGNOSTICS): New.
+	* compiler.h (PRAGMA_IGNORE_DANGLING_POINTER): New.
+	* compiler.h (PRAGMA_IGNORE_DEPRECATED): New.
+	Provide these macros on GCC and clang, expanding to DO_NOTHING on
+	other compilers.
+
+	* emacs.c (main_1): Correct a spelling here in passing.
+
+	* event-Xt.c (x_reset_modifier_mapping):
+	Use PRAGMA_IGNORE_DEPRECATED when calling XKeycodeToKeysym(),
+	motivation already documented.
+
+	* fontcolor-xlike-inc.c (XFUN (font_spec_matches_charset)):
+	Remove some unused variables, quiet a GCC-15 compiler warning.
+	
+	* lisp.h:
+	* lisp.h (XGCPRO1, XGCPRO2, XGCPRO3, XGCPRO4, XGCPRO4):
+	Implement all these in terms of XGCPRON_ARRAY(), which is simpler.
+
+	* lisp.h (XGCPRO1_ARRAY): Implement this as a do {} while (0)
+	block rather than a statement with repeated commas, since the
+	latter does not work with PRAGMA_{PUSH,POP}_DIAGNOSTICS() and
+	PRAGMA_IGNORE_DANGLING_POINTER() on GCC.
+	Use those pragmas, the entire point of these macros is storing a
+	stack address in a global variable, there is no other way to
+	address this.
+	* lisp.h (XGCPRO2_ARRAY): Ditto.
+	* lisp.h (XGCPRO3_ARRAY): Ditto.
+	* lisp.h (XGCPRO4_ARRAY): New, ditto.
+	* lisp.h (XGCPRO5_ARRAY): New, ditto.
+
+	* lread.c (locate_file_map_suffixes):
+	Use emacs_snprintf() within this function for the sake of its
+	bounds checking and avoiding GCC-15 warnings about strncpy(), 
+	* realpath.c (qxe_realpath):
+	Use memcpy() rather than strncpy here. No need for a memset(),
+	since the existing code does not handle strncpy() inserting
+	nulls.
+	* regex.c (EXTEND_BUFFER):
+	Avoid use after free warnings regarding OLD_BUFFER here (which are
+	only likely to be an issue with a developer-hostile and
+	standards-obsessed optimizing compiler, since it is not
+	dereferenced), make it a size_t, and calculate a delta once when
+	adjusting BUF_END, BEGALT, FIXUP_ALT_JUMP, LASTSTART, PENDING_EXACT.
+
+	* search.c (looking_at_1):
+	Pass the buffer's syntax cache explicitly to re_match_2() here,
+	which setup_syntax_cache() within regex.c was going to pass back
+	anyway.
+	* search.c (search_buffer):
+	Ditto.
+	* syntax.c (setup_syntax_cache):
+	Never accept NULL as a CACHE argument, it must either be OBJECT's
+	syntax cache when OBJECT is a buffer, or valid pointer
+	otherwise.  Add an assertion regarding the former.
+	* syntax.c (setup_buffer_syntax_cache):
+	Pass BUFFER->SYNTAX_CACHE to setup_syntax_cache() rather than
+	NULL, quiet a GCC-15 warning.
+	* text.c (new_dfc_convert_malloc): Initialize DST to NULL, quiet a
+	GCC-15 warning.
+
 2025-06-05  Alan Mackenzie  <acm@muc.de>
 
 	Purge the PACKAGE_SUPPRESS mechanism from XEmacs.

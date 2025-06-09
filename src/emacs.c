@@ -1317,7 +1317,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 
       /* Initialize Qnil and Qt.  After this, symbols can be interned.  This
 	 depends on init_alloc_once_early(), init_elhash_once_early(), and
-	 initi_opaque_once_early(). */
+	 init_opaque_once_early(). */
       init_symbols_once_early ();
 
       /* Declare the basic symbols pertaining to errors,

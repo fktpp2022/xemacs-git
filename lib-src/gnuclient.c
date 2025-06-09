@@ -92,7 +92,7 @@ main (int argc, char *argv[])
 } /* main */
 #else /* SYSV_IPC || UNIX_DOMAIN_SOCKETS || INTERNET_DOMAIN_SOCKETS */
 
-static char cwd[QXE_PATH_MAX+2];/* current working directory when calculated */
+static char cwd[QXE_PATH_MAX+3];/* current working directory when calculated */
 static char *cp = NULL;		/* ptr into valid bit of cwd above */
 
 static pid_t emacs_pid;		/* Process id for emacs process */
@@ -160,15 +160,17 @@ initialize_signals (void)
 
 
 /*
-  get_current_working_directory -- return the cwd.
+  get_current_working_directory -- return the cwd, including a trailing slash.
 */
 static char *
 get_current_working_directory (void)
 {
   if (cp == NULL)
     {				/* haven't calculated it yet */
+      size_t cp_len;
+
 #ifdef HAVE_GETCWD
-      if (getcwd (cwd,QXE_PATH_MAX) == NULL)
+      if (getcwd (cwd, sizeof (cwd) - 1) == NULL)
 #else
       if (getwd (cwd) == 0)
 #endif /* HAVE_GETCWD */
@@ -184,6 +186,16 @@ get_current_working_directory (void)
       for (cp = cwd; *cp && *cp != '/'; ++cp)
 	;
 
+      cp_len = strlen (cwd);
+
+      /* If no trailing slash, add one. Slack at the end kept for this with
+         the (sizeof (cwd) - 1) above. */
+      if (cp_len == 0 || cp[cp_len - 1] != '/')
+        {
+          cp[cp_len++] = '/';
+          cp[cp_len] = '\0';
+        }
+
     } /* if */
 
   return cp;
@@ -196,11 +208,10 @@ get_current_working_directory (void)
   		     pathname.
 */
 static void
-filename_expand (char *fullpath, char *filename)
+filename_expand (char *fullpath, size_t fullpath_len, const char *filename)
   /* fullpath - returned full pathname */
   /* filename - filename to expand */
 {
-  int len;
 #ifdef  CYGWIN
   char *cygwinFilename = NULL;
   ssize_t size;
@@ -235,27 +246,16 @@ filename_expand (char *fullpath, char *filename)
 
   if (filename[0] && filename[0] == '/')
      {
-       /* Absolute (unix-style) pathname.  Do nothing */
-       strncat (fullpath, filename, QXE_PATH_MAX);
+       /* Absolute (unix-style) pathname.  Return the argument. */
+       snprintf (fullpath, fullpath_len, "%s", filename);
      }
   else
     {
       /* Assume relative Unix style path.  Get the current directory
-       and prepend it.  FIXME: need to fix the case of DOS paths like
-       "\foo", where we need to get the current drive. */
-
-      strncat (fullpath, get_current_working_directory (), QXE_PATH_MAX);
-      len = strlen (fullpath);
-
-      /* If no trailing slash, add one */
-      if (len <= 0 || (fullpath[len - 1] != '/' && len < QXE_PATH_MAX))
-	{
-	  strcat (fullpath, "/");
-	  len++;
-	}
-
-      /* Don't forget to add the filename! */
-      strncat (fullpath, filename, QXE_PATH_MAX - len);
+         and prepend it.  FIXME: need to fix the case of DOS paths like
+         "\foo", where we need to get the current drive. */
+      snprintf (fullpath, fullpath_len, "%s%s",
+                get_current_working_directory (), filename);
     }
 #ifdef CYGWIN
   if (cygwinFilename)
@@ -721,7 +721,7 @@ main (int argc, char *argv[])
 	  /* If the last argument is +something, treat it as a file. */
 	  if (i == argc) --i;
 
-	  filename_expand (fullpath, argv[i]);
+	  filename_expand (fullpath, sizeof (fullpath), argv[i]);
 #ifdef INTERNET_DOMAIN_SOCKETS
 	  {
 	    size_t pathlen = strlen (remotepath) + strlen (fullpath) + 1;

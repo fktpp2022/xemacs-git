@@ -3973,50 +3973,96 @@ MODULE_API void debug_ungcpro(Ascbyte *, int, struct gcpro *);
 
 #else /* ! DEBUG_GCPRO */
 
-#define XGCPRO1(x, var1) ((void) (					\
-  x##cpro1.next = gcprolist, x##cpro1.var = &var1, x##cpro1.nvars = 1,	\
-  gcprolist = &x##cpro1 ))
+#define XGCPRO1(x, var1) XGCPRO1_ARRAY (x, &var1, 1)
+#define XGCPRO2(x, var1, var2) XGCPRO2_ARRAY (x, &var1, 1, &var2, 1)
+#define XGCPRO3(x, var1, var2, var3)                    \
+  XGCPRO3_ARRAY (x, &var1, 1, &var2, 1, &var3, 1)
+#define XGCPRO4(x, var1, var2, var3, var4)                      \
+  XGCPRO4_ARRAY (x, &var1, 1, &var2, 1, &var3, 1, &var4, 1)
+#define XGCPRO5(x, var1, var2, var3, var4, var5)                        \
+  XGCPRO5_ARRAY (x, &var1, 1, &var2, 1, &var3, 1, &var4, 1, &var5, 1)
 
-#define XGCPRO2(x, var1, var2) ((void) (				\
-  x##cpro1.next = gcprolist, x##cpro1.var = &var1, x##cpro1.nvars = 1,	\
-  x##cpro2.next = &x##cpro1, x##cpro2.var = &var2, x##cpro2.nvars = 1,	\
-  gcprolist = &x##cpro2 ))
+#define XGCPRO1_ARRAY(x, array, n)                                      \
+  do                                                                    \
+    {                                                                   \
+      x##cpro1.next = gcprolist, x##cpro1.var = array,                  \
+        x##cpro1.nvars = n;                                             \
+      PRAGMA_PUSH_DIAGNOSTICS;                                          \
+      PRAGMA_IGNORE_DANGLING_POINTER;                                   \
+      gcprolist = &x##cpro1;                                            \
+      PRAGMA_POP_DIAGNOSTICS;                                           \
+    }                                                                   \
+  while (0)
 
-#define XGCPRO3(x, var1, var2, var3) ((void) (				\
-  x##cpro1.next = gcprolist, x##cpro1.var = &var1, x##cpro1.nvars = 1,	\
-  x##cpro2.next = &x##cpro1, x##cpro2.var = &var2, x##cpro2.nvars = 1,	\
-  x##cpro3.next = &x##cpro2, x##cpro3.var = &var3, x##cpro3.nvars = 1,	\
-  gcprolist = &x##cpro3 ))
+#define XGCPRO2_ARRAY(x, array1, n1, array2, n2)                        \
+  do                                                                    \
+    {                                                                   \
+      x##cpro1.next = gcprolist, x##cpro1.var = array1,                 \
+        x##cpro1.nvars = n1;                                            \
+      x##cpro2.next = &x##cpro1, x##cpro2.var = array2,                 \
+        x##cpro2.nvars = n2;                                            \
+      PRAGMA_PUSH_DIAGNOSTICS;                                          \
+      PRAGMA_IGNORE_DANGLING_POINTER;                                   \
+      gcprolist = &x##cpro2;                                            \
+      PRAGMA_POP_DIAGNOSTICS;                                           \
+    }                                                                   \
+  while (0)
 
-#define XGCPRO4(x, var1, var2, var3, var4) ((void) (			\
-  x##cpro1.next = gcprolist, x##cpro1.var = &var1, x##cpro1.nvars = 1,	\
-  x##cpro2.next = &x##cpro1, x##cpro2.var = &var2, x##cpro2.nvars = 1,	\
-  x##cpro3.next = &x##cpro2, x##cpro3.var = &var3, x##cpro3.nvars = 1,	\
-  x##cpro4.next = &x##cpro3, x##cpro4.var = &var4, x##cpro4.nvars = 1,	\
-  gcprolist = &x##cpro4 ))
+#define XGCPRO3_ARRAY(x, array1, n1, array2, n2, array3, n3)            \
+  do                                                                    \
+    {                                                                   \
+      x##cpro1.next = gcprolist, x##cpro1.var = array1,                 \
+        x##cpro1.nvars = n1;                                            \
+      x##cpro2.next = &x##cpro1, x##cpro2.var = array2,                 \
+        x##cpro2.nvars = n2;                                            \
+      x##cpro3.next = &x##cpro2, x##cpro3.var = array3,                 \
+        x##cpro3.nvars = n3;                                            \
+      PRAGMA_PUSH_DIAGNOSTICS;                                          \
+      PRAGMA_IGNORE_DANGLING_POINTER;                                   \
+      gcprolist = &x##cpro3;                                            \
+      PRAGMA_POP_DIAGNOSTICS;                                           \
+    }                                                                   \
+  while (0)
 
-#define XGCPRO5(x, var1, var2, var3, var4, var5) ((void) (		\
-  x##cpro1.next = gcprolist, x##cpro1.var = &var1, x##cpro1.nvars = 1,	\
-  x##cpro2.next = &x##cpro1, x##cpro2.var = &var2, x##cpro2.nvars = 1,	\
-  x##cpro3.next = &x##cpro2, x##cpro3.var = &var3, x##cpro3.nvars = 1,	\
-  x##cpro4.next = &x##cpro3, x##cpro4.var = &var4, x##cpro4.nvars = 1,	\
-  x##cpro5.next = &x##cpro4, x##cpro5.var = &var5, x##cpro5.nvars = 1,	\
-  gcprolist = &x##cpro5 ))
+#define XGCPRO4_ARRAY(x, array1, n1, array2, n2, array3, n3,            \
+                      array4, n4)                                       \
+  do                                                                    \
+    {                                                                   \
+      x##cpro1.next = gcprolist, x##cpro1.var = array1,                 \
+        x##cpro1.nvars = n1;                                            \
+      x##cpro2.next = &x##cpro1, x##cpro2.var = array2,                 \
+        x##cpro2.nvars = n2;                                            \
+      x##cpro3.next = &x##cpro2, x##cpro3.var = array3,                 \
+        x##cpro3.nvars = n3;                                            \
+      x##cpro4.next = &x##cpro3, x##cpro4.var = array4,                 \
+        x##cpro4.nvars = n4;                                            \
+      PRAGMA_PUSH_DIAGNOSTICS;                                          \
+      PRAGMA_IGNORE_DANGLING_POINTER;                                   \
+      gcprolist = &x##cpro4;                                            \
+      PRAGMA_POP_DIAGNOSTICS;                                           \
+    }                                                                   \
+  while (0)
 
-#define XGCPRO1_ARRAY(x, array, n) ((void) (				 \
-  x##cpro1.next = gcprolist,  x##cpro1.var = array,  x##cpro1.nvars = n, \
-  gcprolist = &x##cpro1 ))
-
-#define XGCPRO2_ARRAY(x, array1, n1, array2, n2) ((void) (		  \
-  x##cpro1.next = gcprolist,  x##cpro1.var = array1, x##cpro1.nvars = n1, \
-  x##cpro2.next = &x##cpro1, x##cpro2.var = array2, x##cpro2.nvars = n2,  \
-  gcprolist = &x##cpro2 ))
-
-#define XGCPRO3_ARRAY(x, array1, n1, array2, n2, array3, n3) ((void) (	  \
-  x##cpro1.next = gcprolist,  x##cpro1.var = array1, x##cpro1.nvars = n1, \
-  x##cpro2.next = &x##cpro1, x##cpro2.var = array2, x##cpro2.nvars = n2,  \
-  x##cpro3.next = &x##cpro2, x##cpro3.var = array3, x##cpro3.nvars = n3,  \
-  gcprolist = &x##cpro3 ))
+#define XGCPRO5_ARRAY(x, array1, n1, array2, n2, array3, n3,            \
+                      array4, n4, array5, n5)                           \
+  do                                                                    \
+    {                                                                   \
+      x##cpro1.next = gcprolist, x##cpro1.var = array1,                 \
+        x##cpro1.nvars = n1;                                            \
+      x##cpro2.next = &x##cpro1, x##cpro2.var = array2,                 \
+        x##cpro2.nvars = n2;                                            \
+      x##cpro3.next = &x##cpro2, x##cpro3.var = array3,                 \
+        x##cpro3.nvars = n3;                                            \
+      x##cpro4.next = &x##cpro3, x##cpro4.var = array4,                 \
+        x##cpro4.nvars = n4;                                            \
+      x##cpro5.next = &x##cpro4, x##cpro5.var = array5,                 \
+        x##cpro5.nvars = n5;                                            \
+      PRAGMA_PUSH_DIAGNOSTICS;                                          \
+      PRAGMA_IGNORE_DANGLING_POINTER;                                   \
+      gcprolist = &x##cpro5;                                            \
+      PRAGMA_POP_DIAGNOSTICS;                                           \
+    }                                                                   \
+  while (0)
 
 #if defined (__cplusplus) && defined (ERROR_CHECK_GC)
 /* We need to reset each gcpro to avoid triggering the assert() in
@@ -4155,11 +4201,11 @@ MODULE_API void staticpro_nodump (Lisp_Object *);
 MODULE_API void unstaticpro_nodump (Lisp_Object *);
 #endif
 
-/* Call staticpro_nodump_nil (&var) to protect static variable VAR pre-dump.
+/* Call staticpro_dump_nil (&var) to protect static variable VAR pre-dump.
    Post pdump_load(), ensure that it is protected via STATICPROS but that its
    initial value is Qnil. Useful for variables like Vbuffer_alist where the
-   value is guaranteed to be distinct at dump time and at run time. Do not call
-   it after pdump_load(), you will crash.  */
+   value is guaranteed to be distinct at dump time and at run time. Do not
+   call it after pdump_load(), you will crash.  */
 void staticpro_dump_nil (Lisp_Object *);
 
 void register_post_gc_action (void (*fun) (void *), void *arg);

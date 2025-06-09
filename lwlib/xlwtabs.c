@@ -1701,8 +1701,6 @@ DrawTab(TabsWidget tw, Widget child, Bool labels)
 	      XftDraw *xftDraw = XftDrawCreate (dpy, win, visual, cmap);
 	      XftFont *renderFont = tw->tabs.renderFont;
 	      XGlyphInfo glyphinfo;
-	      XftColor colorDBG;
-	      XftColorAllocName (dpy, visual, cmap, "wheat", &colorDBG);
 	      XftTextExtents8 (dpy, renderFont, (FcChar8 *) lbl,
 			       (int) strlen (lbl), &glyphinfo);
 	      /* #### unnecessary? for the moment, give visual extent */
@@ -1711,16 +1709,16 @@ DrawTab(TabsWidget tw, Widget child, Bool labels)
 		{
 		  fprintf (stderr, "background color:  pixel=%08lx, r=%04x,"
 			   " g=%04x, b=%04x, alpha=%04x.\n",
-			   colorDBG.pixel, colorDBG.color.red,
-			   colorDBG.color.green, colorDBG.color.blue,
-			   colorDBG.color.alpha);
+			   colorBG.pixel, colorBG.color.red,
+			   colorBG.color.green, colorBG.color.blue,
+			   colorBG.color.alpha);
  		  fprintf (stderr, "label geometry: x=%d, y=%d, xOff=%d,"
  			   " yOff=%d, width=%d, height=%d\n",
  			   glyphinfo.x, glyphinfo.y, glyphinfo.xOff,
  			   glyphinfo.yOff, glyphinfo.width, glyphinfo.height);
  		}
 	      if (debug_tabs > 2)
-		XftDrawRect (xftDraw, &colorDBG,
+		XftDrawRect (xftDraw, &colorBG,
 			     /* left, top, width, height */
 			     x+tab->tabs.l_x-glyphinfo.x,
 			     y+tab->tabs.l_y-glyphinfo.y,

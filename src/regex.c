@@ -1975,7 +1975,8 @@ do {									\
    being larger than RE_MAX_BUF_SIZE, then flag memory exhausted.  */
 #define EXTEND_BUFFER()							 \
   do {									 \
-    re_char *old_buffer = bufp->buffer;					 \
+    /* Avoid -Wuse-after-free warnings with this cast: */                \
+    size_t old_buffer = (size_t) bufp->buffer, delta;                    \
     if (bufp->allocated == RE_MAX_BUF_SIZE)				 \
       return REG_ESIZE;							 \
     bufp->allocated <<= 1;						 \
@@ -1986,16 +1987,25 @@ do {									\
     if (bufp->buffer == NULL)						 \
       return REG_ESPACE;						 \
     /* If the buffer moved, move all the pointers into it.  */		 \
-    if (old_buffer != bufp->buffer)					 \
+    /* Modular arithmetic is defined for unsigned types, use that. */    \
+    if ((delta = (size_t) (bufp->buffer) - old_buffer) != 0)             \
       {									 \
-        buf_end = (buf_end - old_buffer) + bufp->buffer;		 \
-        begalt = (begalt - old_buffer) + bufp->buffer;			 \
+        buf_end = (unsigned char *) ((size_t) buf_end + delta);          \
+        begalt = (unsigned char *) ((size_t) begalt + delta);            \
         if (fixup_alt_jump)						 \
-          fixup_alt_jump = (fixup_alt_jump - old_buffer) + bufp->buffer; \
-        if (laststart)							 \
-          laststart = (laststart - old_buffer) + bufp->buffer;		 \
-        if (pending_exact)						 \
-          pending_exact = (pending_exact - old_buffer) + bufp->buffer;	 \
+          {                                                              \
+            fixup_alt_jump                                               \
+              = (unsigned char *) ((size_t) fixup_alt_jump + delta);     \
+          }                                                              \
+        if (laststart)                                                   \
+          {                                                              \
+            laststart = (unsigned char *) ((size_t) laststart + delta);  \
+          }                                                              \
+        if (pending_exact)                                               \
+          {                                                              \
+            pending_exact                                                \
+              = (unsigned char *) ((size_t) pending_exact + delta);      \
+          }                                                              \
       }									 \
   } while (0)
 

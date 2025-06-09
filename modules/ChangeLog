@@ -1,3 +1,10 @@
+2025-06-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* canna/canna_api.c:
+	* canna/canna_api.c (Fcanna_initialize):
+	Silence a warning regarding passing const strings to
+	jrKanjiControl() by using a file-static APPNAME variable.
+
 2025-04-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* postgresql/postgresql.c:

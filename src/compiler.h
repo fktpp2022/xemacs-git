@@ -155,6 +155,24 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 # define DECLARE_DOESNT_RETURN(decl) DECLARE_DOESNT_RETURN_TYPE (void, decl)
 #endif /* DOESNT_RETURN */
 
+#if defined (__clang__) || GCC_VERSION > NEED_GCC (4, 6, 0)
+#define PRAGMA_PUSH_DIAGNOSTICS _Pragma ("GCC diagnostic push")
+#define PRAGMA_POP_DIAGNOSTICS _Pragma ("GCC diagnostic pop")
+#define PRAGMA_IGNORE_DEPRECATED \
+  _Pragma ("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+#else
+#define PRAGMA_PUSH_DIAGNOSTICS DO_NOTHING
+#define PRAGMA_POP_DIAGNOSTICS DO_NOTHING
+#define PRAGMA_IGNORE_DEPRECATED DO_NOTHING
+#endif /* defined (__clang__) || defined (__GNUC__) */
+
+#if GCC_VERSION > NEED_GCC (12, 0, 0)
+#define PRAGMA_IGNORE_DANGLING_POINTER \
+  _Pragma ("GCC diagnostic ignored \"-Wdangling-pointer\"")
+#else
+#define PRAGMA_IGNORE_DANGLING_POINTER DO_NOTHING
+#endif
+
 /* Another try to fix SunPro C compiler warnings */
 /* "end-of-loop code not reached" */
 /* "statement not reached */

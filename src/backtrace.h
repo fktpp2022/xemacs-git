@@ -396,9 +396,12 @@ extern int specpdl_size;
    before pushing them on the backtrace_list.  The profiling code depends
    on this. */
 
-#define PUSH_BACKTRACE(bt) do {		\
-  (bt).next = backtrace_list;		\
-  backtrace_list = &(bt);		\
+#define PUSH_BACKTRACE(bt) do {   \
+  (bt).next = backtrace_list;     \
+  PRAGMA_PUSH_DIAGNOSTICS;        \
+  PRAGMA_IGNORE_DANGLING_POINTER; \
+  backtrace_list = &(bt);         \
+  PRAGMA_POP_DIAGNOSTICS;         \
 } while (0)
 
 #define POP_BACKTRACE(bt) do {		\

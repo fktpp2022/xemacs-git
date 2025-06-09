@@ -331,7 +331,8 @@ qxe_realpath (const Ibyte *path, Ibyte *resolved_path, Boolint links_only)
   else
     {
       /* Copy first directory sep. May have two on cygwin. */
-      qxestrncpy (new_path, path, abslen);
+      memcpy (new_path, path, abslen);
+      new_path[abslen] = '\0';
       new_path += abslen;
       path += abslen;
     }

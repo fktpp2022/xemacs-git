@@ -1,3 +1,25 @@
+2025-06-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* etags.c (savenstr):
+	Use memset () and then memcpy() within this, silence a strncpy()
+	warning with GCC 15.
+	* gnuclient.c (get_current_working_directory): Always include a
+	trailing slash in the return value of this, making
+	filename_expand() simpler.
+	* gnuclient.c (filename_expand): Take a new FULLPATH_LEN
+	argument. Use snprintf() for its bounds checking and to suppress
+	warnings regarding strncat() from GCC 15.
+	* gnuclient.c (main):
+	Pass sizeof (fullpath) to filename_expand().
+	* make-docfile.c (scan_lisp_file):
+	Give up if we encounter a dynamic docstring length that was not
+	specified.
+	Check that LENGTH is positive before writing to
+	saved_string[length - 1], quiet a GCC-15 warning.
+	* ootags.c (savenstr):
+	Use memset () and then memcpy() within this, silence a strncpy()
+	warning with GCC 15.
+
 2025-05-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove some obsolete or minimally useful C files from lib-src/,

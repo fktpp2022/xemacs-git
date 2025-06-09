@@ -1478,12 +1478,18 @@ x_reset_modifier_mapping (struct device *d)
       for (column = 0; column < 4; column += 2) {
 	KeyCode code = xd->x_modifier_keymap->modifiermap[modifier_index * mkpm
 							  + modifier_key];
+	KeySym sym;
+
 	/* I don't ever intend to switch away from XKeycodeToKeysym(), since
 	   it does what we want and the alternative, XkbKeycodeToKeysym(),
 	   requires Xkb which is not guaranteed available. Even calling
 	   XkbKeycodeToKeysym() and falling back to XKeycodeToKeysym() will
 	   still provoke the warning. */
-	KeySym sym = (code ? XKeycodeToKeysym (display, code, column) : 0);
+
+        PRAGMA_PUSH_DIAGNOSTICS;
+        PRAGMA_IGNORE_DEPRECATED;
+        sym = (code ? XKeycodeToKeysym (display, code, column) : 0);
+        PRAGMA_POP_DIAGNOSTICS;
 	if (sym == last_sym) continue;
 	last_sym = sym;
 	switch (sym) {

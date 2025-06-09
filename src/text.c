@@ -5479,7 +5479,7 @@ void *
 new_dfc_convert_malloc (const void *src, Bytecount src_size,
 			enum new_dfc_src_type type, Lisp_Object codesys)
 {
-  void *dst;
+  void *dst = NULL;
   Bytecount dst_size;
 
   new_dfc_convert_now_damn_it (src, src_size, type, &dst, &dst_size, codesys);

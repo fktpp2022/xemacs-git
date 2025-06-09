@@ -383,9 +383,10 @@ init_syntax_cache (struct syntax_cache *cache,  /* xzero'ed memory */
    be called repeatedly on the same cache.  The last three are for internal
    use by the syntax setup code and buffer initialization. */
 
-struct syntax_cache *		/* return CACHE or the cache of OBJECT */
-setup_syntax_cache (struct syntax_cache *cache,	/* may be NULL only if
-						   OBJECT is a buffer */
+struct syntax_cache *		/* Return CACHE. */
+setup_syntax_cache (struct syntax_cache *cache,	/* Never NULL; if OBJECT is a
+                                                   buffer, always that
+                                                   buffer's syntax cache. */
 		    Lisp_Object object,	 	/* the object (if any) cache
 						   is associated with */
 		    struct buffer *buffer,	/* the buffer to use as source
@@ -398,7 +399,7 @@ setup_syntax_cache (struct syntax_cache *cache,	/* may be NULL only if
      else make it valid for the whole object. */
   if (BUFFERP (object))
     {
-      cache = XBUFFER (object)->syntax_cache;
+      structure_checking_assert (cache == XBUFFER (object)->syntax_cache);
       if (!lookup_syntax_properties)
 	reset_syntax_cache_range (cache, 1);
     }
@@ -435,7 +436,8 @@ setup_syntax_cache (struct syntax_cache *cache,	/* may be NULL only if
 struct syntax_cache *
 setup_buffer_syntax_cache (struct buffer *buffer, Bytebpos from, int count)
 {
-  return setup_syntax_cache (NULL, wrap_buffer (buffer), buffer, from, count);
+  return setup_syntax_cache (buffer->syntax_cache, wrap_buffer (buffer),
+                             buffer, from, count);
 }
 
 /* 

@@ -630,7 +630,16 @@ Stynarr_verify_pos (void *st, int pos, const Ascbyte *file, int line)
   Stynarr *sty = (Stynarr *) st;
   /* #### See comment above in Dynarr_verify_pos() about accessing just
      past end of the real used memory block using Stynarr_atp(). */
-  assert_at_line (pos >= 0 && pos < sty->nels, file, line);
+  assert_at_line (pos < sty->nels, file, line);
+#if (GCC_VERSION >= NEED_GCC (15, 0, 0))
+  /* GCC 15 with -O6 warns within
+     faces.c:ensure_face_cachel_contains_charset() that POS may be negative
+     if we do not rephrase the assertion in this fashion. */
+  assert_at_line ((unsigned int) pos < (unsigned int) INT_MAX || pos == 0,
+                  file, line);
+#else
+  assert_at_line (pos >= 0, file, line);
+#endif
   return pos;
 }
 #else

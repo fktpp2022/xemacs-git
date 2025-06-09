@@ -349,6 +349,14 @@ call_Fding (void)
   return 0;
 }
 
+#ifdef KC_SETAPPNAME
+#ifndef CANNA_MULE
+static char appname[] = "nemacs";
+#else /* CANNA_MULE */
+static char appname[] = "mule";
+#endif /* CANNA_MULE */
+#endif /* KC_SETAPPNAME */
+
 DEFUN ("canna-initialize", Fcanna_initialize, 0, 3, 0, /*
 Initialize ``canna'', which is a kana-to-kanji converter for XEmacs.
 The first arg specifies if inserting space character between BUNSETSU when
@@ -430,11 +438,7 @@ If nil is specified for each arg, the default value will be used.
       jrBeepFunc = call_Fding;
 
 #ifdef KC_SETAPPNAME
-#ifndef CANNA_MULE
-      jrKanjiControl (0, KC_SETAPPNAME, "nemacs");
-#else /* CANNA_MULE */
-      jrKanjiControl (0, KC_SETAPPNAME, "mule");
-#endif /* CANNA_MULE */
+      jrKanjiControl (0, KC_SETAPPNAME, appname);
 #endif /* KC_SETAPPNAME */
 
       jrKanjiControl (0, KC_SETBUNSETSUKUGIRI, kugiri);

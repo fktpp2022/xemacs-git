@@ -4998,8 +4998,8 @@ savenstr (char *cp, int len)
   register char *dp;
 
   dp = xnew (len + 1, char);
-  strncpy (dp, cp, len);
-  dp[len] = '\0';
+  memset (dp, 0, len + 1);
+  memcpy (dp, cp, len);
   return dp;
 }
 
