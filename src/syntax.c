@@ -658,7 +658,10 @@ The chars are indexed by their internal syntax codes, starting at 0.
 
 DEFUN ("char-syntax", Fchar_syntax, 1, 2, 0, /*
 Return the syntax code of CHARACTER, designated by a character.
-Optional SYNTAX-TABLE defaults to the current buffer's syntax table.
+
+SYNTAX-TABLE, if non-nil, is a syntax-table which will be used to look up the
+CHARACTER's syntax, or a cons, the raw syntax descriptor to be used (in which
+case CHARACTER is ignored).  It defaults to the current buffer's syntax table.
 See `modify-syntax-entry' for the designators of the defined syntax codes.
 */
        (character, syntax_table))
@@ -667,17 +670,29 @@ See `modify-syntax-entry' for the designators of the defined syntax codes.
     {
       character = make_char ('\000');
     }
-  CHECK_CHAR_COERCE_INT (character);
-  syntax_table = check_syntax_table (syntax_table,
-				     current_buffer->syntax_table);
+  if (!CONSP (syntax_table))
+    {
+      CHECK_CHAR_COERCE_INT (character);
+      syntax_table = check_syntax_table (syntax_table,
+                                         current_buffer->syntax_table);
 #ifdef MIRROR_TABLE
-  return make_char
-    (syntax_code_spec[(int) SYNTAX (XCHAR_TABLE (syntax_table)->mirror_table,
-				    XCHAR (character))]);
+      return make_char
+        (syntax_code_spec[(int) SYNTAX (XCHAR_TABLE (syntax_table)->mirror_table,
+                                        XCHAR (character))]);
 #else
-  return make_char (syntax_code_spec[(int) SYNTAX (syntax_table,
-						   XCHAR (character))]);
+      return make_char (syntax_code_spec[(int) SYNTAX (syntax_table,
+                                                       XCHAR (character))]);
 #endif /* MIRROR_TABLE */
+    }
+  else
+    {
+      enum syntaxcode int_code = SYNTAX_FROM_CODE (XFIXNUM (XCAR
+                                                            (syntax_table)));
+
+      if (int_code >= Smax)
+        signal_error (Qargs_out_of_range, "Invalid syntax code", syntax_table);
+      return make_char (syntax_code_spec[(int) int_code]);
+    }
 }
 
 Lisp_Object

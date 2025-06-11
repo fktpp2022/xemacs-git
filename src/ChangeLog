@@ -1,3 +1,12 @@
+2025-06-11  Alan Mackenzie  <acm@muc.de>
+
+	Enhance the handling of syntax-table properties.  This enables C-u
+	C-x = (`what-cursor-position') to work on, for example,
+	unterminated string delimiters in C Mode.
+
+	* syntax.c (Fchar_syntax): Enhance to handle a cons as argument
+	SYNTAX_TABLE, treating this as an internal syntax code.
+
 2025-06-07  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* s/windowsnt.h (HAVE_SHLIB):

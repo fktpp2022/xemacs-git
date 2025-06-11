@@ -178,8 +178,9 @@ The first character of SPEC should be one of the following:
   \(        open-parenthesis.     \)   close-parenthesis.
   \"        string quote.         \\   character-quote.
   $        paired delimiter.     '   expression quote or prefix operator.
-  <	   comment starter.	 >   comment ender.
+  <        comment starter.      >   comment ender.
   /        character-quote.      @   inherit from `standard-syntax-table'.
+  !        comment-fence.        |   string-fence.
 
 Only single-character comment start and end sequences are represented thus.
 Two-character sequences are represented as described below.
@@ -356,7 +357,7 @@ VALUE and STREAM, and should output a description of VALUE."
 		    "symbol-constituent" "open-paren" "close-paren"
 		    "expression-prefix" "string-quote" "paired-delimiter"
 		    "escape" "character-quote" "comment-begin" "comment-end"
-		    "inherit" "extended-word-constituent"]
+		    "inherit" "comment-fence" "string-fence"]
 		   (logand code 127)))
 
       (if match

@@ -1,5 +1,18 @@
 2025-06-11  Alan Mackenzie  <acm@muc.de>
 
+	Enhance the handling of syntax-table properties.  This enables C-u
+	C-x = (`what-cursor-position') to work on, for example,
+	unterminated string delimiters in C Mode.
+
+	* syntax.el (modify-syntax-entry): Add documentation for ! =
+	comment-fence and | = string-fence in the doc string.
+
+	* syntax.el (describe-syntax-code): In the array of syntax textual
+	descriptions, replace the ?obsolete "extended-word-constituent"
+	with "comment-fence", and append "string-fence".
+
+2025-06-11  Alan Mackenzie  <acm@muc.de>
+
 	Fontify also the last character of an unterminated string.
 
 	* font-lock.el (font-lock-fontify-syntactically-region): Before
