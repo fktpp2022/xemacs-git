@@ -1687,9 +1687,13 @@ START should be at the beginning of a line."
 	    (let ((face (if (and lisp-like (= depth 1))
 			    'font-lock-doc-string-face
 			  'font-lock-string-face)))
-	      (if font-lock-fontify-string-delimiters
-		  (font-lock-set-face beg (point) face)
-		(font-lock-set-face (+ beg 1) (- (point) 1) face)))
+	      (font-lock-set-face
+	       (if font-lock-fontify-string-delimiters beg (1+ beg))
+	       (if (or font-lock-fontify-string-delimiters
+		       (nth 3 state))	; Still in a string.
+		   (point)
+		 (1- (point)))
+	       face))
 	  (font-lock-set-face beg (point)
 			      font-lock-comment-face))))))
 

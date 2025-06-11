@@ -1,3 +1,11 @@
+2025-06-11  Alan Mackenzie  <acm@muc.de>
+
+	Fontify also the last character of an unterminated string.
+
+	* font-lock.el (font-lock-fontify-syntactically-region): Before
+	subtracting 1 from the second argument to font-lock-set-face (for
+	the closing double quote), check the string was actually closed.
+
 2025-06-06  Alan Mackenzie  <acm@muc.de>
 
 	Correct the value of regexp-opt on being given an empty list.
