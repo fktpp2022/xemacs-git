@@ -1863,7 +1863,7 @@ END_C_DECLS
 
 DECLARE_INLINE_HEADER (
 Lisp_Object
-STORE_VOID_IN_LISP (const void *ptr)
+STORE_VOID_IN_LISP (void *ptr)
 )
 {
   EMACS_UINT p = (EMACS_UINT) ptr;

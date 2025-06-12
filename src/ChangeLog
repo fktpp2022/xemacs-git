@@ -1,18 +1,3 @@
-2025-06-12  Aidan Kehoe  <kehoea@parhasard.net>
-
-	Use a normal Lisp hash table for pdump_hash, allowing it to be
-	resized as needed and removing the last of the many redundant
-	C-level hash table implementations.
-	No loss of speed when built --with-optimization.
-	* dumper.c:
-	* dumper.c (pdump_make_hash): Removed.
-	* dumper.c (Vpdump_hash): Rename pdump_hash, change its type.
-	* dumper.c (pdump_get_block): Revise to use find_htentry().
-	* dumper.c (pdump_add_block): Revise to use inchash_eq().
-	* dumper.c (pdump): GCPRO() Vpdump_hash.
-	* lisp.h (STORE_VOID_IN_LISP):
-	Declare PTR as const void *, silence some warnings.
-
 2025-06-11  Alan Mackenzie  <acm@muc.de>
 
 	Enhance the handling of syntax-table properties.  This enables C-u
