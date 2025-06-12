@@ -535,56 +535,43 @@ static FILE *pdump_out;
 
 #define PDUMP_HASHSIZE        2164111
 
-static pdump_block_list_elt **pdump_hash;
-
-/* Since most pointers are eight bytes aligned, the >>3 allows for a better hash */
-static int
-pdump_make_hash (const void *obj)
-{
-  return ((EMACS_UINT)(obj)>>3) % PDUMP_HASHSIZE;
-}
+static Lisp_Object Vpdump_hash;
 
 /* Return the entry for an already-registered memory block at OBJ,
    or NULL if none. */
-
-static pdump_block_list_elt *
+static inline pdump_block_list_elt *
 pdump_get_block (const void *obj)
 {
-  int pos = pdump_make_hash (obj);
-  pdump_block_list_elt *e;
-
+  htentry *e = find_htentry (STORE_VOID_IN_LISP ((void *) obj),
+			     XHASH_TABLE (Vpdump_hash));
   assert (obj != 0);
-
-  while ((e = pdump_hash[pos]) != 0)
+  if (HTENTRY_CLEAR_P (e))
     {
-      if (e->obj == obj)
-	return e;
-
-      pos++;
-      if (pos == PDUMP_HASHSIZE)
-	pos = 0;
+      return NULL;
     }
-  return 0;
+
+  return (pdump_block_list_elt *) GET_VOID_FROM_LISP (e->value);
 }
 
-/* Register a new memory block or return the entry for an already-registered
-   memory block at OBJ, or NULL if none. */
-
+/* Register a new memory block, or return the entry for an already-registered
+   memory block for OBJ. */
 static void
 pdump_add_block (pdump_block_list *list, const void *obj, Bytecount size,
 		 Elemcount count)
 {
   pdump_block_list_elt *e;
-  int pos = pdump_make_hash (obj);
+  Lisp_Object key = STORE_VOID_IN_LISP ((void *) obj);
+  htentry *probe = inchash_eq (key, Vpdump_hash, 0);
 
-  while ((e = pdump_hash[pos]) != 0)
+  /* If the hash table had to be resized, probe is NULL. */
+  if (probe == NULL)
     {
-      if (e->obj == obj)
-	return;
+      probe = find_htentry (key, XHASH_TABLE (Vpdump_hash));
+    }
 
-      pos++;
-      if (pos == PDUMP_HASHSIZE)
-	pos = 0;
+  if (!EQ (Qzero, probe->value))
+    {
+      return;
     }
 
   e = xnew (pdump_block_list_elt);
@@ -596,7 +583,7 @@ pdump_add_block (pdump_block_list *list, const void *obj, Bytecount size,
   list->first = e;
 
   list->count += count;
-  pdump_hash[pos] = e;
+  probe->value = STORE_VOID_IN_LISP ((void *) e);
 
   {
     int align = pdump_size_to_align (size);
@@ -1994,7 +1981,7 @@ pdump (void)
   int none;
   pdump_header header;
   int speccount = specpdl_depth ();
-  struct gcpro gcpro1, gcpro2;
+  struct gcpro gcpro1, gcpro2, gcpro3;
 
   in_pdump = 1;
 
@@ -2026,7 +2013,9 @@ pdump (void)
     = make_lisp_hash_table (Dynarr_length (staticpros) / 5,
                             HASH_TABLE_NON_WEAK, Qeq);
 
-  GCPRO2 (Vstaticpros_hash, Vstaticpros_nodump_block_offsets);
+  Vpdump_hash = make_lisp_hash_table (PDUMP_HASHSIZE, HASH_TABLE_NON_WEAK, Qeq);
+
+  GCPRO3 (Vstaticpros_hash, Vstaticpros_nodump_block_offsets, Vpdump_hash);
 
   {
     Elemcount ii;
@@ -2036,8 +2025,6 @@ pdump (void)
                   Qt, Vstaticpros_hash);
       }
   }
-
-  pdump_hash = xnew_array_and_zero (pdump_block_list_elt *, PDUMP_HASHSIZE);
 
   for (i = 0; i<lrecord_type_count; i++)
     {
@@ -2241,8 +2228,6 @@ pdump (void)
   retry_close (pdump_fd); */
 
   free (pdump_buf);
-
-  free (pdump_hash);
 
   UNGCPRO;
   unbind_to (speccount);
