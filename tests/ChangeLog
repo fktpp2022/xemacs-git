@@ -1,3 +1,7 @@
+2025-06-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* XEmacs 21.5.36 "leeks" is released.
+
 2025-06-03  Alan Mackenzie  <acm@muc.de>
 
 	* automated/search-tests.el: Add tests for "\\>" and "\\_>" in the

@@ -1,3 +1,7 @@
+2025-06-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* XEmacs 21.5.36 "leeks" is released.
+
 2025-05-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* configure.ac: Remove support for building ldap, canna,

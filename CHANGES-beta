@@ -1,25 +1,105 @@
-# DO NOT PUT A VERSION MARKER HERE, ADDED AT RELEASE
+to XEmacs 21.5.36 "leeks"
 
 Major Features, Bugfixes, and Backward Incompatible Changes
 
+-- Improve: Remove option of non-Mule builds, given stability of Mule code -- Aidan Kehoe
+-- New: Thorough support for address space layout randomization, ASLR -- Aidan Kehoe
+-- New: Much better support for colors on TTYs -- Richard Hopkins
+-- New: Add support for anchors within info.el -- Aidan Kehoe
+-- Improve: Use POSIX type instead of which(1) -- Mats Lidell
+-- Fix: Avoid segmentation violation with functions that assumed a window, -batch -- Aidan Kehoe
+-- Fix: Get XEmacs building with recent Visual Studio -- Kurt Geisel
+-- Fix: Extensive changes to make module support more robust, reduce crashes with unloaded modules -- Aidan Kehoe
+-- Improve: No longer binary-patch xemacs with DUMP_IN_EXEC, fix signed binaries -- Aidan Kehoe
+-- Improve: Remove support for byte-compile-dynamic (though not byte-compile-dynamic-docstrings) -- Aidan Kehoe
+-- Improve: Remove need for an internal register number, shy groups -- Aidan Kehoe, Stefan Monnier
+-- Improve: Add support for \_<, \_> to regex.c, anchor at symbol begin, end -- Aidan Kehoe, Alan Mackenzie
+-- Improve: Remove the PACKAGE_SUPPRESS mechanism from XEmacs, which was confusing and never worked well  -- Alan  Makenzie
 
 User-Visible Bug Fixes and Improvements
 
+-- Fix: Restore the skip_ascii() optimization, no-conversion, utf-8, multibyte coding systems -- Aidan Kehoe
+-- Fix multiple bugs and performance issues with shifted motion especially on terminals -- Aidan Kehoe, Richard Hopkins
+-- Improve: Make algorithm choice more consistent, #'find, #'position -- Aidan Kehoe
+-- Fix: Print modifiers for motion, misc-user events; systematize modifier handling -- Aidan Kehoe
+-- Fix: Avoid a conflict with our headers and Motif for XFT builds -- Aidan Kehoe
+-- Fix: Avoid command-execution vulnerabilities, etags.c -- Aidan Kehoe
+-- Fix: Fix a bug with slider size and buffer-position based scrolling -- Aidan Kehoe, Richard Hopkins
+-- Improve: Support Page Up/Page Down, Insert, Delete keys with modifiers on Xterm -- Richard Hopkins
+-- Improve: If PROMPT supplied to #'read-char, echo it and the result briefly -- Aidan Kehoe
+-- Improve: Be more careful about the buffer-local status of `inhibit-read-only' -- Aidan Kehoe
+-- Fix: Avoid calling xfree() on dumped data, resize_string(); fix bugs -- Aidan Kehoe
+-- Fix: Install DOC as DOC-DUMP_ID, avoid corruption after make install -- Aidan Kehoe
+-- Improve: Give reasonable defaults for Perl, Mercurial and makeinfo, native Windows -- Aidan Kehoe
+-- Fix: Make initial obarray larger, reduce leaking of its entries -- Aidan Kehoe
+-- Fix: Call optimize_compiled_function() on every compiled function when dumping, improve performance, reduce leaked memory -- Aidan Kehoe
+-- Improve: Avoid O(N) behavior, #'compare-buffer-substrings -- Aidan Kehoe
+-- Improve: Add support for fseeki64(), ftelli64() on Windows -- Aidan Kehoe
+-- Improve: Purge the PACKAGE_SUPPRESS mechanism from XEmacs -- Alan Mackenzie
+-- Improve: Support text/plain, text/plain;charset=utf-8 when cutting and pasting under X11 -- Aidan Kehoe
 
 Build Infrastructure and Source Tree
 
+-- Fix: Fix a build rule that did not work with BSD make(1) -- Richard Hopkins
+-- Improve: ANSI C function definitions, lib-src/ -- Richard Hopkins
+-- Improve: Avoid GC after loading every file with --with-quick-build -- Aidan Kehoe
+-- Fix: Default DUMP_IN_EXEC to 0 when --with-quick-build -- Aidan Kehoe
+-- Improve: Only search in two places for xemacs.dmp when DUMP_IN_EXEC is 0, improve security -- Aidan Kehoe
+-- Improve: Install dump file in ${archlibdir} if DUMP_IN_EXEC 0 -- Aidan Kehoe
+-- Improve: Import incbin.h, allow cross-platform inlining of binary data -- Aidan Kehoe, Dale Weiler
+-- Fix: Remove obsolete optimization flags, Windows build -- Aidan Kehoe
+-- Fix: Find module auto-autoloads in module build tree, not source tree -- Stephen J. Turnbull
+-- Improve: Simplify startup now unexec is gone, move much more objects to the dump file (ongoing) -- Aidan Kehoe
+-- Fix: Correct the updating of the syntax cache in re_match_2_internal -- Alan Mackenzie
+-- Improve: Remove support for building modules into temacs -- Aidan Kehoe
+-- Improve: Remove some obsolete or minimally useful C files from lib-src/ -- Aidan Kehoe
 
 Documentation
 
+-- Document removal of PACKAGE_SUPPRESS Makefile target -- Alan Mackenzie
+-- Document removal of support for building modules into temacs -- Aidan Kehoe
+-- Reduced restrictions on C code now unexec is gone -- Aidan Kehoe
+-- Update emodules.texi to reflect current status -- Aidan Kehoe
+-- Document new optional TEST argument, #'assoc -- Aidan Kehoe
+-- Document new optional TEST argument, #'assoc -- Aidan Kehoe
+-- Update info syntax -- Aidan Kehoe, Mats Lidell, Richard Hopkins
+-- Clarify some syntax related to regexp character sets, groups, zero-length shy groups -- Aidan Kehoe
+
+-- Update documentation of Qunbound, now it is of type opaque -- Aidan Kehoe
+-- Update and correct some documentation of pdump -- Aidan Kehoe
+-- Update documentation of current dumping, marking -- Aidan Kehoe
 
 Lisp API
 
+-- Improve: Take GNU's optional TEST argument, #'assoc -- Aidan Kehoe
+-- Fix: Correct the result of #'regexp-opt when passed an empty list -- Alan Mackenzie
+-- Improve: Remove support for emacs implementations without #'add-timeout, itimer.el -- Aidan Kehoe
+-- Improve: Handle GNU's value `symbols' of the PAREN argument to regexp-opt -- Alan Mackenzie
 
 Internal API and Implementation
 
+-- Improve: Make Qunbound into an opaque object, simplify symbols.c -- Aidan Kehoe
+-- Fix: Prevent scan_sexps_forward interpreting very large argument as -1 -- Alan Mackenzie
+-- Fix: Handle the %t modeline spec properly once more -- Aidan Kehoe
+-- Improve: Add KEYWORDS as a value for struct Lisp_Subr.max_args, use it -- Aidan Kehoe
+-- Improve: Choose test based on type of key argument for find_htentry(), elhash.c -- Aidan Kehoe
+-- Improve: Make #'true-list-p, #'safe-length 15% faster -- Aidan Kehoe
+-- Improve: Make staticpro() work with heap addresses -- Aidan Kehoe
+-- Improve: Modernize loadhist.el, use structured errors, #'file-system-ignore-case-p -- Aidan Kehoe
+-- Improve: Add {define,undef}_lisp_object(), encapsulate creating lrecord types -- Aidan Kehoe
+-- Improve: Add dump_add_nil_lisp_object(), staticpro_dump_nil(). Use them -- Aidan Kehoe
 
 Testing and Debugging
 
+-- Test symbol boundary anchors -- Aidan Kehoe, Alan Mackenzie
+-- Check that compiled functions supplied as arguments to (interactive ...) in lambdas are not doubly-compiled -- Aidan Kehoe
+-- Test detection of coding cookies -- Aidan Kehoe
+-- Test #'compare-buffer-substrings -- Aidan Kehoe
+-- Move code testing unicode-error-default-translation-table, unicode-invalid-sequence-regexp-range here -- Aidan Kehoe
+-- Test #'call-interactively -- Aidan Kehoe
+-- Test resize_string() with big, small strings -- Aidan Kehoe
+-- Test colors are read and scaled correctly -- Richard Hopkins
+-- Test shifted motion handling -- Aidan Kehoe
 
 to XEmacs 21.5.35 "kohlrabi"
 
