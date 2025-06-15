@@ -340,6 +340,15 @@
 
 	* symsinit.h: Remove its declaration.
 
+2025-06-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecode-ops.h (OPCODE):
+	New type-of opcode, now type checking is very cheap on the C
+	level.
+	* bytecode.c (execute_optimized_program): Implement it.
+	* bytecode.c (check_opcode):
+	Its opcode is no longer invalid, don't error when we encounter it.
+
 2025-06-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* XEmacs 21.5.36 "leeks" is released.

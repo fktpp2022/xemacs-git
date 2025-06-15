@@ -112,6 +112,13 @@
 	* itimer.el (itimer-process): New. Restore this as a variable,
 	mark it obsolete.
 
+2025-06-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecomp.el (169):
+	* bytecomp.el (type-of):
+	New bytecode for type-of, given it is now very cheap on the C
+	level.
+
 2025-06-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* XEmacs 21.5.36 "leeks" is released.

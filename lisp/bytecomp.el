@@ -1108,8 +1108,7 @@ otherwise pop it")
 (byte-defop 166 -1 byte-rem)
 (byte-defop 167  0 byte-numberp)
 (byte-defop 168  0 byte-fixnump)
-
-;; unused: 169
+(byte-defop 169  0 byte-type-of)
 
 ;; These are not present in FSF.
 ;;
@@ -3491,6 +3490,7 @@ keyword %s, forcing function quoting" (car form) function)))
 (byte-defop-compiler cdr-safe		1)
 (byte-defop-compiler numberp		1)
 (byte-defop-compiler fixnump		1)
+(byte-defop-compiler type-of		1)
 (byte-defop-compiler skip-chars-forward     1-2+1)
 (byte-defop-compiler skip-chars-backward    1-2+1)
 (byte-defop-compiler eq			2)

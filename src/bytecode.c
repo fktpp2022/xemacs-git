@@ -1210,6 +1210,25 @@ execute_optimized_program (const Opbyte *program,
 	  TOP_LVALUE = FIXNUMP (TOP) ? Qt : Qnil;
 	  break;
 
+	case Btype_of:
+          {
+            Lisp_Object obj = TOP;
+
+            switch (XTYPE (obj))
+              {
+              case Lisp_Type_Record:
+                TOP_LVALUE = XRECORD_LHEADER_IMPLEMENTATION (obj)->name;
+                break;
+              case Lisp_Type_Char:
+                TOP_LVALUE = Qcharacter;
+                break;
+              default:
+                TOP_LVALUE = Qfixnum;
+                break;
+              }
+            break;
+          }
+
 	case Beq:
 	  {
 	    Lisp_Object arg = POP;
@@ -1931,7 +1950,6 @@ static void
 check_opcode (Opcode opcode)
 {
   if ((opcode < Bvarref) ||
-      (opcode == 0251)   ||
       (opcode > Bassq && opcode < Bconstant))
     invalid_byte_code ("invalid opcode in instruction stream",
 		       make_fixnum (opcode));

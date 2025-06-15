@@ -164,6 +164,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
   OPCODE (rem, 		 		0246)
   OPCODE (numberp, 	 		0247)
   OPCODE (fixnump, 	 		0250) /* Was Bintegerp. */
+  OPCODE (type_of, 	 		0251)
 
   OPCODE (Rgoto, 			0252)
   OPCODE (Rgotoifnil, 			0253)
