@@ -202,7 +202,7 @@ You might prefer to use `delete-extract-rectangle' from a program.
 When called from a program, the rectangle's corners are START and END.
 With a prefix (or FILL) argument, also fill lines where nothing has to be
 deleted."
-  (interactive "*r\nP")
+  (interactive "r\nP")
   (when buffer-read-only
     (setq killed-rectangle (extract-rectangle start end))
     (barf-if-buffer-read-only))

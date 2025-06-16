@@ -1,5 +1,16 @@
 2025-06-16  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* rect.el (kill-rectangle):
+	In the event that the buffer is read-only, the intention of this
+	function has always been to copy the selected rectangle (to make
+	killed-rectangle reflect it) and then to error.  This has never
+	worked with interactive calls (the main point of the code) since
+	the ?* in the string interactive spec calls
+	barf_if_buffer_read_only().
+	GNU has this change, among others.
+
+2025-06-16  Aidan Kehoe  <kehoea@parhasard.net>
+
 	nnheaderxm.el binds itimer-timer-last-wakeup , very uncleanly, on
 	loading the file.
 	If gnus is loaded early in one's init file this gives a race
