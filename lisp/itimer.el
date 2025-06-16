@@ -763,10 +763,10 @@ x      start a new itimer
 	      itimer-timer (add-timeout sleep 'itimer-timer-driver nil 5)))))
 
 ;; nnheaderxm.el uses these, #### needs to be fixed to not use them.
-; (defalias 'itimer-driver-start 'itimer-timer-start)
-; (make-obsolete 'itimer-driver-start 'itimer-timer-start)
+(defalias 'itimer-driver-start 'itimer-timer-start)
+(make-obsolete 'itimer-driver-start 'itimer-timer-start)
 
-; (defvar itimer-process nil)
-; (make-obsolete-variable 'itimer-process 'itimer-timer)
+(defvar itimer-process nil)
+(make-obsolete-variable 'itimer-process 'itimer-timer)
 
 ;;; itimer.el ends here
