@@ -1,3 +1,26 @@
+2025-06-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	nnheaderxm.el binds itimer-timer-last-wakeup , very uncleanly, on
+	loading the file.
+	If gnus is loaded early in one's init file this gives a race
+	condition with other itimers which now encounter a nil
+	itimer-timer-last-wakeup with a non-nil itimer-timer.
+	Address this (to a certain extent) by initializing
+	itimer-timer-last-wakeup to 1970-01-01 00:00:00. Restore a
+	function and a variable used by that gnus code.
+	Thank you for the bug report, Henry S. Thompson.
+
+	* itimer.el:
+	* itimer.el (itimer-timer-last-wakeup):
+	Initialize this to '(0 0 0) to make similar bugs less likely going
+	forward, though the underlying solution is for non-core code to
+	leave itimer-timer-last-wakeup alone.
+
+	* itimer.el ('itimer-driver-start): New. Restore this as an
+	obsolete alias for 'itimer-timer-start.
+	* itimer.el (itimer-process): New. Restore this as a variable,
+	mark it obsolete.
+
 2025-06-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* XEmacs 21.5.36 "leeks" is released.

@@ -57,7 +57,7 @@
 (defvar itimer-timer nil
   "Emacs internal timer that drives the itimer system.")
 
-(defvar itimer-timer-last-wakeup nil
+(defvar itimer-timer-last-wakeup '(0 0 0)
   "The time the timer driver function last ran.")
 
 (defvar itimer-short-interval 1e-3
@@ -761,5 +761,12 @@ x      start a new itimer
 	(disable-timeout itimer-timer)
 	(setq itimer-next-wakeup sleep
 	      itimer-timer (add-timeout sleep 'itimer-timer-driver nil 5)))))
+
+;; nnheaderxm.el uses these, #### needs to be fixed to not use them.
+; (defalias 'itimer-driver-start 'itimer-timer-start)
+; (make-obsolete 'itimer-driver-start 'itimer-timer-start)
+
+; (defvar itimer-process nil)
+; (make-obsolete-variable 'itimer-process 'itimer-timer)
 
 ;;; itimer.el ends here
