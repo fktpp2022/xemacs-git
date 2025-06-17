@@ -1,5 +1,13 @@
 2025-06-17  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove ignore_malloc_warnings, no longer of use in early
+	initialization, and not used otherwise.
+	* alloc.c: Remove its declaration.
+	* alloc.c (malloc_warning): Remove check for it.
+	* alloc.c (common_init_alloc_early): Remove use of it.
+
+2025-06-17  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Greatly simplify common_init_alloc_early(), initialize the
 	book-keeping for the frob-block types and for
 	init_string_chars_alloc() using BSS and data segment values.

@@ -327,9 +327,6 @@ recompute_funcall_allocation_flag (void)
 #define MAX_SAVE_STACK 0 /* 16000 */
 #endif
 
-/* Non-zero means ignore malloc warnings.  Set during initialization.  */
-int ignore_malloc_warnings;
-
 
 void *breathing_space;
 
@@ -434,9 +431,6 @@ malloc_after (void *val, Bytecount size)
 void
 malloc_warning (const char *str)
 {
-  if (ignore_malloc_warnings)
-    return;
-
   /* Remove the malloc lock here, because warn_when_safe may allocate
      again.  It is safe to remove the malloc lock here, because malloc
      is already finished (malloc_warning is called via
@@ -5448,10 +5442,8 @@ common_init_alloc_early (void)
 #endif /* defined (__cplusplus) && defined (ERROR_CHECK_GC) */
 
 #ifdef HAVE_GLIBC
-  ignore_malloc_warnings = 1;
   mallopt (M_TRIM_THRESHOLD, 128*1024); /* trim threshold */
   mallopt (M_MMAP_THRESHOLD, 64*1024); /* mmap threshold */
-  ignore_malloc_warnings = 0;
 #endif
 }
 
