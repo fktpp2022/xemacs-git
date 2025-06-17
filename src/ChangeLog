@@ -1,3 +1,10 @@
+2025-06-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lread.c (Fload_internal):
+	Fix my bug elicited with error-checking GCPROs here, don't use
+	GCPRO1 on the newly-consed Lisp form since gcpro1 is still in use,
+	use NGCPRO1 as the code did previously.
+
 2025-06-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* XEmacs 21.5.36 "leeks" is released.

@@ -787,12 +787,14 @@ do {								\
         {
           if (internal_equal (name, elt_car, 0))
             {
+              struct gcpro ngcpro1;
+
               elt = Fcons (Qprogn, elt_cdr);
-              GCPRO1 (elt);
+              NGCPRO1 (elt);
               /* Use eval so that errors give a semi-meaningful backtrace.
                  --Stig */
               Feval (elt);
-              UNGCPRO;
+              NUNGCPRO;
               break;
             }
         }
