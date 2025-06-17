@@ -1043,20 +1043,11 @@ struct type##_block					\
 };							\
 							\
 static struct type##_block *current_##type##_block;	\
-static int current_##type##_block_index;		\
+static int current_##type##_block_index =		\
+  countof (current_##type##_block->block);		\
 							\
 static Lisp_Free *type##_free_list;			\
 static Lisp_Free *type##_free_list_tail;		\
-							\
-static void						\
-init_##type##_alloc (void)				\
-{							\
-  current_##type##_block = 0;				\
-  current_##type##_block_index =			\
-    countof (current_##type##_block->block);		\
-  type##_free_list = 0;					\
-  type##_free_list_tail = 0;				\
-}							\
 							\
 static int gc_count_num_##type##_in_use;		\
 static int gc_count_num_##type##_freelist
@@ -2589,8 +2580,9 @@ struct string_chars_block
   unsigned char string_chars[STRING_CHARS_BLOCK_SIZE];
 };
 
-static struct string_chars_block *first_string_chars_block;
-static struct string_chars_block *current_string_chars_block;
+static struct string_chars_block first_string_chars_block;
+static struct string_chars_block *current_string_chars_block
+  = &first_string_chars_block;
 
 /* If SIZE is the length of a string, this returns how many bytes
  *  the string occupies in string_chars_block->string_chars
@@ -2617,16 +2609,6 @@ struct unused_string_chars
   Lisp_String *string;
   EMACS_INT fullsize;
 };
-
-static void
-init_string_chars_alloc (void)
-{
-  first_string_chars_block = xnew (struct string_chars_block);
-  first_string_chars_block->prev = 0;
-  first_string_chars_block->next = 0;
-  first_string_chars_block->pos = 0;
-  current_string_chars_block = first_string_chars_block;
-}
 
 static Ibyte *
 allocate_big_string_chars (Bytecount length)
@@ -4964,7 +4946,7 @@ verify_string_chars_integrity (void)
   struct string_chars_block *sb;
 
   /* Scan each existing string block sequentially, string by string.  */
-  for (sb = first_string_chars_block; sb; sb = sb->next)
+  for (sb = &first_string_chars_block; sb; sb = sb->next)
     {
       Bytecount pos = 0;
       /* POS is the index of the next string in the block.  */
@@ -5009,12 +4991,12 @@ verify_string_chars_integrity (void)
 static void
 compact_string_chars (void)
 {
-  struct string_chars_block *to_sb = first_string_chars_block;
+  struct string_chars_block *to_sb = &first_string_chars_block;
   int to_pos = 0;
   struct string_chars_block *from_sb;
 
   /* Scan each existing string block sequentially, string by string.  */
-  for (from_sb = first_string_chars_block; from_sb; from_sb = from_sb->next)
+  for (from_sb = &first_string_chars_block; from_sb; from_sb = from_sb->next)
     {
       int from_pos = 0;
       /* FROM_POS is the index of the next string in the block.  */
@@ -5093,6 +5075,14 @@ compact_string_chars (void)
     for (victim = to_sb->next; victim; )
       {
 	struct string_chars_block *next = victim->next;
+	/* TO_SB is either &first_string_chars_block or a pointer to a block
+	   after it in the chain; VICTIM, as TO_SB->NEXT, cannot be
+	   heap-allocated, OK to free without checking it against
+	   &first_string_chars_block.
+
+	   As a belt-and-braces thing, add in an assertion to catch any changes
+	   to this code that may make the above untrue. */
+	gc_checking_assert (victim != &first_string_chars_block);
 	xfree (victim);
 	victim = next;
       }
@@ -5317,7 +5307,7 @@ disksave_object_finalization (void)
      for the live strings. */
   {
     struct string_chars_block *scb;
-    for (scb = first_string_chars_block; scb; scb = scb->next)
+    for (scb = &first_string_chars_block; scb; scb = scb->next)
       {
 	int count = sizeof (scb->string_chars) - scb->pos;
 
@@ -5457,32 +5447,12 @@ common_init_alloc_early (void)
      what we want in any event. */
 #endif /* defined (__cplusplus) && defined (ERROR_CHECK_GC) */
 
-  ignore_malloc_warnings = 1;
 #ifdef HAVE_GLIBC
+  ignore_malloc_warnings = 1;
   mallopt (M_TRIM_THRESHOLD, 128*1024); /* trim threshold */
   mallopt (M_MMAP_THRESHOLD, 64*1024); /* mmap threshold */
-#endif
-  init_string_alloc ();
-  init_string_chars_alloc ();
-  init_cons_alloc ();
-  init_symbol_alloc ();
-  init_compiled_function_alloc ();
-  init_subr_alloc ();
-  init_float_alloc ();
-#ifdef HAVE_BIGNUM
-  init_bignum_alloc ();
-#endif
-#ifdef HAVE_RATIO
-  init_ratio_alloc ();
-#endif
-#ifdef HAVE_BIGFLOAT
-  init_bigfloat_alloc ();
-#endif
-  init_marker_alloc ();
-  init_extent_alloc ();
-  init_event_alloc ();
-
   ignore_malloc_warnings = 0;
+#endif
 }
 
 void

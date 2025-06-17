@@ -1,5 +1,26 @@
 2025-06-17  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Greatly simplify common_init_alloc_early(), initialize the
+	book-keeping for the frob-block types and for
+	init_string_chars_alloc() using BSS and data segment values.
+	* alloc.c:
+	* alloc.c (DECLARE_FIXED_TYPE_ALLOC): Remove the
+	init_##type##_alloc() function from this macro.
+	* alloc.c (first_string_chars_block) Allocate this in BSS.
+	* alloc.c (current_string_chars_block) Initialize this to point to
+	first_string_chars_block.
+	* alloc.c (init_string_chars_alloc): Removed.
+	* alloc.c (verify_string_chars_integrity): Start with
+	&first_string_chars_block here.
+	* alloc.c (compact_string_chars):
+	Ditto.
+	* alloc.c (disksave_object_finalization): Ditto.
+	* alloc.c (common_init_alloc_early):
+	Remove calls to init_string_alloc(), init_cons_alloc() and so
+	on. Remove call to init_string_chars_alloc().
+
+2025-06-17  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* lread.c (Fload_internal):
 	Fix my bug elicited with error-checking GCPROs here, don't use
 	GCPRO1 on the newly-consed Lisp form since gcpro1 is still in use,
