@@ -502,61 +502,45 @@ command_builder_append_event (struct command_builder *builder,
 /*             Low-level interfaces onto event methods                */
 /**********************************************************************/
 
-static void
-check_event_stream_ok (void)
-{
-  if (!event_stream && noninteractive)
-    /* See comment in init_event_stream() */
-    init_event_stream ();
-  else assert (event_stream);
-}
-
 void
 event_stream_handle_magic_event (Lisp_Event *event)
 {
-  check_event_stream_ok ();
   event_stream->handle_magic_event_cb (event);
 }
 
 Bytecount
 event_stream_format_magic_event (Lisp_Event *event, Lisp_Object pstream)
 {
-  check_event_stream_ok ();
   return event_stream->format_magic_event_cb (event, pstream);
 }
 
 int
 event_stream_compare_magic_event (Lisp_Event *e1, Lisp_Event *e2)
 {
-  check_event_stream_ok ();
   return event_stream->compare_magic_event_cb (e1, e2);
 }
 
 Hashcode
 event_stream_hash_magic_event (Lisp_Event *e)
 {
-  check_event_stream_ok ();
   return event_stream->hash_magic_event_cb (e);
 }
 
 static EMACS_INT
 event_stream_add_timeout (EMACS_TIME timeout)
 {
-  check_event_stream_ok ();
   return event_stream->add_timeout_cb (timeout);
 }
 
 static void
 event_stream_remove_timeout (EMACS_INT id)
 {
-  check_event_stream_ok ();
   event_stream->remove_timeout_cb (id);
 }
 
 void
 event_stream_select_console (struct console *con)
 {
-  check_event_stream_ok ();
   if (!con->input_enabled)
     {
       event_stream->select_console_cb (con);
@@ -567,7 +551,6 @@ event_stream_select_console (struct console *con)
 void
 event_stream_unselect_console (struct console *con)
 {
-  check_event_stream_ok ();
   if (con->input_enabled)
     {
       event_stream->unselect_console_cb (con);
@@ -579,8 +562,6 @@ void
 event_stream_select_process (Lisp_Process *proc, int doin, int doerr)
 {
   int cur_in, cur_err;
-
-  check_event_stream_ok ();
 
   cur_in = get_process_selected_p (proc, 0);
   if (cur_in)
@@ -609,8 +590,6 @@ void
 event_stream_unselect_process (Lisp_Process *proc, int doin, int doerr)
 {
   int cur_in, cur_err;
-
-  check_event_stream_ok ();
 
   cur_in = get_process_selected_p (proc, 0);
   if (!cur_in)
@@ -644,7 +623,6 @@ event_stream_create_io_streams (void *inhandle, void *outhandle,
 				Lisp_Object *err_usid,
 				int flags)
 {
-  check_event_stream_ok ();
   event_stream->create_io_streams_cb
     (inhandle, outhandle, errhandle, instream, outstream, errstream,
      in_usid, err_usid, flags);
@@ -657,7 +635,6 @@ event_stream_delete_io_streams (Lisp_Object instream,
 				Lisp_Object *in_usid,
 				Lisp_Object *err_usid)
 {
-  check_event_stream_ok ();
   event_stream->delete_io_streams_cb (instream, outstream, errstream,
 				      in_usid, err_usid);
 }
@@ -2004,8 +1981,6 @@ static void
 event_stream_next_event (Lisp_Event *event)
 {
   Lisp_Object event_obj;
-
-  check_event_stream_ok ();
 
   event_obj = wrap_event (event);
   zero_event (event);
@@ -5480,47 +5455,45 @@ See `retry-undefined-key-binding-unshifted'.
 void
 init_event_stream (void)
 {
-  /* Normally we don't initialize the event stream when running a bare
-     temacs (the check for initialized) because it may do various things
-     (e.g. under Xt) that we don't want any traces of in a dumped xemacs.
-     However, sometimes we need to process events in a bare temacs (in
-     particular, when make-docfile.el is executed); so we initialize as
-     necessary in check_event_stream_ok(). */
-  if (initialized)
-    {
+  /* We previously didn't always initialize the event stream when running a
+     bare temacs since that did various things (e.g. under Xt) that led to
+     undesired data being dumped by unexec(). This is irrelevant with pdump,
+     simplify the other event stream functions (they all had checks that
+     EVENT_STREAM was non-null, since the event loop was needed by temacs with
+     make-docfile as a subprocess) by always initializing it. */
 #ifdef HAVE_UNIXOID_EVENT_LOOP
-      init_event_unixoid ();
+  init_event_unixoid ();
 #endif
 #ifdef HAVE_X_WINDOWS
-      if (!strcmp (display_use, "x"))
-	init_event_Xt_late ();
-      else
+  if (!strcmp (display_use, "x"))
+    init_event_Xt_late ();
+  else
 #endif
 #ifdef HAVE_GTK
-      if (!strcmp (display_use, "gtk"))
-	init_event_gtk_late ();
-      else
+    if (!strcmp (display_use, "gtk"))
+      init_event_gtk_late ();
+    else
 #endif
 #ifdef HAVE_MS_WINDOWS
       if (!strcmp (display_use, "mswindows"))
 	init_event_mswindows_late ();
       else
 #endif
-	  {
-	    /* For TTY's, use the Xt event loop if we can; it allows
-	       us to later open an X connection. */
+	{
+	  /* For TTYs, use the Xt event loop if we can; it allows us to later
+             open an X connection. */
 #if defined (HAVE_MS_WINDOWS) && (!defined (HAVE_TTY) \
                 || (defined (HAVE_MSG_SELECT) \
 	    && !defined (DEBUG_TTY_EVENT_STREAM)))
-	    init_event_mswindows_late ();
+          init_event_mswindows_late ();
 #elif defined (HAVE_X_WINDOWS) && !defined (DEBUG_TTY_EVENT_STREAM)
-	    init_event_Xt_late ();
+          init_event_Xt_late ();
 #elif defined (HAVE_TTY)
-	    init_event_tty_late ();
+          init_event_tty_late ();
 #endif
-	  }
-      init_interrupts_late ();
-    }
+	}
+
+  init_interrupts_late ();
 }
 
 
