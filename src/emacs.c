@@ -1816,11 +1816,14 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
            the call to pdump_load() in main_1().  This caveat should only
            apply to vars_of_emacs().
 
-	 Order should not matter in these functions.
+	 Order may matter in these functions.
        */
 
       /* Now allow Fprovide() statements to be made. */
       init_provide_once ();
+
+      /* Allow emacs_snprintf() to be called.*/
+      vars_of_lstream ();
 
       vars_of_data ();
       vars_of_alloc ();
@@ -1902,7 +1905,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #endif /* HAVE_XIM */
       vars_of_keymap ();
       vars_of_lread ();
-      vars_of_lstream ();
+
       vars_of_macros ();
       vars_of_md5 ();
 #ifdef HAVE_DATABASE
@@ -2066,7 +2069,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
     {
       /* Now do additional vars_of_*() initialization that happens both
 	 at dump time and after pdump load. */
-      reinit_vars_of_bytecode ();
 #ifdef DEBUG_XEMACS
       reinit_vars_of_debug ();
 #endif

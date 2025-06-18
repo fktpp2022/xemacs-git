@@ -2995,35 +2995,6 @@ syms_of_bytecode (void)
 #endif
 }
 
-void
-vars_of_bytecode (void)
-{
-#ifdef BYTE_CODE_METER
-  DEFVAR_LISP ("byte-code-meter", &Vbyte_code_meter /*
-A vector of vectors which holds a histogram of byte code usage.
-\(aref (aref byte-code-meter 0) CODE) indicates how many times the byte
-opcode CODE has been executed.
-\(aref (aref byte-code-meter CODE1) CODE2), where CODE1 is not 0,
-indicates how many times the byte opcodes CODE1 and CODE2 have been
-executed in succession.
-*/ );
-  DEFVAR_BOOL ("byte-metering-on", &byte_metering_on /*
-If non-nil, keep profiling information on byte code usage.
-The variable `byte-code-meter' indicates how often each byte opcode is used.
-If a symbol has a property named `byte-code-meter' whose value is an
-integer, it is incremented each time that symbol's function is called.
-*/ );
-
-  byte_metering_on = 0;
-  Vbyte_code_meter = make_vector (256, Qzero);
-  {
-    int i = 256;
-    while (i--)
-      XVECTOR_DATA (Vbyte_code_meter)[i] = make_vector (256, Qzero);
-  }
-#endif /* BYTE_CODE_METER */
-}
-
 #ifdef ERROR_CHECK_BYTE_CODE
 
 /* Initialize the opcodes in the table that correspond to a base opcode
@@ -3044,10 +3015,16 @@ init_opcode_table_multi_op (Opcode op)
     }
 }
 
+static const struct memory_description opcode_name_table_description_1[] = {
+  { XD_BLOCK_ARRAY, 0, countof (opcode_name_table),
+    { &const_Ascbyte_ptr_description } },
+  { XD_END }
+};
+
 #endif /* ERROR_CHECK_BYTE_CODE */
 
 void
-reinit_vars_of_bytecode (void)
+vars_of_bytecode (void)
 {
 #ifdef ERROR_CHECK_BYTE_CODE
   int i;
@@ -3075,5 +3052,35 @@ reinit_vars_of_bytecode (void)
   init_opcode_table_multi_op (Bvarbind);
   init_opcode_table_multi_op (Bcall);
   init_opcode_table_multi_op (Bunbind);
+
+  dump_add_root_block (opcode_name_table, sizeof (opcode_name_table),
+		       opcode_name_table_description_1);
 #endif /* ERROR_CHECK_BYTE_CODE */
+
+#ifdef BYTE_CODE_METER
+  DEFVAR_LISP ("byte-code-meter", &Vbyte_code_meter /*
+A vector of vectors which holds a histogram of byte code usage.
+\(aref (aref byte-code-meter 0) CODE) indicates how many times the byte
+opcode CODE has been executed.
+\(aref (aref byte-code-meter CODE1) CODE2), where CODE1 is not 0,
+indicates how many times the byte opcodes CODE1 and CODE2 have been
+executed in succession.
+*/ );
+  DEFVAR_BOOL ("byte-metering-on", &byte_metering_on /*
+If non-nil, keep profiling information on byte code usage.
+The variable `byte-code-meter' indicates how often each byte opcode is used.
+If a symbol has a property named `byte-code-meter' whose value is an
+integer, it is incremented each time that symbol's function is called.
+*/ );
+
+  byte_metering_on = 0;
+  Vbyte_code_meter = make_vector (256, Qzero);
+  {
+    int i = 256;
+    while (i--)
+      XVECTOR_DATA (Vbyte_code_meter)[i] = make_vector (256, Qzero);
+  }
+#endif /* BYTE_CODE_METER */
 }
+
+/* bytecode.c ends here. */

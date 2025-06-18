@@ -5,6 +5,22 @@
 	GCPRO1 on the newly-consed Lisp form since gcpro1 is still in use,
 	use NGCPRO1 as the code did previously.
 
+2025-06-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Move the functionality of reinit_vars_of_bytecode() to dump time.
+	
+	* bytecode.c (reinit_vars_of_bytecode): Removed.
+	* bytecode.c (vars_of_bytecode): Move its contents into this
+	function, dump opcode_name_table, removing the need for
+	reinit_vars_of_bytecode(). 
+
+	* emacs.c (main_1):
+	No longer call reinit_vars_of_bytecode(). Move vars_of_lstream()
+	earlier in the loadup sequence since that allows
+	vars_of_bytecode() to call emacs_snprintf_ascbyte().
+
+	* symsinit.h: Remove its declaration.
+
 2025-06-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* XEmacs 21.5.36 "leeks" is released.

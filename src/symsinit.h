@@ -299,7 +299,6 @@ void vars_of_alloc (void);
 void vars_of_balloon_x (void);
 void vars_of_buffer (void);
 void vars_of_bytecode (void);
-void reinit_vars_of_bytecode (void);
 void vars_of_callint (void);
 EXTERN_C void vars_of_canna_api (void);
 void vars_of_casetab (void);
