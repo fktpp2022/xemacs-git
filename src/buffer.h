@@ -90,17 +90,6 @@ struct buffer_text
   EMACS_INT save_modiff; /* Previous value of modiff, as of last
 			    time buffer visited or saved a file.  */
 
-
-#ifdef OLD_BYTE_CHAR
-  /* We keep track of a "known" region for very fast access.  This
-     information is text-only so it goes here.  We update this at each
-     change to the buffer, so if it's entirely ASCII, these will always
-     contain the minimum and maximum positions of the buffer. */
-  Charbpos mule_bufmin, mule_bufmax;
-  Bytebpos mule_bytmin, mule_bytmax;
-  int mule_shifter, mule_three_p;
-#endif
-
   /* And we also cache NUM_CACHED_POSITIONS positions for fairly fast
      access near those positions. */
   Charbpos mule_charbpos_cache[NUM_CACHED_POSITIONS];
@@ -550,13 +539,6 @@ charbpos_to_bytebpos (struct buffer *buf, Charbpos x)
     retval = (Bytebpos) (x << 1);
   else if (BUF_FORMAT (buf) == FORMAT_32_BIT_FIXED)
     retval = (Bytebpos) (x << 2);
-#ifdef OLD_BYTE_CHAR
-  else if (x >= buf->text->mule_bufmin && x <= buf->text->mule_bufmax)
-    retval = (buf->text->mule_bytmin +
-	    ((x - buf->text->mule_bufmin) << buf->text->mule_shifter) +
-	    (buf->text->mule_three_p ? (x - buf->text->mule_bufmin) :
-	     (Bytebpos) 0));
-#endif /* OLD_BYTE_CHAR */
   else
     retval = charbpos_to_bytebpos_func (buf, x);
   ASSERT_VALID_BYTEBPOS_UNSAFE (buf, retval);
@@ -578,13 +560,6 @@ bytebpos_to_charbpos (struct buffer *buf, Bytebpos x)
     retval = (Charbpos) (x >> 1);
   else if (BUF_FORMAT (buf) == FORMAT_32_BIT_FIXED)
     retval = (Charbpos) (x >> 2);
-#ifdef OLD_BYTE_CHAR
-  else if (x >= buf->text->mule_bytmin && x <= buf->text->mule_bytmax)
-    retval = (buf->text->mule_bufmin +
-	      ((buf->text->mule_three_p
-		? three_to_one_table[x - buf->text->mule_bytmin]
-		: (x - buf->text->mule_bytmin) >> buf->text->mule_shifter)));
-#endif /* OLD_BYTE_CHAR */
   else
     retval = bytebpos_to_charbpos_func (buf, x);
   ASSERT_VALID_CHARBPOS_UNSAFE (buf, retval);

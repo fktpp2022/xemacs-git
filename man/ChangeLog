@@ -1,3 +1,9 @@
+2025-06-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (Byte-Char Position Conversion):
+	The old byte-char algorithm is not coming back, remove detailed
+	documentation of it from the internals manual.
+
 2025-06-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* XEmacs 21.5.36 "leeks" is released.

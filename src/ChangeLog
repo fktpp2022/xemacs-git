@@ -1,3 +1,24 @@
+2025-06-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	The old byte-char conversion algorithm, disabled 2004, is not
+	coming back, and reinit_vars_of_text() has, ever since then, been
+	initializing a 65535-short-element table at every normal startup
+	with a view, chiefly, to helping to increase global warming.
+	Remove that table entirely, remove any code bracketed by #ifdef
+	OLD_BYTE_CHAR completely using unifdef(1).
+
+	* buffer.h:
+	* buffer.h (struct buffer_text):
+	* insdel.c (init_buffer_text):
+	* text.c:
+	* text.c (OLD_LOOP):
+	* text.c (charbpos_to_bytebpos_func):
+	* text.c (bytebpos_to_charbpos_func):
+	* text.c (buffer_mule_signal_inserted_region):
+	* text.c (buffer_mule_signal_deleted_region):
+	* text.c (reinit_vars_of_text):
+	As above.
+
 2025-06-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* event-stream.c (check_event_stream_ok): Removed.

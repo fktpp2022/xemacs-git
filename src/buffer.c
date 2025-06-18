@@ -1870,14 +1870,6 @@ The values returned are in the form of a plist of properties and values.
 		 intern_massaging_name (#field), plist)
   ADD_INT (bufz);
   ADD_INT (z);
-#ifdef OLD_BYTE_CHAR
-  ADD_INT (mule_bufmin);
-  ADD_INT (mule_bufmax);
-  ADD_INT (mule_bytmin);
-  ADD_INT (mule_bytmax);
-  ADD_INT (mule_shifter);
-  ADD_BOOL (mule_three_p);
-#endif
   ADD_BOOL (entirely_one_byte_p);
   ADD_INT (num_ascii_chars);
   ADD_INT (num_8_bit_fixed_chars);

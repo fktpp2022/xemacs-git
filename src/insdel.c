@@ -1756,12 +1756,6 @@ init_buffer_text (struct buffer *b)
       SET_END_SENTINEL (b);
 
       b->text->entirely_one_byte_p = 1;
-
-#ifdef OLD_BYTE_CHAR
-      b->text->mule_bufmin = b->text->mule_bufmax = 1;
-      b->text->mule_bytmin = b->text->mule_bytmax = 1;
-#endif
-
       b->text->cached_charpos = 1;
       b->text->cached_bytepos = 1;
 

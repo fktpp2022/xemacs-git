@@ -10763,77 +10763,12 @@ This is documented under the internationalization support:
 @cindex position conversion, byte-char
 @cindex conversion, byte-char position
 
-Oct 2004:
-
-This is what I wrote when describing the previous algorithm:
-
-@quotation
-The basic algorithm we use is to keep track of a known region of
-characters in each buffer, all of which are of the same width.  We keep
-track of the boundaries of the region in both Charbpos and Bytebpos
-coordinates and also keep track of the char width, which is 1 - 4 bytes.
-If the position we're translating is not in the known region, then we
-invoke a function to update the known region to surround the position in
-question.  This assumes locality of reference, which is usually the
-case.
-
-Note that the function to update the known region can be simple or
-complicated depending on how much information we cache.  In addition to
-the known region, we always cache the correct conversions for point,
-BEGV, and ZV, and in addition to this we cache 16 positions where the
-conversion is known.  We only look in the cache or update it when we
-need to move the known region more than a certain amount (currently 50
-chars), and then we throw away a ``random'' value and replace it with the
-newly calculated value.
-
-Finally, we maintain an extra flag that tracks whether the buffer is
-entirely ASCII, to speed up the conversions even more.  This flag is
-actually of dubious value because in an entirely-ASCII buffer the known
-region will always span the entire buffer (in fact, we update the flag
-based on this fact), and so all we're saving is a few machine cycles.
-
-A potentially smarter method than what we do with known regions and
-cached positions would be to keep some sort of pseudo-extent layer over
-the buffer; maybe keep track of the charbpos/bytebpos correspondence at
-the beginning of each line, which would allow us to do a binary search
-over the pseudo-extents to narrow things down to the correct line, at
-which point you could use a linear movement method.  This would also
-mesh well with efficiently implementing a line-numbering scheme.
-However, you have to weigh the amount of time spent updating the cache
-vs. the savings that result from it.  In reality, we modify the buffer
-far less often than we access it, so a cache of this sort that provides
-guaranteed LOG (N) performance (or perhaps N * LOG (N), if we set a
-maximum on the cache size) would indeed be a win, particularly in very
-large buffers.  If we ever implement this, we should probably set a
-reasonably high minimum below which we use the old method, because the
-time spent updating the fancy cache would likely become dominant when
-making buffer modifications in smaller buffers.
-
-Note also that we have to multiply or divide by the char width in order
-to convert the positions.  We do some tricks to avoid ever actually
-having to do a multiply or divide, because that is typically an
-expensive operation (esp. divide).  Multiplying or dividing by 1, 2, or
-4 can be implemented simply as a shift left or shift right, and we keep
-track of a shifter value (0, 1, or 2) indicating how much to shift.
-Multiplying by 3 can be implemented by doubling and then adding the
-original value.  Dividing by 3, alas, cannot be implemented in any
-simple shift/subtract method, as far as I know; so we just do a table
-lookup.  For simplicity, we use a table of size 128K, which indexes the
-``divide-by-3'' values for the first 64K non-negative numbers. (Note that
-we can increase the size up to 384K, i.e. indexing the first 192K
-non-negative numbers, while still using shorts in the array.) This also
-means that the size of the known region can be at most 64K for
-width-three characters.
-@end quotation
-
-Unfortunately, it turned out that the implementation had serious problems
-which had never been corrected.  In particular, the known region had a
-large tendency to become zero-length and stay that way.
-
-So I decided to port the algorithm from FSF 21.3, in markers.c.
-
-This algorithm is fairly simple.  Instead of using markers I kept the cache
-array of known positions from the previous implementation.
+The algorithm for this was ported from the algorithm from FSF 21.3 of
+2003, in markers.c. This algorithm is fairly simple. The previous
+implentation had the serious problem that the known (cached) region of
+byte-char correspondence had large tendency to become zero-length and
+stay that way and so I (Ben) discarded it, but kept its cache array of
+known positions rather than using markers.
 
 Basically, we keep a number of positions cached:
 
