@@ -108,7 +108,14 @@
 ;; `fc-pattern-del-PROPERTY' for each of the standard properties used by
 ;; Xft, which overlap substantially with the properties defined by X11.
 
-(require 'font-mgr)
+;; If this XEmacs has font-mgr.c, well and good. If it does not, load
+;; font-mgr.el when compiling; do not load it at runtime, better to just error
+;; directly on attempts to call its functions than call its stubs that all
+;; just error on being called. This fixes a needless test failure in
+;; ../tests/automated/face-tests.el .  There's an argument that a better
+;; approach would be to remove font-mgr.el entirely, so that (require
+;; 'font-mgr) cleanly errors.
+(eval-when (:compile-toplevel) (require 'font-mgr))
 
 (defalias 'make-fc-pattern 'fc-pattern-create)
 

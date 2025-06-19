@@ -1,3 +1,12 @@
+2025-06-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* fontconfig.el:
+	Inappropriate to just (require 'font-mgr) here, since that
+	routinely loads font-mgr.el which just errors when any of the
+	relevant functions are called at run time.
+	Wrap this call with (eval-when (:compile-toplevel) ...), document
+	that doing this fixes needless test failure in face-tests.el.
+
 2025-06-16  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* rect.el (kill-rectangle):

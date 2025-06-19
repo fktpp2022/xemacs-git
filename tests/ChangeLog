@@ -1,3 +1,11 @@
+2025-06-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/mule-tests.el:
+	Mark the tests of coding cookies on the last page with
+	Implementation-Incomplete-Expect-Errors, since the code that does
+	that implementation is currently surrounded by #if 0. Thank you
+	Mats Lidell.
+
 2025-06-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* XEmacs 21.5.36 "leeks" is released.

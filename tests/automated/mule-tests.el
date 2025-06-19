@@ -1251,10 +1251,12 @@ Der Vogelfänger bin ich ja coding: iso-8859-2 stets lustig
 Der Vogelfänger bin ich ja end: stets lustig\n")
            (Silence-Message (save-buffer 0))
            (kill-buffer (current-buffer))
-           (Assert (equal (find-coding-system-magic-cookie-in-file
-                           test-file-name) "iso-8859-2"))
+	   (Implementation-Incomplete-Expect-Failure
+	    (Assert (equal (find-coding-system-magic-cookie-in-file
+			    test-file-name) "iso-8859-2")))
            (find-file test-file-name)
-           (Assert (eq buffer-file-coding-system 'iso-8859-2-unix))
+	   (Implementation-Incomplete-Expect-Failure
+	    (Assert (eq buffer-file-coding-system 'iso-8859-2-unix)))
            (erase-buffer)
            (setq buffer-file-coding-system 'utf-8-unix)
 
