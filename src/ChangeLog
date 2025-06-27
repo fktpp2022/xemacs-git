@@ -1,3 +1,26 @@
+2025-06-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Mule-ize Fcall_interactively(), remove code that dealt with
+	zero-terminated strings since it now always takes either a Lisp
+	string or code to be evaluated.
+
+	* callint.c (callint_prompt):
+	No longer check if RELOC is a string.
+
+	* callint.c (Fcall_interactively):
+	Remove redundant checks that SPECS is a string once we have
+	established that to start with. Use itext_ichar_eql(),
+	ichar_len(), INC_IBYTEPTR() rather than their non-Mule
+	equivalents.  Remove assumptions about zero-termination from this
+	code which were always incorrect with string interactive specs for
+	compiled functions and are now incorrect given the subr
+	interactive specs are Lisp strings.
+	Error if the length of the desired arg list would overflow
+	calculations made by alloca_array().
+	Error if Lisp has made the string interactive spec offset point
+	within a multibyte character.
+	Fix some indentation. 
+
 2025-06-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	The old byte-char conversion algorithm, disabled 2004, is not

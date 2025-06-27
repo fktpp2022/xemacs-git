@@ -238,7 +238,7 @@ callint_prompt (Lisp_Object reloc,
 {
   Lisp_Object control_string = make_string (prompt_start, prompt_length);
 
-  if (STRINGP (reloc) && prompt_length > 0)
+  if (prompt_length > 0)
     {
       text_checking_assert (prompt_start >= XSTRING_DATA (reloc));
       text_checking_assert (prompt_start + prompt_length
@@ -313,7 +313,7 @@ when reading the arguments.
   /* If SPECS is a string, we reset prompt_data to XSTRING_DATA (specs)
      every time a GC might have occurred */
   const Ibyte *prompt_data = 0;
-  Bytecount prompt_index = 0;
+  Bytecount prompt_index = 0, prompt_data_length;
   int argcount;
   Boolint set_zmacs_region_stays = 0;
   int mouse_event_count = 0;
@@ -388,10 +388,8 @@ when reading the arguments.
 	goto lose;
     }
 
-  /* FSFmacs makes an ALLOCA() copy of prompt_data here.
-     We're more intelligent about this and just reset prompt_data
-     as necessary. */
-  /* If specs is set to a string, use it.  */
+  /* If SPECS is not a string, evaluate it as a Lisp form. Special-case any
+     compiled-function object encountered. */
   if (!STRINGP (specs))
     {
       struct gcpro gcpro1, gcpro2, gcpro3;
@@ -460,17 +458,20 @@ when reading the arguments.
 
 #ifdef I18N3
   /* Translate interactive prompt. */
-  if (STRINGP (specs))
-    {
-      Lisp_Object domain = Qnil;
-      if (COMPILED_FUNCTIONP (fun))
-	domain = compiled_function_domain (XCOMPILED_FUNCTION (fun));
-      if (NILP (domain))
-	specs = Fgettext (specs);
-      else
-	specs = Fdgettext (domain, specs);
-    }
+  {
+    Lisp_Object domain = Qnil;
+    if (COMPILED_FUNCTIONP (fun))
+      domain = compiled_function_domain (XCOMPILED_FUNCTION (fun));
+    if (NILP (domain))
+      specs = Fgettext (specs);
+    else
+      specs = Fdgettext (domain, specs);
+  }
 #endif
+
+  /* FSFmacs makes an ALLOCA() copy of prompt_data here.
+     We're more intelligent about this and just reset prompt_data
+     as necessary. */
 
   /* Handle special starting chars `*' and `@' and `_'.  */
   /* Note that `+' is reserved for user extensions.  */
@@ -481,21 +482,22 @@ when reading the arguments.
 
     for (;;)
       {
-	if (STRINGP (specs))
-	  prompt_data = (const Ibyte *) XSTRING_DATA (specs);
+	prompt_data = (const Ibyte *) XSTRING_DATA (specs);
+	prompt_data_length = XSTRING_LENGTH (specs);
 
-	if (prompt_data[prompt_index] == '+')
-	  syntax_error ("`+' is not used in `interactive' for ordinary commands", Qunbound);
-	else if (prompt_data[prompt_index] == '*')
+	if (itext_ichar_eql (prompt_data + prompt_index, '+'))
+	  syntax_error ("`+' is not used in `interactive' "
+			"for ordinary commands", Qunbound);
+	else if (itext_ichar_eql (prompt_data + prompt_index, '*'))
 	  {
-	    prompt_index++;
+	    prompt_index += ichar_len ('*');
 	    if (!NILP (current_buffer->read_only))
 	      barf_if_buffer_read_only (current_buffer, -1, -1);
 	  }
-	else if (prompt_data[prompt_index] == '@')
+	else if (itext_ichar_eql (prompt_data + prompt_index, '@'))
 	  {
 	    Lisp_Object event;
-	    prompt_index++;
+	    prompt_index += ichar_len ('@');
 
 	    if (!NILP (keys))
 	      event = extract_vector_nth_mouse_event (keys, 0);
@@ -514,7 +516,8 @@ when reading the arguments.
 		    if (MINI_WINDOW_P (XWINDOW (window))
 			&& ! (minibuf_level > 0 && EQ (window,
 						       Vminibuf_window)))
-		      invalid_operation ("Attempt to select inactive minibuffer window", Qunbound);
+		      invalid_operation ("Attempt to select inactive "
+					 "minibuffer window", Qunbound);
 
 #if 0 /* unclean! see event-stream.c */
 		    /* If the current buffer wants to clean up, let it.  */
@@ -526,9 +529,9 @@ when reading the arguments.
 		  }
 	      }
 	  }
-	else if (prompt_data[prompt_index] == '_')
+	else if (itext_ichar_eql (prompt_data + prompt_index, '_'))
 	  {
-	    prompt_index++;
+	    prompt_index += ichar_len ('_');
 	    set_zmacs_region_stays = 1;
 	  }
 	else
@@ -544,18 +547,21 @@ when reading the arguments.
   argcount = 0;
   {
     const Ibyte *tem;
-    for (tem = prompt_data + prompt_index; *tem; )
+    for (tem = prompt_data + prompt_index;
+	 tem < prompt_data + prompt_data_length;)
       {
 	/* 'r' specifications ("point and mark as 2 numeric args")
 	   produce *two* arguments.  */
-	if (*tem == 'r')
+	if (itext_ichar_eql (tem, 'r'))
 	  argcount += 2;
 	else
 	  argcount += 1;
-	tem = qxestrchr (tem + 1, '\n');
+	tem = (const Ibyte *) memchr (tem, '\n',
+				      prompt_data_length
+				      - (tem - prompt_data));
 	if (!tem)
 	  break;
-	tem++;
+	INC_IBYTEPTR (tem);
       }
   }
 
@@ -563,6 +569,15 @@ when reading the arguments.
   if (!NILP (enable))
     specbind (Qenable_recursive_minibuffers, Qt);
 #endif
+
+  /* Check that ALLOCA_SIZE won't cause an overflow below. This will also keep
+     the NARGS passed to Ffuncall within the range [0, INT_MAX].  GNU's check
+     here is to ensure that argcount is less than MOST_POSITIVE_FIXNUM, which
+     is too permissive. */
+  check_integer_range (make_fixnum (argcount), Qzero,
+		       make_fixnum ((EMACS_INT) (((((size_t) -1) /
+						   sizeof (Lisp_Object)) /
+						  3) - 1)));
 
   if (argcount == 0)
     {
@@ -622,22 +637,34 @@ when reading the arguments.
 
     for (argnum = 0; ; argnum++)
       {
-	const Ibyte *prompt_start = prompt_data + prompt_index + 1;
-	const Ibyte *prompt_limit = qxestrchr (prompt_start, '\n');
-	Bytecount prompt_length;
-	prompt_length = ((prompt_limit)
-			 ? (prompt_limit - prompt_start)
-			 : qxestrlen (prompt_start));
-	if (prompt_limit && prompt_limit[1] == 0)
+	const Ibyte *prompt_start = prompt_data + prompt_index
+	  + itext_ichar_len (prompt_data + prompt_index);
+	Bytecount prompt_remaining = prompt_data_length -
+	  (prompt_start - prompt_data);
+	const Ibyte *prompt_limit
+	  = (const Ibyte *) memchr (prompt_start, '\n', prompt_remaining);
+	Bytecount prompt_length = (prompt_limit
+				   ? (prompt_limit - prompt_start)
+				   : prompt_remaining);
+
+	if (itext_ichar_eql (prompt_start + prompt_length,
+			     /* Will be '\0' if PROMPT_LIMIT == NULL. */
+			     '\n')
+	    && itext_ichar_eql (prompt_start + prompt_length
+				+ ichar_len ('\n'), '\0')
+	    && ((prompt_limit - prompt_data) == prompt_data_length))
 	  {
-	    prompt_limit = 0;	/* "sfoo:\n" -- strip tailing return */
-	    prompt_length -= 1;
+	    prompt_limit = NULL; /* "sfoo:\n" -- strip tailing return */
+	    prompt_length -= ichar_len ('\n');
 	  }
+
 	/* This uses `visargs' instead of `args' so that global-set-key prompts
 	   with "Set key C-x C-f to command: " instead of printing event
 	   objects in there. */
-#define PROMPT() callint_prompt (specs, prompt_start, prompt_length, visargs, argnum)
-	switch (prompt_data[prompt_index])
+#define PROMPT() callint_prompt (specs, prompt_start, prompt_length, \
+				 visargs, argnum)
+
+	switch (itext_ichar (prompt_data + prompt_index))
 	  {
 	  case 'a':		/* Symbol defined as a function */
 	    {
@@ -705,8 +732,8 @@ when reading the arguments.
 
 	      if (NILP (event))
 		signal_error (Qinvalid_operation,
-			      "function must be bound to a mouse or misc-user event",
-			      function);
+			      "function must be bound to a mouse or "
+			      "misc-user event", function);
 	      args[argnum] = event;
 	      mouse_event_count++;
 	      break;
@@ -916,7 +943,8 @@ when reading the arguments.
 	      signal_ferror
 		(Qsyntax_error,
 		 "Invalid `interactive' control letter \"%c\" (#o%03o).",
-		 prompt_data[prompt_index], prompt_data[prompt_index]);
+		 itext_ichar (prompt_data + prompt_index),
+		 itext_ichar (prompt_data + prompt_index));
 	    }
 	  }
 #undef PROMPT
@@ -925,9 +953,14 @@ when reading the arguments.
 
 	if (!prompt_limit)
 	  break;
-	if (STRINGP (specs))
-	  prompt_data = (const Ibyte *) XSTRING_DATA (specs);
-	prompt_index += prompt_length + 1 + 1; /* +1 to skip spec, +1 for \n */
+	prompt_data = (const Ibyte *) XSTRING_DATA (specs);
+	prompt_data_length = XSTRING_LENGTH (specs);
+	prompt_index += prompt_length
+	  + itext_ichar_len (prompt_data + prompt_index) + ichar_len ('\n');
+	if (!valid_ibyteptr_p (prompt_data + prompt_index))
+	  {
+	    invalid_state ("Prompt modified while examining it", specs);
+	  }
       }
     unbind_to (speccount);
 

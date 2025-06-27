@@ -120,4 +120,48 @@
 		   ,(format "checking interactive call OK, \
 #'%s" name))))))))
 
+
+((macro
+  .
+  (lambda ()
+    (let* ((name (make-symbol "test-interactive-\\x00"))
+	   (block (make-symbol 
+		   (format "block-fail-%s" name))))
+      `(labels ((,name (arg1 arg2)
+		  (interactive "cChar:\x00 \nsString reflecting: %c")
+		  (list arg1 arg2 pi e)))
+	(with-temp-buffer
+	  (use-local-map (make-sparse-keymap))
+	  (define-key (current-local-map) [space] #',name)
+	  (Assert (equal (,name ?z "hello")
+		   (list ?z "hello" ,pi ,e)) nil
+		   ,(format "checking noninteractive call OK, \
+#'%s" name))
+	  ;; This used to error because #'call-interactively did not handle
+	  ;; zero bytes within the interactive spec.
+	  (Assert (equal (let ((unread-command-events
+				(nconc
+				 (mapcar #'character-to-event
+					 "zhello\n")
+				 unread-command-events)))
+			   (call-interactively #',name))
+		   (list ?z "hello" ,pi ,e)) nil
+		   ,(format "checking interactive call OK, \
+#'%s" name))))))))
+
+((macro
+  .
+  (lambda ()
+    (let* ((name (make-symbol "test-interactive-‰")))
+      `(labels ((,name (arg1 arg2)
+		 (interactive "‰Char:\x00 \nsString reflecting: %c")
+		 (list arg1 arg2 pi e)))
+	(Check-Error-Message
+	 syntax-error
+	 "Invalid `interactive' control letter \"‰\" (#o344)."
+	 (let ((unread-command-events
+		(nconc (mapcar #'character-to-event "zhello\n")
+		       unread-command-events)))
+	   (call-interactively #',name))))))))
+
 ;;; end of call-interactively.el
