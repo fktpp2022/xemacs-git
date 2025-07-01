@@ -1140,21 +1140,20 @@ device code.
 @item Ben Wing
 Active April 1993 to April 1996 and February 2000 to present.  Chief
 coder for XEmacs between 1994 and 1996.  Ben Wing was never the
-maintainer of XEmacs, and as a result, is the author of more of the
-XEmacs specific code in XEmacs than anyone else. Author of the mule
-support (Extense code), the glis-phonetically spelled-and specifiers
-code most of the toolbars, and device distraction code, the error
-checking code, the Lstream code, the bit vector, char-table, and
-range-table code, much of the current Xt code, much, much of the events
-code (including most of the TTY event code), some of the phase code, and
-numerous other aspects of the code.  Also author of most of the XEmacs
-documentation including the internals manual and the XEmacs editions to
-the Lisp reference manual, and responsible for much of the synching
-between XEmacs and GNU Emacs.
+maintainer of XEmacs, and as a result, is the author of more of the XEmacs
+specific code in XEmacs than anyone else. Author of the mule support (extents
+code), the glyphs and specifiers code, most of the toolbars, and device
+abstraction code, the error checking code, the Lstream code, the bit vector,
+char-table, and range-table code, much of the current Xt code, much, much of
+the events code (including most of the TTY event code), some of the face code,
+and numerous other aspects of the code.  Also author of most of the XEmacs
+documentation including the internals manual and the XEmacs editions to the
+Lisp reference manual, and responsible for much of the synching between XEmacs
+and GNU Emacs.
 
 @item Kyle Jones
-Author of the minimal tag bits support, which allows for 32-bit
-pointers and 31-bit fixnums.
+Author of the minimal tag bits support, which allows for 64-bit
+pointers and 63-bit fixnums.
 
 @item Olivier Galibert
 Author of the portable dumping mechanism.
@@ -1195,15 +1194,15 @@ various bits of error checking, which are controlled using the
 _ErrorCheck*.  He also added the ability of strings to be resized, which
 is necessary under MULE, because you can replace one character in a
 string with another character of a different size.  As a result, the
-string resizes.  Ben Wing also added bit factors for 1913 around
-September 1995, and Elsie record lists for 1914 around December 1995.
+string resizes.  Ben Wing also added bit vectors for 19.13 around
+September 1995, and lcrecord lists for 19.14 around December 1995.
 Steve Baur did some work on the purification and dump time code, and
 added Doug Lea Malloc support from Emacs 20.2 circa 1998.  Kyle Jones
 continued to work done by Mlynarik, reducing the number of primitive
 Lisp types so that there are only three: fixnum, character, and pointer
 type, which encompasses all other types.  This allows for 31-bit
 fixnums and 32-bit pointers, although there is potential slowdown in
-some extra in directions when determining the type of an object, and
+some extra indirections when determining the type of an object, and
 some memory increase for the objects that previously were considered to
 be the most primitive types.  Martin Buchholz has recently (February
 2000) done some work to eliminate most of the slowdown.
@@ -2747,10 +2746,7 @@ keybindings and code for the actions they result in).  This executable,
 
 Although @file{temacs} is not intended to be run as an editor, it can,
 by using the incantation @code{temacs -batch -l loadup.el run-temacs}.
-This is useful when the dumping procedure described above is broken, or
-when using certain program debugging tools such as Purify.  These tools
-get mighty confused by the tricks played by the XEmacs build process,
-such as allocating memory in one process, and freeing it in the next.
+This is useful when the dumping procedure described above is broken.
 
 @node Build-Time Dependencies, The Modules of XEmacs, XEmacs from the Perspective of Building, Top
 @chapter Build-Time Dependencies
@@ -6244,13 +6240,10 @@ gr '_Itext' _CHARPTR $files
 To make a purified XEmacs, do: @code{make puremacs}.
 To make a quantified XEmacs, do: @code{make quantmacs}.
 
-You simply can't dump Quantified and Purified images (unless using the
-portable dumper).  Purify gets confused when xemacs frees memory in one
-process that was allocated in a @emph{different} process on a different
-machine!  Run it like so:
-@example
-temacs -batch -l loadup.el run-temacs @var{xemacs-args...}
-@end example
+Now that the portable dumper is the only option for dumping, there
+should be no obstacle to using Purify and Quantify to debug and test a dumped
+XEmacs.  This has not, however, recently been tested and there are likely
+compatibility issues to be shaken out should you wish to do this.
 
 @cindex Valgrind
 To make an XEmacs that can tell valgrind to do a memory leak check at
@@ -6328,7 +6321,7 @@ Did you make sure you didn't introduce any new compiler warnings?
 Before submitting a patch, please try compiling at least once with
 
 @example
-configure --with-mule --use-union-type --error-checking=all
+configure --use-union-type --error-checking=all
 @end example
 
 @node Regression Testing XEmacs, Mercurial Techniques, Rules When Writing New C Code, Top
@@ -7140,23 +7133,28 @@ variables, determining the current date and the user who is running the
 program, examining its standard input, creating any necessary file
 descriptors, etc.
 @item
-At this point, the C initialization is complete.  A Lisp program that
+A Lisp program that
 was specified on the command line (usually @file{loadup.el}) is called
 (temacs is normally invoked as @code{temacs -batch -l loadup.el dump}).
 @file{loadup.el} loads all of the other Lisp files that are needed for
 the operation of the editor, calls the @code{dump-emacs} function to
-write out @file{xemacs}, and then kills the temacs process.
+write out @file{xemacs.dmp}, and then kills the temacs process.
+@item
+The build process relinks @file{temacs} as @file{xemacs}, with
+@file{xemacs.dmp} included inline into the binary as a data-segment binary
+blob.
 @end enumerate
 
-  When @file{xemacs} is then run, it only redoes steps (1) and (4)
-above; all variables already contain the values they were set to when
-the executable was dumped, and all memory that was allocated with
-@code{malloc()} is still around. (XEmacs knows whether it is being run
-as @file{xemacs} or @file{temacs} because it sets the global variable
-@code{initialized} to 1 after step (4) above.) At this point,
-@file{xemacs} calls a Lisp function to do any further initialization,
-which includes parsing the command-line (the C code can only do
-limited command-line parsing, which includes looking for the
+  When @file{xemacs} is then run, it redoes steps (1) and (4) above, and
+then calls @code{pdump_load()}. This function ensures that all variables that
+had been made known to the dumper contain the values they were set to when the
+executable was dumped, and all objects that were allocated from Lisp and
+certain other memory areas made known to the dumper are still around.  (XEmacs
+knows whether it is being run as @file{xemacs} or @file{temacs} because it
+sets the global variable @code{initialized} to 1 if @code{pdump_load()} was
+successful.) At this point, @file{xemacs} calls a Lisp function to do any
+further initialization, which includes parsing the command-line (the C code
+can only do limited command-line parsing, which includes looking for the
 @samp{-batch} and @samp{-l} flags and a few other flags that it needs
 to know about before initialization is complete), creating the first
 frame (or @dfn{window} in standard window-system parlance), running
@@ -8045,7 +8043,7 @@ in its internal operations.)
 
 @table @code
 @item fixnum
-An integer with 31 bits of precision, or 63 bits on 64-bit machines; the
+An integer with 63 bits of precision, or 31 bits on 32-bit machines; the
 reason for this is described below when the internal Lisp object
 representation is described.
 @item char
@@ -8538,8 +8536,8 @@ Some Lisp objects, especially those that are primarily used internally,
 have no corresponding Lisp primitives.  Every Lisp object, though,
 has at least one C primitive for creating it.
 
-  Recall from section (VII) that a Lisp object, as stored in a 32-bit or
-64-bit word, has a few tag bits, and a ``value'' that occupies the
+  Recall from section (VII) that a Lisp object, as stored in a 64-bit or
+32-bit word, has a few tag bits, and a ``value'' that occupies the
 remainder of the bits.  We can separate the different Lisp object types
 into three broad categories:
 
@@ -8554,8 +8552,8 @@ for such objects.  Lisp objects of these types do not need to be
 
 In the remaining two categories, the type is stored in the object
 itself.  The tag for all such objects is the generic @dfn{lrecord}
-(Lisp_Type_Record) tag.  The first bytes of the object's structure are an
-integer (actually a char) characterising the object's type and some
+(Lisp_Type_Record) tag.  The first bytes of the object's structure are a
+small integer characterizing the object's type and some
 flags, in particular the mark bit used for garbage collection.  A
 structure describing the type is accessible thru the
 lrecord_implementation_table indexed with said integer.  This structure
@@ -8717,7 +8715,10 @@ collection.  This is why a number of functions accept either a
 ``non-relocatable'' @code{char *} pointer or a relocatable Lisp string,
 and only access the Lisp string's data at the very last minute.  In some
 cases, you may end up having to @code{alloca()} some space and copy the
-string's data into it.
+string's data into it. Currently string relocation is rare (it only happens when
+string character data is set to a new value that requires a differing
+byte length), so, unfortunately, it is very possible for this class of
+bugs to pass unnoticed.
 
 @item
 By convention, if you have to nest @code{GCPRO}'s, use @code{NGCPRO@var{n}}
@@ -8747,7 +8748,7 @@ there's no possibility that a garbage-collection can occur while you
 need to use the object.  Even then, consider @code{GCPRO}ing.
 
 @item
-If you have the @emph{least smidgeon of doubt} about whether
+If you have the @emph{least smidgen of doubt} about whether
 you need to @code{GCPRO}, you should @code{GCPRO}.
 
 @item
@@ -8787,6 +8788,23 @@ anything that looks like a reference to an object as a reference.  This
 will result in a few objects not getting collected when they should, but
 it obviates the need for @code{GCPRO}ing, and allows garbage collection
 to happen at any point at all, such as during object allocation.
+
+  GNU Emacs has implemented this and no longer has the GCPRO mechanism
+available. Its implementation breaks quite a lot of C standard rules and
+it is not guaranteed portable, but they have ported it to the usual
+current (2025) Windows/macOS/Linux platforms and it works. It is
+certainly worth considering porting this to XEmacs at least as an
+error-checker to catch missing GCPROs.
+
+  Unfortunately this conservative scheme will not address problems
+caused by C code saving pointers into relocated strings longer than is
+appropriate, given these pointers are routinely offset from the start of
+the string, and thus will not be caught by a conservative GC.  This
+might be addressed by changing the type returned by
+@code{XSTRING_DATA()} (e.g. to a union type) and auditing uses with the
+help of the compiler; the tempting answer is to not free the old data
+after relocation, but that will give incorrect code and will disguise
+this already-rarely-elicited bug further.
 
 @node Garbage Collection - Step by Step, Fixnums and Characters, GCPROing, Allocation of Objects in XEmacs Lisp
 @section Garbage Collection - Step by Step
@@ -8829,8 +8847,7 @@ checking-constant @code{ERROR_CHECK_GC} is defined.
 In function @code{disksave_object_finalization} in file
 @code{alloc.c}. The only purpose of this function is to clear the
 objects from memory which need not be stored with xemacs when we dump out
-an executable. This is only done by @code{Fdump_emacs} or by
-@code{Fdump_emacs_data} respectively (both in @code{emacs.c}). The
+an executable. This is only done by @code{Fdump_emacs} in @code{emacs.c}). The
 actual clearing is accomplished by making these objects unreachable and
 starting a garbage collection. The function is only used while building
 xemacs.
@@ -8851,7 +8868,7 @@ function evaluates calls of elisp functions and works according to
 @end enumerate
 
 The upshot is that garbage collection can basically occur everywhere
-@code{Feval}, respectively @code{Ffuncall}, is used - either directly or
+@code{Feval} or @code{Ffuncall}, is used - either directly or
 through another function. Since calls to these two functions are hidden
 in various other functions, many calls to @code{garbage_collect_1} are
 not obviously foreseeable, and therefore unexpected. Instances where
@@ -9054,10 +9071,7 @@ possibilities, that prevent us from doing anything while marking: The
 object is read only which prevents it from being garbage collected,
 i.e. marked (@code{C_READONLY_RECORD_HEADER}). The object in question is
 already marked, and need not be marked for the second time (checked by
-@code{MARKED_RECORD_HEADER_P}). If it is a special, unmarkable object
-(@code{UNMARKABLE_RECORD_HEADER_P}, apparently, these are objects that
-sit in some const space, and can therefore not be marked, see
-@code{this_one_is_unmarkable} in @code{alloc.c}).
+@code{MARKED_RECORD_HEADER_P}).
 
 Now, the actual marking is feasible. We do so by once using the macro
 @code{MARK_RECORD_HEADER} to mark the object itself (actually the
@@ -9093,10 +9107,9 @@ coding-system, frame, image-instance, glyph, popup-data, gui-item,
 keymap, charset, color_instance, font_instance, opaque, opaque-list,
 process, range-table, specifier, symbol-value-buffer-local,
 symbol-value-lisp-magic, symbol-value-varalias, toolbar-button,
-tooltalk-message, tooltalk-pattern, window, and window-configuration. We
-take care of them in the fist place
-in order to be able to handle and to finalize items stored in them more
-easily. The function @code{sweep_lcrecords_1} as described below is
+tooltalk-message, tooltalk-pattern, and window. We take care of them in the
+fist place in order to be able to handle and to finalize items stored in them
+more easily. The function @code{sweep_lcrecords_1} as described below is
 doing the whole job for us.
 For a description about the internals: @xref{lrecords}.
 

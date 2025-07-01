@@ -1025,16 +1025,6 @@ macros such as @code{DEFVAR_LISP}, @code{DEFVAR_BOOL}, @code{DEFVAR_INT}
 etc.  The best way to see how to use these macros is to look at existing
 source code, or read the internals manual.
 
-  One @emph{very} important difference between @value{emacs} variables and
-module variables is how you use pure space.  Simply put, you
-@strong{never} use pure space in @value{emacs} modules.  The pure space
-storage is of a limited size, and is initialized properly during the
-dumping of @value{emacs}.  Because variables are being added dynamically to
-an already running @value{emacs} when you load a module, you cannot use pure
-space.  Be warned: @strong{do not use pure space in modules.  Repeat, do
-not use pure space in modules.}  Once again, to remove all doubts:
-@strong{DO NOT USE PURE SPACE IN MODULES!!!}
-
   Below is a small example which declares and initializes two
 variables.  You will note that this code takes into account the fact
 that this module may very well be compiled into @value{emacs} itself.  This

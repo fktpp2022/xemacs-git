@@ -1,3 +1,55 @@
+2025-07-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/functions.texi (Mapping Functions):
+	Mention #'mapcar* rather than #'mapcar here.
+	* lispref/lists.texi (List-related Predicates):
+	Document #'list-length, #'safe-length here. Clarify a bit further
+	regarding the reliability of  #'true-list-p vis #'listp.
+	* lispref/sequences.texi (Sequence Functions):
+	Move documentation of the keyword arguments to the sequence
+	functions here from cl.texi. Give a better example for equivalence
+	of #'remove* vs. #'remove-if.
+
+	* internals/internals.texi (XEmacs from the Perspective of
+	Building):
+	Correct some voice-recognition errors in this section. Update to
+	list 64-bit systems first.
+	* internals/internals.texi (Debugging and Testing):
+	Remove mention of limitations that were unexec-specific. Document
+	that Quantify and Purify should now work but that they have not
+	recently been tested.
+	Remove mention of the --with-mule configure option, now it is
+	gone (it is the default).
+	* internals/internals.texi (XEmacs from the Inside):
+	The C initialization is no longer complete after initializing
+	temacs, since some of it depends on Lisp code, remove a sentence
+	asserting this.
+	Update documentation to be more pdump-focused.
+	* internals/internals.texi (The XEmacs Object System (Abstractly
+	Speaking)):
+	Lead with precision information for 64-bit systems.
+	* internals/internals.texi (Introduction to Allocation):
+	Document that string relocation is rare, and the pitfall with this.
+	* internals/internals.texi (GCPROing):
+	Mention that GNU has implemented a conservative garbage collector
+	and potential benefits (and problems) with this.
+	* internals/internals.texi (Invocation): Remove mention of
+	#'dump-emacs-data, long gone. Correct a poor translation of
+	beziehungsweise (which means "or, relatedly" but which the
+	dictionaries document as meaning "respectively").
+	* internals/internals.texi (mark_object):
+	Remove mention of UNMARKABLE_RECORD_HEADER_P(), gone.
+	* internals/internals.texi (gc_sweep):
+	Remove mention of the window-configuration object, now in C.
+
+	* cl.texi (Sequence Basics):
+	* cl.texi (Sequence Functions):
+	* cl.texi (List Functions):
+	Move much documentation from this file to lispref.texi, now it is
+	built-in.
+	* emodules.texi (Defining Variables):
+	Remove mention of purespace from here, long gone.
+
 2025-06-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Byte-Char Position Conversion):

@@ -692,7 +692,7 @@ This function ignores any arguments and returns @code{nil}.
 
   A @dfn{mapping function} applies a given function to each element of a
 list or other collection.  XEmacs Lisp has several such functions;
-@code{mapcar} and @code{mapconcat}, which scan a list, are described
+@code{mapcar*} and @code{mapconcat}, which scan sequences, are described
 here.   @xref{Creating Symbols}, for the function @code{mapatoms} which
 maps over the symbols in an obarray.
 

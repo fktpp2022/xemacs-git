@@ -1,3 +1,8 @@
+2025-07-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* update-elc.el (target-extension):
+	Correct and fill-out a comment here.
+
 2025-06-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* fontconfig.el:

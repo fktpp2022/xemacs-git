@@ -162,7 +162,11 @@ differently depending on the presence of certain features, especially
   ;; (1) temacs is dumped into xemacs, which is the case with pdump when
   ;;     --with-dump-in-exec, the default, and always the case with MS Windows
   ;;     native.
-  ;; (3) xemacs is dumped or undumped, and it loads the dump from an external
+  ;;     xemacs.dmp exists in both these cases, and xemacs reflects temacs
+  ;;     re-linked with that xemacs.dmp as a binary blob, or a resource under
+  ;;     MS Windows; xemacs is the target of interest, however, not the dump
+  ;;     file.
+  ;; (2) xemacs is dumped or undumped, and it loads the dump from an external
   ;;     file.  Running `xemacs -nd' gets you the equivalent of `temacs'.
   ;;     Dumping creates a file `xemacs.dmp'.
 

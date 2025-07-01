@@ -447,9 +447,9 @@ Common Lisp's @code{&rest} is equivalent to that of Emacs Lisp.
 Common Lisp accepts @code{&body} as a synonym for @code{&rest} in
 macro contexts; this package accepts it all the time.
 
-The fourth section consists of @dfn{keyword} arguments.  These
-are optional arguments which are specified by name rather than
-positionally in the argument list.  For example,
+@anchor{Keyword Arguments}The fourth section consists of @dfn{keyword}
+arguments.  These are optional arguments which are specified by name
+rather than positionally in the argument list.  For example,
 
 @example
 (defun* foo (a &optional b &key c d (e 17)))
@@ -3691,75 +3691,6 @@ Emacs Lisp includes a few of these, notably @code{elt} and
 @pxref{Argument Lists}.  All keyword arguments are optional and, if
 specified, may appear in any order.
 
-The @code{:key} argument should be passed either @code{nil}, or a
-function of one argument.  This key function is used as a filter
-through which the elements of the sequence are seen; for example,
-@code{(find x y :key 'car)} is similar to @code{(assoc* x y)}:
-It searches for an element of the list whose @code{car} equals
-@code{x}, rather than for an element which equals @code{x} itself.
-If @code{:key} is omitted or @code{nil}, the filter is effectively
-the identity function.
-
-The @code{:test} and @code{:test-not} arguments should be either
-@code{nil}, or functions of two arguments.  The test function is
-used to compare two sequence elements, or to compare a search value
-with sequence elements.  (The two values are passed to the test
-function in the same order as the original sequence function
-arguments from which they are derived, or, if they both come from
-the same sequence, in the same order as they appear in that sequence.)
-The @code{:test} argument specifies a function which must return
-true (non-@code{nil}) to indicate a match; instead, you may use
-@code{:test-not} to give a function which returns @emph{false} to
-indicate a match.  The default test function is @code{:test 'eql}.
-
-Many functions which take @var{item} and @code{:test} or @code{:test-not}
-arguments also come in @code{-if} and @code{-if-not} varieties,
-where a @var{predicate} function is passed instead of @var{item},
-and sequence elements match if the predicate returns true on them
-(or false in the case of @code{-if-not}).  For example:
-
-@example
-(remove* 0 seq :test '=)  @equiv{}  (remove-if 'zerop seq)
-@end example
-
-@noindent
-to remove all zeros from sequence @code{seq}.
-
-Some operations can work on a subsequence of the argument sequence;
-these function take @code{:start} and @code{:end} arguments which
-default to zero and the length of the sequence, respectively.
-Only elements between @var{start} (inclusive) and @var{end}
-(exclusive) are affected by the operation.  The @var{end} argument
-may be passed @code{nil} to signify the length of the sequence;
-otherwise, both @var{start} and @var{end} must be integers, with
-@code{0 <= @var{start} <= @var{end} <= (length @var{seq})}.
-If the function takes two sequence arguments, the limits are
-defined by keywords @code{:start1} and @code{:end1} for the first,
-and @code{:start2} and @code{:end2} for the second.
-
-A few functions accept a @code{:from-end} argument, which, if
-non-@code{nil}, causes the operation to go from right-to-left
-through the sequence instead of left-to-right, and a @code{:count}
-argument, which specifies an integer maximum number of elements
-to be removed or otherwise processed.
-
-The sequence functions make no guarantees about the order in
-which the @code{:test}, @code{:test-not}, and @code{:key} functions
-are called on various elements.  Therefore, it is a bad idea to depend
-on side effects of these functions.  For example, @code{:from-end}
-may cause the sequence to be scanned actually in reverse, or it may
-be scanned forwards but computing a result ``as if'' it were scanned
-backwards.  (Some functions, like @code{mapcar*} and @code{every},
-@emph{do} specify exactly the order in which the function is called
-so side effects are perfectly acceptable in those cases.)
-
-Strings in GNU Emacs 19 may contain ``text properties'' as well
-as character data.  Except as noted, it is undefined whether or
-not text properties are preserved by sequence functions.  For
-example, @code{(remove* ?A @var{str})} may or may not preserve
-the properties of the characters copied from @var{str} into the
-result.
-
 @node Mapping over Sequences, Sequence Functions, Sequence Basics, Sequences
 @section Mapping over Sequences
 
@@ -3904,145 +3835,6 @@ function calls.
 This section describes a number of Common Lisp functions for
 operating on sequences.
 
-@defun subseq sequence start &optional end
-This function returns a given subsequence of the argument
-@var{sequence}, which may be a list, string, or vector.
-The indices @var{start} and @var{end} must be in range, and
-@var{start} must be no greater than @var{end}.  If @var{end}
-is omitted, it defaults to the length of the sequence.  The
-return value is always a copy; it does not share structure
-with @var{sequence}.
-
-As an extension to Common Lisp, @var{start} and/or @var{end}
-may be negative, in which case they represent a distance back
-from the end of the sequence.  This is for compatibility with
-Emacs' @code{substring} function.  Note that @code{subseq} is
-the @emph{only} sequence function that allows negative
-@var{start} and @var{end}.
-
-You can use @code{setf} on a @code{subseq} form to replace a
-specified range of elements with elements from another sequence.
-The replacement is done as if by @code{replace}, described below.
-@end defun
-
-@defun concatenate result-type &rest seqs
-This function concatenates the argument sequences together to
-form a result sequence of type @var{result-type}, one of the
-symbols @code{vector}, @code{string}, or @code{list}.  The
-arguments are always copied, even in cases such as
-@code{(concatenate 'list '(1 2 3))} where the result is
-identical to an argument.
-@end defun
-
-@defun fill seq item @t{&key :start :end}
-This function fills the elements of the sequence (or the specified
-part of the sequence) with the value @var{item}.
-@end defun
-
-@defun replace seq1 seq2 @t{&key :start1 :end1 :start2 :end2}
-This function copies part of @var{seq2} into part of @var{seq1}.
-The sequence @var{seq1} is not stretched or resized; the amount
-of data copied is simply the shorter of the source and destination
-(sub)sequences.  The function returns @var{seq1}.
-
-If @var{seq1} and @var{seq2} are @code{eq}, then the replacement
-will work correctly even if the regions indicated by the start
-and end arguments overlap.  However, if @var{seq1} and @var{seq2}
-are lists which share storage but are not @code{eq}, and the
-start and end arguments specify overlapping regions, the effect
-is undefined.
-@end defun
-
-@defun remove* item seq @t{&key :test :test-not :key :count :start :end :from-end}
-This returns a copy of @var{seq} with all elements matching
-@var{item} removed.  The result may share storage with or be
-@code{eq} to @var{seq} in some circumstances, but the original
-@var{seq} will not be modified.  The @code{:test}, @code{:test-not},
-and @code{:key} arguments define the matching test that is used;
-by default, elements @code{eql} to @var{item} are removed.  The
-@code{:count} argument specifies the maximum number of matching
-elements that can be removed (only the leftmost @var{count} matches
-are removed).  The @code{:start} and @code{:end} arguments specify
-a region in @var{seq} in which elements will be removed; elements
-outside that region are not matched or removed.  The @code{:from-end}
-argument, if true, says that elements should be deleted from the
-end of the sequence rather than the beginning (this matters only
-if @var{count} was also specified).
-@end defun
-
-@defun delete* item seq @t{&key :test :test-not :key :count :start :end :from-end}
-This deletes all elements of @var{seq} which match @var{item}.
-It is a destructive operation.  Since Emacs Lisp does not support
-stretchable strings or vectors, this is the same as @code{remove*}
-for those sequence types.  On lists, @code{remove*} will copy the
-list if necessary to preserve the original list, whereas
-@code{delete*} will splice out parts of the argument list.
-Compare @code{append} and @code{nconc}, which are analogous
-non-destructive and destructive list operations in Emacs Lisp.
-@end defun
-
-@findex remove-if
-@findex remove-if-not
-@findex delete-if
-@findex delete-if-not
-The predicate-oriented functions @code{remove-if}, @code{remove-if-not},
-@code{delete-if}, and @code{delete-if-not} are defined similarly.
-
-@defun delete item list
-This MacLisp-compatible function deletes from @var{list} all elements
-which are @code{equal} to @var{item}.  The @code{delete} function is
-built-in to Emacs 19; this package defines it equivalently in Emacs 18.
-@end defun
-
-@defun remove item list
-This function removes from @var{list} all elements which are
-@code{equal} to @var{item}.  This package defines it for symmetry
-with @code{delete}, even though @code{remove} is not built-in to
-Emacs 19.
-@end defun
-
-@defun remq item list
-This function removes from @var{list} all elements which are
-@code{eq} to @var{item}.  This package defines it for symmetry
-with @code{delq}, even though @code{remq} is not built-in to
-Emacs 19.
-@end defun
-
-@defun remove-duplicates seq @t{&key :test :test-not :key :start :end :from-end}
-This function returns a copy of @var{seq} with duplicate elements
-removed.  Specifically, if two elements from the sequence match
-according to the @code{:test}, @code{:test-not}, and @code{:key}
-arguments, only the rightmost one is retained.  If @code{:from-end}
-is true, the leftmost one is retained instead.  If @code{:start} or
-@code{:end} is specified, only elements within that subsequence are
-examined or removed.
-@end defun
-
-@defun delete-duplicates seq @t{&key :test :test-not :key :start :end :from-end}
-This function deletes duplicate elements from @var{seq}.  It is
-a destructive version of @code{remove-duplicates}.
-@end defun
-
-@defun substitute new old seq @t{&key :test :test-not :key :count :start :end :from-end}
-This function returns a copy of @var{seq}, with all elements
-matching @var{old} replaced with @var{new}.  The @code{:count},
-@code{:start}, @code{:end}, and @code{:from-end} arguments may be
-used to limit the number of substitutions made.
-@end defun
-
-@defun nsubstitute new old seq @t{&key :test :test-not :key :count :start :end :from-end}
-This is a destructive version of @code{substitute}; it performs
-the substitution using @code{setcar} or @code{aset} rather than
-by returning a changed copy of the sequence.
-@end defun
-
-@findex substitute-if
-@findex substitute-if-not
-@findex nsubstitute-if
-@findex nsubstitute-if-not
-The @code{substitute-if}, @code{substitute-if-not}, @code{nsubstitute-if},
-and @code{nsubstitute-if-not} functions are defined similarly.  For
-these, a @var{predicate} is given in place of the @var{old} argument.
 
 @node Searching Sequences, Sorting Sequences, Sequence Functions, Sequences
 @section Searching Sequences
@@ -4213,14 +4005,6 @@ Common Lisp defines this function to act like @code{null}, but
 signalling an error if @code{x} is neither a @code{nil} nor a
 cons cell.  This package simply defines @code{endp} as a synonym
 for @code{null}.
-@end defun
-
-@defun list-length x
-This function returns the length of list @var{x}, exactly like
-@code{(length @var{x})}, except that if @var{x} is a circular
-list (where the cdr-chain forms a loop rather than terminating
-with @code{nil}), this function returns @code{nil}.  (The regular
-@code{length} function would get stuck if given a circular list.)
 @end defun
 
 @defun last x &optional n
