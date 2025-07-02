@@ -1,3 +1,13 @@
+2025-07-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* buffer.c (decode_buffer):
+	Revise this to no longer return the current buffer if the supplied
+	BUFFER is a fixnum or a character, something which never made any
+	sense and which is not even GNU-compatible.
+	Update the type of ALLOW_STRING to Boolint.
+	(Fdecode_buffer):
+	Add a comment regarding the practicality of moving this to Lisp.
+
 2025-06-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Mule-ize Fcall_interactively(), remove code that dealt with

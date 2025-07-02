@@ -4358,7 +4358,7 @@ extern int find_file_compare_truenames;
 extern int find_file_use_truenames;
 Ibyte *get_initial_directory (Ibyte *pathname, Bytecount size);
 void set_buffer_internal (struct buffer *b);
-struct buffer *decode_buffer (Lisp_Object buffer, int allow_string);
+struct buffer *decode_buffer (Lisp_Object buffer, Boolint allow_string);
 
 void record_buffer (Lisp_Object buf);
 Lisp_Object get_buffer (Lisp_Object name,

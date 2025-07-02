@@ -1,3 +1,10 @@
+2025-07-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/buffer-tests.el:
+	New. Test a bug just fixed in #'decode-buffer, test that it is
+	fixed in various other functions that call the underlying
+	decode_buffer().
+
 2025-06-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/call-interactively.el:

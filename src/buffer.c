@@ -361,9 +361,9 @@ get_buffer (Lisp_Object name, int error_if_deleted_or_does_not_exist)
 }
 
 struct buffer *
-decode_buffer (Lisp_Object buffer, int allow_string)
+decode_buffer (Lisp_Object buffer, Boolint allow_string)
 {
-  if (NILP (buffer) || (!POINTER_TYPE_P( XTYPE(buffer))))
+  if (NILP (buffer))
     return current_buffer;
 
   if (allow_string && STRINGP (buffer))
@@ -381,6 +381,8 @@ will be signaled.
 */
        (buffer))
 {
+  /* It's tempting to move this function to Lisp. That would require exposing
+     get_buffer()'s ERROR_IF_DELETED_OR_DOES_NOT_EXIST argument to Lisp. */
   struct buffer *b = decode_buffer (buffer, 1);
   return wrap_buffer (b);
 }
