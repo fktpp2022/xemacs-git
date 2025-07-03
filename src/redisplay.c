@@ -324,7 +324,7 @@ static Fixnum max_preempts;
 ((void)									\
  (preempted =								\
   (!disable_preemption &&						\
-   ((preemption_count < max_preempts) || !NILP (Vexecuting_macro)) &&	\
+   ((preemption_count < max_preempts) || !NILP (Vexecuting_kbd_macro)) &&	\
    (!INTERACTIVE ||							\
     detect_input_pending (QUEUED_EVENTS_REQUIRED_FOR_PREEMPTION)))))
 

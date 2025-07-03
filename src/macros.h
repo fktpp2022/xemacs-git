@@ -31,6 +31,6 @@ void finalize_kbd_macro_chars (struct console *con);
 
 EXFUN (Fexecute_kbd_macro, 2);
 
-extern Lisp_Object Vexecuting_macro;
+extern Lisp_Object Vexecuting_kbd_macro;
 
 #endif /* INCLUDED_macros_h_ */

@@ -377,7 +377,7 @@ Predefined tests are `eq', `eql', and `equal'.  Default is `eql'."
 ;;; Yes there is; make compiler macros for aref, assq, nconc, checking that
 ;;; the car of the relevant argument is sane.
 
-(make-obsolete-variable 'executing-macro 'executing-kbd-macro)
+(define-obsolete-variable-alias 'executing-macro 'executing-kbd-macro)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; menu stuff
 

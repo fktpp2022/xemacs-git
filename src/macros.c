@@ -44,9 +44,8 @@ Lisp_Object Qexecute_kbd_macro;
 
 /* The current macro and our position in it.  When executing nested kbd
    macros, previous values for these are wound through the execution stack
-   with unwind-protect.
- */
-Lisp_Object Vexecuting_macro;
+   with unwind-protect. */
+Lisp_Object Vexecuting_kbd_macro;
 int executing_macro_index;
 
 
@@ -183,19 +182,19 @@ store_kbd_macro_event (Lisp_Object event)
 void
 pop_kbd_macro_event (Lisp_Object event)
 {
-  assert (!NILP (Vexecuting_macro));
+  assert (!NILP (Vexecuting_kbd_macro));
 
-  if (STRINGP (Vexecuting_macro) || VECTORP (Vexecuting_macro))
+  if (STRINGP (Vexecuting_kbd_macro) || VECTORP (Vexecuting_kbd_macro))
     {
-      if (executing_macro_index < XFIXNUM (Flength (Vexecuting_macro)))
+      if (executing_macro_index < XFIXNUM (Flength (Vexecuting_kbd_macro)))
 	{
-	  nth_of_key_sequence_as_event (Vexecuting_macro,
+	  nth_of_key_sequence_as_event (Vexecuting_kbd_macro,
 					executing_macro_index++,
 					event);
 	  return;
 	}
     }
-  else if (!EQ (Vexecuting_macro, Qt)) /* Some things replace the macro
+  else if (!EQ (Vexecuting_kbd_macro, Qt)) /* Some things replace the macro
 					  with Qt to force an early exit. */
     signal_error (Qinvalid_state, "junk in executing-macro", Qunbound);
 
@@ -271,21 +270,21 @@ COUNT is a repeat count, or nil for once, or 0 for infinite loop.
   if (!STRINGP (final) && !VECTORP (final))
     invalid_argument ("Keyboard macros must be strings or vectors", Qunbound);
 
-  internal_bind_lisp_object (&Vexecuting_macro, Vexecuting_macro);
+  internal_bind_lisp_object (&Vexecuting_kbd_macro, Vexecuting_kbd_macro);
   internal_bind_int (&executing_macro_index, executing_macro_index);
 
   GCPRO1 (final);
   do
     {
-      Vexecuting_macro = final;
+      Vexecuting_kbd_macro = final;
       executing_macro_index = 0;
       con->prefix_arg = Qnil;
       internal_catch (Qexecute_kbd_macro, call_command_loop,
 		      Qnil, 0, 0, 0);
     }
   while (--repeat != 0
-	 && (STRINGP (Vexecuting_macro) ||
-	     VECTORP (Vexecuting_macro)));
+	 && (STRINGP (Vexecuting_kbd_macro) ||
+	     VECTORP (Vexecuting_kbd_macro)));
 
   UNGCPRO;
   return unbind_to (speccount);
@@ -307,17 +306,12 @@ syms_of_macros (void)
 void
 vars_of_macros (void)
 {
-  Vexecuting_macro = Qnil;
-  DEFVAR_LISP ("executing-macro", &Vexecuting_macro /*
+  Vexecuting_kbd_macro = Qnil;
+  DEFVAR_LISP ("executing-kbd-macro", &Vexecuting_kbd_macro /*
 Currently executing keyboard macro (a vector of events or string);
 nil if none executing.
 */ );
-  dump_add_nil_lisp_object (&Vexecuting_macro);
-
-  DEFVAR_LISP ("executing-kbd-macro", &Vexecuting_macro /*
-Currently executing keyboard macro (a vector of events or string);
-nil if none executing.
-*/ );
+  dump_add_nil_lisp_object (&Vexecuting_kbd_macro);
 }
 
 /* macros.c ends here. */

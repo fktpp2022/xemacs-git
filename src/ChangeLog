@@ -1,5 +1,34 @@
 2025-07-03  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Rename Vexecuting_macro to Vexecuting_kbd_macro, which is the
+	preferred name, within the C source.  Remove the C-level alias to
+	the old name of executing-macro, leave that to obsolete.el.
+	Changes made using Ben's gr script, with the exception of the
+	change to vars_of_macros(), done by hand.
+
+	* cmdloop.c (default_error_handler):
+	* cmdloop.c (Fcommand_loop_1):
+	* commands.h:
+	* commands.h (INTERACTIVE):
+	* event-stream.c (Fnext_event):
+	* event-stream.c (Fsit_for):
+	* event-stream.c (Fdispatch_event):
+	* lisp.h:
+	* macros.c:
+	* macros.c (pop_kbd_macro_event):
+	* macros.c (Fexecute_kbd_macro):
+	* macros.h:
+	* menubar-x.c (command_builder_operate_menu_accelerator):
+	* menubar-x.c (command_builder_find_menu_accelerator):
+	* menubar-x.c (Faccelerate_menu):
+	* minibuf.c (message_internal):
+	* minibuf.c (message_append_internal):
+	* redisplay.c:
+	* redisplay.c (REDISPLAY_PREEMPTION_CHECK):
+	* sound.c (Fding):
+
+2025-07-03  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Remove need for reinit_vars_of_mule_wnn(), init_macros() after
 	pdump_load().
 	* alloc.c:

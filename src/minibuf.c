@@ -963,7 +963,7 @@ message_internal (const Ibyte *nonreloc, Lisp_Object reloc,
 		  Bytecount offset, Bytecount length)
 {
   /* This function can call lisp  */
-  if (NILP (Vexecuting_macro))
+  if (NILP (Vexecuting_kbd_macro))
     echo_area_message (selected_frame (), nonreloc, reloc, offset, length,
 		       Qmessage);
 }
@@ -973,7 +973,7 @@ message_append_internal (const Ibyte *nonreloc, Lisp_Object reloc,
 			 Bytecount offset, Bytecount length)
 {
   /* This function can call lisp  */
-  if (NILP (Vexecuting_macro))
+  if (NILP (Vexecuting_kbd_macro))
     echo_area_append (selected_frame (), nonreloc, reloc, offset, length,
 		      Qmessage);
 }

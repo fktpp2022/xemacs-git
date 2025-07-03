@@ -1,3 +1,10 @@
+2025-07-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* obsolete.el (executing-macro):
+	Use #'define-obsolete-variable-alias for this, not
+	#'make-obsolete-variable, given C no longer supplies the variable
+	alias.
+
 2025-07-01  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* update-elc.el (target-extension):

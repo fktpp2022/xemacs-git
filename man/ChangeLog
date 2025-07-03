@@ -1,3 +1,10 @@
+2025-07-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/commands.texi (Keyboard Macros):
+	* lispref/edebug-inc.texi (Checking Whether to Stop):
+	Remove mention of executing-macro here, executing-kbd-macro has
+	long been preferred.
+
 2025-07-01  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lispref/functions.texi (Mapping Functions):

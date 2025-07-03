@@ -518,7 +518,7 @@ the C kernel of Emacs uses.
   device = wrap_device (d);
   now = time (0);
 
-  if (NILP (no_terminate) && !NILP (Vexecuting_macro))
+  if (NILP (no_terminate) && !NILP (Vexecuting_kbd_macro))
     /* Stop executing a keyboard macro. */
     invalid_operation ("Keyboard macro terminated by a command ringing the bell", Qunbound);
   

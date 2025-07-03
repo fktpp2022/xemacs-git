@@ -2331,7 +2331,7 @@ The returned event will be one of the following types:
      */
   else
     {
-      if (!NILP (Vexecuting_macro))
+      if (!NILP (Vexecuting_kbd_macro))
 	{
 	  redisplay_no_pre_idle_hook ();
 	  pop_kbd_macro_event (event);  /* This throws past us at
@@ -2460,7 +2460,7 @@ The returned event will be one of the following types:
       if (!inhibit_input_event_recording)
 	push_recent_keys (event);
       dribble_out_event (event);
-      if (!NILP (con->defining_kbd_macro) && NILP (Vexecuting_macro))
+      if (!NILP (con->defining_kbd_macro) && NILP (Vexecuting_kbd_macro))
 	{
 	  if (!EVENTP (command_builder->current_events))
 	    finalize_kbd_macro_chars (con);
@@ -2906,7 +2906,7 @@ If sit-for is called from within a process filter function or timer
 
   /* If we're in a macro, or noninteractive, or early in temacs, then
      don't wait. */
-  if (noninteractive || !NILP (Vexecuting_macro))
+  if (noninteractive || !NILP (Vexecuting_kbd_macro))
     return Qnil;
 
   /* Recursive call from a filter function or timeout handler. */
@@ -4718,7 +4718,7 @@ Magic events are handled as necessary.
 	    if (!magic_undo)
 	      command_builder->self_insert_countdown = 0;
 	    if (NILP (XCONSOLE (console)->prefix_arg)
-		&& NILP (Vexecuting_macro)
+		&& NILP (Vexecuting_kbd_macro)
 		&& command_builder->self_insert_countdown == 0)
 	      Fundo_boundary ();
 
@@ -4772,7 +4772,7 @@ Magic events are handled as necessary.
 
 	command_builder->self_insert_countdown = 0;
 	if (NILP (XCONSOLE (console)->prefix_arg)
-	    && NILP (Vexecuting_macro)
+	    && NILP (Vexecuting_kbd_macro)
 	    && !EQ (Vminibuf_window, Fselected_window (Qnil)))
 	  Fundo_boundary ();
 	execute_command_event (command_builder, event);

@@ -2414,7 +2414,7 @@ executed once.  If it is 0, @var{macro} is executed over and over until it
 encounters an error or a failing search.
 @end defun
 
-@defvar executing-macro
+@defvar executing-kbd-macro
 This variable contains the string or vector that defines the keyboard
 macro that is currently executing.  It is @code{nil} if no macro is
 currently executing.  A command can test this variable to behave

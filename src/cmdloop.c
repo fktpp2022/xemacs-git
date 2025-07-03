@@ -102,7 +102,7 @@ default_error_handler (Lisp_Object data)
   specbind (Qinhibit_quit, Qt);
   Vstandard_output = Qt;
   Vstandard_input = Qt;
-  Vexecuting_macro = Qnil;
+  Vexecuting_kbd_macro = Qnil;
   Fset (intern ("last-error"), data);
   clear_echo_area (selected_frame (), Qnil, 0);
   Fdisplay_error (data, Qt);
@@ -567,8 +567,8 @@ Don't call this unless you know what you're doing.
      like the real thing.  This is slightly bogus, but it's in here for
      compatibility with Emacs 18.  It's not even clear what the "right
      thing" is. */
-  if (!((STRINGP (Vexecuting_macro) || VECTORP (Vexecuting_macro))
-	&& XFIXNUM (Flength (Vexecuting_macro)) == 1))
+  if (!((STRINGP (Vexecuting_kbd_macro) || VECTORP (Vexecuting_kbd_macro))
+	&& XFIXNUM (Flength (Vexecuting_kbd_macro)) == 1))
     Vlast_command = Qt;
 
 #ifndef LISP_COMMAND_LOOP

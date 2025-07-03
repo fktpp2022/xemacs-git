@@ -5637,7 +5637,7 @@ extern Lisp_Object Vstandard_input;
 /* Defined in macros.c */
 EXFUN (Fexecute_kbd_macro, 2);
 
-extern Lisp_Object Vexecuting_macro;
+extern Lisp_Object Vexecuting_kbd_macro;
 
 /* Defined in marker.c */
 EXFUN (Fcopy_marker, 2);

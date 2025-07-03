@@ -1015,7 +1015,7 @@ command_builder_operate_menu_accelerator (struct command_builder *builder)
 #endif /* 0 */
 
   /* menu accelerator keys don't go into keyboard macros */
-  if (!NILP (con->defining_kbd_macro) && NILP (Vexecuting_macro))
+  if (!NILP (con->defining_kbd_macro) && NILP (Vexecuting_kbd_macro))
     con->kbd_macro_ptr = con->kbd_macro_end;
 
   /* don't echo menu accelerator keys */
@@ -1302,7 +1302,7 @@ command_builder_find_menu_accelerator (struct command_builder *builder)
 
 		  /* menu accelerator keys don't go into keyboard macros */
 		  if (!NILP (con->defining_kbd_macro)
-		      && NILP (Vexecuting_macro))
+		      && NILP (Vexecuting_kbd_macro))
 		    con->kbd_macro_ptr = con->kbd_macro_end;
 
 		  /* don't echo menu accelerator keys */
@@ -1351,7 +1351,7 @@ or by actions defined in menu-accelerator-map.
   lw_display_menu (CurrentTime);
 
   /* menu accelerator keys don't go into keyboard macros */
-  if (!NILP (con->defining_kbd_macro) && NILP (Vexecuting_macro))
+  if (!NILP (con->defining_kbd_macro) && NILP (Vexecuting_kbd_macro))
     con->kbd_macro_ptr = con->kbd_macro_end;
 
   return Qnil;
