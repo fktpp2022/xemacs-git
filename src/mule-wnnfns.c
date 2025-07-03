@@ -306,7 +306,7 @@ static struct wnn_buf *wnnfns_buf[NSERVER];
 static struct wnn_env *wnnfns_env_norm[NSERVER];
 static struct wnn_env *wnnfns_env_rev[NSERVER];
 static int wnnfns_norm;
-static Lisp_Object charset_wnn_server_type[NSERVER];
+static Lisp_Object Vcharset_wnn_server_type;
 
 /* Lisp Variables and Constants Definition */
 Lisp_Object	Qjserver;
@@ -502,7 +502,7 @@ Return information of dictionaries.
   Lisp_Object charset;
 
   if ((snum = check_wnn_server_type ()) == -1) return Qnil;
-  charset = charset_wnn_server_type[snum];
+  charset = XVECTOR_DATA (Vcharset_wnn_server_type)[snum];
   if (!wnnfns_buf[snum]) return Qnil;
 #ifdef	WNN6
   if((cnt = jl_fi_dic_list (wnnfns_buf[snum], 0x3f, &dicinfo)) < 0)
@@ -634,7 +634,7 @@ Get kanji string of KOUHO-NUMBER.
   Lisp_Object charset;
   CHECK_FIXNUM (kouhoNo);
   if ((snum = check_wnn_server_type ()) == -1) return Qnil;
-  charset = charset_wnn_server_type[snum];
+  charset = XVECTOR_DATA (Vcharset_wnn_server_type) [snum];
   if (!wnnfns_buf[snum]) return Qnil;
   jl_get_zenkouho_kanji (wnnfns_buf[snum], XFIXNUM (kouhoNo), wbuf);
   w2m (wbuf, kanji_buf, charset);
@@ -744,7 +744,7 @@ Get bunsetsu information specified by BUN-NUMBER.
   Lisp_Object		charset;
   CHECK_FIXNUM (bunNo);
   if ((snum = check_wnn_server_type ()) == -1) return Qnil;
-  charset = charset_wnn_server_type[snum];
+  charset = XVECTOR_DATA (Vcharset_wnn_server_type) [snum];
   if (!wnnfns_buf[snum]) return Qnil;
   bun_no = XFIXNUM (bunNo);
   val = Qnil;
@@ -792,7 +792,7 @@ Get the pair of kanji and length of bunsetsu specified by BUN-NUMBER.
   Lisp_Object		charset;
   CHECK_FIXNUM (bunNo);
   if ((snum = check_wnn_server_type ()) == -1) return Qnil;
-  charset = charset_wnn_server_type[snum];
+  charset = XVECTOR_DATA (Vcharset_wnn_server_type) [snum];
   if (!wnnfns_buf[snum]) return Qnil;
   no = XFIXNUM (bunNo);
   kanji_len = jl_get_kanji (wnnfns_buf[snum], no, no + 1, wbuf);
@@ -813,7 +813,7 @@ Get the pair of yomi and length of bunsetsu specified by BUN-NUMBER.
   Lisp_Object		charset;
   CHECK_FIXNUM (bunNo);
   if ((snum = check_wnn_server_type ()) == -1) return Qnil;
-  charset = charset_wnn_server_type[snum];
+  charset = XVECTOR_DATA (Vcharset_wnn_server_type)[snum];
   if (!wnnfns_buf[snum]) return Qnil;
   no = XFIXNUM (bunNo);
   yomi_len = jl_get_yomi (wnnfns_buf[snum], no, no + 1, wbuf);
@@ -927,7 +927,7 @@ Return list of yomi, kanji, comment, hindo, hinshi.
   CHECK_FIXNUM (no);
   CHECK_FIXNUM (serial);
   if ((snum = check_wnn_server_type ()) == -1) return Qnil;
-  charset = charset_wnn_server_type[snum];
+  charset = XVECTOR_DATA (Vcharset_wnn_server_type) [snum];
   if (!wnnfns_buf[snum]) return Qnil;
   if ((info_buf =  jl_word_info (wnnfns_buf[snum],
 				 XFIXNUM (no), XFIXNUM (serial))) != NULL)
@@ -986,7 +986,7 @@ Return list of (kanji hinshi freq dic_no serial).
   Lisp_Object		charset;
   CHECK_STRING (yomi);
   if ((snum = check_wnn_server_type ()) == -1) return Qnil;
-  charset = charset_wnn_server_type[snum];
+  charset = XVECTOR_DATA (Vcharset_wnn_server_type) [snum];
   if (!wnnfns_buf[snum]) return Qnil;
   m2w (XSTRING_DATA (yomi), wbuf);
   if (snum == WNNSERVER_C)
@@ -1137,7 +1137,7 @@ Get message string from wnn_perror.
   char		langname[32];
 /*  CHECK_FIXNUM (errno);*/
   if ((snum = check_wnn_server_type ()) == -1) return Qnil;
-  charset = charset_wnn_server_type[snum];
+  charset = XVECTOR_DATA (Vcharset_wnn_server_type) [snum];
   switch (snum)
     {
     case WNNSERVER_J:
@@ -1242,7 +1242,7 @@ For Wnn.
   CHECK_FIXNUM (dicno);
   CHECK_STRING (name);
   if ((snum = check_wnn_server_type ()) == -1) return Qnil;
-  charset = charset_wnn_server_type[snum];
+  charset = XVECTOR_DATA (Vcharset_wnn_server_type) [snum];
   if (!wnnfns_buf[snum]) return Qnil;
   m2w (XSTRING_DATA (name), wbuf);
   if ((cnt = jl_hinsi_list (wnnfns_buf[snum], XFIXNUM (dicno), wbuf, &area)) < 0)
@@ -1269,7 +1269,7 @@ For Wnn.
   Lisp_Object	charset;
   CHECK_FIXNUM (no);
   if ((snum = check_wnn_server_type ()) == -1) return Qnil;
-  charset = charset_wnn_server_type[snum];
+  charset = XVECTOR_DATA (Vcharset_wnn_server_type)[snum];
   if (!wnnfns_buf[snum]) return Qnil;
   if ((wname = jl_hinsi_name (wnnfns_buf[snum], XFIXNUM (no))) == 0) return Qnil;
   w2m (wname, name, charset);
@@ -1898,15 +1898,6 @@ syms_of_mule_wnn (void)
 }
 
 void
-reinit_vars_of_mule_wnn (void)
-{
-  charset_wnn_server_type[0] = Vcharset_japanese_jisx0208;
-  charset_wnn_server_type[1] = Vcharset_chinese_gb2312;
-  charset_wnn_server_type[2] = Vcharset_thai_tis620;
-  charset_wnn_server_type[3] = Vcharset_korean_ksc5601;
-}
-
-void
 vars_of_mule_wnn (void)
 {
   DEFVAR_LISP ("wnn-server-type", &Vwnn_server_type /*
@@ -1928,7 +1919,19 @@ vars_of_mule_wnn (void)
 
   Vwnn_uniq_level = Qwnn_uniq;
 
+  Vcharset_wnn_server_type = make_vector (NSERVER, Qnil);
+  staticpro (&Vcharset_wnn_server_type);
+
   Fprovide (intern ("wnn"));
+}
+
+void
+init_mule_wnn (void)
+{
+  XVECTOR_DATA (Vcharset_wnn_server_type)[0] = Vcharset_japanese_jisx0208;
+  XVECTOR_DATA (Vcharset_wnn_server_type)[1] = Vcharset_chinese_gb2312;
+  XVECTOR_DATA (Vcharset_wnn_server_type)[2] = Vcharset_thai_tis620;
+  XVECTOR_DATA (Vcharset_wnn_server_type)[3] = Vcharset_korean_ksc5601;
 }
 
 /* Convert from the wide-char format expected for wnn to the XEmacs string
@@ -2106,7 +2109,7 @@ yes_or_no (UExtbyte *s)
   int			len;
   int			snum;
   if ((snum  = check_wnn_server_type ()) == -1) return 0;
-  charset = charset_wnn_server_type[snum];
+  charset = XVECTOR_DATA (Vcharset_wnn_server_type) [snum];
   /* if no message found, create file without query */
   /* if (wnn_msg_cat->msg_bd == 0) return 1;*/
   if (*s == 0) return 1;
@@ -2140,7 +2143,7 @@ puts2 (char *UNUSED (s))
   Lisp_Object		charset;
   int			snum;
   if ((snum = check_wnn_server_type ()) == -1) return;
-  charset = charset_wnn_server_type[snum];
+  charset = XVECTOR_DATA (Vcharset_wnn_server_type) [snum];
   c2m (s, mbuf, charset);
   message ("%s", mbuf);
 #endif

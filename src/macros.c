@@ -307,10 +307,12 @@ syms_of_macros (void)
 void
 vars_of_macros (void)
 {
+  Vexecuting_macro = Qnil;
   DEFVAR_LISP ("executing-macro", &Vexecuting_macro /*
 Currently executing keyboard macro (a vector of events or string);
 nil if none executing.
 */ );
+  dump_add_nil_lisp_object (&Vexecuting_macro);
 
   DEFVAR_LISP ("executing-kbd-macro", &Vexecuting_macro /*
 Currently executing keyboard macro (a vector of events or string);
@@ -318,9 +320,4 @@ nil if none executing.
 */ );
 }
 
-void
-init_macros (void)
-{
-  Vexecuting_macro = Qnil;
-}
-
+/* macros.c ends here. */

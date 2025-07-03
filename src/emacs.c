@@ -2082,10 +2082,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #ifdef HAVE_MS_WINDOWS
       reinit_vars_of_fontcolor_mswindows ();
 #endif
-
-#ifdef HAVE_WNN
-      reinit_vars_of_mule_wnn ();
-#endif
     }
 
   if (!initialized)
@@ -2329,7 +2325,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 			     init_sys_modes uses results */
   init_frame ();
   init_event_stream (); /* Set up so we can get user input. */
-  init_macros (); /* set up so we can run macros. */
   init_editfns (); /* Determine the name of the user we're running as */
 #ifdef SUNPRO
   init_sunpro (); /* Set up Sunpro usage tracking */
@@ -2768,6 +2763,9 @@ arguments: (&rest ARGS)
 
   /* Usually called from disksave_object_finalization(). */
   init_mule_charset ();
+#ifdef HAVE_WNN
+  init_mule_wnn ();
+#endif
 
   LONGJMP (run_temacs_catch, 1);
   RETURN_NOT_REACHED (Qnil);

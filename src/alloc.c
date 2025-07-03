@@ -5322,6 +5322,11 @@ disksave_object_finalization (void)
      after loadup given the bulk of them are created in Lisp. */
   init_mule_charset ();
 
+#ifdef HAVE_WNN
+  /* Similar reasoning. */
+  init_mule_wnn ();
+#endif
+
   /* There, that ought to be enough... */
 }
 

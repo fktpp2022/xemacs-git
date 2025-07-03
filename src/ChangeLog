@@ -1,3 +1,55 @@
+2025-07-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Remove need for reinit_vars_of_mule_wnn(), init_macros() after
+	pdump_load().
+	* alloc.c:
+	* alloc.c (disksave_object_finalization):
+	Call init_mule_wnn() here in the same way we do
+	init_mule_charset().
+
+	* emacs.c (main_1): No longer call init_macros(), init_mule_wnn()
+	from this file.
+	* emacs.c (Frun_emacs_from_temacs): Call init_mule_wnn() from this
+	function in the same way we call init_mule_charset().
+
+	* macros.c:
+	* macros.c (vars_of_macros):
+	Use dump_add_nil_lisp_object() on &Vexecuting_macro, avoiding the
+	need to initialize it to nil after pdump_load().
+	* macros.c (init_macros): Removed.
+
+	* mule-wnnfns.c:
+	Rename charset_wnn_server_type to Vcharset_wnn_server_type, make
+	it into a Lisp vector for ease of dumping.
+
+	* mule-wnnfns.c (Fwnn_dict_list):
+	* mule-wnnfns.c (Fwnn_get_zenkouho):
+	* mule-wnnfns.c (Fwnn_inspect):
+	* mule-wnnfns.c (Fwnn_bunsetu_kanji):
+	* mule-wnnfns.c (Fwnn_bunsetu_yomi):
+	* mule-wnnfns.c (Fwnn_word_info):
+	* mule-wnnfns.c (Fwnn_dict_search):
+	* mule-wnnfns.c (Fwnn_get_msg):
+	* mule-wnnfns.c (Fwnn_hinsi_list):
+	* mule-wnnfns.c (yes_or_no):
+	* mule-wnnfns.c (puts2):
+	Access Vcharset_wnn_server_type as a Lisp vector throughout these
+	functions.
+
+	* mule-wnnfns.c (reinit_vars_of_mule_wnn): Removed, replaced by
+	init_mule_wnn().
+	* mule-wnnfns.c (vars_of_mule_wnn):
+	Initialize Vcharset_wnn_server_type as a Lisp vector full of Qnil
+	here.
+
+	* mule-wnnfns.c (init_mule_wnn): In this function, called from
+	disksave_object_finalization() with all the dump-time character
+	sets available, initialize the elements of
+	Vcharset_wnn_server_type appropriately.
+	* symsinit.h:
+	Add declaration for init_mule_wnn(). Remove declaration for
+	init_macros(), reinit_vars_of_mule_wnn().
+
 2025-07-02  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* buffer.c (decode_buffer):
