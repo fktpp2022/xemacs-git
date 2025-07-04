@@ -973,7 +973,7 @@ execute_optimized_program (const Opbyte *program,
 	  Lisp_Symbol *symbol_ptr = XSYMBOL (symbol);
 	  Lisp_Object old_value = symbol_ptr->value;
 	  Lisp_Object new_value = POP;
-	  if (!SYMBOL_VALUE_MAGIC_P (old_value) || UNBOUNDP (old_value))
+	  if (!SYMBOL_VALUE_MAGIC_P (old_value))
 	    symbol_ptr->value = new_value;
 	  else {
 	    Fset (symbol, new_value);
@@ -996,7 +996,7 @@ execute_optimized_program (const Opbyte *program,
 	  Lisp_Symbol *symbol_ptr = XSYMBOL (symbol);
 	  Lisp_Object old_value = symbol_ptr->value;
 	  Lisp_Object new_value = POP;
-	  if (!SYMBOL_VALUE_MAGIC_P (old_value) || UNBOUNDP (old_value))
+	  if (!SYMBOL_VALUE_MAGIC_P (old_value))
 	    {
 	      specpdl_ptr->symbol    = symbol;
 	      specpdl_ptr->old_value = old_value;

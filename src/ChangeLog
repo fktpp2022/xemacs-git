@@ -1,3 +1,16 @@
+2025-07-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Further (and all going well last) change regarding Qunbound as
+	Lisp_Opaque, see 0de5cf21b9b0 , 71db57be985b .
+	* bytecode.c:
+	Remove a couple of redundant "|| UNBOUNDP (old_value)" clauses in
+	Bvarbind, Bvarset, since !SYMBOL_VALUE_MAGIC_P() now evaluates to
+	1 for Qunbound.
+	* symbols.c (store_symval_forwarding):
+	Similarly, remove a couple of checks against Qunbound in this
+	function, unnecessary with SYMBOL_VALUE_MAGIC_P() called on the
+	same object.
+
 2025-07-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Rename Vexecuting_macro to Vexecuting_kbd_macro, which is the

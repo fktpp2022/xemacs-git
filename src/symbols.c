@@ -939,8 +939,7 @@ store_symval_forwarding (Lisp_Object sym, Lisp_Object ovalue,
 	store_pointer =
 	  &XSYMBOL_VALUE_BUFFER_LOCAL (*store_pointer)->current_value;
 
-      assert (UNBOUNDP (*store_pointer)
-	      || !SYMBOL_VALUE_MAGIC_P (*store_pointer));
+      assert (!SYMBOL_VALUE_MAGIC_P (*store_pointer));
       *store_pointer = newval;
     }
   else
@@ -3034,8 +3033,7 @@ what you're doing.
       return Qnil;
     }
 
-  if (SYMBOL_VALUE_MAGIC_P (valcontents)
-      && !UNBOUNDP (valcontents))
+  if (SYMBOL_VALUE_MAGIC_P (valcontents))
     invalid_change ("Variable is magic and cannot be aliased", variable);
   reject_constant_symbols (variable, Qunbound, 0, Qt);
 
