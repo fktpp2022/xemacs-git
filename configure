@@ -16841,7 +16841,7 @@ fi
     fi
   fi
 
-  if test -n "$libpq_fe_h_file" -a "$have_libpq" = "yes"
+  if test -n "$libpq_fe_h_file" -a "$have_libpq" = "yes" \
         -a "$with_modules" = "yes"; then
     with_postgresql=yes
     printf "%s\n" "#define HAVE_POSTGRESQL 1" >>confdefs.h

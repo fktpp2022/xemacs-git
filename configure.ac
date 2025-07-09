@@ -3697,7 +3697,7 @@ if test "$with_postgresql" != "no"; then
     fi
   fi
 
-  if test -n "$libpq_fe_h_file" -a "$have_libpq" = "yes"
+  if test -n "$libpq_fe_h_file" -a "$have_libpq" = "yes" \
         -a "$with_modules" = "yes"; then
     with_postgresql=yes
     AC_DEFINE(HAVE_POSTGRESQL)
