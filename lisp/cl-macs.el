@@ -1760,72 +1760,7 @@ lexical closures as in Common Lisp."
 	(list 'defalias (list 'quote func)
 	      (list 'function (cons 'lambda rest)))
 	(list 'quote func)))
-
-;;; Multiple values. We support full Common Lisp conventions here.
-
-;;;###autoload
-(defmacro multiple-value-bind (syms form &rest body)
-  "Collect and bind multiple return values.
-
-If FORM returns multiple values, each symbol in SYMS is bound to one of
-them, in order, and BODY is executed.  If FORM returns fewer multiple values
-than there are SYMS, remaining SYMS are bound to nil.  If FORM does
-not return multiple values, it is treated as returning one multiple value.
-
-Returns the value given by the last element of BODY."
-  (if (null syms)
-      `(progn ,form ,@body)
-    (if (eql 1 (length syms))
-        ;; Code written to deal with other "implementations" of multiple
-        ;; values may have a one-element SYMS.
-        `(let ((,(car syms) ,form))
-          ,@body)
-      (let ((temp (gensym)))
-        `(let* ((,temp (multiple-value-list-internal 0 ,(length syms) ,form))
-                ,@(loop 
-                    for var in syms
-                    collect `(,var (prog1 (car ,temp)
-                                     (setq ,temp (cdr ,temp))))))
-          ,@body)))))
-
-;;;###autoload
-(defmacro multiple-value-setq (syms form)
-  "Collect and set multiple values.
-
-FORM should normally return multiple values; the first N values are stored
-in the symbols in SYMS in turn.  If FORM returns fewer than N values, the
-remaining symbols have their values set to nil.  FORM not returning multiple
-values is treated as FORM returning one multiple value, with other elements
-of SYMS initialized to nil.
-
-Returns the first of the multiple values given by FORM."
-  (if (null syms)
-      ;; Never return multiple values from multiple-value-setq:
-      (and form `(values ,form))
-    (if (eql 1 (length syms))
-        `(setq ,(car syms) ,form)
-      (let ((temp (gensym)))
-        `(let* ((,temp (multiple-value-list-internal 0 ,(length syms) ,form)))
-           (setq ,@(loop
-                     for sym in syms
-                     nconc `(,sym (car-safe ,temp)
-                             ,temp (cdr-safe ,temp))))
-           ,(car syms))))))
-
-;;;###autoload
-(defmacro multiple-value-list (form)
-  "Evaluate FORM and return a list of the multiple values it returned."
-  `(multiple-value-list-internal 0 multiple-values-limit ,form))
-
-;;;###autoload
-(defmacro nth-value (n form)
-  "Evaluate FORM and return the Nth multiple value it returned."
-  (if (integerp n)
-      `(car (multiple-value-list-internal ,n ,(1+ n) ,form))
-    (let ((temp (gensym)))
-      `(let ((,temp ,n))
-        (car (multiple-value-list-internal ,temp (1+ ,temp) ,form))))))
-
+
 ;;;###autoload
 (defmacro* with-hash-table-iterator ((name hash-table) &body body)
   "Define NAME within BODY as a macro returning each item in HASH-TABLE.
@@ -3079,6 +3014,88 @@ Otherwise, return result of last form in BODY."
 Otherwise, return result of last FORM."
   `(condition-case nil (progn ,@body) (file-error nil)))
 
+
+;;; Multiple values. We support full Common Lisp conventions here.
+
+(symbol-macrolet
+    ;; Use a lambda here rather than a defun (which would need to be in
+    ;; e.g. cl-extra.el) so we don't tempt packages code to use it. The
+    ;; unusual variable name for &rest is for the sake of special handling of
+    ;; this code in #'multiple-value-call; I hope to introduce CL-style
+    ;; packages with e.g. #»PACKAGE-NAME»SYMBOL-NAME as the syntax for
+    ;; qualified access to a symbol and this would be a good candidate for
+    ;; that, but not just yet.
+    ((xemacs-nth-values
+      #'(lambda (lower-bound count &rest xemacs-nth-values-rest-aRjavQ)
+	  (let* ((xemacs-nth-values-rest-aRjavQ
+		   (nthcdr lower-bound xemacs-nth-values-rest-aRjavQ))
+		 nthcdr)
+	    (if (setq nthcdr (nthcdr count xemacs-nth-values-rest-aRjavQ))
+		(ldiff xemacs-nth-values-rest-aRjavQ nthcdr)
+	      xemacs-nth-values-rest-aRjavQ)))))
+
+;;;###autoload
+  (defmacro multiple-value-bind (symbols form &rest body)
+    "Collect and bind multiple return values.
+
+If FORM returns multiple values, each symbol in SYMBOLS is bound to one of
+them, in order, and BODY is executed.  If FORM returns fewer multiple values
+than there are SYMBOLS, remaining SYMBOLS are bound to nil.  If FORM does
+not return multiple values, it is treated as returning one multiple value.
+
+Returns the value given by the last element of BODY."
+    (unless (and (listp symbols) (every #'symbolp symbols))
+      (error 'syntax-error "SYMBOLS not valid in `multiple-value-bind'"
+	     symbols))
+    (let* ((length (length symbols)) (gensym (and (cdr symbols) (gensym))))
+      (case length
+	(0 (if body `(progn ,form ,@body) `(prog1 ,form)))
+	(1 `(let ((,(car symbols) ,form)) ,@body))
+	(otherwise
+	 `(let* ((,gensym
+		  (multiple-value-call ,xemacs-nth-values 0 ,length ,form))
+		 ,@(loop 
+		    for var in symbols
+		    collect `(,var (prog1 (car ,gensym)
+				     (setq ,gensym (cdr ,gensym))))))
+	   ,@body)))))
+
+;;;###autoload
+  (defmacro multiple-value-setq (symbols form)
+    "Collect and set multiple values.
+
+FORM should normally return multiple values; the first N values are stored in
+in SYMBOLS in turn.  If FORM returns fewer than N values, the remaining symbols
+have their values set to nil.  FORM not returning multiple values is treated as
+FORM returning one multiple value, with other elements of SYMBOLS initialized
+to nil.
+
+Return the first of the multiple values given by FORM."
+    (unless (and (listp symbols) (every #'symbolp symbols))
+      (error 'syntax-error "SYMBOLS not valid in `multiple-value-setq'"
+	     symbols))
+    (let ((length (length symbols)) (gensym (and (cdr symbols) (gensym))))
+      (case length
+	(0 (and form `(values ,form)))
+	(1 `(setq ,(car symbols) ,form))
+	(otherwise
+	 `(let ((,gensym
+		 (multiple-value-call ,xemacs-nth-values 0 ,length ,form)))
+	   (setq ,@(loop
+		    for sym in symbols
+		    nconc `(,sym (car ,gensym)
+			    ,gensym (cdr ,gensym))))
+	   ,(car symbols))))))
+
+;;;###autoload
+  (defmacro nth-value (n form)
+    "Evaluate FORM and return the Nth multiple value it returned."
+    `(car (multiple-value-call ,xemacs-nth-values ,n 1 ,form))))
+
+;;;###autoload
+(defmacro multiple-value-list (form)
+  "Evaluate FORM and return a list of the multiple values it returned."
+  `(multiple-value-call #'list ,form))
 
 ;;; Compiler macros.
 

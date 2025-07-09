@@ -1,3 +1,36 @@
+2025-07-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Remove visiblity of #'multiple-value-list-internal from Lisp, a
+	step in the direction of further work which will avoid heap
+	allocation and reduce the impact on Lisp runtime funcalls of the
+	multiple values infrastructure. 
+	
+	* bytecomp.el:
+	* bytecomp.el (byte-compile-no-shadow):
+	Add #'multiple-value-setq, #'multiple-value-bind, #'nth-value
+	here.
+
+	* bytecomp.el (byte-compile-multiple-value-list-internal-wrapper):
+	New. Uninterned symbol now used to indicated to the byte compiler that
+	the multiple-value-value-list-internal bytecode should be used.
+	* bytecomp.el (byte-compile-initial-macro-environment):
+	Use it in the compile-time implementations of #'multiple-value-setq,
+	#'multiple-value-bind, #'nth-value.
+	* bytecomp.el:
+	Revise the byte-defop-compiler for multiple-value-list-internal to
+	use the new uninterned symbol.
+
+	* cl-macs.el:
+	* cl-macs.el (multiple-value-bind):
+	* cl-macs.el (multiple-value-setq):
+	* cl-macs.el (multiple-value-list):
+	* cl-macs.el (nth-value):
+	Move all these macros later in the file given they use the
+	#'check-type infrastructure, not available where they previously
+	were. No longer implement them in terms of
+	#'multiple-value-list-internal, pass a lambda to
+	#'multiple-value-call.
+
 2025-07-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* obsolete.el (executing-macro):

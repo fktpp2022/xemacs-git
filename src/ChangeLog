@@ -11,6 +11,24 @@
 	function, unnecessary with SYMBOL_VALUE_MAGIC_P() called on the
 	same object.
 
+2025-07-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Remove visiblity of #'multiple-value-list-internal from Lisp, a
+	step in the direction of further work which will avoid heap
+	allocation and reduce the impact on Lisp runtime funcalls of the
+	multiple values infrastructure. 
+	* eval.c:
+	* eval.c (Fmultiple_value_call):
+	Special-case the new interpreted implementation of
+	#'multiple-value-setq, #'multiple-value-bind, #'nth-values within
+	this, which no longer uses the non-standard
+	#'multiple-value-list-internal.
+	To this end declare a new symbol that they use as the &rest
+	argument name that is unlikely to be used by other code.
+	* eval.c (Fmultiple_value_list_internal): Removed.
+	* eval.c (Fmultiple_value_list_internal): Removed.
+	* eval.c (syms_of_eval): Remove its DEFSUBR().
+
 2025-07-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Rename Vexecuting_macro to Vexecuting_kbd_macro, which is the

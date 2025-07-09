@@ -450,7 +450,9 @@ easily determined from the input file.")
 	;; shouldn't be shadowed when calling #'byte-compile-eval, since
 	;; such code is interpreted, not compiled.
 	;; #### Consider giving this a docstring and a top-level value.
-	(byte-compile-no-shadow '(load-time-value labels flet eval-when)))
+	(byte-compile-no-shadow '(load-time-value labels flet eval-when
+                                  muliple-value-setq multiple-value-bind
+                                  nth-value)))
     (unwind-protect
 	(loop
 	  for (sym . def) in byte-compile-macro-environment
@@ -468,6 +470,9 @@ easily determined from the input file.")
 	  (fset (car elt) (cdr elt)))))))
 
 (defvar for-effect) ; ## Kludge!  This should be an arg, not a special.
+
+(defvar byte-compile-multiple-value-list-internal-wrapper
+  '#:multiple-value-list-internal)
 
 (defvar byte-compile-eval-when-seen nil)
 
@@ -824,8 +829,52 @@ consider #'labels" name)))
              `(,gensym (letf* ,(mapcar* #'(lambda (name lambda)
                                             `((symbol-function ',name)
                                               ,lambda)) names lambdas)
-                         ,@body))))))
-
+                         ,@body)))))
+    (mutiple-value-bind .
+     ,#'(lambda (symbols form &rest body)
+	  (unless (and (listp symbols) (every #'symbolp symbols))
+	    (error 'syntax-error "SYMBOLS not valid in `multiple-value-bind'"
+		   symbols))
+	  (let* ((length (length symbols)) (gensym (and (cdr symbols) (gensym))))
+	    (case length
+	      (0 (if body `(progn ,form ,@body) `(prog1 ,form)))
+	      (1 `(let ((,(car symbols) ,form)) ,@body))
+	      (otherwise
+	       `(let* ((,gensym
+			(,byte-compile-multiple-value-list-internal-wrapper
+			 0 ,(length symbols) ,form))
+		       ,@(loop 
+			  for var in symbols
+			  collect `(,var (prog1 (car ,gensym)
+					   (setq ,gensym (cdr ,gensym))))))
+		 ,@body))))))
+    (multiple-value-setq .
+      ,#'(lambda (symbols form)
+	   (unless (and (listp symbols) (every #'symbolp symbols))
+	     (error 'syntax-error "SYMBOLS not valid in `multiple-value-setq'"
+		    symbols))
+	   (let ((length (length symbols)) (gensym (and (cdr symbols) (gensym))))
+	     (case length
+	       (0 (and form `(values ,form)))
+	       (1 `(setq ,(car symbols) ,form))
+	       (otherwise
+		`(let ((,gensym
+			(,byte-compile-multiple-value-list-internal-wrapper
+			 0 ,(length symbols) ,form)))
+		  (setq ,@(loop
+			   for sym in symbols
+			   nconc `(,sym (car ,gensym)
+				   ,gensym (cdr ,gensym))))
+		  ,(car symbols)))))))
+    (nth-value .
+     ,#'(lambda (n form)
+	  (if (integerp n)
+	      `(car (,byte-compile-multiple-value-list-internal-wrapper
+		     ,n ,(1+ n) ,form))
+	    (let ((temp (gensym)))
+	      `(let ((,temp ,n))
+		(car (,byte-compile-multiple-value-list-internal-wrapper
+		      ,temp (1+ ,temp) ,form))))))))
   "The default macro-environment passed to macroexpand by the compiler.
 Placing a macro here will cause a macro to have different semantics when
 expanded by the compiler as when expanded by the interpreter.")
@@ -3478,7 +3527,20 @@ keyword %s, forcing function quoting" (car form) function)))
 (byte-defop-compiler aset		3)
 
 (byte-defop-compiler-1 bind-multiple-value-limits)
-(byte-defop-compiler multiple-value-list-internal)
+
+;; Doesn't work, creates a new uninterned symbol (even if support for backquote
+;; is added to byte-defop-compiler). Following is its expansion, corrected to
+;; reference byte-compile-multiple-value-list-internal-wrapper.
+
+; (byte-defop-compiler `(,byte-compile-multiple-value-list-internal-wrapper
+;		       byte-multiple-value-list-internal))
+(put byte-compile-multiple-value-list-internal-wrapper
+     'byte-compile 'byte-compile-multiple-value-list-internal)
+(put byte-compile-multiple-value-list-internal-wrapper
+     'byte-opcode 'byte-multiple-value-list-internal)
+(put byte-compile-multiple-value-list-internal-wrapper
+     'byte-opcode-invert byte-compile-multiple-value-list-internal-wrapper)
+
 (byte-defop-compiler-1 multiple-value-call)
 (byte-defop-compiler throw)
 

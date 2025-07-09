@@ -241,7 +241,7 @@ Lisp_Object Qif;
 
 Lisp_Object Qthrow;
 Lisp_Object Qobsolete_throw;
-Lisp_Object Qmultiple_value_list_internal;
+Lisp_Object Qxemacs_nth_values_rest_aRjavQ;
 
 Lisp_Object Qno_error, Qdebug_warning;
 
@@ -4880,17 +4880,52 @@ arguments: (FUNCTION &rest FORMS)
 
   /* Fcar so we error on non-cons: */
   constructed_args[i] = IGNORE_MULTIPLE_VALUES (Feval (Fcar (args)));
-
   GCPRO1 (*constructed_args);
   gcpro1.nvars = ++i; 
 
-  /* The argument order is horrible here. */
-  constructed_args[i] = make_fixnum (0);
-  gcpro1.nvars = ++i;
-  constructed_args[i] = make_fixnum (multiple_values_limit);
-  gcpro1.nvars = ++i;
+  /* Special-case the interpreted implementations of #'multiple-value-bind,
+     #'multiple-value-setq, #'nth-values in cl-macs.el. */
+  if (listcount == 4 && CONSP (constructed_args[0])
+      && EQ (Qlambda, XCAR (constructed_args[0]))
+      && CONSP (XCDR (constructed_args[0]))
+      && CONSP (XCAR (XCDR (constructed_args[0])))
+      && !NILP (Fmemq (Qxemacs_nth_values_rest_aRjavQ,
+		       XCAR (XCDR (constructed_args[0]))))
+      && FIXNUMP (XCAR (XCDR (args))) && FIXNUMP (XCAR (XCDR (XCDR (args)))))
+    {
+      Lisp_Object first = XCAR (XCDR (args)), count = XCAR (XCDR (XCDR (args)));
+      Lisp_Object upper;
 
-  speccount = bind_multiple_value_limits (0, multiple_values_limit);
+      check_integer_range (first, Qzero,
+			   make_fixnum (multiple_values_limit - 1));
+      check_integer_range (count, Qzero,
+			   make_fixnum (multiple_values_limit
+					- XFIXNUM (first) - 1));
+      upper = make_fixnum (XFIXNUM (first) + XFIXNUM (count));
+      constructed_args[i] = first;
+      gcpro1.nvars = ++i;
+      constructed_args[i] = upper;
+      gcpro1.nvars = ++i;
+      constructed_args[i]
+	= make_fixnum (bind_multiple_value_limits (XFIXNUM (first),
+						   XFIXNUM (upper)));
+      gcpro1.nvars = ++i;
+      constructed_args[i] = Feval (XCAR (XCDR (XCDR (XCDR (args)))));
+      gcpro1.nvars = ++i;
+      
+      RETURN_UNGCPRO (multiple_value_list_internal (i - 1,
+						    constructed_args + 1));
+    }
+  else
+    {
+      /* The argument order is horrible here. */
+      constructed_args[i] = make_fixnum (0);
+      gcpro1.nvars = ++i;
+      constructed_args[i] = make_fixnum (multiple_values_limit);
+      gcpro1.nvars = ++i;
+      speccount = bind_multiple_value_limits (0, multiple_values_limit);
+    }
+
   constructed_args[i] = make_fixnum (speccount);
   gcpro1.nvars = ++i;
 
@@ -4946,71 +4981,6 @@ multiple_value_list_internal (int nargs, Lisp_Object *args)
           return Qnil;
         }
     }
-}
-
-DEFUN ("multiple-value-list-internal", Fmultiple_value_list_internal, 3,
-       UNEVALLED, 0, /*
-Evaluate FORM. Return a list of multiple vals reflecting the other two args.
-
-Don't use this.  Use `multiple-value-list', the macro specified by Common
-Lisp, instead.
-
-FIRST-DESIRED-MULTIPLE-VALUE is the first element in list of multiple values
-to pass back.  MULTIPLE-VALUE-UPPER-LIMIT is the exclusive upper limit on
-the indexes within the values that may be passed back; this function will
-never return a list longer than MULTIPLE-VALUE-UPPER-LIMIT -
-FIRST-DESIRED-MULTIPLE-VALUE.  It may return a list shorter than that, if
-`values' or `values-list' do not supply enough elements.
-
-arguments: (FIRST-DESIRED-MULTIPLE-VALUE MULTIPLE-VALUE-UPPER-LIMIT FORM)
-*/
-       (args))
-{
-  Lisp_Object argv[4];
-  int first, upper, nargs;
-  struct gcpro gcpro1;
-
-  GET_LIST_LENGTH (args, nargs);
-  if (nargs != 3)
-    {
-      Fsignal (Qwrong_number_of_arguments,
-               list2 (Qmultiple_value_list_internal, make_fixnum (nargs)));
-    }
-
-  argv[0] = IGNORE_MULTIPLE_VALUES (Feval (XCAR (args)));
-
-  GCPRO1 (argv[0]);
-  gcpro1.nvars = 1;
-
-  args = XCDR (args);
-  argv[1] = IGNORE_MULTIPLE_VALUES (Feval (XCAR (args)));
-
-  check_integer_range (argv[1], Qzero, make_fixnum (MOST_POSITIVE_FIXNUM));
-  check_integer_range (argv[0], Qzero, argv[1]);
-
-  upper = XFIXNUM (argv[1]);
-  first = XFIXNUM (argv[0]);
-
-  gcpro1.nvars = 2;
-
-  /* The unintuitive order of things here is for the sake of the bytecode;
-     the alternative would be to encode the number of arguments in the
-     bytecode stream, which complicates things if we have more than 255
-     arguments. */
-  argv[2] = make_fixnum (bind_multiple_value_limits (first, upper));
-  gcpro1.nvars = 3;
-  args = XCDR (args);
-
-  /* GCPROing in this function is not strictly necessary, this Feval is the
-     only point that may cons up data that is not immediately discarded, and
-     within it is the only point (in Fmultiple_value_list_internal and
-     multiple_value_list) that we can garbage collect. But I'm conservative,
-     and this function is called so rarely (only from interpreted code) that
-     it doesn't matter for performance. */
-  argv[3] = Feval (XCAR (args));
-  gcpro1.nvars = 4;
-
-  RETURN_UNGCPRO (multiple_value_list_internal (countof (argv), argv));
 }
 
 DEFUN ("multiple-value-prog1", Fmultiple_value_prog1, 1, UNEVALLED, 0, /*
@@ -7464,10 +7434,11 @@ syms_of_eval (void)
   DEFSYMBOL (Qif);
   DEFSYMBOL (Qthrow);
   DEFSYMBOL (Qobsolete_throw);  
-  DEFSYMBOL (Qmultiple_value_list_internal);
 
   DEFSYMBOL (Qno_error);
   DEFSYMBOL (Qdebug_warning);
+
+  DEFSYMBOL (Qxemacs_nth_values_rest_aRjavQ);
 
   DEFSUBR (For);
   DEFSUBR (Fand);
@@ -7503,7 +7474,6 @@ syms_of_eval (void)
   DEFSUBR (Feval);
   DEFSUBR (Fapply);
   DEFSUBR (Fmultiple_value_call);
-  DEFSUBR (Fmultiple_value_list_internal);
   DEFSUBR (Fmultiple_value_prog1);
   DEFSUBR (Fvalues);
   DEFSUBR (Fvalues_list);
@@ -7761,3 +7731,5 @@ of those macros.
 
   inhibit_flags = 0;
 }
+
+/* eval.c ends here. */
