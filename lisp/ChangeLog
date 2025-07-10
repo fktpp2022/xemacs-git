@@ -1,3 +1,9 @@
+2025-07-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl-macs.el (values):
+	Move this beside multiple-value-setq and friends given it now
+	needs to use the xemacs-nth-values lambda.
+
 2025-07-09  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove visiblity of #'multiple-value-list-internal from Lisp, a

@@ -2260,23 +2260,6 @@ Example: (defsetf nth (n x) (v) (list 'setcar (list 'nthcdr n x) v))."
 		(nth 3 method) store-temp)
 	  (list 'substring (nth 4 method) from-temp to-temp))))
 
-;; XEmacs addition
-(define-setf-method values (&rest args)
-  (let ((methods (mapcar #'(lambda (x)
-			     (get-setf-method x byte-compile-macro-environment))
-			 args))
-	(store-temp (gensym "--values-store--")))
-    (list (apply 'append (mapcar 'first methods))
-	  (apply 'append (mapcar 'second methods))
-	  `((,store-temp
-	     (multiple-value-list-internal 0 ,(if args (length args) 1))))
-	  (cons 'values
-		(mapcar #'(lambda (m)
-			    (cl-setf-do-store (cons (car (third m)) (fourth m))
-					      (list 'pop store-temp)))
-			methods))
-	  (cons 'list (mapcar 'fifth methods)))))
-
 ;;; Getting and optimizing setf-methods.
 ;;;###autoload
 (defun get-setf-method (place &optional env)
@@ -3090,7 +3073,25 @@ Return the first of the multiple values given by FORM."
 ;;;###autoload
   (defmacro nth-value (n form)
     "Evaluate FORM and return the Nth multiple value it returned."
-    `(car (multiple-value-call ,xemacs-nth-values ,n 1 ,form))))
+    `(car (multiple-value-call ,xemacs-nth-values ,n 1 ,form)))
+
+  ;; XEmacs addition
+  (define-setf-method values (&rest args)
+    (let ((methods (mapcar #'(lambda (x)
+			       (get-setf-method x byte-compile-macro-environment))
+			   args))
+	  (store-temp (gensym "--values-store--")))
+      (list (apply 'append (mapcar 'first methods))
+	    (apply 'append (mapcar 'second methods))
+	    `((,store-temp
+	       (multiple-value-call ,xemacs-nth-values 0
+				    ,(if args (length args) 1))))
+	    (cons 'values
+		  (mapcar #'(lambda (m)
+			      (cl-setf-do-store (cons (car (third m)) (fourth m))
+						(list 'pop store-temp)))
+			  methods))
+	    (cons 'list (mapcar 'fifth methods))))))
 
 ;;;###autoload
 (defmacro multiple-value-list (form)
