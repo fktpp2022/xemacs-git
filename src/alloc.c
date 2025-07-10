@@ -1040,8 +1040,7 @@ static struct type##_block *current_##type##_block;	\
 static int current_##type##_block_index =		\
   countof (current_##type##_block->block);		\
 							\
-static Lisp_Free *type##_free_list;			\
-static Lisp_Free *type##_free_list_tail;		\
+DECLARE_FIXED_TYPE_FREE_LIST (type);			\
 							\
 static int gc_count_num_##type##_in_use;		\
 static int gc_count_num_##type##_freelist
@@ -1066,6 +1065,10 @@ static int gc_count_num_##type##_freelist
 
 #ifdef ERROR_CHECK_GC
 
+#define DECLARE_FIXED_TYPE_FREE_LIST(type)              \
+  static Lisp_Free *type##_free_list;                   \
+  static Lisp_Free *type##_free_list_tail
+
 /* Note: if you get crashes in this function, suspect incorrect calls
    to free_cons() and friends.  This happened once because the cons
    cell was not GC-protected and was getting collected before
@@ -1089,6 +1092,9 @@ static int gc_count_num_##type##_freelist
 } while (0)
 
 #else /* !ERROR_CHECK_GC */
+
+#define DECLARE_FIXED_TYPE_FREE_LIST(type)                      \
+  static Lisp_Free *type##_free_list
 
 #define ALLOCATE_FIXED_TYPE_1(type, structtype, result) do {	\
   if (type##_free_list)						\

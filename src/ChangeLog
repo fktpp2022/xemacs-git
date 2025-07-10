@@ -1,5 +1,13 @@
 2025-07-10  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Avoid compile time warnings about type##_free_list_tail unused
+	when building without ERROR_CHECK_GC.
+	* alloc.c:
+	* alloc.c (DECLARE_FIXED_TYPE_FREE_LIST): New #define.
+	* alloc.c (DECLARE_FIXED_TYPE_ALLOC): Use it.
+
+2025-07-10  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Mark the string interactive specs as C-readonly, fold them before
 	dump given they are constants.
 
