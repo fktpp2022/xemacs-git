@@ -324,31 +324,4 @@ With non-nil argument UNINSTALL, disable mouse wheel support."
 
 (provide 'mwheel)
 
-;; XEmacs; our autoload code can't quite handle symbol-macrolet, above, make
-;; these explicit.
-;;;###autoload
-(autoload 'mouse-wheel-scroll "mwheel" "\
-Scroll up or down depending on EVENT.
-
-EVENT should reflect a mouse wheel scroll, upward or downward, and
-`mouse-wheel-scroll' will error if it does not.
-
-See also `mouse-wheel-scroll-amount', `mouse-wheel-progressive-speed', and
-`mouse-wheel-follow-mouse', which modify the behavior of `mouse-wheel-scroll',
-and `mouse-wheel-click-event' which specifies a mouse click to ignore for a
-period of time after mouse wheel activity, which period is specified with
-`mouse-wheel-inhibit-click-time'.
-
-arguments: (EVENT)
-" t)
-
-;;;###autoload
-(autoload 'mwheel-install "mwheel" "\
-Enable mouse wheel support.  On by default.
-
-With argument UNINSTALL, disable mouse wheel support.
-
-arguments: (&optional UNINSTALL)
-" t) 
-
 ;;; mwheel.el ends here

@@ -1,6 +1,19 @@
 2025-07-10  Aidan Kehoe  <kehoea@parhasard.net>
 
-	* cl-macs.el (values):
+	Remove the restriction on autoload cookies for forms not at
+	top-level, needed for recent changes to cl-macs.el.
+	* autoload.el (generate-autoload-cookie):
+	Put a \ before ;;;#autoload in this docstring so build doesn't
+	choke.
+	* autoload.el (generate-lisp-file-autoloads-1):
+	Comment out a (forward-sexp) here, add a comment with motivation
+	as to why.
+	* mwheel.el: Remove explicit autoloads from this file, no longer
+	needed.
+
+2025-07-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl-macs.el (define-setf-method values):
 	Move this beside multiple-value-setq and friends given it now
 	needs to use the xemacs-nth-values lambda.
 

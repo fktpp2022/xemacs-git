@@ -181,7 +181,7 @@ meaningless to Lisp (e.g., a comment).
 
 This string is used:
 
-;;;###autoload
+\;;;###autoload
 \(defun function-to-be-autoloaded () ...)
 
 If this string appears alone on a line, the following form will be
@@ -598,7 +598,9 @@ autoloads are generated for defuns and defmacros marked by
 	    ;; Don't read the comment.
 	    (forward-line 1))
 	   (t
-	    (forward-sexp 1)
+	    ;; XEmacs; no reason an autoloaded function can't be surrounded by
+	    ;; (labels ...) or (symbol-macrolet ...).
+	    ; (forward-sexp 1)
 	    (forward-line 1)))
 	  )))
     (or noninteractive ; XEmacs: only need one line in -batch mode.
