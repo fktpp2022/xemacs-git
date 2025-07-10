@@ -5247,26 +5247,77 @@ disksave_object_finalization_1 (void)
 #endif
 }
 
+/* Previously (with unexec) the subr objects were in the data segment and
+   marked C-readonly. Now they are in the dump file and given no code modifies
+   them it is helpful at GC after pdump_load() to decrease the number of
+   objects traversed by marking them C-readonly once more.
+
+   The string interactive specs do not vary much, there is a lot of "_p", "",
+   "p", "r" and this is equally true for the dumped compiled
+   functions. De-duplicate them at dump time, marked them C-readonly given the
+   de-duplication, reduce the number of objects traversed for GC. There's no
+   reason now that the compiled function interactive strings cannot be
+   identical to the subr interactive strings (which were previously not Lisp
+   strings), do the de-duplication on both. */
 static int
-mark_subrs_readonly (Lisp_Object UNUSED (key), Lisp_Object value,
-                     void* UNUSED (extra_arg))
+finalize_functions_in_obarray (Lisp_Object UNUSED (key), Lisp_Object value,
+			       void* prompt_hash)
 {
+  Lisp_Object Vprompt_hash = *((Lisp_Object *) prompt_hash);
+  Lisp_Object interned_prompt;
+
   if (SUBRP (XSYMBOL_FUNCTION (value)))
     {
       Lisp_Subr *subr = XSUBR (XSYMBOL_FUNCTION (value));
 
       if (EQ (subr->name, value) && FIXNUMP (subr->doc))
         {
-          /* Don't waste GC cycles traversing dumped subrs after loadup.
-             Disksave methods are not called for frob-block objects, which is
-             a bug, otherwise this would be a disksave method. */
-          SET_C_READONLY (XSYMBOL_FUNCTION (value));
           if (STRINGP (subr->prompt))
 	    {
-              SET_C_READONLY (subr->prompt);
+	      interned_prompt = Fgethash (subr->prompt,
+					  Vprompt_hash,
+					  Qzero);
+	      if (STRINGP (interned_prompt))
+		{
+		  subr->prompt = interned_prompt;
+		}
+	      else
+		{
+		  SET_C_READONLY (subr->prompt);
+		  Fputhash (subr->prompt, subr->prompt,
+			    Vprompt_hash);
+		}
 	    }
+
+          SET_C_READONLY (XSYMBOL_FUNCTION (value));
         }
     }
+  else if (COMPILED_FUNCTIONP (XSYMBOL_FUNCTION (value)))
+    {
+      Lisp_Compiled_Function *ff
+	= XCOMPILED_FUNCTION (XSYMBOL_FUNCTION (value));
+      Lisp_Object ff_interactive = ff->flags.interactivep ?
+	compiled_function_interactive (ff) : Qnil;
+
+      if (STRINGP (ff_interactive))
+	{
+	  interned_prompt = Fgethash (ff_interactive,
+				      Vprompt_hash,
+				      Qzero);
+	  if (STRINGP (interned_prompt))
+	    {
+	      set_compiled_function_interactive (ff,
+						 interned_prompt);
+	    }
+	  else
+	    {
+	      SET_C_READONLY (ff_interactive);
+	      Fputhash (ff_interactive, ff_interactive,
+			Vprompt_hash);
+	    }
+	}
+    }
+
   return 0;
 }
 
@@ -5289,8 +5340,13 @@ disksave_object_finalization (void)
   clear_default_devices ();
   disksave_clear_unicode_precedence ();
 
-  /* Mark subrs that are bound to interned symbols as C-readonly. */
-  elisp_maphash_unsafe (mark_subrs_readonly, Vobarray, NULL);
+  {
+    Lisp_Object Vprompt_hash = make_lisp_hash_table
+      (1000, HASH_TABLE_NON_WEAK, Qequal);
+    /* This cannot GC, no need to GCPRO Vprompt_hash. */
+    elisp_maphash_unsafe (finalize_functions_in_obarray, Vobarray,
+			  (void *) (&Vprompt_hash));
+  }
 
   garbage_collect_1 ();
 

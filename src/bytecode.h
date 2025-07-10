@@ -107,6 +107,9 @@ Lisp_Object compiled_function_interactive   (Lisp_Compiled_Function *f);
 void set_compiled_function_documentation (Lisp_Compiled_Function *f,
 					  Lisp_Object new_doc);
 
+void set_compiled_function_interactive (Lisp_Compiled_Function *,
+					Lisp_Object);
+
 void optimize_compiled_function (Lisp_Object compiled_function);
 
 typedef unsigned char Opbyte;

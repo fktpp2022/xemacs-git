@@ -63,8 +63,6 @@ static void set_compiled_function_arglist (Lisp_Compiled_Function *,
                                            Lisp_Object);
 static void set_compiled_function_constants (Lisp_Compiled_Function *,
                                              Lisp_Object);
-static void set_compiled_function_interactive (Lisp_Compiled_Function *,
-                                               Lisp_Object);
 
 Lisp_Object Qbyte_code, Qcompiled_functionp, Qinvalid_byte_code;
 
@@ -2787,7 +2785,7 @@ set_compiled_function_constants (Lisp_Compiled_Function *f, Lisp_Object new_)
   f->constants = new_;
 }
 
-static void
+void
 set_compiled_function_interactive (Lisp_Compiled_Function *f, Lisp_Object new_)
 {
   assert (f->flags.interactivep);

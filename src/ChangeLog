@@ -1,3 +1,20 @@
+2025-07-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Mark the string interactive specs as C-readonly, fold them before
+	dump given they are constants.
+
+	* alloc.c:
+	* alloc.c (finalize_functions_in_obarray): Rename
+	mark_subrs_readonly to this. De-duplicate the string interactive specs.
+	* alloc.c (disksave_object_finalization):
+	Call finalize_functions_in_obarray() with its new name. Pass the
+	elisp_maphash_unsafe() a hash table used to de-duplicate the
+	prompt strings.
+	* bytecode.c (set_compiled_function_interactive): Expose this to
+	alloc.c, it is no longer static.
+	* bytecode.h:
+	Declare set_compiled_function_interactive() here.
+
 2025-07-04  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Further (and all going well last) change regarding Qunbound as
