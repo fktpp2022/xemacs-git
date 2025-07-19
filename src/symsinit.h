@@ -199,7 +199,6 @@ void console_type_create_device_gtk (void);
 void console_type_create_device_mswindows (void);
 void console_type_create_device_tty (void);
 void console_type_create_device_x (void);
-void reinit_console_type_create_device_x (void);
 void console_type_create_dialog_gtk (void);
 void console_type_create_dialog_mswindows (void);
 void console_type_create_dialog_x (void);

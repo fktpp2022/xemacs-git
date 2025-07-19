@@ -1757,9 +1757,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #ifdef WITH_NUMBER_TYPES
       reinit_vars_of_number ();
 #endif
-#ifdef HAVE_X_WINDOWS
-      reinit_console_type_create_device_x ();
-#endif
     }
 
   if (!initialized)

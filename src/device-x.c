@@ -362,10 +362,31 @@ have_xemacs_resources_in_xrdb (Display *dpy)
   return 0;
 }
 
-/* Only the characters [-_A-Za-z0-9] are allowed in the individual
-   components of a resource.  Convert invalid characters to `-' */
+/* Only the characters [-_A-Za-z0-9] are allowed in the individual components
+   of a resource.  Convert invalid characters to `-'. Lisp code to generate
+   the literal table:
 
-static char valid_resource_char_p[256];
+   (let ((list
+          (loop for ii from 0 below 256
+                collect (if (position
+                             (int-char ii)
+                             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqr\
+stuvwxyz0123456789-_")
+                            "1"
+                          "0"))))
+     (insert (mapconcat #'identity
+                        (subseq list 0 (1+ (position
+                                            "1" list
+                                            :from-end t :test #'equal)))
+                        ", ") ?\n))
+   */
+static const Extbyte valid_resource_char_p[256] = {
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+};
 
 static void
 validify_resource_component (Extbyte *str, Bytecount len)
@@ -2106,26 +2127,21 @@ syms_of_device_x (void)
 }
 
 void
-reinit_console_type_create_device_x (void)
-{
-  /* Initialize variables to speed up X resource interactions */
-  const Ascbyte *valid_resource_chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-  while (*valid_resource_chars)
-    valid_resource_char_p[(unsigned int) (*valid_resource_chars++)] = 1;
-
-  name_Extbyte_dynarr  = Dynarr_new (Extbyte);
-  class_Extbyte_dynarr = Dynarr_new (Extbyte);
-}
-
-void
 console_type_create_device_x (void)
 {
-  reinit_console_type_create_device_x ();
   CONSOLE_HAS_METHOD (x, init_device);
   CONSOLE_HAS_METHOD (x, finish_init_device);
   CONSOLE_HAS_METHOD (x, delete_device);
   CONSOLE_HAS_METHOD (x, device_system_metrics);
+
+  name_Extbyte_dynarr  = Dynarr_new (Extbyte);
+  dump_add_root_block_ptr (&name_Extbyte_dynarr, 
+                           &unsigned_char_dynarr_description);
+
+  class_Extbyte_dynarr = Dynarr_new (Extbyte);
+  dump_add_root_block_ptr (&class_Extbyte_dynarr, 
+                           &unsigned_char_dynarr_description);
+
 }
 
 void

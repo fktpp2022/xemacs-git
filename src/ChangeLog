@@ -1,3 +1,17 @@
+2025-07-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* device-x.c (valid_resource_char_p): Declare this as a constant
+	literal, no need to generate it after pdump_load().
+	* device-x.c (reinit_console_type_create_device_x): 
+	Removed. No need for this function post-pdump_load().
+	* device-x.c (console_type_create_device_x):
+	Dump name_Extbyte_dynarr, class_Extbyte_dynarr here, there is no
+	downside to this.
+	* emacs.c (main_1):
+	Remove call to reinit_console_type_create_device_x().
+	* symsinit.h:
+	Remove its declaration.
+
 2025-07-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Avoid compile time warnings about type##_free_list_tail unused
