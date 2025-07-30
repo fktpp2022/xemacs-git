@@ -3593,22 +3593,6 @@ extern MODULE_API int specpdl_depth_counter;
                     PARSE_KEYWORDS_MIN_ARGS (function), 0);             \
   PARSE_KEYWORDS_ASSERT_CORRECT_FUNCTION (function)
 
-/* Count the number of keywords, thank you Dale Weiler. */
-#define PARSE_KEYWORDS_ARGC_COUNTER(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, \
-                                    N, ...) N
-#define PARSE_KEYWORDS_ARGC(...) \
-  PARSE_KEYWORDS_EXPAND (PARSE_KEYWORDS_ARGC_COUNTER (__VA_ARGS__, 10, 9, 8, \
-                                                      7, 6, 5, 4, 3, 2, 1, 0))
-
-/* Concatenate */
-#define PARSE_KEYWORDS_CAT(X, Y) \
-    X ## Y
-#define PARSE_KEYWORDS_CONCATENATE(X, Y) \
-    PARSE_KEYWORDS_CAT(X, Y)
-
-/* Needed to work around difficulties with __VA_ARGS__ and MSVC. */
-#define PARSE_KEYWORDS_EXPAND(X) X
-
 /* PARSE_KEYWORDS_7 is a more fine-grained version of PARSE_KEYWORDS. The
    differences are as follows:
 
@@ -3628,8 +3612,8 @@ extern MODULE_API int specpdl_depth_counter;
 #define PARSE_KEYWORDS_7(func_sym, nargs, args, keywords,               \
                          keyword_defaults, keywords_offset,             \
                          allow_other_keys)                              \
-  PARSE_KEYWORDS_CONCATENATE (DECLARE_N_KEYWORDS_,                      \
-                              PARSE_KEYWORDS_ARGC keywords) keywords;   \
+  PREPROCESSOR_CONCATENATE (DECLARE_N_KEYWORDS_,                        \
+                            PREPROCESSOR_ARGC keywords) keywords;       \
                                                                         \
   do                                                                    \
     {                                                                   \
@@ -3663,9 +3647,8 @@ extern MODULE_API int specpdl_depth_counter;
           pk_key = args[pk_i--];                                        \
                                                                         \
           if (0) {}                                                     \
-	  PARSE_KEYWORDS_CONCATENATE (CHECK_N_KEYWORDS_,                \
-                                      PARSE_KEYWORDS_ARGC               \
-                                      keywords) keywords                \
+	  PREPROCESSOR_CONCATENATE                                      \
+            (CHECK_N_KEYWORDS_, PREPROCESSOR_ARGC keywords) keywords    \
           else if (allow_other_keys || pk_allow_other_keys)             \
             {                                                           \
               continue;                                                 \

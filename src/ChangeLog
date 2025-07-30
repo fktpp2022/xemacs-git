@@ -1,3 +1,15 @@
+2025-07-30  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* compiler.h (PREPROCESSOR_ARGC): New. Moved from lisp.h, where it
+	was previously named PARSE_KEYWORDS_ARGC().
+	* compiler.h (PREPROCESSOR_CAT, PREPROCESSOR_CONCATENATE,
+	PREPROCESSOR_EXPAND, PREPROCESSOR_ARGC_COUNTER): New macros in
+	support of PREPROCESSOR_ARGC(), also moved from lisp.h and also
+	previously starting with PARSE_KEYWORDS.
+	* lisp.h (PARSE_KEYWORDS_7):
+	Use the new names for PREPROCESSOR_CONCATENATE, PREPROCESSOR_ARGC
+	in this macro.
+
 2025-07-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* device-x.c (valid_resource_char_p): Declare this as a constant
