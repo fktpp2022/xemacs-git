@@ -64,6 +64,9 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #ifdef WIN32_NATIVE
 #include "syswindows.h"
 #endif
+#ifdef WIN32_ANY
+#include "fontcolor-msw.h"
+#endif
 #include "console-stream.h"
 
 #ifdef HAVE_GLIBC
@@ -5340,6 +5343,14 @@ disksave_object_finalization (void)
   Flocate_file_clear_hashing (Qt);
 #ifdef WIN32_NATIVE
   Fclrhash (Vmswindows_read_link_hash);
+#endif
+
+#ifdef WIN32_ANY
+  Fclrhash (Vfont_signature_data);
+#endif
+
+#ifdef WIN32_ANY
+  Fclrhash (Vfont_signature_data);
 #endif
   uncache_home_directory ();
   zero_out_command_line_status_vars ();

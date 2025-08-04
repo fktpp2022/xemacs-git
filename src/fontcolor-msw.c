@@ -98,120 +98,162 @@ static const fontmap_t charset_map[] =
   {"Korean Johab"	, JOHAB_CHARSET},
   {"OEM/DOS"		, OEM_CHARSET}
 };
-
-
-typedef struct unicode_subrange_raw_t
-{
-  int subrange_bit;
-  int start; /* first Unicode codepoint */
-  int end; /* last Unicode codepoint */
-} unicode_subrange_raw_t;
-
+
 /* This table comes from MSDN, Unicode Subset Bitfields [Platform SDK
    Documentation, Base Services, International Features, Unicode and
    Character Sets, Unicode and Character Set Reference, Unicode and
-   Character Set Constants].  We preprocess it at startup time into an
-   array of unicode_subrange_t.
-   */
+   Character Set Constants]. */
 
-static const unicode_subrange_raw_t unicode_subrange_raw_map[] =
-{
-  {0, 0x0020, 0x007e}, /* Basic Latin */
-  {1, 0x00a0, 0x00ff}, /* Latin-1 Supplement */
-  {2, 0x0100, 0x017f}, /* Latin Extended-A */
-  {3, 0x0180, 0x024f}, /* Latin Extended-B */
-  {4, 0x0250, 0x02af}, /* IPA Extensions */
-  {5, 0x02b0, 0x02ff}, /* Spacing Modifier Letters */
-  {6, 0x0300, 0x036f}, /* Combining Diacritical Marks */
-  {7, 0x0370, 0x03ff}, /* Basic Greek */
-  /* 8  Reserved */
-  {9, 0x0400, 0x04ff}, /* Cyrillic */
-  {10, 0x0530, 0x058f}, /* Armenian */
-  {11, 0x0590, 0x05ff}, /* Basic Hebrew */
-  /* 12   Reserved */
-  {13, 0x0600, 0x06ff}, /* Basic Arabic */
-  /* 14   Reserved */
-  {15, 0x0900, 0x097f}, /* Devanagari */
-  {16, 0x0980, 0x09ff}, /* Bengali */
-  {17, 0x0a00, 0x0a7f}, /* Gurmukhi */
-  {18, 0x0a80, 0x0aff}, /* Gujarati */
-  {19, 0x0b00, 0x0b7f}, /* Oriya */
-  {20, 0x0b80, 0x0bff}, /* Tamil */
-  {21, 0x0c00, 0x0c7f}, /* Telugu */
-  {22, 0x0c80, 0x0cff}, /* Kannada */
-  {23, 0x0d00, 0x0d7f}, /* Malayalam */
-  {24, 0x0e00, 0x0e7f}, /* Thai */
-  {25, 0x0e80, 0x0eff}, /* Lao */
-  {26, 0x10a0, 0x10ff}, /* Basic Georgian */
-  /* 27   Reserved */
-  {28, 0x1100, 0x11ff}, /* Hangul Jamo */
-  {29, 0x1e00, 0x1eff}, /* Latin Extended Additional */
-  {30, 0x1f00, 0x1fff}, /* Greek Extended */
-  {31, 0x2000, 0x206f}, /* General Punctuation */
-  {32, 0x2070, 0x209f}, /* Subscripts and Superscripts */
-  {33, 0x20a0, 0x20cf}, /* Currency Symbols */
-  {34, 0x20d0, 0x20ff}, /* Combining Diacritical Marks for Symbols */
-  {35, 0x2100, 0x214f}, /* Letter-like Symbols */
-  {36, 0x2150, 0x218f}, /* Number Forms */
-  {37, 0x2190, 0x21ff}, /* Arrows */
-  {38, 0x2200, 0x22ff}, /* Mathematical Operators */
-  {39, 0x2300, 0x23ff}, /* Miscellaneous Technical */
-  {40, 0x2400, 0x243f}, /* Control Pictures */
-  {41, 0x2440, 0x245f}, /* Optical Character Recognition */
-  {42, 0x2460, 0x24ff}, /* Enclosed Alphanumerics */
-  {43, 0x2500, 0x257f}, /* Box Drawing */
-  {44, 0x2580, 0x259f}, /* Block Elements */
-  {45, 0x25a0, 0x25ff}, /* Geometric Shapes */
-  {46, 0x2600, 0x26ff}, /* Miscellaneous Symbols */
-  {47, 0x2700, 0x27bf}, /* Dingbats */
-  {48, 0x3000, 0x303f}, /* Chinese, Japanese, and Korean (CJK) Symbols and Punctuation */
-  {49, 0x3040, 0x309f}, /* Hiragana */
-  {50, 0x30a0, 0x30ff}, /* Katakana */
-  {51, 0x3100, 0x312f}, /* Bopomofo */
-  {51, 0x31a0, 0x31bf}, /* Extended Bopomofo */
-  {52, 0x3130, 0x318f}, /* Hangul Compatibility Jamo */
-  {53, 0x3190, 0x319f}, /* CJK Miscellaneous */
-  {54, 0x3200, 0x32ff}, /* Enclosed CJK Letters and Months */
-  {55, 0x3300, 0x33ff}, /* CJK Compatibility */
-  {56, 0xac00, 0xd7a3}, /* Hangul */
-  {57, 0xd800, 0xdfff}, /* Surrogates. Note that setting this bit implies that there is at least one codepoint beyond the Basic Multilingual Plane that is supported by this font.  */
-  /* 58   Reserved */
-  {59, 0x4e00, 0x9fff}, /* CJK Unified Ideographs */
-  {59, 0x2e80, 0x2eff}, /* CJK Radicals Supplement */
-  {59, 0x2f00, 0x2fdf}, /* Kangxi Radicals */
-  {59, 0x2ff0, 0x2fff}, /* Ideographic Description */
-  {59, 0x3400, 0x4dbf}, /* CJK Unified Ideograph Extension A */
-  {60, 0xe000, 0xf8ff}, /* Private Use Area */
-  {61, 0xf900, 0xfaff}, /* CJK Compatibility Ideographs */
-  {62, 0xfb00, 0xfb4f}, /* Alphabetic Presentation Forms */
-  {63, 0xfb50, 0xfdff}, /* Arabic Presentation Forms-A */
-  {64, 0xfe20, 0xfe2f}, /* Combining Half Marks */
-  {65, 0xfe30, 0xfe4f}, /* CJK Compatibility Forms */
-  {66, 0xfe50, 0xfe6f}, /* Small Form Variants */
-  {67, 0xfe70, 0xfefe}, /* Arabic Presentation Forms-B */
-  {68, 0xff00, 0xffef}, /* Halfwidth and Fullwidth Forms */
-  {69, 0xfff0, 0xfffd}, /* Specials */
-  {70, 0x0f00, 0x0fcf}, /* Tibetan */
-  {71, 0x0700, 0x074f}, /* Syriac */
-  {72, 0x0780, 0x07bf}, /* Thaana */
-  {73, 0x0d80, 0x0dff}, /* Sinhala */
-  {74, 0x1000, 0x109f}, /* Myanmar */
-  {75, 0x1200, 0x12bf}, /* Ethiopic */
-  {76, 0x13a0, 0x13ff}, /* Cherokee */
-  {77, 0x1400, 0x14df}, /* Canadian Aboriginal Syllabics */
-  {78, 0x1680, 0x169f}, /* Ogham */
-  {79, 0x16a0, 0x16ff}, /* Runic */
-  {80, 0x1780, 0x17ff}, /* Khmer */
-  {81, 0x1800, 0x18af}, /* Mongolian */
-  {82, 0x2800, 0x28ff}, /* Braille */
-  {83, 0xa000, 0xa48c}, /* Yi, Yi Radicals */
+#define FOR_ALL_UNICODE_FONT_SUBRANGES(FROB, FROB_LAST)         \
+  FROB (0, 0x0020, 0x007e)   /* Basic Latin */                  \
+  FROB (1, 0x00a0, 0x00ff)   /* Latin-1 Supplement */           \
+  FROB (2, 0x0100, 0x017f)   /* Latin Extended-A */             \
+  FROB (3, 0x0180, 0x024f)   /* Latin Extended-B */             \
+  FROB (4, 0x0250, 0x02af)   /* IPA Extensions */               \
+  FROB (5, 0x02b0, 0x02ff)   /* Spacing Modifier Letters */     \
+  FROB (6, 0x0300, 0x036f)   /* Combining Diacritical Marks */  \
+  FROB (7, 0x0370, 0x03ff)   /* Basic Greek */                  \
+  FROB (8)                   /* 8  Reserved */                  \
+  FROB (9, 0x0400, 0x04ff)   /* Cyrillic */                     \
+  FROB (10, 0x0530, 0x058f)  /* Armenian */                     \
+  FROB (11, 0x0590, 0x05ff)  /* Basic Hebrew */                 \
+  FROB (12)                  /* 12 Reserved */                  \
+  FROB (13, 0x0600, 0x06ff)  /* Basic Arabic */                 \
+  FROB (14)                  /* 14   Reserved */                \
+  FROB (15, 0x0900, 0x097f)  /* Devanagari */                   \
+  FROB (16, 0x0980, 0x09ff)  /* Bengali */                      \
+  FROB (17, 0x0a00, 0x0a7f)  /* Gurmukhi */                     \
+  FROB (18, 0x0a80, 0x0aff)  /* Gujarati */                     \
+  FROB (19, 0x0b00, 0x0b7f)  /* Oriya */                        \
+  FROB (20, 0x0b80, 0x0bff)  /* Tamil */                        \
+  FROB (21, 0x0c00, 0x0c7f)  /* Telugu */                       \
+  FROB (22, 0x0c80, 0x0cff)  /* Kannada */                      \
+  FROB (23, 0x0d00, 0x0d7f)  /* Malayalam */                    \
+  FROB (24, 0x0e00, 0x0e7f)  /* Thai */                         \
+  FROB (25, 0x0e80, 0x0eff)  /* Lao */                          \
+  FROB (26, 0x10a0, 0x10ff)  /* Basic Georgian */               \
+  FROB (27)                  /* 27   Reserved */                \
+  FROB (28, 0x1100, 0x11ff)  /* Hangul Jamo */                  \
+  FROB (29, 0x1e00, 0x1eff)  /* Latin Extended Additional */    \
+  FROB (30, 0x1f00, 0x1fff)  /* Greek Extended */               \
+  FROB (31, 0x2000, 0x206f)  /* General Punctuation */          \
+  FROB (32, 0x2070, 0x209f)  /* Subscripts and Superscripts */  \
+  FROB (33, 0x20a0, 0x20cf)  /* Currency Symbols */             \
+  FROB (34, 0x20d0, 0x20ff)  /* Combining Diacritical Marks     \
+                                for Symbols */                  \
+  FROB (35, 0x2100, 0x214f)  /* Letter-like Symbols */          \
+  FROB (36, 0x2150, 0x218f)  /* Number Forms */                 \
+  FROB (37, 0x2190, 0x21ff)  /* Arrows */                       \
+  FROB (38, 0x2200, 0x22ff)  /* Mathematical Operators */       \
+  FROB (39, 0x2300, 0x23ff)  /* Miscellaneous Technical */      \
+  FROB (40, 0x2400, 0x243f)  /* Control Pictures */             \
+  FROB (41, 0x2440, 0x245f)  /* Optical Character Recognition */\
+  FROB (42, 0x2460, 0x24ff)  /* Enclosed Alphanumerics */       \
+  FROB (43, 0x2500, 0x257f)  /* Box Drawing */                  \
+  FROB (44, 0x2580, 0x259f)  /* Block Elements */               \
+  FROB (45, 0x25a0, 0x25ff)  /* Geometric Shapes */             \
+  FROB (46, 0x2600, 0x26ff)  /* Miscellaneous Symbols */        \
+  FROB (47, 0x2700, 0x27bf)  /* Dingbats */                     \
+  FROB (48, 0x3000, 0x303f)  /* Chinese, Japanese, and Korean   \
+                                (CJK) Symbols and Punctuation */\
+  FROB (49, 0x3040, 0x309f)  /* Hiragana */                     \
+  FROB (50, 0x30a0, 0x30ff)  /* Katakana */                     \
+  FROB (51, 0x3100, 0x312f,  /* Bopomofo */                     \
+            0x31a0, 0x31bf)  /* Extended Bopomofo */            \
+  FROB (52, 0x3130, 0x318f)  /* Hangul Compatibility Jamo */    \
+  FROB (53, 0x3190, 0x319f)  /* CJK Miscellaneous */            \
+  FROB (54, 0x3200, 0x32ff)  /* Enclosed CJK Letters and        \
+                                Months */                       \
+  FROB (55, 0x3300, 0x33ff)  /* CJK Compatibility */            \
+  FROB (56, 0xac00, 0xd7a3)  /* Hangul */                       \
+  FROB (57, 0xd800, 0xdfff)  /* Surrogates. Note that setting   \
+                                this bit implies that there is  \
+                                at least one codepoint beyond   \
+                                the Basic Multilingual Plane    \
+                                that is supported by this       \
+                                font.  */                       \
+  FROB (58)                  /* 58   Reserved */                \
+  FROB (59, 0x4e00, 0x9fff,  /* CJK Unified Ideographs */       \
+            0x2e80, 0x2eff,  /* CJK Radicals Supplement */      \
+            0x2f00, 0x2fdf,  /* Kangxi Radicals */              \
+            0x2ff0, 0x2fff,  /* Ideographic Description */      \
+            0x3400, 0x4dbf)  /* CJK Unified Ideograph Extension \
+                                A */                            \
+  FROB (60, 0xe000, 0xf8ff)  /* Private Use Area */             \
+  FROB (61, 0xf900, 0xfaff)  /* CJK Compatibility Ideographs */ \
+  FROB (62, 0xfb00, 0xfb4f)  /* Alphabetic Presentation Forms */\
+  FROB (63, 0xfb50, 0xfdff)  /* Arabic Presentation Forms-A */  \
+  FROB (64, 0xfe20, 0xfe2f)  /* Combining Half Marks */         \
+  FROB (65, 0xfe30, 0xfe4f)  /* CJK Compatibility Forms */      \
+  FROB (66, 0xfe50, 0xfe6f)  /* Small Form Variants */          \
+  FROB (67, 0xfe70, 0xfefe)  /* Arabic Presentation Forms-B */  \
+  FROB (68, 0xff00, 0xffef)  /* Halfwidth and Fullwidth Forms */\
+  FROB (69, 0xfff0, 0xfffd)  /* Specials */                     \
+  FROB (70, 0x0f00, 0x0fcf)  /* Tibetan */                      \
+  FROB (71, 0x0700, 0x074f)  /* Syriac */                       \
+  FROB (72, 0x0780, 0x07bf)  /* Thaana */                       \
+  FROB (73, 0x0d80, 0x0dff)  /* Sinhala */                      \
+  FROB (74, 0x1000, 0x109f)  /* Myanmar */                      \
+  FROB (75, 0x1200, 0x12bf)  /* Ethiopic */                     \
+  FROB (76, 0x13a0, 0x13ff)  /* Cherokee */                     \
+  FROB (77, 0x1400, 0x14df)  /* Canadian Aboriginal Syllabics */\
+  FROB (78, 0x1680, 0x169f)  /* Ogham */                        \
+  FROB (79, 0x16a0, 0x16ff)  /* Runic */                        \
+  FROB (80, 0x1780, 0x17ff)  /* Khmer */                        \
+  FROB (81, 0x1800, 0x18af)  /* Mongolian */                    \
+  FROB (82, 0x2800, 0x28ff)  /* Braille */                      \
+  FROB_LAST (83, 0xa000, 0xa48c)  /* Yi, Yi Radicals */
   /* 84-122   Reserved */
   /* 123   Windows 2000/XP: Layout progress: horizontal from right to left */
   /* 124   Windows 2000/XP: Layout progress: vertical before horizontal */
   /* 125   Windows 2000/XP: Layout progress: vertical bottom to top */
   /* 126   Reserved; must be 0 */
   /* 127   Reserved; must be 1 */
-};
+
+typedef struct unicode_subrange_raw_t
+{
+  int start; /* first Unicode codepoint */
+  int end; /* last Unicode codepoint */
+} unicode_subrange_raw_t;
+
+#define SUBFROB_RAW_SUBRANGE_2(first, last) { first, last }
+#define SUBFROB_RAW_SUBRANGE_4(first, last, ...)  \
+  { first, last }, PREPROCESSOR_EXPAND (SUBFROB_RAW_SUBRANGE_2 (__VA_ARGS__))
+#define SUBFROB_RAW_SUBRANGE_6(first, last, ...)  \
+  { first, last }, PREPROCESSOR_EXPAND (SUBFROB_RAW_SUBRANGE_4 (__VA_ARGS__))
+#define SUBFROB_RAW_SUBRANGE_8(first, last, ...)  \
+  { first, last }, PREPROCESSOR_EXPAND (SUBFROB_RAW_SUBRANGE_6 (__VA_ARGS__))
+#define SUBFROB_RAW_SUBRANGE_10(first, last, ...) \
+  { first, last }, PREPROCESSOR_EXPAND (SUBFROB_RAW_SUBRANGE_8 (__VA_ARGS__))
+#define SUBFROB_RAW_SUBRANGE_12(first, last, ...) \
+  { first, last }, PREPROCESSOR_EXPAND (SUBFROB_RAW_SUBRANGE_10 (__VA_ARGS__))
+#define SUBFROB_RAW_SUBRANGE_14(first, last, ...) \
+  { first, last }, PREPROCESSOR_EXPAND (SUBFROB_RAW_SUBRANGE_12 (__VA_ARGS__))
+
+#define FROB_NON_EMPTY_RAW_SUBRANGE(N, ...)                                 \
+  static const struct unicode_subrange_raw_t unicode_subrange_raw_##N[] = { \
+    PREPROCESSOR_EXPAND (PREPROCESSOR_CONCATENATE                           \
+                         (SUBFROB_RAW_SUBRANGE_,                            \
+                          PREPROCESSOR_ARGC(__VA_ARGS__))                   \
+                         (__VA_ARGS__))                                     \
+  };
+
+#define FROB_RAW_SUBRANGE_1(N) /* Nothing */
+#define FROB_RAW_SUBRANGE_3  FROB_NON_EMPTY_RAW_SUBRANGE
+#define FROB_RAW_SUBRANGE_5  FROB_NON_EMPTY_RAW_SUBRANGE
+#define FROB_RAW_SUBRANGE_7  FROB_NON_EMPTY_RAW_SUBRANGE
+#define FROB_RAW_SUBRANGE_9  FROB_NON_EMPTY_RAW_SUBRANGE
+#define FROB_RAW_SUBRANGE_11 FROB_NON_EMPTY_RAW_SUBRANGE
+#define FROB_RAW_SUBRANGE_13 FROB_NON_EMPTY_RAW_SUBRANGE
+#define FROB_RAW_SUBRANGE_15 FROB_NON_EMPTY_RAW_SUBRANGE
+
+#define FROB_RAW_SUBRANGE(...)                                              \
+  PREPROCESSOR_EXPAND (PREPROCESSOR_CONCATENATE                             \
+                       (FROB_RAW_SUBRANGE_, PREPROCESSOR_ARGC(__VA_ARGS__)) \
+                       (__VA_ARGS__))
+
+/* Initialize the subrange arrays. */
+FOR_ALL_UNICODE_FONT_SUBRANGES(FROB_RAW_SUBRANGE, FROB_RAW_SUBRANGE)
 
 typedef struct unicode_subrange_t
 {
@@ -219,8 +261,40 @@ typedef struct unicode_subrange_t
   const unicode_subrange_raw_t *subranges;
 } unicode_subrange_t;
 
-unicode_subrange_t *unicode_subrange_table;
+#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_1(N) { 0, NULL }
 
+#define FROB_LAST_UNICODE_NON_EMPTY_SUBRANGE_TABLE_ENTRY(N, ...) \
+ { countof (unicode_subrange_raw_##N), unicode_subrange_raw_##N }
+#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_3  \
+  FROB_LAST_UNICODE_NON_EMPTY_SUBRANGE_TABLE_ENTRY
+#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_5  \
+  FROB_LAST_UNICODE_NON_EMPTY_SUBRANGE_TABLE_ENTRY
+#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_7  \
+  FROB_LAST_UNICODE_NON_EMPTY_SUBRANGE_TABLE_ENTRY
+#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_9  \
+  FROB_LAST_UNICODE_NON_EMPTY_SUBRANGE_TABLE_ENTRY
+#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_11 \
+  FROB_LAST_UNICODE_NON_EMPTY_SUBRANGE_TABLE_ENTRY
+#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_13 \
+  FROB_LAST_UNICODE_NON_EMPTY_SUBRANGE_TABLE_ENTRY
+#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_15 \
+  FROB_LAST_UNICODE_NON_EMPTY_SUBRANGE_TABLE_ENTRY
+
+#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY(...)                     \
+  PREPROCESSOR_EXPAND (PREPROCESSOR_CONCATENATE                         \
+                       (FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_,        \
+                        PREPROCESSOR_ARGC(__VA_ARGS__))(__VA_ARGS__))
+
+#define FROB_UNICODE_SUBRANGE_TABLE_ENTRY(...) \
+  FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY (__VA_ARGS__) ,
+
+/* Now initialize the general subrange table, which points at all the subrange
+   arrays and gives counts for each of them. */
+static const unicode_subrange_t unicode_subrange_table[] = {
+  FOR_ALL_UNICODE_FONT_SUBRANGES (FROB_UNICODE_SUBRANGE_TABLE_ENTRY,
+                                  FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY)
+};
+
 /* Hash table mapping font specs (strings) to font signature data
    (FONTSIGNATURE structures stored in opaques), as determined by
    GetTextCharsetInfo().  I presume this is somewhat expensive because it
@@ -228,8 +302,6 @@ unicode_subrange_t *unicode_subrange_table;
    definitely took awhile (a few seconds) when encountering characters from
    charsets needing stage 2 processing. */
 Lisp_Object Vfont_signature_data;
-
-
 
 /************************************************************************/
 /*                               helpers                                */
@@ -1350,7 +1422,7 @@ mswindows_font_spec_matches_charset_stage_2 (struct device *d,
        whether the Unicode char is within that subrange.  If any match,
        the font supports the char (whereby, the charset, bogusly). */
       
-    for (i = 0; i < 128; i++)
+    for (i = 0; i < countof (unicode_subrange_table); i++)
       {
 	if (fsp->fsUsb[i >> 5] & (1 << (i & 32)))
 	  {
@@ -1502,23 +1574,6 @@ console_type_create_fontcolor_mswindows (void)
   CONSOLE_INHERITS_METHOD (msprinter, mswindows, font_list);
   CONSOLE_INHERITS_METHOD (msprinter, mswindows, font_spec_matches_charset);
   CONSOLE_INHERITS_METHOD (msprinter, mswindows, find_charset_font);
-}
-
-void
-reinit_vars_of_fontcolor_mswindows (void)
-{
-  int i;
-
-  unicode_subrange_table = xnew_array_and_zero (unicode_subrange_t, 128);
-  for (i = 0; i < countof (unicode_subrange_raw_map); i++)
-    {
-      const unicode_subrange_raw_t *el = &unicode_subrange_raw_map[i];
-      if (unicode_subrange_table[el->subrange_bit].subranges == 0)
-	unicode_subrange_table[el->subrange_bit].subranges = el;
-      unicode_subrange_table[el->subrange_bit].no_subranges++;
-    }
-
-  Fclrhash (Vfont_signature_data);
 }
 
 void

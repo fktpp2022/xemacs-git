@@ -1,3 +1,49 @@
+2025-08-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Move the bulk of the functionality of
+	reinit_vars_of_fontcolor_mswindows() from post-pdump_load() to
+	C preprocessing time.
+
+	* alloc.c (disksave_object_finalization):
+	Call Fclrhash (Vfont_signature_data) here, in the same way we do
+	Fclrhash (Vmswindows_read_link_hash).
+	* emacs.c (main_1):
+	Remove call to reinit_vars_of_fontcolor_mswindows(), no longer
+	needed.
+	* fontcolor-msw.c:
+	* fontcolor-msw.c (FOR_ALL_UNICODE_FONT_SUBRANGES): New. Macro to
+	iterate over the known font subranges, previously in
+	unicode_subrange_raw_map[].
+	* fontcolor-msw.c (FROB_RAW_SUBRANGE_0, FROB_RAW_SUBRANGE_1,
+	FROB_RAW_SUBRANGE_2, FROB_RAW_SUBRANGE_4, FROB_RAW_SUBRANGE_6,
+	FROB_RAW_SUBRANGE_8, FROB_RAW_SUBRANGE_10, FROB_RAW_SUBRANGE_12,
+	FROB_RAW_SUBRANGE_14): New.
+	* fontcolor-msw.c (FROB_RAW_SUBRANGE): Construct an array of
+	unicode_subrange_raw_t using one of FROB_RAW_SUBRANGE_0-14.
+
+	* fontcolor-msw.c (): Call FOR_ALL_UNICODE_FONT_SUBRANGES() with
+	FROB_RAW_SUBRANGE(), creating constant unicode_subrange_raw_t
+	arrays for all the entries in FOR_ALL_UNICODE_FONT_SUBRANGES macro.
+
+	* fontcolor-msw.c (FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY):
+	New. Create the last entry in unicode_subrange_table[].
+	* fontcolor-msw.c (FROB_UNICODE_SUBRANGE_TABLE_ENTRY):
+	New. Create an entry in unicode_subrange_table[] that is not the
+	last.
+	* fontcolor-msw.c ():
+	Create unicode_subrange_table calling FOR_ALL_UNICODE_SUBRANGES
+	with FROB_UNICODE_SUBRANGE_TABLE_ENTRY,
+	FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY.
+
+	* fontcolor-msw.c (mswindows_font_spec_matches_charset_stage_2):
+	No need to go up to 128 when checking supported subranges against
+	unicode_subrange_table, limit it by countof
+	(unicode_subrange_table).
+	* fontcolor-msw.c (reinit_vars_of_fontcolor_mswindows): Removed.
+
+	* symsinit.h:
+	Remove declaration for reinit_vars_of_fontcolor_mswindows().
+
 2025-07-30  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* compiler.h (PREPROCESSOR_ARGC): New. Moved from lisp.h, where it

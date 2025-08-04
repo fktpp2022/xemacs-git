@@ -37,4 +37,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 HFONT mswindows_get_hfont (Lisp_Font_Instance *f, int under, int strike);
 Lisp_Object mswindows_color_to_string (COLORREF color);
 
+extern Lisp_Object Vfont_signature_data;
+
 #endif /* INCLUDED_fontcolor_msw_h_ */
