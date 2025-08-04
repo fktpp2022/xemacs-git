@@ -109,42 +109,66 @@ static const fontmap_t charset_map[] =
   FROB (1, 0x00a0, 0x00ff)   /* Latin-1 Supplement */           \
   FROB (2, 0x0100, 0x017f)   /* Latin Extended-A */             \
   FROB (3, 0x0180, 0x024f)   /* Latin Extended-B */             \
-  FROB (4, 0x0250, 0x02af)   /* IPA Extensions */               \
-  FROB (5, 0x02b0, 0x02ff)   /* Spacing Modifier Letters */     \
-  FROB (6, 0x0300, 0x036f)   /* Combining Diacritical Marks */  \
-  FROB (7, 0x0370, 0x03ff)   /* Basic Greek */                  \
-  FROB (8)                   /* 8  Reserved */                  \
-  FROB (9, 0x0400, 0x04ff)   /* Cyrillic */                     \
+  FROB (4, 0x0250, 0x02af,   /* IPA Extensions */               \
+           0x1d00, 0x1d7f,   /* Phonetic Extensions */          \
+           0x1d80, 0x1dbf)   /* Phonetic Extensions             \
+                                Supplement */                   \
+  FROB (5, 0x02b0, 0x02ff,   /* Spacing Modifier Letters */     \
+           0xa700, 0xa71f)   /* Modifier Tone Letters */        \
+  FROB (6, 0x0300, 0x036f,   /* Combining Diacritical Marks */  \
+           0x1dc0, 0x1dff)   /* Combining Diacritical Marks     \
+                                Supplement */                   \
+  FROB (7, 0x0370, 0x03ff)   /* Greek and Coptic */             \
+  FROB (8, 0x2c80, 0x2cff)   /* Coptic */                       \
+  FROB (9, 0x0400, 0x04ff,   /* Cyrillic */                     \
+           0x0500, 0x052F,   /* Cyrillic Supplement */          \
+           0x2de0, 0x2DFF,   /* Cyrillic Extended-A */          \
+           0xa640, 0xA69F)   /* Cyrillic Extended-B */          \
   FROB (10, 0x0530, 0x058f)  /* Armenian */                     \
   FROB (11, 0x0590, 0x05ff)  /* Basic Hebrew */                 \
-  FROB (12)                  /* 12 Reserved */                  \
-  FROB (13, 0x0600, 0x06ff)  /* Basic Arabic */                 \
-  FROB (14)                  /* 14   Reserved */                \
+  FROB (12, 0xa500, 0xa63f)  /* Vai */                          \
+  FROB (13, 0x0600, 0x06ff,  /* Basic Arabic */                 \
+            0x0750, 0x077f)  /* Arabic Supplement */            \
+  FROB (14, 0x07c0, 0x07ff)  /* NKo */                          \
   FROB (15, 0x0900, 0x097f)  /* Devanagari */                   \
-  FROB (16, 0x0980, 0x09ff)  /* Bengali */                      \
+  FROB (16, 0x0980, 0x09ff)  /* Bangla */                       \
   FROB (17, 0x0a00, 0x0a7f)  /* Gurmukhi */                     \
   FROB (18, 0x0a80, 0x0aff)  /* Gujarati */                     \
-  FROB (19, 0x0b00, 0x0b7f)  /* Oriya */                        \
+  FROB (19, 0x0b00, 0x0b7f)  /* Odia */                         \
   FROB (20, 0x0b80, 0x0bff)  /* Tamil */                        \
   FROB (21, 0x0c00, 0x0c7f)  /* Telugu */                       \
   FROB (22, 0x0c80, 0x0cff)  /* Kannada */                      \
   FROB (23, 0x0d00, 0x0d7f)  /* Malayalam */                    \
   FROB (24, 0x0e00, 0x0e7f)  /* Thai */                         \
   FROB (25, 0x0e80, 0x0eff)  /* Lao */                          \
-  FROB (26, 0x10a0, 0x10ff)  /* Basic Georgian */               \
-  FROB (27)                  /* 27   Reserved */                \
+  FROB (26, 0x10a0, 0x10ff,  /* Georgian */                     \
+            0x2d00, 0x2d2f)  /* Georgian Supplement */          \
+  FROB (27, 0x1b00, 0x1b7f)  /* Balinese */                     \
   FROB (28, 0x1100, 0x11ff)  /* Hangul Jamo */                  \
-  FROB (29, 0x1e00, 0x1eff)  /* Latin Extended Additional */    \
+  FROB (29, 0x1e00, 0x1eff,  /* Latin Extended Additional */    \
+            0x2c60, 0x2C7F,  /* Latin Extended-C */             \
+            0xa720, 0xA7FF)  /* Latin Extended-D */             \
   FROB (30, 0x1f00, 0x1fff)  /* Greek Extended */               \
-  FROB (31, 0x2000, 0x206f)  /* General Punctuation */          \
+  FROB (31, 0x2000, 0x206f,  /* General Punctuation */          \
+            0x2e00, 0x2e7f)  /* Supplemental Punctuation */     \
   FROB (32, 0x2070, 0x209f)  /* Subscripts and Superscripts */  \
   FROB (33, 0x20a0, 0x20cf)  /* Currency Symbols */             \
   FROB (34, 0x20d0, 0x20ff)  /* Combining Diacritical Marks     \
                                 for Symbols */                  \
   FROB (35, 0x2100, 0x214f)  /* Letter-like Symbols */          \
   FROB (36, 0x2150, 0x218f)  /* Number Forms */                 \
-  FROB (37, 0x2190, 0x21ff)  /* Arrows */                       \
-  FROB (38, 0x2200, 0x22ff)  /* Mathematical Operators */       \
+  FROB (37, 0x2190, 0x21ff,  /* Arrows */                       \
+            0x27f0, 0x27ff,  /* Supplemental Arrows-A */        \
+            0x2900, 0x297f,  /* Supplemental Arrows-B */        \
+            0x2b00, 0x2bff)  /* Miscellaneous Symbols and       \
+                                Arrows */                       \
+  FROB (38, 0x2200, 0x22ff,  /* Mathematical Operators */       \
+            0x27c0, 0x27ef,  /* Miscellaneous Mathematical      \
+                                Symbols-A */                    \
+            0x2980, 0x29ff,  /* Miscellaneous Mathematical      \
+                                Symbols-B */                    \
+            0x2a00, 0x2aff)  /* Supplemental Mathematical       \
+                                Operators */                    \
   FROB (39, 0x2300, 0x23ff)  /* Miscellaneous Technical */      \
   FROB (40, 0x2400, 0x243f)  /* Control Pictures */             \
   FROB (41, 0x2440, 0x245f)  /* Optical Character Recognition */\
@@ -157,58 +181,128 @@ static const fontmap_t charset_map[] =
   FROB (48, 0x3000, 0x303f)  /* Chinese, Japanese, and Korean   \
                                 (CJK) Symbols and Punctuation */\
   FROB (49, 0x3040, 0x309f)  /* Hiragana */                     \
-  FROB (50, 0x30a0, 0x30ff)  /* Katakana */                     \
+  FROB (50, 0x30a0, 0x30ff,  /* Katakana */                     \
+            0x31f0, 0x31ff)  /* Katakana Phonetic Extensions */ \
   FROB (51, 0x3100, 0x312f,  /* Bopomofo */                     \
             0x31a0, 0x31bf)  /* Extended Bopomofo */            \
   FROB (52, 0x3130, 0x318f)  /* Hangul Compatibility Jamo */    \
-  FROB (53, 0x3190, 0x319f)  /* CJK Miscellaneous */            \
+  FROB (53, 0xA840, 0xA87F)  /* Phags-pa */                     \
   FROB (54, 0x3200, 0x32ff)  /* Enclosed CJK Letters and        \
                                 Months */                       \
   FROB (55, 0x3300, 0x33ff)  /* CJK Compatibility */            \
-  FROB (56, 0xac00, 0xd7a3)  /* Hangul */                       \
+  FROB (56, 0xac00, 0xd7a3)  /* Hangul Syllables */             \
   FROB (57, 0xd800, 0xdfff)  /* Surrogates. Note that setting   \
                                 this bit implies that there is  \
                                 at least one codepoint beyond   \
                                 the Basic Multilingual Plane    \
                                 that is supported by this       \
                                 font.  */                       \
-  FROB (58)                  /* 58   Reserved */                \
-  FROB (59, 0x4e00, 0x9fff,  /* CJK Unified Ideographs */       \
-            0x2e80, 0x2eff,  /* CJK Radicals Supplement */      \
+  FROB (58, 0x10900, 0x1091F)/* Phoenician */                   \
+  FROB (59, 0x2e80, 0x2eff,  /* CJK Radicals Supplement */      \
             0x2f00, 0x2fdf,  /* Kangxi Radicals */              \
-            0x2ff0, 0x2fff,  /* Ideographic Description */      \
-            0x3400, 0x4dbf)  /* CJK Unified Ideograph Extension \
-                                A */                            \
+            0x2ff0, 0x2fff,  /* Ideographic Description         \
+                                Characters */                   \
+            0x3190, 0x319f,  /* Kanbun */                       \
+            0x3400, 0x4dbf,  /* CJK Unified Ideographs          \
+                                Extension A */                  \
+            0x4e00, 0x9fff,  /* CJK Unified Ideographs */       \
+            0x20000, 0x2a6df) /* CJK Unified Ideographs         \
+                                 Extension B */                 \
   FROB (60, 0xe000, 0xf8ff)  /* Private Use Area */             \
-  FROB (61, 0xf900, 0xfaff)  /* CJK Compatibility Ideographs */ \
+  FROB (61, 0x31c0, 0x31ef,  /* CJK Strokes */                  \
+            0xf900, 0xfaff,  /* CJK Compatibility Ideographs */ \
+            0x2f800, 0x2fa1f) /* CJK Compatibility Ideographs   \
+                                 Supplement */                  \
   FROB (62, 0xfb00, 0xfb4f)  /* Alphabetic Presentation Forms */\
   FROB (63, 0xfb50, 0xfdff)  /* Arabic Presentation Forms-A */  \
   FROB (64, 0xfe20, 0xfe2f)  /* Combining Half Marks */         \
-  FROB (65, 0xfe30, 0xfe4f)  /* CJK Compatibility Forms */      \
+  FROB (65, 0xfe10, 0xfe1f,  /* Vertical Forms */               \
+            0xfe30, 0xfe4f)  /* CJK Compatibility Forms */      \
   FROB (66, 0xfe50, 0xfe6f)  /* Small Form Variants */          \
-  FROB (67, 0xfe70, 0xfefe)  /* Arabic Presentation Forms-B */  \
+  FROB (67, 0xfe70, 0xfeff)  /* Arabic Presentation Forms-B */  \
   FROB (68, 0xff00, 0xffef)  /* Halfwidth and Fullwidth Forms */\
   FROB (69, 0xfff0, 0xfffd)  /* Specials */                     \
-  FROB (70, 0x0f00, 0x0fcf)  /* Tibetan */                      \
+  FROB (70, 0x0f00, 0x0fff)  /* Tibetan */                      \
   FROB (71, 0x0700, 0x074f)  /* Syriac */                       \
   FROB (72, 0x0780, 0x07bf)  /* Thaana */                       \
   FROB (73, 0x0d80, 0x0dff)  /* Sinhala */                      \
   FROB (74, 0x1000, 0x109f)  /* Myanmar */                      \
-  FROB (75, 0x1200, 0x12bf)  /* Ethiopic */                     \
+  FROB (75, 0x1200, 0x137f,  /* Ethiopic */                     \
+            0x1380, 0x139f,  /* Ethiopic Supplement */          \
+            0x2d80, 0x2ddf)  /* Ethiopic Extended */            \
   FROB (76, 0x13a0, 0x13ff)  /* Cherokee */                     \
-  FROB (77, 0x1400, 0x14df)  /* Canadian Aboriginal Syllabics */\
+  FROB (77, 0x1400, 0x167f)  /* Unified Canadian Aboriginal     \
+                                Syllabics */                    \
   FROB (78, 0x1680, 0x169f)  /* Ogham */                        \
   FROB (79, 0x16a0, 0x16ff)  /* Runic */                        \
-  FROB (80, 0x1780, 0x17ff)  /* Khmer */                        \
+  FROB (80, 0x1780, 0x17ff,  /* Khmer */                        \
+            0x19e0, 0x19ff)  /* Khmer Symbols */                \
   FROB (81, 0x1800, 0x18af)  /* Mongolian */                    \
   FROB (82, 0x2800, 0x28ff)  /* Braille */                      \
-  FROB_LAST (83, 0xa000, 0xa48c)  /* Yi, Yi Radicals */
-  /* 84-122   Reserved */
-  /* 123   Windows 2000/XP: Layout progress: horizontal from right to left */
-  /* 124   Windows 2000/XP: Layout progress: vertical before horizontal */
-  /* 125   Windows 2000/XP: Layout progress: vertical bottom to top */
-  /* 126   Reserved; must be 0 */
-  /* 127   Reserved; must be 1 */
+  FROB (83, 0xa000, 0xa48c,  /* Yi Syllables */                 \
+            0xa490, 0xa4cf)  /* Yi Radicals */                  \
+  FROB (84, 0x1700, 0x171f,  /* Tagalog */                      \
+            0x1720, 0x173f,  /* Hanunoo */                      \
+            0x1740, 0x175f,  /* Buhid */                        \
+            0x1760, 0x177f)  /* Tagbanwa */                     \
+  FROB (85, 0x10300, 0x1032f)  /* Old Italic */                 \
+  FROB (86, 0x10330, 0x1034f)  /* Gothic */                     \
+  FROB (87, 0x10400, 0x1044f)  /* Deseret */                    \
+  FROB (88, 0x1d000, 0x1d0ff,  /* Byzantine Musical Symbols */  \
+            0x1d100, 0x1d1ff,  /* Musical Symbols */            \
+            0x1d200, 0x1d24f)  /* Ancient Greek Musical         \
+                                  Notation */                   \
+  FROB (89, 0x1d400, 0x1d7ff)  /* Mathematical Alphanumeric     \
+                                  Symbols */                    \
+  FROB (90, 0xff000, 0xffffd,  /* Private Use (plane 15) */     \
+            0x100000, 0x10fffd)/* Private Use (plane 16) */     \
+  FROB (91, 0xfe00, 0xfe0f,    /* Variation Selectors */        \
+            0xe0100, 0xe01ef)  /* Variation Selectors           \
+                                  Supplement */                 \
+  FROB (92, 0xe0000, 0xe007f)  /* Tags */                       \
+  FROB (93, 0x1900, 0x194f)    /* Limbu */                      \
+  FROB (94, 0x1950, 0x197f)    /* Tai Le */                     \
+  FROB (95, 0x1980, 0x19df)    /* New Tai Lue */                \
+  FROB (96, 0x1a00, 0x1a1f)    /* Buginese */                   \
+  FROB (97, 0x2c00, 0x2c5f)    /* Glagolitic */                 \
+  FROB (98, 0x2d30, 0x2d7f)    /* Tifinagh */                   \
+  FROB (99, 0x4dc0, 0x4dff)    /* Yijing Hexagram Symbols */    \
+  FROB (100, 0xa800, 0xa82f)   /* Syloti Nagri */               \
+  FROB (101, 0x10000, 0x1007f, /* Linear B Syllabary */         \
+             0x10080, 0x100FF, /* Linear B Ideograms */         \
+             0x10100, 0x1013F) /* Aegean Numbers */             \
+  FROB (102, 0x10140, 0x1018f) /* Ancient Greek Numbers */      \
+  FROB (103, 0x10380, 0x1039f) /* Ugaritic */                   \
+  FROB (104, 0x103a0, 0x103df) /* Old Persian */                \
+  FROB (105, 0x10450, 0x1047f) /* Shavian */                    \
+  FROB (106, 0x10480, 0x104af) /* Osmanya */                    \
+  FROB (107, 0x10800, 0x1083f) /* Cypriot Syllabary */          \
+  FROB (108, 0x10a00, 0x10a5f) /* Kharoshthi */                 \
+  FROB (109, 0x1d300, 0x1d35f) /* Tai Xuan Jing Symbols */      \
+  FROB (110, 0x12000, 0x123ff, /* Cuneiform */                  \
+             0x12400, 0x1247F) /* Cuneiform Numbers and         \
+                                  Punctuation */                \
+  FROB (111, 0x1d360, 0x1d37f) /* Counting Rod Numerals */      \
+  FROB (112, 0x1b80, 0x1bbf)   /* Sundanese */                  \
+  FROB (113, 0x1c00, 0x1c4f)   /* Lepcha */                     \
+  FROB (114, 0x1c50, 0x1c7f)   /* Ol Chiki */                   \
+  FROB (115, 0xa880, 0xa8df)   /* Saurashtra */                 \
+  FROB (116, 0xa900, 0xa92f)   /* Kayah Li */                   \
+  FROB (117, 0xa930, 0xa95f)   /* Rejang */                     \
+  FROB (118, 0xaa00, 0xaa5f)   /* Cham */                       \
+  FROB (119, 0x10190, 0x101cf) /* Ancient Symbols */            \
+  FROB (120, 0x101d0, 0x101ff) /* Phaistos Disc */              \
+  FROB (121, 0x10280, 0x1029f, /* Lycian */                     \
+             0x102a0, 0x102df, /* Carian */                     \
+             0x10920, 0x1093f) /* Lydian */                     \
+  FROB_LAST (122, 0x1f000, 0x1f02f, /* Mahjong Tiles */         \
+                  0x1f030, 0x1f09f) /* Domino Tiles */
+  /* 123 Windows 2000 and later: Layout progress: horizontal from right to
+     left */
+  /* 124 Windows 2000 and later: Layout progress: vertical before
+     horizontal */
+  /* 125 Windows 2000 and later: Layout progress: vertical bottom to top */
+  /* 126-127	Reserved for process-internal usage */
 
 typedef struct unicode_subrange_raw_t
 {

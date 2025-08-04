@@ -1,5 +1,10 @@
 2025-08-04  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* fontcolor-msw.c (FOR_ALL_UNICODE_FONT_SUBRANGES):
+	Update this to reflect current values from MSDN.
+
+2025-08-04  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Move the bulk of the functionality of
 	reinit_vars_of_fontcolor_mswindows() from post-pdump_load() to
 	C preprocessing time.
