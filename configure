@@ -10280,7 +10280,72 @@ if test -z "$with_dump_in_exec"; then
   if test "$with_quick_build" = "yes"; then
     with_dump_in_exec=no;
   else
-    with_dump_in_exec=yes;
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for __has_embed" >&5
+printf %s "checking for __has_embed... " >&6; }
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#ifndef __has_embed
+#error embed not available
+#endif
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"
+then :
+  have_embed=yes
+else $as_nop
+  have_embed=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $have_embed" >&5
+printf "%s\n" "$have_embed" >&6; }
+    if test "$have_embed" = yes; then
+      with_dump_in_exec=yes;
+    else
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for .incbin assembler directive" >&5
+printf %s "checking for .incbin assembler directive... " >&6; }
+      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <stdio.h>
+#define INCBIN_PREFIX /* Nothing. */
+#define INCBIN_STYLE INCBIN_STYLE_SNAKE
+#define INCBIN_OUTPUT_SECTION ".data"
+#define INCBIN_ALIGNMENT_INDEX 4 /* 16-byte alignment. */
+#define INCBIN_SILENCE_BITCODE_WARNING /* Unlikely to be building XEmacs for an iPhone. */
+#include "src/incbin.h"
+INCBIN (configure, "configure");
+int
+main (void)
+{
+
+printf ("%p\n", (void *)configure_data);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"
+then :
+  have_incbin=yes
+else $as_nop
+  have_incbin=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $have_incbin" >&5
+printf "%s\n" "$have_incbin" >&6; }
+      if test "$have_incbin" = yes; then
+        with_dump_in_exec=yes;
+      else
+        with_dump_in_exec=no;
+      fi
+    fi
   fi
 fi
 

@@ -1,3 +1,13 @@
+2025-08-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* configure.ac:
+	.incbin was introduced into GNU AS July 2001.
+	macOS pre clang used GNU code from before then quite late, and so
+	there exist occasional machines still running that don't recognise
+	.incbin. Detect this at ./configure time, default to
+	--without-dump-in-exec if this is the case.
+	* configure: Regenerate.
+
 2025-07-09  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* configure.ac: Add a missing trailing \ to the Postgresql

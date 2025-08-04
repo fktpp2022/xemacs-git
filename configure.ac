@@ -1814,7 +1814,35 @@ if test -z "$with_dump_in_exec"; then
   if test "$with_quick_build" = "yes"; then
     with_dump_in_exec=no;
   else
-    with_dump_in_exec=yes;
+    AC_MSG_CHECKING(for __has_embed)
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#ifndef __has_embed
+#error embed not available
+#endif
+],[])], have_embed=yes, have_embed=no)
+    AC_MSG_RESULT($have_embed)
+    if test "$have_embed" = yes; then
+      with_dump_in_exec=yes;
+    else
+      AC_MSG_CHECKING(for .incbin assembler directive)
+      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+#include <stdio.h>
+#define INCBIN_PREFIX /* Nothing. */
+#define INCBIN_STYLE INCBIN_STYLE_SNAKE
+#define INCBIN_OUTPUT_SECTION ".data"
+#define INCBIN_ALIGNMENT_INDEX 4 /* 16-byte alignment. */
+#define INCBIN_SILENCE_BITCODE_WARNING /* Unlikely to be building XEmacs for an iPhone. */
+#include "src/incbin.h"
+INCBIN (configure, "configure");],[
+printf ("%p\n", (void *)configure_data);
+])],
+        have_incbin=yes, have_incbin=no)
+      AC_MSG_RESULT($have_incbin)
+      if test "$have_incbin" = yes; then
+        with_dump_in_exec=yes;
+      else
+        with_dump_in_exec=no;
+      fi
+    fi
   fi
 fi
 
