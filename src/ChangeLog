@@ -1,3 +1,35 @@
+2025-08-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Rename dump_add_nil_lisp_object_1() to
+	dump_mark_nil_lisp_object().
+
+	Remove dump_add_nil_lisp_object(), it usually duplicates a dump
+	root needlessly. Most of its uses were better served by
+	dump_mark_nil_lisp_object().
+
+	* alloc.c (staticpro_dump_nil):
+	Call dump_mark_nil_lisp_object() here.
+	* alloc.c (disksave_object_finalization):
+	Update a comment. 
+	* console-stream.c (vars_of_console_stream):
+	Call dump_mark_nil_lisp_object() here.
+	* dumper.c (dump_mark_nil_lisp_object): Update the name of
+	dump_add_nil_lisp_object_1() here.
+	* dumper.c (dump_add_nil_lisp_object): Remove this.
+
+	* emacs.c (complex_vars_of_emacs):
+	Call dump_mark_nil_lisp_object() here.
+	* eval.c (vars_of_eval): Ditto.
+	* events.c (vars_of_events): Ditto.
+	* frame-msw.c (vars_of_frame_mswindows): Ditto.
+	* lread.c (vars_of_lread): Ditto.
+	* lrecord.h:
+	Declare dump_mark_nil_lisp_object().
+	* macros.c (vars_of_macros):
+	Call dump_mark_nil_lisp_object() here.
+	* process.c (vars_of_process):
+	Ditto.
+
 2025-08-04  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* fontcolor-msw.c (FOR_ALL_UNICODE_FONT_SUBRANGES):

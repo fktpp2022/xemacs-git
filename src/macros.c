@@ -311,7 +311,7 @@ vars_of_macros (void)
 Currently executing keyboard macro (a vector of events or string);
 nil if none executing.
 */ );
-  dump_add_nil_lisp_object (&Vexecuting_kbd_macro);
+  dump_mark_nil_lisp_object (&Vexecuting_kbd_macro);
 }
 
 /* macros.c ends here. */

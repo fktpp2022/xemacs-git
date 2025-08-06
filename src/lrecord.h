@@ -1878,10 +1878,11 @@ void dump_add_root_block (const void *ptraddress, Bytecount size,
    updated after pdump. */
 void dump_add_root_lisp_object (Lisp_Object *);
 
-/* Like dump_add_root_lisp_object(), but tell the dumper that VAR should be
-   initialized to Qnil on pdump_load(), irrespective of its value at dump
-   time.  */
-void dump_add_nil_lisp_object (Lisp_Object *);
+/* Tell the dumper that VAR should be initialized to Qnil on pdump_load(),
+   irrespective of its value at dump time.  Does not mark the address as a root
+   for dumping; one of DEFVAR_LISP(), staticpro() or
+   dump_add_root_lisp_object() are still necessary. */
+void dump_mark_nil_lisp_object (Lisp_Object *);
 
 /* Call dump_add_weak_lisp_object (&var) to ensure that var is properly
    updated after pdump.  var must point to a linked list of objects out of

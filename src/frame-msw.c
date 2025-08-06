@@ -1320,5 +1320,6 @@ to all frames, not just mswindows frames.
 
   /* Needn't staticpro -- see comment above.  */
   Vmswindows_frame_being_created = Qnil;
-  dump_add_nil_lisp_object (&Vmswindows_frame_being_created);
+  dump_add_root_lisp_object (&Vmswindows_frame_being_created);
+  dump_mark_nil_lisp_object (&Vmswindows_frame_being_created);
 }

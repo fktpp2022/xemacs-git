@@ -340,19 +340,19 @@ vars_of_console_stream (void)
 The initial console object, which represents XEmacs' stdout.
 */ );
   Vterminal_console = Qnil;
-  dump_add_nil_lisp_object (&Vterminal_console); 
+  dump_mark_nil_lisp_object (&Vterminal_console); 
 
   DEFVAR_LISP ("terminal-device", &Vterminal_device /*
 The initial device object, which represents XEmacs' stdout.
 */ );
   Vterminal_device = Qnil;
-  dump_add_nil_lisp_object (&Vterminal_device);
+  dump_mark_nil_lisp_object (&Vterminal_device);
 
   DEFVAR_LISP ("terminal-frame", &Vterminal_frame /*
 The initial frame object, which represents XEmacs' stdout.
 */ );
   Vterminal_frame = Qnil;
-  dump_add_nil_lisp_object (&Vterminal_frame);
+  dump_mark_nil_lisp_object (&Vterminal_frame);
 
   /* Moved from console-tty.c */
   Vstdio_str = build_ascstring ("stdio");

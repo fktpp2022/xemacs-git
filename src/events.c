@@ -2628,5 +2628,8 @@ void
 vars_of_events (void)
 {
   Vevent_resource = Qnil;
-  dump_add_nil_lisp_object (&Vevent_resource);
+
+  /* staticpro_dump_nil() is inappropriate, this should not be traced for GC. */
+  dump_add_root_lisp_object (&Vevent_resource);
+  dump_mark_nil_lisp_object (&Vevent_resource);
 }

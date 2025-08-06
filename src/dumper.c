@@ -194,26 +194,14 @@ dump_add_root_lisp_object (Lisp_Object *varaddress)
   Dynarr_add (pdump_root_lisp_objects, varaddress);
 }
 
-void dump_add_nil_lisp_object_1 (Lisp_Object *);
-
 void
-dump_add_nil_lisp_object_1 (Lisp_Object *varaddress)
+dump_mark_nil_lisp_object (Lisp_Object *varaddress)
 {
   if (pdump_nil_lisp_objects == NULL)
     pdump_nil_lisp_objects
 	    = Dynarr_new2 (Lisp_Object_ptr_dynarr, Lisp_Object *);
   gc_checking_assert (!EQ (*varaddress, Qnull_pointer));
   Dynarr_add (pdump_nil_lisp_objects, varaddress);
-}
-
-/* Like dump_add_root_lisp_object(), but tell the dumper that VAR should be
-   initialized to Qnil on pdump_load(), irrespective of its value at dump
-   time.  */
-void
-dump_add_nil_lisp_object (Lisp_Object *varaddress)
-{
-  dump_add_nil_lisp_object_1 (varaddress);
-  dump_add_root_lisp_object (varaddress);
 }
 
 /* Mark the list pointed to by the Lisp_Object at VARADDRESS for dumping.
