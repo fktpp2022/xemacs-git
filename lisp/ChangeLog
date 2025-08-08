@@ -1,3 +1,10 @@
+2025-08-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* mule/digit.el:
+	* mule/uni-case-conv.el:
+	Update both these files to reflect version 16.0.0 of
+	UnicodeData.txt.
+
 2025-07-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove the restriction on autoload cookies for forms not at
