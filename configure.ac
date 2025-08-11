@@ -876,8 +876,8 @@ XE_COMPLEX_ARG([sound],
                         `nonative,noalsa,nonas,noesd'.  `all' means
                         `native,alsa,nas,esd'.  Later options override earlier
                         ones for the same TYPE.  The default is to autodetect
-                        all sound support except for ESD which defaults to
-                        off.]),
+                        all sound support except for NAS which defaults to
+                        off, since it slows start-up.]),
 	[],
 	[with_sound_nas=""],
 	[XE_COMPLEX_OPTION([native],[""]),
@@ -4978,7 +4978,7 @@ if test "$with_sound_alsa" != "no"; then
 fi
 
 dnl NAS Sound support
-if test "$with_sound_nas" != "no"; then
+if test "$with_sound_nas" = "yes"; then
   AC_CHECK_HEADER(audio/audiolib.h, [
     AC_CHECK_LIB(audio, AuOpenServer, have_nas_sound=yes)])
   if test "$have_nas_sound" = "yes"; then
