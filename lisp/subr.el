@@ -404,6 +404,13 @@ Argument elements must be the integers zero or one, or the characters ?\\x00,
 
 (defalias 'not #'null)
 
+(defun consp (object)
+  "Return t if OBJECT is a cons cell.  `nil' is not a cons cell.
+
+See the documentation for `cons' or the Lisp manual for more details on what
+a cons cell is."
+  (eq (type-of object) 'cons))
+
 (defun atom (object)
   "Return t if OBJECT is not a cons cell.  `nil' is not a cons cell.
 
@@ -428,6 +435,25 @@ your use case."
   "Return t if OBJECT is not a list.  `nil' is a list."
   (not (or (consp object) (eq object nil))))
 
+(defun symbolp (object)
+  "Return t if OBJECT is a symbol.
+
+A symbol is a Lisp object with a name. It can optionally have any and all of
+a value, a property list and an associated function. "
+  (eq (type-of object) 'symbol))
+
+(defun stringp (object)
+  "Return t if OBJECT is a string."
+  (eq (type-of object) 'string))
+
+(defun vectorp (object)
+  "Return t if OBJECT is a vector."
+  (eq (type-of object) 'vector))
+
+(defun bit-vector-p (object)
+  "Return t if OBJECT is a bit vector."
+  (eq (type-of object) 'bit-vector))
+
 (defun arrayp (object)
   "Return t if OBJECT is an array (string, vector, or bit vector)."
   (or (stringp object) (vectorp object) (bit-vector-p object)))
@@ -435,6 +461,15 @@ your use case."
 (defun sequencep (object)
   "Return t if OBJECT is a sequence (list or array)."
   (or (stringp object) (listp object) (vectorp object) (bit-vector-p object)))
+
+(defun fixnump (object)
+  "Return t if OBJECT is a fixnum.
+
+In this implementation, a fixnum is an immediate integer, and has a
+maximum value described by the constant `most-positive-fixnum'.  This
+contrasts with bignums, integers where the values are limited by your
+available memory."
+  (eq (type-of object) 'fixnum))
 
 (defun integerp (object)
   "Return t if OBJECT is an integer, nil otherwise.
@@ -471,6 +506,30 @@ other steps we take to maintain compatibility with the old character/integer
 confoundedness in older versions of E-Lisp."
   (or (stringp object) (and (fixnump object) (int-to-char object) t)
       (characterp object)))
+
+(defun markerp (object)
+  "Return t if OBJECT is a marker (editor pointer)."
+  (eq (type-of object) 'marker))
+
+(defun characterp (object)
+  "Return t if OBJECT is a character.
+Unlike in XEmacs v19 and FSF Emacs, a character is its own primitive type.
+Any character can be converted into an equivalent integer using
+`char-int'.  To convert the other way, use `int-char'; however,
+only some integers can be converted into characters.  Such an integer
+is called a `char-int'; see `char-int-p'.
+
+Some functions that work on integers (e.g. the comparison functions
+<, <=, =, /=, etc. and the arithmetic functions +, -, *, etc.)
+accept characters and implicitly convert them into integers.  In
+general, functions that work on characters also accept char-ints and
+implicitly convert them into characters.  WARNING: Neither of these
+behaviors is very desirable, and they are maintained for backward
+compatibility with old E-Lisp programs that confounded characters and
+integers willy-nilly.  These behaviors may change in the future; therefore,
+do not rely on them.  Instead, use the character-specific functions such
+as `char='."
+  (eq (type-of object) 'character))
 
 (defun integer-or-marker-p (object)
   "Return t if OBJECT is an integer or a marker (editor pointer)."
@@ -1961,6 +2020,14 @@ properties to add to the result."
 ;;      (subrp object)
 ;;      (compiled-function-p object)
 ;;      (eq (car-safe object) 'lambda)))
+
+(defun subrp (object)
+  "Return t if OBJECT is a built-in function."
+  (eq (type-of object) 'subr))
+
+(defun compiled-function-p (object)
+  "Return t if OBJECT is a byte-compiled function object."
+  (eq (type-of object) 'compiled-function))
 
 (defun function-interactive (function)
   "Return the interactive specification of FUNCTION.

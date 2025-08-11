@@ -1074,14 +1074,6 @@ structure_type_create_hash_table (void)
 /*		Definition of Lisp-visible methods			*/
 /************************************************************************/
 
-DEFUN ("hash-table-p", Fhash_table_p, 1, 1, 0, /*
-Return t if OBJECT is a hash table, else nil.
-*/
-       (object))
-{
-  return HASH_TABLEP (object) ? Qt : Qnil;
-}
-
 DEFUN ("make-hash-table", Fmake_hash_table, 0, KEYWORDS, 0, /*
 Return a new empty hash table object.
 Use Common Lisp style keywords to specify hash table properties.
@@ -2869,7 +2861,6 @@ syms_of_elhash (void)
     = define_hash_table_test (Qequalp, lisp_object_equalp_equal,
                               lisp_object_equalp_hash, Qequalp, Qequalp_hash);
 
-  DEFSUBR (Fhash_table_p);
   DEFSUBR (Fmake_hash_table);
   DEFSUBR (Fcopy_hash_table);
   DEFSUBR (Fgethash);

@@ -62,8 +62,11 @@ The characters copied are inserted in the buffer before point."
 			    (min (save-excursion (end-of-line) (point))
 				 (+ n (point)))))))
     (insert string)))
-
 
+(defun weak-list-p (object)
+  "Return non-nil if OBJECT is a weak list."
+  (eq (type-of object) 'weak-list))
+
 ;;; Weak boxes, formerly in data.c, but never used enough to merit a C
 ;;; implementation. There is minimal performance and GC impact to this Lisp
 ;;; implementation (GC performance actually improves, as in the vast majority

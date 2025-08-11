@@ -54,6 +54,10 @@
 Such a collection of attributes is called a \"face\"."
   :group 'emacs)
 
+(defun facep (object)
+  "Return t if OBJECT is a face."
+  (eq (type-of object) 'face))
+
 (defun read-face-name (prompt)
   (let (face)
     (while (eql (length face) 0) ; nil or ""

@@ -30,6 +30,10 @@
 
 ;;; Code:
 
+(defun bufferp (object)
+  "Return t if OBJECT is an editor buffer."
+  (eq (type-of object) 'buffer))
+
 (defun switch-to-buffer (bufname &optional norecord)
   "Select buffer BUFNAME in the current window.
 BUFNAME may be a buffer or a buffer name and is created if it did not exist.

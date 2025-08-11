@@ -37,6 +37,18 @@
 
 ;;; Code:
 
+(defun glyphp (object)
+  "Return non-nil if OBJECT is a glyph.
+
+A glyph is an object used for pixmaps, widgets and the like.  It is used
+in begin-glyphs and end-glyphs attached to extents, in marginal and textual
+annotations, in overlay arrows (overlay-arrow-* variables), in toolbar
+buttons, and the like.  Much more detailed information can be found at
+`make-glyph'.  Its image is described using an image specifier --
+see `make-image-specifier'.  See also `make-image-instance' for further
+information."
+  (eq (type-of object) 'glyph))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; image specifiers
 
 (defun make-image-specifier (spec-list)
@@ -998,6 +1010,10 @@ It is extremely unlikely that you will ever need to create a icon glyph.
 Instead, you probably want to be calling `set-glyph-image' on
 `frame-icon-glyph'."
   (make-glyph spec-list 'icon))
+
+(defun image-instance-p (object)
+  "Return non-nil if OBJECT is an image instance."
+  (eq (type-of object) 'image-instance))
 
 (defun nothing-image-instance-p (object)
   "Return t if OBJECT is an image instance of type `nothing'."

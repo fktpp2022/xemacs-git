@@ -36,6 +36,13 @@
   "Support for Emacs frames and window systems."
   :group 'environment)
 
+(defun framep (object)
+  "Return non-nil if OBJECT is a frame.
+Also see `frame-live-p'.
+Note that FSF Emacs kludgily returns a value indicating what type of
+frame this is.  Use the cleaner function `frame-type' for that."
+  (eq (type-of object) 'frame))
+
 ;; XEmacs change: No need for `frame-creation-function'.
 
 ;; XEmacs change: Emacs no longer specifies the minibuffer property here.

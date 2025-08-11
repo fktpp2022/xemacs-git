@@ -253,7 +253,7 @@
                  (list t standard-error)
                  nil
                  (append options processed)))
-         (numeric-status (if (fixnump status) status 1)))
+         (numeric-status (if (numberp status) status 1)))
     (write-sequence (buffer-substring nil nil standard-error)
                     'external-debugging-output)
     (message "Spawning make-docfile ... %s"

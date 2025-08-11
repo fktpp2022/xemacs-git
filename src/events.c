@@ -1632,14 +1632,6 @@ event_upshifted_p (Lisp_Object event)
     || (CHARP (keysym) && UPPERCASEP (0, XCHAR (keysym)));
 }
 
-DEFUN ("eventp", Feventp, 1, 1, 0, /*
-True if OBJECT is an event object.
-*/
-       (object))
-{
-  return EVENTP (object) ? Qt : Qnil;
-}
-
 DEFUN ("event-live-p", Fevent_live_p, 1, 1, 0, /*
 True if OBJECT is an event object that has not been deallocated.
 */
@@ -2575,7 +2567,6 @@ syms_of_events (void)
   DEFSUBR (Fmake_event);
   DEFSUBR (Fdeallocate_event);
   DEFSUBR (Fcopy_event);
-  DEFSUBR (Feventp);
   DEFSUBR (Fevent_live_p);
   DEFSUBR (Fevent_type);
   DEFSUBR (Fevent_properties);

@@ -319,14 +319,6 @@ If DEVICE is the selected device, this makes FRAME the selected frame.
   return frame;
 }
 
-DEFUN ("devicep", Fdevicep, 1, 1, 0, /*
-Return non-nil if OBJECT is a device.
-*/
-       (object))
-{
-  return DEVICEP (object) ? Qt : Qnil;
-}
-
 DEFUN ("device-live-p", Fdevice_live_p, 1, 1, 0, /*
 Return non-nil if OBJECT is a device that has not been deleted.
 */
@@ -1378,7 +1370,6 @@ syms_of_device (void)
   DEFSUBR (Fselected_device);
   DEFSUBR (Fselect_device);
   DEFSUBR (Fset_device_selected_frame);
-  DEFSUBR (Fdevicep);
   DEFSUBR (Fdevice_live_p);
   DEFSUBR (Fdevice_name);
   DEFSUBR (Fdevice_connection);

@@ -1331,14 +1331,6 @@ window_pixel_height (struct window* w)
 }
 
 
-DEFUN ("windowp", Fwindowp, 1, 1, 0, /*
-Return t if OBJECT is a window.
-*/
-       (object))
-{
-  return WINDOWP (object) ? Qt : Qnil;
-}
-
 DEFUN ("window-live-p", Fwindow_live_p, 1, 1, 0, /*
 Return t if OBJECT is a window which is currently visible.
 */
@@ -5699,7 +5691,6 @@ syms_of_window (void)
   DEFSUBR (Flast_nonminibuf_window);
   DEFSUBR (Fminibuffer_window);
   DEFSUBR (Fwindow_minibuffer_p);
-  DEFSUBR (Fwindowp);
   DEFSUBR (Fwindow_live_p);
   DEFSUBR (Fwindow_first_hchild);
   DEFSUBR (Fwindow_first_vchild);

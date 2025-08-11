@@ -1576,14 +1576,6 @@ message is generated and this function returns nil.
 				     3, data, domain, dest_types);
 }
 
-DEFUN ("image-instance-p", Fimage_instance_p, 1, 1, 0, /*
-Return non-nil if OBJECT is an image instance.
-*/
-       (object))
-{
-  return IMAGE_INSTANCEP (object) ? Qt : Qnil;
-}
-
 DEFUN ("image-instance-type", Fimage_instance_type, 1, 1, 0, /*
 Return the type of the given image instance.
 The return value will be one of `nothing', `text', `mono-pixmap',
@@ -3862,22 +3854,6 @@ iconified.  Their image can be instantiated as `mono-pixmap' and
   return allocate_glyph (typeval, 0);
 }
 
-DEFUN ("glyphp", Fglyphp, 1, 1, 0, /*
-Return non-nil if OBJECT is a glyph.
-
-A glyph is an object used for pixmaps, widgets and the like.  It is used
-in begin-glyphs and end-glyphs attached to extents, in marginal and textual
-annotations, in overlay arrows (overlay-arrow-* variables), in toolbar
-buttons, and the like.  Much more detailed information can be found at
-`make-glyph'.  Its image is described using an image specifier --
-see `make-image-specifier'.  See also `make-image-instance' for further
-information.
-*/
-       (object))
-{
-  return GLYPHP (object) ? Qt : Qnil;
-}
-
 DEFUN ("glyph-type", Fglyph_type, 1, 1, 0, /*
 Return the type of the given glyph.
 The return value will be one of `buffer', `pointer', or `icon'.
@@ -5144,7 +5120,6 @@ syms_of_glyphs (void)
   DEFSYMBOL (Qsubwindow_image_instance_p);
 
   DEFSUBR (Fmake_image_instance);
-  DEFSUBR (Fimage_instance_p);
   DEFSUBR (Fimage_instance_type);
   DEFSUBR (Fvalid_image_instance_type_p);
   DEFSUBR (Fimage_instance_type_list);
@@ -5191,7 +5166,6 @@ syms_of_glyphs (void)
   DEFSUBR (Fglyph_type);
   DEFSUBR (Fvalid_glyph_type_p);
   DEFSUBR (Fglyph_type_list);
-  DEFSUBR (Fglyphp);
   DEFSUBR (Fmake_glyph_internal);
   DEFSUBR (Fglyph_width);
   DEFSUBR (Fglyph_ascent);

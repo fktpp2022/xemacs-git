@@ -29,6 +29,10 @@
 
 ;;; Code:
 
+(defun consolep (object)
+  "Return non-nil if OBJECT is a console."
+  (eq (type-of object) 'console))
+
 (defun quit-char (&optional console)
   "Return the character that causes a QUIT to happen.
 This is normally C-g.  Optional arg CONSOLE specifies the console

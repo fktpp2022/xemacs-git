@@ -34,6 +34,11 @@
 
 ;;; Code:
 
+(defun category-table-p (object)
+  "Return t if OBJECT is a category table.
+See `make-category-table' for more information."
+  (eq (type-of object) 'category-table))
+
 (defvar defined-category-hashtable (make-hash-table :size 50))
 
 (defun define-category (designator doc-string &optional table)

@@ -33,6 +33,10 @@
 
 ;;; Code:
 
+(defun hash-table-p (object)
+  "Return t if OBJECT is a hash table, else nil."
+  (eq (type-of object) 'hash-table))
+
 (defun hash-table-key-list (hash-table)
   "Return a list of all keys in HASH-TABLE."
   (let (list)

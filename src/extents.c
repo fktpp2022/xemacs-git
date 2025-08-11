@@ -3079,14 +3079,6 @@ extent_endpoint_external (Lisp_Object extent_obj, Boolint endp,
   return make_fixnum (extent_endpoint_char (extent, endp));
 }
 
-DEFUN ("extentp", Fextentp, 1, 1, 0, /*
-Return t if OBJECT is an extent.
-*/
-       (object))
-{
-  return EXTENTP (object) ? Qt : Qnil;
-}
-
 DEFUN ("extent-live-p", Fextent_live_p, 1, 1, 0, /*
 Return t if OBJECT is an extent that has not been destroyed.
 */
@@ -7292,7 +7284,6 @@ syms_of_extents (void)
   DEFSYMBOL (Qtext_prop);
   DEFSYMBOL (Qtext_prop_extent_paste_function);
 
-  DEFSUBR (Fextentp);
   DEFSUBR (Fextent_live_p);
   DEFSUBR (Fextent_detached_p);
   DEFSUBR (Fextent_start_position);

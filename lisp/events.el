@@ -30,6 +30,9 @@
 
 ;;; Code:
 
+(defun eventp (object)
+  "True if OBJECT is an event object."
+  (eq (type-of object) 'event))
 
 (defun event-console (event)
   "Return the console that EVENT occurred on.

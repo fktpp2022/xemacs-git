@@ -4136,6 +4136,38 @@ forcing function quoting" ,en (car form))))
       (byte-compile-normal-call
        `(signal 'wrong-number-of-arguments '(quote ,(length (cdr form)))))
     (byte-compile-constant (byte-compile-top-level (nth 1 form)))))
+
+(defun byte-compile-simple-type-predicate (form)
+  (case (length (cdr form))
+    (1 (if for-effect
+           (byte-compile-form (cadr form) for-effect)
+         (byte-compile-form (cadr form))
+         (byte-compile-out 'byte-type-of 0)
+         (byte-compile-push-constant
+          (intern
+           (subseq
+            (symbol-name (car form))
+            0 (or (position ?- (symbol-name (car form)) :from-end t)
+                  -1))))
+         (byte-compile-out 'byte-eq 0)))
+    (t (byte-compile-subr-wrong-args form 1))))
+
+(map nil #'(lambda (type)
+             (let ((predicate (if (find ?- (symbol-name type))
+                                  (intern (concat (symbol-name type)
+                                                  "-p"))
+                                (intern (concat (symbol-name type) "p")))))
+               (when (and (fboundp predicate)
+                          (not (get predicate 'byte-opcode)))
+                 (put predicate 'byte-compile
+                      'byte-compile-simple-type-predicate)
+                 (put predicate 'side-effect-free 'error-free))))
+     ;; case-table, keymap intentionally omitted
+     '(bignum bigfloat bit-vector buffer category-table char-table character
+       charset coding-system color-instance compiled-function console device
+       ephemeron event extent face float font-instance frame glyph hash-table
+       image-instance marker process range-table ratio specifier stream subr
+       toolbar-button vector weak-list window))
 
 ;;; control structures
 

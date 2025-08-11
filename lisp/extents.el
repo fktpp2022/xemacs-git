@@ -31,6 +31,10 @@
 
 ;;; Code:
 
+(defun extentp (object)
+  "Return t if OBJECT is an extent."
+  (eq (type-of object) 'extent))
+
 ;; an alternative to map-extents.
 (defun mapcar-extents (function &optional predicate buffer-or-string from to
 				flags property value)

@@ -625,14 +625,6 @@ face_property_matching_instance (Lisp_Object face, Lisp_Object property,
 }
 
 
-DEFUN ("facep", Ffacep, 1, 1, 0, /*
-Return t if OBJECT is a face.
-*/
-       (object))
-{
-  return FACEP (object) ? Qt : Qnil;
-}
-
 DEFUN ("find-face", Ffind_face, 1, 1, 0, /*
 Retrieve the face of the given name.
 If FACE-OR-NAME is a face object, it is simply returned.
@@ -2137,7 +2129,6 @@ syms_of_faces (void)
   DEFSYMBOL (Qtext_cursor);
   DEFSYMBOL (Qvertical_divider);
 
-  DEFSUBR (Ffacep);
   DEFSUBR (Ffind_face);
   DEFSUBR (Fget_face);
   DEFSUBR (Fface_name);

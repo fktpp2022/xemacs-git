@@ -32,6 +32,14 @@
 ;; This file defines actions to happen after each GC to perform
 ;; additional cleanup, call finalizers, etc.
 
+(defun ephemeronp (object)
+  "Return non-nil if OBJECT is an ephemeron."
+  (eq (type-of object) 'ephemeron))
+
+;; This was the initial name for the function; it does not fit with
+;; XEmacs coding conventions.
+(defalias 'ephemeron-p 'ephemeronp)
+
 (defun run-finalizers (alist)
   "Run the finalizers for all objects that have just become unreachable."
   (let ((info (assq 'finalize-list alist)))

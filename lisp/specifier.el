@@ -29,6 +29,15 @@
 
 ;;; Code:
 
+(defun specifierp (object)
+  "Return t if OBJECT is a specifier.
+
+A specifier is an object that can be used to keep track of a property
+whose value can be per-buffer, per-window, per-frame, or per-device,
+and can further be restricted to a particular console-type or device-class.
+See `make-specifier'."
+  (eq (type-of object) 'specifier))
+
 (defun make-specifier-and-init (type spec-list &optional dont-canonicalize)
   "Create and initialize a specifier of type TYPE with spec(s) SPEC-LIST.
 

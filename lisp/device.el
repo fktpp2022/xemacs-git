@@ -41,6 +41,10 @@
 
 ;;; Functions
 
+(defun devicep (object)
+  "Return non-nil if OBJECT is a device."
+  (eq (type-of object) 'device))
+
 (defun device-list ()
   "Return a list of all devices."
   (mapcan 'console-device-list (console-list)))

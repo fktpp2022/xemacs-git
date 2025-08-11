@@ -29,6 +29,10 @@
 
 ;;; Code:
 
+(defun windowp (object)
+  "Return t if OBJECT is a window."
+  (eq (type-of object) 'window))
+
 ;;;; Window tree functions.
 
 ;; XEmacs addition, to expose WINDOW. 

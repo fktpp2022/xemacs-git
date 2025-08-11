@@ -42,6 +42,10 @@
 (eval-when (:compile-toplevel)
   (autoload 'init-windows-glyph-list-4 "unicode"))
 
+(defun charsetp (object)
+  "Return non-nil if OBJECT is a charset."
+  (eq (type-of object) 'charset))
+
 
 ;;;; Classifying text according to charsets
 

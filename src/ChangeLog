@@ -340,6 +340,47 @@
 
 	* symsinit.h: Remove its declaration.
 
+2025-08-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Move many basic type predicates to Lisp, no need for them to be in
+	C.
+
+	* buffer.c (Fbufferp): Move this to Lisp, now its implementation
+	is very cheap and there is no need for it to be in C.
+	* buffer.c (syms_of_buffer): Remove its DEFSUBR().
+	* bytecode.c (Fcompiled_function_p): Move to Lisp.
+	* bytecode.c (syms_of_bytecode): Remove its DEFSUBR().
+	* chartab.c (Fcategory_table_p): Move to Lisp.
+	* chartab.c (syms_of_chartab): Remove its DEFSUBR().
+	* console.c (Fconsolep): Move to Lisp.
+	* console.c (syms_of_console): Remove its DEFSUBR().
+	* data.c (Fconsp, Fsymbolp, Fvectorp, Fbit_vector_p, Fstringp,
+	Fmarkerp, Fsubrp, Fcharacterp, Ffixnump, Ffloatp, Fweak_list_p,
+	Fephemeronp): Move these to Lisp.
+	* data.c (syms_of_data): Remove their DEFSUBR()s.
+	* device.c (Fdevicep): Move to Lisp.
+	* device.c (syms_of_device): Remove its DEFSUBR().
+	* elhash.c (Fhash_table_p): Move to Lisp.
+	* elhash.c (syms_of_elhash): Remove its DEFSUBR().
+	* extents.c (Fextentp): Move to Lisp.
+	* extents.c (syms_of_extents): Remove its DEFSUBR().
+	* events.c (Feventp): Move to Lisp.
+	* events.c (syms_of_events): Remove its DEFSUBR().
+	* faces.c (Ffacep): Move to Lisp.
+	* faces.c (syms_of_faces): Remove its DEFSUBR().
+	* file-coding.c (Fcoding_system_p): Move to Lisp.
+	* file-coding.c (syms_of_file_coding): Remove its DEFSUBR().
+	* frame.c (Fframep): Move to Lisp.
+	* frame.c (syms_of_frame): Remove its DEFSUBR().
+	* glyphs.c (Fimage_instance_p): Move to Lisp.
+	* glyphs.c (Fglyphp): Move to Lisp.
+	* glyphs.c (syms_of_glyphs): Remove their DEFSUBR()s.
+	* number.h: Remove declaration for Ffloatp(), now in Lisp.
+	* specifier.c (Fspecifierp): Move to Lisp.
+	* specifier.c (syms_of_specifier): Remove its DEFSUBR().
+	* window.c (Fwindowp): Move to Lisp.
+	* window.c (syms_of_window): Remove its DEFSUBR().
+
 2025-06-15  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* bytecode-ops.h (OPCODE):

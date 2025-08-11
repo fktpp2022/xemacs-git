@@ -638,19 +638,6 @@ and `current-display-table'.
   return make_specifier (meths);
 }
 
-DEFUN ("specifierp", Fspecifierp, 1, 1, 0, /*
-Return t if OBJECT is a specifier.
-
-A specifier is an object that can be used to keep track of a property
-whose value can be per-buffer, per-window, per-frame, or per-device,
-and can further be restricted to a particular console-type or device-class.
-See `make-specifier'.
-*/
-       (object))
-{
-  return SPECIFIERP (object) ? Qt : Qnil;
-}
-
 DEFUN ("specifier-type", Fspecifier_type, 1, 1, 0, /*
 Return the type of SPECIFIER.
 */
@@ -3838,7 +3825,6 @@ syms_of_specifier (void)
   DEFSUBR (Fvalid_specifier_type_p);
   DEFSUBR (Fspecifier_type_list);
   DEFSUBR (Fmake_specifier);
-  DEFSUBR (Fspecifierp);
   DEFSUBR (Fspecifier_type);
 
   DEFSUBR (Fvalid_specifier_locale_p);

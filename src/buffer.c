@@ -291,14 +291,6 @@ cleanup_buffer_undo_lists (void)
 }
 
 
-DEFUN ("bufferp", Fbufferp, 1, 1, 0, /*
-Return t if OBJECT is an editor buffer.
-*/
-       (object))
-{
-  return BUFFERP (object) ? Qt : Qnil;
-}
-
 DEFUN ("buffer-live-p", Fbuffer_live_p, 1, 1, 0, /*
 Return t if OBJECT is an editor buffer that has not been deleted.
 */
@@ -1958,7 +1950,6 @@ syms_of_buffer (void)
   DEFSYMBOL (Qswitch_to_buffer);
   DEFSYMBOL (Qgenerated_modeline_string);
 
-  DEFSUBR (Fbufferp);
   DEFSUBR (Fbuffer_live_p);
   DEFSUBR (Fbuffer_list);
   DEFSUBR (Fdecode_buffer);

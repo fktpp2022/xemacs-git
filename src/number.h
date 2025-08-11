@@ -372,7 +372,6 @@ extern Lisp_Object Qread_default_float_format, Vread_default_float_format;
 }  while (0)
 
 extern Lisp_Object make_floating (double);
-EXFUN (Ffloatp, 1);
 
 
 /********************************** Reals ***********************************/

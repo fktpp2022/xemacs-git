@@ -2575,14 +2575,6 @@ static const struct memory_description compiled_function_description[] = {
 };
 
 
-DEFUN ("compiled-function-p", Fcompiled_function_p, 1, 1, 0, /*
-Return t if OBJECT is a byte-compiled function object.
-*/
-       (object))
-{
-  return COMPILED_FUNCTIONP (object) ? Qt : Qnil;
-}
-
 /************************************************************************/
 /*		compiled-function object accessor functions		*/
 /************************************************************************/
@@ -2994,7 +2986,6 @@ syms_of_bytecode (void)
   DEFSUBR (Fbyte_code);
   DEFSUBR (Foptimize_compiled_function);
 
-  DEFSUBR (Fcompiled_function_p);
   DEFSUBR (Fcompiled_function_instructions);
   DEFSUBR (Fcompiled_function_constants);
   DEFSUBR (Fcompiled_function_stack_depth);

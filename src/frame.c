@@ -1064,17 +1064,6 @@ frame_live_p (struct frame *f)
   return FRAME_LIVE_P (f);
 }
 
-DEFUN ("framep", Fframep, 1, 1, 0, /*
-Return non-nil if OBJECT is a frame.
-Also see `frame-live-p'.
-Note that FSF Emacs kludgily returns a value indicating what type of
-frame this is.  Use the cleaner function `frame-type' for that.
-*/
-       (object))
-{
-  return FRAMEP (object) ? Qt : Qnil;
-}
-
 DEFUN ("frame-live-p", Fframe_live_p, 1, 1, 0, /*
 Return non-nil if OBJECT is a frame which has not been deleted.
 */
@@ -4131,7 +4120,6 @@ syms_of_frame (void)
   DEFSYMBOL (Qframe_property_alias);
 
   DEFSUBR (Fmake_frame);
-  DEFSUBR (Fframep);
   DEFSUBR (Fframe_live_p);
 #if 0 /* FSFmacs */
   DEFSUBR (Fignore_event);

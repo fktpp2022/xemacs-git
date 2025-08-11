@@ -175,74 +175,12 @@ Return t if the two args are the same Lisp object.
   return EQ_WITH_EBOLA_NOTICE (object1, object2) ? Qt : Qnil;
 }
 
-DEFUN ("consp", Fconsp, 1, 1, 0, /*
-Return t if OBJECT is a cons cell.  `nil' is not a cons cell.
-
-See the documentation for `cons' or the Lisp manual for more details on what
-a cons cell is.
-*/
-       (object))
-{
-  return CONSP (object) ? Qt : Qnil;
-}
-
-DEFUN ("symbolp", Fsymbolp, 1, 1, 0, /*
-Return t if OBJECT is a symbol.
-
-A symbol is a Lisp object with a name. It can optionally have any and all of
-a value, a property list and an associated function. 
-*/
-       (object))
-{
-  return SYMBOLP (object) ? Qt : Qnil;
-}
-
 DEFUN ("keywordp", Fkeywordp, 1, 1, 0, /*
 Return t if OBJECT is a keyword.
 */
        (object))
 {
   return KEYWORDP (object) ? Qt : Qnil;
-}
-
-DEFUN ("vectorp", Fvectorp, 1, 1, 0, /*
-Return t if OBJECT is a vector.
-*/
-       (object))
-{
-  return VECTORP (object) ? Qt : Qnil;
-}
-
-DEFUN ("bit-vector-p", Fbit_vector_p, 1, 1, 0, /*
-Return t if OBJECT is a bit vector.
-*/
-       (object))
-{
-  return BIT_VECTORP (object) ? Qt : Qnil;
-}
-
-DEFUN ("stringp", Fstringp, 1, 1, 0, /*
-Return t if OBJECT is a string.
-*/
-       (object))
-{
-  return STRINGP (object) ? Qt : Qnil;
-}
-
-DEFUN ("markerp", Fmarkerp, 1, 1, 0, /*
-Return t if OBJECT is a marker (editor pointer).
-*/
-       (object))
-{
-  return MARKERP (object) ? Qt : Qnil;
-}
-
-DEFUN ("subrp", Fsubrp, 1, 1, 0, /*
-Return t if OBJECT is a built-in function.
-*/
-       (object))
-{
-  return SUBRP (object) ? Qt : Qnil;
 }
 
 DEFUN ("subr-min-args", Fsubr_min_args, 1, 1, 0, /*
@@ -290,30 +228,6 @@ If non-nil, the return value will be a list whose first element is
 }
 
 
-DEFUN ("characterp", Fcharacterp, 1, 1, 0, /*
-Return t if OBJECT is a character.
-Unlike in XEmacs v19 and FSF Emacs, a character is its own primitive type.
-Any character can be converted into an equivalent integer using
-`char-int'.  To convert the other way, use `int-char'; however,
-only some integers can be converted into characters.  Such an integer
-is called a `char-int'; see `char-int-p'.
-
-Some functions that work on integers (e.g. the comparison functions
-<, <=, =, /=, etc. and the arithmetic functions +, -, *, etc.)
-accept characters and implicitly convert them into integers.  In
-general, functions that work on characters also accept char-ints and
-implicitly convert them into characters.  WARNING: Neither of these
-behaviors is very desirable, and they are maintained for backward
-compatibility with old E-Lisp programs that confounded characters and
-integers willy-nilly.  These behaviors may change in the future; therefore,
-do not rely on them.  Instead, use the character-specific functions such
-as `char='.
-*/
-       (object))
-{
-  return CHARP (object) ? Qt : Qnil;
-}
-
 DEFUN ("char-to-int", Fchar_to_int, 1, 1, 0, /*
 Convert CHARACTER into an equivalent integer.
 The resulting integer will always be non-negative.  The integers in
@@ -355,19 +269,6 @@ nil is returned.
     return Qnil;
 }
 
-DEFUN ("fixnump", Ffixnump, 1, 1, 0, /*
-Return t if OBJECT is a fixnum.
-
-In this implementation, a fixnum is an immediate integer, and has a
-maximum value described by the constant `most-positive-fixnum'.  This
-contrasts with bignums, integers where the values are limited by your
-available memory.
-*/
-       (object))
-{
-  return FIXNUMP (object) ? Qt : Qnil;
-}
-
 DEFUN ("numerator", Fnumerator, 1, 1, 0, /*
 Return the numerator of the canonical form of RATIONAL.
 If RATIONAL is an integer, RATIONAL is returned.
@@ -408,14 +309,6 @@ Return t if OBJECT is a number (floating point or rational).
        (object))
 {
   return NUMBERP (object) ? Qt : Qnil;
-}
-
-DEFUN ("floatp", Ffloatp, 1, 1, 0, /*
-Return t if OBJECT is a floating point number.
-*/
-       (object))
-{
-  return FLOATP (object) ? Qt : Qnil;
 }
 
 DEFUN ("type-of", Ftype_of, 1, 1, 0, /*
@@ -3314,14 +3207,6 @@ encode_weak_list_type (enum weak_list_type type)
   return Qnil; /* not (usually) reached */
 }
 
-DEFUN ("weak-list-p", Fweak_list_p, 1, 1, 0, /*
-Return non-nil if OBJECT is a weak list.
-*/
-       (object))
-{
-  return WEAK_LISTP (object) ? Qt : Qnil;
-}
-
 DEFUN ("make-weak-list", Fmake_weak_list, 0, 1, 0, /*
 Return a new weak list object of type TYPE.
 A weak list object is an object that contains a list.  This list behaves
@@ -3606,14 +3491,6 @@ If the contents have been GCed, return NIL.
 {
   return XEPHEMERON_REF (ephemeron);
 }
-
-DEFUN ("ephemeron-p", Fephemeronp, 1, 1, 0, /*
-Return non-nil if OBJECT is an ephemeron.
-*/
-       (object))
-{
-  return EPHEMERONP (object) ? Qt : Qnil;
-}
 
 /****************** Converting to and from specific C types ******************/
 
@@ -3784,22 +3661,13 @@ syms_of_data (void)
   DEFSUBR (Fdiv);
 #endif
   DEFSUBR (Feq);
-  DEFSUBR (Fconsp);
-  DEFSUBR (Fcharacterp);
   DEFSUBR (Fchar_to_int);
   DEFSUBR (Fint_to_char);
-  DEFSUBR (Ffixnump);
+
   DEFSUBR (Fnumberp);
-  DEFSUBR (Ffloatp);
   DEFSUBR (Fnumerator);
   DEFSUBR (Fdenominator);
-  DEFSUBR (Fsymbolp);
   DEFSUBR (Fkeywordp);
-  DEFSUBR (Fstringp);
-  DEFSUBR (Fvectorp);
-  DEFSUBR (Fbit_vector_p);
-  DEFSUBR (Fmarkerp);
-  DEFSUBR (Fsubrp);
   DEFSUBR (Fsubr_min_args);
   DEFSUBR (Fsubr_max_args);
   DEFSUBR (Fsubr_interactive);
@@ -3838,7 +3706,6 @@ syms_of_data (void)
   DEFSUBR (Fsub1);
   DEFSUBR (Flognot);
 
-  DEFSUBR (Fweak_list_p);
   DEFSUBR (Fmake_weak_list);
   DEFSUBR (Fweak_list_type);
   DEFSUBR (Fweak_list_list);
@@ -3846,7 +3713,6 @@ syms_of_data (void)
 
   DEFSUBR (Fmake_ephemeron);
   DEFSUBR (Fephemeron_ref);
-  DEFSUBR (Fephemeronp);
 }
 
 void

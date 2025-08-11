@@ -350,14 +350,6 @@ set_console_last_nonminibuf_frame (struct console *con,
   con->last_nonminibuf_frame = frame;
 }
 
-DEFUN ("consolep", Fconsolep, 1, 1, 0, /*
-Return non-nil if OBJECT is a console.
-*/
-       (object))
-{
-  return CONSOLEP (object) ? Qt : Qnil;
-}
-
 DEFUN ("console-live-p", Fconsole_live_p, 1, 1, 0, /*
 Return non-nil if OBJECT is a console that has not been deleted.
 */
@@ -1164,7 +1156,6 @@ syms_of_console (void)
   DEFSUBR (Fcdfw_console);
   DEFSUBR (Fselected_console);
   DEFSUBR (Fselect_console);
-  DEFSUBR (Fconsolep);
   DEFSUBR (Fconsole_live_p);
   DEFSUBR (Fconsole_type);
   DEFSUBR (Fconsole_name);

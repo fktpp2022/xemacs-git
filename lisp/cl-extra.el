@@ -925,11 +925,15 @@ most significant non-zero bit."
 ;; appropriately give nil if the corresponding enhanced type is not
 ;; available in this XEmacs.
 
-(defsubst* bignump (object)
+(defun floatp (object)
+  "Return t if OBJECT is a floating point number."
+  (eq (type-of object) 'float))
+
+(defun bignump (object)
   "Return t if OBJECT is a bignum, nil otherwise."
   (eq (type-of object) 'bignum))
 
-(defsubst* ratiop (object)
+(defun ratiop (object)
   "Return t if OBJECT is a ratio, nil otherwise."
   (eq (type-of object) 'ratio))
 
@@ -937,7 +941,7 @@ most significant non-zero bit."
   "Return t if OBJECT is a rational, nil otherwise."
   (and (member* (type-of object) '(fixnum bignum ratio)) t))
 
-(defsubst* bigfloatp (object)
+(defun bigfloatp (object)
   "Return t if OBJECT is a bigfloat, nil otherwise."
   (eq (type-of object) 'bigfloat))
 

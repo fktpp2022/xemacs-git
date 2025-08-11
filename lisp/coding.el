@@ -28,9 +28,26 @@
 
 ;;; Code:
 
-(globally-declare-fboundp
- '(coding-system-lock-shift
-   coding-system-seven coding-system-charset charset-dimension))
+(defun coding-system-p (object)
+  "Return t if OBJECT is a coding system.
+A coding system is an object that defines how text containing multiple
+character sets is encoded into a stream of (typically 8-bit) bytes.
+The coding system is used to decode the stream into a series of
+characters (which may be from multiple charsets) when the text is read
+from a file or process, and is used to encode the text back into the
+same format when it is written out to a file or process.
+
+For example, many ISO2022-compliant coding systems (such as Compound
+Text, which is used for inter-client data under the X Window System)
+use escape sequences to switch between different charsets -- Japanese
+Kanji, for example, is invoked with \"ESC $ ( B\"; ASCII is invoked
+with \"ESC ( B\"; and Cyrillic is invoked with \"ESC - L\".  See
+`make-coding-system' for more information.
+
+Coding systems are normally identified using a symbol, and the
+symbol is accepted in place of the actual coding system object whenever
+a coding system is called for. (This is similar to how faces work.)"
+  (eq (type-of object) 'coding-system))
 
 (defalias 'check-coding-system 'get-coding-system)
 

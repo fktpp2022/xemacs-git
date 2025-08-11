@@ -2062,15 +2062,6 @@ category.
   return obj;
 }
 
-DEFUN ("category-table-p", Fcategory_table_p, 1, 1, 0, /*
-Return t if OBJECT is a category table.
-See `make-category-table' for more information.
-*/
-       (object))
-{
-  return (CATEGORY_TABLEP (object) ? Qt : Qnil);
-}
-
 static Lisp_Object
 check_category_table (Lisp_Object object, Lisp_Object default_)
 {
@@ -2391,7 +2382,6 @@ syms_of_chartab (void)
   DEFSUBR (Fmap_char_table);
 
   DEFSUBR (Fmake_category_table);
-  DEFSUBR (Fcategory_table_p);
   DEFSUBR (Fcategory_table);
   DEFSUBR (Fstandard_category_table);
   DEFSUBR (Fcopy_category_table);

@@ -112,6 +112,63 @@
 	* itimer.el (itimer-process): New. Restore this as a variable,
 	mark it obsolete.
 
+2025-08-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Use byte-type-of for the bulk of simple type predicates for
+	built-in types. Move as many as possible of them to Lisp.
+
+	* bytecomp.el:
+	* bytecomp.el (byte-compile-simple-type-predicate): New. Use the
+	byte-type-of bytecode for type checking for simple type checks, if
+	there is not an existing byte opcode for this type check.
+	* bytecomp.el: Use it for various built-in type predicates.
+
+	* buffer.el (bufferp): New. Move this here from buffer.c
+	* cl-extra.el:
+	* cl-extra.el (floatp): New. Move this here from data.c
+	* cl-extra.el (bignump): No need for this to be a defsubst*, it is
+	now compiled using byte-compile-simple-type-predicate.
+	* cl-extra.el (ratiop): Ditto.
+	* cl-extra.el (bigfloatp): Ditto.
+	* coding.el (coding-system-p): New. Move this here from
+	file-coding.c.
+	* console.el (consolep): New. Move this here from console.c.
+	* device.el (devicep): New. Move this here from device.c
+	* dumped-lisp.el:
+	* dumped-lisp.el (preloaded-file-list): #'consp no longer
+	available in this file, use its implementation.
+	* events.el (eventp): New. Move this here from events.c.
+	* extents.el (extentp): New. Move this here from extents.c.
+	* faces.el (facep): New. Move this here from faces.c.
+	* frame.el (framep): New. Move this here from frame.c.
+	* glyphs.el (glyphp): New. Move this here from glyphs.c.
+	* glyphs.el (image-instance-p): New. Ditto.
+	* hash-table.el (hash-table-p): New. Move this here from elhash.c.
+	* make-docfile.el (docfile-out-of-date): #'fixnump no longer
+	available in this file, use #'numberp.
+	* misc.el (weak-list-p): New. Move this here from data.c.
+	* mule/mule-category.el (category-table-p): New. Move this here
+	from chartab.c.
+	* mule/mule-charset.el (charsetp): New. Move this here from
+	mule-charset.c. 
+	* post-gc.el:
+	* post-gc.el (ephemeronp): New. Move this here from data.c.
+	* post-gc.el ('ephemeron-p): New. Provide an alias for the old
+	name; old name does not fit with XEmacs coding conventions.
+	* specifier.el (specifierp): New. Move this here from specifier.c.
+	* subr.el (consp): New. Move this here from data.c.
+	* subr.el (symbolp): New. Ditto.
+	* subr.el (stringp): New. Ditto.
+	* subr.el (vectorp): New. Ditto.
+	* subr.el (bit-vector-p): New. Ditto.
+	* subr.el (fixnump): New. Ditto.
+	* subr.el (markerp): New. Ditto.
+	* subr.el (characterp): New. Ditto.
+	* subr.el (subrp): New. Ditto.
+	* subr.el (compiled-function-p): New. Move this here from
+	byte-code.c.
+	* window.el (windowp): New. Move this here from window.c.
+
 2025-06-15  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* bytecomp.el (169):
