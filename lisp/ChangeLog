@@ -5,6 +5,13 @@
 	Update both these files to reflect version 16.0.0 of
 	UnicodeData.txt.
 
+2025-08-12  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* loadup.el:
+	No longer need to set load-always-display-messages to nil, recent
+	infrastructure added to the dumper takes care of this more
+	systematically.
+
 2025-07-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove the restriction on autoload cookies for forms not at

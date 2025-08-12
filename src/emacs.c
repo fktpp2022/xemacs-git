@@ -2239,9 +2239,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 	}
     }
 
-  if (initialized)
-    init_eval_semi_early ();
-
   /* CONGRATULATIONS!!!  We have successfully initialized the Lisp
      engine. */
 
@@ -2935,7 +2932,6 @@ and announce itself normally when it is run.
 {
   /* This function can GC */
   struct gcpro gcpro1, gcpro2;
-  int opurify;
 
   GCPRO2 (filename, symfile);
 
@@ -2950,13 +2946,18 @@ and announce itself normally when it is run.
 	symfile = Qnil;
     }
 
-  opurify = purify_flag;
-  purify_flag = 0;
-
   clear_message ();
 
   fflush (stderr);
   fflush (stdout);
+
+#ifdef INHIBIT_SITE_LISP
+  inhibit_site_lisp = 1;
+#endif
+
+#ifdef INHIBIT_SITE_MODULES
+  inhibit_site_modules = 1;
+#endif
 
   disksave_object_finalization ();
   release_breathing_space ();
@@ -2970,8 +2971,6 @@ and announce itself normally when it is run.
   garbage_collect_1 ();
 
   pdump ();
-
-  purify_flag = opurify;
 
   UNGCPRO;
   return Qnil;
@@ -3774,31 +3773,6 @@ syms_of_emacs (void)
   DEFSYMBOL (Qdump_in_exec);
 }
 
-/* Yuck!  These variables may get set from command-line options when
-   dumping; if we don't clear them, they will still be on once the dumped
-   XEmacs reloads. (not an issue with pdump, as we kludge around this in
-   main_1().) */
-
-void
-zero_out_command_line_status_vars (void)
-{
-  vanilla_inhibiting = 0;
-  inhibit_early_packages = 0;
-  inhibit_all_packages = 0;
-  inhibit_autoloads = 0;
-  debug_paths = 0;
-#ifndef INHIBIT_SITE_LISP
-  inhibit_site_lisp = 0;
-#else
-  inhibit_site_lisp = 1;
-#endif
-#ifndef INHIBIT_SITE_MODULES
-  inhibit_site_modules = 0;
-#else
-  inhibit_site_modules = 1;
-#endif
-}
-
 void
 vars_of_emacs (void)
 {
@@ -3935,18 +3909,22 @@ is (implicitly) UTC.  Currently not included in the version string.
 #endif
   Vxemacs_release_date = build_ascstring (XEMACS_RELEASE_DATE);
   
-  /* Lisp variables which contain command line flags.
+  /* Lisp variables which contain command line flags. These need a
+     dump_mark_zero_boolint() so that pdump() does not restore them to their
+     undesired dump-time values. */
 
-     The portable dumper stomps on these; they must be saved and restored
-     if they are processed before the call to pdump_load() in main_1().
-  */
   DEFVAR_BOOL ("noninteractive", &noninteractive1 /*
 Non-nil means XEmacs is running without interactive terminal.
 */ );
+  /* This is technically not currently necessary but I plan to make
+     noninteractive into a Lisp constant and remove the need for
+     noninteractive1, kept around for the sake of that. */
+  dump_mark_zero_boolint (&noninteractive1);
 
   DEFVAR_BOOL ("vanilla-inhibiting", &vanilla_inhibiting /*
 Set to non-nil when the user-init and site-start files should not be loaded.
 */ );
+  dump_mark_zero_boolint (&vanilla_inhibiting);
 
   DEFVAR_BOOL ("inhibit-early-packages", &inhibit_early_packages /*
 Set to non-nil when the early packages should be ignored at startup.
@@ -3959,27 +3937,30 @@ Set to non-nil when all packages should be ignored at startup.
 Package directories will not be added to `load-path', nor set up as
 autoloads, nothing.
 */ );
+  dump_mark_zero_boolint (&inhibit_all_packages);
 
   DEFVAR_BOOL ("inhibit-autoloads", &inhibit_autoloads /*
 Set to non-nil when autoloads should not be loaded at startup.
 */ );
+  dump_mark_zero_boolint (&inhibit_autoloads);
 
   DEFVAR_BOOL ("debug-paths", &debug_paths /*
 Set to non-nil when debug information about paths should be printed.
 */ );
+  dump_mark_zero_boolint (&debug_paths);
 
   DEFVAR_BOOL ("inhibit-site-lisp", &inhibit_site_lisp /*
 Set to non-nil when the site-lisp should not be searched at startup.
 */ );
-#ifdef INHIBIT_SITE_LISP
-  inhibit_site_lisp = 1;
+#ifndef INHIBIT_SITE_LISP
+  dump_mark_zero_boolint (&inhibit_site_lisp);
 #endif
 
   DEFVAR_BOOL ("inhibit-site-modules", &inhibit_site_modules /*
 Set to non-nil when site-modules should not be searched at startup.
 */ );
-#ifdef INHIBIT_SITE_MODULES
-  inhibit_site_modules = 1;
+#ifndef INHIBIT_SITE_MODULES
+  dump_mark_zero_boolint (&inhibit_site_modules);
 #endif
 
   DEFVAR_INT ("emacs-priority", &emacs_priority /*

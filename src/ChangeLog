@@ -1,3 +1,73 @@
+2025-08-12  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Add dump_mark_zero_boolint(), for those Boolint variables
+	reachable from the dump file that would otherwise have undesired,
+	dump-time, values post-pdump_load().
+
+	* alloc.c:
+	* alloc.c (disksave_object_finalization):
+	Remove a duplicate call to Fclrhash (Vfont_signature_data) in
+	passing.
+	Remove call to zero_out_command_line_status_vars().
+	* alloc.c (vars_of_alloc):
+	Mark purify_flag using dump_mark_zero_boolint().
+	* dumper.c:
+	* dumper.c (Boolint_ptr_dynarr): New type.
+	* dumper.c (pdump_zero_boolints): New type.	
+	* dumper.c (dump_mark_zero_boolint): Function using it.
+
+	* dumper.c (save_pdump_zero_boolints): Save the current Boolint
+	values for entries in pdump_zero_boolints in a bit vector; set
+	them all to zero, and return the bit vector.
+	* dumper.c (restore_pdump_zero_boolints): Inverse version of the
+	last function.
+
+	* dumper.c (pdump):
+	Call save_pdump_zero_boolints() and pass its result to an
+	unwind-protect, to call restore_pdump_zero_boolints on exit from
+	the unwind-protect.
+
+	* emacs.c (main_1):
+	Remove call to init_eval_semi_early(), no longer needed.
+
+	* emacs.c (Fdump_emacs):
+	Don't store PURIFY_FLAG in this function, leave that to
+	dump_mark_zero_boolint().
+	Explicitly set inhibit_set_lisp, inhibit_site_modules to 1 in this
+	function if the corresponding #defines are set, forcing them to 1
+	for the dump file. No dump_one_boolint() and this is the only
+	context that might need it.
+
+	* emacs.c (zero_out_command_line_status_vars):
+	Removed. Functionality subsumed by dump_mark_zero_boolint().
+	
+	* emacs.c (vars_of_emacs):
+	Call dump_mark_zero_boolint() on &noninteractive1,
+	&vanilla_inhibiting, &inhibit_all_packages, &inhibit_autoloads,
+	&inhibit_site_lisp, &inhibit_site_modules.
+	* eval.c:
+	* eval.c (static int first_desired_multiple_value):.
+	* eval.c (int multiple_value_current_limit):
+	These can both be initialize with their definitions, in the C data
+	segment, not necessary to set them in init_eval_semi_early().
+	* eval.c (init_eval_semi_early): Remove this, move the assignment
+	of specpdl to specpdl_ptr to reinit_vars_of_eval(), rest of it can
+	be moved to dump_mark_zero_boolint() calls or the C data segment.
+	* eval.c (reinit_vars_of_eval): Initialize specpdl_ptr here.
+	* eval.c (vars_of_eval): Use dump_mark_nil_lisp_object() on
+	Vquit_flag, dump_mark_zero_boolint() on &debug_on_next_call,
+	staticpro_dump_nil() on Vcondition_handlers.
+	* lisp.h:
+	Remove the declaration for zero_out_command_line_status_vars().
+	* lread.c:
+	* lread.c (init_lread):
+	Remove assignment of load_in_progress to zero, use
+	dump_mark_zero_boolint().
+	* lread.c (vars_of_lread):
+	Call it here. Also call it on &load_always_display_messages;
+	* lrecord.h:
+	Declare, document dump_mark_zero_boolint() in this header.
+
 2025-08-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Rename dump_add_nil_lisp_object_1() to

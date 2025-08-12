@@ -5347,11 +5347,7 @@ disksave_object_finalization (void)
   Fclrhash (Vfont_signature_data);
 #endif
 
-#ifdef WIN32_ANY
-  Fclrhash (Vfont_signature_data);
-#endif
   uncache_home_directory ();
-  zero_out_command_line_status_vars ();
   clear_default_devices ();
   disksave_clear_unicode_precedence ();
 
@@ -5775,4 +5771,7 @@ Length (in stack frames) of short backtrace printed out by `debug-allocation'.
   DEFVAR_BOOL ("purify-flag", &purify_flag /*
 Non-nil means loading Lisp code in order to dump an executable.
 */ );
+  dump_mark_zero_boolint (&purify_flag);
 }
+
+/* alloc.c ends here */

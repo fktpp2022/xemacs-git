@@ -245,10 +245,10 @@ Lisp_Object Qxemacs_nth_values_rest_aRjavQ;
 
 Lisp_Object Qno_error, Qdebug_warning;
 
-static int first_desired_multiple_value;
+static int first_desired_multiple_value = 0;
 /* Used outside this file, somewhat uncleanly, in the IGNORE_MULTIPLE_VALUES
    macro: */
-int multiple_value_current_limit;
+int multiple_value_current_limit = 1;
 
 Fixnum multiple_values_limit;
 
@@ -7492,36 +7492,19 @@ syms_of_eval (void)
 }
 
 void
-init_eval_semi_early (void)
-{
-  specpdl_ptr = specpdl;
-  specpdl_depth_counter = 0;
-  catchlist = 0;
-  Vcondition_handlers = Qnil;
-  backtrace_list = 0;
-  Vquit_flag = Qnil;
-  debug_on_next_call = 0;
-  lisp_eval_depth = 0;
-  entering_debugger = 0;
-
-  first_desired_multiple_value = 0;
-  multiple_value_current_limit = 1;
-}
-
-void
 reinit_vars_of_eval (void)
 {
   preparing_for_armageddon = 0;
   in_warnings = 0;
   specpdl_size = 50;
   specpdl = xnew_array (struct specbinding, specpdl_size);
+  specpdl_ptr = specpdl;
   /* XEmacs change: increase these values. */
   max_specpdl_size = 3000;
   max_lisp_eval_depth = 1000;
 #ifdef DEFEND_AGAINST_THROW_RECURSION
   throw_level = 0;
 #endif
-  init_eval_semi_early ();
 }
 
 void
@@ -7550,6 +7533,7 @@ calls to the QUIT; macro, which check the values of `quit-flag' and
 it's correct to do so.
 */ );
   Vquit_flag = Qnil;
+  dump_mark_nil_lisp_object (&Vquit_flag);
 
   DEFVAR_LISP ("inhibit-quit", &Vinhibit_quit /*
 Non-nil inhibits C-g quitting from happening immediately.
@@ -7654,6 +7638,7 @@ control-shift-G to signal a critical quit.
   DEFVAR_BOOL ("debug-on-next-call", &debug_on_next_call /*
 Non-nil means enter debugger before next `eval', `apply' or `funcall'.
 */ );
+  dump_mark_zero_boolint (&debug_on_next_call);
 
   DEFVAR_BOOL ("backtrace-with-interal-sections",
 	       &backtrace_with_internal_sections /*
@@ -7721,7 +7706,8 @@ of those macros.
   staticpro (&Vautoload_queue);
   Vautoload_queue = Qnil;
 
-  staticpro (&Vcondition_handlers);
+  Vcondition_handlers = Qnil;
+  staticpro_dump_nil (&Vcondition_handlers);
 
   staticpro (&Vdeletable_permanent_display_objects);
   Vdeletable_permanent_display_objects = Qnil;

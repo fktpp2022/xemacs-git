@@ -105,9 +105,6 @@ Boolint load_show_full_path_in_messages;
 /* Search path for files to be loaded. */
 Lisp_Object Vload_path;
 
-/* Search path for files when dumping. */
-/* Lisp_Object Vdump_load_path; */
-
 /* This is the user-visible association list that maps features to
    lists of defs in their load files. */
 Lisp_Object Vload_history;
@@ -3344,8 +3341,6 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
 void
 init_lread (void)
 {
-  load_in_progress = 0;
-
   /* kludge: locate-file does not work for a null load-path, even if
      the file name is absolute. */
   Vload_path = Fcons (build_ascstring (""), Qnil);
@@ -3423,12 +3418,10 @@ directory in which the XEmacs executable resides.
   Vload_path = Qnil;
   dump_mark_nil_lisp_object (&Vload_path);
 
-/*  xxxDEFVAR_LISP ("dump-load-path", &Vdump_load_path,
-    "*Location of lisp files to be used when dumping ONLY."); */
-
   DEFVAR_BOOL ("load-in-progress", &load_in_progress /*
 Non-nil iff inside of `load'.
 */ );
+  dump_mark_zero_boolint (&load_in_progress);
 
   DEFVAR_LISP ("after-load-alist", &Vafter_load_alist /*
 An alist of expressions to be evalled when particular files are loaded.
@@ -3482,6 +3475,7 @@ of the NOMESSAGE parameter, and even when files are loaded indirectly, e.g.
 due to `require'.
 */ );
   load_always_display_messages = 0;
+  dump_mark_zero_boolint (&load_always_display_messages);
 
   DEFVAR_BOOL ("load-never-display-messages",
                &load_never_display_messages /*

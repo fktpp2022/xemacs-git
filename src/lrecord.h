@@ -1884,6 +1884,16 @@ void dump_add_root_lisp_object (Lisp_Object *);
    dump_add_root_lisp_object() are still necessary. */
 void dump_mark_nil_lisp_object (Lisp_Object *);
 
+/* Tell the dumper that VAR should be initialized to zero on pdump_load(),
+   irrespective of its value at dump time.
+
+   This is relevant for things like purify_flag, load_always_display_messages,
+   or those that reflect command-line arguments like -vanilla,
+   -inhibit-autoloads. This is only necessary for variables reachable from the
+   dumper by means of DEFVAR_BOOL(); for variables not reachable from the
+   dumper static initialization at file top-level is sufficient. */
+void dump_mark_zero_boolint (Boolint *);
+
 /* Call dump_add_weak_lisp_object (&var) to ensure that var is properly
    updated after pdump.  var must point to a linked list of objects out of
    which some may not be dumped */

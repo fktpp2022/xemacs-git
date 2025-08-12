@@ -142,6 +142,11 @@ typedef struct
   void *value;
 } pdump_static_pointer;
 
+typedef struct
+{
+  Dynarr_declare (Boolint *);
+} Boolint_ptr_dynarr;
+
 static pdump_root_block_dynarr *pdump_root_blocks;
 static pdump_root_block_ptr_dynarr *pdump_root_block_ptrs;
 static Lisp_Object_ptr_dynarr *pdump_root_lisp_objects;
@@ -149,6 +154,7 @@ static Lisp_Object_ptr_dynarr *pdump_nil_lisp_objects;
 static Lisp_Object_ptr_dynarr *pdump_weak_object_chains;
 static pdump_cv_data_info_dynarr *pdump_cv_data;
 static pdump_cv_ptr_info_dynarr *pdump_cv_ptr;
+static Boolint_ptr_dynarr *pdump_zero_boolints;
 
 /* Mark SIZE bytes at non-heap address BLOCKADDR for dumping, described
    by DESC.  Called by outside callers during XEmacs initialization.  */
@@ -199,9 +205,17 @@ dump_mark_nil_lisp_object (Lisp_Object *varaddress)
 {
   if (pdump_nil_lisp_objects == NULL)
     pdump_nil_lisp_objects
-	    = Dynarr_new2 (Lisp_Object_ptr_dynarr, Lisp_Object *);
+      = Dynarr_new2 (Lisp_Object_ptr_dynarr, Lisp_Object *);
   gc_checking_assert (!EQ (*varaddress, Qnull_pointer));
   Dynarr_add (pdump_nil_lisp_objects, varaddress);
+}
+
+void
+dump_mark_zero_boolint (Boolint *varaddress)
+{
+  if (pdump_zero_boolints == NULL)
+    pdump_zero_boolints = Dynarr_new2 (Boolint_ptr_dynarr, Boolint *);
+  Dynarr_add (pdump_zero_boolints, varaddress);
 }
 
 /* Mark the list pointed to by the Lisp_Object at VARADDRESS for dumping.
@@ -1819,6 +1833,37 @@ restore_pdump_nil_lisp_objects (Lisp_Object saved)
 }
 
 static Lisp_Object
+save_pdump_zero_boolints (void)
+{
+  Elemcount len = Dynarr_length (pdump_zero_boolints);
+  Lisp_Object result = make_bit_vector (len, Qzero);
+  Elemcount count;
+
+  for (count = 0; count < len; count++)
+    {
+      set_bit_vector_bit (XBIT_VECTOR (result), count, 
+			  !!(*Dynarr_at (pdump_zero_boolints, count)));
+      *Dynarr_at (pdump_zero_boolints, count) = 0;
+    }
+
+  return result;
+}
+
+static Lisp_Object
+restore_pdump_zero_boolints (Lisp_Object saved)
+{
+  Elemcount len = bit_vector_length (XBIT_VECTOR (saved)), count;
+
+  for (count = 0; count < len; count++)
+    {
+      *Dynarr_at (pdump_zero_boolints, count)
+	= bit_vector_bit (XBIT_VECTOR (saved), count);
+    }
+
+  return Qnil;
+}
+
+static Lisp_Object
 save_staticpros (void)
 {
   Elemcount staticpros_len =  Dynarr_length (staticpros);
@@ -2002,6 +2047,9 @@ pdump (void)
      Lisp state properly for the following. */
   record_unwind_protect (restore_pdump_nil_lisp_objects,
 			 save_pdump_nil_lisp_objects ());
+
+  record_unwind_protect (restore_pdump_zero_boolints,
+			 save_pdump_zero_boolints());
 
   record_unwind_protect (restore_staticpros, save_staticpros ());
 
