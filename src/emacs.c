@@ -2739,6 +2739,7 @@ arguments: (&rest ARGS)
 
   catchlist = NULL; /* Important!  Otherwise free_cons() calls in
 		       condition_case_unwind() may lead to GC death. */
+  backtrace_list = NULL; /* Similar caution, this is full of stack pointers. */
   unbind_to (0); /* this closes loadup.el */
   purify_flag = 0;
 

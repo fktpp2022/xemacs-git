@@ -1,3 +1,10 @@
+2025-08-13  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* emacs.c (Frun_emacs_from_temacs):
+	Set backtrace_list to NULL in this function, similar reasoning to
+	setting catchlist to NULL and to reinitializing the GCPRO list,
+	fix buildbot issues of last commit.
+
 2025-08-12  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Add dump_mark_zero_boolint(), for those Boolint variables
