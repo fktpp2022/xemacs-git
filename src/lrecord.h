@@ -244,6 +244,8 @@ enum lrecord_type
   lrecord_type_symbol_value_lisp_magic,  /* struct symbol_value_lisp_magic */
   lrecord_type_symbol_value_buffer_local,/* struct symbol_value_buffer_local */
   lrecord_type_max_symbol_value_magic = lrecord_type_symbol_value_buffer_local,
+  lrecord_type_opaque,			/* Lisp_Opaque, including Qunbound */
+  lrecord_type_max_symbol_value_magic_or_opaque = lrecord_type_opaque,
 
   /* Keep the rest of these (up to #ifdef EVENT_DATA_AS_OBJECTS) sorted,
      to facilitate keeping .gdbinit.in.in in sync.  Also sort within
@@ -293,7 +295,6 @@ enum lrecord_type
   lrecord_type_module,                  /* struct Lisp_Module */
   lrecord_type_mswindows_dialog_id,	/* struct mswindows_dialog_id */
   lrecord_type_multiple_value,		/* multiple_value */
-  lrecord_type_opaque,			/* Lisp_Opaque */
   lrecord_type_opaque_ptr,		/* Lisp_Opaque_Ptr */
   lrecord_type_precedence_array,	/* struct precedence_array */
   lrecord_type_process,			/* Lisp_Process */

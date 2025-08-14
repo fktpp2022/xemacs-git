@@ -56,6 +56,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "buffer.h"		/* for Vbuffer_defaults */
 #include "console-impl.h"
 #include "elhash.h"
+#include "opaque.h"
 
 Lisp_Object Qad_advice_info, Qad_activate;
 
@@ -1450,6 +1451,8 @@ Return SYMBOL's value.  Error if that is void.
        (symbol))
 {
   Lisp_Object val = find_symbol_value (symbol);
+
+  type_checking_assert (UNBOUNDP (val) || !OPAQUEP (val));
 
   if (UNBOUNDP (val))
     return Fsignal (Qvoid_variable, list1 (symbol));

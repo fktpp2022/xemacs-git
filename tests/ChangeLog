@@ -1,3 +1,16 @@
+2025-08-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/byte-compiler-tests.el ("Attempt to set constant
+	symbol"):
+	Check that the byte-compiler warns when attempting to set
+	most-positive-fixnum.
+	* automated/byte-compiler-tests.el ("Attempt to let-bind constant
+	symbol"):
+	Check that the byte-compiler warns when attempting to let-bind
+	most-positive-fixnum.
+	* automated/byte-compiler-tests.el (void-variable):
+	Check that Lisp errors on defreferencing a variable that is Qunbound.
+
 2025-07-02  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/buffer-tests.el:

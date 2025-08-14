@@ -1,3 +1,20 @@
+2025-08-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecode.c (Bvarref):
+	Check whether XSYMBOL (symbol)->value is SYMBOL_VALUE_MAGIC or
+	OPAQUE here, avoid silent escape of Qunbound to Lisp in
+	byte-compiled code.
+	* lrecord.h (enum lrecord_type):
+	Move lrecord_type_opaque beside the symbol_value_magic values,
+	allowing cheap checking for symbol values that need to be
+	processed specially in bytecode.c.
+	* symbols.c:
+	* symbols.c (Fsymbol_value):
+	Assert that we have not been handed a non-Qunbound opaque value.
+	* symeval.h:
+	* symeval.h (SYMBOL_VALUE_MAGIC_OR_OPAQUEP): New macro, used in
+	bytecode.c.
+
 2025-08-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* emacs.c (Frun_emacs_from_temacs):

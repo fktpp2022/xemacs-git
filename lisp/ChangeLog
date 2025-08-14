@@ -1,3 +1,26 @@
+2025-08-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecomp.el:
+	* bytecomp.el (byte-compile-self-evaluating-symbol-p): New.
+	Better name for the old byte-compile-constant-symbol-p; it returns
+	non-nil for keywords, nil and t, and ignores various constant
+	built-in variables.
+	* bytecomp.el (byte-compile-constant-symbol-p): New. Return
+	non-nil if SYMBOL reflects a const-object, const-integer, etc.
+	* bytecomp.el (byte-compile-constp):
+	Add a (correct) docstring here, that the macro returns non-nil if
+	form is a *self-evaluating* constant form.
+	* bytecomp.el (byte-compile-lambda):
+	Warn if an arglist entry is one of the constant built-in variables
+	as well as if it is a keyword, nil, or t.
+	* bytecomp.el (byte-compile-out-toplevel):
+	Call byte-compile-self-evaluating-symbol-p here,
+	byte-compile-constant-symbol-p no longer appropriate.
+	* bytecomp.el (byte-compile-form): Ditto.
+	* bytecomp.el (byte-compile-variable-ref): Ditto.
+	Also warn if attempting to set or bind one of the built in
+	constant symbols.
+
 2025-08-08  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* mule/digit.el:

@@ -44,12 +44,19 @@
 (check-byte-compiler-message "Attempt to set constant symbol" (setq t 1))
 (check-byte-compiler-message "Attempt to set constant symbol" (setq nil 1))
 (check-byte-compiler-message "Attempt to set constant symbol" (defconst :foo 1))
+(check-byte-compiler-message "Attempt to set constant symbol"
+			     (defconst most-positive-fixnum 1))
 
 (check-byte-compiler-message "Attempt to let-bind non-symbol" (let ((1 'x)) 1))
 (check-byte-compiler-message "Attempt to let-bind constant symbol" (let ((t 'x)) (foo)))
 (check-byte-compiler-message "Attempt to let-bind constant symbol" (let ((nil 'x)) (foo)))
 (check-byte-compiler-message "Attempt to let-bind constant symbol" (let ((:foo 'x)) (foo)))
-
+(check-byte-compiler-message "Attempt to let-bind constant symbol"
+			     (let ((most-positive-fixnum -40)) (foo)))
+(check-byte-compiler-message "Attempt to let-bind constant symbol"
+			     (let* ((a 'z)
+				    (most-positive-fixnum a))
+			       (foo)))
 
 (check-byte-compiler-message "bound but not referenced" (let ((foo 'x)) 1))
 (Assert (not (boundp 'free-variable)))
@@ -57,6 +64,10 @@
 (check-byte-compiler-message "assignment to free variable" (setq free-variable 1))
 (check-byte-compiler-message "reference to free variable" (car free-variable))
 (check-byte-compiler-message "called with 2 args, but requires 1" (car 'x 'y))
+
+(Check-Error
+ void-variable
+ (let ((a (progn (+ (point-min-marker) 1) free-variable))) (+ a 2)))
 
 (let ((fun '(lambda () (setq :foo 1))))
   (fset 'test-byte-compiler-fun fun))
@@ -221,3 +232,5 @@
    (unwind-protect
        (equal x y)
      (setq y '(1 . 3)))))
+
+;; byte-compiler-tests.el ends here

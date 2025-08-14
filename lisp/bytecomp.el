@@ -1739,13 +1739,24 @@ otherwise pop it")
       (setq unreferenced (cdr unreferenced)))))
 
 
-(defmacro byte-compile-constant-symbol-p (symbol)
+(defmacro byte-compile-self-evaluating-symbol-p (symbol)
+  "Return non-nil if SYMBOL is nil, t or a keyword.
+
+These symbols are constant (they cannot be set or bound), and they
+self-evaluate. So, for example, `(symbol-value 't)' gives `t', `(symbol-value
+':test)' gives `:test'."
   `(or (keywordp ,symbol) (memq ,symbol '(nil t))))
 
+(defsubst byte-compile-constant-symbol-p (symbol)
+  "Return non-nil if SYMBOL is a constant built-in variable."
+  (memq (built-in-variable-type symbol)
+	'(const-object const-integer const-boolean const-specifier
+	  const-current-buffer const-selected-console)))
+
 (defmacro byte-compile-constp (form)
-  ;; Returns non-nil if FORM is a constant.
+  "Return non-nil if FORM is a self-evaluating constant."
   `(cond ((consp ,form) (memq (car ,form) '(quote function)))
-	 ((symbolp ,form) (byte-compile-constant-symbol-p ,form))
+	 ((symbolp ,form) (byte-compile-self-evaluating-symbol-p ,form))
 	 (t)))
 
 (defmacro byte-compile-close-variables (&rest body)
@@ -2914,7 +2925,8 @@ If FORM is a lambda or a macro, byte-compile it as a function."
     (dolist (arg arglist)
       (cond ((not (symbolp arg))
 	     (byte-compile-warn "non-symbol in arglist: %S" arg))
-	    ((byte-compile-constant-symbol-p arg)
+	    ((or (byte-compile-self-evaluating-symbol-p arg)
+		 (byte-compile-constant-symbol-p arg))
 	     (byte-compile-warn "constant symbol in arglist: %s" arg))
             ((eq arg 'interactive)
              (and (eq (car arglist) 'interactive)
@@ -3109,7 +3121,7 @@ If FORM is a lambda or a macro, byte-compile it as a function."
 		     (if (if (eq (car (car rest)) 'byte-constant)
 			     (or (consp tmp)
 				 (and (symbolp tmp)
-				      (not (byte-compile-constant-symbol-p tmp)))))
+				      (not (byte-compile-self-evaluating-symbol-p tmp)))))
 			 (if maycall
 			     (setq body (cons (list 'quote tmp) body)))
 		       (setq body (cons tmp body))))
@@ -3163,7 +3175,7 @@ If FORM is a lambda or a macro, byte-compile it as a function."
   (setq form (macroexpand form byte-compile-macro-environment))
   (cond ((not (consp form))
 	 (cond ((or (not (symbolp form))
-		    (byte-compile-constant-symbol-p form))
+		    (byte-compile-self-evaluating-symbol-p form))
 		(byte-compile-constant form))
 	       ((and for-effect byte-compile-delete-errors)
 		(setq for-effect nil))
@@ -3300,7 +3312,7 @@ keyword %s, forcing function quoting" (car form) function)))
 (or (fboundp 'globally-boundp) (fset 'globally-boundp 'boundp))
 
 (defun byte-compile-variable-ref (base-op var &optional varbind-flags)
-  (if (or (not (symbolp var)) (byte-compile-constant-symbol-p var))
+  (if (or (not (symbolp var)) (byte-compile-self-evaluating-symbol-p var))
       (byte-compile-warn
        (case base-op
 	 (byte-varref "Variable reference to %s %s")
@@ -3308,6 +3320,15 @@ keyword %s, forcing function quoting" (car form) function)))
 	 (byte-varbind "Attempt to let-bind %s %s"))
        (if (symbolp var) "constant symbol" "non-symbol")
        var)
+    (when (and (not (eq base-op 'byte-varref))
+	       (byte-compile-constant-symbol-p var))
+      (byte-compile-warn
+       (case base-op
+	 (byte-varset "Attempt to set %s %S")
+	 (byte-varbind "Attempt to let-bind %s %S"))
+       "constant symbol" var))
+      ;; Go ahead and compile the form, given those non-nil, non-t, non-keyword
+      ;; symbols that are constant will vary from XEmacs to XEmacs.
     (if (and (get var 'byte-obsolete-variable)
 	     (memq 'obsolete byte-compile-warnings))
 	(let ((ob (get var 'byte-obsolete-variable)))

@@ -951,7 +951,7 @@ execute_optimized_program (const Opbyte *program,
 	{
 	  Lisp_Object symbol = constants_data[n];
 	  Lisp_Object value = XSYMBOL (symbol)->value;
-	  if (SYMBOL_VALUE_MAGIC_P (value))
+	  if (SYMBOL_VALUE_MAGIC_OR_OPAQUEP (value))
 	    value = Fsymbol_value (symbol);
 	  PUSH (value);
 	  break;

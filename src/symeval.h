@@ -122,6 +122,14 @@ wrap_symbol_value_magic_1 (const void *ptr, const Ascbyte *file, int line)
 
 void print_symbol_value_magic (Lisp_Object, Lisp_Object, int);
 
+/* Used for Bvarref in bytecode.c, which passes SYMBOL_VALUE_MAGIC or Qunbound
+   to Fsymbol_value(). Fsymbol_value() has an assertion that trips if any
+   non-Qunbound OPAQUEP value is encountered. */
+#define SYMBOL_VALUE_MAGIC_OR_OPAQUEP(x)				\
+(LRECORDP (x) &&							\
+ XRECORD_LHEADER (x)->type						\
+ <= lrecord_type_max_symbol_value_magic_or_opaque)
+
 /********** The various different symbol-value-magic types ***********/
 
 /* 1a. symbol-value-forward-object */
