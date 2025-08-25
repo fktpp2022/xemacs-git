@@ -1,5 +1,11 @@
 2025-08-25  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* doprnt.c (emacs_vsnprintf):
+	Use #ifdef HAVE_VSNPRINTF for the fallback call, fix the Windows
+	build.
+
+2025-08-25  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* doprnt.c (stderr_out):
 	Call write_string_to_external_output_va(.. EXT_PRINT_STDERR) if
 	Qexternal_debugging_output is EQ to Qnull_pointer, which is a sign

@@ -3746,7 +3746,7 @@ emacs_vsnprintf (Ibyte *output, Bytecount size, const CIbyte *format,
                              Qnil, Vdigit_fixnum_map,
                              &specs, NULL, args, ERROR_ME);
     }
-#if HAVE_SNPRINTF
+#ifdef HAVE_VSNPRINTF
   else
     {
       /* We're very early, LSTREAM_FIXED_BUFFER is not yet initialized, fall
