@@ -1023,6 +1023,12 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
   if (argmatch (argv, argc, "-nd", "--no-dump-file", 0, NULL, &skip_args))
     nodumpfile = 1;
 
+  /* Handle -no-configured-paths now since that influences where pdump_load()
+     checks for the dump file. */
+  if (argmatch (argv, argc, "-no-configured-paths", "--no-configured-paths",
+                0, NULL, &skip_args))
+    inhibit_configured_paths = 1;
+
   /* DO NOT handle Lisp-visible command line arguments before the dump file is
      loaded (if it is to be loaded, see -nd). They will be overwritten by the
      values stored in the dump file. Instead, load the dump file, then process
@@ -1157,10 +1163,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       inhibit_early_packages = 1;
       vanilla_inhibiting = 1;
     }
-
-  if (argmatch (argv, argc, "-no-configured-paths", "--no-configured-paths",
-                0, NULL, &skip_args))
-    inhibit_configured_paths = 1;
 
   /* Partially handle the -version and -help switches: they imply -batch,
      but are not removed from the list. */
@@ -2437,6 +2439,7 @@ static const struct standard_args standard_args[] =
 #endif /* WIN32_NATIVE */
   { "-sd", "--show-dump-id", 105, 0 },
   { "-nd", "--no-dump-file", 95, 0 },
+  { "-no-configured-paths", "--no-configured-paths", 93, 0 },
   { "-batch", "--batch", 88, 0 },
   { "-script", "--script", 87, 1 },
   { "-debug-paths", "--debug-paths", 82, 0 },
@@ -2445,7 +2448,6 @@ static const struct standard_args standard_args[] =
   { "-no-site-modules", "--no-site-modules", 78, 0 },
   { "-vanilla", "--vanilla", 76, 0 },
   { "-no-autoloads", "--no-autoloads", 74, 0 },
-  { "-no-configured-paths", "--no-configured-paths", 73, 0 },
   { "-help", "--help", 72, 0 },
   { "-version", "--version", 70, 0 },
   { "-V", 0, 68, 0 },

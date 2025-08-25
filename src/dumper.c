@@ -2286,12 +2286,31 @@ pdump (void)
   in_pdump = 0;
 }
 
-static int
-pdump_load_check (void)
+static Boolint
+pdump_load_check (Boolint diep)
 {
-  return (!memcmp (((pdump_header *) pdump_start)->signature,
-		   PDUMP_SIGNATURE, PDUMP_SIGNATURE_LEN)
-	  && ((pdump_header *)pdump_start)->id == dump_id);
+  if (memcmp (((pdump_header *) pdump_start)->signature,
+              PDUMP_SIGNATURE, PDUMP_SIGNATURE_LEN))
+    {
+      if (diep)
+        {
+          fatal ("no XEmacs signature in dump data");
+        }
+      return 0;
+   }
+
+  if (((pdump_header *) pdump_start)->id != dump_id)
+    {
+      if (diep)
+        {
+          fatal ("dump data not valid for this XEmacs, dump_id `%08x'",
+                 dump_id);
+        }
+      return 0;
+      
+    }
+
+  return 1;
 }
 
 /*----------------------------------------------------------------------*/
@@ -2419,7 +2438,7 @@ pdump_load_finish (void)
 
 
 #ifdef WIN32_NATIVE
-static int
+static Boolint
 pdump_resource_get (void)
 {
   HRSRC hRes;			/* Handle to dump resource */
@@ -2437,20 +2456,33 @@ pdump_resource_get (void)
 
   hRes = FindResourceA (NULL, MAKEINTRESOURCE (101), "DUMP");
   if (hRes == NULL)
-    return 0;
+    {
+      fatal ("FindResource() failed on the dump data, error %zd",
+             (EMACS_INT) (GetLastError()));
+      return 0;
+    }
 
   /* Found it, use the data in the resource */
   hResLoad = (HRSRC) LoadResource (NULL, hRes);
   if (hResLoad == NULL)
-    return 0;
+    {
+      fatal ("LoadResource() failed on the dump data, error %zd",
+             (EMACS_INT) (GetLastError()));
+      return 0;
+    }
 
   pdump_start = (Rawbyte *) LockResource (hResLoad);
   if (pdump_start == NULL)
-    return 0;
+    {
+      fatal ("LockResource() failed on the dump data, error %zd",
+             (EMACS_INT) (GetLastError()));
+      return 0;
+    }
 
   pdump_length = SizeofResource (NULL, hRes);
   if (pdump_length <= (Bytecount) sizeof (pdump_header))
     {
+      fatal ("dump data too small");
       pdump_start = 0;
       return 0;
     }
@@ -2458,6 +2490,8 @@ pdump_resource_get (void)
   if (!VirtualProtect(pdump_start, pdump_length, PAGE_READWRITE,
 		      &previous_protection))
     {
+      fatal ("cannot mark the dump data read/write, error %zd",
+             (EMACS_INT) (GetLastError()));
       return 0;
     }
 
@@ -2466,11 +2500,17 @@ pdump_resource_get (void)
 
 #elif defined (DUMP_IN_EXEC)
 
-static int
+static Boolint
 pdump_resource_get (void)
 {
   pdump_start = dumped_data_get ();
   pdump_length = dumped_data_size ();
+
+  if (pdump_length <= (Bytecount) sizeof (pdump_header))
+    {
+      fatal ("dump data too small");
+      return 0;
+    }
 
   return 1;
 }
@@ -2520,21 +2560,37 @@ pdump_file_unmap (void)
 #endif
 
 static int
-pdump_file_get (const Wexttext *path)
+pdump_file_get (const Extbyte *path, Boolint diep)
 {
-  int fd = wext_retry_open (path, O_RDONLY | OPEN_BINARY);
+  int fd = retry_open (path, O_RDONLY | OPEN_BINARY);
   if (fd < 0)
-    return 0;
+    {
+      if (diep)
+        {
+          fatal ("cannot open dump file: `%s': %s", path,
+                 strerror (errno));
+        }
+      return 0;
+    }
 
   pdump_length = lseek (fd, 0, SEEK_END);
   if (pdump_length < (Bytecount) sizeof (pdump_header))
     {
+      if (diep)
+        {
+          fatal ("dump file too short: `%s'", path);
+        }
       retry_close (fd);
       return 0;
     }
 
   if (lseek (fd, 0, SEEK_SET) == -1)
     {
+      if (diep)
+        {
+          fatal ("cannot seek to beginning of dump file: `%s': %s",
+                 path, strerror (errno));
+        }
       retry_close (fd);
       return 0;
     }
@@ -2568,8 +2624,9 @@ pdump_file_get (const Wexttext *path)
 #define DUMP_SLACK sizeof ("../lib/" EMACS_PROGNAME "-" EMACS_VERSION	\
                            "/" EMACS_CONFIGURATION "/" EMACS_PROGNAME   \
 			   "-12345678.dmp")
-static int
-pdump_file_try (const Extbyte *dirname, const Extbyte *basename)
+static Boolint
+pdump_file_try (const Extbyte *dirname, const Extbyte *basename,
+                Boolint diep)
 {
   Bytecount dirlen = strlen (dirname);
   Bytecount file_try_size = dirlen + strlen (basename) + DUMP_SLACK;
@@ -2587,7 +2644,7 @@ pdump_file_try (const Extbyte *dirname, const Extbyte *basename)
      pointers and executable Lisp code and should be regarded as equivalent to
      executable code. We don't look for it at all if DUMP_IN_EXEC is defined.
 
-     If it is in the directory XEmacs was invocated from, we can be reasonably
+     If it is in the directory XEmacs was invoked from, we can be reasonably
      sure that anyone who can write to it can write to XEmacs anyway.
 
      If it is in the expected PATH_EXEC directory, that is a sign it was
@@ -2598,9 +2655,16 @@ pdump_file_try (const Extbyte *dirname, const Extbyte *basename)
 
   res = snprintf (file_try_path, file_try_size, "%s%s.dmp", dirname,
 		  basename);
-  if (res < file_try_size && pdump_file_get (file_try_path))
+  if (res >= file_try_size)
     {
-      if (pdump_load_check ())
+      /* Should never happen, so choke early with this: */
+      fatal ("buffer overrun when attempting to load dump file: "
+             "`%s%s.dmp'", dirname, basename);
+    }
+
+  if (pdump_file_get (file_try_path, inhibit_configured_paths))
+    {
+      if (pdump_load_check (inhibit_configured_paths))
 	return 1;
       pdump_free ();
     }
@@ -2618,9 +2682,18 @@ pdump_file_try (const Extbyte *dirname, const Extbyte *basename)
 		  IS_DIRECTORY_SEP (PATH_EXEC[sizeof (PATH_EXEC) - 2])
 		  ? "" : sepstring, basename, dump_id);
 
-  if (res < file_try_size && pdump_file_get (file_try_path))
+  if (res >= file_try_size)
     {
-      if (pdump_load_check ())
+      fatal ("buffer overrun when attempting to load dump file: "
+             "`%s%s%s-%08x.dmp'", 
+             "%s%s.dmp", PATH_EXEC,
+             IS_DIRECTORY_SEP (PATH_EXEC[sizeof (PATH_EXEC) - 2])
+             ? "" : sepstring, basename, dump_id);
+    }
+
+  if (pdump_file_get (file_try_path, 1))
+    {
+      if (pdump_load_check (1))
 	return 1;
       pdump_free ();
     }
@@ -2638,9 +2711,21 @@ pdump_file_try (const Extbyte *dirname, const Extbyte *basename)
 		  DEFAULT_DIRECTORY_SEP,
 		  EMACS_PROGNAME,
 		  dump_id);
-  if (res < file_try_size && pdump_file_get (file_try_path))
+
+  if (res >= file_try_size)
     {
-      if (pdump_load_check ())
+      fatal ("buffer overrun when attempting to load dump file: "
+             "`%s%slib%c%s-%s%c%s%c%s-%08x.dmp'",
+             PATH_PREFIX, 
+             IS_DIRECTORY_SEP (PATH_PREFIX[sizeof (PATH_PREFIX) - 2])
+             ? "" : sepstring, DEFAULT_DIRECTORY_SEP, EMACS_PROGNAME,
+             EMACS_VERSION, DEFAULT_DIRECTORY_SEP, EMACS_CONFIGURATION,
+             DEFAULT_DIRECTORY_SEP, EMACS_PROGNAME, dump_id);
+    }
+
+  if (pdump_file_get (file_try_path, 1))
+    {
+      if (pdump_load_check (1))
 	return 1;
       pdump_free ();
     }
@@ -2693,6 +2778,15 @@ pdump_file_try (const Extbyte *dirname, const Extbyte *basename)
 			EMACS_PROGNAME, EMACS_VERSION, DEFAULT_DIRECTORY_SEP,
 			EMACS_CONFIGURATION, DEFAULT_DIRECTORY_SEP,
 			EMACS_PROGNAME, dump_id);
+        if (res >= file_try_size)
+          {
+            fatal ("buffer overrun when attempting to load dump file: "
+                   "`%s..%clib%c%s-%s%c%s%c%s-%08x.dmp'",
+                   dirname, DEFAULT_DIRECTORY_SEP, DEFAULT_DIRECTORY_SEP,
+                   EMACS_PROGNAME, EMACS_VERSION, DEFAULT_DIRECTORY_SEP,
+                   EMACS_CONFIGURATION, DEFAULT_DIRECTORY_SEP,
+                   EMACS_PROGNAME, dump_id);
+          }
       }
     else
       {
@@ -2703,11 +2797,19 @@ pdump_file_try (const Extbyte *dirname, const Extbyte *basename)
 			EMACS_PROGNAME, EMACS_VERSION, DEFAULT_DIRECTORY_SEP,
 			EMACS_CONFIGURATION, DEFAULT_DIRECTORY_SEP,
 			EMACS_PROGNAME, dump_id);
+        if (res >= file_try_size)
+          {
+            fatal ("buffer overrun when attempting to load dump file: "
+                   "`%slib%c%s-%s%c%s%c%s-%08x.dmp'",
+                   superdirname, DEFAULT_DIRECTORY_SEP, EMACS_PROGNAME,
+                   EMACS_VERSION, DEFAULT_DIRECTORY_SEP, EMACS_CONFIGURATION,
+                   DEFAULT_DIRECTORY_SEP, EMACS_PROGNAME, dump_id);
+          }
       }
 
-    if (res < file_try_size && pdump_file_get (file_try_path))
+    if (pdump_file_get (file_try_path, 1))
       {
-	if (pdump_load_check ())
+	if (pdump_load_check (1))
 	  return 1;
 	pdump_free ();
       }
@@ -2724,7 +2826,7 @@ pdump_file_try (const Extbyte *dirname, const Extbyte *basename)
 Boolint
 pdump_load (const Extbyte * UNUSED (argv0))
 {
-  if (pdump_resource_get () && pdump_load_check ())
+  if (pdump_resource_get () && pdump_load_check (1))
     {
       pdump_load_finish ();
       in_pdump = 0;
@@ -2802,16 +2904,14 @@ pdump_load (const Extbyte *argv0)
 	  dirname[p - dir] = '\0';
 	  if (stat (dirname, &statbuf) == 0 && S_ISDIR (statbuf.st_mode))
 	    {
-	      if (pdump_file_try (dirname, p))
+	      if (pdump_file_try (dirname, p, 1))
 		{
 		  pdump_load_finish ();
 		  in_pdump = 0;
 		  return 1;
-		}
-	      else
-		{
-		  in_pdump = 0;
-		  return 0;
+
+                  /* pdump_file_try() will fatal() if it cannot load the
+                     file. */
 		}
 	    }
 	  else
@@ -2878,14 +2978,16 @@ pdump_load (const Extbyte *argv0)
 	  && !S_ISDIR (statbuf.st_mode))
 	{
 	  dirname[dirlen] = '\0';
-	  if (pdump_file_try (dirname, p))
+	  if (pdump_file_try (dirname, p, 1))
 	    {
 	      pdump_load_finish ();
 	      in_pdump = 0;
 	      return 1;
 	    }
 
-	  /* Failed with this candidate, keep trying the other directories. */
+	  /* Appropriate to fatal() within pdump_file_try(), since if the
+             first file found was executable that is what the shell will have
+             called. */
 	}
     }
 

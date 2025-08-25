@@ -1,5 +1,38 @@
 2025-08-25  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Call fatal() from within pdump_load() and friends, giving clearer
+	errors on failed startup rather than the confusing "temacs can
+	only be run in -batch mode".
+	Respect inhibit_configured_paths within pdump_file_try() as was
+	the intention but as did not actually work before, by examining its
+	corresponding command line argument before pdump_load().
+
+	* dumper.c (pdump_load_check): New argument, DIEP, indicating to
+	call fatal() with a clear error message if pdump_load_check()
+	fails.
+	* dumper.c (pdump_resource_get):
+	Unconditionally call fatal() with clear error messages if the
+	various steps within the WIN32_NATIVE version of this fail.
+	Call fatal() if the size of the dump data is too small within the
+	non-WIN32_NATIVE version of this.
+	* dumper.c (pdump_file_get): New argument, DIEP, indicating to
+	call fatal() with a clear error message when pdump_file_get()
+	fails.
+	* dumper.c (pdump_file_try): New argument, DIEP, same
+	motivation. Pass the value of INHIBIT_CONFIGURED_PATHS down to
+	pdump_file_get() for the first path we examine for the dump file,
+	and pass an unconditional 1 down for the second path.
+	* dumper.c (pdump_load):
+	Call pdump_load_check(), pdump_file_try() with their new args.
+	* emacs.c (main_1):
+	Examine for -no-configured-paths before pdump_load(), so it can
+	respect it.
+	* emacs.c (standard_args):
+	Increase the priority of -no-configured-paths now it needs to be
+	examined earlier.
+
+2025-08-25  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* doprnt.c (emacs_vsnprintf):
 	Use #ifdef HAVE_VSNPRINTF for the fallback call, fix the Windows
 	build.
