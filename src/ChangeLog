@@ -1,5 +1,12 @@
 2025-08-25  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* device-x.c (x_init_device):
+	If XOpenDisplay() fails and there is an explicit zero screen
+	number supplied, retry without that screen number, all going well
+	addressing problems with XQuartz and launchd sockets.
+
+2025-08-25  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Supplying a -display arg hasn't worked on X11 since e34711681f30,
 	fix that. Remove Vx_initial_argv_list, move the DEFVAR of
 	Vcommand_line_args_left to C instead.

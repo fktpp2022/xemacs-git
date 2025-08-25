@@ -548,7 +548,7 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
   Extbyte **argv;
   String app_class;
   String app_name;
-  const char *disp_name;
+  Extbyte *disp_name;
   Visual *visual = NULL;
   int depth = 8;		/* shut up the compiler */
   Colormap cmap;
@@ -656,6 +656,7 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
 
   disp_name = LISP_STRING_TO_EXTERNAL (display, Qctext);
 
+ retry_without_screen:
   /*
    * Break apart the old XtOpenDisplay call into XOpenDisplay and
    * XtDisplayInitialize so we can figure out whether there
@@ -672,8 +673,25 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
 
   if (dpy == 0)
     {
+      size_t disp_name_len = strlen (disp_name);
+
+      /* Hauke Fath reports in #xemacs on libera.chat that XQuartz fails when
+         we supply the screen name explicitly, since it expects the
+         corresponding file name to exist
+         (e.g. "/private/tmp/com.apple.launchd.892T1F8SoB/org.xquartz:0.0"). If
+         we fail here (which is rare) and there is a zero screen (which
+         suggests we have appended the screen number), retry without the zero
+         screen. */
+      if (disp_name_len > 2
+          && !strcmp (disp_name + (int) disp_name_len - 2, ".0"))
+        {
+          disp_name[(int) disp_name_len - 2] = '\0';
+          goto retry_without_screen;
+        }
+
       suppress_early_error_handler_backtrace = 1;
-      gui_error ("X server not responding", display);
+      gui_error ("X server not responding",
+                 build_extstring (disp_name, Qctext));
     }
 
   if (STRINGP (Vx_emacs_application_class) &&
