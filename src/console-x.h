@@ -201,8 +201,6 @@ extern Lisp_Object Qxintl;
 extern int in_resource_setting;
 extern int in_specifier_change_function;
 
-extern Lisp_Object Vx_initial_argv_list; /* #### ugh! */
-
 #endif /* HAVE_X_WINDOWS */
 
 #endif /* INCLUDED_console_x_h_ */

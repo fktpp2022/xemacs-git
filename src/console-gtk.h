@@ -76,7 +76,7 @@ void gtk_init_modifier_mapping (struct device *d);
 
 void Initialize_Locale (void);
 
-extern Lisp_Object Vgtk_initial_argv_list; /* #### ugh! */
+extern Lisp_Object Vgtk_initial_argv_list;
 
 const char *gtk_event_name (GdkEventType event_type);
 

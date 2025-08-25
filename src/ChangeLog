@@ -1,3 +1,46 @@
+2025-08-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Supplying a -display arg hasn't worked on X11 since e34711681f30,
+	fix that. Remove Vx_initial_argv_list, move the DEFVAR of
+	Vcommand_line_args_left to C instead.
+
+	* console-gtk.h: Remove deprecation of Vgtk_initial_argv_list.
+	* device-gtk.c:
+	* device-gtk.c (vars_of_device_gtk):
+	There is no good alternative to Vgtk_initial_argv_list,
+	Vgtk_initial_geometry, given GTK errors with command line args
+	that it doesn't understand and that we need to communicate the
+	-geometry arg to C somehow. Remove deprecation from these
+	docstrings.
+
+	* console-x.h:
+	Remove declaration for Vx_initial_argv_list.
+	* console-x.c (get_display_arg_connection):
+	Examine Vcommand_line_args for a -display arg, no longer
+	appropriate to deal with Vx_initial_argv_list, which has not been
+	adjusted before creating an X11 device since e34711681f30 of 2008,
+	and should not be adjusted before opening an X11 device
+
+	* device-x.c:
+	Remove definition for Vx_initial_argv_list.
+	* device-x.c (x_init_device):
+	Deal with Vcommand_line_args_left rather than Vx_initial_argv_list
+	in this function.
+	* device-x.c (vars_of_device_x):
+	Remove DEFVAR() for x-initial-argv-list.
+	* emacs.c:
+	Modernize type for DISPLAY_ARG. Correct its docstring.
+	Clarify a comment documenting DISPLAY_USE.
+	* emacs.c (vars_of_emacs):
+	DEFVAR (Vcommand_line_args_left) here, rather than in startup.el,
+	since it is now manipulated directly from the X11 C code.
+	Mark Vcommand_line_args with dump_mark_nil_lisp_object().
+	* lisp.h:
+	Remove declaration of Vx_initial_argv_list.
+	* redisplay.h:
+	Modernize type for declaration of DISPLAY_ARG. Update comments for
+	it and for DISPLAY_USE.
+
 2025-08-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* bytecode.c (Bvarref):

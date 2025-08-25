@@ -37,7 +37,7 @@
 
 (globally-declare-boundp
  (unless (valid-device-type-p 'x)
-   '(x-initial-argv-list x-app-defaults-directory)))
+   '(x-app-defaults-directory)))
 
 (globally-declare-boundp
  (unless (featurep 'toolbar)
@@ -218,9 +218,6 @@ an X11 device is created; this variable allows for that.")
   (unless make-device-early-x-entry-point-called-p
     (setq initial-frame-plist
           (and initial-frame-unmapped-p '(initially-unmapped t))
-          ;; Save the argv value. 
-          x-initial-argv-list
-          (cons (car command-line-args) command-line-args-left)
           ;; Locate the app-defaults directory
           x-app-defaults-directory
           (or x-app-defaults-directory (locate-data-directory "app-defaults"))
@@ -233,7 +230,6 @@ an X11 device is created; this variable allows for that.")
   ;; And the following code is to be called once, the first time an X11
   ;; device is created:
   (unless make-device-late-x-entry-point-called-p
-    (setq command-line-args-left (cdr x-initial-argv-list))
     ;; Motif-ish bindings
     (define-key global-map '(shift insert)   'yank-clipboard-selection)
     (define-key global-map '(control insert) 'copy-primary-selection)

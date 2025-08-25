@@ -69,8 +69,6 @@ Lisp_Object Qmake_device_early_x_entry_point, Qmake_device_late_x_entry_point;
 /* The application class of Emacs. */
 Lisp_Object Vx_emacs_application_class;
 
-Lisp_Object Vx_initial_argv_list; /* #### ugh! */
-
 Lisp_Object Vgc_cache_hash_table_test;
 
 /* Shut up G++ 4.3. OPTION and RESOURCE are declared as char *, not
@@ -638,7 +636,23 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
 
   allocate_x_device_struct (d);
 
-  make_argc_argv (Vx_initial_argv_list, &argc, &argv);
+  if (!NILP (Vcommand_line_args_left))
+    {
+      /* If Vcommand_line_args_left is non-nil, some of the remaining args may
+         be intended for the toolkit code. ARGC and ARGV are fed to
+         XtDisplayInitialize(), which removes the entries that it consumes
+         from the vector and adjusts ARGC. We then adjust
+         Vcommand_line_args_left appropriately once this is done. */
+      make_argc_argv (Fcons (XCAR (Vcommand_line_args),
+                             Vcommand_line_args_left), &argc, &argv);
+    }
+  else
+    {
+      /* No toolkit args supplied, or this device is not the initial device
+         created (and any Xt-specific args have already been interpreted as
+         file names). */
+      make_argc_argv (list1 (XCAR (Vcommand_line_args)), &argc, &argv);
+    }
 
   disp_name = LISP_STRING_TO_EXTERNAL (display, Qctext);
 
@@ -659,7 +673,7 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
   if (dpy == 0)
     {
       suppress_early_error_handler_backtrace = 1;
-      gui_error ("X server not responding\n", display);
+      gui_error ("X server not responding", display);
     }
 
   if (STRINGP (Vx_emacs_application_class) &&
@@ -947,7 +961,8 @@ x_init_device (struct device *d, Lisp_Object UNUSED (props))
   }
 #endif /* HAVE_WMCOMMAND */
 
-  Vx_initial_argv_list = make_arg_list (argc, argv);
+  Vcommand_line_args_left = Fcdr (make_arg_list (argc, argv));
+
   free_argc_argv (argv);
 
   DEVICE_X_WM_COMMAND_FRAME (d) = Qnil;
@@ -2165,17 +2180,6 @@ USE_EMACS_AS_DEFAULT_APPLICATION_CLASS environment variable to some value,
 but in the medium and long term, you should migrate your X resources.
 */ );
   Vx_emacs_application_class = Qnil;
-
-  DEFVAR_LISP ("x-initial-argv-list", &Vx_initial_argv_list /*
-You don't want to know.
-This is used during startup to communicate the remaining arguments in
-`command-line-args-left' to the C code, which passes the args to
-the X initialization code, which removes some args, and then the
-args are placed back into `x-initial-arg-list' and thence into
-`command-line-args-left'.  Perhaps `command-line-args-left' should
-just reside in C.
-*/ );
-  Vx_initial_argv_list = Qnil;
 
   DEFVAR_LISP ("x-app-defaults-directory", &Vx_app_defaults_directory /*
 Used by the Lisp code to communicate to the low level X initialization

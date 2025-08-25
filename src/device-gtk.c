@@ -58,7 +58,7 @@ Lisp_Object Vgtk_binary_age, Vgtk_interface_age;
 /* The application class of Emacs. */
 Lisp_Object Vgtk_emacs_application_class;
 
-Lisp_Object Vgtk_initial_argv_list; /* #### ugh! */
+Lisp_Object Vgtk_initial_argv_list;
 Lisp_Object Vgtk_initial_geometry;
 
 static void gtk_device_init_x_specific_cruft (struct device *d);
@@ -960,17 +960,11 @@ GTK interface age as integer.
 #endif
 
   DEFVAR_LISP ("gtk-initial-argv-list", &Vgtk_initial_argv_list /*
-You don't want to know.
-This is used during startup to communicate the remaining arguments in
-`command-line-args-left' to the C code, which passes the args to
-the GTK initialization code, which removes some args, and then the
-args are placed back into `gtk-initial-arg-list' and thence into
-`command-line-args-left'.  Perhaps `command-line-args-left' should
-just reside in C.
+Those elements of `command-line-args' of interest to GTK.
+See `gtk-command-switch-alist'.
 */ );
 
   DEFVAR_LISP ("gtk-initial-geometry", &Vgtk_initial_geometry /*
-You don't want to know.
 This is used during startup to communicate the default geometry to GTK.
 */ );
 

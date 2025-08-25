@@ -1,3 +1,13 @@
+2025-08-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* startup.el (command-line-args-left): defvar moved to emacs.c.
+	* x-init.el:
+	Remove declaration for x-initial-argv-list.
+	* x-init.el (make-device-early-x-entry-point):
+	Remove manipulation of x-initial-argv-list.
+	* x-init.el (make-device-late-x-entry-point):
+	Ditto.
+
 2025-08-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* bytecomp.el:

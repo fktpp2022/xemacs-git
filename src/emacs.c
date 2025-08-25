@@ -470,6 +470,11 @@ Epoch 4.0 released August 27, 1990.
 /* Command line args from shell, as list of strings */
 Lisp_Object Vcommand_line_args;
 
+/* Remaining command line args to be processed, bound by #'command-line and
+   used specially by the functions it calls; modified by the X11
+   infrastructure on that platform. */
+Lisp_Object Vcommand_line_args_left;
+
 /* Set nonzero after XEmacs has started up the first time.
   Prevents reinitialization of the Lisp world and keymaps
   on subsequent starts.  */
@@ -547,12 +552,13 @@ Fixnum emacs_priority;
    data.  Not necessary because we don't call process filters
    asynchronously (i.e. from within QUIT). */
 
-/* If non-zero, a window-system was specified on the command line. */
-int display_arg;
+/* If non-zero, an X11 display was specified on the command line. */
+Boolint display_arg;
 
-/* Type of display specified.  We cannot use a Lisp symbol here because
-   Lisp symbols may not initialized at the time that we set this
-   variable. */
+/* Type of display specified.  We cannot use a Lisp symbol here because Lisp
+   symbols may not initialized at the time that we set this variable.  Note
+   that this is *not* the specific X11 display of interest; it is a string of
+   the form "x", "tty", "mswindows" etc. */
 const Ascbyte *display_use;
 
 /* If non-zero, then the early error handler will only print the error
@@ -3782,8 +3788,19 @@ vars_of_emacs (void)
 Non-nil means early error handler shouldn't print a backtrace.
 */ );
 
+  Vcommand_line_args = Qnil;
   DEFVAR_LISP ("command-line-args", &Vcommand_line_args /*
 Args passed by shell to XEmacs, as a list of strings.
+*/ );
+  dump_mark_nil_lisp_object (&Vcommand_line_args);
+
+  Vcommand_line_args_left = Qnil;
+  DEFVAR_LISP ("command-line-args-left", &Vcommand_line_args_left /*
+List of command-line args not yet processed.
+
+This is used by `command-line' and the functions it calls. It is modified by
+the X11 code since libraries filter out some command line arguments on that
+platform.
 */ );
 
   DEFVAR_LISP ("invocation-name", &Vinvocation_name /*

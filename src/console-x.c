@@ -120,8 +120,6 @@ x_device_to_console_connection (Lisp_Object connection, Error_Behavior errb)
 static Lisp_Object
 get_display_arg_connection (void)
 {
-  const Extbyte *disp_name;
-
   /* If the user didn't explicitly specify a display to use when
      they called make-x-device, then we first check to see if a
      display was specified on the command line with -display.  If
@@ -130,36 +128,32 @@ get_display_arg_connection (void)
      both of these things, but we need to know the name to use. */
   if (display_arg)
     {
-      int elt;
-      int argc;
-      Extbyte **argv;
-      Lisp_Object conn;
+      Lisp_Object conn = Qnil;
 
-      make_argc_argv (Vx_initial_argv_list, &argc, &argv);
-
-      disp_name = NULL;
-      for (elt = 0; elt < argc; elt++)
-	{
-	  if (!strcmp (argv[elt], "-d") || !strcmp (argv[elt], "-display"))
-	    {
-	      if (elt + 1 == argc)
+      LIST_LOOP_3 (elt, Vcommand_line_args, tail)
+        {
+	  CHECK_STRING (elt);
+          if (!qxestrcmp (XSTRING_DATA (elt), (const Ibyte *) "-d")
+              || !qxestrcmp (XSTRING_DATA (elt), (const Ibyte *) "-display"))
+            {
+              if (NILP (XCDR (tail)))
 		{
 		  suppress_early_error_handler_backtrace = 1;
 		  invalid_argument ("-display specified with no arg", Qunbound);
 		}
 	      else
 		{
-		  disp_name = argv[elt + 1];
+                  CHECK_CONS (XCDR (tail));
+                  CHECK_STRING (XCAR (XCDR (tail)));
+                  conn = XCAR (XCDR (tail));
 		  break;
 		}
 	    }
 	}
 
-      /* assert: display_arg is only set if we found the display
-	 arg earlier so we can't fail to find it now. */
-      assert (disp_name != NULL);
-      conn = build_extstring (disp_name, Qcommand_argument_encoding);
-      free_argc_argv (argv);
+      /* assert: DISPLAY_ARG is only set if we found the display arg earlier
+	 at early startup so we can't fail to find it now. */
+      assert (!NILP (conn));
       return conn;
     }
   else

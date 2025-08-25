@@ -690,11 +690,13 @@ extern Lisp_Object Vglobal_mode_string;
    to convey information discovered on the command line way early
    (before *anything* is initialized). */
 
-/* If non-zero, a window-system was specified on the command line.
-   Defined in emacs.c. */
-extern int display_arg;
+/* If non-zero, an X11 DISPLAY was specified on the command line.  Defined in
+   emacs.c. */
+extern Boolint display_arg;
 
-/* Type of display specified.  Defined in emacs.c. */
+/* Type of display specified.  Defined in emacs.c. Note that this is *not* the
+   specific X11 display of interest; it is a string of the form "x", "tty",
+   "mswindows" etc. */
 extern const Ascbyte *display_use;
 
 /* Nonzero means reading single-character input with prompt

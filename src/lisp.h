@@ -4616,9 +4616,6 @@ Lisp_Object call_critical_lisp_code (struct device *d, Lisp_Object function,
 extern Lisp_Object Qdevice_live_p;
 EXFUN (Fdevice_system_metric, 3);
 
-/* Defined in device-x.c */
-extern Lisp_Object Vx_initial_argv_list;
-
 /* Defined in dired.c */
 extern Lisp_Object Qfile_system_ignore_case_p;
 Lisp_Object make_directory_hash_table (Lisp_Object);
@@ -4786,6 +4783,7 @@ DECLARE_DOESNT_RETURN (really_abort (void));
 
 extern Lisp_Object Qsave_buffers_kill_emacs;
 extern Lisp_Object Vcommand_line_args;
+extern Lisp_Object Vcommand_line_args_left;
 extern Lisp_Object Vconfigure_info_directory;
 extern Lisp_Object Vconfigure_site_directory;
 extern Lisp_Object Vconfigure_site_module_directory;

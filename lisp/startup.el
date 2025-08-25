@@ -96,9 +96,6 @@ with the contents of the startup message.")
 (defconst inhibit-default-init nil
   "*Non-nil inhibits loading the `default' library.")
 
-(defvar command-line-args-left nil
-  "List of command-line args not yet processed.") ; bound by `command-line'
-
 (defvar command-line-default-directory nil
   "Default directory to use for command line arguments.
 This is normally copied from `default-directory' when XEmacs starts.")
