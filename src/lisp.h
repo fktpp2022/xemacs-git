@@ -5835,7 +5835,34 @@ Bytecount write_ascstring (Lisp_Object stream, const Ascbyte *str)
 }
 Bytecount write_eistring (Lisp_Object stream, const Eistring *ei);
 
+/*
+    EXT_PRINT_STDOUT    = stdout or its equivalent (may be a
+                          console window under MS Windows)
+    EXT_PRINT_STDERR    = stderr or its equivalent (may be a
+                          console window under MS Windows)
+    EXT_PRINT_ALTERNATE = an internal character array; see
+                          `alternate-debugging-output'
+    EXT_PRINT_MSWINDOWS = Under MS Windows, the "debugging output" that
+                          debuggers can hook into; uses OutputDebugString()
+                          system call
+    EXT_PRINT_ALL       = all of the above except stdout
+
+    It is unusual to need to use this, in general. Use stderr_out() or
+    stdout_out(). Or pass Qexternal_debugging_output for stderr, Qt for
+    stdout, other streams as needed to write_fmt_string{,_va}. */
+enum ext_print
+  {
+    EXT_PRINT_STDOUT = 1,
+    EXT_PRINT_STDERR = 2,
+    EXT_PRINT_ALTERNATE = 4,
+    EXT_PRINT_MSWINDOWS = 8,
+    EXT_PRINT_ALL = 14
+  };
+
 Bytecount external_out (int dest, const CIbyte *fmt, ...) PRINTF_ARGS (2, 3);
+Bytecount write_string_to_external_output_va (const CIbyte *fmt, va_list args,
+                                              int dest);
+
 Bytecount debug_out (const CIbyte *, ...) PRINTF_ARGS (1, 2);
 Bytecount debug_out_lisp (const CIbyte *, ...);
 DECLARE_DOESNT_RETURN (fatal (const CIbyte *, ...)) PRINTF_ARGS(1, 2);

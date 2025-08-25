@@ -1176,6 +1176,17 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
   if (noninteractive)
     display_use = "stream";
 
+  if (initialized && !restart)
+    {
+      /* After successful pdump_load(). Needs to be done now because fatal()
+         in check_compatible_window_system() GCPROs and creates lstreams.  */
+      reinit_alloc_early ();
+      reinit_vars_of_lstream ();
+#ifdef WITH_NUMBER_TYPES
+      reinit_vars_of_number ();
+#endif
+    }
+
   if (argmatch (argv, argc, "-nw", "--no-windows", 0, NULL, &skip_args) ||
       argmatch (argv, argc, "-tty", "--use-tty", 0, NULL, &skip_args))
     {
@@ -1340,11 +1351,18 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 	 deferror(), DEFERROR(), or DEFERROR_STANDARD()
 	 defkeyword() or DEFKEYWORD()
 	 Fput()
+         DEFINE_.*_LISP_OBJECT()
+         OBJECT_HAS_METHOD ()
 
 	 syms_of_eval() needs to come first to make the Lisp_Subr object
 	 available to DEFSUBR(). Otherwise order does not matter in these
-	 functions. */
+	 functions. Calling syms_of_lstream() and syms_of_print() next is
+	 helpful avoiding recursive crashes in early error messages, should
+	 they be necessary. */
       syms_of_eval ();
+      syms_of_lstream ();
+      syms_of_print ();
+
       syms_of_abbrev ();
       syms_of_alloc ();
       syms_of_gc ();
@@ -1410,7 +1428,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       syms_of_intl ();
       syms_of_keymap ();
       syms_of_lread ();
-      syms_of_lstream ();
       syms_of_macros ();
       syms_of_marker ();
       syms_of_md5 ();
@@ -1428,7 +1445,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       syms_of_number ();
 #endif
       syms_of_fontcolor ();
-      syms_of_print ();
       syms_of_process ();
 #ifdef HAVE_WIN32_PROCESSES
       syms_of_process_nt ();
@@ -1755,18 +1771,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       structure_type_create_faces ();
       structure_type_create_rangetab ();
       structure_type_create_hash_table ();
-    }
-  else if (!restart)	      /* after successful pdump_load() */
-    {
-      reinit_alloc_early ();
-      reinit_vars_of_lstream ();
-#ifdef WITH_NUMBER_TYPES
-      reinit_vars_of_number ();
-#endif
-    }
 
-  if (!initialized)
-    {
       /* Now initialize most variables.
 
 	 These functions may do exactly the following:
@@ -1825,7 +1830,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       /* Now allow Fprovide() statements to be made. */
       init_provide_once ();
 
-      /* Allow emacs_snprintf() to be called.*/
       vars_of_lstream ();
 
       vars_of_data ();

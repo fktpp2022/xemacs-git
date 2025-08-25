@@ -280,28 +280,6 @@ write_string_to_stdio_stream (FILE *stream, struct console *con,
   return write_string_to_stdio_stream_1 (stream, con, ptr, len, must_flush);
 }
 
-/*
-    EXT_PRINT_STDOUT    = stdout or its equivalent (may be a
-                          console window under MS Windows)
-    EXT_PRINT_STDERR    = stderr or its equivalent (may be a
-                          console window under MS Windows)
-    EXT_PRINT_ALTERNATE = an internal character array; see
-                          `alternate-debugging-output'
-    EXT_PRINT_MSWINDOWS = Under MS Windows, the "debugging output" that
-                          debuggers can hook into; uses OutputDebugString()
-                          system call
-    EXT_PRINT_ALL       = all of the above except stdout
-*/
-
-enum ext_print
-  {
-    EXT_PRINT_STDOUT = 1,
-    EXT_PRINT_STDERR = 2,
-    EXT_PRINT_ALTERNATE = 4,
-    EXT_PRINT_MSWINDOWS = 8,
-    EXT_PRINT_ALL = 14
-  };
-
 static Bytecount
 write_string_to_external_output (const Ibyte *ptr, Bytecount len,
 				 int dest)
@@ -350,7 +328,7 @@ write_string_to_external_output (const Ibyte *ptr, Bytecount len,
 
    Both emacs_vsnprintf() and write_string_to_external_output_va() will fail
    if we run out of stack space. Oh well. */
-static Bytecount
+Bytecount
 write_string_to_external_output_va (const CIbyte *fmt, va_list args,
 				    int dest)
 {

@@ -1,5 +1,43 @@
 2025-08-25  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* doprnt.c (stderr_out):
+	Call write_string_to_external_output_va(.. EXT_PRINT_STDERR) if
+	Qexternal_debugging_output is EQ to Qnull_pointer, which is a sign
+	we are very early and likely being called by fatal().
+	* doprnt.c (stdout_out):
+	Add a comment documenting that I am not making the same change to
+	this function; if it becomes relevant the corresponding call to
+	stdout_out() should likely be changed to stderr_out().
+	* doprnt.c (emacs_vsnprintf):
+	Check that the lstream fixed buffer type is available before
+	attempting to use it. If it is not (which suggests we are very
+	early), fall back to vsnprintf().
+	* emacs.c (main_1):
+	Move the clause that calls reinit_alloc_early(),
+	reinit_vars_of_lstream() earlier, since the printing
+	infrastructure is needed by check_compatible_window_system().
+	Update some comments.
+
+	Move syms_of_lstream(), syms_of_print() earlier reducing recursive
+	crashes when problems are encountered at startup.
+	* lisp.h:
+	Move enum ext_print and a declaration for write_string_to_external_output_va()
+	* lstream.c:
+	* lstream.c (syms_of_lstream):
+	Move initialization of Vdump_time_lstream_free_list here allowing
+	earlier printing at startup.
+	Move the DEFINE_LSTREAM_IMPLEMENTATION() calls here too, with the
+	same motivation.
+	Move DEFSYMBOL(), DEFSUBR() calls to this function as should
+	always have been the case.
+	* lstream.c (vars_of_lstream):
+	This is now much shorter, most of it moved to syms_of_lstream().
+	* print.c: Move the enum ext_print enum to lisp.h
+	* print.c (write_string_to_external_output_va): Make this
+	non-static, now it is called by stderr_out() from doprnt.c.
+
+2025-08-25  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* device-x.c (x_init_device):
 	If XOpenDisplay() fails and there is an explicit zero screen
 	number supplied, retry without that screen number, all going well

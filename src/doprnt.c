@@ -3462,14 +3462,30 @@ stderr_out (const CIbyte *fmt, ...)
   if (initialized && !inhibit_non_essential_conversion_operations)
     fmt = GETTEXT (fmt);
 
-  result = write_fmt_string_va (Qexternal_debugging_output, fmt, args);
+  if (EQ (Qexternal_debugging_output, Qnull_pointer))
+    {
+      /* This has the disadvantage that long output is truncated, and that
+         there is more buffering than is usual. It has the advantage that we
+         can actually communicate that we want to print to stderr to
+         write_string_to_external_output(), very early, when
+         Qexternal_debugging_output is not set. */
+      result = write_string_to_external_output_va (fmt, args,
+                                                   EXT_PRINT_STDERR);
+    }
+  else
+    {
+      result = write_fmt_string_va (Qexternal_debugging_output, fmt, args);
+    }
+
   va_end (args);
 
   return result;
 }
 
-/* Output portably to stdout or its equivalent (i.e. may be a console
-   window under MS Windows).  Works like stderr_out(). */
+/* Output portably to stdout or its equivalent (i.e. may be a console window
+   under MS Windows).  Works like stderr_out(). Does not check that Qt is
+   non-Qnull_pointer, if a crash is elicited as a result the corresponding
+   stdout_out() should be rewritten to stderr_out(). */
 Bytecount
 stdout_out (const CIbyte *fmt, ...)
 {
@@ -3696,7 +3712,7 @@ emacs_vsnprintf (Ibyte *output, Bytecount size, const CIbyte *format,
          memcpy(). */
       memmove (output, format, min (size - 1, len));
     }
-  else
+  else if (lstream_fixed_buffer != NULL)
     {
       printf_spec_dynarr specs;
       printf_spec *sbase = alloca_array (printf_spec, speccount);
@@ -3730,6 +3746,21 @@ emacs_vsnprintf (Ibyte *output, Bytecount size, const CIbyte *format,
                              Qnil, Vdigit_fixnum_map,
                              &specs, NULL, args, ERROR_ME);
     }
+#if HAVE_SNPRINTF
+  else
+    {
+      /* We're very early, LSTREAM_FIXED_BUFFER is not yet initialized, fall
+         back to vsnprintf(). */
+      retval = (Bytecount) vsnprintf ((Chbyte *) output, (size_t) size,
+                                      (const Chbyte *) format, vargs);
+    }
+#else
+  else
+    {
+      retval = (Bytecount) vsprintf ((Chbyte *) output,
+                                     (const Chbyte *) format, vargs);
+    }
+#endif  
 
   if (retval < size - 1)
     {

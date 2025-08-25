@@ -2279,33 +2279,18 @@ OUTPUT-STREAM defaults to standard-output.
 void
 syms_of_lstream (void)
 {
-  DEFINE_NODUMP_SIZABLE_LISP_OBJECT ("stream", lstream, print_lstream,
-                                     finalize_lstream,
-                                     0, 0, /* no equal or hash */
-                                     lstream_description, sizeof_lstream,
-                                     Lstream);
-  OBJECT_HAS_PREMETHOD (lstream, disksave);
-
-  DEFKEYWORD (Q_element_type);
-  DEFSYMBOL (Qstreamp);
-
-  DEFSUBR (Fmake_string_output_stream);
-  DEFSUBR (Fget_output_stream_string);
-
-  DEFSUBR (Fclear_output);
-}
-
-void
-vars_of_lstream (void)
-{
   static Lisp_Object Vdump_time_lstream_free_list;
 
   Vdump_time_lstream_free_list = make_vector (countof (lstream_types), Qnil);
   staticpro_nodump (&Vdump_time_lstream_free_list);
   lstream_free_list = XVECTOR_DATA (Vdump_time_lstream_free_list);
 
-  Vlstream_free_list = make_vector (countof (lstream_types), Qnil);
-  staticpro (&Vlstream_free_list);
+  DEFINE_NODUMP_SIZABLE_LISP_OBJECT ("stream", lstream, print_lstream,
+                                     finalize_lstream,
+                                     0, 0, /* no equal or hash */
+                                     lstream_description, sizeof_lstream,
+                                     Lstream);
+  OBJECT_HAS_PREMETHOD (lstream, disksave);
 
   DEFINE_LSTREAM_IMPLEMENTATION ("stdio", stdio);
   LSTREAM_HAS_METHOD (stdio, reader);
@@ -2353,6 +2338,21 @@ vars_of_lstream (void)
   LSTREAM_HAS_METHOD (lisp_buffer, writer);
   LSTREAM_HAS_METHOD (lisp_buffer, write_with_extents);
   LSTREAM_HAS_METHOD (lisp_buffer, rewinder);
+
+  DEFKEYWORD (Q_element_type);
+  DEFSYMBOL (Qstreamp);
+
+  DEFSUBR (Fmake_string_output_stream);
+  DEFSUBR (Fget_output_stream_string);
+
+  DEFSUBR (Fclear_output);
+}
+
+void
+vars_of_lstream (void)
+{
+  Vlstream_free_list = make_vector (countof (lstream_types), Qnil);
+  staticpro (&Vlstream_free_list);
 }
 
 void
