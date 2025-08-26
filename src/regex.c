@@ -547,7 +547,7 @@ typedef enum
 	/* Like `on_failure_jump', except that it assumes that the pattern
 	   following it is mutually exclusive with the pattern at the
 	   destination of the jump: if one matches something, the other won't
-	   match at all.  Always used via `on_failure_jump_smart'.
+	   match at all.  An optimization of `on_failure_jump_loop'.
 
            XEmacs: GNU uses their on_failure_keep_string_jump instead of this,
            which pushes entries onto the register failure stack needlessly. */
@@ -563,13 +563,6 @@ typedef enum
 	   stuck in an infinite loop (matching an empty string
 	   indefinitely).  */
   on_failure_jump_loop,
-
-        /* A smart `on_failure_jump' used for greedy * and + operators.
-	   regex_compile() analyses the loop before which it is put and if the
-	   loop does not require backtracking, it changes it to
-	   `on_failure_jump_exclusive', else it just defaults to changing
-	   itself into `on_failure_jump_loop'.  */
-  on_failure_jump_smart,
 
         /* Followed by two-byte relative address and two-byte number n.
            After matching N times, jump to the address upon failure.  */
@@ -963,12 +956,6 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
 	case on_failure_jump_loop:
  	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
   	  printf ("/on_failure_jump_loop to %zd",
-		  (Bytecount)(p + mcnt - start));
- 	  break;
- 
- 	case on_failure_jump_smart:
- 	  EXTRACT_NUMBER_AND_INCR (mcnt, p);
-  	  printf ("/on_failure_jump_smart to %zd",
 		  (Bytecount)(p + mcnt - start));
  	  break;
 
@@ -1611,7 +1598,7 @@ do                                                                        \
 
 #endif /* emacs */
 
-/* Within re_comppile_fastmap(), push pointer POINTER onto FAIL_STACK.
+/* Within re_compile_fastmap(), push pointer POINTER onto FAIL_STACK.
    Return 1 if able to do so and 0 if ran out of memory allocating
    space to do so.
 
@@ -2457,14 +2444,13 @@ set_reg_offset (reg_info_t *group_info, regnum_t index,
 
 #endif
 
-/* 1. Adjust on_failure_jump_smart to either on_failure_jump_exclusive or
-   on_failure_jump_loop after the entire pattern has been compiled, so that
-   on_failure_jump_smart won't be called when matching.
+/* 1. Rewrite on_failure_jump_loop to the cheaper on_failure_jump_exclusive if
+   the relevant alternatives are mutually exclusive.
 
    2. Rewrite `on_failure_jump_nastyloop' to the cheaper `on_failure_jump' if
    the expression cannot match the null string. GNU does this within
    regex_compile() directly; doing it within this function allows us to take
-   advantage of the on_failure_jump_smart adjustment, since if
+   advantage of the on_failure_jump_exclusive adjustment, since if
    on_failure_jump_loop is present that indicates that an expression can match
    the null string.
 
@@ -2474,7 +2460,7 @@ set_reg_offset (reg_info_t *group_info, regnum_t index,
    mutually_exclusively_p() would be called more often at match time.
 
    I considered implementing this by saving pointers (or offsets) to the
-   on_failure_jump_smart instructions as we place them in regex_compile(),
+   on_failure_jump_loop instructions as we place them in regex_compile(),
    which would have fewer issues with new opcodes or changes to opcode arity,
    but given INSERT_JUMP() can move previous instructions that's difficult,
    and this approach is inexpensive of memory. */
@@ -2537,7 +2523,6 @@ optimize_on_failure_jump (struct re_pattern_buffer *bufp)
 	case duplicate:
 	case on_failure_jump:
 	case on_failure_jump_exclusive:
-	case on_failure_jump_loop:
 	case jump:
 	case jump_past_alt:
 	  begalt += 2;
@@ -2595,7 +2580,7 @@ optimize_on_failure_jump (struct re_pattern_buffer *bufp)
 	    break;
           }
 
-	case on_failure_jump_smart:
+	case on_failure_jump_loop:
 	  {
 	    int mcnt;
 
@@ -2604,14 +2589,13 @@ optimize_on_failure_jump (struct re_pattern_buffer *bufp)
 	    if (mutually_exclusive_p (bufp, begalt, begalt + mcnt))
 	      {
 		/* Use a fast `on_failure_jump_exclusive' loop.  */
-		DEBUG_COMPILE_PRINT ("  smart exclusive => fast loop.\n");
+		DEBUG_COMPILE_PRINT ("  loop exclusive => fast loop.\n");
 		*(begalt - 3) = on_failure_jump_exclusive;
 	      }
 	    else
 	      {
 		/* Default to a safe `on_failure_jump_loop'.  */
-		DEBUG_COMPILE_PRINT ("  smart default => slow loop.\n");
-		*(begalt - 3) = on_failure_jump_loop;
+		DEBUG_COMPILE_PRINT ("  loop default => slow loop.\n");
 	      }
 	    break;
 	  }
@@ -2908,14 +2892,14 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 		if (!zero_times_ok)
 		  {
 		    assert (many_times_ok);
-		    INSERT_JUMP (on_failure_jump_smart, buf_end - 3,
+		    INSERT_JUMP (on_failure_jump_loop, buf_end - 3,
 				 buf_end + 3);
 		    pending_exact = 0;
 		    buf_end += 3;
 		  }
 		else
 		  {
-		    INSERT_JUMP (many_times_ok ? on_failure_jump_smart
+		    INSERT_JUMP (many_times_ok ? on_failure_jump_loop
 				 : on_failure_jump, laststart, buf_end + 3);
 		    pending_exact = 0;
 		    buf_end += 3;
@@ -4842,7 +4826,6 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
             case on_failure_jump_nastyloop:
 	    case on_failure_jump_exclusive:
 	    case on_failure_jump_loop:
-	    case on_failure_jump_smart:
 	      p++;
 	      break;
 	    default:
@@ -4856,7 +4839,6 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
         case on_failure_jump_nastyloop:
 	case on_failure_jump_exclusive:
 	case on_failure_jump_loop:
-	case on_failure_jump_smart:
 	handle_on_failure_jump:
           EXTRACT_NUMBER_AND_INCR (j, p);
 
@@ -6584,10 +6566,6 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 	  }
 	  break;
 
-	case on_failure_jump_smart:
-	  assert (0); /* Should have been removed from the pattern by
-			 optimize_on_failure_jump(). */
-	  /* FALLTHROUGH */
 	case on_failure_jump_loop:
 	on_failure:
 	  EXTRACT_NUMBER_AND_INCR (mcnt, p);

@@ -1,3 +1,28 @@
+2025-08-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Follow a suggestion from GNU at the top of their regex-emacs.c to
+	remove on_failure_jump_smart; this is practical, regex_compile()
+	up to today never produced on_failure_jump_loop and so if we
+	modify it to produce on_failure_jump_loop instead of
+	on_failure_jump_smart, and do the optimization on
+	on_failure_jump_loop, that removes the need for
+	on_failure_jump_smart completely.
+
+	* regex.c:
+	* regex.c (enum):
+	Remove it from the enum.
+	* regex.c (print_partial_compiled_pattern):
+	No longer any need to print it.
+	* regex.c (optimize_on_failure_jump):
+	Update a comment documenting the function.
+	Work on on_failure_jump_loop instead of on_failure_jump_smart.
+	* regex.c (regex_compile):
+	Produce on_failure_jump_loop instead of on_failure_jump_smart.
+	* regex.c (re_compile_fastmap):
+	Remove handling of on_failure_jump_smart.
+	* regex.c (re_match_2_internal):
+	Ditto.
+
 2025-08-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Call fatal() from within pdump_load() and friends, giving clearer
