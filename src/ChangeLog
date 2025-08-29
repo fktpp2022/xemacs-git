@@ -1,5 +1,29 @@
 2025-08-29  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove the need for reinit_vars_of_lstream(), use
+	dump_mark_nil_lisp_object() on all the entries in
+	Vlstream_free_list.
+
+	* emacs.c (main_1):
+	Remove call to reinit_vars_of_lstream().
+	* lstream.c:
+	Remove the lstream_free_list variable, access the entries in the
+	vector by means of XVECTOR_DATA() instead.
+	* lstream.c (Lstream_new):
+	Access the entries in the vector by means of XVECTOR_DATA().
+	* lstream.c (Lstream_delete):
+	Ditto.
+	* lstream.c (syms_of_lstream):
+	Initialize Vlstream_free_list here, since it is needed as soon as
+	any streams are created.
+	Mark all its entries with dump_mark_nil_lisp_object().
+	* lstream.c (vars_of_lstream):
+	This is now empty, but retained, since no run-time penalty.
+	* lstream.c (reinit_vars_of_lstream): Removed.
+	* symsinit.h: Remove its declaration.
+
+2025-08-29  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* dump-data.c:
 	Leonid Kopylov reports in https://bugs.gentoo.org/959756 that his
 	build fails with GCC 15 (Gentoo 15.1.1_p20250705-r1 p2).

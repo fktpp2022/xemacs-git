@@ -1181,9 +1181,8 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
   if (initialized && !restart)
     {
       /* After successful pdump_load(). Needs to be done now because fatal()
-         in check_compatible_window_system() GCPROs and creates lstreams.  */
+         in check_compatible_window_system() GCPROs.  */
       reinit_alloc_early ();
-      reinit_vars_of_lstream ();
 #ifdef WITH_NUMBER_TYPES
       reinit_vars_of_number ();
 #endif

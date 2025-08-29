@@ -194,7 +194,6 @@ Lstream_set_buffering (Lstream *lstr, Lstream_buffering buffering,
 }
 
 static const Lstream_implementation *lstream_types[32];
-static Lisp_Object *lstream_free_list;
 static Lisp_Object Vlstream_free_list;
 static int lstream_type_count;
 
@@ -220,13 +219,14 @@ Lstream_new (const Lstream_implementation *imp, int flags)
     {
       assert (lstream_type_count < countof (lstream_types));
       lstream_types[lstream_type_count] = imp;
-      lstream_free_list[lstream_type_count] =
+      XVECTOR_DATA (Vlstream_free_list) [lstream_type_count] =
 	make_lcrecord_list (aligned_sizeof_lstream (imp->size),
-                            LRECORD_IMPLEMENTATION (lstream));
+			    LRECORD_IMPLEMENTATION (lstream));
       lstream_type_count++;
     }
 
-  p = XLSTREAM (alloc_managed_lcrecord (lstream_free_list[i]));
+  p = XLSTREAM (alloc_managed_lcrecord
+		(XVECTOR_DATA (Vlstream_free_list) [i]));
   /* Formerly, we zeroed out the object minus its header, but it's now
      handled automatically.  ALLOC_SIZED_LISP_OBJECT() always zeroes out
      the whole object other than its header, and alloc_managed_lcrecord()
@@ -304,7 +304,7 @@ Lstream_delete (Lstream *lstr)
     {
       if (lstream_types[i] == lstr->imp)
 	{
-	  free_managed_lcrecord (lstream_free_list[i], val);
+	  free_managed_lcrecord (XVECTOR_DATA (Vlstream_free_list) [i], val);
 	  return;
 	}
     }
@@ -2279,11 +2279,19 @@ OUTPUT-STREAM defaults to standard-output.
 void
 syms_of_lstream (void)
 {
-  static Lisp_Object Vdump_time_lstream_free_list;
+  /* Not in vars_of_lstream() since it is needed once any lstream is
+     created. */
+  Vlstream_free_list = make_vector (countof (lstream_types), Qnil);
+  staticpro (&Vlstream_free_list);
 
-  Vdump_time_lstream_free_list = make_vector (countof (lstream_types), Qnil);
-  staticpro_nodump (&Vdump_time_lstream_free_list);
-  lstream_free_list = XVECTOR_DATA (Vdump_time_lstream_free_list);
+  {
+    int ii;
+    for (ii = 0; ii < XVECTOR_LENGTH (Vlstream_free_list); ii++)
+      {
+	dump_mark_nil_lisp_object
+	  (&(XVECTOR_DATA (Vlstream_free_list) [ii]));
+      }
+  }
 
   DEFINE_NODUMP_SIZABLE_LISP_OBJECT ("stream", lstream, print_lstream,
                                      finalize_lstream,
@@ -2351,12 +2359,6 @@ syms_of_lstream (void)
 void
 vars_of_lstream (void)
 {
-  Vlstream_free_list = make_vector (countof (lstream_types), Qnil);
-  staticpro (&Vlstream_free_list);
 }
 
-void
-reinit_vars_of_lstream (void)
-{
-  lstream_free_list = XVECTOR_DATA (Vlstream_free_list);
-}
+/* lstream.c ends here */
