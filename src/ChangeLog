@@ -24,6 +24,40 @@
 
 2025-08-29  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Add support macros to compiler.h; use them to textually shorten the
+	initialization of unicode_subrange_table[].
+
+	* compiler.h (PREPROCESSOR_ONE_OR_NOTONE): New macro, on the model
+	of PREPROCESSOR_ARGC(), simplifying code in fontcolor-msw.c.
+	* compiler.h (PREPROCESSOR_TWO_OR_NOTTWO): Ditto.
+	* fontcolor-msw.c (unicode_subrange_raw_t): Make START, END const,
+	because why not.
+	* fontcolor-msw.c (SUBFROB_RAW_SUBRANGE_TWO): New.
+	Replacement for SUBFROB_RAW_SUBRANGE_2.
+	* fontcolor-msw.c (SUBFROB_RAW_SUBRANGE_NOTTWO): New.
+	Replacement for SUBFROB_RAW_SUBRANGE_{4,6,8,10,12,14,}.
+
+	* fontcolor-msw.c (FROB_RAW_SUBRANGE_ONE): New. Replacement for
+	FROB_RAW_SUBRANGE_1.
+	* fontcolor-msw.c (FROB_RAW_SUBRANGE_NOTONE): New. Replacement for
+	FROB_NON_EMPTY_RAW_SUBRANGE().
+	Use SUBFROB_RAW_SUBRANGE_TWO(), SUBFROB_RAW_SUBRANGE_NOTTWO()
+	within it.
+	* fontcolor-msw.c (FROB_RAW_SUBRANGE):
+	Use FROB_RAW_SUBRANGE_ONE(), FROB_RAW_SUBRANGE_NOTONE() within the
+	implementation of this.
+	* fontcolor-msw.c (unicode_subrange_t):
+	Make NO_SUBRANGES const, because why not.
+	* fontcolor-msw.c (FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_ONE):
+	New name for FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_1.
+	* fontcolor-msw.c (FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_NOTONE):
+	New. Replacement for
+	FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_{3,5,7,9,11,13,15}.
+	* fontcolor-msw.c (FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY):
+	Use them.
+
+2025-08-29  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* dump-data.c:
 	Leonid Kopylov reports in https://bugs.gentoo.org/959756 that his
 	build fails with GCC 15 (Gentoo 15.1.1_p20250705-r1 p2).
