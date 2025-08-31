@@ -1,3 +1,12 @@
+2025-08-31  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* emacs.c (main_1):
+	Remove a duplicate call to vars_of_file_coding() here.
+	* symbols.c (defsubr):
+	* symbols.c (defvar_magic):
+	Add a couple of structure_checking_assert()s in these functions
+	with a view to avoiding such duplicates going forward.
+
 2025-08-29  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove the need for reinit_vars_of_lstream(), use

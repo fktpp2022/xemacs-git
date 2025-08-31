@@ -2051,7 +2051,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 
       vars_of_mule_ccl ();
       vars_of_mule_charset ();
-      vars_of_file_coding ();
       vars_of_unicode ();
       vars_of_mule_coding ();
 #ifdef HAVE_WNN

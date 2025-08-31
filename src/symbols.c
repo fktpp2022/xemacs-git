@@ -3375,6 +3375,10 @@ defsubr (const CIbyte *lname, lisp_fn_t subr_fn,
   Lisp_Object fun = defsubr_1 (lname, subr_fn, min_args, max_args, prompt);
   Lisp_Object sym = XSUBR (fun)->name;
 
+  /* Pick up duplicate syms_of_FILE() calls from emacs.c. */
+  structure_checking_assert (UNBOUNDP (XSYMBOL (sym)->function)
+			     || (CONSP (XSYMBOL (sym)->function)
+				 && EQ (XCAR (XSYMBOL (sym)->function), Qautoload)));
   XSYMBOL (sym)->function = fun;
 
   /* Can't have this in defsubr_1, since add_module_loadhist_elt() checks
@@ -3463,6 +3467,10 @@ defvar_magic (const Ascbyte *symbol_name, Lisp_Object magic)
 
   sym = intern_istring (XSTRING_DATA (string), XSTRING_LENGTH (string),
                         string, Vobarray);
+
+  /* Pick up duplicate vars_of_FILE() calls in emacs.c. Allow modules to
+     redefine variables, since we allow Lisp to (effectively). */
+  structure_checking_assert (initialized || UNBOUNDP (XSYMBOL (sym)->value));
   XSYMBOL (sym)->value = magic;
 
   LOADHIST_ATTACH (sym);
