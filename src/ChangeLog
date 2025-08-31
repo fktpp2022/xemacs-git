@@ -1,5 +1,18 @@
 2025-08-31  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* alloc.c (alloc_managed_lcrecord_1):
+	No longer a need to check list->free against Qnull_pointer, remove
+	this.
+	* alloc.c (define_lisp_object):
+	When we are at the point where Qnil is available (that is, we can
+	intern symbols), as well as initializing the symbol names of the
+	types created so far, correct the FREE field of any LCRECORD_LISTs
+	for those objects previously defined, so
+	alloc_managed_lcrecord_1() no longer has to check against
+	Qnull_pointer.
+
+2025-08-31  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* emacs.c (main_1):
 	Remove a duplicate call to vars_of_file_coding() here.
 	* symbols.c (defsubr):

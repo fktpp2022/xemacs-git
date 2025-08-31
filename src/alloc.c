@@ -3343,14 +3343,6 @@ alloc_managed_lcrecord_1 (Lisp_Object lcrecord_list, Boolint c_readonly_p)
       struct free_lcrecord_header *free_header;
       struct lrecord_header *lheader;
 
-      if (EQ (val, Qnull_pointer))
-        {
-          /* This can happen for those objects created before Qnil is
-             initialized. */
-          list->free = Qnil;
-          goto normal_alloc;
-        }
-
       free_header = (struct free_lcrecord_header *) XPNTR (val);
       lheader = &free_header->lcheader.lheader;
 
@@ -3376,7 +3368,6 @@ alloc_managed_lcrecord_1 (Lisp_Object lcrecord_list, Boolint c_readonly_p)
       return val;
     }
 
- normal_alloc:
   return old_alloc_sized_lcrecord_1 (list->size, list->implementation,
 				     c_readonly_p);
 }
@@ -4493,18 +4484,41 @@ define_lisp_object (int tipo, const CIbyte *name, Bytecount static_size,
   if (saved_object_names != NULL)
     {
       /* Create type name symbols for objects previously defined, before it was
-         possible to intern() symbols. */
+         possible to intern() symbols. Also initialize the memory usage stats
+         and correct any LCRECORD_LISTs that were created up to now. */
       while (--saved_object_name_ptr >= saved_object_names)
         {
           lrecord_implementations_table[saved_object_name_ptr->tipo]->name
             = intern (saved_object_name_ptr->name);
+	  if (LCRECORD_LISTP (all_lcrecord_lists[saved_object_name_ptr->tipo]))
+	    {
+	      if (EQ (XLCRECORD_LIST (all_lcrecord_lists
+				      [saved_object_name_ptr->tipo])->free,
+		      Qnull_pointer))
+		{
+		  XLCRECORD_LIST
+		    (all_lcrecord_lists[saved_object_name_ptr->tipo])->free
+		    = Qnil;
+		}
+	      else
+		{
+		  /* If this assumption does not hold (and it should, we
+		     shouldn't have GCed up to this point), we need to trace
+		     down the chain of free objects to check for
+		     Qnull_pointer. */
+		  structure_checking_assert
+		    (NILP (XLCRECORD_LIST
+			   (all_lcrecord_lists[saved_object_name_ptr->tipo])
+			   ->free));
+		}
+	    }
           init_memory_usage_stats (saved_object_name_ptr->tipo, Qnil);
         }
 
       xfree (saved_object_names);
       saved_object_names = saved_object_name_ptr = NULL;
-      /* We still need to create the name for this lrecord_type, fall
-         through. */
+      /* We still need to create the name and initialize the
+         memory_usage_stats for this lrecord_type, fall through. */
     }
 
   lrecord_implementations_table[tipo]->name = intern (name);
