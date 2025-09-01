@@ -24,7 +24,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "lisp.h"
 #include "dump-data.h"
 
-#if defined (__has_embed) && !(GCC_VERSION > NEED_GCC (15, 0, 0))
+#ifdef __has_embed
 #include <stdalign.h>
 
 alignas (16) static Rawbyte dumped_data[] = {

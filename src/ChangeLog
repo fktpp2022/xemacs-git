@@ -1,3 +1,11 @@
+2025-09-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* dump-data.c:
+	Revert f38cf80e1163 of 2025-08-29, underlying problem was with
+	ccache, not with GCC, and so that change will not address the
+	issue if clang(1) is used. Thank you for the further
+	investigation, Mats Lidell.
+
 2025-08-31  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* alloc.c (alloc_managed_lcrecord_1):
