@@ -1,3 +1,31 @@
+2025-09-03  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Inline calls to internal_equal(), internal_equalp() within
+	find_htentry().
+	* elhash.c:
+	Update and correct the long comment that opens this file. Correct
+	the indentation of hash_table_test_description.
+	* elhash.c (find_htentry):
+	Just call LISP_HASH() directly if TEST is Veq_hash_table_test.
+	Mark HTTP as const, since we don't modify it and that gives a tiny
+	speed-up with GCC-15 -O6.
+	Inline calls to internal_equal(), internal_equalp() if TEST is the
+	corresponding object.
+	Check immediately for EQ (probe->key, key) with both these (the
+	function would do it anyway, and picks up the common case of the
+	same object being looked up in the hash table twice.
+	* elhash.c (Fdefine_hash_table_test):
+	Document in the docstring that the underlying hash table
+	implementation will not call EQUAL-FUNCTION if the encountered key
+	is EQ() to the encountered entry in the hash table and that this
+	is also true of GNU's implementation.
+	* lisp.h:
+	Declare lisp_eval_depth, max_lisp_eval_depth here, now they are
+	needed by elhash.c
+	* profile.c:
+	* sequence.c:
+	Remove their extern declarations from both these files.
+
 2025-09-01  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* dump-data.c:

@@ -20,8 +20,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 /* Synched up with: Not in FSF. */
 
-/* Author: Lost in the mists of history.  At least back to Lucid 19.3,
-   circa Sep 1992.  Early hash table implementation allowed only `eq' as a
+/* Author: Lost in the mists of history.  At least back to Lucid 19.2,
+   circa May 1992.  Early hash table implementation allowed only `eq' as a
    test -- other tests possible only when these objects were created from
    the C code.
 
@@ -36,12 +36,22 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    (early-mid 1995) or maybe 19.13 cycle (mid 1995).
 
    Expansion to full Common Lisp spec and interface, redoing of the
-   implementation, by Martin Buchholz, 1997? (Former hash table
-   implementation used "double hashing", I'm pretty sure, and was weirdly
-   tied into the generic hash.c code.  Martin completely separated them.)
-*/
+   implementation, by Martin Buchholz, 1997? (Former hash table implementation
+   used "double hashing" with a view to reducing collisions, and was tied into
+   the old C-oriented hash.c code.  Martin completely separated them.)
 
-/* This file implements the hash table lisp object type.
+   Addition of #'equalp as a built-in test for the sake of case-insensitivity,
+   addition of define_hash_table_test() for tests specified by Lisp and by
+   other parts of the C code, Aidan Kehoe, 2010. Switch to implementation of
+   Vobarray as a normal Lisp hash table rather then the poorly-encapsulated
+   "traditional emacs obarray", associated movement of intern_istring(),
+   Fintern(), Fintern_soft() to this file, Aidan Kehoe, 2016.
+
+   Removal of the old C-oriented hash.c, hash.h after migrating all of the
+   uses of that code to either Lisp hash tables or, often, weak lists, Aidan
+   Kehoe, 2021. */
+   
+/* This file implements the hash table Lisp object type.
 
    This implementation was mostly written by Martin Buchholz in 1997.
 
@@ -71,9 +81,9 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    is up to 20 times as expensive as access to the nearest address
    (and getting worse).  So linear probing makes sense.
 
-   But the representation doesn't actually matter that much with the
-   current elisp engine.  Funcall is sufficiently slow that the choice
-   of hash table implementation is noise.  */
+   This code is used extensively from C, so the choice of hash table
+   implementation does matter, independent of whether the XEmacs Lisp
+   funcalls are slow or fast. */
 
 #include <config.h>
 #include "lisp.h"
@@ -120,15 +130,14 @@ struct Hash_Table_Test
   Lisp_Object lisp_hash_function;
 };
 
-static const struct memory_description hash_table_test_description[] =
-  {
-    { XD_LISP_OBJECT, offsetof (struct Hash_Table_Test, name) },
-    { XD_FUNCTION_POINTER, offsetof (struct Hash_Table_Test, equal_function) },
-    { XD_FUNCTION_POINTER, offsetof (struct Hash_Table_Test, hash_function) },
-    { XD_LISP_OBJECT, offsetof (struct Hash_Table_Test, lisp_equal_function) },
-    { XD_LISP_OBJECT, offsetof (struct Hash_Table_Test, lisp_hash_function) },
-    { XD_END }
-  };
+static const struct memory_description hash_table_test_description[] = {
+  { XD_LISP_OBJECT, offsetof (struct Hash_Table_Test, name) },
+  { XD_FUNCTION_POINTER, offsetof (struct Hash_Table_Test, equal_function) },
+  { XD_FUNCTION_POINTER, offsetof (struct Hash_Table_Test, hash_function) },
+  { XD_LISP_OBJECT, offsetof (struct Hash_Table_Test, lisp_equal_function) },
+  { XD_LISP_OBJECT, offsetof (struct Hash_Table_Test, lisp_hash_function) },
+  { XD_END }
+};
 
 /* A hash table. */
 
@@ -1298,22 +1307,49 @@ htentry *
 find_htentry (Lisp_Object key, const Lisp_Hash_Table *ht)
 {
   Lisp_Object test = choose_hash_table_test_for_lookup (ht, key);
-  Hash_Table_Test *http = XHASH_TABLE_TEST (test);
-
   htentry *entries = ht->hentries;
-  htentry *probe = entries + HASHCODE (key, ht, http);
+  htentry *probe;
 
   if (EQ (test, Veq_hash_table_test))
     {
+      probe = entries +
+        ((LISP_HASH (key) * (ht)->golden_ratio) % (ht)->size);
       LINEAR_PROBING_LOOP (probe, entries, ht->size)
 	if (EQ (probe->key, key))
 	  break;
     }
   else
     {
-      LINEAR_PROBING_LOOP (probe, entries, ht->size)
-	if ((http->equal_function) (http, probe->key, key))
-	  break;
+      const Hash_Table_Test *http = XHASH_TABLE_TEST (test);
+
+      probe = entries +
+        ((http->hash_function (http, key) * (ht)->golden_ratio) % (ht)->size);
+
+      if (EQ (test, Vequal_hash_table_test))
+        {
+          LINEAR_PROBING_LOOP (probe, entries, ht->size)
+            {
+              if (EQ (probe->key, key)
+                  || internal_equal (probe->key, key, lisp_eval_depth))
+                break;
+            }
+        }
+      else if (EQ (test, Vequalp_hash_table_test))
+        {
+          LINEAR_PROBING_LOOP (probe, entries, ht->size)
+            {
+              if (EQ (probe->key, key)
+                  || internal_equalp (probe->key, key, lisp_eval_depth))
+                break;
+            }
+        }
+      else
+        {
+          LINEAR_PROBING_LOOP (probe, entries, ht->size)
+            if (EQ (probe->key, key)
+                || (http->equal_function) (http, probe->key, key))
+              break;
+        }
     }
 
   return probe;
@@ -2554,6 +2590,12 @@ long type.  In XEmacs this necessitates bignums for values above
 values below `most-negative-fixnum'.  With this implementation, however, the
 low-order bits are the most important, and so it is reasonable not to bother
 producing bignums.
+
+The underlying hash table implementation will not call EQUAL-FUNCTION if
+#'gethash is called and the supplied KEY is #'eq to the encountered entry in
+the hash table.  This is also true of the GNU Emacs implementation.  It is
+unlikely to cause serious problems for callers but is documented here for
+completeness.
 
 This function returns t if successful, and errors if NAME cannot be defined as
 a hash table test.

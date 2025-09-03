@@ -33,9 +33,6 @@ Lisp_Object Q_count, Q_descend_structures, Q_end1, Q_end2, Q_from_end;
 Lisp_Object Q_if_, Q_if_not, Q_initial_value, Q_stable, Q_start1, Q_start2;
 Lisp_Object Q_test_not;
 
-extern Fixnum max_lisp_eval_depth;
-extern int lisp_eval_depth;
-
 Lisp_Object safe_copy_tree (Lisp_Object arg, Lisp_Object vecp, int depth);
 
 static DOESNT_RETURN

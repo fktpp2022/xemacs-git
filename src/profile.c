@@ -52,8 +52,6 @@ Lisp_Object Vcall_count_profile_table;
 Lisp_Object Vtotal_gc_usage_profile_table;
 Lisp_Object Vgc_usage_profile_table;
 
-extern int lisp_eval_depth;
-
 extern EMACS_UINT total_consing;
 static volatile EMACS_UINT total_ticks;
 
