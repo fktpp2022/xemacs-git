@@ -1,3 +1,8 @@
+2025-09-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* xemacs.mak (OPT_OBJS): Remove debug.obj from OPT_OBJS, now
+	debug.c is gone.
+
 2025-06-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* XEmacs 21.5.36 "leeks" is released.

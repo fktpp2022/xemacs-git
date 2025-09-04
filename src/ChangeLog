@@ -1,3 +1,35 @@
+2025-09-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	debug.c, debug.h attempted to offer assertions that could be
+	toggled (in theory at startup).
+
+	Nothing in debug.c or debug.h is actually used, and it is not
+	available on non-DEBUG_XEMACS builds, so we know the packages can
+	handle it. Remove it, we have extensive compile-time assertions
+	that work well.
+
+	* Makefile.in.in (debug_objs): Remove debug.o from this.
+	* debug.c: File removed.
+	* debug.h: File removed.
+	* depend: Regenerate.
+	* emacs.c:
+	* emacs.c (main_1):
+	Remove calls to syms_of_debug(), vars_of_debug(),
+	reinit_vars_of_debug(). 
+	* emacs.c (complex_vars_of_emacs): Provide the debug-xemacs
+	feature here, now debug.c is gone.
+	* extents.c:
+	No longer #include "debug.h"
+	* redisplay-msw.c:
+	Ditto.
+	* redisplay-xlike-inc.c: Ditto.
+	* redisplay.c: Ditto.
+	* redisplay.h:
+	Remove three DASSERT types from here.
+	* symsinit.h:
+	Remove declarations for syms_of_debug(), vars_of_debug(),
+	reinit_vars_of_debug().
+
 2025-09-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Inline calls to internal_equal(), internal_equalp() within

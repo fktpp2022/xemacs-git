@@ -37,7 +37,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "buffer.h"
 #include "charset.h"
-#include "debug.h"
 #include "device-impl.h"
 #include "events.h"
 #include "faces.h"

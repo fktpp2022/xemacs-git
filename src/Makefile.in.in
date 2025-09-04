@@ -180,7 +180,7 @@ database_objs=database.o
 #endif
 
 #ifdef DEBUG_XEMACS
-debug_objs=debug.o tests.o
+debug_objs=tests.o
 #endif
 
 #ifdef HAVE_UNIXOID_EVENT_LOOP

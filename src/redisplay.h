@@ -23,11 +23,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #ifndef INCLUDED_redisplay_h_
 #define INCLUDED_redisplay_h_
 
-/* Redisplay DASSERT types */
-#define DB_DISP_POS		1
-#define DB_DISP_TEXT_LAYOUT	2
-#define DB_DISP_REDISPLAY	4
-
 /* These are the possible return values from pixel_to_glyph_translation. */
 #define OVER_MODELINE		0
 #define OVER_TEXT		1

@@ -601,7 +601,7 @@ OPT_DEFINES=$(OPT_DEFINES) -DUNICODE_INTERNAL
 !endif
 
 !if $(DEBUG_XEMACS)
-OPT_OBJS=$(OPT_OBJS) $(OUTDIR)\debug.obj $(OUTDIR)\tests.obj
+OPT_OBJS=$(OPT_OBJS) $(OUTDIR)\tests.obj
 !endif
 
 !if $(QUICK_BUILD)

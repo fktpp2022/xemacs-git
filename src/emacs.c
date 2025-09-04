@@ -1379,7 +1379,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       syms_of_console ();
       syms_of_data ();
 #ifdef DEBUG_XEMACS
-      syms_of_debug ();
       syms_of_tests ();
 #endif /* DEBUG_XEMACS */
       syms_of_device ();
@@ -1847,7 +1846,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       vars_of_specifier ();
 
 #ifdef DEBUG_XEMACS
-      vars_of_debug ();
       vars_of_tests ();
 #endif
       vars_of_console_stream ();
@@ -2076,9 +2074,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
     {
       /* Now do additional vars_of_*() initialization that happens both
 	 at dump time and after pdump load. */
-#ifdef DEBUG_XEMACS
-      reinit_vars_of_debug ();
-#endif
       reinit_vars_of_eval ();
       reinit_vars_of_event_stream ();
       reinit_vars_of_fileio ();
@@ -4346,6 +4341,10 @@ The configured initial path for info documentation.
   Vconfigure_info_path = split_external_path (PATH_INFOPATH);
 #else
   Vconfigure_info_path = Qnil;
+#endif
+
+#ifdef DEBUG_XEMACS
+  Fprovide (intern ("debug-xemacs"));
 #endif
 }
 

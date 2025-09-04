@@ -51,7 +51,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "buffer.h"
 #include "charset.h"
 #include "commands.h"
-#include "debug.h"
 #include "device-impl.h"
 #include "elhash.h"
 #include "events.h"
