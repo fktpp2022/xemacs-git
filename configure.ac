@@ -3887,10 +3887,11 @@ if test "$window_system" != "none"; then
     AC_MSG_CHECKING(for workable png version information)
     xe_check_libs="-lpng -lz"
     AC_RUN_IFELSE([AC_LANG_SOURCE([#include <png.h>
-    int main(int c, char **v) {
-    if (c == 1) return 0;
-    if (strcmp(png_libpng_ver, PNG_LIBPNG_VER_STRING) != 0) return 1;
-    return (PNG_LIBPNG_VER < 10002) ? 2 : 0 ;}])],
+#include <string.h>
+int main(int c, char **v) {
+if (c == 1) return 0;
+if (strcmp(png_libpng_ver, PNG_LIBPNG_VER_STRING) != 0) return 1;
+return (PNG_LIBPNG_VER < 10002) ? 2 : 0 ;}])],
     [./conftest dummy_arg; png_status=$?;
       if test "$png_status" = "0"; then
 	with_png=yes;
