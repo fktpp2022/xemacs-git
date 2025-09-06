@@ -545,6 +545,45 @@ defined is often done deliberately, and there is no way to distinguish
 deliberate redefinition from unintentional redefinition.
 @end deffn
 
+@defmac labels (bindings@dots{}) body@dots{}
+@code{labels} establishes local, lexical bindings for functions within
+@code{body}.  Each @var{binding} must be a list of the form @samp{(@var{name}
+@var{arglist} @var{forms}@dots{})}, which defines a function similarly to
+@code{defun}.  The function @var{name} is available within @var{body}, within
+the body of @var{name}, and within the body of any other functions in
+@var{bindings}.  This allows the establishment of recursive and
+mutually-referential functions.
+
+These functions are not available by name at run-time to code textually
+outside of the @code{labels} form, though they may be passed to other code by
+value. Since @code{labels} makes lexical rather than dynamic bindings,
+bindings of functions like @code{+} and @code{list} that have byte codes will
+succeed---that is, calls to such functions within @var{form} will reflect the
+bindings within the @code{labels} form.
+
+Within @var{forms}, to access a bound function as a callable object, quote its
+name using @var{#'name}, as in the following example.
+
+@example
+(labels ((1+ (number)
+           "Return 1.0 added to NUMBER"
+           (+ number 1.0)))
+  (map 'vector #'1+ '(10 9 8 7 6 5 4 3 2 1)))
+  @result{} [11.0 10.0 9.0 8.0 7.0 6.0 5.0 4.0 3.0 2.0]
+@end example
+
+This macro is provided by the Common Lisp extensions package,
+@pxref{(cl)Common Lisp Extensions}, a core part of XEmacs. As such, functions
+defined by @code{labels} may use the full Common Lisp argument notation
+supported by @code{defun*}; also, the function body is enclosed in an implicit
+block as if by @code{defun*}. @xref{(cl)Argument Lists}.
+
+@code{labels} has tight byte-compiler integration and should be regarded as
+built-in. It is very useful in reducing unwanted clutter to the global
+namespace and in reducing the likelihood of third-party code making unwanted
+calls to internal functions.
+@end defmac
+
 @defun define-function name definition
 @defunx defalias name definition
 These equivalent primitives define the symbol @var{name} as a

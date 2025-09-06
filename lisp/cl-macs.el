@@ -4086,23 +4086,38 @@ interpreted code, `load-time-value' is equivalent to `progn'."
   (list 'progn form))
 
 ;;;###autoload
-(defmacro* labels (bindings &rest body &environment env)
+(defmacro* labels ((&rest bindings) &body body &environment env)
   "Make temporary function bindings.
 
-This is like `flet', except the bindings are lexical instead of dynamic.
-Unlike `flet', this macro is compliant with the Common Lisp standard with
-regard to the scope and extent of the function bindings.
+Each element of BINDINGS looks like:
 
-Each function may be called from within FORM, from within the BODY of the
-function itself (that is, recursively), and from any other function bodies
-in FUNCTIONS.
+  (NAME ARGLIST &optional DOCSTRING &optional INTERACTIVE-SPEC
+        &body FUNCTION-BODY)
+
+`labels' is like `lexical-let', but it works for uses of NAME as a function
+rather than as a value. Within the `labels' form, each NAME is available as a
+function to be called; once BODY is finished, the various NAMEs are no longer
+available.
+
+Each function may be called from within FORM, from within the FUNCTION-BODY of
+the function itself (that is, recursively), and from any other function bodies
+in FUNCTIONS. Calling NAME from code that is not textually present within the
+`labels' form will provoke a `void-function' error, absent another definition
+for NAME elsewhere.
+
+ARGLIST allows full Common Lisp conventions (see `defun*'), and BODY is
+implicitly surrounded by (block NAME).
+
+Closures are supported in combination with `lexical-let'.  Be aware that
+closures intrinsically have more run-time overhead than code without closures.
 
 Within FORM, to access the function definition of a bound function (for
 example, to pass it as a FUNCTION argument to `map'), quote its symbol name
 using `function'.
 
-arguments: (((FUNCTION ARGLIST &body BODY) &rest FUNCTIONS) &body FORM)
-"
+`labels' is implemented as an autoloaded macro; it is not currently dumped in
+XEmacs. However, it has tight integration with the byte compiler and the
+programmer should have no hesitation in using it routinely."
   ;; XEmacs; the byte-compiler has a much better implementation of `labels'
   ;; in `byte-compile-initial-macro-environment' that is used in compiled
   ;; code.
@@ -4120,15 +4135,12 @@ arguments: (((FUNCTION ARGLIST &body BODY) &rest FUNCTIONS) &body FORM)
     (cl-macroexpand-all `(lexical-let ,vars (setq ,@sets) ,@body) env)))
 
 ;;;###autoload
-(defmacro flet (functions &rest form)
-  "Make temporary function definitions.
+(defmacro* flet ((&rest bindings) &body form)
+  "Make dynamic temporary function definitions.
 
-This is an analogue of `let' that operates on the function cell of FUNC
-rather than its value cell.  The FORMs are evaluated with the specified
-function definitions in place, then the definitions are undone (the FUNCs go
-back to their previous definitions, or lack thereof).  This is in
-contravention of Common Lisp, where `flet' makes a lexical, not a dynamic,
-function binding.
+This is a version of `labels' that uses dynamic scope. This means that the
+function definitions established, as well as being available to code within
+the `flet' form, are also available to functions textually outside that form.
 
 Normally you should use `labels', not `flet'; `labels' does not have the
 problems caused by dynamic scope, is less expensive when byte-compiled, and
@@ -4139,7 +4151,9 @@ happens.
 If you need to shadow some existing function at run time, and that function
 has no associated byte code or compiler macro, then `flet' is appropriate.
 
-arguments: (((FUNCTION ARGLIST &body BODY) &rest FUNCTIONS) &body FORM)"
+For reasons of compatibility with existing Emacs Lisp code, this
+implementation of `flet' is in contravention of Common Lisp. In that language
+`flet' makes a lexical, not a dynamic, binding."
   ;; XEmacs; leave warnings, errors and modifications of
   ;; byte-compile-function-environment to the byte compiler. See
   ;; byte-compile-initial-macro-environment in bytecomp.el.
@@ -4150,7 +4164,7 @@ arguments: (((FUNCTION ARGLIST &body BODY) &rest FUNCTIONS) &body FORM)"
      (lambda ((function . definition))
        `((symbol-function ',function) 
          ,(cons 'lambda (cdr (cl-transform-lambda definition function))))))
-    functions) form))
+    bindings) form))
 
 (run-hooks 'cl-macs-load-hook)
 

@@ -1,3 +1,12 @@
+2025-09-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl-macs.el (labels):
+	* cl-macs.el (flet):
+	Revise the docstrings for `labels', `flet'. Fix bugs with the
+	provided arguments: strings, encourage use of `labels', document
+	more clearly in the docstring that `labels' supports closures and
+	that it is tightly integrated with the byte compiler.
+
 2025-08-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* startup.el (command-line-args-left): defvar moved to emacs.c.

@@ -1,3 +1,8 @@
+2025-09-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/functions.texi (Defining Functions):
+	Document `labels' beside `defun' with a view to encouraging its use.
+
 2025-07-03  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lispref/commands.texi (Keyboard Macros):
