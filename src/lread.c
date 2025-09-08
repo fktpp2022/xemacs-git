@@ -407,41 +407,6 @@ load_unwind (Lisp_Object stream)  /* used as unwind-protect function in load */
   return Qnil;
 }
 
-/* The plague is coming.
-
-   Ring around the rosy, pocket full of posy,
-   Ashes ashes, they all fall down.
-   */
-void
-ebolify_bytecode_constants (Lisp_Object vector)
-{
-  Elemcount len = XVECTOR_LENGTH (vector), i;
-
-  for (i = 0; i < len; i++)
-    {
-      Lisp_Object el = XVECTOR_DATA (vector)[i];
-
-      /* We don't check for `eq', `equal', and the others that have
-	 bytecode opcodes.  This might lose if someone passes #'eq or
-	 something to `funcall', but who would really do that?  As
-	 they say in law, we've made a "good-faith effort" to
-	 unfuckify ourselves.  And doing it this way avoids screwing
-	 up args to `make-hash-table' and such.  As it is, we have to
-	 add an extra Ebola check in decode_weak_list_type(). --ben */
-      if      (EQ (el, Qassoc))  el = Qold_assoc;
-      else if (EQ (el, Qdelq))   el = Qold_delq;
-#if 0
-      /* I think this is a bad idea because it will probably mess
-	 with keymap code. */
-      else if (EQ (el, Qdelete)) el = Qold_delete;
-#endif
-      else if (EQ (el, Qrassq))  el = Qold_rassq;
-      else if (EQ (el, Qrassoc)) el = Qold_rassoc;
-
-      XVECTOR_DATA (vector)[i] = el;
-    }
-}
-
 static Lisp_Object
 pas_de_holgazan_ici (int fd, Lisp_Object victim)
 {
@@ -500,10 +465,6 @@ load_force_doc_string_unwind (Lisp_Object oldlist)
 	      if (!CONSP (ivan))
 		invalid_byte_code ("invalid lazy-loaded byte code", ivan);
 	      XCOMPILED_FUNCTION (john)->instructions = XCAR (ivan);
-	      /* v18 or v19 bytecode file.  Need to Ebolify. */
-	      if (XCOMPILED_FUNCTION (john)->flags.ebolified
-		  && VECTORP (XCDR (ivan)))
-		ebolify_bytecode_constants (XCDR (ivan));
 	      XCOMPILED_FUNCTION (john)->constants = XCDR (ivan);
 	      NUNGCPRO;
 	    }
@@ -746,14 +707,21 @@ do {								\
 	    || strncmp (elc_header, ";ELC", 4))
 	  {
 	    /* Huh?  Probably not a valid ELC file. */
-	    load_byte_code_version = 100; /* no Ebolification needed */
+	    load_byte_code_version = 100;
 	    Lstream_unread (XLSTREAM (lispstream), elc_header, num_read);
 	  }
 	else
 	  load_byte_code_version = elc_header[4];
       }
     else
-      load_byte_code_version = 100; /* no Ebolification needed */
+      load_byte_code_version = 100;
+
+    if (load_byte_code_version < 20)
+      {
+        signal_error_2 (Qinvalid_byte_code, "Byte code version not supported",
+                        make_fixnum (load_byte_code_version),
+                        found);
+      }
 
     readevalloop (lispstream, file, Feval, 0);
     if (!NILP (used_codesys))
@@ -3322,14 +3290,7 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
   GCPRO1 (make_byte_code_args[0]);
   gcpro1.nvars = iii;
 
-  /* v18 or v19 bytecode file.  Need to Ebolify. */
-  if (load_byte_code_version < 20 && VECTORP (make_byte_code_args[2]))
-    ebolify_bytecode_constants (make_byte_code_args[2]);
-
-  /* make-byte-code looks at purify_flag, which should have the same
-   *  value as our "read-pure" argument */
   stuff = Fmake_byte_code (iii, make_byte_code_args);
-  XCOMPILED_FUNCTION (stuff)->flags.ebolified = (load_byte_code_version < 20);
   if (saw_a_doc_ref)
     Vload_force_doc_string_list = Fcons (stuff, Vload_force_doc_string_list);
   UNGCPRO;

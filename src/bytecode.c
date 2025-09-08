@@ -1847,44 +1847,6 @@ execute_rare_opcode (Lisp_Object *stack_ptr,
 	break;
       }
 
-#ifdef SUPPORT_CONFOUNDING_FUNCTIONS
-
-    case Bold_eq:
-      {
-	Lisp_Object arg = POP;
-	TOP_LVALUE = HACKEQ_UNSAFE (TOP, arg) ? Qt : Qnil;
-	break;
-      }
-
-    case Bold_memq:
-      {
-	Lisp_Object arg = POP;
-	TOP_LVALUE = Fold_memq (TOP, arg);
-	break;
-      }
-
-    case Bold_equal:
-      {
-	Lisp_Object arg = POP;
-	TOP_LVALUE = Fold_equal (TOP, arg);
-	break;
-      }
-
-    case Bold_member:
-      {
-	Lisp_Object arg = POP;
-	TOP_LVALUE = Fold_member (TOP, arg);
-	break;
-      }
-
-    case Bold_assq:
-      {
-	Lisp_Object arg = POP;
-	TOP_LVALUE = Fold_assq (TOP, arg);
-	break;
-      }
-
-#endif
 
     case Bbind_multiple_value_limits:
       {

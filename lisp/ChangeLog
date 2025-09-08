@@ -1,3 +1,15 @@
+2025-09-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Remove byte-compiler handling of the v18 and v19 old-X opcodes,
+	long obsolete.
+	* bytecomp.el:
+	Comment out byte-defop for old-eq, old-memq, old-equal,
+	old-member, old-assq.
+	Remove the byte-defop-compiler calls for old-equal, old-member,
+	old-assq.
+	* test-harness.el (test-harness-from-buffer): Add a comment
+	motivating retention of the Ignore-Ebola macro.
+
 2025-09-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* cl-macs.el (labels):

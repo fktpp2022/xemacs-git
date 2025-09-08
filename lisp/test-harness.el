@@ -539,6 +539,10 @@ is used in a loop."
           ,@body))
 
       (defmacro Ignore-Ebola (&rest body)
+        ;; This stays for now; I have removed the old-member, old-assq
+        ;; etc. byte codes but the Ebola checking remains available with
+        ;; DEBUG_XEMACS, so even though nothing in the tests provokes these
+        ;; warnings appropriate to keep it.
 	`(let ((debug-issue-ebola-notices -42)) ,@body))
 
       (defun Int-to-Marker (pos)

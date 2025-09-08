@@ -3181,7 +3181,6 @@ decode_weak_list_type (Lisp_Object symbol)
   CHECK_SYMBOL (symbol);
   if (EQ (symbol, Qsimple))	 return WEAK_LIST_SIMPLE;
   if (EQ (symbol, Qassoc))	 return WEAK_LIST_ASSOC;
-  if (EQ (symbol, Qold_assoc))	 return WEAK_LIST_ASSOC;  /* EBOLA ALERT! */
   if (EQ (symbol, Qkey_assoc))	 return WEAK_LIST_KEY_ASSOC;
   if (EQ (symbol, Qvalue_assoc)) return WEAK_LIST_VALUE_ASSOC;
   if (EQ (symbol, Qfull_assoc))  return WEAK_LIST_FULL_ASSOC;
@@ -3824,18 +3823,14 @@ argument to `parse-integer' `digit-char-p', `digit-char'.
 #ifdef DEBUG_XEMACS
   DEFVAR_BOOL ("debug-issue-ebola-notices", &debug_issue_ebola_notices /*
 If non-zero, note when your code may be suffering from char-int confoundance.
+
 That is to say, if XEmacs encounters a usage of `eq', `memq', `equal',
-etc. where an int and a char with the same value are being compared,
-it will issue a notice on stderr to this effect, along with a backtrace.
-In such situations, the result would be different in XEmacs 19 versus
-XEmacs 20, and you probably don't want this.
+etc. where a fixnum and a char with the same value are being compared, it will
+issue a notice on stderr to this effect, along with a backtrace.
 
-Note that in order to see these notices, you have to byte compile your
-code under XEmacs 20 -- any code byte-compiled under XEmacs 19 will
-have its chars and ints all confounded in the byte code, making it
-impossible to accurately determine Ebola infection.
+This may be helpful in porting code from GNU Emacs, where characters and
+fixnums are not distinct objects.
 */ );
-
   debug_issue_ebola_notices = 0;
 
   DEFVAR_INT ("debug-ebola-backtrace-length",

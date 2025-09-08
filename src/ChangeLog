@@ -1,3 +1,47 @@
+2025-09-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Remove #'old-eq, #'old-memq, #'old-equal, #'old-assq,
+	#'old-member, #'old-assoc, #'old-rassq, #'old-rassoc,
+	#'old-delete, #'old-delq. Remove the associated bytecode, obsolete
+	since XEmacs v19. Remove read-time transformation of bytecode that
+	attempted to maintain compatibility.
+
+	* bytecode-ops.h (OPCODE):
+	Remove old_eq, old_memq, old_equal, old_member, old_assq here.
+	* bytecode.c:
+	Remove code to implement them.
+	* bytecode.h (struct Lisp_Compiled_Function):
+	Remove the EBOLIFIED flag from the Lisp_Compiled_Function object.
+	* config.h.in:
+	Remove the SUPPORT_CONFOUNDING_FUNCTIONS #define.
+	* data.c (decode_weak_list_type):
+	No longer accept Qold_assoc as a weak list type.
+	* data.c (vars_of_data):
+	Update the docstring for debug-issue-ebola-notices.
+
+	* fns.c:
+	* fns.c (plists_differ):
+	Remove some comments no longer relevant.
+	* fns.c: Remove Fold_eq and friends.
+	* fns.c (syms_of_fns):
+	Remove their DEFSUBR()s.
+	* lisp.h:
+	* lisp.h (HACKEQ_UNSAFE): Remove, no longer needed.
+	* lisp.h (debug_issue_ebola_notices): Modernize the type of this.
+	* lisp.h (ebolify_bytecode_constants): Remove declaration, no
+	longer needed.
+
+	* lread.c (ebolify_bytecode_constants): Remove its definition, no
+	longer needed.
+	* lread.c (load_force_doc_string_unwind): No longer call it.
+	New behaviour; error early if old byte code version is encountered.
+	* lread.c (Fload_internal):
+	* lread.c (read_compiled_function):
+	Remove call to ebolify_bytecode_constants(), remove setting of
+	relevant flag within the Lisp_Compiled_Function.
+	* sequence.c (rassq_no_quit): Update a comment here.
+	* sequence.c (delq_no_quit): Ditto.
+
 2025-09-04  Aidan Kehoe  <kehoea@parhasard.net>
 
 	debug.c, debug.h attempted to offer assertions that could be

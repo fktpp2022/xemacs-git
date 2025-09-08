@@ -1820,15 +1820,8 @@ enum Lisp_Type
 
 #define XPNTR(x) ((void *) XPNTRVAL(x))
 
-/* Close your eyes now lest you vomit or spontaneously combust ... */
-
-#define HACKEQ_UNSAFE(obj1, obj2)				\
-  (EQ (obj1, obj2) || (!POINTER_TYPE_P (XTYPE (obj1))		\
-		       && !POINTER_TYPE_P (XTYPE (obj2))	\
-		       && XCHAR_OR_FIXNUM (obj1) == XCHAR_OR_FIXNUM (obj2)))
-
 #ifdef DEBUG_XEMACS
-extern MODULE_API int debug_issue_ebola_notices;
+extern MODULE_API Boolint debug_issue_ebola_notices;
 MODULE_API int eq_with_ebola_notice (Lisp_Object, Lisp_Object);
 #define EQ_WITH_EBOLA_NOTICE(obj1, obj2)				\
   (debug_issue_ebola_notices ? eq_with_ebola_notice (obj1, obj2)	\
@@ -5577,7 +5570,6 @@ Lisp_Object canonicalize_keysym (Lisp_Object, int *modifiers_inout);
 /* Defined in lread.c */
 EXFUN (Fread, 1);
 
-void ebolify_bytecode_constants (Lisp_Object);
 void close_load_descs (void);
 int locate_file (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object *, int);
 int locate_file_without_hash (Lisp_Object, Lisp_Object, Lisp_Object,

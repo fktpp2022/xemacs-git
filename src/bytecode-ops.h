@@ -37,8 +37,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
   OPCODE (consp,   			072)
   OPCODE (stringp, 			073)
   OPCODE (listp,   			074)
-  OPCODE (old_eq,  			075)
-  OPCODE (old_memq, 			076)
+
+
   OPCODE (not,    			077)
   OPCODE (car,    			0100)
   OPCODE (cdr, 	  			0101)
@@ -149,11 +149,11 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #endif
 
   OPCODE (string_lessp,     		0231)
-  OPCODE (old_equal, 	 		0232)
+
   OPCODE (nthcdr, 	 		0233)
   OPCODE (elt, 		 		0234)
-  OPCODE (old_member, 	 		0235)
-  OPCODE (old_assq, 	 		0236)
+
+
   OPCODE (nreverse, 	 		0237)
   OPCODE (setcar, 	 		0240)
   OPCODE (setcdr, 	 		0241)

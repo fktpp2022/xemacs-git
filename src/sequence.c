@@ -1543,7 +1543,7 @@ The value is actually the element of ALIST whose cdr is VALUE.
 }
 
 /* Like Frassq, but caller must ensure that ALIST is properly
-   nil-terminated and ebola-free. */
+   nil-terminated and acyclic. */
 Lisp_Object
 rassq_no_quit (Lisp_Object value, Lisp_Object alist)
 {
@@ -1905,8 +1905,7 @@ arguments: (ITEM SEQUENCE &key (TEST #'eql) (KEY #'identity) (START 0) (END (len
 }
 
 /* Like #'delq, but caller must ensure that LIST is properly
-   nil-terminated and ebola-free. */
-
+   nil-terminated and acyclic. */
 Lisp_Object
 delq_no_quit (Lisp_Object elt, Lisp_Object list)
 {
