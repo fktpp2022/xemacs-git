@@ -1,5 +1,20 @@
 2025-09-08  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Silence all but one of the byte compiler warnings extant.
+	* font-mgr.el:
+	Don't warn about redefinition as a subr as a function in this
+	file, since that is the entire point of it.
+	* mwheel.el (mwheel-install): Add an autoload for this, for the
+	sake of behavior-defs.el.
+	* pcase.el: Make the byte compiler aware of #'debug in this file,
+	silence a warning.
+	* x-faces.el (:compile-toplevel):
+	Requre font-mgr as well as fontconfig at compile time.
+	* x-font-menu.el:
+	Ditto.
+
+2025-09-08  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Remove byte-compiler handling of the v18 and v19 old-X opcodes,
 	long obsolete.
 	* bytecomp.el:

@@ -35,6 +35,11 @@
 (when (featurep 'xft-fonts)
   (require 'fontconfig))
 
+;; Silence warnings when building without fontconfig.
+(eval-when (:compile-toplevel)
+  (require 'fontconfig)
+  (require 'font-mgr))
+
 (globally-declare-boundp
  (unless (valid-device-type-p 'x)
    '(x-font-regexp x-font-regexp-foundry-and-family x-font-regexp-spacing)))

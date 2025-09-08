@@ -296,6 +296,7 @@ Make sure to `(require 'mwheel) before using this function."
          (member* (event-button object) mouse-wheel-up-buttons)
          t))
 
+;;;###autoload
   (defun mwheel-install (&optional uninstall)
     "Enable mouse wheel support.  On by default.
 

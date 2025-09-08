@@ -64,7 +64,9 @@
  '(x-get-resource-and-maybe-bogosity-check
    x-get-resource x-init-pointer-shape))
 
-(eval-when (:compile-toplevel) (require 'fontconfig))
+(eval-when (:compile-toplevel)
+  (require 'fontconfig)
+  (require 'font-mgr))
 
 (defconst x-font-regexp nil)
 (defconst x-font-regexp-head nil)

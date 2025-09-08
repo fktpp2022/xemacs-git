@@ -45,7 +45,7 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))
+(eval-when (:compile-toplevel) (autoload 'debug "debug"))
 
 ;; Macro-expansion of pcase is reasonably fast, so it's not a problem
 ;; when byte-compiling a file, but when interpreting the code, if the pcase

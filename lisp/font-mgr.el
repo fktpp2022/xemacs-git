@@ -39,6 +39,10 @@
 
 (provide 'font-mgr)
 
+;; Avoid warnings about redefining subrs as functions, since that's the entire
+;; point of this file.
+(byte-compiler-options (warnings (- redefine)))
+
 (defvar xft-xlfd-font-regexp
   (concat
    ;; XLFD specifies ISO 8859-1 encoding, but we can't handle non-ASCII
