@@ -956,8 +956,9 @@ Each element is (INDEX . VALUE)")
 ;; codes 8-47 are consumed by the preceding opcodes
 (defconst byte-last-low-packed-opcode 47)
 
-;; unused: 48-55
-
+;; unused: 48-53.
+(byte-defop  54 -2 byte-puthash)
+(byte-defop  55 -2 byte-gethash)
 (byte-defop  56 -1 byte-nth)
 (byte-defop  57  0 byte-symbolp)
 (byte-defop  58  0 byte-consp)
@@ -3522,6 +3523,8 @@ keyword %s, forcing function quoting" (car form) function)))
 (byte-defop-compiler cons		2)
 (byte-defop-compiler aref		2)
 (byte-defop-compiler get		2+1)
+(byte-defop-compiler gethash		2-3)
+(byte-defop-compiler puthash		3)
 (byte-defop-compiler nth		2)
 (byte-defop-compiler subseq byte-compile-subseq)
 (byte-defop-compiler (substring byte-subseq) 2-3)

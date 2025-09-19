@@ -1,3 +1,13 @@
+2025-09-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecode-ops.h:
+	New opcodes for #'puthash, #'gethash
+	* bytecode.c:
+	#include "elhash.h" here for the sake of them.
+	* bytecode.c (execute_rare_opcode): Implement them.
+	* elhash.c:
+	Update some comments in this file.
+
 2025-09-08  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove #'old-eq, #'old-memq, #'old-equal, #'old-assq,

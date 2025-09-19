@@ -32,6 +32,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
   OPCODE (call,    			040)
   OPCODE (unbind,  			050)
 
+  OPCODE (puthash,                      066)
+  OPCODE (gethash,                      067)
   OPCODE (nth,     			070)
   OPCODE (symbolp, 			071)
   OPCODE (consp,   			072)

@@ -1,5 +1,13 @@
 2025-09-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Add bytecodes for #'puthash, #'gethash.
+	* bytecomp.el:
+	* bytecomp.el (gethash):
+	* byte-optimize.el (byte-compile-side-effect-free-ops):
+	Add byte-gethash here.
+
+2025-09-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* bytecomp.el (byte-last-low-packed-opcode): New. Fixnum value of
 	the greatest opcode seen where its offset is encoded in the bits
 	of the opcode, and the opcode is not byte-constant or

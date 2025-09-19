@@ -49,7 +49,10 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
    Removal of the old C-oriented hash.c, hash.h after migrating all of the
    uses of that code to either Lisp hash tables or, often, weak lists, Aidan
-   Kehoe, 2021. */
+   Kehoe, 2021.
+
+   Addition of bytecodes for Fputhash(), Fgethash(), Aidan Kehoe, September
+   2025. */
    
 /* This file implements the hash table Lisp object type.
 
@@ -81,9 +84,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    is up to 20 times as expensive as access to the nearest address
    (and getting worse).  So linear probing makes sense.
 
-   This code is used extensively from C, so the choice of hash table
-   implementation does matter, independent of whether the XEmacs Lisp
-   funcalls are slow or fast. */
+   Fputhash(), Fgethash() have byte codes and this code is used extensively
+   from C, so the implementation speed of hash tables matters. */
 
 #include <config.h>
 #include "lisp.h"

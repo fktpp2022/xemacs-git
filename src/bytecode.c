@@ -55,6 +55,7 @@ by Hallvard:
 #include "opaque.h"
 #include "syntax.h"
 #include "window.h"
+#include "elhash.h"
 
 #define NUM_REMEMBERED_BYTE_OPS 100
 
@@ -1888,7 +1889,20 @@ execute_rare_opcode (Lisp_Object *stack_ptr,
         throw_or_bomb_out (TOP, arg, 0, Qnil, Qnil);
         break;
       }
-
+    case Bgethash:
+      {
+        Lisp_Object arg2 = POP;
+        Lisp_Object arg1 = POP;
+        TOP_LVALUE = Fgethash (TOP, arg1, arg2);
+        break;
+      }
+    case Bputhash:
+      {
+        Lisp_Object arg2 = POP;
+        Lisp_Object arg1 = POP;
+        TOP_LVALUE = Fputhash (TOP, arg1, arg2);
+        break;
+      }
     default:
       {
 	Ascbyte msg[sizeof ("Unknown opcode ") + DECIMAL_PRINT_SIZE (opcode)];
