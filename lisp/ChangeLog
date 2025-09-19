@@ -1,3 +1,14 @@
+2025-09-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecomp.el (byte-last-low-packed-opcode): New. Fixnum value of
+	the greatest opcode seen where its offset is encoded in the bits
+	of the opcode, and the opcode is not byte-constant or
+	byte-constant2.
+	* bytecomp.el (byte-compile-report-ops): Use it, no longer check <
+	byte-nth.
+	* byte-optimize.el (disassemble-offset):
+	Use it, no longer check < byte-nth.
+
 2025-09-08  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Silence all but one of the byte compiler warnings extant.

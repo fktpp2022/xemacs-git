@@ -1404,7 +1404,7 @@ function which does assess these subforms."
   ;; return NIL if this opcode has no offset
   ;; OP, PTR and BYTES are used and set dynamically
   (declare (special op ptr bytes))
-  (cond ((< op byte-nth)
+  (cond ((<= op byte-last-low-packed-opcode)
 	 (let ((tem (logand op 7)))
 	   (setq op (logand op 248))
 	   (cond ((eq tem 6)

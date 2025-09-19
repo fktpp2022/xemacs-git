@@ -952,7 +952,9 @@ Each element is (INDEX . VALUE)")
 (byte-defop  24 -1 byte-varbind	"for binding a variable")
 (byte-defop  32  0 byte-call	"for calling a function")
 (byte-defop  40  0 byte-unbind	"for unbinding special bindings")
+
 ;; codes 8-47 are consumed by the preceding opcodes
+(defconst byte-last-low-packed-opcode 47)
 
 ;; unused: 48-55
 
@@ -5304,7 +5306,7 @@ exist."
 		(progn
 		  (setq op i)
 		  (setq off nil)
-		  (cond ((< op byte-nth)
+		  (cond ((<= op byte-last-low-packed-opcode)
 			 (setq off (logand op 7))
 			 (setq op (logand op 248)))
 			((>= op byte-constant)
