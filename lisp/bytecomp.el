@@ -545,6 +545,14 @@ easily determined from the input file.")
 	    (while specs
 	      (if (listp cl-declare-stack) (push (car specs) cl-declare-stack))
 	      (cl-do-proclaim (pop specs) nil))))
+    (when . ,#'(lambda (cond &rest body)
+		 (or body (byte-compile-warn "`when' with empty body: %S"
+					     (list 'when cond)))
+		 `(if ,cond (progn ,@body))))
+    (unless . ,#'(lambda (cond &rest body) 
+		   (or body (byte-compile-warn "`unless' with empty body: %S"
+					       (list 'unless cond)))
+		   `(if ,cond nil ,@body)))
     (load-time-value
      . ,(symbol-macrolet ((wrapper '#:load-time-value))
           (put wrapper 'byte-compile

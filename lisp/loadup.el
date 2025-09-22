@@ -42,20 +42,20 @@
 ;; Help debug problems.
 (setq stack-trace-on-error t
       load-always-display-messages t)
-(when (featurep 'debug-xemacs)
-  ;; Immediately dump core upon an unhandled error, rather than just quitting
-  ;; the program.  This can also be achieved by setting an environment variable
-  ;; XEMACSDEBUG to contain '(setq debug-on-error t)', e.g.
-  ;; export XEMACSDEBUG='(setq debug-on-error t)'
-  (setq debug-on-error t))
+(if (featurep 'debug-xemacs)
+    ;; Immediately dump core upon an unhandled error, rather than just
+    ;; quitting the program.  This can also be achieved by setting an
+    ;; environment variable XEMACSDEBUG to contain '(setq
+    ;; debug-on-error t)', e.g.  export XEMACSDEBUG='(setq
+    ;; debug-on-error t)'
+    (setq debug-on-error t))
 
 ;(format-into 'standard-output "command-line-args: %s\n" command-line-args)
 ;(format-into 'standard-output "configure-lisp-directory: %S\n" configure-lisp-directory)
 ;(format-into 'standard-output "configure-data-directory: %S\n" configure-data-directory)
 ;(format-into 'standard-output "lisp-directory: %S\n" lisp-directory)
 
-(when (fboundp 'error)
-  (error "loadup.el already loaded!"))
+(if (fboundp 'error) (error "loadup.el already loaded!"))
 
 (defconst running-xemacs t "\
 Non-nil when the current emacs is XEmacs.")
@@ -120,8 +120,7 @@ with the exception of `loadup.el'.")
       load-warn-when-source-only nil
       debugger 'debug)
 
-(when (member "no-site-file" command-line-args)
-  (setq site-start-file nil))
+(if (member "no-site-file" command-line-args) (setq site-start-file nil))
 
 ;; If you want additional libraries to be preloaded and their
 ;; doc strings kept in the DOC file rather than in core,

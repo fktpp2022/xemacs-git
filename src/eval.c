@@ -927,48 +927,6 @@ arguments: (COND THEN &rest ELSE)
      unreachable. */
 }
 
-/* Macros `when' and `unless' are trivially defined in Lisp,
-   but it helps for bootstrapping to have them ALWAYS defined. */
-
-DEFUN ("when", Fwhen, 1, MANY, 0, /*
-If COND yields non-nil, do BODY, else return nil.
-BODY can be zero or more expressions.  If BODY is nil, return nil.
-
-arguments: (COND &rest BODY)
-*/
-       (int nargs, Lisp_Object *args))
-{
-  Lisp_Object cond = args[0];
-  Lisp_Object body;
- 
-  switch (nargs)
-    {
-    case 1:  body = Qnil; break;
-    case 2:  body = args[1]; break;
-    default: body = Fcons (Qprogn, Flist (nargs-1, args+1)); break;
-    }
-
-  /* WHEN and UNLESS are macros, so the interpreter ensures our result is
-     reachable, we don't need to GCPRO it. */
-  return list3 (Qif, cond, body);
-}
-
-DEFUN ("unless", Funless, 1, MANY, 0, /*
-If COND yields nil, do BODY, else return nil.
-BODY can be zero or more expressions.  If BODY is nil, return nil.
-
-arguments: (COND &rest BODY)
-*/
-       (int nargs, Lisp_Object *args))
-{
-  Lisp_Object cond = args[0];
-  Lisp_Object body = Flist (nargs-1, args+1);
-
-  /* WHEN and UNLESS are macros, so the interpreter ensures our result is
-     reachable, we don't need to GCPRO it. */
-  return Fcons (Qif, Fcons (cond, Fcons (Qnil, body)));
-}
-
 DEFUN ("cond", Fcond, 0, UNEVALLED, 0, /*
 Try each clause until one succeeds.
 Each clause looks like (CONDITION BODY...).  CONDITION is evaluated
@@ -7443,8 +7401,6 @@ syms_of_eval (void)
   DEFSUBR (For);
   DEFSUBR (Fand);
   DEFSUBR (Fif);
-  DEFSUBR_MACRO (Fwhen);
-  DEFSUBR_MACRO (Funless);
   DEFSUBR (Fcond);
   DEFSUBR (Fprogn);
   DEFSUBR (Fprog1);

@@ -117,21 +117,19 @@
 	    (process-args (read buf)))
 	;; remove NEEDTODUMP and make-docfile.exe, convert .obj files into
 	;; .c files in the source directory.
-	(when (and (eq (string-match "\\(NEEDTODUMP\\|\\.exe$\\)" arg) nil)
-		   (eq (member arg processed) nil))
-	  (when (string-match "\\(.*\\)\\.obj$" arg)
-	    (setq arg (expand-file-name
-		       (concatenate
-                        'string 
-                        (file-name-nondirectory
-                         ;; no match-string so use its implementation.
-                         (subseq arg (match-beginning 1) (match-end 1)))
-			".c")
-		       source-src)))
-	  (if (and (eq docfile-out-of-date nil)
-		   (file-newer-than-file-p arg docfile))
-	      (setq docfile-out-of-date t))
-	  (setq processed (cons arg processed))))
+	(if (and (eq (string-match "\\(NEEDTODUMP\\|\\.exe$\\)" arg) nil)
+		 (eq (member arg processed) nil))
+	    (progn
+	      (if (string-match "\\(.*\\)\\.obj$" arg)
+		  (setq arg (expand-file-name
+			     (concatenate
+			      'string 
+			      (file-name-nondirectory (match-string 1)) ".c")
+			     source-src)))
+	      (if (and (eq docfile-out-of-date nil)
+		       (file-newer-than-file-p arg docfile))
+		  (setq docfile-out-of-date t))
+	      (setq processed (cons arg processed)))))
       (setq args (cdr args)))))
 
 ;; Then process the list of Lisp files.
@@ -181,10 +179,10 @@
           ;                                   invocation-name
           ;                                   #'paths-emacs-data-root-p))
           )
-      (when (equal arg (expand-file-name arg0 source-lisp))
-	;; Use relative paths where possible, since this makes file lookup
-	;; in an installed XEmacs easier:
-	(setq arg arg0))
+      (if (equal arg (expand-file-name arg0 source-lisp))
+          ;; Use relative paths where possible, since this makes file lookup
+          ;; in an installed XEmacs easier:
+          (setq arg arg0))
       (if (eq (member arg processed) nil)
 	  (progn
 	    (if (and (eq docfile-out-of-date nil)
@@ -229,7 +227,8 @@
 
 ;(message (prin1-to-string (append options processed)))
 
-(when docfile-out-of-date
+(cond
+ (docfile-out-of-date
   (condition-case nil
       (delete-file docfile)
     (error nil))
@@ -258,7 +257,7 @@
                     'external-debugging-output)
     (message "Spawning make-docfile ... %s"
              (if (equal 0 numeric-status) "done" status))
-    (kill-emacs numeric-status)))
+    (kill-emacs numeric-status))))
 
 (kill-emacs)
 

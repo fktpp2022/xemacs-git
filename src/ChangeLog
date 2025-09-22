@@ -1,3 +1,24 @@
+2025-09-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Remove DEFSUBR_MACRO(), simplify C implementation of subrs.
+
+	* symeval.h (DEFSUBR_MACRO): Removed.
+	* symeval.h (DEFSUBR): Revised, no need to pass a MACROP argument
+	to the defsubr_##Fname function.
+	* symbols.c (defsubr_macro): Removed.
+	* symbols.c (defsubr): Revised, no longer any need for
+	defsubr_1(). .
+	* eval.c:
+	* eval.c (Fwhen): Moved to subr.el.
+	* eval.c (Funless): Moved to subr.el.
+	* eval.c (syms_of_eval): Remove the DEFSUBR_MACRO() for both
+	macros.
+	* lisp.h (DEFUN):
+	Simplify the defsubr_##Fname definition, now there is no longer a
+	need to handle a possible macro.
+	* lisp.h (DEFUN_NORETURN):
+	Ditto.
+
 2025-09-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* bytecode-ops.h:

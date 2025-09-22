@@ -1,3 +1,10 @@
+2025-09-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/control.texi (Control Structures):
+	* lispref/control.texi (Conditionals):
+	* cl.texi (Conditionals):
+	Move document of `when', `unless' to the Lispref from cl.texi.
+
 2025-09-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lispref/functions.texi (Defining Functions):

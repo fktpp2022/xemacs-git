@@ -60,15 +60,15 @@ in dumped-lisp.el and is not itself listed.")
        "console"
        "obsolete"
        "specifier"
-       (when (featurep 'menubar) '("menubar" "menubar-items" "font-menu"))
+       (if (featurep 'menubar) '("menubar" "menubar-items" "font-menu"))
        "frame"			; needed by faces
        ;; #### this should be (featurep 'xft)
-       (when (featurep 'xft-fonts) "fontconfig") ; needed by x-faces
-       (when (featurep 'x) (cons "x-faces" ; needed by faces
-                                 (when (featurep 'menubar)
-                                   '("x-font-menu"))))
-       (when (featurep 'gtk) "gtk-faces")
-       (when (valid-console-type-p 'mswindows) "msw-faces")
+       (if (featurep 'xft-fonts) "fontconfig") ; needed by x-faces
+       (if (featurep 'x) (cons "x-faces" ; needed by faces
+                                 (if (featurep 'menubar)
+                                     '("x-font-menu"))))
+       (if (featurep 'gtk) "gtk-faces")
+       (if (valid-console-type-p 'mswindows) "msw-faces")
        "faces"			; must be loaded before any make-face call
        ;;"facemenu" #### not yet ported
        "glyphs"
@@ -78,7 +78,7 @@ in dumped-lisp.el and is not itself listed.")
        "hash-table"
        "text-props"
        "process" ;; This is bad. network-streams may not be defined.
-       (when (featurep 'multicast) "multicast") ; #+network-streams implicitly true
+       (if (featurep 'multicast) "multicast") ; #+network-streams implicitly true
        "map-ynp"
        "undo-stack"
        "window"		; simple needs `save-window-excursion'
@@ -129,8 +129,8 @@ in dumped-lisp.el and is not itself listed.")
        "fill"
        "auto-save"		; Added for 20.4
        "movemail"               ; Added for 21.2
-       (when (eq system-type 'windows-nt) "win32-native")
-       (when (featurep 'lisp-float-type) "float-sup")
+       (if (eq system-type 'windows-nt) "win32-native")
+       (if (featurep 'lisp-float-type) "float-sup")
        "itimer"			; for vars auto-save-timeout and
 				; auto-gc-threshold
        "itimer-autosave"
@@ -140,16 +140,16 @@ in dumped-lisp.el and is not itself listed.")
        "diagnose"
        
 	;;;;;;;;;;;;;;;;;; GUI support
-       (when (featurep 'window-system)
+       (if (featurep 'window-system)
 	 '("gui"
 	   "mouse"
 	   "mode-motion"
 	   ))
-       (when (featurep 'toolbar) "toolbar")
-       (when (featurep 'scrollbar) "scrollbar")
-       (when (featurep 'dialog) "dialog")
-       (when (featurep 'gutter) "gutter")
-       (when (featurep 'dragdrop-api) "dragdrop")
+       (if (featurep 'toolbar) "toolbar")
+       (if (featurep 'scrollbar) "scrollbar")
+       (if (featurep 'dialog) "dialog")
+       (if (featurep 'gutter) "gutter")
+       (if (featurep 'dragdrop-api) "dragdrop")
        "select"
        
 	;;;;;;;;;;;;;;;;;; Content for GUI's
@@ -159,9 +159,9 @@ in dumped-lisp.el and is not itself listed.")
        ;; should just be able to assume that, if (featurep 'menubar),
        ;; the menubar should work and if items are added, they can be
        ;; seen clearly and usefully.
-       (when (featurep 'gutter) "gutter-items")
-       (when (featurep 'toolbar) "toolbar-items")
-       (when (featurep 'dialog) "dialog-items")
+       (if (featurep 'gutter) "gutter-items")
+       (if (featurep 'toolbar) "toolbar-items")
+       (if (featurep 'dialog) "dialog-items")
 
 	;;;;;;;;;;;;;;;;;; Coding-system support
        "coding"
@@ -181,7 +181,7 @@ in dumped-lisp.el and is not itself listed.")
        "mule/mule-composite"
        "mule/windows" ; for creating Windows charsets/coding systems
        ;; may initialize coding systems
-       (when (memq system-type '(windows-nt cygwin32))
+       (if (memq system-type '(windows-nt cygwin32))
 	 "mule/mule-win32-init")
        "code-init" ; set up defaults
 
@@ -233,11 +233,11 @@ in dumped-lisp.el and is not itself listed.")
        "mule/canna-leim"
 	;; needs access to the charsets created by the above
 	;; language-specific files.
-       (when (valid-console-type-p 'mswindows)
+       (if (valid-console-type-p 'mswindows)
 	 "mule/mule-msw-init-late")
 
        ;; in old-Mule, must be loaded after all charsets created
-       (when (and (featurep 'use-unidata-case-tables))
+       (if (and (featurep 'use-unidata-case-tables))
 	 "mule/uni-case-conv")
        "mule/digit"
        "mule/general-late"
@@ -245,8 +245,8 @@ in dumped-lisp.el and is not itself listed.")
 ;;; mule-load.el ends here
 
 ;; preload the X code.
-       (when (featurep '(and x scrollbar)) "x-scrollbar")
-       (when (featurep 'x)
+       (if (featurep '(and x scrollbar)) "x-scrollbar")
+       (if (featurep 'x)
 	 '("x-mouse"
 	   "x-select"
 	   "x-misc"
@@ -254,7 +254,7 @@ in dumped-lisp.el and is not itself listed.")
 	   "x-win-xfree86"
 	   "x-win-sun"))
        ;; preload the GTK code
-       (when (featurep 'gtk)
+       (if (featurep 'gtk)
 	 '("gtk-ffi"
 	   "gtk-widgets"
 	   "gdk"
@@ -263,34 +263,34 @@ in dumped-lisp.el and is not itself listed.")
 	   "gtk-mouse"
 	   "gtk-glyphs"
 	   "widgets-gtk"))
-       (when (featurep '(and gtk dialog)) "dialog-gtk")
-       (when (featurep 'glade) "glade")
+       (if (featurep '(and gtk dialog)) "dialog-gtk")
+       (if (featurep 'glade) "glade")
 
 ;; preload the mswindows code.
-       (when (valid-console-type-p 'mswindows)
+       (if (valid-console-type-p 'mswindows)
 	 '("msw-glyphs"
 	   "msw-mouse"
 	   "msw-init"
 	   "msw-select"))
 ;; preload the TTY init code.
-       (when (featurep 'tty) "tty-init")
+       (if (featurep 'tty) "tty-init")
 ;;; Formerly in tooltalk/tooltalk-load.el
 	;; Moved to tooltalk package
-        ;; (when (featurep 'tooltalk)
+        ;; (if (featurep 'tooltalk)
         ;;   '("tooltalk-macros" "tooltalk-util" "tooltalk-init"))
 	;; "vc-hooks"		; Packaged.  Available in two versions.
 	;; "ediff-hook"		; Packaged.
        "fontl-hooks"
        "auto-show"
        "paragraphs"             ; needs easy-mmode, coding
-       (when (featurep 'ldap) "ldap")
+       (if (featurep 'ldap) "ldap")
 
-;; (when (featurep 'energize) "energize/energize-load.el")
+;; (if (featurep 'energize) "energize/energize-load.el")
 ;;; formerly in sunpro/sunpro-load.el
-;;	(when (featurep '(and mule sparcworks)) "mime-setup")
+;;	(if (featurep '(and mule sparcworks)) "mime-setup")
 
 	;; Moved to Sun package
-	;; (when (featurep 'sparcworks)
+	;; (if (featurep 'sparcworks)
 	;;   '("cc-mode" ; Requires cc-mode package
 	;;     "sunpro-init"
 	;;     "ring"
@@ -298,7 +298,7 @@ in dumped-lisp.el and is not itself listed.")
 	;;     "annotations"))
 
 ;;; formerly in eos/sun-eos-load.el
-        ;; (when (featurep 'sparcworks)
+        ;; (if (featurep 'sparcworks)
         ;;   '("sun-eos-init"
         ;;     "sun-eos-common"
         ;;     "sun-eos-editor"

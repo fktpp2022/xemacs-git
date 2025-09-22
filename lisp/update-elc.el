@@ -213,12 +213,12 @@ differently depending on the presence of certain features, especially
       (let* ((arg (car files-to-process))
 	     (elc-file (expand-file-name (concatenate 'string arg ".elc")
 					 source-lisp)))
-	(when (file-newer-than-file-p config-file elc-file)
-	  ;; no error if file doesn't exist or for some reason we can't
-	  ;; remove it
-	  (condition-case nil
-	      (delete-file elc-file)
-	    (file-error nil)))
+	(if (file-newer-than-file-p config-file elc-file)
+            ;; no error if file doesn't exist or for some reason we can't
+            ;; remove it
+            (condition-case nil
+                (delete-file elc-file)
+              (file-error nil)))
 	(setq files-to-process (cdr files-to-process)))))
   
   ;; bytecomp, byte-optimize, autoload, etc. are mentioned specially
@@ -257,13 +257,13 @@ differently depending on the presence of certain features, especially
 
       ;; now check if .el or .elc is newer than the dumped exe.
       ;; if so, need to redump.
-      (when (and dump-target arg-is-dump-dependency
-                 (eq dump-target-out-of-date-wrt-dump-files nil)
-		 ;; no need to check for existence of either of the files
-		 ;; because of the definition of file-newer-than-file-p.
-		 (or (file-newer-than-file-p full-arg-el dump-target)
-		     (file-newer-than-file-p full-arg-elc dump-target)))
-	(setq dump-target-out-of-date-wrt-dump-files t))
+      (if (and dump-target arg-is-dump-dependency
+               (eq dump-target-out-of-date-wrt-dump-files nil)
+               ;; no need to check for existence of either of the files
+               ;; because of the definition of file-newer-than-file-p.
+               (or (file-newer-than-file-p full-arg-el dump-target)
+                   (file-newer-than-file-p full-arg-elc dump-target)))
+          (setq dump-target-out-of-date-wrt-dump-files t))
 
       (if (and (eq (member (file-name-nondirectory arg)
 			   unbytecompiled-lisp-files) nil)
@@ -291,16 +291,16 @@ differently depending on the presence of certain features, especially
 	  (let* ((full-arg (car all-files-in-dir)))
 	    ;; custom-load.el always gets regenerated so don't let that
 	    ;; trigger us.
-	    (when (and (eq
-			(member
-			 (file-name-nondirectory full-arg)
-			 lisp-files-ignored-when-checking-for-autoload-updating
-			 )
-			nil)
-		       (file-newer-than-file-p full-arg autoload-file))
-	      (if autoload-is-mule
-		  (setq need-to-rebuild-mule-autoloads t)
-		(setq need-to-rebuild-autoloads t))))
+	    (if (and (eq
+                      (member
+                       (file-name-nondirectory full-arg)
+                       lisp-files-ignored-when-checking-for-autoload-updating
+                       )
+                      nil)
+                     (file-newer-than-file-p full-arg autoload-file))
+                (if autoload-is-mule
+                    (setq need-to-rebuild-mule-autoloads t)
+                  (setq need-to-rebuild-autoloads t))))
 	  (setq all-files-in-dir (cdr all-files-in-dir))))
       (setq dirs-to-check (cdr dirs-to-check))))
 
@@ -309,8 +309,8 @@ differently depending on the presence of certain features, especially
   (mapc
    #'(lambda (full-dir)
        (mapc #'(lambda (full-arg)
-		 (when (file-newer-than-file-p full-arg aa-modules)
-		   (setq need-to-rebuild-module-autoloads t)))
+		 (if (file-newer-than-file-p full-arg aa-modules)
+                     (setq need-to-rebuild-module-autoloads t)))
 	     (directory-files full-dir t "\\.c$" nil t)))
    (directory-files source-modules t nil t 'subdirs))
 
@@ -322,32 +322,32 @@ differently depending on the presence of certain features, especially
 
   )
 
-(when (or need-to-rebuild-autoloads
-	  ;; no real need for the following check either, because if the file
-	  ;; doesn't exist, need-to-rebuild-autoloads gets set above.  but
-	  ;; it's only one call, so it won't slow things down much and it keeps
-	  ;; the logic cleaner.
-	  (eq (file-exists-p aa-lisp) nil)
-	  ;; no need to check for file-exists of .elc due to definition
-	  ;; of file-newer-than-file-p
-	  (file-newer-than-file-p aa-lisp aac-lisp))
-  (setq need-to-recompile-autoloads t))
+(if (or need-to-rebuild-autoloads
+        ;; no real need for the following check either, because if the file
+        ;; doesn't exist, need-to-rebuild-autoloads gets set above.  but it's
+        ;; only one call, so it won't slow things down much and it keeps the
+        ;; logic cleaner.
+        (eq (file-exists-p aa-lisp) nil)
+        ;; no need to check for file-exists of .elc due to definition
+        ;; of file-newer-than-file-p
+        (file-newer-than-file-p aa-lisp aac-lisp))
+    (setq need-to-recompile-autoloads t))
 
-(when (or need-to-rebuild-mule-autoloads
-	  ;; not necessary but ...  see comment above.
-	  (eq (file-exists-p aa-lisp-mule) nil)
-	  ;; no need to check for file-exists of .elc due to definition
-	  ;; of file-newer-than-file-p
-	  (file-newer-than-file-p aa-lisp-mule aac-lisp-mule))
-  (setq need-to-recompile-mule-autoloads t))
+(if (or need-to-rebuild-mule-autoloads
+        ;; not necessary but ...  see comment above.
+        (eq (file-exists-p aa-lisp-mule) nil)
+        ;; no need to check for file-exists of .elc due to definition of
+        ;; file-newer-than-file-p
+        (file-newer-than-file-p aa-lisp-mule aac-lisp-mule))
+    (setq need-to-recompile-mule-autoloads t))
 
-(when (or need-to-rebuild-module-autoloads
-	  ;; not necessary but ...  see comment above.
-	  (eq (file-exists-p aa-modules) nil)
-	  ;; no need to check for file-exists of .elc due to definition
-	  ;; of file-newer-than-file-p
-	  (file-newer-than-file-p aa-modules aac-modules))
-  (setq need-to-recompile-module-autoloads t))
+(if (or need-to-rebuild-module-autoloads
+        ;; not necessary but ...  see comment above.
+        (eq (file-exists-p aa-modules) nil)
+        ;; no need to check for file-exists of .elc due to definition
+        ;; of file-newer-than-file-p
+        (file-newer-than-file-p aa-modules aac-modules))
+    (setq need-to-recompile-module-autoloads t))
 
 (setq update-elc-files-to-compile (append update-elc-files-to-compile
 					  (nreverse processed)))
@@ -373,11 +373,13 @@ differently depending on the presence of certain features, especially
 		   (mapconcat #'prin1-to-string
 			      (mapcan
 			       #'(lambda (full-dir)
-				   (unless (member*
-					    (file-name-nondirectory full-dir)
-					    '("." "..") :test #'equal)
-				     (directory-files full-dir
-						      t "\\.c$" nil t)))
+				   (if (eq
+                                        (member*
+                                         (file-name-nondirectory full-dir)
+                                         '("." "..") :test #'equal)
+                                        nil)
+                                       (directory-files full-dir
+                                                        t "\\.c$" nil t)))
 			       (directory-files source-modules
 						t nil t 'subdirs))
 			      " ")
@@ -441,16 +443,16 @@ differently depending on the presence of certain features, especially
 	   (let ((recompile-bc-bootstrap
                   (mapcan
                    #'(lambda (arg)
-                       (when (member arg update-elc-files-to-compile)
-                         (append '("-f" "batch-byte-compile-one-file")
-                                 (list arg))))
+                       (if (member arg update-elc-files-to-compile)
+                           (append '("-f" "batch-byte-compile-one-file")
+                                   (list arg))))
                    bc-bootstrap))
 		 (recompile-bootstrap-other
                   (mapcan
                    #'(lambda (arg)
-                       (when (member arg update-elc-files-to-compile)
-                         (append '("-f" "batch-byte-compile-one-file")
-                                 (list arg))))
+                       (if (member arg update-elc-files-to-compile)
+                           (append '("-f" "batch-byte-compile-one-file")
+                                   (list arg))))
                    bootstrap-other)))
 	     (mapc
 	      #'(lambda (arg)
@@ -466,12 +468,12 @@ differently depending on the presence of certain features, especially
 		      "-batch" "-no-packages" "-no-autoloads"
 		      "-eval" "(setq stack-trace-on-error t)"
 		      "-eval" "(setq load-always-display-messages t)")
-		    (when recompile-bc-bootstrap
-		      (append
-		       '("-eval" "(setq load-ignore-elc-files t)"
-			 "-l" "bytecomp")
-		       recompile-bc-bootstrap
-		       '("-eval" "(setq load-ignore-elc-files nil)")))
+		    (if recompile-bc-bootstrap
+                        (append
+                         '("-eval" "(setq load-ignore-elc-files t)"
+                           "-l" "bytecomp")
+                         recompile-bc-bootstrap
+                         '("-eval" "(setq load-ignore-elc-files nil)")))
 		    '("-l" "bytecomp")
 		    ;; likewise, recompile autoload.el etc. if out-of-date.
 		    recompile-bootstrap-other

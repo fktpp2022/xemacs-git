@@ -139,9 +139,21 @@ was called."
 ;(defmacro push (newelt listname)
 ;(defmacro pop (listname)
 
-;; Built-in.
-;(defmacro when (cond &rest body)
-;(defmacro unless (cond &rest body)
+(defmacro when (cond &rest body)
+  "If COND yields non-nil, do BODY, else return nil.
+
+When COND yields non-nil, eval BODY forms sequentially and return
+value of last one, or nil if there are none."
+  ;; XEmacs: warn about an empty body in the copy of this in
+  ;; byte-compile-initial-macro-environment.
+  `(if ,cond (progn ,@body)))
+
+(defmacro unless (cond &rest body)
+  "If COND yields nil, do BODY, else return nil.
+When COND yields nil, eval BODY forms sequentially and return
+value of last one, or nil if there are none."
+  ;; XEmacs: ditto.
+  `(if ,cond nil ,@body))
 
 ;; More powerful versions in cl-macs.el.
 ;(defmacro dolist (spec &rest body)

@@ -1948,38 +1948,6 @@ works much like @code{my-dolist}.
 These conditional forms augment Emacs Lisp's simple @code{if},
 @code{and}, @code{or}, and @code{cond} forms.
 
-@defmac when test forms@dots{}
-This is a variant of @code{if} where there are no ``else'' forms,
-and possibly several ``then'' forms.  In particular,
-
-@example
-(when @var{test} @var{a} @var{b} @var{c})
-@end example
-
-@noindent
-is entirely equivalent to
-
-@example
-(if @var{test} (progn @var{a} @var{b} @var{c}) nil)
-@end example
-@end defmac
-
-@defmac unless test forms@dots{}
-This is a variant of @code{if} where there are no ``then'' forms,
-and possibly several ``else'' forms:
-
-@example
-(unless @var{test} @var{a} @var{b} @var{c})
-@end example
-
-@noindent
-is entirely equivalent to
-
-@example
-(when (not @var{test}) @var{a} @var{b} @var{c})
-@end example
-@end defmac
-
 @defmac case keyform clause@dots{}
 This macro evaluates @var{keyform}, then compares it with the key
 values listed in the various @var{clause}s.  Whichever clause matches

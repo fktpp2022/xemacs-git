@@ -3302,12 +3302,18 @@ defkeyword_massage_name (Lisp_Object *location, const Ascbyte *name)
   Fset (*location, *location);
 }
 
-static Lisp_Object
-defsubr_1 (const CIbyte *lname, lisp_fn_t subr_fn, short min_args,
-           short max_args, const CIbyte *prompt)
+Lisp_Object
+defsubr (const CIbyte *lname, lisp_fn_t subr_fn, short min_args,
+         short max_args, const CIbyte *prompt)
 {
   Lisp_Object sym, fun;
   Lisp_Subr *subr;
+
+  /* Pick up duplicate syms_of_FILE() calls from emacs.c. */
+  structure_checking_assert (UNBOUNDP (XSYMBOL (sym)->function)
+			     || (CONSP (XSYMBOL (sym)->function)
+				 && EQ (XCAR (XSYMBOL (sym)->function),
+                                        Qautoload)));
 
   if (initialized)
     {
@@ -3364,39 +3370,7 @@ defsubr_1 (const CIbyte *lname, lisp_fn_t subr_fn, short min_args,
   subr->min_args = min_args;
   subr->max_args = max_args;
 
-  return fun;
-}
-
-Lisp_Object
-defsubr (const CIbyte *lname, lisp_fn_t subr_fn,
-         short min_args, short max_args,
-         const CIbyte *prompt)
-{
-  Lisp_Object fun = defsubr_1 (lname, subr_fn, min_args, max_args, prompt);
-  Lisp_Object sym = XSUBR (fun)->name;
-
-  /* Pick up duplicate syms_of_FILE() calls from emacs.c. */
-  structure_checking_assert (UNBOUNDP (XSYMBOL (sym)->function)
-			     || (CONSP (XSYMBOL (sym)->function)
-				 && EQ (XCAR (XSYMBOL (sym)->function), Qautoload)));
   XSYMBOL (sym)->function = fun;
-
-  /* Can't have this in defsubr_1, since add_module_loadhist_elt() checks
-     whether XSYMBOL_FUNCTION (sym) is a subr.  */
-  LOADHIST_ATTACH (Fcons (Qdefun, sym));
-  return sym;
-}
-
-/* Define a lisp macro implemented using a Lisp_Subr. */
-Lisp_Object
-defsubr_macro (const CIbyte *lname, lisp_fn_t subr_fn,
-               short min_args, short max_args,
-               const CIbyte *prompt)
-{
-  Lisp_Object fun = defsubr_1 (lname, subr_fn, min_args, max_args, prompt);
-  Lisp_Object sym = XSUBR (fun)->name;
-
-  XSYMBOL (sym)->function = Fcons (Qmacro, fun);
 
   LOADHIST_ATTACH (Fcons (Qdefun, sym));
   return sym;

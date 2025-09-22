@@ -1,3 +1,26 @@
+2025-09-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Move #'when, #'unless to Lisp. Revise bootstrapping code to deal
+	with this.
+
+	* bytecomp.el (byte-compile-initial-macro-environment):
+	Add entries for #'when, #'unless here, to allow the byte compiler
+	to warn if the macros have an empty BODY (as does GNU).
+
+	* dumped-lisp.el (preloaded-file-list):
+	Change (when ...) to (if ...) now when is moved to subr.el
+	* loadup.el:
+	Same changes within this file.
+	* make-docfile.el:
+	Same changes within this file.
+	* subr.el:
+	* subr.el (when): New. Moved here from eval.c, it simplifies the C
+	implementation if we remove the C-level option to make subrs into
+	macros.
+	* subr.el (unless): New. Moved here from eval.c.
+	* update-elc.el:
+	Change (when ...) to (if ...) now when is moved to subr.el
+
 2025-09-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Add bytecodes for #'puthash, #'gethash.

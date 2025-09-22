@@ -400,13 +400,7 @@ DECLARE_LISP_OBJECT (symbol_value_varalias,	struct symbol_value_varalias);
 /* To define a Lisp primitive function using a C function `Fname', do this:
    DEFUN ("name, Fname, ...); // at top level in foo.c
    DEFSUBR (Fname);           // in syms_of_foo(); */
-#define DEFSUBR(Fname) (defsubr_##Fname)(0)
-
-/* To define a Lisp primitive macro using a C function `Fname', do this:
-   DEFUN ("name, Fname, ...); // at top level in foo.c
-   DEFSUBR_MACRO (Fname);     // in syms_of_foo();
-*/
-#define DEFSUBR_MACRO(Fname) (defsubr_##Fname) (1)
+#define DEFSUBR(Fname) (defsubr_##Fname)()
 
 MODULE_API void defsymbol_massage_name (Lisp_Object *location,
 					const Ascbyte *name);

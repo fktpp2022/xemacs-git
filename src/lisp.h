@@ -3441,43 +3441,33 @@ Lisp_Object,Lisp_Object,Lisp_Object
 #define DECLARE_MIN_ARGS_KEYWORDS(Fname, val) static const short Fname##_min_args = val;
 #define DECLARE_MIN_ARGS_UNEVALLED(Fname, val) /* Nothing */
 
-#define DEFUN(lname, Fname, min_args, max_args, prompt, arglist)	\
-  Lisp_Object Fname (EXFUN_##max_args);					\
-  DECLARE_INLINE_HEADER (                                               \
-  /* Communicate the args to defsubr() and defsubr_macro()  */          \
-  /* by means of an inline function, since recursive macros */          \
-  /* don't work in C. This function is local to the file of */          \
-  /* DEFUN() and DEFSUBR(), despite the use of */                       \
-  /* DECLARE_INLINE_HEADER(). */                                        \
-  Lisp_Object                                                           \
-  defsubr_##Fname (Boolint macrop))                                     \
-  {									\
-    if (macrop)                                                         \
-      return defsubr_macro (lname, (lisp_fn_t) Fname, min_args,         \
-                            max_args,                                   \
-                            prompt);                                    \
-    return defsubr (lname, (lisp_fn_t) Fname, min_args, max_args,       \
-                    prompt);                                            \
-  }									\
-  DECLARE_MIN_ARGS_##max_args (Fname, min_args)                         \
-  DECLARE_LISP_NAME_##max_args (Fname, lname)                           \
+#define DEFUN(lname, Fname, min_args, max_args, prompt, arglist)             \
+  Lisp_Object Fname (EXFUN_##max_args);                                      \
+  DECLARE_INLINE_HEADER (                                                    \
+  /* Communicate the args to defsubr() by means of an inline function, since \
+     recursive macros don't work in C. This function is local to the file of \
+     DEFUN() and DEFSUBR(), despite the use of DECLARE_INLINE_HEADER(). */   \
+  Lisp_Object                                                                \
+  defsubr_##Fname (void))                                                    \
+  {                                                                          \
+    return defsubr (lname, (lisp_fn_t) Fname, min_args, max_args,            \
+                    prompt);                                                 \
+  }                                                                          \
+  DECLARE_MIN_ARGS_##max_args (Fname, min_args)                              \
+  DECLARE_LISP_NAME_##max_args (Fname, lname)                                \
   Lisp_Object Fname (DEFUN_##max_args arglist)
 
 #define DEFUN_NORETURN(lname, Fname, min_args, max_args, prompt, arglist) \
-  DECLARE_DOESNT_RETURN_TYPE (Lisp_Object, Fname (EXFUN_##max_args));	\
-  DECLARE_INLINE_HEADER (                                               \
-  Lisp_Object                                                           \
-  defsubr_##Fname (Boolint macrop))                                     \
-  {									\
-    if (macrop)                                                         \
-      return defsubr_macro (lname, (lisp_fn_t) Fname, min_args,         \
-                            max_args,                                   \
-                            prompt);                                    \
-    return defsubr (lname, (lisp_fn_t) Fname, min_args, max_args,       \
-                    prompt);                                            \
-  }									\
-  DECLARE_MIN_ARGS_##max_args (Fname, min_args)                         \
-  DECLARE_LISP_NAME_##max_args (Fname, lname)                           \
+  DECLARE_DOESNT_RETURN_TYPE (Lisp_Object, Fname (EXFUN_##max_args));     \
+  DECLARE_INLINE_HEADER (                                                 \
+  Lisp_Object                                                             \
+  defsubr_##Fname (void))                                                 \
+  {                                                                       \
+    return defsubr (lname, (lisp_fn_t) Fname, min_args, max_args,         \
+                    prompt);                                              \
+  }                                                                       \
+  DECLARE_MIN_ARGS_##max_args (Fname, min_args)                           \
+  DECLARE_LISP_NAME_##max_args (Fname, lname)                             \
   DOESNT_RETURN_TYPE (Lisp_Object) Fname (DEFUN_##max_args arglist)
 
 /* Heavy ANSI C preprocessor hackery to get DEFUN to declare a
@@ -6089,9 +6079,6 @@ void reject_constant_symbols (Lisp_Object sym, Lisp_Object newval,
 MODULE_API Lisp_Object defsubr (const CIbyte *lname, lisp_fn_t Fname, 
                                 short min_args, short max_args,
                                 const CIbyte *prompt);
-MODULE_API Lisp_Object defsubr_macro (const CIbyte *lname, lisp_fn_t Fname,
-                                      short min_args, short max_args,
-                                      const CIbyte *prompt);
 
 extern Lisp_Object Qconst_specifier;
 extern Lisp_Object Qmakunbound;

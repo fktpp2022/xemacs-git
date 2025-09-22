@@ -34,7 +34,7 @@ to define your own control structure constructs (@pxref{Macros}).
 
 @menu
 * Sequencing::             Evaluation in textual order.
-* Conditionals::           @code{if}, @code{cond}.
+* Conditionals::           @code{if}, @code{when}, @code{unless}, @code{cond}.
 * Combining Conditions::   @code{and}, @code{or}, @code{not}.
 * Iteration::              @code{while} loops.
 * Nonlocal Exits::         Jumping out of a sequence.
@@ -169,6 +169,38 @@ never evaluated---it is ignored.  Thus, in the example below,
 @end group
 @end example
 @end deffn
+
+@defmac when test forms@dots{}
+This is a variant of @code{if} where there are no ``else'' forms,
+and possibly several ``then'' forms.  In particular,
+
+@example
+(when @var{test} @var{a} @var{b} @var{c})
+@end example
+
+@noindent
+is entirely equivalent to
+
+@example
+(if @var{test} (progn @var{a} @var{b} @var{c}) nil)
+@end example
+@end defmac
+
+@defmac unless test forms@dots{}
+This is a variant of @code{if} where there are no ``then'' forms,
+and possibly several ``else'' forms:
+
+@example
+(unless @var{test} @var{a} @var{b} @var{c})
+@end example
+
+@noindent
+is entirely equivalent to
+
+@example
+(when (not @var{test}) @var{a} @var{b} @var{c})
+@end example
+@end defmac
 
 @deffn {Special Operator} cond clause@dots{}
 @code{cond} chooses among an arbitrary number of alternatives.  Each
