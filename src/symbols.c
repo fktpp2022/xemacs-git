@@ -3309,12 +3309,6 @@ defsubr (const CIbyte *lname, lisp_fn_t subr_fn, short min_args,
   Lisp_Object sym, fun;
   Lisp_Subr *subr;
 
-  /* Pick up duplicate syms_of_FILE() calls from emacs.c. */
-  structure_checking_assert (UNBOUNDP (XSYMBOL (sym)->function)
-			     || (CONSP (XSYMBOL (sym)->function)
-				 && EQ (XCAR (XSYMBOL (sym)->function),
-                                        Qautoload)));
-
   if (initialized)
     {
       Lisp_Object string = build_extstring ((const Extbyte *) lname,
@@ -3327,6 +3321,12 @@ defsubr (const CIbyte *lname, lisp_fn_t subr_fn, short min_args,
     {
       sym = intern (lname);
     }
+
+  /* Pick up duplicate syms_of_FILE() calls from emacs.c. */
+  structure_checking_assert (UNBOUNDP (XSYMBOL (sym)->function)
+			     || (CONSP (XSYMBOL (sym)->function)
+				 && EQ (XCAR (XSYMBOL (sym)->function),
+                                        Qautoload)));
   
   if (min_args < 0 || min_args > SUBR_MAX_ARGS)
     {

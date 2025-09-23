@@ -1,3 +1,9 @@
+2025-09-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* symbols.c (defsubr): 
+	Move the sanity-check for duplicate syms_of_FILE() calls after SYM
+	has been initialized, fix the builds.
+
 2025-09-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove DEFSUBR_MACRO(), simplify C implementation of subrs.
