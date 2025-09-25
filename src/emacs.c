@@ -2077,7 +2077,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       reinit_vars_of_eval ();
       reinit_vars_of_event_stream ();
       reinit_vars_of_fileio ();
-      reinit_vars_of_fontcolor ();
       reinit_vars_of_search ();
       reinit_vars_of_text ();
     }

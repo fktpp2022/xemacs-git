@@ -390,7 +390,6 @@ void vars_of_nt (void);
 void vars_of_number (void);
 void reinit_vars_of_number (void);
 void vars_of_fontcolor (void);
-void reinit_vars_of_fontcolor (void);
 void vars_of_fontcolor_gtk (void);
 void vars_of_fontcolor_mswindows (void);
 void vars_of_fontcolor_tty (void);

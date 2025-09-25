@@ -2077,15 +2077,16 @@ face-background-placement instantiators.
 void
 syms_of_fontcolor (void)
 {
-  DEFINE_NODUMP_LISP_OBJECT ("color-instance", color_instance,
-                             print_color_instance, finalize_color_instance,
-                             color_instance_equal, color_instance_hash,
-                             color_instance_description, Lisp_Color_Instance);
+  DEFINE_DUMPABLE_LISP_OBJECT ("color-instance", color_instance,
+                               print_color_instance, finalize_color_instance,
+                               color_instance_equal, color_instance_hash,
+                               color_instance_description,
+                               Lisp_Color_Instance);
 
-  DEFINE_NODUMP_LISP_OBJECT ("font-instance", font_instance,
-                             print_font_instance, finalize_font_instance,
-                             font_instance_equal, font_instance_hash,
-                             font_instance_description, Lisp_Font_Instance);
+  DEFINE_DUMPABLE_LISP_OBJECT ("font-instance", font_instance,
+                               print_font_instance, finalize_font_instance,
+                               font_instance_equal, font_instance_hash,
+                               font_instance_description, Lisp_Font_Instance);
 
   DEFSUBR (Fcolor_specifier_p);
   DEFSUBR (Ffont_specifier_p);
@@ -2157,40 +2158,30 @@ face-background-placement-specifier-p");
 }
 
 void
-reinit_vars_of_fontcolor (void)
-{
-  {
-    Lisp_Object obj = ALLOC_NORMAL_LISP_OBJECT (color_instance);
-    Lisp_Color_Instance *c = XCOLOR_INSTANCE (obj);
-    c->name = Qnil;
-    c->device = Qnil;
-    c->data = 0;
-    Vthe_null_color_instance = obj;
-  }
-
-  {
-    Lisp_Object obj = ALLOC_NORMAL_LISP_OBJECT (font_instance);
-    Lisp_Font_Instance *f = XFONT_INSTANCE (obj);
-    f->name = Qnil;
-    f->truename = Qnil;
-    f->device = Qnil;
-    f->data = 0;
-
-    f->ascent = f->height = 0;
-    f->descent = 0;
-    f->width = 0;
-    f->proportional_p = 0;
-
-    Vthe_null_font_instance = obj;
-  }
-}
-
-void
 vars_of_fontcolor (void)
 {
-  Vthe_null_color_instance = Qnil;
-  staticpro_dump_nil (&Vthe_null_color_instance);
+  Lisp_Color_Instance *c;
+  Lisp_Font_Instance *f;
 
-  Vthe_null_font_instance = Qnil;
-  staticpro_dump_nil (&Vthe_null_font_instance);
+  Vthe_null_color_instance = ALLOC_NORMAL_LISP_OBJECT (color_instance);
+  c = XCOLOR_INSTANCE (Vthe_null_color_instance);
+  c->name = Qnil;
+  c->device = Qnil;
+  c->color_instance_type = dead_console;
+  /* DATA is zeroed by ALLOC_NORMAL_LISP_OBJECT(), which is what we want. */
+  staticpro (&Vthe_null_color_instance);
+  
+  Vthe_null_font_instance = ALLOC_NORMAL_LISP_OBJECT (font_instance);
+  f = XFONT_INSTANCE (Vthe_null_font_instance);
+  f->name = Qnil;
+  f->truename = Qnil;
+  f->device = Qnil;
+  f->charset = Qnil;
+  f->font_instance_type = dead_console;
+
+  /* Other fields are zeroed by ALLOC_NORMAL_LISP_OBJECT(), which is what we
+     want. */
+  staticpro (&Vthe_null_font_instance);
 }
+
+/* fontcolor.c ends here */

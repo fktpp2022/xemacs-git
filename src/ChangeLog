@@ -1,3 +1,21 @@
+2025-09-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Make color instances and font instances dumpable. Dump
+	Vthe_null_font_instance, Vthe_null_color_instance, remove the need
+	for reinit_vars_of_fontcolor().
+	Yes, no other color instance or font instance should be dumped;
+	this is fine, dumping them will fail because their DEVICE fields
+	will be non-nil.
+	* emacs.c (main_1):
+	Remove call to reinit_vars_of_fontcolor().
+	* fontcolor.c:
+	* fontcolor.c (syms_of_fontcolor):
+	Call DEFINE_DUMPABLE_LISP_OBJECT() for font, color instances.
+	* fontcolor.c (vars_of_fontcolor):
+	Move the functionality of reinit_vars_of_fontcolor to dump time.
+	* symsinit.h:
+	Remove declaration for reinit_vars_of_fontcolor().
+
 2025-09-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* symbols.c (defsubr): 
