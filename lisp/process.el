@@ -49,6 +49,10 @@
   "Basic stuff dealing with processes."
   :group 'processes)
 
+(defun processp (object)
+  "Return t if OBJECT is a process."
+  (eq (type-of object) 'process))
+
 (defgroup execute nil
   "Executing external commands."
   :group 'processes)

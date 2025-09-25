@@ -369,14 +369,6 @@ get_range_table (Elemcount pos, Elemcount nentries,
   return default_;
 }
 
-DEFUN ("range-table-p", Frange_table_p, 1, 1, 0, /*
-Return non-nil if OBJECT is a range table.
-*/
-       (object))
-{
-  return RANGE_TABLEP (object) ? Qt : Qnil;
-}
-
 DEFUN ("range-table-type", Frange_table_type, 1, 1, 0, /*
 Return the type of RANGE-TABLE.
 
@@ -1094,7 +1086,6 @@ syms_of_rangetab (void)
   DEFSYMBOL (Qstart_closed_end_closed);
   DEFSYMBOL (Qstart_open_end_closed);
 
-  DEFSUBR (Frange_table_p);
   DEFSUBR (Frange_table_type);
   DEFSUBR (Fmake_range_table);
   DEFSUBR (Fcopy_range_table);

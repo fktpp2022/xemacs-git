@@ -1174,14 +1174,6 @@ check_non_category_char_table (Lisp_Object chartab)
 		       chartab);
 }
 
-DEFUN ("char-table-p", Fchar_table_p, 1, 1, 0, /*
-Return non-nil if OBJECT is a char table.
-*/
-       (object))
-{
-  return CHAR_TABLEP (object) ? Qt : Qnil;
-}
-
 DEFUN ("char-table-type-list", Fchar_table_type_list, 0, 0, 0, /*
 Return a list of the recognized char table types.
 See `make-char-table'.
@@ -2365,7 +2357,6 @@ syms_of_chartab (void)
   DEFSYMBOL (Qpage_tables);
 #endif
 
-  DEFSUBR (Fchar_table_p);
   DEFSUBR (Fchar_table_type_list);
   DEFSUBR (Fvalid_char_table_type_p);
   DEFSUBR (Fchar_table_type);

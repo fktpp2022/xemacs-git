@@ -63,6 +63,18 @@ The characters copied are inserted in the buffer before point."
 				 (+ n (point)))))))
     (insert string)))
 
+;; No current need for a range-table.el, so this goes here. Perhaps we should
+;; offer a range table iterator and create a range-table.el for that reason.
+
+(defun range-table-p (object)
+  "Return non-nil if OBJECT is a range table."
+  (eq (type-of object) 'range-table))
+
+;; Similarly, no current need for a char-table.el.
+(defun char-table-p (object)
+  "Return non-nil if OBJECT is a char table."
+  (eq (type-of object) 'char-table))
+
 (defun weak-list-p (object)
   "Return non-nil if OBJECT is a weak list."
   (eq (type-of object) 'weak-list))
@@ -76,7 +88,7 @@ The characters copied are inserted in the buffer before point."
 ;;; as pretty as it was with the C version.
 
 ;; Quiet the compiler about calls to this:
-(autoload 'weak-box-ref-1 "misc")
+(eval-when (:compile-toplevel) (autoload 'weak-box-ref-1 "misc"))
 
 (defun weak-box-p (object)
   "Return non-nil if OBJECT is a weak box."

@@ -40,6 +40,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; font specifiers
 
+(defun font-instance-p (object)
+  "Return non-nil if OBJECT is a font instance."
+  (eq (type-of object) 'font-instance))
+
 (defun make-font-specifier (spec-list)
   "Return a new `font' specifier object with the given specification list.
 SPEC-LIST can be a list of specifications (each of which is a cons of a
@@ -134,6 +138,10 @@ and is equivalent to the sum of the font instance's ascent and descent."
      (font-instance-descent font-instance)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; color specifiers
+
+(defun color-instance-p (object)
+  "Return non-nil if OBJECT is a color instance."
+  (eq (type-of object) 'color-instance))
 
 (defun make-color-specifier (spec-list)
   "Return a new `color' specifier object with the given specification list.

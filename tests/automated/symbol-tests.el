@@ -443,9 +443,8 @@
 (Assert (string= (built-in-symbol-file 'built-in-symbol-file)
 		 "doc.c"))
 
-;; built-in macro documentation
-(Assert (string= (built-in-symbol-file 'when)
-		 "eval.c"))
+;; built-in special operator documentation
+(Assert (string= (built-in-symbol-file 'if) "eval.c"))
 
 ;; #### we should handle symbols defined in Lisp, dumped, autoloaded,
 ;; and required, too.

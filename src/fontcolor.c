@@ -998,14 +998,6 @@ is deallocated as well.
   return obj;
 }
 
-DEFUN ("color-instance-p", Fcolor_instance_p, 1, 1, 0, /*
-Return non-nil if OBJECT is a color instance.
-*/
-       (object))
-{
-  return COLOR_INSTANCEP (object) ? Qt : Qnil;
-}
-
 DEFUN ("color-instance-name", Fcolor_instance_name, 1, 1, 0, /*
 Return the name used to allocate COLOR-INSTANCE.
 */
@@ -1202,14 +1194,6 @@ these objects are GCed, the underlying GUI data is deallocated as well.
     return Qnil;
 
   return obj;
-}
-
-DEFUN ("font-instance-p", Ffont_instance_p, 1, 1, 0, /*
-Return non-nil if OBJECT is a font instance.
-*/
-       (object))
-{
-  return FONT_INSTANCEP (object) ? Qt : Qnil;
 }
 
 DEFUN ("font-instance-name", Ffont_instance_name, 1, 1, 0, /*
@@ -2095,7 +2079,6 @@ syms_of_fontcolor (void)
 
   DEFSYMBOL_MULTIWORD_PREDICATE (Qcolor_instancep);
   DEFSUBR (Fmake_color_instance);
-  DEFSUBR (Fcolor_instance_p);
   DEFSUBR (Fcolor_instance_name);
   DEFSUBR (Fcolor_instance_rgb_components);
   DEFSUBR (Fvalid_color_name_p);
@@ -2103,7 +2086,6 @@ syms_of_fontcolor (void)
 
   DEFSYMBOL_MULTIWORD_PREDICATE (Qfont_instancep);
   DEFSUBR (Fmake_font_instance);
-  DEFSUBR (Ffont_instance_p);
   DEFSUBR (Ffont_instance_name);
   DEFSUBR (Ffont_instance_ascent);
   DEFSUBR (Ffont_instance_descent);

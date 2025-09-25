@@ -339,14 +339,6 @@ network_connection_p (Lisp_Object process)
 }
 #endif
 
-DEFUN ("processp", Fprocessp, 1, 1, 0, /*
-Return t if OBJECT is a process.
-*/
-       (object))
-{
-  return PROCESSP (object) ? Qt : Qnil;
-}
-
 DEFUN ("process-live-p", Fprocess_live_p, 1, 1, 0, /*
 Return t if OBJECT is a process that is alive.
 */
@@ -2674,7 +2666,6 @@ syms_of_process (void)
   DEFERROR_STANDARD (Qnetwork_error, Qio_error);
   DEFERROR (Qtls_error, "TLS error", Qerror);
 
-  DEFSUBR (Fprocessp);
   DEFSUBR (Fprocess_live_p);
 #if 0
   /* see comment at Fprocess_readable_p */

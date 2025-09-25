@@ -1,3 +1,10 @@
+2025-09-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/symbol-tests.el:
+	#'when has been moved to subr.el for the sake of simplicity of
+	implementation of DEFSUBR(), revise this test to check for #'if
+	instead.
+
 2025-08-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/byte-compiler-tests.el ("Attempt to set constant

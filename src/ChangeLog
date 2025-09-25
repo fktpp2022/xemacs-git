@@ -1,5 +1,20 @@
 2025-09-25  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* chartab.c (Fchar_table_p): Moved to misc.el.
+	* chartab.c (syms_of_chartab):
+	Remove its DEFSUBR().
+	* fontcolor.c (Fcolor_instance_p): Moved to fontcolor.el.
+	* fontcolor.c (Ffont_instance_p): Ditto.
+	* fontcolor.c (syms_of_fontcolor):
+	Remove their DEFSUBR()s.
+	* process.c (Fprocessp): Moved to process.el.
+	* process.c (syms_of_process): Remove its DEFSUBR().
+	* rangetab.c (Frange_table_p): Moved to misc.el.	
+	* rangetab.c (syms_of_rangetab):
+	Remove its DEFSUBR().
+
+2025-09-25  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Make color instances and font instances dumpable. Dump
 	Vthe_null_font_instance, Vthe_null_color_instance, remove the need
 	for reinit_vars_of_fontcolor().

@@ -1,3 +1,20 @@
+2025-09-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Move a few further simple type predicates to Lisp from C, missed
+	in 57e95bb80443.
+
+	* fontcolor.el (font-instance-p): New.
+	* fontcolor.el (color-instance-p): New.
+	Move these from fontcolor.c.
+	* misc.el:
+	* misc.el (range-table-p): New.
+	Move this from rangetab.c.
+	* misc.el (char-table-p): New.
+	Move this from chartab.c.
+	* misc.el (:compile-toplevel):
+	Improve syntax for byte compiler in passing.
+	* process.el (processp): New. Move this from process.c.
+
 2025-09-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Move #'when, #'unless to Lisp. Revise bootstrapping code to deal
