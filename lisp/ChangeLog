@@ -1,3 +1,15 @@
+2025-09-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* keymap.el (synthesize-unicode-codepoint):
+	Moved here from keymap.el, allowing use of #'read-function-key-map
+	within it.
+	Revise to give help in the same way that `read-char' and
+	`read-quoted-char' do, don't choke when supplied code points where
+	ISPRINT() in keymap.c is zero.
+	* keymap.el (function-key-map-parent):
+	Add a binding that will work on TTYs for
+	#'synthesize-unicode-codepoint. Move its definition to keymap.el.
+
 2025-09-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Move a few further simple type predicates to Lisp from C, missed

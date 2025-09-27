@@ -774,7 +774,110 @@ terminates the character code and is then used as input."
       (and window-configuration
 	   (set-window-configuration window-configuration))
       (maybe-display-char prompt (if (eql char ?\C-m) ?\x20 char))
-      (unicode-to-char code))))
+      (unicode-to-char code)))
+
+  (defun synthesize-unicode-codepoint (ignore-prompt)
+    "Read a sequence of hex digits and return a keyboard macro.
+
+The keyboard macro reflects a character with its Unicode code point
+corresponding to those hexadecimal digits. This character will normally be
+passed to `self-insert-command', meaning the character is inserted into the
+buffer.
+
+This function is normally bound to (control ?U) by means of
+`function-key-map'; it is not itself a command.  If you would prefer to bind
+it to another key sequence consider something like:
+
+ (define-key function-key-map-parent [?\\C-x ?@ ?\\C-u]
+             'synthesize-unicode-codepoint)
+
+The intention is that this function implements ISO 14755 with XEmacs."
+    (symbol-macrolet ((first-prompt "Unicode hex input: u"))
+      (let* ((prompt first-prompt) (integer 0)
+             (extent (make-extent (1- (length first-prompt))
+                                  (length first-prompt) prompt))
+             (help-form
+              "Type hexadecimal digits to input the corresponding \
+Unicode code point.
+
+RET or SPC terminate the code point, and are discarded; any other non-digit
+terminates the character code and is then used as input.")
+             done (first t) (code 0) (events []) event
+             character window-configuration)
+        (setf (extent-face extent) 'underline
+              (extent-property extent 'duplicable) t)
+        (while (not done)
+	  (setq events (read-function-key-map events (concat prompt " - "))
+		event (aref events 0)
+		unread-command-events (reduce #'cons events :from-end t
+					      :start 1 :initial-value
+					      unread-command-events)
+                events []
+                character (event-to-character event nil))
+          (when (event-matches-key-specifier-p event (quit-char))
+            (signal 'quit nil))
+	  (cond ((null character)
+                 (if (find event help-event-list
+			   :test #'event-matches-key-specifier-p)
+                     ;; If we're on a TTY and f1 comes from function-key-map,
+                     ;; event-stream.c may not handle it as it should. Show
+                     ;; help ourselves.
+                     (when (not window-configuration)
+                       (with-output-to-temp-buffer (help-buffer-name nil)
+                         (setq window-configuration
+                               (current-window-configuration))
+                         (write-sequence help-form)))
+                   ;; Require at least one keystroke that can be converted
+                   ;; into a character, no point inserting ^@ into the buffer
+                   ;; when the user types F8. This differs from GNU Emacs.
+                   (if first
+                       (error 'no-character-typed event)
+                     ;; Not first; a non-character keystroke terminates.
+                     (setq unread-command-events 
+                           (cons event unread-command-events)
+                           done t))))
+		((setq integer (digit-char-p character 16))
+                 (setq code (+ (* code 16) integer)
+                       prompt (concat prompt (list character)))
+                 (if (>= code #x110000)
+                     (error 'args-out-of-range "Not a Unicode code point"
+                            code))
+                 (set-extent-endpoints extent (1- (length first-prompt))
+                                       (length prompt) prompt))
+                ((and (not first)
+                      ;; If space or enter, discard and terminate.
+                      (member* character '(?\C-m ?\x20)))
+                 (setq done t))
+                ((not first)
+                 (setq unread-command-events (cons event 
+                                                   unread-command-events)
+                       done t)))
+          (setq first (and first (null character))))
+        (and window-configuration
+             (set-window-configuration window-configuration))
+        (setq character (decode-char 'ucs code))
+        ;; Pass 'prompt as LABEL so it overrides the 'command of
+        ;; maybe_echo_keys().
+        (display-message 'prompt (format "%s %c" prompt character))
+        (add-timeout 2 #'(lambda (acons)
+                           (when (member* acons message-stack :test #'eq)
+                             ;; Don't let maybe_echo_keys() override now our
+                             ;; message is gone.
+                             (clear-message 'command)
+                             (clear-message (car acons))))
+                     (car message-stack))
+        (if (and (>= character ?\x20) (not (eql character ?\x7f)))
+            `[(,character)]
+          ;; Non-printable characters are a challenge, since if we just pass
+          ;; them through as a macro in the way we do other Unicode code
+          ;; points, canonicalize_keysym() rejects them. Return the binding of
+          ;; #'quoted-insert from this function, push the character onto
+          ;; unread-command-events.
+          ;;
+          ;; Happily prefix-arguments to self-insert-command and to
+          ;; quoted-insert work in much the same way.
+          (push (character-to-event character) unread-command-events)
+          (where-is-internal 'quoted-insert nil t))))))
 
 ;; "(this comes from Mule but is a generally good idea)". Still only used in
 ;; the Mule packages a couple of decades later. Previously in cmds.c.
