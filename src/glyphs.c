@@ -3591,16 +3591,6 @@ image_copy_instantiator (Lisp_Object arg)
     }
   return arg;
 }
-
-DEFUN ("image-specifier-p", Fimage_specifier_p, 1, 1, 0, /*
-Return non-nil if OBJECT is an image specifier.
-See `make-image-specifier' for a description of image instantiators.
-*/
-       (object))
-{
-  return IMAGE_SPECIFIERP (object) ? Qt : Qnil;
-}
-
 
 /****************************************************************************
  *                             Glyph Object                                 *
@@ -5103,8 +5093,6 @@ syms_of_glyphs (void)
   DEFKEYWORD (Q_background);
 #endif
   /* image specifiers */
-
-  DEFSUBR (Fimage_specifier_p);
   /* Qimage in general.c */
 
   /* image instances */

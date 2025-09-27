@@ -1,5 +1,25 @@
 2025-09-27  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Move the specifier subtype predicates to Lisp, it adds nothing but
+	potential bugs to have them in C.
+
+	* fontcolor.el (font-specifier-p): Moved from fontcolor.c.
+	* fontcolor.el (color-specifier-p): Moved from fontcolor.c.
+	* fontcolor.el (face-boolean-specifier-p): Moved from fontcolor.c.
+	* fontcolor.el (face-background-placement-specifier-p):
+	Moved from fontcolor.c.
+	* glyphs.el (image-specifier-p): Moved from glyphs.c.
+	* gutter.el (gutter-specifier-p): Moved from gutter.c.
+	* gutter.el (gutter-size-specifier-p): Moved from gutter.c.
+	* gutter.el (gutter-visible-specifier-p): Moved from gutter.c.
+	* specifier.el (integer-specifier-p): Moved from specifier.c.
+	* specifier.el (boolean-specifier-p): Moved from specifier.c.
+	* specifier.el (natnum-specifier-p): Moved from specifier.c.
+	* specifier.el (generic-specifier-p): Moved from specifier.c.
+	* specifier.el (display-table-specifier-p): Moved from specifier.c.
+
+2025-09-27  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* keymap.el (synthesize-unicode-codepoint):
 	Moved here from keymap.el, allowing use of #'read-function-key-map
 	within it.

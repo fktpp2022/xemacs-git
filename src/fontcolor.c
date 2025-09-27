@@ -1486,16 +1486,6 @@ set_color_attached_to (Lisp_Object obj, Lisp_Object face, Lisp_Object property)
   COLOR_SPECIFIER_FACE_PROPERTY (color) = property;
 }
 
-DEFUN ("color-specifier-p", Fcolor_specifier_p, 1, 1, 0, /*
-Return t if OBJECT is a color specifier.
-
-See `make-color-specifier' for a description of possible color instantiators.
-*/
-       (object))
-{
-  return COLOR_SPECIFIERP (object) ? Qt : Qnil;
-}
-
 
 /****************************************************************************
  Font Object
@@ -1787,17 +1777,6 @@ set_font_attached_to (Lisp_Object obj, Lisp_Object face, Lisp_Object property)
   FONT_SPECIFIER_FACE (font) = face;
   FONT_SPECIFIER_FACE_PROPERTY (font) = property;
 }
-
-DEFUN ("font-specifier-p", Ffont_specifier_p, 1, 1, 0, /*
-Return non-nil if OBJECT is a font specifier.
-
-See `make-font-specifier' for a description of possible font instantiators.
-*/
-       (object))
-{
-  return FONT_SPECIFIERP (object) ? Qt : Qnil;
-}
-
 
 /*****************************************************************************
  Face Boolean Object
@@ -1927,18 +1906,6 @@ set_face_boolean_attached_to (Lisp_Object obj, Lisp_Object face,
   FACE_BOOLEAN_SPECIFIER_FACE (face_boolean) = face;
   FACE_BOOLEAN_SPECIFIER_FACE_PROPERTY (face_boolean) = property;
 }
-
-DEFUN ("face-boolean-specifier-p", Fface_boolean_specifier_p, 1, 1, 0, /*
-Return non-nil if OBJECT is a face-boolean specifier.
-
-See `make-face-boolean-specifier' for a description of possible
-face-boolean instantiators.
-*/
-       (object))
-{
-  return FACE_BOOLEAN_SPECIFIERP (object) ? Qt : Qnil;
-}
-
 
 /*****************************************************************************
  Face Background Placement Object
@@ -2041,18 +2008,6 @@ set_face_background_placement_attached_to (Lisp_Object obj, Lisp_Object face)
 
   FACE_BACKGROUND_PLACEMENT_SPECIFIER_FACE (face_background_placement) = face;
 }
-
-DEFUN ("face-background-placement-specifier-p", Fface_background_placement_specifier_p, 1, 1, 0, /*
-Return non-nil if OBJECT is a face-background-placement specifier.
-
-See `make-face-background-placement-specifier' for a description of possible
-face-background-placement instantiators.
-*/
-       (object))
-{
-  return FACE_BACKGROUND_PLACEMENT_SPECIFIERP (object) ? Qt : Qnil;
-}
-
 
 /************************************************************************/
 /*                            initialization                            */
@@ -2071,11 +2026,6 @@ syms_of_fontcolor (void)
                                print_font_instance, finalize_font_instance,
                                font_instance_equal, font_instance_hash,
                                font_instance_description, Lisp_Font_Instance);
-
-  DEFSUBR (Fcolor_specifier_p);
-  DEFSUBR (Ffont_specifier_p);
-  DEFSUBR (Fface_boolean_specifier_p);
-  DEFSUBR (Fface_background_placement_specifier_p);
 
   DEFSYMBOL_MULTIWORD_PREDICATE (Qcolor_instancep);
   DEFSUBR (Fmake_color_instance);
@@ -2110,7 +2060,7 @@ specifier_type_create_fontcolor (void)
   INITIALIZE_SPECIFIER_TYPE_WITH_DATA (color, "color", "color-specifier-p");
   INITIALIZE_SPECIFIER_TYPE_WITH_DATA (font, "font", "font-specifier-p");
   INITIALIZE_SPECIFIER_TYPE_WITH_DATA (face_boolean, "face-boolean",
-					 "face-boolean-specifier-p");
+				       "face-boolean-specifier-p");
   INITIALIZE_SPECIFIER_TYPE_WITH_DATA (face_background_placement,
 				       "face-background-placement",
 				       "\

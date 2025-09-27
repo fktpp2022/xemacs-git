@@ -807,18 +807,6 @@ gutter_validate (Lisp_Object instantiator)
 	}
     }
 }
-
-DEFUN ("gutter-specifier-p", Fgutter_specifier_p, 1, 1, 0, /*
-Return non-nil if OBJECT is a gutter specifier.
-
-See `make-gutter-specifier' for a description of possible gutter
-instantiators.
-*/
-       (object))
-{
-  return GUTTER_SPECIFIERP (object) ? Qt : Qnil;
-}
-
 
 /*
   Helper for invalidating the real specifier when default
@@ -986,17 +974,6 @@ gutter_size_validate (Lisp_Object instantiator)
     invalid_argument ("Gutter size must be an integer or `autodetect'", instantiator);
 }
 
-DEFUN ("gutter-size-specifier-p", Fgutter_size_specifier_p, 1, 1, 0, /*
-Return non-nil if OBJECT is a gutter-size specifier.
-
-See `make-gutter-size-specifier' for a description of possible gutter-size
-instantiators.
-*/
-       (object))
-{
-  return GUTTER_SIZE_SPECIFIERP (object) ? Qt : Qnil;
-}
-
 /* No need for the declaration, we don't use the
    error_check_gutter_visible_{type,data} functions. */
 /* DECLARE_SPECIFIER_TYPE (gutter_visible); */
@@ -1022,17 +999,6 @@ gutter_visible_validate (Lisp_Object instantiator)
 				   instantiator);
 	}
     }
-}
-
-DEFUN ("gutter-visible-specifier-p", Fgutter_visible_specifier_p, 1, 1, 0, /*
-Return non-nil if OBJECT is a gutter-visible specifier.
-
-See `make-gutter-visible-specifier' for a description of possible
-gutter-visible instantiators.
-*/
-       (object))
-{
-  return GUTTER_VISIBLE_SPECIFIERP (object) ? Qt : Qnil;
 }
 
 DEFUN ("redisplay-gutter-area", Fredisplay_gutter_area, 0, 0, 0, /*
@@ -1129,9 +1095,6 @@ init_frame_gutters (struct frame *f)
 void
 syms_of_gutter (void)
 {
-  DEFSUBR (Fgutter_specifier_p);
-  DEFSUBR (Fgutter_size_specifier_p);
-  DEFSUBR (Fgutter_visible_specifier_p);
   DEFSUBR (Fset_default_gutter_position);
   DEFSUBR (Fdefault_gutter_position);
   DEFSUBR (Fgutter_pixel_height);

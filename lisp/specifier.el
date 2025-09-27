@@ -555,6 +555,13 @@ Example:
 					      ,(car oldval))))
 				       oldvallist varlist))))))))
 
+(defun integer-specifier-p (object)
+  "Return non-nil if OBJECT is an integer specifier.
+
+See `make-integer-specifier' for a description of possible integer
+instantiators."
+  (and (specifierp object) (eq 'integer (specifier-type object))))
+
 (defun make-integer-specifier (spec-list)
   "Return a new `integer' specifier object with the given specification list.
 SPEC-LIST can be a list of specifications (each of which is a cons of a
@@ -564,6 +571,13 @@ specifiers.
 
 Valid instantiators for integer specifiers are integers."
   (make-specifier-and-init 'integer spec-list))
+
+(defun boolean-specifier-p (object)
+  "Return non-nil if OBJECT is a boolean specifier.
+
+See `make-boolean-specifier' for a description of possible boolean
+instantiators."
+  (and (specifierp object) (eq 'boolean (specifier-type object))))
 
 (defun make-boolean-specifier (spec-list)
   "Return a new `boolean' specifier object with the given specification list.
@@ -575,6 +589,13 @@ specifiers.
 Valid instantiators for boolean specifiers are t and nil."
   (make-specifier-and-init 'boolean spec-list))
 
+(defun natnum-specifier-p (object)
+  "Return non-nil if OBJECT is a natnum (non-negative-integer) specifier.
+
+See `make-natnum-specifier' for a description of possible natnum
+instantiators."
+  (and (specifierp object) (eq 'natnum (specifier-type object))))
+
 (defun make-natnum-specifier (spec-list)
   "Return a new `natnum' specifier object with the given specification list.
 SPEC-LIST can be a list of specifications (each of which is a cons of a
@@ -584,6 +605,13 @@ specifiers.
 
 Valid instantiators for natnum specifiers are non-negative integers."
   (make-specifier-and-init 'natnum spec-list))
+
+(defun generic-specifier-p (object)
+  "Return non-nil if OBJECT is a generic specifier.
+
+See `make-generic-specifier' for a description of possible generic
+instantiators."
+  (and (specifierp object) (eq 'generic (specifier-type object))))
 
 (defun make-generic-specifier (spec-list)
   "Return a new `generic' specifier object with the given specification list.
@@ -595,6 +623,13 @@ specifiers.
 Valid instantiators for generic specifiers are all Lisp values.
 They are returned back unchanged when a specifier is instantiated."
   (make-specifier-and-init 'generic spec-list))
+
+(defun display-table-specifier-p (object)
+  "Return non-nil if OBJECT is a display-table specifier.
+
+See `current-display-table' for a description of possible display-table
+instantiators."
+  (and (specifierp object) (eq 'display-table (specifier-type object))))
 
 (defun make-display-table-specifier (spec-list)
   "Return a new `display-table' specifier object with the given spec list.

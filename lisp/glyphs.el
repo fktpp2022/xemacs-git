@@ -51,6 +51,11 @@ information."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; image specifiers
 
+(defun image-specifier-p (object)
+  "Return non-nil if OBJECT is an image specifier.
+See `make-image-specifier' for a description of image instantiators."
+  (and (specifierp object) (eq 'image (specifier-type object))))
+
 (defun make-image-specifier (spec-list)
   "Return a new `image' specifier object with the specification list SPEC-LIST.
 SPEC-LIST can be a list of specifications (each of which is a cons of a

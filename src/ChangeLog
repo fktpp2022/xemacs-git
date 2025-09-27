@@ -1,3 +1,30 @@
+2025-09-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Move the type-specific specifier predicates to Lisp.
+
+	* fontcolor.c (Ffont_specifier_p): Moved to fontcolor.el.
+	* fontcolor.c (Fcolor_specifier_p): Ditto.
+	* fontcolor.c (Fface_boolean_specifier_p): Ditto.
+	* fontcolor.c (Fface_background_placement_specifier_p): Ditto.
+	* fontcolor.c (syms_of_fontcolor): Remove their DEFSUBR()s.
+	* fontcolor.c (specifier_type_create_fontcolor): Correct some
+	indentation in passing.
+	* glyphs.c (Fimage_specifier_p): Moved to glyphs.el.
+	* glyphs.c (syms_of_glyphs):
+	Remove its DEFSUBR().
+	* gutter.c (Fgutter_specifier_p): Moved to gutter.el.
+	* gutter.c (Fgutter_size_specifier_p): Ditto.
+	* gutter.c (Fgutter_visible_specifier_p): Ditto.
+	* gutter.c (syms_of_gutter):
+	Remove their DEFSUBR()s.
+	* specifier.c (Finteger_specifier_p): Moved to specifier.el.
+	* specifier.c (Fboolean_specifier_p): Ditto.
+	* specifier.c (Fnatnum_specifier_p): Ditto.
+	* specifier.c (Fgeneric_specifier_p): Ditto.
+	* specifier.c (Fdisplay_table_specifier_p): Ditto.
+	* specifier.c (syms_of_specifier):
+	Remove their DEFSUBR()s.
+
 2025-09-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* chartab.c (Fchar_table_p): Moved to misc.el.

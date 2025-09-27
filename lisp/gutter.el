@@ -121,6 +121,13 @@ non-nil if it is visible in optional DOMAIN."
 			     "-gutter")))))
     (set-specifier-dirty-flag gutter-or-location)))
 
+(defun gutter-specifier-p (object)
+  "Return non-nil if OBJECT is a gutter specifier.
+
+See `make-gutter-specifier' for a description of possible gutter
+instantiators."
+  (and (specifierp object) (eq 'gutter (specifier-type object))))
+
 (defun make-gutter-specifier (spec-list)
   "Return a new `gutter' specifier object with the given specification list.
 SPEC-LIST can be a list of specifications (each of which is a cons of a
@@ -137,6 +144,13 @@ Valid gutter instantiators are called \"gutter descriptors\" and are
 either strings or property-lists of strings.  See `default-gutter' for
 a description of the exact format."
   (make-specifier-and-init 'gutter spec-list))
+
+(defun gutter-size-specifier-p (object)
+  "Return non-nil if OBJECT is a gutter-size specifier.
+
+See `make-gutter-size-specifier' for a description of possible gutter-size
+instantiators."
+  (and (specifierp object) (eq 'gutter-size (specifier-type object))))
 
 (defun make-gutter-size-specifier (spec-list)
   "Return a new `gutter-size' specifier object with the given spec list.
@@ -155,6 +169,13 @@ symbol 'autodetect. If a gutter-size is set to 'autodetect them the
 size of the gutter will be adjusted to just accommodate the gutters
 contents. 'autodetect only works for top and bottom gutters."
   (make-specifier-and-init 'gutter-size spec-list))
+
+(defun gutter-visible-specifier-p (object)
+  "Return non-nil if OBJECT is a gutter-visible specifier.
+
+See `make-gutter-visible-specifier' for a description of possible
+gutter-visible instantiators."
+  (and (specifierp object) (eq 'gutter-visible (specifier-type object))))
 
 (defun make-gutter-visible-specifier (spec-list)
   "Return a new `gutter-visible' specifier object with the given spec list.
@@ -177,6 +198,3 @@ corresponding symbol occurs in the gutter-visible instantiator."
   (make-specifier-and-init 'gutter-visible spec-list))
 
 ;;; gutter.el ends here.
-
-
-;;; gutter.el ends here

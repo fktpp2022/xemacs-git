@@ -3628,18 +3628,6 @@ DEFINE_SPECIFIER_TYPE (generic);
 
 #endif /* 0 */
 
-DEFUN ("generic-specifier-p", Fgeneric_specifier_p, 1, 1, 0, /*
-Return non-nil if OBJECT is a generic specifier.
-
-See `make-generic-specifier' for a description of possible generic
-instantiators.
-*/
-       (object))
-{
-  return GENERIC_SPECIFIERP (object) ? Qt : Qnil;
-}
-
-
 /************************************************************************/
 /*                        Integer specifier type                        */
 /************************************************************************/
@@ -3650,17 +3638,6 @@ static void
 integer_validate (Lisp_Object instantiator)
 {
   CHECK_FIXNUM (instantiator);
-}
-
-DEFUN ("integer-specifier-p", Finteger_specifier_p, 1, 1, 0, /*
-Return non-nil if OBJECT is an integer specifier.
-
-See `make-integer-specifier' for a description of possible integer
-instantiators.
-*/
-       (object))
-{
-  return INTEGER_SPECIFIERP (object) ? Qt : Qnil;
 }
 
 /************************************************************************/
@@ -3675,17 +3652,6 @@ natnum_validate (Lisp_Object instantiator)
   CHECK_NATNUM (instantiator);
 }
 
-DEFUN ("natnum-specifier-p", Fnatnum_specifier_p, 1, 1, 0, /*
-Return non-nil if OBJECT is a natnum (non-negative-integer) specifier.
-
-See `make-natnum-specifier' for a description of possible natnum
-instantiators.
-*/
-       (object))
-{
-  return NATNUM_SPECIFIERP (object) ? Qt : Qnil;
-}
-
 /************************************************************************/
 /*                        Boolean specifier type                        */
 /************************************************************************/
@@ -3697,17 +3663,6 @@ boolean_validate (Lisp_Object instantiator)
 {
   if (!EQ (instantiator, Qt) && !EQ (instantiator, Qnil))
     invalid_constant ("Must be t or nil", instantiator);
-}
-
-DEFUN ("boolean-specifier-p", Fboolean_specifier_p, 1, 1, 0, /*
-Return non-nil if OBJECT is a boolean specifier.
-
-See `make-boolean-specifier' for a description of possible boolean
-instantiators.
-*/
-       (object))
-{
-  return BOOLEAN_SPECIFIERP (object) ? Qt : Qnil;
 }
 
 /************************************************************************/
@@ -3748,18 +3703,6 @@ display_table_validate (Lisp_Object instantiator)
 	}
     }
 }
-
-DEFUN ("display-table-specifier-p", Fdisplay_table_specifier_p, 1, 1, 0, /*
-Return non-nil if OBJECT is a display-table specifier.
-
-See `current-display-table' for a description of possible display-table
-instantiators.
-*/
-       (object))
-{
-  return DISPLAYTABLE_SPECIFIERP (object) ? Qt : Qnil;
-}
-
 
 
 #ifdef MEMORY_USAGE_STATS
@@ -3868,12 +3811,6 @@ syms_of_specifier (void)
   DEFSUBR (Fspecifier_matching_instance_from_inst_list);
   DEFSUBR (Fspecifier_matching_instantiator_from_inst_list);
   DEFSUBR (Fset_specifier_dirty_flag);
-
-  DEFSUBR (Fgeneric_specifier_p);
-  DEFSUBR (Finteger_specifier_p);
-  DEFSUBR (Fnatnum_specifier_p);
-  DEFSUBR (Fboolean_specifier_p);
-  DEFSUBR (Fdisplay_table_specifier_p);
 
   /* Symbols pertaining to specifier creation.  Specifiers are created
      in the syms_of() functions. */

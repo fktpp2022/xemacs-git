@@ -44,6 +44,12 @@
   "Return non-nil if OBJECT is a font instance."
   (eq (type-of object) 'font-instance))
 
+(defun font-specifier-p (object)
+  "Return t if OBJECT is a font specifier.
+
+See `make-font-specifier' for a description of possible font instantiators."
+  (and (specifierp object) (eq 'font (specifier-type object))))
+
 (defun make-font-specifier (spec-list)
   "Return a new `font' specifier object with the given specification list.
 SPEC-LIST can be a list of specifications (each of which is a cons of a
@@ -143,6 +149,12 @@ and is equivalent to the sum of the font instance's ascent and descent."
   "Return non-nil if OBJECT is a color instance."
   (eq (type-of object) 'color-instance))
 
+(defun color-specifier-p (object)
+  "Return t if OBJECT is a color specifier.
+
+See `make-color-specifier' for a description of possible color instantiators."
+  (and (specifierp object) (eq 'color (specifier-type object))))
+
 (defun make-color-specifier (spec-list)
   "Return a new `color' specifier object with the given specification list.
 SPEC-LIST can be a list of specifications (each of which is a cons of a
@@ -183,6 +195,13 @@ to the result.  See `make-specifier' for more information about specifiers."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; face-boolean specifiers
 
+(defun face-boolean-specifier-p (object)
+  "Return t if OBJECT is a face-boolean specifier.
+
+See `make-face-boolean-specifier' for a description of possible face-boolean
+instantiators."
+  (and (specifierp object) (eq 'face-boolean (specifier-type object))))
+
 (defun make-face-boolean-specifier (spec-list)
   "Return a new `face-boolean' specifier object with the given spec list.
 SPEC-LIST can be a list of specifications (each of which is a cons of a
@@ -202,6 +221,14 @@ Valid instantiators for face-boolean specifiers are
   (make-specifier-and-init 'face-boolean spec-list))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; face-background-placement specifiers
+
+(defun face-background-placement-specifier-p (object)
+  "Return t if OBJECT is a face-background-placement specifier.
+
+See `make-face-background-placement-specifier' for a description of possible
+face-background-placement instantiators."
+  (and (specifierp object)
+       (eq 'face-background-placement (specifier-type object))))
 
 (defun make-face-background-placement-specifier (spec-list)
   "Return a new `face-background-placement' specifier object.
