@@ -1,3 +1,12 @@
+2025-10-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* indent.el (tab-stop-list):
+	* indent.el (tab-to-tab-stop):
+	* indent.el (move-to-tab-stop):
+	Add more entries to TAB-STOP-LIST, up to 256 columns. Revise
+	#'tab-to-tab-stop, #'move-to-tab-stop to process it in a more
+	idiomatic way.
+
 2025-09-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Move the specifier subtype predicates to Lisp, it adds nothing but

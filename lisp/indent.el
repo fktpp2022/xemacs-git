@@ -401,7 +401,7 @@ column point starts at, `tab-to-tab-stop' is done instead."
       (tab-to-tab-stop))))
 
 (defvar tab-stop-list
-  '(8 16 24 32 40 48 56 64 72 80 88 96 104 112 120)
+  (loop for count from 1 upto 32 collect (* 8 count))
   "*List of tab stop positions used by `tab-to-tab-stops'.
 This should be a list of integers, ordered from smallest to largest.")
 
@@ -471,14 +471,11 @@ Use \\[edit-tab-stops] to edit them interactively."
   (interactive)
   (and abbrev-mode (eq (char-syntax (char-before (point))) ?w)
        (expand-abbrev))
-  (let ((tabs tab-stop-list))
-    (while (and tabs (>= (current-column) (car tabs)))
-      (setq tabs (cdr tabs)))
-    (if tabs
-	(let ((opoint (point)))
-	  (skip-chars-backward " \t")
-	  (delete-region (point) opoint)
-	  (indent-to (car tabs)))
+  (let ((column (find (current-column) tab-stop-list :test #'<)))
+    (if column
+        (progn
+          (delete-region (point) (progn (skip-chars-backward " \t") (point)))
+          (indent-to column))
       (insert ?\ ))))
 
 (defun move-to-tab-stop ()
@@ -486,23 +483,21 @@ Use \\[edit-tab-stops] to edit them interactively."
 The variable `tab-stop-list' is a list of columns at which there are tab stops.
 Use \\[edit-tab-stops] to edit them interactively."
   (interactive)
-  (let ((tabs tab-stop-list))
-    (while (and tabs (>= (current-column) (car tabs)))
-      (setq tabs (cdr tabs)))
-    (if tabs
-	(let ((before (point)))
-	  (move-to-column (car tabs) t)
-	  (save-excursion
-	    (goto-char before)
-	    ;; If we just added a tab, or moved over one,
-	    ;; delete any superfluous spaces before the old point.
-	    (if (and (eq (char-before (point)) ?\ )
-		     (eq (char-after (point)) ?\t))
-		(let ((tabend (* (/ (current-column) tab-width) tab-width)))
-		  (while (and (> (current-column) tabend)
-			      (eq (char-before (point)) ?\ ))
-		    (backward-char 1))
-		  (delete-region (point) before))))))))
+  (let ((column (find (current-column) tab-stop-list :test #'<)))
+    (if column
+        (let ((before (point)))
+          (move-to-column column t)
+          (save-excursion
+            (goto-char before)
+            ;; If we just added a tab, or moved over one,
+            ;; delete any superfluous spaces before the old point.
+            (if (and (eql (char-before (point)) ?\ )
+                     (eql (char-after (point)) ?\t))
+                (let ((tabend (* (/ (current-column) tab-width) tab-width)))
+                  (while (and (> (current-column) tabend)
+                              (eq (char-before (point)) ?\ ))
+                    (backward-char 1))
+                  (delete-region (point) before))))))))
 
 ;(define-key global-map "\t" 'indent-for-tab-command)
 ;(define-key esc-map "\034" 'indent-region)
