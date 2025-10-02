@@ -1,3 +1,29 @@
+2025-10-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Now NEWGC is gone, there is no barrier to dumping bignums. Do
+	that, simplify startup.
+
+	* emacs.c (main_1):
+	Move the call to init_number() before pdump_load(), so dumped
+	bignums can be restored.
+	* number-openssl.c:
+	* number-openssl.c (init_number_openssl):
+	Explicitly call fatal() if BN_CTX_new() and friends fail, don't
+	abstract with HANDLE_OP_ERROR() since this requires Lisp
+	infrastructure not available at this point.
+	* number.c:
+	No further need for NUMBER_INITIALIZED.
+	* number.c (syms_of_number):
+	Bigfloats cannot currently be dumped, correct their
+	DEFINE.*LISP_OBJECT().
+	* number.c (vars_of_number):
+	Initialize bigfloat-maximum-precision with a bignum as was always
+	the intention.
+	* number.c (init_number):
+	Remove check for NUMBER_INITIALIZED.
+	* number.c (reinit_vars_of_number): Removed, no further need for
+	this.
+
 2025-09-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Move the type-specific specifier predicates to Lisp.

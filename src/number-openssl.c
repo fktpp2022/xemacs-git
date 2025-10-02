@@ -999,12 +999,20 @@ init_number_openssl(void)
   BIO_METHOD *bio_method;
   int bio_idx;
 
-  HANDLE_OP_ERROR
-    (!(ctx_static = BN_CTX_new ()) ||
-     (bio_idx = BIO_get_new_index ()) == -1 ||
-     !(bio_method = BIO_meth_new (bio_idx, "XEmacs bignum writer BIO")) ||
-     !BIO_meth_set_write (bio_method, bignum_bio_write) ||
-     !(bio_writer_static = BIO_new (bio_method)));
+  if (!(ctx_static = BN_CTX_new ()) ||
+      (bio_idx = BIO_get_new_index ()) == -1 ||
+      !(bio_method = BIO_meth_new (bio_idx, "XEmacs bignum writer BIO")) ||
+      !BIO_meth_set_write (bio_method, bignum_bio_write) ||
+      !(bio_writer_static = BIO_new (bio_method)))
+    {
+      unsigned long err = ERR_get_error ();
+      /* Don't fret about Ibyte * vs Extbyte *, this is called sufficiently
+	 early that emacs_vsnprintf() will fall back to vsnprintf() in any
+	 event. */
+      fatal ("failed to initialize OpenSSL: %s: %s",
+	     ERR_lib_error_string (err), ERR_reason_error_string (err));
+	     
+    }
 
   bignum_init (scratch_bignum);
   bignum_init (scratch_bignum2);
@@ -1035,3 +1043,5 @@ bignum_memory_full(void)
 #  undef C
 #  undef C_
 #endif
+
+/* number-openssl.c ends here */

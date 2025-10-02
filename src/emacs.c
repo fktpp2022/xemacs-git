@@ -1079,6 +1079,13 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 				       waiting.  */
 #endif
 
+#ifdef WITH_NUMBER_TYPES
+  /* Initialize the libraries that support bignums, ratios, bigfloats, complex
+     numbers.  This must be done before pdump_load() to allow extended number
+     types to be reloaded successfully. */
+  init_number ();
+#endif
+
   /* purify_flag is set to indicate we are dumping (its name refers to
      purespace, which no longer exists and was a way of marking some
      areas read-only so they could be shared among many processes).
@@ -1183,9 +1190,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       /* After successful pdump_load(). Needs to be done now because fatal()
          in check_compatible_window_system() GCPROs.  */
       reinit_alloc_early ();
-#ifdef WITH_NUMBER_TYPES
-      reinit_vars_of_number ();
-#endif
     }
 
   if (argmatch (argv, argc, "-nw", "--no-windows", 0, NULL, &skip_args) ||
@@ -2299,13 +2303,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 
   init_initial_directory ();		/* get the directory to use for the
 					   "*scratch*" buffer, etc. */
-
-#ifdef WITH_NUMBER_TYPES
-  /* Set up bignums, ratios, bigfloats, complex numbers.
-     This must be done before the Lisp reader is set up. */
-  init_number ();
-#endif
-
   init_lread ();	/* Set up the Lisp reader. */
   init_cmdargs (argc, argv, skip_args);	/* Create list Vcommand_line_args */
   init_buffer_2 ();	/* Set default directory of *scratch* buffer */

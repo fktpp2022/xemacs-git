@@ -32,7 +32,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 Lisp_Object Vdefault_float_precision;
 
 static Lisp_Object Vbigfloat_max_prec;
-static int number_initialized;
 
 #ifdef HAVE_BIGNUM
 bignum scratch_bignum, scratch_bignum2;
@@ -711,9 +710,9 @@ syms_of_number (void)
                                         ratio_description, Lisp_Ratio);
 #endif
 #ifdef HAVE_BIGFLOAT
-  DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("bigfloat", bigfloat, bigfloat_print,
-                                          0, bigfloat_equal, bigfloat_hash,
-                                          bigfloat_description, Lisp_Bigfloat);
+  DEFINE_NODUMP_FROB_BLOCK_LISP_OBJECT ("bigfloat", bigfloat, bigfloat_print,
+					0, bigfloat_equal, bigfloat_hash,
+					bigfloat_description, Lisp_Bigfloat);
 #endif
 
   /* Functions */
@@ -742,12 +741,12 @@ This is determined by the underlying library used to implement bigfloats.
 */);
 
 #ifdef HAVE_BIGFLOAT
-  /* Don't create a bignum here.  Otherwise, we used to lose with NEW_GC +
-     pdump.  See reinit_vars_of_number(). */
-  Vbigfloat_max_prec = make_fixnum (MOST_POSITIVE_FIXNUM);
+  structure_checking_assert (HAVE_BIGNUM);
+  Vbigfloat_max_prec = make_bignum (0L);
+  bignum_set_ulong (XBIGNUM_DATA (Vbigfloat_max_prec), ULONG_MAX);
 #else
-  Vbigfloat_max_prec = make_fixnum (0);
-#endif /* HAVE_BIGFLOAT */
+  Vbigfloat_max_prec = Qzero;
+#endif
 
   Fprovide (intern ("number-types"));
 #ifdef HAVE_BIGNUM
@@ -762,45 +761,32 @@ This is determined by the underlying library used to implement bigfloats.
 }
 
 void
-reinit_vars_of_number (void)
-{
-#if defined(HAVE_BIGFLOAT) && defined(HAVE_BIGNUM)
-  Vbigfloat_max_prec = make_bignum (0L);
-  bignum_set_ulong (XBIGNUM_DATA (Vbigfloat_max_prec), ULONG_MAX);
-#endif
-}
-
-void
 init_number (void)
 {
-  if (!number_initialized)
-    {
-      number_initialized = 1;
-
 #if defined(WITH_GMP) || defined(WITH_MPIR)
-      init_number_gmp ();
+  init_number_gmp ();
 #endif
 #ifdef WITH_MP
-      init_number_mp ();
+  init_number_mp ();
 #endif
 #ifdef WITH_OPENSSL_BIGNUM
-      init_number_openssl ();
+  init_number_openssl ();
 #endif
 
 #ifdef HAVE_BIGNUM
-      bignum_init (scratch_bignum);
-      bignum_init (scratch_bignum2);
+  bignum_init (scratch_bignum);
+  bignum_init (scratch_bignum2);
 #endif
 
 #ifdef HAVE_RATIO
-      ratio_init (scratch_ratio);
-      ratio_init (scratch_ratio2);
+  ratio_init (scratch_ratio);
+  ratio_init (scratch_ratio2);
 #endif
 
 #ifdef HAVE_BIGFLOAT
-      bigfloat_init (scratch_bigfloat);
-      bigfloat_init (scratch_bigfloat2);
+  bigfloat_init (scratch_bigfloat);
+  bigfloat_init (scratch_bigfloat2);
 #endif
-
-    }
 }
+
+/* number.c ends here */
