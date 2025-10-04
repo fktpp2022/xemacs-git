@@ -78,7 +78,6 @@ deferror_massage_name_and_message /* DEFERROR_STANDARD */
 defkeyword
 defkeyword_massage_name		/* DEFKEYWORD */
 defsubr				/* DEFSUBR */
-defsubr_macro			/* DEFSUBR_MACRO */
 defsymbol
 defsymbol_nodump		/* == defsymbol in modules */
 defsymbol_massage_multiword_predicate /* DEFSYMBOL_MULTIWORD_PREDICATE */

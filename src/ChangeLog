@@ -1,5 +1,11 @@
 2025-10-04  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* xemacs.def.in.in:
+	Remove defsubr_macro() from this, omitted in 4c46ae36bc9d, fix the
+	Cygwin build.
+
+2025-10-04  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* dump-data.c:
 	Declare DUMPED_DATA as CRawbyte (so char), allowing it to build
 	with Apple's clang++ 17 as is currently shipped with macOS Sequoia.
