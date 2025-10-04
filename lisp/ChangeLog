@@ -1,3 +1,8 @@
+2025-10-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* make-docfile.el (process-args):
+	Pass OBJ to #'match-string here, fix the Visual Studio build.
+
 2025-10-01  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* indent.el (tab-stop-list):

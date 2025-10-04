@@ -124,7 +124,8 @@
 		  (setq arg (expand-file-name
 			     (concatenate
 			      'string 
-			      (file-name-nondirectory (match-string 1)) ".c")
+			      (file-name-nondirectory (match-string 1 arg))
+                              ".c")
 			     source-src)))
 	      (if (and (eq docfile-out-of-date nil)
 		       (file-newer-than-file-p arg docfile))
