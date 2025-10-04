@@ -380,33 +380,4 @@ ANSI_ALIASING_TYPEDEF (voidp, void *);
                         27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15,  \
                         14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0))
 
-#define PREPROCESSOR_ONE_OR_NOTONE(...)                                       \
-  PREPROCESSOR_EXPAND (PREPROCESSOR_ARGC_COUNTER                              \
-                       (__VA_ARGS__, NOTONE, NOTONE, NOTONE, NOTONE, NOTONE,  \
-                        NOTONE, NOTONE,NOTONE, NOTONE, NOTONE, NOTONE, NOTONE,\
-                        NOTONE, NOTONE, NOTONE, NOTONE, NOTONE, NOTONE,       \
-                        NOTONE, NOTONE, NOTONE, NOTONE, NOTONE, NOTONE,       \
-                        NOTONE, NOTONE, NOTONE, NOTONE, NOTONE, NOTONE,       \
-                        NOTONE, NOTONE, NOTONE, NOTONE, NOTONE, NOTONE,       \
-                        NOTONE, NOTONE, NOTONE, NOTONE, NOTONE, NOTONE,       \
-                        NOTONE, NOTONE, NOTONE, NOTONE, NOTONE, NOTONE,       \
-                        NOTONE, NOTONE, NOTONE, NOTONE, NOTONE, NOTONE,       \
-                        NOTONE, NOTONE, NOTONE, NOTONE, NOTONE, NOTONE,       \
-                        NOTONE, NOTONE, ONE, NOTONE))
-
-
-#define PREPROCESSOR_TWO_OR_NOTTWO(...)                                       \
-  PREPROCESSOR_EXPAND (PREPROCESSOR_ARGC_COUNTER                              \
-                       (__VA_ARGS__, NOTTWO, NOTTWO, NOTTWO, NOTTWO, NOTTWO,  \
-                        NOTTWO, NOTTWO,NOTTWO, NOTTWO, NOTTWO, NOTTWO, NOTTWO,\
-                        NOTTWO, NOTTWO, NOTTWO, NOTTWO, NOTTWO, NOTTWO,       \
-                        NOTTWO, NOTTWO, NOTTWO, NOTTWO, NOTTWO, NOTTWO,       \
-                        NOTTWO, NOTTWO, NOTTWO, NOTTWO, NOTTWO, NOTTWO,       \
-                        NOTTWO, NOTTWO, NOTTWO, NOTTWO, NOTTWO, NOTTWO,       \
-                        NOTTWO, NOTTWO, NOTTWO, NOTTWO, NOTTWO, NOTTWO,       \
-                        NOTTWO, NOTTWO, NOTTWO, NOTTWO, NOTTWO, NOTTWO,       \
-                        NOTTWO, NOTTWO, NOTTWO, NOTTWO, NOTTWO, NOTTWO,       \
-                        NOTTWO, NOTTWO, NOTTWO, NOTTWO, NOTTWO, NOTTWO,       \
-                        NOTTWO, NOTTWO, TWO, NOTTWO))
-
 #endif /* INCLUDED_compiler_h */

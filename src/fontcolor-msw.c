@@ -306,30 +306,44 @@ static const fontmap_t charset_map[] =
 
 typedef struct unicode_subrange_raw_t
 {
-  const int start; /* first Unicode codepoint */
-  const int end; /* last Unicode codepoint */
+  int start; /* first Unicode codepoint */
+  int end; /* last Unicode codepoint */
 } unicode_subrange_raw_t;
 
-#define SUBFROB_RAW_SUBRANGE_TWO(first, last) { first, last }
-#define SUBFROB_RAW_SUBRANGE_NOTTWO(first, last, ...)                   \
-  { first, last }, PREPROCESSOR_EXPAND                                  \
-    (PREPROCESSOR_CONCATENATE (SUBFROB_RAW_SUBRANGE_,                   \
-                               PREPROCESSOR_TWO_OR_NOTTWO(__VA_ARGS__)) \
-     (__VA_ARGS__)
+#define SUBFROB_RAW_SUBRANGE_2(first, last) { first, last }
+#define SUBFROB_RAW_SUBRANGE_4(first, last, ...)  \
+  { first, last }, PREPROCESSOR_EXPAND (SUBFROB_RAW_SUBRANGE_2 (__VA_ARGS__))
+#define SUBFROB_RAW_SUBRANGE_6(first, last, ...)  \
+  { first, last }, PREPROCESSOR_EXPAND (SUBFROB_RAW_SUBRANGE_4 (__VA_ARGS__))
+#define SUBFROB_RAW_SUBRANGE_8(first, last, ...)  \
+  { first, last }, PREPROCESSOR_EXPAND (SUBFROB_RAW_SUBRANGE_6 (__VA_ARGS__))
+#define SUBFROB_RAW_SUBRANGE_10(first, last, ...) \
+  { first, last }, PREPROCESSOR_EXPAND (SUBFROB_RAW_SUBRANGE_8 (__VA_ARGS__))
+#define SUBFROB_RAW_SUBRANGE_12(first, last, ...) \
+  { first, last }, PREPROCESSOR_EXPAND (SUBFROB_RAW_SUBRANGE_10 (__VA_ARGS__))
+#define SUBFROB_RAW_SUBRANGE_14(first, last, ...) \
+  { first, last }, PREPROCESSOR_EXPAND (SUBFROB_RAW_SUBRANGE_12 (__VA_ARGS__))
 
-#define FROB_RAW_SUBRANGE_ONE(N) /* Nothing */
-#define FROB_RAW_SUBRANGE_NOTONE(N, ...)                                    \
+#define FROB_NON_EMPTY_RAW_SUBRANGE(N, ...)                                 \
   static const struct unicode_subrange_raw_t unicode_subrange_raw_##N[] = { \
     PREPROCESSOR_EXPAND (PREPROCESSOR_CONCATENATE                           \
                          (SUBFROB_RAW_SUBRANGE_,                            \
-                          PREPROCESSOR_TWO_OR_NOTTWO(__VA_ARGS__))          \
+                          PREPROCESSOR_ARGC(__VA_ARGS__))                   \
                          (__VA_ARGS__))                                     \
   };
 
-#define FROB_RAW_SUBRANGE(...)                                          \
-  PREPROCESSOR_EXPAND (PREPROCESSOR_CONCATENATE                         \
-                       (FROB_RAW_SUBRANGE_,                             \
-                        PREPROCESSOR_ONE_OR_NOTONE (__VA_ARGS__))       \
+#define FROB_RAW_SUBRANGE_1(N) /* Nothing */
+#define FROB_RAW_SUBRANGE_3  FROB_NON_EMPTY_RAW_SUBRANGE
+#define FROB_RAW_SUBRANGE_5  FROB_NON_EMPTY_RAW_SUBRANGE
+#define FROB_RAW_SUBRANGE_7  FROB_NON_EMPTY_RAW_SUBRANGE
+#define FROB_RAW_SUBRANGE_9  FROB_NON_EMPTY_RAW_SUBRANGE
+#define FROB_RAW_SUBRANGE_11 FROB_NON_EMPTY_RAW_SUBRANGE
+#define FROB_RAW_SUBRANGE_13 FROB_NON_EMPTY_RAW_SUBRANGE
+#define FROB_RAW_SUBRANGE_15 FROB_NON_EMPTY_RAW_SUBRANGE
+
+#define FROB_RAW_SUBRANGE(...)                                              \
+  PREPROCESSOR_EXPAND (PREPROCESSOR_CONCATENATE                             \
+                       (FROB_RAW_SUBRANGE_, PREPROCESSOR_ARGC(__VA_ARGS__)) \
                        (__VA_ARGS__))
 
 /* Initialize the subrange arrays. */
@@ -337,20 +351,33 @@ FOR_ALL_UNICODE_FONT_SUBRANGES(FROB_RAW_SUBRANGE, FROB_RAW_SUBRANGE)
 
 typedef struct unicode_subrange_t
 {
-  const int no_subranges;
+  int no_subranges;
   const unicode_subrange_raw_t *subranges;
 } unicode_subrange_t;
 
-#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_ONE(N) { 0, NULL }
+#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_1(N) { 0, NULL }
 
-#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_NOTONE(N, ...) \
+#define FROB_LAST_UNICODE_NON_EMPTY_SUBRANGE_TABLE_ENTRY(N, ...) \
  { countof (unicode_subrange_raw_##N), unicode_subrange_raw_##N }
+#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_3  \
+  FROB_LAST_UNICODE_NON_EMPTY_SUBRANGE_TABLE_ENTRY
+#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_5  \
+  FROB_LAST_UNICODE_NON_EMPTY_SUBRANGE_TABLE_ENTRY
+#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_7  \
+  FROB_LAST_UNICODE_NON_EMPTY_SUBRANGE_TABLE_ENTRY
+#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_9  \
+  FROB_LAST_UNICODE_NON_EMPTY_SUBRANGE_TABLE_ENTRY
+#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_11 \
+  FROB_LAST_UNICODE_NON_EMPTY_SUBRANGE_TABLE_ENTRY
+#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_13 \
+  FROB_LAST_UNICODE_NON_EMPTY_SUBRANGE_TABLE_ENTRY
+#define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_15 \
+  FROB_LAST_UNICODE_NON_EMPTY_SUBRANGE_TABLE_ENTRY
 
 #define FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY(...)                     \
   PREPROCESSOR_EXPAND (PREPROCESSOR_CONCATENATE                         \
                        (FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY_,        \
-                        PREPROCESSOR_ONE_OR_NOTONE(__VA_ARGS__))        \
-                       (__VA_ARGS__))
+                        PREPROCESSOR_ARGC(__VA_ARGS__))(__VA_ARGS__))
 
 #define FROB_UNICODE_SUBRANGE_TABLE_ENTRY(...) \
   FROB_LAST_UNICODE_SUBRANGE_TABLE_ENTRY (__VA_ARGS__) ,
