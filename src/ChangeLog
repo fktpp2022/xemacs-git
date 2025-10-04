@@ -1,3 +1,9 @@
+2025-10-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* dump-data.c:
+	Declare DUMPED_DATA as CRawbyte (so char), allowing it to build
+	with Apple's clang++ 17 as is currently shipped with macOS Sequoia.
+
 2025-10-02  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Now NEWGC is gone, there is no barrier to dumping bignums. Do
