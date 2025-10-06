@@ -3314,8 +3314,21 @@ const struct memory_description free_description[] = {
 const struct memory_description lcrecord_list_description[] = {
   { XD_LISP_OBJECT, offsetof (struct lcrecord_list, free), 0, { 0 },
     XD_FLAG_FREE_LISP_OBJECT },
+  { XD_BLOCK_PTR, offsetof (struct lcrecord_list, implementation), 1,
+    { &lrecord_implementation_description } },
   { XD_END }
 };
+
+static void
+disksave_lcrecord_list (Lisp_Object lcrecord_list)
+{
+  /* This causes a leak of xmalloc()ed data at dump time, when we immediately
+     exit. Explicitly freeing the entries in the chain does not currently add
+     value, since the GC is (somehow) still aware of some of them; this may be
+     an artefact of ERROR_CHECK_GC (see Ben's comment above about never
+     freeing a frob block when ERROR_CHECK_GC.) */
+  XLCRECORD_LIST (lcrecord_list)->free = Qnil;
+}
 
 Lisp_Object
 make_lcrecord_list (Bytecount size,
@@ -3473,12 +3486,12 @@ free_managed_lcrecord (Lisp_Object lcrecord_list, Lisp_Object lcrecord)
   list->free = lcrecord;
 }
 
-/* An array of size countof (lrecord_implementations_table). */
-static Lisp_Object *all_lcrecord_lists;
+static Lisp_Object all_lcrecord_lists[countof (lrecord_implementations_table)];
 
-/* This is a Lisp vector, not used during loadup, but initialized and dumped.
-   Its vector data is used post pdump_load() as all_lcrecord_lists. */
-static Lisp_Object Vall_lcrecord_lists;
+static const struct memory_description all_lcrecord_lists_description_1[] = {
+  { XD_LISP_OBJECT_ARRAY, 0, countof (all_lcrecord_lists) },
+  { XD_END }
+};
 
 static Lisp_Object
 alloc_automanaged_sized_lcrecord_1 (Bytecount size,
@@ -5569,7 +5582,6 @@ common_init_alloc_early (void)
 void
 reinit_alloc_early (void)
 {
-  all_lcrecord_lists = XVECTOR_DATA (Vall_lcrecord_lists);
   common_init_alloc_early ();
 }
 
@@ -5613,14 +5625,13 @@ init_alloc_once_early (void)
 
   {
     int i;
-
-    all_lcrecord_lists = xnew_array (Lisp_Object,
-                                     countof (lrecord_implementations_table));
-    for (i = 0; i < countof (lrecord_implementations_table); i++)
+    for (i = 0; i < countof (all_lcrecord_lists); i++)
       {
         all_lcrecord_lists[i] = Qzero; /* Qnil not yet set */
-        staticpro_nodump (&all_lcrecord_lists[i]);
+        staticpro (&all_lcrecord_lists[i]);
       }
+    dump_add_root_block (all_lcrecord_lists, sizeof (all_lcrecord_lists),
+			 all_lcrecord_lists_description_1);
   }
 
   DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("vector", vector, print_vector, 0,
@@ -5640,14 +5651,6 @@ init_alloc_once_early (void)
   dump_add_root_block_ptr (&lrecord_stats_metadata,
                            &lrecord_stats_metadata_description);
 #endif
-
-  /* This is not used during loadup (since we don't want the lcrecord lists of
-     loadup to persist post restart), but reinit_alloc_early() sets
-     all_lcrecord_lists to its vector data, after pdump_load(). It needs to be
-     both garbage-protected and dumped. */
-  Vall_lcrecord_lists
-    = make_vector (countof (lrecord_implementations_table), Qzero);
-  staticpro (&Vall_lcrecord_lists);
 
   DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("cons", cons, print_cons, 0,
                                           cons_equal,
@@ -5685,6 +5688,7 @@ init_alloc_once_early (void)
                                print_lcrecord_list, 0, 0, 0,
 			       lcrecord_list_description,
 			       struct lcrecord_list);
+  OBJECT_HAS_PREMETHOD (lcrecord_list, disksave);
 }
 
 void

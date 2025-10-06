@@ -92,17 +92,10 @@ disksave_lstream (Lisp_Object lstream)
     Lstream_close (lstr);
 }
 
-inline static Bytecount
-aligned_sizeof_lstream (Bytecount lstream_type_specific_size)
-{
-  return MAX_ALIGN_SIZE (offsetof (Lstream, data) +
-			 lstream_type_specific_size);
-}
-
 static Bytecount
 sizeof_lstream (Lisp_Object obj)
 {
-  return aligned_sizeof_lstream (XLSTREAM (obj)->imp->size);
+  return XLCRECORD_LIST (XLSTREAM (obj)->imp->lcrecord_list)->size;
 }
 
 static const struct memory_description lstream_implementation_description_1[]
@@ -138,6 +131,8 @@ static const struct memory_description lstream_implementation_description_1[]
 				   tls_negotiater) },
   { XD_FUNCTION_POINTER, offsetof (struct lstream_implementation,
                                    extent_info) },
+  { XD_LISP_OBJECT, offsetof (struct lstream_implementation,
+                              lcrecord_list) },
   { XD_END }
 };
 
@@ -193,10 +188,6 @@ Lstream_set_buffering (Lstream *lstr, Lstream_buffering buffering,
     }
 }
 
-static const Lstream_implementation *lstream_types[32];
-static Lisp_Object Vlstream_free_list;
-static int lstream_type_count;
-
 /* Allocate and return a new Lstream.  This function is not really
    meant to be called directly; rather, each stream type should
    provide its own stream creation function, which creates the stream
@@ -206,27 +197,8 @@ static int lstream_type_count;
 Lstream *
 Lstream_new (const Lstream_implementation *imp, int flags)
 {
-  Lstream *p;
-  int i;
+  Lstream *p = XLSTREAM (alloc_managed_lcrecord (imp->lcrecord_list));
 
-  for (i = 0; i < lstream_type_count; i++)
-    {
-      if (lstream_types[i] == imp)
-	break;
-    }
-
-  if (i == lstream_type_count)
-    {
-      assert (lstream_type_count < countof (lstream_types));
-      lstream_types[lstream_type_count] = imp;
-      XVECTOR_DATA (Vlstream_free_list) [lstream_type_count] =
-	make_lcrecord_list (aligned_sizeof_lstream (imp->size),
-			    LRECORD_IMPLEMENTATION (lstream));
-      lstream_type_count++;
-    }
-
-  p = XLSTREAM (alloc_managed_lcrecord
-		(XVECTOR_DATA (Vlstream_free_list) [i]));
   /* Formerly, we zeroed out the object minus its header, but it's now
      handled automatically.  ALLOC_SIZED_LISP_OBJECT() always zeroes out
      the whole object other than its header, and alloc_managed_lcrecord()
@@ -297,19 +269,7 @@ Lstream_unset_character_mode (Lstream *lstr)
 void
 Lstream_delete (Lstream *lstr)
 {
-  int i;
-  Lisp_Object val = wrap_lstream (lstr);
-
-  for (i = 0; i < lstream_type_count; i++)
-    {
-      if (lstream_types[i] == lstr->imp)
-	{
-	  free_managed_lcrecord (XVECTOR_DATA (Vlstream_free_list) [i], val);
-	  return;
-	}
-    }
-
-  ABORT ();
+  free_managed_lcrecord (lstr->imp->lcrecord_list, wrap_lstream (lstr));
 }
 
 #define Lstream_internal_error(reason, lstr) \
@@ -2279,20 +2239,6 @@ OUTPUT-STREAM defaults to standard-output.
 void
 syms_of_lstream (void)
 {
-  /* Not in vars_of_lstream() since it is needed once any lstream is
-     created. */
-  Vlstream_free_list = make_vector (countof (lstream_types), Qnil);
-  staticpro (&Vlstream_free_list);
-
-  {
-    int ii;
-    for (ii = 0; ii < XVECTOR_LENGTH (Vlstream_free_list); ii++)
-      {
-	dump_mark_nil_lisp_object
-	  (&(XVECTOR_DATA (Vlstream_free_list) [ii]));
-      }
-  }
-
   DEFINE_NODUMP_SIZABLE_LISP_OBJECT ("stream", lstream, print_lstream,
                                      finalize_lstream,
                                      0, 0, /* no equal or hash */

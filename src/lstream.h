@@ -238,6 +238,11 @@ typedef struct lstream_implementation
 
   /* Return the extent info associated with the stream, or NULL if none. */ 
   struct extent_info *(*extent_info)(Lstream *stream);
+
+  /* A resource of free lstream objects allowing us to reduce the
+     number of times we call xmalloc(). See the lcrecord_list
+     implementation in alloc.c. */
+  Lisp_Object lcrecord_list;
 } Lstream_implementation;
 
 #define DECLARE_LSTREAM_IMPLEMENTATION(c_name)	\
@@ -256,6 +261,11 @@ typedef struct lstream_implementation
       lstream_##c_name->name = string_name;                                   \
       lstream_##c_name->size = sizeof (struct c_name##_stream);               \
       lstream_##c_name->extra_description = &(c_name##_lstream_description_0);\
+      lstream_##c_name->lcrecord_list                                         \
+	= make_lcrecord_list (MAX_ALIGN_SIZE (offsetof (Lstream, data) +      \
+                                              lstream_##c_name->size),        \
+                              LRECORD_IMPLEMENTATION (lstream));              \
+      staticpro (&(lstream_##c_name->lcrecord_list));                         \
       dump_add_root_block_ptr (&lstream_##c_name,                             \
                                &lstream_implementation_description);          \
     } while (0)
@@ -267,6 +277,11 @@ typedef struct lstream_implementation
       lstream_##c_name->name = string_name;                                   \
       lstream_##c_name->size = sizeof (struct c_name##_stream);               \
       lstream_##c_name->extra_description = &lstream_empty_extra_description; \
+      lstream_##c_name->lcrecord_list                                         \
+	= make_lcrecord_list (MAX_ALIGN_SIZE (offsetof (Lstream, data) +      \
+                                              lstream_##c_name->size),        \
+                              LRECORD_IMPLEMENTATION (lstream));              \
+      staticpro (&(lstream_##c_name->lcrecord_list));                         \
       dump_add_root_block_ptr (&lstream_##c_name,                             \
                                &lstream_implementation_description);          \
     } while (0)

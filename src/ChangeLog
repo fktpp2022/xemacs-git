@@ -3,6 +3,56 @@
 	* regex.c:
 	Add some entries to the TODO list here.
 
+2025-09-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Add a disksave method to lcrecord_list objects, that sets the
+	chain of free objects to Qnil. Dump them, simplifying startup.
+
+	* alloc.c (lcrecord_list_description): Add an entry for the
+	pointer to the lrecord_implementation to this struct
+	memory_description.
+
+	* alloc.c (disksave_lcrecord_list): New method, set an
+	lcrecord_list's free object chain to Qnil.
+	* alloc.c (all_lcrecord_lists): Put this in the data segment, add
+	a struct memory_description for it.
+
+	* alloc.c (reinit_alloc_early):
+	No need to reinit all_lcrecord_lists now it is dumped.
+	* alloc.c (init_alloc_once_early):
+	Call staticpro() on its elements now it is dumped as-is.
+	Add a root block for it.
+	No need for Vall_lcrecord_lists now.
+	* alloc.c (syms_of_alloc):
+	Define lcrecord_list as a dumpable internal Lisp object.
+	* emacs.c (Fdump_emacs):
+	Garbage collect before the object finalization, otherwise the two
+	interact poorly.
+	* lstream.h:
+	* lstream.h (lstream_implementation):
+	Move the lstream implementation's lcrecord_list to the structure
+	itself.
+	* lstream.h (DEFINE_LSTREAM_IMPLEMENTATION_WITH_DATA):
+	* lstream.h (DEFINE_LSTREAM_IMPLEMENTATION):
+	Initialize and staticpro() the lcrecord list in these macros. Use
+	the implementation of aligned_sizeof_lstream() for this.
+
+	* lstream.c (struct lstream_implementation_description): Add an
+	entry to this reflecting the lstream implementation's
+	lcrecord_list.
+	* lstream.c (lstream_types): Removed, no longer needed.
+	* lstream.c (Vlstream_free_list): Removed, no longer needed.	
+	* lstream.c (lstream_type_count): Removed, no longer needed.	
+	
+	* lstream.c (sizeof_lstream): Return the pre-calculated size from
+	the implementation's lcrecord_list.
+	* lstream.c (Lstream_new): Greatly simplify this now the
+	lcrecord_list is in the struct lstream_implementation.
+	* lstream.c (Lstream_delete):
+	Ditto.
+	* lstream.c (syms_of_lstream):
+	Remove initialization of Vlstream_free_list, no longer needed.
+
 2025-10-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Add a type-specific print method to lcrecord_list, easing

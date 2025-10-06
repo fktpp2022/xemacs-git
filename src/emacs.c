@@ -2961,6 +2961,8 @@ and announce itself normally when it is run.
   inhibit_site_modules = 1;
 #endif
 
+  garbage_collect_1 ();
+
   disksave_object_finalization ();
   release_breathing_space ();
 
@@ -2969,8 +2971,6 @@ and announce itself normally when it is run.
 #ifdef HAVE_MALLOC_WARNING
   memory_warnings (NULL, malloc_warning);
 #endif
-
-  garbage_collect_1 ();
 
   pdump ();
 
