@@ -3372,6 +3372,39 @@ alloc_managed_lcrecord_1 (Lisp_Object lcrecord_list, Boolint c_readonly_p)
 				     c_readonly_p);
 }
 
+static void
+print_lcrecord_list (Lisp_Object obj, Lisp_Object printcharfun,
+		     int UNUSED (escapeflag))
+{
+  struct lcrecord_list *list = XLCRECORD_LIST (obj);
+  Lisp_Object next = list->free;
+  Elemcount num_free = 0;
+
+  while (!NILP (next))
+    {
+      struct free_lcrecord_header *free_header
+	= (struct free_lcrecord_header *) XPNTR (next);
+      num_free++;
+      next = free_header->chain;
+    }
+
+  if (print_readably)
+    printing_unreadable_object_fmt
+      ("#<INTERNAL OBJECT (XEmacs bug?) (%s :size %zd :count %zd) 0x%x>",
+       LRECORD_IMPLEMENTATION_IBYTE_NAME
+       (XRECORD_LHEADER_IMPLEMENTATION (obj)),
+       XLCRECORD_LIST (obj)->size, num_free,
+       LISP_OBJECT_UID (obj));
+
+  write_fmt_string (printcharfun,
+		    "#<INTERNAL OBJECT (XEmacs bug?) (%s :size %zd "
+		    ":count %zd) 0x%x>",
+                    LRECORD_IMPLEMENTATION_IBYTE_NAME
+		    (XRECORD_LHEADER_IMPLEMENTATION (obj)),
+		    XLCRECORD_LIST (obj)->size, num_free,
+		    LISP_OBJECT_UID (obj));
+}
+
 Lisp_Object
 alloc_managed_lcrecord (Lisp_Object lcrecord_list)
 {
@@ -5648,9 +5681,10 @@ init_alloc_once_early (void)
   DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("free", free, free_description,
                                       struct free_lcrecord_header);
 
-  DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("lcrecord-list", lcrecord_list,
-                                      lcrecord_list_description,
-                                      struct lcrecord_list);
+  DEFINE_DUMPABLE_LISP_OBJECT ("lcrecord-list", lcrecord_list,
+                               print_lcrecord_list, 0, 0, 0,
+			       lcrecord_list_description,
+			       struct lcrecord_list);
 }
 
 void

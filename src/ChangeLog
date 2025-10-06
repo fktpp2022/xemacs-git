@@ -3,6 +3,14 @@
 	* regex.c:
 	Add some entries to the TODO list here.
 
+2025-10-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Add a type-specific print method to lcrecord_list, easing
+	investigation of how many are created, what size they are, and how
+	many elements in each.
+	* alloc.c (print_lcrecord_list): New.
+	* alloc.c (init_alloc_once_early): Use it.
+
 2025-10-04  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* xemacs.def.in.in:
