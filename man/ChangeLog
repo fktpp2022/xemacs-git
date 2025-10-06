@@ -1,3 +1,13 @@
+2025-10-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (gc_sweep):
+	* internals/internals.texi (lrecords):
+	* internals/internals.texi (Low-level allocation):
+	Update documentation related to lcrecords,
+	DECLARE_*_LISP_OBJECT(), DEFINE_*_LISP_OBJECT(),
+	OBJECT_HAS_METHOD(), and GNU malloc's memory warning facilities,
+	now removed.
+
 2025-09-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lispref/control.texi (Control Structures):

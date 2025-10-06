@@ -149,8 +149,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define IF_OLD_GC(x) x
 
 #define ALLOC_C_READONLY_LISP_OBJECT(type) \
-  alloc_automanaged_c_readonly_lcrecord\
-  (LRECORD_IMPLEMENTATION (type)->static_size, LRECORD_IMPLEMENTATION (type))
+  alloc_automanaged_c_readonly_lcrecord (LRECORD_IMPLEMENTATION (type))
 
 #define LISP_OBJECT_UID(obj) (XRECORD_LHEADER (obj)->uid)
 
@@ -441,6 +440,10 @@ struct lrecord_implementation
   /* Keep this structure the same size, for the sake of modules. */
   void (*memory_usage) (Lisp_Object obj, void *stats);
 #endif
+
+  /* Qnil for those lrecord types that are FROB_BLOCK_P or that have a zero
+     STATIC_SIZE, an lcrecord_list resource of free records otherwise. */
+  Lisp_Object lcrecord_list;
 
   /* The index into lrecord_implementations_table. Usually reflects an enum
      lrecord_type value but for a type created by modules can be a value
@@ -1677,7 +1680,6 @@ struct lcrecord_list
   NORMAL_LISP_OBJECT_HEADER header;
   Lisp_Object free;
   Bytecount size;
-  const struct lrecord_implementation *implementation;
 };
 
 DECLARE_LISP_OBJECT (lcrecord_list, struct lcrecord_list);
@@ -1709,22 +1711,24 @@ DECLARE_LISP_OBJECT (lcrecord_list, struct lcrecord_list);
    in particular dictate the various types of management:
 
    -- "Auto-managed" means that you just go ahead and allocate the lcrecord
-   whenever you want, using ALLOC_NORMAL_LISP_OBJECT(), and the appropriate
-   lcrecord-list manager is automatically created.  To free, you just call
+   whenever you want, using ALLOC_NORMAL_LISP_OBJECT(). The appropriate
+   lcrecord-list manager is automatically created at the time of
+   DEFINE_*_LISP_OBJECT() for the relevant type.  To free, you just call
    "free_normal_lisp_object()" and the appropriate lcrecord-list manager is
-   automatically located and called.  The limitation here of course is that
-   all your objects are of the same size. (#### Eventually we should have a
-   more sophisticated system that tracks the sizes seen and creates one
-   lcrecord list per size, indexed in a hash table.  Usually there are only
-   a limited number of sizes, so this works well.)
+   automatically located and called. The limitation here of course is that all
+   your objects must be of the same size.
 
-   -- "Hand-managed" exists because we haven't yet written the more
-   sophisticated scheme for auto-handling different-sized lcrecords, as
-   described in the end of the last paragraph.  In this model, you go ahead
-   and create the lcrecord-list objects yourself for the sizes you will
-   need, using make_lcrecord_list().  Then, create lcrecords using
-   alloc_managed_lcrecord(), passing in the lcrecord-list you created, and
-   free them with free_managed_lcrecord().
+   -- "Hand-managed" exists for the sake of, currently, the lstream code, which
+   has differing subtypes of the lstream object that are of different sizes.
+   In this model, it goes ahead and creates the lcrecord-list objects for the
+   sizes needed, using get_lcrecord_list().  Then, it creates lcrecords using
+   alloc_managed_lcrecord(), passing in the lcrecord-list created, and frees
+   them with free_managed_lcrecord().
+
+   The "auto-managed" and "hand-managed" models share lcrecord-lists when the
+   desired size is the same. The function get_lcrecord_list(), if passed the
+   same SIZE argument multiple times, will return the same lcrecord-list
+   object.
 
    -- "Unmanaged" means you simply allocate lcrecords, period.  No
    lcrecord-lists, no way to free them.  This may be suitable when the
@@ -1742,13 +1746,15 @@ DECLARE_LISP_OBJECT (lcrecord_list, struct lcrecord_list);
    addition, there is useful general information about what freeing an
    lcrecord really entails, and what are the precautions:
 
-   1) Create an lcrecord-list object using make_lcrecord_list().  This is
-      often done at initialization.  Remember to staticpro_nodump() this
-      object!  The arguments to make_lcrecord_list() are the same as would be
-      passed to ALLOC_SIZED_LISP_OBJECT().
+   1) Obtain an lcrecord-list object using get_lcrecord_list().  This is often
+      done at initialization.  No need to staticpro() this, it will remain
+      reachable by means of Vall_lcrecord_lists.  The argument to
+      get_lcrecord_list() is just the size of the desired object in bytes.
 
    2) Instead of calling ALLOC_SIZED_LISP_OBJECT(), call
-      alloc_managed_lcrecord() and pass the lcrecord-list earlier created.
+      alloc_managed_lcrecord() and pass the lcrecord-list obtained earlier,
+      together with a pointer to the lrecord_implementation of the object in
+      question.
 
    3) When done with the lcrecord, call free_managed_lcrecord().  The
       standard freeing caveats apply: ** make sure there are no pointers to
@@ -1764,32 +1770,21 @@ DECLARE_LISP_OBJECT (lcrecord_list, struct lcrecord_list);
  */
 
 /* UNMANAGED MODEL: */
-Lisp_Object old_alloc_lcrecord (const struct lrecord_implementation *);
 Lisp_Object old_alloc_sized_lcrecord (Bytecount size,
 				      const struct lrecord_implementation *);
 
 /* HAND-MANAGED MODEL: */
-Lisp_Object make_lcrecord_list (Bytecount size,
-				const struct lrecord_implementation
-				*implementation);
-Lisp_Object alloc_managed_lcrecord (Lisp_Object lcrecord_list);
+Lisp_Object get_lcrecord_list (Bytecount size);
+Lisp_Object alloc_managed_lcrecord (Lisp_Object lcrecord_list, 
+				    const struct lrecord_implementation *);
 void free_managed_lcrecord (Lisp_Object lcrecord_list, Lisp_Object lcrecord);
 
 /* AUTO-MANAGED MODEL: */
 MODULE_API Lisp_Object
-alloc_automanaged_sized_lcrecord (Bytecount size,
-				  const struct lrecord_implementation *imp);
-MODULE_API Lisp_Object
 alloc_automanaged_lcrecord (const struct lrecord_implementation *imp);
 
 MODULE_API Lisp_Object
-alloc_automanaged_c_readonly_lcrecord (Bytecount,
-				       const struct lrecord_implementation *);
-
-#define old_alloc_lcrecord_type(type, imp) \
-  ((type *) XPNTR (alloc_automanaged_lcrecord (sizeof (type), imp)))
-
-void old_free_lcrecord (Lisp_Object rec);
+alloc_automanaged_c_readonly_lcrecord (const struct lrecord_implementation *);
 
 DECLARE_INLINE_HEADER (
 Bytecount

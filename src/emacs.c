@@ -1813,7 +1813,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 	    - ALLOC_SIZED_LISP_OBJECT()
 	    - Fcons()
 	    - listN()
-            - make_lcrecord_list()
+            - get_lcrecord_list()
 	 -- make_opaque_ptr()
 	 -- make_lisp_hash_table() (not allowed in 21.4!)
          -- certain specifier creation functions (but be careful; see

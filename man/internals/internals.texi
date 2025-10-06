@@ -9094,17 +9094,17 @@ we know, there are different types of objects implemented and managed, and
 consequently different ways to free them from memory.
 @xref{Introduction to Allocation}.
 
-We start with all objects stored through @code{lcrecords}. All
+We start with all objects stored as @code{lcrecords}. All
 bulkier objects are allocated and handled using that scheme of
 @code{lcrecords}. Each object is @code{malloc}ed separately
 instead of placing it in one of the contiguous frob blocks. All types
 that are currently stored
-using @code{lcrecords}'s  @code{alloc_lcrecord} and
-@code{make_lcrecord_list} are the types: vectors, buffers,
-char-table, char-table-entry, console, weak-list, database, device,
-ldap, hash-table, command-builder, extent-auxiliary, extent-info, face,
-coding-system, frame, image-instance, glyph, popup-data, gui-item,
-keymap, charset, color_instance, font_instance, opaque, opaque-list,
+using @code{lcrecords}'s @code{alloc_automanaged_lcrecord},
+@code{alloc_managed_lcrecord} and @code{old_alloc_sized_lcrecord} are the
+types: vectors, buffers, char-table, char-table-entry, console, weak-list,
+database, device, ldap, hash-table, command-builder, extent-auxiliary,
+extent-info, face, coding-system, frame, image-instance, glyph, popup-data,
+gui-item, keymap, charset, color_instance, font_instance, opaque, opaque-list,
 process, range-table, specifier, symbol-value-buffer-local,
 symbol-value-lisp-magic, symbol-value-varalias, toolbar-button,
 tooltalk-message, tooltalk-pattern, and window. We take care of them in the
@@ -9351,7 +9351,7 @@ object, and @code{set_lheader_implementation()} to initialize the header.
 
 Normal objects (i.e. lcrecords) are created using
 @code{ALLOC_NORMAL_LISP_OBJECT()}, which takes a type name (resolved
-internally to a structure named @code{lrecord_foo} for type
+internally to a structure named @code{lrecord_implementation_foo} for type
 @code{foo}).  If they are of variable size, however, they are created
 with @code{ALLOC_SIZED_LISP_OBJECT()}, which takes a size to allocate
 in addition to a type.  This basically just @code{malloc()}s the
@@ -9362,22 +9362,19 @@ allocation macros generally occur in the lowest-level allocation
 function for each lrecord type.
 
 Whenever you create a normal object, you need to call one of the
-@code{DEFINE_*_LISP_OBJECT()} macros.  This needs to be
-specified in a @file{.c} file, at the top level.  What this actually
-does is define and initialize the implementation structure for the
-lrecord. (And possibly declares a function @code{error_check_foo()} that
-implements the @code{XFOO()} macro when error-checking is enabled.)  The
-arguments to the macros are the actual type name (this is used to
-construct the C variable name of the lrecord implementation structure
-and related structures using the @samp{##} macro concatenation
-operator), a string that names the type on the Lisp level (this may not
-be the same as the C type name; typically, the C type name has
-underscores, while the Lisp string has dashes), various method pointers,
-and the name of the C structure that contains the object.  The methods
-are used to encapsulate type-specific information about the object, such
-as how to print it or mark it for garbage collection, so that it's easy
-to add new object types without having to add a specific case for each
-new type in a bunch of different places.
+@code{DEFINE_*_LISP_OBJECT()} macros.  This needs to be specified in a
+@file{.c} file, usually in a @code{syms_of_FILE()} function.  What this
+actually does is define and initialize the implementation structure for
+the lrecord. The arguments to the macros are the actual type name (this is
+used to construct the C variable name of the lrecord implementation structure
+and related structures using the @samp{##} macro concatenation operator), a
+string that names the type on the Lisp level (this may not be the same as the
+C type name; typically, the C type name has underscores, while the Lisp string
+has dashes), various method pointers, and the name of the C structure that
+contains the object.  The methods are used to encapsulate type-specific
+information about the object, such as how to print it or mark it for garbage
+collection, so that it's easy to add new object types without having to add a
+specific case for each new type in a bunch of different places.
 
 The various macros for defining Lisp objects are as follows:
 
@@ -9416,35 +9413,15 @@ finalizer and @code{internal_object_printer()} as their print method
 externally).  For internal objects needing a finalizer, equal or hash
 method, or wanting to customize the print method, use the normal
 @code{DEFINE_*_LISP_OBJECT} mechanism for defining these objects.
-
-@item
-@code{DEFINE_*_GENERAL_LISP_OBJECT} is for objects that need to
-provide one of the less common methods that are omitted on most
-objects.  These methods include the methods supporting the unified
-property interface using @code{get}, @code{put}, @code{remprop} and
-@code{object-plist}, and (for dumpable objects only) the
-@code{disksaver} method.
-
-@item
-@code{DEFINE_MODULE_*} is for objects defined in an external module.
 @end itemize
 
-@code{MAKE_LISP_OBJECT} and @code{MAKE_MODULE_LISP_OBJECT} are what
-underlies all of these; they define a structure containing pointers to
-object methods and other info such as the size of the structure
-containing the object.
+@code{MAKE_LISP_OBJECT} is what underlies all of these; it defines a
+structure containing pointers to object methods and other info such as
+the size of the structure containing the object.
 
-For the purpose of keeping allocation statistics, the allocation
-engine keeps a list of all the different types that exist.  Note that,
-since @code{DEFINE_*_LISP_OBJECT()} is a macro that is
-specified at top-level, there is no way for it to initialize the
-global data structures containing type information, like
-@code{lrecord_implementations_table}.  For this reason a call to
-@code{INIT_LISP_OBJECT()} must be added to the same source
-file containing @code{DEFINE_*_LISP_OBJECT()}, but instead of
-to the top level, to one of the init functions, typically
-@code{syms_of_@var{foo}.c}.  @code{INIT_LISP_OBJECT()} must
-be called before an object of this type is used.
+For the purpose of keeping allocation statistics, the allocation engine keeps
+a list of all the different types that exist.  This information is also
+initialized by means of the @code{DEFINE_*_LISP_OBJECT()} macros.
 
 The type number is also used to index into an array holding the number
 of objects of each type and the total memory allocated for objects of
@@ -9452,10 +9429,13 @@ that type.  The statistics in this array are computed during the sweep
 stage.  These statistics are returned by the call to
 @code{garbage-collect}.
 
-Note that for every type defined with a @code{DEFINE_*_LISP_OBJECT()}
-macro, there needs to be a @code{DECLARE_LISP_OBJECT()} somewhere in a
-@file{.h} file, and this @file{.h} file needs to be included by
-@file{inline.c}.
+Note that for every type defined with a @code{DEFINE_*_LISP_OBJECT()} macro,
+there needs to be a @code{DECLARE_LISP_OBJECT()} (or a
+@code{DECLARE_MODULE_LISP_OBJECT()}) somewhere in a @file{.h} file, and this
+@file{.h} file needs to be included by @file{inline.c} if the type is
+built-in. Among other things, this @code{DECLARE_LISP_OBJECT()} will declare a
+function @code{error_check_foo()} that implements the @code{XFOO()} macro when
+error-checking is enabled.)
 
 Furthermore, there should generally be a set of @code{XFOOBAR()},
 @code{FOOBARP()}, etc. macros in a @file{.h} (or occasionally
@@ -9464,15 +9444,12 @@ modify as necessary.
 
 @strong{Please note:} If you define an lrecord in an external
 dynamically-loaded module, you must use
-@code{DECLARE_MODULE_LISP_OBJECT()},
-@code{DEFINE_MODULE_*_LISP_OBJECT()}, and
-@code{INIT_MODULE_LISP_OBJECT()} instead of the non-MODULE
-forms. These macros will dynamically add new type numbers to the
-global enum that records them, whereas the non-MODULE forms assume
-that the programmer has already inserted the correct type numbers into
-the enum's code at compile-time.
+@code{DECLARE_MODULE_LISP_OBJECT()} in the relevant header (or at the
+beginning of the file). This macro will declare a new type number and
+arrange its initialization (at runtime) in the following
+DEFINE_*_LISP_OBJECT call for that lrecord type.
 
-  The various methods in the lrecord implementation structure are:
+  Some of the methods in the lrecord implementation structure are:
 
 @enumerate
 @item
@@ -9565,14 +9542,6 @@ To hash two or more values together into a single value, use
 @code{HASH2()}, @code{HASH3()}, @code{HASH4()}, etc.
 
 @item
-@dfn{getprop}, @dfn{putprop}, @dfn{remprop}, and @dfn{plist} methods.
-These are used for object types that have properties, and are called
-when @code{get}, @code{put}, @code{remprop}, and @code{object-plist},
-respectively are called on the object.  If you create one of these
-objects, you have to use a different macro to define them,
-i.e. @code{DEFINE_*_GENERAL_LISP_OBJECT()}.
-
-@item
 A @dfn{size_in_bytes} method, when the object is of variable-size.
 (i.e. declared with a @code{DEFINE_*_SIZABLE_*_LISP_OBJECT} macro.)
 This should simply return the object's size in bytes, exactly as you
@@ -9593,6 +9562,14 @@ with a disksaver, lstream, is non-dumpable.)
 Objects rarely need to provide this method; most of the time it will
 be NULL.  If you want to provide this method, you have to use the
 @code{DEFINE_*_GENERAL_LISP_OBJECT()} macro to define your object.
+
+@item
+@dfn{getprop}, @dfn{putprop}, @dfn{remprop}, and @dfn{plist} methods.
+These are used for object types that have properties, and are called
+when @code{get}, @code{put}, @code{remprop}, and @code{object-plist},
+respectively are called on the object.  If you create an object with these
+methods, you have to use an additional macro to define them:
+@code{OBJECT_HAS_METHOD()}.
 @end enumerate
 
 @node Low-level allocation, Cons, lrecords, Allocation of Objects in XEmacs Lisp
@@ -9626,17 +9603,18 @@ relocating-allocation routines are pretty much used only for
 the memory allocated for a buffer, which is the biggest consumer
 of space, esp. of space that may get freed later.
 
-  Note that the GNU mallocs have some ``memory warning'' facilities.
-XEmacs taps into them and issues a warning through the standard
-warning system, when memory gets to 75%, 85%, and 95% full.
-(On some systems, the memory warnings are not functional.)
+  Note that the GNU mallocs had some ``memory warning'' facilities.  XEmacs
+tapped into them and issued a warning through the standard warning system,
+when memory got to 75%, 85%, and 95% full.  These were removed given their
+lack of thread safety.  Currently, on most systems apart from old Linux, the
+memory warnings are not functional.
 
   Allocated memory that is going to be used to make a Lisp object
 is created using @code{allocate_lisp_storage()}.  This just calls
 @code{xmalloc()}.  It used to verify that the pointer to the memory can
 fit into a Lisp word, before the current Lisp object representation was
 introduced.  @code{allocate_lisp_storage()} is called by
-@code{alloc_lcrecord()}, @code{ALLOCATE_FIXED_TYPE()}, and the vector
+@code{ALLOC_NORMAL_LISP_OBJECT()}, @code{ALLOCATE_FIXED_TYPE()}, and the vector
 and bit-vector creation routines.  These routines also call
 @code{INCREMENT_CONS_COUNTER()} at the appropriate times; this keeps
 statistics on how much memory is allocated, so that garbage-collection

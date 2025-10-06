@@ -197,7 +197,9 @@ Lstream_set_buffering (Lstream *lstr, Lstream_buffering buffering,
 Lstream *
 Lstream_new (const Lstream_implementation *imp, int flags)
 {
-  Lstream *p = XLSTREAM (alloc_managed_lcrecord (imp->lcrecord_list));
+  Lstream *p
+    = XLSTREAM (alloc_managed_lcrecord (imp->lcrecord_list, 
+					LRECORD_IMPLEMENTATION (lstream)));
 
   /* Formerly, we zeroed out the object minus its header, but it's now
      handled automatically.  ALLOC_SIZED_LISP_OBJECT() always zeroes out

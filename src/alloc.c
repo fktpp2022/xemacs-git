@@ -136,6 +136,7 @@ static const struct memory_description lrecord_implementation_description_1[] = 
   { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, disksave) },
   { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation,
                                    memory_usage) },
+  { XD_LISP_OBJECT, offsetof (struct lrecord_implementation, lcrecord_list) },
   { XD_END }
 };
 
@@ -696,22 +697,14 @@ old_alloc_sized_lcrecord_1 (Bytecount size,
   return result;
 }
 
+/* The most basic of the lcrecord allocation functions.  Not usually called
+   directly.  Allocates an lrecord not managed by any lcrecord-list, of a
+   specified size.  See lrecord.h. */
 Lisp_Object
 old_alloc_sized_lcrecord (Bytecount size,
 			  const struct lrecord_implementation *implementation)
 {
   return old_alloc_sized_lcrecord_1 (size, implementation, 0);
-}
-
-/* The most basic of the lcrecord allocation functions.  Not usually called
-   directly.  Allocates an lrecord not managed by any lcrecord-list, of a
-   specified size.  See lrecord.h. */
-Lisp_Object
-old_alloc_lcrecord (const struct lrecord_implementation *implementation)
-{
-  type_checking_assert (implementation->static_size > 0);
-  return old_alloc_sized_lcrecord_1 (implementation->static_size,
-				     implementation, 0);
 }
 
 #if 0 /* Presently unused */
@@ -811,6 +804,8 @@ zero_nonsized_lisp_object (Lisp_Object obj)
 
   zero_sized_lisp_object (obj, lisp_object_size (obj));
 }
+
+static void old_free_lcrecord (Lisp_Object);
 
 void
 free_normal_lisp_object (Lisp_Object obj)
@@ -3314,8 +3309,6 @@ const struct memory_description free_description[] = {
 const struct memory_description lcrecord_list_description[] = {
   { XD_LISP_OBJECT, offsetof (struct lcrecord_list, free), 0, { 0 },
     XD_FLAG_FREE_LISP_OBJECT },
-  { XD_BLOCK_PTR, offsetof (struct lcrecord_list, implementation), 1,
-    { &lrecord_implementation_description } },
   { XD_END }
 };
 
@@ -3326,28 +3319,31 @@ disksave_lcrecord_list (Lisp_Object lcrecord_list)
      exit. Explicitly freeing the entries in the chain does not currently add
      value, since the GC is (somehow) still aware of some of them; this may be
      an artefact of ERROR_CHECK_GC (see Ben's comment above about never
-     freeing a frob block when ERROR_CHECK_GC.) */
+     freeing a frob block when ERROR_CHECK_GC.) This will not be relevant for
+     valgrind and friend since we are most interested in what they think post
+     pdump_load(). */
   XLCRECORD_LIST (lcrecord_list)->free = Qnil;
 }
 
-Lisp_Object
-make_lcrecord_list (Bytecount size,
-		    const struct lrecord_implementation *implementation)
+static Lisp_Object
+make_lcrecord_list (Bytecount size)
 {
   /* Don't use alloc_automanaged_lcrecord() avoid infinite recursion
      allocating this. */
   struct lcrecord_list *p =
-    XLCRECORD_LIST (old_alloc_lcrecord
-                    (LRECORD_IMPLEMENTATION (lcrecord_list)));
-
-  p->implementation = implementation;
+    XLCRECORD_LIST (old_alloc_sized_lcrecord (LRECORD_IMPLEMENTATION
+                                              (lcrecord_list)->static_size,
+                                              (LRECORD_IMPLEMENTATION
+                                               (lcrecord_list))));
   p->size = size;
   p->free = Qnil;
   return wrap_lcrecord_list (p);
 }
 
 static Lisp_Object
-alloc_managed_lcrecord_1 (Lisp_Object lcrecord_list, Boolint c_readonly_p)
+alloc_managed_lcrecord_1 (Lisp_Object lcrecord_list,
+			  const struct lrecord_implementation *implementation,
+			  Boolint c_readonly_p)
 {
   struct lcrecord_list *list = XLCRECORD_LIST (lcrecord_list);
   if (!NILP (list->free))
@@ -3367,21 +3363,21 @@ alloc_managed_lcrecord_1 (Lisp_Object lcrecord_list, Boolint c_readonly_p)
       assert (lheader->free);
       assert (lheader->type == lrecord_type_free);
       /* Only lcrecords should be here. */
-      assert (! (list->implementation->frob_block_p));
+      assert (! (implementation->frob_block_p));
       /* The size of the lcrecord must be right. */
-      assert (list->implementation->static_size == 0 ||
-	      list->implementation->static_size == list->size);
+      assert (implementation->static_size == 0 ||
+	      implementation->static_size == list->size);
 #endif /* ERROR_CHECK_GC */
 
       list->free = free_header->chain;
       lheader->free = 0;
       /* Put back the correct type, as we set it to lrecord_type_free. */
-      lheader->type = list->implementation->lrecord_type_index;
+      lheader->type = implementation->lrecord_type_index;
       zero_sized_lisp_object (val, list->size);
       return val;
     }
 
-  return old_alloc_sized_lcrecord_1 (list->size, list->implementation,
+  return old_alloc_sized_lcrecord_1 (list->size, implementation,
 				     c_readonly_p);
 }
 
@@ -3419,9 +3415,10 @@ print_lcrecord_list (Lisp_Object obj, Lisp_Object printcharfun,
 }
 
 Lisp_Object
-alloc_managed_lcrecord (Lisp_Object lcrecord_list)
+alloc_managed_lcrecord (Lisp_Object lcrecord_list,
+                        const struct lrecord_implementation *imp)
 {
-  return alloc_managed_lcrecord_1 (lcrecord_list, 0);
+  return alloc_managed_lcrecord_1 (lcrecord_list, imp, 0);
 }
 
 /* "Free" a Lisp object LCRECORD by placing it on its associated free list
@@ -3486,38 +3483,117 @@ free_managed_lcrecord (Lisp_Object lcrecord_list, Lisp_Object lcrecord)
   list->free = lcrecord;
 }
 
-static Lisp_Object all_lcrecord_lists[countof (lrecord_implementations_table)];
+/* This is a list of lcrecord_list objects, kept sorted in ascending order of
+   the SIZE field. */
+static Lisp_Object Vall_lcrecord_lists;
 
-static const struct memory_description all_lcrecord_lists_description_1[] = {
-  { XD_LISP_OBJECT_ARRAY, 0, countof (all_lcrecord_lists) },
-  { XD_END }
-};
-
-static Lisp_Object
-alloc_automanaged_sized_lcrecord_1 (Bytecount size,
-				    const struct lrecord_implementation *imp,
-				    Boolint c_readonly_p)
+static int
+compare_lcrecords (const void *a, const void *b)
 {
-  if (EQ (all_lcrecord_lists[imp->lrecord_type_index], Qzero))
-    all_lcrecord_lists[imp->lrecord_type_index] =
-      make_lcrecord_list (size, imp);
+  Lisp_Object aa = *((Lisp_Object *) a);
+  Lisp_Object bb = *((Lisp_Object *) b);
 
-  return alloc_managed_lcrecord_1 (all_lcrecord_lists[imp->lrecord_type_index],
-				   c_readonly_p);
+  return (int) (XLCRECORD_LIST (aa)->size - XLCRECORD_LIST (bb)->size);
+}
+
+/* The idea behind the MAKE_ONEP argument is that we may also use this for
+   e.g. vectors, if the desired size happens to line up with an existing
+   lcrecord list. */
+static Lisp_Object
+find_lcrecord_list (Bytecount size, Boolint make_onep)
+{
+  static Lisp_Object *saved_lcrecord_lists, *saved_lcrecord_lists_pointer;
+  Lisp_Object cons_before = Qnil;
+
+  structure_checking_assert (size > 0);
+
+  if (EQ (Vall_lcrecord_lists, Qnull_pointer))
+    {
+      if (saved_lcrecord_lists == NULL)
+	{
+	  saved_lcrecord_lists = saved_lcrecord_lists_pointer
+	    = xnew_array (Lisp_Object, 32);
+	}
+
+      if (EQ (Qnil, Qnull_pointer) || LRECORD_IMPLEMENTATION (cons) == NULL)
+	{
+	  Elemcount ii;
+
+	  structure_checking_assert ((saved_lcrecord_lists_pointer
+				      - saved_lcrecord_lists) < 32);
+
+	  for (ii = 0;
+	       ii < saved_lcrecord_lists_pointer - saved_lcrecord_lists;
+	       ii++)
+	    {
+	      if (XLCRECORD_LIST (saved_lcrecord_lists[ii])->size == size)
+		{
+		  return saved_lcrecord_lists[ii];
+		}
+	    }
+
+	  *saved_lcrecord_lists_pointer = make_lcrecord_list (size);
+	  return *saved_lcrecord_lists_pointer++;
+	}
+
+      /* Otherwise, we are now at the point in bootstrap that we can initialize
+	 Vall_lcrecord_lists. Sort the saved lcrecord_lists in ascending order
+	 of size, do that, and then allocate this lcrecord_list in the normal
+	 way. */
+      qsort (saved_lcrecord_lists,
+	     saved_lcrecord_lists_pointer - saved_lcrecord_lists,
+	     sizeof (Lisp_Object), compare_lcrecords);
+
+      Vall_lcrecord_lists = Flist ((int) (saved_lcrecord_lists_pointer -
+					  saved_lcrecord_lists),
+				   saved_lcrecord_lists);
+
+      xfree (saved_lcrecord_lists);
+      saved_lcrecord_lists = saved_lcrecord_lists_pointer = NULL;
+
+      /* FALLTHROUGH */
+    }
+
+  {
+    LIST_LOOP_3 (elt, Vall_lcrecord_lists, tail)
+      {
+	if (XLCRECORD_LIST (elt)->size == size)
+	  {
+	    return elt;
+	  }
+	if (XLCRECORD_LIST (elt)->size > size)
+	  {
+	    break;
+	  }
+	cons_before = tail;
+      }
+  }
+
+  if (!make_onep) return Qnil;
+
+  if (EQ (cons_before, Qnil))
+    {
+      Vall_lcrecord_lists
+	= Fcons (make_lcrecord_list (size), Vall_lcrecord_lists);
+      return XCAR (Vall_lcrecord_lists);
+    }
+
+  XSETCDR (cons_before, Fcons (make_lcrecord_list (size),
+			       XCDR (cons_before)));
+  return XCAR (XCDR (cons_before));
 }
 
 Lisp_Object
-alloc_automanaged_sized_lcrecord (Bytecount size,
-				  const struct lrecord_implementation *imp)
+get_lcrecord_list (Bytecount size)
 {
-  return alloc_automanaged_sized_lcrecord_1 (size, imp, 0);
+  return find_lcrecord_list (size, 1);
 }
 
 Lisp_Object
 alloc_automanaged_lcrecord (const struct lrecord_implementation *imp)
 {
   type_checking_assert (imp->static_size > 0);
-  return alloc_automanaged_sized_lcrecord_1 (imp->static_size, imp, 0);
+  return alloc_managed_lcrecord_1 (imp->lcrecord_list, imp, 0);
 }
 
 /* This differs from the above in that it marks the record as C-readonly, which
@@ -3525,23 +3601,23 @@ alloc_automanaged_lcrecord (const struct lrecord_implementation *imp)
    1. It does not add the object to all_lcrecords since it is not necessary to
    mark it. */
 Lisp_Object
-alloc_automanaged_c_readonly_lcrecord (Bytecount size,
-				       const struct lrecord_implementation
+alloc_automanaged_c_readonly_lcrecord (const struct lrecord_implementation
 				       *imp)
 {
-  return alloc_automanaged_sized_lcrecord_1 (size, imp, 1);
+  type_checking_assert (imp->static_size > 0);
+  return alloc_managed_lcrecord_1 (imp->lcrecord_list, imp, 1);
 }
 
-void
+static void
 old_free_lcrecord (Lisp_Object rec)
 {
-  int type = XRECORD_LHEADER (rec)->type;
+  const struct lrecord_implementation *imp =
+    XRECORD_LHEADER_IMPLEMENTATION (rec);
 
   if (OBJECT_DUMPED_P (rec))
     return;
-  assert (!EQ (all_lcrecord_lists[type], Qzero));
 
-  free_managed_lcrecord (all_lcrecord_lists[type], rec);
+  free_managed_lcrecord (imp->lcrecord_list, rec);
 }
 
 
@@ -4505,6 +4581,10 @@ define_lisp_object (int tipo, const CIbyte *name, Bytecount static_size,
   lrecord_implementations_table[tipo]->dumpable = dumpable;
   lrecord_implementations_table[tipo]->frob_block_p = frob_block_p;
 
+  lrecord_implementations_table[tipo]->lcrecord_list
+    = (frob_block_p || static_size == 0) ? Qnil
+    : get_lcrecord_list (static_size);
+
   lrecord_memory_descriptions[tipo] = description;
 
   if (EQ (Qnil, Qnull_pointer))
@@ -4530,33 +4610,36 @@ define_lisp_object (int tipo, const CIbyte *name, Bytecount static_size,
   if (saved_object_names != NULL)
     {
       /* Create type name symbols for objects previously defined, before it was
-         possible to intern() symbols. Also initialize the memory usage stats
-         and correct any LCRECORD_LISTs that were created up to now. */
+         possible to intern() symbols.
+
+	 Also initialize the memory usage stats and correct any LCRECORD_LISTs
+	 that were created up to now. */
       while (--saved_object_name_ptr >= saved_object_names)
         {
-          lrecord_implementations_table[saved_object_name_ptr->tipo]->name
-            = intern (saved_object_name_ptr->name);
-	  if (LCRECORD_LISTP (all_lcrecord_lists[saved_object_name_ptr->tipo]))
+	  struct lrecord_implementation *imp
+	    = lrecord_implementations_table[saved_object_name_ptr->tipo];
+
+	  imp->name = intern (saved_object_name_ptr->name);
+
+	  if (EQ (imp->lcrecord_list, Qnull_pointer))
 	    {
-	      if (EQ (XLCRECORD_LIST (all_lcrecord_lists
-				      [saved_object_name_ptr->tipo])->free,
-		      Qnull_pointer))
-		{
-		  XLCRECORD_LIST
-		    (all_lcrecord_lists[saved_object_name_ptr->tipo])->free
-		    = Qnil;
-		}
-	      else
-		{
-		  /* If this assumption does not hold (and it should, we
-		     shouldn't have GCed up to this point), we need to trace
-		     down the chain of free objects to check for
-		     Qnull_pointer. */
-		  structure_checking_assert
-		    (NILP (XLCRECORD_LIST
-			   (all_lcrecord_lists[saved_object_name_ptr->tipo])
-			   ->free));
-		}
+	      structure_checking_assert (imp->frob_block_p
+					 || !(imp->static_size));
+	      imp->lcrecord_list = Qnil;
+	    }
+	  else if (EQ (XLCRECORD_LIST (imp->lcrecord_list)->free,
+		       Qnull_pointer))
+	    {
+	      XLCRECORD_LIST (imp->lcrecord_list)->free = Qnil;
+	    }
+	  else
+	    {
+	      /* If this assumption does not hold (and it should, we shouldn't
+		 have GCed up to this point), we need to trace down the chain
+		 of free objects to check for Qnull_pointer. */
+	      structure_checking_assert (NILP (XLCRECORD_LIST
+					       (imp->lcrecord_list)
+					       ->free));
 	    }
           init_memory_usage_stats (saved_object_name_ptr->tipo, Qnil);
         }
@@ -5623,17 +5706,6 @@ init_alloc_once_early (void)
   staticpros = Dynarr_new2 (Lisp_Object_ptr_dynarr, Lisp_Object *);
   staticpros_nodump = Dynarr_new2 (Lisp_Object_ptr_dynarr, Lisp_Object *);
 
-  {
-    int i;
-    for (i = 0; i < countof (all_lcrecord_lists); i++)
-      {
-        all_lcrecord_lists[i] = Qzero; /* Qnil not yet set */
-        staticpro (&all_lcrecord_lists[i]);
-      }
-    dump_add_root_block (all_lcrecord_lists, sizeof (all_lcrecord_lists),
-			 all_lcrecord_lists_description_1);
-  }
-
   DEFINE_DUMPABLE_SIZABLE_LISP_OBJECT ("vector", vector, print_vector, 0,
                                        vector_equal, vector_hash,
                                        vector_description, size_vector,
@@ -5681,14 +5753,14 @@ init_alloc_once_early (void)
   OBJECT_HAS_METHOD (string, remprop);
   OBJECT_HAS_METHOD (string, plist);
 
-  DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("free", free, free_description,
-                                      struct free_lcrecord_header);
-
   DEFINE_DUMPABLE_LISP_OBJECT ("lcrecord-list", lcrecord_list,
                                print_lcrecord_list, 0, 0, 0,
 			       lcrecord_list_description,
 			       struct lcrecord_list);
   OBJECT_HAS_PREMETHOD (lcrecord_list, disksave);
+
+  DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("free", free, free_description,
+                                      struct free_lcrecord_header);
 }
 
 void
@@ -5753,6 +5825,9 @@ syms_of_alloc (void)
 void
 vars_of_alloc (void)
 {
+  structure_checking_assert (LISTP (Vall_lcrecord_lists));
+  staticpro (&Vall_lcrecord_lists);
+
   DEFVAR_CONST_INT ("array-rank-limit", &array_rank_limit /*
 The exclusive upper bound on the number of dimensions an array may have.
 

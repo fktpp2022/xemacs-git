@@ -3,6 +3,86 @@
 	* regex.c:
 	Add some entries to the TODO list here.
 
+2025-10-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	1. Unify those lcrecord_lists that deal with objects of the same
+	size. To this end, remove the IMPLEMENTATION field from the
+	object, pass the IMPLEMENTATION explicitly to calls to
+	alloc_managed_lcrecord(). Store a list of known lcrecord_lists
+	sorted by the SIZE field, and examine that when obtaining a new
+	lcrecord_list.
+	2. Move the lcrecord_list for auto-managed objects to struct
+	lrecord_implementation, avoiding the need to separately dump,
+	allocate them. Add a corresponding entry to struct
+	lrecord_implementation_description_1.
+	3. Remove some buggy, unused functions.
+
+	* alloc.c:
+	* alloc.c (old_alloc_lcrecord): Remove this, not used, equivalent
+	to old_alloc_size_lcrecord (implementation->static_size,
+	implementation).
+	* alloc.c (lcrecord_list_description): Remove dump information for
+	the pointer to the struct lrecord_implementation, now gone.
+	* alloc.c (disksave_lcrecord_list): Fill out a comment here.
+	* alloc.c (make_lcrecord_list): Make this static, only called from
+	get_lcrecord_list(), which is now preferred for our callers.
+	* alloc.c (alloc_managed_lcrecord_1): Take the struct
+	lrecord_implementation as an argument, now that is no longer
+	stored in the lcrecord_list.
+	* alloc.c (alloc_managed_lcrecord): Ditto.
+	* alloc.c (Vall_lcrecord_lists): New variable, a list of
+	lcrecord_lists in ascending order of their SIZE fields.
+	* alloc.c (compare_lcrecords): New.
+	Used for sorting the list of created lcrecord_lists early in
+	bootstrap.
+	* alloc.c (find_lcrecord_list): New. Examine Vall_lcrecord_lists
+	for an lcrecord_list of a given SIZE. If MAKE_ONEP, create and
+	return a new entry if it doesn't exist.
+	* alloc.c (get_lcrecord_list): New. Call find_lcrecord_list() with
+	its MAKE_ONEP argument.
+	* alloc.c (alloc_automanaged_sized_lcrecord): Removed, not
+	currently used and not working, since automanaged lcrecords must
+	always be of the same size.
+	* alloc.c (alloc_automanaged_lcrecord): Pass imp->lcrecord_list to
+	alloc_managed_lcrecord_1().
+	* alloc.c (alloc_automanaged_c_readonly_lcrecord): Ditto.
+	* alloc.c (old_free_lcrecord): Make this static. Pass
+	imp->lcrecord_list to free_managed_lcrecord().
+	* alloc.c (define_lisp_object):
+	Create the object's lcrecord_list if it will be needed.
+	Fix existing lcrecord_lists when bootstrapping, once Qnil is
+	available.
+	* alloc.c (init_alloc_once_early):
+	No longer add all_lcrecord_lists as a root block.
+	Move the DEFINE_NODUMP_INTERNAL_LISP_OBJECT() for free Lisp
+	objects after the corresponding call for lcrecord lists.
+	* alloc.c (vars_of_alloc):
+	Call staticpro() on &Vall_lcrecord_lists.
+	* emacs.c (main_1):
+	Update a comment here.
+	* lrecord.h (ALLOC_C_READONLY_LISP_OBJECT):
+	Update this to reflect alloc_automanaged_c_readonly_lcrecord()'s
+	new calling convention.
+	* lrecord.h (struct lrecord_implementation):
+	Add an entry for an object's lcrecord_list to this structure.
+	* lrecord.h (struct lcrecord_list):
+	Remove the pointer to a struct lrecord_implementation from this
+	structure.
+	Remove declarations for old_alloc_lcrecord(),
+	make_lcrecord_list(), alloc_automanaged_sized_lcrecord(),
+	old_alloc_lcrecord_type(), no longer available.
+	Add a declaration for get_lcrecord_list().
+	Update declarations for alloc_managed_lcrecord(),
+	alloc_automanaged_c_readonly_lcrecord().
+	* lstream.c (Lstream_new):
+	Call alloc_managed_lcrecord() with its new calling convention.
+	* lstream.h (DEFINE_LSTREAM_IMPLEMENTATION_WITH_DATA):
+	Change call to make_lcrecord_list() to get_lcrecord_list(). No
+	longer a need to staticpro() it, it will be reachable via
+	Vall_lcrecord_lists.
+	* lstream.h (DEFINE_LSTREAM_IMPLEMENTATION):
+	Ditto.
+
 2025-09-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Add a disksave method to lcrecord_list objects, that sets the
