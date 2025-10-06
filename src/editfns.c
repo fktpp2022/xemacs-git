@@ -300,7 +300,7 @@ save_excursion_restore (Lisp_Object info)
          now.  --hniksic */
       if (visible
 	  && (current_buffer != XBUFFER (XWINDOW (selected_window)->buffer)))
-	switch_to_buffer (Fcurrent_buffer (), Qnil);
+	call2 (Qswitch_to_buffer, Fcurrent_buffer (), Qnil);
 #endif
 
       UNGCPRO;

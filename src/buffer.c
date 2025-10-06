@@ -1495,13 +1495,6 @@ the current buffer's major mode.
   return unbind_to (speccount);
 }
 
-void
-switch_to_buffer (Lisp_Object bufname, Lisp_Object norecord)
-{
-  call2 (Qswitch_to_buffer, bufname, norecord);
-}
-
-
 DEFUN ("current-buffer", Fcurrent_buffer, 0, 0, 0, /*
 Return the current buffer as a Lisp object.
 */
@@ -1674,12 +1667,16 @@ will be placed, instead of being placed at the end.
   /* This function can GC */
   struct buffer *buf = decode_buffer (buffer, 1);
   /* If we're burying the current buffer, unshow it.  */
-  /* Note that the behavior of (bury-buffer nil) and
-     (bury-buffer (current-buffer)) is not the same.
-     This is illogical but is historical.  Changing it
-     breaks mh-e and TeX and such packages. */
+  /* Note that the behavior of (bury-buffer nil) and (bury-buffer
+     (current-buffer)) is not the same.  This is illogical but is historical.
+     Changing it breaks mh-e and TeX and such packages. */
   if (NILP (buffer))
-    switch_to_buffer (Fother_buffer (Fcurrent_buffer (), Qnil, Qnil), Qnil);
+    {
+      call2 (Qswitch_to_buffer, Fother_buffer (Fcurrent_buffer (), Qnil,
+                                               Qnil),
+             Qnil);
+    }
+
   buffer = wrap_buffer (buf);
 
   if (!NILP (before))

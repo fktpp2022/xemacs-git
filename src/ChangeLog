@@ -1,5 +1,19 @@
 2025-10-06  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* buffer.c (switch_to_buffer):
+	Remove this, it is just a wrapper around calling
+	Qswitch_to_buffer, and it is only used in two places, more
+	maintainable to just call2(Qswitch_to_buffer ...) explicitly.
+	* buffer.c (Fbury_buffer):
+	Replace it with its implementation.
+	* editfns.c (save_excursion_restore):
+	Ditto.
+	* lisp.h:
+	Remove its declaration. Declare Qswitch_to_buffer so editfns.c can
+	see it.
+
+2025-10-06  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* regex.c:
 	Add some entries to the TODO list here.
 

@@ -4319,7 +4319,7 @@ extern const struct sized_memory_description Lisp_Object_pair_dynarr_description
 /* Defined in buffer.c */
 Lisp_Object get_truename_buffer (Lisp_Object);
 Lisp_Object generated_modeline_stringp (Lisp_Object);
-void switch_to_buffer (Lisp_Object, Lisp_Object);
+
 extern int find_file_compare_truenames;
 extern int find_file_use_truenames;
 Ibyte *get_initial_directory (Ibyte *pathname, Bytecount size);
@@ -4358,7 +4358,7 @@ extern Lisp_Object QSscratch, Qafter_change_function, Qafter_change_functions;
 extern Lisp_Object Qbefore_change_function, Qbefore_change_functions;
 extern Lisp_Object Qbuffer_or_string_p, Qdefault_directory, Qfirst_change_hook;
 extern Lisp_Object Qpermanent_local, Vafter_change_function;
-extern Lisp_Object Qbuffer_live_p;
+extern Lisp_Object Qbuffer_live_p, Qswitch_to_buffer;
 extern Lisp_Object Vafter_change_functions, Vbefore_change_function;
 extern Lisp_Object Vbefore_change_functions, Vbuffer_alist, Vbuffer_defaults;
 extern Lisp_Object Vinhibit_read_only, Vtransient_mark_mode;
