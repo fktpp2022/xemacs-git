@@ -27,7 +27,13 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #ifdef __has_embed
 #include <stdalign.h>
 
-alignas (16) static CRawbyte dumped_data[] = {
+#if defined (__cplusplus) && defined (__clang__)
+# define RAWBYTE CRawbyte
+#else
+# define RAWBYTE Rawbyte
+#endif
+
+alignas (16) static RAWBYTE dumped_data[] = {
 #embed EMACS_DUMP_FILE_NAME
 };
 

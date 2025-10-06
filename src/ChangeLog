@@ -5,6 +5,13 @@
 
 2025-10-06  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* dump-data.c (RAWBYTE):
+	Changeset 4d19d169daff of 2025-10-04 fixed the clang++ build on
+	macOS Sequoia but broke the g++ build. Adjust this to work with
+	both by means of a preprocessor conditional.
+
+2025-10-06  Aidan Kehoe  <kehoea@parhasard.net>
+
 	1. Unify those lcrecord_lists that deal with objects of the same
 	size. To this end, remove the IMPLEMENTATION field from the
 	object, pass the IMPLEMENTATION explicitly to calls to
