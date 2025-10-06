@@ -25,7 +25,17 @@
    - structure the opcode space into opcode+flag.
    - XEmacs: We copy the compiled pattern to the C stack within
    re_match_2_internal() and so we are re-entrant, there is no need to change
-   the succeed_n, jump_n, set_number_at opcodes for this reason. */
+   the succeed_n, jump_n, set_number_at opcodes for this reason.
+   the succeed_n, jump_n, set_number_at opcodes for this reason.
+   - XEmacs: When having dealt with an interval, fetch the next non-) char
+   after the interval. If that char is not *, +, ?, and if it makes sense to
+   rewrite the interval in terms of either repetition of the expression
+   (e.g. with [0-9A-F]{2,2}) or standard quantifiers (e.g. [0-9A-F]{1,} =>
+   [0-9A-F]+), do that. This will allow further optimization.
+   - XEmacs: Consider changing on_failure_jump_loop to on_failure_jump
+   if the expression cannot match a null string.
+   - XEmacs: Rewrite P+ to PP* if P is "simple".
+   - XEmacs: Incorporate all the tests that GNU uses. */
 
 /* Synched up with: FSF 31.0.50 (very complete; main goal was removing need for
    shy groups to take a register number, and expanding the number of areas

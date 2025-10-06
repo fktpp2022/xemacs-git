@@ -1,3 +1,8 @@
+2025-10-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* regex.c:
+	Add some entries to the TODO list here.
+
 2025-10-04  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* xemacs.def.in.in:
