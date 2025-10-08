@@ -641,13 +641,7 @@ vars_of_select_mswindows (void)
 {
   /* Initialise Vhandle_alist */
   Vhandle_alist = Qnil;
-  staticpro (&Vhandle_alist);
+  staticpro_dump_nil (&Vhandle_alist);
 }
 
-void
-init_select_mswindows (void)
-{
-  /* Reinitialise Vhandle_alist */
-  /* #### Why do we need to do this?  Somehow I added this. --ben */
-  Vhandle_alist = Qnil;
-}
+/* select-msw.c ends here */

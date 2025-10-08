@@ -503,7 +503,6 @@ void init_mswindows_environment (void);
 void init_nt (void);
 void init_postgresql_from_environment (void);
 void init_redisplay (void);
-void init_select_mswindows (void);
 void init_sunpro (void);
 void init_unicode (void);
 void init_win32 (void);

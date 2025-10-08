@@ -1,3 +1,13 @@
+2025-10-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* select-msw.c (init_select_mswindows): Removed, its contents
+	replaced by a staticpro_dump_nil() on &Vhandle_alist.
+	* select-msw.c (vars_of_select_mswindows):
+	Update this appropriately.
+	* emacs.c (main_1):
+	No further need to call init_select_mswindows(), remove this.
+	* symsinit.h: Remove its declaration.
+
 2025-10-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* buffer.c (switch_to_buffer):

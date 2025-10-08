@@ -2309,7 +2309,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 
 #ifdef WIN32_NATIVE
   init_nt ();
-  init_select_mswindows ();
 #endif
 
   init_redisplay ();      /* Determine terminal type.
