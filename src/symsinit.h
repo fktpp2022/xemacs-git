@@ -29,7 +29,6 @@ prototypes won't hurt anything. */
 
 void init_data_very_early (void);
 void init_floatfns_very_early (void);
-void init_free_hook (void);
 void init_mswindows_dde_very_early (void);
 void init_process_times_very_early (void);
 void init_ralloc (void);
@@ -112,7 +111,6 @@ void syms_of_frame_gtk (void);
 void syms_of_frame_mswindows (void);
 void syms_of_frame_tty (void);
 void syms_of_frame_x (void);
-void syms_of_free_hook (void);
 void syms_of_general (void);
 void syms_of_glyphs (void);
 void syms_of_glyphs_eimage (void);

@@ -1,3 +1,11 @@
+2025-10-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* emacs.c (main_1):
+	Remove calls to init_free_hook (), syms_of_free_hook (), long
+	obsolete.
+	* symsinit.h:
+	Remove their declarations.
+
 2025-10-08  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* select-msw.c (init_select_mswindows): Removed, its contents

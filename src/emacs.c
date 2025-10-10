@@ -903,14 +903,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
   display_use = NULL;
   inhibit_non_essential_conversion_operations = 1;
 
-#if defined (LOSING_GCC_DESTRUCTOR_FREE_BUG)
-  /* Prior to XEmacs 21, this was `#if 0'ed out.  */
-  /* I'm enabling this because it is the only reliable way I've found to */
-  /* prevent a very annoying problem where GCC will attempt to free (3) */
-  /* memory at exit() and cause a coredump. */
-  init_free_hook ();
-#endif
-
 #define SHEBANG_PROGNAME_LENGTH                                         \
   (sizeof (WEXTSTRING (SHEBANG_PROGNAME)) - sizeof (WEXTSTRING ("")))
 #define SHEBANG_EXE_PROGNAME_LENGTH					\
@@ -1587,11 +1579,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 
 #ifdef SYMS_MACHINE
       SYMS_MACHINE;
-#endif
-
-      /* Prior to XEmacs 21, this was `#if 0'ed out. -slb */
-#if defined (LOSING_GCC_DESTRUCTOR_FREE_BUG)
-      syms_of_free_hook ();
 #endif
 
 #ifdef TOOLTALK
