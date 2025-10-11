@@ -1,3 +1,12 @@
+2025-10-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* startup.el (find-init-file-1):
+	Quiet a warning about an empty body to #'when. In passing, use the
+	implicit (block nil ...) of dolist rather than an explicit throw
+	and catch, use a better regexp when checking whether the init file
+	ends in .el, use an error message that is a bit more readable with
+	a normal home directory path.
+
 2025-10-04  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* make-docfile.el (process-args):

@@ -817,31 +817,28 @@ If this is nil, no message will be displayed.")
 	  (setq term nil))))))
 
 (defun find-init-file-1 (dir base-list)
-  (catch 'found
-    (dolist (file base-list)
-      (let ((expanded (expand-file-name file dir)))
-	  (if (string-match-p "el$" expanded)
-	      (let* ((elc (concat expanded "c"))
-		     (el-ok (file-readable-p expanded))
-		     (elc-ok (file-readable-p elc)))
-		(cond
-		 ((and el-ok elc-ok (file-newer-than-file-p expanded elc))
-		  (lwarn 'initialization 'warning
-		    "\
-The compiled initialization file `%s' exists
+  (dolist (file base-list)
+    (let ((expanded (expand-file-name file dir)))
+      (if (string-match-p "\\.el\\'" expanded)
+          (let* ((elc (concat expanded "c"))
+                 (el-ok (file-readable-p expanded))
+                 (elc-ok (file-readable-p elc)))
+            (cond
+              ((and el-ok elc-ok (file-newer-than-file-p expanded elc))
+               (lwarn 'initialization 'warning "\
+Compiled initialization file `%s' exists
 but is out-of-date with respect to the uncompiled initialization
 file `%s'.  XEmacs will load the uncompiled
 version.  You should correct the problem as soon as possible by
 loading the uncompiled version and compiling it using
 `M-x byte-compile-file' (or `Lisp->Byte-Compile This File' on
 the menubar)."
-		    elc expanded)
-		  (throw 'found expanded))
-		 (elc-ok (throw 'found elc))
-		 (el-ok (throw 'found expanded))))
-	    (when (file-readable-p 
-		   (when (file-readable-p expanded)
-		     (throw 'found expanded)))))))))
+                 elc expanded)
+               (return expanded))
+              (elc-ok (return elc))
+              (el-ok (return expanded))))
+        (when (file-readable-p expanded)
+          (return expanded))))))
 
 (defun find-user-init-directory-init-file (&optional init-directory)
   "Determine the user's init file if in the init directory."
