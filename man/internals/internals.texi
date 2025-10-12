@@ -462,7 +462,6 @@ Low-Level Allocation
 * Basic Heap Allocation::       
 * Stack Allocation::            
 * Dynamic Arrays::              
-* Allocation by Blocks::        
 * Modules for Allocation::      
 
 Allocation of Objects in XEmacs Lisp
@@ -2908,8 +2907,6 @@ The following table contains cross-references from each module in XEmacs
 @item @file{balloon_help.h} @tab
 @item @file{base64-tests.el} @tab @ref{Modules for Regression Testing}.
 @item @file{bitmaps.h} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{blocktype.c} @tab @ref{Low-Level Modules}.
-@item @file{blocktype.h} @tab @ref{Low-Level Modules}.
 @item @file{buffer.c} @tab @ref{Modules for Standard Editing Operations}.
 @item @file{buffer.h} @tab @ref{Modules for Standard Editing Operations}.
 @item @file{bufslots.h} @tab @ref{Modules for Standard Editing Operations}.
@@ -7792,7 +7789,6 @@ Sets @code{res} to the value of @code{f} raised to the @code{exp}th power.
 * Basic Heap Allocation::       
 * Stack Allocation::            
 * Dynamic Arrays::              
-* Allocation by Blocks::        
 * Modules for Allocation::      
 @end menu
 
@@ -7804,7 +7800,7 @@ Sets @code{res} to the value of @code{f} raised to the @code{exp}th power.
 @section Stack Allocation
 @cindex stack allocation
 
-@node Dynamic Arrays, Allocation by Blocks, Stack Allocation, Low-Level Allocation
+@node Dynamic Arrays, Modules for Allocation, Stack Allocation, Low-Level Allocation
 @section Dynamic Arrays
 @cindex dynamic arrays
 
@@ -7917,51 +7913,7 @@ Use the following global variable:
       Minimum allowable size for a dynamic array when it is resized.
 @end example
 
-@node Allocation by Blocks, Modules for Allocation, Dynamic Arrays, Low-Level Allocation
-@section Allocation by Blocks
-@cindex allocation by blocks
-
-  The @code{Blocktype} type efficiently manages the
-allocation of fixed-size blocks by minimizing the number of times that
-@code{malloc()} and @code{free()} are called.  It allocates memory in
-large chunks, subdivides the chunks into blocks of the proper size, and
-returns the blocks as requested.  When blocks are freed, they are placed
-onto a linked list, so they can be efficiently reused.  This data type
-is not much used in XEmacs currently, because it's a fairly new
-addition.
-
-
-A ``block-type object'' is used to efficiently allocate and free blocks
-of a particular size.  Freed blocks are remembered in a free list and
-are reused as necessary to allocate new blocks, so as to avoid as
-much as possible making calls to @code{malloc()} and @code{free()}.
-
-This is a container object.  Declare a block-type object of a specific type
-as follows:
-
-struct mytype_blocktype @{
-  Blocktype_declare (mytype);
-@};
-
-Use the following functions/macros:
-
-@example
-structype *Blocktype_new(structype)
-   [MACRO] Create a new block-type object of the specified type.
-   The argument to this call should be the type of object to be
-   created, e.g. foobar_blocktype.
-type *Blocktype_alloc(b)
-   [MACRO] Allocate a block of the proper type for the specified
-   block-type object and return a pointer to it.
-Blocktype_free(b, block)
-   Free a block of the type corresponding to the specified block-type
-   object.
-Blocktype_delete(b)
-   Destroy a block-type object and the memory allocated to it.
-@end example
-
-
-@node Modules for Allocation,  , Allocation by Blocks, Low-Level Allocation
+@node Modules for Allocation,  , Dynamic Arrays, Low-Level Allocation
 @section Modules for Allocation
 @cindex modules for allocation
 

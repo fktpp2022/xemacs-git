@@ -248,7 +248,7 @@ win32_objs=win32.o intl-win32.o intl-encap-win32.o \
 
 objs=\
  abbrev.o alloc.o alloca.o array.o \
- $(balloon_help_objs) blocktype.o buffer.o bytecode.o \
+ $(balloon_help_objs) buffer.o bytecode.o \
  callint.o casefiddle.o casetab.o chartab.o \
  $(clash_detection_objs) cmdloop.o cmds.o $(coding_system_objs) console.o \
  console-stream.o\

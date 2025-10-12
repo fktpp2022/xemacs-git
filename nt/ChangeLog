@@ -1,3 +1,8 @@
+2025-10-12  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* xemacs.mak (TEMACS_COMMON_OBJS):
+	Remove mention of blocktype.obj, now blocktype.c is gone.
+
 2025-09-04  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* xemacs.mak (OPT_OBJS): Remove debug.obj from OPT_OBJS, now

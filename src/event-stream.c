@@ -77,7 +77,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 #define EXPOSE_FIXED_BUFFER_INTERNALS 1
 #include "lstream.h"
-#include "blocktype.h"
 #include "buffer.h"
 #include "commands.h"
 #include "device-impl.h"

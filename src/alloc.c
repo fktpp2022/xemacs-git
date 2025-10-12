@@ -3295,7 +3295,6 @@ make_string_nocopy (const Ibyte *contents, Bytecount length)
 /* Lcrecord lists are used to manage the allocation of particular
    sorts of lcrecords, to avoid calling ALLOC_NORMAL_LISP_OBJECT() (and thus
    malloc() and garbage-collection junk) as much as possible.
-   It is similar to the Blocktype class.
 
    See detailed comment in lcrecord.h.
 */

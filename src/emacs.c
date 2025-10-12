@@ -369,7 +369,6 @@ Epoch 4.0 released August 27, 1990.
      lisp.h 
      redisplay.h
      dynarr.c
-     blocktype.c
      eval.c
      event-Xt.c (sort of)
      event-stream.c (command event queue)
@@ -1777,7 +1776,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 	 -- staticpro*()
 	 -- xmalloc*(), xnew*(), and friends
 	 -- Dynarr_*()
-	 -- Blocktype_*()
 	 -- Fprovide (symbol)
 	 -- intern()
 	 -- Fput()

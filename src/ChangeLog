@@ -1,5 +1,28 @@
 2025-10-12  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove blocktype.c, blocktype.h, no longer used and superseded by
+	lcrecord-lists, which have less startup overhead and can share the
+	resource of free objects among different types.
+
+	* Makefile.in.in (objs): Remove blocktype.o from here.
+	* alloc.c: Remove mention of the Blocktype class.
+	* blocktype.c: File removed, superseded by lcrecord_lists.
+	* blocktype.h: File removed. Ditto.
+	* depend (event-gtk.o): Remove mention of blocktype.h
+	* depend (buffer.o): Ditto
+	* depend (blocktype.o): Removed.
+	* depend (event-Xt.o): Remove mention of blocktype.h
+	* depend (glyphs.o): Ditto.
+	* emacs.c: Remove mention of blocktype.c
+	* emacs.c (main_1): Remove mention of the Blocktype_* functions.
+	* event-Xt.c:
+	Remove an #include for "blocktype.h".
+	* event-gtk.c: Ditto.
+	* event-stream.c: Ditto.
+	* glyphs.c: Ditto.
+
+2025-10-12  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Use an lcrecord_list for memory management of struct
 	low_level_timeout, rather than Blocktype. To this end, give it an
 	implementation as a Lisp_Object.

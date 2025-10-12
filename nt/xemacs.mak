@@ -793,7 +793,6 @@ TEMACS_COMMON_OBJS= \
 	$(OUTDIR)\alloc.obj \
 	$(OUTDIR)\alloca.obj \
 	$(OUTDIR)\array.obj \
-	$(OUTDIR)\blocktype.obj \
 	$(OUTDIR)\buffer.obj \
 	$(OUTDIR)\bytecode.obj \
 	$(OUTDIR)\callint.obj \
