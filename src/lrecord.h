@@ -313,6 +313,7 @@ enum lrecord_type
   lrecord_type_window,			/* struct window */
   lrecord_type_window_mirror,		/* struct window_mirror */
   lrecord_type_expose_ignore,		/* struct expose_ignore */
+  lrecord_type_low_level_timeout,       /* struct low_level_timeout */
 
   lrecord_type_free,			/* only used for "free" lrecords */
   lrecord_type_undefined,		/* only used for debugging */

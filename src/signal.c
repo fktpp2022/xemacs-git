@@ -96,7 +96,7 @@ static SIGTYPE alarm_signal (int signo);
 /* The pending timers are stored in an ordered list, where the first timer
    on the list is the first one to fire.  Times recorded here are
    absolute. */
-static struct low_level_timeout *async_timer_queue;
+static Lisp_Object Vasync_timer_queue;
 
 /* Nonzero means async timers are temporarily suppressed.  */
 static int async_timer_suppress_count;
@@ -125,7 +125,7 @@ reset_interval_timer (void)
      make sure it's not zero (this is a valid return, but it will
      cause the timer to get disabled, so convert it to a very short
      time). */
-  if (get_low_level_timeout_interval (async_timer_queue, &interval))
+  if (get_low_level_timeout_interval (Vasync_timer_queue, &interval))
     {
       if (EMACS_SECS (interval) == 0 && EMACS_USECS (interval) == 0)
 	EMACS_SET_USECS (interval, 1);
@@ -190,7 +190,7 @@ handle_async_timeout_signal (void)
      The only check for Vinhibit_quit is in QUIT itself.
 
      (#### ???? I don't quite understand this comment.) */
-  interval_id = pop_low_level_timeout (&async_timer_queue, 0);
+  interval_id = pop_low_level_timeout (&Vasync_timer_queue, 0);
 
   reset_interval_timer ();
   if (async_timeout_happened_while_emacs_was_blocking)
@@ -228,15 +228,17 @@ handle_async_timeout_signal (void)
 int
 signal_add_async_interval_timeout (EMACS_TIME thyme)
 {
-  int id = add_low_level_timeout (&async_timer_queue, thyme);
+  Lisp_Object old_head = Vasync_timer_queue;
+  int id = add_low_level_timeout (&Vasync_timer_queue, thyme);
 
-  /* If this timeout is at the head of the queue, then we need to
-     set the timer right now for this timeout.  Otherwise, things
-     are fine as-is; after the timers ahead of us are signalled,
-     the timer will be set for us. */
-
-  if (async_timer_queue->id == id)
-    reset_interval_timer ();
+  /* If this timeout was put at the head of the queue, then we need to set the
+     timer right now for this timeout.  Otherwise, things are fine as-is;
+     after the timers ahead of us are signalled, the timer will be set for
+     us. */
+  if (!EQ (old_head, Vasync_timer_queue))
+    {
+      reset_interval_timer ();
+    }
 
   return id;
 }
@@ -244,13 +246,16 @@ signal_add_async_interval_timeout (EMACS_TIME thyme)
 void
 signal_remove_async_interval_timeout (int id)
 {
-  int first = (async_timer_queue && async_timer_queue->id == id);
-  remove_low_level_timeout (&async_timer_queue, id);
+  Lisp_Object old_head = Vasync_timer_queue;
+
+  remove_low_level_timeout (&Vasync_timer_queue, id);
 
   /* If we removed the timeout from the head of the queue, then
      we need to reset the interval timer right now. */
-  if (first)
-    reset_interval_timer ();
+  if (!EQ (old_head, Vasync_timer_queue))
+    {
+      reset_interval_timer ();
+    }
 }
 
 /* If alarm() gets called when polling isn't disabled, it will mess up
@@ -910,6 +915,10 @@ init_signals_very_early (void)
 void
 syms_of_signal (void)
 {
+  Vasync_timer_queue = Qnil;
+  dump_add_root_lisp_object (&Vasync_timer_queue);
+  dump_mark_nil_lisp_object (&Vasync_timer_queue);
+
   DEFSUBR (Fwaiting_for_user_input_p);
 }
 
@@ -948,3 +957,4 @@ init_interrupts_late (void)
   interrupts_initted = 1;
 }
 
+/* signal.c ends here */

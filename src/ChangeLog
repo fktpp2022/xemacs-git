@@ -1,5 +1,75 @@
 2025-10-12  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Use an lcrecord_list for memory management of struct
+	low_level_timeout, rather than Blocktype. To this end, give it an
+	implementation as a Lisp_Object.
+	
+	* .gdbinit.in.in:
+	Make gdb(1) aware of lrecord_type_low_level_timeout.
+	* alloc.c:
+	Make free_description and lcrecord_list_description static in
+	passing.
+	* event-stream.c:
+	Remove the Blocktype_declare() for struct low_level_timeout. Add a
+	memory_description for it.
+	* event-stream.c (add_low_level_timeout): Revise this to take a
+	pointer to a Lisp_Object and to allocate the new struct
+	low_level_timeout using ALLOC_C_READONLY_LISP_OBJECT().
+	* event-stream.c (remove_low_level_timeout):
+	Revise this to take a pointer to a Lisp_Object and to free the
+	structure using free_normal_lisp_object().
+	* event-stream.c (get_low_level_timeout_interval):
+	Take a Lisp_Object as the timeout_list, handle nonexistent values
+	as Qnil rather than NULL.
+	* event-stream.c (pop_low_level_timeout):
+	Take the timeout list as a pointer to a Lisp_Object. Free the
+	structure using free_normal_lisp_object().
+	* event-stream.c (syms_of_event_stream):
+	Call DEFINE_NODUMP_INTERNAL_LISP_OBJECT() for the
+	low-level-timeout object.
+	* event-stream.c (reinit_vars_of_event_stream):
+	No further need for Blocktype_new() for low_level_timeout.
+	* event-tty.c:
+	Declare tty_timer_queue as Lisp_Object Vtty_timer_queue.
+	* event-tty.c (emacs_tty_add_timeout):
+	Use the new name for Vtty_timer_queue in calling
+	add_low_level_timeout().
+	* event-tty.c (emacs_tty_remove_timeout):
+	Use the new name for Vtty_timer_queue in calling
+	remove_low_level_timeout().
+	* event-tty.c (tty_timeout_to_emacs_event):
+	Use the new name for Vtty_timer_queue in calling
+	pop_low_level_timeout().
+	* event-tty.c (emacs_tty_event_pending_p):
+	Access the fields of Vtty_timer_queue as a Lisp_Object.
+	* event-tty.c (emacs_tty_next_event):
+	Use the new name for Vtty_timer_queue in calling
+	get_low_level_timeout_interval().
+	* event-tty.c (vars_of_event_tty):
+	Initialize Vtty_timer_queue as Qnil. Make the dumper (but not the
+	GC) aware of it.
+	* events.h (struct low_level_timeout):
+	Add a header to this structure. Add a DECLARE_LISP_OBJECT() for it
+	and the other boilerplate to declare a Lisp object.
+	* lrecord.h (enum lrecord_type):
+	Add an entry for lrecord_type_low_level_timeout.
+	* signal.c:
+	Rename async_timer_queue to Vasync_timer_queue.
+	* signal.c (reset_interval_timer):
+	Use the new name.
+	* signal.c (handle_async_timeout_signal):
+	Use the new name.
+	* signal.c (signal_add_async_interval_timeout):
+	Use the new name. Check for whether the new element was added at
+	the front of the queue in a slightly different way.
+	* signal.c (signal_remove_async_interval_timeout):
+	Ditto.
+	* signal.c (syms_of_signal):
+	Initialize Vasync_timer_queue to Qnil. Make the dumper but not the
+	garbage collector aware of it.
+
+2025-10-12  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* alloc.c (gc_sweep_1):
 	Fix a bug in 3a506e980127 with ERROR_CHECK_GC builds; for some
 	very unintuitive reason the FREE field of an lcrecord_list is

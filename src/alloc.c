@@ -3300,13 +3300,13 @@ make_string_nocopy (const Ibyte *contents, Bytecount length)
    See detailed comment in lcrecord.h.
 */
 
-const struct memory_description free_description[] = {
+static const struct memory_description free_description[] = {
   { XD_LISP_OBJECT, offsetof (struct free_lcrecord_header, chain), 0, { 0 },
     XD_FLAG_FREE_LISP_OBJECT },
   { XD_END }
 };
 
-const struct memory_description lcrecord_list_description[] = {
+static const struct memory_description lcrecord_list_description[] = {
   { XD_LISP_OBJECT, offsetof (struct lcrecord_list, free), 0, { 0 },
     XD_FLAG_FREE_LISP_OBJECT },
   { XD_END }

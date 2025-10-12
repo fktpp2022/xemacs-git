@@ -53,18 +53,18 @@ static int last_quit_check_signal_tick_count;
 /* The pending timers are stored in an ordered list, where the first timer
    on the list is the first one to fire.  Times recorded here are
    absolute. */
-static struct low_level_timeout *tty_timer_queue;
+static Lisp_Object Vtty_timer_queue;
 
 static EMACS_INT
 emacs_tty_add_timeout (EMACS_TIME thyme)
 {
-  return (EMACS_INT) add_low_level_timeout (&tty_timer_queue, thyme);
+  return (EMACS_INT) add_low_level_timeout (&Vtty_timer_queue, thyme);
 }
 
 static void
 emacs_tty_remove_timeout (EMACS_INT id)
 {
-  remove_low_level_timeout (&tty_timer_queue, (int) id);
+  remove_low_level_timeout (&Vtty_timer_queue, (int) id);
 }
 
 static void
@@ -74,7 +74,7 @@ tty_timeout_to_emacs_event (Lisp_Event *emacs_event)
   SET_EVENT_TYPE (emacs_event, timeout_event);
   SET_EVENT_TIMESTAMP_ZERO (emacs_event); /* #### */
   SET_EVENT_TIMEOUT_INTERVAL_ID (emacs_event,
-				 pop_low_level_timeout (&tty_timer_queue, 0));
+				 pop_low_level_timeout (&Vtty_timer_queue, 0));
   SET_EVENT_TIMEOUT_FUNCTION (emacs_event, Qnil);
   SET_EVENT_TIMEOUT_OBJECT (emacs_event, Qnil);
 }
@@ -105,8 +105,10 @@ emacs_tty_event_pending_p (int how_many)
 
       /* (3) Any timeout input available? */
       EMACS_GET_TIME (sometime);
-      if (tty_timer_queue &&
-	  EMACS_TIME_EQUAL_OR_GREATER (sometime, tty_timer_queue->time))
+      if (!NILP (Vtty_timer_queue) &&
+	  EMACS_TIME_EQUAL_OR_GREATER (sometime,
+                                       XLOW_LEVEL_TIMEOUT (Vtty_timer_queue)
+                                       ->time))
 	return 1;
     }
   else
@@ -177,7 +179,7 @@ emacs_tty_next_event (Lisp_Event *emacs_event)
 	  return;
 	}
 
-      if (!get_low_level_timeout_interval (tty_timer_queue, &time_to_block))
+      if (!get_low_level_timeout_interval (Vtty_timer_queue, &time_to_block))
 	/* no timer events; block indefinitely */
  	pointer_to_this = 0;
       else
@@ -343,6 +345,10 @@ emacs_tty_delete_io_streams (Lisp_Object instream,
 void
 vars_of_event_tty (void)
 {
+  Vtty_timer_queue = Qnil;
+  dump_add_root_lisp_object (&Vtty_timer_queue);
+  dump_mark_nil_lisp_object (&Vtty_timer_queue);
+
   DEFINE_EVENT_STREAM (tty);
 
   EVENT_STREAM_HAS_METHOD (tty, event_pending_p);

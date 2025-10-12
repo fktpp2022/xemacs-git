@@ -913,31 +913,48 @@ execute_help_form (Lisp_Object event)
    result of the delay between noting an interval and firing the next
    one).  They are intended for use by functions that need to convert
    a list of absolute timeouts into a series of intervals to wait
-   for. */
+   for.
+
+   Memory management for these low_level_timeout structures was implemented
+   using Ben's Blocktype, a predecessor of lcrecord_list that didn't involve
+   the GC. I have moved it to use an "automanaged" lcrecord_list in
+   anticipation of removing the Blocktype code, which code is not used by
+   anything else.
+
+   Each timeout queue is implemented as a linked list, with the next pointer
+   within the structure (within the Lisp_Object implementation). The elements
+   are marked C_READONLY, so they are not traced for GC and not swept, with a
+   view to preserving the performance characteristics of the old code; the
+   free_normal_lisp_object() within remove_low_level_timeout() and
+   pop_low_level_timeout() is equivalent for our purposes to the
+   Blocktype_free() of the old code.
+
+   It would take a little more GC activity but would likely be fine to
+   implement these queues as Lisp lists, freeing the "automanaged"
+   low_level_timeout objects in the way we do currently. I don't wish at the
+   moment to do the profiling work to confirm this. Aidan Kehoe, So 12. Okt
+   12:07:45 IST 2025 */
 
 /* We ensure that 0 is never a valid ID, so that a value of 0 can be
    used to indicate an absence of a timer. */
 static int low_level_timeout_id_tick;
 
-static struct low_level_timeout_blocktype
-{
-  Blocktype_declare (struct low_level_timeout);
-} *the_low_level_timeout_blocktype;
+static const struct memory_description low_level_timeout_description[] = {
+  { XD_LISP_OBJECT, offsetof (struct low_level_timeout, next) },
+  { XD_END }
+};
 
 /* Add a one-shot timeout at time TIME to TIMEOUT_LIST.  Return
    a unique ID identifying the timeout. */
-
 int
-add_low_level_timeout (struct low_level_timeout **timeout_list,
-		       EMACS_TIME thyme)
+add_low_level_timeout (Lisp_Object *timeout_list, EMACS_TIME thyme)
 {
   struct low_level_timeout *tm;
-  struct low_level_timeout *t, **tt;
+  Lisp_Object elt, prev_elt = Qnil;
 
   /* Allocate a new time struct. */
+  tm = XLOW_LEVEL_TIMEOUT (ALLOC_C_READONLY_LISP_OBJECT (low_level_timeout));
 
-  tm = Blocktype_alloc (the_low_level_timeout_blocktype);
-  tm->next = NULL;
   /* Don't just use ++low_level_timeout_id_tick, for the (admittedly
      rare) case in which numbers wrap around. */
   if (low_level_timeout_id_tick == 0)
@@ -946,52 +963,69 @@ add_low_level_timeout (struct low_level_timeout **timeout_list,
   tm->time = thyme;
 
   /* Add it to the queue. */
-
-  tt = timeout_list;
-  t  = *tt;
-  while (t && EMACS_TIME_EQUAL_OR_GREATER (tm->time, t->time))
+  elt = *timeout_list;
+  while (!NILP (elt)
+         && EMACS_TIME_EQUAL_OR_GREATER (tm->time,
+                                         XLOW_LEVEL_TIMEOUT (elt)->time))
     {
-      tt = &t->next;
-      t  = *tt;
+      prev_elt = elt;
+      elt = XLOW_LEVEL_TIMEOUT (elt)->next;
     }
-  tm->next = t;
-  *tt = tm;
+
+  tm->next = elt;
+
+  if (NILP (prev_elt))
+    {
+      *timeout_list = wrap_low_level_timeout (tm);
+    }
+  else
+    {
+      XLOW_LEVEL_TIMEOUT (prev_elt)->next = wrap_low_level_timeout (tm);
+    }
 
   return tm->id;
 }
 
 /* Remove the low-level timeout identified by ID from TIMEOUT_LIST.
    If the timeout is not there, do nothing. */
-
 void
-remove_low_level_timeout (struct low_level_timeout **timeout_list, int id)
+remove_low_level_timeout (Lisp_Object *timeout_list, int id)
 {
-  struct low_level_timeout *t, *prev;
+  Lisp_Object elt, prev_elt;
 
-  /* find it */
+  /* Find it. */
+  for (elt = *timeout_list, prev_elt = Qnil;
+       !NILP (elt) && XLOW_LEVEL_TIMEOUT (elt)->id != id;
+       elt = XLOW_LEVEL_TIMEOUT (elt)->next)
+    {
+      prev_elt = elt;
+    }
 
-  for (t = *timeout_list, prev = NULL; t && t->id != id; t = t->next)
-    prev = t;
+  if (NILP (elt))
+    {
+      return; /* Couldn't find it */
+    }
 
-  if (!t)
-    return; /* couldn't find it */
+  if (NILP (prev_elt))
+    {
+      *timeout_list = XLOW_LEVEL_TIMEOUT (elt)->next;
+    }
+  else
+    {
+      XLOW_LEVEL_TIMEOUT (prev_elt)->next = XLOW_LEVEL_TIMEOUT (elt)->next;
+    }
 
-  if (!prev)
-    *timeout_list = t->next;
-  else prev->next = t->next;
-
-  Blocktype_free (the_low_level_timeout_blocktype, t);
+  free_normal_lisp_object (elt);
 }
 
 /* If there are timeouts on TIMEOUT_LIST, store the relative time
    interval to the first timeout on the list into INTERVAL and
    return 1.  Otherwise, return 0. */
-
 int
-get_low_level_timeout_interval (struct low_level_timeout *timeout_list,
+get_low_level_timeout_interval (Lisp_Object timeout_list,
 				EMACS_TIME *interval)
 {
-  if (!timeout_list) /* no timer events; block indefinitely */
+  if (NILP (timeout_list)) /* no timer events; block indefinitely */
     return 0;
   else
     {
@@ -1003,8 +1037,9 @@ get_low_level_timeout_interval (struct low_level_timeout *timeout_list,
 	 but we still have to call select(), with a zero-valued
 	 timeout: user events must have precedence over timer events. */
       EMACS_GET_TIME (current_time);
-      if (EMACS_TIME_GREATER (timeout_list->time, current_time))
-	EMACS_SUB_TIME (*interval, timeout_list->time,
+      if (EMACS_TIME_GREATER (XLOW_LEVEL_TIMEOUT (timeout_list)->time,
+                              current_time))
+	EMACS_SUB_TIME (*interval, XLOW_LEVEL_TIMEOUT (timeout_list)->time,
 			current_time);
       else
 	EMACS_SET_SECS_USECS (*interval, 0, 0);
@@ -1015,23 +1050,27 @@ get_low_level_timeout_interval (struct low_level_timeout *timeout_list,
 /* Pop the first (i.e. soonest) timeout off of TIMEOUT_LIST and return
    its ID.  Also, if TIME_OUT is not 0, store the absolute time of the
    timeout into TIME_OUT. */
-
 int
-pop_low_level_timeout (struct low_level_timeout **timeout_list,
-		       EMACS_TIME *time_out)
+pop_low_level_timeout (Lisp_Object *timeout_list, EMACS_TIME *time_out)
 {
-  struct low_level_timeout *tm = *timeout_list;
+  Lisp_Object elt = *timeout_list;
   int id;
 
-  assert (tm);
-  id = tm->id;
+  /* Fetch the ID, and throw an assertion failure with the following if ELT is
+     Qnil. */
+  id = XLOW_LEVEL_TIMEOUT (elt)->id;
+
   if (time_out)
-    *time_out = tm->time;
-  *timeout_list = tm->next;
-  Blocktype_free (the_low_level_timeout_blocktype, tm);
+    {
+      *time_out = XLOW_LEVEL_TIMEOUT (elt)->time;
+    }
+
+  *timeout_list = XLOW_LEVEL_TIMEOUT (elt)->next;
+
+  free_normal_lisp_object (elt);
+
   return id;
 }
-
 
 /**** High-level timeout functions. **** */
 
@@ -5014,6 +5053,10 @@ syms_of_event_stream (void)
                              command_builder_description,
                              struct command_builder);
 
+  DEFINE_NODUMP_INTERNAL_LISP_OBJECT ("low-level-timeout", low_level_timeout,
+                                      low_level_timeout_description,
+                                      struct low_level_timeout);
+
   DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("timeout", timeout, timeout_description,
                                         Lisp_Timeout);
 
@@ -5072,8 +5115,6 @@ reinit_vars_of_event_stream (void)
   recent_keys_ring_index = 0;
   recent_keys_ring_size = 100;
   num_input_chars = 0;
-  the_low_level_timeout_blocktype =
-    Blocktype_new (struct low_level_timeout_blocktype);
   something_happened = 0;
   recursive_sit_for = 0;
   in_modal_loop = 0;

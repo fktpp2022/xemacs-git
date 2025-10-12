@@ -844,19 +844,28 @@ void run_pre_idle_hook (void);
 
 struct low_level_timeout
 {
-  int id;
+  /* This object is not actually a frob block object, but because the relevant
+     objects are C_READONLY there is no need for the
+     NORMAL_LISP_OBJECT_HEADER's NEXT pointer. See comments in
+     event-stream.c. */
+  FROB_BLOCK_LISP_OBJECT_HEADER header;
+  Lisp_Object next;
   EMACS_TIME time;
-  struct low_level_timeout *next;
+  int id;
 };
 
-int add_low_level_timeout (struct low_level_timeout **timeout_list,
-                           EMACS_TIME thyme);
-void remove_low_level_timeout (struct low_level_timeout **timeout_list,
-                               int id);
-int get_low_level_timeout_interval (struct low_level_timeout *
-                                    timeout_list, EMACS_TIME *interval);
-int pop_low_level_timeout (struct low_level_timeout **timeout_list,
-                           EMACS_TIME *time_out);
+DECLARE_LISP_OBJECT (low_level_timeout, struct low_level_timeout);
+#define XLOW_LEVEL_TIMEOUT(x) XRECORD (x, low_level_timeout, \
+                                       struct low_level_timeout)
+#define wrap_low_level_timeout(p) wrap_record (p, low_level_timeout)
+#define LOW_LEVEL_TIMEOUTP(x) RECORDP (x, low_level_timeout)
+
+int add_low_level_timeout (Lisp_Object *timeout_list, EMACS_TIME thyme);
+void remove_low_level_timeout (Lisp_Object *timeout_list, int id);
+int get_low_level_timeout_interval (Lisp_Object timeout_list,
+                                    EMACS_TIME *interval);
+int pop_low_level_timeout (Lisp_Object *timeout_list, EMACS_TIME *time_out);
+
 int event_stream_generate_wakeup (unsigned int milliseconds,
                                   unsigned int vanilliseconds,
                                   Lisp_Object function,

@@ -507,6 +507,9 @@ define pobj
   if $lrecord_type == lrecord_type_expose_ignore
     pstructtype expose_ignore
   else
+  if $lrecord_type == lrecord_type_low_level_timeout
+    pstructtype low_level_timeout
+  else
   if $lrecord_type == lrecord_type_lcrecord_list
     pstructtype lcrecord_list
   else
@@ -565,6 +568,7 @@ define pobj
   end
   end
   ## Are we having fun yet??
+  end
   end
   end
   end
