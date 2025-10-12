@@ -1,3 +1,12 @@
+2025-10-12  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* alloc.c (gc_sweep_1):
+	Fix a bug in 3a506e980127 with ERROR_CHECK_GC builds; for some
+	very unintuitive reason the FREE field of an lcrecord_list is
+	traversed in GC and each element is marked. It thus needs to be
+	unmarked at the end of GC. This no longer happens as part of
+	sweep_lcrecords_1() given they are now in the dump file.	
+
 2025-10-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* emacs.c (main_1):

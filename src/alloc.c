@@ -5354,8 +5354,28 @@ gc_sweep_1 (void)
 
   sweep_events ();
 
-
   pdump_objects_unmark ();
+
+#ifdef ERROR_CHECK_GC
+  {
+    /* Unmark the free objects in the lcrecord_lists; since they are now in
+       the dump file this does not happen as part of sweep_lcrecords_1()
+       above. Likely a better approach is just to not mark them in the first
+       place. */
+    LIST_LOOP_2 (elt, Vall_lcrecord_lists)
+      {
+        Lisp_Object chain = XLCRECORD_LIST (elt)->free;
+
+        while (!NILP (chain))
+          {
+            struct free_lcrecord_header *free_header
+              = (struct free_lcrecord_header *) XPNTR (chain);
+            UNMARK_RECORD_HEADER (XRECORD_LHEADER (chain));
+            chain = free_header->chain;
+          }
+      }
+  }
+#endif
 }
 
 
