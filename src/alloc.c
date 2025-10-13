@@ -136,6 +136,8 @@ static const struct memory_description lrecord_implementation_description_1[] = 
   { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation, disksave) },
   { XD_FUNCTION_POINTER, offsetof (struct lrecord_implementation,
                                    memory_usage) },
+  { XD_LISP_OBJECT, offsetof (struct lrecord_implementation,
+			      memusage_stats_list) },
   { XD_LISP_OBJECT, offsetof (struct lrecord_implementation, lcrecord_list) },
   { XD_END }
 };
@@ -212,27 +214,6 @@ Error_Behavior ERROR_ME_WARN = { 3333632 }, ERROR_ME_DEBUG_WARN = { 8675309 };
 Lisp_Object Qobject_actually_requested, Qobject_malloc_overhead;
 Lisp_Object Qother_memory_actually_requested, Qother_memory_malloc_overhead;
 Lisp_Object Qother_memory_dynarr_overhead, Qother_memory_gap_overhead;
-
-/* Vector of lists of tags to be given to the extra statistics, one per
-   statistic.  Qnil or Qt can be present to separate off different slices.
-   Qnil separates different slices within the same group of statistics.  These
-   represent different ways of partitioning the same memory space.  Qt
-   separates different groups; these represent different spaces of memory.
-
-   If Qt is not present, all slices describe extra non-Lisp-Object memory
-   associated with a Lisp object.  If Qt is present, slices before Qt
-   describe non-Lisp-Object memory, as before, and slices after Qt
-   describe ancillary Lisp-Object memory logically associated with the
-   object.  For example, if the object is a table, then ancillary
-   Lisp-Object memory might be the entries in the table.  This info is
-   only advisory since it will duplicate memory described elsewhere and
-   since it may not be possible to be completely accurate, e.g. it may
-   not be clear what to count in "ancillary objects", and the value may
-   be too high if the same object occurs multiple times in the table.
-
-   This used to be in struct lrecord_implementation, but that interacts badly
-   with modules.*/
-Lisp_Object Vmemusage_stats_lists;
 #endif /* MEMORY_USAGE_STATS */
 
 static int gc_count_num_short_string_in_use;
@@ -262,49 +243,6 @@ static struct
   struct generic_usage_stats stats;
 #endif
 } lrecord_stats [countof (lrecord_implementations_table)];
-
-
-#ifdef MEMORY_USAGE_STATS
-/* Metadata on memory usage, calculated by compute_memusage_stats_length. */
-static struct lrecord_stats_metadata
-{
-  /* --------------------------------------------------------------------- */
-
-  /* The following are automatically computed based on the value in
-     `memusage_stats_list' (see compute_memusage_stats_length()). They had
-     been stored in struct lrecord_implementation, but that interacts badly
-     with modules. They can't be stored in lrecord_stats because that is
-     zeroed with gc_sweep_1(). */
-
-  /* Total number of additional type-specific statistics related to memory
-     usage. */
-  Elemcount num_extra_memusage_stats;
-
-  /* Number of additional type-specific statistics belonging to the first
-     slice of the group describing non-Lisp-Object memory usage for this
-     object.  These stats occur starting at offset 0. */
-  Elemcount num_extra_nonlisp_memusage_stats;
-
-  /* The offset into the extra statistics at which the Lisp-Object
-     memory-usage statistics begin. */
-  Elemcount offset_lisp_ancillary_memusage_stats;
-
-  /* Number of additional type-specific statistics belonging to the first
-     slice of the group describing Lisp-Object memory usage for this
-     object.  These stats occur starting at offset
-     `offset_lisp_ancillary_memusage_stats'. */
-  Elemcount num_extra_lisp_ancillary_memusage_stats;
-} *lrecord_stats_metadata;
-
-static const struct memory_description lrecord_stats_metadata_description_1[] = {
-  { XD_END }
-};
-
-static const struct sized_memory_description lrecord_stats_metadata_description = {
-  sizeof (*lrecord_stats_metadata) * countof (lrecord_implementations_table),
-  lrecord_stats_metadata_description_1
-};
-#endif
 
 /* Very cheesy ways of figuring out how much memory is being used for
    data. #### Need better (system-dependent) ways. */
@@ -3913,10 +3851,9 @@ tick_lrecord_stats (const struct lrecord_header *h,
 	struct generic_usage_stats stats;
 	if (HAS_OBJECT_METH_P (obj, memory_usage))
 	  {
-	    int i;
-	    int total_stats
-              = lrecord_stats_metadata[XRECORD_LHEADER (obj)->type].
-              num_extra_memusage_stats;
+	    Elemcount i;
+	    Elemcount total_stats
+	      = OBJECT_PROPERTY (obj, num_extra_memusage_stats);
 	    xzero (stats);
 	    OBJECT_METH (obj, memory_usage, (obj, &stats));
 	    for (i = 0; i < total_stats; i++)
@@ -3965,27 +3902,20 @@ finish_object_memory_usage_stats (void)
   for (i = 0; i < countof (lrecord_implementations_table); i++)
     {
       struct lrecord_implementation *imp = lrecord_implementations_table[i];
-      if (imp && lrecord_stats_metadata[i].num_extra_nonlisp_memusage_stats)
+      if (imp && imp->num_extra_nonlisp_memusage_stats)
 	{
-	  int j;
-	  for (j = 0; j < lrecord_stats_metadata[i].
-                 num_extra_nonlisp_memusage_stats;
-               j++)
+	  Elemcount j;
+	  for (j = 0; j < imp->num_extra_nonlisp_memusage_stats; j++)
 	    lrecord_stats[i].nonlisp_bytes_in_use +=
 	      lrecord_stats[i].stats.othervals[j];
 	}
-      if (imp && lrecord_stats_metadata[i].
-          num_extra_lisp_ancillary_memusage_stats)
+      if (imp && imp->num_extra_lisp_ancillary_memusage_stats)
 	{
-	  int j;
-	  for (j = 0;
-               j < lrecord_stats_metadata[i].
-                 num_extra_lisp_ancillary_memusage_stats;
-               j++)
+	  Elemcount j;
+	  for (j = 0; j < imp->num_extra_lisp_ancillary_memusage_stats; j++)
 	    lrecord_stats[i].lisp_ancillary_bytes_in_use +=
 	      lrecord_stats[i].stats.othervals
-	      [j + lrecord_stats_metadata[i].
-               num_extra_lisp_ancillary_memusage_stats];
+	      [j + imp->offset_lisp_ancillary_memusage_stats];
 	}
     }
 #endif /* defined (MEMORY_USAGE_STATS) */
@@ -4264,7 +4194,7 @@ itself.
 {
   struct generic_usage_stats gustats;
   struct usage_stats object_stats;
-  int i;
+  Elemcount i;
   Lisp_Object val = Qnil;
   Lisp_Object stats_list;
 
@@ -4272,8 +4202,7 @@ itself.
     invalid_argument
       ("No memory associated with immediate objects (int or char)", object);
 
-  stats_list
-    = XVECTOR_DATA (Vmemusage_stats_lists)[XRECORD_LHEADER (object)->type];
+  stats_list = OBJECT_PROPERTY (object, memusage_stats_list);
 
   xzero (object_stats);
   lisp_object_storage_size (object, &object_stats);
@@ -4351,9 +4280,11 @@ lisp_object_memory_usage_full (Lisp_Object object, Bytecount *storage_size,
 
   if (LRECORDP (object) && HAS_OBJECT_METH_P (object, memory_usage))
     {
-      int i;
+      Elemcount i;
       struct generic_usage_stats gustats;
       Bytecount sum;
+      const struct lrecord_implementation *imp =
+	XRECORD_LHEADER_IMPLEMENTATION (object);
 
       xzero (gustats);
       OBJECT_METH (object, memory_usage, (object, &gustats));
@@ -4362,22 +4293,16 @@ lisp_object_memory_usage_full (Lisp_Object object, Bytecount *storage_size,
 	*stats = gustats;
 
       sum = 0;
-      for (i = 0;
-           i < lrecord_stats_metadata[XRECORD_LHEADER (object)->type].
-             num_extra_nonlisp_memusage_stats;
-           i++)
+      for (i = 0; i < imp->num_extra_nonlisp_memusage_stats; i++)
 	sum += gustats.othervals[i];
       total += sum;
       if (extra_nonlisp_storage)
 	*extra_nonlisp_storage = sum;
 
       sum = 0;
-      for (i = 0; i < lrecord_stats_metadata[XRECORD_LHEADER (object)->type].
-             num_extra_lisp_ancillary_memusage_stats; i++)
-	sum
-          +=
-          gustats.othervals[lrecord_stats_metadata[XRECORD_LHEADER (object)->type].
-                            offset_lisp_ancillary_memusage_stats + i];
+      for (i = 0; i < imp->num_extra_lisp_ancillary_memusage_stats; i++)
+	sum += gustats.othervals[imp->offset_lisp_ancillary_memusage_stats +
+				 i];
       total += sum;
       if (extra_lisp_ancillary_storage)
 	*extra_lisp_ancillary_storage = sum;
@@ -4487,7 +4412,7 @@ compute_memusage_stats_length (void)
 	int group_num = 0;
 	int slice_num = 0;
 
-	LIST_LOOP_2 (item, XVECTOR_DATA (Vmemusage_stats_lists)[i])
+	LIST_LOOP_2 (item, imp->memusage_stats_list)
 	  {
 	    if (EQ (item, Qt))
 	      {
@@ -4513,13 +4438,10 @@ compute_memusage_stats_length (void)
 	      }
 	  }
 
-	lrecord_stats_metadata[i].num_extra_memusage_stats = len;
-        lrecord_stats_metadata[i].num_extra_nonlisp_memusage_stats
-          = nonlisp_len;
-        lrecord_stats_metadata[i].num_extra_lisp_ancillary_memusage_stats
-          = lisp_len;
-        lrecord_stats_metadata[i].offset_lisp_ancillary_memusage_stats
-          = lisp_offset;
+	imp->num_extra_memusage_stats = len;
+	imp->num_extra_nonlisp_memusage_stats = nonlisp_len;
+	imp->num_extra_lisp_ancillary_memusage_stats = lisp_len;
+	imp->offset_lisp_ancillary_memusage_stats = lisp_offset;
       }
     }
 }
@@ -4527,31 +4449,30 @@ compute_memusage_stats_length (void)
 #endif /* MEMORY_USAGE_STATS */
 
 void
-init_memory_usage_stats (int type,
+init_memory_usage_stats (int tipo,
                          Lisp_Object memusage_stats_list)
 {
-#ifdef MEMORY_USAGE_STATS
-  structure_checking_assert (type > 0 && type <
-                             countof (lrecord_implementations_table));
-  XVECTOR_DATA (Vmemusage_stats_lists)[type] = memusage_stats_list;
-#else
-  USED (type);
-  USED (memusage_stats_list);
-#endif
+  lrecord_implementations_table[tipo]->memusage_stats_list
+    = memusage_stats_list;
+
+  if (tipo <= lrecord_type_last_built_in_type)
+    {
+      staticpro
+	(&(lrecord_implementations_table[tipo]->memusage_stats_list));
+    }
+  else
+    {
+      staticpro_nodump
+	(&(lrecord_implementations_table[tipo]->memusage_stats_list));
+    }
 }
 
-/* If MEMORY_USAGE_STATS is defined, clear stats for TYPE. If it is not
-   defined, do nothing. */
 static void
-uninit_memory_usage_stats (int type)
+uninit_memory_usage_stats (int tipo)
 {
-  structure_checking_assert (type > 0 && type <
-                             countof (lrecord_implementations_table));
-#ifdef MEMORY_USAGE_STATS
-  XVECTOR_DATA (Vmemusage_stats_lists)[type] = Qnil;
-#else
-  USED (type);
-#endif
+  lrecord_implementations_table[tipo]->memusage_stats_list = Qnil;
+  unstaticpro_nodump
+    (&(lrecord_implementations_table[tipo]->memusage_stats_list));
 }
 
 struct saved_object_name
@@ -4679,10 +4600,10 @@ undef_lisp_object (int lrecord_type_index)
           /* Otherwise we just leave an empty entry in
              lrecord_implementations_table. */
         }
+      uninit_memory_usage_stats (lrecord_type_index);
       xfree (lrecord_implementations_table[lrecord_type_index]);
       lrecord_implementations_table[lrecord_type_index] = NULL;
       lrecord_memory_descriptions[lrecord_type_index] = NULL;
-      uninit_memory_usage_stats (lrecord_type_index);
     }
   else
     {
@@ -4690,6 +4611,8 @@ undef_lisp_object (int lrecord_type_index)
         lrecord_implementations_table[lrecord_type_index];
       Lisp_Object name = impl->name;
       Bytecount static_size = impl->static_size;
+
+      uninit_memory_usage_stats (lrecord_type_index);
 
       xzero (*impl);
       impl->name = name;
@@ -5732,17 +5655,6 @@ init_alloc_once_early (void)
   OBJECT_HAS_METHOD (vector, print_preprocess);
   OBJECT_HAS_METHOD (vector, nsubst_structures_descend);
 
-#ifdef MEMORY_USAGE_STATS
-  Vmemusage_stats_lists
-    = make_vector (countof (lrecord_implementations_table), Qzero);
-  staticpro (&Vmemusage_stats_lists);
-  lrecord_stats_metadata
-    = xnew_array_and_zero (struct lrecord_stats_metadata,
-                           countof (lrecord_implementations_table));
-  dump_add_root_block_ptr (&lrecord_stats_metadata,
-                           &lrecord_stats_metadata_description);
-#endif
-
   DEFINE_DUMPABLE_FROB_BLOCK_LISP_OBJECT ("cons", cons, print_cons, 0,
                                           cons_equal,
                                           /*
@@ -5794,18 +5706,6 @@ syms_of_alloc (void)
   DEFSYMBOL (Qother_memory_malloc_overhead);
   DEFSYMBOL (Qother_memory_dynarr_overhead);
   DEFSYMBOL (Qother_memory_gap_overhead);
-
-  {
-    int ii;
-    for (ii = 0; ii < countof (lrecord_implementations_table); ii++)
-      {
-        if (EQ (XVECTOR_DATA (Vmemusage_stats_lists)[ii], Qzero))
-          {
-            XVECTOR_DATA (Vmemusage_stats_lists)[ii] = Qnil;
-          }
-      }
-  }
-
 #endif /* MEMORY_USAGE_STATS */
 
   DEFSUBR (Fcons);

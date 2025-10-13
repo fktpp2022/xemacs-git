@@ -412,7 +412,6 @@ struct lrecord_implementation
      be NULL. */
   void (*disksave) (Lisp_Object);
 
-#ifdef MEMORY_USAGE_STATS
   /* Return memory-usage information about the object in question, stored
      into STATS.
 
@@ -434,13 +433,59 @@ struct lrecord_implementation
 
      -- Lisp objects which are "internal" to the main object and not
         accessible except through the main object should be included
-     -- Objects linked by a weak reference should *NOT* be included
-  */
+     -- Objects linked by a weak reference should *NOT* be included */
   void (*memory_usage) (Lisp_Object obj, struct generic_usage_stats *stats);
-#else
-  /* Keep this structure the same size, for the sake of modules. */
-  void (*memory_usage) (Lisp_Object obj, void *stats);
-#endif
+
+  /* List of tags to be given to the extra statistics, one per statistic.
+     Qnil or Qt can be present to separate off different slices.  Qnil
+     separates different slices within the same group of statistics.
+     These represent different ways of partitioning the same memory space.
+     Qt separates different groups; these represent different spaces of
+     memory.
+
+     If Qt is not present, all slices describe extra non-Lisp-Object memory
+     associated with a Lisp object.  If Qt is present, slices before Qt
+     describe non-Lisp-Object memory, as before, and slices after Qt
+     describe ancillary Lisp-Object memory logically associated with the
+     object.  For example, if the object is a table, then ancillary
+     Lisp-Object memory might be the entries in the table.  This info is
+     only advisory since it will duplicate memory described elsewhere and
+     since it may not be possible to be completely accurate, e.g. it may
+     not be clear what to count in "ancillary objects", and the value may
+     be too high if the same object occurs multiple times in the table.
+
+     Not used if MEMORY_USAGE_STATS is not defined, but kept in structure
+     structure so modules don't choke if they are built with an XEmacs that
+     differs from the current XEmacs in that respect. */
+  Lisp_Object memusage_stats_list;
+
+  /* --------------------------------------------------------------------- */
+
+  /* The following are automatically computed based on the value in
+     `memusage_stats_list' (see compute_memusage_stats_length()). Same comment
+     as previous regarding their not being used if MEMORY_USAGE_STATS is not
+     defined.*/
+
+  /* Total number of additional type-specific statistics related to memory
+     usage. */
+  Elemcount num_extra_memusage_stats;
+
+  /* Number of additional type-specific statistics belonging to the first
+     slice of the group describing non-Lisp-Object memory usage for this
+     object.  These stats occur starting at offset 0. */
+  Elemcount num_extra_nonlisp_memusage_stats;
+
+  /* The offset into the extra statistics at which the Lisp-Object
+     memory-usage statistics begin. */
+  Elemcount offset_lisp_ancillary_memusage_stats;
+
+  /* Number of additional type-specific statistics belonging to the first
+     slice of the group describing Lisp-Object memory usage for this
+     object.  These stats occur starting at offset
+     `offset_lisp_ancillary_memusage_stats'. */
+  Elemcount num_extra_lisp_ancillary_memusage_stats;
+
+  /* --------------------------------------------------------------------- */
 
   /* Qnil for those lrecord types that are FROB_BLOCK_P or that have a zero
      STATIC_SIZE, an lcrecord_list resource of free records otherwise. */

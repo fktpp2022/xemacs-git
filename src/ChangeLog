@@ -1,5 +1,46 @@
 2025-10-13  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Move the lrecord stats metadata and the memusage_stats_list back
+	in to struct lrecord_implementation, in preparation for
+	implementing lrecord_implementations_table as a Dynarr.
+
+	* alloc.c:
+	Add an XD_LIST_OBJECT to the lrecord_implementation description
+	for the memusage_stats_list field.
+	* alloc.c (static const struct sized_memory_description
+	lrecord_stats_metadata_description): Removed.
+	* alloc.c (tick_lrecord_stats):
+	Access the num_extra_memusage_stats field in the object's
+	lrecord_implementation. In passing correct the type of it and the
+	counter.
+	* alloc.c (finish_object_memory_usage_stats):
+	Access the stats metadata through the object's
+	lrecord_implementation. In passing correct types.
+	* alloc.c (Fobject_memory_usage):
+	Access the stats metadata through the object's implementation.
+	* alloc.c (lisp_object_memory_usage_full):
+	Ditto.
+	* alloc.c (compute_memusage_stats_length):
+	Set the stats metadata in the object's implementation.
+	* alloc.c (init_memory_usage_stats):
+	staticpro() or staticpro_nodump() the memusage_stats_list slot as
+	appropriate.
+	* alloc.c (uninit_memory_usage_stats):
+	unstaticpro_nodump() the memusage_stats_list slot.
+	* alloc.c (undef_lisp_object):
+	Call uninit_memory_usage_stats() before freeing the
+	lrecord_implementation.
+	* alloc.c (init_alloc_once_early):
+	No further need to initialize Vmemusage_stats_list,
+	lrecord_stats_metadata.
+	* alloc.c (syms_of_alloc):
+	No further need to fix up Vmemusage_stats_lists.
+	* lrecord.h (struct lrecord_implementation):
+	Restore the stats metadata to this structure as it had been
+	previous to b33b343c1726 .
+
+2025-10-13  Aidan Kehoe  <kehoea@parhasard.net>
+
 	1. Dump Vrecent_keys_ring as a vector rather than as Qnil, 
 	2. Remove recent_keys_ring_size, use XVECTOR_LENGTH
 	(Vrecent_keys_ring) instead.
