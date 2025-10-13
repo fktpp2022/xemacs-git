@@ -252,10 +252,11 @@ Lisp_Object Qauto_show_make_point_visible;
 /* File in which we write all commands we read; an lstream */
 static Lisp_Object Vdribble_file;
 
-/* Recent keys ring location; a vector of events or nil-s */
+/* Recent keys ring; a vector. Entries are event objects, or Qnil if
+   uninitialized. */
 Lisp_Object Vrecent_keys_ring;
-int recent_keys_ring_size;
-int recent_keys_ring_index;
+/* The offset within Vrecent_keys_ring_index to store the next event. */
+Elemcount recent_keys_ring_index;
 
 /* Boolean specifying whether keystrokes should be added to
    recent-keys. */
@@ -3852,12 +3853,12 @@ modify them.
 {
   struct gcpro gcpro1;
   Lisp_Object val = Qnil;
-  int nwanted;
-  int start, nkeys, i, j;
+  Elemcount nwanted;
+  Elemcount start, nkeys, i, j;
   GCPRO1 (val);
 
   if (NILP (number))
-    nwanted = recent_keys_ring_size;
+    nwanted = XVECTOR_LENGTH (Vrecent_keys_ring);
   else
     {
       check_integer_range (number, Qzero,
@@ -3868,14 +3869,6 @@ modify them.
       nwanted = XFIXNUM (number);
     }
 
-  /* Create the keys ring vector, if none present. */
-  if (NILP (Vrecent_keys_ring))
-    {
-      Vrecent_keys_ring = make_vector (recent_keys_ring_size, Qnil);
-      /* And return nothing in particular. */
-      RETURN_UNGCPRO (make_vector (0, Qnil));
-    }
-
   if (NILP (XVECTOR_DATA (Vrecent_keys_ring)[recent_keys_ring_index]))
     /* This means the vector has not yet wrapped */
     {
@@ -3884,15 +3877,15 @@ modify them.
     }
   else
     {
-      nkeys = recent_keys_ring_size;
+      nkeys = XVECTOR_LENGTH (Vrecent_keys_ring);
       start = ((recent_keys_ring_index == nkeys) ? 0 : recent_keys_ring_index);
     }
 
   if (nwanted < nkeys)
     {
       start += nkeys - nwanted;
-      if (start >= recent_keys_ring_size)
-	start -= recent_keys_ring_size;
+      if (start >= XVECTOR_LENGTH (Vrecent_keys_ring))
+	start -= XVECTOR_LENGTH (Vrecent_keys_ring);
       nkeys = nwanted;
     }
   else
@@ -3901,14 +3894,16 @@ modify them.
   val = make_vector (nwanted, Qnil);
 
   for (i = 0, j = start; i < nkeys; i++)
-  {
-    Lisp_Object e = XVECTOR_DATA (Vrecent_keys_ring)[j];
+    {
+      Lisp_Object e = XVECTOR_DATA (Vrecent_keys_ring)[j];
 
-    assert (!NILP (e));
-    XVECTOR_DATA (val)[i] = Fcopy_event (e, Qnil);
-    if (++j >= recent_keys_ring_size)
-      j = 0;
-  }
+      assert (!NILP (e));
+      XVECTOR_DATA (val)[i] = Fcopy_event (e, Qnil);
+      if (++j >= XVECTOR_LENGTH (Vrecent_keys_ring))
+        {
+          j = 0;
+        }
+    }
   UNGCPRO;
   return val;
 }
@@ -3919,7 +3914,7 @@ The maximum number of events `recent-keys' can return.
 */
        ())
 {
-  return make_fixnum (recent_keys_ring_size);
+  return Flength (Vrecent_keys_ring);
 }
 
 DEFUN ("set-recent-keys-ring-size", Fset_recent_keys_ring_size, 1, 1, 0, /*
@@ -3928,23 +3923,17 @@ Set the maximum number of events to be stored internally.
        (size))
 {
   Lisp_Object new_vector = Qnil;
-  int i, j, nkeys, start, min;
+  Elemcount i, j, nkeys, start, min;
   struct gcpro gcpro1;
 
   CHECK_FIXNUM (size);
   if (XFIXNUM (size) <= 0)
     invalid_argument ("Recent keys ring size must be positive", size);
-  if (XFIXNUM (size) == recent_keys_ring_size)
+  if (XFIXNUM (size) == XVECTOR_LENGTH (Vrecent_keys_ring))
     return size;
 
   GCPRO1 (new_vector);
   new_vector = make_vector (XFIXNUM (size), Qnil);
-
-  if (NILP (Vrecent_keys_ring))
-    {
-      Vrecent_keys_ring = new_vector;
-      RETURN_UNGCPRO (size);
-    }
 
   if (NILP (XVECTOR_DATA (Vrecent_keys_ring)[recent_keys_ring_index]))
     /* This means the vector has not yet wrapped */
@@ -3954,7 +3943,7 @@ Set the maximum number of events to be stored internally.
     }
   else
     {
-      nkeys = recent_keys_ring_size;
+      nkeys = XVECTOR_LENGTH (Vrecent_keys_ring);
       start = ((recent_keys_ring_index == nkeys) ? 0 : recent_keys_ring_index);
     }
 
@@ -3966,13 +3955,11 @@ Set the maximum number of events to be stored internally.
   for (i = 0, j = start; i < min; i++)
     {
       XVECTOR_DATA (new_vector)[i] = XVECTOR_DATA (Vrecent_keys_ring)[j];
-      if (++j >= recent_keys_ring_size)
+      if (++j >= XVECTOR_LENGTH (Vrecent_keys_ring))
 	j = 0;
     }
-  recent_keys_ring_size = XFIXNUM (size);
-  recent_keys_ring_index = (i < recent_keys_ring_size) ? i : 0;
-
   Vrecent_keys_ring = new_vector;
+  recent_keys_ring_index = (i < XVECTOR_LENGTH (Vrecent_keys_ring)) ? i : 0;
 
   UNGCPRO;
   return size;
@@ -4093,9 +4080,6 @@ push_recent_keys (Lisp_Object event)
 {
   Lisp_Object e;
 
-  if (NILP (Vrecent_keys_ring))
-    Vrecent_keys_ring = make_vector (recent_keys_ring_size, Qnil);
-
   e = XVECTOR_DATA (Vrecent_keys_ring) [recent_keys_ring_index];
 
   if (NILP (e))
@@ -4104,7 +4088,7 @@ push_recent_keys (Lisp_Object event)
       XVECTOR_DATA (Vrecent_keys_ring) [recent_keys_ring_index] = e;
     }
   Fcopy_event (event, e);
-  if (++recent_keys_ring_index == recent_keys_ring_size)
+  if (++recent_keys_ring_index == XVECTOR_LENGTH (Vrecent_keys_ring))
     recent_keys_ring_index = 0;
 }
 
@@ -5109,20 +5093,9 @@ syms_of_event_stream (void)
 }
 
 void
-reinit_vars_of_event_stream (void)
-{
-  recent_keys_ring_index = 0;
-  recent_keys_ring_size = 100;
-  num_input_chars = 0;
-  something_happened = 0;
-  recursive_sit_for = 0;
-  in_modal_loop = 0;
-}
-
-void
 vars_of_event_stream (void)
 {
-  Vrecent_keys_ring = Qnil;
+  Vrecent_keys_ring = make_vector (100, Qnil);
   staticpro (&Vrecent_keys_ring);
 
   Vthis_command_keys = Qnil;
@@ -5379,6 +5352,8 @@ their positions to eliminate the need to use the Shift key.
   (keyboard-translate 'f11 ?{)
   (keyboard-translate 'f12 ?})
 */ );
+  Vkeyboard_translate_table
+    = make_lisp_hash_table (100, HASH_TABLE_NON_WEAK, Qequal);
 
   DEFVAR_LISP ("retry-undefined-key-binding-unshifted",
                &Vretry_undefined_key_binding_unshifted /*
@@ -5388,7 +5363,7 @@ with the last key unshifted.  (e.g. C-X C-F would be retried as C-X C-f.)
 If lookup still fails, a normal error is signalled.  In general,
 you should *bind* this, not set it.
 */ );
-    Vretry_undefined_key_binding_unshifted = Qt;
+  Vretry_undefined_key_binding_unshifted = Qt;
 
   DEFVAR_BOOL ("modifier-keys-are-sticky", &modifier_keys_are_sticky /*
 *Non-nil makes modifier keys sticky.
@@ -5462,9 +5437,6 @@ and is one of the following:
 Non-nil inhibits recording of input-events to recent-keys ring.
 */ );
   inhibit_input_event_recording = 0;
-
-  Vkeyboard_translate_table =
-    make_lisp_hash_table (100, HASH_TABLE_NON_WEAK, Qequal);
 
   DEFVAR_BOOL ("try-alternate-layouts-for-commands",
 	       &try_alternate_layouts_for_commands /*

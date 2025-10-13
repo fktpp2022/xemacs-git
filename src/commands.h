@@ -98,9 +98,6 @@ extern Lisp_Object last_point_position_buffer;
 
 extern int modeline_changed;
 
-extern Lisp_Object recent_keys_ring;
-extern int recent_keys_ring_index;
-
 /* #ifndef LISP_COMMAND_LOOP */
 extern Lisp_Object Vtop_level;
 /* #else */

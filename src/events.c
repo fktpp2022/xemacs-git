@@ -798,28 +798,8 @@ that it is safe to do so.
     invalid_argument ("this event is already deallocated!", Qunbound);
 
   assert (XEVENT_TYPE (event) <= last_event_type);
-
-#if 0
-  {
-    Elemcount i, len;
-
-    assert (!(EQ (event, Vlast_command_event) ||
-	      EQ (event, Vlast_input_event)   ||
-	      EQ (event, Vunread_command_event)));
-
-    len = XVECTOR_LENGTH (Vthis_command_keys);
-    for (i = 0; i < len; i++)
-      assert (!EQ (event, XVECTOR_DATA (Vthis_command_keys) [i]));
-    if (!NILP (Vrecent_keys_ring))
-      {
-	Elemcount recent_ring_len = XVECTOR_LENGTH (Vrecent_keys_ring);
-	for (i = 0; i < recent_ring_len; i++)
-	  assert (!EQ (event, XVECTOR_DATA (Vrecent_keys_ring) [i]));
-      }
-  }
-#endif /* 0 */
-
   assert (!EQ (event, Vevent_resource));
+
   deinitialize_event (event);
 #ifndef ALLOC_NO_POOLS
   XSET_EVENT_NEXT (event, Vevent_resource);

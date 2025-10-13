@@ -332,7 +332,6 @@ void vars_of_event_Xt (void);
 void vars_of_event_gtk (void);
 void vars_of_event_mswindows (void);
 void vars_of_event_stream (void);
-void reinit_vars_of_event_stream (void);
 void vars_of_event_tty (void);
 void vars_of_events (void);
 void vars_of_extents (void);

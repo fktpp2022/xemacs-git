@@ -1,3 +1,42 @@
+2025-10-13  Aidan Kehoe  <kehoea@parhasard.net>
+
+	1. Dump Vrecent_keys_ring as a vector rather than as Qnil, 
+	2. Remove recent_keys_ring_size, use XVECTOR_LENGTH
+	(Vrecent_keys_ring) instead.
+	3. Remove reinit_vars_of_event_stream(), can be delegated to the C
+	implementation.
+
+	* commands.h:
+	Remove mention of recent_keys_ring, recent_keys_ring_index from
+	here.
+	* emacs.c (main_1):
+	Remove call to reinit_vars_of_event_stream().
+	* event-stream.c:
+	Remove mention of recent_keys_ring_size.
+	* event-stream.c (Frecent_keys):
+	Update some types here. Call XVECTOR_LENGTH (Vrecent_keys_ring)
+	rather than referencing recent_keys_ring_size.
+	* event-stream.c (Frecent_keys_ring_size):
+	Return Flength (Vrecent_keys_ring) here.
+	* event-stream.c (Fset_recent_keys_ring_size):
+	Update some types here. Call XVECTOR_LENGTH (Vrecent_keys_ring)
+	rather than referencing recent_keys_ring_size.
+	* event-stream.c (push_recent_keys):
+	No longer check Vrecent_keys_index against Qnil. Call
+	XVECTOR_LENGTH (Vrecent_keys_ring) rather than referencing
+	recent_keys_ring_size.
+	* event-stream.c (reinit_vars_of_event_stream): Removed.
+	* event-stream.c (vars_of_event_stream): Initialize
+	Vrecent_keys_ring as a vector. Move the initialization for
+	Vkeyboard_translate_table beside its DEFVAR_LISP() in
+	passing. Correct indentation for
+	Vretry_undefined_key_binding_unshifted in passing.
+	* events.c (Fdeallocate_event):
+	Remove some code long enclosed in #if 0 that referenced
+	Vrecent_keys_ring.
+	* symsinit.h:
+	Remove declaration for reinit_vars_of_event_stream().
+
 2025-10-12  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove blocktype.c, blocktype.h, no longer used and superseded by
