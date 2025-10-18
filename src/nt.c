@@ -124,6 +124,39 @@ getpwnam (const Ibyte *name)
   return pw;
 }
 
+#if (_MSC_VER < 1900)
+int
+qxevsnprintf (char *output, size_t size, const char *format, va_list vargs)
+{
+  int result = -1;
+
+  if (size != 0)
+    {
+      result = _vsnprintf (output, size, format, vargs);
+    }
+
+  if (result == -1)
+    {
+      return _vscprintf (format, vargs);
+    }
+
+  return result;
+}
+
+int
+qxesnprintf (char *output, size_t size, const char *format, ...)
+{
+  int result;
+  va_list vargs;
+
+  va_start (vargs, format);
+  result = vsnprintf (output, size, format, vargs);
+  va_end (vargs);
+
+  return result;
+}
+#endif
+
 static void
 init_user_info (void)
 {

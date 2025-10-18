@@ -84,10 +84,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define HAVE_RMDIR
 #define HAVE_SELECT
 #define HAVE_SHLIB
-#if (_MSC_VER >= 1900)
-# define HAVE_SNPRINTF
-# define HAVE_VSNPRINTF
-#endif
+#define HAVE_SNPRINTF
+#define HAVE_VSNPRINTF
 #define HAVE_STRERROR
 #define HAVE_STRLWR
 #define HAVE_STRUPR

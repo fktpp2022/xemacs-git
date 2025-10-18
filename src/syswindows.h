@@ -1348,6 +1348,31 @@ DECLARE_INLINE_HEADER (int strcasecmp (const char *a, const char *b))
 {
   return qxestrcasecmp ((const Ibyte *) a, (const Ibyte *) b);
 }
+
+#if defined (_MSC_VER) && _MSC_VER < 1900
+#if _MSC_VER < 1300
+
+/* Visual Studio .NET 2002 was released February 2002, and includes
+   _vsnprintf() and _vscprintf(), which are needed for our implementation of
+   snprintf(), vsnprintf() in nt.c under versions of Visual Studio that don't
+   provide them. */
+#error "Unsupported version of Visual Studio"
+#endif
+
+/* In nt.c. */
+extern int qxevsnprintf (char *, size_t , const char *, va_list);
+int qxesnprintf (char *, size_t, const char *, ...);
+
+/* Ben normally avoided preprocessor games with this sort of compatibility
+   function; for me making an exception here is reasonable given how little
+   this will be used (only on versions of Visual Studio below Visual Studio 15,
+   released July 2015) and the related limited likelihood of these bugs making
+   themselves known. */
+#define vsnprintf qxevsnprintf
+#define snprintf qxesnprintf
+
+#endif
+
 #endif /* WIN32_NATIVE */
 
 /* in nt.c */

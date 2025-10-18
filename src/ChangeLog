@@ -1,5 +1,19 @@
 2025-10-18  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* nt.c (qxevsnprintf):
+	New. Implement vsnprintf() on Visual Studio .NET 2002 or newer.
+	* nt.c (qxesnprintf):
+	New. Implement snprintf() on Visual Studio .NET 2002 or newer.
+	* s/windowsnt.h (HAVE_SNPRINTF): Always #define this on Windows.
+	* s/windowsnt.h (HAVE_VSNPRINTF): Ditto.
+	* syswindows.h:
+	Error if on a version of Visual Studio older than Visual Studio
+	.NET 2002.
+	For versions older than Visual Studio 15, #define snprintf
+	qxesnprintf , with the implementation in nt.c.
+
+2025-10-18  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* buffer.c (Fgenerate_new_buffer_name):
 	Update a comment here, GNU no longer allocate the Lisp string on
 	the heap.
