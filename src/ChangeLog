@@ -1,3 +1,18 @@
+2025-10-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* buffer.c (Fgenerate_new_buffer_name):
+	Update a comment here, GNU no longer allocate the Lisp string on
+	the heap.
+	* buffer.c (Fbuffer_file_name): Removed. Moved to buffer.el.
+	* buffer.c (Fset_buffer_major_mode): Removed. Moved to buffer.el.
+	* buffer.c (Fbuffer_char_byte_conversion_info): Correct the
+	spelling of the C function name.
+	* buffer.c (Fstring_char_byte_conversion_info): Ditto.
+	* buffer.c (syms_of_buffer):
+	Remove DEFSUBR() for Fbuffer_file_name(),
+	Fset_buffer_major_mode(). Correct DEFSUBR() for
+	F{buffer,string}_char_byte_conversion_info().
+
 2025-10-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Move the lrecord stats metadata and the memusage_stats_list back

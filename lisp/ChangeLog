@@ -1,3 +1,10 @@
+2025-10-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* buffer.el (buffer-file-name): New. Moved here from buffer.c.
+	* buffer.el (set-buffer-major-mode): New. Moved here from
+	buffer.c. Change from previous (which is compatible with GNU):
+	always error if BUFFER is not live.
+
 2025-10-11  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* startup.el (find-init-file-1):

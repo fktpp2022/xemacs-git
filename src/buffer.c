@@ -769,12 +769,11 @@ is first appended to NAME, to speed up finding a non-existent buffer.
   count = itext_ichar_eql (XSTRING_DATA (name), ' ') ? get_random () : 1;
   while (1)
     {
-      /* XEmacs; GNU worry about the performance of this function, and then
-         allocate a full new Lisp string on the heap for every iteration of
-         the loop, and call a full Fget_buffer, too. If the performance of
-         #'generate-new-buffer-name really matters--and I've seen no real
-         evidence that is the case--the approach below with snprintf() and
-         ALIST_LOOP_3() is better. */
+      /* XEmacs; GNU worry about the performance of this function, and call a
+         full Fget_buffer() for every iteration of the loop. If the
+         performance of #'generate-new-buffer-name really matters--and I've
+         seen no real evidence that is the case--the approach below with
+         snprintf() and ALIST_LOOP_3() is better. */
       clen = emacs_snprintf (candidate, csize, "%s<%zd>", XSTRING_DATA (name),
                              ++count);
       if (clen == ignore_length &&
@@ -828,19 +827,6 @@ With no argument or nil as argument, return the name of the current buffer.
     return current_buffer->name;
   CHECK_BUFFER (buffer);
   return XBUFFER (buffer)->name;
-}
-
-DEFUN ("buffer-file-name", Fbuffer_file_name, 0, 1, 0, /*
-Return name of file BUFFER is visiting, or nil if none.
-No argument or nil as argument means use the current buffer.
-*/
-       (buffer))
-{
-  /* For compatibility, we allow a dead buffer here.  Yuck! */
-  if (NILP (buffer))
-    return current_buffer->filename;
-  CHECK_BUFFER (buffer);
-  return XBUFFER (buffer)->filename;
 }
 
 DEFUN ("buffer-base-buffer", Fbuffer_base_buffer, 0, 1, 0, /*
@@ -1464,37 +1450,6 @@ buffer.  See `other-buffer' for more information.
   return Qnil;
 }
 
-DEFUN ("set-buffer-major-mode", Fset_buffer_major_mode, 1, 1, 0, /*
-Set an appropriate major mode for BUFFER, according to `default-major-mode'.
-Use this function before selecting the buffer, since it may need to inspect
-the current buffer's major mode.
-*/
-       (buffer))
-{
-  int speccount = specpdl_depth ();
-  Lisp_Object function = XBUFFER (Vbuffer_defaults)->major_mode;
-
-  if (NILP (function))
-    {
-      Lisp_Object tem = Fget (current_buffer->major_mode, Qmode_class, Qnil);
-      if (NILP (tem))
-	function = current_buffer->major_mode;
-    }
-
-  if (NILP (function) || EQ (function, Qfundamental_mode))
-    return Qnil;
-
-  /* To select a nonfundamental mode,
-     select the buffer temporarily and then call the mode function. */
-
-  record_unwind_protect (Fset_buffer, Fcurrent_buffer ());
-
-  Fset_buffer (buffer);
-  call0 (function);
-
-  return unbind_to (speccount);
-}
-
 DEFUN ("current-buffer", Fcurrent_buffer, 0, 0, 0, /*
 Return the current buffer as a Lisp object.
 */
@@ -1840,7 +1795,7 @@ buffer_memory_usage (Lisp_Object buffer, struct generic_usage_stats *gustats)
 
 #ifdef DEBUG_XEMACS
 
-DEFUN ("buffer-char-byte-conversion-info", Fbuffer_char_byte_converion_info,
+DEFUN ("buffer-char-byte-conversion-info", Fbuffer_char_byte_conversion_info,
        1, 1, 0, /*
 Return the current info used for char-byte conversion in BUFFER.
 The values returned are in the form of a plist of properties and values.
@@ -1887,7 +1842,7 @@ The values returned are in the form of a plist of properties and values.
   return Fnreverse (plist);
 }
 
-DEFUN ("string-char-byte-conversion-info", Fstring_char_byte_converion_info, 1, 1, 0, /*
+DEFUN ("string-char-byte-conversion-info", Fstring_char_byte_conversion_info, 1, 1, 0, /*
 Return the current info used for char-byte conversion in STRING.
 The values returned are in the form of a plist of properties and values.
 */
@@ -1957,7 +1912,6 @@ syms_of_buffer (void)
 
   DEFSUBR (Fgenerate_new_buffer_name);
   DEFSUBR (Fbuffer_name);
-  DEFSUBR (Fbuffer_file_name);
   DEFSUBR (Fbuffer_base_buffer);
   DEFSUBR (Fbuffer_indirect_children);
   DEFSUBR (Fbuffer_local_variables);
@@ -1971,7 +1925,6 @@ syms_of_buffer (void)
   DEFSUBR (Fkill_buffer);
   DEFSUBR (Ferase_buffer);
   DEFSUBR (Frecord_buffer);
-  DEFSUBR (Fset_buffer_major_mode);
   DEFSUBR (Fcurrent_buffer);
   DEFSUBR (Fset_buffer);
   DEFSUBR (Fbarf_if_buffer_read_only);
@@ -1979,8 +1932,8 @@ syms_of_buffer (void)
   DEFSUBR (Fkill_all_local_variables);
   DEFSUBR (Fline_number);
 #ifdef DEBUG_XEMACS
-  DEFSUBR (Fbuffer_char_byte_converion_info);
-  DEFSUBR (Fstring_char_byte_converion_info);
+  DEFSUBR (Fbuffer_char_byte_conversion_info);
+  DEFSUBR (Fstring_char_byte_conversion_info);
 #endif
 
   DEFERROR (Qprotected_field, "Attempt to modify a protected field",

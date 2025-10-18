@@ -34,6 +34,25 @@
   "Return t if OBJECT is an editor buffer."
   (eq (type-of object) 'buffer))
 
+(defun buffer-file-name (&optional buffer)
+  "Return name of file BUFFER is visiting, or nil if none.
+No argument or nil as argument means use the current buffer."
+  ;; For compatibility, we allow a dead buffer here.  Yuck!
+  (if buffer
+      (symbol-value-in-buffer 'buffer-file-name buffer)
+    buffer-file-name))
+
+(defun set-buffer-major-mode (buffer)
+  "Set an appropriate major mode for BUFFER, according to `default-major-mode'.
+Use this function before selecting the buffer, since it may need to inspect
+the current buffer's major mode."
+  (check-type buffer buffer-live)
+  (let ((function (cond ((default-value 'default-major-mode))
+                        ((get major-mode 'mode-class) nil)
+                        (t major-mode))))
+    (unless (or (null function) (eq function 'fundamental-mode))
+      (with-current-buffer buffer (funcall function)))))
+
 (defun switch-to-buffer (bufname &optional norecord)
   "Select buffer BUFNAME in the current window.
 BUFNAME may be a buffer or a buffer name and is created if it did not exist.
