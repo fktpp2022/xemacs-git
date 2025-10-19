@@ -1,3 +1,10 @@
+2025-10-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* doc.c (Fdocumentation):
+	Check more carefully for a plausible dynamic docstring when
+	examining a lambda, avoid error if (interactive) is the first
+	element after the arglist.
+
 2025-10-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* nt.c (qxevsnprintf):

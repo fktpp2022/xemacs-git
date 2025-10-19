@@ -684,8 +684,10 @@ string is passed through `substitute-command-keys'.
 	    doc = tem;
 	  /* Handle a doc reference--but these never come last
 	     in the function body, so reject them if they are last.  */
-	  else if ((NATNUMP (tem) || CONSP (tem))
-		   && ! NILP (XCDR (tem1)))
+	  else if ((NATNUMP (tem)
+                    || (CONSP (tem)
+                        && STRINGP (XCAR (tem)) && FIXNUMP (XCDR (tem))))
+                   && ! NILP (XCDR (tem1)))
 	    doc = get_doc_string (tem);
 	  else
 	    return Qnil;
