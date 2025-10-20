@@ -1287,7 +1287,6 @@ locate_file (Lisp_Object path, Lisp_Object str, Lisp_Object suffixes,
 }
 
 
-#ifdef LOADHIST
 
 /* Merge the list we've accumulated of globals from the current input source
    into the load_history variable.  The details depend on whether
@@ -1299,11 +1298,6 @@ build_load_history (Boolint loading, Lisp_Object source)
   REGISTER Lisp_Object prev = Qnil;
   Boolint foundit = 0;
 
-#if !defined(LOADHIST_DUMPED)
-  /* Don't bother recording anything for preloaded files.  */
-  if (purify_flag)
-    return;
-#endif
 
   {
     GC_EXTERNAL_LIST_LOOP_3 (tem, Vload_history, tail)
@@ -1352,9 +1346,6 @@ build_load_history (Boolint loading, Lisp_Object source)
 			   Vload_history);
 }
 
-#else /* !LOADHIST */
-#define build_load_history(x,y)
-#endif /* !LOADHIST */
 
 
 static void
@@ -3452,7 +3443,6 @@ variables are true, messages are displayed.
 */ );
   load_show_full_path_in_messages = 0;
 
-#ifdef LOADHIST
   DEFVAR_LISP ("load-history", &Vload_history /*
 Alist mapping source file names to symbols and features.
 
@@ -3474,7 +3464,6 @@ Used for internal purposes by `load'.
 */ );
   Vcurrent_load_list = Qnil;
   dump_mark_nil_lisp_object (&Vcurrent_load_list);
-#endif
 
   DEFVAR_LISP ("load-file-name", &Vload_file_name /*
 Full name of file being loaded by `load'.

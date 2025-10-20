@@ -1,5 +1,17 @@
 2025-10-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* lisp.h:
+	* lisp.h (LOADHIST_ATTACH):
+	* lread.c:
+	* lread.c (build_load_history):
+	* lread.c (vars_of_lread):
+	Remove LOADHIST and LOADHIST_DUMPED as preprocessor #defines, make
+	them always on in anticipation of using the load history as part
+	of moving make-docfile to Lisp. Change generated with unifdef
+	-DLOADHIST and unifdef -DLOADHIST_DUMPED.
+
+2025-10-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* doc.c (Fdocumentation):
 	Check more carefully for a plausible dynamic docstring when
 	examining a lambda, avoid error if (interactive) is the first

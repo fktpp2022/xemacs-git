@@ -5568,13 +5568,6 @@ EXFUN (Flocate_file_clear_hashing, 1);
 int isfloat_string (const char *);
 int isratio_string (const char *);
 
-/* Well, I've decided to enable this. -- ben */
-/* And I've decided to make it work right.  -- sb */
-#define LOADHIST
-/* Define the following symbol to enable load history of dumped files */
-#define LOADHIST_DUMPED
-
-#ifdef LOADHIST /* this is just a stupid idea */
 #define LOADHIST_ATTACH(x) do if (initialized)				\
     {									\
       Vcurrent_load_list = Fcons (x, Vcurrent_load_list);		\
@@ -5583,9 +5576,6 @@ int isratio_string (const char *);
 	  add_module_loadhist_elt (XCAR (Vcurrent_load_list));		\
 	}								\
     } while (0)
-#else /*! LOADHIST */
-# define LOADHIST_ATTACH(x)
-#endif /*! LOADHIST */
 
 extern Lisp_Object Qfeaturep;
 extern Lisp_Object Qload;
