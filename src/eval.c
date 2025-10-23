@@ -7656,7 +7656,9 @@ of those macros.
   dump_add_root_lisp_object (&Vpending_warnings_tail);
   Vpending_warnings_tail = Qnil;
 
-  DEFVAR_LISP ("log-warning-minimum-level", &Vlog_warning_minimum_level);
+  DEFVAR_LISP ("log-warning-minimum-level", &Vlog_warning_minimum_level /*
+Minimum level of warnings that should be logged. */);
+  /* More complete docstring in simple.el. */
   Vlog_warning_minimum_level = Qinfo;
 
   staticpro (&Vautoload_queue);

@@ -10,6 +10,14 @@
 	of moving make-docfile to Lisp. Change generated with unifdef
 	-DLOADHIST and unifdef -DLOADHIST_DUMPED.
 
+2025-10-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* eval.c (vars_of_eval):
+	Add a docstring for Vlog_warning_minimal_level, to avoid random C
+	source ending up in DOC, and in preparation for erroring within
+	make-docfile.el when an empty doc string is supplied for
+	DEFVAR_LISP().
+
 2025-10-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* doc.c (Fdocumentation):
