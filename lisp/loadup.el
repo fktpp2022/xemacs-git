@@ -191,14 +191,6 @@ with the exception of `loadup.el'.")
 	 (set-extent-property extent 'search 'discard)
 	 extent)))
 
-;; We don't want to have any undo records in the dumped XEmacs.
-(buffer-disable-undo (get-buffer "*scratch*"))
-
-;; But we do want undo to work in *scratch* on restart:
-(buffer-enable-undo (get-buffer "*scratch*"))
-
-(garbage-collect)
-
 ;(stop-profiling)
 
 (when (member "dump" command-line-args)

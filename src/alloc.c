@@ -5449,23 +5449,6 @@ disksave_object_finalization (void)
   /* Run the disksave finalization methods of all live objects. */
   disksave_object_finalization_1 ();
 
-  /* Zero out the uninitialized (really, unused) part of the containers
-     for the live strings. */
-  {
-    struct string_chars_block *scb;
-    for (scb = &first_string_chars_block; scb; scb = scb->next)
-      {
-	int count = sizeof (scb->string_chars) - scb->pos;
-
-	assert (count >= 0 && count < STRING_CHARS_BLOCK_SIZE);
-	if (count != 0)
-	  {
-	    /* from the block's fill ptr to the end */
-	    memset ((scb->string_chars + scb->pos), 0, count);
-	  }
-      }
-  }
-
 #ifdef MEMORY_USAGE_STATS
   compute_memusage_stats_length ();
 #endif /* MEMORY_USAGE_STATS */

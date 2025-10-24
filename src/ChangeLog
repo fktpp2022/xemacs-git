@@ -1,3 +1,13 @@
+2025-10-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* alloc.c (disksave_object_finalization):
+	No longer zero the unused parts of the string_chars blocks at dump
+	time, irrelevant with pdump.
+	* undo.c (vars_of_undo):
+	Use staticpro_dump_nil() for pending_boundary and
+	last_undo_buffer, avoid issues when the dumper attempts to dump
+	even a killed buffer.
+
 2025-10-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lisp.h:

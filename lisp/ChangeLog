@@ -1,3 +1,12 @@
+2025-10-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* loadup.el:
+	Remove manipulation of the undo list for *scratch*, irrelevant
+	with pdump.
+	Also no longer any need for a garbage collection here, #'dump-emacs
+	will call that itself and the data-segment-full-of-GCed memory
+	problem of unexec is not present.
+
 2025-10-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* buffer.el (buffer-file-name): New. Moved here from buffer.c.

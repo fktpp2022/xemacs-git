@@ -538,7 +538,10 @@ void
 vars_of_undo (void)
 {
   pending_boundary = Qnil;
-  staticpro (&pending_boundary);
+  staticpro_dump_nil (&pending_boundary);
+
   last_undo_buffer = Qnil;
-  staticpro (&last_undo_buffer);
+  staticpro_dump_nil (&last_undo_buffer);
 }
+
+/* undo.c ends here */
