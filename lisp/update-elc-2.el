@@ -59,7 +59,6 @@
     "^update-elc\\.el$"
     "^update-elc-2\\.el$"
     "^dumped-lisp\\.el$"
-    "^make-docfile\\.el$"
     "^site-start\\.el$"
     "^site-load\\.el$"
     "^site-init\\.el$"))

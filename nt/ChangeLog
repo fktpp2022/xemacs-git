@@ -1,3 +1,9 @@
+2025-10-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* xemacs.mak ($(DOC)):
+	Update rule to call make-docfile.el using --script and using
+	$(run_temacs_args).
+
 2025-10-12  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* xemacs.mak (TEMACS_COMMON_OBJS):

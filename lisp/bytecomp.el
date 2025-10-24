@@ -2316,9 +2316,11 @@ docstrings code.")
       (setq byte-compile-dynamic-docstrings nil))))
 
 (defun byte-compile-output-file-form (form)
-  ;; writes the given form to the output buffer, being careful of docstrings
-  ;; in defun, defmacro, defvar, defconst and autoload because make-docfile is
-  ;; so amazingly stupid.
+  ;; writes the given form to the output buffer, being careful of docstrings in
+  ;; defun, defmacro, defvar, defconst and autoload [because make-docfile is so
+  ;; amazingly stupid.] #### This is no longer the case, and there are
+  ;; downsides to our current approach (e.g. gensyms are not preserved if
+  ;; multiple defuns are within a symbol-macrolet. Consider revision.
   ;; defalias calls are output directly by byte-compile-file-form-defmumble;
   ;; it does not pay to first build the defalias in defmumble and then parse
   ;; it here.

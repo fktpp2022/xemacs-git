@@ -116,20 +116,23 @@
 (defvar lisp-files-needing-early-byte-compilation
   '("easy-mmode"
     "autoload"
-    "shadow"))
+    "shadow"
+    ;; Not (currently) dumped, used in generating DOC before dumping, has heavy
+    ;; use of macros and needs to be byte-compiled.
+    "make-docfile"))
 
 (defvar unbytecompiled-lisp-files
   '("paths.el"
     "dumped-lisp.el"
-    "dumped-pkg-lisp.el"
-    "raw-process.el")
+    "dumped-pkg-lisp.el")
   "Lisp files that should not be byte compiled.
 Files in `additional-dump-dependencies' do not need to be listed here.")
 
 (defvar additional-dump-dependencies
   '("loadup.el"
     "loadup-el.el"
-    "update-elc.el")
+    "update-elc.el"
+    "make-docfile.el")
   "Lisp files that are not dumped but which the dump depends on.
 If any of these files are changed, we need to redump.")
 

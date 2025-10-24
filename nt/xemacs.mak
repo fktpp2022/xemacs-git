@@ -1332,14 +1332,14 @@ docfile :: $(DOC)
 # dependencies for DOC) because DOC needs TEMACS_DOC_SOURCES as dependencies to
 # get $(**) right.  The `touch' is needed because of the way nmake
 # calculates dependencies; see comments in src/Makefile.in.in.
-$(DOC): $(BLDLIB_SRC)\make-docfile.exe $(BLDSRC)\NEEDTODUMP $(TEMACS_DOC_SOURCES)
+$(DOC): $(BLDSRC)\NEEDTODUMP $(TEMACS_DOC_SOURCES)
 !if $(QUICK_BUILD)
-	if not exist $(DOC) $(TEMACS_BATCH) -l $(LISP)\make-docfile.el -- -o $(DOC) -i $(SRCROOT)\site-packages @<<
+	if not exist $(DOC) $(TEMACS_BATCH) $(run_temacs_args) --script $(LISP)\make-docfile.el -o $(DOC) @<<
 $(**)
 <<
 	-touch $(DOC)
 !else
-	$(TEMACS_BATCH) -l $(LISP)\make-docfile.el -- -o $(DOC) -i $(SRCROOT)\site-packages @<<
+	$(TEMACS_BATCH) $(run_temacs_args) --script $(LISP)\make-docfile.el -- -o $(DOC) @<<
 $(**)
 <<
 !endif

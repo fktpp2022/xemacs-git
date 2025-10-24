@@ -29,12 +29,6 @@
 ;; If you are wanting to add files to be dumped into your local version of
 ;; XEmacs, DO NOT add them here.  Use site-init.el or site-load.el instead.
 
-;; ***Note the docstrings for the variables in this file. They follow the
-;; conventions described in lib-src/make-docfile.c, and any new variables or
-;; functions added to this file should follow those conventions too, since
-;; this file is always loaded uncompiled, and the byte-compiler never gets a
-;; chance to format the docstrings in the way make-docfile.c understands.
-
 ;; This is loaded into a bare XEmacs to make a dumpable one.
 
 ;;; Code:

@@ -2809,7 +2809,7 @@ by adding the definitions to the special variable
 use any higher-level functionality that might load @file{custom.el}, but
 you do not need @file{subr.el}, you should @samp{defvar}
 @code{custom-declare-variable-list} to prevent the @samp{void-variable}
-error.  (Currently this is only needed for @file{make-docfile.el}.)
+error.
 
 @node The Modules of XEmacs, The Build Configuration System, Build-Time Dependencies, Top
 @chapter The Modules of XEmacs
@@ -5447,9 +5447,9 @@ first line should be a single sentence.  Note how the documentation
 string is enclosed in a comment, none of the documentation is placed on
 the same lines as the comment-start and comment-end characters, and the
 comment-start characters are on the same line as the interactive
-specification.  @file{make-docfile}, which scans the C files for
-documentation strings, is very particular about what it looks for, and
-will not properly extract the doc string if it's not in this exact format.
+specification.  @file{make-docfile.el}, which scans the C files for
+documentation strings, is particular about what it looks for, and will
+not properly extract the doc string if it's not in this exact format.
 
 In order to make both @file{etags} and @file{make-docfile} happy, make
 sure that the @code{DEFUN} line contains the @var{lname} and

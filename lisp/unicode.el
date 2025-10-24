@@ -362,9 +362,6 @@ Standard encoding for representing UTF-8 under MS Windows."
     (modify-syntax-entry decoded (string (char-syntax ascii-or-latin-1))
 			 syntax-table)))
 
-;; *Sigh*, declarations needs to be at the start of the line to be picked up
-;; by make-docfile.
-
 ;; Create all the Unicode error sequences, normally as jit-ucs-charset-0
 ;; characters starting at U+200000 (which isn't a valid Unicode code
 ;; point). Make them available to user code. 

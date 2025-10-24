@@ -33,14 +33,9 @@
 ;; )
 ;; )
 
-;; The first line and the last line must be exact.  Each of the packages
-;; listed must be double quoted, have either an absolute path, or a relative
-;; to the build src directory path *and* be bytecompiled prior to the attempt
-;; to dump.  They also must explicitly have the .elc extension.
-
-;; Because this is a trial implementation and the file is shared with
-;; make-docfiles, syntax is strict and unforgiving.  So sue me.  It
-;; is still better than the way it used to be.
+;; Documentation will be picked up by the load history and written to DOC in
+;; the normal way at dump time, so there is no specific restriction on the
+;; syntax.
 
 ;; Also note that site-packages belongs in the top level directory not the
 ;; lisp directory for use with --srcdir configurations.

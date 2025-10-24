@@ -1,3 +1,9 @@
+2025-10-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (Build-Time Dependencies):
+	* internals/internals.texi (Writing Lisp Primitives):
+	Update documentation regarding make-docfile here.
+
 2025-10-12  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Allocation by Blocks):

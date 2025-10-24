@@ -1,5 +1,21 @@
 2025-10-24  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* Makefile.in.in:
+	* Makefile.in.in (rallocobjs):
+	* Makefile.in.in (rallocdocsrc): Removed.
+	* Makefile.in.in (mallocobjs):
+	* Makefile.in.in (mallocdocsrc): Removed.
+	* Makefile.in.in ($(LIB_SRC)/DOC):
+	Remove use of ../lib-src/make-docfile from the build process. Take
+	advantage of changes committed today to have make-docfile.elc
+	figure out the Lisp files on its own (by using
+	#'run-emacs-from-temacs and taking advantage of
+	load-history) and just pass the relevant object files rather than
+	having Makefile variables specially constructed to pass the source
+	files to this rule.
+
+2025-10-24  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* alloc.c (disksave_object_finalization):
 	No longer zero the unused parts of the string_chars blocks at dump
 	time, irrelevant with pdump.

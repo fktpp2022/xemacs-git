@@ -1,5 +1,58 @@
 2025-10-24  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* make-docfile.el:
+	* make-docfile.el (usage): New label.
+	* make-docfile.el (fatal): New label.
+	* make-docfile.el (sanitize-C-command-line-arg): New label.
+	* make-docfile.el (canonicalize-file-name-for-output): New label.
+	* make-docfile.el (response-file-as-list): New label.
+	* make-docfile.el (scan-C-file): New label.
+
+	Port the C implementation of make-docfile to this file.
+
+	#'load the relevant files and examine load-history after the fact
+	rather than parsing compiled Lisp in a very fragile manner.
+	For the C files there is no alternative to loading them and
+	parsing them; do this using #'re-search-forward, #'skip-chars and
+	friends, do the same manipulation of the docstrings and the
+	C strings in the modules output that make-docfile.c did.
+
+	If purify-flag is non-nil and we are being called when dumping
+	XEmacs, examine the C sources corresponding to the object files in
+	build-src rather than checking the command line arguments for C
+	sources. Plan is to call this from loadup.el when dumping; not yet
+	possible for other, fixable, reasons.
+
+	Handle -o, -a, -E, -i, @RESPONSE-FILE, NEEDTODUMP, *.exe, *.elc?
+	as did the C implementation if those are passed as command line
+	arguments. Accept -o - to mean to write to standard output. New
+	-?, --help options, both meaning to print a usage message.
+
+	Write the coding system detected for the source C files when -E
+	passed (meaning to generate output appropriate for modules).
+
+	* bytecomp.el (byte-compile-output-file-form):
+	Update comment here, now make-docfile is no longer so amazingly
+	stupid.
+	* loadup.el:
+	Remove related comment here.
+	* raw-process.el: Removed. Had been used by make-docfile.el, no
+	longer needed.
+	* site-load.el:
+	Remove cautions regarding syntax in site-packages.
+	* unicode.el:
+	Remove a comment that is no longer relevant here.
+	* update-elc-2.el (update-elc-ignored-files):
+	Remove make-docfile.el from this.
+	* update-elc.el (lisp-files-needing-early-byte-compilation):
+	Add it to this.
+	* update-elc.el (unbytecompiled-lisp-files):
+	Remove raw-process.el from this.
+	* update-elc.el (additional-dump-dependencies):
+	Add make-docfile.el to this.
+
+2025-10-24  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* loadup.el:
 	Make #'run-emacs-from-temacs function for my purposes; only call
 	#'Snarf-documentation, #'Verify-documentation if dumping, set

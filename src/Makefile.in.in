@@ -1,5 +1,6 @@
 ##   Makefile for src subdirectory in XEmacs.
-##   Copyright (C) 1985, 1987-1988, 1993-1994, 2005 Free Software Foundation, Inc.
+##   Copyright (C) 1985, 1987-1988, 1993-1994, Free Software Foundation, Inc.
+##   Copyright (C) 2005, 2025 Free Software Foundation, Inc.
 ##   Copyright (C) 1994, 1995 Board of Trustees, University of Illinois
 ##   Copyright (C) 1996, 1997 Sun Microsystems, Inc.
 ##   Copyright (C) 1998, 1999 J. Kean Johnston.
@@ -273,12 +274,10 @@ objs=\
 obj_rtl = $(objs:.o=.c.rtl)
 
 #ifdef REL_ALLOC
-rallocdocsrc = ralloc.c
 rallocobjs = ralloc.o
 #endif
 
 malloclib = $(libmcheck)
-mallocdocsrc =
 mallocobjs =
 #ifdef HAVE_MALLOC_WARNING
 mallocobjs += vm-limit.o
@@ -545,21 +544,14 @@ $(BLDSRC)/NEEDTODUMP: $(RAW_EXE) FRC.needtodump
 
 ## (4) Build the DOC file
 
-obj_src = $(objs:.o=.c)
-
-$(LIB_SRC)/make-docfile:
-	cd $(LIB_SRC) && $(MAKE) $(RECURSIVE_MAKE_ARGS) make-docfile
-
-$(LIB_SRC)/DOC: $(LIB_SRC)/make-docfile $(BLDSRC)/NEEDTODUMP $(temacs_deps)
+$(LIB_SRC)/DOC: $(BLDSRC)/NEEDTODUMP $(temacs_deps)
 #ifdef QUICK_BUILD
 	if test ! -f $@ ; then \
 #else
 	if true ; then \
 #endif
-	$(TEMACS_BATCH) -l $(LISP)/make-docfile.el -- \
-		-o $(LIB_SRC)/DOC -d $(SRC) -i $(LIB_SRC)/../site-packages \
-		$(obj_src) $(mallocdocsrc) $(rallocdocsrc) \
-		$(extra_doc_files) ; fi
+	$(TEMACS_BATCH) $(run_temacs_args) --script $(LISP)/make-docfile.elc \
+	-o $(LIB_SRC)/DOC $(objs) $(rallocobjs) $(extra_doc_files) ; fi
 
 ## (5) Dump
 
@@ -853,6 +845,8 @@ xemacs_res.o: $(SRC)/../nt/xemacs.rc
 #########################################################################
 ##                          Other random crap                          ##
 #########################################################################
+
+obj_src = $(objs:.o=.c)
 
 dortl : $(obj_rtl) $(otherrtls)
 	echo "(defvar source-files '(" > $(LISP)/source-files.el
