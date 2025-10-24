@@ -1,6 +1,14 @@
 2025-10-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* loadup.el:
+	Make #'run-emacs-from-temacs function for my purposes; only call
+	#'Snarf-documentation, #'Verify-documentation if dumping, set
+	purify-flag to nil if non-dumping, only clear the load history and
+	the match strings' extent info if dumping.
+
+2025-10-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* loadup.el:
 	Remove manipulation of the undo list for *scratch*, irrelevant
 	with pdump.
 	Also no longer any need for a garbage collection here, #'dump-emacs

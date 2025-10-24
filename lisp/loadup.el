@@ -50,6 +50,9 @@
     ;; debug-on-error t)'
     (setq debug-on-error t))
 
+(if (and purify-flag (member "run-temacs" command-line-args))
+    (setq purify-flag nil))
+
 ;(format-into 'standard-output "command-line-args: %s\n" command-line-args)
 ;(format-into 'standard-output "configure-lisp-directory: %S\n" configure-lisp-directory)
 ;(format-into 'standard-output "configure-data-directory: %S\n" configure-data-directory)
@@ -130,70 +133,52 @@ with the exception of `loadup.el'.")
 ;; For other systems, you must edit ../src/Makefile.in.in.
 (load "site-load" t)
 
-;;FSFmacs randomness
-;;(if (fboundp 'x-popup-menu)
-;;    (precompute-menubar-bindings))
-;;; Turn on recording of which commands get rebound,
-;;; for the sake of the next call to precompute-menubar-bindings.
-;(setq define-key-rebound-commands nil)
-
-;; Note: all compiled Lisp files loaded above this point
-;; must be among the ones parsed by make-docfile
-;; to construct DOC.  Any that are not processed
-;; for DOC will not have doc strings in the dumped XEmacs.
-
-;; Don't bother with these if we're running temacs, i.e. if we're
-;; just debugging don't waste time finding doc strings.
-
-;; purify-flag is nil if called from loadup-el.el.
-(when purify-flag
-  (message "Finding pointers to doc strings...")
-  (Snarf-documentation "DOC")
-  (message "Finding pointers to doc strings...done")
-  (Verify-documentation))
-
-;; Note: You can cause additional libraries to be preloaded
-;; by writing a site-init.el that loads them.
-;; See also "site-load" above.
+;; Note: You can cause additional libraries to be preloaded by writing a
+;; site-init.el that loads them.  See also "site-load" above.
 (when (stringp site-start-file)
   (load "site-init" t))
 
-;; Add information from this file to the load history. Delete information
-;; that is available from DOC for those files in preloaded-file-list; in
-;; practice, this boils down to #'provide and #'require calls, and variables
-;; without documentation. Yes, this is a bit ugly.
-(setq load-history (cons (nreverse current-load-list)
-                         (delete*
-                          nil
-                          (mapc #'(lambda (element)
-                                    (delete* 'defun element :key #'car-safe)
-                                    (delete-if
-                                     #'(lambda (elt)
-                                         (and
-                                          (symbolp elt)
-                                          (get elt 'variable-documentation)))
-                                     element))
-                                load-history)
-                          :key #'cdr))
-      ;; Clear current-load-list; this (and adding information to
-      ;; load-history) is normally done in lread.c after reading the
-      ;; entirety of a file, something which never happens for loadup.el.
+;; Add information from this file to the load history.  Clear
+;; current-load-list; this (and adding information to load-history) is
+;; normally done in lread.c after reading the entirety of a file, something
+;; which never happens for loadup.el.
+(setq load-history (cons (nreverse current-load-list) load-history)
       current-load-list nil)
-;; Make the path to this file look a little nicer: 
-(setcar (car load-history) (file-truename (caar load-history)))
-
-;; String extent info is not dumpable, clear it from the match data now.
-(store-match-data
- (list (let ((extent (make-extent 0 6 "string")))
-	 ;; This property is a signal to the search code, at dump time and
-	 ;; only at dump time, to discard all string extent info that the
-	 ;; search code knows about:
-	 (set-extent-property extent 'search 'discard)
-	 extent)))
 
 ;(stop-profiling)
 
 (when (member "dump" command-line-args)
+  (message "Finding pointers to doc strings...")
+  (Snarf-documentation "DOC")
+  (message "Finding pointers to doc strings...done")
+  (Verify-documentation)
+
+  ;; String extent info is not dumpable, clear it from the match data now.
+  (store-match-data
+   (list (let ((extent (make-extent 0 6 "string")))
+           ;; This property is a signal to the search code, at dump time and
+           ;; only at dump time, to discard all string extent info that the
+           ;; search code knows about:
+           (set-extent-property extent 'search 'discard)
+           extent)))
+
+  ;; Delete information that is available from DOC for those files in
+  ;; preloaded-file-list; in practice, this boils down to #'provide and
+  ;; #'require calls, and variables without documentation. Yes, this is a bit
+  ;; ugly.
+  (setq load-history (delete*
+                      nil
+                      (mapc #'(lambda (element)
+                                (delete* 'defun element :key #'car-safe)
+                                (delete-if
+                                 #'(lambda (elt)
+                                     (and
+                                      (symbolp elt)
+                                      (get elt 'variable-documentation)))
+                                 element))
+                            load-history)
+                      :key #'cdr))
+
   (message "Dumping under the name xemacs")
   (dump-emacs
    "xemacs"
