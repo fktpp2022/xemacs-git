@@ -634,9 +634,9 @@ string is passed through `substitute-command-keys'.
 
   if (SUBRP (fun))
     {
-      if (EQ (XSUBR (fun)->doc, Qnull_pointer) || NILP (XSUBR (fun)->doc))
+      if (NILP (XSUBR (fun)->doc))
 	return Qnil;
-      
+
       if (FIXNUMP (XSUBR (fun)->doc))
         doc = get_doc_string (XSUBR (fun)->doc);
       else
@@ -798,16 +798,13 @@ when doc strings are referred to in the dumped Emacs.
 		     and make it negative for a user-variable
 		     (doc starts with a `*').  */
 		  Lisp_Object old = Fget (sym, Qvariable_documentation, Qzero);
-                  if (!ZEROP (old))
+                  if (FIXNUMP (old))
 		    {
-		      weird_doc (sym, "duplicate",
-				 "variable", pos);
+		      weird_doc (sym, "duplicate", "variable", pos);
 		      /* In the case of duplicate doc file entries, always
-			 take the later one.  But if the doc is not an int
-			 (a string, say) leave it alone. */
-		      if (!FIXNUMP (old))
-			goto weird;
+			 take the later one. */
 		    }
+
 		  Fput (sym, Qvariable_documentation,
                         ((end[1] == '*')
                          ? make_fixnum (- XFIXNUM (offset))
@@ -849,8 +846,7 @@ when doc strings are referred to in the dumped Emacs.
 		  else if (SUBRP (fun))
 		    {
 		      /* Lisp_Subrs have a slot for it.  */
-		      if (!EQ (XSUBR (fun)->doc, Qnull_pointer) &&
-                          !NILP (XSUBR (fun)->doc))
+		      if (!NILP (XSUBR (fun)->doc))
 			{
 			  weird_doc (sym, "duplicate", "subr", pos);
 			  goto weird;
@@ -864,25 +860,15 @@ when doc strings are referred to in the dumped Emacs.
 		      if (EQ (tem, Qlambda) || EQ (tem, Qautoload))
 			{
 			  tem = Fcdr (Fcdr (fun));
-			  if (CONSP (tem) &&
-			      FIXNUMP (XCAR (tem)))
+			  if (CONSP (tem) && STRINGP (XCAR (tem)))
 			    {
-			      Lisp_Object old = XCAR (tem);
-			      if (!ZEROP (old))
-				{
-				  if (EQ (tem, Qlambda))
-				    weird_doc (sym, "duplicate", "lambda",
-					       pos);
-				  else
-				    weird_doc (sym, "duplicate", "autoload",
-					       pos);
-				  /* In the case of duplicate doc file entries,
-				     always take the later one.  But if the doc
-				     is not an int (a string, say) leave it
-				     alone. */
-				  if (!FIXNUMP (old))
-				    goto weird;
-				}
+			      XCAR (tem) = offset;
+			    }
+			  else if (CONSP (tem) && FIXNUMP (XCAR (tem)))
+			    {
+			      /* In the case of duplicate doc file entries,
+				 always take the later one. */
+			      weird_doc (sym, "duplicate", "function", pos);
 			      XCAR (tem) = offset;
 			    }
                           else if (!CONSP (tem))
@@ -892,7 +878,6 @@ when doc strings are referred to in the dumped Emacs.
 			    }
                           else
 			    {
-			      /* DOC string is a string not integer 0 */
 #if 0
 			      weird_doc (sym, "!FIXNUMP(XCAR(tem))",
 					 "function", pos);
@@ -918,17 +903,16 @@ when doc strings are referred to in the dumped Emacs.
 			 have any doc, warn and don't blow up. */
                       Lisp_Object old =
                         compiled_function_documentation (f);
-                      if (!ZEROP (old) && !NILP (old))
+                      if (!NILP (old))
                         {
-                          weird_doc (sym, "duplicate", "bytecode", pos);
-                          /* In the case of duplicate doc file entries,
-                             always take the later one.  But if the doc is
-                             not an int (a string, say) leave it alone. */
-                          if (!FIXNUMP (old))
-                            goto weird;
+			  if (FIXNUMP (old))
+			    {
+			      weird_doc (sym, "duplicate", "bytecode", pos);
+			    }
 
 #ifdef COMPILED_FUNCTION_ANNOTATION_HACK
-                          if (!EQ (sym, compiled_function_annotation (f)))
+                          if (!STRINGP (compiled_function_annotation (f))
+			      && !EQ (sym, compiled_function_annotation (f)))
                             {
                               /* We don't want to set the information for the
                                  alias as the compiled function's details. */
@@ -937,8 +921,6 @@ when doc strings are referred to in the dumped Emacs.
 #endif
                         }
 
-                      /* This may be a function or variable where we want
-                         to make the file name available. */
                       set_compiled_function_documentation (f, offset);
                     }
                   else

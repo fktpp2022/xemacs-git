@@ -354,6 +354,12 @@ the `annotated' slot of the compiled-function (retrievable using
 #ifdef COMPILED_FUNCTION_ANNOTATION_HACK
   if (COMPILED_FUNCTIONP (newdef))
     XCOMPILED_FUNCTION (newdef)->annotated = symbol;
+
+  if (CONSP (newdef) && EQ (Qmacro, XCAR (newdef))
+      && COMPILED_FUNCTIONP (XCDR (newdef)))
+    {
+      XCOMPILED_FUNCTION (XCDR (newdef))->annotated = symbol;
+    }
 #endif /* COMPILED_FUNCTION_ANNOTATION_HACK */
 
   if (!NILP (docstring))

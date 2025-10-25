@@ -1,3 +1,14 @@
+2025-10-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* files.el (convert-standard-filename):
+	Use #'defalias rather than #'fset for our munging of
+	#'convert-standard-file-name on non-windows-nt platforms, so it
+	gets an entry in the load history.
+	* loadup.el (member):
+	Check for DOC being out of date and generate it directly at the
+	time of dump, if necessary, now the data-segment-full-of-GCed
+	memory problem of unexec is gone.
+
 2025-10-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* make-docfile.el:

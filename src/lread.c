@@ -129,8 +129,6 @@ Lisp_Object Vload_read_function;
 Lisp_Object Vread_objects;
 
 /* Nonzero means load should forcibly load all dynamic doc strings.  */
-/* Note that this always happens (with some special behavior) when
-   purify_flag is set. */
 static Boolint load_force_doc_strings;
 
 /* List of descriptors now open for Fload_internal.  */
@@ -444,7 +442,6 @@ load_force_doc_string_unwind (Lisp_Object oldlist)
       if (CONSP (john))
 	{
 	  assert (CONSP (XCAR (john)));
-	  assert (!purify_flag); /* should have been handled in read_list() */
 	  XCAR (john) = pas_de_holgazan_ici (fd, XCAR (john));
 	}
       else
@@ -471,8 +468,6 @@ load_force_doc_string_unwind (Lisp_Object oldlist)
 	  doc = compiled_function_documentation (XCOMPILED_FUNCTION (john));
 	  if (CONSP (doc))
 	    {
-	      assert (!purify_flag); /* should have been handled in
-					read_compiled_function() */
 	      doc = pas_de_holgazan_ici (fd, doc);
 	      set_compiled_function_documentation (XCOMPILED_FUNCTION (john),
 						   doc);
@@ -2323,63 +2318,56 @@ read_string (Lisp_Object readcharfun, Ichar delim, int raw,
      and print_internal(). */
 #endif
   Ichar c;
-  int cancel = 0;
 
-  Lstream_rewind(XLSTREAM(Vread_buffer_stream));
-  while ((c = readchar(readcharfun)) >= 0 && c != delim)
+  Lstream_rewind (XLSTREAM (Vread_buffer_stream));
+  while ((c = readchar (readcharfun)) >= 0 && c != delim)
     {
-    if (c == '\\') 
-      {
-	if (raw) 
-	  {
-	    c = readchar(readcharfun);
-	    if (honor_unicode && ('u' == c || 'U' == c))
-	      {
-		c = read_unicode_escape(readcharfun,
-					'U' == c ? 8 : 4);
-	      }
-	    else
-	      {
-		/* For raw strings, insert the
-		   backslash and the next char, */
-		Lstream_put_ichar(XLSTREAM
-				  (Vread_buffer_stream),
-				  '\\');
-	      }
-	  } 
-	else
-	  /* otherwise, backslash escapes the next char. */
-	  c = read_escape(readcharfun);
-      }
-    /* c is -1 if \ newline has just been seen */
-    if (c == -1) 
-      {
-	if (Lstream_byte_count
-	  (XLSTREAM(Vread_buffer_stream)) ==
-	  0)
-	  cancel = 1;
-      } 
-    else
-      Lstream_put_ichar(XLSTREAM
-			 (Vread_buffer_stream),
-			 c);
-    QUIT;
+      if (c == '\\') 
+	{
+	  if (raw) 
+	    {
+	      c = readchar (readcharfun);
+	      if (honor_unicode && ('u' == c || 'U' == c))
+		{
+		  c = read_unicode_escape (readcharfun,
+					   'U' == c ? 8 : 4);
+		}
+	      else
+		{
+		  /* For raw strings, insert the
+		     backslash and the next char, */
+		  Lstream_put_ichar (XLSTREAM
+				     (Vread_buffer_stream),
+				     '\\');
+		}
+	    } 
+	  else
+	    {
+	      /* otherwise, backslash escapes the next char. */
+	      c = read_escape (readcharfun);
+	    }
+	}
+
+      /* c is -1 if \ newline has just been seen */
+      if (c != -1)
+	{
+	  Lstream_put_ichar (XLSTREAM (Vread_buffer_stream), c);
+	}
+
+      QUIT;
     }
+
   if (c < 0)
-    return Fsignal(Qend_of_file,
-		   list1(READCHARFUN_MAYBE(readcharfun)));
+    {
+      return Fsignal (Qend_of_file,
+		      list1 (READCHARFUN_MAYBE (readcharfun)));
+    }
 
-  /* If purifying, and string starts with \ newline,
-     return zero instead.  This is for doc strings
-     that we are really going to find in lib-src/DOC.nn.nn  */
-  if (purify_flag && NILP(Vinternal_doc_file_name)
-      && cancel)
-    return Qzero;
+  Lstream_flush (XLSTREAM (Vread_buffer_stream));
 
-  Lstream_flush(XLSTREAM(Vread_buffer_stream));
-  return make_string(resizing_buffer_stream_ptr
-		     (XLSTREAM(Vread_buffer_stream)),
-		     Lstream_byte_count(XLSTREAM(Vread_buffer_stream)));
+  return make_string (resizing_buffer_stream_ptr
+		      (XLSTREAM (Vread_buffer_stream)),
+		      Lstream_byte_count (XLSTREAM (Vread_buffer_stream)));
 }
 
 static Lisp_Object
@@ -2552,8 +2540,7 @@ retry:
 #endif
             /* "#["-- byte-code constant syntax */
             /* purecons #[...] syntax */
-	  case '[': return read_compiled_function (readcharfun, ']'
-						   /*, purify_flag */ );
+	  case '[': return read_compiled_function (readcharfun, ']');
             /* "#:"-- gensym syntax */
 	  case ':': return read_uninterned_symbol (readcharfun);
             /* #'x => (function x) */
@@ -3096,7 +3083,7 @@ read_list (Lisp_Object readcharfun,
 
   sequence_reader (readcharfun, terminator, &s, read_list_conser);
 
-  if ((purify_flag || load_force_doc_strings) && check_for_doc_references)
+  if (load_force_doc_strings && check_for_doc_references)
     {
       /* check now for any doc string references and record them
 	 for later. */
@@ -3128,35 +3115,12 @@ read_list (Lisp_Object readcharfun,
 
 	  if (CONSP (holding_cons))
 	    {
-	      if (purify_flag)
-		{
-		  if (NILP (Vinternal_doc_file_name))
-		    /* We have not yet called Snarf-documentation, so
-		       assume this file is described in the DOC file
-		       and Snarf-documentation will fill in the right
-		       value later.  For now, replace the whole list
-		       with 0.  */
-		    XCAR (holding_cons) = Qzero;
-		  else
-		    /* We have already called Snarf-documentation, so
-		       make a relative file name for this file, so it
-		       can be found properly in the installed Lisp
-		       directory.  We don't use Fexpand_file_name
-		       because that would make the directory absolute
-		       now.  */
-		    XCAR (XCAR (holding_cons)) =
-		      concat2 (build_ascstring ("../lisp/"),
-			       Ffile_name_nondirectory
-			       (Vload_file_name_internal));
-		}
-	      else
-		/* Not pure.  Just add to Vload_force_doc_string_list,
-		   and the string will be filled in properly in
-		   load_force_doc_string_unwind(). */
-		Vload_force_doc_string_list =
-		  /* We pass the cons that holds the (#$ . INT) so we
-		     can modify it in-place. */
-		  Fcons (holding_cons, Vload_force_doc_string_list);
+	      /* Add to Vload_force_doc_string_list, and the string will be
+		 filled in properly in load_force_doc_string_unwind(). */
+	      Vload_force_doc_string_list =
+		/* We pass the cons that holds the (#$ . INT) so we
+		   can modify it in-place. */
+		Fcons (holding_cons, Vload_force_doc_string_list);
 	    }
 	}
     }
@@ -3252,24 +3216,11 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
           }
         else
 #endif /* NEED_TO_HANDLE_21_4_CODE */
-        if ((purify_flag || load_force_doc_strings)
-            && CONSP (make_byte_code_args[iii])
+        if (load_force_doc_strings && CONSP (make_byte_code_args[iii])
             && EQ (XCAR (make_byte_code_args[iii]),
                    Vload_file_name_internal))
           {
-            if (purify_flag && iii == COMPILED_DOC_STRING)
-              {
-                /* same as in read_list(). */
-                if (NILP (Vinternal_doc_file_name))
-                  make_byte_code_args[iii] = Qzero;
-                else
-                  XCAR (make_byte_code_args[iii]) =
-                    concat2 (build_ascstring ("../lisp/"),
-                             Ffile_name_nondirectory
-                             (Vload_file_name_internal));
-              }
-            else
-              saw_a_doc_ref = 1;
+	    saw_a_doc_ref = 1;
           }
         
         iii++;

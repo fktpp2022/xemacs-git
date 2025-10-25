@@ -1,3 +1,43 @@
+2025-10-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Remove a separate call to ../lisp/make-docfile.elc at build time,
+	load that file and create DOC at the same time we are generating
+	xemacs.dmp. Remove Makefile targets related to DOC.
+
+	* Makefile.in.in:
+	* Makefile.in.in ($(DOC)): Target removed, delegate to loadup.el
+	when dumping.
+	* Makefile.in.in ($(DUMP_TARGET)):
+	* Makefile.in.in ($(LISP)/finder-inf.el):
+	Remove dependency on ../lib-src/DOC. Correct numbering of
+	comments.
+	* doc.c (Fdocumentation):
+	The DOC field of a subr is now never Qnil_pointer (see defsubr()),
+	remove a check for this.
+	* doc.c (Fsnarf_documentation):
+	Remove handling of code in lread.c that set documentation slots to
+	Qzero if PURIFY_FLAG, for variables, subrs, compiled functions. If
+	a compiled function annotation is a string (so a file name,
+	implying it was not initialized by #'defalias), go ahead and set
+	it to the fixnum doc slot encountered.
+	* lread.c:
+	Update a comment for load_force_doc_strings.
+	* lread.c (load_force_doc_string_unwind):
+	Remove a couple of assertions here, no longer appropriate.
+	* lread.c (read_string):
+	Remove code that returned Qzero if reading a string starting with
+	"\\\n" if PURIFY_FLAG.
+	* lread.c (read1):
+	Remove mention of PURIFY_FLAG from here.
+	* lread.c (read_list):
+	Remove special handling of PURIFY_FLAG here.
+	* lread.c (read_compiled_function):
+	Ditto.
+	* symbols.c (Fdefine_function):
+	If COMPILED_FUNCTION_ANNOTATION_HACK and initializing a macro, set
+	the annotation of NEWDEF to the symbol name of the macro in the
+	same way as for functions.
+
 2025-10-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* Makefile.in.in:

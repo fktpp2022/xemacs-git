@@ -1320,36 +1320,12 @@ update-elc: $(RAW_EXE)
 $(BLDSRC)\NEEDTODUMP:
 	@echo >$(BLDSRC)\NEEDTODUMP
 
-## (4) Build the DOC file
-
-DOC=$(BLDLIB_SRC)\DOC
-
-docfile ::
-	if exist $(DOC) $(DEL) $(DOC)
-docfile :: $(DOC)
-
-# We need to write the QUICK_BUILD stuff as-is (and not just have no
-# dependencies for DOC) because DOC needs TEMACS_DOC_SOURCES as dependencies to
-# get $(**) right.  The `touch' is needed because of the way nmake
-# calculates dependencies; see comments in src/Makefile.in.in.
-$(DOC): $(BLDSRC)\NEEDTODUMP $(TEMACS_DOC_SOURCES)
-!if $(QUICK_BUILD)
-	if not exist $(DOC) $(TEMACS_BATCH) $(run_temacs_args) --script $(LISP)\make-docfile.el -o $(DOC) @<<
-$(**)
-<<
-	-touch $(DOC)
-!else
-	$(TEMACS_BATCH) $(run_temacs_args) --script $(LISP)\make-docfile.el -- -o $(DOC) @<<
-$(**)
-<<
-!endif
-
-## (5) Dump
+## (4) Dump (and build DOC in the course of this, if necessary)
 
 # This rule dumps xemacs and then possibly spawns sub-make if PURESPACE
 # requirements have changed.
 
-$(DUMP_TARGET): $(DOC) $(RAW_EXE) $(BLDSRC)\NEEDTODUMP
+$(DUMP_TARGET): $(RAW_EXE) $(BLDSRC)\NEEDTODUMP
 	$(TEMACS_BATCH) -l $(LISP)\loadup.el dump
 	cd $(BLDSRC)
 	rc -d INCLUDE_DUMP -Fo $(OUTDIR)\xemacs.res $(NT)\xemacs.rc
@@ -1365,12 +1341,12 @@ $(DUMP_TARGET): $(DOC) $(RAW_EXE) $(BLDSRC)\NEEDTODUMP
 	if exist $@.manifest mt -manifest $@.manifest -outputresource:$@;1
 !endif
 
-## (6) Update the remaining .elc's, post-dumping
+## (5) Update the remaining .elc's, post-dumping
 
 update-elc-2: $(DUMP_TARGET)
 	$(XEMACS_BATCH) -no-autoloads -l update-elc-2.el -f batch-update-elc-2 $(LISP)
 
-## (7) Other random stuff
+## (6) Other random stuff
 
 $(LISP)/finder-inf.el: update-elc-2
 !if !$(QUICK_BUILD)

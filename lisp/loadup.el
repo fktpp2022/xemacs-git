@@ -142,6 +142,8 @@ with the exception of `loadup.el'.")
 ;(stop-profiling)
 
 (when (member "dump" command-line-args)
+  ;; Generate DOC if it is out of date.
+  (load "make-docfile")
   (message "Finding pointers to doc strings...")
   (Snarf-documentation "DOC")
   (message "Finding pointers to doc strings...done")

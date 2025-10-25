@@ -1,3 +1,13 @@
+2025-10-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* xemacs.mak:
+	* xemacs.mak (DOC): Removed, now generated in Lisp as part of the
+	dump process.
+	* xemacs.mak ($(DUMP_TARGET)): Remove a dependency on it.
+	* xemacs.mak (docfile): Remove this variable.
+	* xemacs.mak ($(LISP)/finder-inf.el):
+	Re-number targets.
+
 2025-10-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* xemacs.mak ($(DOC)):

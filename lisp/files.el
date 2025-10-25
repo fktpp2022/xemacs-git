@@ -560,7 +560,7 @@ and ignores this variable."
 
 (when (and (not (eq system-type 'windows-nt))
 	   (compiled-function-p (symbol-function 'convert-standard-filename)))
-  (fset 'convert-standard-filename
+  (defalias 'convert-standard-filename
 	(make-byte-code
 	 (compiled-function-arglist (symbol-function 'identity))
 	 (compiled-function-instructions (symbol-function 'identity))

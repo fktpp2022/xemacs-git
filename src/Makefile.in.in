@@ -542,32 +542,21 @@ FRC.needtodump:
 $(BLDSRC)/NEEDTODUMP: $(RAW_EXE) FRC.needtodump
 	$(TEMACS_BATCH) -l $(LISP)/update-elc.el
 
-## (4) Build the DOC file
-
-$(LIB_SRC)/DOC: $(BLDSRC)/NEEDTODUMP $(temacs_deps)
-#ifdef QUICK_BUILD
-	if test ! -f $@ ; then \
-#else
-	if true ; then \
-#endif
-	$(TEMACS_BATCH) $(run_temacs_args) --script $(LISP)/make-docfile.elc \
-	-o $(LIB_SRC)/DOC $(objs) $(rallocobjs) $(extra_doc_files) ; fi
-
-## (5) Dump
+## (4) Dump (which generates $(LIB_SRC)/DOC as part of the process)
 
 #if defined(DUMP_IN_EXEC) && !defined (WIN32_NATIVE)
-## (5a) Dump into an external file.
-@DUMP_FILE_NAME@: $(RAW_EXE) $(BLDSRC)/NEEDTODUMP $(LIB_SRC)/DOC
+## (4a) Dump into an external file.
+@DUMP_FILE_NAME@: $(RAW_EXE) $(BLDSRC)/NEEDTODUMP
 	@$(RM) $@
 	$(dump_temacs)
 
-## (5b) Check the size of the dump file.
+## (4b) Check the size of the dump file.
 ## The echo `wc -c ...` below looks redundant at initial review, but Apple's wc
 ## is needlessly generous with leading spaces.
 dump-size: @DUMP_FILE_NAME@
 	@echo `wc -c < @DUMP_FILE_NAME@` > dump-size
 
-## (5c) Make sure the dump file size is the same as that known when temacs was
+## (4c) Make sure the dump file size is the same as that known when temacs was
 ## built; if not, rebuild temacs and re-dump to ensure that addresses within
 ## temacs and within the dump file are accurate.
 dump-size-correct: dump-size
@@ -578,8 +567,8 @@ dump-size-correct: dump-size
 		$(MAKE) $(RECURSIVE_MAKE_ARGS) $@; \
 	fi
 
-## (5d) Re-link into the xemacs binary with the up-to-date dump data. 
-## We know NEEDTODUMP, DOC and friends are up to date because we have
+## (4d) Re-link into the xemacs binary with the up-to-date dump data. 
+## We know NEEDTODUMP and friends are up to date because we have
 ## successfully dumped, mung the modification times with touch(1) so that
 ## make(1) doesn't think that both temacs and xemacs need to be rebuilt again
 ## inappropriately if it is invoked once more (e.g. for make install).
@@ -589,22 +578,22 @@ $(PROGNAME): dump-size-correct
 	echo $(LD) $(ldflags) $(start_flags) -o $@ $(start_files) $(objs) $(otherobjs) dump-data.o $(DUMP_ID) $(LIBES); \
 	$(LD) $(ldflags) $(start_flags) -o $@ $(start_files) $(objs) $(otherobjs) dump-data.o $(DUMP_ID) $(LIBES); \
 	touch -r $(RAW_EXE) $(DUMP_ID); touch -r $(RAW_EXE) dump-id.c; \
-	touch -r $(RAW_EXE) dump-data.o; touch -r $(RAW_EXE) $(LIB_SRC)/DOC \
+	touch -r $(RAW_EXE) dump-data.o; \
 	touch -r $(RAW_EXE) $(BLDSRC)/NEEDTODUMP
 
 #else
-$(DUMP_TARGET): $(RAW_EXE) $(BLDSRC)/NEEDTODUMP $(LIB_SRC)/DOC
+$(DUMP_TARGET): $(RAW_EXE) $(BLDSRC)/NEEDTODUMP
 	@$(RM) $@
 	$(dump_temacs)
 #endif
 
-## (6) Update the remaining .elc's, post-dumping
+## (5) Update the remaining .elc's, post-dumping
 
 .PHONY: update-elc-2
 update-elc-2: $(DUMP_TARGET)
 	$(XEMACS_BATCH) -no-autoloads -l update-elc-2.el -f batch-update-elc-2 $(LISP)
 
-## (7) Other random stuff
+## (6) Other random stuff
 
 $(LISP)/finder-inf.el: update-elc-2
 	@echo "Building finder database ..."
