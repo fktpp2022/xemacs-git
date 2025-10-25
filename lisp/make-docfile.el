@@ -453,8 +453,14 @@ than `build-directory' if appropriate. "
 	    (when (member 'quick-build internal-error-checking)
 	      ;; Reset below, avoid the stat(2) for all the relevant files.
 	      (setq docfile-out-of-date t))
-	    (dolist (arg (directory-files build-src nil
-					  "\\.\\(?:obj\\|o\\)\\'" nil t))
+	    (dolist (arg (set-difference
+                          (directory-files build-src nil
+                                           "\\.\\(?:obj\\|o\\)\\'" nil t)
+                          ;; Kludge; right thing to do is to fix the stupid
+                          ;; rule in Makefile.in.in that does a mv for these
+                          ;; files.
+                          '("TopLevelEmacsShell.o" "TransientEmacsShell.o")
+                          :test #'equal))
 	      (sanitize-C-command-line-arg arg)))
 
         ;; Not being loaded from directly from loadup.el when dumping, examine

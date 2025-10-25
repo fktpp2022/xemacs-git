@@ -1,5 +1,12 @@
 2025-10-25  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* make-docfile.el:
+	Kludge around a couple of stupid rules in ../src/Makefile.in.in
+	that do mv EmacsShell-sub.o TransientEmacsShell.o and mv
+	EmacsShell-sub.o TransientEmacsShell.o, fix the X11 build.
+
+2025-10-25  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* files.el (convert-standard-filename):
 	Use #'defalias rather than #'fset for our munging of
 	#'convert-standard-file-name on non-windows-nt platforms, so it
