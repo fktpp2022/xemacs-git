@@ -67,16 +67,22 @@
      (docfile-out-of-date #:docfile-out-of-date)
      (source-src #:source-src)
      (build-src #:build-src)
+     (build-obj #:build-obj)
      (defined-lisp-objects #:defined-lisp-objects)
      (define-lisp-object #:define-lisp-object))
 
-  (let
+  (let*
       ;; We're interested in these directories and they are not provided by
       ;; loadup.el:
       ((source-src (file-name-as-directory
                     (expand-file-name "src" source-directory)))
        (build-src (file-name-as-directory
                    (expand-file-name "src" build-directory)))
+       (build-obj (if (eq system-type 'windows-nt)
+                      (expand-file-name "obj"
+                                        (expand-file-name "nt"
+                                                          build-directory))
+                    build-src))
 
        (source-directory (file-name-as-directory source-directory))
 
@@ -165,9 +171,16 @@ than `build-directory' if appropriate. "
              (setq arg (expand-file-name arg)))
            (unless (member arg C-files)
              (when (and (not docfile-out-of-date)
+                        ;; Visual Studio regenerates this with every build,
+                        ;; ignore it.
+                        (or (not (search "dump-id.c" arg))
+                            (not (equal (file-name-nondirectory arg)
+                                        "dump-id.c")))
                         (file-newer-than-file-p arg docfile))
                (setq docfile-out-of-date t))
-             (setq C-files (cons arg C-files))))
+	     (if (and purify-flag (member "dump" command-line-args))
+		 (if (file-exists-p arg) (setq C-files (cons arg C-files)))
+	       (setq C-files (cons arg C-files)))))
 
          (canonicalize-file-name-for-output (filename)
            ;; #### Revise this to make everything either relative to
@@ -453,14 +466,8 @@ than `build-directory' if appropriate. "
 	    (when (member 'quick-build internal-error-checking)
 	      ;; Reset below, avoid the stat(2) for all the relevant files.
 	      (setq docfile-out-of-date t))
-	    (dolist (arg (set-difference
-                          (directory-files build-src nil
-                                           "\\.\\(?:obj\\|o\\)\\'" nil t)
-                          ;; Kludge; right thing to do is to fix the stupid
-                          ;; rule in Makefile.in.in that does a mv for these
-                          ;; files.
-                          '("TopLevelEmacsShell.o" "TransientEmacsShell.o")
-                          :test #'equal))
+	    (dolist (arg (directory-files build-obj nil
+					  "\\.\\(?:obj\\|o\\)\\'" nil t))
 	      (sanitize-C-command-line-arg arg)))
 
         ;; Not being loaded from directly from loadup.el when dumping, examine
@@ -550,6 +557,10 @@ than `build-directory' if appropriate. "
 	;; make-docfile.c easier:
 	(setq load-history (reverse load-history)
 	      C-files (reverse C-files))
+	(when (and purify-flag (member "dump" command-line-args)
+		   (not C-files))
+	  (fatal
+	   "could not find any C files at all, check build-obj correct"))
         (let ((output-stream (if (equal docfile "-")
                                  t
                                (generate-new-buffer docfile)))

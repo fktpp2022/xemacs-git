@@ -1,5 +1,30 @@
 2025-10-25  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Get aaf28990a2bd building on Cygwin and Visual Studio.
+
+	* make-docfile.el (build-obj): New local variable.
+	Reflects build-directory/nt/obj on a native Windows build,
+	build-src on a non-Windows build.
+	* make-docfile.el (sanitize-C-command-line-arg):
+	Avoid checking whether dump-id.c is out of date, since Visual
+	Studio regenerates it with every build.
+	If being called when dumping, only scan a putative C file (given a
+	.o file) if it exists, since on Cygwin there are also many .o files in
+	src/ without a corresponding .c file, compare the stupid rules of
+	my last ChangeLog entry.
+	* make-docfile.el:
+	If there are no putative C files when dumping give a fatal error,
+	since that suggest the relevant directory is rong.
+	No longer remove "TopLevelEmacsShell.o" "TransientEmacsShell.o"
+	from the list of files we're interest in.
+	* update-elc.el (lisp-files-needing-early-byte-compilation):
+	Clarify a comment regarding make-docfile.
+	* update-elc.el:
+	If DOC doesn't exist, we need to dump, set
+	dump-target-out-of-date-wrt-dump-files appropriately.
+
+2025-10-25  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* make-docfile.el:
 	Kludge around a couple of stupid rules in ../src/Makefile.in.in
 	that do mv EmacsShell-sub.o TransientEmacsShell.o and mv

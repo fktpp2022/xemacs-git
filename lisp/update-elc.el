@@ -117,8 +117,7 @@
   '("easy-mmode"
     "autoload"
     "shadow"
-    ;; Not (currently) dumped, used in generating DOC before dumping, has heavy
-    ;; use of macros and needs to be byte-compiled.
+    ;; Not in preloaded-file-list but loaded when dumping to generate DOC.
     "make-docfile"))
 
 (defvar unbytecompiled-lisp-files
@@ -316,6 +315,14 @@ differently depending on the presence of certain features, especially
                      (setq need-to-rebuild-module-autoloads t)))
 	     (directory-files full-dir t "\\.c$" nil t)))
    (directory-files source-modules t nil t 'subdirs))
+
+  (if (eq dump-target-out-of-date-wrt-dump-files nil)
+      (setq dump-target-out-of-date-wrt-dump-files
+	    (eq (file-exists-p
+		 (expand-file-name "DOC"
+				   (expand-file-name "lib-src"
+						     build-directory)))
+		nil)))
 
   (if dump-target-out-of-date-wrt-dump-files
       (condition-case nil
