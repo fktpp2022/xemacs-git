@@ -21,8 +21,8 @@ extents work.
 * Annotation Primitives::	Creating and deleting annotations.
 * Annotation Properties::	Retrieving and changing the characteristics
 				  of an annotation.
-* Margin Primitives::		Controlling the size of the margins.
 * Locating Annotations::	Looking for annotations in a buffer.
+* Margin Primitives::		Controlling the size of the margins.
 * Annotation Hooks::		Hooks called at certain times during an
 				  annotation's lifetime.
 @end menu

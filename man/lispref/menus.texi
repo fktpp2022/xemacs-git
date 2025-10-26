@@ -12,8 +12,8 @@
 * Menubar Format::      How to specify a menubar.
 * Menubar::             Functions for controlling the menubar.
 * Modifying Menus::     Modifying a menu description.
-* Pop-Up Menus::        Functions for specifying pop-up menus.
 * Menu Filters::        Filter functions for the default menubar.
+* Pop-Up Menus::        Functions for specifying pop-up menus.
 * Menu Accelerators::   Using and controlling menu accelerator keys
 * Buffers Menu::        The menu that displays the list of buffers.
 @end menu

@@ -1267,8 +1267,8 @@ be omitted from terminal descriptions as well.
 * Basic::             Basic characteristics.
 * Screen Size::       Screen size, and what happens when it changes.
 * Cursor Motion::     Various ways to move the cursor.
-* Scrolling::         Pushing text up and down on the screen.
 * Wrapping::          What happens if you write a character in the last column.
+* Scrolling::         Pushing text up and down on the screen.
 * Windows::           Limiting the part of the window that output affects.
 * Clearing::          Erasing one or many lines.
 * Insdel Line::       Making new blank lines in mid-screen; deleting lines.

@@ -25,7 +25,6 @@ it is based on @dfn{MULE}.
 * Category Tables::     Subdividing charsets into groups.
 * Unicode Support::     The universal coded character set.
 * Charset Unification:: Handling overlapping character sets.
-* Charsets and Coding Systems:: Tables and reference information.
 @end menu
 
 @node Internationalization Terminology, Charsets, , MULE
@@ -2595,8 +2594,8 @@ too, preferably with patches.
 * Configuration::               Configuring Unification for use.
 * Theory of Operation::         How Unification works.
 * What Unification Cannot Do for You::  Inherent problems of 8-bit charsets.
-* Charsets and Coding Systems:: Reference lists with annotations.
 * Unification Internals::       Utilities and implementation details.
+* Charsets and Coding Systems:: Reference lists with annotations.
 @end menu
 
 @node Overview, Usage, Charset Unification, Charset Unification
@@ -3238,7 +3237,7 @@ using the UTF-8 transformation format.  If you really need the space,
 compress your files.
 
 
-@node Unification Internals, , What Unification Cannot Do for You, Charset Unification
+@node Unification Internals, Charsets and Coding Systems, What Unification Cannot Do for You, Charset Unification
 @subsection Internals
 
 No internals documentation yet.
@@ -3253,7 +3252,7 @@ to @file{unity-tables.el}.  Loading the latter file initializes
 @end defun
 
 
-@node Charsets and Coding Systems, , Charset Unification, MULE
+@node Charsets and Coding Systems, , Unification Internals, Charset Unification
 @subsection Charsets and Coding Systems
 
 This section provides reference lists of Mule charsets and coding

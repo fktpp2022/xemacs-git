@@ -195,7 +195,9 @@ Recovery from Problems.
 * Quitting::    Quitting and aborting.
 * Lossage::     What to do if XEmacs is hung or malfunctioning.
 * Bugs::        How and when to report a bug.
+@end menu
 
+@detailmenu
 Here are some other nodes which are really inferiors of the ones
 already listed, mentioned here so you can get to them in one step:
 
@@ -618,7 +620,7 @@ Dealing with XEmacs Trouble
                         What to do if XEmacs stops responding.
 * Total Frustration::  When you are at your wits' end.
 
-@end menu
+@end detailmenu
 
 @iftex
 @unnumbered Preface

@@ -258,7 +258,7 @@ buffers.
                                 the frame
 @end menu
 
-@node Edit menu, Options Menu, File menu, Pull-down Menus
+@node Edit menu, Options Menu, File menu, File menu
 @subsection The Edit Menu
 @cindex Undo menu item
 @cindex Cut menu item
@@ -323,7 +323,7 @@ User's Manual}, for further information.
 @end table
 
 @comment  node-name,  next,  previous,  up
-@node Options Menu, Buffers Menu, Edit menu, Pull-down Menus
+@node Options Menu, Buffers Menu, Edit menu, File menu
 @subsection The Options Menu
 @cindex Options menu
 @cindex Read Only menu item
@@ -439,7 +439,7 @@ you won't need to select the options again.
 
 
 @comment  node-name,  next,  previous,  up
-@node Buffers Menu, Help menu, Options Menu, Pull-down Menus
+@node Buffers Menu, Help menu, Options Menu, File menu
 @subsection The Buffers Menu
 @cindex Buffers menu
 The @b{Buffers} menu provides a selection of up to ten buffers and the
@@ -449,7 +449,7 @@ sub-menus for each of the buffer listing.
 
 
 @comment  node-name,  next,  previous,  up
-@node Help menu,  , Buffers Menu, Pull-down Menus
+@node Help menu,  , Buffers Menu, File menu
 @subsection The Help Menu
 @cindex Help menu
 

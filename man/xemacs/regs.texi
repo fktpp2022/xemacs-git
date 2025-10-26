@@ -32,8 +32,8 @@ displays the contents of the specified register.
 * Text: RegText.              Saving text in registers.
 * Rectangle: RegRect.         Saving rectangles in registers.
 * Configurations: RegConfig.  Saving window configurations in registers.
-* Files: RegFiles.            File names in registers.
 * Numbers: RegNumbers.        Numbers in registers.
+* Files: RegFiles.            File names in registers.
 * Bookmarks::                 Bookmarks are like registers, but persistent.
 @end menu
 

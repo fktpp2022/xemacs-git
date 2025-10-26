@@ -39,7 +39,7 @@ use @TeX{} mode; for input to nroff, Nroff mode.
 * Case::        Changing the case of text
 @end menu
 
-@node Text Mode, Words, Text, Text
+@node Text Mode, Nroff Mode, Text, Text
 @section Text Mode
 
 @findex tab-to-tab-stop
@@ -601,7 +601,7 @@ You can turn off the use of ellipses at the ends of visible lines by
 setting @code{selective-display-ellipses} to @code{nil}.  The result is
 no visible indication of the presence of invisible lines.
 
-@node Words, Sentences, Text Mode, Text
+@node Words, Sentences, Outline Mode, Text
 @section Words
 @cindex words
 @cindex Meta

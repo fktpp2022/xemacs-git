@@ -613,7 +613,7 @@ local time (corrected for daylight savings, when appropriate); but if
 the variable @code{calendar-time-zone} is void, Coordinated Universal
 Time (the Greenwich time zone) is used.  @xref{Daylight Savings}.
 
-@node Other Calendars, Calendar Systems, Lunar Phases, Calendar/Diary
+@node Other Calendars, Diary, Lunar Phases, Calendar/Diary
 @subsection  Conversion To and From Other Calendars
 
 @cindex Gregorian calendar
@@ -929,7 +929,7 @@ haab/tzolkin date combination you have typed is impossible.
 asks you to type a Mayan name, so you don't have to worry about
 spelling.
 
-@node Diary, Calendar Customization, Mayan Calendar, Calendar/Diary
+@node Diary, Calendar Customization, Other Calendars, Calendar/Diary
 @subsection The Diary
 @cindex diary
 
