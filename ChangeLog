@@ -1,3 +1,11 @@
+2025-10-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* Makefile.in.in (distclean):
+	Add top-realclean-noconfig as a dependency of this, remove
+	generated ELC files given we will be working on the byte compiler
+	for the foreseeable future. Thank you for the bug report, Henry
+	S. Thompson.
+
 2025-09-04  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* configure.ac: Fix autodetection of libpng with the C++ build,

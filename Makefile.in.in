@@ -653,7 +653,7 @@ top-distclean: FRC.distclean
 	-$(RM) GNUmakefile Makefile Makefile.in
 	-$(RM) Installation.el Installation.elc
 
-distclean: top-mostlyclean top-clean top-distclean-noconfig top-distclean
+distclean: top-mostlyclean top-clean top-distclean-noconfig top-distclean top-realclean-noconfig
 	for d in $(SUBDIR); do (cd ./$$d && $(MAKE) $(RECURSIVE_MAKE_ARGS) $@); done
 
 ## `realclean-noconfig'
