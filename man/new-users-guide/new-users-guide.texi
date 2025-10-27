@@ -126,7 +126,9 @@ Other Features of XEmacs
 * Select and Move::             Selecting text and moving text 
 * Search and Replace::          Searching and Replacing text
 
+@end menu
 
+@detailmenu
 
  --- The Detailed Node Listing ---
 
@@ -197,7 +199,7 @@ Selecting and Moving Text
 * Accumulating text::           Accumulating Text from several buffers
 
 No sub menu for the node search and replace
-@end menu
+@end detailmenu
 
 @node Intro,Key Index  ,Top , Top
 @unnumbered Introduction

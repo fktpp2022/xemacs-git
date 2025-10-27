@@ -114,7 +114,9 @@ module support documentation.
 * Defining Functions::          Creating new Lisp primitives
 * Defining Variables::          Creating new Lisp variables
 * Index::                       Concept Index
+@end menu
 
+@detailmenu
  --- The Detailed Node Listing ---
 
 Anatomy of a Module
@@ -136,7 +138,7 @@ Defining Functions
 
 * Using DEFUN::                 Using the DEFUN macro to define functions
 * Declaring Functions::         Declaring functions to the Lisp reader
-@end menu
+@end detailmenu
 
 @end ifinfo
 

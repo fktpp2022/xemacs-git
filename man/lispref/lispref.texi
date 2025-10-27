@@ -227,7 +227,9 @@ Appendices
 
 * Index::                   Index including concepts, functions, variables,
                               and other terms.
+@end menu
 
+@detailmenu
       --- The Detailed Node Listing ---
 
 Here are other nodes that are inferiors of those already listed,
@@ -649,8 +651,8 @@ Menus
 * Menubar Format::	How to specify a menubar.
 * Menubar::		Functions for controlling the menubar.
 * Modifying Menus::	Modifying a menu description.
-* Pop-Up Menus::	Functions for specifying pop-up menus.
 * Menu Filters::	Filter functions for the default menubar.
+* Pop-Up Menus::	Functions for specifying pop-up menus.
 * Buffers Menu::	The menu that displays the list of buffers.
 
 Dialog Boxes
@@ -1194,7 +1196,7 @@ Building XEmacs and Object Allocation
 * Building XEmacs::         How to preload Lisp libraries into XEmacs.
 * Garbage Collection::      Reclaiming space for Lisp objects no longer used.
 
-@end menu
+@end detailmenu
 
 @include intro.texi
 @include packaging.texi

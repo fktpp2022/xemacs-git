@@ -1,6 +1,6 @@
 @comment -*-texinfo-*-
 
-@node Edebug, , Compilation Errors, Top
+@node Edebug, , Compilation Errors, Debugging
 @section Edebug
 @cindex Edebug mode
 
