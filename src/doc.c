@@ -980,7 +980,7 @@ verify_doc_mapper (Lisp_Object UNUSED (key), Lisp_Object sym, void *arg)
 	  EQ (XCAR (fun), Qmacro))
 	fun = XCDR (fun);
 
-      if (SUBRP (fun))
+      if (SUBRP (fun) && FIXNUMP (XSUBR (fun)->doc))
 	doc = XFIXNUM (XSUBR (fun)->doc);
       else if (SYMBOLP (fun))
 	doc = -1;

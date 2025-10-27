@@ -1,3 +1,10 @@
+2025-10-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* doc.c (verify_doc_mapper):
+	Check a subr's DOC is a fixnum before doing XFIXNUM() on
+	it. Ultimate right thing to do is to move #'Verify-documentation,
+	#'Snarf-documentation to Lisp.
+
 2025-10-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove a separate call to ../lisp/make-docfile.elc at build time,

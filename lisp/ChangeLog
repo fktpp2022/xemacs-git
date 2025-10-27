@@ -1,3 +1,16 @@
+2025-10-27  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* loadup.el (source-directory):
+	Correct this when configured --srcdir; if this is the case, on
+	POSIX source-lisp is actually a symbolic link pointing to lisp/
+	within the actual source directory, and so (expand-file-name ".."
+	(file-truename source-lisp)) gives the right answer.
+	As far as I can see this has never worked at any point since Ben's
+	introduction of separate build and source directories in
+	4542b72c005e of 2003-02-08 (at that point the relevant variable
+	was source-root). Fixing it today gets aaf28990a2bd building with
+	--srcdir.
+	
 2025-10-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Get aaf28990a2bd building on Cygwin and Visual Studio.
@@ -14,7 +27,7 @@
 	my last ChangeLog entry.
 	* make-docfile.el:
 	If there are no putative C files when dumping give a fatal error,
-	since that suggest the relevant directory is rong.
+	since that suggests the relevant directory is wrong.
 	No longer remove "TopLevelEmacsShell.o" "TransientEmacsShell.o"
 	from the list of files we're interest in.
 	* update-elc.el (lisp-files-needing-early-byte-compilation):

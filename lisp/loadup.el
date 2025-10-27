@@ -68,8 +68,8 @@ Root of tree containing object files and executables produced by build.
 Differs from `source-directory' if configured with --srcdir option, a practice 
 recommended for developers.")
 
-(defconst source-directory (expand-file-name ".." source-lisp)  "\
-Root of tree containing source code for the current build. 
+(defconst source-directory (expand-file-name ".." (file-truename source-lisp))
+  "Root of tree containing source code for the current build. 
 Used during loadup and for documenting source of symbols defined in C.")
 
 (defvar preloaded-file-list nil "\
