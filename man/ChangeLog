@@ -1,3 +1,10 @@
+2025-11-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (Writing Lisp Primitives): Update
+	documentation regarding the now-much-reduced fragility of
+	make-docfile and the associated format of Lisp strings. Update
+	documentation of what DEFUN(), DEFSUBR() do in passing.
+
 2025-10-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Build-Time Dependencies):

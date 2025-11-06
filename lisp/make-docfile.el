@@ -170,16 +170,22 @@ than `build-directory' if appropriate. "
                           source-src))
              (setq arg (expand-file-name arg)))
            (unless (member arg C-files)
-             (when (and (not docfile-out-of-date)
-                        ;; Visual Studio regenerates this with every build,
-                        ;; ignore it.
-                        (or (not (search "dump-id.c" arg))
-                            (not (equal (file-name-nondirectory arg)
-                                        "dump-id.c")))
-                        (file-newer-than-file-p arg docfile))
-               (setq docfile-out-of-date t))
 	     (if (and purify-flag (member "dump" command-line-args))
-		 (if (file-exists-p arg) (setq C-files (cons arg C-files)))
+		 (when (file-exists-p arg)
+		   (if (and (not docfile-out-of-date)
+			    (file-newer-than-file-p arg docfile))
+		       (let ((stream (make-string-output-stream)) used-codesys)
+			 ;; Ignore files like dump-id.c or extw-Xlib.c when
+			 ;; making a decision to rebuild DOC, by checking if
+			 ;; they have any DEFUN(), DEFVAR_*(),
+			 ;; DEFINE_LISP_OBJECT(). If they don't there's also no
+			 ;; need to add them to C-files.
+			 (declare (special used-codesys))
+			 (scan-C-file stream arg nil 'used-codesys)
+			 (when (> (length (get-output-stream-string stream)) 0)
+			   (setq docfile-out-of-date t
+				 C-files (cons arg C-files))))
+		     (setq C-files (cons arg C-files))))
 	       (setq C-files (cons arg C-files)))))
 
          (canonicalize-file-name-for-output (filename)
