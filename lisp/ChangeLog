@@ -55,6 +55,18 @@
 
 2025-11-06  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* bytecomp.el (byte-compile-from-buffer):
+	* bytecomp.el (byte-compile-insert-header):
+	Copy any #! hash bang interpreter specification across to the
+	output file, facilitating compilation of XEmacs Lisp scripts.
+	To this end, increase byte-compile-checks-and-comments-space by
+	the length of any initial #! line encountered before compiling a
+	file.
+	* bytecomp.el (byte-compile-output-file-form):
+	Add a missing parenthesis in a comment here in passing.
+
+2025-11-06  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* make-docfile.el (sanitize-C-command-line-arg):
 	Generalise handling of files without any DEFVAR_*, DEFUN() or
 	DEFINE_LISP_OBJECT() when checking whether DOC is out of date at

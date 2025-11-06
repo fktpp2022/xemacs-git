@@ -2122,7 +2122,9 @@ With argument, insert value in current buffer after the form."
 	;;				     byte-compile-warning-types
 	;;				   byte-compile-warnings))
         (byte-compile-force-escape-quoted byte-compile-force-escape-quoted)
-        (byte-compile-using-dynamic nil))
+        (byte-compile-using-dynamic nil)
+	(byte-compile-checks-and-comments-space
+	 byte-compile-checks-and-comments-space))
     (byte-compile-close-variables
      (save-excursion
        (setq byte-compile-outbuffer
@@ -2132,11 +2134,22 @@ With argument, insert value in current buffer after the form."
        (setq case-fold-search nil)
        (and filename
 	    (not eval)
-	    (byte-compile-maybe-reset-coding byte-compile-inbuffer
-					     byte-compile-outbuffer))
+	    (progn
+	      (when (and (eql (char-after 1 byte-compile-inbuffer) ?#)
+			 (eql (char-after 2 byte-compile-inbuffer) ?!))
+		(save-excursion
+		  (set-buffer byte-compile-inbuffer)
+		  (goto-char 1)
+		  (incf byte-compile-checks-and-comments-space
+			;; Position of the end of the line plus one for the \n,
+			;; minus one for one-based buffer indexing, cancelling
+			;; out:
+			(point-at-eol))))
+	      (byte-compile-maybe-reset-coding byte-compile-inbuffer
+					       byte-compile-outbuffer)))
        (setq byte-compile-using-dynamic
              (symbol-value-in-buffer 'byte-compile-dynamic-docstrings
-                                         byte-compile-inbuffer))
+				     byte-compile-inbuffer))
        ;; This is a kludge.  Some operating systems (OS/2, DOS) need to
        ;; write files containing binary information specially.
        ;; Under most circumstances, such files will be in binary
@@ -2151,7 +2164,9 @@ With argument, insert value in current buffer after the form."
 	(goto-char (point-max byte-compile-outbuffer) byte-compile-outbuffer)
 	(set-buffer byte-compile-inbuffer)
 	(goto-char 1)
-
+	;; Don't attempt to compile an interpreter comment.
+	(when (and (eql (char-after) ?#) (eql (char-after 2) ?!))
+	  (forward-line 1))
 	;; Compile the forms from the input buffer.
 	(while (progn
 		 (while (progn (skip-chars-forward " \t\n\^L")
@@ -2206,11 +2221,19 @@ docstrings code.")
 
 (defun byte-compile-insert-header (filename byte-compile-inbuffer
 				   byte-compile-outbuffer)
-  (set-buffer byte-compile-inbuffer)
-  (let (comments)
+  (let (comments hash-bang-line)
+    (set-buffer byte-compile-inbuffer)
+    (setq hash-bang-line (if (eql (char-after 1) ?#)
+			     (save-excursion
+			       (and
+				(goto-char 1)
+				(looking-at-p "#!.*\n")
+				(buffer-substring (point)
+						  (1+ (point-at-eol)))))))
     (set-buffer byte-compile-outbuffer)
     (delete-region 1 (1+ byte-compile-checks-and-comments-space))
     (goto-char 1)
+    (if hash-bang-line (insert hash-bang-line))
     ;;
     ;; The magic number of .elc files is ";ELC", or 0x3B454C43.  After that is
     ;; the file-format version number (19 or 20) as a byte, followed by some
@@ -2320,7 +2343,7 @@ docstrings code.")
   ;; defun, defmacro, defvar, defconst and autoload [because make-docfile is so
   ;; amazingly stupid.] #### This is no longer the case, and there are
   ;; downsides to our current approach (e.g. gensyms are not preserved if
-  ;; multiple defuns are within a symbol-macrolet. Consider revision.
+  ;; multiple defuns are within a symbol-macrolet. Consider revision).
   ;; defalias calls are output directly by byte-compile-file-form-defmumble;
   ;; it does not pay to first build the defalias in defmumble and then parse
   ;; it here.
