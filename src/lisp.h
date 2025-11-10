@@ -3387,7 +3387,7 @@ void prune_weak_lists (void);
  `arglist' are the comma-separated arguments (always Lisp_Objects) for
     the function.
   The docstring for the function is placed as a "C" comment between
-    the prompt and the `args' argument.  make-docfile reads the
+    the prompt and the `args' argument.  make-docfile.elc reads the
     comment and creates the DOC file from it.
 */
 

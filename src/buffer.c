@@ -2102,10 +2102,10 @@ List of functions called with no args to query before killing a buffer.
   staticpro_dump_nil (&Vbuffer_local_symbols);
 }
 
-/* The docstrings for DEFVAR_* are recorded externally by make-docfile.  */
+/* The docstrings for DEFVAR_* are recorded externally by make-docfile.elc. */
 
 /* Renamed from DEFVAR_PER_BUFFER because FSFmacs D_P_B takes
-   a bogus extra arg, which confuses an otherwise identical make-docfile.c */
+   a bogus extra arg, which confused an otherwise identical make-docfile.c */
 #define DEFVAR_BUFFER_LOCAL_1(lname, field_name, forward_type, magicfun) \
 do {									 \
   DEFVAR_SYMVAL_FWD_OBJECT (lname, &(buffer_local_flags.field_name),	 \

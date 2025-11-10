@@ -566,7 +566,7 @@ and ignores this variable."
 	 (compiled-function-instructions (symbol-function 'identity))
 	 (compiled-function-constants (symbol-function 'identity))
 	 (compiled-function-stack-depth (symbol-function 'identity))
-	 (compiled-function-doc-string
+	 (compiled-function-documentation
 	  (symbol-function 'convert-standard-filename)))))
 
 (defun pwd ()

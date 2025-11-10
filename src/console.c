@@ -1574,7 +1574,7 @@ for bindings in `function-key-map'.
   staticpro_dump_nil (&Vconsole_local_symbols);
 }
 
-/* The docstrings for DEFVAR_* are recorded externally by make-docfile.  */
+/* The docstrings for DEFVAR_* are recorded externally by make-docfile.el. */
 #define DEFVAR_CONSOLE_LOCAL_1(lname, field_name, forward_type, magicfun)   \
 do {									    \
   DEFVAR_SYMVAL_FWD_OBJECT (lname, &(console_local_flags.field_name),	    \

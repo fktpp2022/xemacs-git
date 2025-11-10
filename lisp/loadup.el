@@ -142,12 +142,9 @@ with the exception of `loadup.el'.")
 ;(stop-profiling)
 
 (when (member "dump" command-line-args)
-  ;; Generate DOC if it is out of date.
+  ;; Generate DOC if it is out of date. Load the file offsets for docstring
+  ;; info for functions and variables.
   (load "make-docfile")
-  (message "Finding pointers to doc strings...")
-  (Snarf-documentation "DOC")
-  (message "Finding pointers to doc strings...done")
-  (Verify-documentation)
 
   ;; String extent info is not dumpable, clear it from the match data now.
   (store-match-data

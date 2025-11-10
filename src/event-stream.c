@@ -5470,9 +5470,7 @@ init_event_stream (void)
   /* We previously didn't always initialize the event stream when running a
      bare temacs since that did various things (e.g. under Xt) that led to
      undesired data being dumped by unexec(). This is irrelevant with pdump,
-     simplify the other event stream functions (they all had checks that
-     EVENT_STREAM was non-null, since the event loop was needed by temacs with
-     make-docfile as a subprocess) by always initializing it. */
+     simplify the other event stream functions by always initializing it. */
 #ifdef HAVE_UNIXOID_EVENT_LOOP
   init_event_unixoid ();
 #endif

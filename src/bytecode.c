@@ -2720,38 +2720,6 @@ compiled_function_annotation (Lisp_Compiled_Function *f)
 
 #endif
 
-/* used only by Snarf-documentation. */
-void
-set_compiled_function_documentation (Lisp_Compiled_Function *f,
-				     Lisp_Object new_doc)
-{
-  assert (FIXNUMP (new_doc) || STRINGP (new_doc));
-
-  if (f->flags.documentationp)
-    {
-      if (f->flags.interactivep && f->flags.domainp)
-        XCAR (f->doc_and_interactive) = new_doc;
-      else if (f->flags.interactivep)
-        XCAR (f->doc_and_interactive) = new_doc;
-      else if (f->flags.domainp)
-        XCAR (f->doc_and_interactive) = new_doc;
-      else
-        f->doc_and_interactive = new_doc;
-    }
-  else
-    {
-      f->flags.documentationp = 1;
-      if (f->flags.interactivep || f->flags.domainp)
-        {
-          f->doc_and_interactive = Fcons (new_doc, f->doc_and_interactive);
-        }
-      else
-        {
-          f->doc_and_interactive = new_doc;
-        }
-    }
-}
-
 static void
 set_compiled_function_arglist (Lisp_Compiled_Function *f, Lisp_Object new_)
 {
@@ -2830,15 +2798,100 @@ Return the maximum stack depth of the compiled-function object FUNCTION.
   return make_fixnum (compiled_function_stack_depth (XCOMPILED_FUNCTION (function)));
 }
 
-DEFUN ("compiled-function-doc-string", Fcompiled_function_doc_string, 1, 1, 0, /*
-Return the doc string of the compiled-function object FUNCTION, if available.
-Functions that had their doc strings snarfed into the DOC file will have
-an integer returned instead of a string.
+DEFUN ("compiled-function-documentation",
+       Fcompiled_function_documentation, 1, 1, 0, /*
+Return the documentation of COMPILED-FUNCTION.
+
+If COMPILED-FUNCTION has had its doc string saved in the internal DOC file,
+return a fixnum offset reflecting that file. If it has had its documentation
+cached in the compiled Lisp file, (see `byte-compile-dynamic-docstrings')
+return a cons (FILE-NAME . OFFSET) reflecting the compiled Lisp file. If its
+documentation is string, return that. Otherwise return nil.
+
+See `documentation' if you wish to use a function that avoids the need to
+interpret file offsets yourself.
 */
-       (function))
+       (compiled_function))
 {
-  CHECK_COMPILED_FUNCTION (function);
-  return compiled_function_documentation (XCOMPILED_FUNCTION (function));
+  CHECK_COMPILED_FUNCTION (compiled_function);
+  return compiled_function_documentation
+    (XCOMPILED_FUNCTION (compiled_function));
+}
+
+DEFUN ("set-compiled-function-documentation",
+       Fset_compiled_function_documentation , 2, 2, 0, /*
+Set the documentation of COMPILED-FUNCTION.
+
+DOCUMENTATION must be one of nil, a string, a fixnum (reflecting an offset
+into the internal documentation file constructed at build-time), or a cons
+\(FILE-NAME . OFFSET), where FILE-NAME is a string and OFFSET is a fixnum. See
+documentation for the variable `byte-compile-dynamic-docstrings' for context
+for the latter.
+
+Return DOCUMENTATION.
+*/
+       (compiled_function, documentation))
+{
+  Lisp_Compiled_Function *ff;
+
+  CHECK_COMPILED_FUNCTION (compiled_function);
+  ff = XCOMPILED_FUNCTION (compiled_function);
+
+  if (!FIXNUMP (documentation) && !STRINGP (documentation)
+      && !NILP (documentation) &&
+      !(CONSP (documentation) && STRINGP (XCAR (documentation))
+        && FIXNUMP (XCDR (documentation))))
+    {
+      signal_error (Qwrong_type_argument,
+                    "Must be a string, a fixnum, nil, or a cons",
+                    documentation);
+    }
+
+  if (NILP (documentation))
+    {
+      if (ff->flags.documentationp)
+        {
+          if (ff->flags.interactivep || ff->flags.domainp)
+            {
+              ff->doc_and_interactive = XCDR (ff->doc_and_interactive);
+            }
+          else
+            {
+              ff->doc_and_interactive = documentation;
+            }
+
+          ff->flags.documentationp = 0;
+        }
+
+      return documentation;
+    }
+
+  if (ff->flags.documentationp)
+    {
+      if (ff->flags.interactivep || ff->flags.domainp)
+        {
+          XCAR (ff->doc_and_interactive) = documentation;
+        }
+      else
+        {
+          ff->doc_and_interactive = documentation;
+        }
+    }
+  else
+    {
+      ff->flags.documentationp = 1;
+      if (ff->flags.interactivep || ff->flags.domainp)
+        {
+          ff->doc_and_interactive
+            = Fcons (documentation, ff->doc_and_interactive);
+        }
+      else
+        {
+          ff->doc_and_interactive = documentation;
+        }
+    }
+
+  return documentation;
 }
 
 DEFUN ("compiled-function-interactive", Fcompiled_function_interactive, 1, 1, 0, /*
@@ -2967,7 +3020,11 @@ syms_of_bytecode (void)
   DEFSUBR (Fcompiled_function_stack_depth);
   DEFSUBR (Fcompiled_function_arglist);
   DEFSUBR (Fcompiled_function_interactive);
-  DEFSUBR (Fcompiled_function_doc_string);
+  DEFSUBR (Fcompiled_function_documentation);
+  Ffset (intern ("compiled-function-doc-string"),
+         intern ("compiled-function-documentation"));
+  DEFSUBR (Fset_compiled_function_documentation);
+
   DEFSUBR (Fcompiled_function_domain);
 #ifdef COMPILED_FUNCTION_ANNOTATION_HACK
   DEFSUBR (Fcompiled_function_annotation);

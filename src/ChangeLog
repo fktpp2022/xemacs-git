@@ -1,5 +1,56 @@
 2025-11-10  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Move #'Snarf-documentation, #'Verify-documentation to Lisp. To
+	this end, allow Lisp to set subr and compiled-function
+	documentation slots.
+
+	* buffer.c:
+	Update some comments here.
+	* bytecode.c (set_compiled_function_documentation): Removed.
+	* bytecode.c (Fcompiled_function_documentation): New name for
+	#'compiled-function-doc-string.
+	* bytecode.c (Fset_compiled_function_documentation): New. Expose
+	set_compiled_function_documentation() to Lisp, move its
+	implementation within the Lisp implementation.
+	* bytecode.c (syms_of_bytecode):
+	Add a DEFSUBR() for Fcompiled_function_documentation(). Add an
+	alias for #'compiled-function-doc-string, its previous name.
+	Add a DEFSUBR() for Fset_compiled_function_documentation().
+	* bytecode.h:
+	Remove the declaration for set_compiled_function_documentation().
+	Add one for Fset_compiled_function_documentation().
+	* console.c: Update a comment here.
+	* data.c (Fsubr_documentation): New. Return the documentation slot
+	of a subr, needed for the Lisp implementation of
+	#'Snarf-documentation. 
+	* data.c (Fset_subr_documentation): New. Set a subr's
+	documentation slot, needed for needed for the Lisp implementation of
+	#'Snarf-documentation. Error if the subr is not writeable, which
+	will be the case post pdump_load().
+	* data.c (syms_of_data):
+	Add DEFSUBR()s for both of these.
+	* doc.c:
+	* doc.c (extract_object_file_name):
+	Update a comment here.
+	* doc.c (weird_doc): Moved to make-docfile.el.
+	* doc.c (Fsnarf_documentation): Moved to make-docifle.el.
+	* doc.c (kludgily_ignore_lost_doc_p): Moved to make-docfile.el.
+	* doc.c (verify_doc_mapper): Moved to make-docfile.el.
+	* doc.c (Fverify_documentation): Moved to make-docifle.el.
+	* doc.c (syms_of_doc):
+	Remove relevant DEFSUBR()s.
+	* event-stream.c (init_event_stream):
+	Update a comment.
+	* gui-gtk.c (vars_of_gui_gtk):
+	Ditto.
+	* lisp.h (EXFUN_0):
+	Update a comment.
+	* lread.c (load_force_doc_string_unwind):
+	Call Fset_compiled_function_documentation(), now
+	set_compiled_function_documentation() is gone.
+
+2025-11-10  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* lread.c (vars_of_lread):
 	When DEBUG_XEMACS, add a proper DEFVAR_LISP() with a docstring for
 	Vlocate-file-hash-table, avoiding a lost-doc warning for this

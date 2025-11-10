@@ -1,5 +1,40 @@
 2025-11-10  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Move #'Snarf-documentation, #'Verify-documentation to
+	make-docfile.el. Update calls to #'compiled-function-doc-string to
+	call #'compiled-function-documentation instead, now its preferred
+	name.
+
+	* apropos.el (apropos-safe-documentation):
+	Just call #'compiled-function-documentation explicitly within
+	this, we do not need to be portable to other implementations.
+	* files.el (and):
+	Call #'compiled-function-documentation, the preferred name, rather
+	than #'compiled-function-doc-string.
+	* loadup.el:
+	Delegate calling #'Snarf-documentation, #'Verify-documentation to
+	make-docfile.elc.
+	* make-docfile.el:
+	* make-docfile.el (weird-doc): New label. Ported from doc.c.
+	* make-docfile.el (Snarf-documentation): New label. Ported from
+	doc.c.
+	* make-docfile.el (kludgily-ignore-lost-doc-p): New label. Ported
+	from doc.c.
+	* make-docfile.el (Verify-documentation): New label. Ported from
+	doc.c.
+	* make-docfile.el:
+	When dumping, call #'Snarf-documentation, #'Verify-documentation,
+	as did loadup.el previously, but use the labels within this file,
+	so there is no need to have those functions available (and
+	useless) in a dumped XEmacs.
+	* misc.el (:load-toplevel):
+	Call #'compiled-function-documentation instead of
+	#'compiled-function-doc-string now the former is the preferred name.
+	* modeline.el (make-modeline-command-wrapper):
+	Ditto.
+
+2025-11-10  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* cl-macs.el (defstruct):
 	Give a docstring for cl-struct-STRUCT-NAME-tags, silence a lost
 	docstring warning from #'Verify-documentation (which should have

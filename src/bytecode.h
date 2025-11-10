@@ -101,8 +101,8 @@ Lisp_Object compiled_function_annotation    (Lisp_Compiled_Function *f);
 Lisp_Object compiled_function_domain        (Lisp_Compiled_Function *f);
 Lisp_Object compiled_function_interactive   (Lisp_Compiled_Function *f);
 
-void set_compiled_function_documentation (Lisp_Compiled_Function *f,
-					  Lisp_Object new_doc);
+Lisp_Object Fset_compiled_function_documentation (Lisp_Object f,
+                                                  Lisp_Object new_doc);
 
 void set_compiled_function_interactive (Lisp_Compiled_Function *,
 					Lisp_Object);

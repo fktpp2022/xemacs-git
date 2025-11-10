@@ -469,8 +469,7 @@ load_force_doc_string_unwind (Lisp_Object oldlist)
 	  if (CONSP (doc))
 	    {
 	      doc = pas_de_holgazan_ici (fd, doc);
-	      set_compiled_function_documentation (XCOMPILED_FUNCTION (john),
-						   doc);
+	      Fset_compiled_function_documentation (john, doc);
 	    }
 	}
     }

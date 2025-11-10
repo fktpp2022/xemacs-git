@@ -136,7 +136,7 @@ If the contents have been GCed, return NIL."
        (compiled-function-constants (symbol-function 'weak-box-ref-1))
        (compiled-function-stack-depth (symbol-function 'weak-box-ref-1))
        ;; Use the docstring info of #'weak-box-ref itself.
-       (compiled-function-doc-string (symbol-function 'weak-box-ref))))
+       (compiled-function-documentation (symbol-function 'weak-box-ref))))
   (unintern 'weak-box-ref-1))
 
 ;;; misc.el ends here

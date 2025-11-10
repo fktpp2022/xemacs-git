@@ -120,12 +120,11 @@ extract_object_file_name (int fd, OFF_T doc_pos, Boolint standard_doc_file)
 
   if (buf == from)
     {
-      /* We've scanned back to the beginning of the buffer without hitting
-	 the file name. Either the file name plus the symbol name is longer
-	 than DOC_MAX_FILENAME_LENGTH--which shouldn't happen, because it'll
-	 trigger an assertion failure in make-docfile, the DOC file is
-	 corrupt, or it was produced by a version of make-docfile that
-	 doesn't store the file name with the symbol name and docstring.  */ 
+      /* We've scanned back to the beginning of the buffer without hitting the
+	 file name. Either the DOC file is corrupt, or it was produced by a
+	 version of make-docfile that doesn't store the file name with the
+	 symbol name and docstring, which shouldn't happen, given the tight
+	 integration of make-docfile.el with the build process. */ 
       return_me = list1 (build_msg_string
 			 ("Object file name not stored in doc file"));
       goto done;
@@ -428,8 +427,6 @@ open_doc_file (Lisp_Object filepos, OFF_T *position_out,
 }
 
 /* Extract a doc string from a file.  FILEPOS says where to get it.
-   (This could actually be byte code instructions/constants instead
-   of a doc string, though this functionality will be removed.)
    If it is an integer, use that position in the standard DOC file.
    If it is (FILE . INTEGER), use FILE as the file name
    and INTEGER as the position in that file.
@@ -478,16 +475,6 @@ get_object_file_name (Lisp_Object filepos)
 }
 
 
-static void
-weird_doc (Lisp_Object sym, const Ascbyte *weirdness, const Ascbyte *type,
-	   int pos)
-{
-  if (!strcmp (weirdness, "duplicate")) return;
-  message ("Note: Strange doc (%s) for %s %s @ %d",
-           GETTEXT (weirdness), GETTEXT (type),
-	   XSTRING_DATA (XSYMBOL (sym)->name), pos);
-}
-
 DEFUN ("built-in-symbol-file", Fbuilt_in_symbol_file, 1, 2, 0, /*
 Return the C source file built-in symbol SYM comes from. 
 Don't use this.  Use the more general `symbol-file' (q.v.) instead. 
@@ -722,333 +709,6 @@ string is passed through `substitute-command-keys'.
     }
   return doc;
 }
-
-
-DEFUN ("Snarf-documentation", Fsnarf_documentation, 1, 1, 0, /*
-Used during Emacs initialization, before dumping runnable Emacs,
-to find pointers to doc strings stored in `.../lib-src/DOC' and
-record them in function definitions.
-One arg, FILENAME, a string which does not include a directory.
-The file is written to `../lib-src', and later found in `exec-directory'
-when doc strings are referred to in the dumped Emacs.
-*/
-       (filename))
-{
-  int fd;
-  Ibyte buf[1024 + 1];
-  REGISTER Bytecount filled;
-  REGISTER OFF_T pos;
-  REGISTER Ibyte *p, *end;
-  Lisp_Object sym, fun, tem;
-  Ibyte *name;
-
-  /* This function should not pass the data it's reading through a coding
-     stream.  The reason is that the only purpose of this function is to
-     find the file offsets for the documentation of the various functions,
-     not do anything with the documentation itself.  If we pass through a
-     coding stream, the pointers will get messed up when we start reading
-     ISO 2022 data because our pointers will reflect internal format, not
-     external format. */
-  
-  if (!purify_flag)
-    invalid_operation ("Snarf-documentation can only be called in an undumped Emacs", Qunbound);
-
-  CHECK_STRING (filename);
-
-  {
-    name = alloca_ibytes (XSTRING_LENGTH (filename) + 14);
-    qxestrcpy_ascii (name, "../lib-src/");
-  }
-
-  qxestrcat (name, XSTRING_DATA (filename));
-
-  fd = qxe_open (name, O_RDONLY | OPEN_BINARY, 0);
-  if (fd < 0)
-    report_file_error ("Opening doc string file", build_istring (name));
-  Vinternal_doc_file_name = filename;
-  filled = 0;
-  pos = 0;
-  while (1)
-    {
-      if (filled < 512)
-	filled += retry_read (fd, &buf[filled], sizeof (buf) - 1 - filled);
-      if (!filled)
-	break;
-
-      buf[filled] = 0;
-      p = buf;
-      end = buf + (filled < 512 ? filled : filled - 128);
-      while (p != end && *p != '\037') p++;
-      /* p points to ^_Ffunctionname\n or ^_Vvarname\n.  */
-      if (p != end)
-	{
-	  end = qxestrchr (p, '\n');
-	  /* If you trigger a failure with this assertion, you probably
-	     configured with --quick-build and need to rebuild your DOC
-	     file. */
-	  assert((end - p - 2) > -1);
-	  sym = oblookup (Vobarray, p + 2, end - p - 2);
-	  if (SYMBOLP (sym))
-	    {
-              Lisp_Object offset = make_fixnum (pos + end + 1 - buf);
-	      /* Attach a docstring to a variable */
-	      if (p[1] == 'V')
-		{
-		  /* Install file-position as variable-documentation property
-		     and make it negative for a user-variable
-		     (doc starts with a `*').  */
-		  Lisp_Object old = Fget (sym, Qvariable_documentation, Qzero);
-                  if (FIXNUMP (old))
-		    {
-		      weird_doc (sym, "duplicate", "variable", pos);
-		      /* In the case of duplicate doc file entries, always
-			 take the later one. */
-		    }
-
-		  Fput (sym, Qvariable_documentation,
-                        ((end[1] == '*')
-                         ? make_fixnum (- XFIXNUM (offset))
-                         : offset));
-		}
-	      /* Attach a docstring to a function.
-                 The type determines where the docstring is stored.  */
-	      else if (p[1] == 'F')
-		{
-                  fun = indirect_function (sym,0);
-
-		  if (CONSP (fun) && EQ (XCAR (fun), Qmacro))
-		    fun = XCDR (fun);
-
-                  if (UNBOUNDP (fun))
-		    {
-#if 0 /* There are lots of legitimate cases where this message will appear
-	 (e.g. any function that's only defined when MULE is defined,
-	 provided that the function is used somewhere in a dumped Lisp
-	 file, so that the symbol is interned in the dumped XEmacs), and
-	 there's not a lot that can be done to eliminate the warning other
-	 than kludges like moving the function to a Mule-only source file,
-	 which often results in ugly code.  Furthermore, the only point of
-	 this warning is to warn you when you have a DEFUN that you forget
-	 to DEFSUBR, but the compiler will also warn you, because the DEFUN
-	 declares a static object, and the object will be unused -- you'll
-	 get something like
-
-/src/xemacs/mule/src/abbrev.c:269: warning: `SFexpand_abbrev' defined but not used
-
-	 So I'm disabling this. --ben */
-
-		      /* May have been #if'ed out or something */
-		      weird_doc (sym, "not fboundp",
-				 "function", pos);
-#endif
-		      goto weird;
-		    }
-		  else if (SUBRP (fun))
-		    {
-		      /* Lisp_Subrs have a slot for it.  */
-		      if (!NILP (XSUBR (fun)->doc))
-			{
-			  weird_doc (sym, "duplicate", "subr", pos);
-			  goto weird;
-			}
-		      XSUBR (fun)->doc = offset;
-		    }
-		  else if (CONSP (fun))
-		    {
-                      /* If it's a lisp form, stick it in the form.  */
-		      tem = XCAR (fun);
-		      if (EQ (tem, Qlambda) || EQ (tem, Qautoload))
-			{
-			  tem = Fcdr (Fcdr (fun));
-			  if (CONSP (tem) && STRINGP (XCAR (tem)))
-			    {
-			      XCAR (tem) = offset;
-			    }
-			  else if (CONSP (tem) && FIXNUMP (XCAR (tem)))
-			    {
-			      /* In the case of duplicate doc file entries,
-				 always take the later one. */
-			      weird_doc (sym, "duplicate", "function", pos);
-			      XCAR (tem) = offset;
-			    }
-                          else if (!CONSP (tem))
-			    {
-			      weird_doc (sym, "!CONSP(tem)", "function", pos);
-			      goto cont;
-			    }
-                          else
-			    {
-#if 0
-			      weird_doc (sym, "!FIXNUMP(XCAR(tem))",
-					 "function", pos);
-#endif
-			      goto cont;
-			    }
-                        }
-                      else
-			{
-			  weird_doc (sym, "not lambda or autoload",
-				     "function", pos);
-			  goto cont;
-			}
-		    }
-		  else if (COMPILED_FUNCTIONP (fun))
-		    {
-                      /* Compiled-Function objects sometimes have
-                         slots for it.  */
-                      Lisp_Compiled_Function *f = XCOMPILED_FUNCTION (fun);
-
-		      /* If there were multiple definitions for this function,
-                         and the latter one didn't
-			 have any doc, warn and don't blow up. */
-                      Lisp_Object old =
-                        compiled_function_documentation (f);
-                      if (!NILP (old))
-                        {
-			  if (FIXNUMP (old))
-			    {
-			      weird_doc (sym, "duplicate", "bytecode", pos);
-			    }
-
-#ifdef COMPILED_FUNCTION_ANNOTATION_HACK
-                          if (!STRINGP (compiled_function_annotation (f))
-			      && !EQ (sym, compiled_function_annotation (f)))
-                            {
-                              /* We don't want to set the information for the
-                                 alias as the compiled function's details. */
-                              goto weird; 
-                            }
-#endif
-                        }
-
-                      set_compiled_function_documentation (f, offset);
-                    }
-                  else
-                    {
-                      /* Otherwise the function is undefined or
-                         otherwise weird.   Ignore it. */
-                      weird_doc (sym, "weird function", "function", pos);
-                      goto weird;
-                    }
-                }
-	      else
-                {
-                /* lose: */
-                  signal_error (Qfile_error, "DOC file invalid at position",
-				make_fixnum (pos));
-                weird:
-                  /* goto lose */;
-                }
-            }
-	}
-    cont:
-      pos += end - buf;
-      filled -= end - buf;
-      memmove (buf, end, filled);
-    }
-  retry_close (fd);
-  return Qnil;
-}
-
-#if 1	/* Don't warn about functions whose doc was lost because they were
-	   wrapped by advice-freeze.el... */
-static int
-kludgily_ignore_lost_doc_p (Lisp_Object sym)
-{
-# define kludge_prefix "ad-Orig-"
-  Lisp_Object name = XSYMBOL (sym)->name;
-  return (XSTRING_LENGTH (name) > (Bytecount) (sizeof (kludge_prefix)) &&
-	  !qxestrncmp_ascii (XSTRING_DATA (name), kludge_prefix,
-			 sizeof (kludge_prefix) - 1));
-# undef kludge_prefix
-}
-#else
-# define kludgily_ignore_lost_doc_p(sym) 0
-#endif
-
-
-static int
-verify_doc_mapper (Lisp_Object UNUSED (key), Lisp_Object sym, void *arg)
-{
-  Lisp_Object closure = * (Lisp_Object *) arg;
-
-  if (!NILP (Ffboundp (sym)))
-    {
-      EMACS_INT doc = 0;
-      Lisp_Object fun = XSYMBOL (sym)->function;
-      if (CONSP (fun) &&
-	  EQ (XCAR (fun), Qmacro))
-	fun = XCDR (fun);
-
-      if (SUBRP (fun) && FIXNUMP (XSUBR (fun)->doc))
-	doc = XFIXNUM (XSUBR (fun)->doc);
-      else if (SYMBOLP (fun))
-	doc = -1;
-      else if (KEYMAPP (fun))
-	doc = -1;
-      else if (CONSP (fun))
-	{
-	  Lisp_Object tem = XCAR (fun);
-	  if (EQ (tem, Qlambda) || EQ (tem, Qautoload))
-	    {
-	      doc = -1;
-	      tem = Fcdr (Fcdr (fun));
-	      if (CONSP (tem) &&
-		  FIXNUMP (XCAR (tem)))
-		doc = XFIXNUM (XCAR (tem));
-	    }
-	}
-      else if (COMPILED_FUNCTIONP (fun))
-	{
-          Lisp_Compiled_Function *f = XCOMPILED_FUNCTION (fun);
-          if (! (f->flags.documentationp))
-            doc = -1;
-          else
-            {
-              Lisp_Object tem = compiled_function_documentation (f);
-              if (FIXNUMP (tem))
-                doc = XFIXNUM (tem);
-            }
-	}
-
-      if (doc == 0 && !kludgily_ignore_lost_doc_p (sym))
-	{
-	  message ("Warning: doc lost for function %s.",
-		   XSTRING_DATA (XSYMBOL (sym)->name));
-	  XCDR (closure) = Qt;
-	}
-    }
-  if (!NILP (Fboundp (sym)))
-    {
-      Lisp_Object doc = Fget (sym, Qvariable_documentation, Qnil);
-      if (ZEROP (doc))
-	{
-	  message ("Warning: doc lost for variable %s.",
-		   XSTRING_DATA (XSYMBOL (sym)->name));
-	  XCDR (closure) = Qt;
-	}
-    }
-  return 0; /* Never stop */
-}
-
-DEFUN ("Verify-documentation", Fverify_documentation, 0, 0, 0, /*
-Used to make sure everything went well with Snarf-documentation.
-Writes to stderr if not.
-*/
-       ())
-{
-  Lisp_Object closure = Fcons (Qnil, Qnil);
-  struct gcpro gcpro1;
-  GCPRO1 (closure);
-  elisp_maphash (verify_doc_mapper, Vobarray, &closure);
-  if (!NILP (Fcdr (closure)))
-    message ("\n"
-"This is usually because some files were preloaded by loaddefs.el or\n"
-"site-load.el, but were not passed to make-docfile by Makefile.\n");
-  UNGCPRO;
-  return NILP (Fcdr (closure)) ? Qt : Qnil;
-}
-
 
 DEFUN ("substitute-command-keys", Fsubstitute_command_keys, 1, 1, 0, /*
 Substitute key descriptions for command names in STRING.
@@ -1369,8 +1029,6 @@ syms_of_doc (void)
   DEFSUBR (Fbuilt_in_symbol_file);
   DEFSUBR (Fdocumentation);
   DEFSUBR (Fdocumentation_property);
-  DEFSUBR (Fsnarf_documentation);
-  DEFSUBR (Fverify_documentation);
   DEFSUBR (Fsubstitute_command_keys);
 
   DEFSYMBOL (Qdefvar);

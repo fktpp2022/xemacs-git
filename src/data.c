@@ -227,6 +227,49 @@ If non-nil, the return value will be a list whose first element is
   return list2 (Qinteractive, LISP_GETTEXT (prompt));
 }
 
+DEFUN ("subr-documentation", Fsubr_documentation, 1, 1, 0, /*
+Return the documentation slot of SUBR.
+
+This is usually a fixnum offset reflecting the location of its documention in
+the internal documentation file (see `internal-doc-file-name'). For subrs
+loaded from modules (see `load-module') it will typically be a string.
+
+It may be nil if this function is called when dumping before loading the file
+offset information from the internal documentation file.
+
+See `documentation' if you wish to use a function that avoids the need to
+interpret file offsets yourself.
+*/
+       (subr))
+{
+  CHECK_SUBR (subr);
+  return XSUBR (subr)->doc;
+}
+
+DEFUN ("set-subr-documentation", Fset_subr_documentation , 2, 2, 0, /*
+Set the documentation of SUBR.
+
+DOCUMENTATION must be one of nil, a string, or a fixnum. A fixnum should
+reflect an offset into the internal documentation file, see
+`internal-doc-file-name'.
+
+Return DOCUMENTATION.
+*/
+       (subr, documentation))
+{
+  CHECK_SUBR (subr);
+  CHECK_LISP_WRITEABLE (subr);
+
+  if (!FIXNUMP (documentation) && !STRINGP (documentation)
+      && !NILP (documentation))
+    {
+      signal_error (Qwrong_type_argument,
+                    "Must be a string, a fixnum, or nil",
+                    documentation);
+    }
+
+  return XSUBR (subr)->doc = documentation;
+}
 
 DEFUN ("char-to-int", Fchar_to_int, 1, 1, 0, /*
 Convert CHARACTER into an equivalent integer.
@@ -3670,6 +3713,8 @@ syms_of_data (void)
   DEFSUBR (Fsubr_min_args);
   DEFSUBR (Fsubr_max_args);
   DEFSUBR (Fsubr_interactive);
+  DEFSUBR (Fsubr_documentation);
+  DEFSUBR (Fset_subr_documentation);
   DEFSUBR (Ftype_of);
   DEFSUBR (Fcar);
   DEFSUBR (Fcdr);

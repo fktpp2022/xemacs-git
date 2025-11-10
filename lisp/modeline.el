@@ -366,7 +366,7 @@ in the keymaps associated with the modeline."
                                  (compiled-function-constants compiled))
                          :test 'equal))
         ,(compiled-function-stack-depth compiled)
-        ,(compiled-function-doc-string compiled)
+        ,(compiled-function-documentation compiled)
         ,(quote-maybe (second (compiled-function-interactive compiled))))))
    (t
     `(lexical-let ((command ,command))

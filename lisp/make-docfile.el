@@ -69,7 +69,8 @@
      (build-src #:build-src)
      (build-obj #:build-obj)
      (defined-lisp-objects #:defined-lisp-objects)
-     (define-lisp-object #:define-lisp-object))
+     (define-lisp-object #:define-lisp-object)
+     (unbound-marker '#:unbound-marker))
 
   (let*
       ;; We're interested in these directories and they are not provided by
@@ -448,7 +449,145 @@ than `build-directory' if appropriate. "
                         (when modules
                           (write-sequence "\", \"" output-stream)
                           (write-escaping-as-C-string filename output-stream)
-                          (write-sequence "\");\n\n" output-stream)))))))))))
+                          (write-sequence "\");\n\n" output-stream))))))))))
+
+         (weird-doc (symbol details type offset)
+           (unless (equal details "duplicate")
+             (format-into
+              'external-debugging-output
+              "Note: Strange doc (%s) for %s %S @ %d\n"
+              details type symbol offset)))
+
+         (Snarf-documentation (filename)
+           ;; Find offsets of doc strings stored in FILENAME and record them
+           ;; in function definitions, and store them as the fixnum value for
+           ;; the `variable-documentation' property of variables.
+           (with-temp-buffer
+             (let ((coding-system-for-read
+                    ;; We are interested in the byte offset on disk, so load
+                    ;; it as no-conversion-unix; the file is escape-quoted, so
+                    ;; we use decode-coding-string when working out the name
+                    ;; of the symbol.
+                    'no-conversion-unix)
+                   symbol offset user-variable-p old function cddr)
+               (insert-file-contents filename)
+               (setq internal-doc-file-name (file-name-nondirectory filename))
+               (goto-char 1)
+               (while (re-search-forward "\037[FV].*\n" nil t)
+                 (setq symbol (intern-soft
+                               (decode-coding-string
+                                (buffer-substring (+ (match-beginning 0)
+                                                     (length "\037F"))
+                                                  (1- (point)))
+                                'escape-quoted)
+                               nil 0)
+                       offset (1- (point))
+                       user-variable-p (eql ?* (char-after (point))))
+                 (when (symbolp symbol)
+                   (case (char-after (+ (match-beginning 0) (length "\037")))
+                     (?V
+                      (setq old (get symbol 'variable-documentation 0))
+                      (when (fixnump old)
+                        (weird-doc symbol "duplicate" "variable" offset))
+                      ;; In the case of duplicate doc file entries, always
+                      ;; take the later one.
+                      (put symbol 'variable-documentation
+                           (if user-variable-p (- offset) offset)))
+                     (?F
+                      (setq function
+                            (condition-case nil (indirect-function symbol)
+                              (void-function unbound-marker)))
+                      (if (eq (car-safe function) 'macro)
+                          (setq function (cdr function)))
+                      (unless (eq function unbound-marker)
+                        (typecase function
+                          (subr
+                           (if (subr-documentation function)
+                               (weird-doc symbol "duplicate" "subr" offset)
+                             (set-subr-documentation function offset)))
+                          (cons
+                           (if (or (eq (car function) 'lambda)
+                                   (eq (car function) 'autoload))
+                               (progn
+                                 ;; If it's a Lisp form, stick it in the form.
+                                 (setq cddr (cddr function))
+                                 (typecase (car-safe cddr)
+                                   (string (setf (car cddr) offset))
+                                   (fixnum
+                                    (weird-doc symbol "duplicate" "function"
+                                               offset)
+                                    (setf (car cddr) offset))
+                                   (otherwise
+                                    (unless (consp cddr)
+                                      (weird-doc symbol "not a cons"
+                                                 "function" offset)))))
+                             (weird-doc symbol "not lambda or autoload"
+                                        "function" offset)))
+                          (compiled-function
+                           (setq old (compiled-function-documentation
+                                      function))
+                           (when (fixnump old)
+                             (weird-doc symbol "duplicate" "bytecode"
+                                        offset))
+                           (unless (and (fboundp 'compiled-function-annotation)
+                                        (not (stringp
+                                              (compiled-function-annotation
+                                               function)))
+                                        ;; We don't want to set the
+                                        ;; information for the alias as the
+                                        ;; compiled function's details.
+                                        (not (eq symbol
+                                                 (compiled-function-annotation
+                                                  function))))
+                             (set-compiled-function-documentation
+                              function offset))))))))))))
+
+         (kludgily-ignore-lost-doc-p (symbol)
+           ;; Don't warn about functions whose doc was lost because they were
+	   ;; wrapped by advice-freeze.el.
+           (and (> (length (symbol-name symbol)) (length "ad-Orig-"))
+                (not (mismatch (symbol-name symbol) "ad-Orig-"
+                               :end1 (length "ad-Orig-")))))
+
+         (Verify-documentation ()
+           ;; Make sure everything went well with Snarf-documentation.  Write
+           ;; to stderr if not.
+           (mapatoms
+            #'(lambda (symbol)
+                (let (offset symbol-function)
+                  (when (fboundp symbol)
+                    (if (eq 'macro (car-safe (symbol-function symbol)))
+                        (setq symbol-function (cdr (symbol-function symbol)))
+                      (setq symbol-function (symbol-function symbol)))
+                    (case (type-of symbol-function)
+                      (subr
+                       (setq offset (subr-documentation symbol-function)))
+                      ((keymap symbol)
+                       (setq offset most-negative-fixnum))
+                      (cons
+                       (when (member* (car symbol-function)
+                                      '(autoload lambda))
+                         (setq offset (or (caddr symbol-function)
+                                          most-negative-fixnum))))
+                      (compiled-function
+                       (setq offset (compiled-function-documentation
+                                     symbol-function))))
+                    (unless (or (fixnump offset)
+                                (kludgily-ignore-lost-doc-p symbol))
+                      (format-into 'external-debugging-output
+                                   "Warning: doc lost for function %S.\n"
+                                   symbol)))
+                  (when (boundp symbol)
+                    (unless (or (fixnump (get symbol 'variable-documentation))
+                                (keywordp symbol)
+                                (eq symbol nil) (eq symbol t)
+                                (get symbol 'byte-obsolete-variable)
+                                (get symbol 'byte-compatible-variable)
+                                (variable-alias symbol)
+                                (not (globally-boundp symbol)))
+                      (format-into 'external-debugging-output
+                                   "Warning: doc lost for variable %S.\n"
+                                   symbol))))))))
 
       ;; Expand filenames in load-history to absolute pathnames with
       ;; extensions now; we check load-history for the expanded name for
@@ -654,6 +793,12 @@ than `build-directory' if appropriate. "
                                                 'escape-quoted)
                     buffer-file-name docfile)
               (save-buffer)
-              (kill-buffer (current-buffer)))))))))
+              (kill-buffer (current-buffer))))))
+
+         (when (and purify-flag (member "dump" command-line-args))
+           (message "Finding pointers to doc strings...")
+           (Snarf-documentation docfile)
+           (message "Finding pointers to doc strings...done")
+           (Verify-documentation)))))
 
 ;;; make-docfile.el ends here

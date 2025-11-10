@@ -97,7 +97,7 @@ Do not alter.
   popup_up_p = 0;
 
 #if 0
-  /* This DEFVAR_LISP is just for the benefit of make-docfile. */
+  /* This DEFVAR_LISP is just for the benefit of make-docfile.elc. */
   /* #### misnamed */
   DEFVAR_LISP ("menu-no-selection-hook", &Vmenu_no_selection_hook /*
 Function or functions to call when a menu or dialog box is dismissed
