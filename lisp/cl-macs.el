@@ -2734,7 +2734,8 @@ copier, a `NAME-p' predicate, and setf-able `NAME-SLOT' accessors."
 				     (caar include-descs) include))
 			  old-descs)
 		    (pop include-descs)))
-	  (setq descs (append old-descs (delete* (assq 'cl-tag-slot descs) descs))
+	  (setq descs (append old-descs
+                              (delete* (assq 'cl-tag-slot descs) descs))
 		type (car inc-type)
 		named (assq 'cl-tag-slot descs))
 	  (if (cadr inc-type) (setq tag name named t))
@@ -2751,7 +2752,10 @@ copier, a `NAME-p' predicate, and setf-able `NAME-SLOT' accessors."
 	    (if named (setq tag name)))
 	(setq type 'vector named 'true)))
     (or named (setq descs (delete* (assq 'cl-tag-slot descs) descs)))
-    (push (list 'defvar tag-symbol) forms)
+    (push (list 'defvar tag-symbol nil
+                (format "List of tags accepted by `%s'.
+This allows object inheritance for CL structures." predicate))
+          forms)
     (setq pred-form (and named
 			 (let ((pos (- (length descs)
 				       (length (memq (assq 'cl-tag-slot descs)

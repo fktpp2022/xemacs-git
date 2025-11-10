@@ -661,28 +661,36 @@ Each frame has its own window-config and \"unpop\" stack."
 
 ;;;;;;;;;;;;; display-buffer, moved here from C.  Hallelujah.
 
-(make-variable-buffer-local '__buffer-dedicated-frame)
+(symbol-macrolet
+    ((buffer-dedicated-frame '#:buffer-dedicated-frame))
 
-(defun buffer-dedicated-frame (&optional buffer)
-  "Return the frame dedicated to this BUFFER, or nil if there is none.
+  (make-variable-buffer-local buffer-dedicated-frame)
+
+  ;; #'defalias rather than #'defun so the non-interned symbol is preserved
+  ;; across function boundaries. #### Fix the byte compiler to remove the need
+  ;; for this.
+  (defalias 'buffer-dedicated-frame
+      #'(lambda (&optional buffer)
+          "Return the frame dedicated to this BUFFER, or nil if there is none.
 No argument or nil as argument means use current buffer as BUFFER."
-  (let ((buffer (decode-buffer buffer)))
-    (let ((frame (symbol-value-in-buffer '__buffer-dedicated-frame buffer)))
-      ;; XEmacs addition: if the frame is dead, silently make it go away.
-      (when (and (framep frame) (not (frame-live-p frame)))
-	    (with-current-buffer buffer
-	      (setq __buffer-dedicated-frame nil))
-	    (setq frame nil))
-      frame)))
+          (let ((buffer (decode-buffer buffer)))
+            (let ((frame (symbol-value-in-buffer
+                          buffer-dedicated-frame buffer)))
+              ;; XEmacs addition: if the frame is dead, silently make it go
+              ;; away.
+              (when (and (framep frame) (not (frame-live-p frame)))
+                (set-symbol-value-in-buffer buffer-dedicated-frame nil buffer)
+                (setq frame nil))
+              frame))))
 
-(defun set-buffer-dedicated-frame (buffer frame)
-  "For this BUFFER, set the FRAME dedicated to it.
+  (defalias 'set-buffer-dedicated-frame
+      #'(lambda (buffer frame)
+          "For this BUFFER, set the FRAME dedicated to it.
 FRAME must be a frame or nil."
-  (let ((buffer (decode-buffer buffer)))
-    (and frame
-	 (check-argument-type #'frame-live-p frame))
-    (with-current-buffer buffer
-      (setq __buffer-dedicated-frame frame))))
+          (let ((buffer (decode-buffer buffer)))
+            (and frame
+                 (check-argument-type #'frame-live-p frame))
+            (set-symbol-value-in-buffer buffer-dedicated-frame frame buffer)))))
 
 (defvar display-buffer-function nil
   "If non-nil, function to call to handle `display-buffer'.

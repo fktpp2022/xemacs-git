@@ -1,3 +1,10 @@
+2025-11-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lread.c (vars_of_lread):
+	When DEBUG_XEMACS, add a proper DEFVAR_LISP() with a docstring for
+	Vlocate-file-hash-table, avoiding a lost-doc warning for this
+	global symbol.
+
 2025-10-27  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* doc.c (verify_doc_mapper):

@@ -131,14 +131,20 @@ the terminal-initialization file to be loaded.")
 Called automatically at dump time and run time.  Do not call this.
 Will not override settings in site-init.el or site-run.el."
   (let ((l #'(lambda (var value)
-	       (let ((origsym (intern (concat "paths-el-original-"
-					      (symbol-name var)))))
-		 (if (running-temacs-p)
-		     (progn
-		       (set var value)
-		       (set origsym value))
-		   (and (eq (symbol-value var) (symbol-value origsym))
-			(set var value)))))))
+               (let* ((alist (eval-when-compile (list (cons -1 -1))))
+                      (origsym (or (cdr (assq var alist))
+                                   (progn
+                                     (setcdr alist
+                                             (acons var (copy-symbol var)
+                                                    (cdr alist)))
+                                     (cdadr alist)))))
+                 (if (intersection (emacs-run-status)
+                                   '(temacs dumping restarted))
+                     (progn
+                       (set var value)
+                       (set origsym value))
+                   (and (eq (symbol-value var) (symbol-value origsym))
+                        (set var value)))))))
     (funcall
      l 'news-inews-program
      (cond ((file-exists-p "/usr/bin/inews") "/usr/bin/inews")
@@ -155,7 +161,7 @@ Will not override settings in site-init.el or site-run.el."
 	   (t "/usr/local/bin/")))
 
     (funcall
-     l 'mh-libs
+     l 'mh-lib
      (cond ((file-directory-p "/usr/lib/mh") "/usr/lib/mh/")
 	   ((file-directory-p "/usr/local/lib/mh") "/usr/local/lib/mh/")
 	   (t "/usr/local/bin/mh/")))

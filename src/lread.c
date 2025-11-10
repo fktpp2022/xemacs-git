@@ -3490,10 +3490,15 @@ character escape syntaxes or just read them incorrectly.
 						  Qequal
 #endif
 						  );
-  staticpro (&Vlocate_file_hash_table);
 #ifdef DEBUG_XEMACS
-  symbol_value (XSYMBOL (intern ("Vlocate-file-hash-table")))
-    = Vlocate_file_hash_table;
+  DEFVAR_LISP ("Vlocate-file-hash-table", &Vlocate_file_hash_table /*
+Debug use only.
+
+Hash-table that maps directory names to hashes of their contents. See
+`locate-file'.
+*/);
+#else
+  staticpro (&Vlocate_file_hash_table);
 #endif
 
 }

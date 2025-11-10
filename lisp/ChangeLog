@@ -1,3 +1,23 @@
+2025-11-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cl-macs.el (defstruct):
+	Give a docstring for cl-struct-STRUCT-NAME-tags, silence a lost
+	docstring warning from #'Verify-documentation (which should have
+	complained about this already, but was buggy.)
+	* paths.el (initialize-xemacs-paths):
+	Don't store the dump-time value of the paths examined in symbols
+	interned in obarray, instead use (eval-when-compile) to create an
+	alist, and modify the cdr of that.
+	Fix a bug, this function examined mh-libs, while the symbol of
+	interest is mh-lib.
+	* window-xemacs.el (__buffer-dedicated-frame): Removed.
+	Replace this with an uninterned symbol by means of
+	#'symbol-macrolet, silence a lost docstring warning.
+	* window-xemacs.el (buffer-dedicated-frame): Initialize this
+	function using #'defalias rather than #'defun, to allow the
+	#'symbol-macrolet to do its work.
+	* window-xemacs.el (set-buffer-dedicated-frame): Ditto.
+
 2025-11-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* make-docfile.el (sanitize-C-command-line-arg):
