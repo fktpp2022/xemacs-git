@@ -1,3 +1,10 @@
+2025-11-13  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* startup.el (command-line-do-script):
+	If FILE contains a slash and is non-absolute, determine its
+	truename using #'expand-file-name and use that, improving POSIX
+	support for #!/usr/bin/env xemacs-script.
+
 2025-11-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Move #'Snarf-documentation, #'Verify-documentation to

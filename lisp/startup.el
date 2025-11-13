@@ -448,6 +448,13 @@ Type ^H^H^H (Control-h Control-h Control-h) to get more help options.\n"))
   "Load the named file of Lisp code into XEmacs.
 <file>"
   (let ((file (pop command-line-args-left)))
+    (when (and (not (file-name-absolute-p file)) (file-name-directory file))
+      ;; POSIX rules; if the file name has a slash, it is to be interpreted as
+      ;; relative to the current directory. This conflicts with our usual
+      ;; load-path handling, where relative file names under the load path are
+      ;; examined. An absolute file name will be found by #'locate-file in the
+      ;; normal way, no need for special handling of it.
+      (setq file (expand-file-name file)))
     (load file nil t t)))
 
 (defun command-line-do-insert (arg)

@@ -1094,7 +1094,7 @@ locate_file_without_hash (Lisp_Object path, Lisp_Object str,
 			  int mode)
 {
   /* This function can GC */
-  int absolute = !NILP (Ffile_name_absolute_p (str));
+  Boolint absolute = !NILP (Ffile_name_absolute_p (str));
 
   EXTERNAL_LIST_LOOP_2 (elt, path)
     {
@@ -1105,6 +1105,25 @@ locate_file_without_hash (Lisp_Object path, Lisp_Object str,
       if (absolute)
 	break;
     }
+
+  if (NILP (path)) 
+    {
+      if (absolute || !NILP (Ffile_name_directory (str)))
+	{
+	  /* If PATH is not specified, allow absolute paths to be located, and
+	     paths relative to the current directory to be expanded. This is
+	     needed for bootstrapping. Do not return files in the current
+	     directory to be expanded.
+
+	     GNU does this latter; not doing it is more intuitive for Unix
+	     users since that's what POSIX says for processing of PATH. There
+	     is an argument that not doing one for security reasons while doing
+	     the other is inconsistent and risk, but this approach is at least
+	     what we did before. */
+	  return locate_file_in_directory (Qnil, str, suffixes, storeptr, mode);
+	}
+    }
+
   return -1;
 }
 
@@ -3243,10 +3262,6 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
 void
 init_lread (void)
 {
-  /* kludge: locate-file does not work for a null load-path, even if
-     the file name is absolute. */
-  Vload_path = Fcons (build_ascstring (""), Qnil);
-
   /* Streams are not currently dumpable. */
   Vread_buffer_stream = make_resizing_buffer_output_stream ();
 }

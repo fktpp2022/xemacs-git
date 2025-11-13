@@ -1,3 +1,9 @@
+2025-11-13  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/file-tests.el:
+	Test behaviour of #'locate-file with a nil path (just on
+	non-windows-nt for now).
+
 2025-09-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/symbol-tests.el:

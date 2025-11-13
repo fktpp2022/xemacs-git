@@ -2651,7 +2651,12 @@ pdump_file_try (const Extbyte *dirname, const Extbyte *basename,
      intentionally installed there. Similar reasoning, if it is in the expected
      subdirectory under PATH_PREFIX, or if it is an expected relative directory
      to the XEmacs binary; but only check one of these options depending on
-     what was set at compile time. */
+     what was set at compile time.
+
+     If invoked as xemacs-script (see the SHEBANG_PROGNAME #define; this is in
+     the normal course of events a link to the xemacs binary), pdump_load()
+     reads the link and calls itself recursively with the destination, and does
+     not check for, e.g. xemacs-script.dmp. */
 
   res = snprintf (file_try_path, file_try_size, "%s%s.dmp", dirname,
 		  basename);
@@ -2839,6 +2844,36 @@ pdump_load (const Extbyte * UNUSED (argv0))
 
 #else
 
+#if defined (HAVE_READLINK) && defined (SHEBANG_PROGNAME)
+#define MAYBE_HANDLE_SHEBANG_PROGNAME(baselen, basename, full_path) do	\
+    {									\
+      Bytecount m_h_s_p_baselen = (baselen);				\
+      const Extbyte *m_h_s_p_basename = (basename);			\
+      									\
+      if (m_h_s_p_baselen == (sizeof (SHEBANG_PROGNAME) - sizeof (""))	\
+	  && !memcmp (m_h_s_p_basename, SHEBANG_PROGNAME,		\
+		      m_h_s_p_baselen))					\
+	{								\
+	  Extbyte m_h_s_p_readlink_path[QXE_PATH_MAX];			\
+	  ssize_t m_h_s_p_readlink_length;				\
+	  								\
+	  m_h_s_p_readlink_length					\
+	    = readlink (full_path, m_h_s_p_readlink_path,		\
+			sizeof (m_h_s_p_readlink_path));		\
+									\
+	  if (m_h_s_p_readlink_length					\
+	      < (ssize_t) (sizeof (m_h_s_p_readlink_path)))		\
+	    {								\
+	      m_h_s_p_readlink_path[m_h_s_p_readlink_length] = '\0';	\
+	      return pdump_load (m_h_s_p_readlink_path);		\
+	    }								\
+	}								\
+    } while (0)
+#else
+#define MAYBE_HANDLE_SHEBANG_PROGNAME(baselen, basename, full_path) \
+  DO_NOTHING
+#endif
+
 Boolint
 pdump_load (const Extbyte *argv0)
 {
@@ -2904,6 +2939,8 @@ pdump_load (const Extbyte *argv0)
 	  dirname[p - dir] = '\0';
 	  if (stat (dirname, &statbuf) == 0 && S_ISDIR (statbuf.st_mode))
 	    {
+	      MAYBE_HANDLE_SHEBANG_PROGNAME (strlen (p), p, dir);
+
 	      if (pdump_file_try (dirname, p, 1))
 		{
 		  pdump_load_finish ();
@@ -2977,6 +3014,8 @@ pdump_load (const Extbyte *argv0)
       if (access (dirname, X_OK) == 0 && stat (dirname, &statbuf) == 0
 	  && !S_ISDIR (statbuf.st_mode))
 	{
+	  MAYBE_HANDLE_SHEBANG_PROGNAME (baselen, p, dirname);
+
 	  dirname[dirlen] = '\0';
 	  if (pdump_file_try (dirname, p, 1))
 	    {

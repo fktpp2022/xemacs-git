@@ -47,4 +47,18 @@
 (Check-Error file-error (load-internal ""))
 (Assert (eq nil (load-internal "" t)))
 
+;; Test #'locate-file with nil path.
+
+(unless (eq system-type 'windows-nt)
+  (let ((old default-directory))
+    (unwind-protect
+	 (progn
+	   (cd "/etc")
+	   (Assert (null (locate-file "passwd" nil)))
+	   (Assert (equal "/etc/passwd" (locate-file "./passwd" nil)))
+	   (Assert (null (locate-file "passwd" '("/usr"))))
+	   (Assert (null (locate-file "8vhlbcxyes0M" nil)))
+	   (Assert (not (equal "/etc/passwd" (locate-file "passwd" exec-path)))))
+      (cd old))))
+
 ;;; end of file-tests.el

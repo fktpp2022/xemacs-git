@@ -1,3 +1,23 @@
+2025-11-13  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* dumper.c (pdump_file_try):
+	Update a comment here.
+	* dumper.c (MAYBE_HANDLE_SHEBANG_PROGNAME): New #define, used
+	within pdump_load().
+	* dumper.c (pdump_load):
+	If argv[0] is SHEBANG_PROGNAME (usually xemacs-script) and is a
+	symbolic link, find the dump file relative to that symbolic link
+	rather than relative to xemacs-script by calling pdump_load()
+	recursively on the target of the symbolic link; fixes
+	--without-dump-in-exec when run in-place as xemacs-script.
+	* lread.c (locate_file_without_hash):
+	If PATH is Qnil, pass Qnil to locate_file_in_directory(), fixing
+	the longstanding bug where locate-file does not work for a null
+	load-path even if an absolute path is specified.
+	* lread.c (init_lread):
+	Remove post-pdump_load() initialization of Vload_path to '("") now
+	this bug has been fixed.
+
 2025-11-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Move #'Snarf-documentation, #'Verify-documentation to Lisp. To
