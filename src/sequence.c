@@ -1721,35 +1721,57 @@ position (Lisp_Object *object_out, Lisp_Object item, Lisp_Object sequence,
 
       if (NILP (from_end))
         {
-          /* It's probably worth making this even faster for the
-             non-variable-width-string case. Not now, though.  */
-          while (cursor_offset < byte_len && ii < ending)
-            {
-              if (ii >= starting)
-                {
-                  character = make_char (itext_ichar (cursor));
+	  if (check_test == check_eq_nokey && CHARP (item))
+	    {
+	      const Ichar citem = XCHAR (item);
+	      const Ibyte *endp = startp + byte_len;
 
-                  if (check_test (test, key, item, character)
-                      == test_not_unboundp)
-                    {
-                      result = make_integer (ii);
-                      *object_out = character;
-		      return result;
-		    }
-		}
-
-	      startp = XSTRING_DATA (sequence);
-	      cursor = startp + cursor_offset;
-	      if (byte_len != XSTRING_LENGTH (sequence)
-		  || !valid_ibyteptr_p (cursor))
+	      while (cursor < endp && ii < ending)
 		{
-		  mapping_interaction_error (caller, sequence);
+		  if (ii >= starting)
+		    {
+		      if (itext_ichar_eql (cursor, citem)
+			  == test_not_unboundp)
+			{
+			  result = make_integer (ii);
+			  *object_out = item;
+			  return result;
+			}
+		    }
+		  INC_IBYTEPTR (cursor);
+		  ii++;
 		}
+	    }
+	  else
+	    {
+	      while (cursor_offset < byte_len && ii < ending)
+		{
+		  if (ii >= starting)
+		    {
+		      character = make_char (itext_ichar (cursor));
+		      
+		      if (check_test (test, key, item, character)
+			  == test_not_unboundp)
+			{
+			  result = make_integer (ii);
+			  *object_out = character;
+			  return result;
+			}
+		    }
+		  
+		  startp = XSTRING_DATA (sequence);
+		  cursor = startp + cursor_offset;
+		  if (byte_len != XSTRING_LENGTH (sequence)
+		      || !valid_ibyteptr_p (cursor))
+		    {
+		      mapping_interaction_error (caller, sequence);
+		    }
 
-              INC_IBYTEPTR (cursor);
-              cursor_offset = cursor - startp;
-              ii++;
-            }
+		  INC_IBYTEPTR (cursor);
+		  cursor_offset = cursor - startp;
+		  ii++;
+		}
+	    }
 
           if (ii < starting || (ii < ending && !NILP (end)))
             {

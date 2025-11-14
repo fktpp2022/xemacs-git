@@ -1,3 +1,12 @@
+2025-11-14  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* sequence.c (position):
+	For #'find and #'position, if CHECK_TEST is check_eq_nokey(),
+	avoid the checks that Lisp hasn't relocated the string data of
+	SEQUENCE, and use itext_ichar_eql() for comparison, speeding up
+	these Lisp functions for the common (usual) case of searching for
+	a character in a string without a key argument.
+
 2025-11-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* dumper.c (pdump_file_try):
