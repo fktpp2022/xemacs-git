@@ -1,3 +1,44 @@
+2025-11-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecomp.el (byte-compile-output-as-comment):
+	No longer quote zero bytes with ^A, hopefully easing parsing by
+	doc.c:get_doc_string at some point in the future.
+	* make-docfile.el:
+	Extensive bugfixes, a significant performance enhancement to this
+	file.
+	Add a #! line in preparation for this file being called by ellcc
+	as part of the build process.
+	* make-docfile.el:
+	Instead of calling #'with-temp-buffer for every C file that needs
+	to be processed, use the same buffer, and call
+	#'kill-all-local-variables, #'erase-buffer on it every time.
+	* make-docfile.el (usage):
+	Remove an extraneous colon in the usage message.
+	* make-docfile.el (fatal): Only call #'kill-emacs if
+	noninteractive, otherwise, just error, avoid killing XEmacs if the
+	user just does M-x byte-compile-and-load-file RET out of habit.
+	* make-docfile.el (response-file-as-list): Use BUFFER and clear it
+	rather than calling #'with-temp-buffer.
+	* make-docfile.el (write-escaping-as-C-string): Escape ?\" as well
+	as ?\n, ?\\, fix a bug.
+	* make-docfile.el (needs-quoting-for-DOC): New label, return
+	non-nil if a character is ?\037 or ?\001.
+	* make-docfile.el (quote-for-DOC): New label. If a string has
+	?\037 or ?\001, return it with those characters quoted using
+	?\001, as is interpreted by unparesseuxify_doc_string() in doc.c;
+	otherwise return the string itself.
+	* make-docfile.el (write-C-docstring): New, optional, QUOTE
+	argument, meaning call #'quote-for-DOC on the string, as is
+	appropriate when writing to DOC and as is not appropriate when
+	writing module docstrings.
+	* make-docfile.el (scan-C-file):
+	Use BUFFER rather than #'with-temp-buffer. Pass
+	#'write-C-docstring its new QUOTE arg.
+	* make-docfile.el (Snarf-documentation):
+	Use BUFFER rather than #'with-temp-buffer. Use #'quote-for-DOC as
+	appropriate.
+	* make-docfile.el: Kill BUFFER when finished with it.
+
 2025-11-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* startup.el (command-line-do-script):

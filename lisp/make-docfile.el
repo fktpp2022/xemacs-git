@@ -1,3 +1,4 @@
+#!/usr/bin/env xemacs-script
 ;;; make-docfile.el --- Cache docstrings in external file.
 
 ;; Copyright (C) 1985, 1986, 1992-1995, 1997, 2025 Free Software Foundation,
@@ -100,11 +101,15 @@
        defined-lisp-objects
 
        ;; Other local variables to this file:
-       C-files docfile-out-of-date append modules)
+       C-files docfile-out-of-date append modules
+       ;; The garbage collection of #'with-temp-buffer was impacting the
+       ;; performance of this file significantly, create one buffer and reuse
+       ;; it with #'erase-buffer, #'kill-all-local-variables instead:
+       (buffer (get-buffer-create " *make-docfile-temp*")))
 
     (labels
         ((usage ()
-           (format-into t "Usage: %s: [OPTION]... [FILE]...
+           (format-into t "Usage: %s [OPTION]... [FILE]...
 
 Generate documentation strings and file name information for XEmacs functions
 and variables, from the provided source files and from the internal load
@@ -150,11 +155,15 @@ than `build-directory' if appropriate. "
            (kill-emacs 0))
 
          (fatal (&rest args)
-           (format-into 'external-debugging-output
-                        "%s: error: " (file-name-nondirectory load-file-name))
-           (apply #'format-into 'external-debugging-output args)
-           (terpri 'external-debugging-output)
-           (kill-emacs 1))
+	   (if noninteractive
+	       (progn
+		 (format-into 'external-debugging-output
+			      "%s: error: "
+			      (file-name-nondirectory load-file-name))
+		 (apply #'format-into 'external-debugging-output args)
+		 (terpri 'external-debugging-output)
+		 (kill-emacs 1))
+	     (apply #'error args)))
 
          (sanitize-C-command-line-arg (arg)
            ;; If ARG is a C object file name, transform it to the
@@ -207,7 +216,9 @@ than `build-directory' if appropriate. "
            ;;
            ;; ARG is assumed to start with `@', to be ignored. Strings
            ;; separated by space are return as a Lisp list.
-           (with-temp-buffer
+           (with-current-buffer buffer
+	     (kill-all-local-variables)
+	     (erase-buffer)
              (insert-file-contents-internal (subseq arg 1))
              ;; Majorly grind up the response file.  Backslashes get doubled,
              ;; quotes around strings, get rid of pesky CR's and NL's, and put
@@ -235,7 +246,7 @@ than `build-directory' if appropriate. "
 	   (let (special (last 0))
 	     (while (setq special
 			  (position-if #'(lambda (character)
-					   (memq character '(?\n ?\\)))
+					   (memq character '(?\n ?\\ ?\")))
 				       string :start last))
 	       (write-sequence string stream
 			       :start last :end special)
@@ -245,10 +256,44 @@ than `build-directory' if appropriate. "
 		  ;; backslash, and then a literal newline for the
 		  ;; sake of readability of the generated file.
 		  (write-sequence "\\n\\\n" stream))
+		 (?\"
+		  (write-sequence "\\\"" stream))
 		 (?\\
 		  (write-sequence "\\\\" stream)))
 	       (setf last (1+ special)))
 	     (write-sequence string stream :start last)))
+
+	 (needs-quoting-for-DOC (character)
+	   (memq character '(?\037 ?\001)))
+
+	 (quote-for-DOC (string)
+	   ;; ?\037 within DOC needs to be quoted, otherwise it is interpreted
+	   ;; as the end of the docstring (or file name). It is quoted by
+	   ;; ?\001; which means that ?\001 needs itself to be quoted if
+	   ;; encountered.
+	   (let ((position
+		  ;; Messier than (position-if #'needs-quoting-for-DOC
+		  ;; ...) but much cheaper given no need to call Lisp
+		  ;; for each character in the string, and the vast
+		  ;; majority of strings do not need this quoting:
+		  (or (position ?\037 string) (position ?\001 string))))
+	     (if position
+		 (let ((stream (make-string-output-stream))
+		       (last 0))
+		   (while (setq position
+				(position-if #'needs-quoting-for-DOC string
+					     :start last))
+		     (write-sequence string stream
+				     :start last :end position)
+		     (case (aref string position)
+		       (?\037
+			(write-sequence "\001_" stream))
+		       (?\001
+			(write-sequence "\001\001" stream)))
+		     (setf last (1+ position)))
+		   (write-sequence string stream :start last)
+		   (get-output-stream-string stream))
+	       string)))
 
          (scan-C-file (output-stream filename modules coding-system)
            ;; Parse documentation strings and arglist information in FILENAME
@@ -269,9 +314,10 @@ than `build-directory' if appropriate. "
                       (or char-after (return-from scan-C-file))))
 		  (whitespacep (character)
 		    (memq character '(?\x20 ?\t ?\n)))
-		  (write-C-docstring (string stream)
-		    (let ((last (or (position-if-not #'whitespacep string) 0))
-			  backslash)
+		  (write-C-docstring (string stream &optional quote)
+		    (let* ((string (if quote (quote-for-DOC string) string))
+			   (last (or (position-if-not #'whitespacep string) 0))
+			   backslash)
                       (while (setq backslash (position ?\\ string
                                                        :start last))
                         (write-sequence string stream
@@ -338,7 +384,9 @@ than `build-directory' if appropriate. "
                           (setq list (cons '&optional list))))
                       list)))
                (declare (inline next-char))
-               (with-temp-buffer
+               (with-current-buffer buffer
+		 (kill-all-local-variables)
+		 (erase-buffer)
                  (insert-file-contents filename)
                  (set coding-system buffer-file-coding-system)
                  (setq filename (canonicalize-file-name-for-output filename))
@@ -430,7 +478,8 @@ than `build-directory' if appropriate. "
                             (progn (search-forward "*/" nil t)
                                    (backward-char (length "*/"))
                                    (point)))
-                           output-stream))
+                           output-stream
+			   t))
                         (when (and (eq type 'defun) max-args)
                           (if modules
                               (write-sequence "\\n\\\n\\n\\\n" output-stream)
@@ -462,7 +511,9 @@ than `build-directory' if appropriate. "
            ;; Find offsets of doc strings stored in FILENAME and record them
            ;; in function definitions, and store them as the fixnum value for
            ;; the `variable-documentation' property of variables.
-           (with-temp-buffer
+           (with-current-buffer buffer
+	     (kill-all-local-variables)
+	     (erase-buffer)
              (let ((coding-system-for-read
                     ;; We are interested in the byte offset on disk, so load
                     ;; it as no-conversion-unix; the file is escape-quoted, so
@@ -762,28 +813,36 @@ than `build-directory' if appropriate. "
                  (case (car-safe elt)
                    ((provide require module)) ;; Do nothing for now.
                    (defun
-                     (setq symbol (cdr elt)
-                           documentation
-                           (and (fboundp symbol)
-                                (not (symbolp (symbol-function symbol)))
-                                (not (eq 'keymap
+                    (setq symbol (cdr elt)
+			  documentation
+			  (and (fboundp symbol)
+			       (not (symbolp (symbol-function symbol)))
+			       (not (eq 'keymap
                                          (type-of
                                           (symbol-function symbol))))
-                                (documentation symbol t)))
-                     (format-into output-stream "\037S%s\n\037%c%S\n"
-                                  filename ?F symbol)
-                     (when documentation
-                       (write-sequence documentation output-stream)))
+			       (documentation symbol t)))
+		    (write-sequence "\037S" output-stream)
+		    (write-line (quote-for-DOC filename) output-stream)
+		    (write-sequence "\037F" output-stream)
+		    (write-line (quote-for-DOC (prin1-to-string symbol))
+				output-stream)
+		    (when documentation
+		      (write-sequence (quote-for-DOC documentation)
+				      output-stream)))
                    (t
                     (setq symbol elt
                         documentation
                         (and (boundp symbol)
                              (documentation-property
                               symbol 'variable-documentation t)))
-                    (format-into output-stream "\037S%s\n\037%c%S\n"
-                                 filename ?V symbol)
+		    (write-sequence "\037S" output-stream)
+		    (write-line (quote-for-DOC filename) output-stream)
+		    (write-sequence "\037V" output-stream)
+		    (write-line (quote-for-DOC (prin1-to-string symbol))
+				output-stream)
                     (when documentation
-                      (write-sequence documentation output-stream)))))))
+                      (write-sequence (quote-for-DOC documentation)
+				      output-stream)))))))
              load-history))
 	  
           (unless (eq t output-stream)
@@ -799,6 +858,7 @@ than `build-directory' if appropriate. "
            (message "Finding pointers to doc strings...")
            (Snarf-documentation docfile)
            (message "Finding pointers to doc strings...done")
-           (Verify-documentation)))))
+           (Verify-documentation))
+	 (kill-buffer buffer))))
 
 ;;; make-docfile.el ends here

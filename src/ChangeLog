@@ -1,3 +1,13 @@
+2025-11-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* doc.c (unparesseuxify_doc_string):
+	There is no good reason that DOC (or indeed dynamic docstrings)
+	cannot include literal zero characters, use memchr() rather than
+	qxestrchr() when looking for the terminating ?\037.
+	De-quoting within this function for quoting of ?\0 with ?\1 is
+	still necessary, given need to load dynamic docstrings generated
+	by 21.4.
+
 2025-11-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* sequence.c (position):

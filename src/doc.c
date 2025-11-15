@@ -234,7 +234,9 @@ unparesseuxify_doc_string (int fd, OFF_T position, Ibyte *name_nonreloc,
       if (!nread)
 	break;
       {
-	Ibyte *p1 = qxestrchr (p, '\037'); /* End of doc string marker */
+	Ibyte *p1
+	  /* End of doc string marker */
+	  = (Ibyte *) memchr ((void *) p, '\037', nread); 
 	if (p1)
 	  {
 	    *p1 = 0;
