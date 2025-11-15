@@ -1,3 +1,9 @@
+2025-11-15  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/mule-tests.el:
+	Test the NOCOPY argument to #'decode-coding-string,
+	#'encode-coding-string, just implemented.
+
 2025-11-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/file-tests.el:

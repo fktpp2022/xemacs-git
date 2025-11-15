@@ -578,6 +578,50 @@ with control-1"
     (Assert (string= (encode-coding-string all-octets 'escape-quoted)
 		     escape-quoted-result)))
 
+  ;; Test the NOCOPY argument to #'decode-coding-string,
+  ;; #'encode-coding-string.
+  (let ((trivial-string "hello")
+        (non-trivial-string "hällo")
+        (very-non-trivial-utf-8 "\xe2\x81\x8a")
+        (very-non-trivial-internal "\u204A"))
+    (Assert (not (eq trivial-string (decode-coding-string trivial-string
+                                                          'utf-8 nil)))
+            "checking nil NOCOPY argment to #'decode-coding-string \
+creates a new string")
+    (Assert (eq trivial-string (decode-coding-string trivial-string
+                                                     'utf-8 t))
+            "checking non-nil NOCOPY argument to #'decode-coding-string \
+returns the supplied string")
+    (Assert (not (eq trivial-string (encode-coding-string trivial-string
+                                                          'utf-8 nil)))
+            "checking nil NOCOPY argment to #'encode-coding-string \
+creates a new string")
+    (Assert (eq trivial-string (encode-coding-string trivial-string
+                                                     'utf-8 t))
+            "checking non-nil NOCOPY argument to #'encode-coding-string \
+returns the supplied string")
+    (let ((new-non-trivial-string (copy-sequence non-trivial-string)))
+      (Assert (eq new-non-trivial-string
+                  (decode-coding-string new-non-trivial-string
+                                        'koi8-r t))
+            "checking non-nil NOCOPY argument to #'decode-coding-string \
+modifies the supplied string if that is appropriate.")
+      (Assert (not (equal non-trivial-string new-non-trivial-string))))
+
+    (let ((non-trivial-string (copy-sequence "h\u0414llo")))
+      (Assert (not (eq non-trivial-string
+                       (encode-coding-string non-trivial-string
+                                             'koi8-r t)))
+            "checking non-nil NOCOPY argument to #'encode-coding-string \
+does not modify the supplied string if it differs from the supplied string."))
+
+    (Assert (not (eq very-non-trivial-utf-8 (decode-coding-string
+                                             very-non-trivial-utf-8
+                                             'utf-8 t))))
+    (Assert (not (eq very-non-trivial-internal (encode-coding-string
+                                                very-non-trivial-internal
+                                                'utf-8 t)))))
+
   ;;---------------------------------------------------------------
   ;; Test file-system character conversion (and, en passant, file ops)
   ;;---------------------------------------------------------------

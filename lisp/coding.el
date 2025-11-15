@@ -144,23 +144,6 @@ from a Lisp program, use `detect-coding-region' instead."
   (interactive "r\nP")
   (princ (detect-coding-region start end)))
 
-(defun decode-coding-string (str coding-system &optional nocopy)
-  "Decode the string STR which is encoded in CODING-SYSTEM.
-Normally does not modify STR.  Returns the decoded string on
-successful conversion.
-Optional argument NOCOPY says that modifying STR and returning it is
-allowed."
-  (with-string-as-buffer-contents
-   str (decode-coding-region (point-min) (point-max) coding-system)))
-
-(defun encode-coding-string (str coding-system &optional nocopy)
-  "Encode the string STR using CODING-SYSTEM.
-Does not modify STR.  Returns the encoded string on successful conversion.
-Optional argument NOCOPY says that the original string may be returned
-if does not differ from the encoded string. "
-  (with-string-as-buffer-contents
-   str (encode-coding-region (point-min) (point-max) coding-system)))
-
 
 ;;;; Coding system accessors
 

@@ -1,5 +1,14 @@
 2025-11-15  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* coding.el (decode-coding-string): Moved to file-coding.c.
+	* coding.el (encode-coding-string): Moved to file-coding.c.
+	These Lisp implementations (using temporary buffers) were very
+	expensive in terms of garbage collection for their many calls in
+	make-docfile.el, and it was non-trivial to implement the NOCOPY
+	arg, so it was never done.
+
+2025-11-15  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* bytecomp.el (byte-compile-output-as-comment):
 	No longer quote zero bytes with ^A, hopefully easing parsing by
 	doc.c:get_doc_string at some point in the future.

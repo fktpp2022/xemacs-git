@@ -2919,6 +2919,175 @@ BUFFER defaults to the current buffer if unspecified, and when interactive.
 				      CODING_ENCODE);
 }
 
+static Lisp_Object
+encode_decode_coding_string (Lisp_Object string, Lisp_Object coding_system, 
+                             enum encode_decode direction, Boolint nocopy)
+{
+  Lisp_Object instream = Qnil, to_outstream = Qnil, outstream = Qnil;
+  Lisp_Object from_outstream = Qnil, auto_outstream = Qnil;
+  Lisp_Object rb_outstream = Qnil, result = Qnil;
+  Lisp_Object next;
+  Lstream *istr, *ostr;
+  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
+  struct gcpro ngcpro1, ngcpro2;
+  Boolint source_char, sink_char;
+  Bytecount sizeof_tempbuf;
+  Ibyte *tempbuf;
+
+  GCPRO5 (instream, to_outstream, outstream, from_outstream, rb_outstream);
+  NGCPRO2 (auto_outstream, string);
+
+  if (CHARP (string))
+    {
+      string = Fstring (1, &string);
+      nocopy = 1;
+    }
+  else
+    {
+      CHECK_STRING (string);
+    }
+
+  coding_system = Fget_coding_system (coding_system);
+
+  sizeof_tempbuf = XSTRING_LENGTH (string) * 2;
+  tempbuf = alloca_ibytes (sizeof_tempbuf);
+
+  source_char = encode_decode_source_sink_type_is_char (coding_system,
+							CODING_SOURCE,
+							direction);
+  sink_char = encode_decode_source_sink_type_is_char (coding_system,
+						      CODING_SINK,
+						      direction);
+
+  /* Order is IN <---> [TO] -> OUT -> [FROM] -> [AUTODETECT-EOL] -> LB */
+  instream  = make_lisp_string_input_stream (string, 0,
+                                             XSTRING_LENGTH (string));
+  next = rb_outstream = make_resizing_buffer_output_stream ();
+
+  if (direction == CODING_DECODE &&
+      XCODING_SYSTEM_EOL_TYPE (coding_system) == EOL_AUTODETECT)
+    {
+      next = auto_outstream =
+        make_coding_output_stream
+	(XLSTREAM (next), Fget_coding_system (Qconvert_eol_autodetect),
+	 CODING_DECODE, 0);
+    }
+
+  if (!sink_char)
+    {
+      next = from_outstream =
+        make_coding_output_stream (XLSTREAM (next), Qbinary,
+                                   CODING_DECODE, 0);
+    }
+
+  outstream = make_coding_output_stream (XLSTREAM (next), coding_system,
+					 direction, 0);
+  if (!source_char)
+    {
+      to_outstream = make_coding_output_stream (XLSTREAM (outstream),
+                                                Qbinary, CODING_ENCODE, 0);
+      ostr = XLSTREAM (to_outstream);
+    }
+  else
+    {
+      ostr = XLSTREAM (outstream);
+    }
+
+  istr = XLSTREAM (instream);
+
+  while (1)
+    {
+      Bytecount size_in_bytes = Lstream_read (istr, tempbuf, sizeof_tempbuf);
+
+      if (!size_in_bytes)
+        {
+          break;
+        }
+
+      Lstream_write (ostr, tempbuf, size_in_bytes);
+    }
+
+  Lstream_flush_out (ostr);
+  Lstream_flush_out (XLSTREAM (rb_outstream));
+
+  if (nocopy && (Lstream_byte_count (XLSTREAM (rb_outstream))
+                 == XSTRING_LENGTH (string))
+      && (direction == CODING_DECODE
+          || !memcmp (resizing_buffer_stream_ptr (XLSTREAM (rb_outstream)),
+                      XSTRING_DATA (string), XSTRING_LENGTH (string))))
+    {
+      if (direction == CODING_DECODE &&
+          !memcmp (resizing_buffer_stream_ptr (XLSTREAM (rb_outstream)),
+                   XSTRING_DATA (string), XSTRING_LENGTH (string)))
+        {
+          memcpy (XSTRING_DATA (string),
+                  resizing_buffer_stream_ptr (XLSTREAM (rb_outstream)),
+                  XSTRING_LENGTH (string));
+          init_string_ascii_end (string);
+          bump_string_modiff (string);
+          sledgehammer_check_ascii_end (string);
+        }
+      result = string;
+    }
+  else
+    {
+      result = resizing_buffer_to_lisp_string (XLSTREAM (rb_outstream));
+    }
+
+  Lstream_close (istr);
+  Lstream_close (ostr);
+  NUNGCPRO;
+  UNGCPRO;
+  Lstream_delete (istr);
+  if (!NILP (from_outstream))
+    Lstream_delete (XLSTREAM (from_outstream));
+  Lstream_delete (XLSTREAM (outstream));
+  if (!NILP (to_outstream))
+    Lstream_delete (XLSTREAM (to_outstream));
+  if (!NILP (auto_outstream))
+    Lstream_delete (XLSTREAM (auto_outstream));
+  Lstream_delete (XLSTREAM (rb_outstream));
+
+  return result;
+}
+
+DEFUN ("decode-coding-string", Fdecode_coding_string, 2, 3, 0, /*
+Decode STRING which is encoded in CODING-SYSTEM.
+
+Normally does not modify STRING.  Returns the decoded string on successful
+conversion.
+
+Optional argument NOCOPY says that modifying STRING and returning it is
+allowed. This will only be done if the byte length of the result is the same
+as the byte length of STRING. This can mean that the character length of
+STRING changes, so it is unwise to pass NOCOPY unless you are certain there
+are no other references to STRING.
+
+An XEmacs extension is that STRING can be a single character (not an
+integer). The result in this case is still a string.
+*/
+       (string, coding_system, nocopy))
+{
+  return encode_decode_coding_string (string, coding_system, CODING_DECODE,
+                                      !NILP (nocopy));
+}
+
+DEFUN ("encode-coding-string", Fencode_coding_string, 2, 3, 0, /*
+Encode STRING using CODING-SYSTEM.
+
+Never modifies STRING.  Returns the encoded string on successful conversion.
+
+Optional argument NOCOPY says that the original string may be returned if does
+not differ from the encoded string.
+
+An XEmacs extension is that STRING can be a single character (not an
+integer). The result in this case is still a string.
+*/
+       (string, coding_system, nocopy))
+{
+  return encode_decode_coding_string (string, coding_system, CODING_ENCODE,
+                                      !NILP (nocopy));
+}
 
 /************************************************************************/
 /*                      Conversion error handling                       */
@@ -6134,6 +6303,8 @@ syms_of_file_coding (void)
   DEFSUBR (Fdetect_coding_region);
   DEFSUBR (Fdecode_coding_region);
   DEFSUBR (Fencode_coding_region);
+  DEFSUBR (Fdecode_coding_string);
+  DEFSUBR (Fencode_coding_string);
   DEFSUBR (Fquery_coding_region);
   DEFSUBR (Ffind_coding_system_magic_cookie_in_file);
   DEFSUBR (Fquery_coding_string);

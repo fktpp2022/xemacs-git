@@ -1,5 +1,24 @@
 2025-11-15  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Use the lisp_string and the resizing_buffer lstream
+	implementations to implement #'decode-coding-string,
+	#'encode-coding-string, drastically reducing the amount of garbage
+	generated when they are called repeatedly.
+
+	Implement the NOCOPY argument. 
+
+	* file-coding.c (encode_decode_coding_string): New. The
+	implementation of the next two subrs.
+	* file-coding.c (Fdecode_coding_string): Moved here from
+	coding.el.
+	* file-coding.c (Fencode_coding_string): Moved here from
+	coding.el.
+	* file-coding.c (syms_of_file_coding):
+	Provide DEFSUBR() for Fdecode_coding_string(),
+	Fencode_coding_string().
+
+2025-11-15  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* doc.c (unparesseuxify_doc_string):
 	There is no good reason that DOC (or indeed dynamic docstrings)
 	cannot include literal zero characters, use memchr() rather than
