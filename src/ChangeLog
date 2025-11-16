@@ -1,3 +1,10 @@
+2025-11-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* text.h (itext_ichar_eql):
+	Fix a bug in this function, if CH is non-ASCII the character at
+	STR may still be ASCII and so non_ascii_itext_ichar() is
+	inappropriate. Thank you Mats Lidell and the buildbot.
+
 2025-11-15  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Use the lisp_string and the resizing_buffer lstream

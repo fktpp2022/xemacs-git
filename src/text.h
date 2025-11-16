@@ -1908,7 +1908,7 @@ itext_ichar_eql (const Ibyte *str, Ichar ch)
     /* This is fine, since ASCII characters are not part of the subsequent
        octets of non-ASCII characters. */
     return *str == (Ibyte) ch; 
-  return non_ascii_itext_ichar (str) == ch;
+  return itext_ichar (str) == ch;
 }
 
 /* Retrieve the character at offset N (in characters) from PTR, as an
