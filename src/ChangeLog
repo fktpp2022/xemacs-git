@@ -1,5 +1,23 @@
 2025-11-16  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Fix a bug in my last change, and a separate bug which it made more
+	evident.
+	* file-coding.c:
+	* file-coding.c (encode_decode_coding_string):
+	Create an Ibyte_dynarr and write to that by means of
+	make_dynarr_output_stream(), rather than using a resizing
+	buffer. This latter has the disadvantage that once it is closed
+	its BUF is immediately freed; certain coding coding systems only
+	write trailing error sequences at the point when close() is
+	called. The xfree (str->buf) should likely be in a finalizer
+	rather than a closer.
+	* unicode.c (unicode_decode):
+	Only perform the skip_ascii() optimization if data->counter is
+	zero (and the byte is ASCII); otherwise we may need to indicate
+	invalid UTF-8, so that is inappropriate.
+
+2025-11-16  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* text.h (itext_ichar_eql):
 	Fix a bug in this function, if CH is non-ASCII the character at
 	STR may still be ASCII and so non_ascii_itext_ichar() is

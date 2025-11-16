@@ -2925,7 +2925,7 @@ encode_decode_coding_string (Lisp_Object string, Lisp_Object coding_system,
 {
   Lisp_Object instream = Qnil, to_outstream = Qnil, outstream = Qnil;
   Lisp_Object from_outstream = Qnil, auto_outstream = Qnil;
-  Lisp_Object rb_outstream = Qnil, result = Qnil;
+  Lisp_Object da_outstream = Qnil, result = Qnil;
   Lisp_Object next;
   Lstream *istr, *ostr;
   struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
@@ -2933,8 +2933,10 @@ encode_decode_coding_string (Lisp_Object string, Lisp_Object coding_system,
   Boolint source_char, sink_char;
   Bytecount sizeof_tempbuf;
   Ibyte *tempbuf;
+  Ibyte_dynarr *output_dynarr = Dynarr_new (Ibyte);
+  int speccount = record_unwind_protect_freeing_dynarr (output_dynarr);
 
-  GCPRO5 (instream, to_outstream, outstream, from_outstream, rb_outstream);
+  GCPRO5 (instream, to_outstream, outstream, from_outstream, da_outstream);
   NGCPRO2 (auto_outstream, string);
 
   if (CHARP (string))
@@ -2962,7 +2964,8 @@ encode_decode_coding_string (Lisp_Object string, Lisp_Object coding_system,
   /* Order is IN <---> [TO] -> OUT -> [FROM] -> [AUTODETECT-EOL] -> LB */
   instream  = make_lisp_string_input_stream (string, 0,
                                              XSTRING_LENGTH (string));
-  next = rb_outstream = make_resizing_buffer_output_stream ();
+  next = da_outstream
+    = make_dynarr_output_stream ((unsigned_char_dynarr *) output_dynarr);
 
   if (direction == CODING_DECODE &&
       XCODING_SYSTEM_EOL_TYPE (coding_system) == EOL_AUTODETECT)
@@ -3007,33 +3010,6 @@ encode_decode_coding_string (Lisp_Object string, Lisp_Object coding_system,
       Lstream_write (ostr, tempbuf, size_in_bytes);
     }
 
-  Lstream_flush_out (ostr);
-  Lstream_flush_out (XLSTREAM (rb_outstream));
-
-  if (nocopy && (Lstream_byte_count (XLSTREAM (rb_outstream))
-                 == XSTRING_LENGTH (string))
-      && (direction == CODING_DECODE
-          || !memcmp (resizing_buffer_stream_ptr (XLSTREAM (rb_outstream)),
-                      XSTRING_DATA (string), XSTRING_LENGTH (string))))
-    {
-      if (direction == CODING_DECODE &&
-          !memcmp (resizing_buffer_stream_ptr (XLSTREAM (rb_outstream)),
-                   XSTRING_DATA (string), XSTRING_LENGTH (string)))
-        {
-          memcpy (XSTRING_DATA (string),
-                  resizing_buffer_stream_ptr (XLSTREAM (rb_outstream)),
-                  XSTRING_LENGTH (string));
-          init_string_ascii_end (string);
-          bump_string_modiff (string);
-          sledgehammer_check_ascii_end (string);
-        }
-      result = string;
-    }
-  else
-    {
-      result = resizing_buffer_to_lisp_string (XLSTREAM (rb_outstream));
-    }
-
   Lstream_close (istr);
   Lstream_close (ostr);
   NUNGCPRO;
@@ -3046,7 +3022,33 @@ encode_decode_coding_string (Lisp_Object string, Lisp_Object coding_system,
     Lstream_delete (XLSTREAM (to_outstream));
   if (!NILP (auto_outstream))
     Lstream_delete (XLSTREAM (auto_outstream));
-  Lstream_delete (XLSTREAM (rb_outstream));
+  Lstream_delete (XLSTREAM (da_outstream));
+
+  if (nocopy && (Dynarr_length (output_dynarr) == XSTRING_LENGTH (string))
+      && (direction == CODING_DECODE
+          || !memcmp (Dynarr_begin (output_dynarr),
+                      XSTRING_DATA (string), XSTRING_LENGTH (string))))
+    {
+      if (direction == CODING_DECODE &&
+          memcmp (Dynarr_begin (output_dynarr),
+                  XSTRING_DATA (string), XSTRING_LENGTH (string)))
+        {
+          memcpy (XSTRING_DATA (string),
+                  Dynarr_begin (output_dynarr),
+                  XSTRING_LENGTH (string));
+          init_string_ascii_end (string);
+          bump_string_modiff (string);
+          sledgehammer_check_ascii_end (string);
+        }
+      result = string;
+    }
+  else
+    {
+      result = make_string (Dynarr_begin (output_dynarr),
+                            Dynarr_length (output_dynarr));
+    }
+
+  unbind_to (speccount);
 
   return result;
 }

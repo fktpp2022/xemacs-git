@@ -3374,7 +3374,7 @@ unicode_decode (struct coding_stream *str, const UExtbyte *src,
       while (n > 0)
 	{
 	  UExtbyte c = *src;
-          if (byte_ascii_p (c))
+          if (0 == data->counter && byte_ascii_p (c))
             {
               const UExtbyte *nonascii
                 = (const UExtbyte *) skip_ascii ((const Ibyte *) src,
