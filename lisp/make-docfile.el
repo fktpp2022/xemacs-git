@@ -299,7 +299,7 @@ than `build-directory' if appropriate. "
            ;; Parse documentation strings and arglist information in FILENAME
            ;; and write it to OUTPUT-STREAM.
            ;;
-           ;; If MODULES is non-nil, do this in a way that is compatibile with
+           ;; If MODULES is non-nil, do this in a way that is compatible with
            ;; the XEmacs modules implementation (see `load-module') otherwise
            ;; do it in a way appropriate for the internal doc file. See
            ;; `internal-doc-file-name' and `documentation.'

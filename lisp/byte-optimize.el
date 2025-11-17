@@ -1260,6 +1260,19 @@
       t
     form))
 
+(put 'encode-coding-string 'byte-optimizer 'byte-optimize-encode-decode-string)
+(put 'decode-coding-string 'byte-optimizer 'byte-optimize-encode-decode-string)
+(defun byte-optimize-encode-decode-string (form)
+  (if (and (eql (length form) 3)
+           (member (car-safe (nth 1 form))
+                   '(buffer-string buffer-substring concat format
+                     get-output-stream-string make-string mapconcat
+                     match-string string subseq substring-no-properties
+                     text-char-description)))
+      ;; Pass the NOCOPY argument to these functions if its STRING arg
+      ;; would otherwise be immediately GCed.
+      `(,(nth 0 form) ,(nth 1 form) ,(nth 2 form) t)
+    form))
 
 ;;; enumerating those functions which need not be called if the returned
 ;;; value is not used.  That is, something like

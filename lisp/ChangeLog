@@ -1,3 +1,11 @@
+2025-11-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* byte-optimize.el (byte-optimize-encode-decode-string): New
+	optimizer for #'encode-coding-string, #'decode-coding-string; pass
+	the NOCOPY argument if STRING would otherwise be immediately GCed.
+	* make-docfile.el (scan-C-file): Correct a spelling in the
+	documentation for this function.
+
 2025-11-15  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* coding.el (decode-coding-string): Moved to file-coding.c.
