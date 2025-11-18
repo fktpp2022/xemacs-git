@@ -1,3 +1,13 @@
+2025-11-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* loadup.el:
+	Call #'unintern on 'dump-emacs, 'run-emacs-from-temacs as part of
+	the dump process, avoid Lisp visibility of #'dump-emacs. This
+	latter function just crashes XEmacs if called after successful
+	pdump_load(), and the former function is not useful and would
+	crash XEmacs except that it has a check that avoids this and
+	refuses to run.
+
 2025-11-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* byte-optimize.el (byte-optimize-encode-decode-string): New

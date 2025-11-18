@@ -173,9 +173,13 @@ with the exception of `loadup.el'.")
                       :key #'cdr))
 
   (message "Dumping under the name xemacs")
-  (dump-emacs
-   "xemacs"
-   "temacs")
+  (funcall
+   (prog1 (symbol-function 'dump-emacs)
+     ;; Calling #'dump-emacs in an XEmacs after successful pdump_load() will
+     ;; just crash, and #'run-emacs-from-temacs will just error. Remove their
+     ;; visibility from Lisp.
+     (unintern 'dump-emacs)
+     (unintern 'run-emacs-from-temacs)))
   (kill-emacs))
 
 ;; Avoid error if user loads some more libraries now.

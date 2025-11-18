@@ -2680,22 +2680,24 @@ Currently defined values:
 }
 
 DEFUN_NORETURN ("run-emacs-from-temacs", Frun_emacs_from_temacs, 0, MANY, 0, /*
-Do not call this.  It will reinitialize your XEmacs.  You'll be sorry.
+Reinitialize XEmacs for use after initializing C and Lisp state.
+
+Do not load a dump file. This allows you to run temacs as an editor using:
+
+  ./temacs -nd -no-configured-paths -batch -l ../lisp/loadup.el run-temacs -nw
+
+instead of having to dump an emacs and then run that.  This is usually
+unreasonably slow and full of minor bugs but may be beneficial for debugging
+tools that get confused by XEmacs' dumping.
+
+Calling this function after a dump file has already been loaded is not useful
+and, absent a check within `run-emacs-from-temacs' that prevents it doing
+anything in this case, would very likely crash. For this reason, the dump
+process arranges to remove `run-emacs-from-temacs' from the Lisp namespace as
+part of dumping.
 
 arguments: (&rest ARGS)
 */
-/* If this function is called from startup.el, it will be possible to run
-   temacs as an editor using `temacs -batch -l ../lisp/loadup.el
-   run-temacs', instead of having to dump an emacs and then run that (when
-   debugging emacs itself, this can be much faster)). [Actually, the speed
-   difference isn't that much as long as your filesystem is local, and you
-   don't end up with a dumped version in case you want to rerun it.  This
-   function is most useful when used as part of the `make all-elc'
-   command. --ben] This will "restart" emacs with the specified command-line
-   arguments.
-
-   Martin thinks this function is most useful when using debugging
-   tools like Purify or tcov that get confused by XEmacs' dumping.  */
      (int nargs, Lisp_Object *args))
 {
   int i;
@@ -2901,36 +2903,30 @@ main (int argc, Extbyte **argv, Extbyte **UNUSED (envp))
 
 
 /************************************************************************/
-/*                 dumping XEmacs (to a new EXE file)                   */
+/*                             dumping XEmacs                           */
 /************************************************************************/
 
-DEFUN ("dump-emacs", Fdump_emacs, 2, 2, 0, /*
-Dump current state of XEmacs into executable file FILENAME.
-Take symbols from SYMFILE (presumably the file you executed to run XEmacs).
-This is used in the file `loadup.el' when building XEmacs.
+DEFUN ("dump-emacs", Fdump_emacs, 0, 0, 0, /*
+Dump current state of XEmacs. This is usually into a file `xemacs.dmp'.
 
-Remember to set `command-line-processed' to nil before dumping
-if you want the dumped XEmacs to process its command line
-and announce itself normally when it is run.
+The specific name is set at configuration time and passed to C as a
+preprocessor constant,
+
+Dumping Lisp and C state to make a usable editor is part of the process of
+building XEmacs.  See the ``dumping'' section of the XEmacs Internals Manual
+for more detailed explanation this.  See `emacs-run-status' for a Lisp
+function giving details about whether this XEmacs is dumping or has dump data
+available.
+
+Since `dump-emacs' depends on a lot of C state unavailable after loading the
+dump file, it is not useful and will crash XEmacs if called after normal
+startup (that is, after an existing dump file has been loaded).  The dump
+processes arranges for this function to be removed from the Lisp namespace as
+part of dumping to avoid this happening.
 */
-       (filename, symfile))
+       ())
 {
-  /* This function can GC */
-  struct gcpro gcpro1, gcpro2;
-
-  GCPRO2 (filename, symfile);
-
-  CHECK_STRING (filename);
-  filename = Fexpand_file_name (filename, Qnil);
-  if (!NILP (symfile))
-    {
-      CHECK_STRING (symfile);
-      if (XSTRING_LENGTH (symfile) > 0)
-	symfile = Fexpand_file_name (symfile, Qnil);
-      else
-	symfile = Qnil;
-    }
-
+  /* This function has to GC as part of its job description. */
   clear_message ();
 
   fflush (stderr);
@@ -2957,7 +2953,6 @@ and announce itself normally when it is run.
 
   pdump ();
 
-  UNGCPRO;
   return Qnil;
 }
 

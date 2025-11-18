@@ -1,3 +1,20 @@
+2025-11-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Docstring work, #'run-emacs-from-temacs, #'dump-emacs. Document a
+	change just made to ../lisp/loadup.el that removes their symbols
+	from obarray as part of the dump process.
+
+	* emacs.c (Frun_emacs_from_temacs):
+	Flesh out the doc string here. Supply a command line that
+	currently works for me (the supplied one does not). Clarify that
+	this function has been removed from the Lisp namespace as part of
+	the dump process since it is not of use.
+	* emacs.c (Fdump_emacs):
+	Correct the docstring of this function. Document that the dump
+	process now removes this function from the Lisp namespace since
+	calling after pdump_load() just crashes. Removed unused arguments,
+	remove GCPRO() of them.
+
 2025-11-16  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Fix a bug in my last change, and a separate bug which it made more
