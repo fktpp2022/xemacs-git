@@ -1,5 +1,12 @@
 2025-11-18  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* cl-extra.el: Remove definitions for #'remassoc, #'remrassoc,
+	#'remrassq, #'remassq from this file, move them to obsolete.el as
+	was always the intention but as was previously not practical.
+	* obsolete.el: Provide them here.
+
+2025-11-18  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* loadup.el:
 	Call #'unintern on 'dump-emacs, 'run-emacs-from-temacs as part of
 	the dump process, avoid Lisp visibility of #'dump-emacs. This

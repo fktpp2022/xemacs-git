@@ -554,10 +554,36 @@ If that is nil, return integer zero."
 ;; #'symbol-macrolet. These APIs were always XEmacs-specific, were never
 ;; widely used, and it was always more readable and more compatible to use
 ;; the CL functions.
-(make-obsolete 'remassoc "use delete* with :test #'equal, :key #'car")
-(make-obsolete 'remassq "use delete* with :test #'eq, :key #'car")
-(make-obsolete 'remrassoc "use delete* with :test #'equal, :key #'cdr")
-(make-obsolete 'remrassq "use delete* with :test #'eq, :key #'cdr")
+
+
+(symbol-macrolet ((not-nil '#:not-nil))
+  (labels ((car-or-not-nil (object)
+             (if (consp object) (car object) not-nil))
+           (cdr-or-not-nil (object)
+             (if (consp object) (cdr object) not-nil)))
+    (defalias 'remassoc
+      #'(lambda (key alist)
+         (delete* key alist :test #'equal
+                  :key (if key #'car-safe #'car-or-not-nil))))
+    (make-obsolete 'remassoc "use delete* with :test #'equal, :key #'car")
+
+    (defalias 'remrassoc
+      #'(lambda (key alist)
+         (delete* key alist :test #'equal
+                  :key (if key #'cdr-safe #'cdr-or-not-nil))))
+    (make-obsolete 'remrassoc "use delete* with :test #'equal, :key #'cdr")
+
+    (defalias 'remrassq
+      #'(lambda (key alist)
+         (delete* key alist :test #'eq
+                  :key (if key #'cdr-safe #'cdr-or-not-nil))))
+    (make-obsolete 'remrassq "use delete* with :test #'eq, :key #'cdr")
+
+    (defalias 'remassq
+      #'(lambda (key alist)
+         (delete* key alist :test #'eq
+                  :key (if key #'car-safe #'car-or-not-nil))))
+    (make-obsolete 'remassq "use delete* with :test #'eq, :key #'car")))
 
 (defun max-char ()
   "Return a fixnum one less than `char-code-limit'.

@@ -952,31 +952,8 @@ most significant non-zero bit."
 (defsubst* realp (object)
   "Return t if OBJECT is a real, nil otherwise."
   (or (rationalp object) (floatingp object)))
-
-;; These are here because labels and symbol-macrolet are not available in
-;; obsolete.el. They are, however, all marked as obsolete in that file.
-(symbol-macrolet ((not-nil '#:not-nil))
-  (labels ((car-or-not-nil (object)
-             (if (consp object) (car object) not-nil))
-           (cdr-or-not-nil (object)
-             (if (consp object) (cdr object) not-nil)))
-    (defalias 'remassoc
-      #'(lambda (key alist)
-         (delete* key alist :test #'equal
-                  :key (if key #'car-safe #'car-or-not-nil))))
-    (defalias 'remrassoc
-      #'(lambda (key alist)
-         (delete* key alist :test #'equal
-                  :key (if key #'cdr-safe #'cdr-or-not-nil))))
-    (defalias 'remrassq
-      #'(lambda (key alist)
-         (delete* key alist :test #'eq
-                  :key (if key #'cdr-safe #'cdr-or-not-nil))))
-    (defalias 'remassq
-      #'(lambda (key alist)
-         (delete* key alist :test #'eq
-                  :key (if key #'car-safe #'car-or-not-nil))))))
 
+
 ;; XEmacs; since cl-extra.el is dumped, cl-extra-load-hook is
 ;; useless. (Dumped files normally shouldn't be using hooks, functionality
 ;; should be implemented explicitly.)
