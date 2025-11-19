@@ -1,3 +1,22 @@
+2025-11-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* loadhist.el (symbol-file):
+	Revise this, now the results of `built-in-symbol-file' are all
+	either absolute or relative to source-directory
+	(not yet for modules, but soon).
+	* make-docfile.el (usage): If this function is called in a
+	non-batch XEmacs, throw to top level and display the usage string
+	in a help buffer, rather than killing XEmacs.
+	* make-docfile.el (canonicalize-file-name-for-output):
+	Always return either an absolute path, or a path relative to
+	source-directory, simplify #'symbol-file.
+	* make-docfile.el:
+	When manipulating the local copy of the load-history, call
+	#'file-truename if we haven't found the file on load-path, and if that
+	works, update the file name appropriately. Fixes the path to loadup.el
+        in DOC.
+	No longer reverse load-history, C-files, not needed.
+
 2025-11-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* cl-extra.el: Remove definitions for #'remassoc, #'remrassoc,

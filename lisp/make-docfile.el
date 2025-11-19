@@ -109,12 +109,20 @@
 
     (labels
         ((usage ()
-           (format-into t "Usage: %s [OPTION]... [FILE]...
+           (labels ((subusage (load-file-name)
+                      (format-into standard-output
+                                   "Usage: %s [OPTION]... [FILE]...
 
 Generate documentation strings and file name information for XEmacs functions
 and variables, from the provided source files and from the internal load
-history. Options as follows:
+history.
 
+This file is not intended to be loaded interactively, rather, it is a script
+\(see the `--script' command line option to XEmacs).  It is also called within
+an XEmacs that is about to dump, and in this case it examines the build
+environment to find the C source files.
+
+Options as follows:
 
   -o FILENAME           Write output to FILENAME using the format understood
                         by XEmacs' internal documentation (see the
@@ -151,14 +159,24 @@ support.
 If an argument ends in the extension `.obj' or `.o', %1$s examines
 the corresponding C source file, checking `source-directory' rather
 than `build-directory' if appropriate. "
-                        (file-name-nondirectory load-file-name))
-           (kill-emacs 0))
+                                   load-file-name)))
+             (if noninteractive
+                 (progn
+                   (subusage (file-name-nondirectory load-file-name))
+                   (kill-emacs 0))
+               (enqueue-eval-event
+                #'(lambda (load-file-name)
+                    (with-displaying-temp-buffer
+                        (format "*Help: file %s*" load-file-name)
+                      (subusage load-file-name)))
+                (file-name-nondirectory load-file-name))
+               (throw 'top-level nil))))
 
          (fatal (&rest args)
 	   (if noninteractive
 	       (progn
 		 (format-into 'external-debugging-output
-			      "%s: error: "
+			      "%s: fatal error: "
 			      (file-name-nondirectory load-file-name))
 		 (apply #'format-into 'external-debugging-output args)
 		 (terpri 'external-debugging-output)
@@ -199,17 +217,10 @@ than `build-directory' if appropriate. "
 	       (setq C-files (cons arg C-files)))))
 
          (canonicalize-file-name-for-output (filename)
-           ;; #### Revise this to make everything either relative to
-           ;; source-directory, or absolute, after the initial commit is done,
-           ;; and with support from #'symbol-file.
            (cond
-             ((eql (search source-src filename) 0)
-              (subseq filename (length source-src)))
-             ((eql (search source-lisp filename) 0)
-              (subseq filename (length source-lisp)))
              ((eql (search source-directory filename) 0)
               (subseq filename (length source-directory)))
-             (t filename)))
+             (t (file-truename filename))))
            
          (response-file-as-list (arg)
            ;; Return contents of ARG as list of strings.
@@ -652,7 +663,11 @@ than `build-directory' if appropriate. "
                                           module-extensions)
                            (locate-file (car elt) load-path
                                         '(".elc" ".el")))))
-          (when filename (setcar elt filename))))
+          (cond
+            (filename
+             (setcar elt filename))
+            ((file-exists-p (setq filename (file-truename (car elt))))
+             (setcar elt filename)))))
 
       (if (and purify-flag (member "dump" command-line-args))
           ;; Invocation directly from loadup.el when dumping, ignore the
@@ -670,7 +685,9 @@ than `build-directory' if appropriate. "
         ;; the command line args:
         (setq command-line-args
               (cddr (or (member "--script" command-line-args)
-                        (fatal "invoke this program with --script"))))
+                        (if noninteractive
+                            (fatal "invoke this program with --script")
+                          (usage)))))
 
         (unless command-line-args (usage))
 
@@ -749,10 +766,6 @@ than `build-directory' if appropriate. "
 	(setq docfile-out-of-date (not (file-exists-p docfile))))
 
       (when docfile-out-of-date
-	;; Not necessary, but makes comparing the output to that from
-	;; make-docfile.c easier:
-	(setq load-history (reverse load-history)
-	      C-files (reverse C-files))
 	(when (and purify-flag (member "dump" command-line-args)
 		   (not C-files))
 	  (fatal

@@ -52,21 +52,17 @@ If TYPE is `defvar', then variable definitions are acceptable.
 return faces created with `make-face' or `copy-face', just those created
 with `defface' and `custom-declare-face'."
   (interactive "SFind source file for symbol: ") ; XEmacs
-  (let (built-in-file autoload-cons symbol-details)
+  (let (autoload-cons symbol-details)
     (labels
         ((handle-built-in ()
-           (when (setq built-in-file (built-in-symbol-file sym type))
-             (if (equal built-in-file (file-truename built-in-file))
-                 ;; Probably a full path name:
-                 built-in-file
-               ;; This is a bit heuristic, but shouldn't realistically be a
-               ;; problem:
-               (if (string-match-p #r"\.elc?$" built-in-file)
-                   (concat (if (file-readable-p source-lisp)
-                               source-lisp
-                             lisp-directory)
-                           built-in-file)
-                 (concat source-directory "/src/" built-in-file)))))
+           (let ((built-in-symbol-file (built-in-symbol-file sym type)))
+             ;; #'built-in-symbol-file returns either an absolute path, or a
+             ;; path relative to source-directory (or will soon for modules
+             ;; ...).
+             (when built-in-symbol-file
+               (if (file-name-absolute-p built-in-symbol-file)
+                   built-in-symbol-file
+                 (concat source-directory built-in-symbol-file)))))
          (handle-module-file (entry)
            (when (equal (cadr entry) '(module))
              (return-from symbol-file (handle-built-in)))))
