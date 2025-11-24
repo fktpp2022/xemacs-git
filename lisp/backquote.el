@@ -1,11 +1,9 @@
 ;;; backquote.el --- Full backquote support for elisp.  Reverse compatible too.
 
-;; Copyright (C) 1997 Free Software Foundation, Inc.
+;; Copyright (C) 1997, 2025 Free Software Foundation, Inc.
 
 ;; Maintainer: XEmacs Development Team
 ;; Keywords: extensions, dumped
-
-;; This file is part of XEmacs.
 
 ;; This file is part of XEmacs.
 
@@ -92,18 +90,86 @@
 
 ;;; Code:
 
-(defconst bq-backquote-marker 'backquote)
-(defconst bq-backtick-marker '\`)	; remnant of the old lossage
-(defconst bq-comma-marker '\,)
-(defconst bq-at-marker '\,@)
-(defconst bq-dot-marker '\,\.)
+((macro
+  . (lambda (&rest tree)
+      (cons
+       'progn
+       ;; All these symbols were previously defconst or defun, inappropriate
+       ;; to make them available to user code (or far worse, to have them
+       ;; modified by user code), and the sublis call means the symbols are no
+       ;; longer interned in the dumped XEmacs.
+
+       ;; #'macrolet, #'symbol-macrolet unavailable at the point this is
+       ;; loaded, this literal macro definition-and-call is an alternative.
+       (sublis '((bq-backquote-marker . 'backquote)
+		 (bq-backtick-marker . '\`)	; remnant of the old lossage
+		 (bq-comma-marker . '\,)
+		 (bq-at-marker . '\,@)
+		 (bq-dot-marker . '\,\.)
+		 (bq-comma-flag . '#:unquote)
+		 (bq-at-flag . '#:unquote-splicing)
+		 (bq-dot-flag . '#:unquote-nconc-splicing)
+		 (bq-quote-maybe-flags . '(quote t nil))
+
+		 ;; We can't use #'labels given this is loaded very early, but
+		 ;; using uninterned symbols when interpreted and then
+		 ;; replacing those interned symbols with their compiled
+		 ;; function definitions with #'nsubst on loading when
+		 ;; compiled gives us the same advantages of #'labels.
+		 (bq-process-1 . #:bq-process-1)
+		 (bq-process-2 . #:bq-process-2)
+		 (bq-process . #:bq-process)
+		 (bq-comma . #:bq-comma))
+	       ;; #'eql not yet available.
+	       tree :test #'eq))))
 
 ;;; ----------------------------------------------------------------
 
-(fset '\` 'backquote)
+;;; This handles the <hair> cases
+ (defun bq-comma (code)
+   (cond ((atom code)
+	  (cond ((null code)
+		 (cons nil nil))
+		((eq code t)
+		 (cons t code))
+		(t (cons bq-comma-flag code))))
+	 ((eq (car code) 'quote)
+	  (cons (car code) (car (cdr code))))
+	 ((member* (car code) '(append list list* nconc))
+	  (cons (car code) (cdr code)))
+	 ((eq (car code) 'cons)
+	  (cons 'list* (cdr code)))
+	 (t (cons bq-comma-flag code))))
 
-(defmacro backquote (template)
-  "Expand the internal representation of a backquoted TEMPLATE into a lisp form.
+;;; This handles table 1.
+ (defun bq-process-1 (flag thing)
+   (cond ((eq flag bq-comma-flag)
+	  thing)
+	 ((member* flag bq-quote-maybe-flags)
+	  (quote-maybe thing))
+	 ((eq flag 'vector*)
+	  (list 'apply '(function vector) thing))
+	 (t (cons flag thing))))
+
+ ;; Silence the byte-compiler, and make the two previous functions, which are
+ ;; trivial, inline. They are defun to make the byte-compiler aware of their
+ ;; definitions, though this does mean that they end up in the load history and
+ ;; thence wasting a few bytes in DOC. The others are #'fset to avoid this.
+ (if (eq (fboundp 'eval-when-compile) t)
+     (eval-when-compile 
+      (autoload 'bq-process "backquote")
+      (autoload 'bq-process-2 "backquote")
+
+      (proclaim-inline bq-process-1 bq-comma)))
+
+ (fset '\` 'backquote)
+
+ (defalias 'backquote
+     (cons
+      'macro
+      #'(lambda (template)
+	 "Expand the internal representation of a backquoted TEMPLATE \
+into a lisp form.
 
 The backquote character is like the quote character in that it prevents the
 template which follows it from being evaluated, except that backquote
@@ -169,124 +235,107 @@ will go away, but for now you should be wary of it:
     (`(this ,will ,@fail))
     ((` (but (, this) will (,@ work))))
 This is an extremely rare thing to need to do in lisp."
-  (bq-process template))
+	 (bq-process template))))
 
 ;;; ----------------------------------------------------------------
-
-(defconst bq-comma-flag 'unquote)
-(defconst bq-at-flag 'unquote-splicing)
-(defconst bq-dot-flag 'unquote-nconc-splicing)
-
-(defun bq-process (form)
-  (let* ((flag-result (bq-process-2 form))
-	 (flag (car flag-result))
-	 (result (cdr flag-result)))
-    (cond ((eq flag bq-at-flag)
-	   (error 'invalid-read-syntax ",@ after ` in form" form))
-	  ((eq flag bq-dot-flag)
-	   (error 'invalid-read-syntax ",. after ` in form" form))
-	  (t
-	   (bq-process-1 flag result)))))
+ (fset
+  'bq-process
+  #'(lambda (form)
+      (let* ((flag-result (bq-process-2 form))
+	     (flag (car flag-result))
+	     (result (cdr flag-result)))
+	(cond ((eq flag bq-at-flag)
+	       (error 'invalid-read-syntax ",@ after ` in form" form))
+	      ((eq flag bq-dot-flag)
+	       (error 'invalid-read-syntax ",. after ` in form" form))
+	      (t
+	       (bq-process-1 flag result))))))
 
 ;;; ----------------------------------------------------------------
 
 ;;; This does the expansion from table 2.
-(defun bq-process-2 (code)
-  (cond ((atom code)
-	 (cond ((null code)
-                (cons nil nil))
-               ((vectorp code)
-                (let* ((dflag-d (bq-process-2 (append code nil)))
-                       (dflag (car dflag-d))
-                       (d (cdr dflag-d)))
-                  (cond
-                    ((member* dflag '(quote nil))
-                     (cons t code))
-                    ((eq dflag 'list)
-                     (cons 'vector d))
-                    ((eq dflag 'append)
-                     ;; The idea for this is from GNU, thank you GNU. I don't
-                     ;; like #'vconcat much, it's not very CL, but it does fit
-                     ;; this use case, and there is no prospect of our
-                     ;; removing it.
-                     (cons 'vconcat d))
-                    (t (cons 'vector* (bq-process-1 dflag d))))))
-               (t (cons 'quote code))))
-	((eq (car code) bq-at-marker)
-	 (cons bq-at-flag (nth 1 code)))
-	((eq (car code) bq-dot-marker)
-	 (cons bq-dot-flag (nth 1 code)))
-	((eq (car code) bq-comma-marker)
-	 (bq-comma (nth 1 code)))
-	((or (eq (car code) bq-backquote-marker)
-	     (eq (car code) bq-backtick-marker))	; old lossage
-	 (bq-process-2 (bq-process (nth 1 code))))
-	(t (let* ((aflag-a (bq-process-2 (car code)))
-		  (aflag (car aflag-a))
-		  (a (cdr aflag-a)))
-	     (let* ((dflag-d (bq-process-2 (cdr code)))
-		    (dflag (car dflag-d))
-		    (d (cdr dflag-d)))
-	       (if (eq dflag bq-at-flag)
-		   ;; get the errors later.
-		   (error 'invalid-read-syntax ",@ after dot" code))
-	       (if (eq dflag bq-dot-flag)
-		   (error 'invalid-read-syntax ",. after dot" code))
-	       (cond
-		((eq aflag bq-at-flag)
-		 (if (null dflag)
-		     (bq-comma a)
-                   (cons 'append
-                         (cond ((eq dflag 'append)
-                                (cons a d ))
-                               (t (list a (bq-process-1 dflag d)))))))
-                ((eq aflag bq-dot-flag)
-                 (if (null dflag)
-                     (bq-comma a)
-                   (cons 'nconc
-                         (cond ((eq dflag 'nconc)
-                                (cons a d))
-                               (t (list a (bq-process-1 dflag d)))))))
-		((null dflag)
-		 (if (member* aflag '(quote t nil))
-		     (cons 'quote (list a))
-                   (cons 'list (list (bq-process-1 aflag a)))))
-		((member* dflag '(quote t))
-		 (if (member* aflag '(quote t nil))
-		     (cons 'quote (cons a d ))
-                   (cons 'list* (list (bq-process-1 aflag a)
-                                      (bq-process-1 dflag d)))))
-		(t (setq a (bq-process-1 aflag a))
-		   (if (member* dflag '(list list*))
-		       (cons dflag (cons a d))
-                     (cons 'list*
-                           (list a (bq-process-1 dflag d)))))))))))
+ (fset
+  'bq-process-2
+  #'(lambda (code)
+      (cond ((atom code)
+	     (cond ((null code)
+		    (cons nil nil))
+		   ((vectorp code)
+		    (let* ((dflag-d (bq-process-2 (append code nil)))
+			   (dflag (car dflag-d))
+			   (d (cdr dflag-d)))
+		      (cond
+			((member* dflag '(quote nil))
+			 (cons t code))
+			((eq dflag 'list)
+			 (cons 'vector d))
+			((eq dflag 'append)
+			 ;; The idea for this is from GNU, thank you GNU. I
+			 ;; don't like #'vconcat much, it's not very CL, but it
+			 ;; does fit this use case, and there is no prospect of
+			 ;; our removing it.
+			 (cons 'vconcat d))
+			(t (cons 'vector* (bq-process-1 dflag d))))))
+		   (t (cons 'quote code))))
+	    ((eq (car code) bq-at-marker)
+	     (cons bq-at-flag (nth 1 code)))
+	    ((eq (car code) bq-dot-marker)
+	     (cons bq-dot-flag (nth 1 code)))
+	    ((eq (car code) bq-comma-marker)
+	     (bq-comma (nth 1 code)))
+	    ((or (eq (car code) bq-backquote-marker)
+		 (eq (car code) bq-backtick-marker))	; old lossage
+	     (bq-process-2 (bq-process (nth 1 code))))
+	    (t (let* ((aflag-a (bq-process-2 (car code)))
+		      (aflag (car aflag-a))
+		      (a (cdr aflag-a)))
+		 (let* ((dflag-d (bq-process-2 (cdr code)))
+			(dflag (car dflag-d))
+			(d (cdr dflag-d)))
+		   (if (eq dflag bq-at-flag)
+		       ;; get the errors later.
+		       (error 'invalid-read-syntax ",@ after dot" code))
+		   (if (eq dflag bq-dot-flag)
+		       (error 'invalid-read-syntax ",. after dot" code))
+		   (cond
+		     ((eq aflag bq-at-flag)
+		      (if (null dflag)
+			  (bq-comma a)
+			(cons 'append
+			      (cond ((eq dflag 'append)
+				     (cons a d ))
+				    (t (list a (bq-process-1 dflag d)))))))
+		     ((eq aflag bq-dot-flag)
+		      (if (null dflag)
+			  (bq-comma a)
+			(cons 'nconc
+			      (cond ((eq dflag 'nconc)
+				     (cons a d))
+				    (t (list a (bq-process-1 dflag d)))))))
+		     ((null dflag)
+		      (if (member* aflag bq-quote-maybe-flags)
+			  (cons 'quote (list a))
+			(cons 'list (list (bq-process-1 aflag a)))))
+		     ((member* dflag '(quote t))
+		      (if (member* aflag bq-quote-maybe-flags)
+			  (cons 'quote (cons a d ))
+			(cons 'list* (list (bq-process-1 aflag a)
+					   (bq-process-1 dflag d)))))
+		     (t (setq a (bq-process-1 aflag a))
+			(if (member* dflag '(list list*))
+			    (cons dflag (cons a d))
+			  (cons 'list*
+				(list a (bq-process-1 dflag d))))))))))))
 
-;;; This handles the <hair> cases
-(defun bq-comma (code)
-  (cond ((atom code)
-	 (cond ((null code)
-		(cons nil nil))
-	       ((eq code t)
-		(cons t code))
-	       (t (cons bq-comma-flag code))))
-	((eq (car code) 'quote)
-	 (cons (car code) (car (cdr code))))
-	((member* (car code) '(append list list* nconc))
-	 (cons (car code) (cdr code)))
-	((eq (car code) 'cons)
-	 (cons 'list* (cdr code)))
-	(t (cons bq-comma-flag code))))
-
-;;; This handles table 1.
-(defun bq-process-1 (flag thing)
-  (cond ((eq flag bq-comma-flag)
-	 thing)
-	((member* flag '(quote t nil))
-         (quote-maybe thing))
-	((eq flag 'vector*)
-         (list 'apply '(function vector) thing))
-	(t (cons flag thing))))
+ (if (eq 'compiled-function (type-of (cdr (symbol-function 'backquote))))
+     (mapc
+      #'(lambda (first second)
+	  ;; Do what the byte compiler would have done with #'labels.
+	  (nsubst (symbol-function first)
+		  first (symbol-function second) :test #'eq
+		  :descend-structures t))
+      '(bq-process-2 bq-process-2 bq-process)
+      '(bq-process bq-process-2 backquote))))
 
 (provide 'backquote)
 

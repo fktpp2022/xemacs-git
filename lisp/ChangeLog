@@ -1,3 +1,31 @@
+2025-11-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* backquote.el:
+	* backquote.el (bq-backquote-marker):
+	* backquote.el (bq-backtick-marker):
+	* backquote.el (bq-comma-marker):
+	* backquote.el (bq-at-marker):
+	* backquote.el (bq-dot-marker):
+	* backquote.el (bq-comma-flag):
+	* backquote.el (bq-at-flag):
+	* backquote.el (bq-dot-flag):
+	* backquote.el (bq-process):
+	* backquote.el (bq-process-2):
+	* backquote.el (bq-comma):
+	* backquote.el (bq-process-1):
+	Remove visibility of these from user code (and remove the
+	possibility of user code trivially modifying them or binding them)
+	by means of a literal macro definition-and-call (cannot use
+	#'symbol-macrolet or #'macrolet this early in bootstrap).
+
+	Make #'bq-process-1, #'bq-comma inline, they are trivial.
+
+	When loading the file as compiled code, do an #'nsubst with
+	:descend-structures t on the other compiled functions, replacing
+	the symbol names of #'bq-process-2, #'bq-process with their
+	compiled function definitions. This is what #'labels would have
+	done were it available this early in bootstrap.
+
 2025-11-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* loadhist.el (symbol-file):

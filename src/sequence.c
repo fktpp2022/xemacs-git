@@ -8809,6 +8809,10 @@ syms_of_sequence (void)
   DEFSYMBOL (Qmerge);
   DEFSYMBOL (Qfill);
   DEFSYMBOL (Qidentity);
+  /* Actual definition with docstring in subr.el, but we need some definition
+     early for bootstrapping in backquote.el: */
+  Ffset (Qidentity, list3 (Qlambda, list1 (Qobject), Qobject));
+
   DEFSYMBOL (Qarray);
   DEFSYMBOL (Qstring);
   DEFSYMBOL (Qlist);

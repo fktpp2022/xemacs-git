@@ -1,3 +1,10 @@
+2025-11-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* sequence.c (syms_of_sequence):
+	Provide a trivial definition with a lambda for #'identity in this
+	file, needed in early bootstrap in backquote.el. Leave the real
+	definition in subr.el.
+
 2025-11-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Docstring work, #'run-emacs-from-temacs, #'dump-emacs. Document a
