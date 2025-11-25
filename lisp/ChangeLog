@@ -1,3 +1,21 @@
+2025-11-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Minor bugfixes, lisp/. 
+
+	* backquote.el:
+	Substitute the definition of #'bq-process for the symbol within
+	#'bq-process-2, missed in last commit.
+
+	* loadhist.el (symbol-file):
+	Use #'expand-file-name rather than #'concat when constructing a
+	file name under source-directory. This will work if
+	source-directory does not exist, thankfully.
+
+	* make-docfile.el (output-args):
+	Revert to reversing load-history and C-files before writing DOC,
+	since later-encountered docstrings override earlier-encountered
+	docstrings.
+
 2025-11-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* backquote.el:

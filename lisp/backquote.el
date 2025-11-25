@@ -334,8 +334,8 @@ This is an extremely rare thing to need to do in lisp."
 	  (nsubst (symbol-function first)
 		  first (symbol-function second) :test #'eq
 		  :descend-structures t))
-      '(bq-process-2 bq-process-2 bq-process)
-      '(bq-process bq-process-2 backquote))))
+      '(bq-process-2 bq-process-2 bq-process bq-process)
+      '(bq-process bq-process-2 backquote bq-process-2))))
 
 (provide 'backquote)
 

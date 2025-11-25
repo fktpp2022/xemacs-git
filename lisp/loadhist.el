@@ -62,7 +62,7 @@ with `defface' and `custom-declare-face'."
              (when built-in-symbol-file
                (if (file-name-absolute-p built-in-symbol-file)
                    built-in-symbol-file
-                 (concat source-directory built-in-symbol-file)))))
+                 (expand-file-name built-in-symbol-file source-directory)))))
          (handle-module-file (entry)
            (when (equal (cadr entry) '(module))
              (return-from symbol-file (handle-built-in)))))

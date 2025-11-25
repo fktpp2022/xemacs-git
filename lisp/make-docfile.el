@@ -766,6 +766,10 @@ than `build-directory' if appropriate. "
 	(setq docfile-out-of-date (not (file-exists-p docfile))))
 
       (when docfile-out-of-date
+	;; Later docstrings override earlier docstrings, make the
+	;; order of processing the same as the C implementation:
+	(setq load-history (reverse load-history)
+	      C-files (reverse C-files))
 	(when (and purify-flag (member "dump" command-line-args)
 		   (not C-files))
 	  (fatal
