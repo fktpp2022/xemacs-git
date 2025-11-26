@@ -119,12 +119,11 @@
 		       (return nil))))
 	      (message "(No changes need to be written)")
 	    (when (file-exists-p cusload-file)
-	      (let ((buf (find-file-noselect cusload-file)))
-		(with-current-buffer buf
-		  (goto-char (point-min))
-		  (when (search-forward cusload-hash-table-marker nil t)
-		    (setq old-hash (read buf))))
-		(kill-buffer buf)))
+             (with-temp-buffer
+               (insert-file-contents-internal cusload-file)
+               (goto-char (point-min))
+               (when (search-forward cusload-hash-table-marker nil t)
+                 (setq old-hash (read (current-buffer))))))
 	    ;; Process directory
 	    (dolist (file files)
 	      (let ((old-cache (if (hash-table-p old-hash)

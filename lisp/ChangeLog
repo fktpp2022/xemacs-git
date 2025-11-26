@@ -1,3 +1,18 @@
+2025-11-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* cus-dep.el (Custom-make-dependencies-1):
+	Use #'with-temp-buffer and #'insert-file-contents-internal when
+	examining custom-load.el read-only for the old custom dependency
+	hash table; there's no good reason to make for a lock file and
+	Toralf Förster has recently reported Gentoo bug 966027 regarding
+	unintended generation of one. Thank you Toralf.
+
+	Mats Lidell also raises the issue that the previous
+	#'find-file-noselect likely shouldn't be leaving a lock file like
+	that, and there is likely an underlying bug provoking this. He is
+	right, but this bug (in #'find-file-noselect) will be low on the
+	priority list for the foreseeable future.
+
 2025-11-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Minor bugfixes, lisp/. 
