@@ -38,120 +38,42 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 Lisp_Object Vinternal_doc_file_name;
 Lisp_Object Qdefvar, Qfunction_documentation;
 
-/* Work out what source file a function or variable came from, taking the
-   information from the documentation file. */
-static Lisp_Object
-extract_object_file_name (int fd, OFF_T doc_pos, Boolint standard_doc_file)
+Bytecount internal_doc_filename_buffer_size;
+
+/* Given BUFFER, in an ASCII-compatible encoding, of length LEN, modify it to
+   remove quoting with ^A (char code 1).
+
+   ^A^A becomes ^A, ^A0 becomes a null char, and ^A_ becomes a ^_.
+
+   Return the new length, or a negative number if an invalid escape sequence
+   was encountered. The specific negative number reflects the invalid character
+   following ^A of the first invalid escape sequence encountered. */
+static Bytecount
+unquote_for_DOC (UExtbyte *buffer, Bytecount len)
 {
-  Ibyte buf[DOC_MAX_FILENAME_LENGTH+1];
-  Ibyte *buffer = buf;
-  Bytecount buffer_size = sizeof (buf) - 1, space_left;
-  Ibyte *from, *to;
-  REGISTER Ibyte *p = buffer;
-  Lisp_Object return_me;
-  Lisp_Object fdstream = Qnil, instream = Qnil;
-  struct gcpro gcpro1, gcpro2;
-  EMACS_INT position, seenS = 0;
+  const UExtbyte *pp = buffer + len;
+  UExtbyte *from = buffer, *to = buffer;
 
-  GCPRO2 (fdstream, instream);
-
-  position = doc_pos > buffer_size  ? 
-    doc_pos - buffer_size : 0; 
-
-  if (0 > lseek (fd, position, 0))
+  while (from < pp)
     {
-      return_me = list2 (build_msg_string
-			 ("Position out of range in doc string file"),
-                         make_fixnum (position));
-      goto done;
-    }
-
-  fdstream = make_filedesc_input_stream (fd, 0, -1, 0, NULL);
-  Lstream_set_buffering (XLSTREAM (fdstream), LSTREAM_UNBUFFERED, 0);
-  instream =
-    make_coding_input_stream
-      (XLSTREAM (fdstream), standard_doc_file ? Qescape_quoted : Qbinary,
-       CODING_DECODE, 0);
-  Lstream_set_buffering (XLSTREAM (instream), LSTREAM_UNBUFFERED, 0);
-
-  space_left = buffer_size - (p - buffer);
-  while (space_left > 0)
-    {
-      Bytecount nread;
-
-      nread = Lstream_read (XLSTREAM (instream), p, space_left);
-      if (nread < 0)
+      if (*from != 1 /*^A*/)
+	*to++ = *from++;
+      else
 	{
-	  return_me = list1 (build_msg_string
-			     ("Read error on documentation file"));
-	  goto done;
-	}
+	  int c = *(++from);
 
-      p[nread] = 0;
-
-      if (!nread)
-	break;
-
-      p += nread;
-      space_left = buffer_size - (p - buffer);
-    }
-
-  /* First, search backward for the "\037S" that marks the beginning of the
-     file name, then search forward from that to the newline or to the end
-     of the buffer. */
-  from = p; 
-
-  while (from > buf)
-    {
-      --from;
-      if (seenS)
-	{
-	  if ('\037' == *from) 
-	    {
-	      /* Got a file name; adjust `from' to point to it, break out of
-		 the loop.  */
-	      from += 2;
-	      break; 
-	    }
-	}
-      /* Is *from 'S' ? */
-      seenS = ('S' == *from);
-    }
-
-  if (buf == from)
-    {
-      /* We've scanned back to the beginning of the buffer without hitting the
-	 file name. Either the DOC file is corrupt, or it was produced by a
-	 version of make-docfile that doesn't store the file name with the
-	 symbol name and docstring, which shouldn't happen, given the tight
-	 integration of make-docfile.el with the build process. */ 
-      return_me = list1 (build_msg_string
-			 ("Object file name not stored in doc file"));
-      goto done;
-    }
-
-  to = from;
-  /* Search for the end of the file name. */
-  while (++to < p)
-    {
-      if ('\n' == *to || '\037' == *to)
-	{
-	  break;
+	  from++;
+          switch (c)
+            {
+            case 1:   *to++ =  c;     break;
+            case '0': *to++ = '\0';   break;
+            case '_': *to++ = '\037'; break;
+            default:
+	      return -((Bytecount) c);
+            }
 	}
     }
-
-  /* Don't require the file name to end in a newline. */
-  return_me = make_string (from, to - from);
-
- done:
-  if (!NILP (instream))
-    {
-      Lstream_delete (XLSTREAM (instream));
-      Lstream_delete (XLSTREAM (fdstream));
-    }
-
-  UNGCPRO;
-  return return_me;
+  return (Bytecount) (to - buffer);
 }
 
 Lisp_Object
@@ -160,8 +82,7 @@ unparesseuxify_doc_string (int fd, OFF_T position, Ibyte *name_nonreloc,
 {
   Ibyte buf[512 * 32 + 1];
   Ibyte *buffer = buf;
-  int buffer_size = sizeof (buf) - 1;
-  Ibyte *from, *to;
+  Bytecount buffer_size = sizeof (buf) - 1, result_len;
   REGISTER Ibyte *p = buffer;
   Lisp_Object return_me;
   Lisp_Object fdstream = Qnil, instream = Qnil;
@@ -200,8 +121,8 @@ unparesseuxify_doc_string (int fd, OFF_T position, Ibyte *name_nonreloc,
 
   while (1)
     {
-      int space_left = buffer_size - (p - buffer);
-      int nread;
+      Bytecount space_left = buffer_size - (p - buffer);
+      Bytecount nread;
 
       /* Switch to a bigger buffer if we need one.  */
       if (space_left == 0)
@@ -247,33 +168,17 @@ unparesseuxify_doc_string (int fd, OFF_T position, Ibyte *name_nonreloc,
       p += nread;
     }
 
-  /* Scan the text and remove quoting with ^A (char code 1).
-     ^A^A becomes ^A, ^A0 becomes a null char, and ^A_ becomes a ^_.  */
-  from = to = buffer;
-  while (from < p)
+  result_len = unquote_for_DOC ((UExtbyte *) buffer, p - buffer);
+  if (result_len < 0)
     {
-      if (*from != 1 /*^A*/)
-	*to++ = *from++;
-      else
-	{
-	  int c = *(++from);
-
-	  from++;
-          switch (c)
-            {
-            case 1:   *to++ =  c;     break;
-            case '0': *to++ = '\0';   break;
-            case '_': *to++ = '\037'; break;
-            default:
-              return_me = list2 (build_msg_string
-	("Invalid data in documentation file -- ^A followed by weird code"),
-                                 make_fixnum (c));
-              goto done;
-            }
-	}
+      return_me = list2 (build_msg_string
+			 ("Invalid data in documentation file -- ^A "
+			  "followed by weird code"),
+			 make_fixnum (- result_len));
+      goto done;
     }
 
-  return_me = make_string (buffer, to - buffer);
+  return_me = make_string (buffer, result_len);
 
  done:
   if (!NILP (instream))
@@ -457,23 +362,136 @@ get_doc_string (Lisp_Object filepos)
   return tem;
 }
 
+/* Work out what source file a function or variable came from, taking the
+   information from the documentation file. */
 static Lisp_Object
-get_object_file_name (Lisp_Object filepos)
+get_built_in_object_file_name (Lisp_Object filepos)
 {
-  REGISTER int fd;
+  Extbyte buf[internal_doc_filename_buffer_size], *buffer = buf, *p = buf;
+  Extbyte *from, *to;
+  Bytecount buffer_size = sizeof (buf), space_left, result_len;
+  Lisp_Object return_me, fdstream = Qnil;
   OFF_T position;
-  Boolint standard_doc_file = 0;
-  Lisp_Object tem;
+  int fd;
+  Boolint standard_doc_file = 0, seenS = 0;
+  struct gcpro gcpro1;
+
+  GCPRO1 (fdstream);
+
+  CHECK_FIXNUM (filepos);
 
   fd = open_doc_file (filepos, &position, &standard_doc_file);
 
-  tem = extract_object_file_name (fd, position, standard_doc_file);
+  position = position > buffer_size  ? position - buffer_size : 0; 
+
+  if (0 > lseek (fd, position, 0))
+    {
+      return_me = list3 (build_msg_string
+			 ("Position out of range in doc string file"),
+                         OFF_T_to_lisp (position),
+			 Vinternal_doc_file_name);
+      goto done;
+    }
+
+  fdstream = make_filedesc_input_stream (fd, 0, -1, 0, NULL);
+  Lstream_set_buffering (XLSTREAM (fdstream), LSTREAM_UNBUFFERED, 0);
+
+  space_left = buffer_size - (p - buffer);
+  while (space_left > 0)
+    {
+      Bytecount nread;
+
+      nread = Lstream_read (XLSTREAM (fdstream), p, space_left);
+      if (nread < 0)
+	{
+	  return_me = list2 (build_msg_string
+			     ("Read error on documentation file"),
+			     Vinternal_doc_file_name);
+	  goto done;
+	}
+
+      p[nread] = 0;
+
+      if (!nread)
+	break;
+
+      p += nread;
+      space_left = buffer_size - (p - buffer);
+    }
+
+  /* First, search backward for the "\037S" that marks the beginning of the
+     file name, then search forward from that to the newline or to the end
+     of the buffer. */
+  from = p; 
+
+  while (from > buf)
+    {
+      --from;
+      if (seenS)
+	{
+	  if ('\037' == *from) 
+	    {
+	      /* Got a file name; adjust `from' to point to it, break out of
+		 the loop.  */
+	      from += 2;
+	      break; 
+	    }
+	}
+      /* Is *from 'S' ? */
+      seenS = ('S' == *from);
+    }
+
+  if (buf == from)
+    {
+      /* We've scanned back to the beginning of the buffer without hitting the
+	 file name. This means either internal_doc_filename_buffer_size is
+	 wrong, or DOC is not the DOC we dumped with, which is essentially the
+	 same thing. */
+      return_me = list2 (build_msg_string
+			 ("Cannot find object file name; doc file "
+			  "likely corrupt"), Vinternal_doc_file_name);
+      goto done;
+    }
+
+  to = from;
+  /* Search for the end of the file name. */
+  while (++to < p)
+    {
+      /* Don't require the file name to end in a newline. */
+      if ('\n' == *to || '\037' == *to)
+	{
+	  break;
+	}
+    }
+
+  result_len = unquote_for_DOC ((UExtbyte *) from, to - from);
+  if (result_len < 0)
+    {
+      return_me = list2 (build_msg_string
+			 ("Invalid data in documentation file -- ^A "
+			  "followed by weird code"),
+			 make_fixnum (- result_len));
+      goto done;
+    }
+
+  return_me = make_extstring (from, result_len, Qescape_quoted);
+
+ done:
+  if (!NILP (fdstream))
+    {
+      Lstream_delete (XLSTREAM (fdstream));
+    }
+
   retry_close (fd);
 
-  if (!STRINGP (tem))
-    signal_error_1 (Qinvalid_byte_code, tem);
+  UNGCPRO;
 
-  return tem;
+  if (!STRINGP (return_me))
+    {
+      signal_error_1 (Qinternal_error, return_me);
+    }
+
+  return return_me;
 }
 
 
@@ -506,21 +524,17 @@ If TYPE is `defvar', then variable definitions are acceptable.
 
       if (SUBRP (fun))
 	{
-          if (NILP (XSUBR (fun)->doc) || EQ (XSUBR (fun)->doc, Qnull_pointer))
-            {
-              return Qnil;
-            }
-          else if (FIXNUMP (XSUBR (fun)->doc))
-            {
-	      return get_object_file_name (XSUBR (fun)->doc);
-            }
-          else if (STRINGP (XSUBR (fun)->doc))
+          if (STRINGP (XSUBR (fun)->doc))
             {
               return Fget (XSUBR (fun)->doc, Qsymbol_file, Qnil);
             }
+          else if (FIXNUMP (XSUBR (fun)->doc))
+            {
+	      return get_built_in_object_file_name (XSUBR (fun)->doc);
+            }
           else
             {
-              structure_checking_assert (0);
+              structure_checking_assert (NILP (XSUBR (fun)->doc));
               return Qnil;
             }
 	}
@@ -535,7 +549,7 @@ If TYPE is `defvar', then variable definitions are acceptable.
 	  tem = compiled_function_documentation (f);
 	  if (FIXNUMP (tem))
 	    {
-              return get_object_file_name (tem);
+              return get_built_in_object_file_name (tem);
             }
 	}
     }
@@ -548,7 +562,7 @@ If TYPE is `defvar', then variable definitions are acceptable.
 	{
 	  if (FIXNUMP (doc_offset))
 	    {
-	      filename = get_object_file_name (doc_offset);
+	      filename = get_built_in_object_file_name (doc_offset);
 	    }
           else if (STRINGP (doc_offset))
             {
@@ -1044,4 +1058,17 @@ vars_of_doc (void)
 Name of file containing documentation strings of built-in symbols.
 */ );
   Vinternal_doc_file_name = Qnil;
+
+  DEFVAR_INT ("internal-doc-filename-buffer-size",
+	      &internal_doc_filename_buffer_size /*
+Greatest buffer size needed when searching for object file name in DOC.
+
+Includes the preceding ?\\037S, the terminating ?\\n, the length of the
+relevant symbol, and the ?\\037[FV] and ?\\n that delineate the symbol.
+Internal use only; not available from Lisp after the dump file is loaded.
+*/);
+
+  /* This would normally be redundant with the above, but #'Snarf-documentation
+     does an unintern so it is not otherwise reachable at dump time. */
+  dump_add_opaque_fixnum (&internal_doc_filename_buffer_size);
 }

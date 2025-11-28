@@ -1,3 +1,9 @@
+2025-11-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* make-docfile.c (put_filename):
+	Remove an assertion regarding the file name length, handled
+	differently now DOC is generated in Lisp.
+
 2025-06-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* XEmacs 21.5.36 "leeks" is released.

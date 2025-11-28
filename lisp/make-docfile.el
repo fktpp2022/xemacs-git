@@ -531,22 +531,26 @@ than `build-directory' if appropriate. "
                     ;; we use decode-coding-string when working out the name
                     ;; of the symbol.
                     'no-conversion-unix)
-                   symbol offset user-variable-p old function cddr)
+                   symbol offset user-variable-p old function cddr
+		   (max 0))
                (insert-file-contents filename)
                (setq internal-doc-file-name (file-name-nondirectory filename))
                (goto-char 1)
-               (while (re-search-forward "\037[FV].*\n" nil t)
+               (while (re-search-forward "\\(\037S[^\037]+\\)\037[FV].*\n"
+					 nil t)
                  (setq symbol (intern-soft
                                (decode-coding-string
-                                (buffer-substring (+ (match-beginning 0)
+                                (buffer-substring (+ (match-end 1)
                                                      (length "\037F"))
                                                   (1- (point)))
                                 'escape-quoted)
                                nil 0)
                        offset (1- (point))
-                       user-variable-p (eql ?* (char-after (point))))
+                       user-variable-p (eql ?* (char-after (point)))
+                       max (max (- (match-end 0) (match-beginning 0))
+                                max))
                  (when (symbolp symbol)
-                   (case (char-after (+ (match-beginning 0) (length "\037")))
+                   (case (char-after (+ (match-end 1) (length "\037")))
                      (?V
                       (setq old (get symbol 'variable-documentation 0))
                       (when (fixnump old)
@@ -602,7 +606,12 @@ than `build-directory' if appropriate. "
                                                  (compiled-function-annotation
                                                   function))))
                              (set-compiled-function-documentation
-                              function offset))))))))))))
+                              function offset)))))))))
+	       (setq internal-doc-filename-buffer-size max)
+	       ;; This is a private variable to doc.c, don't offer Lisp the
+	       ;; temptation of modifying it at runtime to something
+	       ;; unreasonable. See vars_of_doc().
+	       (unintern 'internal-doc-filename-buffer-size))))
 
          (kludgily-ignore-lost-doc-p (symbol)
            ;; Don't warn about functions whose doc was lost because they were

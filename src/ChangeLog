@@ -1,3 +1,39 @@
+2025-11-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* doc.c (unquote_for_DOC): New function, refactored out from
+	unparesseuxify_doc_string(), extract_object_file_name().
+	* doc.c (extract_object_file_name): Removed.
+
+	* doc.c (unparesseuxify_doc_string):
+	Call unquote_for_DOC() here. Correct some types.
+
+	* doc.c (get_built_in_object_file_name):
+	Renamed from get_object_file_name() since this doesn't take (FILE
+	. POSITION) conses in the same way get_doc_string() does.
+	Move what was extract_object_file_name() into this function, no
+	value from a separate function.
+
+	Fix a bug, made more evident with recent extra documentation
+	passed into DOC by make-docfile.el; the lseek() POSITION - 2048
+	followed by a read led to buffer text ending before the file name
+	of interest if there was much non-ASCII in the escape-quoted
+	text. Don't de-escape-quote the text before searching for the
+	marker of the beginning of the file name, call build_extstring()
+	with Qescape_quoted once unquote_for_DOC() is done.
+	Use internal_doc_filename_buffer_size, a new variable initialized
+	by #'Snarf-documentation, rather than a fixed buffer size, when
+	reading before the position for the file name.
+
+	* doc.c (Fbuilt_in_symbol_file):
+	Call get_built_in_object_file_name() with its new name.
+	* doc.c (vars_of_doc):
+	Add both a DEFVAR_LISP() and a dump_add_opaque_fixnum() for
+	internal_doc_filename_buffer_size.
+
+	* sysfile.h (DOC_MAX_FILENAME_LENGTH): No further need for this
+	constant, analagous value determined at dump time by
+	#'Snarf-documentation.
+
 2025-11-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* sequence.c (syms_of_sequence):

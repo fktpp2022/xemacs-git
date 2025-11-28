@@ -1,3 +1,11 @@
+2025-11-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* make-docfile.el (Snarf-documentation):
+	Set internal-doc-filename-buffer-size to the longest stretch from a
+	symbol documentation's position back to the beginning of its file
+	name encountered, then unintern it so Lisp can't modify it after
+	pdump_load(). See changes to doc.c.
+
 2025-11-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* cus-dep.el (Custom-make-dependencies-1):

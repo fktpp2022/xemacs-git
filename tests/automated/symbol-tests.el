@@ -1,4 +1,4 @@
-;; Copyright (C) 1999 Free Software Foundation, Inc.
+;; Copyright (C) 1999, 2025 Free Software Foundation, Inc.
 
 ;; Author: Hrvoje Niksic <hniksic@xemacs.org>
 ;; Maintainer: Hrvoje Niksic <hniksic@xemacs.org>
@@ -435,17 +435,87 @@
 ;; Symbol documentation
 ;; ----------------------------------------------------------------
 
-;; built-in variable documentation
-(Assert (string= (built-in-symbol-file 'internal-doc-file-name)
-		 "doc.c"))
+(labels
+    ((unquote-for-DOC (string)
+       (if (not (position ?\001 string))
+	   string
+	 (let* ((stream (make-string-output-stream))
+		(last 0) (position 0))
+	   (while (setq position (position ?\001 string :start last))
+	     (incf position)
+	     (Assert (< position length)
+		     (format "Trailing \\x01 found in string %S, bug in \
+make-docfile.el"))
+	     (if (eql (aref string position) ?_)
+		 (write-char ?\037 stream)
+	       (write-string string stream :start position
+			     :end (1+ position)))
+	     (setq last (1+ position)))
+	   (write-sequence string stream :start last)
+	   (get-output-stream-string string)))))
 
-;; built-in function documentation
-(Assert (string= (built-in-symbol-file 'built-in-symbol-file)
-		 "doc.c"))
-
-;; built-in special operator documentation
-(Assert (string= (built-in-symbol-file 'if) "eval.c"))
+  (with-temp-buffer
+    (let ((coding-system-for-read 'no-conversion-unix)
+	  symbol function cddr offset (match 0) (count 0))
+      (insert-file-contents (expand-file-name internal-doc-file-name
+					      doc-directory))
+      (goto-char (point-max))
+      (while (re-search-backward "\037S\\([^\037]+\\)\n\037[FV]\\(.*\\)\n"
+				 nil t)
+	(setq symbol (intern-soft (decode-coding-string
+				   (unquote-for-DOC (match-string 2))
+				   'escape-quoted t)
+				  nil 0)
+	      offset (1- (match-end 0))
+	      count (1+ count))
+	(when (symbolp symbol)
+	  (case (char-before (match-beginning 2))
+	    (?F
+	     (when (and (fboundp symbol)
+			(setq function
+			      (ignore-errors (indirect-function symbol))))
+	       (if (eq (car-safe function) 'macro)
+		   (setq function (cdr function)))
+	       (typecase function
+		 (subr
+		  (when (eql (subr-documentation function)
+			     offset)
+		    (incf match)
+		    (Assert (equal (built-in-symbol-file symbol 'defun)
+				   (decode-coding-string
+				    (unquote-for-DOC
+				     (match-string 1))
+				    'escape-quoted t))
+			    (format "file name retrieval for subr %S failed"
+				    symbol))))
+		 (compiled-function
+		  (when (eql (compiled-function-documentation function)
+			     offset)
+		    (incf match)
+		    (Assert (equal (built-in-symbol-file symbol 'defun)
+				   (decode-coding-string (unquote-for-DOC
+							  (match-string 1))
+							 'escape-quoted
+							 t))
+			    (format "file name retrieval for compiled function \
+%S failed" symbol)))))))
+	    (?V
+	     (when (and (boundp symbol)
+			(eql (abs (get symbol 'variable-documentation))
+			     offset))
+	       (incf match)
+	       (Assert (equal (built-in-symbol-file symbol 'defvar)
+			      (decode-coding-string (unquote-for-DOC
+						     (match-string 1))
+						    'escape-quoted
+						     t))
+		       (format "documentation for variable %S corrupt"
+			       symbol)))))))
+      (Assert (and (> count 4000) (> match (* 0.75 count)))
+	      (format "count of entries in doc file %d, matched entries %d, \
+combination not plausible" count match)))))
 
 ;; #### we should handle symbols defined in Lisp, dumped, autoloaded,
 ;; and required, too.
 
+;; symbol-tests.el ends here

@@ -549,10 +549,6 @@ DECLARE_INLINE_HEADER (int IS_ANY_SEP (int c))
 
 #endif /* WIN32_ANY */
 
-/* How long can a source filename be in DOC (including "\037S" at the start
-   and "\n" at the end) ? */
-#define DOC_MAX_FILENAME_LENGTH 2048
-
 #ifdef emacs
 
 #if defined (WIN32_NATIVE)

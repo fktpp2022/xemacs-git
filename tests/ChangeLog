@@ -1,3 +1,9 @@
+2025-11-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/symbol-tests.el:
+	Check that #'built-in-symbol-file gives results that reflect all
+	relevant entries in DOC.
+
 2025-11-15  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/mule-tests.el:

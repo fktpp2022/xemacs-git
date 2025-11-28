@@ -310,12 +310,6 @@ put_filename (const char *filename)
     }
 #endif 
 
-  /* <= because sizeof includes the nul byte at the end. Not quite right,
-     because it should include the length of the symbol + "\037[VF]" instead
-     of simply 10. */
-  assert(sizeof("\037S\n") + strlen(filename) + 10 
-	 <= DOC_MAX_FILENAME_LENGTH);
-
   putc (037, outfile);
   putc ('S', outfile);
   fprintf (outfile, "%s\n", filename);
