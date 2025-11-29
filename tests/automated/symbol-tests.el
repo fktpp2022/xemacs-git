@@ -501,6 +501,7 @@ make-docfile.el"))
 %S failed" symbol)))))))
 	    (?V
 	     (when (and (boundp symbol)
+			(fixnump (get symbol 'variable-documentation))
 			(eql (abs (get symbol 'variable-documentation))
 			     offset))
 	       (incf match)

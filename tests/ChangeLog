@@ -1,3 +1,11 @@
+2025-11-29  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* automated/symbol-tests.el:
+	Check that a symbol's variable-documentation property is a fixnum
+	before calling #'abs on it, fixes an error when doing make check
+	with an XEmacs where ps-print/auto-autoloads.el has been
+	loaded. Thank you Mats Lidell and the buildbot.
+
 2025-11-28  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* automated/symbol-tests.el:
