@@ -3614,9 +3614,6 @@ command_builder_find_leaf (struct command_builder *builder,
      the chance to define them as a self-insert-command, and do the lookup
      again.
 
-     This isn't Mule-specific; in a world where x-iso8859-1.el is gone, it's
-     needed for non-Mule too.
-
      Probably this can just be limited to the checking the last
      keypress. */
 

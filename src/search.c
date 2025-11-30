@@ -2517,7 +2517,7 @@ wordify (Lisp_Object buffer, Lisp_Object string)
 
   {
     /* The following value is an upper bound on the amount of storage we
-       need.  In non-Mule, it is exact. */
+       need. */
     Ibyte *storage =
       alloca_ibytes (XSTRING_LENGTH (string) - punct_count +
                           5 * (word_count - 1) + 4);

@@ -78,15 +78,16 @@ function @code{documentation-property} knows how to extract it.
 @cindex @file{DOC} (documentation) file
 To save space, the documentation for preloaded functions and variables
 (including primitive functions and autoloaded functions) is stored in
-the @dfn{internal doc file} @file{DOC}.  The documentation for functions
-and variables loaded during the XEmacs session from byte-compiled files
-is stored in those very same byte-compiled files (@pxref{Docs and
-Compilation}).
+the @dfn{internal doc file} @file{DOC-abcd1234}, where ``abcd1234'' is
+generated at dump time and is unique to the currently configured XEmacs.
+The documentation for functions and variables loaded during the XEmacs
+session from byte-compiled files is stored in those very same
+byte-compiled files (@pxref{Docs and Compilation}).
 
 XEmacs does not keep documentation strings in memory unless necessary.
 Instead, XEmacs maintains, for preloaded symbols, an integer offset into
 the internal doc file, and for symbols loaded from byte-compiled files,
-a list containing the filename of the byte-compiled file and an integer
+a cons containing the filename of the byte-compiled file and an integer
 offset, in place of the documentation string.  The functions
 @code{documentation} and @code{documentation-property} use that
 information to read the documentation from the appropriate file; this is
@@ -95,12 +96,6 @@ transparent to the user.
   For information on the uses of documentation strings, see @ref{Help, ,
 Help, xemacs, The XEmacs Reference Manual}.
 
-@c Wordy to prevent overfull hbox.  --rjc 15mar92
-  The @file{emacs/lib-src} directory contains two utilities that you can
-use to print nice-looking hardcopy for the file
-@file{emacs/etc/DOC-@var{version}}.  These are @file{sorted-doc.c} and
-@file{digest-doc.c}.
-
 @node Accessing Documentation, Keys in Documentation, Documentation Basics, Documentation
 @section Access to Documentation Strings
 
@@ -108,9 +103,8 @@ use to print nice-looking hardcopy for the file
 This function returns the documentation string that is recorded in
 @var{symbol}'s property list under property @var{property}.  It
 retrieves the text from a file if necessary, and runs
-@code{substitute-command-keys} to substitute actual key bindings.  (This
-substitution is not done if @var{verbatim} is non-@code{nil}; the
-@var{verbatim} argument exists only as of Emacs 19.)
+@code{substitute-command-keys} to substitute actual key bindings.
+This substitution is not done if @var{verbatim} is non-@code{nil}.
 
 @smallexample
 @group
@@ -240,24 +234,16 @@ When the `track-eol' feature is doing its job, the value is 9999.
 @end group
 @end smallexample
 
-@defun Snarf-documentation filename
-  This function is used only during XEmacs initialization, just before
-the runnable XEmacs is dumped.  It finds the file offsets of the
-documentation strings stored in the file @var{filename}, and records
-them in the in-core function definitions and variable property lists in
-place of the actual strings.  @xref{Building XEmacs}.
-
-  XEmacs finds the file @var{filename} in the @file{lib-src} directory.
-When the dumped XEmacs is later executed, the same file is found in the
-directory @code{doc-directory}.  The usual value for @var{filename} is
-@file{DOC}, but this can be changed by modifying the variable
-@code{internal-doc-file-name}.
-@end defun
-
 @defvar internal-doc-file-name
 This variable holds the name of the file containing documentation
-strings of built-in symbols, usually @file{DOC}.  The full pathname of
-the internal doc file is @samp{(concat doc-directory internal-doc-file-name)}.
+strings of built-in symbols, usually @file{DOC-abcd1234}, where
+``abcd1234'' is generated at dump time and is unique to the currently
+configured XEmacs.  The full pathname of the internal doc file is given
+by @samp{(expand-file-name internal-doc-file-name doc-directory)}.
+
+At build-time this is @file{DOC}, without the unique identifier, and
+this file is found in the @file{lib-src} subdirectory of
+@code{build-directory}.  See the documentation of @code{build-directory}.
 @end defvar
 
 @defvar doc-directory

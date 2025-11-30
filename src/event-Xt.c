@@ -971,21 +971,12 @@ static UINT_16_BIT const CYRILLIC[] =
     0x042A,	/* #x06FF CYRILLIC CAPITAL LETTER HARD SIGN */
   };
 
-/* For every key on the keyboard that has a known character correspondence,
-   we define the character-of-keysym property of its XEmacs keysym, and make
-   the default binding for the key be self-insert-command.
+/* For every key on the keyboard that has a known character correspondence, we
+   make the default binding for the key be self-insert-command.
 
    The following magic is based on intimate knowledge of some of
    X11/keysymdef.h.  The keysym mappings defined by X11 are based on the
    iso8859 standards, except for Cyrillic and Greek.
-
-   In a non-Mule world, a user can still have a multi-lingual editor, by
-   doing (set-face-font "...-iso8859-2" (current-buffer)) for all their
-   Latin-2 buffers, etc. and the X11 keysyms corresponding to characters in
-   those character sets will still do the right thing (because of the
-   make_char (code + 0x80) non-Mule case below.) Of course, X11 keysyms in
-   other character sets will not do the right thing, because XEmacs won't
-   support the right thing.
 
    This code is also called when a command lookup is about to fail, and the
    X11 platform code has worked out that it previously wasn't aware the
@@ -1131,12 +1122,10 @@ x_keysym_to_character (KeySym keysym)
                          Vdefault_unicode_precedence_array, NULL,
                          CONVERR_SUCCEED));
 
-/* @@#### Support me!
-
-   Actually, these are somewhat already supported by x-init.el/x-compose.el,
-   but only acute, grave, circum(flex), cedilla, diaeresis, tilde.  We
-   should try to eliminate that code and use general Unicode support for
-   converting to precomposed sequences.
+/* These are supported by x-init.el/compose.el, but only for combined
+   characters that have existing Unicode code points.  Once we support
+   composed characters (once ENABLE_COMPOSITE_CHARS works), this should be
+   generalized.
 
 0xfe50   U0300   f   # dead_grave
 0xfe51   U0301   f   # dead_acute

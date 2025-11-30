@@ -110,8 +110,7 @@ static Ichar chartab_span_top[5];
    values, there will be at most 2 levels, etc.
 
    If MAXIMIZE_CHAR_TABLE_DEPTH is set, char tables always use the maximum
-   number of levels.  This is currently the case in non-Mule, where there
-   is only one level anyway.
+   number of levels.
 
    Category tables use a special type of char table, called a "category
    char table".  A category table is its own type of object, containing up

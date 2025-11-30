@@ -1,3 +1,45 @@
+2025-11-30  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Remove mention of non-Mule from many comments.
+
+	* buffer.h:
+	Remove mention of non-Mule from a comment.
+	* chartab.c:
+	Ditto.
+	* doprnt.c:
+	Update documentation reflecting that non-Mule is gone.
+	* dumper.c:
+	Update comment here now the vast majority of reinit_vars_of*()
+	functions are gone.
+	* emacs.c (main):
+	Update a comment here now non-Mule is gone.
+	* emacs.c (Fdump_emacs):
+	Correct a spelling here.
+	* event-Xt.c:
+	* event-Xt.c (x_keysym_to_character):
+	Correct a comment here, we no longer use 'character-of-keysym by
+	default.
+	Remove mention of non-Mule from a comment.
+	Clarify composed character input using compose.el.
+	* event-stream.c (command_builder_find_leaf):
+	Remove mention of non-Mule.
+	* lisp.h:
+	Remove mention of non-Mule from a comment.
+	* lread.c (read_unicode_escape):
+	Update a comment here, remove mention of non-Mule.
+	* redisplay-tty.c (tty_text_width):
+	Ditto.
+	* search.c (wordify): Ditto.
+	* tests.c (Ftest_character_tell): Ditto.
+	* text.c:
+	Remove mention of non-Mule from a long comment here.
+	Update comment, charbpos_to_bytebpos_func() is no longer the
+	most-called function in all of XEmacs.
+	Update the docstrings for #'make-char and friends to remove
+	mention of no-Mule.
+	* text.h:
+	Remove mention of no-Mule from a long comment in this header file
+
 2025-11-28  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* doc.c (unquote_for_DOC): New function, refactored out from

@@ -92,11 +92,8 @@ static void term_get_fkeys (Lisp_Object keymap, char **address);
 /*****************************************************************************
  tty_text_width
 
- Non-Mule TTYs don't have fonts (that we use at least), so everything
- is considered to be fixed width -- in other words, we just convert character
- LEN to a Charcount.
- Under Mule, however, a character can still cover more than one
- column, so we use ibyte_string_displayed_columns().
+ A character can cover more than one column (if the TTY supports that), so we
+ use ibyte_string_displayed_columns().
  ****************************************************************************/
 static int
 tty_text_width (struct frame *f, struct face_cachel *UNUSED (cachel),

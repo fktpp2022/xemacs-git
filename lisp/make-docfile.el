@@ -54,6 +54,28 @@
 ;; collected and not dumped. This was not practical when unexec was still
 ;; supported, since the garbage collected data remained in the dump file.
 
+;; The format of DOC is records separated by a ^_ character (?\037, ?\x1f,
+;; INFORMATION SEPARATOR ONE).
+
+;; Each record commences with S (to document a file name), F (to document a
+;; function) or V, to document a variable.
+
+;; A supplied file name is normally followed by a newline, though this is not a
+;; hard requirement.
+
+;; A function or variable name is terminated with a newline; this is a hard
+;; requirement imposed by doc.c and means we cannot document symbols that
+;; include newline in their names. Then comes the documentation for that
+;; function or variable, terminated by the ^_ character that starts the next
+;; record.
+
+;; ^_ characters within documentation strings or file names are quoted as
+;; "\001_"; this means that ?\001 characters need to be quoted if they are to
+;; represent themselves, and they are represented as "\001\001".
+
+;; Each variable or function documented has its associated file name placed
+;; immediately before it in the DOC file using the format above.
+
 (symbol-macrolet
     ((output-args '("-o"    ; Specify DOC file name
                     "-a"    ; Append to DOC file

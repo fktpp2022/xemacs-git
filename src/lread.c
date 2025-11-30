@@ -1648,11 +1648,12 @@ read_unicode_escape (Lisp_Object readcharfun, int unicode_hex_count)
 
   /* @@#### current_buffer dependency */
   c = buffer_unicode_to_ichar (i, current_buffer, CONVERR_FAIL);
-  /* Will happen on non-Mule. (On Mule, now, we have just-in-time creation
-     of characters to handle this.)  Silent corruption is what happens
-     elsewhere, and we used to do that to be consistent, but GNU error,
-     so people writing portable code need to be able to handle that, and
-     given a choice I prefer that behaviour. */
+  /* Will very occasionally happen on old-Mule, if the just-in-time creation
+     of characters has exhausted the hundreds of thousands of code points
+     available.  Silent corruption is what happens elsewhere, and we used to
+     do that to be consistent, but GNU error, so people writing portable code
+     need to be able to handle that, and given a choice I prefer that
+     behaviour. */
   if (c < 0)
     syntax_error ("Unicode character can't be converted to a charset",
 		  emacs_sprintf_string ("#x%X", i));

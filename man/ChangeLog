@@ -1,3 +1,61 @@
+2025-11-30  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* internals/internals.texi (Top):
+	New node, Old Future Work -- Keyword Parameters.
+	* internals/internals.texi (Low-Level Modules):
+	Document that #'dump-emacs, #'run-emacs-from-temacs are not
+	visible from Lisp in a normal post-pdump_load() XEmacs.
+	* internals/internals.texi (Proper Use of Unsigned Types):
+	Give a couple of extra situations where unsigned types are
+	necessary, since behavior of unsigned arithmetic on overflow is
+	specified by C while that of signed arithmetic is not.
+
+	* internals/internals.texi (Great Integral Type Renaming):
+	Correct this, EMACS_INT is guaranteed to be the same size of Lisp
+	objects of type fixnum. List 64-bit word sizes first. Update the
+	listed declaration of Hashcode.
+	* internals/internals.texi (The Text in a Buffer):
+	Update the description of Ichar.
+	Remove mention of non-Mule. Mention unicode-internal.
+	* internals/internals.texi (Byte-Char Position Conversion):
+	Give some context on previous overuse of this, some guidance on
+	how to avoid performance pitfalls when writing C code.
+	* internals/internals.texi (Internal String Encoding):
+	Document that we provide --with-unicode-internal here.
+	* internals/internals.texi (Working With Character and Byte
+	Positions):
+	Update a couple of example to be more idiomatic. Caution against
+	use of bytecount_to_charcount(), charcount_to_bytecount() if possible.
+	* internals/internals.texi (Conversion to and from External Data):
+	Remove mention of non-Mule.
+	* internals/internals.texi (An Example of Mule-Aware Code):
+	Update this. Correct an example function that is gone.
+	* internals/internals.texi (Mule-izing Code):
+	* internals/internals.texi (Modules for Internationalization):
+	Update this, remove mention of files that are gone.
+	* internals/internals.texi (Future Work -- Keyword Parameters):
+	Move the bulk of this to Old Future Work. Describe
+	PARSE_KEYWORDS() and friends. Motivate work for a better
+	implementation of keywords for compiled function.
+	* internals/internals.texi (Old Future Work -- Keyword
+	Parameters): Move the old Future Work -- Keyword Parameters here.
+
+	* lispref/building.texi (Building XEmacs):
+	Remove now-inaccurate information on the system-specificity of the
+	dump process.
+	Update documentation of #'dump-emacs, #'run-emacs-from-temacs.
+	* lispref/help.texi (Documentation Basics):
+	Update details regarding the name of DOC.
+	* lispref/help.texi (Accessing Documentation):
+	Correct documentation of the format of dynamic docstring
+	markers. Remove mention of sorted-doc.c and digest-doc.c
+	Remove a caution that the VERBATIM argument to
+	#'substitute-command-keys exists only as of Emacs 19.
+	Remove documentation of #'Snarf-documentation.
+	* lispref/os.texi (Command Line Arguments):
+	Remove obsolete documentation of the possibility of redumping
+	XEmacs.
+
 2025-11-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Writing Lisp Primitives): Update

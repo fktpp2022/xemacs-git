@@ -58,15 +58,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
    relatively simple algorithmic means of conversion) between a string
    of text and an equivalent array of characters, but the conversion
    between the two is NOT necessarily trivial.
-
-   In a non-Mule XEmacs, allowed characters are numbered 0 through
-   255, where no fixed meaning is assigned to them, but (when
-   representing text, rather than bytes in a binary file) in practice
-   the lower half represents ASCII and the upper half some other 8-bit
-   character set (chosen by setting the font, case tables, syntax
-   tables, etc. appropriately for the character set through ad-hoc
-   means such as the `iso-8859-1' file and the
-   `standard-display-european' function).
    
    For more info, see `text.c' and the Internals Manual.
 */

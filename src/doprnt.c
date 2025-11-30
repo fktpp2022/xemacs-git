@@ -4054,11 +4054,10 @@ arguments: (STREAM &key (ERROR-BEHAVIOR 'error) CONTROL-STRING &rest ARGUMENTS)
    quotation marks. This could be implemented by parse_doprnt_spec() making
    new specs for each ‘ and ’ encountered.
 
-   Now, given that we still (*still*) support non-Mule builds, which don't
-   support the directed quotation marks characters, we can't do this, and so
-   we should not implement this for the moment.
+   Non-Mule, which didn't support the directed quotation marks characters, is
+   gone, and so this is something that should be done.
 
-   Aidan Kehoe, Sa 19 Nov 2016 11:13:20 GMT */
+   Aidan Kehoe, Fr 28. Nov 07:19:56 GMT 2025 */
 
 /************************************************************************/
 /*                            initialization                            */

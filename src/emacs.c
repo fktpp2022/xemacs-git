@@ -2879,7 +2879,7 @@ main (int argc, Extbyte **argv, Extbyte **UNUSED (envp))
 #ifdef HAVE_GLIBC
   if (initialized)
     {
-      /* mmap works in glibc-2.1, glibc-2.0 (Non-Mule only) and Linux libc5 */
+      /* mmap works in glibc-2.1, glibc-2.0 and Linux libc5 */
 #if (defined (__GLIBC__) && __GLIBC_MINOR__ >= 1) || \
   defined (HAVE_MALLOC_WARNING)
       mallopt (M_MMAP_MAX, 64);
@@ -2921,7 +2921,7 @@ available.
 Since `dump-emacs' depends on a lot of C state unavailable after loading the
 dump file, it is not useful and will crash XEmacs if called after normal
 startup (that is, after an existing dump file has been loaded).  The dump
-processes arranges for this function to be removed from the Lisp namespace as
+process arranges for this function to be removed from the Lisp namespace as
 part of dumping to avoid this happening.
 */
        ())

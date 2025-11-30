@@ -324,10 +324,6 @@ startup messages.
 @defvar command-line-processed
 The value of this variable is @code{t} once the command line has been
 processed.
-
-If you redump XEmacs by calling @code{dump-emacs}, you may wish to set
-this variable to @code{nil} first in order to cause the new dumped XEmacs
-to process its new command line arguments.
 @end defvar
 
 @defvar command-switch-alist

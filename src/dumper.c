@@ -276,7 +276,9 @@ static const struct sized_memory_description staticpros_description = {
    segment pointers and reinit_vars_of_*() functions that solely existed to
    call staticpro_nodump() on an address in the dump file.
 
-   staticpro() now accepts pointers to the data segment, the BSS and the heap.
+   staticpro() now accepts pointers to the data segment, the BSS and the heap,
+   and the vast majority of those reinit_vars_of*() functions have been
+   removed.
 
    As the dump registration step encounters the addresses of heap
    Lisp_Objects, it checks if those addresses are in STATICPROS, and if so it

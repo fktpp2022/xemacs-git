@@ -810,6 +810,7 @@ Old Future Work
 * Old Future Work -- Lisp callbacks from critical areas of the C code::  
 * Old Future Work -- Everything should obey duplicable extents::  
 * Old Future Work -- Display Tables::
+* Old Future Work -- Keyword Parameters::  
 
 @end detailmenu
 @end menu
@@ -3398,7 +3399,13 @@ exited; @code{dump-emacs}, which is used during the build process to
 write out the XEmacs executable; @code{run-emacs-from-temacs}, which can
 be used to start XEmacs directly when temacs has finished loading all
 the Lisp code; and emergency code to handle crashes [XEmacs tries to
-auto-save all files before it crashes]).
+auto-save all files before it crashes]). @code{dump-emacs} and
+@code{run-emacs-from-temacs} are not available to Lisp within a dumped
+XEmacs (@code{dump-emacs} requires C infrastructure not available unless
+dumping, and @code{run-emacs-from-temacs} would leak large amounts of
+memory and likely crash within redisplay) so if you wish to read their
+docstrings and see their calling conventions you will need to inspect
+@file{emacs.c}.
 
 Low-level code that directly interacts with the Unix signal mechanism,
 however, is in @file{signal.c}.  Note that this code does not handle system
@@ -5893,6 +5900,17 @@ In existing code that you don't want to modify because you don't
 maintain it.
 @item
 In bit-field structures.
+@item
+In contexts where you are checking for overflow with C multiplication or
+addition, where unsigned arithmetic is defined to have predictable behavior by
+the standard, but signed arithmetic is not. Unfortunately GCC and Clang take
+this as licence to remove code when they detect signed arithmetic which would
+overflow, so there is no alternative to using unsigned arithmetic here.
+@item
+In contexts where you are adjusting pointer values saved as integers (which
+will effectively need to be size_t or an equivalent-width type) where the same
+caution applies. Compare @code{EXTEND_BUFFER()} in regex.c.  The need to do
+this is infrequent.
 @end enumerate
 
 Other reasonable uses of @code{unsigned int} and @code{unsigned long}
@@ -5949,12 +5967,11 @@ great number of warnings when mixing signed and unsigned, and the casts
 are annoying.  More has been written on this elsewhere.
 
 @item
-All such quantity types just mentioned boil down to EMACS_INT, which is
-32 bits on 32-bit machines and 64 bits on 64-bit machines.  This is
-guaranteed to be the same size as Lisp objects of type @code{int}, and (as
-far as I can tell) of size_t (unsigned!) and ssize_t.  The only type
-below that is not an EMACS_INT is Hashcode, which is an unsigned value
-of the same size as EMACS_INT.
+All such quantity types just mentioned boil down to EMACS_INT, which is 64
+bits on 64-bit machines and 32 bits on 32-bit machines.  This is guaranteed to
+be the same size as @code{size_t} (unsigned!), @code{ssize_t}, and
+@code{Lisp_Object}.  The only type below that is not an EMACS_INT is Hashcode,
+which is an unsigned value of the same size as EMACS_INT.
 
 @item
 Type names should be relatively short (no more than 10 characters or
@@ -6050,7 +6067,7 @@ typedef EMACS_INT Charcount;
 typedef EMACS_INT Elemcount;
 
 /* Hash codes */
-typedef unsigned long Hashcode;
+typedef EMACS_UINT Hashcode;
 
 /* ------------------------ dynamic arrays ------------------- */
 --------------------------------- snip -------------------------------------
@@ -10560,13 +10577,13 @@ that you will typically encounter belong to the ASCII set of characters,
 but there are also characters for various sorts of accented letters,
 special symbols, Chinese and Japanese ideograms (i.e. Kanji, Katakana,
 etc.), Cyrillic and Greek letters, etc.  The actual number of possible
-characters is quite large.
+characters is large.
 
   For now, we can view a character as some non-negative integer that
-has some shape that defines how it typically appears (e.g. as an
-uppercase A). (The exact way in which a character appears depends on the
-font used to display the character.) The internal type of characters in
-the C code is an @code{Ichar}; this is just an @code{int}, but using a
+has some shape that defines how it typically appears (e.g. as an uppercase
+A). (The exact way in which a character appears depends on the font used to
+display the character.) The internal type of characters in the C code is an
+@code{Ichar}; this is just a (usually thirty-two bit) @code{int}, but using a
 symbolic type makes the code clearer.
 
   Between every character in a buffer is a @dfn{buffer position} or
@@ -10583,15 +10600,14 @@ position 1 is before the first character, and position 0 is not
 valid.  If there are N characters in a buffer, then buffer
 position N+1 is after the last one, and position N+2 is not valid.
 
-  The internal makeup of the Ichar integer varies depending on whether
-we have compiled with MULE support.  If not, the Ichar integer is an
-8-bit integer with possible values from 0 - 255.  0 - 127 are the
-standard ASCII characters, while 128 - 255 are the characters from the
-ISO-8859-1 character set.  If we have compiled with MULE support, an
-Ichar is a 21-bit integer, with the various bits having meanings
-according to a complex scheme that will be detailed later.  The
-characters numbered 0 - 255 still have the same meanings as for the
-non-MULE case, though.
+  The internal makeup of the Ichar integer varies depending on whether we 
+have compiled with unicode-internal support.  The characters numbered 0 - 127
+are always the standard ASCII characters, while 128 - 255 are always the
+characters from the ISO-8859-1 character set.  If we have compiled with the
+older ISO-2022-oriented MULE internal encoding, an Ichar is a 21-bit integer,
+with the various bits having meanings according to a complex scheme that will
+be detailed later.  With unicode-internal an Ichar reflects ISO-10646 values,
+with some code values unused by Unicode taken for internal XEmacs purposes.
 
   Internally, the text in a buffer is represented in a fairly simple
 fashion: as a contiguous array of bytes, with a @dfn{gap} of some size
@@ -10627,15 +10643,11 @@ released back to the operating system.  However, this tends to result in a
 noticeable speed penalty.)
 
   Astute readers may notice that the text in a buffer is represented as
-an array of @emph{bytes}, while (at least in the MULE case) an Ichar is
-a 21-bit integer, which clearly cannot fit in a byte.  This means (of
-course) that the text in a buffer uses a different representation from
-an Ichar: specifically, the 21-bit Ichar becomes a series of one to
-four bytes.  The conversion between these two representations is complex
-and will be described later.
-
-  In the non-MULE case, everything is very simple: An Ichar
-is an 8-bit value, which fits neatly into one byte.
+an array of @emph{bytes}, while an Ichar is an integer of at least 21 bits,
+which clearly cannot fit in a byte.  This means (of course) that the text in a
+buffer uses a different representation from an Ichar: specifically, the Ichar
+becomes a series of one to (for now) six bytes.  The conversion between these
+two representations is complex and will be described later.
 
   If we are given a buffer position and want to retrieve the
 character at that position, we need to follow these steps:
@@ -10661,9 +10673,6 @@ Fetch the appropriate bytes at the determined memory position.
 @item
 Convert these bytes into an Ichar.
 @end enumerate
-
-  In the non-Mule case, (3) and (4) boil down to a simple one-byte
-memory access.
 
   Note that we have defined three types of positions in a buffer:
 
@@ -10704,12 +10713,46 @@ This is documented under the internationalization support:
 @cindex position conversion, byte-char
 @cindex conversion, byte-char position
 
-The algorithm for this was ported from the algorithm from FSF 21.3 of
-2003, in markers.c. This algorithm is fairly simple. The previous
+This node describes the code that converts between character and buffer byte
+positions.  After the MULE merge, this code was likely the most called code in
+all of XEmacs, since the existing code written without MULE in mind assumed
+that converting from a character position to a byte position was cheap and
+predictable in its run time, and so it did this much more than was
+intrinsically necessary.
+
+Much of the relevant code has been revised and now the usual approach in C is
+to convert to byte positions on receiving a buffer (or string) offset from
+Lisp, and work with that byte position, only converting back to a character
+position if Lisp needs that. Conversion to byte positions should normally be
+done using @code{get_buffer_pos_byte()}, @code{get_buffer_range_byte()}, which
+take Lisp_Object arguments and will extract marker byte positions without any
+need for a call to charbpos_to_bytebpos().  There are analagous functions that
+work on string positions, and these should be used in much the same way, but
+the intrinsic impact of this on performance is more limited since strings are
+normally much shorter than large buffers.
+
+For buffer positions that need to stay around (e.g. saved window points for
+redisplay), the C code uses markers (or sometimes zero-length extents,
+depending on desired behavior on deletion of the associated text). These both
+store byte positions and are updated in the course of insertion and deletion
+within @file{insdel.c}, there is no additional special handling needed (beyond
+garbage protection for markers). This was actually also a correctness
+improvement on previous, in that, while storing an integer char position and
+having it become wrong did not lead to XEmacs crashing, it did lead to
+e.g. redisplay doing unexpected things.
+
+Another context where character lengths were checked needlessly involved
+allocating temporary buffers, or arrays of characters to manipulate in O(1)
+time; since the byte count is an inclusive upper bound on the character count,
+if the buffer will not persist beyond the C function it is much cheaper to
+allocate the byte length and ignore the wasted space.
+
+The algorithm for the conversion was ported from the algorithm from FSF 21.3
+of 2003, in @file{markers.c}. This algorithm is fairly simple. The previous
 implentation had the serious problem that the known (cached) region of
-byte-char correspondence had large tendency to become zero-length and
-stay that way and so I (Ben) discarded it, but kept its cache array of
-known positions rather than using markers.
+byte-char correspondence had large tendency to become zero-length and stay
+that way and so I (Ben) discarded it, but kept its cache array of known
+positions rather than using markers.
 
 Basically, we keep a number of positions cached:
 
@@ -10792,6 +10835,12 @@ keep both byte and character positions rather than just the former.  (But
 this would probably be overkill.  We should just use our cache instead.
 Any place an extent was set was surely already visited by the char<-->byte
 conversion routines.)
+
+This difference means that code written for GNU Emacs that assumes cheap
+extraction of a marker position will have poor performance characteristics in
+XEmacs. VM does this; since fixing the code to work better with XEmacs will
+often have no performance impact on GNU Emacs, this is something that should
+be fixed within VM and other packages that have this assumption.
 
 @node Searching and Matching,  , Byte-Char Position Conversion, Text
 @section Searching and Matching
@@ -11972,8 +12021,8 @@ the actual multi-byte encoding.
 conditions.  For example, EUC satisfies only (2) and (3), while
 Shift-JIS and Big5 (not yet described) satisfy only (2). (All non-modal
 encodings must satisfy (2), in order to be unambiguous.)  UTF-8,
-however, meets all three, and we are considering moving to it as an
-internal encoding.
+however, meets all three, and we provide it as an internal encoding if the
+--with-unicode-internal configure flag is supplied.
 
 @strong{NOTE}: The Boyer-Moore code in @file{search.c} can only work
 in the presence of a translation table if all characters with a
@@ -13345,7 +13394,7 @@ characters.  For instance:
   ...
   @{
     /* Allocate place for @var{cclen} characters. */
-    Ibyte *buf = (Ibyte *) alloca (cclen * MAX_ICHAR_LEN);
+    Ibyte *buf = alloca_ibytes (cclen * MAX_ICHAR_LEN);
 ...
 @end group
 @end example
@@ -13354,23 +13403,34 @@ If you followed the previous section, you can guess that, logically,
 multiplying a @code{Charcount} value with @code{MAX_ICHAR_LEN} produces
 a @code{Bytecount} value.
 
-In old-Mule, @code{MAX_ICHAR_LEN} equals 4.  Without Mule, it is 1.
-In Unicode-internal, it is 6, which is the maximum size of UTF-8.
-Although all official Unicode characters can be encoded using 4 bytes
-or less in UTF-8, we support characters up to 30 bits wide, for
-private use.
+In old-Mule, @code{MAX_ICHAR_LEN} equals 4.  In Unicode-internal, it is
+currently 6, which is the maximum size of UTF-8.  Although all official
+Unicode characters can be encoded using 4 bytes or less in UTF-8, we support
+characters up to 30 bits wide, for private use.  I (Aidan Kehoe) am
+considering revising this to limit it to four bytes, which will make for
+easier testing and may allow use of SIMD techniques (compare
+@uref{https://github.com/WojciechMula/toys/tree/master/swar-utf8-length,
+``Wojciech Mula's implementation of vectorized character counting of
+UTF-8''}.
 
 @item itext_ichar
+@item itext_ichar_eql
 @itemx set_itext_ichar
 @cindex itext_ichar
+@cindex itext_ichar_eql
 @cindex set_itext_ichar
-The @code{itext_ichar} macro takes a @code{Ibyte} pointer and
-returns the @code{Ichar} stored at that position.  If it were a
-function, its prototype would be:
+
+The inline function @code{itext_ichar} takes an @code{Ibyte} pointer and
+returns the @code{Ichar} stored at that position.  Its prototype is:
 
 @example
-Ichar itext_ichar (Ibyte *p);
+Ichar itext_ichar (const Ibyte *p);
 @end example
+
+The inline function @code{itext_ichar_eql} takes an @code{Ibyte} pointer and
+compares the Ichar at that address to @code{ch}, its second argument.  It is
+equivalent to @code{itext_ichar(p) == ch} but cheaper for a constant ASCII
+@code{ch}, something that routinely comes up in the C code.
 
 @code{set_itext_ichar} stores an @code{Ichar} to the specified byte
 position.  It returns the number of bytes stored:
@@ -13393,18 +13453,22 @@ string of Ibytes.
 @example
 @group
 @{
-  Charbpos pos;
-  for (pos = beg; pos < end; pos++)
+  Bytebpos pos = beg;
+  while (pos < end)
     @{
-      Ichar c = BUF_FETCH_CHAR (buf, pos);
+      Ichar c = BYTE_BUF_FETCH_CHAR (buf, pos);
       p += set_itext_ichar (buf, c);
+      INC_BYTEBPOS (buf, pos);
     @}
 @}
 @end group
 @end example
 
 Note how @code{set_itext_ichar} is used to store the @code{Ichar}
-and increment the counter, at the same time.
+and increment the counter, at the same time.  Note also how we operate on
+byte positions; the character @code{BUF_FETCH_CHAR} has an implicit
+@code{bytebpos_to_charbpos_func} which is at least a C function call, and may
+be O(pos) rather than the pointer dereference of @code{BYTE_BUF_FETCH_CHAR}.
 
 @item INC_IBYTEPTR
 @itemx DEC_IBYTEPTR
@@ -13422,7 +13486,8 @@ simply expand to @code{p++} and @code{p--}, respectively.
 @item bytecount_to_charcount
 @cindex bytecount_to_charcount
 Given a pointer to a text string and a length in bytes, return the
-equivalent length in characters.
+equivalent length in characters.  Avoid calling this if you can, since its
+worst case performance is O(N), where N is the length in bytes.
 
 @example
 Charcount bytecount_to_charcount (Ibyte *p, Bytecount bc);
@@ -13431,7 +13496,8 @@ Charcount bytecount_to_charcount (Ibyte *p, Bytecount bc);
 @item charcount_to_bytecount
 @cindex charcount_to_bytecount
 Given a pointer to a text string and a length in characters, return the
-equivalent length in bytes.
+equivalent length in bytes.  Equally, avoid calling this if you can, since its
+worst case performance is also O(N).
 
 @example
 Bytecount charcount_to_bytecount (Ibyte *p, Charcount cc);
@@ -13480,13 +13546,7 @@ system:
 @enumerate a
 @item
 On input, bytes 0--255 are converted into (implicitly Latin-1)
-characters 0--255.  A non-Mule xemacs doesn't really know about
-different character sets and the fonts to display them, so the bytes can
-be treated as text in different 1-byte encodings by simply setting the
-appropriate fonts.  So in a sense, non-Mule xemacs is a multi-lingual
-editor if, for example, different fonts are used to display text in
-different buffers, faces, or windows.  The specifier mechanism gives the
-user complete control over this kind of behavior.
+characters 0--255.
 @item
 On output, characters 0--255 are converted into bytes 0--255 and other
 characters are converted into @samp{?}.
@@ -13496,9 +13556,10 @@ characters are converted into @samp{?}.
 Format used for the external Unix environment---@code{argv[]}, stuff
 from @code{getenv()}, stuff from the @file{/etc/passwd} file, etc.
 This is encoded according to the encoding specified by the current locale.
-[[This is dangerous; current locale is user preference, and the system
-is probably going to be something else.  Is there anything we can do
-about it?]]
+This is in theory dangerous; current locale is user preference, and the system
+may be something else.  Unfortunately there is nothing we can do about this,
+and happily it is currently unusual for the current locale (if it is set
+correctly) to use a coding system that conflicts with the system.
 
 @item Qfile_name
 Format used for filenames.  This is normally the same as @code{Qnative},
@@ -13514,11 +13575,10 @@ no-lock-shift ISO2022 coding system.  This is a real coding system,
 unlike @code{Qfile_name}, which is user-definable.
 
 @item Qmswindows_tstr
-Used for external data in all MS Windows functions that are declared to
-accept data of type @code{LPTSTR} or @code{LPCSTR}.  This maps to either
-@code{Qmswindows_multibyte} (a locale-specific encoding, same as
-@code{Qnative}) or @code{Qmswindows_unicode}, depending on whether
-XEmacs is being run under Windows 9X or Windows NT/2000/XP.
+Used for external data in all MS Windows functions that are declared to accept
+data of type @code{LPTSTR} or @code{LPCSTR}.  This always maps to
+@code{Qmswindows_unicode}, and dates from the time XEmacs supported Windows
+9X, when it mapped to @code{Qmswindows_multibyte}.  It should be removed.
 @end table
 
 Many other coding systems are provided by default.
@@ -13786,7 +13846,7 @@ Concatenate all the argument characters and make the result a string.
 */
        (int nargs, Lisp_Object *args))
 @{
-  Ibyte *storage = alloca_array (Ibyte, nargs * MAX_ICHAR_LEN);
+  Ibyte *storage = alloca_ibytes (nargs * MAX_ICHAR_LEN);
   Ibyte *p = storage;
 
   for (; nargs; nargs--, args++)
@@ -13816,16 +13876,15 @@ extracts the @code{Ichar} from the @code{Lisp_Object}, and
 @code{set_itext_ichar} stores it to storage, increasing @code{p} in
 the process.
 
-Other instructive examples of correct coding under Mule can be found all
-over the XEmacs code.  For starters, I recommend
-@code{Fnormalize_menu_item_name} in @file{menubar.c}.  After you have
-understood this section of the manual and studied the examples, you can
-proceed writing new Mule-aware code.
+Other instructive examples of correct coding under Mule can be found all over
+the XEmacs code.  For starters, I recommend @code{Fcompare_menu_text} in
+@file{menubar.c}.  After you have understood this section of the manual and
+studied the examples, you can proceed writing new Mule-aware code.
 
 @node Mule-izing Code,  , An Example of Mule-Aware Code, Coding for Mule
 @subsection Mule-izing Code
 
-A lot of code is written without Mule in mind, and needs to be made
+A lot of code was written without Mule in mind, and needed to be made
 Mule-correct or ``Mule-ized''.  There is really no substitute for
 line-by-line analysis when doing this, but the following checklist can
 help:
@@ -14653,23 +14712,19 @@ XEUNICODE_P.
 @cindex internationalization, modules for
 
 @example
-@file{mule-canna.c}
 @file{mule-ccl.c}
 @file{mule-charset.c}
 @file{mule-charset.h}
 @file{file-coding.c}
 @file{file-coding.h}
 @file{mule-coding.c}
-@file{mule-mcpath.c}
-@file{mule-mcpath.h}
 @file{mule-wnnfns.c}
-@file{mule.c}
 @end example
 
 These files implement the MULE (Asian-language) support.  Note that MULE
 actually provides a general interface for all sorts of languages, not
 just Asian languages (although they are generally the most complicated
-to support).  This code is still in beta.
+to support).
 
 @file{mule-charset.*} and @file{file-coding.*} provide the heart of the
 XEmacs MULE support.  @file{mule-charset.*} implements the @dfn{charset}
@@ -14694,39 +14749,16 @@ as the binary (no-conversion) coding system and a sample gzip coding system.
 interpreter.  CCL is similar in spirit to Lisp byte code and is used to
 implement converters for custom encodings.
 
-@file{mule-canna.c} and @file{mule-wnnfns.c} implement interfaces to
-external programs used to implement the Canna and WNN input methods,
-respectively.  This is currently in beta.
-
-@file{mule-mcpath.c} provides some functions to allow for pathnames
-containing extended characters.  This code is fragmentary, obsolete, and
-completely non-working.  Instead, @code{pathname-coding-system} is used
-to specify conversions of names of files and directories.  The standard
-C I/O functions like @samp{open()} are wrapped so that conversion occurs
-automatically.
-
-@file{mule.c} contains a few miscellaneous things.  It currently seems
-to be unused and probably should be removed.
-
-
+@file{mule-wnnfns.c} implements an interface to an external program used to
+implement the WNN input method. This is currently in beta.
 
 @example
 @file{intl.c}
 @end example
 
-This provides some miscellaneous internationalization code for
-implementing message translation and interfacing to the Ximp input
-method.  None of this code is currently working.
-
-
-
-@example
-@file{iso-wide.h}
-@end example
-
-This contains leftover code from an earlier implementation of
-Asian-language support, and is not currently used.
-
+This provides some miscellaneous internationalization code for implementing
+message translation, which is not currently working, and for querying and
+setting the current locale.
 
 @c
 @c DO NOT CHANGE THE NAME OF THIS NODE; ChangeLogs refer to it.
@@ -22809,7 +22841,7 @@ data-segment.
 This does not include the GCPRO'ed variables, the specbinds, the
 catchtags, the backlist, the redisplay or the profiling info, since we
 do not want to rebuild the actual chain of lisp calls which end up to
-the dump-emacs call, only the global variables.
+the @code{dump-emacs} call, only the global variables.
 
 Weak lists and weak hash tables are dumped as if they were their
 non-weak equivalent (without changing their type, of course).  This has
@@ -24035,169 +24067,27 @@ and the debugger has a place to be invoked.
 @cindex future work, keyword parameters
 @cindex keyword parameters, future work
 
-Author: @uref{mailto:ben@@xemacs.org,Ben Wing}
+Ben Wing wrote a proposal for C-level support for keyword arguments for subrs
+in 2004, which proposal is now in Old Future Work @pxref{Old Future Work --
+Keyword Parameters}. I (Aidan Kehoe) implemented the feature in 2010, though
+my approach ended up taking little from Ben's suggestions. The implementation
+is compatible with the Common Lisp specification, since that allows tests
+written for Common Lisp to be used to check correctness. It takes KEYWORDS as
+the @code{max_args} argument to the @code{DEFUN()}, numerically equivalent to
+@code{MANY}, and requires that the programmer call @code{PARSE_KEYWORDS}
+within the body of the function, passing the desired keywords to that
+argument. This works well, adds no extra run-time work for functions that do
+not take keyword arguments, and is very cheap if no keyword arguments are
+supplied to a function that does take keyword arguments.
 
-NOTE: These changes are partly motivated by the various user-interface
-changes elsewhere in this document, and partly for Mule support.  In
-general the various APIs in this document would benefit greatly from
-built-in keywords.
+The implementation of keyword arguments for Lisp functions in
+@file{cl-macs.el} is buggy (see the IMPLEMENTATION INCOMPLETE test failures in
+lisp-tests.el), and there is no intrinsic reason for keyword arguments to need
+to cons, as is the case currently. Further work should be done to better
+integrate keyword arguments into compiled functions, ideally as part of work
+on lexical scope.
 
-I would like to make keyword parameters an integral part of Elisp.  The
-idea here is that you use the @code{&amp;key} identifier in the
-parameter list of a function and all of the following parameters
-specified are keyword parameters.  This means that when these arguments
-are specified in a function call, they are immediately preceded in the
-argument list by a @dfn{keyword}, which is a symbol beginning with the
-`:' character.  This allows any argument to be specified independently
-of any other argument with no need to place the arguments in any
-particular order.  This is particularly useful for functions that take
-many optional parameters; using keyword parameters makes the code much
-cleaner and easier to understand.
-
-The @code{cl} package already provides keyword parameters of a sort, but
-I would like to make this more integrated and useable in a standard
-fashion.  The interface that I am proposing is essentially compatible
-with the keyword interface in Common Lisp, but it may be a subset of the
-Common Lisp functionality, especially in the first implementation.
-There is one departure from the Common Lisp specification that I would
-like to make in order to make it much easier to add keyword parameters
-to existing functions with optional parameters, and in general, to make
-optional and keyword parameters coexist more easily.  The Common Lisp
-specification indicates that if a function has both optional and keyword
-parameters, the optional parameters are always processed before the
-keyword parameters.  This means, for example, that if a function has
-three required parameters, two optional parameters, and some number of
-keyword parameters following, and the program attempts to call this
-function by passing in the three required arguments, and then some
-keyword arguments, the first keyword specified and the argument
-following it get assigned to the first and second optional parameters as
-specified in the function definition.  This is certainly not what is
-intended, and means that if a function defines both optional and keyword
-parameters, any calls of this function must specify @code{nil} for all
-of the optional arguments before using any keywords.  If the function
-definition is later changed to add more optional parameters, all
-existing calls to this function that use any keyword arguments will
-break.  This problem goes away if we simply process keyword parameters
-before the optional parameters.
-
-The primary changes needed to support the keyword syntax are:
-
-@enumerate
-@item
-
-The subr object type needs to be modified to contain additional slots
-for the number and names of any keyword parameters.
-@item
-
-The implementation of the @code{funcall} function needs to be modified
-so that it knows how to process keyword parameters.  This is the only
-place that will require very much intricate coding, and much of the
-logic that would need to be added can be lifted directly from the
-@code{cl} code.
-@item
-
-A new macro, similar to the @code{DEFUN} macro, and probably called
-@code{DEFUN_WITH_KEYWORDS}, needs to be defined so that built-in Lisp
-primitives containing keywords can be created.  Now, the
-@code{DEFUN_WITH_KEYWORDS} macro should take an additional parameter
-which is a string, which consists of the part of the lambda list
-declaration for this primitive that begins with the @code{&amp;key}
-specifier.  This string is parsed in the @code{DEFSUBR} macro during
-XEmacs initialization, and is converted into the appropriate structure
-that needs to be stored into the subr object.  In addition, the
-@var{max_args} parameter of the @code{DEFUN} macro needs to be
-incremented by the number of keyword parameters and these parameters are
-passed to the C function simply as extra parameters at the end.  The
-@code{DEFSUBR} macro can sort out the actual number of required,
-optional and keyword parameters that the function takes, once it has
-parsed the keyword parameter string.  (An alternative that might make
-the declaration of a primitive a little bit easier to understand would
-involve adding another parameter to the @code{DEFUN_WITH_KEYWORDS} macro
-that specifies the number of keyword parameters.  However, this would
-require some additional complexity in the preprocessor definition of the
-@code{DEFUN_WITH_KEYWORDS} macro, and probably isn't worth
-implementing).
-@item
-
-The byte compiler would have to be modified slightly so that it knows
-about keyword parameters when it parses the parameter declaration of a
-function.  For example, so that it issues the correct warnings
-concerning calls to that function with incorrect arguments.
-@item
-
-The @code{make-docfile} program would have to be modified so that it
-generates the correct parameter lists for primitives defined using the
-@code{DEFUN_WITH_KEYWORDS} macro.
-@item
-
-Possibly other aspects of the help system that deal with function
-descriptions might have to be modified.
-@item
-
-A helper function might need to be defined to make it easier for
-primitives that use both the @code{&amp;rest} and @code{&amp;key}
-specifiers to parse their argument lists.
-
-@end enumerate
-
-@subheading Internal API for C primitives with keywords - necessary for many of the new Mule APIs being defined.
-
-@example
-  DEFUN_WITH_KEYWORDS (Ffoo, "foo", 2, 5, 6, ALLOW_OTHER_KEYWORDS,
-      (ichi, ARG_NIL), (ni, ARG_NIL), (san, ARG_UNBOUND), 0,
-      (arg1, arg2, arg3, arg4, arg5)
-      )
-  @{
-    ...
-  @}
-  
-  -> C fun of 12 args:
-  
-  (arg1, ... arg5, ichi, ..., roku, other keywords)
-  
-  Circled in blue is actual example declaration
-  
-  DEFUN_WITH_KEYWORDS (Ffoo, "foo", 1,2,0 (bar, baz) <- arg list
-  [ MIN ARGS, MAX ARGS, something that could be REST, SPECIFY_DEFAULT or
-  REST_SPEC]
-  
-  [#KEYWORDS [ ALLOW_OTHER, SPECIFY_DEFAULT, ALLOW_OTHER_SPECIFY_DEFAULT
-  6, ALLOW_OTHER_SPECIFY_DEFAULT,
-  
-  (ichi, 0) (ni, 0), (san, DEFAULT_UNBOUND), (shi, "t"), (go, "5"),
-  (roku, "(current-buffer)")
-  <- specifies arguments, default values (string to be read into Lisp
-     data during init; then forms evalled at fn ref time.
-  
-  ,0 <- [INTERACTIVE SPEC] )
-  
-  LO = Lisp_Object
-  
-  -> LO Ffoo (LO bar, LO baz, LO ichi, LO ni, LO san, LO shi, LO go,
-              LO roku, int numkeywords, LO *other_keywords)
-  
-  #define DEFUN_WITH_KEYWORDS (fun, funstr, minargs, maxargs, argspec, \
-           #args, num_keywords, keywordspec, keywords, intspec) \
-  LO fun (DWK_ARGS (maxargs, args) \
-          DWK_KEYWORDS (num_keywords, keywordspec, keywords))
-  
-  #define DWK_KEYWORDS (num_keywords, keywordspec, keywords) \
-          DWK_KEYWORDS ## keywordspec (keywords)
-          DWK_OTHER_KEYWORDS ## keywordspec)
-  
-  #define DWK_KEYWORDS_ALLOW_OTHER (x,y)
-          DWK_KEYWORDS (x,y)
-  
-  #define DWK_KEYWORDS_ALLOW_OTHER_SPECIFICATIONS (x,y)
-          DWK_KEYWORDS_SPECIFY_DEFAULT (x,y)
-  
-  #define DWK_KEYWORDS_SPECIFY_DEFAULT (numkey, key)
-          ARGLIST_CAR ## numkey key
-  
-  #define ARGLT_GRZ (x,y) LO CAR x, LO CAR y
-@end example
-
-@node Future Work -- Property Interface Changes, Future Work -- Toolbars, Future Work -- Keyword Parameters, Future Work
+@node Future Work -- Property Interface Changes, Future Work -- Toolbars, Future Work -- Better Initialization File Scheme, Future Work
 @section Future Work -- Property Interface Changes
 @cindex future work, property interface changes
 @cindex property interface changes, future work
@@ -32517,6 +32407,7 @@ work still to be done.
 * Old Future Work -- Lisp callbacks from critical areas of the C code::  
 * Old Future Work -- Everything should obey duplicable extents::  
 * Old Future Work -- Display Tables::
+* Old Future Work -- Keyword Parameters::  
 
 @end menu
 
@@ -33082,7 +32973,7 @@ already a function @code{copy_string_extents()} that does basically this
 exact thing, and it should be easy to create a modified version of this
 function.
 
-@node Old Future Work -- Display Tables,  , Old Future Work -- Everything should obey duplicable extents, Old Future Work
+@node Old Future Work -- Display Tables, Old Future Work -- Keyword Parameters, Old Future Work -- Everything should obey duplicable extents, Old Future Work
 @section Old Future Work -- Display Tables
 @cindex old future work, display tables
 @cindex display tables, old future work
@@ -33131,7 +33022,172 @@ table like this:
 Since more than one display table is possible, you have
 great flexibility in mapping ranges of characters.
 
+@node Old Future Work -- Keyword Parameters,  , Old Future Work -- Display Tables, Old Future Work
+@section Future Work -- Keyword Parameters
+@cindex future work, keyword parameters
+@cindex keyword parameters, future work
 
+Author: @uref{mailto:ben@@xemacs.org,Ben Wing}
+
+NOTE: These changes are partly motivated by the various user-interface
+changes elsewhere in this document, and partly for Mule support.  In
+general the various APIs in this document would benefit greatly from
+built-in keywords.
+
+I would like to make keyword parameters an integral part of Elisp.  The
+idea here is that you use the @code{&amp;key} identifier in the
+parameter list of a function and all of the following parameters
+specified are keyword parameters.  This means that when these arguments
+are specified in a function call, they are immediately preceded in the
+argument list by a @dfn{keyword}, which is a symbol beginning with the
+`:' character.  This allows any argument to be specified independently
+of any other argument with no need to place the arguments in any
+particular order.  This is particularly useful for functions that take
+many optional parameters; using keyword parameters makes the code much
+cleaner and easier to understand.
+
+The @code{cl} package already provides keyword parameters of a sort, but
+I would like to make this more integrated and useable in a standard
+fashion.  The interface that I am proposing is essentially compatible
+with the keyword interface in Common Lisp, but it may be a subset of the
+Common Lisp functionality, especially in the first implementation.
+There is one departure from the Common Lisp specification that I would
+like to make in order to make it much easier to add keyword parameters
+to existing functions with optional parameters, and in general, to make
+optional and keyword parameters coexist more easily.  The Common Lisp
+specification indicates that if a function has both optional and keyword
+parameters, the optional parameters are always processed before the
+keyword parameters.  This means, for example, that if a function has
+three required parameters, two optional parameters, and some number of
+keyword parameters following, and the program attempts to call this
+function by passing in the three required arguments, and then some
+keyword arguments, the first keyword specified and the argument
+following it get assigned to the first and second optional parameters as
+specified in the function definition.  This is certainly not what is
+intended, and means that if a function defines both optional and keyword
+parameters, any calls of this function must specify @code{nil} for all
+of the optional arguments before using any keywords.  If the function
+definition is later changed to add more optional parameters, all
+existing calls to this function that use any keyword arguments will
+break.  This problem goes away if we simply process keyword parameters
+before the optional parameters.
+
+The primary changes needed to support the keyword syntax are:
+
+@enumerate
+@item
+
+The subr object type needs to be modified to contain additional slots
+for the number and names of any keyword parameters.
+@item
+
+The implementation of the @code{funcall} function needs to be modified
+so that it knows how to process keyword parameters.  This is the only
+place that will require very much intricate coding, and much of the
+logic that would need to be added can be lifted directly from the
+@code{cl} code.
+@item
+
+A new macro, similar to the @code{DEFUN} macro, and probably called
+@code{DEFUN_WITH_KEYWORDS}, needs to be defined so that built-in Lisp
+primitives containing keywords can be created.  Now, the
+@code{DEFUN_WITH_KEYWORDS} macro should take an additional parameter
+which is a string, which consists of the part of the lambda list
+declaration for this primitive that begins with the @code{&amp;key}
+specifier.  This string is parsed in the @code{DEFSUBR} macro during
+XEmacs initialization, and is converted into the appropriate structure
+that needs to be stored into the subr object.  In addition, the
+@var{max_args} parameter of the @code{DEFUN} macro needs to be
+incremented by the number of keyword parameters and these parameters are
+passed to the C function simply as extra parameters at the end.  The
+@code{DEFSUBR} macro can sort out the actual number of required,
+optional and keyword parameters that the function takes, once it has
+parsed the keyword parameter string.  (An alternative that might make
+the declaration of a primitive a little bit easier to understand would
+involve adding another parameter to the @code{DEFUN_WITH_KEYWORDS} macro
+that specifies the number of keyword parameters.  However, this would
+require some additional complexity in the preprocessor definition of the
+@code{DEFUN_WITH_KEYWORDS} macro, and probably isn't worth
+implementing).
+@item
+
+The byte compiler would have to be modified slightly so that it knows
+about keyword parameters when it parses the parameter declaration of a
+function.  For example, so that it issues the correct warnings
+concerning calls to that function with incorrect arguments.
+@item
+
+The @code{make-docfile} program would have to be modified so that it
+generates the correct parameter lists for primitives defined using the
+@code{DEFUN_WITH_KEYWORDS} macro.
+@item
+
+Possibly other aspects of the help system that deal with function
+descriptions might have to be modified.
+@item
+
+A helper function might need to be defined to make it easier for
+primitives that use both the @code{&amp;rest} and @code{&amp;key}
+specifiers to parse their argument lists.
+
+@end enumerate
+
+@subheading Internal API for C primitives with keywords - necessary for many of the new Mule APIs being defined.
+
+@example
+  DEFUN_WITH_KEYWORDS (Ffoo, "foo", 2, 5, 6, ALLOW_OTHER_KEYWORDS,
+      (ichi, ARG_NIL), (ni, ARG_NIL), (san, ARG_UNBOUND), 0,
+      (arg1, arg2, arg3, arg4, arg5)
+      )
+  @{
+    ...
+  @}
+  
+  -> C fun of 12 args:
+  
+  (arg1, ... arg5, ichi, ..., roku, other keywords)
+  
+  Circled in blue is actual example declaration
+  
+  DEFUN_WITH_KEYWORDS (Ffoo, "foo", 1,2,0 (bar, baz) <- arg list
+  [ MIN ARGS, MAX ARGS, something that could be REST, SPECIFY_DEFAULT or
+  REST_SPEC]
+  
+  [#KEYWORDS [ ALLOW_OTHER, SPECIFY_DEFAULT, ALLOW_OTHER_SPECIFY_DEFAULT
+  6, ALLOW_OTHER_SPECIFY_DEFAULT,
+  
+  (ichi, 0) (ni, 0), (san, DEFAULT_UNBOUND), (shi, "t"), (go, "5"),
+  (roku, "(current-buffer)")
+  <- specifies arguments, default values (string to be read into Lisp
+     data during init; then forms evalled at fn ref time.
+  
+  ,0 <- [INTERACTIVE SPEC] )
+  
+  LO = Lisp_Object
+  
+  -> LO Ffoo (LO bar, LO baz, LO ichi, LO ni, LO san, LO shi, LO go,
+              LO roku, int numkeywords, LO *other_keywords)
+  
+  #define DEFUN_WITH_KEYWORDS (fun, funstr, minargs, maxargs, argspec, \
+           #args, num_keywords, keywordspec, keywords, intspec) \
+  LO fun (DWK_ARGS (maxargs, args) \
+          DWK_KEYWORDS (num_keywords, keywordspec, keywords))
+  
+  #define DWK_KEYWORDS (num_keywords, keywordspec, keywords) \
+          DWK_KEYWORDS ## keywordspec (keywords)
+          DWK_OTHER_KEYWORDS ## keywordspec)
+  
+  #define DWK_KEYWORDS_ALLOW_OTHER (x,y)
+          DWK_KEYWORDS (x,y)
+  
+  #define DWK_KEYWORDS_ALLOW_OTHER_SPECIFICATIONS (x,y)
+          DWK_KEYWORDS_SPECIFY_DEFAULT (x,y)
+  
+  #define DWK_KEYWORDS_SPECIFY_DEFAULT (numkey, key)
+          ARGLIST_CAR ## numkey key
+  
+  #define ARGLT_GRZ (x,y) LO CAR x, LO CAR y
+@end example
 
 WARN
 

@@ -42,12 +42,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 /* Note: we keep both Bytebpos and Charbpos versions of some of the
    important buffer positions because they are accessed so much.
    If we didn't do this, we would constantly be invalidating the
-   charbpos<->bytebpos cache under Mule.
-
-   Note that under non-Mule, both versions will always be the
-   same so we don't really need to keep track of them.  But it
-   simplifies the logic to go ahead and do so all the time and
-   the memory loss is insignificant. */
+   charbpos<->bytebpos cache. */
 
 /* Formerly, it didn't much matter what went inside the struct buffer_text
    and what went outside it.  Now it does, with the advent of "indirect

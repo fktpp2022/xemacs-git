@@ -776,14 +776,13 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
  
  @item
  for all generic macro interfaces, there are specific versions of
- each of them for each possible representation (pure ASCII in the
- non-Mule world, Mule standard, UTF-8, 8-bit fixed, 16-bit fixed,
- 32-bit fixed, etc.; there may well be more than one possible 16-bit
- fixed version, as well). Each representation has a corresponding
- prefix, e.g. MULE_ or FIXED16_ or whatever, which is prefixed onto
- the generic macro names.  The resulting macros perform the
- operation defined for the macro, but assume, and only work
- correctly with, text in the corresponding representation.
+ each of them for each possible representation (Mule standard, UTF-8, 8-bit
+ fixed, 16-bit fixed, 32-bit fixed, etc.; there may well be more than one
+ possible 16-bit fixed version, as well). Each representation has a
+ corresponding prefix, e.g. MULE_ or FIXED16_ or whatever, which is prefixed
+ onto the generic macro names.  The resulting macros perform the operation
+ defined for the macro, but assume, and only work correctly with, text in the
+ corresponding representation.
  
  @item
  The definition of the generic versions merely conditionalizes on
@@ -2899,13 +2898,14 @@ charcount_to_bytecount_down_fun (const Ibyte *ptr, Charcount len)
    charbpos-to-bytebpos and bytebpos-to-charbpos conversions.  Currently
    the method they use is fairly unsophisticated; see buffer.h.
 
-   Note that charbpos_to_bytebpos_func() is probably the most-called
-   function in all of XEmacs.  Therefore, it must be FAST FAST FAST.
-   This is the reason why so much of the code is duplicated.
+   Previously the redisplay code, the regex code, the extents code and the
+   Lisp reader all did a lot of needless byte-char conversion, and as a result
+   charbpos_to_bytebpos_func() was probably the most-called function in all of
+   XEmacs.  Therefore, it was implemented to be FAST FAST FAST.  This is the
+   reason why so much of the code is duplicated.
 
    Similar considerations apply to bytebpos_to_charbpos_func(), although
-   less so because the function is not called so often.
- */
+   less so because the function is not called so often. */
 
 /*
 
@@ -5168,38 +5168,27 @@ with the first codepoint in the range 0xA1 to 0xFE and the second in the range
 0x40 to 0x7E or 0xA1 to 0xFE.  `decode-big5-char' is used to generate the char
 from its codes, and `encode-big5-char' extracts the codes.
 
-Note that there are three different internal formats for characters:
+Note that there are two different internal formats for characters:
 
-1. ("non-Mule", configured `--with-mule=no')
-   An integer between 0 and 255.  All characters are taken to be in charset
-   `ascii'.  No charset object exists corresponding to this name (see
-   `get-charset').
-
-2. ("Unicode-internal", configured `--with-mule' and `--with-unicode-internal')
+1. ("Unicode-internal", configured `--with-unicode-internal')
    An integer representing a Unicode codepoint.
 
-3. ("old-Mule", configured `--with-mule' and `--with-unicode-internal=no')
-   An integer that internally encodes a national character set
-   (e.g. ISO-8859-1 or GB-2312) and associated codepoint.  This is the old
-   Mule representation.  This is a flawed representation because what is
-   the same character from a logical standpoint can have multiple
-   representations. (This is a particular problem with accented Latin
-   characters.)
+2. ("old-Mule", configured `--with-unicode-internal=no')
+   An integer that internally encodes a national character set (e.g. ISO-8859-1
+   or GB-2312) and associated codepoint.  This is the old Mule representation.
+   This is a flawed representation because what is the same character from a
+   logical standpoint can have multiple representations. (This is a particular
+   problem with accented Latin characters.)
 
-Note that all three representations more or less agree in encoding ASCII in
-the range 0-127 and ISO-8859-1 in the range 128-255. ("More or less"
-because representation #1 does not really care what the actual significance
-of the characters is.  Under X Windows at least, XEmacs without Mule
-support could be made to support various character sets with appropriate
-font settings.)
+Note that the two representations agree in encoding ASCII in the range 0-127
+and ISO-8859-1 in the range 128-255.
 
 XEmacs tries to hide the internal representation of characters as much as
-possible, but it is not completely possible to hide the difference between
-representations #2 and #3 because of the explicit encoding of a charset or
-lack thereof in the character.  Conversion from Unicode codepoints to
-charset codepoints is a one-to-many operation, and requires a charset
-precedence list to determine which of many charsets to choose from.  This
-means:
+possible, but it is not completely possible to hide the difference between the
+two representations because of the explicit encoding of a charset or lack
+thereof in the character.  Conversion from Unicode codepoints to charset
+codepoints is a one-to-many operation, and requires a charset precedence list
+to determine which of many charsets to choose from.  This means:
 
 -- In a Unicode-internal world, conversion from a character to a charset
    codepoint (`char-charset', `char-octet', `split-char') uses a charset
@@ -5212,14 +5201,10 @@ In all cases, the precedence list is optional; when not specified, a
 default list is used.  See `unicode-to-char' for more information on
 charset precedence lists.
 
-When compiled non-Mule, this function does not do much, but it's provided
-for compatibility.   CHARSET should be the symbol `ascii', OCTET1 should
-be in the range 0-255, and OCTET2 should not be present.  The resulting
-character is equivalent to what would be returned by calling `int-to-char'.
-For compatibility, if CHARSET is `control-1', OCTET1 is first coerced
-\(using logical AND and OR) to the range 128-159, and for other values of
-CHARSET, OCTET1 is coerced to the range 128-255 by setting the high bit.
-This behavior should not be relied upon.
+For compatibility, if CHARSET is `control-1', OCTET1 is first coerced (using
+logical AND and OR) to the range 128-159, and for other values of CHARSET,
+OCTET1 is coerced to the range 128-255 by setting the high bit.  This behavior
+should not be relied upon.
 
 Note that there are various ways of representing a character:
 
@@ -5347,12 +5332,6 @@ determined by concatenating the buffer-specific Unicode precedence list
 \(see `set-default-unicode-precedence-list'), and the list of all charsets;
 converting tags to their corresponding charsets using
 `charset-tag-to-charset-list'; and removing any duplicates.
-
-When there is no international support \(i.e. the `mule' feature is not
-present, caused by configuring `--with-mule=no'), this function simply does
-`int-to-char' and ignores the PRECEDENCE-LIST argument. (Redisplay will
-work on the sjt-xft branch, but not with server-side X11 fonts as is the
-default.)
 
 Under old-Mule, if the UNICODE codepoint would not otherwise be converted
 to an XEmacs character, and a buffer or nil was given as the argument to

@@ -610,20 +610,23 @@ typedef signed char SChbyte;
 /* ------------------------ other text-related typedefs ------------------- */
 
 /* To the user, a buffer is made up of characters.  In the non-Mule world,
-   characters and Ibytes are equivalent, restricted to the range 0 - 255.
-   In the Mule world, many more characters are possible (21 bits worth,
-   more or less), and a character requires (typically) 1 to 4 Ibytes for
-   its representation in a buffer or string.  Note that the representation
-   of a character by itself, in a variable, is very different from its
-   representation in a string of text (in a buffer or Lisp string).
+   characters and Ibytes were equivalent, restricted to the range 0 - 255.
+   Today, many more characters are possible (at least 21 bits' worth), and
+   a character requires (typically) 1 to 4 Ibytes for its representation in a
+   buffer or string.  Note that the representation of a character by itself,
+   in a variable, is very different from its representation in a string of
+   text (in a buffer or Lisp string).
 
    Under Mule, text can be represented in more than one way.  The "default"
-   format is variable-width (1 to 4 bytes) and compatible with ASCII --
-   ASCII chars are stored in one byte, as themselves, and all other chars
-   use only high bytes.  The default format is currently the only format
-   used for text stored anywhere but in a buffer.  In a buffer, other
-   formats -- fixed-width formats (1, 2, or 4 bytes) -- are possible, for
-   speed.
+   format is variable-width (1 to 4 bytes, or 1 to 6 bytes for
+   unicode-internal) and compatible with ASCII -- ASCII chars are stored in
+   one byte, as themselves, and all other chars use only high bytes.  The
+   default format is currently the only format used for text stored anywhere.
+   In a buffer, Ben had intended that other formats -- fixed-width formats (1,
+   2, or 4 bytes) -- were possible, for speed. The speed problems of the
+   variable-width buffers are essentially gone and properly implementing
+   varying formats for buffer text (especially if they dynamically vary at
+   runtime) is likely to give years of subtle bugs, so is not worth the work.
 
    See text.c/text.h for a detailed discussion of all of this. */
 

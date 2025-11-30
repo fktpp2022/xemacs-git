@@ -57,14 +57,6 @@ is in Lisp, and must be loaded before XEmacs is able to create any frames.)
 The argument @samp{dump} tells @file{loadup.el} to dump a new executable
 named @file{xemacs}.
 
-  The dumping process is highly system-specific, and some operating
-systems don't support dumping.  On those systems, you must start XEmacs
-with the @samp{temacs -batch -l loadup run-temacs} command each time you
-use it.  This takes a substantial time, but since you need to start
-Emacs once a day at most---or once a week if you never log out---the
-extra time is not too severe a problem. (In older versions of Emacs,
-you started Emacs from @file{temacs} using @samp{temacs -l loadup}.)
-
 @cindex runnable @file{temacs}
 @cindex bootstrapping XEmacs from @file{temacs}
   You are free to start XEmacs directly from @file{temacs} if you want,
@@ -101,22 +93,24 @@ variables) in the file where they are stored, by calling
 strings were moved out of the @file{xemacs} executable to make it
 smaller.  @xref{Documentation Basics}.
 
-@defun dump-emacs to-file from-file
+@defun dump-emacs
 @cindex unexec
-  This function dumps the current state of XEmacs into an executable file
-@var{to-file}.  It takes symbols from @var{from-file} (this is normally
-the executable file @file{temacs}).
-
-If you use this function in an XEmacs that was already dumped, you must
-set @code{command-line-processed} to @code{nil} first for good results.
-@xref{Command Line Arguments}.
+  This function dumps the current state of XEmacs, usually into a file
+@file{xemacs.dmp}.  The specific name is set as part of configuration.
+@code{dump-emacs} depends on a lot of C state unavailable after loading
+the dump file, and so calling it from an XEmacs that has already been
+dumped cannot succeed.  Given this, the dump process removes it from the
+Lisp namespace, so it is not usually visible with
+@code{describe-function}.
 @end defun
 
 @defun run-emacs-from-temacs &rest args
   This is the function that implements the @file{run-temacs} command-line
-argument.  It is called from @file{loadup.el} as appropriate.  You should
-most emphatically @emph{not} call this yourself; it will reinitialize
-your XEmacs process and you'll be sorry.
+argument.  It is called from @file{loadup.el} as appropriate.  Were it
+to be (successfully) called from a dumped XEmacs, it would reinitialize
+the XEmacs process and crash.  Because of this, the dump process removes
+it from the Lisp namespace in the same way, and it is not usually
+visible with @code{describe-function}.
 @end defun
 
 @deffn Command emacs-version &optional arg

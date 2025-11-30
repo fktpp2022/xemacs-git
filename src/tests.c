@@ -661,8 +661,6 @@ REASON is nil or a string describing the failure (not required).
   bytecount = Lstream_read (XLSTREAM (stream), shortbuf, sizeof (shortbuf));
 
   CHARACTER_TELL_ASSERT (Lstream_character_tell (XLSTREAM (stream))
-                         /* This should be equal to sizeof (shortbuf) on
-                            non-mule. */
                          == (ssize_t) (sizeof (shortbuf))
                          - !(byte_ascii_p (0xff)),
                          "character tell with short read, no-conversion-unix",
