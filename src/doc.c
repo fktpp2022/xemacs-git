@@ -202,7 +202,7 @@ static int
 open_doc_file (Lisp_Object filepos, OFF_T *position_out,
                Boolint *standard_doc_filep_out)
 {
-  Lisp_Object file, absolute_p, file_id = Qnil;
+  Lisp_Object file, absolute_p;
   Ibyte *file_nonreloc = NULL;
   Bytecount file_nonreloc_len;
   int fd;
@@ -230,7 +230,7 @@ open_doc_file (Lisp_Object filepos, OFF_T *position_out,
       return -1;
     }
 
-  file_nonreloc_len = sizeof ("../lib-src/-abcdef12") + XSTRING_LENGTH (file);
+  file_nonreloc_len = XSTRING_LENGTH (file) + 1;
 
   if (STRINGP (Vdoc_directory))
     {
@@ -253,41 +253,9 @@ open_doc_file (Lisp_Object filepos, OFF_T *position_out,
           return -1;
         }
 
-      if (XSTRING_LENGTH (file) > (Bytecount) (sizeof ("abcdef12")))
-        {
-          Ibyte *minusp = qxestrrchr (XSTRING_DATA (file), '-');
-          if (minusp)
-            {
-              Ibyte *minus_end;
-              INC_IBYTEPTR (minusp);
-
-              file_id = parse_integer (minusp, &minus_end,
-                                       XSTRING_LENGTH (file) -
-                                       (minusp - XSTRING_DATA (file)),
-                                       16, JUNK_ALLOWED, Vdigit_fixnum_ascii);
-              /* Check if there is already a dump ID in the doc file name. */
-              if (FIXNUMP (file_id) && XFIXNUM (file_id) == dump_id)
-                {
-                  emacs_snprintf (file_nonreloc, file_nonreloc_len, "%s%s",
-                                  XSTRING_DATA (Vdoc_directory),
-                                  XSTRING_DATA (file));
-                }
-              else
-                {
-                  file_id = Qnil;
-                }
-            }
-        }
-
-      if (NILP (file_id))
-        {
-          /* If we're looking in Vdoc_directory, prefer a DOC file with our
-             dump ID at the end to one without. */
-          emacs_snprintf (file_nonreloc, file_nonreloc_len,
-                          "%s%s-%08x",
-                          XSTRING_DATA (Vdoc_directory),
-                          XSTRING_DATA (file), dump_id);
-        }
+      emacs_snprintf (file_nonreloc, file_nonreloc_len, "%s%s",
+                      XSTRING_DATA (Vdoc_directory),
+                      XSTRING_DATA (file));
     }
   else
     {
@@ -295,39 +263,10 @@ open_doc_file (Lisp_Object filepos, OFF_T *position_out,
     }
 
   fd = qxe_open (file_nonreloc, O_RDONLY | OPEN_BINARY, 0);
-  if (fd < 0)
+  if (fd < 0 && *standard_doc_filep_out)
     {
-      if (purify_flag)
-	{
-	  /* Preparing to dump; DOC file is probably not installed.  So check
-	     in ../lib-src. */
-          emacs_snprintf (file_nonreloc, file_nonreloc_len,
-                          "../lib-src/%s", XSTRING_DATA (file));
-
-	  fd = qxe_open (file_nonreloc, O_RDONLY | OPEN_BINARY, 0);
-	}
-      else if (NILP (file_id))
-        {
-          /* Dumped and possibly installed; check DOC without the dump ID on
-             the end. Will never happen with an installed XEmacs with current
-             code, but will happen with in-place. */
-          emacs_snprintf (file_nonreloc, file_nonreloc_len, "%s%s",
-                          XSTRING_DATA (Vdoc_directory), XSTRING_DATA (file));
-
-	  fd = qxe_open (file_nonreloc, O_RDONLY | OPEN_BINARY, 0);
-        }
-
-      if (fd < 0)
-	report_file_error ("Cannot open doc string file",
-			   build_istring (file_nonreloc));
-    }
-  else if (*standard_doc_filep_out && NILP (absolute_p) && NILP (file_id))
-    {
-      /* Successfully opened the file by adding the dump ID at the end. Update
-         Vinternal_doc_file_name, which was initially set at dump time and
-         doesn't reflect the installed DOC file name. */
-      Vinternal_doc_file_name
-        = Ffile_name_nondirectory (build_istring (file_nonreloc));
+      report_file_error ("Cannot open doc string file",
+                         build_istring (file_nonreloc));
     }
 
   return fd;
@@ -1057,7 +996,7 @@ vars_of_doc (void)
   DEFVAR_LISP ("internal-doc-file-name", &Vinternal_doc_file_name /*
 Name of file containing documentation strings of built-in symbols.
 */ );
-  Vinternal_doc_file_name = Qnil;
+  Vinternal_doc_file_name = emacs_sprintf_string ("DOC-%08x", dump_id);
 
   DEFVAR_INT ("internal-doc-filename-buffer-size",
 	      &internal_doc_filename_buffer_size /*

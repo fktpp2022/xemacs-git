@@ -556,7 +556,6 @@ than `build-directory' if appropriate. "
                    symbol offset user-variable-p old function cddr
 		   (max 0))
                (insert-file-contents filename)
-               (setq internal-doc-file-name (file-name-nondirectory filename))
                (goto-char 1)
                (while (re-search-forward "\\(\037S[^\037]+\\)\037[FV].*\n"
 					 nil t)

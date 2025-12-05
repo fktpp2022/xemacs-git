@@ -1614,7 +1614,11 @@ This function is idempotent, so call this as often as you like!"
 
     (setq doc-directory (paths-find-doc-directory emacs-roots))
     (startup-setup-paths-debug-vars configure-doc-directory doc-directory)
-    
+
+    (setq internal-doc-file-name
+          (paths-find-internal-doc-file-name doc-directory))
+    (startup-setup-paths-debug-vars internal-doc-file-name)
+
     (setq data-directory (paths-find-data-directory emacs-data-roots))
     (startup-setup-paths-debug-vars configure-data-directory data-directory)
 

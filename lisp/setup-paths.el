@@ -309,6 +309,18 @@ ROOTS is the list of installation roots."
                                      (and (not (configured-paths-disabledp))
                                           configure-doc-directory)))
 
+(defun paths-find-internal-doc-file-name (doc-directory)
+  "Return a value for `internal-doc-file-name' that reflects an existing file.
+
+This will differ from the dumped value of `internal-doc-file-name' if XEmacs
+is being run in-place. DOC-DIRECTORY should reflect the output of
+`paths-find-doc-directory'."
+  (let ((path (list doc-directory)))
+    (if (and (not (locate-file internal-doc-file-name path))
+             (locate-file "DOC" path))
+        "DOC"
+      internal-doc-file-name)))
+
 (defun paths-find-exec-directory (roots)
   "Find the binary directory.
 ROOTS is the list of installation roots."

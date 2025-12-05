@@ -1,3 +1,15 @@
+2025-12-05  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* doc.c (vars_of_doc):
+	Initialize and dump Vinternal_doc_file_name as DOC-DUMP-ID, which
+	is its expected value in an installed XEmacs.
+	* doc.c (open_doc_file):
+	Simplify this function when dealing with Vinternal_doc_file_name.
+	Don't try to intialize it to something sensible if it cannot be
+	found, trust the startup code to set it correctly, as with do with
+	initialization of other paths. This also simplifies testing in
+	../tests/automated/symbol-tests.el.
+
 2025-11-30  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove mention of non-Mule from many comments.

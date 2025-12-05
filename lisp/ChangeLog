@@ -1,3 +1,22 @@
+2025-12-05  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Initialize internal-doc-file-name to something sensible at startup
+	in the same way we do every other path, simplifying
+	open_doc_file() in doc.c and simplifying testing.
+
+	* make-docfile.el (Snarf-documentation): Don't initialize
+	internal-doc-file-name here, leave it to vars_of_doc() and the
+	startup code.
+	* setup-paths.el:
+	* setup-paths.el (paths-find-internal-doc-file-name): New.
+	Return a workable value internal-doc-file-name at startup in the
+	same way we do for e.g. doc-directory.
+	* startup.el (startup-setup-paths): Use it.
+
+	* loadup.el: In passing, don't manipulate load-history when
+	dumping, this has a dump_mark_nil_lisp_object() in lread.c anyway
+	so it is a waste of time.
+
 2025-11-30  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* make-docfile.el:

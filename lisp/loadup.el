@@ -155,23 +155,6 @@ with the exception of `loadup.el'.")
            (set-extent-property extent 'search 'discard)
            extent)))
 
-  ;; Delete information that is available from DOC for those files in
-  ;; preloaded-file-list; in practice, this boils down to #'provide and
-  ;; #'require calls, and variables without documentation. Yes, this is a bit
-  ;; ugly.
-  (setq load-history (delete*
-                      nil
-                      (mapc #'(lambda (element)
-                                (delete* 'defun element :key #'car-safe)
-                                (delete-if
-                                 #'(lambda (elt)
-                                     (and
-                                      (symbolp elt)
-                                      (get elt 'variable-documentation)))
-                                 element))
-                            load-history)
-                      :key #'cdr))
-
   (message "Dumping under the name xemacs")
   (funcall
    (prog1 (symbol-function 'dump-emacs)
