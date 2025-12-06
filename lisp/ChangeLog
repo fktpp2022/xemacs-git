@@ -1,3 +1,11 @@
+2025-12-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* obsolete.el ('temporary-file-directory): New, GNU-compatible,
+	alias for #'temp-directory.
+	Remove an outdated comment in passing.
+	* obsolete.el (max-char):
+	Clarify the docstring for this function in passing.
+
 2025-12-05  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Initialize internal-doc-file-name to something sensible at startup

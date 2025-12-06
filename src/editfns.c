@@ -512,6 +512,8 @@ On Unix it is obtained from TMPDIR, with /tmp as the default.
 */
        ())
 {
+  /* #### GNU has special handling for remote paths in its
+     #'temporary-file-directory, which we should add. */
   Ibyte *tmpdir;
 #if defined(WIN32_NATIVE)
   tmpdir = egetenv ("TEMP");

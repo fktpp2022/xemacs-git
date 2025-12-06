@@ -1,3 +1,9 @@
+2025-12-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* editfns.c (Ftemp_directory):
+	Add a comment documenting GNU's special handling of remote paths
+	and documenting that we should implement this.
+
 2025-12-05  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* doc.c (vars_of_doc):

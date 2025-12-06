@@ -546,15 +546,12 @@ If that is nil, return integer zero."
 (define-function 'memql 'member*)
 (make-compatible 'memql "use the more full-featured `member*' instead.")
 
+;; GNU's name. #### They have special handling for remote files which we should
+;; add.
+(define-compatible-function-alias 'temporary-file-directory 'temp-directory)
+
 (define-obsolete-variable-alias 'cl-macro-environment
   'byte-compile-macro-environment)
-
-;; Actual implementations of these functions are in cl-extra.el, after
-;; cl-macs is loaded, since those implementations use #'labels and
-;; #'symbol-macrolet. These APIs were always XEmacs-specific, were never
-;; widely used, and it was always more readable and more compatible to use
-;; the CL functions.
-
 
 (symbol-macrolet ((not-nil '#:not-nil))
   (labels ((car-or-not-nil (object)
@@ -588,8 +585,9 @@ If that is nil, return integer zero."
 (defun max-char ()
   "Return a fixnum one less than `char-code-limit'.
 
-In contrast with GNU Emacs, this is not necessarily a valid character, but it
-is an inclusive upper bound on the possible values returned by `char-int'."
+In contrast with GNU Emacs, this is not necessarily a valid character in the
+current XEmacs, but it is an inclusive upper bound on the possible values
+returned by `char-int'."
   (1- char-code-limit))
 (make-compatible
  'max-char
