@@ -753,10 +753,10 @@ main (int argc, char *argv[])
 
 #ifdef SYSV_IPC
       if (connect_type == (int) CONN_IPC)
-	disconnect_from_ipc_server (s, msgp, FALSE);
+	disconnect_from_ipc_server (s, msgp, TRUE);
 #else /* !SYSV_IPC */
       if (connect_type != (int) CONN_IPC)
-	disconnect_from_server (s, FALSE);
+	disconnect_from_server (s, TRUE);
 #endif /* !SYSV_IPC */
     } /* not batch */
 

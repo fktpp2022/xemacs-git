@@ -25,6 +25,19 @@
 	dumping, this has a dump_mark_nil_lisp_object() in lread.c anyway
 	so it is a waste of time.
 
+2025-12-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* gnuserv.el (gnuserv-error-if-existing): New.
+	* gnuserv.el (gnuserv-edit-files):
+	Check if we have an existing gnuclient connection open to a given
+	TTY, and error if so, before creating a new device on that
+	TTY. Avoids problems with my own usage pattern of gnuclient, then
+	C-z, then gnuclient once more on the same TTY, giving problems.
+	Unfortunately can't just send SIGCONT to the existing process, the
+	shell also has to restore tty modes that were in place when it was
+	suspended, and there is no mechanism for XEmacs to prompt it to do
+	this.
+
 2025-11-30  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* make-docfile.el:

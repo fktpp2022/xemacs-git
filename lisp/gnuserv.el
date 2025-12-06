@@ -420,6 +420,24 @@ This order is important as not to keep the client waiting."
         (error nil))
       (make-gtk-device)))
 
+(defun gnuserv-error-if-existing (tty term pid)
+  (let ((console (find tty (console-list) :key #'console-connection
+		       :test #'equal)))
+    (when (and console
+	       (not (eql (console-tty-controlling-process console) pid))
+	       (find console gnuserv-clients
+		     :key #'(lambda (elt)
+			      (device-console (gnuclient-device elt)))))
+      (gnuserv-write-to-client
+       gnuserv-current-client
+       (format
+	;; Can't currently check CONSOLE's input_enabled flag from Lisp.
+	"gnuclient: error: existing (suspended?) connection on this TTY: %s"
+	tty))
+      (setq gnuserv-current-client nil)
+      (error 'invalid-argument
+	     "gnuserv: Existing console on this TTY" tty))))
+
 ;; "Execute" a client connection, called by gnuclient.  This is the
 ;; backbone of gnuserv.el.
 (defun gnuserv-edit-files (type list &rest flags)
@@ -453,7 +471,11 @@ If a flag is `view', view the files read-only."
 			  (frame-device dest-frame))
 			 ((null dest-frame)
 			  (case (car type)
-			    (tty (apply 'make-tty-device (cdr type)))
+			    (tty
+			     (gnuserv-error-if-existing (cadr type)
+							(caddr type)
+							(caddr type))
+			     (apply 'make-tty-device (cdr type)))
 			    (gtk (make-gtk-device))
 			    (x   (make-x-device-with-gtk-fallback (cadr type)))
 			    (mswindows   (make-mswindows-device))
