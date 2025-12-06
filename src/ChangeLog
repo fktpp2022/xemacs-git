@@ -1,5 +1,32 @@
 2025-12-06  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Generic char tables are perfectly adequate for implementing
+	display tables, remove mention of a never-implemented separate
+	display table type.
+
+	* chartab.c:
+	Remove mention of display tables from a comment.
+	* chartab.c (char_table_type_to_symbol):
+	Remove mention of CHAR_TABLE_TYPE_DISPLAY.
+	* chartab.c (symbol_to_char_table_type):
+	Ditto.
+	* chartab.c (char_table_default_for_type):
+	Ditto.
+	* chartab.c (Fchar_table_type_list):
+	Remove mention of Qdisplay.
+	* chartab.c (Fvalid_char_table_type_p):
+	Ditto.
+	* chartab.c (Fmake_char_table):
+	Remove mention of non-Mule in the docstring. Document Ben's
+	(FIRST-CHAR . LAST-CHAR) syntax for specifying ranges. Remove
+	mention of display tables.
+	* chartab.c (check_valid_char_table_value):
+	Remove handling of CHAR_TABLE_TYPE_DISPLAY.
+	* chartab.h (enum char_table_type):
+	Ditto.
+
+2025-12-06  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* editfns.c (Ftemp_directory):
 	Add a comment documenting GNU's special handling of remote paths
 	and documenting that we should implement this.

@@ -137,8 +137,7 @@ static Ichar chartab_span_top[5];
 
    1) category tables
    2) syntax tables
-   3) display tables
-   4) case tables
+   3) case tables
    */
 
 static int
@@ -999,7 +998,6 @@ char_table_type_to_symbol (enum char_table_type type)
   default: ABORT();
   case CHAR_TABLE_TYPE_GENERIC:  return Qgeneric;
   case CHAR_TABLE_TYPE_SYNTAX:   return Qsyntax;
-  case CHAR_TABLE_TYPE_DISPLAY:  return Qdisplay;
   case CHAR_TABLE_TYPE_CHAR:     return Qchar;
   case CHAR_TABLE_TYPE_CATEGORY: return Qcategory;
   }
@@ -1012,7 +1010,6 @@ symbol_to_char_table_type (Lisp_Object symbol)
 
   if (EQ (symbol, Qgeneric))  return CHAR_TABLE_TYPE_GENERIC;
   if (EQ (symbol, Qsyntax))   return CHAR_TABLE_TYPE_SYNTAX;
-  if (EQ (symbol, Qdisplay))  return CHAR_TABLE_TYPE_DISPLAY;
   if (EQ (symbol, Qchar))     return CHAR_TABLE_TYPE_CHAR;
   if (EQ (symbol, Qcategory)) return CHAR_TABLE_TYPE_CATEGORY;
 
@@ -1028,7 +1025,6 @@ char_table_default_for_type (enum char_table_type type)
     case CHAR_TABLE_TYPE_CHAR:
       return make_char (0);
       break;
-    case CHAR_TABLE_TYPE_DISPLAY:
     case CHAR_TABLE_TYPE_GENERIC:
     case CHAR_TABLE_TYPE_CATEGORY:
       return Qnil;
@@ -1179,7 +1175,7 @@ See `make-char-table'.
 */
        ())
 {
-  return list5 (Qchar, Qcategory, Qdisplay, Qgeneric, Qsyntax);
+  return list4 (Qchar, Qcategory, Qgeneric, Qsyntax);
 }
 
 DEFUN ("valid-char-table-type-p", Fvalid_char_table_type_p, 1, 1, 0, /*
@@ -1190,7 +1186,6 @@ See `make-char-table'.
 {
   return (EQ (type, Qchar)     ||
 	  EQ (type, Qcategory) ||
-	  EQ (type, Qdisplay)  ||
 	  EQ (type, Qgeneric)  ||
 	  EQ (type, Qsyntax)) ? Qt : Qnil;
 }
@@ -1296,8 +1291,7 @@ large number of lookups (e.g. scanning a buffer for a character in
 a particular syntax, where a lookup in the syntax table must occur
 once per character).
 
-When Mule support exists, the types of ranges that can be assigned
-values are
+The types of ranges that can be assigned values are
 
 -- all characters (represented by t)
 -- an entire charset
@@ -1305,12 +1299,8 @@ values are
    elements: a two-octet charset and a row number; the row must be an
    integer, not a character)
 -- a single character
-
-When Mule support is not present, the types of ranges that can be
-assigned values are
-
--- all characters (represented by t)
--- a single character
+-- a range of values, using by a cons of two characters representing
+   the inclusive ends of the range.
 
 To create a char table, use `make-char-table'.
 To modify a char table, use `put-char-table' or `remove-char-table'.
@@ -1344,13 +1334,7 @@ sorts of values.  The different char table types are
         char tables, which specify the regexp categories that a
 	character is in.  It is not possible to create such a table from
         Lisp.  Instead, use the functions that are provided for working
-        with category tables (see `make-category-table').  Currently categories
-	and category tables only exist when Mule support is present.
-`display'
-	Used for display tables, which specify how a particular character is
-	to appear when displayed.  #### Not yet implemented; currently, the
-	display table code uses generic char tables, and it's not clear that
-	implementing this char table type would be useful.
+        with category tables (see `make-category-table').
 */
        (type))
 {
@@ -1468,13 +1452,6 @@ check_valid_char_table_value (Lisp_Object value, enum char_table_type type,
 
     case CHAR_TABLE_TYPE_GENERIC:
       return 1;
-
-    case CHAR_TABLE_TYPE_DISPLAY:
-      /* #### fix this */
-      maybe_signal_error (Qunimplemented,
-			  "Display char tables not yet implemented",
-			  value, Qchar_table, errb);
-      return 0;
 
     case CHAR_TABLE_TYPE_CHAR:
       if (!ERRB_EQ (errb, ERROR_ME))
