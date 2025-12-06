@@ -133,7 +133,7 @@ If it is non-@code{nil}, these lines are truncated; otherwise,
   The backslash and curved arrow used to indicate truncated or continued
 lines are only defaults, and can be changed.  These images are actually
 glyphs (@pxref{Glyphs}).  XEmacs provides a great deal of flexibility
-in how glyphs can be controlled. (This differs from FSF Emacs, which
+in how glyphs can be controlled. (This differs from GNU Emacs, which
 uses display tables to control these images.)
 
   For details, @ref{Redisplay Glyphs}.
@@ -987,23 +987,17 @@ on your terminal, using the @dfn{rune table}.
 @node Display Table Format, Active Display Table, Display Tables, Display Tables
 @subsection Display Table Format
 
-  A display table is an array of 256 elements. (In FSF Emacs, a display
-table is 262 elements.  The six extra elements specify the truncation
-and continuation glyphs, etc.  This method is very kludgey, and in
-XEmacs the variables @code{truncation-glyph}, @code{continuation-glyph},
-etc. are used.  @xref{Truncation}.)
+  A display table is a generic char table @xref{Char Table Type}.
 
 @defun make-display-table
-This creates and returns a display table.  The table initially has
-@code{nil} in all elements.
+This is the same as calling @code{(make-char-table 'generic)}.
 @end defun
 
-  The 256 elements correspond to character codes; the @var{n}th
-element says how to display the character code @var{n}.  The value
-should be @code{nil}, a string, a glyph, or a vector of strings and
-glyphs (@pxref{Character Descriptors}).  If an element is @code{nil},
-it says to display that character according to the usual display
-conventions (@pxref{Usual Display}).
+  Each value in the char table should be @code{nil}, a string, a glyph,
+a list starting with the symbol ``format'' and having a string as its
+next element, or a vector of these (@pxref{Character Descriptors}).  If
+an element is @code{nil}, it says to display that character according to
+the usual display conventions (@pxref{Usual Display}).
 
   If you use the display table to change the display of newline
 characters, the whole buffer will be displayed as one long ``line.''
@@ -1016,9 +1010,10 @@ effect of setting @code{ctl-arrow} to a non-@code{nil} value:
 (let ((i 0))
   (while (< i 32)
     (or (= i ?\t) (= i ?\n)
-        (aset disptab i (concat "^" (char-to-string (+ i 64)))))
+        (put-display-table i (concat "^" (char-to-string (+ i 64)))
+                           disptab))
     (setq i (1+ i)))
-  (aset disptab 127 "^?"))
+  (put-display-table 127 "^?" disptab))
 @end example
 
 @node Active Display Table, Character Descriptors, Display Table Format, Display Tables
@@ -1030,11 +1025,11 @@ effect of setting @code{ctl-arrow} to a non-@code{nil} value:
 that you can specify separate values for it in individual buffers,
 windows, frames, and devices, as well as a global value.  It also
 means that you cannot set this variable using @code{setq}; use
-@code{set-specifier} instead.  @xref{Specifiers}. (FSF Emacs
+@code{set-specifier} instead.  @xref{Specifiers}. (GNU Emacs
 uses @code{window-display-table}, @code{buffer-display-table},
 @code{standard-display-table}, etc. to control the display table.
 However, specifiers are a cleaner and more powerful way of doing
-the same thing.  FSF Emacs also uses a different format for
+the same thing.  GNU Emacs also uses a different format for
 the contents of a display table, using additional indirection
 to a ``glyph table'' and such.  Note that ``glyph'' has a different
 meaning in XEmacs.)
@@ -1089,9 +1084,12 @@ A glyph (display the glyph;
 #### At some point recursive display-table lookup will be
 implemented when a string glyph is being processed).
 @item
-A cons of the form (format "@var{string}") where @var{string} is a
-printf-like spec used to process the character. #### Unfortunately no
-formatting directives other than %% are implemented.
+A list of the form (format "@var{string}") where @var{string} is a
+spec used to process the character. @pxref{Formatting Strings};
+effectively, the specific character will be passed as the last
+argument to the @code{format} call, and the result will be displayed
+in place of the character.
+
 @item
 A vector (each element of the vector is processed recursively;
 in such a case, nil elements in the vector are simply ignored).

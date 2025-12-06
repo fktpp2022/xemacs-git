@@ -20,9 +20,7 @@ transportable from machine to machine without recompilation.  It is not,
 however, as fast as true compiled code.
 
 In general, any version of Emacs can run byte-compiled code produced
-by recent earlier versions of Emacs, but the reverse is not true.  In
-particular, if you compile a program with XEmacs 20, the compiled code
-may not run in earlier versions.
+by recent earlier versions of Emacs, but the reverse is not true.
 
 The first time a compiled-function object is executed, the byte-code
 instructions are validated and the byte-code is further optimized.  An
@@ -42,7 +40,6 @@ byte compilation.
 * Compilation Functions::       Byte compilation functions.
 * Compilation Options::         Controlling the byte compiler's behavior.
 * Docs and Compilation::        Dynamic loading of documentation strings.
-* Dynamic Loading::             Dynamic loading of individual functions.
 * Eval During Compile::  	Code to be evaluated when you compile.
 * Compiled-Function Objects::	The data type used for byte-compiled functions.
 * Disassembly::                 Disassembling byte-code; how to read byte-code.
@@ -467,50 +464,26 @@ Variables controlling recompiling directories are described elsewhere
 @code{byte-recompile-directory-ignore-errors-p} and
 @code{byte-recompile-directory-recursively}.
 
-The dynamic loading features are described elsewhere.  These are
-controlled by the variables @code{byte-compile-dynamic} (@pxref{Dynamic
-Loading}) and @code{byte-compile-dynamic-docstrings} (@pxref{Docs and
-Compilation}).
-
-The byte compiler is a relatively recent development, and has evolved
-significantly over the period covering Emacs versions 19 and 20.  The
-following variables control use of newer functionality by the byte
-compiler.  These are rarely needed since the release of XEmacs 21.
+The dynamic doc string feature is described elsewhere.  This is
+controlled by the variable @code{byte-compile-dynamic-docstrings}
+(@pxref{Docs and Compilation}).
 
 Another set of compatibility issues arises between Mule and non-Mule
 XEmacsen; there are no known compatibility issues specific to the byte
-compiler.  There are also compatibility issues between XEmacs and GNU
-Emacs's versions of the byte compiler.  While almost all of the byte
-codes are the same, and code compiled by one version often runs
-perfectly well on the other, this is very dangerous, and can result in
-crashes or data loss.  Always recompile your Lisp when moving between
-XEmacs and GNU Emacs.
-
-@defvar byte-compile-single-version nil
-When non-@code{nil}, the choice of emacs version (v19 or v20) byte-codes
-will be hard-coded into bytecomp when it compiles itself.  If the
-compiler itself is compiled with optimization, this causes a speedup.
-Default: @code{nil}.
-@end defvar
-
-@defvar byte-compile-emacs19-compatibility
-When non-@code{nil} generate output that can run in Emacs 19.
-Default: @code{nil} when Emacs version is 20 or above, otherwise
-@code{t}.
-@end defvar
+compiler.  There are compatibility issues between XEmacs and GNU Emacs's
+versions of the byte compiler.  The byte codes differ, and attempting to
+run code compiled by one version on the other can result in crashes or data
+loss.  Always recompile your Lisp when moving between XEmacs and GNU
+Emacs.
 
 @defvar byte-compile-print-gensym
-When non-@code{nil}, the compiler may generate code that creates unique
+When non-@code{nil}, the compiler generates code that creates unique
 symbols at run-time.  This is achieved by printing uninterned symbols
 using the @code{#:@var{symbol}} notation, so that they will be read
-uninterned when run.
-
-With this feature, code that uses uninterned symbols in macros will
-not be runnable under pre-21.0 XEmacsen.
-
-Default: When @code{byte-compile-emacs19-compatibility} is non-nil, this
-variable is ignored and considered to be @code{nil}.  Otherwise
-@code{t}.
+uninterned when run.  This is important for macros, which routinely use
+uninterned symbols to name local variables without risk of interaction
+with those of the programmer using the macro.  Doing this is termed
+``macro hygiene.'' @xref{print-gensym}. Default: @code{t}.
 @end defvar
 
 @defvar byte-compile-new-bytecodes
@@ -562,7 +535,7 @@ For example, something like this might appear at the top of a source file:
 @end example
 @end defun
 
-@node Docs and Compilation, Dynamic Loading, Compilation Options, Byte Compilation
+@node Docs and Compilation, Eval During Compile, Compilation Options, Byte Compilation
 @section Documentation Strings and Compilation
 @cindex dynamic loading of documentation
 
@@ -571,7 +544,7 @@ documentation strings dynamically from the file whenever needed.  This
 saves space within Emacs, and makes loading faster because the
 documentation strings themselves need not be processed while loading the
 file.  Actual access to the documentation strings becomes slower as a
-result, but normally not enough to bother users.
+result, but not enough to bother users.
 
   Dynamic access to documentation strings does have drawbacks:
 
@@ -598,14 +571,11 @@ directory where you built it, you will experience this problem
 occasionally if you edit and recompile Lisp files.  When it happens, you
 can cure the problem by reloading the file after recompiling it.
 
-  Versions of Emacs up to and including XEmacs 19.14 and FSF Emacs 19.28
-do not support the dynamic docstrings feature, and so will not be able
-to load bytecode created by more recent Emacs versions.  You can turn
-off the dynamic docstring feature by setting
-@code{byte-compile-dynamic-docstrings} to @code{nil}.  Once this is
-done, you can compile files that will load into older Emacs versions.
-You can do this globally, or for one source file by specifying a
-file-local binding for the variable.  Here's one way to do that:
+  You can turn off the dynamic docstring feature by setting
+@code{byte-compile-dynamic-docstrings} to @code{nil}.  This may be
+useful if you expect to load all the docstrings programmatically.  You
+can do this globally, or for one source file by specifying a file-local
+binding for the variable.  Here's one way to do that:
 
 @example
 -*-byte-compile-dynamic-docstrings: nil;-*-
@@ -625,66 +595,7 @@ construct skips the next @var{count} characters.  It also uses the
 @samp{#$} construct, which stands for ``the name of this file, as a
 string.''  It is best not to use these constructs in Lisp source files.
 
-@node Dynamic Loading, Eval During Compile, Docs and Compilation, Byte Compilation
-@section Dynamic Loading of Individual Functions
-
-@cindex dynamic loading of functions
-@cindex lazy loading
-  When you compile a file, you can optionally enable the @dfn{dynamic
-function loading} feature (also known as @dfn{lazy loading}).  With
-dynamic function loading, loading the file doesn't fully read the
-function definitions in the file.  Instead, each function definition
-contains a place-holder which refers to the file.  The first time each
-function is called, it reads the full definition from the file, to
-replace the place-holder.
-
-  The advantage of dynamic function loading is that loading the file
-becomes much faster.  This is a good thing for a file which contains
-many separate commands, provided that using one of them does not imply
-you will soon (or ever) use the rest.  A specialized mode which provides
-many keyboard commands often has that usage pattern: a user may invoke
-the mode, but use only a few of the commands it provides.
-
-  The dynamic loading feature has certain disadvantages:
-
-@itemize @bullet
-@item
-If you delete or move the compiled file after loading it, Emacs can no
-longer load the remaining function definitions not already loaded.
-
-@item
-If you alter the compiled file (such as by compiling a new version),
-then trying to load any function not already loaded will get nonsense
-results.
-@end itemize
-
-  If you compile a new version of the file, the best thing to do is
-immediately load the new compiled file.  That will prevent any future
-problems.
-
-  The byte compiler uses the dynamic function loading feature if the
-variable @code{byte-compile-dynamic} is non-@code{nil} at compilation
-time.  Do not set this variable globally, since dynamic loading is
-desirable only for certain files.  Instead, enable the feature for
-specific source files with file-local variable bindings, like this:
-
-@example
--*-byte-compile-dynamic: t;-*-
-@end example
-
-@defvar byte-compile-dynamic
-If this is non-@code{nil}, the byte compiler generates compiled files
-that are set up for dynamic function loading.
-Default: nil.
-@end defvar
-
-@defun fetch-bytecode function
-This immediately finishes loading the definition of @var{function} from
-its byte-compiled file, if it is not fully loaded already.  The argument
-@var{function} may be a compiled-function object or a function name.
-@end defun
-
-@node Eval During Compile, Compiled-Function Objects, Dynamic Loading, Byte Compilation
+@node Eval During Compile, Compiled-Function Objects, Docs and Compilation, Byte Compilation
 @section Evaluation During Compilation
 
   These features permit you to write code to be evaluated during

@@ -669,14 +669,14 @@ Examples:
      @result{} ; @r{t if this Emacs supports TTY frames.}
 
 (featurep '(or (and xemacs 19.15) (and emacs 19.34)))
-     @result{} ; @r{t on XEmacs 19.15 and later, or on}
-               ; @r{FSF Emacs 19.34 and later.}
+     @result{} ; @r{t on XEmacs 19.15 and later; causes}
+               ; @r{an error on GNU Emacs.}
 @end example
 
-@strong{Please note:} The advanced arguments of this function (anything other than a
-symbol) are not yet supported by FSF Emacs.  If you feel they are useful
-for supporting multiple Emacs variants, lobby Richard Stallman at
-@samp{<bug-gnu-emacs@@prep.ai.mit.edu>}.
+@strong{Please note:} The advanced arguments of this function (anything
+other than a symbol) are not yet supported by GNU Emacs, and GNU Emacs is
+unlikely add support for them.  This limits their usefulness in portable
+code.
 @end defun
 
 @defvar features

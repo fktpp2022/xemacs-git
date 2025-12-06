@@ -104,7 +104,7 @@ for details.
 @cindex keymap format
 
   A keymap is a primitive type that associates events with their
-bindings.  Note that this is different from Emacs 18 and FSF Emacs,
+bindings.  Note that this is different from Emacs 18 and GNU Emacs,
 where keymaps are lists.
 
 @defun keymapp object
@@ -1026,8 +1026,8 @@ translate @kbd{C-x b} (whose standard binding is the
 @smallexample
 @group
 meta-prefix-char                    ; @r{The default value.}
-     @result{} ?\^[   ; @r{Under XEmacs 20.}
-     @result{} 27     ; @r{Under XEmacs 19.}
+     @result{} ?\^[   ; @r{Under XEmacs.}
+     @result{} 27     ; @r{Under GNU Emacs.}
 @end group
 @group
 (key-binding "\eb")
@@ -1036,8 +1036,8 @@ meta-prefix-char                    ; @r{The default value.}
 @group
 ?\C-x                               ; @r{The print representation}
                                            ;   @r{of a character.}
-     @result{} ?\^X   ; @r{Under XEmacs 20.}
-     @result{} 24     ; @r{Under XEmacs 19.}
+     @result{} ?\^X   ; @r{Under XEmacs.}
+     @result{} 24     ; @r{Under GNU Emacs.}
 @end group
 @group
 (setq meta-prefix-char 24)
@@ -1050,8 +1050,8 @@ meta-prefix-char                    ; @r{The default value.}
 
 (setq meta-prefix-char ?\e)          ; @r{Avoid confusion!}
                                      ; @r{Restore the default value!}
-     @result{} ?\^[   ; @r{Under XEmacs 20.}
-     @result{} 27     ; @r{Under XEmacs 19.}
+     @result{} ?\^[   ; @r{Under XEmacs.}
+     @result{} 27     ; @r{Under GNU Emacs.}
 @end group
 @end smallexample
 @end defvar

@@ -36,8 +36,8 @@ Lisp programs use strings more often than individual characters.
 @section String and Character Basics
 
   Strings in XEmacs Lisp are arrays that contain an ordered sequence of
-characters.  Characters are their own primitive object type in XEmacs
-20.  However, in XEmacs 19, characters are represented in XEmacs Lisp as
+characters.  Characters are their own primitive object type in XEmacs.
+However, in GNU Emacs, characters are represented in Emacs Lisp as
 integers; whether an integer was intended as a character or not is
 determined only by how it is used.  @xref{Character Type}.
 
@@ -63,25 +63,6 @@ exists for backward compatibility with Emacs 18, but should @emph{not}
 be used in new code, since many key chords can't be represented at
 all and others (in particular meta key chords) are confused with
 accented characters.
-
-@ignore @c Not accurate any more
-  Each character in a string is stored in a single byte.  Therefore,
-numbers not in the range 0 to 255 are truncated when stored into a
-string.  This means that a string takes up much less memory than a
-vector of the same length.
-
-  Sometimes key sequences are represented as strings.  When a string is
-a key sequence, string elements in the range 128 to 255 represent meta
-characters (which are extremely large integers) rather than keyboard
-events in the range 128 to 255.
-
-  Strings cannot hold characters that have the hyper, super or alt
-modifiers; they can hold @sc{ASCII} control characters, but no other
-control characters.  They do not distinguish case in @sc{ASCII} control
-characters.  @xref{Character Type}, for more information about
-representation of meta and other modifiers for keyboard input
-characters.
-@end ignore
 
   Strings are useful for holding regular expressions.  You can also
 match regular expressions against strings (@pxref{Regexp Search}).  The
@@ -138,7 +119,7 @@ putting strings together, or by taking them apart.
 Analogous functions operating on other data types include @code{list},
 @code{cons} (@pxref{Building Lists}), @code{vector} (@pxref{Vectors})
 and @code{bit-vector} (@pxref{Bit Vectors}).  This function has not been
-available in XEmacs prior to 21.0 and FSF Emacs prior to 20.3.
+available in XEmacs prior to 21.0 and GNU Emacs prior to 20.3.
 @end defun
 
 @defun make-string length character
@@ -291,6 +272,10 @@ compatibility with old E-Lisp programs that confounded characters and
 integers willy-nilly.  These behaviors may change in the future; therefore,
 do not rely on them.  Instead, convert the characters explicitly
 using @code{char-int}.
+
+GNU Emacs makes a function @code{characterp} available.  Since GNU Emacs
+does not have a separate character type, this behaves the same as the
+XEmacs @code{char-int-p}, @xref{char-int-p}.
 @end defun
 
 @defun integer-or-char-p object
@@ -358,6 +343,7 @@ is still necessary to check with the next function, @code{char-int-p}.
 @end defvar
 
 @defun char-int-p object
+@anchor{char-int-p}
 This function returns @code{t} if @var{object} is an integer that can be
 converted into a character.
 @end defun
@@ -521,22 +507,22 @@ of 1.  (@xref{Creating Strings}.)  This conversion can also be done with
 @defun string-to-char string
 @cindex string to character
   This function returns the first character in @var{string}.  If the
-string is empty, the function returns 0. (Under XEmacs 19, the value is
+string is empty, the function returns 0. (Under GNU Emacs, the value is
 also 0 when the first character of @var{string} is the null character,
 @sc{ascii} code 0.)
 
 @example
 (string-to-char "ABC")
-     @result{} ?A   ;; @r{Under XEmacs 20.}
-     @result{} 65   ;; @r{Under XEmacs 19.}
+     @result{} ?A   ;; @r{Under XEmacs.}
+     @result{} 65   ;; @r{Under GNU Emacs.}
 (string-to-char "xyz")
-     @result{} ?x   ;; @r{Under XEmacs 20.}
-     @result{} 120  ;; @r{Under XEmacs 19.}
+     @result{} ?x   ;; @r{Under XEmacs.}
+     @result{} 120  ;; @r{Under GNU Emacs.}
 (string-to-char "")
      @result{} 0
 (string-to-char "\000")
-     @result{} ?\^@ ;; @r{Under XEmacs 20.}
-     @result{} 0    ;; @r{Under XEmacs 20.}
+     @result{} ?\^@ ;; @r{Under XEmacs.}
+     @result{} 0    ;; @r{Under GNU Emacs.}
 @end example
 
 This function may be eliminated in the future if it does not seem useful
@@ -1064,7 +1050,7 @@ and returns a new string in which each letter in the argument that is
 upper case is converted to lower case.  When the argument to
 @code{downcase} is a character, @code{downcase} returns the
 corresponding lower case character. (This value is actually an integer
-under XEmacs 19.) If the original character is lower case, or is not a
+under GNU Emacs.) If the original character is lower case, or is not a
 letter, then the value equals the original character.
 
 Optional second arg @var{buffer} specifies which buffer's case tables to
@@ -1076,7 +1062,7 @@ use, and defaults to the current buffer.
 
 (downcase ?X)
      @result{} ?x   ;; @r{Under XEmacs 20.}
-     @result{} 120  ;; @r{Under XEmacs 19.}
+     @result{} 120  ;; @r{Under GNU Emacs.}
 
 @end example
 @end defun
@@ -1090,7 +1076,7 @@ lower case is converted to upper case.
 
 When the argument to @code{upcase} is a character, @code{upcase} returns
 the corresponding upper case character. (This value is actually an
-integer under XEmacs 19.)  If the original character is upper case, or
+integer under GNU Emacs.)  If the original character is upper case, or
 is not a letter, then the value equals the original character.
 
 Optional second arg @var{buffer} specifies which buffer's case tables to
@@ -1102,7 +1088,7 @@ use, and defaults to the current buffer.
 
 (upcase ?x)
      @result{} ?X   ;; @r{Under XEmacs 20.}
-     @result{} 88   ;; @r{Under XEmacs 19.}
+     @result{} 88   ;; @r{Under GNU Emacs.}
 @end example
 @end defun
 
@@ -1135,7 +1121,7 @@ use, and defaults to the current buffer.
 @group
 (capitalize ?x)
      @result{} ?X   ;; @r{Under XEmacs 20.}
-     @result{} 88   ;; @r{Under XEmacs 19.}
+     @result{} 88   ;; @r{Under GNU Emacs.}
 @end group
 @end example
 @end defun
@@ -1259,30 +1245,17 @@ large number of lookups (e.g. scanning a buffer for a character in
 a particular syntax, where a lookup in the syntax table must occur
 once per character).
 
-Note that char tables as a primitive type, and all of the functions in
-this section, exist only in XEmacs 20.  In XEmacs 19, char tables are
-generally implemented using a vector of 256 elements.
-
-When @sc{mule} support exists, the types of ranges that can be assigned
-values are
+The types of ranges that can be assigned values are
 
 @itemize @bullet
 @item
 all characters
+@item
+an inclusive range of characters, specified as a cons
 @item
 an entire charset
 @item
 a single row in a two-octet charset
-@item
-a single character
-@end itemize
-
-When @sc{mule} support is not present, the types of ranges that can be
-assigned values are
-
-@itemize @bullet
-@item
-all characters
 @item
 a single character
 @end itemize
@@ -1303,30 +1276,36 @@ Each char table type is used for a different purpose and allows different
 sorts of values.  The different char table types are
 
 @table @code
-@item category
-Used for category tables, which specify the regexp categories
-that a character is in.  The valid values are @code{nil} or a
-bit vector of 95 elements.  Higher-level Lisp functions are
-provided for working with category tables.  Currently categories
-and category tables only exist when @sc{mule} support is present.
-@item char
-A generalized char table, for mapping from one character to
-another.  Used for case tables, syntax matching tables,
-@code{keyboard-translate-table}, etc.  The valid values are characters.
 @item generic
-An even more generalized char table, for mapping from a
-character to anything.
-@item display
-Used for display tables, which specify how a particular character
-is to appear when displayed.  #### Not yet implemented.
+This is the most generally useful type of char table; it maps from
+characters to any Lisp object.  Its default value (see
+`set-char-table-default', documented below) is usually nil.
+@item char
+This maps from characters to characters. The usual default value is
+the character with code zero, @samp{?\x00}.  Used for case tables,
+syntax matching tables, @code{keyboard-translate-table}, etc.  The
+valid values are characters.
 @item syntax
 Used for syntax tables, which specify the syntax of a particular
-character.  Higher-level Lisp functions are provided for
-working with syntax tables.  The valid values are fixnums.
+character.  Higher-level Lisp functions are provided for working with
+syntax tables.  The valid values are fixnums.  There is no restriction
+on the range of the fixnums that can be supplied, though they are
+usually values for which `syntax-code-to-string' returns a string. If
+the table is to be used as a syntax table, use of values outside of
+those is unwise. The usual default value is the syntax code for
+``inherit''.
+@item category
+Used for category tables, which are documented separately, @pxref{Category
+Tables}.
 @end table
 
+Char tables have a read syntax beginning with @samp{#s(char-table :type
+...)}, with slots for the default value and the data as a list of ranges
+and values.
+
 @defun char-table-type char-table
-This function returns the type of char table @var{char-table}.
+This function returns the type of char table @var{char-table}, as
+listed above.
 @end defun
 
 @defun char-table-type-list
@@ -1343,7 +1322,7 @@ This function returns @code{t} if @var{type} if a recognized char table type.
 @defun make-char-table type
 This function makes a new, empty char table of type @var{type}.
 @var{type} should be a symbol, one of @code{char}, @code{category},
-@code{display}, @code{generic}, or @code{syntax}.
+@code{generic}, or @code{syntax}.
 @end defun
 
 @defun put-char-table range value char-table
@@ -1357,12 +1336,15 @@ one of the following:
 @item
 @code{t} (all characters are affected)
 @item
-A charset (only allowed when @sc{mule} support is present)
+A charset
 @item
 A vector of two elements: a two-octet charset and a row number
-(only allowed when @sc{mule} support is present)
 @item
 A single character
+@item
+A cons cell comprising two characters (meaning that @code{get-char-table}
+should return @var{value} for the range between them, inclusive on both
+ends).
 @end itemize
 
 @var{value} must be a value appropriate for the type of @var{char-table}.
@@ -1370,24 +1352,34 @@ A single character
 
 @defun get-char-table character char-table
 This function finds the value for @var{character} in @var{char-table}.
-@end defun
-
-@defun get-range-char-table range char-table &optional multi
-This function finds the value for a range in @var{char-table}.  If there is
-more than one value, @var{multi} is returned (defaults to @code{nil}).
+@var{char-table} must not be a category table.
 @end defun
 
 @defun reset-char-table char-table
 This function resets @var{char-table} to its default state.
 @end defun
 
-@defun map-char-table function char-table &optional range
-This function maps @var{function} over entries in @var{char-table}, calling
-it with two args, each key and value in the table.
+@defun char-table-default char-table
+This returns the value that @code{get-char-table} gives when a specific
+value has not been set for @var{character} in @var{char-table}.
+@end defun
 
-@var{range} specifies a subrange to map over and is in the same format
-as the @var{range} argument to @code{put-range-table}.  If omitted or
-@code{t}, it defaults to the entire table.
+@defun set-char-table-default char-table default
+This sets the value that @code{get-char-table} returns when a specific
+value has not been set for @var{character} in @var{char-table}.  It will
+error if @var{default} is not of the appropriate type for
+@var{char-table}, or if @var{char-table} is of type @var{syntax}.
+@end defun
+
+@defun map-char-table function char-table &optional range
+This calls @var{function} with two arguments for those ranges in
+@var{char-table} that have been set. The second argument to the function
+is the value that was set for the range; the first argument is either
+a single character or a cons giving inclusive bounds for the start and
+end of the range.  It is not a charset object, a contrast to the
+possible @var{range} argument to @code{put-range-table}. If
+@var{function} returns non-nil, @code{map-char-table} stops and returns
+that value. Otherwise it continues and returns nil.
 @end defun
 
 @defun valid-char-table-value-p value char-table-type

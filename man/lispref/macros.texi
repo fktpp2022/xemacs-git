@@ -320,7 +320,7 @@ Here are some examples:
 @end example
 
 @quotation
-In older versions of Emacs (before XEmacs 19.12 or FSF Emacs version
+In very old versions of Emacs (before XEmacs 19.12 or GNU Emacs version
 19.29), @samp{`} used a different syntax which required an extra level
 of parentheses around the entire backquote construct.  Likewise, each
 @samp{,} or @samp{,@@} substitution required an extra level of
@@ -328,8 +328,7 @@ parentheses surrounding both the @samp{,} or @samp{,@@} and the
 following expression.  The old syntax required whitespace between the
 @samp{`}, @samp{,} or @samp{,@@} and the following expression.
 
-This syntax is still accepted, but no longer recommended except for
-compatibility with old Emacs versions.
+This syntax is still accepted, but will be removed.
 @end quotation
 
 @node Problems with Macros,  , Backquote, Macros

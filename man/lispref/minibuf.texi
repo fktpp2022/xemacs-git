@@ -254,7 +254,7 @@ default, or can edit the input.
 
 @defun read-minibuffer prompt &optional initial history default-value
 
-This is a FSF Emacs compatible function.  Use @code{read-expression}
+This is a GNU Emacs compatible function.  Use @code{read-expression}
 instead.
 @end defun
 
@@ -1516,7 +1516,7 @@ window is selected.
 @end defopt
 
 @c Emacs 19 feature
-In FSF Emacs 19, if a command name has a property
+In GNU Emacs 19, if a command name has a property
 @code{enable-recursive-minibuffers} that is non-@code{nil}, then the
 command can use the minibuffer to read arguments even if it is invoked
 from the minibuffer.  The minibuffer command

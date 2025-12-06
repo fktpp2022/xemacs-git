@@ -435,7 +435,7 @@ This function returns the background-pixmap image specifier of face
 
 @defun face-font face &optional locale tag-set exact-p
 This function returns the font specifier of face @var{face}.  (Note:
-This is not the same as the function @code{face-font} in FSF Emacs.)
+This is not the same as the function @code{face-font} in GNU Emacs.)
 
 @xref{Fonts}.
 @end defun
@@ -445,7 +445,7 @@ This function returns the name of the font of face @var{face}, or
 @code{nil} if it is unspecified.  This is basically equivalent to
 @code{(font-name (face-font @var{face}) @var{domain})} except that
 it does not cause an error if @var{face}'s font is @code{nil}. (This
-function is named @code{face-font} in FSF Emacs.)
+function is named @code{face-font} in GNU Emacs.)
 @end defun
 
 @defun face-underline-p face &optional locale

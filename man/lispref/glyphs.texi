@@ -600,8 +600,7 @@ For icons:
 
 @item subwindow
 An embedded windowing system window.  Can only be instantiated as
-@code{subwindow}.  Not implemented.
-@c #### Check status of subwindows ... I thought Andy implemented them.
+@code{subwindow}.
 
 @item button
 A button widget; either a push button, radio button or toggle button.
@@ -758,8 +757,6 @@ Used as the mouse pointer for a window.
 @item subwindow
 A child window that is treated as an image.  This allows (e.g.)
 another program to be responsible for drawing into the window.
-Not currently implemented.
-@c #### Check status of subwindows ... I thought Andy implemented them.
 
 @item widget
 An active GUI element implemented as a ``widget'' or ``control'' of the
@@ -785,7 +782,6 @@ instance.
 Return the type of the given image instance.  The return
 value will be one of @code{nothing}, @code{text}, @code{mono-pixmap},
 @code{color-pixmap}, @code{pointer}, @code{subwindow}, or @code{widget}.
-@c #### Check status of subwindows ... I thought Andy implemented them.
 @end defun
 
 @defun text-image-instance-p object
@@ -811,7 +807,6 @@ Return non-@code{nil} if @var{object} is an image instance of type
 @defun subwindow-image-instance-p object
 Return non-@code{nil} if @var{object} is an image instance of type
 @code{subwindow}.
-@c #### Check status of subwindows ... I thought Andy implemented them.
 @end defun
 
 @defun nothing-image-instance-p object
@@ -1061,7 +1056,6 @@ glyph types.  The difference between these and other glyphs is that
 while their geometry is determined by XEmacs, their behavior is managed
 separately, by internal mechanisms in the case of widgets, and
 (possibly) by another process in the case of subwindows.
-@c #### Check status of subwindows ... I thought Andy implemented them.
 @end table
 
 Some simple concrete examples showing how to insert a glyph in a
@@ -1083,8 +1077,6 @@ code creating them, but by the glyph itself (a ``widget'' in X11 or
 * Frame Glyphs::	Displaying glyphs in GUI components of the frame.
 * External Glyphs::	Icons and mouse pointers for the window system.
 * Native GUI Widgets::	Complex active elements treated as a single glyph.
-* Subwindows::		Externally-controlled subwindows in buffers.
-@c #### Check status of subwindows ... I thought Andy implemented them.
 @end menu
 
 @node Creating Glyphs, Buffer Glyphs, Using Glyphs, Using Glyphs
@@ -1447,7 +1439,7 @@ image instance.  You should not call this function directly.
 @end defun
 
 
-@node Native GUI Widgets, Subwindows, External Glyphs, Using Glyphs
+@node Native GUI Widgets,  , External Glyphs, Using Glyphs
 @subsection Native GUI Widgets
 @cindex native widget
 
@@ -1639,17 +1631,6 @@ A folding widget.
 A scrollbar widget.  (#### Probably not the same as the scrollbar
 controlling an Emacs window.)
 @end table
-
-
-@node Subwindows,  , Native GUI Widgets, Using Glyphs
-@subsection Subwindows
-
-Subwindows are not currently implemented.
-@c #### Check status of subwindows ... I thought Andy implemented them.
-
-@defun subwindowp object
-This function returns non-@code{nil} if @var{object} is a subwindow.
-@end defun
 
 
 @node Manipulating Glyphs, Glyph Examples, Using Glyphs, Glyphs
@@ -1988,7 +1969,6 @@ for the glyph's type.
 extent, in the modeline, and in the toolbar.  Their image can be
 instantiated as @code{nothing}, @code{mono-pixmap}, @code{color-pixmap},
 @code{text}, and @code{subwindow}.
-@c #### Check status of subwindows ... I thought Andy implemented them.
 
 @item
 @code{pointer} glyphs can be used to specify the mouse pointer.  Their

@@ -41,17 +41,11 @@ list motion functions (@pxref{List Motion}) as well as the functions in
 this chapter.
 @end ifinfo
 
-  Under XEmacs 20 and later, a syntax table is a particular subtype of the
+  Under XEmacs, a syntax table is a particular subtype of the
 primitive char table type (@pxref{Char Tables}), and each element of the
 char table is an integer that encodes the syntax of the character in
 question, or a cons of such an integer and a matching character (for
 characters with parenthesis syntax).
-
-  Under XEmacs 19, a syntax table is a vector of 256 elements; it
-contains one entry for each of the 256 possible characters in an 8-bit
-byte.  Each element is an integer that encodes the syntax of the
-character in question. (The matching character, if any, is embedded
-in the bits of this integer.)
 
   Syntax tables are used only for moving across text, not for the Emacs
 Lisp reader.  XEmacs Lisp uses built-in syntactic rules when reading Lisp

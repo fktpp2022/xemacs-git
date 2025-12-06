@@ -2026,6 +2026,23 @@ For example:
 This function returns @code{t} if @var{object} is a window configuration.
 @end defun
 
-  Primitives to look inside of window configurations would make sense,
-but none are implemented.  It is not clear they are useful enough to be
-worth implementing.
+  Functions to look inside of window configurations exist, provided
+through the @code{defstruct} implementation.  They are
+@code{window-configuration-current-buffer},
+@code{window-configuration-current-window},
+@code{window-configuration-frame},
+@code{window-configuration-frame-left},
+@code{window-configuration-frame-pixel-height},
+@code{window-configuration-frame-pixel-width},
+@code{window-configuration-frame-top},
+@code{window-configuration-includes-position},
+@code{window-configuration-min-height},
+@code{window-configuration-min-width},
+@code{window-configuration-minibuffer-pixel-height},
+@code{window-configuration-saved-root-window}.  The various slots may be
+modified by means of @code{setf}; e.g. @code{(setf
+(window-configuration-current-buffer window-configuration) (get-buffer
+"*scratch*"))} will set the current buffer of @var{window-configuration}
+to the ``*scratch*'' buffer.
+
+@c windows.texi ends here

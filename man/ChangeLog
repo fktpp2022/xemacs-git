@@ -1,3 +1,149 @@
+2025-12-06  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/buffers.texi (The Buffer List):
+	* lispref/buffers.texi (Indirect Buffers):
+	* lispref/building.texi (Building XEmacs):
+	* lispref/building.texi (Garbage Collection):
+	* lispref/commands.texi (Command Overview):
+	* lispref/commands.texi (Command Loop Info):
+	* lispref/commands.texi (Events):
+	* lispref/commands.texi (Peeking and Discarding):
+	* lispref/commands.texi (Waiting):
+	* lispref/compile.texi (Byte Compilation):
+	* lispref/compile.texi (Compilation Options):
+	* lispref/compile.texi (Default): Removed.
+	* lispref/compile.texi (Docs and Compilation):
+	* lispref/compile.texi (Eval During Compile):
+	* lispref/compile.texi (many keyboard commands often has that usage pattern): Removed.
+	* lispref/control.texi (Signaling Errors):
+	* lispref/control.texi (Error Symbols):
+	* lispref/display.texi (Truncation):
+	* lispref/display.texi (Display Table Format):
+	* lispref/display.texi (Active Display Table):
+	* lispref/faces.texi (Face Convenience Functions):
+	* lispref/files.texi (Unique File Names):
+	* lispref/frames.texi (Visibility of Frames):
+	* lispref/frames.texi (Raising and Lowering):
+	* lispref/glyphs.texi (Image Instantiator Formats):
+	* lispref/glyphs.texi (Image Instance Types):
+	* lispref/glyphs.texi (Using Glyphs):
+	* lispref/glyphs.texi (External Glyphs):
+	* lispref/glyphs.texi (Primitive Widgets):
+	* lispref/glyphs.texi (Glyph Types):
+	* lispref/hash-tables.texi (Working With Hash Tables):
+	* lispref/intro.texi (Caveats):
+	* lispref/keymaps.texi (Format of Keymaps):
+	* lispref/keymaps.texi (Functions for Key Lookup):
+	* lispref/lispref.texi (Top):
+	* lispref/lists.texi (Association Lists):
+	* lispref/lists.texi (Weak Lists):
+	* lispref/loading.texi (Named Features):
+	* lispref/macros.texi (Backquote):
+	* lispref/macros.texi (Problems with Macros):
+	* lispref/minibuf.texi (Object from Minibuffer):
+	* lispref/minibuf.texi (Minibuffer Misc):
+	* lispref/objects.texi (Lisp Data Types):
+	* lispref/objects.texi (Comments):
+	* lispref/objects.texi (Primitive Types):
+	* lispref/objects.texi (Integer Type):
+	* lispref/objects.texi (Floating Point Type):
+	* lispref/objects.texi (Character Type):
+	* lispref/objects.texi (Array Type):
+	* lispref/objects.texi (String Type):
+	* lispref/objects.texi (Bit Vector Type):
+	* lispref/objects.texi (Function Type):
+	* lispref/objects.texi (Macro Type):
+	* lispref/objects.texi (Char Table Type):
+	* lispref/objects.texi (Hash Table Type):
+	* lispref/objects.texi (Weak List Type):
+	* lispref/objects.texi (Extent Type):
+	* lispref/objects.texi (Window Configuration Type):
+	* lispref/objects.texi (Stream Type):
+	* lispref/objects.texi (Keymap Type):
+	* lispref/objects.texi (Syntax Table Type):
+	* lispref/objects.texi (Display Table Type):
+	* lispref/objects.texi (Window-System Types):
+	* lispref/objects.texi (Image Instance Type):
+	* lispref/objects.texi (Toolbar Button Type):
+	* lispref/objects.texi (Type Predicates):
+	* lispref/objects.texi (Equality Predicates):
+	* lispref/objects.texi (NOTE): Removed.
+	* lispref/os.texi (Timers):
+	* lispref/os.texi (Terminal Output):
+	* lispref/positions.texi (Screen Lines):
+	* lispref/positions.texi (Excursions):
+	* lispref/searching.texi (Syntax of Regexps):
+	* lispref/streams.texi (Output Variables):
+	* lispref/strings.texi (String Basics):
+	* lispref/strings.texi (Creating Strings):
+	* lispref/strings.texi (Predicates for Characters):
+	* lispref/strings.texi (Character Codes):
+	* lispref/strings.texi (String Conversion):
+	* lispref/strings.texi (Character Case):
+	* lispref/strings.texi (Char Tables):
+	* lispref/strings.texi (Char Table Types):
+	* lispref/strings.texi (Working With Char Tables):
+	* lispref/syntax.texi (Syntax Basics):
+	* lispref/text.texi (Near Point):
+	* lispref/text.texi (Insertion):
+	* lispref/text.texi (Text Properties):
+	* lispref/text.texi (Substitution):
+	* lispref/tips.texi (Style Tips):
+	* lispref/tips.texi (Documentation Tips):
+	* lispref/windows.texi (Window Configurations):
+	* lispref/x-windows.texi (X Selections):
+
+	A certain amount of updating of the Lispref, which has been
+	under-maintained for decades. More to do.
+	In particular, replace FSF Emacs with GNU Emacs to reduce needless
+	aggravation of GNU-enthusiasts reading the documentation a
+	little.
+	Remove most mentions of XEmacs 19 (most of the relevant contexts
+	can easily be replaced by mentioning GNU Emacs).
+	Mention that allocating memory means more garbage collection is
+	done, which can have a performance impact.
+	Remove mention of dynamic loading of the instructions of compiled
+	functions now that is gone.
+	Remove mention of characteristics of XEmacs 19.14 and GNU Emacs
+	19.28 and earlier, long-obsolete.
+	Document that a display table is just a generic char table. Update
+	examples dealing with display tables to call #'put-display-table.
+	Document the (format "CONTROL-STRING") option for display table
+	entries, added 2022.
+	Document that GNU have #'temporary-file-directory.
+	Remove mention of subwindow, x-resource, window-configuration,
+	integer as primitive types. Extend the list of internal primitive
+	types.
+	Clean up documentation of the subwindow image instances;
+	implemented.
+	Correct advice regarding the HASH-FUNCTION argument to
+	#'define-hash-table-test.
+	Clarify that despite names like ASSOC, KEY-ASSOC for the TYPE
+	argument to #'make-weak-list, equality is with #'eq, not #'equal.
+	Document that #! is treated by the Lisp reader as a comment if
+	they are the first to characters of a file.
+	Remove documentation of characteristics of non-Mule.
+	Document the total size limit constants for the array types.
+	Update documentation of the window configuration type to reflect
+	its implementation using defstruct.
+	Document #'make-string-output-stream, #'get-output-stream-string
+	in the stream node.
+	Cross reference to the list of primitive types in the
+	documentation for #'type-of rather than repeating it.
+	Document that GNU has a #'characterp that behaves as does our
+	#'char-int-p.
+	Document #'char-table-default, #'set-char-table-default. Update
+	documentation of #'map-char-table and the other char-table
+	functions.
+	Remove advice to keep the name of Lisp source files short, no
+	longer relevant.
+	Clarify that the object allocation and
+	garbage-collection characteristics of lists are better than that
+	of vectors.
+	Correct a poor command of verbal morphology in advice for writing
+	docstrings.
+	No good reason to limit line width to 60 characters, 78 is fine.
+
 2025-11-30  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* internals/internals.texi (Top):

@@ -1618,8 +1618,9 @@ files.  Under Unix, this will be the value of @code{TMPDIR}, defaulting
 to @file{/tmp}.  On Windows, this will be obtained from the @code{TEMP}
 or @code{TMP} environment variables, defaulting to @file{/}.
 
-Note that the @code{temp-directory} function does not exist under FSF
-Emacs.
+Note that GNU Emacs provides @code{temporary-file-directory} which has a
+similar function; XEmacs provides an alias for compatibility, though
+this is not (yet) perfect.
 @end defun
 
 @defun make-temp-name prefix

@@ -494,7 +494,7 @@ which took place is returned instead of the actual number of lines
 moved.  A motion of zero lines returns the height of the current line.
 
 Note that @code{vertical-motion} sets @var{window}'s buffer's point, not
-@var{window}'s point. (This differs from FSF Emacs, which buggily always
+@var{window}'s point. (This differs from GNU Emacs, which buggily always
 sets current buffer's point, regardless of @var{window}.)
 @end defun
 
@@ -814,7 +814,7 @@ The value returned by @code{save-excursion} is the result of the last of
 @deffn {Special Operator} save-current-buffer forms@dots{}
 This special operator is similar to @code{save-excursion} but it only
 saves and restores the current buffer.  Beginning with XEmacs 20.3,
-@code{save-current-buffer} is a primitive.
+@code{save-current-buffer} is a built-in special operator.
 @end deffn
 
 @defmac with-current-buffer buffer forms@dots{}

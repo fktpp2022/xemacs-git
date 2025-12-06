@@ -744,6 +744,7 @@ characters, it is abbreviated with an ellipsis.
 @end defvar
 
 @defvar print-gensym
+@anchor{print-gensym}
 @cindex printing uninterned symbols
 @cindex uninterned symbols, printing
 If non-@code{nil}, then uninterned symbols will be printed specially.

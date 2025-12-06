@@ -880,7 +880,7 @@ these two values are used in printing the error message.
 The function @code{signal} can return, if the debugger is invoked and
 the user invokes the ``return from signal'' option.  If you want the
 error not to be continuable, use @code{signal-error} instead.  Note that
-in FSF Emacs @code{signal} never returns.
+in GNU Emacs @code{signal} never returns.
 
 @smallexample
 @group
@@ -1200,9 +1200,9 @@ an @code{error-message} property whose value is @var{error-message}, and
 an @code{error-conditions} property that is a list of @var{error-symbol}
 followed by each of its super-errors, up to and including @code{error}.
 You will sometimes see code that sets this up directly rather than
-calling @code{define-error}, but you should @emph{not} do this yourself,
-unless you wish to maintain compatibility with FSF Emacs, which does not
-provide @code{define-error}.
+calling @code{define-error}, but you should @emph{not} do this yourself.
+GNU Emacs provides @code{define-error} so this is not a portability
+concern.
 @end defun
 
   Here is how we define a new error symbol, @code{new-error}, that

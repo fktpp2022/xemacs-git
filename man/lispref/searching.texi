@@ -280,9 +280,6 @@ a pair of delimiters.  For instance, @samp{/\*.*?\*/} will match C
 comments in a string.  This could not easily be achieved without the use
 of a non-greedy quantifier.
 
-This construct has not been available prior to XEmacs 20.4.  It is not
-available in FSF Emacs.
-
 @item +?
 @cindex @samp{+?} in regexp
 is the non-greedy version of @samp{+}.
@@ -511,9 +508,9 @@ useful, for example to refer to group @samp{\1} when group @samp{\10}
 exists and you wish to follow the group reference with a zero to be
 matched explicitly: @samp{\1\(?:\)0}.
 
-The shy grouping operator has been borrowed from Perl, and was not
-available prior to XEmacs 20.3, and has only been available in GNU Emacs
-since version 21.
+The shy grouping operator has been borrowed from Perl, was not
+available prior to XEmacs 20.3, and has only been available in GNU
+Emacs since version 21.
 
 @item \(?NUM: @dots{} \)
 @cindex @samp{\(?NUM:} in regexp

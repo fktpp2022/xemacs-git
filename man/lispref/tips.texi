@@ -169,12 +169,6 @@ say which functions are replaced, and how the behavior of the
 replacements differs from that of the originals.
 
 @item
-Please keep the names of your XEmacs Lisp source files to 13 characters
-or less.  This way, if the files are compiled, the compiled files' names
-will be 14 characters or less, which is short enough to fit on all kinds
-of Unix systems.
-
-@item
 Don't use @code{next-line} or @code{previous-line} in programs; nearly
 always, @code{forward-line} is more convenient as well as more
 predictable and robust.  @xref{Text Lines}.
@@ -199,9 +193,10 @@ of the other features intended for interactive users, you can replace
 these functions with one or two lines of simple Lisp code.
 
 @item
-Use lists rather than vectors, except when there is a particular reason
-to use a vector.  Lisp has more facilities for manipulating lists than
-for vectors, and working with lists is usually more convenient.
+Use lists rather than vectors, except when there is a particular reason to use
+a vector.  Lisp has more facilities for manipulating lists than for vectors,
+their object allocation and garbage-collection characteristics are better and
+working with lists is usually more convenient.
 
 Vectors are advantageous for tables that are substantial in size and are
 accessed in random order (not searched front to back), provided there is
@@ -345,11 +340,10 @@ that looks good.
 
 @item
 For consistency, phrase the verb in the first sentence of a
-documentation string as an infinitive with ``to'' omitted.  For
-instance, use ``Return the cons of A and B.'' in preference to ``Returns
-the cons of A and B@.''  Usually it looks good to do likewise for the
-rest of the first paragraph.  Subsequent paragraphs usually look better
-if they have proper subjects.
+documentation string as an imperative.  For instance, use ``Return the cons of
+A and B.'' in preference to ``Returns the cons of A and B@.''  Usually it
+looks good to do likewise for the rest of the first paragraph.  Subsequent
+paragraphs usually look better if they have proper subjects.
 
 @item
 Write documentation strings in the active voice, not the passive, and in
@@ -368,7 +362,7 @@ Do not start or end a documentation string with whitespace.
 @item
 Format the documentation string so that it fits in an Emacs window on an
 80-column screen.  It is a good idea for most lines to be no wider than
-60 characters.  The first line can be wider if necessary to fit the
+78 characters.  The first line can be wider if necessary to fit the
 information that ought to be there.
 
 However, rather than simply filling the entire documentation string, you

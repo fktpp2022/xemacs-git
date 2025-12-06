@@ -23,12 +23,11 @@ but not for ``the'' type of an object.
   A few fundamental object types are built into XEmacs.  These, from
 which all other types are constructed, are called @dfn{primitive types}.
 Each object belongs to one and only one primitive type.  These types
-include @dfn{integer}, @dfn{character} (starting with XEmacs 20.0),
-@dfn{float}, @dfn{cons}, @dfn{symbol}, @dfn{string}, @dfn{vector},
-@dfn{bit-vector}, @dfn{subr}, @dfn{compiled-function}, @dfn{hash-table},
-@dfn{range-table}, @dfn{char-table}, @dfn{weak-list}, and several
-special types, such as @dfn{buffer}, that are related to editing.
-(@xref{Editing Types}.)
+include @dfn{fixnum}, @dfn{character}, @dfn{float}, @dfn{cons},
+@dfn{symbol}, @dfn{string}, @dfn{vector}, @dfn{bit-vector}, @dfn{subr},
+@dfn{compiled-function}, @dfn{hash-table}, @dfn{range-table},
+@dfn{char-table}, @dfn{weak-list}, and several special types, such as
+@dfn{buffer}, that are related to editing.  (@xref{Editing Types}.)
 
   Each primitive type has a corresponding Lisp function that checks
 whether an object is a member of that type.
@@ -38,7 +37,7 @@ whether an object is a member of that type.
 object itself.  For example, if an object is a vector, nothing can treat
 it as a number; Lisp knows it is a vector, not a number.
 
-  In most languages, the programmer must declare the data type of each
+  In many languages, the programmer must declare the data type of each
 variable, and the type is known by the compiler but not represented in
 the data.  Such type declarations do not exist in XEmacs Lisp.  A Lisp
 variable can have any type of value, and it remembers whatever value
@@ -121,6 +120,11 @@ characters, is useful for program-generated comments containing binary
 data.  The XEmacs Lisp byte compiler uses this in its output files
 (@pxref{Byte Compilation}).  It isn't meant for source files, however.
 
+  If the first two characters of a file are ``#!'' the Lisp reader
+treats the rest of the line as a comment.  This allows XEmacs Lisp
+files to be used as scripts on POSIX-oriented systems.  ``#!'' is not
+treated as a comment in other contexts, though it is in GNU Emacs.
+
   @xref{Comment Tips}, for conventions for formatting comments.
 
 @node Primitive Types, Programming Types, Comments, Lisp Data Types
@@ -134,29 +138,35 @@ XEmacs was configured with.
 
 @itemize @bullet
 @item
+bignum
+@item
 bit-vector
 @item
 buffer
 @item
-char-table
+case-table
 @item
-character
+category-table
+@item
+char-table
 @item
 charset
 @item
 coding-system
 @item
-cons
-@item
 color-instance
 @item
 compiled-function
+@item
+cons
 @item
 console
 @item
 database
 @item
 device
+@item
+ephemeron
 @item
 event
 @item
@@ -172,15 +182,19 @@ frame
 @item
 glyph
 @item
+gui-item
+@item
 hash-table
 @item
-image-instance
+hash-table-test
 @item
-integer
+image-instance
 @item
 keymap
 @item
 marker
+@item
+module
 @item
 process
 @item
@@ -188,29 +202,21 @@ range-table
 @item
 specifier
 @item
+stream
+@item
 string
 @item
 subr
 @item
-subwindow
-@item
 symbol
 @item
 toolbar-button
-@item
-tooltalk-message
-@item
-tooltalk-pattern
 @item
 vector
 @item
 weak-list
 @item
 window
-@item
-window-configuration
-@item
-x-resource
 @end itemize
 
 In addition, the following special types are created internally
@@ -222,33 +228,45 @@ if he ever encounters any of these objects.
 
 @itemize @bullet
 @item
-char-table-entry
+char-subtable
 @item
 command-builder
+@item
+detection-state
+@item
+expose-ignore
 @item
 extent-auxiliary
 @item
 extent-info
 @item
+free
+@item
 lcrecord-list
 @item
-lstream
+low-level-timeout
 @item
 opaque
 @item
-opaque-list
+opaque-ptr
 @item
-popup-data
+precedence-array
 @item
 symbol-value-buffer-local
 @item
-symbol-value-forward
+symbol-value-forward-boolint
+@item
+symbol-value-forward-fixnum
+@item
+symbol-value-forward-object
 @item
 symbol-value-lisp-magic
 @item
 symbol-value-varalias
 @item
-toolbar-data
+timeout
+@item
+window-mirror
 @end itemize
 
 @node Programming Types, Editing Types, Primitive Types, Lisp Data Types
@@ -296,8 +314,8 @@ same, the type chosen depending on the numeric values involved.
 
   The range of values for fixnums in XEmacs Lisp is given by the
 constants @code{most-positive-fixnum} and @code{most-negative-fixnum}.
-On 32-bit machines, these constants reflect 31 value bits, ranging from
-@minus{}1073741824 to 1073741823.
+On 64-bit machines, these constants reflect 63 value bits, ranging from
+@minus{}4611686018427387904 to 4611686018427387903.
 
   In the absence of @xref{The Bignum Extension}, XEmacs Lisp
 arithmetic functions do not check for overflow; so the code snippet
@@ -311,20 +329,22 @@ produced by the Lisp interpreter never has a leading @samp{+}.)
 
 @example
 @group
--1               ; @r{The integer -1.}
-1                ; @r{The integer 1.}
-+1               ; @r{Also the integer 1.}
-268435457        ; @r{Causes an error on a 28-bit implementation.}
+-1                         ; @r{The integer -1.}
+1                          ; @r{The integer 1.}
++1                         ; @r{Also the integer 1.}
+4611686018427387904        ; @r{Causes an error without bignums}
 @end group
 @end example
 
-  @xref{Numbers}, for more information.
+  @xref{Numbers}, for more information, including the read syntax for
+integers using bases other than ten.
 
 @node Floating Point Type, Character Type, Integer Type, Programming Types
 @subsection Floating Point Type
 
   XEmacs supports floating point numbers.  The precise range of floating
-point numbers is machine-specific.
+point numbers is machine-specific but they usually represent 64-bit
+@sc{IEC} 60559 quantities.
 
   The printed representation for floating point numbers requires either
 a decimal point (with at least one digit following), an exponent, or
@@ -339,32 +359,32 @@ number whose value is 1500.  They are all equivalent.
 @cindex @sc{ascii} character codes
 @cindex char-int confoundance disease
 
-  In XEmacs version 19, and in all versions of FSF GNU Emacs, a
-@dfn{character} in XEmacs Lisp is nothing more than an integer.
-This is yet another holdover from XEmacs Lisp's derivation from
-vintage-1980 Lisps; modern versions of Lisp consider this equivalence
-a bad idea, and have separate character types.  In XEmacs version 20,
-the modern convention is followed, and characters are their own
-primitive types. (This change was necessary in order for @sc{mule},
-i.e. Asian-language, support to be correctly implemented.)
+  In long-obsolete versions of XEmacs, and in all versions of GNU Emacs, a
+@dfn{character} in Emacs Lisp is nothing more than an integer.  This was yet
+another holdover from Emacs Lisp's derivation from vintage-1980 Lisps; modern
+versions of Lisp consider this equivalence a bad idea, and have separate
+character types.  In current XEmacs, the modern convention is followed, and
+characters are their own primitive types. This change was felt necessary in
+order for @sc{mule}, i.e. Asian-language, support to be correctly implemented;
+GNU Emacs incorporated the @sc{mule} changes without this change and as a
+result, debugging Lisp code under it is more difficult.
 
   Every character has an equivalent integer, called the @dfn{character
 code}.  For example, the character @kbd{A} is represented as the
 @w{integer 65}, following the standard @sc{ascii} representation of
-characters.  If XEmacs was not compiled with @sc{mule} support, the
-range of this integer will always be 0 to 255---eight bits, or one
-byte. (Integers outside this range are accepted but silently truncated;
-however, you should most decidedly @emph{not} rely on this, because it
-will not work under XEmacs with @sc{mule} support.)  When @sc{mule}
-support is present, the range of character codes is much
-larger. (Currently, 19 bits are used.)
+characters. The range of character codes is at least 21 bits' worth.  If
+XEmacs was compiled with @code{--with-unicode-internal} all of Unicode
+is supported and the equivalent integers reflect @sc{ISO} 10646;
+otherwise an @sc{ISO} 2022-oriented internal representation is used and,
+apart from @sc{ASCII} and @sc{ISO} 8859-1 the values of the integers
+will depend on the order of creation of character sets and should not be
+relied on.
 
-  FSF GNU Emacs uses kludgy character codes above 255 to represent
+  GNU Emacs uses kludgy character codes above 255 to represent
 keyboard input of @sc{ascii} characters in combination with certain
 modifiers.  XEmacs does not use this (a more general mechanism is
 used that does not distinguish between @sc{ascii} keys and other
-keys), so you will never find character codes above 255 in a
-non-@sc{mule} XEmacs.
+keys).
 
   Individual characters are not often used in programs.  It is far more
 common to work with @emph{strings}, which are sequences composed of
@@ -375,14 +395,13 @@ characters.  @xref{String Type}.
 @cindex syntax for characters
 
   The read syntax for characters begins with a question mark, followed
-by the character (if it's printable) or some symbolic representation of
-it.  In XEmacs 20, where characters are their own type, this is also the
-print representation.  In XEmacs 19, however, where characters are
-really integers, the printed representation of a character is a decimal
-number.  This is also a possible read syntax for a character, but
-writing characters that way in Lisp programs is a very bad idea.  You
-should @emph{always} use the special read syntax formats that XEmacs Lisp
-provides for characters.
+by the character (if it's printable) or some symbolic representation of it.
+In XEmacs, where characters are their own type, this is also the print
+representation.  In GNU Emacs, however, where characters are really integers,
+the printed representation of a character is a decimal number.  This is also a
+possible read syntax (in GNU Emacs) for a character, but writing characters
+that way in Lisp programs is a very bad idea.  You should @emph{always} use
+the special read syntax formats that Emacs Lisp provides for characters.
 
   The usual read syntax for alphanumeric characters is a question mark
 followed by the character; thus, @samp{?A} for the character
@@ -392,10 +411,10 @@ character @kbd{a}.
   For example:
 
 @example
-;; @r{Under XEmacs 20:}
+;; @r{Under XEmacs:}
 ?Q @result{} ?Q    ?q @result{} ?q
 (char-int ?Q) @result{} 81
-;; @r{Under XEmacs 19:}
+;; @r{Under GNU Emacs:}
 ?Q @result{} 81     ?q @result{} 113
 @end example
 
@@ -403,8 +422,8 @@ character @kbd{a}.
 often a good idea to add a @samp{\} so that the Emacs commands for
 editing Lisp code don't get confused.  For example, @samp{?\ } is the
 way to write the space character.  If the character is @samp{\}, you
-@emph{must} use a second @samp{\} to quote it: @samp{?\\}.  XEmacs 20
-always prints punctuation characters with a @samp{\} in front of them,
+@emph{must} use a second @samp{\} to quote it: @samp{?\\}.  XEmacs
+prints many punctuation characters with a @samp{\} in front of them,
 to avoid confusion.
 
 @cindex whitespace
@@ -431,7 +450,7 @@ respectively.  Their character codes are 7, 8, 9, 10, 11, 12, 13, and 27
 in decimal.  Thus,
 
 @example
-;; @r{Under XEmacs 20:}
+;; @r{Under XEmacs:}
 ?\a @result{} ?\^G              ; @r{@kbd{C-g}}
 (char-int ?\a) @result{} 7
 ?\b @result{} ?\^H              ; @r{backspace, @key{BS}, @kbd{C-h}}
@@ -444,7 +463,7 @@ in decimal.  Thus,
 ?\r @result{} ?\r               ; @r{carriage return, @key{RET}, @kbd{C-m}}
 ?\e @result{} ?\^[              ; @r{escape character, @key{ESC}, @kbd{C-[}}
 ?\\ @result{} ?\\               ; @r{backslash character, @kbd{\}}
-;; @r{Under XEmacs 19:}
+;; @r{Under GNU Emacs:}
 ?\a @result{} 7                 ; @r{@kbd{C-g}}
 ?\b @result{} 8                 ; @r{backspace, @key{BS}, @kbd{C-h}}
 ?\t @result{} 9                 ; @r{tab, @key{TAB}, @kbd{C-i}}
@@ -472,10 +491,10 @@ character @kbd{C-i}, the character whose value is 9.
 equivalent to @samp{?\^I} and to @samp{?\^i}:
 
 @example
-;; @r{Under XEmacs 20:}
+;; @r{Under XEmacs:}
 ?\^I @result{} ?\t   ?\C-I @result{} ?\t
 (char-int ?\^I) @result{} 9
-;; @r{Under XEmacs 19:}
+;; @r{Under GNU Emacs:}
 ?\^I @result{} 9     ?\C-I @result{} 9
 @end example
 
@@ -495,15 +514,16 @@ accent, in @sc{iso}-8859-1.)
 characters by their Unicode code points.  @samp{?\uABCD} will give you
 an XEmacs character that maps to the code point @samp{U+ABCD} in
 Unicode-based representations (UTF-8 text files, Unicode-oriented fonts,
-etc.)  Just as in the C# language, there is a slightly different syntax
-for specifying characters with code points above @samp{#xFFFF};
+etc.)  Just as in the @sc{C#} language, there is a slightly different
+syntax for specifying characters with code points above @samp{#xFFFF};
 @samp{\U00ABCDEF} will give you an XEmacs character that maps to the
 code point @samp{U+ABCDEF} in Unicode-based representations, if such an
-XEmacs character exists. 
+XEmacs character exists or can be (dynamically, on builds that do not
+have Unicode as the internal encoding) created.
 
-  Unlike in C#, while this syntax is available for character literals,
-and (see later) in strings, it is not available elsewhere in your Lisp
-source code.
+  Unlike in @sc{C#}, while this syntax is available for character
+literals, and (see later) in strings, it is not available elsewhere in
+your Lisp source code.
 
 @ignore @c None of this crap applies to XEmacs.
   For use in strings and buffers, you are limited to the control
@@ -617,11 +637,8 @@ It is not possible to represent multibyte or wide characters in this
 way; the permissible range of codes is from 0 to 255 (@emph{i.e.},
 @samp{0377} octal or @samp{0xFF} hexadecimal).  If you wish to convert
 code points to other characters, you must use the @samp{make-char} or
-@samp{unicode-to-char} primitives in Mule.  (Non-Mule XEmacsen cannot
-represent codes out of that range at all, although you can set the font
-to a registry other than ISO 8859/1 to get the appearance of a greater
-range of characters.)  Although these syntaxes can represent any
-@sc{ascii} or Latin-1 character, they are preferred only when the
+@samp{unicode-to-char} primitives. Although these syntaxes can represent
+any @sc{ascii} or Latin-1 character, they are preferred only when the
 precise integral value is more important than the @sc{ascii}
 representation.
 
@@ -649,13 +666,13 @@ reader signals an @code{invalid-read-syntax} error.
 
 @example
 @group
-;; @r{Under XEmacs 20:}
+;; @r{Under XEmacs:}
 ?\012 @result{} ?\n        ?\n @result{} ?\n        ?\C-j @result{} ?\n
 ?\101 @result{} ?A         ?A @result{} ?A          ?\x0A @result{} ?\n
 ?\x41 @result{} ?A     '(?\xAZ) @result{} '(?\n Z)  '(?\0123) @result{} (?\n 3)
 @end group
 @group
-;; @r{Under XEmacs 19:}
+;; @r{Under GNU Emacs:}
 ?\012 @result{} 10         ?\n @result{} 10         ?\C-j @result{} 10
 ?\101 @result{} 65         ?A @result{} 65
 ;; ?\x41 @r{is a syntax error.}
@@ -1011,11 +1028,10 @@ same effect with an array of arrays.)  Each type of array has its own
 read syntax; see @ref{String Type}, @ref{Vector Type}, and @ref{Bit
 Vector Type}.
 
-  An array may have any length up to the largest fixnum; but once
-created, it has a fixed size.  The first element of an array has index
-zero, the second element has index 1, and so on.  This is called
-@dfn{zero-origin} indexing.  For example, an array of four elements has
-indices 0, 1, 2, @w{and 3}.
+  An array, once created, has a fixed size. The first element of an
+array has index zero, the second element has index 1, and so on.  This
+is called @dfn{zero-origin} indexing.  For example, an array of four
+elements has indices 0, 1, 2, @w{and 3}.
 
   The array type is contained in the sequence type and contains the
 string type, the vector type, and the bit vector type.
@@ -1023,11 +1039,16 @@ string type, the vector type, and the bit vector type.
 @node String Type, Vector Type, Array Type, Programming Types
 @subsection String Type
 
-  A @dfn{string} is an array of characters.  Strings are used for many
-purposes in XEmacs, as can be expected in a text editor; for example, as
-the names of Lisp symbols, as messages for the user, and to represent
-text extracted from buffers.  Strings in Lisp are constants: evaluation
-of a string returns the same string.
+  A @dfn{string} is an array of characters.  Its length is bounded by
+the constant ``string-total-size-limit'', which is higher than
+``array-total-size-limit'', and by available memory. Strings are used for many
+purposes in XEmacs, as can be expected in a text editor; for example, as the
+names of Lisp symbols, as messages for the user, and to represent text
+extracted from buffers.  Strings in Lisp can be modified in the same way as
+other arrays; they are not usually constant, though C can enforce this. Access
+to elements of strings less than about 100,000 in length is in constant time
+if the string is entirely @sc{ASCII} but it can be slower if there is
+significant non-@sc{ASCII} content.
 
 @cindex @samp{"} in strings
 @cindex double-quote in strings
@@ -1063,9 +1084,9 @@ They do not distinguish case in @sc{ASCII} control characters.
 @end ignore
 
   The printed representation of a string consists of a double-quote, the
-characters it contains, and another double-quote.  However, you must
-escape any backslash or double-quote characters in the string with a
-backslash, like this: @code{"this \" is an embedded quote"}.
+characters it contains, and another double-quote.  However, any backslash or
+double-quote characters in the string are escaped with a backslash, like this:
+@code{"this \" is an embedded quote"}.
 
  An alternative syntax allows insertion of raw backslashes into a
 string, like this: @code{#r"this \ is an embedded backslash"}.  In  such
@@ -1102,12 +1123,12 @@ addition to the characters themselves.  This enables programs that copy
 text between strings and buffers to preserve the extents and properties
 with no special effort.  @xref{Extents}, @xref{Text Properties}.
 
-  Note that FSF GNU Emacs has a special read and print syntax for
-strings with text properties, but XEmacs does not currently implement
-this.  It was judged better not to include this in XEmacs because it
-entails that @code{equal} return @code{nil} when passed a string with
-text properties and the equivalent string without text properties, which
-is often counter-intuitive.
+  Note that GNU Emacs has a special read and print syntax for strings
+with text properties, but XEmacs does not currently implement this.  It was
+judged better not to include this in XEmacs because it entails that
+@code{equal} return @code{nil} when passed a string with text properties and
+the equivalent string without text properties, which is often
+counter-intuitive.
 
 @ignore @c Not in XEmacs
 Strings with text
@@ -1161,7 +1182,9 @@ takes a constant amount of time to access any element of a bit vector,
 as for vectors.  Bit vectors have an extremely compact internal
 representation (one machine bit per element), which makes them ideal
 for keeping track of unordered sets, large collections of boolean values,
-etc.
+etc.  Their length is bounded by ``bit-vector-total-size-limit'', which
+is significantly larger than ``array-total-size-limit'', and, of course,
+by available memory.
 
   The printed representation of a bit vector consists of @samp{#*}
 followed by the bits in the vector.  This is also the read syntax.  Like
@@ -1179,17 +1202,20 @@ evaluation.
 @subsection Function Type
 
   Just as functions in other programming languages are executable,
-@dfn{Lisp function} objects are pieces of executable code.  However,
-functions in Lisp are primarily Lisp objects, and only secondarily the
-text which represents them.  These Lisp objects are lambda expressions:
-lists whose first element is the symbol @code{lambda} (@pxref{Lambda
-Expressions}).
+@dfn{Lisp function} objects are pieces of executable code.  However, functions
+in Lisp are primarily Lisp objects, and only secondarily the text which
+represents them.  Most functions that run in XEmacs are compiled
+(@pxref{Compiled-Function Type}); however a list whose first element is the
+symbol @code{lambda} (@pxref{Lambda Expressions}) is also a function, and
+before a function is compiled it is usually represented as a lambda
+expression.
 
   In most programming languages, it is impossible to have a function
 without a name.  In Lisp, a function has no intrinsic name.  A lambda
-expression is also called an @dfn{anonymous function} (@pxref{Anonymous
-Functions}).  A named function in Lisp is actually a symbol with a valid
-function in its function cell (@pxref{Defining Functions}).
+expression, or a compiled function that has not been given a name, are
+also called @dfn{anonymous function}s (@pxref{Anonymous Functions}).  A
+named function in Lisp is actually a symbol with a valid function in its
+function cell (@pxref{Defining Functions}).
 
   Most of the time, functions are called when their names are written in
 Lisp expressions in Lisp programs.  However, you can construct or obtain
@@ -1206,9 +1232,9 @@ list whose first element is the symbol @code{macro} and whose @sc{cdr}
 is a Lisp function object, including the @code{lambda} symbol.
 
   Lisp macro objects are usually defined with the built-in
-@code{defmacro} function, but any list that begins with @code{macro} is
-a macro as far as XEmacs is concerned.  @xref{Macros}, for an explanation
-of how to write a macro.
+@code{defmacro}, but any list that begins with @code{macro} and that has
+a valid function as its @code{cdr}, is a macro as far as XEmacs is
+concerned.  @xref{Macros}, for an explanation of how to write a macro.
 
 @node Primitive Function Type, Compiled-Function Type, Macro Type, Programming Types
 @subsection Primitive Function Type
@@ -1282,7 +1308,11 @@ symbol.  @xref{Autoload}, for more details.
 @subsection Char Table Type
 @cindex char table type
 
-(not yet documented)
+  A @dfn{char table} is a table that maps characters, or ranges of
+characters, to values. All characters can be represented as keys in the
+the table, and lookup is in constant time. There are several types of
+char table, differing in the types of values that can be
+used. @xref{Char Tables} for more information.
 
 @node Hash Table Type, Range Table Type, Char Table Type, Programming Types
 @subsection Hash Table Type
@@ -1304,7 +1334,7 @@ has nothing to do with the ``hash'' in ``hash table''), giving the
 number of elements, total space allocated for elements, and a unique
 number assigned at the time the hash table was created. (Hash tables
 automatically resize as necessary so there is no danger of running out
-of space for elements.)
+of space for elements, as long as there is sufficient memory available.)
 
 @example
 @group
@@ -1314,7 +1344,7 @@ of space for elements.)
 @end example
 
 @xref{Hash Tables}, for information on how to create and work with hash
-tables.
+tables, and how to create new hash table tests.
 
 @node Range Table Type, Weak List Type, Hash Table Type, Programming Types
 @subsection Range Table Type
@@ -1346,7 +1376,13 @@ tables.
 @subsection Weak List Type
 @cindex weak list type
 
-(not yet documented)
+  A weak list is an object that contains a list, accessed using
+@code{weak-list-list} and @code{set-weak-list-list}.  From Lisp this list can
+be manipulated in the normal way, using @code{cons}, @code{delete*}, and other
+functions.  Its value to the programmer is that it is treated specially during
+garbage collection @xref{Garbage Collection}; for normal Lisp lists elements
+are always traced and never released, while for weak lists this is not the
+case. @xref{Weak Lists} for more information.
 
 @node Editing Types, Window-System Types, Programming Types, Lisp Data Types
 @section Editing Types
@@ -1468,13 +1504,14 @@ markers.
 @node Extent Type, Window Type, Marker Type, Editing Types
 @subsection Extent Type
 
-  An @dfn{extent} specifies temporary alteration of the display
-appearance of a part of a buffer (or string).  It contains markers
-delimiting a range of the buffer, plus a property list (a list whose
-elements are alternating property names and values).  Extents are used
-to present parts of the buffer temporarily in a different display style.
-They have no read syntax, and print in hash notation, giving the buffer
-name and range of positions.
+  An @dfn{extent} specifies, usually, an alteration of the display
+appearance of a part of a buffer (or string).  It contains end points
+delimiting a range of the buffer, plus a property list (a list whose elements
+are alternating property names and values).  Extents are often used to present
+parts of the buffer temporarily in a different display style, but they can be
+used (by means of the property list) to add metadata for any reason to a
+buffer or to a string.  They have no read syntax, and print in hash notation,
+giving the buffer name and range of positions.
 
   Extents can exist over strings as well as buffers; the primary use
 of this is to preserve extent and text property information as text
@@ -1615,14 +1652,17 @@ related to consoles.
 sizes, and contents of the windows in a frame, so you can recreate the
 same arrangement of windows later.
 
-  Window configurations do not have a read syntax.  They print in hash
-notation, giving a unique number assigned at the time the window
-configuration was created.
+  Window configurations are implemented in Lisp using @code{defstruct},
+@pxref{(cl)Structures}.  They print as vectors starting with the symbol
+@code{cl-struct-window-configuration}. While an empty window configuration can
+be usefully read, most useful window configurations contain marker, window and
+frame objects, which cannot be read, and so in general window configurations
+are not readable.
 
 @example
 @group
 (current-window-configuration)
-     @result{} #<window-configuration 0x2db4>
+     @result{} [cl-struct-window-configuration #<tty-frame "F1" on #<tty-device on "/dev/pts/10" 0x32> 0x33> nil nil 126 37 #<buffer "*scratch*"> 1 10 4 [cl-struct-saved-window t nil nil #<buffer "*scratch*"> #<marker at 948 in *scratch* 0xdea96> #<marker at 9570 in *scratch* 0xdea95> nil 0 0 126 36 0 0 nil nil nil [cl-struct-saved-window nil t nil #<buffer " *Minibuf-0*"> #<marker in no buffer 0xdea94> #<marker at 1 in  *Minibuf-0* 0xdea92> #<marker at 126 in  *Minibuf-0* 0xdea93> 0 36 126 37 0 0 nil nil nil nil #<window on " *Minibuf-0*" 0x17c0>] #<window on "*scratch*" 0x1990>]]
 @end group
 @end example
 
@@ -1680,8 +1720,32 @@ as a stream.  It stands for the value of the variable
 (@pxref{Minibuffers}) or output in the echo area (@pxref{The Echo
 Area}).
 
-  Streams have no special printed representation or read syntax, and
-print as whatever primitive type they are.
+  Beyond the use of markers, buffers, strings and functions for stream output,
+there is also a specialized string output stream type, @code{stream}, 
+created with the function @code{make-string-output-stream}.
+
+@defun make-string-output-stream &key (element-type character)
+This function creates and returns a stream object. It usually takes no
+arguments; for compatibility with Common Lisp it can be supplied a keyword
+argument ``:element-type'' which must by either @code{nil} or the symbol
+@code{character}.
+@end defun
+
+@defun get-output-stream-string stream
+This takes @var{stream}, which must have been created by
+@code{make-output-stream-string}, and returns the characters written to it as
+a string. Future calls to @code{get-output-stream-string} on @var{stream} will
+no longer provide those characters.
+@end defun
+
+Anything that can be done with a stream of type @code{stream} can be done
+using a buffer instead, but a @code{stream} is much more lightweight in terms
+of memory used and writing to it is typically faster.  A @code{stream} object
+has the limitation that it is only possible either to write to it, or to get
+its contents as a string.  Using a buffer does not have these limitations.
+
+Output stream strings print in hash notation and have no read syntax. Other
+stream types print as whatever primitive type they are.
 
   @xref{Read and Print}, for a description of functions
 related to streams, including parsing and printing functions.
@@ -1692,7 +1756,7 @@ related to streams, including parsing and printing functions.
   A @dfn{keymap} maps keys typed by the user to commands.  This mapping
 controls how the user's command input is executed.
 
-  NOTE: In XEmacs, a keymap is a separate primitive type.  In FSF GNU
+  NOTE: In XEmacs, a keymap is a separate primitive type.  In GNU
 Emacs, a keymap is actually a list whose @sc{car} is the symbol
 @code{keymap}.
 
@@ -1702,13 +1766,12 @@ keys, local as well as global keymaps, and changing key bindings.
 @node Syntax Table Type, Display Table Type, Keymap Type, Editing Types
 @subsection Syntax Table Type
 
-  Under XEmacs 20, a @dfn{syntax table} is a particular type of char
-table.  Under XEmacs 19, a syntax table is a vector of 256 integers.  In
-both cases, each element defines how one character is interpreted when it
-appears in a buffer.  For example, in C mode (@pxref{Major Modes}), the
-@samp{+} character is punctuation, but in Lisp mode it is a valid
-character in a symbol.  These modes specify different interpretations by
-changing the syntax table entry for @samp{+}.
+  Under XEmacs, a @dfn{syntax table} is a particular type of char
+table.  Each element defines how one character is interpreted when it appears
+in a buffer.  For example, in C mode (@pxref{Major Modes}), the @samp{+}
+character is punctuation, but in Lisp mode it is a valid character in a
+symbol.  These modes specify different interpretations by changing the syntax
+table entry for @samp{+}.
 
   Syntax tables are used only for scanning text in buffers, not for
 reading Lisp expressions.  The table the Lisp interpreter uses to read
@@ -1724,8 +1787,7 @@ and modify syntax tables.
 
   A @dfn{display table} specifies how to display each character code.
 Each buffer and each window can have its own display table.  A display
-table is actually a vector of length 256, although in XEmacs 20 this may
-change to be a particular type of char table.  @xref{Display Tables}.
+table is a generic char table.  @xref{Display Tables}.
 
 @node Database Type, Charset Type, Display Table Type, Editing Types
 @subsection Database Type
@@ -1772,10 +1834,6 @@ commonly found in windowing systems.
 * Color Instance Type:: The way a color appears on a particular device.
 * Image Instance Type:: The way an image appears on a particular device.
 * Toolbar Button Type:: An object representing a button in a toolbar.
-* Subwindow Type::      An externally-controlled window-system window
-                          appearing in a buffer.
-* X Resource Type::     A miscellaneous X resource, if Epoch support was
-                          compiled into XEmacs.
 @end menu
 
 @node Face Type, Glyph Type, Window-System Types, Window-System Types
@@ -1814,21 +1872,9 @@ commonly found in windowing systems.
 
 (not yet documented)
 
-@node Toolbar Button Type, Subwindow Type, Image Instance Type, Window-System Types
+@node Toolbar Button Type, , Image Instance Type, Window-System Types
 @subsection Toolbar Button Type
 @cindex toolbar button type
-
-(not yet documented)
-
-@node Subwindow Type, X Resource Type, Toolbar Button Type, Window-System Types
-@subsection Subwindow Type
-@cindex subwindow type
-
-(not yet documented)
-
-@node X Resource Type,  , Subwindow Type, Window-System Types
-@subsection X Resource Type
-@cindex X resource type
 
 (not yet documented)
 
@@ -2140,9 +2186,6 @@ with references to further information.
 @item subwindow-image-instance-p
 @xref{Image Instance Types, subwindow-image-instance-p}.
 
-@item subwindowp
-@xref{Subwindows, subwindowp}.
-
 @item symbolp
 @xref{Symbols, symbolp}.
 
@@ -2194,22 +2237,12 @@ types.  In most cases, it is more convenient to use type predicates than
 
 @defun type-of object
 This function returns a symbol naming the primitive type of
-@var{object}.  The value is one of @code{bit-vector}, @code{buffer},
-@code{char-table}, @code{character}, @code{charset},
-@code{coding-system}, @code{cons}, @code{color-instance},
-@code{compiled-function}, @code{console}, @code{database},
-@code{device}, @code{event}, @code{extent}, @code{face}, @code{float},
-@code{font-instance}, @code{frame}, @code{glyph}, @code{hash-table},
-@code{image-instance}, @code{integer}, @code{keymap}, @code{marker},
-@code{process}, @code{range-table}, @code{specifier}, @code{string},
-@code{subr}, @code{subwindow}, @code{symbol}, @code{toolbar-button},
-@code{tooltalk-message}, @code{tooltalk-pattern}, @code{vector},
-@code{weak-list}, @code{window}, @code{window-configuration}, or
-@code{x-resource}.
+@var{object}.  See the list in @pxref{Primitive Types} for information on
+possible return values.
 
 @example
 (type-of 1)
-     @result{} integer
+     @result{} fixnum
 (type-of 'nil)
      @result{} symbol
 (type-of '())    ; @r{@code{()} is @code{nil}.}
@@ -2252,13 +2285,6 @@ only if they are the same object.
 not interned in the standard @code{obarray}.  When uninterned symbols
 are in use, symbol names are no longer unique.  Distinct symbols with
 the same name are not @code{eq}.  @xref{Creating Symbols}.)
-
-NOTE: Under XEmacs 19, characters are really just integers, and thus
-characters and integers with the same numeric code are @code{eq}.  Under
-XEmacs 20, it was necessary to preserve remnants of this in function
-such as @code{old-eq} in order to maintain byte-code compatibility.
-Byte code compiled under any Emacs 19 will automatically have calls to
-@code{eq} mapped to @code{old-eq} when executed under XEmacs 20.
 
 @example
 @group
@@ -2386,11 +2412,11 @@ arguments to see if their elements are the same.  So, if two objects are
 
 Comparison of strings is case-sensitive.
 
-Note that in FSF GNU Emacs, comparison of strings takes into account
-their text properties, and you have to use @code{string-equal} if you
-want only the strings themselves compared.  This difference does not
-exist in XEmacs; @code{equal} and @code{string-equal} always return
-the same value on the same strings.
+Note that in GNU Emacs, comparison of strings takes into account their text
+properties, and you have to use @code{string-equal} if you want only the
+strings themselves compared.  This difference does not exist in XEmacs;
+@code{equal} and @code{string-equal} always return the same value on the same
+strings.
 
 @ignore @c Not true in XEmacs
 Comparison of strings is case-sensitive and takes account of text

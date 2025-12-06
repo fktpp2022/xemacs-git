@@ -1526,8 +1526,8 @@ relatively recent GNU addition, it is more portable to call
 @end defun
 
 @defun assq key alist
-This is equivalent to calling @code{(assoc* key alist :test 'eq)}, and
-compiles to the same byte code.
+@anchor{assq}This is equivalent to calling @code{(assoc* key alist :test
+'eq)}, and compiles to the same byte code.
 
 @smallexample
 (setq trees '((pine . cones) (oak . acorns) (maple . seeds)))
@@ -1895,15 +1895,26 @@ Objects in the list disappear if not referenced outside of the list.
 
 @item assoc
 Objects in the list disappear if they are conses and either the car or
-the cdr of the cons is not referenced outside of the list.
+the cdr of the cons is not referenced outside of the list.  Note that
+this is misnamed in the context of XEmacs Lisp, in that equality uses
+@code{eq} rather than @code{equal}; a better name might have been
+@code{assq}, @pxref{assq}.
 
 @item key-assoc
 Objects in the list disappear if they are conses and the car is not
-referenced outside of the list.
+referenced outside of the list.  Equality is also in the @code{eq}
+sense rather than the @code{equal} sense.
 
 @item value-assoc
 Objects in the list disappear if they are conses and the cdr is not
-referenced outside of the list.
+referenced outside of the list. Equality is also in the @code{eq}
+sense rather than the @code{equal} sense.
+
+@item full-assoc 
+Object in a ``key-assoc'' weak list disappear at garbage collection if
+they are of type @code{cons} and neither the @code{cdr} nor the
+@code{car} is pointed to elsewhere.  Equality is also in the @code{eq}
+sense rather than the @code{equal} sense.
 @end table
 
 @defun make-weak-list &optional type
@@ -1913,13 +1924,20 @@ a symbol (one of @code{simple}, @code{assoc}, @code{key-assoc}, or
 @end defun
 
 @defun weak-list-type weak
-This function returns the type of the given weak-list object.
+This function returns the type of the given weak-list object, one of
+the symbols above.
 @end defun
 
 @defun weak-list-list weak
-This function returns the list contained in a weak-list object.
+This function returns the list contained in a weak-list object.  Note
+that storing this list elsewhere defeats the point of the weak list,
+in that its elements will be reachable when that is likely not
+desired.
 @end defun
 
 @defun set-weak-list-list weak new-list
-This function changes the list contained in a weak-list object.
+This function changes the list contained in a weak-list object. If
+@var{new-list} is reachable elsewhere, this is unlikely to be useful.
+The current implementation accepts non-list objects (non-cons,
+non-nil) without erroring; this is also unlikely to be useful.
 @end defun

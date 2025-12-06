@@ -714,7 +714,7 @@ whether a buffer is displayed somewhere or not.
 If no suitable buffer exists, the buffer @samp{*scratch*} is returned
 (and created, if necessary).
 
-Note that in FSF Emacs 19, there is no @var{frame} argument, and
+Note that in GNU Emacs 19, there is no @var{frame} argument, and
 @var{visible-ok} is the second argument instead of the third.
 @end defun
 
@@ -920,7 +920,7 @@ completely separate.  They have different names, different values of
 point and mark, different narrowing, different markers and extents
 (though inserting or deleting text in either buffer relocates the
 markers and extents for both), different major modes, and different
-local variables.  Unlike in FSF Emacs, XEmacs indirect buffers do not
+local variables.  Unlike in GNU Emacs, XEmacs indirect buffers do not
 automatically share text properties among themselves and their base
 buffer.
 

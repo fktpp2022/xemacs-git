@@ -150,9 +150,8 @@ The value of this variable is the version of Emacs being run.  It is a
 string, e.g. @code{"20.1 XEmacs Lucid"}.
 @end defvar
 
-  The following two variables did not exist before FSF GNU Emacs version
-19.23 and XEmacs version 19.10, which reduces their usefulness at
-present, but we hope they will be convenient in the future.
+  The following two variables have been available since GNU Emacs version
+19.23 and XEmacs version 19.10, and so we expect they can be relied on.
 
 @defvar emacs-major-version
 The major version number of Emacs, as an integer.  For XEmacs version
@@ -226,6 +225,14 @@ collector explicitly just before it (provided that portion of the
 program does not use so much space as to force a second garbage
 collection).
 @end quotation
+
+  In contrast to languages without garbage collection, where memory
+allocation often has a limited impact on performance, be aware that, in XEmacs
+Lisp, the more memory that is used, the more often the garbage collector will
+need to be called. Garbage collection intrinsically has poor locality of
+reference and so is not well suited to current architectures.  In interactive
+use this is usually to a tolerable level but repeated allocation of large
+objects in a loop, like buffers, will slow the program down significantly.
 
 @deffn Command garbage-collect
 This command runs a garbage collection, and returns information on

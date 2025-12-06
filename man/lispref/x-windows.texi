@@ -45,7 +45,7 @@ independently.  The usual values of @var{type} are @code{PRIMARY} and
 @code{SECONDARY}; these are symbols with upper-case names, in accord
 with X Windows conventions.  The default is @code{PRIMARY}.
 
-(In FSF Emacs, this function is called @code{x-set-selection} and
+(In GNU Emacs, this function is called @code{x-set-selection} and
 takes different arguments.)
 @end defun
 
@@ -68,7 +68,7 @@ clients that still use them.
 
 @defun x-get-cutbuffer &optional n
 This function returns the contents of cut buffer number @var{n}. (This
-function is called @code{x-get-cut-buffer} in FSF Emacs.)
+function is called @code{x-get-cut-buffer} in GNU Emacs.)
 @end defun
 
 @defun x-store-cutbuffer string &optional push
@@ -87,7 +87,7 @@ Cut buffers are considered obsolete; you should use selections instead.
 
 This function has no effect if support for cut buffers was not compiled in.
 
-This function is called @code{x-set-cut-buffer} in FSF Emacs.
+This function is called @code{x-set-cut-buffer} in GNU Emacs.
 @end defun
 
 @node X Server, X Miscellaneous, X Selections, X-Windows

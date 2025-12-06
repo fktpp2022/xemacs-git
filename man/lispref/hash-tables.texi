@@ -203,10 +203,10 @@ with @code{gensym} for @var{name}).
 @var{test-function} must accept two arguments and return non-nil if both
 arguments are the same.
 
-@var{hash-function} must accept one argument and return an integer hash
-code for its argument.  @var{hash-function} should use the entire range
-of the underlying C long type, typically represented with two more value
-bits than the Lisp fixnum type.
+@var{hash-function} must accept one argument and return an integer
+hash code for its argument.  It is helpful for hash table
+performance if the lower-order bits of this integer cluster as little
+as possible.
 
 Returns t on success, an incompatibility with GNU Emacs, which returns
 a list comprising @var{test-function} and @var{hash-function}.

@@ -82,7 +82,7 @@ run, and @code{last-command} describes the previous command.
 
 @defvar post-command-hook
 The editor command loop runs this normal hook after each command.  (In
-FSF Emacs, it is also run when the command loop is entered, or
+GNU Emacs, it is also run when the command loop is entered, or
 reentered after an error or quit.)  At that time,
 @code{this-command} describes the command that just ran, and
 @code{last-command} describes the command before that.  @xref{Hooks}.
@@ -681,7 +681,7 @@ value at the end, like this:
 This function returns a vector containing the key and mouse events that
 invoked the present command, plus any previous commands that generated
 the prefix argument for this command. (Note: this is not the same as in
-FSF Emacs, which can return a string.)  @xref{Events}.
+GNU Emacs, which can return a string.)  @xref{Events}.
 
 This function copies the vector and the events; it is safe to keep and
 modify them.
@@ -717,7 +717,7 @@ event that is its value, as it is destructively modified by
 you must use @code{copy-event}.
 
 Note that this variable is an alias for @code{last-command-char} in
-FSF Emacs.
+GNU Emacs.
 
 @example
 @group
@@ -776,7 +776,7 @@ If the value is zero, then command input is not echoed.
 @cindex input events
 
 The XEmacs command loop reads a sequence of @dfn{events} that
-represent keyboard or mouse activity.  Unlike in Emacs 18 and in FSF
+represent keyboard or mouse activity.  Unlike in Emacs 18 and in GNU
 Emacs, events are a primitive Lisp type that must be manipulated
 using their own accessor and settor primitives.  This section describes
 the representation and meaning of input events in detail.
@@ -1807,7 +1807,7 @@ event that is its value, as it is destructively modified by
 you must use @code{copy-event}.
 
 Note that this variable is an alias for @code{last-input-char} in
-FSF Emacs.
+GNU Emacs.
 
 In the example below, a character is read (the character @kbd{1}).  It
 becomes the value of @code{last-input-event}, while @kbd{C-e} (from the
@@ -1871,7 +1871,7 @@ the middle of a computation to allow the user time to view the display.
 input comes in, while @code{sleep-for} pauses without updating the
 screen.
 
-Note that in FSF Emacs, the commands @code{sit-for} and @code{sleep-for}
+Note that in GNU Emacs, the commands @code{sit-for} and @code{sleep-for}
 take two arguments to specify the time (one integer and one float
 value), instead of a single argument that can be either an integer or a
 float.

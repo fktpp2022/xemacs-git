@@ -888,7 +888,7 @@ This returns whether @var{frame} is iconified.  Not all window managers
 use icons; some merely unmap the window, so this function is not the
 inverse of @code{frame-visible-p}.  It is possible for a frame to not
 be visible and not be iconified either.  However, if the frame is
-iconified, it will not be visible.  (Under FSF Emacs, the functionality
+iconified, it will not be visible.  (Under GNU Emacs, the functionality
 of this function is obtained through @code{frame-visible-p}.)
 @end defun
 
@@ -941,7 +941,7 @@ You can also specify auto-raise (raising automatically when a frame is
 selected) or auto-lower (lowering automatically when it is deselected).
 Under X, most ICCCM-compliant window managers will have an option to do
 this for you, but the following variables are provided in case you're
-using a broken WM.  (Under FSF Emacs, the same functionality is
+using a broken WM.  (Under GNU Emacs, the same functionality is
 provided through the @code{auto-raise} and @code{auto-lower}
 frame properties.)
 

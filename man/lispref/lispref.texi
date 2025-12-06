@@ -512,7 +512,6 @@ Byte Compilation
 * Speed of Byte-Code::          An example of speedup from byte compilation.
 * Compilation Functions::       Byte compilation functions.
 * Docs and Compilation::        Dynamic loading of documentation strings.
-* Dynamic Loading::             Dynamic loading of individual functions.
 * Eval During Compile::  	Code to be evaluated when you compile.
 * Compiled-Function Objects::	The data type used for byte-compiled functions.
 * Disassembly::                 Disassembling byte-code; how to read byte-code.
@@ -1025,7 +1024,6 @@ Using Glyphs
 * Frame Glyphs::	Displaying glyphs in GUI components of the frame.
 * External Glyphs::	Icons and mouse pointers for the window system.
 * Native GUI Widgets::	Complex active elements treated as a single glyph.
-* Subwindows::		Externally-controlled subwindows in buffers.
 
 Native GUI Widgets
 

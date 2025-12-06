@@ -1119,7 +1119,7 @@ WARNING: if you are thinking of calling add-timeout from inside of a
 callback function as a way of resignalling a timeout, think again.  There
 is a race condition.  That's why the @var{resignal} argument exists.
 
-(NOTE: In FSF Emacs, this function is called @code{run-at-time} and
+(NOTE: In GNU Emacs, this function is called @code{run-at-time} and
 has different semantics.)
 @end defun
 
@@ -1128,7 +1128,7 @@ Cancel the requested action for @var{id}, which should be a value
 previously returned by @code{add-timeout}.  This cancels the effect of
 that call to @code{add-timeout}; the arrival of the specified time will
 not cause anything special to happen.
-(NOTE: In FSF Emacs, this function is called @code{cancel-timer}.)
+(NOTE: In GNU Emacs, this function is called @code{cancel-timer}.)
 @end defun
 
 @node Terminal Input, Terminal Output, Timers, System Interface
@@ -1478,7 +1478,7 @@ with @var{device}, as far as XEmacs knows.  @var{device} defaults to the
 selected device (usually the only device) if omitted.  Changing this
 value does not change the speed of actual data transmission, but the
 value is used for calculations such as padding.  This value has no
-effect for window-system devices. (This is different in FSF Emacs, where
+effect for window-system devices. (This is different in GNU Emacs, where
 the baud rate also affects decisions about whether to scroll part of the
 screen or repaint, even when using a window system.)
 
