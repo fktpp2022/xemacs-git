@@ -1926,7 +1926,7 @@ vars_of_mule_wnn (void)
 }
 
 void
-init_mule_wnn (void)
+disksave_finalize_mule_wnn (void)
 {
   XVECTOR_DATA (Vcharset_wnn_server_type)[0] = Vcharset_japanese_jisx0208;
   XVECTOR_DATA (Vcharset_wnn_server_type)[1] = Vcharset_chinese_gb2312;

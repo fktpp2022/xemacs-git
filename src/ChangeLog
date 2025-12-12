@@ -1,3 +1,33 @@
+2025-12-12  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Rename various C functions that need to be done after loadup.el
+	has finished loading Lisp, to disksave_finalize_*, rather than the
+	slighly misleading init_*.
+	* alloc.c:
+	* alloc.c (disksave_finalize_memusage_stats):
+	Rename this from compute_memusage_stats_length().
+	* alloc.c (finalize_functions_in_obarray):
+	Correct a comment here.
+	* alloc.c (disksave_object_finalization):
+	Call disksave_finialize_mule_charset(),
+	disksave_finalize_mule_wnn(), disksave_finalize_memusage_stats()
+	here with their new names. Do this before calling
+	garbage_collect_1() to allow them to create garbage should they
+	need to (not currently used).
+	* emacs.c (Frun_emacs_from_temacs):
+	Call disksave_finalize_mule_charset(),
+	disksave_finalize_mule_wnn() with their new names.
+	* emacs.c (Fdump_emacs):
+	Remove an unnecessary call to garbage_collect_1(), which
+	disksave_object_finalization() calls anyway.
+	* mule-charset.c (disksave_finalize_mule_charset): Renamed from
+	init_mule_charset().
+	* mule-wnnfns.c (disksave_finalize_mule_wnn):
+	Renamed from init_mule_wnn().
+	* symsinit.h:
+	Add declarations for the new names for the same two functions.
+	* symsinit.h (init_number): Flesh out a comment for this.
+
 2025-12-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Generic char tables are perfectly adequate for implementing

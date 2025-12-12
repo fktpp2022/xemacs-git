@@ -2739,9 +2739,10 @@ arguments: (&rest ARGS)
     Vstack_trace_on_error = Qt;
 
   /* Usually called from disksave_object_finalization(). */
-  init_mule_charset ();
+  disksave_finalize_mule_charset ();
+
 #ifdef HAVE_WNN
-  init_mule_wnn ();
+  disksave_finalize_mule_wnn ();
 #endif
 
   LONGJMP (run_temacs_catch, 1);
@@ -2940,13 +2941,10 @@ part of dumping to avoid this happening.
   inhibit_site_modules = 1;
 #endif
 
-  garbage_collect_1 ();
-
   disksave_object_finalization ();
   release_breathing_space ();
 
-  /* Tell malloc where start of impure now is */
-  /* Also arrange for warnings when nearly out of space.  */
+  /* Arrange for warnings when nearly out of space.  */
 #ifdef HAVE_MALLOC_WARNING
   memory_warnings (NULL, malloc_warning);
 #endif

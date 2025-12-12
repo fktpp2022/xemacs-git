@@ -2087,7 +2087,7 @@ complex_vars_of_mule_charset (void)
 }
 
 void
-init_mule_charset (void)
+disksave_finalize_mule_charset (void)
 {
   /* Retrieve all the charsets by name.  Do this after loadup, when they
      were created. See disksave_object_finalization(). */

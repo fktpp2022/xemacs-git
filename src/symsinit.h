@@ -474,6 +474,14 @@ void complex_vars_of_scrollbar (void);
 void complex_vars_of_syntax (void);
 void complex_vars_of_unicode (void);
 
+/* Functions that should be called after loadup.el has loaded all the Lisp
+   files to be be dumped. As well as being called (indirectly) from
+   #'dump-emacs, these should normally be called from within
+   #'run-emacs-from-temacs. */
+
+void disksave_finalize_mule_charset (void);
+void disksave_finalize_mule_wnn (void);
+
 /* Late initialization -- stuff pertaining only to interactive usage,
    I/O, or Lisp reading. (Dump-time and run-time, but the code itself
    may conditionalize on this by checking the `initialized' variable.) */
@@ -494,8 +502,6 @@ void init_hpplay (void);
 void init_intl (void);
 void init_intl_win32 (void);
 void init_lread (void);
-void init_mule_charset (void);
-void init_mule_wnn (void);
 void init_mswindows_environment (void);
 void init_nt (void);
 void init_postgresql_from_environment (void);
@@ -505,8 +511,9 @@ void init_unicode (void);
 void init_win32 (void);
 void init_xemacs_process (void);
 
-/* Enhanced number initialization: must be done only at runtime due to complex
-   interactions with the supporting libraries. */
+/* Enhanced number initialization; needs to be done both at dump time and at
+   run time before pdump_load() to allow bignums and friends to be dumped and
+   restored. */
 void init_number (void);
 
 #endif /* INCLUDED_symsinit_h_ */

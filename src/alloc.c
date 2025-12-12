@@ -4393,7 +4393,7 @@ See also `consing-since-gc' and `object-memory-usage-stats'.
    after all objects have been initialized. */
 
 static void
-compute_memusage_stats_length (void)
+disksave_finalize_memusage_stats (void)
 {
   int i;
 
@@ -5346,7 +5346,7 @@ disksave_object_finalization_1 (void)
 
    The string interactive specs do not vary much, there is a lot of "_p", "",
    "p", "r" and this is equally true for the dumped compiled
-   functions. De-duplicate them at dump time, marked them C-readonly given the
+   functions. De-duplicate them at dump time, mark them C-readonly given the
    de-duplication, reduce the number of objects traversed for GC. There's no
    reason now that the compiled function interactive strings cannot be
    identical to the subr interactive strings (which were previously not Lisp
@@ -5444,23 +5444,24 @@ disksave_object_finalization (void)
 			  (void *) (&Vprompt_hash));
   }
 
+  /* Initialize Vcharset_latin_iso8859_2 and friends, now they are available
+     after creation in Lisp. */
+  disksave_finalize_mule_charset ();
+
+#ifdef HAVE_WNN
+  /* Similar reasoning. Right thing to do is move mule-wnn.c to being a module
+     in the same way Canna is. */
+  disksave_finalize_mule_wnn ();
+#endif
+
+#ifdef MEMORY_USAGE_STATS
+  disksave_finalize_memusage_stats ();
+#endif /* MEMORY_USAGE_STATS */
+
   garbage_collect_1 ();
 
   /* Run the disksave finalization methods of all live objects. */
   disksave_object_finalization_1 ();
-
-#ifdef MEMORY_USAGE_STATS
-  compute_memusage_stats_length ();
-#endif /* MEMORY_USAGE_STATS */
-
-  /* Initialize Vcharset_latin_iso8859_2 and friends, which needs to be done
-     after loadup given the bulk of them are created in Lisp. */
-  init_mule_charset ();
-
-#ifdef HAVE_WNN
-  /* Similar reasoning. */
-  init_mule_wnn ();
-#endif
 
   /* There, that ought to be enough... */
 }
