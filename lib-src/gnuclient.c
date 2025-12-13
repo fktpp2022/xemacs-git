@@ -33,7 +33,19 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>.
    should be merged into XEmacs itself using a -remote arg, just like
    Netscape and other modern programs.
 
-   --ben */
+   --ben
+
+       This latter is not the case under POSIX for gnuclient; the job control
+       of the -nw option requires a separate PID and process.  If it were
+       possible for Lisp to access all the primitives that gnuclient(1) needs
+       to access it would be possible to write gnuclient in Lisp with --script;
+       however that will take more startup time and more memory (in these days
+       of ASLR and many systems that write to the loaded executable file to
+       change addresses). There is no intrinsic reason that I can see that
+       gnuserv can't be in the XEmacs executable; SXEmacs has added support for
+       XEmacs running as a server and if we port this over my usual workaround
+       of running XEmacs in screen(1) would no longer be necessary.
+       Aidan Kehoe, Mi 10. Dez 11:22:12 GMT 2025 */
 
 /*
  * This file incorporates new features added by Bob Weiner <weiner@mot.com>,
@@ -121,10 +133,10 @@ tell_emacs_to_resume (int UNUSED (sig))
 
 #ifdef SYSV_IPC
   if (connect_type == (int) CONN_IPC)
-    disconnect_from_ipc_server (s, msgp, FALSE);
+    disconnect_from_ipc_server (s, msgp, PRINT_BEHAVIOR_NO_PRINT);
 #else /* !SYSV_IPC */
   if (connect_type != (int) CONN_IPC)
-    disconnect_from_server (s, FALSE);
+    disconnect_from_server (s, PRINT_BEHAVIOR_NO_PRINT);
 #endif /* !SYSV_IPC */
 }
 
@@ -554,10 +566,15 @@ main (int argc, char *argv[])
       /* disconnect already sends EOT_STR */
 #ifdef SYSV_IPC
       if (connect_type == (int) CONN_IPC)
-	disconnect_from_ipc_server (s, msgp, batch && !quick);
+	disconnect_from_ipc_server
+	  (s, msgp,
+	   (batch && !quick)
+	   ? PRINT_BEHAVIOR_PRINT : PRINT_BEHAVIOR_NO_PRINT);
 #else /* !SYSV_IPC */
       if (connect_type != (int) CONN_IPC)
-	disconnect_from_server (s, batch && !quick);
+	disconnect_from_server
+	  (s, (batch && !quick)
+	   ? PRINT_BEHAVIOR_PRINT : PRINT_BEHAVIOR_NO_PRINT);
 #endif /* !SYSV_IPC */
     } /* eval_function || eval_form || load_library */
   else if (batch)
@@ -583,10 +600,14 @@ main (int argc, char *argv[])
       /* disconnect already sends EOT_STR */
 #ifdef SYSV_IPC
       if (connect_type == (int) CONN_IPC)
-	disconnect_from_ipc_server (s, msgp, batch && !quick);
+	disconnect_from_ipc_server
+	  (s, msgp, (batch && !quick)
+	   ? PRINT_BEHAVIOR_PRINT : PRINT_BEHAVIOR_NO_PRINT);
 #else /* !SYSV_IPC */
       if (connect_type != (int) CONN_IPC)
-	disconnect_from_server (s, batch && !quick);
+	disconnect_from_server
+	  (s, (batch && !quick)
+	   ? PRINT_BEHAVIOR_PRINT : PRINT_BEHAVIOR_NO_PRINT);
 #endif /* !SYSV_IPC */
     }
 
@@ -618,7 +639,7 @@ main (int argc, char *argv[])
 	 data, and disconnect doesn't do anything else. */
 #ifdef SYSV_IPC
 	  if (connect_type == (int) CONN_IPC)
-	    disconnect_from_ipc_server (s, msgp, FALSE);
+	    disconnect_from_ipc_server (s, msgp, PRINT_BEHAVIOR_NO_PRINT);
 #endif /* !SYSV_IPC */
 
 	  emacs_pid = (pid_t)atol(buffer);
@@ -753,10 +774,10 @@ main (int argc, char *argv[])
 
 #ifdef SYSV_IPC
       if (connect_type == (int) CONN_IPC)
-	disconnect_from_ipc_server (s, msgp, TRUE);
+	disconnect_from_ipc_server (s, msgp, PRINT_BEHAVIOR_PRINT_NON_NIL);
 #else /* !SYSV_IPC */
       if (connect_type != (int) CONN_IPC)
-	disconnect_from_server (s, TRUE);
+	disconnect_from_server (s, PRINT_BEHAVIOR_PRINT_NON_NIL);
 #endif /* !SYSV_IPC */
     } /* not batch */
 

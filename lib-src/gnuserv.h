@@ -56,15 +56,28 @@
 #undef signal
 
 /* Define the communication method between server and clients:
- *   You can have either or both kinds of sockets, but you can't mix
- *   sockets with sysv ipc
- */
 
+   You can have either or both kinds of sockets, but you can't mix sockets
+   with sysv ipc.
 
+   Sysv ipc is not working (not even compiling), and from the history cannot
+   have worked since the addition of tell_emacs_to_resume() in 1997. Not clear
+   that there is much value from fixing this given no complaints in the
+   interim, but I likely will. Aidan Kehoe, Sa 13. Dez 08:19:04 GMT 2025 */
+
+#ifdef HAVE_SOCKETS
 #define INTERNET_DOMAIN_SOCKETS
+#endif
+
 #ifdef HAVE_SYS_UN_H
 #define UNIX_DOMAIN_SOCKETS 
-/* #define SYSV_IPC  */
+#endif
+
+#ifdef HAVE_SYSVIPC
+#if !defined (INTERNET_DOMAIN_SOCKETS) && !defined (UNIX_DOMAIN_SOCKETS)
+#define SYSV_IPC
+#include <fcntl.h>
+#endif
 #endif
 
 /*
@@ -213,14 +226,21 @@ extern char *tmpdir;
 #define CONN_INTERNET 1
 #define CONN_IPC      2
 
+enum print_behavior
+{
+  PRINT_BEHAVIOR_NO_PRINT,
+  PRINT_BEHAVIOR_PRINT,
+  PRINT_BEHAVIOR_PRINT_NON_NIL
+};
+
 /* function declarations */
 int make_connection (char *hostarg, int portarg, int *s);
 #ifdef SYSV_IPC
-void disconnect_from_ipc_server();
+void disconnect_from_ipc_server (int, struct msgbuf *, enum print_behavior);
 #endif
 #if defined(INTERNET_DOMAIN_SOCKETS) || defined(UNIX_DOMAIN_SOCKETS)
 void send_string (int s, const char *msg);
-void disconnect_from_server (int s, int echo);
+void disconnect_from_server (int s, enum print_behavior);
 int read_line (int s, char *dest, size_t destsize);
 #endif
 #ifdef INTERNET_DOMAIN_SOCKETS

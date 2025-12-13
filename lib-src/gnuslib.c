@@ -169,7 +169,7 @@ connect_to_ipc_server (void)
   key_t key;			/* message key */
   char buf[GSERV_BUFSZ+1];		/* buffer for filename */
 
-  sprintf(buf,"%s/gsrv%d",tmpdir,(int)geteuid());
+  snprintf (buf, sizeof (buf), "%s/gsrv%d", tmpdir, (int) geteuid());
   creat(buf,0600);
   if ((key = ftok(buf,1)) == -1) {
     perror(progname);
@@ -194,7 +194,8 @@ connect_to_ipc_server (void)
                                 and wait for its reply.
 */
 void
-disconnect_from_ipc_server (int s, struct msgbuf *msgp, int echo)
+disconnect_from_ipc_server (int s, struct msgbuf *msgp,
+			    enum print_behavior echo)
 {
   int len;			/* length of received message */
 
@@ -213,11 +214,18 @@ disconnect_from_ipc_server (int s, struct msgbuf *msgp, int echo)
     exit(1);
   }; /* if */
 
-  if (echo) {
-    msgp->mtext[len] = '\0';	/* string terminate message */
-    fputs(msgp->mtext, stdout);
-    if (msgp->mtext[len-1] != '\n') putchar ('\n');
-  }; /* if */
+  if (echo != PRINT_BEHAVIOR_NO_PRINT)
+    {
+      msgp->mtext[len] = '\0';  /* string terminate message */
+      if (echo == PRINT_BEHAVIOR_PRINT_NON_NIL
+          && len >= 3 && (!strcmp (msgp->mtext, "nil\n")
+                          || !strcmp (msgp->mtext, "nil")))
+        {
+          return;
+        }
+      fputs(msgp->mtext, stdout);
+      if (msgp->mtext[len-1] != '\n') putchar ('\n');
+    }
 
 } /* disconnect_from_ipc_server */  
 #endif /* SYSV_IPC */
@@ -461,7 +469,7 @@ connect_to_internet_server (char *serverhost, unsigned short port)
                             its reply.
 */
 void
-disconnect_from_server (int s, int echo)
+disconnect_from_server (int s, enum print_behavior echo)
 {
 #if 0
   char buffer[REPLYSIZ+1];
@@ -487,26 +495,32 @@ disconnect_from_server (int s, int echo)
   }; /* if */
 #endif
 
-#if 0
-  while((length = recv(s,buffer,REPLYSIZ,0)) > 0) {
-    buffer[length] = '\0';
-    if (echo) fputs(buffer,stdout);
-    add_newline = (buffer[length-1] != '\n');
-  }; /* while */
-#else
   while ((length = read(s,buffer,GSERV_BUFSZ)) > 0 ||
-      (length == -1 && errno == EINTR)) {
-    if (length > 0) {
-      buffer[length] = '\0';
-      if (echo) {
-	fputs(buffer,stdout);
-	add_newline = (buffer[length-1] != '\n');
-      }; /* if */
-    }; /* if */
-  }; /* while */
-#endif
+         (length == -1 && errno == EINTR))
+    {
+      if (length > 0)
+        {
+          buffer[length] = '\0';
+          if (echo != PRINT_BEHAVIOR_NO_PRINT)
+            {
+              if (echo == PRINT_BEHAVIOR_PRINT_NON_NIL
+                  && length >= 3 && (!strcmp (buffer, "nil\n")
+                                     || !strcmp (buffer, "nil")))
+
+                {
+                  return;
+                }
+
+            fputs(buffer,stdout);
+            add_newline = (buffer[length-1] != '\n');
+          }
+        }
+    }
   
-  if (echo && add_newline) putchar('\n');
+  if (echo != PRINT_BEHAVIOR_NO_PRINT && add_newline)
+    {
+      putchar('\n');
+    }
 
   if(length < 0) {
     perror(progname);

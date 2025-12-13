@@ -1,3 +1,30 @@
+2025-12-13  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Revert to not printing the nil result of #'gnuserv-edit-files
+	after gnuclient finishes up.
+	* gnuserv.h:
+	Document that SYSV_IPC hasn't worked since 1997. Wrap the
+	INTERNET_DOMAIN_SOCKETS #define in #ifdef HAVE_SOCKET. Wrap the
+	SYSV_IPC #define in #ifdef HAVE_SYSVIPC and !defined
+	(INTERNET_DOMAIN_SOCKETS) and !defined (UNIX_DOMAIN_SOCKETS).
+	* gnuserv.h (enum print_behavior):
+	New enum, specifying print behaviour for
+	disconnect_from_ipc_server(), disconnect_from_server
+	* gnuclient.c:
+	Counter an argument from Ben that gnuclient should be moved into
+	the XEmacs binary. I agree with him that gnuserv should likely be
+	in the XEmacs.
+	* gnuclient.c (tell_emacs_to_resume):
+	Pass PRINT_BEHAVIOR_NO_PRINT to disconnect_from{,_ipc}_server().
+	* gnuclient.c (main):
+	Ditto.
+	* gnuslib.c (connect_to_ipc_server):
+	Use snprintf() here now we have it.
+	* gnuslib.c (disconnect_from_ipc_server):
+	Implement that PRINT_BEHAVIOR_PRINT_NON_NIL value for ECHO.
+	* gnuslib.c (disconnect_from_server):
+	Ditto.
+
 2025-12-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* gnuclient.c (main):
