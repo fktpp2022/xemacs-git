@@ -306,7 +306,7 @@ get_doc_string (Lisp_Object filepos)
 static Lisp_Object
 get_built_in_object_file_name (Lisp_Object filepos)
 {
-  Extbyte buf = alloca_extbytes (internal_doc_filename_buffer_size);
+  Extbyte *buf = alloca_extbytes (internal_doc_filename_buffer_size);
   Extbyte *buffer = buf, *p = buf;
   Extbyte *from, *to;
   Bytecount buffer_size = sizeof (buf), space_left, result_len;
