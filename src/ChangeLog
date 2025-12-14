@@ -1,5 +1,10 @@
 2025-12-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* elhash.c:
+	Update and correct the documentation comment for inchash().
+
+2025-12-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Make pdump_hash into a normal Lisp hash table, a working version
 	of 18f4733ccce0 now inchash() supports non-#'eq hash tables.
 

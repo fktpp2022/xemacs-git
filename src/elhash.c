@@ -1363,11 +1363,13 @@ find_htentry (Lisp_Object key, const Lisp_Hash_Table *ht)
   return find_htentry_1 (key, ht);
 }
 
-/* A version of Fputhash() that increments the value by the specified
-   amount and dispenses with all error checks.  Assumes that tables does
-   comparison using EQ.  Used by the profiling routines to avoid
-   overhead -- profiling overhead was being recorded at up to 15% of the
-   total time. */
+/* A version of Fputhash() that increments the existing fixnum value by the
+   specified amount and does minimal error checking.  Initially used by the
+   profiling routines to avoid overhead -- profiling overhead was being
+   recorded at up to 15% of the total time.
+
+   Returns the found htentry in the same way as find_htentry(). Returns NULL if
+   the table had to be resized. */
 htentry *
 inchash (Lisp_Object key, Lisp_Object table, EMACS_INT offset)
 {
