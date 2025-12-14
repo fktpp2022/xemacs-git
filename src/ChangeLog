@@ -1,5 +1,12 @@
 2025-12-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* doc.c (get_built_in_object_file_name):
+	Use alloca_extbytes for the buffer, rather than the C99ism of a
+	an array declaration with a length that is not constant at compile
+	time, thank you Microsoft Visual Studio.
+
+2025-12-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* dumper.c (pdump_add_block):
 	Handle resizing of the hash table correctly. Thank you Mats Lidell
 	and the buildbot.
