@@ -1281,11 +1281,11 @@ choose_hash_table_test_for_lookup (const Lisp_Hash_Table *ht, Lisp_Object key)
 
   if (EQ (test, Veql_hash_table_test))
     {
-      if (!NON_FIXNUM_NUMBER_P (key))
+      if (NON_FIXNUM_NUMBER_P (key))
 	{
-	  return Veq_hash_table_test;
+	  return Vequal_hash_table_test;
 	}
-      return test;
+      return Veq_hash_table_test;
     }
   
   if (EQ (test, Vequal_hash_table_test))
