@@ -143,7 +143,7 @@ void
 profile_record_consing (EMACS_INT size)
 {
   in_profiling++;
-  inchash_eq (current_profile_function (), Vgc_usage_profile_table, size);
+  inchash (current_profile_function (), Vgc_usage_profile_table, size);
   in_profiling--;
 }
 
@@ -181,7 +181,7 @@ profile_sow_backtrace (struct backtrace *bt)
   /* Make sure an entry for this function exists in the big profile table,
      growing it as needed. */
   profiling_lock = 1;
-  inchash_eq (*bt->function, Vbig_profile_table, 0);
+  inchash (*bt->function, Vbig_profile_table, 0);
   profiling_lock = 0;
 }
 
@@ -192,9 +192,9 @@ profile_record_about_to_call (struct backtrace *bt)
   profiling_lock = 1;
   /* Force an entry for this function to exist in Vbig_profile_table,
      enlarging it now if needed. */
-  inchash_eq (*bt->function, Vbig_profile_table, 0);
+  inchash (*bt->function, Vbig_profile_table, 0);
   profiling_lock = 0;
-  inchash_eq (*bt->function, Vcall_count_profile_table, 1);
+  inchash (*bt->function, Vcall_count_profile_table, 1);
   /* This may be set if the function was in its preamble at the time that
      `start-profiling' was called.  If so, we shouldn't reset the values
      because we may get inconsistent results, since we have already started
@@ -273,7 +273,7 @@ sigprof_handler (int UNUSED (signo))
 	 than that anyways, since we'll longjmp back to the last
 	 condition case. */
       profiling_lock = 1;
-      ht = inchash_eq (fun, Vbig_profile_table, 1);
+      ht = inchash (fun, Vbig_profile_table, 1);
       /* realloc() is not re-entrant, if we needed to enlarge the table,
 	 crash. */
       assert (ht != NULL);

@@ -126,7 +126,7 @@ Lisp_Object Vprint_number_table;
 enum PRINT_NUMBER_FIELDS {
   /* Lowest four bits describe the number of times a given object has
      been seen, allowing entries to be manipulated cheaply by
-     inchash_eq() when encountered. */
+     inchash () when encountered. */
   PRINT_NUMBER_SEEN_MASK = 0xF,
 
   /* The next twenty-five bits give the sequence number for the object,
@@ -1665,13 +1665,13 @@ printing_major_badness (Lisp_Object printcharfun,
 }
 
 /* Not static only because of print_preprocess_cons. */
-Elemcount print_preprocess_inchash_eq (Lisp_Object, Lisp_Object, Elemcount *); 
+Elemcount print_preprocess_inchash (Lisp_Object, Lisp_Object, Elemcount *); 
 
 Elemcount
-print_preprocess_inchash_eq (Lisp_Object obj, Lisp_Object table,
+print_preprocess_inchash (Lisp_Object obj, Lisp_Object table,
                              Elemcount *seen_object_count)
 {
-  htentry *hte = inchash_eq (obj, table, 1);
+  htentry *hte = inchash (obj, table, 1);
   Elemcount extracted;
 
   /* If the hash table had to be resized, hte is NULL. */
@@ -1718,12 +1718,12 @@ print_preprocess (Lisp_Object object, Lisp_Object print_number_table,
     {
       /* Handle symbols specially. We do this here rather than in symbols.c
          because we don't want to have all the other print_preprocess methods 
-         worry about print_preprocess_inchash_eq. */
+         worry about print_preprocess_inchash. */
       return;
     }
 
-  if (print_preprocess_inchash_eq (object, print_number_table,
-                                   seen_object_count) > 1)
+  if (print_preprocess_inchash (object, print_number_table,
+				seen_object_count) > 1)
     {
       return;
     }

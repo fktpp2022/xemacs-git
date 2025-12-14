@@ -1,5 +1,35 @@
 2025-12-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Generalize inchash_eq() to handle hash tables with non-#'eq tests,
+	with no significant loss of speed when tests are #'eq, in
+	preparation for using it for pdump_hash.
+
+	* alloc.c:
+	* alloc.c (cons_print_preprocess):
+	* elhash.c:
+	* elhash.c (find_htentry_1): New. Inline version of
+	find_htentry(). 
+	* elhash.c (find_htentry): Implement find_htentry by just calling
+	find_htentry_1().
+	* elhash.c (inchash): Rename inchash_eq() to this.
+	Call find_htentry_1() rather than LINEAR_PROBING_LOOP() ourselves.
+	* elhash.h:
+	Update declaration of inchash_eq().
+	* print.c:
+	* print.c (print_preprocess_inchash): New name for
+	print_preprocess_inchash_eq(). Call inchash() instead of
+	inchash_eq().
+	* print.c (print_preprocess):
+	Call print_preprocess_inchash() in here.
+	* profile.c (profile_record_consing): Call inchash() here with its
+	new name.
+	* profile.c (profile_sow_backtrace): Ditto.
+	* profile.c (profile_record_about_to_call): Ditto.
+	* profile.c (sigprof_handler): Ditto.
+	* symbols.c (symbol_print_preprocess): Update a comment here.
+
+2025-12-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* elhash.c (choose_hash_table_test_for_lookup):
 	If TEST is #'eql, and KEY is a non-fixnum number, return
 	Vequal_hash_table_test here, rather than Veql_hash_table_test,

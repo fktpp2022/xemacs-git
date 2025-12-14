@@ -125,7 +125,7 @@ symbol_print_preprocess (Lisp_Object UNUSED (symbol),
                          Elemcount * UNUSED (seen_object_count))
 {
   /* This method is empty; symbols are handled specially in
-     print_preprocess, because print_preprocess_inchash_eq() is conditional
+     print_preprocess, because print_preprocess_inchash() is conditional
      for them, rather than a given. */
 }
 

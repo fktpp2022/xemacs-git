@@ -1305,8 +1305,8 @@ choose_hash_table_test_for_lookup (const Lisp_Hash_Table *ht, Lisp_Object key)
   return test;
 }
 
-htentry *
-find_htentry (Lisp_Object key, const Lisp_Hash_Table *ht)
+static inline htentry *
+find_htentry_1 (Lisp_Object key, const Lisp_Hash_Table *ht)
 {
   Lisp_Object test = choose_hash_table_test_for_lookup (ht, key);
   htentry *entries = ht->hentries;
@@ -1356,23 +1356,23 @@ find_htentry (Lisp_Object key, const Lisp_Hash_Table *ht)
 
   return probe;
 }
+
+htentry *
+find_htentry (Lisp_Object key, const Lisp_Hash_Table *ht)
+{
+  return find_htentry_1 (key, ht);
+}
+
 /* A version of Fputhash() that increments the value by the specified
    amount and dispenses with all error checks.  Assumes that tables does
    comparison using EQ.  Used by the profiling routines to avoid
    overhead -- profiling overhead was being recorded at up to 15% of the
    total time. */
-
 htentry *
-inchash_eq (Lisp_Object key, Lisp_Object table, EMACS_INT offset)
+inchash (Lisp_Object key, Lisp_Object table, EMACS_INT offset)
 {
   Lisp_Hash_Table *ht = XHASH_TABLE (table);
-  Hash_Table_Test *http = XHASH_TABLE_TEST (ht->test);
-  htentry *entries = ht->hentries;
-  htentry *probe = entries + HASHCODE (key, ht, http);
-
-  LINEAR_PROBING_LOOP (probe, entries, ht->size)
-    if (EQ (probe->key, key))
-      break;
+  htentry *probe = find_htentry_1 (key, ht);
 
   if (!HTENTRY_CLEAR_P (probe))
     probe->value = make_fixnum (XFIXNUM (probe->value) + offset);

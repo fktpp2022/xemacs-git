@@ -1197,8 +1197,8 @@ cons_equal (Lisp_Object ob1, Lisp_Object ob2, int depth, int foldcase)
 }
 
 extern Elemcount
-print_preprocess_inchash_eq (Lisp_Object obj, Lisp_Object table,
-                             Elemcount *seen_object_count);
+print_preprocess_inchash (Lisp_Object obj, Lisp_Object table,
+			  Elemcount *seen_object_count);
 
 static void
 cons_print_preprocess (Lisp_Object object, Lisp_Object print_number_table,
@@ -1215,8 +1215,8 @@ cons_print_preprocess (Lisp_Object object, Lisp_Object print_number_table,
           break;
         }
 
-      if (print_preprocess_inchash_eq (object, print_number_table,
-                                       seen_object_count) > 1)
+      if (print_preprocess_inchash (object, print_number_table,
+				    seen_object_count) > 1)
         {
           return;
         }
