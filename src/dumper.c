@@ -42,6 +42,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "lstream.h"
 #include "sysfile.h"
 #include "console-stream.h"
+#include "opaque.h"
 
 #ifdef WIN32_NATIVE
 #include "syswindows.h"
@@ -537,70 +538,61 @@ static int pdump_fd;
 static void *pdump_buf;
 static FILE *pdump_out;
 
-#define PDUMP_HASHSIZE        2164111
+#define PDUMP_HASHSIZE        114704
 
-static pdump_block_list_elt **pdump_hash;
+static Lisp_Object Vpdump_hash;
 
-/* Since most pointers are eight bytes aligned, the >>3 allows for a better hash */
-static int
-pdump_make_hash (const void *obj)
+static inline Lisp_Object
+pdump_void_ptr_to_lisp (const void *obj)
 {
-  return ((EMACS_UINT)(obj)>>3) % PDUMP_HASHSIZE;
+  if (((const EMACS_UINT) obj) & 1)
+    {
+      return make_opaque_ptr ((void *) obj);
+    }
+  return STORE_VOID_IN_LISP ((void *) obj);
 }
 
 /* Return the entry for an already-registered memory block at OBJ,
    or NULL if none. */
-
-static pdump_block_list_elt *
+static inline pdump_block_list_elt *
 pdump_get_block (const void *obj)
 {
-  int pos = pdump_make_hash (obj);
-  pdump_block_list_elt *e;
-
+  htentry *e = find_htentry (pdump_void_ptr_to_lisp (obj),
+			     XHASH_TABLE (Vpdump_hash));
   assert (obj != 0);
-
-  while ((e = pdump_hash[pos]) != 0)
+  if (HTENTRY_CLEAR_P (e))
     {
-      if (e->obj == obj)
-	return e;
-
-      pos++;
-      if (pos == PDUMP_HASHSIZE)
-	pos = 0;
+      return NULL;
     }
-  return 0;
+
+  return (pdump_block_list_elt *) GET_VOID_FROM_LISP (e->value);
 }
 
-/* Register a new memory block or return the entry for an already-registered
-   memory block at OBJ, or NULL if none. */
-
+/* Register OBJ (of size SIZE, with COUNT elements) as a new memory block. If
+   OBJ is already registered, do nothing. */
 static void
 pdump_add_block (pdump_block_list *list, const void *obj, Bytecount size,
 		 Elemcount count)
 {
   pdump_block_list_elt *e;
-  int pos = pdump_make_hash (obj);
+  htentry *probe
+    = inchash (pdump_void_ptr_to_lisp (obj), Vpdump_hash, 0);
 
-  while ((e = pdump_hash[pos]) != 0)
+  if (!EQ (probe->value, Qzero))
     {
-      if (e->obj == obj)
-	return;
-
-      pos++;
-      if (pos == PDUMP_HASHSIZE)
-	pos = 0;
+      return;
     }
 
   e = xnew (pdump_block_list_elt);
-
   e->next = list->first;
   e->obj = obj;
   e->size = size;
   e->count = count;
-  list->first = e;
 
+  list->first = e;
   list->count += count;
-  pdump_hash[pos] = e;
+
+  probe->value = STORE_VOID_IN_LISP ((void *) e);
 
   {
     int align = pdump_size_to_align (size);
@@ -2029,7 +2021,7 @@ pdump (void)
   int none;
   pdump_header header;
   int speccount = specpdl_depth ();
-  struct gcpro gcpro1, gcpro2;
+  struct gcpro gcpro1, gcpro2, gcpro3;
 
   in_pdump = 1;
 
@@ -2064,7 +2056,14 @@ pdump (void)
     = make_lisp_hash_table (Dynarr_length (staticpros) / 5,
                             HASH_TABLE_NON_WEAK, Qeq);
 
-  GCPRO2 (Vstaticpros_hash, Vstaticpros_nodump_block_offsets);
+  /* Qequal because some entries (for non-aligned pointers) are of type
+     opaque-ptr. Lookup ends up using #'eq for the vast majority of lookups;
+     aligned pointers are represented as fixnums using
+     STORE_VOID_IN_LISP(). */
+  Vpdump_hash = make_lisp_hash_table (PDUMP_HASHSIZE, HASH_TABLE_NON_WEAK,
+				      Qequal);
+
+  GCPRO3 (Vstaticpros_hash, Vstaticpros_nodump_block_offsets, Vpdump_hash);
 
   {
     Elemcount ii;
@@ -2074,8 +2073,6 @@ pdump (void)
                   Qt, Vstaticpros_hash);
       }
   }
-
-  pdump_hash = xnew_array_and_zero (pdump_block_list_elt *, PDUMP_HASHSIZE);
 
   for (i = 0; i<lrecord_type_count; i++)
     {
@@ -2279,8 +2276,6 @@ pdump (void)
   retry_close (pdump_fd); */
 
   free (pdump_buf);
-
-  free (pdump_hash);
 
   UNGCPRO;
   unbind_to (speccount);

@@ -1,5 +1,28 @@
 2025-12-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Make pdump_hash into a normal Lisp hash table, a working version
+	of 18f4733ccce0 now inchash() supports non-#'eq hash tables.
+
+	* dumper.c:
+	* dumper.c (PDUMP_HASHSIZE): Revise this to reflect the SIZE
+	argument to make_lisp_hash_table().
+	Rename pdump_hash to Vpdump_hash, change its type to a
+	Lisp_Object.
+	* dumper.c (pdump_void_ptr_to_lisp): New inline function, return a
+	fixnum using STORE_VOID_TO_LISP() if its argument has a zero least
+	significant bit, return an opaque-ptr object if that bit is one.
+	* dumper.c (pdump_get_block):
+	Use pdump_void_ptr_to_lisp(), find_htentry() here.
+	* dumper.c (pdump_add_block):
+	Use pdump_void_ptr_to_lisp(), inchash() here.
+	The allocated pdump_block_list_elt is aligned, we can store it in
+	Vpdump_hash using STORE_VOID_IN_LISP() unconditionally.
+	* dumper.c (pdump):
+	Initialize Vpdump_hash as an #'equal Lisp hash table. No need to
+	explicitly free it.
+
+2025-12-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Generalize inchash_eq() to handle hash tables with non-#'eq tests,
 	with no significant loss of speed when tests are #'eq, in
 	preparation for using it for pdump_hash.
