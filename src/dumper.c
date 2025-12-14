@@ -578,6 +578,13 @@ pdump_add_block (pdump_block_list *list, const void *obj, Bytecount size,
   htentry *probe
     = inchash (pdump_void_ptr_to_lisp (obj), Vpdump_hash, 0);
 
+  if (probe == NULL)
+    {
+      /* An entry was added and the table was resized; re-fetch the entry. */
+      probe = find_htentry (pdump_void_ptr_to_lisp (obj),
+                            XHASH_TABLE (Vpdump_hash));
+    }
+
   if (!EQ (probe->value, Qzero))
     {
       return;

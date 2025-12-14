@@ -1,5 +1,11 @@
 2025-12-14  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* dumper.c (pdump_add_block):
+	Handle resizing of the hash table correctly. Thank you Mats Lidell
+	and the buildbot.
+
+2025-12-14  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* elhash.c:
 	Update and correct the documentation comment for inchash().
 
