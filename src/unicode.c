@@ -3412,10 +3412,34 @@ unicode_decode (struct coding_stream *str, const UExtbyte *src,
 
 	      if (valid_unicode_leading_surrogate (ch))
 		continue;
+
+	      if (valid_unicode_trailing_surrogate (ch))
+		{
+		  if (little_endian)
+		    {
+		      UNICODE_DECODE_ERROR_OCTET (ch & 0xFF, dst, data,
+						  ignore_bom);
+		      UNICODE_DECODE_ERROR_OCTET ((ch >> 8) & 0xFF, dst,
+						  data, ignore_bom);
+
+		    }
+		  else
+		    {
+		      UNICODE_DECODE_ERROR_OCTET ((ch >> 8) & 0xFF, dst,
+						  data, ignore_bom);
+		      UNICODE_DECODE_ERROR_OCTET (ch & 0xFF, dst, data,
+						  ignore_bom);
+		    }
+		  ch = 0;
+		  counter = 0;
+		  data->characters_seen += 2;
+		  continue;
+		}
+
 	      ch = 0;
 	      counter = 0;
 	      decode_unicode_to_dynarr_0 (tempch, dst, data, ignore_bom);
-              data->characters_seen++;
+	      data->characters_seen++;
 	    }
 	  else if (32 == counter)
 	    {
@@ -3488,12 +3512,30 @@ unicode_decode (struct coding_stream *str, const UExtbyte *src,
 	  counter += 8;
 	  if (counter == 32)
 	    {
-	      if (ch > UNICODE_OFFICIAL_MAX)
+	      if (valid_unicode_codepoint_p (ch,
+					     UNICODE_OFFICIAL_ONLY))
 		{
-		  /* ch is not a legal Unicode character. We're fine
-		     with that in UCS-4, though not in UTF-32. */
+		  decode_unicode_to_dynarr_0 (ch, dst, data, ignore_bom);
+                  data->characters_seen++;
+		}
+	      else
+		{
+		  /* CH is not a legal Unicode character. UCS-4 traditionally
+		     had a larger codespace than UTF-32, though more recent
+		     version of the standard conflate them, so tolerate code
+		     points that fit our UNICODE_ALLOW_PRIVATE scheme.
+
+		     We can't tolerate the full range of UCS-4, since that
+		     would push CHAR-CODE-LIMIT above MOST-POSITIVE-FIXNUM on
+		     32-bit builds.
+
+		     #### This is unclean, we ideally shouldn't let external
+		     coding systems create private-use XEmacs characters.  We
+		     should likely move to treating UCS-4 as UTF-32 in the same
+		     way recent standards do. */
 		  if (UNICODE_UCS_4 == type &&
-		      (unsigned long) ch < 0x80000000L)
+		      valid_unicode_codepoint_p (ch,
+						 UNICODE_ALLOW_PRIVATE))
 		    {
 		      decode_unicode_to_dynarr_0 (ch, dst,
 						  data, ignore_bom);
@@ -3523,11 +3565,6 @@ unicode_decode (struct coding_stream *str, const UExtbyte *src,
 						  data, ignore_bom);
                       data->characters_seen += 4;
 		    }
-		}
-	      else
-		{
-		  decode_unicode_to_dynarr_0 (ch, dst, data, ignore_bom);
-                  data->characters_seen++;
 		}
 	      ch = 0;
 	      counter = 0;

@@ -757,6 +757,18 @@ does not modify the supplied string if it differs from the supplied string."))
                     (decode-char 'ucs code-point) 'utf-16-le)
                    utf-16-little-endian)))
 
+  ;; Byte order mark followed by a trailing surrogate, needs to decode as byte
+  ;; order mark followed by two invalid sequence characters. Should not crash.
+  (Assert (eql (length (decode-coding-string (apply #'string '(254 255 221 61))
+					     'utf-16))
+	       3))
+
+  ;; Same sequence but with a UCS-4 encoding; error octets come out as four
+  ;; chars.
+  (Assert (eql (length (decode-coding-string (apply #'string '(255 254 0 0 61 221 0 0))
+					     'ucs-4-little-endian))
+	       5))
+
   ;; Create a 256x256 charset and test that we can assign Unicode codepoints
   ;; to all charset codepoints, and the conversion works in both directions.
   ;; Then remove all conversions and test that conversion in both directions

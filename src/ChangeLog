@@ -1,3 +1,16 @@
+2025-12-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* unicode.c (unicode_decode):
+	On encountering an isolated trailing surrogate with UTF-16, decode
+	two error octets rather than passing the code point to
+	decode_unicode_to_dynarr_0() and crashing with error checking.
+	Thank you for the bug report, Stephen Turnbull.
+	Similar for UTF-32.
+	For UCS-4, allow decoding into our private unicode code space, but
+	if a code point is encountered outside of that, generate error
+	octets. Add a comment motivating an eventual change to restricting
+	the Unicode code points accepted by UCS-4.
+
 2025-12-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* doc.c (get_built_in_object_file_name):
