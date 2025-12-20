@@ -1,5 +1,62 @@
 2025-12-20  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Silence warnings, Visual Studio.
+
+	* regex.c (offset_to_bytexpos):
+	Take OFF as a Bytecount rather than an int.
+	* regex.c (print_partial_compiled_pattern):
+	Cast the argument to putchar() to int if it is less than 0x80.
+	* regex.c (print_double_string):
+	Rename THIS_CHAR to the less confusing THIS_OFFSET, declare it as
+	a Bytecount.
+	* regex.c (PUSH_FAILURE_POINTER):
+	re_char * is already const, don't add another const qualifier
+	here.
+	* regex.c (CHECK_INFINITE_LOOP):
+	Declare FAILURE as an Elemcount.
+	* regex.c (PUSH_FAILURE_POINT):
+	Cast fail_stack.frame to an unsigned int when pushing it.
+	* regex.c (STORE_JUMP):
+	Cast the third argument to store_op1() to int (it represents an
+	offset in the pattern, which is limited to sixteen bits in length,
+	so this is fine).
+	* regex.c (STORE_JUMP2):
+	Ditto for the third argument to store_op2().
+	* regex.c (INSERT_JUMP):
+	Ditto for the third argument to insert_op1().
+	* regex.c (INSERT_JUMP2):
+	Ditto for the third argument to insert_op2().
+	* regex.c (GET_UNSIGNED_NUMBER):
+	Cast the result of XREALFIXNUM() to int, since we know it will fit
+	in a 32-bit integer and doing this silences a Visual Studio warning.
+	* regex.c (regex_compile):
+	Declare I, OLD_SIZE as Elemcount.
+	Cast begalt - bufp->buffer to pattern_offset_t, which is fine,
+	given we know the pattern offset is limited to a sixteen bit
+	value.
+	Cast the fourth argument of insert_op2() to int, same motivation.
+	Cast the second argument to set_itext_ichar() to Ichar, suppress
+	a warning.
+	* regex.c (re_compile_fastmap):
+	Ditto.
+	* regex.c (re_search_2):
+	Cast any adjustments to RANGE to int, silence warnings. Right
+	thing to do is redeclare re_search_2 in terms of Bytecount and
+	friends, given nothing that is non-XEmacs uses it.
+	Remove a comment /* whose stupid idea was it anyway to make this
+	function take two strings to match?? */; this is intrinsic to the
+	emacs implementation of buffers with insertion at a gap, and is not
+	remotely stupid.
+	* regex.c (skip_noops):
+	Remove a duplicate const qualifier from P, PEND, silence a warning
+	on Visual Studio.
+	* regex.c (re_match_2_internal):
+	Cast to int before assigning to MCNT. Similarly to re_search_2()
+	above, right thing to do is to redeclare this to in terms of
+	Bytecount and friends, given nothing that is non-XEmacs uses it.
+
+2025-12-20  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Rename internal-doc-filename-buffer-size to
 	internal-doc-file-name-buffer-size for consistency.
 	Fix a bug in the last commit to doc.c.

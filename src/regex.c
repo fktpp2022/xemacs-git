@@ -432,7 +432,7 @@ vars_of_regex (void)
    BYTE_BUF_BEGV - BYTE_BUF_ZV. */
 
 static Bytexpos
-offset_to_bytexpos (Lisp_Object lispobj, int off)
+offset_to_bytexpos (Lisp_Object lispobj, Bytecount off)
 {
   if (STRINGP (lispobj))
     return (Bytexpos) off;
@@ -920,14 +920,14 @@ print_partial_compiled_pattern (re_char *start, re_char *end)
 		unified_range_table_get_range ((void *) p, i, &first,
                                                &last, &dummy_val);
 		if (first < 0x80)
-		  putchar (first);
+		  putchar ((int) first);
 		else
 		  printf ("(0x%zx)", (Bytecount)first);
 		if (first != last)
 		  {
 		    putchar ('-');
 		    if (last < 0x80)
-		      putchar (last);
+		      putchar ((int) last);
 		    else
 		      printf ("(0x%zx)", (Bytecount)last);
 		  }
@@ -1142,18 +1142,22 @@ print_double_string (re_char *where, re_char *string1, int size1,
     printf ("(null)");
   else
     {
-      int this_char;
+      Bytecount this_offset;
 
       if (FIRST_STRING_P (where))
         {
-          for (this_char = where - string1; this_char < size1; this_char++)
-            putchar (string1[this_char]);
+          for (this_offset = where - string1;
+               this_offset < size1;
+               this_offset++)
+            {
+              putchar (string1[this_offset]);
+            }
 
           where = string2;
         }
 
-      for (this_char = where - string2; this_char < size2; this_char++)
-        putchar (string2[this_char]);
+      for (this_offset = where - string2; this_offset < size2; this_offset++)
+        putchar (string2[this_offset]);
     }
 }
 
@@ -1635,7 +1639,7 @@ do                                                                        \
     malloc_checking_assert (NULL == item ||				\
 			    !((item >= string1 && item <= end1) ||	\
 			      (item >= string2 && item <= end2) ||	\
-			      REG_UNSET ((const re_char *)item)));	\
+			      REG_UNSET ((re_char *)item)));	\
     PUSH_FAILURE_POINTER_1 (item);					\
   } while (0)
 
@@ -1742,7 +1746,7 @@ do {									\
 /* Check that we are not stuck in an infinite loop.  */
 #define CHECK_INFINITE_LOOP(pat_cur, string_place)			\
 do {									\
-  int failure = TOP_FAILURE_HANDLE();					\
+  Elemcount failure = TOP_FAILURE_HANDLE();					\
   /* Check for infinite matching loops */				\
   while (failure > 0 &&							\
 	 (FAILURE_STR (failure) == string_place				\
@@ -1802,7 +1806,7 @@ do {									\
       DEBUG_PRINT_COMPILED_PATTERN (bufp, pattern_place, pend);		\
     }									\
 									\
-  PUSH_FAILURE_INT (fail_stack.frame);					\
+  PUSH_FAILURE_INT ((unsigned int) (fail_stack.frame));                 \
   PUSH_FAILURE_RELOCATABLE (string_place);				\
   PUSH_FAILURE_POINTER (pattern_place);					\
 									\
@@ -1950,21 +1954,21 @@ do {									\
 /* Store a jump with opcode OP at LOC to location TO.  We store a
    relative address offset by the three bytes the jump itself occupies.  */
 #define STORE_JUMP(op, loc, to) \
-  store_op1 (op, loc, (to) - (loc) - 3)
+  store_op1 (op, loc, (int) ((to) - (loc) - 3))
 
 /* Likewise, for a two-argument jump.  */
 #define STORE_JUMP2(op, loc, to, arg) \
-  store_op2 (op, loc, (to) - (loc) - 3, arg)
+  store_op2 (op, loc, (int) ((to) - (loc) - 3), arg)
 
 /* Like `STORE_JUMP', but for inserting.  Assume `buf_end' is the
    buffer end.  */
 #define INSERT_JUMP(op, loc, to) \
-  insert_op1 (op, loc, (to) - (loc) - 3, buf_end)
+  insert_op1 (op, loc, (int) ((to) - (loc) - 3), buf_end)
 
 /* Like `STORE_JUMP2', but for inserting.  Assume `buf_end' is the
    buffer end.  */
 #define INSERT_JUMP2(op, loc, to, arg) \
-  insert_op2 (op, loc, (to) - (loc) - 3, arg, buf_end)
+  insert_op2 (op, loc, (int) ((to) - (loc) - 3), arg, buf_end)
 
 /* Extend the buffer by twice its current size via realloc and
    reset the pointers that pointed into the old block to point to the
@@ -2074,7 +2078,7 @@ typedef struct
                                   Vdigit_fixnum_ascii);                 \
       if (FIXNUMP (_gus_numno) && XREALFIXNUM (_gus_numno) >= 0)        \
         {                                                               \
-          num = XREALFIXNUM (_gus_numno);                               \
+          num = (int) XREALFIXNUM (_gus_numno);				\
           p = _gus_numend;                                              \
         }                                                               \
     } while (0)
@@ -3359,8 +3363,8 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 		    while (bufp->external_to_internal_register_size <=
 			   bufp->re_nsub)
 		      {
-			int i;
-			int old_size =
+			Elemcount i;
+			Elemcount old_size =
 			  bufp->external_to_internal_register_size;
 			bufp->external_to_internal_register_size
                           += max (old_size + 5, bufp->re_nsub + 5);
@@ -3395,10 +3399,13 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
                    group.  They are all relative offsets, so that if the
                    whole pattern moves because of realloc, they will still
                    be valid.  */
-                COMPILE_STACK_TOP.begalt_offset = begalt - bufp->buffer;
+                COMPILE_STACK_TOP.begalt_offset
+                  = (pattern_offset_t) (begalt - bufp->buffer);
                 COMPILE_STACK_TOP.fixup_alt_jump
-                  = fixup_alt_jump ? fixup_alt_jump - bufp->buffer + 1 : 0;
-                COMPILE_STACK_TOP.laststart_offset = buf_end - bufp->buffer;
+                  = fixup_alt_jump ?
+                  (pattern_offset_t) (fixup_alt_jump - bufp->buffer + 1) : 0;
+                COMPILE_STACK_TOP.laststart_offset
+                  = (pattern_offset_t) (buf_end - bufp->buffer);
                 COMPILE_STACK_TOP.regnum = shy ? -(bufp->re_ngroups)
 		  : bufp->re_ngroups;
 
@@ -3636,7 +3643,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
                             so that if we fail during matching, we'll
                             reinitialize the bounds.  */
                          insert_op2 (set_number_at, laststart,
-				     buf_end - laststart,
+				     (int) (buf_end - laststart),
                                      upper_bound - 1, buf_end);
                          buf_end += 5;
                        }
@@ -3877,7 +3884,7 @@ regex_compile (re_char *pattern, int size, reg_syntax_t syntax,
 	      Ibyte tmp_buf[MAX_ICHAR_LEN];
 	      int i;
 
-	      bt_count = set_itext_ichar (tmp_buf, c);
+	      bt_count = set_itext_ichar (tmp_buf, (Ichar) c);
 
 	      for (i = 0; i < bt_count; i++)
 		{
@@ -4467,11 +4474,11 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 		/* Ranges below 0x100 can span charsets, but there
 		   are only two (Control-1 and Latin-1), and
 		   either first or last has to be in them. */
-		set_itext_ichar (strr, first);
+		set_itext_ichar (strr, (Ichar) first);
 		fastmap[*strr] = 1;
 		if (last < 0x100)
 		  {
-		    set_itext_ichar (strr, last);
+		    set_itext_ichar (strr, (Ichar) last);
 		    fastmap[*strr] = 1;
 		  }
                 else if (CHAR_CODE_LIMIT == last)
@@ -4494,8 +4501,9 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 		   a dependency on the particular representation. */
 		{
 		  Ibyte strrlast[MAX_ICHAR_LEN];
-		  set_itext_ichar (strr, first);
-		  set_itext_ichar (strrlast, min (last, CHAR_CODE_LIMIT - 1));
+		  set_itext_ichar (strr, (Ichar) first);
+		  set_itext_ichar (strrlast, min ((Ichar) last,
+						  CHAR_CODE_LIMIT - 1));
 		  for (jj = *strr; jj <= *strrlast; jj++)
 		    fastmap[jj] = 1;
 		}
@@ -4590,12 +4598,12 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 		   the top-most allowed character.
 		   */
 		if (first < 0x80)
-		  firstlead = first;
+		  firstlead = (int) first;
 		else
 		  {
 		    Ibyte strr[MAX_ICHAR_LEN];
-		    Bytecount slen = set_itext_ichar (strr, first);
-		    int kk;
+		    Bytecount slen = set_itext_ichar (strr, (Ichar) first);
+		    Bytecount kk;
 		    /* Determine if we're the first character using our
 		       leading byte. */
 		    for (kk = 1; kk < slen; kk++)
@@ -4615,15 +4623,15 @@ re_compile_fastmap (struct re_pattern_buffer *bufp
 		    firstlead = *strr;
 		  }
 		if (last < 0x80)
-		  lastlead = last;
+		  lastlead = (int) last;
 		else
 		  {
 		    Ibyte strr[MAX_ICHAR_LEN];
 		    Bytecount slen
 			    = set_itext_ichar (strr,
-					       min (last,
+					       min ((Ichar) last,
 						    CHAR_CODE_LIMIT - 1));
-		    int kk;
+		    Bytecount kk;
 		    /* Same as above but for the last character using
 		       our leading byte. */
 		    for (kk = 1; kk < slen; kk++)
@@ -5067,7 +5075,7 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
 	{
 	  d = ((const unsigned char *)
 	       (startpos >= size1 ? string2 - size1 : string1) + startpos);
-	  range = itext_ichar_len_fmt (d, fmt);
+	  range = (int) itext_ichar_len_fmt (d, fmt);
 	}
     }
 
@@ -5078,8 +5086,8 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
     {
       if (!BUFFERP (lispobj))
 	return -1;
-      range = (BYTE_BUF_PT (XBUFFER (lispobj))
-	       - BYTE_BUF_BEGV (XBUFFER (lispobj)) - startpos);
+      range = (int) ((BYTE_BUF_PT (XBUFFER (lispobj))
+		      - BYTE_BUF_BEGV (XBUFFER (lispobj)) - startpos));
       if (range < 0)
 	return -1;
     }
@@ -5145,8 +5153,6 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
 	{
 	  if (range > 0)
 	    {
-	      /* whose stupid idea was it anyway to make this
-		 function take two strings to match?? */
 	      int lim = 0;
 	      re_char *orig_d;
 	      re_char *stop_d;
@@ -5183,8 +5189,8 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
 		 was at begline. */
 	      if (d < stop_d)
 		INC_IBYTEPTR_FMT (d, fmt);
-	      range -= d - orig_d;
-	      startpos += d - orig_d;
+	      range -= (int) (d - orig_d);
+	      startpos += (int) (d - orig_d);
 	      assert (!forward_search_p || range >= 0);
 	    }
 	  else if (range < 0)
@@ -5253,7 +5259,7 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
 			break;
 #endif /* emacs */
 		      INC_IBYTEPTR_FMT (d, fmt);
-		      range -= (d - old_d);
+		      range -= (int) (d - old_d);
 		      assert (!forward_search_p || range >= 0);
 		    }
 		}
@@ -5269,7 +5275,7 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
 		      if (fastmap[*tempch])
 			break;
 		      INC_IBYTEPTR_FMT (d, fmt);
-		      range -= (d - old_d);
+		      range -= (int) (d - old_d);
 		      assert (!forward_search_p || range >= 0);
 		    }
 		}
@@ -5280,7 +5286,7 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
 		    {
 		      re_char *old_d = d;
 		      INC_IBYTEPTR (d);
-		      range -= (d - old_d);
+		      range -= (int) (d - old_d);
                       assert (!forward_search_p || range >= 0);
 		    }
 		}
@@ -5360,9 +5366,9 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
 	  d = ((const unsigned char *)
 	       (startpos >= size1 ? string2 - size1 : string1) + startpos);
 	  d_size = itext_ichar_len_fmt (d, fmt);
-	  range -= d_size;
+	  range -= (int) d_size;
           assert (!forward_search_p || range >= 0);
-	  startpos += d_size;
+	  startpos += (int) d_size;
 	}
       else
 	{
@@ -5373,9 +5379,9 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
 	       (startpos > size1 ? string2 - size1 : string1) + startpos);
 	  DEC_IBYTEPTR_FMT (d, fmt);
 	  d_size = itext_ichar_len_fmt (d, fmt);
-	  range += d_size;
+	  range += (int) d_size;
           assert (!forward_search_p || range >= 0);
-	  startpos -= d_size;
+	  startpos -= (int) d_size;
 	}
     }
   UNBIND_REGEX_MALLOC_CHECK ();
@@ -5456,8 +5462,8 @@ re_search_2 (struct re_pattern_buffer *bufp, const char *str1,
 /* Optimization routines.  */
 
 /* Jump over non-matching operations.  */
-static const re_char *
-skip_noops (const re_char *p, const re_char *pend, re_bool memory)
+static re_char *
+skip_noops (re_char *p, re_char *pend, re_bool memory)
 {
   int mcnt;
   while (p < pend)
@@ -6182,9 +6188,9 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
                         nfailure_points_pushed - nfailure_points_popped);
           DEBUG_MATCH_PRINT ("%u registers pushed.\n", num_regs_pushed);
 
-          mcnt = d - pos - (MATCHING_IN_FIRST_STRING
-			    ? string1
-			    : string2 - size1);
+          mcnt = (int) (d - pos - (MATCHING_IN_FIRST_STRING
+                                   ? string1
+                                   : string2 - size1));
 
           DEBUG_MATCH_PRINT ("Returning %d from re_match_2.\n", mcnt);
 
@@ -6231,7 +6237,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 		  p += pat_len;
 		  INC_IBYTEPTR_FMT (d, fmt);
 		  
-		  mcnt -= pat_len;
+		  mcnt -= (int) pat_len;
 #else /* not emacs */
 		  REGEX_PREFETCH ();
 		  if ((unsigned char) RE_TRANSLATE_1 (*d++) != *p++)
@@ -6262,7 +6268,7 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 		      p += pat_len;
 		      INC_IBYTEPTR_FMT (d, fmt);
 		  
-		      mcnt -= pat_len;
+		      mcnt -= (int) pat_len;
 		    }
 		  while (mcnt > 0);
 		}
@@ -6435,12 +6441,12 @@ re_match_2_internal (struct re_pattern_buffer *bufp, re_char *string1,
 		REGEX_PREFETCH ();
 
 		/* How many characters left in this segment to match.  */
-		mcnt = dend - d;
+		mcnt = (int) (dend - d);
 
 		/* Want how many consecutive characters we can match in
                    one shot, so, if necessary, adjust the count.  */
                 if (mcnt > dend2 - d2)
-		  mcnt = dend2 - d2;
+		  mcnt = (int) (dend2 - d2);
 
 		/* Compare that many; failure if mismatch, else move
                    past them.  */
