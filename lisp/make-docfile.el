@@ -628,11 +628,11 @@ than `build-directory' if appropriate. "
                                                   function))))
                              (set-compiled-function-documentation
                               function offset)))))))))
-	       (setq internal-doc-filename-buffer-size max)
+	       (setq internal-doc-file-name-buffer-size max)
 	       ;; This is a private variable to doc.c, don't offer Lisp the
 	       ;; temptation of modifying it at runtime to something
 	       ;; unreasonable. See vars_of_doc().
-	       (unintern 'internal-doc-filename-buffer-size))))
+	       (unintern 'internal-doc-file-name-buffer-size))))
 
          (kludgily-ignore-lost-doc-p (symbol)
            ;; Don't warn about functions whose doc was lost because they were

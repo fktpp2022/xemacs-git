@@ -38,7 +38,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 Lisp_Object Vinternal_doc_file_name;
 Lisp_Object Qdefvar, Qfunction_documentation;
 
-Bytecount internal_doc_filename_buffer_size;
+Bytecount internal_doc_file_name_buffer_size;
 
 /* Given BUFFER, in an ASCII-compatible encoding, of length LEN, modify it to
    remove quoting with ^A (char code 1).
@@ -306,10 +306,9 @@ get_doc_string (Lisp_Object filepos)
 static Lisp_Object
 get_built_in_object_file_name (Lisp_Object filepos)
 {
-  Extbyte *buf = alloca_extbytes (internal_doc_filename_buffer_size);
-  Extbyte *buffer = buf, *p = buf;
-  Extbyte *from, *to;
-  Bytecount buffer_size = sizeof (buf), space_left, result_len;
+  Extbyte *buf = alloca_extbytes (internal_doc_file_name_buffer_size);
+  Extbyte *buffer = buf, *p = buf, *from, *to;
+  Bytecount space_left, result_len;
   Lisp_Object return_me, fdstream = Qnil;
   OFF_T position;
   int fd;
@@ -322,7 +321,9 @@ get_built_in_object_file_name (Lisp_Object filepos)
 
   fd = open_doc_file (filepos, &position, &standard_doc_file);
 
-  position = position > buffer_size  ? position - buffer_size : 0; 
+  position
+    = position > internal_doc_file_name_buffer_size
+    ? position - internal_doc_file_name_buffer_size : 0; 
 
   if (0 > lseek (fd, position, 0))
     {
@@ -336,7 +337,7 @@ get_built_in_object_file_name (Lisp_Object filepos)
   fdstream = make_filedesc_input_stream (fd, 0, -1, 0, NULL);
   Lstream_set_buffering (XLSTREAM (fdstream), LSTREAM_UNBUFFERED, 0);
 
-  space_left = buffer_size - (p - buffer);
+  space_left = internal_doc_file_name_buffer_size - (p - buffer);
   while (space_left > 0)
     {
       Bytecount nread;
@@ -356,7 +357,7 @@ get_built_in_object_file_name (Lisp_Object filepos)
 	break;
 
       p += nread;
-      space_left = buffer_size - (p - buffer);
+      space_left = internal_doc_file_name_buffer_size - (p - buffer);
     }
 
   /* First, search backward for the "\037S" that marks the beginning of the
@@ -384,7 +385,7 @@ get_built_in_object_file_name (Lisp_Object filepos)
   if (buf == from)
     {
       /* We've scanned back to the beginning of the buffer without hitting the
-	 file name. This means either internal_doc_filename_buffer_size is
+	 file name. This means either internal_doc_file_name_buffer_size is
 	 wrong, or DOC is not the DOC we dumped with, which is essentially the
 	 same thing. */
       return_me = list2 (build_msg_string
@@ -999,8 +1000,8 @@ Name of file containing documentation strings of built-in symbols.
 */ );
   Vinternal_doc_file_name = emacs_sprintf_string ("DOC-%08x", dump_id);
 
-  DEFVAR_INT ("internal-doc-filename-buffer-size",
-	      &internal_doc_filename_buffer_size /*
+  DEFVAR_INT ("internal-doc-file-name-buffer-size",
+	      &internal_doc_file_name_buffer_size /*
 Greatest buffer size needed when searching for object file name in DOC.
 
 Includes the preceding ?\\037S, the terminating ?\\n, the length of the
@@ -1010,5 +1011,5 @@ Internal use only; not available from Lisp after the dump file is loaded.
 
   /* This would normally be redundant with the above, but #'Snarf-documentation
      does an unintern so it is not otherwise reachable at dump time. */
-  dump_add_opaque_fixnum (&internal_doc_filename_buffer_size);
+  dump_add_opaque_fixnum (&internal_doc_file_name_buffer_size);
 }

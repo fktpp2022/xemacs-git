@@ -1,3 +1,17 @@
+2025-12-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Rename internal-doc-filename-buffer-size to
+	internal-doc-file-name-buffer-size for consistency.
+	Fix a bug in the last commit to doc.c.
+	* doc.c:
+	Update definition for internal-doc-file-name-buffer-size.
+	* doc.c (get_built_in_object_file_name):
+	Use it more consistently. No need for a function-local copy of
+	it.
+	* doc.c (vars_of_doc):
+	Update its DEFVAR_INT(), update the call to
+	dump_add_opaque_fixnum().
+
 2025-12-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* unicode.c (unicode_decode):
