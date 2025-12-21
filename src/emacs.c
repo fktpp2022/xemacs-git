@@ -2066,7 +2066,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       reinit_vars_of_eval ();
       reinit_vars_of_fileio ();
       reinit_vars_of_search ();
-      reinit_vars_of_text ();
     }
 
   if (!initialized)

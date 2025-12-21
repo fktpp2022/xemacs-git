@@ -1,3 +1,21 @@
+2025-12-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Remove the need for reinit_vars_of_text().
+
+	* emacs.c (main_1):
+	Remove call to reinit_vars_of_text().
+	* text.c:
+	* text.c (static const struct sized_memory_description
+	unsigned_char_dynarr_ptr_description): New.
+	* text.c (static const struct sized_memory_description
+	conversion_dynarr_description): New.
+	Description for conversion_out_dynarr_list,
+	conversion_in_dynarr_list.
+	* text.c (reinit_vars_of_text): Removed.
+	* text.c (vars_of_text):
+	Initialize conversion_in_dynarr_list, conversion_out_dynarr_list
+	here, and dump them using dump_add_root_block_ptr().
+
 2025-12-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Silence warnings, Visual Studio.

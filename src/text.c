@@ -4261,6 +4261,26 @@ typedef struct
 static Extbyte_dynarr_dynarr *conversion_out_dynarr_list;
 static Ibyte_dynarr_dynarr *conversion_in_dynarr_list;
 
+static const struct memory_description unsigned_char_dynarr_ptr_description_1[] = {
+  { XD_BLOCK_PTR, 0, 1, { &unsigned_char_dynarr_description} },
+  { XD_END }
+};
+
+static const struct sized_memory_description unsigned_char_dynarr_ptr_description = {
+  sizeof (unsigned_char_dynarr *),
+  unsigned_char_dynarr_ptr_description_1
+};
+
+static const struct memory_description conversion_dynarr_description_1[] = {
+  XD_DYNARR_DESC (Extbyte_dynarr_dynarr, &unsigned_char_dynarr_ptr_description),
+  { XD_END }
+};
+
+static const struct sized_memory_description conversion_dynarr_description = {
+  sizeof (Extbyte_dynarr_dynarr),
+  conversion_dynarr_description_1
+};
+
 static int dfc_convert_to_external_format_in_use;
 static int dfc_convert_to_internal_format_in_use;
 
@@ -5732,15 +5752,6 @@ syms_of_text (void)
 }
 
 void
-reinit_vars_of_text (void)
-{
-  conversion_in_dynarr_list = Dynarr_new2 (Ibyte_dynarr_dynarr,
-					   Ibyte_dynarr *);
-  conversion_out_dynarr_list = Dynarr_new2 (Extbyte_dynarr_dynarr,
-					    Extbyte_dynarr *);
-}
-
-void
 vars_of_text (void)
 {
   QSin_char_byte_conversion = build_defer_string ("(in char-byte conversion)");
@@ -5774,4 +5785,16 @@ associated character; check with `char-int-p' if necessary.
   staticpro (&Vcomposite_char_string2char_hash_table);
   staticpro (&Vcomposite_char_char2string_hash_table);
 #endif /* ENABLE_COMPOSITE_CHARS */
+
+  conversion_in_dynarr_list = Dynarr_new2 (Ibyte_dynarr_dynarr,
+					   Ibyte_dynarr *);
+  dump_add_root_block_ptr (&conversion_in_dynarr_list,
+                           &conversion_dynarr_description);
+
+  conversion_out_dynarr_list = Dynarr_new2 (Extbyte_dynarr_dynarr,
+					    Extbyte_dynarr *);
+  dump_add_root_block_ptr (&conversion_out_dynarr_list,
+                           &conversion_dynarr_description);
 }
+
+/* text.c ends here */
