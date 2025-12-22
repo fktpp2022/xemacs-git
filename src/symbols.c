@@ -352,12 +352,16 @@ the `annotated' slot of the compiled-function (retrievable using
   Ffset (symbol, newdef);
   LOADHIST_ATTACH (Fcons (Qdefun, symbol));
   if (COMPILED_FUNCTIONP (newdef))
-    XCOMPILED_FUNCTION (newdef)->annotated = symbol;
+    {
+      set_compiled_function_annotation (XCOMPILED_FUNCTION (newdef),
+                                        symbol);
+    }
 
   if (CONSP (newdef) && EQ (Qmacro, XCAR (newdef))
       && COMPILED_FUNCTIONP (XCDR (newdef)))
     {
-      XCOMPILED_FUNCTION (XCDR (newdef))->annotated = symbol;
+      set_compiled_function_annotation (XCOMPILED_FUNCTION (XCDR (newdef)),
+                                        symbol);
     }
 
   if (!NILP (docstring))

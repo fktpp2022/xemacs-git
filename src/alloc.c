@@ -2124,7 +2124,6 @@ make_compiled_function (void)
   f->args = NULL;
   f->max_args = f->min_args = f->args_in_array = 0;
   f->doc_and_interactive = Qnil;
-  f->annotated = Qnil;
   return wrap_compiled_function (f);
 }
 
@@ -2184,8 +2183,6 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
   check_integer_range (stack_depth, Qzero, make_fixnum (USHRT_MAX));
   f->stack_depth = (unsigned short) XFIXNUM (stack_depth);
 
-  f->annotated = Vload_file_name_internal;
-
   /* doc_string may be nil, string, int, or a cons (string . int).
      interactive may be list or string (or unbound). */
   f->doc_and_interactive = Qunbound;
@@ -2207,6 +2204,11 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
     }
   if (UNBOUNDP (f->doc_and_interactive))
     f->doc_and_interactive = Qnil;
+
+  if (!CONSP (doc_string) || purify_flag)
+    {
+      set_compiled_function_annotation (f, Vload_file_name_internal);
+    }
 
   if (purify_flag)
     {

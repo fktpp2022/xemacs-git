@@ -2542,7 +2542,6 @@ static const struct memory_description compiled_function_description[] = {
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, constants) },
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, arglist) },
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, doc_and_interactive) },
-  { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, annotated) },
   { XD_END }
 };
 
@@ -2706,13 +2705,33 @@ compiled_function_domain (Lisp_Compiled_Function *f)
     return f->doc_and_interactive;
 }
 
+static Lisp_Object Vcompiled_function_annotations;
 
 Lisp_Object
 compiled_function_annotation (Lisp_Compiled_Function *f)
 {
-  return f->annotated;
+  Lisp_Object got = Fgethash (wrap_compiled_function (f),
+                              Vcompiled_function_annotations, Qnil);
+  if (NILP (got))
+    {
+      Lisp_Object doc_string = compiled_function_documentation (f);
+
+      if (CONSP (doc_string))
+        {
+          return XCAR (doc_string);
+        }
+    }
+
+  return got;
 }
 
+void
+set_compiled_function_annotation (Lisp_Compiled_Function *f,
+                                  Lisp_Object annotation)
+{
+  Fputhash (wrap_compiled_function (f), annotation,
+            Vcompiled_function_annotations);
+}
 
 static void
 set_compiled_function_arglist (Lisp_Compiled_Function *f, Lisp_Object new_)
@@ -3111,6 +3130,10 @@ integer, it is incremented each time that symbol's function is called.
       XVECTOR_DATA (Vbyte_code_meter)[i] = make_vector (256, Qzero);
   }
 #endif /* BYTE_CODE_METER */
+  Vcompiled_function_annotations = make_lisp_hash_table (8000,
+                                                         HASH_TABLE_KEY_WEAK,
+                                                         Qeq);
+  staticpro (&Vcompiled_function_annotations);
 }
 
 /* bytecode.c ends here. */

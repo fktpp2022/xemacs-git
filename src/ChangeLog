@@ -1,5 +1,39 @@
 2025-12-22  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Move to storing compiled function annotations in a weak hash table
+	rather than directly in the compiled function objects, allowing
+	them to be mapped over by #'Snarf-documentation
+	* alloc.c (make_compiled_function):
+	Don't initialize the (removed) field here.
+	* alloc.c (Fmake_byte_code):
+	Only set the annotation if the doc string is not a cons (where the
+	file name is trivially found) or if we're dumping.
+	* bytecode.c:
+	Remove the annotation slot from the object description.
+	* bytecode.c (Vcompiled_function_annotations): New variable, a
+	weak hash table mapping from compiled functions to their
+	annotations.
+	* bytecode.c (compiled_function_annotation):
+	Revise this to look up the annotation in
+	Vcompiled_function_annotations; or, take the file name from the
+	car of any cons docstring slot.
+	* bytecode.c (set_compiled_function_annotation):
+	New function, just does a #'puthash into
+	Vcompiled_function_annotations.
+	* bytecode.c (vars_of_bytecode):
+	Initialize Vcompiled_function_annotations at startup.
+	* bytecode.h:
+	Declare set_compiled_function_annotation() here.
+	* bytecode.h (struct Lisp_Compiled_Function):
+	Remove the slot for ANNOTATED.
+	* emacs.c (main_1):
+	Move call to vars_of_elhash() before that of vars_of_bytecode(),
+	so the latter can create a weak hash table.
+	* symbols.c (Fdefine_function):
+	Call set_compiled_function_annotation() here.
+
+2025-12-22  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Always turn on COMPILED_FUNCTION_ANNOTATION_HACK, in preparation
 	for further work to save docstrings and compiled function file
 	names for anonymous functions in DOC. Changes generated with

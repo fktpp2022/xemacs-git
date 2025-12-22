@@ -1825,6 +1825,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       vars_of_alloc ();
       vars_of_abbrev ();
       vars_of_buffer ();
+      vars_of_elhash ();
       vars_of_bytecode ();
       vars_of_callint ();
       vars_of_casetab ();
@@ -1848,7 +1849,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       vars_of_dragdrop ();
 #endif
       vars_of_editfns ();
-      vars_of_elhash ();
       vars_of_emacs ();
       vars_of_eval ();
 

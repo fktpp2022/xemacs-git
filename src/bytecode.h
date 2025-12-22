@@ -77,8 +77,6 @@ struct Lisp_Compiled_Function
   int args_in_array;
   /* This uses the minimal number of conses; see accessors in data.c. */
   Lisp_Object doc_and_interactive;
-  /* Something indicating where the bytecode came from */
-  Lisp_Object annotated;
 };
 typedef struct Lisp_Compiled_Function Lisp_Compiled_Function;
 
@@ -90,6 +88,8 @@ Lisp_Object compiled_function_constants     (Lisp_Compiled_Function *f);
 int         compiled_function_stack_depth   (Lisp_Compiled_Function *f);
 Lisp_Object compiled_function_documentation (Lisp_Compiled_Function *f);
 Lisp_Object compiled_function_annotation    (Lisp_Compiled_Function *f);
+void        set_compiled_function_annotation (Lisp_Compiled_Function *,
+                                              Lisp_Object);
 Lisp_Object compiled_function_domain        (Lisp_Compiled_Function *f);
 Lisp_Object compiled_function_interactive   (Lisp_Compiled_Function *f);
 
