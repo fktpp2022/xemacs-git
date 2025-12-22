@@ -351,7 +351,6 @@ the `annotated' slot of the compiled-function (retrievable using
   /* This function can GC */
   Ffset (symbol, newdef);
   LOADHIST_ATTACH (Fcons (Qdefun, symbol));
-#ifdef COMPILED_FUNCTION_ANNOTATION_HACK
   if (COMPILED_FUNCTIONP (newdef))
     XCOMPILED_FUNCTION (newdef)->annotated = symbol;
 
@@ -360,7 +359,6 @@ the `annotated' slot of the compiled-function (retrievable using
     {
       XCOMPILED_FUNCTION (XCDR (newdef))->annotated = symbol;
     }
-#endif /* COMPILED_FUNCTION_ANNOTATION_HACK */
 
   if (!NILP (docstring))
     Fput (symbol, Qfunction_documentation, docstring);

@@ -2971,12 +2971,8 @@ debug_short_backtrace (EMACS_INT length)
 	}
       if (COMPILED_FUNCTIONP (*bt->function))
 	{
-#if defined (COMPILED_FUNCTION_ANNOTATION_HACK)
 	  Lisp_Object ann =
 	    compiled_function_annotation (XCOMPILED_FUNCTION (*bt->function));
-#else
-	  Lisp_Object ann = Qnil;
-#endif
 	  if (!NILP (ann))
 	    {
 	      debug_out ("<compiled-function from ");

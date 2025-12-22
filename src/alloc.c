@@ -2124,9 +2124,7 @@ make_compiled_function (void)
   f->args = NULL;
   f->max_args = f->min_args = f->args_in_array = 0;
   f->doc_and_interactive = Qnil;
-#ifdef COMPILED_FUNCTION_ANNOTATION_HACK
   f->annotated = Qnil;
-#endif
   return wrap_compiled_function (f);
 }
 
@@ -2186,9 +2184,7 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
   check_integer_range (stack_depth, Qzero, make_fixnum (USHRT_MAX));
   f->stack_depth = (unsigned short) XFIXNUM (stack_depth);
 
-#ifdef COMPILED_FUNCTION_ANNOTATION_HACK
   f->annotated = Vload_file_name_internal;
-#endif /* COMPILED_FUNCTION_ANNOTATION_HACK */
 
   /* doc_string may be nil, string, int, or a cons (string . int).
      interactive may be list or string (or unbound). */

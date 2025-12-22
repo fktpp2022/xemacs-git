@@ -40,12 +40,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define COMPILED_INTERACTIVE	5
 #define COMPILED_DOMAIN		6
 
-/* Someone claims: [[ It doesn't make sense to have this and also have
-   load-history ]] But in fact they are quite different things.  Perhaps
-   we should turn this on only when DEBUG_XEMACS but there's no speed
-   harm at all, so no reason not to do it always. */
-#define COMPILED_FUNCTION_ANNOTATION_HACK
-
 #ifdef DEBUG_XEMACS
 /* Define BYTE_CODE_METER to enable generation of a byte-op usage
    histogram.  This isn't defined in FSF Emacs and isn't defined in XEmacs
@@ -83,10 +77,8 @@ struct Lisp_Compiled_Function
   int args_in_array;
   /* This uses the minimal number of conses; see accessors in data.c. */
   Lisp_Object doc_and_interactive;
-#ifdef COMPILED_FUNCTION_ANNOTATION_HACK
   /* Something indicating where the bytecode came from */
   Lisp_Object annotated;
-#endif
 };
 typedef struct Lisp_Compiled_Function Lisp_Compiled_Function;
 

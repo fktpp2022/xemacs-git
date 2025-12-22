@@ -1,3 +1,22 @@
+2025-12-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Always turn on COMPILED_FUNCTION_ANNOTATION_HACK, in preparation
+	for further work to save docstrings and compiled function file
+	names for anonymous functions in DOC. Changes generated with
+	unifdef -DCOMPILED_FUNCTION_ANNOTATION_HACK
+	* bytecode.h: Remove #define COMPILED_FUNCTION_ANNOTATION_HACK and
+	an associated comment.
+	* alloc.c (make_compiled_function):
+	* alloc.c (Fmake_byte_code):
+	* bytecode.c:
+	* bytecode.c (print_compiled_function):
+	* bytecode.c (syms_of_bytecode):
+	* bytecode.h:
+	* bytecode.h (struct Lisp_Compiled_Function):
+	* print.c (debug_short_backtrace):
+	* symbols.c (Fdefine_function):
+	Remove #ifdef COMPILED_FUNCTION_ANNOTATION_HACK from all these.
+
 2025-12-21  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove the need for reinit_vars_of_text().

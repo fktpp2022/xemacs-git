@@ -2379,14 +2379,12 @@ print_compiled_function (Lisp_Object obj, Lisp_Object printcharfun,
 
   write_ascstring (printcharfun, print_readably ? "#[" :
 		   "#<compiled-function ");
-#ifdef COMPILED_FUNCTION_ANNOTATION_HACK
   if (!print_readably)
     {
       Lisp_Object ann = compiled_function_annotation (f);
       if (!NILP (ann))
 	write_fmt_string_lisp (printcharfun, "(from %S) ", ann);
     }
-#endif /* COMPILED_FUNCTION_ANNOTATION_HACK */
   /* COMPILED_ARGLIST = 0 */
   print_internal (compiled_function_arglist (f), printcharfun, escapeflag);
 
@@ -2544,9 +2542,7 @@ static const struct memory_description compiled_function_description[] = {
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, constants) },
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, arglist) },
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, doc_and_interactive) },
-#ifdef COMPILED_FUNCTION_ANNOTATION_HACK
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, annotated) },
-#endif
   { XD_END }
 };
 
@@ -2710,7 +2706,6 @@ compiled_function_domain (Lisp_Compiled_Function *f)
     return f->doc_and_interactive;
 }
 
-#ifdef COMPILED_FUNCTION_ANNOTATION_HACK
 
 Lisp_Object
 compiled_function_annotation (Lisp_Compiled_Function *f)
@@ -2718,7 +2713,6 @@ compiled_function_annotation (Lisp_Compiled_Function *f)
   return f->annotated;
 }
 
-#endif
 
 static void
 set_compiled_function_arglist (Lisp_Compiled_Function *f, Lisp_Object new_)
@@ -2913,7 +2907,6 @@ metadata to aid `call-interactively' in constructing the command history.
     : Qnil;
 }
 
-#ifdef COMPILED_FUNCTION_ANNOTATION_HACK
 
 DEFUN ("compiled-function-annotation", Fcompiled_function_annotation, 1, 1, 0, /*
 Return the annotation of the compiled-function object FUNCTION, or nil.
@@ -2930,7 +2923,6 @@ a `load'.
   return compiled_function_annotation (XCOMPILED_FUNCTION (function));
 }
 
-#endif /* COMPILED_FUNCTION_ANNOTATION_HACK */
 
 DEFUN ("compiled-function-domain", Fcompiled_function_domain, 1, 1, 0, /*
 Return the domain of the compiled-function object FUNCTION, or nil.
@@ -3026,9 +3018,7 @@ syms_of_bytecode (void)
   DEFSUBR (Fset_compiled_function_documentation);
 
   DEFSUBR (Fcompiled_function_domain);
-#ifdef COMPILED_FUNCTION_ANNOTATION_HACK
   DEFSUBR (Fcompiled_function_annotation);
-#endif
 
 #ifdef BYTE_CODE_METER
   DEFSYMBOL (Qbyte_code_meter);
