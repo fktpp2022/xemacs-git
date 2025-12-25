@@ -361,8 +361,8 @@ get_built_in_object_file_name (Lisp_Object filepos)
     }
 
   /* First, search backward for the "\037S" that marks the beginning of the
-     file name, then search forward from that to the newline or to the end
-     of the buffer. */
+     file name, then search forward from that to the next ?\037, marking its
+     end. */
   from = p; 
 
   while (from > buf)
@@ -398,8 +398,11 @@ get_built_in_object_file_name (Lisp_Object filepos)
   /* Search for the end of the file name. */
   while (++to < p)
     {
-      /* Don't require the file name to end in a newline. */
-      if ('\n' == *to || '\037' == *to)
+      /* make-docfile.c previously added newlines to file names.
+	 make-docfile.el no longer does, so this code will now just pass
+	 through any newline, which is fine (though unlikely to be that
+	 useful). */
+      if ('\037' == *to)
 	{
 	  break;
 	}

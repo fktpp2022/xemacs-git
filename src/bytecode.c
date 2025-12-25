@@ -3133,7 +3133,18 @@ integer, it is incremented each time that symbol's function is called.
   Vcompiled_function_annotations = make_lisp_hash_table (8000,
                                                          HASH_TABLE_KEY_WEAK,
                                                          Qeq);
+  /* This is currently needed because #'Snarf-documentation does an
+     unintern: */
   staticpro (&Vcompiled_function_annotations);
+
+  DEFVAR_LISP ("compiled-function-annotations",
+               &Vcompiled_function_annotations /*
+Hash table mapping compiled function to their annotations.
+
+If a given compiled function has been given a symbol name using `defalias',
+this is that symbol name.  Otherwise it is usually a string reflecting the
+file the function was loaded from.
+*/ );
 }
 
 /* bytecode.c ends here. */

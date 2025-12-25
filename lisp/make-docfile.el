@@ -58,10 +58,10 @@
 ;; INFORMATION SEPARATOR ONE).
 
 ;; Each record commences with S (to document a file name), F (to document a
-;; function) or V, to document a variable.
+;; function), f (to document an anonymous compiled function) or V, to document
+;; a variable.
 
-;; A supplied file name is normally followed by a newline, though this is not a
-;; hard requirement.
+;; A supplied file name was previously followed by a newline
 
 ;; A function or variable name is terminated with a newline; this is a hard
 ;; requirement imposed by doc.c and means we cannot document symbols that
@@ -93,7 +93,8 @@
      (build-obj #:build-obj)
      (defined-lisp-objects #:defined-lisp-objects)
      (define-lisp-object #:define-lisp-object)
-     (unbound-marker '#:unbound-marker))
+     (unbound-marker '#:unbound-marker)
+     (compiled-function-alist #:compiled-function-alist))
 
   (let*
       ;; We're interested in these directories and they are not provided by
@@ -127,7 +128,11 @@
        ;; The garbage collection of #'with-temp-buffer was impacting the
        ;; performance of this file significantly, create one buffer and reuse
        ;; it with #'erase-buffer, #'kill-all-local-variables instead:
-       (buffer (get-buffer-create " *make-docfile-temp*")))
+       (buffer (get-buffer-create " *make-docfile-temp*"))
+
+       ;; An alist mapping file names to lists of the un-named compiled
+       ;; functions that were loaded from those files:
+       compiled-function-alist)
 
     (labels
         ((usage ()
@@ -243,7 +248,29 @@ than `build-directory' if appropriate. "
              ((eql (search source-directory filename) 0)
               (subseq filename (length source-directory)))
              (t (file-truename filename))))
-           
+
+         (compiled-function< (elt1 elt2)
+           ;; Return non-nil if ELT1 hashes less than ELT2. If they hash
+           ;; identically, return non-nil if ELT1's
+           ;; compiled-function-documentation is lexicographically less than
+           ;; ELT2's compiled-function-documentation.
+           ;;
+           ;; This means that distinct compiled functions with the same hash
+           ;; and the same docstring are confused, which is currently fine for
+           ;; our purposes, since all we want from DOC is the file name info
+           ;; (which is handled separately) and the doc string.
+           ;;
+           ;; If (when) we extend the format of DOC to deal with the names of
+           ;; stack-allocated variables, this will need to also examine that
+           ;; for sorting.
+           (let ((hash1 (equal-hash elt1)) (hash2 (equal-hash elt2)))
+             (if (eql hash1 hash2)
+                 (string-lessp (or (compiled-function-documentation elt1)
+                                   "")
+                               (or (compiled-function-documentation elt2)
+                                   ""))
+               (< hash1 hash2))))
+
          (response-file-as-list (arg)
            ;; Return contents of ARG as list of strings.
            ;;
@@ -488,7 +515,7 @@ than `build-directory' if appropriate. "
                                          "  CDOC%s (\"%s\", \"\\\n"
                                          (if (eq type 'defvar) "SYM" "SUBR")
                                          name)
-                          (format-into output-stream "\037S%s\n\037%c%s\n"
+                          (format-into output-stream "\037S%s\037%c%s\n"
                                        filename (if (eq type 'defvar) ?V ?F)
                                        name))
                         (forward-char)
@@ -553,34 +580,41 @@ than `build-directory' if appropriate. "
                     ;; we use decode-coding-string when working out the name
                     ;; of the symbol.
                     'no-conversion-unix)
-                   symbol offset user-variable-p old function cddr
-		   (max 0))
+                   symbol offset user-variable-p old function cddr list alist
+		   case-fold-search (max 0))
                (insert-file-contents filename)
                (goto-char 1)
-               (while (re-search-forward "\\(\037S[^\037]+\\)\037[FV].*\n"
+               (while (re-search-forward "\\(\037S[^\037]+\\)\037[FVf].*\n"
 					 nil t)
-                 (setq symbol (intern-soft
-                               (decode-coding-string
-                                (buffer-substring (+ (match-end 1)
-                                                     (length "\037F"))
-                                                  (1- (point)))
-                                'escape-quoted)
-                               nil 0)
-                       offset (1- (point))
-                       user-variable-p (eql ?* (char-after (point)))
-                       max (max (- (match-end 0) (match-beginning 0))
-                                max))
-                 (when (symbolp symbol)
-                   (case (char-after (+ (match-end 1) (length "\037")))
-                     (?V
+                 (setq max (max (- (match-end 0) (match-beginning 0)) max)
+                       offset (1- (point)))
+                 (case (char-after (+ (match-end 1) (length "\037")))
+                   (?V
+                    (setq symbol (intern-soft
+                                  (decode-coding-string
+                                   (buffer-substring (+ (match-end 1)
+                                                        (length "\037F"))
+                                                     (1- (point)))
+                                   'escape-quoted)
+                                  nil 0)
+                          user-variable-p (eql ?* (char-after (point))))
+                    (when (symbolp symbol)
                       (setq old (get symbol 'variable-documentation 0))
                       (when (fixnump old)
                         (weird-doc symbol "duplicate" "variable" offset))
                       ;; In the case of duplicate doc file entries, always
                       ;; take the later one.
                       (put symbol 'variable-documentation
-                           (if user-variable-p (- offset) offset)))
-                     (?F
+                           (if user-variable-p (- offset) offset))))
+                   (?F
+                    (setq symbol (intern-soft
+                                  (decode-coding-string
+                                   (buffer-substring (+ (match-end 1)
+                                                        (length "\037F"))
+                                                     (1- (point)))
+                                   'escape-quoted)
+                                  nil 0))
+                    (when (symbolp symbol)
                       (setq function
                             (condition-case nil (indirect-function symbol)
                               (void-function unbound-marker)))
@@ -616,8 +650,7 @@ than `build-directory' if appropriate. "
                            (when (fixnump old)
                              (weird-doc symbol "duplicate" "bytecode"
                                         offset))
-                           (unless (and (fboundp 'compiled-function-annotation)
-                                        (not (stringp
+                           (unless (and (not (stringp
                                               (compiled-function-annotation
                                                function)))
                                         ;; We don't want to set the
@@ -627,12 +660,44 @@ than `build-directory' if appropriate. "
                                                  (compiled-function-annotation
                                                   function))))
                              (set-compiled-function-documentation
-                              function offset)))))))))
+                              function offset)))))))
+                   (?f
+                    (setq alist (assoc (decode-coding-string
+                                        (buffer-substring
+                                         (+ (match-beginning 1)
+                                            (length "\037S"))
+                                         (match-end 1))
+                                        'escape-quoted)
+                                       compiled-function-alist))
+                    (when (and
+                           alist
+                           (setq list
+                                 (remove*
+                                  (parse-integer
+                                   (buffer-substring
+                                    (+ (match-end 1)
+                                       (length
+                                        "\037f#<compiled-function :hash #x"))
+                                    (match-end 0))
+                                   :radix 16 :junk-allowed t)
+                                  (cdr alist) :key #'equal-hash
+                                  :test-not #'eql)))
+                        (when (cdr list)
+                          (setq list (sort* (copy-list list)
+                                            #'compiled-function<)))
+                        (set-compiled-function-documentation (car list)
+                                                             offset)
+                        (delete* (car list) alist)))))
+
 	       (setq internal-doc-file-name-buffer-size max)
 	       ;; This is a private variable to doc.c, don't offer Lisp the
 	       ;; temptation of modifying it at runtime to something
 	       ;; unreasonable. See vars_of_doc().
-	       (unintern 'internal-doc-file-name-buffer-size))))
+	       (unintern 'internal-doc-file-name-buffer-size)
+
+               ;; And I don't currently wish to expose this to Lisp after
+               ;; dump:
+               (unintern 'compiled-function-annotations))))
 
          (kludgily-ignore-lost-doc-p (symbol)
            ;; Don't warn about functions whose doc was lost because they were
@@ -780,12 +845,41 @@ than `build-directory' if appropriate. "
                (sanitize-C-command-line-arg arg)
                (setq command-line-args (cdr command-line-args)))))))
 
-      (unless docfile-out-of-date
-        (dolist (elt load-history) 
-          (when (file-newer-than-file-p (car elt) docfile)
-            (setq docfile-out-of-date t)
-            ;; Break out of the dolist:
-            (return))))
+      (unless modules
+        ;; Drop unreachable compiled functions from
+        ;; compiled-function-annotations, which is a key-weak #'eq hash table:
+        (garbage-collect)
+
+        ;; Now, construct `compiled-function-alist', mapping from file names
+        ;; to the anonymous functions loaded from those files. Remove the
+        ;; corresponding entries in `compiled-function-annotations' as we do
+        ;; so.
+        (maphash #'(lambda (compiled-function annotation)
+                     (unless (symbolp annotation)
+                       (push
+                        compiled-function
+                        (cdr (or (assoc annotation compiled-function-alist)
+                                 (car (setf
+                                       compiled-function-alist
+                                       (acons annotation nil
+                                              compiled-function-alist))))))
+                       (remhash compiled-function
+                                compiled-function-annotations)))
+                 compiled-function-annotations)
+
+        ;; Canonicalize the file names in `compiled-function-alist'. Sort the
+        ;; functions by their hash and by their compiled function
+        ;; documentation.
+        (dolist (acons compiled-function-alist)
+          (setf (car acons) (canonicalize-file-name-for-output (car acons))
+                (cdr acons) (sort (cdr acons) #'compiled-function<)))
+
+        (unless docfile-out-of-date
+          (dolist (elt load-history) 
+            (when (file-newer-than-file-p (car elt) docfile)
+              (setq docfile-out-of-date t)
+              ;; Break out of the dolist:
+              (return)))))
 
       (unless docfile-out-of-date
 	(when (file-newer-than-file-p load-file-name docfile)
@@ -868,8 +962,8 @@ than `build-directory' if appropriate. "
                                          (type-of
                                           (symbol-function symbol))))
 			       (documentation symbol t)))
-		    (write-sequence "\037S" output-stream)
-		    (write-line (quote-for-DOC filename) output-stream)
+                    (write-sequence "\037S" output-stream)
+                    (write-sequence (quote-for-DOC filename) output-stream)
 		    (write-sequence "\037F" output-stream)
 		    (write-line (quote-for-DOC (prin1-to-string symbol))
 				output-stream)
@@ -878,18 +972,29 @@ than `build-directory' if appropriate. "
 				      output-stream)))
                    (t
                     (setq symbol elt
-                        documentation
-                        (and (boundp symbol)
-                             (documentation-property
-                              symbol 'variable-documentation t)))
+                          documentation
+                          (and (boundp symbol)
+                               (documentation-property
+                                symbol 'variable-documentation t)))
 		    (write-sequence "\037S" output-stream)
-		    (write-line (quote-for-DOC filename) output-stream)
+		    (write-sequence (quote-for-DOC filename) output-stream)
 		    (write-sequence "\037V" output-stream)
 		    (write-line (quote-for-DOC (prin1-to-string symbol))
 				output-stream)
                     (when documentation
                       (write-sequence (quote-for-DOC documentation)
-				      output-stream)))))))
+				      output-stream)))))
+               (dolist (elt (cdr
+                             (assoc filename compiled-function-alist)))
+                 (write-sequence "\037S" output-stream)
+                 (write-sequence (quote-for-DOC filename) output-stream)
+                 (write-sequence "\037f#<compiled-function :hash #x"
+                                 output-stream)
+                 (setq documentation (compiled-function-documentation elt))
+                 (format-into output-stream "%x>\n" (equal-hash elt))
+                 (when documentation
+                   (write-sequence (quote-for-DOC documentation)
+                                   output-stream)))))
              load-history))
 	  
           (unless (eq t output-stream)

@@ -1,3 +1,32 @@
+2025-12-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* make-docfile.el (compiled-function<):
+	New label, used to sort the anonymous compiled functions before
+	writing their documentation and file information to DOC, and when
+	loading that information in #'Snarf-documentation.
+	* make-docfile.el (scan-C-file): No longer add a trailing newline
+	to the file name provided.
+
+	* make-docfile.el:
+	Construct an alist mapping from file names to those anonymous
+	compiled functions loaded from those file names, by mapping across
+	COMPILED-FUNCTION-ANNOTATIONS.
+	Use that alist to write docstrings and file information for
+	anonymous functions to DOC, using the compiled function equal hash
+	(which does not depend on pointer values and so will be stable
+	from XEmacs invocation to XEmacs invocation) and then
+	lexicographic sort on the documentation string to distinguish
+	the compiled functions.
+	No longer add a trailing newline to the file name provided,
+	anywhere.
+
+	* make-docfile.el (Snarf-documentation): Interpret
+	"\037Sfile-name\037f#<compiled-function :hash..." entries in DOC,
+	call #'set-compiled-function-documentation on those anonymous
+	functions ultimately found by means of
+	COMPILED-FUNCTION-ANNOTATIONS, saving space in the dump file and
+	giving the dumper less work to do.
+
 2025-12-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* make-docfile.el (Snarf-documentation):
