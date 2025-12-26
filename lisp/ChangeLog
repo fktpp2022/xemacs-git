@@ -1,3 +1,27 @@
+2025-12-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Fix various bugs, further clean-ups. make-docfile.el.
+	* make-docfile.el:
+	Flesh out comments.
+	* make-docfile.el (subusage, usage):
+	Move this label up within the main (labels ...) form. No need for
+	a further call within #'usage.
+	* make-docfile.el (unquote-for-DOC): New.
+	* make-docfile.el (read-symbol-soft): New.
+	Provide these labels, necessary to fix bugs in
+	#'Snarf-documentation.
+	* make-docfile.el (Snarf-documentation): Call them.
+	Delay the call to #'unintern on compiled-function-annotations
+	until after #'Verify-documentation is done.
+	* make-docfile.el (Verify-documentation): Warn if the
+	documentation was lost for anonymous functions where their
+	annotation is a string.
+	* make-docfile.el:
+	Remove obsolete special handling for NEEDTODUMP, .exe files.
+	Remove string annotations from compiled-function-annotations after
+	#'Verify-documentation was called; call unintern on the symbol
+	once this is done.
+
 2025-12-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* make-docfile.el (compiled-function<):

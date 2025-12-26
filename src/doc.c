@@ -496,6 +496,17 @@ If TYPE is `defvar', then variable definitions are acceptable.
               return get_built_in_object_file_name (tem);
             }
 	}
+
+      if (CONSP (fun) && EQ (Qlambda, XCAR (fun)))
+        {
+	  Lisp_Object tem, tem1;
+	  tem1 = Fcdr (XCDR (fun));
+	  tem = Fcar (tem1);
+          if (FIXNUMP (tem))
+            {
+              return get_built_in_object_file_name (tem);
+            }
+        }
     }
 
   if (!UNBOUNDP (XSYMBOL_VALUE (symbol)) && (NILP (type) || EQ (type, Qdefvar)))

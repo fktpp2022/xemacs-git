@@ -1,3 +1,13 @@
+2025-12-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* bytecode.c (compiled_function_annotation):
+	Add a comment regarding a possible better implementation of this
+	for dumped function.
+
+	* doc.c (Fbuilt_in_symbol_file):
+	If passed a lambda list that has a fixnum as its third element,
+	pass back the corresponding built in object file name.
+
 2025-12-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* doc.c (get_built_in_object_file_name):

@@ -460,7 +460,7 @@ make-docfile.el"))
       (insert-file-contents (expand-file-name internal-doc-file-name
 					      doc-directory))
       (goto-char (point-max))
-      (while (re-search-backward "\037S\\([^\037]+\\)\n\037[FV]\\(.*\\)\n"
+      (while (re-search-backward "\037S\\([^\037]+\\)\037[FV]\\(.*\\)\n"
 				 nil t)
 	(setq symbol (intern-soft (decode-coding-string
 				   (unquote-for-DOC (match-string 2))

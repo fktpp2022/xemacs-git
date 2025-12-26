@@ -2710,6 +2710,20 @@ static Lisp_Object Vcompiled_function_annotations;
 Lisp_Object
 compiled_function_annotation (Lisp_Compiled_Function *f)
 {
+  /* The right thing for this when a compiled function is dumped, is to read
+     the function name from DOC (it's right there, starts at (1-
+     (compiled-function-documentation FUNCTION))!) and have
+     Vcompiled_function_annotations empty after make-docfile.elc has done its
+     thing.
+
+     However, it would be an unpleasant performance surprise for every printed
+     backtrace to involve multiple calls to retry_open(), retry_close(). GNU's
+     approach to a related problem involves loading DOC into a buffer and
+     keeping it open (unclear to me how long). My preference would be to
+     mmap() DOC read-only on first call of something that needs it, even
+     storing its data in internal format rather than escape-quoted, un-mapping
+     from pre-idle-hook after an interval, since it is only relevant for
+     interactive use. */
   Lisp_Object got = Fgethash (wrap_compiled_function (f),
                               Vcompiled_function_annotations, Qnil);
   if (NILP (got))
