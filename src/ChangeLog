@@ -1,3 +1,10 @@
+2026-01-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* config.h.in:
+	Never #define _XOPEN_SOURCE_EXTENDED, thank you Hauke Fath and
+	Jonathan Perkin. See
+	https://gist.github.com/jperkin/b08f9108daf8d0ac695067d71f882a9d .
+
 2026-01-01  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Change from David Brownlee <abs@NetBSD.org>, maintained in NetBSD

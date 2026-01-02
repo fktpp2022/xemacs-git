@@ -124,9 +124,6 @@ things are arranged in config.h.in.  In particular:
 /* Make some functions from Unix98 available. */
 #undef _XOPEN_SOURCE
 
-/* Make "extensions" from Unix98 available. */
-#undef _XOPEN_SOURCE_EXTENDED
-
 /* Make all functions available on AIX.  See AC_AIX. */
 /* Some AIX compilers (cc) pre-define _ALL_SOURCE, some (xlc) don't. */
 #ifndef _ALL_SOURCE

@@ -1,3 +1,16 @@
+2026-01-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* configure: Regenerate.
+	* configure.ac:
+	Check for C99 before attempting to #define _XOPEN_SOURCE.
+	Never #define _XOPEN_SOURCE_EXTENDED.
+	Don't #define _XOPEN_SOURCE, _POSIX_C_SOURCE on FreeBSD, this is
+	counterproductive.
+	See
+	https://lists.freebsd.org/pipermail/freebsd-standards/2004-March/000474.html ,
+	https://gist.github.com/jperkin/b08f9108daf8d0ac695067d71f882a9d
+	. Thank you Hauke Fath.
+
 2025-10-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* Makefile.in.in (distclean):

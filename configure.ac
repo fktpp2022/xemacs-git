@@ -1650,6 +1650,17 @@ if test "$have_glibc" = "yes"; then
   AC_DEFINE(_GNU_SOURCE)
 fi
 
+dnl The specific version of _XOPEN_SOURCE appropriate depends on whether the
+dnl compiler supports C99. See
+dnl https://gist.github.com/jperkin/b08f9108daf8d0ac695067d71f882a9d .
+AC_RUN_IFELSE([AC_LANG_SOURCE([int main () {
+#if defined (__STDC_VERSION__) && (__STDC_VERSION__ - 0) >= 199901L
+  return 0;
+#else
+  return 1
+#endif
+}])], [have_c99=1], [have_c99=0])
+
 dnl We'd like to use vendor extensions, where available.
 dnl We'd like to use functions from the latest Unix98 standards.
 dnl See http://www.opengroup.org/onlinepubs/007908799/xsh/compilation.html
@@ -1659,22 +1670,31 @@ case "$opsys" in
    dnl Solaris 2 before 2.5 had some bugs with feature test macro interaction.
    if test "$os_release" -ge 505; then
      if test "$os_release" -ge 510; then
-       AC_DEFINE(_XOPEN_SOURCE,600)
+       if test "$have_c99" = "1"; then
+         AC_DEFINE(_XOPEN_SOURCE,600)
+         AC_DEFINE(_POSIX_C_SOURCE,200112L)
+       else
+         AC_DEFINE(_POSIX_C_SOURCE,199506L)
+         AC_DEFINE(_XOPEN_SOURCE,500)
+       fi
      else
        AC_DEFINE(_XOPEN_SOURCE,500)
-       AC_DEFINE(_XOPEN_SOURCE_EXTENDED)
      fi
    fi ;;
   linux)
-    AC_DEFINE(_POSIX_C_SOURCE,199506L)
-    AC_DEFINE(_XOPEN_SOURCE,600)
-    AC_DEFINE(_XOPEN_SOURCE_EXTENDED)
+    if test "$have_c99" = "1"; then
+      AC_DEFINE(_XOPEN_SOURCE,600)
+      AC_DEFINE(_POSIX_C_SOURCE,200112L)
+    else
+      AC_DEFINE(_POSIX_C_SOURCE,199506L)
+      AC_DEFINE(_XOPEN_SOURCE,500)
+    fi
     ;;
-  freebsd4*)
-    AC_DEFINE(_POSIX_C_SOURCE,199506L)
-    dnl #### Do we want these too?  Apparently yes for _XOPEN_SOURCE=500.
-    AC_DEFINE(_XOPEN_SOURCE,500)
-    dnl AC_DEFINE(_XOPEN_SOURCE_EXTENDED)
+  freebsd*)
+    dnl Under FreeBSD #defining _XOPEN_SOURCE +/- _POSIX_C_SOURCE only
+    dnl *restricts* symbols' visibility,
+    dnl https://lists.freebsd.org/pipermail/freebsd-standards/2004-March/000474.html
+    dnl . This is not what we want at all. Do nothing here.
     ;;
 esac
 
