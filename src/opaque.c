@@ -99,7 +99,7 @@ equal_opaque (Lisp_Object obj1, Lisp_Object obj2, int UNUSED (depth),
 static Hashcode
 hash_opaque (Lisp_Object obj, int UNUSED (depth), int UNUSED (equalp))
 {
-  if (XOPAQUE_SIZE (obj) == sizeof (unsigned long))
+  if (XOPAQUE_SIZE (obj) == sizeof (Hashcode))
     return *((Hashcode *) XOPAQUE_DATA (obj));
   else
     return memory_hash (XOPAQUE_DATA (obj), XOPAQUE_SIZE (obj));

@@ -1,5 +1,12 @@
 2026-01-02  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* opaque.c (hash_opaque):
+	Check whether OBJ's size is equal to that of Hashcode, not of
+	unsigned long, when using the opaque data itself as the hash
+	value.
+
+2026-01-02  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* event-msw.c:
 	* event-msw.c (mswindows_enqueue_dispatch_event):
 	* event-msw.c (mswindows_dequeue_dispatch_event):
