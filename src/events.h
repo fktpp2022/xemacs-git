@@ -809,7 +809,7 @@ void downshift_event (Lisp_Object event);
 int event_upshifted_p (Lisp_Object event);
 
 /* from event-stream.c */
-extern Lisp_Object dispatch_event_queue;
+extern Lisp_Object Vdispatch_event_queue;
 Lisp_Object allocate_command_builder (Lisp_Object console, int with_echo_buf);
 void enqueue_dispatch_event (Lisp_Object event);
 Lisp_Object dequeue_dispatch_event (void);

@@ -94,7 +94,7 @@ emacs_tty_event_pending_p (int how_many)
       EMACS_TIME sometime;
 
       /* (1) Any pending events in the dispatch queue? */
-      if (!NILP(dispatch_event_queue))
+      if (!NILP (Vdispatch_event_queue))
         {
           return 1;
         }
@@ -114,7 +114,7 @@ emacs_tty_event_pending_p (int how_many)
   else
     {
       /* HOW_MANY > 0 */
-      EVENT_CHAIN_LOOP (event, dispatch_event_queue)
+      EVENT_CHAIN_LOOP (event, Vdispatch_event_queue)
 	{
 	  if (command_event_p (event))
 	    {
@@ -142,9 +142,9 @@ emacs_tty_event_pending_p (int how_many)
       event_stream_drain_queue ();
 
       if (!how_many)
-        return !NILP (dispatch_event_queue);
+        return !NILP (Vdispatch_event_queue);
 
-      EVENT_CHAIN_LOOP (event, dispatch_event_queue)
+      EVENT_CHAIN_LOOP (event, Vdispatch_event_queue)
         {
           if (command_event_p (event))
             {
@@ -169,7 +169,7 @@ emacs_tty_next_event (Lisp_Event *emacs_event)
       EMACS_TIME time_to_block;
       EMACS_SELECT_TIME select_time_to_block, *pointer_to_this;
 
-      if (!NILP (dispatch_event_queue))
+      if (!NILP (Vdispatch_event_queue))
 	{
 	  Lisp_Object event, event2;
 	  event2 = wrap_event (emacs_event);

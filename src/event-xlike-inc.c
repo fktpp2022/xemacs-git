@@ -64,7 +64,7 @@ emacs_Xt_event_pending_p (int how_many)
       /* We're being asked for *ALL* events, not just user events. */
 
       /* (1) Any pending events in the dispatch queue? */
-      if (!NILP (dispatch_event_queue))
+      if (!NILP (Vdispatch_event_queue))
 	return 1;
 
       /* (2) Any TTY or process input available?
@@ -93,7 +93,7 @@ emacs_Xt_event_pending_p (int how_many)
   else
     {
       /* HOW_MANY > 0 */
-      EVENT_CHAIN_LOOP (event, dispatch_event_queue)
+      EVENT_CHAIN_LOOP (event, Vdispatch_event_queue)
 	{
 	  if (command_event_p (event))
 	    {
@@ -143,9 +143,9 @@ emacs_Xt_event_pending_p (int how_many)
 	  event_stream_drain_queue ();
 
 	  if (!how_many)
-	    return !NILP (dispatch_event_queue);
+	    return !NILP (Vdispatch_event_queue);
 
-	  EVENT_CHAIN_LOOP (event, dispatch_event_queue)
+	  EVENT_CHAIN_LOOP (event, Vdispatch_event_queue)
 	    {
 	      if (command_event_p (event))
 		{

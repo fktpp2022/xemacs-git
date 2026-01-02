@@ -27,24 +27,23 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 /* Maintained in event-stream.c */
 extern Charbpos last_point_position;
-extern Lisp_Object last_point_position_buffer;
+extern Lisp_Object Vlast_point_position_buffer;
 
 /* Extent code needs to know about undo because the behavior of insert()
    with regard to extents varies depending on whether we are inside
    an undo or not. */
-int inside_undo;
+Boolint inside_undo;
 
 /* Last buffer for which undo information was recorded.  */
-static Lisp_Object last_undo_buffer;
+static Lisp_Object Vlast_undo_buffer;
 
 Lisp_Object Qinhibit_read_only;
 
-/* The first time a command records something for undo.
-   it also allocates the undo-boundary object
-   which will be added to the list at the end of the command.
-   This ensures we can't run out of space while trying to make
-   an undo-boundary.  */
-static Lisp_Object pending_boundary;
+/* The first time a command records something for undo, it also allocates the
+   undo-boundary object which will be added to the list at the end of the
+   command.  This ensures we can't run out of space while trying to make an
+   undo-boundary.  */
+static Lisp_Object Vpending_boundary;
 
 static void
 undo_boundary (struct buffer *b)
@@ -53,13 +52,13 @@ undo_boundary (struct buffer *b)
   if (!NILP (tem))
     {
       /* One way or another, cons nil onto the front of the undo list.  */
-      if (CONSP (pending_boundary))
+      if (CONSP (Vpending_boundary))
 	{
 	  /* If we have preallocated the cons cell to use here,
 	     use that one.  */
-	  XCDR (pending_boundary) = b->undo_list;
-	  b->undo_list = pending_boundary;
-	  pending_boundary = Qnil;
+	  XCDR (Vpending_boundary) = b->undo_list;
+	  b->undo_list = Vpending_boundary;
+	  Vpending_boundary = Qnil;
 	}
       else
 	b->undo_list = Fcons (Qnil, b->undo_list);
@@ -68,22 +67,22 @@ undo_boundary (struct buffer *b)
 
 
 static int
-undo_prelude (struct buffer *b, int hack_pending_boundary)
+undo_prelude (struct buffer *b, Boolint hack_pending_boundary)
 {
   if (EQ (b->undo_list, Qt))
     return (0);
 
-  if (NILP (last_undo_buffer)
+  if (NILP (Vlast_undo_buffer)
       || (BUFFER_BASE_BUFFER (b)
-	  != BUFFER_BASE_BUFFER (XBUFFER (last_undo_buffer))))
+	  != BUFFER_BASE_BUFFER (XBUFFER (Vlast_undo_buffer))))
     {
       undo_boundary (b);
-      last_undo_buffer = wrap_buffer (b);
+      Vlast_undo_buffer = wrap_buffer (b);
     }
 
   /* Allocate a cons cell to be the undo boundary after this command.  */
-  if (hack_pending_boundary && NILP (pending_boundary))
-    pending_boundary = Fcons (Qnil, Qnil);
+  if (hack_pending_boundary && NILP (Vpending_boundary))
+    Vpending_boundary = Fcons (Qnil, Qnil);
 
   if (buf_tick_arithcompare (BUF_MODIFF (b), BUF_SAVE_MODIFF (b)) <= 0)
     {
@@ -155,8 +154,8 @@ record_delete (struct buffer *b, Charbpos beg, Charcount length)
   /* If we are just after an undo boundary, and
      point wasn't at start of deleted range, record where it was.  */
   if (at_boundary
-      && BUFFERP (last_point_position_buffer)
-      && b == XBUFFER (last_point_position_buffer)
+      && BUFFERP (Vlast_point_position_buffer)
+      && b == XBUFFER (Vlast_point_position_buffer)
       && last_point_position != XFIXNUM (sbeg))
     b->undo_list = Fcons (make_fixnum (last_point_position), b->undo_list);
 
@@ -359,7 +358,7 @@ Return what remains of the list.
   struct gcpro gcpro1, gcpro2;
   Lisp_Object next = Qnil;
   /* This function can GC */
-  int arg;
+  EMACS_INT arg;
   int speccount = internal_bind_int (&inside_undo, 1);
 
 #if 0  /* This is a good feature, but would make undo-start
@@ -399,8 +398,8 @@ Return what remains of the list.
 	  else if (FIXNUMP (next))
 	    BUF_SET_PT (current_buffer,
 			charbpos_clip_to_bounds (BUF_BEGV (current_buffer),
-					       XFIXNUM (next),
-					       BUF_ZV (current_buffer)));
+						 XFIXNUM (next),
+						 BUF_ZV (current_buffer)));
 	  else if (CONSP (next))
 	    {
 	      Lisp_Object car = XCAR (next);
@@ -421,7 +420,8 @@ Return what remains of the list.
 #ifdef CLASH_DETECTION
 		  Funlock_buffer ();
 #endif /* CLASH_DETECTION */
-		  /* #### need to check if this can GC */
+		  /* This can GC. That's OK, we've done the appropriate
+		     GCPROing in this function. */
 		  Fset_buffer_modified_p (Qnil, Qnil);
 		}
 	      else if (EXTENTP (car))
@@ -461,7 +461,9 @@ Return what remains of the list.
 
 		  if (XFIXNUM (car) < BUF_BEGV (current_buffer)
 		      || XFIXNUM (cdr) > BUF_ZV (current_buffer))
-		    signal_error (Qinvalid_operation, "Changes to be undone are outside visible portion of buffer", Qunbound);
+		    signal_error (Qinvalid_operation,
+				  "Changes to be undone are outside "
+				  "visible portion of buffer", Qunbound);
 		  /* Set point first thing, so that undoing this undo
 		     does not send point back to where it is now.  */
 		  Fgoto_char (car, Qnil);
@@ -471,19 +473,25 @@ Return what remains of the list.
 		{
 		  /* Element (STRING . POS) means STRING was deleted.  */
 		  Lisp_Object membuf = car;
-		  int pos = XFIXNUM (cdr);
+		  Charbpos pos = XFIXNUM (cdr);
 
 		  if (pos < 0)
 		    {
-		      if (-pos < BUF_BEGV (current_buffer) || -pos > BUF_ZV (current_buffer))
-			signal_error (Qinvalid_operation, "Changes to be undone are outside visible portion of buffer", Qunbound);
+		      if (-pos < BUF_BEGV (current_buffer)
+			  || -pos > BUF_ZV (current_buffer))
+			signal_error (Qinvalid_operation,
+				      "Changes to be undone are outside "
+				      "visible portion of buffer", Qunbound);
 		      BUF_SET_PT (current_buffer, -pos);
 		      Finsert (1, &membuf);
 		    }
 		  else
 		    {
-		      if (pos < BUF_BEGV (current_buffer) || pos > BUF_ZV (current_buffer))
-			signal_error (Qinvalid_operation, "Changes to be undone are outside visible portion of buffer", Qunbound);
+		      if (pos < BUF_BEGV (current_buffer)
+			  || pos > BUF_ZV (current_buffer))
+			signal_error (Qinvalid_operation,
+				      "Changes to be undone are outside "
+				      "visible portion of buffer", Qunbound);
 		      BUF_SET_PT (current_buffer, pos);
 
 		      /* Insert before markers so that if the mark is
@@ -537,11 +545,11 @@ syms_of_undo (void)
 void
 vars_of_undo (void)
 {
-  pending_boundary = Qnil;
-  staticpro_dump_nil (&pending_boundary);
+  Vpending_boundary = Qnil;
+  staticpro_dump_nil (&Vpending_boundary);
 
-  last_undo_buffer = Qnil;
-  staticpro_dump_nil (&last_undo_buffer);
+  Vlast_undo_buffer = Qnil;
+  staticpro_dump_nil (&Vlast_undo_buffer);
 }
 
 /* undo.c ends here */

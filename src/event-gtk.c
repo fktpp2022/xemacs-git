@@ -1191,7 +1191,7 @@ emacs_gtk_next_event (struct Lisp_Event *emacs_event)
 {
  we_didnt_get_an_event:
 
-  while (NILP (dispatch_event_queue) &&
+  while (NILP (Vdispatch_event_queue) &&
 	 NILP (Vgtk_completed_timeouts)  &&
 	 !fake_event_occurred        &&
 	 !process_events_occurred    &&
@@ -1206,7 +1206,7 @@ emacs_gtk_next_event (struct Lisp_Event *emacs_event)
 #endif
     }
 
-  if (!NILP (dispatch_event_queue))
+  if (!NILP (Vdispatch_event_queue))
     {
       Lisp_Object event, event2;
       event2 = wrap_event (emacs_event);

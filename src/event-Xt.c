@@ -3659,7 +3659,7 @@ emacs_Xt_next_event (Lisp_Event *emacs_event)
 {
  we_didnt_get_an_event:
 
-  while (NILP (dispatch_event_queue) &&
+  while (NILP (Vdispatch_event_queue) &&
 	 NILP (VXt_completed_timeouts)  &&
 	 !fake_event_occurred        &&
 	 !process_events_occurred    &&
@@ -3733,7 +3733,7 @@ emacs_Xt_next_event (Lisp_Event *emacs_event)
 	}
     }
 
-  if (!NILP (dispatch_event_queue))
+  if (!NILP (Vdispatch_event_queue))
     {
       Lisp_Object event, event2;
       event2 = wrap_event (emacs_event);
@@ -3830,7 +3830,7 @@ check_if_pending_expose_event (struct device *dev)
 
   emacs_Xt_drain_queue ();
 
-  EVENT_CHAIN_LOOP (event, dispatch_event_queue)
+  EVENT_CHAIN_LOOP (event, Vdispatch_event_queue)
     if (XEVENT_TYPE (event) == magic_event)
       {
 	XEvent *xev = &XEVENT_MAGIC_X_EVENT (event);

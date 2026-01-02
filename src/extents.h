@@ -94,7 +94,7 @@ Lisp_Object allocate_extent_info (void);
 			     ME_MIGHT_MODIFY_EXTENTS | ME_MIGHT_MOVE_SOE)
 
 
-extern int inside_undo;
+extern Boolint inside_undo;
 extern int in_modeline_generation;
 
 extern Fixnum mouse_highlight_priority;

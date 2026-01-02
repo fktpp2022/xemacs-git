@@ -1,5 +1,72 @@
 2026-01-02  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* event-msw.c:
+	* event-msw.c (mswindows_enqueue_dispatch_event):
+	* event-msw.c (mswindows_dequeue_dispatch_event):
+	* event-msw.c (mswindows_need_event_in_modal_loop):
+	* event-msw.c (mswindows_need_event):
+	* event-msw.c (emacs_mswindows_remove_timeout):
+	* event-msw.c (emacs_mswindows_event_pending_p):
+	* event-msw.c (vars_of_event_mswindows):
+	Rename mswindows_s_dispatch_event_queue to
+	Vmswindows_s_dispatch_event_queue.
+	Rename mswindows_s_dispatch_event_queue_tail to
+	Vmswindows_s_dispatch_event_queue_tail.
+	Rename dispatch_event_queue to Vdispatch_event_queue.
+
+	* event-Xt.c (emacs_Xt_next_event):
+	* event-Xt.c (check_if_pending_expose_event):
+	* event-gtk.c (emacs_gtk_next_event):
+	Rename dispatch_event_queue to Vdispatch_event_queue.
+
+	* event-stream.c:
+	* event-stream.c (enqueue_command_event):
+	* event-stream.c (dequeue_command_event):
+	* event-stream.c (enqueue_dispatch_event):
+	* event-stream.c (dequeue_dispatch_event):
+	* event-stream.c (detect_input_pending):
+	* event-stream.c (event_stream_quit_p):
+	* event-stream.c (next_event_internal):
+	* event-stream.c (Fnext_event):
+	* event-stream.c (Fdispatch_non_command_events):
+	* event-stream.c (Fdiscard_input):
+	* event-stream.c (Faccept_process_output):
+	* event-stream.c (Fsleep_for):
+	* event-stream.c (Fsit_for):
+	* event-stream.c (wait_delaying_user_input):
+	* event-stream.c (command_builder_find_leaf_and_update_global_state):
+	* event-stream.c (pre_command_hook):
+	* event-stream.c (vars_of_event_stream):
+	Rename command_event_queue to Vcommand_event_queue.
+	Rename command_event_queue_tail to Vcommand_event_queue_tail.
+	Rename last_point_position_buffer to Vlast_point_position_buffer.
+	Rename dispatch_event_queue to Vdispatch_event_queue.
+
+	* event-tty.c (emacs_tty_event_pending_p):
+	* event-tty.c (emacs_tty_next_event):
+	Rename dispatch_event_queue to Vdispatch_event_queue.
+	* event-xlike-inc.c (emacs_{Xt,gtk}_event_pending_p):
+	Ditto.
+	* events.h:
+	Ditto.
+	* extents.h:
+	Update the type of inside_undo.
+
+	* undo.c:
+	* undo.c (undo_boundary):
+	* undo.c (undo_prelude):
+	Modernize the type of HACK_PENDING_BOUNDARY arg.
+	* undo.c (record_delete):
+	* undo.c (Fprimitive_undo):
+	* undo.c (vars_of_undo):
+	Rename dispatch_event_queue to Vdispatch_event_queue.
+	Rename dispatch_event_queue_tail to Vdispatch_event_queue_tail.
+	Rename last_undo_buffer to Vlast_undo_buffer.
+	Change the type of INSIDE_UNDO to Boolint.
+	Rename pending_boundary to Vpending_boundary.
+
+2026-01-02  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* config.h.in:
 	Never #define _XOPEN_SOURCE_EXTENDED, thank you Hauke Fath and
 	Jonathan Perkin. See

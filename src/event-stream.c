@@ -202,7 +202,7 @@ Charbpos last_point_position;
 Lisp_Object Vlast_selected_frame;
 
 /* The buffer that was current when the last command was started.  */
-Lisp_Object last_point_position_buffer;
+Lisp_Object Vlast_point_position_buffer;
 
 /* A (16bit . 16bit) representation of the time of the last-command-event. */
 Lisp_Object Vlast_input_time;
@@ -349,11 +349,11 @@ See also
   (Info-goto-node "(internals)Event Stream Callback Routines")
 */
 
-static Lisp_Object command_event_queue;
-static Lisp_Object command_event_queue_tail;
+static Lisp_Object Vcommand_event_queue;
+static Lisp_Object Vcommand_event_queue_tail;
 
-Lisp_Object dispatch_event_queue;
-static Lisp_Object dispatch_event_queue_tail;
+Lisp_Object Vdispatch_event_queue;
+static Lisp_Object Vdispatch_event_queue_tail;
 
 /* Nonzero means echo unfinished commands after this many seconds of pause. */
 static Lisp_Object Vecho_keystrokes;
@@ -1466,25 +1466,25 @@ It will not work to call this function on an id number returned by
 static void
 enqueue_command_event (Lisp_Object event)
 {
-  enqueue_event (event, &command_event_queue, &command_event_queue_tail);
+  enqueue_event (event, &Vcommand_event_queue, &Vcommand_event_queue_tail);
 }
 
 static Lisp_Object
 dequeue_command_event (void)
 {
-  return dequeue_event (&command_event_queue, &command_event_queue_tail);
+  return dequeue_event (&Vcommand_event_queue, &Vcommand_event_queue_tail);
 }
 
 void
 enqueue_dispatch_event (Lisp_Object event)
 {
-  enqueue_event (event, &dispatch_event_queue, &dispatch_event_queue_tail);
+  enqueue_event (event, &Vdispatch_event_queue, &Vdispatch_event_queue_tail);
 }
 
 Lisp_Object
 dequeue_dispatch_event (void)
 {
-  return dequeue_event (&dispatch_event_queue, &dispatch_event_queue_tail);
+  return dequeue_event (&Vdispatch_event_queue, &Vdispatch_event_queue_tail);
 }
 
 static void
@@ -1865,7 +1865,7 @@ detect_input_pending (int how_many)
         }
     }
 
-  EVENT_CHAIN_LOOP (event, command_event_queue)
+  EVENT_CHAIN_LOOP (event, Vcommand_event_queue)
     {
       if (XEVENT_TYPE (event) != eval_event
 	  && XEVENT_TYPE (event) != magic_eval_event)
@@ -1959,8 +1959,8 @@ event_stream_quit_p (void)
   data.critical = 0;
 
   if (map_event_chain_remove (remove_quit_p_event,
-			      &dispatch_event_queue,
-			      &dispatch_event_queue_tail,
+			      &Vdispatch_event_queue,
+			      &Vdispatch_event_queue_tail,
 			      &data, MECR_DEALLOCATE_EVENT))
     Vquit_flag = data.critical ? Qcritical : Qt;
 }
@@ -2099,7 +2099,7 @@ next_event_internal (Lisp_Object target_event, int allow_queued)
   if (!focus_follows_mouse)
     investigate_frame_change ();
 
-  if (allow_queued && !NILP (command_event_queue))
+  if (allow_queued && !NILP (Vcommand_event_queue))
     {
       Lisp_Object event = dequeue_command_event ();
       Fcopy_event (event, target_event);
@@ -2110,7 +2110,7 @@ next_event_internal (Lisp_Object target_event, int allow_queued)
     {
       Lisp_Event *e = XEVENT (target_event);
 
-      /* The command_event_queue was empty.  Wait for an event. */
+      /* Vcommand_event_queue was empty.  Wait for an event. */
       event_stream_next_event (e);
       /* If this was a timeout, then we need to extract some data
 	 out of the returned closure and might need to resignal
@@ -2120,7 +2120,9 @@ next_event_internal (Lisp_Object target_event, int allow_queued)
 	  Lisp_Object tristan, isolde;
 
 	  SET_EVENT_TIMEOUT_ID_NUMBER (e, 
-                          event_stream_resignal_wakeup (EVENT_TIMEOUT_INTERVAL_ID (e), 0, &tristan, &isolde));
+				       event_stream_resignal_wakeup
+				       (EVENT_TIMEOUT_INTERVAL_ID (e), 0,
+					&tristan, &isolde));
 
           SET_EVENT_TIMEOUT_FUNCTION (e, tristan);
           SET_EVENT_TIMEOUT_OBJECT (e, isolde);
@@ -2379,7 +2381,7 @@ The returned event will be one of the following types:
 	  DEBUG_PRINT_EMACS_EVENT ("keyboard macro", event);
 	}
       /* Otherwise, read a real event, possibly from the
-	 command_event_queue, and update this-command-keys and
+	 Vcommand_event_queue, and update this-command-keys and
 	 recent-keys. */
       else
 	{
@@ -2604,11 +2606,10 @@ function does not call redisplay or do any of the other things that
 
   while (event_stream_event_pending_p (0))
     {
-      /* We're a generator of the command_event_queue, so we can't be a
-	 consumer as well.  Also, we have no reason to consult the
-	 command_event_queue; there are only user and eval-events there,
-	 and we'd just have to put them back anyway.
-       */
+      /* We're a generator of Vcommand_event_queue, so we can't be a consumer
+	 as well.  Also, we have no reason to consult Vcommand_event_queue;
+	 there are only user and eval-events there, and we'd just have to put
+	 them back anyway. */
       next_event_internal (event, 0); /* blocks */
       if (XEVENT_TYPE (event) == magic_event ||
 	  XEVENT_TYPE (event) == timeout_event ||
@@ -2671,10 +2672,10 @@ A user event is a key press, button press, button release, or
   event_stream_drain_queue ();
 
   map_event_chain_remove (command_event_p_cb,
-			  &dispatch_event_queue, &dispatch_event_queue_tail,
+			  &Vdispatch_event_queue, &Vdispatch_event_queue_tail,
 			  0, MECR_DEALLOCATE_EVENT);
   map_event_chain_remove (command_event_p_cb,
-			  &command_event_queue, &command_event_queue_tail,
+			  &Vcommand_event_queue, &Vcommand_event_queue_tail,
 			  0, MECR_DEALLOCATE_EVENT);
 
   return Qnil;
@@ -2778,10 +2779,10 @@ Return non-nil iff we received any output before the timeout expired.
           (NILP (process) && event_stream_event_pending_p (0)) ||
           (!NILP (process))))
 	 /* Calling detect_input_pending() is the wrong thing here, because
-	    that considers the Vunread_command_events and command_event_queue.
-	    We don't need to look at the command_event_queue because we are
-	    only interested in process events, which don't go on that.  In
-	    fact, we can't read from it anyway, because we put stuff on it.
+	    that considers the Vunread_command_events and Vcommand_event_queue.
+	    We don't need to look at Vcommand_event_queue because we are only
+	    interested in process events, which don't go on that.  In fact, we
+	    can't read from it anyway, because we put stuff on it.
 
 	    Note that event_stream->event_pending_p_cb must be called in such
 	    a way that it says whether any events *of any kind* are ready, not
@@ -2876,7 +2877,7 @@ filter function or timer event (either synchronous or asynchronous).
       if (!event_stream_wakeup_pending_p (id, 0))
 	goto DONE_LABEL;
 
-      /* We're a generator of the command_event_queue, so we can't be a
+      /* We're a generator of the Vcommand_event_queue, so we can't be a
 	 consumer as well.  We don't care about command and eval-events
 	 anyway.
        */
@@ -2934,9 +2935,9 @@ If sit-for is called from within a process filter function or timer
   /* If the command-builder already has user-input on it (not eval events)
      then that means we're done too.
    */
-  if (!NILP (command_event_queue))
+  if (!NILP (Vcommand_event_queue))
     {
-      EVENT_CHAIN_LOOP (event, command_event_queue)
+      EVENT_CHAIN_LOOP (event, Vcommand_event_queue)
 	{
 	  if (command_event_p (event))
 	    return Qnil;
@@ -2990,10 +2991,9 @@ If sit-for is called from within a process filter function or timer
 	  goto DONE_LABEL;
 	}
 
-      /* We're a generator of the command_event_queue, so we can't be a
-	 consumer as well.  In fact, we know there's nothing on the
-	 command_event_queue that we didn't just put there.
-       */
+      /* We're a generator of Vcommand_event_queue, so we can't be a consumer
+	 as well.  In fact, we know there's nothing on Vcommand_event_queue
+	 that we didn't just put there. */
       next_event_internal (event, 0); /* blocks */
 
       if (command_event_p (event))
@@ -3052,9 +3052,9 @@ wait_delaying_user_input (int (*predicate) (void *arg), void *predicate_arg)
 
   while (!(*predicate) (predicate_arg))
     {
-      /* We're a generator of the command_event_queue, so we can't be a
+      /* We're a generator of the Vcommand_event_queue, so we can't be a
 	 consumer as well.  Also, we have no reason to consult the
-	 command_event_queue; there are only user and eval-events there,
+	 Vcommand_event_queue; there are only user and eval-events there,
 	 and we'd just have to put them back anyway.
        */
       next_event_internal (event, 0);
@@ -3803,8 +3803,8 @@ command_builder_find_leaf_and_update_global_state (struct command_builder *
 
 	  /* Put the commands back on the event queue. */
 	  enqueue_event_chain (XEVENT_NEXT (event0),
-			       &command_event_queue,
-			       &command_event_queue_tail);
+			       &Vcommand_event_queue,
+			       &Vcommand_event_queue_tail);
 
 	  /* Then remove them from the command builder. */
 	  XSET_EVENT_NEXT (event0, Qnil);
@@ -4460,7 +4460,7 @@ static void
 pre_command_hook (void)
 {
   last_point_position = BUF_PT (current_buffer);
-  last_point_position_buffer = wrap_buffer (current_buffer);
+  Vlast_point_position_buffer = wrap_buffer (current_buffer);
   /* This function can GC */
   safe_run_hook_trapping_problems
     (Qcommand, Qpre_command_hook,
@@ -5100,15 +5100,15 @@ vars_of_event_stream (void)
   Vthis_command_keys_tail = Qnil;
   dump_add_root_lisp_object (&Vthis_command_keys_tail);
 
-  command_event_queue = Qnil;
-  staticpro (&command_event_queue);
-  command_event_queue_tail = Qnil;
-  dump_add_root_lisp_object (&command_event_queue_tail);
+  Vcommand_event_queue = Qnil;
+  staticpro (&Vcommand_event_queue);
+  Vcommand_event_queue_tail = Qnil;
+  dump_add_root_lisp_object (&Vcommand_event_queue_tail);
 
-  dispatch_event_queue = Qnil;
-  staticpro (&dispatch_event_queue);
-  dispatch_event_queue_tail = Qnil;
-  dump_add_root_lisp_object (&dispatch_event_queue_tail);
+  Vdispatch_event_queue = Qnil;
+  staticpro (&Vdispatch_event_queue);
+  Vdispatch_event_queue_tail = Qnil;
+  dump_add_root_lisp_object (&Vdispatch_event_queue_tail);
 
   Vlast_selected_frame = Qnil;
   staticpro (&Vlast_selected_frame);
@@ -5119,8 +5119,8 @@ vars_of_event_stream (void)
   pending_async_timeout_list = Qnil;
   staticpro (&pending_async_timeout_list);
 
-  last_point_position_buffer = Qnil;
-  staticpro (&last_point_position_buffer);
+  Vlast_point_position_buffer = Qnil;
+  staticpro (&Vlast_point_position_buffer);
 
   Vunread_command_events_tortoise = Qnil;
   staticpro (&Vunread_command_events_tortoise);
