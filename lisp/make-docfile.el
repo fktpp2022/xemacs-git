@@ -239,17 +239,17 @@ than `build-directory' if appropriate. "
 		 (when (file-exists-p arg)
 		   (if (and (not docfile-out-of-date)
 			    (file-newer-than-file-p arg docfile))
-		       (let ((stream (make-string-output-stream)) used-codesys)
-			 ;; Ignore files like dump-id.c or extw-Xlib.c when
-			 ;; making a decision to rebuild DOC, by checking if
-			 ;; they have any DEFUN(), DEFVAR_*(),
-			 ;; DEFINE_LISP_OBJECT(). If they don't there's also no
-			 ;; need to add them to C-files.
-			 (declare (special used-codesys))
-			 (scan-C-file stream arg nil 'used-codesys)
-			 (when (> (length (get-output-stream-string stream)) 0)
-			   (setq docfile-out-of-date t
-				 C-files (cons arg C-files))))
+                       ;; Ignore files like dump-id.c or extw-Xlib.c when
+                       ;; making a decision to rebuild DOC, by checking if
+                       ;; they have any DEFUN(), DEFVAR_*(),
+                       ;; DEFINE_LISP_OBJECT(). If they don't there's also no
+                       ;; need to add them to C-files.
+                       (when (block any-output
+                               (scan-C-file #'(lambda (character)
+                                                (return-from any-output t))
+                                            arg nil '#:used-codesys))
+                         (setq docfile-out-of-date t
+                               C-files (cons arg C-files)))
 		     (setq C-files (cons arg C-files))))
 	       (setq C-files (cons arg C-files)))))
 
@@ -428,6 +428,8 @@ than `build-directory' if appropriate. "
            ;; keyword or something like most-positive-fixnum); its value is
            ;; set to the value of buffer-file-coding-system after loading
            ;; FILENAME into a buffer.
+           ;;
+           ;; Always returns nil (absent other behaviour from OUTUT-STREAM).
            (let (char-after name type commas min-args max-args print-gensym)
              (labels
                  ((next-char ()

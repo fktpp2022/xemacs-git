@@ -1,3 +1,11 @@
+2026-01-04  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* make-docfile.el (sanitize-C-command-line-arg):
+	No need to parse the entire file when working out whether a C file
+	has DEFUN(), DEFVAR_.*(), etc, return immediately on encountering
+	the first. Use the fact that the OUTPUT-STREAM argument to
+	#'scan-C-file can be a function to implement this.
+
 2025-12-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Fix various bugs, further clean-ups. make-docfile.el.
