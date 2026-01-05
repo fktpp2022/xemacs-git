@@ -1010,7 +1010,18 @@ static int gc_count_num_##type##_freelist
    cell was not GC-protected and was getting collected before
    free_cons() was called. */
 
+/* The MINIMUM_ALLOWED_FIXED_TYPE_CELLS_##type #define is only used if
+   ERROR_CHECK_GC, and is a mechanism to keep recently-free objects of a given
+   type free, rather than quickly re-used, so it is more likely that any
+   incorrectly-kept pointers to them will crash rather than encounter a fresh
+   object.
+
+   This code deals poorly with zero MINIMUM_ALLOWED_FIXED_TYPE_CELLS_##type,
+   so don't do that. */
+
 #define ALLOCATE_FIXED_TYPE_1(type, structtype, result) do {	\
+  gc_checking_assert (MINIMUM_ALLOWED_FIXED_TYPE_CELLS_##type   \
+                      > 0);                                     \
   if (gc_count_num_##type##_freelist >				\
       MINIMUM_ALLOWED_FIXED_TYPE_CELLS_##type)			\
     {								\
@@ -2225,7 +2236,7 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
 /************************************************************************/
 
 DECLARE_FIXED_TYPE_ALLOC (subr, Lisp_Subr);
-#define MINIMUM_ALLOWED_FIXED_TYPE_CELLS_subr 0
+#define MINIMUM_ALLOWED_FIXED_TYPE_CELLS_subr 8
 Lisp_Object
 make_subr (void)
 {

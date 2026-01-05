@@ -1,3 +1,12 @@
+2026-01-05  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* alloc.c (ALLOCATE_FIXED_TYPE_1):
+	Document what MINIMUM_ALLOWED_FIXED_TYPE_CELLS_##type is, and that
+	this implementation deals poorly with it being zero.
+	Add an assertion that it is not zero.
+	* alloc.c (MINIMUM_ALLOWED_FIXED_TYPE_CELLS_subr):
+	Make this non-zero.
+
 2026-01-02  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* opaque.c (hash_opaque):
