@@ -4464,14 +4464,14 @@ init_memory_usage_stats (int tipo,
   lrecord_implementations_table[tipo]->memusage_stats_list
     = memusage_stats_list;
 
-  if (tipo <= lrecord_type_last_built_in_type)
+  if (initialized)
     {
-      staticpro
+      staticpro_nodump
 	(&(lrecord_implementations_table[tipo]->memusage_stats_list));
     }
   else
     {
-      staticpro_nodump
+      staticpro
 	(&(lrecord_implementations_table[tipo]->memusage_stats_list));
     }
 }

@@ -156,23 +156,24 @@ add_module_loadhist_elt (Lisp_Object elt)
     {
       if (SYMBOLP (XCDR (elt)) && SUBRP (XSYMBOL_FUNCTION (XCDR (elt))))
 	{
-	  /* Appropriate for subrs to be completely weak elements (the car and
-	     the cdr of the entries are identical), if the associated symbol
-	     has a #'fmakunbound done there's nothing that needs to be kept
-	     around to prevent XEmacs crashing.  */
+	  /* Keep around the subr object as the key in the weak list. Store
+             the symbol also, to allow us to do an #'fmakunbound if Lisp
+             hasn't. If the subr is garbage-collected it will disappear from
+             this list, which is well and good. If it isn't garbage collected
+             (if Lisp has stashed it somewhere), its SUBR_FN field needs to be
+             updated to no longer point into the data segment of an unloaded
+             module.  */
 	  XWEAK_LIST_LIST (weak_list)
-	    = Fcons (Fcons (XSYMBOL_FUNCTION (XCDR (elt)),
-			    XSYMBOL_FUNCTION (XCDR (elt))),
-		     XWEAK_LIST_LIST (weak_list));
+	    = Facons (XSYMBOL_FUNCTION (XCDR (elt)), XCDR (elt),
+                      XWEAK_LIST_LIST (weak_list));
 	}
       else if (SYMBOLP (XCDR (elt)) && CONSP (XSYMBOL_FUNCTION (XCDR (elt)))
                && EQ (Qmacro, XCAR (XSYMBOL_FUNCTION (XCDR (elt))))
                && SUBRP (XCDR (XSYMBOL_FUNCTION (XCDR (elt)))))
         {
 	  XWEAK_LIST_LIST (weak_list)
-	    = Fcons (Fcons (XCDR (XSYMBOL_FUNCTION (XCDR (elt))),
-			    XCDR (XSYMBOL_FUNCTION (XCDR (elt)))),
-		     XWEAK_LIST_LIST (weak_list));
+	    = Facons (XCDR (XSYMBOL_FUNCTION (XCDR (elt))), XCDR (elt),
+                      XWEAK_LIST_LIST (weak_list));
         }
     }
   else if (CONSP (elt) && EQ (XCAR (elt), Qobject))
@@ -205,28 +206,29 @@ add_module_loadhist_elt (Lisp_Object elt)
       Lisp_Object val = XSYMBOL_VALUE (elt);
       if (SYMBOL_VALUE_FORWARD_OBJECTP (val))
 	{
-	  /* The weak list element needs to be reachable for as long as this
-	     module is reachable, set EMODULE as the car of the element.
-	     Leave the entry in Vcurrent_load_list. */
+	  /* Store both the symbol and the symbol value magic object in the
+             list. The symbol value magic object does not need to be freed by
+             this code (it will be swept in the normal way once it is
+             unreachable) but if #'unload-module is called without the Lisp
+             book-keeping being done we should make the symbol unbound. */
 	  XWEAK_LIST_LIST (weak_list)
-	    = Fcons (Fcons (emodule, XSYMBOL_VALUE (elt)),
-		     XWEAK_LIST_LIST (weak_list));
+	    = Facons (XSYMBOL_VALUE (elt), elt, XWEAK_LIST_LIST (weak_list));
 	}
       else if (SYMBOL_VALUE_FORWARD_FIXNUMP (val) ||
 	       SYMBOL_VALUE_FORWARD_BOOLINTP (val))
 	{
-	  /* Entry can be fully weak; our post-unload processing is to ensure
-	     that a reachable SYMBOL_VALUE_FORWARD_{FIXNUM,BOOLINT} doesn't
-	     attempt to read or write unloaded data segment entries. */
+	  /* Store both the symbol and the symbol value magic object in the
+	     list.  On unloading the module the symbol needs to be made unbound
+	     should Lisp not have done that, and the symbol-value-magic needs
+	     to be freed, since it will not be swept in the normal course of
+	     events (since it does not have anything useful in the NEXT field
+	     of its old_lcrecord_header). Leave the entry in
+	     Vcurrent_load_list, it is useful and helpful for loadhist.el. */
 	  XWEAK_LIST_LIST (weak_list)
-	    = Fcons (Fcons (emodule, XSYMBOL_VALUE (elt)),
-		     XWEAK_LIST_LIST (weak_list));
+	    = Facons (val, elt, XWEAK_LIST_LIST (weak_list));
 	}
     }
 }
-
-static Fixnum deadbeef_constant = 0xDEADBEEF;
-static Boolint deadbeef_boolint = 0;
 
 static Lisp_Object
 unloaded_subr_error (void)
@@ -250,44 +252,59 @@ attempt_module_delete (Lisp_Object mod)
       ALIST_LOOP_3 (elt_car, elt_cdr,
                     XWEAK_LIST_LIST (XMODULE (mod)->lisp_cleanup_info))
         {
-          if (SUBRP (elt_cdr))
+          if (SUBRP (elt_car))
             {
-              XSUBR (elt_cdr)->subr_fn = &unloaded_subr_error;
-              assert (EQ (elt_car, elt_cdr));
+              XSUBR (elt_car)->subr_fn = &unloaded_subr_error;
+              if (EQ (XSYMBOL_FUNCTION (elt_cdr), elt_car))
+                {
+                  XSYMBOL (elt_cdr)->function = Qunbound;
+                }
+              else if (CONSP (XSYMBOL_FUNCTION (elt_cdr))
+                       && EQ (XCAR (XSYMBOL_FUNCTION (elt_cdr)), Qmacro)
+                       && EQ (XCDR (XSYMBOL_FUNCTION (elt_cdr)),
+                              elt_car))
+                {
+                  XSYMBOL (elt_cdr)->function = Qunbound;
+                }
             }
-          else if (SYMBOL_VALUE_FORWARD_OBJECTP (elt_cdr))
+          else if (SYMBOL_VALUE_FORWARD_OBJECTP (elt_car))
             {
-              XSYMBOL_VALUE_FORWARD_OBJECT_FORWARD (elt_cdr) = &Qnil;
-              XSYMBOL_VALUE_FORWARD_OBJECT_MAGICFUN (elt_cdr) = NULL;
-              XSYMBOL_VALUE_MAGIC_TYPE (elt_cdr)
+              XSYMBOL_VALUE_FORWARD_OBJECT_FORWARD (elt_car) = &Qunbound;
+              XSYMBOL_VALUE_FORWARD_OBJECT_MAGICFUN (elt_car) = NULL;
+              XSYMBOL_VALUE_MAGIC_TYPE (elt_car)
                 = SYMVAL_CONST_OBJECT_FORWARD;
-              assert (EQ (elt_car, mod));
+
+              if (EQ (elt_car, XSYMBOL_VALUE (elt_cdr)))
+                {
+                  XSYMBOL_VALUE (elt_cdr) = Qunbound;
+                }
+
+              /* This object is reachable and will be swept by the GC, it does
+                 not need to be freed. */
             }
-          else if (SYMBOL_VALUE_FORWARD_FIXNUMP (elt_cdr))
+          else if (SYMBOL_VALUE_FORWARD_FIXNUMP (elt_car)
+                   || SYMBOL_VALUE_FORWARD_BOOLINTP (elt_car))
             {
-              XSYMBOL_VALUE_FORWARD_FIXNUM_FORWARD (elt_cdr)
-                = &deadbeef_constant;
-              XSYMBOL_VALUE_FORWARD_FIXNUM_MAGICFUN (elt_cdr) = NULL;
-              XSYMBOL_VALUE_MAGIC_TYPE (elt_cdr)
-                = SYMVAL_CONST_FIXNUM_FORWARD;
-              CLEAR_C_READONLY_RECORD_HEADER
-                (&(XSYMBOL_VALUE_FORWARD_FIXNUM (elt_cdr)->magic.header));
-              assert (EQ (elt_car, elt_cdr));
-            }
-          else if (SYMBOL_VALUE_FORWARD_BOOLINTP (elt_cdr))
-            {
-              XSYMBOL_VALUE_FORWARD_BOOLINT_FORWARD (elt_cdr)
-                = &deadbeef_boolint;
-              XSYMBOL_VALUE_FORWARD_BOOLINT_MAGICFUN (elt_cdr) = NULL;
-              XSYMBOL_VALUE_MAGIC_TYPE (elt_cdr)
-                = SYMVAL_CONST_BOOLEAN_FORWARD;
-              CLEAR_C_READONLY_RECORD_HEADER
-                (&(XSYMBOL_VALUE_FORWARD_BOOLINT (elt_cdr)->magic.header));
-              assert (EQ (elt_car, elt_cdr));
+	      if (EQ (elt_car, XSYMBOL_VALUE (elt_cdr)))
+		{
+		  XSYMBOL_VALUE (elt_cdr) = Qunbound;
+		}
+
+              /* No code moves a symbol-value-forward from the value field of
+                 one symbol to another, this is now unreachable. We have to
+                 free it because it is marked C_READONLY and so it won't be
+                 swept in the normal course of events. */
+	      free_normal_lisp_object (elt_car);
             }
           else if (EQ (Qobject, elt_car))
             {
-              undef_lisp_object (XFIXNUM (elt_cdr));
+              EMACS_INT tipo = XFIXNUM (elt_cdr);
+              /* The unload() method may already have done this. */
+              if (tipo < lrecord_type_count &&
+                  lrecord_implementations_table[tipo] != NULL)
+                {
+                  undef_lisp_object (tipo);
+                }
             }
           else if (EQ (Qsymbol, elt_car))
             {
@@ -532,12 +549,12 @@ emodules_load (const Ibyte *module, const Ibyte *modname,
      do. */
   emodule = find_module (foundname, mname, mver);
   if (!NILP (emodule))
-  {
-    emodules_depth--;
-    dll_close (dlhandle);
-    dlhandle = 0;  /* Zero this out before module_load_unwind runs */
-    return;
-  }
+    {
+      emodules_depth--;
+      dll_close (dlhandle);
+      dlhandle = 0;  /* Zero this out before module_load_unwind runs */
+      return;
+    }
 
   if (!load_modules_quietly)
     message ("Loading %s v%s (%s)", XSTRING_DATA (mname),
@@ -808,10 +825,10 @@ is a bug, and you are encouraged to report it.
 
   LIST_LOOP_2 (elt, Vloaded_modules)
     {
-      mlist = Fcons (list4 (XMODULE (elt)->soname,
-                            XMODULE (elt)->modname,
-                            XMODULE (elt)->modver,
-                            XMODULE (elt)->modtitle),
+      mlist = Fcons (list4 (concat2 (XMODULE (elt)->soname, Qnil),
+                            concat2 (XMODULE (elt)->modname, Qnil),
+                            concat2 (XMODULE (elt)->modver, Qnil),
+                            concat2 (XMODULE (elt)->modtitle, Qnil)),
                      mlist);
     }
 

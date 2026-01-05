@@ -3212,29 +3212,51 @@ init_symbols_once_early (void)
 }
 
 static void
-defsymbol_massage_name_1 (Lisp_Object *location, const Ascbyte *name,
-			  int dump_p, int multiword_predicate_p)
+defsymbol_massage_name_1 (Lisp_Object *location, const CIbyte *name,
+			  Boolint dumpp, Boolint multiword_predicate_p)
 {
-  char temp[500];
-  int len = strlen (name) - 1;
-  int i;
+  Bytecount len, ii;
+  Ibyte *temp;
+
+  if (dumpp)
+    {
+      ASSERT_ASCTEXT_ASCII (name);
+      len = strlen (name); /* +1 for the terminating zero, -1 for
+                              removing the initial Q, balancing out. */
+      temp = alloca_ibytes (len + multiword_predicate_p);
+      memcpy (temp, name + 1, len); /* Includes terminating zero. */
+      len -= 1; /* Make our book-keeping for MULTIWORD_PREDICATE_P
+                   accurate. */
+    }
+  else
+    {
+      TO_INTERNAL_FORMAT (C_STRING, name + 1, ALLOCA, (temp, len),
+                          Qmodule_string_coding_system);
+    }
 
   if (multiword_predicate_p)
-    assert (len + 1 < (int) sizeof (temp));
-  else
-    assert (len < (int) sizeof (temp));
-  strcpy (temp, name + 1); /* Remove initial Q */
-  if (multiword_predicate_p)
     {
-      strcpy (temp + len - 1, "_p");
-      len++;
+      /* TO_INTERNAL_FORMAT() always adds a terminating zero (actually
+         two), and make_string() doesn't need zero-termination, so we have
+         space for this: */
+      temp[len - 1] = '-';
+      temp[len++] = 'p';
     }
-  for (i = 0; i < len; i++)
-    if (temp[i] == '_')
-      temp[i] = '-';
-  *location = Fintern (make_string ((const Ibyte *) temp, len), Qnil);
-  if (dump_p)
-    staticpro (location);
+
+  for (ii = 0; ii < len; ii++)
+    {
+      if (temp[ii] == '_')
+        {
+          temp[ii] = '-';
+        }
+    }
+
+  *location = Fintern (make_string (temp, len), Qnil);
+
+  if (dumpp)
+    {
+      staticpro (location);
+    }
   else
     {
       staticpro_nodump (location);
@@ -3244,44 +3266,48 @@ defsymbol_massage_name_1 (Lisp_Object *location, const Ascbyte *name,
 }
 
 void
-defsymbol_massage_name_nodump (Lisp_Object *location, const Ascbyte *name)
+defsymbol_massage_name_nodump (Lisp_Object *location, const CIbyte *name)
 {
   defsymbol_massage_name_1 (location, name, 0, 0);
 }
 
 void
-defsymbol_massage_name (Lisp_Object *location, const Ascbyte *name)
+defsymbol_massage_name (Lisp_Object *location, const CIbyte *name)
 {
   defsymbol_massage_name_1 (location, name, 1, 0);
 }
 
 void
 defsymbol_massage_multiword_predicate_nodump (Lisp_Object *location,
-					      const Ascbyte *name)
+					      const CIbyte *name)
 {
   defsymbol_massage_name_1 (location, name, 0, 1);
 }
 
 void
 defsymbol_massage_multiword_predicate (Lisp_Object *location,
-				       const Ascbyte *name)
+				       const CIbyte *name)
 {
   defsymbol_massage_name_1 (location, name, 1, 1);
 }
 
 void
-defsymbol_nodump (Lisp_Object *location, const Ascbyte *name)
+defsymbol_nodump (Lisp_Object *location, const CIbyte *name)
 {
-  *location = Fintern (make_string_nocopy ((const Ibyte *) name,
-					   strlen (name)),
-		       Qnil);
+  Lisp_Object string = build_extstring ((const Extbyte *) name,
+                                        Qmodule_string_coding_system);
+
+  *location
+    = intern_istring (XSTRING_DATA (string), XSTRING_LENGTH (string),
+                      string, Vobarray);
   staticpro_nodump (location);
+
   LOADHIST_ATTACH (Fcons (Qsymbol,
                           STORE_VOID_IN_LISP ((void *) location)));
 }
 
 void
-defsymbol (Lisp_Object *location, const Ascbyte *name)
+defsymbol (Lisp_Object *location, const CIbyte *name)
 {
   *location = Fintern (make_string ((const Ibyte *) name,
                                     strlen (name)),
@@ -3290,23 +3316,22 @@ defsymbol (Lisp_Object *location, const Ascbyte *name)
 }
 
 void
-defkeyword (Lisp_Object *location, const Ascbyte *name)
+defkeyword (Lisp_Object *location, const CIbyte *name)
 {
   defsymbol (location, name);
   Fset (*location, *location);
 }
 
 void
-defkeyword_massage_name (Lisp_Object *location, const Ascbyte *name)
+defkeyword_massage_name (Lisp_Object *location, const CIbyte *name)
 {
-  char temp[500];
-  int len = strlen (name);
+  Bytecount len = (Bytecount) strlen (name);
+  Ibyte *temp = alloca_ibytes (len + 1);
 
-  assert (len < (int) sizeof (temp));
-  strcpy (temp, name);
+  memcpy (temp, name, len + 1);
   temp[1] = ':'; /* it's an underscore in the C variable */
 
-  defsymbol_massage_name (location, temp);
+  defsymbol_massage_name (location, (const CIbyte *) temp);
   Fset (*location, *location);
 }
 
@@ -3331,7 +3356,8 @@ defsubr (const CIbyte *lname, lisp_fn_t subr_fn, short min_args,
     }
 
   /* Pick up duplicate syms_of_FILE() calls from emacs.c. */
-  structure_checking_assert (UNBOUNDP (XSYMBOL (sym)->function)
+  structure_checking_assert (initialized ||
+                             UNBOUNDP (XSYMBOL (sym)->function)
 			     || (CONSP (XSYMBOL (sym)->function)
 				 && EQ (XCAR (XSYMBOL (sym)->function),
                                         Qautoload)));

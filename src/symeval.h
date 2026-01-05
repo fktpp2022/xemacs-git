@@ -403,16 +403,16 @@ DECLARE_LISP_OBJECT (symbol_value_varalias,	struct symbol_value_varalias);
 #define DEFSUBR(Fname) (defsubr_##Fname)()
 
 MODULE_API void defsymbol_massage_name (Lisp_Object *location,
-					const Ascbyte *name);
+					const CIbyte *name);
 MODULE_API void defsymbol_massage_name_nodump (Lisp_Object *location,
-					       const Ascbyte *name);
+					       const CIbyte *name);
 MODULE_API void defsymbol_massage_multiword_predicate (Lisp_Object *location,
-						       const Ascbyte *name);
+						       const CIbyte *name);
 MODULE_API void
 defsymbol_massage_multiword_predicate_nodump (Lisp_Object *location,
-					      const Ascbyte *name);
-MODULE_API void defsymbol (Lisp_Object *location, const Ascbyte *name);
-MODULE_API void defsymbol_nodump (Lisp_Object *location, const Ascbyte *name);
+					      const CIbyte *name);
+MODULE_API void defsymbol (Lisp_Object *location, const CIbyte *name);
+MODULE_API void defsymbol_nodump (Lisp_Object *location, const CIbyte *name);
 
 /* Defining symbols:
 

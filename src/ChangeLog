@@ -1,5 +1,54 @@
 2026-01-05  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Bug fixing of the modules implementation, #'unload-module can now
+	be called directly without being called through #'unload-feature
+	and XEmacs won't crash.
+
+	* alloc.c (init_memory_usage_stats):
+	Chec INITIALIZED rather than the value of TIPO when deciding on
+	staticpro_nodump() vs. staticpro().
+	* emodules.c (add_module_loadhist_elt):
+	Store the various subrs and symbol-value-magics with their
+	symbols, to allow them to be unbound by attempt_module_delete() if
+	Lisp has not done this.
+	Use Facons() which is a bit more idiomatic.
+	* emodules.c (static Fixnum deadbeef_constant): Removed.
+	* emodules.c (static Boolint deadbeef_boolint): Removed.
+	No need for these, the relevant symbol-value-magic objects will be
+	unreachable on unload and attempt_module_delete() frees them.
+	* emodules.c (attempt_module_delete):
+	Make relevant symbols' function, value slots unbound if they
+	still reflect the saved symbol-value-magic and subr objects that
+	were found on load.
+	Only call undef_lisp_object() if the module itself hasn't.
+	* emodules.c (emodules_load):
+	Fix some indentation here.
+	* emodules.c (Flist_modules):
+	Return copies of various strings so that Lisp can't modify them.
+	* symbols.c (defsymbol_massage_name_1):
+	Update this to allocate the scratch space dynamically (since the
+	static assertion cannot work with arbitrary dynamic modules), and
+	to use Qmodule_string_coding_system if loading a module.
+	* symbols.c (defsymbol_massage_name_nodump): Update the type of NAME.
+	* symbols.c (defsymbol_massage_name): Ditto.
+	* symbols.c (defsymbol_massage_multiword_predicate_nodump): Ditto.
+	* symbols.c (defsymbol_massage_multiword_predicate): Ditto.
+	* symbols.c (defsymbol_nodump): Don't do make_string_nocopy() on
+	NAME, since NAME routinely points into the data segment of a
+	module which may later be unloaded.
+	* symbols.c (defsymbol): Update the type of NAME.
+	* symbols.c (defkeyword): Ditto.
+	* symbols.c (defkeyword_massage_name): Ditto. Allocate the temp
+	buffer dynamically (using alloca_ibytes).
+	* symbols.c (defsubr):
+	If we're loading a module, it's fine to set a symbol's function
+	slot to a subr independent of what's already there, the assertion
+	that picks up duplicate syms_of_FILE() calls is not relevant.
+	* symeval.h:
+	Update types for the declaration of defsymbol() and friends.
+
+2026-01-05  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* alloc.c (ALLOCATE_FIXED_TYPE_1):
 	Document what MINIMUM_ALLOWED_FIXED_TYPE_CELLS_##type is, and that
 	this implementation deals poorly with it being zero.
