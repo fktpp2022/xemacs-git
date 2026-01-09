@@ -1670,6 +1670,7 @@ speed when calculating the padding needed.  @xref{Terminal Output}.
 @section Batch Mode
 @cindex batch mode
 @cindex noninteractive use
+@cindex --script
 
   The command line option @samp{-batch} causes XEmacs to run
 noninteractively.  In this mode, XEmacs does not read commands from the
@@ -1686,6 +1687,24 @@ as the stream, goes instead to XEmacs's standard error descriptor when
 in batch mode.  Thus, XEmacs behaves much like a noninteractive
 application program.  (The echo area output that XEmacs itself normally
 generates, such as command echoing, is suppressed entirely.)
+
+  The related option @samp{--script} acts much the same as -batch, but
+it also implies @samp{-vanilla} (which suppresses user and site init
+code), and takes a file name argument to load. 
+
+  If XEmacs is invoked using ``xemacs-script'' as its program name, it
+rewrites the command line argument list very early in startup to reflect
+the actual binary invoked. It then adds a @samp{--script} argument after
+the binary name, and adds a @samp{``--''} argument after the first
+command line argument.  This allows XEmacs to be called as a batch file
+on @sc{POSIX} systems and allows batch programs to examine the command
+line argument list without the sorting and special handling that XEmacs
+usually applies to its own command line arguments.
+
+  The actual name ``xemacs-script'' can be configured, but given the
+handling is very early in startup this needs to be done at compile time,
+and so this is fixed for a given XEmacs binary. We do not recommend
+changing this.
 
 @defun noninteractive
 This function returns non-@code{nil} when XEmacs is running in batch mode.

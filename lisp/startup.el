@@ -307,12 +307,13 @@ Noninteractive options:
   {-eval}
   {-load}
   {-l}
+  {--script}
   {-insert}
   {-i}
   {-kill}
-  -sd                   Show dump ID.  Ignored when configured without --pdump.
-  -nd                   Don't load the dump file.  Roughly like old temacs.
-                        Ignored when configured without --pdump.
+  -sd                   Show dump ID.
+  -nd                   Don't load the dump file.  Only useful as part of
+                        building XEmacs.
 
 Initialization files:
 
@@ -354,15 +355,6 @@ Package/module options:
                         This will force the path search mechanism to search
                         for either the default installation path structure
                         or the source tree.
-
-Encoding options:
-
-  -eol                  Turn on EOL detection (only applies to Unix, no
-                        international support; otherwise EOL detection is
-                        already on).
-  -nuni                 Under MS Windows, disable use of the Unicode versions
-                        of API calls.  Not for Windows 95/98/ME.  This is
-                        mostly only useful for debugging purposes.
 
 Misc:
 
@@ -446,6 +438,11 @@ Type ^H^H^H (Control-h Control-h Control-h) to get more help options.\n"))
 
 (defun command-line-do-script (arg)
   "Load the named file of Lisp code into XEmacs.
+                        Implies -batch and -vanilla.  If XEmacs is invoked as
+                        \"xemacs-script\", a --script argument is implicit,
+                        along with a \"--\" after the script file name.  See
+                        documentation for the variable `xemacs-script-name'
+                        once you have started XEmacs.
 <file>"
   (let ((file (pop command-line-args-left)))
     (when (and (not (file-name-absolute-p file)) (file-name-directory file))

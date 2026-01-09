@@ -502,6 +502,8 @@ Lisp_Object Vxemacs_codename;
 Lisp_Object Vxemacs_extra_name;
 Lisp_Object Vxemacs_release_date;
 
+Lisp_Object Vxemacs_script_name;
+
 /* The path under which XEmacs was invoked. */
 Lisp_Object Vinvocation_path;
 
@@ -923,14 +925,16 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 		 SHEBANG_PROGNAME,
 		 SHEBANG_PROGNAME_LENGTH)))
 	  {
-	    Wexttext **newarr = alloca_array (Wexttext *, argc + 2);
+	    Wexttext **newarr = alloca_array (Wexttext *, argc + 3);
 	    int j;
 
 	    newarr[0] = argv[0];
 	    newarr[1] = (Wexttext *) WEXTSTRING ("--script");
-	    for (j = 1; j < argc; ++j)
+	    newarr[2] = argv[1];
+	    newarr[3] = (Wexttext *) WEXTSTRING ("--");
+	    for (j = 2; j < argc; ++j)
 	      {
-		newarr[j + 1] = argv[j];
+		newarr[j + 2] = argv[j];
 	      }
 	    argv = newarr;
 	    argc++;
@@ -1079,9 +1083,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 
   /* purify_flag is set to indicate we are dumping (its name refers to
      purespace, which no longer exists and was a way of marking some
-     areas read-only so they could be shared among many processes).
-
-     loadup.el will set to nil at end. */
+     areas read-only so they could be shared among many processes). */
   purify_flag = 0;
   in_pdump = 0;
   if (restart)
@@ -3896,7 +3898,34 @@ is (implicitly) UTC.  Currently not included in the version string.
 #define XEMACS_RELEASE_DATE "2005-02-18 (defaulted in emacs.c)"
 #endif
   Vxemacs_release_date = build_ascstring (XEMACS_RELEASE_DATE);
-  
+
+  DEFVAR_CONST_LISP ("xemacs-script-name", &Vxemacs_script_name /*
+The invocation name for XEmacs that implies --script.
+
+This is set at compile time, and is usually "xemacs-script". On POSIX systems,
+there is no guarantee that a script (a file starting with "#!PROGRAM-NAME")
+can take more than one argument in its #!PROGRAM-NAME line, and there is no
+guarantee that PROGRAM-NAME will be looked up in the PATH environment
+variable.  The only (effectively) guaranteed binary that will examine the
+path is "/usr/bin/env". This means that starting a file with:
+
+#!/usr/bin/env xemacs-script
+
+is the most effective way to be sure that it will be executed by the first
+"xemacs-script" found in PATH.  This is usually achieved by means of a
+symbolic link to an installed XEmacs.
+
+Very early in XEmacs execution, it checks its argument list, and if the first
+element is the value of `xemacs-script', it rewrites the command line
+arguments to `xemacs --script ARGV[1] --'
+
+Since XEmacs normally does some reordering of command line arguments, and
+since scripts routinely want to examine command line arguments on their own
+terms, the "--" avoids this reordering, and allows scripts to make their own
+decisions on the meaning of command line arguments.
+*/ );
+  Vxemacs_script_name = build_ascstring (SHEBANG_PROGNAME);
+
   /* Lisp variables which contain command line flags. These need a
      dump_mark_zero_boolint() so that pdump() does not restore them to their
      undesired dump-time values. */

@@ -1,3 +1,9 @@
+2026-01-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/os.texi (Batch Mode):
+	Document the --script command line argument, and the special
+	handling if argv[0] is xemacs-script, helpful for POSIX systems.
+
 2025-12-06  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lispref/buffers.texi (The Buffer List):

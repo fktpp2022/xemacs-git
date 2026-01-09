@@ -1,3 +1,15 @@
+2026-01-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* emacs.c:
+	New variable Vxemacs_script_name, exposing SHEBANG_PROGNAME to
+	Lisp.
+	* emacs.c (main_1):
+	When handling SHEBANG_PROGNAME, add a "--" after the script file
+	name to allow it to deal with command line args on its own terms.
+	* emacs.c (vars_of_emacs):
+	Add a DEFVAR_CONST_LISP() for Vxemacs_script_name, with a
+	docstring.
+
 2026-01-05  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Bug fixing of the modules implementation, #'unload-module can now

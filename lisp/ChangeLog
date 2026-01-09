@@ -1,3 +1,14 @@
+2026-01-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* startup.el (command-line-do-help):
+	Document the --script command line option.
+	Update documentation of -nd, -sd, 
+	* startup.el (Encoding options): Remove mention of -nui (which has
+	been removed) and -eol (which is no longer useful, now support for
+	non-mule is gone).
+	* startup.el (command-line-do-script):
+	Flesh out information on this.
+
 2026-01-04  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* make-docfile.el (sanitize-C-command-line-arg):
