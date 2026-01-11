@@ -827,6 +827,10 @@ things are arranged in config.h.in.  In particular:
 #undef HAVE_ATHENA_3D
 #undef HAVE_ATHENA_I18N
 
+#ifdef HAVE_ATHENA_I18N
+#define XAW_INTERNATIONALIZATION 1
+#endif
+
 /* Other things that can be disabled by configure. */
 #undef HAVE_MENUBARS
 #undef HAVE_SCROLLBARS

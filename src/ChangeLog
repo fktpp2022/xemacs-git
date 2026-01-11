@@ -1,3 +1,10 @@
+2026-01-11  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* config.h.in:
+	If HAVE_ATHENA_I18N, #define XAW_INTERNATIONALIZATION, restoring
+	the bug fix of 69f9e31c9ccf lost in 2c7e3fa8e672 . Thank you for
+	the bug report and help with diagnosis, testing, Mats Lidell.
+
 2026-01-09  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* emacs.c:
