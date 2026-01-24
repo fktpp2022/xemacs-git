@@ -1,3 +1,16 @@
+2026-11-24  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Get modules building on macOS Sequoia.
+	* Makefile.in.in:
+	Add src as a dependency of the various module subdirectories,
+	current macOS refuses to build the modules in the absence of the
+	XEmacs binary with parallel builds.
+	* configure.ac:
+	If we're on Darwin and building with module support, add -rdynamic
+	to start_flags, necessary for -flto to work in my testing.
+	Document the dependency needed within Makefile.in.in for parallel builds.
+	* configure: Regenerate.
+
 2026-01-02  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* configure: Regenerate.

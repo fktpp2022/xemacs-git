@@ -3541,7 +3541,9 @@ if test "$with_modules" != "no"; then
   if test "$can_build_shared" = "yes"; then
     AC_DEFINE(HAVE_SHLIB)
     dnl src must be built before modules on MacOSX and Windows platforms, since
-    dnl the binary must be available to properly link the modules
+    dnl the binary must be available to properly link the modules.
+    dnl For parallel builds a dependency is needed for this within
+    dnl Makefile.in.in.
     dnl For no-module builds, this is added *after* the module directories
     XE_APPEND(src, MAKE_SUBDIR)
     XE_APPEND(src, INSTALL_ARCH_DEP_SUBDIR)
@@ -3562,6 +3564,11 @@ if test "$with_modules" != "no"; then
     with_modules=no
   fi
 fi
+
+if test "$with_modules" = "yes" -a "$opsys" = "darwin"; then
+ XE_APPEND(-rdynamic, start_flags)
+fi
+
 if test "$with_modules" != "yes"; then
   MOD_CC="$XEMACS_CC"
   MODCFLAGS="\$(XE_CFLAGS) -I../../src -I\$(srcdir)/../../src"

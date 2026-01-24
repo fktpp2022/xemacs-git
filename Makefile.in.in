@@ -338,9 +338,13 @@ update-version:
 	    (cd ${srcdir}; hg identify | cut -d " " -f 1 >> version.sh); \
 	fi
 
-## Building modules depends on ellcc, found in lib-src.
-modules/sample modules/ldap modules/zlib modules/base64: lib-src
-modules/postgresql modules/canna: lib-src
+## Building modules depends on ellcc, found in lib-src.  macOS requires that
+## the XEmacs binary be built before we try building modules; this is
+## completely reasonable and other platforms may require this going forward,
+## add this unconditionally as a dependency. configure.ac attempts to do this
+## but it fails with parallel builds.
+modules/sample modules/ldap modules/zlib modules/base64: lib-src src
+modules/postgresql modules/canna: lib-src src
 
 Makefile: ${srcdir}/Makefile.in.in config.status
 	./config.status
