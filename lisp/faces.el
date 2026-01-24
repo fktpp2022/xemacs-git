@@ -249,7 +249,8 @@ See `face-property-instance' for usage of the other arguments."
 
   (setq face (get-face face))
   ;; For compatibility with 21.4-oriented code, eg, x-symbol-mule.el.
-  (when (charsetp (find-charset matchspec))
+  (when (or (charsetp matchspec)
+            (and (symbolp matchspec) (find-charset matchspec)))
     (setq matchspec (cons (find-charset matchspec) 'final)))
   (let ((value (get face property)))
     (when (specifierp value)
