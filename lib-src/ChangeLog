@@ -1,3 +1,10 @@
+2026-01-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* config.values.in:
+	Regenerate this using lisp/config.values.elc.
+	* config.values.sh: File removed.
+	Replaced by ../lisp/config.values.el.
+
 2025-12-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Revert to not printing the nil result of #'gnuserv-edit-files

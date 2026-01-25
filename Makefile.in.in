@@ -277,8 +277,8 @@ configure: ${srcdir}/configure ${srcdir}/lib-src/config.values.in
 ${srcdir}/configure : ${srcdir}/configure.ac
 	cd ${srcdir} && autoconf
 
-${srcdir}/lib-src/config.values.in : ${srcdir}/configure
-	cd ${srcdir} && $(SHELL) lib-src/config.values.sh
+${srcdir}/lib-src/config.values.in : ${srcdir}/configure src
+	src/${PROGNAME} --script config.values.elc
 
 depend ${srcdir}/src/depend:
 	cd ./src && $(MAKE) $(RECURSIVE_MAKE_ARGS) depend

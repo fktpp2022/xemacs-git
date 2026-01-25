@@ -1,3 +1,21 @@
+2026-01-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* config.el:
+	Update copyright, authorship.
+	* config.el (config-value-hash-table):
+	Extensive changes to this function.
+	1. Explicitly use #'intern with the relevant buffer substring for
+	the key names, rather than #'read. E.g. KVM_GET_PROCESS_SIZE(k)
+	cannot just be read.
+	2. Use #'with-temp-buffer rather than re-implementing it.
+	3. config.values.el ensures that keys are not multiple, no need to
+	handle that.
+	* config.el (expand-configuration-parameters): New label.
+	4. Expand configuration parameters recursively, to make this
+	useful to, e.g. ellcc.
+	* config.values.el: New file.
+	Port lib-src/config.values.sh to Lisp; update it to handle autoconf >= 2.56 
+
 2026-01-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* faces.el (face-property-matching-instance):

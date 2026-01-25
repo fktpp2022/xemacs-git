@@ -27072,13 +27072,6 @@ $CPP -I. -I${srcdir}/src  junk.c \
     rm -f junk.c
   )
 done
-
-sed < config.status >> lib-src/config.values \
-  -e '/{ac_dA}.*{ac_dB}.*{ac_dC}.*{ac_dD}$/!d' \
-  -e 's/\${ac_dA}\(.*\)\${ac_dB}.*\${ac_dC}\(.*\)\${ac_dD}/\1 \2/' \
-  -e 's/^\([^ ]*\) $/\1 ""/' \
-  -e 's/ 1$/ t/'
-
  ;;
 
   esac

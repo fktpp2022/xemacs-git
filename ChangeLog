@@ -1,3 +1,17 @@
+2026-01-25  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* Makefile.in.in (${srcdir}/lib-src/config.values.in):
+	Update the rule to generate this to use config.values.elc,
+	removing a needless dependency on Perl which the old
+	config.values.sh had.
+	* configure.ac:
+	Remove code that attempted to add entries for parameters defined
+	with AC_DEFINE() and AC_DEFINE_UNQUOTED() to
+	lib-src/config.values, which has not worked since the move to
+	autoconf 2.56 in 2005 with 3580ae2ce979 .
+	This is now handled by config.values.el.
+	* configure: Regenerate.
+
 2026-11-24  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Get modules building on macOS Sequoia.

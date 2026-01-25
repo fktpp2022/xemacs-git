@@ -1,8 +1,9 @@
 ;;; config.el --- access configuration parameters
 
 ;; Copyright (C) 1997 Sun Microsystems, Inc.
+;; Copyright (C) 2026 Free Software Foundation.
 
-;; Author:   Martin Buchholz
+;; Author:   Martin Buchholz, Aidan Kehoe
 ;; Keywords: configure
 
 ;; This file is part of XEmacs.
@@ -36,27 +37,70 @@
 ;;;###autoload
 (defun config-value-hash-table ()
   "Return hash table of configuration parameters and their values."
-  (when (null config-value-hash-table)
+  (unless config-value-hash-table
     (setq config-value-hash-table (make-hash-table :size 300))
-    (save-excursion
-      (let ((buf (get-buffer-create " *Config*")))
-	(set-buffer buf)
-	(erase-buffer)
-	(insert-file-contents config-value-file)
-	(goto-char (point-min))
-	(condition-case nil
-	    (while t
-	      (let* ((key (read buf))
-		     (value (read buf))
-		     (prev (gethash key config-value-hash-table)))
-		(cond ((null prev)
-		       (puthash key value config-value-hash-table))
-		      ((atom prev)
-		       (puthash key (list prev value) config-value-hash-table))
-		      (t
-		       (nconc prev (list value))))))
-	  (end-of-file nil)))
-      (kill-buffer " *Config*")))
+    (with-temp-buffer
+      (insert-file-contents config-value-file)
+      (goto-char (point-min))
+      (while (progn
+	       (while (progn (skip-chars-forward " \t\n\^L")
+			     (eql (char-after) ?\;))
+		 (forward-line 1))
+	       (not (eobp)))
+	(let* ((key (intern
+		     (buffer-substring
+		      (point)
+		      (progn (skip-chars-forward "^ ") (point))
+		      (current-buffer))))
+	       (value (read (current-buffer))))
+	  (unless (and (eql (and (> (length value) 0)
+				 (aref value 0)) ?@)
+		       (equal (symbol-name key)
+			      (subseq value 1 -1)))
+	    (puthash key value config-value-hash-table)))))
+    (maphash
+     (labels ((expand-configuration-parameters (value)
+		(let (offset stream lookup (last 0))
+		  (while (setq offset
+			       (string-match-p "\\$[{(]" value last))
+		    (or stream (setq stream (make-string-output-stream)))
+		    (write-sequence value stream :start last :end offset)
+		    (setq last (+ offset (length "${"))
+			  offset (position
+				  (if (eql (aref value
+						 (+ offset (length "$")))
+					   ?{)
+				      ?}
+				    ?\))
+				  value :start last))
+		    (if (and offset
+			     (setq
+			      lookup
+			      (gethash (intern-soft
+					(subseq value last offset))
+				       config-value-hash-table)))
+			(progn 
+			  (setq lookup
+				(expand-configuration-parameters lookup))
+			  (write-sequence lookup stream)
+			  (setq last (1+ offset)))
+		      (write-sequence value stream
+				      :start (- last (length "${"))
+				      :end last)
+		      (when offset
+			(write-sequence value stream :start last
+					:end (+ offset (length "}")))
+			(setq last (+ offset (length "}"))))))
+		  (if (not stream)
+		      value
+		    (write-sequence value stream :start last)
+		    (get-output-stream-string stream)))))
+       #'(lambda (key value)
+	   (unless (equal value
+		          (setq value (expand-configuration-parameters
+				       value)))
+	     (puthash key value config-value-hash-table))))
+     config-value-hash-table))
   config-value-hash-table)
 
 ;;;###autoload
@@ -65,4 +109,5 @@
   (gethash config-symbol (config-value-hash-table)))
 
 (provide 'config)
+
 ;;; config.el ends here

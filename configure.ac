@@ -6506,15 +6506,6 @@ dnl #### to lines beginning with ##.
     rm -f junk.c
   )
 done
-
-dnl Append AC_DEFINE information to lib-src/config.values
-dnl (AC_SUBST information is already there (see config.values.sh).
-sed < config.status >> lib-src/config.values \
-  -e '/{ac_dA}.*{ac_dB}.*{ac_dC}.*{ac_dD}$/!d' \
-  -e 's/\${ac_dA}\(.*\)\${ac_dB}.*\${ac_dC}\(.*\)\${ac_dD}/\1 \2/' \
-  -e 's/^\([[^ ]]*\) $/\1 ""/' \
-  -e 's/ 1$/ t/'
-
 ],
 [CPP="$CPP"
  MAKE_SUBDIR="$MAKE_SUBDIR"
