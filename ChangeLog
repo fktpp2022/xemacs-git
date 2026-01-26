@@ -1,3 +1,14 @@
+2026-01-26  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* configure: Regenerate.
+	* configure.ac (AC_CONFIG_COMMANDS):
+	Revert to appending those parameters defined with AC_DEFINE(),
+	AC_DEFINE_UNQUOTED() to config.values at configure time, the
+	approach of the last commit did not work.
+	To this end, create a new awk(1) script by copying and appending
+	to autoconf's defines.awk, just printing the hash table keys and
+	values that autoconf created for them.
+
 2026-01-25  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* Makefile.in.in (${srcdir}/lib-src/config.values.in):

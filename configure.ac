@@ -6506,6 +6506,29 @@ dnl #### to lines beginning with ##.
     rm -f junk.c
   )
 done
+
+dnl Append AC_DEFINE information to lib-src/config.values
+dnl (AC_SUBST information is already there (see config.values.sh).
+dnl File name chosen for this awk script chosen to be unlikely to conflict
+dnl with anything autoconf does.  The actual program text is entertaining for
+dnl its quadrigraphs, needed to have M4 not eat square brackets.
+cp "$ac_tmp/defines.awk" "$ac_tmp/1RtUiLPh.awk"
+cat >> "$ac_tmp/1RtUiLPh.awk" <<EOF
+END {
+  for (key in D) {
+    if (D@<:@key@:>@ == " 1") {
+      print key, "t"
+    } else if (D@<:@key@:>@ == " ") {
+      print key, "\"\""
+    } else {
+      print key, D@<:@key@:>@
+    }
+  }
+  print "\n;;; config.values ends here"
+}
+EOF
+echo | $AWK -f "$ac_tmp/1RtUiLPh.awk" >> lib-src/config.values
+
 ],
 [CPP="$CPP"
  MAKE_SUBDIR="$MAKE_SUBDIR"

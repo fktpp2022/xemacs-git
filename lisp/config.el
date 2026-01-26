@@ -53,11 +53,7 @@
 		      (progn (skip-chars-forward "^ ") (point))
 		      (current-buffer))))
 	       (value (read (current-buffer))))
-	  (unless (and (eql (and (> (length value) 0)
-				 (aref value 0)) ?@)
-		       (equal (symbol-name key)
-			      (subseq value 1 -1)))
-	    (puthash key value config-value-hash-table)))))
+          (puthash key value config-value-hash-table))))
     (maphash
      (labels ((expand-configuration-parameters (value)
 		(let (offset stream lookup (last 0))
@@ -96,9 +92,10 @@
 		    (write-sequence value stream :start last)
 		    (get-output-stream-string stream)))))
        #'(lambda (key value)
-	   (unless (equal value
-		          (setq value (expand-configuration-parameters
-				       value)))
+	   (unless (and (stringp value)
+		        (equal value
+			       (setq value (expand-configuration-parameters
+				       value))))
 	     (puthash key value config-value-hash-table))))
      config-value-hash-table))
   config-value-hash-table)
