@@ -937,7 +937,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 		newarr[j + 2] = argv[j];
 	      }
 	    argv = newarr;
-	    argc++;
+	    argc += 2;
 	  }
       }
   }

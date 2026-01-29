@@ -1,3 +1,26 @@
+2026-01-29  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Fix bugs in implementation of SHEBANG_PROGNAME.
+
+	* dumper.c:
+	* dumper.c (pdump_file_try):
+	If checking for the dump file in the same directory as the
+	executable, only check for the compile time EMACS_DUMP_FILE_NAME
+	rather than using the basename of the found executable. The build
+	process never uses a distinct file name for this, and restricting
+	the path searching is appropriate for this file that contains
+	function pointers and should be regarded as executable code.
+	* dumper.c (MAYBE_HANDLE_SYMLINK): Rename
+	MAYBE_HANDLE_SHEBANG_PROGNAME() to this.
+	Revise it to ignore SHEBANG_PROGNAME, and call pdump_load()
+	recursively on the absolute or relative target of a symlink,
+	whatever that symlink's name.
+	* dumper.c (pdump_load):
+	Use new name for MAYBE_HANDLE_SHEBANG_PROGNAME() here.
+	* emacs.c (main_1):
+	Don't eat the trailing argument when rewriting ARGV when called
+	with SHEBANG_PROGNAME in argv[0].
+
 2026-01-11  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* config.h.in:

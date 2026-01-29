@@ -2662,13 +2662,13 @@ pdump_file_try (const Extbyte *dirname, const Extbyte *basename,
      reads the link and calls itself recursively with the destination, and does
      not check for, e.g. xemacs-script.dmp. */
 
-  res = snprintf (file_try_path, file_try_size, "%s%s.dmp", dirname,
-		  basename);
+  res = snprintf (file_try_path, file_try_size, "%s" EMACS_DUMP_FILE_NAME,
+		  dirname);
   if (res >= file_try_size)
     {
       /* Should never happen, so choke early with this: */
       fatal ("buffer overrun when attempting to load dump file: "
-             "`%s%s.dmp'", dirname, basename);
+             "`%s" EMACS_DUMP_FILE_NAME "'", dirname);
     }
 
   if (pdump_file_get (file_try_path, inhibit_configured_paths))
@@ -2848,33 +2848,61 @@ pdump_load (const Extbyte * UNUSED (argv0))
 
 #else
 
-#if defined (HAVE_READLINK) && defined (SHEBANG_PROGNAME)
-#define MAYBE_HANDLE_SHEBANG_PROGNAME(baselen, basename, full_path) do	\
+#if defined (HAVE_READLINK)
+#define MAYBE_HANDLE_SYMLINK(baselen, basename, full_path) do		\
     {									\
       Bytecount m_h_s_p_baselen = (baselen);				\
       const Extbyte *m_h_s_p_basename = (basename);			\
-      									\
-      if (m_h_s_p_baselen == (sizeof (SHEBANG_PROGNAME) - sizeof (""))	\
-	  && !memcmp (m_h_s_p_basename, SHEBANG_PROGNAME,		\
-		      m_h_s_p_baselen))					\
-	{								\
-	  Extbyte m_h_s_p_readlink_path[QXE_PATH_MAX];			\
-	  ssize_t m_h_s_p_readlink_length;				\
+      const Extbyte *m_h_s_p_full_path = (full_path);			\
+      Extbyte m_h_s_p_readlink_path[QXE_PATH_MAX];			\
+      ssize_t m_h_s_p_readlink_length;					\
 	  								\
-	  m_h_s_p_readlink_length					\
-	    = readlink (full_path, m_h_s_p_readlink_path,		\
-			sizeof (m_h_s_p_readlink_path));		\
+      m_h_s_p_readlink_length						\
+	= readlink (m_h_s_p_full_path, m_h_s_p_readlink_path,		\
+		    sizeof (m_h_s_p_readlink_path));			\
 									\
-	  if (m_h_s_p_readlink_length					\
-	      < (ssize_t) (sizeof (m_h_s_p_readlink_path)))		\
+      if (m_h_s_p_readlink_length > 0 && m_h_s_p_readlink_length	\
+	  < (ssize_t) (sizeof (m_h_s_p_readlink_path)))			\
+	{								\
+	  Extbyte *m_h_s_p_path = m_h_s_p_readlink_path;		\
+									\
+	  m_h_s_p_readlink_path[m_h_s_p_readlink_length] = '\0';	\
+									\
+	  if (!IS_DIRECTORY_SEP (*m_h_s_p_readlink_path))		\
 	    {								\
-	      m_h_s_p_readlink_path[m_h_s_p_readlink_length] = '\0';	\
-	      return pdump_load (m_h_s_p_readlink_path);		\
+	      /* Relative link, we need to concatenate. */		\
+	      int m_h_s_p_dirlen					\
+		= (int) ((Bytecount) strlen (m_h_s_p_full_path) -	\
+			 m_h_s_p_baselen);				\
+	      Bytecount m_h_s_p_path_size				\
+		= m_h_s_p_dirlen + m_h_s_p_readlink_length + 1;		\
+	      int m_h_s_p_res;						\
+									\
+	      m_h_s_p_path						\
+		= alloca_extbytes (m_h_s_p_path_size);			\
+									\
+	      /* Our callers have ensured that there is a		\
+		 trailing slash */					\
+	      m_h_s_p_res = snprintf (m_h_s_p_path,			\
+				      (size_t) m_h_s_p_path_size,	\
+				      "%.*s%s", m_h_s_p_dirlen,		\
+				      m_h_s_p_full_path,		\
+				      m_h_s_p_readlink_path);		\
+	      if (m_h_s_p_res < 0 ||					\
+		  (m_h_s_p_res > (m_h_s_p_path_size - 1)))		\
+		{							\
+		  /* Shouldn't happen. */				\
+		  structure_checking_assert				\
+		    (m_h_s_p_res < 0 ||					\
+		     (m_h_s_p_res > (m_h_s_p_path_size - 1)));		\
+		  break;						\
+		}							\
 	    }								\
+	  return pdump_load (m_h_s_p_path);				\
 	}								\
     } while (0)
 #else
-#define MAYBE_HANDLE_SHEBANG_PROGNAME(baselen, basename, full_path) \
+#define MAYBE_HANDLE_SYMLINK(baselen, basename, full_path)	\
   DO_NOTHING
 #endif
 
@@ -2885,6 +2913,8 @@ pdump_load (const Extbyte *argv0)
   Extbyte *dirname;
   Bytecount pathlen, baselen;
   struct stat statbuf;
+
+  fprintf (stderr, "pdump_load() called with %s, pid %d\n", argv0, getpid());
 
   /* This function and pdump_file_try() deal with Extbytes; this is
      appropriate, since we do not yet have any significant language processing
@@ -2943,7 +2973,7 @@ pdump_load (const Extbyte *argv0)
 	  dirname[p - dir] = '\0';
 	  if (stat (dirname, &statbuf) == 0 && S_ISDIR (statbuf.st_mode))
 	    {
-	      MAYBE_HANDLE_SHEBANG_PROGNAME (strlen (p), p, dir);
+	      MAYBE_HANDLE_SYMLINK (strlen (p), p, dir);
 
 	      if (pdump_file_try (dirname, p, 1))
 		{
@@ -3018,7 +3048,7 @@ pdump_load (const Extbyte *argv0)
       if (access (dirname, X_OK) == 0 && stat (dirname, &statbuf) == 0
 	  && !S_ISDIR (statbuf.st_mode))
 	{
-	  MAYBE_HANDLE_SHEBANG_PROGNAME (baselen, p, dirname);
+	  MAYBE_HANDLE_SYMLINK (baselen, p, dirname);
 
 	  dirname[dirlen] = '\0';
 	  if (pdump_file_try (dirname, p, 1))
