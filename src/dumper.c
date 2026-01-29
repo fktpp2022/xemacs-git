@@ -2914,8 +2914,6 @@ pdump_load (const Extbyte *argv0)
   Bytecount pathlen, baselen;
   struct stat statbuf;
 
-  fprintf (stderr, "pdump_load() called with %s, pid %d\n", argv0, getpid());
-
   /* This function and pdump_file_try() deal with Extbytes; this is
      appropriate, since we do not yet have any significant language processing
      available. */
