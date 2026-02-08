@@ -1,3 +1,28 @@
+2026-02-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Add docstrings to DEFVAR() calls in canna_api.c; some other
+	housekeeping.
+
+	* canna/canna_api.c (Fcanna_key_proc):
+	Correct some English in this docstring.
+	* canna/canna_api.c (Fcanna_set_bunsetsu):
+	Ditto.
+	* canna/canna_api.c (Fcanna_finalize):
+	Ditto.
+	* canna/canna_api.c (Fcanna_set_width):
+	Shorten this docstring, helpful for hyper-apropos.
+	* canna/canna_api.c (Fcanna_change_mode):
+	Give information on useful values for NUM in this docstring.
+	* canna/canna_api.c (Fcanna_do_function):
+	Give information on useful values for NUM in this docstring.
+	* canna/canna_api.c (modules_of_canna_api):
+	Remove some needless boilerplate here.
+	* canna/canna_api.c (vars_of_canna_api):
+	Add docstrings for all the Canna DEFVAR() calls, in preparation
+	for make-docfile.elc rejecting empty docstrings.
+	* canna/canna_api.c (unload_canna_api):
+	Remove some needless boilerplate here.
+
 2025-06-14  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* XEmacs 21.5.36 "leeks" is released.

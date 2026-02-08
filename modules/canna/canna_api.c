@@ -209,10 +209,11 @@ static void count_char (unsigned char *,int, int, int, Fixnum *, Fixnum *,
 /* Lisp functions definition */
 
 DEFUN ("canna-key-proc", Fcanna_key_proc, 1, 1, 0, /*
-Translate a key input to a set of strings.  The strings contain both
-well-formed string and intermediate result to show the translation
-information to a user.  Converted strings are stored in specific
-variables.
+Translate a key input to a set of strings.
+
+The strings contain both well-formed strings and intermediate results to show
+the translation information to a user.  Converted strings are stored in
+specific variables.
 */
        (ch))
 {
@@ -326,7 +327,7 @@ storeResults (char *buf, int len, jrKanjiStatus *ks)
 
 DEFUN ("canna-set-bunsetsu-kugiri", Fcanna_set_bunsetsu, 0, 1, 0, /*
 This function sets the clause separator.
-If non-nil value is specified, the white space separator will be used.
+If a non-nil value is specified, the white space separator will be used.
 No separator will be used otherwise.
 */
        (num))
@@ -359,11 +360,15 @@ static char appname[] = "mule";
 
 DEFUN ("canna-initialize", Fcanna_initialize, 0, 3, 0, /*
 Initialize ``canna'', which is a kana-to-kanji converter for XEmacs.
-The first arg specifies if inserting space character between BUNSETSU when
-candidates are displayed.
-The second arg specifies server.
+
+The first arg, if non-nil, specifies that a space character should appear
+between BUNSETSU when candidates are displayed.
+
+The second arg specifies the server.
+
 The third arg specifies a file which will be used as a customization
 description.
+
 If nil is specified for each arg, the default value will be used.
 */
        (num, server, rcfile))
@@ -460,8 +465,8 @@ If nil is specified for each arg, the default value will be used.
 }
 
 DEFUN ("canna-finalize", Fcanna_finalize, 0, 0, 0, /*
-finalize ``canna'', which is a kana-to-kanji converter for XEmacs.
-This cause to write miscellaneous informations to kana-to-kanji dictionary.
+Finalize ``canna'', which is a kana-to-kanji converter for XEmacs.
+This writes miscellaneous information to the kana-to-kanji dictionary.
 */
        ())
 {
@@ -505,8 +510,7 @@ Register Kanji words into kana-to-kanji conversion dictionary.
 }
 
 DEFUN ("canna-set-width", Fcanna_set_width, 1, 1, 0, /*
-Set status-line width information, which is used to display
-kanji candidates.
+Set status-line width information, used to display kanji candidates.
 */
        (num))
 {
@@ -518,6 +522,9 @@ kanji candidates.
 
 DEFUN ("canna-change-mode", Fcanna_change_mode, 1, 1, 0, /*
 Change Japanese pre-edit mode.
+
+See the `canna-mode-*' variables for useful values for NUM. These can be
+listed with \\\\[hyper-apropos] canna-mode- RET.
 */
        (num))
 {
@@ -594,6 +601,9 @@ Store yomi characters as a YOMI of kana-to-kanji conversion.
 
 DEFUN ("canna-do-function", Fcanna_do_function, 1, 2, 0, /*
 Do specified function at current mode.
+
+See the `canna-func-*' variables for useful values for NUM. These can be
+listed with \\\\[hyper-apropos] canna-func- RET.
 */
        (num, ch))
 {
@@ -1006,50 +1016,6 @@ static Fixnum canna_key_Cntrl_Down;
 Lisp_Object VCANNA; /* by MORIOKA Tomohiko <morioka@jaist.ac.jp>
 		          1996/6/7 */
 
-/*
- * Each dynamically loaded Emacs module is given a name at compile
- * time. This is a short name, and must be a valid part of a C
- * identifier.  This name is used to construct the name of several
- * functions which must appear in the module source code.
- * The first such function, modules_of_XXXX, should load in any dependent
- * modules. This function is optional, and the module will still load if
- * it is not present in the module.
- *
- * The second function, which is NOT optional, is syms_of_XXXX, in which
- * all functions that the module will be provided are declared. This
- * function will contain calls to DEFSUBR().
- *
- * The third function, which is also NOT optional, is vars_of_XXXX, in
- * which you declare all variables that the module provides. This
- * function will contain calls to DEFVAR_LISP(), DEFVAR_BOOL() etc.
- *
- * When declaring functions and variables in the syms_of_XXXX and
- * vars_of_XXXX functions, you use the exact same syntax that you
- * would as if this module were being compiled into the pure Emacs.
- *
- * The fourth function, which is optional, is unload_XXXX, in which actions
- * that must be taken to unload the module are listed.  XEmacs will unbind
- * functions and variables for you.  Anything else that must be done should
- * appear in this function.
- *
- * All four of these functions are declared as void functions,
- * taking no parameters. Since this sample module is called 'sample',
- * the functions will be named 'modules_of_sample', 'syms_of_sample',
- * 'vars_of_sample', and 'unload_sample'.
- */
-
-#if 0
-void
-modules_of_canna_api (void)
-{
-  /*
-   * This function isn't actually required as we will not be loading
-   * in any dependent modules, but if we were, we would do something like:
-   * emodules_load ("dependent.ell", "canna2", "1.0.0");
-   */
-}
-#endif
-
 void
 syms_of_canna_api (void)
 {
@@ -1078,393 +1044,524 @@ syms_of_canna_api (void)
 void
 vars_of_canna_api (void)
 {
-  DEFVAR_LISP ("CANNA", &VCANNA);		/* hir@nec, 1992.5.21 */
+  DEFVAR_LISP ("CANNA", &VCANNA /*
+Non-nil if C-level support for CANNA is available.
+
+Call `(featurep 'CANNA)' for a more idiomatic way to check the same thing.
+*/);		/* hir@nec, 1992.5.21 */
   VCANNA = Qt;					/* hir@nec, 1992.5.21 */
 
   DEFVAR_LISP ("canna-kakutei-string", &Vcanna_kakutei_string /*
-
+Confirmed string from Canna.
 */ );
   Vcanna_kakutei_string = Qnil;
 
   DEFVAR_LISP ("canna-kakutei-yomi",   &Vcanna_kakutei_yomi /*
-
+Reading of `canna-kakutei-string'.
 */ );
   Vcanna_kakutei_yomi = Qnil;
 
   DEFVAR_LISP ("canna-kakutei-romaji", &Vcanna_kakutei_romaji /*
-
+Romanization of `canna-kakutei-string'.
 */ );
   Vcanna_kakutei_romaji = Qnil;
 
   DEFVAR_LISP ("canna-henkan-string",  &Vcanna_henkan_string /*
-
+String for displaying candidate translations for `canna-kakutei-string'.
 */ );
   Vcanna_henkan_string = Qnil;
 
   DEFVAR_INT ("canna-henkan-length",  &canna_henkan_length /*
-
+Length of `canna-henkan-string'.
 */ );
   canna_henkan_length = 0;
 
   DEFVAR_INT ("canna-henkan-revpos",  &canna_henkan_revPos /*
-
+Beginning of highlighted text when editing `canna-henkan-string'.
 */ );
   canna_henkan_revPos = 0;
 
   DEFVAR_INT ("canna-henkan-revlen",  &canna_henkan_revLen /*
-
+Length of highlighted text when editing `canna-henkan-string'.
 */ );
   canna_henkan_revLen = 0;
 
   DEFVAR_LISP ("canna-ichiran-string", &Vcanna_ichiran_string /*
-
+Info to be displayed in the minibuffer when editing `canna-henkan-string'.
 */ );
   Vcanna_ichiran_string = Qnil;
 
   DEFVAR_INT ("canna-ichiran-length", &canna_ichiran_length /*
-
+Length of `canna-ichiran-string', used when editing `canna-henkan-string'.
 */ );
   canna_ichiran_length = 0;
 
   DEFVAR_INT ("canna-ichiran-revpos", &canna_ichiran_revPos /*
-
+Beginning of highlighted text within `canna-ichiran-string'.
 */ );
   canna_ichiran_revPos = 0;
 
   DEFVAR_INT ("canna-ichiran-revlen", &canna_ichiran_revLen /*
-
+Length of highlighted text within `canna-ichiran-string'.
 */ );
   canna_ichiran_revLen = 0;
 
   DEFVAR_LISP ("canna-mode-string",    &Vcanna_mode_string /*
-
+Information to be displayed in the mode line when Canna is enabled.
 */ );
   Vcanna_mode_string = Qnil;
 
   DEFVAR_BOOL ("canna-empty-info", &canna_empty_info /*
-For canna
+Reflects whether Canna flag KanjiEmptyInfo flag was set with last response.
+
+This is not documented in English but seems to reflect that the response was
+empty.
 */ );
   canna_empty_info = 0;
 
   DEFVAR_BOOL ("canna-through-info", &canna_through_info /*
-For canna
+Reflects whether Canna flag KanjiThroughInfo flag was set with last response.
+
+This is not documented in English but seems to have some overlap with
+KanjiEmptyInfo (see `canna-empty-info').
 */ );
   canna_through_info = 0;
 
   DEFVAR_BOOL ("canna-underline", &canna_underline /*
-For canna
+Whether `canna:insert-preedit' should use a face editing `canna-henkan-string'. 
 */ );
   canna_underline = 0;
 
   DEFVAR_BOOL ("canna-inhibit-hankakukana", &canna_inhibit_hankakukana /*
-For canna
+Whether half-width katakana should be used with Canna.
+
+If non-nil, do not convert to half-width kana when converting characters.
 */ );
   canna_inhibit_hankakukana = 0;
 
   DEFVAR_INT ("canna-mode-alpha-mode", &canna_mode_AlphaMode /*
+Numeric value of the Canna constant `IROHA_MODE_AlphaMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_AlphaMode = IROHA_MODE_AlphaMode;
 
   DEFVAR_INT ("canna-mode-empty-mode", &canna_mode_EmptyMode /*
+Numeric value of the Canna constant `IROHA_MODE_EmptyMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_EmptyMode = IROHA_MODE_EmptyMode;
 
   DEFVAR_INT ("canna-mode-kigo-mode",  &canna_mode_KigoMode /*
+Numeric value of the Canna constant `IROHA_MODE_KigoMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_KigoMode = IROHA_MODE_KigoMode;
 
   DEFVAR_INT ("canna-mode-yomi-mode",  &canna_mode_YomiMode /*
+Numeric value of the Canna constant `IROHA_MODE_YomiMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_YomiMode = IROHA_MODE_YomiMode;
 
   DEFVAR_INT ("canna-mode-jishu-mode", &canna_mode_JishuMode /*
+Numeric value of the Canna constant `IROHA_MODE_JishuMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_JishuMode = IROHA_MODE_JishuMode;
 
   DEFVAR_INT ("canna-mode-tankouho-mode", &canna_mode_TankouhoMode /*
+Numeric value of the Canna constant `IROHA_MODE_TankouhoMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_TankouhoMode = IROHA_MODE_TankouhoMode;
 
   DEFVAR_INT ("canna-mode-ichiran-mode",  &canna_mode_IchiranMode /*
+Numeric value of the Canna constant `IROHA_MODE_IchiranMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_IchiranMode = IROHA_MODE_IchiranMode;
 
   DEFVAR_INT ("canna-mode-yes-no-mode", &canna_mode_YesNoMode /*
+Numeric value of the Canna constant `IROHA_MODE_YesNoMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_YesNoMode = IROHA_MODE_YesNoMode;
 
   DEFVAR_INT ("canna-mode-on-off-mode", &canna_mode_OnOffMode /*
+Numeric value of the Canna constant `IROHA_MODE_OnOffMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_OnOffMode = IROHA_MODE_OnOffMode;
 
 #ifdef CANNA_MODE_AdjustBunsetsuMode
   DEFVAR_INT ("canna-mode-adjust-bunsetsu-mode",
 	      &canna_mode_AdjustBunsetsuMode /*
+Numeric value of the Canna constant `CANNA_MODE_AdjustBunsetsuMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_AdjustBunsetsuMode = CANNA_MODE_AdjustBunsetsuMode;
 #endif
+
 #ifdef CANNA_MODE_ChikujiYomiMode
   DEFVAR_INT ("canna-mode-chikuji-yomi-mode", &canna_mode_ChikujiYomiMode /*
+Numeric value of the Canna constant `CANNA_MODE_ChikujiYomiMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_ChikujiYomiMode = CANNA_MODE_ChikujiYomiMode;
 
   DEFVAR_INT ("canna-mode-chikuji-bunsetsu-mode",
 	      &canna_mode_ChikujiTanMode /*
+Numeric value of the Canna constant `IROHA_MODE_KigoMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_ChikujiTanMode = CANNA_MODE_ChikujiTanMode;
 #endif
 
   DEFVAR_INT ("canna-mode-henkan-mode", &canna_mode_HenkanMode /*
+Numeric value of the Canna constant `IROHA_MODE_HenkanMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_HenkanMode = IROHA_MODE_HenkanMode;
 
 #ifdef CANNA_MODE_HenkanNyuryokuMode
   DEFVAR_INT ("canna-mode-henkan-nyuuryoku-mode",
 	      &canna_mode_HenkanNyuryokuMode /*
+Numeric value of the Canna constant `CANNA_MODE_HenkanNyuryokuMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_HenkanNyuryokuMode = CANNA_MODE_HenkanNyuryokuMode;
 #endif
+
 #ifdef CANNA_MODE_ZenHiraHenkanMode
   DEFVAR_INT ("canna-mode-zen-hira-henkan-mode",
 	      &canna_mode_ZenHiraHenkanMode /*
+Numeric value of the Canna constant `CANNA_MODE_ZenHiraHenkanMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_ZenHiraHenkanMode = CANNA_MODE_ZenHiraHenkanMode;
+
 #ifdef CANNA_MODE_HanHiraHenkanMode
   DEFVAR_INT ("canna-mode-han-hira-henkan-mode",
 	      &canna_mode_HanHiraHenkanMode /*
+Numeric value of the Canna constant `CANNA_MODE_HanHiraHenkanMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_HanHiraHenkanMode = CANNA_MODE_HanHiraHenkanMode;
 #endif
+
   DEFVAR_INT ("canna-mode-zen-kata-henkan-mode",
 	      &canna_mode_ZenKataHenkanMode /*
+Numeric value of the Canna constant `CANNA_MODE_ZenKataHenkanMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_ZenKataHenkanMode = CANNA_MODE_ZenKataHenkanMode;
 
   DEFVAR_INT ("canna-mode-han-kata-henkan-mode",
 	      &canna_mode_HanKataHenkanMode /*
+Numeric value of the Canna constant `CANNA_MODE_HanKataHenkanMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_HanKataHenkanMode = CANNA_MODE_HanKataHenkanMode;
 
   DEFVAR_INT ("canna-mode-zen-alpha-henkan-mode",
 	      &canna_mode_ZenAlphaHenkanMode /*
+Numeric value of the Canna constant `CANNA_MODE_ZenAlphaHenkanMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_ZenAlphaHenkanMode = CANNA_MODE_ZenAlphaHenkanMode;
 
   DEFVAR_INT ("canna-mode-han-alpha-henkan-mode",
 	      &canna_mode_HanAlphaHenkanMode /*
+Numeric value of the Canna constant `CANNA_MODE_HanAlphaHenkanMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_HanAlphaHenkanMode = CANNA_MODE_HanAlphaHenkanMode;
+
 #endif
   DEFVAR_INT ("canna-mode-zen-hira-kakutei-mode",
 	      &canna_mode_ZenHiraKakuteiMode /*
+Numeric value of the Canna constant `IROHA_MODE_ZenHiraKakuteiMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_ZenHiraKakuteiMode = IROHA_MODE_ZenHiraKakuteiMode;
+
 #ifdef CANNA_MODE_HanHiraKakuteiMode
   DEFVAR_INT ("canna-mode-han-hira-kakutei-mode",
 	      &canna_mode_HanHiraKakuteiMode /*
+Numeric value of the Canna constant `CANNA_MODE_HanHiraKakuteiMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_HanHiraKakuteiMode = CANNA_MODE_HanHiraKakuteiMode;
 #endif
+
   DEFVAR_INT ("canna-mode-zen-kata-kakutei-mode",
 	      &canna_mode_ZenKataKakuteiMode /*
+Numeric value of the Canna constant `IROHA_MODE_ZenKataKakuteiMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_ZenKataKakuteiMode = IROHA_MODE_ZenKataKakuteiMode;
 
   DEFVAR_INT ("canna-mode-han-kata-kakutei-mode",
 	      &canna_mode_HanKataKakuteiMode /*
+Numeric value of the Canna constant `IROHA_MODE_HanKataKakuteiMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_HanKataKakuteiMode = IROHA_MODE_HanKataKakuteiMode;
 
   DEFVAR_INT ("canna-mode-zen-alpha-kakutei-mode",
 	      &canna_mode_ZenAlphaKakuteiMode /*
+Numeric value of the Canna constant `IROHA_MODE_ZenAlphaKakuteiMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_ZenAlphaKakuteiMode = IROHA_MODE_ZenAlphaKakuteiMode;
 
   DEFVAR_INT ("canna-mode-han-alpha-kakutei-mode",
 	      &canna_mode_HanAlphaKakuteiMode /*
+Numeric value of the Canna constant `IROHA_MODE_HanAlphaKakuteiMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_HanAlphaKakuteiMode = IROHA_MODE_HanAlphaKakuteiMode;
 
   DEFVAR_INT ("canna-mode-hex-mode", &canna_mode_HexMode /*
+Numeric value of the Canna constant `IROHA_MODE_HexMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_HexMode = IROHA_MODE_HexMode;
 
   DEFVAR_INT ("canna-mode-bushu-mode", &canna_mode_BushuMode /*
+Numeric value of the Canna constant `IROHA_MODE_BushuMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_BushuMode = IROHA_MODE_BushuMode;
 
   DEFVAR_INT ("canna-mode-extend-mode", &canna_mode_ExtendMode /*
+Numeric value of the Canna constant `IROHA_MODE_ExtendMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_ExtendMode = IROHA_MODE_ExtendMode;
 
   DEFVAR_INT ("canna-mode-russian-mode", &canna_mode_RussianMode /*
+Numeric value of the Canna constant `IROHA_MODE_RussianMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_RussianMode = IROHA_MODE_RussianMode;
 
   DEFVAR_INT ("canna-mode-greek-mode", &canna_mode_GreekMode /*
+Numeric value of the Canna constant `IROHA_MODE_GreekMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_GreekMode = IROHA_MODE_GreekMode;
 
   DEFVAR_INT ("canna-mode-line-mode", &canna_mode_LineMode /*
+Numeric value of the Canna constant `IROHA_MODE_LineMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_LineMode = IROHA_MODE_LineMode;
 
   DEFVAR_INT ("canna-mode-changing-server-mode",
 	      &canna_mode_ChangingServerMode /*
+Numeric value of the Canna constant `IROHA_MODE_ChangingServerMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_ChangingServerMode = IROHA_MODE_ChangingServerMode;
 
   DEFVAR_INT ("canna-mode-henkan-method-mode",
 	      &canna_mode_HenkanMethodMode /*
+Numeric value of the Canna constant `IROHA_MODE_HenkanMethodMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_HenkanMethodMode = IROHA_MODE_HenkanMethodMode;
 
   DEFVAR_INT ("canna-mode-delete-dic-mode", &canna_mode_DeleteDicMode /*
+Numeric value of the Canna constant `IROHA_MODE_DeleteDicMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_DeleteDicMode = IROHA_MODE_DeleteDicMode;
 
   DEFVAR_INT ("canna-mode-touroku-mode", &canna_mode_TourokuMode /*
+Numeric value of the Canna constant `IROHA_MODE_TourokuMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_TourokuMode = IROHA_MODE_TourokuMode;
 
   DEFVAR_INT ("canna-mode-touroku-empty-mode",
 	      &canna_mode_TourokuEmptyMode /*
+Numeric value of the Canna constant `IROHA_MODE_TourokuEmptyMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_TourokuEmptyMode = IROHA_MODE_TourokuEmptyMode;
 
   DEFVAR_INT ("canna-mode-touroku-hinshi-mode",
 	      &canna_mode_TourokuHinshiMode /*
+Numeric value of the Canna constant `IROHA_MODE_TourokuHinshiMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_TourokuHinshiMode = IROHA_MODE_TourokuHinshiMode;
 
   DEFVAR_INT ("canna-mode-touroku-dic-mode", &canna_mode_TourokuDicMode /*
+Numeric value of the Canna constant `IROHA_MODE_TourokuDicMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_TourokuDicMode = IROHA_MODE_TourokuDicMode;
 
   DEFVAR_INT ("canna-mode-quoted-insert-mode",
 	      &canna_mode_QuotedInsertMode /*
+Numeric value of the Canna constant `IROHA_MODE_QuotedInsertMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_QuotedInsertMode = IROHA_MODE_QuotedInsertMode;
 
   DEFVAR_INT ("canna-mode-bubun-muhenkan-mode",
 	      &canna_mode_BubunMuhenkanMode /*
+Numeric value of the Canna constant `IROHA_MODE_BubunMuhenkanMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_BubunMuhenkanMode = IROHA_MODE_BubunMuhenkanMode;
 
   DEFVAR_INT ("canna-mode-mount-dic-mode", &canna_mode_MountDicMode /*
+Numeric value of the Canna constant `IROHA_MODE_MountDicMode'.
 
+This can usefully be passed to `canna-change-mode'.
 */ );
   canna_mode_MountDicMode = IROHA_MODE_MountDicMode;
 
   DEFVAR_INT ("canna-func-self-insert", &canna_fn_SelfInsert  /*
+Numeric value of the Canna constant `IROHA_FN_SelfInsert'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_SelfInsert = IROHA_FN_SelfInsert;
 
   DEFVAR_INT ("canna-func-functional-insert", &canna_fn_FunctionalInsert  /*
+Numeric value of the Canna constant `IROHA_FN_FunctionalInsert'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_FunctionalInsert = IROHA_FN_FunctionalInsert;
 
   DEFVAR_INT ("canna-func-quoted-insert", &canna_fn_QuotedInsert  /*
+Numeric value of the Canna constant `IROHA_FN_QuotedInsert'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_QuotedInsert = IROHA_FN_QuotedInsert;
 
   DEFVAR_INT ("canna-func-japanese-mode", &canna_fn_JapaneseMode  /*
+Numeric value of the Canna constant `IROHA_FN_JapaneseMode'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_JapaneseMode = IROHA_FN_JapaneseMode;
 
   DEFVAR_INT ("canna-func-alpha-mode", &canna_fn_AlphaMode  /*
+Numeric value of the Canna constant `IROHA_FN_AlphaMode'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_AlphaMode = IROHA_FN_AlphaMode;
 
   DEFVAR_INT ("canna-func-henkan-nyuryoku-mode",
 	      &canna_fn_HenkanNyuryokuMode  /*
+Numeric value of the Canna constant `IROHA_FN_HenkanNyuryokuMode'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_HenkanNyuryokuMode = IROHA_FN_HenkanNyuryokuMode;
 
   DEFVAR_INT ("canna-func-forward", &canna_fn_Forward  /*
+Numeric value of the Canna constant `IROHA_FN_Forward'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_Forward = IROHA_FN_Forward;
 
   DEFVAR_INT ("canna-func-backward", &canna_fn_Backward  /*
+Numeric value of the Canna constant `IROHA_FN_Backward'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_Backward = IROHA_FN_Backward;
 
   DEFVAR_INT ("canna-func-next", &canna_fn_Next  /*
+Numeric value of the Canna constant `IROHA_FN_Next'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_Next = IROHA_FN_Next;
 
   DEFVAR_INT ("canna-func-previous", &canna_fn_Prev  /*
+Numeric value of the Canna constant `IROHA_FN_Prev'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_Prev = IROHA_FN_Prev;
 
   DEFVAR_INT ("canna-func-beginning-of-line", &canna_fn_BeginningOfLine  /*
+Numeric value of the Canna constant `IROHA_FN_BeginningOfLine'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_BeginningOfLine = IROHA_FN_BeginningOfLine;
 
   DEFVAR_INT ("canna-func-end-of-line", &canna_fn_EndOfLine  /*
+Numeric value of the Canna constant `IROHA_FN_EndOfLine'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_EndOfLine = IROHA_FN_EndOfLine;
 
   DEFVAR_INT ("canna-func-delete-next", &canna_fn_DeleteNext  /*
+Numeric value of the Canna constant `IROHA_FN_DeleteNext'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_DeleteNext = IROHA_FN_DeleteNext;
 
   DEFVAR_INT ("canna-func-delete-previous", &canna_fn_DeletePrevious  /*
+Numeric value of the Canna constant `IROHA_FN_DeletePrevious'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_DeletePrevious = IROHA_FN_DeletePrevious;
 
@@ -1474,349 +1571,485 @@ For canna
   canna_fn_KillToEndOfLine = IROHA_FN_KillToEndOfLine;
 
   DEFVAR_INT ("canna-func-henkan", &canna_fn_Henkan  /*
+Numeric value of the Canna constant `IROHA_FN_Henkan'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_Henkan = IROHA_FN_Henkan;
 
   DEFVAR_INT ("canna-func-kakutei", &canna_fn_Kakutei  /*
+Numeric value of the Canna constant `IROHA_FN_Kakutei'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_Kakutei = IROHA_FN_Kakutei;
 
   DEFVAR_INT ("canna-func-extend", &canna_fn_Extend  /*
+Numeric value of the Canna constant `IROHA_FN_Extend'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_Extend = IROHA_FN_Extend;
 
   DEFVAR_INT ("canna-func-shrink", &canna_fn_Shrink  /*
+Numeric value of the Canna constant `IROHA_FN_Shrink'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_Shrink = IROHA_FN_Shrink;
 
 #ifdef CANNA_FN_AdjustBunsetsu
   DEFVAR_INT ("canna-func-adjust-bunsetsu", &canna_fn_AdjustBunsetsu  /*
+Numeric value of the Canna constant `CANNA_FN_AdjustBunsetsu'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_AdjustBunsetsu = CANNA_FN_AdjustBunsetsu;
 #endif
   DEFVAR_INT ("canna-func-quit", &canna_fn_Quit  /*
+Numeric value of the Canna constant `IROHA_FN_Quit'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_Quit = IROHA_FN_Quit;
 
   DEFVAR_INT ("canna-func-convert-as-hex", &canna_fn_ConvertAsHex  /*
+Numeric value of the Canna constant `IROHA_FN_ConvertAsHex'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_ConvertAsHex = IROHA_FN_ConvertAsHex;
 
   DEFVAR_INT ("canna-func-convert-as-bushu", &canna_fn_ConvertAsBushu  /*
+Numeric value of the Canna constant `IROHA_FN_ConvertAsBushu'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_ConvertAsBushu = IROHA_FN_ConvertAsBushu;
 
   DEFVAR_INT ("canna-func-kouho-ichiran", &canna_fn_KouhoIchiran  /*
+Numeric value of the Canna constant `IROHA_FN_KouhoIchiran'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_KouhoIchiran = IROHA_FN_KouhoIchiran;
 
   DEFVAR_INT ("canna-func-bubun-muhenkan", &canna_fn_BubunMuhenkan  /*
+Numeric value of the Canna constant `IROHA_FN_BubunMuhenkan'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_BubunMuhenkan = IROHA_FN_BubunMuhenkan;
 
   DEFVAR_INT ("canna-func-zenkaku", &canna_fn_Zenkaku  /*
+Numeric value of the Canna constant `IROHA_FN_Zenkaku'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_Zenkaku = IROHA_FN_Zenkaku;
 
   DEFVAR_INT ("canna-func-hankaku", &canna_fn_Hankaku  /*
+Numeric value of the Canna constant `IROHA_FN_Hankaku'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_Hankaku = IROHA_FN_Hankaku;
 
   DEFVAR_INT ("canna-func-to-upper", &canna_fn_ToUpper  /*
+Numeric value of the Canna constant `IROHA_FN_ToUpper'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_ToUpper = IROHA_FN_ToUpper;
 
   DEFVAR_INT ("canna-func-capitalize", &canna_fn_Capitalize  /*
+Numeric value of the Canna constant `IROHA_FN_Capitalize'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_Capitalize = IROHA_FN_Capitalize;
 
   DEFVAR_INT ("canna-func-to-lower", &canna_fn_ToLower  /*
+Numeric value of the Canna constant `IROHA_FN_ToLower'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_ToLower = IROHA_FN_ToLower;
 
   DEFVAR_INT ("canna-func-hiragana", &canna_fn_Hiragana  /*
+Numeric value of the Canna constant `IROHA_FN_Hiragana'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_Hiragana = IROHA_FN_Hiragana;
 
   DEFVAR_INT ("canna-func-katakana", &canna_fn_Katakana  /*
+Numeric value of the Canna constant `IROHA_FN_Katakana'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_Katakana = IROHA_FN_Katakana;
 
   DEFVAR_INT ("canna-func-romaji", &canna_fn_Romaji  /*
+Numeric value of the Canna constant `IROHA_FN_Romaji'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_Romaji = IROHA_FN_Romaji;
 
 #ifdef CANNA_FN_BaseHiragana
   DEFVAR_INT ("canna-func-base-hiragana", &canna_fn_BaseHiragana  /*
+Numeric value of the Canna constant `CANNA_FN_BaseHiragana'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_BaseHiragana = CANNA_FN_BaseHiragana;
 
   DEFVAR_INT ("canna-func-base-katakana", &canna_fn_BaseKatakana  /*
+Numeric value of the Canna constant `CANNA_FN_BaseKatakana'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_BaseKatakana = CANNA_FN_BaseKatakana;
 
   DEFVAR_INT ("canna-func-base-eisu", &canna_fn_BaseEisu  /*
+Numeric value of the Canna constant `CANNA_FN_BaseEisu'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_BaseEisu = CANNA_FN_BaseEisu;
 
   DEFVAR_INT ("canna-func-base-zenkaku", &canna_fn_BaseZenkaku  /*
+Numeric value of the Canna constant `CANNA_FN_BaseZenkaku'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_BaseZenkaku = CANNA_FN_BaseZenkaku;
 
   DEFVAR_INT ("canna-func-base-hankaku", &canna_fn_BaseHankaku  /*
+Numeric value of the Canna constant `CANNA_FN_BaseHankaku'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_BaseHankaku = CANNA_FN_BaseHankaku;
 
   DEFVAR_INT ("canna-func-base-kana", &canna_fn_BaseKana  /*
+Numeric value of the Canna constant `CANNA_FN_BaseKana'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_BaseKana = CANNA_FN_BaseKana;
 
   DEFVAR_INT ("canna-func-base-kakutei", &canna_fn_BaseKakutei  /*
+Numeric value of the Canna constant `CANNA_FN_BaseKakutei'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_BaseKakutei = CANNA_FN_BaseKakutei;
 
   DEFVAR_INT ("canna-func-base-henkan", &canna_fn_BaseHenkan  /*
+Numeric value of the Canna constant `CANNA_FN_BaseHenkan'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_BaseHenkan = CANNA_FN_BaseHenkan;
 
   DEFVAR_INT ("canna-func-base-hiragana-katakana-toggle",
 	      &canna_fn_BaseHiraKataToggle  /*
+Numeric value of the Canna constant `CANNA_FN_BaseHiraKataToggle'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_BaseHiraKataToggle = CANNA_FN_BaseHiraKataToggle;
 
   DEFVAR_INT ("canna-func-base-zenkaku-hankaku-toggle",
 	      &canna_fn_BaseZenHanToggle  /*
+Numeric value of the Canna constant `CANNA_FN_BaseZenHanToggle'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_BaseZenHanToggle = CANNA_FN_BaseZenHanToggle;
 
   DEFVAR_INT ("canna-func-base-kana-eisu-toggle",
 	      &canna_fn_BaseKanaEisuToggle  /*
+Numeric value of the Canna constant `CANNA_FN_BaseKanaEisuToggle'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_BaseKanaEisuToggle = CANNA_FN_BaseKanaEisuToggle;
 
   DEFVAR_INT ("canna-func-base-kakutei-henkan-toggle",
 	      &canna_fn_BaseKakuteiHenkanToggle  /*
+Numeric value of the Canna constant `CANNA_FN_BaseKakuteiHenkanToggle'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_BaseKakuteiHenkanToggle = CANNA_FN_BaseKakuteiHenkanToggle;
 
   DEFVAR_INT ("canna-func-base-rotate-forward",
 	      &canna_fn_BaseRotateForward  /*
+Numeric value of the Canna constant `CANNA_FN_BaseRotateForward'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_BaseRotateForward = CANNA_FN_BaseRotateForward;
 
   DEFVAR_INT ("canna-func-base-rotate-backward",
 	      &canna_fn_BaseRotateBackward  /*
+Numeric value of the Canna constant `CANNA_FN_BaseRotateBackward'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_BaseRotateBackward = CANNA_FN_BaseRotateBackward;
 
 #endif
   DEFVAR_INT ("canna-func-extend-mode", &canna_fn_ExtendMode  /*
+Numeric value of the Canna constant `IROHA_FN_ExtendMode'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_ExtendMode = IROHA_FN_ExtendMode;
 
   DEFVAR_INT ("canna-func-touroku", &canna_fn_Touroku  /*
+Numeric value of the Canna constant `IROHA_FN_Touroku'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_Touroku = IROHA_FN_Touroku;
 
   DEFVAR_INT ("canna-func-hex-mode", &canna_fn_HexMode  /*
+Numeric value of the Canna constant `IROHA_FN_HexMode'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_HexMode = IROHA_FN_HexMode;
 
   DEFVAR_INT ("canna-func-bushu-mode", &canna_fn_BushuMode  /*
+Numeric value of the Canna constant `IROHA_FN_BushuMode'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_BushuMode = IROHA_FN_BushuMode;
 
   DEFVAR_INT ("canna-func-kigo-mode", &canna_fn_KigouMode  /*
+Numeric value of the Canna constant `IROHA_FN_KigouMode'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_KigouMode = IROHA_FN_KigouMode;
 
 #ifdef CANNA_FN_Mark
   DEFVAR_INT ("canna-func-mark", &canna_fn_Mark  /*
+Numeric value of the Canna constant `CANNA_FN_Mark'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_Mark = CANNA_FN_Mark;
 #endif
+
 #ifdef CANNA_FN_TemporalMode
   DEFVAR_INT ("canna-func-temporal-mode", &canna_fn_TemporalMode  /*
+Numeric value of the Canna constant `CANNA_FN_TemporalMode'.
 
+This can usefully be passed to `canna-do-function'.
 */ );
   canna_fn_TemporalMode = CANNA_FN_TemporalMode;
 #endif
 
-  DEFVAR_INT ("canna-key-nfer", &canna_key_Nfer /*
+  DEFVAR_INT ("canna-key-nfer", &canna_key_Nfer  /*
+Numeric value of the Canna constant `IROHA_KEY_Nfer'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Nfer = IROHA_KEY_Nfer;
 
-  DEFVAR_INT ("canna-key-xfer", &canna_key_Xfer /*
+  DEFVAR_INT ("canna-key-xfer", &canna_key_Xfer  /*
+Numeric value of the Canna constant `IROHA_KEY_Xfer'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Xfer = IROHA_KEY_Xfer;
 
-  DEFVAR_INT ("canna-key-up", &canna_key_Up /*
+  DEFVAR_INT ("canna-key-up", &canna_key_Up  /*
+Numeric value of the Canna constant `IROHA_KEY_Up'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Up = IROHA_KEY_Up;
 
-  DEFVAR_INT ("canna-key-left", &canna_key_Left /*
+  DEFVAR_INT ("canna-key-left", &canna_key_Left  /*
+Numeric value of the Canna constant `IROHA_KEY_Left'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Left = IROHA_KEY_Left;
 
-  DEFVAR_INT ("canna-key-right", &canna_key_Right /*
+  DEFVAR_INT ("canna-key-right", &canna_key_Right  /*
+Numeric value of the Canna constant `IROHA_KEY_Right'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Right = IROHA_KEY_Right;
 
-  DEFVAR_INT ("canna-key-down", &canna_key_Down /*
+  DEFVAR_INT ("canna-key-down", &canna_key_Down  /*
+Numeric value of the Canna constant `IROHA_KEY_Down'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Down = IROHA_KEY_Down;
 
-  DEFVAR_INT ("canna-key-insert", &canna_key_Insert /*
+  DEFVAR_INT ("canna-key-insert", &canna_key_Insert  /*
+Numeric value of the Canna constant `IROHA_KEY_Insert'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Insert = IROHA_KEY_Insert;
 
-  DEFVAR_INT ("canna-key-rollup", &canna_key_Rollup /*
+  DEFVAR_INT ("canna-key-rollup", &canna_key_Rollup  /*
+Numeric value of the Canna constant `IROHA_KEY_Rollup'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Rollup = IROHA_KEY_Rollup;
 
-  DEFVAR_INT ("canna-key-rolldown", &canna_key_Rolldown /*
+  DEFVAR_INT ("canna-key-rolldown", &canna_key_Rolldown  /*
+Numeric value of the Canna constant `IROHA_KEY_Rolldown'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Rolldown = IROHA_KEY_Rolldown;
 
-  DEFVAR_INT ("canna-key-home", &canna_key_Home /*
+  DEFVAR_INT ("canna-key-home", &canna_key_Home  /*
+Numeric value of the Canna constant `IROHA_KEY_Home'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Home = IROHA_KEY_Home;
 
-  DEFVAR_INT ("canna-key-help", &canna_key_Help /*
+  DEFVAR_INT ("canna-key-help", &canna_key_Help  /*
+Numeric value of the Canna constant `IROHA_KEY_Help'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Help = IROHA_KEY_Help;
 
-  DEFVAR_INT ("canna-key-kp-key", &canna_key_KP_Key /*
+  DEFVAR_INT ("canna-key-kp-key", &canna_key_KP_Key  /*
+Numeric value of the Canna constant `IROHA_KEY_KP_Key'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_KP_Key = IROHA_KEY_KP_Key;
 
-  DEFVAR_INT ("canna-key-shift-nfer", &canna_key_Shift_Nfer /*
+  DEFVAR_INT ("canna-key-shift-nfer", &canna_key_Shift_Nfer  /*
+Numeric value of the Canna constant `IROHA_KEY_Shift_Nfer'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Shift_Nfer = IROHA_KEY_Shift_Nfer;
 
-  DEFVAR_INT ("canna-key-shift-xfer", &canna_key_Shift_Xfer /*
+  DEFVAR_INT ("canna-key-shift-xfer", &canna_key_Shift_Xfer  /*
+Numeric value of the Canna constant `IROHA_KEY_Shift_Xfer'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Shift_Xfer = IROHA_KEY_Shift_Xfer;
 
-  DEFVAR_INT ("canna-key-shift-up", &canna_key_Shift_Up /*
+  DEFVAR_INT ("canna-key-shift-up", &canna_key_Shift_Up  /*
+Numeric value of the Canna constant `IROHA_KEY_Shift_Up'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Shift_Up = IROHA_KEY_Shift_Up;
 
-  DEFVAR_INT ("canna-key-shift-left", &canna_key_Shift_Left /*
+  DEFVAR_INT ("canna-key-shift-left", &canna_key_Shift_Left  /*
+Numeric value of the Canna constant `IROHA_KEY_Shift_Left'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Shift_Left = IROHA_KEY_Shift_Left;
 
-  DEFVAR_INT ("canna-key-shift-right", &canna_key_Shift_Right /*
+  DEFVAR_INT ("canna-key-shift-right", &canna_key_Shift_Right  /*
+Numeric value of the Canna constant `IROHA_KEY_Shift_Right'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Shift_Right = IROHA_KEY_Shift_Right;
 
-  DEFVAR_INT ("canna-key-shift-down", &canna_key_Shift_Down /*
+  DEFVAR_INT ("canna-key-shift-down", &canna_key_Shift_Down  /*
+Numeric value of the Canna constant `IROHA_KEY_Shift_Down'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Shift_Down = IROHA_KEY_Shift_Down;
 
-  DEFVAR_INT ("canna-key-control-nfer", &canna_key_Cntrl_Nfer /*
+  DEFVAR_INT ("canna-key-control-nfer", &canna_key_Cntrl_Nfer  /*
+Numeric value of the Canna constant `IROHA_KEY_Cntrl_Nfer'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Cntrl_Nfer = IROHA_KEY_Cntrl_Nfer;
 
-  DEFVAR_INT ("canna-key-control-xfer", &canna_key_Cntrl_Xfer /*
+  DEFVAR_INT ("canna-key-control-xfer", &canna_key_Cntrl_Xfer  /*
+Numeric value of the Canna constant `IROHA_KEY_Cntrl_Xfer'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Cntrl_Xfer = IROHA_KEY_Cntrl_Xfer;
 
-  DEFVAR_INT ("canna-key-control-up", &canna_key_Cntrl_Up /*
+  DEFVAR_INT ("canna-key-control-up", &canna_key_Cntrl_Up  /*
+Numeric value of the Canna constant `IROHA_KEY_Cntrl_Up'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Cntrl_Up = IROHA_KEY_Cntrl_Up;
 
-  DEFVAR_INT ("canna-key-control-left", &canna_key_Cntrl_Left /*
+  DEFVAR_INT ("canna-key-control-left", &canna_key_Cntrl_Left  /*
+Numeric value of the Canna constant `IROHA_KEY_Cntrl_Left'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Cntrl_Left = IROHA_KEY_Cntrl_Left;
 
-  DEFVAR_INT ("canna-key-control-right", &canna_key_Cntrl_Right /*
+  DEFVAR_INT ("canna-key-control-right", &canna_key_Cntrl_Right  /*
+Numeric value of the Canna constant `IROHA_KEY_Cntrl_Right'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Cntrl_Right = IROHA_KEY_Cntrl_Right;
 
-  DEFVAR_INT ("canna-key-control-down", &canna_key_Cntrl_Down /*
+  DEFVAR_INT ("canna-key-control-down", &canna_key_Cntrl_Down  /*
+Numeric value of the Canna constant `IROHA_KEY_Cntrl_Down'.
 
+This is unlikely to be directly useful in XEmacs; the key values are used
+mostly by ccustom(1), allowing the user to customize Kanna translation.
 */ );
   canna_key_Cntrl_Down = IROHA_KEY_Cntrl_Down;
 
   Fprovide (intern ("CANNA"));
 }
-
-#if 0
-#ifdef HAVE_SHLIB
-void unload_canna_api (void);
-void
-unload_canna_api (void)
-{
-  /* We don't need to do anything here in the sample case.  However, if you
-     create any new types with INIT_LRECORD_IMPLEMENTATION (sample_type), then
-     UNDEF_LRECORD_IMPLEMENTATION (sample_type) must appear here.  Also, any
-     symbols declared with DEFSYMBOL (Qsample_var), or one of its variants,
-     must have a corresponding unstaticpro_nodump (&Qsample_var) here. */
-}
-#endif
-#endif
 
 #ifdef CANNA_MULE
 
