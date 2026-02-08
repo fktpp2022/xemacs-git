@@ -75,7 +75,7 @@ $(MODNAME).ell: $(OBJS) $(MODNAME)_i.o $(IMPORT_LIB)
 	$(OBJS) $(MODNAME)_i.o $(IMPORT_LIB) $(LDFLAGS) $(LIBSTDCPP)
 
 $(MODNAME)_i.c: $(SRCS)
-	ELLMAKEDOC=$(MAKE_DOCFILE) $(MODCC) --mode=init --mod-output=$@ \
+	$(MODCC) --mode=init --mod-output=$@ \
 	--mod-name=$(MODNAME) --mod-version=$(MODVER) \
 	--mod-title=$(MODTITLE) $(SRC_SRCS)
 

@@ -19,7 +19,7 @@ modules can be loaded directly with the command 'M-x load-module'.
 However, the preferred method of loading a module is to issue a
 "(require 'module-name)" command to the Lisp interpreter.  This will
 store information so that a later "(unload-feature 'module-name)" can
-succeed.
+succeed more cleanly.
 
 To compile one of these modules, simply enter the desired directory,
 type 'configure', and then 'make'.  If you are building the module for

@@ -16343,7 +16343,7 @@ then :
 fi
 
     with_modules=yes
-    MOD_CC="../../lib-src/ellcc"
+                        MOD_CC="${blddir}/src/${PROGNAME} -no-configured-paths --script ellcc.elc --"
     MODCFLAGS="\$(CFLAGS) --mode=compile --mod-output=\$@ -I../../src -I\$(srcdir)/../../src"
     INSTALLPATH="\$(moduledir)"
     MOD_INSTALL_PROGRAM=${INSTALL_PROGRAM}
@@ -24422,9 +24422,6 @@ for file in $internal_makefile_list; do
 done
 ac_config_files="$ac_config_files src/paths.h src/xemacs.def.in lib-src/config.values"
 
-test "$with_modules" = "yes" && ac_config_files="$ac_config_files lib-src/ellcc.h"
-
-
 
 
 
@@ -25137,7 +25134,6 @@ do
     "src/paths.h") CONFIG_FILES="$CONFIG_FILES src/paths.h" ;;
     "src/xemacs.def.in") CONFIG_FILES="$CONFIG_FILES src/xemacs.def.in" ;;
     "lib-src/config.values") CONFIG_FILES="$CONFIG_FILES lib-src/config.values" ;;
-    "lib-src/ellcc.h") CONFIG_FILES="$CONFIG_FILES lib-src/ellcc.h" ;;
     "default") CONFIG_COMMANDS="$CONFIG_COMMANDS default" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;

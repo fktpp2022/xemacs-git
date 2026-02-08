@@ -89,9 +89,6 @@ PUBLIC_INSTALLABLE_EXES=\
 #ifdef INSTALL_GNUSERV
  gnuclient\
 #endif
-#ifdef HAVE_SHLIB
- ellcc\
-#endif
 #ifdef HAVE_MS_WINDOWS
  winclient\
 #endif
@@ -116,7 +113,7 @@ PRIVATE_INSTALLABLE_EXES=\
 #ifdef WIN32_NATIVE
  i minitar\
 #endif
- make-docfile movemail hexl mmencode
+ movemail hexl mmencode
 
 GEN_SCRIPTS = rcs2log vcdiff gzip-el.sh
 PKG_SCRIPTS = add-big-package.sh
@@ -271,7 +268,7 @@ mostlyclean:
 clean: mostlyclean
 	-$(RM) ${EXES} *.exe
 distclean-noconfig: clean
-	-$(RM) DOC *.tab.c *.tab.h TAGS ellcc.h blessmail config.values
+	-$(RM) DOC *.tab.c *.tab.h TAGS blessmail config.values
 ## This is used in making a distribution.
 ## Do not use it on development directories!
 distclean: distclean-noconfig
@@ -310,12 +307,6 @@ etags_deps = ${srcdir}/etags.c $(GETOPTDEPS) regex.o ../src/config.h
 etags: ${etags_deps}
 	$(CC) ${etags_args} -o $@
 
-ellcc_args = $(cflags) ${srcdir}/ellcc.c $(ldflags)
-ellcc_deps = ${srcdir}/ellcc.c ellcc.h ../src/config.h
-
-ellcc: ${ellcc_deps}
-	$(CC) ${ellcc_args} -o $@
-
 ## #### we should probably do the same as for pot's etags
 ootags_args = $(cflags) -DVERSION='"${version}"' ${srcdir}/ootags.c \
 	$(GETOPTOBJS) regex.o $(ldflags)
@@ -328,9 +319,6 @@ ootags: ${ootags_deps}
 ## two etags.o files on top of each other.
 ctags: ${etags_deps} etags
 	$(CC) -DCTAGS ${etags_args} -o $@
-
-make-docfile: ${srcdir}/make-docfile.c
-	$(CC) $(cflags) ${srcdir}/make-docfile.c $(ldflags) -o $@
 
 movemail: ${srcdir}/movemail.c ${srcdir}/pop.c ${srcdir}/pop.h $(GETOPTDEPS) regex.o \
 	../src/config.h

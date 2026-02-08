@@ -3550,7 +3550,12 @@ if test "$with_modules" != "no"; then
     test -n "$libdl" && XE_PREPEND(-l${libdl}, LIBS)
     AC_CHECK_FUNCS(dlerror _dlerror)
     with_modules=yes
-    MOD_CC="../../lib-src/ellcc"
+    dnl We could put an xemacs-script symlink and an ellcc symlink (to
+    dnl lisp/ellcc.elc) in ${blddir}/src/ but then we would have to adjust PATH
+    dnl when building modules/ to have ${blddir}/src/ first. This is simpler,
+    dnl though perhaps a little confusing for those starting off writing
+    dnl modules.
+    MOD_CC="${blddir}/src/${PROGNAME} -no-configured-paths --script ellcc.elc --"
     MODCFLAGS="\$(CFLAGS) --mode=compile --mod-output=\$@ -I../../src -I\$(srcdir)/../../src"
     INSTALLPATH="\$(moduledir)"
     MOD_INSTALL_PROGRAM=${INSTALL_PROGRAM}
@@ -6404,8 +6409,6 @@ for file in $internal_makefile_list; do
   AC_CONFIG_FILES($file)
 done
 AC_CONFIG_FILES(src/paths.h src/xemacs.def.in lib-src/config.values)
-test "$with_modules" = "yes" && AC_CONFIG_FILES(lib-src/ellcc.h)
-
 
 dnl Normally []'s are used for quoting but this will cause problems
 dnl since we use brackets in sed.  When not inside of a macro definition,
@@ -6508,7 +6511,7 @@ dnl #### to lines beginning with ##.
 done
 
 dnl Append AC_DEFINE information to lib-src/config.values
-dnl (AC_SUBST information is already there (see config.values.sh).
+dnl (AC_SUBST information is already there (see config.values.el).
 dnl File name chosen for this awk script chosen to be unlikely to conflict
 dnl with anything autoconf does.  The actual program text is entertaining for
 dnl its quadrigraphs, needed to have M4 not eat square brackets.

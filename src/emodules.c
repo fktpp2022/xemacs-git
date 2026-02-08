@@ -36,6 +36,9 @@ static Lisp_Object Vknown_module_file_names;
 /* Module infrastructure version number */
 Lisp_Object Vmodule_version;
 
+/* Same as an integer. */
+static Fixnum module_revision = EMODULES_REVISION;
+
 /* Do we do our work quietly? */
 Boolint load_modules_quietly;
 
@@ -876,6 +879,13 @@ the dynamic loading technology used in Emacs, if required.  It is not
 a given that this value will be the same as the Emacs version number.
 */ );
   Vmodule_version = build_cistring (EMODULES_VERSION);
+
+  DEFVAR_CONST_INT ("module-revision", &module_revision /*
+See `module-version'.  This is the same information as a fixnum.
+
+The major version is multipled by a thousand, the minor by ten, and these are
+added to the patch level to give a constant integer value.
+*/);
 
   DEFVAR_BOOL ("load-modules-quietly", &load_modules_quietly /*
 *Set to t if module loading is to be silent.

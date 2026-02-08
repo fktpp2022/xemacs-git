@@ -1,3 +1,26 @@
+2026-02-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* Makefile.in.in (PUBLIC_INSTALLABLE_EXES):
+	Remove ellcc from this.
+	* Makefile.in.in (PRIVATE_INSTALLABLE_EXES):
+	Remove make-docfile from this.
+
+	* Makefile.in.in (distclean-noconfig):
+	Remove ellcc.h from this.
+	* Makefile.in.in (ellcc_args): Removed.
+	* Makefile.in.in (ellcc_deps): Removed.
+	* Makefile.in.in (ellcc): Removed.
+	All no longer necessary now ellcc is in Lisp.
+
+	* Makefile.in.in (make-docfile): Removed.
+	No longer necessary as a target now ellcc is in Lisp and core
+	XEmacs no longer uses the C make-docfile.
+
+	* ellcc.c: File removed.
+	* ellcc.h.in: File removed.
+	* make-docfile.c: File removed.
+	All no longer needed, implemented in Lisp.
+
 2026-01-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* config.values.in:

@@ -1,3 +1,24 @@
+2026-02-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* emodules.texi:
+	* emodules.texi (Top):
+	* emodules.texi (Introduction):
+	Document that ellcc is written in XEmacs Lisp.
+	* emodules.texi (emodule_coding):
+	Document that this is set automatically by ellcc.
+	* emodules.texi (Initialization Mode):
+	Update the documentation fo the current build-time approach to
+	docstrings.
+	Mention make-docfile.elc rather than make-docfile.
+	* emodules.texi (Environment Variables):
+	Remove mention of ELLMAKEDOC from here, now always
+	make-docfile.elc.
+	* emodules.texi (Defining Functions):
+	Update this to reflect the normal approach of make-docfile.elc.
+	* lispref/loading.texi (Autoload):
+	Correct loaddefs.el, now auto-autoloads.el.
+	Update documentation of the backslash and trailing newline.
+
 2026-01-09  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lispref/os.texi (Batch Mode):

@@ -1,3 +1,22 @@
+2026-02-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* Makefile.in.in:
+	Remove the dependency on lib-src for modules, now ellcc is in
+	Lisp.
+	* Makefile.in.in (install-arch-dep): Make a symbolic link for
+	ellcc in ${bindir}, pointing at ${lispdir}/ellcc.elc.
+	* Makefile.in.in (install-arch-indep):
+	Give ellcc.elc executable permissions.
+
+	* configure.ac (HAVE_SHLIB):
+	Initialize MOD_CC as the XEmacs executable with
+	-no-configured-paths --script ellcc.elc -- as arguments. Motivate
+	this choice in a comment.
+	* configure.ac:
+	No further need to have lib-src/ellcc.h in ac_config_files.
+	Correct spelling for config.values.el.
+	* configure: Regenerate.
+
 2026-01-26  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* configure: Regenerate.

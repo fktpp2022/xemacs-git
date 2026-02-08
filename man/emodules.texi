@@ -35,7 +35,7 @@
 @c TODO: Merge the info-only and TeX-only license text, since they are
 @c identical.
 @ifinfo
-This file documents the module loading technology of @value{emacs}.
+This file documents the module loading technology of @value{xemacs}.
 
 Copyright @copyright{} 1998 J. Kean Johnston.
 Copyright @copyright{} 2025 Free Software Foundation.
@@ -104,7 +104,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>.
 
 @ifinfo
 @node Top, Introduction, (dir), (dir)
-This Info file contains v2.0 of the @value{emacs} dynamically loadable
+This Info file contains v2.0 of the @value{xemacs} dynamically loadable
 module support documentation.
 @menu
 * Introduction::                Introducing Emacs Modules
@@ -195,16 +195,16 @@ developer's perspective though, a lot more is provided.
 @pindex ellcc
 @cindex compiler
 @cindex linker
-  Of primary interest is the @code{ellcc} program.  This program is
-created during compile time, and is intended to abstract compiler
-specific characteristics from the developer.  This program is called to
-compile and link all objects that will make up the final shared object,
-and accepts all common C compiler flags.  @code{ellcc} also sets up the
-correct environment for compiling modules by enabling any special
-compiler modes (such as PIC mode), setting the correct include paths for
-the location of @value{emacs} internal header files etc.  The program will also
-invoke the linker correctly to created the final shared object which is
-loaded into @value{emacs}.
+  Of primary interest is the @code{ellcc} program.  This is written in
+XEmacs Lisp, since that is a portable scripting language available wherever
+XEmacs is.  It is intended to abstract compiler specific characteristics from
+the developer.  This program is called to compile and link all objects that
+will make up the final shared object, and accepts all common C compiler flags.
+@code{ellcc} also sets up the correct environment for compiling modules by
+enabling any special compiler modes (such as PIC mode), setting the correct
+include paths for the location of @value{xemacs} internal header files etc.
+The program will also invoke the linker correctly to created the final shared
+object which is loaded into @value{xemacs}.
 
 @item
 @cindex header files
@@ -445,9 +445,9 @@ and does not affect the loading of the module.  The value is set by the
 This is a string describing the name of a coding system. @xref{Coding
 Systems,,,lispref,XEmacs Lisp Reference Manual}. This coding system is
 used to decode symbol names (including the names of functions and variables),
-and docstrings.  It should automatically by set by @code{ellcc} based on the
-encoding of the module source file, but is currently explicitly
-``no-conversion''. This will change.
+and docstrings.  It is automatically by set by @code{ellcc} based on the
+encoding of the module source files. If the encoding of the module source
+files is different from file to file, @code{ellcc} will error.
 @end table
 
 @node Loading other Modules,  , Required Variables, Anatomy of a Module
@@ -591,13 +591,13 @@ below for details).
 @cindex documentation
 
 @value{emacs} uses a rather bizarre way of documenting variables and
-functions.  Rather than have the documentation for compiled functions
-and variables passed as static strings in the source code, the
-documentation is included as a C comment.  A special program, called
-@file{make-docfile}, is used to scan the source code files and extract
-the documentation from these comments, producing the @value{emacs} @file{DOC}
-file, which the internal help engine scans when the documentation for a
-function or variable is requested.
+functions.  Rather than have the documentation for compiled functions and
+variables passed as static strings in the source code, the documentation and
+source file information is included as a C comment.  At build time, XEmacs
+scans the source code files and extracts the documentation from these
+comments, producing the @value{emacs} @file{DOC} file, which the internal help
+engine examines when the documentation for a function or variable is
+requested.
 
 Due to the internal construction of Lisp objects, subrs and other such
 things, adding documentation for a compiled function or variable in a
@@ -642,10 +642,10 @@ purpose other than to inform the user of the function of the module.
 This string should be brief, as it has to be formatted to fit the
 screen.
 
-Following all of these parameters, you need to provide the list of all
-source code modules that make up your module.  These are the files which
-are scanned by @file{make-docfile}, and provide the information required
-to populate the @code{docs_of_module} function.  Below is a sample
+Following all of these parameters, you need to provide the list of all source
+code modules that make up your module.  These are the files which are scanned
+by @file{ellcc} (using @file{make-docfile.elc}), and provide the information
+required to populate the @code{docs_of_module} function.  Below is a sample
 @file{Makefile} fragment which indicates how all of this is used.
 
 @example
@@ -820,7 +820,7 @@ the flags for enabling PIC mode.  This just sets basic linker flags.
 
 @item ELLDLLFLAGS
 @cindex @code{ELLDLLFLAGS}
-Sets the flags passed to the linker that are required to created shared
+Sets the flags passed to the linker that are required to create shared
 and loadable objects.
 
 @item ELLPICFLAGS
@@ -828,13 +828,6 @@ and loadable objects.
 Sets the C compiler option required to produce an object file that is
 suitable for including in a shared library.  This option should turn on
 PIC mode, or the moral equivalent thereof on the target system.
-
-@item ELLMAKEDOC
-@cindex @code{ELLMAKEDOC}
-Sets the name of the @file{make-docfile} program to use.  Usually
-@code{ellcc} will use the version that was compiled and installed with
-@value{emacs}, but this option allows you to specify an alternative path.
-Used during the compile phase of @value{emacs} itself.
 @end table
 
 @node Distribution with XEmacs, Defining Functions, Using ellcc, Top
@@ -891,10 +884,10 @@ instructions there.  The format of the function declaration is identical
 in modules.
 
   Normal Lisp primitives document the functions they defining by including
-the documentation as a C comment.  During the build process, a program
-called @file{make-docfile} is run, which will extract all of these
-comments, build up a single large documentation file, and will store
-pointers to the start of each documentation entry in the dumped @value{emacs}.
+the documentation as a C comment.  During the build process, Lisp code (in
+make-docfile.elc) extracts all of these comments, builds up a single large
+documentation file, and stores offsets to the start of each documentation
+entry in the dumped @value{emacs}.
 This, of course, will not work for dynamic modules, as they are loaded
 long after @value{emacs} has been dumped.  For this reason, we require a
 special means for adding documentation for new subrs.  This is what the
@@ -904,7 +897,7 @@ macro @code{CDOCSUBR} is used for, and this is used extensively during
   When using @code{DEFUN} in normal @value{emacs} C code, the sixth
 ``parameter'' is a C comment which documents the function.  For a
 dynamic module, we of course need to convert the C comment to a usable
-string, and we need to set the documentation pointer of the subr to this
+string, and we need to set the documentation slot of the subr to this
 string.  As a module programmer, you don't actually need to do any work
 for this to happen.  It is all taken care of in the
 @code{docs_of_module} function created by @code{ellcc}.

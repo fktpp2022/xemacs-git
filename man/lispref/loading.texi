@@ -401,20 +401,20 @@ autoloading with a magic comment:
 @end smallexample
 
 @noindent
-Here's what that produces in @file{loaddefs.el}:
+Here's what that produces in @file{auto-autoloads.el}:
 
 @smallexample
-(autoload 'doctor "doctor"
-  "\
-Switch to *doctor* buffer and start giving psychotherapy."
-  t)
+(autoload 'doctor "doctor" "\
+Switch to *doctor* buffer and start giving psychotherapy.
+
+arguments: ()"
+  t nil)
 @end smallexample
 
 @noindent
-The backslash and newline immediately following the double-quote are a
-convention used only in the preloaded Lisp files such as
-@file{loaddefs.el}; they tell @code{make-docfile} to put the
-documentation string in the @file{DOC} file.  @xref{Building XEmacs}.
+The backslash and newline immediately following the double-quote were
+inserted for reasons related to generation of the @file{DOC} file
+@xref{Building XEmacs}; they are no longer necessary but do no harm.
 
 @node Repeated Loading, Named Features, Autoload, Loading
 @section Repeated Loading

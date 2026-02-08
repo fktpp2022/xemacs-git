@@ -1,5 +1,12 @@
 2026-02-08  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* ellcc.el: New file.
+	Move the implementation of ellcc to this file from
+	../lib-src/ellcc.c.  Use make-docfile.elc rather than
+	../lib-src/make-docfile.c (now gone) for init mode.
+
+2026-02-08  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* cl-macs.el (process-stderr-filter): New defsetf for this.
 	There are likely many more defsetfs missing for recently-added
 	setters (e.g. #'compiled-function-documentation) and I will get to

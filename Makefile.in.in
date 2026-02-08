@@ -338,13 +338,12 @@ update-version:
 	    (cd ${srcdir}; hg identify | cut -d " " -f 1 >> version.sh); \
 	fi
 
-## Building modules depends on ellcc, found in lib-src.  macOS requires that
-## the XEmacs binary be built before we try building modules; this is
-## completely reasonable and other platforms may require this going forward,
-## add this unconditionally as a dependency. configure.ac attempts to do this
-## but it fails with parallel builds.
-modules/sample modules/ldap modules/zlib modules/base64: lib-src src
-modules/postgresql modules/canna: lib-src src
+## Building modules depends on ellcc, now a script under lisp/, which requires
+## src/xemacs to be built.  macOS also requires that the XEmacs binary be built
+## before we try building modules.  No further need to have any dependency on
+## lib-src/.
+modules/sample modules/ldap modules/zlib modules/base64: src
+modules/postgresql modules/canna: src
 
 Makefile: ${srcdir}/Makefile.in.in config.status
 	./config.status
@@ -430,6 +429,7 @@ install-arch-dep: mkdir
 	${INSTALL_PROGRAM} src/${PROGNAME} $(DESTDIR)${bindir}/${PROGNAME}
 	-chmod 0755 $(DESTDIR)${bindir}/${PROGNAME}
 #else
+	cd $(DESTDIR)${bindir} && $(RM) -f ./ellcc && ${LN_S} ${lispdir}/ellcc.elc ellcc
 # ifdef CYGWIN
 	${INSTALL_PROGRAM} src/${PROGNAME} $(DESTDIR)${bindir}/${PROGNAME}-${version}.exe
 	-chmod 0755 $(DESTDIR)${bindir}/${PROGNAME}-${version}.exe
@@ -482,6 +482,7 @@ install-arch-indep: mkdir info
 	    chmod 0644 $(DESTDIR)${infodir}/$${file}; \
 	  done ; \
 	fi
+	chmod 0755 ${lispdir}/ellcc.elc
 	cd ${srcdir}/etc && \
 	  for page in xemacs etags ctags gnuserv gnuclient gnuattach gnudoit; do \
 	    ${INSTALL_DATA} ${srcdir}/etc/$${page}.1 $(DESTDIR)${mandir}/$${page}${manext} ; \

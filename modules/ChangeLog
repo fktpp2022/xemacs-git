@@ -1,5 +1,14 @@
 2026-02-08  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* README:
+	Update this now that (unload-module FILE) is less horrendously
+	unreliable. 
+	* common/Makefile.common ($(MODNAME)_i.c):
+	Ignore ELLMAKEDOC here, now always the make-docfile.elc of the
+	installed XEmacs.
+
+2026-02-08  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Add docstrings to DEFVAR() calls in canna_api.c; some other
 	housekeeping.
 

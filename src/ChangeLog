@@ -1,3 +1,10 @@
+2026-02-08  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* emodules.c (static Fixnum module_revision): New.
+	* emodules.c (vars_of_module):
+	Make EMODULES_REVISION available to Lisp, as module-revision (on the
+	model of module-version).
+
 2026-01-29  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Fix bugs in implementation of SHEBANG_PROGNAME.
