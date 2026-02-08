@@ -2169,6 +2169,7 @@ Example: (defsetf nth (n x) (v) (list 'setcar (list 'nthcdr n x) v))."
   (list 'progn (list 'narrow-to-region store '(point-max)) store))
 (defsetf process-buffer set-process-buffer)
 (defsetf process-filter set-process-filter)
+(defsetf process-stderr-filter set-process-stderr-filter)
 (defsetf process-sentinel set-process-sentinel)
 ;;(defsetf process-get process-put)
 (defsetf read-mouse-position (scr) (store)
