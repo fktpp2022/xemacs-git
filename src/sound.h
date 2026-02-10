@@ -28,6 +28,28 @@ void play_sound_file (Extbyte *name, int volume);
 void nt_play_sound_file (Lisp_Object name, int volume);
 int play_sound_data (Binbyte *data, int length, int volume);
 
+#ifdef HAVE_ALSA_SOUND
+extern int alsa_play_sound_file (const Extbyte *file, int vol);
+extern int alsa_play_sound_data (const Binbyte *data, int length, int vol);
+# define DEVICE_CONNECTED_TO_ALSA_P(x) 1 /* #### better check */
+#endif
+
+#ifdef HAVE_ESD_SOUND
+extern int esd_play_sound_file (Extbyte *file, int vol);
+extern int esd_play_sound_data (Binbyte *data, size_t length, int vol);
+# define DEVICE_CONNECTED_TO_ESD_P(x) 1 /* #### better check */
+#endif
+
+#ifdef HAVE_NAS_SOUND
+extern int nas_play_sound_file (Extbyte *name, int volume);
+extern int nas_play_sound_data (Binbyte *data, int length, int volume);
+extern void nas_wait_for_sounds (void);
+/* If --with-sound=nas is specified, configure warns and removes NAS support
+   if X11 is unavailable, this is fine. */
+# include <X11/Xlib.h>
+extern Extbyte *nas_init_play (Display *);
+#endif
+
 # define sound_perror(string)						 \
 do {									 \
   Ibyte *errmess;							 \
@@ -36,6 +58,8 @@ do {									 \
   string_int = EXTERNAL_TO_ITEXT (string, Qerror_message_encoding);	 \
   warn_when_safe (Qsound, Qerror, "audio: %s, %s", string_int, errmess); \
 } while (0)
+
 # define sound_warn(string) warn_when_safe (Qsound, Qwarning, "audio: %s", \
                                             string)
 
+/* sound.h ends here */

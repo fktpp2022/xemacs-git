@@ -3015,10 +3015,11 @@ write_classname (linebuffer *cn, char *qualifier)
       if (s == NULL)
 	continue;
       slen = strlen (s);
-      len += slen + qlen;
-      linebuffer_setlen (cn, len);
-      strncat (cn->buffer, qualifier, qlen);
-      strncat (cn->buffer, s, slen);
+      /* linebuffer_setlen() makes cn->buffer *bigger* than TOKSIZE, so there
+	 is space for the terminating zero. */
+      linebuffer_setlen (cn, len + slen + qlen);
+      len += snprintf (cn->buffer + len, cn->size - len,
+		       "%s%s", qualifier, s);
     }
 }
 

@@ -158,14 +158,6 @@ nas_init_play (
 #else
 	   Extbyte *server
 #endif
-	   );
-Extbyte *
-nas_init_play (
-#ifdef XTOOLKIT
-	   Display *display
-#else
-	   Extbyte *server
-#endif
 	   )
 {
   Extbyte *err_message;
@@ -929,6 +921,8 @@ WaveOpenDataForReading (const CBinbyte *data,
 	  /* we don't care about the next two fields */
 	  dummy = DataReadL(NAS_BIG_ENDIAN);
 	  dummy = DataReadS(NAS_BIG_ENDIAN);
+
+          USED (dummy);
 
 	  if (wi->format != RIFF_WAVE_FORMAT_PCM)
 	    Err();

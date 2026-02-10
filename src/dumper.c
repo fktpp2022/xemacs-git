@@ -2629,8 +2629,7 @@ pdump_file_get (const Extbyte *path, Boolint diep)
                            "/" EMACS_CONFIGURATION "/" EMACS_PROGNAME   \
 			   "-12345678.dmp")
 static Boolint
-pdump_file_try (const Extbyte *dirname, const Extbyte *basename,
-                Boolint diep)
+pdump_file_try (const Extbyte *dirname, const Extbyte *basename)
 {
   Bytecount dirlen = strlen (dirname);
   Bytecount file_try_size = dirlen + strlen (basename) + DUMP_SLACK;
@@ -2849,10 +2848,9 @@ pdump_load (const Extbyte * UNUSED (argv0))
 #else
 
 #if defined (HAVE_READLINK)
-#define MAYBE_HANDLE_SYMLINK(baselen, basename, full_path) do		\
+#define MAYBE_HANDLE_SYMLINK(baselen, full_path) do                     \
     {									\
       Bytecount m_h_s_p_baselen = (baselen);				\
-      const Extbyte *m_h_s_p_basename = (basename);			\
       const Extbyte *m_h_s_p_full_path = (full_path);			\
       Extbyte m_h_s_p_readlink_path[QXE_PATH_MAX];			\
       ssize_t m_h_s_p_readlink_length;					\
@@ -2902,8 +2900,7 @@ pdump_load (const Extbyte * UNUSED (argv0))
 	}								\
     } while (0)
 #else
-#define MAYBE_HANDLE_SYMLINK(baselen, basename, full_path)	\
-  DO_NOTHING
+#define MAYBE_HANDLE_SYMLINK(baselen, full_path) DO_NOTHING
 #endif
 
 Boolint
@@ -2971,9 +2968,9 @@ pdump_load (const Extbyte *argv0)
 	  dirname[p - dir] = '\0';
 	  if (stat (dirname, &statbuf) == 0 && S_ISDIR (statbuf.st_mode))
 	    {
-	      MAYBE_HANDLE_SYMLINK (strlen (p), p, dir);
+	      MAYBE_HANDLE_SYMLINK (strlen (p), dir);
 
-	      if (pdump_file_try (dirname, p, 1))
+	      if (pdump_file_try (dirname, p))
 		{
 		  pdump_load_finish ();
 		  in_pdump = 0;
@@ -3046,10 +3043,10 @@ pdump_load (const Extbyte *argv0)
       if (access (dirname, X_OK) == 0 && stat (dirname, &statbuf) == 0
 	  && !S_ISDIR (statbuf.st_mode))
 	{
-	  MAYBE_HANDLE_SYMLINK (baselen, p, dirname);
+	  MAYBE_HANDLE_SYMLINK (baselen, dirname);
 
 	  dirname[dirlen] = '\0';
-	  if (pdump_file_try (dirname, p, 1))
+	  if (pdump_file_try (dirname, p))
 	    {
 	      pdump_load_finish ();
 	      in_pdump = 0;

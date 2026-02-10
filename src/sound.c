@@ -68,25 +68,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define USED_IF_HAVE_ANY(decl) UNUSED (decl)
 #endif
 
-#ifdef HAVE_ALSA_SOUND
-extern int alsa_play_sound_file (const Extbyte *file, int vol);
-extern int alsa_play_sound_data (const Binbyte *data, int length, int vol);
-# define DEVICE_CONNECTED_TO_ALSA_P(x) 1 /* #### better check */
-#endif
-
-#ifdef HAVE_ESD_SOUND
-extern int esd_play_sound_file (Extbyte *file, int vol);
-extern int esd_play_sound_data (Binbyte *data, size_t length, int vol);
-# define DEVICE_CONNECTED_TO_ESD_P(x) 1 /* #### better check */
-#endif
-
-#ifdef HAVE_NAS_SOUND
-extern int nas_play_sound_file (Extbyte *name, int volume);
-extern int nas_play_sound_data (Binbyte *data, int length, int volume);
-extern int nas_wait_for_sounds (void);
-extern Extbyte *nas_init_play (Display *);
-#endif
-
 Fixnum bell_volume;
 Fixnum bell_inhibit_time;
 Lisp_Object Vsound_alist;

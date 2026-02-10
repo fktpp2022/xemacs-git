@@ -1,3 +1,25 @@
+2026-02-10  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* dumper.c (pdump_file_try):
+	DIEP was always 1 in our callers, remove it as an argument, quiet
+	a GCC warning.
+	* dumper.c (MAYBE_HANDLE_SYMLINK):
+	BASENAME is not used within this macro, remove it as an argument.
+	* dumper.c (pdump_load):
+	Update calling conventions for pdump_file_try(),
+	MAYBE_HANDLE_SYMLINK().
+	* nas.c:
+	Move the declaration for nas_init_play() to sound.h, rather than
+	right beside its declaration.
+	* nas.c (WaveOpenDataForReading):
+	Mark DUMMY as used, silence a warning.
+	* sound.h:
+	Move declarations for sound-specific functions here. Correct a
+	declaration for nas_wait_for_sounds().
+	Add a /* sound.h ends here */ trailing comment.
+	* sound.c:
+	Move various sound-type specific declarations to the header.
+
 2026-02-08  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* emodules.c (static Fixnum module_revision): New.
