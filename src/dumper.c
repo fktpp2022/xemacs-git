@@ -1343,7 +1343,7 @@ pdump_reloc_lisp_data (const void *ptr)
    of previously-loaded objects (which would already have been relocated), but
    it works fine without that currently. Should this stop working the SIGSEGV
    will happen fairly close to this function, and XD_SIZED_MEMORY_DESCRIPTION
-   has been added for clarity and potenitial future error-checking in any
+   has been added for clarity and potential future error-checking in any
    event. */
 static const struct sized_memory_description *
 pdump_load_lispdesc_indirect_description (const void *obj,

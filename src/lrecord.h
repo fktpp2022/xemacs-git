@@ -898,19 +898,27 @@ void tick_lrecord_stats (const struct lrecord_header *h,
 
     XD_LO_LINK
 
-  Weak link in a linked list of objects of the same type.  This is a
-  link that does NOT generate a GC reference.  Thus the pdumper will
-  not automatically add the referenced object to the table of all
-  objects to be dumped, and when storing and loading the dumped data
-  will automatically prune unreferenced objects in the chain and link
-  each referenced object to the next referenced object, even if it's
-  many links away.  We also need to special handling of a similar
-  nature for the root of the chain, which will be a staticpro()ed
-  object.  There should not, in general, be a need for an XD_LO_LINK entry
-  outside of the implementation of the Lisp weak list type.  See the
-  htentry_union_description_1 structure in elhash.c for the approach to marking
-  objects that are either weak or not; the relevant XD_BLOCK_PTR has an
-  XD_FLAG_NO_KKCC flag set.
+  Weak link in a linked list of objects of the same type.  This is a link that
+  does not generate a reference for dumping. Thus the dumper will not
+  automatically add the referenced object to the table of all objects to be
+  dumped, and when storing the dumped data will automatically prune
+  unreferenced objects in the chain and link each referenced object to the next
+  referenced object, even if it's many links away.  We also need special
+  handling of a similar nature for the root of the chain. Only current use is
+  in the implementation of the Lisp weak list type.
+
+  You might wonder what the value of this is given that the link is traversed
+  in garbage collection (e.g. in finish_marking_weak_lists()) and that
+  reachable objects are dumped. However, not all objects reachable by GC are
+  dumped; consider Vconsole_list, Vselected_console. These are made reachable
+  for GC and dumping via a staticpro_dump_nil(); if the real Vselected_console
+  ultimately has a weak list in a sub-object that weak list will be reachable
+  from GC (the dumper does the book-keeping to keep it reachable from GC at
+  dump time) but not reachable from the dumper.
+
+  This is such a corner case that it would be reasonable to remove it and just
+  leak the few weak lists. If we add support for sweeping the dump file this
+  becomes more reasonable still.
 
     XD_OPAQUE_PTR
 

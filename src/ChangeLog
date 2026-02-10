@@ -1,5 +1,12 @@
 2026-02-10  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* lrecord.h:
+	Correct, extend the documentation of XD_LO_LINK.
+	* dumper.c (pdump_load_lispdesc_indirect_description):
+	Correct a spelling here in passing.
+
+2026-02-10  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* dumper.c (pdump_file_try):
 	DIEP was always 1 in our callers, remove it as an argument, quiet
 	a GCC warning.
