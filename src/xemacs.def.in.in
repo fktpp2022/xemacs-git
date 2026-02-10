@@ -75,6 +75,7 @@ debug_ungcpro			/* UNGCPRO */
 deferror
 deferror_massage_name		/* DEFERROR */
 deferror_massage_name_and_message /* DEFERROR_STANDARD */
+define_lisp_object
 defkeyword
 defkeyword_massage_name		/* DEFKEYWORD */
 defsubr				/* DEFSUBR */
@@ -192,6 +193,7 @@ speed_up_interrupts
 staticpro
 staticpro_nodump
 unbind_to_1			/* unbind_to */
+undef_lisp_object
 unstaticpro_nodump
 vconcat2
 vconcat3
@@ -207,6 +209,7 @@ write_fmt_string
 write_fmt_string_lisp
 write_istring
 write_ascstring
+write_string_1
 wrong_type_argument		/* CONCHECK_xxx */
 xemacs_c_alloca			/* ALLOCA */
 xfree_1				/* xfree */

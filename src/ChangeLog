@@ -7,6 +7,13 @@
 
 2026-02-10  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* xemacs.def.in.in:
+	Add entries for define_lisp_object(), undef_lisp_object(),
+	write_string_1() here, making progress with Windows module
+	support.
+
+2026-02-10  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* dumper.c (pdump_file_try):
 	DIEP was always 1 in our callers, remove it as an argument, quiet
 	a GCC warning.
