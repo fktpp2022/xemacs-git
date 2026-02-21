@@ -1,3 +1,10 @@
+2026-02-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* ellcc.el (:init):
+	Supply the argument list of the docs_of_MODULE_NAME() function
+	definition as (void), silence a clang warning in the generated
+	MODULE_NAME_i.c files.
+
 2026-02-08  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* ellcc.el: New file.

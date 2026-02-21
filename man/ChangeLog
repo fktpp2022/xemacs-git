@@ -1,3 +1,80 @@
+2026-02-21  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* emodules.texi:
+	* emodules.texi (Top):
+	* emodules.texi (Introduction):
+	Revert to using @value{emacs} (which expands to XEmacs) rather
+	than @value{xemacs} (which doesn't exist) within this file.
+
+	* internals/internals.texi (Top):
+	* internals/internals.texi (Introduction):
+	* internals/internals.texi (Authorship of XEmacs):
+	* internals/internals.texi (Authorship of some of the modules): Removed.
+	* internals/internals.texi (Authorship of some of the internal modules): New.
+	* internals/internals.texi (XEmacs from the Perspective of Building):
+	* internals/internals.texi (Build-Time Dependencies):
+	* internals/internals.texi (The Internal Modules of XEmacs):
+	* internals/internals.texi (A Summary of the Various XEmacs Internal Modules):
+	* internals/internals.texi (Internal Modules for Building XEmacs):
+	* internals/internals.texi (Internal Modules for Build Configuration):
+	* internals/internals.texi (Internal Modules for Compiling XEmacs):
+	* internals/internals.texi (Internal Modules for Preloading Lisp):
+	* internals/internals.texi (Low-Level Internal Modules):
+	* internals/internals.texi (Basic Lisp Internal Modules):
+	* internals/internals.texi (Internal Modules for Standard Editing Operations):
+	* internals/internals.texi (Internal Modules for Interfacing with the File System):
+	* internals/internals.texi (Internal Modules for Other Aspects of the Lisp Interpreter and Object System):
+	* internals/internals.texi (Internal Modules for Interfacing with the Operating System):
+	* internals/internals.texi (Rules When Writing New C Code):
+	* internals/internals.texi (Introduction to Writing C Code):
+	* internals/internals.texi (Writing New Internal Modules):
+	* internals/internals.texi (Working with Lisp Objects):
+	* internals/internals.texi (Writing Lisp Primitives):
+	* internals/internals.texi (Writing Good Comments):
+	* internals/internals.texi (Adding Global Lisp Variables):
+	* internals/internals.texi (Regression Testing XEmacs):
+	* internals/internals.texi (How to Regression-Test):
+	* internals/internals.texi (Low-Level Allocation):
+	* internals/internals.texi (Stack Allocation):
+	* internals/internals.texi (Dynamic Arrays):
+	* internals/internals.texi (GCPROing):
+	* internals/internals.texi (Multilingual Support):
+	* internals/internals.texi (CCL):
+	* internals/internals.texi (Random other Windows I18N docs):
+	* internals/internals.texi (Internal Modules for Internationalization):
+	* internals/internals.texi (Consoles; Devices; Frames; Windows):
+	* internals/internals.texi (Window Hierarchy):
+	* internals/internals.texi (The Window Object):
+	* internals/internals.texi (Internal Modules for the Basic Displayable Lisp Objects):
+	* internals/internals.texi (Creating a Window-System Type):
+	* internals/internals.texi (The Redisplay Mechanism):
+	* internals/internals.texi (Redisplay Piece by Piece):
+	* internals/internals.texi (pixel_to_glyph_translation):
+	* internals/internals.texi (Internal Modules for the Redisplay Mechanism):
+	* internals/internals.texi (Events and the Event Loop):
+	* internals/internals.texi (Dispatching Events; The Command Builder):
+	* internals/internals.texi (Focus Handling):
+	* internals/internals.texi (Editor-Level Control Flow Internal Modules):
+	* internals/internals.texi (Interface to MS Windows):
+	* internals/internals.texi (Windows Build Flags):
+	* internals/internals.texi (Windows I18N Introduction):
+	* internals/internals.texi (Internal Modules for Interfacing with MS Windows):
+	* internals/internals.texi (Interface to the X Window System):
+	* internals/internals.texi (Tab Controls):
+	* internals/internals.texi (Internal Modules for Interfacing with X Windows):
+	* internals/internals.texi (Future Work -- General Suggestions):
+	* internals/internals.texi (Better Rendering Support -- Review Criteria):
+	* internals/internals.texi (Better Rendering Support -- Implementation):
+	* internals/internals.texi (Old Future Work -- A Portable Unexec
+	Replacement):
+	Avoid using the unqualified term "module" within this file to
+	refer to anything but those modules implemented using
+	emodules.c. Use the term "internal modules" for built-in subsystems
+	of XEmacs, previously termed "modules".
+	Add anchors for the various section names that now use "internal
+	module", which anchors use the old names.
+	Preserve index entries using the old terminology.
+
 2026-02-08  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* emodules.texi:

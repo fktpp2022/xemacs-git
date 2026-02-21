@@ -348,7 +348,7 @@ Similar but generates a general subsection.
 * The Lisp Language::           An overview.
 * XEmacs from the Perspective of Building::  
 * Build-Time Dependencies::     
-* The Modules of XEmacs::       
+* The Internal Modules of XEmacs::       
 * The Build Configuration System::  
 * Rules When Writing New C Code::  
 * Regression Testing XEmacs::   
@@ -400,22 +400,22 @@ A History of Emacs
 * GNU Emacs 20::                The other version 20 Emacs.
 * XEmacs::                      The continuation of Lucid Emacs.
 
-The Modules of XEmacs
+The Internal Modules of XEmacs
 
-* A Summary of the Various XEmacs Modules::  
-* Modules for Building XEmacs::  
-* Low-Level Modules::           
-* Basic Lisp Modules::          
-* Modules for Standard Editing Operations::  
-* Modules for Interfacing with the File System::  
-* Modules for Other Aspects of the Lisp Interpreter and Object System::  
-* Modules for Interfacing with the Operating System::  
+* A Summary of the Various XEmacs Internal Modules::  
+* Internal Modules for Building XEmacs::  
+* Low-Level Internal Modules::           
+* Basic Lisp Internal Modules::          
+* Internal Modules for Standard Editing Operations::  
+* Internal Modules for Interfacing with the File System::  
+* Internal Modules for Other Aspects of the Lisp Interpreter and Object System::  
+* Internal Modules for Interfacing with the Operating System::  
 
-Modules for Building XEmacs
+Internal Modules for Building XEmacs
 
-* Modules for Build Configuration::  
-* Modules for Compiling XEmacs::  
-* Modules for Preloading Lisp::  
+* Internal Modules for Build Configuration::  
+* Internal Modules for Compiling XEmacs::  
+* Internal Modules for Preloading Lisp::  
 
 The Build Configuration System
 
@@ -427,7 +427,7 @@ The Build Configuration System
 Rules When Writing New C Code
 
 * Introduction to Writing C Code::  
-* Writing New Modules::         
+* Writing New Internal Modules::         
 * Working with Lisp Objects::   
 * Writing Lisp Primitives::     
 * Writing Good Comments::       
@@ -445,7 +445,7 @@ Major Textual Changes
 Regression Testing XEmacs
 
 * How to Regression-Test::      
-* Modules for Regression Testing::  
+* Internal Modules for Regression Testing::  
 
 Mercurial Techniques
 
@@ -462,7 +462,7 @@ Low-Level Allocation
 * Basic Heap Allocation::       
 * Stack Allocation::            
 * Dynamic Arrays::              
-* Modules for Allocation::      
+* Internal Modules for Allocation::      
 
 Allocation of Objects in XEmacs Lisp
 
@@ -535,7 +535,7 @@ Multilingual Support
 * Coding for Mule::             
 * CCL::                         
 * Microsoft Windows-Related Multilingual Issues::  
-* Modules for Internationalization::  
+* Internal Modules for Internationalization::  
 * The Great Mule Merge of March 2002::  
 
 Encodings
@@ -604,7 +604,7 @@ Consoles; Devices; Frames; Windows
 * Point::                       
 * Window Hierarchy::            
 * The Window Object::           
-* Modules for the Basic Displayable Lisp Objects::  
+* Internal Modules for the Basic Displayable Lisp Objects::  
 
 Window-System Support
 
@@ -627,8 +627,8 @@ The Redisplay Mechanism
 * Line Start Cache::            
 * Redisplay Piece by Piece::    
 * pixel_to_glyph_translation::  
-* Modules for the Redisplay Mechanism::  
-* Modules for other Display-Related Lisp Objects::  
+* Internal Modules for the Redisplay Mechanism::  
+* Internal Modules for other Display-Related Lisp Objects::  
 
 Extents
 
@@ -652,7 +652,7 @@ Events and the Event Loop
 * Converting Events::           
 * Dispatching Events; The Command Builder::  
 * Focus Handling::              
-* Editor-Level Control Flow Modules::  
+* Editor-Level Control Flow Internal Modules::  
 
 Asynchronous Events; Quit Checking
 
@@ -678,13 +678,13 @@ Interface to MS Windows
 * Different kinds of Windows environments::  
 * Windows Build Flags::         
 * Windows I18N Introduction::   
-* Modules for Interfacing with MS Windows::  
+* Internal Modules for Interfacing with MS Windows::  
 * CHANGES from 21.4-windows branch::  Probably obsolete.
 
 Interface to the X Window System
 
 * Lucid Widget Library::        An interface to various widget sets.
-* Modules for Interfacing with X Windows::  
+* Internal Modules for Interfacing with X Windows::  
 
 Lucid Widget Library
 
@@ -868,7 +868,7 @@ code specifically devoted to text processing, including multilingual
 support (Mule).
 @item
 Afterwards, starting with @ref{Consoles; Devices; Frames; Windows}, is a
-division covering the display mechanism and the objects and modules
+division covering the display mechanism and the objects and internal modules
 relevant to this.
 @item
 Then, starting with @ref{Events and the Event Loop}, is a division
@@ -897,7 +897,7 @@ actual changes):
 @item Stephen Turnbull
 Various cleanup work, mostly post-2000.  Object-Oriented Techniques in
 XEmacs.  A Reader's Guide to XEmacs Coding Conventions.  Searching and
-Matching.  Regression Testing XEmacs.  Modules for Regression Testing.
+Matching.  Regression Testing XEmacs.  Internal Modules for Regression Testing.
 Lucid Widget Library.  A number of sections in the Future Work chapter.
 @item Martin Buchholz
 Various cleanup work, mostly pre-2001.  Docs on inline functions.  Docs
@@ -1171,7 +1171,7 @@ Author of much of the Microsoft Windows support.
 @end table
 
 @c fix this!
-Authorship of some of the modules:
+Authorship of some of the internal modules:
 
 @table @file
 @item alloc.c
@@ -1182,7 +1182,7 @@ method, printing method, and so on) and the existing scheme of Lrecords
 and LC records.  This was done both to increase the number of bits that
 a pointer can occupy from 26 to 28, and provide a general framework for
 creating new object types easily.  The garbage collection and
-froblock-phonetically spelled-allocation code is left over from the
+frob-block allocation code is left over from the
 original version, but was cleaned up somewhat by Mlynarik.  Later in
 1993, Jamie Zawinski improved the code that kept track of pure space
 usage so it would report exactly where you exceeded the pure space and
@@ -2698,7 +2698,7 @@ The first step of building involves running the @file{configure} program
 and passing it various parameters to specify any optional features you
 want and compiler arguments and such, as described in the @file{INSTALL}
 file.  (You may optionally run @file{autoconf} first to update the
-@file{configure} script.  @xref{Modules for Build Configuration}.)
+@file{configure} script.  @xref{Internal Modules for Build Configuration}.)
 This determines what the build environment is, chooses the
 appropriate @file{s/} and @file{m/} file, and runs a series of tests to
 determine many details about your environment, such as which library
@@ -2748,7 +2748,7 @@ Although @file{temacs} is not intended to be run as an editor, it can,
 by using the incantation @code{temacs -batch -l loadup.el run-temacs}.
 This is useful when the dumping procedure described above is broken.
 
-@node Build-Time Dependencies, The Modules of XEmacs, XEmacs from the Perspective of Building, Top
+@node Build-Time Dependencies, The Internal Modules of XEmacs, XEmacs from the Perspective of Building, Top
 @chapter Build-Time Dependencies
 @cindex build-time dependencies
 @cindex dependencies, build-time
@@ -2812,169 +2812,178 @@ you do not need @file{subr.el}, you should @samp{defvar}
 @code{custom-declare-variable-list} to prevent the @samp{void-variable}
 error.
 
-@node The Modules of XEmacs, The Build Configuration System, Build-Time Dependencies, Top
-@chapter The Modules of XEmacs
+@node The Internal Modules of XEmacs, The Build Configuration System, Build-Time Dependencies, Top
+@anchor{The Modules of XEmacs}
+@chapter The Internal Modules of XEmacs
+@cindex internal modules of XEmacs
 @cindex modules of XEmacs
 
+This manual previously used the term ``module'' to refer to internal modules;
+currently this term is reserved for dynamically loaded modules written in C,
+@pxref{(emodules)Introduction}.
+
 @menu
-* A Summary of the Various XEmacs Modules::  
-* Modules for Building XEmacs::  
-* Low-Level Modules::           
-* Basic Lisp Modules::          
-* Modules for Standard Editing Operations::  
-* Modules for Interfacing with the File System::  
-* Modules for Other Aspects of the Lisp Interpreter and Object System::  
-* Modules for Interfacing with the Operating System::  
+* A Summary of the Various XEmacs Internal Modules::  
+* Internal Modules for Building XEmacs::  
+* Low-Level Internal Modules::           
+* Basic Lisp Internal Modules::          
+* Internal Modules for Standard Editing Operations::  
+* Internal Modules for Interfacing with the File System::  
+* Internal Modules for Other Aspects of the Lisp Interpreter and Object System::  
+* Internal Modules for Interfacing with the Operating System::  
 @end menu
 
-@node A Summary of the Various XEmacs Modules, Modules for Building XEmacs, The Modules of XEmacs, The Modules of XEmacs
-@section A Summary of the Various XEmacs Modules
+@node A Summary of the Various XEmacs Internal Modules, Internal Modules for Building XEmacs, The Internal Modules of XEmacs, The Internal Modules of XEmacs
+@section A Summary of the Various XEmacs Internal Modules
+@cindex summary of the various XEmacs internal modules
 @cindex summary of the various XEmacs modules
+@cindex internal modules, summary of the various XEmacs
 @cindex modules, summary of the various XEmacs
+@anchor{A Summary of the Various XEmacs Modules}
 
-The following is a list of the sections describing the various modules
-(i.e. files) that implement XEmacs.  Some of them are in this chapter;
-some of them are attached to the chapters describing the modules in
-question.
+The following is a list of the sections describing the various internal
+modules (normally single files, but sometimes multiple) that implement
+XEmacs.  Some of them are in this chapter; some of them are attached to
+the chapters describing the internal modules in question.
 
 @itemize @bullet
 @item
-@ref{Modules for Build Configuration}.
+@ref{Internal Modules for Build Configuration}.
 @item
-@ref{Modules for Compiling XEmacs}.
+@ref{Internal Modules for Compiling XEmacs}.
 @item
-@ref{Modules for Preloading Lisp}.
+@ref{Internal Modules for Preloading Lisp}.
 @item
-@ref{Low-Level Modules}.
+@ref{Low-Level Internal Modules}.
 @item
-@ref{Basic Lisp Modules}.
+@ref{Basic Lisp Internal Modules}.
 @item
-@ref{Modules for Standard Editing Operations}.
+@ref{Internal Modules for Standard Editing Operations}.
 @item
-@ref{Editor-Level Control Flow Modules}.
+@ref{Editor-Level Control Flow Internal Modules}.
 @item
-@ref{Modules for the Basic Displayable Lisp Objects}.
+@ref{Internal Modules for the Basic Displayable Lisp Objects}.
 @item
-@ref{Modules for other Display-Related Lisp Objects}.
+@ref{Internal Modules for other Display-Related Lisp Objects}.
 @item
-@ref{Modules for the Redisplay Mechanism}.
+@ref{Internal Modules for the Redisplay Mechanism}.
 @item
-@ref{Modules for Interfacing with the File System}.
+@ref{Internal Modules for Interfacing with the File System}.
 @item
-@ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
 @item
-@ref{Modules for Interfacing with the Operating System}.
+@ref{Internal Modules for Interfacing with the Operating System}.
 @item
-@ref{Modules for Interfacing with MS Windows}.
+@ref{Internal Modules for Interfacing with MS Windows}.
 @item
-@ref{Modules for Interfacing with X Windows}.
+@ref{Internal Modules for Interfacing with X Windows}.
 @item
-@ref{Modules for Internationalization}.
+@ref{Internal Modules for Internationalization}.
 @item
-@ref{Modules for Regression Testing}.
+@ref{Internal Modules for Regression Testing}.
 @end itemize
 
-The following table contains cross-references from each module in XEmacs
+The following table contains cross-references from each internal module in XEmacs
 21.5 to the section (if any) describing it.
 
 @multitable @columnfractions .25 .75
-@item @file{intl-auto-encap-win32.c} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
-@item @file{Emacs.ad.h} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{EmacsFrame.c} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{EmacsFrame.h} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{EmacsFrameP.h} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{EmacsManager.c} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{EmacsManager.h} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{EmacsManagerP.h} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{EmacsShell-sub.c} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{EmacsShell.c} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{EmacsShell.h} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{EmacsShellP.h} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{ExternalClient-Xlib.c} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{ExternalClient.c} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{ExternalClient.h} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{ExternalClientP.h} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{ExternalShell.c} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{ExternalShell.h} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{ExternalShellP.h} @tab @ref{Modules for Interfacing with X Windows}.
+@item @file{intl-auto-encap-win32.c} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{Emacs.ad.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{EmacsFrame.c} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{EmacsFrame.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{EmacsFrameP.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{EmacsManager.c} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{EmacsManager.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{EmacsManagerP.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{EmacsShell-sub.c} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{EmacsShell.c} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{EmacsShell.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{EmacsShellP.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{ExternalClient-Xlib.c} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{ExternalClient.c} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{ExternalClient.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{ExternalClientP.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{ExternalShell.c} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{ExternalShell.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{ExternalShellP.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
 @item @file{Makefile.in.in} @tab
-@item @file{abbrev.c} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
-@item @file{alloc.c} @tab @ref{Basic Lisp Modules}.
-@item @file{alloca.c} @tab @ref{Low-Level Modules}.
+@item @file{abbrev.c} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{alloc.c} @tab @ref{Basic Lisp Internal Modules}.
+@item @file{alloca.c} @tab @ref{Low-Level Internal Modules}.
 @item @file{alloca.s} @tab
-@item @file{backtrace.h} @tab @ref{Basic Lisp Modules}.
+@item @file{backtrace.h} @tab @ref{Basic Lisp Internal Modules}.
 @item @file{balloon-x.c} @tab
 @item @file{balloon_help.c} @tab
 @item @file{balloon_help.h} @tab
-@item @file{base64-tests.el} @tab @ref{Modules for Regression Testing}.
-@item @file{bitmaps.h} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{buffer.c} @tab @ref{Modules for Standard Editing Operations}.
-@item @file{buffer.h} @tab @ref{Modules for Standard Editing Operations}.
-@item @file{bufslots.h} @tab @ref{Modules for Standard Editing Operations}.
-@item @file{byte-compiler-tests.el} @tab @ref{Modules for Regression Testing}.
-@item @file{bytecode.c} @tab @ref{Basic Lisp Modules}.
-@item @file{bytecode.h} @tab @ref{Basic Lisp Modules}.
-@item @file{c-tests.el} @tab @ref{Modules for Regression Testing}.
-@item @file{callint.c} @tab @ref{Modules for Standard Editing Operations}.
-@item @file{case-tests.el} @tab @ref{Modules for Regression Testing}.
-@item @file{casefiddle.c} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
-@item @file{casetab.c} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{base64-tests.el} @tab @ref{Internal Modules for Regression Testing}.
+@item @file{bitmaps.h} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{buffer.c} @tab @ref{Internal Modules for Standard Editing Operations}.
+@item @file{buffer.h} @tab @ref{Internal Modules for Standard Editing Operations}.
+@item @file{bufslots.h} @tab @ref{Internal Modules for Standard Editing Operations}.
+@item @file{byte-compiler-tests.el} @tab @ref{Internal Modules for Regression Testing}.
+@item @file{bytecode.c} @tab @ref{Basic Lisp Internal Modules}.
+@item @file{bytecode.h} @tab @ref{Basic Lisp Internal Modules}.
+@item @file{c-tests.el} @tab @ref{Internal Modules for Regression Testing}.
+@item @file{callint.c} @tab @ref{Internal Modules for Standard Editing Operations}.
+@item @file{case-tests.el} @tab @ref{Internal Modules for Regression Testing}.
+@item @file{casefiddle.c} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{casetab.c} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
 @item @file{casetab.h} @tab
-@item @file{ccl-tests.el} @tab @ref{Modules for Regression Testing}.
+@item @file{ccl-tests.el} @tab @ref{Internal Modules for Regression Testing}.
 @item @file{charset.h} @tab
-@item @file{chartab.c} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
-@item @file{chartab.h} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
-@item @file{cm.c} @tab @ref{Modules for the Redisplay Mechanism}.
-@item @file{cm.h} @tab @ref{Modules for the Redisplay Mechanism}.
-@item @file{cmdloop.c} @tab @ref{Editor-Level Control Flow Modules}.
-@item @file{cmds.c} @tab @ref{Modules for Standard Editing Operations}.
+@item @file{chartab.c} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{chartab.h} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{cm.c} @tab @ref{Internal Modules for the Redisplay Mechanism}.
+@item @file{cm.h} @tab @ref{Internal Modules for the Redisplay Mechanism}.
+@item @file{cmdloop.c} @tab @ref{Editor-Level Control Flow Internal Modules}.
+@item @file{cmds.c} @tab @ref{Internal Modules for Standard Editing Operations}.
 @item @file{coding-system-slots.h} @tab
-@item @file{commands.h} @tab @ref{Modules for Standard Editing Operations}.
+@item @file{commands.h} @tab @ref{Internal Modules for Standard Editing Operations}.
 @item @file{compiler.h} @tab
 @item @file{config.h.in} @tab
-@item @file{config.h} @tab @ref{Low-Level Modules}.
+@item @file{config.h} @tab @ref{Low-Level Internal Modules}.
 @item @file{conslots.h} @tab
 @item @file{console-gtk-impl.h} @tab
 @item @file{console-gtk.c} @tab
 @item @file{console-gtk.h} @tab
 @item @file{console-impl.h} @tab
 @item @file{console-msw-impl.h} @tab
-@item @file{console-msw.c} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
-@item @file{console-msw.h} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
+@item @file{console-msw.c} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
+@item @file{console-msw.h} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
 @item @file{console-stream-impl.h} @tab
-@item @file{console-stream.c} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
-@item @file{console-stream.h} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
+@item @file{console-stream.c} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
+@item @file{console-stream.h} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
 @item @file{console-tty-impl.h} @tab
-@item @file{console-tty.c} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
-@item @file{console-tty.h} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
+@item @file{console-tty.c} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
+@item @file{console-tty.h} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
 @item @file{console-x-impl.h} @tab
-@item @file{console-x.c} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
-@item @file{console-x.h} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
-@item @file{console.c} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
-@item @file{console.h} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
-@item @file{data.c} @tab @ref{Basic Lisp Modules}.
-@item @file{database-tests.el} @tab @ref{Modules for Regression Testing}.
+@item @file{console-x.c} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
+@item @file{console-x.h} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
+@item @file{console.c} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
+@item @file{console.h} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
+@item @file{data.c} @tab @ref{Basic Lisp Internal Modules}.
+@item @file{database-tests.el} @tab @ref{Internal Modules for Regression Testing}.
 @item @file{database.c} @tab
 @item @file{database.h} @tab
-@item @file{debug.c} @tab @ref{Low-Level Modules}.
-@item @file{debug.h} @tab @ref{Low-Level Modules}.
+@item @file{debug.c} @tab @ref{Low-Level Internal Modules}.
+@item @file{debug.h} @tab @ref{Low-Level Internal Modules}.
 @item @file{depend} @tab
 @item @file{device-gtk.c} @tab
 @item @file{device-impl.h} @tab
-@item @file{device-msw.c} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
-@item @file{device-tty.c} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
-@item @file{device-x.c} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
-@item @file{device.c} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
-@item @file{device.h} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
+@item @file{device-msw.c} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
+@item @file{device-tty.c} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
+@item @file{device-x.c} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
+@item @file{device.c} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
+@item @file{device.h} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
 @item @file{devslots.h} @tab
 @item @file{dialog-gtk.c} @tab
 @item @file{dialog-msw.c} @tab
 @item @file{dialog-x.c} @tab
 @item @file{dialog.c} @tab
 @item @file{dired-msw.c} @tab
-@item @file{dired.c} @tab @ref{Modules for Interfacing with the File System}.
-@item @file{doc.c} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
-@item @file{doprnt.c} @tab @ref{Modules for Standard Editing Operations}.
+@item @file{dired.c} @tab @ref{Internal Modules for Interfacing with the File System}.
+@item @file{doc.c} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{doprnt.c} @tab @ref{Internal Modules for Standard Editing Operations}.
 @item @file{dragdrop.c} @tab
 @item @file{dragdrop.h} @tab
 @item @file{dump-data.c} @tab
@@ -2982,78 +2991,78 @@ The following table contains cross-references from each module in XEmacs
 @item @file{dump-id.c} @tab
 @item @file{dumper.c} @tab
 @item @file{dumper.h} @tab
-@item @file{dynarr.c} @tab @ref{Low-Level Modules}.
-@item @file{ecrt0.c} @tab @ref{Low-Level Modules}.
-@item @file{editfns.c} @tab @ref{Modules for Standard Editing Operations}.
-@item @file{elhash.c} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
-@item @file{elhash.h} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{dynarr.c} @tab @ref{Low-Level Internal Modules}.
+@item @file{ecrt0.c} @tab @ref{Low-Level Internal Modules}.
+@item @file{editfns.c} @tab @ref{Internal Modules for Standard Editing Operations}.
+@item @file{elhash.c} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{elhash.h} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
 @item @file{emacs-marshals.c} @tab
 @item @file{emacs-new.c.old} @tab
 @item @file{emacs-widget-accessors.c} @tab
-@item @file{emacs.c} @tab @ref{Low-Level Modules}.
-@item @file{emodules.c} @tab
-@item @file{emodules.h} @tab
+@item @file{emacs.c} @tab @ref{Low-Level Internal Modules}.
+@item @file{einternal modules.c} @tab
+@item @file{einternal modules.h} @tab
 @item @file{esd.c} @tab
-@item @file{eval.c} @tab @ref{Basic Lisp Modules}.
-@item @file{event-Xt.c} @tab @ref{Editor-Level Control Flow Modules}.
+@item @file{eval.c} @tab @ref{Basic Lisp Internal Modules}.
+@item @file{event-Xt.c} @tab @ref{Editor-Level Control Flow Internal Modules}.
 @item @file{event-gtk.c} @tab
 @item @file{event-gtk.h} @tab
-@item @file{event-msw.c} @tab @ref{Editor-Level Control Flow Modules}.
-@item @file{event-stream.c} @tab @ref{Editor-Level Control Flow Modules}.
-@item @file{event-tty.c} @tab @ref{Editor-Level Control Flow Modules}.
+@item @file{event-msw.c} @tab @ref{Editor-Level Control Flow Internal Modules}.
+@item @file{event-stream.c} @tab @ref{Editor-Level Control Flow Internal Modules}.
+@item @file{event-tty.c} @tab @ref{Editor-Level Control Flow Internal Modules}.
 @item @file{event-unixoid.c} @tab
 @item @file{event-xlike-inc.c} @tab
-@item @file{events-mod.h} @tab @ref{Editor-Level Control Flow Modules}.
-@item @file{events.c} @tab @ref{Editor-Level Control Flow Modules}.
-@item @file{events.h} @tab @ref{Editor-Level Control Flow Modules}.
-@item @file{extent-tests.el} @tab @ref{Modules for Regression Testing}.
+@item @file{events-mod.h} @tab @ref{Editor-Level Control Flow Internal Modules}.
+@item @file{events.c} @tab @ref{Editor-Level Control Flow Internal Modules}.
+@item @file{events.h} @tab @ref{Editor-Level Control Flow Internal Modules}.
+@item @file{extent-tests.el} @tab @ref{Internal Modules for Regression Testing}.
 @item @file{extents-impl.h} @tab
-@item @file{extents.c} @tab @ref{Modules for Standard Editing Operations}.
-@item @file{extents.h} @tab @ref{Modules for Standard Editing Operations}.
-@item @file{extw-Xlib.c} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{extw-Xlib.h} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{extw-Xt.c} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{extw-Xt.h} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{faces.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{faces.h} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{file-coding.c} @tab @ref{Modules for Internationalization}.
-@item @file{file-coding.h} @tab @ref{Modules for Internationalization}.
-@item @file{fileio.c} @tab @ref{Modules for Interfacing with the File System}.
-@item @file{filelock.c} @tab @ref{Modules for Interfacing with the File System}.
-@item @file{filemode.c} @tab @ref{Modules for Interfacing with the File System}.
-@item @file{floatfns.c} @tab @ref{Basic Lisp Modules}.
-@item @file{fns.c} @tab @ref{Basic Lisp Modules}.
-@item @file{font-lock.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
+@item @file{extents.c} @tab @ref{Internal Modules for Standard Editing Operations}.
+@item @file{extents.h} @tab @ref{Internal Modules for Standard Editing Operations}.
+@item @file{extw-Xlib.c} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{extw-Xlib.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{extw-Xt.c} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{extw-Xt.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{faces.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{faces.h} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{file-coding.c} @tab @ref{Internal Modules for Internationalization}.
+@item @file{file-coding.h} @tab @ref{Internal Modules for Internationalization}.
+@item @file{fileio.c} @tab @ref{Internal Modules for Interfacing with the File System}.
+@item @file{filelock.c} @tab @ref{Internal Modules for Interfacing with the File System}.
+@item @file{filemode.c} @tab @ref{Internal Modules for Interfacing with the File System}.
+@item @file{floatfns.c} @tab @ref{Basic Lisp Internal Modules}.
+@item @file{fns.c} @tab @ref{Basic Lisp Internal Modules}.
+@item @file{font-lock.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
 @item @file{frame-gtk.c} @tab
 @item @file{frame-impl.h} @tab
-@item @file{frame-msw.c} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
-@item @file{frame-tty.c} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
-@item @file{frame-x.c} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
-@item @file{frame.c} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
+@item @file{frame-msw.c} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
+@item @file{frame-tty.c} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
+@item @file{frame-x.c} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
+@item @file{frame.c} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
 @item @file{frame.diff} @tab
-@item @file{frame.h} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
+@item @file{frame.h} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
 @item @file{frameslots.h} @tab
-@item @file{free-hook.c} @tab @ref{Low-Level Modules}.
+@item @file{free-hook.c} @tab @ref{Low-Level Internal Modules}.
 @item @file{gccache-gtk.c} @tab
 @item @file{gccache-gtk.h} @tab
 @item @file{general-slots.h} @tab
-@item @file{general.c} @tab @ref{Basic Lisp Modules}.
-@item @file{getloadavg.c} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{getpagesize.h} @tab @ref{Low-Level Modules}.
+@item @file{general.c} @tab @ref{Basic Lisp Internal Modules}.
+@item @file{getloadavg.c} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{getpagesize.h} @tab @ref{Low-Level Internal Modules}.
 @item @file{glade.c} @tab
-@item @file{glyphs-eimage.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
+@item @file{glyphs-eimage.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
 @item @file{glyphs-gtk.c} @tab
 @item @file{glyphs-gtk.h} @tab
-@item @file{glyphs-msw.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{glyphs-msw.h} @tab @ref{Modules for other Display-Related Lisp Objects}.
+@item @file{glyphs-msw.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{glyphs-msw.h} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
 @item @file{glyphs-shared.c} @tab
-@item @file{glyphs-widget.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{glyphs-x.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{glyphs-x.h} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{glyphs.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{glyphs.h} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{gpmevent.c} @tab @ref{Editor-Level Control Flow Modules}.
-@item @file{gpmevent.h} @tab @ref{Editor-Level Control Flow Modules}.
+@item @file{glyphs-widget.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{glyphs-x.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{glyphs-x.h} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{glyphs.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{glyphs.h} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{gpmevent.c} @tab @ref{Editor-Level Control Flow Internal Modules}.
+@item @file{gpmevent.h} @tab @ref{Editor-Level Control Flow Internal Modules}.
 @item @file{gtk-glue.c} @tab
 @item @file{gtk-xemacs.c} @tab
 @item @file{gtk-xemacs.h} @tab
@@ -3064,75 +3073,75 @@ The following table contains cross-references from each module in XEmacs
 @item @file{gui.h} @tab
 @item @file{gutter.c} @tab
 @item @file{gutter.h} @tab
-@item @file{hash-table-tests.el} @tab @ref{Modules for Regression Testing}.
-@item @file{hash.c} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
-@item @file{hash.h} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
-@item @file{hpplay.c} @tab @ref{Modules for Interfacing with the Operating System}.
+@item @file{hash-table-tests.el} @tab @ref{Internal Modules for Regression Testing}.
+@item @file{hash.c} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{hash.h} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{hpplay.c} @tab @ref{Internal Modules for Interfacing with the Operating System}.
 @item @file{imgproc.c} @tab
 @item @file{imgproc.h} @tab
-@item @file{indent.c} @tab @ref{Modules for the Redisplay Mechanism}.
-@item @file{inline.c} @tab @ref{Low-Level Modules}.
+@item @file{indent.c} @tab @ref{Internal Modules for the Redisplay Mechanism}.
+@item @file{inline.c} @tab @ref{Low-Level Internal Modules}.
 @item @file{input-method-motif.c} @tab
 @item @file{input-method-xlib.c} @tab
-@item @file{insdel.c} @tab @ref{Modules for Standard Editing Operations}.
-@item @file{insdel.h} @tab @ref{Modules for Standard Editing Operations}.
+@item @file{insdel.c} @tab @ref{Internal Modules for Standard Editing Operations}.
+@item @file{insdel.h} @tab @ref{Internal Modules for Standard Editing Operations}.
 @item @file{intl-auto-encap-win32.c} @tab
 @item @file{intl-auto-encap-win32.h} @tab
 @item @file{intl-encap-win32.c} @tab
 @item @file{intl-win32.c} @tab
 @item @file{intl-x.c} @tab
-@item @file{intl.c} @tab @ref{Modules for Internationalization}.
-@item @file{iso-wide.h} @tab @ref{Modules for Internationalization}.
-@item @file{keymap.c} @tab @ref{Editor-Level Control Flow Modules}.
-@item @file{keymap.h} @tab @ref{Editor-Level Control Flow Modules}.
-@item @file{lastfile.c} @tab @ref{Low-Level Modules}.
+@item @file{intl.c} @tab @ref{Internal Modules for Internationalization}.
+@item @file{iso-wide.h} @tab @ref{Internal Modules for Internationalization}.
+@item @file{keymap.c} @tab @ref{Editor-Level Control Flow Internal Modules}.
+@item @file{keymap.h} @tab @ref{Editor-Level Control Flow Internal Modules}.
+@item @file{lastfile.c} @tab @ref{Low-Level Internal Modules}.
 @item @file{libinterface.c} @tab
 @item @file{libinterface.h} @tab
-@item @file{libsst.c} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{libsst.h} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{libst.h} @tab @ref{Modules for Interfacing with the Operating System}.
+@item @file{libsst.c} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{libsst.h} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{libst.h} @tab @ref{Internal Modules for Interfacing with the Operating System}.
 @item @file{line-number.c} @tab
 @item @file{line-number.h} @tab
-@item @file{linuxplay.c} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{lisp-disunion.h} @tab @ref{Basic Lisp Modules}.
-@item @file{lisp-tests.el} @tab @ref{Modules for Regression Testing}.
-@item @file{lisp-union.h} @tab @ref{Basic Lisp Modules}.
-@item @file{lisp.h} @tab @ref{Basic Lisp Modules}.
-@item @file{lread.c} @tab @ref{Basic Lisp Modules}.
-@item @file{lrecord.h} @tab @ref{Basic Lisp Modules}.
-@item @file{lstream.c} @tab @ref{Modules for Interfacing with the File System}.
-@item @file{lstream.h} @tab @ref{Modules for Interfacing with the File System}.
-@item @file{macros.c} @tab @ref{Editor-Level Control Flow Modules}.
-@item @file{macros.h} @tab @ref{Editor-Level Control Flow Modules}.
+@item @file{linuxplay.c} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{lisp-disunion.h} @tab @ref{Basic Lisp Internal Modules}.
+@item @file{lisp-tests.el} @tab @ref{Internal Modules for Regression Testing}.
+@item @file{lisp-union.h} @tab @ref{Basic Lisp Internal Modules}.
+@item @file{lisp.h} @tab @ref{Basic Lisp Internal Modules}.
+@item @file{lread.c} @tab @ref{Basic Lisp Internal Modules}.
+@item @file{lrecord.h} @tab @ref{Basic Lisp Internal Modules}.
+@item @file{lstream.c} @tab @ref{Internal Modules for Interfacing with the File System}.
+@item @file{lstream.h} @tab @ref{Internal Modules for Interfacing with the File System}.
+@item @file{macros.c} @tab @ref{Editor-Level Control Flow Internal Modules}.
+@item @file{macros.h} @tab @ref{Editor-Level Control Flow Internal Modules}.
 @item @file{make-src-depend} @tab
-@item @file{malloc.c} @tab @ref{Low-Level Modules}.
-@item @file{marker.c} @tab @ref{Modules for Standard Editing Operations}.
-@item @file{md5-tests.el} @tab @ref{Modules for Regression Testing}.
-@item @file{md5.c} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
-@item @file{mem-limits.h} @tab @ref{Low-Level Modules}.
+@item @file{malloc.c} @tab @ref{Low-Level Internal Modules}.
+@item @file{marker.c} @tab @ref{Internal Modules for Standard Editing Operations}.
+@item @file{md5-tests.el} @tab @ref{Internal Modules for Regression Testing}.
+@item @file{md5.c} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{mem-limits.h} @tab @ref{Low-Level Internal Modules}.
 @item @file{menubar-gtk.c} @tab
-@item @file{menubar-msw.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{menubar-msw.h} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{menubar-x.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{menubar.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{menubar.h} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{minibuf.c} @tab @ref{Editor-Level Control Flow Modules}.
+@item @file{menubar-msw.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{menubar-msw.h} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{menubar-x.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{menubar.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{menubar.h} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{minibuf.c} @tab @ref{Editor-Level Control Flow Internal Modules}.
 @item @file{miscplay.c} @tab
 @item @file{miscplay.h} @tab
-@item @file{mule-canna.c} @tab @ref{Modules for Internationalization}.
-@item @file{mule-ccl.c} @tab @ref{Modules for Internationalization}.
+@item @file{mule-canna.c} @tab @ref{Internal Modules for Internationalization}.
+@item @file{mule-ccl.c} @tab @ref{Internal Modules for Internationalization}.
 @item @file{mule-ccl.h} @tab
-@item @file{mule-charset.c} @tab @ref{Modules for Internationalization}.
-@item @file{mule-charset.h} @tab @ref{Modules for Internationalization}.
-@item @file{mule-coding.c} @tab @ref{Modules for Internationalization}.
-@item @file{mule-mcpath.c} @tab @ref{Modules for Internationalization}.
-@item @file{mule-mcpath.h} @tab @ref{Modules for Internationalization}.
-@item @file{mule-tests.el} @tab @ref{Modules for Regression Testing}.
-@item @file{mule-wnnfns.c} @tab @ref{Modules for Internationalization}.
-@item @file{mule.c} @tab @ref{Modules for Internationalization}.
-@item @file{nas.c} @tab @ref{Modules for Interfacing with the Operating System}.
+@item @file{mule-charset.c} @tab @ref{Internal Modules for Internationalization}.
+@item @file{mule-charset.h} @tab @ref{Internal Modules for Internationalization}.
+@item @file{mule-coding.c} @tab @ref{Internal Modules for Internationalization}.
+@item @file{mule-mcpath.c} @tab @ref{Internal Modules for Internationalization}.
+@item @file{mule-mcpath.h} @tab @ref{Internal Modules for Internationalization}.
+@item @file{mule-tests.el} @tab @ref{Internal Modules for Regression Testing}.
+@item @file{mule-wnnfns.c} @tab @ref{Internal Modules for Internationalization}.
+@item @file{mule.c} @tab @ref{Internal Modules for Internationalization}.
+@item @file{nas.c} @tab @ref{Internal Modules for Interfacing with the Operating System}.
 @item @file{native-gtk-toolbar.c} @tab
-@item @file{ndir.h} @tab @ref{Modules for Interfacing with the File System}.
+@item @file{ndir.h} @tab @ref{Internal Modules for Interfacing with the File System}.
 @item @file{nt.c} @tab
 @item @file{ntheap.c} @tab
 @item @file{ntplay.c} @tab
@@ -3151,164 +3160,170 @@ The following table contains cross-references from each module in XEmacs
 @item @file{fontcolor-gtk.h} @tab
 @item @file{fontcolor-impl.h} @tab
 @item @file{fontcolor-msw-impl.h} @tab
-@item @file{fontcolor-msw.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{fontcolor-msw.h} @tab @ref{Modules for other Display-Related Lisp Objects}.
+@item @file{fontcolor-msw.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{fontcolor-msw.h} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
 @item @file{fontcolor-tty-impl.h} @tab
-@item @file{fontcolor-tty.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{fontcolor-tty.h} @tab @ref{Modules for other Display-Related Lisp Objects}.
+@item @file{fontcolor-tty.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{fontcolor-tty.h} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
 @item @file{fontcolor-x-impl.h} @tab
-@item @file{fontcolor-x.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{fontcolor-x.h} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{fontcolor.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{fontcolor.h} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{opaque.c} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
-@item @file{opaque.h} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{fontcolor-x.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{fontcolor-x.h} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{fontcolor.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{fontcolor.h} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{opaque.c} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{opaque.h} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
 @item @file{paths.h.in} @tab
-@item @file{paths.h} @tab @ref{Low-Level Modules}.
+@item @file{paths.h} @tab @ref{Low-Level Internal Modules}.
 @item @file{ppc.ldscript} @tab
-@item @file{pre-crt0.c} @tab @ref{Low-Level Modules}.
-@item @file{print.c} @tab @ref{Basic Lisp Modules}.
+@item @file{pre-crt0.c} @tab @ref{Low-Level Internal Modules}.
+@item @file{print.c} @tab @ref{Basic Lisp Internal Modules}.
 @item @file{process-nt.c} @tab
 @item @file{process-slots.h} @tab
 @item @file{process-unix.c} @tab
-@item @file{process.c} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{process.el} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{process.h} @tab @ref{Modules for Interfacing with the Operating System}.
+@item @file{process.c} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{process.el} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{process.h} @tab @ref{Internal Modules for Interfacing with the Operating System}.
 @item @file{procimpl.h} @tab
 @item @file{profile.c.orig} @tab
 @item @file{profile.c.rej} @tab
 @item @file{profile.c} @tab
 @item @file{profile.h} @tab
-@item @file{ralloc.c} @tab @ref{Low-Level Modules}.
-@item @file{rangetab.c} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{ralloc.c} @tab @ref{Low-Level Internal Modules}.
+@item @file{rangetab.c} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
 @item @file{rangetab.h} @tab
-@item @file{realpath.c} @tab @ref{Modules for Interfacing with the File System}.
+@item @file{realpath.c} @tab @ref{Internal Modules for Interfacing with the File System}.
 @item @file{redisplay-gtk.c} @tab
-@item @file{redisplay-msw.c} @tab @ref{Modules for the Redisplay Mechanism}.
-@item @file{redisplay-output.c} @tab @ref{Modules for the Redisplay Mechanism}.
-@item @file{redisplay-tty.c} @tab @ref{Modules for the Redisplay Mechanism}.
-@item @file{redisplay-x.c} @tab @ref{Modules for the Redisplay Mechanism}.
-@item @file{redisplay.c} @tab @ref{Modules for the Redisplay Mechanism}.
-@item @file{redisplay.h} @tab @ref{Modules for the Redisplay Mechanism}.
-@item @file{regex.c} @tab @ref{Modules for Standard Editing Operations}.
-@item @file{regex.h} @tab @ref{Modules for Standard Editing Operations}.
-@item @file{regexp-tests.el} @tab @ref{Modules for Regression Testing}.
+@item @file{redisplay-msw.c} @tab @ref{Internal Modules for the Redisplay Mechanism}.
+@item @file{redisplay-output.c} @tab @ref{Internal Modules for the Redisplay Mechanism}.
+@item @file{redisplay-tty.c} @tab @ref{Internal Modules for the Redisplay Mechanism}.
+@item @file{redisplay-x.c} @tab @ref{Internal Modules for the Redisplay Mechanism}.
+@item @file{redisplay.c} @tab @ref{Internal Modules for the Redisplay Mechanism}.
+@item @file{redisplay.h} @tab @ref{Internal Modules for the Redisplay Mechanism}.
+@item @file{regex.c} @tab @ref{Internal Modules for Standard Editing Operations}.
+@item @file{regex.h} @tab @ref{Internal Modules for Standard Editing Operations}.
+@item @file{regexp-tests.el} @tab @ref{Internal Modules for Regression Testing}.
 @item @file{scrollbar-gtk.c} @tab
 @item @file{scrollbar-gtk.h} @tab
-@item @file{scrollbar-msw.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{scrollbar-msw.h} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{scrollbar-x.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{scrollbar-x.h} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{scrollbar.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{scrollbar.h} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{search.c} @tab @ref{Modules for Standard Editing Operations}.
+@item @file{scrollbar-msw.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{scrollbar-msw.h} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{scrollbar-x.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{scrollbar-x.h} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{scrollbar.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{scrollbar.h} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{search.c} @tab @ref{Internal Modules for Standard Editing Operations}.
 @item @file{select-xlike-inc.c} @tab
 @item @file{select-gtk.c} @tab
-@item @file{select-msw.c} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{select-x.c} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{select.c} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{select.h} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{sequence.c} @tab @ref{Basic Lisp Modules}.
-@item @file{sgiplay.c} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{signal.c} @tab @ref{Low-Level Modules}.
-@item @file{sound.c} @tab @ref{Modules for Interfacing with the Operating System}.
+@item @file{select-msw.c} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{select-x.c} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{select.c} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{select.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{sequence.c} @tab @ref{Basic Lisp Internal Modules}.
+@item @file{sgiplay.c} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{signal.c} @tab @ref{Low-Level Internal Modules}.
+@item @file{sound.c} @tab @ref{Internal Modules for Interfacing with the Operating System}.
 @item @file{sound.h} @tab
-@item @file{specifier.c} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
-@item @file{specifier.h} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{specifier.c} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{specifier.h} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
 @item @file{src-headers} @tab
 @item @file{strcat.c} @tab
 @item @file{strftime.c} @tab
-@item @file{sunplay.c} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{sunpro.c} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{symbol-tests.el} @tab @ref{Modules for Regression Testing}.
-@item @file{symbols.c} @tab @ref{Basic Lisp Modules}.
-@item @file{symeval.h} @tab @ref{Basic Lisp Modules}.
-@item @file{symsinit.h} @tab @ref{Basic Lisp Modules}.
-@item @file{syntax-tests.el} @tab @ref{Modules for Regression Testing}.
-@item @file{syntax.c} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
-@item @file{syntax.h} @tab @ref{Modules for Other Aspects of the Lisp Interpreter and Object System}.
-@item @file{sysdep.c} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{sysdep.h} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{sysdir.h} @tab @ref{Modules for Interfacing with the Operating System}.
+@item @file{sunplay.c} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{sunpro.c} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{symbol-tests.el} @tab @ref{Internal Modules for Regression Testing}.
+@item @file{symbols.c} @tab @ref{Basic Lisp Internal Modules}.
+@item @file{symeval.h} @tab @ref{Basic Lisp Internal Modules}.
+@item @file{symsinit.h} @tab @ref{Basic Lisp Internal Modules}.
+@item @file{syntax-tests.el} @tab @ref{Internal Modules for Regression Testing}.
+@item @file{syntax.c} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{syntax.h} @tab @ref{Internal Modules for Other Aspects of the Lisp Interpreter and Object System}.
+@item @file{sysdep.c} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{sysdep.h} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{sysdir.h} @tab @ref{Internal Modules for Interfacing with the Operating System}.
 @item @file{sysdll.c} @tab
 @item @file{sysdll.h} @tab
-@item @file{sysfile.h} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{sysfloat.h} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{sysproc.h} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{syspwd.h} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{syssignal.h} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{systime.h} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{systty.h} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{syswait.h} @tab @ref{Modules for Interfacing with the Operating System}.
+@item @file{sysfile.h} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{sysfloat.h} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{sysproc.h} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{syspwd.h} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{syssignal.h} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{systime.h} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{systty.h} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{syswait.h} @tab @ref{Internal Modules for Interfacing with the Operating System}.
 @item @file{syswindows.h} @tab
-@item @file{tag-tests.el} @tab @ref{Modules for Regression Testing}.
-@item @file{termcap.c} @tab @ref{Modules for the Redisplay Mechanism}.
-@item @file{terminfo.c} @tab @ref{Modules for the Redisplay Mechanism}.
-@item @file{test-harness.el} @tab @ref{Modules for Regression Testing}.
+@item @file{tag-tests.el} @tab @ref{Internal Modules for Regression Testing}.
+@item @file{termcap.c} @tab @ref{Internal Modules for the Redisplay Mechanism}.
+@item @file{terminfo.c} @tab @ref{Internal Modules for the Redisplay Mechanism}.
+@item @file{test-harness.el} @tab @ref{Internal Modules for Regression Testing}.
 @item @file{tests.c} @tab
 @item @file{text.c} @tab
 @item @file{text.h} @tab
 @item @file{toolbar-xlike.c} @tab
 @item @file{toolbar-xlike.h} @tab
 @item @file{toolbar-gtk.c} @tab
-@item @file{toolbar-msw.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{toolbar-x.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{toolbar.c} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{toolbar.h} @tab @ref{Modules for other Display-Related Lisp Objects}.
-@item @file{tooltalk.c} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{tooltalk.h} @tab @ref{Modules for Interfacing with the Operating System}.
-@item @file{tparam.c} @tab @ref{Modules for the Redisplay Mechanism}.
+@item @file{toolbar-msw.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{toolbar-x.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{toolbar.c} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{toolbar.h} @tab @ref{Internal Modules for other Display-Related Lisp Objects}.
+@item @file{tooltalk.c} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{tooltalk.h} @tab @ref{Internal Modules for Interfacing with the Operating System}.
+@item @file{tparam.c} @tab @ref{Internal Modules for the Redisplay Mechanism}.
 @item @file{ui-byhand.c} @tab
 @item @file{ui-gtk.c} @tab
 @item @file{ui-gtk.h} @tab
-@item @file{undo.c} @tab @ref{Modules for Standard Editing Operations}.
-@item @file{unexaix.c} @tab @ref{Low-Level Modules}.
-@item @file{unexalpha.c} @tab @ref{Low-Level Modules}.
+@item @file{undo.c} @tab @ref{Internal Modules for Standard Editing Operations}.
+@item @file{unexaix.c} @tab @ref{Low-Level Internal Modules}.
+@item @file{unexalpha.c} @tab @ref{Low-Level Internal Modules}.
 @item @file{unexcw.c} @tab
-@item @file{unexec.c} @tab @ref{Low-Level Modules}.
-@item @file{unexelf.c} @tab @ref{Low-Level Modules}.
-@item @file{unexhp9k800.c} @tab @ref{Low-Level Modules}.
+@item @file{unexec.c} @tab @ref{Low-Level Internal Modules}.
+@item @file{unexelf.c} @tab @ref{Low-Level Internal Modules}.
+@item @file{unexhp9k800.c} @tab @ref{Low-Level Internal Modules}.
 @item @file{unexnt.c} @tab
 @item @file{unexsol2-6.c} @tab
 @item @file{unicode.c} @tab
-@item @file{universe.h} @tab @ref{Low-Level Modules}.
-@item @file{vm-limit.c} @tab @ref{Low-Level Modules}.
-@item @file{weak-tests.el} @tab @ref{Modules for Regression Testing}.
+@item @file{universe.h} @tab @ref{Low-Level Internal Modules}.
+@item @file{vm-limit.c} @tab @ref{Low-Level Internal Modules}.
+@item @file{weak-tests.el} @tab @ref{Internal Modules for Regression Testing}.
 @item @file{widget.c} @tab
 @item @file{win32.c} @tab
 @item @file{window-impl.h} @tab
-@item @file{window.c} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
-@item @file{window.h} @tab @ref{Modules for the Basic Displayable Lisp Objects}.
+@item @file{window.c} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
+@item @file{window.h} @tab @ref{Internal Modules for the Basic Displayable Lisp Objects}.
 @item @file{winslots.h} @tab
 @item @file{xemacs.def.in.in} @tab
-@item @file{xgccache.c} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{xgccache.h} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{xintrinsic.h} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{xintrinsicp.h} @tab @ref{Modules for Interfacing with X Windows}.
-@item @file{xmmanagerp.h} @tab @ref{Modules for Interfacing with X Windows}.
+@item @file{xgccache.c} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{xgccache.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{xintrinsic.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{xintrinsicp.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
+@item @file{xmmanagerp.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
 @item @file{xmotif.h} @tab
-@item @file{xmprimitivep.h} @tab @ref{Modules for Interfacing with X Windows}.
+@item @file{xmprimitivep.h} @tab @ref{Internal Modules for Interfacing with X Windows}.
 @end multitable
 
 
 
-@node Modules for Building XEmacs, Low-Level Modules, A Summary of the Various XEmacs Modules, The Modules of XEmacs
-@section Modules for Building XEmacs
+@node Internal Modules for Building XEmacs, Low-Level Internal Modules, A Summary of the Various XEmacs Internal Modules, The Internal Modules of XEmacs
+@section Internal Modules for Building XEmacs
+@cindex internal modules for building XEmacs
 @cindex modules for building XEmacs
+@cindex building XEmacs, internal modules for
 @cindex building XEmacs, modules for
+@anchor{Modules for Building XEmacs}
 
 @menu
-* Modules for Build Configuration::  
-* Modules for Compiling XEmacs::  
-* Modules for Preloading Lisp::  
+* Internal Modules for Build Configuration::  
+* Internal Modules for Compiling XEmacs::  
+* Internal Modules for Preloading Lisp::  
 @end menu
 
 
 
-@node Modules for Build Configuration, Modules for Compiling XEmacs, Modules for Building XEmacs, Modules for Building XEmacs
-@subsection Modules for Build Configuration
+@node Internal Modules for Build Configuration, Internal Modules for Compiling XEmacs, Internal Modules for Building XEmacs, Internal Modules for Building XEmacs
+@subsection Internal Modules for Build Configuration
+@cindex internal modules for build configuration
 @cindex modules for build configuration
+@cindex build configuration, internal modules for
 @cindex build configuration, modules for
+@anchor{Modules for Build Configuration}
 
 @example
 @file{configure}
@@ -3327,10 +3342,13 @@ The following table contains cross-references from each module in XEmacs
 
 
 
-@node Modules for Compiling XEmacs, Modules for Preloading Lisp, Modules for Build Configuration, Modules for Building XEmacs
-@subsection Modules for Compiling XEmacs
+@node Internal Modules for Compiling XEmacs, Internal Modules for Preloading Lisp, Internal Modules for Build Configuration, Internal Modules for Building XEmacs
+@subsection Internal Modules for Compiling XEmacs
+@cindex internal modules for compiling xemacs
 @cindex modules for compiling xemacs
+@cindex compiling xemacs, internal modules for
 @cindex compiling xemacs, modules for
+@anchor{Modules for Compiling XEmacs}
 
 @strong{Please write this node!} @c ####
 
@@ -3339,23 +3357,29 @@ Makefiles, and I guess cross-references to ellcc etc.
 
 
 
-@node Modules for Preloading Lisp,  , Modules for Compiling XEmacs, Modules for Building XEmacs
-@subsection Modules for Preloading Lisp
+@node Internal Modules for Preloading Lisp,  , Internal Modules for Compiling XEmacs, Internal Modules for Building XEmacs
+@subsection Internal Modules for Preloading Lisp
+@cindex internal modules for preloading lisp
 @cindex modules for preloading lisp
+@cindex preloading lisp, internal modules for
 @cindex preloading lisp, modules for
+@anchor{Modules for Preloading Lisp}
 
 @strong{Please write this node!} @c ####
 
 This node should contain descriptions of files like dumped-lisp.el
-(maybe that goes in Modules for Build Configuration supra?),
+(maybe that goes in Internal Modules for Build Configuration supra?),
 update-elcs.el, and so on.
 
 
 
-@node Low-Level Modules, Basic Lisp Modules, Modules for Building XEmacs, The Modules of XEmacs
-@section Low-Level Modules
+@node Low-Level Internal Modules, Basic Lisp Internal Modules, Internal Modules for Building XEmacs, The Internal Modules of XEmacs
+@section Low-Level Internal Modules
+@cindex low-level internal modules
 @cindex low-level modules
+@cindex internal modules, low-level
 @cindex modules, low-level
+@anchor{Low-Level Modules}
 
 @example
 @file{version.sh}
@@ -3422,10 +3446,10 @@ dependencies in interfacing to signals; that is handled using the
 @file{unexhp9k800.c}
 @end example
 
-These modules contain code dumping out the XEmacs executable on various
+These internal modules contain code dumping out the XEmacs executable on various
 different systems. (This process is highly machine-specific and
 requires intimate knowledge of the executable format and the memory map
-of the process.) Only one of these modules is actually used; this is
+of the process.) Only one of these internal modules is actually used; this is
 chosen by @file{configure}.
 
 
@@ -3436,7 +3460,7 @@ chosen by @file{configure}.
 @file{pre-crt0.c}
 @end example
 
-These modules are used in conjunction with the dump mechanism.  On some
+These internal modules are used in conjunction with the dump mechanism.  On some
 systems, an alternative version of the C startup code (the actual code
 that receives control from the operating system when the process is
 started, and which calls @code{main()}) is required so that the dumping
@@ -3444,9 +3468,9 @@ process works properly; @file{crt0.c} provides this.
 
 @file{pre-crt0.c} and @file{lastfile.c} should be the very first and
 very last file linked, respectively. (Actually, this is not really true.
-@file{lastfile.c} should be after all Emacs modules whose initialized
+@file{lastfile.c} should be after all Emacs internal modules whose initialized
 data should be made constant, and before all other Emacs files and all
-libraries.  In particular, the allocation modules
+libraries.  In particular, the allocation internal modules
 @file{alloca.c}, etc. are normally placed past @file{lastfile.c}, and
 all of the files that implement Xt widget classes @emph{must} be placed
 after @file{lastfile.c} because they contain various structures that
@@ -3460,9 +3484,9 @@ data space when dumping.
 @file{inline.c}
 @end example
 
-This module is used in connection with inline functions (available in
+This internal module is used in connection with inline functions (available in
 some compilers).  Often, inline functions need to have a corresponding
-non-inline function that does the same thing.  This module is where they
+non-inline function that does the same thing.  This internal module is where they
 reside.  It contains no actual code, but defines some special flags that
 cause inline functions defined in header files to be rendered as actual
 functions.  It then includes all header files that contain any inline
@@ -3490,10 +3514,13 @@ This is not currently used.
 
 
 
-@node Basic Lisp Modules, Modules for Standard Editing Operations, Low-Level Modules, The Modules of XEmacs
-@section Basic Lisp Modules
+@node Basic Lisp Internal Modules, Internal Modules for Standard Editing Operations, Low-Level Internal Modules, The Internal Modules of XEmacs
+@section Basic Lisp Internal Modules
+@cindex Lisp internal modules, basic
 @cindex Lisp modules, basic
+@cindex internal modules, basic Lisp
 @cindex modules, basic Lisp
+@anchor{Basic Lisp Modules}
 
 @example
 @file{lisp-disunion.h}
@@ -3503,7 +3530,7 @@ This is not currently used.
 @file{symsinit.h}
 @end example
 
-These are the basic header files for all XEmacs modules.  Each module
+These are the basic header files for all XEmacs internal modules.  Each internal module
 includes @file{lisp.h}, which brings the other header files in.
 @file{lisp.h} contains the definitions of the structures and extractor
 and constructor macros for the basic Lisp objects and various other
@@ -3518,7 +3545,7 @@ for particular types of Lisp objects are defined in terms of these
 low-level macros.
 
 As a general rule, all typedefs should go into the typedefs section of
-@file{lisp.h} rather than into a module-specific header file even if the
+@file{lisp.h} rather than into a internal module-specific header file even if the
 structure is defined elsewhere.  This allows function prototypes that
 use the typedef to be placed into other header files.  Forward structure
 declarations (i.e. a simple declaration like @code{struct foo;} where
@@ -3531,10 +3558,10 @@ in their C structure, which includes all objects except the few most
 basic ones.
 
 @file{lisp.h} contains prototypes for most of the exported functions in
-the various modules.  Lisp primitives defined using @code{DEFUN} that
+the various internal modules.  Lisp primitives defined using @code{DEFUN} that
 need to be called by C code should be declared using @code{EXFUN}.
 Other function prototypes should be placed either into the appropriate
-section of @code{lisp.h}, or into a module-specific header file,
+section of @code{lisp.h}, or into a internal module-specific header file,
 depending on how general-purpose the function is and whether it has
 special-purpose argument types requiring definitions not in
 @file{lisp.h}.)  All initialization functions are prototyped in
@@ -3546,12 +3573,12 @@ special-purpose argument types requiring definitions not in
 @file{alloc.c}
 @end example
 
-The large module @file{alloc.c} implements all of the basic allocation and
+The large internal module @file{alloc.c} implements all of the basic allocation and
 garbage collection for Lisp objects.  The most commonly used Lisp
 objects are allocated in chunks, similar to the Blocktype data type
 described above; others are allocated in individually @code{malloc()}ed
-blocks.  This module provides the foundation on which all other aspects
-of the Lisp environment sit, and is the first module initialized at
+blocks.  This internal module provides the foundation on which all other aspects
+of the Lisp environment sit, and is the first internal module initialized at
 startup.
 
 Note that @file{alloc.c} provides a series of generic functions that are
@@ -3560,7 +3587,7 @@ particular types of objects using a standardized interface of
 type-specific methods.  This scheme is a fundamental principle of
 object-oriented programming and is heavily used throughout XEmacs.  The
 great advantage of this is that it allows for a clean separation of
-functionality into different modules---new classes of Lisp objects, new
+functionality into different internal modules---new classes of Lisp objects, new
 event interfaces, new device types, new stream interfaces, etc. can be
 added transparently without affecting code anywhere else in XEmacs.
 Because the different subsystems are divided into general and specific
@@ -3575,7 +3602,7 @@ the XEmacs code.
 @file{backtrace.h}
 @end example
 
-This module contains all of the functions to handle the flow of control.
+This internal module contains all of the functions to handle the flow of control.
 This includes the mechanisms of defining functions, calling functions,
 traversing stack frames, and binding variables; the control primitives
 and other special operators such as @code{while}, @code{if}, @code{eval},
@@ -3594,7 +3621,7 @@ flow of control.
 @file{lread.c}
 @end example
 
-This module implements the Lisp reader and the @code{read} function,
+This internal module implements the Lisp reader and the @code{read} function,
 which converts text into Lisp objects, according to the read syntax of
 the objects, as described above.  This is similar to the parser that is
 a part of all compilers.
@@ -3605,7 +3632,7 @@ a part of all compilers.
 @file{print.c}
 @end example
 
-This module implements the Lisp print mechanism and the @code{print}
+This internal module implements the Lisp print mechanism and the @code{print}
 function and related functions.  This is the inverse of the Lisp reader
 -- it converts Lisp objects to a printed, textual representation.
 (Hopefully something that can be read back in using @code{read} to get
@@ -3624,7 +3651,7 @@ retrieving their values, accessing their function slots. Much of the
 code is devoted to handling the special @dfn{symbol-value-magic} objects
 that define special types of variables---this includes buffer-local
 variables, variable aliases, variables that forward into C variables,
-etc.  This module is initialized extremely early, because it is here
+etc.  This internal module is initialized extremely early, because it is here
 that the basic symbols @code{t} and @code{nil} are created, and those
 symbols are used everywhere throughout XEmacs.
 
@@ -3640,7 +3667,7 @@ symbols are used everywhere throughout XEmacs.
 @file{sequence.c}
 @end example
 
-These modules implement the methods and standard Lisp primitives for all
+These internal modules implement the methods and standard Lisp primitives for all
 the basic Lisp object types other than symbols (which are described
 above).  @file{data.c} contains all the predicates (primitives that return
 whether an object is of a particular type); the integer arithmetic
@@ -3667,10 +3694,13 @@ structures.  Note that the byte-code @emph{compiler} is written in Lisp.
 
 
 
-@node Modules for Standard Editing Operations, Modules for Interfacing with the File System, Basic Lisp Modules, The Modules of XEmacs
-@section Modules for Standard Editing Operations
+@node Internal Modules for Standard Editing Operations, Internal Modules for Interfacing with the File System, Basic Lisp Internal Modules, The Internal Modules of XEmacs
+@section Internal Modules for Standard Editing Operations
+@cindex internal modules for standard editing operations
 @cindex modules for standard editing operations
+@cindex editing operations, internal modules for standard
 @cindex editing operations, modules for standard
+@anchor{Modules for Standard Editing Operations}
 
 @example
 @file{buffer.c}
@@ -3722,11 +3752,11 @@ convert between byte offsets and character offsets.
 @file{marker.c}
 @end example
 
-This module implements the @dfn{marker} Lisp object type, which
+This internal module implements the @dfn{marker} Lisp object type, which
 conceptually is a pointer to a text position in a buffer that moves
 around as text is inserted and deleted, so as to remain in the same
-relative position.  This module doesn't actually move the markers around
--- that's handled in @file{insdel.c}.  This module just creates them and
+relative position.  This internal module doesn't actually move the markers around
+-- that's handled in @file{insdel.c}.  This internal module just creates them and
 implements the primitives for working with them.  As markers are simple
 objects, this does not entail much.
 
@@ -3742,7 +3772,7 @@ current buffer position of the marker.
 @file{extents.h}
 @end example
 
-This module implements the @dfn{extent} Lisp object type, which is like
+This internal module implements the @dfn{extent} Lisp object type, which is like
 a marker that works over a range of text rather than a single position.
 Extents are also much more complex and powerful than markers and have a
 more efficient (and more algorithmically complex) implementation.  The
@@ -3782,7 +3812,7 @@ this XEmacs process, etc.  It's not clear why this code is in
 @end example
 
 @cindex interactive
-These modules implement the basic @dfn{interactive} commands,
+These internal modules implement the basic @dfn{interactive} commands,
 i.e. user-callable functions.  Commands, as opposed to other functions,
 have special ways of getting their parameters interactively (by querying
 the user), as opposed to having them passed in a normal function
@@ -3791,7 +3821,7 @@ Lisp functions, because they modify global state in a way that's often
 undesired as part of other Lisp functions.
 
 @file{callint.c} implements the mechanism for querying the user for
-parameters and calling interactive commands.  The bulk of this module is
+parameters and calling interactive commands.  The bulk of this internal module is
 code that parses the interactive spec that is supplied with an
 interactive command.
 
@@ -3815,7 +3845,7 @@ a buffer, and some of the low-level algorithms for doing this.  In
 particular, the fast fixed-string Boyer-Moore search algorithm is
 implemented in @file{search.c}.  The low-level algorithms for doing
 regular-expression searching, however, are implemented in @file{regex.c}
-and @file{regex.h}.  These two modules are largely independent of
+and @file{regex.h}.  These two internal modules are largely independent of
 XEmacs, and are similar to (and based upon) the regular-expression
 routines used in @file{grep} and other GNU utilities.
 
@@ -3834,22 +3864,26 @@ routines used in @file{grep} and other GNU utilities.
 @file{undo.c}
 @end example
 
-This module implements the undo mechanism for tracking buffer changes.
+This internal module implements the undo mechanism for tracking buffer changes.
 Most of this could be implemented in Lisp.
 
 
-@node Modules for Interfacing with the File System, Modules for Other Aspects of the Lisp Interpreter and Object System, Modules for Standard Editing Operations, The Modules of XEmacs
-@section Modules for Interfacing with the File System
+@node Internal Modules for Interfacing with the File System, Internal Modules for Other Aspects of the Lisp Interpreter and Object System, Internal Modules for Standard Editing Operations, The Internal Modules of XEmacs
+@section Internal Modules for Interfacing with the File System
+@cindex internal modules for interfacing with the file system
 @cindex modules for interfacing with the file system
+@cindex interfacing with the file system, internal modules for
 @cindex interfacing with the file system, modules for
+@cindex file system, internal modules for interfacing with the
 @cindex file system, modules for interfacing with the
+@anchor{Modules for Interfacing with the File System}
 
 @example
 @file{lstream.c}
 @file{lstream.h}
 @end example
 
-These modules implement the @dfn{stream} Lisp object type.  This is an
+These internal modules implement the @dfn{stream} Lisp object type.  This is an
 internal-only Lisp object that implements a generic buffering stream.
 The idea is to provide a uniform interface onto all sources and sinks of
 data, including file descriptors, stdio streams, chunks of memory, Lisp
@@ -3897,7 +3931,7 @@ This file provides functions for detecting clashes between different
 processes (e.g. XEmacs and some external process, or two different
 XEmacs processes) modifying the same file.  (XEmacs can optionally use
 the @file{lock/} subdirectory to provide a form of ``locking'' between
-different XEmacs processes.)  This module is also used by the low-level
+different XEmacs processes.)  This internal module is also used by the low-level
 functions in @file{insdel.c} to ensure that, if the first modification
 is being made to a buffer whose corresponding file has been externally
 modified, the user is made aware of this so that the buffer can be
@@ -3942,12 +3976,17 @@ a broken implementation.
 
 
 
-@node Modules for Other Aspects of the Lisp Interpreter and Object System, Modules for Interfacing with the Operating System, Modules for Interfacing with the File System, The Modules of XEmacs
-@section Modules for Other Aspects of the Lisp Interpreter and Object System
+@node Internal Modules for Other Aspects of the Lisp Interpreter and Object System, Internal Modules for Interfacing with the Operating System, Internal Modules for Interfacing with the File System, The Internal Modules of XEmacs
+@section Internal Modules for Other Aspects of the Lisp Interpreter and Object System
+@cindex internal modules for other aspects of the Lisp interpreter and object system
 @cindex modules for other aspects of the Lisp interpreter and object system
+@cindex Lisp interpreter and object system, internal modules for other aspects of the
 @cindex Lisp interpreter and object system, modules for other aspects of the
+@cindex interpreter and object system, internal modules for other aspects of the Lisp
 @cindex interpreter and object system, modules for other aspects of the Lisp
+@cindex object system, internal modules for other aspects of the Lisp interpreter and
 @cindex object system, modules for other aspects of the Lisp interpreter and
+@anchor{Modules for Other Aspects of the Lisp Interpreter and Object System}
 
 @example
 @file{elhash.c}
@@ -3973,7 +4012,7 @@ available. For coherency, @code{intern}, @code{intern-soft} and
 @file{specifier.h}
 @end example
 
-This module implements the @dfn{specifier} Lisp object type.  This is
+This internal module implements the @dfn{specifier} Lisp object type.  This is
 primarily used for displayable properties, and allows for values that
 are specific to a particular buffer, window, frame, device, or device
 class, as well as a default value existing.  This is used, for example,
@@ -4013,11 +4052,11 @@ and to do case-insensitive searching.
 @end example
 
 @cindex scanner
-This module implements @dfn{syntax tables}, another sort of char table
+This internal module implements @dfn{syntax tables}, another sort of char table
 that maps characters into syntax classes that define the syntax of these
 characters (e.g. a parenthesis belongs to a class of @samp{open}
 characters that have corresponding @samp{close} characters and can be
-nested).  This module also implements the Lisp @dfn{scanner}, a set of
+nested).  This internal module also implements the Lisp @dfn{scanner}, a set of
 primitives for scanning over text based on syntax tables.  This is used,
 for example, to find the matching parenthesis in a command such as
 @code{forward-sexp}, and by @file{font-lock.c} to locate quoted strings,
@@ -4081,7 +4120,7 @@ been removed, readded, and removed again.  Currently neither GNU Emacs
 @file{casefiddle.c}
 @end example
 
-This module implements various Lisp primitives for upcasing, downcasing
+This internal module implements various Lisp primitives for upcasing, downcasing
 and capitalizing strings or regions of buffers.
 
 
@@ -4090,7 +4129,7 @@ and capitalizing strings or regions of buffers.
 @file{rangetab.c}
 @end example
 
-This module implements the @dfn{range table} Lisp object type, which
+This internal module implements the @dfn{range table} Lisp object type, which
 provides for a mapping from ranges of fixnums to arbitrary Lisp
 objects.
 
@@ -4101,7 +4140,7 @@ objects.
 @file{opaque.h}
 @end example
 
-This module implements the @dfn{opaque} Lisp object type, an
+This internal module implements the @dfn{opaque} Lisp object type, an
 internal-only Lisp object that encapsulates an arbitrary block of memory
 so that it can be managed by the Lisp allocation system.  To create an
 opaque object, you call @code{make_opaque()}, passing a pointer to a
@@ -4163,11 +4202,15 @@ various security applications on the Internet.
 
 
 
-@node Modules for Interfacing with the Operating System,  , Modules for Other Aspects of the Lisp Interpreter and Object System, The Modules of XEmacs
-@section Modules for Interfacing with the Operating System
+@node Internal Modules for Interfacing with the Operating System,  , Internal Modules for Other Aspects of the Lisp Interpreter and Object System, The Internal Modules of XEmacs
+@section Internal Modules for Interfacing with the Operating System
+@cindex internal modules for interfacing with the operating system
 @cindex modules for interfacing with the operating system
+@cindex interfacing with the operating system, internal modules for
 @cindex interfacing with the operating system, modules for
+@cindex operating system, internal modules for interfacing with the
 @cindex operating system, modules for interfacing with the
+@anchor{Modules for Interfacing with the Operating System}
 
 @example
 @file{process.el}
@@ -4175,7 +4218,7 @@ various security applications on the Internet.
 @file{process.h}
 @end example
 
-These modules allow XEmacs to spawn and communicate with subprocesses
+These internal modules allow XEmacs to spawn and communicate with subprocesses
 and network connections.
 
 @cindex synchronous subprocesses
@@ -4221,10 +4264,10 @@ subprocesses.
 @file{sysdep.h}
 @end example
 
-  These modules implement most of the low-level, messy operating-system
+  These internal modules implement most of the low-level, messy operating-system
 interface code.  This includes various device control (ioctl) operations
 for file descriptors, TTY's, pseudo-terminals, etc. (usually this stuff
-is fairly system-dependent; thus the name of this module), and emulation
+is fairly system-dependent; thus the name of this internal module), and emulation
 of standard library functions and system calls on systems that don't
 provide them or have broken versions.
 
@@ -4343,7 +4386,7 @@ currently in use.
 @file{tooltalk.h}
 @end example
 
-These two modules implement an interface to the ToolTalk protocol, which
+These two internal modules implement an interface to the ToolTalk protocol, which
 is an interprocess communication protocol implemented on some versions
 of Unix.  ToolTalk is a high-level protocol that allows processes to
 register themselves as providers of particular services; other processes
@@ -4359,7 +4402,7 @@ parts of the SPARCWorks development environment.
 @file{getloadavg.c}
 @end example
 
-This module provides the ability to retrieve the system's current load
+This internal module provides the ability to retrieve the system's current load
 average. (The way to do this is highly system-specific, unfortunately,
 and requires a lot of special-case code.)
 
@@ -4369,12 +4412,12 @@ and requires a lot of special-case code.)
 @file{sunpro.c}
 @end example
 
-This module provides a small amount of code used internally at Sun to
+This internal module provides a small amount of code used internally at Sun to
 keep statistics on the usage of XEmacs.
 
 
 
-@node The Build Configuration System, Rules When Writing New C Code, The Modules of XEmacs, Top
+@node The Build Configuration System, Rules When Writing New C Code, The Internal Modules of XEmacs, Top
 @chapter The Build Configuration System
 @cindex build configuration
 @cindex configuration, build
@@ -4901,7 +4944,7 @@ situations, often in code far away from where the actual breakage is.
 
 @menu
 * Introduction to Writing C Code::  
-* Writing New Modules::         
+* Writing New Internal Modules::         
 * Working with Lisp Objects::   
 * Writing Lisp Primitives::     
 * Writing Good Comments::       
@@ -4914,7 +4957,7 @@ situations, often in code far away from where the actual breakage is.
 
 See also @ref{Coding for Mule}.
 
-@node Introduction to Writing C Code, Writing New Modules, Rules When Writing New C Code, Rules When Writing New C Code
+@node Introduction to Writing C Code, Writing New Internal Modules, Rules When Writing New C Code, Rules When Writing New C Code
 @section Introduction to Writing C Code
 @cindex introduction to writing c code
 @cindex coding conventions
@@ -5028,11 +5071,13 @@ struct foobar;
 go into the ``types'' section of @file{lisp.h}.
 @end itemize
 
-@node Writing New Modules, Working with Lisp Objects, Introduction to Writing C Code, Rules When Writing New C Code
-@section Writing New Modules
+@node Writing New Internal Modules, Working with Lisp Objects, Introduction to Writing C Code, Rules When Writing New C Code
+@section Writing New Internal Modules
+@cindex writing new internal modules
 @cindex writing new modules
+@anchor{Writing New Modules}
 
-Every module includes @file{<config.h>} (angle brackets so that
+Every internal module includes @file{<config.h>} (angle brackets so that
 @samp{--srcdir} works correctly; @file{config.h} may or may not be in
 the same directory as the C sources) and @file{lisp.h}.  @file{config.h}
 must always be included before any other header files (including
@@ -5049,11 +5094,11 @@ directory using @samp{../work/configure}.  There will be two different
 @file{config.h} files.  Which one will be used if you @samp{#include
 "config.h"}?
 
-Almost every module contains a @code{syms_of_*()} function and a
+Almost every internal module contains a @code{syms_of_*()} function and a
 @code{vars_of_*()} function.  The former declares any Lisp primitives
 you have defined and defines any symbols and Lisp object types you will
 be using.  The latter declares any global Lisp variables you have added
-and initializes global C variables in the module.  
+and initializes global C variables in the internal module.  
 
 The specifics of the separation between these functions was previously
 very important and easy to get wrong, leading to failure of the dump
@@ -5098,7 +5143,7 @@ use it to do so.
 
 @end itemize
 
-@node Working with Lisp Objects, Writing Lisp Primitives, Writing New Modules, Rules When Writing New C Code
+@node Working with Lisp Objects, Writing Lisp Primitives, Writing New Internal Modules, Rules When Writing New C Code
 @section Working with Lisp Objects
 @cindex working with lisp objects
 
@@ -5168,7 +5213,7 @@ particular @code{Lisp_Object} is equal to a given symbol.  Symbols are
 Lisp objects, so these variables may be passed to Lisp primitives.  (A
 tempting alternative to the use of @samp{Q...} variables is to call the
 @code{intern} function at initialization in the
-@code{vars_of_@var{module}} function.  But this does not
+@code{vars_of_@var{internal module}} function.  But this does not
 @code{staticpro} the symbol, which in theory could get uninterned, and
 then garbage collected while you're not looking.  You could
 @code{staticpro} yourself, but in a production XEmacs @code{intern} and
@@ -5225,7 +5270,7 @@ Unfortunately, XEmacs was originally written in C, so these techniques
 are based on heavy use of C macros.
 
 @c You can't use @var{} for type below, because case is important.
-A module defining a class is likely to use most of the following
+A internal module defining a class is likely to use most of the following
 declarations and macros.  In the following, the notation @samp{<type>}
 will stand for the full name of the class, and will be capitalized in
 the way normal for its context.  The notation @samp{<typ>} will stand
@@ -5235,7 +5280,7 @@ entry for @samp{MAYBE_<TY>METH} below for an example using all three
 notations.)
 
 In the interface (@file{.h} file), the following declarations are used
-often.  Others may be used in for particular modules.  Since they're
+often.  Others may be used in for particular internal modules.  Since they're
 quite short in most cases, the definitions are given as well.  The
 generic macros used are defined in @file{lisp.h} or @file{lrecord.h}.
 
@@ -5558,9 +5603,9 @@ Here @var{fname} is the same name you used as the second argument to
 @code{DEFUN}.
 
 This call to @code{DEFSUBR} should go in the @code{syms_of_*()} function
-at the end of the module.  If no such function exists, create it and
+at the end of the internal module.  If no such function exists, create it and
 make sure to also declare it in @file{symsinit.h} and call it from the
-appropriate spot in @code{main()}.  @xref{Writing New Modules}.
+appropriate spot in @code{main()}.  @xref{Writing New Internal Modules}.
 
 Note that C code cannot call functions by name unless they are defined
 in C.  The way to call a function written in Lisp from C is to use
@@ -5596,7 +5641,7 @@ should constantly be putting yourself in someone else's shoes and asking
 if that person could figure out without much difficulty what's going
 on. (Assume they are a competent programmer who understands the
 essentials of how the XEmacs code is structured but doesn't know much
-about the module you're working on or any algorithms you're using.) If
+about the internal module you're working on or any algorithms you're using.) If
 you're not sure whether they would be able to, add a comment.  Always
 err on the side of more comments, rather than less.
 
@@ -5672,7 +5717,7 @@ uninterning the symbol out of @code{obarray} or even setting
 XEmacs crash!].)
 
   @strong{Please note:} It is potentially deadly if you declare a
-@samp{Q...}  variable in two different modules.  The two calls to
+@samp{Q...}  variable in two different internal modules.  The two calls to
 @code{defsymbol()} are no problem, but some linkers will complain about
 multiply-defined symbols.  The most insidious aspect of this is that
 often the link will succeed anyway, but then the resulting executable
@@ -5680,11 +5725,11 @@ will sometimes crash in obscure ways during certain operations!
 
 To avoid this problem, declare any symbols with common names (such as
 @code{text}) that are not obviously associated with this particular
-module in the file @file{general-slots.h}.  The ``-slots'' suffix
+internal module in the file @file{general-slots.h}.  The ``-slots'' suffix
 indicates that this is a file that is included multiple times in
 @file{general.c}.  Redefinition of preprocessor macros allows the
 effects to be different in each context, so this is actually more
-convenient and less error-prone than doing it in your module.
+convenient and less error-prone than doing it in your internal module.
 
   Global variables whose names begin with @samp{V} are variables that
 contain Lisp objects.  The convention here is that all global variables
@@ -5693,7 +5738,7 @@ of type @code{Lisp_Object} begin with @samp{V}, and all others don't
 equivalents). Most of the time, these variables have equivalents in
 Lisp, but some don't.  Those that do are declared this way by a call to
 @code{DEFVAR_LISP()} in the @code{vars_of_*()} initializer for the
-module.  What this does is create a special @dfn{symbol-value-forward}
+internal module.  What this does is create a special @dfn{symbol-value-forward}
 Lisp object that contains a pointer to the C variable, intern a symbol
 whose name is as specified in the call to @code{DEFVAR_LISP()}, and set
 its value to the symbol-value-forward Lisp object.  When @code{eval} (or
@@ -6342,10 +6387,10 @@ configure --use-union-type --error-checking=all
 
 @menu
 * How to Regression-Test::      
-* Modules for Regression Testing::  
+* Internal Modules for Regression Testing::  
 @end menu
 
-@node How to Regression-Test, Modules for Regression Testing, Regression Testing XEmacs, Regression Testing XEmacs
+@node How to Regression-Test, Internal Modules for Regression Testing, Regression Testing XEmacs, Regression Testing XEmacs
 @section How to Regression-Test
 @cindex how to regression-test
 @cindex regression-test, how to
@@ -6571,10 +6616,13 @@ rather than something else (we don't know what happened because XEmacs
 is broken in a way that we weren't trying to test!)
 @end enumerate
 
-@node Modules for Regression Testing,  , How to Regression-Test, Regression Testing XEmacs
-@section Modules for Regression Testing
+@node Internal Modules for Regression Testing,  , How to Regression-Test, Regression Testing XEmacs
+@section Internal Modules for Regression Testing
+@cindex internal modules for regression testing
 @cindex modules for regression testing
+@cindex regression testing, internal modules for
 @cindex regression testing, modules for
+@anchor{Modules for Regression Testing}
 
 @example
 @file{test-harness.el}
@@ -7804,7 +7852,7 @@ Sets @code{res} to the value of @code{f} raised to the @code{exp}th power.
 * Basic Heap Allocation::       
 * Stack Allocation::            
 * Dynamic Arrays::              
-* Modules for Allocation::      
+* Internal Modules for Allocation::      
 @end menu
 
 @node Basic Heap Allocation, Stack Allocation, Low-Level Allocation, Low-Level Allocation
@@ -7815,7 +7863,7 @@ Sets @code{res} to the value of @code{f} raised to the @code{exp}th power.
 @section Stack Allocation
 @cindex stack allocation
 
-@node Dynamic Arrays, Modules for Allocation, Stack Allocation, Low-Level Allocation
+@node Dynamic Arrays, Internal Modules for Allocation, Stack Allocation, Low-Level Allocation
 @section Dynamic Arrays
 @cindex dynamic arrays
 
@@ -7928,9 +7976,11 @@ Use the following global variable:
       Minimum allowable size for a dynamic array when it is resized.
 @end example
 
-@node Modules for Allocation,  , Dynamic Arrays, Low-Level Allocation
-@section Modules for Allocation
+@node Internal Modules for Allocation,  , Dynamic Arrays, Low-Level Allocation
+@section Internal Modules for Allocation
+@cindex internal modules for allocation
 @cindex modules for allocation
+@anchor{Modules for Allocation}
 
 @example
 @file{alloca.c}
@@ -8598,7 +8648,7 @@ as a result of any symbols declared with @code{defsymbol()}.  Variables
 declared with @code{DEFVAR_FOO()} are reachable via @code{obarray}, and
 their associated symbols cannot be made unbound, so they will remain
 reachable for the lifetime of the program. You need to explicitly call
-@code{staticpro()} (in the @code{vars_of_foo()} method of a module) for
+@code{staticpro()} (in the @code{vars_of_foo()} method of a internal module) for
 other global C variables holding Lisp objects. (This typically includes
 internal lists and such things.).  Use @code{staticpro_nodump()} only in
 the rare cases when you do not want the pointed variable to be saved at
@@ -11105,7 +11155,7 @@ representation is that it's compact and is compatible with ASCII.
 * Coding for Mule::             
 * CCL::                         
 * Microsoft Windows-Related Multilingual Issues::  
-* Modules for Internationalization::  
+* Internal Modules for Internationalization::  
 * The Great Mule Merge of March 2002::  
 @end menu
 
@@ -14038,7 +14088,7 @@ ReadJumpCondR:  11111 RRR c...c      Read1 and JumpCondR
                 ..........AAAAA
 @end example
 
-@node Microsoft Windows-Related Multilingual Issues, Modules for Internationalization, CCL, Multilingual Support
+@node Microsoft Windows-Related Multilingual Issues, Internal Modules for Internationalization, CCL, Multilingual Support
 @section Microsoft Windows-Related Multilingual Issues
 @cindex Microsoft Windows-related multilingual issues
 @cindex Windows-related multilingual issues
@@ -14706,10 +14756,13 @@ string of either regular or wide chars, which is to say this string may be
 prepended with an L (causing it to be a wide string) depending on
 XEUNICODE_P.
 
-@node Modules for Internationalization, The Great Mule Merge of March 2002, Microsoft Windows-Related Multilingual Issues, Multilingual Support
-@section Modules for Internationalization
+@node Internal Modules for Internationalization, The Great Mule Merge of March 2002, Microsoft Windows-Related Multilingual Issues, Multilingual Support
+@section Internal Modules for Internationalization
+@cindex internal modules for internationalization
 @cindex modules for internationalization
+@cindex internationalization, internal modules for
 @cindex internationalization, modules for
+@anchor{Modules for Internationalization}
 
 @example
 @file{mule-ccl.c}
@@ -14765,7 +14818,7 @@ setting the current locale.
 @c Well, of course you're welcome to seek them out and fix them, too.
 @c
 
-@node The Great Mule Merge of March 2002,  , Modules for Internationalization, Multilingual Support
+@node The Great Mule Merge of March 2002,  , Internal Modules for Internationalization, Multilingual Support
 @section The Great Mule Merge of March 2002
 @cindex The Great Mule Merge
 @cindex Mule Merge, The Great
@@ -17749,7 +17802,7 @@ present in the fsf version, for compatibility.
 * Point::                       
 * Window Hierarchy::            
 * The Window Object::           
-* Modules for the Basic Displayable Lisp Objects::  
+* Internal Modules for the Basic Displayable Lisp Objects::  
 @end menu
 
 @node Introduction to Consoles; Devices; Frames; Windows, Point, Consoles; Devices; Frames; Windows, Consoles; Devices; Frames; Windows
@@ -17918,7 +17971,7 @@ is @code{nil} but the @code{prev} points to itself. (#### This is an
 artifact that should be fixed.)
 @end enumerate
 
-@node The Window Object, Modules for the Basic Displayable Lisp Objects, Window Hierarchy, Consoles; Devices; Frames; Windows
+@node The Window Object, Internal Modules for the Basic Displayable Lisp Objects, Window Hierarchy, Consoles; Devices; Frames; Windows
 @section The Window Object
 @cindex window object, the
 @cindex object, the window
@@ -18026,12 +18079,17 @@ this field is @code{nil}.
 @end table
 
 
-@node Modules for the Basic Displayable Lisp Objects,  , The Window Object, Consoles; Devices; Frames; Windows
-@section Modules for the Basic Displayable Lisp Objects
+@node Internal Modules for the Basic Displayable Lisp Objects,  , The Window Object, Consoles; Devices; Frames; Windows
+@section Internal Modules for the Basic Displayable Lisp Objects
+@cindex internal modules for the basic displayable Lisp objects
 @cindex modules for the basic displayable Lisp objects
+@cindex displayable Lisp objects, internal modules for the basic
 @cindex displayable Lisp objects, modules for the basic
+@cindex Lisp objects, internal modules for the basic displayable
 @cindex Lisp objects, modules for the basic displayable
+@cindex objects, internal modules for the basic displayable Lisp
 @cindex objects, modules for the basic displayable Lisp
+@anchor{Modules for the Basic Displayable Lisp Objects}
 
 @example
 @file{console-msw.c}
@@ -18046,7 +18104,7 @@ this field is @code{nil}.
 @file{console.h}
 @end example
 
-These modules implement the @dfn{console} Lisp object type.  A console
+These internal modules implement the @dfn{console} Lisp object type.  A console
 contains multiple display devices, but only one keyboard and mouse.
 Most of the time, a console will contain exactly one device.
 
@@ -18069,7 +18127,7 @@ contain devices, which contain frames, which contain windows.
 @file{device.h}
 @end example
 
-These modules implement the @dfn{device} Lisp object type.  This
+These internal modules implement the @dfn{device} Lisp object type.  This
 abstracts a particular screen or connection on which frames are
 displayed.  As with Lisp objects, event interfaces, and other
 subsystems, the device code is separated into a generic component that
@@ -18246,7 +18304,7 @@ console, device, and frame code.)
 
 What is desirable is sharing console, device, and frame methods across
 platforms in a more general way, reducing the amount of duplicated code
-by pulling it back into the redisplay engine proper or the Lisp modules
+by pulling it back into the redisplay engine proper or the Lisp internal modules
 as appropriate.  For example, we should be able to use
 @samp{make-frame-on-device} to share a single X connection among GTK, X,
 and Xft frames.  Xft is partially implemented, but GTK would be much
@@ -18271,14 +18329,14 @@ Xft code into a new console type while sharing most routines with the X
 console.  (For clarification or suggestions, feel free to write
 @email{stephen@@xemacs.org,Stephen Turnbull}.)
 
-The first thing to realize is that the naming of many modules obscures
+The first thing to realize is that the naming of many internal modules obscures
 their relationship to the console abstraction.  For example, the
 @file{objects-@var{console-type}}, @file{redisplay-@var{console-type}},
-and @file{glyphs-@var{console-type}} series of modules have nothing to
+and @file{glyphs-@var{console-type}} series of internal modules have nothing to
 do with Lisp objects and little to do with redisplay, respectively.
 Rather they implement abstractions used for rendering on each console
 type, such as fonts and colors (@file{objects}) and string and graphics
-drawing primitives (@file{redisplay}).  These modules are conceptually
+drawing primitives (@file{redisplay}).  These internal modules are conceptually
 part of the console implementations, not part of redisplay or Lisp.
 
 Public methods of a console are implemented as C functions declared
@@ -18724,8 +18782,8 @@ It Is Better To Be Fast Than Not To Be.
 * Line Start Cache::            
 * Redisplay Piece by Piece::    
 * pixel_to_glyph_translation::  
-* Modules for the Redisplay Mechanism::  
-* Modules for other Display-Related Lisp Objects::  
+* Internal Modules for the Redisplay Mechanism::  
+* Internal Modules for other Display-Related Lisp Objects::  
 @end menu
 
 @node Critical Redisplay Sections, Line Start Cache, The Redisplay Mechanism, The Redisplay Mechanism
@@ -19238,7 +19296,7 @@ That is done by @code{redisplay_output_layout},
 @code{ensure_face_cachel_complete}, with the actual work being done by
 @code{ensure_face_cachel_contains_charset}.
 
-@node pixel_to_glyph_translation, Modules for the Redisplay Mechanism, Redisplay Piece by Piece, The Redisplay Mechanism
+@node pixel_to_glyph_translation, Internal Modules for the Redisplay Mechanism, Redisplay Piece by Piece, The Redisplay Mechanism
 @section pixel_to_glyph_translation
 @cindex pixel_to_glyph_translation
 @cindex events, mouse motion
@@ -19261,10 +19319,13 @@ results (fast path).  Otherwise, @code{pixel_to_glyph_translation}
 walks through the redisplay data structures, then updates the cache
 with the new results (slow path).
 
-@node Modules for the Redisplay Mechanism, Modules for other Display-Related Lisp Objects, pixel_to_glyph_translation, The Redisplay Mechanism
-@section Modules for the Redisplay Mechanism
+@node Internal Modules for the Redisplay Mechanism, Internal Modules for other Display-Related Lisp Objects, pixel_to_glyph_translation, The Redisplay Mechanism
+@section Internal Modules for the Redisplay Mechanism
+@cindex internal modules for the redisplay mechanism
 @cindex modules for the redisplay mechanism
+@cindex redisplay mechanism, internal modules for the
 @cindex redisplay mechanism, modules for the
+@anchor{Modules for the Redisplay Mechanism}
 
 @example
 @file{redisplay-output.c}
@@ -19306,11 +19367,11 @@ respectively.
 @file{indent.c}
 @end example
 
-This module contains various functions and Lisp primitives for
+This internal module contains various functions and Lisp primitives for
 converting between buffer positions and screen positions.  These
 functions call the redisplay mechanism to do most of the work, and then
 examine the redisplay structures to get the necessary information.  This
-module needs work.
+internal module needs work.
 
 
 
@@ -19336,11 +19397,15 @@ probably be merged into @file{redisplay-tty.c}.
 
 
 
-@node Modules for other Display-Related Lisp Objects,  , Modules for the Redisplay Mechanism, The Redisplay Mechanism
-@section Modules for other Display-Related Lisp Objects
+@node Internal Modules for other Display-Related Lisp Objects,  , Internal Modules for the Redisplay Mechanism, The Redisplay Mechanism
+@section Internal Modules for other Display-Related Lisp Objects
+@cindex internal modules for other display-related Lisp objects
 @cindex modules for other display-related Lisp objects
+@cindex display-related Lisp objects, internal modules for other
 @cindex display-related Lisp objects, modules for other
+@cindex Lisp objects, internal modules for other display-related
 @cindex Lisp objects, modules for other display-related
+@anchor{Modules for other Display-Related Lisp Objects}
 
 @example
 @file{faces.c}
@@ -19967,7 +20032,7 @@ description.
 * Converting Events::           
 * Dispatching Events; The Command Builder::  
 * Focus Handling::              
-* Editor-Level Control Flow Modules::  
+* Editor-Level Control Flow Internal Modules::  
 @end menu
 
 @node Introduction to Events, Main Loop, Events and the Event Loop, Events and the Event Loop
@@ -20590,7 +20655,7 @@ between character representation and the split-up event representation
 
 Not yet documented.
 
-@node Focus Handling, Editor-Level Control Flow Modules, Dispatching Events; The Command Builder, Events and the Event Loop
+@node Focus Handling, Editor-Level Control Flow Internal Modules, Dispatching Events; The Command Builder, Events and the Event Loop
 @section Focus Handling
 @cindex focus handling
 
@@ -20665,10 +20730,13 @@ there, figuring that someone knows what they're doing.  Because we don't
 have any redirection recorded anywhere, it's safe to do this, and we
 don't end up with unwanted redirection.
 
-@node Editor-Level Control Flow Modules,  , Focus Handling, Events and the Event Loop
-@section Editor-Level Control Flow Modules
+@node Editor-Level Control Flow Internal Modules,  , Focus Handling, Events and the Event Loop
+@section Editor-Level Control Flow Internal Modules
+@cindex control flow internal modules, editor-level
 @cindex control flow modules, editor-level
+@cindex internal modules, editor-level control flow
 @cindex modules, editor-level control flow
+@anchor{Editor-Level Control Flow Modules}
 
 @example
 @file{event-Xt.c}
@@ -20694,7 +20762,7 @@ and such, and handling timeouts; this includes the primitives
 @code{next-event} and @code{dispatch-event}, as well as related
 primitives such as @code{sit-for}, @code{sleep-for}, and
 @code{accept-process-output}. (@file{event-stream.c} is one of the
-hairiest and trickiest modules in XEmacs.  Beware!  You can easily mess
+hairiest and trickiest internal modules in XEmacs.  Beware!  You can easily mess
 things up here.)
 
 @file{event-Xt.c} and @file{event-tty.c} implement the low-level
@@ -20747,7 +20815,7 @@ dispatches events.  This code is also rather tricky, just like
 @file{macros.h}
 @end example
 
-These two modules contain the basic code for defining keyboard macros.
+These two internal modules contain the basic code for defining keyboard macros.
 These functions don't actually do much; most of the code that handles keyboard
 macros is mixed in with the event-handling code in @file{event-stream.c}.
 
@@ -21606,7 +21674,7 @@ see the ChangeLogs in the workspace.
 * Different kinds of Windows environments::  
 * Windows Build Flags::         
 * Windows I18N Introduction::   
-* Modules for Interfacing with MS Windows::  
+* Internal Modules for Interfacing with MS Windows::  
 * CHANGES from 21.4-windows branch::  Probably obsolete.
 @end menu
 
@@ -21908,7 +21976,7 @@ under XEmacs)
 @tab @code{MINGW}
 @end multitable
 
-@node Windows I18N Introduction, Modules for Interfacing with MS Windows, Windows Build Flags, Interface to MS Windows
+@node Windows I18N Introduction, Internal Modules for Interfacing with MS Windows, Windows Build Flags, Interface to MS Windows
 @section Windows I18N Introduction
 @cindex Windows I18N
 @cindex I18N, Windows
@@ -22073,12 +22141,17 @@ string of either regular or wide chars, which is to say this string may be
 prepended with an L (causing it to be a wide string) depending on
 XEUNICODE_P.
 
-@node Modules for Interfacing with MS Windows, CHANGES from 21.4-windows branch, Windows I18N Introduction, Interface to MS Windows
-@section Modules for Interfacing with MS Windows
+@node Internal Modules for Interfacing with MS Windows, CHANGES from 21.4-windows branch, Windows I18N Introduction, Interface to MS Windows
+@section Internal Modules for Interfacing with MS Windows
+@cindex internal modules for interfacing with MS Windows
 @cindex modules for interfacing with MS Windows
+@cindex interfacing with MS Windows, internal modules for
 @cindex interfacing with MS Windows, modules for
+@cindex MS Windows, internal modules for interfacing with
 @cindex MS Windows, modules for interfacing with
+@cindex Windows, internal modules for interfacing with
 @cindex Windows, modules for interfacing with
+@anchor{Modules for Interfacing with MS Windows}
 
 There are two different general Windows-related include files in src.
 
@@ -22136,7 +22209,7 @@ Auto-generated Unicode encapsulation headers
 @end table
 
 
-@node CHANGES from 21.4-windows branch,  , Modules for Interfacing with MS Windows, Interface to MS Windows
+@node CHANGES from 21.4-windows branch,  , Internal Modules for Interfacing with MS Windows, Interface to MS Windows
 @section CHANGES from 21.4-windows branch (probably obsolete)
 
 This node contains the @file{CHANGES-msw} log that Andy Piper kept while
@@ -22332,10 +22405,10 @@ Mostly undocumented.
 
 @menu
 * Lucid Widget Library::        An interface to various widget sets.
-* Modules for Interfacing with X Windows::  
+* Internal Modules for Interfacing with X Windows::  
 @end menu
 
-@node Lucid Widget Library, Modules for Interfacing with X Windows, Interface to the X Window System, Interface to the X Window System
+@node Lucid Widget Library, Internal Modules for Interfacing with X Windows, Interface to the X Window System, Interface to the X Window System
 @section Lucid Widget Library
 @cindex Lucid Widget Library
 @cindex widget library, Lucid
@@ -22473,11 +22546,15 @@ of its tree.  Widget instances are further confi
 @cindex tab controls
 
 
-@node Modules for Interfacing with X Windows,  , Lucid Widget Library, Interface to the X Window System
-@section Modules for Interfacing with X Windows
+@node Internal Modules for Interfacing with X Windows,  , Lucid Widget Library, Interface to the X Window System
+@section Internal Modules for Interfacing with X Windows
+@cindex internal modules for interfacing with X Windows
 @cindex modules for interfacing with X Windows
+@cindex interfacing with X Windows, internal modules for
 @cindex interfacing with X Windows, modules for
+@cindex X Windows, internal modules for interfacing with
 @cindex X Windows, modules for interfacing with
+@anchor{Modules for Interfacing with X Windows}
 
 @example
 Emacs.ad.h
@@ -22494,7 +22571,7 @@ EmacsFrame.h
 EmacsFrameP.h
 @end example
 
-These modules implement an Xt widget class that encapsulates a frame.
+These internal modules implement an Xt widget class that encapsulates a frame.
 This is for ease in integrating with Xt.  The EmacsFrame widget covers
 the entire X window except for the menubar; the scrollbars are
 positioned on top of the EmacsFrame widget.
@@ -22511,7 +22588,7 @@ EmacsManager.h
 EmacsManagerP.h
 @end example
 
-These modules implement a simple Xt manager (i.e. composite) widget
+These internal modules implement a simple Xt manager (i.e. composite) widget
 class that simply lets its children set whatever geometry they want.
 It's amazing that Xt doesn't provide this standardly, but on second
 thought, it makes sense, considering how amazingly broken Xt is.
@@ -22524,7 +22601,7 @@ EmacsShell.h
 EmacsShellP.h
 @end example
 
-These modules implement two Xt widget classes that are subclasses of
+These internal modules implement two Xt widget classes that are subclasses of
 the TopLevelShell and TransientShell classes.  This is necessary to deal
 with more brokenness that Xt has sadistically thrust onto the backs of
 developers.
@@ -22536,7 +22613,7 @@ xgccache.c
 xgccache.h
 @end example
 
-These modules provide functions for maintenance and caching of GC's
+These internal modules provide functions for maintenance and caching of GC's
 (graphics contexts) under the X Window System.  This code is junky and
 needs to be rewritten.
 
@@ -22550,7 +22627,7 @@ select.h
 @end example
 
 @cindex selections
-  This module provides an interface to the X Window System's concept of
+  This internal module provides an interface to the X Window System's concept of
 @dfn{selections}, the standard way for X applications to communicate
 with each other.
 
@@ -23435,7 +23512,7 @@ adjust the points you'll be coming back to later.
 @item Write a new garbage collector. 
 
 The emacs GC is very primitive; it is also, fortunately, a 
-rather well isolated module, and it would not be a very big task to swap 
+rather well isolated internal module, and it would not be a very big task to swap 
 it with a new one (once that new one was written, that is.) Someone 
 should go bone up on modern GC techniques, and then just dive right 
 in... 
@@ -28325,7 +28402,7 @@ last few years, but somebody must, sometime soon.  Even core developers
 are complaining about how slow XEmacs is in some applications, and there
 is reason to believe that some of the problem is in redisplay.
 Adding more @emph{ad hoc} features to redisplay will make the whole
-module more complex and unintelligible.  Even if it doesn't inherently
+internal module more complex and unintelligible.  Even if it doesn't inherently
 further detract from efficiency, it will surely make reform and
 refactoring harder.
 
@@ -28434,7 +28511,7 @@ must be accomplished to render text on the display.  In both cases the
 code is rather disorganized, with substantial cross-platform duplication
 of similar routines.  While it may not be worthwhile to go the whole way
 to @samp{RENDERER_HAS_METHOD} and @samp{MAYBE_RENDMETH}, refactoring
-these modules around the notion of interfacing a ``generic rendering
+these internal modules around the notion of interfacing a ``generic rendering
 engine interface'' to ``text'' seems like a plausible way to focus this
 work.
 
@@ -32433,7 +32510,7 @@ unexec scheme):
 @enumerate
 @item
 
-The initialized data segments of the various XEmacs modules are all laid
+The initialized data segments of the various XEmacs internal modules are all laid
 out contiguously in memory and are separated from the initialized data
 segments of libraries that are linked with XEmacs; likewise for
 uninitialized data segments.

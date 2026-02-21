@@ -35,7 +35,7 @@
 @c TODO: Merge the info-only and TeX-only license text, since they are
 @c identical.
 @ifinfo
-This file documents the module loading technology of @value{xemacs}.
+This file documents the module loading technology of @value{emacs}.
 
 Copyright @copyright{} 1998 J. Kean Johnston.
 Copyright @copyright{} 2025 Free Software Foundation.
@@ -104,7 +104,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>.
 
 @ifinfo
 @node Top, Introduction, (dir), (dir)
-This Info file contains v2.0 of the @value{xemacs} dynamically loadable
+This Info file contains v2.0 of the @value{emacs} dynamically loadable
 module support documentation.
 @menu
 * Introduction::                Introducing Emacs Modules
@@ -202,9 +202,9 @@ the developer.  This program is called to compile and link all objects that
 will make up the final shared object, and accepts all common C compiler flags.
 @code{ellcc} also sets up the correct environment for compiling modules by
 enabling any special compiler modes (such as PIC mode), setting the correct
-include paths for the location of @value{xemacs} internal header files etc.
-The program will also invoke the linker correctly to created the final shared
-object which is loaded into @value{xemacs}.
+include paths for the location of @value{emacs} internal header files etc.
+The program will also invoke the linker correctly to create the final shared
+object which is loaded into @value{emacs}.
 
 @item
 @cindex header files

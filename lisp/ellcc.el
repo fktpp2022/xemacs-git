@@ -374,7 +374,7 @@ const char *emodule_name = \"%s\";
 const char *emodule_version = \"%s\";
 const char *emodule_title = \"%s\";
 
-void docs_of_%s ()\n"   module-name module-revision module-name
+void docs_of_%s (void)\n"   module-name module-revision module-name
 			ellcc-module-version module-title module-name)
 	   (write-file (expand-file-name module-output)))
 
