@@ -2054,7 +2054,8 @@ mswindows_dde_callback (UINT uType, UINT uFmt, HCONV UNUSED (hconv),
 	bytes = (uFmt == CF_TEXT ? 1 : 2) * (XSTRING_LENGTH (res) + 1);
 	result =
 	  LISP_STRING_TO_EXTERNAL (res,
-				   uFmt == CF_TEXT ? Qmswindows_multibyte
+				   uFmt == CF_TEXT ?
+				   Qmswindows_multibyte_system_default
 				   : Qmswindows_unicode);
 
 	/* If we cannot create the data handle, this passes the null

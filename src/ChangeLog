@@ -1,3 +1,27 @@
+2026-02-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* event-msw.c (mswindows_dde_callback):
+	Qmswindows_multibyte is a type of coding system, not a coding
+	system in itself. Use Qmswindow_multibyte_system_default here if
+	not dealing with a Unicode message.
+	* sysdll.c (dll_close):
+	This has never given a correct result on Windows, since Bill Perry
+	implemented it in 1998; FreeLibrary() returns nonzero on success,
+	while dlclose() (which this basically wraps) returns zero on
+	success. Correct this, get better behaviour unloading modules on
+	Cygwin (and, going forward, Windows native).
+	* sysdll.c (dll_function):
+	Use Qmswindows_multibyte_system_default here rather than
+	Qwindows_multibyte to decode the argument to GetProcAddress().
+	* sysdll.c (dll_variable):
+	Ditto. Correct some types.
+	* syswindows.h:
+	Declare Qmswindow_multibyte_system_default here.
+	* xemacs.def.in.in:
+	Remove mention of error_check_ldap(), error_check_pgconn(),
+	error_check_pgresult(), now they are only needed as the relevant
+	modules are loaded.
+
 2026-02-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lrecord.h:

@@ -197,21 +197,21 @@ dll_open (Lisp_Object fname)
 int
 dll_close (dll_handle h)
 {
-  return FreeLibrary ((HMODULE) h);
+  return FreeLibrary ((HMODULE) h) != 0;
 }
 
 dll_func
 dll_function (dll_handle h, const Ibyte *n)
 {
-  Extbyte *next = ITEXT_TO_EXTERNAL (n, Qmswindows_multibyte);
+  Extbyte *next = ITEXT_TO_EXTERNAL (n, Qmswindows_multibyte_system_default);
   return (dll_func) GetProcAddress ((HINSTANCE) h, next);
 }
 
-dll_func
+dll_var
 dll_variable (dll_handle h, const Ibyte *n)
 {
-  Extbyte *next = ITEXT_TO_EXTERNAL (n, Qmswindows_multibyte);
-  return (dll_func) GetProcAddress ((HINSTANCE) h, next);
+  Extbyte *next = ITEXT_TO_EXTERNAL (n, Qmswindows_multibyte_system_default);
+  return (dll_var) GetProcAddress ((HINSTANCE) h, next);
 }
 
 Lisp_Object

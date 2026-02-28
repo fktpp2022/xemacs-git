@@ -1405,5 +1405,6 @@ extern Lisp_Object Vmswindows_read_link_hash;
 /* in intl-win32.c */
 extern Lisp_Object Qmswindows_tstr, Qmswindows_unicode;
 extern Lisp_Object Qmswindows_multibyte, Qmswindows_multibyte_to_unicode;
+extern Lisp_Object Qmswindows_multibyte_system_default;
 
 #endif /* INCLUDED_syswindows_h_ */
