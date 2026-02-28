@@ -10343,6 +10343,43 @@ rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
 printf "%s\n" "$have_embed" >&6; }
     if test "$have_embed" = yes; then
       with_dump_in_exec=yes;
+                  if test "$blddir" != "$srcdir"; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if --embed-dir accepted by $CC" >&5
+printf %s "checking if --embed-dir accepted by $CC... " >&6; }
+        pre_embed_dir_cflags="${CFLAGS}"
+        test -d "${blddir}/src" || mkdir "${blddir}/src"
+        echo "hello" > "${blddir}/src/${DUMP_FILE_NAME}"
+        CFLAGS=""--embed-dir=${blddir}/src/" $CFLAGS" &&  if test "$verbose" = "yes"; then echo "    Prepending \""--embed-dir=${blddir}/src/"\" to \$CFLAGS"; fi;
+        cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <stdio.h>
+static const int dump_data = {
+#embed "$DUMP_FILE_NAME"
+};
+;
+int
+main (void)
+{
+
+printf ("%p\n", (void *)&dump_data);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"
+then :
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+else $as_nop
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+         CFLAGS="${pre_embed_dir_cflags}"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+      fi
+      rm -f "${blddir}/src/${DUMP_FILE_NAME}"
     else
       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for .incbin assembler directive" >&5
 printf %s "checking for .incbin assembler directive... " >&6; }

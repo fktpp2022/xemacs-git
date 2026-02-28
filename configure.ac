@@ -1842,6 +1842,27 @@ if test -z "$with_dump_in_exec"; then
     AC_MSG_RESULT($have_embed)
     if test "$have_embed" = yes; then
       with_dump_in_exec=yes;
+      dnl dump-data.c doesn't pick up xemacs.dmp in blddir in out-of-tree
+      dnl builds, thank you Henry S. Thompson.
+      if test "$blddir" != "$srcdir"; then
+        AC_MSG_CHECKING(if --embed-dir accepted by $CC)
+        pre_embed_dir_cflags="${CFLAGS}"
+        test -d "${blddir}/src" || mkdir "${blddir}/src"
+        echo "hello" > "${blddir}/src/${DUMP_FILE_NAME}"
+        XE_PREPEND("--embed-dir=${blddir}/src/", CFLAGS);
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+#include <stdio.h>
+static const int dump_data[] = {
+#embed "$DUMP_FILE_NAME"
+};
+;],[
+printf ("%p\n", (void *)&dump_data);
+])],
+        [AC_MSG_RESULT(yes)],
+        [AC_MSG_RESULT(no)
+         CFLAGS="${pre_embed_dir_cflags}"])
+      fi
+      rm -f "${blddir}/src/${DUMP_FILE_NAME}"
     else
       AC_MSG_CHECKING(for .incbin assembler directive)
       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([

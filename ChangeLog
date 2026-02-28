@@ -1,3 +1,14 @@
+2026-02-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* configure.ac:
+	If __has_embed and building out-of-tree, GCC and
+	clang need --embed-dir=$blddir/src/ in CFLAGS.
+	Check that this option works before adding it (don't specifically
+	check for GCC or clang, in case other compilers end up accepting
+	the same argument).
+        Thank you Henry S. Thompson.
+	* configure: Regenerate.
+
 2026-02-08  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* Makefile.in.in:
