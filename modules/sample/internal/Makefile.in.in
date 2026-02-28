@@ -53,7 +53,6 @@ OBJS=$(SRCS:.c=.o)
 
 CC=@MOD_CC@
 MODARCHDIR=@MODARCHDIR@
-MAKE_DOCFILE=@MAKE_DOCFILE@
 MODCFLAGS=@MODCFLAGS@
 INSTALLPATH=@INSTALLPATH@
 INSTALL_PROGRAM=@MOD_INSTALL_PROGRAM@
@@ -69,9 +68,8 @@ $(MODNAME).ell: $(OBJS) $(MODNAME)_i.o
 	$(CC) --mode=link --mod-output=$@ $(OBJS) $(MODNAME)_i.o $(LDFLAGS)
 
 $(MODNAME)_i.c: $(SRCS)
-	ELLMAKEDOC=$(MAKE_DOCFILE) $(CC) --mode=init --mod-output=$@ \
-	--mod-name=$(MODNAME) --mod-version=$(MODVER) \
-	--mod-title=$(MODTITLE) $(SRC_SRCS)
+	$(CC) --mode=init --mod-output=$@ --mod-name=$(MODNAME) \
+	--mod-version=$(MODVER) --mod-title=$(MODTITLE) $(SRC_SRCS)
 
 clean:
 	$(RM) $(MODNAME).ell $(OBJS) $(MODNAME)_i.* *~

@@ -1,3 +1,40 @@
+2026-02-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* zlib/Makefile (CC): Update this to reflect ellcc.elc rather than
+	../../lib-src/ellcc.
+	* zlib/Makefile (zlib_i.c):
+	Remove mention of the ELLMAKEDOC environment var in this, no
+	longer observed by ellcc.elc.
+
+	* sample/internal/Makefile.in.in (MAKE_DOCFILE): Removed, missed
+	in 7da6404f9317 .
+	* sample/internal/Makefile.in.in ($(MODNAME)_i.c):
+	Remove mention of ELLMAKEDOC here.
+	* sample/internal/configure.ac:
+	Remove the AC_SUBST() for MAKE_DOCFILE.
+
+	* sample/external/Makefile.in.in:
+	* sample/external/Makefile.in.in ($(MODNAME)_i.c):
+	Remove mention of ELLMAKEDOC here.
+
+	* postgresql/configure:
+	* ldap/configure: Regenerate these, given changes to
+	common/configure-post.ac
+
+	* common/Makefile.common (MAKE_DOCFILE): Remove, missed in
+	7da6404f9317 .
+	* common/configure-post.ac:
+	Remove its AC_SUBST().
+
+	* canna/configure.ac: Remove mention of the MAKE_DOCFILE
+	AC_SUBST() from this.
+	* canna/configure: Regenerate.
+	* base64/Makefile (CC): Update this to reflect ellcc.elc rather than
+	../../lib-src/ellcc.
+	* base64/Makefile (base64_i.c):
+	Remove use of the ELLMAKEDOC environment variable here, no longer
+	observed by ellcc.elc.
+
 2026-02-08  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* README:

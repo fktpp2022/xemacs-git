@@ -30,7 +30,7 @@ DESTDIR=
 
 SHELL=/bin/sh
 RM=rm -f
-CC=../../lib-src/ellcc
+CC=../../src/xemacs -no-configured-paths --script ellcc.elc --
 CFLAGS=-I. -I../../src
 LD=$(CC) --mode=link
 MKINIT=$(CC) --mode=init
@@ -57,7 +57,6 @@ $(MODNAME).ell: $(OBJS) zlib_i.o
 
 zlib_i.o: zlib_i.c
 zlib_i.c: $(SRCS)
-	ELLMAKEDOC=../../lib-src/make-docfile $(MKINIT) --mod-output=$@ \
-	--mod-name=$(MODNAME) --mod-version=$(MODVER) \
-	--mod-title=$(MODTITLE) $(SRCS)
+	$(MKINIT) --mod-output=$@ --mod-name=$(MODNAME) \
+	--mod-version=$(MODVER) --mod-title=$(MODTITLE) $(SRCS)
 

@@ -9,6 +9,12 @@
         Thank you Henry S. Thompson.
 	* configure: Regenerate.
 
+2026-02-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* configure.ac (MAKE_DOCFILE): Remove this AC_SUBST() var, missed in
+	7da6404f9317 .
+	* configure: Regenerate.
+
 2026-02-08  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* Makefile.in.in:

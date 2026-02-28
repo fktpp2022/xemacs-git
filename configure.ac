@@ -3603,11 +3603,9 @@ if test "$with_modules" != "yes"; then
   OBJECT_TO_BUILD="\$(MODNAME).o"
 fi
 MODARCHDIR=
-MAKE_DOCFILE="../../lib-src/make-docfile"
 AC_SUBST(with_modules, $with_modules)
 AC_SUBST(MOD_CC)
 AC_SUBST(MODARCHDIR)
-AC_SUBST(MAKE_DOCFILE)
 AC_SUBST(MODCFLAGS)
 AC_SUBST(INSTALLPATH)
 AC_SUBST(MOD_INSTALL_PROGRAM)

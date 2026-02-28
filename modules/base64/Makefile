@@ -29,7 +29,7 @@ DESTDIR=
 
 SHELL=/bin/sh
 RM=rm -f
-CC=../../lib-src/ellcc
+CC=../../src/xemacs -no-configured-paths --script ellcc.elc --
 CFLAGS=-I. -I../../src
 LD=$(CC) --mode=link
 MKINIT=$(CC) --mode=init
@@ -56,7 +56,6 @@ $(MODNAME).ell: $(OBJS) base64_i.o
 
 base64_i.o: base64_i.c
 base64_i.c: $(SRCS)
-	ELLMAKEDOC=../../lib-src/make-docfile $(MKINIT) --mod-output=$@ \
-	--mod-name=$(MODNAME) --mod-version=$(MODVER) \
-	--mod-title=$(MODTITLE) $(SRCS)
+	$(MKINIT) --mod-output=$@ --mod-name=$(MODNAME) \
+	--mod-version=$(MODVER) --mod-title=$(MODTITLE) $(SRCS)
 

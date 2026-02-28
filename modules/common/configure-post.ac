@@ -19,7 +19,6 @@ dnl along with XEmacs.  If not, see <http://www.gnu.org/licenses/>.
 AC_SUBST(PROGNAME, "module")
 AC_SUBST(MOD_CC, "@ELLCC@")
 AC_SUBST(MODARCHDIR, "\$(shell @ELLCC@ --mod-archdir)")
-AC_SUBST(MAKE_DOCFILE, "\$(MODARCHDIR)/make-docfile")
 AC_SUBST(MODCFLAGS, "\$(CFLAGS) --mode=compile --mod-output=\$@ -I\$(MODARCHDIR)/include")
 AC_SUBST(INSTALLPATH, "\$(shell @ELLCC@ --mod-site-location)")
 AC_SUBST(MOD_INSTALL_PROGRAM, "@INSTALL_PROGRAM@")

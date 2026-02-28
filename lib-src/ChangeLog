@@ -1,3 +1,8 @@
+2026-02-28  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* config.values.in:
+	Remove an entry for MAKE_DOCFILE from this, which is gone.
+
 2026-02-10  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* etags.c (write_classname):

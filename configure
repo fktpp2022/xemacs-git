@@ -783,7 +783,6 @@ OBJECT_TO_BUILD
 MOD_INSTALL_PROGRAM
 INSTALLPATH
 MODCFLAGS
-MAKE_DOCFILE
 MODARCHDIR
 MOD_CC
 with_modules
@@ -16407,9 +16406,7 @@ if test "$with_modules" != "yes"; then
   OBJECT_TO_BUILD="\$(MODNAME).o"
 fi
 MODARCHDIR=
-MAKE_DOCFILE="../../lib-src/make-docfile"
 with_modules=$with_modules
-
 
 
 
