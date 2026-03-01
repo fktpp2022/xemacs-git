@@ -1,3 +1,10 @@
+2026-03-01  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* syswindows.h:
+	OpenSSL has similar conflicts with the Windows headers as has X11,
+	use a similar workaround, get Cygwin building with OpenSSL
+	TLS. Thank you Henry S. Thompson.
+
 2026-02-28  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* event-msw.c (mswindows_dde_callback):

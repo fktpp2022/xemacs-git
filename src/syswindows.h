@@ -221,6 +221,17 @@ END_C_DECLS
 # include <winspool.h>
 # include <mmsystem.h>
 # include <shlobj.h>
+# if defined (HAVE_OPENSSL) && defined (X509_NAME)
+  /* Similar issues with the OpenSSL headers conflicting with wincrypt.h. See
+     https://github.com/openssl/openssl/issues/9981 , and thank you Henry
+     S. Thompson. If X509_NAME is not defined we have an up-to-date version of
+     the OpenSSL headers that does this itself. */
+#  undef X509_NAME
+#  undef X509_EXTENSIONS
+#  undef PKCS7_SIGNER_INFO
+#  undef OCSP_REQUEST
+#  undef OCSP_RESPONSE
+# endif
 # include <ddeml.h>
 #endif
 
