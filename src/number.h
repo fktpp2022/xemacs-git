@@ -572,9 +572,12 @@ non_fixnum_number_p (Lisp_Object object))
 	 constructed cons. */                                           \
       value = (value >> 16);                                            \
       if (negative)                                                     \
-	{                                                               \
-	  value = -value;                                               \
-	}                                                               \
+        {                                                               \
+          /* XEmacs requires two's complement; this approach silences a \
+             warning on Visual Studio. We need to negate the number now \
+             to avoid sign extension below. */                          \
+          value = ~value + 1;                                           \
+        }                                                               \
                                                                         \
       while (value)                                                     \
 	{                                                               \
@@ -592,7 +595,33 @@ non_fixnum_number_p (Lisp_Object object))
   RETURN_NOT_REACHED ((c_type)-1)
 #endif
 
-#define DEFINE_C_INTEGER_TYPE_LISP_CONVERSION(visibility, c_type)      \
+#ifdef INT_64_BIT
+#define DEFINE_C_INTEGER_TYPE_SET_LIMITS_64_BIT(c_type)                 \
+  if (sizeof (c_type) == sizeof (INT_64_BIT))                           \
+    {                                                                   \
+      max_lisp_to_c_type = (c_type) (INT_64_BIT_MAX);                   \
+      min_lisp_to_c_type                                                \
+        = (c_type) ((UINT_64_BIT) (INT_64_BIT_MAX) + 1);                \
+    }
+#else
+#define DEFINE_C_INTEGER_TYPE_SET_LIMITS_64_BIT(c_type) \
+  if (0) { DO_NOTHING; }
+#endif
+
+#ifdef INT_128_BIT
+#define DEFINE_C_INTEGER_TYPE_SET_LIMITS_128_BIT(c_type)                \
+  if (sizeof (c_type) == sizeof (INT_128_BIT))                          \
+    {                                                                   \
+      max_lisp_to_c_type = (c_type) (INT_128_BIT_MAX);                  \
+      min_lisp_to_c_type                                                \
+        = (c_type) ((UINT_128_BIT) (INT_128_BIT_MAX) + 1);              \
+    }
+#else
+#define DEFINE_C_INTEGER_TYPE_SET_LIMITS_128_BIT(c_type)        \
+  if (0) { DO_NOTHING; }
+#endif
+
+#define DEFINE_C_INTEGER_TYPE_LISP_CONVERSION(visibility, c_type)       \
   visibility c_type                                                     \
   lisp_to_##c_type (Lisp_Object objeto)                                 \
   {                                                                     \
@@ -601,34 +630,23 @@ non_fixnum_number_p (Lisp_Object object))
                                                                         \
     if (((c_type) -1) < 0) /* Signed type? */                           \
       {                                                                 \
-        if (sizeof (c_type) == SIZEOF_SHORT)                            \
+        if (sizeof (c_type) == sizeof (INT_16_BIT))                     \
           {                                                             \
-            max_lisp_to_c_type = (c_type) (((unsigned short) -1) / 2);  \
-            min_lisp_to_c_type                                          \
-              = (c_type) ((unsigned short)(max_lisp_to_c_type) + 1);    \
+            max_lisp_to_c_type = (c_type) (INT_16_BIT_MAX);             \
+            min_lisp_to_c_type						\
+	      = (c_type) ((UINT_16_BIT) (INT_16_BIT_MAX) + 1);		\
           }                                                             \
-        else if (sizeof (c_type) == SIZEOF_INT)                         \
+        else if (sizeof (c_type) == sizeof (INT_32_BIT))                \
           {                                                             \
-            max_lisp_to_c_type = (c_type) (((unsigned int) -1) / 2);    \
-            min_lisp_to_c_type                                          \
-              = (c_type) ((unsigned int)(max_lisp_to_c_type) + 1);      \
+            max_lisp_to_c_type = (c_type) (INT_32_BIT_MAX);             \
+            min_lisp_to_c_type						\
+	      = (c_type) ((UINT_32_BIT) (INT_32_BIT_MAX) + 1);		\
           }                                                             \
-        else if (sizeof (c_type) == SIZEOF_LONG)                        \
-          {                                                             \
-            max_lisp_to_c_type = (c_type) (((unsigned long) -1) / 2);   \
-            min_lisp_to_c_type                                          \
-              = (c_type) ((unsigned long)(max_lisp_to_c_type) + 1);     \
-          }                                                             \
-        else if (sizeof (c_type) == SIZEOF_LONG_LONG)                   \
-          {                                                             \
-            max_lisp_to_c_type                                          \
-              = (c_type) (((unsigned long long) -1) / 2);               \
-            min_lisp_to_c_type                                          \
-              = (c_type) ((unsigned long long)(max_lisp_to_c_type) + 1); \
-          }                                                             \
+        else DEFINE_C_INTEGER_TYPE_SET_LIMITS_64_BIT (c_type)           \
+        else DEFINE_C_INTEGER_TYPE_SET_LIMITS_128_BIT (c_type)          \
         else                                                            \
           {                                                             \
-            assert (0); /* Very very very unlikely. */                  \
+            assert (0); /* Very unlikely. */                            \
           }                                                             \
       }                                                                 \
     else                                                                \

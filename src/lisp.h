@@ -427,7 +427,11 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
    echo '2 256^ 1-p' | dc
    )
-*/
+
+   Note that the larger (and smaller, so very negative) constants need trailing
+   Ls, LLs, UL, etc, not provided with these #defines; see
+   MAKE_64_BIT_UNSIGNED_CONSTANT(), etc, above. Don't use the large values
+   directly. */
 
 #define INT_16_BIT_MAX 32767
 #define INT_32_BIT_MAX 2147483647

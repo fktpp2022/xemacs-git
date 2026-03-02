@@ -1,3 +1,15 @@
+2026-03-02  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lisp.h (INT_64_BIT_MAX): Document that this and related #defines
+	can't be used directly, they need trailing Ls, LLs, etc.
+	* number.h (C_TYPE_TO_LISP_INTEGER):
+	Negate VALUE in a way that suppresses a warning on Visual Studio
+	when this macro is used with unsigned types.
+	* number.h (DEFINE_C_INTEGER_TYPE_LISP_CONVERSION):
+	Revise this to work on 32-bit Windows, where long long is not
+	available and INT_64_BIT is; use sizeof (INT_16_BIT), sizeof
+	(INT_32_BIT) etc rather than SIZEOF_SHORT, SIZEOF_LONG and so on.
+
 2026-03-01  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* syswindows.h:
