@@ -1749,57 +1749,40 @@ pdump_dump_rtables (void)
 }
 
 static void
-pdump_dump_root_lisp_objects (void)
+pdump_prune_weak_object_chain_prefixes (void)
 {
-  Elemcount count = (Dynarr_length (pdump_root_lisp_objects) +
-			 Dynarr_length (pdump_weak_object_chains));
-  Elemcount i;
+  Elemcount ii;
 
-  PDUMP_WRITE_ALIGNED (Elemcount, count);
-  PDUMP_ALIGN_OUTPUT (pdump_static_Lisp_Object);
-
-  for (i = 0; i < Dynarr_length (pdump_root_lisp_objects); i++)
+  for (ii = 0; ii < Dynarr_length (pdump_weak_object_chains); ii++)
     {
-      pdump_static_Lisp_Object obj;
-      obj.address = Dynarr_at (pdump_root_lisp_objects, i);
-      obj.value   = * obj.address;
-
-      if (POINTER_TYPE_P (XTYPE (obj.value)))
-	obj.value =
-	  wrap_pointer_1 ((void *) pdump_get_block (XRECORD_LHEADER
-						    (obj.value))->save_offset);
-
-      PDUMP_WRITE (pdump_static_Lisp_Object, obj);
-    }
-
-  for (i = 0; i < Dynarr_length (pdump_weak_object_chains); i++)
-    {
+      Lisp_Object *address = Dynarr_at (pdump_weak_object_chains, ii);
+      Lisp_Object value = *address;
       pdump_block_list_elt *elt;
-      pdump_static_Lisp_Object obj;
 
-      obj.address = Dynarr_at (pdump_weak_object_chains, i);
-      obj.value   = * obj.address;
+      /* So we can overwrite below. pdump() does an unbind_to() at the end, so
+	 this is reversed. */
+      internal_bind_lisp_object (address, value);
 
       for (;;)
 	{
 	  const struct memory_description *desc;
 	  int pos;
-	  elt = pdump_get_block (XRECORD_LHEADER (obj.value));
+	  elt = pdump_get_block (XRECORD_LHEADER (value));
 	  if (elt)
 	    break;
-	  desc = XRECORD_LHEADER_IMPLEMENTATION (obj.value)->description;
+	  desc = XRECORD_LHEADER_IMPLEMENTATION (value)->description;
 	  for (pos = 0; desc[pos].type != XD_LO_LINK; pos++)
 	    assert (desc[pos].type != XD_END);
 
 	  /* #### Figure out how to handle indirect offsets here. */
 	  assert (!XD_IS_INDIRECT (desc[pos].offset));
-	  obj.value =
+	  value =
 	    * (Lisp_Object *) (desc[pos].offset +
-			       (Rawbyte *) (XRECORD_LHEADER (obj.value)));
+			       (Rawbyte *) (XRECORD_LHEADER (value)));
 	}
-      obj.value = wrap_pointer_1 ((void *) elt->save_offset);
 
-      PDUMP_WRITE (pdump_static_Lisp_Object, obj);
+      *address = value;
+      dump_add_root_block_ptr (address, &lisp_object_description);
     }
 }
 
@@ -2104,9 +2087,24 @@ pdump (void)
 
   /* Try various roots of accessibility: */
 
-  /* (1) Lisp objects passed to dump_add_root_lisp_object(). */
+  /* (1) Lisp objects passed to dump_add_root_lisp_object().
+
+     Rewrite these to dump_add_root_block_ptr() or dump_add_opaque() calls
+     depending on whether they reflect record objects or not; no need for
+     special handling at pdump_load() time. */
   for (i = 0; i < Dynarr_length (pdump_root_lisp_objects); i++)
-    pdump_register_object (* Dynarr_at (pdump_root_lisp_objects, i));
+    {
+      Lisp_Object *objp = Dynarr_at (pdump_root_lisp_objects, i);
+      if (POINTER_TYPE_P (XTYPE (*objp)))
+	{
+	  pdump_register_object (*objp);
+	  dump_add_root_block_ptr (objp, &lisp_object_description);
+	}
+      else
+	{
+	  dump_add_opaque (objp, sizeof (Lisp_Object));
+	}
+    }
 
   /* (2) Register out the data-segment pointer variables to heap blocks. */
   for (i = 0; i < Dynarr_length (pdump_root_block_ptrs); i++)
@@ -2157,6 +2155,10 @@ pdump (void)
      processed, pdump_register_block() won't be called on them twice.  */
   dump_add_root_block_ptr (&staticpros, &staticpros_description);
   dump_add_root_block_ptr (&staticpros_nodump, &staticpros_nodump_description);
+
+  /* The beginnings of the weak object chains need to be pruned after
+     everything else has been examined. */
+  pdump_prune_weak_object_chain_prefixes ();
 
   none = 1;
   for (i = 0; i < lrecord_type_count; i++)
@@ -2276,7 +2278,6 @@ pdump (void)
   pdump_dump_root_block_ptrs ();
   pdump_dump_root_blocks ();
   pdump_dump_rtables ();
-  pdump_dump_root_lisp_objects ();
 
   retry_fclose (pdump_out);
   /* pdump_fd is already closed by the preceding call to fclose.
@@ -2400,19 +2401,6 @@ pdump_load_finish (void)
 	}
       else if (!(--count))
 	  break;
-    }
-
-  /* Put the pdump_root_lisp_objects variables in place */
-  i = PDUMP_READ_ALIGNED (p, Elemcount);
-  p = (Rawbyte *) ALIGN_PTR (p, pdump_static_Lisp_Object);
-  while (i--)
-    {
-      pdump_static_Lisp_Object obj = PDUMP_READ (p, pdump_static_Lisp_Object);
-
-      obj.address = (Lisp_Object *) pdump_reloc_c_data ((void *) obj.address);
-      obj.value = pdump_reloc_lisp_object (obj.value);
-
-      (* obj.address) = obj.value;
     }
 
   /* Final cleanups */

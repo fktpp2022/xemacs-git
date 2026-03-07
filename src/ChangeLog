@@ -12,6 +12,23 @@
 
 2026-03-07  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* dumper.c (pdump_dump_rtables):
+	* dumper.c (pdump_prune_weak_object_chain_prefixes):
+	New, refactored out from the previous
+	pdump_dump_root_lisp_objects().
+	* dumper.c (pdump):
+	The Lisp_Objects in pdump_root_lisp_objects are just special cases
+	of root block pointers (for record types) or root blocks (for
+	immediate types); handle them as such.
+	Call pdump_prune_weak_object_chain_prefixes() after all the root
+	blocks and root block pointers have been processed.
+	* dumper.c (pdump_load_finish):
+	No longer any need to put pdump_root_lisp_objects back in place at
+	pdump_load() time, that was handled the root block pointer
+	handling.
+
+2026-03-07  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* search.c (reinit_vars_of_search):
 	* search.c (vars_of_search):
 	Add GC protection for the Lisp strings in the regexp cache table
