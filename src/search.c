@@ -4334,7 +4334,6 @@ reinit_vars_of_search (void)
       searchbufs[i].buf.allocated = 100;
       searchbufs[i].buf.buffer = (unsigned char *) xmalloc (100);
       searchbufs[i].buf.fastmap = searchbufs[i].fastmap;
-      searchbufs[i].regexp = Qnil;
       staticpro_nodump (&searchbufs[i].regexp);
       searchbufs[i].next = (i == REGEXP_CACHE_SIZE-1 ? 0 : &searchbufs[i+1]);
     }
@@ -4425,4 +4424,13 @@ The following areas are recognized:
   Vdebug_regexps = Qnil;
   debug_regexps = 0;
 #endif /* DEBUG_XEMACS */
+
+  {
+    int ii;
+    for (ii = 0; ii < REGEXP_CACHE_SIZE; ++ii)
+      {
+	searchbufs[ii].regexp = Qnil;
+	staticpro_dump_nil (&searchbufs[ii].regexp);
+      }
+  }
 }

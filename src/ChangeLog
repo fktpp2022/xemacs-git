@@ -10,6 +10,16 @@
 	available and INT_64_BIT is; use sizeof (INT_16_BIT), sizeof
 	(INT_32_BIT) etc rather than SIZEOF_SHORT, SIZEOF_LONG and so on.
 
+2026-03-07  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* search.c (reinit_vars_of_search):
+	* search.c (vars_of_search):
+	Add GC protection for the Lisp strings in the regexp cache table
+	by means of staticpro_dump_nil(), since they are in BSS and (up to
+	now) were explicitly initialized to nil after pdump_load().
+	This has the advantage that staticpros_nodump->base is not
+	immediately leaked at startup.
+
 2026-03-01  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* syswindows.h:
