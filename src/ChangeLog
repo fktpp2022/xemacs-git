@@ -1,3 +1,9 @@
+2026-03-09  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* search.c (reinit_vars_of_search):
+	Actually remove the staticpro_nodump() for the strings in the
+	regexp cache, missed in 6ab8fae39cd2 .
+
 2026-03-02  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* lisp.h (INT_64_BIT_MAX): Document that this and related #defines

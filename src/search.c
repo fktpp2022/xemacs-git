@@ -4334,8 +4334,9 @@ reinit_vars_of_search (void)
       searchbufs[i].buf.allocated = 100;
       searchbufs[i].buf.buffer = (unsigned char *) xmalloc (100);
       searchbufs[i].buf.fastmap = searchbufs[i].fastmap;
-      staticpro_nodump (&searchbufs[i].regexp);
       searchbufs[i].next = (i == REGEXP_CACHE_SIZE-1 ? 0 : &searchbufs[i+1]);
+      /* See vars_of_search() for the initialization and GC protection of
+         SEARCHBUFS[i].regexp. */
     }
   searchbuf_head = &searchbufs[0];
 
