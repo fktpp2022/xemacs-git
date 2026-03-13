@@ -112,7 +112,6 @@ struct buffer *current_buffer;	/* the current buffer */
    Setting the default value also goes through the alist of buffers
    and stores into each buffer that does not say it has a local value.  */
 Lisp_Object Vbuffer_defaults;
-static void *buffer_defaults_saved_slots;
 
 /* This structure marks which slots in a buffer have corresponding
    default values in Vbuffer_defaults.
@@ -149,7 +148,6 @@ static Ibyte *initial_directory;
 /* This structure holds the names of symbols whose values may be
    buffer-local.  It is indexed and accessed in the same way as the above. */
 static Lisp_Object Vbuffer_local_symbols;
-static void *buffer_local_symbols_saved_slots;
 
 /* Alist of all buffer names vs the buffers. */
 /* This used to be a variable, but is no longer,
@@ -2096,10 +2094,10 @@ List of functions called with no args to query before killing a buffer.
   staticpro_dump_nil (&Vbuffer_alist);
 
   Vbuffer_defaults = Qnil;
-  staticpro_dump_nil (&Vbuffer_defaults);
+  staticpro (&Vbuffer_defaults);
 
   Vbuffer_local_symbols = Qnil;
-  staticpro_dump_nil (&Vbuffer_local_symbols);
+  staticpro (&Vbuffer_local_symbols);
 }
 
 /* The docstrings for DEFVAR_* are recorded externally by make-docfile.elc. */
@@ -2150,23 +2148,32 @@ nuke_all_buffer_slots (struct buffer *b, Lisp_Object zap)
 #include "bufslots.h"
 }
 
-static void
-common_init_complex_vars_of_buffer (void)
+void
+complex_vars_of_buffer (void)
 {
+  static const struct sized_memory_description buffer_description_rbp
+    = { sizeof (struct buffer), buffer_description };
   struct buffer *defs, *syms;
 
-  /* Make sure all markable slots in buffer_defaults
-     are initialized reasonably, so KKCC won't choke. */
+  /* Make sure all markable slots in buffer_defaults are initialized
+     reasonably, so KKCC won't choke. */
   Vbuffer_defaults = ALLOC_NORMAL_LISP_OBJECT (buffer);
   defs = XBUFFER (Vbuffer_defaults);
+  nuke_all_buffer_slots (defs, Qnil);
+  defs->text = &defs->own_text;
+
+  /* Dump this object, but avoid error that it is undumpable by using
+     dump_add_root_block_ptr() rather than dump_add_root_lisp_object(). Don't
+     do this at home, the nanny-state Kamala-voting dumper restricting what we
+     can do is doing it for a reason.  */
+  dump_add_root_block_ptr (&Vbuffer_defaults, &buffer_description_rbp);
 
   Vbuffer_local_symbols = ALLOC_NORMAL_LISP_OBJECT (buffer);
   syms = XBUFFER (Vbuffer_local_symbols);
-
   nuke_all_buffer_slots (syms, Qnil);
-  nuke_all_buffer_slots (defs, Qnil);
-  defs->text = &defs->own_text;
   syms->text = &syms->own_text;
+  /* Same caution as for Vbuffer_defaults. */
+  dump_add_root_block_ptr (&Vbuffer_local_symbols, &buffer_description_rbp);
 
   /* Set up the non-nil default values of various buffer slots.
      Must do these before making the first buffer. */
@@ -2224,6 +2231,15 @@ common_init_complex_vars_of_buffer (void)
 				&buffer_local_flags,
                                 LRECORD_IMPLEMENTATION (buffer));
     nuke_all_buffer_slots (&buffer_local_flags, make_fixnum (-2));
+
+#if 0
+    /* This would make printing &buffer_local_flags show a killed buffer, but
+       interacts poorly with reset_buffer_local_variables() and the assertion
+       at the end of this function, and &buffer_local_flags is not going to be
+       printed with any sort of regularity. */
+    buffer_local_flags.name = Qnil;
+#endif
+
     buffer_local_flags.filename		   = always_local_no_default;
     buffer_local_flags.directory	   = always_local_no_default;
     buffer_local_flags.backed_up	   = always_local_no_default;
@@ -2270,53 +2286,14 @@ common_init_complex_vars_of_buffer (void)
 
     /* Warning: 1<<30 is the largest number currently allowable
        due to the XFIXNUM() handling of this value. */
+
+    /* This needs to be in the data segment because the VALUE slot of
+       symbol_value_forward_object is a data segment pointer, don't use
+       ALLOC_NORMAL_LISP_OBJECT() as we do for Vbuffer_local_symbols,
+       Vbuffer_defaults.  */
+    dump_add_root_block (&buffer_local_flags, sizeof (struct buffer),
+			 buffer_description);
   }
-}
-
-#define BUFFER_SLOTS_SIZE (offsetof (struct buffer, BUFFER_SLOTS_LAST_NAME) - offsetof (struct buffer, BUFFER_SLOTS_FIRST_NAME) + sizeof (Lisp_Object))
-#define BUFFER_SLOTS_COUNT (BUFFER_SLOTS_SIZE / sizeof (Lisp_Object))
-
-void
-reinit_complex_vars_of_buffer_runtime_only (void)
-{
-  struct buffer *defs, *syms;
-
-  common_init_complex_vars_of_buffer ();
-
-  defs = XBUFFER (Vbuffer_defaults);
-  syms = XBUFFER (Vbuffer_local_symbols);
-  memcpy (&defs->BUFFER_SLOTS_FIRST_NAME,
-	  buffer_defaults_saved_slots,
-	  BUFFER_SLOTS_SIZE);
-  memcpy (&syms->BUFFER_SLOTS_FIRST_NAME,
-	  buffer_local_symbols_saved_slots,
-	  BUFFER_SLOTS_SIZE);
-}
-
-
-static const struct memory_description buffer_slots_description_1[] = {
-  { XD_LISP_OBJECT_ARRAY, 0, BUFFER_SLOTS_COUNT },
-  { XD_END }
-};
-
-static const struct sized_memory_description buffer_slots_description = {
-  BUFFER_SLOTS_SIZE,
-  buffer_slots_description_1
-};
-
-void
-complex_vars_of_buffer (void)
-{
-  struct buffer *defs, *syms;
-
-  common_init_complex_vars_of_buffer ();
-
-  defs = XBUFFER (Vbuffer_defaults);
-  syms = XBUFFER (Vbuffer_local_symbols);
-  buffer_defaults_saved_slots      = &defs->BUFFER_SLOTS_FIRST_NAME;
-  buffer_local_symbols_saved_slots = &syms->BUFFER_SLOTS_FIRST_NAME;
-  dump_add_root_block_ptr (&buffer_defaults_saved_slots,      &buffer_slots_description);
-  dump_add_root_block_ptr (&buffer_local_symbols_saved_slots, &buffer_slots_description);
 
   DEFVAR_BUFFER_DEFAULTS ("default-modeline-format", modeline_format /*
 Default value of `modeline-format' for buffers that don't override it.

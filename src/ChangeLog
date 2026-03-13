@@ -1,5 +1,27 @@
 2026-03-13  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove the need for reinit_complex_vars_of_buffer_runtime_only().
+
+	* symsinit.h: Remove its declaration.
+	* emacs.c (main_1): Remove call to it.
+	* buffer.c: Remove buffer_defaults_saved_slots,
+	buffer_local_symbols_saved_slots, no longer needed.
+	* buffer.c (vars_of_buffer):
+	Use a normal staticpro(), not staticpro_dump_nil(),
+	Vbuffer_defaults, Vbuffer_local_symbols.
+	* buffer.c (common_init_complex_vars_of_buffer): Implementation
+	moved to complex_vars_of_buffer.
+	* buffer.c (complex_vars_of_buffer):
+	Dump Vbuffer_defaults, Vbuffer_local_symbols using
+	dump_add_root_block_ptr().
+	Dump buffer_local_flags using dump_add_root_block(). 
+	* buffer.c (reinit_complex_vars_of_buffer_runtime_only): Removed,
+	no longer needed.
+	* buffer.c (static const struct sized_memory_description
+	buffer_slots_description): Removed, no longer needed.
+
+2026-03-13  Aidan Kehoe  <kehoea@parhasard.net>
+
 	Remove the need for reinit_complex_vars_of_console_runtime_only().
 	* symsinit.h: Remove its declaration.
 	* emacs.c (main_1): Remove call to it.

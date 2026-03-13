@@ -448,7 +448,6 @@ void specifier_vars_of_window (void);
 
 void complex_vars_of_alloc (void);
 void complex_vars_of_buffer (void);
-void reinit_complex_vars_of_buffer_runtime_only (void);
 void complex_vars_of_casetab (void);
 void complex_vars_of_chartab (void);
 void complex_vars_of_console (void);
