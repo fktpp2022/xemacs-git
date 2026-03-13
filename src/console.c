@@ -62,7 +62,6 @@ Lisp_Object Qsuspend_resume_hook;
    list of consoles and stores into each console that does not say
    it has a local value.  */
 Lisp_Object Vconsole_defaults;
-static void *console_defaults_saved_slots;
 
 /* This structure marks which slots in a console have corresponding
    default values in console_defaults.
@@ -88,16 +87,12 @@ static void *console_defaults_saved_slots;
 
    If a slot is -3, then there is no DEFVAR_CONSOLE_LOCAL for it but
    there is a default which is used to initialize newly-creation
-   consoles and as a reset-value when local-vars are killed.
-
-
-   */
+   consoles and as a reset-value when local-vars are killed. */
 struct console console_local_flags;
 
 /* This structure holds the names of symbols whose values may be
    console-local.  It is indexed and accessed in the same way as the above. */
 static Lisp_Object Vconsole_local_symbols;
-static void *console_local_symbols_saved_slots;
 
 DEFINE_CONSOLE_TYPE (dead);
 
@@ -1568,10 +1563,10 @@ for bindings in `function-key-map'.
   staticpro_dump_nil (&Vselected_console);
 
   Vconsole_defaults = Qnil;
-  staticpro_dump_nil (&Vconsole_defaults);
+  staticpro (&Vconsole_defaults);
 
   Vconsole_local_symbols = Qnil;
-  staticpro_dump_nil (&Vconsole_local_symbols);
+  staticpro (&Vconsole_local_symbols);
 }
 
 /* The docstrings for DEFVAR_* are recorded externally by make-docfile.el. */
@@ -1607,16 +1602,30 @@ do {									    \
 #define DEFVAR_CONSOLE_DEFAULTS(lname, field_name)			\
 	DEFVAR_CONSOLE_DEFAULTS_MAGIC (lname, field_name, 0)
 
-static void
-common_init_complex_vars_of_console (void)
+void
+complex_vars_of_console (void)
 {
+  static const struct sized_memory_description console_description_rbp
+    = { sizeof (struct console), console_description };
+
   /* Make sure all markable slots in console_defaults
      are initialized reasonably, so KKCC won't choke. */
   Vconsole_defaults = ALLOC_NORMAL_LISP_OBJECT (console);
-  Vconsole_local_symbols = ALLOC_NORMAL_LISP_OBJECT (console);
-
-  nuke_all_console_slots (XCONSOLE (Vconsole_local_symbols), Qnil);
+  XCONSOLE (Vconsole_defaults)->conmeths = dead_console_methods;
+  XCONSOLE (Vconsole_defaults)->contype = dead_console;
   nuke_all_console_slots (XCONSOLE (Vconsole_defaults), Qnil);
+  /* Dump this object, but avoid error that it is undumpable by using
+     dump_add_root_block_ptr() rather than dump_add_root_lisp_object(). Don't
+     do this at home, the nanny-state Kamala-voting dumper restricting what we
+     can do is doing it for a reason.  */
+  dump_add_root_block_ptr (&Vconsole_defaults, &console_description_rbp);
+
+  Vconsole_local_symbols = ALLOC_NORMAL_LISP_OBJECT (console);
+  XCONSOLE (Vconsole_local_symbols)->conmeths = dead_console_methods;
+  XCONSOLE (Vconsole_local_symbols)->contype = dead_console;
+  nuke_all_console_slots (XCONSOLE (Vconsole_local_symbols), Qnil);
+  /* Dump this object in the same way. Same warnings apply. */
+  dump_add_root_block_ptr (&Vconsole_local_symbols, &console_description_rbp);
 
   /* Set up the non-nil default values of various console slots.
      Must do these before making the first console.
@@ -1654,7 +1663,13 @@ common_init_complex_vars_of_console (void)
     set_lheader_implementation ((struct lrecord_header *)
 				&console_local_flags,
                                 LRECORD_IMPLEMENTATION (console));
+    console_local_flags.conmeths = dead_console_methods;
+    console_local_flags.contype = dead_console;
     nuke_all_console_slots (&console_local_flags, make_fixnum (-2));
+
+    console_local_flags.conmeths = dead_console_methods;
+    console_local_flags.contype = dead_console;
+
     console_local_flags.defining_kbd_macro = always_local_resettable;
     console_local_flags.last_kbd_macro = always_local_resettable;
     console_local_flags.prefix_arg = always_local_resettable;
@@ -1670,54 +1685,14 @@ common_init_complex_vars_of_console (void)
     /* #### Warning, 0x4000000 (that's six zeroes) is the largest number
        currently allowable due to the XFIXNUM() handling of this value.
        With some rearrangement you can get 4 more bits. */
+
+    /* This needs to be in the data segment because the VALUE slot of
+       symbol_value_forward_object is a data segment pointer, don't use
+       ALLOC_NORMAL_LISP_OBJECT() as we do for Vconsole_local_symbols,
+       Vconsole_defaults.  */
+    dump_add_root_block (&console_local_flags, sizeof (console_local_flags), 
+			 console_description);
   }
-}
-
-
-#define CONSOLE_SLOTS_SIZE (offsetof (struct console, CONSOLE_SLOTS_LAST_NAME) - offsetof (struct console, CONSOLE_SLOTS_FIRST_NAME) + sizeof (Lisp_Object))
-#define CONSOLE_SLOTS_COUNT (CONSOLE_SLOTS_SIZE / sizeof (Lisp_Object))
-
-void
-reinit_complex_vars_of_console_runtime_only (void)
-{
-  struct console *defs, *syms;
-
-  common_init_complex_vars_of_console ();
-
-  defs = XCONSOLE (Vconsole_defaults);
-  syms = XCONSOLE (Vconsole_local_symbols);
-  memcpy (&defs->CONSOLE_SLOTS_FIRST_NAME,
-	  console_defaults_saved_slots,
-	  CONSOLE_SLOTS_SIZE);
-  memcpy (&syms->CONSOLE_SLOTS_FIRST_NAME,
-	  console_local_symbols_saved_slots,
-	  CONSOLE_SLOTS_SIZE);
-}
-
-
-static const struct memory_description console_slots_description_1[] = {
-  { XD_LISP_OBJECT_ARRAY, 0, CONSOLE_SLOTS_COUNT },
-  { XD_END }
-};
-
-static const struct sized_memory_description console_slots_description = {
-  CONSOLE_SLOTS_SIZE,
-  console_slots_description_1
-};
-
-void
-complex_vars_of_console (void)
-{
-  struct console *defs, *syms;
-
-  common_init_complex_vars_of_console ();
-
-  defs = XCONSOLE (Vconsole_defaults);
-  syms = XCONSOLE (Vconsole_local_symbols);
-  console_defaults_saved_slots      = &defs->CONSOLE_SLOTS_FIRST_NAME;
-  console_local_symbols_saved_slots = &syms->CONSOLE_SLOTS_FIRST_NAME;
-  dump_add_root_block_ptr (&console_defaults_saved_slots,      &console_slots_description);
-  dump_add_root_block_ptr (&console_local_symbols_saved_slots, &console_slots_description);
 
   DEFVAR_CONSOLE_DEFAULTS ("default-function-key-map", function_key_map /*
 Default value of `function-key-map' for consoles that don't override it.

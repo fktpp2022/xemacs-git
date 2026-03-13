@@ -2227,7 +2227,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       if (!restart)	      /* after successful pdump_load() */
 	{
 	  reinit_complex_vars_of_buffer_runtime_only ();
-	  reinit_complex_vars_of_console_runtime_only ();
 	  reinit_complex_vars_of_minibuf ();
 	}
     }
