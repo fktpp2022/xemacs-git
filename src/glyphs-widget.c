@@ -312,7 +312,7 @@ static Lisp_Object
 widget_property (Lisp_Object image_instance, Lisp_Object prop)
 {
   Lisp_Image_Instance* ii = XIMAGE_INSTANCE (image_instance);
-  struct image_instantiator_methods* meths;
+  const struct image_instantiator_methods* meths;
 #if 0				/* The usefulness of this is dubious. */
   /* first see if its a general property ... */
   if (!NILP (Fplist_member (IMAGE_INSTANCE_WIDGET_PROPS (ii), prop)))
@@ -352,7 +352,7 @@ static void
 widget_update (Lisp_Object image_instance, Lisp_Object instantiator)
 {
   Lisp_Image_Instance* ii = XIMAGE_INSTANCE (image_instance);
-  struct image_instantiator_methods* meths;
+  const struct image_instantiator_methods* meths;
   struct gcpro gcpro1;
 
   Lisp_Object text = find_keyword_in_vector (instantiator, Q_text);
@@ -464,7 +464,7 @@ void
 redisplay_widget (Lisp_Object widget)
 {
   Lisp_Image_Instance* ii = XIMAGE_INSTANCE (widget);
-  struct image_instantiator_methods* meths;
+  const struct image_instantiator_methods* meths;
 
   if (!WIDGET_IMAGE_INSTANCEP (widget)
       || EQ (IMAGE_INSTANCE_WIDGET_TYPE (ii), Qlayout)
@@ -528,7 +528,7 @@ widget_query_geometry (Lisp_Object image_instance,
 		       enum image_instance_geometry disp, Lisp_Object domain)
 {
   Lisp_Image_Instance* ii = XIMAGE_INSTANCE (image_instance);
-  struct image_instantiator_methods* meths;
+  const struct image_instantiator_methods* meths;
   Lisp_Object dynamic_width = Qnil;
   Lisp_Object dynamic_height = Qnil;
 
@@ -597,7 +597,7 @@ widget_layout (Lisp_Object image_instance,
 	       Lisp_Object domain)
 {
   Lisp_Image_Instance* ii = XIMAGE_INSTANCE (image_instance);
-  struct image_instantiator_methods* meths;
+  const struct image_instantiator_methods* meths;
 
   /* .. then try device specific methods ... */
   meths = decode_device_ii_format (image_instance_device (image_instance),
@@ -1744,18 +1744,20 @@ syms_of_glyphs_widget (void)
 } while (0)
 
 
-static void image_instantiator_widget (void)
+static void
+image_instantiator_widget (void)
 { /* we only do this for properties */
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT_NO_SYM (widget, "widget");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT_NO_SYM (widget);
   IIFORMAT_HAS_METHOD (widget, property);
   IIFORMAT_HAS_METHOD (widget, update);
   IIFORMAT_HAS_METHOD (widget, query_geometry);
   IIFORMAT_HAS_METHOD (widget, layout);
 }
 
-static void image_instantiator_buttons (void)
+static void
+image_instantiator_buttons (void)
 {
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (button, "button");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (button);
   IIFORMAT_HAS_SHARED_METHOD (button, validate, widget);
   IIFORMAT_HAS_SHARED_METHOD (button, possible_dest_types, widget);
   IIFORMAT_HAS_SHARED_METHOD (button, instantiate, widget);
@@ -1769,9 +1771,10 @@ static void image_instantiator_buttons (void)
   VALID_GUI_KEYWORDS (button);
 }
 
-static void image_instantiator_edit_fields (void)
+static void
+image_instantiator_edit_fields (void)
 {
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (edit_field, "edit-field");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (edit_field);
   IIFORMAT_HAS_SHARED_METHOD (edit_field, validate, widget);
   IIFORMAT_HAS_SHARED_METHOD (edit_field, possible_dest_types, widget);
   IIFORMAT_HAS_SHARED_METHOD (edit_field, instantiate, widget);
@@ -1782,9 +1785,10 @@ static void image_instantiator_edit_fields (void)
   VALID_GUI_KEYWORDS (edit_field);
 }
 
-static void image_instantiator_combo_box (void)
+static void
+image_instantiator_combo_box (void)
 {
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (combo_box, "combo-box");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (combo_box);
   IIFORMAT_HAS_METHOD (combo_box, validate);
   IIFORMAT_HAS_SHARED_METHOD (combo_box, possible_dest_types, widget);
   IIFORMAT_HAS_SHARED_METHOD (combo_box, governing_domain, subwindow);
@@ -1799,9 +1803,10 @@ static void image_instantiator_combo_box (void)
   IIFORMAT_VALID_KEYWORD (combo_box, Q_items, check_valid_item_list);
 }
 
-static void image_instantiator_scrollbar (void)
+static void
+image_instantiator_scrollbar (void)
 {
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (scrollbar, "scrollbar");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (scrollbar);
   IIFORMAT_HAS_SHARED_METHOD (scrollbar, validate, widget);
   IIFORMAT_HAS_SHARED_METHOD (scrollbar, possible_dest_types, widget);
   IIFORMAT_HAS_SHARED_METHOD (scrollbar, instantiate, widget);
@@ -1816,9 +1821,10 @@ static void image_instantiator_scrollbar (void)
   IIFORMAT_VALID_KEYWORD (scrollbar, Q_face, check_valid_face);
 }
 
-static void image_instantiator_progress_gauge (void)
+static void
+image_instantiator_progress_gauge (void)
 {
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (progress_gauge, "progress-gauge");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (progress_gauge);
   IIFORMAT_HAS_SHARED_METHOD (progress_gauge, validate, widget);
   IIFORMAT_HAS_SHARED_METHOD (progress_gauge, possible_dest_types, widget);
   IIFORMAT_HAS_SHARED_METHOD (progress_gauge, instantiate, widget);
@@ -1830,9 +1836,10 @@ static void image_instantiator_progress_gauge (void)
   IIFORMAT_VALID_KEYWORD (progress_gauge, Q_value, check_valid_int);
 }
 
-static void image_instantiator_tree_view (void)
+static void
+image_instantiator_tree_view (void)
 {
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (tree_view, "tree-view");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (tree_view);
   IIFORMAT_HAS_SHARED_METHOD (tree_view, validate, combo_box);
   IIFORMAT_HAS_SHARED_METHOD (tree_view, possible_dest_types, widget);
   IIFORMAT_HAS_SHARED_METHOD (tree_view, instantiate, widget);
@@ -1844,9 +1851,10 @@ static void image_instantiator_tree_view (void)
   IIFORMAT_VALID_KEYWORD (tree_view, Q_items, check_valid_item_list);
 }
 
-static void image_instantiator_tab_control (void)
+static void
+image_instantiator_tab_control (void)
 {
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (tab_control, "tab-control");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (tab_control);
   IIFORMAT_HAS_SHARED_METHOD (tab_control, validate, combo_box);
   IIFORMAT_HAS_SHARED_METHOD (tab_control, possible_dest_types, widget);
   IIFORMAT_HAS_SHARED_METHOD (tab_control, instantiate, widget);
@@ -1860,9 +1868,10 @@ static void image_instantiator_tab_control (void)
   IIFORMAT_VALID_KEYWORD (tab_control, Q_items, check_valid_item_list);
 }
 
-static void image_instantiator_labels (void)
+static void
+image_instantiator_labels (void)
 {
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (label, "label");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (label);
   IIFORMAT_HAS_SHARED_METHOD (label, possible_dest_types, widget);
   IIFORMAT_HAS_SHARED_METHOD (label, instantiate, widget);
   IIFORMAT_HAS_SHARED_METHOD (label, post_instantiate, widget);
@@ -1882,9 +1891,10 @@ static void image_instantiator_labels (void)
   IIFORMAT_VALID_KEYWORD (layout, Q_items,				   \
 			  check_valid_instantiator_list)
 
-static void image_instantiator_layout (void)
+static void
+image_instantiator_layout (void)
 {
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (layout, "layout");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (layout);
   IIFORMAT_HAS_SHARED_METHOD (layout, possible_dest_types, widget);
   IIFORMAT_HAS_METHOD (layout, instantiate);
   IIFORMAT_HAS_METHOD (layout, post_instantiate);
@@ -1899,9 +1909,10 @@ static void image_instantiator_layout (void)
   VALID_LAYOUT_KEYWORDS (layout);
 }
 
-static void image_instantiator_native_layout (void)
+static void
+image_instantiator_native_layout (void)
 {
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (native_layout, "native-layout");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (native_layout);
   IIFORMAT_HAS_SHARED_METHOD (native_layout, possible_dest_types, widget);
   IIFORMAT_HAS_SHARED_METHOD (native_layout, instantiate, layout);
   IIFORMAT_HAS_SHARED_METHOD (native_layout, post_instantiate, layout);

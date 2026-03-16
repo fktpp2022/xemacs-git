@@ -239,7 +239,7 @@ enum handle_coding_error
 struct Lisp_Coding_System
 {
   NORMAL_LISP_OBJECT_HEADER header;
-  struct coding_system_methods *methods;
+  const struct coding_system_methods *methods;
 
 #define CODING_SYSTEM_SLOT_DECLARATION
 #define MARKED_SLOT(x) Lisp_Object x;
@@ -286,10 +286,10 @@ enum coding_system_variant
 
 struct coding_system_methods
 {
-  Lisp_Object type;
+  Lisp_Object name;
   Lisp_Object predicate_symbol;
 
-  /* Type expressed as an enum, needed for KKCC marking of the
+  /* NAME expressed as an enum, needed for KKCC marking of the
      type-specific lstream data; copied into the struct coding_stream. */
 
   enum coding_system_variant enumtype;
@@ -548,18 +548,23 @@ static const struct sized_memory_description			\
   type##_coding_stream_description				\
 }
 
-#define INITIALIZE_CODING_SYSTEM_TYPE(ty, pred_sym) do {		\
-  ty##_coding_system_methods =						\
-    xnew_and_zero (struct coding_system_methods);			\
-  ty##_coding_system_methods->type = Q##ty;				\
-  ty##_coding_system_methods->extra_description =			\
-    &coding_system_empty_extra_description;				\
-  ty##_coding_system_methods->enumtype = ty##_coding_system;		\
-  defsymbol (&ty##_coding_system_methods->predicate_symbol, pred_sym);	\
-  add_entry_to_coding_system_type_list (ty##_coding_system_methods);	\
-  dump_add_root_block_ptr (&ty##_coding_system_methods,		\
-                            &coding_system_methods_description);	\
-} while (0)
+extern void
+initialize_coding_system_type (struct coding_system_methods **dest,
+                               Lisp_Object symbol,
+                               enum coding_system_variant enumtype,
+                               const struct sized_memory_description *
+                               extra_description,
+                               Bytecount extra_data_size,
+                               const struct sized_memory_description *
+                               stream_description,
+                               Bytecount stream_data_size);
+
+#define INITIALIZE_CODING_SYSTEM_TYPE(ty)                                \
+  initialize_coding_system_type (&ty##_coding_system_methods,            \
+                                 Q##ty,                                  \
+                                 ty##_coding_system,                     \
+                                 &coding_system_empty_extra_description, \
+                                 0, NULL, 0)
 
 /* This assumes the existence of two structures:
 
@@ -572,18 +577,13 @@ static const struct sized_memory_description			\
    For an example of how to do the description, see
    chain_coding_system_description.
 */
-#define INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA(type, pred_sym)	\
-do {								\
-  INITIALIZE_CODING_SYSTEM_TYPE (type, pred_sym);		\
-  type##_coding_system_methods->extra_description =		\
-    &type##_coding_system_description_0;			\
-  type##_coding_system_methods->extra_data_size =		\
-    sizeof (struct type##_coding_system);			\
-  type##_coding_system_methods->stream_description =		\
-    &type##_coding_stream_description_0;			\
-  type##_coding_system_methods->stream_data_size =		\
-    sizeof (struct type##_coding_stream);			\
-} while (0)
+#define INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA(type)                   \
+  initialize_coding_system_type (&type##_coding_system_methods,         \
+                                 Q##type, type##_coding_system,         \
+                                 &type##_coding_system_description_0,   \
+                                 sizeof (struct type##_coding_system),  \
+                                 &type##_coding_stream_description_0,   \
+                                 sizeof (struct type##_coding_stream))
 
 /* Declare that coding-system-type TYPE has method METH; used in
    initialization routines */
@@ -643,7 +643,7 @@ do {								\
 #define CODING_SYSTEM_METHODS(codesys) ((codesys)->methods)
 #define CODING_SYSTEM_NAME(codesys) ((codesys)->name)
 #define CODING_SYSTEM_DESCRIPTION(codesys) ((codesys)->description)
-#define CODING_SYSTEM_TYPE(codesys) ((codesys)->methods->type)
+#define CODING_SYSTEM_TYPE(codesys) ((codesys)->methods->name)
 #define CODING_SYSTEM_MNEMONIC(codesys) ((codesys)->mnemonic)
 #define CODING_SYSTEM_DOCUMENTATION(codesys) ((codesys)->documentation)
 #define CODING_SYSTEM_POST_READ_CONVERSION(codesys) \
@@ -1230,7 +1230,6 @@ void set_coding_stream_coding_system (Lstream *stream,
 Lisp_Object detect_coding_stream (Lisp_Object stream);
 void big5_char_to_fake_codepoint (int b1, int b2, Lisp_Object *charset,
 				  int *c1, int *c2);
-void add_entry_to_coding_system_type_list (struct coding_system_methods *m);
 Lisp_Object make_internal_coding_system (Lisp_Object existing,
 					 const Ascbyte *prefix,
 					 Lisp_Object type,
@@ -1281,11 +1280,10 @@ void handle_encoding_error_before_output (struct coding_stream *str,
 void handle_standard_encoding_error (struct coding_stream *str,
 				     const UExtbyte *src,
 				     unsigned_char_dynarr *dst);
-int handle_possible_error_octet (Ichar ich,
-				 struct coding_stream *str,
-				 const UExtbyte *src,
-				 unsigned_char_dynarr *dst,
-				 int *code_out);
+Boolint handle_possible_error_octet (Ichar ich, struct coding_stream *str,
+                                     const UExtbyte *src,
+                                     unsigned_char_dynarr *dst,
+                                     int *code_out);
 
 #endif /* INCLUDED_file_coding_h_ */
 

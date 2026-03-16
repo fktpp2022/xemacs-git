@@ -1118,14 +1118,14 @@ vars_of_gutter (void)
 void
 specifier_type_create_gutter (void)
 {
-  INITIALIZE_SPECIFIER_TYPE (gutter, "gutter", "gutter-specifier-p");
+  INITIALIZE_SPECIFIER_TYPE (gutter);
   SPECIFIER_HAS_METHOD (gutter, validate);
   SPECIFIER_HAS_METHOD (gutter, after_change);
 
-  INITIALIZE_SPECIFIER_TYPE (gutter_size, "gutter-size", "gutter-size-specifier-p");
+  INITIALIZE_SPECIFIER_TYPE (gutter_size);
   SPECIFIER_HAS_METHOD (gutter_size, validate);
 
-  INITIALIZE_SPECIFIER_TYPE (gutter_visible, "gutter-visible", "gutter-visible-specifier-p");
+  INITIALIZE_SPECIFIER_TYPE (gutter_visible);
   SPECIFIER_HAS_METHOD (gutter_visible, validate);
 }
 

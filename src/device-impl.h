@@ -46,13 +46,12 @@ struct pixel_to_glyph_translation_cache
 };
 
 /* Less public: */
-#define DEVICE_TYPE_NAME(d) ((d)->devmeths->name)
 #define DEVICE_IMPL_FLAG(d, f) CONMETH_IMPL_FLAG ((d)->devmeths, (f))
 #define DEVICE_SPECIFIC_FRAME_PROPS(d) \
   ((d)->devmeths->device_specific_frame_props)
 
 /* More public: */
-#define DEVICE_TYPE(d) ((d)->devmeths->symbol)
+#define DEVICE_TYPE(d) CONMETH_NAME ((d)->devmeths)
 #define XDEVICE_TYPE(d) DEVICE_TYPE (XDEVICE (d))
 
 /******** Accessing / calling a device method *********/
@@ -73,7 +72,7 @@ struct device
 
   /* Methods for this device's console.  This can also be retrieved
      through device->console, but it's faster this way. */
-  struct console_methods *devmeths;
+  const struct console_methods *devmeths;
 
   /* Duplicates devmeths->symbol.  See comment in struct console. */
   enum console_variant devtype;

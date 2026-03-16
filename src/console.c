@@ -78,7 +78,7 @@ Lisp_Object Vconsole_defaults;
    consoles.
 
    If a slot is -1, then there is a DEFVAR_CONSOLE_LOCAL for it
-  as well as a default value which is used to initialize newly-created
+   as well as a default value which is used to initialize newly-created
    consoles and as a reset-value when local-vars are killed.
 
    If a slot is -2, there is no DEFVAR_CONSOLE_LOCAL for it.
@@ -96,10 +96,7 @@ static Lisp_Object Vconsole_local_symbols;
 
 DEFINE_CONSOLE_TYPE (dead);
 
-Lisp_Object Vconsole_type_list;
-
-console_type_entry_dynarr *the_console_type_entry_dynarr;
-
+const_console_methods_pointer_dynarr *the_console_methods_dynarr;
 
 
 static const struct memory_description console_data_description_1 []= {
@@ -134,10 +131,8 @@ print_console (Lisp_Object obj, Lisp_Object printcharfun,
   if (print_readably)
     printing_unreadable_lisp_object (obj, XSTRING_DATA (con->name));
 
-  write_fmt_string (printcharfun, "#<%s-console",
-		    !CONSOLE_LIVE_P (con) ? "dead" : CONSOLE_TYPE_NAME (con));
-  if (CONSOLE_LIVE_P (con) && !NILP (CONSOLE_CONNECTION (con)))
-    write_fmt_string_lisp (printcharfun, " on %S", CONSOLE_CONNECTION (con));
+  write_fmt_string_lisp (printcharfun, "#<%s-console on %S",
+                         CONSOLE_TYPE (con), CONSOLE_CONNECTION (con));
   write_fmt_string (printcharfun, " 0x%x>", LISP_OBJECT_UID (obj));
 }
 
@@ -188,14 +183,21 @@ decode_console (Lisp_Object console)
 }
 
 
-struct console_methods *
+const struct console_methods *
 decode_console_type (Lisp_Object type, Error_Behavior errb)
 {
-  int i;
+  Elemcount ii = Dynarr_length (the_console_methods_dynarr);
 
-  for (i = 0; i < Dynarr_length (the_console_type_entry_dynarr); i++)
-    if (EQ (type, Dynarr_at (the_console_type_entry_dynarr, i).symbol))
-      return Dynarr_at (the_console_type_entry_dynarr, i).meths;
+  while (ii)
+    {
+      const struct console_methods *elt
+        = Dynarr_at (the_console_methods_dynarr, --ii);
+
+      if (EQ (type, elt->name))
+        {
+          return elt;
+        }
+    }
 
   maybe_invalid_constant ("Invalid console type", type, Qconsole, errb);
 
@@ -227,7 +229,7 @@ get_console_variant (Lisp_Object type)
   return dead_console; 
 }
 
-int
+Boolint
 valid_console_type_p (Lisp_Object type)
 {
   return decode_console_type (type, ERROR_ME_NOT) != 0;
@@ -247,7 +249,16 @@ Return a list of valid console types.
 */
        ())
 {
-  return Fcopy_list (Vconsole_type_list);
+  Lisp_Object result = Qnil;
+  Elemcount ii = Dynarr_length (the_console_methods_dynarr);
+
+  while (ii)
+    {
+      result = Fcons (Dynarr_at (the_console_methods_dynarr, --ii)->name,
+                      result);
+    }
+
+  return result;
 }
 
 DEFUN ("cdfw-console", Fcdfw_console, 1, 1, 0, /*
@@ -259,14 +270,14 @@ Return nil otherwise.
   return CDFW_CONSOLE (object);
 }
 
-int
-console_live_p (struct console *c)
+Boolint
+console_live_p (const struct console *c)
 {
   return CONSOLE_LIVE_P (c);
 }
 
 Lisp_Object
-console_device_list (struct console *c)
+console_device_list (const struct console *c)
 {
   return CONSOLE_DEVICE_LIST (c);
 }
@@ -392,7 +403,7 @@ CONSOLE defaults to the selected console if omitted.
 }
 
 static Lisp_Object
-semi_canonicalize_console_connection (struct console_methods *meths,
+semi_canonicalize_console_connection (const struct console_methods *meths,
 				      Lisp_Object name, Error_Behavior errb)
 {
   if (HAS_CONTYPE_METH_P (meths, semi_canonicalize_console_connection))
@@ -404,7 +415,7 @@ semi_canonicalize_console_connection (struct console_methods *meths,
 }
 
 static Lisp_Object
-canonicalize_console_connection (struct console_methods *meths,
+canonicalize_console_connection (const struct console_methods *meths,
 				 Lisp_Object name, Error_Behavior errb)
 {
   if (HAS_CONTYPE_METH_P (meths, canonicalize_console_connection))
@@ -416,7 +427,7 @@ canonicalize_console_connection (struct console_methods *meths,
 }
 
 static Lisp_Object
-find_console_of_type (struct console_methods *meths, Lisp_Object canon)
+find_console_of_type (const struct console_methods *meths, Lisp_Object canon)
 {
   Lisp_Object concons;
 
@@ -424,7 +435,7 @@ find_console_of_type (struct console_methods *meths, Lisp_Object canon)
     {
       Lisp_Object console = XCAR (concons);
 
-      if (EQ (CONMETH_TYPE (meths), CONSOLE_TYPE (XCONSOLE (console)))
+      if (EQ (CONMETH_NAME (meths), CONSOLE_TYPE (XCONSOLE (console)))
 	  && internal_equal (CONSOLE_CANON_CONNECTION (XCONSOLE (console)),
 			     canon, 0))
 	return console;
@@ -451,7 +462,8 @@ name; in such a case, the first console found is returned.)
 
   if (!NILP (type))
     {
-      struct console_methods *conmeths = decode_console_type (type, ERROR_ME);
+      const struct console_methods *conmeths
+        = decode_console_type (type, ERROR_ME);
       canon = canonicalize_console_connection (conmeths, connection,
 					       ERROR_ME_NOT);
       if (UNBOUNDP (canon))
@@ -463,10 +475,10 @@ name; in such a case, the first console found is returned.)
     {
       int i;
 
-      for (i = 0; i < Dynarr_length (the_console_type_entry_dynarr); i++)
+      for (i = 0; i < Dynarr_length (the_console_methods_dynarr); i++)
 	{
-	  struct console_methods *conmeths =
-	    Dynarr_at (the_console_type_entry_dynarr, i).meths;
+	  const struct console_methods *conmeths =
+	    Dynarr_at (the_console_methods_dynarr, i);
 	  canon = canonicalize_console_connection (conmeths, connection,
 						   ERROR_ME_NOT);
 	  if (!UNBOUNDP (canon))
@@ -540,18 +552,6 @@ create_console (Lisp_Object name, Lisp_Object type, Lisp_Object connection,
 
   UNGCPRO;
   return console;
-}
-
-void
-add_entry_to_console_type_list (Lisp_Object symbol,
-				struct console_methods *meths)
-{
-  struct console_type_entry entry;
-
-  entry.symbol = symbol;
-  entry.meths = meths;
-  Dynarr_add (the_console_type_entry_dynarr, entry);
-  Vconsole_type_list = Fcons (symbol, Vconsole_type_list);
 }
 
 /* find a console other than the selected one.  Prefer non-stream
@@ -1180,31 +1180,29 @@ syms_of_console (void)
   DEFSYMBOL (Qsuspend_resume_hook);
 }
 
-static const struct memory_description cte_description_1[] = {
-  { XD_LISP_OBJECT, offsetof (console_type_entry, symbol) },
-  { XD_BLOCK_PTR,  offsetof (console_type_entry, meths), 1,
-    { &console_methods_description } },
+static const struct memory_description console_methods_pointer_description_1[] = {
+  { XD_BLOCK_PTR, 0, 1, { &console_methods_description } },
   { XD_END }
 };
 
-static const struct sized_memory_description cte_description = {
-  sizeof (console_type_entry),
-  cte_description_1
+static const struct sized_memory_description console_methods_pointer_description = {
+  sizeof (struct console_methods *),
+  console_methods_pointer_description_1
 };
 
-static const struct memory_description cted_description_1[] = {
-  XD_DYNARR_DESC (console_type_entry_dynarr, &cte_description),
+static const struct memory_description cmpd_description_1[] = {
+  XD_DYNARR_DESC (const_console_methods_pointer_dynarr,
+                  &console_methods_pointer_description),
   { XD_END }
 };
 
-const struct sized_memory_description cted_description = {
-  sizeof (console_type_entry_dynarr),
-  cted_description_1
+const struct sized_memory_description cmpd_description = {
+  sizeof (const_console_methods_pointer_dynarr),
+  cmpd_description_1,
 };
 
 static const struct memory_description console_methods_description_1[] = {
-  { XD_ASCII_STRING, offsetof (struct console_methods, name) },
-  { XD_LISP_OBJECT, offsetof (struct console_methods, symbol) },
+  { XD_LISP_OBJECT, offsetof (struct console_methods, name) },
   { XD_LISP_OBJECT, offsetof (struct console_methods, predicate_symbol) },
 
   /* console methods */
@@ -1506,23 +1504,50 @@ const struct sized_memory_description console_methods_description = {
   console_methods_description_1
 };
 
+void
+initialize_console_type (struct console_methods **dest,
+                         Lisp_Object symbol)
+{
+  struct console_methods *result
+    = xnew_and_zero (struct console_methods);
+  Bytecount predicate_symbol_name_len
+    = XSTRING_LENGTH (XSYMBOL_NAME (symbol)) + sizeof ("console--p");
+  Ibyte *predicate_symbol_name = alloca_ibytes (predicate_symbol_name_len);
+
+  result->name = symbol;
+  result->predicate_symbol
+    = intern_istring (predicate_symbol_name,
+                      emacs_snprintf (predicate_symbol_name,
+                                      predicate_symbol_name_len,
+                                      "console-%s-p",
+                                      XSTRING_DATA (XSYMBOL_NAME (symbol))),
+                      Qnil, Vobarray);
+  result->image_conversion_list = Qnil;
+  staticpro (&(result->image_conversion_list));
+  Dynarr_add (the_console_methods_dynarr, result);
+
+  /* Pick up duplicate definitions of the same console type. */
+  structure_checking_assert (*dest == NULL);
+  *dest = result;
+  dump_add_root_block_ptr (dest, &console_methods_description);
+}
 
 void
 console_type_create (void)
 {
-  the_console_type_entry_dynarr = Dynarr_new (console_type_entry);
-  dump_add_root_block_ptr (&the_console_type_entry_dynarr, &cted_description);
-
-  Vconsole_type_list = Qnil;
-  staticpro (&Vconsole_type_list);
+  the_console_methods_dynarr
+    = Dynarr_new2 (const_console_methods_pointer_dynarr, 
+                   const struct console_methods *);
+  dump_add_root_block_ptr (&the_console_methods_dynarr, &cmpd_description);
 
   /* Initialize the dead console type */
-  INITIALIZE_CONSOLE_TYPE (dead, "dead", "console-dead-p");
+  INITIALIZE_CONSOLE_TYPE (dead);
 
-  /* then reset the console-type lists, because `dead' is not really
-     a valid console type */
-  Dynarr_delete (the_console_type_entry_dynarr, 0);
-  Vconsole_type_list = Qnil;
+  /* Now reset the console methods dynarr, because `dead' is not really a
+     valid console type. INITIALIZE_CONSOLE_TYPE() does a
+     dump_add_root_block_ptr() so the dead console is still reachable for
+     dump. */
+  Dynarr_delete (the_console_methods_dynarr, 0);
 }
 
 void

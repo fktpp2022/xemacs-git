@@ -1337,7 +1337,7 @@ vars_of_toolbar (void)
 void
 specifier_type_create_toolbar (void)
 {
-  INITIALIZE_SPECIFIER_TYPE (toolbar, "toolbar", "toolbar-specifier-p");
+  INITIALIZE_SPECIFIER_TYPE (toolbar);
 
   SPECIFIER_HAS_METHOD (toolbar, validate);
   SPECIFIER_HAS_METHOD (toolbar, after_change);

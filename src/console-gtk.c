@@ -180,7 +180,7 @@ gtk_perhaps_init_unseen_key_defaults (struct console *UNUSED(con),
 void
 console_type_create_gtk (void)
 {
-  INITIALIZE_CONSOLE_TYPE (gtk, "gtk", "console-gtk-p");
+  INITIALIZE_CONSOLE_TYPE (gtk);
 
   CONSOLE_HAS_METHOD (gtk, semi_canonicalize_console_connection);
   CONSOLE_HAS_METHOD (gtk, canonicalize_console_connection);

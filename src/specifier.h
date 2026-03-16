@@ -85,8 +85,12 @@ extern const struct sized_memory_description specifier_methods_description;
 
 struct specifier_methods
 {
-  const char *name;
-  Lisp_Object predicate_symbol;
+  Lisp_Object name;             /* Name of the type of specifier as a Lisp
+                                   symbol. */
+  Lisp_Object predicate_symbol; /* Symbol naming a function to check this is
+                                   the right type of specifier, passed to
+                                   dead_wrong_type_argument() by
+                                   CHECK_SPECIFIER_TYPE(). */
 
   /* Implementation specific methods: */
 
@@ -104,8 +108,8 @@ struct specifier_methods
   int (*equal_method) (Lisp_Object sp1, Lisp_Object sp2, int depth);
 
   /* Hash method: Hash specifier instance data. This has to hash only
-    data structure of the specifier, as specs are hashed by the core
-    code.
+     data structure of the specifier, as specs are hashed by the core
+     code.
 
      If this function is not present, hashing behaves as if it
      returned zero. */
@@ -211,13 +215,13 @@ struct specifier_methods
 
   /* Size of extra data structure; initialized when
      INITIALIZE_SPECIFIER_TYPE_WITH_DATA is called. */
-  int extra_data_size;
+  Bytecount extra_data_size;
 };
 
 struct Lisp_Specifier
 {
   NORMAL_LISP_OBJECT_HEADER header;
-  struct specifier_methods *methods;
+  const struct specifier_methods *methods;
 
   /* This is a straight list of instantiators. */
   Lisp_Object global_specs;
@@ -318,25 +322,19 @@ static const struct sized_memory_description type##_specifier_description_0 \
   type##_specifier_description						    \
 }
 
-#define INITIALIZE_SPECIFIER_TYPE(type, obj_name, pred_sym) do {	    \
-  type##_specifier_methods = xnew_and_zero (struct specifier_methods);	    \
-  type##_specifier_methods->name = obj_name;				    \
-  type##_specifier_methods->extra_description =				    \
-    &specifier_empty_extra_description;					    \
-  defsymbol (&type##_specifier_methods->predicate_symbol, pred_sym);	    \
-  add_entry_to_specifier_type_list (Q##type, type##_specifier_methods);	    \
-  dump_add_root_block_ptr (&type##_specifier_methods,			    \
-			    &specifier_methods_description);		    \
-} while (0)
+extern void initialize_specifier_type (struct specifier_methods **,
+                                       Lisp_Object,
+                                       const struct sized_memory_description *,
+                                       Bytecount);
 
-#define INITIALIZE_SPECIFIER_TYPE_WITH_DATA(type, obj_name, pred_sym)	\
-do {									\
-  INITIALIZE_SPECIFIER_TYPE (type, obj_name, pred_sym);			\
-  type##_specifier_methods->extra_data_size =				\
-    sizeof (struct type##_specifier);					\
-  type##_specifier_methods->extra_description =			\
-    &type##_specifier_description_0;					\
-} while (0)
+#define INITIALIZE_SPECIFIER_TYPE(type)                                 \
+  initialize_specifier_type (&type##_specifier_methods, Q##type,        \
+                             &specifier_empty_extra_description, 0)
+
+#define INITIALIZE_SPECIFIER_TYPE_WITH_DATA(type)                       \
+  initialize_specifier_type (&type##_specifier_methods, Q##type,        \
+                             &type##_specifier_description_0,           \
+                             sizeof (struct type##_specifier))
 
 /* Declare that specifier-type TYPE has method METH; used in
    initialization routines */
@@ -485,8 +483,6 @@ decode_how_to_add_specification (Lisp_Object how_to_add);
 Lisp_Object decode_specifier_tag_set (Lisp_Object tag_set);
 Lisp_Object decode_domain (Lisp_Object domain);
 
-void add_entry_to_specifier_type_list (Lisp_Object symbol,
-				       struct specifier_methods *meths);
 void set_specifier_caching (Lisp_Object specifier,
 			    int struct_window_offset,
 			    void (*value_changed_in_window)

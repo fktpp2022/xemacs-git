@@ -743,7 +743,7 @@ syms_of_console_mswindows (void)
 void
 console_type_create_mswindows (void)
 {
-  INITIALIZE_CONSOLE_TYPE (mswindows, "mswindows", "console-mswindows-p");
+  INITIALIZE_CONSOLE_TYPE (mswindows);
 
   /* console methods */
 /*  CONSOLE_HAS_METHOD (mswindows, init_console); */
@@ -755,7 +755,7 @@ console_type_create_mswindows (void)
 /*  CONSOLE_HAS_METHOD (mswindows, semi_canonicalize_device_connection); */
   CONSOLE_HAS_METHOD (mswindows, perhaps_init_unseen_key_defaults);
 
-  INITIALIZE_CONSOLE_TYPE (msprinter, "msprinter", "console-msprinter-p");
+  INITIALIZE_CONSOLE_TYPE (msprinter);
   CONSOLE_HAS_METHOD (msprinter, canonicalize_console_connection);
   CONSOLE_HAS_METHOD (msprinter, canonicalize_device_connection);
 }

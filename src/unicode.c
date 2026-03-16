@@ -4274,7 +4274,7 @@ syms_of_unicode (void)
 void
 coding_system_type_create_unicode (void)
 {
-  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (unicode, "unicode-coding-system-p");
+  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (unicode);
   CODING_SYSTEM_HAS_METHOD (unicode, print);
   CODING_SYSTEM_HAS_METHOD (unicode, convert);
   CODING_SYSTEM_HAS_METHOD (unicode, init_coding_stream);

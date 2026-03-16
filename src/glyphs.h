@@ -82,8 +82,6 @@ typedef struct
   Dynarr_declare (ii_keyword_entry);
 } ii_keyword_entry_dynarr;
 
-extern const struct sized_memory_description iim_description;
-
 enum image_instance_geometry
 {
   IMAGE_GEOMETRY,
@@ -109,12 +107,11 @@ enum governing_domain
 struct image_instantiator_methods
 {
   Lisp_Object symbol;
-
   Lisp_Object device;		/* sometimes used */
 
   ii_keyword_entry_dynarr *keywords;
   /* consoles this ii is supported on */
-  console_type_entry_dynarr *consoles;
+  const_console_methods_pointer_dynarr *consoles;
   /* Implementation specific methods: */
 
   /* Validate method: Given an instantiator vector, signal an error if
@@ -191,17 +188,18 @@ struct image_instantiator_methods
 /* Call a void-returning specifier method, if it exists */
 #define MAYBE_IIFORMAT_METH(mstruc, m, args)			\
 do {								\
-  struct image_instantiator_methods *MIM_mstruc = (mstruc);	\
+  const struct image_instantiator_methods *MIM_mstruc           \
+    = (mstruc);                                                 \
   if (MIM_mstruc && HAS_IIFORMAT_METH_P (MIM_mstruc, m))	\
     IIFORMAT_METH (MIM_mstruc, m, args);			\
 } while (0)
 
-#define MAYBE_IIFORMAT_DEVMETH(device, mstruc, m, args)	\
-do {							\
-  struct image_instantiator_methods *MID_mstruc =	\
-    decode_ii_device (device, mstruc);			\
-  if (MID_mstruc)					\
-    MAYBE_IIFORMAT_METH(MID_mstruc, m, args);		\
+#define MAYBE_IIFORMAT_DEVMETH(device, mstruc, m, args) \
+do {                                                    \
+  const struct image_instantiator_methods *MID_mstruc   \
+    = decode_ii_device (device, mstruc);                \
+  if (MID_mstruc)                                       \
+    MAYBE_IIFORMAT_METH(MID_mstruc, m, args);           \
 } while (0)
 
 
@@ -220,26 +218,20 @@ extern struct image_instantiator_methods *format##_image_instantiator_methods
 #define DEFINE_IMAGE_INSTANTIATOR_FORMAT(format)		\
 struct image_instantiator_methods *format##_image_instantiator_methods
 
-#define INITIALIZE_IMAGE_INSTANTIATOR_FORMAT_NO_SYM(format, obj_name)	\
-do {									\
-  format##_image_instantiator_methods =					\
-    xnew_and_zero (struct image_instantiator_methods);			\
-  format##_image_instantiator_methods->symbol = Q##format;		\
-  format##_image_instantiator_methods->device = Qnil;			\
-  format##_image_instantiator_methods->keywords =			\
-    Dynarr_new (ii_keyword_entry);					\
-  format##_image_instantiator_methods->consoles =			\
-    Dynarr_new (console_type_entry);					\
-  add_entry_to_image_instantiator_format_list				\
-    (Q##format, format##_image_instantiator_methods);			\
-  dump_add_root_block_ptr (&format##_image_instantiator_methods,	\
-			    &iim_description);				\
-} while (0)
+extern void
+initialize_image_instantiator_format (struct image_instantiator_methods
+                                      **, Lisp_Object format,
+                                      Lisp_Object device_type);
+                                      
 
-#define INITIALIZE_IMAGE_INSTANTIATOR_FORMAT(format, obj_name)	\
-do {								\
-  defsymbol (&Q##format, obj_name);				\
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT_NO_SYM(format, obj_name);\
+#define INITIALIZE_IMAGE_INSTANTIATOR_FORMAT_NO_SYM(format)             \
+  initialize_image_instantiator_format (&format##_image_instantiator_methods, \
+                                        Q##format, Qnil)
+
+#define INITIALIZE_IMAGE_INSTANTIATOR_FORMAT(format)            \
+do {                                                            \
+  DEFSYMBOL (Q##format);                                        \
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT_NO_SYM (format);         \
 } while (0)
 
 /* Declare that image-instantiator format FORMAT has method M; used in
@@ -282,14 +274,8 @@ IIFORMAT_VALID_GENERIC_KEYWORD(format, keyw, validate_fun, 0, 0)
 /* Declare that image-instantiator format FORMAT is supported on
    CONSOLE type. */
 #define IIFORMAT_VALID_CONSOLE(console, format)			\
-  do {								\
-    struct console_type_entry entry;				\
-								\
-    entry.symbol = Q##console;					\
-    entry.meths = console##_console_methods;			\
-    Dynarr_add (format##_image_instantiator_methods->consoles,	\
-		entry);						\
-  } while (0)
+  Dynarr_add (format##_image_instantiator_methods->consoles,	\
+              console##_console_methods)
 
 #define IIFORMAT_VALID_CONSOLE2(con1, con2, format)		\
   IIFORMAT_VALID_CONSOLE (con1, format);			\
@@ -299,20 +285,9 @@ IIFORMAT_VALID_GENERIC_KEYWORD(format, keyw, validate_fun, 0, 0)
 DECLARE_IMAGE_INSTANTIATOR_FORMAT(format);	\
 struct image_instantiator_methods *type##_##format##_image_instantiator_methods
 
-#define INITIALIZE_DEVICE_IIFORMAT(type, format)			   \
-do {									   \
-  type##_##format##_image_instantiator_methods =			   \
-    xnew_and_zero (struct image_instantiator_methods);			   \
-  type##_##format##_image_instantiator_methods->symbol = Q##format;	   \
-  type##_##format##_image_instantiator_methods->device = Q##type;	   \
-  type##_##format##_image_instantiator_methods->keywords =		   \
-    Dynarr_new (ii_keyword_entry);					   \
-  add_entry_to_device_ii_format_list					   \
-    (Q##type, Q##format, type##_##format##_image_instantiator_methods);	   \
-  IIFORMAT_VALID_CONSOLE(type,format);					   \
-  dump_add_root_block_ptr (&type##_##format##_image_instantiator_methods, \
-			    &iim_description);				   \
-} while (0)
+#define INITIALIZE_DEVICE_IIFORMAT(type, format)                        \
+  initialize_image_instantiator_format                                  \
+  (&type##_##format##_image_instantiator_methods, Q##format, Q##type)
 
 /* Declare that image-instantiator format FORMAT has method M; used in
    initialization routines */
@@ -328,21 +303,12 @@ do {									   \
 
 #define INSTANTIATOR_TYPE(inst) (XVECTOR_DATA ((inst))[0])
 
-struct image_instantiator_methods *decode_device_ii_format (Lisp_Object device,
-							    Lisp_Object format,
-							    Error_Behavior
-							    errb);
-struct image_instantiator_methods *decode_image_instantiator_format
-  (Lisp_Object format, Error_Behavior errb);
+const struct image_instantiator_methods *
+decode_device_ii_format (Lisp_Object device, Lisp_Object format,
+                         Error_Behavior errb);
+const struct image_instantiator_methods *
+decode_image_instantiator_format (Lisp_Object format, Error_Behavior errb);
 
-void add_entry_to_image_instantiator_format_list (Lisp_Object symbol,
-						  struct
-						  image_instantiator_methods *
-						  meths);
-void add_entry_to_device_ii_format_list (Lisp_Object device,
-					 Lisp_Object symbol,
-					 struct image_instantiator_methods *
-					 meths);
 Lisp_Object find_keyword_in_vector (Lisp_Object vector,
 				    Lisp_Object keyword);
 Lisp_Object find_keyword_in_vector_or_given (Lisp_Object vector,
@@ -915,7 +881,7 @@ struct Lisp_Image_Instance
 Lisp_Object image_instance_device (Lisp_Object instance);
 Lisp_Object image_instance_frame (Lisp_Object instance);
 Lisp_Object image_instance_window (Lisp_Object instance);
-int image_instance_live_p (Lisp_Object instance);
+Boolint image_instance_live_p (Lisp_Object instance);
 
 #ifdef HAVE_XPM
 Lisp_Object evaluate_xpm_color_symbols (void);
@@ -1026,7 +992,7 @@ unsigned short glyph_descent (Lisp_Object glyph, Lisp_Object domain);
 unsigned short glyph_height (Lisp_Object glyph, Lisp_Object domain);
 Lisp_Object glyph_baseline (Lisp_Object glyph, Lisp_Object domain);
 Lisp_Object glyph_face (Lisp_Object glyph, Lisp_Object domain);
-int glyph_contrib_p (Lisp_Object glyph, Lisp_Object domain);
+Boolint glyph_contrib_p (Lisp_Object glyph, Lisp_Object domain);
 Lisp_Object glyph_image_instance (Lisp_Object glyph,
 				  Lisp_Object domain,
 				  Error_Behavior errb, int no_quit);

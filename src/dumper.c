@@ -2355,7 +2355,6 @@ pdump_load_finish (void)
       pdump_loaded_cv_ptr[i].adr         = 0;
     }
 
-
   /* Put back the pdump_root_block_ptrs */
   p = (Rawbyte *) ALIGN_PTR (p, pdump_static_pointer);
   for (i = 0; i < header->nb_root_block_ptrs; i++)

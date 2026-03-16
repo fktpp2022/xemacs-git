@@ -2274,9 +2274,7 @@ syms_of_intl_win32 (void)
 void
 coding_system_type_create_intl_win32 (void)
 {
-  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA
-    (mswindows_multibyte_to_unicode,
-     "mswindows-multibyte-to-unicode-coding-system-p");
+  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (mswindows_multibyte_to_unicode);
   CODING_SYSTEM_HAS_METHOD (mswindows_multibyte_to_unicode, init);
   CODING_SYSTEM_HAS_METHOD (mswindows_multibyte_to_unicode, print);
   CODING_SYSTEM_HAS_METHOD (mswindows_multibyte_to_unicode, convert);
@@ -2285,9 +2283,7 @@ coding_system_type_create_intl_win32 (void)
   CODING_SYSTEM_HAS_METHOD (mswindows_multibyte_to_unicode,
 			    conversion_end_type);
 
-  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA
-    (mswindows_multibyte,
-     "mswindows-multibyte-coding-system-p");
+  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (mswindows_multibyte);
   CODING_SYSTEM_HAS_METHOD (mswindows_multibyte, convert);
   CODING_SYSTEM_HAS_METHOD (mswindows_multibyte, init);
   CODING_SYSTEM_HAS_METHOD (mswindows_multibyte, getprop);

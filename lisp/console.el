@@ -49,4 +49,35 @@ that the information is returned for; nil means the current console."
 	(console-list))
   nil)
 
+(macrolet
+    ((define-console-type-predicates (&rest arguments)
+       (cons
+        'progn
+        (mapcar
+         #'(lambda (symbol)
+             `(when (valid-console-type-p ',symbol)
+                (defalias (intern ,(format "console-%s-p" symbol))
+                    (lambda (object)
+                      ,(format
+                        "Return non-nil if OBJECT is a%.*s %s console."
+                        (if (member* (aref (symbol-name symbol) 0)
+                                     '(?x ?m))
+                            1
+                          0)
+                        "n"
+                        (upcase (symbol-name symbol)))
+                      (and (consolep object) (eq ',symbol
+                                                 (console-type object)))))))
+         arguments))))
+  ;; CONCHECK_CONSOLE_TYPE() in console-impl.h requires the existence of the
+  ;; associated predicates at runtime (console-x-p, console-tty-p,
+  ;; console-mswindows-p ...) if the specified console exists.
+  ;;
+  ;; Now, CONCHECK_CONSOLE_TYPE() is not actually used anywhere, so the
+  ;; existence of the relevant symbols is only for the sake of the
+  ;; dead_wrong_type_argument() call in CHECK_CONSOLE_TYPE(), and the
+  ;; associated predciate does not need to exist. It is confusing for it not
+  ;; to exist, create them at loadup type.
+  (define-console-type-predicates x tty mswindows msprinter gtk stream))
+
 ;;; console.el ends here

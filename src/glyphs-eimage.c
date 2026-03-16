@@ -1506,7 +1506,7 @@ image_instantiator_format_create_glyphs_eimage (void)
 {
   /* image-instantiator types */
 #ifdef HAVE_JPEG
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (jpeg, "jpeg");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (jpeg);
 
   IIFORMAT_HAS_METHOD (jpeg, validate);
   IIFORMAT_HAS_METHOD (jpeg, normalize);
@@ -1518,7 +1518,7 @@ image_instantiator_format_create_glyphs_eimage (void)
 #endif
 
 #ifdef HAVE_GIF
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (gif, "gif");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (gif);
 
   IIFORMAT_HAS_METHOD (gif, validate);
   IIFORMAT_HAS_METHOD (gif, normalize);
@@ -1530,7 +1530,7 @@ image_instantiator_format_create_glyphs_eimage (void)
 #endif
 
 #ifdef HAVE_PNG
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (png, "png");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (png);
 
   IIFORMAT_HAS_METHOD (png, validate);
   IIFORMAT_HAS_METHOD (png, normalize);
@@ -1542,7 +1542,7 @@ image_instantiator_format_create_glyphs_eimage (void)
 #endif
 
 #ifdef HAVE_TIFF
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (tiff, "tiff");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (tiff);
 
   IIFORMAT_HAS_METHOD (tiff, validate);
   IIFORMAT_HAS_METHOD (tiff, normalize);

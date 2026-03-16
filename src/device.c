@@ -129,14 +129,12 @@ print_device (Lisp_Object obj, Lisp_Object printcharfun,
   if (print_readably)
     printing_unreadable_lisp_object (obj, XSTRING_DATA (d->name));
 
-  write_fmt_string (printcharfun, "#<%s-device", !DEVICE_LIVE_P (d) ? "dead" :
-		    DEVICE_TYPE_NAME (d));
-  if (DEVICE_LIVE_P (d) && !NILP (DEVICE_CONNECTION (d)))
-    write_fmt_string_lisp (printcharfun, " on %S", DEVICE_CONNECTION (d));
+  write_fmt_string_lisp (printcharfun, "#<%s-device on %S",
+                         DEVICE_TYPE (d), DEVICE_CONNECTION (d));
   write_fmt_string (printcharfun, " 0x%x>", LISP_OBJECT_UID (obj));
 }
 
-int
+Boolint
 valid_device_class_p (Lisp_Object class_)
 {
   return !NILP (memq_no_quit (class_, Vdevice_class_list));
@@ -227,7 +225,7 @@ device_console (struct device *d)
   return DEVICE_CONSOLE (d);
 }
 
-int
+Boolint
 device_live_p (struct device *d)
 {
   return DEVICE_LIVE_P (d);
@@ -442,7 +440,7 @@ clear_default_devices (void)
 }
 
 static Lisp_Object
-semi_canonicalize_device_connection (struct console_methods *meths,
+semi_canonicalize_device_connection (const struct console_methods *meths,
 				     Lisp_Object name, Error_Behavior errb)
 {
   if (HAS_CONTYPE_METH_P (meths, semi_canonicalize_device_connection))
@@ -454,7 +452,7 @@ semi_canonicalize_device_connection (struct console_methods *meths,
 }
 
 static Lisp_Object
-canonicalize_device_connection (struct console_methods *meths,
+canonicalize_device_connection (const struct console_methods *meths,
 				Lisp_Object name, Error_Behavior errb)
 {
   if (HAS_CONTYPE_METH_P (meths, canonicalize_device_connection))
@@ -466,7 +464,7 @@ canonicalize_device_connection (struct console_methods *meths,
 }
 
 static Lisp_Object
-find_device_of_type (struct console_methods *meths, Lisp_Object canon)
+find_device_of_type (const struct console_methods *meths, Lisp_Object canon)
 {
   Lisp_Object devcons, concons;
 
@@ -474,7 +472,7 @@ find_device_of_type (struct console_methods *meths, Lisp_Object canon)
     {
       Lisp_Object device = XCAR (devcons);
 
-      if (EQ (CONMETH_TYPE (meths), DEVICE_TYPE (XDEVICE (device)))
+      if (EQ (CONMETH_NAME (meths), DEVICE_TYPE (XDEVICE (device)))
 	  && internal_equal (DEVICE_CANON_CONNECTION (XDEVICE (device)),
 			     canon, 0))
 	return device;
@@ -501,7 +499,8 @@ name; in such a case, the first device found is returned.)
 
   if (!NILP (type))
     {
-      struct console_methods *conmeths = decode_console_type (type, ERROR_ME);
+      const struct console_methods *conmeths
+        = decode_console_type (type, ERROR_ME);
       canon = canonicalize_device_connection (conmeths, connection,
 					      ERROR_ME_NOT);
       if (UNBOUNDP (canon))
@@ -513,10 +512,10 @@ name; in such a case, the first device found is returned.)
     {
       int i;
 
-      for (i = 0; i < Dynarr_length (the_console_type_entry_dynarr); i++)
+      for (i = 0; i < Dynarr_length (the_console_methods_dynarr); i++)
 	{
-	  struct console_methods *conmeths =
-	    Dynarr_at (the_console_type_entry_dynarr, i).meths;
+	  const struct console_methods *conmeths =
+	    Dynarr_at (the_console_methods_dynarr, i);
 	  canon = canonicalize_device_connection (conmeths, connection,
 						  ERROR_ME_NOT);
 	  if (!UNBOUNDP (canon))
@@ -564,7 +563,7 @@ have no effect.
   Lisp_Object device = Qnil;
   Lisp_Object console = Qnil;
   Lisp_Object name = Qnil;
-  struct console_methods *conmeths;
+  const struct console_methods *conmeths;
   int speccount = specpdl_depth ();
 
   struct gcpro gcpro1, gcpro2, gcpro3;
@@ -1250,12 +1249,13 @@ domain_device_type (Lisp_Object domain)
  * or pixel counts.
  * Return non-zero for pixel-based geometry, zero for character-based.
  */
-int
+Boolint
 window_system_pixelated_geometry (Lisp_Object domain)
 {
   /* This cannot GC */
   Lisp_Object winsy = domain_device_type (domain);
-  struct console_methods *meth = decode_console_type (winsy, ERROR_ME_NOT);
+  const struct console_methods *meth
+    = decode_console_type (winsy, ERROR_ME_NOT);
   assert (meth);
   return CONMETH_IMPL_FLAG (meth, XDEVIMPF_PIXEL_GEOMETRY);
 }
@@ -1279,11 +1279,11 @@ handle_asynch_device_change (void)
 {
   int i;
   int old_asynch_device_change_pending = asynch_device_change_pending;
-  for (i = 0; i < Dynarr_length (the_console_type_entry_dynarr); i++)
+  for (i = 0; i < Dynarr_length (the_console_methods_dynarr); i++)
     {
-      if (Dynarr_at (the_console_type_entry_dynarr, i).meths->
+      if (Dynarr_at (the_console_methods_dynarr, i)->
 	  asynch_device_change_method)
-	(Dynarr_at (the_console_type_entry_dynarr, i).meths->
+	(Dynarr_at (the_console_methods_dynarr, i)->
 	 asynch_device_change_method) ();
     }
   /* reset the flag to 0 unless another notification occurred while

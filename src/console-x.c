@@ -380,7 +380,7 @@ x_perhaps_init_unseen_key_defaults (struct console *con, Lisp_Object key)
 void
 console_type_create_x (void)
 {
-  INITIALIZE_CONSOLE_TYPE (x, "x", "console-x-p");
+  INITIALIZE_CONSOLE_TYPE (x);
 
   CONSOLE_HAS_METHOD (x, semi_canonicalize_console_connection);
   CONSOLE_HAS_METHOD (x, canonicalize_console_connection);

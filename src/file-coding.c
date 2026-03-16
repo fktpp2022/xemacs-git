@@ -118,40 +118,34 @@ debug_out_no_conversion (const Extbyte *fmt, ...)
 extern Lisp_Object Vcharset_ascii, Vcharset_control_1,
   Vcharset_latin_iso8859_1;
 
-typedef struct coding_system_type_entry
-{
-  struct coding_system_methods *meths;
-} coding_system_type_entry;
-
 typedef struct
 {
-  Dynarr_declare (coding_system_type_entry);
-} coding_system_type_entry_dynarr;
+  Dynarr_declare (const struct coding_system_methods *);
+} const_coding_system_methods_pointer_dynarr;
 
-static coding_system_type_entry_dynarr *the_coding_system_type_entry_dynarr;
+static
+const_coding_system_methods_pointer_dynarr *the_coding_system_methods_dynarr;
 
-static const struct memory_description cste_description_1[] = {
-  { XD_BLOCK_PTR,  offsetof (coding_system_type_entry, meths), 1,
-    { &coding_system_methods_description } },
+static const struct memory_description ccsmp_description_1[] = {
+  { XD_BLOCK_PTR, 0, 1, { &coding_system_methods_description } },
   { XD_END }
 };
 
-static const struct sized_memory_description cste_description = {
-  sizeof (coding_system_type_entry),
-  cste_description_1
+static const struct sized_memory_description ccsmp_description = {
+  sizeof (const struct coding_system_methods *),
+  ccsmp_description_1
 };
 
-static const struct memory_description csted_description_1[] = {
-  XD_DYNARR_DESC (coding_system_type_entry_dynarr, &cste_description),
+static const struct memory_description ccsmpd_description_1[] = {
+  XD_DYNARR_DESC (const_coding_system_methods_pointer_dynarr,
+                  &ccsmp_description),
   { XD_END }
 };
 
-static const struct sized_memory_description csted_description = {
-  sizeof (coding_system_type_entry_dynarr),
-  csted_description_1
+static const struct sized_memory_description ccsmpd_description = {
+  sizeof (const_coding_system_methods_pointer_dynarr),
+  ccsmpd_description_1
 };
-
-static Lisp_Object Vcoding_system_type_list;
 
 /* Coding system currently associated with each coding category. */
 Lisp_Object coding_category_system[MAX_DETECTOR_CATEGORIES];
@@ -287,7 +281,7 @@ static void
 print_coding_system_properties (Lisp_Object obj, Lisp_Object printcharfun)
 {
   Lisp_Coding_System *c = XCODING_SYSTEM (obj);
-  print_internal (c->methods->type, printcharfun, 1);
+  print_internal (c->methods->name, printcharfun, 1);
   MAYBE_CODESYSMETH (c, print, (obj, printcharfun, 1));
   if (CODING_SYSTEM_EOL_TYPE (c) != EOL_AUTODETECT)
     write_fmt_string_lisp (printcharfun, " eol-type=%s",
@@ -344,7 +338,7 @@ sizeof_coding_system (Lisp_Object obj)
 
 static const struct memory_description coding_system_methods_description_1[]
 = {
-  { XD_LISP_OBJECT, offsetof (struct coding_system_methods, type) },
+  { XD_LISP_OBJECT, offsetof (struct coding_system_methods, name) },
   { XD_LISP_OBJECT, offsetof (struct coding_system_methods,
                               predicate_symbol) },
   { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
@@ -422,25 +416,28 @@ const struct sized_memory_description coding_system_empty_extra_description = {
 /*                       Creating coding systems                        */
 /************************************************************************/
 
-static struct coding_system_methods *
+static const struct coding_system_methods *
 decode_coding_system_type (Lisp_Object type, Error_Behavior errb)
 {
-  int i;
+  Elemcount ii = Dynarr_length (the_coding_system_methods_dynarr);
 
-  for (i = 0; i < Dynarr_length (the_coding_system_type_entry_dynarr); i++)
+  while (ii)
     {
-      if (EQ (type,
-	      Dynarr_at (the_coding_system_type_entry_dynarr, i).meths->type))
-	return Dynarr_at (the_coding_system_type_entry_dynarr, i).meths;
+      const struct coding_system_methods *elt
+        = Dynarr_at (the_coding_system_methods_dynarr, --ii);
+
+      if (EQ (type, elt->name))
+        {
+          return elt;
+        }
     }
 
   maybe_invalid_constant ("Invalid coding system type", type,
 			  Qcoding_system, errb);
-
   return 0;
 }
 
-static int
+static Boolint
 valid_coding_system_type_p (Lisp_Object type)
 {
   return decode_coding_system_type (type, ERROR_ME_NOT) != 0;
@@ -462,17 +459,16 @@ Return a list of valid coding system types.
 */
        ())
 {
-  return Fcopy_list (Vcoding_system_type_list);
-}
+  Lisp_Object result = Qnil;
+  Elemcount ii = Dynarr_length (the_coding_system_methods_dynarr);
 
-void
-add_entry_to_coding_system_type_list (struct coding_system_methods *meths)
-{
-  struct coding_system_type_entry entry;
+  while (ii)
+    {
+      result = Fcons (Dynarr_at (the_coding_system_methods_dynarr, --ii)->name,
+                      result);
+    }
 
-  entry.meths = meths;
-  Dynarr_add (the_coding_system_type_entry_dynarr, entry);
-  Vcoding_system_type_list = Fcons (meths->type, Vcoding_system_type_list);
+  return result;
 }
 
 static Lisp_Object
@@ -657,7 +653,7 @@ coding system, an error is signaled instead of returning nil.
   return coding_system;
 }
 
-int
+Boolint
 coding_system_is_binary (Lisp_Object coding_system)
 {
   Lisp_Coding_System *cs = XCODING_SYSTEM (coding_system);
@@ -678,7 +674,7 @@ coding_system_real_canonical (Lisp_Object cs)
 
 /* Return true if coding system is of the "standard" type that decodes
    bytes into characters (suitable for decoding a text file). */
-int
+Boolint
 coding_system_is_for_text_file (Lisp_Object coding_system)
 {
   return (XCODESYSMETH_OR_GIVEN
@@ -688,7 +684,7 @@ coding_system_is_for_text_file (Lisp_Object coding_system)
 	  DECODES_BYTE_TO_CHARACTER);
 }
 
-static int
+static Boolint
 decoding_source_sink_type_is_char (Lisp_Object cs, enum source_or_sink sex)
 {
   enum source_sink_type type =
@@ -854,7 +850,7 @@ Return the name of the given coding system.
 }
 
 static Lisp_Coding_System *
-allocate_coding_system (struct coding_system_methods *codesys_meths,
+allocate_coding_system (const struct coding_system_methods *codesys_meths,
 			Bytecount data_size,
 			Lisp_Object name)
 {
@@ -1043,7 +1039,7 @@ make_coding_system_1 (Lisp_Object name_or_existing, const Ascbyte *prefix,
   Lisp_Coding_System *cs;
   int need_to_setup_eol_systems = 1;
   enum eol_type eol_wrapper = EOL_AUTODETECT;
-  struct coding_system_methods *meths;
+  const struct coding_system_methods *meths;
   Lisp_Object csobj;
   Lisp_Object defmnem = Qnil, aliases = Qnil;
 
@@ -3151,7 +3147,7 @@ handle_standard_encoding_error (struct coding_stream *str, const UExtbyte *src,
   Dynarr_add (dst, CANT_CONVERT_CHAR_WHEN_ENCODING);
 }
 
-int
+Boolint
 handle_possible_error_octet (Ichar ich,
 			     struct coding_stream *str, const UExtbyte *src,
 			     unsigned_char_dynarr *dst, int *code_out)
@@ -6368,20 +6364,57 @@ syms_of_file_coding (void)
 }
 
 void
+initialize_coding_system_type (struct coding_system_methods **dest,
+                               Lisp_Object symbol,
+                               enum coding_system_variant enumtype,
+                               const struct sized_memory_description *
+                               extra_description,
+                               Bytecount extra_data_size,
+                               const struct sized_memory_description *
+                               stream_description,
+                               Bytecount stream_data_size)
+{
+  struct coding_system_methods *result
+    = xnew_and_zero (struct coding_system_methods);
+  Bytecount predicate_symbol_name_len
+    = XSTRING_LENGTH (XSYMBOL_NAME (symbol)) + sizeof ("-coding-system-p");
+  Ibyte *predicate_symbol_name = alloca_ibytes (predicate_symbol_name_len);
+
+  result->name = symbol;
+  result->predicate_symbol
+    = intern_istring (predicate_symbol_name,
+                      emacs_snprintf (predicate_symbol_name,
+                                      predicate_symbol_name_len,
+                                      "%s-coding-system-p",
+                                      XSTRING_DATA (XSYMBOL_NAME (symbol))),
+                      Qnil, Vobarray);
+  result->enumtype = enumtype;
+  result->extra_description = extra_description;
+  result->extra_data_size = extra_data_size;
+  result->stream_description = stream_description;
+  result->stream_data_size = stream_data_size;
+  Dynarr_add (the_coding_system_methods_dynarr, result);
+
+  /* Pick up duplicate definitions of the same coding system type. */
+  structure_checking_assert (*dest == NULL);
+  *dest = result;
+  dump_add_root_block_ptr (dest, &coding_system_methods_description);	
+}
+
+void
 coding_system_type_create (void)
 {
   int i;
 
-  staticpro (&Vcoding_system_hash_table);
   Vcoding_system_hash_table =
     make_lisp_hash_table (50, HASH_TABLE_NON_WEAK, Qeq);
+  staticpro (&Vcoding_system_hash_table);
 
-  the_coding_system_type_entry_dynarr = Dynarr_new (coding_system_type_entry);
-  dump_add_root_block_ptr (&the_coding_system_type_entry_dynarr,
-			    &csted_description);
-
-  Vcoding_system_type_list = Qnil;
-  staticpro (&Vcoding_system_type_list);
+  the_coding_system_methods_dynarr
+    = Dynarr_new2 (const_coding_system_methods_pointer_dynarr,
+                   const struct coding_system_methods *);
+  dump_add_root_block_ptr (&the_coding_system_methods_dynarr,
+                           &ccsmpd_description);
 
   /* Initialize to something reasonable ... */
   for (i = 0; i < MAX_DETECTOR_CATEGORIES; i++)
@@ -6421,8 +6454,7 @@ coding_system_type_create (void)
                        sizeof (detection_state_description),
                        detection_state_description_stynarr_description_1);
 
-  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (no_conversion,
-                                           "no-conversion-coding-system-p");
+  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (no_conversion);
 
   CODING_SYSTEM_HAS_METHOD (no_conversion, convert);
   CODING_SYSTEM_HAS_METHOD (no_conversion, character_tell);
@@ -6431,8 +6463,7 @@ coding_system_type_create (void)
   DETECTOR_HAS_METHOD (no_conversion, detect);
   INITIALIZE_DETECTOR_CATEGORY (no_conversion, no_conversion);
 
-  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (convert_eol,
-					   "convert-eol-coding-system-p");
+  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (convert_eol);
   CODING_SYSTEM_HAS_METHOD (convert_eol, print);
   CODING_SYSTEM_HAS_METHOD (convert_eol, convert);
   CODING_SYSTEM_HAS_METHOD (convert_eol, getprop);
@@ -6441,8 +6472,7 @@ coding_system_type_create (void)
   CODING_SYSTEM_HAS_METHOD (convert_eol, canonicalize_after_coding);
   CODING_SYSTEM_HAS_METHOD (convert_eol, init_coding_stream);
 
-  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (undecided,
-					   "undecided-coding-system-p");
+  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (undecided);
   CODING_SYSTEM_HAS_METHOD (undecided, init);
   CODING_SYSTEM_HAS_METHOD (undecided, print);
   CODING_SYSTEM_HAS_METHOD (undecided, convert);
@@ -6454,7 +6484,7 @@ coding_system_type_create (void)
   CODING_SYSTEM_HAS_METHOD (undecided, canonicalize);
   CODING_SYSTEM_HAS_METHOD (undecided, canonicalize_after_coding);
 
-  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (chain, "chain-coding-system-p");
+  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (chain);
 
   CODING_SYSTEM_HAS_METHOD (chain, print);
   CODING_SYSTEM_HAS_METHOD (chain, canonicalize);
@@ -6469,12 +6499,12 @@ coding_system_type_create (void)
   CODING_SYSTEM_HAS_METHOD (chain, canonicalize_after_coding);
 
 #ifdef DEBUG_XEMACS
-  INITIALIZE_CODING_SYSTEM_TYPE (internal, "internal-coding-system-p");
+  INITIALIZE_CODING_SYSTEM_TYPE (internal);
   CODING_SYSTEM_HAS_METHOD (internal, convert);
 #endif
 
 #ifdef HAVE_ZLIB
-  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (gzip, "gzip-coding-system-p");
+  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (gzip);
   CODING_SYSTEM_HAS_METHOD (gzip, conversion_end_type);
   CODING_SYSTEM_HAS_METHOD (gzip, convert);
   CODING_SYSTEM_HAS_METHOD (gzip, init);

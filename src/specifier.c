@@ -56,43 +56,34 @@ static Lisp_Object Vuser_defined_tags;
    tags. */
 static Lisp_Object Vcharset_tag_lists;
 
-typedef struct specifier_type_entry specifier_type_entry;
-struct specifier_type_entry
-{
-  Lisp_Object symbol;
-  struct specifier_methods *meths;
-};
-
 typedef struct
 {
-  Dynarr_declare (specifier_type_entry);
-} specifier_type_entry_dynarr;
+  Dynarr_declare (const struct specifier_methods *);
+} specifier_methods_pointer_dynarr;
 
-static specifier_type_entry_dynarr *the_specifier_type_entry_dynarr;
+static specifier_methods_pointer_dynarr *the_specifier_methods_dynarr;
 
-static const struct memory_description ste_description_1[] = {
-  { XD_LISP_OBJECT, offsetof (specifier_type_entry, symbol) },
-  { XD_BLOCK_PTR,  offsetof (specifier_type_entry, meths), 1,
-    { &specifier_methods_description } },
+static const struct memory_description specifier_methods_pointer_description_1[]
+= {
+  { XD_BLOCK_PTR, 0, 1, { &specifier_methods_description } },
   { XD_END }
 };
 
-static const struct sized_memory_description ste_description = {
-  sizeof (specifier_type_entry),
-  ste_description_1
+static const struct sized_memory_description specifier_methods_pointer_description = {
+  sizeof (struct specifier_methods *),
+  specifier_methods_pointer_description_1
 };
 
-static const struct memory_description sted_description_1[] = {
-  XD_DYNARR_DESC (specifier_type_entry_dynarr, &ste_description),
+static const struct memory_description specifier_methods_pointer_dynarr_description_1[] = {
+  XD_DYNARR_DESC (specifier_methods_pointer_dynarr,
+                  &specifier_methods_pointer_description),
   { XD_END }
 };
 
-static const struct sized_memory_description sted_description = {
-  sizeof (specifier_type_entry_dynarr),
-  sted_description_1
+static const struct sized_memory_description specifier_methods_pointer_dynarr_description = {
+  sizeof (specifier_methods_pointer_dynarr),
+  specifier_methods_pointer_dynarr_description_1
 };
-
-static Lisp_Object Vspecifier_type_list;
 
 static Lisp_Object Vcached_specifiers;
 static Lisp_Object Vall_specifiers;
@@ -276,9 +267,12 @@ print_specifier (Lisp_Object obj, Lisp_Object printcharfun, int escapeflag)
 
   if (print_readably)
     printing_unreadable_object_fmt ("#<%s-specifier 0x%x>",
-				    sp->methods->name, LISP_OBJECT_UID (obj));
+				    XSTRING_DATA
+                                    (XSYMBOL_NAME (sp->methods->name)),
+                                    LISP_OBJECT_UID (obj));
 
-  write_fmt_string (printcharfun, "#<%s-specifier global=", sp->methods->name);
+  write_fmt_string_lisp (printcharfun, "#<%s-specifier global=",
+                         sp->methods->name);
 #if 0
   /* #### Not obvious this is useful, and overrides user settings; if we
      resurrect this, create variables like `print-specifier-length' so it
@@ -392,7 +386,7 @@ sizeof_specifier (Lisp_Object obj)
 }
 
 static const struct memory_description specifier_methods_description_1[] = {
-  { XD_ASCII_STRING, offsetof (struct specifier_methods, name) },
+  { XD_LISP_OBJECT, offsetof (struct specifier_methods, name) },
   { XD_LISP_OBJECT, offsetof (struct specifier_methods, predicate_symbol) },
   { XD_FUNCTION_POINTER, offsetof (struct specifier_methods, create_method) },
   { XD_FUNCTION_POINTER, offsetof (struct specifier_methods, equal_method) },
@@ -469,24 +463,28 @@ const struct sized_memory_description specifier_empty_extra_description = {
 /*                       Creating specifiers                            */
 /************************************************************************/
 
-static struct specifier_methods *
+static const struct specifier_methods *
 decode_specifier_type (Lisp_Object type, Error_Behavior errb)
 {
-  int i;
+  Elemcount ii = Dynarr_length (the_specifier_methods_dynarr);
 
-  for (i = 0; i < Dynarr_length (the_specifier_type_entry_dynarr); i++)
+  while (ii)
     {
-      if (EQ (type, Dynarr_at (the_specifier_type_entry_dynarr, i).symbol))
-	return Dynarr_at (the_specifier_type_entry_dynarr, i).meths;
+      const struct specifier_methods *elt
+        = Dynarr_at (the_specifier_methods_dynarr, --ii);
+
+      if (EQ (type, elt->name))
+        {
+          return elt;
+        }
     }
 
-  maybe_invalid_argument ("Invalid specifier type",
-			  type, Qspecifier, errb);
+  maybe_invalid_argument ("Invalid specifier type", type, Qspecifier, errb);
 
   return 0;
 }
 
-static int
+static Boolint
 valid_specifier_type_p (Lisp_Object type)
 {
   return decode_specifier_type (type, ERROR_ME_NOT) != 0;
@@ -507,23 +505,20 @@ Return a list of valid specifier types.
 */
        ())
 {
-  return Fcopy_list (Vspecifier_type_list);
-}
+  Lisp_Object result = Qnil;
+  Elemcount ii = Dynarr_length (the_specifier_methods_dynarr);
 
-void
-add_entry_to_specifier_type_list (Lisp_Object symbol,
-				  struct specifier_methods *meths)
-{
-  struct specifier_type_entry entry;
+  while (ii)
+    {
+      result = Fcons (Dynarr_at (the_specifier_methods_dynarr, --ii)->name,
+                      result);
+    }
 
-  entry.symbol = symbol;
-  entry.meths = meths;
-  Dynarr_add (the_specifier_type_entry_dynarr, entry);
-  Vspecifier_type_list = Fcons (symbol, Vspecifier_type_list);
+  return result;
 }
 
 static Lisp_Object
-make_specifier_internal (struct specifier_methods *spec_meths,
+make_specifier_internal (const struct specifier_methods *spec_meths,
 			 Bytecount data_size, int call_create_meth)
 {
   Lisp_Object specifier =
@@ -554,7 +549,7 @@ make_specifier_internal (struct specifier_methods *spec_meths,
 }
 
 static Lisp_Object
-make_specifier (struct specifier_methods *meths)
+make_specifier (const struct specifier_methods *meths)
 {
   return make_specifier_internal (meths, meths->extra_data_size, 1);
 }
@@ -563,7 +558,8 @@ Lisp_Object
 make_magic_specifier (Lisp_Object type)
 {
   /* This function can GC */
-  struct specifier_methods *meths = decode_specifier_type (type, ERROR_ME);
+  const struct specifier_methods *meths
+    = decode_specifier_type (type, ERROR_ME);
   Lisp_Object bodily, ghost;
   struct gcpro gcpro1;
 
@@ -633,7 +629,8 @@ and `current-display-table'.
        (type))
 {
   /* This function can GC */
-  struct specifier_methods *meths = decode_specifier_type (type, ERROR_ME);
+  const struct specifier_methods
+    *meths = decode_specifier_type (type, ERROR_ME);
 
   return make_specifier (meths);
 }
@@ -644,7 +641,7 @@ Return the type of SPECIFIER.
        (specifier))
 {
   CHECK_SPECIFIER (specifier);
-  return intern (XSPECIFIER (specifier)->methods->name);
+  return XSPECIFIER (specifier)->methods->name;
 }
 
 
@@ -1402,7 +1399,7 @@ This includes the built-in ones (the device types and classes).
   argz[2] = Qnil; /* Initialise it to nil so we don't have an issue with GCing
                      random stack data. */
   argz[2] = FmapcarX (2, argz); /* Get the cars of Vuser_defined_tags. */
-  argz[0] = Vconsole_type_list;
+  argz[0] = Fconsole_type_list ();
   argz[1] = Vdevice_class_list;
 
   RETURN_UNGCPRO (concatenate (countof (argz), argz, Qlist, 1));
@@ -1496,7 +1493,7 @@ call_validate_method (Lisp_Object boxed_method, Lisp_Object instantiator)
 
 static Lisp_Object
 check_valid_instantiator (Lisp_Object instantiator,
-			  struct specifier_methods *meths,
+			  const struct specifier_methods *meths,
 			  Error_Behavior errb)
 {
   if (meths->validate_method)
@@ -1533,8 +1530,8 @@ Signal an error if INSTANTIATOR is invalid for SPECIFIER-TYPE.
 */
        (instantiator, specifier_type))
 {
-  struct specifier_methods *meths = decode_specifier_type (specifier_type,
-							   ERROR_ME);
+  const struct specifier_methods *meths
+    = decode_specifier_type (specifier_type, ERROR_ME);
 
   return check_valid_instantiator (instantiator, meths, ERROR_ME);
 }
@@ -1544,14 +1541,15 @@ Return non-nil if INSTANTIATOR is valid for SPECIFIER-TYPE.
 */
        (instantiator, specifier_type))
 {
-  struct specifier_methods *meths = decode_specifier_type (specifier_type,
-							   ERROR_ME);
+  const struct specifier_methods *meths
+    = decode_specifier_type (specifier_type, ERROR_ME);
 
   return check_valid_instantiator (instantiator, meths, ERROR_ME_NOT);
 }
 
 static Lisp_Object
-check_valid_inst_list (Lisp_Object inst_list, struct specifier_methods *meths,
+check_valid_inst_list (Lisp_Object inst_list,
+                       const struct specifier_methods *meths,
 		       Error_Behavior errb)
 {
   EXTERNAL_LIST_LOOP_2 (inst_pair, inst_list)
@@ -1585,7 +1583,8 @@ Signal an error if INST-LIST is invalid for specifier type TYPE.
 */
        (inst_list, type))
 {
-  struct specifier_methods *meths = decode_specifier_type (type, ERROR_ME);
+  const struct specifier_methods *meths
+    = decode_specifier_type (type, ERROR_ME);
 
   return check_valid_inst_list (inst_list, meths, ERROR_ME);
 }
@@ -1595,13 +1594,15 @@ Return non-nil if INST-LIST is valid for specifier type TYPE.
 */
        (inst_list, type))
 {
-  struct specifier_methods *meths = decode_specifier_type (type, ERROR_ME);
+  const struct specifier_methods *meths
+    = decode_specifier_type (type, ERROR_ME);
 
   return check_valid_inst_list (inst_list, meths, ERROR_ME_NOT);
 }
 
 static Lisp_Object
-check_valid_spec_list (Lisp_Object spec_list, struct specifier_methods *meths,
+check_valid_spec_list (Lisp_Object spec_list,
+                       const struct specifier_methods *meths,
 		       Error_Behavior errb)
 {
   EXTERNAL_LIST_LOOP_2 (spec, spec_list)
@@ -1634,7 +1635,8 @@ Signal an error if SPEC-LIST is invalid for specifier type TYPE.
 */
        (spec_list, type))
 {
-  struct specifier_methods *meths = decode_specifier_type (type, ERROR_ME);
+  const struct specifier_methods *meths
+    = decode_specifier_type (type, ERROR_ME);
 
   return check_valid_spec_list (spec_list, meths, ERROR_ME);
 }
@@ -1644,7 +1646,8 @@ Return non-nil if SPEC-LIST is valid for specifier type TYPE.
 */
        (spec_list, type))
 {
-  struct specifier_methods *meths = decode_specifier_type (type, ERROR_ME);
+  const struct specifier_methods *meths
+    = decode_specifier_type (type, ERROR_ME);
 
   return check_valid_spec_list (spec_list, meths, ERROR_ME_NOT);
 }
@@ -2667,7 +2670,7 @@ call_validate_matchspec_method (Lisp_Object boxed_method,
 
 static Lisp_Object
 check_valid_specifier_matchspec (Lisp_Object matchspec,
-				 struct specifier_methods *meths,
+				 const struct specifier_methods *meths,
 				 Error_Behavior errb)
 {
   if (meths->validate_matchspec_method)
@@ -2700,7 +2703,7 @@ check_valid_specifier_matchspec (Lisp_Object matchspec,
     {
       maybe_sferror
 	("Matchspecs not allowed for this specifier type",
-	 intern (meths->name), Qspecifier, errb);
+	 meths->name, Qspecifier, errb);
       return Qnil;
     }
 }
@@ -2712,8 +2715,8 @@ See `specifier-matching-instance' for a description of matchspecs.
 */
        (matchspec, specifier_type))
 {
-  struct specifier_methods *meths = decode_specifier_type (specifier_type,
-							   ERROR_ME);
+  const struct specifier_methods *meths
+    = decode_specifier_type (specifier_type, ERROR_ME);
 
   return check_valid_specifier_matchspec (matchspec, meths, ERROR_ME);
 }
@@ -2724,8 +2727,8 @@ See `specifier-matching-instance' for a description of matchspecs.
 */
        (matchspec, specifier_type))
 {
-  struct specifier_methods *meths = decode_specifier_type (specifier_type,
-							   ERROR_ME);
+  const struct specifier_methods *meths
+    = decode_specifier_type (specifier_type, ERROR_ME);
 
   return check_valid_specifier_matchspec (matchspec, meths, ERROR_ME_NOT);
 }
@@ -3825,31 +3828,59 @@ syms_of_specifier (void)
 }
 
 void
+initialize_specifier_type (struct specifier_methods **dest,
+                           Lisp_Object symbol,
+                           const struct sized_memory_description *
+                           extra_description,
+                           Bytecount extra_data_size)
+{
+  Bytecount predicate_symbol_name_len
+    = XSTRING_LENGTH (XSYMBOL_NAME (symbol)) + sizeof ("-specifier-p");
+  Ibyte *predicate_symbol_name = alloca_ibytes (predicate_symbol_name_len);
+  struct specifier_methods *result
+    = xnew_and_zero (struct specifier_methods);
+
+  result->name = symbol;
+  result->extra_description = extra_description;
+  result->extra_data_size = extra_data_size;
+  result->predicate_symbol
+    = intern_istring (predicate_symbol_name,
+                      emacs_snprintf (predicate_symbol_name,
+                                      predicate_symbol_name_len,
+                                      "%s-specifier-p",
+                                      XSTRING_DATA (XSYMBOL_NAME (symbol))),
+                      Qnil, Vobarray);
+  staticpro (&(result->predicate_symbol));
+
+  Dynarr_add (the_specifier_methods_dynarr, result);
+
+  /* Pick up duplicate definitions of the same specifier type. */
+  structure_checking_assert (*dest == NULL);
+  *dest = result;
+  dump_add_root_block_ptr (dest, &specifier_methods_description);
+}
+                           
+void
 specifier_type_create (void)
 {
-  the_specifier_type_entry_dynarr = Dynarr_new (specifier_type_entry);
-  dump_add_root_block_ptr (&the_specifier_type_entry_dynarr, &sted_description);
+  the_specifier_methods_dynarr
+    = Dynarr_new2 (specifier_methods_pointer_dynarr,
+                   const struct specifier_methods *);
+  dump_add_root_block_ptr (&the_specifier_methods_dynarr,
+                           &specifier_methods_pointer_dynarr_description);
 
-  Vspecifier_type_list = Qnil;
-  staticpro (&Vspecifier_type_list);
+  INITIALIZE_SPECIFIER_TYPE (generic);
 
-  INITIALIZE_SPECIFIER_TYPE (generic, "generic", "generic-specifier-p");
-
-  INITIALIZE_SPECIFIER_TYPE (integer, "integer", "integer-specifier-p");
-
+  INITIALIZE_SPECIFIER_TYPE (integer);
   SPECIFIER_HAS_METHOD (integer, validate);
 
-  INITIALIZE_SPECIFIER_TYPE (natnum, "natnum", "natnum-specifier-p");
-
+  INITIALIZE_SPECIFIER_TYPE (natnum);
   SPECIFIER_HAS_METHOD (natnum, validate);
 
-  INITIALIZE_SPECIFIER_TYPE (boolean, "boolean", "boolean-specifier-p");
-
+  INITIALIZE_SPECIFIER_TYPE (boolean);
   SPECIFIER_HAS_METHOD (boolean, validate);
 
-  INITIALIZE_SPECIFIER_TYPE (display_table, "display-table",
-			     "display-table-p");
-
+  INITIALIZE_SPECIFIER_TYPE (display_table);
   SPECIFIER_HAS_METHOD (display_table, validate);
 }
 

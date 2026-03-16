@@ -300,7 +300,7 @@ stream_ring_bell (struct device *d, int UNUSED (volume), int UNUSED (pitch),
 void
 console_type_create_stream (void)
 {
-  INITIALIZE_CONSOLE_TYPE (stream, "stream", "console-stream-p");
+  INITIALIZE_CONSOLE_TYPE (stream);
 
   /* console methods */
   CONSOLE_HAS_METHOD (stream, init_console);

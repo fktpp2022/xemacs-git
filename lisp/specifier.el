@@ -656,7 +656,7 @@ detail in the doc string for `current-display-table'."
 ;; from producing an error if no X support was compiled in.
 
 (loop
-  for tag in '(x tty mswindows msprinter gtk carbon)
+  for tag in '(x tty mswindows msprinter gtk stream)
   do (unless (valid-specifier-tag-p tag)
        (define-specifier-tag tag #'ignore)))
 

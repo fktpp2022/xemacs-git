@@ -3062,7 +3062,7 @@ image_instantiator_format_create_glyphs_mswindows (void)
   IIFORMAT_HAS_DEVMETHOD (mswindows, tab_control, redisplay);
 #endif
   /* windows bitmap format */
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (bmp, "bmp");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (bmp);
   IIFORMAT_HAS_METHOD (bmp, validate);
   IIFORMAT_HAS_METHOD (bmp, normalize);
   IIFORMAT_HAS_METHOD (bmp, possible_dest_types);
@@ -3073,8 +3073,7 @@ image_instantiator_format_create_glyphs_mswindows (void)
   IIFORMAT_VALID_CONSOLE2 (mswindows, msprinter, bmp);
 
   /* mswindows resources */
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (mswindows_resource,
-					"mswindows-resource");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (mswindows_resource);
 
   IIFORMAT_HAS_METHOD (mswindows_resource, validate);
   IIFORMAT_HAS_METHOD (mswindows_resource, normalize);

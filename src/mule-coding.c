@@ -4021,7 +4021,7 @@ syms_of_mule_coding (void)
 void
 coding_system_type_create_mule_coding (void)
 {
-  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (multibyte, "multibyte-coding-system-p");
+  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (multibyte);
   CODING_SYSTEM_HAS_METHOD (multibyte, convert);
   CODING_SYSTEM_HAS_METHOD (multibyte, init_coding_stream);
   CODING_SYSTEM_HAS_METHOD (multibyte, init);
@@ -4030,7 +4030,7 @@ coding_system_type_create_mule_coding (void)
   CODING_SYSTEM_HAS_METHOD (multibyte, print);
   CODING_SYSTEM_HAS_METHOD (multibyte, character_tell);
 
-  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (iso2022, "iso2022-coding-system-p");
+  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (iso2022);
   CODING_SYSTEM_HAS_METHOD (iso2022, convert);
   CODING_SYSTEM_HAS_METHOD (iso2022, init_coding_stream);
 #ifdef ENABLE_COMPOSITE_CHARS
@@ -4052,15 +4052,14 @@ coding_system_type_create_mule_coding (void)
   INITIALIZE_DETECTOR_CATEGORY (iso2022, iso_8_2);
   INITIALIZE_DETECTOR_CATEGORY (iso2022, iso_lock_shift);
 
-  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (ccl, "ccl-coding-system-p");
+  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (ccl);
   CODING_SYSTEM_HAS_METHOD (ccl, convert);
   CODING_SYSTEM_HAS_METHOD (ccl, init);
   CODING_SYSTEM_HAS_METHOD (ccl, init_coding_stream);
   CODING_SYSTEM_HAS_METHOD (ccl, putprop);
   CODING_SYSTEM_HAS_METHOD (ccl, getprop);
 
-  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (shift_jis,
-					   "shift-jis-coding-system-p");
+  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (shift_jis);
   CODING_SYSTEM_HAS_METHOD (shift_jis, convert);
   CODING_SYSTEM_HAS_METHOD (shift_jis, init);
   CODING_SYSTEM_HAS_METHOD (shift_jis, init_coding_stream);
@@ -4069,7 +4068,7 @@ coding_system_type_create_mule_coding (void)
   DETECTOR_HAS_METHOD (shift_jis, detect);
   INITIALIZE_DETECTOR_CATEGORY (shift_jis, shift_jis);
 
-  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (big5, "big5-coding-system-p");
+  INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (big5);
   CODING_SYSTEM_HAS_METHOD (big5, convert);
   CODING_SYSTEM_HAS_METHOD (big5, init);
   CODING_SYSTEM_HAS_METHOD (big5, init_coding_stream);

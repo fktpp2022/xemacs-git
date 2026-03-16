@@ -26,9 +26,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "console.h"
 #include "specifier.h"
 
-extern const struct sized_memory_description cted_description;
+extern const struct sized_memory_description cmpd_description;
 extern const struct sized_memory_description console_methods_description;
-
 
 /*
  * Constants returned by device_implementation_flags_method
@@ -51,8 +50,7 @@ extern const struct sized_memory_description console_methods_description;
 
 struct console_methods
 {
-  const char *name;	/* Used by print_console, print_device, print_frame */
-  Lisp_Object symbol;
+  Lisp_Object name;
   Lisp_Object predicate_symbol;
   unsigned int flags;	/* Read-only implementation flags, set once upon
 			   console type creation. INITIALIZE_CONSOLE_TYPE sets
@@ -308,11 +306,10 @@ struct console_methods
 #endif
 };
 
-#define CONMETH_TYPE(meths) ((meths)->symbol)
+#define CONMETH_NAME(meths) ((meths)->name)
 #define CONMETH_IMPL_FLAG(meths, f) ((meths)->flags & (f))
 
-#define CONSOLE_TYPE_NAME(c) ((c)->conmeths->name)
-#define CONSOLE_TYPE(c) ((c)->conmeths->symbol)
+#define CONSOLE_TYPE(c) CONMETH_NAME ((c)->conmeths)
 #define CONSOLE_IMPL_FLAG(c, f) CONMETH_IMPL_FLAG ((c)->conmeths, (f))
 
 /******** Accessing / calling a console method *********/
@@ -321,10 +318,10 @@ struct console_methods
 #define CONTYPE_METH(meth, m, args) (((meth)->m##_method) args)
 
 /* Call a void-returning console method, if it exists */
-#define MAYBE_CONTYPE_METH(meth, m, args) do {			\
-  struct console_methods *maybe_contype_meth_meth = (meth);	\
-  if (HAS_CONTYPE_METH_P (maybe_contype_meth_meth, m))		\
-    CONTYPE_METH (maybe_contype_meth_meth, m, args);		\
+#define MAYBE_CONTYPE_METH(meth, m, args) do {                          \
+  const struct console_methods *maybe_contype_meth_meth = (meth);       \
+  if (HAS_CONTYPE_METH_P (maybe_contype_meth_meth, m))                  \
+    CONTYPE_METH (maybe_contype_meth_meth, m, args);                    \
 } while (0)
 
 /* Call a console method, if it exists; otherwise return
@@ -358,29 +355,17 @@ struct console_methods
 
 /******** Defining new console types ********/
 
-typedef struct console_type_entry console_type_entry;
-struct console_type_entry
-{
-  Lisp_Object symbol;
-  struct console_methods *meths;
-};
-
 #define DECLARE_CONSOLE_TYPE(type) \
 extern struct console_methods * type##_console_methods
 
 #define DEFINE_CONSOLE_TYPE(type) \
 struct console_methods * type##_console_methods
 
-#define INITIALIZE_CONSOLE_TYPE(type, obj_name, pred_sym) do {		\
-    type##_console_methods = xnew_and_zero (struct console_methods);	\
-    type##_console_methods->name = obj_name;				\
-    type##_console_methods->symbol = Q##type;				\
-    defsymbol (&type##_console_methods->predicate_symbol, pred_sym);	\
-    add_entry_to_console_type_list (Q##type, type##_console_methods);	\
-    type##_console_methods->image_conversion_list = Qnil;		\
-    staticpro (&type##_console_methods->image_conversion_list);		\
-    dump_add_root_block_ptr (&type##_console_methods, &console_methods_description);	\
-} while (0)
+extern void initialize_console_type (struct console_methods **dest,
+                                     Lisp_Object name);
+
+#define INITIALIZE_CONSOLE_TYPE(type) \
+  initialize_console_type (&type##_console_methods, Q##type)
 
 /* Declare that console-type TYPE has method M; used in
    initialization routines */
@@ -401,10 +386,10 @@ struct console
   NORMAL_LISP_OBJECT_HEADER header;
 
   /* Description of this console's methods.  */
-  struct console_methods *conmeths;
+  const struct console_methods *conmeths;
 
   /* Enumerated constant listing which type of console this is (TTY, X,
-     MS-Windows, etc.).  This duplicates the symbol in conmeths->symbol,
+     MS-Windows, etc.).  This duplicates the symbol in conmeths->name,
      which formerly was the only way to determine the console type.
      We need this constant now for KKCC, so that it can be used in
      an XD_UNION clause to determine the Lisp objects in console_data. */
@@ -566,6 +551,6 @@ extern struct console console_local_flags;
 
 DECLARE_CONSOLE_TYPE (dead);
 
-extern console_type_entry_dynarr *the_console_type_entry_dynarr;
+extern const_console_methods_pointer_dynarr *the_console_methods_dynarr;
 
 #endif /* INCLUDED_console_impl_h_ */

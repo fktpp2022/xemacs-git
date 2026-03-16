@@ -1,3 +1,432 @@
+2026-03-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	General improvements to the console, specifier, image_instantiator,
+	coding_system_type implementations.
+
+	1. No need for the OBJ_NAME, PRED_SYM arguments to
+	INITIALIZE_CONSOLE_TYPE(), they can be worked out from the TYPE
+	argument.
+	Similarly, no need for the same named arguments to
+	INITIALIZE_SPECIFIER_TYPE(), they can be worked out from the TYPE
+	argument.
+	Similarly, no need for the PRED_SYM argument to
+	INITIALIZE_CODING_SYSTEM_TYPE().
+
+	2. New functions initialize_console_type(),
+	initialize_coding_system_type(),
+	initialize_image_instantiator_format(),
+	initialize_specifier_type(), de-inlining the bulk of
+	INITIALIZE_CONSOLE_TYPE(), INITIALIZE_CODING_SYSTEM_TYPE(),
+	INITIALIZE_IMAGE_INSTANTIATOR_FORMAT(),
+	INITIALIZE_SPECIFIER_TYPE(); these are called sufficiently rarely
+	(and only at dump time) making them de-inlined is very reasonable.
+
+	3. Rename and change type for the_console_type_entry_dynarr 
+	the_coding_system_type_entry_dynarr, the_specifier_type_entry_dynarr
+	to the_console_methods_dynarr, the_coding_system_methods_dynarr,
+	the_specifier_methods_dynarr, respectively, removing duplication
+	of the symbols within the various method structures.
+
+	4. The SYMBOL field of struct image_instantiator_format_entry
+	duplicates the SYMBOL field of it METHS field. Remove it, just
+	use the SYMBOL field of the METHS field.
+	
+	5. For the_console_methods_dynarr, the_coding_system_methods_dynarr,
+	the_image_instantiator_format_entry_dynarr,
+	the_specifier_methods_dynarr, declare the relevant struct pointer
+	entries as const, so when they are accessed for instantiating
+	consoles, coding_system, image_instantiators, and specifiers a)
+	we're happy nothing is modifying them unintentionally, that needs
+	to be done through the individual pointers (e.g. with
+	CODING_SYSTEM_HAS_METHOD() and friends) and b) things are a
+	fraction of a percent faster for the compiler.
+
+	6. Remove Vconsole_type_list, Vimage_instantiator_format_list,
+	Vspecifier_type_list, they just duplicate information already in
+	the dynarrs. Implement #'console-type-list,
+	#'image-instantiator-format-list, #'specifier-type-list using the
+	dynarrs.
+
+	* console-gtk.c (console_type_create_gtk):
+	Update call to INITIALIZE_CONSOLE_TYPE() here.
+	* console-impl.h:
+	cted_description is gone, declare cmpd_description here,
+	reflecting a console methods pointer dynarr.
+	* console-impl.h (struct console_methods):
+	Unify NAME and SYMBOL, rename SYMBOL to NAME.
+	* console-impl.h (CONMETH_NAME): New. Renamed from
+	CONMETH_TYPE().
+	* console-impl.h (CONSOLE_TYPE):
+	Update this to use CONMETH_NAME().
+	* console-impl.h (MAYBE_CONTYPE_METH):
+	Declare METH as const.
+	No need for struct console_type_entry, which duplicates struct
+	console_methods.name
+	* console-impl.h (INITIALIZE_CONSOLE_TYPE):
+	Redefine this in terms of initialize_console_type().
+	* console-impl.h (struct console_methods):
+	Unify NAME and SYMBOL here.
+	Rename CONMETH_TYPE() to CONMETH_NAME(). Update CONSOLE_TYPE() to
+	reflect this.
+	Update MAYBE_CONMETH_METH() to reflect that METH is const.
+	Remove console_type_entry as a struct, typedef no longer needed. 
+	* console-msw.c (console_type_create_mswindows):
+	Update call to INITIALIZE_CONSOLE_TYPE() here.
+	* console-stream.c (console_type_create_stream):
+	Ditto.
+	* console-tty.c (console_type_create_tty):
+	Ditto.
+	* console-x.c (console_type_create_x):
+	Ditto.
+	* console.c:
+	Declare the_console_methods_dynarr with its new name, type. Remove
+	definition 
+	* console.c (print_console):
+	Print the console type as a Lisp symbol. This works even with dead
+	consoles, no need to make an exception.
+	* console.c (decode_console_type):
+	Change this to return a const struct console_methods *, since it
+	should not (normally) be modifiable.
+	* console.c (valid_console_type_p):
+	Use a more modern type for this.
+	* console.c (Fconsole_type_list):
+	Implement this in terms of the_console_methods_dynarr.
+	* console.c (console_live_p):
+	Use a more modern type for this. Take its argument as a const.
+	* console.c (console_device_list):
+	Take its struct console * argument as a const.
+	* console.c (semi_canonicalize_console_connection):
+	Take the METHS argument as const.
+	* console.c (canonicalize_console_connection):
+	Ditto.
+	* console.c (find_console_of_type):
+	Ditto.
+	* console.c (Ffind_console):
+	Use CONMETH_NAME(), the new name for CONMETH_TYPE() here.
+	Declare the result of a call to decode_console_type() as const.
+	* console.c (static const struct sized_memory_description
+	cte_description): Removed, no longer needed.
+	* console.c (static const struct sized_memory_description
+	console_methods_pointer_description): New.
+	* console.c (const struct sized_memory_description
+	cted_description): Removed, no longer needed.
+	* console.c (const struct sized_memory_description
+	cmpd_description): New, needed for the_console_methods_dynarr.
+	* console.c (add_entry_to_console_type_list): Removed,
+	functionality moved into initialize_console_type().
+	* console.c (initialize_console_type): New function, creates a
+	struct console methods based on a symbol name supplied and the
+	address of a destination pointer, does the appropriate staticpro(),
+	addition of the entry to the_console_methods_dynarr,
+	dump_add_root_block_ptr().
+	* console.c (console_type_create):
+	Use the new name for the_console_methods_dynarr.
+	Remove mention of Vconsole_type_list. Update call to
+	INITIALIZE_CONSOLE_TYPE.
+	* console.h:
+	Supply a typedef for const_console_methods_pointer_dynarr
+	here. Update declarations for console_live_p(),
+	valid_console_type_p(), console_device_list(),
+	decode_console_type(). Remove declaration for
+	add_entry_to_console_type_list().
+	Declare Fconsole_type_list(), now needed in specifier.c
+	Update 
+	* device-impl.h (DEVICE_TYPE_NAME):
+	Remove this, no longer used.
+	* device-impl.h (DEVICE_TYPE):
+	Implement this in terms of CONMETH_NAME().
+	* device-impl.h (struct device):
+	Make DEVMETHS a const struct console_methods pointer.
+	* device.c (print_device):
+	Print the device type as a Lisp symbol. This works even with dead
+	consoles, no need to make an exception.
+	* device.c (valid_device_class_p):
+	* device.c (device_live_p):
+	Modernize type of these.
+	* device.c (semi_canonicalize_device_connection):
+	Take METHS as a pointer to const argument.
+	* device.c (canonicalize_device_connection):
+	Ditto.
+	* device.c (find_device_of_type):
+	Ditto.
+	* device.c (Ffind_device):
+	Call CONMETH_NAME() on METHS, the new name for CONMETH_TYPE().
+	* device.c (Fmake_device):
+	Declare CONMETHS as a pointer to const.
+	Iterate through the_console_methods_dynarr.
+	* device.c (window_system_pixelated_geometry):
+	Modernize return type of this.
+	Declare the console methods as const.
+	* device.c (handle_asynch_device_change):
+	Iterate through the_console_methods_dynarr.
+	* device.h:
+	Update declarations for device_live_p(), valid_device_class_p(),
+	window_system_pixelated_geometry().
+	* file-coding.c:
+	* file-coding.c (struct coding_system_type_entry): Removed, no
+	need for this.
+	* file-coding.c (static const struct sized_memory_description
+	cste_description): Removed, not needed.
+	* file-coding.c (static const struct sized_memory_description
+	ccsmp_description): New. Description of a pointer to a const struct
+	coding_system_methods.
+	* file-coding.c (static const struct sized_memory_description
+	csted_description): Removed, not needed.
+	* file-coding.c (static const struct sized_memory_description
+	ccsmpd_description): New. Description of a dynarr of pointers to
+	const struct coding_system_methods.
+	* file-coding.c (Vcoding_system_type_list): Removed, no longer
+	needed.
+	* file-coding.c (print_coding_system_properties):
+	Use the new field for the symbol name of the
+	coding_system_methods.
+	* file-coding.c (decode_coding_system_type):
+	Return a const pointer to the struct coding_system_methods here.
+	* file-coding.c (valid_coding_system_type_p):
+	Modernize return value for this.
+	* file-coding.c (Fcoding_system_type_list):
+	Iterate over the_coding_system_methods_dynarr in this function.
+	* file-coding.c (coding_system_is_binary):
+	Modernize the return type here.
+	* file-coding.c (coding_system_is_for_text_file):
+	Ditto.
+	* file-coding.c (decoding_source_sink_type_is_char):
+	Ditto.
+	* file-coding.c (allocate_coding_system):
+	Take CODESYS_METHS as a pointer to a constant structure.
+	* file-coding.c (make_coding_system_1):
+	Declare METHS as a pointer to a constant structure.
+	* file-coding.c (handle_possible_error_octet):
+	Modernize the return type of this.
+	* file-coding.c (initialize_coding_system_type):
+	New function, de-inline the bulk of INITIALIZE_CODING_SYSTEM_TYPE(),
+	INITILAIZE_CODING_SYSTEM_TYPE_WITH_DATA().
+	* file-coding.c (coding_system_type_create):
+	Initialize the_coding_system_methods_dynarr appropriately.
+	Remove mention of Vcoding_system_type_list.
+	Update calls to INITIALIZE_CODING_SYSTEM_TYPE{,_WITH_DATA}.
+	* file-coding.h:
+	* file-coding.h (struct Lisp_Coding_System):
+	Declare METHODS as const.
+	* file-coding.h (struct coding_system_methods):
+	Rename the TYPE field to NAME.
+	* file-coding.h (INITIALIZE_CODING_SYSTEM_TYPE):
+	* file-coding.h (INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA):
+	Update this to call initialize_coding_system_type().
+	* file-coding.h (CODING_SYSTEM_TYPE):
+	Update this to reflect the new name field within struct
+	coding_system_methods.
+	Remove declaration for add_entry_to_coding_system_type_list, no
+	longer needed.
+	Update declaration for hande_possible_error_octet().
+	* fontcolor.c (specifier_type_create_fontcolor):
+	Update calls to INITIALIZE_SPECIFIER_TYPE{,_WITH_DATA} in this
+	file.
+	* frame-impl.h (FRAME_TYPE):
+	Update the implementation of this macro.
+	* frame-impl.h (struct frame):
+	Declare FRAMEMETHS as const.
+	* frame.c (print_frame):
+	Print the frame type using write_fmt_string_lisp, since it is a
+	Lisp symbol.
+	* glyphs-eimage.c
+	(image_instantiator_format_create_glyphs_eimage):
+	* glyphs-gtk.c (image_instantiator_format_create_glyphs_gtk):
+	* glyphs-msw.c (image_instantiator_format_create_glyphs_mswindows):
+	Update calls to INITIALIZE_IMAGE_INSTANTIATOR_FORMAT()) in all
+	these functions.
+	* glyphs-widget.c (widget_property):
+	Declare METHS as const.
+	* glyphs-widget.c (widget_update):
+	Ditto.
+	* glyphs-widget.c (redisplay_widget):
+	Ditto.
+	* glyphs-widget.c (widget_query_geometry):
+	Ditto.
+	* glyphs-widget.c (widget_layout):
+	Ditto.
+	* glyphs-widget.c (image_instantiator_widget):
+	* glyphs-widget.c (image_instantiator_buttons):
+	* glyphs-widget.c (image_instantiator_edit_fields):
+	* glyphs-widget.c (image_instantiator_combo_box):
+	* glyphs-widget.c (image_instantiator_scrollbar):
+	* glyphs-widget.c (image_instantiator_progress_gauge):
+	* glyphs-widget.c (image_instantiator_tree_view):
+	* glyphs-widget.c (image_instantiator_tab_control):
+	* glyphs-widget.c (image_instantiator_labels):
+	* glyphs-widget.c (image_instantiator_layout):
+	* glyphs-widget.c (image_instantiator_native_layout):
+	Update calls to INITIALIZE_IMAGE_INSTANTIATOR_FORMAT() in all
+	these functions. Correct indentation.	
+	* glyphs-x.c (image_instantiator_format_create_glyphs_x):
+	Update calls to INITIALIZE_IMAGE_INSTANTIATOR_FORMAT().
+	* glyphs.c:
+	Remove definition for Vimage_instantiator_format_list.
+	* glyphs.c (struct image_instantiator_format_entry):
+	Update this structure, remove the SYMBOL filed, make METHS const.
+	* glyphs.c (decode_device_ii_format):
+	Return a pointer to a const struct image_instantiator_methods.
+	Revise to reflect updated struct image_instantiator_format_entry.
+	* glyphs.c (decode_image_instantiator_format):
+	Return a pointer to a const struct image_instantiator_methods.
+	* glyphs.c (valid_image_instantiator_format_p):
+	Modernize the return type of this.
+	Revise to reflect updated struct image_instantiator_format_entry.
+	* glyphs.c (Fimage_instantiator_format_list):
+	Iterate over the_image_instantiator_format_entry_dynarr here.
+	* glyphs.c (add_entry_to_device_ii_format_list):
+	Make this static, no longer called outside this file.
+	Revise to reflect updated struct image_instantiator_format_entry.
+	* glyphs.c (get_image_conversion_list):
+	Have this return a pointer to a const Lisp_Object, since
+	decode_console_type() now returns a pointer to a const.
+	* glyphs.c (Fset_console_type_image_conversion_list):
+	Cast the result of get_image_conversion_list to a writeable pointer.
+	* glyphs.c (process_image_string_instantiator):
+	Fix some indentation.
+	* glyphs.c (get_image_instantiator_governing_domain):
+	Declare METHS as const.
+	* glyphs.c (normalize_image_instantiator):
+	Ditto.
+	* glyphs.c (instantiate_image_instantiator):
+	Ditto.
+	* glyphs.c (print_image_instance):
+	Print the device type as a Lisp symbol.
+	* glyphs.c (Fimage_instance_property):
+	Declare METHS as const.
+	* glyphs.c (image_instance_query_geometry): Ditto.
+	* glyphs.c (image_instance_layout): Ditto.
+	* glyphs.c (update_image_instance): Ditto.
+	* glyphs.c (potential_pixmap_file_instantiator): Ditto.
+	* glyphs.c (image_validate): Ditto.
+	* glyphs.c (image_going_to_add):
+	Revise this to iterate over the_console_methods_dynarr rather than
+	Vconsole_type_list, now gone.
+	* glyphs.c (image_copy_vector_instantiator):
+	Declare METHS as const.
+	* glyphs.c (specifier_type_create_image):
+	Revise call to INITIALIZE_SPECIFIER_TYPE_WITH_DATA() 
+	* glyphs.c (static const struct sized_memory_description
+	iife_description): Removed. No longer needed.
+	* glyphs.c (static const struct sized_memory_description
+	iifed_description): Re-order declaration now there is no extern
+	declaration for iim_description.
+	* glyphs.c (static const struct sized_memory_description
+	iim_description): Make this static, no longer used outside of this
+	file.
+	* glyphs.c (initialize_image_instantiator_format): New. De-inline
+	INITIALIZE_IMAGE_INSTANTIATOR_FORMAT.
+	* glyphs.c (image_instantiator_format_create):
+	Remove Vimage_instantiator_format_list.
+	Revise calls to INITIALIZE_IMAGE_INSTANTIATOR_FORMAT()
+	* glyphs.h:
+	Remove extern delcaration for iim_description, no longer needed.
+	* glyphs.h (struct image_instantiator_methods):
+	Update CONSOLES to be of type const_console_methods_pointer_dynarr.
+	* glyphs.h (MAYBE_IIFORMAT_METH):
+	Update declaration of MIM_mstruc to be const.
+	* glyphs.h (MAYBE_IIFORMAT_DEVMETH):
+	Ditto.
+	* glyphs.h (INITIALIZE_IMAGE_INSTANTIATOR_FORMAT_NO_SYM):
+	Implement this in terms of
+	initialize_image_instantiator_format(). Declare that function.
+	* glyphs.h (INITIALIZE_IMAGE_INSTANTIATOR_FORMAT):
+	Ditto. Use DEFSYMBOL() rather than reimplementing it.
+	* glyphs.h (IIFORMAT_VALID_CONSOLE):
+	Simplify this.
+	* glyphs.h (INITIALIZE_DEVICE_IIFORMAT):
+	Implement this in terms of initialize_image_instantiator_format().
+	* gutter.c (specifier_type_create_gutter):
+	Revise calls to INITIALIZE_SPECIFIER_TYPE() here.
+	* intl-win32.c (coding_system_type_create_intl_win32):
+	Revise calls to INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA() here.
+	* lisp.h:
+	Remove forward declaration for struct console_type_entry and for
+	console_type_entry_dynarr, no longer needed
+	Modernize another couple of declarations.
+	* mule-coding.c (coding_system_type_create_mule_coding):
+	Revise calls to INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA() here.	
+	* specifier.c:
+	* specifier.c (struct):
+	Remove struct specifier_type_entry, no longer needed.
+	New Dynarr, specifier_methods_pointer_dynarr.
+	Declare the_specifier_methods as this.
+	* specifier.c (static const struct sized_memory_description
+	ste_description): Removed. No longer needed.
+	* specifier.c (static const struct sized_memory_description
+	specifier_methods_pointer_description): New.
+	* specifier.c (static const struct sized_memory_description
+	sted_description): Removed. No longer needed.
+	* specifier.c (static const struct sized_memory_description
+	specifier_methods_pointer_dynarr_description): New, used for
+	the_specifier_methods.
+	* specifier.c (print_specifier):
+	Print sp->methods->name as the Lisp symbol it is.
+	* specifier.c (decode_specifier_type):
+	Return a const struct specifier_methods * here.
+	* specifier.c (valid_specifier_type_p):
+	Modernize return type.
+	* specifier.c (Fspecifier_type_list):
+	Iterate over the_specifier_methods_dynarr here.
+	* specifier.c (make_specifier_internal):
+	Declare SPEC_METHS as const.
+	* specifier.c (make_specifier):
+	Declare METHS as const.
+	* specifier.c (make_magic_specifier):
+	Ditto.
+	* specifier.c (Fmake_specifier):
+	Ditto.
+	* specifier.c (Fspecifier_type):
+	No longer a need to intern() the specifier method name.
+	* specifier.c (Fspecifier_tag_list):
+	Call Fconsole_type_list() here now Vconsole_type_list no longer
+	available.
+	* specifier.c (check_valid_instantiator):
+	Declare METHS as const.
+	* specifier.c (Fcheck_valid_instantiator):
+	Ditto.
+	* specifier.c (Fvalid_instantiator_p):
+	Ditto.
+	* specifier.c (check_valid_inst_list):
+	Ditto.
+	* specifier.c (Fcheck_valid_inst_list):
+	Ditto.
+	* specifier.c (Fvalid_inst_list_p):
+	Ditto.
+	* specifier.c (check_valid_spec_list):
+	Ditto.
+	* specifier.c (Fcheck_valid_spec_list):
+	Ditto.
+	* specifier.c (Fvalid_spec_list_p):
+	Ditto.
+	* specifier.c (check_valid_specifier_matchspec):
+	Ditto.
+	* specifier.c (Fvalid_specifier_matchspec_p):
+	Ditto.
+	* specifier.c (initialize_specifier_type): New. De-inline the bulk
+	of INITIALIZE_SPECIFIER_TYPE().
+	* specifier.c (specifier_type_create):
+	Remove mention of Vspecifier_type-list. Initialize
+	the_specifier_methods_dynarr appropriately.
+	Revise calls to INITIALIZE_SPECIFIER_TYPE().
+	* specifier.h:
+	* specifier.h (struct specifier_methods):
+	Update the type of NAME here, make it a Lisp symbol.
+	Make EXTRA_DATA_SIZE a Bytecount, as is good practice.
+	* specifier.h (struct Lisp_Specifier):
+	Mark METHODS as const.
+	* specifier.h (INITIALIZE_SPECIFIER_TYPE):
+	Implement this in terms of initialize_specifer_type(). Declare
+	that function.
+	* specifier.h (INITIALIZE_SPECIFIER_TYPE_WITH_DATA):
+	Implement this in terms of initialize_specifer_type().
+	Remove declaration for add_entry_to_specifier_type_list(), no
+	longer used.
+	* toolbar.c (specifier_type_create_toolbar):
+	Revise call to INITIALIZE_SPECIFIER_TYPE().
+	* unicode.c (coding_system_type_create_unicode):
+	Revise call to INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA().
+
 2026-03-13  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove the need for reinit_complex_vars_of_buffer_runtime_only().

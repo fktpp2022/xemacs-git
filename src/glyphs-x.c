@@ -2995,7 +2995,7 @@ image_instantiator_format_create_glyphs_x (void)
   INITIALIZE_DEVICE_IIFORMAT (x, label);
   IIFORMAT_HAS_DEVMETHOD (x, label, instantiate);
 #endif
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (cursor_font, "cursor-font");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (cursor_font);
   IIFORMAT_VALID_CONSOLE (x, cursor_font);
 
   IIFORMAT_HAS_METHOD (cursor_font, validate);
@@ -3006,7 +3006,7 @@ image_instantiator_format_create_glyphs_x (void)
   IIFORMAT_VALID_KEYWORD (cursor_font, Q_foreground, check_valid_string);
   IIFORMAT_VALID_KEYWORD (cursor_font, Q_background, check_valid_string);
 
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (font, "font");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (font);
 
   IIFORMAT_HAS_METHOD (font, validate);
   IIFORMAT_HAS_METHOD (font, possible_dest_types);
@@ -3022,8 +3022,7 @@ image_instantiator_format_create_glyphs_x (void)
   IIFORMAT_HAS_DEVMETHOD (x, xface, instantiate);
 #endif
 
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (autodetect,
-					"autodetect");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (autodetect);
 
   IIFORMAT_HAS_METHOD (autodetect, validate);
   IIFORMAT_HAS_METHOD (autodetect, normalize);

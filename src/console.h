@@ -89,8 +89,13 @@ DECLARE_LISP_OBJECT (console, struct console);
 
 struct console_methods;
 
-int console_live_p (struct console *c);
-Lisp_Object console_device_list (struct console *c);
+typedef struct
+{
+  Dynarr_declare (const struct console_methods *);
+} const_console_methods_pointer_dynarr;
+
+Boolint console_live_p (const struct console *c);
+Lisp_Object console_device_list (const struct console *c);
 
 #define CONSOLE_LIVE_P(c) console_live_p (c)
 #define CONSOLE_DEVICE_LIST(c) console_device_list (c)
@@ -118,23 +123,22 @@ Lisp_Object console_device_list (struct console *c);
   LIST_LOOP (devcons, CONSOLE_DEVICE_LIST (con))
 
 EXFUN (Fconsole_disable_input, 1);
+EXFUN (Fconsole_type_list, 0);
 EXFUN (Fdelete_console, 2);
 EXFUN (Fselect_console, 1);
 EXFUN (Fselected_console, 0);
 
 extern Lisp_Object Qcreate_console_hook, Qdelete_console_hook;
-extern Lisp_Object Vconsole_defaults, Vconsole_type_list, Vselected_console;
+extern Lisp_Object Vconsole_defaults, Vselected_console;
 
-int valid_console_type_p (Lisp_Object type);
+Boolint valid_console_type_p (Lisp_Object type);
 
 Lisp_Object create_console (Lisp_Object name, Lisp_Object type,
 			    Lisp_Object connection, Lisp_Object props);
 void select_console_1 (Lisp_Object);
 struct console *decode_console (Lisp_Object);
-void add_entry_to_console_type_list (Lisp_Object symbol,
-				     struct console_methods *type);
-struct console_methods *decode_console_type (Lisp_Object type,
-					     Error_Behavior errb);
+const struct console_methods *decode_console_type (Lisp_Object type,
+                                                   Error_Behavior errb);
 
 enum console_variant get_console_variant (Lisp_Object type);
 

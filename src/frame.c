@@ -566,8 +566,15 @@ print_frame (Lisp_Object obj, Lisp_Object printcharfun,
   if (print_readably)
     printing_unreadable_lisp_object (obj, XSTRING_DATA (frm->name));
 
-  write_fmt_string (printcharfun, "#<%s-frame ", !FRAME_LIVE_P (frm) ? "dead" :
-		    FRAME_TYPE_NAME (frm));
+  if (FRAME_LIVE_P (frm))
+    {
+      write_fmt_string_lisp (printcharfun, "#<%s-frame ", FRAME_TYPE (frm));
+    }
+  else
+    {
+      write_ascstring (printcharfun, "#<dead-frame ");
+    }
+
   print_internal (frm->name, printcharfun, 1);
   write_ascstring (printcharfun, " on ");
   print_internal (frm->device, printcharfun, 0);

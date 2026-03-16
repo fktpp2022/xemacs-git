@@ -2057,14 +2057,10 @@ syms_of_fontcolor (void)
 void
 specifier_type_create_fontcolor (void)
 {
-  INITIALIZE_SPECIFIER_TYPE_WITH_DATA (color, "color", "color-specifier-p");
-  INITIALIZE_SPECIFIER_TYPE_WITH_DATA (font, "font", "font-specifier-p");
-  INITIALIZE_SPECIFIER_TYPE_WITH_DATA (face_boolean, "face-boolean",
-				       "face-boolean-specifier-p");
-  INITIALIZE_SPECIFIER_TYPE_WITH_DATA (face_background_placement,
-				       "face-background-placement",
-				       "\
-face-background-placement-specifier-p");
+  INITIALIZE_SPECIFIER_TYPE_WITH_DATA (color);
+  INITIALIZE_SPECIFIER_TYPE_WITH_DATA (font);
+  INITIALIZE_SPECIFIER_TYPE_WITH_DATA (face_boolean);
+  INITIALIZE_SPECIFIER_TYPE_WITH_DATA (face_background_placement);
 
   SPECIFIER_HAS_METHOD (color, instantiate);
   SPECIFIER_HAS_METHOD (font, instantiate);

@@ -1,3 +1,17 @@
+2026-03-16  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* coding.el:
+	Add functions big5-coding-system-p, shift-jis-coding-system-p,
+	etc. within this file as a comment. Motivate why, motivate while
+	removing these predicates entirely is reasonable.
+	* console.el (define-console-type-predicates):
+	Provide console-tty-p, console-x-p and friends as
+	predicates. Motivate why removing them completely is reasonable.
+	* specifier.el:
+	Remove carbon, add stream to the list of tags that should be
+	defined as tags with an #'ignore device-predicate if they don't
+	exist.
+
 2026-02-21  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* ellcc.el (:init):

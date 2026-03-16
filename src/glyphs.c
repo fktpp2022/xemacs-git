@@ -86,7 +86,6 @@ Lisp_Object Vtruncation_glyph, Vcontinuation_glyph, Voctal_escape_glyph;
 Lisp_Object Vcontrol_arrow_glyph, Vinvisible_text_glyph, Vhscroll_glyph;
 Lisp_Object Vxemacs_logo;
 Lisp_Object Vthe_nothing_vector;
-Lisp_Object Vimage_instantiator_format_list;
 Lisp_Object Vimage_instance_type_list;
 Lisp_Object Vglyph_type_list;
 
@@ -129,9 +128,8 @@ Lisp_Object Q_color_symbols;
 typedef struct image_instantiator_format_entry image_instantiator_format_entry;
 struct image_instantiator_format_entry
 {
-  Lisp_Object symbol;
   Lisp_Object device;
-  struct image_instantiator_methods *meths;
+  const struct image_instantiator_methods *meths;
 };
 
 typedef struct
@@ -170,7 +168,7 @@ EXFUN (Fnext_window, 4);
  *                          Image Instantiators                             *
  ****************************************************************************/
 
-struct image_instantiator_methods *
+const struct image_instantiator_methods *
 decode_device_ii_format (Lisp_Object device, Lisp_Object format,
 			 Error_Behavior errb)
 {
@@ -188,10 +186,10 @@ decode_device_ii_format (Lisp_Object device, Lisp_Object format,
     {
       if ( EQ (format,
 	       Dynarr_at (the_image_instantiator_format_entry_dynarr, i).
-	       symbol) )
+	       meths->symbol) )
 	{
-	  Lisp_Object d = Dynarr_at (the_image_instantiator_format_entry_dynarr, i).
-	    device;
+	  Lisp_Object d = Dynarr_at (the_image_instantiator_format_entry_dynarr,
+                                     i).device;
 	  if ((NILP (d) && NILP (device))
 	      ||
 	      (!NILP (device) &&
@@ -207,17 +205,17 @@ decode_device_ii_format (Lisp_Object device, Lisp_Object format,
   return 0;
 }
 
-struct image_instantiator_methods *
+const struct image_instantiator_methods *
 decode_image_instantiator_format (Lisp_Object format, Error_Behavior errb)
 {
   return decode_device_ii_format (Qnil, format, errb);
 }
 
-static int
+static Boolint
 valid_image_instantiator_format_p (Lisp_Object format, Lisp_Object locale)
 {
   int i;
-  struct image_instantiator_methods* meths =
+  const struct image_instantiator_methods* meths =
     decode_image_instantiator_format (format, ERROR_ME_NOT);
   Lisp_Object contype = Qnil;
   /* mess with the locale */
@@ -236,7 +234,7 @@ valid_image_instantiator_format_p (Lisp_Object format, Lisp_Object locale)
     return 0;
 
   for (i = 0; i < Dynarr_length (meths->consoles); i++)
-    if (EQ (contype, Dynarr_at (meths->consoles, i).symbol))
+    if (EQ (contype, Dynarr_at (meths->consoles, i)->name))
       return 1;
   return 0;
 }
@@ -267,25 +265,37 @@ Return a list of valid image-instantiator formats.
 */
        ())
 {
-  return Fcopy_list (Vimage_instantiator_format_list);
+  const Elemcount limit
+    = Dynarr_length (the_image_instantiator_format_entry_dynarr);
+  Lisp_Object result = Qnil;
+  Elemcount ii;
+
+  for (ii = 0; ii < limit; ii++)
+    {
+      struct image_instantiator_format_entry elt
+        = Dynarr_at (the_image_instantiator_format_entry_dynarr, ii);
+
+      if (NILP (memq_no_quit (elt.meths->symbol, result)))
+        {
+          result = Fcons (elt.meths->symbol, result);
+        }
+    }
+
+  return result;
 }
 
-void
+static void
 add_entry_to_device_ii_format_list (Lisp_Object device, Lisp_Object symbol,
 				    struct image_instantiator_methods *meths)
 {
   struct image_instantiator_format_entry entry;
 
-  entry.symbol = symbol;
   entry.device = device;
   entry.meths = meths;
   Dynarr_add (the_image_instantiator_format_entry_dynarr, entry);
-  if (NILP (memq_no_quit (symbol, Vimage_instantiator_format_list)))
-    Vimage_instantiator_format_list =
-      Fcons (symbol, Vimage_instantiator_format_list);
 }
 
-void
+static void
 add_entry_to_image_instantiator_format_list (Lisp_Object symbol,
 					     struct
 					     image_instantiator_methods *meths)
@@ -293,10 +303,13 @@ add_entry_to_image_instantiator_format_list (Lisp_Object symbol,
   add_entry_to_device_ii_format_list (Qnil, symbol, meths);
 }
 
-static Lisp_Object *
+static const Lisp_Object *
 get_image_conversion_list (Lisp_Object console_type)
 {
-  return &decode_console_type (console_type, ERROR_ME)->image_conversion_list;
+  const struct console_methods *conmeths
+    = decode_console_type (console_type, ERROR_ME);
+
+  return (&(conmeths->image_conversion_list));
 }
 
 DEFUN ("set-console-type-image-conversion-list", Fset_console_type_image_conversion_list,
@@ -318,7 +331,8 @@ specifiers will not be affected.
 */
        (console_type, list))
 {
-  Lisp_Object *imlist = get_image_conversion_list (console_type);
+  Lisp_Object *imlist
+    = (Lisp_Object *) get_image_conversion_list (console_type);
 
   /* Check the list to make sure that it only has valid entries. */
 
@@ -415,8 +429,7 @@ process_image_string_instantiator (Lisp_Object data,
     }
 
   /* Oh well. */
-  invalid_argument ("Unable to interpret glyph instantiator",
-		       data);
+  invalid_argument ("Unable to interpret glyph instantiator", data);
 
   RETURN_NOT_REACHED (Qnil);
 }
@@ -702,7 +715,7 @@ get_image_instantiator_governing_domain (Lisp_Object instantiator,
 {
   int governing_domain;
 
-  struct image_instantiator_methods *meths =
+  const struct image_instantiator_methods *meths =
     decode_image_instantiator_format (INSTANTIATOR_TYPE (instantiator),
 				      ERROR_ME);
   governing_domain = IIFORMAT_METH_OR_GIVEN (meths, governing_domain, (),
@@ -753,7 +766,7 @@ normalize_image_instantiator (Lisp_Object instantiator,
      files). */
   {
     struct gcpro gcpro1;
-    struct image_instantiator_methods *meths;
+    const struct image_instantiator_methods *meths;
 
     GCPRO1 (instantiator);
 
@@ -776,7 +789,7 @@ instantiate_image_instantiator (Lisp_Object governing_domain,
 					    IMAGE_INSTANCEP (domain) ?
 					    domain : glyph, instantiator);
   Lisp_Image_Instance* p = XIMAGE_INSTANCE (ii);
-  struct image_instantiator_methods *meths, *device_meths;
+  const struct image_instantiator_methods *meths, *device_meths;
   struct gcpro gcpro1;
 
   GCPRO1 (ii);
@@ -1019,19 +1032,20 @@ print_image_instance (Lisp_Object obj, Lisp_Object printcharfun,
 	 description what that frame is. */
 
       write_ascstring (printcharfun, " on #<");
-      {
-	struct frame* f  = XFRAME (IMAGE_INSTANCE_FRAME (ii));
-
-	if (!FRAME_LIVE_P (f))
-	  write_ascstring (printcharfun, "dead");
-	else
-	  write_ascstring (printcharfun,
-			  DEVICE_TYPE_NAME (XDEVICE (FRAME_DEVICE (f))));
-      }
+      if (!FRAME_LIVE_P (XFRAME (IMAGE_INSTANCE_FRAME (ii))))
+        {
+          write_ascstring (printcharfun, "dead");
+        }
+      else
+        {
+          print_internal (DEVICE_TYPE (XDEVICE
+                                       (FRAME_DEVICE
+                                        (XFRAME (IMAGE_INSTANCE_FRAME (ii))))),
+                          printcharfun, 1);
+        }
       write_ascstring (printcharfun, "-frame>");
       write_fmt_string (printcharfun, " %p",
 			IMAGE_INSTANCE_SUBWINDOW_ID (ii));
-
       break;
 
     default:
@@ -1643,7 +1657,7 @@ the image instance in the domain.
 {
   Lisp_Image_Instance* ii;
   Lisp_Object type, ret;
-  struct image_instantiator_methods* meths;
+  const struct image_instantiator_methods* meths;
 
   CHECK_IMAGE_INSTANCE (image_instance);
   ERROR_CHECK_IMAGE_INSTANCE (image_instance);
@@ -1934,7 +1948,7 @@ image_instance_query_geometry (Lisp_Object image_instance,
 {
   Lisp_Image_Instance* ii = XIMAGE_INSTANCE (image_instance);
   Lisp_Object type;
-  struct image_instantiator_methods* meths;
+  const struct image_instantiator_methods* meths;
   ERROR_CHECK_IMAGE_INSTANCE (image_instance);
 
   type = encode_image_instance_type (IMAGE_INSTANCE_TYPE (ii));
@@ -1969,7 +1983,7 @@ image_instance_layout (Lisp_Object image_instance,
 {
   Lisp_Image_Instance* ii = XIMAGE_INSTANCE (image_instance);
   Lisp_Object type;
-  struct image_instantiator_methods* meths;
+  const struct image_instantiator_methods* meths;
 
   ERROR_CHECK_IMAGE_INSTANCE (image_instance);
 
@@ -2041,7 +2055,7 @@ static void
 update_image_instance (Lisp_Object image_instance,
 		       Lisp_Object instantiator)
 {
-  struct image_instantiator_methods* meths;
+  const struct image_instantiator_methods* meths;
   Lisp_Image_Instance *ii = XIMAGE_INSTANCE (image_instance);
 
   ERROR_CHECK_IMAGE_INSTANCE (image_instance);
@@ -2451,8 +2465,8 @@ potential_pixmap_file_instantiator (Lisp_Object instantiator,
 
   if (!NILP (file) && NILP (data))
     {
-      struct console_methods *meths
-	= decode_console_type(console_type, ERROR_ME);
+      const struct console_methods *meths
+	= decode_console_type (console_type, ERROR_ME);
 
       if (HAS_CONTYPE_METH_P (meths, locate_pixmap_file))
 	{
@@ -3393,14 +3407,13 @@ image_validate (Lisp_Object instantiator)
     {
       Lisp_Object *elt = XVECTOR_DATA (instantiator);
       Elemcount instantiator_len = XVECTOR_LENGTH (instantiator);
-      struct image_instantiator_methods *meths;
+      const struct image_instantiator_methods *meths;
       Lisp_Object already_seen = Qnil;
       struct gcpro gcpro1;
       int i;
 
       if (instantiator_len < 1)
-	sferror ("Vector length must be at least 1",
-			     instantiator);
+	sferror ("Vector length must be at least 1", instantiator);
 
       meths = decode_image_instantiator_format (elt[0], ERROR_ME);
       if (!(instantiator_len & 1))
@@ -3476,30 +3489,38 @@ static Lisp_Object
 image_going_to_add (Lisp_Object specifier, Lisp_Object UNUSED (locale),
 		    Lisp_Object tag_set, Lisp_Object instantiator)
 {
-  Lisp_Object possible_console_types = Qnil;
-  Lisp_Object rest;
   Lisp_Object retlist = Qnil;
-  struct gcpro gcpro1, gcpro2;
+  Elemcount limit = Dynarr_length (the_console_methods_dynarr);
+  Elemcount ii = limit, possible_console_type = -1;
+  struct gcpro gcpro1;
 
-  LIST_LOOP (rest, Vconsole_type_list)
+  while (ii)
     {
-      Lisp_Object contype = XCAR (rest);
+      Lisp_Object contype
+        = Dynarr_at (the_console_methods_dynarr, --ii)->name;
       if (!NILP (memq_no_quit (contype, tag_set)))
-	possible_console_types = Fcons (contype, possible_console_types);
+        {
+          if (possible_console_type == -1)
+            {
+              possible_console_type = ii;
+              limit = ii + 1;
+            }
+          else
+            {
+              /* Two conflicting console types specified. */
+              return Qnil;
+            }
+        }
     }
 
-  if (XFIXNUM (Flength (possible_console_types)) > 1)
-    /* two conflicting console types specified */
-    return Qnil;
+  possible_console_type = max (possible_console_type, 0);
 
-  if (NILP (possible_console_types))
-    possible_console_types = Vconsole_type_list;
+  GCPRO1 (retlist);
 
-  GCPRO2 (retlist, possible_console_types);
-
-  LIST_LOOP (rest, possible_console_types)
+  for (ii = possible_console_type; ii < limit; ii++)
     {
-      Lisp_Object contype = XCAR (rest);
+      Lisp_Object contype
+        = Dynarr_at (the_console_methods_dynarr, ii)->name;
       Lisp_Object newinst = call_with_suspended_errors
 	((lisp_fn_t) normalize_image_instantiator,
 	 Qnil, Qimage, ERROR_ME_DEBUG_WARN, 3, instantiator, contype,
@@ -3528,7 +3549,7 @@ static Lisp_Object
 image_copy_vector_instantiator (Lisp_Object instantiator)
 {
   int i;
-  struct image_instantiator_methods *meths;
+  const struct image_instantiator_methods *meths;
   Lisp_Object *elt;
   Elemcount instantiator_len;
 
@@ -5177,7 +5198,7 @@ specifier_type_create_image (void)
 {
   /* image specifiers */
 
-  INITIALIZE_SPECIFIER_TYPE_WITH_DATA (image, "image", "imagep");
+  INITIALIZE_SPECIFIER_TYPE_WITH_DATA (image);
 
   SPECIFIER_HAS_METHOD (image, create);
   SPECIFIER_HAS_METHOD (image, instantiate);
@@ -5208,36 +5229,13 @@ static const struct sized_memory_description iiked_description = {
   iiked_description_1
 };
 
-static const struct memory_description iife_description_1[] = {
-  { XD_LISP_OBJECT, offsetof (image_instantiator_format_entry, symbol) },
-  { XD_LISP_OBJECT, offsetof (image_instantiator_format_entry, device) },
-  { XD_BLOCK_PTR,  offsetof (image_instantiator_format_entry, meths), 1,
-    { &iim_description } },
-  { XD_END }
-};
-
-static const struct sized_memory_description iife_description = {
-  sizeof (image_instantiator_format_entry),
-  iife_description_1
-};
-
-static const struct memory_description iifed_description_1[] = {
-  XD_DYNARR_DESC (image_instantiator_format_entry_dynarr, &iife_description),
-  { XD_END }
-};
-
-static const struct sized_memory_description iifed_description = {
-  sizeof (image_instantiator_format_entry_dynarr),
-  iifed_description_1
-};
-
 static const struct memory_description iim_description_1[] = {
   { XD_LISP_OBJECT, offsetof (struct image_instantiator_methods, symbol) },
   { XD_LISP_OBJECT, offsetof (struct image_instantiator_methods, device) },
   { XD_BLOCK_PTR,  offsetof (struct image_instantiator_methods, keywords), 1,
     { &iiked_description } },
   { XD_BLOCK_PTR,  offsetof (struct image_instantiator_methods, consoles), 1,
-    { &cted_description } },
+    { &cmpd_description } },
   { XD_FUNCTION_POINTER, offsetof (struct image_instantiator_methods,
 				   validate_method) },
   { XD_FUNCTION_POINTER, offsetof (struct image_instantiator_methods,
@@ -5265,30 +5263,76 @@ static const struct memory_description iim_description_1[] = {
   { XD_END }
 };
 
-const struct sized_memory_description iim_description = {
+static const struct sized_memory_description iim_description = {
   sizeof (struct image_instantiator_methods),
   iim_description_1
 };
+
+static const struct memory_description iife_description_1[] = {
+  { XD_LISP_OBJECT, offsetof (image_instantiator_format_entry, device) },
+  { XD_BLOCK_PTR,  offsetof (image_instantiator_format_entry, meths), 1,
+    { &iim_description } },
+  { XD_END }
+};
+
+static const struct sized_memory_description iife_description = {
+  sizeof (image_instantiator_format_entry),
+  iife_description_1
+};
+
+static const struct memory_description iifed_description_1[] = {
+  XD_DYNARR_DESC (image_instantiator_format_entry_dynarr, &iife_description),
+  { XD_END }
+};
+
+static const struct sized_memory_description iifed_description = {
+  sizeof (image_instantiator_format_entry_dynarr),
+  iifed_description_1
+};
+
+void
+initialize_image_instantiator_format (struct image_instantiator_methods 
+                                      **dest,
+                                      Lisp_Object format,
+                                      Lisp_Object device_type)
+{
+  struct image_instantiator_methods *result
+    = xnew_and_zero (struct image_instantiator_methods);
+
+  structure_checking_assert (*dest == NULL);
+  *dest = result;
+
+  result->symbol = format;
+  result->device = device_type;
+  result->keywords = Dynarr_new (ii_keyword_entry);
+  result->consoles = Dynarr_new2 (const_console_methods_pointer_dynarr,
+                                  const struct console_methods *);
+  add_entry_to_image_instantiator_format_list (format, result);
+  if (!NILP (device_type))
+    {
+      add_entry_to_device_ii_format_list (device_type, format, result);
+      Dynarr_add (decode_image_instantiator_format (format,
+                                                    ERROR_ME)->consoles,
+                  decode_console_type (device_type, ERROR_ME));
+    }
+  dump_add_root_block_ptr (dest, &iim_description);
+}
 
 void
 image_instantiator_format_create (void)
 {
   /* image instantiators */
-
   the_image_instantiator_format_entry_dynarr =
     Dynarr_new (image_instantiator_format_entry);
+  dump_add_root_block_ptr (&the_image_instantiator_format_entry_dynarr,
+                           &iifed_description);
 
-  Vimage_instantiator_format_list = Qnil;
-  staticpro (&Vimage_instantiator_format_list);
-
-  dump_add_root_block_ptr (&the_image_instantiator_format_entry_dynarr, &iifed_description);
-
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (nothing, "nothing");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (nothing);
 
   IIFORMAT_HAS_METHOD (nothing, possible_dest_types);
   IIFORMAT_HAS_METHOD (nothing, instantiate);
 
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (inherit, "inherit");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (inherit);
 
   IIFORMAT_HAS_METHOD (inherit, validate);
   IIFORMAT_HAS_METHOD (inherit, normalize);
@@ -5297,7 +5341,7 @@ image_instantiator_format_create (void)
 
   IIFORMAT_VALID_KEYWORD (inherit, Q_face, check_valid_face);
 
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (string, "string");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (string);
 
   IIFORMAT_HAS_METHOD (string, validate);
   IIFORMAT_HAS_SHARED_METHOD (string, governing_domain, subwindow);
@@ -5308,11 +5352,11 @@ image_instantiator_format_create (void)
   /* Do this so we can set strings. */
   /* #### Andy, what is this?  This is a bogus format and should not be
      visible to the user. */
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (text, "text");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (text);
   IIFORMAT_HAS_METHOD (text, update);
   IIFORMAT_HAS_METHOD (text, query_geometry);
 
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (formatted_string, "formatted-string");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (formatted_string);
 
   IIFORMAT_HAS_METHOD (formatted_string, validate);
   IIFORMAT_HAS_METHOD (formatted_string, possible_dest_types);
@@ -5322,11 +5366,11 @@ image_instantiator_format_create (void)
   /* Do this so pointers have geometry. */
   /* #### Andy, what is this?  This is a bogus format and should not be
      visible to the user. */
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (pointer, "pointer");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (pointer);
   IIFORMAT_HAS_SHARED_METHOD (pointer, query_geometry, subwindow);
 
   /* subwindows */
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (subwindow, "subwindow");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (subwindow);
   IIFORMAT_HAS_METHOD (subwindow, possible_dest_types);
   IIFORMAT_HAS_METHOD (subwindow, governing_domain);
   IIFORMAT_HAS_METHOD (subwindow, instantiate);
@@ -5335,7 +5379,7 @@ image_instantiator_format_create (void)
   IIFORMAT_VALID_KEYWORD (subwindow, Q_pixel_height, check_valid_int);
 
 #ifdef HAVE_WINDOW_SYSTEM
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (xbm, "xbm");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (xbm);
 
   IIFORMAT_HAS_METHOD (xbm, validate);
   IIFORMAT_HAS_METHOD (xbm, normalize);
@@ -5352,7 +5396,7 @@ image_instantiator_format_create (void)
 #endif /* HAVE_WINDOW_SYSTEM */
 
 #ifdef HAVE_XFACE
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (xface, "xface");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (xface);
 
   IIFORMAT_HAS_METHOD (xface, validate);
   IIFORMAT_HAS_METHOD (xface, normalize);
@@ -5369,7 +5413,7 @@ image_instantiator_format_create (void)
 #endif
 
 #ifdef HAVE_XPM
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (xpm, "xpm");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (xpm);
 
   IIFORMAT_HAS_METHOD (xpm, validate);
   IIFORMAT_HAS_METHOD (xpm, normalize);

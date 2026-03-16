@@ -3123,7 +3123,7 @@ image_instantiator_format_create_glyphs_gtk (void)
   IIFORMAT_HAS_DEVMETHOD (gtk, label, instantiate);
 #endif
 
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (cursor_font, "cursor-font");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (cursor_font);
   IIFORMAT_VALID_CONSOLE (gtk, cursor_font);
 
   IIFORMAT_HAS_METHOD (cursor_font, validate);
@@ -3135,7 +3135,7 @@ image_instantiator_format_create_glyphs_gtk (void)
   IIFORMAT_VALID_KEYWORD (cursor_font, Q_background, check_valid_string);
 
 #if 0
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (font, "font");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (font);
   IIFORMAT_VALID_CONSOLE (gtk, font);
 
   IIFORMAT_HAS_METHOD (font, validate);
@@ -3161,7 +3161,7 @@ image_instantiator_format_create_glyphs_gtk (void)
   IIFORMAT_HAS_DEVMETHOD (gtk, xbm, instantiate);
   IIFORMAT_VALID_CONSOLE (gtk, xbm);
 
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (gtk_resource, "gtk-resource");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (gtk_resource);
   IIFORMAT_VALID_CONSOLE (gtk, gtk_resource);
 
   IIFORMAT_HAS_METHOD (gtk_resource, validate);
@@ -3173,7 +3173,7 @@ image_instantiator_format_create_glyphs_gtk (void)
   IIFORMAT_VALID_KEYWORD (gtk_resource, Q_resource_id, check_valid_resource_id);
   IIFORMAT_VALID_KEYWORD (gtk_resource, Q_file, check_valid_string);
 
-  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (autodetect, "autodetect");
+  INITIALIZE_IMAGE_INSTANTIATOR_FORMAT (autodetect);
   IIFORMAT_VALID_CONSOLE (gtk, autodetect);
 
   IIFORMAT_HAS_METHOD (autodetect, validate);

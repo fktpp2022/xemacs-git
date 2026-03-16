@@ -1664,7 +1664,6 @@ struct window_mirror;
 struct scrollbar_instance;
 struct font_metric_info;
 struct face_cachel;
-struct console_type_entry;
 
 typedef int face_index;
 typedef int glyph_index;
@@ -1974,12 +1973,6 @@ typedef struct
 {
   Dynarr_declare (struct glyph_cachel);
 } glyph_cachel_dynarr;
-
-
-typedef struct
-{
-  Dynarr_declare (struct console_type_entry);
-} console_type_entry_dynarr;
 
 /* WARNING WARNING WARNING.  You must ensure on your own that proper
    GC protection is provided for the elements in this array. */
@@ -5264,11 +5257,11 @@ extern Lisp_Object Vcoding_system_for_write;
 extern Lisp_Object Vfile_name_coding_system, Vkeyboard_coding_system;
 extern Lisp_Object Vterminal_coding_system;
 extern Lisp_Object Qcanonicalize_after_coding;
-int coding_system_is_for_text_file (Lisp_Object coding_system);
+Boolint coding_system_is_for_text_file (Lisp_Object coding_system);
 Lisp_Object find_coding_system_for_text_file (Lisp_Object name, int eol_wrap);
 MODULE_API Lisp_Object get_coding_system_for_text_file (Lisp_Object name,
 							int eol_wrap);
-int coding_system_is_binary (Lisp_Object coding_system);
+Boolint coding_system_is_binary (Lisp_Object coding_system);
 
 
 /* Defined in fileio.c */

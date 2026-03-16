@@ -464,7 +464,7 @@ syms_of_console_tty (void)
 void
 console_type_create_tty (void)
 {
-  INITIALIZE_CONSOLE_TYPE (tty, "tty", "console-tty-p");
+  INITIALIZE_CONSOLE_TYPE (tty);
 
   /* console methods */
   CONSOLE_HAS_METHOD (tty, init_console);

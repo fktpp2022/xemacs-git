@@ -39,7 +39,7 @@ DECLARE_LISP_OBJECT (device, struct device);
 /* Basic properties available to non-privileged users; redefined in
    device-impl.h */
 
-int device_live_p (struct device *d);
+Boolint device_live_p (struct device *d);
 Lisp_Object device_console (struct device *d);
 Lisp_Object device_frame_list (struct device *d);
 
@@ -97,7 +97,7 @@ extern Lisp_Object Qsize_device;
 extern Lisp_Object Qinit_post_tty_win, Qmono;
 extern Lisp_Object Vdevice_class_list;
 
-int valid_device_class_p (Lisp_Object class_);
+Boolint valid_device_class_p (Lisp_Object class_);
 
 void select_device_1 (Lisp_Object);
 struct device *decode_device (Lisp_Object);
@@ -109,7 +109,7 @@ void io_error_delete_device (Lisp_Object device);
 Lisp_Object find_nonminibuffer_frame_not_on_device (Lisp_Object device);
 void set_device_selected_frame (struct device *d, Lisp_Object frame);
 Lisp_Object domain_device_type (Lisp_Object domain);
-int window_system_pixelated_geometry (Lisp_Object domain);
+Boolint window_system_pixelated_geometry (Lisp_Object domain);
 
 Lisp_Object get_default_device (Lisp_Object type);
 void set_default_device (Lisp_Object type, Lisp_Object device);

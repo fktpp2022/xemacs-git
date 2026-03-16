@@ -25,8 +25,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "console-impl.h" /* for error_check_frame_type */
 #include "frame.h"
 
-#define FRAME_TYPE_NAME(f) ((f)->framemeths->name)
-#define FRAME_TYPE(f) ((f)->framemeths->symbol)
+#define FRAME_TYPE(f) CONMETH_NAME ((f)->framemeths)
 
 /******** Accessing / calling a frame method *********/
 
@@ -43,9 +42,9 @@ struct frame
 
   /* Methods for this frame's console.  This can also be retrieved
      through frame->device->console, but it's faster this way. */
-  struct console_methods *framemeths;
+  const struct console_methods *framemeths;
 
-  /* Duplicates framemeths->symbol.  See comment in struct console. */
+  /* Duplicates framemeths->name.  See comment in struct console. */
   enum console_variant frametype;
 
   /* Size of text only area of this frame, excluding scrollbars,
