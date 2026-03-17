@@ -75,6 +75,8 @@ typedef Boolint (*hash_table_equal_function_t) (const Hash_Table_Test *http,
 						Lisp_Object obj1, Lisp_Object obj2);
 typedef Hashcode (*hash_table_hash_function_t) (const Hash_Table_Test *http,
                                                 Lisp_Object obj);
+typedef Boolint (*hash_table_reorganize_needed_t) (Lisp_Object func,
+                                                   Lisp_Object hash_table);
 typedef int (*maphash_function_t) (Lisp_Object key, Lisp_Object value,
 				   void* extra_arg);
 
@@ -103,17 +105,30 @@ void elisp_map_remhash (maphash_function_t predicate,
 int finish_marking_weak_hash_tables (void);
 void prune_weak_hash_tables (void);
 
-void pdump_reorganize_hash_table (Lisp_Object);
+/* Used at dump time; Qnull_pointer in normal use. */
+extern Lisp_Object Vpdump_hash_table_reorganize_keys;
 
-htentry *inchash (Lisp_Object key, Lisp_Object table, EMACS_INT offset);
+/* Used at runtime. */
+extern Elemcount pdump_hash_table_reorganize_count;
+extern Lisp_Object *pdump_hash_tables_for_reorganize;
 
-htentry *find_htentry (Lisp_Object key, const Lisp_Hash_Table *ht);
+void pdump_reorganize_hash_tables (void);
 
-Lisp_Object define_hash_table_test (Lisp_Object name,
-				    hash_table_equal_function_t equal_function,
-				    hash_table_hash_function_t hash_function,
-				    Lisp_Object lisp_equal_function,
-				    Lisp_Object lisp_hash_function);
+extern htentry *inchash (Lisp_Object key, Lisp_Object table, EMACS_INT offset);
+
+extern htentry *find_htentry (Lisp_Object key, const Lisp_Hash_Table *ht);
+
+extern Boolint general_hash_table_reorganize_needed_p (Lisp_Object func,
+						       Lisp_Object hash_table);
+
+extern Lisp_Object
+define_hash_table_test (Lisp_Object name,
+                        hash_table_equal_function_t equal_function,
+                        Lisp_Object lisp_equal_function,
+                        hash_table_hash_function_t hash_function,
+                        Lisp_Object lisp_hash_function,
+                        hash_table_reorganize_needed_t reorganize_needed_p,
+                        Lisp_Object lisp_reorganize_needed_p);
 
 void mark_hash_table_tests (void);
 

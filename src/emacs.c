@@ -426,6 +426,7 @@ Epoch 4.0 released August 27, 1990.
 #include "buffer.h"
 #include "commands.h"
 #include "console.h"
+#include "elhash.h"
 #include "process.h"
 #include "redisplay.h"
 #include "frame.h"
@@ -2254,6 +2255,16 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
   init_buffer_1 ();	/* Create *scratch* buffer; the code just below is
 			   going to call Lisp code (the very first code we
 			   call), and needs a current buffer */
+
+  if (pdump_hash_table_reorganize_count > 0)
+    {
+      /* This will call Lisp if we have dumped hash tables with tests defined
+         in Lisp, that need reorganization. (Not the case
+         2026-03-17). PDUMP_HASH_TABLE_REORGANIZE_COUNT will be -1 in
+         temacs. */
+      pdump_reorganize_hash_tables ();
+    }
+
   /* The following two both call Lisp, and are the first Lisp code we call
      after dumping. */
   init_unicode (); /* recreate Unicode precedence arrays, necessary for

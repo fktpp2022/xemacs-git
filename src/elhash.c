@@ -119,25 +119,49 @@ static Lisp_Object Qnon_weak;
 Lisp_Object Qeq, Qeql, Qequal, Qequalp;
 Lisp_Object Qeq_hash, Qeql_hash, Qequal_hash, Qequalp_hash;
 
-/* A hash table test, with its associated hash function. equal_function may
-   call lisp_equal_function, and hash_function similarly may call
-   lisp_hash_function. */
+/* Used by the portable dumper to sort the relocation table for dumped hash
+   tables, putting those that need reorganization first. Not itself dumped. */
+Lisp_Object Vpdump_hash_table_reorganize_keys;
+
+/* Set by the portable dumper to the count of those hash tables that need
+   reorganization, examined after pdump_load(). */
+Elemcount pdump_hash_table_reorganize_count;
+
+/* Set by pdump_load_finish() to the beginning of the C vector of hash tables
+   needing reorganization. */
+Lisp_Object *pdump_hash_tables_for_reorganize;
+
+/* A hash table test, with its associated hash function. EQUAL_FUNCTION may
+   call LISP_EQUAL_FUNCTION, HASH_FUNCTION may call LISP_HASH_FUNCTION, and
+   REORGANIZE_NEEDED_P may call LISP_REORGANIZE_NEEDED_P.
+
+   REORGANIZE_NEEDED_P needs some explanation; this is called at dump time and
+   is passed a hash table with the relevant hash table test as its test.
+
+   It should return 1 if hashing of the keys in that table depends on pointer
+   values in the way #'eq hash tables do, zero otherwise (e.g. for a
+   string-equal hash table, where keys are exclusively strings or symbols, and
+   the hash is of the string data or the string data of the symbol name). */
 struct Hash_Table_Test
 {
   NORMAL_LISP_OBJECT_HEADER header;
   Lisp_Object name;
   hash_table_equal_function_t equal_function;
-  hash_table_hash_function_t hash_function;
   Lisp_Object lisp_equal_function;
+  hash_table_hash_function_t hash_function;
   Lisp_Object lisp_hash_function;
+  hash_table_reorganize_needed_t reorganize_needed_p;
+  Lisp_Object lisp_reorganize_needed_p;
 };
 
 static const struct memory_description hash_table_test_description[] = {
   { XD_LISP_OBJECT, offsetof (struct Hash_Table_Test, name) },
   { XD_FUNCTION_POINTER, offsetof (struct Hash_Table_Test, equal_function) },
-  { XD_FUNCTION_POINTER, offsetof (struct Hash_Table_Test, hash_function) },
   { XD_LISP_OBJECT, offsetof (struct Hash_Table_Test, lisp_equal_function) },
+  { XD_FUNCTION_POINTER, offsetof (struct Hash_Table_Test, hash_function) },
   { XD_LISP_OBJECT, offsetof (struct Hash_Table_Test, lisp_hash_function) },
+  { XD_FUNCTION_POINTER, offsetof (struct Hash_Table_Test, reorganize_needed_p) },
+  { XD_LISP_OBJECT, offsetof (struct Hash_Table_Test, lisp_reorganize_needed_p) },
   { XD_END }
 };
 
@@ -228,6 +252,40 @@ hash_table_size (Elemcount requested_size)
 
 
 static Boolint
+built_in_reorganize_needed_p (Lisp_Object hash_table,
+			      Boolint (*no_reorganize_key_condition)
+			      (Lisp_Object))
+{
+  const Lisp_Hash_Table *ht = XHASH_TABLE (hash_table);
+  const htentry *ee = ht->hentries;
+  Elemcount ii;
+
+  for (ii = 0; ii < ht->count; ii++, ee++)
+    {
+      while (HTENTRY_CLEAR_P (ee)) ee++;
+      if (!(no_reorganize_key_condition (ee->key)))
+	{
+	  return 1;
+	}
+    }
+
+  return 0;
+}
+
+static Boolint
+fixnum_or_char_p (Lisp_Object object)
+{
+  return FIXNUMP (object) || CHARP (object);
+}
+
+static Boolint
+eq_reorganize_needed_p (Lisp_Object UNUSED (func),
+			 Lisp_Object hash_table)
+{
+  return built_in_reorganize_needed_p (hash_table, fixnum_or_char_p);
+}
+
+static Boolint
 lisp_object_eql_equal (const Hash_Table_Test *UNUSED (http), Lisp_Object obj1,
                        Lisp_Object obj2)
 {
@@ -243,6 +301,19 @@ lisp_object_eql_hash (const Hash_Table_Test *UNUSED (http), Lisp_Object obj)
 }
 
 static Boolint
+char_or_number_p (Lisp_Object object)
+{
+  return CHARP (object) || NUMBERP (object);
+}
+
+static Boolint
+eql_reorganize_needed_p (Lisp_Object UNUSED (func),
+			 Lisp_Object hash_table)
+{
+  return built_in_reorganize_needed_p (hash_table, char_or_number_p);
+}
+
+static Boolint
 lisp_object_equal_equal (const Hash_Table_Test *UNUSED (http),
                          Lisp_Object obj1, Lisp_Object obj2)
 {
@@ -253,6 +324,20 @@ static Hashcode
 lisp_object_equal_hash (const Hash_Table_Test *UNUSED (http), Lisp_Object obj)
 {
   return internal_hash (obj, 0, 0);
+}
+
+static Boolint
+fixnum_char_or_string_p (Lisp_Object object)
+{
+  return FIXNUMP (object) || CHARP (object) || STRINGP (object);
+}
+
+static Boolint
+equal_reorganize_needed_p (Lisp_Object UNUSED (func),
+			   Lisp_Object hash_table)
+{
+  return built_in_reorganize_needed_p (hash_table,
+				       fixnum_char_or_string_p);
 }
 
 static Hashcode
@@ -266,6 +351,20 @@ lisp_object_equalp_equal (const Hash_Table_Test *UNUSED (http),
                           Lisp_Object obj1, Lisp_Object obj2)
 {
   return internal_equalp (obj1, obj2, 0);
+}
+
+static Boolint
+number_char_or_string_p (Lisp_Object object)
+{
+  return NUMBERP (object) || CHARP (object) || STRINGP (object);
+}
+
+static Boolint
+equalp_reorganize_needed_p (Lisp_Object UNUSED (func),
+			   Lisp_Object hash_table)
+{
+  return built_in_reorganize_needed_p (hash_table,
+				       number_char_or_string_p);
 }
 
 static Hashcode
@@ -314,6 +413,13 @@ lisp_object_general_equal (const Hash_Table_Test *http, Lisp_Object obj1,
   UNGCPRO;
 
   return !(NILP (res));
+}
+
+Boolint
+general_hash_table_reorganize_needed_p (Lisp_Object func,
+                                        Lisp_Object hash_table)
+{
+  return !NILP (call1 (func, hash_table));
 }
 
 static int
@@ -1235,32 +1341,87 @@ resize_hash_table (Lisp_Hash_Table *ht, Elemcount new_size)
   free_hentries (old_entries, old_size);
 }
 
-/* After a hash table has been saved to disk and later restored by the
-   portable dumper, it contains the same objects, but their addresses
-   and thus their HASHCODEs have changed. */
-void
-pdump_reorganize_hash_table (Lisp_Object hash_table)
+/* Decide if HASH_TABLE will need reorganization after pdump_load(). */
+static void
+disksave_hash_table (Lisp_Object hash_table)
 {
   const Lisp_Hash_Table *ht = XHASH_TABLE (hash_table);
-  /* We leave room for one never-occupied sentinel htentry at the end.  */
-  htentry *new_entries = allocate_hash_table_entries (ht->size + 1);
-  htentry *e, *sentinel;
-  Hash_Table_Test *http = XHASH_TABLE_TEST (ht->test);
 
-  for (e = ht->hentries, sentinel = e + ht->size; e < sentinel; e++)
-    if (!HTENTRY_CLEAR_P (e))
-      {
-	htentry *probe = new_entries + HASHCODE (e->key, ht, http);
-	LINEAR_PROBING_LOOP (probe, new_entries, ht->size)
-	  ;
-	*probe = *e;
-      }
+  if (ht->count == 0
+      || !(XHASH_TABLE_TEST (ht->test)->reorganize_needed_p
+	   (XHASH_TABLE_TEST (ht->test)->lisp_reorganize_needed_p,
+	    hash_table)))
+    {
+      Fputhash (hash_table, make_fixnum (ht->size),
+		Vpdump_hash_table_reorganize_keys);
+      return;
+    }
 
-  memcpy (ht->hentries, new_entries, ht->size * sizeof (htentry));
+  /* We cannot assert that this hash table does not need reorganization;
+     reorganize it. */
+  Fputhash (hash_table, make_fixnum (- ht->size),
+            Vpdump_hash_table_reorganize_keys);
+  return;
+}
+
+/* After hash tables have been saved to disk and later restored by the
+   portable dumper, they contain the same objects, but the objects' addresses
+   have changed. For :test #'eq hash tables (the majority of the dumped
+   tables) with non-fixnum, non char keys, that means that their hash codes
+   have changed.
+
+   The dumper has sorted the relocation table to put the hash tables that need
+   reorganization first, in decreasing order of size (largest first).
+
+   The low-order bits of the dumped data are identical from run to run and so
+   we could avoid this by, before dump, munging the hash tables' golden ratio
+   to be one, resizing them to be a power of two in size, and, in the course of
+   the dump, reloading the dump data and reorganizing the hash tables
+   once. This would be also advantageous for non-PIE, non-ASLR builds (no need
+   to relocate offsets within the dump data). The good spread of data from the
+   golden ratio would be lost but this would be mitigated by the individual
+   hash tables being larger.
+
+   This would only be practical for hash tables that have fewer entries than
+   the page size, since that is the number of low-order bits that are
+   preserved.  */
+void
+pdump_reorganize_hash_tables (void)
+{
+  htentry *new_entries
+    = xnew_array (htentry, XHASH_TABLE (pdump_hash_tables_for_reorganize[0])
+                  ->size + 1);
+  Elemcount ii;
+
+  for (ii = 0; ii < pdump_hash_table_reorganize_count; ii++)
+    {
+      Lisp_Hash_Table *ht
+	= XHASH_TABLE (pdump_hash_tables_for_reorganize[ii]);
+      const Hash_Table_Test *http = XHASH_TABLE_TEST (ht->test);      
+      Elemcount this_count = ht->count;
+      const htentry *ee;
+
+      memset (new_entries, 0, (ht->size + 1) * sizeof (htentry));
+
+      for (ee = ht->hentries; this_count != 0; ee++)
+        {
+          if (!HTENTRY_CLEAR_P (ee))
+            {
+              htentry *probe = new_entries + HASHCODE (ee->key, ht, http);
+              LINEAR_PROBING_LOOP (probe, new_entries, ht->size)
+                ;
+              *probe = *ee;
+	      this_count--;
+            }
+        }
+
+      memcpy (ht->hentries, new_entries, (ht->size + 1) * sizeof (htentry));
+    }
 
   xfree (new_entries);
 }
 
+
 static void
 enlarge_hash_table (Lisp_Hash_Table *ht)
 {
@@ -2544,33 +2705,42 @@ Return a hash value for OBJECT appropriate for use with `equalp.'
 static Lisp_Object
 make_hash_table_test (Lisp_Object name,
                       hash_table_equal_function_t equal_function,
-                      hash_table_hash_function_t hash_function,
                       Lisp_Object lisp_equal_function,
-                      Lisp_Object lisp_hash_function)
+                      hash_table_hash_function_t hash_function,
+                      Lisp_Object lisp_hash_function,
+		      hash_table_reorganize_needed_t reorganize_needed_p,
+		      Lisp_Object lisp_reorganize_needed_p)
 {
   Lisp_Object result = ALLOC_NORMAL_LISP_OBJECT (hash_table_test);
   Hash_Table_Test *http = XHASH_TABLE_TEST (result);
 
   http->name = name;
   http->equal_function = equal_function;
-  http->hash_function = hash_function;
   http->lisp_equal_function = lisp_equal_function;
+  http->hash_function = hash_function;
   http->lisp_hash_function = lisp_hash_function;
+  http->reorganize_needed_p = reorganize_needed_p;
+  http->lisp_reorganize_needed_p = lisp_reorganize_needed_p;
 
   return result;
 }
 
 Lisp_Object
 define_hash_table_test (Lisp_Object name,
-                        hash_table_equal_function_t equal_function,
-                        hash_table_hash_function_t hash_function,
-                        Lisp_Object lisp_equal_function,
-                        Lisp_Object lisp_hash_function)
+			hash_table_equal_function_t equal_function,
+			Lisp_Object lisp_equal_function,
+			hash_table_hash_function_t hash_function,
+			Lisp_Object lisp_hash_function,
+			hash_table_reorganize_needed_t reorganize_needed_p,
+			Lisp_Object lisp_reorganize_needed_p)
 {
-  Lisp_Object result = make_hash_table_test (name, equal_function,
-                                             hash_function,
+  Lisp_Object result = make_hash_table_test (name,
+					     equal_function,
                                              lisp_equal_function,
-                                             lisp_hash_function);
+                                             hash_function,
+                                             lisp_hash_function,
+					     reorganize_needed_p,
+					     lisp_reorganize_needed_p);
   XWEAK_LIST_LIST (Vhash_table_test_weak_list)
     = Fcons (Fcons (name, result),
              XWEAK_LIST_LIST (Vhash_table_test_weak_list));
@@ -2578,7 +2748,7 @@ define_hash_table_test (Lisp_Object name,
   return result;
 }
 
-DEFUN ("define-hash-table-test", Fdefine_hash_table_test, 3, 3, 0, /*
+DEFUN ("define-hash-table-test", Fdefine_hash_table_test, 3, 4, 0, /*
 Define a new hash table test with name NAME, a symbol.
 
 In a hash table created with NAME as its test, use EQUAL-FUNCTION to compare
@@ -2587,6 +2757,12 @@ keys, and HASH-FUNCTION for computing hash codes of keys.
 EQUAL-FUNCTION must be a function taking two arguments and returning non-nil
 if both arguments are the same.  HASH-FUNCTION must be a function taking one
 argument and returning an integer that is the hash code of the argument.
+
+REORGANIZE-NEEDED-P, if supplied, must be a function taking one hash table
+argument (with its test the created hash table test) and returning non-nil if
+that hash table will need to be reorganized after loading the XEmacs dump file.
+The dump file provides much of the core C and Lisp infrastructure of XEmacs,
+and so will be unusual for non-core XEmacs developers to need to supply this.
 
 Computation should ideally use the whole value range of the underlying machine
 long type.  In XEmacs this necessitates bignums for values above
@@ -2604,7 +2780,7 @@ completeness.
 This function returns t if successful, and errors if NAME cannot be defined as
 a hash table test.
 */
-       (name, equal_function, hash_function))
+       (name, equal_function, hash_function, reorganize_needed_p))
 {
   Lisp_Object min, max, lookup;
 
@@ -2633,9 +2809,24 @@ a hash table test.
       signal_wrong_number_of_arguments_error (hash_function, 1);
     }
 
-  define_hash_table_test (name, lisp_object_general_equal,
-                          lisp_object_general_hash, equal_function,
-                          hash_function);
+  if (NILP (reorganize_needed_p))
+    {
+      reorganize_needed_p = Qidentity;
+    }
+
+  min = Ffunction_min_args (reorganize_needed_p);
+  max = Ffunction_max_args (reorganize_needed_p);
+
+  if (!((XFIXNUM (min) <= 1) && (NILP (max) || 1 <= XFIXNUM (max))))
+    {
+      signal_wrong_number_of_arguments_error (reorganize_needed_p, 1);
+    }
+
+  define_hash_table_test (name,
+                          lisp_object_general_equal, equal_function,
+                          lisp_object_general_hash, hash_function,
+			  general_hash_table_reorganize_needed_p,
+			  reorganize_needed_p);
   return Qt;
 }
 
@@ -2885,11 +3076,13 @@ syms_of_elhash (void)
 
   staticpro (&Veq_hash_table_test);
   Veq_hash_table_test
-    = define_hash_table_test (Qeq, NULL, NULL, Qeq, Qeq_hash);
+    = define_hash_table_test (Qeq, NULL, Qeq, NULL, Qeq_hash,
+                              eq_reorganize_needed_p, Qunbound);
   staticpro (&Veql_hash_table_test);
   Veql_hash_table_test
-    = define_hash_table_test (Qeql, lisp_object_eql_equal,
-                              lisp_object_eql_hash, Qeql, Qeql_hash);
+    = define_hash_table_test (Qeql, lisp_object_eql_equal, Qeql,
+                              lisp_object_eql_hash, Qeql_hash,
+                              eql_reorganize_needed_p, Qunbound);
 
   /* Vequal_hash_table_test was initialized very early, before
      define_hash_table_test was truly available. Do much of that work now. */
@@ -2898,14 +3091,17 @@ syms_of_elhash (void)
   XHASH_TABLE_TEST (Vequal_hash_table_test)->lisp_hash_function
     = Qequal_hash;
   XHASH_TABLE_TEST (Vequal_hash_table_test)->name = Qequal;
+  XHASH_TABLE_TEST (Vequal_hash_table_test)->lisp_reorganize_needed_p
+    = Qunbound;
   XWEAK_LIST_LIST (Vhash_table_test_weak_list)
     = Fcons (Fcons (Qequal, Vequal_hash_table_test),
              XWEAK_LIST_LIST (Vhash_table_test_weak_list));
 
   staticpro (&Vequalp_hash_table_test);
   Vequalp_hash_table_test
-    = define_hash_table_test (Qequalp, lisp_object_equalp_equal,
-                              lisp_object_equalp_hash, Qequalp, Qequalp_hash);
+    = define_hash_table_test (Qequalp, lisp_object_equalp_equal, Qequalp,
+                              lisp_object_equalp_hash,  Qequalp_hash,
+                              equalp_reorganize_needed_p, Qunbound);
 
   DEFSUBR (Fmake_hash_table);
   DEFSUBR (Fcopy_hash_table);
@@ -3007,6 +3203,12 @@ corresponding strings as their names.  To find all the symbols in a package,
 use `mapatoms'.
 */ );
   /* obarray has been initialized long before */
+
+  Vpdump_hash_table_reorganize_keys
+    = make_lisp_hash_table (600, HASH_TABLE_NON_WEAK, Qeq);
+  staticpro_nodump (&Vpdump_hash_table_reorganize_keys);
+
+  dump_add_opaque_fixnum (&pdump_hash_table_reorganize_count);
 }
 
 void
@@ -3021,6 +3223,7 @@ init_elhash_once_early (void)
 #endif
   OBJECT_HAS_METHOD (hash_table, print_preprocess);
   OBJECT_HAS_METHOD (hash_table, nsubst_structures_descend);
+  OBJECT_HAS_PREMETHOD (hash_table, disksave);
 
   DEFINE_DUMPABLE_INTERNAL_LISP_OBJECT ("hash-table-test", hash_table_test,
                                         hash_table_test_description,
@@ -3031,8 +3234,12 @@ init_elhash_once_early (void)
   Vequal_hash_table_test
     /* Qequal isn't yet available, so this gets ugly. It's corrected in
        syms_of_elhash. */
-    = make_hash_table_test (Qnull_pointer, lisp_object_equal_equal,
-                            lisp_object_equal_hash, Qnull_pointer,
+    = make_hash_table_test (Qnull_pointer,
+			    lisp_object_equal_equal,
+			    Qnull_pointer,
+                            lisp_object_equal_hash,
+			    Qnull_pointer,
+			    equal_reorganize_needed_p,
                             Qnull_pointer);
 
   /* Create obarray here, not in symbols.c, symbols.c can't see
@@ -3043,3 +3250,5 @@ init_elhash_once_early (void)
   initial_obarray = Vobarray;
   staticpro (&initial_obarray);
 }
+
+/* elhash.c ends here */

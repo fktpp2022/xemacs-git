@@ -1,3 +1,115 @@
+2026-03-17  Aidan Kehoe  <kehoea@parhasard.net>
+
+	1. No need to reorganize obarray (and other hash tables that do
+	not depend on pointer values) after pdump_load(), avoid that.
+	2. Examine all the hash tables that need reorganization at once,
+	avoid a frenzy of xmalloc() and xfree() at startup.
+
+	* dumper.c:
+	* dumper.c (struct): Remove pdump_static_Lisp_Object as a struct
+	declaration in passing, no longer used.
+	* dumper.c (compare_hash_table_block_list_elt): New.
+	Passed to qsort() to order the hash tables to put those to be
+	reorganized first.
+	* dumper.c (pdump_sort_hash_tables_for_reorganize): New.
+	Examine the pdump_object_table entry for hash tables and sort it
+	to put the largest one that needs reorganization first, then the
+	next largest, and so on, with those that do not need
+	reorganization at the end.
+	Set pdump_hash_table_reorganize_count to the count of hash tables
+	that need reorganization.
+	* dumper.c (pdump_dump_root_block_ptrs):
+	Fix some errant whitespace.
+	* dumper.c (pdump_dump_root_blocks): Ditto.
+	* dumper.c (pdump):
+	Call pdump_sort_hash_tables_for_reorganize() before dumping any
+	data.
+	* dumper.c (pdump_load_finish):
+	Set pdump_hash_tables_for_reorganize to point to the beginning of
+	the hash table entries in the relocation table (which are all
+	together).
+	Delay reorganizing the hash tables until we can run Lisp, now
+	called from emacs.c
+	* elhash.c (Lisp_Object Vpdump_hash_table_reorganize_keys):
+	Hash table used only at dump time, giving sort keys for the
+	reachable hash tables, used by
+	pdump_sort_hash_tables_for_reorganize().
+	* elhash.c (Elemcount pdump_hash_table_reorganize_count): New.
+	Count of hash tables that need reorganization.
+	* elhash.c (struct Hash_Table_Test):
+	Add new REORGANIZE_NEEDED_P, LISP_REORGANIZE_NEEDED_P members to
+	this object. Re-order it to keep the similarly-functioning fields
+	together. 
+	* elhash.c (built_in_reorganize_needed_p): New.
+	Used to implement REORGANIZE_NEEDED_P for the built-in hash
+	tables.
+	* elhash.c (fixnum_or_char_p):
+	Passed to built_in_reorganize_needed_p() for #'eq hash tables.
+	* elhash.c (eq_reorganize_needed_p):
+	Method for the relevant hash table test.
+	* elhash.c (char_or_number_p):
+	Passed to built_in_reorganize_needed_p() for #'eql hash tables.
+	* elhash.c (eql_reorganize_needed_p):
+	Method for the relevant hash table test.
+	* elhash.c (fixnum_char_or_string_p):
+	Passed to built_in_reorganize_needed_p() for #'equal hash tables.
+	* elhash.c (equal_reorganize_needed_p):
+	Method for the relevant hash table test.
+	* elhash.c (number_char_or_string_p):
+	Passed to built_in_reorganize_needed_p() for #'equal hash tables.
+	* elhash.c (equalp_reorganize_needed_p):
+	Method for the relevant hash table test.
+	* elhash.c (general_hash_table_reorganize_needed_p):
+	Method for hash table tests where REORGANIZE-NEEDED-P is in Lisp.
+	* elhash.c (disksave_hash_table):
+	New object method for hash table, decide if a hash table will need
+	to be reorganized after pdump_load(), which is the case if its
+	count is non-zero and its test's reorganize_needed_p method
+	returns non-zero.
+	Seed Vpdump_hash_table_reorganize_keys according to this.
+	* elhash.c (pdump_reorganize_hash_tables):
+	Change of API from the previous pdump_reorganize_hash_table(),
+	deal with all the hash tables in a loop so no need for repeated
+	xnew(). Examine pdump_hash_tables_for_reorganize,
+	pdump_hash_table_reorganize_count to determine which hash tables
+	need to be examined.
+	* elhash.c (make_hash_table_test):
+	Change the calling convention of this to take the new
+	reorganize_needed_p, lisp_reorganize_needed_p arguments, reorder
+	the other arguments to keep the functionally similar fields
+	together.
+	* elhash.c (define_hash_table_test):
+	Same changes to this.
+	* elhash.c (Fdefine_hash_table_test):
+	Same changes to this. Document REORGANIZE-NEEDED-P as an
+	argument.
+	* elhash.c (syms_of_elhash):
+	Update calls to define_hash_table_test().
+	* elhash.c (vars_of_elhash):
+	Adjust the lisp_reorganize_needed_p field Vequal_hash_table_test
+	here, as well as the other fields.
+	Update call to define_hash_table_test() for #'eq, #'eql, #'equalp
+	Initialize Vpdump_hash_table_reorganize_keys, mark it
+	staticpro_nodump().
+	Call dump_add_opaque_fixnum on
+	&pdump_hash_table_reorganize_count.
+	* elhash.c (init_elhash_once_early):
+	Document that hash tables have a disksave method.
+	Update make_hash_table_test() call for Vequal_hash_table_test
+	appropriately.
+	* elhash.h:
+	Provide hash_table_reorganize_needed_t as a typedef.
+	Declare Vpdump_hash_table_reorganize_keys,
+	pdump_hash_table_reorganize_count,
+	pdump_hash_tables_for_reorganize.
+	Update declaration for declare_hash_table_test.
+	* emacs.c (main_1):
+	Call pdump_reorganize_hash_tables() once we can run Lisp if needed.
+	* gccache-x.c (define_gc_cache_hash_table_test):
+	Update call to define_hash_table_test() here.
+	* glyphs.c (vars_of_glyphs):
+	Ditto.
+
 2026-03-16  Aidan Kehoe  <kehoea@parhasard.net>
 
 	General improvements to the console, specifier, image_instantiator,

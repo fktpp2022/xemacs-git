@@ -5440,8 +5440,10 @@ vars_of_glyphs (void)
 
   /* The Qunbound name means this test is not available from Lisp. */
   Vimage_instance_hash_table_test
-    = define_hash_table_test (Qunbound, instantiator_eq_equal,
-                              instantiator_eq_hash, Qunbound, Qunbound);
+    = define_hash_table_test (Qunbound, instantiator_eq_equal, Qunbound,
+                              instantiator_eq_hash, Qunbound,
+                              general_hash_table_reorganize_needed_p,
+                              Qidentity);
   staticpro (&Vimage_instance_hash_table_test);
 
   /* glyphs */

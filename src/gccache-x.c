@@ -157,8 +157,11 @@ gc_cache_hash (const Hash_Table_Test * UNUSED (http), Lisp_Object arg)
 Lisp_Object
 define_gc_cache_hash_table_test (void)
 {
-  return define_hash_table_test (Qunbound, gc_cache_eql, gc_cache_hash,
-                                 Qnil, Qnil);
+  return define_hash_table_test (Qunbound,
+				 gc_cache_eql, Qunbound,
+				 gc_cache_hash, Qunbound,
+				 general_hash_table_reorganize_needed_p,
+				 Qunbound);
 }
 
 void

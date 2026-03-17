@@ -133,12 +133,6 @@ typedef struct
 
 typedef struct
 {
-  Lisp_Object *address;
-  Lisp_Object value;
-} pdump_static_Lisp_Object;
-
-typedef struct
-{
   void **address;
   void *value;
 } pdump_static_pointer;
@@ -1616,6 +1610,66 @@ pdump_scan_by_alignment (void (*f)(pdump_block_list_elt *,
     }
 }
 
+
+static int
+compare_hash_table_block_list_elt (const void *elt1, const void *elt2)
+{
+  Lisp_Object hash_table1
+    = GET_LISP_FROM_VOID ((*((pdump_block_list_elt **) elt1))->obj);
+  Lisp_Object hash_table2
+    = GET_LISP_FROM_VOID ((*((pdump_block_list_elt **) elt2))->obj);
+  Fixnum val1
+    = XFIXNUM (Fgethash (hash_table1, Vpdump_hash_table_reorganize_keys,
+			 Qnil));
+  Fixnum val2
+    = XFIXNUM (Fgethash (hash_table2, Vpdump_hash_table_reorganize_keys,
+			 Qnil));
+
+  return (int) (val1 - val2);
+}
+
+/* Not all of the hash tables need to be reorganized after pdump_load().
+   E.g. those with a count of zero, or those (like obarray) where hashing keys
+   does not depend on the pointer value. This orders the block list such that
+   those that need re-hashing come first, with the largest hash table at the
+   beginning (so no need for pdump_reorganize_hash_tables() to realloc()). */
+static void
+pdump_sort_hash_tables_for_reorganize (void)
+{
+  Elemcount count = pdump_object_table[lrecord_type_hash_table].count, ii;
+  pdump_block_list_elt **elts = alloca_array (pdump_block_list_elt *, count);
+  pdump_block_list_elt
+    *elt = pdump_object_table[lrecord_type_hash_table].first;
+
+  for (ii = 0; elt; elt = elt->next, ii++)
+    {
+      structure_checking_assert (elt->count == 1);
+      elts[ii] = elt;
+    }
+
+  structure_checking_assert (ii == count);
+
+  qsort (elts, count, sizeof (elts[0]), compare_hash_table_block_list_elt);
+
+  count -= 1;
+  elts[count]->next = NULL;
+
+  for (ii = 0; ii < count; ii++)
+    {
+      elts[ii]->next = elts[ii + 1];
+      if (pdump_hash_table_reorganize_count < 0
+	  && NATNUMP (Fgethash (GET_LISP_FROM_VOID (elts[ii]->obj),
+				Vpdump_hash_table_reorganize_keys,
+				Qnil)))
+	{
+	  pdump_hash_table_reorganize_count = ii;
+	}
+    }
+
+  pdump_object_table[lrecord_type_hash_table].first = elts[0];
+}
+
+
 static void
 pdump_dump_cv_data_info (void)
 {
@@ -1653,7 +1707,6 @@ pdump_dump_cv_ptr_info (void)
    dumping.  For each pointer we dump out a structure containing the
    location of the pointer and its value, replaced by the appropriate
    offset into the dumped data. */
-
 static void
 pdump_dump_root_block_ptrs (void)
 {
@@ -1674,7 +1727,6 @@ pdump_dump_root_block_ptrs (void)
    dumping.  For each block we dump a structure containing info about the
    block (its location, size and description) and then the block itself,
    with its pointers replaced with offsets into the dump data. */
-
 static void
 pdump_dump_root_blocks (void)
 {
@@ -2273,6 +2325,10 @@ pdump (void)
 			 build_ascstring (EMACS_DUMP_FILE_NAME));
     }
 
+  /* Needs to be done before both pdump_dump_root_blocks(),
+     pdump_dump_rtables(). */
+  pdump_sort_hash_tables_for_reorganize ();
+
   pdump_dump_cv_data_info ();
   pdump_dump_cv_ptr_info ();
   pdump_dump_root_block_ptrs ();
@@ -2390,6 +2446,13 @@ pdump_load_finish (void)
 	  Rawbyte **reloc = (Rawbyte **) p;
           rt.desc
             = (const struct memory_description *) pdump_reloc_c_data (rt.desc);
+
+          if (rt.desc == hash_table_description)
+            {
+	      /* Make this available to elhash.c. */
+              pdump_hash_tables_for_reorganize = (Lisp_Object *) p;
+            }
+
 	  for (i = 0; i < rt.count; i++)
 	    {
 	      reloc[i]
@@ -2399,28 +2462,13 @@ pdump_load_finish (void)
 	  p += rt.count * sizeof (Rawbyte *);
 	}
       else if (!(--count))
-	  break;
-    }
-
-  /* Final cleanups */
-  /*   reorganize hash tables */
-  p = pdump_rt_list;
-  for (;;)
-    {
-      pdump_reloc_table rt = PDUMP_READ_ALIGNED (p, pdump_reloc_table);
-      p = (Rawbyte *) ALIGN_PTR (p, Lisp_Object);
-      if (!rt.desc)
-	break;
-      rt.desc
-        = (const struct memory_description *) pdump_reloc_c_data (rt.desc);
-      if (rt.desc == hash_table_description)
 	{
-	  for (i = 0; i < rt.count; i++)
-	    pdump_reorganize_hash_table (PDUMP_READ (p, Lisp_Object));
+	  /* Finished the second zero-terminated array of pdump_reloc_tables.
+	     The first reflects Lisp_Object types, second reflects descriptions
+	     not directly associated with Lisp_Objects. See
+	     pdump_dump_rtables().  */
 	  break;
 	}
-      else
-	p += sizeof (Lisp_Object) * rt.count;
     }
 
   return 1;
