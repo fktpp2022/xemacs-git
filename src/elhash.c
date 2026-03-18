@@ -125,7 +125,7 @@ Lisp_Object Vpdump_hash_table_reorganize_keys;
 
 /* Set by the portable dumper to the count of those hash tables that need
    reorganization, examined after pdump_load(). */
-Elemcount pdump_hash_table_reorganize_count;
+Elemcount pdump_hash_table_reorganize_count = -1;
 
 /* Set by pdump_load_finish() to the beginning of the C vector of hash tables
    needing reorganization. */

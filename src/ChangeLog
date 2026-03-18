@@ -1,3 +1,9 @@
+2026-03-18  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* elhash.c (Elemcount pdump_hash_table_reorganize_count):
+	Initialize this as intended to -1, fix the build. Thank you Mats
+	Lidell and the buildbot.
+
 2026-03-17  Aidan Kehoe  <kehoea@parhasard.net>
 
 	1. No need to reorganize obarray (and other hash tables that do
