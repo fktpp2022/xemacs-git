@@ -173,17 +173,17 @@ to the current system configuration (as returned by
 The table of default values looks like this: (see below for abbreviations)
 
 
-              NoMule NoMuleEOL Mule       MSW          MSWMule       CygUTF 
-------------------------------------------------------------------------------
-bfcs-for-read binary raw-text undecided   raw-text     undecided     undecided
-default-bfcs  binary binary   iso-2022-8  raw-text-dos MSW-MB-dos    utf-8
-native        binary binary   binary      raw-text-dos MSW-MB-SD-dos utf-8
-keyboard      binary raw-text undecided-  raw-text     undecided-    utf-8
-                                unix                     unix
-terminal      binary binary   binary      binary       MSW-MB-unix   utf-8
-process-read  binary raw-text undecided   raw-text     undecided     utf-8
-process-write binary binary   binary      raw-text     MSW-MB-SD     utf-8
-no-conv-cs    binary raw-text raw-text    raw-text     MSW-MB        utf-8
+              Default     MSW           CygUTF 
+-------------------------------------------------
+bfcs-for-read undecided   undecided     undecided
+default-bfcs  iso-2022-8  MSW-MB-dos    utf-8
+native        binary      MSW-MB-SD-dos utf-8
+keyboard      undecided-  undecided-    utf-8
+                unix        unix
+terminal      binary      MSW-MB-unix   utf-8
+process-read  undecided   undecided     utf-8
+process-write binary      MSW-MB-SD     utf-8
+no-conv-cs    raw-text    MSW-MB        utf-8
 
 
 VAR can be one of:

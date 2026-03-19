@@ -269,8 +269,7 @@ otherwise it is killed."
 Optional arg TUTORIAL specifies the tutorial file; if not specified or
 if this command is invoked interactively, the tutorial appropriate to
 the current language environment is used.  If there is no tutorial
-written in that language, or if this version of XEmacs has no
-international (Mule) support, the English-language tutorial is used.
+written in that language the English-language tutorial is used.
 With a prefix argument, you are asked to select which language."
   (interactive "i\nP")
   (when (and language (consp language))

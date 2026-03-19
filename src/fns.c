@@ -185,17 +185,16 @@ If string STR1 is greater, the value is a positive number N;
 }
 
 DEFUN ("string-lessp", Fstring_lessp, 2, 2, 0, /*
-Return t if first arg string is less than second in lexicographic order.
-Comparison is simply done on a character-by-character basis using the
-numeric value of a character. (Note that this may not produce
-particularly meaningful results under Mule if characters from
-different charsets are being compared.)
+Return t if STRING1 is lexicographically less than STRING2.
+
+Comparison is simply done on a character-by-character basis using the numeric
+value of the characters. Note that this may not produce particularly
+meaningful results under non-Unicode-internal if characters from different
+charsets are being compared.
 
 Symbols are also allowed; their print names are used instead.
 
-Currently we don't do proper language-specific collation or handle
-multiple character sets.  This may be changed when Unicode support
-is implemented.
+Currently we don't do proper language-specific collation.
 */
        (string1, string2))
 {

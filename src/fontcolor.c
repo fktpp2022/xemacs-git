@@ -1282,7 +1282,7 @@ the first found is used.  This returns an unambiguous name for that font
 }
 
 DEFUN ("font-instance-charset", Ffont_instance_charset, 1, 1, 0, /*
-Return the Mule charset that FONT-INSTANCE was allocated to handle.
+Return the charset that FONT-INSTANCE was allocated to handle.
 */
        (font_instance))
 {

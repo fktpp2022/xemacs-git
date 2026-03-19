@@ -844,9 +844,10 @@ See also `line-number'."
 
 (defun what-cursor-position (&optional detail)
   "Print info on cursor position (on screen and within buffer).
-Also describe the character after point, giving its UCS code point and Mule
-charset and codes; for ASCII characters, give its code in octal, decimal and
-hex.
+
+Also describe the character after point, giving its UCS code point and
+internal charset and codes; for ASCII characters, give its code in octal,
+decimal and hex.
 
 With prefix argument, show extended details about the character in a
 separate buffer.  See also the command `describe-char'."

@@ -1,3 +1,15 @@
+2026-03-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* lispref/mule.texi (Internationalization Terminology):
+	* lispref/mule.texi (Charset Properties):
+	* lispref/mule.texi (MULE Characters):
+	* lispref/mule.texi (Coding System Types):
+	* lispref/mule.texi (Charset Unification):
+	Remove mention of non-Mule from this. Add a certain amount of
+	documentation of --with-unicode-internal. Update a certain amount
+	otherwise, e.g. documenting that the fixed-width 16-bit Unicode
+	encoding is now called UCS-2.
+
 2026-02-21  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* emodules.texi:

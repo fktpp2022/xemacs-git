@@ -76,7 +76,7 @@
       ))))
 
 (defun decode-char (quote-ucs code &optional restriction) 
-  "FSF compatibility--return Mule character with Unicode codepoint CODE.
+  "FSF compatibility--return character with Unicode codepoint CODE.
 The second argument must be 'ucs, the third argument is ignored.  "
   ;; We're prepared to accept invalid Unicode in unicode-to-char, but not in
   ;; this function, which is the API that should actually be used, since

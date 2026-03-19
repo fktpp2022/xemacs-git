@@ -485,10 +485,11 @@ either a fixnum or bignum as appropriate.
  */
 DEFUN ("get-selection-internal", Fget_selection_internal, 2, 3, 0, /*
 Return text selected from some window-system window.
+
 SELECTION is a symbol, typically PRIMARY, SECONDARY, or CLIPBOARD.
 TARGET-TYPE is the type of data desired, typically STRING or COMPOUND_TEXT.
-Under Mule, if the resultant data comes back as 8-bit data in type
-TEXT or COMPOUND_TEXT, it will be decoded as Compound Text.
+If the resultant data comes back as 8-bit data in type TEXT or COMPOUND_TEXT,
+it will be decoded as Compound Text.
 */
        (selection, target_type, device))
 {

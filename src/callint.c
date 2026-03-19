@@ -135,8 +135,8 @@ S -- Any symbol.
 v -- Variable name: symbol that is user-variable-p.
 x -- Lisp expression read but not evaluated.
 X -- Lisp expression read and evaluated.
-z -- Coding system. (Always nil if no Mule support.)
-Z -- Coding system, nil if no prefix arg. (Always nil if no Mule support.)
+z -- Coding system.
+Z -- Coding system, nil if no prefix arg.
 In addition, if the string begins with `*'
  then an error is signaled if the buffer is read-only.
  This happens before reading any arguments.

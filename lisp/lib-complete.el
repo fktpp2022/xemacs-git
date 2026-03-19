@@ -299,11 +299,12 @@ A good way to set this variable is like this:
 (defun find-library (library &optional codesys display-function)
   "Find and display in the current window the source for the Elisp LIBRARY.
 LIBRARY should be a name without any path information and may include or omit
-the \".el\" suffix.  Under XEmacs/Mule, the optional second argument CODESYS
-specifies the coding system to use when decoding the file.  Interactively,
-with a prefix argument, this prompts for the coding system.  Optional third
-argument DISPLAY-FUNCTION must take two arguments, the filename to display
-and CODESYS.  The default for DISPLAY-FUNCTION is `find-file'.
+the \".el\" suffix.  The optional second argument CODESYS specifies the coding
+system to use when decoding the file.
+
+Interactively, with a prefix argument, this prompts for the coding system.
+Optional third argument DISPLAY-FUNCTION must take two arguments, the filename
+to display and CODESYS.  The default for DISPLAY-FUNCTION is `find-file'.
 
 This function searches `find-library-source-path' to find the library;
 if this is nil (the default), then `load-path' is searched."
@@ -327,10 +328,11 @@ if this is nil (the default), then `load-path' is searched."
 
 (defun find-library-other-window (library &optional codesys)
   "Find and display in another window the source for the Elisp LIBRARY.
+
 LIBRARY should be a name without any path information and may include or omit
-the \".el\" suffix.  Under XEmacs/Mule, the optional second argument CODESYS
-specifies the coding system to use when decoding the file.  Interactively,
-with a prefix argument, this prompts for the coding system."
+the \".el\" suffix.  The optional second argument CODESYS specifies the coding
+system to use when decoding the file.  Interactively, with a prefix argument,
+this prompts for the coding system."
   (interactive 
    (list (read-library-name "Find library in other window: ")
 	 (if current-prefix-arg
@@ -339,10 +341,11 @@ with a prefix argument, this prompts for the coding system."
 
 (defun find-library-other-frame (library &optional codesys)
   "Find and display in another frame the source for the Elisp LIBRARY.
+
 LIBRARY should be a name without any path information and may include or omit
-the \".el\" suffix.  Under XEmacs/Mule, the optional second argument CODESYS
-specifies the coding system to use when decoding the file.  Interactively,
-with a prefix argument, this prompts for the coding system."
+the \".el\" suffix.  The optional second argument CODESYS specifies the coding
+system to use when decoding the file.  Interactively, with a prefix argument,
+this prompts for the coding system."
   (interactive 
    (list (read-library-name "Find library in other frame: ")
 	 (if current-prefix-arg

@@ -482,8 +482,9 @@ Normally DOMAIN will be a window or nil (meaning the selected window),
   and an instance object describing how the font appears in that
   particular window and buffer will be returned.
 
-CHARSET is a Mule charset (meaning return the font used for that charset) or
-nil (meaning return the font used for ASCII.)
+CHARSET is a charset (meaning return the font used for that charset) or nil
+(meaning return the font used for ASCII).  It can also be a symbol naming a
+charset.
 
 See `face-property-instance' for more information."
   (if (null charset)
@@ -491,9 +492,7 @@ See `face-property-instance' for more information."
     (let (matchspec)
       ;; get-charset signals an error if its argument doesn't have an
       ;; associated charset.
-      (setq charset (if-fboundp 'get-charset
-                        (get-charset charset)
-                      (error 'unimplemented "Charset support not available"))
+      (setq charset (get-charset charset)
 	    matchspec (cons charset nil))
       (or (null (setcdr matchspec 'initial))
 	  (face-property-matching-instance 

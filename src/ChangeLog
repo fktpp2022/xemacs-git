@@ -1,3 +1,33 @@
+2026-03-19  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* buffer.c (Fkill_all_local_variables):
+	* callint.c (Finteractive):
+	* chartab.c (Fput_char_table):
+	* chartab.c (Fremove_char_table):
+	* data.c (Fchar_to_int):
+	* fns.c:
+	* fns.c (Fstring_lessp):
+	* fontcolor.c (Ffont_instance_charset):
+	* lread.c (Fload_internal):
+	* mule-charset.c (Fcharset_encodable_p):
+	* mule-charset.c (Fcharset_id):
+	* select.c (Fget_selection_internal):
+	* text.c (Fchar_to_unicode):
+	* text.c (Funicode_to_char):
+	Remove mention of non-Mule from these docstrings. Correct "old
+	Mule-internal" to "old-Mule internal" in the docstring for
+	Funicode_to_char().
+
+	* emacs.c (main_1):
+	Update and correct a comment for init_intl_win32(). Call it after
+	init_unicode(), not that this matters.	
+
+	* intl-win32.c (init_intl_win32):
+	* intl-win32.c (vars_of_intl_win32):
+	In passing, provide the cygwin-use-utf-8 feature in
+	vars_of_intl_32 rather than init_intl_win32 as is more usual
+	XEmacs practice.
+
 2026-03-18  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* elhash.c (Elemcount pdump_hash_table_reorganize_count):

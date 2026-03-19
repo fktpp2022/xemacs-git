@@ -2869,9 +2869,12 @@ coding system that was used for the decoding is stored into it.  It will in
 general be different from CODESYS if CODESYS specifies automatic encoding
 detection or end-of-line detection.
 
-Currently START and END refer to byte positions (as opposed to character
-positions), even in Mule and under MS Windows. (Fixing this, particularly
-under Mule, is very difficult.)
+START and END refer to byte positions, as opposed to character positions.  The
+underlying operating systems do not provide primitives to access character
+offsets (according to a given coding system) in files.  While it would be
+possible to implement this within XEmacs, it would be algorithmically
+expensive and it is unclear how much value it would add; there are no plans to
+change this. GNU Emacs also uses byte positions for the relevant arguments.
 */
        (filename, visit, start, end, replace, codesys, used_codesys))
 {

@@ -1505,7 +1505,7 @@ of buffer-file-coding-system set by this function."
       (set-language-environment-coding-systems langenv default-eol-type))))
 
 (defun init-mule-at-startup ()
-  "Initialize MULE environment at startup.  Don't call this."
+  "Initialize internationalization at startup.  Don't call this."
 
 ;   (when (not load-unicode-tables-at-dump-time)
 ;     (load-unicode-tables))

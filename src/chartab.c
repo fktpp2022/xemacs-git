@@ -1583,16 +1583,14 @@ Set the value for CHAR to be VALUE in CHAR-TABLE.
 CHAR specifies one or more characters to be affected and should be
 one of the following:
 
--- A charset (only allowed when Mule support is present; all characters
-   in the charset are set)
+-- A charset; all characters in the charset are set
 -- A vector of two elements: a two-octet charset and a row number; the row
-   must be an integer, not a character (only allowed when Mule support is
-   present)
+   must be an integer, not a character.
 -- A cons of two characters (a range, inclusive on both ends)
 -- A single character
 
-VALUE must be a value appropriate for the type of CHAR-TABLE.
-See `make-char-table'.
+VALUE must be a value appropriate for the type of CHAR-TABLE.  See
+`make-char-table'.
 */
        (range, value, char_table))
 {
@@ -1616,12 +1614,11 @@ one of the following:
 
 -- t (all characters are affected)
 -- A cons of two characters (a range, inclusive on both ends)
--- A charset (only allowed when Mule support is present)
+-- A charset
 -- A vector of two elements: a two-octet charset and a row number
-   (only allowed when Mule support is present)
 -- A single character
 
-With all values removed, the default value will be returned by 
+With all values removed, the default value will be returned by
 `get-char-table' and `get-range-char-table'.
 */
        (range, char_table))

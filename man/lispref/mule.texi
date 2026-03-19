@@ -151,13 +151,13 @@ version 2, for example, is a large charset with thousands of characters,
 each indexed by a 16-bit number, often represented in hex, e.g. 0x05D0
 for the Hebrew letter "aleph".  One obvious encoding (actually two
 encodings, depending on which of the two possible byte orderings is
-chosen) simply uses two bytes per character.  This encoding is
-convenient for internal processing of Unicode text; however, it's
-incompatible with ASCII, and thus external text (files, e-mail, etc.) 
-that is encoded this way is completely uninterpretable by programs
-lacking Unicode support.  For this reason, a different, ASCII-compatible
+chosen) simply uses two bytes per character.  This is termed @dfn{UCS-2}. This
+encoding is convenient for internal processing of Unicode text; however, it's
+incompatible with ASCII, and thus external text (files, e-mail, etc.) that is
+encoded this way is completely uninterpretable by programs lacking Unicode
+support.  For this reason, a different, ASCII-compatible
 encoding, e.g. UTF-8, is usually used for external text.  UTF-8
-represents Unicode characters with one to three bytes (often extended to
+represents Unicode characters with one to four bytes (often extended to
 six bytes to handle characters with up to 31-bit indices).  Unicode
 characters 00 to 7F (identical with ASCII) are directly represented with
 one byte, and other characters with two or more bytes, each in the range
@@ -167,12 +167,17 @@ typically ignore (and hopefully preserve) the high-bit characters.
 
 Similarly, Shift-JIS and EUC-JP are different encodings normally used to
 encode the same character set(s), these character sets being subsets of
-Unicode.  However, the obvious approach of unifying XEmacs' internal
-encoding across character sets, as was part of the motivation behind
-Unicode, wasn't taken.  This means that characters in these character
-sets that are identical to characters in other character sets---for
-example, the Greek alphabet is in the large Japanese character sets and
-at least one European character set--are unfortunately disjoint. 
+Unicode.  However, the obvious approach of unifying XEmacs' internal encoding
+across character sets, as was part of the motivation behind Unicode, was not
+initially taken.  This meant that characters in these character sets identical
+to characters in other character sets---for example, the Greek alphabet is in
+the large Japanese character sets and in the much smaller ISO8859 7 character
+set--were unfortunately disjoint within XEmacs.  The
+@samp{--with-unicode-internal} option to configure corrects this, but
+introduces a separate (though related) problem of certain East Asian,
+especially Han, characters becoming unified where ideally at least the
+language information available from the character sets would be preserved as
+metadata.
 
   Naive use of code points is also not possible if more than one
 character set is to be used in the encoding.  For example, printed
@@ -186,22 +191,18 @@ characters to denote different character sets; EUC sets the high bit of
 the position codes for JIS X 0208 and JIS X 0212, and puts a special
 extra byte before each JIS X 0212 character; etc.
 
-  The encodings described above are all 7-bit or 8-bit encodings.  The
-fixed-width Unicode encoding previous described, however, is sometimes
-considered to be a 16-bit encoding, in which case the issue of byte
-ordering does not come up. (Imagine, for example, that the text is
-represented as an array of shorts.) Similarly, Unicode version 3 (which
-has characters with indices above 0xFFFF), and other very large
-character sets, may be represented internally as 32-bit encodings,
-i.e. arrays of ints.  However, it does not make too much sense to talk
-about 16-bit or 32-bit encodings for external data, since nowadays 8-bit
-data is a universal standard -- the closest you can get is fixed-width
-encodings using two or four bytes to encode 16-bit or 32-bit values. (A
-"7-bit" encoding is used when it cannot be guaranteed that the high bit
-of 8-bit data will be correctly preserved.  Some e-mail gateways, for
-example, strip the high bit of text passing through them.  These same
-gateways often handle non-printable characters incorrectly, and so 7-bit
-encodings usually avoid using bytes with such values.)
+  The encodings described above are almost all 7-bit or 8-bit encodings.  The
+fixed-width Unicode encoding previous described is a 16-bit encoding, and this
+means the issue of byte ordering needs to be kept in mind. (Think of the text
+as represented by an array of @code{short}s.) Similarly, current Unicode
+(which has characters with indices above @code{#xFFFF}), and other very large
+character sets, may be represented internally as 32-bit encodings, so arrays
+of @code{int}s if your C implementation chooses that bit width for @code{int}.
+A "7-bit" encoding is used when it cannot be guaranteed that the high bit of
+8-bit data will be correctly preserved.  Some e-mail gateways, for example,
+strip the high bit of text passing through them.  These same gateways often
+handle non-printable characters incorrectly, and so 7-bit encodings usually
+avoid using bytes with such values.
 
   A general method of handling text using multiple character sets
 (whether for multilingual text, or simply text in an extremely
@@ -236,8 +237,8 @@ case, however.  Some encodings use control characters called "locking
 shifts" (effect persists until cancelled) to switch character sets.)
 
   A @dfn{non-modal encoding} has no global state that extends past the
-character currently being interpreted.  EUC, for example, is a
-non-modal encoding.  Characters in JIS X 0208 are encoded by setting
+character currently being interpreted.  EUC and UTF-8, for example, are
+non-modal encodings.  Characters in JIS X 0208 are encoded by setting
 the high bit of the position codes, and characters in JIS X 0212 are
 encoded by doing the same but also prefixing the character with the
 byte 0x8F.
@@ -307,26 +308,28 @@ this allows a charset to be referred to using its name rather than
 the actual charset object.
 @item doc-string
 A documentation string describing the charset.
+@item registries
+A vector describing possible X11 font registries this character set.  For
+example, both the @code{ascii} and @code{latin-iso8859-1} charsets use the
+registry @code{"ISO8859-1"}.  This field is used to choose an appropriate font
+when the user gives a general font specification such as
+@samp{-*-courier-medium-r-*-140-*}, i.e. a 14-point upright medium-weight
+Courier font.
 @item registry
-A regular expression matching the font registry field for this character
-set.  For example, both the @code{ascii} and @code{latin-iso8859-1}
-charsets use the registry @code{"ISO8859-1"}.  This field is used to
-choose an appropriate font when the user gives a general font
-specification such as @samp{-*-courier-medium-r-*-140-*}, i.e. a
-14-point upright medium-weight Courier font.
+Obsolete; previously a single regular expression used in the same way as
+@code{registries}.
 @item dimension
 Number of position codes used to index a character in the character set.
 XEmacs/MULE can only handle character sets of dimension 1 or 2.
 This property defaults to 1.
 @item chars
-Number of characters in each dimension.  In XEmacs/MULE, the only
-allowed values are 94 or 96. (There are a couple of pre-defined
-character sets, such as ASCII, that do not follow this, but you cannot
-define new ones like this.) Defaults to 94.  Note that if the dimension
-is 2, the character set thus described is 94x94 or 96x96.
+Number of characters in each dimension.  This is either a two-element list or
+a single fixnum. The largest possible value for a single dimension is 256; for
+a two dimension character set, if a single fixnum is supplied, that is
+regarded as representing the number of characters in each dimension.
 @item columns
 Number of columns used to display a character in this charset.
-Only used in TTY mode. (Under X, the actual width of a character
+Only used in TTY mode. (Under X11, the actual width of a character
 can be derived from the font used to display the characters.)
 If unspecified, defaults to the dimension. (This is almost
 always the correct value, because character sets with dimension 2
@@ -571,9 +574,9 @@ fields (e.g. the type) are not really accurate.
 @node MULE Characters, Composite Characters, Charsets, MULE
 @section MULE Characters
 
-@defun make-char charset arg1 &optional arg2
-This function makes a multi-byte character from @var{charset} and octets
-@var{arg1} and @var{arg2}.
+@defun make-char charset octet1 &optional octet2
+This function makes a multi-byte character from @var{charset}, @var{octet1},
+and @var{octet2}.
 @end defun
 
 @defun char-charset character
@@ -672,13 +675,14 @@ This function returns non-@code{nil} if @var{object} is a coding system.
 
   The coding system type determines the basic algorithm XEmacs will use to
 decode or encode a data stream.  Character encodings will be converted
-to the MULE encoding, escape sequences processed, and newline sequences
-converted to XEmacs's internal representation.  There are three basic
-classes of coding system type: no-conversion, ISO-2022, and special.
+to the internal encoding, escape sequences processed, and newline sequences
+converted to XEmacs's internal representation (which is the Unix @code{?\n}.
+There are three basic classes of coding system type: no-conversion, ISO-2022,
+and special.
 
   No conversion allows you to look at the file's internal representation.
 Since XEmacs is basically a text editor, "no conversion" does convert
-newline conventions by default.  (Use the 'binary coding-system if this
+newline conventions by default.  (Use the @code{'binary} coding-system if this
 is not desired.)
 
   ISO 2022 (@pxref{ISO 2022}) is the basic international standard regulating
@@ -2568,15 +2572,16 @@ proper hacked-up codepoint in `chinese-big5-1' or `chinese-big5-2'.
 @node Charset Unification, Charsets and Coding Systems, Unicode Support, MULE
 @section Character Set Unification
 
-Mule suffers from a design defect that causes it to consider the ISO
-Latin character sets to be disjoint.  This results in oddities such as
+Mule suffered from a design defect that caused it to consider the ISO
+Latin character sets to be disjoint.  This resulted in oddities such as
 files containing both ISO 8859/1 and ISO 8859/15 codes, and using ISO
 2022 control sequences to switch between them, as well as more plausible
 but often unnecessary combinations like ISO 8859/1 with ISO 8859/2.
 This can be very annoying when sending messages or even in simple
 editing on a single host.  Unification works around the problem by
 converting as many characters as possible to use a single Latin coded
-character set before saving the buffer.
+character set before saving the buffer.  The @samp{--with-unicode-internal}
+option to configure addresses this.
 
 This node and its children were ripp'd untimely from
 @file{latin-unity.texi}, and have been quickly converted for use here.

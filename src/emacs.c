@@ -2245,13 +2245,6 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
      The ordering of these functions is critical, especially the early ones,
      where there is typically a dependency from each to the previous.
  */
-
-#ifdef WIN32_ANY
-  init_intl_win32 (); /* Under Windows, determine whether we use Unicode
-			 or ANSI to call the system routines -- i.e.
-			 determine what the coding system `mswindows-tstr'
-			 is aliased to */
-#endif
   init_buffer_1 ();	/* Create *scratch* buffer; the code just below is
 			   going to call Lisp code (the very first code we
 			   call), and needs a current buffer */
@@ -2275,6 +2268,11 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 		      calling C library functions, which requires that the
 		      global Unicode precedence arrays are available.
                     */
+#ifdef WIN32_ANY
+  init_intl_win32 (); /* Set the current language environment to the user
+                         default language environment under Windows. */
+#endif
+
   init_intl (); /* Figure out the locale and set native and
 		   file-name coding systems, initialize the Unicode tables
 		   so that we will be able to process non-ASCII from here

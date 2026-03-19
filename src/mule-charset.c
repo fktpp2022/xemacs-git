@@ -1305,9 +1305,10 @@ character sets exist for both directions).
 
 DEFUN ("charset-encodable-p", Fcharset_encodable_p, 1, 1, 0, /*
 Return non-nil if CHARSET is (potentially) encodable in a string or buffer.
-Under Unicode-internal, this is always true.  Under old-Mule, it depends on
+Under Unicode-internal, this is always true.  Otherwise it depends on
 the size of the charset (size-94, 94x94, 96 or 96x96 charsets with the
-right offsets -- generally, ISO-2022-compatible charsets -- are encodable).
+right offsets -- generally, ISO-2022-compatible charsets -- are
+encodable).
 */
        (charset))
 {
@@ -1428,11 +1429,12 @@ Recognized properties are those listed in `make-charset', as well as
 
 DEFUN ("charset-id", Fcharset_id, 1, 1, 0, /*
 Return charset identification number of CHARSET.
+
 When configured with `--with-unicode-internal' (see `make-char'), this is
-simply an arbitrary value, retained for compatibility.  With old-Mule, this
-is the internal charset ID of the charset, which is significant in how the
-internal string and character encodings are constructed.  This function is
-normally used only by CCL.
+simply an arbitrary value, retained for compatibility.  Otherwise, this is the
+internal charset ID of the charset, which is significant in how the internal
+string and character encodings are constructed.  This function is normally
+used only by CCL.
 */
 	(charset))
 {

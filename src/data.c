@@ -282,14 +282,9 @@ the range 0 - 255 map to characters as follows:
 160 - 255	Right half of ISO-8859-1
 
 If the `unicode-internal' feature is available, other integer values reflect
-ISO-10646 values for character codes.  Otherwise, if the `mule' feature is
-available, the values assigned to other characters may vary depending on the
-particular version of XEmacs, the order in which character sets were loaded,
-and you should not depend on them.
-
-Some XEmacs builds have neither the `mule' nor the `unicode-internal' features
-available, and in these builds no character has an integer value greater than
-255.
+ISO-10646 values for character codes.  Otherwise the values assigned to other
+characters may vary depending on the particular version of XEmacs, the order
+in which character sets were loaded, and you should not depend on them.
 */
        (character))
 {

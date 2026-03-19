@@ -1417,10 +1417,9 @@ Otherwise the limit is the number of value bits in an Lisp integer. "
 
 (defun string-width (string)
   "Return number of columns STRING occupies when displayed.
-With international (Mule) support, uses the charset-columns attribute of
-the characters in STRING, which may not accurately represent the actual
-display width when using a window system.  With no international support,
-simply returns the length of the string."
+
+Uses the charset-columns attribute of the characters in STRING, which may not
+accurately represent the actual display width when using a window system."
   (reduce #'+ (the string string) :initial-value 0 :key #'char-width))
 
 ;; The following several functions are useful in GNU Emacs 20 because

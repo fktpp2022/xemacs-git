@@ -5294,8 +5294,6 @@ argument.  The following functions make use of a charset precedence list:
 
 DEFUN ("char-to-unicode", Fchar_to_unicode, 1, 2, 0, /*
 Convert character to Unicode codepoint.
-When there is no international support (i.e. the 'mule feature is not
-present), this function simply does `char-to-int'.
 
 HANDLE-ERROR controls error behavior:
 
@@ -5332,7 +5330,7 @@ errors.
 
 See `make-char' for more information about characters.
 
-When the old Mule-internal representation is used, there are multiple
+When the old-Mule internal representation is used, there are multiple
 possible return values; the particular value returned will reflect the
 given charset precedence list, or the default precedence.  The codepoint
 will be converted according to BUFFER-OR-PRECEDENCE-LIST.  This is either a

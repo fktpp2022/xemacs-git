@@ -762,8 +762,8 @@ mswindows_locale_to_oem_code_page (LCID lcid)
 static void
 set_current_lcid (LCID lcid)
 {
-  /* This will fail under Win9x, so we remember our own locale rather than
-     consulting GetThreadLocale. */
+  /* We remember our own locale rather than consulting GetThreadLocale;
+     SetThreadLocale() failed in Win9X. */
   SetThreadLocale (lcid);
   current_locale = lcid;
 #ifndef NO_EXT_MULTIBYTE_FEATURES
@@ -2294,6 +2294,9 @@ coding_system_type_create_intl_win32 (void)
 void
 vars_of_intl_win32 (void)
 {
+#ifdef HAVE_CYGWIN_CONV_PATH
+  Fprovide (intern ("cygwin-use-utf-8"));
+#endif
   Vmswindows_charset_code_page_table =
     make_lisp_hash_table (50, HASH_TABLE_NON_WEAK, Qeq);
   staticpro (&Vmswindows_charset_code_page_table);
@@ -2329,8 +2332,4 @@ void
 init_intl_win32 (void)
 {
   set_current_lcid (GetUserDefaultLCID ());
-
-#ifdef HAVE_CYGWIN_CONV_PATH
-  Fprovide (intern ("cygwin-use-utf-8"));
-#endif
 }

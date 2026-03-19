@@ -1,5 +1,24 @@
 2026-03-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	* simple.el (what-cursor-position):
+	* subr.el:
+	* subr.el (string-width):
+	* unicode.el (decode-char):
+	* mule/mule-cmds.el (init-mule-at-startup):
+	* code-init.el (coding-system-variable-default-value):
+	* faces.el:
+	* faces.el (face-font-instance):
+	* help.el (help-with-tutorial):
+	* lib-complete.el (find-library):
+	* lib-complete.el (find-library-other-window):
+	* lib-complete.el (find-library-other-frame):
+	Remove mention of non-Mule from docstrings for these functions.
+
+	* setup-paths.el (paths-construct-load-path):
+	Fix indentation for this in passing.
+
+2026-03-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* make-docfile.el:
 	Rephrase and simplify the check for dumping to just purify-flag,
 	rather than (and purify-flag (member "dump" command-line-args)).

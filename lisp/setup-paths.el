@@ -212,10 +212,11 @@ ROOTS is a list of installation roots."
                                      (and (not (configured-paths-disabledp))
                                           configure-module-directory)))
 
-(defun paths-construct-load-path
-  (roots early-package-load-path late-package-load-path last-package-load-path
-	 lisp-directory
-	 &optional site-lisp-directory mule-lisp-directory)
+(defun paths-construct-load-path (roots early-package-load-path
+				  late-package-load-path
+				  last-package-load-path lisp-directory
+				  &optional site-lisp-directory
+				  mule-lisp-directory)
   "Construct the complete load path.
 ROOTS is the list of installation roots.
 EARLY-PACKAGE-LOAD-PATH, LATE-PACKAGE-LOAD-PATH, and LAST-PACKAGE-LOAD-PATH

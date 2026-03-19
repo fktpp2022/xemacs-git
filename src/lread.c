@@ -498,17 +498,16 @@ Lisp_Object Vfile_domain;
 
 DEFUN ("load-internal", Fload_internal, 1, 6, 0, /*
 Execute a file of Lisp code named FILE; no coding-system frobbing.
-This function is identical to `load' except for the handling of the
-CODESYS and USED-CODESYS arguments under XEmacs/Mule. (When Mule
-support is not present, both functions are identical and ignore the
-CODESYS and USED-CODESYS arguments.)
 
-If support for Mule exists in this Emacs, the file is decoded
-according to CODESYS; if omitted, no conversion happens.  If
-USED-CODESYS is non-nil, it should be a symbol, and the actual coding
-system that was used for the decoding is stored into it.  It will in
-general be different from CODESYS if CODESYS specifies automatic
-encoding detection or end-of-line detection.
+This function is identical to `load' except for the handling of the CODESYS
+and USED-CODESYS arguments.  CODESYS must be a coding system or a symbol
+naming a coding system, and `load-internal' decodes FILE using that coding
+system.
+
+USED-CODESYS must be a symbol.  If it is non-nil, the actual coding system
+that was used is stored in its value slot.  This will in general be different
+from CODESYS if CODESYS specifies automatic encoding detection or end-of-line
+detection.
 */
        (file, noerror, nomessage, nosuffix, codesys, used_codesys))
 {
