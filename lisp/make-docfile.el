@@ -145,7 +145,7 @@
        compiled-function-alist)
 
     (labels
-        ((subusage (load-file-name)
+        ((usage-1 (load-file-name)
            (format-into standard-output
                         "Usage: %s [OPTION]... [FILE]...
 
@@ -199,13 +199,13 @@ than `build-directory' if appropriate. "
          (usage ()
            (if noninteractive
                (progn
-                 (subusage (file-name-nondirectory load-file-name))
+                 (usage-1 (file-name-nondirectory load-file-name))
                  (kill-emacs 0))
              (enqueue-eval-event
               #'(lambda (load-file-name)
                   (with-displaying-temp-buffer
                       (format "*Help: file %s*" load-file-name)
-                    (subusage load-file-name)))
+                    (usage-1 load-file-name)))
               (file-name-nondirectory load-file-name))
              (throw 'top-level nil)))
 
@@ -235,7 +235,7 @@ than `build-directory' if appropriate. "
                           source-src))
              (setq arg (expand-file-name arg)))
            (unless (member arg C-files)
-	     (if (and purify-flag (member "dump" command-line-args))
+	     (if purify-flag
 		 (when (file-exists-p arg)
 		   (if (and (not docfile-out-of-date)
 			    (file-newer-than-file-p arg docfile))
@@ -846,7 +846,7 @@ than `build-directory' if appropriate. "
             ((file-exists-p (setq filename (file-truename (car elt))))
              (setcar elt filename)))))
 
-      (if (and purify-flag (member "dump" command-line-args))
+      (if purify-flag
           ;; Invocation directly from loadup.el when dumping, ignore the
           ;; command line args and just process the .c files corresponding to
           ;; the object files compiled, together with the Lisp load history:
@@ -961,8 +961,7 @@ than `build-directory' if appropriate. "
 	(when (file-newer-than-file-p load-file-name docfile)
 	  (setq docfile-out-of-date t)))
 
-      (when (and purify-flag (member 'quick-build internal-error-checking)
-		 (member "dump" command-line-args))
+      (when (and purify-flag (member 'quick-build internal-error-checking))
 	(setq docfile-out-of-date (not (file-exists-p docfile))))
 
       (when docfile-out-of-date
@@ -970,8 +969,7 @@ than `build-directory' if appropriate. "
 	;; order of processing the same as the C implementation:
 	(setq load-history (reverse load-history)
 	      C-files (reverse C-files))
-	(when (and purify-flag (member "dump" command-line-args)
-		   (not C-files))
+	(when (and purify-flag (not C-files))
 	  (fatal
 	   "could not find any C files at all, check build-obj correct"))
         (let ((output-stream (if (equal docfile "-")
@@ -1082,7 +1080,7 @@ than `build-directory' if appropriate. "
               (save-buffer)
               (kill-buffer (current-buffer))))))
 
-         (when (and purify-flag (member "dump" command-line-args))
+         (when purify-flag
            (message "Finding pointers to doc strings...")
            (Snarf-documentation docfile)
            (message "Finding pointers to doc strings...done")
