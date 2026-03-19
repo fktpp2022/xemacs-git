@@ -251,15 +251,6 @@ Lisp_Object Qcanonicalize_after_coding;
 
 Lisp_Object Qposix_charset_to_coding_system_hash;
 
-/* This is used to convert autodetected coding systems into existing
-   systems.  For example, the chain undecided->convert-eol-autodetect may
-   have its separate parts detected as mswindows-multibyte and
-   convert-eol-crlf, and the result needs to be mapped to
-   mswindows-multibyte-dos. */
-/* #### It's not clear we need this whole chain-canonicalize mechanism
-   any more. */
-static Lisp_Object Vchain_canonicalize_hash_table;
-
 #ifdef HAVE_ZLIB
 Lisp_Object Qgzip;
 #endif
@@ -3495,22 +3486,6 @@ static const struct memory_description chain_coding_stream_description [] = {
 DEFINE_CODING_SYSTEM_TYPE_WITH_DATA (chain);
 
 static Lisp_Object
-chain_canonicalize (Lisp_Object codesys)
-{
-  /* We make use of the fact that this method is called at init time, after
-     properties have been parsed.  init_method is called too early. */
-  /* #### It's not clear we need this whole chain-canonicalize mechanism
-     any more. */
-  Lisp_Object chain = Flist (XCODING_SYSTEM_CHAIN_COUNT (codesys),
-			     XCODING_SYSTEM_CHAIN_CHAIN (codesys));
-  chain = Fcons (XCODING_SYSTEM_PRE_WRITE_CONVERSION (codesys),
-		 Fcons (XCODING_SYSTEM_POST_READ_CONVERSION (codesys),
-			chain));
-  Fputhash (chain, codesys, Vchain_canonicalize_hash_table);
-  return codesys;
-}
-
-static Lisp_Object
 chain_canonicalize_after_coding (struct coding_stream *str)
 {
   Lisp_Object cac =
@@ -3518,57 +3493,6 @@ chain_canonicalize_after_coding (struct coding_stream *str)
   if (!NILP (cac))
     return cac;
   return str->codesys;
-#if 0
-  struct chain_coding_stream *data = CODING_STREAM_TYPE_DATA (str, chain);
-  Lisp_Object us = str->codesys, codesys;
-  int i;
-  Lisp_Object chain;
-  Lisp_Object tail;
-  int changed = 0;
-
-  /* #### It's not clear we need this whole chain-canonicalize mechanism
-     any more. */
-  if (str->direction == CODING_ENCODE || !data->initted)
-    return us;
-
-  chain = Flist (XCODING_SYSTEM_CHAIN_COUNT (us),
-		 XCODING_SYSTEM_CHAIN_CHAIN (us));
-
-  tail = chain;
-  for (i = 0; i < XCODING_SYSTEM_CHAIN_COUNT (us); i++)
-    {
-      codesys = (coding_stream_canonicalize_after_coding
-		 (XLSTREAM (data->lstreams[i])));
-      if (!EQ (codesys, XCAR (tail)))
-	changed = 1;
-      XCAR (tail) = codesys;
-      tail = XCDR (tail);
-    }
-
-  if (!changed)
-    return us;
-
-  chain = delq_no_quit (Qnil, chain);
-
-  if (NILP (XCODING_SYSTEM_PRE_WRITE_CONVERSION (us)) &&
-      NILP (XCODING_SYSTEM_POST_READ_CONVERSION (us)))
-    {
-      if (NILP (chain))
-	return Qnil;
-      if (NILP (XCDR (chain)))
-	return XCAR (chain);
-    }
-
-  codesys = Fgethash (Fcons (XCODING_SYSTEM_PRE_WRITE_CONVERSION (us),
-			     Fcons (XCODING_SYSTEM_POST_READ_CONVERSION (us),
-				    chain)), Vchain_canonicalize_hash_table,
-		      Qnil);
-  if (!NILP (codesys))
-    return codesys;
-  return make_internal_coding_system
-    (us, "internal-chain-canonicalizer-wrapper-",
-     Qchain, Qunbound, list2 (Qchain, chain));
-#endif /* 0 */
 }
 
 static void
@@ -6487,7 +6411,6 @@ coding_system_type_create (void)
   INITIALIZE_CODING_SYSTEM_TYPE_WITH_DATA (chain);
 
   CODING_SYSTEM_HAS_METHOD (chain, print);
-  CODING_SYSTEM_HAS_METHOD (chain, canonicalize);
   CODING_SYSTEM_HAS_METHOD (chain, init);
   CODING_SYSTEM_HAS_METHOD (chain, convert);
   CODING_SYSTEM_HAS_METHOD (chain, rewind_coding_stream);
@@ -6575,10 +6498,6 @@ Coding system used to convert pathnames when accessing files.
 Setting this has no effect.  It is purely for FSF compatibility.
 */ );
   enable_multibyte_characters = 1;
-
-  Vchain_canonicalize_hash_table =
-    make_lisp_hash_table (50, HASH_TABLE_NON_WEAK, Qequal);
-  staticpro (&Vchain_canonicalize_hash_table);
 
 #ifdef DEBUG_XEMACS
   DEFVAR_BOOL ("debug-coding-detection", &debug_coding_detection /*

@@ -1,5 +1,24 @@
 2026-03-19  Aidan Kehoe  <kehoea@parhasard.net>
 
+	Remove Vchain_canonicalize_hash_table, set but never used since
+	2001.
+
+	* file-coding.c:
+	Remove its declaration.
+	* file-coding.c (chain_canonicalize):
+	Remove this coding system method, which returned its argument with
+	the side effect of adding a never-used entry to
+	Vchain_canonicalize_hash_table.
+	* file-coding.c (chain_canonicalize_after_coding):
+	Remove #if 0 code that examined Vchain_canonicalize_hash-table.
+	* file-coding.c (coding_system_type_create):
+	Remove canonicalize method initialization for chain coding systems.
+	* file-coding.c (vars_of_file_coding):
+	Remove initialization, staticpro() for
+	Vchain_canonicalize_hash_table.
+
+2026-03-19  Aidan Kehoe  <kehoea@parhasard.net>
+
 	* buffer.c (Fkill_all_local_variables):
 	* callint.c (Finteractive):
 	* chartab.c (Fput_char_table):
