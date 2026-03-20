@@ -18,16 +18,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #ifndef INCLUDED_getpagesize_h_
 #define INCLUDED_getpagesize_h_
 
-/* Emulate getpagesize on systems that lack it.  */
-
-#if 0
-#ifdef __hpux
-#include <sys/types.h>
-static size_t getpagesize() { return( 4096 ); }
-#define HAVE_GETPAGESIZE
-#endif
-#endif
-
+/* Emulate getpagesize on systems that lack it.
+   Don't use this, use qxegetpagesize() instead. */
 #ifndef HAVE_GETPAGESIZE
 
 #ifdef HAVE_UNISTD_H

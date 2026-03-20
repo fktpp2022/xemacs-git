@@ -1,3 +1,19 @@
+2026-03-20  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* getpagesize.h:
+	Declare qxegetpagesize().
+	* sysdep.c (qxegetpagesize): New.
+	Encapsulate getpagesize() for POSIX and Windows.
+	Prefer sysconf (_SC_PAGESIZE) to the actual getpagesize() call on
+	POSIX.
+	If this is not available, use the macro definitions provided by
+	getpagesize.h.
+	If there is nothing provided by getpagesize.h, just give a compile
+	time error; this is very unlikely these days, getpagesize() was
+	dropped from POSIX in 2001.
+	* sysdep.h:
+	Declare it.
+
 2026-03-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	Remove Vchain_canonicalize_hash_table, set but never used since

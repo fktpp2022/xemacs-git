@@ -131,6 +131,8 @@ void init_system_name (void);
 void *sbrk (unsigned long increment);
 #endif
 
+Bytecount qxegetpagesize (void);
+
 Bytecount total_data_usage (void);
 
 #endif /* INCLUDED_sysdep_h_ */

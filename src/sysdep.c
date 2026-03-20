@@ -83,6 +83,12 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #  include <kvm.h>
 #endif
 
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+
+#include "getpagesize.h"
+
 /* ------------------------------- */
 /*         TTY definitions         */
 /* ------------------------------- */
@@ -1722,6 +1728,28 @@ reset_initial_console (void)
       CONSOLE_LIVE_P (XCONSOLE (Vcontrolling_terminal)))
     reset_one_console (XCONSOLE (Vcontrolling_terminal));
   unmunge_process_groups ();
+}
+
+Bytecount
+qxegetpagesize (void)
+{
+  static Bytecount page_size;
+  if (page_size)
+    {
+      return page_size;
+    }
+  else
+    {
+#ifdef WIN32_ANY
+      SYSTEM_INFO sysinfo_cache;
+      GetSystemInfo (&sysinfo_cache);
+      return (page_size = (Bytecount) sysinfo_cache.dwPageSize);
+#elif defined (_SC_PAGESIZE)
+      return (page_size = sysconf (_SC_PAGESIZE));
+#else
+      return (page_size = getpagesize());
+#endif
+   }
 }
 
 
