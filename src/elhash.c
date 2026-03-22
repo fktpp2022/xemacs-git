@@ -96,6 +96,10 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "elhash.h"
 #include "gc.h"
 #include "opaque.h"
+#if !defined(WIN32_NATIVE) && defined(DUMP_IN_EXEC)
+#include "dump-data.h"
+#endif
+#include "sysdep.h"
 
 Lisp_Object Qhash_tablep;
 
@@ -130,6 +134,12 @@ Elemcount pdump_hash_table_reorganize_count = -1;
 /* Set by pdump_load_finish() to the beginning of the C vector of hash tables
    needing reorganization. */
 Lisp_Object *pdump_hash_tables_for_reorganize;
+
+/* Either the dump time page size (if hash tables only need
+   reorganization if the run time page size is less than the dump time
+   page size), or 1 + MOST_POSITIVE_FIXNUM (if there are dumped hash
+   tables that will always need reorganization). Zero in temacs. */
+Bytecount page_size_reorganize_threshold = 0;
 
 /* A hash table test, with its associated hash function. EQUAL_FUNCTION may
    call LISP_EQUAL_FUNCTION, HASH_FUNCTION may call LISP_HASH_FUNCTION, and
@@ -720,7 +730,7 @@ finalize_hash_table (Lisp_Object obj)
   ht->hentries = 0;
 }
 
-static const struct memory_description htentry_description_1[] = {
+const struct memory_description htentry_description_1[] = {
   { XD_LISP_OBJECT, offsetof (htentry, key) },
   { XD_LISP_OBJECT, offsetof (htentry, value) },
   { XD_END }
@@ -778,10 +788,21 @@ xhash_table (Lisp_Object obj)
 static void
 compute_hash_table_derived_values (Lisp_Hash_Table *ht)
 {
+  if ((ht->size & (ht->size - 1)) == 0)
+    {
+      /* Size is a power of two (rather than prime), which means we are
+         resizing in anticipation of dump. Mung the golden ratio to be 1, so
+         we can (probably) avoid reorganizing the hash table in the process of
+         pdump_load(). */
+      ht->golden_ratio = 1;
+    }
+  else
+    {
+      ht->golden_ratio = (Elemcount)
+        ((double) ht->size * (.6180339887 / (double) sizeof (Lisp_Object)));
+    }
   ht->rehash_count = (Elemcount)
     ((double) ht->size * ht->rehash_threshold);
-  ht->golden_ratio = (Elemcount)
-    ((double) ht->size * (.6180339887 / (double) sizeof (Lisp_Object)));
 }
 
 static htentry *
@@ -1345,7 +1366,7 @@ resize_hash_table (Lisp_Hash_Table *ht, Elemcount new_size)
 static void
 disksave_hash_table (Lisp_Object hash_table)
 {
-  const Lisp_Hash_Table *ht = XHASH_TABLE (hash_table);
+  Lisp_Hash_Table *ht = XHASH_TABLE (hash_table);
 
   if (ht->count == 0
       || !(XHASH_TABLE_TEST (ht->test)->reorganize_needed_p
@@ -1357,6 +1378,44 @@ disksave_hash_table (Lisp_Object hash_table)
       return;
     }
 
+#ifndef WIN32_NATIVE
+  /* #### The dump file resource in Windows only guarantees DWORD alignment;
+     needs to be revised to use the dump-in-exec approach for all the other
+     platforms. */
+  if (EQ (ht->test, Veq_hash_table_test)
+      || EQ (ht->test, Veql_hash_table_test))
+    {
+      Elemcount optimal_hash_table_size = ht->count * 2;
+      Elemcount new_size = 4;
+
+      while (new_size < optimal_hash_table_size)
+	{
+	  new_size <<= 1;
+	}
+
+      if (new_size <= qxegetpagesize ())
+	{
+	  resize_hash_table (ht, new_size);
+
+	  /* Make pdump_reorganize_at_dump_time() aware of this hash table. */
+	  Fputhash (GET_LISP_FROM_VOID ((void *) ht->hentries),
+		    hash_table, Vpdump_hash_table_reorganize_keys);
+
+	  /* We will likely have no need to reorganize this hash table after
+	     pdump_load(), unless the run-time page size is smaller than the
+	     dump-time page size. But we still need to check that. */
+	}
+      else
+	{
+	  page_size_reorganize_threshold = 1+ MOST_POSITIVE_FIXNUM;
+	}
+    }
+  else
+#endif /* !defined (WIN32_NATIVE) */
+    {
+      page_size_reorganize_threshold = 1 + MOST_POSITIVE_FIXNUM;
+    }
+
   /* We cannot assert that this hash table does not need reorganization;
      reorganize it. */
   Fputhash (hash_table, make_fixnum (- ht->size),
@@ -1364,6 +1423,77 @@ disksave_hash_table (Lisp_Object hash_table)
   return;
 }
 
+/* Called from the dumper. OLD_HTENTRIES is a pointer to the htentries of an
+   existing hash table. NEW_HTENTRIES reflects the same data but with the
+   Lisp_Objects adjusted to reflect offsets within the dump file. This function
+   reorganizes NEW_HTENTRIES on that basis, if disksave_hash_table() has marked
+   that doing that is workable for this hash table. */
+void
+pdump_reorganize_at_dump_time (const htentry *old_htentries,
+			       htentry *new_htentries)
+{
+  Lisp_Object hash_table
+    = Fgethash (GET_LISP_FROM_VOID ((void *) old_htentries),
+		Vpdump_hash_table_reorganize_keys, Qnil);
+  const Lisp_Hash_Table *ht;
+  const htentry *ee;
+  htentry *scratch_htentries;
+  Elemcount count;
+  EMACS_UINT dump_offset;
+  Boolint eqlp; 
+
+  if (NILP (hash_table))
+    {
+      return;
+    }
+
+  ht = XHASH_TABLE (hash_table);
+  eqlp = EQ (ht->test, Veql_hash_table_test);
+  count = ht->count;
+  scratch_htentries = alloca_array (htentry, ht->size + 1);
+  memset (scratch_htentries, 0, sizeof (htentry) * (ht->size + 1));
+
+#if !defined (WIN32_NATIVE) && defined (DUMP_IN_EXEC)
+  dump_offset = (EMACS_UINT) dumped_data_get ();
+#else
+  dump_offset = 0;
+#endif
+
+  for (ee = old_htentries; count; ee++)
+    {
+      if (!HTENTRY_CLEAR_P (ee))
+	{
+	  Lisp_Object new_key;
+	  const Hash_Table_Test *http;
+	  htentry *probe;
+
+	  if (FIXNUMP (ee->key) || CHARP (ee->key)
+	      || (eqlp && NUMBERP (ee->key)))
+	    {
+	      new_key = ee->key;
+	      http = XHASH_TABLE_TEST (Vequal_hash_table_test);
+	    }
+	  else
+	    {
+	      new_key = 
+		wrap_pointer_1 ((Rawbyte *) (XPNTRVAL (new_htentries
+                                                       [ee -
+                                                        old_htentries].key))
+				+ dump_offset);
+	      http = XHASH_TABLE_TEST (Veq_hash_table_test);
+	    }
+
+	  probe = scratch_htentries + HASHCODE (new_key, ht, http);
+	  LINEAR_PROBING_LOOP (probe, scratch_htentries, ht->size)
+	    ;
+	  *probe = new_htentries[ee - old_htentries];
+	  count--;
+	}
+    }
+
+  memcpy (new_htentries, scratch_htentries, (ht->size + 1) * sizeof (htentry));
+}
+
 /* After hash tables have been saved to disk and later restored by the
    portable dumper, they contain the same objects, but the objects' addresses
    have changed. For :test #'eq hash tables (the majority of the dumped
@@ -1373,25 +1503,20 @@ disksave_hash_table (Lisp_Object hash_table)
    The dumper has sorted the relocation table to put the hash tables that need
    reorganization first, in decreasing order of size (largest first).
 
-   The low-order bits of the dumped data are identical from run to run and so
-   we could avoid this by, before dump, munging the hash tables' golden ratio
-   to be one, resizing them to be a power of two in size, and, in the course of
-   the dump, reloading the dump data and reorganizing the hash tables
-   once. This would be also advantageous for non-PIE, non-ASLR builds (no need
-   to relocate offsets within the dump data). The good spread of data from the
-   golden ratio would be lost but this would be mitigated by the individual
-   hash tables being larger.
-
-   This would only be practical for hash tables that have fewer entries than
-   the page size, since that is the number of low-order bits that are
-   preserved.  */
+   The low-order bits of the dumped data are identical from run to run and so,
+   before dump, if a hash table would otherwise need reorganization, we mung
+   its golden ratio to be one, resize the table to be a power of two, and, deep
+   in the bowels of the dumper, reorganize it at dump time using (effectively)
+   the post pdump_load() addresses. This is only workable for those hash tables
+   with a size (the number of slots) less than the (byte count) page size.  The
+   good spread of data from the golden ratio is lost but this is mitigated by
+   the individual hash tables being larger. */
 void
 pdump_reorganize_hash_tables (void)
 {
-  htentry *new_entries
-    = xnew_array (htentry, XHASH_TABLE (pdump_hash_tables_for_reorganize[0])
-                  ->size + 1);
+  htentry *new_entries = NULL;
   Elemcount ii;
+  Bytecount page_size = qxegetpagesize ();
 
   for (ii = 0; ii < pdump_hash_table_reorganize_count; ii++)
     {
@@ -1400,6 +1525,16 @@ pdump_reorganize_hash_tables (void)
       const Hash_Table_Test *http = XHASH_TABLE_TEST (ht->test);      
       Elemcount this_count = ht->count;
       const htentry *ee;
+
+      if (ht->size <= page_size && ((ht->size & (ht->size - 1)) == 0))
+	{
+	  continue;
+	}
+
+      if (new_entries == NULL)
+	{
+	  new_entries = xnew_array (htentry, ht->size + 1);
+	}
 
       memset (new_entries, 0, (ht->size + 1) * sizeof (htentry));
 
@@ -1418,7 +1553,10 @@ pdump_reorganize_hash_tables (void)
       memcpy (ht->hentries, new_entries, (ht->size + 1) * sizeof (htentry));
     }
 
-  xfree (new_entries);
+  if (new_entries != NULL)
+    {
+      xfree (new_entries);
+    }
 }
 
 
@@ -3209,6 +3347,9 @@ use `mapatoms'.
   staticpro_nodump (&Vpdump_hash_table_reorganize_keys);
 
   dump_add_opaque_fixnum (&pdump_hash_table_reorganize_count);
+
+  page_size_reorganize_threshold = qxegetpagesize ();
+  dump_add_opaque_fixnum (&page_size_reorganize_threshold);
 }
 
 void

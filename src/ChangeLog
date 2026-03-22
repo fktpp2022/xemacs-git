@@ -1,3 +1,40 @@
+2026-03-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* dumper.c (pdump_dump_data):
+	If dumping a hash table's HTENTRY field, offer elhash.c the
+	opportunity to reorganize the table at dump time.
+	* elhash.c:
+	* elhash.c (Bytecount page_size_reorganize_threshold): New.
+	Used to determine at startup if the current page size is smaller
+	than the dump-time page size, or if the hash tables have to be
+	unconditionally reorganized (e.g. if they were larger than the
+	dump time page size).
+	* elhash.c (compute_hash_table_derived_values):
+	Set the golden ratio to 1 if the hash table size is a power of
+	two, to avoid (if possible) reorganization after pdump_load().
+	* elhash.c (disksave_hash_table):
+	With #'eq, #'eql hash tables, if they are smaller than the page
+	size, resize them to a power of two, and make
+	pdump_reorganize_at_dump_time() aware of them.
+	Don't do this on WIN32_NATIVE currently.
+	* elhash.c (pdump_reorganize_at_dump_time): New.
+	Given the htentries of an existing hash table, and a new_htentries
+	with the Lisp_Objects adjusted to reflect offsets within the dump
+	file, reorganize new_htentries so there is no need to do this
+	after pdump_load().
+	* elhash.c (pdump_reorganize_hash_tables):
+	Update a comment here.
+	Don't reorganize hash tables already reorganized at dump time.
+	Delay xnew_array () since that may never be needed.
+	* elhash.c (vars_of_elhash):
+	Call dump_add_opaque_fixnum on &page_size_reorganize_threshold.
+	* elhash.h:
+	Declare htentry_description_1, pdump_reorganize_at_dump_time(),
+	page_size_reorganize_threshold.
+	* emacs.c (main_1):
+	Check page_size_reorganize_threshold against the run-time page
+	size before calling pdump_reorganize_hash_tables().
+
 2026-03-20  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* getpagesize.h:

@@ -1085,11 +1085,26 @@ than `build-directory' if appropriate. "
            (Snarf-documentation docfile)
            (message "Finding pointers to doc strings...done")
            (Verify-documentation)
-	   (maphash
-	    #'(lambda (compiled-function annotation)
-		(unless (symbolp annotation)
-		  (remhash compiled-function compiled-function-annotations)))
-	    compiled-function-annotations)
+	   (let ((hash-table (make-hash-table :test #'eq :size 2048
+					      :weakness 'key))
+                 (count 0))
+	     (maphash
+	      #'(lambda (compiled-function annotation)
+		  (when (and (< count 2048) ;; #### Hack to avoid
+					    ;; reorganization after
+					    ;; pdump_load(), pending fishing
+					    ;; of compiled function
+					    ;; annotations from the dump file.
+                             (symbolp annotation)
+                             (eq annotation (intern-soft
+                                             (symbol-name annotation)
+                                             nil pi)))
+		    (puthash compiled-function annotation hash-table)
+                    (incf count)))
+	      compiled-function-annotations)
+             ;; This means a smaller hash table is dumped than would be the
+             ;; case if we did remhash in a loop above.
+	     (setf compiled-function-annotations hash-table))
 	   ;; I don't currently wish to expose this to Lisp after
 	   ;; dump:
 	   (unintern 'compiled-function-annotations))

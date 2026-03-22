@@ -2249,11 +2249,11 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 			   going to call Lisp code (the very first code we
 			   call), and needs a current buffer */
 
-  if (pdump_hash_table_reorganize_count > 0)
+  if (qxegetpagesize () < page_size_reorganize_threshold)
     {
       /* This will call Lisp if we have dumped hash tables with tests defined
          in Lisp, that need reorganization. (Not the case
-         2026-03-17). PDUMP_HASH_TABLE_REORGANIZE_COUNT will be -1 in
+         2026-03-17). PAGE_SIZE_REORGANIZE_THRESHOLD will be zero in
          temacs. */
       pdump_reorganize_hash_tables ();
     }

@@ -1274,6 +1274,12 @@ pdump_dump_data (pdump_block_list_elt *elt,
 
       /* Store new offsets into all pointers in block */
       pdump_store_new_pointer_offsets (count, pdump_buf, elt->obj, desc, size);
+
+      if (desc == htentry_description_1)
+	{
+	  pdump_reorganize_at_dump_time ((const htentry *) elt->obj,
+					 (htentry *) pdump_buf);
+	}
     }
   retry_fwrite (desc ? pdump_buf : elt->obj, size, count, pdump_out);
 }

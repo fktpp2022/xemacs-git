@@ -107,10 +107,14 @@ void prune_weak_hash_tables (void);
 
 /* Used at dump time; Qnull_pointer in normal use. */
 extern Lisp_Object Vpdump_hash_table_reorganize_keys;
+extern const struct memory_description htentry_description_1[];
+extern void pdump_reorganize_at_dump_time (const htentry *old_htentries,
+					   htentry *new_htentries);
 
 /* Used at runtime. */
 extern Elemcount pdump_hash_table_reorganize_count;
 extern Lisp_Object *pdump_hash_tables_for_reorganize;
+extern Bytecount page_size_reorganize_threshold;
 
 void pdump_reorganize_hash_tables (void);
 

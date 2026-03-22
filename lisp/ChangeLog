@@ -1,3 +1,11 @@
+2026-03-22  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* make-docfile.el:
+	Stupidly truncate compiled-function-annotations to avoid the need
+	to reorganize the table after pdump_load(). Will be no longer
+	needed once compiled_function_annotation() fishes the function
+	name from DOC.
+
 2026-03-19  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* simple.el (what-cursor-position):
