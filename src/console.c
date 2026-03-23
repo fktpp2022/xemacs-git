@@ -618,6 +618,11 @@ static void
 nuke_all_console_slots (struct console *con, Lisp_Object zap)
 {
   zero_nonsized_lisp_object (wrap_console (con));
+  structure_checking_assert (con->contype == dead_console);
+  /* The above sets CON->CONTYPE to dead_console, which is what we want. The
+     following needs to be done explicitly, so we can print Vconsole_defaults,
+     Vconsole_local_symbols usefully from the debugger: */
+  con->conmeths = dead_console_methods;
 
 #define MARKED_SLOT(x)	con->x = zap;
 #include "conslots.h"
@@ -776,8 +781,6 @@ delete_console_internal (struct console *con, Boolint force,
      other structs in case someone tries to access something through
      them. */
   nuke_all_console_slots (con, Qnil);
-  con->conmeths = dead_console_methods;
-  con->contype = dead_console;
   note_object_deleted (console);
 
   UNGCPRO;
@@ -1636,8 +1639,6 @@ complex_vars_of_console (void)
   /* Make sure all markable slots in console_defaults
      are initialized reasonably, so KKCC won't choke. */
   Vconsole_defaults = ALLOC_NORMAL_LISP_OBJECT (console);
-  XCONSOLE (Vconsole_defaults)->conmeths = dead_console_methods;
-  XCONSOLE (Vconsole_defaults)->contype = dead_console;
   nuke_all_console_slots (XCONSOLE (Vconsole_defaults), Qnil);
   /* Dump this object, but avoid error that it is undumpable by using
      dump_add_root_block_ptr() rather than dump_add_root_lisp_object(). Don't
@@ -1646,8 +1647,6 @@ complex_vars_of_console (void)
   dump_add_root_block_ptr (&Vconsole_defaults, &console_description_rbp);
 
   Vconsole_local_symbols = ALLOC_NORMAL_LISP_OBJECT (console);
-  XCONSOLE (Vconsole_local_symbols)->conmeths = dead_console_methods;
-  XCONSOLE (Vconsole_local_symbols)->contype = dead_console;
   nuke_all_console_slots (XCONSOLE (Vconsole_local_symbols), Qnil);
   /* Dump this object in the same way. Same warnings apply. */
   dump_add_root_block_ptr (&Vconsole_local_symbols, &console_description_rbp);
@@ -1688,12 +1687,7 @@ complex_vars_of_console (void)
     set_lheader_implementation ((struct lrecord_header *)
 				&console_local_flags,
                                 LRECORD_IMPLEMENTATION (console));
-    console_local_flags.conmeths = dead_console_methods;
-    console_local_flags.contype = dead_console;
     nuke_all_console_slots (&console_local_flags, make_fixnum (-2));
-
-    console_local_flags.conmeths = dead_console_methods;
-    console_local_flags.contype = dead_console;
 
     console_local_flags.defining_kbd_macro = always_local_resettable;
     console_local_flags.last_kbd_macro = always_local_resettable;

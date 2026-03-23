@@ -1,3 +1,14 @@
+2026-03-23  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* console.c (nuke_all_console_slots):
+	Set CON->CONMETHS to dead_console_methods in this function, remove
+	the need to do so in our callers.
+	* console.c (delete_console_internal):
+	Trust nuke_all_console_slots() to set the conmeths slot
+	appropriately.
+	* console.c (complex_vars_of_console):
+	Ditto.
+
 2026-03-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* dumper.c (pdump_dump_data):
