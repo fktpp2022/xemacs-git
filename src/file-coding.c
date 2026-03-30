@@ -330,8 +330,6 @@ sizeof_coding_system (Lisp_Object obj)
 static const struct memory_description coding_system_methods_description_1[]
 = {
   { XD_LISP_OBJECT, offsetof (struct coding_system_methods, name) },
-  { XD_LISP_OBJECT, offsetof (struct coding_system_methods,
-                              predicate_symbol) },
   { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
 				   init_method) },
   { XD_FUNCTION_POINTER, offsetof (struct coding_system_methods,
@@ -6300,18 +6298,8 @@ initialize_coding_system_type (struct coding_system_methods **dest,
 {
   struct coding_system_methods *result
     = xnew_and_zero (struct coding_system_methods);
-  Bytecount predicate_symbol_name_len
-    = XSTRING_LENGTH (XSYMBOL_NAME (symbol)) + sizeof ("-coding-system-p");
-  Ibyte *predicate_symbol_name = alloca_ibytes (predicate_symbol_name_len);
 
   result->name = symbol;
-  result->predicate_symbol
-    = intern_istring (predicate_symbol_name,
-                      emacs_snprintf (predicate_symbol_name,
-                                      predicate_symbol_name_len,
-                                      "%s-coding-system-p",
-                                      XSTRING_DATA (XSYMBOL_NAME (symbol))),
-                      Qnil, Vobarray);
   result->enumtype = enumtype;
   result->extra_description = extra_description;
   result->extra_data_size = extra_data_size;

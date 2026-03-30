@@ -41,7 +41,7 @@ Lisp_Object Qlist_formation_error, Qstructure_formation_error;
 Lisp_Object Qmalformed_list, Qmalformed_property_list;
 Lisp_Object Qcircular_list, Qcircular_property_list;
 Lisp_Object Qinvalid_argument, Qinvalid_constant, Qwrong_type_argument;
-Lisp_Object Qargs_out_of_range;
+Lisp_Object Qwrong_subtype_argument, Qargs_out_of_range;
 Lisp_Object Qwrong_number_of_arguments, Qinvalid_function;
 Lisp_Object Qinvalid_keyword_argument, Qno_catch;
 Lisp_Object Qinternal_error, Qinvalid_state, Qstack_overflow, Qout_of_memory;
@@ -121,6 +121,32 @@ DOESNT_RETURN
 dead_wrong_type_argument (Lisp_Object predicate, Lisp_Object value)
 {
   signal_error_1 (Qwrong_type_argument, list2 (predicate, value));
+}
+
+DOESNT_RETURN
+dead_wrong_subtype_argument (Lisp_Object type, Lisp_Object subtype,
+                             Lisp_Object value)
+{
+  Bytecount accessor_len = XSTRING_LENGTH (XSYMBOL_NAME (type))
+    + sizeof ("-type");
+  Ibyte *accessor_name = alloca_ibytes (accessor_len);
+  Lisp_Object accessor
+    = intern_istring (accessor_name,
+                      emacs_snprintf (accessor_name, accessor_len,
+                                      "%s-type",
+                                      XSTRING_DATA (XSYMBOL_NAME (type))),
+                      Qnil,
+                      Vobarray);
+
+  signal_error_1 (Qwrong_type_argument,
+                  list2 (list3 (Qand, type,
+                                list2 (Qsatisfies,
+                                       list3 (Qlambda, list1 (type),
+                                              list3 (Qeq,
+                                                     Fquote_maybe (subtype),
+                                                     list2 (accessor,
+                                                            type))))),
+                         value));
 }
 
 DOESNT_RETURN
@@ -3689,6 +3715,7 @@ syms_of_data (void)
   DEFSYMBOL (Qerror_lacks_explanatory_string);
   DEFSYMBOL_MULTIWORD_PREDICATE (Qweak_listp);
   DEFSYMBOL (Qfloatp);
+  DEFSYMBOL (Qwrong_subtype_argument);
 
   DEFKEYWORD (Q_radix);
   DEFKEYWORD (Q_junk_allowed);

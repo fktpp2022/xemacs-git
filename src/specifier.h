@@ -87,11 +87,6 @@ struct specifier_methods
 {
   Lisp_Object name;             /* Name of the type of specifier as a Lisp
                                    symbol. */
-  Lisp_Object predicate_symbol; /* Symbol naming a function to check this is
-                                   the right type of specifier, passed to
-                                   dead_wrong_type_argument() by
-                                   CHECK_SPECIFIER_TYPE(). */
-
   /* Implementation specific methods: */
 
   /* Create method: Initialize specifier data. Optional. */
@@ -378,14 +373,14 @@ extern void initialize_specifier_type (struct specifier_methods **,
 #define CHECK_SPECIFIER_TYPE(x, type) do {		\
   CHECK_SPECIFIER (x);					\
   if (!SPECIFIER_TYPE_P (XSPECIFIER (x), type))		\
-    dead_wrong_type_argument				\
-      (type##_specifier_methods->predicate_symbol, x);	\
+    dead_wrong_subtype_argument				\
+      (Qspecifier, type##_specifier_methods->name, x);	\
 } while (0)
 #define CONCHECK_SPECIFIER_TYPE(x, type) do {		\
   CONCHECK_SPECIFIER (x);				\
   if (!(SPECIFIER_TYPEP (x, type)))			\
-    x = wrong_type_argument				\
-      (type##_specifier_methods->predicate_symbol, x);	\
+    x = call3 (Qwrong_subtype_argument, Qspecifier,     \
+               type##_specifier_methods->name, x);	\
 } while (0)
 
 /***** Miscellaneous structures *****/

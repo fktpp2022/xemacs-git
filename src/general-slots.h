@@ -277,6 +277,7 @@ SYMBOL (Qreturn);
 SYMBOL (Qreverse);
 SYMBOL (Qright);
 SYMBOL (Qright_margin);
+SYMBOL (Qsatisfies);
 SYMBOL_MODULE_API (Qsearch);
 SYMBOL (Qselected);
 SYMBOL_KEYWORD (Q_selected);

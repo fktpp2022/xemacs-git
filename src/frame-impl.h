@@ -228,15 +228,15 @@ error_check_frame_type (struct frame * f, Lisp_Object sym)
   do {							\
     CHECK_FRAME (x);					\
     if (!FRAME_TYPE_P (XFRAME (x), type))		\
-      dead_wrong_type_argument				\
-	(type##_console_methods->predicate_symbol, x);	\
+      dead_wrong_subtype_argument                       \
+	(Qframe, type##_console_methods->name, x);	\
   } while (0)
 #define CONCHECK_FRAME_TYPE(x, type)			\
   do {							\
     CONCHECK_FRAME (x);					\
     if (!FRAME_TYPE_P (XFRAME (x), type))		\
-      x = wrong_type_argument				\
-	(type##_console_methods->predicate_symbol, x);	\
+      x = call3 (Qwrong_subtype_argument, Qframe,       \
+                 type##_console_methods->name, x);	\
   } while (0)
 
 #define FRAME_DISPLAY_P(frm)				\

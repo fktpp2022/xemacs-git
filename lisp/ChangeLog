@@ -1,3 +1,20 @@
+2026-03-30  Aidan Kehoe  <kehoea@parhasard.net>
+
+	* coding.el:
+	Remove commented-out code that defined #'big5-coding-system-p,
+	#'shift-jis-coding-system-p, etc, superseded by
+	#'wrong-subtype-argument.
+	* console.el:
+	Remove code that defined #'console-x-p, #'console-tty-p, etc,
+	superseded by #'wrong-subtype-argument.
+	* cl-macs.el (wrong-subtype-argument): New.
+	To be called from C in the very rare (currently nonexistent) event
+	that a continuable error is to be signalled when a console,
+	specifier, coding-system, etc of the wrong subtype is supplied.
+	Provided in this file since #'cl-make-type-test is available here
+	and this will be called rarely enough that it doesn't need to be
+	dumped.
+
 2026-03-22  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* make-docfile.el:

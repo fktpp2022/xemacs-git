@@ -1,3 +1,66 @@
+2026-03-30  Aidan Kehoe  <kehoea@parhasard.net>
+
+	Call a new #'wrong-subtype-argument when supplied consoles,
+	specifiers, coding systems, etc, of the wrong subtype and
+	signalling a continuable error.
+	Call a new dead_wrong_subtype_argument() that supplies the same
+	error message when signalling a non-continuable error.
+	Remove the PREDICATE_SYMBOL slots from the various object method
+	structures, no longer needed.
+
+	* console-impl.h:
+	* console-impl.h (struct console_methods):
+	Remove the PREDICATE_SYMBOL slot from here.
+	* console-impl.h (CHECK_CONSOLE_TYPE):
+	Call dead_wrong_subtype_argument() here.
+	* console.c:
+	Remove the PREDICATE_SYMBOL slot from console_methods_description_1.
+	* console.c (initialize_console_type):
+	No need to initialize PREDICATE_SYMBOL.
+	* data.c:
+	Declare Qwrong_subtype_argument here.
+	* data.c (dead_wrong_subtype_argument): New.
+	Signal a non-continuable error with a cl-macs.el-friendly
+	PREDICATE cons.
+	* data.c (syms_of_data):
+	Call DEFSYMBOL() on Qwrong_subtype_argument.
+	* device-impl.h (CHECK_DEVICE_TYPE):
+	Call dead_wrong_subtype_argument here().
+	* device-impl.h (CONCHECK_DEVICE_TYPE):
+	Call #'wrong-subtype-argument here.
+	* file-coding.c:
+	Remove the PREDICATE_SYMBOL slot from
+	coding_system_methods_description_1.
+	* file-coding.c (initialize_coding_system_type):
+	No need to initialize PREDICATE_SYMBOL.
+	* file-coding.h (struct coding_system_methods):
+	Remove the PREDICATE_SYMBOL slot from this.
+	* file-coding.h (CHECK_CODING_SYSTEM_OF_TYPE):
+	Call dead_wrong_subtype_argument() here.
+	* file-coding.h (CHECK_CODING_SYSTEM_OF_TYPE):
+	Call #'wrong-subtype-argument here.
+	* frame-impl.h (CHECK_FRAME_TYPE):
+	Call dead_wrong_subtype_argument() here.
+	* frame-impl.h (CONCHECK_FRAME_TYPE):
+	Call #'wrong-subtype-argument here.
+	* general-slots.h:
+	Create Qsatisfies here, needed for dead_wrong_subtype_argument().
+	* lisp.h:
+	Declare dead_wrong_subtype_argument(), Qwrong_subtype_argument.
+	* specifier.c:
+	Remove the PREDICATE_SYMBOL slot from specifier_methods_description_1.
+	* specifier.c (display_table_validate):
+	Call dead_wrong_subtype_argument() here rather than using
+	display_table_specifier_methods->predicate_symbol.
+	* specifier.c (initialize_specifier_type):
+	No need to initialize the PREDICATE_SYMBOL field.
+	* specifier.h (struct specifier_methods):
+	Remove the PREDICATE_SYMBOL field.
+	* specifier.h (CHECK_SPECIFIER_TYPE):
+	Call dead_wrong_subtype_argument() here.
+	* specifier.h (CONCHECK_SPECIFIER_TYPE):
+	Call #'wrong-subtype-argument here.
+
 2026-03-23  Aidan Kehoe  <kehoea@parhasard.net>
 
 	* console.c (nuke_all_console_slots):

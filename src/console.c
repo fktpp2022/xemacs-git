@@ -1206,7 +1206,6 @@ const struct sized_memory_description cmpd_description = {
 
 static const struct memory_description console_methods_description_1[] = {
   { XD_LISP_OBJECT, offsetof (struct console_methods, name) },
-  { XD_LISP_OBJECT, offsetof (struct console_methods, predicate_symbol) },
 
   /* console methods */
   { XD_FUNCTION_POINTER, offsetof (struct console_methods,
@@ -1513,18 +1512,8 @@ initialize_console_type (struct console_methods **dest,
 {
   struct console_methods *result
     = xnew_and_zero (struct console_methods);
-  Bytecount predicate_symbol_name_len
-    = XSTRING_LENGTH (XSYMBOL_NAME (symbol)) + sizeof ("console--p");
-  Ibyte *predicate_symbol_name = alloca_ibytes (predicate_symbol_name_len);
 
   result->name = symbol;
-  result->predicate_symbol
-    = intern_istring (predicate_symbol_name,
-                      emacs_snprintf (predicate_symbol_name,
-                                      predicate_symbol_name_len,
-                                      "console-%s-p",
-                                      XSTRING_DATA (XSYMBOL_NAME (symbol))),
-                      Qnil, Vobarray);
   result->image_conversion_list = Qnil;
   staticpro (&(result->image_conversion_list));
   Dynarr_add (the_console_methods_dynarr, result);

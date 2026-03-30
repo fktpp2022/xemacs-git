@@ -2968,6 +2968,29 @@ STRING is an optional description of the desired type."
 	   `(let ((,temp ,place)) ,body nil)))))
 
 ;;;###autoload
+(defun wrong-subtype-argument (object-type subtype value)
+  "Signal an error until a value of the correct type and subtype is given.
+
+This loops until the user supplies a value of type OBJECT-TYPE for which
+calling the function `OBJECT-TYPE-type' on that object returns SUBTYPE.
+
+This is made available to XEmacs code to allow it to signal a continuable
+error when, e.g. a console, a specifier, or a coding-system of the desired
+subtype is not supplied.  This function will call `console-type',
+`specifier-type', `coding-system-type' on the corresponding values; callers
+must make sure that the relevant `OBJECT-TYPE-type' function exists.
+
+In practice the core code currently signals a non-continuable error instead."
+  (let* ((accessor (read (format "%S-type" object-type)))
+         (data `(and ,object-type (satisfies (lambda (,object-type)
+                                        (eq ',subtype (,accessor
+                                                       ,object-type))))))
+         (test (cl-make-type-test 'value data)))
+    (while (not (eval test))
+      (setq value (signal 'wrong-type-argument (list data value))))
+    value))
+
+;;;###autoload
 (defmacro assert (form &optional show-args string &rest args)
   "Verify that FORM returns non-nil; signal an error if not.
 Second arg SHOW-ARGS means to include arguments of FORM in message.

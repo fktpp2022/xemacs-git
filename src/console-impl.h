@@ -51,7 +51,6 @@ extern const struct sized_memory_description console_methods_description;
 struct console_methods
 {
   Lisp_Object name;
-  Lisp_Object predicate_symbol;
   unsigned int flags;	/* Read-only implementation flags, set once upon
 			   console type creation. INITIALIZE_CONSOLE_TYPE sets
 			   this member to 0. */
@@ -459,15 +458,15 @@ error_check_console_type (struct console *con, Lisp_Object sym)
 #define CHECK_CONSOLE_TYPE(x, type) do {		\
   CHECK_CONSOLE (x);					\
   if (! CONSOLE_TYPE_P (XCONSOLE (x), type))		\
-    dead_wrong_type_argument				\
-      (type##_console_methods->predicate_symbol, x);	\
+    dead_wrong_subtype_argument				\
+      (Qconsole, type##_console_methods->name, x);	\
 } while (0)
 #define CONCHECK_CONSOLE_TYPE(x, type) do {		\
   CONCHECK_CONSOLE (x);					\
   if (!(CONSOLEP (x) &&					\
 	CONSOLE_TYPE_P (XCONSOLE (x), type)))		\
-    x = wrong_type_argument				\
-      (type##_console_methods->predicate_symbol, x);	\
+    x = call3 (Qwrong_subtype_argument, Qconsole,       \
+               type##_console_methods->name, x);	\
 } while (0)
 
 /* #### These should be in the console-*.h files but there are

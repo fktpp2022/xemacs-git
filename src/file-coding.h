@@ -287,7 +287,6 @@ enum coding_system_variant
 struct coding_system_methods
 {
   Lisp_Object name;
-  Lisp_Object predicate_symbol;
 
   /* NAME expressed as an enum, needed for KKCC marking of the
      type-specific lstream data; copied into the struct coding_stream. */
@@ -630,14 +629,14 @@ initialize_coding_system_type (struct coding_system_methods **dest,
 #define CHECK_CODING_SYSTEM_OF_TYPE(x, type) do {			\
   CHECK_CODING_SYSTEM (x);					\
   if (!CODING_SYSTEM_TYPE_P (XCODING_SYSTEM (x), type))		\
-    dead_wrong_type_argument					\
-      (type##_coding_system_methods->predicate_symbol, x);	\
+    dead_wrong_subtype_argument					\
+      (Qcoding_system, type##_coding_system_methods->name, x); \
 } while (0)
 #define CONCHECK_CODING_SYSTEM_OF_TYPE(x, type) do {		\
   CONCHECK_CODING_SYSTEM (x);					\
   if (!(CODING_SYSTEM_TYPEP (x, type)))				\
-    x = wrong_type_argument					\
-      (type##_coding_system_methods->predicate_symbol, x);	\
+    x = call3 (Qwrong_subtype_argument, Qcoding_system,         \
+               type##_coding_system_methods->name, x);          \
 } while (0)
 
 #define CODING_SYSTEM_METHODS(codesys) ((codesys)->methods)

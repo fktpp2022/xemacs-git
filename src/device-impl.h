@@ -177,16 +177,16 @@ error_check_device_type (struct device *d, Lisp_Object sym)
     CHECK_DEVICE (x);					\
     if (!(DEVICEP (x) && DEVICE_TYPE_P (XDEVICE (x),	\
 					 type)))	\
-      dead_wrong_type_argument				\
-	(type##_console_methods->predicate_symbol, x);	\
+      dead_wrong_subtype_argument                       \
+	(Qdevice, type##_console_methods->name, x);	\
   } while (0)
 #define CONCHECK_DEVICE_TYPE(x, type)			\
   do {							\
     CONCHECK_DEVICE (x);				\
     if (!(DEVICEP (x) && DEVICE_TYPE_P (XDEVICE (x),	\
 					 type)))	\
-      x = wrong_type_argument				\
-	(type##_console_methods->predicate_symbol, x);	\
+      x = call3 (Qwrong_subtype_argument, Qdevice,      \
+                 type##_console_methods->name, x);      \
   } while (0)
 
 #define DEVICE_DISPLAY_P(dev)				\

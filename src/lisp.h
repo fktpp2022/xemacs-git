@@ -4448,6 +4448,11 @@ DECLARE_DOESNT_RETURN (args_out_of_range_3 (Lisp_Object, Lisp_Object,
 MODULE_API Lisp_Object wrong_type_argument (Lisp_Object, Lisp_Object);
 MODULE_API
 DECLARE_DOESNT_RETURN (dead_wrong_type_argument (Lisp_Object, Lisp_Object));
+
+MODULE_API
+DECLARE_DOESNT_RETURN (dead_wrong_subtype_argument (Lisp_Object,
+                                                    Lisp_Object, Lisp_Object));
+
 void check_integer_range (Lisp_Object, Lisp_Object, Lisp_Object);
 
 EXFUN (Fint_to_char, 1);
@@ -4584,7 +4589,7 @@ extern Lisp_Object Qargs_out_of_range, Qarith_error, Qbeginning_of_buffer,
     Qsetting_constant, Qsingularity_error, Qstack_overflow,
     Qstructure_formation_error, Qtext_conversion_error, Qunderflow_error,
     Qvoid_function, Qvoid_variable, Qwrong_number_of_arguments,
-    Qwrong_type_argument;
+    Qwrong_type_argument, Qwrong_subtype_argument;
 
 extern Lisp_Object Qcdr;
 extern Lisp_Object Qerror_lacks_explanatory_string;

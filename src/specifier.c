@@ -387,7 +387,6 @@ sizeof_specifier (Lisp_Object obj)
 
 static const struct memory_description specifier_methods_description_1[] = {
   { XD_LISP_OBJECT, offsetof (struct specifier_methods, name) },
-  { XD_LISP_OBJECT, offsetof (struct specifier_methods, predicate_symbol) },
   { XD_FUNCTION_POINTER, offsetof (struct specifier_methods, create_method) },
   { XD_FUNCTION_POINTER, offsetof (struct specifier_methods, equal_method) },
   { XD_FUNCTION_POINTER, offsetof (struct specifier_methods, hash_method) },
@@ -3700,8 +3699,8 @@ display_table_validate (Lisp_Object instantiator)
       if (!VALID_SINGLE_DISPTABLE_INSTANTIATOR_P (instantiator))
 	{
 	lose:
-	  dead_wrong_type_argument
-	    (display_table_specifier_methods->predicate_symbol,
+	  dead_wrong_subtype_argument
+	    (Qspecifier, display_table_specifier_methods->name,
 	     instantiator);
 	}
     }
@@ -3834,24 +3833,12 @@ initialize_specifier_type (struct specifier_methods **dest,
                            extra_description,
                            Bytecount extra_data_size)
 {
-  Bytecount predicate_symbol_name_len
-    = XSTRING_LENGTH (XSYMBOL_NAME (symbol)) + sizeof ("-specifier-p");
-  Ibyte *predicate_symbol_name = alloca_ibytes (predicate_symbol_name_len);
   struct specifier_methods *result
     = xnew_and_zero (struct specifier_methods);
 
   result->name = symbol;
   result->extra_description = extra_description;
   result->extra_data_size = extra_data_size;
-  result->predicate_symbol
-    = intern_istring (predicate_symbol_name,
-                      emacs_snprintf (predicate_symbol_name,
-                                      predicate_symbol_name_len,
-                                      "%s-specifier-p",
-                                      XSTRING_DATA (XSYMBOL_NAME (symbol))),
-                      Qnil, Vobarray);
-  staticpro (&(result->predicate_symbol));
-
   Dynarr_add (the_specifier_methods_dynarr, result);
 
   /* Pick up duplicate definitions of the same specifier type. */
