@@ -188,15 +188,36 @@ section.
 Internationalization Options
 ----------------------------
 
-The `--with-mule' option enables MUlti-Lingual Emacs (Mule) support,
-needed to support non-Latin-1 (including Asian) languages.  Mule
-support is required for Asian language and Unicode (multibyte and wide
-character) support.  With the advent of the Euro and European
+MUlti-Lingual Emacs (Mule) support is now always enabled in XEmacs.
+Mule support provides support for non-Latin-1 (including Asian)
+languages, and is required for Asian language and Unicode (multibyte
+and wide character) support.  With the advent of the Euro and European
 Community expansion, Mule support is also recommended for Western
-Europeans.  Enabling Mule support requires the mule-base package
-installed prior to building XEmacs.  The `--with-xim', --with-xfs',
-`--with-canna', `--with-wnn' and `--with-wnn6' options require
-Mule support.  (Default: no.)
+Europeans.
+
+NOTE: The `--with-mule' configure option has been removed. Mule support
+is now always compiled in by default and cannot be disabled.
+
+About the mule-base package:
+-----------------------------
+
+The `mule-base' package is NOT required for basic Mule functionality.
+Core Mule support (including multibyte character handling, coding systems,
+and basic language support) is now built into XEmacs itself.
+
+The `mule-base' package provides:
+  - Additional Mule utilities (china-util, japan-util, cyril-util, etc.)
+  - Canna Japanese input method Lisp support
+  - Character table support
+  - Additional isearch extensions
+
+Other Mule-related packages (such as `mule-ucs', `leim', `locale',
+`egg-its', `edict', `lookup', `skk', and `latin-unity') depend on
+the `mule-base' package. If you intend to use these packages, you
+will need to have `mule-base' installed.
+
+The `--with-xim', `--with-xfs', `--with-canna', `--with-wnn' and
+`--with-wnn6' options depend on Mule support, which is always available.
 
 The `--with-canna' option enables the use of the Canna Japanese input method.
 This is stable code and fairly well tested.  In order to use it, you will
@@ -1015,7 +1036,7 @@ Sound options:
 Internationalization options:
 -----------------------------
 
---with-mule               Unchanged
+--with-mule               REMOVED (Mule support is now always enabled)
 --with-xim                Unchanged
 --with-canna              Unchanged
 --with-wnn                Unchanged
@@ -1025,7 +1046,7 @@ Internationalization options:
 File-related options:
 ---------------------
 
---with-default-eol-detection  Unchanged
+--with-default-eol-detection  REMOVED (only relevant with non-MULE builds)
 --with-clash-detection        Unchanged
 
 Database options:
