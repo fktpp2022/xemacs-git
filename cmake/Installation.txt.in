@@ -1,0 +1,476 @@
+XEmacs @EMACS_VERSION@ "@XEMACS_CODENAME@" configured for `@EMACS_CONFIGURATION@'.
+
+  What was done to the source:
+  -----------------------------
+
+None
+
+  Where the files will be installed:
+  -----------------------------------
+
+Installation prefix: @XEMACS_PREFIX@
+Exec prefix: @XEMACS_EXEC_PREFIX@
+
+binaries:		@XEMACS_BINDIR@
+lisp files:		@XEMACS_LISPDIR@
+data files:		@XEMACS_ETCDIR@
+libraries:		@XEMACS_ARCHLIBDIR@
+modules:		@XEMACS_MODULEDIR@
+info files:		@XEMACS_INFODIR@
+man files:		@XEMACS_MANDIR@
+site-lisp files:	@XEMACS_SITELISPDIR@
+site-modules:		@XEMACS_SITEMODULEDIR@
+late packages:		@XEMACS_LATE_PACKAGES@
+
+  Compiling and installing:
+  --------------------------
+
+To compile XEmacs:
+
+  cd @CMAKE_BINARY_DIR@
+  make
+
+To install XEmacs:
+
+  make install
+
+If you want to use GNU make, try 'gmake' or 'gnumake'.
+
+  Configuration details:
+  ----------------------
+
+XEmacs version: @EMACS_VERSION@
+Codename: @XEMACS_CODENAME@
+Release date: @XEMACS_RELEASE_DATE@
+
+System: @MACHINE_NAME@-@OPSYS_NAME@
+Configuration: @EMACS_CONFIGURATION@
+
+  Window system:
+  --------------
+
+@if(HAVE_X_WINDOWS)@
+  X11: yes
+@else@
+  X11: no
+@endif@
+
+@if(HAVE_GTK)@
+  GTK: yes (GTK@GTK_VERSION@)
+@else@
+  GTK: no
+@endif@
+
+@if(HAVE_MS_WINDOWS)@
+  MS Windows: yes
+@else@
+  MS Windows: no
+@endif@
+
+  Image formats:
+  --------------
+
+@if(HAVE_PNG)@
+  PNG: yes
+@else@
+  PNG: no
+@endif@
+
+@if(HAVE_JPEG)@
+  JPEG: yes
+@else@
+  JPEG: no
+@endif@
+
+@if(HAVE_TIFF)@
+  TIFF: yes
+@else@
+  TIFF: no
+@endif@
+
+@if(HAVE_GIF)@
+  GIF: yes
+@else@
+  GIF: no
+@endif@
+
+@if(HAVE_XPM)@
+  XPM: yes
+@else@
+  XPM: no
+@endif@
+
+@if(HAVE_XFACE)@
+  X-Face: yes
+@else@
+  X-Face: no
+@endif@
+
+  Sound support:
+  --------------
+
+@if(HAVE_SOUND)@
+  Sound: yes
+@else@
+  Sound: no
+@endif@
+
+@if(HAVE_ALSA)@
+  ALSA: yes
+@else@
+  ALSA: no
+@endif@
+
+@if(HAVE_OSS)@
+  OSS: yes
+@else@
+  OSS: no
+@endif@
+
+@if(HAVE_NAS)@
+  NAS: yes
+@else@
+  NAS: no
+@endif@
+
+@if(HAVE_ESD)@
+  ESD: yes
+@else@
+  ESD: no
+@endif@
+
+  Database support:
+  -----------------
+
+@if(HAVE_DATABASE)@
+  Database: yes
+@else@
+  Database: no
+@endif@
+
+@if(HAVE_DB)@
+  Berkeley DB: yes
+@else@
+  Berkeley DB: no
+@endif@
+
+@if(HAVE_GDBM)@
+  GDBM: yes
+@else@
+  GDBM: no
+@endif@
+
+@if(HAVE_LDAP)@
+  LDAP: yes
+@else@
+  LDAP: no
+@endif@
+
+@if(HAVE_POSTGRESQL)@
+  PostgreSQL: yes
+@else@
+  PostgreSQL: no
+@endif@
+
+  Input methods:
+  --------------
+
+@if(HAVE_XIM)@
+  XIM: yes
+@else@
+  XIM: no
+@endif@
+
+@if(HAVE_CANNA)@
+  Canna: yes
+@else@
+  Canna: no
+@endif@
+
+@if(HAVE_WNN)@
+  Wnn: yes
+@else@
+  Wnn: no
+@endif@
+
+@if(HAVE_WNN6)@
+  Wnn6: yes
+@else@
+  Wnn6: no
+@endif@
+
+  Widgets:
+  --------
+
+@if(HAVE_MENUBARS)@
+  Menubars: yes
+@else@
+  Menubars: no
+@endif@
+
+@if(HAVE_SCROLLBARS)@
+  Scrollbars: yes
+@else@
+  Scrollbars: no
+@endif@
+
+@if(HAVE_DIALOGS)@
+  Dialogs: yes
+@else@
+  Dialogs: no
+@endif@
+
+@if(HAVE_TOOLBARS)@
+  Toolbars: yes
+@else@
+  Toolbars: no
+@endif@
+
+@if(HAVE_WIDGETS)@
+  Widgets: yes
+@else@
+  Widgets: no
+@endif@
+
+  Widget types:
+  ------------
+
+@if(HAVE_LUCID_WIDGETS)@
+  Lucid widgets: yes
+@else@
+  Lucid widgets: no
+@endif@
+
+@if(HAVE_MOTIF_WIDGETS)@
+  Motif widgets: yes
+@else@
+  Motif widgets: no
+@endif@
+
+@if(HAVE_ATHENA_WIDGETS)@
+  Athena widgets: yes
+@else@
+  Athena widgets: no
+@endif@
+
+@if(HAVE_GTK_WIDGETS)@
+  GTK widgets: yes
+@else@
+  GTK widgets: no
+@endif@
+
+@if(HAVE_MSW_WIDGETS)@
+  MS Windows widgets: yes
+@else@
+  MS Windows widgets: no
+@endif@
+
+  Other features:
+  ---------------
+
+@if(HAVE_TTY)@
+  TTY support: yes
+@else@
+  TTY support: no
+@endif@
+
+@if(HAVE_NCURSES)@
+  Ncurses: yes
+@else@
+  Ncurses: no
+@endif@
+
+@if(HAVE_GPM)@
+  GPM: yes
+@else@
+  GPM: no
+@endif@
+
+@if(HAVE_XFT)@
+  Xft: yes
+@else@
+  Xft: no
+@endif@
+
+@if(HAVE_FONTCONFIG)@
+  Fontconfig: yes
+@else@
+  Fontconfig: no
+@endif@
+
+@if(HAVE_XFS)@
+  X FontSet: yes
+@else@
+  X FontSet: no
+@endif@
+
+@if(HAVE_ZLIB)@
+  Zlib: yes
+@else@
+  Zlib: no
+@endif@
+
+@if(HAVE_BZIP2)@
+  Bzip2: yes
+@else@
+  Bzip2: no
+@endif@
+
+@if(HAVE_MODULES)@
+  Dynamic modules: yes
+@else@
+  Dynamic modules: no
+@endif@
+
+@if(HAVE_SSL)@
+  TLS/SSL: yes
+@else@
+  TLS/SSL: no
+@endif@
+
+@if(HAVE_GMP)@
+  GMP (bignum): yes
+@else@
+  GMP (bignum): no
+@endif@
+
+@if(HAVE_GNOME)@
+  GNOME: yes
+@else@
+  GNOME: no
+@endif@
+
+@if(HAVE_CDE)@
+  CDE drag and drop: yes
+@else@
+  CDE drag and drop: no
+@endif@
+
+@if(HAVE_DRAGNDROP)@
+  Drag and drop: yes
+@else@
+  Drag and drop: no
+@endif@
+
+@if(HAVE_EXTERNAL_WIDGET)@
+  External widget: yes
+@else@
+  External widget: no
+@endif@
+
+@if(HAVE_WMCOMMAND)@
+  WM_COMMAND: yes
+@else@
+  WM_COMMAND: no
+@endif@
+
+@if(HAVE_CLASH_DETECTION)@
+  File lock clash detection: yes
+@else@
+  File lock clash detection: no
+@endif@
+
+@if(HAVE_SESSION)@
+  Session management: yes
+@else@
+  Session management: no
+@endif@
+
+  Build options:
+  --------------
+
+@if(DEBUG_XEMACS)@
+  Debug build: yes
+@else@
+  Debug build: no
+@endif()
+
+@if(ERROR_CHECK_TYPES)@
+  Error checking: yes
+@else@
+  Error checking: no
+@endif@
+
+@if(EMACS_ASSERT)@
+  Assertions: yes
+@else@
+  Assertions: no
+@endif@
+
+@if(MEMORY_USAGE_STATS)@
+  Memory usage stats: yes
+@else@
+  Memory usage stats: no
+@endif@
+
+@if(QUICK_BUILD)@
+  Quick build: yes
+@else@
+  Quick build: no
+@endif@
+
+@if(EMACS_DUMP_IN_EXEC)@
+  Dump in executable: yes
+@else@
+  Dump in executable: no
+@endif@
+
+@if(HAVE_REL_ALLOC)@
+  Relocating allocator: yes
+@else@
+  Relocating allocator: no
+@endif@
+
+  Mail locking:
+  --------------
+
+@if(HAVE_MAIL_LOCKF)@
+  lockf: yes
+@else@
+  lockf: no
+@endif@
+
+@if(HAVE_MAIL_FLOCK)@
+  flock: yes
+@else@
+  flock: no
+@endif@
+
+@if(HAVE_MAIL_LOCKFILE)@
+  lock file: yes
+@else@
+  lock file: no
+@endif@
+
+@if(HAVE_MAIL_LOCKING)@
+  System V locking: yes
+@else@
+  System V locking: no
+@endif@
+
+@if(HAVE_MAIL_MMDF)@
+  MMDF: yes
+@else@
+  MMDF: no
+@endif@
+
+@if(HAVE_MAIL_POP)@
+  POP: yes
+@else@
+  POP: no
+@endif@
+
+  Compiler:
+  ---------
+
+Compiler: @CMAKE_C_COMPILER@
+Compiler ID: @CMAKE_C_COMPILER_ID@
+Compiler version: @CMAKE_C_COMPILER_VERSION@
+Build type: @CMAKE_BUILD_TYPE@
+
+  Installation directories (from CMakeCache.txt):
+  ------------------------------------------------
+
+You can find all configurable options in @CMAKE_BINARY_DIR@/CMakeCache.txt
+
+-- Generated on @CMAKE_DATE_TIME@ by CMake @CMAKE_VERSION@
