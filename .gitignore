@@ -27,3 +27,4 @@ src/.dbxrc
 Makefile
 
 /build-cmake/*
+/build-configure/*
