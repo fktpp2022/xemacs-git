@@ -25,3 +25,5 @@ src/.gdbinit.in
 src/.gdbinit
 src/.dbxrc
 Makefile
+
+/build-cmake/*
