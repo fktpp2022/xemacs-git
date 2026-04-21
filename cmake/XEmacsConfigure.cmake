@@ -14,6 +14,27 @@ check_c_source_compiles("
   }
 " HAVE_TIMEVAL)
 
+check_c_source_compiles("
+  #include <time.h>
+  int main(void) {
+    struct tm t;
+    (void) t.tm_zone;
+    return 0;
+  }
+" HAVE_TM_ZONE)
+
+check_c_source_compiles("
+  #include <time.h>
+  int main(void) {
+    extern char *tzname[];
+    (void) tzname[0];
+    return 0;
+  }
+" HAVE_TZNAME)
+
+include(CheckIncludeFile)
+check_include_file("locale.h" HAVE_LOCALE_H)
+
 if(XEMACS_WITH_X11)
   find_package(X11)
   if(X11_FOUND)
@@ -333,18 +354,15 @@ endif()
 
 if(XEMACS_WITH_ERROR_CHECKING)
   set(ERROR_CHECK_TYPES ON)
-  add_definitions(-DERROR_CHECK_TYPES=1)
 endif()
 
 if(XEMACS_WITH_ASSERTIONS)
-  set(EMACS_ASSERT ON)
-  add_definitions(-DEMACS_ASSERT=1)
+  set(USE_ASSERTIONS ON)
 endif()
 
 if(XEMACS_WITH_DEBUG)
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(DEBUG_XEMACS ON)
-    add_definitions(-DDEBUG_XEMACS=1)
   endif()
 endif()
 
@@ -546,6 +564,24 @@ endif()
 
 check_function_exists(snprintf HAVE_SNPRINTF)
 check_function_exists(strerror HAVE_STRERROR)
+check_function_exists(readlink HAVE_READLINK)
+check_function_exists(getcwd HAVE_GETCWD)
+check_function_exists(gettimeofday HAVE_GETTIMEOFDAY)
+check_function_exists(select HAVE_SELECT)
+
+check_function_exists(getpgrp HAVE_GETPGRP)
+if(HAVE_GETPGRP)
+  check_c_source_compiles("
+    #include <unistd.h>
+    int main(void) {
+      pid_t p = getpgrp();
+      (void) p;
+      return 0;
+    }
+  " GETPGRP_VOID)
+endif()
+
+check_include_file("sys/times.h" HAVE_SYS_TIMES_H)
 
 if(USE_GCC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")

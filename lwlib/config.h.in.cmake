@@ -1,8 +1,8 @@
 #ifndef _LWLIB_CONFIG_H_
 #define _LWLIB_CONFIG_H_
 
-#include "../src/config.h"
-#include "../src/compiler.h"
+#include <src/config.h>
+#include <src/compiler.h>
 
 #cmakedefine NEED_MOTIF
 #cmakedefine NEED_ATHENA

@@ -100,6 +100,9 @@ else()
   message(STATUS "No specific machine file - using configure-time autodetection only")
 endif()
 
+set(config_opsysfile "${XEMACS_CONFIG_OPSYSFILE}")
+set(config_machfile "${XEMACS_CONFIG_MACHFILE}")
+
 if(NOT DEFINED XEMACS_WITH_DYNAMIC)
   if(XEMACS_OPSYS MATCHES "hpux")
     set(XEMACS_WITH_DYNAMIC OFF)

@@ -143,7 +143,9 @@
 #define HAVE_X_DIALOGS 1
 #endif
 
-#cmakedefine HAVE_UNIXOID_EVENT_LOOP
+#if defined (HAVE_X_WINDOWS) || defined (HAVE_TTY) || defined (HAVE_MSG_SELECT) || defined (HAVE_GTK)
+#define HAVE_UNIXOID_EVENT_LOOP
+#endif
 
 #cmakedefine HAVE_WMCOMMAND
 #cmakedefine USE_XFONTSET
@@ -213,6 +215,31 @@
 #define SIGRETURN return
 #endif
 
+#if defined (__cplusplus) && !defined (NOT_C_CODE)
+extern "C" {
+#endif
+
+#ifdef config_opsysfile
+#include config_opsysfile
+#endif
+
+#ifdef USE_PARAM_H
+# ifndef NOT_C_CODE
+#  include <sys/param.h>
+# endif
+#endif
+
+#ifdef config_machfile
+#include config_machfile
+#endif
+
+#if defined (__cplusplus) && !defined (NOT_C_CODE)
+}
+#endif
+
+#define USER_FULL_NAME pw->pw_gecos
+#define XEMACS_WANTS_C_ALLOCA
+
 #define SIZEOF_SHORT @SIZEOF_SHORT@
 #define SIZEOF_INT @SIZEOF_INT@
 #define SIZEOF_LONG @SIZEOF_LONG@
@@ -225,6 +252,10 @@
 #cmakedefine HAVE_FSEEKO
 #cmakedefine HAVE_SNPRINTF
 #cmakedefine HAVE_STRERROR
+#cmakedefine HAVE_READLINK
+#cmakedefine HAVE_GETCWD
+#cmakedefine HAVE_GETTIMEOFDAY
+#cmakedefine HAVE_SYS_TIMES_H
 
 #ifdef HAVE_FSEEKO
 # define OFF_T off_t
@@ -245,6 +276,7 @@
 
 #cmakedefine HAVE_ALLOCA
 #cmakedefine HAVE_ALLOCA_H
+#cmakedefine HAVE_LOCALE_H
 #cmakedefine01 C_ALLOCA
 
 #cmakedefine HAVE_SOCKETS
@@ -258,6 +290,11 @@
 #cmakedefine01 HAVE_TERMIO
 
 #cmakedefine HAVE_TIMEVAL
+#cmakedefine HAVE_TM_ZONE
+#cmakedefine HAVE_TZNAME
+#cmakedefine HAVE_SELECT
+#cmakedefine HAVE_GETPGRP
+#cmakedefine GETPGRP_VOID
 
 #cmakedefine HAVE_SIGSETJMP
 
