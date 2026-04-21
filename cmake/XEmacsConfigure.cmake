@@ -6,6 +6,14 @@ check_type_size("void*" SIZEOF_VOID_P)
 check_type_size("double" SIZEOF_DOUBLE)
 check_type_size("off_t" SIZEOF_OFF_T)
 
+check_c_source_compiles("
+  #include <sys/time.h>
+  int main(void) {
+    struct timeval tv;
+    return 0;
+  }
+" HAVE_TIMEVAL)
+
 if(XEMACS_WITH_X11)
   find_package(X11)
   if(X11_FOUND)
@@ -537,6 +545,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
 endif()
 
 check_function_exists(snprintf HAVE_SNPRINTF)
+check_function_exists(strerror HAVE_STRERROR)
 
 if(USE_GCC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")

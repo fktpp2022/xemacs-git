@@ -29,52 +29,52 @@
 
 #cmakedefine01 REL_ALLOC
 
-#cmakedefine01 HAVE_TTY
-#cmakedefine01 HAVE_NCURSES
-#cmakedefine01 HAVE_GPM
+#cmakedefine HAVE_TTY
+#cmakedefine HAVE_NCURSES
+#cmakedefine HAVE_GPM
 
-#cmakedefine01 HAVE_MS_WINDOWS
-#cmakedefine01 HAVE_X_WINDOWS
-#cmakedefine01 HAVE_X11
+#cmakedefine HAVE_MS_WINDOWS
+#cmakedefine HAVE_X_WINDOWS
+#cmakedefine HAVE_X11
 #cmakedefine HAVE_GTK
 #cmakedefine HAVE_GTK2
 #cmakedefine HAVE_GTK3
 #cmakedefine HAVE_PANGO
 #cmakedefine HAVE_PANGOXFT
 
-#cmakedefine01 HAVE_XFT
-#cmakedefine01 HAVE_FONTCONFIG
+#cmakedefine HAVE_XFT
+#cmakedefine HAVE_FONTCONFIG
 
-#cmakedefine01 HAVE_XIM
-#cmakedefine01 HAVE_CANNA
-#cmakedefine01 HAVE_WNN
-#cmakedefine01 WNN6
+#cmakedefine HAVE_XIM
+#cmakedefine HAVE_CANNA
+#cmakedefine HAVE_WNN
+#cmakedefine WNN6
 
-#cmakedefine01 HAVE_XPM
-#cmakedefine01 HAVE_XFACE
-#cmakedefine01 HAVE_JPEG
-#cmakedefine01 HAVE_TIFF
-#cmakedefine01 HAVE_GIF
-#cmakedefine01 HAVE_PNG
-#cmakedefine01 HAVE_ZLIB
+#cmakedefine HAVE_XPM
+#cmakedefine HAVE_XFACE
+#cmakedefine HAVE_JPEG
+#cmakedefine HAVE_TIFF
+#cmakedefine HAVE_GIF
+#cmakedefine HAVE_PNG
+#cmakedefine HAVE_ZLIB
 
-#cmakedefine01 HAVE_SOUND
-#cmakedefine01 HAVE_NATIVE_SOUND
-#cmakedefine01 HAVE_ALSA_SOUND
-#cmakedefine01 HAVE_NAS_SOUND
-#cmakedefine01 HAVE_ESD_SOUND
+#cmakedefine HAVE_SOUND
+#cmakedefine HAVE_NATIVE_SOUND
+#cmakedefine HAVE_ALSA_SOUND
+#cmakedefine HAVE_NAS_SOUND
+#cmakedefine HAVE_ESD_SOUND
 
-#cmakedefine01 HAVE_DATABASE
-#cmakedefine01 HAVE_DBM
-#cmakedefine01 HAVE_BERKELEY_DB
-#cmakedefine01 HAVE_LDAP
-#cmakedefine01 HAVE_POSTGRESQL
+#cmakedefine HAVE_DATABASE
+#cmakedefine HAVE_DBM
+#cmakedefine HAVE_BERKELEY_DB
+#cmakedefine HAVE_LDAP
+#cmakedefine HAVE_POSTGRESQL
 
 #cmakedefine01 CLASH_DETECTION
 
-#cmakedefine01 HAVE_SHLIB
-#cmakedefine01 HAVE_DLOPEN
-#cmakedefine01 HAVE_MODULES
+#cmakedefine HAVE_SHLIB
+#cmakedefine HAVE_DLOPEN
+#cmakedefine HAVE_MODULES
 
 #cmakedefine WITH_TLS
 #cmakedefine HAVE_OPENSSL
@@ -87,29 +87,29 @@
 #cmakedefine WITH_MP
 #cmakedefine WITH_OPENSSL_BIGNUM
 
-#cmakedefine01 HAVE_MENUBARS
-#cmakedefine01 HAVE_SCROLLBARS
-#cmakedefine01 HAVE_DIALOGS
-#cmakedefine01 HAVE_TOOLBARS
-#cmakedefine01 HAVE_WIDGETS
+#cmakedefine HAVE_MENUBARS
+#cmakedefine HAVE_SCROLLBARS
+#cmakedefine HAVE_DIALOGS
+#cmakedefine HAVE_TOOLBARS
+#cmakedefine HAVE_WIDGETS
 
-#cmakedefine01 LWLIB_USES_MOTIF
-#cmakedefine01 LWLIB_USES_ATHENA
-#cmakedefine01 LWLIB_MENUBARS_LUCID
-#cmakedefine01 LWLIB_MENUBARS_MOTIF
-#cmakedefine01 LWLIB_SCROLLBARS_LUCID
-#cmakedefine01 LWLIB_SCROLLBARS_MOTIF
-#cmakedefine01 LWLIB_SCROLLBARS_ATHENA
-#cmakedefine01 LWLIB_SCROLLBARS_ATHENA3D
-#cmakedefine01 LWLIB_DIALOGS_MOTIF
-#cmakedefine01 LWLIB_DIALOGS_ATHENA
-#cmakedefine01 LWLIB_DIALOGS_ATHENA3D
-#cmakedefine01 LWLIB_TABS_LUCID
-#cmakedefine01 LWLIB_WIDGETS_MOTIF
-#cmakedefine01 LWLIB_WIDGETS_ATHENA
+#cmakedefine LWLIB_USES_MOTIF
+#cmakedefine LWLIB_USES_ATHENA
+#cmakedefine LWLIB_MENUBARS_LUCID
+#cmakedefine LWLIB_MENUBARS_MOTIF
+#cmakedefine LWLIB_SCROLLBARS_LUCID
+#cmakedefine LWLIB_SCROLLBARS_MOTIF
+#cmakedefine LWLIB_SCROLLBARS_ATHENA
+#cmakedefine LWLIB_SCROLLBARS_ATHENA3D
+#cmakedefine LWLIB_DIALOGS_MOTIF
+#cmakedefine LWLIB_DIALOGS_ATHENA
+#cmakedefine LWLIB_DIALOGS_ATHENA3D
+#cmakedefine LWLIB_TABS_LUCID
+#cmakedefine LWLIB_WIDGETS_MOTIF
+#cmakedefine LWLIB_WIDGETS_ATHENA
 
-#cmakedefine01 HAVE_ATHENA_3D
-#cmakedefine01 HAVE_ATHENA_I18N
+#cmakedefine HAVE_ATHENA_3D
+#cmakedefine HAVE_ATHENA_I18N
 
 #cmakedefine01 HAVE_LUCID_WIDGETS
 #cmakedefine01 HAVE_LUCID_MENUBARS
@@ -128,67 +128,67 @@
 #cmakedefine HAVE_GTK_SCROLLBARS
 #cmakedefine HAVE_GTK_DIALOGS
 #cmakedefine HAVE_GNOME_DIALOGS
-#cmakedefine01 HAVE_MSW_WIDGETS
-#cmakedefine01 HAVE_MSW_MENUBARS
-#cmakedefine01 HAVE_MSW_SCROLLBARS
-#cmakedefine01 HAVE_MSW_DIALOGS
+#cmakedefine HAVE_MSW_WIDGETS
+#cmakedefine HAVE_MSW_MENUBARS
+#cmakedefine HAVE_MSW_SCROLLBARS
+#cmakedefine HAVE_MSW_DIALOGS
 
-#cmakedefine01 HAVE_GUI_OBJECTS
-#cmakedefine01 HAVE_POPUPS
-#cmakedefine01 HAVE_WINDOW_SYSTEM
-#cmakedefine01 HAVE_XLIKE
-#cmakedefine01 HAVE_X_WIDGETS
+#cmakedefine HAVE_GUI_OBJECTS
+#cmakedefine HAVE_POPUPS
+#cmakedefine HAVE_WINDOW_SYSTEM
+#cmakedefine HAVE_XLIKE
+#cmakedefine HAVE_X_WIDGETS
 
-#if HAVE_DIALOGS && (LWLIB_DIALOGS_MOTIF || LWLIB_DIALOGS_ATHENA || LWLIB_DIALOGS_ATHENA3D)
+#if defined(HAVE_DIALOGS) && (defined(LWLIB_DIALOGS_MOTIF) || defined(LWLIB_DIALOGS_ATHENA) || defined(LWLIB_DIALOGS_ATHENA3D))
 #define HAVE_X_DIALOGS 1
 #endif
 
-#cmakedefine01 HAVE_UNIXOID_EVENT_LOOP
+#cmakedefine HAVE_UNIXOID_EVENT_LOOP
 
-#cmakedefine01 HAVE_WMCOMMAND
-#cmakedefine01 USE_XFONTSET
-#cmakedefine01 UNICODE_INTERNAL
+#cmakedefine HAVE_WMCOMMAND
+#cmakedefine USE_XFONTSET
+#cmakedefine UNICODE_INTERNAL
 
-#cmakedefine01 HAVE_BALLOON_HELP
-#cmakedefine01 HAVE_DRAGNDROP
-#cmakedefine01 HAVE_CDE
-#cmakedefine01 EXTERNAL_WIDGET
+#cmakedefine HAVE_BALLOON_HELP
+#cmakedefine HAVE_DRAGNDROP
+#cmakedefine HAVE_CDE
+#cmakedefine EXTERNAL_WIDGET
 
-#cmakedefine01 HAVE_TOOLTALK
-#cmakedefine01 TOOLTALK
+#cmakedefine HAVE_TOOLTALK
+#cmakedefine TOOLTALK
 
-#cmakedefine01 HAVE_SOCKS
-#cmakedefine01 HAVE_DNET
+#cmakedefine HAVE_SOCKS
+#cmakedefine HAVE_DNET
 
-#cmakedefine01 IPV6_CANONICALIZE
+#cmakedefine IPV6_CANONICALIZE
 
-#cmakedefine01 MAIL_USE_POP
-#cmakedefine01 KERBEROS
-#cmakedefine01 HESIOD
-#cmakedefine01 MAIL_LOCK_LOCKF
-#cmakedefine01 MAIL_LOCK_FLOCK
-#cmakedefine01 MAIL_LOCK_DOT
-#cmakedefine01 MAIL_LOCK_LOCKING
-#cmakedefine01 MAIL_LOCK_MMDF
+#cmakedefine MAIL_USE_POP
+#cmakedefine KERBEROS
+#cmakedefine HESIOD
+#cmakedefine MAIL_LOCK_LOCKF
+#cmakedefine MAIL_LOCK_FLOCK
+#cmakedefine MAIL_LOCK_DOT
+#cmakedefine MAIL_LOCK_LOCKING
+#cmakedefine MAIL_LOCK_MMDF
 
-#cmakedefine01 HAVE_MKSTEMP
+#cmakedefine HAVE_MKSTEMP
 
-#cmakedefine01 INHIBIT_SITE_LISP
-#cmakedefine01 INHIBIT_SITE_MODULES
+#cmakedefine INHIBIT_SITE_LISP
+#cmakedefine INHIBIT_SITE_MODULES
 
-#cmakedefine01 DUMP_IN_EXEC
+#cmakedefine DUMP_IN_EXEC
 
-#cmakedefine01 SUNPRO
-#cmakedefine01 USAGE_TRACKING
+#cmakedefine SUNPRO
+#cmakedefine USAGE_TRACKING
 
-#cmakedefine01 DEBUG_XEMACS
-#cmakedefine01 USE_ASSERTIONS
-#cmakedefine01 MEMORY_USAGE_STATS
-#cmakedefine01 QUANTIFY
-#cmakedefine01 PURIFY
-#cmakedefine01 USE_VALGRIND
-#cmakedefine01 QUICK_BUILD
-#cmakedefine01 BATCH_COMPILER_RUNS
+#cmakedefine DEBUG_XEMACS
+#cmakedefine USE_ASSERTIONS
+#cmakedefine MEMORY_USAGE_STATS
+#cmakedefine QUANTIFY
+#cmakedefine PURIFY
+#cmakedefine USE_VALGRIND
+#cmakedefine QUICK_BUILD
+#cmakedefine BATCH_COMPILER_RUNS
 
 #cmakedefine ERROR_CHECK_BYTE_CODE
 #cmakedefine ERROR_CHECK_DISPLAY
@@ -200,6 +200,19 @@
 #cmakedefine ERROR_CHECK_TEXT
 #cmakedefine ERROR_CHECK_TYPES
 
+#if !defined (MC_ALLOC) || 1
+# define ALLOC_TYPE_STATS 1
+#endif
+
+#ifndef XCDECL
+#define XCDECL
+#endif
+
+#ifndef SIGTYPE
+#define SIGTYPE void XCDECL
+#define SIGRETURN return
+#endif
+
 #define SIZEOF_SHORT @SIZEOF_SHORT@
 #define SIZEOF_INT @SIZEOF_INT@
 #define SIZEOF_LONG @SIZEOF_LONG@
@@ -209,24 +222,44 @@
 #define SIZEOF_OFF_T @SIZEOF_OFF_T@
 
 #cmakedefine01 WORDS_BIGENDIAN
-#cmakedefine01 HAVE_FSEEKO
-#cmakedefine01 HAVE_SNPRINTF
+#cmakedefine HAVE_FSEEKO
+#cmakedefine HAVE_SNPRINTF
+#cmakedefine HAVE_STRERROR
 
-#cmakedefine01 HAVE_ALLOCA
-#cmakedefine01 HAVE_ALLOCA_H
+#ifdef HAVE_FSEEKO
+# define OFF_T off_t
+# define FSEEK(stream, offset, whence) fseeko (stream, offset, whence)
+# define FTELL(stream) ftello (stream)
+#else
+# if defined (_MSC_VER) && (_MSC_VER > 1200)
+#  define OFF_T INT_64_BIT
+#  define SIZEOF_OFF_T 8
+#  define FSEEK(stream, offset, whence) _fseeki64 (stream, offset, whence)
+#  define FTELL(stream) _ftelli64 (stream)
+# else
+#  define OFF_T long
+#  define FSEEK(stream, offset, whence) fseek (stream, offset, whence)
+#  define FTELL(stream) ftell (stream)
+# endif
+#endif
+
+#cmakedefine HAVE_ALLOCA
+#cmakedefine HAVE_ALLOCA_H
 #cmakedefine01 C_ALLOCA
 
-#cmakedefine01 HAVE_SOCKETS
-#cmakedefine01 HAVE_SOCKADDR_SUN_LEN
+#cmakedefine HAVE_SOCKETS
+#cmakedefine HAVE_SOCKADDR_SUN_LEN
 #cmakedefine01 HAVE_MULTICAST
 #cmakedefine01 HAVE_SYSVIPC
-#cmakedefine01 HAVE_LOCKF
-#cmakedefine01 HAVE_FLOCK
+#cmakedefine HAVE_LOCKF
+#cmakedefine HAVE_FLOCK
 
-#cmakedefine01 HAVE_TERMIOS
+#cmakedefine HAVE_TERMIOS
 #cmakedefine01 HAVE_TERMIO
 
-#cmakedefine01 HAVE_SIGSETJMP
+#cmakedefine HAVE_TIMEVAL
+
+#cmakedefine HAVE_SIGSETJMP
 
 #cmakedefine01 USE_GNU_MAKE
 #cmakedefine01 NEED_TO_HANDLE_21_4_CODE
