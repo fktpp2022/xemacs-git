@@ -132,7 +132,7 @@ if(HAVE_SCROLLBARS)
   list(APPEND SRC_X11_GUI_SOURCES scrollbar-x.c)
 endif()
 
-if(HAVE_DIALOGS)
+if(HAVE_DIALOGS AND (HAVE_MOTIF_DIALOGS OR HAVE_ATHENA_DIALOGS))
   list(APPEND SRC_X11_GUI_SOURCES dialog-x.c)
 endif()
 
@@ -627,7 +627,7 @@ if(HAVE_SHLIB AND NOT WIN32)
   set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -shared")
 endif()
 
-add_library(xemacs-core STATIC ${SRC_ALL_SOURCES} ${SRC_HEADERS} ${SRC_GENERATED_HEADERS})
+add_library(xemacs-core STATIC ${SRC_ALL_SOURCES} ${SRC_GENERATED_HEADERS})
 
 target_include_directories(xemacs-core PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -636,7 +636,7 @@ target_include_directories(xemacs-core PUBLIC
 
 target_compile_definitions(xemacs-core PUBLIC
   HAVE_CONFIG_H
-  -Demacs
+  emacs
 )
 
 if(NOT WIN32)
@@ -656,7 +656,7 @@ if(NOT WIN32)
   
   target_compile_definitions(temacs PRIVATE
     HAVE_CONFIG_H
-    -Demacs
+    emacs
   )
   
   target_link_libraries(temacs PRIVATE
@@ -680,7 +680,7 @@ target_include_directories(xemacs PRIVATE
 
 target_compile_definitions(xemacs PRIVATE
   HAVE_CONFIG_H
-  -Demacs
+  emacs
 )
 
 target_link_libraries(xemacs PRIVATE
@@ -699,11 +699,6 @@ set_target_properties(xemacs PROPERTIES
 install(TARGETS xemacs
   RUNTIME DESTINATION ${XEMACS_BINDIR}
   COMPONENT Runtime
-)
-
-install(FILES ${SRC_HEADERS}
-  DESTINATION ${XEMACS_LIBDIR}/include/xemacs
-  COMPONENT Development
 )
 
 install(FILES ${SRC_GENERATED_HEADERS}

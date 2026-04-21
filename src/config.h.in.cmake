@@ -1,5 +1,3 @@
-#define _SRC_CONFIG_H_
-
 #ifndef _SRC_CONFIG_H_
 #define _SRC_CONFIG_H_
 
@@ -38,11 +36,11 @@
 #cmakedefine01 HAVE_MS_WINDOWS
 #cmakedefine01 HAVE_X_WINDOWS
 #cmakedefine01 HAVE_X11
-#cmakedefine01 HAVE_GTK
-#cmakedefine01 HAVE_GTK2
-#cmakedefine01 HAVE_GTK3
-#cmakedefine01 HAVE_PANGO
-#cmakedefine01 HAVE_PANGOXFT
+#cmakedefine HAVE_GTK
+#cmakedefine HAVE_GTK2
+#cmakedefine HAVE_GTK3
+#cmakedefine HAVE_PANGO
+#cmakedefine HAVE_PANGOXFT
 
 #cmakedefine01 HAVE_XFT
 #cmakedefine01 HAVE_FONTCONFIG
@@ -78,16 +76,16 @@
 #cmakedefine01 HAVE_DLOPEN
 #cmakedefine01 HAVE_MODULES
 
-#cmakedefine01 WITH_TLS
-#cmakedefine01 HAVE_OPENSSL
-#cmakedefine01 HAVE_GNUTLS
-#cmakedefine01 HAVE_NSS
+#cmakedefine WITH_TLS
+#cmakedefine HAVE_OPENSSL
+#cmakedefine HAVE_GNUTLS
+#cmakedefine HAVE_NSS
 
-#cmakedefine01 WITH_NUMBER_TYPES
-#cmakedefine01 WITH_GMP
-#cmakedefine01 WITH_MPIR
-#cmakedefine01 WITH_MP
-#cmakedefine01 WITH_OPENSSL_BIGNUM
+#cmakedefine WITH_NUMBER_TYPES
+#cmakedefine WITH_GMP
+#cmakedefine WITH_MPIR
+#cmakedefine WITH_MP
+#cmakedefine WITH_OPENSSL_BIGNUM
 
 #cmakedefine01 HAVE_MENUBARS
 #cmakedefine01 HAVE_SCROLLBARS
@@ -125,11 +123,11 @@
 #cmakedefine01 HAVE_ATHENA_MENUBARS
 #cmakedefine01 HAVE_ATHENA_SCROLLBARS
 #cmakedefine01 HAVE_ATHENA_DIALOGS
-#cmakedefine01 HAVE_GTK_WIDGETS
-#cmakedefine01 HAVE_GTK_MENUBARS
-#cmakedefine01 HAVE_GTK_SCROLLBARS
-#cmakedefine01 HAVE_GTK_DIALOGS
-#cmakedefine01 HAVE_GNOME_DIALOGS
+#cmakedefine HAVE_GTK_WIDGETS
+#cmakedefine HAVE_GTK_MENUBARS
+#cmakedefine HAVE_GTK_SCROLLBARS
+#cmakedefine HAVE_GTK_DIALOGS
+#cmakedefine HAVE_GNOME_DIALOGS
 #cmakedefine01 HAVE_MSW_WIDGETS
 #cmakedefine01 HAVE_MSW_MENUBARS
 #cmakedefine01 HAVE_MSW_SCROLLBARS
@@ -140,7 +138,11 @@
 #cmakedefine01 HAVE_WINDOW_SYSTEM
 #cmakedefine01 HAVE_XLIKE
 #cmakedefine01 HAVE_X_WIDGETS
-#cmakedefine01 HAVE_X_DIALOGS
+
+#if HAVE_DIALOGS && (LWLIB_DIALOGS_MOTIF || LWLIB_DIALOGS_ATHENA || LWLIB_DIALOGS_ATHENA3D)
+#define HAVE_X_DIALOGS 1
+#endif
+
 #cmakedefine01 HAVE_UNIXOID_EVENT_LOOP
 
 #cmakedefine01 HAVE_WMCOMMAND
@@ -198,16 +200,17 @@
 #cmakedefine ERROR_CHECK_TEXT
 #cmakedefine ERROR_CHECK_TYPES
 
-#cmakedefine SIZEOF_SHORT @SIZEOF_SHORT@
-#cmakedefine SIZEOF_INT @SIZEOF_INT@
-#cmakedefine SIZEOF_LONG @SIZEOF_LONG@
-#cmakedefine SIZEOF_LONG_LONG @SIZEOF_LONG_LONG@
-#cmakedefine SIZEOF_VOID_P @SIZEOF_VOID_P@
-#cmakedefine SIZEOF_DOUBLE @SIZEOF_DOUBLE@
-#cmakedefine SIZEOF_OFF_T @SIZEOF_OFF_T@
+#define SIZEOF_SHORT @SIZEOF_SHORT@
+#define SIZEOF_INT @SIZEOF_INT@
+#define SIZEOF_LONG @SIZEOF_LONG@
+#define SIZEOF_LONG_LONG @SIZEOF_LONG_LONG@
+#define SIZEOF_VOID_P @SIZEOF_VOID_P@
+#define SIZEOF_DOUBLE @SIZEOF_DOUBLE@
+#define SIZEOF_OFF_T @SIZEOF_OFF_T@
 
 #cmakedefine01 WORDS_BIGENDIAN
 #cmakedefine01 HAVE_FSEEKO
+#cmakedefine01 HAVE_SNPRINTF
 
 #cmakedefine01 HAVE_ALLOCA
 #cmakedefine01 HAVE_ALLOCA_H
@@ -261,5 +264,64 @@
 #cmakedefine INFOPATH_USER_DEFINED @INFOPATH_USER_DEFINED@
 
 #cmakedefine USE_PARAM_H @USE_PARAM_H@
+
+#ifndef BITS_PER_CHAR
+#define BITS_PER_CHAR 8
+#endif
+#define SHORTBITS (SIZEOF_SHORT * BITS_PER_CHAR)
+#define INTBITS (SIZEOF_INT * BITS_PER_CHAR)
+#define LONGBITS (SIZEOF_LONG * BITS_PER_CHAR)
+#define LONG_LONG_BITS (SIZEOF_LONG_LONG * BITS_PER_CHAR)
+#define VOID_P_BITS (SIZEOF_VOID_P * BITS_PER_CHAR)
+#define DOUBLE_BITS (SIZEOF_DOUBLE * BITS_PER_CHAR)
+
+#ifdef __cplusplus
+# define INLINE_HEADER inline static 
+#elif defined (FORCE_INLINE_FUNCTION_DEFINITION)
+#  define INLINE_HEADER
+#elif (defined ( __STDC_VERSION__) &&  __STDC_VERSION__ >= 199901L) \
+  || ! defined (__GNUC__) || ! defined(emacs)
+# define INLINE_HEADER inline static
+#else
+# define INLINE_HEADER inline extern
+#endif
+
+#ifdef FORCE_INLINE_FUNCTION_DEFINITION
+# define MODULE_API_INLINE_HEADER MODULE_API
+#else
+# define MODULE_API_INLINE_HEADER INLINE_HEADER
+#endif
+
+#define DECLARE_INLINE_HEADER(header) \
+  INLINE_HEADER header ; INLINE_HEADER header
+
+#define DECLARE_INLINE_MODULE_API(header) \
+  MODULE_API_INLINE_HEADER header ; MODULE_API_INLINE_HEADER header
+
+#ifndef NOT_C_CODE
+# if defined (__cplusplus)
+#  define EXTERN_C extern "C"
+# else
+#  define EXTERN_C extern
+# endif
+#endif
+
+#ifdef __GNUC__
+#define enum_field(enumeration_type) enum enumeration_type
+#else
+#define enum_field(enumeration_type) unsigned int
+#endif
+
+#ifdef HAVE_SIGSETJMP
+# define SETJMP(x) sigsetjmp (x, 0)
+# define LONGJMP(x, y) siglongjmp (x, y)
+# define JMP_BUF sigjmp_buf
+#else
+# define SETJMP(x) setjmp (x)
+# define LONGJMP(x, y) longjmp (x, y)
+# define JMP_BUF jmp_buf
+#endif
+
+#define USE_C_FONT_LOCK
 
 #endif

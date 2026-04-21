@@ -10,9 +10,6 @@ set(LWLIB_LUCID_SOURCES
   xlwmenu.c
   xlwscrollbar.c
   xlwtabs.c
-  xlwradio.c
-  xlwcheckbox.c
-  xlwgauge.c
   xlwgcs.c
 )
 
@@ -22,6 +19,9 @@ set(LWLIB_MOTIF_SOURCES
 
 set(LWLIB_ATHENA_SOURCES
   lwlib-Xaw.c
+  xlwradio.c
+  xlwcheckbox.c
+  xlwgauge.c
 )
 
 set(LWLIB_SOURCES ${LWLIB_CORE_SOURCES})

@@ -1,28 +1,3 @@
-set(LIB_SRC_SOURCES
-  b2m.c
-  b2m_mule.c
-  cvtmail.c
-  digest-doc.c
-  dnd.c
-  ebrowse.c
-  emacsclient.c
-  etc2ps.c
-  fakemail.c
-  hexl.c
-  mailfmt.c
-  make-docfile.c
-  movemail.c
-  ntlib.c
-  pop.c
-  profile.c
-  rcs2log.c
-  rcs-checkin.c
-  sorted-doc.c
-  timer.c
-  update-game-score.c
-  vcdiff.c
-)
-
 set(LIB_SRC_UTILITIES
   b2m
   ebrowse
@@ -43,10 +18,12 @@ set(LIB_SRC_INTERNAL_UTILITIES
   mailfmt
   make-docfile
   ntlib
-  pop
   sorted-doc
   timer
 )
+
+set(LIB_SRC_BUILT_UTILITIES "")
+set(LIB_SRC_BUILT_INTERNAL_UTILITIES "")
 
 foreach(util ${LIB_SRC_UTILITIES} ${LIB_SRC_INTERNAL_UTILITIES})
   if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${util}.c")
@@ -58,6 +35,12 @@ foreach(util ${LIB_SRC_UTILITIES} ${LIB_SRC_INTERNAL_UTILITIES})
     target_compile_definitions(${util} PRIVATE
       HAVE_CONFIG_H
     )
+    list(FIND LIB_SRC_UTILITIES ${util} _util_index)
+    if(_util_index GREATER -1)
+      list(APPEND LIB_SRC_BUILT_UTILITIES ${util})
+    else()
+      list(APPEND LIB_SRC_BUILT_INTERNAL_UTILITIES ${util})
+    endif()
   endif()
 endforeach()
 
@@ -124,10 +107,12 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/make-docfile.c")
   target_link_libraries(make-docfile PRIVATE m)
 endif()
 
-install(TARGETS ${LIB_SRC_UTILITIES}
-  RUNTIME DESTINATION ${XEMACS_ARCHLIBDIR}
-  COMPONENT Runtime
-)
+if(LIB_SRC_BUILT_UTILITIES)
+  install(TARGETS ${LIB_SRC_BUILT_UTILITIES}
+    RUNTIME DESTINATION ${XEMACS_ARCHLIBDIR}
+    COMPONENT Runtime
+  )
+endif()
 
 if(TARGET gnuserv)
   install(TARGETS gnuserv
@@ -150,7 +135,9 @@ if(TARGET ctags)
   )
 endif()
 
-install(TARGETS ${LIB_SRC_INTERNAL_UTILITIES}
-  RUNTIME DESTINATION ${XEMACS_ARCHLIBDIR}
-  COMPONENT Runtime
-)
+if(LIB_SRC_BUILT_INTERNAL_UTILITIES)
+  install(TARGETS ${LIB_SRC_BUILT_INTERNAL_UTILITIES}
+    RUNTIME DESTINATION ${XEMACS_ARCHLIBDIR}
+    COMPONENT Runtime
+  )
+endif()
