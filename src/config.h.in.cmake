@@ -252,9 +252,12 @@ extern "C" {
 #cmakedefine HAVE_FSEEKO
 #cmakedefine HAVE_SNPRINTF
 #cmakedefine HAVE_STRERROR
+#cmakedefine HAVE_STRSIGNAL
 #cmakedefine HAVE_READLINK
 #cmakedefine HAVE_GETCWD
 #cmakedefine HAVE_GETTIMEOFDAY
+#cmakedefine HAVE_MKDIR
+#cmakedefine HAVE_RMDIR
 #cmakedefine HAVE_SYS_TIMES_H
 
 #ifdef HAVE_FSEEKO

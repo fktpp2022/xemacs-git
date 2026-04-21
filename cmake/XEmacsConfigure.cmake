@@ -564,10 +564,14 @@ endif()
 
 check_function_exists(snprintf HAVE_SNPRINTF)
 check_function_exists(strerror HAVE_STRERROR)
+check_function_exists(strsignal HAVE_STRSIGNAL)
 check_function_exists(readlink HAVE_READLINK)
 check_function_exists(getcwd HAVE_GETCWD)
 check_function_exists(gettimeofday HAVE_GETTIMEOFDAY)
 check_function_exists(select HAVE_SELECT)
+
+check_function_exists(mkdir HAVE_MKDIR)
+check_function_exists(rmdir HAVE_RMDIR)
 
 check_function_exists(getpgrp HAVE_GETPGRP)
 if(HAVE_GETPGRP)
