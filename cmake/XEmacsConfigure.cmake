@@ -1,3 +1,74 @@
+check_type_size("short" SIZEOF_SHORT)
+check_type_size("int" SIZEOF_INT)
+check_type_size("long" SIZEOF_LONG)
+check_type_size("long long" SIZEOF_LONG_LONG)
+check_type_size("void*" SIZEOF_VOID_P)
+check_type_size("double" SIZEOF_DOUBLE)
+check_type_size("off_t" SIZEOF_OFF_T)
+
+check_c_source_compiles("
+  #include <sys/time.h>
+  int main(void) {
+    struct timeval tv;
+    return 0;
+  }
+" HAVE_TIMEVAL)
+
+check_c_source_compiles("
+  #include <time.h>
+  int main(void) {
+    struct tm t;
+    (void) t.tm_zone;
+    return 0;
+  }
+" HAVE_TM_ZONE)
+
+check_c_source_compiles("
+  #include <time.h>
+  int main(void) {
+    extern char *tzname[];
+    (void) tzname[0];
+    return 0;
+  }
+" HAVE_TZNAME)
+
+include(CheckIncludeFile)
+check_include_file("locale.h" HAVE_LOCALE_H)
+
+if(XEMACS_WITH_X11)
+  find_package(X11)
+  if(X11_FOUND)
+    set(HAVE_X_WINDOWS ON)
+    set(HAVE_X11 ON)
+    if(X11_Xt_FOUND)
+      set(HAVE_XT ON)
+    endif()
+    if(X11_Xmu_FOUND)
+      set(HAVE_XMU ON)
+    endif()
+    if(X11_Xext_FOUND)
+      set(HAVE_XEXT ON)
+    endif()
+    if(X11_Xpm_FOUND)
+      set(HAVE_XPM ON)
+    endif()
+    if(X11_SM_FOUND)
+      set(HAVE_X11_SM ON)
+    endif()
+    message(STATUS "X11 found: ${X11_LIBRARIES}")
+  else()
+    message(WARNING "X11 not found, X11 window system support will be disabled")
+    set(XEMACS_WITH_X11 OFF)
+  endif()
+endif()
+
+if(XEMACS_WITH_MULE)
+  set(UNICODE_INTERNAL ON)
+  message(STATUS "MULE (multilingual extension) support: enabled")
+else()
+  message(STATUS "MULE (multilingual extension) support: disabled")
+endif()
+
 if(XEMACS_WITH_CANNA)
   check_include_file("canna/ccommon.h" HAVE_CANNA_CCOMMON_H)
   if(HAVE_CANNA_CCOMMON_H)
@@ -283,18 +354,15 @@ endif()
 
 if(XEMACS_WITH_ERROR_CHECKING)
   set(ERROR_CHECK_TYPES ON)
-  add_definitions(-DERROR_CHECK_TYPES=1)
 endif()
 
 if(XEMACS_WITH_ASSERTIONS)
-  set(EMACS_ASSERT ON)
-  add_definitions(-DEMACS_ASSERT=1)
+  set(USE_ASSERTIONS ON)
 endif()
 
 if(XEMACS_WITH_DEBUG)
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(DEBUG_XEMACS ON)
-    add_definitions(-DDEBUG_XEMACS=1)
   endif()
 endif()
 
@@ -426,6 +494,19 @@ if(HAVE_X_WINDOWS)
   endif()
 endif()
 
+if(HAVE_LUCID_MENUBARS)
+  set(LWLIB_MENUBARS_LUCID ON)
+endif()
+
+if(HAVE_LUCID_SCROLLBARS)
+  set(LWLIB_SCROLLBARS_LUCID ON)
+endif()
+
+if(HAVE_LUCID_WIDGETS)
+  set(LWLIB_TABS_LUCID ON)
+  set(NEED_LUCID ON)
+endif()
+
 if(XEMACS_WITH_SITE_LISP)
   set(HAVE_SITE_LISP ON)
 endif()
@@ -480,6 +561,31 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 elseif(CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Os -DNDEBUG")
 endif()
+
+check_function_exists(snprintf HAVE_SNPRINTF)
+check_function_exists(strerror HAVE_STRERROR)
+check_function_exists(strsignal HAVE_STRSIGNAL)
+check_function_exists(readlink HAVE_READLINK)
+check_function_exists(getcwd HAVE_GETCWD)
+check_function_exists(gettimeofday HAVE_GETTIMEOFDAY)
+check_function_exists(select HAVE_SELECT)
+
+check_function_exists(mkdir HAVE_MKDIR)
+check_function_exists(rmdir HAVE_RMDIR)
+
+check_function_exists(getpgrp HAVE_GETPGRP)
+if(HAVE_GETPGRP)
+  check_c_source_compiles("
+    #include <unistd.h>
+    int main(void) {
+      pid_t p = getpgrp();
+      (void) p;
+      return 0;
+    }
+  " GETPGRP_VOID)
+endif()
+
+check_include_file("sys/times.h" HAVE_SYS_TIMES_H)
 
 if(USE_GCC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")

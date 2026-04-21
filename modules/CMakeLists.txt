@@ -27,7 +27,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/base64/base64.c")
   
   target_compile_definitions(base64 PRIVATE
     HAVE_CONFIG_H
-    -Demacs
+    emacs
   )
   
   set_target_properties(base64 PROPERTIES
@@ -53,7 +53,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/zlib/zlib.c" AND HAVE_ZLIB)
   
   target_compile_definitions(zlib PRIVATE
     HAVE_CONFIG_H
-    -Demacs
+    emacs
   )
   
   target_link_libraries(zlib PRIVATE
@@ -83,7 +83,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ldap/eldap.c" AND HAVE_LDAP)
   
   target_compile_definitions(ldap PRIVATE
     HAVE_CONFIG_H
-    -Demacs
+    emacs
   )
   
   target_link_libraries(ldap PRIVATE
@@ -113,7 +113,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/postgresql/postgresql.c" AND HAVE_POSTGRE
   
   target_compile_definitions(postgresql PRIVATE
     HAVE_CONFIG_H
-    -Demacs
+    emacs
   )
   
   target_link_libraries(postgresql PRIVATE
@@ -143,7 +143,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/canna/canna_api.c" AND HAVE_CANNA)
   
   target_compile_definitions(canna PRIVATE
     HAVE_CONFIG_H
-    -Demacs
+    emacs
   )
   
   target_link_libraries(canna PRIVATE

@@ -1,12 +1,12 @@
 #ifndef _LWLIB_CONFIG_H_
 #define _LWLIB_CONFIG_H_
 
-#include "../src/config.h"
-#include "../src/compiler.h"
+#include <src/config.h>
+#include <src/compiler.h>
 
-#cmakedefine01 NEED_MOTIF
-#cmakedefine01 NEED_ATHENA
-#cmakedefine01 NEED_LUCID
+#cmakedefine NEED_MOTIF
+#cmakedefine NEED_ATHENA
+#cmakedefine NEED_LUCID
 
 #cmakedefine ATHENA_Scrollbar_h_
 #cmakedefine ATHENA_Dialog_h_

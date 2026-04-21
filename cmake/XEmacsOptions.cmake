@@ -3,6 +3,7 @@ option(XEMACS_WITH_GTK "Enable GTK window system support" OFF)
 option(XEMACS_WITH_GNOME "Enable GNOME desktop support" OFF)
 option(XEMACS_WITH_MSW "Enable MS Windows GUI support" OFF)
 
+option(XEMACS_WITH_MULE "Enable MULE (multilingual extension) support" ON)
 option(XEMACS_WITH_TOOLBARS "Enable toolbar support" ON)
 option(XEMACS_WITH_WMCOMMAND "Handle WM_COMMAND properly" ON)
 

@@ -10,9 +10,6 @@ set(LWLIB_LUCID_SOURCES
   xlwmenu.c
   xlwscrollbar.c
   xlwtabs.c
-  xlwradio.c
-  xlwcheckbox.c
-  xlwgauge.c
   xlwgcs.c
 )
 
@@ -22,6 +19,9 @@ set(LWLIB_MOTIF_SOURCES
 
 set(LWLIB_ATHENA_SOURCES
   lwlib-Xaw.c
+  xlwradio.c
+  xlwcheckbox.c
+  xlwgauge.c
 )
 
 set(LWLIB_SOURCES ${LWLIB_CORE_SOURCES})
@@ -64,15 +64,16 @@ set(LWLIB_HEADERS
 
 add_library(lw STATIC ${LWLIB_SOURCES} ${LWLIB_HEADERS})
 
-target_include_directories(lw PRIVATE
-  "${CMAKE_CURRENT_SOURCE_DIR}"
+target_include_directories(lw BEFORE PRIVATE
   "${CMAKE_BINARY_DIR}/lwlib"
-  "${CMAKE_SOURCE_DIR}/src"
-  "${CMAKE_BINARY_DIR}/src"
+  "${CMAKE_CURRENT_SOURCE_DIR}"
+  "${CMAKE_BINARY_DIR}"
+  "${CMAKE_SOURCE_DIR}"
 )
 
 target_compile_definitions(lw PRIVATE
   HAVE_CONFIG_H
+  emacs
 )
 
 if(HAVE_X_WINDOWS)
