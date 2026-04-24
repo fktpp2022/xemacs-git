@@ -18,6 +18,7 @@ set(SRC_CORE_SOURCES
   dired.c
   doc.c
   doprnt.c
+  dumper.c
   editfns.c
   elhash.c
   emacs.c
@@ -75,6 +76,7 @@ set(SRC_CORE_SOURCES
   unicode.c
   widget.c
   window.c
+  inline.c
 )
 
 set(SRC_MULE_SOURCES
@@ -114,10 +116,41 @@ set(SRC_X11_SOURCES
   select-x.c
   gccache-x.c
   intl-x.c
+  EmacsFrame.c
+  EmacsShell.c
+  EmacsManager.c
 )
+
+if(HAVE_X_WINDOWS)
+  add_library(top_level_emacs_shell OBJECT EmacsShell-sub.c)
+  target_include_directories(top_level_emacs_shell PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_BINARY_DIR}/src"
+  )
+  target_compile_definitions(top_level_emacs_shell PRIVATE
+    HAVE_CONFIG_H
+    emacs
+    DEFINE_TOP_LEVEL_EMACS_SHELL
+  )
+
+  add_library(transient_emacs_shell OBJECT EmacsShell-sub.c)
+  target_include_directories(transient_emacs_shell PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_BINARY_DIR}/src"
+  )
+  target_compile_definitions(transient_emacs_shell PRIVATE
+    HAVE_CONFIG_H
+    emacs
+    DEFINE_TRANSIENT_EMACS_SHELL
+  )
+endif()
 
 if(HAVE_XFT)
   list(APPEND SRC_X11_SOURCES font-mgr.c)
+endif()
+
+if(HAVE_XIM)
+  list(APPEND SRC_X11_SOURCES input-method-xlib.c)
 endif()
 
 set(SRC_X11_GUI_SOURCES
@@ -268,6 +301,10 @@ if(HAVE_BALLOON_HELP)
   set(SRC_BALLOON_HELP_SOURCES balloon_help.c balloon-x.c)
 endif()
 
+if(HAVE_NATIVE_SOUND)
+  set(SRC_NATIVE_SOUND_SOURCES linuxplay.c miscplay.c)
+endif()
+
 set(SRC_NUMBER_SOURCES
   number.c
 )
@@ -367,6 +404,10 @@ endif()
 
 if(SRC_BALLOON_HELP_SOURCES)
   list(APPEND SRC_ALL_SOURCES ${SRC_BALLOON_HELP_SOURCES})
+endif()
+
+if(SRC_NATIVE_SOUND_SOURCES)
+  list(APPEND SRC_ALL_SOURCES ${SRC_NATIVE_SOUND_SOURCES})
 endif()
 
 set(SRC_HEADERS
@@ -519,7 +560,6 @@ if(HAVE_X_WINDOWS)
   list(APPEND XEMACS_LINK_LIBRARIES
     ${X11_LIBRARIES}
     ${X11_Xt_LIB}
-    lw
   )
   
   if(X11_Xmu_LIB)
@@ -615,12 +655,8 @@ if(HAVE_GMP)
   list(APPEND XEMACS_LINK_LIBRARIES ${GMP_LIBRARIES})
 endif()
 
-if(HAVE_DLOPEN AND NOT WIN32)
-  list(APPEND XEMACS_LINK_LIBRARIES dl)
-endif()
-
-if(HAVE_PTHREADS)
-  list(APPEND XEMACS_LINK_LIBRARIES pthread)
+if(DL_LIBRARIES)
+  list(APPEND XEMACS_LINK_LIBRARIES ${DL_LIBRARIES})
 endif()
 
 if(HAVE_SHLIB AND NOT WIN32)
@@ -628,6 +664,14 @@ if(HAVE_SHLIB AND NOT WIN32)
 endif()
 
 add_library(xemacs-core STATIC ${SRC_ALL_SOURCES} ${SRC_GENERATED_HEADERS})
+
+if(TARGET Emacs_ad_h)
+  add_dependencies(xemacs-core Emacs_ad_h)
+endif()
+
+if(HAVE_X_WINDOWS)
+  target_link_libraries(xemacs-core PRIVATE top_level_emacs_shell transient_emacs_shell)
+endif()
 
 target_include_directories(xemacs-core PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -640,13 +684,13 @@ target_compile_definitions(xemacs-core PUBLIC
 )
 
 if(NOT WIN32)
-  set(DUMP_ID_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/dump-data.c"
-  )
-  
+  # Generate dump_id - needed by dumper.c
+  file(WRITE "${CMAKE_BINARY_DIR}/src/dump-id.c"
+    "/* Auto-generated dump ID */\nunsigned int dump_id = 0U;\n")
+
   add_executable(temacs
     "${CMAKE_CURRENT_SOURCE_DIR}/emacs.c"
-    ${DUMP_ID_SOURCES}
+    "${CMAKE_BINARY_DIR}/src/dump-id.c"
   )
   
   target_include_directories(temacs PRIVATE
@@ -671,6 +715,7 @@ endif()
 
 add_executable(xemacs
   "${CMAKE_CURRENT_SOURCE_DIR}/emacs.c"
+  "${CMAKE_BINARY_DIR}/src/dump-id.c"
 )
 
 target_include_directories(xemacs PRIVATE
