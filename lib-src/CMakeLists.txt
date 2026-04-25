@@ -44,31 +44,39 @@ foreach(util ${LIB_SRC_UTILITIES} ${LIB_SRC_INTERNAL_UTILITIES})
   endif()
 endforeach()
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/gnuserv.c")
-  add_executable(gnuserv gnuserv.c)
-  target_include_directories(gnuserv PRIVATE
-    "${CMAKE_SOURCE_DIR}/src"
-    "${CMAKE_BINARY_DIR}/src"
-  )
-  target_compile_definitions(gnuserv PRIVATE
-    HAVE_CONFIG_H
-  )
-  
-  if(HAVE_X_WINDOWS)
-    target_link_libraries(gnuserv PRIVATE ${X11_LIBRARIES})
+# gnuslib is a shared support library for gnuserv and gnuclient
+set(GNUSERV_COMMON_SOURCES gnuslib.c)
+set(GNUSERV_COMMON_INCLUDES
+  "${CMAKE_SOURCE_DIR}/src"
+  "${CMAKE_BINARY_DIR}/src"
+)
+set(GNUSERV_COMMON_DEFS HAVE_CONFIG_H)
+set(GNUSERV_COMMON_LIBS "")
+if(HAVE_X_WINDOWS)
+  list(APPEND GNUSERV_COMMON_LIBS ${X11_LIBRARIES})
+endif()
+if(HAVE_XAUTH)
+  find_library(XAU_LIBRARY Xau)
+  if(XAU_LIBRARY)
+    list(APPEND GNUSERV_COMMON_LIBS ${XAU_LIBRARY})
   endif()
 endif()
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/gnudoit.c")
-  add_executable(gnudoit gnudoit.c)
-  target_include_directories(gnudoit PRIVATE
-    "${CMAKE_SOURCE_DIR}/src"
-    "${CMAKE_BINARY_DIR}/src"
-  )
-  target_compile_definitions(gnudoit PRIVATE
-    HAVE_CONFIG_H
-  )
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/gnuserv.c")
+  add_executable(gnuserv gnuserv.c ${GNUSERV_COMMON_SOURCES})
+  target_include_directories(gnuserv PRIVATE ${GNUSERV_COMMON_INCLUDES})
+  target_compile_definitions(gnuserv PRIVATE ${GNUSERV_COMMON_DEFS})
+  target_link_libraries(gnuserv PRIVATE ${GNUSERV_COMMON_LIBS})
 endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/gnuclient.c")
+  add_executable(gnuclient gnuclient.c ${GNUSERV_COMMON_SOURCES})
+  target_include_directories(gnuclient PRIVATE ${GNUSERV_COMMON_INCLUDES})
+  target_compile_definitions(gnuclient PRIVATE ${GNUSERV_COMMON_DEFS})
+  target_link_libraries(gnuclient PRIVATE ${GNUSERV_COMMON_LIBS})
+endif()
+
+# gnudoit is a shell script, installed separately
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/etags.c")
   add_executable(etags etags.c)
