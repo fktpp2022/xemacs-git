@@ -42,8 +42,12 @@ XEmacs has been migrated from autoconf to CMake. This provides:
 mkdir build
 cd build
 cmake ..
-make
+make xemacs    # compile C code and link the raw binary
+make dump      # byte-compile lisp files and produce the pdump
 ```
+
+After `make dump`, the working binary is at `bin/xemacs` with its dump
+file `bin/xemacs.dmp`.
 
 ### Install
 
@@ -53,22 +57,33 @@ sudo make install
 
 ### Out-of-Source Build (Recommended)
 
-CMake strongly encourages out-of-source builds. This keeps your source tree clean and allows multiple build configurations.
-
 ```bash
-# Create a build directory
-mkdir -p ~/builds/xemacs-release
-cd ~/builds/xemacs-release
-
-# Configure
+mkdir -p ~/builds/xemacs
+cd ~/builds/xemacs
 cmake /path/to/xemacs/source
-
-# Build
-make -j4
-
-# Install
+make xemacs
+make dump
 sudo make install
 ```
+
+### Build Flow
+
+The cmake build separates compilation from dumping, unlike autoconf's
+`make` which does everything in one step:
+
+| Step | Command | What it does |
+|------|---------|--------------|
+| 1. Configure | `cmake ..` | Detect features, generate Makefiles |
+| 2. Compile | `make xemacs` | Compile C code, link `bin/xemacs` |
+| 3. Dump | `make dump` | Byte-compile `.el` → `.elc`, then pdump |
+
+The `make dump` step runs the raw binary to:
+1. Byte-compile all Lisp files needed for dumping (`update-elc`)
+2. Load the compiled Lisp and dump the heap to `xemacs.dmp` (`loadup.el dump`)
+3. Copy the dump file next to the binary
+
+This matches autoconf's internal flow (`NEEDTODUMP` → dump → `update-elc-2`)
+but exposes it as an explicit build target.
 
 ## Configuration Options
 
@@ -535,19 +550,30 @@ make
 | `./configure --prefix=/usr` | `cmake -DCMAKE_INSTALL_PREFIX=/usr ..` |
 | `./configure --with-x11` | `cmake -DXEMACS_WITH_X11=ON ..` |
 | `./configure --without-gtk` | `cmake -DXEMACS_WITH_GTK=OFF ..` |
-| `make` | `make` or `cmake --build .` |
+| `make` | `make xemacs && make dump` |
 | `make install` | `make install` or `cmake --build . --target install` |
 | `make distclean` | `rm -rf build/` |
 
 ### Key Differences
 
-1. **Out-of-source builds**: CMake requires or strongly encourages out-of-source builds, keeping the source tree clean.
+1. **Separate dump step**: Autoconf's `make` compiles, byte-compiles, and
+   dumps in one invocation.  CMake splits this into `make xemacs` (compile)
+   and `make dump` (byte-compile + pdump).  This is because CMake custom
+   commands cannot easily replicate the autoconf Makefile's recursive
+   self-invocation pattern.
 
-2. **Configuration persistence**: All options are stored in `CMakeCache.txt`, so you don't need to remember them for subsequent builds.
+2. **Out-of-source builds**: CMake requires or strongly encourages
+   out-of-source builds, keeping the source tree clean.  Note that
+   byte-compiled `.elc` files are written into the source `lisp/` directory
+   (same as autoconf).
 
-3. **Multiple generators**: CMake can generate Makefiles, Ninja files, Xcode projects, Visual Studio solutions, etc.
+3. **Configuration persistence**: All options are stored in `CMakeCache.txt`,
+   so you don't need to remember them for subsequent builds.
 
-4. **CPack integration**: Packaging is built into the system with CPack.
+4. **Multiple generators**: CMake can generate Makefiles, Ninja files,
+   Xcode projects, Visual Studio solutions, etc.
+
+5. **CPack integration**: Packaging is built into the system with CPack.
 
 ## Development Tips
 
