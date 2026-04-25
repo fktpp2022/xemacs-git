@@ -45,8 +45,13 @@
 /* #undef HAVE_MS_WINDOWS */
 /* #undef HAVE_MSG_SELECT */
 #cmakedefine HAVE_X_WINDOWS 1
-/* #undef HAVE_FONTCONFIG */
-/* #undef HAVE_XFT */
+#cmakedefine HAVE_FONTCONFIG 1
+#cmakedefine HAVE_FCCONFIGGETRESCANINTERVAL 1
+#cmakedefine HAVE_FCCONFIGSETRESCANINTERVAL 1
+#cmakedefine HAVE_XFT 1
+#cmakedefine HAVE_XFT_MENUBARS 1
+#cmakedefine HAVE_XFT_TABS 1
+#cmakedefine HAVE_XFT_GAUGES 1
 
 #ifdef HAVE_X_WINDOWS
 #define _CONST_X_STRING
@@ -255,7 +260,7 @@
 /* #undef HAVE_DRAGNDROP */
 #cmakedefine HAVE_WMCOMMAND 1
 /* #undef UNICODE_INTERNAL */
-/* #undef USE_XFONTSET */
+#cmakedefine USE_XFONTSET 1
 
 /* Menubar/scrollbar/toolbar/widget toolkit */
 #cmakedefine HAVE_MENUBARS 1

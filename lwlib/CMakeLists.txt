@@ -71,6 +71,10 @@ target_include_directories(lw BEFORE PRIVATE
   "${CMAKE_SOURCE_DIR}"
 )
 
+if(HAVE_XFT)
+  target_include_directories(lw PRIVATE ${XFT_INCLUDE_DIRS})
+endif()
+
 target_compile_definitions(lw PRIVATE
   HAVE_CONFIG_H
   emacs
@@ -92,6 +96,10 @@ if(HAVE_XPM)
   if(X11_Xpm_LIB)
     target_link_libraries(lw PRIVATE ${X11_Xpm_LIB})
   endif()
+endif()
+
+if(HAVE_XFT)
+  target_link_libraries(lw PRIVATE ${XFT_LIBRARIES})
 endif()
 
 install(TARGETS lw

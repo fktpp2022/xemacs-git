@@ -518,11 +518,71 @@ if(XEMACS_WITH_TLS)
   endif()
 endif()
 
-# --- Fontconfig / Xft ---
-if(XEMACS_WITH_FONTCONFIG)
+# --- Xft / Fontconfig ---
+# Xft sub-options force Xft emacs on (matching autoconf behavior)
+if(XEMACS_WITH_XFT_MENUBARS OR XEMACS_WITH_XFT_TABS OR XEMACS_WITH_XFT_GAUGES)
+  if(NOT XEMACS_WITH_XFT)
+    message(STATUS "Forcing XEMACS_WITH_XFT=ON because Xft widget options are enabled")
+    set(XEMACS_WITH_XFT ON)
+  endif()
+endif()
+
+# XFS and Xft menubars are incompatible (matching autoconf)
+if(XEMACS_WITH_XFS AND XEMACS_WITH_XFT_MENUBARS)
+  message(FATAL_ERROR "XFS and Xft in the menubars are incompatible!")
+endif()
+
+if(XEMACS_WITH_XFT AND HAVE_X_WINDOWS)
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(XFT xft)
+  if(XFT_FOUND)
+    set(HAVE_XFT 1)
+    set(HAVE_FONTCONFIG 1)
+    # font-mgr.c uses fontconfig directly, so we need both Xft and fontconfig
+    pkg_check_modules(FONTCONFIG fontconfig)
+    set(XFT_LIBRARIES ${XFT_LINK_LIBRARIES} ${FONTCONFIG_LINK_LIBRARIES})
+    set(XFT_INCLUDE_DIRS ${XFT_INCLUDE_DIRS} ${FONTCONFIG_INCLUDE_DIRS})
+
+    # Check for FcConfigGetRescanInterval / FcConfigSetRescanInterval
+    set(CMAKE_REQUIRED_LIBRARIES ${FONTCONFIG_LINK_LIBRARIES})
+    set(CMAKE_REQUIRED_INCLUDES ${FONTCONFIG_INCLUDE_DIRS})
+    check_function_exists(FcConfigGetRescanInterval HAVE_FCCONFIGGETRESCANINTERVAL)
+    check_function_exists(FcConfigSetRescanInterval HAVE_FCCONFIGSETRESCANINTERVAL)
+    unset(CMAKE_REQUIRED_LIBRARIES)
+    unset(CMAKE_REQUIRED_INCLUDES)
+
+    # Xft widget sub-options
+    if(XEMACS_WITH_XFT_MENUBARS)
+      set(HAVE_XFT_MENUBARS 1)
+    endif()
+    if(XEMACS_WITH_XFT_TABS)
+      set(HAVE_XFT_TABS 1)
+    endif()
+    if(XEMACS_WITH_XFT_GAUGES)
+      set(HAVE_XFT_GAUGES 1)
+    endif()
+
+    message(STATUS "Xft found: ${XFT_LIBRARIES}")
+  else()
+    message(FATAL_ERROR "Unable to find Xft for XEMACS_WITH_XFT")
+  endif()
+elseif(XEMACS_WITH_FONTCONFIG)
   find_package(Fontconfig)
   if(Fontconfig_FOUND)
     set(HAVE_FONTCONFIG 1)
+  endif()
+endif()
+
+# --- X FontSet (XFS) ---
+if(XEMACS_WITH_XFS AND HAVE_X_WINDOWS)
+  set(CMAKE_REQUIRED_LIBRARIES ${X11_LIBRARIES})
+  check_function_exists(XmbDrawString HAVE_XMBDRAWSTRING)
+  unset(CMAKE_REQUIRED_LIBRARIES)
+  if(HAVE_XMBDRAWSTRING AND XEMACS_WITH_MENUBARS_TYPE STREQUAL "lucid")
+    set(USE_XFONTSET 1)
+    message(STATUS "X FontSet (XFS) support enabled")
+  else()
+    message(WARNING "XFS requires XmbDrawString and Lucid menubars")
   endif()
 endif()
 

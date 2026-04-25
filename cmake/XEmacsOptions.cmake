@@ -13,6 +13,9 @@ option(XEMACS_WITH_DIALOGS "Enable dialog support" ON)
 option(XEMACS_WITH_WIDGETS "Enable widget support" OFF)
 
 option(XEMACS_WITH_XFT "Enable Xft font rendering support" OFF)
+option(XEMACS_WITH_XFT_MENUBARS "Enable Xft rendering in menubars" OFF)
+option(XEMACS_WITH_XFT_TABS "Enable Xft rendering in tabs" OFF)
+option(XEMACS_WITH_XFT_GAUGES "Enable Xft rendering in gauges" OFF)
 option(XEMACS_WITH_FONTCONFIG "Enable fontconfig support" OFF)
 
 option(XEMACS_WITH_XPM "Enable XPM image support" ON)

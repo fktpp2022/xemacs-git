@@ -591,6 +591,10 @@ if(HAVE_GTK)
   endif()
 endif()
 
+if(HAVE_XFT)
+  list(APPEND XEMACS_LINK_LIBRARIES ${XFT_LIBRARIES})
+endif()
+
 if(HAVE_PNG)
   list(APPEND XEMACS_LINK_LIBRARIES ${PNG_LIBRARIES})
 endif()
@@ -677,6 +681,10 @@ target_include_directories(xemacs-core PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}"
   "${CMAKE_BINARY_DIR}/src"
 )
+
+if(HAVE_XFT)
+  target_include_directories(xemacs-core PUBLIC ${XFT_INCLUDE_DIRS})
+endif()
 
 target_compile_definitions(xemacs-core PUBLIC
   HAVE_CONFIG_H
