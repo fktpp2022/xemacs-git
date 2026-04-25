@@ -770,3 +770,44 @@ install(TARGETS xemacs-core
   ARCHIVE DESTINATION ${XEMACS_LIBDIR}
   COMPONENT Development
 )
+
+# ============================================================
+# pdump build steps (matching autoconf's update-elc + dump flow)
+# ============================================================
+
+# ============================================================
+# pdump build steps (matching autoconf's update-elc + dump flow)
+# ============================================================
+
+set(LISP_DIR "${CMAKE_SOURCE_DIR}/lisp")
+
+# Step 1: Byte-compile .el files needed for dumping
+add_custom_command(
+  OUTPUT "${CMAKE_BINARY_DIR}/src/NEEDTODUMP"
+  DEPENDS xemacs
+  COMMAND "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}" -nd
+    -no-packages -no-configured-paths -batch
+    -l "${LISP_DIR}/update-elc.el"
+  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+  COMMENT "Byte-compiling lisp files (update-elc)"
+)
+
+# Step 2: Dump
+add_custom_command(
+  OUTPUT "${CMAKE_BINARY_DIR}/${EMACS_DUMP_FILE_NAME}"
+  DEPENDS "${CMAKE_BINARY_DIR}/src/NEEDTODUMP"
+  COMMAND "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}" -nd
+    -no-packages -no-configured-paths -batch
+    -l "${LISP_DIR}/loadup.el" dump
+  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+  COMMENT "Dumping ${EMACS_DUMP_FILE_NAME}"
+)
+
+# Step 3: Copy dump file next to binary and run post-dump byte-compilation
+add_custom_target(dump
+  DEPENDS "${CMAKE_BINARY_DIR}/${EMACS_DUMP_FILE_NAME}"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_BINARY_DIR}/${EMACS_DUMP_FILE_NAME}"
+    "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${EMACS_DUMP_FILE_NAME}"
+  COMMENT "Dump complete"
+)
