@@ -683,6 +683,21 @@ target_compile_definitions(xemacs-core PUBLIC
   emacs
 )
 
+# Create .o symlinks in build/src/ so make-docfile.el can find them
+set(_symlink_script "${CMAKE_CURRENT_BINARY_DIR}/create-o-symlinks.sh")
+file(WRITE "${_symlink_script}"
+"#!/bin/sh
+cd \"$1\"
+for f in CMakeFiles/xemacs-core.dir/*.c.o; do
+  base=$(basename \"$f\" .c.o)
+  ln -sf \"$f\" \"$base.o\"
+done
+")
+add_custom_command(TARGET xemacs-core POST_BUILD
+  COMMAND /bin/sh "${_symlink_script}" "${CMAKE_CURRENT_BINARY_DIR}"
+  COMMENT "Creating .o symlinks for make-docfile"
+)
+
 if(NOT WIN32)
   # Generate dump_id - needed by dumper.c
   file(WRITE "${CMAKE_BINARY_DIR}/src/dump-id.c"

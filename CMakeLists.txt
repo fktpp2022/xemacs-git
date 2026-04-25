@@ -162,6 +162,8 @@ configure_file(
   "${CMAKE_BINARY_DIR}/Installation.txt"
   @ONLY
 )
+# Also generate without .txt extension - needed during pdump
+file(COPY_FILE "${CMAKE_BINARY_DIR}/Installation.txt" "${CMAKE_BINARY_DIR}/Installation")
 
 if(XEMACS_INSTALL_LISP)
   if(IS_DIRECTORY "${CMAKE_SOURCE_DIR}/lisp")
