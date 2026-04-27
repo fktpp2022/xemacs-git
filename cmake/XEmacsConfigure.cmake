@@ -533,129 +533,25 @@ if(XEMACS_WITH_XFS AND XEMACS_WITH_XFT_MENUBARS)
 endif()
 
 if(XEMACS_WITH_XFT AND HAVE_X_WINDOWS)
-  find_package(PkgConfig)
-
-  set(XFT_FOUND FALSE)
-  set(XFT_LIBRARIES "")
-  set(XFT_INCLUDE_DIRS "")
-  set(XFT_PKG_FOUND FALSE)
-
-  # Level 1: Try pkg-config first (preferred method, matching autoconf)
-  if(PkgConfig_FOUND)
-    pkg_check_modules(XFT_PKG xft QUIET)
-    if(XFT_PKG_FOUND)
-      set(XFT_FOUND TRUE)
-      set(XFT_PKG_FOUND TRUE)
-      set(XFT_LIBRARIES ${XFT_PKG_LINK_LIBRARIES})
-      set(XFT_INCLUDE_DIRS ${XFT_PKG_INCLUDE_DIRS})
-      message(STATUS "Xft found via pkg-config")
-    endif()
-  endif()
-
-  # Level 2: Manual detection if pkg-config fails (fallback, matching autoconf behavior)
-  if(NOT XFT_FOUND)
-    message(STATUS "pkg-config not found or xft not found, trying manual detection...")
-
-    # Save current CMAKE_REQUIRED_* variables
-    set(SAVED_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
-    set(SAVED_CMAKE_REQUIRED_INCLUDES ${CMAKE_REQUIRED_INCLUDES})
-
-    set(MANUAL_XFT_LIBS "")
-    set(MANUAL_XFT_INCLUDES "")
-
-    # 1. Check for freetype headers
-    # Autoconf checks: freetype/config/ftheader.h
-    # Possible locations: standard include path, or include/freetype2
-    check_include_file("freetype/config/ftheader.h" HAVE_FREETYPE_HEADER_STANDARD)
-
-    if(NOT HAVE_FREETYPE_HEADER_STANDARD)
-      # Try freetype2 include path (common on many systems)
-      set(FREETYPE2_POSSIBLE_PATHS
-        "/usr/include/freetype2"
-        "/usr/local/include/freetype2"
-        "/opt/local/include/freetype2"
-      )
-
-      set(HAVE_FREETYPE_HEADER_FREETYPE2 FALSE)
-      foreach(FREETYPE_PATH ${FREETYPE2_POSSIBLE_PATHS})
-        if(EXISTS "${FREETYPE_PATH}/freetype/config/ftheader.h")
-          set(CMAKE_REQUIRED_INCLUDES ${FREETYPE_PATH})
-          check_include_file("freetype/config/ftheader.h" HAVE_FREETYPE_IN_PATH)
-          if(HAVE_FREETYPE_IN_PATH)
-            list(APPEND MANUAL_XFT_INCLUDES ${FREETYPE_PATH})
-            set(HAVE_FREETYPE_HEADER_FREETYPE2 TRUE)
-            break()
-          endif()
-        endif()
-      endforeach()
-      set(CMAKE_REQUIRED_INCLUDES ${SAVED_CMAKE_REQUIRED_INCLUDES})
-    endif()
-
-    if(NOT HAVE_FREETYPE_HEADER_STANDARD AND NOT HAVE_FREETYPE_HEADER_FREETYPE2)
-      message(FATAL_ERROR "Unable to find freetype headers for XEMACS_WITH_XFT")
-    endif()
-
-    # 2. Check for Xrender library (XRenderQueryExtension)
-    # Autoconf: AC_CHECK_LIB(Xrender, XRenderQueryExtension, ...)
-    set(CMAKE_REQUIRED_LIBRARIES ${X11_LIBRARIES})
-    check_library_exists(Xrender XRenderQueryExtension "" HAVE_XRENDER_LIB)
-    if(HAVE_XRENDER_LIB)
-      list(APPEND MANUAL_XFT_LIBS "Xrender")
-    else()
-      message(FATAL_ERROR "Unable to find libXrender for XEMACS_WITH_XFT")
-    endif()
-
-    # 3. Check for fontconfig library (FcPatternCreate)
-    # Autoconf: AC_CHECK_LIB(fontconfig, FcPatternCreate, ...)
-    check_library_exists(fontconfig FcPatternCreate "" HAVE_FONTCONFIG_LIB)
-    if(HAVE_FONTCONFIG_LIB)
-      list(APPEND MANUAL_XFT_LIBS "fontconfig")
-    else()
-      message(FATAL_ERROR "Unable to find libfontconfig for XEMACS_WITH_XFT")
-    endif()
-
-    # 4. Check for Xft library (XftFontOpen - core function)
-    # Autoconf: AC_CHECK_LIB(Xft, XftFontOpen, ...)
-    check_library_exists(Xft XftFontOpen "" HAVE_XFT_LIB)
-    if(HAVE_XFT_LIB)
-      list(APPEND MANUAL_XFT_LIBS "Xft")
-      set(XFT_FOUND TRUE)
-      message(STATUS "Xft found via manual detection")
-    else()
-      message(FATAL_ERROR "Unable to find libXft for XEMACS_WITH_XFT")
-    endif()
-
-    # Restore CMAKE_REQUIRED_* variables
-    set(CMAKE_REQUIRED_LIBRARIES ${SAVED_CMAKE_REQUIRED_LIBRARIES})
-    set(CMAKE_REQUIRED_INCLUDES ${SAVED_CMAKE_REQUIRED_INCLUDES})
-
-    # Use manually detected results
-    set(XFT_LIBRARIES ${MANUAL_XFT_LIBS})
-    set(XFT_INCLUDE_DIRS ${MANUAL_XFT_INCLUDES})
-  endif()
-
-  # Final setup when Xft is found
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(XFT xft)
   if(XFT_FOUND)
     set(HAVE_XFT 1)
     set(HAVE_FONTCONFIG 1)
+    # font-mgr.c uses fontconfig directly, so we need both Xft and fontconfig
+    pkg_check_modules(FONTCONFIG fontconfig)
+    set(XFT_LIBRARIES ${XFT_LINK_LIBRARIES} ${FONTCONFIG_LINK_LIBRARIES})
+    set(XFT_INCLUDE_DIRS ${XFT_INCLUDE_DIRS} ${FONTCONFIG_INCLUDE_DIRS})
 
     # Check for FcConfigGetRescanInterval / FcConfigSetRescanInterval
-    # Autoconf: AC_CHECK_FUNCS(FcConfigGetRescanInterval) AC_CHECK_FUNCS(FcConfigSetRescanInterval)
-    if(XFT_PKG_FOUND)
-      set(CMAKE_REQUIRED_LIBRARIES ${XFT_PKG_LINK_LIBRARIES})
-      set(CMAKE_REQUIRED_INCLUDES ${XFT_PKG_INCLUDE_DIRS})
-    else()
-      set(CMAKE_REQUIRED_LIBRARIES ${MANUAL_XFT_LIBS})
-      set(CMAKE_REQUIRED_INCLUDES ${MANUAL_XFT_INCLUDES})
-    endif()
-
+    set(CMAKE_REQUIRED_LIBRARIES ${FONTCONFIG_LINK_LIBRARIES})
+    set(CMAKE_REQUIRED_INCLUDES ${FONTCONFIG_INCLUDE_DIRS})
     check_function_exists(FcConfigGetRescanInterval HAVE_FCCONFIGGETRESCANINTERVAL)
     check_function_exists(FcConfigSetRescanInterval HAVE_FCCONFIGSETRESCANINTERVAL)
-
     unset(CMAKE_REQUIRED_LIBRARIES)
     unset(CMAKE_REQUIRED_INCLUDES)
 
-    # Xft widget sub-options (matching autoconf)
+    # Xft widget sub-options
     if(XEMACS_WITH_XFT_MENUBARS)
       set(HAVE_XFT_MENUBARS 1)
     endif()
@@ -666,7 +562,9 @@ if(XEMACS_WITH_XFT AND HAVE_X_WINDOWS)
       set(HAVE_XFT_GAUGES 1)
     endif()
 
-    message(STATUS "Xft libraries: ${XFT_LIBRARIES}")
+    message(STATUS "Xft found: ${XFT_LIBRARIES}")
+  else()
+    message(FATAL_ERROR "Unable to find Xft for XEMACS_WITH_XFT")
   endif()
 elseif(XEMACS_WITH_FONTCONFIG)
   find_package(Fontconfig)
