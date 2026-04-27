@@ -630,3 +630,10 @@ else()
 endif()
 
 message(STATUS "System: ${MACHINE_NAME}-${OPSYS_NAME}")
+
+if(XEMACS_WITH_DUMP_IN_EXEC AND NOT WIN32)
+  set(DUMP_IN_EXEC "")
+  message(STATUS "DUMP_IN_EXEC: enabled (embedding dump data into executable)")
+else()
+  message(STATUS "DUMP_IN_EXEC: disabled")
+endif()

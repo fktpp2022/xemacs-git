@@ -54,7 +54,7 @@ option(XEMACS_WITH_MODULES "Enable dynamic module support" ON)
 option(XEMACS_WITH_BIGNUM "Enable bignum support (gmp/mpir/mp/openssl)" OFF)
 
 option(XEMACS_WITH_REL_ALLOC "Enable relocating allocator for Lisp buffers" OFF)
-option(XEMACS_WITH_DUMP_IN_EXEC "Enable dumping into executable" ON)
+option(XEMACS_WITH_DUMP_IN_EXEC "Enable dumping into executable (not fully implemented in CMake yet)" OFF)
 option(XEMACS_WITH_QUICK_BUILD "Enable quick build (for development)" OFF)
 
 option(XEMACS_WITH_DEBUG "Enable debug build" ON)

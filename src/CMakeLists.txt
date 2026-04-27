@@ -781,21 +781,49 @@ install(TARGETS xemacs-core
 
 # ============================================================
 # pdump build steps (matching autoconf's update-elc + dump flow)
+#
+# Deep-copy lisp/ into the build tree so that byte-compiled .elc
+# files, auto-autoloads, custom-load, and finder-inf.el are written
+# here instead of polluting the source tree.  This avoids conflicts
+# when an autoconf build shares the same source directory.
+# etc/ and info/ are read-only so symlinks are safe for those.
 # ============================================================
 
-# ============================================================
-# pdump build steps (matching autoconf's update-elc + dump flow)
-# ============================================================
+# Deep copy lisp/ into build tree so post-dump steps (update-elc-2,
+# finder, custom-load) write into the build tree, not the source tree.
+if(NOT EXISTS "${CMAKE_BINARY_DIR}/lisp/.copied")
+  message(STATUS "Copying lisp/ into build tree ...")
+  file(COPY "${CMAKE_SOURCE_DIR}/lisp/" DESTINATION "${CMAKE_BINARY_DIR}/lisp")
+  file(TOUCH "${CMAKE_BINARY_DIR}/lisp/.copied")
+endif()
 
-set(LISP_DIR "${CMAKE_SOURCE_DIR}/lisp")
+# Symlink read-only directories
+foreach(_dir etc info)
+  if(NOT EXISTS "${CMAKE_BINARY_DIR}/${_dir}")
+    file(CREATE_LINK "${CMAKE_SOURCE_DIR}/${_dir}" "${CMAKE_BINARY_DIR}/${_dir}" SYMBOLIC)
+  endif()
+endforeach()
 
-# Step 1: Byte-compile .el files needed for dumping
+set(LISP_DIR "${CMAKE_BINARY_DIR}/lisp")
+set(SRC_LISP_DIR "${CMAKE_SOURCE_DIR}/lisp")
+
+set(XEMACS_BATCH
+  "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}"
+  -no-packages -no-configured-paths -batch
+)
+
+# Steps 1-2 use source-tree lisp paths so that loadup.el's
+# source-directory (derived via file-truename) resolves to the real
+# source tree where C files live.  The .elc files produced here go
+# into the source lisp/ — same as the autoconf build.
+
+# Step 1: Byte-compile .el files needed for dumping (pre-dump)
 add_custom_command(
   OUTPUT "${CMAKE_BINARY_DIR}/src/NEEDTODUMP"
   DEPENDS xemacs
   COMMAND "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}" -nd
     -no-packages -no-configured-paths -batch
-    -l "${LISP_DIR}/update-elc.el"
+    -l "${SRC_LISP_DIR}/update-elc.el"
   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
   COMMENT "Byte-compiling lisp files (update-elc)"
 )
@@ -806,16 +834,53 @@ add_custom_command(
   DEPENDS "${CMAKE_BINARY_DIR}/src/NEEDTODUMP"
   COMMAND "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}" -nd
     -no-packages -no-configured-paths -batch
-    -l "${LISP_DIR}/loadup.el" dump
+    -l "${SRC_LISP_DIR}/loadup.el" dump
   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
   COMMENT "Dumping ${EMACS_DUMP_FILE_NAME}"
 )
 
-# Step 3: Copy dump file next to binary and run post-dump byte-compilation
+# Step 3: Copy dump file next to binary
 add_custom_target(dump
   DEPENDS "${CMAKE_BINARY_DIR}/${EMACS_DUMP_FILE_NAME}"
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "${CMAKE_BINARY_DIR}/${EMACS_DUMP_FILE_NAME}"
     "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${EMACS_DUMP_FILE_NAME}"
   COMMENT "Dump complete"
+)
+
+# Step 4: Post-dump byte-compilation of all remaining .el files
+add_custom_command(
+  OUTPUT "${CMAKE_BINARY_DIR}/src/UPDATE-ELC-2-DONE"
+  DEPENDS dump
+  COMMAND ${XEMACS_BATCH} -no-autoloads
+    -l update-elc-2.el -f batch-update-elc-2 "${LISP_DIR}"
+  COMMAND ${CMAKE_COMMAND} -E touch "${CMAKE_BINARY_DIR}/src/UPDATE-ELC-2-DONE"
+  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+  COMMENT "Post-dump byte-compilation (update-elc-2)"
+)
+
+# Step 5: Build finder keyword database
+add_custom_command(
+  OUTPUT "${LISP_DIR}/finder-inf.el"
+  DEPENDS "${CMAKE_BINARY_DIR}/src/UPDATE-ELC-2-DONE"
+  COMMAND ${XEMACS_BATCH}
+    -eval "(setq finder-compile-keywords-quiet t)"
+    -eval "(setq lisp-directory \"${LISP_DIR}\")"
+    -l finder -f finder-compile-keywords
+  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+  COMMENT "Building finder database"
+  VERBATIM
+)
+
+# Step 6: Check for load-path shadows
+add_custom_target(load-shadows
+  DEPENDS "${CMAKE_BINARY_DIR}/src/UPDATE-ELC-2-DONE"
+  COMMAND ${XEMACS_BATCH} -f list-load-path-shadows
+  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+  COMMENT "Testing for Lisp shadows"
+)
+
+# Top-level target matching autoconf's "build-the-mofo"
+add_custom_target(build-all ALL
+  DEPENDS "${LISP_DIR}/finder-inf.el" load-shadows
 )

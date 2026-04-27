@@ -331,7 +331,7 @@
 /* #undef INFODIR_USER_DEFINED */
 /* #undef INFOPATH_USER_DEFINED */
 
-/* #undef DUMP_IN_EXEC */
+#cmakedefine DUMP_IN_EXEC
 /* #undef SUNPRO */
 /* #undef USAGE_TRACKING */
 /* #undef TOOLTALK */
