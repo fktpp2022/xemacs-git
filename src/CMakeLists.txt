@@ -789,20 +789,45 @@ install(TARGETS xemacs-core
 # etc/ and info/ are read-only so symlinks are safe for those.
 # ============================================================
 
-# Deep copy lisp/ into build tree so post-dump steps (update-elc-2,
-# finder, custom-load) write into the build tree, not the source tree.
-if(NOT EXISTS "${CMAKE_BINARY_DIR}/lisp/.copied")
-  message(STATUS "Copying lisp/ into build tree ...")
-  file(COPY "${CMAKE_SOURCE_DIR}/lisp/" DESTINATION "${CMAKE_BINARY_DIR}/lisp")
-  file(TOUCH "${CMAKE_BINARY_DIR}/lisp/.copied")
-endif()
+# For out-of-tree builds: copy lisp/ and create symlinks for etc/ and info/
+# at BUILD TIME (not configure time). This ensures:
+# 1. The build directory is properly set up before pdump steps run
+# 2. Multiple out-of-tree builds can share the same source
+# 3. Partial rebuilds work correctly
 
-# Symlink read-only directories
-foreach(_dir etc info)
-  if(NOT EXISTS "${CMAKE_BINARY_DIR}/${_dir}")
-    file(CREATE_LINK "${CMAKE_SOURCE_DIR}/${_dir}" "${CMAKE_BINARY_DIR}/${_dir}" SYMBOLIC)
-  endif()
-endforeach()
+if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
+  # Out-of-tree build: set up build directory at build time
+  
+  add_custom_command(
+    OUTPUT "${CMAKE_BINARY_DIR}/lisp/.copied"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+      "${CMAKE_SOURCE_DIR}/lisp"
+      "${CMAKE_BINARY_DIR}/lisp"
+    COMMAND ${CMAKE_COMMAND} -E touch "${CMAKE_BINARY_DIR}/lisp/.copied"
+    COMMENT "Copying lisp/ to build tree"
+    VERBATIM
+  )
+
+  # Create symlinks for read-only directories at build time
+  set(_symlink_outputs "")
+  foreach(_dir etc info)
+    add_custom_command(
+      OUTPUT "${CMAKE_BINARY_DIR}/${_dir}"
+      COMMAND ${CMAKE_COMMAND} -E create_symlink
+        "${CMAKE_SOURCE_DIR}/${_dir}"
+        "${CMAKE_BINARY_DIR}/${_dir}"
+      COMMENT "Creating symlink: ${_dir}"
+      VERBATIM
+    )
+    list(APPEND _symlink_outputs "${CMAKE_BINARY_DIR}/${_dir}")
+  endforeach()
+
+  # These files are dependencies for UPDATE-ELC-2-DONE in out-of-tree builds
+  set(_build_tree_files "${CMAKE_BINARY_DIR}/lisp/.copied" ${_symlink_outputs})
+else()
+  # In-source build: directories already exist, no dependencies needed
+  set(_build_tree_files "")
+endif()
 
 set(LISP_DIR "${CMAKE_BINARY_DIR}/lisp")
 set(SRC_LISP_DIR "${CMAKE_SOURCE_DIR}/lisp")
@@ -851,7 +876,7 @@ add_custom_target(dump
 # Step 4: Post-dump byte-compilation of all remaining .el files
 add_custom_command(
   OUTPUT "${CMAKE_BINARY_DIR}/src/UPDATE-ELC-2-DONE"
-  DEPENDS dump
+  DEPENDS dump ${_build_tree_files}
   COMMAND ${XEMACS_BATCH} -no-autoloads
     -l update-elc-2.el -f batch-update-elc-2 "${LISP_DIR}"
   COMMAND ${CMAKE_COMMAND} -E touch "${CMAKE_BINARY_DIR}/src/UPDATE-ELC-2-DONE"

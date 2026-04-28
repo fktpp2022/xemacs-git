@@ -163,7 +163,20 @@ configure_file(
   @ONLY
 )
 # Also generate without .txt extension - needed during pdump
-file(COPY_FILE "${CMAKE_BINARY_DIR}/Installation.txt" "${CMAKE_BINARY_DIR}/Installation")
+# Use build-time operation to support out-of-tree builds correctly
+add_custom_command(
+  OUTPUT "${CMAKE_BINARY_DIR}/Installation"
+  DEPENDS "${CMAKE_BINARY_DIR}/Installation.txt"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_BINARY_DIR}/Installation.txt"
+    "${CMAKE_BINARY_DIR}/Installation"
+  COMMENT "Generating Installation file"
+  VERBATIM
+)
+
+add_custom_target(generate_installation ALL
+  DEPENDS "${CMAKE_BINARY_DIR}/Installation"
+)
 
 if(XEMACS_INSTALL_LISP)
   if(IS_DIRECTORY "${CMAKE_SOURCE_DIR}/lisp")
