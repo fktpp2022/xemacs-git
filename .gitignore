@@ -30,3 +30,8 @@ Makefile
 /build-configure/*
 /build/*
 .trae/documents/
+
+# Build system generated reference files
+config-h-*.h
+config-log-*.txt
+docs/reference/
