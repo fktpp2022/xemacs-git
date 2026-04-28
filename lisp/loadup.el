@@ -68,9 +68,16 @@ Root of tree containing object files and executables produced by build.
 Differs from `source-directory' if configured with --srcdir option, a practice 
 recommended for developers.")
 
-(defconst source-directory (expand-file-name ".." (file-truename source-lisp))
+(defconst source-directory
+  (let ((env-source-dir (getenv "XEMACS_SOURCE_DIRECTORY")))
+    (if (and env-source-dir (file-directory-p env-source-dir))
+        (file-name-as-directory (expand-file-name env-source-dir))
+      (expand-file-name ".." (file-truename source-lisp))))
   "Root of tree containing source code for the current build. 
-Used during loadup and for documenting source of symbols defined in C.")
+Used during loadup and for documenting source of symbols defined in C.
+For out-of-tree builds, this can be set via the XEMACS_SOURCE_DIRECTORY
+environment variable to point to the real source tree, while source-lisp
+points to the build tree's lisp directory.")
 
 (defvar preloaded-file-list nil "\
 List of Lisp files preloaded into the XEmacs binary image,

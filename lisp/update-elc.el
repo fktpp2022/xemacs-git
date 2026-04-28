@@ -83,11 +83,15 @@
 (defvar build-directory (expand-file-name ".." invocation-directory))
 
 (defvar source-lisp (file-name-directory (expand-file-name
- 					  (car (nthcdr 2 command-line-args)))))
+					  (car (nthcdr 2 command-line-args)))))
 
 (defvar source-lisp-mule (expand-file-name "mule" source-lisp))
-(defvar source-directory (expand-file-name ".." source-lisp))
-(defvar source-modules (expand-file-name "../modules" (file-truename source-lisp)))
+(defvar source-directory
+  (let ((env-source-dir (getenv "XEMACS_SOURCE_DIRECTORY")))
+    (if (and env-source-dir (file-directory-p env-source-dir))
+        (file-name-as-directory (expand-file-name env-source-dir))
+      (expand-file-name ".." source-lisp))))
+(defvar source-modules (expand-file-name "modules" source-directory))
 (defconst module-directory (expand-file-name "modules" build-directory))
 (defvar aa-lisp (expand-file-name "auto-autoloads.el" source-lisp))
 (defvar aac-lisp (expand-file-name "auto-autoloads.elc" source-lisp))
