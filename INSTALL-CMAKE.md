@@ -42,12 +42,19 @@ XEmacs has been migrated from autoconf to CMake. This provides:
 mkdir build
 cd build
 cmake ..
-make xemacs    # compile C code and link the raw binary
-make dump      # byte-compile lisp files and produce the pdump
+make           # compile, byte-compile, and dump (full build)
+make check     # run the automated test suite
 ```
 
-After `make dump`, the working binary is at `bin/xemacs` with its dump
+After `make`, the working binary is at `bin/xemacs` with its dump
 file `bin/xemacs.dmp`.
+
+You can also build incrementally:
+
+```bash
+make xemacs    # compile C code and link the raw binary only
+make dump      # byte-compile lisp files and produce the pdump
+```
 
 ### Install
 
@@ -93,8 +100,9 @@ individual test.
 
 ### Prerequisites
 
-Tests require a fully built and dumped XEmacs binary. Run `make`
-(or `make dump` at minimum) before running tests.
+Tests require a fully built and dumped XEmacs binary. The `make check`
+target handles this automatically. If running `ctest` directly, ensure
+you have run `make` first.
 
 ### Running All Tests
 
