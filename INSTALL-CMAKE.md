@@ -42,12 +42,19 @@ XEmacs has been migrated from autoconf to CMake. This provides:
 mkdir build
 cd build
 cmake ..
-make xemacs    # compile C code and link the raw binary
-make dump      # byte-compile lisp files and produce the pdump
+make           # compile, byte-compile, and dump (full build)
+make check     # run the automated test suite
 ```
 
-After `make dump`, the working binary is at `bin/xemacs` with its dump
+After `make`, the working binary is at `bin/xemacs` with its dump
 file `bin/xemacs.dmp`.
+
+You can also build incrementally:
+
+```bash
+make xemacs    # compile C code and link the raw binary only
+make dump      # byte-compile lisp files and produce the pdump
+```
 
 ### Install
 
@@ -84,6 +91,59 @@ The `make dump` step runs the raw binary to:
 
 This matches autoconf's internal flow (`NEEDTODUMP` → dump → `update-elc-2`)
 but exposes it as an explicit build target.
+
+## Running Tests
+
+XEmacs includes an automated test suite under `tests/automated/`. The CMake
+build integrates these with CTest, so each test file is registered as an
+individual test.
+
+### Prerequisites
+
+Tests require a fully built and dumped XEmacs binary. The `make check`
+target handles this automatically. If running `ctest` directly, ensure
+you have run `make` first.
+
+### Running All Tests
+
+```bash
+cd build
+ctest                        # run all tests
+ctest --output-on-failure    # show output only for failures
+ctest -j4                    # run 4 tests in parallel
+make check                   # convenience target (builds + runs tests)
+```
+
+### Running Specific Tests
+
+```bash
+ctest -R regexp              # run tests matching "regexp"
+ctest -R lisp-tests          # run just lisp-tests
+ctest -R "mule|unicode"      # run mule and unicode related tests
+ctest -E database            # exclude database tests
+```
+
+### Verbose Output
+
+```bash
+ctest -V                     # verbose: show all test output
+ctest -VV                    # extra verbose
+ctest --output-on-failure    # only show output for failed tests
+```
+
+### Listing Available Tests
+
+```bash
+ctest -N                     # list all registered tests without running
+```
+
+### Comparison with Autoconf
+
+| Autoconf | CMake |
+|----------|-------|
+| `make check` | `make check` or `ctest` |
+| (run single test manually) | `ctest -R <test-name>` |
+| (no parallel support) | `ctest -j<N>` |
 
 ## Configuration Options
 
@@ -370,30 +430,37 @@ cmake \
 
 ## Packaging with CPack
 
-CMake provides CPack for creating installable packages.
+CMake provides CPack for creating installable binary packages. The build
+must be complete (`make`) before running `cpack`.
 
 ### Creating Packages
 
 ```bash
-# Create all package types
-make package
+make              # full build required first
+cpack -G TGZ     # tar.gz archive (default on Linux)
+cpack -G DEB     # Debian package (if dpkg available)
+cpack -G RPM     # RPM package (if rpmbuild available)
+```
 
-# Create specific package types
-cpack -G TGZ
-cpack -G TBZ2
-cpack -G ZIP
+### Package Contents
 
-# On Debian/Ubuntu systems
-cpack -G DEB
+The generated package contains:
 
-# On Red Hat/Fedora systems
-cpack -G RPM
-
-# On macOS
-cpack -G DragNDrop
-
-# On Windows
-cpack -G NSIS
+```
+<prefix>/
+├── bin/
+│   ├── xemacs-<version>          # binary
+│   ├── xemacs → xemacs-<version> # symlink
+│   ├── xemacs-script → xemacs-<version>
+│   ├── etags, gnuclient, gnuserv
+├── lib/xemacs-<version>/<arch>/
+│   ├── DOC, Installation, xemacs.dmp
+│   ├── hexl, movemail
+│   └── modules/ (*.so, auto-autoloads.el)
+└── share/xemacs-<version>/
+    ├── lisp/ (*.el, *.elc)
+    ├── etc/
+    └── info/
 ```
 
 ### Available Generators
@@ -402,11 +469,9 @@ cpack -G NSIS
 |-----------|-------------|
 | `TGZ` | Gzip-compressed tar archive |
 | `TBZ2` | Bzip2-compressed tar archive |
-| `ZIP` | ZIP archive |
 | `DEB` | Debian package (.deb) |
 | `RPM` | RPM package (.rpm) |
 | `DragNDrop` | macOS disk image (.dmg) |
-| `NSIS` | Windows installer |
 
 ## Configuration Summary
 
@@ -551,6 +616,7 @@ make
 | `./configure --with-x11` | `cmake -DXEMACS_WITH_X11=ON ..` |
 | `./configure --without-gtk` | `cmake -DXEMACS_WITH_GTK=OFF ..` |
 | `make` | `make xemacs && make dump` |
+| `make check` | `make check` or `ctest` |
 | `make install` | `make install` or `cmake --build . --target install` |
 | `make distclean` | `rm -rf build/` |
 

@@ -81,6 +81,18 @@ set(XEMACS_DOCDIR "${XEMACS_ARCHLIBDIR}")
 set(XEMACS_MODULEDIR "${XEMACS_ARCHLIBDIR}/modules")
 set(XEMACS_SITEMODULEDIR "${XEMACS_LIBDIR}/${inststaticdir}/site-modules")
 
+# Relative install destinations (for install() rules and CPack)
+set(INST_BINDIR "bin")
+set(INST_LIBDIR "lib")
+set(INST_DATADIR "share")
+set(INST_MANDIR "share/man")
+set(INST_INFODIR "share/${instvardir}/info")
+set(INST_LISPDIR "share/${instvardir}/lisp")
+set(INST_ETCDIR "share/${instvardir}/etc")
+set(INST_ARCHLIBDIR "lib/${instvardir}/${EMACS_CONFIGURATION}")
+set(INST_DOCDIR "${INST_ARCHLIBDIR}")
+set(INST_MODULEDIR "${INST_ARCHLIBDIR}/modules")
+
 set(XEMACS_LATE_PACKAGES "${XEMACS_DATADIR}/${PROGNAME}")
 
 message(STATUS "XEmacs ${EMACS_VERSION} \"${XEMACS_CODENAME}\"")
@@ -155,6 +167,8 @@ if(XEMACS_WITH_MODULES)
   add_subdirectory(modules)
 endif()
 
+add_subdirectory(tests)
+
 include("${CMAKE_SOURCE_DIR}/cmake/XEmacsCPack.cmake")
 
 configure_file(
@@ -179,26 +193,23 @@ add_custom_target(generate_installation ALL
 )
 
 if(XEMACS_INSTALL_LISP)
-  if(IS_DIRECTORY "${CMAKE_SOURCE_DIR}/lisp")
-    install(DIRECTORY lisp/
-      DESTINATION ${XEMACS_LISPDIR}
-      COMPONENT Lisp
-      FILES_MATCHING
-        PATTERN "*.el"
-        PATTERN "*.elc"
-        PATTERN "*.el.gz"
-        PATTERN "*.elc.gz"
-      PATTERN "CVS" EXCLUDE
-      PATTERN ".git" EXCLUDE
-      PATTERN ".svn" EXCLUDE
-    )
-  endif()
+  install(DIRECTORY "${CMAKE_BINARY_DIR}/lisp/"
+    DESTINATION ${INST_LISPDIR}
+    COMPONENT Lisp
+    FILES_MATCHING
+      PATTERN "*.el"
+      PATTERN "*.elc"
+    PATTERN "CVS" EXCLUDE
+    PATTERN ".git" EXCLUDE
+    PATTERN ".svn" EXCLUDE
+    PATTERN ".copied" EXCLUDE
+  )
 endif()
 
 if(XEMACS_INSTALL_ETC)
   if(IS_DIRECTORY "${CMAKE_SOURCE_DIR}/etc")
     install(DIRECTORY etc/
-      DESTINATION ${XEMACS_ETCDIR}
+      DESTINATION ${INST_ETCDIR}
       COMPONENT Etc
       PATTERN "CVS" EXCLUDE
       PATTERN ".git" EXCLUDE
@@ -210,7 +221,7 @@ endif()
 if(XEMACS_INSTALL_INFO)
   if(IS_DIRECTORY "${CMAKE_SOURCE_DIR}/info")
     install(DIRECTORY info/
-      DESTINATION ${XEMACS_INFODIR}
+      DESTINATION ${INST_INFODIR}
       COMPONENT Info
       FILES_MATCHING
         PATTERN "*.info"
@@ -226,7 +237,7 @@ endif()
 if(XEMACS_INSTALL_DOC)
   if(IS_DIRECTORY "${CMAKE_SOURCE_DIR}/man")
     install(DIRECTORY man/
-      DESTINATION ${XEMACS_MANDIR}/man1
+      DESTINATION ${INST_MANDIR}/man1
       COMPONENT Documentation
       FILES_MATCHING
         PATTERN "*.1"
@@ -238,7 +249,7 @@ if(XEMACS_INSTALL_DOC)
   
   install(FILES
     "${CMAKE_BINARY_DIR}/Installation.txt"
-    DESTINATION ${XEMACS_DOCDIR}
+    DESTINATION ${INST_DOCDIR}
     COMPONENT Documentation
     RENAME "Installation"
   )
@@ -246,7 +257,7 @@ if(XEMACS_INSTALL_DOC)
   if(EXISTS "${CMAKE_SOURCE_DIR}/INSTALL")
     install(FILES
       "${CMAKE_SOURCE_DIR}/INSTALL"
-      DESTINATION ${XEMACS_DOCDIR}
+      DESTINATION ${INST_DOCDIR}
       COMPONENT Documentation
     )
   endif()
@@ -254,7 +265,7 @@ if(XEMACS_INSTALL_DOC)
   if(EXISTS "${CMAKE_SOURCE_DIR}/README")
     install(FILES
       "${CMAKE_SOURCE_DIR}/README"
-      DESTINATION ${XEMACS_DOCDIR}
+      DESTINATION ${INST_DOCDIR}
       COMPONENT Documentation
     )
   endif()
@@ -262,7 +273,7 @@ if(XEMACS_INSTALL_DOC)
   if(EXISTS "${CMAKE_SOURCE_DIR}/COPYING")
     install(FILES
       "${CMAKE_SOURCE_DIR}/COPYING"
-      DESTINATION ${XEMACS_DOCDIR}
+      DESTINATION ${INST_DOCDIR}
       COMPONENT Documentation
     )
   endif()
@@ -270,21 +281,11 @@ if(XEMACS_INSTALL_DOC)
   if(EXISTS "${CMAKE_SOURCE_DIR}/NEWS")
     install(FILES
       "${CMAKE_SOURCE_DIR}/NEWS"
-      DESTINATION ${XEMACS_DOCDIR}
+      DESTINATION ${INST_DOCDIR}
       COMPONENT Documentation
     )
   endif()
 endif()
-
-install(DIRECTORY
-  DESTINATION ${XEMACS_SITELISPDIR}
-  COMPONENT Lisp
-)
-
-install(DIRECTORY
-  DESTINATION ${XEMACS_SITEMODULEDIR}
-  COMPONENT Libraries
-)
 
 message(STATUS "")
 message(STATUS "========== Configuration Summary ==========")

@@ -764,19 +764,38 @@ set_target_properties(xemacs PROPERTIES
   OUTPUT_NAME "${PROGNAME}"
 )
 
-install(TARGETS xemacs
-  RUNTIME DESTINATION ${XEMACS_BINDIR}
+# Install binary as xemacs-<version> with xemacs and xemacs-script symlinks
+install(PROGRAMS "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}"
+  DESTINATION ${INST_BINDIR}
+  COMPONENT Runtime
+  RENAME "${PROGNAME}-${EMACS_VERSION}"
+)
+install(CODE "
+  execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink
+    \"${PROGNAME}-${EMACS_VERSION}\"
+    \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${INST_BINDIR}/${PROGNAME}\")
+  execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink
+    \"${PROGNAME}-${EMACS_VERSION}\"
+    \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${INST_BINDIR}/${SHEBANG_PROGNAME}\")
+" COMPONENT Runtime)
+
+# DOC file (generated during dump by make-docfile)
+install(FILES "${CMAKE_BINARY_DIR}/lib-src/DOC"
+  DESTINATION ${INST_DOCDIR}
+  COMPONENT Runtime
+  RENAME "DOC"
+)
+
+# Dump file
+install(FILES "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${EMACS_DUMP_FILE_NAME}"
+  DESTINATION ${INST_ARCHLIBDIR}
   COMPONENT Runtime
 )
 
-install(FILES ${SRC_GENERATED_HEADERS}
-  DESTINATION ${XEMACS_LIBDIR}/include/xemacs
-  COMPONENT Development
-)
-
-install(TARGETS xemacs-core
-  ARCHIVE DESTINATION ${XEMACS_LIBDIR}
-  COMPONENT Development
+# Installation summary
+install(FILES "${CMAKE_BINARY_DIR}/Installation"
+  DESTINATION ${INST_ARCHLIBDIR}
+  COMPONENT Runtime
 )
 
 # ============================================================
@@ -837,18 +856,20 @@ set(XEMACS_BATCH
   -no-packages -no-configured-paths -batch
 )
 
-# Steps 1-2 use source-tree lisp paths so that loadup.el's
-# source-directory (derived via file-truename) resolves to the real
-# source tree where C files live.  The .elc files produced here go
-# into the source lisp/ — same as the autoconf build.
+# Steps 1-2 use build-tree lisp paths so that .elc files are written
+# to the build tree instead of polluting the source tree. The
+# XEMACS_SOURCE_DIRECTORY environment variable tells loadup.el and
+# update-elc.el where the real source tree lives (for finding C files
+# during make-docfile processing).
 
 # Step 1: Byte-compile .el files needed for dumping (pre-dump)
 add_custom_command(
   OUTPUT "${CMAKE_BINARY_DIR}/src/NEEDTODUMP"
-  DEPENDS xemacs
-  COMMAND "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}" -nd
+  DEPENDS xemacs ${_build_tree_files}
+  COMMAND ${CMAKE_COMMAND} -E env "XEMACS_SOURCE_DIRECTORY=${CMAKE_SOURCE_DIR}"
+    "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}" -nd
     -no-packages -no-configured-paths -batch
-    -l "${SRC_LISP_DIR}/update-elc.el"
+    -l "${LISP_DIR}/update-elc.el"
   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
   COMMENT "Byte-compiling lisp files (update-elc)"
 )
@@ -857,9 +878,10 @@ add_custom_command(
 add_custom_command(
   OUTPUT "${CMAKE_BINARY_DIR}/${EMACS_DUMP_FILE_NAME}"
   DEPENDS "${CMAKE_BINARY_DIR}/src/NEEDTODUMP"
-  COMMAND "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}" -nd
+  COMMAND ${CMAKE_COMMAND} -E env "XEMACS_SOURCE_DIRECTORY=${CMAKE_SOURCE_DIR}"
+    "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}" -nd
     -no-packages -no-configured-paths -batch
-    -l "${SRC_LISP_DIR}/loadup.el" dump
+    -l "${LISP_DIR}/loadup.el" dump
   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
   COMMENT "Dumping ${EMACS_DUMP_FILE_NAME}"
 )
@@ -872,6 +894,9 @@ add_custom_target(dump
     "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${EMACS_DUMP_FILE_NAME}"
   COMMENT "Dump complete"
 )
+
+# The dump pipeline needs the Installation file (loaded by version.el)
+add_dependencies(dump generate_installation)
 
 # Step 4: Post-dump byte-compilation of all remaining .el files
 add_custom_command(

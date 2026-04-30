@@ -36,7 +36,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/base64/base64.c")
   )
   
   install(TARGETS base64
-    LIBRARY DESTINATION ${XEMACS_MODULEDIR}
+    LIBRARY DESTINATION ${INST_MODULEDIR}
     COMPONENT Libraries
   )
 endif()
@@ -66,7 +66,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/zlib/zlib.c" AND HAVE_ZLIB)
   )
   
   install(TARGETS zlib
-    LIBRARY DESTINATION ${XEMACS_MODULEDIR}
+    LIBRARY DESTINATION ${INST_MODULEDIR}
     COMPONENT Libraries
   )
 endif()
@@ -96,7 +96,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ldap/eldap.c" AND HAVE_LDAP)
   )
   
   install(TARGETS ldap
-    LIBRARY DESTINATION ${XEMACS_MODULEDIR}
+    LIBRARY DESTINATION ${INST_MODULEDIR}
     COMPONENT Libraries
   )
 endif()
@@ -126,7 +126,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/postgresql/postgresql.c" AND HAVE_POSTGRE
   )
   
   install(TARGETS postgresql
-    LIBRARY DESTINATION ${XEMACS_MODULEDIR}
+    LIBRARY DESTINATION ${INST_MODULEDIR}
     COMPONENT Libraries
   )
 endif()
@@ -156,21 +156,19 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/canna/canna_api.c" AND HAVE_CANNA)
   )
   
   install(TARGETS canna
-    LIBRARY DESTINATION ${XEMACS_MODULEDIR}
+    LIBRARY DESTINATION ${INST_MODULEDIR}
     COMPONENT Libraries
   )
 endif()
 
-install(FILES
-  auto-autoloads.el
-  DESTINATION ${XEMACS_MODULEDIR}
-  COMPONENT Libraries
-)
-
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/auto-autoloads.elc")
-  install(FILES
-    auto-autoloads.elc
-    DESTINATION ${XEMACS_MODULEDIR}
-    COMPONENT Libraries
-  )
-endif()
+# Module autoloads (generated during build)
+install(CODE "
+  if(EXISTS \"${CMAKE_CURRENT_BINARY_DIR}/auto-autoloads.el\")
+    file(INSTALL DESTINATION \"\${CMAKE_INSTALL_PREFIX}/${INST_MODULEDIR}\"
+      TYPE FILE FILES \"${CMAKE_CURRENT_BINARY_DIR}/auto-autoloads.el\")
+  endif()
+  if(EXISTS \"${CMAKE_CURRENT_BINARY_DIR}/auto-autoloads.elc\")
+    file(INSTALL DESTINATION \"\${CMAKE_INSTALL_PREFIX}/${INST_MODULEDIR}\"
+      TYPE FILE FILES \"${CMAKE_CURRENT_BINARY_DIR}/auto-autoloads.elc\")
+  endif()
+" COMPONENT Runtime)
