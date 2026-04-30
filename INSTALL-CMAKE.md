@@ -19,6 +19,8 @@ XEmacs has been migrated from autoconf to CMake. This provides:
 - CMake 3.16 or later
 - C compiler (GCC, Clang, MSVC, etc.)
 - GNU Make (or Ninja, or other CMake-supported build tool)
+- makeinfo (from GNU Texinfo) — for building info pages
+- makeinfo (from GNU Texinfo) — for building info pages
 
 ### Required Libraries
 
@@ -83,6 +85,7 @@ The cmake build separates compilation from dumping, unlike autoconf's
 | 1. Configure | `cmake ..` | Detect features, generate Makefiles |
 | 2. Compile | `make xemacs` | Compile C code, link `bin/xemacs` |
 | 3. Dump | `make dump` | Byte-compile `.el` → `.elc`, then pdump |
+| 4. Info | `make info_pages` | Build info manuals from `.texi` sources |
 
 The `make dump` step runs the raw binary to:
 1. Byte-compile all Lisp files needed for dumping (`update-elc`)
@@ -457,11 +460,34 @@ The generated package contains:
 │   ├── DOC, Installation, xemacs.dmp
 │   ├── hexl, movemail
 │   └── modules/ (*.so, auto-autoloads.el)
-└── share/xemacs-<version>/
-    ├── lisp/ (*.el, *.elc)
-    ├── etc/
-    └── info/
+└── share/
+    ├── man/man1/
+    │   ├── xemacs.1, etags.1, ctags.1
+    │   ├── gnuserv.1, gnuclient.1, gnuattach.1, gnudoit.1
+    └── xemacs-<version>/
+        ├── lisp/ (*.el, *.elc)
+        ├── etc/
+        └── info/ (*.info, built from man/*.texi)
 ```
+
+### Info Pages
+
+Info pages are built automatically from the Texinfo sources in `man/`
+during a normal build (the `info_pages` target). This requires `makeinfo`
+(or `texi2any`) to be installed. If not found, the build proceeds without
+info pages.
+
+To build info pages explicitly:
+
+```bash
+make info_pages
+```
+
+### Man Pages
+
+Man pages for XEmacs and its bundled utilities (etags, ctags, gnuserv,
+gnuclient, gnuattach, gnudoit) are shipped as pre-written `.1` files in
+`etc/` and installed to `share/man/man1/`.
 
 ### Available Generators
 
@@ -579,13 +605,15 @@ make
    # On Debian/Ubuntu
    sudo apt-get install libx11-dev libxt-dev libxmu-dev libxpm-dev
    sudo apt-get install libpng-dev libjpeg-dev libtiff-dev libgif-dev
+   sudo apt-get install texinfo   # for building info pages
    
    # On Red Hat/Fedora
    sudo dnf install libX11-devel libXt-devel libXmu-devel libXpm-devel
    sudo dnf install libpng-devel libjpeg-devel libtiff-devel giflib-devel
+   sudo dnf install texinfo   # for building info pages
    
    # On macOS (with Homebrew)
-   brew install libpng jpeg libtiff giflib
+   brew install libpng jpeg libtiff giflib texinfo
    ```
 
 3. **Configuration fails**

@@ -707,9 +707,14 @@ add_custom_command(TARGET xemacs-core POST_BUILD
 )
 
 if(NOT WIN32)
-  # Generate dump_id - needed by dumper.c
+  # Generate a unique dump_id at configure time (matches autoconf's make-dump-id)
+  string(RANDOM LENGTH 8 ALPHABET "0123456789abcdef" _dump_id_hex)
+  # Convert hex string to unsigned int for C
+  math(EXPR XEMACS_DUMP_ID "0x${_dump_id_hex}" OUTPUT_FORMAT DECIMAL)
+  set(XEMACS_DUMP_ID_HEX "${_dump_id_hex}" CACHE INTERNAL "Dump ID hex string")
+
   file(WRITE "${CMAKE_BINARY_DIR}/src/dump-id.c"
-    "/* Auto-generated dump ID */\nunsigned int dump_id = 0U;\n")
+    "/* Auto-generated dump ID */\nunsigned int dump_id = ${XEMACS_DUMP_ID}U;\n")
 
   add_executable(temacs
     "${CMAKE_CURRENT_SOURCE_DIR}/emacs.c"
@@ -786,10 +791,11 @@ install(FILES "${CMAKE_BINARY_DIR}/lib-src/DOC"
   RENAME "DOC"
 )
 
-# Dump file
+# Dump file - installed with dump-id suffix matching what the binary expects
 install(FILES "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${EMACS_DUMP_FILE_NAME}"
   DESTINATION ${INST_ARCHLIBDIR}
   COMPONENT Runtime
+  RENAME "${PROGNAME}-${XEMACS_DUMP_ID_HEX}.dmp"
 )
 
 # Installation summary
