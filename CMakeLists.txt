@@ -59,8 +59,8 @@ include("${CMAKE_SOURCE_DIR}/cmake/XEmacsConfigure.cmake")
 set(inststaticdir "${PROGNAME}")
 set(instvardir "${PROGNAME}-${EMACS_VERSION}")
 
-if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/usr/local")
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Install prefix" FORCE)
 endif()
 
 set(XEMACS_PREFIX "${CMAKE_INSTALL_PREFIX}")

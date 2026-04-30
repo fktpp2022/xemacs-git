@@ -786,10 +786,11 @@ install(FILES "${CMAKE_BINARY_DIR}/lib-src/DOC"
   RENAME "DOC"
 )
 
-# Dump file
+# Dump file - installed with dump-id suffix matching what the binary expects
 install(FILES "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${EMACS_DUMP_FILE_NAME}"
   DESTINATION ${INST_ARCHLIBDIR}
   COMPONENT Runtime
+  RENAME "${PROGNAME}-00000000.dmp"
 )
 
 # Installation summary
