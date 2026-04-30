@@ -155,6 +155,8 @@ if(XEMACS_WITH_MODULES)
   add_subdirectory(modules)
 endif()
 
+add_subdirectory(tests)
+
 include("${CMAKE_SOURCE_DIR}/cmake/XEmacsCPack.cmake")
 
 configure_file(

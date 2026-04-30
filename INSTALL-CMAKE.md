@@ -85,6 +85,58 @@ The `make dump` step runs the raw binary to:
 This matches autoconf's internal flow (`NEEDTODUMP` → dump → `update-elc-2`)
 but exposes it as an explicit build target.
 
+## Running Tests
+
+XEmacs includes an automated test suite under `tests/automated/`. The CMake
+build integrates these with CTest, so each test file is registered as an
+individual test.
+
+### Prerequisites
+
+Tests require a fully built and dumped XEmacs binary. Run `make`
+(or `make dump` at minimum) before running tests.
+
+### Running All Tests
+
+```bash
+cd build
+ctest                        # run all tests
+ctest --output-on-failure    # show output only for failures
+ctest -j4                    # run 4 tests in parallel
+make check                   # convenience target (builds + runs tests)
+```
+
+### Running Specific Tests
+
+```bash
+ctest -R regexp              # run tests matching "regexp"
+ctest -R lisp-tests          # run just lisp-tests
+ctest -R "mule|unicode"      # run mule and unicode related tests
+ctest -E database            # exclude database tests
+```
+
+### Verbose Output
+
+```bash
+ctest -V                     # verbose: show all test output
+ctest -VV                    # extra verbose
+ctest --output-on-failure    # only show output for failed tests
+```
+
+### Listing Available Tests
+
+```bash
+ctest -N                     # list all registered tests without running
+```
+
+### Comparison with Autoconf
+
+| Autoconf | CMake |
+|----------|-------|
+| `make check` | `make check` or `ctest` |
+| (run single test manually) | `ctest -R <test-name>` |
+| (no parallel support) | `ctest -j<N>` |
+
 ## Configuration Options
 
 ### CMake Standard Options
@@ -551,6 +603,7 @@ make
 | `./configure --with-x11` | `cmake -DXEMACS_WITH_X11=ON ..` |
 | `./configure --without-gtk` | `cmake -DXEMACS_WITH_GTK=OFF ..` |
 | `make` | `make xemacs && make dump` |
+| `make check` | `make check` or `ctest` |
 | `make install` | `make install` or `cmake --build . --target install` |
 | `make distclean` | `rm -rf build/` |
 
