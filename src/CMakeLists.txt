@@ -846,7 +846,7 @@ set(XEMACS_BATCH
 # Step 1: Byte-compile .el files needed for dumping (pre-dump)
 add_custom_command(
   OUTPUT "${CMAKE_BINARY_DIR}/src/NEEDTODUMP"
-  DEPENDS xemacs ${_build_tree_files}
+  DEPENDS xemacs ${_build_tree_files} "${CMAKE_BINARY_DIR}/Installation"
   COMMAND ${CMAKE_COMMAND} -E env "XEMACS_SOURCE_DIRECTORY=${CMAKE_SOURCE_DIR}"
     "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}" -nd
     -no-packages -no-configured-paths -batch
