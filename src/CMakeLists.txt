@@ -764,19 +764,38 @@ set_target_properties(xemacs PROPERTIES
   OUTPUT_NAME "${PROGNAME}"
 )
 
-install(TARGETS xemacs
-  RUNTIME DESTINATION ${XEMACS_BINDIR}
+# Install binary as xemacs-<version> with xemacs and xemacs-script symlinks
+install(PROGRAMS "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}"
+  DESTINATION ${INST_BINDIR}
+  COMPONENT Runtime
+  RENAME "${PROGNAME}-${EMACS_VERSION}"
+)
+install(CODE "
+  execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink
+    \"${PROGNAME}-${EMACS_VERSION}\"
+    \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${INST_BINDIR}/${PROGNAME}\")
+  execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink
+    \"${PROGNAME}-${EMACS_VERSION}\"
+    \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${INST_BINDIR}/${SHEBANG_PROGNAME}\")
+" COMPONENT Runtime)
+
+# DOC file (generated during dump by make-docfile)
+install(FILES "${CMAKE_BINARY_DIR}/lib-src/DOC"
+  DESTINATION ${INST_DOCDIR}
+  COMPONENT Runtime
+  RENAME "DOC"
+)
+
+# Dump file
+install(FILES "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${EMACS_DUMP_FILE_NAME}"
+  DESTINATION ${INST_ARCHLIBDIR}
   COMPONENT Runtime
 )
 
-install(FILES ${SRC_GENERATED_HEADERS}
-  DESTINATION ${XEMACS_LIBDIR}/include/xemacs
-  COMPONENT Development
-)
-
-install(TARGETS xemacs-core
-  ARCHIVE DESTINATION ${XEMACS_LIBDIR}
-  COMPONENT Development
+# Installation summary
+install(FILES "${CMAKE_BINARY_DIR}/Installation"
+  DESTINATION ${INST_ARCHLIBDIR}
+  COMPONENT Runtime
 )
 
 # ============================================================

@@ -430,30 +430,37 @@ cmake \
 
 ## Packaging with CPack
 
-CMake provides CPack for creating installable packages.
+CMake provides CPack for creating installable binary packages. The build
+must be complete (`make`) before running `cpack`.
 
 ### Creating Packages
 
 ```bash
-# Create all package types
-make package
+make              # full build required first
+cpack -G TGZ     # tar.gz archive (default on Linux)
+cpack -G DEB     # Debian package (if dpkg available)
+cpack -G RPM     # RPM package (if rpmbuild available)
+```
 
-# Create specific package types
-cpack -G TGZ
-cpack -G TBZ2
-cpack -G ZIP
+### Package Contents
 
-# On Debian/Ubuntu systems
-cpack -G DEB
+The generated package contains:
 
-# On Red Hat/Fedora systems
-cpack -G RPM
-
-# On macOS
-cpack -G DragNDrop
-
-# On Windows
-cpack -G NSIS
+```
+<prefix>/
+├── bin/
+│   ├── xemacs-<version>          # binary
+│   ├── xemacs → xemacs-<version> # symlink
+│   ├── xemacs-script → xemacs-<version>
+│   ├── etags, gnuclient, gnuserv
+├── lib/xemacs-<version>/<arch>/
+│   ├── DOC, Installation, xemacs.dmp
+│   ├── hexl, movemail
+│   └── modules/ (*.so, auto-autoloads.el)
+└── share/xemacs-<version>/
+    ├── lisp/ (*.el, *.elc)
+    ├── etc/
+    └── info/
 ```
 
 ### Available Generators
@@ -462,11 +469,9 @@ cpack -G NSIS
 |-----------|-------------|
 | `TGZ` | Gzip-compressed tar archive |
 | `TBZ2` | Bzip2-compressed tar archive |
-| `ZIP` | ZIP archive |
 | `DEB` | Debian package (.deb) |
 | `RPM` | RPM package (.rpm) |
 | `DragNDrop` | macOS disk image (.dmg) |
-| `NSIS` | Windows installer |
 
 ## Configuration Summary
 
