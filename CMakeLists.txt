@@ -218,32 +218,14 @@ if(XEMACS_INSTALL_ETC)
   endif()
 endif()
 
-if(XEMACS_INSTALL_INFO)
-  if(IS_DIRECTORY "${CMAKE_SOURCE_DIR}/info")
-    install(DIRECTORY info/
-      DESTINATION ${INST_INFODIR}
-      COMPONENT Info
-      FILES_MATCHING
-        PATTERN "*.info"
-        PATTERN "*.info-[0-9]"
-        PATTERN "*.info-[0-9][0-9]"
-      PATTERN "CVS" EXCLUDE
-      PATTERN ".git" EXCLUDE
-      PATTERN ".svn" EXCLUDE
-    )
-  endif()
-endif()
+include("${CMAKE_SOURCE_DIR}/cmake/XEmacsInfo.cmake")
 
 if(XEMACS_INSTALL_DOC)
-  if(IS_DIRECTORY "${CMAKE_SOURCE_DIR}/man")
-    install(DIRECTORY man/
+  file(GLOB MAN_PAGES "${CMAKE_SOURCE_DIR}/etc/*.1")
+  if(MAN_PAGES)
+    install(FILES ${MAN_PAGES}
       DESTINATION ${INST_MANDIR}/man1
       COMPONENT Documentation
-      FILES_MATCHING
-        PATTERN "*.1"
-      PATTERN "CVS" EXCLUDE
-      PATTERN ".git" EXCLUDE
-      PATTERN ".svn" EXCLUDE
     )
   endif()
   
