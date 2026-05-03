@@ -324,6 +324,21 @@ elseif(HAVE_WIN32_PROCESSES)
   set(SRC_PROCESS_SOURCES process-nt.c)
 endif()
 
+# Async IO — libcurl for HTTP/TLS/streaming
+# On Debian/Ubuntu the arch-specific multiarch path is not searched by default.
+if(NOT CURL_INCLUDE_DIR)
+  find_path(CURL_INCLUDE_DIR curl/curl.h
+    PATH_SUFFIXES x86_64-linux-gnu aarch64-linux-gnu
+  )
+endif()
+find_package(CURL REQUIRED)
+message(STATUS "Found libcurl: ${CURL_VERSION_STRING}")
+
+set(SRC_ASYNC_SOURCES
+  async-scheduler.c
+  async-http.c
+)
+
 set(SRC_ALL_SOURCES
   ${SRC_CORE_SOURCES}
   ${SRC_MULE_SOURCES}
@@ -360,6 +375,11 @@ endif()
 
 if(HAVE_UNIXOID_EVENT_LOOP)
   list(APPEND SRC_ALL_SOURCES ${SRC_UNIXOID_EVENT_SOURCES})
+endif()
+
+# Async scheduler — always built on Unix (requires unixoid event loop)
+if(HAVE_UNIXOID_EVENT_LOOP)
+  list(APPEND SRC_ALL_SOURCES ${SRC_ASYNC_SOURCES})
 endif()
 
 if(HAVE_DATABASE)
@@ -686,9 +706,15 @@ if(HAVE_XFT)
   target_include_directories(xemacs-core PUBLIC ${XFT_INCLUDE_DIRS})
 endif()
 
+if(CURL_FOUND)
+  target_link_libraries(xemacs-core PRIVATE CURL::libcurl)
+  target_include_directories(xemacs-core PRIVATE ${CURL_INCLUDE_DIRS})
+endif()
+
 target_compile_definitions(xemacs-core PUBLIC
   HAVE_CONFIG_H
   emacs
+  $<$<BOOL:${CURL_FOUND}>:HAVE_LIBCURL>
 )
 
 # Create .o symlinks in build/src/ so make-docfile.el can find them
