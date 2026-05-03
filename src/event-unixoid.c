@@ -70,6 +70,44 @@ int signal_event_pipe_initialized;
 
 int fake_event_occurred;
 
+/* Extra fd callbacks registered by the async scheduler */
+static void (*extra_fd_callbacks[FD_SETSIZE])(int, void *);
+static void *extra_fd_data[FD_SETSIZE];
+static int extra_fd_max = -1;
+
+void
+add_extra_fd (int fd, void (*cb)(int, void *), void *data)
+{
+  assert (fd >= 0 && fd < FD_SETSIZE);
+  extra_fd_callbacks[fd] = cb;
+  extra_fd_data[fd] = data;
+  FD_SET (fd, &input_wait_mask);
+  FD_SET (fd, &non_fake_input_wait_mask);
+  if (fd > extra_fd_max) extra_fd_max = fd;
+}
+
+void
+remove_extra_fd (int fd)
+{
+  assert (fd >= 0 && fd < FD_SETSIZE);
+  extra_fd_callbacks[fd] = NULL;
+  extra_fd_data[fd] = NULL;
+  FD_CLR (fd, &input_wait_mask);
+  FD_CLR (fd, &non_fake_input_wait_mask);
+}
+
+void
+signal_async_wakeup (void)
+{
+  if (signal_event_pipe_initialized)
+    {
+      Rawbyte rbyte = 0;
+      int old_errno = errno;
+      retry_write (signal_event_pipe[1], &rbyte, 1);
+      errno = old_errno;
+    }
+}
+
 struct console *
 find_tty_or_stream_console_from_fd (int fd)
 {
@@ -330,7 +368,13 @@ poll_fds_for_input (SELECT_TYPE mask)
       /* To effect a poll, tell select() to block for zero seconds. */
       retval = select (MAXDESC, &temp_mask, 0, 0, &select_time);
       if (retval >= 0)
-	return retval;
+        {
+          int i;
+          for (i = 0; i <= extra_fd_max; i++)
+            if (extra_fd_callbacks[i] && FD_ISSET (i, &temp_mask))
+              extra_fd_callbacks[i] (i, extra_fd_data[i]);
+          return retval;
+        }
       if (errno != EINTR)
 	{
 	  /* Something went seriously wrong; don't abort since maybe
