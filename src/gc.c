@@ -59,6 +59,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "lrecord.h"
 #include "lstream.h"
 #include "process.h"
+#include "async-scheduler.h"
 #include "profile.h"
 #include "redisplay.h"
 #include "specifier.h"
@@ -1342,6 +1343,9 @@ gc_mark_root_set (void)
 	    mark_object (backlist->args[i]);
       }
   }
+
+  /* Coroutine scheduler: mark Lisp objects on suspended coroutine stacks */
+  async_scheduler_mark_gcpros ();
 
 # undef mark_object
 }

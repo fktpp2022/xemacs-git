@@ -38,6 +38,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "sysfile.h"
 #include "sysproc.h"		/* select stuff */
 #include "systime.h"
+#include "async-scheduler.h"
 
 /* Mask of bits indicating the descriptors that we wait for input on.
    These work as follows:
@@ -373,6 +374,7 @@ poll_fds_for_input (SELECT_TYPE mask)
 	  for (i = 0; i <= extra_fd_max; i++)
 	    if (extra_fd_callbacks[i] && FD_ISSET (i, &temp_mask))
 	      extra_fd_callbacks[i] (i, extra_fd_data[i]);
+	  async_scheduler_tick ();
 	  return retval;
 	}
       if (errno != EINTR)

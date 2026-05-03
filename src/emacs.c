@@ -437,6 +437,7 @@ Epoch 4.0 released August 27, 1990.
 #include "systime.h"
 #include "sysproc.h" /* for qxe_getpid() */
 #include "tls.h"
+#include "async-scheduler.h"
 
 #ifdef QUANTIFY
 #include <quantify.h>
@@ -1444,6 +1445,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 #endif
       syms_of_fontcolor ();
       syms_of_process ();
+      syms_of_async_scheduler ();
 #ifdef HAVE_WIN32_PROCESSES
       syms_of_process_nt ();
 #endif
@@ -1865,6 +1867,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
       vars_of_event_mswindows ();
 #endif
       vars_of_event_stream ();
+      vars_of_async_scheduler ();
 
       vars_of_events ();
       vars_of_extents ();
@@ -2307,6 +2310,7 @@ main_1 (int argc, Wexttext **argv, Wexttext **UNUSED (envp), int restart)
 			     init_sys_modes uses results */
   init_frame ();
   init_event_stream (); /* Set up so we can get user input. */
+  init_async_scheduler ();
   init_editfns (); /* Determine the name of the user we're running as */
 #ifdef SUNPRO
   init_sunpro (); /* Set up Sunpro usage tracking */
