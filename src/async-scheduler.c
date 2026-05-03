@@ -10,6 +10,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Forward declaration to avoid circular include with async-http.h */
+#ifdef HAVE_LIBCURL
+extern void async_http_tick (void);
+#endif
+
 /* Default coroutine stack size: 256KB */
 #define CORO_DEFAULT_STACK_SIZE (256 * 1024)
 
@@ -168,6 +173,10 @@ async_scheduler_tick (void)
   xemacs_coro *c, *next_c;
   EMACS_TIME now;
 
+#ifdef HAVE_LIBCURL
+  async_http_tick ();
+#endif
+
   if (!all_coros) return;
 
   EMACS_GET_TIME (now);
@@ -224,6 +233,14 @@ async_scheduler_mark_gcpros (void)
           }
       }
     }
+}
+
+/* ---- Accessor for current coroutine (used by async-http.c) ---- */
+
+xemacs_coro *
+async_scheduler_current_coro (void)
+{
+  return current_coro;
 }
 
 /* ---- Actor primitives ---- */

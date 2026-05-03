@@ -85,6 +85,9 @@ extern Lisp_Object  actor_receive_internal (int timeout_ms);
 /* GC integration — called by the garbage collector */
 extern void async_scheduler_mark_gcpros (void);
 
+/* Returns the currently executing coroutine, or NULL if in main thread */
+extern xemacs_coro *async_scheduler_current_coro (void);
+
 /* Module init */
 extern void syms_of_async_scheduler (void);
 extern void vars_of_async_scheduler (void);
