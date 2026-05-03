@@ -368,13 +368,13 @@ poll_fds_for_input (SELECT_TYPE mask)
       /* To effect a poll, tell select() to block for zero seconds. */
       retval = select (MAXDESC, &temp_mask, 0, 0, &select_time);
       if (retval >= 0)
-        {
-          int i;
-          for (i = 0; i <= extra_fd_max; i++)
-            if (extra_fd_callbacks[i] && FD_ISSET (i, &temp_mask))
-              extra_fd_callbacks[i] (i, extra_fd_data[i]);
-          return retval;
-        }
+	{
+	  int i;
+	  for (i = 0; i <= extra_fd_max; i++)
+	    if (extra_fd_callbacks[i] && FD_ISSET (i, &temp_mask))
+	      extra_fd_callbacks[i] (i, extra_fd_data[i]);
+	  return retval;
+	}
       if (errno != EINTR)
 	{
 	  /* Something went seriously wrong; don't abort since maybe

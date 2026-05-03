@@ -73,11 +73,6 @@ struct event_stream
 
 extern struct event_stream *event_stream;
 
-/* Async scheduler fd registration — implemented in event-unixoid.c */
-extern void add_extra_fd (int fd, void (*cb)(int, void *), void *data);
-extern void remove_extra_fd (int fd);
-extern void signal_async_wakeup (void);
-
 extern const struct sized_memory_description event_stream_description;
 
 /* Allocate an event stream object for TYPE, and make the portable dumper
@@ -938,6 +933,11 @@ void event_stream_unixoid_delete_io_streams (Lisp_Object instream,
 					     Lisp_Object errstream,
 					     Lisp_Object* in_usid,
 					     Lisp_Object* err_usid);
+
+/* Async scheduler fd registration — implemented in event-unixoid.c */
+extern void add_extra_fd (int fd, void (*cb)(int, void *), void *data);
+extern void remove_extra_fd (int fd);
+extern void signal_async_wakeup (void);
 
 #endif /* HAVE_UNIXOID_EVENT_LOOP */
 
