@@ -325,12 +325,6 @@ elseif(HAVE_WIN32_PROCESSES)
 endif()
 
 # Async IO — libcurl for HTTP/TLS/streaming
-# On Debian/Ubuntu the arch-specific multiarch path is not searched by default.
-if(NOT CURL_INCLUDE_DIR)
-  find_path(CURL_INCLUDE_DIR curl/curl.h
-    PATH_SUFFIXES x86_64-linux-gnu aarch64-linux-gnu
-  )
-endif()
 find_package(CURL REQUIRED)
 message(STATUS "Found libcurl: ${CURL_VERSION_STRING}")
 
@@ -706,16 +700,16 @@ if(HAVE_XFT)
   target_include_directories(xemacs-core PUBLIC ${XFT_INCLUDE_DIRS})
 endif()
 
-if(CURL_FOUND)
-  target_link_libraries(xemacs-core PRIVATE CURL::libcurl)
-  target_include_directories(xemacs-core PRIVATE ${CURL_INCLUDE_DIRS})
-endif()
+target_link_libraries(xemacs-core PRIVATE CURL::libcurl)
+target_include_directories(xemacs-core PRIVATE ${CURL_INCLUDE_DIRS})
 
 target_compile_definitions(xemacs-core PUBLIC
   HAVE_CONFIG_H
   emacs
-  $<$<BOOL:${CURL_FOUND}>:HAVE_LIBCURL>
 )
+
+# HAVE_LIBCURL is an internal implementation symbol — use PRIVATE scope
+target_compile_definitions(xemacs-core PRIVATE HAVE_LIBCURL)
 
 # Create .o symlinks in build/src/ so make-docfile.el can find them
 set(_symlink_script "${CMAKE_CURRENT_BINARY_DIR}/create-o-symlinks.sh")
