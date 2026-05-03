@@ -1206,7 +1206,7 @@ Windows 9x whenever a Unicode version of a system call is available.)"
 			     try-native)))
 		      (if result (return result))))))
 	     (or native (car (get-language-info langenv 'coding-system))
-		 'raw-text))))))
+		 'utf-8))))))
 
 (defun get-coding-system-from-locale (locale)
   "Return the coding system corresponding to a locale string."

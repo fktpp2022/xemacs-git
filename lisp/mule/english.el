@@ -43,9 +43,9 @@ alphanumeric English text so it will also return non-nil for EBCDIC."
  "English" '((tutorial . "TUTORIAL")
 	     (locale "en" "C")
 	     (charset ascii)
-             (coding-system iso-8859-1)
-             (coding-priority iso-8859-1)
-             (native-coding-system iso-8859-1)
+             (coding-system utf-8)
+             (coding-priority utf-8)
+             (native-coding-system utf-8)
 	     (sample-text . "Hello!, Hi!, How are you?")
 	     (documentation . "\
 Nothing special is needed to handle English.")

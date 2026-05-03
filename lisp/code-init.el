@@ -78,13 +78,13 @@ them if you do this."
   'mule
   "Mule support enabled."
   '(bfcs-for-read	undecided
-    default-bfcs	iso-2022-8
+    default-bfcs	utf-8
     process-read	undecided
-    process-write	binary
+    process-write	utf-8
     keyboard		undecided-unix
-    native		binary
+    native		utf-8
     no-conv-cs		raw-text
-    terminal		binary))
+    terminal		utf-8))
 
 (define-coding-system-default-configuration
   'windows-mule
@@ -176,13 +176,13 @@ The table of default values looks like this: (see below for abbreviations)
               Default     MSW           CygUTF 
 -------------------------------------------------
 bfcs-for-read undecided   undecided     undecided
-default-bfcs  iso-2022-8  MSW-MB-dos    utf-8
-native        binary      MSW-MB-SD-dos utf-8
+default-bfcs  utf-8       MSW-MB-dos    utf-8
+native        utf-8       MSW-MB-SD-dos utf-8
 keyboard      undecided-  undecided-    utf-8
                 unix        unix
-terminal      binary      MSW-MB-unix   utf-8
+terminal      utf-8       MSW-MB-unix   utf-8
 process-read  undecided   undecided     utf-8
-process-write binary      MSW-MB-SD     utf-8
+process-write utf-8       MSW-MB-SD     utf-8
 no-conv-cs    raw-text    MSW-MB        utf-8
 
 
@@ -370,9 +370,9 @@ bound to each category are as follows:
    '(utf-16-little-endian-bom
      utf-16-bom
      utf-8-bom
+     utf-8
      iso-7
      no-conversion
-     utf-8
      iso-8-1
      iso-8-2
      iso-8-designate
