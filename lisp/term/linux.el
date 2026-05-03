@@ -26,19 +26,19 @@
 
 ;;; Code:
 
-;; The Linux console handles Latin-1 by default.
+;; The Linux console handles UTF-8 by default.
 
 (if-fboundp 'set-terminal-coding-system
     (unless (declare-fboundp (terminal-coding-system))
-      (set-terminal-coding-system 'iso-8859-1)))
+      (set-terminal-coding-system 'utf-8)))
 
-;; Make Latin-1 input characters work, too.
+;; Make non-ASCII input characters work, too.
 ;; Meta will continue to work, because the kernel
 ;; turns that into Escape.
 
 (let ((value (current-input-mode)))
   ;; The third arg only matters in that it is not t or nil.
-  (set-input-mode (nth 0 value) (nth 1 value) 'iso-8859-1 (nth 3 value)))
+  (set-input-mode (nth 0 value) (nth 1 value) 'utf-8 (nth 3 value)))
 
 ;; The defines below seem to get automatically set in recent Termcaps.
 ;; It was probably the case that in 1996, there was no good Linux termcap,
