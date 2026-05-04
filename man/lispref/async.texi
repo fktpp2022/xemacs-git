@@ -1,0 +1,102 @@
+@c -*-texinfo-*-
+@c This is part of the XEmacs Lisp Reference Manual.
+@c Copyright (C) 1990, 1991, 1992, 1993, 1994 Free Software Foundation, Inc.
+@c Copyright (C) 2026 the XEmacs Project.
+@c See the file lispref.texi for copying conditions.
+@node Async Programming, System Interface, Processes, Top
+@chapter Async Programming
+@cindex async
+@cindex coroutine
+@cindex cooperative scheduling
+@cindex actor
+
+  XEmacs provides a cooperative coroutine system for writing asynchronous
+code that does not block the editor's event loop.  Lisp code uses
+@code{await} and @code{actor-spawn} to initiate operations that run
+concurrently; the scheduler resumes each coroutine when its operation
+completes.
+
+@menu
+* Coroutine Concepts::          What coroutines are and how the scheduler works.
+* Async API Reference::         Complete reference for all async functions and macros.
+* Async Cookbook::              Complete worked examples for common patterns.
+@end menu
+
+@node Coroutine Concepts, Async API Reference, Async Programming, Async Programming
+@section Coroutine Concepts
+@cindex coroutine, definition
+
+@subsection What Is a Coroutine?
+
+  A @dfn{coroutine} is a Lisp function with its own private call stack
+and variable-binding environment.  Unlike a normal function call, a
+coroutine can @dfn{suspend} itself mid-execution and be @dfn{resumed}
+later, without blocking the rest of the editor.  While a coroutine is
+suspended, XEmacs continues processing keyboard input and redisplay
+normally.
+
+@subsection Cooperative Scheduling
+@cindex cooperative scheduling
+
+  XEmacs runs at most one coroutine at a time.  A coroutine runs until
+it explicitly suspends itself by calling @code{await} or
+@code{async-yield}.  At that point the scheduler selects the next
+runnable coroutine and transfers control to it.  There is no preemption:
+a coroutine that never yields will never be interrupted.
+
+@subsection Event Loop Integration
+
+  The scheduler tick is driven by @code{event-unixoid.c}, which calls
+@code{async_scheduler_tick} immediately after each @code{select()} system
+call returns.  The tick examines every suspended coroutine and resumes
+any whose wait condition is now satisfied:
+
+@itemize @bullet
+@item
+A coroutine waiting for a file descriptor becomes runnable when
+@code{select()} reports that descriptor ready.
+@item
+A coroutine waiting for a timeout becomes runnable when the deadline
+passes.
+@item
+A coroutine waiting for a mailbox message becomes runnable when another
+coroutine or the main thread sends it a message.
+@item
+A coroutine waiting to join another becomes runnable when that coroutine
+finishes.
+@end itemize
+
+@subsection Actors vs. Plain Coroutines
+
+  Every @dfn{actor} is a coroutine, but not every coroutine is an actor.
+An actor additionally has a @dfn{mailbox} — a queue of incoming messages
+— and may be assigned a name for lookup by other code.  Plain coroutines
+(such as those spawned internally by @code{async-read-file}) are
+anonymous and communicate only by @code{actor-join}.
+
+@subsection Error Propagation
+
+  If a coroutine's body signals an error that is not caught inside the
+coroutine, the error is stored in the coroutine's result slot.  When the
+caller reaches the corresponding @code{await} expression, the error is
+re-signaled there, as if @code{await} itself had signaled it.  This means
+standard @code{condition-case} forms work normally around @code{await}.
+
+@example
+(condition-case err
+    (let ((text (await (async-read-file "/nonexistent"))))
+      (message "got %d chars" (length text)))
+  (file-error
+   (message "File error: %s" (error-message-string err))))
+@end example
+
+@subsection Variable Bindings and Isolation
+@cindex specpdl, coroutine
+
+  Each coroutine has its own @dfn{specpdl} (special binding stack).
+A @code{let} binding or @code{unwind-protect} form executed inside a
+coroutine is private to that coroutine and does not affect other
+coroutines or the main Lisp thread.  When a coroutine is spawned it
+inherits a copy of the caller's current bindings (such as
+@code{default-directory} and the current buffer), but subsequent bindings
+diverge independently.
