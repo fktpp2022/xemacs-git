@@ -4,11 +4,11 @@
 
 (defmacro await (expr)
   "Suspend the current coroutine until EXPR's operation completes.
-EXPR must initiate an async operation that registers with the scheduler.
-Returns the result. Must be called from within a coroutine."
+EXPR must initiate an async operation that registers with the scheduler
+and yields internally — on resume, the coro's result/error fields hold
+the outcome.  Returns the result or re-signals the error."
   `(progn
      ,expr
-     (async-coroutine-yield)
      (let ((c (async-current-coroutine)))
        (if (and c (not (null (async--coro-error c))))
            (apply 'signal (async--coro-error c))
@@ -25,7 +25,7 @@ Like Promise.all() / asyncio.gather()."
                       `(,hsym (actor-spawn nil (lambda (_) ,(cadr binding)) nil)))
                     handle-syms bindings)
        (let ,(mapcar* (lambda (vsym hsym)
-                        `(,(car vsym) (await (actor-join-internal ,hsym))))
+                        `(,(car vsym) (actor-join-internal ,hsym)))
                       bindings handle-syms)
          ,@body))))
 

@@ -119,7 +119,7 @@
                                              (mapcar (lambda (r)
                                                        (list (cons 'tool_call_id (car r))
                                                              (cons 'content (cdr r))))
-                                                     results))))))))))))
+                                                     results)))))))))))))
    nil))
 
 (defun swe-agent (task)

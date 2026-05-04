@@ -28,8 +28,8 @@ NAME is a symbol for `actor-find', or nil. Returns an opaque handle."
   (async-current-coroutine))
 
 (defun actor-join (actor-ref)
-  "Return ACTOR-REF for use with `await' to get its result."
-  actor-ref)
+  "Suspend current coroutine until ACTOR-REF's coroutine finishes. Returns its result."
+  (actor-join-internal actor-ref))
 
 (defun actor-monitor (actor-ref)
   "Monitor ACTOR-REF. If it dies, current actor receives (:exit reason).

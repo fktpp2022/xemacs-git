@@ -68,11 +68,15 @@ server.serve_forever()
 ;; Test 1: buffered GET returns 200 with body
 (let ((result nil))
   (async-spawn-coroutine
-   (lambda (_)
+   (lambda (arg)
      (setq result (await (http-get (format "http://127.0.0.1:%d/hello"
                                            async-http-test-port)))))
    nil)
-  (dotimes (_ 50) (async-scheduler-tick) (sleep-for 0.01))
+  (let ((ti 0))
+    (while (< ti 50)
+      (async-scheduler-tick)
+      (sleep-for 0.01)
+      (setq ti (1+ ti))))
   (Assert (listp result) "GET returned a list")
   (Assert (= (car result) 200) "GET status 200")
   (Assert (string= (nth 2 result) "hello world") "GET body correct"))
@@ -80,12 +84,16 @@ server.serve_forever()
 ;; Test 2: connection refused signals async-http-error
 (let ((errored nil))
   (async-spawn-coroutine
-   (lambda (_)
+   (lambda (arg)
      (condition-case nil
          (await (http-get "http://127.0.0.1:1"))
        (async-http-error (setq errored t))))
    nil)
-  (dotimes (_ 50) (async-scheduler-tick) (sleep-for 0.01))
+  (let ((ti 0))
+    (while (< ti 50)
+      (async-scheduler-tick)
+      (sleep-for 0.01)
+      (setq ti (1+ ti))))
   (Assert errored "connection refused signals async-http-error"))
 
 (async-http-test-stop-server)

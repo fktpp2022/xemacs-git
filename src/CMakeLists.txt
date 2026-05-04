@@ -329,6 +329,7 @@ find_package(CURL REQUIRED)
 message(STATUS "Found libcurl: ${CURL_VERSION_STRING}")
 
 set(SRC_ASYNC_SOURCES
+  coro-asm.S
   async-scheduler.c
   async-http.c
 )
@@ -749,6 +750,7 @@ if(NOT WIN32)
   target_compile_definitions(temacs PRIVATE
     HAVE_CONFIG_H
     emacs
+    HAVE_LIBCURL
   )
   
   target_link_libraries(temacs PRIVATE
@@ -774,6 +776,7 @@ target_include_directories(xemacs PRIVATE
 target_compile_definitions(xemacs PRIVATE
   HAVE_CONFIG_H
   emacs
+  HAVE_LIBCURL
 )
 
 target_link_libraries(xemacs PRIVATE

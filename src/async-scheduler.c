@@ -15,8 +15,22 @@
 extern void async_http_tick (void);
 #endif
 
+/* XEmacs interpreter state globals we must save/restore across coro_swap */
+extern struct specbinding *specpdl;
+extern struct specbinding *specpdl_ptr;
+extern int specpdl_depth_counter;
+extern int specpdl_size;
+/* catchlist chain lives on the C stack, so must be saved/restored per coro.
+   (handlerlist in backtrace.h is FSF-legacy dead code; XEmacs uses
+   Vcondition_handlers which is a Lisp-object chain and thus GC-managed.) */
+extern struct catchtag *catchlist;
+
 /* Default coroutine stack size: 256KB */
 #define CORO_DEFAULT_STACK_SIZE (256 * 1024)
+
+/* Initial per-coroutine specpdl size (entries).  XEmacs uses 50 by default;
+   we use 200 to handle deeper binding stacks. */
+#define CORO_SPECPDL_INITIAL_SIZE 200
 
 /* The currently running coroutine (NULL = main Lisp thread) */
 static xemacs_coro *current_coro = NULL;
@@ -24,8 +38,21 @@ static xemacs_coro *current_coro = NULL;
 /* Doubly-linked list of all live coroutines */
 static xemacs_coro *all_coros = NULL;
 
+/* Singly-linked list of dead coroutines awaiting join or GC */
+static xemacs_coro *dead_coros = NULL;
+
 /* Scheduler's own context — the "main" context we return to after each tick */
 static coro_context_t scheduler_ctx;
+
+/* Scheduler-level interpreter state saved before each coro_swap.
+   These hold the GLOBAL specpdl/ptr while a coroutine is running on its
+   own per-coro specpdl array. */
+static struct specbinding *sched_specpdl;
+static struct specbinding *sched_specpdl_ptr;
+static int                 sched_specpdl_depth;
+static int                 sched_specpdl_size;
+static struct backtrace   *sched_backtrace_list;
+static struct catchtag    *sched_catchlist;
 
 /* Number of live (non-DEAD) coroutines */
 static int coro_count = 0;
@@ -57,30 +84,146 @@ coro_list_remove (xemacs_coro *c)
   coro_count--;
 }
 
+static void
+coro_graveyard_remove (xemacs_coro *c)
+{
+  xemacs_coro **p = &dead_coros;
+  while (*p)
+    {
+      if (*p == c)
+        {
+          *p = c->next;
+          return;
+        }
+      p = &(*p)->next;
+    }
+}
+
+/* ---- specpdl swap helpers ----
+   When context-switching between coroutines (or between coro and scheduler),
+   any specpdl entries specific to the outgoing coroutine must have their
+   symbol bindings "undone" (symbol values reset to pre-binding state), and
+   the incoming coroutine's bindings must be re-applied.
+
+   Each specbind entry stores (symbol, old_value).  "Swap" means:
+     tmp = XSYMBOL_VALUE (entry->symbol);
+     SET_SYMBOL_VALUE (entry->symbol, entry->old_value);
+     entry->old_value = tmp;
+   After the swap, old_value holds the symbol's value as it was AT the
+   swap point, so a future swap correctly restores it.  Entries with
+   non-NULL func (unwind_protect) are skipped. */
+
+/* Swap symbol->value with entry->old_value for a specpdl entry.
+   Uses direct access on simple (non-magic) bindings, falls back to Fset
+   otherwise so buffer-local / variable-alias magic stays consistent. */
+static inline void
+specpdl_swap_one (struct specbinding *p)
+{
+  Lisp_Symbol *sym = XSYMBOL (p->symbol);
+  Lisp_Object curr = sym->value;
+  if (!SYMBOL_VALUE_MAGIC_P (curr) && !SYMBOL_VALUE_MAGIC_P (p->old_value))
+    {
+      sym->value = p->old_value;
+      p->old_value = curr;
+    }
+  else
+    {
+      Lisp_Object tmp = p->old_value;
+      p->old_value = Fsymbol_value (p->symbol);
+      Fset (p->symbol, tmp);
+    }
+}
+
+static void
+specpdl_unwind_range (struct specbinding *from, struct specbinding *to)
+{
+  /* Walk from TOP down to BOTTOM (reverse order), undoing bindings */
+  struct specbinding *p;
+  for (p = to - 1; p >= from; p--)
+    if (p->func == NULL)
+      specpdl_swap_one (p);
+}
+
+static void
+specpdl_rebind_range (struct specbinding *from, struct specbinding *to)
+{
+  /* Walk from BOTTOM up to TOP (forward order), re-applying bindings */
+  struct specbinding *p;
+  for (p = from; p < to; p++)
+    if (p->func == NULL)
+      specpdl_swap_one (p);
+}
+
+/* ---- Trampoline helpers for error trapping ---- */
+
+/* coro_trampoline_call_arg: packed (fn . arg) cons for passing to condition_case_1 */
+static Lisp_Object
+coro_trampoline_body (Lisp_Object fn_and_arg)
+{
+  return call1 (XCAR (fn_and_arg), XCDR (fn_and_arg));
+}
+
+static Lisp_Object
+coro_trampoline_handler (Lisp_Object errordata, Lisp_Object ignored)
+{
+  /* An error escaped the coroutine body.  Store it; don't re-signal here
+     because we're still on the coroutine's stack. */
+  current_coro->error = errordata;
+  return Qnil;
+}
+
 /* ---- Trampoline: entry point for a new coroutine ---- */
 static void
 coro_trampoline (void)
 {
   xemacs_coro *c = current_coro;
-  Lisp_Object ret = Qnil;
-  Lisp_Object (*fn)(Lisp_Object) = c->fn;
-  Lisp_Object arg = c->result;
+  /* Keep fn and arg in c->lisp_fn / c->result until after condition_case_1
+     returns.  async_scheduler_mark_gcpros marks both fields, so the lambda
+     (and its closure) stay alive across any GC while this coro is suspended.
+     We pass them packed in a cons; the cons itself is also GC-visible as
+     c->result until we overwrite it. */
+  Lisp_Object fn_and_arg = Fcons (c->lisp_fn, c->result);
+  Lisp_Object ret;
 
-  c->result = Qnil;
+  /* Store fn_and_arg so GC can see it too while coroutine is suspended.
+     We reuse c->result for this; c->lisp_fn keeps the lambda alive. */
+  c->result = fn_and_arg;
 
-  /* Run the function */
-  ret = fn (arg);
+  /* Run the Lisp function, catching any errors so they don't longjmp
+     out of the coroutine context (which would leave specpdl in wrong state). */
+  ret = condition_case_1 (Qt,
+                          coro_trampoline_body, fn_and_arg,
+                          coro_trampoline_handler, Qnil);
 
-  /* Normal completion: wake any join_waiter */
-  c->result = ret;
-  if (c->join_waiter)
+  /* Now clear fn references — we're done with the function */
+  c->lisp_fn = Qnil;
+
+  if (!NILP (c->error))
     {
-      coro_resume (c->join_waiter, ret);
-      c->join_waiter = NULL;
+      /* Error path: wake join_waiter with the error */
+      if (c->join_waiter)
+        {
+          coro_resume_with_error (c->join_waiter, c->error);
+          c->join_waiter = NULL;
+        }
+    }
+  else
+    {
+      /* Normal completion: wake any join_waiter */
+      c->result = ret;
+      if (c->join_waiter)
+        {
+          coro_resume (c->join_waiter, ret);
+          c->join_waiter = NULL;
+        }
     }
 
   c->state = CORO_DEAD;
   coro_list_remove (c);
+  /* Move to graveyard — stack is still live here (we're running on it).
+     The tick loop frees the stack after coro_swap returns. */
+  c->next = dead_coros;
+  dead_coros = c;
 
   /* Return to scheduler */
   coro_swap (&c->ctx, &scheduler_ctx);
@@ -90,7 +233,7 @@ coro_trampoline (void)
 /* ---- spawn ---- */
 
 xemacs_coro *
-coro_spawn (Lisp_Object (*fn)(Lisp_Object), Lisp_Object arg)
+coro_spawn (Lisp_Object fn, Lisp_Object arg)
 {
   xemacs_coro *c = xnew_and_zero (xemacs_coro);
   Bytecount stack_size = Vasync_coroutine_stack_size > 0
@@ -105,24 +248,79 @@ coro_spawn (Lisp_Object (*fn)(Lisp_Object), Lisp_Object arg)
   c->mailbox = Qnil;
   c->result = arg;
   c->error = Qnil;
-  c->fn = fn;
+  c->lisp_fn = fn;
   c->gcpro_chain = NULL;
   c->join_waiter = NULL;
   c->is_actor = 0;
   c->actor_name = Qnil;
 
+  /* Allocate per-coroutine specpdl array, sized to hold the current spawning
+     context's bindings plus headroom for the coroutine's own bindings. */
+  {
+    int inherit_depth = (current_coro != NULL)
+                        ? sched_specpdl_depth
+                        : specpdl_depth_counter;
+    int initial_size = inherit_depth + CORO_SPECPDL_INITIAL_SIZE;
+    c->coro_specpdl = (struct specbinding *)
+      xmalloc (initial_size * sizeof (struct specbinding));
+    c->coro_specpdl_size = initial_size;
+
+    /* Copy the current interpreter's specpdl entries so the coroutine inherits
+       the caller's dynamic bindings.  When spawned from inside a coroutine, the
+       scheduler's specpdl is the interpreter's "base" — copy that. */
+    if (current_coro != NULL)
+      {
+        memcpy (c->coro_specpdl, sched_specpdl,
+                inherit_depth * sizeof (struct specbinding));
+      }
+    else
+      {
+        memcpy (c->coro_specpdl, specpdl,
+                inherit_depth * sizeof (struct specbinding));
+      }
+    c->coro_specpdl_ptr = c->coro_specpdl + inherit_depth;
+    c->coro_inherit_depth = inherit_depth;
+  }
+
+  /* Save the interpreter state the coroutine should start with.
+     When spawned from inside a running coroutine, use the scheduler's saved
+     state so the new coro gets a clean frame (not the spawner's). */
+  if (current_coro != NULL)
+    {
+      c->saved_backtrace_list = sched_backtrace_list;
+      c->saved_catchlist      = sched_catchlist;
+    }
+  else
+    {
+      c->saved_backtrace_list = backtrace_list;
+      c->saved_catchlist      = catchlist;
+    }
+
   /* Set up initial stack frame.
      coro_swap on x86-64 pops: r15, r14, r13, r12, rbx, rbp then does ret.
      So the stack (growing downward) must look like, from low addr to high:
-       [r15=0][r14=0][r13=0][r12=0][rbx=0][rbp=0][trampoline_addr]
-     with sp pointing at r15 (the lowest, first-popped slot).  */
+       [r15=0][r14=0][r13=0][r12=0][rbx=0][rbp=0][trampoline_addr][pad]
+     with sp pointing at r15 (the lowest, first-popped slot).
+
+     Alignment: x86-64 SysV ABI requires %rsp be 16-byte aligned at the
+     point of a `call` instruction (i.e. %rsp % 16 == 0 just BEFORE call
+     pushes the return address, so %rsp % 16 == 8 at the callee's first
+     instruction).  Our 'ret' in coro_swap takes the place of a 'call'
+     from the callee's perspective.  So we need %rsp % 16 == 0 right
+     before ret, which means the trampoline-address slot must sit at a
+     16-aligned address.  We add an 8-byte pad above the trampoline addr
+     to achieve this: the topmost aligned address is the pad, then
+     trampoline_addr is at (aligned-16) so popping it leaves %rsp aligned. */
   {
     unsigned char *stack_top = c->stack + stack_size;
     /* Align to 16 bytes */
     stack_top = (unsigned char *)((EMACS_UINT)stack_top & ~(EMACS_UINT)15);
-    /* Place trampoline return address at top, then 6 zero registers below */
+    /* 8-byte alignment pad so trampoline sits at 16-aligned addr */
+    stack_top -= sizeof (void *);
+    /* Trampoline return address */
     stack_top -= sizeof (void *);
     *(void **)stack_top = (void *)coro_trampoline;
+    /* 6 zero registers below */
     stack_top -= 6 * sizeof (void *); /* rbp, rbx, r12, r13, r14, r15 */
     memset (stack_top, 0, 6 * sizeof (void *));
     c->ctx.sp = stack_top;
@@ -141,6 +339,24 @@ coro_yield (wait_reason_t reason)
   assert (c != NULL);
   c->state = CORO_SUSPENDED;
   c->wait_reason = reason;
+
+  /* Save the coroutine's current specpdl/catchlist positions */
+  c->coro_specpdl_ptr    = specpdl_ptr;
+  c->saved_catchlist     = catchlist;
+
+  /* Unwind the coroutine's own bindings (those above the inherit base),
+     restoring the symbol values that were active when the coro was spawned. */
+  specpdl_unwind_range (c->coro_specpdl + c->coro_inherit_depth,
+                        c->coro_specpdl_ptr);
+
+  /* Switch all global interpreter state back to the scheduler's */
+  specpdl               = sched_specpdl;
+  specpdl_ptr           = sched_specpdl_ptr;
+  specpdl_depth_counter = sched_specpdl_depth;
+  specpdl_size          = sched_specpdl_size;
+  backtrace_list        = sched_backtrace_list;
+  catchlist             = sched_catchlist;
+
   current_coro = NULL;
   coro_swap (&c->ctx, &scheduler_ctx);
 }
@@ -181,7 +397,12 @@ async_scheduler_tick (void)
 
   EMACS_GET_TIME (now);
 
-  /* Phase 1: advance timer-waiting coroutines */
+  /* Phase 1a: voluntary yields (WAIT_NONE) become runnable every tick */
+  for (c = all_coros; c; c = c->next)
+    if (c->state == CORO_SUSPENDED && c->wait_reason == WAIT_NONE)
+      coro_resume (c, c->result);
+
+  /* Phase 1b: advance timer-waiting coroutines */
   for (c = all_coros; c; c = c->next)
     {
       if (c->state == CORO_SUSPENDED && c->wait_reason == WAIT_TIMER)
@@ -199,13 +420,46 @@ async_scheduler_tick (void)
       c->state = CORO_RUNNING;
       current_coro = c;
 
+      /* Save scheduler's interpreter state, switch to coroutine's */
+      sched_specpdl        = specpdl;
+      sched_specpdl_ptr    = specpdl_ptr;
+      sched_specpdl_depth  = specpdl_depth_counter;
+      sched_specpdl_size   = specpdl_size;
+      sched_backtrace_list = backtrace_list;
+      sched_catchlist      = catchlist;
+
+      specpdl               = c->coro_specpdl;
+      specpdl_ptr           = c->coro_specpdl_ptr;
+      specpdl_depth_counter = (int)(c->coro_specpdl_ptr - c->coro_specpdl);
+      specpdl_size          = c->coro_specpdl_size;
+      backtrace_list        = c->saved_backtrace_list;
+      catchlist             = c->saved_catchlist;
+
+      /* Re-apply the coroutine's own bindings (entries above inherit base).
+         The symbol values currently reflect the scheduler's state; rebinding
+         walks forward through the coro's added entries, swapping each
+         (symbol_value, old_value) so the coro sees its own bindings. */
+      specpdl_rebind_range (c->coro_specpdl + c->coro_inherit_depth,
+                            c->coro_specpdl_ptr);
+
       coro_swap (&scheduler_ctx, &c->ctx);
       current_coro = NULL;
 
-      if (c->state == CORO_DEAD)
+      /* Restore scheduler's interpreter state after coro_swap.
+         coro_yield already switched state back; for death paths the trampoline
+         does its own coro_swap, so we must always unconditionally restore here. */
+      specpdl               = sched_specpdl;
+      specpdl_ptr           = sched_specpdl_ptr;
+      specpdl_depth_counter = sched_specpdl_depth;
+      specpdl_size          = sched_specpdl_size;
+      backtrace_list        = sched_backtrace_list;
+      catchlist             = sched_catchlist;
+
+      /* Free the coroutine stack AFTER coro_swap (we're no longer running on it) */
+      if (c->state == CORO_DEAD && c->stack != NULL)
         {
           xfree (c->stack);
-          xfree (c);
+          c->stack = NULL;
         }
     }
 }
@@ -221,6 +475,7 @@ async_scheduler_mark_gcpros (void)
       kkcc_gc_stack_push_lisp_object_0 (c->mailbox);
       kkcc_gc_stack_push_lisp_object_0 (c->result);
       kkcc_gc_stack_push_lisp_object_0 (c->error);
+      kkcc_gc_stack_push_lisp_object_0 (c->lisp_fn);
       kkcc_gc_stack_push_lisp_object_0 (c->actor_name);
       {
         struct gcpro *p = c->gcpro_chain;
@@ -232,7 +487,20 @@ async_scheduler_mark_gcpros (void)
             p = p->next;
           }
       }
+      /* Mark per-coroutine specpdl entries (the coroutine's own binding stack) */
+      if (c->state == CORO_SUSPENDED || c->state == CORO_RUNNABLE)
+        {
+          struct specbinding *p;
+          for (p = c->coro_specpdl; p < c->coro_specpdl_ptr; p++)
+            {
+              kkcc_gc_stack_push_lisp_object_0 (p->symbol);
+              kkcc_gc_stack_push_lisp_object_0 (p->old_value);
+            }
+        }
     }
+  /* Also mark dead (graveyard) coroutines — their results must survive GC */
+  for (c = dead_coros; c; c = c->next)
+    kkcc_gc_stack_push_lisp_object_0 (c->result);
 }
 
 /* ---- Accessor for current coroutine (used by async-http.c) ---- */
@@ -248,9 +516,9 @@ async_scheduler_current_coro (void)
 xemacs_coro *
 actor_spawn_internal (Lisp_Object name, Lisp_Object fn, Lisp_Object args)
 {
-  xemacs_coro *c = coro_spawn (
-    (Lisp_Object (*)(Lisp_Object)) Ffuncall,
-    Fcons (fn, args));
+  /* Spawn with apply: call fn with args list using apply1 semantics.
+     We use a lambda wrapper: store fn in lisp_fn, args in result. */
+  xemacs_coro *c = coro_spawn (fn, NILP (args) ? Qnil : XCAR (args));
   c->is_actor = 1;
   c->actor_name = name;
   return c;
@@ -298,14 +566,12 @@ actor_receive_internal (int timeout_ms)
 /* ---- DEFSUBR registrations ---- */
 
 DEFUN ("async-spawn-coroutine", Fasync_spawn_coroutine, 2, 2, 0, /*
-Internal: spawn a coroutine running FUNCTION called with ARG.
+Internal: spawn a coroutine running (FUNCTION ARG).
 Returns an opaque coroutine handle.
 */
        (function, arg))
 {
-  xemacs_coro *c = coro_spawn (
-    (Lisp_Object (*)(Lisp_Object)) Ffuncall,
-    list2 (function, arg));
+  xemacs_coro *c = coro_spawn (function, arg);
   return make_opaque_ptr (c);
 }
 
@@ -408,7 +674,14 @@ Internal: suspend current coroutine until HANDLE's coroutine finishes.
   if (!self)
     signal_error (Qasync_error, "actor-join called outside coroutine", Qnil);
   if (target->state == CORO_DEAD)
-    return target->result;
+    {
+      /* Already in graveyard: remove and free */
+      Lisp_Object res = target->result;
+      coro_graveyard_remove (target);
+      xfree (target->coro_specpdl);
+      xfree (target);
+      return res;
+    }
 
   target->join_waiter = self;
   coro_yield (WAIT_JOIN);

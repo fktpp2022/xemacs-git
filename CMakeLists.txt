@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 project(XEmacs
   VERSION 21.5.36
   DESCRIPTION "XEmacs - The next generation Emacs editor"
-  LANGUAGES C
+  LANGUAGES C ASM
 )
 
 set(CMAKE_C_STANDARD 99)

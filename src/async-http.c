@@ -150,20 +150,23 @@ async_http_check_completed (void)
     }
 }
 
-/* ---- Periodic tick called from the scheduler ---- */
+/* ---- Periodic tick called from the scheduler ----
+   In batch mode we do not have a real select() loop registering curl's
+   sockets, so we drive the transfer synchronously via curl_multi_perform,
+   which internally selects and progresses all handles.  In interactive mode
+   the socket_action callback still registers fds with add_extra_fd, and
+   async_http_socket_ready calls curl_multi_socket_action — but calling
+   curl_multi_perform here is also safe and harmless (it is a no-op when no
+   handles need work). */
 
 void
 async_http_tick (void)
 {
   int running;
-  long timeout_ms;
 
   if (!curl_multi) return;
 
-  curl_multi_timeout (curl_multi, &timeout_ms);
-  if (timeout_ms == 0)
-    curl_multi_socket_action (curl_multi, CURL_SOCKET_TIMEOUT, 0, &running);
-
+  curl_multi_perform (curl_multi, &running);
   async_http_check_completed ();
 }
 

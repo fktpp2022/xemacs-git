@@ -4,6 +4,7 @@
 
 #include "lisp.h"
 #include "systime.h"
+#include "backtrace.h"
 
 /* Coroutine state machine */
 typedef enum {
@@ -41,11 +42,23 @@ typedef struct xemacs_coro {
   Lisp_Object     result;
   Lisp_Object     error;         /* non-nil -> re-signal on resume */
 
-  /* Function pointer for the trampoline (not a Lisp_Object) */
-  Lisp_Object    (*fn)(Lisp_Object);
+  /* Lisp function to call on first entry (GC-visible) */
+  Lisp_Object     lisp_fn;
 
   /* GC: Lisp objects live on the C stack — must be rooted manually */
   struct gcpro   *gcpro_chain;   /* chain head for this coro's live objects */
+
+  /* Saved interpreter state (restored on each coro_swap) */
+  struct specbinding *saved_specpdl_ptr;   /* specpdl_ptr at yield time */
+  int                 saved_specpdl_depth;
+  struct backtrace   *saved_backtrace_list;
+  struct catchtag    *saved_catchlist;
+
+  /* Per-coroutine specpdl: each coroutine has its own binding stack */
+  struct specbinding *coro_specpdl;        /* malloc'd per-coro specpdl array */
+  struct specbinding *coro_specpdl_ptr;    /* current position in coro_specpdl */
+  int                 coro_specpdl_size;   /* allocated size */
+  int                 coro_inherit_depth;  /* count of inherited (shared) entries */
 
   /* Suspension details */
   int             wait_fd;       /* fd we're blocked on (WAIT_FD) */
@@ -68,7 +81,7 @@ typedef struct xemacs_coro {
 extern void coro_swap (coro_context_t *from, coro_context_t *to);
 
 /* Lifecycle */
-extern xemacs_coro *coro_spawn (Lisp_Object (*fn)(Lisp_Object), Lisp_Object arg);
+extern xemacs_coro *coro_spawn (Lisp_Object fn, Lisp_Object arg);
 extern void         coro_yield (wait_reason_t reason);
 extern void         coro_resume (xemacs_coro *c, Lisp_Object result);
 extern void         coro_resume_with_error (xemacs_coro *c, Lisp_Object error);
