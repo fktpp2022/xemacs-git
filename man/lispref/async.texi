@@ -431,3 +431,172 @@ General scheduler-level error.  Signaled when async primitives are
 called from outside a coroutine context, or when the scheduler
 encounters an internal inconsistency.
 @end defvar
+
+@node Async Cookbook,  , Async API Reference, Async Programming
+@section Async Cookbook
+@cindex async, examples
+
+  This section shows complete, runnable examples illustrating common
+async patterns.  Each example assumes the relevant libraries have been
+loaded with @code{require}.
+
+@subsection Fetch Two URLs in Parallel
+
+  Use @code{async-let} when you need several independent HTTP responses
+before proceeding.  Both requests are initiated concurrently; the body
+runs only after both complete.
+
+@lisp
+(require 'async-core)
+(require 'async-http)
+
+(actor-spawn nil
+  (lambda (_)
+    (async-let ((r1 (http-get "https://example.com/api/a"))
+                (r2 (http-get "https://example.com/api/b")))
+      (let ((body1 (nth 2 r1))
+            (body2 (nth 2 r2)))
+        (with-current-buffer (get-buffer-create "*results*")
+          (erase-buffer)
+          (insert body1 "\n---\n" body2)
+          (display-buffer (current-buffer))))))
+  nil)
+@end lisp
+
+  @code{async-let} spawns both @code{http-get} calls as independent
+coroutines.  Each suspends on its own curl operation.  The scheduler
+resumes each as its response arrives.  @code{body1} and @code{body2} are
+both bound before @code{with-current-buffer} executes.
+
+@subsection Read a File, Transform It, Write It Back
+
+  Use sequential @code{await} calls for operations that depend on each
+other's results.
+
+@lisp
+(require 'async-core)
+(require 'async-file)
+
+(actor-spawn nil
+  (lambda (_)
+    (let* ((text    (await (async-read-file "/tmp/input.txt")))
+           (upcased (upcase text)))
+      (await (async-write-file "/tmp/output.txt" upcased))
+      (message "Done.")))
+  nil)
+@end lisp
+
+  The second @code{await} does not start until the first @code{await}
+returns.  Error handling works naturally: wrap in @code{condition-case}
+around either @code{await} call to catch @code{file-error}.
+
+@subsection Named Worker Actor with Job Queue
+
+  Use a named actor with a @code{while}/@code{actor-receive} loop to
+build a persistent worker that processes jobs sent from elsewhere in the
+program.
+
+@lisp
+(require 'actor)
+
+;; Start a named worker
+(actor-spawn 'my-worker
+  (lambda (_)
+    (let ((running t))
+      (while running
+        (let ((msg (actor-receive)))
+          (pcase msg
+            (`(:job ,payload)
+             (message "Processing: %s" payload))
+            (`(:stop)
+             (setq running nil)))))))
+  nil)
+
+;; Send jobs from anywhere, any time
+(when-let ((w (actor-find 'my-worker)))
+  (actor-send w '(:job "task-1"))
+  (actor-send w '(:job "task-2"))
+  (actor-send w '(:stop)))
+@end lisp
+
+  @code{actor-receive} suspends the worker until a message arrives.
+@code{actor-find} retrieves the handle by name from the global registry.
+Sending @code{(:stop)} causes the loop to exit and the coroutine to
+finish normally.
+
+@subsection Streaming HTTP with Server-Sent Events
+
+  Use @code{http-stream} with @code{:on-chunk} to process a streaming
+response incrementally as chunks arrive, rather than waiting for the full
+response body.
+
+@lisp
+(require 'async-http)
+
+(actor-spawn nil
+  (lambda (_)
+    (await
+      (http-stream "https://api.anthropic.com/v1/messages"
+        :headers '(("x-api-key"          . "YOUR-KEY")
+                   ("anthropic-version"  . "2023-06-01")
+                   ("content-type"       . "application/json"))
+        :json `((model      . "claude-opus-4-7")
+                (max_tokens . 256)
+                (stream     . t)
+                (messages   . [((role    . "user")
+                                (content . "Say hello."))]))
+        :on-chunk (lambda (chunk)
+                    (let ((text (sse-extract-text chunk)))
+                      (when text
+                        (with-current-buffer (get-buffer-create "*stream*")
+                          (goto-char (point-max))
+                          (insert text))))))))
+  nil)
+@end lisp
+
+  The @code{:on-chunk} callback is invoked synchronously in the scheduler
+tick each time libcurl delivers a chunk.  @code{sse-extract-text} handles
+the @samp{data: @{...@}} framing and JSON parsing, returning the
+concatenated @code{content} delta text.  The coroutine does not suspend
+between chunks.
+
+@subsection Supervised Actor with Monitor
+
+  Use @code{actor-monitor} to build a supervisor that automatically
+restarts a worker actor if it crashes.
+
+@lisp
+(require 'actor)
+
+(defun my-start-worker ()
+  "Spawn a fragile worker actor and return its handle."
+  (actor-spawn 'fragile-worker
+    (lambda (_)
+      (while t
+        (let ((job (actor-receive)))
+          ;; Work that might fail
+          (do-risky-work job))))
+    nil))
+
+(actor-spawn 'supervisor
+  (lambda (_)
+    (let ((worker (my-start-worker)))
+      (actor-monitor worker)
+      (while t
+        (let ((msg (actor-receive)))
+          (pcase msg
+            (`(:exit ,_reason)
+             ;; Worker died -- restart and re-monitor
+             (message "Worker exited, restarting...")
+             (setq worker (my-start-worker))
+             (actor-monitor worker))
+            (job
+             ;; Forward all other messages to the worker
+             (actor-send worker job)))))))
+  nil)
+@end lisp
+
+  @code{actor-monitor} arranges for @code{(:exit @var{reason})} to be
+delivered to the supervisor's mailbox when the worker finishes, whether
+normally or due to an unhandled error.  The supervisor restarts the
+worker and calls @code{actor-monitor} again on the new handle.
