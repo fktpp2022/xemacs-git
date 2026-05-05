@@ -261,3 +261,172 @@ own handle to another actor.
   nil)
 @end lisp
 @end defun
+
+@node Async File and Shell IO, Async HTTP, Actor Model, Async API Reference
+@subsection Async File and Shell I/O
+
+@defun async-read-file path &rest keys
+Read the file at @var{path} asynchronously.  Pass the return value to
+@code{await} to obtain the file contents as a string.
+
+@table @code
+@item :coding @var{coding-system}
+Decode the file using @var{coding-system}.  Defaults to @code{utf-8}.
+@end table
+
+@lisp
+(let ((text (await (async-read-file "/etc/passwd" :coding 'utf-8))))
+  (message "First line: %s" (car (split-string text "\n"))))
+@end lisp
+@end defun
+
+@defun async-write-file path content &rest keys
+Write the string @var{content} to @var{path} asynchronously.  Pass the
+return value to @code{await}; the result is @code{t} on success.
+
+@table @code
+@item :coding @var{coding-system}
+Encode @var{content} using @var{coding-system} before writing.
+Defaults to @code{utf-8}.
+@end table
+
+@lisp
+(await (async-write-file "/tmp/result.txt" "hello world"))
+@end lisp
+@end defun
+
+@defun async-shell-command cmd &rest keys
+Run the shell command @var{cmd} asynchronously using
+@code{shell-file-name}.  Pass the return value to @code{await} to obtain
+the command's standard output as a string.
+
+@table @code
+@item :timeout @var{ms}
+Signal @code{async-timeout} if the command does not complete within
+@var{ms} milliseconds.
+@end table
+
+@lisp
+(let ((out (await (async-shell-command "uname -a"))))
+  (message "System: %s" out))
+@end lisp
+@end defun
+
+@node Async HTTP, Async Error Symbols, Async File and Shell IO, Async API Reference
+@subsection Async HTTP
+@cindex HTTP, async
+@cindex SSE, server-sent events
+
+  Async HTTP requires XEmacs to have been built with libcurl support
+(@code{HAVE_LIBCURL}).  If libcurl is not available, calling these
+functions signals @code{async-error}.
+
+@defun http-get url &rest keys
+Perform an asynchronous HTTP GET request to @var{url}.  Pass the return
+value to @code{await} to obtain the result as a list
+@code{(@var{status} @var{headers} @var{body})}, where @var{status} is the
+HTTP response code (integer), @var{headers} is an alist of response
+headers, and @var{body} is the response body string.
+
+@table @code
+@item :headers @var{alist}
+Additional request headers as an alist of @code{("Name" . "Value")} pairs.
+@item :timeout @var{ms}
+Signal @code{async-timeout} after @var{ms} milliseconds.
+@end table
+
+@lisp
+(let* ((resp   (await (http-get "https://example.com/"
+                                :timeout 10000)))
+       (status (nth 0 resp))
+       (body   (nth 2 resp)))
+  (message "HTTP %d, %d bytes" status (length body)))
+@end lisp
+@end defun
+
+@defun http-post url &rest keys
+Perform an asynchronous HTTP POST request to @var{url}.  Pass the return
+value to @code{await} to obtain @code{(@var{status} @var{headers}
+@var{body})}.
+
+@table @code
+@item :headers @var{alist}
+Additional request headers.
+@item :json @var{object}
+Encode @var{object} as JSON and send it as the request body.  Sets
+@code{Content-Type: application/json} automatically.
+@item :body @var{string}
+Send @var{string} as the raw request body (use instead of @code{:json}).
+@item :on-chunk @var{function}
+If provided, @var{function} is called with each response chunk string
+as it arrives.  The coroutine does not suspend while chunks are arriving;
+use this for streaming responses.
+@item :timeout @var{ms}
+Signal @code{async-timeout} after @var{ms} milliseconds.
+@end table
+
+@lisp
+(let ((resp (await (http-post "https://api.example.com/submit"
+                              :json '((key . "value"))
+                              :timeout 5000))))
+  (message "Status: %d" (nth 0 resp)))
+@end lisp
+@end defun
+
+@defun http-stream url &rest keys
+Perform an asynchronous streaming HTTP POST to @var{url}.  This is an
+alias for @code{http-post} intended for use with @code{:on-chunk}.
+The @code{:on-chunk} keyword is required.
+
+@lisp
+(await (http-stream "https://api.example.com/stream"
+          :json '((model . "gpt-4"))
+          :on-chunk (lambda (chunk) (princ chunk))))
+@end lisp
+@end defun
+
+@defun sse-parse-data line
+Parse a single Server-Sent Events line @var{line}.  If @var{line} begins
+with @samp{data: }, returns the payload string (everything after
+@samp{data: }).  Otherwise returns @code{nil}.
+
+@lisp
+(sse-parse-data "data: {\"choices\": []}")
+  @result{} "{\"choices\": []}"
+(sse-parse-data "event: ping")
+  @result{} nil
+@end lisp
+@end defun
+
+@defun sse-extract-text chunk
+Parse the multi-line SSE @var{chunk}, extract and concatenate all
+@code{content} delta strings from OpenAI- and Anthropic-compatible
+streaming JSON payloads.  Returns the concatenated text string, or
+@code{nil} if no content deltas were found.
+
+@lisp
+(sse-extract-text "data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}\n")
+  @result{} "Hello"
+@end lisp
+@end defun
+
+@node Async Error Symbols, Async Cookbook, Async HTTP, Async API Reference
+@subsection Async Error Symbols
+
+@defvar async-timeout
+Signaled by @code{actor-receive} and @code{async-shell-command} when a
+@code{:timeout} interval expires before the operation completes.
+@end defvar
+
+@defvar async-http-error
+Signaled by @code{http-get}, @code{http-post}, and @code{http-stream}
+when a transport-level failure occurs (a libcurl error).  This is
+distinct from an HTTP error status code (4xx, 5xx), which is returned
+normally in the @var{status} field of the result list.
+@end defvar
+
+@defvar async-error
+General scheduler-level error.  Signaled when async primitives are
+called from outside a coroutine context, or when the scheduler
+encounters an internal inconsistency.
+@end defvar
