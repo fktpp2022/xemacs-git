@@ -302,8 +302,8 @@ the command's standard output as a string.
 
 @table @code
 @item :timeout @var{ms}
-Signal @code{async-timeout} if the command does not complete within
-@var{ms} milliseconds.
+Reserved for future use.  The timeout value is accepted but not yet
+enforced; the command will run to completion regardless.
 @end table
 
 @lisp
@@ -376,7 +376,8 @@ Signal @code{async-timeout} after @var{ms} milliseconds.
 @defun http-stream url &rest keys
 Perform an asynchronous streaming HTTP POST to @var{url}.  This is an
 alias for @code{http-post} intended for use with @code{:on-chunk}.
-The @code{:on-chunk} keyword is required.
+The @code{:on-chunk} keyword should be provided; without it the response
+body is buffered in full before being returned.
 
 @lisp
 (await (http-stream "https://api.example.com/stream"
