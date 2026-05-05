@@ -498,6 +498,7 @@ program.
 
 @lisp
 (require 'actor)
+(require 'pcase)
 
 ;; Start a named worker
 (actor-spawn 'my-worker
@@ -513,10 +514,11 @@ program.
   nil)
 
 ;; Send jobs from anywhere, any time
-(when-let ((w (actor-find 'my-worker)))
-  (actor-send w '(:job "task-1"))
-  (actor-send w '(:job "task-2"))
-  (actor-send w '(:stop)))
+(let ((w (actor-find 'my-worker)))
+  (when w
+    (actor-send w '(:job "task-1"))
+    (actor-send w '(:job "task-2"))
+    (actor-send w '(:stop))))
 @end lisp
 
   @code{actor-receive} suspends the worker until a message arrives.
@@ -567,6 +569,7 @@ restarts a worker actor if it crashes.
 
 @lisp
 (require 'actor)
+(require 'pcase)
 
 (defun my-start-worker ()
   "Spawn a fragile worker actor and return its handle."
