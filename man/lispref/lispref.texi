@@ -1257,6 +1257,7 @@ Building XEmacs and Object Allocation
 @include databases.texi
 
 @include processes.texi
+@include async.texi
 @include os.texi
 @include x-windows.texi
 @include tooltalk.texi

@@ -2,7 +2,7 @@
 @c This is part of the XEmacs Lisp Reference Manual.
 @c Copyright (C) 1990, 1991, 1992, 1993, 1994 Free Software Foundation, Inc.
 @c See the file lispref.texi for copying conditions.
-@node System Interface, X-Windows, Processes, Top
+@node System Interface, X-Windows, Async Programming, Top
 @chapter Operating System Interface
 
   This chapter is about starting and getting out of Emacs, access to
