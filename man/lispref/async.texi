@@ -100,3 +100,164 @@ coroutines or the main Lisp thread.  When a coroutine is spawned it
 inherits a copy of the caller's current bindings (such as
 @code{default-directory} and the current buffer), but subsequent bindings
 diverge independently.
+
+@node Async API Reference, Async Cookbook, Coroutine Concepts, Async Programming
+@section Async API Reference
+
+@menu
+* Core Primitives::             @code{await}, @code{async-let}, @code{async-yield}.
+* Actor Model::                 Spawn, send, receive, join, monitor.
+* Async File and Shell IO::     Async file read/write and shell commands.
+* Async HTTP::                  HTTP GET, POST, streaming, and SSE parsing.
+* Async Error Symbols::         Error conditions signaled by the async system.
+@end menu
+
+@node Core Primitives, Actor Model, Async API Reference, Async API Reference
+@subsection Core Primitives
+
+@defmac await expr
+Suspend the current coroutine until the async operation initiated by
+@var{expr} completes.  @var{expr} must be a call to an async function
+(such as @code{async-read-file} or @code{http-get}) that internally
+spawns a coroutine and yields.  Returns the operation's result value, or
+re-signals the error if the operation failed.
+
+@code{await} may only be called from within a running coroutine.  Calling
+it from the main Lisp thread signals @code{async-error}.
+
+@lisp
+(let ((contents (await (async-read-file "/etc/hosts"))))
+  (message "File has %d characters" (length contents)))
+@end lisp
+@end defmac
+
+@defmac async-let bindings &rest body
+Spawn each binding's value expression as a parallel coroutine, await all
+of them, then evaluate @var{body} with each variable bound to its
+coroutine's result.  Analogous to @code{Promise.all()} in JavaScript or
+@code{asyncio.gather()} in Python.
+
+@var{bindings} has the same syntax as @code{let}: a list of
+@code{(@var{var} @var{expr})} pairs.  All expressions are started
+concurrently; @var{body} does not begin until every expression has
+completed.
+
+@lisp
+(async-let ((a (async-read-file "/tmp/foo"))
+            (b (async-read-file "/tmp/bar")))
+  (message "Got %d and %d characters" (length a) (length b)))
+@end lisp
+@end defmac
+
+@defun async-yield
+Voluntarily yield the current coroutine to the scheduler without waiting
+for any particular event.  The coroutine is immediately placed back on
+the runnable queue and will be resumed on the next scheduler tick.
+Useful for breaking up long-running computations to keep the editor
+responsive.
+
+@lisp
+(dotimes (i 1000000)
+  (when (zerop (mod i 10000))
+    (async-yield))   ; let the editor breathe every 10k iterations
+  (do-work i))
+@end lisp
+@end defun
+
+@node Actor Model, Async File and Shell IO, Core Primitives, Async API Reference
+@subsection Actor Model
+@cindex actor-spawn
+@cindex actor model
+
+@defun actor-spawn name function &rest args
+Spawn a new coroutine that calls @var{function} with @var{args}.
+@var{name} is a symbol used to register the actor for later lookup via
+@code{actor-find}, or @code{nil} for an anonymous coroutine.  Returns an
+opaque actor handle.
+
+@lisp
+(actor-spawn 'my-worker
+  (lambda (_)
+    (while t
+      (process-message (actor-receive))))
+  nil)
+@end lisp
+@end defun
+
+@defun actor-send actor-ref message
+Deliver @var{message} to the mailbox of @var{actor-ref}.  This function
+is non-blocking: it returns immediately without suspending the caller.
+@var{message} may be any Lisp object.  Messages are delivered in FIFO
+order.
+
+@lisp
+(actor-send worker '(:job "compile-buffer"))
+@end lisp
+@end defun
+
+@defun actor-receive &rest keys
+Suspend the current coroutine until a message arrives in its mailbox.
+Returns the message.  The coroutine must be an actor (spawned via
+@code{actor-spawn}); calling this from a plain coroutine or the main
+thread signals @code{async-error}.
+
+@table @code
+@item :timeout @var{ms}
+If no message arrives within @var{ms} milliseconds, signal
+@code{async-timeout}.
+@end table
+
+@lisp
+(let ((msg (actor-receive :timeout 5000)))
+  (message "Got: %s" msg))
+@end lisp
+@end defun
+
+@defun actor-join actor-ref
+Suspend the current coroutine until @var{actor-ref}'s coroutine finishes,
+then return its result value.  If the joined coroutine terminated with an
+error, that error is re-signaled here.
+
+@lisp
+(let ((handle (actor-spawn nil (lambda (_) (+ 1 2)) nil)))
+  (message "Result: %s" (actor-join handle)))   ; => "Result: 3"
+@end lisp
+@end defun
+
+@defun actor-monitor actor-ref
+Arrange for the current actor to receive a @code{(:exit @var{reason})}
+message when @var{actor-ref}'s coroutine terminates, whether normally or
+due to an error.  @var{reason} is @code{nil} on normal exit, or the
+error data on abnormal exit.  Returns @var{actor-ref}.
+
+@lisp
+(actor-monitor fragile-worker)
+(let ((msg (actor-receive)))
+  (when (eq (car msg) :exit)
+    (message "Worker exited: %s" (cadr msg))))
+@end lisp
+@end defun
+
+@defun actor-find name
+Look up a named actor by its symbol @var{name}.  Returns the actor handle
+if a live actor with that name exists, or @code{nil} otherwise.
+
+@lisp
+(let ((w (actor-find 'my-worker)))
+  (when w (actor-send w '(:stop))))
+@end lisp
+@end defun
+
+@defun actor-self
+Return the handle of the currently executing actor, or @code{nil} if
+called from the main Lisp thread.  Useful when an actor needs to pass its
+own handle to another actor.
+
+@lisp
+(actor-spawn 'echo-server
+  (lambda (_)
+    (let ((self (actor-self)))
+      (actor-send coordinator `(:ready ,self))))
+  nil)
+@end lisp
+@end defun
