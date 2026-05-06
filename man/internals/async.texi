@@ -130,11 +130,12 @@ collect the closure.
 and restored at resume.  @xref{Async GC Integration}.
 
 @item saved_specpdl_ptr
-@code{struct specbinding *} — the global @code{specpdl_ptr} value saved
-when this coroutine yielded.
+@code{struct specbinding *} — reserved; declared but not currently used
+by the yield/resume path.  The active saved pointer is
+@code{coro_specpdl_ptr}.
 
 @item saved_specpdl_depth
-@code{int} — the global @code{specpdl_depth_counter} saved at yield.
+@code{int} — reserved; declared but not currently used.
 
 @item saved_backtrace_list
 @code{struct backtrace *} — the @code{backtrace_list} chain saved at
