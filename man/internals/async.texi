@@ -254,15 +254,29 @@ that coroutine is immediately resumed with the result.
 @cindex context switch, coroutine
 @cindex stack pointer, coroutine
 
-  @code{coro_swap(from, to)} is an x86-64 assembly function defined in
-@file{src/async-scheduler.c}.  It performs a minimal cooperative context
-switch by swapping the C stack pointer:
+  @code{coro_swap(from, to)} is an assembly function defined in
+@file{src/coro-asm.S}.  The x86-64 implementation saves all six
+callee-saved registers onto the current stack, swaps the stack pointer,
+restores the six callee-saved registers from the new stack, and returns
+into the resumed coroutine:
 
 @example
-coro_swap:
-    mov  %rsp, (%rdi)   /* save current SP into from->sp */
-    mov  (%rsi), %rsp   /* load SP from to->sp           */
-    ret                 /* "return" into the other stack  */
+coro_swap:                        /* rdi = from, rsi = to */
+    pushq %rbp
+    pushq %rbx
+    pushq %r12
+    pushq %r13
+    pushq %r14
+    pushq %r15
+    movq  %rsp, (%rdi)            /* save SP into from->sp */
+    movq  (%rsi), %rsp            /* load SP from to->sp   */
+    popq  %r15
+    popq  %r14
+    popq  %r13
+    popq  %r12
+    popq  %rbx
+    popq  %rbp
+    ret                           /* jump into resumed context */
 @end example
 
   The @code{ret} instruction pops the return address from whatever stack
@@ -281,12 +295,19 @@ inside @code{coro_yield} on the coroutine's stack, so execution resumes
 exactly where it suspended.
 @end itemize
 
-  @strong{Why only the stack pointer?}  All other registers that C code
-depends on across a call boundary are @dfn{caller-saved} by the System V
-AMD64 ABI: the caller (the function that executed @code{coro_swap}) has
-already saved them to its own stack frame.  Each coroutine's private
-stack holds all its live C register values; swapping @code{%rsp}
-effectively swaps the entire register state.
+  @strong{Why save the callee-saved registers?}  The System V AMD64 ABI
+designates @code{%rbp}, @code{%rbx}, and @code{%r12}–@code{%r15} as
+@dfn{callee-saved}: any function that uses them must restore them before
+returning.  Because @code{coro_swap} changes which stack frame will be
+returned to, it must save the outgoing coroutine's callee-saved registers
+onto its stack before the swap, and restore the incoming coroutine's
+callee-saved registers from its stack after the swap.  The result is that
+each side of the swap sees its own previously-saved register state.
+
+  @strong{AArch64 support.}  @file{src/coro-asm.S} also contains an
+AArch64 implementation that saves and restores the equivalent integer
+callee-saved registers (@code{x19}–@code{x28}, @code{x29}/@code{lr}) and
+the eight FP callee-saved registers (@code{d8}–@code{d15}).
 
   @strong{Stack alignment.}  The System V AMD64 ABI requires @code{%rsp}
 to be 16-byte aligned immediately before a @code{call} instruction (and
@@ -322,11 +343,10 @@ touch the main thread's specpdl.
 @subheading Swapping on yield and resume
 
   When a coroutine yields, @code{coro_yield} saves the current global
-@code{specpdl_ptr} and depth into the coroutine struct
-(@code{saved_specpdl_ptr}, @code{saved_specpdl_depth}), then restores
-the scheduler's saved values into the globals.  On resume, the reverse
-happens: the scheduler's state is saved and the coroutine's state is
-restored.
+@code{specpdl_ptr} into the coroutine struct (@code{coro_specpdl_ptr}),
+then restores the scheduler's saved value into the global.  On resume,
+the reverse happens: the scheduler's state is saved and the coroutine's
+state is restored.
 
 @subheading Symbol value swapping
 
@@ -410,12 +430,13 @@ coroutine via @code{coro_yield(WAIT_FD)} and returns the
 @code{async_http_req} pointer wrapped in a @code{Lisp_Object} opaque.
 
 @item Write callback
-The libcurl write callback (@code{http_write_cb}) is called each time
+The libcurl write callback (@code{http_write_callback}) is called each time
 curl delivers response data.  If @code{on_chunk} is non-@code{nil}, the
-callback invokes it directly via @code{call1}, passing the chunk as a
-Lisp string.  The coroutine is @emph{not} suspended during streaming;
-@code{on_chunk} runs on the scheduler's own stack context, invoked from
-@code{async_http_tick}.
+callback enqueues a call to it via @code{enqueue_misc_user_event} and
+wakes the event loop with @code{signal_async_wakeup}.  The handler is
+@emph{not} invoked directly from the write callback; it is dispatched
+from the normal XEmacs event loop on the next iteration, keeping Lisp
+execution off the curl callback stack.
 
 @item async_http_tick
 Called by @code{async_scheduler_tick} on every event-loop iteration.
@@ -512,7 +533,7 @@ Pass to `await' for the result.
 
 @item
 @strong{Register in @code{syms_of_async_scheduler}.}
-Add @code{defsubr (&Smy_async_op);} to @code{syms_of_async_scheduler()}
+Add @code{DEFSUBR (Fmy_async_op);} to @code{syms_of_async_scheduler()}
 in @file{src/async-scheduler.c}.
 
 @item
