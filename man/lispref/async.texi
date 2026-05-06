@@ -392,8 +392,8 @@ with @samp{data: }, returns the payload string (everything after
 @samp{data: }).  Otherwise returns @code{nil}.
 
 @lisp
-(sse-parse-data "data: {\"choices\": []}")
-  @result{} "{\"choices\": []}"
+(sse-parse-data "data: @{\"choices\": []@}")
+  @result{} "@{\"choices\": []@}"
 (sse-parse-data "event: ping")
   @result{} nil
 @end lisp
@@ -406,7 +406,7 @@ streaming JSON payloads.  Returns the concatenated text string, or
 @code{nil} if no content deltas were found.
 
 @lisp
-(sse-extract-text "data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}\n")
+(sse-extract-text "data: @{\"choices\":[@{\"delta\":@{\"content\":\"Hello\"@}@}]@}\n")
   @result{} "Hello"
 @end lisp
 @end defun

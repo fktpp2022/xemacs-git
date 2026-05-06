@@ -385,8 +385,9 @@ Similar but generates a general subsection.
 * Dumping::                     
 * Future Work::                 
 * Future Work Discussion::      
-* Old Future Work::             
-* Index::                       
+* Old Future Work::
+* Async Scheduler Internals::
+* Index::
 
 @detailmenu
  --- The Detailed Node Listing ---
