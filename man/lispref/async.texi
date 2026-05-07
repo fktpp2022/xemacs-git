@@ -497,6 +497,7 @@ runs only after both complete.
 
 @lisp
 (require 'async-core)
+(require 'actor)
 (require 'async-http)
 
 (actor-spawn nil
@@ -548,7 +549,6 @@ program.
 
 @lisp
 (require 'actor)
-(require 'pcase)
 
 ;; Start a named worker
 (actor-spawn 'my-worker
@@ -556,11 +556,11 @@ program.
     (let ((running t))
       (while running
         (let ((msg (actor-receive)))
-          (pcase msg
-            (`(:job ,payload)
-             (message "Processing: %s" payload))
-            (`(:stop)
-             (setq running nil)))))))
+          (cond
+           ((and (consp msg) (eq (car msg) :job))
+            (message "Processing: %s" (cadr msg)))
+           ((and (consp msg) (eq (car msg) :stop))
+            (setq running nil)))))))
   nil)
 
 ;; Send jobs from anywhere, any time
@@ -583,6 +583,7 @@ response incrementally as chunks arrive, rather than waiting for the full
 response body.
 
 @lisp
+(require 'actor)
 (require 'async-http)
 
 (actor-spawn nil
@@ -619,7 +620,6 @@ restarts a worker actor if it crashes.
 
 @lisp
 (require 'actor)
-(require 'pcase)
 
 (defun my-start-worker ()
   "Spawn a fragile worker actor and return its handle."
@@ -637,15 +637,15 @@ restarts a worker actor if it crashes.
       (actor-monitor worker)
       (while t
         (let ((msg (actor-receive)))
-          (pcase msg
-            (`(:exit ,_reason)
-             ;; Worker died -- restart and re-monitor
-             (message "Worker exited, restarting...")
-             (setq worker (my-start-worker))
-             (actor-monitor worker))
-            (job
-             ;; Forward all other messages to the worker
-             (actor-send worker job)))))))
+          (cond
+           ((and (consp msg) (eq (car msg) :exit))
+            ;; Worker died -- restart and re-monitor
+            (message "Worker exited, restarting...")
+            (setq worker (my-start-worker))
+            (actor-monitor worker))
+           (t
+            ;; Forward all other messages to the worker
+            (actor-send worker msg)))))))
   nil)
 @end lisp
 
