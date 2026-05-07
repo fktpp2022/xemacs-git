@@ -258,8 +258,11 @@ calling @code{actor-join} directly when you need transparent error
 propagation.
 
 @lisp
-(let ((handle (actor-spawn nil (lambda (_) (+ 1 2)) nil)))
-  (message "Result: %s" (actor-join handle)))   ; => "Result: 3"
+(actor-spawn nil
+  (lambda (_)
+    (let ((handle (actor-spawn nil (lambda (_) (+ 1 2)) nil)))
+      (message "Result: %s" (actor-join handle))))  ; => "Result: 3"
+  nil)
 @end lisp
 @end defun
 
@@ -269,11 +272,10 @@ message when @var{actor-ref}'s coroutine terminates, whether normally or
 due to an error.  @var{reason} is @code{nil} on normal exit, or the
 error data on abnormal exit.  Returns @var{actor-ref}.
 
-@strong{Note:} Internally, @code{actor-monitor} and @code{actor-join} both
-use a single @code{join_waiter} slot on the target coroutine.  Setting a
-monitor on a target already being joined (or vice versa) will silently
-overwrite the earlier registration.  Use one or the other, not both, for
-the same @var{actor-ref}.
+Multiple monitors may be registered on the same target.  Calling
+@code{actor-join} on a target that is also monitored does not interfere
+with the monitor registration; they use independent fields in the
+coroutine struct.
 
 @lisp
 (actor-monitor fragile-worker)
@@ -460,8 +462,10 @@ streaming JSON payloads.  Returns the concatenated text string, or
 @subsection Async Error Symbols
 
 @defvar async-timeout
-Signaled by @code{actor-receive} and @code{async-shell-command} when a
-@code{:timeout} interval expires before the operation completes.
+Signaled by @code{actor-receive} when a @code{:timeout} interval expires
+before a message arrives.  @code{async-shell-command} accepts the
+@code{:timeout} keyword but does not yet enforce it (@pxref{Async File
+and Shell IO}).
 @end defvar
 
 @defvar async-http-error

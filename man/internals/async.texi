@@ -185,8 +185,21 @@ private array.
 via @code{actor-spawn}.
 
 @item join_waiter
-@code{struct xemacs_coro *} — pointer to the coroutine waiting for this
-one to finish (@code{WAIT_JOIN}), or @code{NULL}.
+@code{struct xemacs_coro *} — pointer to the single coroutine waiting to
+join this one (@code{WAIT_JOIN}), or @code{NULL}.
+
+@item monitor_list
+@code{struct xemacs_coro **} — @code{malloc}'d array of coroutines that
+have called @code{actor-monitor} on this coroutine.  Each entry receives
+a @code{(:exit @var{reason})} mailbox message when this coroutine dies.
+@code{NULL} until the first monitor is registered.
+
+@item monitor_count
+@code{int} — number of active entries in @code{monitor_list}.
+
+@item monitor_cap
+@code{int} — allocated capacity of @code{monitor_list}; the array grows
+by doubling when @code{monitor_count} reaches @code{monitor_cap}.
 
 @item next, prev
 @code{struct xemacs_coro *} — intrusive doubly-linked list links
@@ -503,8 +516,13 @@ my_async_start (Lisp_Object arg)
   /* ... set up the operation ... */
   register_event_cb (req->result_fd, my_async_ready_cb, req);
   coro_yield (WAIT_FD);
-  /* Execution resumes here after coro_resume() is called */
-  return req->result_value;
+  /* Execution resumes here after coro_resume() has been called.
+     req has already been freed by the callback at this point;
+     do not access it.  The result was placed in the coroutine's
+     result field by coro_resume(); await() will retrieve it from
+     there.  Return Qnil; the return value of the start function
+     is not used. */
+  return Qnil;
 @}
 @end example
 
