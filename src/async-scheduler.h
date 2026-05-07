@@ -69,8 +69,13 @@ typedef struct xemacs_coro {
   Lisp_Object     actor_name;    /* symbol or nil */
   int             is_actor;
 
-  /* Join: other coroutines waiting on this one */
+  /* Join: single coroutine waiting for this one to finish */
   struct xemacs_coro *join_waiter;
+
+  /* Monitors: list of coroutines to notify with (:exit reason) on death */
+  struct xemacs_coro **monitor_list;
+  int                  monitor_count;
+  int                  monitor_cap;
 
   /* Linked list of all coroutines */
   struct xemacs_coro *next;

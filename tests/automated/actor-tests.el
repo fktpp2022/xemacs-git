@@ -75,3 +75,41 @@
   (async-scheduler-tick)
   (async-scheduler-tick)
   (Assert (= sum 10) "5 coroutines summed correctly"))
+
+;; Test 6: actor-monitor does not evict an existing join waiter
+;; When both actor-join and actor-monitor are set on the same target,
+;; the joiner must still receive its result and the monitor must receive :exit.
+;; The outer coroutine must be an actor so actor-receive works.
+(let ((join-result 'unset)
+      (monitor-received 'unset))
+  (actor-spawn-internal
+   'test6-outer
+   (lambda (arg)
+     (let* ((c (actor-spawn-internal nil
+                                     (lambda (a)
+                                       (async-coroutine-yield)
+                                       42)
+                                     nil))
+            (joiner (actor-spawn-internal
+                     nil
+                     (lambda (handle)
+                       (setq join-result (actor-join-internal handle)))
+                     (list c))))
+       ;; Monitor C from the outer actor — must not evict joiner's join slot
+       (actor-monitor c)
+       ;; Yield enough times for C and joiner to run to completion
+       (async-coroutine-yield)
+       (async-coroutine-yield)
+       (async-coroutine-yield)
+       ;; Collect the :exit message sent by monitor notification
+       (setq monitor-received (actor-receive :timeout 500))))
+   nil)
+  (let ((ti 0))
+    (while (< ti 40)
+      (async-scheduler-tick)
+      (setq ti (1+ ti))))
+  (Assert (equal join-result 42)
+          "join waiter receives result when monitor is also set on target")
+  (Assert (and (listp monitor-received)
+               (eq (car monitor-received) :exit))
+          "monitoring coroutine receives :exit when target dies"))

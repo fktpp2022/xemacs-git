@@ -218,6 +218,27 @@ coro_trampoline (void)
         }
     }
 
+  /* Notify all monitors with (:exit reason), where reason is nil on normal
+     exit or the error data on error exit. */
+  {
+    Lisp_Object reason = NILP (c->error) ? Qnil : c->error;
+    Lisp_Object exit_msg = list2 (intern (":exit"), reason);
+    int i;
+    for (i = 0; i < c->monitor_count; i++)
+      {
+        xemacs_coro *watcher = c->monitor_list[i];
+        if (watcher && watcher->state != CORO_DEAD)
+          actor_send_internal (watcher, exit_msg);
+      }
+    if (c->monitor_list)
+      {
+        xfree (c->monitor_list);
+        c->monitor_list = NULL;
+        c->monitor_count = 0;
+        c->monitor_cap = 0;
+      }
+  }
+
   c->state = CORO_DEAD;
   coro_list_remove (c);
   /* Move to graveyard — stack is still live here (we're running on it).
@@ -251,6 +272,9 @@ coro_spawn (Lisp_Object fn, Lisp_Object arg)
   c->lisp_fn = fn;
   c->gcpro_chain = NULL;
   c->join_waiter = NULL;
+  c->monitor_list = NULL;
+  c->monitor_count = 0;
+  c->monitor_cap = 0;
   c->is_actor = 0;
   c->actor_name = Qnil;
 
@@ -603,6 +627,27 @@ Yield the current coroutine back to the scheduler.
   return Qnil;
 }
 
+DEFUN ("async-coroutine-p", Fasync_coroutine_p, 1, 1, 0, /*
+Return t if OBJECT is a live or dead coroutine handle, nil otherwise.
+Used by `await' to distinguish coroutine handles from other values.
+*/
+       (object))
+{
+  xemacs_coro *c;
+  if (!OPAQUE_PTRP (object))
+    return Qnil;
+  c = (xemacs_coro *) get_opaque_ptr (object);
+  /* Validate by scanning all_coros and dead_coros */
+  {
+    xemacs_coro *p;
+    for (p = all_coros; p; p = p->next)
+      if (p == c) return Qt;
+    for (p = dead_coros; p; p = p->next)
+      if (p == c) return Qt;
+  }
+  return Qnil;
+}
+
 DEFUN ("async--coro-result", Fasync__coro_result, 1, 1, 0, /*
 Internal: return the result field of coroutine HANDLE.
 */
@@ -679,6 +724,8 @@ Internal: suspend current coroutine until HANDLE's coroutine finishes.
       Lisp_Object res = target->result;
       coro_graveyard_remove (target);
       xfree (target->coro_specpdl);
+      if (target->monitor_list)
+        xfree (target->monitor_list);
       xfree (target);
       return res;
     }
@@ -689,7 +736,9 @@ Internal: suspend current coroutine until HANDLE's coroutine finishes.
 }
 
 DEFUN ("actor-monitor-internal", Factor_monitor_internal, 2, 2, 0, /*
-Internal: set WATCHER as the monitor for TARGET actor.
+Internal: add WATCHER as a monitor for TARGET actor.
+When TARGET dies, WATCHER receives (:exit reason) via its mailbox.
+Multiple monitors may be registered; join_waiter is not affected.
 */
        (target, watcher))
 {
@@ -700,7 +749,16 @@ Internal: set WATCHER as the monitor for TARGET actor.
     signal_error (Qasync_error, "not a coroutine handle", watcher);
   t = (xemacs_coro *) get_opaque_ptr (target);
   w = (xemacs_coro *) get_opaque_ptr (watcher);
-  t->join_waiter = w;
+
+  /* Grow monitor_list if needed */
+  if (t->monitor_count >= t->monitor_cap)
+    {
+      int new_cap = t->monitor_cap == 0 ? 4 : t->monitor_cap * 2;
+      t->monitor_list = (xemacs_coro **) xrealloc (t->monitor_list,
+                                                    new_cap * sizeof (xemacs_coro *));
+      t->monitor_cap = new_cap;
+    }
+  t->monitor_list[t->monitor_count++] = w;
   return Qnil;
 }
 
@@ -713,6 +771,7 @@ syms_of_async_scheduler (void)
   DEFSUBR (Fasync_scheduler_tick);
   DEFSUBR (Fasync_current_coroutine);
   DEFSUBR (Fasync_coroutine_yield);
+  DEFSUBR (Fasync_coroutine_p);
   DEFSUBR (Fasync__coro_result);
   DEFSUBR (Fasync__coro_error);
   DEFSUBR (Factor_spawn_internal);

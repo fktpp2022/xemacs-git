@@ -59,12 +59,13 @@ normal.
 @example
 main thread
   --> async_scheduler_tick()
-    --> coro_resume(c, result)
+    --> coro_resume(c, result)   /* marks c CORO_RUNNABLE, sets c->result */
+    --> [Phase 2 loop]
       --> coro_swap(&scheduler_ctx, &c->ctx)
         [coroutine runs]
         --> coro_yield(reason)
-          --> coro_swap(&c->ctx, &c->caller_ctx)
-        [back in coro_resume, returns to tick]
+          --> coro_swap(&c->ctx, &scheduler_ctx)
+        [back in tick's Phase 2 loop, after the outgoing coro_swap]
   --> async_scheduler_tick() returns
 main thread continues
 @end example
@@ -86,9 +87,9 @@ allocated on the C heap.  The full definition is in
 Restored by @code{coro_swap} when resuming this coroutine.
 
 @item caller_ctx
-@code{coro_context_t} — the scheduler's stack pointer at the time this
-coroutine was last resumed.  @code{coro_yield} swaps back here to return
-to the scheduler.
+@code{coro_context_t} — reserved; declared but not currently used.
+@code{coro_yield} returns to the global @code{scheduler_ctx} directly
+rather than swapping to @code{caller_ctx}.
 
 @item stack
 @code{unsigned char *} — the @code{malloc}'d private C stack for this
@@ -216,7 +217,9 @@ the stack so the first @code{coro_swap} lands there, and sets state to
 list.
 
 @item First Run
-The scheduler calls @code{coro_resume(c, initial_arg)}.  This saves the
+The event callback calls @code{coro_resume(c, initial_arg)}, which sets
+@code{c->result} and marks state @code{CORO_RUNNABLE}.  On the next
+scheduler tick, Phase@tie{}2 picks up the runnable coroutine, saves the
 scheduler's interpreter state, sets state to @code{CORO_RUNNING}, and
 calls @code{coro_swap(&scheduler_ctx, &c->ctx)}, which jumps into
 @code{coro_trampoline}.  The trampoline calls @code{condition_case_1}
@@ -226,19 +229,23 @@ context.
 
 @item Suspend (@code{coro_yield})
 When a coroutine calls @code{coro_yield(reason)}, the current
-interpreter state (specpdl, backtrace, catchlist, gcpro chain) is saved
-into the coroutine struct, @code{wait_reason} is set, state becomes
-@code{CORO_SUSPENDED}, and @code{coro_swap(&c->ctx, &c->caller_ctx)}
-returns control to the point in @code{coro_resume} just after the
-outgoing @code{coro_swap} — which then returns to the scheduler tick.
+interpreter state (specpdl, backtrace, catchlist) is saved into the
+coroutine struct, @code{wait_reason} is set, state becomes
+@code{CORO_SUSPENDED}, and @code{coro_swap(&c->ctx, &scheduler_ctx)}
+returns control to the scheduler tick's Phase@tie{}2 loop, immediately
+after the outgoing @code{coro_swap} that launched this coroutine.
 
 @item Resume (@code{coro_resume})
-@code{coro_resume(c, result)} delivers @var{result} into @code{c->result},
-saves the scheduler's current interpreter state, restores
-@code{c}'s saved state into the globals, sets state to
-@code{CORO_RUNNING}, and calls @code{coro_swap(&scheduler_ctx, &c->ctx)}.
-Execution continues inside @code{coro_yield} immediately after the swap,
-which returns to wherever the coroutine was when it yielded.
+@code{coro_resume(c, result)} is a lightweight helper: it delivers
+@var{result} into @code{c->result}, clears @code{c->error}, and sets
+state to @code{CORO_RUNNABLE}.  It does @emph{not} perform a context
+switch itself.  The actual context switch happens on the @emph{next}
+scheduler tick: Phase@tie{}2 of @code{async_scheduler_tick} iterates all
+@code{CORO_RUNNABLE} coroutines, saves the scheduler's interpreter state,
+restores the coroutine's state, and calls
+@code{coro_swap(&scheduler_ctx, &c->ctx)}.  Execution then continues
+inside @code{coro_yield} immediately after its outgoing swap, which
+returns to wherever the coroutine was when it yielded.
 
 @item Death
 When the coroutine function returns (or @code{condition_case_1} catches
@@ -426,9 +433,11 @@ loop without requiring a separate thread.
 @code{async_http_start(url, method, headers, body, on_chunk, timeout_ms)}
 allocates an @code{async_http_req} struct, creates a @code{CURL} easy
 handle, configures it (URL, method, headers, write callback), and adds it
-to the global @code{CURLM} multi-handle.  It then suspends the calling
-coroutine via @code{coro_yield(WAIT_FD)} and returns the
-@code{async_http_req} pointer wrapped in a @code{Lisp_Object} opaque.
+to the global @code{CURLM} multi-handle.  If called from within a running
+coroutine (@code{req->waiting_coro != NULL}), it suspends the caller via
+@code{coro_yield(WAIT_FD)}; otherwise (called from the main thread) it
+returns @code{nil} immediately without suspending.  On resume, the result
+is in the coroutine's @code{result} field and @code{await} retrieves it.
 
 @item Write callback
 The libcurl write callback (@code{http_write_callback}) is called each time

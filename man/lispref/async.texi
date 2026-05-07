@@ -117,13 +117,34 @@ diverge independently.
 
 @defmac await expr
 Suspend the current coroutine until the async operation initiated by
-@var{expr} completes.  @var{expr} must be a call to an async function
-(such as @code{async-read-file} or @code{http-get}) that internally
-spawns a coroutine and yields.  Returns the operation's result value, or
-re-signals the error if the operation failed.
+@var{expr} completes, then return its result value.  If the operation
+failed, the error is re-signaled as if @code{await} itself had signaled
+it.
 
-@code{await} may only be called from within a running coroutine.  Calling
-it from the main Lisp thread signals @code{async-error}.
+@var{expr} may follow either of two protocols:
+
+@itemize @bullet
+@item
+@strong{Yield protocol} (used by HTTP primitives such as @code{http-get}
+and @code{http-post}): @var{expr} yields the @emph{current} coroutine
+internally and returns @code{nil}.  When the operation completes the
+scheduler resumes the current coroutine and @code{await} retrieves the
+result from the coroutine's internal result field.
+
+@item
+@strong{Spawn protocol} (used by @code{async-read-file},
+@code{async-write-file}, @code{async-shell-command}): @var{expr} spawns a
+@emph{new} coroutine and returns its opaque handle.  @code{await}
+detects the handle with @code{async-coroutine-p} and joins it via the
+low-level @code{actor-join-internal} primitive, suspending the current
+coroutine until the spawned one finishes.
+@end itemize
+
+@code{await} should only be called from within a running coroutine.
+With the spawn protocol, calling it from the main thread signals
+@code{async-error} (via @code{actor-join}).  With the yield protocol,
+calling it from the main thread returns @code{nil} silently because there
+is no current coroutine to read a result from.
 
 @lisp
 (let ((contents (await (async-read-file "/etc/hosts"))))
@@ -132,19 +153,30 @@ it from the main Lisp thread signals @code{async-error}.
 @end defmac
 
 @defmac async-let bindings &rest body
-Spawn each binding's value expression as a parallel coroutine, await all
-of them, then evaluate @var{body} with each variable bound to its
-coroutine's result.  Analogous to @code{Promise.all()} in JavaScript or
-@code{asyncio.gather()} in Python.
+Spawn each binding's value expression as a parallel coroutine, join all
+of them via @code{actor-join}, then evaluate @var{body} with each
+variable bound to its coroutine's result.  Analogous to
+@code{Promise.all()} in JavaScript or @code{asyncio.gather()} in Python.
 
 @var{bindings} has the same syntax as @code{let}: a list of
-@code{(@var{var} @var{expr})} pairs.  All expressions are started
-concurrently; @var{body} does not begin until every expression has
-completed.
+@code{(@var{var} @var{expr})} pairs.  Each @var{expr} becomes the body of
+a freshly-spawned coroutine; the expression's return value is collected
+via the low-level @code{actor-join-internal} primitive.  If @var{expr}
+itself needs to @code{await} an HTTP primitive (yield protocol), wrap it
+explicitly:
 
 @lisp
-(async-let ((a (async-read-file "/tmp/foo"))
-            (b (async-read-file "/tmp/bar")))
+(async-let ((body (let ((resp (await (http-get url))))
+                    (nth 2 resp))))
+  ...)
+@end lisp
+
+All coroutines are started concurrently; @var{body} does not begin until
+every one has completed.
+
+@lisp
+(async-let ((a (await (async-read-file "/tmp/foo")))
+            (b (await (async-read-file "/tmp/bar"))))
   (message "Got %d and %d characters" (length a) (length b)))
 @end lisp
 @end defmac
@@ -169,11 +201,15 @@ responsive.
 @cindex actor-spawn
 @cindex actor model
 
-@defun actor-spawn name function &rest args
-Spawn a new coroutine that calls @var{function} with @var{args}.
+@defun actor-spawn name function arg
+Spawn a new coroutine that calls @code{(@var{function} @var{arg})}.
 @var{name} is a symbol used to register the actor for later lookup via
 @code{actor-find}, or @code{nil} for an anonymous coroutine.  Returns an
 opaque actor handle.
+
+@var{function} must accept exactly one argument; pass @code{nil} when no
+initial value is needed.  The argument is delivered as the function's
+single parameter when the coroutine first runs.
 
 @lisp
 (actor-spawn 'my-worker
@@ -216,7 +252,10 @@ If no message arrives within @var{ms} milliseconds, signal
 @defun actor-join actor-ref
 Suspend the current coroutine until @var{actor-ref}'s coroutine finishes,
 then return its result value.  If the joined coroutine terminated with an
-error, that error is re-signaled here.
+error, the error is placed in the current coroutine's internal error field
+but is @emph{not} automatically re-signaled; use @code{await} instead of
+calling @code{actor-join} directly when you need transparent error
+propagation.
 
 @lisp
 (let ((handle (actor-spawn nil (lambda (_) (+ 1 2)) nil)))
@@ -229,6 +268,12 @@ Arrange for the current actor to receive a @code{(:exit @var{reason})}
 message when @var{actor-ref}'s coroutine terminates, whether normally or
 due to an error.  @var{reason} is @code{nil} on normal exit, or the
 error data on abnormal exit.  Returns @var{actor-ref}.
+
+@strong{Note:} Internally, @code{actor-monitor} and @code{actor-join} both
+use a single @code{join_waiter} slot on the target coroutine.  Setting a
+monitor on a target already being joined (or vice versa) will silently
+overwrite the earlier registration.  Use one or the other, not both, for
+the same @var{actor-ref}.
 
 @lisp
 (actor-monitor fragile-worker)
@@ -452,8 +497,8 @@ runs only after both complete.
 
 (actor-spawn nil
   (lambda (_)
-    (async-let ((r1 (http-get "https://example.com/api/a"))
-                (r2 (http-get "https://example.com/api/b")))
+    (async-let ((r1 (await (http-get "https://example.com/api/a")))
+                (r2 (await (http-get "https://example.com/api/b"))))
       (let ((body1 (nth 2 r1))
             (body2 (nth 2 r2)))
         (with-current-buffer (get-buffer-create "*results*")
@@ -463,10 +508,11 @@ runs only after both complete.
   nil)
 @end lisp
 
-  @code{async-let} spawns both @code{http-get} calls as independent
-coroutines.  Each suspends on its own curl operation.  The scheduler
-resumes each as its response arrives.  @code{body1} and @code{body2} are
-both bound before @code{with-current-buffer} executes.
+  @code{async-let} spawns both expressions as independent coroutines.
+Inside each spawned coroutine, @code{await} suspends on the HTTP
+operation and receives its result.  The scheduler resumes each coroutine
+as its response arrives.  @code{body1} and @code{body2} are both bound
+before @code{with-current-buffer} executes.
 
 @subsection Read a File, Transform It, Write It Back
 
