@@ -63,19 +63,11 @@
       (setq ti (1+ ti))))
   (Assert (string-match "hello" result) "async-shell-command returns output"))
 
-;; Test 4: async-shell-command :timeout kills a command that runs too long
-;; Requires C-level WAIT_FD integration; not yet implemented.
+;; Test 4: async-shell-command :timeout kills a command that runs too long.
+;; Not runnable yet: :timeout requires C-level WAIT_FD integration so the
+;; subprocess doesn't block the main thread.  The current implementation
+;; runs call-process synchronously inside the worker coroutine, so spawning
+;; `sleep 60' would block XEmacs for 60 seconds and defeat the timer.
+;; When WAIT_FD lands, replace this with a real timeout assertion.
 (Known-Bug-Expect-Failure
- (let ((timed-out nil))
-   (async-spawn-coroutine
-    (lambda (arg)
-      (condition-case err
-          (await (async-shell-command "sleep 60" :timeout 200))
-        (async-timeout (setq timed-out t))))
-    nil)
-   (let ((ti 0))
-     (while (and (< ti 100) (not timed-out))
-       (async-scheduler-tick)
-       (sleep-for 0.01)
-       (setq ti (1+ ti))))
-   (Assert timed-out "async-shell-command :timeout kills long-running command")))
+ (Assert nil "async-shell-command :timeout — pending WAIT_FD integration"))

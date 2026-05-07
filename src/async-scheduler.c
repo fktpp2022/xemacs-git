@@ -407,17 +407,49 @@ coro_resume_with_error (xemacs_coro *c, Lisp_Object error)
 
 /* ---- Scheduler tick ---- */
 
+/* When non-zero, async_scheduler_tick() becomes a no-op.  Bumped by
+   event-stream.c around next_event_internal() and any other context where
+   a coro_swap on the current C stack would corrupt caller-held state
+   (GCPRO'd locals, specpdl, catchlist, backtrace, process i/o state).
+   poll_fds_for_input() calls us after every select(), including the
+   zero-timeout selects issued from inside next_event_internal on behalf
+   of sleep-for/accept-process-output/etc.  Running coroutines from those
+   nested call sites has been observed to SIGSEGV in next_event_internal
+   when the coroutine's call-process / GC / specpdl activity invalidates
+   state that next_event_internal cached before the select call.  We
+   defer those ticks; the next top-level tick picks up any runnable coros. */
+int async_tick_forbidden = 0;
+
+static Lisp_Object
+async_tick_unforbid (Lisp_Object ignored)
+{
+  if (async_tick_forbidden > 0) async_tick_forbidden--;
+  return Qnil;
+}
+
+void
+async_tick_forbid_start (void)
+{
+  async_tick_forbidden++;
+  record_unwind_protect (async_tick_unforbid, Qnil);
+}
+
 void
 async_scheduler_tick (void)
 {
+  /* Tick-within-tick re-entrancy guard (same thread, same C stack). */
+  static int in_tick = 0;
   xemacs_coro *c, *next_c;
   EMACS_TIME now;
+
+  if (in_tick || async_tick_forbidden) return;
+  in_tick = 1;
 
 #ifdef HAVE_LIBCURL
   async_http_tick ();
 #endif
 
-  if (!all_coros) return;
+  if (!all_coros) { in_tick = 0; return; }
 
   EMACS_GET_TIME (now);
 
@@ -486,6 +518,8 @@ async_scheduler_tick (void)
           c->stack = NULL;
         }
     }
+
+  in_tick = 0;
 }
 
 /* ---- GC integration ---- */

@@ -96,6 +96,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "syssignal.h"		/* SIGCHLD, etc. */
 #include "sysfile.h"
 #include "systime.h"		/* to set Vlast_input_time */
+#include "async-scheduler.h"    /* async_tick_forbidden */
 
 #include "file-coding.h"
 
@@ -2083,6 +2084,7 @@ static void
 next_event_internal (Lisp_Object target_event, int allow_queued)
 {
   struct gcpro gcpro1;
+  int speccount = specpdl_depth ();
   PROFILE_DECLARE ();
 
   QUIT;
@@ -2092,6 +2094,12 @@ next_event_internal (Lisp_Object target_event, int allow_queued)
   assert (NILP (XEVENT_NEXT (target_event)));
 
   GCPRO1 (target_event);
+
+  /* Nested poll_fds_for_input calls from deep inside event_stream_next_event
+     would otherwise run async_scheduler_tick on our C stack and corrupt
+     GCPRO'd / specpdl state.  Suppress ticks for the duration of this call;
+     the event-loop's outer tick resumes coroutines on the next pass. */
+  async_tick_forbid_start ();
 
   /* When focus_follows_mouse is nil, if a frame change took place, we need
    * to actually switch window manager focus to the selected window now.
@@ -2144,6 +2152,8 @@ next_event_internal (Lisp_Object target_event, int allow_queued)
     }
 
   UNGCPRO;
+
+  unbind_to (speccount);
 
   PROFILE_RECORD_EXITING_SECTION (QSnext_event_internal);
 }

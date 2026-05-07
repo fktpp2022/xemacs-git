@@ -94,6 +94,16 @@ extern void         coro_resume_with_error (xemacs_coro *c, Lisp_Object error);
 /* Scheduler tick — called by event-unixoid.c after select() */
 extern void async_scheduler_tick (void);
 
+/* When non-zero, async_scheduler_tick() becomes a no-op.  Bumped around
+   next_event_internal() (and any other caller frame holding GCPRO'd or
+   other invalidatable state) so that nested poll_fds_for_input → tick
+   calls cannot coro_swap underneath an active event-processing stack. */
+extern int async_tick_forbidden;
+
+/* Bump async_tick_forbidden and register an unwind-protect that decrements
+   it.  Must be called from a context with an active specpdl frame. */
+extern void async_tick_forbid_start (void);
+
 /* Actor primitives (used by actor.el via DEFSUBR) */
 extern xemacs_coro *actor_spawn_internal (Lisp_Object name, Lisp_Object fn,
                                           Lisp_Object args);
