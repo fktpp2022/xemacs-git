@@ -16,7 +16,16 @@ EXPR must be one of:
 Returns the operation's result value, or re-signals its error."
   (let ((handle-sym (gensym "await-handle-"))
         (c-sym      (gensym "await-coro-"))
-        (res-sym    (gensym "await-res-")))
+        (res-sym    (gensym "await-res-"))
+        (err-sym    (gensym "await-err-")))
+    ;; The coroutine's error slot is the full (ERROR-SYMBOL . DATA) list as
+    ;; built by Fsignal, e.g. (file-error "Opening input file"
+    ;; "No such file or directory" "/path").  Re-signalling with
+    ;; `(apply 'signal ERR)' is wrong: `signal' takes exactly two arguments
+    ;; (SYMBOL DATALIST), so a 4-element ERR produces
+    ;; `(wrong-number-of-arguments #<subr signal> 4)' instead of the
+    ;; original file-error.  Use (signal (car ERR) (cdr ERR)) to pass the
+    ;; error-symbol and the remaining data list correctly.
     `(let* ((,handle-sym ,expr)
             (,c-sym (async-current-coroutine)))
        (if (async-coroutine-p ,handle-sym)
@@ -26,12 +35,14 @@ Returns the operation's result value, or re-signals its error."
            ;; current coroutine's error field; re-signal it here.
            (let ((,res-sym (actor-join-internal ,handle-sym)))
              (if (and ,c-sym (not (null (async--coro-error ,c-sym))))
-                 (apply 'signal (async--coro-error ,c-sym))
+                 (let ((,err-sym (async--coro-error ,c-sym)))
+                   (signal (car ,err-sym) (cdr ,err-sym)))
                ,res-sym))
          ;; Yield protocol: expression yielded the current coroutine
          ;; internally; result/error are in the current coro's fields.
          (if (and ,c-sym (not (null (async--coro-error ,c-sym))))
-             (apply 'signal (async--coro-error ,c-sym))
+             (let ((,err-sym (async--coro-error ,c-sym)))
+               (signal (car ,err-sym) (cdr ,err-sym)))
            (and ,c-sym (async--coro-result ,c-sym)))))))
 
 ;;; async-let: parallel spawn + join

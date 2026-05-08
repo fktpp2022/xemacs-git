@@ -21,9 +21,22 @@ extern struct specbinding *specpdl_ptr;
 extern int specpdl_depth_counter;
 extern int specpdl_size;
 /* catchlist chain lives on the C stack, so must be saved/restored per coro.
-   (handlerlist in backtrace.h is FSF-legacy dead code; XEmacs uses
-   Vcondition_handlers which is a Lisp-object chain and thus GC-managed.) */
+   (handlerlist in backtrace.h is FSF-legacy dead code.) */
 extern struct catchtag *catchlist;
+/* Vcondition_handlers is a Lisp-object list mutated by every condition_case_1
+   invocation.  Even though it's GC-managed, it is mutated as a global — each
+   coroutine's condition_case_1 push/pop leaves it at a different value while
+   the coroutine is running.  Must be saved/restored around coro_swap like
+   catchlist, otherwise a suspended coroutine leaks its handler cons to the
+   top level and later signals route to a catchtag no longer in catchlist. */
+extern Lisp_Object Vcondition_handlers;
+
+/* gcprolist: global head of the linked list of GCPRO'd C-stack slots.  Each
+   Ffuncall frame pushes/pops.  When a coroutine runs Lisp, pushes land on
+   the coroutine's malloc stack.  Must be saved/restored around coro_swap
+   so the scheduler doesn't walk into the coroutine's GCPRO frames during a
+   top-level GC. */
+extern struct gcpro *gcprolist;
 
 /* Default coroutine stack size: 256KB */
 #define CORO_DEFAULT_STACK_SIZE (256 * 1024)
@@ -53,6 +66,8 @@ static int                 sched_specpdl_depth;
 static int                 sched_specpdl_size;
 static struct backtrace   *sched_backtrace_list;
 static struct catchtag    *sched_catchlist;
+static Lisp_Object         sched_condition_handlers;
+static struct gcpro       *sched_gcprolist;
 
 /* Number of live (non-DEAD) coroutines */
 static int coro_count = 0;
@@ -152,6 +167,80 @@ specpdl_rebind_range (struct specbinding *from, struct specbinding *to)
   for (p = from; p < to; p++)
     if (p->func == NULL)
       specpdl_swap_one (p);
+}
+
+/* ---- Vcondition_handlers detach / re-attach across coro_swap ----
+
+   Detach: called at yield/swap-out.  Splits the coroutine-owned prefix off
+   the global Vcondition_handlers chain at the boundary cons whose CDR ==
+   `sched_condition_handlers' (the snapshot taken at tick swap-in).  Stores
+   (head, boundary) in the coro and nulls boundary's CDR so the prefix is
+   self-contained while suspended.  Restores Vcondition_handlers to the
+   outer snapshot.  No-op if the coro has added no handler frames.
+
+   Re-attach: called at swap-in.  If the coro has a saved prefix, splices
+   it back onto the top of the current Vcondition_handlers by setting the
+   boundary cons's CDR to the current Vcondition_handlers, and makes the
+   saved head the new Vcondition_handlers.  */
+
+static void
+coro_detach_condition_handlers (xemacs_coro *c)
+{
+  Lisp_Object head = Vcondition_handlers;
+  Lisp_Object outer = sched_condition_handlers;
+
+  if (EQ (head, outer))
+    {
+      /* Coro added nothing -- chain is exactly the outer world's chain. */
+      c->saved_condition_handlers_head     = Qnil;
+      c->saved_condition_handlers_boundary = Qnil;
+    }
+  else
+    {
+      /* Walk down from head until we find the boundary cons: the last
+         coro-owned cell, whose CDR == outer.  We assume head != outer
+         (checked above) and that the chain does reach outer; if it
+         doesn't, something has already corrupted the chain and we'd
+         rather not walk off the end. */
+      Lisp_Object curr = head;
+      while (CONSP (curr) && !EQ (XCDR (curr), outer))
+        curr = XCDR (curr);
+
+      if (CONSP (curr) && EQ (XCDR (curr), outer))
+        {
+          c->saved_condition_handlers_head     = head;
+          c->saved_condition_handlers_boundary = curr;
+          XSETCDR (curr, Qnil);
+        }
+      else
+        {
+          /* Chain didn't reach outer -- e.g. outer was `free_cons'd and a
+             nested call already spliced over it.  Bail safely: keep the
+             full chain as-is (will be marked by GC via the head). */
+          c->saved_condition_handlers_head     = head;
+          c->saved_condition_handlers_boundary = Qnil;
+        }
+    }
+
+  Vcondition_handlers = outer;
+}
+
+static void
+coro_reattach_condition_handlers (xemacs_coro *c)
+{
+  if (NILP (c->saved_condition_handlers_head))
+    return;  /* Nothing to re-thread. */
+
+  if (!NILP (c->saved_condition_handlers_boundary))
+    XSETCDR (c->saved_condition_handlers_boundary, Vcondition_handlers);
+
+  Vcondition_handlers = c->saved_condition_handlers_head;
+
+  /* Clear the saved slots so GC won't hold references to the chain we just
+     restored to the global.  The chain is now reachable from
+     Vcondition_handlers (staticpro'd). */
+  c->saved_condition_handlers_head     = Qnil;
+  c->saved_condition_handlers_boundary = Qnil;
 }
 
 /* ---- Trampoline helpers for error trapping ---- */
@@ -270,7 +359,7 @@ coro_spawn (Lisp_Object fn, Lisp_Object arg)
   c->result = arg;
   c->error = Qnil;
   c->lisp_fn = fn;
-  c->gcpro_chain = NULL;
+  c->saved_gcprolist = NULL;
   c->join_waiter = NULL;
   c->monitor_list = NULL;
   c->monitor_count = 0;
@@ -320,6 +409,12 @@ coro_spawn (Lisp_Object fn, Lisp_Object arg)
       c->saved_catchlist      = catchlist;
     }
 
+  /* The coroutine has not yet pushed any condition-case frames of its own,
+     so it owns no prefix of Vcondition_handlers.  The detach/re-attach
+     machinery treats a nil head as "nothing to re-thread" on first swap-in.  */
+  c->saved_condition_handlers_head     = Qnil;
+  c->saved_condition_handlers_boundary = Qnil;
+
   /* Set up initial stack frame.
      coro_swap on x86-64 pops: r15, r14, r13, r12, rbx, rbp then does ret.
      So the stack (growing downward) must look like, from low addr to high:
@@ -351,6 +446,15 @@ coro_spawn (Lisp_Object fn, Lisp_Object arg)
   }
 
   coro_list_add (c);
+
+  /* When spawned from outside any running coroutine (i.e. from top-level
+     Lisp in the main thread), arm a wakeup so the event loop drives the
+     first tick.  Spawning from inside another coro is a no-op here: the
+     spawner will yield or terminate soon, at which point its own yield
+     wakeup (or the tick that contains both coros) drives the new one.  */
+  if (current_coro == NULL)
+    async_schedule_wakeup_tick (1);
+
   return c;
 }
 
@@ -364,9 +468,15 @@ coro_yield (wait_reason_t reason)
   c->state = CORO_SUSPENDED;
   c->wait_reason = reason;
 
-  /* Save the coroutine's current specpdl/catchlist positions */
-  c->coro_specpdl_ptr    = specpdl_ptr;
-  c->saved_catchlist     = catchlist;
+  /* Save the coroutine's current specpdl/catchlist/gcprolist positions */
+  c->coro_specpdl_ptr          = specpdl_ptr;
+  c->saved_catchlist           = catchlist;
+  c->saved_gcprolist           = gcprolist;
+
+  /* Detach the coroutine's Vcondition_handlers prefix from the outer
+     world's chain and stash it on the coro.  Also restores
+     Vcondition_handlers to sched_condition_handlers. */
+  coro_detach_condition_handlers (c);
 
   /* Unwind the coroutine's own bindings (those above the inherit base),
      restoring the symbol values that were active when the coro was spawned. */
@@ -380,6 +490,36 @@ coro_yield (wait_reason_t reason)
   specpdl_size          = sched_specpdl_size;
   backtrace_list        = sched_backtrace_list;
   catchlist             = sched_catchlist;
+  gcprolist             = sched_gcprolist;
+
+  /* Arm an event-loop wakeup so something drives the next tick.
+       WAIT_NONE:   voluntary yield -> resume ASAP.
+       WAIT_TIMER:  wake at the timeout deadline so the tick can fire
+                    coro_resume_with_error(Qasync_timeout) even if nothing
+                    else on the system pokes the event loop.
+     WAIT_MAILBOX and WAIT_JOIN rely on external wakeups (actor-send or a
+     dying coro), which arm wakeups at their own trigger points below.
+     WAIT_FD similarly depends on fd readiness; poll_fds_for_input drives
+     the tick when the fd fires, and libcurl's multi-select already owns
+     that path. */
+  if (reason == WAIT_NONE)
+    async_schedule_wakeup_tick (1);
+  else if (reason == WAIT_TIMER)
+    {
+      EMACS_TIME now, delta;
+      long ms;
+      EMACS_GET_TIME (now);
+      if (EMACS_TIME_EQUAL_OR_GREATER (now, c->wait_deadline))
+        ms = 1;  /* already past: fire immediately */
+      else
+        {
+          EMACS_SUB_TIME (delta, c->wait_deadline, now);
+          ms = (long) EMACS_SECS (delta) * 1000
+             + (long) EMACS_USECS (delta) / 1000;
+          if (ms < 1) ms = 1;
+        }
+      async_schedule_wakeup_tick ((unsigned int) ms);
+    }
 
   current_coro = NULL;
   coro_swap (&c->ctx, &scheduler_ctx);
@@ -477,12 +617,14 @@ async_scheduler_tick (void)
       current_coro = c;
 
       /* Save scheduler's interpreter state, switch to coroutine's */
-      sched_specpdl        = specpdl;
-      sched_specpdl_ptr    = specpdl_ptr;
-      sched_specpdl_depth  = specpdl_depth_counter;
-      sched_specpdl_size   = specpdl_size;
-      sched_backtrace_list = backtrace_list;
-      sched_catchlist      = catchlist;
+      sched_specpdl             = specpdl;
+      sched_specpdl_ptr         = specpdl_ptr;
+      sched_specpdl_depth       = specpdl_depth_counter;
+      sched_specpdl_size        = specpdl_size;
+      sched_backtrace_list      = backtrace_list;
+      sched_catchlist           = catchlist;
+      sched_condition_handlers  = Vcondition_handlers;
+      sched_gcprolist           = gcprolist;
 
       specpdl               = c->coro_specpdl;
       specpdl_ptr           = c->coro_specpdl_ptr;
@@ -490,6 +632,13 @@ async_scheduler_tick (void)
       specpdl_size          = c->coro_specpdl_size;
       backtrace_list        = c->saved_backtrace_list;
       catchlist             = c->saved_catchlist;
+      gcprolist             = c->saved_gcprolist;
+      /* Re-thread the coro's Vcondition_handlers prefix (if any) onto the
+         current outer chain.  This must happen AFTER we save the outer
+         Vcondition_handlers to sched_condition_handlers above, because
+         coro_reattach_condition_handlers reads Vcondition_handlers (outer)
+         as the new tail for the boundary cons.  */
+      coro_reattach_condition_handlers (c);
 
       /* Re-apply the coroutine's own bindings (entries above inherit base).
          The symbol values currently reflect the scheduler's state; rebinding
@@ -503,13 +652,26 @@ async_scheduler_tick (void)
 
       /* Restore scheduler's interpreter state after coro_swap.
          coro_yield already switched state back; for death paths the trampoline
-         does its own coro_swap, so we must always unconditionally restore here. */
+         does its own coro_swap, so we must always unconditionally restore here.
+
+         Vcondition_handlers: on the yield path, coro_yield has already
+         detached the coro's prefix and restored Vcondition_handlers to
+         sched_condition_handlers.  On the death path, the trampoline's
+         condition_case_1 ran to normal return and popped its own frame, so
+         Vcondition_handlers now holds whatever the chain was *above* the
+         trampoline cons -- which is the outer chain (modulo any conses the
+         trampoline's exit handlers freed along the way).  Either way, forcing
+         it back to sched_condition_handlers is the right thing: it matches
+         what the tick's caller had before we started, and defensively papers
+         over any imbalance in the death path.  */
       specpdl               = sched_specpdl;
       specpdl_ptr           = sched_specpdl_ptr;
       specpdl_depth_counter = sched_specpdl_depth;
       specpdl_size          = sched_specpdl_size;
       backtrace_list        = sched_backtrace_list;
       catchlist             = sched_catchlist;
+      Vcondition_handlers   = sched_condition_handlers;
+      gcprolist             = sched_gcprolist;
 
       /* Free the coroutine stack AFTER coro_swap (we're no longer running on it) */
       if (c->state == CORO_DEAD && c->stack != NULL)
@@ -522,12 +684,87 @@ async_scheduler_tick (void)
   in_tick = 0;
 }
 
+/* ---- Wakeup timer: drive the scheduler from the event loop ----
+
+   The legacy tick driver (event-unixoid.c's poll_fds_for_input) only fires
+   when some fd becomes readable.  That leaves idle or timer-waiting
+   coroutines stuck: a freshly-spawned coro never gets its first tick, and
+   `actor-receive'-suspended worker actors never drain their mailbox until
+   something else happens to poke the fd mask.
+
+   The fix is to arm a one-shot timeout_event on the event queue whenever
+   we know the scheduler has (or will soon have) work to do:
+     - top-level spawn      -> 0 ms (run the new coro on the next event loop pass)
+     - WAIT_NONE yield      -> 0 ms (voluntary yield should resume promptly)
+     - WAIT_TIMER yield     -> deadline-ms  (wake at timeout)
+     - external actor-send  -> 0 ms (recipient has a message to process)
+
+   `event_stream_generate_wakeup' enqueues a timeout_event that the command
+   loop dispatches via call1(function, object) from `execute_internal_event'.
+   We use `Vasync_wakeup_tick_fn' (a symbol naming a thin wrapper around
+   `async-scheduler-tick') as that function.  The tick runs OUTSIDE
+   `next_event_internal', so `async_tick_forbidden' is zero and the tick
+   proceeds normally. */
+
+static Lisp_Object Vasync_wakeup_tick_fn;
+
+void
+async_schedule_wakeup_tick (unsigned int milliseconds)
+{
+  /* Skip in batch mode (no event loop; tests drive the tick explicitly) and
+     during early init before event_stream is installed. */
+  if (noninteractive || !event_stream)
+    return;
+
+  /* Fire at least 1 ms out: Xt clamps zero to 1 ms anyway, and the tty
+     timeout queue treats 0 as "already expired".  Passing 0 is fine, but
+     make our intent explicit. */
+  if (milliseconds < 1)
+    milliseconds = 1;
+
+  /* 0 for vanilliseconds = one-shot (no resignal). */
+  event_stream_generate_wakeup (milliseconds, 0,
+                                Vasync_wakeup_tick_fn, Qnil, 0);
+}
+
+/* Lisp callback for the timeout_event.  The dispatch layer calls
+   call1(function, object) -- we accept the object arg and ignore it. */
+DEFUN ("async--scheduler-tick-from-timer", Fasync__scheduler_tick_from_timer,
+       1, 1, 0, /*
+Internal: invoked from a timeout_event to run one scheduler tick.
+OBJECT is the timeout's object slot; it is ignored.
+*/
+       (object))
+{
+  (void) object;
+  async_scheduler_tick ();
+  return Qnil;
+}
+
 /* ---- GC integration ---- */
 
 void
 async_scheduler_mark_gcpros (void)
 {
   xemacs_coro *c;
+  /* If GC runs while we are context-switched INTO a coroutine, the outer
+     world's Vcondition_handlers chain head lives only in
+     sched_condition_handlers (the global Vcondition_handlers has been
+     replaced with the coroutine's view).  */
+  kkcc_gc_stack_push_lisp_object_0 (sched_condition_handlers);
+  /* Similarly, the outer gcprolist is only reachable via sched_gcprolist
+     when we're context-switched into a coro; walk it here so no GCPRO'd
+     outer objects get reaped mid-tick. */
+  {
+    struct gcpro *p = sched_gcprolist;
+    while (p)
+      {
+        int i;
+        for (i = 0; i < p->nvars; i++)
+          kkcc_gc_stack_push_lisp_object_0 (p->var[i]);
+        p = p->next;
+      }
+  }
   for (c = all_coros; c; c = c->next)
     {
       kkcc_gc_stack_push_lisp_object_0 (c->mailbox);
@@ -535,8 +772,18 @@ async_scheduler_mark_gcpros (void)
       kkcc_gc_stack_push_lisp_object_0 (c->error);
       kkcc_gc_stack_push_lisp_object_0 (c->lisp_fn);
       kkcc_gc_stack_push_lisp_object_0 (c->actor_name);
+      /* Marking the head transitively marks every cons in the detached
+         coro prefix (boundary CDR is Qnil during suspension).  */
+      kkcc_gc_stack_push_lisp_object_0 (c->saved_condition_handlers_head);
+      /* Walk the coroutine's saved gcprolist (from its yield point) so any
+         GCPRO'd Lisp_Objects on the coroutine's stack stay alive across a
+         top-level GC while the coroutine is suspended.  The chain MAY
+         eventually reach the outer world's gcprolist -- which is also
+         reachable from the scheduler's own sched_gcprolist (or directly
+         from gcprolist if no coroutine is currently running), so marking
+         it multiple times is harmless. */
       {
-        struct gcpro *p = c->gcpro_chain;
+        struct gcpro *p = c->saved_gcprolist;
         while (p)
           {
             int i;
@@ -585,9 +832,21 @@ actor_spawn_internal (Lisp_Object name, Lisp_Object fn, Lisp_Object args)
 void
 actor_send_internal (xemacs_coro *target, Lisp_Object msg)
 {
+  int woke_mailbox =
+    (target->state == CORO_SUSPENDED && target->wait_reason == WAIT_MAILBOX);
+
   target->mailbox = nconc2 (target->mailbox, list1 (msg));
-  if (target->state == CORO_SUSPENDED && target->wait_reason == WAIT_MAILBOX)
+  if (woke_mailbox)
     coro_resume (target, msg);
+
+  /* If we were called from outside any running coroutine (top-level Lisp)
+     AND the recipient just became runnable, arm an event-loop wakeup so
+     the tick actually dispatches the message.  If called from inside a
+     coro, the sender's own yield will carry a wakeup -- or the in-flight
+     tick will pick up the now-runnable recipient in its next phase-2
+     iteration -- so we don't need to arm one here. */
+  if (woke_mailbox && current_coro == NULL)
+    async_schedule_wakeup_tick (1);
 }
 
 Lisp_Object
@@ -813,6 +1072,7 @@ syms_of_async_scheduler (void)
   DEFSUBR (Factor_receive_internal);
   DEFSUBR (Factor_join_internal);
   DEFSUBR (Factor_monitor_internal);
+  DEFSUBR (Fasync__scheduler_tick_from_timer);
 }
 
 void
@@ -822,6 +1082,17 @@ vars_of_async_scheduler (void)
 Stack size in bytes for each coroutine.  Default is 262144 (256KB).
 */);
   Vasync_coroutine_stack_size = CORO_DEFAULT_STACK_SIZE;
+
+  /* Staticpro the scheduler's saved handler-list slot so its head cons
+     stays rooted while the interpreter is running inside a coroutine. */
+  sched_condition_handlers = Qnil;
+  staticpro (&sched_condition_handlers);
+
+  /* Cache the symbol used as the timeout callback for wakeups.  We use the
+     interned symbol directly so `call1' can look up its function value when
+     the event loop dispatches the timeout. */
+  Vasync_wakeup_tick_fn = intern ("async--scheduler-tick-from-timer");
+  staticpro (&Vasync_wakeup_tick_fn);
 }
 
 void

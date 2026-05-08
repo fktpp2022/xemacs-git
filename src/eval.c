@@ -403,7 +403,14 @@ Lisp_Object Vdebugger;
    environment that `signal' was invoked in.  */
 
 
-static Lisp_Object Vcondition_handlers;
+/* Non-static so the async scheduler (src/async-scheduler.c) can save/restore
+   it across coro_swap.  A coroutine's condition_case_1 frames push onto this
+   list; if we don't restore the list when the coroutine yields, a suspended
+   coroutine's handler cons stays linked at the head of Vcondition_handlers,
+   and unrelated top-level signals route through a `struct catchtag' that is
+   no longer in `catchlist' -- Fsignal then recurses into `no-catch' until
+   `throw_level' aborts.  */
+Lisp_Object Vcondition_handlers;
 
 /* I think we should keep this enabled all the time, not just when
    error checking is enabled, because if one of these puppies pops up,

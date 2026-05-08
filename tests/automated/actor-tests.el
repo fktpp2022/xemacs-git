@@ -113,3 +113,79 @@
   (Assert (and (listp monitor-received)
                (eq (car monitor-received) :exit))
           "monitoring coroutine receives :exit when target dies"))
+
+;; Test 7: named-actor registry round-trip via actor-spawn + actor-find.
+;; actor-spawn stores the handle in `async--actor-registry' when NAME is
+;; non-nil; actor-find returns nil for never-registered names.
+(let ((h (actor-spawn 'registry-probe (lambda (_) 'done) nil)))
+  (Assert (not (null h))
+          "actor-spawn with name returns non-nil handle")
+  (Assert (eq (actor-find 'registry-probe) h)
+          "actor-find recovers the registered handle by name")
+  (Assert (null (actor-find 'never-was-registered))
+          "actor-find returns nil for unknown names"))
+
+;; Test 8: monitor-only, normal exit.  A watcher actor monitors a target
+;; that returns normally; the watcher must receive (:exit nil) without a
+;; separate join being set up.  Uses plain `actor-receive' (no :timeout)
+;; because `actor-receive :timeout MS' yields WAIT_TIMER, which
+;; `actor_send_internal' does not wake -- an `(:exit ...)' dispatched
+;; while the watcher is blocked on WAIT_TIMER is queued but not delivered
+;; until the timer expires (known limitation of the current API).
+(let ((msg 'unset)
+      (target (actor-spawn-internal nil (lambda (_) 'ok) nil)))
+  (actor-spawn-internal
+   'watcher-normal
+   (lambda (_)
+     (actor-monitor-internal target (async-current-coroutine))
+     (setq msg (actor-receive)))
+   nil)
+  (let ((ti 0))
+    (while (< ti 20) (async-scheduler-tick) (setq ti (1+ ti))))
+  (Assert (and (listp msg) (eq (car msg) :exit) (null (cadr msg)))
+          "monitor-only watcher sees (:exit nil) on normal target exit"))
+
+;; Test 9: monitor-only, crash exit.  The target signals an error; the
+;; watcher's :exit message must carry the (error-symbol . data) cons so
+;; supervisor code can introspect the failure (as the cookbook's
+;; Supervised Actor example depends on).
+(let ((msg 'unset)
+      (target (actor-spawn-internal nil (lambda (_) (error "boom!")) nil)))
+  (actor-spawn-internal
+   'watcher-crash
+   (lambda (_)
+     (actor-monitor-internal target (async-current-coroutine))
+     (setq msg (actor-receive)))
+   nil)
+  (let ((ti 0))
+    (while (< ti 20) (async-scheduler-tick) (setq ti (1+ ti))))
+  (Assert (and (listp msg) (eq (car msg) :exit))
+          "monitor-only watcher sees :exit on crash exit")
+  (let ((reason (cadr msg)))
+    (Assert (and (consp reason) (eq (car reason) 'error))
+            "crash-exit reason carries (error . data) for introspection")))
+
+;; Test 10: multiple monitors are all notified.  Two watcher actors each
+;; monitor the same target; target exits normally; both must receive
+;; (:exit nil).  Exercises the monitor_list dispatch loop in
+;; coro_trampoline.
+(let ((m1 'unset) (m2 'unset)
+      (target (actor-spawn-internal nil (lambda (_) 'ok) nil)))
+  (actor-spawn-internal
+   'watcher1
+   (lambda (_)
+     (actor-monitor-internal target (async-current-coroutine))
+     (setq m1 (actor-receive)))
+   nil)
+  (actor-spawn-internal
+   'watcher2
+   (lambda (_)
+     (actor-monitor-internal target (async-current-coroutine))
+     (setq m2 (actor-receive)))
+   nil)
+  (let ((ti 0))
+    (while (< ti 20) (async-scheduler-tick) (setq ti (1+ ti))))
+  (Assert (and (listp m1) (eq (car m1) :exit))
+          "first monitor receives :exit")
+  (Assert (and (listp m2) (eq (car m2) :exit))
+          "second monitor receives :exit"))

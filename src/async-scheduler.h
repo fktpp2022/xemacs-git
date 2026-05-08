@@ -45,14 +45,46 @@ typedef struct xemacs_coro {
   /* Lisp function to call on first entry (GC-visible) */
   Lisp_Object     lisp_fn;
 
-  /* GC: Lisp objects live on the C stack — must be rooted manually */
-  struct gcpro   *gcpro_chain;   /* chain head for this coro's live objects */
+  /* GC: Lisp objects live on the C stack — must be rooted manually.
+
+     The global `gcprolist' chains GCPRO'd stack-allocated Lisp_Objects for
+     the mark phase.  Every Ffuncall frame (and many internal helpers) pushes
+     onto it and pops on return.  When a coroutine runs Lisp, the pushes
+     land on the coroutine's malloc stack.  On yield we must save and
+     restore this pointer analogously to specpdl/catchlist, otherwise the
+     scheduler (and anything it calls) runs with the coroutine's stale
+     gcpros still at the head of gcprolist -- and GC walks those entries,
+     dereferencing `var' pointers that may be scribbled-over coroutine
+     stack memory.  */
+  struct gcpro   *saved_gcprolist;
 
   /* Saved interpreter state (restored on each coro_swap) */
   struct specbinding *saved_specpdl_ptr;   /* specpdl_ptr at yield time */
   int                 saved_specpdl_depth;
   struct backtrace   *saved_backtrace_list;
   struct catchtag    *saved_catchlist;
+
+  /* Vcondition_handlers is a global cons chain mutated by every
+     condition_case_1 / call_with_condition_handler invocation.  Each push
+     allocates a noseeum cons whose CDR snapshots Vcondition_handlers at
+     entry.  When the coroutine runs, its trampoline's condition_case_1 (and
+     any nested user condition-case) prepend cons cells to the chain whose
+     deepest CDR points into the OUTER world's chain (e.g. the test harness's
+     `call-with-condition-handler' frame).  If the coroutine yields while
+     those inner frames are active, the outer cells it transitively references
+     may be `free_cons'd when the outer frames unwind -- leaving the
+     coroutine's saved chain with a dangling CDR, which crashes the next GC.
+
+     At yield we DETACH the coroutine-owned prefix from the outer world:
+     walk the chain from Vcondition_handlers down to the boundary cons whose
+     CDR equals `sched_condition_handlers' (the outer snapshot), NULL that
+     CDR, and save (head, boundary) for later.  At swap-in we RE-ATTACH by
+     setting the saved boundary's CDR to the current outer Vcondition_handlers
+     and setting Vcondition_handlers to the saved head.  The coroutine-owned
+     cells stay self-contained during suspension; GC marks them transitively
+     starting from `saved_condition_handlers_head'.  */
+  Lisp_Object         saved_condition_handlers_head;
+  Lisp_Object         saved_condition_handlers_boundary;
 
   /* Per-coroutine specpdl: each coroutine has its own binding stack */
   struct specbinding *coro_specpdl;        /* malloc'd per-coro specpdl array */
@@ -93,6 +125,13 @@ extern void         coro_resume_with_error (xemacs_coro *c, Lisp_Object error);
 
 /* Scheduler tick — called by event-unixoid.c after select() */
 extern void async_scheduler_tick (void);
+
+/* Arm a one-shot event-loop timeout that runs a scheduler tick.  In
+   interactive mode this registers with event_stream_generate_wakeup so the
+   tick fires from the top-level event loop regardless of whether any fd
+   activity happens.  No-op in batch mode (tests drive the tick explicitly)
+   and harmless during early init before event_stream is installed.  */
+extern void async_schedule_wakeup_tick (unsigned int milliseconds);
 
 /* When non-zero, async_scheduler_tick() becomes a no-op.  Bumped around
    next_event_internal() (and any other caller frame holding GCPRO'd or
