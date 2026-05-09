@@ -189,3 +189,34 @@
           "first monitor receives :exit")
   (Assert (and (listp m2) (eq (car m2) :exit))
           "second monitor receives :exit"))
+
+;; Test 11: join_waiter gets a wakeup tick even when Phase 2 has already
+;; passed it in the coroutine list.
+;;
+;; Regression test for the GUI-mode bug where display-buffer never appeared:
+;; the outer coroutine (head of all_coros) blocks on WAIT_JOIN, an inner
+;; coroutine (tail of all_coros) completes, the trampoline resumes the outer
+;; coro and must schedule a wakeup so the outer coro actually runs.
+;;
+;; We verify this with exactly 2 explicit ticks: tick 1 starts both coros and
+;; the inner one runs to completion, tick 2 runs the now-runnable outer coro.
+;; If the wakeup arm is missing the outer coro stays RUNNABLE forever (in the
+;; interactive event loop) — here in batch mode the second explicit tick
+;; covers the same scheduler path.
+(let ((result 'unset))
+  (async-spawn-coroutine
+   (lambda (_)
+     ;; Outer coro is spawned first -> head of all_coros.
+     ;; Inner coro spawned here -> tail of all_coros.
+     ;; Phase 2 will process outer first (WAIT_JOIN, skip), then inner
+     ;; (runs to completion, trampoline resumes outer -> RUNNABLE).
+     (let ((h (actor-spawn-internal nil (lambda (_) 'inner-done) nil)))
+       (setq result (actor-join-internal h))))
+   nil)
+  ;; Tick 1: outer starts, yields on WAIT_JOIN; inner starts, completes,
+  ;;         trampoline marks outer RUNNABLE and arms wakeup.
+  (async-scheduler-tick)
+  ;; Tick 2: outer runs, sets result.
+  (async-scheduler-tick)
+  (Assert (equal result 'inner-done)
+          "join_waiter runs after inner coroutine completes (wakeup armed)"))

@@ -3088,16 +3088,22 @@ static void
 Xt_timeout_to_emacs_event (Lisp_Event *emacs_event)
 {
   Lisp_Object timeout = VXt_completed_timeouts;
+  EMACS_INT interval_id;
 
   assert (!NILP (timeout));
 
   VXt_completed_timeouts = XCDR (VXt_completed_timeouts);
 
+  interval_id = (EMACS_INT) STORE_LISP_IN_VOID (timeout);
+#ifdef DEBUG_XEMACS
+  stderr_out ("[Xt-timeout] to_emacs_event: timeout=%p interval_id=%ld\n",
+             (void *)timeout, (long)interval_id);
+#endif
+
   /* timeout events have nil as channel */
   set_event_type (emacs_event, timeout_event);
   SET_EVENT_TIMESTAMP_ZERO (emacs_event); /* #### wrong!! */
-  SET_EVENT_TIMEOUT_INTERVAL_ID (emacs_event,
-                                 (EMACS_INT) STORE_LISP_IN_VOID (timeout));
+  SET_EVENT_TIMEOUT_INTERVAL_ID (emacs_event, interval_id);
   SET_EVENT_TIMEOUT_FUNCTION (emacs_event, Qnil);
   SET_EVENT_TIMEOUT_OBJECT (emacs_event, Qnil);
 }

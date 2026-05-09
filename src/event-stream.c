@@ -296,7 +296,14 @@ external_debugging_print_event (const Ascbyte *event_description,
 #define DEBUG_PRINT_EMACS_EVENT(string, event)
 #endif
 
-
+/* Debug logging macro for event stream — compiled out in release builds */
+#ifdef DEBUG_XEMACS
+#define EVENT_DEBUG(...) stderr_out (__VA_ARGS__)
+#else
+#define EVENT_DEBUG(...) ((void)0)
+#endif
+
+
 /* The callback routines for the window system or terminal driver */
 struct event_stream *event_stream;
 
@@ -1126,6 +1133,9 @@ event_stream_generate_wakeup (unsigned int milliseconds,
 	event_stream_add_timeout (timeout->next_signal_time);
       pending_timeout_list = noseeum_cons (op, pending_timeout_list);
     }
+  EVENT_DEBUG ("[event-wakeup] generate: id=%ld interval_id=%ld function=%p object=%p async=%d\n",
+             (long)timeout->id, (long)timeout->interval_id,
+             (void *)timeout->function, (void *)timeout->object, async_p);
   return timeout->id;
 }
 
@@ -1159,21 +1169,32 @@ event_stream_resignal_wakeup (EMACS_INT interval_id, Boolint async_p,
   timeout_list = async_p ? &pending_async_timeout_list : &pending_timeout_list;
 
   /* Find the timeout on the list of pending ones. */
+  EVENT_DEBUG ("[event-wakeup] resignal: interval_id=%ld async=%d\n",
+             (long)interval_id, async_p);
   LIST_LOOP (rest, *timeout_list)
     {
       timeout = XTIMEOUT (XCAR (rest));
+      EVENT_DEBUG ("[event-wakeup]   checking: id=%ld interval_id=%ld match=%d\n",
+                 (long)timeout->id, (long)timeout->interval_id,
+                 timeout->interval_id == interval_id);
       if (timeout->interval_id == interval_id)
 	break;
     }
 
-  assert (!NILP (rest));
-  op = XCAR (rest);
-  timeout = XTIMEOUT (op);
-  /* We make sure to snarf the data out of the timeout object before
-     we free it with free_normal_lisp_object(). */
-  id = timeout->id;
-  *function = timeout->function;
-  *object = timeout->object;
+  if (NILP (rest))
+    EVENT_DEBUG ("[event-wakeup]   ERROR: no match found!\n");
+  else
+    {
+      op = XCAR (rest);
+      timeout = XTIMEOUT (op);
+      /* We make sure to snarf the data out of the timeout object before
+         we free it with free_normal_lisp_object(). */
+      id = timeout->id;
+      *function = timeout->function;
+      *object = timeout->object;
+      EVENT_DEBUG ("[event-wakeup]   found: id=%ld function=%p object=%p\n",
+                 (long)id, (void *)*function, (void *)*object);
+    }
 
   /* Remove this one from the list of pending timeouts */
   *timeout_list = delq_no_quit_and_free_cons (op, *timeout_list);
@@ -2154,6 +2175,9 @@ next_event_internal (Lisp_Object target_event, int allow_queued)
   UNGCPRO;
 
   unbind_to (speccount);
+
+  EVENT_DEBUG ("[next-event] returning: event_type=%d forbidden=%d\n",
+             EVENT_TYPE (XEVENT (target_event)), async_tick_forbidden);
 
   PROFILE_RECORD_EXITING_SECTION (QSnext_event_internal);
 }
@@ -3216,6 +3240,10 @@ execute_internal_event (Lisp_Object event)
     case timeout_event:
       {
 	Lisp_Event *e = XEVENT (event);
+
+	EVENT_DEBUG ("[execute-event] timeout_event: function=%p object=%p\n",
+                   (void *)EVENT_TIMEOUT_FUNCTION (e),
+                   (void *)EVENT_TIMEOUT_OBJECT (e));
 
 	if (!NILP (EVENT_TIMEOUT_FUNCTION (e)))
 	  call1 (EVENT_TIMEOUT_FUNCTION (e),

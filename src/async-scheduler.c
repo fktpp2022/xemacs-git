@@ -15,6 +15,13 @@
 extern void async_http_tick (void);
 #endif
 
+/* Debug logging macro — compiled out in release builds */
+#ifdef DEBUG_XEMACS
+#define ASYNC_DEBUG(...) stderr_out (__VA_ARGS__)
+#else
+#define ASYNC_DEBUG(...) ((void)0)
+#endif
+
 /* XEmacs interpreter state globals we must save/restore across coro_swap */
 extern struct specbinding *specpdl;
 extern struct specbinding *specpdl_ptr;
@@ -71,6 +78,9 @@ static struct gcpro       *sched_gcprolist;
 
 /* Number of live (non-DEAD) coroutines */
 static int coro_count = 0;
+
+/* Tick-within-tick re-entrancy guard (same thread, same C stack). */
+static int in_tick = 0;
 
 Lisp_Object Qasync_timeout;
 Lisp_Object Qasync_error;
@@ -294,6 +304,9 @@ coro_trampoline (void)
         {
           coro_resume_with_error (c->join_waiter, c->error);
           c->join_waiter = NULL;
+          /* Arm a wakeup: the join_waiter is now RUNNABLE but Phase 2 of
+             the current tick may have already passed it in the list. */
+          async_schedule_wakeup_tick (1);
         }
     }
   else
@@ -304,6 +317,7 @@ coro_trampoline (void)
         {
           coro_resume (c->join_waiter, ret);
           c->join_waiter = NULL;
+          async_schedule_wakeup_tick (1);
         }
     }
 
@@ -366,6 +380,8 @@ coro_spawn (Lisp_Object fn, Lisp_Object arg)
   c->monitor_cap = 0;
   c->is_actor = 0;
   c->actor_name = Qnil;
+
+  ASYNC_DEBUG ("[coro-spawn] new coro=%p fn=%p\n", (void *)c, (void *)fn);
 
   /* Allocate per-coroutine specpdl array, sized to hold the current spawning
      context's bindings plus headroom for the coroutine's own bindings. */
@@ -449,10 +465,15 @@ coro_spawn (Lisp_Object fn, Lisp_Object arg)
 
   /* When spawned from outside any running coroutine (i.e. from top-level
      Lisp in the main thread), arm a wakeup so the event loop drives the
-     first tick.  Spawning from inside another coro is a no-op here: the
-     spawner will yield or terminate soon, at which point its own yield
-     wakeup (or the tick that contains both coros) drives the new one.  */
-  if (current_coro == NULL)
+     first tick.
+
+     When spawned from inside another coroutine with WAIT_NONE (immediately
+     runnable), we also need to arm a wakeup. The Phase 2 loop that's
+     currently running the spawner has already captured its snapshot of
+     all_coros, so the new coro won't be picked up in this tick. Without
+     this extra wakeup, a spawner that immediately waits on the child
+     (e.g. via async-let → actor-join) will deadlock. */
+  if (current_coro == NULL || c->wait_reason == WAIT_NONE)
     async_schedule_wakeup_tick (1);
 
   return c;
@@ -467,6 +488,8 @@ coro_yield (wait_reason_t reason)
   assert (c != NULL);
   c->state = CORO_SUSPENDED;
   c->wait_reason = reason;
+
+  ASYNC_DEBUG ("[coro-yield] coro=%p reason=%d\n", (void *)c, reason);
 
   /* Save the coroutine's current specpdl/catchlist/gcprolist positions */
   c->coro_specpdl_ptr          = specpdl_ptr;
@@ -497,13 +520,16 @@ coro_yield (wait_reason_t reason)
        WAIT_TIMER:  wake at the timeout deadline so the tick can fire
                     coro_resume_with_error(Qasync_timeout) even if nothing
                     else on the system pokes the event loop.
+       WAIT_FD:     poll every 10 ms so async_http_tick/curl_multi_perform
+                    runs even in GUI (Xt) mode where poll_fds_for_input is
+                    never called and the curl fds have no XtAppAddInput
+                    handler.  10 ms matches libcurl's default timer cadence.
      WAIT_MAILBOX and WAIT_JOIN rely on external wakeups (actor-send or a
-     dying coro), which arm wakeups at their own trigger points below.
-     WAIT_FD similarly depends on fd readiness; poll_fds_for_input drives
-     the tick when the fd fires, and libcurl's multi-select already owns
-     that path. */
+     dying coro), which arm wakeups at their own trigger points below. */
   if (reason == WAIT_NONE)
     async_schedule_wakeup_tick (1);
+  else if (reason == WAIT_FD)
+    async_schedule_wakeup_tick (10);
   else if (reason == WAIT_TIMER)
     {
       EMACS_TIME now, delta;
@@ -563,7 +589,9 @@ int async_tick_forbidden = 0;
 static Lisp_Object
 async_tick_unforbid (Lisp_Object ignored)
 {
+  (void) ignored;
   if (async_tick_forbidden > 0) async_tick_forbidden--;
+  ASYNC_DEBUG ("[async-tick] unforbid: forbidden=%d\n", async_tick_forbidden);
   return Qnil;
 }
 
@@ -571,18 +599,23 @@ void
 async_tick_forbid_start (void)
 {
   async_tick_forbidden++;
+  ASYNC_DEBUG ("[async-tick] forbid_start: forbidden=%d\n", async_tick_forbidden);
   record_unwind_protect (async_tick_unforbid, Qnil);
 }
 
 void
 async_scheduler_tick (void)
 {
-  /* Tick-within-tick re-entrancy guard (same thread, same C stack). */
-  static int in_tick = 0;
   xemacs_coro *c, *next_c;
   EMACS_TIME now;
 
-  if (in_tick || async_tick_forbidden) return;
+  if (in_tick || async_tick_forbidden)
+    {
+      if (all_coros)
+        ASYNC_DEBUG ("[async-tick] BLOCKED: in_tick=%d forbidden=%d coros=%d\n",
+                    in_tick, async_tick_forbidden, coro_count);
+      return;
+    }
   in_tick = 1;
 
 #ifdef HAVE_LIBCURL
@@ -608,10 +641,17 @@ async_scheduler_tick (void)
     }
 
   /* Phase 2: run all RUNNABLE coroutines */
+  ASYNC_DEBUG ("[async-tick] Phase 2: checking %d coros\n", coro_count);
   for (c = all_coros; c; c = next_c)
     {
       next_c = c->next;
-      if (c->state != CORO_RUNNABLE) continue;
+      if (c->state != CORO_RUNNABLE)
+        {
+          ASYNC_DEBUG ("[async-tick]   coro %p state=%d wait=%d (skip)\n",
+                      (void *)c, c->state, c->wait_reason);
+          continue;
+        }
+      ASYNC_DEBUG ("[async-tick]   coro %p RUNNABLE -> running\n", (void *)c);
 
       c->state = CORO_RUNNING;
       current_coro = c;
@@ -650,6 +690,8 @@ async_scheduler_tick (void)
       coro_swap (&scheduler_ctx, &c->ctx);
       current_coro = NULL;
 
+      ASYNC_DEBUG ("[async-tick] coro %p returned, state=%d\n", (void *)c, c->state);
+
       /* Restore scheduler's interpreter state after coro_swap.
          coro_yield already switched state back; for death paths the trampoline
          does its own coro_swap, so we must always unconditionally restore here.
@@ -680,6 +722,24 @@ async_scheduler_tick (void)
           c->stack = NULL;
         }
     }
+
+  /* If there are still WAIT_FD coroutines, re-arm a wakeup tick.
+     In GUI (Xt) mode, add_extra_fd only sets TTY event loop masks,
+     so Xt doesn't know about these fds and won't call their callbacks.
+     We rely on periodic ticks to call async_http_tick() which drives
+     curl_multi_perform().  10 ms matches libcurl's default timer cadence. */
+  {
+    xemacs_coro *c;
+    int has_wait_fd = 0;
+    for (c = all_coros; c; c = c->next)
+      if (c->state == CORO_SUSPENDED && c->wait_reason == WAIT_FD)
+        {
+          has_wait_fd = 1;
+          break;
+        }
+    if (has_wait_fd)
+      async_schedule_wakeup_tick (10);
+  }
 
   in_tick = 0;
 }
@@ -722,6 +782,9 @@ async_schedule_wakeup_tick (unsigned int milliseconds)
   if (milliseconds < 1)
     milliseconds = 1;
 
+  ASYNC_DEBUG ("[async-wakeup] arming wakeup: %u ms, forbidden=%d\n",
+              milliseconds, async_tick_forbidden);
+
   /* 0 for vanilliseconds = one-shot (no resignal). */
   event_stream_generate_wakeup (milliseconds, 0,
                                 Vasync_wakeup_tick_fn, Qnil, 0);
@@ -737,6 +800,8 @@ OBJECT is the timeout's object slot; it is ignored.
        (object))
 {
   (void) object;
+  ASYNC_DEBUG ("[async-timer-cb] tick-from-timer called, forbidden=%d\n",
+              async_tick_forbidden);
   async_scheduler_tick ();
   return Qnil;
 }
