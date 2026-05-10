@@ -621,6 +621,14 @@ restarts a worker actor if it crashes.
 @lisp
 (require 'actor)
 
+(defun do-risky-work (job)
+  "Simulate work that might fail.
+JOB can be :crash to force a crash, or any other value to succeed."
+  (message "Worker processing job: %s" job)
+  (when (eq job :crash)
+    (error "Worker crashed!"))
+  (message "Worker completed job: %s" job))
+
 (defun my-start-worker ()
   "Spawn a fragile worker actor and return its handle."
   (actor-spawn 'fragile-worker
@@ -635,16 +643,21 @@ restarts a worker actor if it crashes.
   (lambda (_)
     (let ((worker (my-start-worker)))
       (actor-monitor worker)
+      (message "Supervisor started. Send messages to 'supervisor to test.")
+      (message "  (actor-send (actor-find 'supervisor) :normal-job)  -- normal work")
+      (message "  (actor-send (actor-find 'supervisor) :crash)       -- force crash & restart")
       (while t
         (let ((msg (actor-receive)))
           (cond
            ((and (consp msg) (eq (car msg) :exit))
             ;; Worker died -- restart and re-monitor
-            (message "Worker exited, restarting...")
+            (message "Worker exited with reason: %s" (cdr msg))
+            (message "Restarting worker...")
             (setq worker (my-start-worker))
             (actor-monitor worker))
            (t
             ;; Forward all other messages to the worker
+            (message "Supervisor forwarding: %s" msg)
             (actor-send worker msg)))))))
   nil)
 @end lisp
@@ -653,3 +666,22 @@ restarts a worker actor if it crashes.
 delivered to the supervisor's mailbox when the worker finishes, whether
 normally or due to an unhandled error.  The supervisor restarts the
 worker and calls @code{actor-monitor} again on the new handle.
+
+  To test the crash-and-restart behavior:
+
+@lisp
+;; 1. Load the above code
+
+;; 2. Send a normal job (should succeed)
+(actor-send (actor-find 'supervisor) :normal-job)
+
+;; 3. Force a crash (supervisor should restart the worker)
+(actor-send (actor-find 'supervisor) :crash)
+
+;; 4. Send another job (should be handled by the new worker)
+(actor-send (actor-find 'supervisor) :another-job)
+@end lisp
+
+  The @code{:exit} message format is: @code{(:exit . REASON)}, where
+@var{reason} is @code{nil} on normal exit, or the error data on
+abnormal exit (e.g., @code{(error "Worker crashed!")}).
