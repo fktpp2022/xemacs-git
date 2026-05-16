@@ -13,7 +13,7 @@ This document specifies the architecture to transform XEmacs from a monolithic a
 
 ### Goals
 - Transform monolithic XEmacs into independent modules
-- Support multiple UX engines (TTY, X11, GTK, macOS, etc.)
+- Support multiple UX engines (TTY, X11, GTK, native Windows, macOS, etc.)
 - Add built-in LSP, Tree-sitter, and ACP support
 - Enable distributed deployment (co-located file editors)
 - Maintain backward compatibility (TRAMP for slow connections)
@@ -24,43 +24,43 @@ This document specifies the architecture to transform XEmacs from a monolithic a
 
 ### System Overview
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        UX Layer (Processes)                       │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐          │
-│  │ X11 GUI  │  │  TTY     │  │  GTK GUI │  │  macOS   │          │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘          │
-└───────┼─────────────┼─────────────┼─────────────┼──────────────────┘
-        │             │             │             │
-        └──────────────┴──────┬──────┴─────────────┘
-                             │
-                      MessagePack-RPC
-                      (Unix Domain / TCP)
-                             │
-┌────────────────────────────┼─────────────────────────────────────┐
-│                             ▼                                     │
-│              ┌───────────────────────────────┐                   │
-│              │      Async I/O Core           │                   │
-│              │  ┌─────────────────────────┐  │                   │
-│              │  │ Event Loop (libuv)      │  │                   │
-│              │  │ File Watching (inotify) │  │                   │
-│              │  │ Process Management      │  │                   │
-│              │  │ RPC Server/Client       │  │                   │
-│              │  │ Service Discovery       │  │                   │
-│              │  └─────────────────────────┘  │                   │
-│              └───────────────┬───────────────┘                   │
-│                             │                                     │
-│         ┌───────────────────┼───────────────────┐                 │
-│         ▼                   ▼                   ▼                 │
-│  ┌─────────────┐   ┌─────────────┐   ┌───────────────────┐        │
-│  │  Elisp      │   │  Buffer/    │   │  LSP/Tree-sitter/ │        │
-│  │  Engine     │   │  File Mgr   │   │  ACP Core         │        │
-│  └─────────────┘   └─────────────┘   └───────────────────┘        │
-└───────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            UX Layer (Processes)                             │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────────────┐  ┌──────────┐│
+│  │ X11 GUI  │  │  TTY     │  │  GTK GUI │  │ Native Windows  │  │  macOS   ││
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────────┬────────┘  └────┬─────┘│
+└───────┼─────────────┼─────────────┼─────────────┼───────────────┼───────────────────┘
+        │             │             │             │               │
+        └──────────────┴──────────────┴───────────┴───────────────┘
+                                     │
+                              MessagePack-RPC
+                              (Unix Domain / TCP / Named Pipes)
+                                     │
+┌────────────────────────────────────┼───────────────────────────────────────────────────┐
+│                                    ▼                                                   │
+│                       ┌───────────────────────────────┐                               │
+│                       │      Async I/O Core           │                               │
+│                       │  ┌─────────────────────────┐  │                               │
+│                       │  │ Event Loop (libuv)      │  │                               │
+│                       │  │ File Watching (inotify) │  │                               │
+│                       │  │ Process Management      │  │                               │
+│                       │  │ RPC Server/Client       │  │                               │
+│                       │  │ Service Discovery       │  │                               │
+│                       │  └─────────────────────────┘  │                               │
+│                       └───────────────┬───────────────┘                               │
+│                                      │                                                │
+│         ┌────────────────────────────┼────────────────────────────┐                 │
+│         ▼                            ▼                            ▼                 │
+│  ┌─────────────┐          ┌─────────────┐          ┌───────────────────┐              │
+│  │  Elisp      │          │  Buffer/    │          │  LSP/Tree-sitter/ │              │
+│  │  Engine     │          │  File Mgr   │          │  ACP Core         │              │
+│  └─────────────┘          └─────────────┘          └───────────────────┘              │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Communication
 - **Protocol:** MessagePack-RPC (schema-free, dynamic)
-- **Local:** Unix Domain Sockets (UDS)
+- **Local:** Unix Domain Sockets (UDS) on Unix-like systems, Named Pipes on Windows
 - **Remote:** TCP/IP (TLS optional)
 - **Topology:** Async Core is central hub
 
@@ -81,7 +81,7 @@ This document specifies the architecture to transform XEmacs from a monolithic a
 2. **RPC Server:** Accepts connections from UX modules
 3. **RPC Client:** Connects to Elisp, Buffer, LSP modules
 4. **Process Management:** Spawns, monitors, terminates other modules
-5. **File Watching:** Inotify/FSEvents integration
+5. **File Watching:** Inotify (Linux), FSEvents (macOS), ReadDirectoryChangesW (Windows) integration
 6. **Timer Management:** Event-driven timers
 
 **APIs (MessagePack-RPC):**
@@ -202,11 +202,11 @@ This document specifies the architecture to transform XEmacs from a monolithic a
 **Current Equivalent:** `src/console-tty.c`, `src/console-x.c`, `src/console-gtk.c`, etc.
 
 **Available Modules:**
-- `xemacs-tty`: TTY/console UX
-- `xemacs-gtk`: GTK 3+ GUI UX
-- `xemacs-x11`: X11 GUI UX
-- `xemacs-msw`: Windows GUI UX
-- `xemacs-cocoa`: macOS GUI UX
+- `xemacs-tty`: TTY/console UX (cross-platform)
+- `xemacs-gtk`: GTK 3+ GUI UX (Unix-like systems)
+- `xemacs-x11`: X11 GUI UX (Unix-like systems)
+- `xemacs-msw`: Native Windows GUI UX
+- `xemacs-cocoa`: Native macOS GUI UX
 
 **Common Purpose:**
 - Render editor UI (display)
@@ -227,8 +227,9 @@ This document specifies the architecture to transform XEmacs from a monolithic a
 
 **Build & Deployment:**
 - Each UX module has independent `configure` and `Makefile`
-- Each links to required GUI libraries (GTK, X11, etc.)
+- Each links to required GUI libraries (GTK, X11, Windows native, macOS Cocoa, etc.)
 - Multiple UX modules can connect to same async core
+- On Windows: Native UX module (`xemacs-msw`) uses Windows API, communicates via Named Pipes
 
 ---
 
@@ -405,11 +406,11 @@ This document specifies the architecture to transform XEmacs from a monolithic a
 │   └── configure
 │
 ├── ux/
-│   ├── xemacs-tty/        # TTY UX
-│   ├── xemacs-gtk/        # GTK UX
-│   ├── xemacs-x11/        # X11 UX
-│   ├── xemacs-msw/        # Windows UX
-│   └── xemacs-cocoa/      # macOS UX
+│   ├── xemacs-tty/        # TTY/console UX (cross-platform)
+│   ├── xemacs-gtk/        # GTK GUI UX (Unix-like systems)
+│   ├── xemacs-x11/        # X11 GUI UX (Unix-like systems)
+│   ├── xemacs-msw/        # Native Windows GUI UX
+│   └── xemacs-cocoa/      # Native macOS GUI UX
 │
 ├── lib/                   # Shared libraries
 │   ├── msgpack-rpc/       # MessagePack-RPC library
