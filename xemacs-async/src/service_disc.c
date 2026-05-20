@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 static service_info_t services[MAX_SERVICES];
 static int service_count = 0;
