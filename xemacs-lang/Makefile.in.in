@@ -1,0 +1,4 @@
+bin_PROGRAMS = xemacs-lang
+xemacs_lang_SOURCES = src/lsp_client.c src/tree_sitter.c
+xemacs_lang_LDADD = -luv -lmsgpackc -ltree-sitter
+include_HEADERS = include/xemacs-lang.h

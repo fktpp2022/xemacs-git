@@ -1,0 +1,4 @@
+bin_PROGRAMS = xemacs-async
+xemacs_async_SOURCES = src/event_loop.c src/rpc_server.c src/rpc_client.c src/file_watch.c src/service_disc.c
+xemacs_async_LDADD = -luv -lmsgpackc
+include_HEADERS = include/xemacs-async.h

@@ -1,0 +1,4 @@
+bin_PROGRAMS = xemacs-elisp
+xemacs_elisp_SOURCES = src/eval.c src/bytecode.c src/symbols.c src/rpc_glue.c
+xemacs_elisp_LDADD = -luv -lmsgpackc
+include_HEADERS = include/xemacs-elisp.h
