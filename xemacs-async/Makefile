@@ -88,7 +88,11 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 check_PROGRAMS = test_event_loop$(EXEEXT) \
-	test_service_discovery$(EXEEXT)
+	test_service_discovery$(EXEEXT) \
+	test_service_discovery_comprehensive$(EXEEXT) \
+	test_event_loop_comprehensive$(EXEEXT) \
+	test_file_watch_comprehensive$(EXEEXT) \
+	test_rpc_client_comprehensive$(EXEEXT)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -146,10 +150,30 @@ libxemacsasync_a_OBJECTS = $(am_libxemacsasync_a_OBJECTS)
 am_test_event_loop_OBJECTS = tests/async/test_event_loop.$(OBJEXT)
 test_event_loop_OBJECTS = $(am_test_event_loop_OBJECTS)
 test_event_loop_DEPENDENCIES = libxemacsasync.a
+am_test_event_loop_comprehensive_OBJECTS =  \
+	tests/async/test_event_loop_comprehensive.$(OBJEXT)
+test_event_loop_comprehensive_OBJECTS =  \
+	$(am_test_event_loop_comprehensive_OBJECTS)
+test_event_loop_comprehensive_DEPENDENCIES = libxemacsasync.a
+am_test_file_watch_comprehensive_OBJECTS =  \
+	tests/async/test_file_watch_comprehensive.$(OBJEXT)
+test_file_watch_comprehensive_OBJECTS =  \
+	$(am_test_file_watch_comprehensive_OBJECTS)
+test_file_watch_comprehensive_DEPENDENCIES = libxemacsasync.a
+am_test_rpc_client_comprehensive_OBJECTS =  \
+	tests/async/test_rpc_client_comprehensive.$(OBJEXT)
+test_rpc_client_comprehensive_OBJECTS =  \
+	$(am_test_rpc_client_comprehensive_OBJECTS)
+test_rpc_client_comprehensive_DEPENDENCIES = libxemacsasync.a
 am_test_service_discovery_OBJECTS =  \
 	tests/async/test_service_discovery.$(OBJEXT)
 test_service_discovery_OBJECTS = $(am_test_service_discovery_OBJECTS)
 test_service_discovery_DEPENDENCIES = libxemacsasync.a
+am_test_service_discovery_comprehensive_OBJECTS =  \
+	tests/async/test_service_discovery_comprehensive.$(OBJEXT)
+test_service_discovery_comprehensive_OBJECTS =  \
+	$(am_test_service_discovery_comprehensive_OBJECTS)
+test_service_discovery_comprehensive_DEPENDENCIES = libxemacsasync.a
 AM_V_P = $(am__v_P_$(V))
 am__v_P_ = $(am__v_P_$(AM_DEFAULT_VERBOSITY))
 am__v_P_0 = false
@@ -169,7 +193,11 @@ am__depfiles_remade = src/$(DEPDIR)/event_loop.Po \
 	src/$(DEPDIR)/file_watch.Po src/$(DEPDIR)/rpc_client.Po \
 	src/$(DEPDIR)/rpc_server.Po src/$(DEPDIR)/service_disc.Po \
 	tests/async/$(DEPDIR)/test_event_loop.Po \
-	tests/async/$(DEPDIR)/test_service_discovery.Po
+	tests/async/$(DEPDIR)/test_event_loop_comprehensive.Po \
+	tests/async/$(DEPDIR)/test_file_watch_comprehensive.Po \
+	tests/async/$(DEPDIR)/test_rpc_client_comprehensive.Po \
+	tests/async/$(DEPDIR)/test_service_discovery.Po \
+	tests/async/$(DEPDIR)/test_service_discovery_comprehensive.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -184,9 +212,17 @@ am__v_CCLD_ = $(am__v_CCLD_$(AM_DEFAULT_VERBOSITY))
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(libxemacsasync_a_SOURCES) $(test_event_loop_SOURCES) \
-	$(test_service_discovery_SOURCES)
+	$(test_event_loop_comprehensive_SOURCES) \
+	$(test_file_watch_comprehensive_SOURCES) \
+	$(test_rpc_client_comprehensive_SOURCES) \
+	$(test_service_discovery_SOURCES) \
+	$(test_service_discovery_comprehensive_SOURCES)
 DIST_SOURCES = $(libxemacsasync_a_SOURCES) $(test_event_loop_SOURCES) \
-	$(test_service_discovery_SOURCES)
+	$(test_event_loop_comprehensive_SOURCES) \
+	$(test_file_watch_comprehensive_SOURCES) \
+	$(test_rpc_client_comprehensive_SOURCES) \
+	$(test_service_discovery_SOURCES) \
+	$(test_service_discovery_comprehensive_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -489,7 +525,7 @@ mandir = ${datarootdir}/man
 mkdir_p = $(MKDIR_P)
 oldincludedir = /usr/include
 pdfdir = ${docdir}
-prefix = /tmp/xemacs-test
+prefix = /usr/local
 program_transform_name = s,x,x,
 psdir = ${docdir}
 runstatedir = ${localstatedir}/run
@@ -509,6 +545,14 @@ test_event_loop_SOURCES = tests/async/test_event_loop.c
 test_event_loop_LDADD = libxemacsasync.a -luv -lmsgpackc
 test_service_discovery_SOURCES = tests/async/test_service_discovery.c
 test_service_discovery_LDADD = libxemacsasync.a -luv -lmsgpackc
+test_service_discovery_comprehensive_SOURCES = tests/async/test_service_discovery_comprehensive.c
+test_service_discovery_comprehensive_LDADD = libxemacsasync.a -luv -lmsgpackc
+test_event_loop_comprehensive_SOURCES = tests/async/test_event_loop_comprehensive.c
+test_event_loop_comprehensive_LDADD = libxemacsasync.a -luv -lmsgpackc
+test_file_watch_comprehensive_SOURCES = tests/async/test_file_watch_comprehensive.c
+test_file_watch_comprehensive_LDADD = libxemacsasync.a -luv -lmsgpackc
+test_rpc_client_comprehensive_SOURCES = tests/async/test_rpc_client_comprehensive.c
+test_rpc_client_comprehensive_LDADD = libxemacsasync.a -luv -lmsgpackc
 TESTS = $(check_PROGRAMS)
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
@@ -630,6 +674,27 @@ tests/async/test_event_loop.$(OBJEXT): tests/async/$(am__dirstamp) \
 test_event_loop$(EXEEXT): $(test_event_loop_OBJECTS) $(test_event_loop_DEPENDENCIES) $(EXTRA_test_event_loop_DEPENDENCIES) 
 	@rm -f test_event_loop$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_event_loop_OBJECTS) $(test_event_loop_LDADD) $(LIBS)
+tests/async/test_event_loop_comprehensive.$(OBJEXT):  \
+	tests/async/$(am__dirstamp) \
+	tests/async/$(DEPDIR)/$(am__dirstamp)
+
+test_event_loop_comprehensive$(EXEEXT): $(test_event_loop_comprehensive_OBJECTS) $(test_event_loop_comprehensive_DEPENDENCIES) $(EXTRA_test_event_loop_comprehensive_DEPENDENCIES) 
+	@rm -f test_event_loop_comprehensive$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_event_loop_comprehensive_OBJECTS) $(test_event_loop_comprehensive_LDADD) $(LIBS)
+tests/async/test_file_watch_comprehensive.$(OBJEXT):  \
+	tests/async/$(am__dirstamp) \
+	tests/async/$(DEPDIR)/$(am__dirstamp)
+
+test_file_watch_comprehensive$(EXEEXT): $(test_file_watch_comprehensive_OBJECTS) $(test_file_watch_comprehensive_DEPENDENCIES) $(EXTRA_test_file_watch_comprehensive_DEPENDENCIES) 
+	@rm -f test_file_watch_comprehensive$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_file_watch_comprehensive_OBJECTS) $(test_file_watch_comprehensive_LDADD) $(LIBS)
+tests/async/test_rpc_client_comprehensive.$(OBJEXT):  \
+	tests/async/$(am__dirstamp) \
+	tests/async/$(DEPDIR)/$(am__dirstamp)
+
+test_rpc_client_comprehensive$(EXEEXT): $(test_rpc_client_comprehensive_OBJECTS) $(test_rpc_client_comprehensive_DEPENDENCIES) $(EXTRA_test_rpc_client_comprehensive_DEPENDENCIES) 
+	@rm -f test_rpc_client_comprehensive$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_rpc_client_comprehensive_OBJECTS) $(test_rpc_client_comprehensive_LDADD) $(LIBS)
 tests/async/test_service_discovery.$(OBJEXT):  \
 	tests/async/$(am__dirstamp) \
 	tests/async/$(DEPDIR)/$(am__dirstamp)
@@ -637,6 +702,13 @@ tests/async/test_service_discovery.$(OBJEXT):  \
 test_service_discovery$(EXEEXT): $(test_service_discovery_OBJECTS) $(test_service_discovery_DEPENDENCIES) $(EXTRA_test_service_discovery_DEPENDENCIES) 
 	@rm -f test_service_discovery$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_service_discovery_OBJECTS) $(test_service_discovery_LDADD) $(LIBS)
+tests/async/test_service_discovery_comprehensive.$(OBJEXT):  \
+	tests/async/$(am__dirstamp) \
+	tests/async/$(DEPDIR)/$(am__dirstamp)
+
+test_service_discovery_comprehensive$(EXEEXT): $(test_service_discovery_comprehensive_OBJECTS) $(test_service_discovery_comprehensive_DEPENDENCIES) $(EXTRA_test_service_discovery_comprehensive_DEPENDENCIES) 
+	@rm -f test_service_discovery_comprehensive$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_service_discovery_comprehensive_OBJECTS) $(test_service_discovery_comprehensive_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -652,7 +724,11 @@ include src/$(DEPDIR)/rpc_client.Po # am--include-marker
 include src/$(DEPDIR)/rpc_server.Po # am--include-marker
 include src/$(DEPDIR)/service_disc.Po # am--include-marker
 include tests/async/$(DEPDIR)/test_event_loop.Po # am--include-marker
+include tests/async/$(DEPDIR)/test_event_loop_comprehensive.Po # am--include-marker
+include tests/async/$(DEPDIR)/test_file_watch_comprehensive.Po # am--include-marker
+include tests/async/$(DEPDIR)/test_rpc_client_comprehensive.Po # am--include-marker
 include tests/async/$(DEPDIR)/test_service_discovery.Po # am--include-marker
+include tests/async/$(DEPDIR)/test_service_discovery_comprehensive.Po # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -911,6 +987,34 @@ test_service_discovery.log: test_service_discovery$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test_service_discovery_comprehensive.log: test_service_discovery_comprehensive$(EXEEXT)
+	@p='test_service_discovery_comprehensive$(EXEEXT)'; \
+	b='test_service_discovery_comprehensive'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test_event_loop_comprehensive.log: test_event_loop_comprehensive$(EXEEXT)
+	@p='test_event_loop_comprehensive$(EXEEXT)'; \
+	b='test_event_loop_comprehensive'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test_file_watch_comprehensive.log: test_file_watch_comprehensive$(EXEEXT)
+	@p='test_file_watch_comprehensive$(EXEEXT)'; \
+	b='test_file_watch_comprehensive'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test_rpc_client_comprehensive.log: test_rpc_client_comprehensive$(EXEEXT)
+	@p='test_rpc_client_comprehensive$(EXEEXT)'; \
+	b='test_rpc_client_comprehensive'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 .test.log:
 	@p='$<'; \
 	$(am__set_b); \
@@ -1156,7 +1260,11 @@ distclean: distclean-am
 	-rm -f src/$(DEPDIR)/rpc_server.Po
 	-rm -f src/$(DEPDIR)/service_disc.Po
 	-rm -f tests/async/$(DEPDIR)/test_event_loop.Po
+	-rm -f tests/async/$(DEPDIR)/test_event_loop_comprehensive.Po
+	-rm -f tests/async/$(DEPDIR)/test_file_watch_comprehensive.Po
+	-rm -f tests/async/$(DEPDIR)/test_rpc_client_comprehensive.Po
 	-rm -f tests/async/$(DEPDIR)/test_service_discovery.Po
+	-rm -f tests/async/$(DEPDIR)/test_service_discovery_comprehensive.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-hdr distclean-tags
@@ -1210,7 +1318,11 @@ maintainer-clean: maintainer-clean-am
 	-rm -f src/$(DEPDIR)/rpc_server.Po
 	-rm -f src/$(DEPDIR)/service_disc.Po
 	-rm -f tests/async/$(DEPDIR)/test_event_loop.Po
+	-rm -f tests/async/$(DEPDIR)/test_event_loop_comprehensive.Po
+	-rm -f tests/async/$(DEPDIR)/test_file_watch_comprehensive.Po
+	-rm -f tests/async/$(DEPDIR)/test_rpc_client_comprehensive.Po
 	-rm -f tests/async/$(DEPDIR)/test_service_discovery.Po
+	-rm -f tests/async/$(DEPDIR)/test_service_discovery_comprehensive.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

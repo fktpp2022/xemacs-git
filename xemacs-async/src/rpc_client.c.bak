@@ -6,20 +6,13 @@
 #include <unistd.h>
 
 int rpc_client_connect(rpc_client_t *client, const char *name, const char *socket_path) {
-    if (client == NULL) return -1;
-    if (name == NULL) return -1;
-    
     client->name = strdup(name);
-    if (client->name == NULL) return -1;
-    
     uv_tcp_init(async_core.loop, &client->handle);
     // For now, just return success since we don't need full connect implementation
     return 0;
 }
 
 int rpc_client_send(rpc_client_t *client, const char *method, msgpack_object params) {
-    if (client == NULL || client->name == NULL) return -1;
-    
     msgpack_sbuffer_clear(async_core.sbuffer);
     msgpack_packer pk;
     msgpack_packer_init(&pk, async_core.sbuffer, msgpack_sbuffer_write);
@@ -33,24 +26,11 @@ int rpc_client_send(rpc_client_t *client, const char *method, msgpack_object par
     msgpack_pack_object(&pk, params);
     
     uv_write_t *req = malloc(sizeof(uv_write_t));
-    if (req == NULL) return -1;
-    
     uv_buf_t buf = uv_buf_init(async_core.sbuffer->data, async_core.sbuffer->size);
-    // 注意：由于rpc_client_connect是stub，这里可能会失败
-    // return uv_write(req, (uv_stream_t *)&client->handle, &buf, 1, NULL);
-    free(req);
-    return 0; // 暂时返回成功
+    return uv_write(req, (uv_stream_t *)&client->handle, &buf, 1, NULL);
 }
 
 void rpc_client_disconnect(rpc_client_t *client) {
-    if (client == NULL) return;
-    
-    if (client->name != NULL) {
-        free(client->name);
-        client->name = NULL;
-    }
-    
-    // 注意：由于rpc_client_connect是stub，handle未真正初始化
-    // uv_close可能会失败，暂时注释掉
-    // uv_close((uv_handle_t *)&client->handle, NULL);
+    uv_close((uv_handle_t *)&client->handle, NULL);
+    free(client->name);
 }
