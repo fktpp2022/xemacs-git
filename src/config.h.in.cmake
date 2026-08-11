@@ -19,7 +19,7 @@
 #ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200112L
 #endif
-#define _XOPEN_SOURCE 600
+#define _XOPEN_SOURCE 700
 #ifndef _ALL_SOURCE
 #define _ALL_SOURCE 1
 #endif

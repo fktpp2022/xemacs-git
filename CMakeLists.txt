@@ -160,7 +160,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 add_subdirectory(lib-src)
-add_subdirectory(lwlib)
+if(HAVE_X_WINDOWS)
+  add_subdirectory(lwlib)
+endif()
 add_subdirectory(src)
 
 if(XEMACS_WITH_MODULES)

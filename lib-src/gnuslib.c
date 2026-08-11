@@ -366,7 +366,7 @@ internet_addr (char *host)
   if (!NUMERIC_ADDR_ERROR)
     return numeric_addr;
   else if ((hp = gethostbyname(host)) != NULL)
-    return ((struct in_addr *)(hp->h_addr))->s_addr;
+    return ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
   else
     return -1;
 

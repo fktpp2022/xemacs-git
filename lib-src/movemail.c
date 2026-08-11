@@ -118,6 +118,23 @@ char * strerror (int errnum);
 #include <fcntl.h>
 #endif /* fcntl.h */
 
+#ifdef HAVE_FLOCK
+#include <sys/file.h>
+/* flock(2) is a 4.2BSD API that POSIX.1-2001 marked legacy in favor of
+   fcntl(F_SETLKW) advisory locks.  macOS never implemented a native
+   flock() syscall -- its libc provides only an emulation layered on
+   fcntl().  Under strict POSIX feature-test macros (_XOPEN_SOURCE=700,
+   which XEmacs sets) the macOS SDK therefore hides the flock() symbol and
+   the LOCK_* constants.  Rather than re-define the BSD constants and
+   call into the hidden emulation, fall back to the standard fcntl(2)
+   advisory-lock interface when flock() is unavailable. */
+#if defined(__APPLE__) && !defined(LOCK_EX)
+# define XEMACS_FLOCK_VIA_FCNTL 1
+#else
+# define XEMACS_FLOCK_VIA_FCNTL 0
+#endif
+#endif /* HAVE_FLOCK */
+
 #ifdef HAVE_LOCKING
 #include <sys/locking.h>
 #endif
@@ -408,8 +425,19 @@ main (int argc, char *argv[])
 #endif
 #ifdef HAVE_FLOCK
 	case FLOCKING:
+#if XEMACS_FLOCK_VIA_FCNTL
+	  {
+	    struct flock fl;
+	    memset (&fl, 0, sizeof (fl));
+	    fl.l_type = F_WRLCK;
+	    fl.l_whence = SEEK_SET;
+	    if (fcntl (indesc, F_SETLKW, &fl) < 0)
+	      pfatal_with_name (inname);
+	  }
+#else
 	  if (flock (indesc, LOCK_EX) < 0)
 	    pfatal_with_name (inname);
+#endif
 	  break;
 #endif
 #ifdef HAVE_LOCKING

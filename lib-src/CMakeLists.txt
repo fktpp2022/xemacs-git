@@ -35,6 +35,11 @@ foreach(util ${LIB_SRC_UTILITIES} ${LIB_SRC_INTERNAL_UTILITIES})
     target_compile_definitions(${util} PRIVATE
       HAVE_CONFIG_H
     )
+    # movemail also uses re_* functions from regex.c (via config.h includes)
+    # when configured with -DINHIBIT_STRING_HEADER
+    if(util STREQUAL "movemail" AND TARGET regex_obj)
+      target_link_libraries(${util} PRIVATE $<TARGET_OBJECTS:regex_obj>)
+    endif()
     list(FIND LIB_SRC_UTILITIES ${util} _util_index)
     if(_util_index GREATER -1)
       list(APPEND LIB_SRC_BUILT_UTILITIES ${util})
@@ -78,6 +83,28 @@ endif()
 
 # gnudoit is a shell script, installed separately
 
+# Build a standalone regex.o from src/regex.c for use by lib-src tools (etags, ctags, etc.)
+# This mirrors the autoconf Makefile.in rule with -DINHIBIT_STRING_HEADER to avoid
+# redefining string.h and to use config.h's HAVE_CONFIG_H instead.
+if(EXISTS "${CMAKE_SOURCE_DIR}/src/regex.c")
+  add_library(regex_obj OBJECT "${CMAKE_SOURCE_DIR}/src/regex.c")
+  target_include_directories(regex_obj PRIVATE
+    "${CMAKE_SOURCE_DIR}/src"
+    "${CMAKE_BINARY_DIR}/src"
+  )
+  target_compile_definitions(regex_obj PRIVATE
+    HAVE_CONFIG_H
+    INHIBIT_STRING_HEADER
+  )
+endif()
+
+# Helper function to add regex support to a lib-src executable
+function(add_regex_support target_name)
+  if(TARGET regex_obj)
+    target_link_libraries(${target_name} PRIVATE $<TARGET_OBJECTS:regex_obj>)
+  endif()
+endfunction()
+
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/etags.c")
   add_executable(etags etags.c)
   target_include_directories(etags PRIVATE
@@ -87,6 +114,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/etags.c")
   target_compile_definitions(etags PRIVATE
     HAVE_CONFIG_H
   )
+  add_regex_support(etags)
 endif()
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ctags.c")
@@ -98,6 +126,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ctags.c")
   target_compile_definitions(ctags PRIVATE
     HAVE_CONFIG_H
   )
+  add_regex_support(ctags)
 endif()
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test-distrib.c")
