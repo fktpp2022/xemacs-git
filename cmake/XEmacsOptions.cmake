@@ -96,3 +96,5 @@ option(XEMACS_INSTALL_DOC "Install documentation" ON)
 option(XEMACS_INSTALL_LISP "Install Lisp files" ON)
 option(XEMACS_INSTALL_ETC "Install etc files" ON)
 option(XEMACS_INSTALL_INFO "Install info files" ON)
+
+option(XEMACS_BUILD_APP_BUNDLE "Build macOS .app bundle (Darwin only)" ${APPLE})

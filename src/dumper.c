@@ -2772,12 +2772,88 @@ pdump_file_try (const Extbyte *dirname, const Extbyte *basename)
              DEFAULT_DIRECTORY_SEP, EMACS_PROGNAME, dump_id);
     }
 
-  if (pdump_file_get (file_try_path, 1))
+  if (pdump_file_get (file_try_path, 0))
     {
-      if (pdump_load_check (1))
+      if (pdump_load_check (0))
 	return 1;
       pdump_free ();
     }
+
+  /* If the compile-time PATH_PREFIX did not yield the dump, also try a
+     relative walk up from the executable's directory.  This makes the
+     binary work when installed inside a macOS .app bundle (or any
+     relocatable layout) where the build-time install prefix is not
+     reachable at runtime. */
+  {
+    const Extbyte *p = dirname + strlen (dirname);
+    Extbyte *superdirname = alloca_extbytes (p - dirname + 1);
+    struct stat statbuf;
+
+    assert (IS_DIRECTORY_SEP (p[-1]));
+    p--;
+
+    do
+      {
+	while (p != dirname && !IS_DIRECTORY_SEP (p[-1]))
+	  p--;
+
+	if (p != dirname)
+	  {
+	    memcpy (superdirname, dirname, p - dirname);
+	    superdirname[p - dirname] = '\0';
+	    if (stat (superdirname, &statbuf) == 0 && S_ISDIR (statbuf.st_mode))
+	      break;
+	    else
+	      {
+		p--;
+	      }
+	  }
+      }
+    while (p != dirname);
+
+    if (p == dirname)
+      {
+	res = snprintf (file_try_path, file_try_size,
+			"%s..%clib%c%s-%s%c%s%c%s-%08x.dmp",
+			dirname, DEFAULT_DIRECTORY_SEP, DEFAULT_DIRECTORY_SEP,
+			EMACS_PROGNAME, EMACS_VERSION, DEFAULT_DIRECTORY_SEP,
+			EMACS_CONFIGURATION, DEFAULT_DIRECTORY_SEP,
+			EMACS_PROGNAME, dump_id);
+        if (res >= file_try_size)
+          {
+            fatal ("buffer overrun when attempting to load dump file: "
+                   "`%s..%clib%c%s-%s%c%s%c%s-%08x.dmp'",
+                   dirname, DEFAULT_DIRECTORY_SEP, DEFAULT_DIRECTORY_SEP,
+                   EMACS_PROGNAME, EMACS_VERSION, DEFAULT_DIRECTORY_SEP,
+                   EMACS_CONFIGURATION, DEFAULT_DIRECTORY_SEP,
+                   EMACS_PROGNAME, dump_id);
+          }
+      }
+    else
+      {
+	res = snprintf (file_try_path, file_try_size,
+			"%slib%c%s-%s%c%s%c%s-%08x.dmp",
+			superdirname, DEFAULT_DIRECTORY_SEP,
+			EMACS_PROGNAME, EMACS_VERSION, DEFAULT_DIRECTORY_SEP,
+			EMACS_CONFIGURATION, DEFAULT_DIRECTORY_SEP,
+			EMACS_PROGNAME, dump_id);
+        if (res >= file_try_size)
+          {
+            fatal ("buffer overrun when attempting to load dump file: "
+                   "`%slib%c%s-%s%c%s%c%s-%08x.dmp'",
+                   superdirname, DEFAULT_DIRECTORY_SEP, EMACS_PROGNAME,
+                   EMACS_VERSION, DEFAULT_DIRECTORY_SEP, EMACS_CONFIGURATION,
+                   DEFAULT_DIRECTORY_SEP, EMACS_PROGNAME, dump_id);
+          }
+      }
+
+    if (pdump_file_get (file_try_path, 1))
+      {
+	if (pdump_load_check (1))
+	  return 1;
+	pdump_free ();
+      }
+  }
   return 0;
 #else
   {

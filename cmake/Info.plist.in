@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>@XEMACS_BUNDLE_ID@</string>
+
+    <key>CFBundleName</key>
+    <string>@XEMACS_DISPLAY_NAME@</string>
+
+    <key>CFBundleExecutable</key>
+    <string>@XEMACS_EXECUTABLE@</string>
+
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+
+    <key>CFBundleVersion</key>
+    <string>@XEMACS_VERSION@</string>
+
+    <key>CFBundleShortVersionString</key>
+    <string>@XEMACS_SHORT_VERSION@</string>
+
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+
+    <key>CFBundleDisplayName</key>
+    <string>@XEMACS_DISPLAY_NAME@</string>
+
+    <key>CFBundleDescription</key>
+    <string>@XEMACS_DESCRIPTION@</string>
+
+    <key>NSHighResolutionCapable</key>
+    <true/>
+
+    <key>LSMinimumSystemVersion</key>
+    <string>@XEMACS_MIN_SYSTEM_VERSION@</string>
+
+    <key>LSApplicationCategoryType</key>
+    <string>@XEMACS_CATEGORY@</string>
+
+    <key>CFBundleIconFile</key>
+    <string>@XEMACS_ICON_FILE@</string>
+
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Emacs Lisp Source</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>text/x-emacs-lisp</string>
+            </array>
+            <key>CFBundleTypeMIMEType</key>
+            <string>text/x-emacs-lisp</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>el</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Emacs Lisp Compiled</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>application/x-emacs-bytecomp</string>
+            </array>
+            <key>CFBundleTypeMIMEType</key>
+            <string>application/x-emacs-bytecomp</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>elc</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>GNU Texinfo</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>text/x-texi</string>
+            </array>
+            <key>CFBundleTypeMIMEType</key>
+            <string>text/x-texi</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>texi</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Plain Text</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>public.plain-text</string>
+            </array>
+            <key>CFBundleTypeMIMEType</key>
+            <string>text/plain</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>txt</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Text</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>public.plain-text</string>
+            </array>
+            <key>CFBundleTypeMIMEType</key>
+            <string>text/text</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>text</string>
+            </array>
+        </dict>
+    </array>
+
+    <key>NSMainNibFile</key>
+    <string></string>
+
+    <key>CFBundleCopyright</key>
+    <string>@XEMACS_COPYRIGHT@</string>
+
+    <key>UTExportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>text/x-emacs-lisp</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.mime-type</key>
+                <string>text/x-emacs-lisp</string>
+                <key>public.filename-extension</key>
+                <string>el</string>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>application/x-emacs-bytecomp</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.mime-type</key>
+                <string>application/x-emacs-bytecomp</string>
+                <key>public.filename-extension</key>
+                <string>elc</string>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>text/x-texi</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.mime-type</key>
+                <string>text/x-texi</string>
+                <key>public.filename-extension</key>
+                <string>texi</string>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>public.plain-text</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.mime-type</key>
+                <string>text/plain</string>
+                <key>public.filename-extension</key>
+                <string>txt</string>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>public.plain-text</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.mime-type</key>
+                <string>text/text</string>
+                <key>public.filename-extension</key>
+                <string>text</string>
+            </dict>
+        </dict>
+    </array>
+</dict>
+</plist>

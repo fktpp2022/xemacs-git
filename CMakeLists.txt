@@ -42,6 +42,14 @@ set(EMACS_PROGNAME "${PROGNAME}")
 set(SHEBANG_PROGNAME "xemacs-script")
 set(EMACS_DUMP_FILE_NAME "xemacs.dmp")
 
+# macOS .app bundle settings
+set(XEMACS_BUNDLE_ID "org.xemacs")
+set(XEMACS_DISPLAY_NAME "XEmacs")
+set(XEMACS_DESCRIPTION "XEmacs - The next generation Emacs editor")
+set(XEMACS_COPYRIGHT "Copyright (C) 1995-2025 XEmacs Development Team")
+set(XEMACS_MIN_SYSTEM_VERSION "10.13")
+set(XEMACS_CATEGORY "public.app-category.productivity")
+
 # Must compute lowercase BEFORE using it
 string(TOLOWER "${CMAKE_SYSTEM_NAME}" CMAKE_SYSTEM_NAME_LOWER)
 set(EMACS_CONFIGURATION "${CMAKE_SYSTEM_PROCESSOR}-unknown-${CMAKE_SYSTEM_NAME_LOWER}")
@@ -170,6 +178,12 @@ if(XEMACS_WITH_MODULES)
 endif()
 
 add_subdirectory(tests)
+
+# Setup macOS .app bundle (must be after src is added so binary exists)
+include("${CMAKE_SOURCE_DIR}/cmake/XEmacsCPackAppBundle.cmake")
+if(APPLE)
+  xemacs_setup_app_bundle()
+endif()
 
 include("${CMAKE_SOURCE_DIR}/cmake/XEmacsCPack.cmake")
 
