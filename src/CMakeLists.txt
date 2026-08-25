@@ -735,7 +735,13 @@ if(NOT WIN32)
     xemacs-core
     ${XEMACS_LINK_LIBRARIES}
   )
-  
+
+  if(APPLE)
+    # Match autoconf: expose core symbols to modules via -rdynamic on Darwin.
+    # (configure.ac line 3594: XE_APPEND(-rdynamic, start_flags))
+    target_link_options(temacs PRIVATE "-rdynamic")
+  endif()
+
   if(HAVE_X_WINDOWS)
     target_link_libraries(temacs PRIVATE lw)
   endif()
@@ -760,6 +766,12 @@ target_link_libraries(xemacs PRIVATE
   xemacs-core
   ${XEMACS_LINK_LIBRARIES}
 )
+
+if(APPLE)
+  # Match autoconf: expose core symbols to modules via -rdynamic on Darwin.
+  # (configure.ac line 3594: XE_APPEND(-rdynamic, start_flags))
+  target_link_options(xemacs PRIVATE "-rdynamic")
+endif()
 
 if(HAVE_X_WINDOWS)
   target_link_libraries(xemacs PRIVATE lw)

@@ -183,32 +183,31 @@ function(xemacs_setup_app_bundle)
   file(APPEND "${_build_script}" "mkdir -p \"${_macos_dir}\" \"${_resources_dir}\" \"${_archlib_dest}\" \"${_share_dest}/xemacs-${EMACS_VERSION}\" \"${_share_dest}/man/man1\"\n")
 
   # ---- Copy all executables into MacOS/ ----
-  # Main binary (build tree name is "xemacs", versioned name inside bundle)
-  if(EXISTS "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}")
-    file(APPEND "${_build_script}" "cp \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}\" \"${_macos_dir}/${PROGNAME}-${EMACS_VERSION}\"\n")
-  endif()
+  # Main binary (build tree name is "xemacs", versioned name inside bundle).
+  # Note: these files are build-time artifacts and do not exist at configure
+  # time, so we write unconditional cp commands that run at stamp time.
+  file(APPEND "${_build_script}"
+"if [ -f \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}\" ]; then\n"
+"  cp \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}\" \"${_macos_dir}/${PROGNAME}-${EMACS_VERSION}\"\n"
+"fi\n"
+  )
   # Symlinks for unversioned names
   file(APPEND "${_build_script}" "ln -sf \"${PROGNAME}-${EMACS_VERSION}\" \"${_macos_dir}/${PROGNAME}\"\n")
   file(APPEND "${_build_script}" "ln -sf \"${PROGNAME}-${EMACS_VERSION}\" \"${_macos_dir}/${SHEBANG_PROGNAME}\"\n")
 
-  # Client/server utilities
-  if(EXISTS "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/etags")
-    file(APPEND "${_build_script}" "cp \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/etags\" \"${_macos_dir}/\"\n")
-  endif()
-  if(EXISTS "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gnuclient")
-    file(APPEND "${_build_script}" "cp \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gnuclient\" \"${_macos_dir}/\"\n")
-  endif()
-  if(EXISTS "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gnuserv")
-    file(APPEND "${_build_script}" "cp \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gnuserv\" \"${_macos_dir}/\"\n")
-  endif()
-  if(EXISTS "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/ctags")
-    file(APPEND "${_build_script}" "cp \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/ctags\" \"${_macos_dir}/\"\n")
-  endif()
+  # Client/server utilities (unconditional: guard at stamp time)
+  file(APPEND "${_build_script}"
+"for _tool in etags gnuclient gnuserv ctags; do\n"
+"  [ -f \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/\${_tool}\" ] && cp \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/\${_tool}\" \"${_macos_dir}/\"\n"
+"done\n"
+  )
 
   # Dump file alongside the binary so pdump_file_try() finds it on first search
-  if(EXISTS "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/xemacs.dmp")
-    file(APPEND "${_build_script}" "cp \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/xemacs.dmp\" \"${_macos_dir}/xemacs.dmp\"\n")
-  endif()
+  file(APPEND "${_build_script}"
+"if [ -f \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/xemacs.dmp\" ]; then\n"
+"  cp \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/xemacs.dmp\" \"${_macos_dir}/xemacs.dmp\"\n"
+"fi\n"
+  )
 
   # ---- Copy data files into Resources/ ----
   # Lisp files
@@ -220,18 +219,21 @@ function(xemacs_setup_app_bundle)
     file(APPEND "${_build_script}" "cp -R \"${_etc_src}/.\" \"${_share_dest}/xemacs-${EMACS_VERSION}/etc/\"\n")
   endif()
   # Archlib contents (DOC, hexl, movemail, versioned dump)
-  if(EXISTS "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/xemacs.dmp")
-    file(APPEND "${_build_script}" "cp \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/xemacs.dmp\" \"${_archlib_dest}/xemacs-${XEMACS_DUMP_ID_HEX}.dmp\"\n")
-  endif()
-  if(EXISTS "${CMAKE_BINARY_DIR}/lib-src/DOC")
-    file(APPEND "${_build_script}" "cp \"${CMAKE_BINARY_DIR}/lib-src/DOC\" \"${_archlib_dest}/DOC\"\n")
-  endif()
-  if(EXISTS "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/hexl")
-    file(APPEND "${_build_script}" "cp \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/hexl\" \"${_archlib_dest}/\"\n")
-  endif()
-  if(EXISTS "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/movemail")
-    file(APPEND "${_build_script}" "cp \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/movemail\" \"${_archlib_dest}/\"\n")
-  endif()
+  file(APPEND "${_build_script}"
+"if [ -f \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/xemacs.dmp\" ]; then\n"
+"  cp \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/xemacs.dmp\" \"${_archlib_dest}/xemacs-${XEMACS_DUMP_ID_HEX}.dmp\"\n"
+"fi\n"
+  )
+  file(APPEND "${_build_script}"
+"if [ -f \"${CMAKE_BINARY_DIR}/lib-src/DOC\" ]; then\n"
+"  cp \"${CMAKE_BINARY_DIR}/lib-src/DOC\" \"${_archlib_dest}/DOC\"\n"
+"fi\n"
+  )
+  file(APPEND "${_build_script}"
+"for _archbin in hexl movemail; do\n"
+"  [ -f \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/\${_archbin}\" ] && cp \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/\${_archbin}\" \"${_archlib_dest}/\"\n"
+"done\n"
+  )
   # Man pages
   if(IS_DIRECTORY "${_etc_src}")
     file(GLOB _man_pages "${_etc_src}/*.1")
@@ -242,6 +244,18 @@ function(xemacs_setup_app_bundle)
       endforeach()
     endif()
   endif()
+  # Dynamically loaded modules (.so files) are copied at stamp time since
+  # they don't exist at configure time. We generate a shell snippet that
+  # globs the build-tree lib directory and copies any .so files found.
+  file(APPEND "${_build_script}"
+"if [ -d \"${CMAKE_BINARY_DIR}/lib\" ]; then\n"
+"  mkdir -p \"${_archlib_dest}/modules\"\n"
+"  for _mod in \"${CMAKE_BINARY_DIR}/lib\"/*.so; do\n"
+"    [ -f \"\${_mod}\" ] || continue\n"
+"    cp \"\${_mod}\" \"${_archlib_dest}/modules/\"\n"
+"  done\n"
+"fi\n"
+  )
 
   # Touch stamp file
   file(APPEND "${_build_script}" "touch \"${_stamp_file}\"\n")
@@ -285,6 +299,11 @@ function(xemacs_setup_app_bundle)
     COMMENT "Building XEmacs .app bundle"
   )
   add_dependencies(xemacs-app-bundle xemacs_macos_icons)
+  # Ensure the dump is regenerated with the current binary's dump_id before
+  # the app bundle is assembled; the stamp script copies whatever xemacs.dmp
+  # happens to be in the build tree at configure time, which may have a
+  # stale random dump_id from a previous cmake run.
+  add_dependencies(xemacs-app-bundle dump)
 
   # ---- Install the .app bundle ----
   install(DIRECTORY "${_app_path}/"

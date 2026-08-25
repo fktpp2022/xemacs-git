@@ -92,9 +92,8 @@ determined.  Else assume binary coding if all else fails.
       else
 	{
 	  /* attempt to autodetect the coding of the string.  Note: this VERY hit-and-miss */
-	  enum eol_type eol = EOL_AUTODETECT;
 	  coding_system = Fget_coding_system (Qundecided);
-	  determine_real_coding_system (istr, &coding_system, &eol);
+	  coding_system = detect_coding_stream (instream);
 	}
       if (NILP (coding_system)) 
 	coding_system = Fget_coding_system (Qbinary);
@@ -111,7 +110,7 @@ determined.  Else assume binary coding if all else fails.
       if (NILP (coding_system))
 	{
 	  if (NILP (error_me_not))
-	    signal_simple_error ("No such coding system", coding);
+	    signal_error (Qwrong_type_argument, "No such coding system", coding);
 	  else
 	    coding_system = Fget_coding_system (Qbinary); /* default to binary */
 	}
@@ -123,7 +122,7 @@ determined.  Else assume binary coding if all else fails.
   deststream = make_dynarr_output_stream ((unsigned_char_dynarr *)out_dynarr);
   dstr = XLSTREAM (deststream);
   /* setup the conversion stream */
-  conv_out_stream = make_encoding_output_stream (ostr, coding_system);
+  conv_out_stream = make_coding_output_stream (ostr, coding_system, CODING_ENCODE, 0);
   costr = XLSTREAM (conv_out_stream);
   GCPRO3 (instream, outstream, conv_out_stream);
 
@@ -277,9 +276,8 @@ determined.  Else assume binary coding if all else fails.
       else
 	{
 	  /* attempt to autodetect the coding of the string.  Note: this VERY hit-and-miss */
-	  enum eol_type eol = EOL_AUTODETECT;
 	  coding_system = Fget_coding_system (Qundecided);
-	  determine_real_coding_system (istr, &coding_system, &eol);
+	  coding_system = detect_coding_stream (instream);
 	}
       if (NILP (coding_system)) 
 	coding_system = Fget_coding_system (Qbinary);
@@ -296,7 +294,7 @@ determined.  Else assume binary coding if all else fails.
       if (NILP (coding_system))
 	{
 	  if (NILP (error_me_not))
-	    signal_simple_error ("No such coding system", coding);
+	    signal_error (Qwrong_type_argument, "No such coding system", coding);
 	  else
 	    coding_system = Fget_coding_system (Qbinary); /* default to binary */
 	}
@@ -308,7 +306,7 @@ determined.  Else assume binary coding if all else fails.
   deststream = make_dynarr_output_stream ((unsigned_char_dynarr *)out_dynarr);
   dstr = XLSTREAM (deststream);
   /* setup the conversion stream */
-  conv_out_stream = make_encoding_output_stream (ostr, coding_system);
+  conv_out_stream = make_coding_output_stream (ostr, coding_system, CODING_ENCODE, 0);
   costr = XLSTREAM (conv_out_stream);
   GCPRO3 (instream, outstream, conv_out_stream);
 
@@ -362,13 +360,13 @@ determined.  Else assume binary coding if all else fails.
     {
       if (char_count)
 	{
-	  error_with_frob (object,"base64-decode failed: at least %d bits truncated",((4 - char_count) * 6));
+	  signal_error (Qerror, "base64-decode failed: at least %d bits truncated", object);
 	}
     }
   switch (char_count)
     {
     case 1:
-      error_with_frob (object, "base64 encoding incomplete: at least 2 bits missing");
+      signal_error (Qerror, "base64 encoding incomplete: at least 2 bits missing", object);
       break;
     case 2:
       char_count = bits >> 10;
