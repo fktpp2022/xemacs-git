@@ -31,6 +31,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include "console-tty-impl.h"
 #include "events.h"
 #include "frame.h"
+#include "frame-impl.h"
 #include "process.h"
 #include "redisplay.h"
 
@@ -122,7 +123,7 @@ poll_tty_sizes (void)
 		height = ws.ws_row;
 	      }
 
-	    if (width > 0 && height > 0
+		    if (width > 0 && height > 0
 		&& (CONSOLE_TTY_DATA (con)->width != width
 		    || CONSOLE_TTY_DATA (con)->height != height))
 	      {
@@ -137,6 +138,7 @@ poll_tty_sizes (void)
 		  {
 		    struct frame *f = XFRAME (XCAR (tail));
 		    change_frame_size (f, width, height, 1);
+		    (f)->clear = 1;
 		  }
 	      }
 	  }
@@ -156,11 +158,7 @@ emacs_tty_event_pending_p (int how_many)
     {
       EMACS_TIME sometime;
 
-      /* (0) Check for terminal size changes (font-size zoom, etc.) that
-		may not deliver SIGWINCH. */
-      poll_tty_sizes ();
-
-            /* (1) Any pending events in the dispatch queue? */
+      /* (0) Any pending events in the dispatch queue? */
       if (!NILP (Vdispatch_event_queue))
         {
           return 1;
@@ -262,6 +260,10 @@ emacs_tty_next_event (Lisp_Event *emacs_event)
 #ifdef WIN32_ANY
       mswindows_is_blocking = 0;
 #endif
+      /* Check for terminal size changes (font-size zoom, etc.) that may
+	 not deliver SIGWINCH, now that we've woken up (either input or
+	 timeout). */
+      poll_tty_sizes ();
       if (ndesc > 0)
 	{
 	  /* Look for a TTY event */

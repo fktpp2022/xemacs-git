@@ -3701,7 +3701,7 @@ change_frame_size (struct frame *f, int newwidth, int newheight, int delay)
 
   if (delay || hold_frame_size_changes || gc_in_progress)
     {
-      f->new_width = newwidth;
+        f->new_width = newwidth;
       f->new_height = newheight;
       return;
     }
