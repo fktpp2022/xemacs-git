@@ -23,11 +23,16 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <config.h>
 #include "lisp.h"
 
+#include <sys/ioctl.h>
+#include <termios.h>
+
 #include "device.h"
+#include "device-impl.h"
 #include "console-tty-impl.h"
 #include "events.h"
 #include "frame.h"
 #include "process.h"
+#include "redisplay.h"
 
 #include "sysproc.h"
 #include "syswait.h"
@@ -81,6 +86,64 @@ tty_timeout_to_emacs_event (Lisp_Event *emacs_event)
 
 
 
+
+/* Poll TIOCGWINSZ on all tty devices to detect terminal size changes that
+   do not deliver SIGWINCH.  Some terminal emulators (e.g. Ghostty) change
+   font size via Cmd-+ / Cmd-- without firing SIGWINCH at all, so the
+   SIGWINCH handler in tty_asynch_device_change() never runs.  By polling
+   here — on every event-loop iteration that checks for pending input — we
+   catch the change the next time the user types or an idle check fires.
+   This mirrors how vim/neovim detect resizes. */
+static void
+poll_tty_sizes (void)
+{
+  Lisp_Object devcons, concons;
+
+  CONSOLE_LOOP (concons)
+    {
+      struct console *con = XCONSOLE (XCAR (concons));
+
+      CONSOLE_DEVICE_LOOP (devcons, con)
+	{
+	  struct device *d = XDEVICE (XCAR (devcons));
+	  int infd = DEVICE_INFD (d);
+
+	  if (!DEVICE_TTY_P (d) || infd < 0)
+	    continue;
+
+	  {
+	    struct winsize ws;
+	    int width = 0, height = 0;
+
+	    if (ioctl (infd, TIOCGWINSZ, &ws) == 0
+		&& ws.ws_col > 0 && ws.ws_row > 0)
+	      {
+		width = ws.ws_col;
+		height = ws.ws_row;
+	      }
+
+	    if (width > 0 && height > 0
+		&& (CONSOLE_TTY_DATA (con)->width != width
+		    || CONSOLE_TTY_DATA (con)->height != height))
+	      {
+		Lisp_Object tail;
+
+		CONSOLE_TTY_DATA (con)->width = width;
+		CONSOLE_TTY_DATA (con)->height = height;
+
+		/* Trigger the same deferred resize path as SIGWINCH. */
+		for (tail = DEVICE_FRAME_LIST (d); !NILP (tail);
+		     tail = XCDR (tail))
+		  {
+		    struct frame *f = XFRAME (XCAR (tail));
+		    change_frame_size (f, width, height, 1);
+		  }
+	      }
+	  }
+	}
+    }
+}
+
 static int
 emacs_tty_event_pending_p (int how_many)
 {
@@ -93,7 +156,11 @@ emacs_tty_event_pending_p (int how_many)
     {
       EMACS_TIME sometime;
 
-      /* (1) Any pending events in the dispatch queue? */
+      /* (0) Check for terminal size changes (font-size zoom, etc.) that
+		may not deliver SIGWINCH. */
+      poll_tty_sizes ();
+
+            /* (1) Any pending events in the dispatch queue? */
       if (!NILP (Vdispatch_event_queue))
         {
           return 1;
