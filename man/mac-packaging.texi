@@ -1,0 +1,724 @@
+\input texinfo  @c -*-texinfo-*-
+@setfilename ../info/mac-packaging.info
+
+@c %**start of header
+@settitle XEmacs macOS Packaging Manual
+@direntry
+* Mac-Packaging: (mac-packaging).  Building XEmacs .app / DMG packages on macOS.
+@end direntry
+@c paragraphindent 2
+@c %**end of header
+
+@ifinfo
+This manual documents the macOS packaging of XEmacs: how the @file{.app}
+bundle is assembled, how @command{cpack -G DragNDrop} produces a drag-install
+disk image, and the design decisions behind each step.
+
+Copyright @copyright{} 2025 Free Software Foundation.
+
+This file is part of XEmacs.
+
+XEmacs is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+XEmacs is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+You should have received a copy of the GNU General Public License
+along with XEmacs.  If not, see <http://www.gnu.org/licenses/>.
+@end ifinfo
+
+@c Fold all indices into the concept index, as the newer manuals do.
+@syncodeindex fn cp
+@syncodeindex vr cp
+@syncodeindex ky cp
+@syncodeindex pg cp
+@syncodeindex tp cp
+
+@setchapternewpage odd
+@finalout
+
+@titlepage
+@title XEmacs macOS Packaging Manual
+@subtitle Building the .app bundle, DragNDrop DMG, and FHS tarball
+@author The XEmacs Development Team
+@page
+@vskip 0pt plus 1fill
+
+@noindent
+Copyright @copyright{} 2025 Free Software Foundation. @*
+
+@noindent
+Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+@noindent
+Permission is granted to copy and distribute modified versions of this
+manual under the conditions for verbatim copying, provided that the
+entire resulting derived work is distributed under the terms of a
+permission notice identical to this one.
+@end titlepage
+
+@ifnottex
+@node Top, Overview, (dir), (dir)
+@top XEmacs macOS Packaging Manual
+
+This manual documents how XEmacs is packaged for macOS using CMake: the
+@file{.app} bundle structure, the drag-and-drop @file{.dmg} produced by
+@command{cpack -G DragNDrop}, the FHS tarball, and the rationale behind each
+non-obvious design choice.  It is intended for maintainers building
+distributions and for users who want to understand what the package they
+installed actually contains.
+@end ifnottex
+
+@menu
+* Overview::                  What the macOS build produces and current status.
+* Build Outputs::             The four outputs and when to use each.
+* App Bundle Layout::         Contents/MacOS and Contents/Resources structure.
+* Building the App Bundle::   Configure flags, make targets, dependencies.
+* Info Pages::                makeinfo, the @file{dir} index, the @code{info_pages} target.
+* The Drag-and-Drop DMG::     @command{cpack -G DragNDrop} and how the collision was resolved.
+* Guided Install Scripts::    @file{Install.command}, @file{Uninstall.command}, @file{bin/} wrappers.
+* The FHS Tarball::           @command{cpack} (TGZ) and @command{cmake --install}.
+* Design Decisions::          The rationale behind each non-obvious choice.
+* Troubleshooting::           Common failures and their fixes.
+* Index::                     Index.
+@end menu
+
+@node Overview, Build Outputs, Top, Top
+@chapter Overview
+
+XEmacs builds on macOS as a self-contained @file{.app} bundle and can be
+packaged into several distribution formats.  The build system is CMake; the
+packaging layer is CMake's @command{cpack} together with a few custom CMake
+scripts.
+
+@menu
+* Current Status::  What changed in the CMake packaging layer.
+@end menu
+
+@node Current Status, , Overview, Overview
+@section Current Status
+
+The macOS packaging was simplified in two stages:
+
+@enumerate
+@item
+Seven build bugs were fixed across four CMake files so that the @file{.app}
+bundle ships complete lisp, info, and etc directories and boots standalone
+from the mounted disk image.  These fixes are covered in the chapters that
+follow where the design they produced is described.
+
+@item
+The bespoke @code{xemacs-dmg} custom target was removed.  It had hand-rolled
+the DMG with @command{cp -R} + @command{hdiutil create}, duplicating work the
+install rules already express.  @command{cpack -G DragNDrop} now produces the
+disk image as the sole DMG path, carrying both the native
+@file{Applications -> /Applications} drag affordance and the guided install
+scripts.  The net change was approximately seventy lines deleted.
+@end enumerate
+
+@noindent
+What remains is a small set of CMake modules:
+
+@table @file
+@item cmake/XEmacsCPackBundle.cmake
+Defines @code{xemacs_setup_app_bundle()}, which assembles the @file{.app}.
+
+@item cmake/XEmacsInfo.cmake
+Builds the Texinfo manuals into @file{.info} pages.
+
+@item cmake/CPackDragNDrop.cmake
+A per-generator override applied only when @command{cpack -G DragNDrop} runs.
+
+@item cmake/CPackDragNDropStage.cmake
+A staging script that relocates the app and adds the guided install scripts.
+
+@item cmake/XEmacsCPack.cmake
+Top-level CPack configuration and generation of the guided scripts.
+@end table
+
+@node Build Outputs, App Bundle Layout, Overview, Top
+@chapter Build Outputs
+
+The macOS build produces four distinct outputs, each serving a different
+audience.  They have @strong{distinct filenames} so they coexist in the build
+directory without clobbering each other.
+
+@table @code
+@item cmake --install --prefix=/usr
+A Filesystem Hierarchy Standard (FHS) tree laid out under the prefix:
+@file{prefix/Applications/XEmacs.app}, @file{prefix/share/xemacs-@var{ver}/}
+(lisp, etc, info), @file{prefix/lib/xemacs-@var{ver}/} (archlib, modules).
+Use this for a system install managed by a package manager.
+
+@item cpack
+With no @option{-G} flag, produces @file{xemacs-@var{ver}-@var{arch}.tar.gz},
+a tarball of the same FHS tree.  Use this for redistribution as a compressed
+archive.
+
+@item cpack -G DragNDrop
+Produces @file{XEmacs-@var{ver}-@var{arch}.dmg}, a disk image with
+@file{XEmacs.app} at the root and a native @file{Applications -> /Applications}
+symlink for drag-and-drop install, @emph{plus} the guided
+@file{Install.command} and @file{Uninstall.command} scripts.  Use this for end
+users on macOS: they can drag the app into @file{/Applications} or double-click
+the installer.
+
+@item make @r{(or @code{make xemacs-app-bundle})}
+Builds the @file{.app} in the build tree only.  This is the input the
+packaging commands consume; it is not itself a distribution artifact.
+@end table
+
+@noindent
+The capitalisation is deliberate: @file{XEmacs-...} signals the GUI drag DMG;
+@file{xemacs-...} signals the FHS tarball.  They never share a filename.
+
+@node App Bundle Layout, Building the App Bundle, Build Outputs, Top
+@chapter App Bundle Layout
+
+The @file{.app} follows the macOS Application Bundle specification.  Everything
+the editor needs at runtime lives inside the bundle, so it is self-contained
+and can boot from the mounted disk image before installation.
+
+@menu
+* Bundle Contents::        The directory structure and what each holds.
+* Compatibility Symlinks:: Why @file{Contents/lib} and @file{Contents/share} exist.
+@end menu
+
+@node Bundle Contents, Compatibility Symlinks, App Bundle Layout, App Bundle Layout
+@section Bundle Contents
+
+@table @file
+@item Contents/MacOS/
+All executables and the dump file.  The main binary is installed as
+@file{xemacs-@var{ver}}; @file{xemacs} and @file{xemacs-script} are symlinks to
+it.  Client/server utilities (@file{etags}, @file{gnuclient}, @file{gnuserv},
+@file{ctags}) and @file{xemacs.dmp} also live here.
+
+@item Contents/Resources/
+All non-code data, organised as the runtime expects it:
+@file{Resources/lib/xemacs-@var{ver}/@var{config}/} (archlib: @file{DOC},
+@file{hexl}, @file{movemail}, the versioned dump, and @file{modules/*.so}),
+and @file{Resources/share/} (@file{xemacs-@var{ver}/lisp/},
+@file{xemacs-@var{ver}/info/}, @file{xemacs-@var{ver}/etc/}, and
+@file{man/man1/}).
+
+@item Contents/Info.plist
+Generated from @file{cmake/Info.plist.in}; carries the bundle identifier
+(@code{org.xemacs.xemacs}), version, display name, and minimum system version.
+
+@item Contents/PkgInfo
+The literal eight-byte @samp{APPL????} creator code.
+
+@item Contents/Resources/XEmacs.icns
+Generated from @file{etc/xemacs-icon.svg} via @command{sips} (to render each
+@math{n}-by-@math{n} and @math{2n}-by-@math{2n} PNG size) and
+@command{iconutil -c icns} to assemble the iconset.
+@end table
+
+@node Compatibility Symlinks, Building the App Bundle, Bundle Contents, App Bundle Layout
+@section Compatibility Symlinks
+
+Two symlinks are created at the @file{Contents/} level:
+
+@example
+Contents/lib   -> Resources/lib
+Contents/share -> Resources/share
+@end example
+
+@cindex paths-find-emacs-roots
+@cindex runtime path resolution
+The Lisp runtime's @code{paths-find-emacs-roots} walks up from @file{MacOS/} to
+@file{Contents/} and checks for @file{lib/xemacs-@var{ver}/} and the
+@file{lisp/} + @file{etc/} directories.  Because the actual data lives under
+@file{Resources/}, the symlinks satisfy both the macOS bundle specification and
+the runtime's path-finding.  A third symlink, @file{Contents/lib-src}, is
+@emph{intentionally omitted}: the runtime searches for @file{lib-src} at the
+root to distinguish installed from in-tree builds; its absence is the correct
+``this is an installed build'' signal, causing the runtime to fall back to the
+configure-time paths resolved against @file{Contents/}.
+
+@cindex ln -sfn
+Both symlinks use @command{ln -sfn}, not @command{ln -sf}.  The @option{-n}
+flag treats an existing symlink-to-directory as a normal file rather than
+dereferencing it.  Without @option{-n}, a second run dereferences the existing
+@file{Contents/lib} symlink, descends into @file{Resources/lib/}, and writes a
+@file{lib} entry @emph{inside} it---producing @file{Resources/lib/lib} and a
+recursive loop that breaks both the build and @command{cpack -G DragNDrop}.
+
+@node Building the App Bundle, Info Pages, App Bundle Layout, Top
+@chapter Building the App Bundle
+
+The bundle is assembled by @code{xemacs_setup_app_bundle()} in
+@file{cmake/XEmacsCPackBundle.cmake}.  It is included from the root
+@file{CMakeLists.txt} after @file{src/} is added (so the binary exists) and
+after the info-page setup (so the bundle can depend on the info outputs).
+
+@menu
+* The Stamp Script::       How the bundle contents are staged.
+* Build Dependencies::     Why the bundle depends on @code{build-all} and @code{dump}.
+* The Install Rule::       How @code{install(DIRECTORY)} stages the bundle.
+@end menu
+
+@node The Stamp Script, Build Dependencies, Building the App Bundle, Building the App Bundle
+@section The Stamp Script
+
+@cindex build_xemacs_app.sh
+@cindex stamp file
+Rather than issuing dozens of @command{cmake -E copy} commands at configure
+time---which would fail because build-tree artifacts (the binary, lisp, info,
+modules) do not exist yet---the function generates a shell script,
+@file{build_xemacs_app.sh}, and runs it as the body of a single
+@code{add_custom_command}.  The command's @code{OUTPUT} is a stamp file; the
+@code{xemacs-app-bundle} @code{ALL} target depends on that stamp.
+
+The script unconditionally copies whatever is present at run time, guarded by
+shell @code{if [ -f ... ]} checks so a partial build does not abort the whole
+staging.  It copies: the versioned binary and its symlinks, the client/server
+tools, @file{xemacs.dmp}, the lisp tree, the info tree (guarded, since it is
+empty when manuals are disabled), the @file{etc/} data, the archlib contents
+(@file{DOC}, @file{hexl}, @file{movemail}, the versioned dump), man pages, and
+any @file{.so} modules found in the build @file{lib/} directory.  It finishes
+by creating the two compatibility symlinks and touching the stamp.
+
+@node Build Dependencies, The Install Rule, The Stamp Script, Building the App Bundle
+@section Build Dependencies
+
+@cindex build-all, dependency on
+@cindex dump, dependency on
+@cindex info_pages, dependency on
+The bundle target declares three dependencies that are not obvious but are
+load-bearing:
+
+@table @code
+@item add_dependencies(xemacs-app-bundle build-all)
+The @code{dump} target stops after producing @file{xemacs.dmp}; it does not run
+the post-dump byte-compilation (@code{update-elc-2}) or build
+@file{finder-inf.el}.  Without @code{build-all}, the lisp snapshot taken by
+the stamp script would be incomplete---missing roughly forty @file{.elc} files
+and @file{finder-inf.el}---and the shipped app would die with a
+@code{void: lisp-dir} error.
+
+@item add_dependencies(xemacs-app-bundle dump)
+The stamp script copies whatever @file{xemacs.dmp} happens to be in the build
+tree at run time.  A previous CMake run may have left a dump with a stale,
+random @code{dump_id}.  Requiring a fresh @code{dump} guarantees the dump_id
+matches the current binary before the snapshot is taken.
+
+@item DEPENDS @{@{INFO_OUTPUTS@}@} @r{(on the stamp command)}
+File-level dependency on every built @file{.info} output, so makeinfo has
+finished writing before the info snapshot is taken.  Without this, split info
+files (e.g. @file{lispref.info-7} through @file{lispref.info-9}) can be missing
+from the bundle due to a race.
+@end table
+
+@node The Install Rule, Info Pages, Build Dependencies, Building the App Bundle
+@section The Install Rule
+
+@cindex DESTINATION, relative
+@cindex USE_SOURCE_PERMISSIONS
+The bundle is installed with:
+
+@example
+install(DIRECTORY "$@{CMAKE_BINARY_DIR@}/XEmacs.app"
+  DESTINATION "Applications"
+  COMPONENT Runtime
+  USE_SOURCE_PERMISSIONS
+)
+@end example
+
+@noindent
+Three details are deliberate:
+
+@itemize
+@item
+@strong{Relative @code{DESTINATION}}.  An absolute destination like
+@code{$@{CMAKE_INSTALL_PREFIX@}/Applications} bakes the literal prefix into the
+install script, ignores @option{--prefix}/@env{DESTDIR}, and aborts with
+@code{EPERM} before the Lisp/Etc/Documentation components can stage.  The
+relative @code{"Applications"} respects the prefix.
+
+@item
+@strong{No trailing slash on the source}.  A trailing @code{XEmacs.app/}
+copies the bundle's @emph{contents} (i.e. @file{Contents/}) rather than the
+@file{XEmacs.app} wrapper, dropping the top-level directory the bundle
+specification requires.
+
+@item
+@strong{@code{USE_SOURCE_PERMISSIONS}}.  Preserves the executable bits set on
+the @file{.command} scripts and @file{bin/} wrappers by the stamp script.
+Without it, installed files default to mode @samp{644} and the installer
+scripts cannot run.
+@end itemize
+
+@node Info Pages, The Drag-and-Drop DMG, Building the App Bundle, Top
+@chapter Info Pages
+
+@cindex makeinfo
+@cindex XEmacsInfo.cmake
+The Texinfo manuals are built by @file{cmake/XEmacsInfo.cmake}.  It locates
+@command{makeinfo} (or @command{texi2any}); if neither is found, info pages
+are silently skipped.  On macOS, install the @command{texinfo} package (e.g.
+@code{brew install texinfo}) to build them.
+
+@menu
+* Manual Classification::  SIMPLE vs SUBDIR manuals.
+* The dir Index::          The @file{info/dir} index file.
+@end menu
+
+@node Manual Classification, The dir Index, Info Pages, Info Pages
+@section Manual Classification
+
+Manuals are split into two lists:
+
+@table @code
+@item SIMPLE_MANUALS
+@code{beta cl emodules external-widget info standards termcap widget xemacs-faq mac-packaging}---single
+@file{.texi} files at the top of @file{man/}, built with @option{--no-split}
+into one @file{.info} each.
+
+@item SUBDIR_MANUALS
+@code{xemacs lispref internals new-users-guide}---the main @file{.texi} lives
+in a subdirectory and is built with @option{-I} so its @code{@{include@}}
+directives resolve.  These can produce split info files
+(@file{.info} plus @file{.info-1} through @file{.info-N}).
+@end table
+
+@node The dir Index, The Drag-and-Drop DMG, Manual Classification, Info Pages
+@section The dir Index
+
+@cindex info/dir
+@cindex Info directory index
+The top-level @file{info/dir} file is a @strong{source file}, not generated.
+Autoconf installs @file{$@{srcdir@}/info/dir} as @file{infodir/dir}; the CMake
+build replicates this with an explicit @code{copy} command.  Each manual adds
+a @code{* Name: (name).} line to @file{info/dir} so @kbd{C-h i} in XEmacs lists
+it.  The install rule @code{FILES_MATCHING} includes the @code{PATTERN "dir"}
+so the index ships alongside the manuals.
+
+@node The Drag-and-Drop DMG, Guided Install Scripts, Info Pages, Top
+@chapter The Drag-and-Drop DMG
+
+@cindex DragNDrop
+@cindex collision, File exists
+@command{cpack -G DragNDrop} is the standard CMake generator for producing a
+macOS disk image.  Getting it to work with XEmacs required resolving a
+collision and exploiting three CMake mechanisms; this chapter is the
+centerpiece of the manual.
+
+@menu
+* The Collision::              Why @command{cpack -G DragNDrop} failed.
+* The Resolution::             The three mechanisms that make it work.
+* The Staging Script::        What @file{CPackDragNDropStage.cmake} does.
+@end menu
+
+@node The Collision, The Resolution, The Drag-and-Drop DMG, The Drag-and-Drop DMG
+@section The Collision
+
+A naive @command{cpack -G DragNDrop} failed with @samp{failed to create
+symbolic link '.../Applications': File exists}.  There are two distinct causes:
+
+@table @asis
+@item Structural
+DragNDrop runs the project's @code{install()} rules into a staging directory,
+then creates an @file{Applications -> /Applications} symlink at the staging
+root---the drag-and-drop affordance.  But the app install rule (see
+@ref{The Install Rule}) stages the app as a @emph{real}
+@file{Applications/XEmacs.app/} directory.  Same name, different type: a
+directory cannot be replaced by a symlink, so @command{ln -s} aborts.
+
+@item Filename
+@code{CPACK_PACKAGE_FILE_NAME} defaults to
+@code{xemacs-@var{ver}-@var{arch}}.  DragNDrop writes
+@file{xemacs-@var{ver}-@var{arch}.dmg}---the same path the (now-removed)
+custom @code{xemacs-dmg} target wrote, and the same stem as the TGZ tarball.
+The outputs overwrite each other.
+@end table
+
+@noindent
+An attempt to fix only the structural cause by moving the app to
+@code{DESTINATION "."} let DragNDrop create its symlink, but produced a DMG
+root cluttered with FHS directories (@file{share/}, @file{lib/}) alongside the
+app---because the Lisp/Etc/Info install rules still stage into the same tree.
+A clean drag DMG needs the app at the root @strong{and} the FHS components
+excluded.
+
+@node The Resolution, The Staging Script, The Collision, The Drag-and-Drop DMG
+@section The Resolution
+
+Three CMake mechanisms, verified against CMake's own modules, make a clean
+DragNDrop DMG possible with no install-rule forking and no custom target:
+
+@table @code
+@item CPACK_PROJECT_CONFIG_FILE
+@cindex CPACK_PROJECT_CONFIG_FILE
+CMake includes this file once per generator, resetting
+@code{CPACK_GENERATOR} to the current one first (@file{CPack.cmake}, the
+per-generator iteration).  So a single override file can change the filename
+and component list @strong{for DragNDrop only}, leaving TGZ and
+@command{cmake --install} untouched.  The file self-guards with
+@code{if(NOT CPACK_GENERATOR STREQUAL "DragNDrop") return() endif()} so it is a
+no-op for every other generator.
+
+@item CPACK_PRE_BUILD_SCRIPTS
+@cindex CPACK_PRE_BUILD_SCRIPTS
+@cindex CPACK_TEMPORARY_DIRECTORY
+@cindex CMAKE_INSTALL_PREFIX, at cpack time
+Runs @emph{after} the install rules populate the staging directory and
+@emph{before} DragNDrop adds its @file{Applications} symlink.  This is the hook
+that relocates the app to the staging root and clears the name.  One subtlety
+dominated the implementation: at cpack time, @code{CMAKE_INSTALL_PREFIX} is the
+project's original prefix (e.g. @file{/usr/local}), @strong{not} the staging
+directory---only @code{CPACK_INSTALL_SCRIPTS} documents that prefix being set
+to staging, and that hook runs @emph{before} the component install.  The
+staging root is available as @code{CPACK_TEMPORARY_DIRECTORY} (set by the
+@command{cpack} binary itself); the staging script reads that variable, not
+@code{CMAKE_INSTALL_PREFIX}.
+
+@item CPACK_MONOLITHIC_INSTALL
+@cindex CPACK_MONOLITHIC_INSTALL
+@cindex CPACK_COMPONENTS_GROUPING
+Set to @code{ON}.  A component-based install nests each component under a
+@file{@var{file-name}-@var{Component}/} subfolder; the app then lands at
+@file{staging/XEmacs-...-Runtime/Applications/XEmacs.app} and DragNDrop's
+symlink targets the wrong place.  Monolithic install stages everything flat
+into @code{CPACK_TEMPORARY_DIRECTORY} directly, so the app lands at
+@file{staging/Applications/XEmacs.app} and the symlink targets
+@file{staging/Applications} as intended.  The staging script then removes the
+FHS residue (@file{share/}, @file{lib/}) the install rules staged, keeping the
+drag DMG minimal---the @file{.app} is self-contained, so those components are
+redundant on a drag image.
+@end table
+
+@noindent
+A distinct filename (@code{XEmacs-@var{ver}-@var{arch}}) resolves the
+filename collision.
+
+@node The Staging Script, Guided Install Scripts, The Resolution, The Drag-and-Drop DMG
+@section The Staging Script
+
+@cindex CPackDragNDropStage.cmake
+@file{cmake/CPackDragNDropStage.cmake} runs as the pre-build script.  It does
+three jobs, in order:
+
+@enumerate
+@item
+@cindex file(RENAME)
+@cindex idempotency
+Relocate the app from @file{@var{staging}/Applications/XEmacs.app} to
+@file{@var{staging}/XEmacs.app}, so it sits at the DMG root (the drag-install
+convention) and frees the @samp{Applications} name.  Guarded with
+@code{if(EXISTS ... AND NOT EXISTS ...)} so it is idempotent across reruns
+within one @command{cpack} invocation.
+
+@item
+@cindex file(REMOVE_RECURSE)
+Remove @file{@var{staging}/Applications}, @file{@var{staging}/share}, and
+@file{@var{staging}/lib}.  The first clears the name for DragNDrop's symlink
+(this is the original collision, resolved); the latter two drop the FHS
+residue, keeping the drag DMG minimal.
+
+@item
+@cindex file(INSTALL)
+@cindex USE_SOURCE_PERMISSIONS
+Stage the guided install scripts at the DMG root alongside the app:
+@file{bin/} (the CLI wrappers), @file{install-cli.sh}, @file{Install.command},
+@file{Uninstall.command}, and @file{README.txt}.  These are generated at
+configure time (see @ref{Guided Install Scripts}) and staged via
+@code{file(INSTALL ... USE_SOURCE_PERMISSIONS)}, which preserves the
+executable bits set during configure.
+@end enumerate
+
+@node Guided Install Scripts, The FHS Tarball, The Drag-and-Drop DMG, Top
+@chapter Guided Install Scripts
+
+@cindex Install.command
+@cindex Uninstall.command
+@cindex bin wrappers
+The drag DMG ships a set of guided install scripts alongside the app, so users
+who want more than a bare drag-install can double-click a single file.  These
+are generated at configure time in the build tree (@file{build/dmg-bin/},
+@file{build/dmg-install-cli.sh}, @file{build/dmg-install.command},
+@file{build/dmg-uninstall.command}) and staged by the pre-build script.
+
+@table @file
+@item Install.command
+A one-click installer.  Double-click to @command{ditto} the @file{.app} into
+@file{/Applications} (ditto preserves the internal symlinks, unlike
+@command{cp -R}), set up the CLI symlinks in @file{~/.local/bin}, copy
+@file{Uninstall.command} into @file{~/.local/bin/remove-xemacs} for permanent
+access after the disk image is ejected, @command{open} the app, and post a
+notification.  @file{~/.local/bin} is on the default @code{PATH} on modern
+macOS, so no @command{sudo} is required.
+
+@item Uninstall.command
+A smart uninstaller.  Removes the CLI symlinks from @file{~/.local/bin}
+regardless of whether the disk image is still mounted, and is safe to run even
+if @file{XEmacs.app} has already been moved to the Trash.  Reports the app's
+status and posts a notification.
+
+@item bin/@r{(directory)}
+Per-tool wrapper scripts (@file{xemacs}, @file{xemacs-script}, @file{etags},
+@file{gnuclient}, @file{gnuserv}) that @code{exec} the real binary inside
+@file{/Applications/XEmacs.app/Contents/MacOS/}.  Useful before installation,
+while the disk image is mounted.
+
+@item install-cli.sh
+Creates the @file{~/.local/bin} symlinks without the @file{.app} copy, for
+users who prefer the terminal.  Resolves the @file{.app} from
+@file{/Applications} first, falling back to the disk-image mount location
+(this script's own directory).
+@end table
+
+@noindent
+Both install paths land in @file{/Applications}: @file{Install.command} copies
+there directly; the @file{Applications} symlink is the Finder drag target.
+They do not conflict.
+
+@node The FHS Tarball, Design Decisions, Guided Install Scripts, Top
+@chapter The FHS Tarball
+
+@cindex TGZ
+@cindex cmake --install
+The default @command{cpack} (no @option{-G}) and @command{cmake --install}
+produce the FHS layout, untouched by the DragNDrop work.  This is the path for
+package managers and system installs:
+
+@example
+cmake --install build/console --prefix=/usr
+@end example
+
+@noindent
+lays out @file{/usr/Applications/XEmacs.app}, @file{/usr/share/xemacs-@var{ver}/}
+(lisp, etc, info), and @file{/usr/lib/xemacs-@var{ver}/@var{config}/} (archlib,
+modules).  The installed app boots and resolves its lisp and info directories
+inside the bundle, exactly as the drag-DMG app does.
+
+@noindent
+@command{cpack} (bare) produces @file{xemacs-@var{ver}-@var{arch}.tar.gz}, a
+compressed archive of the same tree.  Because
+@code{CPACK_GENERATOR} is @code{"TGZ"} on macOS (not @code{DragNDrop}), bare
+@command{cpack} and @command{make package} always produce only the tarball; the
+DMG is produced explicitly via @command{cpack -G DragNDrop}.
+
+@node Design Decisions, Troubleshooting, The FHS Tarball, Top
+@chapter Design Decisions
+
+This chapter collects the rationale behind each non-obvious choice, as a
+reference for future maintainers.
+
+@table @asis
+@item @command{ln -sfn} for compatibility symlinks
+The @option{-n} flag prevents dereferencing an existing symlink-to-directory
+on a rebuild.  Without it, @command{ln -sf} descends into the target directory
+and creates a nested loop (@file{Resources/lib/lib}).  This idempotency fix is
+applied to both @file{Contents/lib} and @file{Contents/share}.
+
+@item Relative @code{DESTINATION "Applications"} with no trailing slash
+An absolute destination bakes the prefix literal into the install script and
+aborts with @code{EPERM} before later components stage; a trailing slash on
+the source copies the bundle's contents and drops the @file{XEmacs.app}
+wrapper.  Both were observed bugs.
+
+@item @code{USE_SOURCE_PERMISSIONS} on the bundle install
+Preserves the executable bits on the staged @file{.command} and
+@file{bin/} scripts; without it the installed files are mode @samp{644} and
+the installer cannot run.
+
+@item @code{add_dependencies(xemacs-app-bundle build-all)}, not just @code{dump}
+@code{dump} stops before post-dump byte-compilation and @file{finder-inf.el};
+@code{build-all} completes the full lisp pipeline.  Depending on @code{dump}
+alone ships a broken app (@code{void: lisp-dir}).
+
+@item The omitted @file{Contents/lib-src} symlink
+Its absence is the ``installed build'' signal the runtime checks for; the
+runtime then falls back to configure-time paths resolved against
+@file{Contents/}.  Adding it would break that detection.
+
+@item @code{CPACK_XEMACS_*} snapshot variables
+At cpack time, only @code{CPACK_*} variables are visible (read from
+@file{CPackConfig.cmake}); ordinary project variables
+(@code{EMACS_VERSION}, @code{XEMACS_APP_BUNDLE_NAME},
+@code{CMAKE_BINARY_DIR}) are @strong{not}.  The project snapshots them into
+@code{CPACK_XEMACS_*} before @code{include(CPack)} so the override and staging
+scripts can read them.
+
+@item Distinct DMG vs tarball filenames
+@code{XEmacs-@var{ver}-@var{arch}.dmg} (capital @samp{X}) for the drag DMG,
+@code{xemacs-@var{ver}-@var{arch}.tar.gz} for the FHS tarball.  They coexist
+in the build directory without clobbering each other.
+
+@item @code{CPACK_TEMPORARY_DIRECTORY}, not @code{CMAKE_INSTALL_PREFIX}, in the staging script
+At cpack time @code{CMAKE_INSTALL_PREFIX} is the original project prefix, not
+the staging root.  Using it would attempt to write to (e.g.)
+@file{/usr/local/bin} and abort with @code{EPERM}.  The staging root is
+@code{CPACK_TEMPORARY_DIRECTORY}.
+
+@item @code{CPACK_MONOLITHIC_INSTALL=ON} for DragNDrop
+A component-based install nests each component in a subfolder, mis-targeting
+DragNDrop's symlink.  Monolithic install stages flat into
+@code{CPACK_TEMPORARY_DIRECTORY}, so the symlink lands correctly.
+
+@item Pre-build script over install script
+@code{CPACK_INSTALL_SCRIPTS} runs @emph{before} the component install (it is a
+``preinstall'' step), so the app is not yet staged when it runs.  The
+relocation must happen @emph{after} staging, so
+@code{CPACK_PRE_BUILD_SCRIPTS} is the correct hook.
+@end table
+
+@node Troubleshooting, , Design Decisions, Top
+@chapter Troubleshooting
+
+@table @asis
+@item @samp{makeinfo not found - info pages will not be built}
+Install the @command{texinfo} package.  On macOS with Homebrew:
+@code{brew install texinfo}.  The brew keg is not on @code{PATH} by default;
+link it or add @file{$(brew --prefix texinfo)/bin} to your @code{PATH}.
+
+@item @samp{failed to create symbolic link '.../Applications': File exists}
+This was the DragNDrop collision, now resolved by the pre-build staging
+script.  If it reappears, check that @code{CPACK_PRE_BUILD_SCRIPTS} is set in
+@file{CPackDragNDrop.cmake} and that @code{CPACK_MONOLITHIC_INSTALL} is
+@code{ON}; without monolithic install the app nests in a component subfolder
+and the collision returns.
+
+@item DMG prompts for a license agreement on mount
+@cindex SLA
+@cindex CPACK_RESOURCE_FILE_LICENSE
+This is pre-existing behaviour: @code{CPACK_RESOURCE_FILE_LICENSE} is set to
+the project @file{COPYING} (the GPL), and CMake's SLA mechanism surfaces it on
+mount.  It is not introduced by the packaging changes.  To suppress it for
+testing, mount with @command{echo y | hdiutil attach ...} or pass
+@option{-nobrowse}.
+
+@item The app dies with @code{void: lisp-dir} or missing @file{.elc} files
+The bundle was built against an incomplete lisp tree.  Rebuild with
+@code{make build-all} before packaging, or ensure
+@code{add_dependencies(xemacs-app-bundle build-all)} is present.  A stale
+@code{dump_id} can also cause this; @code{make dump} before packaging
+refreshes it.
+
+@item Symlink loops (@file{Resources/lib/lib}) after a rebuild
+The compatibility symlinks were created with @command{ln -sf} instead of
+@command{ln -sfn}.  The @option{-n} flag is required, not optional.  Remove
+the looped directory and rebuild.
+
+@item Installed scripts have mode @samp{644} and will not run
+The bundle install rule is missing @code{USE_SOURCE_PERMISSIONS}.  Without it,
+installed files default to @samp{644}; the @file{.command} and @file{bin/}
+scripts lose their executable bit.
+@end table
+
+@contents
+
+@node Index, , Troubleshooting, Top
+@unnumbered Index
+@printindex cp
+
+@bye

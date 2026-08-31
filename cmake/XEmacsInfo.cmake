@@ -18,7 +18,7 @@ file(MAKE_DIRECTORY "${INFO_OUTPUT_DIR}")
 set(MAN_DIR "${CMAKE_SOURCE_DIR}/man")
 
 # Simple manuals: single .texi -> .info
-set(SIMPLE_MANUALS beta cl emodules external-widget info standards termcap widget xemacs-faq)
+set(SIMPLE_MANUALS beta cl emodules external-widget info standards termcap widget xemacs-faq mac-packaging)
 
 # Subdirectory manuals: main .texi lives in a subdir, needs -I flag
 set(SUBDIR_MANUALS xemacs lispref internals new-users-guide)

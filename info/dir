@@ -42,6 +42,7 @@ XEmacs 21.5
 * FAQ: (xemacs-faq).         XEmacs FAQ.
 * Info: (info).              Documentation browsing system.
 * Internals: (internals).    XEmacs Internals Manual.
+* Mac-Packaging: (mac-packaging).  Building XEmacs .app / DMG packages on macOS.
 
 
 Other Documentation:
