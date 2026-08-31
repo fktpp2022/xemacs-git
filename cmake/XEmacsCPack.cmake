@@ -62,30 +62,21 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   endif()
 elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   set(CPACK_GENERATOR "TGZ")
+  # Per-generator override file.  cpack includes this for each generator in
+  # CPACK_GENERATOR (CPack.cmake:73-79); it self-guards and only applies
+  # DragNDrop overrides, so TGZ/install are unaffected.  `cpack -G DragNDrop`
+  # produces the drag-install DMG; bare `cpack` still makes the FHS tarball.
+  set(CPACK_PROJECT_CONFIG_FILE "${CMAKE_SOURCE_DIR}/cmake/CPackDragNDrop.cmake")
 
   # macOS .app bundle support
   include("${CMAKE_SOURCE_DIR}/cmake/XEmacsCPackAppBundle.cmake")
   if(XEMACS_APP_BUNDLE_ENABLED)
-    # After the .app bundle is built, create a DMG for distribution
-    # README copy is guarded so a missing README doesn't fail the build
-    set(_dmg_staging_commands
-      COMMAND ${CMAKE_COMMAND} -E make_directory
-        "${CMAKE_BINARY_DIR}/_DMG_Staging"
-      COMMAND cp -R "${XEMACS_APP_BUNDLE_DIR}"
-        "${CMAKE_BINARY_DIR}/_DMG_Staging/${XEMACS_APP_BUNDLE_NAME}.app"
-    )
-    if(EXISTS "${CMAKE_SOURCE_DIR}/README")
-      list(APPEND _dmg_staging_commands
-        COMMAND ${CMAKE_COMMAND} -E copy
-          "${CMAKE_SOURCE_DIR}/README"
-          "${CMAKE_BINARY_DIR}/_DMG_Staging/README.txt"
-      )
-    endif()
     # --- User-level CLI install support -----------------------------------
     # Generate per-tool wrapper scripts and an install-cli.sh at configure
-    # time, then stage them into the DMG root so users can put the XEmacs
-    # command-line tools onto PATH without sudo.  Each wrapper execs the
-    # real binary inside /Applications/XEmacs.app.
+    # time.  These are staged into the drag-install DMG by
+    # CPackDragNDropStage.cmake (via CPACK_INSTALL_SCRIPTS) during `cpack -G
+    # DragNDrop`.  Each wrapper execs the real binary inside
+    # /Applications/XEmacs.app after drag-install.
     set(_xemacs_cli_tools xemacs xemacs-script etags gnuclient gnuserv)
     file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/dmg-bin")
     foreach(_tool ${_xemacs_cli_tools})
@@ -268,46 +259,6 @@ fi
                   GROUP_READ GROUP_EXECUTE
                   WORLD_READ WORLD_EXECUTE)
 
-    # Stage the wrapper scripts and installer alongside the .app + README.
-    list(APPEND _dmg_staging_commands
-      COMMAND ${CMAKE_COMMAND} -E make_directory
-        "${CMAKE_BINARY_DIR}/_DMG_Staging/bin"
-      COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_BINARY_DIR}/dmg-bin"
-        "${CMAKE_BINARY_DIR}/_DMG_Staging/bin"
-      COMMAND ${CMAKE_COMMAND} -E copy
-        "${CMAKE_BINARY_DIR}/dmg-install-cli.sh"
-        "${CMAKE_BINARY_DIR}/_DMG_Staging/install-cli.sh"
-      COMMAND ${CMAKE_COMMAND} -E copy
-        "${CMAKE_BINARY_DIR}/dmg-install.command"
-        "${CMAKE_BINARY_DIR}/_DMG_Staging/Install.command"
-      COMMAND ${CMAKE_COMMAND} -E copy
-        "${CMAKE_BINARY_DIR}/dmg-uninstall.command"
-        "${CMAKE_BINARY_DIR}/_DMG_Staging/Uninstall.command"
-    )
-
-    add_custom_target(xemacs-create-dmg
-      ${_dmg_staging_commands}
-      COMMENT "Staging DMG contents"
-      DEPENDS xemacs-app-bundle
-    )
-
-    # Create the actual DMG after staging; clean up staging dir on success
-    add_custom_target(xemacs-dmg ALL
-      COMMAND ${CMAKE_COMMAND} -E echo "Creating macOS DMG..."
-      COMMAND hdiutil create
-        -volname "${XEMACS_APP_BUNDLE_NAME}-${EMACS_VERSION}"
-        -srcfolder "${CMAKE_BINARY_DIR}/_DMG_Staging"
-        -ov
-        -format UDZO
-        -imagekey zlib-level=9
-        "${CMAKE_BINARY_DIR}/${CPACK_PACKAGE_FILE_NAME}.dmg"
-      COMMAND ${CMAKE_COMMAND} -E remove_directory
-        "${CMAKE_BINARY_DIR}/_DMG_Staging"
-      COMMENT "Creating XEmacs DMG disk image"
-      DEPENDS xemacs-create-dmg
-      VERBATIM
-    )
   else()
     # Fallback: use plain TGZ without .app bundle
     message(STATUS "macOS .app bundle disabled, using TGZ only")
@@ -336,6 +287,18 @@ set(CPACK_COMPONENT_INFO_DESCRIPTION "XEmacs info documentation")
 
 set(CPACK_COMPONENT_DOCUMENTATION_DISPLAY_NAME "Documentation")
 set(CPACK_COMPONENT_DOCUMENTATION_DESCRIPTION "Man pages and other documentation")
+
+# Project info needed at cpack time (CPackDragNDrop*.cmake), where ordinary
+# project variables (EMACS_VERSION, XEMACS_APP_BUNDLE_NAME, CMAKE_BINARY_DIR)
+# are NOT visible -- cpack only reads CPACK_* variables from CPackConfig.cmake.
+# CPACK_XEMACS_* carries this data across.
+if(APPLE AND XEMACS_APP_BUNDLE_ENABLED)
+  set(CPACK_XEMACS_APP_BUNDLE_NAME "${XEMACS_APP_BUNDLE_NAME}")
+  set(CPACK_XEMACS_VERSION "${EMACS_VERSION}")
+  set(CPACK_XEMACS_SOURCE_DIR "${CMAKE_SOURCE_DIR}")
+  set(CPACK_XEMACS_BINARY_DIR "${CMAKE_BINARY_DIR}")
+  set(CPACK_XEMACS_SYSTEM_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR}")
+endif()
 
 # include(CPack) must come AFTER all CPACK_* variables are set
 include(CPack)
