@@ -140,6 +140,7 @@ function(xemacs_setup_app_bundle)
 
   # ---- Collect data sources ----
   set(_lisp_src "${CMAKE_BINARY_DIR}/lisp")
+  set(_info_src "${CMAKE_BINARY_DIR}/info")
   set(_etc_src "${CMAKE_SOURCE_DIR}/etc")
   # Internal paths under Resources/ (maintains the same tree structure the binary expects)
   set(_archlib_dest "${_resources_dir}/lib/xemacs-${EMACS_VERSION}/${EMACS_CONFIGURATION}")
@@ -210,10 +211,20 @@ function(xemacs_setup_app_bundle)
   )
 
   # ---- Copy data files into Resources/ ----
-  # Lisp files
-  if(IS_DIRECTORY "${_lisp_src}")
-    file(APPEND "${_build_script}" "cp -R \"${_lisp_src}/.\" \"${_share_dest}/xemacs-${EMACS_VERSION}/lisp/\"\n")
-  endif()
+  # Both lisp/ and info/ live in the BUILD tree and are only populated at
+  # build time, so IS_DIRECTORY at configure time is always false and these
+  # copies would be silently dropped.  Ordering is enforced by
+  # xemacs-app-bundle depending on build-all (lisp) and by the stamp command's
+  # DEPENDS on INFO_OUTPUTS (info).  The info guard stays for the no-manuals
+  # case, where INFO_OUTPUTS is empty and nothing populates info/.
+  file(APPEND "${_build_script}"
+"mkdir -p \"${_share_dest}/xemacs-${EMACS_VERSION}/lisp\"\n"
+"cp -R \"${_lisp_src}/.\" \"${_share_dest}/xemacs-${EMACS_VERSION}/lisp/\"\n"
+"if [ -d \"${_info_src}\" ]; then\n"
+"  mkdir -p \"${_share_dest}/xemacs-${EMACS_VERSION}/info\"\n"
+"  cp -R \"${_info_src}/.\" \"${_share_dest}/xemacs-${EMACS_VERSION}/info/\"\n"
+"fi\n"
+  )
   # Etc (data files, tutorials, unicode, icons, themes)
   if(IS_DIRECTORY "${_etc_src}")
     file(APPEND "${_build_script}" "cp -R \"${_etc_src}/.\" \"${_share_dest}/xemacs-${EMACS_VERSION}/etc/\"\n")
@@ -265,8 +276,11 @@ function(xemacs_setup_app_bundle)
   # and checks for lib/xemacs-VER/ and lisp/ + etc/ directories.  Since the
   # actual data lives under Resources/, we create symlinks at the Contents/
   # level so both the macOS spec and the runtime path-finding are satisfied.
-  file(APPEND "${_build_script}" "ln -sf \"Resources/lib\" \"${_contents_dir}/lib\"\n")
-  file(APPEND "${_build_script}" "ln -sf \"Resources/share\" \"${_contents_dir}/share\"\n")
+  # -n is required, not optional: without it, a second run dereferences the
+  # existing symlink-to-directory and writes Resources/lib/lib instead of
+  # replacing it, creating a loop.
+  file(APPEND "${_build_script}" "ln -sfn \"Resources/lib\" \"${_contents_dir}/lib\"\n")
+  file(APPEND "${_build_script}" "ln -sfn \"Resources/share\" \"${_contents_dir}/share\"\n")
   # The exec-directory search looks for lib-src/ at the root level; point it
   # into MacOS/ where all executables now live.
   # Note: Contents/lib-src symlink is omitted.  The runtime searches for
@@ -283,6 +297,7 @@ function(xemacs_setup_app_bundle)
     COMMAND "${_build_script}"
     DEPENDS "${_build_script}"
       "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}"
+      ${INFO_OUTPUTS}
     COMMENT "Building XEmacs .app bundle"
     VERBATIM
   )
@@ -299,6 +314,11 @@ function(xemacs_setup_app_bundle)
     COMMENT "Building XEmacs .app bundle"
   )
   add_dependencies(xemacs-app-bundle xemacs_macos_icons)
+  # build-all runs the post-dump byte-compilation (update-elc-2) and builds
+  # finder-inf.el, so the lisp snapshot below is complete.  dump alone is not
+  # enough: it stops before those steps.  The stamp's DEPENDS on INFO_OUTPUTS
+  # gives the same guarantee for info pages.
+  add_dependencies(xemacs-app-bundle build-all)
   # Ensure the dump is regenerated with the current binary's dump_id before
   # the app bundle is assembled; the stamp script copies whatever xemacs.dmp
   # happens to be in the build tree at configure time, which may have a
@@ -306,9 +326,14 @@ function(xemacs_setup_app_bundle)
   add_dependencies(xemacs-app-bundle dump)
 
   # ---- Install the .app bundle ----
-  install(DIRECTORY "${_app_path}/"
-    DESTINATION "${CMAKE_INSTALL_PREFIX}/Applications"
+  # Relative destination + no trailing slash on the source: an absolute
+  # DESTINATION ignores --prefix/DESTDIR and EPERM-aborts before the later
+  # Lisp/Etc/Documentation components stage; a trailing "/" copies the
+  # bundle's Contents and drops the XEmacs.app wrapper.
+  install(DIRECTORY "${_app_path}"
+    DESTINATION "Applications"
     COMPONENT Runtime
+    USE_SOURCE_PERMISSIONS
   )
 
   # ---- Export variables for CPack DMG integration ----

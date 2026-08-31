@@ -845,9 +845,9 @@ if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     VERBATIM
   )
 
-  # Create symlinks for read-only directories at build time
+  # Only etc/ is symlinked: info/ holds generated .info files, so makeinfo would write into the source tree otherwise
   set(_symlink_outputs "")
-  foreach(_dir etc info)
+  foreach(_dir etc)
     add_custom_command(
       OUTPUT "${CMAKE_BINARY_DIR}/${_dir}"
       COMMAND ${CMAKE_COMMAND} -E create_symlink

@@ -25,6 +25,20 @@ set(SUBDIR_MANUALS xemacs lispref internals new-users-guide)
 
 set(INFO_OUTPUTS "")
 
+# Top-level directory index.  Source file, not generated; autoconf installs
+# ${srcdir}/info/dir as infodir/dir.
+if(EXISTS "${CMAKE_SOURCE_DIR}/info/dir")
+  add_custom_command(
+    OUTPUT "${INFO_OUTPUT_DIR}/dir"
+    DEPENDS "${CMAKE_SOURCE_DIR}/info/dir"
+    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/info/dir"
+      "${INFO_OUTPUT_DIR}/dir"
+    COMMENT "Installing info directory index"
+    VERBATIM
+  )
+  list(APPEND INFO_OUTPUTS "${INFO_OUTPUT_DIR}/dir")
+endif()
+
 foreach(_manual ${SIMPLE_MANUALS})
   set(_src "${MAN_DIR}/${_manual}.texi")
   set(_out "${INFO_OUTPUT_DIR}/${_manual}.info")
@@ -68,5 +82,6 @@ if(XEMACS_INSTALL_INFO)
       PATTERN "*.info"
       PATTERN "*.info-[0-9]"
       PATTERN "*.info-[0-9][0-9]"
+      PATTERN "dir"
   )
 endif()

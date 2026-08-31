@@ -179,6 +179,11 @@ endif()
 
 add_subdirectory(tests)
 
+# Info pages must be set up before the .app bundle, so the bundle can depend on
+# them (otherwise makeinfo may still be writing .info files when the bundle
+# snapshot is taken).
+include("${CMAKE_SOURCE_DIR}/cmake/XEmacsInfo.cmake")
+
 # Setup macOS .app bundle (must be after src is added so binary exists)
 include("${CMAKE_SOURCE_DIR}/cmake/XEmacsCPackAppBundle.cmake")
 if(APPLE)
@@ -233,8 +238,6 @@ if(XEMACS_INSTALL_ETC)
     )
   endif()
 endif()
-
-include("${CMAKE_SOURCE_DIR}/cmake/XEmacsInfo.cmake")
 
 if(XEMACS_INSTALL_DOC)
   file(GLOB MAN_PAGES "${CMAKE_SOURCE_DIR}/etc/*.1")
