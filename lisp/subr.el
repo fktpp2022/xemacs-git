@@ -2277,4 +2277,225 @@ If BUFFER is nil, the current buffer is assumed."
   (or (eql character1 character2)
       (eql (canoncase character1 buffer) (canoncase character2 buffer))))
 
+;; XEmacs; version parsing and comparison, ported from GNU Emacs subr.el.
+;; Guarded so that a future core implementation, or a package that already
+;; defined these names, is not overwritten.
+
+(if (not (boundp 'version-separator))
+  (defconst version-separator "."
+    "Specify the string used to separate the version elements.
+
+Usually the separator is \".\", but it can be any other string."))
+
+(if (not (boundp 'version-regexp-alist))
+  (defconst version-regexp-alist
+    '(("^[-._+ ]?snapshot$"                                 . -4)
+      ;; treat "1.2.3-20050920" and "1.2-3" as snapshot releases
+      ("^[-._+]$"                                           . -4)
+      ;; treat "1.2.3-CVS" as snapshot release
+      ("^[-._+ ]?\\(cvs\\|git\\|bzr\\|svn\\|hg\\|darcs\\)$" . -4)
+      ;; treat "-unknown" the same as snapshots.
+      ("^[-._+ ]?unknown$"                                  . -4)
+      ("^[-._+ ]?alpha$"                                    . -3)
+      ("^[-._+ ]?beta$"                                     . -2)
+      ("^[-._+ ]?\\(pre\\|rc\\)$"                           . -1))
+    "Specify association between non-numeric version and its priority.
+
+This association is used to handle version string like \"1.0pre2\",
+\"0.9alpha1\", etc.  It's used by `version-to-list' (which see) to convert
+the non-numeric part of a version string to an integer.  For example:
+
+   String Version    Integer List Version
+   \"0.9snapshot\"     (0  9 -4)
+   \"1.0-git\"         (1  0 -4)
+   \"1.0.cvs\"         (1  0 -4)
+   \"1.0pre2\"         (1  0 -1 2)
+   \"1.0PRE2\"         (1  0 -1 2)
+   \"22.8beta3\"       (22 8 -2 3)
+   \"22.8 Beta3\"      (22 8 -2 3)
+   \"0.9alpha1\"       (0  9 -3 1)
+   \"0.9AlphA1\"       (0  9 -3 1)
+   \"0.9 alpha\"       (0  9 -3)
+
+Each element has the following form:
+
+   (REGEXP . PRIORITY)
+
+Where:
+
+REGEXP		regexp used to match non-numeric part of a version string.
+		It should begin with the `^' anchor and end with a `$' to
+		prevent false hits.  Letter-case is ignored while matching
+		REGEXP.
+
+PRIORITY	a negative integer specifying non-numeric priority of REGEXP."))
+
+(if (not (fboundp 'version-to-list))
+  (defun version-to-list (ver)
+    "Convert version string VER into a list of integers.
+
+The version syntax is given by the following EBNF:
+
+   VERSION ::= NUMBER ( SEPARATOR NUMBER )*.
+
+   NUMBER ::= (0|1|2|3|4|5|6|7|8|9)+.
+
+   SEPARATOR ::= `version-separator' (which see)
+	       | `version-regexp-alist' (which see).
+
+The NUMBER part is optional if SEPARATOR is a match for an element
+in `version-regexp-alist'.
+
+Examples of valid version syntax:
+
+   1.0pre2   1.0.7.5   22.8beta3   0.9alpha1   6.9.30Beta   2.4.snapshot   .5
+
+Examples of invalid version syntax:
+
+   1.0prepre2   1.0..7.5   22.8X3   alpha3.2
+
+Examples of version conversion:
+
+   Version String    Version as a List of Integers
+   \".5\"              (0 5)
+   \"0.9 alpha\"       (0  9 -3)
+   \"0.9AlphA1\"       (0  9 -3 1)
+   \"0.9snapshot\"     (0  9 -4)
+   \"1.0-git\"         (1  0 -4)
+   \"1.0.7.5\"         (1  0  7 5)
+   \"1.0.cvs\"         (1  0 -4)
+   \"1.0PRE2\"         (1  0 -1 2)
+   \"1.0pre2\"         (1  0 -1 2)
+   \"22.8 Beta3\"      (22 8 -2 3)
+   \"22.8beta3\"       (22 8 -2 3)
+
+See documentation for `version-separator' and `version-regexp-alist'."
+    (unless (stringp ver)
+      (error "Version must be a string"))
+    ;; Change .x.y to 0.x.y
+    (if (and (>= (length ver) (length version-separator))
+	     (string-equal (substring ver 0 (length version-separator))
+			   version-separator))
+	(setq ver (concat "0" ver)))
+    (unless (string-match-p "^[0-9]" ver)
+      (error "Invalid version syntax: `%s' (must start with a number)" ver))
+
+    (save-match-data
+      (let ((i 0)
+	    (case-fold-search t)	; ignore case in matching
+	    lst s al)
+	;; Parse the version-string up to a separator until there are none left
+	(while (and (setq s (string-match "[0-9]+" ver i))
+		    (= s i))
+	  ;; Add the numeric part to the beginning of the version list;
+	  ;; lst gets reversed at the end
+	  (setq lst (cons (string-to-number (substring ver i (match-end 0)))
+			  lst)
+		i   (match-end 0))
+	  ;; handle non-numeric part
+	  (when (and (setq s (string-match "[^0-9]+" ver i))
+		     (= s i))
+	    (setq s (substring ver i (match-end 0))
+		  i (match-end 0))
+	    ;; handle alpha, beta, pre, etc. separator
+	    (unless (string= s version-separator)
+	      (setq al version-regexp-alist)
+	      (while (and al (not (string-match (caar al) s)))
+		(setq al (cdr al)))
+	      (cond (al
+		     (setq lst (cons (cdar al) lst)))
+		    ;; Convert 22.3a to 22.3.1, 22.3b to 22.3.2, etc.,
+		    ;; but only if the letter is the end of the
+		    ;; version-string, to avoid 22.8X3 being valid
+		    ((and (string-match "^[-._+ ]?\\([a-zA-Z]\\)$" s)
+			  (= i (length ver)))
+		     (setq lst
+			   (cons (- (aref (downcase (match-string 1 s)) 0)
+				    ?a -1)
+				 lst)))
+		    (t (error "Invalid version syntax: `%s'" ver))))))
+	(nreverse lst)))))
+
+(if (not (fboundp 'version-list-not-zero))
+  (defun version-list-not-zero (lst)
+    "Return the first non-zero element of LST, which is a list of integers.
+
+If all LST elements are zeros or LST is nil, return zero."
+    (while (and lst (zerop (car lst)))
+      (setq lst (cdr lst)))
+    (if lst
+	(car lst)
+      ;; there is no element different of zero
+      0)))
+
+(if (not (fboundp 'version-list-<))
+  (defun version-list-< (l1 l2)
+    "Return t if L1, a list specification of a version, is lower than L2.
+
+Note that a version specified by the list (1) is equal to (1 0),
+\(1 0 0), (1 0 0 0), etc.  That is, the trailing zeros are insignificant.
+Also, a version given by the list (1) is higher than (1 -1), which in
+turn is higher than (1 -2), which is higher than (1 -3)."
+    (while (and l1 l2 (= (car l1) (car l2)))
+      (setq l1 (cdr l1)
+	    l2 (cdr l2)))
+    (cond
+     ;; l1 not null and l2 not null
+     ((and l1 l2) (< (car l1) (car l2)))
+     ;; l1 null and l2 null         ==> l1 length = l2 length
+     ((and (null l1) (null l2)) nil)
+     ;; l1 not null and l2 null     ==> l1 length > l2 length
+     (l1 (< (version-list-not-zero l1) 0))
+     ;; l1 null and l2 not null     ==> l2 length > l1 length
+     (t  (< 0 (version-list-not-zero l2))))))
+
+(if (not (fboundp 'version-list-=))
+  (defun version-list-= (l1 l2)
+    "Return t if L1, a list specification of a version, is equal to L2.
+
+Note that a version specified by the list (1) is equal to (1 0),
+\(1 0 0), (1 0 0 0), etc.  That is, the trailing zeros are insignificant.
+Also, a version given by the list (1) is higher than (1 -1), which in
+turn is higher than (1 -2), which is higher than (1 -3)."
+    (while (and l1 l2 (= (car l1) (car l2)))
+      (setq l1 (cdr l1)
+	    l2 (cdr l2)))
+    (cond
+     ;; l1 not null and l2 not null
+     ((and l1 l2) nil)
+     ;; l1 null and l2 null     ==> l1 length = l2 length
+     ((and (null l1) (null l2)))
+     ;; l1 not null and l2 null ==> l1 length > l2 length
+     (l1 (zerop (version-list-not-zero l1)))
+     ;; l1 null and l2 not null ==> l2 length > l1 length
+     (t  (zerop (version-list-not-zero l2))))))
+
+(if (not (fboundp 'version-list-<=))
+  (defun version-list-<= (l1 l2)
+    "Return t if L1, a list specification of a version, is lower or equal to L2.
+
+Note that integer list (1) is equal to (1 0), (1 0 0), (1 0 0 0),
+etc.  That is, the trailing zeroes are insignificant.  Also, integer
+list (1) is greater than (1 -1) which is greater than (1 -2)
+which is greater than (1 -3)."
+    (while (and l1 l2 (= (car l1) (car l2)))
+      (setq l1 (cdr l1)
+	    l2 (cdr l2)))
+    (cond
+     ;; l1 not null and l2 not null
+     ((and l1 l2) (< (car l1) (car l2)))
+     ;; l1 null and l2 null     ==> l1 length = l2 length
+     ((and (null l1) (null l2)))
+     ;; l1 not null and l2 null ==> l1 length > l2 length
+     (l1 (<= (version-list-not-zero l1) 0))
+     ;; l1 null and l2 not null ==> l2 length > l1 length
+     (t  (<= 0 (version-list-not-zero l2))))))
+
+(if (not (fboundp 'elpa-version-join))
+  (defun elpa-version-join (version)
+    "Return VERSION, a list of integers, as a dotted version string.
+For example, (0 2) becomes \"0.2\".  This is the form used in ELPA
+artifact and content-directory names."
+    (mapconcat #'number-to-string version ".")))
+
 ;;; subr.el ends here
