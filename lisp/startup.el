@@ -70,6 +70,12 @@
 
 (globally-declare-fboundp
  (unless (featurep 'menubar) '(init-menubar-at-startup)))
+
+;; Defined by elpa.el, which is loaded at runtime by startup-activate-elpa
+;; rather than dumped.  The defvars leave the variables unbound until then.
+(defvar elpa-activate-at-startup)
+(defvar elpa-user-dir)
+(globally-declare-fboundp '(elpa-activate-all))
 
 (setq top-level '(normal-top-level))
 
@@ -769,6 +775,13 @@ If this is nil, no message will be displayed.")
 
     ;;; Load init files.
     (load-init-file)
+
+    ;; Activate installed ELPA packages now that site-start and the user's
+    ;; init file have run, so either can disable activation by setting
+    ;; `elpa-activate-at-startup' to nil.  Batch mode never loads init files;
+    ;; there the variable must be set before startup, for example through
+    ;; XEMACSDEBUG, which is evaluated at the top of `normal-top-level'.
+    (startup-activate-elpa)
 
     (with-current-buffer (get-buffer "*scratch*")
       (erase-buffer)
@@ -1701,5 +1714,26 @@ PACKAGES."
       (packages-load-package-auto-autoloads early-package-load-path))
     (packages-load-package-auto-autoloads late-package-load-path)
     (packages-load-package-auto-autoloads last-package-load-path)))
+
+(defun startup-activate-elpa ()
+  "Activate installed ELPA packages when `elpa-activate-at-startup' is non-nil.
+This runs after the init files and before the remaining command-line forms.
+`elpa' is not preloaded, so load it here.  Nothing is loaded or activated
+when packages are inhibited (for example with -no-packages), which keeps
+dump and byte-compilation runs clean, or when the variable is already nil.
+Activation errors are reported as warnings and never abort startup."
+  (when (and (not inhibit-all-packages)
+	     (or (not (boundp 'elpa-activate-at-startup))
+		 elpa-activate-at-startup))
+    (when (condition-case nil
+	      (require 'elpa)
+	    (file-error nil))
+      (when (and elpa-activate-at-startup
+		 (file-directory-p elpa-user-dir))
+	(condition-case err
+	    (elpa-activate-all)
+	  (error
+	   (warn "Error activating installed ELPA packages: %s"
+		 (error-message-string err))))))))
 
 ;;; startup.el ends here
