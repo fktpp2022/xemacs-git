@@ -19,6 +19,7 @@ include(CheckSymbolExists)
 include(CheckTypeSize)
 include(CheckCSourceCompiles)
 include(CheckCSourceRuns)
+include(CheckLibraryExists)
 include(CMakePackageConfigHelpers)
 
 include("${CMAKE_SOURCE_DIR}/cmake/XEmacsOptions.cmake")
