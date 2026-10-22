@@ -573,6 +573,32 @@ Return the child's standard output without trailing newlines."
                         (expand-file-name ".staging/" elpa-user-dir)))))
       (elpa-tests-delete-tree archive))))
 
+;; A non-HTTP(S) URL scheme is rejected with a clear error when
+;; refreshing the index.
+(elpa-tests-with-temp-user-dir
+  (let ((elpa-archives
+         '(("ftp-archive" . "ftp://elpa.example.org/packages/"))))
+    (Check-Error-Message 'error "not supported"
+      (elpa-refresh-contents))
+    (Assert (not (file-exists-p
+                  (expand-file-name
+                   "archives/ftp-archive/archive-contents"
+                   elpa-user-dir)))
+            "an unsupported scheme caches nothing")))
+
+;; The same clear error when fetching an artifact: the in-memory index
+;; from a local refresh survives an `elpa-archives' switch to an
+;; unsupported scheme, so the failure happens at the artifact fetch.
+(elpa-tests-with-temp-user-dir
+  (let ((elpa-archives (list (cons "mixed" (elpa-tests-fixture)))))
+    (elpa-refresh-contents)
+    (let ((elpa-archives
+           '(("mixed" . "ftp://elpa.example.org/packages/"))))
+      (Check-Error-Message 'error "not supported"
+        (elpa-install "queue"))
+      (Assert (not (elpa-installed-p "queue"))
+              "no package directory after an unsupported-scheme fetch"))))
+
 ;; Requirements are installed before the dependent; the emacs pseudo-requirement
 ;; is ignored with a warning.
 (elpa-tests-with-temp-user-dir
@@ -596,6 +622,87 @@ Return the child's standard output without trailing newlines."
             (Assert (elpa-installed-p "dep-b" '(1 0))
                     "requirements are installed recursively")))
       (elpa-tests-delete-tree work)
+      (elpa-tests-delete-tree archive))))
+
+;; Dependency requirements are minimums, not exact matches (GNU
+;; semantics): a (1 0) requirement is satisfied by an index version
+;; (1 1), and by an already-installed (1 1), but not by (0 9).
+(elpa-tests-with-temp-user-dir
+  (let* ((archive (elpa-tests-make-archive
+                   (concat "(1\n"
+                           " (dep-min . [(1 0) ((dep-new (1 0)))"
+                           " \"Minimum dependent\" tar nil])\n"
+                           " (dep-min2 . [(1 0) ((dep-new (1 0)))"
+                           " \"Second dependent\" tar nil])\n"
+                           " (dep-old . [(1 0) ((dep-new (2 0)))"
+                           " \"Unsatisfiable dependent\" tar nil])\n"
+                           " (dep-new . [(1 1) nil \"Dependency\" tar nil]))\n")))
+         (work (file-name-as-directory (make-temp-file "elpa-depmin-" t))))
+    (unwind-protect
+        (progn
+          (elpa-tests-build-tar-package archive work "dep-min" "1.0")
+          (elpa-tests-build-tar-package archive work "dep-min2" "1.0")
+          (elpa-tests-build-tar-package archive work "dep-old" "1.0")
+          (elpa-tests-build-tar-package archive work "dep-new" "1.1")
+          (let ((elpa-archives (list (cons "depmin" archive)))
+                (elpa-installable-packages
+                 '(dep-min dep-min2 dep-old dep-new)))
+            (elpa-refresh-contents)
+            (Assert (eq 'dep-min (elpa-install "dep-min"))
+                    "a (1 0) requirement installs an index version (1 1)")
+            (Assert (elpa-installed-p "dep-new" '(1 1))
+                    "the dependency installed at the index version")
+            (Assert (not (elpa-installed-p "dep-new" '(1 0)))
+                    "the dependency was not pinned to the required version")
+            (Assert (eq 'dep-min2 (elpa-install "dep-min2"))
+                    "an installed newer dependency satisfies a (1 0) requirement")
+            (Check-Error-Message 'error "not available"
+              (elpa-install "dep-old"))
+            (Assert (not (elpa-installed-p "dep-old"))
+                    "nothing published for the unsatisfiable requirement")))
+      (elpa-tests-delete-tree work)
+      (elpa-tests-delete-tree archive))))
+
+;;; Installing without a prior refresh
+
+;; `elpa-install' starts the pipeline with a refresh when no cached
+;; index exists (spec section 6, step 1).
+(elpa-tests-with-temp-user-dir
+  (let ((elpa-archives (list (cons "cold" (elpa-tests-fixture)))))
+    (Assert (not (file-exists-p
+                  (expand-file-name "archives/cold/archive-contents"
+                                    elpa-user-dir)))
+            "no cached index before the install")
+    (Assert (eq 'queue (elpa-install "queue"))
+            "elpa-install refreshes when no cached index exists")
+    (Assert (file-readable-p
+             (expand-file-name "archives/cold/archive-contents"
+                               elpa-user-dir))
+            "the install left the refreshed index cached")
+    (Assert (elpa-installed-p "queue" '(0 2)))))
+
+;; A cached index is reused as-is: updating it stays the job of an
+;; explicit `elpa-refresh-contents'.
+(elpa-tests-with-temp-user-dir
+  (let ((archive (elpa-tests-make-archive
+                  "(1\n (queue . [(0 2) nil \"Queue data structure\" tar nil]))\n")))
+    (unwind-protect
+        (let ((elpa-archives (list (cons "stale" archive)))
+              (elpa-installable-packages '(queue newpkg)))
+          (elpa-refresh-contents)
+          (with-temp-file (expand-file-name "archive-contents" archive)
+            (insert "(1\n (newpkg . [(2 0) nil \"New\" tar nil]))\n"))
+          (setq elpa--archive-index-alist nil)
+          (Check-Error-Message 'error "not available"
+            (elpa-install "newpkg"))
+          (Assert (not (elpa-installed-p "newpkg")))
+          (Assert (not (string-match
+                        "newpkg"
+                        (elpa-tests-file-contents
+                         (expand-file-name
+                          "archives/stale/archive-contents"
+                          elpa-user-dir))))
+                "a cached index is not re-fetched by elpa-install"))
       (elpa-tests-delete-tree archive))))
 
 ;;; Activation
@@ -859,5 +966,27 @@ http.server.HTTPServer(('127.0.0.1', PORT), H).serve_forever()
                 "-eval" "(princ (format \"fbound=%s\" (fboundp 'make-queue)))")
                "fbound=nil")
               "startup activation can be disabled"))))
+
+;;; Terminal line
+
+;; Spec section 9 ends the offline suite with an expected terminal
+;; line.  The batch harness exits 0 even when Asserts fail, so the
+;; verdict is computed from the harness's own failure counters, which
+;; are dynamically bound while the suite body runs.
+(Assert (and (boundp 'passes)
+             (boundp 'assertion-failures)
+             (boundp 'no-error-failures)
+             (boundp 'wrong-error-failures)
+             (boundp 'missing-message-failures)
+             (boundp 'other-failures))
+        "the harness failure counters are visible for the terminal line")
+(message
+ (if (and (zerop assertion-failures)
+          (zerop no-error-failures)
+          (zerop wrong-error-failures)
+          (zerop missing-message-failures)
+          (zerop other-failures))
+     "elpa tests: passed"
+   "elpa tests: FAILED"))
 
 ;;; elpa-tests.el ends here

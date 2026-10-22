@@ -32,7 +32,10 @@
 (require 'elpa)
 
 (if (null (getenv "ELPA_LIVE"))
-    (message "Skipping elpa-live-tests: ELPA_LIVE not set")
+    (progn
+      (message "Skipping elpa-live-tests: ELPA_LIVE not set")
+      ;; CTest SKIP_RETURN_CODE: report this run as skipped, not passed.
+      (kill-emacs 125))
 
   (unless (fboundp 'async-http-request-internal)
     (error "ELPA_LIVE is set but the async HTTP transport is not available"))
