@@ -21,8 +21,9 @@
 
 ;; A small, install-only GNU ELPA client.  It deliberately implements the
 ;; subset needed by the milestone target packages: a version-1 archive
-;; index, an allowlist, tar artifacts, define-package validation, atomic
-;; staging, generated autoloads, byte-compilation, and explicit activation.
+;; index, an allowlist, tar and single-file artifacts, define-package
+;; validation for tarballs, atomic staging, generated autoloads,
+;; byte-compilation, and explicit activation.
 ;; It is not a replacement for GNU package.el and it does not support
 ;; upgrades, deletion, a package menu, or signature verification.
 ;;
@@ -339,7 +340,7 @@ VERSION may be a version string or a list of integers.  NAME must be in
 	 (staging-root (expand-file-name ".staging/" elpa-user-dir))
 	 (staging (expand-file-name artifact-base staging-root))
 	 (published (elpa--package-dir name version)))
-    (unless (eq kind 'tar)
+    (unless (memq kind '(tar single))
       (error "Unsupported package kind `%s' for `%s'" kind name))
     (when (file-exists-p published)
       (error "Package `%s' is already installed in %s" name published))
@@ -348,36 +349,93 @@ VERSION may be a version string or a list of integers.  NAME must be in
       (elpa--delete-tree staging))
     (make-directory staging t)
     (unwind-protect
-	(let ((artifact (expand-file-name (concat artifact-base ".tar")
-					  staging))
-	      (source (expand-file-name (concat artifact-base ".tar")
-					base)))
-	  (unless (file-readable-p source)
-	    (error "Package artifact not found: %s" source))
-	  (copy-file source artifact)
-	  (unless (file-regular-p artifact)
-	    (error "Package artifact is not a regular file: %s" artifact))
-	  (elpa--validate-tar artifact name version)
-	  (let ((status (call-process "tar" nil nil nil
-				      "-xf" artifact "-C" staging)))
-	    (unless (and (integerp status) (zerop status))
-	      (error "Failed to extract package artifact %s (tar exit %s)"
-		     artifact status)))
-	  (let ((content (expand-file-name artifact-base staging)))
-	    (unless (file-directory-p content)
-	      (error "Package artifact did not create %s/" artifact-base))
-	    (elpa--validate-pkg-file content name version)
-	    (elpa--remove-shipped-autoloads content name)
-	    (elpa--generate-autoloads content name version)
-	    (elpa--byte-compile-content content)
-	    (when (file-exists-p published)
-	      (error "Package `%s' is already installed in %s"
-		     name published))
-	    (rename-file content published)))
+	(let ((content (if (eq kind 'tar)
+			   (elpa--stage-tar info base staging)
+			 (elpa--stage-single info base staging))))
+	  (when (eq kind 'tar)
+	    (elpa--validate-pkg-file content name version))
+	  (elpa--remove-shipped-autoloads content name)
+	  (elpa--generate-autoloads content name version)
+	  (elpa--byte-compile-content content)
+	  (when (file-exists-p published)
+	    (error "Package `%s' is already installed in %s"
+		   name published))
+	  (rename-file content published))
       (ignore-errors (elpa--delete-tree staging))
       (when (and (file-directory-p staging-root)
 		 (= 2 (length (directory-files staging-root))))
 	(ignore-errors (delete-directory staging-root))))))
+
+(defun elpa--stage-tar (info base staging)
+  "Copy INFO's tar artifact from BASE into STAGING and extract it.
+Validate every member before extraction.  Return the staged content
+directory; the extracted artifact remains under STAGING until the
+caller removes it."
+  (let* ((name (plist-get info :name))
+	 (version (plist-get info :version))
+	 (artifact-base (elpa--artifact-name name version))
+	 (artifact (expand-file-name (concat artifact-base ".tar")
+				     staging))
+	 (source (expand-file-name (concat artifact-base ".tar") base)))
+    (unless (file-readable-p source)
+      (error "Package artifact not found: %s" source))
+    (copy-file source artifact)
+    (unless (file-regular-p artifact)
+      (error "Package artifact is not a regular file: %s" artifact))
+    (elpa--validate-tar artifact name version)
+    (let ((status (call-process "tar" nil nil nil
+				"-xf" artifact "-C" staging)))
+      (unless (and (integerp status) (zerop status))
+	(error "Failed to extract package artifact %s (tar exit %s)"
+	       artifact status)))
+    (let ((content (expand-file-name artifact-base staging)))
+      (unless (file-directory-p content)
+	(error "Package artifact did not create %s/" artifact-base))
+      content)))
+
+(defun elpa--stage-single (info base staging)
+  "Copy INFO's single-file artifact from BASE into STAGING.
+The downloaded file is written as `<name>.el' inside the staged
+`<name>-<version>/' content directory, so the artifact itself does not
+survive as a separate download.  Return the content directory."
+  (let* ((name (plist-get info :name))
+	 (version (plist-get info :version))
+	 (artifact-base (elpa--artifact-name name version))
+	 (artifact (expand-file-name (concat artifact-base ".el") staging))
+	 (source (expand-file-name (concat artifact-base ".el") base))
+	 (content (expand-file-name artifact-base staging)))
+    (unless (file-readable-p source)
+      (error "Package artifact not found: %s" source))
+    (copy-file source artifact)
+    (unless (file-regular-p artifact)
+      (error "Package artifact is not a regular file: %s" artifact))
+    (make-directory content t)
+    (rename-file artifact
+		 (expand-file-name (concat (symbol-name name) ".el")
+				   content))
+    (elpa--validate-single content name)
+    content))
+
+(defun elpa--validate-single (content name)
+  "Verify the staged single-file library for NAME in CONTENT is sane.
+The file must be non-empty and look like the named library: it must
+carry a `;;; <name>.el' header comment or provide NAME."
+  (let ((file (expand-file-name (concat (symbol-name name) ".el") content))
+	(library (symbol-name name)))
+    (with-temp-buffer
+      (insert-file-contents file)
+      (when (zerop (buffer-size))
+	(error "Package artifact is empty: %s" file))
+      (goto-char (point-min))
+      (unless (or (looking-at
+		   (concat ";;;[ \t]*" (regexp-quote library) "\\.el"))
+		  (re-search-forward
+		   (concat "^(provide[ \t\n]+'"
+			   (regexp-quote library)
+			   "[ \t\n)]")
+		   nil t))
+	(error "Package artifact %s does not look like library `%s'"
+	       file library)))))
 
 (defun elpa--tar-listing (artifact &rest args)
   "Run tar with ARGS and ARTIFACT and return the output as a string."

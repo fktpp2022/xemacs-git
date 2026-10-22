@@ -2498,4 +2498,17 @@ For example, (0 2) becomes \"0.2\".  This is the form used in ELPA
 artifact and content-directory names."
     (mapconcat #'number-to-string version ".")))
 
+;; XEmacs; compatibility definitions needed by GNU ELPA packages such as
+;; loc-changes.  Guarded so that a future core implementation, or a package
+;; that already defined these names, is not overwritten.
+
+(defalias 'wholenump 'natnump)
+
+(if (not (fboundp 'redisplay))
+  (defun redisplay (&rest _)
+    "Try to redisplay the current display immediately.
+This compatibility shim accepts and ignores any arguments; batch mode
+treats it as a no-op."
+    (sit-for 0)))
+
 ;;; subr.el ends here
