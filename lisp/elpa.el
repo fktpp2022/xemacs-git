@@ -148,6 +148,12 @@ your init file to disable startup activation."
 	((listp version) version)
 	(t (error "Version must be a string or a list: %S" version))))
 
+(defun elpa-version-join (version)
+  "Return VERSION, a list of integers, as a dotted version string.
+For example, (0 2) becomes \"0.2\".  This is the form used in ELPA
+artifact and content-directory names."
+  (mapconcat #'number-to-string version "."))
+
 ;;; HTTP transport
 
 (defconst elpa--index-timeout 60000
@@ -159,13 +165,6 @@ your init file to disable startup activation."
 (defun elpa--location-http-p (location)
   "Return non-nil if LOCATION is an HTTP or HTTPS URL."
   (string-match "\\`https?://" location))
-
-(defun elpa--location-remote-p (location)
-  "Return non-nil if LOCATION is a network URL of any supported kind.
-Only HTTP(S) is actually supported; other schemes are recognized so
-they can be rejected with a clear error."
-  (or (elpa--location-http-p location)
-      (string-match "\\`ftp://" location)))
 
 (defun elpa--require-http-transport ()
   "Signal an error unless the async HTTP transport is available."
@@ -339,17 +338,15 @@ the version-1 gate."
 	(unless (stringp body)
 	  (error "ELPA archive index fetch returned no body: %s" url))
 	(elpa--cache-index archive (elpa--parse-index body) body)))
-     ((elpa--location-remote-p base)
-      (error "ELPA archive location scheme is not supported: %s" base))
-     (t
-      (unless (file-name-absolute-p base)
-	(error "ELPA archive location must be an absolute directory: %s" base))
+     ((file-name-absolute-p base)
       (let ((source (expand-file-name "archive-contents" base)))
 	(unless (file-readable-p source)
 	  (error "ELPA archive not found: %s" source))
 	(elpa--cache-index archive
 			   (elpa--parse-index (elpa--read-file source))
-			   source 'copy-source))))))
+			   source 'copy-source)))
+     (t
+      (error "ELPA archive location scheme is not supported: %s" base)))))
 
 ;;; Resolution and installation
 
@@ -388,15 +385,20 @@ If VERSION is non-nil, require that exact version."
 		(elpa--find-installed-dir name))))
     (and dir (file-directory-p dir) t)))
 
-(defun elpa--resolve (name version archive)
-  "Resolve NAME at VERSION in ARCHIVE and return its package plist."
+(defun elpa--resolve (name version archive &optional minimum)
+  "Resolve NAME at VERSION in ARCHIVE and return its package plist.
+With MINIMUM non-nil, VERSION is a floor: the index version may be
+newer, matching GNU dependency semantics.  Otherwise VERSION must
+match the index version exactly."
   (let ((info (elpa-package-info name archive)))
     (unless info
       (error "Package `%s' is not available in archive %s"
 	     name (elpa--archive-name archive)))
     (when version
       (let ((wanted (elpa--version-list version)))
-	(unless (version-list-= wanted (plist-get info :version))
+	(unless (if minimum
+		    (version-list-<= wanted (plist-get info :version))
+		  (version-list-= wanted (plist-get info :version)))
 	  (error "Package `%s' version %s is not available in archive %s (found %s)"
 		 name version (elpa--archive-name archive)
 		 (elpa-version-join (plist-get info :version))))))
@@ -404,8 +406,11 @@ If VERSION is non-nil, require that exact version."
 
 (defun elpa-install (name &optional version)
   "Install package NAME at VERSION from the first configured archive.
-VERSION may be a version string or a list of integers.  NAME must be in
-`elpa-installable-packages'.  Return NAME."
+VERSION may be a version string or a list of integers and must match
+the index version exactly.  NAME must be in `elpa-installable-packages'.
+If no cached index exists for the archive, it is refreshed first; an
+existing cache is reused as-is and `elpa-refresh-contents' remains the
+way to update it.  Return NAME."
   (interactive
    (list (intern (read-string "Package: "))))
   (let* ((name (elpa--package-symbol name))
@@ -415,16 +420,41 @@ VERSION may be a version string or a list of integers.  NAME must be in
     (elpa--install-1 name version archive)
     name))
 
-(defun elpa--install-1 (name version archive)
-  "Install NAME at VERSION from ARCHIVE, including its dependencies."
+(defun elpa--installed-at-least (name version)
+  "Return non-nil if NAME is installed at VERSION or newer.
+A nil VERSION means any installed version counts.  Used for
+dependency satisfaction, where a requirement names a minimum."
+  (let ((dir (elpa--find-installed-dir name)))
+    (and dir
+	 (or (null version)
+	     (let* ((tail (file-name-nondirectory
+			   (directory-file-name dir)))
+		    (version-string
+			     (and (string-match
+				   (concat "\\`"
+					   (regexp-quote (symbol-name name))
+					   "-\\([0-9]+\\(?:\\.[0-9]+\\)*\\)\\'")
+				   tail)
+				  (match-string 1 tail))))
+	       (and version-string
+		    (version-list-<= (elpa--version-list version)
+				     (version-to-list version-string))))))))
+
+(defun elpa--install-1 (name version archive &optional minimum)
+  "Install NAME at VERSION from ARCHIVE, including its dependencies.
+With MINIMUM non-nil, VERSION is a dependency floor rather than an
+exact request; an installed NAME at VERSION or newer satisfies it."
   (elpa--ensure-allowlisted name)
   (cond
-   ((elpa-installed-p name version) name)
+   ((if minimum
+	(elpa--installed-at-least name version)
+      (elpa-installed-p name version))
+    name)
    ;; A dependency cycle: this package is already being installed by an
    ;; outer call, so do not recurse.
    ((memq name elpa--install-in-progress) name)
    (t
-    (let ((info (elpa--resolve name version archive)))
+    (let ((info (elpa--resolve name version archive minimum)))
       (let ((elpa--install-in-progress
 	     (cons name elpa--install-in-progress)))
 	(dolist (dependency (plist-get info :reqs))
@@ -433,22 +463,63 @@ VERSION may be a version string or a list of integers.  NAME must be in
     name)))
 
 (defun elpa--install-dependency (dependency dependent archive)
-  "Install DEPENDENCY of DEPENDENT from ARCHIVE, if it is required."
+  "Install DEPENDENCY of DEPENDENT from ARCHIVE, if it is required.
+A dependency version is a minimum: any installed or index version at
+or above it satisfies the requirement."
   (let ((name (car dependency))
 	(version (nth 1 dependency)))
     (cond
      ((eq name 'emacs)
       (warn "ignoring emacs requirement %s for %s" dependency dependent))
-     ((elpa-installed-p name version) nil)
+     ((elpa--installed-at-least name version) nil)
      (t
       (unless (memq name elpa-installable-packages)
 	(error "Required package `%s' for `%s' is not in elpa-installable-packages"
 	       name dependent))
-      (elpa--install-1 name version archive)))))
+      (elpa--install-1 name version archive 'minimum)))))
 
 (defun elpa--artifact-name (name version)
   "Return the artifact base name for package NAME at VERSION."
   (concat (symbol-name name) "-" (elpa-version-join version)))
+
+(defun elpa--check-regular-file (artifact)
+  "Signal an error unless ARTIFACT exists and is a regular file."
+  (unless (file-regular-p artifact)
+    (error "Package artifact is not a regular file: %s" artifact)))
+
+(defun elpa--check-tar-exit (status artifact what)
+  "Signal an error unless STATUS, tar's exit code for ARTIFACT, is zero.
+WHAT names the tar operation in the error message."
+  (unless (and (integerp status) (zerop status))
+    (error "Failed to %s package artifact %s (tar exit %s)"
+	   what artifact status)))
+
+(defun elpa--acquire-artifact (base artifact-base extension staging)
+  "Copy or download the artifact ARTIFACT-BASE EXTENSION from BASE.
+STAGING is the directory the artifact lands in.  BASE is an archive
+location: an HTTP(S) URL or a local absolute directory.  Return the
+staged artifact's absolute file name.  Over HTTP(S) the bytes are
+written straight into staging by C and never round-trip through a
+Lisp string."
+  (let ((artifact (expand-file-name (concat artifact-base extension)
+				    staging)))
+    (cond ((elpa--location-http-p base)
+	   (let ((url (elpa--remote-url base
+					(concat artifact-base extension))))
+	     (elpa--http-download url artifact elpa--artifact-timeout
+				  (format "Package artifact not found: %s"
+					  url))))
+	  ((file-name-absolute-p base)
+	   (let ((source (expand-file-name
+			  (concat artifact-base extension) base)))
+	     (unless (file-readable-p source)
+	       (error "Package artifact not found: %s" source))
+	     (copy-file source artifact)))
+	  (t
+	   (error "ELPA archive location scheme is not supported: %s"
+		  base)))
+    (elpa--check-regular-file artifact)
+    artifact))
 
 (defun elpa--install-artifact (info archive)
   "Download, validate, stage, and publish package INFO from ARCHIVE."
@@ -470,31 +541,8 @@ VERSION may be a version string or a list of integers.  NAME must be in
     (make-directory staging t)
     (unwind-protect
 	(let* ((extension (if (eq kind 'tar) ".tar" ".el"))
-	       (artifact (expand-file-name
-				  (concat artifact-base extension) staging))
-	       (artifact-url (and (elpa--location-http-p base)
-					  (elpa--remote-url base
-							    (concat artifact-base
-								    extension)))))
-	  ;; Acquire the artifact: over HTTP(S) the bytes are written
-	  ;; straight into staging by C; otherwise copy from the local
-	  ;; archive directory.
-	  (cond (artifact-url
-		 (elpa--http-download artifact-url artifact
-					      elpa--artifact-timeout
-					      (format "Package artifact not found: %s"
-							      artifact-url)))
-		((elpa--location-remote-p base)
-		 (error "ELPA archive location scheme is not supported: %s"
-			base))
-		(t
-		 (let ((source (expand-file-name
-					(concat artifact-base extension) base)))
-		   (unless (file-readable-p source)
-		     (error "Package artifact not found: %s" source))
-		   (copy-file source artifact))))
-	  (unless (file-regular-p artifact)
-	    (error "Package artifact is not a regular file: %s" artifact))
+	       (artifact (elpa--acquire-artifact base artifact-base
+						 extension staging)))
 	  (let ((content (if (eq kind 'tar)
 				     (elpa--stage-tar info artifact staging)
 				   (elpa--stage-single info artifact staging))))
@@ -520,14 +568,11 @@ caller removes it."
   (let* ((name (plist-get info :name))
 	 (version (plist-get info :version))
 	 (artifact-base (elpa--artifact-name name version)))
-    (unless (file-regular-p artifact)
-      (error "Package artifact is not a regular file: %s" artifact))
+    (elpa--check-regular-file artifact)
     (elpa--validate-tar artifact name version)
     (let ((status (call-process "tar" nil nil nil
 				"-xf" artifact "-C" staging)))
-      (unless (and (integerp status) (zerop status))
-	(error "Failed to extract package artifact %s (tar exit %s)"
-	       artifact status)))
+      (elpa--check-tar-exit status artifact "extract"))
     (let ((content (expand-file-name artifact-base staging)))
       (unless (file-directory-p content)
 	(error "Package artifact did not create %s/" artifact-base))
@@ -542,8 +587,7 @@ survive as a separate download.  Return the content directory."
 	 (version (plist-get info :version))
 	 (artifact-base (elpa--artifact-name name version))
 	 (content (expand-file-name artifact-base staging)))
-    (unless (file-regular-p artifact)
-      (error "Package artifact is not a regular file: %s" artifact))
+    (elpa--check-regular-file artifact)
     (make-directory content t)
     (rename-file artifact
 		 (expand-file-name (concat (symbol-name name) ".el")
@@ -578,9 +622,7 @@ carry a `;;; <name>.el' header comment or provide NAME."
     (let ((coding-system-for-read 'raw-text)
 	  (status (apply 'call-process "tar" nil t nil
 			 (append args (list artifact)))))
-      (unless (and (integerp status) (zerop status))
-	(error "Failed to inspect package artifact %s (tar exit %s)"
-	       artifact status))
+      (elpa--check-tar-exit status artifact "inspect")
       (buffer-string))))
 
 (defun elpa--validate-tar (artifact name version)

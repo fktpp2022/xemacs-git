@@ -2491,18 +2491,12 @@ which is greater than (1 -3)."
      ;; l1 null and l2 not null ==> l2 length > l1 length
      (t  (<= 0 (version-list-not-zero l2))))))
 
-(if (not (fboundp 'elpa-version-join))
-  (defun elpa-version-join (version)
-    "Return VERSION, a list of integers, as a dotted version string.
-For example, (0 2) becomes \"0.2\".  This is the form used in ELPA
-artifact and content-directory names."
-    (mapconcat #'number-to-string version ".")))
-
 ;; XEmacs; compatibility definitions needed by GNU ELPA packages such as
 ;; loc-changes.  Guarded so that a future core implementation, or a package
 ;; that already defined these names, is not overwritten.
 
-(defalias 'wholenump 'natnump)
+(if (not (fboundp 'wholenump))
+    (defalias 'wholenump 'natnump))
 
 (if (not (fboundp 'redisplay))
   (defun redisplay (&rest _)

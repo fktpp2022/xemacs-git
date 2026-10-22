@@ -1722,14 +1722,19 @@ This runs after the init files and before the remaining command-line forms.
 when packages are inhibited (for example with -no-packages), which keeps
 dump and byte-compilation runs clean, or when the variable is already nil.
 Activation errors are reported as warnings and never abort startup."
+  ;; The pre-require test needs `boundp' because the variable may not exist
+  ;; yet.  It only ever flips from unbound to t when `elpa' loads (its
+  ;; defcustom never overwrites an explicitly set value), so a nil set in
+  ;; an init file survives the require and one test is enough; a second
+  ;; test after the require would be unreachable-false.
   (when (and (not inhibit-all-packages)
 	     (or (not (boundp 'elpa-activate-at-startup))
 		 elpa-activate-at-startup))
     (when (condition-case nil
 	      (require 'elpa)
 	    (file-error nil))
-      (when (and elpa-activate-at-startup
-		 (file-directory-p elpa-user-dir))
+      ;; `elpa-user-dir' is defined by elpa.el, hence after the require.
+      (when (file-directory-p elpa-user-dir)
 	(condition-case err
 	    (elpa-activate-all)
 	  (error
