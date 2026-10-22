@@ -1,0 +1,492 @@
+\input texinfo  @c -*-texinfo-*-
+@setfilename ../info/elpa.info
+
+@c %**start of header
+@settitle XEmacs ELPA Package Client Manual
+@direntry
+* ELPA: (elpa).                 Installing GNU ELPA packages in XEmacs.
+@end direntry
+@c paragraphindent 2
+@c %**end of header
+
+@ifinfo
+This manual documents the XEmacs ELPA package client (@file{lisp/elpa.el}):
+how to install and run packages from GNU ELPA, and how the client works
+for the developer who extends or maintains it.
+
+Copyright @copyright{} 2026 Free Software Foundation.
+
+This file is part of XEmacs.
+
+XEmacs is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+XEmacs is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+and FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+License for more details.
+
+You should have received a copy of the GNU General Public License
+along with XEmacs.  If not, see <http://www.gnu.org/licenses/>.
+@end ifinfo
+
+@c Fold all indices into the concept index, as the newer manuals do.
+@syncodeindex fn cp
+@syncodeindex vr cp
+@syncodeindex ky cp
+@syncodeindex pg cp
+@syncodeindex tp cp
+
+@setchapternewpage odd
+@finalout
+
+@titlepage
+@title XEmacs ELPA Package Client Manual
+@subtitle Installing and running GNU ELPA packages
+@author The XEmacs Development Team
+@page
+@vskip 0pt plus 1fill
+
+@noindent
+Copyright @copyright{} 2026 Free Software Foundation. @*
+
+@noindent
+Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+@noindent
+Permission is granted to copy and distribute modified versions of this
+manual under the conditions for verbatim copying, provided that the
+entire resulting derived work is distributed under the terms of a
+permission notice identical to this one.
+
+@noindent
+Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that this permission notice may be stated in a
+translation approved by the Foundation.
+@end titlepage
+
+@ifnottex
+@node Top, Copying, (dir), (dir)
+@top ELPA Package Client
+
+This manual documents the XEmacs ELPA package client: how to install
+and run packages from GNU ELPA, and how the client works internally.
+@end ifnottex
+
+@menu
+* Copying::                     The GNU General Public License.
+* Introduction::                What the client is and is not.
+* Installing Packages::         The end-user guide.
+* Customization::               Variables the user can set.
+* Security::                    Allowlists, signatures, and what is trusted.
+* Data Model::                  Archives, indexes, and the install layout.
+* Lisp API::                    The programmer's reference.
+* Install Pipeline::            What happens during an install, in order.
+* Transport::                   How bytes get from the network to disk.
+* Testing::                     The offline fixture and the live smoke test.
+* Limitations::                 What is deliberately not supported yet.
+* Concept Index::
+@end menu
+
+@node Copying, Introduction, Top, Top
+@chapter The GNU General Public License
+@include doclicense.texi
+
+@node Introduction, Installing Packages, Copying, Top
+@chapter Introduction
+
+The ELPA client lets XEmacs consume packages published in the GNU ELPA
+format: it downloads an archive index, resolves a package by name,
+installs its files into a versioned content directory under
+@file{~/.emacs.d/elpa/}, generates autoloads, byte-compiles the source,
+and activates the package by adding it to @code{load-path} and loading
+its autoloads.  After activation the package works like any other Lisp
+library on the system.
+
+The client is deliberately minimal.  It supports @emph{installing} a
+small, explicitly allowed set of packages from GNU ELPA.  It does not
+provide a package menu, upgrade or deletion, source (VC) installs, or
+signature verification, and it does not yet read MELPA.  The old XEmacs
+package system (@file{package-get.el} and friends) is unrelated: it has
+its own index format and download path, and the two coexist without
+interacting.
+
+Two real packages exercise the whole path and are documented by it:
+@code{queue} (a @code{tar} package) and @code{loc-changes} (a
+@code{single}-file package).  Both install and run in a fresh XEmacs
+with no dependencies beyond core.
+
+@node Installing Packages, Customization, Introduction, Top
+@chapter Installing Packages
+
+@menu
+* Refreshing the Index::  Fetching what the archive offers.
+* Installing a Package::  Download, build, and activate.
+* Activation at Startup:: Packages that load themselves.
+@end menu
+
+@node Refreshing the Index
+@section Refreshing the Index
+
+An @dfn{archive} publishes an index file @file{archive-contents}
+listing everything it offers.  Before installing, refresh the index of
+each archive you want to use:
+
+@deffn Command elpa-refresh-contents &optional archive
+Fetch, validate, cache, and parse the index of @var{archive} (an
+archive name from @code{elpa-archives}; all archives when omitted).
+Return the number of packages the index lists.  The index must carry
+archive version 1; anything else is rejected.
+@end deffn
+
+@node Installing a Package
+@section Installing a Package
+
+@deffn Command elpa-install name &optional version
+Install the package @var{name} (a symbol or string) from its archive.
+The name must appear in @code{elpa-installable-packages}; anything else
+is refused.  A package directory that already exists is left alone:
+there is no upgrade path.  When @var{version} is given, the archive
+must advertise exactly that version.  Returns @var{name} on success.
+
+Installation is all-or-nothing.  The download lands in a staging
+directory and the content directory is published by an atomic rename
+only after validation, autoload generation, and byte-compilation have
+all succeeded; any failure removes the staging residue and leaves no
+package directory behind.
+@end deffn
+
+@defun elpa-installed-p name &optional version
+Return non-@code{nil} if the content directory for @var{name} (at
+@var{version}, when given) exists under @code{elpa-user-dir}.
+@end defun
+
+@defun elpa-package-info name &optional archive
+Return the plist describing @var{name} as its archive advertises it,
+with properties @code{:name}, @code{:version}, @code{:requirements},
+@code{:summary}, @code{:kind} (@code{tar} or @code{single}), and
+@code{:archive}.
+@end defun
+
+@node Activation at Startup
+@section Activation at Startup
+
+@deffn Command elpa-activate-all
+Add every installed package's content directory to @code{load-path}
+and load its generated autoloads file.  Idempotent: directories and
+autoloads already activated are skipped.  Entries that are not package
+directories (archives, staging) are ignored.
+@end deffn
+
+At startup XEmacs calls @code{elpa-activate-all}
+automatically when @code{elpa-user-dir} exists and
+@code{elpa-activate-at-startup} is non-@code{nil}, so packages installed
+with autoload cookies are callable without an explicit
+@code{require}.
+
+@node Customization, Security, Installing Packages, Top
+@chapter Customization
+
+@defopt elpa-archives
+The archives the client knows, as an alist of
+@code{(@var{name} . @var{location})}.  The default is
+@code{(("gnu" . "https://elpa.gnu.org/packages/"))}.  A location is
+either an @code{http}s URL or a local directory path (useful for
+testing and air-gapped installs).
+@end defopt
+
+@defopt elpa-user-dir
+The directory packages are installed into,
+@file{~/.emacs.d/elpa/} by default.  Created on demand.  Package
+content lives in @code{<name>-<version>/} subdirectories; the cached
+archive indexes live in @file{archives/@var{name}/}; downloads stage
+in @file{.staging/}.
+@end defopt
+
+@defopt elpa-installable-packages
+The allowlist of packages the client may install, @code{(queue
+loc-changes)} by default.  This list, not the packages' own declared
+compatibility, is the safety boundary: a name not on the list is
+refused before any download happens.  See @ref{Security}.
+@end defopt
+
+@defopt elpa-check-signature
+Signature verification.  Always @code{nil} for now: signatures are not
+verified and a bad or missing @file{.sig} is not detected.  See
+@ref{Security}.
+@end defopt
+
+@defopt elpa-activate-at-startup
+Whether startup runs @code{elpa-activate-all} automatically.  Non-nil
+by default; set @code{nil} to keep installed packages inert until
+@code{elpa-activate-all} is called explicitly.
+@end defopt
+
+@node Security, Data Model, Customization, Top
+@chapter Security
+
+Three boundaries decide what the client trusts, and it is important to
+read them as narrower than GNU Emacs's package.el:
+
+@enumerate
+@item
+@strong{The allowlist.}  Only names in @code{elpa-installable-packages}
+can be installed.  A package's declared requirements are honored only
+for names that are themselves installable or already installed; the
+@code{emacs} pseudo-dependency is ignored with a warning, since XEmacs
+cannot truthfully claim the declared Emacs version.
+
+@item
+@strong{The archive contents.}  A @code{tar} package is validated
+before extraction: every member must live under the single top-level
+@code{<name>-<version>/} directory; absolute paths, @code{..}
+components, and link entries are rejected before @command{tar} ever
+runs.  Autoloads files shipped inside a tarball are deleted, never
+loaded; the only autoloads the client loads are the ones it generated
+itself from @code{;;;###autoload} cookies.
+
+@item
+@strong{Signatures: not verified.}  The client installs unsigned
+archives.  A present but forged @file{.sig} is not detected.  This is
+an accepted gap, not a claim of GNU parity: until signature
+verification lands, download integrity rests on TLS alone.
+@end enumerate
+
+@node Data Model, Lisp API, Security, Top
+@chapter Data Model
+
+@menu
+* Archive Index::       The archive-contents format.
+* Install Layout::      What ends up on disk.
+@end menu
+
+@node Archive Index
+@section Archive Index
+
+An index is one Lisp form read from @file{archive-contents}.  The first
+element is the integer @code{1}, the archive format version; any other
+value is an error.  Each following entry has the shape
+
+@example
+(@var{name} . [(@var{maj} @var{min} @dots{}) @var{requirements}
+               @var{summary} @var{kind} @var{extras}])
+@end example
+
+@noindent
+where @var{version} is a version list, @var{requirements} is
+@code{nil} or @code{((@var{dep} (@var{maj} @var{min}) @dots{}) @dots{})},
+@var{summary} is a string, @var{kind} is @code{tar} or @code{single},
+and @var{extras} (URLs, maintainers, commit hashes) is ignored.
+
+@node Install Layout
+@section Install Layout
+
+@example
+~/.emacs.d/elpa/
+~/.emacs.d/elpa/
+archives/gnu/archive-contents        @r{cached index}
+queue-0.2/queue.el                   @r{package source}
+queue-0.2/queue.elc                  @r{byte-compiled}
+queue-0.2/queue-pkg.el               @r{package metadata (tar only)}
+queue-0.2/queue-autoloads.el         @r{generated}
+queue-0.2/queue-autoloads.elc
+.staging/                            @r{transient; removed after install}
+@end example
+
+A @code{single} package installs the same way minus @file{-pkg.el}: its
+downloaded @file{<name>-<version>.el} is written into the content
+directory as @file{<name>.el}.
+
+@node Lisp API, Install Pipeline, Data Model, Top
+@chapter Lisp API
+
+This chapter is the reference for the public functions and for the
+compatibility helpers the client ships.  Internal functions
+(@code{elpa--}@tie{}prefix) are not documented here.
+
+@menu
+* Versions::              Parsing and joining version lists.
+* Compatibility Shims::   wholenump and redisplay.
+@end menu
+
+@node Versions
+@section Versions
+
+Versions are handled as GNU-style version @dfn{lists}:
+@code{"0.2"} is @code{(0 2)}.  Comparisons are list comparisons, never
+string comparisons.
+
+The client ports GNU's version machinery into core @file{subr.el}:
+
+@defun version-to-list version
+Parse the version string @var{version} into a list of integers.
+Understands numeric components and the prerelease markers @code{pre},
+@code{beta}, @code{alpha}, and @code{snapshot}, ordered as in GNU
+package.el.
+@end defun
+
+@defun version-list-< l1 l2
+@defunx version-list-<= l1 l2
+@defunx version-list-= l1 l2
+Compare version lists @var{l1} and @var{l2}.
+@end defun
+
+@defun elpa-version-join version-list
+The inverse: render @var{version-list} as a dotted string,
+@code{(0 2)} @result{} @code{"0.2"}.  Used for directory and artifact
+names.
+@end defun
+
+@node Compatibility Shims
+@section Compatibility Shims
+
+Two small definitions let the target packages run under XEmacs.  Both
+are defined only when absent, so a future core implementation wins:
+
+@defun wholenump object
+Alias for @code{natnump}: non-@code{nil} when @var{object} is a
+non-negative integer.
+@end defun
+
+@defun redisplay &rest args
+Forces a redisplay via @code{(sit-for 0)}.  Note this replaces the
+redisplay primitive's usual role for callers that invoke it on
+interactive paths; in batch mode it is harmless.
+@end defun
+
+@code{line-number-at-pos} already exists in core; it is deliberately
+@emph{not} redefined.
+
+@node Install Pipeline, Transport, Lisp API, Top
+@chapter Install Pipeline
+
+@code{elpa-install} runs these stages in order; each can fail the whole
+install, and the staging directory is removed on any failure:
+
+@enumerate
+@item
+@strong{Resolve.}  Apply the allowlist, honor (or warn about)
+requirements, and pick the version: exact match when requested,
+otherwise the version the index advertises.  Dependencies install
+before dependents, with a seen-set breaking cycles.
+
+@item
+@strong{Acquire.}  HTTPS archives are fetched over the async HTTP
+transport (@pxref{Transport}) with the bytes written straight to a
+staging file by C; local archives are copied.  Timeouts: 60@tie{}s for
+the index, 300@tie{}s for the artifact; redirects are capped at 10.
+
+@item
+@strong{Stage.}  For @code{tar}: list the members, validate them
+(@ref{Security}), extract with external @command{tar}.  For
+@code{single}: create the content directory and write the file as
+@file{<name>.el}, rejecting empty files that do not look like the
+named library.
+
+@item
+@strong{Validate metadata.}  For @code{tar}, @file{<name>-pkg.el} must
+exist and its @code{define-package} form must agree with the index on
+name and version.
+
+@item
+@strong{Generate autoloads.}  Scan every @file{.el} in the content
+directory for @code{;;;###autoload} cookies and write
+@file{<name>-autoloads.el} whose first form adds the content directory
+to @code{load-path}.  Shipped autoloads files are removed, not used.
+
+@item
+@strong{Byte-compile.}  Compile every @file{.el} in the content
+directory, including the generated autoloads.  Warnings are logged and
+tolerated; a compile error fails the install.
+
+@item
+@strong{Publish.}  Rename the staged directory to its final
+@code{<name>-<version>/} location and delete the downloaded artifact.
+@end enumerate
+
+@node Transport, Testing, Install Pipeline, Top
+@chapter Transport
+
+Downloads ride the @code{async-http} transport built on libcurl
+(@pxref{Async Programming, , , internals, XEmacs Internals Manual}).
+Two properties matter to the package client:
+
+@itemize @bullet
+@item
+@strong{Binary safety.}  Response bodies accumulate in external binary
+strings (@code{make_extstring} with @code{Qbinary}); bytes invalid in
+the internal Mule encoding pass through unchanged.  Package artifacts
+are additionally never accumulated in memory at all: the file
+destination writes each chunk to disk inside C.
+
+@item
+@strong{Bounded failure.}  Redirect chains are capped at 10 and every
+connection has a finite connect timeout (10@tie{}s unless the caller
+sets a shorter total timeout), so a bad archive URL fails promptly
+instead of hanging.
+@end itemize
+
+HTTP responses other than 200 produce a clear error naming the URL
+(@code{archive not found} / @code{artifact not found}), and a failed
+download leaves no partial file behind.
+
+@node Testing, Limitations, Transport, Top
+@chapter Testing
+
+The client's behavior is pinned by two CTest tests:
+
+@itemize @bullet
+@item
+@code{elpa-tests} (offline, runs by default): installs both target
+packages from the vendored fixture under @file{tests/elpa/fixture/},
+checks activation in fresh XEmacs processes, and exercises the
+negative paths.  Its last line is @code{elpa tests: passed}.
+
+@item
+@code{elpa-live-tests} (labeled @code{network}, skipped unless the
+environment variable @code{ELPA_LIVE} is set): installs whichever
+@code{queue} version @url{https://elpa.gnu.org/packages/} currently
+advertises, over HTTPS, and runs the queue functional check in a fresh
+process.  It never pins a version; the offline fixture is the
+deterministic gate.
+@end itemize
+
+Run them with:
+
+@example
+ctest --test-dir build -R elpa
+ELPA_LIVE=1 ctest --test-dir build -R elpa-live
+@end example
+
+@node Limitations, Concept Index, Testing, Top
+@chapter Limitations
+
+Deliberately not supported yet; none of this is claimed to work:
+
+@itemize @bullet
+@item Signature verification (see @ref{Security}).
+@item Package menu, browsing, interactive commands beyond the four
+entry points; upgrade and deletion.
+@item Packages outside @code{elpa-installable-packages}.
+@item MELPA: rolling releases, recipes, and build steps.
+@item Lexical binding: packages that genuinely need it will misbehave;
+the allowlist audit, not the header, decides.
+@item The interactive paths of @code{loc-changes} that need
+@code{insert-text-button} and friends.
+@item Checksum verification (the v1 index carries none), Windows, and
+non-GNU @command{tar} variants.
+@end itemize
+
+@node Concept Index, , Limitations, Top
+@unnumbered Concept Index
+
+@printindex cp
+
+@summarycontents
+@contents
+@bye
