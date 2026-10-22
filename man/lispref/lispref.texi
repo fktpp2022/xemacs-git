@@ -204,6 +204,7 @@ Reference Manual, corresponding to XEmacs version 21.0.
 * Databases::               An interface to standard DBM and DB databases.
 
 * Processes::               Running and communicating with subprocesses.
+* Async Programming::       Coroutines, actors, and async I/O.
 * System Interface::        Getting the user id, system type, environment
                               variables, and other such things.
 * X-Windows::		    Functions specific to the X Window System.
@@ -1257,6 +1258,7 @@ Building XEmacs and Object Allocation
 @include databases.texi
 
 @include processes.texi
+@include async.texi
 @include os.texi
 @include x-windows.texi
 @include tooltalk.texi

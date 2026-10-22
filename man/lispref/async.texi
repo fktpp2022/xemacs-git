@@ -1,0 +1,687 @@
+@c -*-texinfo-*-
+@c This is part of the XEmacs Lisp Reference Manual.
+@c Copyright (C) 1990, 1991, 1992, 1993, 1994 Free Software Foundation, Inc.
+@c Copyright (C) 2026 the XEmacs Project.
+@c See the file lispref.texi for copying conditions.
+@node Async Programming, System Interface, Processes, Top
+@chapter Async Programming
+@cindex async
+@cindex coroutine
+@cindex cooperative scheduling
+@cindex actor
+
+  XEmacs provides a cooperative coroutine system for writing asynchronous
+code that does not block the editor's event loop.  Lisp code uses
+@code{await} and @code{actor-spawn} to initiate operations that run
+concurrently; the scheduler resumes each coroutine when its operation
+completes.
+
+@menu
+* Coroutine Concepts::          What coroutines are and how the scheduler works.
+* Async API Reference::         Complete reference for all async functions and macros.
+* Async Cookbook::              Complete worked examples for common patterns.
+@end menu
+
+@node Coroutine Concepts, Async API Reference, Async Programming, Async Programming
+@section Coroutine Concepts
+@cindex coroutine, definition
+
+@subsection What Is a Coroutine?
+
+  A @dfn{coroutine} is a Lisp function with its own private call stack
+and variable-binding environment.  Unlike a normal function call, a
+coroutine can @dfn{suspend} itself mid-execution and be @dfn{resumed}
+later, without blocking the rest of the editor.  While a coroutine is
+suspended, XEmacs continues processing keyboard input and redisplay
+normally.
+
+@subsection Cooperative Scheduling
+@cindex cooperative scheduling
+
+  XEmacs runs at most one coroutine at a time.  A coroutine runs until
+it explicitly suspends itself by calling @code{await} or
+@code{async-yield}.  At that point the scheduler selects the next
+runnable coroutine and transfers control to it.  There is no preemption:
+a coroutine that never yields will never be interrupted.
+
+@subsection Event Loop Integration
+
+  The scheduler tick is driven by @code{event-unixoid.c}, which calls
+@code{async_scheduler_tick} immediately after each @code{select()} system
+call returns.  The tick examines every suspended coroutine and resumes
+any whose wait condition is now satisfied:
+
+@itemize @bullet
+@item
+A coroutine waiting for a file descriptor becomes runnable when
+@code{select()} reports that descriptor ready.
+@item
+A coroutine waiting for a timeout becomes runnable when the deadline
+passes.
+@item
+A coroutine waiting for a mailbox message becomes runnable when another
+coroutine or the main thread sends it a message.
+@item
+A coroutine waiting to join another becomes runnable when that coroutine
+finishes.
+@end itemize
+
+@subsection Actors vs. Plain Coroutines
+
+  Every @dfn{actor} is a coroutine, but not every coroutine is an actor.
+An actor additionally has a @dfn{mailbox} — a queue of incoming messages
+— and may be assigned a name for lookup by other code.  Plain coroutines
+(such as those spawned internally by @code{async-read-file}) are
+anonymous and communicate only by @code{actor-join}.
+
+@subsection Error Propagation
+
+  If a coroutine's body signals an error that is not caught inside the
+coroutine, the error is stored in the coroutine's result slot.  When the
+caller reaches the corresponding @code{await} expression, the error is
+re-signaled there, as if @code{await} itself had signaled it.  This means
+standard @code{condition-case} forms work normally around @code{await}.
+
+@example
+(condition-case err
+    (let ((text (await (async-read-file "/nonexistent"))))
+      (message "got %d chars" (length text)))
+  (file-error
+   (message "File error: %s" (error-message-string err))))
+@end example
+
+@subsection Variable Bindings and Isolation
+@cindex specpdl, coroutine
+
+  Each coroutine has its own @dfn{specpdl} (special binding stack).
+A @code{let} binding or @code{unwind-protect} form executed inside a
+coroutine is private to that coroutine and does not affect other
+coroutines or the main Lisp thread.  When a coroutine is spawned it
+inherits a copy of the caller's current bindings (such as
+@code{default-directory} and the current buffer), but subsequent bindings
+diverge independently.
+
+@node Async API Reference, Async Cookbook, Coroutine Concepts, Async Programming
+@section Async API Reference
+
+@menu
+* Core Primitives::             @code{await}, @code{async-let}, @code{async-yield}.
+* Actor Model::                 Spawn, send, receive, join, monitor.
+* Async File and Shell IO::     Async file read/write and shell commands.
+* Async HTTP::                  HTTP GET, POST, streaming, and SSE parsing.
+* Async Error Symbols::         Error conditions signaled by the async system.
+@end menu
+
+@node Core Primitives, Actor Model, Async API Reference, Async API Reference
+@subsection Core Primitives
+
+@defmac await expr
+Suspend the current coroutine until the async operation initiated by
+@var{expr} completes, then return its result value.  If the operation
+failed, the error is re-signaled as if @code{await} itself had signaled
+it.
+
+@var{expr} may follow either of two protocols:
+
+@itemize @bullet
+@item
+@strong{Yield protocol} (used by HTTP primitives such as @code{http-get}
+and @code{http-post}): @var{expr} yields the @emph{current} coroutine
+internally and returns @code{nil}.  When the operation completes the
+scheduler resumes the current coroutine and @code{await} retrieves the
+result from the coroutine's internal result field.
+
+@item
+@strong{Spawn protocol} (used by @code{async-read-file},
+@code{async-write-file}, @code{async-shell-command}): @var{expr} spawns a
+@emph{new} coroutine and returns its opaque handle.  @code{await}
+detects the handle with @code{async-coroutine-p} and joins it via the
+low-level @code{actor-join-internal} primitive, suspending the current
+coroutine until the spawned one finishes.
+@end itemize
+
+@code{await} should only be called from within a running coroutine.
+With the spawn protocol, calling it from the main thread signals
+@code{async-error} (via @code{actor-join}).  With the yield protocol,
+calling it from the main thread returns @code{nil} silently because there
+is no current coroutine to read a result from.
+
+@lisp
+(let ((contents (await (async-read-file "/etc/hosts"))))
+  (message "File has %d characters" (length contents)))
+@end lisp
+@end defmac
+
+@defmac async-let bindings &rest body
+Spawn each binding's value expression as a parallel coroutine, join all
+of them via @code{actor-join}, then evaluate @var{body} with each
+variable bound to its coroutine's result.  Analogous to
+@code{Promise.all()} in JavaScript or @code{asyncio.gather()} in Python.
+
+@var{bindings} has the same syntax as @code{let}: a list of
+@code{(@var{var} @var{expr})} pairs.  Each @var{expr} becomes the body of
+a freshly-spawned coroutine; the expression's return value is collected
+via the low-level @code{actor-join-internal} primitive.  If @var{expr}
+itself needs to @code{await} an HTTP primitive (yield protocol), wrap it
+explicitly:
+
+@lisp
+(async-let ((body (let ((resp (await (http-get url))))
+                    (nth 2 resp))))
+  ...)
+@end lisp
+
+All coroutines are started concurrently; @var{body} does not begin until
+every one has completed.
+
+@lisp
+(async-let ((a (await (async-read-file "/tmp/foo")))
+            (b (await (async-read-file "/tmp/bar"))))
+  (message "Got %d and %d characters" (length a) (length b)))
+@end lisp
+@end defmac
+
+@defun async-yield
+Voluntarily yield the current coroutine to the scheduler without waiting
+for any particular event.  The coroutine is immediately placed back on
+the runnable queue and will be resumed on the next scheduler tick.
+Useful for breaking up long-running computations to keep the editor
+responsive.
+
+@lisp
+(dotimes (i 1000000)
+  (when (zerop (mod i 10000))
+    (async-yield))   ; let the editor breathe every 10k iterations
+  (do-work i))
+@end lisp
+@end defun
+
+@node Actor Model, Async File and Shell IO, Core Primitives, Async API Reference
+@subsection Actor Model
+@cindex actor-spawn
+@cindex actor model
+
+@defun actor-spawn name function arg
+Spawn a new coroutine that calls @code{(@var{function} @var{arg})}.
+@var{name} is a symbol used to register the actor for later lookup via
+@code{actor-find}, or @code{nil} for an anonymous coroutine.  Returns an
+opaque actor handle.
+
+@var{function} must accept exactly one argument; pass @code{nil} when no
+initial value is needed.  The argument is delivered as the function's
+single parameter when the coroutine first runs.
+
+@lisp
+(actor-spawn 'my-worker
+  (lambda (_)
+    (while t
+      (process-message (actor-receive))))
+  nil)
+@end lisp
+@end defun
+
+@defun actor-send actor-ref message
+Deliver @var{message} to the mailbox of @var{actor-ref}.  This function
+is non-blocking: it returns immediately without suspending the caller.
+@var{message} may be any Lisp object.  Messages are delivered in FIFO
+order.
+
+@lisp
+(actor-send worker '(:job "compile-buffer"))
+@end lisp
+@end defun
+
+@defun actor-receive &rest keys
+Suspend the current coroutine until a message arrives in its mailbox.
+Returns the message.  The coroutine must be an actor (spawned via
+@code{actor-spawn}); calling this from a plain coroutine or the main
+thread signals @code{async-error}.
+
+@table @code
+@item :timeout @var{ms}
+If no message arrives within @var{ms} milliseconds, signal
+@code{async-timeout}.
+@end table
+
+@lisp
+(let ((msg (actor-receive :timeout 5000)))
+  (message "Got: %s" msg))
+@end lisp
+@end defun
+
+@defun actor-join actor-ref
+Suspend the current coroutine until @var{actor-ref}'s coroutine finishes,
+then return its result value.  If the joined coroutine terminated with an
+error, the error is placed in the current coroutine's internal error field
+but is @emph{not} automatically re-signaled; use @code{await} instead of
+calling @code{actor-join} directly when you need transparent error
+propagation.
+
+@lisp
+(actor-spawn nil
+  (lambda (_)
+    (let ((handle (actor-spawn nil (lambda (_) (+ 1 2)) nil)))
+      (message "Result: %s" (actor-join handle))))  ; => "Result: 3"
+  nil)
+@end lisp
+@end defun
+
+@defun actor-monitor actor-ref
+Arrange for the current actor to receive a @code{(:exit @var{reason})}
+message when @var{actor-ref}'s coroutine terminates, whether normally or
+due to an error.  @var{reason} is @code{nil} on normal exit, or the
+error data on abnormal exit.  Returns @var{actor-ref}.
+
+Multiple monitors may be registered on the same target.  Calling
+@code{actor-join} on a target that is also monitored does not interfere
+with the monitor registration; they use independent fields in the
+coroutine struct.
+
+@lisp
+(actor-monitor fragile-worker)
+(let ((msg (actor-receive)))
+  (when (eq (car msg) :exit)
+    (message "Worker exited: %s" (cadr msg))))
+@end lisp
+@end defun
+
+@defun actor-find name
+Look up a named actor by its symbol @var{name}.  Returns the actor handle
+if a live actor with that name exists, or @code{nil} otherwise.
+
+@lisp
+(let ((w (actor-find 'my-worker)))
+  (when w (actor-send w '(:stop))))
+@end lisp
+@end defun
+
+@defun actor-self
+Return the handle of the currently executing actor, or @code{nil} if
+called from the main Lisp thread.  Useful when an actor needs to pass its
+own handle to another actor.
+
+@lisp
+(actor-spawn 'echo-server
+  (lambda (_)
+    (let ((self (actor-self)))
+      (actor-send coordinator `(:ready ,self))))
+  nil)
+@end lisp
+@end defun
+
+@node Async File and Shell IO, Async HTTP, Actor Model, Async API Reference
+@subsection Async File and Shell I/O
+
+@defun async-read-file path &rest keys
+Read the file at @var{path} asynchronously.  Pass the return value to
+@code{await} to obtain the file contents as a string.
+
+@table @code
+@item :coding @var{coding-system}
+Decode the file using @var{coding-system}.  Defaults to @code{utf-8}.
+@end table
+
+@lisp
+(let ((text (await (async-read-file "/etc/passwd" :coding 'utf-8))))
+  (message "First line: %s" (car (split-string text "\n"))))
+@end lisp
+@end defun
+
+@defun async-write-file path content &rest keys
+Write the string @var{content} to @var{path} asynchronously.  Pass the
+return value to @code{await}; the result is @code{t} on success.
+
+@table @code
+@item :coding @var{coding-system}
+Encode @var{content} using @var{coding-system} before writing.
+Defaults to @code{utf-8}.
+@end table
+
+@lisp
+(await (async-write-file "/tmp/result.txt" "hello world"))
+@end lisp
+@end defun
+
+@defun async-shell-command cmd &rest keys
+Run the shell command @var{cmd} asynchronously using
+@code{shell-file-name}.  Pass the return value to @code{await} to obtain
+the command's standard output as a string.
+
+@table @code
+@item :timeout @var{ms}
+Reserved for future use.  The timeout value is accepted but not yet
+enforced; the command will run to completion regardless.
+@end table
+
+@lisp
+(let ((out (await (async-shell-command "uname -a"))))
+  (message "System: %s" out))
+@end lisp
+@end defun
+
+@node Async HTTP, Async Error Symbols, Async File and Shell IO, Async API Reference
+@subsection Async HTTP
+@cindex HTTP, async
+@cindex SSE, server-sent events
+
+  Async HTTP requires XEmacs to have been built with libcurl support
+(@code{HAVE_LIBCURL}).  If libcurl is not available, calling these
+functions signals @code{async-error}.
+
+@defun http-get url &rest keys
+Perform an asynchronous HTTP GET request to @var{url}.  Pass the return
+value to @code{await} to obtain the result as a list
+@code{(@var{status} @var{headers} @var{body})}, where @var{status} is the
+HTTP response code (integer), @var{headers} is an alist of response
+headers, and @var{body} is the response body string.
+
+@table @code
+@item :headers @var{alist}
+Additional request headers as an alist of @code{("Name" . "Value")} pairs.
+@item :timeout @var{ms}
+Signal @code{async-timeout} after @var{ms} milliseconds.
+@end table
+
+@lisp
+(let* ((resp   (await (http-get "https://example.com/"
+                                :timeout 10000)))
+       (status (nth 0 resp))
+       (body   (nth 2 resp)))
+  (message "HTTP %d, %d bytes" status (length body)))
+@end lisp
+@end defun
+
+@defun http-post url &rest keys
+Perform an asynchronous HTTP POST request to @var{url}.  Pass the return
+value to @code{await} to obtain @code{(@var{status} @var{headers}
+@var{body})}.
+
+@table @code
+@item :headers @var{alist}
+Additional request headers.
+@item :json @var{object}
+Encode @var{object} as JSON and send it as the request body.  Sets
+@code{Content-Type: application/json} automatically.
+@item :body @var{string}
+Send @var{string} as the raw request body (use instead of @code{:json}).
+@item :on-chunk @var{function}
+If provided, @var{function} is called with each response chunk string
+as it arrives.  The coroutine does not suspend while chunks are arriving;
+use this for streaming responses.
+@item :timeout @var{ms}
+Signal @code{async-timeout} after @var{ms} milliseconds.
+@end table
+
+@lisp
+(let ((resp (await (http-post "https://api.example.com/submit"
+                              :json '((key . "value"))
+                              :timeout 5000))))
+  (message "Status: %d" (nth 0 resp)))
+@end lisp
+@end defun
+
+@defun http-stream url &rest keys
+Perform an asynchronous streaming HTTP POST to @var{url}.  This is an
+alias for @code{http-post} intended for use with @code{:on-chunk}.
+The @code{:on-chunk} keyword should be provided; without it the response
+body is buffered in full before being returned.
+
+@lisp
+(await (http-stream "https://api.example.com/stream"
+          :json '((model . "gpt-4"))
+          :on-chunk (lambda (chunk) (princ chunk))))
+@end lisp
+@end defun
+
+@defun sse-parse-data line
+Parse a single Server-Sent Events line @var{line}.  If @var{line} begins
+with @samp{data: }, returns the payload string (everything after
+@samp{data: }).  Otherwise returns @code{nil}.
+
+@lisp
+(sse-parse-data "data: @{\"choices\": []@}")
+  @result{} "@{\"choices\": []@}"
+(sse-parse-data "event: ping")
+  @result{} nil
+@end lisp
+@end defun
+
+@defun sse-extract-text chunk
+Parse the multi-line SSE @var{chunk}, extract and concatenate all
+@code{content} delta strings from OpenAI- and Anthropic-compatible
+streaming JSON payloads.  Returns the concatenated text string, or
+@code{nil} if no content deltas were found.
+
+@lisp
+(sse-extract-text "data: @{\"choices\":[@{\"delta\":@{\"content\":\"Hello\"@}@}]@}\n")
+  @result{} "Hello"
+@end lisp
+@end defun
+
+@node Async Error Symbols, Async Cookbook, Async HTTP, Async API Reference
+@subsection Async Error Symbols
+
+@defvar async-timeout
+Signaled by @code{actor-receive} when a @code{:timeout} interval expires
+before a message arrives.  @code{async-shell-command} accepts the
+@code{:timeout} keyword but does not yet enforce it (@pxref{Async File
+and Shell IO}).
+@end defvar
+
+@defvar async-http-error
+Signaled by @code{http-get}, @code{http-post}, and @code{http-stream}
+when a transport-level failure occurs (a libcurl error).  This is
+distinct from an HTTP error status code (4xx, 5xx), which is returned
+normally in the @var{status} field of the result list.
+@end defvar
+
+@defvar async-error
+General scheduler-level error.  Signaled when async primitives are
+called from outside a coroutine context, or when the scheduler
+encounters an internal inconsistency.
+@end defvar
+
+@node Async Cookbook,  , Async API Reference, Async Programming
+@section Async Cookbook
+@cindex async, examples
+
+  This section shows complete, runnable examples illustrating common
+async patterns.  Each example assumes the relevant libraries have been
+loaded with @code{require}.
+
+@subsection Fetch Two URLs in Parallel
+
+  Use @code{async-let} when you need several independent HTTP responses
+before proceeding.  Both requests are initiated concurrently; the body
+runs only after both complete.
+
+@lisp
+(require 'async-core)
+(require 'actor)
+(require 'async-http)
+
+(actor-spawn nil
+  (lambda (_)
+    (async-let ((r1 (await (http-get "https://example.com/api/a")))
+                (r2 (await (http-get "https://example.com/api/b"))))
+      (let ((body1 (nth 2 r1))
+            (body2 (nth 2 r2)))
+        (with-current-buffer (get-buffer-create "*results*")
+          (erase-buffer)
+          (insert body1 "\n---\n" body2)
+          (display-buffer (current-buffer))))))
+  nil)
+@end lisp
+
+  @code{async-let} spawns both expressions as independent coroutines.
+Inside each spawned coroutine, @code{await} suspends on the HTTP
+operation and receives its result.  The scheduler resumes each coroutine
+as its response arrives.  @code{body1} and @code{body2} are both bound
+before @code{with-current-buffer} executes.
+
+@subsection Read a File, Transform It, Write It Back
+
+  Use sequential @code{await} calls for operations that depend on each
+other's results.
+
+@lisp
+(require 'async-core)
+(require 'async-file)
+
+(actor-spawn nil
+  (lambda (_)
+    (let* ((text    (await (async-read-file "/tmp/input.txt")))
+           (upcased (upcase text)))
+      (await (async-write-file "/tmp/output.txt" upcased))
+      (message "Done.")))
+  nil)
+@end lisp
+
+  The second @code{await} does not start until the first @code{await}
+returns.  Error handling works naturally: wrap in @code{condition-case}
+around either @code{await} call to catch @code{file-error}.
+
+@subsection Named Worker Actor with Job Queue
+
+  Use a named actor with a @code{while}/@code{actor-receive} loop to
+build a persistent worker that processes jobs sent from elsewhere in the
+program.
+
+@lisp
+(require 'actor)
+
+;; Start a named worker
+(actor-spawn 'my-worker
+  (lambda (_)
+    (let ((running t))
+      (while running
+        (let ((msg (actor-receive)))
+          (cond
+           ((and (consp msg) (eq (car msg) :job))
+            (message "Processing: %s" (cadr msg)))
+           ((and (consp msg) (eq (car msg) :stop))
+            (setq running nil)))))))
+  nil)
+
+;; Send jobs from anywhere, any time
+(let ((w (actor-find 'my-worker)))
+  (when w
+    (actor-send w '(:job "task-1"))
+    (actor-send w '(:job "task-2"))
+    (actor-send w '(:stop))))
+@end lisp
+
+  @code{actor-receive} suspends the worker until a message arrives.
+@code{actor-find} retrieves the handle by name from the global registry.
+Sending @code{(:stop)} causes the loop to exit and the coroutine to
+finish normally.
+
+@subsection Streaming HTTP with Server-Sent Events
+
+  Use @code{http-stream} with @code{:on-chunk} to process a streaming
+response incrementally as chunks arrive, rather than waiting for the full
+response body.
+
+@lisp
+(require 'actor)
+(require 'async-http)
+
+(actor-spawn nil
+  (lambda (_)
+    (await
+      (http-stream "https://api.anthropic.com/v1/messages"
+        :headers '(("x-api-key"          . "YOUR-KEY")
+                   ("anthropic-version"  . "2023-06-01")
+                   ("content-type"       . "application/json"))
+        :json `((model      . "claude-opus-4-7")
+                (max_tokens . 256)
+                (stream     . t)
+                (messages   . [((role    . "user")
+                                (content . "Say hello."))]))
+        :on-chunk (lambda (chunk)
+                    (let ((text (sse-extract-text chunk)))
+                      (when text
+                        (with-current-buffer (get-buffer-create "*stream*")
+                          (goto-char (point-max))
+                          (insert text))))))))
+  nil)
+@end lisp
+
+  The @code{:on-chunk} callback is invoked synchronously in the scheduler
+tick each time libcurl delivers a chunk.  @code{sse-extract-text} handles
+the @samp{data: @{...@}} framing and JSON parsing, returning the
+concatenated @code{content} delta text.  The coroutine does not suspend
+between chunks.
+
+@subsection Supervised Actor with Monitor
+
+  Use @code{actor-monitor} to build a supervisor that automatically
+restarts a worker actor if it crashes.
+
+@lisp
+(require 'actor)
+
+(defun do-risky-work (job)
+  "Simulate work that might fail.
+JOB can be :crash to force a crash, or any other value to succeed."
+  (message "Worker processing job: %s" job)
+  (when (eq job :crash)
+    (error "Worker crashed!"))
+  (message "Worker completed job: %s" job))
+
+(defun my-start-worker ()
+  "Spawn a fragile worker actor and return its handle."
+  (actor-spawn 'fragile-worker
+    (lambda (_)
+      (while t
+        (let ((job (actor-receive)))
+          ;; Work that might fail
+          (do-risky-work job))))
+    nil))
+
+(actor-spawn 'supervisor
+  (lambda (_)
+    (let ((worker (my-start-worker)))
+      (actor-monitor worker)
+      (message "Supervisor started. Send messages to 'supervisor to test.")
+      (message "  (actor-send (actor-find 'supervisor) :normal-job)  -- normal work")
+      (message "  (actor-send (actor-find 'supervisor) :crash)       -- force crash & restart")
+      (while t
+        (let ((msg (actor-receive)))
+          (cond
+           ((and (consp msg) (eq (car msg) :exit))
+            ;; Worker died -- restart and re-monitor
+            (message "Worker exited with reason: %s" (cdr msg))
+            (message "Restarting worker...")
+            (setq worker (my-start-worker))
+            (actor-monitor worker))
+           (t
+            ;; Forward all other messages to the worker
+            (message "Supervisor forwarding: %s" msg)
+            (actor-send worker msg)))))))
+  nil)
+@end lisp
+
+  @code{actor-monitor} arranges for @code{(:exit @var{reason})} to be
+delivered to the supervisor's mailbox when the worker finishes, whether
+normally or due to an unhandled error.  The supervisor restarts the
+worker and calls @code{actor-monitor} again on the new handle.
+
+  To test the crash-and-restart behavior:
+
+@lisp
+;; 1. Load the above code
+
+;; 2. Send a normal job (should succeed)
+(actor-send (actor-find 'supervisor) :normal-job)
+
+;; 3. Force a crash (supervisor should restart the worker)
+(actor-send (actor-find 'supervisor) :crash)
+
+;; 4. Send another job (should be handled by the new worker)
+(actor-send (actor-find 'supervisor) :another-job)
+@end lisp
+
+  The @code{:exit} message format is: @code{(:exit . REASON)}, where
+@var{reason} is @code{nil} on normal exit, or the error data on
+abnormal exit (e.g., @code{(error "Worker crashed!")}).

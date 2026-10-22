@@ -1,0 +1,575 @@
+@c -*-texinfo-*-
+@c This is part of the XEmacs Internals Manual.
+@c Copyright (C) 2026 the XEmacs Project.
+@node Async Scheduler Internals, Index, Old Future Work, Top
+@chapter Async Scheduler Internals
+@cindex async scheduler
+@cindex coroutine, C implementation
+@cindex cooperative scheduling, internals
+
+  This chapter documents the C implementation of the XEmacs coroutine
+scheduler.  For the Lisp-facing API — @code{await}, @code{actor-spawn},
+@code{http-get}, and related forms — see
+@ref{Async Programming,,Async Programming,lispref,XEmacs Lisp Reference Manual}.
+
+  The source files are @file{src/async-scheduler.c},
+@file{src/async-scheduler.h}, @file{src/async-http.c}, and
+@file{src/async-http.h}.
+
+@menu
+* Async Architecture Overview::    How the scheduler fits into the event loop.
+* The xemacs_coro Structure::      Every field of the coroutine struct.
+* Coroutine Lifecycle::            Spawn, run, suspend, resume, die.
+* Context Switching::              The coro_swap assembly primitive.
+* Per-Coroutine specpdl::          Why each coroutine has its own binding stack.
+* Async GC Integration::           Keeping Lisp objects alive on C stacks.
+* Async HTTP Integration::         libcurl multi-handle and the event loop.
+* Adding New Async Primitives::    How to write a new C-level async operation.
+@end menu
+
+@node Async Architecture Overview, The xemacs_coro Structure, Async Scheduler Internals, Async Scheduler Internals
+@section Architecture Overview
+
+  The XEmacs async scheduler is a @dfn{cooperative, run-to-yield}
+coroutine system.  There is no preemption: a coroutine holds the CPU
+until it explicitly suspends itself.
+
+  The scheduler is driven by the XEmacs event loop.  In
+@file{src/event-unixoid.c}, after each @code{select()} call returns,
+@code{async_scheduler_tick()} is called.  The tick performs three
+actions:
+
+@enumerate
+@item
+It calls @code{async_http_tick()} to drive the libcurl multi-handle and
+complete any pending HTTP transfers (@pxref{Async HTTP Integration}).
+
+@item
+It iterates the doubly-linked list of all live coroutines
+(@code{all_coros}) and resumes any that are now runnable — that is, whose
+wait condition has been satisfied.
+
+@item
+It returns to the event loop.  The main Lisp thread then continues as
+normal.
+@end enumerate
+
+  The execution path through a single resume looks like this:
+
+@example
+main thread
+  --> async_scheduler_tick()
+    --> coro_resume(c, result)   /* marks c CORO_RUNNABLE, sets c->result */
+    --> [Phase 2 loop]
+      --> coro_swap(&scheduler_ctx, &c->ctx)
+        [coroutine runs]
+        --> coro_yield(reason)
+          --> coro_swap(&c->ctx, &scheduler_ctx)
+        [back in tick's Phase 2 loop, after the outgoing coro_swap]
+  --> async_scheduler_tick() returns
+main thread continues
+@end example
+
+  The main Lisp thread is never a coroutine.  It is the @dfn{scheduler
+context} — the fixed point that all coroutines return to when they yield.
+
+@node The xemacs_coro Structure, Coroutine Lifecycle, Async Architecture Overview, Async Scheduler Internals
+@section The @code{xemacs_coro} Structure
+@cindex xemacs_coro
+
+  Every live coroutine is represented by a @code{struct xemacs_coro}
+allocated on the C heap.  The full definition is in
+@file{src/async-scheduler.h}.  The fields are:
+
+@table @code
+@item ctx
+@code{coro_context_t} — the saved stack pointer for this coroutine.
+Restored by @code{coro_swap} when resuming this coroutine.
+
+@item caller_ctx
+@code{coro_context_t} — reserved; declared but not currently used.
+@code{coro_yield} returns to the global @code{scheduler_ctx} directly
+rather than swapping to @code{caller_ctx}.
+
+@item stack
+@code{unsigned char *} — the @code{malloc}'d private C stack for this
+coroutine.  Default size is 256@tie{}KB; configurable via the Lisp
+variable @code{async-coroutine-stack-size}.
+
+@item stack_size
+@code{Bytecount} — the allocated size of @code{stack} in bytes.
+
+@item state
+@code{coro_state_t} — one of @code{CORO_RUNNABLE}, @code{CORO_RUNNING},
+@code{CORO_SUSPENDED}, or @code{CORO_DEAD}.  @xref{Coroutine Lifecycle}.
+
+@item wait_reason
+@code{wait_reason_t} — the reason this coroutine is suspended.  One of:
+@code{WAIT_NONE} (runnable), @code{WAIT_FD} (waiting for a file
+descriptor), @code{WAIT_TIMER} (waiting for a timeout),
+@code{WAIT_MAILBOX} (waiting for an actor message), or @code{WAIT_JOIN}
+(waiting for another coroutine to finish).
+
+@item result
+@code{Lisp_Object} — dual purpose: holds the initial argument on first
+entry; holds the return value after the coroutine finishes.  Also used
+temporarily to pass the packed @code{(fn . arg)} cons to the trampoline.
+
+@item error
+@code{Lisp_Object} — if non-@code{nil}, contains error data
+@code{(ERROR-SYMBOL . DATA)} that will be re-signaled at the next
+@code{await} call.
+
+@item lisp_fn
+@code{Lisp_Object} — the Lisp lambda to call on first entry.  Kept
+non-@code{nil} until after the first @code{coro_swap} so the GC does not
+collect the closure.
+
+@item gcpro_chain
+@code{struct gcpro *} — the head of the @code{gcpro} chain for live
+@code{Lisp_Object} values on this coroutine's C stack.  Saved at yield
+and restored at resume.  @xref{Async GC Integration}.
+
+@item saved_specpdl_ptr
+@code{struct specbinding *} — reserved; declared but not currently used
+by the yield/resume path.  The active saved pointer is
+@code{coro_specpdl_ptr}.
+
+@item saved_specpdl_depth
+@code{int} — reserved; declared but not currently used.
+
+@item saved_backtrace_list
+@code{struct backtrace *} — the @code{backtrace_list} chain saved at
+yield.
+
+@item saved_catchlist
+@code{struct catchtag *} — the @code{catchlist} chain saved at yield.
+The @code{catchlist} lives on the C stack and must be explicitly
+saved/restored, unlike @code{Vcondition_handlers} which is a
+GC-managed Lisp object.
+
+@item coro_specpdl
+@code{struct specbinding *} — the private specpdl array for this
+coroutine.  Allocated at spawn with @code{CORO_SPECPDL_INITIAL_SIZE}
+(200) entries.  @xref{Per-Coroutine specpdl}.
+
+@item coro_specpdl_ptr
+@code{struct specbinding *} — the current top of @code{coro_specpdl}.
+
+@item coro_specpdl_size
+@code{int} — number of allocated entries in @code{coro_specpdl}.
+
+@item coro_inherit_depth
+@code{int} — number of entries copied from the main thread's specpdl
+at spawn time.  New bindings are appended above this point in the
+private array.
+
+@item wait_fd
+@code{int} — the file descriptor this coroutine is waiting for
+(@code{WAIT_FD}).
+
+@item wait_deadline
+@code{EMACS_TIME} — absolute deadline for timeout waits
+(@code{WAIT_TIMER}).
+
+@item mailbox
+@code{Lisp_Object} — list of pending messages for this actor
+(@code{WAIT_MAILBOX}).
+
+@item actor_name
+@code{Lisp_Object} — the name symbol if this is a named actor;
+@code{Qnil} otherwise.
+
+@item is_actor
+@code{int} — non-zero if this coroutine has a mailbox and was spawned
+via @code{actor-spawn}.
+
+@item join_waiter
+@code{struct xemacs_coro *} — pointer to the single coroutine waiting to
+join this one (@code{WAIT_JOIN}), or @code{NULL}.
+
+@item monitor_list
+@code{struct xemacs_coro **} — @code{malloc}'d array of coroutines that
+have called @code{actor-monitor} on this coroutine.  Each entry receives
+a @code{(:exit @var{reason})} mailbox message when this coroutine dies.
+@code{NULL} until the first monitor is registered.
+
+@item monitor_count
+@code{int} — number of active entries in @code{monitor_list}.
+
+@item monitor_cap
+@code{int} — allocated capacity of @code{monitor_list}; the array grows
+by doubling when @code{monitor_count} reaches @code{monitor_cap}.
+
+@item next, prev
+@code{struct xemacs_coro *} — intrusive doubly-linked list links
+connecting all live coroutines via @code{all_coros}.
+@end table
+
+@node Coroutine Lifecycle, Context Switching, The xemacs_coro Structure, Async Scheduler Internals
+@section Coroutine Lifecycle
+@cindex coroutine lifecycle
+
+  A coroutine passes through four states:
+
+@example
+CORO_RUNNABLE --> CORO_RUNNING --> CORO_SUSPENDED --> CORO_RUNNABLE
+                                                           |
+                                                      (repeats)
+                                                           |
+                                                      CORO_DEAD
+@end example
+
+@table @strong
+@item Spawn (@code{coro_spawn})
+@code{coro_spawn(fn, arg)} allocates a new @code{xemacs_coro} on the
+heap, @code{malloc}s its stack, copies the inherited specpdl entries from
+the main thread, writes @code{coro_trampoline}'s address at the top of
+the stack so the first @code{coro_swap} lands there, and sets state to
+@code{CORO_RUNNABLE}.  The coroutine is prepended to the @code{all_coros}
+list.
+
+@item First Run
+The event callback calls @code{coro_resume(c, initial_arg)}, which sets
+@code{c->result} and marks state @code{CORO_RUNNABLE}.  On the next
+scheduler tick, Phase@tie{}2 picks up the runnable coroutine, saves the
+scheduler's interpreter state, sets state to @code{CORO_RUNNING}, and
+calls @code{coro_swap(&scheduler_ctx, &c->ctx)}, which jumps into
+@code{coro_trampoline}.  The trampoline calls @code{condition_case_1}
+wrapping the Lisp function, so that any unhandled errors are caught and
+stored in @code{c->error} rather than longjmping out of the coroutine
+context.
+
+@item Suspend (@code{coro_yield})
+When a coroutine calls @code{coro_yield(reason)}, the current
+interpreter state (specpdl, backtrace, catchlist) is saved into the
+coroutine struct, @code{wait_reason} is set, state becomes
+@code{CORO_SUSPENDED}, and @code{coro_swap(&c->ctx, &scheduler_ctx)}
+returns control to the scheduler tick's Phase@tie{}2 loop, immediately
+after the outgoing @code{coro_swap} that launched this coroutine.
+
+@item Resume (@code{coro_resume})
+@code{coro_resume(c, result)} is a lightweight helper: it delivers
+@var{result} into @code{c->result}, clears @code{c->error}, and sets
+state to @code{CORO_RUNNABLE}.  It does @emph{not} perform a context
+switch itself.  The actual context switch happens on the @emph{next}
+scheduler tick: Phase@tie{}2 of @code{async_scheduler_tick} iterates all
+@code{CORO_RUNNABLE} coroutines, saves the scheduler's interpreter state,
+restores the coroutine's state, and calls
+@code{coro_swap(&scheduler_ctx, &c->ctx)}.  Execution then continues
+inside @code{coro_yield} immediately after its outgoing swap, which
+returns to wherever the coroutine was when it yielded.
+
+@item Death
+When the coroutine function returns (or @code{condition_case_1} catches
+an unhandled error), @code{coro_trampoline} sets @code{c->result} to the
+return value (or @code{c->error} to the error data), sets state to
+@code{CORO_DEAD}, removes the coroutine from @code{all_coros}, and moves
+it to @code{dead_coros}.  If @code{c->join_waiter} is non-@code{NULL},
+that coroutine is immediately resumed with the result.
+@end table
+
+@node Context Switching, Per-Coroutine specpdl, Coroutine Lifecycle, Async Scheduler Internals
+@section Context Switching — @code{coro_swap}
+@cindex coro_swap
+@cindex context switch, coroutine
+@cindex stack pointer, coroutine
+
+  @code{coro_swap(from, to)} is an assembly function defined in
+@file{src/coro-asm.S}.  The x86-64 implementation saves all six
+callee-saved registers onto the current stack, swaps the stack pointer,
+restores the six callee-saved registers from the new stack, and returns
+into the resumed coroutine:
+
+@example
+coro_swap:                        /* rdi = from, rsi = to */
+    pushq %rbp
+    pushq %rbx
+    pushq %r12
+    pushq %r13
+    pushq %r14
+    pushq %r15
+    movq  %rsp, (%rdi)            /* save SP into from->sp */
+    movq  (%rsi), %rsp            /* load SP from to->sp   */
+    popq  %r15
+    popq  %r14
+    popq  %r13
+    popq  %r12
+    popq  %rbx
+    popq  %rbp
+    ret                           /* jump into resumed context */
+@end example
+
+  The @code{ret} instruction pops the return address from whatever stack
+@code{%rsp} now points to:
+
+@itemize @bullet
+@item
+On the @emph{first} entry to a new coroutine, @code{to->sp} was set up
+by @code{coro_spawn} to point just below @code{coro_trampoline}'s address
+on the coroutine's private stack.  The @code{ret} therefore jumps into
+the trampoline.
+
+@item
+On subsequent @emph{resumes}, @code{to->sp} points to the saved frame
+inside @code{coro_yield} on the coroutine's stack, so execution resumes
+exactly where it suspended.
+@end itemize
+
+  @strong{Why save the callee-saved registers?}  The System V AMD64 ABI
+designates @code{%rbp}, @code{%rbx}, and @code{%r12}–@code{%r15} as
+@dfn{callee-saved}: any function that uses them must restore them before
+returning.  Because @code{coro_swap} changes which stack frame will be
+returned to, it must save the outgoing coroutine's callee-saved registers
+onto its stack before the swap, and restore the incoming coroutine's
+callee-saved registers from its stack after the swap.  The result is that
+each side of the swap sees its own previously-saved register state.
+
+  @strong{AArch64 support.}  @file{src/coro-asm.S} also contains an
+AArch64 implementation that saves and restores the equivalent integer
+callee-saved registers (@code{x19}–@code{x28}, @code{x29}/@code{lr}) and
+the eight FP callee-saved registers (@code{d8}–@code{d15}).
+
+  @strong{Stack alignment.}  The System V AMD64 ABI requires @code{%rsp}
+to be 16-byte aligned immediately before a @code{call} instruction (and
+therefore 8-byte aligned at function entry due to the pushed return
+address).  @code{coro_spawn} pads the initial stack pointer accordingly.
+
+@node Per-Coroutine specpdl, Async GC Integration, Context Switching, Async Scheduler Internals
+@section Per-Coroutine @code{specpdl}
+@cindex specpdl, per-coroutine
+@cindex let binding, coroutine isolation
+
+  XEmacs uses a single global @code{specpdl} array to record all
+dynamic @code{let} bindings and @code{unwind-protect} handlers.  If
+coroutines shared this array, a binding made in one coroutine would be
+visible in all others — and unbinding on coroutine exit would corrupt
+bindings belonging to other coroutines.
+
+  The solution is a @dfn{per-coroutine specpdl}.  Each @code{xemacs_coro}
+has its own @code{coro_specpdl} array (initial size: 200 entries,
+defined by @code{CORO_SPECPDL_INITIAL_SIZE}).
+
+@subheading Inheritance at spawn time
+
+  When a coroutine is spawned, the entries from the main thread's specpdl
+up to the current depth are @emph{copied} into @code{coro_specpdl}.  This
+count is stored in @code{coro_inherit_depth}.  These inherited entries
+represent bindings that were in effect when the coroutine was created
+(for example, @code{default-directory} or the current buffer), and the
+coroutine should observe them.  New bindings made inside the coroutine
+are appended above the inherited entries in the private array and do not
+touch the main thread's specpdl.
+
+@subheading Swapping on yield and resume
+
+  When a coroutine yields, @code{coro_yield} saves the current global
+@code{specpdl_ptr} into the coroutine struct (@code{coro_specpdl_ptr}),
+then restores the scheduler's saved value into the global.  On resume,
+the reverse happens: the scheduler's state is saved and the coroutine's
+state is restored.
+
+@subheading Symbol value swapping
+
+  Simply saving and restoring @code{specpdl_ptr} is not enough: the
+@emph{actual symbol values} must also be swapped, because XEmacs symbol
+values live directly in the symbol objects (not on the specpdl).
+
+  @code{specpdl_swap_one(p)} exchanges @code{symbol->value} with
+@code{p->old_value} for one specpdl entry.  Walking the range
+@emph{forward} (low index to high) re-applies a sequence of bindings;
+walking it @emph{backward} undoes them.  Entries with a non-@code{NULL}
+@code{func} pointer are @code{unwind-protect} handlers, not symbol
+bindings; they are skipped during swapping.
+
+  For symbols with magic values (buffer-local variables, variable
+aliases), the swap falls back to @code{Fsymbol_value} and @code{Fset} to
+keep all magic behaviour consistent.
+
+@node Async GC Integration, Async HTTP Integration, Per-Coroutine specpdl, Async Scheduler Internals
+@section GC Integration
+@cindex GC, coroutine
+@cindex garbage collection, async
+@cindex gcpro, coroutine
+
+  The XEmacs garbage collector traces @code{Lisp_Object} references
+starting from known roots: the global @code{specpdl}, the @code{gcpro}
+chain, @code{Vobarray}, etc.  Coroutine stacks are ordinary C stacks
+allocated with @code{malloc}; the GC has no mechanism to scan them.
+
+  Without special handling, a @code{Lisp_Object} stored in a C local
+variable on a suspended coroutine's stack would be invisible to the GC
+and could be freed while the coroutine is suspended.
+
+@subheading @code{async_scheduler_mark_gcpros}
+
+  @code{async_scheduler_mark_gcpros()} is registered with the GC and
+called during the mark phase.  It iterates @code{all_coros} and marks
+the following fields of each coroutine:
+
+@itemize @bullet
+@item @code{c->lisp_fn} — the lambda, kept alive until first run.
+@item @code{c->result} — current result or packed @code{(fn . arg)} cons.
+@item @code{c->error} — stored error data, if any.
+@item @code{c->mailbox} — the list of pending messages.
+@item @code{c->actor_name} — the name symbol.
+@item Every @code{Lisp_Object} in the chain @code{c->gcpro_chain} — objects
+explicitly protected on the coroutine's C stack via @code{GCPRO}/@code{UNGCPRO}.
+@end itemize
+
+@subheading Rule for C code that suspends a coroutine
+
+  Any @code{Lisp_Object} local variable in a C function that must remain
+live across a @code{coro_yield()} call @emph{must} be protected with
+@code{GCPRO} before the yield and @code{UNGCPRO}d after the resume.  The
+@code{gcpro_chain} field on the coroutine struct is set to the active
+@code{gcpro} chain at yield time, so @code{async_scheduler_mark_gcpros}
+can trace it.
+
+  Objects stored directly in the coroutine struct fields listed above
+(e.g.@: @code{c->result}, @code{c->mailbox}) are marked automatically
+and do not need additional @code{GCPRO} protection.
+
+@node Async HTTP Integration, Adding New Async Primitives, Async GC Integration, Async Scheduler Internals
+@section HTTP Integration
+@cindex libcurl, async
+@cindex HTTP, C implementation
+@cindex CURLM, multi-handle
+
+  Async HTTP support is in @file{src/async-http.c} and requires libcurl
+(@code{HAVE_LIBCURL}).  It wraps libcurl's multi-handle interface so that
+HTTP I/O participates in XEmacs's existing @code{select()}-based event
+loop without requiring a separate thread.
+
+@table @strong
+@item async_http_start
+@code{async_http_start(url, method, headers, body, on_chunk, timeout_ms)}
+allocates an @code{async_http_req} struct, creates a @code{CURL} easy
+handle, configures it (URL, method, headers, write callback), and adds it
+to the global @code{CURLM} multi-handle.  If called from within a running
+coroutine (@code{req->waiting_coro != NULL}), it suspends the caller via
+@code{coro_yield(WAIT_FD)}; otherwise (called from the main thread) it
+returns @code{nil} immediately without suspending.  On resume, the result
+is in the coroutine's @code{result} field and @code{await} retrieves it.
+
+@item Write callback
+The libcurl write callback (@code{http_write_callback}) is called each time
+curl delivers response data.  If @code{on_chunk} is non-@code{nil}, the
+callback enqueues a call to it via @code{enqueue_misc_user_event} and
+wakes the event loop with @code{signal_async_wakeup}.  The handler is
+@emph{not} invoked directly from the write callback; it is dispatched
+from the normal XEmacs event loop on the next iteration, keeping Lisp
+execution off the curl callback stack.
+
+@item async_http_tick
+Called by @code{async_scheduler_tick} on every event-loop iteration.
+Calls @code{curl_multi_perform()} to advance all in-progress transfers,
+then calls @code{curl_multi_info_read()} in a loop.  For each completed
+transfer, it locates the @code{async_http_req}, extracts the HTTP status
+code and response headers, and calls @code{coro_resume} (or
+@code{coro_resume_with_error} on curl failure) to wake the waiting
+coroutine.
+
+@item fd registration
+@code{async_http_socket_ready(fd, data)} is registered with XEmacs's
+fd-watching infrastructure via @code{register_event_cb} so that curl
+sockets are included in the top-level @code{select()} call.  When
+@code{select()} reports a curl socket ready, @code{async_http_tick} is
+called to process it.  No background thread is needed.
+@end table
+
+@node Adding New Async Primitives,  , Async HTTP Integration, Async Scheduler Internals
+@section Adding New Async Primitives
+@cindex async primitive, how to write
+
+  This section is a step-by-step guide for contributors who want to add a
+new C-level async operation (for example, an async DNS resolver or an
+async database query).
+
+@enumerate
+@item
+@strong{Define a request struct.}
+Create a struct to hold the operation's state.  It must contain a pointer
+to the waiting coroutine:
+
+@example
+typedef struct my_async_req @{
+  xemacs_coro *waiting_coro;
+  /* ... operation-specific state ... */
+  int          result_fd;
+  Lisp_Object  result_value;
+@} my_async_req;
+@end example
+
+@item
+@strong{Implement the start function.}
+The start function runs in the calling coroutine's context.  It
+initialises the request, registers the operation with the relevant event
+source, and suspends the coroutine:
+
+@example
+static Lisp_Object
+my_async_start (Lisp_Object arg)
+@{
+  my_async_req *req = xnew (my_async_req);
+  req->waiting_coro = async_scheduler_current_coro ();
+  /* ... set up the operation ... */
+  register_event_cb (req->result_fd, my_async_ready_cb, req);
+  coro_yield (WAIT_FD);
+  /* Execution resumes here after coro_resume() has been called.
+     req has already been freed by the callback at this point;
+     do not access it.  The result was placed in the coroutine's
+     result field by coro_resume(); await() will retrieve it from
+     there.  Return Qnil; the return value of the start function
+     is not used. */
+  return Qnil;
+@}
+@end example
+
+@item
+@strong{Implement the event callback.}
+The callback is invoked from the event loop when the operation completes.
+It must call @code{coro_resume} or @code{coro_resume_with_error}:
+
+@example
+static void
+my_async_ready_cb (int fd, void *data)
+@{
+  my_async_req *req = (my_async_req *) data;
+  /* ... read results into req->result_value ... */
+  unregister_event_cb (fd);
+  coro_resume (req->waiting_coro, req->result_value);
+  xfree (req);
+@}
+@end example
+
+@item
+@strong{Expose to Lisp via @code{DEFSUBR}.}
+Write a @code{DEFSUBR} that calls the start function and returns its
+result.  The Lisp wrapper passes the return value to @code{await}:
+
+@example
+DEFUN ("my-async-op", Fmy_async_op, 1, 1, 0, /*
+Perform MY-ASYNC-OP on ARG asynchronously.
+Pass to `await' for the result.
+*/
+       (arg))
+@{
+  return my_async_start (arg);
+@}
+@end example
+
+@item
+@strong{Register in @code{syms_of_async_scheduler}.}
+Add @code{DEFSUBR (Fmy_async_op);} to @code{syms_of_async_scheduler()}
+in @file{src/async-scheduler.c}.
+
+@item
+@strong{Handle GC.}
+If @code{req->result_value} or any other @code{Lisp_Object} in the
+request struct must survive a GC cycle while the coroutine is suspended,
+either store them in a field that @code{async_scheduler_mark_gcpros}
+already marks (such as @code{waiting_coro->result}), or add an explicit
+marking call for your struct's fields in
+@code{async_scheduler_mark_gcpros}.  @xref{Async GC Integration}.
+@end enumerate
