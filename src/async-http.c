@@ -96,6 +96,16 @@ async_http_socket_cb (CURL *easy, curl_socket_t s, int action,
                       void *userp, void *socketp)
 {
   (void) easy; (void) userp; (void) socketp;
+  /* In batch mode (no command loop) the caller drives the transfer via
+     async-scheduler-tick / async_http_tick / curl_multi_perform.  Do not
+     register curl's fds with the event loop there: curl's sockets stay
+     level-triggered readable until curl itself consumes them, so every
+     event-stream wait (sleep-for etc.) would return immediately in a
+     busy spin, the Lisp tick loop would never get control back, and the
+     transfer would stall until its timeout.  Interactive sessions keep
+     the registration so the event loop wakes curl promptly. */
+  if (noninteractive)
+    return 0;
   if (action == CURL_POLL_REMOVE)
     remove_extra_fd ((int) s);
   else
