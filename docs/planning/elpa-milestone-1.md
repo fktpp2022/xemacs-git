@@ -28,7 +28,7 @@ and then load and run their core functionality in a fresh XEmacs process. Both a
 | Package | Version | Kind | Requirements | Artifact | Audit result |
 |---|---|---|---|---|---|
 | `queue` | 0.2 | `tar` | none | `queue-0.2.tar`, 10,240 bytes, md5 `c1f635568dce3ab01b5adad023833ff2` | Byte-compiles cleanly; loads; `queue-create`/`enqueue`/`dequeue`/`empty`/`length`/`first` pass. Header declares `lexical-binding: t`, but only `defstruct` accessors and non-capturing functions are used. The only `iter-defun` is guarded by `(require 'generator nil 'noerror)` at macro-expansion time, so it is omitted when `generator` is absent. |
-| `loc-changes` | 1.2 | `single` | none | `loc-changes-1.2.el`, 9,667 bytes, md5 `67efcdb515c75aea196429bea1504516` | Byte-compiles with warnings for GNU-only functions; loads; marker tracking (`loc-changes-add-and-goto`, `loc-changes-goto`) passes after three one-line compatibility shims. No `lexical-binding` declaration. |
+| `loc-changes` | 1.2 | `single` | none | `loc-changes-1.2.el`, 9,667 bytes, md5 `67efcdb515c75aea196429bea1504516` | Byte-compiles with warnings for GNU-only functions; loads; marker tracking (`loc-changes-add-and-goto`, `loc-changes-goto`) passes after two one-line compatibility shims. No `lexical-binding` declaration. |
 
 Both packages are dependencies-free in the GNU ELPA index:
 
@@ -53,20 +53,17 @@ queue:        deq1=a deq2=b empty=t len=0 first=nil
 loc-changes:  before=7 after=11 line=2 text="beta"
 ```
 
-The `loc-changes` result requires these compatibility definitions, which are milestone deliverables:
+The `loc-changes` result requires two compatibility definitions, which are milestone deliverables:
 
 ```elisp
 (defalias 'wholenump 'natnump)
-
-(defun line-number-at-pos (&optional pos)
-  (save-excursion
-    (when pos (goto-char pos))
-    (1+ (count-lines (point-min) (point)))))
 
 ;; Force a redisplay; batch mode treats it as a no-op.
 (defun redisplay (&rest _)
   (sit-for 0))
 ```
+
+`line-number-at-pos` already exists in core `simple.el`; no shim is needed for it.
 
 The remaining GNU-only calls in `loc-changes` (`posn-point`, `event-end`, `insert-text-button`, `move-end-of-line`) are on interactive paths that milestone 1 does not exercise; they are deferred, not silently claimed to work.
 
@@ -88,7 +85,7 @@ In scope:
 
 1. A new core Lisp client, `lisp/elpa.el`, implementing archive refresh, index parsing, resolution, download, install, autoload generation, byte-compilation, and activation.
 2. Binary-safe artifact download and a file sink in `src/async-http.c` (the #17 prerequisite). Package bytes must never be round-tripped through a Lisp string.
-3. The `version-to-list`/`version-list-*` core port from #18, and the three target-driven compatibility definitions above.
+3. The `version-to-list`/`version-list-*` core port from #18, and the two target-driven compatibility definitions above.
 4. Local-directory archive support for deterministic tests, alongside HTTPS.
 5. An offline CTest suite using a vendored fixture archive, plus one live HTTPS smoke test.
 
@@ -102,7 +99,7 @@ The `cl-lib`/`cl-defstruct` vendor decided in #18 remains a core deliverable, bu
 |---|---|---|
 | Core C | `src/async-http.c` | Binary-safe response accumulator; file-destination write callback; redirect cap; connect timeout. |
 | Core Lisp | `lisp/elpa.el` | Index parsing, resolution, install pipeline, activation. |
-| Core Lisp | `lisp/subr.el` | `version-to-list`, `version-list-<`, `version-list-<=`, `version-list-=`, `line-number-at-pos`, `wholenump`, `redisplay` fallback (only define when absent). |
+| Core Lisp | `lisp/subr.el` | `version-to-list`, `version-list-<`, `version-list-<=`, `version-list-=`, `wholenump`, `redisplay` fallback (only define when absent); `line-number-at-pos` already exists in `simple.el`. |
 | Core Lisp | `lisp/startup.el` or `lisp/loadup.el` | Call `elpa-activate-all` at startup when enabled. |
 | External | `tar` | Extract validated tarballs only. |
 | Core Lisp | `lisp/autoload.el`, `lisp/bytecomp.el` | Autoload extraction and byte-compilation. |
@@ -257,7 +254,7 @@ It fetches the live `https://elpa.gnu.org/packages/archive-contents`, installs w
 - [ ] `async-http` writes artifact bodies through a file sink; the accumulator uses `make_extstring` with `Qbinary`; a downloaded `queue-0.2.tar` is byte-identical to `curl` (md5 match).
 - [ ] Redirects are capped at 10 and a connect timeout is set.
 - [ ] `version-to-list` and the three version comparators exist and pass unit checks including a prerelease case.
-- [ ] `wholenump`, `line-number-at-pos`, and `redisplay` are available in core.
+- [ ] `wholenump` and `redisplay` are added; `line-number-at-pos` is confirmed present in core.
 - [ ] `elpa.el` implements refresh, v1 gate, allowlist, emacs-pseudo-dep warning, local and HTTPS transport, download, validation, autoloads, byte-compilation, atomic publish, and activation.
 - [ ] `queue` 0.2 installs from the fixture and runs.
 - [ ] `loc-changes` 1.2 installs from the fixture and runs.
