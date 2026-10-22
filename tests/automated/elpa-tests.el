@@ -119,6 +119,52 @@ Return the child's standard output without a trailing newline."
           (substring output 0 (match-beginning 0))
         output))))
 
+(defun elpa-tests-run-loc-changes-child (user-dir)
+  "Run a fresh XEmacs with USER-DIR, activate packages, and exercise loc-changes.
+Before any require, print whether `loc-changes-add-and-goto' is
+autoloaded; then require the library and run the marker-tracking check
+in a temp buffer whose contents are \"alpha\\nbeta\\ngamma\\n\".  Return
+the child's standard output without a trailing newline."
+  (let ((buffer (get-buffer-create " *elpa-loc-child-output*"))
+        (program (expand-file-name invocation-name invocation-directory))
+        (form
+         (concat
+          "(progn"
+          "(princ (format \"autoloaded=%s\""
+          "       (fboundp 'loc-changes-add-and-goto)))"
+          "(require 'loc-changes)"
+          "(with-current-buffer (get-buffer-create \" *loc-child*\")"
+          "  (erase-buffer)"
+          "  (insert \"alpha\\nbeta\\ngamma\\n\")"
+          "  (goto-char (point-min))"
+          "  (loc-changes-add-and-goto 2)"
+          "  (let ((before (point)))"
+          "    (goto-char (point-min))"
+          "    (insert \"0000\")"
+          "    (loc-changes-goto 2)"
+          "    (let ((after (point)))"
+          "      (princ (format \" before=%s after=%s line=%s text=%S\""
+          "                     before after"
+          "                     (line-number-at-pos after)"
+          "                     (buffer-substring after (+ after 4)))))))))")))
+    (with-current-buffer buffer
+      (erase-buffer))
+    (let ((status
+           (call-process
+            program nil (list buffer nil) nil
+            "-batch" "-no-packages"
+            "-l" "elpa"
+            "-eval" (format "(setq elpa-user-dir %S)" user-dir)
+            "-eval" "(elpa-activate-all)"
+            "-eval" form)))
+      (unless (and (integerp status) (zerop status))
+        (let ((output (with-current-buffer buffer (buffer-string))))
+          (error "Child XEmacs failed with status %S: %s" status output))))
+    (let ((output (with-current-buffer buffer (buffer-string))))
+      (if (string-match "[\n\r]+\\'" output)
+          (substring output 0 (match-beginning 0))
+        output))))
+
 (defun elpa-tests-install-collecting-messages (name)
   "Install NAME and return all messages emitted during the install."
   (let ((messages "")
@@ -334,6 +380,114 @@ Return the child's standard output without trailing newlines."
              (elpa-tests-run-child elpa-user-dir)
              "deq1=a deq2=b empty=t len=0 first=nil")
             "a fresh XEmacs activates the installed package and runs queue")))
+
+;;; Compatibility shims
+
+;; `wholenump' is an alias of the existing core `natnump'; `redisplay' is
+;; only defined when core does not provide one, and `line-number-at-pos'
+;; must remain the existing core definition from simple.el.
+(Assert (fboundp 'wholenump) "wholenump exists")
+(Assert (eq (symbol-function 'wholenump) 'natnump)
+        "wholenump is an alias of natnump")
+(Assert (wholenump 0))
+(Assert (wholenump 3))
+(Assert (null (wholenump -1)))
+(Assert (null (wholenump "1")))
+(Assert (fboundp 'redisplay) "redisplay exists")
+(Assert (progn (redisplay) (redisplay 1 2 3) t)
+        "redisplay accepts and ignores arguments")
+(Assert (fboundp 'line-number-at-pos)
+        "line-number-at-pos remains defined")
+(with-temp-buffer
+  (insert "alpha\nbeta\ngamma\n")
+  (goto-char (point-min))
+  (forward-line 1)
+  (Assert (= (line-number-at-pos (point)) 2)
+          "line-number-at-pos still reports core line numbers"))
+
+;;; Installing loc-changes (single kind)
+
+(elpa-tests-with-temp-user-dir
+  (let ((elpa-archives (list (cons "fixture-single" (elpa-tests-fixture)))))
+    (Assert (= 2 (elpa-refresh-contents)))
+    (Assert (eq 'loc-changes (elpa-install "loc-changes"))
+            "install resolves loc-changes (single kind)")
+    (let* ((dir (expand-file-name "loc-changes-1.2/" elpa-user-dir))
+           (autoloads (expand-file-name "loc-changes-autoloads.el" dir)))
+      (Assert (file-exists-p (expand-file-name "loc-changes.el" dir))
+              "the single-file artifact is published as loc-changes.el")
+      (Assert (file-exists-p (expand-file-name "loc-changes.elc" dir))
+              "install byte-compiles the single-file package source")
+      (Assert (file-exists-p autoloads)
+              "install generates loc-changes-autoloads.el")
+      (Assert (file-exists-p
+               (expand-file-name "loc-changes-autoloads.elc" dir))
+              "install byte-compiles the generated autoloads")
+      (let ((forms (elpa-tests-read-forms autoloads)))
+        (Assert (elpa-tests-autoload-for-p 'loc-changes-goto-line forms)
+                "the generated autoloads define loc-changes-goto-line")
+        (Assert (elpa-tests-autoload-for-p 'loc-changes-add-and-goto forms)
+                "the generated autoloads define loc-changes-add-and-goto")
+        (Assert (elpa-tests-autoload-for-p 'loc-changes-clear-buffer forms)
+                "the generated autoloads define loc-changes-clear-buffer")
+        (Assert (elpa-tests-autoload-for-p 'loc-changes-reset-position forms)
+                "the generated autoloads define loc-changes-reset-position")
+        (let ((load-path nil))
+          (eval (car forms))
+          (Assert (member (directory-file-name dir) load-path)
+                  "the first autoloads form adds the published directory")))
+      (Assert (not (file-exists-p (expand-file-name ".staging/"
+                                                   elpa-user-dir)))
+              "a single-file install leaves no staging residue")
+      (Assert (not (file-exists-p (expand-file-name "loc-changes-1.2.el"
+                                                    elpa-user-dir)))
+              "the downloaded single-file artifact is cleaned")
+      (Assert (elpa-installed-p "loc-changes"))
+      (Assert (elpa-installed-p "loc-changes" '(1 2)))
+      (Assert (string=
+               (elpa-tests-run-loc-changes-child elpa-user-dir)
+               (concat "autoloaded=t"
+                       " before=7 after=11 line=2 text=\"beta\""))
+              "a fresh XEmacs activates loc-changes and tracks markers"))))
+
+;; A single-file artifact that is missing errors cleanly and leaves no
+;; package directory behind.
+(elpa-tests-with-temp-user-dir
+  (let ((archive (elpa-tests-make-archive
+                  "(1\n (loc-changes . [(1 2) nil \"markers\" single nil]))\n")))
+    (unwind-protect
+        (let ((elpa-archives (list (cons "missing-single" archive))))
+          (elpa-refresh-contents)
+          (Check-Error-Message 'error "artifact not found"
+            (elpa-install "loc-changes"))
+          (Assert (not (file-exists-p
+                        (expand-file-name "loc-changes-1.2"
+                                          elpa-user-dir))))
+          (Assert (not (file-exists-p
+                        (expand-file-name ".staging/" elpa-user-dir)))))
+      (elpa-tests-delete-tree archive))))
+
+;; A single-file artifact that does not look like the named library is
+;; rejected before publication.
+(elpa-tests-with-temp-user-dir
+  (let ((archive (elpa-tests-make-archive
+                  "(1\n (impostor . [(1 0) nil \"Impostor\" single nil]))\n")))
+    (unwind-protect
+        (let ((elpa-archives (list (cons "impostor" archive)))
+              (elpa-installable-packages '(impostor)))
+          (with-temp-file (expand-file-name "impostor-1.0.el" archive)
+            (insert ";;; other.el --- not the named library\n\n"
+                    "(provide 'something-else)\n"))
+          (elpa-refresh-contents)
+          (Check-Error-Message 'error "library"
+            (elpa-install "impostor"))
+          (Assert (not (file-exists-p
+                        (expand-file-name "impostor-1.0"
+                                          elpa-user-dir)))
+                  "no package directory after a rejected single file")
+          (Assert (not (file-exists-p
+                        (expand-file-name ".staging/" elpa-user-dir)))))
+      (elpa-tests-delete-tree archive))))
 
 ;;; Negative cases
 
