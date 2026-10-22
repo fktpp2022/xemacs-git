@@ -324,6 +324,16 @@ elseif(HAVE_WIN32_PROCESSES)
   set(SRC_PROCESS_SOURCES process-nt.c)
 endif()
 
+# Async IO — libcurl for HTTP/TLS/streaming
+find_package(CURL REQUIRED)
+message(STATUS "Found libcurl: ${CURL_VERSION_STRING}")
+
+set(SRC_ASYNC_SOURCES
+  coro-asm.S
+  async-scheduler.c
+  async-http.c
+)
+
 set(SRC_ALL_SOURCES
   ${SRC_CORE_SOURCES}
   ${SRC_MULE_SOURCES}
@@ -360,6 +370,11 @@ endif()
 
 if(HAVE_UNIXOID_EVENT_LOOP)
   list(APPEND SRC_ALL_SOURCES ${SRC_UNIXOID_EVENT_SOURCES})
+endif()
+
+# Async scheduler — always built on Unix (requires unixoid event loop)
+if(HAVE_UNIXOID_EVENT_LOOP)
+  list(APPEND SRC_ALL_SOURCES ${SRC_ASYNC_SOURCES})
 endif()
 
 if(HAVE_DATABASE)
@@ -686,10 +701,16 @@ if(HAVE_XFT)
   target_include_directories(xemacs-core PUBLIC ${XFT_INCLUDE_DIRS})
 endif()
 
+target_link_libraries(xemacs-core PRIVATE CURL::libcurl)
+target_include_directories(xemacs-core PRIVATE ${CURL_INCLUDE_DIRS})
+
 target_compile_definitions(xemacs-core PUBLIC
   HAVE_CONFIG_H
   emacs
 )
+
+# HAVE_LIBCURL is an internal implementation symbol — use PRIVATE scope
+target_compile_definitions(xemacs-core PRIVATE HAVE_LIBCURL)
 
 # Create .o symlinks in build/src/ so make-docfile.el can find them
 set(_symlink_script "${CMAKE_CURRENT_BINARY_DIR}/create-o-symlinks.sh")
@@ -729,6 +750,7 @@ if(NOT WIN32)
   target_compile_definitions(temacs PRIVATE
     HAVE_CONFIG_H
     emacs
+    HAVE_LIBCURL
   )
   
   target_link_libraries(temacs PRIVATE
@@ -760,6 +782,7 @@ target_include_directories(xemacs PRIVATE
 target_compile_definitions(xemacs PRIVATE
   HAVE_CONFIG_H
   emacs
+  HAVE_LIBCURL
 )
 
 target_link_libraries(xemacs PRIVATE
