@@ -28,12 +28,18 @@
 ;; upgrades, deletion, a package menu, or signature verification.
 ;;
 ;; Archive locations may be local absolute directories (used by the
-;; offline tests).  HTTP(S) locations are recognised but not yet
-;; implemented; binary-safe transport is a separate milestone ticket.
+;; offline tests) or HTTP(S) URLs (used against live archives such as
+;; https://elpa.gnu.org/packages/).  HTTP(S) locations are fetched with
+;; the async HTTP transport; index fetches use a 60 s timeout, artifact
+;; downloads a 300 s timeout.  Artifact bytes are written directly to
+;; staging by C and never round-trip through a Lisp string.
 ;;
 ;; This file does not use lexical binding.
 
 ;;; Code:
+
+(require 'async-core)
+(require 'async-http nil t)
 
 (defgroup elpa nil
   "Minimal GNU ELPA client."
@@ -42,8 +48,9 @@
 (defcustom elpa-archives
   '(("gnu" . "https://elpa.gnu.org/packages/"))
   "Alist of archive names to archive locations.
-A location may be a local absolute directory path.  HTTP(S) locations
-are reserved for the transport milestone and are not implemented yet."
+A location may be a local absolute directory path or an HTTP(S) URL.
+Local locations are read directly; HTTP(S) locations go through the
+async HTTP transport."
   :type '(repeat (cons string string))
   :group 'elpa)
 
@@ -141,6 +148,97 @@ your init file to disable startup activation."
 	((listp version) version)
 	(t (error "Version must be a string or a list: %S" version))))
 
+;;; HTTP transport
+
+(defconst elpa--index-timeout 60000
+  "Timeout in milliseconds for fetching an archive index.")
+
+(defconst elpa--artifact-timeout 300000
+  "Timeout in milliseconds for downloading a package artifact.")
+
+(defun elpa--location-http-p (location)
+  "Return non-nil if LOCATION is an HTTP or HTTPS URL."
+  (string-match "\\`https?://" location))
+
+(defun elpa--location-remote-p (location)
+  "Return non-nil if LOCATION is a network URL of any supported kind.
+Only HTTP(S) is actually supported; other schemes are recognized so
+they can be rejected with a clear error."
+  (or (elpa--location-http-p location)
+      (string-match "\\`ftp://" location)))
+
+(defun elpa--require-http-transport ()
+  "Signal an error unless the async HTTP transport is available."
+  (unless (fboundp 'http-get)
+    (error "ELPA archive location is an HTTP(S) URL, but the async HTTP transport is not available in this XEmacs")))
+
+(defun elpa--remote-url (base name)
+  "Return the HTTP(S) URL joining BASE and NAME with exactly one slash."
+  (concat (if (string-match "/\\'" base) base (concat base "/")) name))
+
+(defun elpa--sync-await (thunk timeout-ms)
+  "Evaluate THUNK in a fresh coroutine and return its value.
+THUNK runs inside a coroutine and evaluates `await' expressions.  The
+async scheduler is ticked until the coroutine completes; TIMEOUT-MS
+bounds the wait in addition to any timeout the awaited operation
+itself enforces.  An error that escapes THUNK is re-signaled.  This is
+the synchronous bridge that lets the install pipeline use the async
+HTTP transport from ordinary code, including in batch mode."
+  (let ((max-ticks (+ 500 (/ timeout-ms 10)))
+	(ticks 0)
+	done result err)
+    (async-spawn-coroutine
+     (lambda (_arg)
+       (setq result
+	     (condition-case caught
+		 (funcall thunk)
+	       (t (setq err caught) nil))
+	     done t))
+     nil)
+    (while (and (not done) (< ticks max-ticks))
+      (async-scheduler-tick)
+      (sleep-for 0.01)
+      (setq ticks (1+ ticks)))
+    (unless done
+      (error "ELPA asynchronous fetch did not complete within its timeout"))
+    (when err
+      (signal (car err) (cdr err)))
+    result))
+
+(defun elpa--http-check-status (status url not-found-message)
+  "Signal a clear error unless STATUS is 200 for URL.
+A 404 signals NOT-FOUND-MESSAGE; any other non-200 status signals a
+message naming the status."
+  (cond ((= status 200) nil)
+	((= status 404)
+	 (error "%s (HTTP 404)" not-found-message))
+	(t
+	 (error "ELPA fetch of %s failed with HTTP status %d" url status))))
+
+(defun elpa--http-get (url timeout-ms not-found-message)
+  "GET URL and return (STATUS HEADERS BODY).
+TIMEOUT-MS bounds the transfer.  Signal unless the status is 200; a
+404 signals NOT-FOUND-MESSAGE."
+  (elpa--require-http-transport)
+  (let ((result (elpa--sync-await
+		 (lambda () (await (http-get url :timeout timeout-ms)))
+		 timeout-ms)))
+    (elpa--http-check-status (nth 0 result) url not-found-message)
+    result))
+
+(defun elpa--http-download (url file timeout-ms not-found-message)
+  "Download URL into FILE and return (STATUS HEADERS FILE).
+The response bytes are written directly to FILE by C and never pass
+through a Lisp string.  TIMEOUT-MS bounds the transfer.  Signal unless
+the status is 200; a 404 signals NOT-FOUND-MESSAGE."
+  (elpa--require-http-transport)
+  (let ((result (elpa--sync-await
+		 (lambda ()
+		   (await (http-download url file :timeout timeout-ms)))
+		 timeout-ms)))
+    (elpa--http-check-status (nth 0 result) url not-found-message)
+    result))
+
 ;;; Archive index
 
 (defun elpa--parse-index (raw)
@@ -205,31 +303,53 @@ The plist has :name, :version, :reqs, :summary, :kind, :extras, and
     (when entry
       (elpa--entry-info entry archive))))
 
+(defun elpa--cache-index (archive entries source &optional copy-source-p)
+  "Register parsed ENTRIES for ARCHIVE and cache the raw index.
+SOURCE is the raw index text to write, or, when COPY-SOURCE-P is
+non-nil, a file to copy byte-for-byte.  Return the number of entries.
+The index is only cached after the version-1 gate has accepted it."
+  (elpa--ensure-user-dir)
+  (let ((cache (elpa--index-cache-file archive)))
+    (make-directory (file-name-directory cache) t)
+    (if copy-source-p
+	(copy-file source cache t)
+      (let ((coding-system-for-write 'binary))
+	(with-temp-file cache (insert source)))))
+  (setq elpa--archive-index-alist
+	(cons (cons (elpa--archive-name archive) entries)
+	      elpa--archive-index-alist))
+  (length entries))
+
 (defun elpa-refresh-contents (&optional archive)
   "Refresh ARCHIVE's index and return the number of packages it contains.
-ARCHIVE defaults to the first entry in `elpa-archives'.  Only local
-absolute-path archives are supported in this milestone."
+ARCHIVE defaults to the first entry in `elpa-archives'.  A location may
+be a local absolute directory or an HTTP(S) URL.  An HTTP(S) index is
+fetched through the async HTTP transport with a 60 s timeout, must
+answer HTTP 200, is cached under `elpa-user-dir', and is parsed with
+the version-1 gate."
   (interactive)
   (let* ((archive (or archive (caar elpa-archives)))
 	 (base (elpa--archive-location archive)))
-    (when (string-match "\\`\\(https?\\|ftp\\)://" base)
-      (error "ELPA archive %s uses a network location; HTTP transport is not implemented yet"
-	     base))
-    (unless (file-name-absolute-p base)
-      (error "ELPA archive location must be an absolute directory: %s" base))
-    (let ((source (expand-file-name "archive-contents" base)))
-      (unless (file-readable-p source)
-	(error "ELPA archive not found: %s" source))
-      (let* ((raw (elpa--read-file source))
-	     (entries (elpa--parse-index raw))
-	     (cache (elpa--index-cache-file archive)))
-	(elpa--ensure-user-dir)
-	(make-directory (file-name-directory cache) t)
-	(copy-file source cache t)
-	(setq elpa--archive-index-alist
-	      (cons (cons (elpa--archive-name archive) entries)
-		    elpa--archive-index-alist))
-	(length entries)))))
+    (cond
+     ((elpa--location-http-p base)
+      (let* ((url (elpa--remote-url base "archive-contents"))
+	     (result (elpa--http-get url elpa--index-timeout
+				     (format "ELPA archive not found: %s" url)))
+	     (body (nth 2 result)))
+	(unless (stringp body)
+	  (error "ELPA archive index fetch returned no body: %s" url))
+	(elpa--cache-index archive (elpa--parse-index body) body)))
+     ((elpa--location-remote-p base)
+      (error "ELPA archive location scheme is not supported: %s" base))
+     (t
+      (unless (file-name-absolute-p base)
+	(error "ELPA archive location must be an absolute directory: %s" base))
+      (let ((source (expand-file-name "archive-contents" base)))
+	(unless (file-readable-p source)
+	  (error "ELPA archive not found: %s" source))
+	(elpa--cache-index archive
+			   (elpa--parse-index (elpa--read-file source))
+			   source 'copy-source))))))
 
 ;;; Resolution and installation
 
@@ -349,37 +469,57 @@ VERSION may be a version string or a list of integers.  NAME must be in
       (elpa--delete-tree staging))
     (make-directory staging t)
     (unwind-protect
-	(let ((content (if (eq kind 'tar)
-			   (elpa--stage-tar info base staging)
-			 (elpa--stage-single info base staging))))
-	  (when (eq kind 'tar)
-	    (elpa--validate-pkg-file content name version))
-	  (elpa--remove-shipped-autoloads content name)
-	  (elpa--generate-autoloads content name version)
-	  (elpa--byte-compile-content content)
-	  (when (file-exists-p published)
-	    (error "Package `%s' is already installed in %s"
-		   name published))
-	  (rename-file content published))
+	(let* ((extension (if (eq kind 'tar) ".tar" ".el"))
+	       (artifact (expand-file-name
+				  (concat artifact-base extension) staging))
+	       (artifact-url (and (elpa--location-http-p base)
+					  (elpa--remote-url base
+							    (concat artifact-base
+								    extension)))))
+	  ;; Acquire the artifact: over HTTP(S) the bytes are written
+	  ;; straight into staging by C; otherwise copy from the local
+	  ;; archive directory.
+	  (cond (artifact-url
+		 (elpa--http-download artifact-url artifact
+					      elpa--artifact-timeout
+					      (format "Package artifact not found: %s"
+							      artifact-url)))
+		((elpa--location-remote-p base)
+		 (error "ELPA archive location scheme is not supported: %s"
+			base))
+		(t
+		 (let ((source (expand-file-name
+					(concat artifact-base extension) base)))
+		   (unless (file-readable-p source)
+		     (error "Package artifact not found: %s" source))
+		   (copy-file source artifact))))
+	  (unless (file-regular-p artifact)
+	    (error "Package artifact is not a regular file: %s" artifact))
+	  (let ((content (if (eq kind 'tar)
+				     (elpa--stage-tar info artifact staging)
+				   (elpa--stage-single info artifact staging))))
+	    (when (eq kind 'tar)
+	      (elpa--validate-pkg-file content name version))
+	    (elpa--remove-shipped-autoloads content name)
+	    (elpa--generate-autoloads content name version)
+	    (elpa--byte-compile-content content)
+	    (when (file-exists-p published)
+	      (error "Package `%s' is already installed in %s"
+			     name published))
+	    (rename-file content published)))
       (ignore-errors (elpa--delete-tree staging))
       (when (and (file-directory-p staging-root)
 		 (= 2 (length (directory-files staging-root))))
 	(ignore-errors (delete-directory staging-root))))))
 
-(defun elpa--stage-tar (info base staging)
-  "Copy INFO's tar artifact from BASE into STAGING and extract it.
+(defun elpa--stage-tar (info artifact staging)
+  "Extract INFO's tar ARTIFACT, already staged, into STAGING.
 Validate every member before extraction.  Return the staged content
 directory; the extracted artifact remains under STAGING until the
 caller removes it."
   (let* ((name (plist-get info :name))
 	 (version (plist-get info :version))
-	 (artifact-base (elpa--artifact-name name version))
-	 (artifact (expand-file-name (concat artifact-base ".tar")
-				     staging))
-	 (source (expand-file-name (concat artifact-base ".tar") base)))
-    (unless (file-readable-p source)
-      (error "Package artifact not found: %s" source))
-    (copy-file source artifact)
+	 (artifact-base (elpa--artifact-name name version)))
     (unless (file-regular-p artifact)
       (error "Package artifact is not a regular file: %s" artifact))
     (elpa--validate-tar artifact name version)
@@ -393,26 +533,21 @@ caller removes it."
 	(error "Package artifact did not create %s/" artifact-base))
       content)))
 
-(defun elpa--stage-single (info base staging)
-  "Copy INFO's single-file artifact from BASE into STAGING.
-The downloaded file is written as `<name>.el' inside the staged
+(defun elpa--stage-single (info artifact staging)
+  "Stage INFO's single-file ARTIFACT, already staged, into STAGING.
+The file is written as `<name>.el' inside the staged
 `<name>-<version>/' content directory, so the artifact itself does not
 survive as a separate download.  Return the content directory."
   (let* ((name (plist-get info :name))
 	 (version (plist-get info :version))
 	 (artifact-base (elpa--artifact-name name version))
-	 (artifact (expand-file-name (concat artifact-base ".el") staging))
-	 (source (expand-file-name (concat artifact-base ".el") base))
 	 (content (expand-file-name artifact-base staging)))
-    (unless (file-readable-p source)
-      (error "Package artifact not found: %s" source))
-    (copy-file source artifact)
     (unless (file-regular-p artifact)
       (error "Package artifact is not a regular file: %s" artifact))
     (make-directory content t)
     (rename-file artifact
 		 (expand-file-name (concat (symbol-name name) ".el")
-				   content))
+					   content))
     (elpa--validate-single content name)
     content))
 

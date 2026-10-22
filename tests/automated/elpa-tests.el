@@ -706,6 +706,132 @@ Return the child's standard output without trailing newlines."
       (elpa-tests-delete-tree work)
       (elpa-tests-delete-tree archive))))
 
+;;; HTTP(S) transport over a local server (no external network)
+
+(defconst elpa-tests-http-port 18743
+  "Port for the local HTTP fixture server.
+Must not collide with async-http-tests' port.")
+
+(defvar elpa-tests-http-server-script
+  "
+import http.server, sys
+PORT = int(sys.argv[1])
+ROOT = sys.argv[2]
+class H(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *a, **k):
+        http.server.SimpleHTTPRequestHandler.__init__(self, *a, directory=ROOT, **k)
+    def log_message(self, *a): pass
+http.server.HTTPServer(('127.0.0.1', PORT), H).serve_forever()
+"
+  "Python http.server source serving a directory as an ELPA archive.")
+
+(defun elpa-tests-start-http-server (port root)
+  "Serve ROOT on 127.0.0.1:PORT; return the server process."
+  (let ((proc (start-process "elpa-test-server" " *elpa-test-server*"
+                             "python3" "-c" elpa-tests-http-server-script
+                             (number-to-string port) root)))
+    (sleep-for 0.5)
+    proc))
+
+(defun elpa-tests-stop-http-server (proc)
+  (when (processp proc)
+    (delete-process proc)))
+
+;; The fixture directory doubles as an HTTP archive: /archive-contents and
+;; /queue-0.2.tar are the same bytes the local-path tests read.  A second
+;; server serves an index whose artifacts are missing, for the artifact-404
+;; case.  Everything here is loopback-only, so the default offline suite
+;; needs no external network.
+(elpa-tests-with-temp-user-dir
+  (let ((fixture (elpa-tests-fixture))
+        (broken (file-name-as-directory
+                 (make-temp-file "elpa-tests-http-" t)))
+        server server-404)
+    (unwind-protect
+        (progn
+          (with-temp-file (expand-file-name "archive-contents" broken)
+            (insert "(1\n (queue . [(0 2) nil \"Queue data structure\" tar nil]))\n"))
+          (setq server (elpa-tests-start-http-server
+                        elpa-tests-http-port fixture)
+                server-404 (elpa-tests-start-http-server
+                            (1+ elpa-tests-http-port) broken))
+
+          ;; A 404 index: clear error, nothing cached.
+          (let ((elpa-archives
+                 (list (cons "http"
+                             (format "http://127.0.0.1:%d/no-such-dir/"
+                                     elpa-tests-http-port)))))
+            (Check-Error-Message 'error "archive not found"
+              (elpa-refresh-contents))
+            (Assert (not (file-exists-p
+                          (expand-file-name
+                           "archives/http/archive-contents"
+                           elpa-user-dir)))
+                    "a 404 index leaves no cached archive-contents"))
+
+          ;; A good refresh and install over HTTP.
+          (let ((elpa-archives
+                 (list (cons "http"
+                             (format "http://127.0.0.1:%d/"
+                                     elpa-tests-http-port)))))
+            (Assert (= 2 (elpa-refresh-contents))
+                    "refresh over HTTP returns the package count")
+            (let ((queue (elpa-package-info "queue")))
+              (Assert queue "queue is present after an HTTP refresh")
+              (Assert (equal (plist-get queue :version) '(0 2)))
+              (Assert (eq (plist-get queue :kind) 'tar)))
+            (Assert (file-readable-p
+                     (expand-file-name "archives/http/archive-contents"
+                                       elpa-user-dir))
+                    "an HTTP refresh caches the index under archives/<archive>/")
+            (Assert (eq 'queue (elpa-install "queue"))
+                    "install downloads the artifact over HTTP")
+            (Assert (file-exists-p
+                     (expand-file-name "queue-0.2/queue.elc" elpa-user-dir))
+                    "the HTTP-installed package is byte-compiled")
+            (Assert (not (file-exists-p
+                          (expand-file-name ".staging/" elpa-user-dir)))
+                    "no staging residue after an HTTP install")
+            (Assert (not (file-exists-p
+                          (expand-file-name "queue-0.2.tar" elpa-user-dir)))
+                    "the downloaded artifact is removed after an HTTP install")
+            (Assert (string=
+                     (elpa-tests-run-child elpa-user-dir)
+                     "deq1=a deq2=b empty=t len=0 first=nil")
+                    "a fresh XEmacs runs a package installed over HTTP"))
+
+          ;; A 404 artifact: fresh user dir, a base whose artifacts are
+          ;; missing.  The in-memory index from the good refresh survives;
+          ;; only the download target moved.
+          (let ((elpa-user-dir
+                 (file-name-as-directory
+                  (make-temp-file "elpa-tests-404-" t))))
+            (unwind-protect
+                (progn
+                  (let ((elpa-archives
+                         (list (cons "http"
+                                     (format "http://127.0.0.1:%d/"
+                                             elpa-tests-http-port)))))
+                    (elpa-refresh-contents))
+                  (let ((elpa-archives
+                         (list (cons "http"
+                                     (format "http://127.0.0.1:%d/missing/"
+                                             elpa-tests-http-port)))))
+                    (Check-Error-Message 'error "artifact not found"
+                      (elpa-install "queue"))
+                    (Assert (not (file-directory-p
+                                  (expand-file-name "queue-0.2"
+                                                    elpa-user-dir)))
+                            "a 404 artifact leaves no package directory")
+                    (Assert (not (file-exists-p
+                                  (expand-file-name ".staging/"
+                                                    elpa-user-dir)))
+                            "a 404 artifact leaves no staging residue")))
+              (ignore-errors (elpa-tests-delete-tree elpa-user-dir)))))
+      (elpa-tests-stop-http-server server)
+      (elpa-tests-stop-http-server server-404)
+      (ignore-errors (elpa-tests-delete-tree broken)))))
+
 ;;; Startup activation
 
 ;; Startup activation runs after site-start and the user's init file but
