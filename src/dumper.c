@@ -2665,15 +2665,10 @@ pdump_file_get (const Extbyte *path, Boolint diep)
   return 1;
 }
 
-/* Longest relative path we will encounter. */
-#define DUMP_SLACK sizeof ("../lib/" EMACS_PROGNAME "-" EMACS_VERSION	\
-                           "/" EMACS_CONFIGURATION "/" EMACS_PROGNAME   \
-			   "-12345678.dmp")
 static Boolint
 pdump_file_try (const Extbyte *dirname, const Extbyte *basename)
 {
-  Bytecount dirlen = strlen (dirname);
-  Bytecount file_try_size = dirlen + strlen (basename) + DUMP_SLACK;
+  Bytecount file_try_size = QXE_PATH_MAX;
   Extbyte *file_try_path = alloca_extbytes (file_try_size);
   Bytecount res;
 
