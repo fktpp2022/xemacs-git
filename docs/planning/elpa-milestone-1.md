@@ -42,7 +42,7 @@ Both packages are dependencies-free in the GNU ELPA index:
 - It covers both archive kinds (`tar` and `single`) with runnable packages, not install-only fixtures.
 - Both pass the dynamic-binding audit behaviorally: compiled, loaded, and exercised, not merely inspected for a header.
 - Neither needs `cl-lib`, `seq`, GNU timers, `message`, or `thingatpt`. Those are the APIs that eliminated the other candidates.
-- `queue` includes a `;;;###autoload` cookie for `queue-create`; `loc-changes` has four, so autoload generation is observable in both.
+- `queue` includes a `;;;###autoload` cookie for the `make-queue` alias; `loc-changes` has four autoload cookies, so autoload generation is observable in both.
 
 ### Audit evidence
 
@@ -193,8 +193,8 @@ Startup calls `elpa-activate-all` when `elpa-activate-at-startup` is non-nil and
 
 Success criteria for activation are observable without `require`:
 
-- after activation, `(fboundp 'queue-create)` is `t` (from the queue autoloads);
-- after activation, `(fboundp 'loc-changes-goto)` is `t` (from the loc-changes autoloads).
+- after activation, `(fboundp 'make-queue)` is `t` (from the queue autoloads);
+- after activation, `(fboundp 'loc-changes-add-and-goto)` is `t` (from the loc-changes autoloads).
 
 ## 8. Signatures
 
@@ -229,10 +229,10 @@ The driver sets a temporary `elpa-user-dir` (or `HOME`), points `elpa-archives` 
 
 1. `elpa-refresh-contents` returns 2 and both names are present with the expected version lists and kinds.
 2. `elpa-install "queue"` creates `queue-0.2/queue.el`, `queue.elc`, and `queue-autoloads.el`; the downloaded artifact is gone; staging is empty.
-3. A fresh XEmacs process with the same `elpa-user-dir` calls `elpa-activate-all`; `(fboundp 'queue-create)` is `t` before `require`; then `(require 'queue)` and the functional check prints:
+3. A fresh XEmacs process with the same `elpa-user-dir` calls `elpa-activate-all`; `(fboundp 'make-queue)` is `t` before `require`; then `(require 'queue)` and the functional check prints:
    `deq1=a deq2=b empty=t len=0 first=nil`.
 4. `elpa-install "loc-changes"` creates `loc-changes-1.2/loc-changes.el`, `loc-changes.elc`, and `loc-changes-autoloads.el`.
-5. A fresh process after activation has `(fboundp 'loc-changes-goto)` `t`; the marker test prints:
+5. A fresh process after activation has `(fboundp 'loc-changes-add-and-goto)` `t`; the marker test prints:
    `before=7 after=11 line=2 text="beta"`.
 6. Negative cases:
    - `elpa-install "spinner"` errors because it is not in `elpa-installable-packages`;
@@ -261,7 +261,7 @@ It fetches the live `https://elpa.gnu.org/packages/archive-contents`, installs w
 - [ ] `elpa.el` implements refresh, v1 gate, allowlist, emacs-pseudo-dep warning, local and HTTPS transport, download, validation, autoloads, byte-compilation, atomic publish, and activation.
 - [ ] `queue` 0.2 installs from the fixture and runs.
 - [ ] `loc-changes` 1.2 installs from the fixture and runs.
-- [ ] Autoloads make `queue-create` and `loc-changes-goto` callable before `require`.
+- [ ] Autoloads make `make-queue` and `loc-changes-add-and-goto` callable before `require`.
 - [ ] Negative tests pass.
 - [ ] Offline CTest suite passes; live smoke passes when enabled.
 - [ ] No `package-menu`, upgrade, delete, quickstart, or signature code is required for the milestone.
