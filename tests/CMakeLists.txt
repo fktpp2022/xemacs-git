@@ -26,7 +26,14 @@ foreach(test_file ${TEST_FILES})
   )
 endforeach()
 
-# Fixture: ensures the build has completed before tests run
+# The live ELPA test is network-labeled.  It still RUNS in a default ctest
+# pass but self-skips in seconds without ELPA_LIVE set (the elisp
+# early-exit is the skip mechanism).  When enabled it does several live
+# HTTPS fetches per harness pass, so give it a generous network-sized
+# timeout instead of the default 120 s.
+set_tests_properties(elpa-live-tests PROPERTIES
+  LABELS "network"
+  TIMEOUT 300)
 add_test(NAME xemacs_build_fixture COMMAND ${CMAKE_COMMAND} -E true)
 set_tests_properties(xemacs_build_fixture PROPERTIES FIXTURES_SETUP xemacs_build)
 
