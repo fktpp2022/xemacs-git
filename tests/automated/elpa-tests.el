@@ -67,9 +67,12 @@ Return its absolute directory name."
       (insert contents))
     dir))
 
-(defun elpa-tests-build-tar-package (archive work name version)
+(defun elpa-tests-build-tar-package (archive work name version
+                                            &optional extra-files)
   "Build a minimal tar package NAME at VERSION under WORK.
-ARCHIVE is where the artifact is written.  Return the artifact path."
+ARCHIVE is where the artifact is written.  EXTRA-FILES, when non-nil,
+is an alist of additional content-relative file names to contents.
+Return the artifact path."
   (let ((content (expand-file-name (concat name "-" version "/") work)))
     (make-directory content t)
     (with-temp-file (expand-file-name (concat name ".el") content)
@@ -77,6 +80,9 @@ ARCHIVE is where the artifact is written.  Return the artifact path."
     (with-temp-file (expand-file-name (concat name "-pkg.el") content)
       (insert (format "(define-package \"%s\" \"%s\" \"test package\")\n"
                       name version)))
+    (dolist (extra extra-files)
+      (with-temp-file (expand-file-name (car extra) content)
+        (insert (cdr extra))))
     (let ((artifact (expand-file-name (concat name "-" version ".tar")
                                       archive)))
       (Assert (= 0 (call-process "tar" nil nil nil "-cf" artifact
@@ -127,6 +133,108 @@ Return the child's standard output without a trailing newline."
           (elpa-install name))
       (fset 'message original))
     messages))
+
+(defun elpa-tests-read-forms (file)
+  "Return the top-level forms read from FILE."
+  (with-temp-buffer
+    (insert-file-contents file)
+    (goto-char (point-min))
+    (let (forms)
+      (condition-case nil
+          (while t
+            (push (read (current-buffer)) forms))
+        (end-of-file nil))
+      (nreverse forms))))
+
+(defun elpa-tests-unquote (object)
+  "Return OBJECT without a surrounding quote form, if any."
+  (if (and (consp object) (eq (car object) 'quote))
+      (nth 1 object)
+    object))
+
+(defun elpa-tests-autoload-for-p (name forms)
+  "Return non-nil if FORMS contain an autoload form for NAME."
+  (catch 'found
+    (dolist (form forms)
+      (when (and (consp form)
+                 (eq (car form) 'autoload)
+                 (eq (elpa-tests-unquote (nth 1 form)) name))
+        (throw 'found form)))
+    nil))
+
+(defun elpa-tests-file-contents (file)
+  "Return the contents of FILE as a string."
+  (with-temp-buffer
+    (insert-file-contents file)
+    (buffer-string)))
+
+(defun elpa-tests-count-loads (file)
+  "Return how many times FILE has been loaded in this process."
+  (let ((base (file-name-sans-extension file))
+        (count 0))
+    (dolist (entry load-history)
+      (when (and (consp entry)
+                 (stringp (car entry))
+                 (string= (file-name-sans-extension (car entry)) base))
+        (setq count (1+ count))))
+    count))
+
+(defun elpa-tests-count-member (item list)
+  "Return how many times ITEM occurs in LIST under `equal'."
+  (let ((count 0))
+    (dolist (element list)
+      (when (equal element item)
+        (setq count (1+ count))))
+    count))
+
+(defmacro elpa-tests-with-temp-home (&rest body)
+  "Run BODY with HOME and a fresh `elpa-user-dir' inside it."
+  `(let* ((home (file-name-as-directory (make-temp-file "elpa-home-" t)))
+          (elpa-user-dir (expand-file-name ".emacs.d/elpa/" home)))
+     (unwind-protect
+         (progn ,@body)
+       (ignore-errors (elpa-tests-delete-tree home)))))
+
+(defconst elpa-tests-startup-queue-check
+  (concat
+   "(progn"
+   "(princ (format \"fbound=%s\" (fboundp 'make-queue)))"
+   "(require 'queue)"
+   "(let ((q (queue-create)))"
+   " (queue-enqueue q 'a)"
+   " (queue-enqueue q 'b)"
+   "(princ (format \" deq1=%s deq2=%s empty=%s len=%s first=%s\""
+   " (queue-dequeue q) (queue-dequeue q)"
+   " (queue-empty q) (queue-length q) (queue-first q)))))")
+  "Command-line form checking queue in a fresh startup.")
+
+(defvar elpa-tests-extra-environment nil
+  "Additional environment entries for `elpa-tests-run-startup-child'.")
+
+(defun elpa-tests-run-startup-child (home &rest args)
+  "Run a fresh XEmacs with HOME set to HOME and ARGS.
+Return the child's standard output without trailing newlines."
+  (let ((buffer (get-buffer-create " *elpa-startup-output*"))
+        (program (expand-file-name invocation-name invocation-directory))
+        (process-environment
+         (append elpa-tests-extra-environment
+                 (cons (concat "HOME=" home)
+                       (let (result)
+                         (dolist (entry process-environment)
+                           (unless (string-match "\\`\\(HOME\\|XEMACSDEBUG\\)="
+                                                 entry)
+                             (push entry result)))
+                         (nreverse result))))))
+    (with-current-buffer buffer
+      (erase-buffer))
+    (let ((status (apply 'call-process program nil (list buffer nil) nil
+                         (append '("-batch" "-no-site-file") args))))
+      (unless (and (integerp status) (zerop status))
+        (error "Child XEmacs failed with status %S" status)))
+    (let ((output (with-current-buffer buffer (buffer-string))))
+      (if (string-match "[\n\r]+\\'" output)
+          (substring output 0 (match-beginning 0))
+        output))))
 
 ;;; Version helpers
 
@@ -190,9 +298,26 @@ Return the child's standard output without a trailing newline."
     (Assert (= 2 (elpa-refresh-contents)))
     (Assert (eq 'queue (elpa-install "queue"))
             "install resolves queue by name")
-    (let ((dir (expand-file-name "queue-0.2/" elpa-user-dir)))
+    (let* ((dir (expand-file-name "queue-0.2/" elpa-user-dir))
+           (autoloads (expand-file-name "queue-autoloads.el" dir)))
       (Assert (file-exists-p (expand-file-name "queue.el" dir)))
-      (Assert (file-exists-p (expand-file-name "queue-pkg.el" dir))))
+      (Assert (file-exists-p (expand-file-name "queue-pkg.el" dir)))
+      (Assert (file-exists-p (expand-file-name "queue.elc" dir))
+              "install byte-compiles the package source")
+      (Assert (file-exists-p autoloads)
+              "install generates queue-autoloads.el")
+      (Assert (file-exists-p (expand-file-name "queue-autoloads.elc" dir))
+              "install byte-compiles the generated autoloads")
+      (let ((forms (elpa-tests-read-forms autoloads)))
+        (Assert (elpa-tests-autoload-for-p 'make-queue forms)
+                "the generated autoloads define make-queue")
+        (let ((load-path nil))
+          (eval (car forms))
+          (Assert (member (directory-file-name dir) load-path)
+                  "the first autoloads form adds the published content directory")))
+      (Assert (not (file-exists-p (expand-file-name ".staging/"
+                                                    elpa-user-dir)))
+              "the generated autoloads leave no staging residue"))
     (Assert (not (file-exists-p (expand-file-name ".staging/" elpa-user-dir)))
             "staging is removed after a successful install")
     (Assert (not (file-exists-p (expand-file-name "queue-0.2.tar"
@@ -318,5 +443,141 @@ Return the child's standard output without a trailing newline."
                     "requirements are installed recursively")))
       (elpa-tests-delete-tree work)
       (elpa-tests-delete-tree archive))))
+
+;;; Activation
+
+;; Activation loads the generated autoloads once, adds the content directory
+;; once, and ignores cached indexes, staging, symlinks, and unrelated
+;; entries even when the operation is repeated.
+(elpa-tests-with-temp-user-dir
+  (let ((elpa-archives (list (cons "fixture-activate" (elpa-tests-fixture)))))
+    (elpa-refresh-contents)
+    (elpa-install "queue")
+    (make-directory (expand-file-name "archives/stray-1.0/" elpa-user-dir) t)
+    (with-temp-file (expand-file-name "archives/stray-1.0/stray-autoloads.el"
+                                      elpa-user-dir)
+      (insert "(provide 'stray-archives-autoloads)\n"))
+    (make-directory (expand-file-name "notes-1.0/" elpa-user-dir) t)
+    (make-directory (expand-file-name ".staging/target-1.0/" elpa-user-dir) t)
+    (with-temp-file
+        (expand-file-name ".staging/target-1.0/linked-autoloads.el"
+                          elpa-user-dir)
+      (insert "(provide 'linked-autoloads)\n"))
+    (make-symbolic-link (expand-file-name ".staging/target-1.0" elpa-user-dir)
+                        (expand-file-name "linked-1.0" elpa-user-dir))
+    (let* ((dir (directory-file-name
+                 (expand-file-name "queue-0.2" elpa-user-dir)))
+           (autoloads (expand-file-name "queue-0.2/queue-autoloads.el"
+                                        elpa-user-dir))
+           (stray (directory-file-name
+                   (expand-file-name "archives/stray-1.0" elpa-user-dir)))
+           (linked (directory-file-name
+                    (expand-file-name ".staging/target-1.0" elpa-user-dir))))
+      (let ((load-path load-path))
+        (elpa-activate-all)
+        (Assert (member dir load-path)
+                "activation adds the content directory to load-path")
+        (Assert (fboundp 'make-queue)
+                "activation loads the generated autoloads")
+        (Assert (= 1 (elpa-tests-count-loads autoloads))
+                "activation loads the autoloads file once")
+        (Assert (not (member stray load-path))
+                "activation ignores autoloads under archives/")
+        (Assert (not (member linked load-path))
+                "activation skips symlinked directories")
+        (elpa-activate-all)
+        (elpa-activate-all)
+        (Assert (= 1 (elpa-tests-count-loads autoloads))
+                "repeated activation does not reload the autoloads")
+        (Assert (= 1 (elpa-tests-count-member dir load-path))
+                "repeated activation does not duplicate the load-path entry")
+        (Assert (not (featurep 'stray-archives-autoloads))
+                "autoloads under archives/ are never loaded")))))
+
+;;; Shipped autoloads and compilation failures
+
+;; An autoloads file supplied by the tarball is replaced by the generated
+;; one; only the generated file is retained.
+(elpa-tests-with-temp-user-dir
+  (let* ((archive (elpa-tests-make-archive
+                   "(1\n (shippkg . [(1 0) nil \"Ship\" tar nil]))\n"))
+         (work (file-name-as-directory (make-temp-file "elpa-ship-" t))))
+    (unwind-protect
+        (progn
+          (elpa-tests-build-tar-package
+           archive work "shippkg" "1.0"
+           '(("shippkg-autoloads.el"
+              . "(provide 'shipped-autoloads)\n")))
+          (let ((elpa-archives (list (cons "ship" archive)))
+                (elpa-installable-packages '(shippkg)))
+            (elpa-refresh-contents)
+            (elpa-install "shippkg")
+            (let* ((dir (expand-file-name "shippkg-1.0/" elpa-user-dir))
+                   (autoloads (expand-file-name "shippkg-autoloads.el" dir)))
+              (Assert (file-exists-p autoloads))
+              (Assert (not (string-match
+                            "shipped-autoloads"
+                            (elpa-tests-file-contents autoloads)))
+                      "a tarball-supplied autoloads file is not retained")
+              (let ((load-path nil))
+                (eval (car (elpa-tests-read-forms autoloads)))
+                (Assert (member (directory-file-name dir) load-path)))
+              (Assert (file-exists-p
+                       (expand-file-name "shippkg-autoloads.elc" dir))))))
+      (elpa-tests-delete-tree work)
+      (elpa-tests-delete-tree archive))))
+
+;; A compilation error fails the install and leaves no staging or published
+;; directory behind.
+(elpa-tests-with-temp-user-dir
+  (let* ((archive (elpa-tests-make-archive
+                   "(1\n (brokenpkg . [(1 0) nil \"Broken\" tar nil]))\n"))
+         (work (file-name-as-directory (make-temp-file "elpa-broken-" t))))
+    (unwind-protect
+        (progn
+          (elpa-tests-build-tar-package
+           archive work "brokenpkg" "1.0"
+           '(("brokenpkg-broken.el" . "(defun brokenpkg-broken (\n")))
+          (let ((elpa-archives (list (cons "broken" archive)))
+                (elpa-installable-packages '(brokenpkg)))
+            (elpa-refresh-contents)
+            (Check-Error-Message 'error "ompil"
+              (elpa-install "brokenpkg"))
+            (Assert (not (file-exists-p
+                          (expand-file-name "brokenpkg-1.0" elpa-user-dir)))
+                    "a failed compile publishes nothing")
+            (Assert (not (file-exists-p
+                          (expand-file-name ".staging/" elpa-user-dir)))
+                    "a failed compile removes staging")))
+      (elpa-tests-delete-tree work)
+      (elpa-tests-delete-tree archive))))
+
+;;; Startup activation
+
+;; Startup activation runs after site-start and the user's init file but
+;; before command-line -eval forms, so either init source can disable it by
+;; setting `elpa-activate-at-startup' to nil, and -eval can observe the
+;; activated state.  Batch mode never loads init files, so the disabled case
+;; sets the variable through XEMACSDEBUG, which XEmacs evaluates at the very
+;; start of `normal-top-level', before elpa is loaded.  The child uses
+;; -no-site-file rather than -no-packages because startup activation is
+;; deliberately suppressed when packages are inhibited.
+(elpa-tests-with-temp-home
+  (let ((elpa-archives (list (cons "fixture-startup" (elpa-tests-fixture)))))
+    (elpa-refresh-contents)
+    (elpa-install "queue")
+    (Assert (string=
+             (elpa-tests-run-startup-child
+              home "-eval" elpa-tests-startup-queue-check)
+             "fbound=t deq1=a deq2=b empty=t len=0 first=nil")
+            "startup activation exposes queue without an explicit require")
+    (let ((elpa-tests-extra-environment
+           '("XEMACSDEBUG=(setq elpa-activate-at-startup nil)")))
+      (Assert (string=
+               (elpa-tests-run-startup-child
+                home
+                "-eval" "(princ (format \"fbound=%s\" (fboundp 'make-queue)))")
+               "fbound=nil")
+              "startup activation can be disabled"))))
 
 ;;; elpa-tests.el ends here

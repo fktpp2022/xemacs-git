@@ -22,9 +22,9 @@
 ;; A small, install-only GNU ELPA client.  It deliberately implements the
 ;; subset needed by the milestone target packages: a version-1 archive
 ;; index, an allowlist, tar artifacts, define-package validation, atomic
-;; staging, and explicit activation.  It is not a replacement for GNU
-;; package.el and it does not support upgrades, deletion, a package menu,
-;; or signature verification.
+;; staging, generated autoloads, byte-compilation, and explicit activation.
+;; It is not a replacement for GNU package.el and it does not support
+;; upgrades, deletion, a package menu, or signature verification.
 ;;
 ;; Archive locations may be local absolute directories (used by the
 ;; offline tests).  HTTP(S) locations are recognised but not yet
@@ -68,7 +68,10 @@ Milestone 1 installs unsigned archives; .sig files are ignored."
 
 (defcustom elpa-activate-at-startup t
   "Whether startup should activate installed packages.
-Startup activation itself is implemented by a later milestone ticket."
+When non-nil and `elpa-user-dir' exists, startup calls
+`elpa-activate-all', which adds installed package directories to
+`load-path' and loads their generated autoloads.  Set this to nil in
+your init file to disable startup activation."
   :type 'boolean
   :group 'elpa)
 
@@ -364,6 +367,9 @@ VERSION may be a version string or a list of integers.  NAME must be in
 	    (unless (file-directory-p content)
 	      (error "Package artifact did not create %s/" artifact-base))
 	    (elpa--validate-pkg-file content name version)
+	    (elpa--remove-shipped-autoloads content name)
+	    (elpa--generate-autoloads content name version)
+	    (elpa--byte-compile-content content)
 	    (when (file-exists-p published)
 	      (error "Package `%s' is already installed in %s"
 		     name published))
@@ -439,22 +445,172 @@ top-level `<name>-<version>/' directory, and link entries."
 	    (error "Package version in %s is `%s', expected `%s'"
 		   file declared-version (elpa-version-join version))))))))
 
+;;; Autoload generation and byte-compilation
+
+(defconst elpa--generate-autoload-cookie ";;;###autoload"
+  "Cookie marking the following top-level form for autoload generation.")
+
+(defun elpa--unquote (object)
+  "Return OBJECT without a surrounding quote form, if any."
+  (if (and (consp object) (eq (car object) 'quote))
+      (nth 1 object)
+    object))
+
+(defun elpa--form-contains-p (form symbol)
+  "Return non-nil if FORM contains SYMBOL anywhere as a cons cell."
+  (cond ((eq form symbol) t)
+	((consp form)
+	 (or (elpa--form-contains-p (car form) symbol)
+	     (elpa--form-contains-p (cdr form) symbol)))
+	(t nil)))
+
+(defun elpa--autoload-form (form library)
+  "Return the autoload form for top-level FORM in LIBRARY, or nil.
+Only definitions whose names can be autoloaded are handled.  This is a
+minimal fallback for `make-autoload', which does not handle `defalias'
+cookies such as the one in the queue package."
+  (let ((operator (car-safe form)))
+    (cond
+     ((memq operator '(defun defun* defmacro defmacro* defsubst))
+      (let ((name (elpa--unquote (nth 1 form))))
+	(when (symbolp name)
+	  (list 'autoload (list 'quote name) library (nth 3 form)
+		(and (elpa--form-contains-p (nthcdr 2 form) 'interactive) t)
+		(if (memq operator '(defmacro defmacro*))
+		    (list 'quote 'macro)
+		  nil)))))
+     ((eq operator 'defalias)
+      (let ((name (elpa--unquote (nth 1 form))))
+	(when (symbolp name)
+	  (list 'autoload (list 'quote name) library (nth 3 form)
+		(and (elpa--form-contains-p (nthcdr 2 form) 'interactive) t)
+		nil))))
+     ((memq operator '(defvar defconst))
+      form)
+     ((eq operator 'defcustom)
+      (list 'defvar (nth 1 form) (nth 2 form) (nth 3 form)))
+     ((memq operator '(define-derived-mode define-minor-mode
+		       define-generic-mode easy-mmode-define-minor-mode))
+      (let ((name (elpa--unquote (nth 1 form))))
+	(when (symbolp name)
+	  (list 'autoload (list 'quote name) library (nth 2 form) t nil))))
+     (t nil))))
+
+(defun elpa--scan-autoloads (file library)
+  "Return a list of autoload forms for the cookies in FILE.
+LIBRARY is the load name recorded in each autoload form."
+  (with-temp-buffer
+    (insert-file-contents file)
+    (emacs-lisp-mode)
+    (goto-char (point-min))
+    (let (forms)
+      (while (re-search-forward
+	      (concat "^" (regexp-quote elpa--generate-autoload-cookie)
+		      "[ \t]*$")
+	      nil t)
+	(let ((form (condition-case nil
+			(read (current-buffer))
+		      (error nil))))
+	  (when form
+	    (let ((autoload (elpa--autoload-form form library)))
+	      (when autoload
+		(push autoload forms))))))
+      (nreverse forms))))
+
+(defun elpa--remove-shipped-autoloads (content name)
+  "Delete any autoloads files shipped in CONTENT for package NAME.
+Only the generated autoloads file may be retained."
+  (let ((base (concat (symbol-name name) "-autoloads")))
+    (dolist (extension '(".el" ".elc"))
+      (let ((file (expand-file-name (concat base extension) content)))
+	(when (file-exists-p file)
+	  (delete-file file))))))
+
+(defun elpa--generate-autoloads (content name version)
+  "Write NAME's autoloads into the staged CONTENT directory.
+The load-path form records the final, published directory for NAME at
+VERSION, not CONTENT, because CONTENT is still under .staging/.
+Return the autoloads file name."
+  (let* ((library (symbol-name name))
+	 (autoloads (expand-file-name (concat library "-autoloads.el")
+				      content))
+	 (published (directory-file-name (elpa--package-dir name version)))
+	 (sources (sort (directory-files content t "\\`[^.].*\\.el\\'")
+			'string<)))
+    (with-temp-file autoloads
+      (insert ";;; " library "-autoloads.el --- generated package autoloads\n"
+	      "\n;;; Code:\n\n"
+	      (format "(add-to-list 'load-path %S)\n" published))
+      (dolist (source sources)
+	(unless (string= source autoloads)
+	  (let ((forms (elpa--scan-autoloads source library)))
+	    (when forms
+	      (insert (format "\n;;; Generated autoloads from %s\n\n"
+			      (file-name-nondirectory source)))
+	      (dolist (form forms)
+		(insert (prin1-to-string form) "\n"))))))
+      (insert "\n(provide '" library "-autoloads)\n"
+	      "\n;;; " library "-autoloads.el ends here\n"))
+    autoloads))
+
+(defun elpa--byte-compile-content (content)
+  "Byte-compile every .el file in CONTENT, including generated autoloads.
+CONTENT is put on `load-path' while compiling.  Compiler warnings are
+logged and tolerated; a compilation error signals an error."
+  (let ((load-path (cons (directory-file-name content) load-path))
+	(byte-compile-error-on-warn nil)
+	(files (sort (directory-files content t "\\`[^.].*\\.el\\'")
+		     'string<)))
+    (dolist (file files)
+      (let ((result (condition-case err
+			(byte-compile-file file)
+		      (error
+		       (error "Byte-compilation failed for %s: %s"
+			      file (error-message-string err))))))
+	(unless result
+	  (error "Byte-compilation failed for %s" file))))))
+
 ;;; Activation
 
+(defvar elpa--activated-directories nil
+  "Content directories already added to `load-path' by activation.")
+
+(defvar elpa--loaded-autoloads nil
+  "Autoloads files already loaded by activation.")
+
+(defun elpa--autoloads-file (dir)
+  "Return the autoloads file for installed content directory DIR, or nil.
+DIR must have a name of the form `<name>-<version>'."
+  (let ((name (file-name-nondirectory (directory-file-name dir))))
+    (when (string-match "\\`\\(.+\\)-[0-9]+\\(\\.[0-9]+\\)*\\'" name)
+      (let ((file (expand-file-name
+		   (concat (match-string 1 name) "-autoloads.el")
+		   dir)))
+	(and (file-readable-p file) file)))))
+
 (defun elpa-activate-all ()
-  "Add installed package content directories to `load-path'.
-This is idempotent.  Loading autoloads and startup activation are
-implemented by later milestone tickets."
+  "Add installed package content directories to `load-path' and load autoloads.
+Only immediate `<name>-<version>' subdirectories of `elpa-user-dir' that
+contain `<name>-autoloads.el' are activated.  Cached archive indexes,
+staging directories, unrelated entries, and symlinks are ignored.
+The operation is idempotent; activated directories and loaded autoloads
+files are recorded in `elpa--activated-directories' and
+`elpa--loaded-autoloads'."
   (interactive)
   (when (file-directory-p elpa-user-dir)
-    (dolist (dir (directory-files elpa-user-dir t "\\`[^.]"))
-      (when (and (file-directory-p dir)
-		 (not (file-symlink-p dir))
-		 (string-match "\\`[^/]+-[0-9]+\\(\\.[0-9]+\\)*\\'"
-			       (file-name-nondirectory dir)))
-	(let ((dir (directory-file-name dir)))
-	  (unless (member dir load-path)
-	    (setq load-path (append load-path (list dir))))))))
+    (dolist (entry (directory-files elpa-user-dir t "\\`[^.]"))
+      (when (and (file-directory-p entry)
+		 (not (file-symlink-p entry)))
+	(let* ((dir (directory-file-name entry))
+	       (autoloads (elpa--autoloads-file dir)))
+	  (when autoloads
+	    (unless (member dir elpa--activated-directories)
+	      (unless (member dir load-path)
+		(setq load-path (append load-path (list dir))))
+	      (push dir elpa--activated-directories))
+	    (unless (member autoloads elpa--loaded-autoloads)
+	      (load (file-name-sans-extension autoloads) nil t)
+	      (push autoloads elpa--loaded-autoloads)))))))
   nil)
 
 (provide 'elpa)
