@@ -64,6 +64,16 @@ typedef struct xemacs_coro {
   struct backtrace   *saved_backtrace_list;
   struct catchtag    *saved_catchlist;
 
+  /* The catchlist / backtrace_list chains the coro was switched in with
+     (captured at spawn).  The coro's saved_* chains consist of its OWN
+     prefix (nodes on the coro's frozen stack, chained down to these base
+     values) followed by the spawner-world's tail.  The tail's frames may
+     have returned while the coro is suspended, so GC may only walk the
+     prefix -- stop at the base; any still-live tail nodes are covered by
+     gc.c's walk of the current global chains. */
+  struct backtrace   *base_backtrace_list;
+  struct catchtag    *base_catchlist;
+
   /* Vcondition_handlers is a global cons chain mutated by every
      condition_case_1 / call_with_condition_handler invocation.  Each push
      allocates a noseeum cons whose CDR snapshots Vcondition_handlers at

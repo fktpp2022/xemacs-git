@@ -20,6 +20,7 @@ typedef struct async_http_req {
   struct curl_slist *req_headers;
   FILE              *file;              /* destination sink, or NULL */
   char              *destination_path;  /* malloc'd path, or NULL */
+  struct async_http_req *next_inflight; /* link in the in-flight list */
 } async_http_req;
 
 extern Lisp_Object async_http_start (const char *url,
@@ -33,6 +34,9 @@ extern Lisp_Object async_http_start (const char *url,
 extern void async_http_socket_ready (int fd, void *data);
 extern void async_http_tick (void);
 extern void async_http_check_completed (void);
+/* GC hook: root the Lisp fields of every in-flight request.  Called from
+   async_scheduler_mark_gcpros().  */
+extern void async_http_mark_requests (void);
 extern void init_async_http (void);
 extern void syms_of_async_http (void);
 extern void vars_of_async_http (void);

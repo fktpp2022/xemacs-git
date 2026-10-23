@@ -6,6 +6,7 @@
 #include "systime.h"
 #include "gc.h"
 #include "opaque.h"
+#include "backtrace.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,6 +14,7 @@
 /* Forward declaration to avoid circular include with async-http.h */
 #ifdef HAVE_LIBCURL
 extern void async_http_tick (void);
+extern void async_http_mark_requests (void);
 #endif
 
 /* Debug logging macro — compiled out in release builds */
@@ -424,6 +426,8 @@ coro_spawn (Lisp_Object fn, Lisp_Object arg)
       c->saved_backtrace_list = backtrace_list;
       c->saved_catchlist      = catchlist;
     }
+  c->base_backtrace_list = c->saved_backtrace_list;
+  c->base_catchlist      = c->saved_catchlist;
 
   /* The coroutine has not yet pushed any condition-case frames of its own,
      so it owns no prefix of Vcondition_handlers.  The detach/re-attach
@@ -491,10 +495,15 @@ coro_yield (wait_reason_t reason)
 
   ASYNC_DEBUG ("[coro-yield] coro=%p reason=%d\n", (void *)c, reason);
 
-  /* Save the coroutine's current specpdl/catchlist/gcprolist positions */
+  /* Save the coroutine's current specpdl/catchlist/gcprolist/backtrace
+     positions.  backtrace_list is saved here (not just at spawn time)
+     because it grows during the coroutine's flight: the saved chain roots
+     the in-progress eval frames (Feval's original_fun/original_args, subr
+     arg vectors) that a GC while this coro is suspended must still see. */
   c->coro_specpdl_ptr          = specpdl_ptr;
   c->saved_catchlist           = catchlist;
   c->saved_gcprolist           = gcprolist;
+  c->saved_backtrace_list      = backtrace_list;
 
   /* Detach the coroutine's Vcondition_handlers prefix from the outer
      world's chain and stash it on the coro.  Also restores
@@ -830,8 +839,17 @@ async_scheduler_mark_gcpros (void)
         p = p->next;
       }
   }
+#ifdef HAVE_LIBCURL
+  /* Root the Lisp state of in-flight HTTP requests (accumulators etc.):
+     their request structs are malloc'd, invisible to the marker except
+     through this hook. */
+  async_http_mark_requests ();
+#endif
   for (c = all_coros; c; c = c->next)
     {
+      ASYNC_DEBUG ("[gc] coro=%p state=%d catch=%p bt=%p\n", (void *)c,
+                   c->state, (void *)c->saved_catchlist,
+                   (void *)c->saved_backtrace_list);
       kkcc_gc_stack_push_lisp_object_0 (c->mailbox);
       kkcc_gc_stack_push_lisp_object_0 (c->result);
       kkcc_gc_stack_push_lisp_object_0 (c->error);
@@ -840,6 +858,47 @@ async_scheduler_mark_gcpros (void)
       /* Marking the head transitively marks every cons in the detached
          coro prefix (boundary CDR is Qnil during suspension).  */
       kkcc_gc_stack_push_lisp_object_0 (c->saved_condition_handlers_head);
+      /* The coroutine's saved catchlist: gc.c marks the current catchlist
+         (tag/actual_tag/backtrace/val); a suspended coro's chain lives in
+         saved_catchlist instead, and its catch/condition-case frames hold
+         the only references to objects on the coro's frozen stack. */
+      {
+        struct catchtag *ct;
+        for (ct = c->saved_catchlist;
+             ct && ct != c->base_catchlist; ct = ct->next)
+          {
+            kkcc_gc_stack_push_lisp_object_0 (ct->tag);
+            kkcc_gc_stack_push_lisp_object_0 (ct->actual_tag);
+            kkcc_gc_stack_push_lisp_object_0 (ct->backtrace);
+            kkcc_gc_stack_push_lisp_object_0 (ct->val);
+          }
+      }
+      /* Walk the coroutine's saved backtrace chain (from its yield point)
+         the way gc.c walks the current backtrace_list.  In-progress eval
+         frames root data through backtrace entries *by address* -- e.g.
+         Feval's original_fun/original_args (which for a macro call hold
+         the freshly-built expansion) and funcall's arg vectors.  Without
+         this walk, a GC while the coro is suspended sweeps objects that
+         stock XEmacs would have kept through backtrace_list. */
+      {
+        struct backtrace *backlist;
+        for (backlist = c->saved_backtrace_list;
+             backlist && backlist != c->base_backtrace_list;
+             backlist = backlist->next)
+          {
+            int nargs = backlist->nargs;
+            int i;
+
+            kkcc_gc_stack_push_lisp_object_0 (*backlist->function);
+            if (nargs < 0 /* nargs == UNEVALLED || nargs == MANY */
+                /* might be fake (internal profiling entry) */
+                && backlist->args)
+              kkcc_gc_stack_push_lisp_object_0 (backlist->args[0]);
+            else
+              for (i = 0; i < nargs; i++)
+                kkcc_gc_stack_push_lisp_object_0 (backlist->args[i]);
+          }
+      }
       /* Walk the coroutine's saved gcprolist (from its yield point) so any
          GCPRO'd Lisp_Objects on the coroutine's stack stay alive across a
          top-level GC while the coroutine is suspended.  The chain MAY

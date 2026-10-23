@@ -38,6 +38,23 @@
 (defconst async-http-test-tarball-md5
   "c1f635568dce3ab01b5adad023833ff2")
 
+;; /big serves a deterministic ~2.6 MB binary body (MELPA-index scale);
+;; `async-http-test-build-big-body' rebuilds the identical byte sequence
+;; in Lisp for the byte-exact comparison.
+(defconst async-http-test-big-body-length 2631680)
+
+(defun async-http-test-build-big-body ()
+  "Build the byte-exact reference for the test server's /big payload:
+256-byte pattern (j*7 mod 256) tiled to 64 KB, 40 blocks, plus a
+10240-byte prefix."
+  (let* ((pat (let ((s ""))
+                (dotimes (j 256)
+                  (setq s (concat s (char-to-string (% (* 7 j) 256)))))
+                s))
+         (block (apply #'concat (make-list 256 pat))))
+    (concat (apply #'concat (make-list 40 block))
+            (substring block 0 10240))))
+
 (defvar async-http-test-server-script
   "
 import http.server, sys, time, json
@@ -49,6 +66,12 @@ BINARY_PAYLOAD = bytes(range(256)) * 4 + bytes([0x80, 0x81, 0xfe, 0xff]) * 8
 
 with open(FIXTURE, 'rb') as f:
     TARBALL = f.read()
+
+# ~2.6 MB deterministic body (MELPA-index scale): 256-byte pattern
+# repeated to 64 KB, then 40 blocks plus a 10240-byte prefix.
+PAT = bytes((j * 7) & 0xFF for j in range(256))
+BIG_BODY = (PAT * 256) * 40 + (PAT * 256)[:10240]
+assert len(BIG_BODY) == 2631680
 
 class H(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a): pass
@@ -75,6 +98,13 @@ class H(http.server.BaseHTTPRequestHandler):
             self.send_header('Content-Length', str(len(TARBALL)))
             self.end_headers()
             self.wfile.write(TARBALL)
+        elif path == '/big':
+            self.send_response(200)
+            self.send_header('Content-Type','application/octet-stream')
+            self.send_header('X-Test','big')
+            self.send_header('Content-Length', str(len(BIG_BODY)))
+            self.end_headers()
+            self.wfile.write(BIG_BODY)
         elif path.startswith('/redirect/'):
             n = int(path.rsplit('/', 1)[1])
             if n > 0:
@@ -139,6 +169,19 @@ server.serve_forever()
   (let ((ti 0))
     (while (and (not (funcall predicate)) (< ti 600))
       (async-scheduler-tick)
+      (sleep-for 0.01)
+      (setq ti (1+ ti)))))
+
+(defun async-http-test-wait-until-gc (predicate)
+  "Like `async-http-test-wait-until', but force a full `garbage-collect'
+between ticks, so GCs land while transfers are in flight and coroutines
+are suspended.  This is the condition that kills an unrooted response
+accumulator; every in-flight body must survive it."
+  (let ((ti 0))
+    (while (and (not (funcall predicate)) (< ti 600))
+      (async-scheduler-tick)
+      (when (= 0 (% ti 5))
+        (garbage-collect))
       (sleep-for 0.01)
       (setq ti (1+ ti)))))
 
@@ -416,6 +459,29 @@ server.serve_forever()
                                                 "timeout error has a message")
   (Assert (string-match "timeout" (downcase err-msg))
                                                 "timeout error names timeout"))
+
+;; Test 14: a ~2.6 MB in-memory body (MELPA-index scale) arrives byte-exact
+;; while GCs land mid-transfer.  Regression for the coroutine-suspension GC
+;; window: the accumulator lives in a malloc'd C struct the marker could
+;; not see, so any GC between write callbacks freed it and the transfer
+;; aborted ("FREED LRECORD object" at ~1 MB and up).  The wait loop forces
+;; full GCs while the coroutine is suspended.  Byte-exactness is asserted
+;; with `string=' against a Lisp-built reference rather than `md5': md5's
+;; text walk aborts on some binary byte patterns regardless of transport
+;; (pre-existing, independent of this path).
+(let ((result nil))
+  (async-spawn-coroutine
+   (lambda (arg)
+     (setq result (await (http-get (format "http://127.0.0.1:%d/big"
+                                           async-http-test-port)))))
+   nil)
+  (async-http-test-wait-until-gc (lambda () result))
+  (Assert (= (nth 0 result) 200)                "big body GET status 200")
+  (let ((body (nth 2 result)))
+    (Assert (= (length body) async-http-test-big-body-length)
+                                                "big body length exact")
+    (Assert (string= body (async-http-test-build-big-body))
+                                 "big body byte-exact with GC mid-transfer")))
 
 ;; NOTE on :on-chunk streaming: the C callback (src/async-http.c) dispatches
 ;; each chunk via `enqueue_misc_user_event', which is drained by the command

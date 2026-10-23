@@ -20,6 +20,15 @@ static CURLM *curl_multi = NULL;
 
 Lisp_Object Qasync_http_error;
 
+/* In-flight requests.  GC cannot see Lisp_Objects stored in malloc'd C
+   structs, so each request is linked here from the moment it is created
+   until its result has been handed to the resummed coroutine (whose
+   c->result is itself a GC root).  async_http_mark_requests() walks this
+   list for the marker; without it the response accumulator is unrooted
+   between write callbacks and a GC during a multi-tick transfer frees it
+   under us ("FREED LRECORD object" aborts on bodies ~1 MB and up). */
+static async_http_req *inflight_requests = NULL;
+
 /* ---- Write callback ---- */
 
 static size_t
@@ -27,7 +36,6 @@ http_write_callback (char *ptr, size_t size, size_t nmemb, void *userdata)
 {
   async_http_req *req = (async_http_req *) userdata;
   size_t nbytes = size * nmemb;
-  struct gcpro gcpro1, gcpro2;
 
   /* File destination: write the raw bytes straight to disk.  No Lisp
      string is built for the body on this path. */
@@ -39,11 +47,15 @@ http_write_callback (char *ptr, size_t size, size_t nmemb, void *userdata)
 
   /* libcurl hands us raw external bytes.  make_string() would treat them
      as internal Mule bytes and crash on 0x80-0xFF; build a binary external
-     string instead so the body survives byte-for-byte. */
-  GCPRO2 (req->response_buf, req->on_chunk);
+     string instead so the body survives byte-for-byte.  CHUNK's slot is
+     GCPRO'd before it is filled so the fresh string survives any GC that
+     concat2's allocation triggers. */
   {
-    Lisp_Object chunk = make_extstring ((Extbyte *) ptr,
-                                        (EMACS_INT) nbytes, Qbinary);
+    Lisp_Object chunk = Qnil;
+    struct gcpro gcpro1, gcpro2, gcpro3;
+    GCPRO3 (req->response_buf, req->on_chunk, chunk);
+    chunk = make_extstring ((Extbyte *) ptr,
+                            (EMACS_INT) nbytes, Qbinary);
 
     if (!NILP (req->on_chunk))
       {
@@ -54,8 +66,8 @@ http_write_callback (char *ptr, size_t size, size_t nmemb, void *userdata)
       {
         req->response_buf = concat2 (req->response_buf, chunk);
       }
+    UNGCPRO;
   }
-  UNGCPRO;
 
   return nbytes;
 }
@@ -135,6 +147,22 @@ async_http_socket_ready (int fd, void *data)
   async_http_check_completed ();
 }
 
+/* ---- GC integration ---- */
+
+/* Root the Lisp fields of every in-flight request.  Called from
+   async_scheduler_mark_gcpros(); see the comment on inflight_requests. */
+void
+async_http_mark_requests (void)
+{
+  async_http_req *req;
+  for (req = inflight_requests; req; req = req->next_inflight)
+    {
+      kkcc_gc_stack_push_lisp_object_0 (req->response_buf);
+      kkcc_gc_stack_push_lisp_object_0 (req->on_chunk);
+      kkcc_gc_stack_push_lisp_object_0 (req->headers_alist);
+    }
+}
+
 /* ---- Check for completed transfers and wake waiting coroutines ---- */
 
 void
@@ -208,6 +236,16 @@ async_http_check_completed (void)
               UNGCPRO;
             }
 
+          /* Unlink from the in-flight list before freeing: the result now
+             lives in the resummed coroutine's c->result, a GC root. */
+          {
+            async_http_req **pp = &inflight_requests;
+            while (*pp && *pp != req)
+              pp = &(*pp)->next_inflight;
+            if (*pp)
+              *pp = req->next_inflight;
+          }
+
           if (req->destination_path)
             xfree (req->destination_path);
           xfree (req);
@@ -271,6 +309,11 @@ async_http_start (const char *url, const char *method,
     }
   else
     req->response_buf = build_ascstring ("");
+
+  /* All Lisp fields are initialized; make the request visible to GC for
+     its whole lifetime (see inflight_requests). */
+  req->next_inflight = inflight_requests;
+  inflight_requests  = req;
 
   curl_easy_setopt (easy, CURLOPT_URL,            url);
   curl_easy_setopt (easy, CURLOPT_WRITEFUNCTION,  http_write_callback);
