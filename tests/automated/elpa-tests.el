@@ -967,6 +967,149 @@ http.server.HTTPServer(('127.0.0.1', PORT), H).serve_forever()
                "fbound=nil")
               "startup activation can be disabled"))))
 
+;;; MELPA fixture: the nine targets install and run offline
+
+;; The fixture archive lives beside the GNU one in tests/elpa/melpa-fixture/.
+;; It vendors the nine unmodified upstream MELPA tarballs at pinned date
+;; versions plus a hand-built version-1 index.  The exercise forms and
+;; expected outputs are frozen by the no-kit audit (spec section 6.1); every
+;; child runs in a fresh XEmacs with no compatibility shims.
+
+(defun elpa-tests-melpa-fixture ()
+  "Return the absolute path of the vendored MELPA fixture archive."
+  (file-name-as-directory
+   (expand-file-name "../elpa/melpa-fixture/" (elpa-tests--directory))))
+
+(defconst elpa-tests-melpa-targets
+  ;; (NAME VERSION VERSION-LIST EXERCISE-FORM EXPECTED-OUTPUT)
+  '((loop "20160813.1407" (20160813 1407)
+          "(let ((i 0) (acc nil)) (loop-while t (setq i (1+ i)) (if (= i 3) (loop-continue)) (if (> i 5) (loop-break)) (push i acc)) (nreverse acc))"
+          "(1 2 4 5)")
+    (levenshtein "20090830.1040" (20090830 1040)
+                 "(levenshtein-distance \"kitten\" \"sitting\")"
+                 "3")
+    (csv "20231216.1243" (20231216 1243)
+         "(with-temp-buffer (insert \"a,b,c\\n1,2,3\\n\") (csv-parse-buffer nil (current-buffer)))"
+         "((\"a\" \"b\" \"c\") (\"1\" \"2\" \"3\"))")
+    (vector-utils "20140508.2041" (20140508 2041)
+                  "(vector-utils-flatten '[1 2 [3 4 [5 6 7]]])"
+                  "[1 2 3 4 5 6 7]")
+    (number "20170901.1312" (20170901 1312)
+            "(number-format (number-modify :number (lambda (x) (+ x 1)) (number-read \"6.30\")))"
+            "\"7.30\"")
+    (rings "20160531.2027" (20160531 2027)
+           "(with-temp-buffer (rings-add-buffer \"demo\") (let ((before (length (rings-buffers \"demo\")))) (rings-remove-buffer \"demo\") (list before (length (rings-buffers \"demo\")))))"
+           "(1 0)")
+    (shell-split-string "20151224.1008" (20151224 1008)
+                        "(shell-split-string \"abc \\\"def ghi\\\"\")"
+                        "(\"abc\" \"def ghi\")")
+    (kv "20140108.1534" (20140108 1534)
+        "(list (kva 'b '((a . 1) (b . 2))) (kvalist->keys '((a . 1) (b . 2))))"
+        "(2 (a b))")
+    (unidecode "20201213.1449" (20201213 1449)
+               "(unidecode \"Crème Brûlée\")"
+               "\"Creme Brulee\""))
+  "The nine MELPA milestone targets with their audit-frozen exercises.")
+
+(defun elpa-tests-melpa-last-line (output)
+  "Return the final non-empty line of OUTPUT."
+  (car (last (split-string output "[\n\r]+" t))))
+
+(defun elpa-tests-melpa-run-child (user-dir package form)
+  "Exercise FORM after requiring PACKAGE in a fresh XEmacs with USER-DIR.
+The child loads elpa, activates USER-DIR, requires PACKAGE, and prints the
+form's value.  Return the final non-empty output line; `rings-add-buffer'
+emits a message line before the value."
+  (let ((buffer (get-buffer-create " *elpa-melpa-child-output*"))
+        (program (expand-file-name invocation-name invocation-directory)))
+    (with-current-buffer buffer
+      (erase-buffer))
+    (let ((status
+           (call-process
+            program nil (list buffer nil) nil
+            "-batch" "-no-packages"
+            "-l" "elpa"
+            "-eval" (format "(setq elpa-user-dir %S)" user-dir)
+            "-eval" "(elpa-activate-all)"
+            "-eval" (format "(progn (require '%s) (princ (format \"%%S\" %s)))"
+                            package form))))
+      (unless (and (integerp status) (zerop status))
+        (error "Child XEmacs failed with status %S: %s"
+               status (with-current-buffer buffer (buffer-string)))))
+    (elpa-tests-melpa-last-line
+     (with-current-buffer buffer (buffer-string)))))
+
+(dolist (target elpa-tests-melpa-targets)
+  (let ((name (nth 0 target))
+        (version (nth 1 target))
+        (version-list (nth 2 target))
+        (form (nth 3 target))
+        (expected (nth 4 target)))
+    (elpa-tests-with-temp-user-dir
+      (let ((elpa-archives
+             (list (cons "melpa-fixture" (elpa-tests-melpa-fixture))))
+            (elpa--archive-index-alist nil))
+        (Assert (equal (version-to-list version) version-list)
+                (format "%s parses as a date version list" name))
+        (Assert (string= (elpa-version-join version-list) version)
+                (format "%s joins back to its pinned version string" name))
+        (Assert (file-exists-p
+                 (expand-file-name
+                  (concat (symbol-name name) "-" version ".tar")
+                  (elpa-tests-melpa-fixture)))
+                (format "the %s artifact name is the joined version" name))
+        (Assert (= 9 (elpa-refresh-contents))
+                "the MELPA fixture index carries exactly nine packages")
+        (let ((info (elpa-package-info name)))
+          (Assert info (format "%s is in the MELPA fixture index" name))
+          (Assert (equal (plist-get info :version) version-list)
+                  (format "%s is indexed at its pinned date version" name))
+          (Assert (eq (plist-get info :kind) 'tar)
+                  (format "%s is indexed as a tar artifact" name)))
+        (Assert (eq name (elpa-install name))
+                (format "install resolves %s" name))
+        (let ((dir (expand-file-name (concat (symbol-name name) "-" version)
+                                     elpa-user-dir)))
+          (Assert (file-directory-p dir)
+                  (format "%s installs into exactly %s-%s/"
+                          name name version))
+          (Assert (file-exists-p
+                   (expand-file-name (concat (symbol-name name) ".elc") dir))
+                  (format "the downloaded %s.el is byte-compiled" name))
+          (Assert (elpa-installed-p name version-list)
+                  (format "%s is installed at the pinned version" name)))
+        (Assert (string= (elpa-tests-melpa-run-child elpa-user-dir name form)
+                         expected)
+                (format "%s runs in a fresh child XEmacs" name))))))
+
+;; A MELPA name outside the allowlist is rejected before resolution and
+;; before any download, leaving no package directory or staging behind.
+(elpa-tests-with-temp-user-dir
+  (let ((archive (elpa-tests-make-archive
+                  "(1\n (memoize . [(20220718 1430) nil \"Memoize\" tar nil]))\n")))
+    (unwind-protect
+        (let ((elpa-archives (list (cons "melpa-negative" archive)))
+              (elpa--archive-index-alist nil))
+          (Check-Error-Message 'error "elpa-installable-packages"
+            (elpa-install "memoize"))
+          (Assert (null elpa--archive-index-alist)
+                  "the allowlist is checked before resolution")
+          (Assert (not (file-exists-p
+                        (expand-file-name
+                         "archives/melpa-negative/archive-contents"
+                         elpa-user-dir)))
+                  "the refused install never refreshes the index")
+          (Assert (not (file-exists-p
+                        (expand-file-name "memoize-20220718.1430"
+                                          elpa-user-dir)))
+                  "the refused install creates no package directory")
+          (Assert (not (file-exists-p
+                        (expand-file-name ".staging/" elpa-user-dir)))
+                  "the refused install leaves no staging residue")
+          (Assert (null (directory-files elpa-user-dir nil "\\`[^.]"))
+                  "the refused install creates nothing under elpa-user-dir"))
+      (elpa-tests-delete-tree archive))))
+
 ;;; Terminal line
 
 ;; Spec section 9 ends the offline suite with an expected terminal
