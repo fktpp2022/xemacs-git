@@ -43,6 +43,7 @@ XEmacs 21.5
 * Info: (info).              Documentation browsing system.
 * Internals: (internals).    XEmacs Internals Manual.
 * Mac-Packaging: (mac-packaging).  Building XEmacs .app / DMG packages on macOS.
+* ELPA: (elpa).               Installing GNU ELPA packages in XEmacs.
 
 
 Other Documentation:

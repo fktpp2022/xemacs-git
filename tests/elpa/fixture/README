@@ -1,0 +1,47 @@
+ELPA milestone 1 offline fixture
+================================
+
+This directory is a tiny, version-1 GNU ELPA archive used by the offline
+`elpa-tests.el' suite.  It contains the exact index entries for the two
+milestone target packages and their unmodified upstream artifacts.
+
+Files
+-----
+
+queue-0.2.tar
+  Package:      queue
+  Version:      0.2
+  Size:         10240 bytes
+  MD5:          c1f635568dce3ab01b5adad023833ff2
+  Kind:         tar
+  Source URL:   https://elpa.gnu.org/packages/queue-0.2.tar
+  Upstream:     http://www.dr-qubit.org/emacs.php
+  Commit:       c9ec2e33f26b068c40b8391e91a7839546fa8355
+  License:      GPLv3 or later
+
+loc-changes-1.2.el
+  Package:      loc-changes
+  Version:      1.2
+  Size:         9667 bytes
+  MD5:          67efcdb515c75aea196429bea1504516
+  Kind:         single
+  Source URL:   https://elpa.gnu.org/packages/loc-changes-1.2.el
+  Upstream:     http://github.com/rocky/emacs-loc-changes
+  License:      GPLv3 or later
+
+archive-contents
+  A version-1 index containing exactly the `queue' and `loc-changes'
+  entries as published by GNU ELPA, in GNU's `archive-contents' shape.
+
+Provenance
+----------
+
+The artifacts were downloaded from GNU ELPA and are redistributed here
+unmodified for deterministic, network-free tests.  Their embedded copyright
+and license notices are intact; both packages are free software under the
+GNU General Public License, version 3 or later.
+
+The index was extracted from the live
+https://elpa.gnu.org/packages/archive-contents on 2026-10-22, keeping only
+the two entries above.  `loc-changes' is vendored now so later milestone
+tickets do not need the network; only `queue' is exercised by ticket #24.

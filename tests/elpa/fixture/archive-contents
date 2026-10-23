@@ -1,0 +1,15 @@
+(1
+ (queue
+  . [(0 2) nil "Queue data structure" tar
+     ((:url . "http://www.dr-qubit.org/emacs.php")
+      (:keywords "extensions" "data structures" "queue")
+      (:maintainer "Toby Cubitt" . "toby-predictive@dr-qubit.org")
+      (:authors ("Inge Wallin" . "inge@lysator.liu.se")
+		("Toby Cubitt" . "toby-predictive@dr-qubit.org"))
+      (:commit . "c9ec2e33f26b068c40b8391e91a7839546fa8355"))])
+ (loc-changes
+  . [(1 2) nil "keep track of positions even after buffer changes"
+     single
+     ((:authors ("Rocky Bernstein" . "rocky@gnu.org"))
+      (:maintainer "Rocky Bernstein" . "rocky@gnu.org")
+      (:url . "http://github.com/rocky/emacs-loc-changes"))]))
