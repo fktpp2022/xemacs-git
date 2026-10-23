@@ -26,7 +26,12 @@
        (push (file-name-directory load-file-name) load-path))
      (require 'test-harness))))
 
-(require 'elpa)
+;; Batch startup calls `startup-activate-elpa', which may preload a build copy
+;; of elpa before this file runs.  Load the client under test from the first
+;; `locate-library' hit (the worktree's private .elc when it is prepended) and
+;; clear the allowlist so its defcustom default is read from that file.
+(makunbound 'elpa-installable-packages)
+(load "elpa" nil t)
 
 ;;; Helpers
 
