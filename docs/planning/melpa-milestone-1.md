@@ -177,7 +177,7 @@ compiler work.
 
 ### 6.1 Deterministic offline fixture
 
-Vendor the nine real upstream tarballs at the pinned versions (634,880 bytes, about 620 KiB,
+Vendor the nine real upstream tarballs at the pinned versions (593,920 bytes, about 580 KiB,
 total) plus a hand-written version-1 `archive-contents` carrying those exact date versions. The
 fixture lives beside the existing GNU fixture and documents provenance (source URL, version,
 size, license); the artifacts remain unmodified. Synthetic hand-built packages cover the negative
