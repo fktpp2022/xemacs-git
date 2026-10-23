@@ -283,9 +283,10 @@ per-package allowlist in @code{elpa-installable-packages}.  There is no
 signature verification, no checksum pinning, and no TLS pinning.  The
 allowlist grants trust by name across all configured archives; it is
 not a per-archive permission, because trust and source selection are
-different concepts.  The list is inert until an archive is configured.
-The @code{emacs} pseudo-dependency is ignored with a warning, since
-XEmacs cannot truthfully claim the declared Emacs version.
+different concepts.  The MELPA grant is inert until a MELPA archive is
+configured.  The @code{emacs} pseudo-dependency is ignored with a
+warning, since XEmacs cannot truthfully claim the declared Emacs
+version.
 
 The residual risk is stated verbatim in the client header:
 
@@ -515,7 +516,9 @@ download leaves no partial file behind.
 @node Testing, Limitations, Transport, Top
 @chapter Testing
 
-The client's behavior is pinned by two CTest tests:
+The client's behavior is pinned by two CTest tests.  Together their two
+halves are the milestone's @dfn{success test}: a deterministic offline
+gate that pins exact versions and a live smoke that pins nothing.
 
 @itemize @bullet
 @item
