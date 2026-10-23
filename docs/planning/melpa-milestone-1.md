@@ -138,9 +138,10 @@ keeps its GNU-only default.
 ### 3.6 Unchanged behavior
 
 The `single` artifact kind stays supported (GNU ELPA only; MELPA has none). Tar validation,
-`-pkg.el` validation, autoload generation, byte-compilation, atomic staging, and activation are
-unchanged. The `emacs` pseudo-dependency remains ignored with a warning, which is expected for
-nearly every MELPA package.
+`-pkg.el` validation, byte-compilation, atomic staging, and activation are unchanged. Autoload
+generation changes in one respect: a docstring-less `;;;###autoload` definition must not emit its
+body form as the autoload docstring (see section 6.1). The `emacs` pseudo-dependency remains
+ignored with a warning, which is expected for nearly every MELPA package.
 
 ## 4. Security and trust
 
@@ -202,6 +203,15 @@ Each exercise's child prints the form's value; the gate compares the final non-e
 output (`rings-add-buffer` emits a message line before the value, so that child's output has a
 preceding line).
 
+The audit also found a client bug that the nine-target gate exposes: the autoload generator used
+`(nth 3 form)` as a docstring unconditionally, so a docstring-less cookie'd macro (as in `rings`)
+embedded its body in the autoloads file and aborted `elpa-activate-all` with `void-variable key`.
+The generator now emits a docstring only when it is a string. This is client correctness, not a
+compatibility shim; the MELPA tarball stays unmodified. `rings` activation is the regression
+witness. The target exercises deliberately avoid APIs stock XEmacs lacks (`number`'s point
+commands need `deactivate-mark`; `loop`'s line iterator needs `rx`/`0+`); they are not part of the
+guarantee.
+
 **Verification primitive:** raw-byte `string=` comparisons and behavioral assertions only.
 `md5` on binary string or buffer content is banned in the success test (it aborts on some byte
 patterns regardless of transport). Transport byte-exactness remains covered by the async-http
@@ -262,6 +272,10 @@ versions do not exercise the date-version machinery.
 - Windows and non-GNU `tar` variants.
 
 ## 9. Further notes
+
+- Ticket [#43](https://github.com/fktpp2022/xemacs-git/issues/43) fixes the autoload docstring bug
+  the no-kit audit found; it is a prerequisite for the `rings` witness and carries its own
+  regression test.
 
 - The large in-memory body crash is fixed in 12a9e735c on `integration/elpa-milestone-1`; the live
   smoke's 2.6 MB refresh is its full-scale acceptance check.
