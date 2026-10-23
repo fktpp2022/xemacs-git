@@ -371,20 +371,45 @@ the version-1 gate."
 			    (elpa-version-join version))
 		    elpa-user-dir))
 
-(defun elpa--find-installed-dir (name)
-  "Return the directory of an installed version of NAME, or nil."
-  (let ((prefix (concat (symbol-name name) "-")))
+(defun elpa--installed-builds (name)
+  "Return the installed builds of NAME as a list of (VERSION . DIRECTORY).
+VERSION is a version list.  A build is a non-symlink `<name>-<version>'
+directory directly under `elpa-user-dir'."
+  (let ((prefix (concat (symbol-name name) "-"))
+	(builds nil))
     (when (file-directory-p elpa-user-dir)
-      (catch 'found
-	(dolist (file (directory-files elpa-user-dir t "\\`[^.]"))
+      (dolist (file (directory-files elpa-user-dir t "\\`[^.]"))
+	(let ((base (file-name-nondirectory file)))
 	  (when (and (file-directory-p file)
 		     (not (file-symlink-p file))
 		     (string-match
 		      (concat "\\`" (regexp-quote prefix)
-			      "[0-9]+\\(\\.[0-9]+\\)*\\'")
-		      (file-name-nondirectory file)))
-	    (throw 'found file)))
-	nil))))
+			      "\\([0-9]+\\(?:\\.[0-9]+\\)*\\)\\'")
+		      base))
+	    (push (cons (version-to-list (match-string 1 base)) file)
+		  builds)))))
+    (nreverse builds)))
+
+(defun elpa--newest-installed-build (name)
+  "Return the newest installed build of NAME as (VERSION . DIRECTORY), or nil.
+Versions are compared as version lists, not by directory order."
+  (let (newest)
+    (dolist (build (elpa--installed-builds name))
+      (when (or (null newest)
+		(version-list-< (car newest) (car build)))
+	(setq newest build)))
+    newest))
+
+(defun elpa--find-installed-dir (name)
+  "Return the directory of the newest installed version of NAME, or nil."
+  (cdr (elpa--newest-installed-build name)))
+
+(defun elpa--delete-old-builds (name version)
+  "Delete every installed build of NAME except VERSION.
+VERSION is a version list.  Call only after the new build is published."
+  (dolist (build (elpa--installed-builds name))
+    (unless (version-list-= (car build) version)
+      (elpa--delete-tree (cdr build)))))
 
 (defun elpa-installed-p (name &optional version)
   "Return non-nil if package NAME is installed.
@@ -409,7 +434,7 @@ match the index version exactly."
 	(unless (if minimum
 		    (version-list-<= wanted (plist-get info :version))
 		  (version-list-= wanted (plist-get info :version)))
-	  (error "Package `%s' version %s is not available in archive %s (found %s)"
+	  (error "Package `%s' version %s is no longer available in archive %s (found %s)"
 		 name version (elpa--archive-name archive)
 		 (elpa-version-join (plist-get info :version))))))
     info))
@@ -417,16 +442,20 @@ match the index version exactly."
 (defun elpa-install (name &optional version)
   "Install package NAME at VERSION from the first configured archive.
 VERSION may be a version string or a list of integers and must match
-the index version exactly.  NAME must be in `elpa-installable-packages'.
-If no cached index exists for the archive, it is refreshed first; an
-existing cache is reused as-is and `elpa-refresh-contents' remains the
-way to update it.  Return NAME."
+the freshly read index version exactly.  Without VERSION, the version
+the index currently advertises is installed.  NAME must be in
+`elpa-installable-packages', which is checked before the archive index
+is refreshed.  An older installed build is replaced by the new one;
+the new build is published before the old build is deleted.  Return
+NAME."
   (interactive
    (list (intern (read-string "Package: "))))
   (let* ((name (elpa--package-symbol name))
 	 (archive (or (caar elpa-archives)
 		      (error "`elpa-archives' is empty")))
 	 (elpa--install-in-progress nil))
+    (elpa--ensure-allowlisted name)
+    (elpa-refresh-contents archive)
     (elpa--install-1 name version archive)
     name))
 
@@ -434,43 +463,39 @@ way to update it.  Return NAME."
   "Return non-nil if NAME is installed at VERSION or newer.
 A nil VERSION means any installed version counts.  Used for
 dependency satisfaction, where a requirement names a minimum."
-  (let ((dir (elpa--find-installed-dir name)))
-    (and dir
+  (let ((build (elpa--newest-installed-build name)))
+    (and build
 	 (or (null version)
-	     (let* ((tail (file-name-nondirectory
-			   (directory-file-name dir)))
-		    (version-string
-			     (and (string-match
-				   (concat "\\`"
-					   (regexp-quote (symbol-name name))
-					   "-\\([0-9]+\\(?:\\.[0-9]+\\)*\\)\\'")
-				   tail)
-				  (match-string 1 tail))))
-	       (and version-string
-		    (version-list-<= (elpa--version-list version)
-				     (version-to-list version-string))))))))
+	     (version-list-<= (elpa--version-list version) (car build))))))
 
 (defun elpa--install-1 (name version archive &optional minimum)
   "Install NAME at VERSION from ARCHIVE, including its dependencies.
 With MINIMUM non-nil, VERSION is a dependency floor rather than an
-exact request; an installed NAME at VERSION or newer satisfies it."
+exact request; an installed NAME at VERSION or newer satisfies it.
+Otherwise VERSION is exact, defaulting to the version ARCHIVE's index
+currently advertises.  When the advertised build is already installed,
+the download is skipped and any older duplicate builds are deleted."
   (elpa--ensure-allowlisted name)
   (cond
-   ((if minimum
-	(elpa--installed-at-least name version)
-      (elpa-installed-p name version))
-    name)
+   ((and minimum (elpa--installed-at-least name version)) name)
    ;; A dependency cycle: this package is already being installed by an
    ;; outer call, so do not recurse.
    ((memq name elpa--install-in-progress) name)
    (t
     (let ((info (elpa--resolve name version archive minimum)))
-      (let ((elpa--install-in-progress
-	     (cons name elpa--install-in-progress)))
-	(dolist (dependency (plist-get info :reqs))
-	  (elpa--install-dependency dependency name archive))
-	(elpa--install-artifact info archive)))
-    name)))
+      (if (and (not minimum)
+	       (elpa-installed-p name (plist-get info :version)))
+	  ;; The advertised build is already on disk.  Skip the download
+	  ;; but collapse any older duplicate builds.
+	  (progn
+	    (elpa--delete-old-builds name (plist-get info :version))
+	    name)
+	(let ((elpa--install-in-progress
+	       (cons name elpa--install-in-progress)))
+	  (dolist (dependency (plist-get info :reqs))
+	    (elpa--install-dependency dependency name archive))
+	  (elpa--install-artifact info archive))
+	name)))))
 
 (defun elpa--install-dependency (dependency dependent archive)
   "Install DEPENDENCY of DEPENDENT from ARCHIVE, if it is required.
@@ -532,7 +557,9 @@ Lisp string."
     artifact))
 
 (defun elpa--install-artifact (info archive)
-  "Download, validate, stage, and publish package INFO from ARCHIVE."
+  "Download, validate, stage, and publish package INFO from ARCHIVE.
+An older build of the same package is deleted only after the new build
+has been published."
   (let* ((name (plist-get info :name))
 	 (version (plist-get info :version))
 	 (kind (plist-get info :kind))
@@ -564,7 +591,8 @@ Lisp string."
 	    (when (file-exists-p published)
 	      (error "Package `%s' is already installed in %s"
 			     name published))
-	    (rename-file content published)))
+	    (rename-file content published)
+	    (elpa--delete-old-builds name version)))
       (ignore-errors (elpa--delete-tree staging))
       (when (and (file-directory-p staging-root)
 		 (= 2 (length (directory-files staging-root))))
