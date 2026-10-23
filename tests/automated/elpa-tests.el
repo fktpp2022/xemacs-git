@@ -233,6 +233,11 @@ the child's standard output without a trailing newline."
         (setq count (1+ count))))
     count))
 
+(defun elpa-tests-installed-builds (name)
+  "Return the installed `NAME-VERSION' content directories under `elpa-user-dir'."
+  (directory-files elpa-user-dir nil
+                   (concat "\\`" (regexp-quote name) "-[0-9]")))
+
 (defmacro elpa-tests-with-temp-home (&rest body)
   "Run BODY with HOME and a fresh `elpa-user-dir' inside it."
   `(let* ((home (file-name-as-directory (make-temp-file "elpa-home-" t)))
@@ -374,7 +379,8 @@ Return the child's standard output without trailing newlines."
     (Assert (not (elpa-installed-p "queue" '(0 1))))
     (Assert (eq 'queue (elpa-install "queue" "0.2"))
             "a second install returns without overwriting")
-    (Check-Error-Message 'error "not available"
+    (Check-Error-Message 'error
+        "version (9 9) is no longer available in archive fixture-install (found 0.2)"
       (elpa-install "queue" '(9 9)))
     (Assert (string=
              (elpa-tests-run-child elpa-user-dir)
@@ -586,9 +592,8 @@ Return the child's standard output without trailing newlines."
                    elpa-user-dir)))
             "an unsupported scheme caches nothing")))
 
-;; The same clear error when fetching an artifact: the in-memory index
-;; from a local refresh survives an `elpa-archives' switch to an
-;; unsupported scheme, so the failure happens at the artifact fetch.
+;; The same clear error through `elpa-install', which refreshes the
+;; switched-to unsupported scheme before resolving anything.
 (elpa-tests-with-temp-user-dir
   (let ((elpa-archives (list (cons "mixed" (elpa-tests-fixture)))))
     (elpa-refresh-contents)
@@ -656,17 +661,18 @@ Return the child's standard output without trailing newlines."
                     "the dependency was not pinned to the required version")
             (Assert (eq 'dep-min2 (elpa-install "dep-min2"))
                     "an installed newer dependency satisfies a (1 0) requirement")
-            (Check-Error-Message 'error "not available"
+            (Check-Error-Message 'error
+                "version (2 0) is no longer available in archive depmin (found 1.1)"
               (elpa-install "dep-old"))
             (Assert (not (elpa-installed-p "dep-old"))
                     "nothing published for the unsatisfiable requirement")))
       (elpa-tests-delete-tree work)
       (elpa-tests-delete-tree archive))))
 
-;;; Installing without a prior refresh
+;;; Refresh before install
 
-;; `elpa-install' starts the pipeline with a refresh when no cached
-;; index exists (spec section 6, step 1).
+;; `elpa-install' always refreshes first, so it works from a cold user
+;; directory and caches the index it used.
 (elpa-tests-with-temp-user-dir
   (let ((elpa-archives (list (cons "cold" (elpa-tests-fixture)))))
     (Assert (not (file-exists-p
@@ -681,28 +687,154 @@ Return the child's standard output without trailing newlines."
             "the install left the refreshed index cached")
     (Assert (elpa-installed-p "queue" '(0 2)))))
 
-;; A cached index is reused as-is: updating it stays the job of an
-;; explicit `elpa-refresh-contents'.
+;; A changed local index is seen by the next install without an explicit
+;; refresh: `elpa-install' refreshes before resolving, so the advertised
+;; build replaces the older one and the old build is deleted afterwards.
 (elpa-tests-with-temp-user-dir
-  (let ((archive (elpa-tests-make-archive
-                  "(1\n (queue . [(0 2) nil \"Queue data structure\" tar nil]))\n")))
+  (let* ((archive (elpa-tests-make-archive
+                   (concat "(1\n (rollpkg . [(20260101 1200) nil"
+                           " \"Rolling package\" tar nil]))\n")))
+         (work (file-name-as-directory (make-temp-file "elpa-rolling-" t))))
     (unwind-protect
-        (let ((elpa-archives (list (cons "stale" archive)))
-              (elpa-installable-packages '(queue newpkg)))
-          (elpa-refresh-contents)
-          (with-temp-file (expand-file-name "archive-contents" archive)
-            (insert "(1\n (newpkg . [(2 0) nil \"New\" tar nil]))\n"))
-          (setq elpa--archive-index-alist nil)
-          (Check-Error-Message 'error "not available"
-            (elpa-install "newpkg"))
-          (Assert (not (elpa-installed-p "newpkg")))
-          (Assert (not (string-match
-                        "newpkg"
-                        (elpa-tests-file-contents
-                         (expand-file-name
-                          "archives/stale/archive-contents"
-                          elpa-user-dir))))
-                "a cached index is not re-fetched by elpa-install"))
+        (progn
+          (elpa-tests-build-tar-package archive work "rollpkg"
+                                        "20260101.1200")
+          (let ((elpa-archives (list (cons "rolling" archive)))
+                (elpa-installable-packages '(rollpkg)))
+            (elpa-install "rollpkg")
+            (Assert (elpa-installed-p "rollpkg" '(20260101 1200)))
+            (elpa-tests-build-tar-package archive work "rollpkg"
+                                          "20260202.1300")
+            (with-temp-file (expand-file-name "archive-contents" archive)
+              (insert "(1\n (rollpkg . [(20260202 1300) nil"
+                      " \"Rolling package\" tar nil]))\n"))
+            (elpa-install "rollpkg")
+            (Assert (elpa-installed-p "rollpkg" '(20260202 1300))
+                    "the install sees the changed index without an explicit refresh")
+            (Assert (not (file-exists-p
+                          (expand-file-name "rollpkg-20260101.1200"
+                                            elpa-user-dir)))
+                    "the replaced build is deleted")
+            (Assert (equal (elpa-tests-installed-builds "rollpkg")
+                           '("rollpkg-20260202.1300"))
+                    "exactly one content directory remains")
+            (Assert (not (file-exists-p
+                          (expand-file-name ".staging/" elpa-user-dir)))
+                    "staging is clean after a replacement")))
+      (elpa-tests-delete-tree work)
+      (elpa-tests-delete-tree archive))))
+
+;;; Explicit versions and failed replacements
+
+;; An explicit version is honored only while the freshly read index still
+;; advertises it: a pruned version errors clearly, and an explicit current
+;; version installs or replaces.
+(elpa-tests-with-temp-user-dir
+  (let* ((archive (elpa-tests-make-archive
+                   (concat "(1\n (pinned . [(20260101 1200) nil"
+                           " \"Pinned package\" tar nil]))\n")))
+         (work (file-name-as-directory (make-temp-file "elpa-pinned-" t))))
+    (unwind-protect
+        (progn
+          (elpa-tests-build-tar-package archive work "pinned"
+                                        "20260101.1200")
+          (let ((elpa-archives (list (cons "pinned-archive" archive)))
+                (elpa-installable-packages '(pinned)))
+            (elpa-install "pinned" "20260101.1200")
+            (Assert (elpa-installed-p "pinned" '(20260101 1200)))
+            (elpa-tests-build-tar-package archive work "pinned"
+                                          "20260202.1300")
+            (with-temp-file (expand-file-name "archive-contents" archive)
+              (insert "(1\n (pinned . [(20260202 1300) nil"
+                      " \"Pinned package\" tar nil]))\n"))
+            (Check-Error-Message 'error
+                "version 20260101.1200 is no longer available in archive pinned-archive (found 20260202.1300)"
+              (elpa-install "pinned" "20260101.1200"))
+            (Assert (elpa-installed-p "pinned" '(20260101 1200))
+                    "a pruned explicit version leaves the old build intact")
+            (elpa-install "pinned" "20260202.1300")
+            (Assert (elpa-installed-p "pinned" '(20260202 1300))
+                    "an explicit current version installs the new build")
+            (Assert (equal (elpa-tests-installed-builds "pinned")
+                           '("pinned-20260202.1300"))
+                    "an explicit current version replaces the older build")))
+      (elpa-tests-delete-tree work)
+      (elpa-tests-delete-tree archive))))
+
+;; A failed replacement leaves the old build intact: nothing new is
+;; published and staging is removed.
+(elpa-tests-with-temp-user-dir
+  (let* ((archive (elpa-tests-make-archive
+                   (concat "(1\n (replacefail . [(20260101 1200) nil"
+                           " \"Replace fail\" tar nil]))\n")))
+         (work (file-name-as-directory
+                (make-temp-file "elpa-replacefail-" t))))
+    (unwind-protect
+        (progn
+          (elpa-tests-build-tar-package archive work "replacefail"
+                                        "20260101.1200")
+          (let ((elpa-archives (list (cons "replacefail" archive)))
+                (elpa-installable-packages '(replacefail)))
+            (elpa-install "replacefail")
+            (Assert (elpa-installed-p "replacefail" '(20260101 1200)))
+            (with-temp-file (expand-file-name "archive-contents" archive)
+              (insert "(1\n (replacefail . [(20260202 1300) nil"
+                      " \"Replace fail\" tar nil]))\n"))
+            (Check-Error-Message 'error "artifact not found"
+              (elpa-install "replacefail"))
+            (Assert (elpa-installed-p "replacefail" '(20260101 1200))
+                    "a failed replacement keeps the old build")
+            (Assert (not (file-exists-p
+                          (expand-file-name "replacefail-20260202.1300"
+                                            elpa-user-dir)))
+                    "a failed replacement publishes no new directory")
+            (Assert (equal (elpa-tests-installed-builds "replacefail")
+                           '("replacefail-20260101.1200"))
+                    "a failed replacement leaves exactly the old build")
+            (Assert (not (file-exists-p
+                          (expand-file-name ".staging/" elpa-user-dir)))
+                    "a failed replacement removes staging")))
+      (elpa-tests-delete-tree work)
+      (elpa-tests-delete-tree archive))))
+
+;;; Newest-keyed install queries
+
+;; Installed queries key off the newest build, not directory order, and a
+;; re-install collapses duplicate builds to exactly the newest one.
+(elpa-tests-with-temp-user-dir
+  (let* ((archive (elpa-tests-make-archive
+                   (concat "(1\n (newestpkg . [(20260202 1300) nil"
+                           " \"Newest\" tar nil]))\n")))
+         (work (file-name-as-directory (make-temp-file "elpa-newest-" t))))
+    (unwind-protect
+        (progn
+          (make-directory
+           (expand-file-name "newestpkg-20260101.1200/" elpa-user-dir) t)
+          (make-directory
+           (expand-file-name "newestpkg-20260202.1300/" elpa-user-dir) t)
+          (Assert (equal
+                   (file-name-nondirectory
+                    (directory-file-name
+                     (elpa--find-installed-dir 'newestpkg)))
+                   "newestpkg-20260202.1300")
+                  "the newest installed version is found, not the first directory")
+          (Assert (elpa-installed-p "newestpkg")
+                  "a versionless installed check keys off the newest build")
+          (Assert (elpa--installed-at-least 'newestpkg '(20260202 1300))
+                  "the newest build satisfies an at-least check at its version")
+          (Assert (not (elpa--installed-at-least 'newestpkg '(20260203 0)))
+                  "an older build does not shadow the newest build")
+          (elpa-tests-build-tar-package archive work "newestpkg"
+                                        "20260202.1300")
+          (let ((elpa-archives (list (cons "newest" archive)))
+                (elpa-installable-packages '(newestpkg)))
+            (elpa-install "newestpkg"))
+          (Assert (equal (elpa-tests-installed-builds "newestpkg")
+                         '("newestpkg-20260202.1300"))
+                  "a re-install collapses duplicates to the newest build")
+          (Assert (elpa-installed-p "newestpkg" '(20260202 1300)))
+          (Assert (not (elpa-installed-p "newestpkg" '(20260101 1200)))))
+      (elpa-tests-delete-tree work)
       (elpa-tests-delete-tree archive))))
 
 ;;; Activation
@@ -863,13 +995,16 @@ http.server.HTTPServer(('127.0.0.1', PORT), H).serve_forever()
                 server-404 (elpa-tests-start-http-server
                             (1+ elpa-tests-http-port) broken))
 
-          ;; A 404 index: clear error, nothing cached.
+          ;; A 404 index: clear error, nothing cached.  Both an explicit
+          ;; refresh and an install (which refreshes first) take this path.
           (let ((elpa-archives
                  (list (cons "http"
                              (format "http://127.0.0.1:%d/no-such-dir/"
                                      elpa-tests-http-port)))))
             (Check-Error-Message 'error "archive not found"
               (elpa-refresh-contents))
+            (Check-Error-Message 'error "archive not found"
+              (elpa-install "queue"))
             (Assert (not (file-exists-p
                           (expand-file-name
                            "archives/http/archive-contents"
@@ -907,33 +1042,27 @@ http.server.HTTPServer(('127.0.0.1', PORT), H).serve_forever()
                      "deq1=a deq2=b empty=t len=0 first=nil")
                     "a fresh XEmacs runs a package installed over HTTP"))
 
-          ;; A 404 artifact: fresh user dir, a base whose artifacts are
-          ;; missing.  The in-memory index from the good refresh survives;
-          ;; only the download target moved.
+          ;; A 404 artifact: the second server serves a valid index whose
+          ;; tarballs are missing.  The install refreshes that index, then
+          ;; fails cleanly at the download with no staging or package dir.
           (let ((elpa-user-dir
                  (file-name-as-directory
                   (make-temp-file "elpa-tests-404-" t))))
             (unwind-protect
-                (progn
-                  (let ((elpa-archives
-                         (list (cons "http"
-                                     (format "http://127.0.0.1:%d/"
-                                             elpa-tests-http-port)))))
-                    (elpa-refresh-contents))
-                  (let ((elpa-archives
-                         (list (cons "http"
-                                     (format "http://127.0.0.1:%d/missing/"
-                                             elpa-tests-http-port)))))
-                    (Check-Error-Message 'error "artifact not found"
-                      (elpa-install "queue"))
-                    (Assert (not (file-directory-p
-                                  (expand-file-name "queue-0.2"
-                                                    elpa-user-dir)))
-                            "a 404 artifact leaves no package directory")
-                    (Assert (not (file-exists-p
-                                  (expand-file-name ".staging/"
-                                                    elpa-user-dir)))
-                            "a 404 artifact leaves no staging residue")))
+                (let ((elpa-archives
+                       (list (cons "http"
+                                   (format "http://127.0.0.1:%d/"
+                                           (1+ elpa-tests-http-port))))))
+                  (Check-Error-Message 'error "artifact not found"
+                    (elpa-install "queue"))
+                  (Assert (not (file-directory-p
+                                (expand-file-name "queue-0.2"
+                                                  elpa-user-dir)))
+                          "a 404 artifact leaves no package directory")
+                  (Assert (not (file-exists-p
+                                (expand-file-name ".staging/"
+                                                  elpa-user-dir)))
+                          "a 404 artifact leaves no staging residue"))
               (ignore-errors (elpa-tests-delete-tree elpa-user-dir)))))
       (elpa-tests-stop-http-server server)
       (elpa-tests-stop-http-server server-404)
