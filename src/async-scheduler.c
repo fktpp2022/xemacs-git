@@ -829,7 +829,7 @@ async_scheduler_mark_gcpros (void)
      have already returned and sched_condition_handlers is stale state.  At
      top level the live globals (Vcondition_handlers, gcprolist) are marked
      by the normal GC path, so the saved snapshots must not be touched.  */
-  if (current_coro)
+  if (current_coro != NULL)
     {
       /* If GC runs while we are context-switched INTO a coroutine, the
          outer world's Vcondition_handlers chain head lives only in

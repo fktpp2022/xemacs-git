@@ -405,10 +405,12 @@ Versions are compared as version lists, not by directory order."
   (cdr (elpa--newest-installed-build name)))
 
 (defun elpa--delete-old-builds (name version)
-  "Delete every installed build of NAME except VERSION.
-VERSION is a version list.  Call only after the new build is published."
+  "Delete installed builds of NAME strictly older than VERSION.
+VERSION is a version list.  Builds newer than VERSION are kept, so an
+archive whose index rolls back does not delete a newer build already on
+disk.  Call only after the new build is published."
   (dolist (build (elpa--installed-builds name))
-    (unless (version-list-= (car build) version)
+    (when (version-list-< (car build) version)
       (elpa--delete-tree (cdr build)))))
 
 (defun elpa-installed-p (name &optional version)
@@ -434,7 +436,9 @@ match the index version exactly."
 	(unless (if minimum
 		    (version-list-<= wanted (plist-get info :version))
 		  (version-list-= wanted (plist-get info :version)))
-	  (error "Package `%s' version %s is no longer available in archive %s (found %s)"
+	  (error (if minimum
+		     "Package `%s' version %s or newer is not available in archive %s (found %s)"
+		   "Package `%s' version %s is no longer available in archive %s (found %s)")
 		 name version (elpa--archive-name archive)
 		 (elpa-version-join (plist-get info :version))))))
     info))
@@ -474,7 +478,7 @@ With MINIMUM non-nil, VERSION is a dependency floor rather than an
 exact request; an installed NAME at VERSION or newer satisfies it.
 Otherwise VERSION is exact, defaulting to the version ARCHIVE's index
 currently advertises.  When the advertised build is already installed,
-the download is skipped and any older duplicate builds are deleted."
+the download is skipped and any older builds are deleted."
   (elpa--ensure-allowlisted name)
   (cond
    ((and minimum (elpa--installed-at-least name version)) name)
@@ -486,7 +490,7 @@ the download is skipped and any older duplicate builds are deleted."
       (if (and (not minimum)
 	       (elpa-installed-p name (plist-get info :version)))
 	  ;; The advertised build is already on disk.  Skip the download
-	  ;; but collapse any older duplicate builds.
+	  ;; but collapse any older builds.
 	  (progn
 	    (elpa--delete-old-builds name (plist-get info :version))
 	    name)
@@ -766,10 +770,21 @@ cookies such as the one in the queue package."
       form)
      ((eq operator 'defcustom)
       (list 'defvar (nth 1 form) (nth 2 form) (nth 3 form)))
-     ((memq operator '(define-derived-mode define-minor-mode
-		       define-generic-mode easy-mmode-define-minor-mode))
+     ((memq operator '(define-minor-mode easy-mmode-define-minor-mode))
       (let ((name (elpa--unquote (nth 1 form)))
 	    (doc (nth 2 form)))
+	(when (symbolp name)
+	  (list 'autoload (list 'quote name) library
+		(and (stringp doc) doc) t nil))))
+     ((eq operator 'define-derived-mode)
+      (let ((name (elpa--unquote (nth 1 form)))
+	    (doc (nth 4 form)))
+	(when (symbolp name)
+	  (list 'autoload (list 'quote name) library
+		(and (stringp doc) doc) t nil))))
+     ((eq operator 'define-generic-mode)
+      (let ((name (elpa--unquote (nth 1 form)))
+	    (doc (nth 7 form)))
 	(when (symbolp name)
 	  (list 'autoload (list 'quote name) library
 		(and (stringp doc) doc) t nil))))

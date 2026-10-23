@@ -667,7 +667,7 @@ Return the child's standard output without trailing newlines."
             (Assert (eq 'dep-min2 (elpa-install "dep-min2"))
                     "an installed newer dependency satisfies a (1 0) requirement")
             (Check-Error-Message 'error
-                "version (2 0) is no longer available in archive depmin (found 1.1)"
+                "version (2 0) or newer is not available in archive depmin (found 1.1)"
               (elpa-install "dep-old"))
             (Assert (not (elpa-installed-p "dep-old"))
                     "nothing published for the unsatisfiable requirement")))
@@ -802,6 +802,45 @@ Return the child's standard output without trailing newlines."
       (elpa-tests-delete-tree work)
       (elpa-tests-delete-tree archive))))
 
+;; A replacement whose new build fails to compile leaves the old build
+;; intact: nothing new is published and staging is removed.
+(elpa-tests-with-temp-user-dir
+  (let* ((archive (elpa-tests-make-archive
+                   (concat "(1\n (replacebad . [(20260101 1200) nil"
+                           " \"Replace bad\" tar nil]))\n")))
+         (work (file-name-as-directory
+                (make-temp-file "elpa-replacebad-" t))))
+    (unwind-protect
+        (progn
+          (elpa-tests-build-tar-package archive work "replacebad"
+                                        "20260101.1200")
+          (let ((elpa-archives (list (cons "replacebad" archive)))
+                (elpa-installable-packages '(replacebad)))
+            (elpa-install "replacebad")
+            (Assert (elpa-installed-p "replacebad" '(20260101 1200)))
+            (elpa-tests-build-tar-package
+             archive work "replacebad" "20260202.1300"
+             '(("replacebad-broken.el" . "(defun replacebad-broken (\n")))
+            (with-temp-file (expand-file-name "archive-contents" archive)
+              (insert "(1\n (replacebad . [(20260202 1300) nil"
+                      " \"Replace bad\" tar nil]))\n"))
+            (Check-Error-Message 'error "ompil"
+              (elpa-install "replacebad"))
+            (Assert (elpa-installed-p "replacebad" '(20260101 1200))
+                    "a compile failure keeps the old build")
+            (Assert (not (file-exists-p
+                          (expand-file-name "replacebad-20260202.1300"
+                                            elpa-user-dir)))
+                    "a compile failure publishes no new directory")
+            (Assert (equal (elpa-tests-installed-builds "replacebad")
+                           '("replacebad-20260101.1200"))
+                    "a compile failure leaves exactly the old build")
+            (Assert (not (file-exists-p
+                          (expand-file-name ".staging/" elpa-user-dir)))
+                    "a compile failure removes staging")))
+      (elpa-tests-delete-tree work)
+      (elpa-tests-delete-tree archive))))
+
 ;;; Newest-keyed install queries
 
 ;; Installed queries key off the newest build, not directory order, and a
@@ -839,6 +878,45 @@ Return the child's standard output without trailing newlines."
                   "a re-install collapses duplicates to the newest build")
           (Assert (elpa-installed-p "newestpkg" '(20260202 1300)))
           (Assert (not (elpa-installed-p "newestpkg" '(20260101 1200)))))
+      (elpa-tests-delete-tree work)
+      (elpa-tests-delete-tree archive))))
+
+;; A rolling archive's index can move backwards.  Installing the older
+;; advertised build must not delete the newer build already on disk: only
+;; builds strictly older than the installed version are pruned.
+(elpa-tests-with-temp-user-dir
+  (let* ((archive (elpa-tests-make-archive
+                   (concat "(1\n (rollbackpkg . [(20260303 1400) nil"
+                           " \"Rollback\" tar nil]))\n")))
+         (work (file-name-as-directory (make-temp-file "elpa-rollback-" t))))
+    (unwind-protect
+        (progn
+          (elpa-tests-build-tar-package archive work "rollbackpkg"
+                                        "20260303.1400")
+          (let ((elpa-archives (list (cons "rollback" archive)))
+                (elpa-installable-packages '(rollbackpkg)))
+            (elpa-install "rollbackpkg")
+            (Assert (elpa-installed-p "rollbackpkg" '(20260303 1400)))
+            (elpa-tests-build-tar-package archive work "rollbackpkg"
+                                          "20260202.1300")
+            (with-temp-file (expand-file-name "archive-contents" archive)
+              (insert "(1\n (rollbackpkg . [(20260202 1300) nil"
+                      " \"Rollback\" tar nil]))\n"))
+            (elpa-install "rollbackpkg")
+            (Assert (elpa-installed-p "rollbackpkg" '(20260202 1300))
+                    "the rolled-back version installs")
+            (Assert (equal (elpa-tests-installed-builds "rollbackpkg")
+                           '("rollbackpkg-20260202.1300"
+                             "rollbackpkg-20260303.1400"))
+                    "a rollback keeps the newer build")
+            (Assert (equal
+                     (file-name-nondirectory
+                      (directory-file-name
+                       (elpa--find-installed-dir 'rollbackpkg)))
+                     "rollbackpkg-20260303.1400")
+                    "the newer build remains the installed build")
+            (Assert (elpa-installed-p "rollbackpkg")
+                    "the versionless installed check stays true")))
       (elpa-tests-delete-tree work)
       (elpa-tests-delete-tree archive))))
 
@@ -1114,6 +1192,17 @@ http.server.HTTPServer(('127.0.0.1', PORT), H).serve_forever()
   (file-name-as-directory
    (expand-file-name "../elpa/melpa-fixture/" (elpa-tests--directory))))
 
+;; Pin the provenance total recorded in the fixture README: the nine
+;; vendored tarballs sum to 593,920 bytes, the sizes MELPA served.
+(let ((tarballs (directory-files (elpa-tests-melpa-fixture) t "\\.tar\\'")))
+  (Assert (= 9 (length tarballs))
+          "the MELPA fixture vendors exactly nine tarballs")
+  (Assert (= 593920
+             (apply '+ (mapcar (lambda (file)
+                                 (nth 7 (file-attributes file)))
+                               tarballs)))
+          "the nine vendored tarballs total 593,920 bytes"))
+
 (defconst elpa-tests-melpa-targets
   ;; (NAME VERSION VERSION-LIST EXERCISE-FORM EXPECTED-OUTPUT)
   '((loop "20160813.1407" (20160813 1407)
@@ -1310,11 +1399,15 @@ of the child's exit status, standard output, and standard error."
                    "  'documented-value)\n"
                    "\n"
                    ";;;###autoload\n"
-                   ;; XEmacs takes (CHILD PARENT NAME); a symbol in the
-                   ;; third slot stands in for the non-string element a
-                   ;; GNU-style parent occupies there.
+                   ;; A real XEmacs shape: (CHILD PARENT NAME DOCSTRING),
+                   ;; so the docstring lives in the fifth slot.
                    "(define-derived-mode cookiepkg-mode"
-                   " fundamental-mode fundamental-mode)\n"
+                   " fundamental-mode \"Cookie Mode\""
+                   " \"Derived cookie mode.\")\n"
+                   "\n"
+                   ";;;###autoload\n"
+                   "(define-derived-mode cookiepkg-bare"
+                   " fundamental-mode \"Bare Mode\")\n"
                    "\n"
                    "(provide 'cookiepkg)\n"))))
           (let ((elpa-archives (list (cons "cookie" archive)))
@@ -1330,16 +1423,21 @@ of the child's exit status, standard output, and standard error."
                    (undocumented (elpa-tests-autoload-for-p
                                   'cookiepkg-undocumented forms))
                    (derived (elpa-tests-autoload-for-p
-                             'cookiepkg-mode forms)))
+                             'cookiepkg-mode forms))
+                   (bare (elpa-tests-autoload-for-p
+                          'cookiepkg-bare forms)))
               (Assert documented "the documented defun is autoloaded")
               (Assert (equal (nth 3 documented) "Return the documented value.")
                       "a documented defun keeps its real docstring")
               (Assert undocumented "the docstring-less macro is autoloaded")
               (Assert (null (nth 3 undocumented))
                       "a docstring-less macro gets no body form as docstring")
-              (Assert derived "the docstring-less derived mode is autoloaded")
-              (Assert (null (nth 3 derived))
-                      "a non-string mode argument is not emitted as a docstring")
+              (Assert derived "the derived mode is autoloaded")
+              (Assert (equal (nth 3 derived) "Derived cookie mode.")
+                      "a derived mode keeps its real docstring")
+              (Assert bare "the docstring-less derived mode is autoloaded")
+              (Assert (null (nth 3 bare))
+                      "a docstring-less derived mode gets no docstring")
               (Assert (not (string-match "(backquote" contents))
                       "the macro body is not emitted as an autoload docstring")
               (let ((result (elpa-tests-run-cookie-child

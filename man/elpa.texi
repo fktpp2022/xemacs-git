@@ -152,6 +152,24 @@ install and run in a fresh XEmacs with no dependencies beyond core.
 * Activation at Startup:: Packages that load themselves.
 @end menu
 
+MELPA is not configured by default.  To install MELPA's target set,
+add a MELPA archive to @code{elpa-archives}:
+
+@example
+(setq elpa-archives
+      '(("melpa" . "https://melpa.org/packages/")
+        ("gnu" . "https://elpa.gnu.org/packages/")))
+@end example
+
+@noindent
+@code{elpa-install} reads the first configured archive, so list the
+archive you install from first; the remaining entries are available to
+@code{elpa-refresh-contents} and @code{elpa-package-info}.  Configuring
+an archive only selects a source: the allowlist still governs what may
+be installed, and a package outside the milestone target set must be
+added to @code{elpa-installable-packages} first
+(@pxref{Customization}).
+
 @node Refreshing the Index
 @section Refreshing the Index
 
@@ -524,7 +542,7 @@ gate that pins exact versions and a live smoke that pins nothing.
 @item
 @code{elpa-tests} (offline, runs by default): the deterministic gate.
 It installs the nine MELPA target packages from the vendored fixture
-under @file{tests/elpa/fixture/}---the real, unmodified upstream
+under @file{tests/elpa/melpa-fixture/}---the real, unmodified upstream
 tarballs at pinned date versions plus a hand-written version-1
 @file{archive-contents}---and the GNU ELPA targets @code{queue} and
 @code{loc-changes}.  For each MELPA target it exercises one
