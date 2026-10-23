@@ -19,13 +19,27 @@
 
 ;;; Commentary:
 
-;; A small, install-only GNU ELPA client.  It deliberately implements the
+;; A small, install-only ELPA client.  It deliberately implements the
 ;; subset needed by the milestone target packages: a version-1 archive
 ;; index, an allowlist, tar and single-file artifacts, define-package
 ;; validation for tarballs, atomic staging, generated autoloads,
-;; byte-compilation, and explicit activation.
-;; It is not a replacement for GNU package.el and it does not support
-;; upgrades, deletion, a package menu, or signature verification.
+;; byte-compilation, and explicit activation.  It is not a replacement
+;; for GNU package.el and it does not provide a package menu, deletion,
+;; or rollback.  GNU ELPA and MELPA are supported; MELPA is a
+;; rolling-release archive, so `elpa-install' refreshes the index before
+;; resolving, installs the build currently advertised, and may replace
+;; an older installed build, publishing the new build before deleting
+;; the old one.  No package signature or checksum verification is
+;; performed.
+;;
+;; Trust model: this client performs no signature verification. MELPA
+;; publishes no signatures, by design; GNU ELPA signature checking is
+;; deferred to a future core effort. The only controls are HTTPS
+;; transport and the `elpa-installable-packages' allowlist: if an
+;; archive is compromised or the connection is tampered with, any
+;; allowlisted package can run arbitrary code. The allowlist is not a
+;; cast-iron guarantee — keep it short, and install only packages you
+;; would trust with your keystrokes.
 ;;
 ;; Archive locations may be local absolute directories (used by the
 ;; offline tests) or HTTP(S) URLs (used against live archives such as
@@ -68,12 +82,6 @@ async HTTP transport."
 The `emacs' pseudo-dependency is not trusted; this list is the safety
 boundary for the milestone."
   :type '(repeat symbol)
-  :group 'elpa)
-
-(defcustom elpa-check-signature nil
-  "Whether to verify package signatures.
-Milestone 1 installs unsigned archives; .sig files are ignored."
-  :type 'boolean
   :group 'elpa)
 
 (defcustom elpa-activate-at-startup t
