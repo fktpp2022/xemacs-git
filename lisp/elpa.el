@@ -61,7 +61,9 @@ async HTTP transport."
   :group 'elpa)
 
 (defcustom elpa-installable-packages
-  '(queue loc-changes)
+  '(queue loc-changes
+    loop levenshtein csv vector-utils number rings shell-split-string kv
+    unidecode)
   "Allowlist of packages this client may install.
 The `emacs' pseudo-dependency is not trusted; this list is the safety
 boundary for the milestone."
