@@ -967,6 +967,116 @@ http.server.HTTPServer(('127.0.0.1', PORT), H).serve_forever()
                "fbound=nil")
               "startup activation can be disabled"))))
 
+;;; Autoload docstrings for docstring-less cookie definitions
+
+;; `elpa' is dumped into the build's XEmacs via startup.el, so a `require'
+;; here would keep the dumped snapshot even when the freshly compiled
+;; worktree copy is first on `load-path'.  Reload it so this section
+;; exercises the source under test; loading the same version again in a
+;; build without a dump is harmless.
+(load "elpa" nil t)
+
+;; A cookie'd definition with no docstring must not leak its first body
+;; form into the autoloads file: loading the file evaluates that form.  A
+;; backquote body used to abort activation with "Symbol's value as
+;; variable is void: key".  A documented defun pins the other direction.
+(defun elpa-tests-run-cookie-child (user-dir form)
+  "Run a fresh XEmacs with USER-DIR, activate packages, then eval FORM.
+The child loads the same `elpa' library as this test run.  Return a list
+of the child's exit status, standard output, and standard error."
+  (let ((buffer (get-buffer-create " *elpa-cookie-child-output*"))
+        (stderr (make-temp-file "elpa-cookie-child-err-"))
+        (program (expand-file-name invocation-name invocation-directory))
+        (elpa-dir (file-name-directory (locate-library "elpa"))))
+    (unwind-protect
+        (progn
+          (with-current-buffer buffer
+            (erase-buffer))
+          (let ((status
+                 (call-process
+                  program nil (list buffer stderr) nil
+                  "-batch" "-no-packages"
+                  "-eval" (format "(setq load-path (cons %S load-path))"
+                                  elpa-dir)
+                  "-l" "elpa"
+                  "-eval" (format "(setq elpa-user-dir %S)" user-dir)
+                  "-eval" "(elpa-activate-all)"
+                  "-eval" form)))
+            (list status
+                  (let ((output (with-current-buffer buffer (buffer-string))))
+                    (if (string-match "[\n\r]+\\'" output)
+                        (substring output 0 (match-beginning 0))
+                      output))
+                  (with-temp-buffer
+                    (insert-file-contents stderr)
+                    (buffer-string)))))
+      (ignore-errors (delete-file stderr)))))
+
+(elpa-tests-with-temp-user-dir
+  (let* ((archive (elpa-tests-make-archive
+                   "(1\n (cookiepkg . [(1 0) nil \"Cookie\" tar nil]))\n"))
+         (work (file-name-as-directory (make-temp-file "elpa-cookie-" t))))
+    (unwind-protect
+        (progn
+          (elpa-tests-build-tar-package
+           archive work "cookiepkg" "1.0"
+           (list
+            (cons "cookiepkg.el"
+                  (concat
+                   ";;;###autoload\n"
+                   "(defmacro cookiepkg-undocumented (key)\n"
+                   "  `(list 'saw ,key))\n"
+                   "\n"
+                   ";;;###autoload\n"
+                   "(defun cookiepkg-documented ()\n"
+                   "  \"Return the documented value.\"\n"
+                   "  'documented-value)\n"
+                   "\n"
+                   ";;;###autoload\n"
+                   ;; XEmacs takes (CHILD PARENT NAME); a symbol in the
+                   ;; third slot stands in for the non-string element a
+                   ;; GNU-style parent occupies there.
+                   "(define-derived-mode cookiepkg-mode"
+                   " fundamental-mode fundamental-mode)\n"
+                   "\n"
+                   "(provide 'cookiepkg)\n"))))
+          (let ((elpa-archives (list (cons "cookie" archive)))
+                (elpa-installable-packages '(cookiepkg)))
+            (elpa-refresh-contents)
+            (elpa-install "cookiepkg")
+            (let* ((dir (expand-file-name "cookiepkg-1.0/" elpa-user-dir))
+                   (autoloads (expand-file-name "cookiepkg-autoloads.el" dir))
+                   (contents (elpa-tests-file-contents autoloads))
+                   (forms (elpa-tests-read-forms autoloads))
+                   (documented (elpa-tests-autoload-for-p
+                                'cookiepkg-documented forms))
+                   (undocumented (elpa-tests-autoload-for-p
+                                  'cookiepkg-undocumented forms))
+                   (derived (elpa-tests-autoload-for-p
+                             'cookiepkg-mode forms)))
+              (Assert documented "the documented defun is autoloaded")
+              (Assert (equal (nth 3 documented) "Return the documented value.")
+                      "a documented defun keeps its real docstring")
+              (Assert undocumented "the docstring-less macro is autoloaded")
+              (Assert (null (nth 3 undocumented))
+                      "a docstring-less macro gets no body form as docstring")
+              (Assert derived "the docstring-less derived mode is autoloaded")
+              (Assert (null (nth 3 derived))
+                      "a non-string mode argument is not emitted as a docstring")
+              (Assert (not (string-match "(backquote" contents))
+                      "the macro body is not emitted as an autoload docstring")
+              (let ((result (elpa-tests-run-cookie-child
+                             elpa-user-dir
+                             (concat "(princ (format \"result=%S\""
+                                     " (cookiepkg-undocumented 7)))"))))
+                (Assert (zerop (nth 0 result))
+                        (format "a fresh activation succeeds (stderr: %s)"
+                                (nth 2 result)))
+                (Assert (equal (nth 1 result) "result=(saw 7)")
+                        "the autoloaded macro runs after activation")))))
+      (elpa-tests-delete-tree work)
+      (elpa-tests-delete-tree archive))))
+
 ;;; Terminal line
 
 ;; Spec section 9 ends the offline suite with an expected terminal

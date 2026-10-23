@@ -707,17 +707,21 @@ cookies such as the one in the queue package."
   (let ((operator (car-safe form)))
     (cond
      ((memq operator '(defun defun* defmacro defmacro* defsubst))
-      (let ((name (elpa--unquote (nth 1 form))))
+      (let ((name (elpa--unquote (nth 1 form)))
+	    (doc (nth 3 form)))
 	(when (symbolp name)
-	  (list 'autoload (list 'quote name) library (nth 3 form)
+	  (list 'autoload (list 'quote name) library
+		(and (stringp doc) doc)
 		(and (elpa--form-contains-p (nthcdr 2 form) 'interactive) t)
 		(if (memq operator '(defmacro defmacro*))
 		    (list 'quote 'macro)
 		  nil)))))
      ((eq operator 'defalias)
-      (let ((name (elpa--unquote (nth 1 form))))
+      (let ((name (elpa--unquote (nth 1 form)))
+	    (doc (nth 3 form)))
 	(when (symbolp name)
-	  (list 'autoload (list 'quote name) library (nth 3 form)
+	  (list 'autoload (list 'quote name) library
+		(and (stringp doc) doc)
 		(and (elpa--form-contains-p (nthcdr 2 form) 'interactive) t)
 		nil))))
      ((memq operator '(defvar defconst))
@@ -726,9 +730,11 @@ cookies such as the one in the queue package."
       (list 'defvar (nth 1 form) (nth 2 form) (nth 3 form)))
      ((memq operator '(define-derived-mode define-minor-mode
 		       define-generic-mode easy-mmode-define-minor-mode))
-      (let ((name (elpa--unquote (nth 1 form))))
+      (let ((name (elpa--unquote (nth 1 form)))
+	    (doc (nth 2 form)))
 	(when (symbolp name)
-	  (list 'autoload (list 'quote name) library (nth 2 form) t nil))))
+	  (list 'autoload (list 'quote name) library
+		(and (stringp doc) doc) t nil))))
      (t nil))))
 
 (defun elpa--scan-autoloads (file library)
