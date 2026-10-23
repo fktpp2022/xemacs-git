@@ -94,7 +94,7 @@ The tarballs are unmodified copies of the files MELPA served at the
 source URLs above; every URL answered HTTP 200 with the recorded byte
 size on 2026-10-23.  They are redistributed here unmodified for
 deterministic, network-free tests, with their embedded copyright and
-license notices intact.  The total size is 634,880 bytes.
+license notices intact.  The total size is 593,920 bytes.
 
 Each license above was read from the package's own source header.  The
 index is hand-written for this fixture, not trimmed from a live index:
