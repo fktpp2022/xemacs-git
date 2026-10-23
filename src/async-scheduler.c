@@ -821,24 +821,35 @@ void
 async_scheduler_mark_gcpros (void)
 {
   xemacs_coro *c;
-  /* If GC runs while we are context-switched INTO a coroutine, the outer
-     world's Vcondition_handlers chain head lives only in
-     sched_condition_handlers (the global Vcondition_handlers has been
-     replaced with the coroutine's view).  */
-  kkcc_gc_stack_push_lisp_object_0 (sched_condition_handlers);
-  /* Similarly, the outer gcprolist is only reachable via sched_gcprolist
-     when we're context-switched into a coro; walk it here so no GCPRO'd
-     outer objects get reaped mid-tick. */
-  {
-    struct gcpro *p = sched_gcprolist;
-    while (p)
+
+  /* The saved snapshots below are only valid while GC runs inside a
+     coroutine (current_coro != NULL): they hold the outer scheduler
+     context that the coroutine is running on behalf of.  Once a tick has
+     returned to top level, sched_gcprolist points into C stack frames that
+     have already returned and sched_condition_handlers is stale state.  At
+     top level the live globals (Vcondition_handlers, gcprolist) are marked
+     by the normal GC path, so the saved snapshots must not be touched.  */
+  if (current_coro)
+    {
+      /* If GC runs while we are context-switched INTO a coroutine, the
+         outer world's Vcondition_handlers chain head lives only in
+         sched_condition_handlers (the global Vcondition_handlers has been
+         replaced with the coroutine's view).  */
+      kkcc_gc_stack_push_lisp_object_0 (sched_condition_handlers);
+      /* Similarly, the outer gcprolist is only reachable via
+         sched_gcprolist when we're context-switched into a coro; walk it
+         here so no GCPRO'd outer objects get reaped mid-tick. */
       {
-        int i;
-        for (i = 0; i < p->nvars; i++)
-          kkcc_gc_stack_push_lisp_object_0 (p->var[i]);
-        p = p->next;
+        struct gcpro *p = sched_gcprolist;
+        while (p)
+          {
+            int i;
+            for (i = 0; i < p->nvars; i++)
+              kkcc_gc_stack_push_lisp_object_0 (p->var[i]);
+            p = p->next;
+          }
       }
-  }
+    }
 #ifdef HAVE_LIBCURL
   /* Root the Lisp state of in-flight HTTP requests (accumulators etc.):
      their request structs are malloc'd, invisible to the marker except
@@ -903,9 +914,9 @@ async_scheduler_mark_gcpros (void)
          GCPRO'd Lisp_Objects on the coroutine's stack stay alive across a
          top-level GC while the coroutine is suspended.  The chain MAY
          eventually reach the outer world's gcprolist -- which is also
-         reachable from the scheduler's own sched_gcprolist (or directly
-         from gcprolist if no coroutine is currently running), so marking
-         it multiple times is harmless. */
+         reachable from the scheduler's own sched_gcprolist when GC runs
+         inside a coroutine, or directly from gcprolist at top level, so
+         marking it multiple times is harmless. */
       {
         struct gcpro *p = c->saved_gcprolist;
         while (p)
