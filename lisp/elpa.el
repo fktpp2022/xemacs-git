@@ -103,8 +103,20 @@ your init file to disable startup activation."
 (defvar elpa--archive-index-alist nil
   "Alist mapping archive name strings to parsed index entries.")
 
-(defvar elpa--install-in-progress nil
-  "Names currently being installed, used to break dependency cycles.")
+(defvar elpa--install-refreshed-archives nil
+  "Archive names refreshed during the current install operation.")
+
+(defvar elpa--install-emacs-requirements nil
+  "Ignored `emacs' requirements collected during the current install.")
+
+(defvar elpa--plan-nodes nil
+  "Alist of package names to plan nodes for the current install.")
+
+(defvar elpa--plan-order nil
+  "Plan nodes in dependency-first install order.")
+
+(defvar elpa--plan-path nil
+  "Package names on the current planning path, for cycle detection.")
 
 ;;; Basic helpers
 
@@ -309,6 +321,20 @@ Return the list of package entries."
 	  (elpa-refresh-contents archive)
 	  (cdr (assoc key elpa--archive-index-alist)))))))
 
+(defun elpa--consult-archive (archive)
+  "Refresh ARCHIVE once per install operation and return its entries.
+Resolution consults an archive lazily: the first consultation in one
+install operation refreshes it; later consultations reuse that index."
+  (let ((name (elpa--archive-name archive)))
+    (unless (member name elpa--install-refreshed-archives)
+      (elpa-refresh-contents archive)
+      (setq elpa--install-refreshed-archives
+	    (cons name elpa--install-refreshed-archives)))
+    (or (cdr (assoc name elpa--archive-index-alist))
+	(progn
+	  (elpa-refresh-contents archive)
+	  (cdr (assoc name elpa--archive-index-alist))))))
+
 (defun elpa-package-info (name &optional archive)
   "Return a plist describing package NAME in ARCHIVE, or nil.
 The plist has :name, :version, :reqs, :summary, :kind, :extras, and
@@ -464,11 +490,15 @@ NAME."
   (let* ((name (elpa--package-symbol name))
 	 (archive (or (caar elpa-archives)
 		      (error "`elpa-archives' is empty")))
-	 (elpa--install-in-progress nil))
+	 (elpa--install-refreshed-archives nil)
+	 (elpa--install-emacs-requirements nil))
     (elpa--ensure-allowlisted name)
+    ;; Top-level installs keep milestone 1's refresh-before-install.
     (elpa-refresh-contents archive)
-    (elpa--install-1 name version archive)
-    name))
+    (setq elpa--install-refreshed-archives
+	  (list (elpa--archive-name archive)))
+    (prog1 (elpa--install-1 name version archive)
+      (elpa--warn-emacs-summary))))
 
 (defun elpa--installed-at-least (name version)
   "Return non-nil if NAME is installed at VERSION or newer.
@@ -479,51 +509,175 @@ dependency satisfaction, where a requirement names a minimum."
 	 (or (null version)
 	     (version-list-<= (elpa--version-list version) (car build))))))
 
-(defun elpa--install-1 (name version archive &optional minimum)
-  "Install NAME at VERSION from ARCHIVE, including its dependencies.
-With MINIMUM non-nil, VERSION is a dependency floor rather than an
-exact request; an installed NAME at VERSION or newer satisfies it.
-Otherwise VERSION is exact, defaulting to the version ARCHIVE's index
-currently advertises.  When the advertised build is already installed,
-the download is skipped and any older builds are deleted."
-  (elpa--ensure-allowlisted name)
-  (cond
-   ((and minimum (elpa--installed-at-least name version)) name)
-   ;; A dependency cycle: this package is already being installed by an
-   ;; outer call, so do not recurse.
-   ((memq name elpa--install-in-progress) name)
-   (t
-    (let ((info (elpa--resolve name version archive minimum)))
-      (if (and (not minimum)
-	       (elpa-installed-p name (plist-get info :version)))
-	  ;; The advertised build is already on disk.  Skip the download
-	  ;; but collapse any older builds.
-	  (progn
-	    (elpa--delete-old-builds name (plist-get info :version))
-	    name)
-	(let ((elpa--install-in-progress
-	       (cons name elpa--install-in-progress)))
-	  (dolist (dependency (plist-get info :reqs))
-	    (elpa--install-dependency dependency name archive))
-	  (elpa--install-artifact info archive))
-	name)))))
+(defun elpa--dependency-error (format-string &rest args)
+  "Signal the unified dependency error described by FORMAT-STRING and ARGS.
+Missing packages, unsatisfiable floors, and disallowed names all use
+this one error; the message names the offending package and the
+requirement that introduced it."
+  (error "ELPA dependency error: %s" (apply 'format format-string args)))
 
-(defun elpa--install-dependency (dependency dependent archive)
-  "Install DEPENDENCY of DEPENDENT from ARCHIVE, if it is required.
-A dependency version is a minimum: any installed or index version at
-or above it satisfies the requirement."
-  (let ((name (car dependency))
+(defun elpa--resolve-dependency (name version dependent)
+  "Return the first entry for NAME satisfying floor VERSION.
+Every archive in `elpa-archives' is searched in order, refreshing each
+one the first time it is consulted in this install operation.  The
+dependent's own archive no longer limits the search.  DEPENDENT
+introduced the requirement and is named in the unified error."
+  (let ((archives elpa-archives)
+	(wanted (and version (elpa--version-list version)))
+	found first)
+    (while (and archives (not found))
+      (let* ((archive (car (car archives)))
+	     (entries (elpa--consult-archive archive))
+	     (entry (assoc name entries)))
+	(when entry
+	  (let ((info (elpa--entry-info entry archive)))
+	    (unless first
+	      (setq first info))
+	    (when (or (null wanted)
+		      (version-list-<= wanted (plist-get info :version)))
+	      (setq found info)))))
+      (setq archives (cdr archives)))
+    (cond
+     (found found)
+     (first
+      (elpa--dependency-error
+       "package `%s' required by `%s': version %s or newer is not available in archive %s (found %s)"
+       name dependent version (plist-get first :archive)
+       (elpa-version-join (plist-get first :version))))
+     (t
+      (elpa--dependency-error
+       "package `%s' required by `%s' is not available in any configured archive"
+       name dependent)))))
+
+(defun elpa--plan-emacs-requirement (version dependent)
+  "Record one ignored `emacs' requirement VERSION introduced by DEPENDENT."
+  (setq elpa--install-emacs-requirements
+	(cons (cons dependent version) elpa--install-emacs-requirements)))
+
+(defun elpa--plan-package (info dependent requirement)
+  "Add INFO and its requirements to the preflight plan.
+DEPENDENT and REQUIREMENT describe the edge that introduced INFO, or
+are nil for the top-level package.  Dependencies are planned before
+INFO, so `elpa--plan-order' is a dependency-first install order."
+  (let ((name (plist-get info :name))
+	(node (list :name (plist-get info :name)
+		    :version (plist-get info :version)
+		    :info info
+		    :archive (plist-get info :archive)
+		    :dependent dependent
+		    :requirement requirement)))
+    (setq elpa--plan-nodes (cons (cons name node) elpa--plan-nodes))
+    (let ((elpa--plan-path (cons name elpa--plan-path)))
+      (dolist (dependency (plist-get info :reqs))
+	(elpa--require-dependency dependency name)))
+    (setq elpa--plan-order (append elpa--plan-order (list node)))
+    node))
+
+(defun elpa--replan-package (node info)
+  "Raise NODE to INFO and replan its requirements before it.
+Used when a second requirement names a higher floor than the version
+already selected for NODE."
+  (let ((name (plist-get node :name)))
+    (plist-put node :version (plist-get info :version))
+    (plist-put node :info info)
+    (plist-put node :archive (plist-get info :archive))
+    (setq elpa--plan-order (delq node elpa--plan-order))
+    (let ((elpa--plan-path (cons name elpa--plan-path)))
+      (dolist (dependency (plist-get info :reqs))
+	(elpa--require-dependency dependency name)))
+    (setq elpa--plan-order (append elpa--plan-order (list node)))
+    node))
+
+(defun elpa--require-dependency (dependency dependent)
+  "Plan DEPENDENCY of DEPENDENT, enforcing the allowlist and its floor.
+A dependency version is a minimum.  Core-provided names are skipped,
+`emacs' is collected for one summary warning, and cycles are warned and
+floor-checked instead of recursing."
+  (let ((name (elpa--package-symbol (car dependency)))
 	(version (nth 1 dependency)))
     (cond
      ((eq name 'emacs)
-      (warn "ignoring emacs requirement %s for %s" dependency dependent))
-     ((memq name elpa-core-provided-packages) nil)
-     ((elpa--installed-at-least name version) nil)
+      (elpa--plan-emacs-requirement version dependent)
+      nil)
+     ((memq name elpa-core-provided-packages)
+      nil)
+     ((not (memq name elpa-installable-packages))
+      (elpa--dependency-error
+       "package `%s' required by `%s' is not in elpa-installable-packages"
+       name dependent))
+     ((elpa--installed-at-least name version)
+      nil)
+     ((memq name elpa--plan-path)
+      (let ((node (cdr (assq name elpa--plan-nodes))))
+	(cond
+	 ((or (null version)
+	      (version-list-<= (elpa--version-list version)
+			       (plist-get node :version)))
+	  (warn "ELPA: dependency cycle on `%s' (required by `%s'); using planned version %s"
+		name dependent
+		(elpa-version-join (plist-get node :version)))
+	  node)
+	 (t
+	  (elpa--dependency-error
+	   "package `%s' required by `%s': version %s or newer conflicts with the cycle member's version %s"
+	   name dependent version
+	   (elpa-version-join (plist-get node :version)))))))
+     ((assq name elpa--plan-nodes)
+      (let ((node (cdr (assq name elpa--plan-nodes))))
+	(if (or (null version)
+		(version-list-<= (elpa--version-list version)
+				 (plist-get node :version)))
+	    node
+	  (elpa--replan-package
+	   node (elpa--resolve-dependency name version dependent)))))
      (t
-      (unless (memq name elpa-installable-packages)
-	(error "Required package `%s' for `%s' is not in elpa-installable-packages"
-	       name dependent))
-      (elpa--install-1 name version archive 'minimum)))))
+      (elpa--plan-package
+       (elpa--resolve-dependency name version dependent)
+       dependent version)))))
+
+(defun elpa--install-plan-node (node)
+  "Install one preflighted plan NODE."
+  (let ((name (plist-get node :name))
+	(version (plist-get node :version)))
+    (unless (elpa-installed-p name version)
+      (elpa--install-artifact (plist-get node :info)
+			      (plist-get node :archive)))))
+
+(defun elpa--warn-emacs-summary ()
+  "Warn once about every ignored `emacs' requirement in this operation."
+  (when elpa--install-emacs-requirements
+    (warn "ELPA: ignoring emacs requirement%s for %s"
+	  (if (cdr elpa--install-emacs-requirements) "s" "")
+	  (mapconcat
+	   (lambda (requirement)
+	     (format "%S (from %s)"
+		     (or (cdr requirement) 'any-version)
+		     (car requirement)))
+	   (nreverse elpa--install-emacs-requirements)
+	   ", "))))
+
+(defun elpa--install-1 (name version archive)
+  "Install NAME at VERSION from ARCHIVE after preflighting its closure.
+VERSION is exact, defaulting to the version ARCHIVE's index currently
+advertises.  The whole required closure is checked before anything
+installs; dependencies then install in order.  When the advertised
+build is already installed, the download is skipped and any older
+builds are deleted."
+  (let ((info (elpa--resolve name version archive nil)))
+    (if (elpa-installed-p name (plist-get info :version))
+	;; The advertised build is already on disk.  Skip the download
+	;; but collapse any older builds.
+	(progn
+	  (elpa--delete-old-builds name (plist-get info :version))
+	  name)
+      (let ((elpa--plan-nodes nil)
+	    (elpa--plan-order nil)
+	    (elpa--plan-path nil))
+	(elpa--plan-package info nil nil)
+	;; Preflight is green: install dependencies in plan order.
+	(dolist (node elpa--plan-order)
+	  (elpa--install-plan-node node))
+	name))))
 
 (defun elpa--artifact-name (name version)
   "Return the artifact base name for package NAME at VERSION."
