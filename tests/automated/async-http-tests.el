@@ -20,37 +20,125 @@
 (defvar async-http-test-port 18742)
 (defvar async-http-test-server-proc nil)
 
-(defun async-http-test-start-server ()
-  (setq async-http-test-server-proc
-        (start-process "async-test-server" " *async-test-server*"
-                       "python3" "-c"
-                       (format
-                        "
-import http.server, threading, json, time
+(defvar async-http-test-directory
+  (file-name-directory (or test-harness-current-file
+                           load-file-name
+                           buffer-file-name)))
+(defvar async-http-test-fixture
+  (expand-file-name "../elpa/fixture/queue-0.2.tar"
+                    async-http-test-directory))
+
+;; 1056 bytes: every byte value four times, then bytes 0x80, 0x81, 0xfe,
+;; 0xff eight more times.  The 0x80-0xFF bytes are invalid as standalone
+;; internal-Mule bytes, so this payload crashes a make_string() round-trip.
+(defconst async-http-test-bin-payload-length 1056)
+(defconst async-http-test-bin-payload-md5
+  "487448015349532eb4abd9b49d314726")
+(defconst async-http-test-tarball-size 10240)
+(defconst async-http-test-tarball-md5
+  "c1f635568dce3ab01b5adad023833ff2")
+
+;; /big serves a deterministic ~2.6 MB binary body (MELPA-index scale);
+;; `async-http-test-build-big-body' rebuilds the identical byte sequence
+;; in Lisp for the byte-exact comparison.
+(defconst async-http-test-big-body-length 2631680)
+
+(defun async-http-test-build-big-body ()
+  "Build the byte-exact reference for the test server's /big payload:
+256-byte pattern (j*7 mod 256) tiled to 64 KB, 40 blocks, plus a
+10240-byte prefix."
+  (let* ((pat (let ((s ""))
+                (dotimes (j 256)
+                  (setq s (concat s (char-to-string (% (* 7 j) 256)))))
+                s))
+         (block (apply #'concat (make-list 256 pat))))
+    (concat (apply #'concat (make-list 40 block))
+            (substring block 0 10240))))
+
+(defvar async-http-test-server-script
+  "
+import http.server, sys, time, json
+
+PORT = int(sys.argv[1])
+FIXTURE = sys.argv[2]
+
+BINARY_PAYLOAD = bytes(range(256)) * 4 + bytes([0x80, 0x81, 0xfe, 0xff]) * 8
+
+with open(FIXTURE, 'rb') as f:
+    TARBALL = f.read()
+
+# ~2.6 MB deterministic body (MELPA-index scale): 256-byte pattern
+# repeated to 64 KB, then 40 blocks plus a 10240-byte prefix.
+PAT = bytes((j * 7) & 0xFF for j in range(256))
+BIG_BODY = (PAT * 256) * 40 + (PAT * 256)[:10240]
+assert len(BIG_BODY) == 2631680
+
 class H(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a): pass
     def do_GET(self):
-        if self.path == '/hello':
+        path = self.path.split('?', 1)[0]
+        if path == '/hello':
             body = b'hello world'
             self.send_response(200)
             self.send_header('Content-Type','text/plain')
             self.send_header('X-Test','yes')
             self.end_headers()
             self.wfile.write(body)
-        elif self.path == '/stream':
+        elif path == '/binary':
+            self.send_response(200)
+            self.send_header('Content-Type','application/octet-stream')
+            self.send_header('X-Test','binary')
+            self.send_header('Content-Length', str(len(BINARY_PAYLOAD)))
+            self.end_headers()
+            self.wfile.write(BINARY_PAYLOAD)
+        elif path == '/tarball':
+            self.send_response(200)
+            self.send_header('Content-Type','application/x-tar')
+            self.send_header('X-Test','tarball')
+            self.send_header('Content-Length', str(len(TARBALL)))
+            self.end_headers()
+            self.wfile.write(TARBALL)
+        elif path == '/big':
+            self.send_response(200)
+            self.send_header('Content-Type','application/octet-stream')
+            self.send_header('X-Test','big')
+            self.send_header('Content-Length', str(len(BIG_BODY)))
+            self.end_headers()
+            self.wfile.write(BIG_BODY)
+        elif path.startswith('/redirect/'):
+            n = int(path.rsplit('/', 1)[1])
+            if n > 0:
+                self.send_response(302)
+                self.send_header('Location', '/redirect/%d' % (n - 1))
+                self.end_headers()
+            else:
+                self.send_response(200)
+                self.send_header('Content-Type','text/plain')
+                self.end_headers()
+                self.wfile.write(b'hello world')
+        elif path == '/slow':
+            time.sleep(1.0)
+            self.send_response(200)
+            self.send_header('Content-Type','text/plain')
+            self.end_headers()
+            self.wfile.write(b'slow')
+        elif path == '/stream':
             self.send_response(200)
             self.send_header('Content-Type','text/event-stream')
             self.end_headers()
             for i in range(5):
-                self.wfile.write(('data: chunk%%d\\n\\n' %% i).encode())
+                self.wfile.write(('data: chunk%d\\n\\n' % i).encode())
                 self.wfile.flush()
                 time.sleep(0.01)
-        elif self.path == '/notfound':
+        elif path == '/notfound':
             body = b'not here'
             self.send_response(404)
             self.send_header('Content-Type','text/plain')
             self.end_headers()
             self.wfile.write(body)
+        else:
+            self.send_response(404)
+            self.end_headers()
     def do_POST(self):
         length = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(length)
@@ -64,10 +152,44 @@ class H(http.server.BaseHTTPRequestHandler):
         self.send_header('X-Reply','ok')
         self.end_headers()
         self.wfile.write(resp)
-server = http.server.HTTPServer(('127.0.0.1', %d), H)
+server = http.server.HTTPServer(('127.0.0.1', PORT), H)
 server.serve_forever()
-" async-http-test-port)))
-  (sleep-for 0.3))
+")
+
+(defun async-http-test-start-server ()
+  (setq async-http-test-server-proc
+        (start-process "async-test-server" " *async-test-server*"
+                       "python3" "-c" async-http-test-server-script
+                       (number-to-string async-http-test-port)
+                       async-http-test-fixture))
+  (sleep-for 0.5))
+
+(defun async-http-test-wait-until (predicate)
+  "Tick the scheduler until PREDICATE is non-nil or about six seconds pass."
+  (let ((ti 0))
+    (while (and (not (funcall predicate)) (< ti 600))
+      (async-scheduler-tick)
+      (sleep-for 0.01)
+      (setq ti (1+ ti)))))
+
+(defun async-http-test-wait-until-gc (predicate)
+  "Like `async-http-test-wait-until', but force a full `garbage-collect'
+between ticks, so GCs land while transfers are in flight and coroutines
+are suspended.  This is the condition that kills an unrooted response
+accumulator; every in-flight body must survive it."
+  (let ((ti 0))
+    (while (and (not (funcall predicate)) (< ti 600))
+      (async-scheduler-tick)
+      (when (= 0 (% ti 5))
+        (garbage-collect))
+      (sleep-for 0.01)
+      (setq ti (1+ ti)))))
+
+(defun async-http-test-file-md5 (file)
+  "Return the MD5 of FILE's exact bytes, read without coding conversion."
+  (with-temp-buffer
+    (insert-file-contents-literally file)
+    (md5 (current-buffer) nil nil 'binary)))
 
 (defun async-http-test-stop-server ()
   (when async-http-test-server-proc
@@ -201,6 +323,165 @@ server.serve_forever()
       (setq ti (1+ ti))))
   (Assert (= (nth 0 result) 404)                "404 status round-trips")
   (Assert (string= (nth 2 result) "not here")   "404 body arrives intact"))
+
+;; Test 7: binary payload with bytes that are invalid in the internal Mule
+;; encoding downloads to memory byte-exactly.  The body must be a binary
+;; external string built with make_extstring/Qbinary, not make_string.
+(let ((result nil))
+  (async-spawn-coroutine
+   (lambda (arg)
+     (setq result (await (http-get (format "http://127.0.0.1:%d/binary"
+                                           async-http-test-port)))))
+   nil)
+  (async-http-test-wait-until (lambda () result))
+  (Assert (= (nth 0 result) 200)                "binary GET status 200")
+  (let ((body (nth 2 result)))
+    (Assert (stringp body)                      "binary body is a string")
+    (Assert (= (length body) async-http-test-bin-payload-length)
+                                                "binary body length exact")
+    (Assert (string= (md5 body nil nil 'binary)
+                     async-http-test-bin-payload-md5)
+                                                "binary body md5 exact")
+    (Assert (= (aref body 130) 130)             "byte 0x82 survives")
+    (Assert (= (aref body 254) 254)             "byte 0xfe survives")
+    (Assert (= (aref body 255) 255)             "byte 0xff survives")))
+
+;; Test 8: the same binary payload downloaded to a file is byte-identical
+;; and the file path round-trips in the third result slot.  This path writes
+;; response bytes directly from C with fwrite and never builds a body string.
+(let ((dest (make-temp-name "/tmp/xemacs-async-http-25-"))
+      (result nil))
+  (unwind-protect
+      (progn
+        (async-spawn-coroutine
+         (lambda (arg)
+           (setq result (await (http-get
+                                (format "http://127.0.0.1:%d/binary"
+                                        async-http-test-port)
+                                :file dest))))
+         nil)
+        (async-http-test-wait-until (lambda () result))
+        (Assert (= (nth 0 result) 200)          "binary file GET status 200")
+        (Assert (string= (cdr (assoc "X-Test" (nth 1 result))) "binary")
+                                                "binary file headers collected")
+        (Assert (string= (nth 2 result) dest)   "file destination returned")
+        (Assert (file-exists-p dest)            "destination file created")
+        (Assert (string= (async-http-test-file-md5 dest)
+                         async-http-test-bin-payload-md5)
+                                                "binary file md5 exact"))
+    (when (file-exists-p dest) (delete-file dest))))
+
+;; Test 9: the vendored queue-0.2.tar downloads to memory byte-exactly.
+;; This is the acceptance payload from the milestone spec.
+(let ((result nil))
+  (async-spawn-coroutine
+   (lambda (arg)
+     (setq result (await (http-get (format "http://127.0.0.1:%d/tarball"
+                                           async-http-test-port)))))
+   nil)
+  (async-http-test-wait-until (lambda () result))
+  (Assert (= (nth 0 result) 200)                "tarball GET status 200")
+  (let ((body (nth 2 result)))
+    (Assert (= (length body) async-http-test-tarball-size)
+                                                "tarball body length exact")
+    (Assert (string= (md5 body nil nil 'binary) async-http-test-tarball-md5)
+                                                "tarball body md5 exact")))
+
+;; Test 10: the queue-0.2.tar file destination is byte-identical.
+(let ((dest (make-temp-name "/tmp/xemacs-async-http-25-"))
+      (result nil))
+  (unwind-protect
+      (progn
+        (async-spawn-coroutine
+         (lambda (arg)
+           (setq result (await (http-download
+                                (format "http://127.0.0.1:%d/tarball"
+                                        async-http-test-port)
+                                dest))))
+         nil)
+        (async-http-test-wait-until (lambda () result))
+        (Assert (= (nth 0 result) 200)          "tarball file GET status 200")
+        (Assert (string= (nth 2 result) dest)   "http-download returns FILE")
+        (Assert (string= (async-http-test-file-md5 dest)
+                         async-http-test-tarball-md5)
+                                                "tarball file md5 exact"))
+    (when (file-exists-p dest) (delete-file dest))))
+
+;; Test 11: a redirect chain within the cap (5 hops) succeeds.
+(let ((result nil))
+  (async-spawn-coroutine
+   (lambda (arg)
+     (setq result (await (http-get (format "http://127.0.0.1:%d/redirect/5"
+                                           async-http-test-port)))))
+   nil)
+  (async-http-test-wait-until (lambda () result))
+  (Assert (= (nth 0 result) 200)                "5-hop redirect succeeds")
+  (Assert (string= (nth 2 result) "hello world")
+                                                "5-hop redirect body correct"))
+
+;; Test 12: a redirect chain beyond CURLOPT_MAXREDIRS (10) fails with
+;; async-http-error instead of following forever.
+(let ((errored nil)
+      (err-msg nil))
+  (async-spawn-coroutine
+   (lambda (arg)
+     (condition-case err
+         (await (http-get (format "http://127.0.0.1:%d/redirect/11"
+                                  async-http-test-port)))
+       (async-http-error
+        (setq errored t
+              err-msg (nth 1 err)))))
+   nil)
+  (async-http-test-wait-until (lambda () errored))
+  (Assert errored                                "11-hop redirect signals error")
+  (Assert (and (stringp err-msg) (> (length err-msg) 0))
+                                                "redirect error has a message")
+  (Assert (string-match "redirect" (downcase err-msg))
+                                                "redirect error names redirects"))
+
+;; Test 13: a total timeout surfaces as async-http-error with a message.
+;; /slow sleeps for one second; :timeout 150 aborts the transfer first.
+(let ((errored nil)
+      (err-msg nil))
+  (async-spawn-coroutine
+   (lambda (arg)
+     (condition-case err
+         (await (http-get (format "http://127.0.0.1:%d/slow"
+                                  async-http-test-port)
+                          :timeout 150))
+       (async-http-error
+        (setq errored t
+              err-msg (nth 1 err)))))
+   nil)
+  (async-http-test-wait-until (lambda () errored))
+  (Assert errored                                "timeout signals error")
+  (Assert (and (stringp err-msg) (> (length err-msg) 0))
+                                                "timeout error has a message")
+  (Assert (string-match "timeout" (downcase err-msg))
+                                                "timeout error names timeout"))
+
+;; Test 14: a ~2.6 MB in-memory body (MELPA-index scale) arrives byte-exact
+;; while GCs land mid-transfer.  Regression for the coroutine-suspension GC
+;; window: the accumulator lives in a malloc'd C struct the marker could
+;; not see, so any GC between write callbacks freed it and the transfer
+;; aborted ("FREED LRECORD object" at ~1 MB and up).  The wait loop forces
+;; full GCs while the coroutine is suspended.  Byte-exactness is asserted
+;; with `string=' against a Lisp-built reference rather than `md5': md5's
+;; text walk aborts on some binary byte patterns regardless of transport
+;; (pre-existing, independent of this path).
+(let ((result nil))
+  (async-spawn-coroutine
+   (lambda (arg)
+     (setq result (await (http-get (format "http://127.0.0.1:%d/big"
+                                           async-http-test-port)))))
+   nil)
+  (async-http-test-wait-until-gc (lambda () result))
+  (Assert (= (nth 0 result) 200)                "big body GET status 200")
+  (let ((body (nth 2 result)))
+    (Assert (= (length body) async-http-test-big-body-length)
+                                                "big body length exact")
+    (Assert (string= body (async-http-test-build-big-body))
+                                 "big body byte-exact with GC mid-transfer")))
 
 ;; NOTE on :on-chunk streaming: the C callback (src/async-http.c) dispatches
 ;; each chunk via `enqueue_misc_user_event', which is drained by the command

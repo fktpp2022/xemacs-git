@@ -4,11 +4,29 @@
 (require 'json nil t)
 
 (defun http-get (url &rest keys)
-  "Async GET URL. Pass to `await' for result (STATUS HEADERS BODY).
-:headers ALIST :timeout MS"
-  (let ((headers (plist-get keys :headers))
-        (timeout (plist-get keys :timeout)))
-    (async-http-request-internal url "GET" headers nil nil timeout)))
+  "Async GET URL.  Pass to `await' for result (STATUS HEADERS BODY).
+:headers ALIST, :timeout MS, :on-chunk FUNC, :file PATH.
+
+With :file PATH the response body is written directly to PATH by C and is
+never materialized as a Lisp string; `await' then returns
+\(STATUS HEADERS PATH) with the expanded file name in the body slot.  If
+the transfer fails, the partial file is removed and `async-http-error' is
+signaled.  The TCP connect phase is bounded even when :timeout is nil."
+  (let ((headers  (plist-get keys :headers))
+        (timeout  (plist-get keys :timeout))
+        (on-chunk (plist-get keys :on-chunk))
+        (file     (plist-get keys :file)))
+    (when file
+      (setq file (expand-file-name file)))
+    (async-http-request-internal url "GET" headers nil on-chunk timeout file)))
+
+(defun http-download (url file &rest keys)
+  "Async download of URL into FILE.  Pass to `await' for (STATUS HEADERS FILE).
+FILE is expanded with `expand-file-name'.  Response bytes are written
+directly to FILE and never pass through a Lisp string; the third result
+element is the expanded file name.  On failure nothing is left behind and
+`async-http-error' is signaled.  KEYS are as for `http-get'."
+  (apply #'http-get url (append (list :file file) keys)))
 
 (defun http-post (url &rest keys)
   "Async POST to URL. Pass to `await' for result (STATUS HEADERS BODY).
