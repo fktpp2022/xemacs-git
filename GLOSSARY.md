@@ -27,3 +27,19 @@ _Avoid_: acceptance test, integration test
 **Shim**:
 New compatibility code written by this effort to satisfy a package's GNU-only require on XEmacs. Distinct from consuming a prebuilt compat package; the target set is zero-shim.
 _Avoid_: alias file, polyfill
+
+**Compatibility layer**:
+The milestone-2 core provision that lets unmodified GNU-oriented packages run on XEmacs. Core, not a package, and governed by the support contract.
+_Avoid_: compat package, shim
+
+**Support contract**:
+The exact set of APIs a milestone guarantees for its targets, established by compiling, loading, and exercising them. Anything outside the contract is unsupported even if it happens to work.
+_Avoid_: supported API, best effort
+
+**Cross-archive dependency resolution**:
+Resolving each dependency requirement against all configured archives in `elpa-archives` order and taking the first entry that satisfies the version floor; the dependent's own archive does not limit the search. Every dependency name, at every depth, is subject to the allowlist.
+_Avoid_: multi-archive install, cross-repo dependency
+
+**Core-provided package**:
+A requirement name that the XEmacs core satisfies without a download, from a private list that is not a Customize option.
+_Avoid_: builtin package, ignored dependency

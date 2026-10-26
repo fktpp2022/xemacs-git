@@ -41,6 +41,12 @@
 ;; cast-iron guarantee — keep it short, and install only packages you
 ;; would trust with your keystrokes.
 ;;
+;; Cross-archive dependency resolution: an install searches every
+;; archive in `elpa-archives' order for each required dependency, and
+;; every dependency name at every depth must appear in
+;; `elpa-installable-packages'.  A dependency edge never grants trust
+;; implicitly.
+;;
 ;; Archive locations may be local absolute directories (used by the
 ;; offline tests) or HTTP(S) URLs (used against live archives such as
 ;; https://elpa.gnu.org/packages/).  HTTP(S) locations are fetched with
