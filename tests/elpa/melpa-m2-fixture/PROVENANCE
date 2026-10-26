@@ -2,24 +2,32 @@ MELPA milestone 2 offline fixture: provenance
 =============================================
 
 This directory is a hand-built, version-1, network-free fixture used by
-tests/automated/elpa-m2-tests.el.  It vendors five real upstream
-artifacts, unmodified, with their embedded copyright and license
-notices intact.  No synthetic binaries are committed here; ticket #56
-owns the synthetic tree.  The two archive-contents indexes are
-hand-written for this fixture (not trimmed from a live index) and
-advertise exactly the versions below.
+tests/automated/elpa-m2-tests.el and
+tests/automated/elpa-m2-negative-tests.el.  It vendors five real
+upstream artifacts, unmodified, with their embedded copyright and
+license notices intact.  No synthetic binary is committed: the tests
+tar the checked-in sources under synthetic/ into temporary copies of
+the two archives.  The two archive-contents indexes are hand-written
+for this fixture (not trimmed from a live index); together they name
+every synthetic package and advertise exactly the versions below.
 
 Layout
 ------
 
-melpa/archive-contents      hand-written version-1 index: dmacro,
-                            checkbox, es-lib, buffer-sets
+melpa/archive-contents      hand-written version-1 index: the four
+                            targets plus the synthetic names
 melpa/dmacro-20241027.830.tar
 melpa/checkbox-20141117.58.tar
 melpa/es-lib-20141111.1830.tar
 melpa/buffer-sets-20260817.2118.tar
-gnu/archive-contents        hand-written version-1 index: queue
+gnu/archive-contents        hand-written version-1 index: queue and the
+                            GNU build of the duplicate m2-dup
 gnu/queue-0.2.tar
+synthetic/<name>/           checked-in sources for the synthetics:
+                            <name>.el and <name>-pkg.el.  Build-only
+                            directories: m2-xdep-v2 (rolling upgrade),
+                            m2-dup-melpa and m2-dup-gnu (duplicate).
+                            m2-nowhere has an index entry only.
 
 Artifacts
 ---------

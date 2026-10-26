@@ -6,4 +6,10 @@
       (:maintainer "Toby Cubitt" . "toby-predictive@dr-qubit.org")
       (:authors ("Inge Wallin" . "inge@lysator.liu.se")
 		("Toby Cubitt" . "toby-predictive@dr-qubit.org"))
-      (:commit . "c9ec2e33f26b068c40b8391e91a7839546fa8355"))]))
+      (:commit . "c9ec2e33f26b068c40b8391e91a7839546fa8355"))])
+ (m2-dup
+  . [(20261026 1100)
+     nil
+     "Synthetic package advertised by two archives."
+     tar
+     ((:url . "https://example.invalid/m2-dup-gnu"))]))
