@@ -76,6 +76,7 @@ async HTTP transport."
 
 (defcustom elpa-installable-packages
   '(queue loc-changes
+    dmacro checkbox es-lib buffer-sets
     loop levenshtein csv vector-utils number rings shell-split-string kv
     unidecode)
   "Allowlist of packages this client may install.
@@ -83,6 +84,12 @@ The `emacs' pseudo-dependency is not trusted; this list is the safety
 boundary for the milestone."
   :type '(repeat symbol)
   :group 'elpa)
+
+(defconst elpa-core-provided-packages '(cl cl-extra cl-lib)
+  "Package names this XEmacs core provides itself.
+A dependency requirement on one of these names is satisfied without a
+download.  This is an internal constant, not a Customize option.")
+
 
 (defcustom elpa-activate-at-startup t
   "Whether startup should activate installed packages.
@@ -510,6 +517,7 @@ or above it satisfies the requirement."
     (cond
      ((eq name 'emacs)
       (warn "ignoring emacs requirement %s for %s" dependency dependent))
+     ((memq name elpa-core-provided-packages) nil)
      ((elpa--installed-at-least name version) nil)
      (t
       (unless (memq name elpa-installable-packages)
