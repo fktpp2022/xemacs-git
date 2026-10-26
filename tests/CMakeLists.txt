@@ -36,6 +36,13 @@ set_tests_properties(elpa-live-tests PROPERTIES
   LABELS "network"
   TIMEOUT 300
   SKIP_RETURN_CODE 125)
+
+# test-harness records assertion failures and aborted files in its output
+# but batch-test-emacs currently exits 0 for both.  These two tests are the
+# gate for the compatibility layer, so make ctest fail on the harness's own
+# failure markers rather than trusting the exit status alone.
+set_tests_properties(cl-lib-tests subr-compat-tests PROPERTIES
+  FAIL_REGULAR_EXPRESSION "FAIL:|aborted")
 add_test(NAME xemacs_build_fixture COMMAND ${CMAKE_COMMAND} -E true)
 set_tests_properties(xemacs_build_fixture PROPERTIES FIXTURES_SETUP xemacs_build)
 
