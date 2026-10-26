@@ -568,6 +568,23 @@ and ignores this variable."
 	 (compiled-function-stack-depth (symbol-function 'identity))
 	 (compiled-function-documentation
 	  (symbol-function 'convert-standard-filename)))))
+
+;; GNU Emacs locates these under `user-emacs-directory'; XEmacs has no
+;; such variable and uses `user-init-directory' instead.
+(defun locate-user-emacs-file (new-name &optional old-name)
+  "Return an absolute path for a file that is relative to `user-init-directory'.
+If OLD-NAME is non-nil and NEW-NAME does not exist, return the absolute
+path for OLD-NAME if it exists.  Otherwise, return the absolute path
+for NEW-NAME regardless of whether it exists."
+  (let ((new (convert-standard-filename
+	      (expand-file-name new-name user-init-directory))))
+    (if old-name
+	(let ((old (convert-standard-filename
+		    (expand-file-name old-name user-init-directory))))
+	  (cond ((file-exists-p new) new)
+		((file-exists-p old) old)
+		(t new)))
+      new)))
 
 (defun pwd ()
   "Show the current default directory."

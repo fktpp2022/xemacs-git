@@ -447,6 +447,9 @@ in which `%s' turns it on."
 	 (add-hook 'post-command-hook ',buffers))
        (put ',cmmh 'definition-name ',global-mode))))
 
+;; GNU Emacs 24's name for the same macro; packages call it at load time.
+(defalias 'define-globalized-minor-mode 'easy-mmode-define-global-mode)
+
 ;;;
 ;;; easy-mmode-defmap
 ;;;
