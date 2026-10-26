@@ -30,8 +30,10 @@
 ;;
 ;; The four targets require `cl-lib', which `elpa-core-provided-packages'
 ;; satisfies without a download; no cl-lib (or cl, cl-extra) build may
-;; appear under `elpa-user-dir'.  The synthetic cross-archive tree and
-;; the new negatives belong to later tickets and are absent here.
+;; appear under `elpa-user-dir'.  The checked-in indexes also carry the
+;; synthetic entries used by elpa-m2-negative-tests.el; their artifacts
+;; are tarred from tests/elpa/melpa-m2-fixture/synthetic/ at test setup,
+;; so no synthetic binary is committed.
 
 ;;; Code:
 
@@ -142,10 +144,10 @@ form's value with `%S'.  Return the final non-empty output line."
 (elpa-m2-tests-with-temp-user-dir
   (let ((elpa-archives (elpa-m2-tests-archives))
         (elpa--archive-index-alist nil))
-    (Assert (= 4 (elpa-refresh-contents "melpa"))
-            "the MELPA fixture index carries exactly four packages")
-    (Assert (= 1 (elpa-refresh-contents "gnu"))
-            "the GNU fixture index carries exactly one package")
+    (Assert (= 18 (elpa-refresh-contents "melpa"))
+            "the MELPA fixture index carries the four targets and synthetics")
+    (Assert (= 2 (elpa-refresh-contents "gnu"))
+            "the GNU fixture index carries queue and the duplicate")
     (let ((queue (elpa-package-info "queue" "gnu")))
       (Assert queue "queue is in the GNU fixture index")
       (Assert (equal (plist-get queue :version) '(0 2))
@@ -203,8 +205,8 @@ form's value with `%S'.  Return the final non-empty output line."
                   (concat (symbol-name name) "-" version ".tar")
                   (elpa-m2-tests-fixture "melpa/")))
                 (format "the %s artifact name is the joined version" name))
-        (Assert (= 4 (elpa-refresh-contents))
-                "the MELPA fixture index carries exactly four packages")
+        (Assert (= 18 (elpa-refresh-contents))
+                "the MELPA fixture index carries the four targets and synthetics")
         (let ((info (elpa-package-info name)))
           (Assert info (format "%s is in the MELPA fixture index" name))
           (Assert (equal (plist-get info :version) version-list)
