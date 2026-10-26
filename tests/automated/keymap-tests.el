@@ -190,4 +190,18 @@
         (Assert (equal control-?RHO
                        (canonicalize-keysym control-shift-?rho))))))
 
+;; Key parser tests: `kbd' and `read-kbd-macro' share `edmacro-parse-keys'.
+
+(Assert (equal (kbd "C-x L l") [(control ?x) ?L ?l])
+        "checking kbd parses modifiers and plain keys")
+(Assert (and (vectorp (read-kbd-macro "C-x L l"))
+             (equal (read-kbd-macro "C-x L l") [(control ?x) ?L ?l]))
+        "checking read-kbd-macro returns the same vector")
+(Assert (equal (read-kbd-macro "RET") [return])
+        "checking read-kbd-macro parses a named key")
+(Assert (equal (read-kbd-macro "3*a") [?a ?a ?a])
+        "checking read-kbd-macro handles repetition")
+(Assert (equal (read-kbd-macro "\\101") [?A])
+        "checking read-kbd-macro handles octal escapes")
+
 ;;; end of keymap-tests.el

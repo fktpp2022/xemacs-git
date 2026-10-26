@@ -43,9 +43,10 @@
 ;;
 ;; Cross-archive dependency resolution: an install searches every
 ;; archive in `elpa-archives' order for each required dependency, and
-;; every dependency name at every depth must appear in
-;; `elpa-installable-packages'.  A dependency edge never grants trust
-;; implicitly.
+;; every dependency name that is not core-provided (and is not the
+;; `emacs' pseudo-dependency) must appear in
+;; `elpa-installable-packages' at every depth.  A dependency edge never
+;; grants trust implicitly.
 ;;
 ;; Archive locations may be local absolute directories (used by the
 ;; offline tests) or HTTP(S) URLs (used against live archives such as
@@ -336,10 +337,7 @@ install operation refreshes it; later consultations reuse that index."
       (elpa-refresh-contents archive)
       (setq elpa--install-refreshed-archives
 	    (cons name elpa--install-refreshed-archives)))
-    (or (cdr (assoc name elpa--archive-index-alist))
-	(progn
-	  (elpa-refresh-contents archive)
-	  (cdr (assoc name elpa--archive-index-alist))))))
+    (cdr (assoc name elpa--archive-index-alist))))
 
 (defun elpa-package-info (name &optional archive)
   "Return a plist describing package NAME in ARCHIVE, or nil.
@@ -461,23 +459,17 @@ If VERSION is non-nil, require that exact version."
 		(elpa--find-installed-dir name))))
     (and dir (file-directory-p dir) t)))
 
-(defun elpa--resolve (name version archive &optional minimum)
+(defun elpa--resolve (name version archive)
   "Resolve NAME at VERSION in ARCHIVE and return its package plist.
-With MINIMUM non-nil, VERSION is a floor: the index version may be
-newer, matching GNU dependency semantics.  Otherwise VERSION must
-match the index version exactly."
+A non-nil VERSION must match the index version exactly."
   (let ((info (elpa-package-info name archive)))
     (unless info
       (error "Package `%s' is not available in archive %s"
 	     name (elpa--archive-name archive)))
     (when version
       (let ((wanted (elpa--version-list version)))
-	(unless (if minimum
-		    (version-list-<= wanted (plist-get info :version))
-		  (version-list-= wanted (plist-get info :version)))
-	  (error (if minimum
-		     "Package `%s' version %s or newer is not available in archive %s (found %s)"
-		   "Package `%s' version %s is no longer available in archive %s (found %s)")
+	(unless (version-list-= wanted (plist-get info :version))
+	  (error "Package `%s' version %s is no longer available in archive %s (found %s)"
 		 name version (elpa--archive-name archive)
 		 (elpa-version-join (plist-get info :version))))))
     info))
@@ -560,18 +552,15 @@ introduced the requirement and is named in the unified error."
   (setq elpa--install-emacs-requirements
 	(cons (cons dependent version) elpa--install-emacs-requirements)))
 
-(defun elpa--plan-package (info dependent requirement)
+(defun elpa--plan-package (info)
   "Add INFO and its requirements to the preflight plan.
-DEPENDENT and REQUIREMENT describe the edge that introduced INFO, or
-are nil for the top-level package.  Dependencies are planned before
-INFO, so `elpa--plan-order' is a dependency-first install order."
+Dependencies are planned before INFO, so `elpa--plan-order' is a
+dependency-first install order."
   (let ((name (plist-get info :name))
 	(node (list :name (plist-get info :name)
 		    :version (plist-get info :version)
 		    :info info
-		    :archive (plist-get info :archive)
-		    :dependent dependent
-		    :requirement requirement)))
+		    :archive (plist-get info :archive))))
     (setq elpa--plan-nodes (cons (cons name node) elpa--plan-nodes))
     (let ((elpa--plan-path (cons name elpa--plan-path)))
       (dolist (dependency (plist-get info :reqs))
@@ -638,8 +627,7 @@ floor-checked instead of recursing."
 	   node (elpa--resolve-dependency name version dependent)))))
      (t
       (elpa--plan-package
-       (elpa--resolve-dependency name version dependent)
-       dependent version)))))
+       (elpa--resolve-dependency name version dependent))))))
 
 (defun elpa--install-plan-node (node)
   "Install one preflighted plan NODE."
@@ -669,7 +657,7 @@ advertises.  The whole required closure is checked before anything
 installs; dependencies then install in order.  When the advertised
 build is already installed, the download is skipped and any older
 builds are deleted."
-  (let ((info (elpa--resolve name version archive nil)))
+  (let ((info (elpa--resolve name version archive)))
     (if (elpa-installed-p name (plist-get info :version))
 	;; The advertised build is already on disk.  Skip the download
 	;; but collapse any older builds.
@@ -679,7 +667,7 @@ builds are deleted."
       (let ((elpa--plan-nodes nil)
 	    (elpa--plan-order nil)
 	    (elpa--plan-path nil))
-	(elpa--plan-package info nil nil)
+	(elpa--plan-package info)
 	;; Preflight is green: install dependencies in plan order.
 	(dolist (node elpa--plan-order)
 	  (elpa--install-plan-node node))

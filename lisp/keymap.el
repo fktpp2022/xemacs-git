@@ -148,7 +148,8 @@ saving keyboard macros (see `insert-kbd-macro')."
     (?\t . "TAB")
     (?\e . "ESC")
     (?\  . "SPC")
-    (?\C-? . "DEL")))
+    (?\C-? . "DEL"))
+  "Alist mapping control characters to their spelled-out key names.")
 
 (defvar edmacro-modifiers
   '(("C" . control)
@@ -157,7 +158,8 @@ saving keyboard macros (see `insert-kbd-macro')."
     ("Sh" . shift)
     ("A" . alt)
     ("H" . hyper)
-    ("s" . super)))
+    ("s" . super))
+  "Alist mapping modifier prefixes to modifier symbols.")
 
 (defun read-kbd-macro (start &optional end)
   "Read the region as a keyboard macro definition.
