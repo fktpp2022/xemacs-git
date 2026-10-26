@@ -38,15 +38,21 @@
 ;;; XEmacs adaptation:
 
 ;; This is the GNU ELPA cl-lib 0.7.1 source, vendored into the core tree.
-;; It differs from upstream in three ways, only one of which is behavioural:
+;; Synched up with: GNU ELPA cl-lib 0.7.1.
+;; It differs from upstream in four ways:
 ;;
-;; 1. A guarded, load-time no-op `defadvice' stub, because XEmacs in this
-;;    milestone has no advice library.  The stub does not implement advice;
-;;    it exists only so the source below can be loaded.
+;; 1. A guarded no-op `defadvice' macro, because XEmacs in this milestone
+;;    has no advice library.  It is installed globally, so when no real
+;;    `defadvice' exists it shadows every later `defadvice' call as well
+;;    as letting the source below load.  It implements no advice:
+;;    packages that need advice are unsupported.
 ;; 2. A direct definition of `cl-position', replacing upstream's advice on
-;;    the absent `cl-seq' definition.  This is the only behavioural change.
+;;    the absent `cl-seq' definition.  This is the only intended change to
+;;    a function the supported targets exercise.
 ;; 3. The upstream `;;;###autoload' load-path reordering is disabled below,
 ;;    because it uses GNU's `#$' reader form and this copy is core.
+;; 4. The package-version headers are removed, because this copy is core
+;;    and never a package.
 ;;
 ;; The layer is core, not a package: it has no package version of its own,
 ;; and `provide' occurs only after every definition above it is installed.

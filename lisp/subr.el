@@ -2575,9 +2575,9 @@ buffer-local wherever it is set."
 
 (defmacro with-eval-after-load (file &rest body)
   "Execute BODY after FILE is loaded.
-FILE is normally a feature name, but it can also be a file name, in
-case that file does not provide any feature.  See `eval-after-load'
-for more details about the different forms of FILE and their semantics.
+FILE must be the exact library name passed to `load', with no directory
+or extension; XEmacs's `eval-after-load' matches it literally.  See
+`eval-after-load' for details.
 
 XEmacs's `eval-after-load' stores forms in `after-load-alist' and
 evaluates them, so BODY is quoted here instead of being wrapped in the

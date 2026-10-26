@@ -140,6 +140,9 @@ guaranteed:
   `cl-block`/`cl-return-from`), `cl-letf`, `cl-case`, `cl-incf`, `cl-dotimes`, `cl-macrolet`,
   `cl-assert`, `cl-position` (patched), `cl-rest`, `cl-member`, `cl-find-if`;
 - dumped `subr.el`: `when-let`, `if-let`, `defvar-local`, `with-eval-after-load`;
+- dumped `files.el` / `easy-mmode.el`: `locate-user-emacs-file` (buffer-sets evaluates it at
+  load time) and `define-globalized-minor-mode` (dmacro calls it at load time; aliased to
+  `easy-mmode-define-global-mode`);
 - existing core: `derived`, `font-lock`, `apropos`, `loadhist`, `cl` (for `queue`'s compile-time
   require).
 

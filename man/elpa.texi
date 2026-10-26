@@ -330,8 +330,9 @@ signature verification, no checksum pinning, and no TLS pinning.  The
 allowlist grants trust by name across all configured archives; it is
 not a per-archive permission, because trust and source selection are
 different concepts.  Dependency resolution is not a second trust
-channel: every dependency name, at every depth, must already be on the
-allowlist (@pxref{Dependency Allowlist}).  The MELPA grant is inert
+channel: every dependency name that is not core-provided (and is not
+the @code{emacs} pseudo-dependency), at every depth, must already be on
+the allowlist (@pxref{Dependency Allowlist}).  The MELPA grant is inert
 until a MELPA archive is configured.  The @code{emacs}
 pseudo-dependency is ignored with a warning, since XEmacs cannot
 truthfully claim the declared Emacs version.
@@ -509,6 +510,12 @@ not merely because it is present.  The contract is:
 Dumped @file{subr.el}: @code{when-let}, @code{if-let},
 @code{defvar-local}, and @code{with-eval-after-load}.
 @item
+Dumped @file{files.el} and @file{easy-mmode.el}:
+@code{locate-user-emacs-file}, which @code{buffer-sets} evaluates at
+load time, and @code{define-globalized-minor-mode}, which
+@code{dmacro} calls at load time (it is an alias for
+@code{easy-mmode-define-global-mode}).
+@item
 Existing core: @code{derived}, @code{font-lock}, @code{apropos},
 @code{loadhist}, and @code{cl} (which satisfies @code{queue}'s
 compile-time require).
@@ -603,7 +610,8 @@ time-to-live and no background refresh.
 @node Dependency Allowlist, Preflight and Atomicity, Search Order, Cross-Archive Dependencies
 @section Dependency Allowlist
 
-Every dependency name, at every depth, must be in
+Every dependency name that is not core-provided (and is not the
+@code{emacs} pseudo-dependency), at every depth, must be in
 @code{elpa-installable-packages}.  There is no automatic closure of the
 allowlist and no implicit trust: a dependency edge cannot introduce a
 name the user has not already allowed.  A name outside the list fails
