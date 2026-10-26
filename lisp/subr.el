@@ -2505,4 +2505,84 @@ This compatibility shim accepts and ignores any arguments; batch mode
 treats it as a no-op."
     (sit-for 0)))
 
+;; GNU compatibility macros, dumped with this file so that unmodified
+;; packages can use them at compile and load time without any `require'.
+;;
+;; `defvar-local' and `with-eval-after-load' live in GNU's subr.el.
+;; `when-let' and `if-let' deliberately diverge from their upstream home in
+;; subr-x.el: the milestone-2 target packages call them with no require at
+;; all, so a lazily loaded library could never satisfy them.  There is no
+;; `subr-x' feature in this milestone.
+
+(defmacro if-let (spec then &rest else)
+  "Bind variables according to SPEC and evaluate THEN or ELSE.
+Evaluate each binding in turn, stopping if a binding value is nil.
+If all bindings are non-nil, return the value of THEN; otherwise
+evaluate the last form in ELSE.
+
+Each element of SPEC is a list (SYMBOL VALUEFORM) that binds SYMBOL to
+the value of VALUEFORM.  An element can also be a bare SYMBOL, whose
+existing binding is tested, or a list (VALUEFORM), whose value is
+tested without binding a symbol.  As a special case, a SPEC of the form
+\(SYMBOL VALUEFORM) is treated like ((SYMBOL VALUEFORM)).
+
+This is the subr-x.el macro, defined here in the dumped subr.el so that
+packages need no require."
+  (declare (indent 2) (debug t))
+  (when (and (<= (length spec) 2)
+             (not (listp (car spec))))
+    (setq spec (list spec)))
+  (let ((done (make-symbol "if-let-done"))
+        (result (make-symbol "if-let-result")))
+    `(let ((,result
+            (catch ',done
+              (let* ,(mapcar
+                      (lambda (binding)
+                        (cond
+                         ((symbolp binding)
+                          `(,binding
+                            (or ,binding (throw ',done nil))))
+                         ((null (cdr binding))
+                          `(,(make-symbol "if-let-value")
+                            (or ,(car binding) (throw ',done nil))))
+                         (t
+                          `(,(car binding)
+                            (or ,(cadr binding)
+                                (throw ',done nil))))))
+                      spec)
+                (list ,then)))))
+       (if ,result (car ,result) (progn ,@else)))))
+
+(defmacro when-let (spec &rest body)
+  "Bind variables according to SPEC and conditionally evaluate BODY.
+Evaluate each binding in turn, stopping if a binding value is nil.
+If all bindings are non-nil, return the value of the last form in BODY;
+otherwise return nil.  SPEC has the same form as in `if-let'.
+
+This is the subr-x.el macro, defined here in the dumped subr.el so that
+packages need no require."
+  (declare (indent 1) (debug if-let))
+  `(if-let ,spec (progn ,@body)))
+
+(defmacro defvar-local (var val &optional docstring)
+  "Define VAR as a buffer-local variable with default value VAL.
+Like `defvar' but additionally marks the variable as being automatically
+buffer-local wherever it is set."
+  (declare (debug defvar) (doc-string 3))
+  ;; Don't use backquote here; this form is needed very early.
+  (list 'progn (list 'defvar var val docstring)
+        (list 'make-variable-buffer-local (list 'quote var))))
+
+(defmacro with-eval-after-load (file &rest body)
+  "Execute BODY after FILE is loaded.
+FILE is normally a feature name, but it can also be a file name, in
+case that file does not provide any feature.  See `eval-after-load'
+for more details about the different forms of FILE and their semantics.
+
+XEmacs's `eval-after-load' stores forms in `after-load-alist' and
+evaluates them, so BODY is quoted here instead of being wrapped in the
+lambda that GNU Emacs uses."
+  (declare (indent 1) (debug t))
+  `(eval-after-load ,file '(progn ,@body)))
+
 ;;; subr.el ends here
