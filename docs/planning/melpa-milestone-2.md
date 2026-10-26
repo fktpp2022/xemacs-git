@@ -92,7 +92,7 @@ Four packages, all installed from unmodified upstream tarballs at pinned MELPA d
 | Package | Pinned version | Manifest closure | Exercise form | Expected |
 |---|---|---|---|---|
 | `dmacro` | 20241027.830 | `emacs` (ignored), `cl-lib` 0.6 → layer | `(dmacro-array-search "ab" "xab" 0)` | `1` |
-| `checkbox` | 20141117.58 | `emacs` (ignored), `cl-lib` 0.5 → layer | insert `"- Buy gin\n"`, `(checkbox-toggle)`, read `buffer-string` | `"- [ ] Buy gin "` (trailing space) |
+| `checkbox` | 20141117.58 | `emacs` (ignored), `cl-lib` 0.5 → layer | insert `"- Buy gin "` (trailing space, no newline), `(checkbox-toggle)`, read `buffer-string` | `"- [ ] Buy gin "` (trailing space) |
 | `es-lib` | 20141111.1830 | `cl-lib` 0.3 → layer; bundled `es-lib-*`; core `apropos`, `loadhist` | `(es-string-remove-properties (propertize "abc" 'face 'bold))` | `"abc"` |
 | `buffer-sets` | 20260817.2118 | `cl-lib` 0.5 → layer; optional `ibuf-macs` guarded by `with-eval-after-load` | create buffer `m2-buffer-sets-test`, associate with set `work`, then query membership | `t "work"` |
 
@@ -244,7 +244,7 @@ line by raw-byte `string=`.
 | Package | Exercise form | Expected |
 |---|---|---|
 | `dmacro` | `(dmacro-array-search "ab" "xab" 0)` | `1` |
-| `checkbox` | toggle `"- Buy gin\n"` in a buffer, read `buffer-string` | `"- [ ] Buy gin "` |
+| `checkbox` | toggle `"- Buy gin "` (trailing space, no newline) in a buffer, read `buffer-string` | `"- [ ] Buy gin "` |
 | `es-lib` | `(es-string-remove-properties (propertize "abc" 'face 'bold))` | `"abc"` |
 | `buffer-sets` | create `m2-buffer-sets-test`, associate `work`, query membership | `t "work"` |
 | `m2-xdep` (v1) | `(let ((q (make-queue))) (queue-enqueue q 7) (m2-xdep-peek q))` | `7` |
