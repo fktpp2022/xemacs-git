@@ -1,0 +1,102 @@
+MELPA milestone 1 offline fixture
+=================================
+
+This directory is a hand-built, version-1 MELPA archive used by the
+offline `elpa-tests.el' suite.  It vendors the nine milestone target
+packages as exact, unmodified upstream tarballs at pinned date versions,
+plus an index that advertises exactly those versions.
+
+Files
+-----
+
+loop-20160813.1407.tar
+  Package:      loop
+  Version:      20160813.1407
+  Kind:         tar
+  Size:         10240 bytes
+  Source URL:   https://melpa.org/packages/loop-20160813.1407.tar
+  License:      GPLv3 or later
+
+levenshtein-20090830.1040.tar
+  Package:      levenshtein
+  Version:      20090830.1040
+  Kind:         tar
+  Size:         10240 bytes
+  Source URL:   https://melpa.org/packages/levenshtein-20090830.1040.tar
+  License:      GPLv2 or later
+
+csv-20231216.1243.tar
+  Package:      csv
+  Version:      20231216.1243
+  Kind:         tar
+  Size:         20480 bytes
+  Source URL:   https://melpa.org/packages/csv-20231216.1243.tar
+  License:      GPLv3 or later
+
+vector-utils-20140508.2041.tar
+  Package:      vector-utils
+  Version:      20140508.2041
+  Kind:         tar
+  Size:         10240 bytes
+  Source URL:   https://melpa.org/packages/vector-utils-20140508.2041.tar
+  License:      Simplified BSD License (2-clause)
+
+number-20170901.1312.tar
+  Package:      number
+  Version:      20170901.1312
+  Kind:         tar
+  Size:         20480 bytes
+  Source URL:   https://melpa.org/packages/number-20170901.1312.tar
+  License:      GPLv3 or later
+
+rings-20160531.2027.tar
+  Package:      rings
+  Version:      20160531.2027
+  Kind:         tar
+  Size:         10240 bytes
+  Source URL:   https://melpa.org/packages/rings-20160531.2027.tar
+  License:      GPLv2 or later
+
+shell-split-string-20151224.1008.tar
+  Package:      shell-split-string
+  Version:      20151224.1008
+  Kind:         tar
+  Size:         10240 bytes
+  Source URL:   https://melpa.org/packages/shell-split-string-20151224.1008.tar
+  License:      Public domain (Unlicense)
+
+kv-20140108.1534.tar
+  Package:      kv
+  Version:      20140108.1534
+  Kind:         tar
+  Size:         20480 bytes
+  Source URL:   https://melpa.org/packages/kv-20140108.1534.tar
+  License:      GPLv3 or later
+
+unidecode-20201213.1449.tar
+  Package:      unidecode
+  Version:      20201213.1449
+  Kind:         tar
+  Size:         481280 bytes
+  Source URL:   https://melpa.org/packages/unidecode-20201213.1449.tar
+  License:      GPLv2 or later
+
+archive-contents
+  A hand-built version-1 index (whose first element is 1) carrying
+  exactly the nine entries above.  Every entry is `tar' kind at the
+  pinned date version.  As MELPA does, the entries carry `:commit' and
+  `:revdesc' extras; the client ignores extras.
+
+Provenance
+----------
+
+The tarballs are unmodified copies of the files MELPA served at the
+source URLs above; every URL answered HTTP 200 with the recorded byte
+size on 2026-10-23.  They are redistributed here unmodified for
+deterministic, network-free tests, with their embedded copyright and
+license notices intact.  The total size is 593,920 bytes.
+
+Each license above was read from the package's own source header.  The
+index is hand-written for this fixture, not trimmed from a live index:
+the fixture carries only the nine allowlisted targets, at the exact
+versions named above.

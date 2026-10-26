@@ -4,15 +4,15 @@
 @c %**start of header
 @settitle XEmacs ELPA Package Client Manual
 @direntry
-* ELPA: (elpa).                 Installing GNU ELPA packages in XEmacs.
+* ELPA: (elpa).                 Installing GNU ELPA and MELPA packages in XEmacs.
 @end direntry
 @c paragraphindent 2
 @c %**end of header
 
 @ifinfo
 This manual documents the XEmacs ELPA package client (@file{lisp/elpa.el}):
-how to install and run packages from GNU ELPA, and how the client works
-for the developer who extends or maintains it.
+how to install and run packages from GNU ELPA and MELPA, and how the
+client works for the developer who extends or maintains it.
 
 Copyright @copyright{} 2026 Free Software Foundation.
 
@@ -44,7 +44,7 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>.
 
 @titlepage
 @title XEmacs ELPA Package Client Manual
-@subtitle Installing and running GNU ELPA packages
+@subtitle Installing and running GNU ELPA and MELPA packages
 @author The XEmacs Development Team
 @page
 @vskip 0pt plus 1fill
@@ -75,7 +75,8 @@ translation approved by the Foundation.
 @top ELPA Package Client
 
 This manual documents the XEmacs ELPA package client: how to install
-and run packages from GNU ELPA, and how the client works internally.
+and run packages from GNU ELPA and MELPA, and how the client works
+internally.
 @end ifnottex
 
 @menu
@@ -83,7 +84,7 @@ and run packages from GNU ELPA, and how the client works internally.
 * Introduction::                What the client is and is not.
 * Installing Packages::         The end-user guide.
 * Customization::               Variables the user can set.
-* Security::                    Allowlists, signatures, and what is trusted.
+* Security::                    Allowlists, unsigned archives, and what is trusted.
 * Data Model::                  Archives, indexes, and the install layout.
 * Lisp API::                    The programmer's reference.
 * Install Pipeline::            What happens during an install, in order.
@@ -101,25 +102,46 @@ and run packages from GNU ELPA, and how the client works internally.
 @chapter Introduction
 
 The ELPA client lets XEmacs consume packages published in the GNU ELPA
-format: it downloads an archive index, resolves a package by name,
-installs its files into a versioned content directory under
-@file{~/.emacs.d/elpa/}, generates autoloads, byte-compiles the source,
-and activates the package by adding it to @code{load-path} and loading
-its autoloads.  After activation the package works like any other Lisp
-library on the system.
+format, from GNU ELPA and from MELPA: it downloads an archive index,
+resolves a package by name, installs its files into a versioned content
+directory under @file{~/.emacs.d/elpa/}, generates autoloads,
+byte-compiles the source, and activates the package by adding it to
+@code{load-path} and loading its autoloads.  After activation the
+package works like any other Lisp library on the system.
 
 The client is deliberately minimal.  It supports @emph{installing} a
-small, explicitly allowed set of packages from GNU ELPA.  It does not
-provide a package menu, upgrade or deletion, source (VC) installs, or
-signature verification, and it does not yet read MELPA.  The old XEmacs
-package system (@file{package-get.el} and friends) is unrelated: it has
-its own index format and download path, and the two coexist without
-interacting.
+small, explicitly allowed set of packages.  It consumes prebuilt
+tarballs (and GNU ELPA's single-file artifacts) only: it never builds
+from MELPA recipes or package source repositories.  It does not provide
+a package menu, browsing, deletion, rollback, or signature
+verification.  The old XEmacs package system (@file{package-get.el} and
+friends) is unrelated: it has its own index format and download path,
+and the two coexist without interacting.
 
-Two real packages exercise the whole path and are documented by it:
+The milestone target set is nine dependency-free MELPA packages plus
+the two GNU ELPA packages documented below.  All nine MELPA targets
+install and run from unmodified upstream tarballs with no new
+compatibility code; this is the @dfn{zero-shim} policy.  The target set
+is a support contract, not a user-facing restriction: users may extend
+the allowlist (see @ref{Customization} and @ref{Security}).
+
+@multitable @columnfractions .25 .75
+@headitem Package @tab Role
+@item @code{loop} @tab control flow
+@item @code{levenshtein} @tab edit distance; the live-smoke pick
+@item @code{csv} @tab CSV parsing
+@item @code{vector-utils} @tab vector manipulation
+@item @code{number} @tab number parsing and formatting
+@item @code{rings} @tab buffer rings
+@item @code{shell-split-string} @tab shell-like string splitting
+@item @code{kv} @tab key/value data structures
+@item @code{unidecode} @tab Unicode transliteration; declares
+@code{lexical-binding: t} yet runs unchanged
+@end multitable
+
 @code{queue} (a @code{tar} package) and @code{loc-changes} (a
-@code{single}-file package).  Both install and run in a fresh XEmacs
-with no dependencies beyond core.
+@code{single}-file package) exercise the GNU ELPA path.  All targets
+install and run in a fresh XEmacs with no dependencies beyond core.
 
 @node Installing Packages, Customization, Introduction, Top
 @chapter Installing Packages
@@ -130,45 +152,82 @@ with no dependencies beyond core.
 * Activation at Startup:: Packages that load themselves.
 @end menu
 
+MELPA is not configured by default.  To install MELPA's target set,
+add a MELPA archive to @code{elpa-archives}:
+
+@example
+(setq elpa-archives
+      '(("melpa" . "https://melpa.org/packages/")
+        ("gnu" . "https://elpa.gnu.org/packages/")))
+@end example
+
+@noindent
+@code{elpa-install} reads the first configured archive, so list the
+archive you install from first; the remaining entries are available to
+@code{elpa-refresh-contents} and @code{elpa-package-info}.  Configuring
+an archive only selects a source: the allowlist still governs what may
+be installed, and a package outside the milestone target set must be
+added to @code{elpa-installable-packages} first
+(@pxref{Customization}).
+
 @node Refreshing the Index
 @section Refreshing the Index
 
 An @dfn{archive} publishes an index file @file{archive-contents}
-listing everything it offers.  Before installing, refresh the index of
-each archive you want to use:
+listing everything it offers.  @code{elpa-install} refreshes the
+selected archive's index before resolving; you can also refresh it
+explicitly:
 
 @deffn Command elpa-refresh-contents &optional archive
-Fetch, validate, cache, and parse the index of @var{archive} (an
-archive name from @code{elpa-archives}; all archives when omitted).
-Return the number of packages the index lists.  The index must carry
-archive version 1; anything else is rejected.
+Fetch, validate, cache, and parse the index of @var{archive}, an
+archive name from @code{elpa-archives}; the first configured archive
+when omitted.  Return the number of packages the index lists.  The
+index must carry archive version 1; anything else is rejected.  A local
+directory location is read as a file; an HTTP(S) location is fetched
+over the network.  @code{elpa-install} performs this refresh itself
+before resolving, so an explicit refresh is only needed to inspect an
+index or to force a cached copy up to date.
 @end deffn
 
 @node Installing a Package
 @section Installing a Package
 
 @deffn Command elpa-install name &optional version
-Install the package @var{name} (a symbol or string) from its archive.
-The name must appear in @code{elpa-installable-packages}; anything else
-is refused.  A package directory that already exists is left alone:
-there is no upgrade path.  When @var{version} is given, the archive
-must advertise exactly that version.  Returns @var{name} on success.
+Install the package @var{name} (a symbol or string) from the first
+archive in @code{elpa-archives}.  The name must appear in
+@code{elpa-installable-packages}; anything else is refused.
 
-Installation is all-or-nothing.  The download lands in a staging
-directory and the content directory is published by an atomic rename
-only after validation, autoload generation, and byte-compilation have
-all succeeded; any failure removes the staging residue and leaves no
-package directory behind.
+Install always refreshes the archive index before resolving.  With no
+@var{version}, this is a @dfn{floating install}: the client installs
+whatever build the archive currently advertises, which is what a
+rolling-release archive such as MELPA requires.  A cached index is
+never trusted for a rolling archive, because old artifacts disappear
+and a stale cache can point at a dead download.  When @var{version} is
+given, the archive must still advertise exactly that version; a version
+the archive has pruned signals that the version is no longer available
+in that archive.  Returns @var{name} on success.
+
+Installing a newer build replaces the older one in place.  The client
+publishes the new content directory and only then deletes the old
+build, so a failed replacement leaves the old build intact, and after a
+successful one exactly one active content directory remains for the
+package.  Installation is all-or-nothing: the download lands in a
+staging directory and the content directory is published by an atomic
+rename only after validation, autoload generation, and byte-compilation
+have all succeeded; any failure removes the staging residue and leaves
+no partial package directory behind.
 @end deffn
 
 @defun elpa-installed-p name &optional version
 Return non-@code{nil} if the content directory for @var{name} (at
-@var{version}, when given) exists under @code{elpa-user-dir}.
+@var{version}, when given) exists under @code{elpa-user-dir}.  Without
+@var{version}, the query keys off the newest installed build, not the
+first directory encountered, so it reflects what actually runs.
 @end defun
 
 @defun elpa-package-info name &optional archive
 Return the plist describing @var{name} as its archive advertises it,
-with properties @code{:name}, @code{:version}, @code{:requirements},
+with properties @code{:name}, @code{:version}, @code{:reqs},
 @code{:summary}, @code{:kind} (@code{tar} or @code{single}), and
 @code{:archive}.
 @end defun
@@ -194,10 +253,13 @@ with autoload cookies are callable without an explicit
 
 @defopt elpa-archives
 The archives the client knows, as an alist of
-@code{(@var{name} . @var{location})}.  The default is
-@code{(("gnu" . "https://elpa.gnu.org/packages/"))}.  A location is
-either an @code{http}s URL or a local directory path (useful for
-testing and air-gapped installs).
+@code{(@var{name} . @var{location})}.  The default is GNU ELPA only:
+@code{(("gnu" . "https://elpa.gnu.org/packages/"))}.  MELPA is
+supported but not configured by default; add an entry such as
+@code{("melpa" . "https://melpa.org/packages/")} to use it.  A location
+is either an @code{http}s URL or a local directory path (useful for
+testing and air-gapped installs).  Archive configuration selects a
+source; it does not grant trust (@pxref{Security}).
 @end defopt
 
 @defopt elpa-user-dir
@@ -209,16 +271,13 @@ in @file{.staging/}.
 @end defopt
 
 @defopt elpa-installable-packages
-The allowlist of packages the client may install, @code{(queue
-loc-changes)} by default.  This list, not the packages' own declared
+The allowlist of packages the client may install, @code{(loop
+levenshtein csv vector-utils number rings shell-split-string kv
+unidecode queue loc-changes)} by default: the nine MELPA targets and
+the two GNU ELPA targets.  This list, not the packages' own declared
 compatibility, is the safety boundary: a name not on the list is
-refused before any download happens.  See @ref{Security}.
-@end defopt
-
-@defopt elpa-check-signature
-Signature verification.  Always @code{nil} for now: signatures are not
-verified and a bad or missing @file{.sig} is not detected.  See
-@ref{Security}.
+refused before any download happens.  Trust is by name and spans all
+configured archives.  See @ref{Security}.
 @end defopt
 
 @defopt elpa-activate-at-startup
@@ -230,32 +289,43 @@ by default; set @code{nil} to keep installed packages inert until
 @node Security, Data Model, Customization, Top
 @chapter Security
 
-Three boundaries decide what the client trusts, and it is important to
-read them as narrower than GNU Emacs's package.el:
+This client sits between two kinds of archive.  MELPA is an
+@dfn{unsigned-by-design archive}: it publishes no signatures for its
+index or its artifacts, as a property of the archive, so allowing it is
+a posture rather than a deferred feature.  GNU ELPA is a
+@dfn{verification-deferred archive}: it signs its index and packages,
+but this client does not perform those checks yet.
 
-@enumerate
-@item
-@strong{The allowlist.}  Only names in @code{elpa-installable-packages}
-can be installed.  A package's declared requirements are honored only
-for names that are themselves installable or already installed; the
-@code{emacs} pseudo-dependency is ignored with a warning, since XEmacs
-cannot truthfully claim the declared Emacs version.
+The @emph{only} trust controls are HTTPS transport and the flat
+per-package allowlist in @code{elpa-installable-packages}.  There is no
+signature verification, no checksum pinning, and no TLS pinning.  The
+allowlist grants trust by name across all configured archives; it is
+not a per-archive permission, because trust and source selection are
+different concepts.  The MELPA grant is inert until a MELPA archive is
+configured.  The @code{emacs} pseudo-dependency is ignored with a
+warning, since XEmacs cannot truthfully claim the declared Emacs
+version.
 
-@item
-@strong{The archive contents.}  A @code{tar} package is validated
-before extraction: every member must live under the single top-level
+The residual risk is stated verbatim in the client header:
+
+@quotation
+Trust model: this client performs no signature verification. MELPA
+publishes no signatures, by design; GNU ELPA signature checking is
+deferred to a future core effort. The only controls are HTTPS transport
+and the `elpa-installable-packages' allowlist: if an archive is
+compromised or the connection is tampered with, any allowlisted package
+can run arbitrary code. The allowlist is not a cast-iron guarantee —
+keep it short, and install only packages you would trust with your
+keystrokes.
+@end quotation
+
+The archive-shape checks described under @ref{Data Model} are failure
+containment, not authentication: a @code{tar} package is validated
+before extraction (every member must live under the single top-level
 @code{<name>-<version>/} directory; absolute paths, @code{..}
-components, and link entries are rejected before @command{tar} ever
-runs.  Autoloads files shipped inside a tarball are deleted, never
-loaded; the only autoloads the client loads are the ones it generated
-itself from @code{;;;###autoload} cookies.
-
-@item
-@strong{Signatures: not verified.}  The client installs unsigned
-archives.  A present but forged @file{.sig} is not detected.  This is
-an accepted gap, not a claim of GNU parity: until signature
-verification lands, download integrity rests on TLS alone.
-@end enumerate
+components, and link entries are rejected before @command{tar} runs),
+and autoloads files shipped inside a tarball are deleted, never loaded.
+They cannot detect a malicious package that bears an allowlisted name.
 
 @node Data Model, Lisp API, Security, Top
 @chapter Data Model
@@ -283,24 +353,38 @@ where @var{version} is a version list, @var{requirements} is
 @var{summary} is a string, @var{kind} is @code{tar} or @code{single},
 and @var{extras} (URLs, maintainers, commit hashes) is ignored.
 
+Date versions such as MELPA's @code{20240331.1300} need no separate
+version type: @code{version-to-list} parses one as @code{(20240331
+1300)}, and @code{elpa-version-join} renders it back byte-identically,
+so it is safe as an artifact and directory name.  MELPA entries also
+carry @code{:commit} and @code{:revdesc} extras; like all extras they
+are ignored.  MELPA publishes no @code{single} artifacts and no
+prerelease markers.
+
 @node Install Layout
 @section Install Layout
 
 @example
 ~/.emacs.d/elpa/
-~/.emacs.d/elpa/
-archives/gnu/archive-contents        @r{cached index}
+archives/gnu/archive-contents        @r{cached GNU ELPA index}
+archives/melpa/archive-contents      @r{cached MELPA index}
 queue-0.2/queue.el                   @r{package source}
 queue-0.2/queue.elc                  @r{byte-compiled}
 queue-0.2/queue-pkg.el               @r{package metadata (tar only)}
 queue-0.2/queue-autoloads.el         @r{generated}
 queue-0.2/queue-autoloads.elc
+levenshtein-20090830.1040/           @r{date-versioned MELPA package}
 .staging/                            @r{transient; removed after install}
 @end example
 
 A @code{single} package installs the same way minus @file{-pkg.el}: its
 downloaded @file{<name>-<version>.el} is written into the content
 directory as @file{<name>.el}.
+
+There is exactly one content directory per package.  Replacing an older
+build publishes the new @code{<name>-<version>/} directory first and
+deletes the old one only after the publish succeeds; a failure leaves
+the old build in place.  There is no rollback or retention policy.
 
 @node Lisp API, Install Pipeline, Data Model, Top
 @chapter Lisp API
@@ -370,10 +454,18 @@ install, and the staging directory is removed on any failure:
 
 @enumerate
 @item
+@strong{Refresh.}  Fetch, validate, cache, and parse the selected
+archive's index.  A rolling archive is never trusted from cache: old
+artifacts 404, so a stale index can name a dead download.  A local
+directory refresh is a file read, not a network fetch.
+
+@item
 @strong{Resolve.}  Apply the allowlist, honor (or warn about)
-requirements, and pick the version: exact match when requested,
-otherwise the version the index advertises.  Dependencies install
-before dependents, with a seen-set breaking cycles.
+requirements, and pick the version: exact match when requested and
+still advertised, otherwise the version the index currently advertises.
+An explicit version that the index no longer offers fails clearly.
+Dependencies install before dependents, with a seen-set breaking
+cycles.
 
 @item
 @strong{Acquire.}  HTTPS archives are fetched over the async HTTP
@@ -405,8 +497,12 @@ directory, including the generated autoloads.  Warnings are logged and
 tolerated; a compile error fails the install.
 
 @item
-@strong{Publish.}  Rename the staged directory to its final
+@strong{Publish and replace.}  Rename the staged directory to its final
 @code{<name>-<version>/} location and delete the downloaded artifact.
+If an older build of the same package is installed, delete it only
+after the new directory is published.  A failure before this point
+leaves the old build intact; after success exactly one content
+directory remains.
 @end enumerate
 
 @node Transport, Testing, Install Pipeline, Top
@@ -438,22 +534,35 @@ download leaves no partial file behind.
 @node Testing, Limitations, Transport, Top
 @chapter Testing
 
-The client's behavior is pinned by two CTest tests:
+The client's behavior is pinned by two CTest tests.  Together their two
+halves are the milestone's @dfn{success test}: a deterministic offline
+gate that pins exact versions and a live smoke that pins nothing.
 
 @itemize @bullet
 @item
-@code{elpa-tests} (offline, runs by default): installs both target
-packages from the vendored fixture under @file{tests/elpa/fixture/},
-checks activation in fresh XEmacs processes, and exercises the
-negative paths.  Its last line is @code{elpa tests: passed}.
+@code{elpa-tests} (offline, runs by default): the deterministic gate.
+It installs the nine MELPA target packages from the vendored fixture
+under @file{tests/elpa/melpa-fixture/}---the real, unmodified upstream
+tarballs at pinned date versions plus a hand-written version-1
+@file{archive-contents}---and the GNU ELPA targets @code{queue} and
+@code{loc-changes}.  For each MELPA target it exercises one
+representative function in a fresh child XEmacs process, using the
+forms fixed by the no-kit audit (for example,
+@code{(levenshtein-distance "kitten" "sitting")} must return
+@code{3}), and it covers the negative paths: allowlist rejection, an
+unavailable explicit version, path-traversal and symlink members, and a
+missing artifact.  Its last line is @code{elpa tests: passed}.
 
 @item
 @code{elpa-live-tests} (labeled @code{network}, skipped unless the
-environment variable @code{ELPA_LIVE} is set): installs whichever
-@code{queue} version @url{https://elpa.gnu.org/packages/} currently
-advertises, over HTTPS, and runs the queue functional check in a fresh
-process.  It never pins a version; the offline fixture is the
-deterministic gate.
+environment variable @code{ELPA_LIVE} is set): the live HTTPS smoke
+suite.  It installs whichever @code{queue} version
+@url{https://elpa.gnu.org/packages/} currently advertises, and it
+refreshes @url{https://melpa.org/packages/}'s full index in memory,
+installs @code{levenshtein} without pinning a version, asserts that the
+installed directory name matches the date version the index advertised,
+and exercises it in a fresh child process.  The live tests never pin a
+version; the offline fixture is the deterministic gate.
 @end itemize
 
 Run them with:
@@ -469,17 +578,26 @@ ELPA_LIVE=1 ctest --test-dir build -R elpa-live
 Deliberately not supported yet; none of this is claimed to work:
 
 @itemize @bullet
-@item Signature verification (see @ref{Security}).
-@item Package menu, browsing, interactive commands beyond the four
-entry points; upgrade and deletion.
+@item Signature and checksum verification (see @ref{Security}); the v1
+index carries no checksums, and TLS pinning is absent too.
+@item A package menu, browsing, deletion, or rollback; interactive
+commands beyond the documented entry points.  Re-running install
+replaces an older build in place, but there is no separate upgrade
+command or retention policy.
 @item Packages outside @code{elpa-installable-packages}.
-@item MELPA: rolling releases, recipes, and build steps.
-@item Lexical binding: packages that genuinely need it will misbehave;
-the allowlist audit, not the header, decides.
+@item Building packages from MELPA recipes or source (VC) repositories;
+the client consumes prebuilt tarballs only.
+@item Cross-archive dependency resolution: the target set is
+dependency-free, and MELPA's dependency wall belongs to a future
+compatibility effort.
+@item Lexical binding.  @code{unidecode} declares
+@code{lexical-binding: t} but runs unchanged because it does not depend
+on lexical semantics; @code{memoize} is the documented negative, since
+it closes over a @code{let}-bound hash table and needs interpreter-level
+lexical binding.
 @item The interactive paths of @code{loc-changes} that need
 @code{insert-text-button} and friends.
-@item Checksum verification (the v1 index carries none), Windows, and
-non-GNU @command{tar} variants.
+@item Windows and non-GNU @command{tar} variants.
 @end itemize
 
 @node Concept Index, , Limitations, Top

@@ -19,13 +19,27 @@
 
 ;;; Commentary:
 
-;; A small, install-only GNU ELPA client.  It deliberately implements the
+;; A small, install-only ELPA client.  It deliberately implements the
 ;; subset needed by the milestone target packages: a version-1 archive
 ;; index, an allowlist, tar and single-file artifacts, define-package
 ;; validation for tarballs, atomic staging, generated autoloads,
-;; byte-compilation, and explicit activation.
-;; It is not a replacement for GNU package.el and it does not support
-;; upgrades, deletion, a package menu, or signature verification.
+;; byte-compilation, and explicit activation.  It is not a replacement
+;; for GNU package.el and it does not provide a package menu, deletion,
+;; or rollback.  GNU ELPA and MELPA are supported; MELPA is a
+;; rolling-release archive, so `elpa-install' refreshes the index before
+;; resolving, installs the build currently advertised, and may replace
+;; an older installed build, publishing the new build before deleting
+;; the old one.  No package signature or checksum verification is
+;; performed.
+;;
+;; Trust model: this client performs no signature verification. MELPA
+;; publishes no signatures, by design; GNU ELPA signature checking is
+;; deferred to a future core effort. The only controls are HTTPS
+;; transport and the `elpa-installable-packages' allowlist: if an
+;; archive is compromised or the connection is tampered with, any
+;; allowlisted package can run arbitrary code. The allowlist is not a
+;; cast-iron guarantee — keep it short, and install only packages you
+;; would trust with your keystrokes.
 ;;
 ;; Archive locations may be local absolute directories (used by the
 ;; offline tests) or HTTP(S) URLs (used against live archives such as
@@ -61,17 +75,13 @@ async HTTP transport."
   :group 'elpa)
 
 (defcustom elpa-installable-packages
-  '(queue loc-changes)
+  '(queue loc-changes
+    loop levenshtein csv vector-utils number rings shell-split-string kv
+    unidecode)
   "Allowlist of packages this client may install.
 The `emacs' pseudo-dependency is not trusted; this list is the safety
 boundary for the milestone."
   :type '(repeat symbol)
-  :group 'elpa)
-
-(defcustom elpa-check-signature nil
-  "Whether to verify package signatures.
-Milestone 1 installs unsigned archives; .sig files are ignored."
-  :type 'boolean
   :group 'elpa)
 
 (defcustom elpa-activate-at-startup t
@@ -361,20 +371,47 @@ the version-1 gate."
 			    (elpa-version-join version))
 		    elpa-user-dir))
 
-(defun elpa--find-installed-dir (name)
-  "Return the directory of an installed version of NAME, or nil."
-  (let ((prefix (concat (symbol-name name) "-")))
+(defun elpa--installed-builds (name)
+  "Return the installed builds of NAME as a list of (VERSION . DIRECTORY).
+VERSION is a version list.  A build is a non-symlink `<name>-<version>'
+directory directly under `elpa-user-dir'."
+  (let ((prefix (concat (symbol-name name) "-"))
+	(builds nil))
     (when (file-directory-p elpa-user-dir)
-      (catch 'found
-	(dolist (file (directory-files elpa-user-dir t "\\`[^.]"))
+      (dolist (file (directory-files elpa-user-dir t "\\`[^.]"))
+	(let ((base (file-name-nondirectory file)))
 	  (when (and (file-directory-p file)
 		     (not (file-symlink-p file))
 		     (string-match
 		      (concat "\\`" (regexp-quote prefix)
-			      "[0-9]+\\(\\.[0-9]+\\)*\\'")
-		      (file-name-nondirectory file)))
-	    (throw 'found file)))
-	nil))))
+			      "\\([0-9]+\\(?:\\.[0-9]+\\)*\\)\\'")
+		      base))
+	    (push (cons (version-to-list (match-string 1 base)) file)
+		  builds)))))
+    (nreverse builds)))
+
+(defun elpa--newest-installed-build (name)
+  "Return the newest installed build of NAME as (VERSION . DIRECTORY), or nil.
+Versions are compared as version lists, not by directory order."
+  (let (newest)
+    (dolist (build (elpa--installed-builds name))
+      (when (or (null newest)
+		(version-list-< (car newest) (car build)))
+	(setq newest build)))
+    newest))
+
+(defun elpa--find-installed-dir (name)
+  "Return the directory of the newest installed version of NAME, or nil."
+  (cdr (elpa--newest-installed-build name)))
+
+(defun elpa--delete-old-builds (name version)
+  "Delete installed builds of NAME strictly older than VERSION.
+VERSION is a version list.  Builds newer than VERSION are kept, so an
+archive whose index rolls back does not delete a newer build already on
+disk.  Call only after the new build is published."
+  (dolist (build (elpa--installed-builds name))
+    (when (version-list-< (car build) version)
+      (elpa--delete-tree (cdr build)))))
 
 (defun elpa-installed-p (name &optional version)
   "Return non-nil if package NAME is installed.
@@ -399,7 +436,9 @@ match the index version exactly."
 	(unless (if minimum
 		    (version-list-<= wanted (plist-get info :version))
 		  (version-list-= wanted (plist-get info :version)))
-	  (error "Package `%s' version %s is not available in archive %s (found %s)"
+	  (error (if minimum
+		     "Package `%s' version %s or newer is not available in archive %s (found %s)"
+		   "Package `%s' version %s is no longer available in archive %s (found %s)")
 		 name version (elpa--archive-name archive)
 		 (elpa-version-join (plist-get info :version))))))
     info))
@@ -407,16 +446,20 @@ match the index version exactly."
 (defun elpa-install (name &optional version)
   "Install package NAME at VERSION from the first configured archive.
 VERSION may be a version string or a list of integers and must match
-the index version exactly.  NAME must be in `elpa-installable-packages'.
-If no cached index exists for the archive, it is refreshed first; an
-existing cache is reused as-is and `elpa-refresh-contents' remains the
-way to update it.  Return NAME."
+the freshly read index version exactly.  Without VERSION, the version
+the index currently advertises is installed.  NAME must be in
+`elpa-installable-packages', which is checked before the archive index
+is refreshed.  An older installed build is replaced by the new one;
+the new build is published before the old build is deleted.  Return
+NAME."
   (interactive
    (list (intern (read-string "Package: "))))
   (let* ((name (elpa--package-symbol name))
 	 (archive (or (caar elpa-archives)
 		      (error "`elpa-archives' is empty")))
 	 (elpa--install-in-progress nil))
+    (elpa--ensure-allowlisted name)
+    (elpa-refresh-contents archive)
     (elpa--install-1 name version archive)
     name))
 
@@ -424,43 +467,39 @@ way to update it.  Return NAME."
   "Return non-nil if NAME is installed at VERSION or newer.
 A nil VERSION means any installed version counts.  Used for
 dependency satisfaction, where a requirement names a minimum."
-  (let ((dir (elpa--find-installed-dir name)))
-    (and dir
+  (let ((build (elpa--newest-installed-build name)))
+    (and build
 	 (or (null version)
-	     (let* ((tail (file-name-nondirectory
-			   (directory-file-name dir)))
-		    (version-string
-			     (and (string-match
-				   (concat "\\`"
-					   (regexp-quote (symbol-name name))
-					   "-\\([0-9]+\\(?:\\.[0-9]+\\)*\\)\\'")
-				   tail)
-				  (match-string 1 tail))))
-	       (and version-string
-		    (version-list-<= (elpa--version-list version)
-				     (version-to-list version-string))))))))
+	     (version-list-<= (elpa--version-list version) (car build))))))
 
 (defun elpa--install-1 (name version archive &optional minimum)
   "Install NAME at VERSION from ARCHIVE, including its dependencies.
 With MINIMUM non-nil, VERSION is a dependency floor rather than an
-exact request; an installed NAME at VERSION or newer satisfies it."
+exact request; an installed NAME at VERSION or newer satisfies it.
+Otherwise VERSION is exact, defaulting to the version ARCHIVE's index
+currently advertises.  When the advertised build is already installed,
+the download is skipped and any older builds are deleted."
   (elpa--ensure-allowlisted name)
   (cond
-   ((if minimum
-	(elpa--installed-at-least name version)
-      (elpa-installed-p name version))
-    name)
+   ((and minimum (elpa--installed-at-least name version)) name)
    ;; A dependency cycle: this package is already being installed by an
    ;; outer call, so do not recurse.
    ((memq name elpa--install-in-progress) name)
    (t
     (let ((info (elpa--resolve name version archive minimum)))
-      (let ((elpa--install-in-progress
-	     (cons name elpa--install-in-progress)))
-	(dolist (dependency (plist-get info :reqs))
-	  (elpa--install-dependency dependency name archive))
-	(elpa--install-artifact info archive)))
-    name)))
+      (if (and (not minimum)
+	       (elpa-installed-p name (plist-get info :version)))
+	  ;; The advertised build is already on disk.  Skip the download
+	  ;; but collapse any older builds.
+	  (progn
+	    (elpa--delete-old-builds name (plist-get info :version))
+	    name)
+	(let ((elpa--install-in-progress
+	       (cons name elpa--install-in-progress)))
+	  (dolist (dependency (plist-get info :reqs))
+	    (elpa--install-dependency dependency name archive))
+	  (elpa--install-artifact info archive))
+	name)))))
 
 (defun elpa--install-dependency (dependency dependent archive)
   "Install DEPENDENCY of DEPENDENT from ARCHIVE, if it is required.
@@ -522,7 +561,9 @@ Lisp string."
     artifact))
 
 (defun elpa--install-artifact (info archive)
-  "Download, validate, stage, and publish package INFO from ARCHIVE."
+  "Download, validate, stage, and publish package INFO from ARCHIVE.
+An older build of the same package is deleted only after the new build
+has been published."
   (let* ((name (plist-get info :name))
 	 (version (plist-get info :version))
 	 (kind (plist-get info :kind))
@@ -554,7 +595,8 @@ Lisp string."
 	    (when (file-exists-p published)
 	      (error "Package `%s' is already installed in %s"
 			     name published))
-	    (rename-file content published)))
+	    (rename-file content published)
+	    (elpa--delete-old-builds name version)))
       (ignore-errors (elpa--delete-tree staging))
       (when (and (file-directory-p staging-root)
 		 (= 2 (length (directory-files staging-root))))
@@ -707,28 +749,45 @@ cookies such as the one in the queue package."
   (let ((operator (car-safe form)))
     (cond
      ((memq operator '(defun defun* defmacro defmacro* defsubst))
-      (let ((name (elpa--unquote (nth 1 form))))
+      (let ((name (elpa--unquote (nth 1 form)))
+	    (doc (nth 3 form)))
 	(when (symbolp name)
-	  (list 'autoload (list 'quote name) library (nth 3 form)
+	  (list 'autoload (list 'quote name) library
+		(and (stringp doc) doc)
 		(and (elpa--form-contains-p (nthcdr 2 form) 'interactive) t)
 		(if (memq operator '(defmacro defmacro*))
 		    (list 'quote 'macro)
 		  nil)))))
      ((eq operator 'defalias)
-      (let ((name (elpa--unquote (nth 1 form))))
+      (let ((name (elpa--unquote (nth 1 form)))
+	    (doc (nth 3 form)))
 	(when (symbolp name)
-	  (list 'autoload (list 'quote name) library (nth 3 form)
+	  (list 'autoload (list 'quote name) library
+		(and (stringp doc) doc)
 		(and (elpa--form-contains-p (nthcdr 2 form) 'interactive) t)
 		nil))))
      ((memq operator '(defvar defconst))
       form)
      ((eq operator 'defcustom)
       (list 'defvar (nth 1 form) (nth 2 form) (nth 3 form)))
-     ((memq operator '(define-derived-mode define-minor-mode
-		       define-generic-mode easy-mmode-define-minor-mode))
-      (let ((name (elpa--unquote (nth 1 form))))
+     ((memq operator '(define-minor-mode easy-mmode-define-minor-mode))
+      (let ((name (elpa--unquote (nth 1 form)))
+	    (doc (nth 2 form)))
 	(when (symbolp name)
-	  (list 'autoload (list 'quote name) library (nth 2 form) t nil))))
+	  (list 'autoload (list 'quote name) library
+		(and (stringp doc) doc) t nil))))
+     ((eq operator 'define-derived-mode)
+      (let ((name (elpa--unquote (nth 1 form)))
+	    (doc (nth 4 form)))
+	(when (symbolp name)
+	  (list 'autoload (list 'quote name) library
+		(and (stringp doc) doc) t nil))))
+     ((eq operator 'define-generic-mode)
+      (let ((name (elpa--unquote (nth 1 form)))
+	    (doc (nth 7 form)))
+	(when (symbolp name)
+	  (list 'autoload (list 'quote name) library
+		(and (stringp doc) doc) t nil))))
      (t nil))))
 
 (defun elpa--scan-autoloads (file library)

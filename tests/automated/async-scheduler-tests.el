@@ -111,6 +111,34 @@
   (setq _survived t)
   (Assert _survived "GC across suspended coroutine with condition_case_1"))
 
+;; Regression: the scheduler's saved gcprolist snapshot (taken in
+;; async_scheduler_tick just before a coroutine runs) is dead state at top
+;; level; it points into C stack frames that have already returned.  Run a
+;; tick from one Lisp call level deeper than the forms that follow, then
+;; allocate and force GC: an unguarded async_scheduler_mark_gcpros walks the
+;; overwritten struct gcpro and aborts the GC (fatal error 7/11), the same
+;; crash the live MELPA index refresh triggered after a coro had yielded.
+(async-spawn-coroutine
+ (lambda (_)
+   (while t
+     (async-coroutine-yield)))
+ nil)
+(async-scheduler-tick)                  ;; run the coro to its first yield
+
+;; One more tick, inside `let': the scheduler stores the outer gcpro chain
+;; of this deeper C frame, which is dead once the form returns.
+(let ((tick-result (async-scheduler-tick)))
+  (Assert (null tick-result) "nested tick returned nil"))
+
+;; Reuse the dead stack region and force GC under allocation pressure.
+(let ((completed nil))
+  (dotimes (i 20)
+    (let ((junk (make-list 4096 'junk)))
+      (garbage-collect)
+      (setq completed t)
+      (setq junk (length junk))))
+  (Assert completed "GC after a nested tick completed"))
+
 ;; The timer-driven wakeup callback must exist as a callable Lisp function
 ;; so `execute_internal_event' can dispatch the timeout_event.
 (Assert (functionp 'async--scheduler-tick-from-timer)
