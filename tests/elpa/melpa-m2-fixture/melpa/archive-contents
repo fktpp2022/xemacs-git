@@ -1,0 +1,33 @@
+(1
+ (dmacro
+  . [(20241027 830)
+     ((emacs (24 1)) (cl-lib (0 6)))
+     "Repeated detection and execution of key operation."
+     tar
+     ((:url . "https://github.com/emacs-jp/dmacro")
+      (:commit . "cb3ce0e1d6ce868baf47cb9225c8daae4b610dab")
+      (:revdesc . "cb3ce0e1d6ce"))])
+ (checkbox
+  . [(20141117 58)
+     ((emacs (24)) (cl-lib (0 5)))
+     "Quick manipulation of textual checkboxes."
+     tar
+     ((:url . "https://github.com/camdez/checkbox.el")
+      (:commit . "2afc2011fa35ccfa0ce9ef46cb1896911fa340d1")
+      (:revdesc . "2afc2011fa35"))])
+ (es-lib
+  . [(20141111 1830)
+     ((cl-lib (0 3)))
+     "A collection of emacs utilities."
+     tar
+     ((:url . "https://github.com/sabof/es-lib")
+      (:commit . "753b27363e39c10edc9e4e452bdbbbe4d190df4a")
+      (:revdesc . "753b27363e39"))])
+ (buffer-sets
+  . [(20260817 2118)
+     ((cl-lib (0 5)))
+     "Sets of Buffers for Buffer Management."
+     tar
+     ((:url . "https://git.sr.ht/~swflint/buffer-sets")
+      (:commit . "9c30f12feaa4182d845b70c5be459a07d3be5db3")
+      (:revdesc . "9c30f12feaa4"))]))
