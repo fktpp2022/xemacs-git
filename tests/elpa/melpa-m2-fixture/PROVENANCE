@@ -1,0 +1,97 @@
+MELPA milestone 2 offline fixture: provenance
+=============================================
+
+This directory is a hand-built, version-1, network-free fixture used by
+tests/automated/elpa-m2-tests.el and
+tests/automated/elpa-m2-negative-tests.el.  It vendors five real
+upstream artifacts, unmodified, with their embedded copyright and
+license notices intact.  No synthetic binary is committed: the tests
+tar the checked-in sources under synthetic/ into temporary copies of
+the two archives.  The two archive-contents indexes are hand-written
+for this fixture (not trimmed from a live index); together they name
+every synthetic package and advertise exactly the versions below.
+
+Layout
+------
+
+melpa/archive-contents      hand-written version-1 index: the four
+                            targets plus the synthetic names
+melpa/dmacro-20241027.830.tar
+melpa/checkbox-20141117.58.tar
+melpa/es-lib-20141111.1830.tar
+melpa/buffer-sets-20260817.2118.tar
+gnu/archive-contents        hand-written version-1 index: queue and the
+                            GNU build of the duplicate m2-dup
+gnu/queue-0.2.tar
+synthetic/<name>/           checked-in sources for the synthetics:
+                            <name>.el and <name>-pkg.el.  Build-only
+                            directories: m2-xdep-v2 (rolling upgrade),
+                            m2-dup-melpa and m2-dup-gnu (duplicate).
+                            m2-nowhere has an index entry only.
+
+Artifacts
+---------
+
+melpa/dmacro-20241027.830.tar
+  Package:      dmacro
+  Version:      20241027.830
+  Kind:         tar
+  Size:         10240 bytes
+  SHA-256:      77be67b3a6eb9a687d22525ecc09865457cfa9a4806295846d34c63cd06d8486
+  Source URL:   https://melpa.org/packages/dmacro-20241027.830.tar
+  License:      FSFAP (permissive)
+
+melpa/checkbox-20141117.58.tar
+  Package:      checkbox
+  Version:      20141117.58
+  Kind:         tar
+  Size:         20480 bytes
+  SHA-256:      0a9e12a10721ef986c21145a1942e7f67453317be2c1d5387ae84f3a955735bb
+  Source URL:   https://melpa.org/packages/checkbox-20141117.58.tar
+  License:      GPL-3.0-or-later
+
+melpa/es-lib-20141111.1830.tar
+  Package:      es-lib
+  Version:      20141111.1830
+  Kind:         tar
+  Size:         71680 bytes
+  SHA-256:      1d3cb40640f2f84db451fefaae79687fcabd90072f25143cf9a2ed1b669faab1
+  Source URL:   https://melpa.org/packages/es-lib-20141111.1830.tar
+  License:      GPL-2.0-or-later (es-lib-core-functions.el,
+                es-lib-core-macros.el, es-lib-text-navigate.el,
+                es-lib-buffer-local-set-key.el) and GPL-3.0-or-later
+                (es-lib.el, es-lib-lexical.el, es-lib-total-line.el);
+                es-lib-readme-generator.el and es-lib-pkg.el carry no
+                license header.
+
+melpa/buffer-sets-20260817.2118.tar
+  Package:      buffer-sets
+  Version:      20260817.2118
+  Kind:         tar
+  Size:         30720 bytes
+  SHA-256:      6ce9bb331b74b2061685334473696b658dd4af49aa54d576e80416f519dbd827
+  Source URL:   https://melpa.org/packages/buffer-sets-20260817.2118.tar
+  License:      GPL-3.0-or-later (SPDX-License-Identifier)
+
+gnu/queue-0.2.tar
+  Package:      queue
+  Version:      0.2
+  Kind:         tar
+  Size:         10240 bytes
+  SHA-256:      880dc17566232e7b1d4b2298906d153a971971ded7a250cdd5fac056a836ef84
+  Source URL:   https://elpa.gnu.org/packages/queue-0.2.tar
+  License:      GPL-3.0-or-later
+
+Totals
+------
+
+Vendored artifact bytes: 143,360
+Vendored artifact cap:   196,608 bytes (192 KiB)
+
+Every artifact above is an unmodified copy of the file the source URL
+served: HTTP 200 with the recorded Content-Length, verified on
+2026-10-26.  All five are single-top-level-directory package-build or
+GNU tar artifacts with a generated -pkg.el, so the client's existing
+tar and define-package validation applies unchanged.  The recorded
+SHA-256 values are provenance, not a verification the client performs
+(ADR 0001 is unchanged).

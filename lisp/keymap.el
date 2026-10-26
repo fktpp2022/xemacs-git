@@ -130,9 +130,180 @@ KEYS should be a string constant in the format used for
 saving keyboard macros (see `insert-kbd-macro')."
   (if (or (stringp keys)
 	  (vectorp keys))
-      ;; #### need to move xemacs-base into the core!!!!!!
       (declare-fboundp (read-kbd-macro keys))
     `(declare-fboundp (read-kbd-macro ,keys))))
+
+;; `kbd' above expands into a call to `read-kbd-macro', so that function
+;; is needed by every package that writes `(kbd "...")' at top level.
+;; It lives in the `edmacro' library, which is part of the xemacs-base
+;; add-on rather than the core.  A package-free build still byte-compiles
+;; unmodified packages that call `kbd' (the ELPA client does so), so the
+;; parser is provided here.  This is the XEmacs `edmacro-parse-keys'
+;; implementation, minus the interactive macro editor.
+
+(defvar edmacro-char-to-word
+  '((?\0 . "NUL")
+    (?\r . "RET")
+    (?\n . "LFD")
+    (?\t . "TAB")
+    (?\e . "ESC")
+    (?\  . "SPC")
+    (?\C-? . "DEL"))
+  "Alist mapping control characters to their spelled-out key names.")
+
+(defvar edmacro-modifiers
+  '(("C" . control)
+    ("M" . meta)
+    ("S" . shift)
+    ("Sh" . shift)
+    ("A" . alt)
+    ("H" . hyper)
+    ("s" . super))
+  "Alist mapping modifier prefixes to modifier symbols.")
+
+(defun read-kbd-macro (start &optional end)
+  "Read the region as a keyboard macro definition.
+The region is interpreted as spelled-out keystrokes, e.g., \"M-x abc RET\".
+See documentation for `edmacro-mode' for details.
+
+In Lisp, may also be called with a single STRING argument in which case
+the result is returned rather than being installed as the current macro.
+The result will be a vector of keystrokes."
+  (interactive "r")
+  (if (stringp start)
+      (edmacro-parse-keys start)
+    (setq last-kbd-macro (edmacro-parse-keys (buffer-substring start end)))))
+
+(defun edmacro-parse-keys (string)
+  "Parse STRING as a keyboard macro definition and return a key vector."
+  (let* ((pos 0)
+	 (case-fold-search nil)
+	 res)
+    (while (and (< pos (length string))
+		(string-match "[^ \t\r\n\f]+" string pos))
+      (let ((word (substring string (match-beginning 0) (match-end 0))))
+	(setq pos (match-end 0))
+	(if (or (equal word "REM") (string-match "^;;" word))
+	    ;; Comment (discard to EOL).
+	    (setq pos (string-match "$" string pos))
+	  (push (edmacro-parse-word word) res))))
+    (mapvector 'identity (apply 'nconc (nreverse res)))))
+
+(defun edmacro-parse-word (word)
+  "Parse one spelled-out keystroke WORD and return a list of events."
+  (let ((force-sym nil)
+	(times 1)
+	abbr)
+    (when (string-match "\\([0-9]+\\)\\*." word)
+      (setq times (string-to-int (substring word 0 (match-end 1))))
+      (setq word (substring word (1+ (match-end 1)))))
+    (when (string-match "^<\\([^<>]+\\)>$" word)
+      (setq word (match-string 1 word))
+      (setq force-sym t))
+    (let* ((word-to-sym '(("NUL" . (control @))
+			  ("RET" . return)
+			  ("LFD" . linefeed)
+			  ("TAB" . tab)
+			  ("ESC" . escape)
+			  ("SPC" . space)
+			  ("BS" . backspace)
+			  ("DEL" . delete)))
+	   (conv (lambda (arg)
+		   ;; string-to-symbol-or-char converter
+		   (if (= (length arg) 1)
+		       (aref arg 0)
+		     (if (string-match "^<\\([^>]+\\)>$" arg)
+			 (setq arg (match-string 1 arg)))
+		     (let ((match (assoc arg word-to-sym)))
+		       (if match
+			   (cdr match)
+			 (intern arg))))))
+	   (conv-chars
+	    (lambda (arg)
+	      (cond
+	       ((cdr (assoc (cdr (assoc arg edmacro-char-to-word))
+			    word-to-sym)))
+	       ((<= ?\x00 arg ?\x1f)
+		;; Bug; we can't do this for \C-m, \C-j, \C-i,
+		;; because edmacro-parse-keys, above, treats
+		;; this as whitespace.
+		`(control
+		  ,(intern (downcase (concat (list (+ arg ?@))
+					     nil)))))
+	       ((<= ?\x80 arg ?\x9f)
+		`(meta control
+		  ,(intern (downcase (concat (list (- arg ?@))
+					     nil)))))
+	       ((<= ?\xa0 arg ?\xff)
+		`(meta
+		  ,(intern (downcase (concat (list (- arg ?\x80))
+					     nil)))))
+	       ;; The symbol is the canonical form.
+	       (t (intern (string arg))))))
+	   (add
+	    (cond
+	     ((and (string-match "^\\\\[0-7]\\{1,3\\}$" word)
+		   ;; Octal value of a character.  If it's numerically out of
+		   ;; range, allow the Lisp reader to error.
+		   (setq word (read (concat "\"" word "\"")))
+		   ;; This clause never succeeds; the numeric value is
+		   ;; handled further down.
+		   nil))
+	     ((string-match "^<<.+>>$" word)
+	      ;; Extended command.
+	      (nconc
+	       (list
+		(if (eq (key-binding [(meta x)])
+			'execute-extended-command)
+		    '(meta x)
+		  (or (car (where-is-internal
+			    'execute-extended-command))
+		      '(meta x))))
+	       (mapcar conv-chars (concat (substring word 2 -2) "\r"))))
+	     ((setq abbr (assoc word word-to-sym))
+	      ;; Convert to symbol.
+	      (list (cdr abbr)))
+	     ((string-match "^\\^" word)
+	      ;; ^X == C-x
+	      (if (= (length word) 2)
+		  `((control ,(aref word 1)))
+		(mapcar 'identity word)))
+	     ((string-match "^M--?[0-9]+$" word)
+	      ;; Special case: M- followed by an optional hyphen and
+	      ;; one or more digits.
+	      (mapcar (lambda (digit)
+			(list 'meta digit))
+		      (substring word 2)))
+	     ((string-match "^\\([MCSsAH]\\|Sh\\)-" word)
+	      ;; Parse C-* and friends.
+	      (let ((pos1 0)
+		    (r1 nil)
+		    follow curpart prefix)
+		(while (progn (setq curpart (substring word pos1))
+			      (string-match "^\\([MCSsAH]\\|Sh\\)-"
+					    curpart))
+		  (setq prefix (assoc (match-string 1 curpart)
+				      edmacro-modifiers))
+		  (push (cdr prefix) r1)
+		  (setq pos1 (+ pos1 (1+ (length (car prefix))))))
+		(setq follow (substring word pos1))
+		(if (equal follow "")
+		    ;; We've got something like "C-M-" -- just let it be,
+		    ;; because of the way `edmacro-format-keys' works.
+		    (mapcar 'identity word)
+		  (list (nconc (nreverse r1) (list (funcall conv follow)))))))
+	     (force-sym
+	      ;; This must be a symbol.
+	      (list (intern word)))
+	     (t
+	      ;; Characters.
+	      (mapcar conv-chars word))))
+	   (new nil))
+      (let ((i 0))
+	(while (< i times)
+	  (setq new (append add new))
+	  (setq i (1+ i))))
+      new)))
 
 ;; END SYNCHED WITH FSF 21.2.
 

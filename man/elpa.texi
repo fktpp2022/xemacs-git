@@ -87,6 +87,8 @@ internally.
 * Security::                    Allowlists, unsigned archives, and what is trusted.
 * Data Model::                  Archives, indexes, and the install layout.
 * Lisp API::                    The programmer's reference.
+* Compatibility Layer::         GNU-only APIs this milestone provides.
+* Cross-Archive Dependencies::  Resolving requirements across archives.
 * Install Pipeline::            What happens during an install, in order.
 * Transport::                   How bytes get from the network to disk.
 * Testing::                     The offline fixture and the live smoke test.
@@ -118,17 +120,15 @@ verification.  The old XEmacs package system (@file{package-get.el} and
 friends) is unrelated: it has its own index format and download path,
 and the two coexist without interacting.
 
-The milestone target set is nine dependency-free MELPA packages plus
+The milestone-1 target set is nine dependency-free MELPA packages plus
 the two GNU ELPA packages documented below.  All nine MELPA targets
 install and run from unmodified upstream tarballs with no new
-compatibility code; this is the @dfn{zero-shim} policy.  The target set
-is a support contract, not a user-facing restriction: users may extend
-the allowlist (see @ref{Customization} and @ref{Security}).
+compatibility code; this is the @dfn{zero-shim} policy.
 
 @multitable @columnfractions .25 .75
 @headitem Package @tab Role
 @item @code{loop} @tab control flow
-@item @code{levenshtein} @tab edit distance; the live-smoke pick
+@item @code{levenshtein} @tab edit distance
 @item @code{csv} @tab CSV parsing
 @item @code{vector-utils} @tab vector manipulation
 @item @code{number} @tab number parsing and formatting
@@ -140,8 +140,30 @@ the allowlist (see @ref{Customization} and @ref{Security}).
 @end multitable
 
 @code{queue} (a @code{tar} package) and @code{loc-changes} (a
-@code{single}-file package) exercise the GNU ELPA path.  All targets
-install and run in a fresh XEmacs with no dependencies beyond core.
+@code{single}-file package) exercise the GNU ELPA path.  All
+milestone-1 targets install and run in a fresh XEmacs with no
+dependencies beyond core.
+
+Milestone 2 adds four MELPA targets that require the compatibility
+layer (@pxref{Compatibility Layer}):
+
+@multitable @columnfractions .20 .24 .26 .30
+@headitem Package @tab Pinned version @tab Requirement @tab Role
+@item @code{dmacro} @tab @code{20241027.830} @tab @code{cl-lib} 0.6; @code{emacs} ignored @tab array search
+@item @code{checkbox} @tab @code{20141117.58} @tab @code{cl-lib} 0.5; @code{emacs} ignored @tab list checkbox toggle
+@item @code{es-lib} @tab @code{20141111.1830} @tab @code{cl-lib} 0.3 @tab string property removal
+@item @code{buffer-sets} @tab @code{20260817.2118} @tab @code{cl-lib} 0.5 @tab buffer-set membership
+@end multitable
+
+The milestone-2 targets install and run from unmodified upstream
+tarballs at their pinned date versions.  GNU ELPA @code{queue} 0.2 is
+the GNU-path fixture and live artifact, not a promised target.
+Synthetic packages witness cross-archive resolution in the offline
+tests; they are never defaults in the allowlist.
+
+Target sets are support contracts, not user-facing restrictions:
+users may extend the allowlist (@pxref{Customization} and
+@pxref{Security}).
 
 @node Installing Packages, Customization, Introduction, Top
 @chapter Installing Packages
@@ -164,7 +186,8 @@ add a MELPA archive to @code{elpa-archives}:
 @noindent
 @code{elpa-install} reads the first configured archive, so list the
 archive you install from first; the remaining entries are available to
-@code{elpa-refresh-contents} and @code{elpa-package-info}.  Configuring
+@code{elpa-refresh-contents}, @code{elpa-package-info}, and dependency
+resolution.  Configuring
 an archive only selects a source: the allowlist still governs what may
 be installed, and a package outside the milestone target set must be
 added to @code{elpa-installable-packages} first
@@ -211,11 +234,14 @@ Installing a newer build replaces the older one in place.  The client
 publishes the new content directory and only then deletes the old
 build, so a failed replacement leaves the old build intact, and after a
 successful one exactly one active content directory remains for the
-package.  Installation is all-or-nothing: the download lands in a
-staging directory and the content directory is published by an atomic
-rename only after validation, autoload generation, and byte-compilation
-have all succeeded; any failure removes the staging residue and leaves
-no partial package directory behind.
+package.  Installation of each package is all-or-nothing: the download
+lands in a staging directory and the content directory is published by
+an atomic rename only after validation, autoload generation, and
+byte-compilation have all succeeded; a failure removes that staging
+residue and leaves no partial content directory.  Requirements install
+first, resolved across every configured archive
+(@pxref{Cross-Archive Dependencies}); a failure can leave dependencies
+that completed before it in place.
 @end deffn
 
 @defun elpa-installed-p name &optional version
@@ -271,13 +297,15 @@ in @file{.staging/}.
 @end defopt
 
 @defopt elpa-installable-packages
-The allowlist of packages the client may install, @code{(loop
-levenshtein csv vector-utils number rings shell-split-string kv
-unidecode queue loc-changes)} by default: the nine MELPA targets and
-the two GNU ELPA targets.  This list, not the packages' own declared
-compatibility, is the safety boundary: a name not on the list is
-refused before any download happens.  Trust is by name and spans all
-configured archives.  See @ref{Security}.
+The allowlist of packages the client may install, @code{(queue
+loc-changes dmacro checkbox es-lib buffer-sets loop levenshtein csv
+vector-utils number rings shell-split-string kv unidecode)} by default:
+the thirteen MELPA targets from milestones 1 and 2, plus the two GNU
+ELPA targets.  Every dependency name must also appear here
+(@pxref{Dependency Allowlist}).  This list, not the packages' own
+declared compatibility, is the safety boundary: a name not on the list
+is refused before any download happens.  Trust is by name and spans
+all configured archives.  See @ref{Security}.
 @end defopt
 
 @defopt elpa-activate-at-startup
@@ -301,10 +329,13 @@ per-package allowlist in @code{elpa-installable-packages}.  There is no
 signature verification, no checksum pinning, and no TLS pinning.  The
 allowlist grants trust by name across all configured archives; it is
 not a per-archive permission, because trust and source selection are
-different concepts.  The MELPA grant is inert until a MELPA archive is
-configured.  The @code{emacs} pseudo-dependency is ignored with a
-warning, since XEmacs cannot truthfully claim the declared Emacs
-version.
+different concepts.  Dependency resolution is not a second trust
+channel: every dependency name that is not core-provided (and is not
+the @code{emacs} pseudo-dependency), at every depth, must already be on
+the allowlist (@pxref{Dependency Allowlist}).  The MELPA grant is inert
+until a MELPA archive is configured.  The @code{emacs}
+pseudo-dependency is ignored with a warning, since XEmacs cannot
+truthfully claim the declared Emacs version.
 
 The residual risk is stated verbatim in the client header:
 
@@ -386,7 +417,7 @@ build publishes the new @code{<name>-<version>/} directory first and
 deletes the old one only after the publish succeeds; a failure leaves
 the old build in place.  There is no rollback or retention policy.
 
-@node Lisp API, Install Pipeline, Data Model, Top
+@node Lisp API, Compatibility Layer, Data Model, Top
 @chapter Lisp API
 
 This chapter is the reference for the public functions and for the
@@ -446,11 +477,197 @@ interactive paths; in batch mode it is harmless.
 @code{line-number-at-pos} already exists in core; it is deliberately
 @emph{not} redefined.
 
-@node Install Pipeline, Transport, Lisp API, Top
+@node Compatibility Layer, Cross-Archive Dependencies, Lisp API, Top
+@chapter Compatibility Layer
+
+The compatibility layer is core, not a package: it has no package
+version and is not installed from an archive.  It supplies the
+GNU-only APIs the milestone-2 targets need.  The @dfn{support contract}
+is the subset of those APIs this manual guarantees; anything outside
+it is unsupported even if a vendored file happens to define it.
+
+@menu
+* Support Contract::      The symbols the targets exercise.
+* Dumped Macros::        when-let, if-let, and friends.
+* Excluded APIs::        What this milestone does not provide.
+@end menu
+
+@node Support Contract, Dumped Macros, Compatibility Layer, Compatibility Layer
+@section Support Contract
+
+A symbol is supported when a target compiles, loads, and exercises it,
+not merely because it is present.  The contract is:
+
+@itemize @bullet
+@item
+@code{cl-lib}: @code{cl-defun}, @code{cl-defmacro},
+@code{cl-destructuring-bind}, @code{cl-loop} (which expands through
+@code{cl-block} and @code{cl-return-from}), @code{cl-letf},
+@code{cl-case}, @code{cl-incf}, @code{cl-dotimes}, @code{cl-macrolet},
+@code{cl-assert}, @code{cl-position} (patched), @code{cl-rest},
+@code{cl-member}, and @code{cl-find-if}.
+@item
+Dumped @file{subr.el}: @code{when-let}, @code{if-let},
+@code{defvar-local}, and @code{with-eval-after-load}.
+@item
+Dumped @file{files.el} and @file{easy-mmode.el}:
+@code{locate-user-emacs-file}, which @code{buffer-sets} evaluates at
+load time, and @code{define-globalized-minor-mode}, which
+@code{dmacro} calls at load time (it is an alias for
+@code{easy-mmode-define-global-mode}).
+@item
+Existing core: @code{derived}, @code{font-lock}, @code{apropos},
+@code{loadhist}, and @code{cl} (which satisfies @code{queue}'s
+compile-time require).
+@item
+Key parsing: @code{kbd} and @code{read-kbd-macro}, which
+@code{buffer-sets} uses at load time.
+@end itemize
+
+The vendored @code{cl-lib} is GNU ELPA 0.7.1, XEmacs-adapted and
+delivered from @file{lisp/}.  Only the symbols above are guaranteed.
+The adaptation's @code{defadvice} is a load-time no-op stub that
+implements no advice, and the direct @code{cl-position} definition is
+what @code{checkbox} exercises.  @code{cl-flet}, @code{cl-flet*}, and
+@code{cl-delete-duplicates} are not promised.
+
+@node Dumped Macros, Excluded APIs, Support Contract, Compatibility Layer
+@section Dumped Macros
+
+@code{when-let}, @code{if-let}, @code{defvar-local}, and
+@code{with-eval-after-load} are defined in the dumped
+@file{subr.el}, so they are available at compile and load time with no
+@code{require}.  This matters because the targets call @code{when-let}
+and @code{if-let} without requiring anything.
+
+@code{defvar-local} and @code{with-eval-after-load} are in
+@file{subr.el} upstream.  @code{when-let} and @code{if-let} are
+upstream @file{subr-x.el} macros; dumping them in @file{subr.el} is a
+deliberate divergence, because a lazily loaded @file{subr-x} library
+could not satisfy a caller that never requires it.  This milestone has
+no @code{subr-x} feature.
+
+@node Excluded APIs, , Dumped Macros, Compatibility Layer
+@section Excluded APIs
+
+None of the following is provided or guaranteed:
+
+@itemize @bullet
+@item
+@code{version<}.
+@item
+A @code{subr-x} feature.
+@item
+@code{overlay}.
+@item
+The GNU core libraries @code{xml}, @code{color}, @code{help-mode}, and
+@code{smie}.
+@item
+Org and BibTeX support.
+@item
+Lexical binding, including interpreter-only lexical binding.
+@end itemize
+
+Anything outside the support contract is unsupported, even if it
+happens to work.
+
+@node Cross-Archive Dependencies, Install Pipeline, Compatibility Layer, Top
+@chapter Cross-Archive Dependencies
+
+A package's requirements are resolved across every configured archive,
+not only the archive the package came from.  This chapter describes the
+search, the allowlist, and the guarantees before and during an
+install.
+
+@menu
+* Search Order::             Which archive answers a requirement.
+* Dependency Allowlist::     Every name, at every depth.
+* Preflight and Atomicity::  All checks before any install.
+* Core-Provided Packages::   Requirements the core satisfies.
+* Cycles::                   Repeated requirements and floors.
+@end menu
+
+@node Search Order, Dependency Allowlist, Cross-Archive Dependencies, Cross-Archive Dependencies
+@section Search Order
+
+A dependency requirement names a package and may give a version floor.
+The client searches every archive in @code{elpa-archives} order and
+takes the first entry whose version is at or above the floor.  The
+dependent's own archive does not constrain the search, so a MELPA
+package can require a package from GNU ELPA.  A duplicate name in two
+archives resolves to the earlier archive that satisfies the floor.
+
+Top-level installs keep the milestone-1 rule: @code{elpa-install}
+selects from the first configured archive, with an exact version when
+one is given.  Only dependency requirements search the whole list.
+
+Refresh is lazy and per consulted archive: the first time resolution
+consults an archive during an install operation, that archive's index
+is refreshed; later consultations reuse it.  A top-level install still
+refreshes the first archive before resolving.  There is no
+time-to-live and no background refresh.
+
+@node Dependency Allowlist, Preflight and Atomicity, Search Order, Cross-Archive Dependencies
+@section Dependency Allowlist
+
+Every dependency name that is not core-provided (and is not the
+@code{emacs} pseudo-dependency), at every depth, must be in
+@code{elpa-installable-packages}.  There is no automatic closure of the
+allowlist and no implicit trust: a dependency edge cannot introduce a
+name the user has not already allowed.  A name outside the list fails
+before its artifact is downloaded.  Core-provided names and the
+@code{emacs} pseudo-dependency are handled separately
+(@pxref{Core-Provided Packages}).
+
+The trust model is otherwise unchanged: HTTPS transport and the flat
+allowlist remain the only controls (@pxref{Security}).
+
+@node Preflight and Atomicity, Core-Provided Packages, Dependency Allowlist, Cross-Archive Dependencies
+@section Preflight and Atomicity
+
+The whole required closure is preflighted before anything installs.
+Every dependency name is checked against the allowlist; every
+requirement not already satisfied by an installed build must be found
+in some archive at or above its floor.  A missing dependency, an
+unsatisfiable floor, a disallowed name, or a conflicting cycle floor
+raises one unified dependency error naming the offending package and
+the package that required it.
+
+After a green preflight, dependencies install in dependency-first
+order, then the dependent.  If any install fails, the dependent aborts
+and that install's staging residue is removed.  Dependencies installed
+before the failure may remain; there is no best-effort retry and no
+second failure mode.
+
+@node Core-Provided Packages, Cycles, Preflight and Atomicity, Cross-Archive Dependencies
+@section Core-Provided Packages
+
+The private constant @code{elpa-core-provided-packages} defaults to
+@code{(cl cl-extra cl-lib)}.  A requirement whose name is in this list
+is satisfied without a download.  The constant is internal, not a
+Customize option.
+
+The @code{emacs} pseudo-dependency is handled separately: it is
+ignored, and a successful install emits one summary warning listing
+the ignored @code{emacs} requirements.
+
+@node Cycles, , Core-Provided Packages, Cross-Archive Dependencies
+@section Cycles
+
+Dependency cycles are detected while planning.  A back edge is
+floor-checked against the version already planned for the cycle member
+and warned, rather than silently recursed.  If the back edge demands a
+version above the planned one, the install fails with the unified
+dependency error.  A cycle whose floors are satisfiable installs each
+member once.
+
+@node Install Pipeline, Transport, Cross-Archive Dependencies, Top
 @chapter Install Pipeline
 
-@code{elpa-install} runs these stages in order; each can fail the whole
-install, and the staging directory is removed on any failure:
+@code{elpa-install} runs these stages in order.  Each can fail the
+operation; the failing package is not published and its staging
+residue is removed, though dependencies completed before a failure may
+remain:
 
 @enumerate
 @item
@@ -460,12 +677,19 @@ artifacts 404, so a stale index can name a dead download.  A local
 directory refresh is a file read, not a network fetch.
 
 @item
-@strong{Resolve.}  Apply the allowlist, honor (or warn about)
-requirements, and pick the version: exact match when requested and
-still advertised, otherwise the version the index currently advertises.
-An explicit version that the index no longer offers fails clearly.
-Dependencies install before dependents, with a seen-set breaking
-cycles.
+@strong{Resolve.}  Apply the allowlist to the top-level package and
+pick its version from the first archive: exact match when requested
+and still advertised, otherwise the version the index currently
+advertises.  An explicit version that the index no longer offers fails
+clearly.
+
+@item
+@strong{Preflight.}  Plan the whole required closure before anything
+installs: check every dependency name against the allowlist, and
+resolve every requirement not already satisfied on disk across all
+archives.  Cycles are floor-checked and warned
+(@pxref{Cross-Archive Dependencies}).  The plan is dependency-first;
+the remaining stages run for each planned package in that order.
 
 @item
 @strong{Acquire.}  HTTPS archives are fetched over the async HTTP
@@ -534,41 +758,79 @@ download leaves no partial file behind.
 @node Testing, Limitations, Transport, Top
 @chapter Testing
 
-The client's behavior is pinned by two CTest tests.  Together their two
-halves are the milestone's @dfn{success test}: a deterministic offline
-gate that pins exact versions and a live smoke that pins nothing.
+The client's behavior is pinned by CTest suites.  For milestone 2, the
+@dfn{success test} has two halves: a deterministic offline gate that
+pins exact versions, and a live smoke that pins nothing.
 
 @itemize @bullet
 @item
-@code{elpa-tests} (offline, runs by default): the deterministic gate.
-It installs the nine MELPA target packages from the vendored fixture
-under @file{tests/elpa/melpa-fixture/}---the real, unmodified upstream
-tarballs at pinned date versions plus a hand-written version-1
-@file{archive-contents}---and the GNU ELPA targets @code{queue} and
-@code{loc-changes}.  For each MELPA target it exercises one
-representative function in a fresh child XEmacs process, using the
-forms fixed by the no-kit audit (for example,
+@code{elpa-tests} (offline, runs by default): the milestone-1
+deterministic gate.  It installs the nine MELPA target packages from
+the vendored fixture under @file{tests/elpa/melpa-fixture/}---the real,
+unmodified upstream tarballs at pinned date versions plus a
+hand-written version-1 @file{archive-contents}---and the GNU ELPA
+targets @code{queue} and @code{loc-changes}.  For each MELPA target it
+exercises one representative function in a fresh child XEmacs process,
+using the forms fixed by the no-kit audit (for example,
 @code{(levenshtein-distance "kitten" "sitting")} must return
 @code{3}), and it covers the negative paths: allowlist rejection, an
 unavailable explicit version, path-traversal and symlink members, and a
 missing artifact.  Its last line is @code{elpa tests: passed}.
 
 @item
+@code{elpa-m2-tests} (offline, runs by default): the milestone-2
+fixture gate.  The fixture under
+@file{tests/elpa/melpa-m2-fixture/} holds two local archives: a
+hand-written MELPA-style index advertising the four target tarballs at
+pinned date versions, and a GNU-style index advertising @code{queue}
+0.2.  The five vendored artifacts are real, unmodified upstream files;
+@file{PROVENANCE} records each one's source, version, byte size, and
+license.  Synthetic packages are checked in as source and tarred into
+temporary archive copies at test setup, so no synthetic binary is
+committed.  The gate installs each target into a temporary package
+directory and exercises it in a fresh child XEmacs, comparing the
+final output line by raw-byte @code{string=}.  Its last line is
+@code{elpa-m2 tests: passed}.
+
+@item
+@code{elpa-m2-negative-tests} (offline, runs by default): the
+milestone-2 negative gate, all on synthetic packages.  It first
+installs the cross-archive witness @code{m2-xdep}, a MELPA-style
+package that requires GNU ELPA @code{queue}; installing it must pull
+@code{queue} 0.2 from the second archive.  It then covers a dependency
+outside the allowlist, a dependency present in no index, an
+unsatisfiable version floor, a corrupt dependency artifact, a
+duplicate name in both archives (for both top-level and dependency
+resolution), a rolling upgrade that keeps its GNU dependency, and
+cycles, including a conflicting cycle floor.  The assertions require
+one clear error, no partially-installed dependent, and no staging
+residue; dependencies completed before a failure may remain.  Its last
+line is @code{elpa-m2-negative tests: passed}.
+
+@item
+@code{cl-lib-tests} and @code{subr-compat-tests} (offline, run by
+default): per-definition tests for the compatibility layer, including
+the @code{cl-position} patch and the no-override guard, plus compile,
+load, and fresh-child tests for the dumped macros.  CTest fails these
+suites on the harness's @code{FAIL:} or @code{aborted} markers.
+
+@item
 @code{elpa-live-tests} (labeled @code{network}, skipped unless the
-environment variable @code{ELPA_LIVE} is set): the live HTTPS smoke
-suite.  It installs whichever @code{queue} version
-@url{https://elpa.gnu.org/packages/} currently advertises, and it
-refreshes @url{https://melpa.org/packages/}'s full index in memory,
-installs @code{levenshtein} without pinning a version, asserts that the
-installed directory name matches the date version the index advertised,
-and exercises it in a fresh child process.  The live tests never pin a
-version; the offline fixture is the deterministic gate.
+environment variable @code{ELPA_LIVE} is set): the live HTTPS smoke.
+It refreshes the full MELPA index in memory and the GNU ELPA index,
+installs @code{checkbox} from MELPA and @code{queue} from GNU ELPA
+without pinning versions, asserts that each installed directory name
+matches the version its index advertised, and exercises each in a
+fresh child XEmacs.  It also keeps the 404 index and 404 artifact
+negatives.  The live suite exercises top-level archive selection, not
+a transitive dependency path; the transitive resolver is proven
+offline.
 @end itemize
 
 Run them with:
 
 @example
-ctest --test-dir build -R elpa
+ctest --test-dir build -R 'elpa|cl-lib-tests|subr-compat-tests'
 ELPA_LIVE=1 ctest --test-dir build -R elpa-live
 @end example
 
@@ -587,9 +849,7 @@ command or retention policy.
 @item Packages outside @code{elpa-installable-packages}.
 @item Building packages from MELPA recipes or source (VC) repositories;
 the client consumes prebuilt tarballs only.
-@item Cross-archive dependency resolution: the target set is
-dependency-free, and MELPA's dependency wall belongs to a future
-compatibility effort.
+@item Emacs APIs outside the support contract (@pxref{Excluded APIs}).
 @item Lexical binding.  @code{unidecode} declares
 @code{lexical-binding: t} but runs unchanged because it does not depend
 on lexical semantics; @code{memoize} is the documented negative, since

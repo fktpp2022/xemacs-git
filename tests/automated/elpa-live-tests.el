@@ -209,7 +209,7 @@ http.server.HTTPServer(('127.0.0.1', PORT), H).serve_forever()
       (ignore-errors (elpa-live-tests-delete-tree elpa-user-dir))))
 
   ;; MELPA: refresh the full rolling index in memory (about 2.6 MB, the
-  ;; full-scale regression for the large-body fix), install levenshtein
+  ;; full-scale regression for the large-body fix), install checkbox
   ;; with no version pinned, and exercise it in a fresh child.
   (let ((elpa-user-dir (file-name-as-directory
                         (make-temp-file "elpa-live-melpa-" t)))
@@ -224,46 +224,46 @@ http.server.HTTPServer(('127.0.0.1', PORT), H).serve_forever()
                      (expand-file-name "archives/melpa/archive-contents"
                                        elpa-user-dir))
                     "the full MELPA index is cached"))
-          (let* ((info (elpa-package-info "levenshtein"))
+          (let* ((info (elpa-package-info "checkbox"))
                  (version (plist-get info :version)))
-            (Assert info "levenshtein is present in the live MELPA index")
+            (Assert info "checkbox is present in the live MELPA index")
             (Assert (and (listp version) (integerp (car version)))
-                    "levenshtein's advertised version is a version list")
+                    "checkbox's advertised version is a version list")
             (Assert (eq (plist-get info :kind) 'tar)
-                    "levenshtein is a tar package")
-            (let* ((dirname (concat "levenshtein-"
+                    "checkbox is a tar package")
+            (let* ((dirname (concat "checkbox-"
                                     (elpa-version-join version)))
                    (dir (expand-file-name dirname elpa-user-dir)))
               ;; Install with no version pinned: install refreshes again
               ;; and resolves whatever the rolling index advertises.
-              (Assert (eq 'levenshtein (elpa-install "levenshtein"))
-                      "elpa-install downloads and installs levenshtein over HTTPS")
-              (Assert (equal (plist-get (elpa-package-info "levenshtein")
+              (Assert (eq 'checkbox (elpa-install "checkbox"))
+                      "elpa-install downloads and installs checkbox over HTTPS")
+              (Assert (equal (plist-get (elpa-package-info "checkbox")
                                         :version)
                              version)
                       "the install refresh advertised the same version")
               (Assert (file-directory-p dir)
                       "the installed directory name matches the advertised date version")
               (Assert (equal (directory-files elpa-user-dir nil
-                                              "\\`levenshtein-")
+                                              "\\`checkbox-")
                              (list dirname))
-                      "the only content directory is levenshtein-<advertised version>")
-              (Assert (equal (elpa--find-installed-dir 'levenshtein) dir)
+                      "the only content directory is checkbox-<advertised version>")
+              (Assert (equal (elpa--find-installed-dir 'checkbox) dir)
                       "elpa--find-installed-dir names the installed build")
-              (Assert (elpa-installed-p "levenshtein")
+              (Assert (elpa-installed-p "checkbox")
                       "elpa-installed-p accepts the advertised version")
               (Assert (file-exists-p
-                       (expand-file-name "levenshtein.elc" dir))
-                      "the live install byte-compiled levenshtein.el")
+                       (expand-file-name "checkbox.elc" dir))
+                      "the live install byte-compiled checkbox.el")
               (Assert (not (file-exists-p
                             (expand-file-name ".staging/" elpa-user-dir)))
                       "no staging residue after a live MELPA install")
               (Assert (string=
                        (elpa-live-tests-run-package-form
-                        elpa-user-dir 'levenshtein
-                        "(levenshtein-distance \"kitten\" \"sitting\")")
-                       "3")
-                      "a fresh XEmacs activates the live-installed levenshtein and computes the audit's distance"))))
+                        elpa-user-dir 'checkbox
+                        "(with-temp-buffer (insert \"- Buy gin \") (goto-char (point-min)) (checkbox-toggle) (buffer-string))")
+                       "\"- [ ] Buy gin \"")
+                      "a fresh XEmacs activates the live-installed checkbox and toggles the spec's bytes"))))
       (ignore-errors (elpa-live-tests-delete-tree elpa-user-dir))))
 
   ;; A 404 artifact: a local server serves a valid index whose tarball is

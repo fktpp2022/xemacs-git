@@ -1,0 +1,117 @@
+(1
+ (dmacro
+  . [(20241027 830)
+     ((emacs (24 1)) (cl-lib (0 6)))
+     "Repeated detection and execution of key operation."
+     tar
+     ((:url . "https://github.com/emacs-jp/dmacro")
+      (:commit . "cb3ce0e1d6ce868baf47cb9225c8daae4b610dab")
+      (:revdesc . "cb3ce0e1d6ce"))])
+ (checkbox
+  . [(20141117 58)
+     ((emacs (24)) (cl-lib (0 5)))
+     "Quick manipulation of textual checkboxes."
+     tar
+     ((:url . "https://github.com/camdez/checkbox.el")
+      (:commit . "2afc2011fa35ccfa0ce9ef46cb1896911fa340d1")
+      (:revdesc . "2afc2011fa35"))])
+ (es-lib
+  . [(20141111 1830)
+     ((cl-lib (0 3)))
+     "A collection of emacs utilities."
+     tar
+     ((:url . "https://github.com/sabof/es-lib")
+      (:commit . "753b27363e39c10edc9e4e452bdbbbe4d190df4a")
+      (:revdesc . "753b27363e39"))])
+ (buffer-sets
+  . [(20260817 2118)
+     ((cl-lib (0 5)))
+     "Sets of Buffers for Buffer Management."
+     tar
+     ((:url . "https://git.sr.ht/~swflint/buffer-sets")
+      (:commit . "9c30f12feaa4182d845b70c5be459a07d3be5db3")
+      (:revdesc . "9c30f12feaa4"))])
+ (m2-xdep
+  . [(20261026 1200)
+     ((emacs (24)) (emacs (25)) (queue (0 2)))
+     "Synthetic cross-archive dependent."
+     tar
+     ((:url . "https://example.invalid/m2-xdep"))])
+ (m2-xdep-notallowed
+  . [(20261026 1200)
+     ((m2-untrusted (0 1)))
+     "Synthetic dependent on a package absent from the allowlist."
+     tar
+     ((:url . "https://example.invalid/m2-xdep-notallowed"))])
+ (m2-xdep-missing
+  . [(20261026 1200)
+     ((m2-nowhere (0 1)))
+     "Synthetic dependent on a package present in no configured archive."
+     tar
+     ((:url . "https://example.invalid/m2-xdep-missing"))])
+ (m2-xdep-floor
+  . [(20261026 1200)
+     ((queue (9 9)))
+     "Synthetic dependent whose GNU queue floor cannot be met."
+     tar
+     ((:url . "https://example.invalid/m2-xdep-floor"))])
+ (m2-xdep-broken
+  . [(20261026 1200)
+     ((queue (0 2)) (m2-corrupt (0 1)))
+     "Synthetic dependent on a completable and a corrupt dependency."
+     tar
+     ((:url . "https://example.invalid/m2-xdep-broken"))])
+ (m2-xdep-dup
+  . [(20261026 1200)
+     ((m2-dup (0 0)))
+     "Synthetic dependent on a package advertised by two archives."
+     tar
+     ((:url . "https://example.invalid/m2-xdep-dup"))])
+ (m2-dup
+  . [(20261026 1200)
+     nil
+     "Synthetic package advertised by two archives."
+     tar
+     ((:url . "https://example.invalid/m2-dup-melpa"))])
+ (m2-untrusted
+  . [(20261026 1200)
+     nil
+     "Synthetic package present in an index but absent from the allowlist."
+     tar
+     ((:url . "https://example.invalid/m2-untrusted"))])
+ (m2-nowhere
+  . [(20261026 1200)
+     nil
+     "Synthetic package recorded in the single fixture index only."
+     tar
+     ((:url . "https://example.invalid/m2-nowhere"))])
+ (m2-corrupt
+  . [(20261026 1200)
+     nil
+     "Synthetic package whose artifact is truncated when staged."
+     tar
+     ((:url . "https://example.invalid/m2-corrupt"))])
+ (m2-cycle-a
+  . [(20261026 1200)
+     ((m2-cycle-b (0 1)))
+     "Synthetic dependency cycle member A."
+     tar
+     ((:url . "https://example.invalid/m2-cycle-a"))])
+ (m2-cycle-b
+  . [(20261026 1200)
+     ((m2-cycle-a (0 1)))
+     "Synthetic dependency cycle member B."
+     tar
+     ((:url . "https://example.invalid/m2-cycle-b"))])
+ (m2-cycle-floor-a
+  . [(20261026 1200)
+     ((m2-cycle-floor-b (0 1)))
+     "Synthetic cycle member whose back edge demands an impossible floor."
+     tar
+     ((:url . "https://example.invalid/m2-cycle-floor-a"))])
+ (m2-cycle-floor-b
+  . [(20261026 1200)
+     ((m2-cycle-floor-a (99999999 1)))
+     "Synthetic cycle member that requires an impossible version of A."
+     tar
+     ((:url . "https://example.invalid/m2-cycle-floor-b"))]))

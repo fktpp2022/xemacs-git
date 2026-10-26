@@ -25,5 +25,21 @@ A milestone gate of two halves: a deterministic offline fixture that pins exact 
 _Avoid_: acceptance test, integration test
 
 **Shim**:
-New compatibility code written by this effort to satisfy a package's GNU-only require on XEmacs. Distinct from consuming a prebuilt compat package; the target set is zero-shim.
+New compatibility code written by this effort to satisfy a package's GNU-only require on XEmacs. Distinct from consuming a prebuilt compat package. Milestone 1's target set is zero-shim; the milestone-2 compatibility layer is core provision, not a shim (see **Compatibility layer**).
 _Avoid_: alias file, polyfill
+
+**Compatibility layer**:
+The milestone-2 core provision that lets unmodified GNU-oriented packages run on XEmacs. Core, not a package, and governed by the support contract.
+_Avoid_: compat package, shim
+
+**Support contract**:
+The exact set of APIs a milestone guarantees for its targets, established by compiling, loading, and exercising them. Anything outside the contract is unsupported even if it happens to work.
+_Avoid_: supported API, best effort
+
+**Cross-archive dependency resolution**:
+Resolving each dependency requirement against all configured archives in `elpa-archives` order and taking the first entry that satisfies the version floor; the dependent's own archive does not limit the search. Every dependency name that is not core-provided (and is not the `emacs` pseudo-dependency) is allowlisted at every depth.
+_Avoid_: multi-archive install, cross-repo dependency
+
+**Core-provided package**:
+A requirement name that the XEmacs core satisfies without a download, from a private list that is not a Customize option.
+_Avoid_: builtin package, ignored dependency
