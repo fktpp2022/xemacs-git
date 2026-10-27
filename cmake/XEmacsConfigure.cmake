@@ -462,15 +462,18 @@ if(XEMACS_WITH_TOOLBARS)
   set(HAVE_TOOLBARS 1)
 endif()
 
-# Dialogs and Widgets require Athena or Motif on X11 - configure found neither
-# So we do NOT enable them unless the library is actually found
-if(XEMACS_WITH_DIALOGS)
-  # Only enable if we have a toolkit that supports dialogs
-  # Lucid alone doesn't provide dialogs without Athena
-  set(HAVE_DIALOGS_REQUESTED 1)
+# Guard on the feature macros rather than the option values, so that adding
+# Athena/Motif detection later makes these checks inert. Detection must be
+# resolved before this point.
+if(XEMACS_WITH_DIALOGS AND NOT HAVE_DIALOGS)
+  message(FATAL_ERROR
+    "XEMACS_WITH_DIALOGS is ON, but dialogs are not supported by the CMake build. "
+    "The autoconf build supports native dialogs; see INSTALL-CMAKE.md for details.")
 endif()
-if(XEMACS_WITH_WIDGETS)
-  set(HAVE_WIDGETS_REQUESTED 1)
+if(XEMACS_WITH_WIDGETS AND NOT HAVE_WIDGETS)
+  message(FATAL_ERROR
+    "XEMACS_WITH_WIDGETS is ON, but widgets are not supported by the CMake build. "
+    "The autoconf build supports native widgets; see INSTALL-CMAKE.md for details.")
 endif()
 
 # Lucid toolkit setup
@@ -482,8 +485,8 @@ if(HAVE_X_WINDOWS)
   if(HAVE_SCROLLBARS)
     set(LWLIB_SCROLLBARS_LUCID 1)
   endif()
-  # LWLIB_TABS_LUCID and HAVE_DIALOGS/HAVE_WIDGETS require Athena
-  # Configure did NOT enable them, so we don't either
+  # LWLIB_TABS_LUCID and native widgets/dialogs require Athena, which the
+  # CMake build does not detect yet.
 endif()
 
 # --- Canna / Wnn ---
