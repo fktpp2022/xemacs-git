@@ -9,8 +9,8 @@ option(XEMACS_WITH_WMCOMMAND "Handle WM_COMMAND properly" ON)
 
 option(XEMACS_WITH_MENUBARS "Enable menubar support" ON)
 option(XEMACS_WITH_SCROLLBARS "Enable scrollbar support" ON)
-option(XEMACS_WITH_DIALOGS "Enable dialog support" ON)
-option(XEMACS_WITH_WIDGETS "Enable widget support" OFF)
+option(XEMACS_WITH_DIALOGS "Enable native dialog support (the CMake build cannot currently build it)" OFF)
+option(XEMACS_WITH_WIDGETS "Enable native widget support (the CMake build cannot currently build it)" OFF)
 
 option(XEMACS_WITH_XFT "Enable Xft font rendering support" ON)
 option(XEMACS_WITH_XFT_MENUBARS "Enable Xft rendering in menubars" ON)

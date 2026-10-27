@@ -278,13 +278,15 @@ cmake -DXEMACS_WITH_MENUBARS=ON ..
 # Enable scrollbars (default: ON)
 cmake -DXEMACS_WITH_SCROLLBARS=ON ..
 
-# Enable dialogs (default: ON)
+# Dialogs are not supported by the CMake build (default: OFF); requesting
+# them fails at configure time. Use the autoconf build if you need them.
 cmake -DXEMACS_WITH_DIALOGS=ON ..
 
 # Enable toolbars (default: ON)
 cmake -DXEMACS_WITH_TOOLBARS=ON ..
 
-# Enable widgets (default: OFF)
+# Widgets are not supported by the CMake build (default: OFF); requesting
+# them fails at configure time. Use the autoconf build if you need them.
 cmake -DXEMACS_WITH_WIDGETS=ON ..
 
 # Widget type selection (lucid, motif, athena, gtk, msw)
