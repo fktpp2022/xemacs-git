@@ -49,6 +49,40 @@ set_tests_properties(cl-lib-tests subr-compat-tests keymap-tests
 add_test(NAME xemacs_build_fixture COMMAND ${CMAKE_COMMAND} -E true)
 set_tests_properties(xemacs_build_fixture PROPERTIES FIXTURES_SETUP xemacs_build)
 
+# The reported configuration options must match what was actually compiled.
+set(EXPECTED_CONFIG_OPTIONS "")
+if(HAVE_MENUBARS)
+  string(APPEND EXPECTED_CONFIG_OPTIONS " '--with-menubars=${XEMACS_WITH_MENUBARS_TYPE}'")
+endif()
+if(HAVE_SCROLLBARS)
+  string(APPEND EXPECTED_CONFIG_OPTIONS " '--with-scrollbars=${XEMACS_WITH_SCROLLBARS_TYPE}'")
+endif()
+if(XEMACS_WITH_MULE)
+  string(APPEND EXPECTED_CONFIG_OPTIONS " '--with-mule'")
+endif()
+
+add_test(
+  NAME config-options-truthful
+  COMMAND "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}"
+    -batch -eval "(princ system-configuration-options)"
+  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+)
+set_tests_properties(config-options-truthful PROPERTIES
+  TIMEOUT 120
+  PASS_REGULAR_EXPRESSION "${EXPECTED_CONFIG_OPTIONS}"
+  FAIL_REGULAR_EXPRESSION "--with-widgets|--with-dialogs"
+  FIXTURES_REQUIRED xemacs_build
+)
+
+add_test(
+  NAME configure-widget-dialog-guard
+  COMMAND "${CMAKE_COMMAND}"
+    "-DSRC=${CMAKE_SOURCE_DIR}"
+    "-DSCRATCH=${CMAKE_BINARY_DIR}/tests/configure-guard-scratch"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/configure-guard-test.cmake"
+)
+set_tests_properties(configure-widget-dialog-guard PROPERTIES TIMEOUT 300)
+
 # Convenience target: `make check` runs ctest
 add_custom_target(check
   COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
