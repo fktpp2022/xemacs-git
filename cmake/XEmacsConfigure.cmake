@@ -1,6 +1,19 @@
 # XEmacs feature detection - matches autoconf configure baseline
 # ============================================================
 
+# Guard on the feature macros rather than the option values, so that adding
+# Athena/Motif detection later makes these checks inert without edits.
+if(XEMACS_WITH_DIALOGS AND NOT HAVE_DIALOGS)
+  message(FATAL_ERROR
+    "XEMACS_WITH_DIALOGS is ON, but dialogs are not supported by the CMake build. "
+    "The autoconf build supports native dialogs; see INSTALL-CMAKE.md for details.")
+endif()
+if(XEMACS_WITH_WIDGETS AND NOT HAVE_WIDGETS)
+  message(FATAL_ERROR
+    "XEMACS_WITH_WIDGETS is ON, but widgets are not supported by the CMake build. "
+    "The autoconf build supports native widgets; see INSTALL-CMAKE.md for details.")
+endif()
+
 # --- Type sizes ---
 check_type_size("short" SIZEOF_SHORT)
 check_type_size("int" SIZEOF_INT)
@@ -460,19 +473,6 @@ if(XEMACS_WITH_SCROLLBARS)
 endif()
 if(XEMACS_WITH_TOOLBARS)
   set(HAVE_TOOLBARS 1)
-endif()
-
-# Guard on the feature macros rather than the option values, so that adding
-# Athena/Motif detection later makes these checks inert without edits.
-if(XEMACS_WITH_DIALOGS AND NOT HAVE_DIALOGS)
-  message(FATAL_ERROR
-    "XEMACS_WITH_DIALOGS is ON, but dialogs are not supported by the CMake build. "
-    "The autoconf build supports native dialogs; see INSTALL-CMAKE.md for details.")
-endif()
-if(XEMACS_WITH_WIDGETS AND NOT HAVE_WIDGETS)
-  message(FATAL_ERROR
-    "XEMACS_WITH_WIDGETS is ON, but widgets are not supported by the CMake build. "
-    "The autoconf build supports native widgets; see INSTALL-CMAKE.md for details.")
 endif()
 
 # Lucid toolkit setup
