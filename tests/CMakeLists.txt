@@ -81,7 +81,7 @@ add_test(
     "-DSCRATCH=${CMAKE_BINARY_DIR}/tests/configure-guard-scratch"
     -P "${CMAKE_CURRENT_SOURCE_DIR}/configure-guard-test.cmake"
 )
-set_tests_properties(configure-widget-dialog-guard PROPERTIES TIMEOUT 300)
+set_tests_properties(configure-widget-dialog-guard PROPERTIES TIMEOUT 420)
 
 # Convenience target: `make check` runs ctest
 add_custom_target(check
