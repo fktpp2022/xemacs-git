@@ -2590,4 +2590,24 @@ lambda that GNU Emacs uses."
   (declare (indent 1) (debug t))
   `(eval-after-load ,file '(progn ,@body)))
 
+;; GNU's `time-subtract' lives in time-date.el; XEmacs has no such library,
+;; so the one function the use-package statistics reporter needs is dumped
+;; here.  A time value is (HIGH LOW MICROSEC) as returned by
+;; `current-time'; the result is normalized accordingly.
+;; ponytail: only `time-subtract' -- no `time-add', `time-lessp', or the
+;; rest of time-date, which have no caller yet.
+
+(defun time-subtract (a b)
+  "Return the difference of two time values A and B.
+A and B are lists (HIGH LOW MICROSEC) as returned by `current-time'.
+The result has the same form, with the low and microsecond fields
+normalized to non-negative values."
+  (let* ((usec (- (or (nth 2 a) 0) (or (nth 2 b) 0)))
+         (secs (- (+ (* (car a) 65536) (nth 1 a))
+                  (+ (* (car b) 65536) (nth 1 b)))))
+    (when (< usec 0)
+      (setq usec (+ usec 1000000)
+            secs (1- secs)))
+    (list (ash secs -16) (logand secs 65535) usec)))
+
 ;;; subr.el ends here

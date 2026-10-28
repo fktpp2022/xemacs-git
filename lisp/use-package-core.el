@@ -31,11 +31,7 @@
 
 (require 'bytecomp)
 (require 'cl-lib)
-;; XEmacs has no `tabulated-list'; the statistics reporter below is a
-;; display-only debug aid and signals a clear error when invoked there.
-(condition-case nil
-    (require 'tabulated-list)
-  (error nil))
+(require 'tabulated-list)
 
 (eval-and-compile
   ;; Declare a synthetic theme for :custom variables.
@@ -1052,8 +1048,6 @@ meaning:
   Prefaced          :preface has been processed
   Declared          the use-package declaration was seen"
   (interactive)
-  (unless (fboundp 'tabulated-list-mode)
-    (error "use-package statistics require `tabulated-list', absent on XEmacs"))
   (with-current-buffer (get-buffer-create "*use-package statistics*")
     (setq tabulated-list-entries
           (mapcar #'use-package-statistics-convert

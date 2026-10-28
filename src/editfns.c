@@ -948,6 +948,7 @@ lisp_to_time (Lisp_Object specified_time, time_t *result)
 
 size_t emacs_strftime (Extbyte *string, size_t max, const Extbyte *format,
 		       const struct tm *tm);
+extern long emacs_strftime_nanoseconds;
 static long difftm (const struct tm *a, const struct tm *b);
 
 
@@ -1011,6 +1012,27 @@ The number of options reflects the `strftime' function.
 
   if (! lisp_to_time (time_, &value))
     invalid_argument ("Invalid time specification", Qunbound);
+
+  /* Plumb the microsecond field through to strftime for %N.  XEmacs
+     time values are (HIGH LOW . MICROSEC), or (HIGH LOW); 0 when TIME
+     is absent.  ponytail: XEmacs has only microsecond precision, so
+     %N is the microsecond field times 1000.  */
+  emacs_strftime_nanoseconds = 0;
+  if (CONSP (time_))
+    {
+      Lisp_Object tail = XCDR (time_);
+      if (CONSP (tail))
+	{
+	  Lisp_Object rest = XCDR (tail);
+	  Lisp_Object mic = CONSP (rest) ? XCAR (rest) : rest;
+	  if (FIXNUMP (mic))
+	    {
+	      EMACS_INT us = XFIXNUM (mic);
+	      if (us > 0 && us < 1000000)
+		emacs_strftime_nanoseconds = (long) us * 1000;
+	    }
+	}
+    }
 
   /* This is probably enough.  */
   size = XSTRING_LENGTH (format_string) * 6 + 50;
