@@ -367,4 +367,26 @@
 
 (Check-Error args-out-of-range (read "#@4294967296 hello"))
 
+;;; Character escapes
+;;; ==============
+
+;; The named escapes that GNU Emacs documents: a b d e f n r s t v.
+;; `?\s' (space) is the one XEmacs historically got wrong -- it read
+;; as `s' (115) because read_escape had no `s' case.  These guard the
+;; fix and the rest against regressions.
+(Assert (= ?\s 32)        "?\\s is the space character")
+(Assert (= ?\a 7)         "?\\a is bell")
+(Assert (= ?\b 8)         "?\\b is backspace")
+(Assert (= ?\t 9)         "?\\t is tab")
+(Assert (= ?\n 10)        "?\\n is newline")
+(Assert (= ?\v 11)        "?\\v is vertical tab")
+(Assert (= ?\f 12)        "?\\f is formfeed")
+(Assert (= ?\r 13)        "?\\r is return")
+(Assert (= ?\e 27)        "?\\e is escape")
+(Assert (= ?\d 127)       "?\\d is delete")
+;; The shared escape reader also covers string literals.
+(Assert (equal "\s" " ")            "\"\\s\" is a one-char space string")
+(Assert (= (length "a\sb") 3)       "\"\\s\" is one character in a string")
+(Assert (= (aref "\s" 0) 32)        "\"\\s\" content is space")
+
 ;;; end of lisp-reader-tests.el
