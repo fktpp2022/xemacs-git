@@ -97,6 +97,12 @@
 
 #ifdef emacs
 #define strftime emacs_strftime
+
+/* Nanoseconds for the %N conversion (a GNU extension).  Set by
+   Fformat_time_string (editfns.c) before each call.  ponytail: XEmacs
+   time has microsecond resolution, so this is microseconds * 1000;
+   the single-threaded runtime makes a file-scope variable safe.  */
+long emacs_strftime_nanoseconds = 0;
 #endif
 
 /* Types of padding for numbers in date and time. */
@@ -307,6 +313,39 @@ strftime (char *string, size_t max, const char *format, const struct tm *tm)
 	  else
 	    pad = zero;
 
+#ifdef emacs
+	  /* %N: GNU nanoseconds, with an optional width (e.g. %6N).  Any
+	     '-' or '_' padding flag has already been consumed above.
+	     ponytail: width defaults to 9 and is clamped to 9.  */
+	  {
+	    const char *np = format;
+	    int width = -1;
+	    while (*np >= '0' && *np <= '9')
+	      {
+		width = (width < 0 ? 0 : width) * 10 + (*np - '0');
+		++np;
+	      }
+	    if (*np == 'N')
+	      {
+		unsigned long ns = (unsigned long) emacs_strftime_nanoseconds;
+		char nbuf[9];
+		int i;
+		if (ns > 999999999UL)
+		  ns = 0;
+		if (width < 1 || width > 9)
+		  width = 9;
+		for (i = 8; i >= 0; --i)
+		  {
+		    nbuf[i] = (char) ('0' + (ns % 10));
+		    ns /= 10;
+		  }
+		for (i = 0; i < width; ++i)
+		  add_char (nbuf[i]);
+		format = np;	/* leave FORMAT on 'N' for the loop tail */
+		continue;
+	      }
+	  }
+#endif
 	  switch (*format)
 	    {
 	      /* Literal character fields: */

@@ -307,6 +307,7 @@ in dumped-lisp.el and is not itself listed.")
         ;;     "sun-eos-debugger-extra"
         ;;     "sun-eos-menubar"))
        "macroexp"		; `macroexp-progn' for use-package/bind-key
+       "tabulated-list"	; minimal port for use-package-report
        "use-package-xemacs"	; use-package glue, before its autoloads
        "loaddefs"		; <=== autoloads get loaded here
 	))
