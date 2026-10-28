@@ -825,4 +825,12 @@ terminated by RET (which is discarded)."
        (dead-stroke             compose-stroke-map))
   do (define-key function-key-map-parent (vector key) map))
 
+;; GNU Emacs consults `emulation-mode-map-alists' to find an active
+;; `emulation-mode-map-alist' (notably `override-global-map' for `bind-key*').
+;; XEmacs has no such lookup; the variable exists so upstream `bind-key'
+;; loads, and is never consulted.
+(unless (boundp 'emulation-mode-map-alists)
+  (defvar emulation-mode-map-alists nil
+    "Unused on XEmacs; present for GNU `bind-key' load compatibility."))
+
 ;;; keymap.el ends here

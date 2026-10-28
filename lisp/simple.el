@@ -4845,6 +4845,11 @@ warnings on those classes will be treated as if their level is below
 `display-warning-minimum-level', but above `log-warning-minimum-level' so
 long as they're not listed in that variable as well."
   (or level (setq level 'warning))
+  ;; GNU Emacs passes levels as keywords (:error :warning :debug); XEmacs
+  ;; wants the bare symbol.  Normalize before the `check-type' below.
+  (when (and (symbolp level) (> (length (symbol-name level)) 0)
+             (eq (aref (symbol-name level) 0) ?:))
+    (setq level (intern (substring (symbol-name level) 1))))
   (or (listp class) (setq class (list class)))
   (check-type level warning-level)
   (if (not init-file-loaded)

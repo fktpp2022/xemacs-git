@@ -41,6 +41,26 @@
 ;; prevent require/provide loop with custom and cus-face.
 (provide 'custom)
 
+;; XEmacs has `deftheme'/`custom-theme-set-variables' but no `enable-theme'
+;; and no `custom-enabled-themes' list.  `use-package' defines a synthetic
+;; theme and enables it at load time, so provide the GNU API.  Marking the
+;; theme `theme-immediate' makes `custom-theme-set-variables' apply the
+;; recorded :custom values at once, so a later `defcustom' does not clobber
+;; them.
+(unless (boundp 'custom-enabled-themes)
+  (defvar custom-enabled-themes nil
+    "List of Custom themes that have been enabled (GNU Emacs compatibility)."))
+
+(unless (fboundp 'enable-theme)
+  (defun enable-theme (theme)
+    "Record THEME as enabled and make its settings take effect immediately.
+XEmacs has no full theme-activation machinery; this is sufficient for the
+synthetic theme `use-package' creates."
+    (put theme 'theme-immediate t)
+    (unless (memq theme custom-enabled-themes)
+      (setq custom-enabled-themes (cons theme custom-enabled-themes)))
+    theme))
+
 (autoload 'custom-declare-face "cus-face")
 (autoload 'custom-theme-reset-internal-face "cus-face")
 

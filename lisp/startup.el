@@ -773,15 +773,16 @@ If this is nil, no message will be displayed.")
     ;; to kill XEmacs for it.)
     ;;
 
+    ;; Activate installed ELPA packages before the init file runs, so that
+    ;; `:ensure' can install during init and find what it installs already on
+    ;; `load-path' (GNU 27+ parity).  `elpa-activate-at-startup' set to nil
+    ;; still disables activation; batch mode never loads init files, where
+    ;; the variable must be set before startup, for example through
+    ;; XEMACSDEBUG, evaluated at the top of `normal-top-level'.
+    (startup-activate-elpa)
+
     ;;; Load init files.
     (load-init-file)
-
-    ;; Activate installed ELPA packages now that site-start and the user's
-    ;; init file have run, so either can disable activation by setting
-    ;; `elpa-activate-at-startup' to nil.  Batch mode never loads init files;
-    ;; there the variable must be set before startup, for example through
-    ;; XEMACSDEBUG, which is evaluated at the top of `normal-top-level'.
-    (startup-activate-elpa)
 
     (with-current-buffer (get-buffer "*scratch*")
       (erase-buffer)

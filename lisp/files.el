@@ -571,6 +571,13 @@ and ignores this variable."
 
 ;; GNU Emacs locates these under `user-emacs-directory'; XEmacs has no
 ;; such variable and uses `user-init-directory' instead.
+(unless (boundp 'user-emacs-directory)
+  (defvar user-emacs-directory (if (boundp 'user-init-directory)
+                                   user-init-directory
+                                 (expand-file-name "~/.xemacs/"))
+    "GNU Emacs compatibility: directory where user files are kept.
+XEmacs spells this `user-init-directory'; GNU packages (e.g.
+`use-package') expand relative paths against this name."))
 (defun locate-user-emacs-file (new-name &optional old-name)
   "Return an absolute path for a file that is relative to `user-init-directory'.
 If OLD-NAME is non-nil and NEW-NAME does not exist, return the absolute
