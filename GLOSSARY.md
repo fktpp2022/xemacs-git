@@ -53,11 +53,19 @@ How XEmacs decides which font renders a character: the face's font specifier is 
 _Avoid_: fontset, font fallback chain
 
 **Tag-set**:
-The tag list attached to a font instantiator inside a font specifier, selecting which charsets that font applies to. Tags carry a **charset predicate** and are matched in redisplay; the built-in ones are `one-dimensional`, `two-dimensional`, `initial`, `final`, `jit-charset`.
+The tag list attached to a font instantiator inside a font specifier, selecting which charsets that font applies to. Matched in redisplay; the charset is the only key it can select by.
 _Avoid_: fontset charset list, range table
 
+**Specifier tag**:
+A named tag usable in a tag-set. It may carry a charset predicate, deciding which charsets it matches, and a device predicate. XEmacs's built-in charset-class specifier tags — `one-dimensional`, `two-dimensional`, `initial`, `final`, `jit-charset` — exist only in X11 and GTK builds; a TTY-only build has none of them, so a compat layer registers its own.
+_Avoid_: charset tag, fontset charset list
+
+**Charset tag**:
+A name for a group of charsets, expandable to its members. Used in charset precedence lists. Distinct from a specifier tag, which attaches a charset predicate to a font instantiator.
+_Avoid_: specifier tag, tag-set
+
 **Stage**:
-The two-pass ordering of font matching, expressed as the `initial` and `final` tags. `initial` means the font matches the charset's own registries; `final` means a general fallback — any font whose repertoire covers the character, rendered through `iso10646-1`.
+The two-pass ordering of font matching, expressed as the `initial` and `final` specifier tags. `initial` means the font matches the charset's own registries; `final` means a general fallback — any font whose repertoire covers the character, rendered through `iso10646-1`. A specifier tag whose charset predicate takes only a charset matches at both stages.
 _Avoid_: priority, rank
 
 **Final-stage fallback**:
@@ -65,5 +73,5 @@ A font attached under the `final` stage: it renders only characters that no `ini
 _Avoid_: default font, fallback chain
 
 **JIT charset**:
-An internal charset holding Unicode codepoints with no encodable XEmacs charset equivalent (rare CJK, e.g. Extension B). Being 2D, it matches the `two-dimensional` tag like any other CJK charset.
+An internal charset holding Unicode codepoints with no encodable XEmacs charset equivalent (rare CJK, e.g. Extension B). Being 2D, it matches any dimension-2 specifier tag like any other CJK charset.
 _Avoid_: unicode charset, ext-b charset
