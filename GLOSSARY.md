@@ -43,3 +43,27 @@ _Avoid_: multi-archive install, cross-repo dependency
 **Core-provided package**:
 A requirement name that the XEmacs core satisfies without a download, from a private list that is not a Customize option.
 _Avoid_: builtin package, ignored dependency
+
+## Font configuration
+
+Vocabulary for selecting fonts on XEmacs, where there is no fontset API and a font is chosen **per charset**.
+
+**Per-charset selection**:
+How XEmacs decides which font renders a character: the face's font specifier is resolved by the character's charset, not by a fontset entry or a codepoint range. The charset is the only key.
+_Avoid_: fontset, font fallback chain
+
+**Tag-set**:
+The tag list attached to a font instantiator inside a font specifier, selecting which charsets that font applies to. Tags carry a **charset predicate** and are matched in redisplay; the built-in ones are `one-dimensional`, `two-dimensional`, `initial`, `final`, `jit-charset`.
+_Avoid_: fontset charset list, range table
+
+**Stage**:
+The two-pass ordering of font matching, expressed as the `initial` and `final` tags. `initial` means the font matches the charset's own registries; `final` means a general fallback — any font whose repertoire covers the character, rendered through `iso10646-1`.
+_Avoid_: priority, rank
+
+**Final-stage fallback**:
+A font attached under the `final` stage: it renders only characters that no `initial`-stage font covered. The XEmacs shape of a last-resort CJK font.
+_Avoid_: default font, fallback chain
+
+**JIT charset**:
+An internal charset holding Unicode codepoints with no encodable XEmacs charset equivalent (rare CJK, e.g. Extension B). Being 2D, it matches the `two-dimensional` tag like any other CJK charset.
+_Avoid_: unicode charset, ext-b charset
