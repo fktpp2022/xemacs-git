@@ -1680,6 +1680,10 @@ read_escape (Lisp_Object readcharfun)
     case 'r': return '\r';
     case 't': return '\t';
     case 'v': return '\v';
+      /* GNU's named space escape.  XEmacs never supported the Super
+         modifier (\s-) that shadows it in GNU, so there is no ambiguity
+         to resolve by look-ahead: an unadorned \s is always space.  */
+    case 's': return ' ';
     case '\n': return -1;
 
     case 'M':
