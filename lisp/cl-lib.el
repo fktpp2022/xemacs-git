@@ -428,5 +428,16 @@ This is XEmacs's direct implementation of GNU cl-lib's `cl-position'."
   (defmacro gv-define-setter (name arglist &rest body)
     `(defsetf ,name ,(cdr arglist) (,(car arglist)) ,@body)))
 
+;; `cl-flet' is missing from cl-lib 0.7.1.  Approximate it with the
+;; dynamically-scoped `flet' from the dumped `cl' package.  This differs from
+;; GNU's lexical `cl-flet' only for recursive or closed-over references, which
+;; `bind-key' does not use.
+(unless (fboundp 'cl-flet)
+  (defmacro cl-flet (bindings &rest body)
+    "Approximate GNU's lexically-scoped `cl-flet' using dynamic `flet'.
+BINDINGS is a list of (NAME ARGLIST BODY...) forms; BODY follows."
+    (declare (indent 1) (debug t))
+    `(flet ,bindings ,@body)))
+
 (provide 'cl-lib)
 ;;; cl-lib.el ends here

@@ -2116,7 +2116,12 @@ If FILE is already loaded, evaluate FORM right now.
 It does nothing if FORM is already on the list for FILE.
 FILE must match exactly.  Normally FILE is the name of a library,
 with no directory or extension specified, since that is how `load'
-is normally called."
+is normally called.  FILE may also be a feature symbol, as in GNU
+Emacs, in which case its name is used."
+  ;; GNU Emacs accepts a feature symbol here; XEmacs matches the literal
+  ;; name passed to `load', so normalize a symbol to its name.
+  (when (symbolp file)
+    (setq file (symbol-name file)))
   ;; Make sure `load-history' contains the files dumped with Emacs
   ;; for the case that FILE is one of the files dumped with Emacs.
   (if-fboundp 'load-symbol-file-load-history
