@@ -64,6 +64,8 @@ Valid instantiators for font specifiers are:
    X11 (and GTK1): \"-*-courier-medium-r-*-*-*-140-*-*-*-*-iso8859-*\"
    Xft (and GTK2): \"Courier-14\"
    MS-Windows:     \"Courier:14:Western\"
+-- a 12-element font descriptor as returned by `make-font'; `set-face-font'
+   lowers it to a device-specific name first
 -- a font instance (use that instance directly if the device matches,
    or use the string that generated it)
 -- a vector of no elements (only on TTY's; this means to set no font

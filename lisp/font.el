@@ -108,10 +108,8 @@
 (defconst font-window-system-mappings
   '((x         . (x-font-create-name x-font-create-object))
     (gtk       . (x-font-create-name x-font-create-object))
-    ;; #### FIXME should this handle fontconfig font objects?
-    (fc        . (fc-font-create-name fc-font-create-object))
     (mswindows . (mswindows-font-create-name mswindows-font-create-object))
-    (pm        . (x-font-create-name x-font-create-object)) ; Change? FIXME
+    (msprinter . (mswindows-font-create-name mswindows-font-create-object))
     ;; #### what is this bogosity?
     (tty       . (tty-font-create-plist tty-font-create-object)))
   "An assoc list mapping device types to a list of translations.
@@ -389,6 +387,36 @@ The type may be the strings \"px\", \"pix\", or \"pixel\" (pixels), \"pt\" or
 	 (func (car (cdr (cdr-safe (assq type font-window-system-mappings))))))
     (and func (fboundp func) (funcall func fontname device))))
 
+;;;###autoload
+(defun font-family-list (&optional device)
+  "Return a list of the font family names available on DEVICE.
+DEVICE defaults to the selected device.  Each device's names are parsed in
+the format `font-create-name' produces for it."
+  (or device (setq device (selected-device)))
+  (let ((type (device-type device)))
+    (cond
+     ((and (eq type 'x) (featurep 'xft-fonts))
+      (fc-find-available-font-families device))
+     ((eq type 'x)
+      (delete-duplicates
+       (delq nil
+	     (mapcar #'(lambda (name)
+			 (and (string-match x-font-regexp-foundry-and-family
+					    name)
+			      (match-string 1 name)))
+		     (font-list "*" device)))
+       :test #'equal))
+     ((memq type '(mswindows msprinter))
+      ;; "::::" is the match-everything pattern here; "*" is literal.
+      (delete-duplicates
+       (delq nil
+	     (mapcar #'(lambda (name)
+			 (let ((family (car (split-string name ":"))))
+			   (and family (not (equal family "")) family)))
+		     (font-list "::::" device)))
+       :test #'equal))
+     (t nil))))
+
 (defun font-combine-fonts-internal (fontobj-1 fontobj-2)
   (let ((retval (make-font))
 	(size-1 (and (font-size fontobj-1)
@@ -566,13 +594,16 @@ The type may be the strings \"px\", \"pix\", or \"pixel\" (pixels), \"pt\" or
 (defun x-font-create-object (fontname &optional device)
   "Return a font descriptor object for FONTNAME, appropriate for X devices."
   (let ((case-fold-search t))
+    (or device (setq device (selected-device)))
     (if (or (not (stringp fontname))
 	    (not (string-match font-x-font-regexp fontname)))
 	(if (and (stringp fontname)
-		 (featurep 'xft-fonts)
+		 ;; The descriptor route must not reach `fc-font-match' off
+		 ;; an x device; `xft-fonts' is build-wide, the device is not.
+		 (eq 'x (device-type device))
 		 (string-match font-xft-font-regexp fontname))
-	    ;; Return an XFT font. 
-	    (xft-font-create-object fontname)
+	    ;; Return an XFT font.
+	    (xft-font-create-object fontname device)
 	  ;; It's unclear how to parse the font; return an unspecified
 	  ;; one.
 	  (make-font))
@@ -634,7 +665,15 @@ The type may be the strings \"px\", \"pix\", or \"pixel\" (pixels), \"pt\" or
     (cons "monospace" (mapcar 'car font-x-family-mappings))))
 
 (defun x-font-create-name (fontobj &optional device)
-  "Return a font name constructed from FONTOBJ, appropriate for X devices."
+  "Return a font name constructed from FONTOBJ, appropriate for X devices.
+
+On an Xft build the name is a fontconfig name; otherwise it is an XLFD."
+  (if (featurep 'xft-fonts)
+      (xft-font-create-name fontobj device)
+    (x-font-create-name-core fontobj device)))
+
+(defun x-font-create-name-core (fontobj &optional device)
+  "Return an XLFD font name constructed from FONTOBJ, for non-Xft X devices."
   (if (and (not (or (font-family fontobj)
 		    (font-weight fontobj)
 		    (font-size fontobj)
@@ -795,16 +834,21 @@ Optional DEVICE defaults to `default-x-device'."
 	 (font-obj (make-font))
 	 (family (fc-pattern-get-family pattern 0))
 	 (size (fc-pattern-get-or-compute-size pattern 0))
-	 (weight (fc-pattern-get-weight pattern 0)))
+	 (weight (fc-pattern-get-weight pattern 0))
+	 (slant (fc-pattern-get-slant pattern 0)))
     (set-font-family font-obj 
 		     (and (not (equal family 'fc-result-no-match)) 
-			  family))
+			  family
+			  (list family)))
     (set-font-size font-obj 
 		   (and (not (equal size 'fc-result-no-match))
 			size))
     (set-font-weight font-obj 
 		     (and (not (equal weight 'fc-result-no-match))
 			  (fc-font-weight-translate-from-constant weight)))
+    (let ((slant-sym (fc-font-slant-translate-from-constant slant)))
+      (set-font-italic-p font-obj (eq :italic slant-sym))
+      (set-font-oblique-p font-obj (eq :oblique slant-sym)))
     font-obj))
 
 ;; #### FIXME Xft fonts are not defined by the device.
@@ -829,12 +873,41 @@ Optional DEVICE defaults to `default-x-device'."
     (cons "monospace" (mapcar 'car font-xft-family-mappings))))
 
 (defun xft-font-create-name (fontobj &optional device)
-  (let* ((pattern (make-fc-pattern)))
-    (if (font-family fontobj)
-	(fc-pattern-add-family pattern (font-family fontobj)))
-    (if (font-size fontobj)
-	(fc-pattern-add-size pattern (font-size fontobj)))
-    (fc-name-unparse pattern)))
+  "Return a fontconfig font name constructed from FONTOBJ, for Xft devices."
+  (if (and (not (or (font-family fontobj)
+		    (font-weight fontobj)
+		    (font-size fontobj)
+		    (font-registry fontobj)
+		    (font-encoding fontobj)))
+	   (= (font-style fontobj) 0))
+      (face-font 'default)
+    (or device (setq device (selected-device)))
+    (let* ((default (font-default-object-for-device device))
+	   (family (or (font-family fontobj)
+		       (font-family default)))
+	   (weight (or (font-weight fontobj) :regular))
+	   (size (or (font-size fontobj)
+		     (font-size default)))
+	   (pattern (make-fc-pattern)))
+      (if (stringp family)
+	  (setq family (list family)))
+      (setq weight (font-higher-weight weight
+				       (and (font-bold-p fontobj) :bold)))
+      (if (stringp size)
+	  (setq size (truncate (font-spatial-to-canonical size device))))
+      (mapc #'(lambda (f) (fc-pattern-add-family pattern f)) family)
+      (when size
+	(fc-pattern-add-size pattern size))
+      (fc-pattern-add-weight
+       pattern
+       (or (fc-font-weight-translate-from-symbol weight)
+	   fc-font-name-weight-regular))
+      (cond
+       ((font-oblique-p fontobj)
+	(fc-pattern-add-slant pattern fc-font-name-slant-oblique))
+       ((font-italic-p fontobj)
+	(fc-pattern-add-slant pattern fc-font-name-slant-italic)))
+      (fc-name-unparse pattern))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -987,7 +1060,7 @@ for use in the 'weight' field of an mswindows font string.")
 ;;; Now overwrite the original copy of set-face-font with our own copy that
 ;;; can deal with either syntax.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; ###autoload
+;;;###autoload
 (defun font-set-face-font (&optional face font &rest args)
   (cond
    ((and (vectorp font) (eql (length font) 12))
@@ -1262,7 +1335,7 @@ The variable x-library-search-path is use to locate the rgb.txt file."
   "Return an RGB tuple, given any form of input.  If an error occurs, black
 is returned."
   (case (device-type device)
-   ((x pm)
+   (x
     (apply 'format "#%02x%02x%02x" (font-color-rgb-components color)))
    (mswindows
     (let* ((rgb (font-color-rgb-components color))

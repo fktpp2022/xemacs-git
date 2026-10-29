@@ -874,9 +874,64 @@ x_font_instance_properties (Lisp_Font_Instance *f)
   return result;
 }
 
+#ifdef HAVE_XFT
+/* On an Xft build every x device renders with Xft, so the fonts "the system
+   actually has" are the fontconfig ones, not the core X server's. */
+static Lisp_Object
+xft_font_list (Lisp_Object pattern, Lisp_Object UNUSED (device),
+	       Lisp_Object maxnumber)
+{
+  int max_number = MAX_FONT_COUNT;
+  Lisp_Object result = Qnil;
+  Extbyte *patternext;
+  FcPattern *pat;
+  FcObjectSet *objectset;
+  FcFontSet *fontset;
+  int i;
+
+  if (!NILP(maxnumber) && FIXNUMP(maxnumber))
+    {
+      max_number = XFIXNUM(maxnumber);
+    }
+
+  patternext = LISP_STRING_TO_EXTERNAL (pattern, Qfc_font_name_encoding);
+  /* "*" is the wildcard for "everything", not a family name. */
+  pat = (0 == strcmp ((const char *) patternext, "*")
+	 ? FcPatternCreate ()
+	 : FcNameParse ((const FcChar8 *) patternext));
+  if (!pat)
+    pat = FcPatternCreate ();
+  objectset = FcObjectSetBuild (FC_FAMILY, FC_STYLE, FC_SIZE,
+				FC_WEIGHT, FC_SLANT, NULL);
+  fontset = FcFontList (NULL, pat, objectset);
+  FcObjectSetDestroy (objectset);
+  FcPatternDestroy (pat);
+
+  if (fontset)
+    {
+      for (i = fontset->nfont - 1; i >= 0 && max_number > 0; i--, max_number--)
+	{
+	  FcChar8 *name = FcNameUnparse (fontset->fonts[i]);
+	  if (name)
+	    {
+	      result = Fcons (build_extstring ((Extbyte *) name,
+					       Qfc_font_name_encoding),
+			      result);
+	      FcStrFree (name);
+	    }
+	}
+      FcFontSetDestroy (fontset);
+    }
+  return result;
+}
+#endif /* HAVE_XFT */
+
 static Lisp_Object
 x_font_list (Lisp_Object pattern, Lisp_Object device, Lisp_Object maxnumber)
 {
+#ifdef HAVE_XFT
+  return xft_font_list (pattern, device, maxnumber);
+#else
   Extbyte **names;
   int count = 0;
   int max_number = MAX_FONT_COUNT;
@@ -898,6 +953,7 @@ x_font_list (Lisp_Object pattern, Lisp_Object device, Lisp_Object maxnumber)
   if (names)
     XFreeFontNames (names);
   return result;
+#endif /* HAVE_XFT */
 }
 
 /* Include the charset support, shared, for the moment, with GTK.  */

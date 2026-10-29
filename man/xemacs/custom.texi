@@ -2179,7 +2179,8 @@ to the root window's one.
 @findex set-face-font
 You can set the font of the specified @var{face} with the function
 @code{set-face-font}.  The @var{font} argument should be a string, the
-name of a font.  When called from a program, if the
+name of a font, or a font object as returned by @code{make-font}.
+When called from a program, if the
 optional @var{frame} argument is provided, the face is changed only
 in that frame; otherwise, it is changed in all frames.
 

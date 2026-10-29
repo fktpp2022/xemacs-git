@@ -507,8 +507,9 @@ See `face-property-instance' for more information."
 FACE may be either a face object or a symbol representing a face.
 
 FONT should be an instantiator (see `make-font-specifier'; a common
-  instantiator is a platform-dependent string naming the font), a list
-  of instantiators, an alist of specifications (each mapping a locale
+  instantiator is a platform-dependent string naming the font), a
+  12-element font descriptor as returned by `make-font', a list of
+  instantiators, an alist of specifications (each mapping a locale
   to an instantiator list), or a font specifier object.
 
 If FONT is an alist, LOCALE must be omitted.  If FONT is a specifier
@@ -520,7 +521,9 @@ If FONT is an alist, LOCALE must be omitted.  If FONT is a specifier
 
 See `set-face-property' for more information."
   (interactive (face-interactive "font"))
-  (set-face-property face 'font font locale tag-set how-to-add))
+  (if (and (vectorp font) (eql (length font) 12))
+      (font-set-face-font face font locale tag-set how-to-add)
+    (set-face-property face 'font font locale tag-set how-to-add)))
 
 (defun face-foreground (face &optional locale tag-set exact-p)
   "Return the foreground spec of FACE in LOCALE, or nil if it is unspecified.
@@ -1031,7 +1034,13 @@ See `face-property-instance' for the semantics of the DOMAIN argument."
 (defun try-font-name (name &optional device)
   "Return NAME if it's a valid font name on DEVICE, else nil."
   ;; yes, name really should be here twice.
-  (and name (make-font-instance name device t) name))
+  (and name
+       (if (and (featurep 'xft-fonts)
+		(eq 'x (device-type (or device (selected-device)))))
+	   ;; `make-font-instance' never fails on Xft: the Xft opener
+	   ;; falls back to monospace, so ask fontconfig instead.
+	   (and (fc-try-font name (or device (selected-device))) name)
+	 (and (make-font-instance name device t) name))))
 
 
 
