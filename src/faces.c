@@ -2280,6 +2280,27 @@ complex_vars_of_faces (void)
     set_specifier_fallback (Fget (Vdefault_face, Qbackground, Qnil), bg_fb);
   }
 
+  /* Define some specifier tags for classes of character sets. Combining
+     these allows for distinct fallback fonts for distinct dimensions of
+     character sets and stages.  They are part of the per-charset mechanism,
+     not of any one backend, so they exist in every build.  */
+  define_specifier_tag (Qtwo_dimensional, Qnil,
+			intern ("specifier-tag-two-dimensional-p"));
+
+  define_specifier_tag (Qone_dimensional, Qnil,
+			intern ("specifier-tag-one-dimensional-p"));
+
+  define_specifier_tag (Qinitial, Qnil,
+			intern ("specifier-tag-initial-stage-p"));
+
+  define_specifier_tag (Qfinal, Qnil,
+			intern ("specifier-tag-final-stage-p"));
+
+#ifndef UNICODE_INTERNAL
+  define_specifier_tag (Qjit_charset, Qnil,
+			intern ("specifier-tag-jit-charset-p"));
+#endif /* not UNICODE_INTERNAL */
+
   {
     Lisp_Object inst_list = Qnil;
 
@@ -2326,27 +2347,6 @@ complex_vars_of_faces (void)
 #endif
     };
 
-
-    /* Define some specifier tags for classes of character sets. Combining
-       these allows for distinct fallback fonts for distinct dimensions of
-       character sets and stages.  */
-
-    define_specifier_tag (Qtwo_dimensional, Qnil,
-			 intern ("specifier-tag-two-dimensional-p"));
-
-    define_specifier_tag (Qone_dimensional, Qnil,
-			 intern ("specifier-tag-one-dimensional-p"));
-
-    define_specifier_tag (Qinitial, Qnil,
-			 intern ("specifier-tag-initial-stage-p"));
-
-    define_specifier_tag (Qfinal, Qnil,
-			 intern ("specifier-tag-final-stage-p"));
-
-#ifndef UNICODE_INTERNAL
-    define_specifier_tag (Qjit_charset, Qnil,
-			  intern ("specifier-tag-jit-charset-p"));
-#endif /* not UNICODE_INTERNAL */
 
     /* This tag is used to group those instantiators made available in the
        fallback for the sake of coverage of obscure characters, notably

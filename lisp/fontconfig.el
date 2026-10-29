@@ -274,8 +274,10 @@ See `fc-pattern-del' for documentation of patterns and error returns."
     (:oblique . ,fc-font-name-slant-oblique)))
 
 (defun fc-font-slant-translate-from-constant (number)
-  "Translate the Xft font slant constant NUMBER to symbol."
-  (let ((pair (assoc number fc-font-name-slant-mapping)))
+  "Translate the Xft font slant constant NUMBER to symbol.
+Fontconfig may hand back the constant as a float, so truncate it first."
+  (let ((pair (and (numberp number)
+		   (assoc (truncate number) fc-font-name-slant-mapping))))
     (if pair (cdr pair))))
 
 (defun fc-font-slant-translate-from-symbol (symbol)
@@ -335,8 +337,10 @@ corresponding Xft font slant constant."
     (:black    . ,fc-font-name-weight-black)))
 
 (defun fc-font-weight-translate-from-constant (number)
-  "Translate a Xft font weight constant NUMBER to symbol."
-  (let ((pair (assoc number fc-font-name-weight-mapping)))
+  "Translate a Xft font weight constant NUMBER to symbol.
+Fontconfig may hand back the constant as a float, so truncate it first."
+  (let ((pair (and (numberp number)
+		   (assoc (truncate number) fc-font-name-weight-mapping))))
     (if pair (cdr pair))))
 
 (defun fc-font-weight-translate-from-symbol (symbol) 
