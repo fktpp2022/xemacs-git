@@ -85,7 +85,8 @@ async HTTP transport."
   '(queue loc-changes
     dmacro checkbox es-lib buffer-sets
     loop levenshtein csv vector-utils number rings shell-split-string kv
-    unidecode)
+    unidecode
+    cnfonts)
   "Allowlist of packages this client may install.
 The `emacs' pseudo-dependency is not trusted; this list is the safety
 boundary for the milestone."

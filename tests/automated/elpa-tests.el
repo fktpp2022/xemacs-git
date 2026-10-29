@@ -1179,29 +1179,30 @@ http.server.HTTPServer(('127.0.0.1', PORT), H).serve_forever()
                "fbound=nil")
               "startup activation can be disabled"))))
 
-;;; MELPA fixture: the nine targets install and run offline
+;;; MELPA fixture: the ten targets install and run offline
 
 ;; The fixture archive lives beside the GNU one in tests/elpa/melpa-fixture/.
-;; It vendors the nine unmodified upstream MELPA tarballs at pinned date
-;; versions plus a hand-built version-1 index.  The exercise forms and
-;; expected outputs are frozen by the no-kit audit (spec section 6.1); every
-;; child runs in a fresh XEmacs with no compatibility shims.
+;; It vendors the ten unmodified upstream MELPA tarballs at pinned date
+;; versions plus a hand-built version-1 index.  The milestone-1 exercise
+;; forms and expected outputs are frozen by the no-kit audit (spec section
+;; 6.1); cnfonts's check only requires its public entry point.  Every child
+;; runs in a fresh XEmacs with no compatibility shims.
 
 (defun elpa-tests-melpa-fixture ()
   "Return the absolute path of the vendored MELPA fixture archive."
   (file-name-as-directory
    (expand-file-name "../elpa/melpa-fixture/" (elpa-tests--directory))))
 
-;; Pin the provenance total recorded in the fixture README: the nine
-;; vendored tarballs sum to 593,920 bytes, the sizes MELPA served.
+;; Pin the provenance total recorded in the fixture README: the ten
+;; vendored tarballs sum to 655,360 bytes, the sizes MELPA served.
 (let ((tarballs (directory-files (elpa-tests-melpa-fixture) t "\\.tar\\'")))
-  (Assert (= 9 (length tarballs))
-          "the MELPA fixture vendors exactly nine tarballs")
-  (Assert (= 593920
+  (Assert (= 10 (length tarballs))
+          "the MELPA fixture vendors exactly ten tarballs")
+  (Assert (= 655360
              (apply '+ (mapcar (lambda (file)
                                  (nth 7 (file-attributes file)))
                                tarballs)))
-          "the nine vendored tarballs total 593,920 bytes"))
+          "the ten vendored tarballs total 655,360 bytes"))
 
 (defconst elpa-tests-melpa-targets
   ;; (NAME VERSION VERSION-LIST EXERCISE-FORM EXPECTED-OUTPUT)
@@ -1231,8 +1232,11 @@ http.server.HTTPServer(('127.0.0.1', PORT), H).serve_forever()
         "(2 (a b))")
     (unidecode "20201213.1449" (20201213 1449)
                "(unidecode \"Crème Brûlée\")"
-               "\"Creme Brulee\""))
-  "The nine MELPA milestone targets with their audit-frozen exercises.")
+               "\"Creme Brulee\"")
+    (cnfonts "20251223.636" (20251223 636)
+             "(featurep 'cnfonts)"
+             "t"))
+  "The ten MELPA targets with their exercises.")
 
 (defun elpa-tests-melpa-last-line (output)
   "Return the final non-empty line of OUTPUT."
@@ -1281,8 +1285,8 @@ emits a message line before the value."
                   (concat (symbol-name name) "-" version ".tar")
                   (elpa-tests-melpa-fixture)))
                 (format "the %s artifact name is the joined version" name))
-        (Assert (= 9 (elpa-refresh-contents))
-                "the MELPA fixture index carries exactly nine packages")
+        (Assert (= 10 (elpa-refresh-contents))
+                "the MELPA fixture index carries exactly ten packages")
         (let ((info (elpa-package-info name)))
           (Assert info (format "%s is in the MELPA fixture index" name))
           (Assert (equal (plist-get info :version) version-list)

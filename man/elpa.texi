@@ -299,13 +299,15 @@ in @file{.staging/}.
 @defopt elpa-installable-packages
 The allowlist of packages the client may install, @code{(queue
 loc-changes dmacro checkbox es-lib buffer-sets loop levenshtein csv
-vector-utils number rings shell-split-string kv unidecode)} by default:
-the thirteen MELPA targets from milestones 1 and 2, plus the two GNU
-ELPA targets.  Every dependency name must also appear here
-(@pxref{Dependency Allowlist}).  This list, not the packages' own
-declared compatibility, is the safety boundary: a name not on the list
-is refused before any download happens.  Trust is by name and spans
-all configured archives.  See @ref{Security}.
+vector-utils number rings shell-split-string kv unidecode cnfonts)} by
+default: the thirteen MELPA targets from milestones 1 and 2, plus
+@code{cnfonts} and the two GNU ELPA targets.  Every dependency name
+must also appear here (@pxref{Dependency Allowlist}).  This list, not
+the packages' own declared compatibility, is the safety boundary: a
+name not on the list is refused before any download happens.  Trust is
+by name and spans all configured archives.  @code{cnfonts} is
+allowlisted for the font-configuration effort; its XEmacs compatibility
+layer ships separately.  See @ref{Security}.
 @end defopt
 
 @defopt elpa-activate-at-startup
