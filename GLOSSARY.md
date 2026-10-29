@@ -56,6 +56,10 @@ _Avoid_: fontset, font fallback chain
 The device-independent description of a font — family, weight, style, size, registry, encoding. What a user means by "this family at this size, bold"; each backend turns it into its own name format.
 _Avoid_: font spec, font name
 
+**XLFD**:
+The legacy X font name format — fourteen dash-separated fields naming a core X server font. Modern XEmacs builds speak fontconfig instead, but the format still appears wherever a name is parsed as fields rather than read as a whole.
+_Avoid_: font name, font descriptor
+
 **Font backend**:
 The per-device machinery that turns a font descriptor into a name and lists the fonts a device has. XEmacs has four: X11 (whose modern Xft mode speaks fontconfig), GTK (Pango), MS Windows, and the terminal.
 _Avoid_: window system, display
