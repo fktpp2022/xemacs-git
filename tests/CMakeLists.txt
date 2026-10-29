@@ -45,7 +45,7 @@ set_tests_properties(elpa-live-tests PROPERTIES
 set_tests_properties(cl-lib-tests subr-compat-tests keymap-tests
   elpa-tests elpa-m2-tests elpa-m2-negative-tests elpa-live-tests
   subr-x-compat-tests use-package-tests use-package-report-tests
-  font-tests
+  font-tests cnfonts-xemacs-tests
   PROPERTIES
   FAIL_REGULAR_EXPRESSION "FAIL:|aborted")
 add_test(NAME xemacs_build_fixture COMMAND ${CMAKE_COMMAND} -E true)
