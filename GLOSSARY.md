@@ -52,6 +52,14 @@ Vocabulary for selecting fonts on XEmacs, where there is no fontset API and a fo
 How XEmacs decides which font renders a character: the face's font specifier is resolved by the character's charset, not by a fontset entry or a codepoint range. The charset is the only key.
 _Avoid_: fontset, font fallback chain
 
+**Font descriptor**:
+The device-independent description of a font — family, weight, style, size, registry, encoding. What a user means by "this family at this size, bold"; each backend turns it into its own name format.
+_Avoid_: font spec, font name
+
+**Font backend**:
+The per-device machinery that turns a font descriptor into a name and lists the fonts a device has. XEmacs has four: X11 (whose modern Xft mode speaks fontconfig), GTK (Pango), MS Windows, and the terminal.
+_Avoid_: window system, display
+
 **Tag-set**:
 The tag list attached to a font instantiator inside a font specifier, selecting which charsets that font applies to. Matched in redisplay; the charset is the only key it can select by.
 _Avoid_: fontset charset list, range table
