@@ -2043,6 +2043,7 @@ be desired.  Here's a first cut, as a separate node.
 
 @menu
 * Xft Font Customization::  How to customize Xft fonts.
+* Per-script fonts with cnfonts::  The cnfonts compatibility layer.
 @end menu
 
 @subsection Customizing Faces
@@ -2241,7 +2242,7 @@ to make underlining an attribute of the face or not. If the optional
 @var{frame} argument is provided, the face is changed only in that
 frame; otherwise, it is changed in all frames.
 
-@node Xft Font Customization, , Faces, Faces
+@node Xft Font Customization, Per-script fonts with cnfonts, Faces, Faces
 @subsection Xft Font Customization
 
 This section was written by @email{stephen@@xemacs.org,Stephen Turnbull},
@@ -2662,6 +2663,92 @@ The major version number of the Xft library compiled with.
 
 Regular expression matching XLFD font names.
 @end defvar
+
+
+@node Per-script fonts with cnfonts, , Xft Font Customization, Faces
+@subsection Per-script fonts with cnfonts
+@cindex per-script fonts
+@cindex Chinese fonts
+@cindex cnfonts
+
+@code{cnfonts} is a GNU Emacs package that chooses one font for Latin
+text and another for Chinese text.  XEmacs ships a compatibility layer
+that lets the unmodified package configure XEmacs's own font layer.
+Install @code{cnfonts} from MELPA (@pxref{Customization,,,elpa,XEmacs
+ELPA Package Client Manual}) and load the layer before enabling the
+package:
+
+@example
+(require 'cnfonts-xemacs)
+(cnfonts-enable)
+@end example
+
+The layer answers exactly the seven font calls @code{cnfonts} makes and
+leaves the rest of the package -- profile loading, face selection, the
+Latin font's own @code{set-face-font} calls -- untouched.
+
+@table @asis
+@item Latin text
+The face's plain font.
+@item CJK text
+A font under the layer's @code{cnfonts-dimension-2} specifier tag, which
+matches every two-dimensional charset.
+@item Rare (EXT-B) characters
+A font under the @code{cnfonts-jit-charset} tag, which matches only the
+internal charset that holds codepoints with no encodable equivalent.
+@end table
+
+@subheading Accepted approximations
+
+Some of @code{cnfonts}'s requests cannot be expressed exactly on
+XEmacs.  The layer warns rather than reporting success, and the
+differences are:
+
+@itemize @bullet
+@item
+@strong{EXT-B is a bucket, not a range.}  @code{cnfonts} asks for the
+EXT-B font as the whole-repertoire default; XEmacs has no such bucket,
+so the font goes under the JIT-charset tag.  It wins for unencodable
+codepoints the CJK font does not cover, which is broader than EXT-B.
+@item
+@strong{Symbol and phonetic fonts are dropped.}  XEmacs has no
+@code{symbol} or @code{phonetic} charset, so each request warns and
+changes nothing.
+@item
+@strong{Ornament ranges are dropped.}  @code{cnfonts} pins four
+codepoint ranges (circled numbers and letters and the like); XEmacs has
+no range key, so each range warns and changes nothing.
+@item
+@strong{Half-width katakana and Zhuyin keep the Latin font.}  Their
+charsets are one-dimensional, and the layer has no tag for them.
+@item
+@strong{The CJK tag is coarse.}  It also offers the CJK font to
+non-CJK two-dimensional charsets such as Ethiopic and Tibetan; the
+font's own coverage check usually rejects it, so the effect is latent
+rather than visible.
+@item
+@strong{The hangul fallback is a no-op.}  @code{cnfonts}'s appended
+EXT-B font for hangul lands after the Chinese font, which already
+matches, so it never wins.
+@item
+@strong{@code{cjk-misc} shares the CJK font.}  Its request collapses
+into the dimension-2 tag, which is where its font already sits.
+@end itemize
+
+@subheading GTK
+
+A GTK device cannot select fonts per charset.  When @code{cnfonts} sets
+the @code{default} face's Latin font through @code{set-face-attribute},
+the layer warns and does not apply it, and the CJK font takes the plain
+font slot instead, so Chinese text is not rendered as empty boxes.
+@code{cnfonts}'s own @code{set-face-font} calls for the bold and italic
+faces are outside the layer and still run.  Per-charset support on GTK
+is a separate project.
+
+A request for another fontset, an unsupported face attribute, or a
+script that has no tag is reported with a warning and changes nothing.
+A non-nil frame is ignored with a warning, since the layer configures
+the global face.
 
 
 @node Frame Components, X Resources, Faces, Customization

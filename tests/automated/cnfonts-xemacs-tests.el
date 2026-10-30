@@ -2,6 +2,9 @@
 
 ;; Copyright (C) 2026 XEmacs Development Team
 
+;; Author: XEmacs Development Team
+;; Keywords: tests, fonts
+
 ;; This file is part of XEmacs.
 
 ;; XEmacs is free software: you can redistribute it and/or modify it
@@ -19,12 +22,12 @@
 
 ;;; Commentary:
 
-;; The device-free half of ticket #94: the load-bearing five GNU calls that
-;; `cnfonts' makes, answered from the font layer.  ctest runs `-batch',
-;; whose device has no row in `font-window-system-mappings', so the probe is
-;; stubbed with fixtures: the assertions are about the shapes the
-;; compatibility layer promises, not about the fonts installed on this
-;; machine.
+;; The device-free half of tickets #94 and #95: the seven GNU calls that
+;; `cnfonts' makes, answered from the font layer, and the two specifier
+;; tags the sink half installs.  ctest runs `-batch', whose device has no
+;; row in `font-window-system-mappings', so the name producer is stubbed
+;; with fixtures: the assertions are about the shapes the compatibility
+;; layer promises, not about the fonts installed on this machine.
 
 ;;; Code:
 
@@ -163,6 +166,174 @@
         "a single string is itself")
 (Assert (equal (string-join nil "-") "")
         "no strings join to the empty string")
+
+;;; The two specifier tags
+
+(Assert (valid-specifier-tag-p 'cnfonts-dimension-2)
+        "the dimension-2 tag is registered")
+(Assert (valid-specifier-tag-p 'cnfonts-jit-charset)
+        "the JIT-charset tag is registered")
+(Assert (and (memq 'cnfonts-dimension-2 (specifier-tag-list))
+             (memq 'cnfonts-jit-charset (specifier-tag-list)))
+        "both tags are in the tag list, so set-face-font accepts them")
+
+(defun cnfonts-xemacs-tests--tag-matches-p (tag charset)
+  "Return non-nil when TAG's charset predicate accepts CHARSET."
+  (funcall (specifier-tag-charset-predicate tag) (find-charset charset)))
+
+(Assert (cnfonts-xemacs-tests--tag-matches-p
+         'cnfonts-dimension-2 'chinese-gb2312)
+        "the dimension-2 tag matches a Chinese charset")
+(Assert (not (cnfonts-xemacs-tests--tag-matches-p
+              'cnfonts-dimension-2 'ascii))
+        "the dimension-2 tag rejects ASCII")
+(Assert (not (cnfonts-xemacs-tests--tag-matches-p
+              'cnfonts-dimension-2 'katakana-jisx0201))
+        "the dimension-2 tag rejects a dimension-1 script")
+
+(when (find-charset 'jit-ucs-charset-0)
+  (Assert (cnfonts-xemacs-tests--tag-matches-p
+           'cnfonts-jit-charset 'jit-ucs-charset-0)
+          "the JIT tag matches the JIT charset")
+  (Assert (not (cnfonts-xemacs-tests--tag-matches-p
+                'cnfonts-jit-charset 'chinese-gb2312))
+          "the JIT tag rejects an ordinary Chinese charset"))
+
+;;; The sink half
+
+;; The batch device produces no font name, so the producer is stubbed to a
+;; name carrying the family.  `warn' is captured rather than printed, and
+;; the default face is restored afterwards: `cnfonts' configures `default',
+;; and the assertions read its font specifier directly.
+(defmacro cnfonts-xemacs-tests--with-sink (&rest body)
+  "Run BODY against a clean `default' face with stubbed font naming.
+`warn' messages are collected in `cnfonts-xemacs-tests--warned'."
+  `(let ((cnfonts-xemacs-tests--warned nil))
+     (flet ((font-create-name (fontobj &optional _device)
+               (concat (car (font-family fontobj)) "-device"))
+            (warn (&rest args)
+               (push (apply 'format args) cnfonts-xemacs-tests--warned)
+               nil))
+       (unwind-protect
+           (progn ,@body)
+         (remove-specifier (face-property 'default 'font) 'global)
+         (remove-face-property 'default 'font-specification)))))
+
+(defun cnfonts-xemacs-tests--specs ()
+  "Return the default face's global font specifications in order."
+  (specifier-specs (face-property 'default 'font) 'global nil nil))
+
+(defun cnfonts-xemacs-tests--spec (tag-set)
+  "Return the default face's font specification for TAG-SET, or nil."
+  (specifier-specs (face-property 'default 'font) 'global tag-set t))
+
+(cnfonts-xemacs-tests--with-sink
+ (set-fontset-font "fontset-default" 'han (make-font :family "CJK"))
+ (Assert (equal (cnfonts-xemacs-tests--spec '(cnfonts-dimension-2))
+                '((cnfonts-dimension-2) . "CJK-device"))
+         "a script lowers onto the dimension-2 tag"))
+
+(cnfonts-xemacs-tests--with-sink
+ (set-fontset-font "fontset-default" nil (make-font :family "EXTB"))
+ (Assert (equal (cnfonts-xemacs-tests--spec '(cnfonts-jit-charset))
+                '((cnfonts-jit-charset) . "EXTB-device"))
+         "the nil charset lowers onto the JIT-charset tag"))
+
+(cnfonts-xemacs-tests--with-sink
+ (set-fontset-font "fontset-default" 'han (make-font :family "CJK"))
+ (set-fontset-font "fontset-default" nil (make-font :family "EXTB") nil 'prepend)
+ (Assert (equal (cnfonts-xemacs-tests--specs)
+                '(((cnfonts-jit-charset) . "EXTB-device")
+                  ((cnfonts-dimension-2) . "CJK-device")))
+         "prepend puts the JIT bucket ahead of the dimension-2 entry"))
+
+(cnfonts-xemacs-tests--with-sink
+ (set-fontset-font "fontset-default" 'han (make-font :family "CJK"))
+ (set-fontset-font "fontset-default" 'hangul (make-font :family "EXTB")
+                   nil 'append)
+ (Assert (equal (cnfonts-xemacs-tests--specs)
+                '(((cnfonts-dimension-2) . "CJK-device")
+                  ((cnfonts-dimension-2) . "EXTB-device")))
+         "append lands after the Chinese font: the hangul fallback is a no-op"))
+
+(cnfonts-xemacs-tests--with-sink
+ (set-fontset-font "fontset-default" 'han (make-font :family "CJK") 'some-frame)
+ (Assert (equal (cnfonts-xemacs-tests--spec '(cnfonts-dimension-2))
+                '((cnfonts-dimension-2) . "CJK-device"))
+         "a non-nil frame is ignored and the request still applies")
+ (Assert (= 1 (length cnfonts-xemacs-tests--warned))
+         "the ignored frame warns once"))
+
+(cnfonts-xemacs-tests--with-sink
+ (set-fontset-font "fontset-default" 'symbol (make-font :family "Symbol"))
+ (set-fontset-font "fontset-default" 'phonetic (make-font :family "Phonetic"))
+ (set-fontset-font "fontset-default" '(#x2776 . #x2793)
+                   (make-font :family "Ornament"))
+ (set-fontset-font "fontset-default" 'katakana-jisx0201
+                   (make-font :family "Kana"))
+ (Assert (null (cnfonts-xemacs-tests--specs))
+         "dropped requests add no specification")
+ (Assert (= 4 (length cnfonts-xemacs-tests--warned))
+         "each dropped request warns once"))
+
+(cnfonts-xemacs-tests--with-sink
+ (set-fontset-font "fontset-other" 'han (make-font :family "CJK"))
+ (Assert (null (cnfonts-xemacs-tests--specs))
+         "a fontset other than fontset-default is dropped")
+ (Assert (= 1 (length cnfonts-xemacs-tests--warned))
+         "the dropped fontset warns once"))
+
+(cnfonts-xemacs-tests--with-sink
+ (set-face-attribute 'default nil :font (make-font :family "Latin"))
+ (Assert (equal (cnfonts-xemacs-tests--spec nil) "Latin-device")
+         "set-face-attribute sets the plain font")
+ (Assert (and (vectorp (face-property 'default 'font-specification))
+              (= 12 (length (face-property 'default 'font-specification))))
+         "the face records a descriptor, not a name string"))
+
+(cnfonts-xemacs-tests--with-sink
+ (set-face-attribute 'default nil :family "Latin" :weight 'bold :slant 'italic)
+ (let ((descriptor (face-property 'default 'font-specification)))
+   (Assert (equal (font-family descriptor) '("Latin"))
+           "a descriptor keyword builds the family")
+   (Assert (eq (font-weight descriptor) :bold)
+           "a descriptor keyword builds the weight")
+   (Assert (= (font-style descriptor) font-italic-mask)
+           "a descriptor keyword builds the slant")))
+
+(cnfonts-xemacs-tests--with-sink
+ (set-face-attribute 'default nil :font (make-font :family "Latin")
+                     :family "Other")
+ (Assert (equal (cnfonts-xemacs-tests--spec nil) "Latin-device")
+         ":font wins over the descriptor keywords")
+ (Assert (= 1 (length cnfonts-xemacs-tests--warned))
+         "an ignored descriptor keyword warns once"))
+
+(cnfonts-xemacs-tests--with-sink
+ (set-face-attribute 'default 'some-frame :font (make-font :family "Latin"))
+ (Assert (equal (cnfonts-xemacs-tests--spec nil) "Latin-device")
+         "a non-nil frame is ignored, not fatal")
+ (Assert (= 1 (length cnfonts-xemacs-tests--warned))
+         "the ignored frame warns once"))
+
+;; GTK has no per-charset fallback, so only the script-level requests apply,
+;; as the plain font.  The Latin font must never win there.
+(cnfonts-xemacs-tests--with-sink
+ (flet ((device-type (&optional _device) 'gtk))
+   (set-face-attribute 'default nil :font (make-font :family "Latin"))
+   (Assert (null (cnfonts-xemacs-tests--specs))
+           "the Latin font is not set on GTK")
+   (set-fontset-font "fontset-default" 'han (make-font :family "CJK"))
+   (Assert (equal (cnfonts-xemacs-tests--spec nil) "CJK-device")
+           "the CJK font becomes the plain font on GTK")
+   (Assert (null (cnfonts-xemacs-tests--spec '(cnfonts-dimension-2)))
+           "GTK sets no tagged specification")
+   (set-fontset-font "fontset-default" nil (make-font :family "EXTB")
+                     nil 'prepend)
+   (Assert (equal (cnfonts-xemacs-tests--spec nil) "CJK-device")
+           "the nil-charset bucket does not replace the CJK font on GTK")
+   (Assert (>= (length cnfonts-xemacs-tests--warned) 3)
+           "every GTK request warns")))
 
 ;;; Verdict
 ;;

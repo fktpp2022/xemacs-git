@@ -69,7 +69,7 @@ The tag list attached to a font instantiator inside a font specifier, selecting 
 _Avoid_: fontset charset list, range table
 
 **Specifier tag**:
-A named tag usable in a tag-set. It may carry a charset predicate, deciding which charsets it matches, and a device predicate. XEmacs's built-in charset-class specifier tags — `one-dimensional`, `two-dimensional`, `initial`, `final`, `jit-charset` — exist only in X11 and GTK builds; a TTY-only build has none of them, so a compat layer registers its own.
+A named tag usable in a tag-set. It may carry a charset predicate, deciding which charsets it matches, and a device predicate. XEmacs's built-in charset-class specifier tags — `one-dimensional`, `two-dimensional`, `initial`, `final`, `jit-charset` — are registered in every build, the JIT tag only where JIT charsets exist. A compatibility layer still registers its own names, so its tag-sets do not entangle another package's.
 _Avoid_: charset tag, fontset charset list
 
 **Charset tag**:

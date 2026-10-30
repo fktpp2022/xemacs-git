@@ -307,7 +307,8 @@ the packages' own declared compatibility, is the safety boundary: a
 name not on the list is refused before any download happens.  Trust is
 by name and spans all configured archives.  @code{cnfonts} is
 allowlisted for the font-configuration effort; its XEmacs compatibility
-layer ships separately.  See @ref{Security}.
+layer, @code{cnfonts-xemacs}, is documented in @ref{Per-script fonts
+with cnfonts,,,xemacs,XEmacs User's Manual}.  See @ref{Security}.
 @end defopt
 
 @defopt elpa-activate-at-startup
