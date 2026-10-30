@@ -1064,8 +1064,17 @@ for use in the 'weight' field of an mswindows font string.")
 (defun font-set-face-font (&optional face font &rest args)
   (cond
    ((and (vectorp font) (eql (length font) 12))
-    (let ((font-name (font-create-name font)))
-      (set-face-property face 'font-specification font)
+    (let ((font-name (font-create-name font))
+	  (locale (car args))
+	  (tag-set (nth 1 args))
+	  (how-to-add (nth 2 args)))
+      ;; `font-specification' names the face's plain font: only a global,
+      ;; untagged, replacing apply records it, and only once it lowered.
+      (when (and font-name
+		 (null tag-set)
+		 (null how-to-add)
+		 (memq locale '(nil global)))
+	(set-face-property face 'font-specification font))
       (cond
        ((null font-name)		; No matching font!
 	nil)
@@ -1085,19 +1094,7 @@ for use in the 'weight' field of an mswindows font string.")
 	(apply 'set-face-property face 'strikethru (or
 						    (font-linethrough-p font)
 						    (font-strikethru-p font))
-	       args))
-;;; this used to be default with preceding conditioned on font-running-xemacs
-;        (t
-; 	(condition-case nil
-; 	    (apply 'set-face-font face font-name args)
-; 	  (error
-; 	   (let ((args (car-safe args)))
-; 	     (and (or (font-bold-p font)
-; 		      (memq (font-weight font) '(:bold :demi-bold)))
-; 		  (make-face-bold face args t))
-; 	     (and (font-italic-p font) (make-face-italic face args t)))))
-; 	(apply 'set-face-underline-p face (font-underline-p font) args))
-       )))
+	       args)))))
    (t
     ;; Let the original set-face-font signal any errors
     (set-face-property face 'font-specification nil)

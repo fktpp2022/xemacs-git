@@ -71,17 +71,72 @@
 
 ;;; set-face-font and the descriptor
 
-(let* ((face (make-face 'font-tests-face))
-       (font (make-font :family "monospace" :size 12)))
-  (set-face-font face font)
-  (Assert (equal (face-property face 'font-specification) font)
-          "set-face-font records a 12-element descriptor as the
-font-specification"))
+;; The batch device has no backend row, so the name producer is stubbed
+;; when a test needs the descriptor to lower.  The assertions are about
+;; which descriptor the face records, not about this machine's fonts.
+(defmacro font-tests--with-name-producer (&rest body)
+  `(flet ((font-create-name (fontobj &optional _device)
+             (format "%s-device" (or (car (font-family fontobj)) "font"))))
+     ,@body))
+
+(define-specifier-tag 'font-tests-tag)
+
+(font-tests--with-name-producer
+ (let* ((face (make-face 'font-tests-face))
+        (font (make-font :family "monospace" :size 12)))
+   (set-face-font face font)
+   (Assert (equal (face-property face 'font-specification) font)
+           "set-face-font records a 12-element descriptor as the
+font-specification")))
+
+(let ((face (make-face 'font-tests-unlowered-face)))
+  (set-face-font face (make-font :family "monospace" :size 12))
+  (Assert (null (face-property face 'font-specification))
+          "a descriptor that lowers to no name is not recorded"))
 
 (let ((face (make-face 'font-tests-inherit-face)))
   (set-face-font face [bold])
   (Assert (null (face-property face 'font-specification))
           "a 1-element vector is the inheritance form, not a descriptor"))
+
+(font-tests--with-name-producer
+ (let* ((face (make-face 'font-tests-tagged-face))
+        (latin (make-font :family "Latin"))
+        (cjk (make-font :family "CJK")))
+   (set-face-font face latin)
+   (set-face-font face cjk 'global '(font-tests-tag) nil)
+   (Assert (equal (face-property face 'font-specification) latin)
+           "a tagged apply leaves the face's plain descriptor alone")
+   (Assert (equal (specifier-specs (face-property face 'font) 'global
+                                   '(font-tests-tag) t)
+                  '((font-tests-tag) . "CJK-device"))
+           "the tagged entry is still applied under its tag")))
+
+(font-tests--with-name-producer
+ (let* ((face (make-face 'font-tests-update-one-face))
+        (latin (make-font :family "Latin"))
+        (cjk (make-font :family "CJK")))
+   (set-face-font face latin)
+   (set-face-font face cjk 'global '(font-tests-tag) nil)
+   (font-update-one-face face)
+   (Assert (equal (specifier-specs (face-property face 'font)
+                                   (selected-device) nil t)
+                  "Latin-device")
+           "font-update-one-face re-applies the plain font after a tagged
+apply")))
+
+(font-tests--with-name-producer
+ (let* ((face (make-face 'font-tests-update-device-face))
+        (latin (make-font :family "Latin"))
+        (cjk (make-font :family "CJK")))
+   (set-face-font face latin)
+   (set-face-font face cjk 'global '(font-tests-tag) nil)
+   (font-update-device-fonts (selected-device))
+   (Assert (equal (specifier-specs (face-property face 'font)
+                                   (selected-device) nil t)
+                  "Latin-device")
+           "font-update-device-fonts re-applies the plain font after a
+tagged apply")))
 
 ;;; A device type with no row
 
