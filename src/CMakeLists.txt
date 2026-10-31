@@ -857,9 +857,15 @@ install(FILES "${CMAKE_BINARY_DIR}/Installation"
 
 if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   # Out-of-tree build: set up build directory at build time
-  
+
+  # The copy is stamped, so it must also depend on the sources it copies;
+  # otherwise every edit to lisp/*.el after the first build is ignored.
+  file(GLOB_RECURSE _lisp_source_files CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/lisp/*.el")
+
   add_custom_command(
     OUTPUT "${CMAKE_BINARY_DIR}/lisp/.copied"
+    DEPENDS ${_lisp_source_files}
     COMMAND ${CMAKE_COMMAND} -E copy_directory
       "${CMAKE_SOURCE_DIR}/lisp"
       "${CMAKE_BINARY_DIR}/lisp"
