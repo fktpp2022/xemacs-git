@@ -335,6 +335,12 @@
    (Assert (>= (length cnfonts-xemacs-tests--warned) 3)
            "every GTK request warns")))
 
+;; `cnfonts' encodes family names its lister missed as `gbk'; on XEmacs
+;; the same encoding is `cp936', which the shim aliases at load time.
+(Assert (or (null (find-coding-system 'cp936))
+            (find-coding-system 'gbk))
+        "the shim supplies the gbk coding system cnfonts encodes with")
+
 ;;; Verdict
 ;;
 ;; The batch harness exits 0 even when Asserts fail, so the verdict is

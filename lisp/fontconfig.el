@@ -484,12 +484,18 @@ A new object is allocated and returned."
 
 FONT may be a fontconfig pattern object or a fontconfig font name (a string).
 Optional DEVICE is the device object to query, defaulting to the currently
-selected device."
-  (fc-list-fonts-pattern-objects (or device (default-device 'x))
-				 (if (fc-pattern-p font) 
-				     font
-				   (fc-name-parse font))
-				 nil))
+selected device.
+
+FONT's size is ignored: sizes are pattern properties, not font properties,
+so a pattern carrying one matches no listed font."
+  (let ((pattern (fc-pattern-duplicate (if (fc-pattern-p font)
+					   font
+					 (fc-name-parse font)))))
+    (fc-pattern-del-size pattern)
+    (fc-pattern-del-pixelsize pattern)
+    (fc-list-fonts-pattern-objects (or device (default-device 'x))
+				   pattern
+				   nil)))
 
 ;; for example, we'd like these next two to be implementable as
 ;; (font-list (fc-create-pattern) device '("family" "style")) and

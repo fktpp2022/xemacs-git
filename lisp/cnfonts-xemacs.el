@@ -45,6 +45,13 @@
 
 (require 'font)
 
+;; `cnfonts--font-exists-p' falls back to `encode-coding-string' with `gbk'
+;; for families the lister missed; XEmacs names that encoding `cp936'.
+(when (and (fboundp 'find-coding-system)
+           (null (find-coding-system 'gbk))
+           (find-coding-system 'cp936))
+  (define-coding-system-alias 'gbk 'cp936))
+
 (defconst cnfonts-xemacs-weights
   '((ultra-light . :extra-light)
     (extra-light . :extra-light)

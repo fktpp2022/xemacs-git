@@ -141,6 +141,11 @@
 	 '(null (try-font-name "definitely-not-a-font" device))
 	 "try-font-name rejects a font that does not exist")
 
+	(font-layer-gui-check
+	 '(try-font-name
+	   (font-create-name (make-font :family family :size 14) device) device)
+	 "try-font-name accepts the name producer's own output")
+
 	(let ((face (make-face 'font-layer-gui-face)))
 	  (make-face-family face family)
 	  (font-layer-gui-check
@@ -164,7 +169,14 @@
 			  (font-create-object
 			   (face-font-name face device 'chinese-gb2312)
 			   device)))
-		 "per-charset selection still routes through a tag-set"))
+		 "per-charset selection still routes through a tag-set")
+		(font-layer-gui-check
+		 '(equal (list family)
+			 (font-family
+			  (font-create-object
+			   (face-font-name face device 'ascii)
+			   device)))
+		 "the plain font serves charsets no tag selects"))
 	    (font-layer-gui-skip
 	     "per-charset selection: needs a CJK family and chinese-gb2312"))))
 

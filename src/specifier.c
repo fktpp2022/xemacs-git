@@ -1014,6 +1014,13 @@ charset_matches_specifier_tag_set_p (Lisp_Object charset, Lisp_Object tag_set,
 
   assert (stage < NUM_MATCHSPEC_STAGES);
 
+  /* A spec with no tags puts no restriction on the charset, so it matches
+     every charset at both stages.  Without this, the charset-ignoring
+     second pass in specifier_instance_from_inst_list would pick whichever
+     tagged spec comes first instead of falling back to the plain font. */
+  if (NILP (tag_set))
+    return 1;
+
   LIST_LOOP (rest, tag_set)
     {
       Lisp_Object tag = XCAR (rest);
