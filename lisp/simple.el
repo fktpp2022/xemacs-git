@@ -4742,6 +4742,16 @@ See also `log-warning-minimum-level' and `display-warning-minimum-level'."
   (< (cdr (assq level1 warning-level-alist))
      (cdr (assq level2 warning-level-alist))))
 
+(defun warning-level-number (level)
+  "Return the rank of LEVEL in `warning-level-alist', or 0 if unknown.
+GNU Emacs style keyword levels (`:error', `:warning', ...) are
+accepted in addition to the bare symbols XEmacs uses."
+  (let ((name (and (symbolp level) (symbol-name level))))
+    (when (and name (> (length name) 0)
+	       (eq (aref name 0) ?:))
+      (setq level (intern (substring name 1))))
+    (or (cdr (assq level warning-level-alist)) 0)))
+
 ;; If you're interested in rewriting this function, be aware that it
 ;; could be called at arbitrary points in a Lisp program (when a
 ;; built-in function wants to issue a warning, it will call out to
@@ -4856,15 +4866,13 @@ long as they're not listed in that variable as well."
       (push (list class message level) before-init-deferred-warnings)
     (catch 'ignored
       (let ((display-p t)
-	    (level-num (cdr (assq level warning-level-alist))))
-	(if (< level-num (cdr (assq log-warning-minimum-level
-				    warning-level-alist)))
+	    (level-num (warning-level-number level)))
+	(if (< level-num (warning-level-number log-warning-minimum-level))
 	    (throw 'ignored nil))
 	(if (intersection class log-warning-suppressed-classes)
 	    (throw 'ignored nil))
 
-	(if (< level-num (cdr (assq display-warning-minimum-level
-				    warning-level-alist)))
+	(if (< level-num (warning-level-number display-warning-minimum-level))
 	    (setq display-p nil))
 	(if (and display-p
 		 (intersection class display-warning-suppressed-classes))
