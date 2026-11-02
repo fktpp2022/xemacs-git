@@ -2064,8 +2064,11 @@ Creators should usually specify `:action' and `:help-echo' members."
 	  ;; We must check for console-on-window-system-p here,
 	  ;; because GUI will not work otherwise (it needs RGB
 	  ;; components for colors, and they are not known on TTYs).
+	  ;; GUI buttons need the `button' image instantiator, which
+	  ;; window systems without native widgets do not provide.
 	  ((and widget-push-button-gui
-		(console-on-window-system-p))
+		(console-on-window-system-p)
+		(valid-image-instantiator-format-p 'button))
 	   (let* ((gui-button-shadow-thickness 1))
 	     (setq inst (make-gui-button tag 'widget-gui-action widget))
 	     (setq gui (make-glyph inst)))

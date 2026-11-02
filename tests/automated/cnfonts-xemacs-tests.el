@@ -418,6 +418,20 @@
     (Assert (and (= (point) (point-min)) (eq (widget-at) first))
             "widget-move wraps backward to the tab stop at point-min")))
 
+;;; GUI buttons: a window-system console without native widgets (this
+;;; --with-widgets=no build) has no `button' image instantiator, so a
+;;; push button must fall back to its text label instead of warning for
+;;; every button cnfonts creates.
+
+(require 'cl)
+(with-temp-buffer
+  (let ((widget-push-button-gui t))
+    (flet ((console-on-window-system-p () t)
+           (valid-image-instantiator-format-p (&rest _) nil))
+      (widget-create 'push-button :tag "fallback"))
+    (Assert (string-match "fallback" (buffer-string))
+            "a push button is text when the button instantiator is missing")))
+
 ;;; The align page's mouse warp: window-relative pixels and a frame-taking
 ;;; `set-mouse-pixel-position'.
 
