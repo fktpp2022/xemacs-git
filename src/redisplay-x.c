@@ -32,6 +32,10 @@ int x_interline_space; /* #### this needs to be implemented, but per-font */
 #define THIS_IS_X
 #include "redisplay-xlike-inc.c"
 
+#ifdef XEMACS_USE_XFT
+#include "font-mgr.h"
+#endif
+
 GC x_get_gc (struct frame *f, Lisp_Object font, Lisp_Object fg,
              Lisp_Object bg, Lisp_Object bg_pixmap,
              Lisp_Object bg_placement, Lisp_Object lwidth);
@@ -237,9 +241,17 @@ struct textual_run
    entry records "no installed font covers this"; the caller then keeps the
    face font and Xft draws .notdef, as before.
 
-   The cache is keyed by display, pixel size and codepoint only -- two
-   faces of the same size but different weight or slant share one fallback,
-   and fonts installed after the first lookup are not seen.  It is bounded
+   A codepoint listed in `xft-font-overrides' (a (RANGE FAMILY . POINTS)
+   entry from `set-fontset-font') is resolved through the same search
+   *before* the face font's coverage is consulted: the family replaces the
+   face family and POINTS the size, so the override wins even where the
+   charset's font has a glyph.  Anything the named family lacks is still
+   drawn by whichever installed font covers it, at the same POINTS.
+
+   The cache is keyed by display, codepoint, the face font's pixel size and
+   the override (family and points, if any) -- two faces of the same size
+   but different weight or slant share one fallback, and fonts installed
+   after the first lookup are not seen.  It is bounded
    (XFT_FALLBACK_CACHE_MAX entries): once full it is reset at the next run
    split, and a display's entries are closed when the display goes away.
    ponytail: revisit the sharing if it matters. */
@@ -251,6 +263,8 @@ struct xft_fallback_entry
   Display *dpy;
   FcChar32 ucs4;
   double pixel_size;
+  char *family;			/* NULL: no override family. */
+  double points;		/* 0: keep the base size. */
   XftFont *font;		/* NULL: nothing covers UCS4. */
 };
 
@@ -267,25 +281,55 @@ xft_font_pixel_size (XftFont *font)
   return size;
 }
 
+static int
+xft_family_matches (const char *a, const char *b)
+{
+  return a == b || (a && b && !strcmp (a, b));
+}
+
+/* Return a font drawing UCS4 for the face font BASE.  OVERRIDE, when
+   non-nil, is an (FAMILY . POINTS) pair: FAMILY replaces the face family
+   and POINTS the size.  The result is cached; NULL when no candidate font
+   covers UCS4. */
 static XftFont *
-xft_fallback_font (Display *dpy, XftFont *base, FcChar32 ucs4)
+xft_fallback_font (Display *dpy, XftFont *base, FcChar32 ucs4,
+		   Lisp_Object override)
 {
   FcPattern *pat = NULL;
   FcFontSet *set = NULL;
   FcCharSet *charset;
   FcResult fcresult = FcResultNoMatch;
   XftFont *font = NULL;
-  double pixel_size = xft_font_pixel_size (base);
+  double pixel_size = base ? xft_font_pixel_size (base) : 0.0;
+  const char *family = NULL;
+  char *family_copy = NULL;
+  double points = 0.0;
   int i;
+
+  if (!NILP (override))
+    {
+      if (STRINGP (XCAR (override)))
+	family = (const char *) XSTRING_DATA (XCAR (override));
+      if (FIXNUMP (XCDR (override)))
+	points = (double) XFIXNUM (XCDR (override));
+      else if (FLOATP (XCDR (override)))
+	points = XFLOAT_DATA (XCDR (override));
+    }
 
   for (i = 0; i < xft_fallback_count; i++)
     if (xft_fallback_entries[i].dpy == dpy
 	&& xft_fallback_entries[i].ucs4 == ucs4
-	&& xft_fallback_entries[i].pixel_size == pixel_size)
+	&& xft_fallback_entries[i].pixel_size == pixel_size
+	&& xft_fallback_entries[i].points == points
+	&& xft_family_matches (xft_fallback_entries[i].family, family))
       return xft_fallback_entries[i].font;
 
   FcInit ();			/* No-op if already initialized. */
-  pat = FcPatternDuplicate (base->pattern);
+  /* FcPatternAddString keeps the pointer it is given, so the cache entry
+     owns this copy for as long as it lives. */
+  if (family)
+    family_copy = xstrdup (family);
+  pat = base ? FcPatternDuplicate (base->pattern) : FcPatternCreate ();
   if (pat)
     {
       /* Drop everything that identifies the base font, keep its size,
@@ -297,6 +341,25 @@ xft_fallback_font (Display *dpy, XftFont *base, FcChar32 ucs4)
       FcPatternDel (pat, FC_INDEX);
       FcPatternDel (pat, FC_FULLNAME);
       FcPatternDel (pat, FC_POSTSCRIPT_NAME);
+
+      if (family)
+	FcPatternAddString (pat, FC_FAMILY, (FcChar8 *) family_copy);
+      if (points > 0.0)
+	{
+	  double base_points = 0.0, ratio = 0.0;
+
+	  /* Keep the face font's own points-to-pixels conversion. */
+	  if (base && base->pattern
+	      && FcPatternGetDouble (base->pattern, FC_SIZE, 0, &base_points)
+		 == FcResultMatch
+	      && base_points > 0.0)
+	    ratio = pixel_size / base_points;
+	  FcPatternDel (pat, FC_SIZE);
+	  FcPatternDel (pat, FC_PIXEL_SIZE);
+	  FcPatternAddDouble (pat, FC_SIZE, points);
+	  if (ratio > 0.0)
+	    FcPatternAddDouble (pat, FC_PIXEL_SIZE, points * ratio);
+	}
 
       charset = FcCharSetCreate ();
       if (charset)
@@ -362,6 +425,8 @@ xft_fallback_font (Display *dpy, XftFont *base, FcChar32 ucs4)
   xft_fallback_entries[xft_fallback_count].dpy = dpy;
   xft_fallback_entries[xft_fallback_count].ucs4 = ucs4;
   xft_fallback_entries[xft_fallback_count].pixel_size = pixel_size;
+  xft_fallback_entries[xft_fallback_count].family = family_copy;
+  xft_fallback_entries[xft_fallback_count].points = points;
   xft_fallback_entries[xft_fallback_count].font = font;
   xft_fallback_count++;
 
@@ -376,9 +441,13 @@ xft_font_cache_reset (void)
   int i;
 
   for (i = 0; i < xft_fallback_count; i++)
-    if (xft_fallback_entries[i].font)
-      XftFontClose (xft_fallback_entries[i].dpy,
-		    xft_fallback_entries[i].font);
+    {
+      if (xft_fallback_entries[i].font)
+	XftFontClose (xft_fallback_entries[i].dpy,
+		      xft_fallback_entries[i].font);
+      if (xft_fallback_entries[i].family)
+	xfree (xft_fallback_entries[i].family);
+    }
   xft_fallback_count = 0;
 }
 
@@ -398,6 +467,8 @@ xft_font_cache_clear (Display *dpy)
 	{
 	  if (entry->font)
 	    XftFontClose (dpy, entry->font);
+	  if (entry->family)
+	    xfree (entry->family);
 	}
       else
 	xft_fallback_entries[kept++] = *entry;
@@ -405,18 +476,27 @@ xft_font_cache_clear (Display *dpy)
   xft_fallback_count = kept;
 }
 
-/* Return the font to draw UCS4 with.  BASE covers UCS4 (or there is no
-   base Xft font), so BASE is returned; otherwise the cached fallback, or
-   BASE if nothing covers UCS4. */
+/* Return the font to draw UCS4 with.  A matching override is searched
+   before the face font's own coverage; otherwise BASE covers UCS4 (or
+   there is no base Xft font), so BASE is returned; failing both, the
+   cached fallback, or BASE if nothing covers UCS4. */
 static XftFont *
 xft_font_for_codepoint (Display *dpy, XftFont *base, FcChar32 ucs4)
 {
   XftFont *fallback;
+  Lisp_Object override = xft_font_override_for ((unsigned int) ucs4);
+
+  if (!NILP (override))
+    {
+      fallback = xft_fallback_font (dpy, base, ucs4, override);
+      if (fallback)
+	return fallback;
+    }
 
   if (!base || XftCharExists (dpy, base, ucs4))
     return base;
 
-  fallback = xft_fallback_font (dpy, base, ucs4);
+  fallback = xft_fallback_font (dpy, base, ucs4, Qnil);
   return fallback ? fallback : base;
 }
 

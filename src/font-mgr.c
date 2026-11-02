@@ -89,6 +89,12 @@ static Lisp_Object Vfc_config_weak_list;
 
 Lisp_Object Vfc_property_name_hash_table;
 
+/* Codepoint font overrides consulted by the Xft per-character fallback
+   (redisplay-x.c) before charset coverage.  Entries are
+   (RANGE FAMILY . POINTS); RANGE is a (FROM . TO) cons and the last
+   matching entry wins.  Lisp fills this from `set-fontset-font'. */
+Lisp_Object Vxft_font_overrides;
+
 /****************************************************************
 *                       FcPattern objects                       *
 ****************************************************************/
@@ -347,6 +353,38 @@ will be added as an FcChar8[], int, double, or FcBool respectively.
   /* else ... maybe we should wta here? */
 
   return res ? Qt : Qnil;
+}
+
+/* The (FAMILY . POINTS) override for UCS4, or nil. */
+Lisp_Object
+xft_font_override_for (unsigned int ucs4)
+{
+  Lisp_Object rest = Vxft_font_overrides, found = Qnil;
+
+  while (CONSP (rest))
+    {
+      Lisp_Object entry = XCAR (rest);
+      Lisp_Object range = CONSP (entry) ? XCAR (entry) : Qnil;
+
+      if (CONSP (range) && FIXNUMP (XCAR (range)) && FIXNUMP (XCDR (range))
+	  && (EMACS_INT) ucs4 >= XFIXNUM (XCAR (range))
+	  && (EMACS_INT) ucs4 <= XFIXNUM (XCDR (range)))
+	found = XCDR (entry);
+      rest = XCDR (rest);
+    }
+  return found;
+}
+
+DEFUN ("xft-font-override", Fxft_font_override, 1, 1, 0, /*
+Return the codepoint override for UCS4, or nil.
+The answer is the last entry of `xft-font-overrides' whose range contains
+UCS4, in the form (FAMILY . POINTS).
+*/
+      (ucs4))
+{
+  CHECK_FIXNUM (ucs4);
+  return XFIXNUM (ucs4) < 0 ? Qnil
+    : xft_font_override_for ((unsigned int) XFIXNUM (ucs4));
 }
 
 DEFUN ("fc-pattern-del", Ffc_pattern_del, 2, 2, 0, /*
@@ -1339,6 +1377,7 @@ syms_of_font_mgr (void)
   DEFSUBR (Ffc_name_unparse);
   DEFSUBR (Ffc_pattern_duplicate);
   DEFSUBR (Ffc_pattern_add);
+  DEFSUBR (Fxft_font_override);
   DEFSUBR (Ffc_pattern_del);
   DEFSUBR (Ffc_pattern_get);
   DEFSUBR (Ffc_list_fonts_pattern_objects);
@@ -1431,6 +1470,14 @@ complex_vars_of_font_mgr (void)
 The regular expression used to match XLFD font names.
 */ );
   Vxlfd_font_name_regexp = make_xlfd_font_regexp();
+
+  DEFVAR_LISP ("xft-font-overrides", &Vxft_font_overrides /*
+Ordered codepoint font overrides for the Xft per-character fallback.
+Each entry is (RANGE FAMILY . POINTS), RANGE a (FROM . TO) cons; the Xft
+fallback draws a covered codepoint in FAMILY at POINTS even when the
+charset's own font has a glyph for it.  The last matching entry wins.
+*/ );
+  Vxft_font_overrides = Qnil;
 }
 
 /* font-mgr.c ends here */

@@ -45,6 +45,11 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 extern Fixnum debug_xft;
 
+/* `xft-font-overrides': ordered codepoint font overrides for the Xft
+   per-character fallback.  Defined in font-mgr.c, read in redisplay-x.c. */
+extern Lisp_Object Vxft_font_overrides;
+extern Lisp_Object xft_font_override_for (unsigned int ucs4);
+
 /* Standard for fontconfig.  Use a macro to show we're not guessing. */
 #define Qfc_font_name_encoding Qutf_8
 

@@ -44,9 +44,18 @@
 ;;     size, e.g. "mmmm mmmm" over "中文 中文";
 ;;   - the Chinese glyphs must use the profile's CJK font and sit on the
 ;;     same baseline grid as the Latin text, not fall back to the Latin
-;;     font and not render as empty boxes.
+;;     font and not render as empty boxes; the symbol and ornament rows
+;;     must draw at the profile's symbol and ornament sizes, and a later
+;;     `cnfonts-set-font' with edited sizes must re-render them at the new
+;;     sizes without restarting.
 ;;
 ;; A human records PASS or FAIL for that check on the milestone issue.
+;;
+;; The symbol and ornament requests have no XEmacs charset to select them;
+;; the shim lowers them into `xft-font-overrides', which the Xft
+;; per-character fallback (src/redisplay-x.c) consults before charset
+;; coverage.  The checks below assert that map's family and size for both
+;; rows, and that re-applying an edited profile updates it in place.
 
 ;;; Code:
 
@@ -119,22 +128,27 @@ a name.  `font-layer-gui.el' owns the real versions."
 	     name))
      ,@body))
 
-(defun cnfonts-xemacs-gui-set-font-from-fixtures (workdir)
+(defun cnfonts-xemacs-gui-set-font-from-fixtures (workdir &optional sizes)
   "Configure fonts through upstream `cnfonts-set-font' with fixtures.
 WORKDIR keeps cnfonts's profile and config files out of the user's home.
-The fixture profile is seeded with cnfonts's own profile writer and then
-read back by `cnfonts-set-font', so its profile loading and merging run;
-everything below them is cnfonts's untouched path."
+SIZES is the (Latin CJK EXT-B symbol ornament) list to save, defaulting
+to the canonical 12.5/15/15/12.5/12.5.  The fixture profile is seeded
+with cnfonts's own profile writer and then read back by
+`cnfonts-set-font', so its profile loading and merging run; everything
+below them is cnfonts's untouched path."
   (cnfonts-xemacs-gui-with-stubs
    (let ((cnfonts-directory (expand-file-name "cnfonts/" workdir))
 	 (cnfonts-profiles '("gate"))
 	 (cnfonts-use-face-font-rescale nil)
+	 (sizes (or sizes '(12.5 15.0 15.0 12.5 12.5)))
 	 (cnfonts--custom-set-fontnames
 	  (mapcar #'list cnfonts-xemacs-gui-families))
-	 (cnfonts--custom-set-fontsizes
-	  '((12.5 15.0 15.0 12.5 12.5))))
+	 (cnfonts--custom-set-fontsizes (list sizes)))
      (make-directory cnfonts-directory t)
      (cnfonts--save-profile "gate")
+     ;; `cnfonts-set-font' takes the English size from the cached config;
+     ;; keep it in step with the profile just saved, as the UI would.
+     (cnfonts--update-and-save-config "gate" (car sizes))
      (setq cnfonts--custom-set-fontnames nil
 	   cnfonts--custom-set-fontsizes nil)
      (cnfonts-set-font))))
@@ -194,7 +208,48 @@ everything below them is cnfonts's untouched path."
 	   '(not (funcall (specifier-tag-charset-predicate
 			   'cnfonts-dimension-2)
 			  (find-charset 'ascii)))
-	   "the dimension-2 predicate rejects ASCII"))
+	   "the dimension-2 predicate rejects ASCII")
+
+	  (cnfonts-xemacs-gui-check
+	   '(equal (xft-font-override #x03b1) '("FixtureSymbol" . 12.5))
+	   "the Greek override names the profile's symbol font and size")
+
+	  (cnfonts-xemacs-gui-check
+	   '(equal (xft-font-override #x028c) '("FixtureSymbol" . 12.5))
+	   "the IPA override names the profile's symbol font and size")
+
+	  (cnfonts-xemacs-gui-check
+	   '(equal (xft-font-override #x2776)
+		   '("FixtureOrnament" . 12.5))
+	   "the ornament override names the profile's ornament font and size")
+
+	  (cnfonts-xemacs-gui-check
+	   '(and (= 7 (length xft-font-overrides))
+		 (equal (mapcar #'car xft-font-overrides)
+			'((#x0370 . #x03FF) (#x0250 . #x02AF)
+			  (#x1D00 . #x1DBF) (#x2776 . #x2793)
+			  (#x24B6 . #x24FE) (#x2295 . #x22A1)
+			  (#x2190 . #x2200))))
+	   "the override map holds the symbol ranges then cnfonts's ornaments")
+
+	  ;; Re-applying an edited profile must update the entries in place:
+	  ;; the fallback cache is keyed on family and points, so a new size
+	  ;; renders without restarting the editor.
+	  (cnfonts-xemacs-gui-set-font-from-fixtures
+	   workdir '(10.0 15.0 15.0 20.0 22.0))
+
+	  (cnfonts-xemacs-gui-check
+	   '(equal (xft-font-override #x03b1) '("FixtureSymbol" . 20.0))
+	   "editing the symbol size updates the override")
+
+	  (cnfonts-xemacs-gui-check
+	   '(equal (xft-font-override #x2776)
+		   '("FixtureOrnament" . 22.0))
+	   "editing the ornament size updates the override in place")
+
+	  (cnfonts-xemacs-gui-check
+	   '(= 7 (length xft-font-overrides))
+	   "re-applying the profile leaves one entry per range"))
       (call-process "rm" nil nil nil "-rf" workdir)))
   cnfonts-xemacs-gui-failures)
 

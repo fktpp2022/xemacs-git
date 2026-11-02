@@ -87,3 +87,11 @@ _Avoid_: default font, fallback chain
 **JIT charset**:
 An internal charset holding Unicode codepoints with no encodable XEmacs charset equivalent (rare CJK, e.g. Extension B). It matches the built-in dimension-2 specifier tag; the cnfonts shim's own dimension-2 tag excludes it, so the EXT-B font wins for it, and per-character fallback supplies the glyphs that font lacks.
 _Avoid_: unicode charset, ext-b charset
+
+**Per-character fallback**:
+Xft's last resort within a run: when the run's font has no glyph for a codepoint, an installed font that covers that codepoint is found for it alone. It changes the font, not the size — the fallback is opened at the run font's size unless a codepoint override says otherwise.
+_Avoid_: fontset fallback, charset fallback
+
+**Codepoint override**:
+A configured family and size for a range of Unicode codepoints, consulted before the charset's font, so the range uses the override even where the charset's font has glyphs. It carries requests a charset cannot select — the symbol and phonetic scripts and the decorative ornament ranges.
+_Avoid_: unicode-range rule, fontset entry
