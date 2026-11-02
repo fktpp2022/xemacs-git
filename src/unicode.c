@@ -198,6 +198,8 @@ Lisp_Object Qneed_bom, Qallow_private;
 Lisp_Object Qutf_16_little_endian, Qutf_16_bom;
 Lisp_Object Qutf_16_little_endian_bom;
 
+Lisp_Object Qutf_32_little_endian;
+
 Lisp_Object Qutf_8_bom;
 
 extern int firstbyte_mask[];
@@ -4266,6 +4268,8 @@ syms_of_unicode (void)
   DEFSYMBOL (Qutf_16_little_endian);
   DEFSYMBOL (Qutf_16_bom);
   DEFSYMBOL (Qutf_16_little_endian_bom);
+
+  DEFSYMBOL (Qutf_32_little_endian);
 
   DEFSYMBOL (Qutf_8);
   DEFSYMBOL (Qutf_8_bom);
