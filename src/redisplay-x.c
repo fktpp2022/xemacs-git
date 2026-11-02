@@ -172,6 +172,11 @@ struct textual_run
   Extbyte *ptr;
   int len;
   int dimension;
+#ifdef XEMACS_USE_XFT
+  /* The Xft font that covers this run, or NULL if the face font has no
+     Xft font (a core-only instance) or redisplay found no font at all. */
+  XftFont *font;
+#endif
 };
 
 /* Separate out the text in STR of length LEN into a series of runs, stored in
@@ -205,43 +210,190 @@ struct textual_run
 */
 
 
+/* Xft draws UTF-32 in native byte order.  XEmacs's `utf-32' coding system
+   is big-endian, so little-endian machines use its little-endian variant. */
 #ifdef XEMACS_USE_XFT
 #ifdef WORDS_BIGENDIAN
 #define ALLOCATE_RUNS_TEXT(storage, storage_len, str, len)       \
        TO_EXTERNAL_FORMAT (DATA, (str, len),                     \
                            ALLOCA, (storage, storage_len),       \
-                           Qutf_16)
+                           Qutf_32)
 #else
-extern Lisp_Object Qutf_16_little_endian;
+extern Lisp_Object Qutf_32_little_endian;
 #define ALLOCATE_RUNS_TEXT(storage, storage_len, str, len)       \
        TO_EXTERNAL_FORMAT (DATA, (str, len),                     \
                            ALLOCA, (storage, storage_len),       \
-                           Qutf_16_little_endian)
+                           Qutf_32_little_endian)
 #endif
 #endif /* XEMACS_USE_XFT */
 
 
 #ifdef XEMACS_USE_XFT
+
+/* Per-character fontconfig fallback.  The face font for the run's charset
+   stays preferred; a codepoint it does not cover is resolved once against
+   the face font's own pattern (family dropped, size and scaling kept,
+   FC_CHARSET set to the codepoint) and the result is cached.  A NULL cache
+   entry records "no installed font covers this"; the caller then keeps the
+   face font and Xft draws .notdef, as before.
+
+   ponytail: the cache lives for the process, is never evicted, and is keyed
+   by display, pixel size and codepoint only -- two faces of the same size
+   but different weight or slant share one fallback, and fonts installed
+   after the first lookup are not seen.  Revisit if either matters. */
+
+struct xft_fallback_entry
+{
+  Display *dpy;
+  FcChar32 ucs4;
+  double pixel_size;
+  XftFont *font;		/* NULL: nothing covers UCS4. */
+};
+
+static struct xft_fallback_entry *xft_fallback_entries;
+static int xft_fallback_count, xft_fallback_capacity;
+
+static double
+xft_font_pixel_size (XftFont *font)
+{
+  double size = 0.0;
+
+  if (font->pattern)
+    FcPatternGetDouble (font->pattern, FC_PIXEL_SIZE, 0, &size);
+  return size;
+}
+
+static XftFont *
+xft_fallback_font (Display *dpy, XftFont *base, FcChar32 ucs4)
+{
+  FcPattern *pat = NULL;
+  FcFontSet *set = NULL;
+  FcCharSet *charset;
+  FcResult fcresult = FcResultNoMatch;
+  XftFont *font = NULL;
+  double pixel_size = xft_font_pixel_size (base);
+  int i;
+
+  for (i = 0; i < xft_fallback_count; i++)
+    if (xft_fallback_entries[i].dpy == dpy
+	&& xft_fallback_entries[i].ucs4 == ucs4
+	&& xft_fallback_entries[i].pixel_size == pixel_size)
+      return xft_fallback_entries[i].font;
+
+  FcInit ();			/* No-op if already initialized. */
+  pat = FcPatternDuplicate (base->pattern);
+  if (pat)
+    {
+      /* Drop everything that identifies the base font, keep its size,
+	 weight and slant. */
+      FcPatternDel (pat, FC_FAMILY);
+      FcPatternDel (pat, FC_CHARSET);
+      FcPatternDel (pat, FC_LANG);
+      FcPatternDel (pat, FC_FILE);
+      FcPatternDel (pat, FC_INDEX);
+      FcPatternDel (pat, FC_FULLNAME);
+      FcPatternDel (pat, FC_POSTSCRIPT_NAME);
+
+      charset = FcCharSetCreate ();
+      if (charset)
+	{
+	  FcCharSetAddChar (charset, ucs4);
+	  FcPatternAddCharSet (pat, FC_CHARSET, charset);
+	  FcCharSetDestroy (charset);
+	}
+
+      FcConfigSubstitute (NULL, pat, FcMatchPattern);
+      FcDefaultSubstitute (pat);
+      /* FcFontMatch returns the best-scoring pattern even when that
+	 font lacks the glyph, so take the whole sorted list instead and
+	 open candidates until one of them has the codepoint. */
+      set = FcFontSort (NULL, pat, FcTrue, NULL, &fcresult);
+    }
+
+  if (set)
+    {
+      for (i = 0; i < set->nfont && !font; i++)
+	{
+	  /* The sorted entries are bare font patterns: they carry no
+	     pixel size.  Blend each with the request to get a pattern
+	     XftFontOpenPattern can open.  The result belongs to us
+	     until Xft takes it over on success. */
+	  FcPattern *candidate =
+	    FcFontRenderPrepare (NULL, pat, set->fonts[i]);
+
+	  if (!candidate)
+	    continue;
+
+	  font = XftFontOpenPattern (dpy, candidate);
+	  if (!font)
+	    {
+	      FcPatternDestroy (candidate);
+	      continue;
+	    }
+	  if (!XftCharExists (dpy, font, ucs4))
+	    {
+	      XftFontClose (dpy, font);
+	      font = NULL;
+	    }
+	}
+      FcFontSetDestroy (set);
+    }
+  if (pat)
+    FcPatternDestroy (pat);
+
+  if (xft_fallback_count == xft_fallback_capacity)
+    {
+      xft_fallback_capacity = xft_fallback_capacity
+	? 2 * xft_fallback_capacity : 16;
+      xft_fallback_entries =
+	(struct xft_fallback_entry *)
+	  xrealloc (xft_fallback_entries,
+		    xft_fallback_capacity
+		    * sizeof (struct xft_fallback_entry));
+    }
+  xft_fallback_entries[xft_fallback_count].dpy = dpy;
+  xft_fallback_entries[xft_fallback_count].ucs4 = ucs4;
+  xft_fallback_entries[xft_fallback_count].pixel_size = pixel_size;
+  xft_fallback_entries[xft_fallback_count].font = font;
+  xft_fallback_count++;
+
+  return font;
+}
+
+/* Return the font to draw UCS4 with.  BASE covers UCS4 (or there is no
+   base Xft font), so BASE is returned; otherwise the cached fallback, or
+   BASE if nothing covers UCS4. */
+static XftFont *
+xft_font_for_codepoint (Display *dpy, XftFont *base, FcChar32 ucs4)
+{
+  XftFont *fallback;
+
+  if (!base || XftCharExists (dpy, base, ucs4))
+    return base;
+
+  fallback = xft_fallback_font (dpy, base, ucs4);
+  return fallback ? fallback : base;
+}
+
 static int
 separate_textual_runs_xft_mule (struct buffer *buf,
 				Extbyte *text_storage,
 				struct textual_run *run_storage,
 				const Ibyte *str, Bytecount len,
-				struct face_cachel *UNUSED (cachel))
+				struct face_cachel *cachel,
+				Display *dpy)
 {
   Lisp_Object prev_charset = Qunbound;
-  const Ibyte *end = str + len; 
+  XftFont *prev_font = NULL;
+  const Ibyte *end = str + len;
   Elemcount runs_so_far = 0;
-
-  run_storage[0].ptr = text_storage;
-  run_storage[0].len = len;
-  run_storage[0].dimension = 2;
-  run_storage[0].charset = Qnil;
 
   while (str < end)
     {
       Ichar ch = itext_ichar (str);
-      Lisp_Object charset;
+      Lisp_Object charset, font_inst;
+      XftFont *base = NULL, *font;
+      FcChar32 ucs4;
       int byte1, byte2;
 
       /* @@#### This use of CONVERR_SUBSTITUTE is somewhat bogus.
@@ -251,29 +403,40 @@ separate_textual_runs_xft_mule (struct buffer *buf,
       buffer_ichar_to_charset_codepoint (ch, buf, &charset, &byte1, &byte2,
 					 CONVERR_SUBSTITUTE);
 
-      if (!EQ (charset, prev_charset))
+      font_inst = FACE_CACHEL_FONT (cachel, charset);
+      if (FONT_INSTANCEP (font_inst))
+	base = FONT_INSTANCE_X_XFTFONT (XFONT_INSTANCE (font_inst));
+
+      ucs4 = *((FcChar32 *) text_storage);
+      font = xft_font_for_codepoint (dpy, base, ucs4);
+
+      if (!EQ (charset, prev_charset) || font != prev_font)
 	{
 	  if (runs_so_far)
 	    run_storage[runs_so_far-1].len =
-              (text_storage - run_storage[runs_so_far-1].ptr) >> 1;
+              (text_storage - run_storage[runs_so_far-1].ptr) >> 2;
 	  run_storage[runs_so_far].ptr = text_storage;
 	  run_storage[runs_so_far].dimension = 2;
 	  run_storage[runs_so_far].charset = charset;
+	  run_storage[runs_so_far].font = font;
 	  prev_charset = charset;
+	  prev_font = font;
 	  runs_so_far++;
 	}
 
-      if (valid_unicode_leading_surrogate (*((XftChar16 *) (text_storage))))
-        {
-          text_storage += sizeof (XftChar16);
-        }
-      text_storage += sizeof (XftChar16);
+      /* ponytail: one internal character encodes to exactly one UTF-32
+	 codepoint in this build, because composite characters
+	 (ENABLE_COMPOSITE_CHARS) are compiled out.  If they are ever
+	 enabled, one character can expand into several codepoints and this
+	 fixed step would desynchronize the run lengths; count them from
+	 composite_char_string() instead. */
+      text_storage += sizeof (FcChar32);
       INC_IBYTEPTR (str);
     }
 
   if (runs_so_far)
     run_storage[runs_so_far-1].len =
-      (text_storage - run_storage[runs_so_far-1].ptr) >> 1;
+      (text_storage - run_storage[runs_so_far-1].ptr) >> 2;
   return runs_so_far;
 }
 #endif
@@ -460,11 +623,12 @@ separate_textual_runs (struct buffer *buf,
                        Extbyte *text_storage,
 		       struct textual_run *run_storage,
 		       const Ibyte *str, Bytecount len,
-		       struct face_cachel *cachel)
+		       struct face_cachel *cachel,
+		       Display * USED_IF_XFT (dpy))
 {
 #ifdef XEMACS_USE_XFT
   return separate_textual_runs_xft_mule (buf, text_storage, run_storage,
-					 str, len, cachel);
+					 str, len, cachel, dpy);
 #else
   return separate_textual_runs_mule (buf, text_storage, run_storage,
 				     str, len, cachel);
@@ -483,8 +647,26 @@ x_text_width_single_run (Display * USED_IF_XFT (dpy),
                          struct textual_run *run)
 {
   Lisp_Object font_inst = FACE_CACHEL_FONT (cachel, run->charset);
-  Lisp_Font_Instance *fi = XFONT_INSTANCE (font_inst);
+  Lisp_Font_Instance *fi = FONT_INSTANCEP (font_inst)
+    ? XFONT_INSTANCE (font_inst) : NULL;
 
+#ifdef XEMACS_USE_XFT
+  if (run->font)
+    {
+      XGlyphInfo glyphinfo;
+
+      assert (run->dimension == 2);
+
+      XftTextExtents32 (dpy, run->font, (FcChar32 *) run->ptr, run->len,
+                        &glyphinfo);
+      return glyphinfo.xOff;
+    }
+#endif
+  /* STAGE_FINAL always yields a font instance under Xft, so this is only
+     a defensive guard against a face cache that was never populated.
+     Measuring nothing is better than dereferencing NULL. */
+  if (!fi)
+    return 0;
   if (!fi->proportional_p)
     return fi->width * run->len;
 #ifdef XEMACS_USE_XFT
@@ -494,8 +676,8 @@ x_text_width_single_run (Display * USED_IF_XFT (dpy),
 
       assert (run->dimension == 2);
 
-      XftTextExtents16 (dpy, FONT_INSTANCE_X_XFTFONT (fi),
-                        (XftChar16 *) run->ptr, run->len, &glyphinfo);
+      XftTextExtents32 (dpy, FONT_INSTANCE_X_XFTFONT (fi),
+                        (FcChar32 *) run->ptr, run->len, &glyphinfo);
     
       return glyphinfo.xOff;
     }
@@ -536,7 +718,7 @@ x_text_width (struct frame *f, struct face_cachel *cachel, const Ibyte *str,
 
   ALLOCATE_RUNS_TEXT (text_storage, text_storage_len, str, len);
   nruns = separate_textual_runs (WINDOW_XBUFFER (FRAME_SELECTED_XWINDOW (f)),
-                                 text_storage, runs, str, len, cachel);
+                                 text_storage, runs, str, len, cachel, dpy);
 
   USED (text_storage_len);
 
@@ -1549,7 +1731,7 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
   ALLOCATE_RUNS_TEXT (text_storage, text_storage_len, buf, len);
 
   nruns = separate_textual_runs (WINDOW_XBUFFER (w), text_storage, runs,
-                                 buf, len, cachel);
+                                 buf, len, cachel, dpy);
 
   USED (text_storage_len);
 
@@ -1651,7 +1833,8 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
 	}
 #ifdef XEMACS_USE_XFT
       {
-	XftFont *rf = FONT_INSTANCE_X_XFTFONT (fi);
+	XftFont *rf = runs[i].font
+	  ? runs[i].font : FONT_INSTANCE_X_XFTFONT (fi);
 
 	if (rf)
 	  {
@@ -1696,8 +1879,8 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
 				  + FONT_INSTANCE_DESCENT (fi);
 		XGlyphInfo gi;
 
-                XftTextExtents16 (dpy, FONT_INSTANCE_X_XFTFONT (fi),
-                                  (const XftChar16 *) run->ptr, run->len,
+                XftTextExtents32 (dpy, rf,
+                                  (const FcChar32 *) run->ptr, run->len,
                                   &gi);
 		rect_height = max (rect_height, gi.height);
 #endif
@@ -1708,8 +1891,17 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
 	
 	    assert (runs[i].dimension == 2);
 
-            XftDrawString16 (xftDraw, &fg, rf, xpos, dl->ypos,
-                             (const XftChar16 *) runs[i].ptr, runs[i].len);
+            XftDrawString32 (xftDraw, &fg, rf, xpos, dl->ypos,
+                             (const FcChar32 *) runs[i].ptr, runs[i].len);
+	  }
+	else
+	  {
+	    /* The run holds UTF-32; the core-X path below would hand
+	       32-bit codepoints to XDrawString16.  Under Xft STAGE_FINAL
+	       always supplies a font, so this cannot happen; refuse to
+	       draw rather than corrupt the data. */
+	    assert (0);
+	    use_x_font = 0;
 	  }
       }
 #endif /* XEMACS_USE_XFT */
@@ -1838,7 +2030,8 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
 #ifdef XEMACS_USE_XFT
 	  if (!use_x_font)	/* Xft */
 	    {
-	      XftFont *rf = FONT_INSTANCE_X_XFTFONT (fi);
+	      XftFont *rf = runs[i].font
+		? runs[i].font : FONT_INSTANCE_X_XFTFONT (fi);
 	  
 	      { /* set up clipping */
 		Region clip_reg = XCreateRegion();
@@ -1864,8 +2057,8 @@ x_output_string (struct window *w, struct display_line *dl, const Ibyte *buf,
 		xft_color = XFT_FROB_LISP_COLOR (cursor_cachel->foreground, 0);
 		assert (runs[i].dimension == 2);
 
-                XftDrawString16 (xftDraw, &xft_color, rf, xpos, dl->ypos,
-                                 (XftChar16 *) runs[i].ptr, runs[i].len);
+                XftDrawString32 (xftDraw, &xft_color, rf, xpos, dl->ypos,
+                                 (FcChar32 *) runs[i].ptr, runs[i].len);
 	      }
 
 	      XftDrawSetClip (xftDraw, 0);
