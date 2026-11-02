@@ -48,6 +48,12 @@
 ;; SimSun, the EXT-B samples in SimSun-ExtB, symbols and ornaments must
 ;; be visible, and no character may appear as `~'.  A human records PASS
 ;; or FAIL for that check on the milestone issue.
+;;
+;; The C-side choice of fallback font is not visible from Lisp.  What this
+;; gate can assert is the face instance for each charset (a real instance,
+;; with a string truename naming the expected family) and that fontconfig
+;; lists a covering font for each fallback codepoint; rendering the mixed
+;; line is then the crash check for the UTF-32 split and fallback code.
 
 ;;; Code:
 
@@ -83,6 +89,8 @@
   '((latin "ABC xyz")
     ;; 中文 你好
     (cjk (#x4e2d #x6587 #x20 #x4f60 #x597d))
+    ;; 한 (U+D55C), charset korean-ksc5601
+    (hangul (#xd55c))
     ;; EXT-B: U+20100 and U+20109.  XEmacs maps the first to the JIT
     ;; charset and the second to chinese-cns11643-7; both must render.
     (ext-b (#x20100 #x20109))
@@ -94,8 +102,34 @@
     (ornament (#x2777 #x2793 #x24e9 #x2296 #x22a1 #x21d2 #x2200)))
   "One line per rendering class; codepoints are given numerically so the
 file's own encoding cannot change the matrix.  The classes cnfonts
-configures are dimension-2 (CJK), JIT (EXT-B), plain (Latin), and the
-dropped symbol/phonetic/ornament requests.")
+configures are dimension-2 (CJK and Korean), JIT (EXT-B), plain (Latin),
+and the dropped symbol/phonetic/ornament requests.")
+
+(defconst xft-rendering-gui-mixed-line
+  '(#x41 #x4e2d #x20109 #x20100 #x221a)
+  "A single line with Latin (A), Han (中), an EXT-B codepoint that maps to
+a real 2D charset (U+20109, chinese-cns11643-7), an EXT-B JIT codepoint
+(U+20100, jit-ucs-charset-0) and a symbol, so redisplay must split it into
+several fonts and draw it without crashing.")
+
+(defconst xft-rendering-gui-all-lines
+  (append xft-rendering-gui-lines
+	  (list (list 'mixed xft-rendering-gui-mixed-line)))
+  "The matrix plus the mixed-coverage line, in render order.")
+
+(defconst xft-rendering-gui-charset-families
+  '((ascii . "DejaVu Sans")
+    (chinese-gb2312 . "SimSun")
+    (japanese-jisx0208 . "SimSun")
+    (japanese-jisx0212 . "SimSun")
+    (chinese-cns11643-7 . "SimSun")
+    ;; The hangul sample lands in korean-ksc5601 (the review note called
+    ;; it chinese-ksc5601, but that charset does not exist in XEmacs).
+    (korean-ksc5601 . "SimSun")
+    (jit-ucs-charset-0 . "SimSun-ExtB"))
+  "The family each matrix charset must resolve to.  A missing backstop
+would let a charset pass on any real instance; every charset the matrix
+produces is listed here.")
 
 (defconst xft-rendering-gui-covered-codepoints
   (append '(#x20100 #x20109)			; EXT-B
@@ -135,11 +169,13 @@ field, which keeps `SimSun' from accepting `SimSun\\-ExtB'."
   "Return the default face's global font instantiators."
   (specifier-specs (face-property 'default 'font) 'global))
 
-(defun xft-rendering-gui-tagged-specs (&rest tag-set)
-  "Return the instantiators under TAG-SET."
+(defun xft-rendering-gui-tagged-specs (tag)
+  "Return the instantiators filed under TAG, a tag symbol.
+The tag is looked for with `memq' inside the spec's tag set, so tag
+ordering and normalization cannot hide it."
   (let (result)
     (dolist (spec (xft-rendering-gui-global-specs) (nreverse result))
-      (when (and (consp spec) (equal (car spec) tag-set))
+      (when (and (consp spec) (memq tag (car spec)))
 	(push (cdr spec) result)))))
 
 (defun xft-rendering-gui-plain-specs ()
@@ -152,7 +188,7 @@ field, which keeps `SimSun' from accepting `SimSun\\-ExtB'."
 (defun xft-rendering-gui-charsets ()
   "Return an alist of each matrix charset to its first character."
   (let (seen)
-    (dolist (entry xft-rendering-gui-lines)
+    (dolist (entry xft-rendering-gui-all-lines)
       (dolist (codepoint (xft-rendering-gui-line-codepoints (nth 1 entry)))
 	(unless (eq codepoint #x20)
 	  (let* ((char (if (< codepoint 256)
@@ -162,6 +198,26 @@ field, which keeps `SimSun' from accepting `SimSun\\-ExtB'."
 	    (unless (assq charset seen)
 	      (push (cons charset char) seen))))))
     (nreverse seen)))
+
+(defun xft-rendering-gui-instance (charset)
+  "Return CHARSET's default-face font instance on this device."
+  (face-font-instance 'default (selected-device) charset))
+
+(defun xft-rendering-gui-real-instance-p (charset)
+  "Return non-nil when CHARSET resolves to a real font instance.
+`Vthe_null_font_instance' passes `font-instance-p' but has a nil
+truename, so a string truename is what separates it from a real font."
+  (let ((instance (xft-rendering-gui-instance charset)))
+    (and instance
+	 (font-instance-p instance)
+	 (stringp (font-instance-truename instance)))))
+
+(defun xft-rendering-gui-instance-family-p (charset family)
+  "Return non-nil when CHARSET's real instance names FAMILY."
+  (and (xft-rendering-gui-real-instance-p charset)
+       (xft-rendering-gui-truename-family-p
+	(font-instance-truename (xft-rendering-gui-instance charset))
+	family)))
 
 (defun xft-rendering-gui-fc-covered-p (codepoint)
   "Return non-nil when fontconfig lists an installed font covering CODEPOINT."
@@ -188,12 +244,13 @@ field, which keeps `SimSun' from accepting `SimSun\\-ExtB'."
     (xft-rendering-gui-check '(featurep 'xft-fonts)
 			      "the device renders with Xft")
 
+    ;; This gate needs the real fonts.  A machine without them cannot say
+    ;; anything about rendering, so skip rather than fail.
     (let ((families (font-family-list device)))
       (dolist (family '("DejaVu Sans" "SimSun" "SimSun-ExtB"))
-	(xft-rendering-gui-check
-	 `(member ,family families)
-	 (format "the %s family is installed (this gate needs the real font)"
-		 family))))
+	(unless (member family families)
+	  (xft-rendering-gui-skip "%s is not installed" family)
+	  (kill-emacs 0))))
 
     (xft-rendering-gui-configure)
 
@@ -237,49 +294,55 @@ field, which keeps `SimSun' from accepting `SimSun\\-ExtB'."
        `(equal ',before (xft-rendering-gui-global-specs))
        "the shim drops the ornament range requests"))
 
-    ;; Render the whole matrix once.  A face with no instance for a
-    ;; character is what `add_ichar_rune_1' substitutes `~' for, and the
-    ;; draw path itself must survive the UTF-32 runs and fallback.
-    (let ((buffer (get-buffer-create "*xft-rendering-gui*")))
+    ;; Render the matrix and the mixed-coverage line.  A face with no
+    ;; instance for a character is what `add_ichar_rune_1' substitutes `~'
+    ;; for; redisplaying here is the crash check for the UTF-32 runs and
+    ;; per-character fallback.  Running redisplay inside the check makes an
+    ;; error in the draw path a FAIL instead of aborting the gate.
+    (let* ((expected
+	    (concat (mapconcat
+		     #'(lambda (entry)
+			 (xft-rendering-gui-string (nth 1 entry)))
+		     xft-rendering-gui-all-lines "\n")
+		    "\n"))
+	   (buffer (get-buffer-create "*xft-rendering-gui*")))
       (switch-to-buffer buffer)
       (erase-buffer)
-      (dolist (entry xft-rendering-gui-lines)
-	(insert (xft-rendering-gui-string (nth 1 entry)) "\n"))
-      (goto-char (point-min))
-      (redisplay t)
-      (sit-for 0)
+      (insert expected)
       (xft-rendering-gui-check
-       `(> (buffer-size) 0)
-       "the rendering matrix displays without a crash"))
+       `(progn
+	  (goto-char (point-min))
+	  (redisplay t)
+	  (sit-for 0)
+	  (equal (buffer-string) ,expected))
+       "redisplay and sit-for render the matrix and the mixed line"))
 
-    (dolist (entry (xft-rendering-gui-charsets))
-      (let ((charset (car entry))
-	    (char (cdr entry)))
+    (let ((charsets (xft-rendering-gui-charsets)))
+      ;; Every matrix charset needs a backstop; a new line must not slip
+      ;; through without one.
+      (dolist (entry charsets)
 	(xft-rendering-gui-check
-	 `(let ((instance (face-font-instance 'default (selected-device)
-					      ',charset)))
-	    (and instance (font-instance-p instance)))
-	 (format "%s (U+%04X) has a font instance, not `~'"
-		 charset (char-to-unicode char)))))
+	 `(assq ',(car entry) xft-rendering-gui-charset-families)
+	 (format "%s has a family backstop" (car entry))))
 
-    (dolist (charset '(japanese-jisx0208 japanese-jisx0212
-		       chinese-gb2312))
-      (xft-rendering-gui-check
-       `(let ((instance (face-font-instance 'default (selected-device)
-					    ',charset)))
-	  (and instance
-	       (xft-rendering-gui-truename-family-p
-		(font-instance-truename instance) "SimSun")))
-       (format "the %s instance's truename names SimSun" charset)))
-
-    (xft-rendering-gui-check
-     '(let ((instance (face-font-instance 'default (selected-device)
-					  'jit-ucs-charset-0)))
-	(and instance
-	     (xft-rendering-gui-truename-family-p
-	      (font-instance-truename instance) "SimSun-ExtB")))
-     "the jit-ucs-charset-0 instance's truename names SimSun-ExtB")
-
+      ;; Every matrix charset, and every backstop the matrix does not
+      ;; reach (chinese-gb2312), must resolve to a real instance naming
+      ;; its family.
+      (dolist (charset (sort (delete-duplicates
+			      (append
+			       (mapcar #'car charsets)
+			       (mapcar #'car xft-rendering-gui-charset-families)))
+			     #'(lambda (a b) (string< (symbol-name a)
+						      (symbol-name b)))))
+	(let ((family (cdr (assq charset xft-rendering-gui-charset-families))))
+	  (xft-rendering-gui-check
+	   `(xft-rendering-gui-real-instance-p ',charset)
+	   (format "%s has a real instance, not `~'" charset))
+	  (xft-rendering-gui-check
+	   `(and ,family
+		 (xft-rendering-gui-instance-family-p ',charset ,family))
+	   (format "the %s instance's truename names %s"
+		   charset (or family "a missing backstop"))))))
     (dolist (codepoint xft-rendering-gui-covered-codepoints)
       (xft-rendering-gui-check
        `(xft-rendering-gui-fc-covered-p ,codepoint)
