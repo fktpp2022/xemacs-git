@@ -299,10 +299,11 @@ mule_to_fc_charset (Lisp_Object charset)
    - STAGE_INITIAL: accept FONT only if the concrete font it resolves to
      covers the charset's repertoire.  This keeps the documented
      `(two-dimensional final)' contract working: a plain font that does
-     not cover the charset falls through to the final tag.  Coverage, not
-     FC_LANG, is the test, because a font can carry the wrong language
-     tags and still have the glyphs.  A rejection here is harmless; it
-     only advances the specifier to STAGE_FINAL.
+     not cover the charset falls through to the XLFD/registry matching
+     below, and only then to the final tag.  Coverage, not FC_LANG, is the
+     test, because a font can carry the wrong language tags and still have
+     the glyphs.  A rejection here is harmless; it only advances the
+     specifier past this stage.
 
    - STAGE_FINAL: accept FONT unconditionally, before any registry/XLFD
      work.  The tag mechanism has already chosen this font for the

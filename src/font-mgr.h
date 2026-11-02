@@ -136,35 +136,6 @@ DECLARE_LISP_OBJECT(fc_config, struct fc_config);
 #define DEBUG_XFT4(level,format,x1,x2,x3,x4)			\
   if (debug_xft > level) stderr_out (format, x1, x2, x3, x4)
 
-/* print an Xft pattern to stderr
-   LEVEL is the debug level (to compare to debug_xft)
-   FORMAT is a newline-terminated printf format with one %s for the pattern
-     and must be internal format (eg, pure ASCII)
-   PATTERN is an FcPattern *. */
-#define PRINT_XFT_PATTERN(level,format,pattern)			\
-  do {								\
-    DECLARE_EISTRING (eistrpxft_name);				\
-    Extbyte *name;						\
-    FcPattern* temp = FcPatternDuplicate (pattern);		\
-    FcPatternDel (temp, FC_CHARSET);				\
-    name = (Extbyte *) FcNameUnparse (temp);			\
-    FcPatternDestroy (temp);					\
-    eicpy_ext(eistrpxft_name,					\
-              name ? name : "FONT WITH NULL NAME",		\
-              Qfc_font_name_encoding);				\
-    DEBUG_XFT1 (level, format, eidata(eistrpxft_name));		\
-    free (name);						\
-  } while (0)
-
-/* print a progress message
-   LEVEL is the debug level (to compare to debug_xft)
-   FONT is the Xft font name in Mule internal encoding (from an eistring).
-   LANG is the language being checked for support (must be ASCII). */
-#define CHECKING_LANG(level,font,lang)					\
-  do {									\
-    DEBUG_XFT2 (level, "checking if %s handles %s\n", font, lang);	\
-  } while (0)
-
 #else /* HAVE_XFT */
 
 #endif /* HAVE_XFT */

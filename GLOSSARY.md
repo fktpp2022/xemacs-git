@@ -85,5 +85,5 @@ A font attached under the `final` stage: it renders only characters that no `ini
 _Avoid_: default font, fallback chain
 
 **JIT charset**:
-An internal charset holding Unicode codepoints with no encodable XEmacs charset equivalent (rare CJK, e.g. Extension B). Being 2D, it matches any dimension-2 specifier tag like any other CJK charset.
+An internal charset holding Unicode codepoints with no encodable XEmacs charset equivalent (rare CJK, e.g. Extension B). It matches the built-in dimension-2 specifier tag; the cnfonts shim's own dimension-2 tag excludes it, so the EXT-B font wins for it, and per-character fallback supplies the glyphs that font lacks.
 _Avoid_: unicode charset, ext-b charset
