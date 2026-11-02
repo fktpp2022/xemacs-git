@@ -335,6 +335,106 @@
    (Assert (>= (length cnfonts-xemacs-tests--warned) 3)
            "every GTK request warns")))
 
+;;; The editor half: the GNU calls cnfonts-ui makes at load time
+
+;; XEmacs searches a keymap's parents in order, so a composed map is a
+;; sparse map with MAPS as its ordered parents.
+(let* ((widget-like (make-sparse-keymap))
+       (special-like (make-sparse-keymap))
+       (composed (make-composed-keymap (list widget-like special-like))))
+  (define-key widget-like "t" 'widget-command)
+  (define-key special-like "t" 'special-command)
+  (define-key special-like "q" 'special-quit)
+  (Assert (eq (lookup-key composed "t") 'widget-command)
+          "the first map wins in a composed keymap")
+  (Assert (eq (lookup-key composed "q") 'special-quit)
+          "a later map answers where the first is silent"))
+
+(let* ((map (make-sparse-keymap))
+       (parent (make-sparse-keymap))
+       (composed (make-composed-keymap map parent)))
+  (define-key map "a" 'map-command)
+  (define-key parent "b" 'parent-command)
+  (Assert (eq (lookup-key composed "a") 'map-command)
+          "a single keymap argument is accepted")
+  (Assert (eq (lookup-key composed "b") 'parent-command)
+          "PARENT is searched after MAPS"))
+
+(Assert (null (face-valid-attribute-values :box))
+        "the value-list stand-in answers nil")
+
+;; The widget variables `custom--initialize-widget-variables' sets are
+;; defined by `cus-edit'; `cnfonts-ui' loads it before building a page.
+(require 'cus-edit)
+(with-temp-buffer
+  (let ((custom-raised-buttons t))
+    (custom--initialize-widget-variables)
+    (Assert (eq widget-documentation-face 'custom-documentation-face)
+            "widget documentation uses the custom face")
+    (Assert (eq widget-button-face 'custom-button-face)
+            "widget buttons use the custom face")
+    (Assert (equal widget-push-button-prefix "")
+            "raised buttons have no bracketing prefix")
+    (Assert (equal widget-push-button-suffix "")
+            "raised buttons have no bracketing suffix")))
+
+(with-temp-buffer
+  (custom--initialize-widget-variables)
+  (Assert (equal widget-push-button-prefix "[")
+          "without custom-raised-buttons the prefixes stay"))
+
+(Assert (equal (char-to-string ?中) "中")
+        "a character is passed through")
+(Assert (equal (char-to-string 65) "A")
+        "an ASCII integer names its character")
+(Assert (equal (char-to-string 10102) (string (unicode-to-char 10102)))
+        "a raw Unicode codepoint is converted to an XEmacs character")
+(Assert (condition-case nil
+            (progn (char-to-string #x110000) nil)
+          (error t))
+        "a codepoint beyond Unicode signals")
+
+;;; Navigation: `cnfonts-ui-forward' needs an optional POS and a
+;;; character-wise scan that can reach a tab stop at `point-min'.
+
+(require 'wid-edit)
+(with-temp-buffer
+  (let* ((first (widget-create 'push-button :tag "first"
+                               :tab-stop-point t))
+         (_ (widget-insert " "))
+         (second (widget-create 'push-button :tag "second")))
+    (widget-setup)
+    (goto-char (point-min))
+    (Assert (eq (widget-at) first) "widget-at defaults to point")
+    (Assert (eq (widget-at (point)) first) "widget-at takes POS")
+    (widget-move 1)
+    (Assert (eq (widget-at) second) "widget-move advances one widget")
+    (widget-move 1)
+    (Assert (and (= (point) (point-min)) (eq (widget-at) first))
+            "widget-move wraps forward to a tab stop at point-min")
+    (widget-move -1)
+    (Assert (eq (widget-at) second) "widget-move backs up one widget")
+    (widget-move -1)
+    (Assert (and (= (point) (point-min)) (eq (widget-at) first))
+            "widget-move wraps backward to the tab stop at point-min")))
+
+;;; The align page's mouse warp: window-relative pixels and a frame-taking
+;;; `set-mouse-pixel-position'.
+
+(Assert (integerp (default-font-width))
+        "default-font-width answers a metric")
+(Assert (integerp (default-font-height))
+        "default-font-height answers a metric")
+(Assert (or (null (posn-at-point (point-min)))
+            (consp (posn-at-point (point-min))))
+        "posn-at-point answers a cons or nil")
+
+(let ((cnfonts-xemacs--mouse-pixel-position-primitive
+       (lambda (window x y) (list window x y))))
+  (Assert (equal (set-mouse-pixel-position (selected-frame) 3 4)
+                 (list (frame-selected-window (selected-frame)) 3 4))
+          "a frame maps to its selected window"))
+
 ;; `cnfonts' encodes family names its lister missed as `gbk'; on XEmacs
 ;; the same encoding is `cp936', which the shim aliases at load time.
 (Assert (or (null (find-coding-system 'cp936))

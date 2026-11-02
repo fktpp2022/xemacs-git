@@ -34,7 +34,27 @@
 ;;   `set-face-attribute'  a descriptor lowered onto the face's plain font
 ;;   `set-fontset-font'    a descriptor lowered under one of the two tags below
 ;;
-;; Loading this file does not load or require `cnfonts', and it works on a
+;; `cnfonts-edit-profile' additionally loads `cnfonts-ui', which needs four
+;; GNU spellings of its own at load time:
+;;
+;;   `make-composed-keymap'         a sparse map with ordered parents
+;;   `face-valid-attribute-values'   nil; only a raised-buttons probe
+;;   `custom--initialize-widget-variables'  the faces `custom-mode' supplies
+;;   `char-to-string'               raw Unicode codepoints and characters
+;;
+;; Once the editor is open, its navigation and the align page's mouse warp
+;; reach five more:
+;;
+;;   `widget-at'                    POS defaults to point
+;;   `widget-move'                  GNU's character-wise scan, not extent jumps
+;;   `posn-at-point', `posn-x-y'    the window-relative pixel position
+;;   `default-font-width/-height'   the default face's font metrics
+;;   `set-mouse-pixel-position'     a frame maps to its selected window
+;;
+;; The widget and position entries are approximations: XEmacs pixels are
+;; counted from the window's text area, not from a frame, and a position
+;; outside the window's displayed range answers nil.  Loading this file does
+;; not load or require `cnfonts', and it works on a
 ;; build with no window system: the queries come from the device-neutral
 ;; descriptor route, and a device with no row in
 ;; `font-window-system-mappings' simply answers "no".  The accepted
@@ -154,6 +174,190 @@ through the same `font-create-name' plus `try-font-name' route as
 (defun string-join (strings &optional separator)
   "Join STRINGS with SEPARATOR, which defaults to the empty string."
   (mapconcat #'identity strings (or separator "")))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; The editor half: what cnfonts-ui needs before it can load
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; `cnfonts-edit-profile' requires `cnfonts-ui', whose keymap and mode body
+;; use four GNU spellings XEmacs lacks.  The keymap and the character
+;; conversion are exact; the two widget/customization entries approximate
+;; the parts XEmacs's own Custom mode does not provide.
+
+(defun make-composed-keymap (maps &optional parent)
+  "Construct a keymap composed of MAPS and inheriting from PARENT.
+`cnfonts-ui' composes `widget-keymap' and `special-mode-map'.  XEmacs
+searches a keymap's parents in order (`set-keymap-parents'), so the
+composed map is a sparse map whose parents are MAPS followed by PARENT."
+  (when (keymapp maps)
+    (setq maps (list maps)))
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parents map (append maps (and parent (list parent))))
+    map))
+
+(defun face-valid-attribute-values (_attribute)
+  "Return nil, standing in for GNU's face-attribute value list.
+XEmacs has no `:box' face attribute and no value list for GNU's
+attributes.  `cnfonts-ui' compares the answer only with
+`((\"unspecified\" . unspecified))' to choose raised buttons; nil
+selects the raised, graphical branch."
+  nil)
+
+(defun custom--initialize-widget-variables ()
+  "Set up the buffer-local widget variables as XEmacs's `custom-mode' does.
+GNU's version also sets pressed and mouse faces and link prefixes XEmacs
+does not have.  `cnfonts-ui' binds `custom-raised-buttons' before any
+page is built; without it the bracketed prefixes stay."
+  (set (make-local-variable 'widget-documentation-face)
+       'custom-documentation-face)
+  (set (make-local-variable 'widget-button-face)
+       'custom-button-face)
+  (when (and (boundp 'custom-raised-buttons)
+             (symbol-value 'custom-raised-buttons))
+    (set (make-local-variable 'widget-push-button-prefix) "")
+    (set (make-local-variable 'widget-push-button-suffix) "")))
+
+(defun char-to-string (character)
+  "Convert CHARACTER to a one-character string containing that character.
+GNU callers such as `cnfonts-ui' pass raw Unicode codepoints, while
+XEmacs's own `char-to-string' takes charset-encoded characters.  An
+integer above 255 goes through `unicode-to-char' first; 0..255 are the
+characters they name in every charset."
+  (when (eventp character)
+    (let ((event-to-character (event-to-character character t)))
+      (setq character
+            (or event-to-character (error 'no-character-typed character)))))
+  (when (integerp character)
+    (when (or (< character 0) (> character #x10FFFF))
+      (signal 'wrong-type-argument (list 'characterp character)))
+    (when (> character 255)
+      (setq character (unicode-to-char character))))
+  (string character))
+
+;; `cnfonts-ui-forward' calls `(widget-at)' and then loops on
+;; `widget-move' until it reaches a `:tab-stop-point' widget.  XEmacs's
+;; `widget-at' requires POS, and its `widget-move' jumps extent to extent,
+;; so it never visits the start page's tab stop at `point-min' and the
+;; loop never ends.  GNU's character-wise scan does visit it.
+;;
+;; Load `wid-edit' here, before the redefinitions below: `cnfonts-ui'
+;; loads it through `cus-edit' only later, and that load would otherwise
+;; put the originals back over the shims.
+
+(require 'wid-edit)
+
+(defun widget-at (&optional pos)
+  "The button or field at POS, which defaults to point."
+  (or (get-char-property (or pos (point)) 'button)
+      (get-char-property (or pos (point)) 'field)))
+
+(defun widget-move (arg)
+  "Move point to the ARGth next field or button.
+ARG may be negative to move backward.  This follows GNU's scan: point
+moves one character at a time, wrapping at either end, so a tab stop at
+`point-min' is reachable.  Point ends at the start of the widget."
+  (let* ((wrapped 0)
+         (number arg)
+         (fwd (> arg 0))
+         (bwd (< arg 0))
+         (old (widget-tabable-at))
+         (tabable (if old 1 0))
+         pos)
+    (catch 'one
+      (while (> (abs arg) 0)
+        (cond ((or (and fwd (eobp)) (and bwd (bobp)))
+               (goto-char (if fwd (point-min) (point-max)))
+               (setq wrapped (1+ wrapped)))
+              (t
+               (if fwd (forward-char 1) (backward-char 1))))
+        (when (and (= wrapped 2) (eq arg number))
+          (if (= tabable 1)
+              (progn
+                (goto-char pos)
+                (throw 'one (message "Only one tabable widget")))
+            (error "No buttons or fields found")))
+        (let ((new (widget-tabable-at)))
+          (when new
+            (if (eq new old)
+                (setq pos (point))
+              (setq tabable (1+ tabable))
+              (setq arg (if fwd (1- arg) (1+ arg)))
+              (setq old new))))))
+    (let ((new (widget-tabable-at)))
+      (while (and (eq (widget-tabable-at) new) (not (bobp)))
+        (backward-char)))
+    (unless (and (widget-tabable-at) (bobp))
+      (forward-char)))
+  (widget-echo-help (point))
+  (run-hooks 'widget-move-hook))
+
+;; `cnfonts-ui--move-mouse' warps the pointer to `(+ (point) 1)'.  It
+;; wants window-relative pixels, which is what XEmacs's primitive takes.
+
+(defun cnfonts-xemacs--default-font-metric (metric &optional frame)
+  "Return METRIC of the default face font on FRAME, or 1.
+`font-width' and `font-height' resolve the face's font specifier for a
+window; a text terminal has no pixel metrics and answers 1."
+  (or (funcall metric (face-property 'default 'font)
+               (frame-selected-window (or frame (selected-frame))))
+      1))
+
+(defun default-font-width (&optional frame)
+  "Return the pixel width of the default face font on FRAME."
+  (cnfonts-xemacs--default-font-metric #'font-width frame))
+
+(defun default-font-height (&optional frame)
+  "Return the pixel height of the default face font on FRAME."
+  (cnfonts-xemacs--default-font-metric #'font-height frame))
+
+(defun posn-at-point (&optional pos window)
+  "Return POS's pixel position in WINDOW as a (X . Y) cons.
+POS defaults to the window's point and WINDOW to the selected window.
+The answer is relative to the window's text area and is an
+approximation: the column offset times the default font's width and the
+line offset times its height.  POS outside the buffer or the window's
+displayed range answers nil."
+  (setq window (or window (selected-window)))
+  (setq pos (or pos (window-point window)))
+  (let ((end (window-end window)))
+    (when (and (>= pos (point-min))
+               (<= pos (point-max))
+               (>= pos (window-start window))
+               (or (null end) (<= pos end)))
+      (save-excursion
+        (goto-char pos)
+        (let* ((edges (window-text-area-pixel-edges window))
+               (column (max 0 (- (current-column)
+                                 (window-hscroll window))))
+               (line (count-lines (window-start window)
+                                  (progn (beginning-of-line) (point)))))
+          (cons (+ (nth 0 edges)
+                   (* column (default-font-width (window-frame window))))
+                (+ (nth 1 edges)
+                   (* line (default-font-height (window-frame window))))))))))
+
+(defun posn-x-y (posn)
+  "Return POSN's pixel coordinates as a (X . Y) cons.
+`posn-at-point' here returns exactly that representation."
+  (and (consp posn) (numberp (car posn)) (numberp (cdr posn)) posn))
+
+(defvar cnfonts-xemacs--mouse-pixel-position-primitive
+  (symbol-function 'set-mouse-pixel-position)
+  "XEmacs's own `set-mouse-pixel-position', which takes a window.")
+
+(defun cnfonts-xemacs--set-mouse-pixel-position (frame-or-window x y)
+  "Move the mouse pointer to pixel position (X, Y).
+GNU callers pass a frame; XEmacs's primitive takes a window, so a frame
+maps to its selected window."
+  (funcall cnfonts-xemacs--mouse-pixel-position-primitive
+           (if (windowp frame-or-window)
+               frame-or-window
+             (frame-selected-window
+              (or frame-or-window (selected-frame))))
+           x y))
+
+(defalias 'set-mouse-pixel-position
+  'cnfonts-xemacs--set-mouse-pixel-position)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; The sink half: cnfonts's configuration, lowered onto face fonts
