@@ -269,16 +269,30 @@
          "the ignored frame warns once"))
 
 (cnfonts-xemacs-tests--with-sink
- (set-fontset-font "fontset-default" 'symbol (make-font :family "Symbol"))
- (set-fontset-font "fontset-default" 'phonetic (make-font :family "Phonetic"))
- (set-fontset-font "fontset-default" '(#x2776 . #x2793)
-                   (make-font :family "Ornament"))
- (set-fontset-font "fontset-default" 'katakana-jisx0201
-                   (make-font :family "Kana"))
- (Assert (null (cnfonts-xemacs-tests--specs))
-         "dropped requests add no specification")
- (Assert (= 4 (length cnfonts-xemacs-tests--warned))
-         "each dropped request warns once"))
+ (let ((xft-font-overrides nil))
+   (set-fontset-font "fontset-default" 'symbol
+                     (make-font :family "Symbol" :size 12))
+   (set-fontset-font "fontset-default" 'phonetic
+                     (make-font :family "Phonetic" :size 10))
+   (set-fontset-font "fontset-default" '(#x2776 . #x2793)
+                     (make-font :family "Ornament" :size 12))
+   (set-fontset-font "fontset-default" 'katakana-jisx0201
+                     (make-font :family "Kana"))
+   (Assert (null (cnfonts-xemacs-tests--specs))
+           "codepoint requests add no face specification")
+   (Assert (= 4 (length xft-font-overrides))
+           "the map holds Greek, IPA, phonetic extensions and one range")
+   (Assert (equal (cdr (assoc '(#x0370 . #x03FF) xft-font-overrides))
+                  '("Symbol" . 12))
+           "the Greek range carries the symbol family and size")
+   (Assert (equal (cdr (assoc '(#x0250 . #x02AF) xft-font-overrides))
+                  '("Phonetic" . 10))
+           "a re-set phonetic range carries the later family and size")
+   (Assert (equal (cdr (assoc '(#x2776 . #x2793) xft-font-overrides))
+                  '("Ornament" . 12))
+           "the ornament range carries the ornament family and size")
+   (Assert (= 1 (length cnfonts-xemacs-tests--warned))
+           "only the one-dimensional script still warns")))
 
 (cnfonts-xemacs-tests--with-sink
  (set-fontset-font "fontset-other" 'han (make-font :family "CJK"))

@@ -2715,16 +2715,21 @@ fallback there, and Xft's per-character fallback supplies glyphs the
 EXT-B font lacks.  The bucket is still broader than GNU's range: any
 codepoint with no encodable equivalent lands in it, not just Ext-B.
 @item
-@strong{Symbol and phonetic fonts are dropped.}  XEmacs has no
-@code{symbol} or @code{phonetic} charset, so each request warns and
-selects no font.  The glyphs are not lost: Xft's per-character fallback
-draws them, at the size of the charset's own font, so the profile's
-symbol and ornament sizes do not reach them.
 @item
-@strong{Ornament ranges are dropped.}  @code{cnfonts} pins four
-codepoint ranges (circled numbers and letters and the like); a specifier
-tag's predicate takes a charset, never a codepoint, so each range warns
-and selects no font and the same fallback draws them.
+@strong{Symbol, phonetic, and ornament fonts are codepoint overrides.}
+XEmacs has no @code{symbol} or @code{phonetic} charset and no
+codepoint-range key, so the layer records these requests in
+@code{xft-font-overrides}.  On an Xft device the per-character fallback
+draws those codepoints in the requested family and size, even where the
+charset's own font has a glyph.  The layer maps the scripts
+@code{cnfonts}'s align page exercises -- Greek, IPA, and phonetic
+extensions for @code{symbol} and @code{phonetic} -- and
+@code{cnfonts}'s four ornament ranges, so ordinary punctuation keeps
+the text font.  Later ranges win; a codepoint the named family lacks is
+drawn by any installed font that covers it, at the same size.  Applying
+an edited profile re-renders at the new size without restarting.  On
+GTK, which has no per-character fallback, each request warns and
+changes nothing.
 @item
 @strong{Half-width katakana and Zhuyin keep the Latin font.}  Their
 charsets are one-dimensional, and the layer has no tag for them.

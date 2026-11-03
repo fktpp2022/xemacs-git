@@ -35,8 +35,8 @@
 ;; The `default' face is configured through the cnfonts shim's tag route,
 ;; exactly as cnfonts's own calls lower onto it: a plain Latin family, a
 ;; SimSun request for the scripts, a prepended SimSun-ExtB request for
-;; the nil charset (the JIT tag), and symbol/phonetic/ornament requests
-;; the shim drops so that per-character fallback supplies those glyphs.
+;; the nil charset (the JIT tag), and symbol/phonetic/ornament requests,
+;; which the shim lowers into `xft-font-overrides' rather than a tag.
 ;; `font-layer-gui.el' owns the font-layer contract and
 ;; `cnfonts-xemacs-gui.el' the configuration contract; this file owns
 ;; what redisplay may substitute.
@@ -49,9 +49,11 @@
 ;; be visible, and no character may appear as `~'.  A human records PASS
 ;; or FAIL for that check on the milestone issue.
 ;;
-;; The C-side choice of fallback font is not visible from Lisp.  What this
+;; The C-side choice of fallback font is not visible from Lisp, but the
+;; override map the fallback consults is (`xft-font-override').  What this
 ;; gate can assert is the face instance for each charset (a real instance,
-;; with a string truename naming the expected family) and that fontconfig
+;; with a string truename naming the expected family), that the override
+;; map carries the symbol and ornament family and size, and that fontconfig
 ;; lists a covering font for each fallback codepoint; rendering the mixed
 ;; line is then the crash check for the UTF-32 split and fallback code.
 
@@ -103,7 +105,7 @@
   "One line per rendering class; codepoints are given numerically so the
 file's own encoding cannot change the matrix.  The classes cnfonts
 configures are dimension-2 (CJK and Korean), JIT (EXT-B), plain (Latin),
-and the dropped symbol/phonetic/ornament requests.")
+and the symbol/phonetic/ornament codepoint overrides.")
 
 (defconst xft-rendering-gui-mixed-line
   '(#x41 #x4e2d #x20109 #x20100 #x221a)
@@ -236,7 +238,15 @@ truename, so a string truename is what separates it from a real font."
     (set-fontset-font "fontset-default" script
 		      (font-spec :name "SimSun" :size 12)))
   (set-fontset-font "fontset-default" nil
-		    (font-spec :name "SimSun-ExtB" :size 12) nil 'prepend))
+		    (font-spec :name "SimSun-ExtB" :size 12) nil 'prepend)
+  (dolist (script '(symbol phonetic))
+    (set-fontset-font "fontset-default" script
+		      (font-spec :name "Segoe UI Symbol" :size 12)
+		      nil 'prepend))
+  (dolist (range '((#x2776 . #x2793) (#x24b6 . #x24fe)
+		   (#x2295 . #x22a1) (#x2190 . #x2200)))
+    (set-fontset-font "fontset-default" range
+		      (font-spec :name "MS Gothic" :size 12) nil 'prepend)))
 
 (defun xft-rendering-gui-run ()
   "Run the checks; failures are counted in the globals."
@@ -273,8 +283,8 @@ truename, so a string truename is what separates it from a real font."
 		 (xft-rendering-gui-tagged-specs 'cnfonts-jit-charset))
      "the JIT-charset tag carries SimSun-ExtB")
 
-    ;; The shim must drop the requests no XEmacs charset can select; a
-    ;; stray instantiator would shadow the tag route asserted above.
+    ;; The shim must not create an instantiator for the codepoint requests;
+    ;; they live in the override map the Xft fallback consults.
     (let ((before (xft-rendering-gui-global-specs)))
       (dolist (script '(symbol phonetic))
 	(set-fontset-font "fontset-default" script
@@ -282,7 +292,7 @@ truename, so a string truename is what separates it from a real font."
 			  nil 'prepend))
       (xft-rendering-gui-check
        `(equal ',before (xft-rendering-gui-global-specs))
-       "the shim drops the symbol and phonetic requests"))
+       "the symbol and phonetic requests add no face instantiator"))
 
     (let ((before (xft-rendering-gui-global-specs)))
       (dolist (range '((#x2776 . #x2793) (#x24b6 . #x24fe)
@@ -292,7 +302,23 @@ truename, so a string truename is what separates it from a real font."
 			  nil 'prepend))
       (xft-rendering-gui-check
        `(equal ',before (xft-rendering-gui-global-specs))
-       "the shim drops the ornament range requests"))
+       "the ornament range requests add no face instantiator"))
+
+    (xft-rendering-gui-check
+     '(equal (xft-font-override #x03b1) '("Segoe UI Symbol" . 12))
+     "Greek is overridden with the symbol family at its size")
+    (xft-rendering-gui-check
+     '(equal (xft-font-override #x028c) '("Segoe UI Symbol" . 12))
+     "an IPA extension is overridden with the symbol family")
+    (xft-rendering-gui-check
+     '(equal (xft-font-override #x2776) '("MS Gothic" . 12))
+     "an ornament is overridden with the ornament family at its size")
+    (xft-rendering-gui-check
+     '(null (xft-font-override #x4e2d))
+     "a Han codepoint keeps the charset's font")
+    (xft-rendering-gui-check
+     '(= 7 (length xft-font-overrides))
+     "the override map holds three symbol and four ornament ranges")
 
     ;; Render the matrix and the mixed-coverage line.  A face with no
     ;; instance for a character is what `add_ichar_rune_1' substitutes `~'

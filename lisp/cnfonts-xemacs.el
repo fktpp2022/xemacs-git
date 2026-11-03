@@ -32,7 +32,9 @@
 ;;   `font-family-list'    supplied by lisp/font.el; loaded, not redefined
 ;;   `string-join'         GNU's `subr-x' helper
 ;;   `set-face-attribute'  a descriptor lowered onto the face's plain font
-;;   `set-fontset-font'    a descriptor lowered under one of the two tags below
+;;   `set-fontset-font'    a descriptor lowered under one of the two tags below,
+;;                         or into the codepoint override map (`symbol',
+;;                         `phonetic', and cnfonts's ornament ranges)
 ;;
 ;; `cnfonts-edit-profile' additionally loads `cnfonts-ui', which needs four
 ;; GNU spellings of its own at load time:
@@ -397,6 +399,25 @@ maps to its selected window."
   '(:family :size :weight :slant :name)
   "The `font-spec' keywords `set-face-attribute' builds a descriptor from.")
 
+;; XEmacs has no charset that can select these characters, so the requests
+;; become codepoint overrides consulted by the Xft fallback *before* charset
+;; coverage.  GNU would resolve `symbol' and `phonetic' through its
+;; block-derived script table, which also swallows punctuation and enclosed
+;; alphanumerics; this layer takes the scripts cnfonts's own align row
+;; exercises, so ordinary prose punctuation keeps the text font.
+(defvar xft-font-overrides nil
+  "Ordered codepoint font overrides for the Xft per-character fallback.
+Each entry is (RANGE FAMILY . POINTS); the last matching entry wins.")
+(defconst cnfonts-xemacs-symbol-ranges
+  '((#x0370 . #x03FF)			; Greek and Coptic
+    (#x0250 . #x02AF)			; IPA Extensions
+    (#x1D00 . #x1DBF))			; Phonetic Extensions
+  "The codepoints cnfonts's `symbol' request covers on this layer.")
+(defconst cnfonts-xemacs-phonetic-ranges
+  '((#x0250 . #x02AF)			; IPA Extensions
+    (#x1D00 . #x1DBF))			; Phonetic Extensions
+  "The codepoints cnfonts's `phonetic' request covers on this layer.")
+
 (defun cnfonts-xemacs--gtk-p ()
   "Return non-nil when the selected device is a GTK device."
   (eq (device-type (selected-device)) 'gtk))
@@ -410,53 +431,90 @@ dimension-2 tag, so the EXT-B font is preferred for them and
 per-character fallback supplies the symbols it lacks.  A GNU script is
 coarse: `cjk-misc' and every other script collapse into the
 dimension-2 tag, which also offers the CJK font to non-CJK dimension-2
-charsets -- their per-charset coverage usually rejects it.  `symbol',
-`phonetic', and the ornament codepoint ranges have no XEmacs charset to
-select; a dimension-1 script (half-width katakana, Zhuyin) has no tag
-either, so it keeps the Latin font."
+charsets -- their per-charset coverage usually rejects it.  A
+dimension-1 script (half-width katakana, Zhuyin) has no tag either, so
+it keeps the Latin font."
   (cond
    ((null charset) 'cnfonts-jit-charset)
-   ((or (eq charset 'symbol) (eq charset 'phonetic) (consp charset)) nil)
    ((let ((found (find-charset charset)))
       (and found (= 1 (charset-dimension found))))
     nil)
    (t 'cnfonts-dimension-2)))
 
+(defun cnfonts-xemacs--set-range-font (range font-spec)
+  "Record a codepoint override for RANGE from FONT-SPEC.
+RANGE is a (FROM . TO) cons.  A later request for the same range
+replaces its family and size in place, keeping the map's order."
+  (let* ((family-cell (font-family font-spec))
+         (family (if (consp family-cell) (car family-cell) family-cell))
+         (points (font-size font-spec))
+         (cell (assoc range xft-font-overrides)))
+    (cond
+     ((null family)
+      (warn "cnfonts-xemacs: dropping the override for %S: no family" range))
+     (cell
+      (setcar (cdr cell) family)
+      (setcdr (cdr cell) points))
+     (t
+      (setq xft-font-overrides
+            (append xft-font-overrides
+                    (list (cons range (cons family points)))))))))
+
 (defun set-fontset-font (fontset charset font-spec &optional frame how-to-add)
   "Lower a GNU fontset font request onto the `default' face, for `cnfonts'.
 CHARSET nil selects the JIT-charset tag; a script selects the
-dimension-2 tag.  HOW-TO-ADD (`prepend' or `append') passes through to
-`set-face-font'.  Requests this layer cannot honour are dropped with a
-warning rather than reported as success."
+dimension-2 tag.  The GNU scripts `symbol' and `phonetic' and a cons
+codepoint range become entries in `xft-font-overrides', which the Xft
+per-character fallback consults before charset coverage.  HOW-TO-ADD
+\(`prepend' or `append') passes through to `set-face-font'.  Requests
+this layer cannot honour are dropped with a warning rather than reported
+as success."
   (if (not (equal fontset "fontset-default"))
       (warn "cnfonts-xemacs: only fontset-default is mapped; dropping %S"
             fontset)
     (when frame
       (warn "cnfonts-xemacs: the frame argument %S is ignored" frame))
-    (let ((tag (cnfonts-xemacs--charset-tag charset)))
-      (cond
-       ((null tag)
-        (warn (concat "cnfonts-xemacs: dropping the font request for %S: "
-                      "no specifier tag can select it")
-              charset))
-       ((cnfonts-xemacs--gtk-p)
-        ;; GTK has no per-charset fallback (ADR 0003).  Only the
-        ;; script-level requests apply, as the plain font; in cnfonts's
-        ;; sequence the last one is the Chinese font, and the Latin font
-        ;; never takes this slot.
-        (if (and charset (null how-to-add))
-            (progn
-              (warn (concat "cnfonts-xemacs: GTK cannot select fonts per "
-                            "charset; setting the CJK font as the plain font"))
-              (set-face-font 'default font-spec))
-          (warn (concat "cnfonts-xemacs: GTK cannot apply the %S fallback "
-                        "for %S; dropped")
-                how-to-add charset)))
-       (t
-        ;; cnfonts adds the hangul EXT-B font with HOW-TO-ADD `append'; it
-        ;; lands after the Chinese font, which already matches, so it never
-        ;; wins.  The pass-through keeps GNU's ordering, no-op and all.
-        (set-face-font 'default font-spec 'global (list tag) how-to-add))))))
+    (cond
+     ((and (cnfonts-xemacs--gtk-p) (or (eq charset 'symbol)
+                                       (eq charset 'phonetic)
+                                       (consp charset)))
+      (warn (concat "cnfonts-xemacs: GTK has no per-character fallback; "
+                    "dropping the codepoint override for %S")
+            charset))
+     ((eq charset 'symbol)
+      (dolist (range cnfonts-xemacs-symbol-ranges)
+        (cnfonts-xemacs--set-range-font range font-spec)))
+     ((eq charset 'phonetic)
+      (dolist (range cnfonts-xemacs-phonetic-ranges)
+        (cnfonts-xemacs--set-range-font range font-spec)))
+     ((consp charset)
+      (cnfonts-xemacs--set-range-font charset font-spec))
+     (t
+      (let ((tag (cnfonts-xemacs--charset-tag charset)))
+        (cond
+         ((null tag)
+          (warn (concat "cnfonts-xemacs: dropping the font request for %S: "
+                        "no specifier tag can select it")
+                charset))
+         ((cnfonts-xemacs--gtk-p)
+          ;; GTK has no per-charset fallback (ADR 0003).  Only the
+          ;; script-level requests apply, as the plain font; in cnfonts's
+          ;; sequence the last one is the Chinese font, and the Latin font
+          ;; never takes this slot.
+          (if (and charset (null how-to-add))
+              (progn
+                (warn (concat "cnfonts-xemacs: GTK cannot select fonts per "
+                              "charset; setting the CJK font as the plain font"))
+                (set-face-font 'default font-spec))
+            (warn (concat "cnfonts-xemacs: GTK cannot apply the %S fallback "
+                          "for %S; dropped")
+                  how-to-add charset)))
+         (t
+          ;; cnfonts adds the hangul EXT-B font with HOW-TO-ADD `append'; it
+          ;; lands after the Chinese font, which already matches, so it never
+          ;; wins.  The pass-through keeps GNU's ordering, no-op and all.
+          (set-face-font 'default font-spec 'global (list tag)
+                         how-to-add))))))))
 
 (defun set-face-attribute (face frame &rest args)
   "Set FACE's font from GNU-style keyword ARGS, for `cnfonts'.
