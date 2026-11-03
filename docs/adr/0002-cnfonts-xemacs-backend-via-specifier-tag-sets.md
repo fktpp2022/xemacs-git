@@ -4,11 +4,46 @@
 
 *Amended 2026-10-30 by [#95](https://github.com/fktpp2022/xemacs-git/issues/95), following [ADR 0003](0003-font-layer-one-descriptor-per-device-names.md): the built-in charset-class tags are now registered in **every** build, not only under `HAVE_X_WINDOWS || HAVE_GTK` (`src/faces.c:2283-2302`), so the availability argument below is superseded. The decision to register the layer's own tags stands: their names are the layer's contract, and a tag-set shared with `two-dimensional` would entangle cnfonts with any other configuration under that name.*
 
+*Amended 2026-11-03 by [#104](https://github.com/fktpp2022/xemacs-git/issues/104), following the inventory in `docs/research/cnfonts-interactive-surface.md`: the layer now also answers the GNU spellings `cnfonts-ui` needs to open and navigate the profile editor (see "Editor surface"). The rejection of widening below still holds where it was aimed: no cnfonts internal -- profile loading, face selection, its own `set-face-font` calls -- is shadowed.*
+
 XEmacs has no Lisp fontset API and no `font-spec`/`set-face-attribute`/`x-list-fonts`/`set-fontset-font`/`list-fonts`/`font-family-list`/`string-join`; it selects a font **per charset** through face-font specifier tag-sets carrying charset predicates (`src/specifier.c:1230`, matched at `src/faces.c:1134`). The `cnfonts-xemacs` compat layer overrides **exactly those seven functions** and leaves every other cnfonts internal (profile loading, face selection, the English path that already works via `set-face-font 'bold …`) running untouched. `face-attribute` is **not** among them: cnfonts.el never calls it — only `cnfonts-ui.el` does, which this map puts out of scope — so it is added back when that scope changes.
 
 `set-fontset-font` lowers to `(set-face-font FACE FONT 'global TAG-SET)`, with the shim registering **its own** specifier tags from Lisp rather than using XEmacs's built-in charset-class tags: one for dimension-2 charsets (the CJK font) and one for the JIT charset only (the EXT-B font). The built-in `two-dimensional`/`one-dimensional`/`initial`/`final`/`jit-charset` tags are registered only inside `#if defined (HAVE_X_WINDOWS) || defined (HAVE_GTK)` (`src/faces.c:2286…2453`), so a TTY-only build has none of them and `(set-face-font … '(two-dimensional final))` signals *Invalid tag set*; a shim that used them would work in a GUI build and fail in the headless build the milestone's gate runs on. The shim's own tags are registered with `define-specifier-tag`, whose charset predicate is re-evaluated for every existing charset (`src/specifier.c:1195…1225`), so they are live rather than merely accepted by `set-face-font`.
 
 Per-codepoint fidelity is the one accepted approximation: cnfonts's `(set-fontset-font "fontset-default" nil extb-fontspec nil 'prepend)` (EXT-B, `cnfonts.el:594`) has no XEmacs equivalent — no codepoint-range key, no fontset default bucket — so it collapses to the JIT-charset bucket.
+
+## Editor surface
+
+`cnfonts-edit-profile` requires `cnfonts-ui`, whose load-time and navigation
+calls need eleven more GNU spellings. The layer answers them, same rule as the
+font half: upstream files stay byte-identical.
+
+- **Faithful**: `make-composed-keymap` (a sparse map with MAPS then PARENT as
+  its ordered `set-keymap-parents`, which is how XEmacs searches), `widget-at`
+  (GNU's optional POS, delegated to the core function), `char-to-string` (the
+  core function behind a raw-codepoint branch), and
+  `custom--initialize-widget-variables` (the faces and prefixes XEmacs's own
+  `custom-mode` sets).
+- **Exact only at its call site**: `face-valid-attribute-values` answers nil,
+  because `cnfonts-ui` only compares the answer with
+  `(("unspecified" . unspecified))` to choose raised buttons, and XEmacs has
+  no `:box` attribute to list values for.
+- **Approximate**: `widget-move`, replaced with GNU's character-wise scan so
+  the start page's tab stop at `point-min` is reachable -- a shared function,
+  so this is the widest blast radius in the layer; `posn-at-point`, `posn-x-y`,
+  `default-font-width`, `default-font-height` and `set-mouse-pixel-position`,
+  which compute window-relative pixels from the default face's metrics (XEmacs
+  counts from the window's text area, not from a frame, and a position outside
+  the displayed range answers nil).
+- **Not shimmed**: `after-make-frame-functions` (no frame-creation hook in
+  XEmacs, so frames made after `cnfonts-enable` keep the old fonts) and
+  `face-font-rescale-alist` (the option's effect is per-charset size
+  arithmetic, not a variable). The mouse-wheel and touch-pinch commands already
+  degrade to cnfonts's own message through its `functionp` guards.
+- **Outside the layer**: `lisp/wid-edit.el` takes a push button's GUI image
+  branch only when the console provides a `button` image instantiator. A
+  `--with-widgets=no` build registers none, so every cnfonts button warned and
+  drew nothing; that is a core bug, not a cnfonts shim.
 
 ## Considered options
 

@@ -54,13 +54,11 @@
 ;; The widget and position entries are approximations: XEmacs pixels are
 ;; counted from the window's text area, not from a frame, and a position
 ;; outside the window's displayed range answers nil.  Loading this file does
-;; not load or require `cnfonts', and it works on a
-;; build with no window system: the queries come from the device-neutral
-;; descriptor route, and a device with no row in
-;; `font-window-system-mappings' simply answers "no".  The accepted
-;; approximations are written up in the XEmacs user
-;; manual under "Per-script fonts with cnfonts"; the editor half's are
-;; marked at their branches here.
+;; not load or require `cnfonts', and it works on a build with no window
+;; system: the queries come from the device-neutral descriptor route, and a
+;; device with no row in `font-window-system-mappings' simply answers "no".
+;; The accepted approximations are marked at their branches and written up
+;; in the XEmacs user manual under "Per-script fonts with cnfonts".
 
 ;;; Code:
 
@@ -218,22 +216,24 @@ page is built; without it the bracketed prefixes stay."
     (set (make-local-variable 'widget-push-button-prefix) "")
     (set (make-local-variable 'widget-push-button-suffix) "")))
 
+(defvar cnfonts-xemacs--char-to-string-primitive
+  (symbol-function 'char-to-string)
+  "XEmacs's own `char-to-string', which takes a charset-encoded character.")
+
 (defun char-to-string (character)
   "Convert CHARACTER to a one-character string containing that character.
 GNU callers such as `cnfonts-ui' pass raw Unicode codepoints, while
 XEmacs's own `char-to-string' takes charset-encoded characters.  An
-integer above 255 goes through `unicode-to-char' first; 0..255 are the
-characters they name in every charset."
-  (when (eventp character)
-    (let ((event-to-character (event-to-character character t)))
-      (setq character
-            (or event-to-character (error 'no-character-typed character)))))
+integer above 255 goes through `unicode-to-char' first; anything else --
+a character, an event -- is the core function's to handle."
   (when (integerp character)
     (when (or (< character 0) (> character #x10FFFF))
       (signal 'wrong-type-argument (list 'characterp character)))
     (when (> character 255)
-      (setq character (unicode-to-char character))))
-  (string character))
+      (setq character (or (unicode-to-char character)
+                          (signal 'wrong-type-argument
+                                  (list 'characterp character))))))
+  (funcall cnfonts-xemacs--char-to-string-primitive character))
 
 ;; `cnfonts-ui-forward' calls `(widget-at)' and then loops on
 ;; `widget-move' until it reaches a `:tab-stop-point' widget.  XEmacs's
@@ -247,10 +247,12 @@ characters they name in every charset."
 
 (require 'wid-edit)
 
+(defvar cnfonts-xemacs--widget-at-primitive (symbol-function 'widget-at)
+  "XEmacs's own `widget-at', which requires POS.")
+
 (defun widget-at (&optional pos)
   "The button or field at POS, which defaults to point."
-  (or (get-char-property (or pos (point)) 'button)
-      (get-char-property (or pos (point)) 'field)))
+  (funcall cnfonts-xemacs--widget-at-primitive (or pos (point))))
 
 (defun widget-move (arg)
   "Move point to the ARGth next field or button.

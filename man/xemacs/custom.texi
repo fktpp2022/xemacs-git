@@ -2683,8 +2683,9 @@ package:
 (cnfonts-enable)
 @end example
 
-The layer answers exactly the seven font calls @code{cnfonts} makes and
-leaves the rest of the package -- profile loading, face selection, the
+The layer answers the font calls @code{cnfonts} makes and the GNU
+spellings @code{cnfonts-ui} needs to open the profile editor, and leaves
+the rest of the package -- profile loading, face selection, the
 Latin font's own @code{set-face-font} calls -- untouched.
 
 @table @asis
@@ -2749,6 +2750,37 @@ A request for another fontset, an unsupported face attribute, or a
 script that has no tag is reported with a warning and changes nothing.
 A non-nil frame is ignored with a warning, since the layer configures
 the global face.
+
+@subheading The profile editor
+
+@code{M-x cnfonts-edit-profile} opens the package's own editor: pages
+navigate with @kbd{TAB} and @key{return}, fonts are chosen per script,
+and the alignment page adjusts sizes.  Three of its differences are
+worth naming:
+
+@itemize @bullet
+@item
+@strong{Tab navigation replaces a shared function.}  The layer installs
+GNU's character-wise @code{widget-move} scan, because XEmacs's own jumps
+from extent to extent and never reaches the start page's tab stop at the
+beginning of the buffer.  @code{widget-move} is used by every widget
+buffer, not only this editor.
+@item
+@strong{The mouse warp is window-relative.}  The alignment page puts the
+pointer over the size it just changed.  XEmacs counts pixels from the
+selected window's text area rather than from a frame, and the estimate
+uses the default face's font metrics, so it is right for a monospace
+default font in a full-width window and off otherwise.  A position
+outside the window's displayed range gives no warp at all.
+@item
+@strong{Two GNU features have no XEmacs equivalent.}  Frames created
+after @code{cnfonts-enable} keep their old fonts, since XEmacs has no
+frame-creation hook, and @code{cnfonts-use-face-font-rescale} has no
+effect, since XEmacs has no face rescaling.
+@end itemize
+
+The mouse-wheel and touch-pinch scale commands print @code{cnfonts}'s
+own message saying the environment does not support them.
 
 
 @node Frame Components, X Resources, Faces, Customization
