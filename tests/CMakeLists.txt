@@ -10,7 +10,10 @@ set(XEMACS_TEST_COMMAND
   -batch -l test-harness -f batch-test-emacs
 )
 
-file(GLOB TEST_FILES "${CMAKE_CURRENT_SOURCE_DIR}/automated/*.el")
+# CONFIGURE_DEPENDS re-runs the glob when a test file is added, so a new
+# automated/*.el registers itself on the next build instead of staying
+# invisible to ctest until someone remembers to reconfigure.
+file(GLOB TEST_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/automated/*.el")
 list(SORT TEST_FILES)
 
 foreach(test_file ${TEST_FILES})
@@ -48,8 +51,35 @@ set_tests_properties(cl-lib-tests subr-compat-tests keymap-tests
   font-tests cnfonts-xemacs-tests
   PROPERTIES
   FAIL_REGULAR_EXPRESSION "FAIL:|aborted")
-add_test(NAME xemacs_build_fixture COMMAND ${CMAKE_COMMAND} -E true)
-set_tests_properties(xemacs_build_fixture PROPERTIES FIXTURES_SETUP xemacs_build)
+add_test(NAME xemacs_build_fixture
+  COMMAND ${CMAKE_COMMAND} --build "${CMAKE_BINARY_DIR}" --target build-all)
+set_tests_properties(xemacs_build_fixture PROPERTIES
+  TIMEOUT 1800
+  FIXTURES_SETUP xemacs_build)
+
+# The GUI gates drive a live frame, so they are labelled `gui' and run through
+# a driver that reports SKIP when no display is reachable: without one XEmacs
+# falls back to its terminal path and dies on the non-tty stdin ctest gives it,
+# which would read as a gate failure on any headless host.  Each gate prints
+# "N checks, M failures" and exits 1 when M is nonzero, so the verdict rides on
+# the exit status; FAIL: and SKIP: keep a broken run and a skipped one
+# distinguishable in the log.
+foreach(gui_gate cnfonts-xemacs-gui font-layer-gui xft-rendering-gui)
+  add_test(
+    NAME "gui-${gui_gate}"
+    COMMAND ${CMAKE_COMMAND}
+      "-DGATE=${CMAKE_CURRENT_SOURCE_DIR}/${gui_gate}.el"
+      "-DXEMACS=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROGNAME}"
+      "-DDIR=${CMAKE_SOURCE_DIR}"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/gui-gate-test.cmake"
+  )
+  set_tests_properties("gui-${gui_gate}" PROPERTIES
+    TIMEOUT 300
+    LABELS "gui"
+    FIXTURES_REQUIRED xemacs_build
+    FAIL_REGULAR_EXPRESSION "FAIL:"
+    SKIP_REGULAR_EXPRESSION "SKIP:")
+endforeach()
 
 # The reported configuration options must match what was actually compiled.
 set(EXPECTED_CONFIG_OPTIONS "")
