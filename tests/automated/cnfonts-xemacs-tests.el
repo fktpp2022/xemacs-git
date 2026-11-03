@@ -22,9 +22,10 @@
 
 ;;; Commentary:
 
-;; The device-free half of tickets #94 and #95: the seven GNU calls that
-;; `cnfonts' makes, answered from the font layer, and the two specifier
-;; tags the sink half installs.  ctest runs `-batch', whose device has no
+;; The device-free half of tickets #94, #95 and #104: the seven GNU calls
+;; that `cnfonts' makes, answered from the font layer, the two specifier
+;; tags the sink half installs, and the GNU calls `cnfonts-ui' makes to
+;; open and navigate the editor.  ctest runs `-batch', whose device has no
 ;; row in `font-window-system-mappings', so the name producer is stubbed
 ;; with fixtures: the assertions are about the shapes the compatibility
 ;; layer promises, not about the fonts installed on this machine.
@@ -393,6 +394,10 @@
             (progn (char-to-string #x110000) nil)
           (error t))
         "a codepoint beyond Unicode signals")
+(Assert (condition-case nil
+            (progn (char-to-string -1) nil)
+          (error t))
+        "a negative codepoint signals")
 
 ;;; Navigation: `cnfonts-ui-forward' needs an optional POS and a
 ;;; character-wise scan that can reach a tab stop at `point-min'.
@@ -418,6 +423,30 @@
     (Assert (and (= (point) (point-min)) (eq (widget-at) first))
             "widget-move wraps backward to the tab stop at point-min")))
 
+;; The two degenerate buffers are what made XEmacs's own `widget-move'
+;; unusable: `cnfonts-ui-forward' calls it until it reaches a tab stop, so
+;; a buffer with no tabable widget must give up with an error and a
+;; single-widget buffer must stop on that widget instead of looping.
+(with-temp-buffer
+  (Assert (condition-case nil
+              (progn (widget-move 1) nil)
+            (error t))
+          "widget-move without any tabable widget signals"))
+
+(with-temp-buffer
+  (let ((message-log-max nil)
+        (only (widget-create 'push-button :tag "only" :tab-stop-point t)))
+    (widget-setup)
+    (goto-char (point-min))
+    (widget-move 1)
+    (Assert (eq (widget-at) only)
+            "widget-move stops on the only tabable widget")))
+
+(with-temp-buffer
+  (insert "plain text")
+  (Assert (null (widget-at (point-min)))
+          "widget-at answers nil where no widget sits"))
+
 ;;; GUI buttons: a window-system console without native widgets (this
 ;;; --with-widgets=no build) has no `button' image instantiator, so a
 ;;; push button must fall back to its text label instead of warning for
@@ -442,12 +471,25 @@
 (Assert (or (null (posn-at-point (point-min)))
             (consp (posn-at-point (point-min))))
         "posn-at-point answers a cons or nil")
+(with-temp-buffer
+  (insert "one line")
+  (Assert (null (posn-at-point (1+ (point-max))))
+          "a position outside the buffer answers nil"))
+(Assert (equal (posn-x-y '(7 . 9)) '(7 . 9))
+        "posn-x-y returns a pixel pair unchanged")
+(Assert (null (posn-x-y nil))
+        "posn-x-y answers nil for a nil position")
+(Assert (null (posn-x-y '(widget . field)))
+        "posn-x-y answers nil for something that is not a pixel pair")
 
 (let ((cnfonts-xemacs--mouse-pixel-position-primitive
        (lambda (window x y) (list window x y))))
   (Assert (equal (set-mouse-pixel-position (selected-frame) 3 4)
                  (list (frame-selected-window (selected-frame)) 3 4))
-          "a frame maps to its selected window"))
+          "a frame maps to its selected window")
+  (Assert (equal (set-mouse-pixel-position (selected-window) 3 4)
+                 (list (selected-window) 3 4))
+          "a window reaches the primitive unchanged"))
 
 ;; `cnfonts' encodes family names its lister missed as `gbk'; on XEmacs
 ;; the same encoding is `cp936', which the shim aliases at load time.

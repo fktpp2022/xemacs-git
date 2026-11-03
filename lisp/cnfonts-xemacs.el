@@ -58,8 +58,9 @@
 ;; build with no window system: the queries come from the device-neutral
 ;; descriptor route, and a device with no row in
 ;; `font-window-system-mappings' simply answers "no".  The accepted
-;; approximations are marked at their branches and in the XEmacs user
-;; manual under "Per-script fonts with cnfonts".
+;; approximations are written up in the XEmacs user
+;; manual under "Per-script fonts with cnfonts"; the editor half's are
+;; marked at their branches here.
 
 ;;; Code:
 
