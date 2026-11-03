@@ -147,20 +147,26 @@ redisplays, so `window-end' is the value the erased buffer left and the
 new page below it is outside the displayed range.  Answers (POS . POSN)
 when that staleness was reproduced, and nil when it was not -- a check
 that cannot make the range stale would prove nothing."
-  (let ((win (selected-window))
-	(buf (generate-new-buffer " *cnfonts-gui-stale*")))
-    (set-window-buffer win buf)
-    (with-current-buffer buf
-      (insert "\n")
-      (redisplay)
-      (erase-buffer)
-      (dotimes (i 40) (insert (format "line %d\n" i)))
-      (let ((pos (save-excursion
-		   (goto-char (point-min))
-		   (forward-line (max 1 (- (window-height win) 2)))
-		   (point))))
-	(when (< (window-end win) pos)
-	  (cons pos (posn-at-point pos win)))))))
+  (let ((win (selected-window)))
+    (let ((old-buffer (window-buffer win))
+	  (buf (generate-new-buffer " *cnfonts-gui-stale*"))
+	  (seen nil))
+      (unwind-protect
+	  (with-current-buffer buf
+	    (set-window-buffer win buf)
+	    (insert "\n")
+	    (redisplay)
+	    (erase-buffer)
+	    (dotimes (i 40) (insert (format "line %d\n" i)))
+	    (let ((pos (save-excursion
+			 (goto-char (point-min))
+			 (forward-line (max 1 (- (window-height win) 2)))
+			 (point))))
+	      (when (< (window-end win) pos)
+		(setq seen (cons pos (posn-at-point pos win))))))
+	(set-window-buffer win old-buffer)
+	(kill-buffer buf))
+      seen)))
 
 (defun cnfonts-xemacs-gui-run ()
   "Run the checks; failures are counted in the globals."

@@ -8,6 +8,8 @@
 
 *Amended 2026-11-03 by [#104](https://github.com/fktpp2022/xemacs-git/issues/104), following the inventory in `docs/research/cnfonts-interactive-surface.md`: the layer now also answers the GNU spellings `cnfonts-ui` needs to open and navigate the profile editor (see "Editor surface"). The rejection of widening below still holds where it was aimed: no cnfonts internal -- profile loading, face selection, its own `set-face-font` calls -- is shadowed.*
 
+*Amended 2026-11-03 by [#118](https://github.com/fktpp2022/xemacs-git/issues/118), following [#117](https://github.com/fktpp2022/xemacs-git/issues/117): `posn-at-point` no longer answers nil for a position outside the window's displayed range; it estimates from the `window-start` the last redisplay left, and nothing in the layer forces a redisplay. That is what lets the align page's pointer warp fire after the page rebuilds under the pointer. The "Approximate" bullet below is rewritten accordingly; the approximation itself, and the manual's caveat about it, stand.*
+
 XEmacs has no Lisp fontset API and no `font-spec`/`set-face-attribute`/`x-list-fonts`/`set-fontset-font`/`list-fonts`/`font-family-list`/`string-join`; it selects a font **per charset** through face-font specifier tag-sets carrying charset predicates (`src/specifier.c:1230`, matched at `src/faces.c:1134`). The `cnfonts-xemacs` compat layer overrides **exactly those seven functions** and leaves every other cnfonts internal (profile loading, face selection, the English path that already works via `set-face-font 'bold …`) running untouched. `face-attribute` is **not** among them: cnfonts.el never calls it — only `cnfonts-ui.el` does, which this map puts out of scope — so it is added back when that scope changes.
 
 `set-fontset-font` lowers to `(set-face-font FACE FONT 'global TAG-SET)`, with the shim registering **its own** specifier tags from Lisp rather than using XEmacs's built-in charset-class tags: one for dimension-2 charsets (the CJK font) and one for the JIT charset only (the EXT-B font). The built-in `two-dimensional`/`one-dimensional`/`initial`/`final`/`jit-charset` tags are registered only inside `#if defined (HAVE_X_WINDOWS) || defined (HAVE_GTK)` (`src/faces.c:2286…2453`), so a TTY-only build has none of them and `(set-face-font … '(two-dimensional final))` signals *Invalid tag set*; a shim that used them would work in a GUI build and fail in the headless build the milestone's gate runs on. The shim's own tags are registered with `define-specifier-tag`, whose charset predicate is re-evaluated for every existing charset (`src/specifier.c:1195…1225`), so they are live rather than merely accepted by `set-face-font`.
@@ -47,10 +49,10 @@ font half: upstream files stay byte-identical.
   has not reached gets an estimate that can fall outside its window; decided in
   #117 after the align page's warp was found to be vetoed by a displayed-range
   guard reading the `window-end` the page's own `erase-buffer` left behind).
-  XEmacs has no `frame-char-width`,
-  `window-font-width` or equivalent, so the face's font metrics are the only
-  pixel route there is; the align page's warp is honest for a monospace default
-  font in a full-width window and the manual says so.
+  XEmacs has no `frame-char-width`, `window-font-width` or equivalent, so the
+  face's font metrics are the only pixel route there is; the align page's warp
+  is honest for a monospace default font in a full-width window and the manual
+  says so.
 - **Not shimmed**: `after-make-frame-functions` (no frame-creation hook in
   XEmacs, so frames made after `cnfonts-enable` keep the old fonts) and
   `face-font-rescale-alist` (the option's effect is per-charset size

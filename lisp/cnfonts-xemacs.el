@@ -54,11 +54,11 @@
 ;; The widget and position entries are approximations: XEmacs pixels are
 ;; counted from the window's text area, not from a frame, and the position
 ;; spellings answer from the display's current state -- they never force a
-;; redisplay, and the estimate for a position the display has not reached
-;; can fall outside its window.  Loading this file does
-;; not load or require `cnfonts', and it works on a build with no window
-;; system: the queries come from the device-neutral descriptor route, and a
-;; device with no row in `font-window-system-mappings' simply answers "no".
+;; redisplay, and the estimate for a position the display has not reached can
+;; fall outside its window.  Loading this file does not load or require
+;; `cnfonts', and it works on a build with no window system: the queries come
+;; from the device-neutral descriptor route, and a device with no row in
+;; `font-window-system-mappings' simply answers "no".
 ;; The accepted approximations are marked at their branches and written up
 ;; in the XEmacs user manual under "Per-script fonts with cnfonts".
 
@@ -333,21 +333,21 @@ gets the same estimate, which can fall outside the window.  The
 estimate counts lines from WINDOW's `window-start' as the last redisplay
 left it: nothing here redisplays."
   (setq window (or window (selected-window)))
-  (setq pos (or pos (window-point window)))
   (when (window-live-p window)
-    (with-current-buffer (window-buffer window)
-      (when (and (>= pos (point-min)) (<= pos (point-max)))
-        (save-excursion
-          (goto-char pos)
-          (let* ((edges (window-text-area-pixel-edges window))
-                 (column (max 0 (- (current-column)
-                                   (window-hscroll window))))
-                 (line (count-lines (window-start window)
-                                    (progn (beginning-of-line) (point)))))
-            (cons (+ (nth 0 edges)
-                     (* column (default-font-width (window-frame window))))
-                  (+ (nth 1 edges)
-                     (* line (default-font-height (window-frame window)))))))))))
+    (let ((pos (or pos (window-point window))))
+      (with-current-buffer (window-buffer window)
+        (when (and (>= pos (point-min)) (<= pos (point-max)))
+          (save-excursion
+            (goto-char pos)
+            (let* ((edges (window-text-area-pixel-edges window))
+                   (column (max 0 (- (current-column)
+                                     (window-hscroll window))))
+                   (line (count-lines (window-start window)
+                                      (progn (beginning-of-line) (point)))))
+              (cons (+ (nth 0 edges)
+                       (* column (default-font-width (window-frame window))))
+                    (+ (nth 1 edges)
+                       (* line (default-font-height (window-frame window))))))))))))
 
 (defun posn-x-y (posn)
   "Return POSN's pixel coordinates as a (X . Y) cons.

@@ -503,10 +503,16 @@
 (Assert (or (null (posn-at-point (point-min)))
             (consp (posn-at-point (point-min))))
         "posn-at-point answers a cons or nil")
-(with-temp-buffer
-  (insert "one line")
-  (Assert (null (posn-at-point (1+ (point-max))))
-          "a position outside the buffer answers nil"))
+;; The bounds come from the window's buffer, so a position the current buffer
+;; holds but the window's does not answers nil.  The current buffer is made
+;; longer than the window's own to keep that distinction visible.
+(let* ((cnfonts-xemacs--window (selected-window))
+       (cnfonts-xemacs--win-max (point-max (window-buffer cnfonts-xemacs--window))))
+  (with-temp-buffer
+    (insert (make-string (max 40 cnfonts-xemacs--win-max) ?x))
+    (Assert (null (posn-at-point (1+ cnfonts-xemacs--win-max)
+                                 cnfonts-xemacs--window))
+            "a position outside the window's buffer answers nil")))
 (Assert (equal (posn-x-y '(7 . 9)) '(7 . 9))
         "posn-x-y returns a pixel pair unchanged")
 (Assert (null (posn-x-y nil))
