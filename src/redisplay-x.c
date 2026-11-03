@@ -341,6 +341,9 @@ xft_fallback_font (Display *dpy, XftFont *base, FcChar32 ucs4,
       FcPatternDel (pat, FC_INDEX);
       FcPatternDel (pat, FC_FULLNAME);
       FcPatternDel (pat, FC_POSTSCRIPT_NAME);
+      /* Inherited FC_SPACING would make Xft advance every glyph of a
+	 proportional fallback font by the font's maximum width. */
+      FcPatternDel (pat, FC_SPACING);
 
       if (family)
 	FcPatternAddString (pat, FC_FAMILY, (FcChar8 *) family_copy);
