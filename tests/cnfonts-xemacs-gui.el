@@ -139,6 +139,29 @@ everything below them is cnfonts's untouched path."
 	   cnfonts--custom-set-fontsizes nil)
      (cnfonts-set-font))))
 
+(defun cnfonts-xemacs-gui-stale-range-posn ()
+  "Read `posn-at-point' at a position the display has not reached.
+The align page's rebuild empties its buffer and refills it, and
+`cnfonts-ui--move-mouse' asks for the position before anything
+redisplays, so `window-end' is the value the erased buffer left and the
+new page below it is outside the displayed range.  Answers (POS . POSN)
+when that staleness was reproduced, and nil when it was not -- a check
+that cannot make the range stale would prove nothing."
+  (let ((win (selected-window))
+	(buf (generate-new-buffer " *cnfonts-gui-stale*")))
+    (set-window-buffer win buf)
+    (with-current-buffer buf
+      (insert "\n")
+      (redisplay)
+      (erase-buffer)
+      (dotimes (i 40) (insert (format "line %d\n" i)))
+      (let ((pos (save-excursion
+		   (goto-char (point-min))
+		   (forward-line (max 1 (- (window-height win) 2)))
+		   (point))))
+	(when (< (window-end win) pos)
+	  (cons pos (posn-at-point pos win)))))))
+
 (defun cnfonts-xemacs-gui-run ()
   "Run the checks; failures are counted in the globals."
   (let ((workdir (make-temp-file "cnfonts-gate-" t)))
@@ -194,7 +217,19 @@ everything below them is cnfonts's untouched path."
 	   '(not (funcall (specifier-tag-charset-predicate
 			   'cnfonts-dimension-2)
 			  (find-charset 'ascii)))
-	   "the dimension-2 predicate rejects ASCII"))
+	   "the dimension-2 predicate rejects ASCII")
+
+	  (cnfonts-xemacs-gui-check
+	   '(let* ((seen (cnfonts-xemacs-gui-stale-range-posn))
+		   (posn (cdr seen))
+		   (edges (window-pixel-edges (selected-window))))
+	      (and seen
+		   (consp posn)
+		   (>= (car posn) (nth 0 edges))
+		   (< (car posn) (nth 2 edges))
+		   (>= (cdr posn) (nth 1 edges))
+		   (< (cdr posn) (nth 3 edges))))
+	   "posn-at-point answers a position outside the stale displayed range"))
       (call-process "rm" nil nil nil "-rf" workdir)))
   cnfonts-xemacs-gui-failures)
 

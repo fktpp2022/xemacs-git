@@ -42,8 +42,12 @@ font half: upstream files stay byte-identical.
 - **Approximate**: `posn-at-point`, `posn-x-y`, `default-font-width`,
   `default-font-height` and `set-mouse-pixel-position`, which compute
   window-relative pixels from the default face's metrics (XEmacs counts from
-  the window's text area, not from a frame, and a position outside the
-  displayed range answers nil). XEmacs has no `frame-char-width`,
+  the window's text area, not from a frame, and the answer comes from the
+  display's current state -- no redisplay is forced, so a position the display
+  has not reached gets an estimate that can fall outside its window; decided in
+  #117 after the align page's warp was found to be vetoed by a displayed-range
+  guard reading the `window-end` the page's own `erase-buffer` left behind).
+  XEmacs has no `frame-char-width`,
   `window-font-width` or equivalent, so the face's font metrics are the only
   pixel route there is; the align page's warp is honest for a monospace default
   font in a full-width window and the manual says so.

@@ -2778,8 +2778,9 @@ the sequence, and an inactive widget, are still passed over.
 pointer over the size it just changed.  XEmacs counts pixels from the
 selected window's text area rather than from a frame, and the estimate
 uses the default face's font metrics, so it is right for a monospace
-default font in a full-width window and off otherwise.  A position
-outside the window's displayed range gives no warp at all.
+default font in a full-width window and off otherwise.  Nothing waits for
+a redisplay first, so a page that rebuilds under the pointer is measured
+against the lines the last redisplay laid out.
 @item
 @strong{Two GNU features have no XEmacs equivalent.}  Frames created
 after @code{cnfonts-enable} keep their old fonts, since XEmacs has no
