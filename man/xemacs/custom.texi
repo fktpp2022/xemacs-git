@@ -2764,7 +2764,9 @@ worth naming:
 GNU's character-wise @code{widget-move} scan, because XEmacs's own jumps
 from extent to extent and never reaches the start page's tab stop at the
 beginning of the buffer.  @code{widget-move} is used by every widget
-buffer, not only this editor.
+buffer, not only this editor; XEmacs's own rules for which widgets count
+as tabbable stay, so a widget whose @code{:tab-order} does not continue
+the sequence, and an inactive widget, are still passed over.
 @item
 @strong{The mouse warp is window-relative.}  The alignment page puts the
 pointer over the size it just changed.  XEmacs counts pixels from the

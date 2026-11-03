@@ -28,22 +28,41 @@ font half: upstream files stay byte-identical.
   because `cnfonts-ui` only compares the answer with
   `(("unspecified" . unspecified))` to choose raised buttons, and XEmacs has
   no `:box` attribute to list values for.
-- **Approximate**: `widget-move`, replaced with GNU's character-wise scan so
-  the start page's tab stop at `point-min` is reachable -- a shared function,
-  so this is the widest blast radius in the layer; `posn-at-point`, `posn-x-y`,
-  `default-font-width`, `default-font-height` and `set-mouse-pixel-position`,
-  which compute window-relative pixels from the default face's metrics (XEmacs
-  counts from the window's text area, not from a frame, and a position outside
-  the displayed range answers nil).
+- **Approximate**: `widget-move`, replaced by GNU's character-wise scan so the
+  start page's tab stop at `point-min` is reachable -- a shared function, so
+  this is the widest blast radius in the layer and every widget buffer gets
+  GNU's navigation. Accepted (decided in #102) on two conditions: what counts
+  as tabable stays XEmacs's own rule (`:tab-order` sequences and inactive
+  widgets are still passed over), and the replacement is named in the user
+  manual. The alternative -- a layer-local navigation command bound in
+  `cnfonts-ui-mode-map` -- keeps core intact but copies `cnfonts-ui-forward`'s
+  loop, which would have to be re-audited against every cnfonts release.
+- **Approximate**: `posn-at-point`, `posn-x-y`, `default-font-width`,
+  `default-font-height` and `set-mouse-pixel-position`, which compute
+  window-relative pixels from the default face's metrics (XEmacs counts from
+  the window's text area, not from a frame, and a position outside the
+  displayed range answers nil). XEmacs has no `frame-char-width`,
+  `window-font-width` or equivalent, so the face's font metrics are the only
+  pixel route there is; the align page's warp is honest for a monospace default
+  font in a full-width window and the manual says so.
 - **Not shimmed**: `after-make-frame-functions` (no frame-creation hook in
   XEmacs, so frames made after `cnfonts-enable` keep the old fonts) and
   `face-font-rescale-alist` (the option's effect is per-charset size
   arithmetic, not a variable). The mouse-wheel and touch-pinch commands already
-  degrade to cnfonts's own message through its `functionp` guards.
+  degrade to cnfonts's own message through its `functionp` guards, and that is
+  the accepted contract (#102): XEmacs's `mwheel.el` is not wired, because the
+  destination says a command with no XEmacs equivalent degrades loudly rather
+  than getting an invented backend.
 - **Outside the layer**: `lisp/wid-edit.el` takes a push button's GUI image
   branch only when the console provides a `button` image instantiator. A
   `--with-widgets=no` build registers none, so every cnfonts button warned and
   drew nothing; that is a core bug, not a cnfonts shim.
+  **The scope rule is about upstream cnfonts, not about XEmacs's own Lisp**
+  (decided in #102): fixing a core bug that reaches every widget user belongs
+  in core, and the layer stays the only place a cnfonts gap is answered. The
+  alternative -- setting `widget-push-button-gui` from the layer -- would have
+  made cnfonts's editor look right while leaving the bug for Custom, Calc and
+  every other button.
 
 ## Considered options
 

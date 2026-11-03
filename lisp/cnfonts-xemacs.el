@@ -46,7 +46,7 @@
 ;; reach five more:
 ;;
 ;;   `widget-at'                    POS defaults to point
-;;   `widget-move'                  GNU's character-wise scan, not extent jumps
+;;   `widget-move'                  GNU's scan, with XEmacs's tabable rules
 ;;   `posn-at-point', `posn-x-y'    the window-relative pixel position
 ;;   `default-font-width/-height'   the default face's font metrics
 ;;   `set-mouse-pixel-position'     a frame maps to its selected window
@@ -199,7 +199,9 @@ composed map is a sparse map whose parents are MAPS followed by PARENT."
 XEmacs has no `:box' face attribute and no value list for GNU's
 attributes.  `cnfonts-ui' compares the answer only with
 `((\"unspecified\" . unspecified))' to choose raised buttons; nil
-selects the raised, graphical branch."
+selects the raised, graphical branch.  Every attribute answers nil, not
+just `:box': that one call site is the requirement, and a value list no
+caller reads would be code for its own sake."
   nil)
 
 (defun custom--initialize-widget-variables ()
@@ -258,12 +260,15 @@ a character, an event -- is the core function's to handle."
   "Move point to the ARGth next field or button.
 ARG may be negative to move backward.  This follows GNU's scan: point
 moves one character at a time, wrapping at either end, so a tab stop at
-`point-min' is reachable.  Point ends at the start of the widget."
+`point-min' is reachable.  What counts as tabable stays XEmacs's own
+rule: a widget whose `:tab-order' does not continue the sequence, and an
+inactive widget, are passed over.  Point ends at the start of the widget."
   (let* ((wrapped 0)
          (number arg)
          (fwd (> arg 0))
          (bwd (< arg 0))
          (old (widget-tabable-at))
+         (last-tab (widget-get (widget-at) :tab-order))
          (tabable (if old 1 0))
          pos)
     (catch 'one
@@ -279,13 +284,15 @@ moves one character at a time, wrapping at either end, so a tab stop at
                 (goto-char pos)
                 (throw 'one (message "Only one tabable widget")))
             (error "No buttons or fields found")))
-        (let ((new (widget-tabable-at)))
+        (let ((new (and (not (get-char-property (point) 'widget-inactive))
+                        (widget-tabable-at (point) last-tab bwd))))
           (when new
             (if (eq new old)
                 (setq pos (point))
               (setq tabable (1+ tabable))
               (setq arg (if fwd (1- arg) (1+ arg)))
-              (setq old new))))))
+              (setq old new)
+              (setq last-tab (widget-get new :tab-order)))))))
     (let ((new (widget-tabable-at)))
       (while (and (eq (widget-tabable-at) new) (not (bobp)))
         (backward-char)))

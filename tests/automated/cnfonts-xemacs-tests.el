@@ -447,6 +447,35 @@
   (Assert (null (widget-at (point-min)))
           "widget-at answers nil where no widget sits"))
 
+;; The scan is GNU's, what counts as tabable stays XEmacs's: a widget
+;; whose :tab-order does not continue the sequence, and an inactive
+;; widget, are passed over, so the other widget users keep their
+;; navigation.
+(with-temp-buffer
+  (let* ((first (widget-create 'push-button :tag "first"))
+         (_ (widget-insert " "))
+         (_out (widget-create 'push-button :tag "out of order"
+                             :tab-order -1))
+         (_ (widget-insert " "))
+         (last (widget-create 'push-button :tag "last")))
+    (widget-setup)
+    (goto-char (widget-get first :from))
+    (widget-move 1)
+    (Assert (eq (widget-at) last)
+            "widget-move passes over a widget outside the tab-order sequence")))
+
+(with-temp-buffer
+  (let* ((first (widget-create 'push-button :tag "first"))
+         (_ (widget-insert " "))
+         (dead (widget-create 'push-button :tag "inactive"))
+         (_ (widget-insert " "))
+         (last (widget-create 'push-button :tag "last")))
+    (widget-setup)
+    (set-extent-property (widget-get dead :button-extent) 'widget-inactive t)
+    (goto-char (widget-get first :from))
+    (widget-move 1)
+    (Assert (eq (widget-at) last) "widget-move passes over an inactive widget")))
+
 ;;; GUI buttons: a window-system console without native widgets (this
 ;;; --with-widgets=no build) has no `button' image instantiator, so a
 ;;; push button must fall back to its text label instead of warning for
