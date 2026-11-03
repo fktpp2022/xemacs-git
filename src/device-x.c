@@ -1042,6 +1042,12 @@ x_delete_device (struct device *d, Boolint from_io_error)
 	  DEVICE_XT_APP_SHELL (d) = NULL;
 	}
 
+#ifdef HAVE_XFT
+      /* The fallback cache keys on the Display pointer, which a later
+	 display may reuse.  Close its fonts while the display is live. */
+      xft_font_cache_clear (display);
+#endif
+
       XtCloseDisplay (display);
       DEVICE_X_DISPLAY (d) = 0;
     }

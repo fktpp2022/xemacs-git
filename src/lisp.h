@@ -6513,6 +6513,7 @@ int unicode_precedence_list_changed (Lisp_Object sym, Lisp_Object *val,
 extern Lisp_Object Vdefault_unicode_precedence_array;
 extern Lisp_Object Qunicode;
 extern Lisp_Object Qutf_16, Qutf_8, Qucs_4, Qutf_7, Qutf_32;
+extern Lisp_Object Qutf_32_little_endian;
 #ifdef MEMORY_USAGE_STATS
 Bytecount compute_from_unicode_table_size (Lisp_Object charset,
 					   struct usage_stats *stats);

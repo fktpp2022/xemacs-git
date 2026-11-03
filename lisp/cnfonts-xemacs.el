@@ -377,7 +377,11 @@ maps to its selected window."
 ;; their names are this layer's contract, and sharing a built-in would
 ;; entangle cnfonts with any other tag-set under that name.
 (define-specifier-tag 'cnfonts-dimension-2 nil
-  'specifier-tag-two-dimensional-p)
+  (if (fboundp 'specifier-tag-jit-charset-p)
+      (lambda (charset)
+        (and (specifier-tag-two-dimensional-p charset)
+             (not (specifier-tag-jit-charset-p charset))))
+    'specifier-tag-two-dimensional-p))
 
 ;; `specifier-tag-jit-charset-p' is compiled out under UNICODE_INTERNAL,
 ;; where no JIT charset exists; a tag that never matches is then honest.
@@ -398,13 +402,15 @@ maps to its selected window."
   "Return the specifier tag that carries CHARSET's font, or nil to drop it.
 A nil CHARSET is cnfonts's whole-repertoire bucket, its EXT-B request;
 the scope is broader than GNU's, because any unencodable codepoint may
-fall to it, not just Ext-B.  A GNU script is coarse: `cjk-misc' and
-every other script collapse into the dimension-2 tag, which also offers
-the CJK font to non-CJK dimension-2 charsets -- their per-charset
-coverage usually rejects it.  `symbol', `phonetic', and the ornament
-codepoint ranges have no XEmacs charset to select; a dimension-1 script
-\(half-width katakana, Zhuyin) has no tag either, so it keeps the Latin
-font."
+fall to it, not just Ext-B.  The JIT charsets are excluded from the
+dimension-2 tag, so the EXT-B font is preferred for them and
+per-character fallback supplies the symbols it lacks.  A GNU script is
+coarse: `cjk-misc' and every other script collapse into the
+dimension-2 tag, which also offers the CJK font to non-CJK dimension-2
+charsets -- their per-charset coverage usually rejects it.  `symbol',
+`phonetic', and the ornament codepoint ranges have no XEmacs charset to
+select; a dimension-1 script (half-width katakana, Zhuyin) has no tag
+either, so it keeps the Latin font."
   (cond
    ((null charset) 'cnfonts-jit-charset)
    ((or (eq charset 'symbol) (eq charset 'phonetic) (consp charset)) nil)

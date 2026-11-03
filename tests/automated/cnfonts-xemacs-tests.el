@@ -193,6 +193,9 @@
         "the dimension-2 tag rejects a dimension-1 script")
 
 (when (find-charset 'jit-ucs-charset-0)
+  (Assert (not (cnfonts-xemacs-tests--tag-matches-p
+                'cnfonts-dimension-2 'jit-ucs-charset-0))
+          "the dimension-2 tag rejects the JIT charset")
   (Assert (cnfonts-xemacs-tests--tag-matches-p
            'cnfonts-jit-charset 'jit-ucs-charset-0)
           "the JIT tag matches the JIT charset")

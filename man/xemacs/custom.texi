@@ -2693,7 +2693,7 @@ Latin font's own @code{set-face-font} calls -- untouched.
 The face's plain font.
 @item CJK text
 A font under the layer's @code{cnfonts-dimension-2} specifier tag, which
-matches every two-dimensional charset.
+matches every two-dimensional charset except the JIT charsets below.
 @item Rare (EXT-B) characters
 A font under the @code{cnfonts-jit-charset} tag, which matches only the
 internal charset that holds codepoints with no encodable equivalent.
@@ -2709,16 +2709,22 @@ differences are:
 @item
 @strong{EXT-B is a bucket, not a range.}  @code{cnfonts} asks for the
 EXT-B font as the whole-repertoire default; XEmacs has no such bucket,
-so the font goes under the JIT-charset tag.  It wins for unencodable
-codepoints the CJK font does not cover, which is broader than EXT-B.
+so the font goes under the JIT-charset tag and owns it -- the
+dimension-2 tag excludes those charsets, so the CJK font is no longer a
+fallback there, and Xft's per-character fallback supplies glyphs the
+EXT-B font lacks.  The bucket is still broader than GNU's range: any
+codepoint with no encodable equivalent lands in it, not just Ext-B.
 @item
 @strong{Symbol and phonetic fonts are dropped.}  XEmacs has no
 @code{symbol} or @code{phonetic} charset, so each request warns and
-changes nothing.
+selects no font.  The glyphs are not lost: Xft's per-character fallback
+draws them, at the size of the charset's own font, so the profile's
+symbol and ornament sizes do not reach them.
 @item
 @strong{Ornament ranges are dropped.}  @code{cnfonts} pins four
-codepoint ranges (circled numbers and letters and the like); XEmacs has
-no range key, so each range warns and changes nothing.
+codepoint ranges (circled numbers and letters and the like); a specifier
+tag's predicate takes a charset, never a codepoint, so each range warns
+and selects no font and the same fallback draws them.
 @item
 @strong{Half-width katakana and Zhuyin keep the Latin font.}  Their
 charsets are one-dimensional, and the layer has no tag for them.
