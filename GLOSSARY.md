@@ -4,6 +4,10 @@ Vocabulary for this fork's work on running GNU-oriented Emacs Lisp packages on X
 
 ## Language
 
+**The arc**:
+The discovery path through the manuals an experienced GNU Emacs user walks to reach this fork's modern-feature functionality: the user manual's Packages chapter sections (ELPA client → `use-package` declaration → the cnfonts worked example), reaching `@node Per-script fonts with cnfonts`, with reference depth delegated to the `(elpa)` manual. A doc-graph path, not a code concept.
+_Avoid_: feature tour, user journey
+
 **Allowlist**:
 The explicit list of packages the client may install; together with HTTPS transport, it is the entire trust boundary. Trust by name, spanning all configured archives.
 _Avoid_: whitelist, trusted packages, package pinning
