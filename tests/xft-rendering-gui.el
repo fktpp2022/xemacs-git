@@ -59,6 +59,9 @@
 
 ;;; Code:
 
+(load (expand-file-name "cnfonts-gui-harness"
+			(file-name-directory
+			 (or load-file-name buffer-file-name))))
 (require 'font)
 (require 'cnfonts-xemacs)
 
@@ -66,26 +69,12 @@
 ;; results would be invisible.
 (setq standard-output 'external-debugging-output)
 
-(defvar xft-rendering-gui-failures 0)
-(defvar xft-rendering-gui-checks 0)
-
-(defun xft-rendering-gui-check (form description)
-  "Evaluate FORM; print PASS or FAIL for DESCRIPTION."
-  (setq xft-rendering-gui-checks (1+ xft-rendering-gui-checks))
-  (condition-case err
-      (cond ((eval form)
-	     (princ (format "PASS: %s\n" description)))
-	    (t
-	     (setq xft-rendering-gui-failures
-		   (1+ xft-rendering-gui-failures))
-	     (princ (format "FAIL: %s\n" description))))
-    (error
-     (setq xft-rendering-gui-failures
-	   (1+ xft-rendering-gui-failures))
-     (princ (format "FAIL: %s (%S)\n" description err)))))
-
 (defun xft-rendering-gui-skip (format-string &rest args)
   (princ (apply #'format (concat "SKIP: " format-string "\n") args)))
+
+(defconst xft-rendering-gui-ornament-ranges
+  '((#x2776 . #x2793) (#x24b6 . #x24fe) (#x2295 . #x22a1) (#x2190 . #x2200))
+  "cnfonts's four ornament ranges, as the align page requests them.")
 
 (defconst xft-rendering-gui-lines
   '((latin "ABC xyz")
@@ -243,15 +232,14 @@ truename, so a string truename is what separates it from a real font."
     (set-fontset-font "fontset-default" script
 		      (font-spec :name "Segoe UI Symbol" :size 12)
 		      nil 'prepend))
-  (dolist (range '((#x2776 . #x2793) (#x24b6 . #x24fe)
-		   (#x2295 . #x22a1) (#x2190 . #x2200)))
+  (dolist (range xft-rendering-gui-ornament-ranges)
     (set-fontset-font "fontset-default" range
 		      (font-spec :name "MS Gothic" :size 12) nil 'prepend)))
 
 (defun xft-rendering-gui-run ()
   "Run the checks; failures are counted in the globals."
   (let ((device (selected-device)))
-    (xft-rendering-gui-check '(featurep 'xft-fonts)
+    (cnfonts-gui-check '(featurep 'xft-fonts)
 			      "the device renders with Xft")
 
     ;; This gate needs the real fonts.  A machine without them cannot say
@@ -264,19 +252,19 @@ truename, so a string truename is what separates it from a real font."
 
     (xft-rendering-gui-configure)
 
-    (xft-rendering-gui-check
+    (cnfonts-gui-check
      '(member-if #'(lambda (name)
 		     (xft-rendering-gui-truename-family-p name "DejaVu Sans"))
 		 (xft-rendering-gui-plain-specs))
      "the plain font is DejaVu Sans")
 
-    (xft-rendering-gui-check
+    (cnfonts-gui-check
      '(member-if #'(lambda (name)
 		     (xft-rendering-gui-truename-family-p name "SimSun"))
 		 (xft-rendering-gui-tagged-specs 'cnfonts-dimension-2))
      "the dimension-2 tag carries SimSun")
 
-    (xft-rendering-gui-check
+    (cnfonts-gui-check
      '(member-if #'(lambda (name)
 		     (xft-rendering-gui-truename-family-p
 		      name "SimSun-ExtB"))
@@ -290,33 +278,32 @@ truename, so a string truename is what separates it from a real font."
 	(set-fontset-font "fontset-default" script
 			  (font-spec :name "Segoe UI Symbol" :size 12)
 			  nil 'prepend))
-      (xft-rendering-gui-check
+      (cnfonts-gui-check
        `(equal ',before (xft-rendering-gui-global-specs))
        "the symbol and phonetic requests add no face instantiator"))
 
     (let ((before (xft-rendering-gui-global-specs)))
-      (dolist (range '((#x2776 . #x2793) (#x24b6 . #x24fe)
-		       (#x2295 . #x22a1) (#x2190 . #x2200)))
+      (dolist (range xft-rendering-gui-ornament-ranges)
 	(set-fontset-font "fontset-default" range
 			  (font-spec :name "MS Gothic" :size 12)
 			  nil 'prepend))
-      (xft-rendering-gui-check
+      (cnfonts-gui-check
        `(equal ',before (xft-rendering-gui-global-specs))
        "the ornament range requests add no face instantiator"))
 
-    (xft-rendering-gui-check
+    (cnfonts-gui-check
      '(equal (xft-font-override #x03b1) '("Segoe UI Symbol" . 12))
      "Greek is overridden with the symbol family at its size")
-    (xft-rendering-gui-check
+    (cnfonts-gui-check
      '(equal (xft-font-override #x028c) '("Segoe UI Symbol" . 12))
      "an IPA extension is overridden with the symbol family")
-    (xft-rendering-gui-check
+    (cnfonts-gui-check
      '(equal (xft-font-override #x2776) '("MS Gothic" . 12))
      "an ornament is overridden with the ornament family at its size")
-    (xft-rendering-gui-check
+    (cnfonts-gui-check
      '(null (xft-font-override #x4e2d))
      "a Han codepoint keeps the charset's font")
-    (xft-rendering-gui-check
+    (cnfonts-gui-check
      '(= 7 (length xft-font-overrides))
      "the override map holds three symbol and four ornament ranges")
 
@@ -335,7 +322,7 @@ truename, so a string truename is what separates it from a real font."
       (switch-to-buffer buffer)
       (erase-buffer)
       (insert expected)
-      (xft-rendering-gui-check
+      (cnfonts-gui-check
        `(progn
 	  (goto-char (point-min))
 	  (redisplay t)
@@ -347,7 +334,7 @@ truename, so a string truename is what separates it from a real font."
       ;; Every matrix charset needs a backstop; a new line must not slip
       ;; through without one.
       (dolist (entry charsets)
-	(xft-rendering-gui-check
+	(cnfonts-gui-check
 	 `(assq ',(car entry) xft-rendering-gui-charset-families)
 	 (format "%s has a family backstop" (car entry))))
 
@@ -361,16 +348,16 @@ truename, so a string truename is what separates it from a real font."
 			     #'(lambda (a b) (string< (symbol-name a)
 						      (symbol-name b)))))
 	(let ((family (cdr (assq charset xft-rendering-gui-charset-families))))
-	  (xft-rendering-gui-check
+	  (cnfonts-gui-check
 	   `(xft-rendering-gui-real-instance-p ',charset)
 	   (format "%s has a real instance, not `~'" charset))
-	  (xft-rendering-gui-check
+	  (cnfonts-gui-check
 	   `(and ,family
 		 (xft-rendering-gui-instance-family-p ',charset ,family))
 	   (format "the %s instance's truename names %s"
 		   charset (or family "a missing backstop"))))))
     (dolist (codepoint xft-rendering-gui-covered-codepoints)
-      (xft-rendering-gui-check
+      (cnfonts-gui-check
        `(xft-rendering-gui-fc-covered-p ,codepoint)
        (format (concat "U+%04X has an installed covering font"
 		       " (fc-list :charset=%x; needs fontconfig)")
@@ -378,15 +365,7 @@ truename, so a string truename is what separates it from a real font."
 
 (defun xft-rendering-gui-main ()
   "Print SKIP on a non-graphical frame, else run the checks and exit."
-  (if (not (display-graphic-p))
-      (progn
-	(xft-rendering-gui-skip
-	 "no graphical frame; run this against an Xft GUI build\n")
-	(kill-emacs 0))
-    (xft-rendering-gui-run)
-    (princ (format "%d checks, %d failures\n"
-		   xft-rendering-gui-checks xft-rendering-gui-failures))
-    (kill-emacs (if (> xft-rendering-gui-failures 0) 1 0))))
+  (cnfonts-gui-finish 'xft-rendering-gui-run))
 
 ;; An interactive XEmacs would otherwise open its debugger and wait, so a
 ;; broken gate must still report and exit.

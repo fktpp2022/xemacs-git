@@ -6,7 +6,7 @@
 
 *Amended 2026-11-02 by [#114](https://github.com/fktpp2022/xemacs-git/issues/114): the shim's dimension-2 tag now excludes JIT charsets, so `cnfonts-jit-charset` is the only tag-level font for `jit-ucs-charset-0` and the Chinese font is no longer its fallback. The "Per-codepoint fidelity" paragraph, the EXT-B consequence below, and the "Cutting per-codepoint EXT-B out of scope" option are rewritten accordingly.*
 
-*Amended 2026-11-02: `symbol`, `phonetic`, and the ornament codepoint-range requests are no longer dropped; they lower into a codepoint override map on Xft ([ADR 0004](0004-cnfonts-codepoint-overrides.md)). The last ceiling bullet and the "approximate lowering" sentence are updated.*
+*Amended 2026-11-02 by [#116](https://github.com/fktpp2022/xemacs-git/issues/116), the walkthrough whose line 7 the drop blocked: `symbol`, `phonetic`, and the ornament codepoint-range requests are no longer dropped; they lower into a codepoint override map on Xft ([ADR 0004](0004-cnfonts-codepoint-overrides.md)). The last ceiling bullet and the "approximate lowering" sentence are updated.*
 
 *Amended 2026-11-03 by [#104](https://github.com/fktpp2022/xemacs-git/issues/104), following the inventory in `docs/research/cnfonts-interactive-surface.md` -- on the `research/cnfonts-interactive-surface` branch, which wayfinder research tickets keep unmerged, so read it there (`git show research/cnfonts-interactive-surface:docs/research/cnfonts-interactive-surface.md`): the layer now also answers the GNU spellings `cnfonts-ui` needs to open and navigate the profile editor (see "Editor surface"). The rejection of widening below still holds where it was aimed: no cnfonts internal -- profile loading, face selection, its own `set-face-font` calls -- is shadowed.*
 

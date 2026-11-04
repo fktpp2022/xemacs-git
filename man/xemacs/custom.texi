@@ -2715,7 +2715,6 @@ fallback there, and Xft's per-character fallback supplies glyphs the
 EXT-B font lacks.  The bucket is still broader than GNU's range: any
 codepoint with no encodable equivalent lands in it, not just Ext-B.
 @item
-@item
 @strong{Symbol, phonetic, and ornament fonts are codepoint overrides.}
 XEmacs has no @code{symbol} or @code{phonetic} charset and no
 codepoint-range key, so the layer records these requests in

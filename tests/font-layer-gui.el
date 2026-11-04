@@ -30,27 +30,14 @@
 
 ;;; Code:
 
+(load (expand-file-name "cnfonts-gui-harness"
+			(file-name-directory
+			 (or load-file-name buffer-file-name))))
 (require 'font)
 
 ;; In an interactive XEmacs `standard-output' is the echo area, where the
 ;; results would be invisible.
 (setq standard-output 'external-debugging-output)
-
-(defvar font-layer-gui-failures 0)
-(defvar font-layer-gui-checks 0)
-
-(defun font-layer-gui-check (form description)
-  "Evaluate FORM; print PASS or FAIL for DESCRIPTION."
-  (setq font-layer-gui-checks (1+ font-layer-gui-checks))
-  (condition-case err
-      (cond ((eval form)
-	     (princ (format "PASS: %s\n" description)))
-	    (t
-	     (setq font-layer-gui-failures (1+ font-layer-gui-failures))
-	     (princ (format "FAIL: %s\n" description))))
-    (error
-     (setq font-layer-gui-failures (1+ font-layer-gui-failures))
-     (princ (format "FAIL: %s (%S)\n" description err)))))
 
 (defun font-layer-gui-skip (format-string &rest args)
   (princ (apply #'format (concat "SKIP: " format-string "\n") args)))
@@ -77,24 +64,24 @@
        (family (or (car (member "DejaVu Sans" families))
 		   (car families))))
 
-  (font-layer-gui-check '(eq 'x (device-type (selected-device)))
+  (cnfonts-gui-check '(eq 'x (device-type (selected-device)))
 			"the selected device is an x device")
 
-  (font-layer-gui-check 'names "font-list returns fonts")
+  (cnfonts-gui-check 'names "font-list returns fonts")
 
   (if xft
       (progn
-	(font-layer-gui-check
+	(cnfonts-gui-check
 	 '(every #'(lambda (name) (not (eq ?- (aref name 0)))) names)
 	 "font-list returns no XLFDs on an Xft build")
 
-	(font-layer-gui-check
+	(cnfonts-gui-check
 	 '(every #'(lambda (name) (make-font-instance name device t)) names)
 	 "the first listed fonts all load on an Xft build")
 
-	(font-layer-gui-check 'families "font-family-list returns families")
+	(cnfonts-gui-check 'families "font-family-list returns families")
 
-	(font-layer-gui-check
+	(cnfonts-gui-check
 	 '(equal (font-family (font-layer-gui-roundtrip
 			       (make-font :family family :size 14) device))
 		 (font-family (make-font :family family :size 14)))
@@ -102,7 +89,7 @@
 
 	(if (font-layer-gui-family-has-weight-p
 	     family fc-font-name-weight-bold device)
-	    (font-layer-gui-check
+	    (cnfonts-gui-check
 	     '(eq :bold (font-weight
 			 (font-layer-gui-roundtrip
 			  (make-font :family family :weight :bold :size 14)
@@ -120,7 +107,7 @@
 			    "Latin Modern Roman" fc-font-name-slant-italic device))
 		      "Latin Modern Roman"))))
 	  (if slant-family
-	      (font-layer-gui-check
+	      (cnfonts-gui-check
 	       '(font-italic-p
 		 (font-layer-gui-roundtrip
 		  (let ((font (make-font :family slant-family :size 14)))
@@ -130,25 +117,25 @@
 	       "the slant round-trips through name and object")
 	    (font-layer-gui-skip "slant round-trip: no italic family to test")))
 
-	(font-layer-gui-check
+	(cnfonts-gui-check
 	 '(let ((size (font-size
 		       (font-layer-gui-roundtrip
 			(make-font :family family :size "14pt") device))))
 	    (and (numberp size) (< (abs (- size 14)) 0.5)))
 	 "a size string lowers to points")
 
-	(font-layer-gui-check
+	(cnfonts-gui-check
 	 '(null (try-font-name "definitely-not-a-font" device))
 	 "try-font-name rejects a font that does not exist")
 
-	(font-layer-gui-check
+	(cnfonts-gui-check
 	 '(try-font-name
 	   (font-create-name (make-font :family family :size 14) device) device)
 	 "try-font-name accepts the name producer's own output")
 
 	(let ((face (make-face 'font-layer-gui-face)))
 	  (make-face-family face family)
-	  (font-layer-gui-check
+	  (cnfonts-gui-check
 	   '(equal (list family)
 		   (font-family (font-create-object (face-font-name face device)
 						    device)))
@@ -163,14 +150,14 @@
 		(set-face-font face (format "%s-14" family) device)
 		(set-face-font face (format "%s-14" cjk) device
 			       '(two-dimensional final))
-		(font-layer-gui-check
+		(cnfonts-gui-check
 		 '(equal (list cjk)
 			 (font-family
 			  (font-create-object
 			   (face-font-name face device 'chinese-gb2312)
 			   device)))
 		 "per-charset selection still routes through a tag-set")
-		(font-layer-gui-check
+		(cnfonts-gui-check
 		 '(equal (list family)
 			 (font-family
 			  (font-create-object
@@ -182,13 +169,13 @@
 
     ;; Core-X build: every existing behaviour must be unchanged.
     (progn
-      (font-layer-gui-check
+    (cnfonts-gui-check
        '(every #'(lambda (name) (eq ?- (aref name 0))) names)
        "font-list returns XLFDs on a core-X build")
-      (font-layer-gui-check
+    (cnfonts-gui-check
        '(null (try-font-name "definitely-not-a-font" device))
        "try-font-name is a real existence check on a core-X build"))))
 
 (princ (format "%d checks, %d failures\n"
-	       font-layer-gui-checks font-layer-gui-failures))
-(kill-emacs (if (> font-layer-gui-failures 0) 1 0))
+	       cnfonts-gui-checks cnfonts-gui-failures))
+(kill-emacs (if (> cnfonts-gui-failures 0) 1 0))

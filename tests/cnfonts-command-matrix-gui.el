@@ -49,8 +49,10 @@
 ;; appearance is the human walkthrough's, and `tests/cnfonts-xemacs-gui.el'
 ;; owns the rendering contract this gate depends on.  Nothing here creates
 ;; a frame or moves the pointer -- the align page's row buttons do not warp
-;; at all, and the two page buttons that do bind `cnfonts-ui--move-mouse'
-;; only inside their own `let', which no swept command reaches.
+;; at all, the swept page buttons bind `cnfonts-ui--move-mouse' only inside
+;; their own `let', which no swept command reaches, and the session's press
+;; stubs `set-mouse-pixel-position' to count instead of warp (the warp's
+;; arithmetic is the config gate's direct check).
 ;;
 ;; The swept command list is derived at runtime from the loaded package and
 ;; compared with the matrix, so a command upstream adds cannot arrive
@@ -88,6 +90,12 @@ wrap would hang the gate; the guard makes it fail instead.")
 
 (defvar cnfonts-command-matrix-gui-cell nil
   "The align page widget a later row acts on through its argument.")
+
+(defvar cnfonts-command-matrix-gui-session-font nil
+  "The font the session's font-row press selected, for the restart check.")
+
+(defvar cnfonts-command-matrix-gui-warps 0
+  "Pointer warps the session's presses asked for, real ones never taken.")
 
 (defconst cnfonts-command-matrix-gui-other-sizes '(12.5 18.0 18.0 12.5 12.5)
   "The sizes the second profile is seeded with.
@@ -300,6 +308,17 @@ size command observable on the font the tag actually holds."
     (insert-file-contents (cnfonts--get-profile name))
     (buffer-string)))
 
+(defun cnfonts-command-matrix-gui-tag-family (tag)
+  "The fixture family the instantiators of TAG name, or nil.
+The harness's fixture names are FAMILY-SIZE-device; cnfonts orders its
+requests Latin, CJK, EXT-B, so the tag's last instantiator is the font
+its own slot selected."
+  (let ((names (cnfonts-gui-instantiators (list tag))))
+    (and names
+	 (string-match "\\`\\(Fixture[A-Za-z]+\\)-"
+		       (or (car (last names)) ""))
+	 (match-string 1 (car (last names))))))
+
 ;;; Where a row reaches the page's widgets.
 
 (defun cnfonts-command-matrix-gui-cjkv-size ()
@@ -465,7 +484,10 @@ a changed command, which the assertion by itself would not notice."
 ;;; The machine-checkable half of the walkthrough's checklist, run after
 ;;; the sweep on the real editor: open, reach every page, press a font row
 ;;; and an align button all the way through the widget code, restart, close.
-;;; Glyph appearance is what a machine cannot see and stays human.
+;;; The align press is the one place a swept command's guard does not reach
+;;; the pointer, so the session stubs `set-mouse-pixel-position' to count
+;;; the request.  Glyph appearance is what a machine cannot see and stays
+;;; human.
 
 (defun cnfonts-command-matrix-gui-session ()
   "Work the editor as a user does, and record each check."
@@ -485,26 +507,61 @@ a changed command, which the assertion by itself would not notice."
    '(let* ((cell (progn (cnfonts-ui--switch-to-page 'chinese-fonts-page)
 			(cnfonts-command-matrix-gui-second-row)))
 	   (font (widget-get cell :font-name))
-	   (before (nth 1 cnfonts--custom-set-fontnames)))
+	   (before (nth 1 cnfonts--custom-set-fontnames))
+	   (before-tag (cnfonts-command-matrix-gui-tag-family
+			'cnfonts-dimension-2)))
       ;; What a user's click does: the checkbox's own position, so its
       ;; `:action' runs through the button code instead of as a command.
+      ;; The action ends in `cnfonts--save-profile' and `cnfonts-set-font',
+      ;; so the slot's tag answers with the chosen family, and the profile
+      ;; file carries it, by the time the press returns.  The answer is a
+      ;; diff: false sub-clauses show as nil in the gate's output.
       (widget-button-press (widget-get cell :from))
-      (and (not (equal before (nth 1 cnfonts--custom-set-fontnames)))
-	   (string= font (car (nth 1 cnfonts--custom-set-fontnames)))))
-   "pressing a font row puts that font in the slot the row belongs to")
+      (setq cnfonts-command-matrix-gui-session-font font)
+      (list (not (equal before (nth 1 cnfonts--custom-set-fontnames)))
+	   (string= font (car (nth 1 cnfonts--custom-set-fontnames)))
+	   (cons font (cnfonts-command-matrix-gui-tag-family
+		       'cnfonts-dimension-2))
+	   (cons before-tag (cnfonts-command-matrix-gui-tag-family
+			     'cnfonts-dimension-2))
+	   (and (string-match (regexp-quote font)
+			      (cnfonts-command-matrix-gui-profile-text
+			       "gate"))
+		font)))
+   "pressing a font row puts that font in the slot's tag and the profile")
   (cnfonts-command-matrix-gui-check-run
-   '(let* ((cell (progn (cnfonts-ui--switch-to-page 'align-page)
-			(cnfonts-command-matrix-gui-size-button "+")))
-	   (before (cnfonts-command-matrix-gui-cjkv-size)))
-      (widget-button-press (widget-get cell :from))
-      (= (+ 0.5 before) (cnfonts-command-matrix-gui-cjkv-size)))
-   "pressing the align page's [+] raises the CJKV size half a point")
+   '(let ((base cnfonts-command-matrix-gui-warps)
+	  (cell (progn (cnfonts-ui--switch-to-page 'align-page)
+		       (cnfonts-command-matrix-gui-size-button "+")))
+	  (before (cnfonts-command-matrix-gui-cjkv-size)))
+      ;; The rebuild this press triggers asks for the pointer warp #100's
+      ;; line 5 checks by eye; here it is counted, never taken -- the
+      ;; gate's contract says it moves no pointer (#103), and the warp's
+      ;; arithmetic has its own direct check in the config gate.
+      (flet ((set-mouse-pixel-position (&rest _args)
+	       (setq cnfonts-command-matrix-gui-warps
+		     (1+ cnfonts-command-matrix-gui-warps))))
+	(widget-button-press (widget-get cell :from)))
+      (list (= (+ 0.5 before) (cnfonts-command-matrix-gui-cjkv-size))
+	   (= 1 (- cnfonts-command-matrix-gui-warps base))))
+   "pressing the align page's [+] raises the CJKV size and asks the warp")
   (cnfonts-command-matrix-gui-check-run
-   '(let ((page-buffer (buffer-name)))
+   '(let ((page-buffer (buffer-name))
+	  (chosen cnfonts-command-matrix-gui-session-font))
       (cnfonts-ui-restart)
-      (and (string= page-buffer (buffer-name))
-	   (not (eq major-mode 'fundamental-mode))))
-   "cnfonts-ui-restart rebuilds the page and stays on it")
+      (list (string= page-buffer (buffer-name))
+	   (not (eq major-mode 'fundamental-mode))
+	   (equal chosen (nth 1 cnfonts--custom-set-fontnames))
+	   ;; The rebuilt page marks the chosen row as the slot's current
+	   ;; font: `car' of the names list, which the checkbox value reads.
+	   (progn
+	     (cnfonts-ui--switch-to-page 'chinese-fonts-page)
+	     (car (cnfonts-command-matrix-gui-page-widgets
+		   (lambda (widget)
+		     (and (widget-get widget :flag)
+			  (equal chosen (widget-get widget :font-name))
+			  (widget-value widget))))))))
+   "cnfonts-ui-restart rebuilds the page with the chosen font still selected")
   (cnfonts-command-matrix-gui-check-run
    '(let ((from (buffer-name)))
       (cnfonts-ui-previous-page)

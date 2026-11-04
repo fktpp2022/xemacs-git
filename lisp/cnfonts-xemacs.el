@@ -260,6 +260,14 @@ a character, an event -- is the core function's to handle."
   "The button or field at POS, which defaults to point."
   (funcall cnfonts-xemacs--widget-at-primitive (or pos (point))))
 
+(defun cnfonts-xemacs--widget-tabable-at (&optional pos last-tab backwardp)
+  "POS's tabable widget, or nil -- and nil for an inactive one.
+`widget-tabable-at' is XEmacs's tabable rule; the inactive test is
+`widget-forward''s, which GNU's `widget-move' loop lacks.  Both belong to
+`widget-move', so the scan and the back-up agree on what counts."
+  (and (not (get-char-property (or pos (point)) 'widget-inactive))
+       (widget-tabable-at pos last-tab backwardp)))
+
 (defun widget-move (arg)
   "Move point to the ARGth next field or button.
 ARG may be negative to move backward.  This follows GNU's scan: point
@@ -288,8 +296,7 @@ inactive widget, are passed over.  Point ends at the start of the widget."
                 (goto-char pos)
                 (throw 'one (message "Only one tabable widget")))
             (error "No buttons or fields found")))
-        (let ((new (and (not (get-char-property (point) 'widget-inactive))
-                        (widget-tabable-at (point) last-tab bwd))))
+        (let ((new (cnfonts-xemacs--widget-tabable-at (point) last-tab bwd)))
           (when new
             (if (eq new old)
                 (setq pos (point))
@@ -297,10 +304,10 @@ inactive widget, are passed over.  Point ends at the start of the widget."
               (setq arg (if fwd (1- arg) (1+ arg)))
               (setq old new)
               (setq last-tab (widget-get new :tab-order)))))))
-    (let ((new (widget-tabable-at)))
-      (while (and (eq (widget-tabable-at) new) (not (bobp)))
+    (let ((new (cnfonts-xemacs--widget-tabable-at)))
+      (while (and (eq (cnfonts-xemacs--widget-tabable-at) new) (not (bobp)))
         (backward-char)))
-    (unless (and (widget-tabable-at) (bobp))
+    (unless (and (cnfonts-xemacs--widget-tabable-at) (bobp))
       (forward-char)))
   (widget-echo-help (point))
   (run-hooks 'widget-move-hook))
@@ -417,6 +424,10 @@ Each entry is (RANGE FAMILY . POINTS); the last matching entry wins.")
   '((#x0250 . #x02AF)			; IPA Extensions
     (#x1D00 . #x1DBF))			; Phonetic Extensions
   "The codepoints cnfonts's `phonetic' request covers on this layer.")
+(defconst cnfonts-xemacs-range-scripts
+  `((symbol . ,cnfonts-xemacs-symbol-ranges)
+    (phonetic . ,cnfonts-xemacs-phonetic-ranges))
+  "cnfonts's GNU script requests that lower to codepoint ranges, and which.")
 
 (defun cnfonts-xemacs--gtk-p ()
   "Return non-nil when the selected device is a GTK device."
@@ -481,14 +492,12 @@ as success."
       (warn (concat "cnfonts-xemacs: GTK has no per-character fallback; "
                     "dropping the codepoint override for %S")
             charset))
-     ((eq charset 'symbol)
-      (dolist (range cnfonts-xemacs-symbol-ranges)
+     ((let ((entry (assq charset cnfonts-xemacs-range-scripts)))
+        (or entry (consp charset)))
+      (dolist (range (if (consp charset)
+                         (list charset)
+                       (cdr (assq charset cnfonts-xemacs-range-scripts))))
         (cnfonts-xemacs--set-range-font range font-spec)))
-     ((eq charset 'phonetic)
-      (dolist (range cnfonts-xemacs-phonetic-ranges)
-        (cnfonts-xemacs--set-range-font range font-spec)))
-     ((consp charset)
-      (cnfonts-xemacs--set-range-font charset font-spec))
      (t
       (let ((tag (cnfonts-xemacs--charset-tag charset)))
         (cond
