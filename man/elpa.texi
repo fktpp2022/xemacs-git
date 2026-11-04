@@ -111,6 +111,12 @@ byte-compiles the source, and activates the package by adding it to
 @code{load-path} and loading its autoloads.  After activation the
 package works like any other Lisp library on the system.
 
+This manual is the reference for that machinery.  The workflow -- which
+archives to configure, what to allowlist, and how to declare a package in
+your init file with @code{use-package} -- is in the XEmacs user manual
+(@ref{ELPA Package Client,,,xemacs,XEmacs User's Manual} and
+@ref{Declaring Packages with use-package,,,xemacs,XEmacs User's Manual}).
+
 The client is deliberately minimal.  It supports @emph{installing} a
 small, explicitly allowed set of packages.  It consumes prebuilt
 tarballs (and GNU ELPA's single-file artifacts) only: it never builds
@@ -862,6 +868,10 @@ lexical binding.
 @code{insert-text-button} and friends.
 @item Windows and non-GNU @command{tar} variants.
 @end itemize
+
+The user-facing version of this list, including the @code{use-package}
+keywords that have no effect here, is in @ref{What is not supported
+here,,,xemacs,XEmacs User's Manual}.
 
 @node Concept Index, , Limitations, Top
 @unnumbered Concept Index
