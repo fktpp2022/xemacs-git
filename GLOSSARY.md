@@ -121,7 +121,7 @@ The code the gates share — counting and reporting, the fixtures, and the fakes
 _Avoid_: framework, library, helper
 
 **Command matrix**:
-The table pairing each interactive command a package defines with the observable state that proves it ran. Its rows are derived against the loaded package, so a command that arrives unasserted fails the gate.
+The table pairing each interactive command a package defines with the observable state that proves it ran. A command that arrives without a row of its own is a failure, not a gap.
 _Avoid_: coverage list, command inventory
 
 **Sweep**:
@@ -129,9 +129,9 @@ One pass over the **command matrix** in a fixed order, chosen so the side effect
 _Avoid_: smoke test, run-through
 
 **Editor session**:
-The gate section that works an interactive UI as a user does, with the fakes removed, so at least one action travels the whole event path. The machine-checkable half of a **walkthrough**.
+The gate section that works an interactive UI as a user does, pressing what a user presses, so at least one action travels the widget code rather than the command beside it. The machine-checkable half of a **walkthrough**.
 _Avoid_: integration test, e2e
 
 **Walkthrough**:
-A human running a fixed checklist by eye on a real frame, and the only judge of appearance — glyph shapes, alignment, empty boxes. Its verdict is recorded as PASS or FAIL per line on the issue that asked for it.
+A human running a fixed checklist by eye on a real frame, and the only judge of appearance — glyph shapes, alignment, empty boxes.
 _Avoid_: manual test, visual check, QA pass

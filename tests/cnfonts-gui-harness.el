@@ -89,14 +89,18 @@ instantiator and a list of them otherwise; both shapes are normalized."
 (defmacro cnfonts-gui-with-stubs (&rest body)
   "Run BODY with the platform's font naming, listing and probe answered
 by fixtures.  The stubs stand in for installed fonts: a name carries its
-family, the lister returns the fixture families, and the probe accepts
-a name.  `font-layer-gui.el' owns the real versions."
+family and its requested size, the lister returns the fixture families,
+and the probe accepts a name.  A name that holds the size is what makes a
+size change observable on a tagged instantiator.  `font-layer-gui.el'
+owns the real versions of all three."
   `(flet ((font-family-list (&optional _device)
 	     cnfonts-gui-families)
 	  (font-list (&rest _args)
 	     cnfonts-gui-families)
 	  (font-create-name (fontobj &optional _device)
-	     (concat (or (car (font-family fontobj)) "font") "-device"))
+	     (format "%s-%g-device"
+		     (or (car (font-family fontobj)) "font")
+		     (or (font-size fontobj) 0)))
 	  (try-font-name (name &optional _device)
 	     name))
      ,@body))
@@ -112,6 +116,12 @@ writes the user's own ELPA area or cnfonts profile directory."
   (push (expand-file-name cnfonts-gui-package-dir workdir) load-path)
   (require 'cnfonts))
 
+(defun cnfonts-gui-profile-dir (workdir)
+  "The directory WORKDIR holds cnfonts's profiles in, for the gates.
+Every gate points `cnfonts-directory' here so none of them reads or
+writes the user's own profile."
+  (expand-file-name "cnfonts/" workdir))
+
 (defun cnfonts-gui-set-font-from-fixtures (workdir &optional sizes)
   "Configure fonts through upstream `cnfonts-set-font' with fixtures.
 WORKDIR keeps cnfonts's profile and config files out of the user's home.
@@ -121,7 +131,7 @@ with cnfonts's own profile writer and then read back by
 `cnfonts-set-font', so its profile loading and merging run; everything
 below them is cnfonts's untouched path."
   (cnfonts-gui-with-stubs
-   (let ((cnfonts-directory (expand-file-name "cnfonts/" workdir))
+   (let ((cnfonts-directory (cnfonts-gui-profile-dir workdir))
 	 (cnfonts-profiles '("gate"))
 	 (cnfonts-use-face-font-rescale nil)
 	 (sizes (or sizes '(12.5 15.0 15.0 12.5 12.5)))

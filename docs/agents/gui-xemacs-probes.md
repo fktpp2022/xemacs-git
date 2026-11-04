@@ -65,11 +65,11 @@ straight after editing a shim grades the previous build. Refresh it with
 cmake --build <build-dir> --target build-all
 ```
 
-ctest's `xemacs_build` fixture now runs that itself. The three GUI gates are
+ctest's `xemacs_build` fixture now runs that itself. The four GUI gates are
 registered there too, so they run by selection rather than by memory:
 
 ```sh
-ctest -L gui --output-on-failure          # all three
+ctest -L gui --output-on-failure          # all four
 DISPLAY=:0 <build>/bin/xemacs -no-init-file -no-site-file -l tests/cnfonts-xemacs-gui.el
 ```
 
@@ -84,6 +84,29 @@ GNU-shaped scan `map-extents` + `(widget-get EXTENT :tag)` signals
 `(car widget)`, does the same. Take the widgets from wherever the owning code
 keeps them (`cnfonts-ui--widgets-alist` for the editor) or from
 `(widget-at POS)`, and press one with `(widget-button-press (widget-get w :from))`.
+
+## Stub with `flet`, and read the real definition inside it
+
+There is no `cl-letf` here. A guard that counts calls and still calls through
+uses `flet` too, but the value it calls through to has to be read at run time:
+a `defconst` captures whatever the definition was when the file was read
+(`widget-move` is void until `wid-edit` loads), and hand-writing `fset` with
+`unwind-protect` is that machinery rebuilt badly.
+
+```elisp
+(let ((real (symbol-function 'widget-move)))
+  (flet ((widget-move (step) (funcall real step)))
+    ...))
+```
+
+## A size is visible on a font only where you put it
+
+An instantiator has no size accessor, so a size change is observable on the
+font *name*: let the fixture `font-create-name` answer `FAMILY-SIZE-device`.
+The same size then decides the pixel height `posn-at-point` estimates with, so
+a check that reads its position from the window's last visible line falls off
+the bottom as soon as the font grows -- take the position from a line near the
+top, and the staleness being proved stays the same.
 
 ## Frame geometry has no GNU spellings
 

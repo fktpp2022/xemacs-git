@@ -78,7 +78,11 @@ The align page's rebuild empties its buffer and refills it, and
 redisplays, so `window-end' is the value the erased buffer left and the
 new page below it is outside the displayed range.  Answers (POS . POSN)
 when that staleness was reproduced, and nil when it was not -- a check
-that cannot make the range stale would prove nothing."
+that cannot make the range stale would prove nothing.
+The position is a few lines down, not near the window's bottom: the
+estimate is a line count times the font's pixel height, so one taken
+from the last visible line lands outside the window whenever the font is
+tall enough for the window to hold fewer lines than the buffer."
   (let ((win (selected-window)))
     (let ((old-buffer (window-buffer win))
 	  (buf (generate-new-buffer " *cnfonts-gui-stale*"))
@@ -92,7 +96,7 @@ that cannot make the range stale would prove nothing."
 	    (dotimes (i 40) (insert (format "line %d\n" i)))
 	    (let ((pos (save-excursion
 			 (goto-char (point-min))
-			 (forward-line (max 1 (- (window-height win) 2)))
+			 (forward-line 3)
 			 (point))))
 	      (when (< (window-end win) pos)
 		(setq seen (cons pos (posn-at-point pos win))))))
@@ -129,13 +133,13 @@ that cannot make the range stale would prove nothing."
 	   "the plain descriptor is the Latin font, not the last tagged call")
 
 	  (cnfonts-gui-check
-	   '(member "FixtureCJK-device"
+	   '(member "FixtureCJK-15-device"
 		    (cnfonts-gui-instantiators
 		     '(cnfonts-dimension-2)))
 	   "the CJK descriptor sits under the dimension-2 tag")
 
 	  (cnfonts-gui-check
-	   '(member "FixtureEXTB-device"
+	   '(member "FixtureEXTB-15-device"
 		    (cnfonts-gui-instantiators
 		     '(cnfonts-jit-charset)))
 	   "the EXT-B descriptor sits under the JIT-charset tag")

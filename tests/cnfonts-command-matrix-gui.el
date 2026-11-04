@@ -32,15 +32,16 @@
 ;;
 ;; Two sections, one process.  The SWEEP is the command matrix, one row
 ;; per command in an order that satisfies the side effects the rows have on
-;; each other.  The SESSION then works the editor as a user does, so that
-;; at least one widget press travels the whole event path with nothing
-;; stubbed underneath it.
+;; each other.  The SESSION then works the editor as a user does, so that a
+;; widget press travels the widget code, `sit-for' included, instead of
+;; having it answered.
 ;;
-;; The assertion is per class: a tagged font instantiator for the size
-;; commands, a saved profile for the profile commands, the named buffer for
-;; the page commands, widget state for the widget commands -- and for the
-;; two commands with no XEmacs equivalent, a message naming the missing GNU
-;; command rather than a signal.
+;; The assertion is per class: the font a tag instantiates, at its size, for
+;; the size and profile commands -- the sizes of the two profiles differ so
+;; switching shows up on the font -- the named buffer for the page commands,
+;; widget state for the widget commands, the saved file for the profile
+;; writer, and for the two commands with no XEmacs equivalent a message
+;; naming the missing GNU command rather than a signal.
 ;;
 ;; The commands come from the vendored tarball and the platform's font
 ;; layer is answered by the harness's fixture families, so this gate needs
@@ -79,11 +80,23 @@
 `cnfonts-ui-forward' loops until it reaches a tab stop, so an endless
 wrap would hang the gate; the guard makes it fail instead.")
 
+(defvar cnfonts-command-matrix-gui-real-move nil
+  "The genuine `widget-move' the guard counts calls to, and calls through.")
+
 (defvar cnfonts-command-matrix-gui-baseline nil
   "The size, font name or profile the row recorded before acting.")
 
 (defvar cnfonts-command-matrix-gui-cell nil
   "The align page widget a later row acts on through its argument.")
+
+(defconst cnfonts-command-matrix-gui-other-sizes '(12.5 18.0 18.0 12.5 12.5)
+  "The sizes the second profile is seeded with.
+They differ from the first profile's so that switching profiles changes
+the font a tag instantiates: a profile saving the same numbers would
+switch to a font the assertion cannot tell from the one it replaced.")
+
+(defconst cnfonts-command-matrix-gui-other-cjk-size 18
+  "The CJK size `cnfonts-command-matrix-gui-other-sizes' carries.")
 
 ;;; The matrix.
 ;;;
@@ -114,39 +127,47 @@ wrap would hang the gate; the guard makes it fail instead.")
       "cnfonts-mode with a positive argument enables the mode")
      (cnfonts-set-font
       nil nil state
-      (member "FixtureCJK-device" (cnfonts-gui-instantiators
-				   '(cnfonts-dimension-2)))
+      (member "FixtureCJK-15-device"
+              (cnfonts-gui-instantiators '(cnfonts-dimension-2)))
       "cnfonts-set-font puts the CJK font under the dimension-2 tag")
      (cnfonts-increase-fontsize
       (setq cnfonts-command-matrix-gui-baseline
-	    (cnfonts--get-profile-fontsize
-	     (cnfonts--get-current-profile t)))
+            (cnfonts-command-matrix-gui-cjk-size))
       nil state
-      (> (cnfonts--get-profile-fontsize
-	  (cnfonts--get-current-profile t))
-	 cnfonts-command-matrix-gui-baseline)
-      "cnfonts-increase-fontsize moves the profile size up one step")
+      (> (cnfonts-command-matrix-gui-cjk-size)
+         cnfonts-command-matrix-gui-baseline)
+      "cnfonts-increase-fontsize raises the size the CJK tag instantiates")
      (cnfonts-decrease-fontsize
       nil nil state
-      (= (cnfonts--get-profile-fontsize
-	  (cnfonts--get-current-profile t))
-	 cnfonts-command-matrix-gui-baseline)
+      (= (cnfonts-command-matrix-gui-cjk-size)
+         cnfonts-command-matrix-gui-baseline)
       "cnfonts-decrease-fontsize brings it back to the step it started from")
+     ;; Drift first: reset re-applies the step the profile holds, which after
+     ;; the two rows above the font already carries, so this row lowers the
+     ;; font behind cnfonts's back before asking for the reset.
      (cnfonts-reset-fontsize
-      nil nil state
-      (= (cnfonts--get-profile-fontsize
-	  (cnfonts--get-current-profile t))
-	 cnfonts-command-matrix-gui-baseline)
-      "cnfonts-reset-fontsize re-applies that step unchanged")
+      (let ((before (cnfonts-command-matrix-gui-cjk-size)))
+        (cnfonts--set-font '(10.0 10.0 10.0 10.0 10.0))
+        (or (< (cnfonts-command-matrix-gui-cjk-size) before)
+            (error "the font did not drift below %s: it holds %s"
+                   before (cnfonts-command-matrix-gui-cjk-name)))
+        (setq cnfonts-command-matrix-gui-baseline before))
+      nil state
+      (= (cnfonts-command-matrix-gui-cjk-size)
+         cnfonts-command-matrix-gui-baseline)
+      "cnfonts-reset-fontsize re-applies the profile's step over a drifted font")
      (cnfonts-switch-profile
       nil nil state
-      (string= (cnfonts--get-current-profile t) "other")
-      "cnfonts-switch-profile selects the profile the prompt answered"
+      (and (string= (cnfonts--get-current-profile t) "other")
+           (= cnfonts-command-matrix-gui-other-cjk-size
+              (cnfonts-command-matrix-gui-cjk-size)))
+      "cnfonts-switch-profile applies the sizes the answered profile saved"
       (("Set cnfonts profile to:" . "other")))
      (cnfonts-next-profile
       nil nil state
-      (string= (cnfonts--get-current-profile t) "gate")
-      "cnfonts-next-profile advances to the following profile")
+      (and (string= (cnfonts--get-current-profile t) "gate")
+           (= 15 (cnfonts-command-matrix-gui-cjk-size)))
+      "cnfonts-next-profile applies the following profile's saved sizes")
      (cnfonts-edit-profile
       nil nil state
       (string= (buffer-name) " *cnfonts: start-page*")
@@ -236,15 +257,48 @@ wrap would hang the gate; the guard makes it fail instead.")
       nil (list (cnfonts-command-matrix-gui-event)) message
       "touch-screen-pinch"
       "cnfonts-touch-screen-pinch names the command this build lacks")
+     ;; The overwrite, not the file: the profile is seeded before the sweep
+     ;; and holds the fixture names until this command replaces them.
      (cnfonts-regenerate-profile
-      nil nil state
-      (file-exists-p (cnfonts--get-profile "gate"))
-      "cnfonts-regenerate-profile rewrites the profile it confirms"
+      (or (string-match "Fixture"
+                        (cnfonts-command-matrix-gui-profile-text "gate"))
+          (error "the saved profile holds no fixture fontname to overwrite"))
+      nil state
+      (not (string-match "Fixture"
+                         (cnfonts-command-matrix-gui-profile-text "gate")))
+      "cnfonts-regenerate-profile saves the fallback names over the profile"
       (("Regenerate profile: " . "gate")
        ("Regenerate (gate)? " . t)))
      (cnfonts-mode
       nil (list -1) state (not (bound-and-true-p cnfonts-mode))
       "cnfonts-mode with a negative argument disables the mode"))))
+
+;;; Where a row reaches the font layer and the saved profile.
+
+(defun cnfonts-command-matrix-gui-cjk-name ()
+  "The name the dimension-2 tag instantiates for the CJK font.
+The harness's fixture names are FAMILY-SIZE-device, which is what makes a
+size command observable on the font the tag actually holds."
+  (let ((matches (delq nil
+                       (mapcar (lambda (name)
+                                 (and (stringp name)
+                                      (string-match "\\`FixtureCJK-" name)
+                                      name))
+                               (cnfonts-gui-instantiators
+                                '(cnfonts-dimension-2))))))
+    (or (car (last matches))
+        (error "the dimension-2 tag holds no CJK font: %S" matches))))
+
+(defun cnfonts-command-matrix-gui-cjk-size ()
+  "The point size `cnfonts-command-matrix-gui-cjk-name' carries."
+  (string-to-number (nth 1 (split-string (cnfonts-command-matrix-gui-cjk-name)
+                                        "-"))))
+
+(defun cnfonts-command-matrix-gui-profile-text (name)
+  "The text of profile NAME's file: the fontnames and sizes it saved."
+  (with-temp-buffer
+    (insert-file-contents (cnfonts--get-profile name))
+    (buffer-string)))
 
 ;;; Where a row reaches the page's widgets.
 
@@ -321,53 +375,52 @@ answer to the command."
 (defmacro cnfonts-command-matrix-gui-with-move-guard (&rest body)
   "Run BODY with `widget-move' counted, and stop it after 200 calls.
 `cnfonts-ui-forward' walks until it reaches a tab stop, so a wrap that
-never lands would hang the gate rather than fail it."
-  `(let ((real (symbol-function 'widget-move))
+never lands would hang the gate rather than fail it.  The real
+`widget-move' is read before `flet' shadows the name, and the counting
+definition calls through it."
+  `(let ((cnfonts-command-matrix-gui-real-move
+	  (symbol-function 'widget-move))
 	 (cnfonts-command-matrix-gui-moves 0))
-     (unwind-protect
-	 (progn
-	   (fset 'widget-move
-		 (lambda (step)
-		   (setq cnfonts-command-matrix-gui-moves
-			 (1+ cnfonts-command-matrix-gui-moves))
-		   (if (> cnfonts-command-matrix-gui-moves 200)
-		       (error "widget-move ran %s times without stopping"
-			      cnfonts-command-matrix-gui-moves)
-		     (funcall real step))))
-	   ,@body)
-       (fset 'widget-move real))))
+     (flet ((widget-move (step)
+	      (setq cnfonts-command-matrix-gui-moves
+		    (1+ cnfonts-command-matrix-gui-moves))
+	      (if (> cnfonts-command-matrix-gui-moves 200)
+		  (error "widget-move ran %s times without stopping"
+			 cnfonts-command-matrix-gui-moves)
+		(funcall cnfonts-command-matrix-gui-real-move step))))
+       ,@body)))
+
+(defun cnfonts-command-matrix-gui-row-result (class assertion)
+  "The swept row's verdict, and the prompts it was expected to leave unasked.
+CLASS says how to read ASSERTION: `message' matches it against the echo
+area, `state' evaluates it.  An expected prompt the command never asked is
+a changed command, which the assertion by itself would not notice."
+  (let ((unasked cnfonts-command-matrix-gui-answers)
+	(verdict (cond ((eq class 'message)
+			(and (stringp (current-message))
+			     (string-match assertion (current-message))))
+		       ((eq class 'state) (eval assertion))
+		       (t t))))
+    (when unasked
+      (princ (format "     the command never asked: %S\n"
+		     (mapcar #'car unasked))))
+    (and verdict (null unasked))))
 
 (defun cnfonts-command-matrix-gui-run-row (row)
-  "Run the matrix ROW and record its check."
-  (let* ((command (nth 0 row))
-	 (setup (nth 1 row))
-	 (args (nth 2 row))
-	 (class (nth 3 row))
-	 (assertion (nth 4 row))
-	 (description (nth 5 row))
-	 (answers (nth 6 row)))
-    (setq cnfonts-gui-checks (1+ cnfonts-gui-checks))
-    (condition-case err
-	(if (cnfonts-command-matrix-gui-with-answers
-	       answers
-	     ;; `sit-for' is answered so the align buttons' five-round
-	     ;; minibuffer jitter loop costs nothing here; the session is
-	     ;; where that loop is wanted for real.
-	     (flet ((sit-for (&optional _seconds _no-redisplay) t))
-	       (cnfonts-command-matrix-gui-with-move-guard
-		(eval setup)
-		(apply command (eval args))
-		(cond ((eq class 'message)
-		       (and (stringp (current-message))
-			    (string-match assertion (current-message))))
-		      ((eq class 'state) (eval assertion))
-		      (t t)))))
-	    (princ (format "PASS: %s\n" description))
-	  (setq cnfonts-gui-failures (1+ cnfonts-gui-failures))
-	  (princ (format "FAIL: %s\n" description)))
-      (error
-       (setq cnfonts-gui-failures (1+ cnfonts-gui-failures))
-       (princ (format "FAIL: %s (%S)\n" description err))))))
+  "Run the matrix ROW and record its check through `cnfonts-gui-check'."
+  (cnfonts-gui-check
+   `(cnfonts-command-matrix-gui-with-answers
+	',(nth 6 row)
+      ;; `sit-for' answers nil, so the align buttons' five-round minibuffer
+      ;; jitter loop costs nothing here; the session is where that loop
+      ;; should run for real.
+      (flet ((sit-for (&optional _seconds _no-redisplay) nil))
+	(cnfonts-command-matrix-gui-with-move-guard
+	 ,@(when (nth 1 row) (list (nth 1 row)))
+	 (apply #',(nth 0 row) (eval ',(nth 2 row)))
+	 (cnfonts-command-matrix-gui-row-result ',(nth 3 row)
+					       ',(nth 4 row)))))
+   (nth 5 row)))
 
 (defun cnfonts-command-matrix-gui-derived-commands ()
   "Every interactive command the loaded cnfonts defines, sorted."
@@ -410,9 +463,9 @@ never lands would hang the gate rather than fail it."
 ;;; The editor session.
 ;;;
 ;;; The machine-checkable half of the walkthrough's checklist, run after
-;;; the sweep on the real editor: open, reach every page, press one align
-;;; button all the way through the event path with nothing stubbed, restart,
-;;; close.  Glyph appearance is what a machine cannot see and stays human.
+;;; the sweep on the real editor: open, reach every page, press a font row
+;;; and an align button all the way through the widget code, restart, close.
+;;; Glyph appearance is what a machine cannot see and stays human.
 
 (defun cnfonts-command-matrix-gui-session ()
   "Work the editor as a user does, and record each check."
@@ -429,12 +482,20 @@ never lands would hang the gate rather than fail it."
 	   (string= start (car visited))))
    "next-page reaches all nine pages and comes round")
   (cnfonts-command-matrix-gui-check-run
+   '(let* ((cell (progn (cnfonts-ui--switch-to-page 'chinese-fonts-page)
+			(cnfonts-command-matrix-gui-second-row)))
+	   (font (widget-get cell :font-name))
+	   (before (nth 1 cnfonts--custom-set-fontnames)))
+      ;; What a user's click does: the checkbox's own position, so its
+      ;; `:action' runs through the button code instead of as a command.
+      (widget-button-press (widget-get cell :from))
+      (and (not (equal before (nth 1 cnfonts--custom-set-fontnames)))
+	   (string= font (car (nth 1 cnfonts--custom-set-fontnames)))))
+   "pressing a font row puts that font in the slot the row belongs to")
+  (cnfonts-command-matrix-gui-check-run
    '(let* ((cell (progn (cnfonts-ui--switch-to-page 'align-page)
 			(cnfonts-command-matrix-gui-size-button "+")))
 	   (before (cnfonts-command-matrix-gui-cjkv-size)))
-      ;; The press a user makes: the button's own position, no `sit-for'
-      ;; stub, no answer stubs, and the real font layer below the
-      ;; `cnfonts-set-font' the button's action calls.
       (widget-button-press (widget-get cell :from))
       (= (+ 0.5 before) (cnfonts-command-matrix-gui-cjkv-size)))
    "pressing the align page's [+] raises the CJKV size half a point")
@@ -458,9 +519,13 @@ never lands would hang the gate rather than fail it."
     (and probe (kill-buffer probe))))
 
 (defun cnfonts-command-matrix-gui-check-run (form description)
-  "Check FORM against a session step, unstubbed except for the answers.
-`sit-for' is left real here, because the session is where cnfonts's
-minibuffer jitter loop is supposed to run."
+  "Check FORM against a session step.
+The step is unstubbed wherever a stub would hide what a user meets: the
+real `sit-for', so cnfonts's minibuffer jitter loop runs, and no prompt
+answers, because the session presses buttons rather than switching
+profiles.  The fixture families stay stubbed: they stand for fonts this
+machine does not have, and taking them out would test the host, not
+cnfonts."
   (cnfonts-gui-check
    `(cnfonts-command-matrix-gui-with-answers nil ,form)
    description))
@@ -474,13 +539,17 @@ minibuffer jitter loop is supposed to run."
 	  (require 'cnfonts-ui)
 	  (cnfonts-command-matrix-gui-check-matrix)
 	  ;; The state the sweep starts from: two profiles seeded with the
-	  ;; fixture families, the mode off, and the platform's fonts
-	  ;; faked for every command below.
+	  ;; fixture families at different sizes, the mode off, and the
+	  ;; platform's fonts answered by the fixtures for every command below.
 	  (setq cnfonts-profiles '("gate" "other")
-		cnfonts-directory (expand-file-name "cnfonts/" workdir))
+		cnfonts-directory (cnfonts-gui-profile-dir workdir))
 	  (cnfonts-gui-set-font-from-fixtures workdir)
 	  (cnfonts-gui-with-stubs
-	   (cnfonts--save-profile "other")
+	   (let ((cnfonts--custom-set-fontnames
+		  (mapcar #'list cnfonts-gui-families))
+		 (cnfonts--custom-set-fontsizes
+		  (list cnfonts-command-matrix-gui-other-sizes)))
+	     (cnfonts--save-profile "other"))
 	   (dolist (row cnfonts-command-matrix-gui-rows)
 	     (cnfonts-command-matrix-gui-run-row row))
 	   (cnfonts-command-matrix-gui-session)))
