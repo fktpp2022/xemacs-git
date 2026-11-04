@@ -19,12 +19,277 @@ local needs with safe removal of unnecessary code.
 hierarchies work, @xref{Package Overview,,,lispref, XEmacs Lisp Reference Manual}.
 
 @menu
+* ELPA Package Client::         Installing from GNU ELPA or MELPA.
+* Declaring Packages with use-package::  Setting up a package in init.
+* Worked Example::              cnfonts, installed and enabled from init.
+* What is not supported here::  The honest list of what this does not do.
 * Package Terminology:: Understanding different kinds of packages.
 * Installing Packages:: How to install packages.
 * Building Packages::   Building packages from CVS sources.
 * Local.rules File::    This is an important file that you must create.
 * Available Packages::  A brief directory of packaged LISP.
 @end menu
+
+@node ELPA Package Client, Declaring Packages with use-package, Packages, Packages
+@comment  node-name,  next,  previous,  up
+@cindex ELPA package client
+@cindex GNU ELPA
+@cindex MELPA
+@section The ELPA Package Client
+
+XEmacs comes with a client for packages published in the GNU ELPA
+format.  It installs a package from an archive over HTTPS, activates it
+for the current session, and arranges for it to activate at the next
+startup.  It is unrelated to the older XEmacs package tools described in
+the rest of this chapter (@ref{Installing Packages}); the two coexist and
+never interact.
+
+@subsection Choosing the Archives
+
+The variable @code{elpa-archives} is an alist mapping an archive name to
+a location; a location is either an HTTP(S) URL or an absolute local
+directory.  By default only GNU ELPA is configured.  To install from
+MELPA as well:
+
+@lisp
+(setq elpa-archives
+      '(("melpa" . "https://melpa.org/packages/")
+        ("gnu" . "https://elpa.gnu.org/packages/")))
+@end lisp
+
+@noindent
+Order matters: an install reads the @emph{first} configured archive, so
+list the archive you want to install from first; the remaining entries are
+still searched for dependencies, again in order.  MELPA is a rolling
+archive -- old builds disappear -- so an install from MELPA always
+refreshes the index and installs whatever build the archive advertises
+today.
+@xref{Installing Packages,,,elpa,XEmacs ELPA Package Client Manual}, for
+the mechanics of index refreshing, versions and the install layout.
+
+@subsection Which Packages May Be Installed
+
+The client performs no signature verification.  Its trust boundary is
+HTTPS plus an allowlist: a package name must appear in
+@code{elpa-installable-packages} or the install is refused, and the same
+rule applies to every dependency at every depth.  The shipped list covers
+the packages this fork has installed and run; when the client refuses one
+you want, say so explicitly:
+
+@lisp
+(add-to-list 'elpa-installable-packages 'foo)
+@end lisp
+
+@noindent
+@xref{Security,,,elpa,XEmacs ELPA Package Client Manual}, for what the
+allowlist does and does not protect you from.
+
+@subsection Installing and Activating
+
+@lisp
+(elpa-install 'foo)
+@end lisp
+
+@noindent
+installs @code{foo} and its requirements into the user ELPA directory,
+which is @file{~/.emacs.d/elpa/} -- not @file{~/.xemacs/}.  A package that
+is already installed is left alone; the install returns without touching
+the network.
+
+There is no restart barrier: an install activates the fresh package in
+the same session, so its commands are callable as soon as
+@code{elpa-install} returns.  At startup, XEmacs activates every
+installed package @emph{before} loading your init files, so packages
+installed earlier are available in @file{~/.xemacs/init.el} without any
+bootstrap code.  The @code{-no-packages} command line switch suppresses
+that activation (@xref{Command Switches}).
+
+A failed install signals a warning and lets XEmacs start anyway; a
+package that is not on the allowlist is a hard error, because a trust
+refusal should not be mistaken for a network hiccup.
+
+@node Declaring Packages with use-package, Worked Example, ELPA Package Client, Packages
+@comment  node-name,  next,  previous,  up
+@cindex use-package
+@cindex declaring packages
+@section Declaring Packages with @code{use-package}
+
+This fork vendors @code{use-package}, the GNU Emacs macro for declaring
+that you want a package and how it should be set up.  You need no
+bootstrap stanza: the macro is autoloaded, and ELPA activation happens
+before your init file runs, so a bare declaration works in
+@file{~/.xemacs/init.el}:
+
+@lisp
+(use-package foo
+  :ensure t
+  :bind ("C-c f" . foo-command)
+  :config (foo-mode 1))
+@end lisp
+
+@noindent
+@code{:ensure t} means ``install it if it is not installed'', through the
+ELPA client described above rather than through GNU's @code{package.el},
+which XEmacs does not have.  What happens, in order:
+
+@itemize @bullet
+@item
+The name is checked against @code{elpa-installable-packages}.  A name
+outside the allowlist is a hard error, never a warning.
+@item
+If the package is already installed, nothing else happens -- no index
+fetch, no download.
+@item
+Otherwise the client installs it and activates it in the same session, so
+@code{:bind} and @code{:config} below see a package that is really there.
+@item
+If the install fails, XEmacs displays a warning and carries on loading
+your init file.  One unavailable package does not cost you the rest of
+your configuration.
+@end itemize
+
+@code{use-package-always-ensure} works as in GNU Emacs, with the
+consequence that every declaration then has to clear the allowlist.
+
+@subsection Keywords that work here
+
+The vendored code is a snapshot of upstream @code{use-package}; the
+handlers are upstream's, and these behave as a GNU Emacs user expects:
+
+@table @code
+@item :preface, :if, :when, :unless, :requires, :after, :custom, :hook, :init, :config, :commands, :mode, :defer, :demand, :load-path, :disabled, :defines, :functions, :no-require, :catch
+Upstream behavior.  @code{:init}, @code{:defer}, @code{:bind},
+@code{:commands}, @code{:config} and @code{:ensure} are covered by this
+fork's tests; the others are unmodified upstream handlers that this fork
+has not exercised, so treat them as upstream behavior you should verify
+for yourself.
+@item :bind
+Binds into the global map, autoloads the command, and accepts
+@code{(kbd @dots{})} spellings.
+@end table
+
+@subsection Where XEmacs differs
+
+@table @code
+@item :bind*, :bind-keymap*
+Accepted, but they install an ordinary global binding: XEmacs has no
+@code{emulation-mode-map-alists} lookup path, so the override priority
+GNU Emacs promises is impossible here.  Use @code{:bind} and
+@code{:bind-keymap}; the starred spellings are documented synonyms, not
+stronger versions.
+@item :diminish, :delight
+Accepted and inert.  Neither does anything unless you install the
+third-party @code{diminish} or @code{delight} library yourself.
+@item :interpreter, :magic, :magic-fallback
+Not supported.  They need @code{magic-mode-alist}, which XEmacs does not
+implement.  Use @code{:mode}.
+@item :pin
+Rejected.  @code{:pin} drives GNU @code{package.el} state that XEmacs does
+not have, and a pinned @code{:ensure} target such as
+@code{(foo :pin "melpa")} is refused outright: pinning is not a security
+feature in this client, and byte-level pinning against a rolling archive
+is impossible anyway.  The order of @code{elpa-archives} is all the
+archive selection you get.  @code{use-package-always-pin} is a no-op.
+@end table
+
+@node Worked Example, What is not supported here, Declaring Packages with use-package, Packages
+@comment  node-name,  next,  previous,  up
+@cindex cnfonts
+@cindex worked example, installing cnfonts
+@section Worked Example: cnfonts from MELPA
+
+@code{cnfonts} configures one font per script, which is how Chinese text
+gets a font of its own next to the Latin one.  It is a GNU Emacs package,
+published on MELPA, and this fork ships the compatibility layer that lets
+it drive XEmacs's font layer.  The whole setup, in
+@file{~/.xemacs/init.el}:
+
+@lisp
+(require 'elpa)
+(setq elpa-archives
+      '(("melpa" . "https://melpa.org/packages/")
+        ("gnu" . "https://elpa.gnu.org/packages/")))
+
+;; Load the XEmacs backend before cnfonts itself is loaded.
+(require 'cnfonts-xemacs)
+
+(use-package cnfonts
+  :ensure t
+  :config
+  (cnfonts-enable)
+  (cnfonts-set-font))
+@end lisp
+
+@noindent
+Three things in that stanza are load-bearing:
+
+@itemize @bullet
+@item
+MELPA comes first in @code{elpa-archives}, because @code{cnfonts} exists
+only there.
+@item
+@code{cnfonts} is on the shipped allowlist, so no
+@code{add-to-list} is needed.  The first run downloads it and activates
+it in place; later runs see it installed and do not go online at all.
+@item
+@code{(require 'cnfonts-xemacs)} comes before the declaration.  The
+compatibility layer has to be in place when @code{cnfonts} asks for its
+fonts.
+@end itemize
+
+@xref{Per-script fonts with cnfonts}, for what @code{cnfonts-enable}
+gives you and how to edit the profiles.
+
+On a slow connection, the MELPA index can take longer to fetch than the
+client's 60-second index timeout allows.  @xref{Customization,,,elpa,XEmacs
+ELPA Package Client Manual}, for the timeout variables.
+
+The same declaration against a package you have to allowlist yourself
+looks like this, using GNU ELPA's @code{queue} as the smallest case:
+
+@lisp
+(add-to-list 'elpa-installable-packages 'queue)
+(use-package queue
+  :ensure t
+  :defer t
+  :commands make-queue
+  :config (message "queue configured"))
+@end lisp
+
+@node What is not supported here, Package Terminology, Worked Example, Packages
+@comment  node-name,  next,  previous,  up
+@cindex package limitations
+@section What is not supported here
+
+The install-and-declare path above is the whole feature.  To save you
+from porting a GNU init file that will not work, this fork does not do
+any of the following:
+
+@itemize @bullet
+@item
+No pinning, in any form: no @code{:pin}, no @code{use-package-always-pin},
+no @code{package-pinned-packages}.
+@item
+No @code{package.el}.  @code{package-install},
+@code{package-refresh-contents} and @code{package-get} do not exist, and
+the Customize text of a few upstream @code{use-package} variables still
+mentions @code{package.el} even though that code path is not used.
+@item
+No browsing, uninstall, upgrade or rollback UI for ELPA packages.  The
+client installs; the old package browser (@ref{Installing Packages})
+manages the XEmacs package hierarchies and does not list ELPA packages.
+@item
+No effect from @code{:diminish} or @code{:delight}; no override priority
+from @code{:bind*} or @code{:bind-keymap*}; no @code{:interpreter},
+@code{:magic} or @code{:magic-fallback}.
+@item
+No promise about the exact upstream @code{use-package} release this fork
+vendors; it is a snapshot, adapted where XEmacs differs and tested
+against the behaviors documented above.
+@end itemize
+
+For the client's own limitations, @xref{Limitations,,,elpa,XEmacs ELPA
+Package Client Manual}.
 
 @node Package Terminology, Installing Packages, , Packages
 @comment  node-name,  next,  previous,  up
@@ -339,7 +604,7 @@ hierarchies work, @xref{Package Overview,,,lispref, XEmacs Lisp Reference Manual
 @node Sumo, Which Packages, Manually, Installing Packages
 @comment  node-name,  next,  previous,  up
 @cindex sumo package install
-@heading Installing the Sumo Packages:
+@heading Installing Legacy Sumo Packages:
 Those with little time, cheap connections and plenty of disk space can
 install all the packages at once using the sumo tarballs.
 Download the file: @file{xemacs-sumo.tar.gz}
