@@ -75,3 +75,60 @@ DISPLAY=:0 <build>/bin/xemacs -no-init-file -no-site-file -l tests/cnfonts-xemac
 
 A host with no display reachable reports them SKIP: XEmacs takes its terminal
 path and exits on the non-tty stdin ctest hands it, before any Lisp runs.
+
+## A widget is a cons, not an extent
+
+XEmacs's `wid-edit` hands out widgets as `(<type> . plist)` conses, so the
+GNU-shaped scan `map-extents` + `(widget-get EXTENT :tag)` signals
+`wrong-type-argument listp #<extent ...>` -- and `widget-type`, which is
+`(car widget)`, does the same. Take the widgets from wherever the owning code
+keeps them (`cnfonts-ui--widgets-alist` for the editor) or from
+`(widget-at POS)`, and press one with `(widget-button-press (widget-get w :from))`.
+
+## Frame geometry has no GNU spellings
+
+`frame-position` and `set-frame-name` are void here. Position, size and title
+all go through one call, and `width`/`height` are in characters:
+
+```elisp
+(modify-frame-parameters (selected-frame)
+                         '((left . 0) (top . 0) (user-position . t)
+                           (width . 100) (height . 33) (name . "*probe*")))
+```
+
+`user-position` is what keeps the window manager from placing the frame off
+the screen, which matters because a screenshot only captures what is visible.
+
+## Screenshots come from the Windows side, not from X
+
+There is no `import`, `xwd`, `scrot` or PIL here, and WSLg draws each X window
+as a Windows window, so capture the desktop from PowerShell and write it
+straight back into the WSL filesystem over its UNC path:
+
+```powershell
+# shot.ps1 -- param([string]$Out)
+Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName System.Windows.Forms
+$b = [System.Windows.Forms.SystemInformation]::VirtualScreen
+$bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+$g = [System.Drawing.Graphics]::FromImage($bmp)
+$g.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+$bmp.Save($Out, [System.Drawing.Imaging.ImageFormat]::Png)
+```
+
+```sh
+/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe \
+    -NoProfile -ExecutionPolicy Bypass -File '\\wsl.localhost\Ubuntu\tmp\shot.ps1' \
+    -Out '\\wsl.localhost\Ubuntu\tmp\walk\1.png' </dev/null
+```
+
+The `</dev/null` is load-bearing: without it the interop call hangs the shell.
+`wslpath -w /tmp` gives the UNC path for any other file. What this captures is
+the whole desktop, so raise and position the frame first (above), and note
+that the Windows desktop is scaled: a 1123x786 px frame lands on a 1280x720
+screen, so anything below ~700 px tall is off the bottom of the shot.
+
+Driving the frame while taking shots needs a handshake, not sleeps: have the
+probe write a marker file and spin on `(while (not (file-exists-p NEXT))
+(sit-for 0.2))`, and let the shell wait for the marker, shoot, then touch the
+file it waits on.
