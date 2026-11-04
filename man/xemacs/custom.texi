@@ -2683,8 +2683,9 @@ package:
 (cnfonts-enable)
 @end example
 
-The layer answers exactly the seven font calls @code{cnfonts} makes and
-leaves the rest of the package -- profile loading, face selection, the
+The layer answers the font calls @code{cnfonts} makes and the GNU
+spellings @code{cnfonts-ui} needs to open the profile editor, and leaves
+the rest of the package -- profile loading, face selection, the
 Latin font's own @code{set-face-font} calls -- untouched.
 
 @table @asis
@@ -2692,7 +2693,7 @@ Latin font's own @code{set-face-font} calls -- untouched.
 The face's plain font.
 @item CJK text
 A font under the layer's @code{cnfonts-dimension-2} specifier tag, which
-matches every two-dimensional charset.
+matches every two-dimensional charset except the JIT charsets below.
 @item Rare (EXT-B) characters
 A font under the @code{cnfonts-jit-charset} tag, which matches only the
 internal charset that holds codepoints with no encodable equivalent.
@@ -2708,16 +2709,26 @@ differences are:
 @item
 @strong{EXT-B is a bucket, not a range.}  @code{cnfonts} asks for the
 EXT-B font as the whole-repertoire default; XEmacs has no such bucket,
-so the font goes under the JIT-charset tag.  It wins for unencodable
-codepoints the CJK font does not cover, which is broader than EXT-B.
+so the font goes under the JIT-charset tag and owns it -- the
+dimension-2 tag excludes those charsets, so the CJK font is no longer a
+fallback there, and Xft's per-character fallback supplies glyphs the
+EXT-B font lacks.  The bucket is still broader than GNU's range: any
+codepoint with no encodable equivalent lands in it, not just Ext-B.
 @item
-@strong{Symbol and phonetic fonts are dropped.}  XEmacs has no
-@code{symbol} or @code{phonetic} charset, so each request warns and
+@strong{Symbol, phonetic, and ornament fonts are codepoint overrides.}
+XEmacs has no @code{symbol} or @code{phonetic} charset and no
+codepoint-range key, so the layer records these requests in
+@code{xft-font-overrides}.  On an Xft device the per-character fallback
+draws those codepoints in the requested family and size, even where the
+charset's own font has a glyph.  The layer maps the scripts
+@code{cnfonts}'s align page exercises -- Greek, IPA, and phonetic
+extensions for @code{symbol} and @code{phonetic} -- and
+@code{cnfonts}'s four ornament ranges, so ordinary punctuation keeps
+the text font.  Later ranges win; a codepoint the named family lacks is
+drawn by any installed font that covers it, at the same size.  Applying
+an edited profile re-renders at the new size without restarting.  On
+GTK, which has no per-character fallback, each request warns and
 changes nothing.
-@item
-@strong{Ornament ranges are dropped.}  @code{cnfonts} pins four
-codepoint ranges (circled numbers and letters and the like); XEmacs has
-no range key, so each range warns and changes nothing.
 @item
 @strong{Half-width katakana and Zhuyin keep the Latin font.}  Their
 charsets are one-dimensional, and the layer has no tag for them.
@@ -2749,6 +2760,40 @@ A request for another fontset, an unsupported face attribute, or a
 script that has no tag is reported with a warning and changes nothing.
 A non-nil frame is ignored with a warning, since the layer configures
 the global face.
+
+@subheading The profile editor
+
+@code{M-x cnfonts-edit-profile} opens the package's own editor: pages
+navigate with @kbd{TAB} and @key{return}, fonts are chosen per script,
+and the alignment page adjusts sizes.  Three of its differences are
+worth naming:
+
+@itemize @bullet
+@item
+@strong{Tab navigation replaces a shared function.}  The layer installs
+GNU's character-wise @code{widget-move} scan, because XEmacs's own jumps
+from extent to extent and never reaches the start page's tab stop at the
+beginning of the buffer.  @code{widget-move} is used by every widget
+buffer, not only this editor; XEmacs's own rules for which widgets count
+as tabbable stay, so a widget whose @code{:tab-order} does not continue
+the sequence, and an inactive widget, are still passed over.
+@item
+@strong{The mouse warp is window-relative.}  The alignment page puts the
+pointer over the size it just changed.  XEmacs counts pixels from the
+selected window's text area rather than from a frame, and the estimate
+uses the default face's font metrics, so it is right for a monospace
+default font in a full-width window and off otherwise.  Nothing waits for
+a redisplay first, so a page that rebuilds under the pointer is measured
+against the lines the last redisplay laid out.
+@item
+@strong{Two GNU features have no XEmacs equivalent.}  Frames created
+after @code{cnfonts-enable} keep their old fonts, since XEmacs has no
+frame-creation hook, and @code{cnfonts-use-face-font-rescale} has no
+effect, since XEmacs has no face rescaling.
+@end itemize
+
+The mouse-wheel and touch-pinch scale commands print @code{cnfonts}'s
+own message saying the environment does not support them.
 
 
 @node Frame Components, X Resources, Faces, Customization

@@ -11,3 +11,15 @@ Default five-role vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `
 ### Domain docs
 
 Single-context: root `GLOSSARY.md` and `docs/adr/`. See `docs/agents/domain.md`.
+
+### Coding standards
+
+`CODING_STANDARDS.md` is read at review, not while implementing.
+
+### GUI probes
+
+Driving a GUI XEmacs from a script -- a `-l` probe, or a gate under `ctest -L gui`: see `docs/agents/gui-xemacs-probes.md`.
+
+### Shell
+
+Commands run under zsh here: quote a glob (`'*.elc'`), because one that matches nothing aborts the whole command with `no matches found`.

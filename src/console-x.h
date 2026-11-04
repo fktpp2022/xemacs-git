@@ -56,6 +56,9 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <X11/Xft/Xft.h>
 #undef glyph_index
 #undef face_index
+
+/* Drop the per-character fallback fonts opened on DPY (redisplay-x.c). */
+void xft_font_cache_clear (Display *dpy);
 #endif
 
 /* R5 defines the XPointer type, but R4 doesn't.

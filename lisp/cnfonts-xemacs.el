@@ -32,7 +32,9 @@
 ;;   `font-family-list'    supplied by lisp/font.el; loaded, not redefined
 ;;   `string-join'         GNU's `subr-x' helper
 ;;   `set-face-attribute'  a descriptor lowered onto the face's plain font
-;;   `set-fontset-font'    a descriptor lowered under one of the two tags below
+;;   `set-fontset-font'    a descriptor lowered under one of the two tags below,
+;;                         or into the codepoint override map (`symbol',
+;;                         `phonetic', and cnfonts's ornament ranges)
 ;;
 ;; `cnfonts-edit-profile' additionally loads `cnfonts-ui', which needs four
 ;; GNU spellings of its own at load time:
@@ -46,20 +48,21 @@
 ;; reach five more:
 ;;
 ;;   `widget-at'                    POS defaults to point
-;;   `widget-move'                  GNU's character-wise scan, not extent jumps
+;;   `widget-move'                  GNU's scan, with XEmacs's tabable rules
 ;;   `posn-at-point', `posn-x-y'    the window-relative pixel position
 ;;   `default-font-width/-height'   the default face's font metrics
 ;;   `set-mouse-pixel-position'     a frame maps to its selected window
 ;;
 ;; The widget and position entries are approximations: XEmacs pixels are
-;; counted from the window's text area, not from a frame, and a position
-;; outside the window's displayed range answers nil.  Loading this file does
-;; not load or require `cnfonts', and it works on a
-;; build with no window system: the queries come from the device-neutral
-;; descriptor route, and a device with no row in
-;; `font-window-system-mappings' simply answers "no".  The accepted
-;; approximations are marked at their branches and in the XEmacs user
-;; manual under "Per-script fonts with cnfonts".
+;; counted from the window's text area, not from a frame, and the position
+;; spellings answer from the display's current state -- they never force a
+;; redisplay, and the estimate for a position the display has not reached can
+;; fall outside its window.  Loading this file does not load or require
+;; `cnfonts', and it works on a build with no window system: the queries come
+;; from the device-neutral descriptor route, and a device with no row in
+;; `font-window-system-mappings' simply answers "no".
+;; The accepted approximations are marked at their branches and written up
+;; in the XEmacs user manual under "Per-script fonts with cnfonts".
 
 ;;; Code:
 
@@ -200,7 +203,9 @@ composed map is a sparse map whose parents are MAPS followed by PARENT."
 XEmacs has no `:box' face attribute and no value list for GNU's
 attributes.  `cnfonts-ui' compares the answer only with
 `((\"unspecified\" . unspecified))' to choose raised buttons; nil
-selects the raised, graphical branch."
+selects the raised, graphical branch.  Every attribute answers nil, not
+just `:box': that one call site is the requirement, and a value list no
+caller reads would be code for its own sake."
   nil)
 
 (defun custom--initialize-widget-variables ()
@@ -217,22 +222,24 @@ page is built; without it the bracketed prefixes stay."
     (set (make-local-variable 'widget-push-button-prefix) "")
     (set (make-local-variable 'widget-push-button-suffix) "")))
 
+(defvar cnfonts-xemacs--char-to-string-primitive
+  (symbol-function 'char-to-string)
+  "XEmacs's own `char-to-string', which takes a charset-encoded character.")
+
 (defun char-to-string (character)
   "Convert CHARACTER to a one-character string containing that character.
 GNU callers such as `cnfonts-ui' pass raw Unicode codepoints, while
 XEmacs's own `char-to-string' takes charset-encoded characters.  An
-integer above 255 goes through `unicode-to-char' first; 0..255 are the
-characters they name in every charset."
-  (when (eventp character)
-    (let ((event-to-character (event-to-character character t)))
-      (setq character
-            (or event-to-character (error 'no-character-typed character)))))
+integer above 255 goes through `unicode-to-char' first; anything else --
+a character, an event -- is the core function's to handle."
   (when (integerp character)
     (when (or (< character 0) (> character #x10FFFF))
       (signal 'wrong-type-argument (list 'characterp character)))
     (when (> character 255)
-      (setq character (unicode-to-char character))))
-  (string character))
+      (setq character (or (unicode-to-char character)
+                          (signal 'wrong-type-argument
+                                  (list 'characterp character))))))
+  (funcall cnfonts-xemacs--char-to-string-primitive character))
 
 ;; `cnfonts-ui-forward' calls `(widget-at)' and then loops on
 ;; `widget-move' until it reaches a `:tab-stop-point' widget.  XEmacs's
@@ -246,21 +253,34 @@ characters they name in every charset."
 
 (require 'wid-edit)
 
+(defvar cnfonts-xemacs--widget-at-primitive (symbol-function 'widget-at)
+  "XEmacs's own `widget-at', which requires POS.")
+
 (defun widget-at (&optional pos)
   "The button or field at POS, which defaults to point."
-  (or (get-char-property (or pos (point)) 'button)
-      (get-char-property (or pos (point)) 'field)))
+  (funcall cnfonts-xemacs--widget-at-primitive (or pos (point))))
+
+(defun cnfonts-xemacs--widget-tabable-at (&optional pos last-tab backwardp)
+  "POS's tabable widget, or nil -- and nil for an inactive one.
+`widget-tabable-at' is XEmacs's tabable rule; the inactive test is
+`widget-forward''s, which GNU's `widget-move' loop lacks.  Both belong to
+`widget-move', so the scan and the back-up agree on what counts."
+  (and (not (get-char-property (or pos (point)) 'widget-inactive))
+       (widget-tabable-at pos last-tab backwardp)))
 
 (defun widget-move (arg)
   "Move point to the ARGth next field or button.
 ARG may be negative to move backward.  This follows GNU's scan: point
 moves one character at a time, wrapping at either end, so a tab stop at
-`point-min' is reachable.  Point ends at the start of the widget."
+`point-min' is reachable.  What counts as tabable stays XEmacs's own
+rule: a widget whose `:tab-order' does not continue the sequence, and an
+inactive widget, are passed over.  Point ends at the start of the widget."
   (let* ((wrapped 0)
          (number arg)
          (fwd (> arg 0))
          (bwd (< arg 0))
          (old (widget-tabable-at))
+         (last-tab (widget-get (widget-at) :tab-order))
          (tabable (if old 1 0))
          pos)
     (catch 'one
@@ -276,17 +296,18 @@ moves one character at a time, wrapping at either end, so a tab stop at
                 (goto-char pos)
                 (throw 'one (message "Only one tabable widget")))
             (error "No buttons or fields found")))
-        (let ((new (widget-tabable-at)))
+        (let ((new (cnfonts-xemacs--widget-tabable-at (point) last-tab bwd)))
           (when new
             (if (eq new old)
                 (setq pos (point))
               (setq tabable (1+ tabable))
               (setq arg (if fwd (1- arg) (1+ arg)))
-              (setq old new))))))
-    (let ((new (widget-tabable-at)))
-      (while (and (eq (widget-tabable-at) new) (not (bobp)))
+              (setq old new)
+              (setq last-tab (widget-get new :tab-order)))))))
+    (let ((new (cnfonts-xemacs--widget-tabable-at)))
+      (while (and (eq (cnfonts-xemacs--widget-tabable-at) new) (not (bobp)))
         (backward-char)))
-    (unless (and (widget-tabable-at) (bobp))
+    (unless (and (cnfonts-xemacs--widget-tabable-at) (bobp))
       (forward-char)))
   (widget-echo-help (point))
   (run-hooks 'widget-move-hook))
@@ -315,26 +336,27 @@ window; a text terminal has no pixel metrics and answers 1."
 POS defaults to the window's point and WINDOW to the selected window.
 The answer is relative to the window's text area and is an
 approximation: the column offset times the default font's width and the
-line offset times its height.  POS outside the buffer or the window's
-displayed range answers nil."
+line offset times its height.  A POS outside WINDOW's buffer, or a
+window that is not live, answers nil; a POS the display has not reached
+gets the same estimate, which can fall outside the window.  The
+estimate counts lines from WINDOW's `window-start' as the last redisplay
+left it: nothing here redisplays."
   (setq window (or window (selected-window)))
-  (setq pos (or pos (window-point window)))
-  (let ((end (window-end window)))
-    (when (and (>= pos (point-min))
-               (<= pos (point-max))
-               (>= pos (window-start window))
-               (or (null end) (<= pos end)))
-      (save-excursion
-        (goto-char pos)
-        (let* ((edges (window-text-area-pixel-edges window))
-               (column (max 0 (- (current-column)
-                                 (window-hscroll window))))
-               (line (count-lines (window-start window)
-                                  (progn (beginning-of-line) (point)))))
-          (cons (+ (nth 0 edges)
-                   (* column (default-font-width (window-frame window))))
-                (+ (nth 1 edges)
-                   (* line (default-font-height (window-frame window))))))))))
+  (when (window-live-p window)
+    (let ((pos (or pos (window-point window))))
+      (with-current-buffer (window-buffer window)
+        (when (and (>= pos (point-min)) (<= pos (point-max)))
+          (save-excursion
+            (goto-char pos)
+            (let* ((edges (window-text-area-pixel-edges window))
+                   (column (max 0 (- (current-column)
+                                     (window-hscroll window))))
+                   (line (count-lines (window-start window)
+                                      (progn (beginning-of-line) (point)))))
+              (cons (+ (nth 0 edges)
+                       (* column (default-font-width (window-frame window))))
+                    (+ (nth 1 edges)
+                       (* line (default-font-height (window-frame window))))))))))))
 
 (defun posn-x-y (posn)
   "Return POSN's pixel coordinates as a (X . Y) cons.
@@ -367,7 +389,11 @@ maps to its selected window."
 ;; their names are this layer's contract, and sharing a built-in would
 ;; entangle cnfonts with any other tag-set under that name.
 (define-specifier-tag 'cnfonts-dimension-2 nil
-  'specifier-tag-two-dimensional-p)
+  (if (fboundp 'specifier-tag-jit-charset-p)
+      (lambda (charset)
+        (and (specifier-tag-two-dimensional-p charset)
+             (not (specifier-tag-jit-charset-p charset))))
+    'specifier-tag-two-dimensional-p))
 
 ;; `specifier-tag-jit-charset-p' is compiled out under UNICODE_INTERNAL,
 ;; where no JIT charset exists; a tag that never matches is then honest.
@@ -380,6 +406,29 @@ maps to its selected window."
   '(:family :size :weight :slant :name)
   "The `font-spec' keywords `set-face-attribute' builds a descriptor from.")
 
+;; XEmacs has no charset that can select these characters, so the requests
+;; become codepoint overrides consulted by the Xft fallback *before* charset
+;; coverage.  GNU would resolve `symbol' and `phonetic' through its
+;; block-derived script table, which also swallows punctuation and enclosed
+;; alphanumerics; this layer takes the scripts cnfonts's own align row
+;; exercises, so ordinary prose punctuation keeps the text font.
+(defvar xft-font-overrides nil
+  "Ordered codepoint font overrides for the Xft per-character fallback.
+Each entry is (RANGE FAMILY . POINTS); the last matching entry wins.")
+(defconst cnfonts-xemacs-symbol-ranges
+  '((#x0370 . #x03FF)			; Greek and Coptic
+    (#x0250 . #x02AF)			; IPA Extensions
+    (#x1D00 . #x1DBF))			; Phonetic Extensions
+  "The codepoints cnfonts's `symbol' request covers on this layer.")
+(defconst cnfonts-xemacs-phonetic-ranges
+  '((#x0250 . #x02AF)			; IPA Extensions
+    (#x1D00 . #x1DBF))			; Phonetic Extensions
+  "The codepoints cnfonts's `phonetic' request covers on this layer.")
+(defconst cnfonts-xemacs-range-scripts
+  `((symbol . ,cnfonts-xemacs-symbol-ranges)
+    (phonetic . ,cnfonts-xemacs-phonetic-ranges))
+  "cnfonts's GNU script requests that lower to codepoint ranges, and which.")
+
 (defun cnfonts-xemacs--gtk-p ()
   "Return non-nil when the selected device is a GTK device."
   (eq (device-type (selected-device)) 'gtk))
@@ -388,56 +437,93 @@ maps to its selected window."
   "Return the specifier tag that carries CHARSET's font, or nil to drop it.
 A nil CHARSET is cnfonts's whole-repertoire bucket, its EXT-B request;
 the scope is broader than GNU's, because any unencodable codepoint may
-fall to it, not just Ext-B.  A GNU script is coarse: `cjk-misc' and
-every other script collapse into the dimension-2 tag, which also offers
-the CJK font to non-CJK dimension-2 charsets -- their per-charset
-coverage usually rejects it.  `symbol', `phonetic', and the ornament
-codepoint ranges have no XEmacs charset to select; a dimension-1 script
-\(half-width katakana, Zhuyin) has no tag either, so it keeps the Latin
-font."
+fall to it, not just Ext-B.  The JIT charsets are excluded from the
+dimension-2 tag, so the EXT-B font is preferred for them and
+per-character fallback supplies the symbols it lacks.  A GNU script is
+coarse: `cjk-misc' and every other script collapse into the
+dimension-2 tag, which also offers the CJK font to non-CJK dimension-2
+charsets -- their per-charset coverage usually rejects it.  A
+dimension-1 script (half-width katakana, Zhuyin) has no tag either, so
+it keeps the Latin font."
   (cond
    ((null charset) 'cnfonts-jit-charset)
-   ((or (eq charset 'symbol) (eq charset 'phonetic) (consp charset)) nil)
    ((let ((found (find-charset charset)))
       (and found (= 1 (charset-dimension found))))
     nil)
    (t 'cnfonts-dimension-2)))
 
+(defun cnfonts-xemacs--set-range-font (range font-spec)
+  "Record a codepoint override for RANGE from FONT-SPEC.
+RANGE is a (FROM . TO) cons.  A later request for the same range
+replaces its family and size in place, keeping the map's order."
+  (let* ((family-cell (font-family font-spec))
+         (family (if (consp family-cell) (car family-cell) family-cell))
+         (points (font-size font-spec))
+         (cell (assoc range xft-font-overrides)))
+    (cond
+     ((null family)
+      (warn "cnfonts-xemacs: dropping the override for %S: no family" range))
+     (cell
+      (setcar (cdr cell) family)
+      (setcdr (cdr cell) points))
+     (t
+      (setq xft-font-overrides
+            (append xft-font-overrides
+                    (list (cons range (cons family points)))))))))
+
 (defun set-fontset-font (fontset charset font-spec &optional frame how-to-add)
   "Lower a GNU fontset font request onto the `default' face, for `cnfonts'.
 CHARSET nil selects the JIT-charset tag; a script selects the
-dimension-2 tag.  HOW-TO-ADD (`prepend' or `append') passes through to
-`set-face-font'.  Requests this layer cannot honour are dropped with a
-warning rather than reported as success."
+dimension-2 tag.  The GNU scripts `symbol' and `phonetic' and a cons
+codepoint range become entries in `xft-font-overrides', which the Xft
+per-character fallback consults before charset coverage.  HOW-TO-ADD
+\(`prepend' or `append') passes through to `set-face-font'.  Requests
+this layer cannot honour are dropped with a warning rather than reported
+as success."
   (if (not (equal fontset "fontset-default"))
       (warn "cnfonts-xemacs: only fontset-default is mapped; dropping %S"
             fontset)
     (when frame
       (warn "cnfonts-xemacs: the frame argument %S is ignored" frame))
-    (let ((tag (cnfonts-xemacs--charset-tag charset)))
-      (cond
-       ((null tag)
-        (warn (concat "cnfonts-xemacs: dropping the font request for %S: "
-                      "no specifier tag can select it")
-              charset))
-       ((cnfonts-xemacs--gtk-p)
-        ;; GTK has no per-charset fallback (ADR 0003).  Only the
-        ;; script-level requests apply, as the plain font; in cnfonts's
-        ;; sequence the last one is the Chinese font, and the Latin font
-        ;; never takes this slot.
-        (if (and charset (null how-to-add))
-            (progn
-              (warn (concat "cnfonts-xemacs: GTK cannot select fonts per "
-                            "charset; setting the CJK font as the plain font"))
-              (set-face-font 'default font-spec))
-          (warn (concat "cnfonts-xemacs: GTK cannot apply the %S fallback "
-                        "for %S; dropped")
-                how-to-add charset)))
-       (t
-        ;; cnfonts adds the hangul EXT-B font with HOW-TO-ADD `append'; it
-        ;; lands after the Chinese font, which already matches, so it never
-        ;; wins.  The pass-through keeps GNU's ordering, no-op and all.
-        (set-face-font 'default font-spec 'global (list tag) how-to-add))))))
+    (cond
+     ((and (cnfonts-xemacs--gtk-p) (or (eq charset 'symbol)
+                                       (eq charset 'phonetic)
+                                       (consp charset)))
+      (warn (concat "cnfonts-xemacs: GTK has no per-character fallback; "
+                    "dropping the codepoint override for %S")
+            charset))
+     ((let ((entry (assq charset cnfonts-xemacs-range-scripts)))
+        (or entry (consp charset)))
+      (dolist (range (if (consp charset)
+                         (list charset)
+                       (cdr (assq charset cnfonts-xemacs-range-scripts))))
+        (cnfonts-xemacs--set-range-font range font-spec)))
+     (t
+      (let ((tag (cnfonts-xemacs--charset-tag charset)))
+        (cond
+         ((null tag)
+          (warn (concat "cnfonts-xemacs: dropping the font request for %S: "
+                        "no specifier tag can select it")
+                charset))
+         ((cnfonts-xemacs--gtk-p)
+          ;; GTK has no per-charset fallback (ADR 0003).  Only the
+          ;; script-level requests apply, as the plain font; in cnfonts's
+          ;; sequence the last one is the Chinese font, and the Latin font
+          ;; never takes this slot.
+          (if (and charset (null how-to-add))
+              (progn
+                (warn (concat "cnfonts-xemacs: GTK cannot select fonts per "
+                              "charset; setting the CJK font as the plain font"))
+                (set-face-font 'default font-spec))
+            (warn (concat "cnfonts-xemacs: GTK cannot apply the %S fallback "
+                          "for %S; dropped")
+                  how-to-add charset)))
+         (t
+          ;; cnfonts adds the hangul EXT-B font with HOW-TO-ADD `append'; it
+          ;; lands after the Chinese font, which already matches, so it never
+          ;; wins.  The pass-through keeps GNU's ordering, no-op and all.
+          (set-face-font 'default font-spec 'global (list tag)
+                         how-to-add))))))))
 
 (defun set-face-attribute (face frame &rest args)
   "Set FACE's font from GNU-style keyword ARGS, for `cnfonts'.

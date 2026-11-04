@@ -22,9 +22,10 @@
 
 ;;; Commentary:
 
-;; The device-free half of tickets #94 and #95: the seven GNU calls that
-;; `cnfonts' makes, answered from the font layer, and the two specifier
-;; tags the sink half installs.  ctest runs `-batch', whose device has no
+;; The device-free half of tickets #94, #95 and #104: the seven GNU calls
+;; that `cnfonts' makes, answered from the font layer, the two specifier
+;; tags the sink half installs, and the GNU calls `cnfonts-ui' makes to
+;; open and navigate the editor.  ctest runs `-batch', whose device has no
 ;; row in `font-window-system-mappings', so the name producer is stubbed
 ;; with fixtures: the assertions are about the shapes the compatibility
 ;; layer promises, not about the fonts installed on this machine.
@@ -192,6 +193,9 @@
         "the dimension-2 tag rejects a dimension-1 script")
 
 (when (find-charset 'jit-ucs-charset-0)
+  (Assert (not (cnfonts-xemacs-tests--tag-matches-p
+                'cnfonts-dimension-2 'jit-ucs-charset-0))
+          "the dimension-2 tag rejects the JIT charset")
   (Assert (cnfonts-xemacs-tests--tag-matches-p
            'cnfonts-jit-charset 'jit-ucs-charset-0)
           "the JIT tag matches the JIT charset")
@@ -265,16 +269,30 @@
          "the ignored frame warns once"))
 
 (cnfonts-xemacs-tests--with-sink
- (set-fontset-font "fontset-default" 'symbol (make-font :family "Symbol"))
- (set-fontset-font "fontset-default" 'phonetic (make-font :family "Phonetic"))
- (set-fontset-font "fontset-default" '(#x2776 . #x2793)
-                   (make-font :family "Ornament"))
- (set-fontset-font "fontset-default" 'katakana-jisx0201
-                   (make-font :family "Kana"))
- (Assert (null (cnfonts-xemacs-tests--specs))
-         "dropped requests add no specification")
- (Assert (= 4 (length cnfonts-xemacs-tests--warned))
-         "each dropped request warns once"))
+ (let ((xft-font-overrides nil))
+   (set-fontset-font "fontset-default" 'symbol
+                     (make-font :family "Symbol" :size 12))
+   (set-fontset-font "fontset-default" 'phonetic
+                     (make-font :family "Phonetic" :size 10))
+   (set-fontset-font "fontset-default" '(#x2776 . #x2793)
+                     (make-font :family "Ornament" :size 12))
+   (set-fontset-font "fontset-default" 'katakana-jisx0201
+                     (make-font :family "Kana"))
+   (Assert (null (cnfonts-xemacs-tests--specs))
+           "codepoint requests add no face specification")
+   (Assert (= 4 (length xft-font-overrides))
+           "the map holds Greek, IPA, phonetic extensions and one range")
+   (Assert (equal (cdr (assoc '(#x0370 . #x03FF) xft-font-overrides))
+                  '("Symbol" . 12))
+           "the Greek range carries the symbol family and size")
+   (Assert (equal (cdr (assoc '(#x0250 . #x02AF) xft-font-overrides))
+                  '("Phonetic" . 10))
+           "a re-set phonetic range carries the later family and size")
+   (Assert (equal (cdr (assoc '(#x2776 . #x2793) xft-font-overrides))
+                  '("Ornament" . 12))
+           "the ornament range carries the ornament family and size")
+   (Assert (= 1 (length cnfonts-xemacs-tests--warned))
+           "only the one-dimensional script still warns")))
 
 (cnfonts-xemacs-tests--with-sink
  (set-fontset-font "fontset-other" 'han (make-font :family "CJK"))
@@ -393,6 +411,10 @@
             (progn (char-to-string #x110000) nil)
           (error t))
         "a codepoint beyond Unicode signals")
+(Assert (condition-case nil
+            (progn (char-to-string -1) nil)
+          (error t))
+        "a negative codepoint signals")
 
 ;;; Navigation: `cnfonts-ui-forward' needs an optional POS and a
 ;;; character-wise scan that can reach a tab stop at `point-min'.
@@ -418,6 +440,59 @@
     (Assert (and (= (point) (point-min)) (eq (widget-at) first))
             "widget-move wraps backward to the tab stop at point-min")))
 
+;; The two degenerate buffers are what made XEmacs's own `widget-move'
+;; unusable: `cnfonts-ui-forward' calls it until it reaches a tab stop, so
+;; a buffer with no tabable widget must give up with an error and a
+;; single-widget buffer must stop on that widget instead of looping.
+(with-temp-buffer
+  (Assert (condition-case nil
+              (progn (widget-move 1) nil)
+            (error t))
+          "widget-move without any tabable widget signals"))
+
+(with-temp-buffer
+  (let ((message-log-max nil)
+        (only (widget-create 'push-button :tag "only" :tab-stop-point t)))
+    (widget-setup)
+    (goto-char (point-min))
+    (widget-move 1)
+    (Assert (eq (widget-at) only)
+            "widget-move stops on the only tabable widget")))
+
+(with-temp-buffer
+  (insert "plain text")
+  (Assert (null (widget-at (point-min)))
+          "widget-at answers nil where no widget sits"))
+
+;; The scan is GNU's, what counts as tabable stays XEmacs's: a widget
+;; whose :tab-order does not continue the sequence, and an inactive
+;; widget, are passed over, so the other widget users keep their
+;; navigation.
+(with-temp-buffer
+  (let* ((first (widget-create 'push-button :tag "first"))
+         (_ (widget-insert " "))
+         (_out (widget-create 'push-button :tag "out of order"
+                             :tab-order -1))
+         (_ (widget-insert " "))
+         (last (widget-create 'push-button :tag "last")))
+    (widget-setup)
+    (goto-char (widget-get first :from))
+    (widget-move 1)
+    (Assert (eq (widget-at) last)
+            "widget-move passes over a widget outside the tab-order sequence")))
+
+(with-temp-buffer
+  (let* ((first (widget-create 'push-button :tag "first"))
+         (_ (widget-insert " "))
+         (dead (widget-create 'push-button :tag "inactive"))
+         (_ (widget-insert " "))
+         (last (widget-create 'push-button :tag "last")))
+    (widget-setup)
+    (set-extent-property (widget-get dead :button-extent) 'widget-inactive t)
+    (goto-char (widget-get first :from))
+    (widget-move 1)
+    (Assert (eq (widget-at) last) "widget-move passes over an inactive widget")))
+
 ;;; GUI buttons: a window-system console without native widgets (this
 ;;; --with-widgets=no build) has no `button' image instantiator, so a
 ;;; push button must fall back to its text label instead of warning for
@@ -442,12 +517,31 @@
 (Assert (or (null (posn-at-point (point-min)))
             (consp (posn-at-point (point-min))))
         "posn-at-point answers a cons or nil")
+;; The bounds come from the window's buffer, so a position the current buffer
+;; holds but the window's does not answers nil.  The current buffer is made
+;; longer than the window's own to keep that distinction visible.
+(let* ((cnfonts-xemacs--window (selected-window))
+       (cnfonts-xemacs--win-max (point-max (window-buffer cnfonts-xemacs--window))))
+  (with-temp-buffer
+    (insert (make-string (max 40 cnfonts-xemacs--win-max) ?x))
+    (Assert (null (posn-at-point (1+ cnfonts-xemacs--win-max)
+                                 cnfonts-xemacs--window))
+            "a position outside the window's buffer answers nil")))
+(Assert (equal (posn-x-y '(7 . 9)) '(7 . 9))
+        "posn-x-y returns a pixel pair unchanged")
+(Assert (null (posn-x-y nil))
+        "posn-x-y answers nil for a nil position")
+(Assert (null (posn-x-y '(widget . field)))
+        "posn-x-y answers nil for something that is not a pixel pair")
 
 (let ((cnfonts-xemacs--mouse-pixel-position-primitive
        (lambda (window x y) (list window x y))))
   (Assert (equal (set-mouse-pixel-position (selected-frame) 3 4)
                  (list (frame-selected-window (selected-frame)) 3 4))
-          "a frame maps to its selected window"))
+          "a frame maps to its selected window")
+  (Assert (equal (set-mouse-pixel-position (selected-window) 3 4)
+                 (list (selected-window) 3 4))
+          "a window reaches the primitive unchanged"))
 
 ;; `cnfonts' encodes family names its lister missed as `gbk'; on XEmacs
 ;; the same encoding is `cp936', which the shim aliases at load time.

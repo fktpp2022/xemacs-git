@@ -1,6 +1,6 @@
-# XEmacs ELPA Client
+# XEmacs Package and Font Support
 
-Vocabulary for XEmacs's Emacs Lisp package client (`lisp/elpa.el`): installing prebuilt packages from ELPA-style repositories (GNU ELPA, MELPA).
+Vocabulary for this fork's work on running GNU-oriented Emacs Lisp packages on XEmacs: the ELPA client that installs them (`lisp/elpa.el`), the font configuration they ask for, and the checks that prove either still holds.
 
 ## Language
 
@@ -85,5 +85,53 @@ A font attached under the `final` stage: it renders only characters that no `ini
 _Avoid_: default font, fallback chain
 
 **JIT charset**:
-An internal charset holding Unicode codepoints with no encodable XEmacs charset equivalent (rare CJK, e.g. Extension B). Being 2D, it matches any dimension-2 specifier tag like any other CJK charset.
+An internal charset holding Unicode codepoints with no encodable XEmacs charset equivalent (rare CJK, e.g. Extension B). It matches the built-in dimension-2 specifier tag; the cnfonts shim's own dimension-2 tag excludes it, so the EXT-B font wins for it, and per-character fallback supplies the glyphs that font lacks.
 _Avoid_: unicode charset, ext-b charset
+
+**Per-character fallback**:
+Xft's last resort within a run: when the run's font has no glyph for a codepoint, an installed font that covers that codepoint is found for it alone. It changes the font, not the size — the fallback is opened at the run font's size unless a codepoint override says otherwise.
+_Avoid_: fontset fallback, charset fallback
+
+**Codepoint override**:
+A configured family and size for a range of Unicode codepoints, consulted before the charset's font, so the range uses the override even where the charset's font has glyphs. It carries requests a charset cannot select — the symbol and phonetic scripts and the decorative ornament ranges.
+_Avoid_: unicode-range rule, fontset entry
+
+## Verification
+
+Vocabulary for how this fork proves a package works, where the thing being proved often needs a live display and so cannot be proved in a batch run.
+
+**Gate**:
+A runnable check that grades one promised behaviour and reports PASS or FAIL per check plus a total, exiting nonzero on any failure. A gate asserts configuration and state, never appearance.
+_Avoid_: test, assertion, check
+
+**GUI gate**:
+A gate that drives a live frame rather than a batch process, and prints SKIP and exits zero when no display is reachable, so a headless host skips instead of failing.
+_Avoid_: display test, interactive test
+
+**Probe**:
+A script run against a live GUI build to answer one question — what this API does, where the pointer lands — whose answer goes into a decision, not into the tree. Probes are disposable; gates are kept.
+_Avoid_: test, experiment
+
+**Fixture**:
+Pinned input a gate reads instead of the live thing: a vendored package archive, stand-in font family names, a seeded profile in a temporary directory. A fixture is data, chosen so the gate needs nothing installed.
+_Avoid_: mock, stub, sample
+
+**Harness**:
+The code the gates share — counting and reporting, the fixtures, and the fakes that answer the platform for them. It holds no promises of its own; the gates do.
+_Avoid_: framework, library, helper
+
+**Command matrix**:
+The table pairing each interactive command a package defines with the observable state that proves it ran. A command that arrives without a row of its own is a failure, not a gap.
+_Avoid_: coverage list, command inventory
+
+**Sweep**:
+One pass over the **command matrix** in a fixed order, chosen so the side effects commands have on each other settle rather than compound.
+_Avoid_: smoke test, run-through
+
+**Editor session**:
+The gate section that works an interactive UI as a user does, pressing what a user presses, so at least one action travels the widget code rather than the command beside it. The machine-checkable half of a **walkthrough**.
+_Avoid_: integration test, e2e
+
+**Walkthrough**:
+A human running a fixed checklist by eye on a real frame, and the only judge of appearance — glyph shapes, alignment, empty boxes.
+_Avoid_: manual test, visual check, QA pass
