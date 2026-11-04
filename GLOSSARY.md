@@ -1,6 +1,6 @@
-# XEmacs ELPA Client
+# XEmacs Package and Font Support
 
-Vocabulary for XEmacs's Emacs Lisp package client (`lisp/elpa.el`): installing prebuilt packages from ELPA-style repositories (GNU ELPA, MELPA).
+Vocabulary for this fork's work on running GNU-oriented Emacs Lisp packages on XEmacs: the ELPA client that installs them (`lisp/elpa.el`), the font configuration they ask for, and the checks that prove either still holds.
 
 ## Language
 
@@ -95,3 +95,43 @@ _Avoid_: fontset fallback, charset fallback
 **Codepoint override**:
 A configured family and size for a range of Unicode codepoints, consulted before the charset's font, so the range uses the override even where the charset's font has glyphs. It carries requests a charset cannot select — the symbol and phonetic scripts and the decorative ornament ranges.
 _Avoid_: unicode-range rule, fontset entry
+
+## Verification
+
+Vocabulary for how this fork proves a package works, where the thing being proved often needs a live display and so cannot be proved in a batch run.
+
+**Gate**:
+A runnable check that grades one promised behaviour and reports PASS or FAIL per check plus a total, exiting nonzero on any failure. A gate asserts configuration and state, never appearance.
+_Avoid_: test, assertion, check
+
+**GUI gate**:
+A gate that drives a live frame rather than a batch process, and prints SKIP and exits zero when no display is reachable, so a headless host skips instead of failing.
+_Avoid_: display test, interactive test
+
+**Probe**:
+A script run against a live GUI build to answer one question — what this API does, where the pointer lands — whose answer goes into a decision, not into the tree. Probes are disposable; gates are kept.
+_Avoid_: test, experiment
+
+**Fixture**:
+Pinned input a gate reads instead of the live thing: a vendored package archive, stand-in font family names, a seeded profile in a temporary directory. A fixture is data, chosen so the gate needs nothing installed.
+_Avoid_: mock, stub, sample
+
+**Harness**:
+The code the gates share — counting and reporting, the fixtures, and the fakes that answer the platform for them. It holds no promises of its own; the gates do.
+_Avoid_: framework, library, helper
+
+**Command matrix**:
+The table pairing each interactive command a package defines with the observable state that proves it ran. Its rows are derived against the loaded package, so a command that arrives unasserted fails the gate.
+_Avoid_: coverage list, command inventory
+
+**Sweep**:
+One pass over the **command matrix** in a fixed order, chosen so the side effects commands have on each other settle rather than compound.
+_Avoid_: smoke test, run-through
+
+**Editor session**:
+The gate section that works an interactive UI as a user does, with the fakes removed, so at least one action travels the whole event path. The machine-checkable half of a **walkthrough**.
+_Avoid_: integration test, e2e
+
+**Walkthrough**:
+A human running a fixed checklist by eye on a real frame, and the only judge of appearance — glyph shapes, alignment, empty boxes. Its verdict is recorded as PASS or FAIL per line on the issue that asked for it.
+_Avoid_: manual test, visual check, QA pass

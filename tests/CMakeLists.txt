@@ -64,7 +64,8 @@ set_tests_properties(xemacs_build_fixture PROPERTIES
 # "N checks, M failures" and exits 1 when M is nonzero, so the verdict rides on
 # the exit status; FAIL: and SKIP: keep a broken run and a skipped one
 # distinguishable in the log.
-foreach(gui_gate cnfonts-xemacs-gui font-layer-gui xft-rendering-gui)
+foreach(gui_gate cnfonts-xemacs-gui cnfonts-command-matrix-gui font-layer-gui
+		xft-rendering-gui)
   add_test(
     NAME "gui-${gui_gate}"
     COMMAND ${CMAKE_COMMAND}
