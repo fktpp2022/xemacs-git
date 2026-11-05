@@ -2,17 +2,38 @@
 
 Major Features, Bugfixes, and Backward Incompatible Changes
 
+-- New: Full async and actor API on a built-in coroutine scheduler, with libcurl-backed async HTTP -- Fan Kai
+-- New: ELPA package client: GNU ELPA and MELPA archives, dependency resolution across archives with atomic preflight, installs activated in the same session -- Fan Kai
+-- New: One device-independent font descriptor per face, per-device names resolved at render; font-specification answers the face's plain font, not the last tagged call (ADR 0003) -- Fan Kai
+-- New: Xft renders text runs as UTF-32 codepoints with per-character font fallback, so characters outside the face's font no longer draw as tildes or .notdef boxes (ADR 0004) -- Fan Kai
+-- New: Upstream cnfonts runs on XEmacs through the cnfonts-xemacs compatibility layer, its profile editor included -- Fan Kai
+-- New: Vendored use-package and bind-key, with :ensure working from the init file out of the box -- Fan Kai
+-- Improve: Default file coding system is utf-8, not legacy iso-8859-1/binary -- Kai
+-- Fix: The reader accepts the GNU \s (space) escape -- Fan Kai
+
 
 User-Visible Bug Fixes and Improvements
+
+-- New: package-install, package-refresh-contents and friends against GNU ELPA and MELPA, with the allowlist as the trust boundary -- Fan Kai
+-- New: The cnfonts profile editor is usable on XEmacs; widget buttons fall back to text buttons where the toolkit lacks them -- Fan Kai
+-- Fix: posn-at-point answers for a range the display has not reached, bridging the align page's pointer warp -- FKtPp
 
 
 Build Infrastructure and Source Tree
 
+-- Fix: CMake reports and guards widget and dialog support truthfully -- Fan Kai
+-- Fix: ctest fails on harness aborts in the ELPA gates; the build fixture refreshes its lisp copy when lisp sources change -- Fan Kai
+
 
 Documentation
 
+-- New: The (elpa) package-client reference manual -- Fan Kai
+-- New: The user manual's Packages chapter carries the arc: the ELPA client workflow, declaring packages with use-package, a worked cnfonts example, and what is not supported here, cross-linked reciprocally with (elpa) and the cnfonts node -- Fan Kai
+
 
 Lisp API
+
+-- New: Vendored GNU cl-lib, plus compatibility helpers in the dumped subr surface: locate-user-emacs-file, define-globalized-minor-mode, read-kbd-macro -- Fan Kai
 
 
 Internal API and Implementation

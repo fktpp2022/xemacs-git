@@ -239,6 +239,10 @@ Pull-down Menus
 Packages
 
 * Packages::            Introduction to XEmacs Packages.
+* ELPA Package Client:: Installing from GNU ELPA or MELPA.
+* Declaring Packages with use-package::  Setting up a package in init.
+* Worked Example::      cnfonts, installed and enabled from init.
+* What is not supported here::  What this fork does not do.
 * Package Terminology:: Understanding different kinds of packages.
 * Installing Packages:: How to install packages.
 * Building Packages::   Building packages from sources.
