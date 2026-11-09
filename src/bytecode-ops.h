@@ -186,6 +186,9 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
   OPCODE (member, 			0266) /* new in v20 */
   OPCODE (assq, 			0267) /* new in v20 */
 
+  OPCODE (lexref,                       0270) /* PROTOTYPE (lexbind spike) */
+  OPCODE (lexset,                       0271) /* PROTOTYPE (lexbind spike) */
+
   OPCODE (constant,			0300)
 
 #undef OPCODE

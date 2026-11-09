@@ -277,6 +277,23 @@ Lisp_Object Vautoload_queue;
 
 Lisp_Object Vmacro_declaration_function, Vbyte_compile_macro_environment;
 
+Lisp_Object Qclosure, Qinternal_interpreter_environment; /* PROTOTYPE (lexbind spike) */
+
+/* PROTOTYPE (lexbind spike): current lexical environment, an alist
+   (sym . cell) where cell is (value . t); nil = dynamic binding mode;
+   (t) = lexical mode with empty env (set by the loader for a
+   lexical-binding: t file). Global, specbound around lexical extents. */
+Lisp_Object Vinternal_interpreter_environment;
+Lisp_Object Vload_lexical_files; /* PROTOTYPE (lexbind spike) */
+
+/* PROTOTYPE (lexbind spike): the C-zero word has the record tag in
+   this tree (Lisp_Type_Record == 0), so CONSP on the not-yet-DEFVAR'd
+   global would deref NULL. Any syms_of_* code can call Fset/Feval
+   before syms_of_eval runs, hence the explicit zero test. */
+#define LEXBIND_ENV_ACTIVE_P() \
+  (Vinternal_interpreter_environment != 0 \
+   && CONSP (Vinternal_interpreter_environment))
+
 /* Current number of specbindings allocated in specpdl.  */
 int specpdl_size;
 
@@ -1093,7 +1110,20 @@ arguments: (VARLIST &rest BODY)
 		  ("`let' bindings can have only one value-form", var);
 	    }
 	}
-      specbind (symbol, value);
+      if (LEXBIND_ENV_ACTIVE_P ())
+	{
+	  /* PROTOTYPE (lexbind spike): lexical let*. Bind one at a time so
+	     the value forms see the earlier lexical bindings. Special
+	     (defvar'd) symbols keep their dynamic specbind. */
+	  if (SYMBOL_SPECIAL_P (symbol))
+	    specbind (symbol, value);
+	  else
+	    specbind (Qinternal_interpreter_environment,
+		      Fcons (Fcons (symbol, Fcons (value, Qt)),
+			     Vinternal_interpreter_environment));
+	}
+      else
+	specbind (symbol, value);
     }
   END_GC_EXTERNAL_LIST_LOOP (var);
 
@@ -1159,6 +1189,29 @@ arguments: (VARLIST &rest BODY)
   }
 
   idx = 0;
+  if (LEXBIND_ENV_ACTIVE_P ())
+    {
+      /* PROTOTYPE (lexbind spike): lexical let. Each binding gets a
+         heap cell so escaping closures can share and mutate it; env is
+         an alist (sym . cell) prepended to the captured outer env. */
+      Lisp_Object env = Vinternal_interpreter_environment;
+      struct gcpro ngcpro1, ngcpro2;
+      NGCPRO2 (env, varlist);
+      LIST_LOOP_2 (var, varlist)
+	{
+	  Lisp_Object symbol = SYMBOLP (var) ? var : XCAR (var);
+	  if (SYMBOL_SPECIAL_P (symbol))
+	    specbind (symbol, temps[idx++]);
+	  else
+	    {
+	      Lisp_Object cell = Fcons (temps[idx++], Qt);
+	      env = Fcons (Fcons (symbol, cell), env);
+	    }
+	}
+      NUNGCPRO;
+      specbind (Qinternal_interpreter_environment, env);
+      return unbind_to_1 (speccount, Fprogn (XCDR (args)));
+    }
   {
     LIST_LOOP_2 (var, varlist)
       {
@@ -1328,6 +1381,14 @@ arguments: (SYMBOL-OR-LAMBDA)
                list2 (Qfunction, Flist_length (args)));
     }
 
+  if (LEXBIND_ENV_ACTIVE_P ()
+      && CONSP (XCAR (args)) && EQ (XCAR (XCAR (args)), Qlambda))
+    {
+      /* PROTOTYPE (lexbind spike): closure creation. */
+      return Fcons (Qclosure, Fcons (Vinternal_interpreter_environment,
+				     XCDR (XCAR (args))));
+    }
+
   return XCAR (args);
 }
 
@@ -1353,6 +1414,13 @@ arguments: (NAME ARGLIST &optional DOCSTRING &rest BODY)
        (args))
 {
   /* This function can GC */
+  /* PROTOTYPE (lexbind spike): GNU wraps defuns in lexical context as
+     closures over the definition-time env. NOT DONE HERE: it makes
+     every plain-lambda macro/function invoked under an active env
+     misresolve (measured: dolist/pop during load of subr-x + a
+     lexical file -> wrong-type-argument on nthcdr). GNU needs env-aware
+     macroexpansion for this; the spike scopes capture to #'lambda at
+     points where the env is known-active. See ticket resolution. */
   return define_function (XCAR (args),
 			  Fcons (Qlambda, XCDR (args)));
 }
@@ -1426,6 +1494,7 @@ arguments: (SYMBOL &optional INITVALUE DOCSTRING)
 {
   /* This function can GC */
   Lisp_Object sym = XCAR (args);
+  SET_SYMBOL_SPECIAL (sym); /* PROTOTYPE (lexbind spike) */
 
   if (!NILP (args = XCDR (args)))
     {
@@ -1480,6 +1549,7 @@ arguments: (SYMBOL &optional INITVALUE DOCSTRING)
 {
   /* This function can GC */
   Lisp_Object sym = XCAR (args);
+  SET_SYMBOL_SPECIAL (sym); /* PROTOTYPE (lexbind spike) */
   Lisp_Object val = Feval (XCAR (args = XCDR (args)));
   struct gcpro gcpro1;
 
@@ -3654,6 +3724,42 @@ funcall_compiled_function (Lisp_Object fun, int nargs, Lisp_Object args[])
      and local variables of fun.   So just reserve it once. */
   SPECPDL_RESERVE (f->specpdl_depth);
 
+  if (!NILP (f->environment))
+    {
+      /* PROTOTYPE (lexbind spike): compiled closure call. Build the
+         frame: outer captures keep their shared cells; args get fresh
+         cells appended. Layout fixed at closure-creation time. */
+      Lisp_Object frame;
+      int n_outer = XVECTOR_LENGTH (f->environment);
+      struct gcpro ngcpro1;
+      Lisp_Object value;
+
+      if (nargs != f->max_args)
+	goto wrong_number_of_arguments;
+
+      frame = make_vector (n_outer + nargs, Qnil);
+      {
+	int i;
+	for (i = 0; i < n_outer; i++)
+	  XVECTOR_DATA (frame)[i] = XVECTOR_DATA (f->environment)[i];
+	for (i = 0; i < nargs; i++)
+	  XVECTOR_DATA (frame)[n_outer + i] = Fcons (args[i], Qt);
+      }
+      NGCPRO1 (frame);
+      value =
+	execute_optimized_program ((Opbyte *) XOPAQUE_DATA (f->instructions),
+#ifdef ERROR_CHECK_BYTE_CODE
+				   XOPAQUE_SIZE (f->instructions) /
+				   sizeof (Opbyte),
+#endif
+				   f->stack_depth,
+				   XVECTOR_DATA (f->constants),
+				   frame);
+      NUNGCPRO;
+      UNBIND_TO_GCPRO (speccount, value);
+      return value;
+    }
+
   if (nargs == f->max_args) /* Optimize for the common case -- no unspecified
 			       optional arguments. */
     {
@@ -3715,7 +3821,8 @@ funcall_compiled_function (Lisp_Object fun, int nargs, Lisp_Object args[])
 				 sizeof (Opbyte),
 #endif
 				 f->stack_depth,
-				 XVECTOR_DATA (f->constants));
+				 XVECTOR_DATA (f->constants),
+				 f->environment); /* PROTOTYPE (lexbind spike) */
 
     /* The attempt to optimize this by only unbinding variables failed
        because using buffer-local variables as function parameters
@@ -3744,6 +3851,15 @@ Evaluate FORM and return its value.
     {
       if (SYMBOLP (form))
         {
+          /* PROTOTYPE (lexbind spike): lexical variable reference. */
+          if (LEXBIND_ENV_ACTIVE_P ()
+              && !SYMBOL_SPECIAL_P (form))
+            {
+              Lisp_Object entry =
+                Fassq (form, Vinternal_interpreter_environment);
+              if (!NILP (entry))
+                return XCAR (XCDR (entry));
+            }
           return Fsymbol_value (form);
         }
 
@@ -3957,7 +4073,7 @@ Evaluate FORM and return its value.
 	  val = Feval (apply1 (XCDR (fun), original_args));
 	  PROFILE_EXIT_FUNCTION ();
 	}
-      else if (EQ (funcar, Qlambda))
+      else if (EQ (funcar, Qlambda) || EQ (funcar, Qclosure))
 	{
 	  struct gcpro gcpro1;
 	  Lisp_Object *args = alloca_array (Lisp_Object, nargs);
@@ -4172,7 +4288,7 @@ arguments: (FUNCTION &rest ARGS)
     {
       Lisp_Object funcar = XCAR (fun);
 
-      if (EQ (funcar, Qlambda))
+      if (EQ (funcar, Qlambda) || EQ (funcar, Qclosure))
 	{
 	  PROFILE_ENTER_FUNCTION ();
 	  val = funcall_lambda (fun, fun_nargs, fun_args);
@@ -4474,6 +4590,53 @@ funcall_lambda (Lisp_Object fun, int nargs, Lisp_Object args[])
 
   if (!CONSP (tail))
     goto invalid_function;
+
+  if (EQ (XCAR (fun), Qclosure))
+    {
+      /* PROTOTYPE (lexbind spike): interpreted closure application.
+	 fun = (closure ENV ARGLIST . BODY); ENV is an alist (sym . cell).
+	 Args get fresh heap cells extending ENV. */
+      Lisp_Object env = XCAR (tail);
+      struct gcpro ngcpro1;
+      arglist = XCAR (XCDR (tail));
+      body    = XCDR (XCDR (tail));
+      NGCPRO1 (env);
+      {
+	int optional = 0, rest = 0;
+	EXTERNAL_LIST_LOOP_2 (symbol, arglist)
+	  {
+	    if (!SYMBOLP (symbol))
+	      goto invalid_closure_function;
+	    if (EQ (symbol, Qand_rest))
+	      rest = 1;
+	    else if (EQ (symbol, Qand_optional))
+	      optional = 1;
+	    else if (rest)
+	      {
+		env = Fcons (Fcons (symbol, Fcons (Flist (nargs - i, &args[i]), Qt)),
+			     env);
+		i = nargs;
+	      }
+	    else if (i < nargs)
+	      env = Fcons (Fcons (symbol, Fcons (args[i++], Qt)), env);
+	    else if (!optional)
+	      goto wrong_number_of_arguments_closure;
+	    else
+	      env = Fcons (Fcons (symbol, Fcons (Qnil, Qt)), env);
+	  }
+      }
+      if (i < nargs)
+	goto wrong_number_of_arguments_closure;
+      NUNGCPRO;
+      specbind (Qinternal_interpreter_environment, env);
+      return unbind_to_1 (speccount, Fprogn (body));
+
+    wrong_number_of_arguments_closure:
+      return signal_wrong_number_of_arguments_error (fun, nargs);
+
+    invalid_closure_function:
+      return signal_invalid_function_error (fun);
+    }
 
   arglist = XCAR (tail);
   body    = XCDR (tail);
@@ -7382,6 +7545,8 @@ syms_of_eval (void)
   DEFSYMBOL (Qstack_trace_on_signal);
   DEFSYMBOL (Qdebugger);
   DEFSYMBOL (Qmacro);
+  DEFSYMBOL (Qclosure); /* PROTOTYPE (lexbind spike) */
+  DEFSYMBOL (Qinternal_interpreter_environment); /* PROTOTYPE (lexbind spike) */
   defsymbol (&Qand_rest, "&rest");
   defsymbol (&Qand_optional, "&optional");
   /* Note that the process code also uses Qexit */
@@ -7653,6 +7818,18 @@ You should normally access this using the &environment argument to
 #'macrolet, #'defmacro* and friends, and not directly; see the documentation
 of those macros.
 */);
+
+  DEFVAR_LISP ("internal-interpreter-environment",
+               &Vinternal_interpreter_environment /*
+PROTOTYPE (lexbind spike): current lexical environment, or nil when in
+dynamic-binding mode. Do not set this yourself; the loader does. */);
+  Vinternal_interpreter_environment = Qnil;
+  DEFVAR_LISP ("load-lexical-files", &Vload_lexical_files /*
+PROTOTYPE (lexbind spike): list of file names (absolute, as `load' found
+them) whose lexical-binding: t header actually activates lexical mode.
+Empty by default: global activation is measured unsafe without GNU's
+defun-closures and env-aware macroexpansion. */);
+  Vload_lexical_files = Qnil;
   Vbyte_compile_macro_environment = Qnil;
 
   staticpro (&Vcatch_everything_tag);
@@ -7669,6 +7846,8 @@ Minimum level of warnings that should be logged. */);
   Vlog_warning_minimum_level = Qinfo;
 
   staticpro (&Vautoload_queue);
+  staticpro (&Vinternal_interpreter_environment); /* PROTOTYPE (lexbind spike) */
+  staticpro (&Vload_lexical_files); /* PROTOTYPE (lexbind spike) */
   Vautoload_queue = Qnil;
 
   Vcondition_handlers = Qnil;

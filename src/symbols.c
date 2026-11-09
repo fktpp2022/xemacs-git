@@ -51,6 +51,11 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <config.h>
 #include "lisp.h"
 
+extern Lisp_Object Vinternal_interpreter_environment, Qinternal_interpreter_environment; /* PROTOTYPE (lexbind spike) */
+#define LEXBIND_ENV_ACTIVE_P() \
+  (Vinternal_interpreter_environment != 0 \
+   && CONSP (Vinternal_interpreter_environment))
+
 #include "bytecode.h"		/* for COMPILED_FUNCTION_ANNOTATION_HACK,
 				   defined in bytecode.h and used here. */
 #include "buffer.h"		/* for Vbuffer_defaults */
@@ -1488,6 +1493,18 @@ Set SYMBOL's value to NEWVAL, and return NEWVAL.
       SYMBOL_IS_KEYWORD (symbol))
     reject_constant_symbols (symbol, newval, 0,
 			     UNBOUNDP (newval) ? Qmakunbound : Qset);
+
+  /* PROTOTYPE (lexbind spike): lexical variable set. */
+  if (LEXBIND_ENV_ACTIVE_P ()
+      && !SYMBOL_SPECIAL_P (symbol))
+    {
+      Lisp_Object entry = Fassq (symbol, Vinternal_interpreter_environment);
+      if (!NILP (entry))
+        {
+          XCAR (XCDR (entry)) = newval;
+          return newval;
+        }
+    }
 
   if (!SYMBOL_VALUE_MAGIC_P (valcontents))
     {
@@ -3480,13 +3497,26 @@ defvar_magic (const Ascbyte *symbol_name, Lisp_Object magic)
      redefine variables, since we allow Lisp to (effectively). */
   structure_checking_assert (initialized || UNBOUNDP (XSYMBOL (sym)->value));
   XSYMBOL (sym)->value = magic;
+  SET_SYMBOL_SPECIAL (sym); /* PROTOTYPE (lexbind spike): C DEFVAR_* are
+			       special by construction */
 
   LOADHIST_ATTACH (sym);
+}
+
+DEFUN ("special-variable-p", Fspecial_variable_p, 1, 1, 0, /*
+Return t if SYMBOL is declared special (defvar/defconst or a C DEFVAR).
+PROTOTYPE (lexbind spike).
+*/
+       (symbol))
+{
+  CHECK_SYMBOL (symbol);
+  return SYMBOL_SPECIAL_P (symbol) ? Qt : Qnil;
 }
 
 void
 syms_of_symbols (void)
 {
+  DEFSUBR (Fspecial_variable_p); /* PROTOTYPE (lexbind spike) */
   DEFSYMBOL (Qvariable_documentation);
   DEFSYMBOL (Qvariable_domain);	/* I18N3 */
   DEFSYMBOL (Qad_advice_info);

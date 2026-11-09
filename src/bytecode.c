@@ -850,7 +850,8 @@ execute_optimized_program (const Opbyte *program,
 			   Elemcount program_length,
 #endif
 			   int stack_depth,
-			   Lisp_Object *constants_data)
+			   Lisp_Object *constants_data,
+			   Lisp_Object environment)
 {
   /* This function can GC */
   REGISTER const Opbyte *program_ptr = (Opbyte *) program;
@@ -980,6 +981,36 @@ execute_optimized_program (const Opbyte *program,
 	    
 	  break;
 	}
+
+	case Blexref:
+	  {
+	    int n = READ_UINT_1;
+	    Lisp_Object cell;
+	    bytecode_assert_with_message (VECTORP (environment),
+					  "Blexref with no environment");
+	    bytecode_assert_with_message (n < XVECTOR_LENGTH (environment),
+					  "Blexref out of range");
+	    cell = XVECTOR_DATA (environment)[n];
+	    bytecode_assert_with_message (CONSP (cell),
+					  "Blexref cell not a cons");
+	    PUSH (XCAR (cell));
+	    break;
+	  }
+
+	case Blexset:
+	  {
+	    int n = READ_UINT_1;
+	    Lisp_Object cell, value = POP;
+	    bytecode_assert_with_message (VECTORP (environment),
+					  "Blexset with no environment");
+	    bytecode_assert_with_message (n < XVECTOR_LENGTH (environment),
+					  "Blexset out of range");
+	    cell = XVECTOR_DATA (environment)[n];
+	    bytecode_assert_with_message (CONSP (cell),
+					  "Blexset cell not a cons");
+	    XCAR (cell) = value;
+	    break;
+	  }
 
 	case Bvarbind:
 	case Bvarbind+1:
@@ -1926,7 +1957,8 @@ static void
 check_opcode (Opcode opcode)
 {
   if ((opcode < Bvarref) ||
-      (opcode > Bassq && opcode < Bconstant))
+      ((opcode > Bassq && opcode < Bconstant) &&
+       opcode != Blexref && opcode != Blexset))
     invalid_byte_code ("invalid opcode in instruction stream",
 		       make_fixnum (opcode));
 }
@@ -2181,6 +2213,12 @@ optimize_byte_code (/* in */
 	    }
 	  break;
 
+	case Blexref:
+	case Blexset: /* PROTOTYPE (lexbind spike) */
+	  READ_OPERAND_1;
+	  WRITE_INT8 (arg, program_ptr);
+	  break;
+
 	case Bconstant2:
 	  READ_OPERAND_2;
 	  WRITE_CONSTANT;
@@ -2428,6 +2466,13 @@ print_compiled_function (Lisp_Object obj, Lisp_Object printcharfun,
 		      escapeflag);
     }
 
+  /* PROTOTYPE (lexbind spike): env slot, printed only when present. */
+  if (!NILP (f->environment))
+    {
+      write_ascstring (printcharfun, " ");
+      print_internal (f->environment, printcharfun, escapeflag);
+    }
+
   UNGCPRO;
   if (print_readably)
     write_ascstring (printcharfun, "]");
@@ -2450,7 +2495,10 @@ compiled_function_equal (Lisp_Object obj1, Lisp_Object obj2, int depth,
      internal_equal (f1->constants,    f2->constants,    depth + 1) &&
      internal_equal (f1->arglist,      f2->arglist,      depth + 1) &&
      internal_equal (f1->doc_and_interactive,
-		     f2->doc_and_interactive, depth + 1));
+		     f2->doc_and_interactive, depth + 1) &&
+     /* PROTOTYPE (lexbind spike): two closures over different
+        environments are not equal. */
+     internal_equal (f1->environment, f2->environment, depth + 1));
 }
 
 static void
@@ -2542,6 +2590,7 @@ static const struct memory_description compiled_function_description[] = {
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, constants) },
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, arglist) },
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, doc_and_interactive) },
+  { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, environment) }, /* PROTOTYPE (lexbind spike) */
   { XD_END }
 };
 
@@ -3016,7 +3065,8 @@ If STACK-DEPTH is incorrect, Emacs may crash.
 				    program_length,
 #endif
 				    XFIXNUM (stack_depth),
-				    XVECTOR_DATA (constants));
+				    XVECTOR_DATA (constants),
+				    Qnil); /* PROTOTYPE (lexbind spike) */
 }
 
 

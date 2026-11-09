@@ -77,6 +77,10 @@ struct Lisp_Compiled_Function
   int args_in_array;
   /* This uses the minimal number of conses; see accessors in data.c. */
   Lisp_Object doc_and_interactive;
+  /* PROTOTYPE (lexbind spike): lexical environment of the closure, a
+     vector of cells (cons (value . t)); nil for dynamic functions.
+     lexref/lexset index it. */
+  Lisp_Object environment;
 };
 typedef struct Lisp_Compiled_Function Lisp_Compiled_Function;
 
@@ -107,7 +111,8 @@ Lisp_Object execute_optimized_program (const Opbyte *program,
 				       Elemcount program_length,
 #endif
 				       int stack_depth,
-				       Lisp_Object *constants_data);
+				       Lisp_Object *constants_data,
+				       Lisp_Object environment);
 
 DECLARE_LISP_OBJECT (compiled_function, Lisp_Compiled_Function);
 #define XCOMPILED_FUNCTION(x) XRECORD (x, compiled_function, \

@@ -1977,6 +1977,18 @@ With prefix arg (noninteractively: 2nd arg), load the file after compiling."
   ;; Expand now so we get the current buffer's defaults
   (setq filename (expand-file-name filename))
 
+  ;; PROTOTYPE (lexbind spike): compile-refusal path. Today byte-compiling
+  ;; a lexical-binding: t file silently dynamic-binds it, which is
+  ;; runtime-wrong. The spike makes that refusal a decision, not an
+  ;; accident: the compiler has no cconv pass yet (see map ticket on the
+  ;; cconv lift), so refuse loudly instead of miscompiling.
+  (with-temp-buffer
+    (insert-file-contents filename)
+    (goto-char (point-min))
+    (if (re-search-forward "lexical-binding[ \\t]*:[ \\t]*t\\b" nil t)
+	(error "%s declares lexical-binding: t; the lexbind spike refuses to\nbyte-compile it (no closure conversion yet; see lexbinding map)"
+	       filename)))
+
   ;; If we're compiling a file that's in a buffer and is modified, offer
   ;; to save it first.
   (or noninteractive

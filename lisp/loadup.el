@@ -116,6 +116,13 @@ with the exception of `loadup.el'.")
 	  ;; errors in any event and #'really-early-error-handler is invoked.
 	  (mapc #'load preloaded-file-list)
 
+	  ;; PROTOTYPE (lexbind spike): load the capture-path spike as
+	  ;; source at dump time so a dumped closure exercises the
+	  ;; through-dump path. Warn about source-only is expected here.
+	  (add-to-list 'load-lexical-files
+		       (expand-file-name "lexbind-spike.el" source-lisp))
+	  (load (expand-file-name "lexbind-spike" source-lisp))
+
 	  (packages-load-package-dumped-lisps late-package-load-path))))
 
 ;; Fix up the preloaded file list

@@ -25,6 +25,10 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <config.h>
 #include "lisp.h"
 
+extern Lisp_Object Vinternal_interpreter_environment,
+  Qinternal_interpreter_environment; /* PROTOTYPE (lexbind spike) */
+extern Lisp_Object Vload_lexical_files; /* PROTOTYPE (lexbind spike) */
+
 #include "buffer.h"
 #include "bytecode.h"
 #include "elhash.h"
@@ -687,6 +691,57 @@ do {								\
 
       Lstream_unread (XLSTREAM (lispstream), shebangp, num_read);
     }
+
+    /* PROTOTYPE (lexbind spike): recognize the lexical-binding: t
+       file header and turn lexical mode on for this file's extent,
+       GNU-style: the loader dynamically rebinds the interpreter
+       environment, so the mode flag is exempt from the mode it
+       controls. Crude byte scan; a real version would parse the
+       cookie properly. */
+    if (!reading_elc)
+      {
+	Ibyte lexbpeek[512];
+	int lexbread = Lstream_read (XLSTREAM (lispstream), lexbpeek,
+				     sizeof (lexbpeek));
+	if (lexbread > 0)
+	  {
+	    Ibyte *lexbp = lexbpeek, *lexbend = lexbpeek + lexbread;
+	    while (lexbp + 15 <= lexbend
+		   && (lexbp = (Ibyte *) memmem (lexbp, lexbend - lexbp,
+						 "lexical-binding", 15),
+			lexbp != NULL))
+	      {
+		Ibyte *p = lexbp + 15;
+		while (p < lexbend && (*p == ' ' || *p == '\t')) p++;
+		if (p < lexbend && *p == ':')
+		  {
+		    p++;
+		    while (p < lexbend && (*p == ' ' || *p == '\t')) p++;
+		    if (p + 1 < lexbend && *p == 't'
+			&& !((p[1] >= 'a' && p[1] <= 'z')
+			     || (p[1] >= 'A' && p[1] <= 'Z')
+			     || (p[1] >= '0' && p[1] <= '9'))
+			&& p[1] != '-')
+		      {
+			/* PROTOTYPE (lexbind spike): global activation
+			   measured as unsafe without GNU's defun-closures
+			   and env-aware macroexpansion (see ticket); the
+			   spike activates only whitelisted files. */
+			if (!NILP (Fmember (found, Vload_lexical_files)))
+			  {
+			    specbind (Qinternal_interpreter_environment,
+				      list1 (Qt));
+			    break;
+			  }
+			break;
+		      }
+		  }
+		lexbp += 15;
+	      }
+	  }
+	if (lexbread > 0)
+	  Lstream_unread (XLSTREAM (lispstream), lexbpeek, lexbread);
+      }
 
     /* Now determine what sort of ELC file we're reading in. */
     internal_bind_int (&load_byte_code_version, load_byte_code_version);

@@ -692,7 +692,11 @@ than `build-directory' if appropriate. "
                              (set-subr-documentation function offset)))
                           (cons
                            (if (or (eq (car function) 'lambda)
-                                   (eq (car function) 'autoload))
+                                   (eq (car function) 'autoload)
+                                   ;; PROTOTYPE (lexbind spike): closures
+                                   ;; (ENV ARGLIST [DOC] . BODY) — doc slot
+                                   ;; is same position as lambda's.
+                                   (eq (car function) 'closure))
                                (progn
                                  ;; If it's a Lisp form, stick it in the form.
                                  (setq cddr (cddr function))

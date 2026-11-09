@@ -2135,6 +2135,7 @@ make_compiled_function (void)
   f->args = NULL;
   f->max_args = f->min_args = f->args_in_array = 0;
   f->doc_and_interactive = Qnil;
+  f->environment = Qnil;
   return wrap_compiled_function (f);
 }
 
@@ -2164,8 +2165,12 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
   Lisp_Object stack_depth  = args[3];
   Lisp_Object doc_string   = (nargs > 4) ? args[4] : Qnil;
   Lisp_Object interactive  = (nargs > 5) ? args[5] : Qunbound;
+  /* PROTOTYPE (lexbind spike): optional 7th arg = closure environment
+     vector. .elc element-count bump per the map's no-backcompat
+     decision; old files (<= 6 elements) still load. */
+  Lisp_Object environment  = (nargs > 6) ? args[6] : Qnil;
 
-  if (nargs < 4 || nargs > 6)
+  if (nargs < 4 || nargs > 7)
     return Fsignal (Qwrong_number_of_arguments,
 		    list2 (intern ("make-byte-code"), make_fixnum (nargs)));
 
@@ -2190,6 +2195,16 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
 
   CHECK_VECTOR (constants);
   f->constants = constants;
+
+  /* PROTOTYPE (lexbind spike) */
+  if (!NILP (environment))
+    {
+      CHECK_VECTOR (environment);
+      if (f->max_args == MANY)
+	invalid_constant_2 ("&rest lexical closures unsupported in the spike",
+			    arglist, environment);
+      f->environment = environment;
+    }
 
   check_integer_range (stack_depth, Qzero, make_fixnum (USHRT_MAX));
   f->stack_depth = (unsigned short) XFIXNUM (stack_depth);

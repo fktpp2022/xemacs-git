@@ -2865,11 +2865,20 @@ struct Lisp_Symbol
     } v;
   } u;
 
+  /* PROTOTYPE (lexbind spike): fills what was 4 bytes of alignment
+     padding. Bit 0 = declared-special (defvar/defconst/C DEFVAR_*).
+     Raw word: rides the dump image, no description entry needed. */
+  unsigned int flags;
+
   Lisp_Object name;
   Lisp_Object value;
   Lisp_Object function;
   Lisp_Object plist;
 };
+
+#define SYM_FLAG_SPECIAL 1
+#define SYMBOL_SPECIAL_P(sym) (XSYMBOL (sym)->flags & SYM_FLAG_SPECIAL)
+#define SET_SYMBOL_SPECIAL(sym) (XSYMBOL (sym)->flags |= SYM_FLAG_SPECIAL)
 
 #define IN_OBARRAY(symbol) ((XSYMBOL (symbol)->u.v.first_package_id) == 1)
 
