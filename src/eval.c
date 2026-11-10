@@ -277,6 +277,32 @@ Lisp_Object Vautoload_queue;
 
 Lisp_Object Vmacro_declaration_function, Vbyte_compile_macro_environment;
 
+/* Lexical-binding core (P1-1, ticket #147).  Current lexical
+   environment, GNU shape (issue #144): a list whose car is t when
+   lexical mode is active, followed by (sym . value) binding conses and
+   bare symbols (defvar foo) proclamations.  nil = pure dynamic binding
+   mode.  Global, specbound around lexical extents by later P1 tickets. */
+Lisp_Object Qinternal_interpreter_environment;
+Lisp_Object Vinternal_interpreter_environment;
+
+/* The C-zero word carries the record tag in this tree
+   (Lisp_Type_Record == 0), so CONSP on the not-yet-DEFVAR'd global
+   would deref NULL.  Code running before syms_of_eval (bootstrap,
+   vars_of_* elsewhere) must go through this guard's explicit zero
+   test. */
+#define LEXBIND_ENV_ACTIVE_P()                                  \
+  (Vinternal_interpreter_environment != 0                       \
+   && CONSP (Vinternal_interpreter_environment)                 \
+   && EQ (XCAR (Vinternal_interpreter_environment), Qt))
+
+/* The binding for SYMBOL in the active environment, or nil.  A value
+   binding is (sym . value), so the result is a cons; a bare-symbol
+   (defvar foo) proclamation returns the symbol itself. */
+#define LEXBIND_ENV_BINDING(symbol)                             \
+  (LEXBIND_ENV_ACTIVE_P ()                                      \
+   ? Fassq ((symbol), XCDR (Vinternal_interpreter_environment)) \
+   : Qnil)
+
 /* Current number of specbindings allocated in specpdl.  */
 int specpdl_size;
 
@@ -1426,6 +1452,8 @@ arguments: (SYMBOL &optional INITVALUE DOCSTRING)
 {
   /* This function can GC */
   Lisp_Object sym = XCAR (args);
+  SET_SYMBOL_SPECIAL (sym); /* lexical-binding core (P1-1): defvar
+                               declares the variable special */
 
   if (!NILP (args = XCDR (args)))
     {
@@ -1480,6 +1508,8 @@ arguments: (SYMBOL &optional INITVALUE DOCSTRING)
 {
   /* This function can GC */
   Lisp_Object sym = XCAR (args);
+  SET_SYMBOL_SPECIAL (sym); /* lexical-binding core (P1-1): defconst
+                               declares the variable special */
   Lisp_Object val = Feval (XCAR (args = XCDR (args)));
   struct gcpro gcpro1;
 
@@ -3744,6 +3774,15 @@ Evaluate FORM and return its value.
     {
       if (SYMBOLP (form))
         {
+          /* Lexical-binding core (P1-1): lexical variable reference.
+             Special (defvar'd / C DEFVAR) symbols always fall through
+             to dynamic resolution. */
+          if (!SYMBOL_SPECIAL_P (form))
+            {
+              Lisp_Object binding = LEXBIND_ENV_BINDING (form);
+              if (CONSP (binding))
+                return XCDR (binding);
+            }
           return Fsymbol_value (form);
         }
 
@@ -7375,6 +7414,7 @@ syms_of_eval (void)
 
   DEFSYMBOL (Qinhibit_quit);
   DEFSYMBOL (Qautoload);
+  DEFSYMBOL (Qinternal_interpreter_environment); /* lexical-binding core (P1-1) */
   DEFSYMBOL (Qbyte_compile_macro_environment);
   DEFSYMBOL (Qdebug_on_error);
   DEFSYMBOL (Qstack_trace_on_error);
@@ -7654,6 +7694,20 @@ You should normally access this using the &environment argument to
 of those macros.
 */);
   Vbyte_compile_macro_environment = Qnil;
+
+  DEFVAR_LISP ("internal-interpreter-environment", &Vinternal_interpreter_environment /*
+Current lexical environment for interpreted code, or nil.
+Nil means pure dynamic binding.  When lexical binding is active the
+value is a list whose car is t, followed by (SYMBOL . VALUE) binding
+conses and bare symbols representing `(defvar SYMBOL)' proclamations
+without a value binding.  It is specbound for the extent of lexical
+forms; do not set it directly.
+Lexical-binding core (P1-1, ticket #147).
+*/);
+  /* Explicit initialization per the DEFVAR_LISP convention: the
+     DEFVAR funnel does not set the C variable, and readers before this
+     point go through LEXBIND_ENV_ACTIVE_P's zero test. */
+  Vinternal_interpreter_environment = Qnil;
 
   staticpro (&Vcatch_everything_tag);
   Vcatch_everything_tag = make_opaque (OPAQUE_CLEAR, 0);

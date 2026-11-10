@@ -2271,6 +2271,8 @@ Its value and function definition are void, and its property list is nil.
                                   u.lheader);
   p->u.v.package_count = 0;
   p->u.v.first_package_id = 0;
+  p->flags = 0; /* lexical-binding core (P1-1): flags ride frob-block
+                   garbage otherwise */
 
   p->name     = name;
   p->plist    = Qnil;
