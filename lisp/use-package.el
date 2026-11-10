@@ -1,4 +1,4 @@
-;;; use-package.el --- A configuration macro for simplifying your .emacs  -*- lexical-binding: t; -*-
+;;; use-package.el --- A configuration macro for simplifying your .emacs  -*- -*-
 
 ;; Copyright (C) 2012-2022 Free Software Foundation, Inc.
 

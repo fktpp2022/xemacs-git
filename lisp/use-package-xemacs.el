@@ -1,4 +1,4 @@
-;;; use-package-xemacs.el --- XEmacs glue for the vendored use-package -*- lexical-binding: t -*-
+;;; use-package-xemacs.el --- XEmacs glue for the vendored use-package
 
 ;; Copyright (C) 2026  Free Software Foundation, Inc.
 ;; See the file `xemacs' for copyright and disclaimer details.

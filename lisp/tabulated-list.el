@@ -1,4 +1,4 @@
-;;; tabulated-list.el --- generic tabulated data major mode  -*- lexical-binding: t; -*-
+;;; tabulated-list.el --- generic tabulated data major mode  -*- -*-
 
 ;; This file is a deliberately minimal XEmacs port of GNU Emacs's
 ;; tabulated-list.el.  It provides exactly the symbols that the

@@ -1,4 +1,4 @@
-;;; use-package-delight.el --- Support for the :delight keyword  -*- lexical-binding: t; -*-
+;;; use-package-delight.el --- Support for the :delight keyword  -*- -*-
 
 ;; Copyright (C) 2012-2022 Free Software Foundation, Inc.
 

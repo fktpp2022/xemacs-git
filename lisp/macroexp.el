@@ -1,4 +1,4 @@
-;;; macroexp.el --- XEmacs compatibility subset of GNU Emacs's macroexp -*- lexical-binding: t -*-
+;;; macroexp.el --- XEmacs compatibility subset of GNU Emacs's macroexp
 
 ;; Copyright (C) 2026  Free Software Foundation, Inc.
 ;; See the file `xemacs' for copyright and disclaimer details.

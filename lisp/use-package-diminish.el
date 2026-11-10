@@ -1,4 +1,4 @@
-;;; use-package-diminish.el --- Support for the :diminish keyword  -*- lexical-binding: t; -*-
+;;; use-package-diminish.el --- Support for the :diminish keyword  -*- -*-
 
 ;; Copyright (C) 2012-2022 Free Software Foundation, Inc.
 

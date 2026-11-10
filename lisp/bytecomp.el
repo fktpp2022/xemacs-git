@@ -1979,7 +1979,7 @@ With prefix arg (noninteractively: 2nd arg), load the file after compiling."
 
   ;; Lexical-binding refusal (lexbind P1, work item 8; ported from the
   ;; prototype/lexbind-capture-spike refusal path).  There is no cconv
-  ;; pass yet, so byte-compiling a lexical-binding: t file would
+  ;; pass yet, so byte-compiling a lexbound file would
   ;; silently dynamic-bind it, which is runtime-wrong.  Refuse loudly
   ;; instead.  Stays until P2.
   (with-temp-buffer
