@@ -2,7 +2,9 @@
 
 Research findings for wayfinder ticket [#130](https://github.com/fktpp2022/xemacs-git/issues/130), map [Give XEmacs byte-compiled lexical binding](https://github.com/fktpp2022/xemacs-git/issues/128).
 
-This is a **semantics inventory**: it states what `-*- lexical-binding: t -*-` buys you in GNU Emacs, with citations, and ranks each guarantee by **who can observe it at runtime** — an ordinary vendored package versus only a macro-authoring or byte-compiling one. That ranking is the payload the subset decision in the map needs. It deliberately does *not* re-argue feasibility, cost, or strategy; for those see the prior report [Lexical binding in XEmacs: feasibility and cost](https://github.com/fktpp2022/xemacs-git/tree/research/lexical-binding/docs/research/lexical-binding.md) (`git show origin/research/lexical-binding:docs/research/lexical-binding.md`), which this note complements rather than repeats.
+This is a **semantics inventory**: it states what `-*- lexical-binding: t -*-` buys you in GNU Emacs, with citations, and ranks each guarantee by **who can observe it at runtime** — an ordinary vendored package versus only a macro-authoring or byte-compiling one. That ranking is the payload the subset decision in the map needs. It deliberately does *not* re-argue feasibility, cost, or strategy; for those see the prior report [`docs/research/lexical-binding.md`](lexical-binding.md), which this note complements rather than repeats.
+
+Re-landed onto the mainline under wayfinder ticket [#141](https://github.com/fktpp2022/xemacs-git/issues/141); it previously lived only on the throwaway branch `research/lexbind-gnu-semantics` (commit `d58c77cc5`). Read its Correction notice for claims later corrected.
 
 **Method.** Reference implementation is GNU Emacs 24.1, tag `emacs-24.1` in [`emacs-mirror/emacs`](https://github.com/emacs-mirror/emacs) — the release that introduced the feature. Every claim is cited to the Elisp manual (the *guarantee*), to the C/Lisp source (the *mechanism*), or both. Deltas to current `master` (Emacs 31 development) are noted where they move a guarantee. Local XEmacs facts are cited from this tree only where the map needs the contrast; they are not re-derived.
 
@@ -399,4 +401,4 @@ GNU Emacs 24.1 (tag `emacs-24.1`), unless noted `master`:
 
 Local XEmacs tree: [`lisp/cl-lib.el:416-425`](lisp/cl-lib.el), [`lisp/cl-macs.el:1705-1745`](lisp/cl-macs.el), [`src/eval.c:3729`](src/eval.c) (`Feval` arity), [`src/lisp.h:2847-2872`](src/lisp.h) (`Lisp_Symbol`, no special bit).
 
-Secondary, cited not re-derived: prior feasibility report `git show origin/research/lexical-binding:docs/research/lexical-binding.md`. Monnier & Sperber, "Evolution of Emacs Lisp," *PACMPL* 4 (HOPL) Art. 74 (2020), DOI [10.1145/3386324](https://doi.org/10.1145/3386324) — for the lexbind/cconv history referenced in §6.
+Secondary, cited not re-derived: prior feasibility report `docs/research/lexical-binding.md`. Monnier & Sperber, "Evolution of Emacs Lisp," *PACMPL* 4 (HOPL) Art. 74 (2020), DOI [10.1145/3386324](https://doi.org/10.1145/3386324) — for the lexbind/cconv history referenced in §6.

@@ -4,11 +4,15 @@ Research findings for wayfinder ticket [#132](https://github.com/fktpp2022/xemac
 part of the map
 [#128](https://github.com/fktpp2022/xemacs-git/issues/128) "give XEmacs byte-compiled lexical binding".
 
+Re-landed onto the mainline under wayfinder ticket [#141](https://github.com/fktpp2022/xemacs-git/issues/141); it previously lived only on the throwaway branch `research/lexbind-c-surface` (commit `647b849ad`).
+
+Correction notice: prototype ticket [#136](https://github.com/fktpp2022/xemacs-git/issues/136) walked the route and confirmed this doc's shapes, but measured that **half-activation fails** — interpreted defun-closures without env-aware macroexpansion corrupt dynamic code — so the env slot cannot ship alone. Specpdl ticket [#143](https://github.com/fktpp2022/xemacs-git/issues/143) then measured that the env-as-specbind design needs **zero coroutine changes**: the per-coroutine swap at `specpdl_unwind_range`/`specpdl_rebind_range` handles a lexical `let` correctly, including one spanning a yield; what breaks is macroexpansion *inside* a running coroutine under an active env (the coroutine face of #136's half-activation finding, root cause open).
+
 Scope: the **runtime / interpreter** cost in `src/`. The byte-compiler and bytecode-VM half is
 ticket [#131](https://github.com/fktpp2022/xemacs-git/issues/131); the subset decision is
 [#134](https://github.com/fktpp2022/xemacs-git/issues/134). The touch points were first located by
-the feasibility report on branch `origin/research/lexical-binding`
-(`git show origin/research/lexical-binding:docs/research/lexical-binding.md`), which this document
+the feasibility report `docs/research/lexical-binding.md` (re-landed on the mainline by
+[#129](https://github.com/fktpp2022/xemacs-git/issues/129)), which this document
 prices and, where noted, corrects.
 
 Line references are to this tree (`src/` unless stated). Numbers in "shape" lines are edits, not
@@ -528,6 +532,6 @@ Local tree (`src/` unless noted): `lrecord.h` (enum `:238-320`, header `:157-193
 `xemacs.def.in.in:258-259`; `src/CMakeLists.txt:725-745,895-945`; `lisp/loadup.el:100-119`;
 `lisp/dumped-lisp.el:26-31,309-311`; `lisp/update-elc.el:31-45`; `lisp/{macroexp,tabulated-list,use-package-xemacs}.el`
 headers. Probe toolchain: `build/compile_commands.json`.
-Prior art: `git show origin/research/lexical-binding:docs/research/lexical-binding.md`
+Prior art: `docs/research/lexical-binding.md` on the mainline
 (GNU Emacs 24.1 design summary and the `internal-interpreter-environment` / `declared_special`
 line references it cites).

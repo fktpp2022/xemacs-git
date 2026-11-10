@@ -6,10 +6,14 @@ This is a **distance measurement**, not a plan: it sizes an implementation that 
 (a separate closure-conversion pass, frame-relative stack-slot access, environment carried in the compiled
 function) rather than lifting GNU's code. It ends with a cost shape.
 
+Re-landed onto the mainline under wayfinder ticket [#141](https://github.com/fktpp2022/xemacs-git/issues/141); it previously lived only on the throwaway branch `research/lexbind-cconv-lift` (commit `2069ffebc`).
+
+Correction notice: prototype ticket [#136](https://github.com/fktpp2022/xemacs-git/issues/136) confirmed this doc's cost shapes end to end, but measured that **half-activation fails** — interpreted defun-closures without env-aware macroexpansion corrupt dynamic code — so the route ships as one atomic changeset (closures + `macroexpand (&optional ENV)` + closure-tag consumers, ticket [#144](https://github.com/fktpp2022/xemacs-git/issues/144)), and the interpreted path follows GNU's `internal-interpreter-environment` shape rather than the spike's wrapper cells.
+
 Scope note: this report deliberately does **not** re-derive the general feasibility picture. That lives in
 the prior report
-[`docs/research/lexical-binding.md`](https://github.com/fktpp2022/xemacs-git/blob/research/lexical-binding/docs/research/lexical-binding.md)
-(on branch `research/lexical-binding`, ticket #15), which establishes that XEmacs has no lexical binding at
+[`docs/research/lexical-binding.md`](lexical-binding.md)
+(ticket #15, re-landed on `xemacs-cmake` by [#129](https://github.com/fktpp2022/xemacs-git/issues/129)), which establishes that XEmacs has no lexical binding at
 any layer and that the byte compiler — not the interpreter — is the hard part. Here we assume that result
 and go one level down, into the closure-conversion machinery specifically.
 
@@ -385,6 +389,6 @@ GNU Emacs 24.1 (pinned mirror; not locally re-fetched — no network on build ho
   [`src/bytecode.c`](https://raw.githubusercontent.com/emacs-mirror/emacs/emacs-24.1/src/bytecode.c)
   (`stack-ref`/`stack-set`/`stack-set2`/`discardN` at `86-90`, `1761-1805`).
 
-Prior work cited, not re-derived: `docs/research/lexical-binding.md` (ticket #15, branch
-`research/lexical-binding`) — general feasibility, GNU 24.1 loader/evaluator/symbol detail, and the option
+Prior work cited, not re-derived: `docs/research/lexical-binding.md` (ticket #15, now on the
+mainline) — general feasibility, GNU 24.1 loader/evaluator/symbol detail, and the option
 table this report narrows in on.

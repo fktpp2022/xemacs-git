@@ -1,6 +1,6 @@
 # Classify the lexical reliance of the acceptance set
 
-Ticket: #133. Branch: `research/lexbind-reliance-audit`. Date: 2026-11-05.
+Ticket: #133. Date: 2026-11-05. Re-landed onto the mainline under wayfinder ticket [#141](https://github.com/fktpp2022/xemacs-git/issues/141); previously only on the throwaway branch `research/lexbind-reliance-audit` (commit `43b310b62`).
 
 This is a measurement, not a plan: it records the minimum lexical semantics the
 acceptance set *actually* relies on when run stock and byte-compiled. It
