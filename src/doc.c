@@ -497,10 +497,15 @@ If TYPE is `defvar', then variable definitions are acceptable.
             }
 	}
 
-      if (CONSP (fun) && EQ (Qlambda, XCAR (fun)))
+      if (CONSP (fun) && (EQ (Qlambda, XCAR (fun)) || EQ (Qclosure, XCAR (fun))))
         {
 	  Lisp_Object tem, tem1;
-	  tem1 = Fcdr (XCDR (fun));
+	  /* Lexical-binding core (P1-4): closure (closure ENV ARGLIST [DOC]
+	     ...) has its doc slot one level deeper than a lambda's. */
+	  if (EQ (Qclosure, XCAR (fun)))
+	    tem1 = Fcdr (Fcdr (XCDR (fun)));
+	  else
+	    tem1 = Fcdr (XCDR (fun));
 	  tem = Fcar (tem1);
           if (FIXNUMP (tem))
             {
@@ -633,10 +638,15 @@ string is passed through `substitute-command-keys'.
       if (!SYMBOLP (funcar))
 	return Fsignal (Qinvalid_function, list1 (fun));
       else if (EQ (funcar, Qlambda)
+             || EQ (funcar, Qclosure) /* lexical-binding core (P1-4) */
              || EQ (funcar, Qautoload))
 	{
 	  Lisp_Object tem, tem1;
-	  tem1 = Fcdr (Fcdr (fun));
+	  /* Lexical-binding core (P1-4): closure's doc slot is one level
+	     deeper than a lambda's (closure ENV ARGLIST [DOC] ...). */
+	  tem1 = Fcdr (Fcdr (EQ (funcar, Qclosure)
+			     ? Fcdr (fun)
+			     : fun));
 	  tem = Fcar (tem1);
 	  if (STRINGP (tem))
 	    doc = tem;

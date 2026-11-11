@@ -1977,6 +1977,25 @@ With prefix arg (noninteractively: 2nd arg), load the file after compiling."
   ;; Expand now so we get the current buffer's defaults
   (setq filename (expand-file-name filename))
 
+  ;; Lexical-binding refusal (lexbind P1, work item 8; ported from the
+  ;; prototype/lexbind-capture-spike refusal path).  There is no cconv
+  ;; pass yet, so byte-compiling a lexical-binding: t file would
+  ;; silently dynamic-bind it, which is runtime-wrong.  Refuse loudly
+  ;; instead.  Stays until P2.
+  (with-temp-buffer
+    (insert-file-contents filename)
+    (goto-char (point-min))
+    ;; Only the first line is scanned: the cookie must be in the
+    ;; first-line -*- ... -*- block (all currently lexbound files have
+    ;; it there), and scanning the whole file false-positives on this
+    ;; very file, whose refusal code and comments legitimately mention
+    ;; "lexical-binding: t".
+    (if (re-search-forward "lexical-binding[ \\t]*:[ \\t]*t\\b"
+			   (line-end-position) t)
+	(error "%s declares lexical-binding: t; refusing to byte-compile it --
+no closure conversion yet; see docs/planning/lexbinding-milestone.md"
+	       filename)))
+
   ;; If we're compiling a file that's in a buffer and is modified, offer
   ;; to save it first.
   (or noninteractive

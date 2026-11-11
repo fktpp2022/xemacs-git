@@ -1489,6 +1489,22 @@ Set SYMBOL's value to NEWVAL, and return NEWVAL.
     reject_constant_symbols (symbol, newval, 0,
 			     UNBOUNDP (newval) ? Qmakunbound : Qset);
 
+  /* Lexical-binding core (P1-1): lexical variable set.  Mutate the
+     existing (sym . value) binding cons in the active environment (GNU
+     shape, issue #144); special symbols keep dynamic semantics.  A
+     bare-symbol proclamation means no lexical binding yet: fall
+     through to dynamic set. */
+  if (LEXBIND_ENV_ACTIVE_P () && !SYMBOL_SPECIAL_P (symbol))
+    {
+      Lisp_Object binding = Fassq (symbol,
+				   XCDR (Vinternal_interpreter_environment));
+      if (CONSP (binding))
+	{
+	  XSETCDR (binding, newval);
+	  return newval;
+	}
+    }
+
   if (!SYMBOL_VALUE_MAGIC_P (valcontents))
     {
       sym->value = newval;
@@ -3480,8 +3496,23 @@ defvar_magic (const Ascbyte *symbol_name, Lisp_Object magic)
      redefine variables, since we allow Lisp to (effectively). */
   structure_checking_assert (initialized || UNBOUNDP (XSYMBOL (sym)->value));
   XSYMBOL (sym)->value = magic;
+  SET_SYMBOL_SPECIAL (sym); /* lexical-binding core (P1-1): C DEFVAR_*
+			       are special by construction */
 
   LOADHIST_ATTACH (sym);
+}
+
+/* Lexical-binding core (P1-1, ticket #147). */
+DEFUN ("special-variable-p", Fspecial_variable_p, 1, 1, 0, /*
+Return t if SYMBOL is declared special with `defvar', `defconst' or a
+C-level DEFVAR, nil otherwise.
+Special variables are exempt from lexical binding: they always use
+dynamic binding even under an active lexical environment.
+*/
+       (symbol))
+{
+  CHECK_SYMBOL (symbol);
+  return SYMBOL_SPECIAL_P (symbol) ? Qt : Qnil;
 }
 
 void
@@ -3530,6 +3561,7 @@ syms_of_symbols (void)
   DEFSUBR (Fsymbol_plist);
   DEFSUBR (Fsymbol_name);
   DEFSUBR (Fmakunbound);
+  DEFSUBR (Fspecial_variable_p); /* lexical-binding core (P1-1) */
   DEFSUBR (Ffmakunbound);
   DEFSUBR (Fboundp);
   DEFSUBR (Fglobally_boundp);

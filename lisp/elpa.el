@@ -1007,7 +1007,15 @@ Return the autoloads file name."
 (defun elpa--byte-compile-content (content)
   "Byte-compile every .el file in CONTENT, including generated autoloads.
 CONTENT is put on `load-path' while compiling.  Compiler warnings are
-logged and tolerated; a compilation error signals an error."
+logged and tolerated; a compilation error signals an error.
+
+Lexical-binding core (P1-7, #153): a file carrying a
+`lexical-binding: t' cookie is refused by bytecomp.el until closure
+conversion lands (P2).  The refusal is not fatal for package
+installation: the file is installed uncompiled and loads interpreted
+from source, exactly like the bootstrap's lexbound core files.  The
+refusal is reported loudly, so this is never a silent dynamic
+binding."
   (let ((load-path (cons (directory-file-name content) load-path))
 	(byte-compile-error-on-warn nil)
 	(files (sort (directory-files content t "\\`[^.].*\\.el\\'")
@@ -1016,8 +1024,18 @@ logged and tolerated; a compilation error signals an error."
       (let ((result (condition-case err
 			(byte-compile-file file)
 		      (error
-		       (error "Byte-compilation failed for %s: %s"
-			      file (error-message-string err))))))
+		       ;; Lexical-binding refusal (P1-7): install the file
+		       ;; uncompiled; it stays dynamic until P2 ships cconv.
+		       (if (and (string-match "declares lexical-binding: t"
+					      (error-message-string err))
+				(file-exists-p file))
+			   (progn
+			     (message
+			      "Lexical-binding refusal: installing %s uncompiled (no closure conversion until P2)"
+			      (file-name-nondirectory file))
+			     file)
+			 (error "Byte-compilation failed for %s: %s"
+				file (error-message-string err)))))))
 	(unless result
 	  (error "Byte-compilation failed for %s" file))))))
 
