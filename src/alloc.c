@@ -2135,6 +2135,7 @@ make_compiled_function (void)
   f->args = NULL;
   f->max_args = f->min_args = f->args_in_array = 0;
   f->doc_and_interactive = Qnil;
+  f->environment = Qnil;
   return wrap_compiled_function (f);
 }
 

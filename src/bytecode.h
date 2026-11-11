@@ -77,6 +77,11 @@ struct Lisp_Compiled_Function
   int args_in_array;
   /* This uses the minimal number of conses; see accessors in data.c. */
   Lisp_Object doc_and_interactive;
+  /* Lexical-binding environment captured with this function (P2-2).
+     GNU shape: a list whose CAR is t when the env is active.  Qnil for
+     dynamically-bound code.  Automatically GC-marked and dumped via
+     compiled_function_description. */
+  Lisp_Object environment;
 };
 typedef struct Lisp_Compiled_Function Lisp_Compiled_Function;
 
@@ -92,6 +97,9 @@ void        set_compiled_function_annotation (Lisp_Compiled_Function *,
                                               Lisp_Object);
 Lisp_Object compiled_function_domain        (Lisp_Compiled_Function *f);
 Lisp_Object compiled_function_interactive   (Lisp_Compiled_Function *f);
+Lisp_Object compiled_function_environment   (Lisp_Compiled_Function *f);
+void        set_compiled_function_environment (Lisp_Compiled_Function *,
+                                               Lisp_Object);
 
 Lisp_Object Fset_compiled_function_documentation (Lisp_Object f,
                                                   Lisp_Object new_doc);

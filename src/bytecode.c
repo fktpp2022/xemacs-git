@@ -2542,6 +2542,10 @@ static const struct memory_description compiled_function_description[] = {
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, constants) },
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, arglist) },
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, doc_and_interactive) },
+  /* P2-2 (#158): lexical-binding environment.  One row: GC marking and
+     the portable dumper both walk this description, so no src/dumper.c
+     edits are needed. */
+  { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, environment) },
   { XD_END }
 };
 
@@ -2764,6 +2768,47 @@ set_compiled_function_constants (Lisp_Compiled_Function *f, Lisp_Object new_)
 {
   CHECK_VECTOR (new_);
   f->constants = new_;
+}
+
+Lisp_Object
+compiled_function_environment (Lisp_Compiled_Function *f)
+{
+  return f->environment;
+}
+
+void
+set_compiled_function_environment (Lisp_Compiled_Function *f,
+				   Lisp_Object new_)
+{
+  /* P2-2: any Lisp value is acceptable, including nil (dynamic
+     binding).  The GNU shape (leading t when active) is enforced by
+     callers, not here. */
+  f->environment = new_;
+}
+
+DEFUN ("compiled-function-environment", Fcompiled_function_environment,
+       1, 1, 0, /*
+Return the lexical-binding environment of the compiled-function object
+FUNCTION, or nil if it has none.  P2-2 low-level accessor; the
+reader-facing interface arrives with the make-byte-code env argument
+(see the lexical-binding milestone plan). */
+       (function))
+{
+  CHECK_COMPILED_FUNCTION (function);
+  return compiled_function_environment (XCOMPILED_FUNCTION (function));
+}
+
+DEFUN ("set-compiled-function-environment", Fset_compiled_function_environment,
+       2, 2, 0, /*
+Set the lexical-binding environment of the compiled-function object
+FUNCTION to ENV.  P2-2 low-level accessor, for tests and the P2 byte-op
+plumbing; the reader-facing interface arrives with the make-byte-code
+env argument (see the lexical-binding milestone plan). */
+       (function, env))
+{
+  CHECK_COMPILED_FUNCTION (function);
+  set_compiled_function_environment (XCOMPILED_FUNCTION (function), env);
+  return env;
 }
 
 void
@@ -3045,6 +3090,8 @@ syms_of_bytecode (void)
   DEFSUBR (Fcompiled_function_stack_depth);
   DEFSUBR (Fcompiled_function_arglist);
   DEFSUBR (Fcompiled_function_interactive);
+  DEFSUBR (Fcompiled_function_environment);
+  DEFSUBR (Fset_compiled_function_environment);
   DEFSUBR (Fcompiled_function_documentation);
   Ffset (intern ("compiled-function-doc-string"),
          intern ("compiled-function-documentation"));
