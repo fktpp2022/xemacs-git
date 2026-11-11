@@ -51,13 +51,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <config.h>
 #include "lisp.h"
 
-/* Lexical-binding core (P1-1, ticket #147); defined in eval.c. */
-extern Lisp_Object Vinternal_interpreter_environment;
-#define LEXBIND_ENV_ACTIVE_P()                          \
-  (Vinternal_interpreter_environment != 0               \
-   && CONSP (Vinternal_interpreter_environment)         \
-   && EQ (XCAR (Vinternal_interpreter_environment), Qt))
-
 #include "bytecode.h"		/* for COMPILED_FUNCTION_ANNOTATION_HACK,
 				   defined in bytecode.h and used here. */
 #include "buffer.h"		/* for Vbuffer_defaults */

@@ -37,7 +37,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 
 Lisp_Object Vinternal_doc_file_name;
 Lisp_Object Qdefvar, Qfunction_documentation;
-extern Lisp_Object Qclosure; /* lexical-binding core (P1-4) */
 
 Bytecount internal_doc_file_name_buffer_size;
 

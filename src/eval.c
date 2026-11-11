@@ -277,23 +277,11 @@ Lisp_Object Vautoload_queue;
 
 Lisp_Object Vmacro_declaration_function, Vbyte_compile_macro_environment;
 
-/* Lexical-binding core (P1-1, ticket #147).  Current lexical
-   environment, GNU shape (issue #144): a list whose car is t when
-   lexical mode is active, followed by (sym . value) binding conses and
-   bare symbols (defvar foo) proclamations.  nil = pure dynamic binding
-   mode.  Global, specbound around lexical extents by later P1 tickets. */
+/* Lexical-binding core (P1-1, #147): env shape is GNU's ((t) + (sym . value)
+   conses, bare symbols for proclamations); declared in lisp.h alongside the
+   LEXBIND_ENV_ACTIVE_P guard used here. */
 Lisp_Object Qinternal_interpreter_environment, Qclosure;
 Lisp_Object Vinternal_interpreter_environment;
-
-/* The C-zero word carries the record tag in this tree
-   (Lisp_Type_Record == 0), so CONSP on the not-yet-DEFVAR'd global
-   would deref NULL.  Code running before syms_of_eval (bootstrap,
-   vars_of_* elsewhere) must go through this guard's explicit zero
-   test. */
-#define LEXBIND_ENV_ACTIVE_P()                                  \
-  (Vinternal_interpreter_environment != 0                       \
-   && CONSP (Vinternal_interpreter_environment)                 \
-   && EQ (XCAR (Vinternal_interpreter_environment), Qt))
 
 /* The binding for SYMBOL in the active environment, or nil.  A value
    binding is (sym . value), so the result is a cons; a bare-symbol

@@ -4828,6 +4828,18 @@ EXFUN (Ffunctionp, 1);
 EXFUN (Finteractive_p, 0);
 EXFUN (Fprogn, UNEVALLED);
 MODULE_API EXFUN (Fsignal, 2);
+
+/* Lexical-binding core (#147/#148): env shape is GNU's ((t) + (sym . value)
+   conses, bare symbols for proclamations).  The C-zero word carries the record
+   tag in this tree, so CONSP on the not-yet-DEFVAR'd global would deref NULL;
+   the guard's explicit zero test is required for pre-syms_of_eval callers.
+   Defined here so every consumer shares one guard. */
+extern Lisp_Object Qinternal_interpreter_environment, Qclosure;
+extern Lisp_Object Vinternal_interpreter_environment;
+#define LEXBIND_ENV_ACTIVE_P()                                  \
+  (Vinternal_interpreter_environment != 0                       \
+   && CONSP (Vinternal_interpreter_environment)                 \
+   && EQ (XCAR (Vinternal_interpreter_environment), Qt))
 MODULE_API EXFUN_NORETURN (Fthrow, UNEVALLED);
 MODULE_API EXFUN (Fcall_with_condition_handler, MANY);
 EXFUN (Ffunction_max_args, 1);

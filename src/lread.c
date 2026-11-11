@@ -25,8 +25,6 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <config.h>
 #include "lisp.h"
 
-extern Lisp_Object Qinternal_interpreter_environment; /* lexical-binding core (P1-1, eval.c) */
-
 #include "buffer.h"
 #include "bytecode.h"
 #include "elhash.h"
