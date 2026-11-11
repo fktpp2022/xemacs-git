@@ -3265,8 +3265,8 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
   /* Accept compiled functions at read-time so that we don't
      have to build them at load-time. */
   Lisp_Object stuff;
-  Lisp_Object make_byte_code_args[COMPILED_DOMAIN + 1];
-  struct gcpro gcpro1, gcpro2;
+  Lisp_Object make_byte_code_args[COMPILED_ENVIRONMENT + 1];
+  struct gcpro gcpro1;
   Elemcount iii = 0, len;
   Boolint saw_a_doc_ref = 0;
 
@@ -3275,9 +3275,7 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
      instructions and constants differently. */
   stuff = read_list (readcharfun, terminator, 0, 0);
   len = XFIXNUM (Flength (stuff));
-  /* P2-5 (#161): a 7-element #[...] carries the lexical environment
-     (the make-byte-code env argument) as its last element. */
-  if (len < COMPILED_STACK_DEPTH + 1 || len > COMPILED_DOMAIN + 1)
+  if (len < COMPILED_STACK_DEPTH + 1 || len > COMPILED_ENVIRONMENT + 1)
     {
       return
         continuable_read_syntax_error ("#[...] used with wrong number of elements");
@@ -3322,28 +3320,6 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
   }
 
   free_list (stuff);
-
-  /* P2-5 (#161): a 7-element #[...] carries the lexical environment
-     as its last element.  It is new syntax (the old bound was 6
-     elements), so we may fix the interactive slot's meaning here:
-     unlike make-byte-code's compat rules, an explicit nil interactive
-     means no interactive spec; a non-nil one is passed through.
-     (An env-carrying function whose interactive spec is literally
-     nil thus reads back as non-interactive, which is behaviorally
-     identical since a nil spec never triggers.) */
-  if (iii == COMPILED_DOMAIN + 1)
-    {
-      /* iii is now the make-byte-code arg count (6). */
-      Lisp_Object env = make_byte_code_args[--iii];
-      Lisp_Object fun;
-      GCPRO2 (make_byte_code_args[0], env);
-      gcpro1.nvars = iii;
-      fun = Fmake_byte_code (NILP (make_byte_code_args[5])
-			     ? iii - 1 : iii, make_byte_code_args);
-      set_compiled_function_environment (XCOMPILED_FUNCTION (fun), env);
-      UNGCPRO;
-      return fun;
-    }
 
   GCPRO1 (make_byte_code_args[0]);
   gcpro1.nvars = iii;

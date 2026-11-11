@@ -2374,6 +2374,7 @@ print_compiled_function (Lisp_Object obj, Lisp_Object printcharfun,
     XCOMPILED_FUNCTION (obj); /* GC doesn't relocate */
   int docp = f->flags.documentationp;
   int intp = f->flags.interactivep;
+  int envp = !NILP (compiled_function_environment (f));
   struct gcpro gcpro1, gcpro2;
   GCPRO2 (obj, printcharfun);
 
@@ -2413,25 +2414,7 @@ print_compiled_function (Lisp_Object obj, Lisp_Object printcharfun,
   write_fmt_string (printcharfun, " %d", compiled_function_stack_depth (f));
 
   /* COMPILED_DOC_STRING = 4 */
-  if (print_readably && !NILP (compiled_function_environment (f)))
-    {
-      /* P2-5 (#161): a printed env needs explicit doc/interactive
-	 slots, so the env lands in the 7-element position the reader
-	 expects.  Print the actual doc/interactive presence (nil when
-	 absent) instead of the omit-if-absent form above. */
-      write_ascstring (printcharfun, " ");
-      print_internal (f->flags.documentationp
-		      ? compiled_function_documentation (f) : Qnil,
-		      printcharfun, escapeflag);
-      write_ascstring (printcharfun, " ");
-      print_internal (f->flags.interactivep
-		      ? compiled_function_interactive (f) : Qnil,
-		      printcharfun, escapeflag);
-      write_ascstring (printcharfun, " ");
-      print_internal (compiled_function_environment (f), printcharfun,
-		      escapeflag);
-    }
-  else if (docp || intp)
+  if (docp || intp || envp)
     {
       write_ascstring (printcharfun, " ");
       print_internal (compiled_function_documentation (f), printcharfun,
@@ -2439,10 +2422,21 @@ print_compiled_function (Lisp_Object obj, Lisp_Object printcharfun,
     }
 
   /* COMPILED_INTERACTIVE = 5 */
-  if (intp)
+  if (intp || envp)
     {
       write_ascstring (printcharfun, " ");
-      print_internal (compiled_function_interactive (f), printcharfun,
+      /* In the seven-element form (P2-4) a nil INTERACTIVE means "not
+	 interactive", so we can always emit this slot when an env is
+	 present and still round-trip.  */
+      print_internal (intp ? compiled_function_interactive (f) : Qnil,
+		      printcharfun, escapeflag);
+    }
+
+  /* COMPILED_ENVIRONMENT = 6, the lexical-binding environment (P2-4).  */
+  if (envp)
+    {
+      write_ascstring (printcharfun, " ");
+      print_internal (compiled_function_environment (f), printcharfun,
 		      escapeflag);
     }
 
@@ -2493,7 +2487,6 @@ compiled_function_print_preprocess (Lisp_Object object,
                         print_number_table, seen_object_count);
     }
 
-  /* P2-5 (#161): the env is part of the printed form. */
   PRINT_PREPROCESS (compiled_function_environment (cf),
                     print_number_table, seen_object_count);
 }
@@ -2552,7 +2545,7 @@ static Hashcode
 compiled_function_hash (Lisp_Object obj, int depth, Boolint UNUSED (equalp))
 {
   Lisp_Compiled_Function *f = XCOMPILED_FUNCTION (obj);
-  return HASH4 ((f->flags.documentationp << 2) +
+  return HASH3 ((f->flags.documentationp << 2) +
 		(f->flags.interactivep << 1) +
 		f->flags.domainp,
 		internal_hash (f->instructions, depth + 1, 0),
