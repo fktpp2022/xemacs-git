@@ -55,9 +55,10 @@
       (cf2 (lexbind-p22-make-cf)))
   (Assert (equal cf1 cf2))
   (set-compiled-function-environment cf1 (list t))
-  ;; equal compares code/arglist/doc, not the env (matching the P2-2
-  ;; decision that env is caller context, not part of the function's
-  ;; observable definition).
+  ;; equal compares code/arglist/doc and is untouched by this ticket,
+  ;; so it happens to ignore the env.  The parent plan (P2 item on
+  ;; compiled_function_equal) may later make closures over different
+  ;; envs unequal -- revisit there, not here.
   (Assert (equal cf1 cf2)))
 
 ;; ---- dump/reload: env survives the real pdump round trip ----------------
