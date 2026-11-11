@@ -430,7 +430,13 @@ than `build-directory' if appropriate. "
            ;; FILENAME into a buffer.
            ;;
            ;; Always returns nil (absent other behaviour from OUTUT-STREAM).
-           (let (char-after name type commas min-args max-args print-gensym)
+           (let (char-after name type commas min-args max-args print-gensym
+                 ;; Lexical-binding core (P1-4): bind case-insensitive
+                 ;; matching off; the DEFUN/DEFVAR regexes are uppercase
+                 ;; and C comments may legitimately mention them in
+                 ;; lowercase at line start (lread.c's loader docstring
+                 ;; did, fatally, at dump time).
+                 (case-fold-search nil))
              (labels
                  ((next-char ()
                     (prog1 (setq char-after (char-after))
@@ -514,10 +520,18 @@ than `build-directory' if appropriate. "
                  (insert-file-contents filename)
                  (set coding-system buffer-file-coding-system)
                  (setq filename (canonicalize-file-name-for-output filename))
+                 ;; Lexical-binding core (P1-4): set this here, not via an
+                 ;; outer let: case-fold-search is per-buffer and
+                 ;; kill-all-local-variables above would wipe a let
+                 ;; binding back to the default (t at dump time), so the
+                 ;; DEFUN/DEFVAR regexes matched lowercase mentions of
+                 ;; themselves in C comments (lread.c's loader docstring
+                 ;; did, fatally, at dump time).
+                 (setq case-fold-search nil)
                  (while
                      (re-search-forward
-                      "\n\\(?:DEFUN\\|\
- +\\(?:DEFVAR\\|DEFINE[A-Z_]+LISP_OBJECT\\)\\)"
+                      "\n\\(?:[D]EFUN\\|\
+ +\\(?:[D]EFVAR\\|[D]EFINE[A-Z_]+LISP_OBJECT\\)\\)"
                       nil t)
                    (case (char-before (point))
                      (?N
@@ -530,8 +544,8 @@ than `build-directory' if appropriate. "
                       (setq type 'define-lisp-object
                             commas 1))
                      (otherwise
-                      (fatal "regular expression matched, not understood: %s"
-                             (match-string 0))))
+                      (fatal "regular expression matched, not understood in %s: %s"
+                             filename (match-string 0))))
                    (skip-chars-forward "^(")
                    (forward-char) ;; Discard the ?\(.
                    (next-char)
@@ -691,6 +705,12 @@ than `build-directory' if appropriate. "
                                (weird-doc symbol "duplicate" "subr" offset)
                              (set-subr-documentation function offset)))
                           (cons
+                           ;; Lexical-binding core (P1-4): interpreted
+                           ;; closures (closure ENV ARGLIST [DOC] . BODY)
+                           ;; carry their doc offset in the same slot as a
+                           ;; lambda's once the env is stripped.
+                           (when (eq (car function) 'closure)
+                             (setq function (cons 'lambda (cdr function))))
                            (if (or (eq (car function) 'lambda)
                                    (eq (car function) 'autoload))
                                (progn
@@ -784,8 +804,12 @@ than `build-directory' if appropriate. "
                       ((keymap symbol)
                        (setq offset most-negative-fixnum))
                       (cons
+                       ;; Lexical-binding core (P1-4): closures
+                       ;; (closure ENV ARGLIST [DOC] . BODY) keep the
+                       ;; doc string/offset at the same caddr position
+                       ;; as a lambda's.
                        (when (member* (car symbol-function)
-                                      '(autoload lambda))
+                                      '(autoload lambda closure))
                          (setq offset (or (caddr symbol-function)
                                           most-negative-fixnum))))
                       (compiled-function
