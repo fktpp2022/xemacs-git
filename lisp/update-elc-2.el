@@ -98,16 +98,17 @@ no list needs maintaining here."
 	    (when (string-match-p "\\.el$" file)
 	      (let ((file-c (concat file "c")))
 		(when (and (not (member file-c files))
-			   ;; Lexical-binding core (P1): a file carrying a
-		   ;; `lexical-binding: t' cookie is refused by bytecomp.el
-		   ;; (no closure conversion until P2); skip it here instead
-		   ;; of dying on the refusal, and let it keep loading
-		   ;; interpreted from source via the load-lexical-files
-		   ;; whitelist.
-		   (not (update-elc-2-lexbound-file-p file))
-		   ;; no need to check for out-of-date-ness because
-			   ;; that was already done, and .elc removed.
-			   (let (ignore)
+			       ;; Lexical-binding core (P1): a file carrying a
+			       ;; `lexical-binding: t' cookie is refused by
+			       ;; bytecomp.el (no closure conversion until P2);
+			       ;; skip it here instead of dying on the
+			       ;; refusal, and let it keep loading interpreted
+			       ;; from source via the load-lexical-files
+			       ;; whitelist.
+			       (not (update-elc-2-lexbound-file-p file))
+			       ;; no need to check for out-of-date-ness because
+			       ;; that was already done, and .elc removed.
+			       (let (ignore)
 			     (mapcar
 			      #'(lambda (regexp)
 				  (if (string-match
