@@ -25,6 +25,8 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #include <config.h>
 #include "lisp.h"
 
+extern Lisp_Object Qinternal_interpreter_environment; /* lexical-binding core (P1-1, eval.c) */
+
 #include "buffer.h"
 #include "bytecode.h"
 #include "elhash.h"
@@ -118,6 +120,10 @@ Lisp_Object Vload_file_name;
 /* Same as Vload_file_name but not Lisp-accessible.  This ensures that
    our #$ checks are reliable. */
 Lisp_Object Vload_file_name_internal;
+
+/* Lexical-binding P1-5 (ticket #151): base-name whitelist gating
+   loader recognition of the `lexical-binding: t' header. */
+Lisp_Object Vload_lexical_files;
 
 /* Function to use for reading, in `load' and friends.  */
 Lisp_Object Vload_read_function;
@@ -687,6 +693,72 @@ do {								\
 
       Lstream_unread (XLSTREAM (lispstream), shebangp, num_read);
     }
+
+    /* Lexical-binding P1-5 (ticket #151): recognize the
+       `lexical-binding: t' file header in SOURCE files and specbind
+       internal-interpreter-environment to (t) for the file's extent.
+       GNU-style: the loader rebinds the interpreter environment, so
+       the mode flag is exempt from the mode it controls.
+
+       XEmacs-only deviation (issue #144 Q2): activation is gated by
+       the `load-lexical-files' whitelist (default nil; see the
+       defvar below).  Sunset: retires when cconv lands in P2, at
+       which point the cookie alone activates.
+
+       Deliberately crude byte scan of the first 512 bytes; a real
+       version would parse the cookie properly.  .elc loads skip the
+       scan entirely. */
+    if (!reading_elc)
+      {
+	Ibyte lexbbuf[512];
+	EMACS_INT lexbrread = Lstream_read (XLSTREAM (lispstream), lexbbuf,
+					    sizeof (lexbbuf));
+	if (lexbrread > 0)
+	  {
+	    const Ibyte lexbneedle[] = "lexical-binding";
+	    Ibyte *lexbp = lexbbuf, *lexbend = lexbbuf + lexbrread;
+	    while (lexbend - lexbp >= (EMACS_INT) sizeof (lexbneedle) - 1)
+	      {
+		lexbp = (Ibyte *) memchr (lexbp, lexbneedle[0],
+					  lexbend - lexbp);
+		if (lexbp == NULL)
+		  break;
+		if (0 == memcmp (lexbp, lexbneedle, sizeof (lexbneedle) - 1))
+		  {
+		    Ibyte *lexbq = lexbp + sizeof (lexbneedle) - 1;
+		    while (lexbq < lexbend && (*lexbq == ' ' || *lexbq == '\t'))
+		      lexbq++;
+		    if (lexbq < lexbend && *lexbq == ':')
+		      {
+			lexbq++;
+			while (lexbq < lexbend
+			       && (*lexbq == ' ' || *lexbq == '\t'))
+			  lexbq++;
+			if (lexbq + 1 < lexbend && *lexbq == 't'
+			    && !((lexbq[1] >= 'a' && lexbq[1] <= 'z')
+				 || (lexbq[1] >= 'A' && lexbq[1] <= 'Z')
+				 || (lexbq[1] >= '0' && lexbq[1] <= '9'))
+			    && lexbq[1] != '_' && lexbq[1] != '-')
+			  {
+			    /* Whitelisting is data: membership (of the
+			       file's base name) is all that changes per
+			       file. */
+			    if (!NILP (Fmember (Ffile_name_nondirectory (found),
+						Vload_lexical_files)))
+			      specbind (Qinternal_interpreter_environment,
+						list1 (Qt));
+			    lexbp = lexbend;
+			    continue;
+			  }
+		      }
+		  }
+		lexbp++;
+		continue;
+	      }
+	  }
+	if (lexbrread > 0)
+	  Lstream_unread (XLSTREAM (lispstream), lexbbuf, lexbrread);
+      }
 
     /* Now determine what sort of ELC file we're reading in. */
     internal_bind_int (&load_byte_code_version, load_byte_code_version);
@@ -3439,6 +3511,28 @@ Full name of file being loaded by `load'.
 */ );
   Vload_file_name = Qnil;
   dump_mark_nil_lisp_object (&Vload_file_name);
+
+  DEFVAR_LISP ("load-lexical-files", &Vload_lexical_files /*
+List of file base names whose source may activate lexical binding.
+
+When `load' reads a SOURCE file whose first bytes declare the
+`lexical-binding: t' header, the interpreter's lexical environment
+is made active for that file's extent -- but only if the file's base
+name (as returned by `file-name-nondirectory', extension included)
+is a member of this list.  The default is nil: no file activates
+lexical binding, and loading behavior is exactly that of a build
+without this feature.  Byte-compiled (.elc) files never trigger the
+scan or the activation, regardless of this variable.
+
+This option is a documented XEmacs-only deviation from GNU Emacs:
+GNU activates lexical binding from the cookie alone.  The whitelist
+exists because this build's interpreted-only closures are opt-in
+during the lexical-binding P1 phase.  Sunset: this variable retires
+when cconv lands (P2) -- the cookie alone will activate, GNU
+behavior -- after a release as a no-op alias for diagnostics.
+*/ );
+  Vload_lexical_files = Qnil;
+  dump_mark_nil_lisp_object (&Vload_lexical_files);
 
   DEFVAR_LISP ("load-read-function", &Vload_read_function /*
 Function used by `load' and `eval-region' for reading expressions.
