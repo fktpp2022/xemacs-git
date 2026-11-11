@@ -1985,7 +1985,13 @@ With prefix arg (noninteractively: 2nd arg), load the file after compiling."
   (with-temp-buffer
     (insert-file-contents filename)
     (goto-char (point-min))
-    (if (re-search-forward "lexical-binding[ \\t]*:[ \\t]*t\\b" nil t)
+    ;; Only the first line is scanned: the cookie must be in the
+    ;; first-line -*- ... -*- block (all currently lexbound files have
+    ;; it there), and scanning the whole file false-positives on this
+    ;; very file, whose refusal code and comments legitimately mention
+    ;; "lexical-binding: t".
+    (if (re-search-forward "lexical-binding[ \\t]*:[ \\t]*t\\b"
+			   (line-end-position) t)
 	(error "%s declares lexical-binding: t; refusing to byte-compile it --
 no closure conversion yet; see docs/planning/lexbinding-milestone.md"
 	       filename)))

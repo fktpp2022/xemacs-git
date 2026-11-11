@@ -37,8 +37,8 @@
       (write-region content nil file nil 'quiet))
     file))
 
-;; 1. Default (load-lexical-files nil): lexbound source loads fully
-;;    dynamic, no behavior change.
+;; 1. Default (fixture base name not on the shipped whitelist): lexbound
+;;    source loads fully dynamic, no behavior change.
 (let ((file (lexbind-loader-test-write-fixture
 	     "lexbind-loader-cookie.el"
 	     (concat lexbind-loader-test-fixture-header
@@ -95,9 +95,13 @@
 	(Assert (null internal-interpreter-environment)))
     (delete-file file)))
 
-;; 5. The option exists with a nil default (the documented XEmacs-only
-;;    deviation; sunset fires when cconv lands, P2).
+;; 5. The option exists, and the P1-7 integration ships the full
+;;    twelve-file whitelist as the runtime default (loadup installs
+;;    `lexbound-lisp-files' past the dump-time preload extent; the
+;;    C-level DEFVAR default stays nil for loadup-less processes).
+;;    The XEmacs-only deviation sunsets when cconv lands, P2.
 (Assert (boundp 'load-lexical-files))
-(Assert (null (default-value 'load-lexical-files)))
+(Assert (boundp 'lexbound-lisp-files))
+(Assert (equal (default-value 'load-lexical-files) lexbound-lisp-files))
 
 ;;; end of lexbind-loader-tests.el

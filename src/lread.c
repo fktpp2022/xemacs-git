@@ -3519,10 +3519,14 @@ When `load' reads a SOURCE file whose first bytes declare the
 `lexical-binding: t' header, the interpreter's lexical environment
 is made active for that file's extent -- but only if the file's base
 name (as returned by `file-name-nondirectory', extension included)
-is a member of this list.  The default is nil: no file activates
-lexical binding, and loading behavior is exactly that of a build
-without this feature.  Byte-compiled (.elc) files never trigger the
-scan or the activation, regardless of this variable.
+is a member of this list.  The C-level default is nil: in a process
+that never ran loadup (undumped temacs, bare batch runs), no file
+activates lexical binding and loading behavior is exactly that of a
+build without this feature.  The dumped build ships the full
+lexical-binding P1 whitelist (the twelve lexbound files) as the
+runtime default, installed by loadup.el past the dump-time preload
+extent (P1-7).  Byte-compiled (.elc) files never trigger the scan or
+the activation, regardless of this variable.
 
 This option is a documented XEmacs-only deviation from GNU Emacs:
 GNU activates lexical binding from the cookie alone.  The whitelist
@@ -3532,7 +3536,12 @@ when cconv lands (P2) -- the cookie alone will activate, GNU
 behavior -- after a release as a no-op alias for diagnostics.
 */ );
   Vload_lexical_files = Qnil;
-  dump_mark_nil_lisp_object (&Vload_lexical_files);
+  /* Lexical-binding P1-7 (#153): an ordinary dump root, not a
+     dump-nil root -- loadup.el installs the shipped twelve-file
+     whitelist past the dump-time preload extent, and the dumped
+     image must keep it as the runtime default.  The C-level default
+     (an undumped process, loadup never runs) stays nil. */
+  staticpro (&Vload_lexical_files);
 
   DEFVAR_LISP ("load-read-function", &Vload_read_function /*
 Function used by `load' and `eval-region' for reading expressions.

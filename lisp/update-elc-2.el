@@ -65,6 +65,22 @@
 
 (defvar dirfiles-table (make-hash-table :test 'equal))
 
+(defun update-elc-2-lexbound-file-p (file)
+  "Return non-nil if FILE declares `lexical-binding: t'.
+Such files are refused by bytecomp.el until closure conversion
+lands (P2); update-elc-2 must skip them rather than die on the
+refusal.  Detected with the same header scan bytecomp.el uses, so
+no list needs maintaining here."
+  (with-temp-buffer
+    ;; The cookie must be in the first-line -*- ... -*- block (same
+    ;; rule bytecomp.el's refusal applies); scanning more would
+    ;; false-positive on files that merely mention the cookie in
+    ;; comments or docstrings.
+    (insert-file-contents file nil 0 512 t)
+    (goto-char (point-min))
+    (re-search-forward "lexical-binding[ \\t]*:[ \\t]*t\\b"
+		       (line-end-position) t)))
+
 ;; SEEN accumulates the list of already-handled dirs.
 (defun do-update-elc-2 (dir compile-stage-p seen)
   (setq dir (file-name-as-directory dir))
@@ -82,7 +98,14 @@
 	    (when (string-match-p "\\.el$" file)
 	      (let ((file-c (concat file "c")))
 		(when (and (not (member file-c files))
-			   ;; no need to check for out-of-date-ness because
+			   ;; Lexical-binding core (P1): a file carrying a
+		   ;; `lexical-binding: t' cookie is refused by bytecomp.el
+		   ;; (no closure conversion until P2); skip it here instead
+		   ;; of dying on the refusal, and let it keep loading
+		   ;; interpreted from source via the load-lexical-files
+		   ;; whitelist.
+		   (not (update-elc-2-lexbound-file-p file))
+		   ;; no need to check for out-of-date-ness because
 			   ;; that was already done, and .elc removed.
 			   (let (ignore)
 			     (mapcar
@@ -135,6 +158,14 @@
   (let ((dir (car command-line-args-left)))
     ;; don't depend on being able to autoload `update-autoload-files'!
     (load "autoload")
+    ;; We run under -no-autoloads, and since the lexical-binding refusal
+    ;; (P1-6) leaves bytecomp.el loading from SOURCE until closure
+    ;; conversion lands (P2), loading it needs `symbol-macrolet' at load
+    ;; time -- in the dumped image that is only an autoload (cl-extra.elc
+    ;; is byte-compiled at dump time, so cl-extra's interpreted fallback
+    ;; that pulls in cl-macs never fires).  Autoloads are disabled here,
+    ;; so load cl-macs explicitly.
+    (load "cl-macs")
     (load "bytecomp")
     (load "byte-optimize")
     ;; now load the autoloads; we were called with -no-autoloads so they're not

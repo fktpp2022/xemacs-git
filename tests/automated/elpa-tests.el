@@ -358,8 +358,13 @@ Return the child's standard output without trailing newlines."
            (autoloads (expand-file-name "queue-autoloads.el" dir)))
       (Assert (file-exists-p (expand-file-name "queue.el" dir)))
       (Assert (file-exists-p (expand-file-name "queue-pkg.el" dir)))
-      (Assert (file-exists-p (expand-file-name "queue.elc" dir))
-              "install byte-compiles the package source")
+      ;; Lexical-binding P1-7 (#153): queue-0.2 carries a
+      ;; `lexical-binding: t' cookie, so bytecomp.el refuses it until
+      ;; closure conversion lands (P2).  The installer copes by
+      ;; installing the source uncompiled; the generated autoloads are
+      ;; still compiled.
+      (Assert (not (file-exists-p (expand-file-name "queue.elc" dir)))
+              "lexbound package source installs uncompiled (P1 refusal)")
       (Assert (file-exists-p autoloads)
               "install generates queue-autoloads.el")
       (Assert (file-exists-p (expand-file-name "queue-autoloads.elc" dir))
@@ -1111,9 +1116,12 @@ http.server.HTTPServer(('127.0.0.1', PORT), H).serve_forever()
                     "an HTTP refresh caches the index under archives/<archive>/")
             (Assert (eq 'queue (elpa-install "queue"))
                     "install downloads the artifact over HTTP")
-            (Assert (file-exists-p
-                     (expand-file-name "queue-0.2/queue.elc" elpa-user-dir))
-                    "the HTTP-installed package is byte-compiled")
+            ;; Lexical-binding P1-7 (#153): queue-0.2 is lexbound, so
+            ;; it installs uncompiled until cconv lands (P2).
+            (Assert (not (file-exists-p
+                          (expand-file-name "queue-0.2/queue.elc"
+                                            elpa-user-dir)))
+                    "the lexbound HTTP-installed package installs uncompiled")
             (Assert (not (file-exists-p
                           (expand-file-name ".staging/" elpa-user-dir)))
                     "no staging residue after an HTTP install")
@@ -1300,9 +1308,21 @@ emits a message line before the value."
           (Assert (file-directory-p dir)
                   (format "%s installs into exactly %s-%s/"
                           name name version))
-          (Assert (file-exists-p
-                   (expand-file-name (concat (symbol-name name) ".elc") dir))
-                  (format "the downloaded %s.el is byte-compiled" name))
+          ;; Lexical-binding P1-7 (#153): a source carrying a
+          ;; `lexical-binding: t' cookie is refused by bytecomp.el
+          ;; until cconv lands (P2) and installs uncompiled; other
+          ;; sources byte-compile as before.
+          (let ((src (expand-file-name (concat (symbol-name name) ".el") dir))
+                (elc (expand-file-name (concat (symbol-name name) ".elc") dir)))
+            (if (with-temp-buffer
+                  (insert-file-contents src nil 0 512 t)
+                  (goto-char (point-min))
+                  (re-search-forward "lexical-binding[ \\t]*:[ \\t]*t\\b"
+                                     (line-end-position) t))
+                (Assert (not (file-exists-p elc))
+                        (format "the lexbound %s.el installs uncompiled" name))
+              (Assert (file-exists-p elc)
+                      (format "the downloaded %s.el is byte-compiled" name))))
           (Assert (elpa-installed-p name version-list)
                   (format "%s is installed at the pinned version" name)))
         (Assert (string= (elpa-tests-melpa-run-child elpa-user-dir name form)

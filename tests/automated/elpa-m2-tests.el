@@ -231,10 +231,24 @@ form's value with `%S'.  Return the final non-empty output line."
                     (concat (symbol-name name) "-" version) elpa-user-dir)))
           (Assert (file-directory-p dir)
                   (format "%s installs into %s-%s/" name name version))
+          ;; Lexical-binding P1-7 (#153): a source file carrying a
+          ;; `lexical-binding: t' cookie is refused by bytecomp.el
+          ;; until cconv lands (P2); the installer copes by installing
+          ;; it uncompiled.  Non-lexbound sources still get .elcs.
           (dolist (source (directory-files dir t "\\`[^.].*\\.el\\'"))
-            (Assert (file-exists-p (concat source "c"))
-                    (format "%s byte-compiles to a .elc"
-                            (file-name-nondirectory source))))
+            (let ((lexbound-p (with-temp-buffer
+                                (insert-file-contents source nil 0 512 t)
+                                (goto-char (point-min))
+                                (re-search-forward
+                                 "lexical-binding[ \\t]*:[ \\t]*t\\b"
+                                 (line-end-position) t))))
+              (if lexbound-p
+                  (Assert (not (file-exists-p (concat source "c")))
+                          (format "%s lexbound: installs uncompiled (P1 refusal)"
+                                  (file-name-nondirectory source)))
+                (Assert (file-exists-p (concat source "c"))
+                        (format "%s byte-compiles to a .elc"
+                                (file-name-nondirectory source))))))
           (Assert (elpa-installed-p name version-list)
                   (format "%s is installed at the pinned version" name)))
         ;; The cl-lib requirement is core-provided: nothing is fetched.
