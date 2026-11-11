@@ -155,6 +155,32 @@ differently depending on the presence of certain features, especially
 (defun update-elc-chop-extension (file)
   (subseq file 0 (string-match-p "\\.elc?$" file)))
 
+;; Lexical-binding core (P1-3/#144): files carrying a
+;; `lexical-binding: t' cookie cannot be byte-compiled until closure
+;; conversion lands (P2) -- `byte-compile-file' refuses them (see
+;; lisp/bytecomp.el).  They must load INTERPRETED from source instead;
+;; the interpreter's lexical environment is activated for them via the
+;; `load-lexical-files' whitelist (src/lread.c).  Excluding them from
+;; `update-elc-files-to-compile' here is what lets the bootstrap complete
+;; with defun-wrapping active.  See docs/planning/lexbinding-milestone.md.
+(defvar update-elc-lexbound-lisp-files
+  '("bytecomp.el" "macroexp.el" "tabulated-list.el" "use-package-xemacs.el"
+    "subr-x.el" "bind-key.el" "cl-lib.el"
+    "use-package.el" "use-package-core.el" "use-package-bind-key.el"
+    "use-package-delight.el" "use-package-diminish.el"
+    "use-package-ensure.el")
+  "Files carrying a `lexical-binding: t' cookie (lexical-binding P1).
+They cannot be byte-compiled until closure conversion lands (P2); they
+load interpreted from source with the lexical environment active via the
+`load-lexical-files' whitelist instead.  Kept as data rather than scanned
+from the file headers because this file runs in the bare bootstrap
+interpreter before subr/files are loaded.  See lisp/bytecomp.el's
+refusal and docs/planning/lexbinding-milestone.md.")
+
+(defun update-elc-lexbound-file-p (file)
+  "Return non-nil if FILE is one of `update-elc-lexbound-lisp-files'."
+  (member (file-name-nondirectory file) update-elc-lexbound-lisp-files))
+
 ;; we used to call packages-list-autoloads here, but it's false generality.
 ;; we need to handle each autoload file differently and there are only
 ;; two of them.
@@ -276,6 +302,10 @@ differently depending on the presence of certain features, especially
 	       (eq (member (file-name-nondirectory arg)
 			   additional-dump-dependencies) nil)
 	       (eq (member full-arg-el processed) nil)
+	       ;; Lexical-binding core (P1-3): a lexbound file has no .elc
+	       ;; and cannot get one until P2; leave it loading interpreted
+	       ;; from source rather than dying in the refusal.
+	       (eq (update-elc-lexbound-file-p full-arg-el) nil)
 	       ;; no need to check for existence of either of the files
 	       ;; because of the definition of file-newer-than-file-p.
 	       (file-newer-than-file-p full-arg-el full-arg-elc))
