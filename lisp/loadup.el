@@ -127,25 +127,24 @@ with the exception of `loadup.el'.")
 
 	  ;; No point attempting to detect a non-nil return value, that just
 	  ;; errors in any event and #'really-early-error-handler is invoked.
-	  ;; Lexical-binding core (P1-3): activate the lexical environment
-	  ;; for the dumped lexbound files only (see the comment above);
-	  ;; the option's default stays nil outside this extent, as
-	  ;; documented in src/lread.c and asserted by
-	  ;; tests/automated/lexbind-loader-tests.el.
-	  (let ((load-lexical-files lexbound-preloaded-files))
-	    (mapc #'load preloaded-file-list))
+	  ;; Lexical-binding core (P1-3/#149): activate the lexical
+	  ;; environment for the dumped lexbound files only; the option's
+	  ;; default stays nil outside this extent, as documented in
+	  ;; src/lread.c and asserted by
+	  ;; tests/automated/lexbind-loader-tests.el.  P1-4's dump demo is
+	  ;; whitelisted in the same scope (merge resolution: its original
+	  ;; add-to-list mutated the global default).
+	  (let ((load-lexical-files
+		 (cons "lexbind-dump-demo.el" lexbound-preloaded-files)))
+	    (mapc #'load preloaded-file-list)
 
 	  ;; Lexical-binding core (P1-4, ticket #150): if lisp/lexbind-dump-demo.el
 	  ;; exists, load it as source under its lexical-binding cookie so the
 	  ;; dumped image carries a live interpreted closure.  Absent file = no-op.
 	  (let ((demo (concat (file-name-as-directory source-lisp)
 			      "lexbind-dump-demo.el")))
-	    (when (file-exists-p demo)
-	      ;; Whitelist the base name (with extension) -- what the
-	      ;; loader compares `file-name-nondirectory' of the found
-	      ;; file against.
-	      (add-to-list 'load-lexical-files "lexbind-dump-demo.el")
-	      (load (file-name-sans-extension demo))))
+	      (when (file-exists-p demo)
+		(load (file-name-sans-extension demo)))))
 
 	  (packages-load-package-dumped-lisps late-package-load-path))))
 
