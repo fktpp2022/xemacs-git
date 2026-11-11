@@ -52,6 +52,19 @@
 ;(format-into 'standard-output "configure-data-directory: %S\n" configure-data-directory)
 ;(format-into 'standard-output "lisp-directory: %S\n" lisp-directory)
 
+;; Lexical-binding core (P1-3, #144): the three dumped files carrying a
+;; `lexical-binding: t' cookie cannot be byte-compiled until closure
+;; conversion lands (P2) -- lisp/bytecomp.el refuses them -- so they load
+;; INTERPRETED from source, with the interpreter's lexical environment
+;; active so their defuns/defmacros wrap as closures.  The loader
+;; (src/lread.c) activates the environment only for base names listed in
+;; `load-lexical-files'; populate it with the dumped lexbound subset here
+;; so this holds on the loadup path (bootstrap run-temacs and dump alike).
+;; Other lexical files are whitelisted by user configuration (see
+;; update-elc.el and docs/planning/lexbinding-milestone.md).
+(defvar lexbound-preloaded-files
+  '("macroexp.el" "tabulated-list.el" "use-package-xemacs.el"))
+
 (if (fboundp 'error) (error "loadup.el already loaded!"))
 
 (defconst running-xemacs t "\
@@ -114,7 +127,13 @@ with the exception of `loadup.el'.")
 
 	  ;; No point attempting to detect a non-nil return value, that just
 	  ;; errors in any event and #'really-early-error-handler is invoked.
-	  (mapc #'load preloaded-file-list)
+	  ;; Lexical-binding core (P1-3): activate the lexical environment
+	  ;; for the dumped lexbound files only (see the comment above);
+	  ;; the option's default stays nil outside this extent, as
+	  ;; documented in src/lread.c and asserted by
+	  ;; tests/automated/lexbind-loader-tests.el.
+	  (let ((load-lexical-files lexbound-preloaded-files))
+	    (mapc #'load preloaded-file-list))
 
 	  (packages-load-package-dumped-lisps late-package-load-path))))
 

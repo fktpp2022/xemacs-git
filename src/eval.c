@@ -1620,6 +1620,33 @@ arguments: (SYMBOL &optional INITVALUE DOCSTRING)
 /* XEmacs: user-variable-p is in symbols.c, since it needs to mess around
    with the symbol variable aliases. */
 
+/* Lexical-binding core (P1-3): apply a macro expander to ARGS with the
+   interpreter's lexical environment DEACTIVATED for the application.
+
+   An expander coming from a dynamic-binding file is a plain lambda; its
+   body (typically written with let/pop machinery, e.g. cl-macs' dolist)
+   is fully dynamic-scoped and must not bind into the caller's
+   environment: otherwise its internal bindings leak into the active env
+   and shadow unrelated dynamic references (root-caused from #143
+   finding 2 / #136 finding 1: during the update-elc bootstrap, the
+   interpreted dolist expander's internal `list' binding leaked into the
+   env of a lexical file and broke `nth''s dynamic arg lookup).
+
+   A closure expander (defmacro in a lexical-binding: t file) is
+   unaffected: funcall_lambda's closure branch specbinds the captured
+   environment over ours. */
+static Lisp_Object
+apply_macro_expander (Lisp_Object expander, Lisp_Object args)
+{
+  if (!LEXBIND_ENV_ACTIVE_P ())
+    return apply1 (expander, args);
+  {
+    int speccount = specpdl_depth ();
+    specbind (Qinternal_interpreter_environment, Qnil);
+    return unbind_to_1 (speccount, apply1 (expander, args));
+  }
+}
+
 DEFUN ("macroexpand", Fmacroexpand, 1, 2, 0, /*
 Return result of expanding macros at top level of FORM.
 If FORM is not a macro call, it is returned unchanged.
@@ -1717,12 +1744,66 @@ definitions to shadow the loaded ones for use in file byte-compilation.
 	  if (NILP (expander))
 	    break;
 	}
-      form = apply1 (expander, XCDR (form));
+      form = apply_macro_expander (expander, XCDR (form));
     }
 
   unbind_to (speccount);
 
   return form;
+}
+
+/* Lexical-binding core (P1-3): env-aware macro lookup.  GNU-compatible
+   `macro-function' -- the accessor half of env-aware macroexpansion, kept
+   in step with Fmacroexpand's lookup rules above: the ENVIRONMENT alist
+   (as threaded through `macroexpand' by the byte compiler and `macrolet')
+   shadows the global definition, an entry (SYM) or (SYM . nil) shadowing
+   SYMBOL out entirely; otherwise the function cell is consulted and only
+   a (macro EXPANDER ...) definition yields its expander.
+
+   The returned expander may be a closure (closure ENV ARGLIST ...) when
+   defined by defmacro in a lexical-binding: t file; applying it through
+   funcall/apply binds its captured environment around the expansion, so
+   expansion-time variable references resolve in the definition-time
+   lexical environment, not the caller's.  See the milestone spec,
+   docs/planning/lexbinding-milestone.md, P1 work item 5. */
+DEFUN ("macro-function", Fmacro_function, 1, 2, 0, /*
+Return SYMBOL's macro expander function, or nil if SYMBOL has none.
+If the optional ENVIRONMENT argument is non-nil, it is a list of macro
+definitions in the GNU style, as passed to `macroexpand' by the byte
+compiler and by `macrolet'.  SYMBOL is looked up there first; a global
+macro definition is shadowed, and an entry of the form (SYMBOL) or
+\(SYMBOL . nil) makes SYMBOL expand to itself (nil is returned).
+If ENVIRONMENT does not mention SYMBOL, the global function definition
+is consulted: non-nil only when SYMBOL is defined as a macro.
+
+The expander of a macro defined in a lexical-binding file is a closure;
+calling it with `funcall' applies it in its captured lexical
+environment.
+
+arguments: (SYMBOL &optional ENVIRONMENT)
+*/
+       (symbol, environment))
+{
+  Lisp_Object tem, def;
+
+  CHECK_SYMBOL (symbol);
+
+  if (!NILP (environment))
+    {
+      tem = Fassq (symbol, environment);
+      if (!NILP (tem))
+	/* Entry (SYM . nil) or (SYM): shadowed out, return nil. */
+	return XCDR (tem);
+    }
+
+  def = XSYMBOL (symbol)->function;
+  if (UNBOUNDP (def) || !CONSP (def))
+    return Qnil;
+  if (!EQ (XCAR (def), Qmacro))
+    return Qnil;
+  /* The expander of (macro closure ENV ...) is the closure itself;
+     funcall_lambda's closure branch gives it the captured environment. */
+  return XCDR (def);
 }
 
 
@@ -4072,7 +4153,7 @@ Evaluate FORM and return its value.
       else if (EQ (funcar, Qmacro))
 	{
 	  PROFILE_ENTER_FUNCTION ();
-	  val = Feval (apply1 (XCDR (fun), original_args));
+	  val = Feval (apply_macro_expander (XCDR (fun), original_args));
 	  PROFILE_EXIT_FUNCTION ();
 	}
       else if (EQ (funcar, Qlambda) || EQ (funcar, Qclosure))
@@ -7609,6 +7690,7 @@ syms_of_eval (void)
   DEFSUBR (FletX);
   DEFSUBR (Fwhile);
   DEFSUBR (Fmacroexpand);
+  DEFSUBR (Fmacro_function); /* lexical-binding core (P1-3) */
   DEFSUBR (Fcatch);
   DEFSUBR (Fthrow);
   DEFSUBR (Funwind_protect);
