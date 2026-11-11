@@ -40,14 +40,15 @@
   (let ((env (list t (list 'lexical-var (list 'cell 42)))))
     (setq cf (lexbind-p22-make-cf))
     (set-compiled-function-environment cf env))
-  (gc-outer)
+  (garbage-collect)
   (let ((env (compiled-function-environment cf)))
     (Assert (and (consp env) (eq (car env) t)))
     (let ((binding (assq 'lexical-var (cdr env))))
       (Assert (consp binding))
       ;; The captured cell must still be live and mutable.
-      (setcar (cdr binding) 43)
-      (Assert (eq (car (cdr (cdr binding))) 43)))))
+      ;; binding = (lexical-var (cell 42)); the cell is its cadr.
+      (setcar (cdr (car (cdr binding))) 43)
+      (Assert (eq (car (cdr (car (cdr binding)))) 43)))))
 
 ;; ---- equal distinguishes environments (updated by P2-5, #161) ----------
 
