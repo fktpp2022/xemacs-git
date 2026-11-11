@@ -1211,12 +1211,13 @@ arguments: (VARLIST &rest BODY)
          already evaluated into the GCPRO'd temps array; each variable
          gets a fresh binding cons (sym . value) so escaping closures
          share and mutate the cell, and separate lets stay independent.
-         Special (defvar'd) symbols keep dynamic binding.  GCPRO the
-         env while consing (the varlist is GCPRO'd via gcpro1's
-         temps-array cover and the loop macro). */
+         Special (defvar'd) symbols keep dynamic binding.  Nested
+         GCPRO: UNGCPRO unwinds down to gcpro1.next, popping gcpro2
+         with it, so a second UNGCPRO would be invalid; use the
+         NGCPRO/NUNGCPRO pair here. */
       Lisp_Object env = XCDR (Vinternal_interpreter_environment);
-      struct gcpro gcpro2;
-      GCPRO1 (env);
+      struct gcpro ngcpro1;
+      NGCPRO1 (env);
       {
 	LIST_LOOP_2 (var, varlist)
 	  {
@@ -1228,7 +1229,7 @@ arguments: (VARLIST &rest BODY)
 	  }
       }
       specbind (Qinternal_interpreter_environment, Fcons (Qt, env));
-      UNGCPRO;
+      NUNGCPRO;
       UNGCPRO;
       return unbind_to_1 (speccount, Fprogn (XCDR (args)));
     }

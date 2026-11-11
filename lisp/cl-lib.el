@@ -1,4 +1,4 @@
-;;; cl-lib.el --- Forward cl-lib compatibility library for Emacs<24.3  -*- -*-
+;;; cl-lib.el --- Forward cl-lib compatibility library for Emacs<24.3  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2012-2022  Free Software Foundation, Inc.
 

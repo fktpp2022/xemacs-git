@@ -22,8 +22,11 @@
 ;; Interpreted-code probe: a defun is a compiled function only in a
 ;; byte-compiled test run.
 (defun lexbind-p12-mode-probe () t)
-(defvar lexbind-p12-interpreted
-  (not (compiled-function-p (symbol-function 'lexbind-p12-mode-probe))))
+;; setq (not just defvar): the harness runs this file twice in one
+;; session (interpreted, then byte-compiled); defvar would keep the
+;; interpreted pass's value in the compiled pass.
+(setq lexbind-p12-interpreted
+      (not (compiled-function-p (symbol-function 'lexbind-p12-mode-probe))))
 
 ;; ---- dynamic path unchanged when env is inactive (both modes) ---------
 
@@ -33,9 +36,12 @@
 (Assert (eq lexbind-p12-special 7))
 (Assert (not internal-interpreter-environment))
 
-;; defun outside lexical context stays a plain lambda
+;; defun outside lexical context stays a plain lambda (interpreted;
+;; byte-compiled runs legitimately produce compiled functions)
 (defun lexbind-p12-dynamic-fun (x) (1+ x))
-(Assert (eq (car (symbol-function 'lexbind-p12-dynamic-fun)) 'lambda))
+(if lexbind-p12-interpreted
+    (Assert (eq (car (symbol-function 'lexbind-p12-dynamic-fun)) 'lambda))
+  (Assert (compiled-function-p (symbol-function 'lexbind-p12-dynamic-fun))))
 (fmakunbound 'lexbind-p12-dynamic-fun)
 
 (when lexbind-p12-interpreted
@@ -166,8 +172,12 @@
           (setq adders (cons #'(lambda (x) (+ i x)) adders))
           (setq i (1+ i))))
       (garbage-collect)
-      (Assert (eq (funcall (car adders) 1) 100))     ; i was 99 when captured
-      (Assert (eq (funcall (car (last adders)) 1) 1)) ; i was 0
+      ;; P1-2 semantics: all closures capture the same binding cons of i
+      ;; (shared mutable cell), and setq left i at 100 after the loop.
+      ;; The point of the stress is that closures and their cell survive
+      ;; the explicit GC above.
+      (Assert (eq (funcall (car adders) 1) 101))
+      (Assert (eq (funcall (car (last adders)) 1) 101))
       ;; shared mutable cell survives GC
       (let ((count 0))
         (let ((inc #'(lambda () (setq count (1+ count)))))
