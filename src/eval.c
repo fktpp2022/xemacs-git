@@ -282,7 +282,7 @@ Lisp_Object Vmacro_declaration_function, Vbyte_compile_macro_environment;
    lexical mode is active, followed by (sym . value) binding conses and
    bare symbols (defvar foo) proclamations.  nil = pure dynamic binding
    mode.  Global, specbound around lexical extents by later P1 tickets. */
-Lisp_Object Qinternal_interpreter_environment;
+Lisp_Object Qinternal_interpreter_environment, Qclosure;
 Lisp_Object Vinternal_interpreter_environment;
 
 /* The C-zero word carries the record tag in this tree
@@ -302,6 +302,13 @@ Lisp_Object Vinternal_interpreter_environment;
   (LEXBIND_ENV_ACTIVE_P ()                                      \
    ? Fassq ((symbol), XCDR (Vinternal_interpreter_environment)) \
    : Qnil)
+
+/* Lexical-binding core (P1-2, ticket #148): the active environment
+   with BINDING ((sym . value)) prepended.  The leading t marker must
+   stay the car so LEXBIND_ENV_ACTIVE_P keeps holding after the
+   specbound env is restored inside nested lexical extents. */
+#define LEXBIND_ENV_PUSH(binding) \
+  (Fcons (Qt, Fcons ((binding), XCDR (Vinternal_interpreter_environment))))
 
 /* Current number of specbindings allocated in specpdl.  */
 int specpdl_size;
@@ -1097,6 +1104,11 @@ arguments: (VARLIST &rest BODY)
   /* This function can GC */
   Lisp_Object varlist = XCAR (args);
   int speccount = specpdl_depth();
+  /* Lexical-binding core (P1-2): GCPRO the most recent lexical value
+     across the Fcons allocations in LEXBIND_ENV_PUSH below. */
+  Lisp_Object lexval = Qnil;
+  struct gcpro gcpro1;
+  GCPRO1 (lexval);
 
   GC_EXTERNAL_LIST_LOOP_3 (var, varlist, tail)
     {
@@ -1119,10 +1131,18 @@ arguments: (VARLIST &rest BODY)
 		  ("`let' bindings can have only one value-form", var);
 	    }
 	}
+	lexval = value;
       specbind (symbol, value);
+      /* Lexical-binding core (P1-2): lexical let*.  Bind one at a time
+         so the next value form sees the earlier lexical bindings;
+         special (defvar'd) symbols keep their dynamic specbind. */
+      if (LEXBIND_ENV_ACTIVE_P () && !SYMBOL_SPECIAL_P (symbol))
+	specbind (Qinternal_interpreter_environment,
+		  LEXBIND_ENV_PUSH (Fcons (symbol, lexval)));
     }
   END_GC_EXTERNAL_LIST_LOOP (var);
 
+  UNGCPRO;
   return unbind_to_1 (speccount, Fprogn (XCDR (args)));
 }
 
@@ -1185,6 +1205,34 @@ arguments: (VARLIST &rest BODY)
   }
 
   idx = 0;
+  if (LEXBIND_ENV_ACTIVE_P ())
+    {
+      /* Lexical-binding core (P1-2): lexical let.  All value forms are
+         already evaluated into the GCPRO'd temps array; each variable
+         gets a fresh binding cons (sym . value) so escaping closures
+         share and mutate the cell, and separate lets stay independent.
+         Special (defvar'd) symbols keep dynamic binding.  Nested
+         GCPRO: UNGCPRO unwinds down to gcpro1.next, popping gcpro2
+         with it, so a second UNGCPRO would be invalid; use the
+         NGCPRO/NUNGCPRO pair here. */
+      Lisp_Object env = XCDR (Vinternal_interpreter_environment);
+      struct gcpro ngcpro1;
+      NGCPRO1 (env);
+      {
+	LIST_LOOP_2 (var, varlist)
+	  {
+	    Lisp_Object symbol = SYMBOLP (var) ? var : XCAR (var);
+	    if (SYMBOL_SPECIAL_P (symbol))
+	      specbind (symbol, temps[idx++]);
+	    else
+	      env = Fcons (Fcons (symbol, temps[idx++]), env);
+	  }
+      }
+      specbind (Qinternal_interpreter_environment, Fcons (Qt, env));
+      NUNGCPRO;
+      UNGCPRO;
+      return unbind_to_1 (speccount, Fprogn (XCDR (args)));
+    }
   {
     LIST_LOOP_2 (var, varlist)
       {
@@ -1354,7 +1402,19 @@ arguments: (SYMBOL-OR-LAMBDA)
                list2 (Qfunction, Flist_length (args)));
     }
 
-  return XCAR (args);
+  /* Lexical-binding core (P1-2): #'(lambda ...) in an active lexical
+     environment captures the environment as a closure
+     (closure ENV ARGLIST [DOCSTRING] BODY...).  Non-lambda arguments
+     (symbols, already-formed functions) pass through unchanged. */
+  {
+    Lisp_Object arg = XCAR (args);
+    if (LEXBIND_ENV_ACTIVE_P ()
+	&& CONSP (arg) && EQ (XCAR (arg), Qlambda))
+      return Fcons (Qclosure,
+		    Fcons (Vinternal_interpreter_environment,
+			   XCDR (arg)));
+    return arg;
+  }
 }
 
 
@@ -1379,6 +1439,15 @@ arguments: (NAME ARGLIST &optional DOCSTRING &rest BODY)
        (args))
 {
   /* This function can GC */
+  /* Lexical-binding core (P1-2): in an active lexical environment the
+     definition is wrapped as a closure over the definition-time
+     environment.  NOTE: env-aware macroexpansion is P1-3, so lambdas
+     produced by macro expansion are NOT wrapped in this ticket. */
+  if (LEXBIND_ENV_ACTIVE_P ())
+    return define_function (XCAR (args),
+			    Fcons (Qclosure,
+				   Fcons (Vinternal_interpreter_environment,
+					  XCDR (args))));
   return define_function (XCAR (args),
 			  Fcons (Qlambda, XCDR (args)));
 }
@@ -1396,6 +1465,8 @@ arguments: (NAME ARGLIST &optional DOCSTRING &rest BODY)
        (args))
 {
   /* This function can GC */
+  Lisp_Object closure;
+
   if (!NILP (Vmacro_declaration_function))
     {
       Lisp_Object declare = Fcar (Fnthcdr (make_fixnum (2), args));
@@ -1423,8 +1494,16 @@ arguments: (NAME ARGLIST &optional DOCSTRING &rest BODY)
         }
     }
 
+  /* Lexical-binding core (P1-2): wrap macros as closures too, same as
+     defun; macroexpansion itself is env-aware from P1-3. */
+  if (LEXBIND_ENV_ACTIVE_P ())
+    closure = Fcons (Qclosure,
+		     Fcons (Vinternal_interpreter_environment,
+			    XCDR (args)));
+  else
+    closure = Fcons (Qlambda, XCDR (args));
   return define_function (XCAR (args),
-			  Fcons (Qmacro, Fcons (Qlambda, XCDR (args))));
+			  Fcons (Qmacro, closure));
 }
 
 DEFUN ("defvar", Fdefvar, 1, UNEVALLED, 0, /*
@@ -3327,7 +3406,7 @@ Also, a symbol satisfies `commandp' if its function definition does so.
   if (CONSP (fun))
     {
       Lisp_Object funcar = XCAR (fun);
-      if (EQ (funcar, Qlambda))
+      if (EQ (funcar, Qlambda) || EQ (funcar, Qclosure))
 	return Fassq (Qinteractive, Fcdr (Fcdr (fun)));
       if (EQ (funcar, Qautoload))
 	return Fcar (Fcdr (Fcdr (Fcdr (fun))));
@@ -3996,7 +4075,7 @@ Evaluate FORM and return its value.
 	  val = Feval (apply1 (XCDR (fun), original_args));
 	  PROFILE_EXIT_FUNCTION ();
 	}
-      else if (EQ (funcar, Qlambda))
+      else if (EQ (funcar, Qlambda) || EQ (funcar, Qclosure))
 	{
 	  struct gcpro gcpro1;
 	  Lisp_Object *args = alloca_array (Lisp_Object, nargs);
@@ -4211,7 +4290,7 @@ arguments: (FUNCTION &rest ARGS)
     {
       Lisp_Object funcar = XCAR (fun);
 
-      if (EQ (funcar, Qlambda))
+      if (EQ (funcar, Qlambda) || EQ (funcar, Qclosure))
 	{
 	  PROFILE_ENTER_FUNCTION ();
 	  val = funcall_lambda (fun, fun_nargs, fun_args);
@@ -4262,7 +4341,7 @@ using for example `funcall' or `apply'.
   if (CONSP (object))
     {
       Lisp_Object car = XCAR (object);
-      if (EQ (car, Qlambda))
+      if (EQ (car, Qlambda) || EQ (car, Qclosure))
 	return Qt;
 
       if (EQ (car, Qautoload))
@@ -4343,9 +4422,12 @@ function_argcount (Lisp_Object function, int function_min_args_p)
 	  function = orig_function;
 	  goto retry;
 	}
-      else if (EQ (funcar, Qlambda))
+      else if (EQ (funcar, Qlambda) || EQ (funcar, Qclosure))
 	{
-	  arglist = Fcar (XCDR (function));
+	  /* closure = (closure ENV ARGLIST ...) */
+	  arglist = Fcar (EQ (funcar, Qclosure)
+			  ? XCDR (XCDR (function))
+			  : XCDR (function));
 	}
       else
 	{
@@ -4513,6 +4595,68 @@ funcall_lambda (Lisp_Object fun, int nargs, Lisp_Object args[])
 
   if (!CONSP (tail))
     goto invalid_function;
+
+  /* Lexical-binding core (P1-2): interpreted closure application.
+     fun = (closure ENV ARGLIST [DOCSTRING] BODY...); ENV is the
+     captured GNU-shaped environment.  Each argument gets a fresh
+     binding cons prepended to ENV (bindings over the captured env
+     stay shared and mutable); special (defvar'd) symbols keep dynamic
+     specbinding.  The extended env is specbound for the body extent. */
+  if (EQ (XCAR (fun), Qclosure))
+    {
+      Lisp_Object env = XCAR (tail);
+      struct gcpro gcpro1;
+      arglist = XCAR (XCDR (tail));
+      body    = XCDR (XCDR (tail));
+      GCPRO1 (env);
+      {
+	int optional = 0, rest = 0;
+	EXTERNAL_LIST_LOOP_2 (symbol, arglist)
+	  {
+	    if (!SYMBOLP (symbol))
+	      goto invalid_closure_function;
+	    if (EQ (symbol, Qand_rest))
+	      rest = 1;
+	    else if (EQ (symbol, Qand_optional))
+	      optional = 1;
+	    else if (rest)
+	      {
+		if (SYMBOL_SPECIAL_P (symbol))
+		  specbind (symbol, Flist (nargs - i, &args[i]));
+		else
+		  env = Fcons (Qt, Fcons (Fcons (symbol,
+						 Flist (nargs - i, &args[i])),
+					  XCDR (env)));
+		i = nargs;
+	      }
+	    else if (i < nargs)
+	      {
+		if (SYMBOL_SPECIAL_P (symbol))
+		  specbind (symbol, args[i]);
+		else
+		  env = Fcons (Qt, Fcons (Fcons (symbol, args[i]), XCDR (env)));
+		i++;
+	      }
+	    else if (!optional)
+	      goto wrong_number_of_arguments_closure;
+	    else if (SYMBOL_SPECIAL_P (symbol))
+	      specbind (symbol, Qnil);
+	    else
+	      env = Fcons (Qt, Fcons (Fcons (symbol, Qnil), XCDR (env)));
+	  }
+      }
+      if (i < nargs)
+	goto wrong_number_of_arguments_closure;
+      UNGCPRO;
+      specbind (Qinternal_interpreter_environment, env);
+      return unbind_to_1 (speccount, Fprogn (body));
+
+    wrong_number_of_arguments_closure:
+      return signal_wrong_number_of_arguments_error (fun, nargs);
+
+    invalid_closure_function:
+      return signal_invalid_function_error (fun);
+    }
 
   arglist = XCAR (tail);
   body    = XCDR (tail);
@@ -7415,6 +7559,7 @@ syms_of_eval (void)
   DEFSYMBOL (Qinhibit_quit);
   DEFSYMBOL (Qautoload);
   DEFSYMBOL (Qinternal_interpreter_environment); /* lexical-binding core (P1-1) */
+  DEFSYMBOL (Qclosure); /* lexical-binding core (P1-2) */
   DEFSYMBOL (Qbyte_compile_macro_environment);
   DEFSYMBOL (Qdebug_on_error);
   DEFSYMBOL (Qstack_trace_on_error);
