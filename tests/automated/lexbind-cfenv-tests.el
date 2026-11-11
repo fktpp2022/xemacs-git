@@ -49,17 +49,15 @@
       (setcar (cdr binding) 43)
       (Assert (eq (car (cdr (cdr binding))) 43)))))
 
-;; ---- env does not disturb function identity/equality semantics --------
+;; ---- equal distinguishes environments (updated by P2-5, #161) ----------
 
 (let ((cf1 (lexbind-p22-make-cf))
       (cf2 (lexbind-p22-make-cf)))
   (Assert (equal cf1 cf2))
   (set-compiled-function-environment cf1 (list t))
-  ;; equal compares code/arglist/doc and is untouched by this ticket,
-  ;; so it happens to ignore the env.  The parent plan (P2 item on
-  ;; compiled_function_equal) may later make closures over different
-  ;; envs unequal -- revisit there, not here.
-  (Assert (equal cf1 cf2)))
+  ;; Since P2-5 (#161) compiled_function_equal compares the env slot:
+  ;; closures differing only in env are not equal.
+  (Assert (not (equal cf1 cf2))))
 
 ;; ---- dump/reload: env survives the real pdump round trip ----------------
 ;; The build dumps the whole image from temacs through the portable
@@ -75,14 +73,13 @@
     (Assert (and (consp env) (eq (car env) t)))
     (Assert (eq (cdr (car (cdr env))) 42))))
 
-;; The printer deliberately omits the env (P2-2 keeps the printed form
-;; byte-code-compatible; the reader changes are #160), so print/read
-;; round-trips the code but not the env.
+;; Since P2-5 (#161) the printer prints a non-nil env readably, and the
+;; printed 7-element #[...] form reads back with the env intact.
 (let ((cf (lexbind-p22-make-cf)))
   (set-compiled-function-environment cf (list t))
-  (let ((cf2 (read (format "%S" cf))))
+  (let ((cf2 (read (let ((print-readably t)) (prin1-to-string cf)))))
     (Assert (compiled-function-p cf2))
     (Assert (equal cf cf2))
-    (Assert (null (compiled-function-environment cf2)))))
+    (Assert (equal (compiled-function-environment cf2) (list t)))))
 
 ;;; end of lexbind-cfenv-tests.el

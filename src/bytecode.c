@@ -2413,7 +2413,25 @@ print_compiled_function (Lisp_Object obj, Lisp_Object printcharfun,
   write_fmt_string (printcharfun, " %d", compiled_function_stack_depth (f));
 
   /* COMPILED_DOC_STRING = 4 */
-  if (docp || intp)
+  if (print_readably && !NILP (compiled_function_environment (f)))
+    {
+      /* P2-5 (#161): a printed env needs explicit doc/interactive
+	 slots, so the env lands in the 7-element position the reader
+	 expects.  Print the actual doc/interactive presence (nil when
+	 absent) instead of the omit-if-absent form above. */
+      write_ascstring (printcharfun, " ");
+      print_internal (f->flags.documentationp
+		      ? compiled_function_documentation (f) : Qnil,
+		      printcharfun, escapeflag);
+      write_ascstring (printcharfun, " ");
+      print_internal (f->flags.interactivep
+		      ? compiled_function_interactive (f) : Qnil,
+		      printcharfun, escapeflag);
+      write_ascstring (printcharfun, " ");
+      print_internal (compiled_function_environment (f), printcharfun,
+		      escapeflag);
+    }
+  else if (docp || intp)
     {
       write_ascstring (printcharfun, " ");
       print_internal (compiled_function_documentation (f), printcharfun,
@@ -2450,7 +2468,10 @@ compiled_function_equal (Lisp_Object obj1, Lisp_Object obj2, int depth,
      internal_equal (f1->constants,    f2->constants,    depth + 1) &&
      internal_equal (f1->arglist,      f2->arglist,      depth + 1) &&
      internal_equal (f1->doc_and_interactive,
-		     f2->doc_and_interactive, depth + 1));
+		     f2->doc_and_interactive, depth + 1) &&
+     /* P2-5 (#161): closures over different lexical environments are
+        not equal. */
+     internal_equal (f1->environment, f2->environment, depth + 1));
 }
 
 static void
@@ -2471,6 +2492,10 @@ compiled_function_print_preprocess (Lisp_Object object,
       PRINT_PREPROCESS (compiled_function_interactive (cf),
                         print_number_table, seen_object_count);
     }
+
+  /* P2-5 (#161): the env is part of the printed form. */
+  PRINT_PREPROCESS (compiled_function_environment (cf),
+                    print_number_table, seen_object_count);
 }
 
 static void
@@ -2527,11 +2552,14 @@ static Hashcode
 compiled_function_hash (Lisp_Object obj, int depth, Boolint UNUSED (equalp))
 {
   Lisp_Compiled_Function *f = XCOMPILED_FUNCTION (obj);
-  return HASH3 ((f->flags.documentationp << 2) +
+  return HASH4 ((f->flags.documentationp << 2) +
 		(f->flags.interactivep << 1) +
 		f->flags.domainp,
 		internal_hash (f->instructions, depth + 1, 0),
-		internal_hash (f->constants,    depth + 1, 0));
+		internal_hash (f->constants,    depth + 1, 0),
+		/* P2-5 (#161): keep the hash consistent with the updated
+		   equal. */
+		internal_hash (f->environment,  depth + 1, 0));
 }
 
 static const struct memory_description compiled_function_description[] = {
