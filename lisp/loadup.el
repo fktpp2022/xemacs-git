@@ -135,6 +135,18 @@ with the exception of `loadup.el'.")
 	  (let ((load-lexical-files lexbound-preloaded-files))
 	    (mapc #'load preloaded-file-list))
 
+	  ;; Lexical-binding core (P1-4, ticket #150): if lisp/lexbind-dump-demo.el
+	  ;; exists, load it as source under its lexical-binding cookie so the
+	  ;; dumped image carries a live interpreted closure.  Absent file = no-op.
+	  (let ((demo (concat (file-name-as-directory source-lisp)
+			      "lexbind-dump-demo.el")))
+	    (when (file-exists-p demo)
+	      ;; Whitelist the base name (with extension) -- what the
+	      ;; loader compares `file-name-nondirectory' of the found
+	      ;; file against.
+	      (add-to-list 'load-lexical-files "lexbind-dump-demo.el")
+	      (load (file-name-sans-extension demo))))
+
 	  (packages-load-package-dumped-lisps late-package-load-path))))
 
 ;; Fix up the preloaded file list
