@@ -39,6 +39,9 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define COMPILED_DOC_STRING	4
 #define COMPILED_INTERACTIVE	5
 #define COMPILED_DOMAIN		6
+/* Lexical-binding environment (P2-4, #160).  Occupies element 6 of the
+   #[...] form in non-I18N3 builds, i.e. the seventh element.  */
+#define COMPILED_ENVIRONMENT	6
 
 #ifdef DEBUG_XEMACS
 /* Define BYTE_CODE_METER to enable generation of a byte-op usage

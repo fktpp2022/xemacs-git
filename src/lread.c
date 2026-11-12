@@ -3265,7 +3265,7 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
   /* Accept compiled functions at read-time so that we don't
      have to build them at load-time. */
   Lisp_Object stuff;
-  Lisp_Object make_byte_code_args[COMPILED_DOMAIN + 1];
+  Lisp_Object make_byte_code_args[COMPILED_ENVIRONMENT + 1];
   struct gcpro gcpro1;
   Elemcount iii = 0, len;
   Boolint saw_a_doc_ref = 0;
@@ -3275,7 +3275,7 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
      instructions and constants differently. */
   stuff = read_list (readcharfun, terminator, 0, 0);
   len = XFIXNUM (Flength (stuff));
-  if (len < COMPILED_STACK_DEPTH + 1 || len > COMPILED_DOMAIN + 1)
+  if (len < COMPILED_STACK_DEPTH + 1 || len > COMPILED_ENVIRONMENT + 1)
     {
       return
         continuable_read_syntax_error ("#[...] used with wrong number of elements");
