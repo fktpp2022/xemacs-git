@@ -65,9 +65,9 @@
 
 (defvar dirfiles-table (make-hash-table :test 'equal))
 
-(;; P2: closure conversion now handles `lexical-binding: t' files, so
+;; P2: closure conversion now handles `lexical-binding: t' files, so
 ;; lexbound .el files are byte-compiled normally.  The old skip helper
-;; is removed. )
+;; is removed.
 ;; SEEN accumulates the list of already-handled dirs.
 (defun do-update-elc-2 (dir compile-stage-p seen)
   (setq dir (file-name-as-directory dir))

@@ -3032,22 +3032,22 @@ If FORM is a lambda or a macro, byte-compile it as a function."
 				 `(lambda ()
 				   ;; Generate a compiled function that returns
 				   ;; a cons of a list describing which of the
-				   ;; variables passed interactively are not nil.
-				   (cons (function
-					 (lambda (args)
-					   (mapcar
-					    #'car
-					    (mapcar #'cdr
-						    args))))
-					 (mapcar
-					  (function
-					   #'(lambda (x)
-					     (list (car x)
-						   (car (cdr x))
-						   (not (null
-							(cdr (cdr x)))))))
-					 (list ,,(cadr int))))))
-				  (list (cddr int)))))))
+				   ;; interactive arguments should be saved on
+				   ;; the command history as (point), (mark),
+				   ;; (region-beginning), (region-end), and the
+				   ;; actual interactive arguments themselves.
+				   ;;
+				   ;; #'call-interactive knows how to handle
+				   ;; these annotations at runtime, if the
+				   ;; interactive spec is a compiled function.
+				   (cons ,(byte-compile-annotate-interactive
+					   (nth 1 int))
+				         ,(nth 1 int)))
+				 name)))))
+		 ((cdr int)
+		  ;; Error here instead of on the call to #'nth further down,
+		  ;; giving a clearer error message.
+		  (error 'syntax-error "Malformed interactive spec" int)))))
     ;; P2-1 cconv: in lexical mode, push the lambda's own argument frame
     ;; so the body's variable lookups see the arg binding as an own-frame
     ;; (boxed) variable.  The frame is popped after the body is compiled.
@@ -3537,7 +3537,7 @@ Otherwise the plain dynamic path."
             (or tmp
                 (setq tmp (list var)
                       byte-compile-variables (cons tmp byte-compile-variables)))
-            (byte-compile-out base-op tmp)))))
+            (byte-compile-out base-op tmp))))))
 
 ;; ---- frame-cell emission helpers (cconv) ---------------------------
 
@@ -3614,7 +3614,7 @@ Otherwise the plain dynamic path."
              (setq arglist (cdr arglist)))
             ((consp (car-safe arglist))
              (when (symbolp (car-safe (car-safe arglist)))
-               (push (car-safe (car-safe arglist)) vars)
+               (push (car-safe (car-safe arglist)) vars))
              (setq arglist (cdr arglist)))
             (t (setq arglist (cdr arglist)))))
     (nreverse vars)))
@@ -3783,26 +3783,24 @@ Stack plan:
   (let ((n (length captures)))
     (if (= n 0)
         (byte-compile-out 'byte-constant 0)
-      ;; Push make-vector fn, size, nil, then call.
-      (byte-compile-push-constant 'make-vector)
-      (byte-compile-push-constant n)
-      (byte-compile-push-constant nil)
-      (byte-compile-out 'byte-call 2)
-      ;; Stack: env
-      ;; For each captured cell, store it.  We need the env vector
-      ;; to remain on the stack, so dup it before each aset.
-      ;; Stack: env → env env (dup) → env env i (push i)
-      ;;        → env env i cell (push cell)
-      ;;        → env (aset consumes i+cell+env)
-      (let ((i 0))
-        (dolist (v captures)
-          (byte-compile-out 'byte-dup 0)    ;; keep env
-          (byte-compile-push-constant i)      ;; push index
-          (byte-compile-lexbind-cell-of v)   ;; push cell
-          (byte-compile-out 'byte-aset 0)    ;; aset(vector index value)
-          (incf i))))
-      ;; Stack: env
-      ))
+      (progn
+        ;; Push make-vector fn, size, nil, then call.
+        (byte-compile-push-constant 'make-vector)
+        (byte-compile-push-constant n)
+        (byte-compile-push-constant nil)
+        (byte-compile-out 'byte-call 2)
+        ;; Stack: env
+        ;; For each captured cell, store it.  `byte-aset' pops the
+        ;; index and the new value and sets them in the vector that is
+        ;; on top of the stack, so the env vector stays in place.
+        ;; Stack: env -> env i (push i) -> env i cell (push cell)
+        ;;        -> env (aset consumes i+cell, env stays)
+        (let ((i 0))
+          (dolist (v captures)
+            (byte-compile-push-constant i)      ;; push index
+            (byte-compile-lexbind-cell-of v)    ;; push cell
+            (byte-compile-out 'byte-aset 0)     ;; aset(vector index value)
+            (incf i)))))))
 
 (defun byte-compile-lexbind-emit-closure (fun)
   "Emit code to create a closure for LAMBDA-FUN at the current
@@ -3846,7 +3844,7 @@ byte-compile-lexbind-emit-env-building."
           (byte-compile-lexbind-emit-env-building captures)
           (byte-compile-out 'byte-call 7))
       ;; Trivial (interpreted) body — just push the lambda as a constant.
-      (byte-compile-push-constant proto)))
+      (byte-compile-push-constant proto))))
 
 (defmacro byte-compile-get-constant (const)
   `(or (if (stringp ,const)
